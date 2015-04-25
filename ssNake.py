@@ -17,25 +17,11 @@ else:
     from ttk import *
     from tkFileDialog   import askopenfilename
 import spectrum_classes as sc
+import fitting as fit
 import math
-import re
+from safeEval import safeEval
 
 pi=math.pi
-
-#saf(ish) parsing of math statements
-def safeEval(inp):
-    env = vars(math).copy()
-    env["locals"]   = None
-    env["globals"]  = None
-    env["__name__"] = None
-    env["__file__"] = None
-    env["__builtins__"] = None
-    inp =  re.sub('([0-9]+)[k,K]','\g<1>*1024',inp) #WF: allow 'K' input
-    try:
-        return eval(inp,env)
-    except:
-        print("Could not interpret input")
-        return 0
 
 
 #one window to rule them all
@@ -78,6 +64,10 @@ class MainWindow(Frame):
         toolMenu.add_command(label="Swap Echo", command=self.createSwapEchoWindow)
         toolMenu.add_command(label="Shift Data", command=self.createShiftDataWindow)
         toolMenu.add_command(label="DC offset correction", command=self.createDCWindow)
+	#the fitting drop down menu
+        fittingMenu = Menu(menubar, tearoff=0)
+        menubar.add_cascade(label="Fitting",menu=fittingMenu)
+        fittingMenu.add_command(label="Relaxation Curve", command=self.createRelaxWindow)
         #create the figure to display the data
         fig = Figure(figsize=(5,4), dpi=100)
         a = fig.add_subplot(111)
@@ -140,6 +130,9 @@ class MainWindow(Frame):
 
     def createDCWindow(self):
         DCWindow(self,self.current)
+
+    def createRelaxWindow(self):
+        fit.RelaxWindow(self,self.current)
 
     def undo(self, *args):
         if self.undoList:

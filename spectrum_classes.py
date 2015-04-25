@@ -164,7 +164,6 @@ class Current1D(object):
         self.locList = locList        #list of length dim-1 with the matrix coordinates of current spectrum 
         self.fig = fig                #figure
         self.canvas = canvas          #canvas
-        self.mainLine = None          #keep the main line of the plot
         self.leftMouse = False        #is the left mouse button currently pressed
         self.panX = None              #start position of dragging the spectrum
         self.panY = None              #start position of dragging the spectrum 
@@ -401,20 +400,23 @@ class Current1D(object):
     def plotReset(self): #set the plot limits to min and max values
         a=self.fig.gca()
         if self.plotType==0:
-            self.yminlim=min(np.real(self.data1D))
-            self.ymaxlim=max(np.real(self.data1D))
+            miny = min(np.real(self.data1D))
+            maxy = max(np.real(self.data1D))
         elif self.plotType==1:
-            self.yminlim=min(np.imag(self.data1D))
-            self.ymaxlim=max(np.imag(self.data1D))
+            miny = min(np.imag(self.data1D))
+            maxy = max(np.imag(self.data1D))
         elif self.plotType==2:
-            self.yminlim=min(min(np.real(self.data1D)),min(np.imag(self.data1D)))
-            self.ymaxlim=max(max(np.real(self.data1D)),max(np.imag(self.data1D)))
+            miny = min(min(np.real(self.data1D)),min(np.imag(self.data1D)))
+            maxy = max(max(np.real(self.data1D)),max(np.imag(self.data1D)))
         elif self.plotType==3:
-            self.yminlim=min(np.abs(self.data1D))
-            self.ymaxlim=max(np.abs(self.data1D))
+            miny = min(np.abs(self.data1D))
+            maxy = max(np.abs(self.data1D))
         else:
-            self.yminlim=-1
-            self.ymaxlim=1
+            miny=-1
+            maxy=1
+        differ = 0.05*(maxy-miny) #amount to add to show all datapoints (10%)
+        self.yminlim=miny-differ
+        self.ymaxlim=maxy+differ
         if self.spec:
             self.xminlim=-self.sw/2.0
             self.xmaxlim=self.sw/2.0
