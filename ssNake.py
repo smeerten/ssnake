@@ -26,13 +26,13 @@ pi=math.pi
 
 #one window to rule them all
 class MainWindow(Frame):
-    def __init__(self, parent):
-        Frame.__init__(self, parent)
+    def __init__(self,parent):
+        Frame.__init__(self,parent)
         self.undoList = [] #the list to hold all the undo lambda functions
         self.redoList = [] #the list to hold all the redo lambda functions
         self.parent = parent #remember your parents
         #create the menu
-        menubar=Menu(self)
+        menubar = Menu(self.parent)
         self.parent.config(menu=menubar)
 	#the file drop down menu
         filemenu = Menu(menubar, tearoff=0)
@@ -40,9 +40,9 @@ class MainWindow(Frame):
         filemenu.add_command(label="New", command=self.NewFile)
         filemenu.add_command(label="Open...", command=self.OpenFile)
         filemenu.add_separator()
-        filemenu.add_command(label="Exit", command=self.parent.quit)
+        filemenu.add_command(label="Exit", command=self.quit)
         #the hotkeys for different commands
-        self.bind_all("<Control-q>", lambda extra: self.parent.quit())
+        self.bind_all("<Control-q>", lambda extra: self.quit())
         self.bind_all("<Control-z>", self.undo)
         self.bind_all("<Control-y>", self.redo)
 	#the load drop down menu
@@ -69,22 +69,22 @@ class MainWindow(Frame):
         menubar.add_cascade(label="Fitting",menu=fittingMenu)
         fittingMenu.add_command(label="Relaxation Curve", command=self.createRelaxWindow)
         #create the figure to display the data
-        fig = Figure(figsize=(5,4), dpi=100)
-        a = fig.add_subplot(111)
-        canvas = FigureCanvasTkAgg(fig, master=self.parent)
+        self.fig = Figure(figsize=(5,4), dpi=100)
+        a = self.fig.add_subplot(111)
+        self.canvas = FigureCanvasTkAgg(self.fig, master=self)
         x=np.linspace(0,2*np.pi*10,1000)[:-1] #fake data
         test=np.exp(-1j*x)*np.exp(-1*x/10.0)#fake data
         self.masterData=sc.Spectrum(np.array([test,test*2]),[600000000.0,500000000.0],[1000.0,2000.0])#create a Spectrum instance with the fake data
-        self.current=sc.Current1D(self.masterData,1,[0],0,fig,canvas) #create the Current1D instance from the Spectrum 
-        canvas.get_tk_widget().grid(row=0,column=0,sticky="nswe")
+        self.current=sc.Current1D(self.masterData,1,[0],0,self.fig,self.canvas) #create the Current1D instance from the Spectrum 
+        self.canvas.get_tk_widget().grid(row=0,column=0,sticky="nswe")
 	#create the sideframe, bottomframe and textframe
-        self.sideframe=SideFrame(self.parent,self,self.masterData,self.current) 
+        self.sideframe=SideFrame(self,self.masterData) 
         self.sideframe.grid(row=0,column=2,sticky='n')
-        Separator(self.parent,orient=VERTICAL).grid(row=0,column=1,rowspan=4,sticky='ns')
-        self.bottomframe=BottomFrame(self.parent,self,self.current)
+        Separator(self,orient=VERTICAL).grid(row=0,column=1,rowspan=4,sticky='ns')
+        self.bottomframe=BottomFrame(self)
         self.bottomframe.grid(row=1,column=0,sticky='w') 
-        Separator(self.parent,orient=HORIZONTAL).grid(row=2,sticky='ew')
-        self.textframe=TextFrame(self.parent,self,self.current)
+        Separator(self,orient=HORIZONTAL).grid(row=2,sticky='ew')
+        self.textframe=TextFrame(self)
         self.textframe.grid(row=3,column=0,sticky='s')  
 
 #all the functions that will be called from the menu and the extra frames
@@ -97,8 +97,16 @@ class MainWindow(Frame):
         print(name)
 
     def LoadVarianFile(self):
-        name = askopenfilename()#to be added
-        print(name)
+        #name = askopenfilename()#to be added
+        #print(name)
+        x=np.linspace(0,2*np.pi*10,1000)[:-1] #fake data number 2
+        test=np.exp(-10j*x)*np.exp(-1*x/10.0)#fake data number 2
+        self.masterData=sc.Spectrum(np.array([test,test*2]),[600000000.0,500000000.0],[1000.0,2000.0])
+        self.current=sc.Current1D(self.masterData,1,[0],0,self.fig,self.canvas) #create the Current1D instance from the Spectrum  
+        self.current.upd()
+        self.current.plotReset() #reset the axes limits
+        self.updAllFrames()
+        self.current.showFid()
 
     def LoadChemFile(self):
         name = askopenfilename()#to be added
@@ -107,7 +115,7 @@ class MainWindow(Frame):
     def fourier(self):
         self.redoList = []
         self.undoList.append(self.current.fourier())
-        self.bottomframe.update()
+        self.bottomframe.upd()
     
     def setFreq(self,freq,sw):
         self.redoList = []
@@ -134,42 +142,46 @@ class MainWindow(Frame):
     def createRelaxWindow(self):
         fit.RelaxWindow(self,self.current)
 
+    def updAllFrames(self):
+        self.bottomframe.upd()
+        self.sideframe.upd()
+
     def undo(self, *args):
         if self.undoList:
             self.redoList.append(self.undoList.pop()(self.masterData))
-            self.current.update()
+            self.current.upd()
             self.current.plotReset()
             self.current.showFid()
-            self.bottomframe.update()
+            self.updAllFrames()
         else:
             print("no undo information")
 
     def redo(self, *args):
         if self.redoList:
             self.undoList.append(self.redoList.pop()(self.masterData))
-            self.current.update()
+            self.current.upd()
             self.current.plotReset()
             self.current.showFid()
-            self.bottomframe.update()
+            self.updAllFrames()
         else:
             print("no redo information")
 
 ########################################################################################
 #the sideframe class which displays (if necessary) the position of the shown data relative to the full data matrix
 class SideFrame(Frame):
-    def __init__(self, grandparent, parent, data ,current):
-        self.grandparent = grandparent
+    def __init__(self, parent, data):
+        Frame.__init__(self,parent)
         self.parent = parent
         self.data = data
-        self.current = current
         self.labels=[]
         self.entries=[]
         self.entryVars=[]
-        Frame.__init__(self, grandparent)
-        self.length = len(self.current.locList)+1
-        self.update()
+        Frame.__init__(self, self.parent)
+        self.upd()
 
-    def update(self): #destroy the old widgets and create new ones 
+    def upd(self): #destroy the old widgets and create new ones 
+        self.current = self.parent.current
+        self.length = len(self.current.locList)+1
         self.shape = self.data.data.shape
         for num in self.labels:
             num.destroy()
@@ -184,7 +196,7 @@ class SideFrame(Frame):
                 self.labels[num].grid(row=num*2,column=0)
                 self.entryVars.append(StringVar())
                 
-                if num < self.current.axes:
+                if num < self.parent.current.axes:
                     self.entryVars[num].set(str(self.current.locList[num]))
                 elif num == self.current.axes:
                     self.entryVars[num].set("0")
@@ -225,16 +237,15 @@ class SideFrame(Frame):
                     locList.append(val)
                     self.entryVars[num].set(val)
         self.current.setSlice(dimNum,locList)
-        self.parent.bottomframe.update()
+        self.parent.bottomframe.upd()
 
 ################################################################################  
 #the bottom frame holding the fourier button and stuff      
 class BottomFrame(Frame):
-    def __init__(self, grandparent, parent,current):
-        self.grandparent = grandparent 
+    def __init__(self, parent):
+        Frame.__init__(self,parent)
         self.parent = parent
-        self.current = current
-        Frame.__init__(self, grandparent)
+        self.current = parent.current
         self.specVal = IntVar() #value for the time/freq radiobutton
         if self.current.spec:
             self.specVal.set(1)
@@ -264,9 +275,10 @@ class BottomFrame(Frame):
         self.plotDrop = OptionMenu(self, self.plotOption, "Real","Real", "Imag", "Both","Abs",command=self.changePlot)
         self.plotDrop.grid(row=1,column=5)
         self.swEntry
-        self.update()
+        self.upd()
  
-    def update(self): #update the values displayed in the bottom menu
+    def upd(self): #upd the values displayed in the bottom menu
+        self.current = self.parent.current
         self.freqVal.set(str(self.current.freq/1000000)) #show in MHz
         self.swVal.set(str(self.current.sw/1000)) #show in kHz
         if self.current.spec:
@@ -284,14 +296,14 @@ class BottomFrame(Frame):
     def changeSpec(self, *args): #change from time to spectral domain and vice versa
         self.parent.redoList = []
         self.parent.undoList.append(self.current.changeSpec())
-        self.update()
+        self.upd()
 
     def changeFreq(self, *args): #change the frequency and sw of the displayed axes
         freq = safeEval(self.freqVal.get())*1000000 #show in MHz
         sw = safeEval(self.swVal.get())*1000 #show in kHz
         if freq != 0 and sw != 0:
             self.parent.setFreq(freq,sw)
-        self.update()
+        self.upd()
     
     def changePlot(self, *args): #change the plot type
         pType = self.plotOption.get()
@@ -308,11 +320,9 @@ class BottomFrame(Frame):
 ##################################################################
 #the frame showing the get position data
 class TextFrame(Frame):
-    def __init__(self, grandparent, parent,current):
-        self.grandparent = grandparent 
+    def __init__(self, parent):
+        Frame.__init__(self,parent)
         self.parent = parent
-        self.current = current
-        Frame.__init__(self, grandparent)
         self.pos = StringVar()      #number of get_position data point
         self.pos.set(str(0))
         self.xpoint = StringVar()   #x value of the get_position data point
@@ -334,12 +344,13 @@ class TextFrame(Frame):
         self.ypoint.set(str(position[2]))
     
     def getPosition(self, *args):
-        self.current.peakPickFunc = lambda pos,self=self: self.setLabels(pos) 
-        self.current.peakPick = True
+        self.parent.current.peakPickFunc = lambda pos,self=self: self.setLabels(pos) 
+        self.parent.current.peakPick = True
         
 #################################################################################   
 class PhaseWindow(Frame): #a window for phasing the data
     def __init__(self, parent,current):
+        Frame.__init__(self, parent)
         #initialize variables for the widgets
         self.zeroValue = StringVar()
         self.zeroValue.set("0.00")
@@ -351,7 +362,6 @@ class PhaseWindow(Frame): #a window for phasing the data
         self.phase0step = 0.01
         self.phase1step = 0.001
         #create a new window
-        Frame.__init__(self, parent)
         self.parent = parent
         self.current = current
         self.window = Toplevel(self)
@@ -435,7 +445,7 @@ class PhaseWindow(Frame): #a window for phasing the data
         self.current.peakPick = True
 
     def cancelAndClose(self):
-        self.current.update()
+        self.current.upd()
         self.current.showFid()
         self.window.destroy()
 
@@ -542,7 +552,7 @@ class ApodWindow(Frame): #a window for apodization
             self.gaussScale.set(float(self.gaussVal.get())+gaussincr*self.gaussstep)
 
     def cancelAndClose(self):
-        self.current.update()
+        self.current.upd()
         self.current.showFid()
         self.window.destroy()
 
@@ -593,7 +603,7 @@ class SizeWindow(Frame): #a window for changing the size of the current dimensio
         self.current.setSizePreview(size)
 
     def cancelAndClose(self):
-        self.current.update()
+        self.current.upd()
         self.current.plotReset()
         self.current.showFid()
         self.window.destroy()
@@ -604,17 +614,16 @@ class SizeWindow(Frame): #a window for changing the size of the current dimensio
             size = 1
         self.parent.redoList = []
         self.parent.undoList.append(self.current.applySize(size))
-        self.parent.sideframe.update()
+        self.parent.sideframe.upd()
         self.window.destroy()
 
 ##########################################################################################
 class SwapEchoWindow(Frame): #a window for changing the size of the current dimension
     def __init__(self, parent,current):
+        Frame.__init__(self, parent)
         #initialize variables for the widgets
         self.posVal = StringVar()
         self.posVal.set(str(int(round(0.5*len(current.data1D)))))
-        #create a new window
-        Frame.__init__(self, parent)
         self.parent = parent
         self.current = current
         self.window = Toplevel(self)
@@ -643,7 +652,7 @@ class SwapEchoWindow(Frame): #a window for changing the size of the current dime
 
     def cancelAndClose(self):
         self.current.peakPickReset()
-        self.current.update()
+        self.current.upd()
         self.current.plotReset()
         self.current.showFid()
         self.window.destroy()
@@ -654,7 +663,7 @@ class SwapEchoWindow(Frame): #a window for changing the size of the current dime
         if pos > 0 and pos < len(self.current.data1D):
             self.parent.redoList = []
             self.parent.undoList.append(self.current.applySwapEcho(pos))
-            self.parent.bottomframe.update()
+            self.parent.bottomframe.upd()
             self.window.destroy()
         else:
             print("not a valid index for swap echo")
@@ -662,17 +671,16 @@ class SwapEchoWindow(Frame): #a window for changing the size of the current dime
     def pickedAndClose(self,pos): #apply directly if picked since another doesn't make pick doesn't make sense. find a good way to do both entry and picking in a proper way
         self.parent.redoList = []
         self.parent.undoList.append(self.current.applySwapEcho(pos[0]))
-        self.parent.bottomframe.update()
+        self.parent.bottomframe.upd()
         self.window.destroy()
 
 ###########################################################################
 class ShiftDataWindow(Frame): #a window for shifting the data
     def __init__(self, parent,current):
+        Frame.__init__(self, parent)
         #initialize variables for the widgets
         self.shiftVal = StringVar()
         self.shiftVal.set("0")
-        #create a new window
-        Frame.__init__(self, parent)
         self.parent = parent
         self.current = current
         self.window = Toplevel(self)
@@ -696,7 +704,7 @@ class ShiftDataWindow(Frame): #a window for shifting the data
         self.current.setShiftPreview(shift)
 
     def cancelAndClose(self):
-        self.current.update()
+        self.current.upd()
         self.current.plotReset()
         self.current.showFid()
         self.window.destroy()
@@ -710,13 +718,12 @@ class ShiftDataWindow(Frame): #a window for shifting the data
 #############################################################
 class DCWindow(Frame): #a window for shifting the data
     def __init__(self, parent,current):
+        Frame.__init__(self, parent)
         #initialize variables for the widgets
         self.minVal = StringVar()
         self.minVal.set("0")
         self.maxVal = StringVar()
         self.maxVal.set(str(len(current.data1D)))
-        #create a new window
-        Frame.__init__(self, parent)
         self.parent = parent
         self.current = current
         self.window = Toplevel(self)
@@ -779,7 +786,7 @@ class DCWindow(Frame): #a window for shifting the data
 
     def cancelAndClose(self):
         self.current.peakPickReset()
-        self.current.update()
+        self.current.upd()
         self.current.plotReset()
         self.current.showFid()
         self.window.destroy()
@@ -804,13 +811,13 @@ class DCWindow(Frame): #a window for shifting the data
 #################################################################################    
 #the main program
 if __name__ == "__main__":
-    root = Tk() #create the main window
+    root = Tk()
+    mainWindow = MainWindow(root) #create an instance to control the main window
+    mainWindow.pack(fill=BOTH,expand=1)
+    mainWindow.rowconfigure(0, weight=1)
+    mainWindow.grid_columnconfigure(0, weight=1)
     root.title("ssNake") 
     root.style = Style()
     root.style.theme_use("clam")
-    root.columnconfigure(0, weight=1) #make the main window sizable
-    root.rowconfigure(0, weight=1)
-    mainWindow = MainWindow(root) #create an instance to control the main window
-    mainWindow.grid()
     root.attributes('-zoomed', True)
     root.mainloop()

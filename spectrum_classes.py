@@ -181,11 +181,11 @@ class Current1D(object):
         self.canvas.mpl_connect('motion_notify_event', self.pan)
         self.canvas.mpl_connect('scroll_event', self.scroll)
         self.plotType = plotType      #0=real,1=imag,2=both 3=abs ...
-        self.update()   #get the first slice of data
+        self.upd()   #get the first slice of data
         self.plotReset() #reset the axes limits
         self.showFid() #plot the data
         
-    def update(self): #get new data from the data instance
+    def upd(self): #get new data from the data instance
         updateVar = self.data.getSlice(self.axes,self.locList)
         self.data1D = updateVar[0]
         self.freq = updateVar[1]
@@ -199,7 +199,7 @@ class Current1D(object):
             axesSame = False
             self.axes = axes
         self.locList = locList
-        self.update()
+        self.upd()
         if not axesSame:
             self.plotReset()
         self.showFid()
@@ -221,13 +221,13 @@ class Current1D(object):
         phase0=float(phase0)
         phase1=float(phase1)
         returnValue = self.data.setPhase(phase0,phase1,self.axes)
-        self.update()
+        self.upd()
         self.showFid()
         return returnValue
 
     def fourier(self): #fourier the actual data and replot
         returnValue = self.data.fourier(self.axes)
-        self.update()
+        self.upd()
         self.plotReset()
         self.showFid()
         return returnValue
@@ -275,13 +275,13 @@ class Current1D(object):
 
     def applyApod(self,lor=None,gauss=None,cos2=None): #apply the apodization to the actual data
         returnValue = self.data.apodize(lor,gauss,cos2,self.axes)
-        self.update() 
+        self.upd() 
         self.showFid()     
         return returnValue
 
     def setFreq(self,freq,sw): #set the frequency of the actual data
         returnValue = self.data.setFreq(freq,sw,self.axes)
-        self.update()
+        self.upd()
         self.plotReset()
         self.showFid()
         return returnValue
@@ -301,25 +301,25 @@ class Current1D(object):
                 self.data1D = self.data1D[:size]
         self.plotReset()
         self.showFid()
-        self.update()
+        self.upd()
 
     def applySize(self,size): #set size to the actual data
         returnValue = self.data.setSize(size,self.axes)
-        self.update()
+        self.upd()
         self.plotReset()
         self.showFid()
         return returnValue
 
     def changeSpec(self): #change from time to freq domain of the actual data
         returnValue = self.data.changeSpec(self.axes)
-        self.update()
+        self.upd()
         self.plotReset()
         self.showFid()
         return returnValue
 
     def applySwapEcho(self,idx):
         returnValue = self.data.swapEcho(idx,self.axes)
-        self.update()
+        self.upd()
         self.showFid()
         return returnValue
 
@@ -327,7 +327,7 @@ class Current1D(object):
         self.data1D = np.concatenate((self.data1D[idx:],self.data1D[:idx]))
         self.plotReset()
         self.showFid()
-        self.update()
+        self.upd()
 
     def setWholeEcho(self, value):
         if value == 0:
@@ -339,7 +339,7 @@ class Current1D(object):
 
     def applyShift(self,shift):
         returnValue = self.data.shiftData(shift,self.axes)
-        self.update()
+        self.upd()
         self.showFid()
         return returnValue
         
@@ -361,7 +361,7 @@ class Current1D(object):
         minPos = int(min(pos1,pos2))
         maxPos = int(max(pos1,pos2))
         returnValue = self.data.dcOffset(-np.mean(self.data1D[minPos:maxPos]))
-        self.update()
+        self.upd()
         self.showFid()
         return returnValue
 
