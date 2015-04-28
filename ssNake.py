@@ -1,10 +1,6 @@
 #!/usr/bin/env python
 
-import matplotlib
-matplotlib.use('TkAgg')
 import numpy as np
-from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2TkAgg
-from matplotlib.figure import Figure
 import sys
 if sys.version_info >= (3,0):
     from tkinter import *
@@ -25,7 +21,7 @@ pi=math.pi
 
 
 #one window to rule them all
-class MainWindow(Frame):
+class Main1DWindow(Frame):
     def __init__(self,parent):
         Frame.__init__(self,parent)
         self.undoList = [] #the list to hold all the undo lambda functions
@@ -68,15 +64,12 @@ class MainWindow(Frame):
         fittingMenu = Menu(menubar, tearoff=0)
         menubar.add_cascade(label="Fitting",menu=fittingMenu)
         fittingMenu.add_command(label="Relaxation Curve", command=self.createRelaxWindow)
-        #create the figure to display the data
-        self.fig = Figure(figsize=(5,4), dpi=100)
-        a = self.fig.add_subplot(111)
-        self.canvas = FigureCanvasTkAgg(self.fig, master=self)
+        fittingMenu.add_command(label="Peak Deconvolution", command=self.createPeakDeconvWindow)
         x=np.linspace(0,2*np.pi*10,1000)[:-1] #fake data
         test=np.exp(-1j*x)*np.exp(-1*x/10.0)#fake data
         self.masterData=sc.Spectrum(np.array([test,test*2]),[600000000.0,500000000.0],[1000.0,2000.0])#create a Spectrum instance with the fake data
-        self.current=sc.Current1D(self.masterData,1,[0],0,self.fig,self.canvas) #create the Current1D instance from the Spectrum 
-        self.canvas.get_tk_widget().grid(row=0,column=0,sticky="nswe")
+        self.current=sc.Current1D(self,self.masterData,1,[0],0) #create the Current1D instance from the Spectrum 
+        self.current.grid(row=0,column=0,sticky="nswe")
 	#create the sideframe, bottomframe and textframe
         self.sideframe=SideFrame(self,self.masterData) 
         self.sideframe.grid(row=0,column=2,sticky='n')
@@ -102,7 +95,11 @@ class MainWindow(Frame):
         x=np.linspace(0,2*np.pi*10,1000)[:-1] #fake data number 2
         test=np.exp(-10j*x)*np.exp(-1*x/10.0)#fake data number 2
         self.masterData=sc.Spectrum(np.array([test,test*2]),[600000000.0,500000000.0],[1000.0,2000.0])
-        self.current=sc.Current1D(self.masterData,1,[0],0,self.fig,self.canvas) #create the Current1D instance from the Spectrum  
+        #add some check to see if current exists
+        self.current.grid_remove()
+        self.current.destroy()
+        self.current=sc.Current1D(self,self.masterData,1,[0],0) #create the Current1D instance from the Spectrum  
+        self.current.grid(row=0,column=0,sticky="nswe")
         self.current.upd()
         self.current.plotReset() #reset the axes limits
         self.updAllFrames()
@@ -140,7 +137,18 @@ class MainWindow(Frame):
         DCWindow(self,self.current)
 
     def createRelaxWindow(self):
-        fit.RelaxWindow(self,self.current)
+        root = fit.RelaxWindow(self.parent,self.current)
+        root.title("Relaxation Curve") 
+        #root.attributes('-zoomed', True)
+        root.grid_rowconfigure(0, weight=1)
+        root.grid_columnconfigure(0, weight=1)
+
+    def createPeakDeconvWindow(self):
+        root = fit.PeakDeconvWindow(self.parent,self.current)
+        root.title("Peak Deconvolution") 
+        #root.attributes('-zoomed', True)
+        root.grid_rowconfigure(0, weight=1)
+        root.grid_columnconfigure(0, weight=1)
 
     def updAllFrames(self):
         self.bottomframe.upd()
@@ -176,7 +184,6 @@ class SideFrame(Frame):
         self.labels=[]
         self.entries=[]
         self.entryVars=[]
-        Frame.__init__(self, self.parent)
         self.upd()
 
     def upd(self): #destroy the old widgets and create new ones 
@@ -457,6 +464,7 @@ class PhaseWindow(Frame): #a window for phasing the data
 ################################################################
 class ApodWindow(Frame): #a window for apodization
     def __init__(self, parent,current):
+        Frame.__init__(self, parent)
         #initialize variables for the widgets
         self.lorTick = IntVar()
         self.lorVal = StringVar()
@@ -470,8 +478,6 @@ class ApodWindow(Frame): #a window for apodization
         #set stepsizes for the buttons
         self.lorstep = 1.0
         self.gaussstep = 1.0
-        #create a new window
-        Frame.__init__(self, parent)
         self.parent = parent
         self.current = current
         self.window = Toplevel(self)
@@ -812,7 +818,7 @@ class DCWindow(Frame): #a window for shifting the data
 #the main program
 if __name__ == "__main__":
     root = Tk()
-    mainWindow = MainWindow(root) #create an instance to control the main window
+    mainWindow = Main1DWindow(root) #create an instance to control the main window
     mainWindow.pack(fill=BOTH,expand=1)
     mainWindow.rowconfigure(0, weight=1)
     mainWindow.grid_columnconfigure(0, weight=1)

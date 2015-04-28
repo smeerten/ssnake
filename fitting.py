@@ -17,65 +17,37 @@ else:
 import scipy.optimize
 import math
 from safeEval import safeEval
+from spectrumFrame import Plot1DFrame
 
 pi = math.pi
 
+##############################################################################
+class RelaxWindow(Toplevel): #a window for fitting relaxation data
+    def __init__(self, rootwindow,current):
+        Toplevel.__init__(self,rootwindow)
+        window = RelaxFrame(self,current)
+        window.grid(row=0,column=0,sticky='nswe')
+        window.rowconfigure(0, weight=1)
+        window.columnconfigure(0, weight=1)
+        self.paramframe = RelaxParamFrame(window,self)
+        self.paramframe.grid(row=1,column=0,sticky='sw')
+
 #################################################################################   
-class RelaxWindow(Frame): #a window for shifting the data
-    def __init__(self, parent,current):
-        self.parent = parent
-        self.current = current
+class RelaxFrame(Plot1DFrame): #a window for fitting relaxation data
+    def __init__(self, rootwindow,current):
         self.ax=np.linspace(0,2*np.pi*10,10)[:-1] #fake data
-        self.data=1-1.2*np.exp(-1.0*self.ax/10.0)#fake data
-        self.leftMouse = False        #is the left mouse button currently pressed
-        self.panX = None              #start position of dragging the spectrum
-        self.panY = None              #start position of dragging the spectrum 
-        self.zoomX1 = None            #first corner of the zoombox 
-        self.zoomY1 = None            #first corner of the zoombox
-        self.zoomX2 = None            #second corner of the zoombox
-        self.zoomY2 = None            #second corner of the zoombox
-        self.rect=[None,None,None,None]      #lines for zooming or peak picking
-        self.rightMouse = False              #is the right mouse button currently pressed
-        self.root = Toplevel(self.parent.parent) #create the main window
-        self.root.title("Relaxation Curve") 
-        self.root.style = Style()
-        self.root.style.theme_use("clam")
-        self.root.columnconfigure(0, weight=1) #make the main window sizable
-        self.root.rowconfigure(0, weight=1)
-        self.root.attributes('-zoomed', True)
-        Label(self.root, text="Amplitude * (Constant + Coefficient*exp(-time/T) + ...)").grid(row=1,column=0,sticky='n')
-        self.paramframe = RelaxParamFrame(self)
-        self.paramframe.grid(row=2,column=0,sticky='sw') 
-        self.fig = Figure()
-        self.fig.add_subplot(111)
-        self.canvas = FigureCanvasTkAgg(self.fig, master=self.root)
-        self.canvas.get_tk_widget().grid(row=0,column=0,sticky="nswe")
-        #connect click events to the canvas
-        self.canvas.mpl_connect('button_press_event', self.buttonPress)      
-        self.canvas.mpl_connect('button_release_event', self.buttonRelease)
-        self.canvas.mpl_connect('motion_notify_event', self.pan)
-        self.canvas.mpl_connect('scroll_event', self.scroll)
+        self.data1D=1-1.2*np.exp(-1.0*self.ax/10.0)#fake data
+        Plot1DFrame.__init__(self,rootwindow,self.ax,self.data1D,0)
+        self.current = current
+        self.rootwindow = rootwindow
         self.plotReset()
         self.showPlot()
-
-    def plotReset(self): #set the plot limits to min and max values
-        a=self.fig.gca()
-        miny=min(self.data)
-        maxy=max(self.data)
-        differ = 0.05*(maxy-miny) #amount to add to show all datapoints (10%)
-        self.yminlim=miny-differ
-        self.ymaxlim=maxy+differ
-        self.xminlim=min(self.ax)
-        self.xmaxlim=max(self.ax)
-        a.set_xlim(self.xminlim,self.xmaxlim)
-        a.set_ylim(self.yminlim,self.ymaxlim)
 
     def showPlot(self, tmpAx=None, tmpdata=None): 
         a=self.fig.gca()
         a.cla()
         a.plot(tmpAx,tmpdata)
-        a.scatter(self.ax,self.data)
-        a.set_title("Relaxation Curve")
+        a.scatter(self.xax,self.data1D)
         a.set_xlabel('X axis label')
         a.set_ylabel('Y label')
         a.set_xlim(self.xminlim,self.xmaxlim)
@@ -84,116 +56,18 @@ class RelaxWindow(Frame): #a window for shifting the data
         a.get_yaxis().get_major_formatter().set_powerlimits((-2, 2))
         self.canvas.draw()
 
-    ################
-    # mouse events #
-    ################
-
-    def scroll(self,event):
-        a=self.fig.gca()
-        if self.rightMouse:
-            middle = (self.xmaxlim+self.xminlim)/2.0
-            width = self.xmaxlim-self.xminlim
-            width = width*0.9**event.step
-            self.xmaxlim = middle+width/2.0
-            self.xminlim = middle-width/2.0
-            a.set_xlim(self.xminlim,self.xmaxlim)
-        else:
-            middle = (self.ymaxlim+self.yminlim)/2.0
-            width = self.ymaxlim-self.yminlim
-            width = width*0.9**event.step
-            self.ymaxlim = middle+width/2.0
-            self.yminlim = middle-width/2.0
-            a.set_ylim(self.yminlim,self.ymaxlim)
-        self.canvas.draw()
-
-    def buttonPress(self,event):
-        if event.button == 1:
-            self.leftMouse = True
-            self.zoomX1 = event.xdata
-            self.zoomY1 = event.ydata
-        elif (event.button == 3) and event.dblclick:
-            self.plotReset()
-        elif event.button == 3:
-            self.rightMouse = True
-            self.panX = event.xdata
-            self.panY = event.ydata
-
-    def buttonRelease(self,event):
-        a=self.fig.gca()
-        if event.button == 1:
-            self.leftMouse = False
-            if self.rect[0] is not None:
-                self.rect[0].remove()
-            if self.rect[1] is not None:
-                self.rect[1].remove()
-            if self.rect[2] is not None:
-                self.rect[2].remove()
-            if self.rect[3] is not None:
-                self.rect[3].remove()
-            self.rect=[None,None,None,None]
-            if self.zoomX2 is not None and self.zoomY2 is not None:
-                self.xminlim=min([self.zoomX1,self.zoomX2])
-                self.xmaxlim=max([self.zoomX1,self.zoomX2])
-                self.yminlim=min([self.zoomY1,self.zoomY2])
-                self.ymaxlim=max([self.zoomY1,self.zoomY2])
-                a.set_xlim(self.xminlim,self.xmaxlim)
-                a.set_ylim(self.yminlim,self.ymaxlim)
-            self.zoomX1=None
-            self.zoomX2=None #WF: should also be cleared, memory of old zoom
-            self.zoomY1=None
-            self.zoomY2=None #WF: should also be cleared, memory of old zoom
-        elif event.button == 3:
-            self.rightMouse = False
-        self.canvas.draw()
-
-    def pan(self,event):
-        if self.rightMouse and self.panX is not None and self.panY is not None:
-            a=self.fig.gca()
-            inv = a.transData.inverted()
-            point = inv.transform((event.x,event.y))
-            diffx = point[0]-self.panX
-            diffy = point[1]-self.panY
-            self.xmaxlim = self.xmaxlim-diffx
-            self.xminlim = self.xminlim-diffx
-            self.ymaxlim = self.ymaxlim-diffy
-            self.yminlim = self.yminlim-diffy
-            a.set_xlim(self.xminlim,self.xmaxlim)
-            a.set_ylim(self.yminlim,self.ymaxlim)
-            self.canvas.draw()
-        elif self.leftMouse and (self.zoomX1 is not None) and (self.zoomY1 is not None):
-            a=self.fig.gca()
-            inv = a.transData.inverted()
-            point = inv.transform((event.x,event.y))
-            self.zoomX2 =  point[0]
-            self.zoomY2 = point[1]
-            if self.rect[0] is not None:
-                if self.rect[0] is not None:
-                    self.rect[0].remove()
-                if self.rect[1] is not None:
-                    self.rect[1].remove()
-                if self.rect[2] is not None:
-                    self.rect[2].remove()
-                if self.rect[3] is not None:
-                    self.rect[3].remove()
-                self.rect=[None,None,None,None]
-            self.rect[0],=a.plot([self.zoomX1,self.zoomX2],[self.zoomY2,self.zoomY2],'k',clip_on=False)
-            self.rect[1],=a.plot([self.zoomX1,self.zoomX2],[self.zoomY1,self.zoomY1],'k',clip_on=False)
-            self.rect[2],=a.plot([self.zoomX1,self.zoomX1],[self.zoomY1,self.zoomY2],'k',clip_on=False)
-            self.rect[3],=a.plot([self.zoomX2,self.zoomX2],[self.zoomY1,self.zoomY2],'k',clip_on=False)
-            self.canvas.draw()
-
 #################################################################################
-class RelaxParamFrame(Frame): #a window for shifting the data
-    def __init__(self, parent): 
+class RelaxParamFrame(Frame): #a frame for the relaxtion parameters
+    def __init__(self, parent, rootwindow): 
         self.parent = parent
         self.ampVal = StringVar()
-        self.ampVal.set(str(np.amax(self.parent.data)))
+        self.ampVal.set(str(np.amax(self.parent.data1D)))
         self.ampTick = IntVar()
         self.constVal = StringVar()
         self.constVal.set("1.0")
         self.constTick = IntVar()
         self.numExp = StringVar()
-        Frame.__init__(self, self.parent.root)
+        Frame.__init__(self, rootwindow)
         self.frame1 = Frame(self)
         self.frame1.grid(row=0,column=0,sticky='n')
         self.frame2 = Frame(self)
@@ -201,7 +75,7 @@ class RelaxParamFrame(Frame): #a window for shifting the data
         self.frame3 = Frame(self)
         self.frame3.grid(row=0,column=2,sticky='n')
         Button(self.frame1, text="Fit",command=self.fit).grid(row=0,column=0)
-        Button(self.frame1, text="Cancel",command=self.parent.root.destroy).grid(row=1,column=0)
+        Button(self.frame1, text="Cancel",command=rootwindow.destroy).grid(row=1,column=0)
         Label(self.frame2,text="Amplitude").grid(row=0,column=0,columnspan=2)
         Checkbutton(self.frame2,variable=self.ampTick).grid(row=1,column=0)
         Entry(self.frame2,textvariable=self.ampVal,justify="center").grid(row=1,column=1)
@@ -255,7 +129,7 @@ class RelaxParamFrame(Frame): #a window for shifting the data
                 self.T1Entries[i].grid_remove()
 
     def fitFunc(self, param, numExp, struc, argu):
-        testFunc = np.zeros(len(self.parent.data))
+        testFunc = np.zeros(len(self.parent.data1D))
         if struc[0]:
             amplitude = param[0]
             param=np.delete(param,[0])
@@ -281,8 +155,8 @@ class RelaxParamFrame(Frame): #a window for shifting the data
             else:
                 T1= argu[0]
                 argu=np.delete(argu,[0])
-            testFunc += coeff*np.exp(-1.0*self.parent.ax/T1) 
-        return sum((self.parent.data - amplitude*(constant+testFunc))**2)
+            testFunc += coeff*np.exp(-1.0*self.parent.xax/T1) 
+        return sum((self.parent.data1D - amplitude*(constant+testFunc))**2)
 
 
     def fit(self,*args):
@@ -351,7 +225,275 @@ class RelaxParamFrame(Frame): #a window for shifting the data
                 outT1[i-1] = fitVal['x'][counter]
                 counter += 1
         outCurve = np.zeros(numCurve)
-        x = np.linspace(min(self.parent.ax),max(self.parent.ax),numCurve)
+        x = np.linspace(min(self.parent.xax),max(self.parent.xax),numCurve)
         for i in range(numExp):
             outCurve += outCoeff[i]*np.exp(-x/outT1[i])
         self.parent.showPlot(x, outAmp*(outConst+outCurve))
+
+##############################################################################
+class PeakDeconvWindow(Toplevel): #a window for fitting relaxation data
+    def __init__(self, rootwindow,current):
+        Toplevel.__init__(self,rootwindow)
+        window = PeakDeconvFrame(self,current)
+        window.grid(row=0,column=0,sticky='nswe')
+        window.rowconfigure(0, weight=1)
+        window.columnconfigure(0, weight=1)
+        self.paramframe = PeakDeconvParamFrame(window,self)
+        self.paramframe.grid(row=1,column=0,sticky='sw')
+
+#################################################################################   
+class PeakDeconvFrame(Plot1DFrame): #a window for fitting relaxation data
+    def __init__(self, rootwindow,current):
+        Plot1DFrame.__init__(self,rootwindow,current.xax,np.real(current.data1D),0)
+        self.current = current
+        self.rootwindow = rootwindow
+        self.peakPickFunc = lambda pos,self=self: self.pickDeconv(pos) 
+        self.peakPick = True
+        self.pickNum = 0
+        self.plotReset()
+        self.showPlot()
+
+    def showPlot(self, tmpAx=None, tmpdata=None, tmpAx2=[], tmpdata2=[]): 
+        a=self.fig.gca()
+        a.cla()
+        self.line = a.plot(self.xax,self.data1D)
+        a.plot(tmpAx,tmpdata)
+        for i in range(len(tmpAx2)):
+            a.plot(tmpAx2[i],tmpdata2[i])
+        a.set_xlabel('X axis label')
+        a.set_ylabel('Y label')
+        a.set_xlim(self.xminlim,self.xmaxlim)
+        a.set_ylim(self.yminlim,self.ymaxlim)
+        a.get_xaxis().get_major_formatter().set_powerlimits((-2, 2))
+        a.get_yaxis().get_major_formatter().set_powerlimits((-2, 2))
+        self.canvas.draw()
+
+    def pickDeconv(self, pos):
+        self.rootwindow.paramframe.posVal[self.pickNum].set(str(pos[1]))
+        self.rootwindow.paramframe.ampVal[self.pickNum].set(str(pos[2]))
+        if self.pickNum < 10:
+            self.rootwindow.paramframe.numExp.set(str(self.pickNum+1))
+            self.rootwindow.paramframe.changeNum()
+        self.pickNum += 1
+        if self.pickNum < 10:
+            self.peakPickFunc = lambda pos,self=self: self.pickDeconv(pos) 
+            self.peakPick = True 
+
+#################################################################################
+class PeakDeconvParamFrame(Frame): #a frame for the relaxtion parameters
+    def __init__(self, parent, rootwindow): 
+        self.parent = parent
+        self.bgrndVal = StringVar()
+        self.bgrndVal.set("0.0")
+        self.bgrndTick = IntVar()
+        self.slopeVal = StringVar()
+        self.slopeVal.set("0.0")
+        self.slopeTick = IntVar()
+        self.numExp = StringVar()
+        Frame.__init__(self, rootwindow)
+        self.frame1 = Frame(self)
+        self.frame1.grid(row=0,column=0,sticky='n')
+        self.frame2 = Frame(self)
+        self.frame2.grid(row=0,column=1,sticky='n')
+        self.frame3 = Frame(self)
+        self.frame3.grid(row=0,column=2,sticky='n')
+        Button(self.frame1, text="Fit",command=self.fit).grid(row=0,column=0)
+        Button(self.frame1, text="Cancel",command=rootwindow.destroy).grid(row=1,column=0)
+        Label(self.frame2,text="Bgrnd").grid(row=0,column=0,columnspan=2)
+        Checkbutton(self.frame2,variable=self.bgrndTick).grid(row=1,column=0)
+        Entry(self.frame2,textvariable=self.bgrndVal,justify="center").grid(row=1,column=1)
+        Label(self.frame2,text="Slope").grid(row=2,column=0,columnspan=2)
+        Checkbutton(self.frame2,variable=self.slopeTick).grid(row=3,column=0)
+        Entry(self.frame2,textvariable=self.slopeVal,justify="center").grid(row=3,column=1)
+        OptionMenu(self.frame3, self.numExp, "1","1", "2", "3","4","5","6","7","8","9","10",command=self.changeNum).grid(row=0,column=0,columnspan=6)
+        Label(self.frame3,text="Position").grid(row=1,column=0,columnspan=2)
+        Label(self.frame3,text="Amplitude").grid(row=1,column=2,columnspan=2)
+        Label(self.frame3,text="Width").grid(row=1,column=4,columnspan=2)
+        self.posVal = []
+        self.posTick = []
+        self.ampVal = []
+        self.ampTick = []
+        self.widthVal = []
+        self.widthTick = []
+        self.posCheck = []
+        self.posEntries = []
+        self.ampCheck = []
+        self.ampEntries = []
+        self.widthCheck = []
+        self.widthEntries = []
+
+        for i in range(10):
+            self.posVal.append(StringVar())
+            self.posVal[i].set("0.0")
+            self.posTick.append(IntVar())
+            self.ampVal.append(StringVar())
+            self.ampVal[i].set("1.0")
+            self.ampTick.append(IntVar())
+            self.widthVal.append(StringVar())
+            self.widthVal[i].set("1.0")
+            self.widthTick.append(IntVar())
+            self.posCheck.append(Checkbutton(self.frame3,variable=self.posTick[i]))
+            self.posCheck[i].grid(row=i+2,column=0)
+            self.posEntries.append(Entry(self.frame3,textvariable=self.posVal[i],justify="center"))
+            self.posEntries[i].grid(row=i+2,column=1)
+            self.ampCheck.append(Checkbutton(self.frame3,variable=self.ampTick[i]))
+            self.ampCheck[i].grid(row=i+2,column=2)
+            self.ampEntries.append(Entry(self.frame3,textvariable=self.ampVal[i],justify="center"))
+            self.ampEntries[i].grid(row=i+2,column=3)
+            self.widthCheck.append(Checkbutton(self.frame3,variable=self.widthTick[i]))
+            self.widthCheck[i].grid(row=i+2,column=4)
+            self.widthEntries.append(Entry(self.frame3,textvariable=self.widthVal[i],justify="center"))
+            self.widthEntries[i].grid(row=i+2,column=5)
+            if i > 0:
+                self.posCheck[i].grid_remove()
+                self.posEntries[i].grid_remove()
+                self.ampCheck[i].grid_remove()
+                self.ampEntries[i].grid_remove()
+                self.widthCheck[i].grid_remove()
+                self.widthEntries[i].grid_remove()
+
+    def changeNum(self,*args):
+        val = int(self.numExp.get())
+        for i in range(10):
+            if i < val:
+                self.posCheck[i].grid()
+                self.posEntries[i].grid()
+                self.ampCheck[i].grid()
+                self.ampEntries[i].grid()
+                self.widthCheck[i].grid()
+                self.widthEntries[i].grid()
+            else:
+                self.posCheck[i].grid_remove()
+                self.posEntries[i].grid_remove()
+                self.ampCheck[i].grid_remove()
+                self.ampEntries[i].grid_remove()
+                self.widthCheck[i].grid_remove()
+                self.widthEntries[i].grid_remove()
+
+    def fitFunc(self, param, numExp, struc, argu):
+        testFunc = np.zeros(len(self.parent.data1D))
+        if struc[0]:
+            bgrnd = param[0]
+            param=np.delete(param,[0])
+        else:
+            bgrnd = argu[0]
+            argu=np.delete(argu,[0])
+        if struc[1]:
+            slope = param[0]
+            param=np.delete(param,[0])
+        else:
+            slope = argu[0]
+            argu=np.delete(argu,[0])
+        for i in range(1,numExp+1):
+            if struc[3*i-1]:
+                pos = param[0]
+                param=np.delete(param,[0])
+            else:
+                pos= argu[0]
+                argu=np.delete(argu,[0])
+            if struc[3*i]:
+                amp = param[0]
+                param=np.delete(param,[0])
+            else:
+                amp= argu[0]
+                argu=np.delete(argu,[0])
+            if struc[3*i+1]:
+                width = abs(param[0])
+                param=np.delete(param,[0])
+            else:
+                width = argu[0]
+                argu=np.delete(argu,[0])
+            testFunc += amp/(1.0+((self.parent.xax-pos)/(0.5*width))**2)
+        testFunc += bgrnd+slope*self.parent.xax
+        return sum((self.parent.data1D - testFunc)**2)
+
+
+    def fit(self,*args):
+        #structure of the fitting arguments is : [amp,cost, coeff1, t1, coeff2, t2, coeff3, t3, coeff4, t4]
+        struc = []
+        guess = []
+        argu = []
+        numExp = int(self.numExp.get())
+        outPos = np.zeros(numExp)
+        outAmp = np.zeros(numExp)
+        outWidth = np.zeros(numExp)
+        if self.bgrndTick.get() == 0:
+            guess.append(safeEval(self.bgrndVal.get()))
+            struc.append(True)
+        else:
+            inp = safeEval(self.bgrndVal.get())
+            argu.append(inp)
+            outBgrnd = inp
+            self.bgrndVal.set('%.2f' % inp)
+            struc.append(False)
+        if self.slopeTick.get() == 0:
+            guess.append(safeEval(self.slopeVal.get()))
+            struc.append(True)
+        else:
+            inp = safeEval(self.slopeVal.get())
+            argu.append(inp)
+            outSlope = inp
+            self.slopeVal.set('%.2f' % inp)
+            struc.append(False)
+        for i in range(numExp):
+            if self.posTick[i].get() == 0:
+                guess.append(safeEval(self.posVal[i].get()))
+                struc.append(True)
+            else:
+                inp = safeEval(self.posVal[i].get())
+                argu.append(inp)
+                outPos[i] = inp
+                self.posVal[i].set('%.2f' % inp)
+                struc.append(False)
+            if self.ampTick[i].get() == 0:
+                guess.append(safeEval(self.ampVal[i].get()))
+                struc.append(True)
+            else:
+                inp = safeEval(self.ampVal[i].get())
+                argu.append(inp)
+                outAmp[i] = inp
+                self.ampVal[i].set('%.2f' % inp)
+                struc.append(False)
+            if self.widthTick[i].get() == 0:
+                guess.append(abs(safeEval(self.widthVal[i].get())))
+                struc.append(True)
+            else:
+                inp = abs(safeEval(self.widthVal[i].get()))
+                argu.append(inp)
+                outWidth[i] = inp
+                self.widthVal[i].set('%.2f' % inp)
+                struc.append(False)
+        fitVal = scipy.optimize.minimize(self.fitFunc,guess,(numExp,struc,argu),'Nelder-Mead')
+        counter = 0
+        if struc[0]:
+            self.bgrndVal.set('%.2f' % fitVal['x'][counter])
+            outBgrnd = fitVal['x'][counter]
+            counter +=1
+        if struc[1]:
+            self.slopeVal.set('%.2f' % fitVal['x'][counter])
+            outSlope = fitVal['x'][counter]
+            counter +=1
+        for i in range(1,numExp+1):
+            if struc[3*i-1]:
+                self.posVal[i-1].set('%.2f' % fitVal['x'][counter])
+                outPos[i-1] = fitVal['x'][counter]
+                counter += 1
+            if struc[3*i]:
+                self.ampVal[i-1].set('%.2f' % fitVal['x'][counter])
+                outAmp[i-1] = fitVal['x'][counter]
+                counter += 1
+            if struc[3*i+1]:
+                self.widthVal[i-1].set('%.2f' % abs(fitVal['x'][counter]))
+                outWidth[i-1] = abs(fitVal['x'][counter])
+                counter += 1 
+        tmpx = self.parent.xax
+        outCurveBase = outBgrnd + tmpx*outSlope
+        outCurve = outCurveBase
+        outCurvePart = []
+        x=[]
+        for i in range(numExp):
+            x.append(tmpx)
+            y =  outAmp[i]/(1.0+((tmpx-outPos[i])/(0.5*outWidth[i]))**2)
+            outCurvePart.append(outCurveBase + y)
+            outCurve += y
+        self.parent.showPlot(tmpx, outCurve, x, outCurvePart)

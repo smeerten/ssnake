@@ -2,6 +2,7 @@ import matplotlib
 import numpy as np
 import scipy.optimize
 import copy
+from spectrumFrame import Plot1DFrame
 
 #########################################################################
 #the generic data class
@@ -152,8 +153,10 @@ class Spectrum(object):
 
 #########################################################################################################
 #the class from which the 1d data is displayed, the operations which only edit the content of this class are for previewing
-class Current1D(object):
-    def __init__(self, data, axes, locList, plotType , fig, canvas):
+class Current1D(Plot1DFrame):
+    def __init__(self, root, data, axes, locList, plotType):
+        Plot1DFrame.__init__(self,root,None,None, plotType)
+        self.xax = None               #x-axis
         self.data = data              #the actual spectrum instance
         self.freq = None              #frequency of the slice 
         self.sw = None                #x-data display
@@ -162,25 +165,6 @@ class Current1D(object):
         self.wholeEcho = None
         self.axes = axes              #dimension of which the data is displayed
         self.locList = locList        #list of length dim-1 with the matrix coordinates of current spectrum 
-        self.fig = fig                #figure
-        self.canvas = canvas          #canvas
-        self.leftMouse = False        #is the left mouse button currently pressed
-        self.panX = None              #start position of dragging the spectrum
-        self.panY = None              #start position of dragging the spectrum 
-        self.zoomX1 = None            #first corner of the zoombox 
-        self.zoomY1 = None            #first corner of the zoombox
-        self.zoomX2 = None            #second corner of the zoombox
-        self.zoomY2 = None            #second corner of the zoombox
-        self.rect=[None,None,None,None]      #lines for zooming or peak picking
-        self.rightMouse = False              #is the right mouse button currently pressed
-        self.peakPick = False         #currently peakPicking
-        self.peakPickFunc = None      #the function that needs to be called after peakPicking
-        #connect click events to the canvas
-        self.canvas.mpl_connect('button_press_event', self.buttonPress)      
-        self.canvas.mpl_connect('button_release_event', self.buttonRelease)
-        self.canvas.mpl_connect('motion_notify_event', self.pan)
-        self.canvas.mpl_connect('scroll_event', self.scroll)
-        self.plotType = plotType      #0=real,1=imag,2=both 3=abs ...
         self.upd()   #get the first slice of data
         self.plotReset() #reset the axes limits
         self.showFid() #plot the data
@@ -192,6 +176,10 @@ class Current1D(object):
         self.sw = updateVar[2]
         self.spec = updateVar[3]
         self.wholeEcho = updateVar[4]
+        if not(self.spec):
+            self.xax=np.arange(len(self.data1D))/(2.0*self.sw)
+        else:
+            self.xax=np.fft.fftshift(np.fft.fftfreq(len(self.data1D),1.0/self.sw))
 
     def setSlice(self,axes,locList): #change the slice 
         axesSame = True
@@ -397,65 +385,33 @@ class Current1D(object):
             phases = scipy.optimize.fmin(func=self.ACMEentropy,x0=[0,0])
         return phases
 
-    def plotReset(self): #set the plot limits to min and max values
-        a=self.fig.gca()
-        if self.plotType==0:
-            miny = min(np.real(self.data1D))
-            maxy = max(np.real(self.data1D))
-        elif self.plotType==1:
-            miny = min(np.imag(self.data1D))
-            maxy = max(np.imag(self.data1D))
-        elif self.plotType==2:
-            miny = min(min(np.real(self.data1D)),min(np.imag(self.data1D)))
-            maxy = max(max(np.real(self.data1D)),max(np.imag(self.data1D)))
-        elif self.plotType==3:
-            miny = min(np.abs(self.data1D))
-            maxy = max(np.abs(self.data1D))
-        else:
-            miny=-1
-            maxy=1
-        differ = 0.05*(maxy-miny) #amount to add to show all datapoints (10%)
-        self.yminlim=miny-differ
-        self.ymaxlim=maxy+differ
-        if self.spec:
-            self.xminlim=-self.sw/2.0
-            self.xmaxlim=self.sw/2.0
-        else:
-            self.xminlim=0
-            self.xmaxlim=(len(self.data1D)-1)/(2.0*self.sw)
-        a.set_xlim(self.xminlim,self.xmaxlim)
-        a.set_ylim(self.yminlim,self.ymaxlim)
 
     def showFid(self, tmpdata=None, extraX=None, extraY=None, extraColor=None,old=False): #display the 1D data
         if tmpdata is None:
             tmpdata=self.data1D
         a=self.fig.gca()
         a.cla()
-        if not(self.spec):
-            x=np.arange(len(tmpdata))/(2.0*self.sw)
-        else:
-            x=np.fft.fftshift(np.fft.fftfreq(len(tmpdata),1.0/self.sw))
         if old:
             if (self.plotType==0):
-                a.plot(x,np.real(self.data1D),c='k',alpha=0.2)
+                a.plot(self.xax,np.real(self.data1D),c='k',alpha=0.2)
             elif(self.plotType==1):
-                a.plot(x,np.imag(self.data1D),c='k',alpha=0.2)
+                a.plot(self.xax,np.imag(self.data1D),c='k',alpha=0.2)
             elif(self.plotType==2):
-                a.plot(x,np.real(self.data1D),c='k',alpha=0.2)
+                a.plot(self.xax,np.real(self.data1D),c='k',alpha=0.2)
             elif(self.plotType==3):
-                a.plot(x,np.abs(self.data1D),c='k',alpha=0.2)
+                a.plot(self.xax,np.abs(self.data1D),c='k',alpha=0.2)
         if (extraX is not None):
             for num in range(len(extraX)):
                 a.plot(extraX[num],extraY[num],c=extraColor[num])
         if (self.plotType==0):
-            self.line = a.plot(x,np.real(tmpdata),c='b')
+            self.line = a.plot(self.xax,np.real(tmpdata),c='b')
         elif(self.plotType==1):
-            self.line = a.plot(x,np.imag(tmpdata),c='b')
+            self.line = a.plot(self.xax,np.imag(tmpdata),c='b')
         elif(self.plotType==2):
-            a.plot(x,np.imag(tmpdata),c='r')
-            self.line = a.plot(x,np.real(tmpdata),c='b')
+            a.plot(self.xax,np.imag(tmpdata),c='r')
+            self.line = a.plot(self.xax,np.real(tmpdata),c='b')
         elif(self.plotType==3):
-            self.line = a.plot(x,np.abs(tmpdata),c='b')
+            self.line = a.plot(self.xax,np.abs(tmpdata),c='b')
         a.set_title("TD"+str(self.axes+1))
         a.set_xlabel('X axis label')
         a.set_ylabel('Y label')
@@ -465,128 +421,3 @@ class Current1D(object):
         a.get_yaxis().get_major_formatter().set_powerlimits((-2, 2))
         #self.fig.set_tight_layout(True)
         self.canvas.draw()
-
-    ################
-    # mouse events #
-    ################
-
-    def peakPickReset(self):
-        self.rect=[None,None,None,None]
-        self.peakPick=False
-        self.peakPickFunc = None
-
-    def scroll(self,event):
-        a=self.fig.gca()
-        if self.rightMouse:
-            middle = (self.xmaxlim+self.xminlim)/2.0
-            width = self.xmaxlim-self.xminlim
-            width = width*0.9**event.step
-            self.xmaxlim = middle+width/2.0
-            self.xminlim = middle-width/2.0
-            a.set_xlim(self.xminlim,self.xmaxlim)
-        else:
-            middle = (self.ymaxlim+self.yminlim)/2.0
-            width = self.ymaxlim-self.yminlim
-            width = width*0.9**event.step
-            self.ymaxlim = middle+width/2.0
-            self.yminlim = middle-width/2.0
-            a.set_ylim(self.yminlim,self.ymaxlim)
-        self.canvas.draw()
-
-    def buttonPress(self,event):
-        if event.button == 1 and not self.peakPick:
-            self.leftMouse = True
-            self.zoomX1 = event.xdata
-            self.zoomY1 = event.ydata
-        elif (event.button == 3) and event.dblclick:
-            self.plotReset()
-        elif event.button == 3:
-            self.rightMouse = True
-            self.panX = event.xdata
-            self.panY = event.ydata
-
-    def buttonRelease(self,event):
-        a=self.fig.gca()
-        if event.button == 1:
-            if self.peakPick:
-                if self.rect[0] is not None:
-                    self.rect[0].remove()
-                    self.rect[0]=None
-                    self.peakPick = False
-                    xdata = self.line[0].get_xdata()
-                    ydata = self.line[0].get_ydata()
-                    idx =np.argmin(np.abs(xdata-event.xdata))
-                    if self.peakPickFunc is not None:
-                        self.peakPickFunc((idx,xdata[idx],ydata[idx]))
-                    if not self.peakPick: #check if peakpicking is still required
-                        self.peakPickFunc = None
-            else:
-                self.leftMouse = False
-                if self.rect[0] is not None:
-                    self.rect[0].remove()
-                if self.rect[1] is not None:
-                    self.rect[1].remove()
-                if self.rect[2] is not None:
-                    self.rect[2].remove()
-                if self.rect[3] is not None:
-                    self.rect[3].remove()
-                self.rect=[None,None,None,None]
-                if self.zoomX2 is not None and self.zoomY2 is not None:
-                    self.xminlim=min([self.zoomX1,self.zoomX2])
-                    self.xmaxlim=max([self.zoomX1,self.zoomX2])
-                    self.yminlim=min([self.zoomY1,self.zoomY2])
-                    self.ymaxlim=max([self.zoomY1,self.zoomY2])
-                    a.set_xlim(self.xminlim,self.xmaxlim)
-                    a.set_ylim(self.yminlim,self.ymaxlim)
-                self.zoomX1=None
-                self.zoomX2=None #WF: should also be cleared, memory of old zoom
-                self.zoomY1=None
-                self.zoomY2=None #WF: should also be cleared, memory of old zoom
-        elif event.button == 3:
-            self.rightMouse = False
-        self.canvas.draw()
-
-    def pan(self,event):
-        if self.rightMouse and self.panX is not None and self.panY is not None:
-            a=self.fig.gca()
-            inv = a.transData.inverted()
-            point = inv.transform((event.x,event.y))
-            diffx = point[0]-self.panX
-            diffy = point[1]-self.panY
-            self.xmaxlim = self.xmaxlim-diffx
-            self.xminlim = self.xminlim-diffx
-            self.ymaxlim = self.ymaxlim-diffy
-            self.yminlim = self.yminlim-diffy
-            a.set_xlim(self.xminlim,self.xmaxlim)
-            a.set_ylim(self.yminlim,self.ymaxlim)
-            self.canvas.draw()
-        elif self.peakPick:
-            a=self.fig.gca()
-            if self.rect[0] is not None:
-                self.rect[0].remove()
-                self.rect[0]=None
-            if event.xdata is not None:
-                self.rect[0]=a.axvline(event.xdata,c='k',linestyle='--')
-            self.canvas.draw()
-        elif self.leftMouse and (self.zoomX1 is not None) and (self.zoomY1 is not None):
-            a=self.fig.gca()
-            inv = a.transData.inverted()
-            point = inv.transform((event.x,event.y))
-            self.zoomX2 =  point[0]
-            self.zoomY2 = point[1]
-            if self.rect[0] is not None:
-                if self.rect[0] is not None:
-                    self.rect[0].remove()
-                if self.rect[1] is not None:
-                    self.rect[1].remove()
-                if self.rect[2] is not None:
-                    self.rect[2].remove()
-                if self.rect[3] is not None:
-                    self.rect[3].remove()
-                self.rect=[None,None,None,None]
-            self.rect[0],=a.plot([self.zoomX1,self.zoomX2],[self.zoomY2,self.zoomY2],'k',clip_on=False)
-            self.rect[1],=a.plot([self.zoomX1,self.zoomX2],[self.zoomY1,self.zoomY1],'k',clip_on=False)
-            self.rect[2],=a.plot([self.zoomX1,self.zoomX1],[self.zoomY1,self.zoomY2],'k',clip_on=False)
-            self.rect[3],=a.plot([self.zoomX2,self.zoomX2],[self.zoomY1,self.zoomY2],'k',clip_on=False)
-            self.canvas.draw()
-            
