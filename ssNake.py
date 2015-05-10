@@ -15,6 +15,10 @@ else:
 import spectrum_classes as sc
 import fitting as fit
 import math
+#For varianload
+import os
+from struct import unpack
+#------------
 from safeEval import safeEval
 
 pi=math.pi
@@ -46,6 +50,13 @@ class Main1DWindow(Frame):
         menubar.add_cascade(label="Load", menu=loadmenu)
         loadmenu.add_command(label="Load Varian data", command=self.LoadVarianFile)
         loadmenu.add_command(label="Load infinity data", command=self.LoadChemFile)
+        loadmenu.add_command(label="Load Simpson data", command=self.LoadSimpsonFile)
+        
+      #the save drop down menu
+        savemenu = Menu(menubar, tearoff=0)
+        menubar.add_cascade(label="Save", menu=savemenu)
+        savemenu.add_command(label="Save as Simpson data", command=self.SaveSimpsonFile)
+        
 	#the edit drop down menu
         editmenu = Menu(menubar, tearoff=0)
         menubar.add_cascade(label="Edit", menu=editmenu)
@@ -71,7 +82,7 @@ class Main1DWindow(Frame):
         self.current=sc.Current1D(self,self.masterData,1,[0],0) #create the Current1D instance from the Spectrum 
         self.current.grid(row=0,column=0,sticky="nswe")
 	#create the sideframe, bottomframe and textframe
-        self.sideframe=SideFrame(self,self.masterData) 
+        self.sideframe=SideFrame(self) 
         self.sideframe.grid(row=0,column=2,sticky='n')
         Separator(self,orient=VERTICAL).grid(row=0,column=1,rowspan=4,sticky='ns')
         self.bottomframe=BottomFrame(self)
@@ -90,25 +101,145 @@ class Main1DWindow(Frame):
         print(name)
 
     def LoadVarianFile(self):
-        #name = askopenfilename()#to be added
-        #print(name)
-        x=np.linspace(0,2*np.pi*10,1000)[:-1] #fake data number 2
-        test=np.exp(-10j*x)*np.exp(-1*x/10.0)#fake data number 2
-        self.masterData=sc.Spectrum(np.array([test,test*2]),[600000000.0,500000000.0],[1000.0,2000.0])
-        #add some check to see if current exists
+        FilePath = askopenfilename()
+        Dir = os.path.dirname(FilePath) #convert path to file to path of folder
+        
+        
+        #Extract Procpar data ------------------------
+        with open(Dir+'/procpar', 'r') as f: #read entire procfile (data[0] gives first line)
+            data = f.read().split('\n')
+        freq = 0
+        sw   = 0
+        sw1  = 0    
+        for s in range(0,len(data)): #exctract info from procpar
+            if data[s].startswith('sfrq '):
+                freq=float(data[s+1].split()[1])*1e6 #convert to MHz
+            elif data[s].startswith('sw '):
+                sw=float(data[s+1].split()[1])
+            elif data[s].startswith('sw1 '):
+                sw1=float(data[s+1].split()[1])
+                
+        
+        #Get fid data-----------------------------                
+        with open(Dir+'/fid', "rb") as f:
+            raw = np.fromfile(f, np.int32,6) #read 6 steps, 32 bits
+            nblocks = unpack('>l', raw[0])[0] #unpack bitstring using bigendian and as LONG interger
+            ntraces = unpack('>l', raw[1])[0]
+            npoints = unpack('>l', raw[2])[0]
+            ebytes = unpack('>l', raw[3])[0]
+            tbytes = unpack('>l', raw[4])[0]
+            bbytes = unpack('>l', raw[5])[0]
+            raw = np.fromfile(f, np.int16,2) #16bit, 2 steps
+            vers_id = unpack('>h', raw[0])[0] #bigendian short
+            status = unpack('>h', raw[1])[0]
+            raw = np.fromfile(f, np.int32,1) 
+            nbheaders = unpack('>l', raw[0])[0]
+            SizeTD2 = npoints
+            SizeTD1 = nblocks*ntraces
+            a = []
+            fid32 = bin(status)[-3] #check if 32 bits, or float
+            fidfloat = bin(status)[-4]
+            for iter1 in range(0,nblocks): #now read all blocks
+                b = []
+                for iter2 in range(0,nbheaders):
+                    raw = np.fromfile(f, np.int16,nbheaders*14)
+                if not fid32 and not fidfloat:
+                    raw = np.fromfile(f, np.int16,ntraces*npoints)
+                    for iter3 in raw:
+                        b.append(unpack('>h', iter3)[0])
+                elif fid32 and not fidfloat:
+                    raw = np.fromfile(f, np.int32,ntraces*npoints)
+                    for iter3 in raw:
+                        b.append(unpack('>l', iter3)[0])
+                else:
+                    raw = np.fromfile(f, np.float32,ntraces*npoints)
+                    for iter3 in raw:
+                        b.append(unpack('>f', iter3)[0])
+                b=np.array(b)
+                if(len(b) != ntraces*npoints):
+                    b.append(np.zeros(ntraces*npoints-len(b)))
+                a.append(b)
+        a=np.complex128(a)
+        fid = a[:,::2]-1j*a[:,1::2]
+        
         self.current.grid_remove()
         self.current.destroy()
-        self.current=sc.Current1D(self,self.masterData,1,[0],0) #create the Current1D instance from the Spectrum  
+        
+        if SizeTD1 is 1: #convert to 1D dat if the data is 1D (so no 1xnp data, but np)
+            fid = fid[0][:]
+            self.masterData=sc.Spectrum(fid,[freq],[sw])
+            self.current=sc.Current1D(self,self.masterData,0,[],0) #create the Current1D instance from the Spectrum  
+        else: #For 2D data
+            self.masterData=sc.Spectrum(fid,[freq]*2,[sw]*2)
+            self.current=sc.Current1D(self,self.masterData,1,[0],0) #create the Current1D instance from the Spectrum  
+                
+       
+        #add some check to see if current exists
         self.current.grid(row=0,column=0,sticky="nswe")
-        self.current.upd()
-        self.current.plotReset() #reset the axes limits
         self.updAllFrames()
-        self.current.showFid()
 
     def LoadChemFile(self):
         name = askopenfilename()#to be added
         print(name)
-    
+        
+    def LoadSimpsonFile(self):
+        #Loads Simpson data (Fid or Spectrum) to the ssNake data format
+        FileLocation = askopenfilename()#to be added
+        with open(FileLocation, 'r') as f: #read entire procfile (data[0] gives first line)
+            Lines = f.read().split('\n')
+        
+        NP, NI, SW, SW1, TYPE, FORMAT = 0,1,0,0,'','Normal'
+        for s in range(0,len(Lines)):
+            if Lines[s].startswith('NP='):
+                NP = int(re.sub('NP=','',Lines[s]))
+            elif Lines[s].startswith('NI='):
+                NI = int(re.sub('NI=','',Lines[s]))
+            elif Lines[s].startswith('SW='):
+                SW = float(re.sub('SW=','',Lines[s]))
+            elif Lines[s].startswith('SW1='):
+                SW1 = float(re.sub('SW1=','',Lines[s]))
+            elif Lines[s].startswith('TYPE='):
+                TYPE = re.sub('TYPE=','',Lines[s])
+            elif Lines[s].startswith('FORMAT='):
+                FORMAT = re.sub('FORMAT=','',Lines[s])
+            elif Lines[s].startswith('DATA'):
+                DataStart = s
+            elif Lines[s].startswith('END'):
+                DataEnd = s
+        
+        if 'Normal' in FORMAT: #If normal format (e.g. not binary)
+            data = []
+            for iii in range(DataStart+1,DataEnd): #exctract data
+                temp = Lines[iii].split()
+                data.append(float(temp[0])+1j*float(temp[1]))
+        elif 'BINARY' in FORMAT: #needs to be im-plemented
+            AGD=1
+        
+        data = np.array(data) #convert to numpy array
+        self.current.grid_remove()
+        self.current.destroy()
+        if 'FID' in TYPE:
+            axis=0
+            spec = [False]
+        elif 'SPE' in TYPE:
+            axis=1
+            spec = [True]
+            
+        if NI is 1:
+            self.masterData=sc.Spectrum(data,[0],[SW],spec)
+            self.current=sc.Current1D(self,self.masterData,0,[],0) #create the Current1D instance from the Spectrum  
+        else:
+            data = np.transpose(data.reshape((NP,NI)))
+            self.masterData=sc.Spectrum(data,[0,0],[SW,SW1],spec*2)
+            self.current=sc.Current1D(self,self.masterData,0,[0],0) #create the Current1D instance from the Spectrum  
+            
+        self.current.grid(row=0,column=0,sticky="nswe")
+        self.updAllFrames()
+        
+        
+    def SaveSimpsonFile(self):
+        akhfv=1
+        
     def fourier(self):
         self.redoList = []
         self.undoList.append(self.current.fourier())
@@ -177,10 +308,9 @@ class Main1DWindow(Frame):
 ########################################################################################
 #the sideframe class which displays (if necessary) the position of the shown data relative to the full data matrix
 class SideFrame(Frame):
-    def __init__(self, parent, data):
+    def __init__(self, parent):
         Frame.__init__(self,parent)
         self.parent = parent
-        self.data = data
         self.labels=[]
         self.entries=[]
         self.entryVars=[]
@@ -189,7 +319,7 @@ class SideFrame(Frame):
     def upd(self): #destroy the old widgets and create new ones 
         self.current = self.parent.current
         self.length = len(self.current.locList)+1
-        self.shape = self.data.data.shape
+        self.shape = self.parent.masterData.data.shape 
         for num in self.labels:
             num.destroy()
         self.labels = []
