@@ -35,8 +35,8 @@ class RelaxWindow(Toplevel): #a window for fitting relaxation data
 #################################################################################   
 class RelaxFrame(Plot1DFrame): #a window for fitting relaxation data
     def __init__(self, rootwindow,current):
-        self.ax=np.linspace(0,2*np.pi*10,10)[:-1] #fake data
-        self.data1D=1-1.2*np.exp(-1.0*self.ax/10.0)#fake data
+        self.ax=current.xax
+        self.data1D=current.getDisplayedData()
         Plot1DFrame.__init__(self,rootwindow,self.ax,self.data1D,0)
         self.current = current
         self.rootwindow = rootwindow

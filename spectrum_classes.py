@@ -20,7 +20,19 @@ class Spectrum(object):
             self.wholeEcho = [False]*self.dim
         else:
             self.wholeEcho = wholeEcho                    #boolean array of length dim where True indicates a full Echo
+        self.xaxArray = [[] for i in range(self.dim)]
+        self.resetXax()
 
+    def resetXax(self,axes=None):
+        if axes is not None:
+            val=[axes]
+        else:
+            val=range(self.dim)
+        for i in val:
+            if not(self.spec[i]):
+                self.xaxArray[i]=np.arange(self.data.shape[i])/(2.0*self.sw[i])
+            else:
+                self.xaxArray[i]=np.fft.fftshift(np.fft.fftfreq(self.data.shape[i],1.0/self.sw[i])) 
 
     def setPhase(self, phase0, phase1, axes):
         vector = np.exp(np.fft.fftshift(np.fft.fftfreq(self.data.shape[axes],1.0/self.sw[axes]))*phase1*1j)
@@ -67,6 +79,7 @@ class Spectrum(object):
         oldSw = self.sw[axes]
         self.freq[axes]=freq
         self.sw[axes]=sw
+        self.resetXax(axes)
         return lambda self: self.setFreq(oldFreq,oldSw,axes)
 
     def setSize(self,size,axes):
@@ -89,6 +102,7 @@ class Spectrum(object):
                 slicing = (slice(None),) * axes + (slice(0,size),) + (slice(None),)*(self.dim-1-axes)
                 self.data = self.data[slicing]
         self.dim = len(self.data.shape)
+        self.resetXax(axes)
         return returnValue
 
     def changeSpec(self,axes):
@@ -96,6 +110,7 @@ class Spectrum(object):
             self.spec[axes] = False
         else:
             self.spec[axes] = True
+        self.resetXax(axes)
         return lambda self: self.changeSpec(axes)
 
     def swapEcho(self,idx,axes):
@@ -135,10 +150,11 @@ class Spectrum(object):
                 slicing = (slice(None),) * axes + (0,) + (slice(None),)*(self.dim-1-axes)
                 self.data[slicing]= self.data[slicing]*2.0
             self.spec[axes]=False
+        self.resetXax(axes)
         return lambda self: self.fourier(axes)
 
     def getSlice(self,axes,locList):
-        return (self.data[tuple(locList[:axes])+(slice(None),)+tuple(locList[axes:])],self.freq[axes],self.sw[axes],self.spec[axes],self.wholeEcho[axes])
+        return (self.data[tuple(locList[:axes])+(slice(None),)+tuple(locList[axes:])],self.freq[axes],self.sw[axes],self.spec[axes],self.wholeEcho[axes],self.xaxArray[axes])
 
     def restoreData(self,copyData,returnValue): # restore data from an old copy for undo purposes
         self.data = copyData.data
@@ -147,6 +163,7 @@ class Spectrum(object):
         self.sw = copyData.sw                                  #array of sweepwidths
         self.spec = copyData.spec
         self.wholeEcho = copyData.wholeEcho
+        self.xaxArray = copyData.xaxArray
         return returnValue
         
 
@@ -176,10 +193,7 @@ class Current1D(Plot1DFrame):
         self.sw = updateVar[2]
         self.spec = updateVar[3]
         self.wholeEcho = updateVar[4]
-        if not(self.spec):
-            self.xax=np.arange(len(self.data1D))/(2.0*self.sw)
-        else:
-            self.xax=np.fft.fftshift(np.fft.fftfreq(len(self.data1D),1.0/self.sw))
+        self.xax=updateVar[5]
 
     def setSlice(self,axes,locList): #change the slice 
         axesSame = True
@@ -385,6 +399,29 @@ class Current1D(Plot1DFrame):
             phases = scipy.optimize.fmin(func=self.ACMEentropy,x0=[0,0])
         return phases
 
+    def setXaxPreview(self,xax):
+        self.xax = xax
+        self.plotReset()
+        self.showFid()
+        self.upd()
+
+    def setXax(self,xax):
+        self.data.xaxArray[self.axes]= xax 
+        self.upd()
+        self.plotReset()
+        self.showFid()
+        #for now the changing of the axis cannot be undone, because of problems in case of a non-linear axis on operations such as fourier transform etc.
+        #doing one of these operations will result in a return to the default axis defined by sw
+
+    def getDisplayedData(self):
+        if self.plotType==0:
+            return np.real(self.data1D)
+        elif self.plotType==1:
+            return np.imag(self.data1D)
+        elif self.plotType==2:
+            return np.real(self.data1D)
+        elif self.plotType==3:
+            return np.abs(self.data1D)      
 
     def showFid(self, tmpdata=None, extraX=None, extraY=None, extraColor=None,old=False): #display the 1D data
         if tmpdata is None:

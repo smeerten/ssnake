@@ -34,7 +34,7 @@ class Main1DWindow(Frame):
         #create the menu
         menubar = Menu(self.parent)
         self.parent.config(menu=menubar)
-	#the file drop down menu
+        #the file drop down menu
         filemenu = Menu(menubar, tearoff=0)
         menubar.add_cascade(label="File", menu=filemenu)
         filemenu.add_command(label="New", command=self.NewFile)
@@ -76,6 +76,11 @@ class Main1DWindow(Frame):
         menubar.add_cascade(label="Fitting",menu=fittingMenu)
         fittingMenu.add_command(label="Relaxation Curve", command=self.createRelaxWindow)
         fittingMenu.add_command(label="Peak Deconvolution", command=self.createPeakDeconvWindow)
+	#the plot drop down menu
+        plotMenu = Menu(menubar, tearoff=0)
+        menubar.add_cascade(label="Plot",menu=plotMenu)
+        plotMenu.add_command(label="User x-axis", command=self.createXaxWindow)
+
         x=np.linspace(0,2*np.pi*10,1000)[:-1] #fake data
         test=np.exp(-1j*x)*np.exp(-1*x/10.0)#fake data
         self.masterData=sc.Spectrum(np.array([test,test*2]),[600000000.0,500000000.0],[1000.0,2000.0])#create a Spectrum instance with the fake data
@@ -280,6 +285,9 @@ class Main1DWindow(Frame):
         #root.attributes('-zoomed', True)
         root.grid_rowconfigure(0, weight=1)
         root.grid_columnconfigure(0, weight=1)
+    
+    def createXaxWindow(self):
+        XaxWindow(self,self.current)
 
     def updAllFrames(self):
         self.bottomframe.upd()
@@ -534,7 +542,7 @@ class PhaseWindow(Frame): #a window for phasing the data
         Button(self.window, text="Cancel",command=self.cancelAndClose).grid(row=11,column=2)      
         
     def setZeroOrder(self,value, *args): #function called by the zero order scale widget
-        self.zeroValue.set('%.2f' % float(value))
+        self.zeroValue.set('%.3e' % float(value))
         self.current.setPhaseInter(self.zeroValue.get(),self.firstValue.get())
         
     def inputZeroOrder(self, *args): #function called by the zero order entry widget
@@ -545,8 +553,8 @@ class PhaseWindow(Frame): #a window for phasing the data
     def setFirstOrder(self,value, *args): #function called by the first order scale widget
         newZero = (float(self.zeroValue.get())-(float(value)-float(self.firstValue.get()))*float(self.refValue.get())) #calculate the new zero order phase depending on the reference
         newZero = np.mod(newZero+pi,2*pi)-pi
-        self.firstValue.set('%.3f' % float(value))
-        self.zeroValue.set('%.3f' % newZero)
+        self.firstValue.set('%.3e' % float(value))
+        self.zeroValue.set('%.3e' % newZero)
         self.zeroScale.set(newZero)
 
     def inputFirstOrder(self, *args): #function called by the first order entry widget
@@ -557,13 +565,13 @@ class PhaseWindow(Frame): #a window for phasing the data
         phases = self.current.autoPhase(num)
         if num == 0:
             phase0=(np.mod(phases[0]+pi,2*pi)-pi)
-            self.zeroValue.set('%.2f' % phase0)
+            self.zeroValue.set('%.3e' % phase0)
             self.zeroScale.set(phase0)
         elif num == 1:
             phase0=(np.mod(phases[0]+pi,2*pi)-pi)
-            self.zeroValue.set('%.2f' % phase0)
+            self.zeroValue.set('%.3e' % phase0)
             self.zeroScale.set(phase0)
-            self.firstValue.set('%.3f' % phases[1])
+            self.firstValue.set('%.3e' % phases[1])
             self.firstScale.set(phases[1])
 
     def stepPhase(self,phase0,phase1): #step phase from < and > keys
@@ -575,7 +583,7 @@ class PhaseWindow(Frame): #a window for phasing the data
 
     def inputRef(self, *args): #set the reference from the entry widget
         inp = safeEval(self.refValue.get())
-        self.refValue.set('%.2f' % inp)
+        self.refValue.set('%.3e' % inp)
 
     def pickRef(self, *args): #run the pick function to pick the reference value
         self.current.peakPickFunc = lambda pos,self=self: self.refValue.set('%.2f' % pos[1])
@@ -624,7 +632,7 @@ class ApodWindow(Frame): #a window for apodization
         tk.Button(self.frame1,text=">",repeatdelay=100, repeatinterval=1,command=lambda:self.stepLB(1,0)).grid(row=1,column=4)
         self.lorEntry.bind("<Return>", self.apodPreview)
         self.lorEntry.grid(row=1,column=2)
-        self.lorScale=Scale(self.frame1, from_=0, to=100,  orient="horizontal", command=self.setLor,length=200)
+        self.lorScale=Scale(self.frame1, from_=0, to=self.current.sw/5.0,  orient="horizontal", command=self.setLor,length=200)
         self.lorScale.grid(row=2,column=1,columnspan=2)
         Label(self.frame1,text="Gaussian").grid(row=3,column=0,columnspan=4)
         Checkbutton(self.frame1,variable=self.gaussTick, command=lambda: self.checkEval(self.gaussTick,self.gaussEntry)).grid(row=4,column=1)
@@ -633,7 +641,7 @@ class ApodWindow(Frame): #a window for apodization
         self.gaussEntry.grid(row=4,column=2)
         tk.Button(self.frame1,text="<",repeatdelay=100, repeatinterval=1,command=lambda:self.stepLB(0,-1)).grid(row=4,column=0)
         tk.Button(self.frame1,text=">",repeatdelay=100, repeatinterval=1,command=lambda:self.stepLB(0,1)).grid(row=4,column=4)
-        self.gaussScale=Scale(self.frame1, from_=0, to=100,  orient="horizontal", command=self.setGauss,length=200)
+        self.gaussScale=Scale(self.frame1, from_=0, to=self.current.sw/5.0,  orient="horizontal", command=self.setGauss,length=200)
         self.gaussScale.grid(row=5,column=1,columnspan=2)
         Label(self.frame1,text="Cos^2").grid(row=6,column=0,columnspan=4)
         Checkbutton(self.frame1,variable=self.cos2Tick, command=lambda: self.checkEval(self.cos2Tick,self.cos2Entry)).grid(row=7,column=1)
@@ -943,6 +951,68 @@ class DCWindow(Frame): #a window for shifting the data
         self.parent.redoList = []
         self.parent.undoList.append(self.current.applydcOffset(minimum,maximum))
         self.window.destroy()
+
+##########################################################################################
+class XaxWindow(Frame): #a window for setting the xax of the current data
+    def __init__(self, parent,current):
+        Frame.__init__(self, parent)
+        #initialize variables for the widgets
+        self.val = StringVar()
+        self.parent = parent
+        self.current = current
+        self.window = Toplevel(self)
+        self.window.transient(self.parent)
+        self.window.protocol("WM_DELETE_WINDOW", self.cancelAndClose)
+        self.window.title("User defined x-axis")
+        self.window.resizable(width=FALSE, height=FALSE)
+        self.frame1 = Frame(self.window)
+        self.frame1.grid(row=0)
+        Label(self.frame1,text="Expression for x-axis values").grid(row=0,column=0,columnspan=2)
+        self.minEntry = Entry(self.frame1,textvariable=self.val,justify="center")
+        self.minEntry.bind("<Return>", self.xaxPreview)
+        self.minEntry.grid(row=1,column=0,columnspan=2)
+
+        self.frame2 = Frame(self.window)
+        self.frame2.grid(row=1)
+        Button(self.frame2, text="Apply",command=self.applyXaxAndClose).grid(row=0,column=0)
+        Button(self.frame2, text="Cancel",command=self.cancelAndClose).grid(row=0,column=1)
+
+    def xaxPreview(self, *args):
+        env = vars(np).copy()
+        env['length']=int(len(self.current.data1D)) # so length can be used to in equations
+        val=eval(self.val.get(),env)                # find a better solution, also add catch for exceptions          
+        if isinstance(val,(list,np.ndarray)):
+            if len(val)==len(self.current.data1D):
+                if all(isinstance(x,(int,float)) for x in val):
+                    self.current.setXaxPreview(val)
+                else:
+                    print("Array is not all of int or float type")
+            else:
+                print("Length of input does not match length of data")
+        else:
+            print("Input is not a list or array")
+
+    def cancelAndClose(self):
+        self.current.upd()
+        self.current.plotReset()
+        self.current.showFid()
+        self.window.destroy()
+
+    def applyXaxAndClose(self):
+        env = vars(np).copy()
+        env['length']=int(len(self.current.data1D)) # so length can be used to in equations
+        val=eval(self.val.get(),env)                # find a better solution, also add catch for exceptions
+        if isinstance(val,(list,np.ndarray)):
+            if len(val)==len(self.current.data1D):
+                if all(isinstance(x,(int,float)) for x in val):
+                    self.current.setXax(val)
+                    self.window.destroy()
+                else:
+                    print("Array is not all of int or float type")
+            else:
+                print("Length of input does not match length of data")
+        else:
+            print("Input is not a list or array")
 
 #################################################################################    
 #the main program
