@@ -13,9 +13,9 @@ class Spectrum(object):
         self.freq = freq                              #array of center frequency (length is dim, MHz)
         self.sw = sw                                  #array of sweepwidths
         if spec is None:
-            self.spec=[False]*self.dim
+            self.spec=[0]*self.dim
         else:
-            self.spec = spec                              #boolean array of length dim where False=time domain and True=spectral domain
+            self.spec = spec                              #int array of length dim where 0 = time domain, 1 = complex spectral domain and 2= real spectral domain
         if wholeEcho is None:
             self.wholeEcho = [False]*self.dim
         else:
@@ -29,14 +29,16 @@ class Spectrum(object):
         else:
             val=range(self.dim)
         for i in val:
-            if not(self.spec[i]):
-                self.xaxArray[i]=np.arange(self.data.shape[i])/(2.0*self.sw[i])
-            else:
+            if self.spec[i]==0:
+                self.xaxArray[i]=np.arange(self.data.shape[i])/(self.sw[i])
+            elif self.spec[i]==1:
                 self.xaxArray[i]=np.fft.fftshift(np.fft.fftfreq(self.data.shape[i],1.0/self.sw[i])) 
+            elif self.spec[i]==2:
+                self.xaxArray[i]=np.fft.rfftfreq(2*self.data.shape[i]-1,1.0/self.sw[i])
 
     def setPhase(self, phase0, phase1, axes):
         vector = np.exp(np.fft.fftshift(np.fft.fftfreq(self.data.shape[axes],1.0/self.sw[axes]))*phase1*1j)
-        if not(self.spec[axes]):
+        if self.spec[axes]==0:
             self.fourier(axes,tmp=True)
             self.data=self.data*np.exp(phase0*1j)
             for i in range(self.data.shape[axes]):
@@ -62,7 +64,7 @@ class Spectrum(object):
         if cos2 is not None:
             x=x*(np.cos(cos2*np.linspace(0,0.5*np.pi,len(self.data1D)))**2)
         returnValue = lambda self: self.restoreData(copyData, lambda self: self.apodize(lor,gauss,axes))
-        if self.spec[axes]:
+        if self.spec[axes] > 0:
             self.fourier(axes,tmp=True)
             for i in range(self.data.shape[axes]):
                 slicing = (slice(None),) * axes + (i,) + (slice(None),)*(self.dim-1-axes)
@@ -105,13 +107,11 @@ class Spectrum(object):
         self.resetXax(axes)
         return returnValue
 
-    def changeSpec(self,axes):
-        if self.spec[axes]:
-            self.spec[axes] = False
-        else:
-            self.spec[axes] = True
+    def changeSpec(self,val,axes):
+        oldVal = self.spec[axes]
+        self.spec[axes] = val
         self.resetXax(axes)
-        return lambda self: self.changeSpec(axes)
+        return lambda self: self.changeSpec(oldVal,axes)
 
     def swapEcho(self,idx,axes):
         slicing1=(slice(None),) * axes + (slice(None,idx),) + (slice(None),)*(self.dim-1-axes)
@@ -138,20 +138,50 @@ class Spectrum(object):
     def fourier(self, axes,tmp=False):
         if axes>self.dim:
             print("axes bigger than dim in fourier")
-        if not self.spec[axes]:
+        if self.spec[axes]==0:
             if not self.wholeEcho[axes] and not tmp:
                 slicing = (slice(None),) * axes + (0,) + (slice(None),)*(self.dim-1-axes)
                 self.data[slicing]= self.data[slicing]*0.5
             self.data=np.fft.fftshift(np.fft.fftn(self.data,axes=[axes]),axes=axes)
-            self.spec[axes]=True
+            self.spec[axes]=1
+            
         else:
             self.data=np.fft.ifftn(np.fft.ifftshift(self.data,axes=axes),axes=[axes])
             if not self.wholeEcho[axes] and not tmp:
                 slicing = (slice(None),) * axes + (0,) + (slice(None),)*(self.dim-1-axes)
                 self.data[slicing]= self.data[slicing]*2.0
-            self.spec[axes]=False
+            self.spec[axes]=0
         self.resetXax(axes)
         return lambda self: self.fourier(axes)
+
+    def realFft(self, axes):
+        if axes>self.dim:
+            print("axes bigger than dim in fourier")
+        copyData=copy.deepcopy(self)
+        returnValue = lambda self: self.restoreData(copyData, lambda self: self.realFft(axes))
+        if self.spec[axes] == 0:
+            if not self.wholeEcho[axes]:
+                slicing = (slice(None),) * axes + (0,) + (slice(None),)*(self.dim-1-axes)
+                self.data[slicing]= self.data[slicing]*0.5
+            self.data=np.fft.rfftn(np.real(self.data),axes=[axes])
+            self.spec[axes]=2
+        else:
+            self.data=np.fft.irfftn(self.data,axes=[axes])
+            if not self.wholeEcho[axes]:
+                slicing = (slice(None),) * axes + (0,) + (slice(None),)*(self.dim-1-axes)
+                self.data[slicing]= self.data[slicing]*2.0
+            self.spec[axes]=0
+        self.resetXax(axes)
+        return returnValue
+
+    def fftshift(self, axes, inv=False):
+        if axes>self.dim:
+            print("axes bigger than dim in fourier")
+        if inv:
+            self.data=np.fft.ifftshift(self.data,axes=[axes])
+        else:
+            self.data=np.fft.fftshift(self.data,axes=axes)
+        return lambda self: self.fftshift(axes,not(inv))
 
     def getSlice(self,axes,locList):
         return (self.data[tuple(locList[:axes])+(slice(None),)+tuple(locList[axes:])],self.freq[axes],self.sw[axes],self.spec[axes],self.wholeEcho[axes],self.xaxArray[axes])
@@ -209,7 +239,7 @@ class Current1D(Plot1DFrame):
     def setPhaseInter(self, phase0in, phase1in): #interactive changing the phase without editing the actual data
         phase0=float(phase0in)
         phase1=float(phase1in)
-        if not(self.spec):
+        if self.spec==0:
             tmpdata=self.fourierLocal(self.data1D,self.spec)
             tmpdata=tmpdata*np.exp(phase0*1j)
             tmpdata=tmpdata*np.exp(np.fft.fftshift(np.fft.fftfreq(len(tmpdata),1.0/self.sw))*phase1*1j)
@@ -234,8 +264,21 @@ class Current1D(Plot1DFrame):
         self.showFid()
         return returnValue
 
+    def realFft(self): #real fourier the actual data and replot
+        returnValue = self.data.realFft(self.axes)
+        self.upd()
+        self.plotReset()
+        self.showFid()
+        return returnValue
+
+    def fftshift(self,inv=False): #fftshift the actual data and replot
+        returnValue = self.data.fftshift(self.axes,inv)
+        self.upd()
+        self.showFid()
+        return returnValue
+
     def fourierLocal(self, fourData, spec): #fourier the local data for other functions
-        if not(spec):
+        if spec==0:
             fourData=np.fft.fftshift(np.fft.fft(fourData))
         else:
             fourData=np.fft.ifft(np.fft.ifftshift(fourData))
@@ -255,20 +298,22 @@ class Current1D(Plot1DFrame):
         a=self.fig.gca()
         a.cla()
         y = self.data1D
-        if self.spec:
+        if self.spec ==1:
             y=np.fft.ifft(np.fft.ifftshift(y))
             y= y*x
             y=np.fft.fftshift(np.fft.fft(y))
+        elif self.spec==2:
+            y=np.fft.irfft(y)
+            y= y*x
+            y=np.fft.rfft(real(y))
         else:
             y= y*x
-        if not(self.spec):
-
+        if self.spec==0:
             if self.plotType==0:
                 self.showFid(y,[t],[x*max(np.real(self.data1D))],['g'],old=True)
             elif self.plotType==1:
                 self.showFid(y,[t],[x*max(np.imag(self.data1D))],['g'],old=True)
             elif self.plotType==2:
-
                 self.showFid(y,[t],[x*max(max(np.real(self.data1D)),max(np.imag(self.data1D)))],['g'],old=True)
             elif self.plotType==3:
                 self.showFid(y,[t],[x*max(np.abs(self.data1D))],['g'],old=True)
@@ -312,8 +357,8 @@ class Current1D(Plot1DFrame):
         self.showFid()
         return returnValue
 
-    def changeSpec(self): #change from time to freq domain of the actual data
-        returnValue = self.data.changeSpec(self.axes)
+    def changeSpec(self,val): #change from time to freq domain of the actual data
+        returnValue = self.data.changeSpec(val,self.axes)
         self.upd()
         self.plotReset()
         self.showFid()
@@ -374,8 +419,11 @@ class Current1D(Plot1DFrame):
         else:
             phase1=0.0
         L = len(self.data1D)
-        x=np.fft.fftshift(np.fft.fftfreq(L,1.0/self.sw))
-        if self.spec:
+        if self.spec==1:
+            x=np.fft.fftshift(np.fft.fftfreq(L,1.0/self.sw))
+        elif self.spec==2:
+            x=np.fft.rfftfreq(L,1.0/self.sw)
+        if self.spec>0:
             s0 = self.data1D*np.exp(1j*(phase0+phase1*x))
         else:
             s0 = np.fft.fftshift(np.fft.fft(self.data1D))*np.exp(1j*(phase0+phase1*x))

@@ -71,6 +71,13 @@ class Main1DWindow(Frame):
         toolMenu.add_command(label="Swap Echo", command=self.createSwapEchoWindow)
         toolMenu.add_command(label="Shift Data", command=self.createShiftDataWindow)
         toolMenu.add_command(label="DC offset correction", command=self.createDCWindow)
+        #the fft drop down menu
+        fftMenu = Menu(menubar, tearoff=0)
+        menubar.add_cascade(label="Fourier",menu=fftMenu)
+        fftMenu.add_command(label="Complex fourier", command=self.fourier)
+        fftMenu.add_command(label="Real fourier", command=self.realFft)
+        fftMenu.add_command(label="Fftshift", command=self.fftshift)
+        fftMenu.add_command(label="Inv fftshift", command=self.invFftshift)
 	#the fitting drop down menu
         fittingMenu = Menu(menubar, tearoff=0)
         menubar.add_cascade(label="Fitting",menu=fittingMenu)
@@ -109,7 +116,6 @@ class Main1DWindow(Frame):
         FilePath = askopenfilename()
         Dir = os.path.dirname(FilePath) #convert path to file to path of folder
         
-        
         #Extract Procpar data ------------------------
         with open(Dir+'/procpar', 'r') as f: #read entire procfile (data[0] gives first line)
             data = f.read().split('\n')
@@ -124,7 +130,6 @@ class Main1DWindow(Frame):
             elif data[s].startswith('sw1 '):
                 sw1=float(data[s+1].split()[1])
                 
-        
         #Get fid data-----------------------------                
         with open(Dir+'/fid', "rb") as f:
             raw = np.fromfile(f, np.int32,6) #read 6 steps, 32 bits
@@ -225,10 +230,10 @@ class Main1DWindow(Frame):
         self.current.destroy()
         if 'FID' in TYPE:
             axis=0
-            spec = [False]
+            spec = [0]
         elif 'SPE' in TYPE:
             axis=1
-            spec = [True]
+            spec = [1]
             
         if NI is 1:
             self.masterData=sc.Spectrum(data,[0],[SW],spec)
@@ -241,7 +246,6 @@ class Main1DWindow(Frame):
         self.current.grid(row=0,column=0,sticky="nswe")
         self.updAllFrames()
         
-        
     def SaveSimpsonFile(self):
         akhfv=1
         
@@ -249,6 +253,21 @@ class Main1DWindow(Frame):
         self.redoList = []
         self.undoList.append(self.current.fourier())
         self.bottomframe.upd()
+
+    def realFft(self):
+        self.redoList = []
+        self.undoList.append(self.current.realFft())
+        self.updAllFrames()
+
+    def fftshift(self):
+        self.redoList = []
+        self.undoList.append(self.current.fftshift())
+        self.updAllFrames()
+
+    def invFftshift(self):
+        self.redoList = []
+        self.undoList.append(self.current.fftshift(inv=True))
+        self.updAllFrames()
     
     def setFreq(self,freq,sw):
         self.redoList = []
@@ -392,10 +411,12 @@ class BottomFrame(Frame):
         self.parent = parent
         self.current = parent.current
         self.specVal = IntVar() #value for the time/freq radiobutton
-        if self.current.spec:
-            self.specVal.set(1)
-        else:
+        if self.current.spec==0:
             self.specVal.set(0)
+        elif self.current.spec==1:
+            self.specVal.set(1)
+        elif self.current.spec==2:
+            self.specVal.set(2)
         self.freqVal = StringVar() #value for frequency entybox
         self.swVal = StringVar() #value for sw entrybox
         self.plotOption = StringVar() #value for dropdown plot type box
@@ -405,8 +426,10 @@ class BottomFrame(Frame):
         Button(self, text="Fourier",command=self.parent.fourier).grid(row=0,column=0,rowspan=2)
         self.rb1 = Radiobutton(self,text="Time",variable=self.specVal,value=0,command=self.changeSpec)
         self.rb1.grid(row=0,column=1)
-        self.rb2 = Radiobutton(self,text="Frequency",variable=self.specVal,value=1,command=self.changeSpec)
+        self.rb2 = Radiobutton(self,text="Complex FT",variable=self.specVal,value=1,command=self.changeSpec)
         self.rb2.grid(row=1,column=1)
+        self.rb3 = Radiobutton(self,text="Real FT",variable=self.specVal,value=2,command=self.changeSpec)
+        self.rb3.grid(row=2,column=1)
         Checkbutton(self,text="Whole echo",variable=self.echoTick, command=self.setWholeEcho).grid(row=0,column=2,rowspan=2)
         Label(self,text="Freq (MHz)").grid(row=0,column=3)
         self.freqEntry = Entry(self,textvariable=self.freqVal,justify='center')
@@ -426,10 +449,12 @@ class BottomFrame(Frame):
         self.current = self.parent.current
         self.freqVal.set(str(self.current.freq/1000000)) #show in MHz
         self.swVal.set(str(self.current.sw/1000)) #show in kHz
-        if self.current.spec:
-            self.specVal.set(1)
-        else:
+        if self.current.spec==0:
             self.specVal.set(0)
+        elif self.current.spec==1:
+            self.specVal.set(1)
+        elif self.current.spec==2:
+            self.specVal.set(2)
         if self.current.wholeEcho:
             self.echoTick.set(1)
         else:
@@ -440,7 +465,7 @@ class BottomFrame(Frame):
 
     def changeSpec(self, *args): #change from time to spectral domain and vice versa
         self.parent.redoList = []
-        self.parent.undoList.append(self.current.changeSpec())
+        self.parent.undoList.append(self.current.changeSpec(self.specVal.get()))
         self.upd()
 
     def changeFreq(self, *args): #change the frequency and sw of the displayed axes
@@ -536,7 +561,7 @@ class PhaseWindow(Frame): #a window for phasing the data
         self.refEntry = Entry(self.window,textvariable=self.refValue,justify="center")
         self.refEntry.bind("<Return>", self.inputRef) 
         self.refEntry.grid(row=9,column=1)
-        if self.current.spec:
+        if self.current.spec > 0:
             Button(self.window, text="Pick reference", command=self.pickRef).grid(row=10,column=1)
         Button(self.window, text="Apply",command=self.applyPhaseAndClose).grid(row=11,column=0)
         Button(self.window, text="Cancel",command=self.cancelAndClose).grid(row=11,column=2)      
@@ -632,7 +657,7 @@ class ApodWindow(Frame): #a window for apodization
         tk.Button(self.frame1,text=">",repeatdelay=100, repeatinterval=1,command=lambda:self.stepLB(1,0)).grid(row=1,column=4)
         self.lorEntry.bind("<Return>", self.apodPreview)
         self.lorEntry.grid(row=1,column=2)
-        self.lorScale=Scale(self.frame1, from_=0, to=self.current.sw/5.0,  orient="horizontal", command=self.setLor,length=200)
+        self.lorScale=Scale(self.frame1, from_=0, to=100.0*self.current.sw/len(self.current.data1D),  orient="horizontal", command=self.setLor,length=200)
         self.lorScale.grid(row=2,column=1,columnspan=2)
         Label(self.frame1,text="Gaussian").grid(row=3,column=0,columnspan=4)
         Checkbutton(self.frame1,variable=self.gaussTick, command=lambda: self.checkEval(self.gaussTick,self.gaussEntry)).grid(row=4,column=1)
@@ -641,7 +666,7 @@ class ApodWindow(Frame): #a window for apodization
         self.gaussEntry.grid(row=4,column=2)
         tk.Button(self.frame1,text="<",repeatdelay=100, repeatinterval=1,command=lambda:self.stepLB(0,-1)).grid(row=4,column=0)
         tk.Button(self.frame1,text=">",repeatdelay=100, repeatinterval=1,command=lambda:self.stepLB(0,1)).grid(row=4,column=4)
-        self.gaussScale=Scale(self.frame1, from_=0, to=self.current.sw/5.0,  orient="horizontal", command=self.setGauss,length=200)
+        self.gaussScale=Scale(self.frame1, from_=0, to=100.0*self.current.sw/len(self.current.data1D),  orient="horizontal", command=self.setGauss,length=200)
         self.gaussScale.grid(row=5,column=1,columnspan=2)
         Label(self.frame1,text="Cos^2").grid(row=6,column=0,columnspan=4)
         Checkbutton(self.frame1,variable=self.cos2Tick, command=lambda: self.checkEval(self.cos2Tick,self.cos2Entry)).grid(row=7,column=1)
