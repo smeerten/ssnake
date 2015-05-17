@@ -35,13 +35,39 @@ class RelaxWindow(Toplevel): #a window for fitting relaxation data
 #################################################################################   
 class RelaxFrame(Plot1DFrame): #a window for fitting relaxation data
     def __init__(self, rootwindow,current):
-        self.ax=current.xax
+        self.xax=current.xax
         self.data1D=current.getDisplayedData()
-        Plot1DFrame.__init__(self,rootwindow,self.ax,self.data1D,0)
+        self.plotType = 0
+        Plot1DFrame.__init__(self,rootwindow)
         self.current = current
         self.rootwindow = rootwindow
         self.plotReset()
         self.showPlot()
+
+    def plotReset(self): #set the plot limits to min and max values
+        a=self.fig.gca()
+        if self.plotType==0:
+            miny = min(np.real(self.data1D))
+            maxy = max(np.real(self.data1D))
+        elif self.plotType==1:
+            miny = min(np.imag(self.data1D))
+            maxy = max(np.imag(self.data1D))
+        elif self.plotType==2:
+            miny = min(min(np.real(self.data1D)),min(np.imag(self.data1D)))
+            maxy = max(max(np.real(self.data1D)),max(np.imag(self.data1D)))
+        elif self.plotType==3:
+            miny = min(np.abs(self.data1D))
+            maxy = max(np.abs(self.data1D))
+        else:
+            miny=-1
+            maxy=1
+        differ = 0.05*(maxy-miny) #amount to add to show all datapoints (10%)
+        self.yminlim=miny-differ
+        self.ymaxlim=maxy+differ
+        self.xminlim=min(self.xax)
+        self.xmaxlim=max(self.xax)
+        a.set_xlim(self.xminlim,self.xmaxlim)
+        a.set_ylim(self.yminlim,self.ymaxlim)
 
     def showPlot(self, tmpAx=None, tmpdata=None): 
         a=self.fig.gca()
@@ -244,14 +270,42 @@ class PeakDeconvWindow(Toplevel): #a window for fitting relaxation data
 #################################################################################   
 class PeakDeconvFrame(Plot1DFrame): #a window for fitting relaxation data
     def __init__(self, rootwindow,current):
-        Plot1DFrame.__init__(self,rootwindow,current.xax,np.real(current.data1D),0)
+        Plot1DFrame.__init__(self,rootwindow)
+        self.data1D = current.getDisplayedData()
         self.current = current
+        self.xax = self.current.xax
+        self.plotType=0
         self.rootwindow = rootwindow
         self.peakPickFunc = lambda pos,self=self: self.pickDeconv(pos) 
         self.peakPick = True
         self.pickNum = 0
         self.plotReset()
         self.showPlot()
+
+    def plotReset(self): #set the plot limits to min and max values
+        a=self.fig.gca()
+        if self.plotType==0:
+            miny = min(np.real(self.data1D))
+            maxy = max(np.real(self.data1D))
+        elif self.plotType==1:
+            miny = min(np.imag(self.data1D))
+            maxy = max(np.imag(self.data1D))
+        elif self.plotType==2:
+            miny = min(min(np.real(self.data1D)),min(np.imag(self.data1D)))
+            maxy = max(max(np.real(self.data1D)),max(np.imag(self.data1D)))
+        elif self.plotType==3:
+            miny = min(np.abs(self.data1D))
+            maxy = max(np.abs(self.data1D))
+        else:
+            miny=-1
+            maxy=1
+        differ = 0.05*(maxy-miny) #amount to add to show all datapoints (10%)
+        self.yminlim=miny-differ
+        self.ymaxlim=maxy+differ
+        self.xminlim=min(self.xax)
+        self.xmaxlim=max(self.xax)
+        a.set_xlim(self.xminlim,self.xmaxlim)
+        a.set_ylim(self.yminlim,self.ymaxlim)
 
     def showPlot(self, tmpAx=None, tmpdata=None, tmpAx2=[], tmpdata2=[]): 
         a=self.fig.gca()

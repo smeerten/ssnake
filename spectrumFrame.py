@@ -13,10 +13,8 @@ else:
 #########################################################################################################
 #the class from which the 1d data is displayed, the operations which only edit the content of this class are for previewing
 class Plot1DFrame(Frame):
-    def __init__(self, root, xax, data1D, plotType):
+    def __init__(self, root):
         Frame.__init__(self,root)
-        self.xax = xax                #x-axis
-        self.data1D = data1D
         self.fig = Figure()           #figure
         self.fig.add_subplot(111) 
         self.canvas = FigureCanvasTkAgg(self.fig, master=self)
@@ -37,33 +35,9 @@ class Plot1DFrame(Frame):
         self.canvas.mpl_connect('button_release_event', self.buttonRelease)
         self.canvas.mpl_connect('motion_notify_event', self.pan)
         self.canvas.mpl_connect('scroll_event', self.scroll)
-        self.plotType = plotType      #0=real,1=imag,2=both 3=abs ...
 
-    def plotReset(self): #set the plot limits to min and max values
-        a=self.fig.gca()
-        if self.plotType==0:
-            miny = min(np.real(self.data1D))
-            maxy = max(np.real(self.data1D))
-        elif self.plotType==1:
-            miny = min(np.imag(self.data1D))
-            maxy = max(np.imag(self.data1D))
-        elif self.plotType==2:
-            miny = min(min(np.real(self.data1D)),min(np.imag(self.data1D)))
-            maxy = max(max(np.real(self.data1D)),max(np.imag(self.data1D)))
-        elif self.plotType==3:
-            miny = min(np.abs(self.data1D))
-            maxy = max(np.abs(self.data1D))
-        else:
-            miny=-1
-            maxy=1
-        differ = 0.05*(maxy-miny) #amount to add to show all datapoints (10%)
-        self.yminlim=miny-differ
-        self.ymaxlim=maxy+differ
-        self.xminlim=min(self.xax)
-        self.xmaxlim=max(self.xax)
-        a.set_xlim(self.xminlim,self.xmaxlim)
-        a.set_ylim(self.yminlim,self.ymaxlim)
-
+    def plotReset(self): #this function needs to be overriden by the classes who inherit from Plot1DFrame
+        pass
 
     ################
     # mouse events #

@@ -23,7 +23,6 @@ from safeEval import safeEval
 
 pi=math.pi
 
-
 #one window to rule them all
 class Main1DWindow(Frame):
     def __init__(self,parent):
@@ -52,7 +51,7 @@ class Main1DWindow(Frame):
         loadmenu.add_command(label="Load infinity data", command=self.LoadChemFile)
         loadmenu.add_command(label="Load Simpson data", command=self.LoadSimpsonFile)
         
-      #the save drop down menu
+        #the save drop down menu
         savemenu = Menu(menubar, tearoff=0)
         menubar.add_cascade(label="Save", menu=savemenu)
         savemenu.add_command(label="Save as Simpson data", command=self.SaveSimpsonFile)
@@ -62,6 +61,7 @@ class Main1DWindow(Frame):
         menubar.add_cascade(label="Edit", menu=editmenu)
         editmenu.add_command(label="Undo", command=self.undo)
         editmenu.add_command(label="Redo", command=self.redo)
+
 	#the tool drop down menu
         toolMenu = Menu(menubar, tearoff=0)
         menubar.add_cascade(label="Tools",menu=toolMenu)
@@ -71,6 +71,7 @@ class Main1DWindow(Frame):
         toolMenu.add_command(label="Swap Echo", command=self.createSwapEchoWindow)
         toolMenu.add_command(label="Shift Data", command=self.createShiftDataWindow)
         toolMenu.add_command(label="DC offset correction", command=self.createDCWindow)
+
         #the fft drop down menu
         fftMenu = Menu(menubar, tearoff=0)
         menubar.add_cascade(label="Fourier",menu=fftMenu)
@@ -78,20 +79,25 @@ class Main1DWindow(Frame):
         fftMenu.add_command(label="Real fourier", command=self.realFft)
         fftMenu.add_command(label="Fftshift", command=self.fftshift)
         fftMenu.add_command(label="Inv fftshift", command=self.invFftshift)
+
 	#the fitting drop down menu
         fittingMenu = Menu(menubar, tearoff=0)
         menubar.add_cascade(label="Fitting",menu=fittingMenu)
         fittingMenu.add_command(label="Relaxation Curve", command=self.createRelaxWindow)
         fittingMenu.add_command(label="Peak Deconvolution", command=self.createPeakDeconvWindow)
+
 	#the plot drop down menu
         plotMenu = Menu(menubar, tearoff=0)
         menubar.add_cascade(label="Plot",menu=plotMenu)
+        plotMenu.add_command(label="1D plot", command=self.plot1D)
+        plotMenu.add_command(label="Stack plot", command=self.plotStack)
         plotMenu.add_command(label="User x-axis", command=self.createXaxWindow)
 
         x=np.linspace(0,2*np.pi*10,1000)[:-1] #fake data
         test=np.exp(-1j*x)*np.exp(-1*x/10.0)#fake data
-        self.masterData=sc.Spectrum(np.array([test,test*2]),[600000000.0,500000000.0],[1000.0,2000.0])#create a Spectrum instance with the fake data
-        self.current=sc.Current1D(self,self.masterData,1,[0],0) #create the Current1D instance from the Spectrum 
+        self.masterData=sc.Spectrum(np.array([np.array([test,test*2,test*3]),np.array([test*3,test*4,test*5])]),[600000000.0,500000000.0,400000000.0],[1000.0,2000.0,3000.0])#create a Spectrum instance with the fake data
+        self.current=sc.Current1D(self,self.masterData) 
+        #self.current=sc.CurrentStacked(self,self.masterData) 
         self.current.grid(row=0,column=0,sticky="nswe")
 	#create the sideframe, bottomframe and textframe
         self.sideframe=SideFrame(self) 
@@ -114,79 +120,84 @@ class Main1DWindow(Frame):
 
     def LoadVarianFile(self):
         FilePath = askopenfilename()
-        Dir = os.path.dirname(FilePath) #convert path to file to path of folder
-        
-        #Extract Procpar data ------------------------
-        with open(Dir+'/procpar', 'r') as f: #read entire procfile (data[0] gives first line)
-            data = f.read().split('\n')
-        freq = 0
-        sw   = 0
-        sw1  = 0    
-        for s in range(0,len(data)): #exctract info from procpar
-            if data[s].startswith('sfrq '):
-                freq=float(data[s+1].split()[1])*1e6 #convert to MHz
-            elif data[s].startswith('sw '):
-                sw=float(data[s+1].split()[1])
-            elif data[s].startswith('sw1 '):
-                sw1=float(data[s+1].split()[1])
-                
-        #Get fid data-----------------------------                
-        with open(Dir+'/fid', "rb") as f:
-            raw = np.fromfile(f, np.int32,6) #read 6 steps, 32 bits
-            nblocks = unpack('>l', raw[0])[0] #unpack bitstring using bigendian and as LONG interger
-            ntraces = unpack('>l', raw[1])[0]
-            npoints = unpack('>l', raw[2])[0]
-            ebytes = unpack('>l', raw[3])[0]
-            tbytes = unpack('>l', raw[4])[0]
-            bbytes = unpack('>l', raw[5])[0]
-            raw = np.fromfile(f, np.int16,2) #16bit, 2 steps
-            vers_id = unpack('>h', raw[0])[0] #bigendian short
-            status = unpack('>h', raw[1])[0]
-            raw = np.fromfile(f, np.int32,1) 
-            nbheaders = unpack('>l', raw[0])[0]
-            SizeTD2 = npoints
-            SizeTD1 = nblocks*ntraces
-            a = []
-            fid32 = bin(status)[-3] #check if 32 bits, or float
-            fidfloat = bin(status)[-4]
-            for iter1 in range(0,nblocks): #now read all blocks
-                b = []
-                for iter2 in range(0,nbheaders):
-                    raw = np.fromfile(f, np.int16,nbheaders*14)
-                if not fid32 and not fidfloat:
-                    raw = np.fromfile(f, np.int16,ntraces*npoints)
-                    for iter3 in raw:
-                        b.append(unpack('>h', iter3)[0])
-                elif fid32 and not fidfloat:
-                    raw = np.fromfile(f, np.int32,ntraces*npoints)
-                    for iter3 in raw:
-                        b.append(unpack('>l', iter3)[0])
-                else:
-                    raw = np.fromfile(f, np.float32,ntraces*npoints)
-                    for iter3 in raw:
-                        b.append(unpack('>f', iter3)[0])
-                b=np.array(b)
-                if(len(b) != ntraces*npoints):
-                    b.append(np.zeros(ntraces*npoints-len(b)))
-                a.append(b)
-        a=np.complex128(a)
-        fid = a[:,::2]-1j*a[:,1::2]
-        
-        self.current.grid_remove()
-        self.current.destroy()
-        
-        if SizeTD1 is 1: #convert to 1D dat if the data is 1D (so no 1xnp data, but np)
-            fid = fid[0][:]
-            self.masterData=sc.Spectrum(fid,[freq],[sw])
-            self.current=sc.Current1D(self,self.masterData,0,[],0) #create the Current1D instance from the Spectrum  
-        else: #For 2D data
-            self.masterData=sc.Spectrum(fid,[freq]*2,[sw]*2)
-            self.current=sc.Current1D(self,self.masterData,1,[0],0) #create the Current1D instance from the Spectrum  
-                
-       
-        #add some check to see if current exists
-        self.current.grid(row=0,column=0,sticky="nswe")
-        self.updAllFrames()
+        if FilePath is not '': #if not canceled
+            Dir = os.path.dirname(FilePath) #convert path to file to path of folder
+            #Extract Procpar data if it exist------------------------
+            #Initilize standard values
+            freq = 300e6
+            sw   = 50e3
+            sw1  = 50e3
+            if os.path.exists(Dir+'/procpar'):
+                with open(Dir+'/procpar', 'r') as f: #read entire procfile (data[0] gives first line)
+                    data = f.read().split('\n')
+                for s in range(0,len(data)): #exctract info from procpar
+                    if data[s].startswith('sfrq '):
+                        freq=float(data[s+1].split()[1])*1e6 #convert to MHz
+                    elif data[s].startswith('sw '):
+                        sw=float(data[s+1].split()[1])
+                    elif data[s].startswith('sw1 '):
+                        sw1=float(data[s+1].split()[1])
+            else:
+                print(Dir+'/procpar does not exits, used standard sw and freq')
+            #Get fid data----------------------------- 
+            if os.path.exists(Dir+'/fid'):    
+                try:
+                    with open(Dir+'/fid', "rb") as f:
+                        raw = np.fromfile(f, np.int32,6) #read 6 steps, 32 bits
+                        nblocks = unpack('>l', raw[0])[0] #unpack bitstring using bigendian and as LONG interger
+                        ntraces = unpack('>l', raw[1])[0]
+                        npoints = unpack('>l', raw[2])[0]
+                        ebytes = unpack('>l', raw[3])[0]
+                        tbytes = unpack('>l', raw[4])[0]
+                        bbytes = unpack('>l', raw[5])[0]
+                        raw = np.fromfile(f, np.int16,2) #16bit, 2 steps
+                        vers_id = unpack('>h', raw[0])[0] #bigendian short
+                        status = unpack('>h', raw[1])[0]
+                        raw = np.fromfile(f, np.int32,1) 
+                        nbheaders = unpack('>l', raw[0])[0]
+                        SizeTD2 = npoints
+                        SizeTD1 = nblocks*ntraces
+                        a = []
+                        fid32 = bin(status)[-3] #check if 32 bits, or float
+                        fidfloat = bin(status)[-4]
+                        for iter1 in range(0,nblocks): #now read all blocks
+                            b = []
+                            for iter2 in range(0,nbheaders):
+                                raw = np.fromfile(f, np.int16,nbheaders*14)
+                            if not fid32 and not fidfloat:
+                                raw = np.fromfile(f, np.int16,ntraces*npoints)
+                                for iter3 in raw:
+                                    b.append(unpack('>h', iter3)[0])
+                            elif fid32 and not fidfloat:
+                                raw = np.fromfile(f, np.int32,ntraces*npoints)
+                                for iter3 in raw:
+                                    b.append(unpack('>l', iter3)[0])
+                            else:
+                                raw = np.fromfile(f, np.float32,ntraces*npoints)
+                                for iter3 in raw:
+                                    b.append(unpack('>f', iter3)[0])
+                            b=np.array(b)
+                            if(len(b) != ntraces*npoints):
+                                b.append(np.zeros(ntraces*npoints-len(b)))
+                            a.append(b)
+                    a=np.complex128(a)
+                    fid = a[:,::2]-1j*a[:,1::2]
+                    self.current.grid_remove()
+                    self.current.destroy()
+                    if SizeTD1 is 1: #convert to 1D dat if the data is 1D (so no 1xnp data, but np)
+                        fid = fid[0][:]
+                        self.masterData=sc.Spectrum(fid,[freq],[sw])
+                        self.current=sc.Current1D(self,self.masterData) #create the Current1D instance from the Spectrum  
+                    else: #For 2D data
+                        self.masterData=sc.Spectrum(fid,[freq]*2,[sw]*2)
+                        self.current=sc.Current1D(self,self.masterData) #create the Current1D instance from the Spectrum  
+                    #add some check to see if current exists
+                    self.current.grid(row=0,column=0,sticky="nswe")
+                    self.updAllFrames()
+                except:
+                    print('Error loading Varian data from '+Dir+'/fid. No data loaded!')
+            else: #If /fid does not exist
+                print(Dir+'/fid does not exits, no Varian data loaded!')
 
     def LoadChemFile(self):
         name = askopenfilename()#to be added
@@ -195,56 +206,55 @@ class Main1DWindow(Frame):
     def LoadSimpsonFile(self):
         #Loads Simpson data (Fid or Spectrum) to the ssNake data format
         FileLocation = askopenfilename()#to be added
-        with open(FileLocation, 'r') as f: #read entire procfile (data[0] gives first line)
-            Lines = f.read().split('\n')
-        
-        NP, NI, SW, SW1, TYPE, FORMAT = 0,1,0,0,'','Normal'
-        for s in range(0,len(Lines)):
-            if Lines[s].startswith('NP='):
-                NP = int(re.sub('NP=','',Lines[s]))
-            elif Lines[s].startswith('NI='):
-                NI = int(re.sub('NI=','',Lines[s]))
-            elif Lines[s].startswith('SW='):
-                SW = float(re.sub('SW=','',Lines[s]))
-            elif Lines[s].startswith('SW1='):
-                SW1 = float(re.sub('SW1=','',Lines[s]))
-            elif Lines[s].startswith('TYPE='):
-                TYPE = re.sub('TYPE=','',Lines[s])
-            elif Lines[s].startswith('FORMAT='):
-                FORMAT = re.sub('FORMAT=','',Lines[s])
-            elif Lines[s].startswith('DATA'):
-                DataStart = s
-            elif Lines[s].startswith('END'):
-                DataEnd = s
-        
-        if 'Normal' in FORMAT: #If normal format (e.g. not binary)
-            data = []
-            for iii in range(DataStart+1,DataEnd): #exctract data
-                temp = Lines[iii].split()
-                data.append(float(temp[0])+1j*float(temp[1]))
-        elif 'BINARY' in FORMAT: #needs to be im-plemented
-            AGD=1
-        
-        data = np.array(data) #convert to numpy array
-        self.current.grid_remove()
-        self.current.destroy()
-        if 'FID' in TYPE:
-            axis=0
-            spec = [0]
-        elif 'SPE' in TYPE:
-            axis=1
-            spec = [1]
-            
-        if NI is 1:
-            self.masterData=sc.Spectrum(data,[0],[SW],spec)
-            self.current=sc.Current1D(self,self.masterData,0,[],0) #create the Current1D instance from the Spectrum  
-        else:
-            data = np.transpose(data.reshape((NP,NI)))
-            self.masterData=sc.Spectrum(data,[0,0],[SW,SW1],spec*2)
-            self.current=sc.Current1D(self,self.masterData,0,[0],0) #create the Current1D instance from the Spectrum  
-            
-        self.current.grid(row=0,column=0,sticky="nswe")
-        self.updAllFrames()
+        if FileLocation is not '': #if not empty
+            with open(FileLocation, 'r') as f: #read entire procfile (data[0] gives first line)
+                Lines = f.read().split('\n')
+            try:
+                NP, NI, SW, SW1, TYPE, FORMAT = 0,1,0,0,'','Normal'
+                for s in range(0,len(Lines)):
+                    if Lines[s].startswith('NP='):
+                        NP = int(re.sub('NP=','',Lines[s]))
+                    elif Lines[s].startswith('NI='):
+                        NI = int(re.sub('NI=','',Lines[s]))
+                    elif Lines[s].startswith('SW='):
+                        SW = float(re.sub('SW=','',Lines[s]))
+                    elif Lines[s].startswith('SW1='):
+                        SW1 = float(re.sub('SW1=','',Lines[s]))
+                    elif Lines[s].startswith('TYPE='):
+                        TYPE = re.sub('TYPE=','',Lines[s])
+                    elif Lines[s].startswith('FORMAT='):
+                        FORMAT = re.sub('FORMAT=','',Lines[s])
+                    elif Lines[s].startswith('DATA'):
+                        DataStart = s
+                    elif Lines[s].startswith('END'):
+                        DataEnd = s
+                if 'Normal' in FORMAT: #If normal format (e.g. not binary)
+                    data = []
+                    for iii in range(DataStart+1,DataEnd): #exctract data
+                        temp = Lines[iii].split()
+                        data.append(float(temp[0])+1j*float(temp[1]))
+                elif 'BINARY' in FORMAT: #needs to be im-plemented
+                    AGD=1
+                data = np.array(data) #convert to numpy array
+                self.current.grid_remove()
+                self.current.destroy()
+                if 'FID' in TYPE:
+                    axis=0
+                    spec = [False]
+                elif 'SPE' in TYPE:
+                    axis=1
+                    spec = [True]
+                if NI is 1:
+                    self.masterData=sc.Spectrum(data,[0],[SW],spec)
+                    self.current=sc.Current1D(self,self.masterData) #create the Current1D instance from the Spectrum  
+                else:
+                    data = np.transpose(data.reshape((NP,NI)))
+                    self.masterData=sc.Spectrum(data,[0,0],[SW,SW1],spec*2)
+                    self.current=sc.Current1D(self,self.masterData) #create the Current1D instance from the Spectrum  
+                self.current.grid(row=0,column=0,sticky="nswe")
+                self.updAllFrames()
+            except:
+                print('Error loading Simpson data from '+FileLocation+' . No data loaded!')
         
     def SaveSimpsonFile(self):
         akhfv=1
@@ -305,6 +315,23 @@ class Main1DWindow(Frame):
         root.grid_rowconfigure(0, weight=1)
         root.grid_columnconfigure(0, weight=1)
     
+    def plot1D(self):
+        self.current.grid_remove()
+        self.current.destroy()
+        self.current = sc.Current1D(self,self.masterData)
+        self.current.grid(row=0,column=0,sticky="nswe")
+        self.updAllFrames()
+
+    def plotStack(self):
+        if len(self.masterData.data.shape) > 1:
+            self.current.grid_remove()
+            self.current.destroy()
+            self.current = sc.CurrentStacked(self,self.masterData) 
+            self.current.grid(row=0,column=0,sticky="nswe")
+            self.updAllFrames()
+        else:
+            print("Data does not have enough dimensions")
+
     def createXaxWindow(self):
         XaxWindow(self,self.current)
 
@@ -341,66 +368,121 @@ class SideFrame(Frame):
         self.labels=[]
         self.entries=[]
         self.entryVars=[]
+        self.buttons1=[]
+        self.button1Var=IntVar()
+        self.button1Var.set(0)
+        self.buttons2=[]
+        self.button2Var=IntVar()
+        self.button2Var.set(1)
+        self.plotIs2D = False
         self.upd()
 
     def upd(self): #destroy the old widgets and create new ones 
         self.current = self.parent.current
-        self.length = len(self.current.locList)+1
-        self.shape = self.parent.masterData.data.shape 
+        self.shape = self.current.data.data.shape
+        self.length = len(self.shape)
+        self.button1Var.set(self.current.axes)
+        offset = 0
+        self.plotIs2D = isinstance(self.current, sc.CurrentStacked)
+        if self.plotIs2D:
+            offset = 1
+            self.button2Var.set(self.current.axes2)
         for num in self.labels:
             num.destroy()
         self.labels = []
         for num in self.entries:
             num.destroy()
         self.entries=[]
+        for num in self.buttons1:
+            num.destroy()
+        self.buttons1=[]
+        for num in self.buttons2:
+            num.destroy()
+        self.buttons2=[]
         self.entryVars = []
         if self.length > 1:
             for num in range(self.length):
+                self.buttons1.append(Radiobutton(self, variable=self.button1Var, value=num, command=lambda: self.setAxes(True)))
+                self.buttons1[num].grid(row=num*2+1,column=0)
+                if self.plotIs2D:
+                    self.buttons2.append(Radiobutton(self, variable=self.button2Var, value=num, command=lambda: self.setAxes(False)))
+                    self.buttons2[num].grid(row=num*2+1,column=1)
                 self.labels.append(Label(self,text="TD"+str(num+1))) 
-                self.labels[num].grid(row=num*2,column=0)
+                self.labels[num].grid(row=num*2,column=1+offset)
                 self.entryVars.append(StringVar())
-                
-                if num < self.parent.current.axes:
-                    self.entryVars[num].set(str(self.current.locList[num]))
-                elif num == self.current.axes:
-                    self.entryVars[num].set("0")
+                if not self.plotIs2D:
+                    if num < self.current.axes:
+                        self.entryVars[num].set(str(self.current.locList[num]))
+                    elif num == self.current.axes:
+                        self.entryVars[num].set("0")
+                    else:
+                        self.entryVars[num].set(str(self.current.locList[num-1]))
                 else:
-                    self.entryVars[num].set(str(self.current.locList[num-1]))
+                    if (num < self.current.axes) and (num < self.current.axes2):
+                        self.entryVars[num].set(str(self.current.locList[num]))
+                    elif (num == self.current.axes) or (num == self.current.axes2):
+                        self.entryVars[num].set("0")
+                    elif (num > self.current.axes) or (num > self.current.axes2):
+                        self.entryVars[num].set(str(self.current.locList[num-1]))
+                    else:
+                        self.entryVars[num].set(str(self.current.locList[num-2]))
                 self.entries.append(Spinbox(self,textvariable=self.entryVars[num],from_=0,to=self.shape[num]-1,justify="center",command=lambda event=None,num=num: self.getSlice(event,num)))
-                self.entries[num].bind("<Return>", lambda event=None,num=num: self.getSlice(event,num)) #not so nice, but a default value ensures evaluation at lambda declaration
-                self.entries[num].grid(row=num*2+1,column=0)
+                self.entries[num].bind("<Return>", lambda event=None,num=num: self.getSlice(event,num)) 
+                self.entries[num].grid(row=num*2+1,column=1+offset)
 
-    def getSlice(self, event ,entryNum): #change the slice which is currently displayed
-        if entryNum == self.current.axes:
-            if entryNum == self.length-1:
-                dimNum = self.length-2
+    def setAxes(self,first=True):
+        if self.plotIs2D:
+            axes= self.button1Var.get()
+            axes2=self.button2Var.get()
+            if axes==axes2:
+                if first:
+                    axes2 = self.current.axes
+                else:
+                    axes = self.current.axes2
+            self.button2Var.set(axes2)
+            self.getSlice(None, axes,True)
+        else:
+            self.getSlice(None, self.button1Var.get(),True)
+
+    def getSlice(self, event, entryNum, button=False): #change the slice which is currently displayed
+        if button:
+            dimNum = entryNum
+        elif not self.plotIs2D:
+            if entryNum == self.current.axes:
+                if entryNum == self.length-1:
+                    dimNum = self.length-2
+                else:
+                    dimNum = self.length-1
             else:
-                dimNum = self.length-1
+                dimNum = self.current.axes
         else:
             dimNum = self.current.axes
+
         locList=[]
         for num in range(self.length):
+            appendLoc = True
+            if self.plotIs2D and (num == self.button2Var.get()):
+                appendLoc = False
             inp = safeEval(self.entryVars[num].get())
             if num == dimNum:
                 pass
             else:
                 if inp < -self.shape[num]:
                     val=int(round(-(self.shape[num])))
-                    locList.append(val)
-                    self.entryVars[num].set(val)
                 elif inp >= self.shape[num]:
                     val=int(round(self.shape[num]-1))
-                    locList.append(val)
-                    self.entryVars[num].set(val)
                 elif inp < 0:
-                    val = int(round(self.shape[num] + inp))
-                    locList.append(val)
-                    self.entryVars[num].set(val)
+                    val = int(round(self.shape[num] + inp)) 
                 else:
                     val = int(round(inp))
+                if appendLoc:
                     locList.append(val)
-                    self.entryVars[num].set(val)
-        self.current.setSlice(dimNum,locList)
+                self.entryVars[num].set(val)
+        self.button1Var.set(dimNum)
+        if self.plotIs2D:
+            self.current.setBlock(dimNum,self.button2Var.get(), locList)
+        else:
+            self.current.setSlice(dimNum,locList)
         self.parent.bottomframe.upd()
 
 ################################################################################  
@@ -555,7 +637,7 @@ class PhaseWindow(Frame): #a window for phasing the data
         self.firstEntry.grid(row=6,column=1)
         tk.Button(self.window,text="<",repeatdelay=100, repeatinterval=1,command=lambda:self.stepPhase(0,-1)).grid(row=6,column=0)
         tk.Button(self.window,text=">",repeatdelay=100, repeatinterval=1,command=lambda:self.stepPhase(0,1)).grid(row=6,column=2)
-        self.firstScale=Scale(self.window, from_=-0.1*pi*len(self.current.data1D)/self.current.sw, to=0.1*pi*len(self.current.data1D)/self.current.sw, orient="horizontal", command=self.setFirstOrder,length=300)
+        self.firstScale=Scale(self.window, from_=-0.1*pi*(self.current.data1D.shape[-1])/self.current.sw, to=0.1*pi*self.current.data1D.shape[-1]/self.current.sw, orient="horizontal", command=self.setFirstOrder,length=300)
         self.firstScale.grid(row=7,column=0,columnspan=3)
         Label(self.window,text="Reference").grid(row=8,column=0,columnspan=3)
         self.refEntry = Entry(self.window,textvariable=self.refValue,justify="center")
@@ -657,7 +739,7 @@ class ApodWindow(Frame): #a window for apodization
         tk.Button(self.frame1,text=">",repeatdelay=100, repeatinterval=1,command=lambda:self.stepLB(1,0)).grid(row=1,column=4)
         self.lorEntry.bind("<Return>", self.apodPreview)
         self.lorEntry.grid(row=1,column=2)
-        self.lorScale=Scale(self.frame1, from_=0, to=100.0*self.current.sw/len(self.current.data1D),  orient="horizontal", command=self.setLor,length=200)
+        self.lorScale=Scale(self.frame1, from_=0, to=100.0*self.current.sw/(self.current.data1D.shape[-1]),  orient="horizontal", command=self.setLor,length=200)
         self.lorScale.grid(row=2,column=1,columnspan=2)
         Label(self.frame1,text="Gaussian").grid(row=3,column=0,columnspan=4)
         Checkbutton(self.frame1,variable=self.gaussTick, command=lambda: self.checkEval(self.gaussTick,self.gaussEntry)).grid(row=4,column=1)
@@ -666,7 +748,7 @@ class ApodWindow(Frame): #a window for apodization
         self.gaussEntry.grid(row=4,column=2)
         tk.Button(self.frame1,text="<",repeatdelay=100, repeatinterval=1,command=lambda:self.stepLB(0,-1)).grid(row=4,column=0)
         tk.Button(self.frame1,text=">",repeatdelay=100, repeatinterval=1,command=lambda:self.stepLB(0,1)).grid(row=4,column=4)
-        self.gaussScale=Scale(self.frame1, from_=0, to=100.0*self.current.sw/len(self.current.data1D),  orient="horizontal", command=self.setGauss,length=200)
+        self.gaussScale=Scale(self.frame1, from_=0, to=100.0*self.current.sw/(self.current.data1D.shape[-1]),  orient="horizontal", command=self.setGauss,length=200)
         self.gaussScale.grid(row=5,column=1,columnspan=2)
         Label(self.frame1,text="Cos^2").grid(row=6,column=0,columnspan=4)
         Checkbutton(self.frame1,variable=self.cos2Tick, command=lambda: self.checkEval(self.cos2Tick,self.cos2Entry)).grid(row=7,column=1)
@@ -744,7 +826,7 @@ class SizeWindow(Frame): #a window for changing the size of the current dimensio
     def __init__(self, parent,current):
         #initialize variables for the widgets
         self.sizeVal = StringVar()
-        self.sizeVal.set(str(len(current.data1D)))
+        self.sizeVal.set(str(current.data1D.shape[-1]))
         #create a new window
         Frame.__init__(self, parent)
         self.parent = parent
@@ -769,6 +851,7 @@ class SizeWindow(Frame): #a window for changing the size of the current dimensio
         size = int(round(safeEval(self.sizeVal.get())))
         if size < 1:
             size = 1
+        self.sizeVal.set(str(size))
         self.current.setSizePreview(size)
 
     def cancelAndClose(self):
@@ -816,7 +899,7 @@ class SwapEchoWindow(Frame): #a window for changing the size of the current dime
  
     def swapEchoPreview(self, *args): #preview the swap echo result from the entry widget
         pos = int(round(safeEval(self.posVal.get())))
-        if pos > 0 and pos < len(self.current.data1D):
+        if pos > 0 and pos < (self.current.data1D.shape[-1]):
             self.current.setSwapEchoPreview(pos)
 
     def cancelAndClose(self):
@@ -829,7 +912,7 @@ class SwapEchoWindow(Frame): #a window for changing the size of the current dime
     def applySwapEchoAndClose(self):
         self.current.peakPickReset()
         pos = int(round(safeEval(self.posVal.get())))
-        if pos > 0 and pos < len(self.current.data1D):
+        if pos > 0 and pos < (self.current.data1D.shape[-1]):
             self.parent.redoList = []
             self.parent.undoList.append(self.current.applySwapEcho(pos))
             self.parent.bottomframe.upd()
@@ -892,7 +975,7 @@ class DCWindow(Frame): #a window for shifting the data
         self.minVal = StringVar()
         self.minVal.set("0")
         self.maxVal = StringVar()
-        self.maxVal.set(str(len(current.data1D)))
+        self.maxVal.set(str(current.data1D.shape[-1]))
         self.parent = parent
         self.current = current
         self.window = Toplevel(self)
@@ -920,7 +1003,7 @@ class DCWindow(Frame): #a window for shifting the data
 
     def picked(self,pos,second=False): #pick a value alternating the first and second value determined by the second value.
         if second:
-            dataLength = len(self.current.data1D)
+            dataLength = self.current.data1D.shape[-1]
             minimum=int(round(safeEval(self.minVal.get())))
             if minimum < 0:
                 minimum = 0
@@ -938,7 +1021,7 @@ class DCWindow(Frame): #a window for shifting the data
             self.current.peakPick = True
 
     def dcPreview(self, *args): #preview the dc offset correction
-        dataLength = len(self.current.data1D)
+        dataLength = self.current.data1D.shape[-1]
         minimum = int(round(safeEval(self.minVal.get())))
         if minimum < 0:
             minimum = 0
@@ -962,7 +1045,7 @@ class DCWindow(Frame): #a window for shifting the data
 
     def applyDCAndClose(self):
         self.current.peakPickReset()
-        dataLength = len(self.current.data1D)
+        dataLength = self.current.data1D.shape[-1]
         minimum = int(round(safeEval(self.minVal.get())))
         if minimum < 0:
             minimum = 0
@@ -1004,10 +1087,10 @@ class XaxWindow(Frame): #a window for setting the xax of the current data
 
     def xaxPreview(self, *args):
         env = vars(np).copy()
-        env['length']=int(len(self.current.data1D)) # so length can be used to in equations
+        env['length']=int(self.current.data1D.shape[-1]) # so length can be used to in equations
         val=eval(self.val.get(),env)                # find a better solution, also add catch for exceptions          
         if isinstance(val,(list,np.ndarray)):
-            if len(val)==len(self.current.data1D):
+            if len(val)==self.current.data1D.shape[-1]:
                 if all(isinstance(x,(int,float)) for x in val):
                     self.current.setXaxPreview(val)
                 else:
@@ -1025,10 +1108,10 @@ class XaxWindow(Frame): #a window for setting the xax of the current data
 
     def applyXaxAndClose(self):
         env = vars(np).copy()
-        env['length']=int(len(self.current.data1D)) # so length can be used to in equations
+        env['length']=int(self.current.data1D.shape[-1]) # so length can be used to in equations
         val=eval(self.val.get(),env)                # find a better solution, also add catch for exceptions
         if isinstance(val,(list,np.ndarray)):
-            if len(val)==len(self.current.data1D):
+            if len(val)==self.current.data1D.shape[-1]:
                 if all(isinstance(x,(int,float)) for x in val):
                     self.current.setXax(val)
                     self.window.destroy()
