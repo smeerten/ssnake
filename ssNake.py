@@ -65,6 +65,9 @@ class Main1DWindow(Frame):
 	#the tool drop down menu
         toolMenu = Menu(menubar, tearoff=0)
         menubar.add_cascade(label="Tools",menu=toolMenu)
+        toolMenu.add_command(label="Real", command=self.real)
+        toolMenu.add_command(label="Imag", command=self.imag)
+        toolMenu.add_command(label="Abs", command=self.abs) 
         toolMenu.add_command(label="Apodize", command=self.createApodWindow)
         toolMenu.add_command(label="Phasing", command=self.createPhaseWindow)
         toolMenu.add_command(label="Sizing", command=self.createSizeWindow) 
@@ -75,8 +78,7 @@ class Main1DWindow(Frame):
         #the fft drop down menu
         fftMenu = Menu(menubar, tearoff=0)
         menubar.add_cascade(label="Fourier",menu=fftMenu)
-        fftMenu.add_command(label="Complex fourier", command=self.fourier)
-        fftMenu.add_command(label="Real fourier", command=self.realFft)
+        fftMenu.add_command(label="Fourier", command=self.fourier)
         fftMenu.add_command(label="Fftshift", command=self.fftshift)
         fftMenu.add_command(label="Inv fftshift", command=self.invFftshift)
 
@@ -259,15 +261,28 @@ class Main1DWindow(Frame):
     def SaveSimpsonFile(self):
         akhfv=1
         
+    def real(self):
+        self.redoList = []
+        self.undoList.append(self.masterData.real())
+        self.current.upd()
+        self.current.showFid()
+
+    def imag(self):
+        self.redoList = []
+        self.undoList.append(self.masterData.imag())
+        self.current.upd()
+        self.current.showFid()
+
+    def abs(self):
+        self.redoList = []
+        self.undoList.append(self.masterData.abs())
+        self.current.upd()
+        self.current.showFid()
+
     def fourier(self):
         self.redoList = []
         self.undoList.append(self.current.fourier())
         self.bottomframe.upd()
-
-    def realFft(self):
-        self.redoList = []
-        self.undoList.append(self.current.realFft())
-        self.updAllFrames()
 
     def fftshift(self):
         self.redoList = []
@@ -493,25 +508,19 @@ class BottomFrame(Frame):
         self.parent = parent
         self.current = parent.current
         self.specVal = IntVar() #value for the time/freq radiobutton
-        if self.current.spec==0:
-            self.specVal.set(0)
-        elif self.current.spec==1:
-            self.specVal.set(1)
-        elif self.current.spec==2:
-            self.specVal.set(2)
         self.freqVal = StringVar() #value for frequency entybox
         self.swVal = StringVar() #value for sw entrybox
         self.plotOption = StringVar() #value for dropdown plot type box
         self.plotOption.set("Real")
+        self.axisOption1 = StringVar()
+        self.axisOption2 = StringVar()
         self.echoTick = IntVar()
         self.echoTick.set(0)
         Button(self, text="Fourier",command=self.parent.fourier).grid(row=0,column=0,rowspan=2)
         self.rb1 = Radiobutton(self,text="Time",variable=self.specVal,value=0,command=self.changeSpec)
         self.rb1.grid(row=0,column=1)
-        self.rb2 = Radiobutton(self,text="Complex FT",variable=self.specVal,value=1,command=self.changeSpec)
+        self.rb2 = Radiobutton(self,text="Frequency",variable=self.specVal,value=1,command=self.changeSpec)
         self.rb2.grid(row=1,column=1)
-        self.rb3 = Radiobutton(self,text="Real FT",variable=self.specVal,value=2,command=self.changeSpec)
-        self.rb3.grid(row=2,column=1)
         Checkbutton(self,text="Whole echo",variable=self.echoTick, command=self.setWholeEcho).grid(row=0,column=2,rowspan=2)
         Label(self,text="Freq (MHz)").grid(row=0,column=3)
         self.freqEntry = Entry(self,textvariable=self.freqVal,justify='center')
@@ -522,8 +531,13 @@ class BottomFrame(Frame):
         self.swEntry.bind("<Return>", self.changeFreq)
         self.swEntry.grid(row=1,column=4)
         Label(self,text="Plot").grid(row=0,column=5)
-        self.plotDrop = OptionMenu(self, self.plotOption, "Real","Real", "Imag", "Both","Abs",command=self.changePlot)
+        self.plotDrop = OptionMenu(self, self.plotOption,"Real","Real", "Imag", "Both","Abs",command=self.changePlot)
         self.plotDrop.grid(row=1,column=5)
+        Label(self,text="Axis").grid(row=0,column=6)
+        self.axisDropTime = OptionMenu(self, self.axisOption1, "s", "s", "ms", u"\u03bcs",command=self.changeAxis)
+        self.axisDropFreq = OptionMenu(self, self.axisOption2, "Hz", "Hz", "kHz", "MHz","ppm",command=self.changeAxis)
+        self.axisDropTime.grid(row=1,column=6)
+        self.axisDropFreq.grid(row=1,column=6)
         self.swEntry
         self.upd()
  
@@ -533,10 +547,29 @@ class BottomFrame(Frame):
         self.swVal.set(str(self.current.sw/1000)) #show in kHz
         if self.current.spec==0:
             self.specVal.set(0)
+            self.axisDropFreq.grid_forget()
+            self.axisDropTime.grid(row=1,column=6)
+            val = self.current.axType
+            if val == 0:
+                self.axisOption1.set("s")
+            elif val == 1:
+                self.axisOption1.set("ms")
+            elif val == 2:
+                self.axisOption1.set( u"\u03bcs")
+                
         elif self.current.spec==1:
             self.specVal.set(1)
-        elif self.current.spec==2:
-            self.specVal.set(2)
+            self.axisDropTime.grid_forget()
+            self.axisDropFreq.grid(row=1,column=6)
+            val = self.current.axType
+            if val == 0:
+                self.axisOption1.set("Hz")
+            elif val == 1:
+                self.axisOption1.set("kHz")
+            elif val == 2:
+                self.axisOption1.set("MHz")
+            elif val == 3:
+                self.axisOption1.set("ppm")
         if self.current.wholeEcho:
             self.echoTick.set(1)
         else:
@@ -569,6 +602,28 @@ class BottomFrame(Frame):
             self.current.plotType=3
         self.current.showFid()
 
+    def changeAxis(self, *args):
+        if self.current.spec == 0:
+            pType = self.axisOption1.get()
+            if pType == "s":
+                self.current.setAxType(0)
+            elif pType == "ms":
+                self.current.setAxType(1)
+            elif pType == u"\u03bcs":
+                self.current.setAxType(2)
+        if self.current.spec == 1:
+            pType = self.axisOption2.get()
+            if pType == "Hz":
+                self.current.setAxType(0)
+            elif pType == "kHz":
+                self.current.setAxType(1)
+            elif pType == "MHz":
+                self.current.setAxType(2)
+            elif pType == "ppm":
+                print("not implemented yet")
+                #self.current.setAxType(3)
+        self.current.showFid()
+
 ##################################################################
 #the frame showing the get position data
 class TextFrame(Frame):
@@ -592,8 +647,8 @@ class TextFrame(Frame):
     
     def setLabels(self,position):
         self.pos.set(str(position[0]))
-        self.xpoint.set(str(position[1]))
-        self.ypoint.set(str(position[2]))
+        self.xpoint.set('%.3e' % position[1])
+        self.ypoint.set('%.3e' % position[2])
     
     def getPosition(self, *args):
         self.parent.current.peakPickFunc = lambda pos,self=self: self.setLabels(pos) 
@@ -617,6 +672,7 @@ class PhaseWindow(Frame): #a window for phasing the data
         self.parent = parent
         self.current = current
         self.window = Toplevel(self)
+        self.window.geometry('+0+0')
         self.window.transient(self.parent)
         self.window.protocol("WM_DELETE_WINDOW", self.cancelAndClose)
         self.window.title("Phasing")
@@ -726,6 +782,7 @@ class ApodWindow(Frame): #a window for apodization
         self.parent = parent
         self.current = current
         self.window = Toplevel(self)
+        self.window.geometry('+0+0')
         self.window.transient(self.parent)
         self.window.protocol("WM_DELETE_WINDOW", self.cancelAndClose)
         self.window.title("Apodize")
@@ -735,8 +792,8 @@ class ApodWindow(Frame): #a window for apodization
         Label(self.frame1,text="Lorentzian").grid(row=0,column=0,columnspan=4)
         Checkbutton(self.frame1,variable=self.lorTick, command=lambda: self.checkEval(self.lorTick,self.lorEntry)).grid(row=1,column=1)
         self.lorEntry = Entry(self.frame1,textvariable=self.lorVal,justify="center", state='disabled')   
-        tk.Button(self.frame1,text="<",repeatdelay=100, repeatinterval=1,command=lambda:self.stepLB(-1,0)).grid(row=1,column=0)
-        tk.Button(self.frame1,text=">",repeatdelay=100, repeatinterval=1,command=lambda:self.stepLB(1,0)).grid(row=1,column=4)
+        tk.Button(self.frame1,text="<",repeatdelay=100, repeatinterval=1,command=lambda:self.stepLB(-0.5*self.current.sw/(self.current.data1D.shape[-1]),0)).grid(row=1,column=0)
+        tk.Button(self.frame1,text=">",repeatdelay=100, repeatinterval=1,command=lambda:self.stepLB(0.5*self.current.sw/(self.current.data1D.shape[-1]),0)).grid(row=1,column=4)
         self.lorEntry.bind("<Return>", self.apodPreview)
         self.lorEntry.grid(row=1,column=2)
         self.lorScale=Scale(self.frame1, from_=0, to=100.0*self.current.sw/(self.current.data1D.shape[-1]),  orient="horizontal", command=self.setLor,length=200)
@@ -746,8 +803,8 @@ class ApodWindow(Frame): #a window for apodization
         self.gaussEntry = Entry(self.frame1,textvariable=self.gaussVal,justify="center", state='disabled')
         self.gaussEntry.bind("<Return>", self.apodPreview)
         self.gaussEntry.grid(row=4,column=2)
-        tk.Button(self.frame1,text="<",repeatdelay=100, repeatinterval=1,command=lambda:self.stepLB(0,-1)).grid(row=4,column=0)
-        tk.Button(self.frame1,text=">",repeatdelay=100, repeatinterval=1,command=lambda:self.stepLB(0,1)).grid(row=4,column=4)
+        tk.Button(self.frame1,text="<",repeatdelay=100, repeatinterval=1,command=lambda:self.stepLB(0,-0.5*self.current.sw/(self.current.data1D.shape[-1]))).grid(row=4,column=0)
+        tk.Button(self.frame1,text=">",repeatdelay=100, repeatinterval=1,command=lambda:self.stepLB(0,0.5*self.current.sw/(self.current.data1D.shape[-1]))).grid(row=4,column=4)
         self.gaussScale=Scale(self.frame1, from_=0, to=100.0*self.current.sw/(self.current.data1D.shape[-1]),  orient="horizontal", command=self.setGauss,length=200)
         self.gaussScale.grid(row=5,column=1,columnspan=2)
         Label(self.frame1,text="Cos^2").grid(row=6,column=0,columnspan=4)
@@ -832,6 +889,7 @@ class SizeWindow(Frame): #a window for changing the size of the current dimensio
         self.parent = parent
         self.current = current
         self.window = Toplevel(self)
+        self.window.geometry('+0+0')
         self.window.transient(self.parent)
         self.window.protocol("WM_DELETE_WINDOW", self.cancelAndClose)
         self.window.title("Set size")
@@ -879,6 +937,7 @@ class SwapEchoWindow(Frame): #a window for changing the size of the current dime
         self.parent = parent
         self.current = current
         self.window = Toplevel(self)
+        self.window.geometry('+0+0')
         self.window.transient(self.parent)
         self.window.protocol("WM_DELETE_WINDOW", self.cancelAndClose)
         self.window.title("Swap echo")
@@ -936,6 +995,7 @@ class ShiftDataWindow(Frame): #a window for shifting the data
         self.parent = parent
         self.current = current
         self.window = Toplevel(self)
+        self.window.geometry('+0+0')
         self.window.transient(self.parent)
         self.window.protocol("WM_DELETE_WINDOW", self.cancelAndClose)
         self.window.title("Shift data")
@@ -979,6 +1039,7 @@ class DCWindow(Frame): #a window for shifting the data
         self.parent = parent
         self.current = current
         self.window = Toplevel(self)
+        self.window.geometry('+0+0')
         self.window.transient(self.parent)
         self.window.protocol("WM_DELETE_WINDOW", self.cancelAndClose)
         self.window.title("DC offset correction")
@@ -1069,6 +1130,7 @@ class XaxWindow(Frame): #a window for setting the xax of the current data
         self.parent = parent
         self.current = current
         self.window = Toplevel(self)
+        self.window.geometry('+0+0')
         self.window.transient(self.parent)
         self.window.protocol("WM_DELETE_WINDOW", self.cancelAndClose)
         self.window.title("User defined x-axis")

@@ -32,9 +32,25 @@ class Spectrum(object):
             if self.spec[i]==0:
                 self.xaxArray[i]=np.arange(self.data.shape[i])/(self.sw[i])
             elif self.spec[i]==1:
-                self.xaxArray[i]=np.fft.fftshift(np.fft.fftfreq(self.data.shape[i],1.0/self.sw[i])) 
-            elif self.spec[i]==2:
-                self.xaxArray[i]=np.fft.rfftfreq(2*self.data.shape[i]-1,1.0/self.sw[i])
+                self.xaxArray[i]=np.fft.fftshift(np.fft.fftfreq(self.data.shape[i],1.0/self.sw[i]))
+
+    def real(self):
+        copyData=copy.deepcopy(self)
+        returnValue = lambda self: self.restoreData(copyData, lambda self: self.real())
+        self.data = np.real(self.data)
+        return returnValue
+
+    def imag(self):
+        copyData=copy.deepcopy(self)
+        returnValue = lambda self: self.restoreData(copyData, lambda self: self.imag())
+        self.data = np.imag(self.data)
+        return returnValue
+
+    def abs(self):
+        copyData=copy.deepcopy(self)
+        returnValue = lambda self: self.restoreData(copyData, lambda self: self.abs())
+        self.data = np.abs(self.data)
+        return returnValue
 
     def setPhase(self, phase0, phase1, axes):
         vector = np.exp(np.fft.fftshift(np.fft.fftfreq(self.data.shape[axes],1.0/self.sw[axes]))*phase1*1j)
@@ -154,26 +170,6 @@ class Spectrum(object):
         self.resetXax(axes)
         return lambda self: self.fourier(axes)
 
-    def realFft(self, axes):
-        if axes>self.dim:
-            print("axes bigger than dim in fourier")
-        copyData=copy.deepcopy(self)
-        returnValue = lambda self: self.restoreData(copyData, lambda self: self.realFft(axes))
-        if self.spec[axes] == 0:
-            if not self.wholeEcho[axes]:
-                slicing = (slice(None),) * axes + (0,) + (slice(None),)*(self.dim-1-axes)
-                self.data[slicing]= self.data[slicing]*0.5
-            self.data=np.fft.rfftn(np.real(self.data),axes=[axes])
-            self.spec[axes]=2
-        else:
-            self.data=np.fft.irfftn(self.data,axes=[axes])
-            if not self.wholeEcho[axes]:
-                slicing = (slice(None),) * axes + (0,) + (slice(None),)*(self.dim-1-axes)
-                self.data[slicing]= self.data[slicing]*2.0
-            self.spec[axes]=0
-        self.resetXax(axes)
-        return returnValue
-
     def fftshift(self, axes, inv=False):
         if axes>self.dim:
             print("axes bigger than dim in fourier")
@@ -211,7 +207,7 @@ class Spectrum(object):
 #########################################################################################################
 #the class from which the 1d data is displayed, the operations which only edit the content of this class are for previewing
 class Current1D(Plot1DFrame):
-    def __init__(self, root, data, axes=None, locList=None, plotType=0):
+    def __init__(self, root, data, axes=None, locList=None, plotType=0, axType=1):
         Plot1DFrame.__init__(self,root)
         self.xax = None               #x-axis
         self.data = data              #the actual spectrum instance
@@ -229,6 +225,7 @@ class Current1D(Plot1DFrame):
         else:
             self.locList = locList    
         self.plotType = plotType
+        self.axType = axType
         self.upd()   #get the first slice of data
         self.plotReset() #reset the axes limits
         self.showFid() #plot the data
@@ -319,10 +316,6 @@ class Current1D(Plot1DFrame):
             y=np.fft.ifft(np.fft.ifftshift(y))
             y= y*x
             y=np.fft.fftshift(np.fft.fft(y))
-        elif self.spec==2:
-            y=np.fft.irfft(y)
-            y= y*x
-            y=np.fft.rfft(real(y))
         else:
             y= y*x
         if self.spec==0:
@@ -367,8 +360,6 @@ class Current1D(Plot1DFrame):
             self.xax=np.arange(len(self.data1D))/self.sw
         elif self.spec==1:
             self.xax=np.fft.fftshift(np.fft.fftfreq(len(self.data1D),1.0/self.sw)) 
-        elif self.spec==2:
-            self.xax=np.fft.rfftfreq(2*len(self.data1D)-1,1.0/self.sw)
         self.plotReset()
         self.showFid()
         self.upd()
@@ -444,8 +435,6 @@ class Current1D(Plot1DFrame):
         L = len(self.data1D)
         if self.spec==1:
             x=np.fft.fftshift(np.fft.fftfreq(L,1.0/self.sw))
-        elif self.spec==2:
-            x=np.fft.rfftfreq(L,1.0/self.sw)
         if self.spec>0:
             s0 = self.data1D*np.exp(1j*(phase0+phase1*x))
         else:
@@ -484,6 +473,15 @@ class Current1D(Plot1DFrame):
         #for now the changing of the axis cannot be undone, because of problems in case of a non-linear axis on operations such as fourier transform etc.
         #doing one of these operations will result in a return to the default axis defined by sw
 
+    def setAxType(self, val):
+        ratio = 1000.0**(val - self.axType)
+        if self.spec == 1:
+            ratio = 1.0/ratio
+        self.axType = val
+        self.xminlim = ratio*self.xminlim
+        self.xmaxlim = ratio*self.xmaxlim
+        self.showFid()
+
     def getDisplayedData(self):
         if self.plotType==0:
             return np.real(self.data1D)
@@ -499,35 +497,50 @@ class Current1D(Plot1DFrame):
             tmpdata=self.data1D
         a=self.fig.gca()
         a.cla()
+        if self.spec == 1:
+            axMult = 1.0/(1000.0**self.axType)
+        elif self.spec == 0:
+            axMult = 1000.0**self.axType
         if old:
             if (self.plotType==0):
-                a.plot(self.xax,np.real(self.data1D),c='k',alpha=0.2)
+                a.plot(self.xax*axMult,np.real(self.data1D),c='k',alpha=0.2)
             elif(self.plotType==1):
-                a.plot(self.xax,np.imag(self.data1D),c='k',alpha=0.2)
+                a.plot(self.xax*axMult,np.imag(self.data1D),c='k',alpha=0.2)
             elif(self.plotType==2):
-                a.plot(self.xax,np.real(self.data1D),c='k',alpha=0.2)
+                a.plot(self.xax*axMult,np.real(self.data1D),c='k',alpha=0.2)
             elif(self.plotType==3):
-                a.plot(self.xax,np.abs(self.data1D),c='k',alpha=0.2)
+                a.plot(self.xax*axMult,np.abs(self.data1D),c='k',alpha=0.2)
         if (extraX is not None):
             for num in range(len(extraX)):
-                a.plot(extraX[num],extraY[num],c=extraColor[num])
+                a.plot(extraX[num]*axMult,extraY[num],c=extraColor[num])
         if (self.plotType==0):
-            self.line = a.plot(self.xax,np.real(tmpdata),c='b')
+            self.line = a.plot(self.xax*axMult,np.real(tmpdata),c='b')
         elif(self.plotType==1):
-            self.line = a.plot(self.xax,np.imag(tmpdata),c='b')
+            self.line = a.plot(self.xax*axMult,np.imag(tmpdata),c='b')
         elif(self.plotType==2):
-            a.plot(self.xax,np.imag(tmpdata),c='r')
-            self.line = a.plot(self.xax,np.real(tmpdata),c='b')
+            a.plot(self.xax*axMult,np.imag(tmpdata),c='r')
+            self.line = a.plot(self.xax*axMult,np.real(tmpdata),c='b')
         elif(self.plotType==3):
-            self.line = a.plot(self.xax,np.abs(tmpdata),c='b')
+            self.line = a.plot(self.xax*axMult,np.abs(tmpdata),c='b')
         a.set_title("TD"+str(self.axes+1))
-        #a.set_xlabel('X axis label')
         if self.spec==0:
-            a.set_xlabel('Time (sec)')
+            if self.axType == 0:
+                a.set_xlabel('Time (s)')
+            elif self.axType == 1:
+                a.set_xlabel('Time (ms)')
+            elif self.axType == 2:
+                a.set_xlabel(r'Time (\mus)')
+            else:
+                a.set_xlabel('User defined')
         elif self.spec==1:
-            a.set_xlabel('Frequency (Hz)')
-        elif self.spec==2:
-            a.set_xlabel('Frequency (Hz)')
+            if self.axType == 0:
+                a.set_xlabel('Frequency (Hz)')
+            elif self.axType == 1:
+                a.set_xlabel('Frequency (kHz)')
+            elif self.axType == 2:
+                a.set_xlabel('Frequency (MHz)')
+            else:
+                a.set_xlabel('User defined')
         else:
             a.set_xlabel('')
         a.set_xlim(self.xminlim,self.xmaxlim)
@@ -557,15 +570,19 @@ class Current1D(Plot1DFrame):
         differ = 0.05*(maxy-miny) #amount to add to show all datapoints (10%)
         self.yminlim=miny-differ
         self.ymaxlim=maxy+differ
-        self.xminlim=min(self.xax)
-        self.xmaxlim=max(self.xax)
+        if self.spec == 1:
+            axMult = 1.0/(1000.0**self.axType)
+        elif self.spec == 0:
+            axMult = 1000.0**self.axType
+        self.xminlim=min(self.xax*axMult)
+        self.xmaxlim=max(self.xax*axMult)
         a.set_xlim(self.xminlim,self.xmaxlim)
         a.set_ylim(self.yminlim,self.ymaxlim)
 
 #########################################################################################################
 #the class from which the stacked data is displayed, the operations which only edit the content of this class are for previewing
 class CurrentStacked(Plot1DFrame):
-    def __init__(self, root, data, axes=None, axes2=None, locList=None, plotType=0, stackBegin=None, stackEnd=None, stackStep=None):
+    def __init__(self, root, data, axes=None, axes2=None, locList=None, plotType=0, axType=1, stackBegin=None, stackEnd=None, stackStep=None):
         Plot1DFrame.__init__(self,root)
         self.xax = None               #x-axis
         self.data = data              #the actual spectrum instance
@@ -574,7 +591,8 @@ class CurrentStacked(Plot1DFrame):
         self.data1D = None            #the data to be stacked
         self.spec = None              #boolean where False=time domain and True=spectral domain
         self.wholeEcho = None 
-        self.plotType = plotType        
+        self.plotType = plotType
+        self.axType = axType 
         self.spacing = 2              #space between the stacked spectra
         if axes is None:
             self.axes = len(self.data.data.shape)-1
@@ -682,10 +700,6 @@ class CurrentStacked(Plot1DFrame):
             y=np.fft.ifftn(np.fft.ifftshift(y,axes=1),axes=[1])
             y= y*x
             y=np.fft.fftshift(np.fft.fftn(y,axes=[1]),axes=1)
-        elif self.spec==2:
-            y=np.fft.irfftn(y,axes=[1])
-            y= y*x
-            y=np.fft.rfftn(real(y),axes=[1])
         else:
             y= y*x
         if self.spec==0:
@@ -730,8 +744,6 @@ class CurrentStacked(Plot1DFrame):
             self.xax=np.arange(len(self.data1D[0]))/self.sw
         elif self.spec==1:
             self.xax=np.fft.fftshift(np.fft.fftfreq(len(self.data1D[0]),1.0/self.sw)) 
-        elif self.spec==2:
-            self.xax=np.fft.rfftfreq(2*len(self.data1D[0])-1,1.0/self.sw)
         self.plotReset()
         self.showFid()
         self.upd()
@@ -807,8 +819,6 @@ class CurrentStacked(Plot1DFrame):
         L = len(self.data1D)
         if self.spec==1:
             x=np.fft.fftshift(np.fft.fftfreq(L,1.0/self.sw))
-        elif self.spec==2:
-            x=np.fft.rfftfreq(L,1.0/self.sw)
         if self.spec>0:
             s0 = self.data1D*np.exp(1j*(phase0+phase1*x))
         else:
@@ -847,6 +857,15 @@ class CurrentStacked(Plot1DFrame):
         #for now the changing of the axis cannot be undone, because of problems in case of a non-linear axis on operations such as fourier transform etc.
         #doing one of these operations will result in a return to the default axis defined by sw
 
+    def setAxType(self, val):
+        ratio = 1000.0**(val - self.axType)
+        if self.spec == 1:
+            ratio = 1.0/ratio
+        self.axType = val
+        self.xminlim = ratio*self.xminlim
+        self.xmaxlim = ratio*self.xmaxlim
+        self.showFid()
+
     def getDisplayedData(self):
         if self.plotType==0:
             return np.real(self.data1D[0])
@@ -862,43 +881,59 @@ class CurrentStacked(Plot1DFrame):
             tmpdata=self.data1D
         a=self.fig.gca()
         a.cla()
+        if self.spec == 1:
+            axMult = 1.0/(1000.0**self.axType)
+        elif self.spec == 0:
+            axMult = 1000.0**self.axType
         if old:
             if (self.plotType==0):
                 for num in range(len(self.data1D)):
-                    a.plot(self.xax,num*self.spacing+np.real(self.data1D[num]),c='k',alpha=0.2)
+                    a.plot(self.xax*axMult,num*self.spacing+np.real(self.data1D[num]),c='k',alpha=0.2)
             elif(self.plotType==1):
                 for num in range(len(self.data1D)):
-                    a.plot(self.xax,num*self.spacing+np.imag(self.data1D[num]),c='k',alpha=0.2)
+                    a.plot(self.xax*axMult,num*self.spacing+np.imag(self.data1D[num]),c='k',alpha=0.2)
             elif(self.plotType==2):
                 for num in range(len(self.data1D)):
-                    a.plot(self.xax,num*self.spacing+np.real(self.data1D[num]),c='k',alpha=0.2)
+                    a.plot(self.xax*axMult,num*self.spacing+np.real(self.data1D[num]),c='k',alpha=0.2)
             elif(self.plotType==3):
                 for num in range(len(self.data1D)):
-                    a.plot(self.xax,num*self.spacing+np.abs(self.data1D[num]),c='k',alpha=0.2)
+                    a.plot(self.xax*axMult,num*self.spacing+np.abs(self.data1D[num]),c='k',alpha=0.2)
         if (extraX is not None):
             for num in range(len(extraY)):
-                a.plot(extraX[0],num*self.spacing+extraY[num],c=extraColor[0])
+                a.plot(extraX[0]*axMult,num*self.spacing+extraY[num],c=extraColor[0])
         if (self.plotType==0):
             for num in range(len(tmpdata)):
-                self.line = a.plot(self.xax,num*self.spacing+np.real(tmpdata[num]),c='b')
+                self.line = a.plot(self.xax*axMult,num*self.spacing+np.real(tmpdata[num]),c='b')
         elif(self.plotType==1):
             for num in range(len(tmpdata)):
-                self.line = a.plot(self.xax,num*self.spacing+np.imag(tmpdata[num]),c='b')
+                self.line = a.plot(self.xax*axMult,num*self.spacing+np.imag(tmpdata[num]),c='b')
         elif(self.plotType==2):
             for num in range(len(tmpdata)):
-                a.plot(self.xax,num*self.spacing+np.imag(tmpdata[num]),c='r')
-                self.line = a.plot(self.xax,num*self.spacing+np.real(tmpdata[num]),c='b')
+                a.plot(self.xax*axMult,num*self.spacing+np.imag(tmpdata[num]),c='r')
+                self.line = a.plot(self.xax*axMult,num*self.spacing+np.real(tmpdata[num]),c='b')
         elif(self.plotType==3):
             for num in range(len(tmpdata)):
-                self.line = a.plot(self.xax,num*self.spacing+np.abs(tmpdata[num]),c='b')
+                self.line = a.plot(self.xax*axMult,num*self.spacing+np.abs(tmpdata[num]),c='b')
         a.set_title("TD"+str(self.axes+1))
         #a.set_xlabel('X axis label')
         if self.spec==0:
-            a.set_xlabel('Time (sec)')
+            if self.axType == 0:
+                a.set_xlabel('Time (s)')
+            elif self.axType == 1:
+                a.set_xlabel('Time (ms)')
+            elif self.axType == 2:
+                a.set_xlabel(r'Time (\mus)')
+            else:
+                a.set_xlabel('User defined')
         elif self.spec==1:
-            a.set_xlabel('Frequency (Hz)')
-        elif self.spec==2:
-            a.set_xlabel('Frequency (Hz)')
+            if self.axType == 0:
+                a.set_xlabel('Frequency (Hz)')
+            elif self.axType == 1:
+                a.set_xlabel('Frequency (kHz)')
+            elif self.axType == 2:
+                a.set_xlabel('Frequency (MHz)')
+            else:
+                a.set_xlabel('User defined')  
         else:
             a.set_xlabel('')
         a.set_xlim(self.xminlim,self.xmaxlim)
@@ -929,7 +964,11 @@ class CurrentStacked(Plot1DFrame):
         differ = 0.05*(maxy-miny) #amount to add to show all datapoints (10%)
         self.yminlim=miny-differ
         self.ymaxlim=maxy+differ
-        self.xminlim=min(self.xax)
-        self.xmaxlim=max(self.xax)
+        if self.spec == 1:
+            axMult = 1.0/(1000.0**self.axType)
+        elif self.spec == 0:
+            axMult = 1000.0**self.axType
+        self.xminlim=min(self.xax*axMult)
+        self.xmaxlim=max(self.xax*axMult)
         a.set_xlim(self.xminlim,self.xmaxlim)
         a.set_ylim(self.yminlim,self.ymaxlim)
