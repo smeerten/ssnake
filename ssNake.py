@@ -78,9 +78,10 @@ class Main1DWindow(Frame):
         #the fft drop down menu
         fftMenu = Menu(menubar, tearoff=0)
         menubar.add_cascade(label="Fourier",menu=fftMenu)
-        fftMenu.add_command(label="Fourier", command=self.fourier)
+        fftMenu.add_command(label="Fourier transform", command=self.fourier)
         fftMenu.add_command(label="Fftshift", command=self.fftshift)
         fftMenu.add_command(label="Inv fftshift", command=self.invFftshift)
+        fftMenu.add_command(label="Hilbert transform", command=self.hilbert)
 
 	#the fitting drop down menu
         fittingMenu = Menu(menubar, tearoff=0)
@@ -294,6 +295,10 @@ class Main1DWindow(Frame):
         self.undoList.append(self.current.fftshift(inv=True))
         self.updAllFrames()
     
+    def hilbert(self):
+        self.redoList = []
+        self.undoList.append(self.current.hilbert())
+
     def setFreq(self,freq,sw):
         self.redoList = []
         self.undoList.append(self.current.setFreq(freq,sw))
@@ -632,10 +637,16 @@ class TextFrame(Frame):
         self.parent = parent
         self.pos = StringVar()      #number of get_position data point
         self.pos.set(str(0))
+        self.oldx = 0.0
+        self.oldy = 0.0
         self.xpoint = StringVar()   #x value of the get_position data point
-        self.xpoint.set(str(0.0))
+        self.xpoint.set(str(self.oldx))
         self.ypoint = StringVar()   #y value of the get_position data point
-        self.ypoint.set(str(0.0))
+        self.ypoint.set(str(self.oldy))
+        self.deltaxpoint = StringVar()   #x value of the get_position data point
+        self.deltaxpoint.set(str(0.0))
+        self.deltaypoint = StringVar()   #y value of the get_position data point
+        self.deltaypoint.set(str(0.0))
         
         Button(self,text="get Position", command=self.getPosition).grid(row=0,column=0)
         Label(self,text="Position:").grid(row=0,column=1)
@@ -644,12 +655,20 @@ class TextFrame(Frame):
         Entry(self,textvariable=self.xpoint,justify='center').grid(row=0,column=4)
         Label(self,text="y-value:").grid(row=0,column=5)
         Entry(self,textvariable=self.ypoint,justify='center').grid(row=0,column=6)
+        Label(self,text=u"\u0394x:").grid(row=0,column=7)
+        Entry(self,textvariable=self.deltaxpoint,justify='center').grid(row=0,column=8)
+        Label(self,text=u"\u0394y:").grid(row=0,column=9)
+        Entry(self,textvariable=self.deltaypoint,justify='center').grid(row=0,column=10)
     
     def setLabels(self,position):
+        self.deltaxpoint.set('%.3e' % np.abs(self.oldx-position[1]))
+        self.deltaypoint.set('%.3e' % np.abs(self.oldy-position[2]))
         self.pos.set(str(position[0]))
         self.xpoint.set('%.3e' % position[1])
         self.ypoint.set('%.3e' % position[2])
-    
+        self.oldx = position[1]
+        self.oldy = position[2]
+
     def getPosition(self, *args):
         self.parent.current.peakPickFunc = lambda pos,self=self: self.setLabels(pos) 
         self.parent.current.peakPick = True

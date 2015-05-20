@@ -1,6 +1,7 @@
 import matplotlib
 import numpy as np
 import scipy.optimize
+import scipy.signal
 import copy
 from spectrumFrame import Plot1DFrame
 
@@ -50,6 +51,12 @@ class Spectrum(object):
         copyData=copy.deepcopy(self)
         returnValue = lambda self: self.restoreData(copyData, lambda self: self.abs())
         self.data = np.abs(self.data)
+        return returnValue
+
+    def hilbert(self,axes):
+        copyData=copy.deepcopy(self)
+        returnValue = lambda self: self.restoreData(copyData, lambda self: self.hilbert(axes))
+        self.data = scipy.signal.hilbert(np.real(self.data), axis=axes)
         return returnValue
 
     def setPhase(self, phase0, phase1, axes):
@@ -482,6 +489,12 @@ class Current1D(Plot1DFrame):
         self.xmaxlim = ratio*self.xmaxlim
         self.showFid()
 
+    def hilbert(self):
+        returnValue = self.data.hilbert(self.axes)
+        self.upd()
+        self.showFid()
+        return returnValue
+
     def getDisplayedData(self):
         if self.plotType==0:
             return np.real(self.data1D)
@@ -865,6 +878,13 @@ class CurrentStacked(Plot1DFrame):
         self.xminlim = ratio*self.xminlim
         self.xmaxlim = ratio*self.xmaxlim
         self.showFid()
+
+    def hilbert(self):
+        returnValue = self.data.hilbert(self.axes)
+        self.upd()
+        self.showFid()
+        return returnValue
+
 
     def getDisplayedData(self):
         if self.plotType==0:
