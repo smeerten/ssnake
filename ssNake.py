@@ -48,7 +48,7 @@ class Main1DWindow(Frame):
         loadmenu = Menu(menubar, tearoff=0)
         menubar.add_cascade(label="Load", menu=loadmenu)
         loadmenu.add_command(label="Load Varian data", command=self.LoadVarianFile)
-        loadmenu.add_command(label="Load infinity data", command=self.LoadChemFile)
+        loadmenu.add_command(label="Load Infinity data", command=self.LoadChemFile)
         loadmenu.add_command(label="Load Simpson data", command=self.LoadSimpsonFile)
         
         #the save drop down menu
@@ -203,16 +203,69 @@ class Main1DWindow(Frame):
                 print(Dir+'/fid does not exits, no Varian data loaded!')
 
     def LoadChemFile(self):
-        name = askopenfilename()#to be added
-        print(name)
-        
+        FileLocation = askopenfilename()
+        Dir = os.path.dirname(FileLocation)
+        if FileLocation is not '': #if not empty
+            try:
+                sizeTD1=1
+                sw1=0
+                H = dict(line.strip().split('=') for line in open(Dir+'/acq','r'))
+                sizeTD2 = int(H['al'])
+                freq = float(H['sf'+H['ch1']])
+                sw=1/float(H['dw'][:-1])
+            
+                if any('array_num_values_' in s for s in H.keys()):
+                    if 'use_array=1' in open(Dir+'/acq_2').read():
+                        for s in H.keys():
+                            if ('array_num_values_' in s):
+                                sizeTD1 = sizeTD1*int(H[s])
+                    else:
+                        if 'al2' in H:
+                            sizeTD1 = int(H['al2'])
+                            if 'dw2' in H:
+                                sw1 = 1/float(H['dw2'][:,-1])
+                else:
+                    if 'al2' in H:
+                        sizeTD1 = int(H['al2'])
+                        if 'dw2' in H:
+                            sw1 = 1/float(H['dw2'][:,-1])        
+                            
+                with open(Dir+'/data','rb') as f:
+                    raw = np.fromfile(f, np.int32)
+                    b=np.complex128(raw.byteswap())
+                fid = b[:len(b)/2]+1j*b[len(b)/2:]
+                fid = np.reshape(fid,(sizeTD1,sizeTD2))
+                
+                data = np.array(fid) #convert to numpy array
+                self.current.grid_remove()
+                self.current.destroy()
+                axis=0
+                spec = [False]
+                    
+                if sizeTD1 is 1:
+                    data = data[0][:] #convert to 1D np.array
+                    self.masterData=sc.Spectrum(data,[freq*1e6],[sw],spec)
+                    self.current=sc.Current1D(self,self.masterData,0,[],0) #create the Current1D instance from the Spectrum  
+                else:
+                    data = np.transpose(data.reshape((sizeTD1,sizeTD2)))
+                    self.masterData=sc.Spectrum(data,[freq*1e6]*2,[sw,sw1],spec*2)
+                    self.current=sc.Current1D(self,self.masterData,0,[0],0) #create the Current1D instance from the Spectrum  
+                    
+                self.current.grid(row=0,column=0,sticky="nswe")
+                self.updAllFrames()
+            except:
+                print('Error loading Chemagnetics data from '+Dir+'/data. No data loaded!')
+        else:
+            print(Dir+'/data does not exits, no Chemagnetics data loaded!')
+
     def LoadSimpsonFile(self):
         #Loads Simpson data (Fid or Spectrum) to the ssNake data format
-        FileLocation = askopenfilename()#to be added
+        FileLocation = askopenfilename()
         if FileLocation is not '': #if not empty
-            with open(FileLocation, 'r') as f: #read entire procfile (data[0] gives first line)
-                Lines = f.read().split('\n')
             try:
+                with open(FileLocation, 'r') as f: #read file
+                    Lines = f.read().split('\n')
+            
                 NP, NI, SW, SW1, TYPE, FORMAT = 0,1,0,0,'','Normal'
                 for s in range(0,len(Lines)):
                     if Lines[s].startswith('NP='):
@@ -231,13 +284,64 @@ class Main1DWindow(Frame):
                         DataStart = s
                     elif Lines[s].startswith('END'):
                         DataEnd = s
+                
                 if 'Normal' in FORMAT: #If normal format (e.g. not binary)
                     data = []
                     for iii in range(DataStart+1,DataEnd): #exctract data
                         temp = Lines[iii].split()
                         data.append(float(temp[0])+1j*float(temp[1]))
                 elif 'BINARY' in FORMAT: #needs to be im-plemented
-                    AGD=1
+                    RawData = np.array(Lines[DataStart+1:DataEnd])
+                    Ascii=[]
+                    for i in range(0,len(RawData)):
+                        for j in range(0,len(RawData[i])):
+                            Ascii.append(ord(RawData[i][j]))
+                    
+                    Values = np.array(Ascii)
+                    i=0
+                    idx=0
+                    TempData=[]
+                    while i < 2*NP*NI:
+                        pts=[]
+                        for j in range(0,4):
+                            C=[]
+                            for h in range(4):
+                                try: 
+                                    C.append(Values[idx]-33)
+                                except: #if end of file, append zeroes
+                                    C.append(0)
+                                idx+=1
+                            pts.append(C[0]%64 + C[1]*4- C[1]*4 % 64)
+                            pts.append(C[1]%16 + C[2]*4- C[2]*4%16)
+                            pts.append(C[2]%4 + C[3]*4- C[3]*4%4)
+                            
+                        for k in range(0,3):
+                            p=0
+                            if i is not 2*NP*NI:
+                                for j in range(0,4):
+                                   p = np.int32(p*256);
+                                   p = np.int32(p | pts[4*k+j])
+                                #Simpson to float
+                                a1 = np.int32(math.floor(p)%256 * 16777216)
+                                a2 = np.int32(math.floor(p/256)%256 * 65536)
+                                a3 = np.int32(math.floor(p/65536)%256 * 256)
+                                a4 = np.int32(math.floor(p/16777216)%256)
+                                rdl = a1 | a2 | a3 | a4
+    
+                                sign = math.floor(rdl/2**31)
+                                e = math.floor(rdl/8388608)%256
+                                m  = rdl% 8388608
+                                Value = (2.0*sign+1)*m*2.0**(e-150);   
+                                #----------------
+                                TempData.append(Value)
+                                i+=1
+                                print(i)                         
+                    real = TempData[0:len(TempData):2]
+                    imag = TempData[1:len(TempData):2]
+                    data=[]
+                    for number in range(0,int(len(TempData)/2)):
+                        data.append(real[number]+1j*imag[number])
+                        
                 data = np.array(data) #convert to numpy array
                 self.current.grid_remove()
                 self.current.destroy()
@@ -247,13 +351,15 @@ class Main1DWindow(Frame):
                 elif 'SPE' in TYPE:
                     axis=1
                     spec = [True]
+                    
                 if NI is 1:
                     self.masterData=sc.Spectrum(data,[0],[SW],spec)
-                    self.current=sc.Current1D(self,self.masterData) #create the Current1D instance from the Spectrum  
+                    self.current=sc.Current1D(self,self.masterData,0,[],0) #create the Current1D instance from the Spectrum  
                 else:
                     data = np.transpose(data.reshape((NP,NI)))
                     self.masterData=sc.Spectrum(data,[0,0],[SW,SW1],spec*2)
-                    self.current=sc.Current1D(self,self.masterData) #create the Current1D instance from the Spectrum  
+                    self.current=sc.Current1D(self,self.masterData,0,[0],0) #create the Current1D instance from the Spectrum  
+                    
                 self.current.grid(row=0,column=0,sticky="nswe")
                 self.updAllFrames()
             except:
@@ -391,10 +497,16 @@ class SideFrame(Frame):
         self.buttons1=[]
         self.button1Var=IntVar()
         self.button1Var.set(0)
+        #setting needed for 2d style plots
         self.buttons2=[]
         self.button2Var=IntVar()
         self.button2Var.set(1)
         self.plotIs2D = False
+        self.extraFrame = None
+        self.spacing = StringVar()
+        self.from2D = StringVar()
+        self.to2D = StringVar()
+        self.step2D = StringVar()
         self.upd()
 
     def upd(self): #destroy the old widgets and create new ones 
@@ -418,6 +530,8 @@ class SideFrame(Frame):
         self.buttons1=[]
         for num in self.buttons2:
             num.destroy()
+        if self.extraFrame is not None:
+            self.extraFrame.destroy()
         self.buttons2=[]
         self.entryVars = []
         if self.length > 1:
@@ -449,6 +563,69 @@ class SideFrame(Frame):
                 self.entries.append(Spinbox(self,textvariable=self.entryVars[num],from_=0,to=self.shape[num]-1,justify="center",command=lambda event=None,num=num: self.getSlice(event,num)))
                 self.entries[num].bind("<Return>", lambda event=None,num=num: self.getSlice(event,num)) 
                 self.entries[num].grid(row=num*2+1,column=1+offset)
+            if self.plotIs2D:
+                if self.current.stackBegin is not None:
+                    self.from2D.set(str(self.current.stackBegin))
+                else:
+                    self.from2D.set('0')
+                if self.current.stackEnd is not None:
+                    self.to2D.set(str(self.current.stackEnd))
+                else:
+                    self.to2D.set(str(self.shape[self.current.axes2]))
+                if self.current.stackStep is not None:
+                    self.step2D.set(str(self.current.stackStep))
+                else:
+                    self.step2D.set('1')
+                self.spacing.set('%.3e' % self.current.spacing)
+                self.extraFrame = Frame(self)
+                self.extraFrame.grid(row=2*self.length+1,column=0,columnspan=2+offset,sticky='nwe')
+                self.extraFrame.grid_columnconfigure(0,weight=1)
+                Separator(self.extraFrame,orient=HORIZONTAL).grid(row=0, sticky='ew')
+                Label(self.extraFrame,text="From").grid(row=1,column=0,sticky='n')
+                self.fromSpin = Spinbox(self.extraFrame,textvariable=self.from2D,from_=0,to=int(self.to2D.get())-1,justify="center",command=self.setToFrom)
+                self.fromSpin.bind("<Return>", self.setToFrom) 
+                self.fromSpin.grid(row=2,column=0)
+                Label(self.extraFrame,text="To").grid(row=3,column=0,sticky='n')
+                self.toSpin = Spinbox(self.extraFrame,textvariable=self.to2D,from_=int(self.from2D.get())+1,to=self.shape[self.current.axes2],justify="center",command=self.setToFrom)
+                self.toSpin.bind("<Return>", self.setToFrom) 
+                self.toSpin.grid(row=4,column=0)
+                Label(self.extraFrame,text="Step").grid(row=5,column=0,sticky='n')
+                self.stepSpin = Spinbox(self.extraFrame,textvariable=self.step2D,from_=1,to=self.shape[self.current.axes2],justify="center",command=self.setToFrom)
+                self.stepSpin.bind("<Return>", self.setToFrom) 
+                self.stepSpin.grid(row=6,column=0)
+                Label(self.extraFrame,text="Spacing").grid(row=7,column=0,sticky='n')
+                self.stepSpin = Entry(self.extraFrame,textvariable=self.spacing,justify="center")
+                self.stepSpin.bind("<Return>", self.setSpacing) 
+                self.stepSpin.grid(row=8,column=0)
+
+    def setToFrom(self, *args):
+        if self.plotIs2D:
+            fromVar = int(safeEval(self.from2D.get()))
+            toVar = int(safeEval(self.to2D.get()))
+            stepVar = int(safeEval(self.step2D.get()))
+            if fromVar < 0:
+                fromVar = 0
+            elif fromVar > self.shape[self.current.axes2]-1:
+                fromVar = self.shape[self.current.axes2]-1
+            if toVar > self.shape[self.current.axes2]:
+                toVar = self.shape[self.current.axes2]
+            elif toVar <= fromVar:
+                toVar = fromVar + 1
+            if stepVar < 1:
+                stepVar = 1
+            elif stepVar > self.shape[self.current.axes2]:
+                stepVar = self.shape[self.current.axes2]
+            self.current.stackSelect(fromVar,toVar,stepVar)
+            self.from2D.set(str(fromVar))
+            self.to2D.set(str(toVar))
+            self.step2D.set(str(stepVar))
+            self.fromSpin.config(to=toVar-1)
+            self.toSpin.config(from_=fromVar+1)
+
+    def setSpacing(self, *args):
+        var =float(safeEval(self.spacing.get()))
+        self.spacing.set('%.3e' % var)
+        self.current.setSpacing(var)
 
     def setAxes(self,first=True):
         if self.plotIs2D:

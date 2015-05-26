@@ -35,6 +35,8 @@ class Plot1DFrame(Frame):
         self.canvas.mpl_connect('button_release_event', self.buttonRelease)
         self.canvas.mpl_connect('motion_notify_event', self.pan)
         self.canvas.mpl_connect('scroll_event', self.scroll)
+        #variables to be initialized
+        self.spec = 0
 
     def plotReset(self): #this function needs to be overriden by the classes who inherit from Plot1DFrame
         pass
@@ -56,7 +58,10 @@ class Plot1DFrame(Frame):
             width = width*0.9**event.step
             self.xmaxlim = middle+width/2.0
             self.xminlim = middle-width/2.0
-            a.set_xlim(self.xminlim,self.xmaxlim)
+            if self.spec > 0:
+                a.set_xlim(self.xmaxlim,self.xminlim)
+            else:
+                a.set_xlim(self.xminlim,self.xmaxlim)
         else:
             middle = (self.ymaxlim+self.yminlim)/2.0
             width = self.ymaxlim-self.yminlim
@@ -109,7 +114,10 @@ class Plot1DFrame(Frame):
                     self.xmaxlim=max([self.zoomX1,self.zoomX2])
                     self.yminlim=min([self.zoomY1,self.zoomY2])
                     self.ymaxlim=max([self.zoomY1,self.zoomY2])
-                    a.set_xlim(self.xminlim,self.xmaxlim)
+                    if self.spec > 0:
+                        a.set_xlim(self.xmaxlim,self.xminlim)
+                    else:
+                        a.set_xlim(self.xminlim,self.xmaxlim)
                     a.set_ylim(self.yminlim,self.ymaxlim)
                 self.zoomX1=None
                 self.zoomX2=None #WF: should also be cleared, memory of old zoom
@@ -130,7 +138,10 @@ class Plot1DFrame(Frame):
             self.xminlim = self.xminlim-diffx
             self.ymaxlim = self.ymaxlim-diffy
             self.yminlim = self.yminlim-diffy
-            a.set_xlim(self.xminlim,self.xmaxlim)
+            if self.spec > 0:
+                a.set_xlim(self.xmaxlim,self.xminlim)
+            else:
+                a.set_xlim(self.xminlim,self.xmaxlim)
             a.set_ylim(self.yminlim,self.ymaxlim)
             self.canvas.draw()
         elif self.peakPick:

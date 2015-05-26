@@ -285,13 +285,6 @@ class Current1D(Plot1DFrame):
         self.showFid()
         return returnValue
 
-    def realFft(self): #real fourier the actual data and replot
-        returnValue = self.data.realFft(self.axes)
-        self.upd()
-        self.plotReset()
-        self.showFid()
-        return returnValue
-
     def fftshift(self,inv=False): #fftshift the actual data and replot
         returnValue = self.data.fftshift(self.axes,inv)
         self.upd()
@@ -556,11 +549,13 @@ class Current1D(Plot1DFrame):
                 a.set_xlabel('User defined')
         else:
             a.set_xlabel('')
-        a.set_xlim(self.xminlim,self.xmaxlim)
-        a.set_ylim(self.yminlim,self.ymaxlim)
         a.get_xaxis().get_major_formatter().set_powerlimits((-2, 2))
         a.get_yaxis().get_major_formatter().set_powerlimits((-2, 2))
-        #self.fig.set_tight_layout(True)
+        if self.spec > 0 :
+            a.set_xlim(self.xmaxlim,self.xminlim)
+        else:
+            a.set_xlim(self.xminlim,self.xmaxlim)
+        a.set_ylim(self.yminlim,self.ymaxlim)
         self.canvas.draw()
 
     def plotReset(self): #set the plot limits to min and max values
@@ -589,7 +584,10 @@ class Current1D(Plot1DFrame):
             axMult = 1000.0**self.axType
         self.xminlim=min(self.xax*axMult)
         self.xmaxlim=max(self.xax*axMult)
-        a.set_xlim(self.xminlim,self.xmaxlim)
+        if self.spec > 0 :
+            a.set_xlim(self.xmaxlim,self.xminlim)
+        else:
+            a.set_xlim(self.xminlim,self.xmaxlim)
         a.set_ylim(self.yminlim,self.ymaxlim)
 
 #########################################################################################################
@@ -606,7 +604,6 @@ class CurrentStacked(Plot1DFrame):
         self.wholeEcho = None 
         self.plotType = plotType
         self.axType = axType 
-        self.spacing = 2              #space between the stacked spectra
         if axes is None:
             self.axes = len(self.data.data.shape)-1
         else:
@@ -623,6 +620,7 @@ class CurrentStacked(Plot1DFrame):
         else:
             self.locList = locList        #list of length dim-2 with the matrix coordinates of current spectrum 
         self.upd()                    #get the first slice of data
+        self.resetSpacing()
         self.plotReset()              #reset the axes limits
         self.showFid()                #plot the data
         
@@ -643,7 +641,15 @@ class CurrentStacked(Plot1DFrame):
         self.stackStep = stackStep
         self.locList = locList
         self.upd()
+        self.resetSpacing()
         self.plotReset()
+        self.showFid()
+
+    def stackSelect(self,stackBegin, stackEnd, stackStep):
+        self.stackBegin = stackBegin
+        self.stackEnd = stackEnd
+        self.stackStep = stackStep
+        self.upd()
         self.showFid()
 
     def setPhaseInter(self, phase0in, phase1in): #interactive changing the phase without editing the actual data
@@ -670,13 +676,7 @@ class CurrentStacked(Plot1DFrame):
     def fourier(self): #fourier the actual data and replot
         returnValue = self.data.fourier(self.axes)
         self.upd()
-        self.plotReset()
-        self.showFid()
-        return returnValue
-
-    def realFft(self): #real fourier the actual data and replot
-        returnValue = self.data.realFft(self.axes)
-        self.upd()
+        self.resetSpacing()
         self.plotReset()
         self.showFid()
         return returnValue
@@ -885,6 +885,25 @@ class CurrentStacked(Plot1DFrame):
         self.showFid()
         return returnValue
 
+    def setSpacing(self, spacing):
+        self.spacing = spacing
+        self.showFid()
+
+    def resetSpacing(self):
+        difference = np.diff(self.data1D,axis=0)
+        if self.plotType==0:
+            difference = np.amax(np.real(difference))
+            amp = np.amax(np.real(self.data1D))-np.amin(np.real(self.data1D))
+        elif self.plotType==1:
+            difference = np.amax(np.imag(difference))
+            amp = np.amax(np.imag(self.data1D))-np.amin(np.imag(self.data1D))
+        elif self.plotType==2:
+            difference = np.amax((np.real(difference),np.imag(difference)))
+            amp = np.amax((np.real(self.data1D),np.imag(self.data1D)))-np.amin((np.real(self.data1D),np.imag(self.data1D)))
+        elif self.plotType==3:
+            difference = np.amax(np.abs(difference))
+            amp = np.amax(np.abs(self.data1D))-np.amin(np.abs(self.data1D))
+        self.spacing = difference + 0.1*amp
 
     def getDisplayedData(self):
         if self.plotType==0:
@@ -956,11 +975,13 @@ class CurrentStacked(Plot1DFrame):
                 a.set_xlabel('User defined')  
         else:
             a.set_xlabel('')
-        a.set_xlim(self.xminlim,self.xmaxlim)
+        if self.spec > 0 :
+            a.set_xlim(self.xmaxlim,self.xminlim)
+        else:
+            a.set_xlim(self.xminlim,self.xmaxlim)
         a.set_ylim(self.yminlim,self.ymaxlim)
         a.get_xaxis().get_major_formatter().set_powerlimits((-2, 2))
         a.get_yaxis().get_major_formatter().set_powerlimits((-2, 2))
-        #self.fig.set_tight_layout(True)
         self.canvas.draw()
 
     def plotReset(self): #set the plot limits to min and max values
@@ -973,8 +994,8 @@ class CurrentStacked(Plot1DFrame):
             miny = np.amin(np.imag(self.data1D)+incr)
             maxy = np.amax(np.imag(self.data1D)+incr)
         elif self.plotType==2:
-            miny = np.amin(np.amin(np.real(self.data1D)+incr),np.amin(np.imag(self.data1D)+incr))
-            maxy = np.amax(np.amax(np.real(self.data1D)+incr),np.amax(np.imag(self.data1D)+incr))
+            miny = np.amin((np.amin(np.real(self.data1D)+incr),np.amin(np.imag(self.data1D)+incr)))
+            maxy = np.amax((np.amax(np.real(self.data1D)+incr),np.amax(np.imag(self.data1D)+incr)))
         elif self.plotType==3:
             miny = np.amin(np.abs(self.data1D)+incr)
             maxy = np.amax(np.abs(self.data1D)+incr)
@@ -990,5 +1011,8 @@ class CurrentStacked(Plot1DFrame):
             axMult = 1000.0**self.axType
         self.xminlim=min(self.xax*axMult)
         self.xmaxlim=max(self.xax*axMult)
-        a.set_xlim(self.xminlim,self.xmaxlim)
+        if self.spec > 0 :
+            a.set_xlim(self.xmaxlim,self.xminlim)
+        else:
+            a.set_xlim(self.xminlim,self.xmaxlim)
         a.set_ylim(self.yminlim,self.ymaxlim)
