@@ -7,11 +7,13 @@ if sys.version_info >= (3,0):
     import tkinter as tk
     from tkinter.ttk import *
     from tkinter.filedialog import askopenfilename
+    from tkinter.filedialog import asksaveasfile
 else:
     from Tkinter import *
     import Tkinter as tk
     from ttk import *
     from tkFileDialog   import askopenfilename
+    from tkFileDialog   import asksaveasfile
 import spectrum_classes as sc
 import fitting as fit
 import math
@@ -48,7 +50,8 @@ class Main1DWindow(Frame):
         loadmenu = Menu(menubar, tearoff=0)
         menubar.add_cascade(label="Load", menu=loadmenu)
         loadmenu.add_command(label="Load Varian data", command=self.LoadVarianFile)
-        loadmenu.add_command(label="Load Infinity data", command=self.LoadChemFile)
+        loadmenu.add_command(label="Load Bruker Topspin/XWinNMR", command=self.LoadBrukerTopspin)
+        loadmenu.add_command(label="Load Chemagnetics data", command=self.LoadChemFile)
         loadmenu.add_command(label="Load Simpson data", command=self.LoadSimpsonFile)
         
         #the save drop down menu
@@ -130,8 +133,8 @@ class Main1DWindow(Frame):
             freq = 300e6
             sw   = 50e3
             sw1  = 50e3
-            if os.path.exists(Dir+'/procpar'):
-                with open(Dir+'/procpar', 'r') as f: #read entire procfile (data[0] gives first line)
+            if os.path.exists(Dir+os.path.sep+'procpar'):
+                with open(Dir+os.path.sep+'procpar', 'r') as f: #read entire procfile (data[0] gives first line)
                     data = f.read().split('\n')
                 for s in range(0,len(data)): #exctract info from procpar
                     if data[s].startswith('sfrq '):
@@ -141,11 +144,11 @@ class Main1DWindow(Frame):
                     elif data[s].startswith('sw1 '):
                         sw1=float(data[s+1].split()[1])
             else:
-                print(Dir+'/procpar does not exits, used standard sw and freq')
+                print(Dir+os.path.sep+'procpar does not exits, used standard sw and freq')
             #Get fid data----------------------------- 
-            if os.path.exists(Dir+'/fid'):    
+            if os.path.exists(Dir+os.path.sep+'fid'):    
                 try:
-                    with open(Dir+'/fid', "rb") as f:
+                    with open(Dir+os.path.sep+'fid', "rb") as f:
                         raw = np.fromfile(f, np.int32,6) #read 6 steps, 32 bits
                         nblocks = unpack('>l', raw[0])[0] #unpack bitstring using bigendian and as LONG interger
                         ntraces = unpack('>l', raw[1])[0]
@@ -198,18 +201,84 @@ class Main1DWindow(Frame):
                     self.current.grid(row=0,column=0,sticky="nswe")
                     self.updAllFrames()
                 except:
-                    print('Error loading Varian data from '+Dir+'/fid. No data loaded!')
+                    print('Error loading Varian data from '+Dir+os.path.sep+'fid. No data loaded!')
             else: #If /fid does not exist
-                print(Dir+'/fid does not exits, no Varian data loaded!')
-
+                print(Dir+os.path.sep+'fid does not exits, no Varian data loaded!')
+                
+                
+                
+    def LoadBrukerTopspin(self):
+        FilePath = askopenfilename()
+        if FilePath is not '': #if not canceled
+            Dir = os.path.dirname(FilePath) #convert path to file to path of folder
+            if os.path.exists(Dir+os.path.sep+'acqus'):
+                with open(Dir+os.path.sep+'acqus', 'r') as f: 
+                    data = f.read().split('\n')
+                for s in range(0,len(data)): #exctract info from acqus
+                    if data[s].startswith('##$TD='):
+                        sizeTD2 = int(data[s][6:])
+                    if data[s].startswith('##$SFO1='):
+                        freq2 = float(data[s][8:])*1e6
+                    if data[s].startswith('##$SW_h='):
+                        SW2 = float(data[s][8:])
+                    if data[s].startswith('##$BYTORDA='):
+                        ByteOrder = int(data[s][11:]) #1 little endian, 0 big endian 
+            sizeTD1=1 #Preset to one           
+            if os.path.exists(Dir+os.path.sep+'acqu2s'): #read 2d pars if available
+                with open(Dir+os.path.sep+'acqu2s', 'r') as f: 
+                    data2 = f.read().split('\n')
+                for s in range(0,len(data2)): #exctract info from acqus
+                    if data2[s].startswith('##$TD='):
+                        sizeTD1 = int(data2[s][6:])
+                    if data2[s].startswith('##$SFO1='):
+                        freq1 = float(data2[s][8:])*1e6
+                    if data2[s].startswith('##$SW_h='):
+                        SW1 = float(data2[s][8:])
+            
+            if os.path.exists(Dir+os.path.sep+'fid'):
+                with open(Dir+os.path.sep+'fid', "rb") as f:            
+                    raw = np.fromfile(f, np.int32,sizeTD1*sizeTD2)
+            elif os.path.exists(Dir+os.path.sep+'ser'):
+                with open(Dir+os.path.sep+'ser', "rb") as f:            
+                    raw = np.fromfile(f, np.int32,sizeTD1*sizeTD2)
+                
+            if ByteOrder: #Bigendian if ByteOrder 1, otherwise smallendian
+                RawInt=raw.newbyteorder('b')
+            else:
+                RawInt=raw.newbyteorder('l')
+                
+            ComplexData = np.array(RawInt[0:len(RawInt):2])+1j*np.array(RawInt[1:len(RawInt):2])
+            self.current.grid_remove()
+            self.current.destroy()
+            spec = [False]
+            if sizeTD1 is 1:
+                #data = np.transpose(ComplexData)[0][:] #convert to 1D np.array
+                self.masterData=sc.Spectrum(ComplexData,[freq2],[SW2],spec)
+                self.current=sc.Current1D(self,self.masterData) #create the Current1D instance from the Spectrum  
+            else:
+                data = ComplexData.reshape(sizeTD1,sizeTD2/2)
+                self.masterData=sc.Spectrum(data,[freq1,freq2],[SW1,SW2],spec*2)
+                self.current=sc.Current1D(self,self.masterData) #create the Current1D instance from the Spectrum  
+                
+            self.current.grid(row=0,column=0,sticky="nswe")
+            self.updAllFrames()        
+                
+     
+                    
+        
+        
+        
+        
+        
+        
     def LoadChemFile(self):
         FileLocation = askopenfilename()
         Dir = os.path.dirname(FileLocation)
         if FileLocation is not '': #if not empty
-            try:
+           # try:
                 sizeTD1=1
-                sw1=0
-                H = dict(line.strip().split('=') for line in open(Dir+'/acq','r'))
+                sw1=50e3
+                H = dict(line.strip().split('=') for line in open(Dir+os.path.sep+'acq','r'))
                 sizeTD2 = int(H['al'])
                 freq = float(H['sf'+H['ch1']])
                 sw=1/float(H['dw'][:-1])
@@ -223,14 +292,14 @@ class Main1DWindow(Frame):
                         if 'al2' in H:
                             sizeTD1 = int(H['al2'])
                             if 'dw2' in H:
-                                sw1 = 1/float(H['dw2'][:,-1])
+                                sw1 = 1/float(H['dw2'][:-1])
                 else:
                     if 'al2' in H:
                         sizeTD1 = int(H['al2'])
                         if 'dw2' in H:
-                            sw1 = 1/float(H['dw2'][:,-1])        
+                            sw1 = 1/float(H['dw2'][:-1])        
                             
-                with open(Dir+'/data','rb') as f:
+                with open(Dir+os.path.sep+'data','rb') as f:
                     raw = np.fromfile(f, np.int32)
                     b=np.complex128(raw.byteswap())
                 fid = b[:len(b)/2]+1j*b[len(b)/2:]
@@ -239,7 +308,6 @@ class Main1DWindow(Frame):
                 data = np.array(fid) #convert to numpy array
                 self.current.grid_remove()
                 self.current.destroy()
-                axis=0
                 spec = [False]
                     
                 if sizeTD1 is 1:
@@ -247,16 +315,17 @@ class Main1DWindow(Frame):
                     self.masterData=sc.Spectrum(data,[freq*1e6],[sw],spec)
                     self.current=sc.Current1D(self,self.masterData,0,[],0) #create the Current1D instance from the Spectrum  
                 else:
-                    data = np.transpose(data.reshape((sizeTD1,sizeTD2)))
-                    self.masterData=sc.Spectrum(data,[freq*1e6]*2,[sw,sw1],spec*2)
-                    self.current=sc.Current1D(self,self.masterData,0,[0],0) #create the Current1D instance from the Spectrum  
+                    #data = np.transpose(data.reshape((sizeTD1,sizeTD2)))
+                    data = data.reshape((sizeTD1,sizeTD2))
+                    self.masterData=sc.Spectrum(data,[freq*1e6]*2,[sw1,sw],spec*2)
+                    self.current=sc.Current1D(self,self.masterData) #create the Current1D instance from the Spectrum  
                     
                 self.current.grid(row=0,column=0,sticky="nswe")
                 self.updAllFrames()
-            except:
-                print('Error loading Chemagnetics data from '+Dir+'/data. No data loaded!')
+           # except:
+           #     print('Error loading Chemagnetics data from '+Dir+os.path.sep+'data. No data loaded!')
         else:
-            print(Dir+'/data does not exits, no Chemagnetics data loaded!')
+            print(Dir+os.path.sep+'data does not exits, no Chemagnetics data loaded!')
 
     def LoadSimpsonFile(self):
         #Loads Simpson data (Fid or Spectrum) to the ssNake data format
@@ -317,7 +386,7 @@ class Main1DWindow(Frame):
                             
                         for k in range(0,3):
                             p=0
-                            if i is not 2*NP*NI:
+                            if i < 2*NP*NI:
                                 for j in range(0,4):
                                    p = np.int32(p*256);
                                    p = np.int32(p | pts[4*k+j])
@@ -335,13 +404,13 @@ class Main1DWindow(Frame):
                                 #----------------
                                 TempData.append(Value)
                                 i+=1
-                                print(i)                         
                     real = TempData[0:len(TempData):2]
                     imag = TempData[1:len(TempData):2]
                     data=[]
                     for number in range(0,int(len(TempData)/2)):
                         data.append(real[number]+1j*imag[number])
-                        
+                
+                
                 data = np.array(data) #convert to numpy array
                 self.current.grid_remove()
                 self.current.destroy()
@@ -358,7 +427,7 @@ class Main1DWindow(Frame):
                 else:
                     data = np.transpose(data.reshape((NP,NI)))
                     self.masterData=sc.Spectrum(data,[0,0],[SW,SW1],spec*2)
-                    self.current=sc.Current1D(self,self.masterData,0,[0],0) #create the Current1D instance from the Spectrum  
+                    self.current=sc.Current1D(self,self.masterData) #create the Current1D instance from the Spectrum  
                     
                 self.current.grid(row=0,column=0,sticky="nswe")
                 self.updAllFrames()
@@ -366,7 +435,55 @@ class Main1DWindow(Frame):
                 print('Error loading Simpson data from '+FileLocation+' . No data loaded!')
         
     def SaveSimpsonFile(self):
-        akhfv=1
+        #TO DO:
+        #Make sure that stat of second dimension (SPE/FID) is saved. This is not supported in original
+        #Simpson format, but can it be included?
+        try:
+            if self.masterData.dim   > 2:
+                print('Saving to Simpson format only allowed for 1D and 2D data!')
+            else:
+                if sum(self.masterData.spec)/len(self.masterData.spec)==1: #If all are true
+                    f=asksaveasfile(mode='w',defaultextension=".spe")
+                elif sum(self.masterData.spec) == 0: #If all are false (i.e all FID)
+                    f=asksaveasfile(mode='w',defaultextension=".fid")
+                 
+                if 'f' in locals(): #If no 'f', there is a mixed fid/spe format, which simpson does not support 
+                    f.write('SIMP\n')
+                    if self.masterData.dim  is 2:
+                        f.write('NP='+str(self.masterData.data.shape[1])+'\n')
+                        f.write('NI='+str(self.masterData.data.shape[0])+'\n')
+                        f.write('SW='+str(self.masterData.sw[1])+'\n')
+                        f.write('SW1='+str(self.masterData.sw[0])+'\n')
+                    else:
+                        f.write('NP='+str(self.masterData.data.shape[0])+'\n')
+                        f.write('SW='+str(self.masterData.sw[0])+'\n')
+                        
+                    if self.masterData.spec[0]:
+                       f.write('TYPE=SPE'+'\n') 
+                    else:
+                       f.write('TYPE=FID'+'\n') 
+                       
+                    f.write('DATA'+'\n')
+                    
+                    
+                    if self.masterData.dim  is 1:
+                        for Line in self.masterData.data:
+                            f.write(str(Line.real)+' '+ str(Line.imag)+'\n')
+                    
+                    
+                    if self.masterData.dim  is 2:
+                        Points= self.masterData.data.shape
+                        for iii in range(0,Points[1]):
+                            for jjj in range(0,Points[0]):
+                                f.write(str(self.masterData.data[jjj][iii].real)+' '+ str(self.masterData.data[jjj][iii].imag)+'\n')
+                        #for Line in self.masterData.data:
+                        #    for SubLine in Line:
+                        #        f.write(str(SubLine.real) +' '+str(SubLine.imag)+'\n')
+                                
+                    f.write('END')
+                    f.close()
+        except:
+             print('An error occured while saving to Simpson format')
         
     def real(self):
         self.redoList = []

@@ -78,7 +78,7 @@ class Spectrum(object):
     def apodize(self,lor,gauss, cos2, axes):
         copyData=copy.deepcopy(self)
         axLen = self.data.shape[axes]
-        t=np.arange(0,axLen)/(2.0*self.sw[axes])
+        t=np.arange(0,axLen)/self.sw[axes]
         x=np.ones(axLen)
         if lor is not None:
             x=x*np.exp(-lor*t)
