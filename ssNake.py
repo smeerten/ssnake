@@ -97,6 +97,7 @@ class Main1DWindow(Frame):
         menubar.add_cascade(label="Plot",menu=plotMenu)
         plotMenu.add_command(label="1D plot", command=self.plot1D)
         plotMenu.add_command(label="Stack plot", command=self.plotStack)
+        plotMenu.add_command(label="Array plot", command=self.plotArray)
         plotMenu.add_command(label="User x-axis", command=self.createXaxWindow)
 
         x=np.linspace(0,2*np.pi*10,1000)[:-1] #fake data
@@ -263,14 +264,6 @@ class Main1DWindow(Frame):
             self.current.grid(row=0,column=0,sticky="nswe")
             self.updAllFrames()        
                 
-     
-                    
-        
-        
-        
-        
-        
-        
     def LoadChemFile(self):
         FileLocation = askopenfilename()
         Dir = os.path.dirname(FileLocation)
@@ -575,6 +568,16 @@ class Main1DWindow(Frame):
         else:
             print("Data does not have enough dimensions")
 
+    def plotArray(self):
+        if len(self.masterData.data.shape) > 1:
+            self.current.grid_remove()
+            self.current.destroy()
+            self.current = sc.CurrentArrayed(self,self.masterData) 
+            self.current.grid(row=0,column=0,sticky="nswe")
+            self.updAllFrames()
+        else:
+            print("Data does not have enough dimensions")
+
     def createXaxWindow(self):
         XaxWindow(self,self.current)
 
@@ -632,7 +635,7 @@ class SideFrame(Frame):
         self.length = len(self.shape)
         self.button1Var.set(self.current.axes)
         offset = 0
-        self.plotIs2D = isinstance(self.current, sc.CurrentStacked)
+        self.plotIs2D = isinstance(self.current, (sc.CurrentStacked,sc.CurrentArrayed))
         if self.plotIs2D:
             offset = 1
             self.button2Var.set(self.current.axes2)
