@@ -77,7 +77,8 @@ class Main1DWindow(Frame):
         toolMenu.add_command(label="Swap Echo", command=self.createSwapEchoWindow)
         toolMenu.add_command(label="Shift Data", command=self.createShiftDataWindow)
         toolMenu.add_command(label="DC offset correction", command=self.createDCWindow)
-
+        toolMenu.add_command(label="Correct Bruker digital filter", command=self.BrukerDigital)
+        
         #the fft drop down menu
         fftMenu = Menu(menubar, tearoff=0)
         menubar.add_cascade(label="Fourier",menu=fftMenu)
@@ -536,6 +537,25 @@ class Main1DWindow(Frame):
 
     def createDCWindow(self):
         DCWindow(self,self.current)
+        
+    def BrukerDigital(self):
+        pass
+#        FilePath = askopenfilename()
+#        if FilePath is not '': #if not canceled
+#            Dir = os.path.dirname(FilePath) #convert path to file to path of folder
+#            if os.path.exists(Dir+os.path.sep+'acqus'):
+#                with open(Dir+os.path.sep+'acqus', 'r') as f: 
+#                    data = f.read().split('\n')
+#                for s in range(0,len(data)): #exctract info from acqus
+#                    if data[s].startswith('##$GRPDLY='):
+#                        FilterCorrection = float(data[s][10:])
+#                
+#                self.redoList = []
+#                self.undoList.append(self.current.applyPhase(0,-FilterCorrection*2*pi))
+               
+
+        
+        
 
     def createRelaxWindow(self):
         root = fit.RelaxWindow(self.parent,self.current)
@@ -682,6 +702,7 @@ class SideFrame(Frame):
                         self.entryVars[num].set(str(self.current.locList[num-2]))
                 self.entries.append(Spinbox(self,textvariable=self.entryVars[num],from_=0,to=self.shape[num]-1,justify="center",command=lambda event=None,num=num: self.getSlice(event,num)))
                 self.entries[num].bind("<Return>", lambda event=None,num=num: self.getSlice(event,num)) 
+                self.entries[num].bind("<KP_Enter>", lambda event=None,num=num: self.getSlice(event,num)) 
                 self.entries[num].grid(row=num*2+1,column=1+offset)
             if self.plotIs2D:
                 if self.current.stackBegin is not None:
@@ -704,18 +725,22 @@ class SideFrame(Frame):
                 Label(self.extraFrame,text="From").grid(row=1,column=0,sticky='n')
                 self.fromSpin = Spinbox(self.extraFrame,textvariable=self.from2D,from_=0,to=int(self.to2D.get())-1,justify="center",command=self.setToFrom)
                 self.fromSpin.bind("<Return>", self.setToFrom) 
+                self.fromSpin.bind("<KP_Enter>", self.setToFrom)
                 self.fromSpin.grid(row=2,column=0)
                 Label(self.extraFrame,text="To").grid(row=3,column=0,sticky='n')
                 self.toSpin = Spinbox(self.extraFrame,textvariable=self.to2D,from_=int(self.from2D.get())+1,to=self.shape[self.current.axes2],justify="center",command=self.setToFrom)
                 self.toSpin.bind("<Return>", self.setToFrom) 
+                self.toSpin.bind("<KP_Enter>", self.setToFrom) 
                 self.toSpin.grid(row=4,column=0)
                 Label(self.extraFrame,text="Step").grid(row=5,column=0,sticky='n')
                 self.stepSpin = Spinbox(self.extraFrame,textvariable=self.step2D,from_=1,to=self.shape[self.current.axes2],justify="center",command=self.setToFrom)
                 self.stepSpin.bind("<Return>", self.setToFrom) 
+                self.stepSpin.bind("<KP_Enter>", self.setToFrom)
                 self.stepSpin.grid(row=6,column=0)
                 Label(self.extraFrame,text="Spacing").grid(row=7,column=0,sticky='n')
                 self.stepSpin = Entry(self.extraFrame,textvariable=self.spacing,justify="center")
                 self.stepSpin.bind("<Return>", self.setSpacing) 
+                self.stepSpin.bind("<KP_Enter>", self.setSpacing) 
                 self.stepSpin.grid(row=8,column=0)
 
     def setToFrom(self, *args):
@@ -827,10 +852,12 @@ class BottomFrame(Frame):
         Label(self,text="Freq (MHz)").grid(row=0,column=3)
         self.freqEntry = Entry(self,textvariable=self.freqVal,justify='center')
         self.freqEntry.bind("<Return>", self.changeFreq)
+        self.freqEntry.bind("<KP_Enter>", self.changeFreq)
         self.freqEntry.grid(row=1,column=3)
         Label(self,text="Sweepwidth (kHz)").grid(row=0,column=4)
         self.swEntry = Entry(self,textvariable=self.swVal,justify='center')
         self.swEntry.bind("<Return>", self.changeFreq)
+        self.swEntry.bind("<KP_Enter>", self.changeFreq)
         self.swEntry.grid(row=1,column=4)
         Label(self,text="Plot").grid(row=0,column=5)
         self.plotDrop = OptionMenu(self, self.plotOption,"Real","Real", "Imag", "Both","Abs",command=self.changePlot)
@@ -997,6 +1024,7 @@ class PhaseWindow(Frame): #a window for phasing the data
         Button(self.window,text="Autophase 0th order",command=lambda: self.autophase(0)).grid(row=1,column=1)
         self.zeroEntry = Entry(self.window,textvariable=self.zeroValue,justify="center")
         self.zeroEntry.bind("<Return>", self.inputZeroOrder)
+        self.zeroEntry.bind("<KP_Enter>", self.inputZeroOrder)
         self.zeroEntry.grid(row=2,column=1)
         tk.Button(self.window,text="<",repeatdelay=100, repeatinterval=1,command=lambda:self.stepPhase(-1,0)).grid(row=2,column=0)
         tk.Button(self.window,text=">",repeatdelay=100, repeatinterval=1,command=lambda:self.stepPhase(1,0)).grid(row=2,column=2)
@@ -1006,6 +1034,7 @@ class PhaseWindow(Frame): #a window for phasing the data
         Button(self.window,text="Autophase 0th+1st order",command=lambda: self.autophase(1)).grid(row=5,column=1)
         self.firstEntry = Entry(self.window,textvariable=self.firstValue,justify="center")
         self.firstEntry.bind("<Return>", self.inputFirstOrder) 
+        self.firstEntry.bind("<Return>", self.inputFirstOrder) 
         self.firstEntry.grid(row=6,column=1)
         tk.Button(self.window,text="<",repeatdelay=100, repeatinterval=1,command=lambda:self.stepPhase(0,-1)).grid(row=6,column=0)
         tk.Button(self.window,text=">",repeatdelay=100, repeatinterval=1,command=lambda:self.stepPhase(0,1)).grid(row=6,column=2)
@@ -1014,6 +1043,7 @@ class PhaseWindow(Frame): #a window for phasing the data
         Label(self.window,text="Reference").grid(row=8,column=0,columnspan=3)
         self.refEntry = Entry(self.window,textvariable=self.refValue,justify="center")
         self.refEntry.bind("<Return>", self.inputRef) 
+        self.refEntry.bind("<KP_Enter>", self.inputRef)
         self.refEntry.grid(row=9,column=1)
         if self.current.spec > 0:
             Button(self.window, text="Pick reference", command=self.pickRef).grid(row=10,column=1)
@@ -1111,6 +1141,7 @@ class ApodWindow(Frame): #a window for apodization
         tk.Button(self.frame1,text="<",repeatdelay=100, repeatinterval=1,command=lambda:self.stepLB(-0.5*self.current.sw/(self.current.data1D.shape[-1]),0)).grid(row=1,column=0)
         tk.Button(self.frame1,text=">",repeatdelay=100, repeatinterval=1,command=lambda:self.stepLB(0.5*self.current.sw/(self.current.data1D.shape[-1]),0)).grid(row=1,column=4)
         self.lorEntry.bind("<Return>", self.apodPreview)
+        self.lorEntry.bind("<KP_Enter>", self.apodPreview)
         self.lorEntry.grid(row=1,column=2)
         self.lorScale=Scale(self.frame1, from_=0, to=100.0*self.current.sw/(self.current.data1D.shape[-1]),  orient="horizontal", command=self.setLor,length=200)
         self.lorScale.grid(row=2,column=1,columnspan=2)
@@ -1118,6 +1149,7 @@ class ApodWindow(Frame): #a window for apodization
         Checkbutton(self.frame1,variable=self.gaussTick, command=lambda: self.checkEval(self.gaussTick,self.gaussEntry)).grid(row=4,column=1)
         self.gaussEntry = Entry(self.frame1,textvariable=self.gaussVal,justify="center", state='disabled')
         self.gaussEntry.bind("<Return>", self.apodPreview)
+        self.gaussEntry.bind("<KP_Enter>", self.apodPreview)
         self.gaussEntry.grid(row=4,column=2)
         tk.Button(self.frame1,text="<",repeatdelay=100, repeatinterval=1,command=lambda:self.stepLB(0,-0.5*self.current.sw/(self.current.data1D.shape[-1]))).grid(row=4,column=0)
         tk.Button(self.frame1,text=">",repeatdelay=100, repeatinterval=1,command=lambda:self.stepLB(0,0.5*self.current.sw/(self.current.data1D.shape[-1]))).grid(row=4,column=4)
@@ -1127,6 +1159,7 @@ class ApodWindow(Frame): #a window for apodization
         Checkbutton(self.frame1,variable=self.cos2Tick, command=lambda: self.checkEval(self.cos2Tick,self.cos2Entry)).grid(row=7,column=1)
         self.cos2Entry = Entry(self.frame1,textvariable=self.cos2Val,justify="center", state='disabled')
         self.cos2Entry.bind("<Return>", self.apodPreview)
+        self.cos2Entry.bind("<KP_Enter>", self.apodPreview)
         self.cos2Entry.grid(row=7,column=2)
         self.frame2 = Frame(self.window)
         self.frame2.grid(row=1,column=0)
@@ -1215,6 +1248,7 @@ class SizeWindow(Frame): #a window for changing the size of the current dimensio
         Label(self.frame1,text="Set size").grid(row=0,column=0,columnspan=2)
         self.sizeEntry = Entry(self.frame1,textvariable=self.sizeVal,justify="center")
         self.sizeEntry.bind("<Return>", self.sizePreview)
+        self.sizeEntry.bind("<KP_Enter>", self.sizePreview)
         self.sizeEntry.grid(row=1,column=0,columnspan=2)
         self.frame2 = Frame(self.window)
         self.frame2.grid(row=1)
@@ -1263,6 +1297,7 @@ class SwapEchoWindow(Frame): #a window for changing the size of the current dime
         Label(self.frame1,text="Position").grid(row=0,column=0,columnspan=2)
         self.posEntry = Entry(self.frame1,textvariable=self.posVal,justify="center")
         self.posEntry.bind("<Return>", self.swapEchoPreview)
+        self.posEntry.bind("<KP_Enter>", self.swapEchoPreview)
         self.posEntry.grid(row=1,column=0,columnspan=2)
         self.frame2 = Frame(self.window)
         self.frame2.grid(row=1)
@@ -1321,6 +1356,7 @@ class ShiftDataWindow(Frame): #a window for shifting the data
         Label(self.frame1,text="number of points to shift").grid(row=0,column=0,columnspan=2)
         self.posEntry = Entry(self.frame1,textvariable=self.shiftVal,justify="center")
         self.posEntry.bind("<Return>", self.shiftPreview)
+        self.posEntry.bind("<KP_Enter>", self.shiftPreview)
         self.posEntry.grid(row=1,column=0,columnspan=2)
         self.frame2 = Frame(self.window)
         self.frame2.grid(row=1)
@@ -1365,10 +1401,12 @@ class DCWindow(Frame): #a window for shifting the data
         Label(self.frame1,text="Start point").grid(row=0,column=0,columnspan=2)
         self.minEntry = Entry(self.frame1,textvariable=self.minVal,justify="center")
         self.minEntry.bind("<Return>", self.dcPreview)
+        self.minEntry.bind("<KP_Enter>", self.dcPreview)
         self.minEntry.grid(row=1,column=0,columnspan=2)
         Label(self.frame1,text="End point").grid(row=2,column=0,columnspan=2)
         self.maxEntry = Entry(self.frame1,textvariable=self.maxVal,justify="center")
         self.maxEntry.bind("<Return>", self.dcPreview)
+        self.maxEntry.bind("<KP_Enter>", self.dcPreview)
         self.maxEntry.grid(row=3,column=0,columnspan=2)
         self.frame2 = Frame(self.window)
         self.frame2.grid(row=1)
@@ -1456,6 +1494,7 @@ class XaxWindow(Frame): #a window for setting the xax of the current data
         Label(self.frame1,text="Expression for x-axis values").grid(row=0,column=0,columnspan=2)
         self.minEntry = Entry(self.frame1,textvariable=self.val,justify="center")
         self.minEntry.bind("<Return>", self.xaxPreview)
+        self.minEntry.bind("<KP_Enter>", self.xaxPreview)
         self.minEntry.grid(row=1,column=0,columnspan=2)
 
         self.frame2 = Frame(self.window)
