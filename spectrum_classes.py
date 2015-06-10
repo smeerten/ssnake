@@ -53,6 +53,34 @@ class Spectrum(object):
         self.data = np.abs(self.data)
         return returnValue
 
+    def matrixManip(self, pos1, pos2, axes, which):
+        minPos = min(pos1,pos2)
+        maxPos = max(pos1,pos2)
+        slicing = (slice(None),) * axes + (slice(minPos,maxPos),) + (slice(None),)*(self.dim-1-axes)
+        if which == 0:
+            data = np.sum(self.data[slicing],axis=axes)
+        elif which == 1:
+            data = np.amax(self.data[slicing],axis=axes)
+        elif which == 2:
+            data = np.amin(self.data[slicing],axis=axes)
+        dim = self.dim - 1
+        freq = np.delete(self.freq,axes)
+        sw = np.delete(self.sw,axes)
+        spec = np.delete(self.spec,axes)
+        wholeEcho = np.delete(self.wholeEcho,axes)
+        xaxArray = np.delete(self.xaxArray,axes)
+        return Spectrum(data, freq, sw , spec, wholeEcho)
+
+    def getRegion(self, pos1, pos2,axes):
+        copyData=copy.deepcopy(self)
+        returnValue = lambda self: self.restoreData(copyData, lambda self: self.getRegion(axes,pos1,pos2))
+        minPos = min(pos1,pos2)
+        maxPos = max(pos1,pos2)
+        slicing = (slice(None),) * axes + (slice(minPos,maxPos),) + (slice(None),)*(self.dim-1-axes)
+        self.data = self.data[slicing]
+        self.xaxArray[axes] = self.xaxArray[axes][slice(minPos,maxPos)] #what to do with sw?
+        return returnValue
+    
     def hilbert(self,axes):
         copyData=copy.deepcopy(self)
         returnValue = lambda self: self.restoreData(copyData, lambda self: self.hilbert(axes))
@@ -75,18 +103,19 @@ class Spectrum(object):
                 self.data[slicing]=self.data[slicing]*vector[i]
         return lambda self: self.setPhase(-phase0,-phase1,axes)
 
-    def apodize(self,lor,gauss, cos2, axes):
+    def apodize(self,lor,gauss, cos2, shift, axes):
         copyData=copy.deepcopy(self)
         axLen = self.data.shape[axes]
         t=np.arange(0,axLen)/self.sw[axes]
+        t2 = t - shift
         x=np.ones(axLen)
         if lor is not None:
-            x=x*np.exp(-lor*t)
+            x=x*np.exp(-lor*abs(t2))
         if gauss is not None:
-            x=x*np.exp(-(gauss*t)**2)
+            x=x*np.exp(-(gauss*t2)**2)
         if cos2 is not None:
-            x=x*(np.cos(cos2*np.linspace(0,0.5*np.pi,len(self.data1D)))**2)
-        returnValue = lambda self: self.restoreData(copyData, lambda self: self.apodize(lor,gauss,axes))
+            x=x*(np.cos(cos2*(-0.5*shift*np.pi*self.sw/len(self.data1D)+np.linspace(0,0.5*np.pi,len(self.data1D))))**2)
+        returnValue = lambda self: self.restoreData(copyData, lambda self: self.apodize(lor,gauss,cos2,shift,axes))
         if self.spec[axes] > 0:
             self.fourier(axes,tmp=True)
             for i in range(self.data.shape[axes]):
@@ -208,7 +237,6 @@ class Spectrum(object):
         self.wholeEcho = copyData.wholeEcho
         self.xaxArray = copyData.xaxArray
         return returnValue
-        
 
 
 #########################################################################################################
@@ -256,7 +284,7 @@ class Current1D(Plot1DFrame):
         if not axesSame:
             self.plotReset()
         self.showFid()
-
+        
     def setPhaseInter(self, phase0in, phase1in): #interactive changing the phase without editing the actual data
         phase0=float(phase0in)
         phase1=float(phase1in)
@@ -292,21 +320,23 @@ class Current1D(Plot1DFrame):
         return returnValue
 
     def fourierLocal(self, fourData, spec): #fourier the local data for other functions
+        ax = len(self.data1D.shape)-1
         if spec==0:
-            fourData=np.fft.fftshift(np.fft.fft(fourData))
+            fourData=np.fft.fftshift(np.fft.fftn(fourData,axes=[ax]),axes=ax)
         else:
-            fourData=np.fft.ifft(np.fft.ifftshift(fourData))
+            fourData=np.fft.ifftn(np.fft.ifftshift(fourData,axes=ax),axes=[ax])
         return fourData
 
-    def apodPreview(self,lor=None,gauss=None, cos2=None): #display the 1D data including the apodization function
+    def apodPreview(self,lor=None,gauss=None, cos2=None, shift=0.0): #display the 1D data including the apodization function
         t=np.arange(0,len(self.data1D))/(self.sw)
+        t2=t-shift
         x=np.ones(len(self.data1D))
         if lor is not None:
-            x=x*np.exp(-lor*t)
+            x=x*np.exp(-lor*abs(t2))
         if gauss is not None:
-            x=x*np.exp(-(gauss*t)**2)
+            x=x*np.exp(-(gauss*t2)**2)
         if cos2 is not None:
-            x=x*(np.cos(cos2*np.linspace(0,0.5*np.pi,len(self.data1D)))**2)
+            x=x*(np.cos(cos2*(-0.5*shift*np.pi*self.sw/len(self.data1D)+np.linspace(0,0.5*np.pi,len(self.data1D))))**2)
         if self.wholeEcho:
             x[-1:-(len(x)/2+1):-1]=x[:len(x)/2]
         a=self.fig.gca()
@@ -330,8 +360,8 @@ class Current1D(Plot1DFrame):
         else:
             self.showFid(y)
 
-    def applyApod(self,lor=None,gauss=None,cos2=None): #apply the apodization to the actual data
-        returnValue = self.data.apodize(lor,gauss,cos2,self.axes)
+    def applyApod(self,lor=None,gauss=None,cos2=None,shift=0.0): #apply the apodization to the actual data
+        returnValue = self.data.apodize(lor,gauss,cos2,shift,self.axes)
         self.upd() 
         self.showFid()     
         return returnValue
@@ -425,7 +455,23 @@ class Current1D(Plot1DFrame):
         self.upd()
         self.showFid()
         return returnValue
+    
+    def integrate(self,pos1,pos2):
+        return self.data.matrixManip(pos1,pos2,self.axes,0)
 
+    def maxMatrix(self,pos1,pos2):
+        return self.data.matrixManip(pos1,pos2,self.axes,1)
+    
+    def minMatrix(self,pos1,pos2):
+        return self.data.matrixManip(pos1,pos2,self.axes,2)
+
+    def getRegion(self,pos1,pos2): #set the frequency of the actual data
+        returnValue = self.data.getRegion(pos1,pos2,self.axes)
+        self.upd()
+        self.plotReset()
+        self.showFid()
+        return returnValue
+    
     def ACMEentropy(self,phaseIn,phaseAll=True):
         phase0=phaseIn[0]
         if phaseAll:
@@ -487,7 +533,7 @@ class Current1D(Plot1DFrame):
         self.upd()
         self.showFid()
         return returnValue
-
+    
     def getDisplayedData(self):
         if self.plotType==0:
             return np.real(self.data1D)
@@ -592,37 +638,22 @@ class Current1D(Plot1DFrame):
 
 #########################################################################################################
 #the class from which the stacked data is displayed, the operations which only edit the content of this class are for previewing
-class CurrentStacked(Plot1DFrame):
+class CurrentStacked(Current1D):
     def __init__(self, root, data, axes=None, axes2=None, locList=None, plotType=0, axType=1, stackBegin=None, stackEnd=None, stackStep=None):
-        Plot1DFrame.__init__(self,root)
-        self.xax = None               #x-axis
-        self.data = data              #the actual spectrum instance
-        self.freq = None              #frequency of the slice 
-        self.sw = None                #x-data display
-        self.data1D = None            #the data to be stacked
-        self.spec = None              #boolean where False=time domain and True=spectral domain
-        self.wholeEcho = None 
-        self.plotType = plotType
-        self.axType = axType 
-        if axes is None:
-            self.axes = len(self.data.data.shape)-1
-        else:
-            self.axes = axes              #dimension of which the data is displayed
         if axes2 is None:
-            self.axes2 = len(self.data.data.shape)-2
+            self.axes2 = len(data.data.shape)-2
         else:
             self.axes2 = axes2            #dimension from which the spectra are stacked
         self.stackBegin = stackBegin
         self.stackEnd = stackEnd
         self.stackStep = stackStep
         if locList is None:
-            self.locList = [0]*(len(self.data.data.shape)-2)
-        else:
-            self.locList = locList        #list of length dim-2 with the matrix coordinates of current spectrum 
-        self.upd()                    #get the first slice of data
+            locList = [0]*(len(data.data.shape)-2)
+        self.spacing = 0
+        Current1D.__init__(self,root, data, axes, locList, plotType, axType)
         self.resetSpacing()
-        self.plotReset()              #reset the axes limits
-        self.showFid()                #plot the data
+        self.plotReset()
+        self.showFid()
         
     def upd(self): #get new data from the data instance
         updateVar = self.data.getBlock(self.axes,self.axes2,self.locList,self.stackBegin, self.stackEnd, self.stackStep)
@@ -665,44 +696,16 @@ class CurrentStacked(Plot1DFrame):
             tmpdata=tmpdata*np.repeat([np.exp(np.fft.fftshift(np.fft.fftfreq(len(tmpdata[0]),1.0/self.sw))*phase1*1j)],len(tmpdata),axis=0)
         self.showFid(tmpdata)
 
-    def applyPhase(self, phase0, phase1):# apply the phase to the actual data
-        phase0=float(phase0)
-        phase1=float(phase1)
-        returnValue = self.data.setPhase(phase0,phase1,self.axes)
-        self.upd()
-        self.showFid()
-        return returnValue
-
-    def fourier(self): #fourier the actual data and replot
-        returnValue = self.data.fourier(self.axes)
-        self.upd()
-        self.resetSpacing()
-        self.plotReset()
-        self.showFid()
-        return returnValue
-
-    def fftshift(self,inv=False): #fftshift the actual data and replot
-        returnValue = self.data.fftshift(self.axes,inv)
-        self.upd()
-        self.showFid()
-        return returnValue
-
-    def fourierLocal(self, fourData, spec): #fourier the local data for other functions
-        if spec==0:
-            fourData=np.fft.fftshift(np.fft.fftn(fourData,axes=[1]),axes=1)
-        else:
-            fourData=np.fft.ifftn(np.fft.ifftshift(fourData,axes=1),axes=[1])
-        return fourData
-
-    def apodPreview(self,lor=None,gauss=None, cos2=None): #display the 1D data including the apodization function
+    def apodPreview(self,lor=None,gauss=None, cos2=None, shift=0.0): #display the 1D data including the apodization function
         t=np.arange(0,len(self.data1D[0]))/(self.sw)
+        t2 = t - shift
         x=np.ones(len(self.data1D[0]))
         if lor is not None:
-            x=x*np.exp(-lor*t)
+            x=x*np.exp(-lor*abs(t2))
         if gauss is not None:
-            x=x*np.exp(-(gauss*t)**2)
+            x=x*np.exp(-(gauss*t2)**2)
         if cos2 is not None:
-            x=x*(np.cos(cos2*np.linspace(0,0.5*np.pi,len(self.data1D)))**2)
+            x=x*(np.cos(cos2*(-0.5*shift*np.pi*self.sw/len(self.data1D[0])+np.linspace(0,0.5*np.pi,len(self.data1D[0]))))**2)
         if self.wholeEcho:
             x[-1:-(len(x)/2+1):-1]=x[:len(x)/2]
         a=self.fig.gca()
@@ -727,19 +730,6 @@ class CurrentStacked(Plot1DFrame):
         else:
             self.showFid(y)
 
-    def applyApod(self,lor=None,gauss=None,cos2=None): #apply the apodization to the actual data
-        returnValue = self.data.apodize(lor,gauss,cos2,self.axes)
-        self.upd() 
-        self.showFid()     
-        return returnValue
-
-    def setFreq(self,freq,sw): #set the frequency of the actual data
-        returnValue = self.data.setFreq(freq,sw,self.axes)
-        self.upd()
-        self.plotReset()
-        self.showFid()
-        return returnValue
-
     def setSizePreview(self,size): #set size only on local data
         if size > len(self.data1D[0]):
             if self.wholeEcho:
@@ -761,45 +751,11 @@ class CurrentStacked(Plot1DFrame):
         self.showFid()
         self.upd()
 
-    def applySize(self,size): #set size to the actual data
-        returnValue = self.data.setSize(size,self.axes)
-        self.upd()
-        self.plotReset()
-        self.showFid()
-        return returnValue
-
-    def changeSpec(self,val): #change from time to freq domain of the actual data
-        returnValue = self.data.changeSpec(val,self.axes)
-        self.upd()
-        self.plotReset()
-        self.showFid()
-        return returnValue
-
-    def applySwapEcho(self,idx):
-        returnValue = self.data.swapEcho(idx,self.axes)
-        self.upd()
-        self.showFid()
-        return returnValue
-
     def setSwapEchoPreview(self,idx):
         self.data1D = np.concatenate((self.data1D[:,idx:],self.data1D[:,:idx]),axis=1)
         self.plotReset()
         self.showFid()
         self.upd()
-
-    def setWholeEcho(self, value):
-        if value == 0:
-            self.data.wholeEcho[self.axes]=False
-            self.wholeEcho = False
-        else:
-            self.data.wholeEcho[self.axes]=True
-            self.wholeEcho = True
-
-    def applyShift(self,shift):
-        returnValue = self.data.shiftData(shift,self.axes)
-        self.upd()
-        self.showFid()
-        return returnValue
         
     def setShiftPreview(self,shift):
         tmpData = np.roll(self.data1D,shift)
@@ -819,68 +775,6 @@ class CurrentStacked(Plot1DFrame):
         minPos = int(min(pos1,pos2))
         maxPos = int(max(pos1,pos2))
         returnValue = self.data.dcOffset(-np.mean(self.data1D[:,minPos:maxPos]))
-        self.upd()
-        self.showFid()
-        return returnValue
-
-    def ACMEentropy(self,phaseIn,phaseAll=True):
-        phase0=phaseIn[0]
-        if phaseAll:
-            phase1=phaseIn[1]
-        else:
-            phase1=0.0
-        L = len(self.data1D)
-        if self.spec==1:
-            x=np.fft.fftshift(np.fft.fftfreq(L,1.0/self.sw))
-        if self.spec>0:
-            s0 = self.data1D*np.exp(1j*(phase0+phase1*x))
-        else:
-            s0 = np.fft.fftshift(np.fft.fft(self.data1D))*np.exp(1j*(phase0+phase1*x))
-        s2 = np.real(s0)
-        ds1 = np.abs((s2[3:L]-s2[1:L-2])/2.0)
-        p1 = ds1/sum(ds1)
-        p1[np.where(p1 == 0)] = 1
-        h1  = -p1*np.log(p1)
-        H1  = sum(h1)
-        Pfun = 0.0
-        as1 = s2 - np.abs(s2)
-        sumas   = sum(as1)
-        if (np.real(sumas) < 0): 
-            Pfun = Pfun + sum(as1**2)/4/L**2
-        return H1+1000*Pfun 
-
-    def autoPhase(self,phaseNum):
-        if phaseNum == 0:
-            phases = scipy.optimize.fmin(func=self.ACMEentropy,x0=[0],args=(False,))
-        elif phaseNum == 1:
-            phases = scipy.optimize.fmin(func=self.ACMEentropy,x0=[0,0])
-        return phases
-
-    def setXaxPreview(self,xax):
-        self.xax = xax
-        self.plotReset()
-        self.showFid()
-        self.upd()
-
-    def setXax(self,xax):
-        self.data.xaxArray[self.axes]= xax 
-        self.upd()
-        self.plotReset()
-        self.showFid()
-        #for now the changing of the axis cannot be undone, because of problems in case of a non-linear axis on operations such as fourier transform etc.
-        #doing one of these operations will result in a return to the default axis defined by sw
-
-    def setAxType(self, val):
-        ratio = 1000.0**(val - self.axType)
-        if self.spec == 1:
-            ratio = 1.0/ratio
-        self.axType = val
-        self.xminlim = ratio*self.xminlim
-        self.xmaxlim = ratio*self.xmaxlim
-        self.showFid()
-
-    def hilbert(self):
-        returnValue = self.data.hilbert(self.axes)
         self.upd()
         self.showFid()
         return returnValue
@@ -942,17 +836,29 @@ class CurrentStacked(Plot1DFrame):
                 a.plot(extraX[0]*axMult,num*self.spacing+extraY[num],c=extraColor[0])
         if (self.plotType==0):
             for num in range(len(tmpdata)):
-                self.line = a.plot(self.xax*axMult,num*self.spacing+np.real(tmpdata[num]),c='b')
+                if num is 0:
+                    self.line = a.plot(self.xax*axMult,num*self.spacing+np.real(tmpdata[num]),c='b')
+                else:
+                    a.plot(self.xax*axMult,num*self.spacing+np.real(tmpdata[num]),c='b')
         elif(self.plotType==1):
             for num in range(len(tmpdata)):
-                self.line = a.plot(self.xax*axMult,num*self.spacing+np.imag(tmpdata[num]),c='b')
+                if num is 0:
+                    self.line = a.plot(self.xax*axMult,num*self.spacing+np.imag(tmpdata[num]),c='b')
+                else:
+                    a.plot(self.xax*axMult,num*self.spacing+np.imag(tmpdata[num]),c='b')
         elif(self.plotType==2):
             for num in range(len(tmpdata)):
                 a.plot(self.xax*axMult,num*self.spacing+np.imag(tmpdata[num]),c='r')
-                self.line = a.plot(self.xax*axMult,num*self.spacing+np.real(tmpdata[num]),c='b')
+                if num is 0:
+                    self.line = a.plot(self.xax*axMult,num*self.spacing+np.real(tmpdata[num]),c='b')
+                else:
+                    a.plot(self.xax*axMult,num*self.spacing+np.real(tmpdata[num]),c='b')
         elif(self.plotType==3):
             for num in range(len(tmpdata)):
-                self.line = a.plot(self.xax*axMult,num*self.spacing+np.abs(tmpdata[num]),c='b')
+                if num is 0:
+                    self.line = a.plot(self.xax*axMult,num*self.spacing+np.abs(tmpdata[num]),c='b')
+                else:
+                    a.plot(self.xax*axMult,num*self.spacing+np.abs(tmpdata[num]),c='b')
         a.set_title("TD"+str(self.axes+1))
         #a.set_xlabel('X axis label')
         if self.spec==0:
@@ -1017,40 +923,24 @@ class CurrentStacked(Plot1DFrame):
             a.set_xlim(self.xminlim,self.xmaxlim)
         a.set_ylim(self.yminlim,self.ymaxlim)
 
-
 #########################################################################################################
 #the class from which the arrayed data is displayed, the operations which only edit the content of this class are for previewing
-class CurrentArrayed(Plot1DFrame):
+class CurrentArrayed(Current1D):
     def __init__(self, root, data, axes=None, axes2=None, locList=None, plotType=0, axType=1, stackBegin=None, stackEnd=None, stackStep=None):
-        Plot1DFrame.__init__(self,root)
-        self.xax = None               #x-axis
-        self.data = data              #the actual spectrum instance
-        self.freq = None              #frequency of the slice 
-        self.sw = None                #x-data display
-        self.data1D = None            #the data to be stacked
-        self.spec = None              #boolean where False=time domain and True=spectral domain
-        self.wholeEcho = None 
-        self.plotType = plotType
-        self.axType = axType 
-        if axes is None:
-            self.axes = len(self.data.data.shape)-1
-        else:
-            self.axes = axes              #dimension of which the data is displayed
         if axes2 is None:
-            self.axes2 = len(self.data.data.shape)-2
+            self.axes2 = len(data.data.shape)-2
         else:
             self.axes2 = axes2            #dimension from which the spectra are stacked
         self.stackBegin = stackBegin
         self.stackEnd = stackEnd
         self.stackStep = stackStep
         if locList is None:
-            self.locList = [0]*(len(self.data.data.shape)-2)
-        else:
-            self.locList = locList        #list of length dim-2 with the matrix coordinates of current spectrum 
-        self.upd()                    #get the first slice of data
+            locList = [0]*(len(data.data.shape)-2)
+        self.spacing = 0
+        Current1D.__init__(self, root, data, axes, locList, plotType, axType)
         self.resetSpacing()
-        self.plotReset()              #reset the axes limits
-        self.showFid()                #plot the data
+        self.plotReset()
+        self.showFid()
         
     def upd(self): #get new data from the data instance
         updateVar = self.data.getBlock(self.axes,self.axes2,self.locList,self.stackBegin, self.stackEnd, self.stackStep)
@@ -1093,44 +983,16 @@ class CurrentArrayed(Plot1DFrame):
             tmpdata=tmpdata*np.repeat([np.exp(np.fft.fftshift(np.fft.fftfreq(len(tmpdata[0]),1.0/self.sw))*phase1*1j)],len(tmpdata),axis=0)
         self.showFid(tmpdata)
 
-    def applyPhase(self, phase0, phase1):# apply the phase to the actual data
-        phase0=float(phase0)
-        phase1=float(phase1)
-        returnValue = self.data.setPhase(phase0,phase1,self.axes)
-        self.upd()
-        self.showFid()
-        return returnValue
-
-    def fourier(self): #fourier the actual data and replot
-        returnValue = self.data.fourier(self.axes)
-        self.upd()
-        self.resetSpacing()
-        self.plotReset()
-        self.showFid()
-        return returnValue
-
-    def fftshift(self,inv=False): #fftshift the actual data and replot
-        returnValue = self.data.fftshift(self.axes,inv)
-        self.upd()
-        self.showFid()
-        return returnValue
-
-    def fourierLocal(self, fourData, spec): #fourier the local data for other functions
-        if spec==0:
-            fourData=np.fft.fftshift(np.fft.fftn(fourData,axes=[1]),axes=1)
-        else:
-            fourData=np.fft.ifftn(np.fft.ifftshift(fourData,axes=1),axes=[1])
-        return fourData
-
-    def apodPreview(self,lor=None,gauss=None, cos2=None): #display the 1D data including the apodization function
+    def apodPreview(self,lor=None,gauss=None, cos2=None, shift=0.0): #display the 1D data including the apodization function
         t=np.arange(0,len(self.data1D[0]))/(self.sw)
+        t2 = t - shift
         x=np.ones(len(self.data1D[0]))
         if lor is not None:
-            x=x*np.exp(-lor*t)
+            x=x*np.exp(-lor*abs(t2))
         if gauss is not None:
-            x=x*np.exp(-(gauss*t)**2)
+            x=x*np.exp(-(gauss*t2)**2)
         if cos2 is not None:
-            x=x*(np.cos(cos2*np.linspace(0,0.5*np.pi,len(self.data1D)))**2)
+            x=x*(np.cos(cos2*(-0.5*shift*np.pi*self.sw/len(self.data1D[0])+np.linspace(0,0.5*np.pi,len(self.data1D[0]))))**2)
         if self.wholeEcho:
             x[-1:-(len(x)/2+1):-1]=x[:len(x)/2]
         a=self.fig.gca()
@@ -1154,20 +1016,7 @@ class CurrentArrayed(Plot1DFrame):
                 self.showFid(y,[t],x*np.amax(np.abs(self.data1D)),['g'],old=True)
         else:
             self.showFid(y)
-
-    def applyApod(self,lor=None,gauss=None,cos2=None): #apply the apodization to the actual data
-        returnValue = self.data.apodize(lor,gauss,cos2,self.axes)
-        self.upd() 
-        self.showFid()     
-        return returnValue
-
-    def setFreq(self,freq,sw): #set the frequency of the actual data
-        returnValue = self.data.setFreq(freq,sw,self.axes)
-        self.upd()
-        self.plotReset()
-        self.showFid()
-        return returnValue
-
+                 
     def setSizePreview(self,size): #set size only on local data
         if size > len(self.data1D[0]):
             if self.wholeEcho:
@@ -1189,45 +1038,11 @@ class CurrentArrayed(Plot1DFrame):
         self.showFid()
         self.upd()
 
-    def applySize(self,size): #set size to the actual data
-        returnValue = self.data.setSize(size,self.axes)
-        self.upd()
-        self.plotReset()
-        self.showFid()
-        return returnValue
-
-    def changeSpec(self,val): #change from time to freq domain of the actual data
-        returnValue = self.data.changeSpec(val,self.axes)
-        self.upd()
-        self.plotReset()
-        self.showFid()
-        return returnValue
-
-    def applySwapEcho(self,idx):
-        returnValue = self.data.swapEcho(idx,self.axes)
-        self.upd()
-        self.showFid()
-        return returnValue
-
     def setSwapEchoPreview(self,idx):
         self.data1D = np.concatenate((self.data1D[:,idx:],self.data1D[:,:idx]),axis=1)
         self.plotReset()
         self.showFid()
         self.upd()
-
-    def setWholeEcho(self, value):
-        if value == 0:
-            self.data.wholeEcho[self.axes]=False
-            self.wholeEcho = False
-        else:
-            self.data.wholeEcho[self.axes]=True
-            self.wholeEcho = True
-
-    def applyShift(self,shift):
-        returnValue = self.data.shiftData(shift,self.axes)
-        self.upd()
-        self.showFid()
-        return returnValue
         
     def setShiftPreview(self,shift):
         tmpData = np.roll(self.data1D,shift)
@@ -1242,15 +1057,7 @@ class CurrentArrayed(Plot1DFrame):
         maxPos = int(max(pos1,pos2))
         if minPos != maxPos:
             self.showFid(self.data1D-np.mean(self.data1D[:,minPos:maxPos]))
-            
-    def applydcOffset(self,pos1,pos2):
-        minPos = int(min(pos1,pos2))
-        maxPos = int(max(pos1,pos2))
-        returnValue = self.data.dcOffset(-np.mean(self.data1D[:,minPos:maxPos]))
-        self.upd()
-        self.showFid()
-        return returnValue
-
+    
     def ACMEentropy(self,phaseIn,phaseAll=True):
         phase0=phaseIn[0]
         if phaseAll:
@@ -1283,35 +1090,6 @@ class CurrentArrayed(Plot1DFrame):
         elif phaseNum == 1:
             phases = scipy.optimize.fmin(func=self.ACMEentropy,x0=[0,0])
         return phases
-
-    def setXaxPreview(self,xax):
-        self.xax = xax
-        self.plotReset()
-        self.showFid()
-        self.upd()
-
-    def setXax(self,xax):
-        self.data.xaxArray[self.axes]= xax 
-        self.upd()
-        self.plotReset()
-        self.showFid()
-        #for now the changing of the axis cannot be undone, because of problems in case of a non-linear axis on operations such as fourier transform etc.
-        #doing one of these operations will result in a return to the default axis defined by sw
-
-    def setAxType(self, val):
-        ratio = 1000.0**(val - self.axType)
-        if self.spec == 1:
-            ratio = 1.0/ratio
-        self.axType = val
-        self.xminlim = ratio*self.xminlim
-        self.xmaxlim = ratio*self.xmaxlim
-        self.showFid()
-
-    def hilbert(self):
-        returnValue = self.data.hilbert(self.axes)
-        self.upd()
-        self.showFid()
-        return returnValue
 
     def setSpacing(self, spacing):
         self.spacing = spacing
@@ -1359,21 +1137,22 @@ class CurrentArrayed(Plot1DFrame):
         if (extraX is not None):
             for num in range(len(extraY)):
                 a.plot((num*self.spacing+extraX[0])*axMult,extraY[num][direc],c=extraColor[0])
+
+        self.line = []
         if (self.plotType==0):
             for num in range(len(tmpdata)):
-                self.line = a.plot((num*self.spacing+self.xax)*axMult,np.real(tmpdata[num])[direc],c='b')
+                self.line.append(a.plot((num*self.spacing+self.xax)*axMult,np.real(tmpdata[num])[direc],c='b')[0])
         elif(self.plotType==1):
             for num in range(len(tmpdata)):
-                self.line = a.plot((num*self.spacing+self.xax)*axMult,np.imag(tmpdata[num])[direc],c='b')
+                self.line.append(a.plot((num*self.spacing+self.xax)*axMult,np.imag(tmpdata[num])[direc],c='b')[0])
         elif(self.plotType==2):
             for num in range(len(tmpdata)):
                 a.plot((num*self.spacing+self.xax)*axMult,np.imag(tmpdata[num])[direc],c='r')
-                self.line = a.plot((num*self.spacing+self.xax)*axMult,np.real(tmpdata[num])[direc],c='b')
+                self.line.append(a.plot((num*self.spacing+self.xax)*axMult,np.real(tmpdata[num])[direc],c='b')[0])
         elif(self.plotType==3):
             for num in range(len(tmpdata)):
-                self.line = a.plot((num*self.spacing+self.xax)*axMult,np.abs(tmpdata[num])[direc],c='b')
+                self.line.append(a.plot((num*self.spacing+self.xax)*axMult,np.abs(tmpdata[num])[direc],c='b')[0])
         a.set_title("TD"+str(self.axes+1))
-        #a.set_xlabel('X axis label')
         if self.spec==0:
             if self.axType == 0:
                 a.set_xlabel('Time (s)')

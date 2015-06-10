@@ -78,6 +78,14 @@ class Main1DWindow(Frame):
         toolMenu.add_command(label="Shift Data", command=self.createShiftDataWindow)
         toolMenu.add_command(label="DC offset correction", command=self.createDCWindow)
         toolMenu.add_command(label="Correct Bruker digital filter", command=self.BrukerDigital)
+
+        #the matrix drop down menu
+        matrixMenu = Menu(menubar, tearoff=0)
+        menubar.add_cascade(label="Matrix",menu=matrixMenu)
+        matrixMenu.add_command(label="Integrate", command=self.createIntegrateWindow)
+        matrixMenu.add_command(label="Max", command=self.createMaxWindow)
+        matrixMenu.add_command(label="Min", command=self.createMinWindow)
+        matrixMenu.add_command(label="Extract part", command=self.createRegionWindow)
         
         #the fft drop down menu
         fftMenu = Menu(menubar, tearoff=0)
@@ -537,6 +545,18 @@ class Main1DWindow(Frame):
 
     def createDCWindow(self):
         DCWindow(self,self.current)
+
+    def createIntegrateWindow(self):
+        integrateWindow(self,self.current)
+        
+    def createMaxWindow(self):
+        maxWindow(self,self.current)
+        
+    def createMinWindow(self):
+        minWindow(self,self.current)
+        
+    def createRegionWindow(self):
+        extractRegionWindow(self,self.current)
         
     def BrukerDigital(self):
         pass
@@ -552,25 +572,19 @@ class Main1DWindow(Frame):
 #                
 #                self.redoList = []
 #                self.undoList.append(self.current.applyPhase(0,-FilterCorrection*2*pi))
-               
-
-        
-        
 
     def createRelaxWindow(self):
         root = fit.RelaxWindow(self.parent,self.current)
         root.title("Relaxation Curve") 
-        #root.attributes('-zoomed', True)
         root.grid_rowconfigure(0, weight=1)
         root.grid_columnconfigure(0, weight=1)
 
     def createPeakDeconvWindow(self):
         root = fit.PeakDeconvWindow(self.parent,self.current)
         root.title("Peak Deconvolution") 
-        #root.attributes('-zoomed', True)
         root.grid_rowconfigure(0, weight=1)
         root.grid_columnconfigure(0, weight=1)
-    
+       
     def plot1D(self):
         self.current.grid_remove()
         self.current.destroy()
@@ -1122,6 +1136,8 @@ class ApodWindow(Frame): #a window for apodization
         self.cos2Tick = IntVar()
         self.cos2Val = StringVar()
         self.cos2Val.set("1.0")
+        self.shiftVal = StringVar()
+        self.shiftVal.set("0.0")
         #set stepsizes for the buttons
         self.lorstep = 1.0
         self.gaussstep = 1.0
@@ -1161,6 +1177,11 @@ class ApodWindow(Frame): #a window for apodization
         self.cos2Entry.bind("<Return>", self.apodPreview)
         self.cos2Entry.bind("<KP_Enter>", self.apodPreview)
         self.cos2Entry.grid(row=7,column=2)
+        Label(self.frame1,text="Shift").grid(row=8,column=0,columnspan=4)
+        self.shiftEntry = Entry(self.frame1,textvariable=self.shiftVal,justify="center")
+        self.shiftEntry.bind("<Return>", self.apodPreview)
+        self.shiftEntry.bind("<KP_Enter>", self.apodPreview)
+        self.shiftEntry.grid(row=9,column=2)
         self.frame2 = Frame(self.window)
         self.frame2.grid(row=1,column=0)
         Button(self.frame2, text="Apply",command=self.applyApodAndClose).grid(row=0,column=0)
@@ -1200,7 +1221,9 @@ class ApodWindow(Frame): #a window for apodization
         if self.cos2Tick.get() == 1:
             cos2 = safeEval(self.cos2Val.get())
             self.cos2Val.set(cos2)
-        self.current.apodPreview(lor,gauss,cos2)
+        shift = safeEval(self.shiftVal.get())
+        self.shiftVal.set(shift)
+        self.current.apodPreview(lor,gauss,cos2,shift)
 
     def stepLB(self,lorincr,gaussincr): #step linebroadening from < and > keys
         if lorincr!=0:
@@ -1223,8 +1246,9 @@ class ApodWindow(Frame): #a window for apodization
             gauss = safeEval(self.gaussVal.get())
         if self.cos2Tick.get() == 1:
             cos2 = safeEval(self.cos2Val.get())
+        shift = safeEval(self.shiftVal.get())
         self.parent.redoList = []
-        self.parent.undoList.append(self.current.applyApod(lor,gauss,cos2))
+        self.parent.undoList.append(self.current.applyApod(lor,gauss,cos2,shift))
         self.window.destroy()
 
 #######################################################################################
@@ -1475,6 +1499,154 @@ class DCWindow(Frame): #a window for shifting the data
         self.parent.undoList.append(self.current.applydcOffset(minimum,maximum))
         self.window.destroy()
 
+#############################################################
+class regionWindow(Toplevel): #A general region selection frame
+    def __init__(self, parent,current,name):
+        Toplevel.__init__(self)
+        #initialize variables for the widgets
+        self.minVal = StringVar()
+        self.minVal.set("0")
+        self.maxVal = StringVar()
+        self.maxVal.set(str(current.data1D.shape[-1]))
+        self.parent = parent
+        self.current = current
+        self.geometry('+0+0')
+        self.transient(self.parent)
+        self.protocol("WM_DELETE_WINDOW", self.cancelAndClose)
+        self.title(name)
+        self.resizable(width=FALSE, height=FALSE)
+        self.frame1 = Frame(self)
+        self.frame1.grid(row=0)
+        Label(self.frame1,text="Start point").grid(row=0,column=0,columnspan=2)
+        self.minEntry = Entry(self.frame1,textvariable=self.minVal,justify="center")
+        self.minEntry.bind("<Return>", self.checkValues)
+        self.minEntry.bind("<KP_Enter>", self.checkValues)
+        self.minEntry.grid(row=1,column=0,columnspan=2)
+        Label(self.frame1,text="End point").grid(row=2,column=0,columnspan=2)
+        self.maxEntry = Entry(self.frame1,textvariable=self.maxVal,justify="center")
+        self.maxEntry.bind("<Return>", self.checkValues)
+        self.maxEntry.bind("<KP_Enter>", self.checkValues)
+        self.maxEntry.grid(row=3,column=0,columnspan=2)
+        self.frame2 = Frame(self)
+        self.frame2.grid(row=1)
+        Button(self.frame2, text="Apply",command=self.applyAndClose).grid(row=0,column=0)
+        Button(self.frame2, text="Cancel",command=self.cancelAndClose).grid(row=0,column=1)
+        #pick function
+        self.current.peakPickFunc = lambda pos,self=self: self.picked(pos)
+        self.current.peakPick = True
+
+    def picked(self,pos,second=False): #pick a value alternating the first and second value determined by the second value.
+        if second:
+            dataLength = self.current.data1D.shape[-1]
+            minimum=int(round(safeEval(self.minVal.get())))
+            if minimum < 0:
+                minimum = 0
+            elif minimum > dataLength:
+                minimum = dataLength
+            self.minVal.set(str(minimum))
+            maximum=pos[0]
+            self.maxVal.set(str(maximum))
+            self.current.peakPickFunc = lambda pos,self=self: self.picked(pos) 
+            self.current.peakPick = True
+        else:
+            self.minVal.set(str(pos[0]))
+            self.current.peakPickFunc = lambda pos,self=self: self.picked(pos,True) 
+            self.current.peakPick = True
+
+    def checkValues(self, *args): #not really preview but just to check the inputs
+        dataLength = self.current.data1D.shape[-1]
+        minimum = int(round(safeEval(self.minVal.get())))
+        if minimum < 0:
+            minimum = 0
+        elif minimum > dataLength:
+            minimum = dataLength
+        self.minVal.set(str(minimum))
+        maximum = int(round(safeEval(self.maxVal.get())))
+        if maximum < 0:
+            maximum = 0
+        elif maximum > dataLength:
+            maximum = dataLength
+        self.maxVal.set(str(maximum))
+
+    def cancelAndClose(self):
+        self.current.peakPickReset()
+        self.parent.updAllFrames()
+        self.destroy()
+
+    def apply(self,maximum,minimum):
+        pass
+        
+    def applyAndClose(self):
+        self.current.peakPickReset()
+        dataLength = self.current.data1D.shape[-1]
+        minimum = int(round(safeEval(self.minVal.get())))
+        if minimum < 0:
+            minimum = 0
+        elif minimum > dataLength:
+            minimum = dataLength
+        maximum = int(round(safeEval(self.maxVal.get())))
+        if maximum < 0:
+            maximum = 0
+        elif maximum > dataLength:
+            maximum = dataLength
+        self.apply(maximum,minimum)
+        self.destroy()
+        
+############################################################
+class integrateWindow(regionWindow): #A window for obtaining the integral of a selected region
+    def __init__(self, parent,current):
+        regionWindow.__init__(self,parent,current,'Integrate')
+
+    def apply(self,maximum,minimum):
+        #self.parent.redoList = []
+        #self.parent.undoList.append(self.current.integrate(minimum,maximum))
+        self.parent.masterData = self.current.integrate(minimum,maximum)
+        self.parent.current.grid_remove()
+        self.parent.current.destroy()
+        self.parent.current=sc.Current1D(self.parent,self.parent.masterData)
+        self.parent.current.grid(row=0,column=0,sticky='nswe')
+        self.parent.updAllFrames()
+        
+############################################################
+class maxWindow(regionWindow): #A window for obtaining the max of a selected region
+    def __init__(self, parent,current):
+        regionWindow.__init__(self,parent,current,'Max')
+
+    def apply(self,maximum,minimum):
+        #self.parent.redoList = []
+        #self.parent.undoList.append(self.current.integrate(minimum,maximum))
+        self.parent.masterData = self.current.maxMatrix(minimum,maximum)
+        self.parent.current.grid_remove()
+        self.parent.current.destroy()
+        self.parent.current=sc.Current1D(self.parent,self.parent.masterData)
+        self.parent.current.grid(row=0,column=0,sticky='nswe')
+        self.parent.updAllFrames()
+
+############################################################
+class minWindow(regionWindow): #A window for obtaining the min of a selected region
+    def __init__(self, parent,current):
+        regionWindow.__init__(self,parent,current,'Min')
+
+    def apply(self,maximum,minimum):
+        #self.parent.redoList = []
+        #self.parent.undoList.append(self.current.integrate(minimum,maximum))
+        self.parent.masterData = self.current.minMatrix(minimum,maximum)
+        self.parent.current.grid_remove()
+        self.parent.current.destroy()
+        self.parent.current=sc.Current1D(self.parent,self.parent.masterData)
+        self.parent.current.grid(row=0,column=0,sticky='nswe')
+        self.parent.updAllFrames()
+        
+############################################################
+class extractRegionWindow(regionWindow): #A window for obtaining a selected region
+    def __init__(self, parent,current):
+        regionWindow.__init__(self,parent,current,'Extract part')
+
+    def apply(self,maximum,minimum):
+        self.parent.redoList = []
+        self.parent.undoList.append(self.current.getRegion(minimum,maximum))
+        self.parent.updAllFrames()
+        
 ##########################################################################################
 class XaxWindow(Frame): #a window for setting the xax of the current data
     def __init__(self, parent,current):
