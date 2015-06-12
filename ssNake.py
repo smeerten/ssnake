@@ -86,6 +86,8 @@ class Main1DWindow(Frame):
         matrixMenu.add_command(label="Max", command=self.createMaxWindow)
         matrixMenu.add_command(label="Min", command=self.createMinWindow)
         matrixMenu.add_command(label="Extract part", command=self.createRegionWindow)
+        matrixMenu.add_command(label="Flip L/R", command=self.flipLR)
+        matrixMenu.add_command(label="Shearing", command=self.createShearingWindow)
         
         #the fft drop down menu
         fftMenu = Menu(menubar, tearoff=0)
@@ -110,10 +112,12 @@ class Main1DWindow(Frame):
         plotMenu.add_command(label="User x-axis", command=self.createXaxWindow)
 
         x=np.linspace(0,2*np.pi*10,1000)[:-1] #fake data
+        x2=np.linspace(0,2*np.pi*10,200)[1:] #fake data
         test=np.exp(-1j*x)*np.exp(-1*x/10.0)#fake data
-        self.masterData=sc.Spectrum(np.array([np.array([test,test*2,test*3]),np.array([test*3,test*4,test*5])]),[600000000.0,500000000.0,400000000.0],[1000.0,2000.0,3000.0])#create a Spectrum instance with the fake data
+        test2=1-np.exp(-x2)
+        #self.masterData=sc.Spectrum(np.array([np.array([test,test*2,test*3]),np.array([test*3,test*4,test*5])]),[600000000.0,500000000.0,400000000.0],[1000.0,2000.0,3000.0])#create a Spectrum instance with the fake data
+        self.masterData=sc.Spectrum(np.outer(test2,test),[600000000.0,500000000.0],[1000.0,2000.0])
         self.current=sc.Current1D(self,self.masterData) 
-        #self.current=sc.CurrentStacked(self,self.masterData) 
         self.current.grid(row=0,column=0,sticky="nswe")
 	#create the sideframe, bottomframe and textframe
         self.sideframe=SideFrame(self) 
@@ -557,6 +561,16 @@ class Main1DWindow(Frame):
         
     def createRegionWindow(self):
         extractRegionWindow(self,self.current)
+
+    def flipLR(self):
+        self.redoList = []
+        self.undoList.append(self.current.flipLR())
+
+    def createShearingWindow(self):
+        if self.masterData.dim > 1:
+            ShearingWindow(self,self.current)
+        else:
+            print('Data has too little dimensions for shearing transform')
         
     def BrukerDigital(self):
         pass
@@ -1136,6 +1150,9 @@ class ApodWindow(Frame): #a window for apodization
         self.cos2Tick = IntVar()
         self.cos2Val = StringVar()
         self.cos2Val.set("1.0")
+        self.hammingTick = IntVar()
+        self.hammingVal = StringVar()
+        self.hammingVal.set("1.0")
         self.shiftVal = StringVar()
         self.shiftVal.set("0.0")
         #set stepsizes for the buttons
@@ -1177,11 +1194,17 @@ class ApodWindow(Frame): #a window for apodization
         self.cos2Entry.bind("<Return>", self.apodPreview)
         self.cos2Entry.bind("<KP_Enter>", self.apodPreview)
         self.cos2Entry.grid(row=7,column=2)
-        Label(self.frame1,text="Shift").grid(row=8,column=0,columnspan=4)
+        Label(self.frame1,text="Hamming").grid(row=8,column=0,columnspan=4)
+        Checkbutton(self.frame1,variable=self.hammingTick, command=lambda: self.checkEval(self.hammingTick,self.hammingEntry)).grid(row=9,column=1)
+        self.hammingEntry = Entry(self.frame1,textvariable=self.hammingVal,justify="center", state='disabled')
+        self.hammingEntry.bind("<Return>", self.apodPreview)
+        self.hammingEntry.bind("<KP_Enter>", self.apodPreview)
+        self.hammingEntry.grid(row=9,column=2)
+        Label(self.frame1,text="Shift").grid(row=10,column=0,columnspan=4)
         self.shiftEntry = Entry(self.frame1,textvariable=self.shiftVal,justify="center")
         self.shiftEntry.bind("<Return>", self.apodPreview)
         self.shiftEntry.bind("<KP_Enter>", self.apodPreview)
-        self.shiftEntry.grid(row=9,column=2)
+        self.shiftEntry.grid(row=11,column=2)
         self.frame2 = Frame(self.window)
         self.frame2.grid(row=1,column=0)
         Button(self.frame2, text="Apply",command=self.applyApodAndClose).grid(row=0,column=0)
@@ -1212,6 +1235,7 @@ class ApodWindow(Frame): #a window for apodization
         lor = None
         gauss = None
         cos2 = None
+        hamming = None
         if self.lorTick.get() == 1:
             lor = safeEval(self.lorVal.get())
             self.lorVal.set(lor)
@@ -1221,9 +1245,12 @@ class ApodWindow(Frame): #a window for apodization
         if self.cos2Tick.get() == 1:
             cos2 = safeEval(self.cos2Val.get())
             self.cos2Val.set(cos2)
+        if self.hammingTick.get() == 1:
+            hamming = safeEval(self.hammingVal.get())
+            self.hammingVal.set(hamming)
         shift = safeEval(self.shiftVal.get())
         self.shiftVal.set(shift)
-        self.current.apodPreview(lor,gauss,cos2,shift)
+        self.current.apodPreview(lor,gauss,cos2,hamming,shift)
 
     def stepLB(self,lorincr,gaussincr): #step linebroadening from < and > keys
         if lorincr!=0:
@@ -1240,15 +1267,18 @@ class ApodWindow(Frame): #a window for apodization
         lor = None
         gauss = None
         cos2 = None
+        hamming=None
         if self.lorTick.get() == 1:
             lor = safeEval(self.lorVal.get())
         if self.gaussTick.get() == 1:
             gauss = safeEval(self.gaussVal.get())
         if self.cos2Tick.get() == 1:
             cos2 = safeEval(self.cos2Val.get())
+        if self.hammingTick.get() == 1:
+            hamming = safeEval(self.hammingVal.get())
         shift = safeEval(self.shiftVal.get())
         self.parent.redoList = []
-        self.parent.undoList.append(self.current.applyApod(lor,gauss,cos2,shift))
+        self.parent.undoList.append(self.current.applyApod(lor,gauss,cos2,hamming,shift))
         self.window.destroy()
 
 #######################################################################################
@@ -1598,9 +1628,8 @@ class integrateWindow(regionWindow): #A window for obtaining the integral of a s
         regionWindow.__init__(self,parent,current,'Integrate')
 
     def apply(self,maximum,minimum):
-        #self.parent.redoList = []
-        #self.parent.undoList.append(self.current.integrate(minimum,maximum))
-        self.parent.masterData = self.current.integrate(minimum,maximum)
+        self.parent.redoList = []
+        self.parent.undoList.append(self.current.integrate(minimum,maximum))
         self.parent.current.grid_remove()
         self.parent.current.destroy()
         self.parent.current=sc.Current1D(self.parent,self.parent.masterData)
@@ -1613,9 +1642,9 @@ class maxWindow(regionWindow): #A window for obtaining the max of a selected reg
         regionWindow.__init__(self,parent,current,'Max')
 
     def apply(self,maximum,minimum):
-        #self.parent.redoList = []
-        #self.parent.undoList.append(self.current.integrate(minimum,maximum))
-        self.parent.masterData = self.current.maxMatrix(minimum,maximum)
+        self.parent.redoList = []
+        self.parent.undoList.append(self.current.maxMatrix(minimum,maximum))
+        #self.parent.undoList.append(self.current.maxMatrix(minimum,maximum))
         self.parent.current.grid_remove()
         self.parent.current.destroy()
         self.parent.current=sc.Current1D(self.parent,self.parent.masterData)
@@ -1628,9 +1657,8 @@ class minWindow(regionWindow): #A window for obtaining the min of a selected reg
         regionWindow.__init__(self,parent,current,'Min')
 
     def apply(self,maximum,minimum):
-        #self.parent.redoList = []
-        #self.parent.undoList.append(self.current.integrate(minimum,maximum))
-        self.parent.masterData = self.current.minMatrix(minimum,maximum)
+        self.parent.redoList = []
+        self.parent.undoList.append(self.current.minMatrix(minimum,maximum))
         self.parent.current.grid_remove()
         self.parent.current.destroy()
         self.parent.current=sc.Current1D(self.parent,self.parent.masterData)
@@ -1646,6 +1674,65 @@ class extractRegionWindow(regionWindow): #A window for obtaining a selected regi
         self.parent.redoList = []
         self.parent.undoList.append(self.current.getRegion(minimum,maximum))
         self.parent.updAllFrames()
+
+################################################################
+class ShearingWindow(Frame): #a window for setting the xax of the current data
+    def __init__(self, parent,current):
+        Frame.__init__(self, parent)
+        self.parent = parent
+        self.current = current
+        #initialize variables for the widgets
+        self.shear = StringVar()
+        self.shear.set('0.0')
+        options = map(str,range(self.current.data.dim))
+        self.axes = StringVar()
+        self.axes.set('0')
+        self.axes2 = StringVar()
+        self.axes2.set('1')
+        self.parent = parent
+        self.current = current
+        self.window = Toplevel(self)
+        self.window.geometry('+0+0')
+        self.window.transient(self.parent)
+        self.window.protocol("WM_DELETE_WINDOW", self.cancelAndClose)
+        self.window.title("Shearing")
+        self.window.resizable(width=FALSE, height=FALSE)
+        self.frame1 = Frame(self.window)
+        self.frame1.grid(row=0)
+        Label(self.frame1,text="Shearing constant").grid(row=0,column=0)
+        self.shearEntry = Entry(self.frame1,textvariable=self.shear,justify="center")
+        self.shearEntry.bind("<Return>", self.shearPreview)
+        self.shearEntry.bind("<KP_Enter>", self.shearPreview)
+        self.shearEntry.grid(row=1,column=0)
+        Label(self.frame1,text="Shearing direction").grid(row=2,column=0)
+        OptionMenu(self.frame1,self.axes, self.axes.get(),*options).grid(row=3,column=0)
+        Label(self.frame1,text="Shearing axis").grid(row=4,column=0)
+        OptionMenu(self.frame1,self.axes2,self.axes2.get(),*options).grid(row=5,column=0)
+        self.frame2 = Frame(self.window)
+        self.frame2.grid(row=1)
+        Button(self.frame2, text="Apply",command=self.applyAndClose).grid(row=0,column=0)
+        Button(self.frame2, text="Cancel",command=self.cancelAndClose).grid(row=0,column=1)
+
+    def shearPreview(self, *args):
+        shear = float(safeEval(self.shear.get()))
+        self.shear.set(str(shear))
+
+    def cancelAndClose(self):
+        #self.current.upd()
+        #self.current.plotReset()
+        #self.current.showFid()
+        self.window.destroy()
+
+    def applyAndClose(self):
+        shear = float(safeEval(self.shear.get()))
+        axes = int(self.axes.get())
+        axes2 = int(self.axes2.get())
+        if axes == axes2:
+            print("Axes can't be the same for shearing")
+        else:
+            self.parent.redoList = []
+            self.parent.undoList.append(self.current.shearing(shear,axes,axes2))
+            self.window.destroy()
         
 ##########################################################################################
 class XaxWindow(Frame): #a window for setting the xax of the current data

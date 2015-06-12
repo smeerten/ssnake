@@ -2,6 +2,7 @@ import matplotlib
 import numpy as np
 import scipy.optimize
 import scipy.signal
+import scipy.ndimage
 import copy
 from spectrumFrame import Plot1DFrame
 
@@ -54,22 +55,24 @@ class Spectrum(object):
         return returnValue
 
     def matrixManip(self, pos1, pos2, axes, which):
+        copyData=copy.deepcopy(self)
+        returnValue = lambda self: self.restoreData(copyData, lambda self: self.matrixManip(pos1,pos2,axes,which))
         minPos = min(pos1,pos2)
         maxPos = max(pos1,pos2)
         slicing = (slice(None),) * axes + (slice(minPos,maxPos),) + (slice(None),)*(self.dim-1-axes)
         if which == 0:
-            data = np.sum(self.data[slicing],axis=axes)
+            self.data = np.sum(self.data[slicing],axis=axes)
         elif which == 1:
-            data = np.amax(self.data[slicing],axis=axes)
+            self.data = np.amax(self.data[slicing],axis=axes)
         elif which == 2:
-            data = np.amin(self.data[slicing],axis=axes)
-        dim = self.dim - 1
-        freq = np.delete(self.freq,axes)
-        sw = np.delete(self.sw,axes)
-        spec = np.delete(self.spec,axes)
-        wholeEcho = np.delete(self.wholeEcho,axes)
-        xaxArray = np.delete(self.xaxArray,axes)
-        return Spectrum(data, freq, sw , spec, wholeEcho)
+            self.data = np.amin(self.data[slicing],axis=axes)
+        self.dim = self.dim - 1
+        self.freq = np.delete(self.freq,axes)
+        self.sw = np.delete(self.sw,axes)
+        self.spec = np.delete(self.spec,axes)
+        self.wholeEcho = np.delete(self.wholeEcho,axes)
+        self.xaxArray = np.delete(self.xaxArray,axes)
+        return returnValue
 
     def getRegion(self, pos1, pos2,axes):
         copyData=copy.deepcopy(self)
@@ -80,6 +83,11 @@ class Spectrum(object):
         self.data = self.data[slicing]
         self.xaxArray[axes] = self.xaxArray[axes][slice(minPos,maxPos)] #what to do with sw?
         return returnValue
+
+    def flipLR(self, axes):
+        slicing = (slice(None),) * axes + (slice(None,None,-1),) + (slice(None),)*(self.dim-1-axes)
+        self.data = self.data[slicing]
+        return lambda self: self.flipLR(axes)
     
     def hilbert(self,axes):
         copyData=copy.deepcopy(self)
@@ -103,7 +111,7 @@ class Spectrum(object):
                 self.data[slicing]=self.data[slicing]*vector[i]
         return lambda self: self.setPhase(-phase0,-phase1,axes)
 
-    def apodize(self,lor,gauss, cos2, shift, axes):
+    def apodize(self,lor,gauss, cos2, hamming, shift, axes):
         copyData=copy.deepcopy(self)
         axLen = self.data.shape[axes]
         t=np.arange(0,axLen)/self.sw[axes]
@@ -114,8 +122,11 @@ class Spectrum(object):
         if gauss is not None:
             x=x*np.exp(-(gauss*t2)**2)
         if cos2 is not None:
-            x=x*(np.cos(cos2*(-0.5*shift*np.pi*self.sw/len(self.data1D)+np.linspace(0,0.5*np.pi,len(self.data1D))))**2)
-        returnValue = lambda self: self.restoreData(copyData, lambda self: self.apodize(lor,gauss,cos2,shift,axes))
+            x=x*(np.cos(cos2*(-0.5*shift*np.pi*self.sw[axes]/axLen+np.linspace(0,0.5*np.pi,axLen)))**2)
+        if hamming is not None:
+            alpha = 0.53836 # constant for hamming window
+            x=x*(alpha+(1-alpha)*np.cos(hamming*(-0.5*shift*np.pi*self.sw[axes]/axLen+np.linspace(0,np.pi,axLen))))
+        returnValue = lambda self: self.restoreData(copyData, lambda self: self.apodize(lor,gauss,cos2,hamming,shift,axes))
         if self.spec[axes] > 0:
             self.fourier(axes,tmp=True)
             for i in range(self.data.shape[axes]):
@@ -215,6 +226,17 @@ class Spectrum(object):
             self.data=np.fft.fftshift(self.data,axes=axes)
         return lambda self: self.fftshift(axes,not(inv))
 
+    def shear(self, shear, axes, axes2):
+        if self.dim < 2:
+            print("The data does not have enough dimensions for a shearing transformation")
+            return None
+        copyData=copy.deepcopy(self)
+        returnValue = lambda self: self.restoreData(copyData, lambda self: self.shear(shear,axes, axes2))
+        shearMatrix = np.identity(self.dim)
+        shearMatrix[axes,axes2]=shear
+        self.data = scipy.ndimage.interpolation.affine_transform(np.real(self.data),shearMatrix,mode='wrap') + 1j*scipy.ndimage.interpolation.affine_transform(np.imag(self.data),shearMatrix,mode='wrap')
+        return returnValue
+    
     def getSlice(self,axes,locList):
         return (self.data[tuple(locList[:axes])+(slice(None),)+tuple(locList[axes:])],self.freq[axes],self.sw[axes],self.spec[axes],self.wholeEcho[axes],self.xaxArray[axes])
 
@@ -256,7 +278,7 @@ class Current1D(Plot1DFrame):
         else:
             self.axes = axes              #dimension of which the data is displayed
         if locList is None:
-            self.locList = [0]*(len(self.data.data.shape)-1)
+            self.resetLocList()
         else:
             self.locList = locList    
         self.plotType = plotType
@@ -266,6 +288,8 @@ class Current1D(Plot1DFrame):
         self.showFid() #plot the data
         
     def upd(self): #get new data from the data instance
+        if (len(self.locList)+1) != self.data.dim:
+            self.resetLocList()
         updateVar = self.data.getSlice(self.axes,self.locList)
         self.data1D = updateVar[0]
         self.freq = updateVar[1]
@@ -284,6 +308,9 @@ class Current1D(Plot1DFrame):
         if not axesSame:
             self.plotReset()
         self.showFid()
+
+    def resetLocList(self):
+        self.locList = [0]*(len(self.data.data.shape)-1)
         
     def setPhaseInter(self, phase0in, phase1in): #interactive changing the phase without editing the actual data
         phase0=float(phase0in)
@@ -327,7 +354,7 @@ class Current1D(Plot1DFrame):
             fourData=np.fft.ifftn(np.fft.ifftshift(fourData,axes=ax),axes=[ax])
         return fourData
 
-    def apodPreview(self,lor=None,gauss=None, cos2=None, shift=0.0): #display the 1D data including the apodization function
+    def apodPreview(self,lor=None,gauss=None, cos2=None, hamming=None ,shift=0.0): #display the 1D data including the apodization function
         t=np.arange(0,len(self.data1D))/(self.sw)
         t2=t-shift
         x=np.ones(len(self.data1D))
@@ -337,6 +364,9 @@ class Current1D(Plot1DFrame):
             x=x*np.exp(-(gauss*t2)**2)
         if cos2 is not None:
             x=x*(np.cos(cos2*(-0.5*shift*np.pi*self.sw/len(self.data1D)+np.linspace(0,0.5*np.pi,len(self.data1D))))**2)
+        if hamming is not None:
+            alpha = 0.53836 # constant for hamming window
+            x=x*(alpha+(1-alpha)*np.cos(hamming*(-0.5*shift*np.pi*self.sw/len(self.data1D)+np.linspace(0,np.pi,len(self.data1D)))))
         if self.wholeEcho:
             x[-1:-(len(x)/2+1):-1]=x[:len(x)/2]
         a=self.fig.gca()
@@ -360,8 +390,8 @@ class Current1D(Plot1DFrame):
         else:
             self.showFid(y)
 
-    def applyApod(self,lor=None,gauss=None,cos2=None,shift=0.0): #apply the apodization to the actual data
-        returnValue = self.data.apodize(lor,gauss,cos2,shift,self.axes)
+    def applyApod(self,lor=None,gauss=None,cos2=None,hamming=None,shift=0.0): #apply the apodization to the actual data
+        returnValue = self.data.apodize(lor,gauss,cos2,hamming,shift,self.axes)
         self.upd() 
         self.showFid()     
         return returnValue
@@ -465,6 +495,12 @@ class Current1D(Plot1DFrame):
     def minMatrix(self,pos1,pos2):
         return self.data.matrixManip(pos1,pos2,self.axes,2)
 
+    def flipLR(self):
+        returnValue = self.data.flipLR(self.axes)
+        self.upd()
+        self.showFid()
+        return returnValue
+    
     def getRegion(self,pos1,pos2): #set the frequency of the actual data
         returnValue = self.data.getRegion(pos1,pos2,self.axes)
         self.upd()
@@ -640,15 +676,16 @@ class Current1D(Plot1DFrame):
 #the class from which the stacked data is displayed, the operations which only edit the content of this class are for previewing
 class CurrentStacked(Current1D):
     def __init__(self, root, data, axes=None, axes2=None, locList=None, plotType=0, axType=1, stackBegin=None, stackEnd=None, stackStep=None):
+        self.data = data
         if axes2 is None:
-            self.axes2 = len(data.data.shape)-2
+            self.axes2 = len(self.data.data.shape)-2
         else:
             self.axes2 = axes2            #dimension from which the spectra are stacked
         self.stackBegin = stackBegin
         self.stackEnd = stackEnd
         self.stackStep = stackStep
         if locList is None:
-            locList = [0]*(len(data.data.shape)-2)
+            self.resetLocList()
         self.spacing = 0
         Current1D.__init__(self,root, data, axes, locList, plotType, axType)
         self.resetSpacing()
@@ -676,6 +713,9 @@ class CurrentStacked(Current1D):
         self.plotReset()
         self.showFid()
 
+    def resetLocList(self):
+        self.locList = [0]*(len(self.data.data.shape)-2)
+        
     def stackSelect(self,stackBegin, stackEnd, stackStep):
         self.stackBegin = stackBegin
         self.stackEnd = stackEnd
@@ -696,7 +736,7 @@ class CurrentStacked(Current1D):
             tmpdata=tmpdata*np.repeat([np.exp(np.fft.fftshift(np.fft.fftfreq(len(tmpdata[0]),1.0/self.sw))*phase1*1j)],len(tmpdata),axis=0)
         self.showFid(tmpdata)
 
-    def apodPreview(self,lor=None,gauss=None, cos2=None, shift=0.0): #display the 1D data including the apodization function
+    def apodPreview(self,lor=None,gauss=None, cos2=None, hamming=None,shift=0.0): #display the 1D data including the apodization function
         t=np.arange(0,len(self.data1D[0]))/(self.sw)
         t2 = t - shift
         x=np.ones(len(self.data1D[0]))
@@ -706,6 +746,9 @@ class CurrentStacked(Current1D):
             x=x*np.exp(-(gauss*t2)**2)
         if cos2 is not None:
             x=x*(np.cos(cos2*(-0.5*shift*np.pi*self.sw/len(self.data1D[0])+np.linspace(0,0.5*np.pi,len(self.data1D[0]))))**2)
+        if hamming is not None:
+            alpha = 0.53836 # constant for hamming window
+            x=x*(alpha+(1-alpha)*np.cos(hamming*(-0.5*shift*np.pi*self.sw/len(self.data1D)+np.linspace(0,np.pi,len(self.data1D)))))
         if self.wholeEcho:
             x[-1:-(len(x)/2+1):-1]=x[:len(x)/2]
         a=self.fig.gca()
@@ -779,6 +822,12 @@ class CurrentStacked(Current1D):
         self.showFid()
         return returnValue
 
+    def shearing(self,shear,axes,axes2):
+        returnValue = self.data.shear(shear,axes,axes2)
+        self.upd()
+        self.showFid()
+        return returnValue
+    
     def setSpacing(self, spacing):
         self.spacing = spacing
         self.showFid()
@@ -927,6 +976,7 @@ class CurrentStacked(Current1D):
 #the class from which the arrayed data is displayed, the operations which only edit the content of this class are for previewing
 class CurrentArrayed(Current1D):
     def __init__(self, root, data, axes=None, axes2=None, locList=None, plotType=0, axType=1, stackBegin=None, stackEnd=None, stackStep=None):
+        self.data = data
         if axes2 is None:
             self.axes2 = len(data.data.shape)-2
         else:
@@ -935,7 +985,7 @@ class CurrentArrayed(Current1D):
         self.stackEnd = stackEnd
         self.stackStep = stackStep
         if locList is None:
-            locList = [0]*(len(data.data.shape)-2)
+            self.resetLocList()
         self.spacing = 0
         Current1D.__init__(self, root, data, axes, locList, plotType, axType)
         self.resetSpacing()
@@ -963,6 +1013,9 @@ class CurrentArrayed(Current1D):
         self.plotReset()
         self.showFid()
 
+    def resetLocList(self):
+        self.locList = [0]*(len(self.data.data.shape)-2)
+        
     def stackSelect(self,stackBegin, stackEnd, stackStep):
         self.stackBegin = stackBegin
         self.stackEnd = stackEnd
@@ -983,7 +1036,7 @@ class CurrentArrayed(Current1D):
             tmpdata=tmpdata*np.repeat([np.exp(np.fft.fftshift(np.fft.fftfreq(len(tmpdata[0]),1.0/self.sw))*phase1*1j)],len(tmpdata),axis=0)
         self.showFid(tmpdata)
 
-    def apodPreview(self,lor=None,gauss=None, cos2=None, shift=0.0): #display the 1D data including the apodization function
+    def apodPreview(self,lor=None,gauss=None, cos2=None, hamming=None,shift=0.0): #display the 1D data including the apodization function
         t=np.arange(0,len(self.data1D[0]))/(self.sw)
         t2 = t - shift
         x=np.ones(len(self.data1D[0]))
@@ -993,6 +1046,9 @@ class CurrentArrayed(Current1D):
             x=x*np.exp(-(gauss*t2)**2)
         if cos2 is not None:
             x=x*(np.cos(cos2*(-0.5*shift*np.pi*self.sw/len(self.data1D[0])+np.linspace(0,0.5*np.pi,len(self.data1D[0]))))**2)
+        if hamming is not None:
+            alpha = 0.53836 # constant for hamming window
+            x=x*(alpha+(1-alpha)*np.cos(hamming*(-0.5*shift*np.pi*self.sw/len(self.data1D)+np.linspace(0,np.pi,len(self.data1D)))))
         if self.wholeEcho:
             x[-1:-(len(x)/2+1):-1]=x[:len(x)/2]
         a=self.fig.gca()
