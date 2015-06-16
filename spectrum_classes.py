@@ -111,32 +111,64 @@ class Spectrum(object):
                 self.data[slicing]=self.data[slicing]*vector[i]
         return lambda self: self.setPhase(-phase0,-phase1,axes)
 
-    def apodize(self,lor,gauss, cos2, hamming, shift, axes):
+    def apodize(self,lor,gauss, cos2, hamming, shift, shifting, shiftingAxes, axes):
         copyData=copy.deepcopy(self)
+        returnValue = lambda self: self.restoreData(copyData, lambda self: self.apodize(lor,gauss,cos2,hamming,shift,shifting,shiftingAxes,axes))
         axLen = self.data.shape[axes]
         t=np.arange(0,axLen)/self.sw[axes]
-        t2 = t - shift
-        x=np.ones(axLen)
-        if lor is not None:
-            x=x*np.exp(-lor*abs(t2))
-        if gauss is not None:
-            x=x*np.exp(-(gauss*t2)**2)
-        if cos2 is not None:
-            x=x*(np.cos(cos2*(-0.5*shift*np.pi*self.sw[axes]/axLen+np.linspace(0,0.5*np.pi,axLen)))**2)
-        if hamming is not None:
-            alpha = 0.53836 # constant for hamming window
-            x=x*(alpha+(1-alpha)*np.cos(hamming*(-0.5*shift*np.pi*self.sw[axes]/axLen+np.linspace(0,np.pi,axLen))))
-        returnValue = lambda self: self.restoreData(copyData, lambda self: self.apodize(lor,gauss,cos2,hamming,shift,axes))
-        if self.spec[axes] > 0:
-            self.fourier(axes,tmp=True)
-            for i in range(self.data.shape[axes]):
-                slicing = (slice(None),) * axes + (i,) + (slice(None),)*(self.dim-1-axes)
-                self.data[slicing]=self.data[slicing]*x[i]
-            self.fourier(axes,tmp=True)
+        if shifting != 0.0:
+            for j in range(self.data.shape[shiftingAxes]):
+                shift1 = shift + shifting*j
+                t2 = t - shift1
+                x=np.ones(axLen)
+                if lor is not None:
+                    x=x*np.exp(-lor*abs(t2))
+                if gauss is not None:
+                    x=x*np.exp(-(gauss*t2)**2)
+                if cos2 is not None:
+                    x=x*(np.cos(cos2*(-0.5*shift1*np.pi*self.sw[axes]/axLen+np.linspace(0,0.5*np.pi,axLen)))**2)
+                if hamming is not None:
+                    alpha = 0.53836 # constant for hamming window
+                    x=x*(alpha+(1-alpha)*np.cos(hamming*(-0.5*shift1*np.pi*self.sw[axes]/axLen+np.linspace(0,np.pi,axLen))))
+
+                if self.spec[axes] > 0:
+                    self.fourier(axes,tmp=True)
+                    for i in range(self.data.shape[axes]):
+                        if axes < shiftingAxes:
+                            slicing = (slice(None),) * axes + (i,) + (slice(None),)*(shiftingAxes-1-axes) + (j,) + (slice(None),)*(self.dim-2-shiftingAxes)
+                        else:
+                            slicing = (slice(None),) * shiftingAxes + (j,) + (slice(None),)*(axes-1-shiftingAxes) + (i,) + (slice(None),)*(self.dim-2-axes)
+                        self.data[slicing]=self.data[slicing]*x[i]
+                    self.fourier(axes,tmp=True)
+                else:
+                    for i in range(self.data.shape[axes]):
+                        if axes < shiftingAxes:
+                            slicing = (slice(None),) * axes + (i,) + (slice(None),)*(shiftingAxes-1-axes) + (j,) + (slice(None),)*(self.dim-2-shiftingAxes)
+                        else:
+                            slicing = (slice(None),) * shiftingAxes + (j,) + (slice(None),)*(axes-1-shiftingAxes) + (i,) + (slice(None),)*(self.dim-2-axes)
+                        self.data[slicing]=self.data[slicing]*x[i]
         else:
-            for i in range(self.data.shape[axes]):
-                slicing = (slice(None),) * axes + (i,) + (slice(None),)*(self.dim-1-axes)
-                self.data[slicing]=self.data[slicing]*x[i]
+            t2 = t - shift
+            x=np.ones(axLen)
+            if lor is not None:
+                x=x*np.exp(-lor*abs(t2))
+            if gauss is not None:
+                x=x*np.exp(-(gauss*t2)**2)
+            if cos2 is not None:
+                x=x*(np.cos(cos2*(-0.5*shift*np.pi*self.sw[axes]/axLen+np.linspace(0,0.5*np.pi,axLen)))**2)
+            if hamming is not None:
+                alpha = 0.53836 # constant for hamming window
+                x=x*(alpha+(1-alpha)*np.cos(hamming*(-0.5*shift*np.pi*self.sw[axes]/axLen+np.linspace(0,np.pi,axLen))))
+            if self.spec[axes] > 0:
+                self.fourier(axes,tmp=True)
+                for i in range(self.data.shape[axes]):
+                    slicing = (slice(None),) * axes + (i,) + (slice(None),)*(self.dim-1-axes)
+                    self.data[slicing]=self.data[slicing]*x[i]
+                self.fourier(axes,tmp=True)
+            else:
+                for i in range(self.data.shape[axes]):
+                    slicing = (slice(None),) * axes + (i,) + (slice(None),)*(self.dim-1-axes)
+                    self.data[slicing]=self.data[slicing]*x[i]
         return returnValue
 
     def setFreq(self,freq,sw,axes):
@@ -354,7 +386,15 @@ class Current1D(Plot1DFrame):
             fourData=np.fft.ifftn(np.fft.ifftshift(fourData,axes=ax),axes=[ax])
         return fourData
 
-    def apodPreview(self,lor=None,gauss=None, cos2=None, hamming=None ,shift=0.0): #display the 1D data including the apodization function
+    def apodPreview(self,lor=None,gauss=None, cos2=None, hamming=None ,shift=0.0,shifting=0.0,shiftingAxes=None): #display the 1D data including the apodization function
+        if shiftingAxes is not None:
+            if shiftingAxes == self.axes:
+                print('shiftingAxes cannot be axes')
+                return
+            elif shiftingAxes < self.axes:
+                shift += shifting*self.locList[shiftingAxes]
+            else:
+                shift += shifting*self.locList[shiftingAxes-1]
         t=np.arange(0,len(self.data1D))/(self.sw)
         t2=t-shift
         x=np.ones(len(self.data1D))
@@ -390,8 +430,8 @@ class Current1D(Plot1DFrame):
         else:
             self.showFid(y)
 
-    def applyApod(self,lor=None,gauss=None,cos2=None,hamming=None,shift=0.0): #apply the apodization to the actual data
-        returnValue = self.data.apodize(lor,gauss,cos2,hamming,shift,self.axes)
+    def applyApod(self,lor=None,gauss=None,cos2=None,hamming=None,shift=0.0,shifting=0.0,shiftingAxes=0): #apply the apodization to the actual data
+        returnValue = self.data.apodize(lor,gauss,cos2,hamming,shift,shifting,shiftingAxes,self.axes)
         self.upd() 
         self.showFid()     
         return returnValue
@@ -736,25 +776,69 @@ class CurrentStacked(Current1D):
             tmpdata=tmpdata*np.repeat([np.exp(np.fft.fftshift(np.fft.fftfreq(len(tmpdata[0]),1.0/self.sw))*phase1*1j)],len(tmpdata),axis=0)
         self.showFid(tmpdata)
 
-    def apodPreview(self,lor=None,gauss=None, cos2=None, hamming=None,shift=0.0): #display the 1D data including the apodization function
+    def apodPreview(self,lor=None,gauss=None, cos2=None, hamming=None,shift=0.0,shifting=0.0,shiftingAxes=None): #display the 1D data including the apodization function
         t=np.arange(0,len(self.data1D[0]))/(self.sw)
-        t2 = t - shift
-        x=np.ones(len(self.data1D[0]))
-        if lor is not None:
-            x=x*np.exp(-lor*abs(t2))
-        if gauss is not None:
-            x=x*np.exp(-(gauss*t2)**2)
-        if cos2 is not None:
-            x=x*(np.cos(cos2*(-0.5*shift*np.pi*self.sw/len(self.data1D[0])+np.linspace(0,0.5*np.pi,len(self.data1D[0]))))**2)
-        if hamming is not None:
-            alpha = 0.53836 # constant for hamming window
-            x=x*(alpha+(1-alpha)*np.cos(hamming*(-0.5*shift*np.pi*self.sw/len(self.data1D)+np.linspace(0,np.pi,len(self.data1D)))))
-        if self.wholeEcho:
-            x[-1:-(len(x)/2+1):-1]=x[:len(x)/2]
+        if shiftingAxes is not None:
+            if shiftingAxes == self.axes:
+                print('shiftingAxes cannot be equal to axes')
+            elif shiftingAxes == self.axes2:
+                ar = np.arange(self.data.data.shape[self.axes2])[slice(self.stackBegin,self.stackEnd,self.stackStep)]
+                x=np.ones((len(ar),len(self.data1D[0])))
+                for i in range(len(ar)):
+                    shift1 = shift + shifting*ar[i]
+                    t2 = t - shift1
+                    x2=np.ones(len(self.data1D[0]))
+                    if lor is not None:
+                        x2=x2*np.exp(-lor*abs(t2))
+                    if gauss is not None:
+                        x2=x2*np.exp(-(gauss*t2)**2)
+                    if cos2 is not None:
+                        x2=x2*(np.cos(cos2*(-0.5*shift1*np.pi*self.sw/len(self.data1D[0])+np.linspace(0,0.5*np.pi,len(self.data1D[0]))))**2)
+                    if hamming is not None:
+                        alpha = 0.53836 # constant for hamming window
+                        x2=x2*(alpha+(1-alpha)*np.cos(hamming*(-0.5*shift1*np.pi*self.sw/len(self.data1D)+np.linspace(0,np.pi,len(self.data1D)))))
+                    if self.wholeEcho:
+                        x2[2-1:-(len(x2)/2+1):-1]=x2[:len(x2)/2]
+                    x[i] = x2
+            else:
+                if (shiftingAxes < self.axes) and (shiftingAxes < self.axes2):
+                    shift += shifting*self.locList[shiftingAxes]
+                elif (shiftingAxes > self.axes) and (shiftingAxes > self.axes2):
+                    shift += shifting*self.locList[shiftingAxes-2]
+                else:
+                    shift += shifting*self.locList[shiftingAxes-1]
+                t2 = t - shift
+                x=np.ones(len(self.data1D[0]))
+                if lor is not None:
+                    x=x*np.exp(-lor*abs(t2))
+                if gauss is not None:
+                    x=x*np.exp(-(gauss*t2)**2)
+                if cos2 is not None:
+                    x=x*(np.cos(cos2*(-0.5*shift*np.pi*self.sw/len(self.data1D[0])+np.linspace(0,0.5*np.pi,len(self.data1D[0]))))**2)
+                if hamming is not None:
+                    alpha = 0.53836 # constant for hamming window
+                    x=x*(alpha+(1-alpha)*np.cos(hamming*(-0.5*shift*np.pi*self.sw/len(self.data1D)+np.linspace(0,np.pi,len(self.data1D)))))
+                if self.wholeEcho:
+                    x[-1:-(len(x)/2+1):-1]=x[:len(x)/2]
+                x = np.repeat([x],len(self.data1D),axis=0)
+        else:
+            t2 = t - shift
+            x=np.ones(len(self.data1D[0]))
+            if lor is not None:
+                x=x*np.exp(-lor*abs(t2))
+            if gauss is not None:
+                x=x*np.exp(-(gauss*t2)**2)
+            if cos2 is not None:
+                x=x*(np.cos(cos2*(-0.5*shift*np.pi*self.sw/len(self.data1D[0])+np.linspace(0,0.5*np.pi,len(self.data1D[0]))))**2)
+            if hamming is not None:
+                alpha = 0.53836 # constant for hamming window
+                x=x*(alpha+(1-alpha)*np.cos(hamming*(-0.5*shift*np.pi*self.sw/len(self.data1D)+np.linspace(0,np.pi,len(self.data1D)))))
+            if self.wholeEcho:
+                x[-1:-(len(x)/2+1):-1]=x[:len(x)/2]
+            x = np.repeat([x],len(self.data1D),axis=0)
+        y = self.data1D
         a=self.fig.gca()
         a.cla()
-        y = self.data1D
-        x = np.repeat([x],len(y),axis=0)
         if self.spec ==1:
             y=np.fft.ifftn(np.fft.ifftshift(y,axes=1),axes=[1])
             y= y*x
@@ -1036,25 +1120,70 @@ class CurrentArrayed(Current1D):
             tmpdata=tmpdata*np.repeat([np.exp(np.fft.fftshift(np.fft.fftfreq(len(tmpdata[0]),1.0/self.sw))*phase1*1j)],len(tmpdata),axis=0)
         self.showFid(tmpdata)
 
-    def apodPreview(self,lor=None,gauss=None, cos2=None, hamming=None,shift=0.0): #display the 1D data including the apodization function
+
+    def apodPreview(self,lor=None,gauss=None, cos2=None, hamming=None,shift=0.0,shifting=0.0,shiftingAxes=None): #display the 1D data including the apodization function
         t=np.arange(0,len(self.data1D[0]))/(self.sw)
-        t2 = t - shift
-        x=np.ones(len(self.data1D[0]))
-        if lor is not None:
-            x=x*np.exp(-lor*abs(t2))
-        if gauss is not None:
-            x=x*np.exp(-(gauss*t2)**2)
-        if cos2 is not None:
-            x=x*(np.cos(cos2*(-0.5*shift*np.pi*self.sw/len(self.data1D[0])+np.linspace(0,0.5*np.pi,len(self.data1D[0]))))**2)
-        if hamming is not None:
-            alpha = 0.53836 # constant for hamming window
-            x=x*(alpha+(1-alpha)*np.cos(hamming*(-0.5*shift*np.pi*self.sw/len(self.data1D)+np.linspace(0,np.pi,len(self.data1D)))))
-        if self.wholeEcho:
-            x[-1:-(len(x)/2+1):-1]=x[:len(x)/2]
+        if shiftingAxes is not None:
+            if shiftingAxes == self.axes:
+                print('shiftingAxes cannot be equal to axes')
+            elif shiftingAxes == self.axes2:
+                ar = np.arange(self.data.data.shape[self.axes2])[slice(self.stackBegin,self.stackEnd,self.stackStep)]
+                x=np.ones((len(ar),len(self.data1D[0])))
+                for i in range(len(ar)):
+                    shift1 = shift + shifting*ar[i]
+                    t2 = t - shift1
+                    x2=np.ones(len(self.data1D[0]))
+                    if lor is not None:
+                        x2=x2*np.exp(-lor*abs(t2))
+                    if gauss is not None:
+                        x2=x2*np.exp(-(gauss*t2)**2)
+                    if cos2 is not None:
+                        x2=x2*(np.cos(cos2*(-0.5*shift1*np.pi*self.sw/len(self.data1D[0])+np.linspace(0,0.5*np.pi,len(self.data1D[0]))))**2)
+                    if hamming is not None:
+                        alpha = 0.53836 # constant for hamming window
+                        x2=x2*(alpha+(1-alpha)*np.cos(hamming*(-0.5*shift1*np.pi*self.sw/len(self.data1D)+np.linspace(0,np.pi,len(self.data1D)))))
+                    if self.wholeEcho:
+                        x2[2-1:-(len(x2)/2+1):-1]=x2[:len(x2)/2]
+                    x[i] = x2
+            else:
+                if (shiftingAxes < self.axes) and (shiftingAxes < self.axes2):
+                    shift += shifting*self.locList[shiftingAxes]
+                elif (shiftingAxes > self.axes) and (shiftingAxes > self.axes2):
+                    shift += shifting*self.locList[shiftingAxes-2]
+                else:
+                    shift += shifting*self.locList[shiftingAxes-1]
+                t2 = t - shift
+                x=np.ones(len(self.data1D[0]))
+                if lor is not None:
+                    x=x*np.exp(-lor*abs(t2))
+                if gauss is not None:
+                    x=x*np.exp(-(gauss*t2)**2)
+                if cos2 is not None:
+                    x=x*(np.cos(cos2*(-0.5*shift*np.pi*self.sw/len(self.data1D[0])+np.linspace(0,0.5*np.pi,len(self.data1D[0]))))**2)
+                if hamming is not None:
+                    alpha = 0.53836 # constant for hamming window
+                    x=x*(alpha+(1-alpha)*np.cos(hamming*(-0.5*shift*np.pi*self.sw/len(self.data1D)+np.linspace(0,np.pi,len(self.data1D)))))
+                if self.wholeEcho:
+                    x[-1:-(len(x)/2+1):-1]=x[:len(x)/2]
+                x = np.repeat([x],len(self.data1D),axis=0)
+        else:
+            t2 = t - shift
+            x=np.ones(len(self.data1D[0]))
+            if lor is not None:
+                x=x*np.exp(-lor*abs(t2))
+            if gauss is not None:
+                x=x*np.exp(-(gauss*t2)**2)
+            if cos2 is not None:
+                x=x*(np.cos(cos2*(-0.5*shift*np.pi*self.sw/len(self.data1D[0])+np.linspace(0,0.5*np.pi,len(self.data1D[0]))))**2)
+            if hamming is not None:
+                alpha = 0.53836 # constant for hamming window
+                x=x*(alpha+(1-alpha)*np.cos(hamming*(-0.5*shift*np.pi*self.sw/len(self.data1D)+np.linspace(0,np.pi,len(self.data1D)))))
+            if self.wholeEcho:
+                x[-1:-(len(x)/2+1):-1]=x[:len(x)/2]
+            x = np.repeat([x],len(self.data1D),axis=0)
+        y = self.data1D
         a=self.fig.gca()
         a.cla()
-        y = self.data1D
-        x = np.repeat([x],len(y),axis=0)
         if self.spec ==1:
             y=np.fft.ifftn(np.fft.ifftshift(y,axes=1),axes=[1])
             y= y*x

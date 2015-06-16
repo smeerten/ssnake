@@ -1140,6 +1140,8 @@ class PhaseWindow(Frame): #a window for phasing the data
 class ApodWindow(Frame): #a window for apodization
     def __init__(self, parent,current):
         Frame.__init__(self, parent)
+        self.parent = parent
+        self.current = current
         #initialize variables for the widgets
         self.lorTick = IntVar()
         self.lorVal = StringVar()
@@ -1155,11 +1157,15 @@ class ApodWindow(Frame): #a window for apodization
         self.hammingVal.set("1.0")
         self.shiftVal = StringVar()
         self.shiftVal.set("0.0")
+        self.shiftingVal = StringVar()
+        self.shiftingVal.set("0.0")
+        if self.current.data.dim > 1:
+            options = map(str,np.delete(range(self.current.data.dim),self.current.axes))
+            self.shiftingAxes = StringVar()
+            self.shiftingAxes.set(options[0])
         #set stepsizes for the buttons
         self.lorstep = 1.0
         self.gaussstep = 1.0
-        self.parent = parent
-        self.current = current
         self.window = Toplevel(self)
         self.window.geometry('+0+0')
         self.window.transient(self.parent)
@@ -1205,6 +1211,13 @@ class ApodWindow(Frame): #a window for apodization
         self.shiftEntry.bind("<Return>", self.apodPreview)
         self.shiftEntry.bind("<KP_Enter>", self.apodPreview)
         self.shiftEntry.grid(row=11,column=2)
+        if self.current.data.dim > 1:
+            Label(self.frame1,text="Shifting").grid(row=12,column=0,columnspan=4)
+            self.shiftingEntry = Entry(self.frame1,textvariable=self.shiftingVal,justify="center")
+            self.shiftingEntry.bind("<Return>", self.apodPreview)
+            self.shiftingEntry.bind("<KP_Enter>", self.apodPreview)
+            self.shiftingEntry.grid(row=13,column=2)
+            OptionMenu(self.frame1,self.shiftingAxes, self.shiftingAxes.get(),*options).grid(row=14,column=2)
         self.frame2 = Frame(self.window)
         self.frame2.grid(row=1,column=0)
         Button(self.frame2, text="Apply",command=self.applyApodAndClose).grid(row=0,column=0)
@@ -1236,6 +1249,8 @@ class ApodWindow(Frame): #a window for apodization
         gauss = None
         cos2 = None
         hamming = None
+        shifting = None
+        shiftingAxes = 0
         if self.lorTick.get() == 1:
             lor = safeEval(self.lorVal.get())
             self.lorVal.set(lor)
@@ -1250,7 +1265,11 @@ class ApodWindow(Frame): #a window for apodization
             self.hammingVal.set(hamming)
         shift = safeEval(self.shiftVal.get())
         self.shiftVal.set(shift)
-        self.current.apodPreview(lor,gauss,cos2,hamming,shift)
+        if self.current.data.dim > 1:
+            shifting = safeEval(self.shiftingVal.get())
+            self.shiftingVal.set(shifting)
+            shiftingAxes = int(self.shiftingAxes.get())
+        self.current.apodPreview(lor,gauss,cos2,hamming,shift,shifting,shiftingAxes)
 
     def stepLB(self,lorincr,gaussincr): #step linebroadening from < and > keys
         if lorincr!=0:
@@ -1268,6 +1287,8 @@ class ApodWindow(Frame): #a window for apodization
         gauss = None
         cos2 = None
         hamming=None
+        shifting = None
+        shiftingAxes = 0
         if self.lorTick.get() == 1:
             lor = safeEval(self.lorVal.get())
         if self.gaussTick.get() == 1:
@@ -1277,8 +1298,12 @@ class ApodWindow(Frame): #a window for apodization
         if self.hammingTick.get() == 1:
             hamming = safeEval(self.hammingVal.get())
         shift = safeEval(self.shiftVal.get())
+        if self.current.data.dim > 1:
+            shifting = safeEval(self.shiftingVal.get())
+            self.shiftingVal.set(shifting)
+            shiftingAxes = int(self.shiftingAxes.get())
         self.parent.redoList = []
-        self.parent.undoList.append(self.current.applyApod(lor,gauss,cos2,hamming,shift))
+        self.parent.undoList.append(self.current.applyApod(lor,gauss,cos2,hamming,shift,shifting,shiftingAxes))
         self.window.destroy()
 
 #######################################################################################
