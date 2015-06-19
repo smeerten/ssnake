@@ -109,6 +109,7 @@ class Main1DWindow(Frame):
         plotMenu.add_command(label="1D plot", command=self.plot1D)
         plotMenu.add_command(label="Stack plot", command=self.plotStack)
         plotMenu.add_command(label="Array plot", command=self.plotArray)
+        plotMenu.add_command(label="Contour plot", command=self.plotContour)
         plotMenu.add_command(label="User x-axis", command=self.createXaxWindow)
 
         x=np.linspace(0,2*np.pi*10,1000)[:-1] #fake data
@@ -625,7 +626,16 @@ class Main1DWindow(Frame):
             self.updAllFrames()
         else:
             print("Data does not have enough dimensions")
-
+            
+    def plotContour(self):
+        if len(self.masterData.data.shape) > 1:
+            self.current.grid_remove()
+            self.current.destroy()
+            self.current = sc.CurrentContour(self,self.masterData) 
+            self.current.grid(row=0,column=0,sticky="nswe")
+            self.updAllFrames()
+        else:
+            print("Data does not have enough dimensions")
     def createXaxWindow(self):
         XaxWindow(self,self.current)
 
@@ -683,7 +693,7 @@ class SideFrame(Frame):
         self.length = len(self.shape)
         self.button1Var.set(self.current.axes)
         offset = 0
-        self.plotIs2D = isinstance(self.current, (sc.CurrentStacked,sc.CurrentArrayed))
+        self.plotIs2D = isinstance(self.current, (sc.CurrentStacked,sc.CurrentArrayed,sc.CurrentContour))
         if self.plotIs2D:
             offset = 1
             self.button2Var.set(self.current.axes2)
@@ -732,7 +742,7 @@ class SideFrame(Frame):
                 self.entries[num].bind("<Return>", lambda event=None,num=num: self.getSlice(event,num)) 
                 self.entries[num].bind("<KP_Enter>", lambda event=None,num=num: self.getSlice(event,num)) 
                 self.entries[num].grid(row=num*2+1,column=1+offset)
-            if self.plotIs2D:
+            if isinstance(self.current, (sc.CurrentStacked,sc.CurrentArrayed)):
                 if self.current.stackBegin is not None:
                     self.from2D.set(str(self.current.stackBegin))
                 else:
@@ -772,7 +782,7 @@ class SideFrame(Frame):
                 self.stepSpin.grid(row=8,column=0)
 
     def setToFrom(self, *args):
-        if self.plotIs2D:
+        if isinstance(self.current, (sc.CurrentStacked,sc.CurrentArrayed)):
             fromVar = int(safeEval(self.from2D.get()))
             toVar = int(safeEval(self.to2D.get()))
             stepVar = int(safeEval(self.step2D.get()))
@@ -977,8 +987,7 @@ class BottomFrame(Frame):
             elif pType == "MHz":
                 self.current.setAxType(2)
             elif pType == "ppm":
-                print("not implemented yet")
-                #self.current.setAxType(3)
+                self.current.setAxType('ppm')
         self.current.showFid()
 
 ##################################################################
