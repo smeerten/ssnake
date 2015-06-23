@@ -422,8 +422,7 @@ class Current1D(Plot1DFrame):
             x=x*(alpha+(1-alpha)*np.cos(hamming*(-0.5*shift*np.pi*self.sw/len(self.data1D)+np.linspace(0,np.pi,len(self.data1D)))))
         if self.wholeEcho:
             x[-1:-(len(x)/2+1):-1]=x[:len(x)/2]
-        a=self.fig.gca()
-        a.cla()
+        self.ax.cla()
         y = self.data1D
         if self.spec ==1:
             y=np.fft.ifft(np.fft.ifftshift(y))
@@ -662,8 +661,7 @@ class Current1D(Plot1DFrame):
     def showFid(self, tmpdata=None, extraX=None, extraY=None, extraColor=None,old=False): #display the 1D data
         if tmpdata is None:
             tmpdata=self.data1D
-        a=self.fig.gca()
-        a.cla()
+        self.ax.cla()
         axAdd = 0
         if self.spec == 1:
             if self.ppm:
@@ -675,60 +673,58 @@ class Current1D(Plot1DFrame):
             axMult = 1000.0**self.axType
         if old:
             if (self.plotType==0):
-                a.plot(self.xax*axMult+axAdd,np.real(self.data1D),c='k',alpha=0.2)
+                self.ax.plot(self.xax*axMult+axAdd,np.real(self.data1D),c='k',alpha=0.2)
             elif(self.plotType==1):
-                a.plot(self.xax*axMult+axAdd,np.imag(self.data1D),c='k',alpha=0.2)
+               self.ax.plot(self.xax*axMult+axAdd,np.imag(self.data1D),c='k',alpha=0.2)
             elif(self.plotType==2):
-                a.plot(self.xax*axMult+axAdd,np.real(self.data1D),c='k',alpha=0.2)
+              self.ax.plot(self.xax*axMult+axAdd,np.real(self.data1D),c='k',alpha=0.2)
             elif(self.plotType==3):
-                a.plot(self.xax*axMult+axAdd,np.abs(self.data1D),c='k',alpha=0.2)
+               self.ax.plot(self.xax*axMult+axAdd,np.abs(self.data1D),c='k',alpha=0.2)
         if (extraX is not None):
             for num in range(len(extraX)):
-                a.plot(extraX[num]*axMult+axAdd,extraY[num],c=extraColor[num])
+               self.ax.plot(extraX[num]*axMult+axAdd,extraY[num],c=extraColor[num])
         if (self.plotType==0):
-            self.line = a.plot(self.xax*axMult+axAdd,np.real(tmpdata),c='b')
+            self.line = self.ax.plot(self.xax*axMult+axAdd,np.real(tmpdata),c='b')
         elif(self.plotType==1):
-            self.line = a.plot(self.xax*axMult+axAdd,np.imag(tmpdata),c='b')
+            self.line =self.ax.plot(self.xax*axMult+axAdd,np.imag(tmpdata),c='b')
         elif(self.plotType==2):
-            a.plot(self.xax*axMult+axAdd,np.imag(tmpdata),c='r')
-            self.line = a.plot(self.xax*axMult+axAdd,np.real(tmpdata),c='b')
+            self.ax.plot(self.xax*axMult+axAdd,np.imag(tmpdata),c='r')
+            self.line = self.ax.plot(self.xax*axMult+axAdd,np.real(tmpdata),c='b')
         elif(self.plotType==3):
-            self.line = a.plot(self.xax*axMult+axAdd,np.abs(tmpdata),c='b')
-        a.set_title("TD"+str(self.axes+1))
+            self.line =self.ax.plot(self.xax*axMult+axAdd,np.abs(tmpdata),c='b')
         if self.spec==0:
             if self.axType == 0:
-                a.set_xlabel('Time [s]')
+                self.ax.set_xlabel('Time [s]')
             elif self.axType == 1:
-                a.set_xlabel('Time [ms]')
+                self.ax.set_xlabel('Time [ms]')
             elif self.axType == 2:
-                a.set_xlabel(r'Time [$\mu$s]')
+                self.ax.set_xlabel(r'Time [$\mu$s]')
             else:
-                a.set_xlabel('User defined')
+                self.ax.set_xlabel('User defined')
         elif self.spec==1:
             if self.ppm:
-                a.set_xlabel('Frequency [ppm]')
+                self.ax.set_xlabel('Frequency [ppm]')
             else:
                 if self.axType == 0:
-                    a.set_xlabel('Frequency [Hz]')
+                    self.ax.set_xlabel('Frequency [Hz]')
                 elif self.axType == 1:
-                    a.set_xlabel('Frequency [kHz]')
+                    self.ax.set_xlabel('Frequency [kHz]')
                 elif self.axType == 2:
-                    a.set_xlabel('Frequency [MHz]')
+                    self.ax.set_xlabel('Frequency [MHz]')
                 else:
-                    a.set_xlabel('User defined')
+                    self.ax.set_xlabel('User defined')
         else:
-            a.set_xlabel('')
-        a.get_xaxis().get_major_formatter().set_powerlimits((-2, 2))
-        a.get_yaxis().get_major_formatter().set_powerlimits((-2, 2))
+            self.ax.set_xlabel('')
+        self.ax.get_xaxis().get_major_formatter().set_powerlimits((-2, 2))
+        self.ax.get_yaxis().get_major_formatter().set_powerlimits((-2, 2))
         if self.spec > 0 :
-            a.set_xlim(self.xmaxlim,self.xminlim)
+            self.ax.set_xlim(self.xmaxlim,self.xminlim)
         else:
-            a.set_xlim(self.xminlim,self.xmaxlim)
-        a.set_ylim(self.yminlim,self.ymaxlim)
+            self.ax.set_xlim(self.xminlim,self.xmaxlim)
+        self.ax.set_ylim(self.yminlim,self.ymaxlim)
         self.canvas.draw()
 
     def plotReset(self): #set the plot limits to min and max values
-        a=self.fig.gca()
         if self.plotType==0:
             miny = min(np.real(self.data1D))
             maxy = max(np.real(self.data1D))
@@ -759,10 +755,10 @@ class Current1D(Plot1DFrame):
         self.xminlim=min(self.xax*axMult+axAdd)
         self.xmaxlim=max(self.xax*axMult+axAdd)
         if self.spec > 0 :
-            a.set_xlim(self.xmaxlim,self.xminlim)
+            self.ax.set_xlim(self.xmaxlim,self.xminlim)
         else:
-            a.set_xlim(self.xminlim,self.xmaxlim)
-        a.set_ylim(self.yminlim,self.ymaxlim)
+            self.ax.set_xlim(self.xminlim,self.xmaxlim)
+        self.ax.set_ylim(self.yminlim,self.ymaxlim)
 
 #########################################################################################################
 #the class from which the stacked data is displayed, the operations which only edit the content of this class are for previewing
@@ -818,6 +814,33 @@ class CurrentStacked(Current1D):
         self.upd()
         self.showFid()
 
+    def ACMEentropy(self,phaseIn,phaseAll=True):
+        tmp = self.data1D[0]
+        phase0=phaseIn[0]
+        if phaseAll:
+            phase1=phaseIn[1]
+        else:
+            phase1=0.0
+        L = len(tmp)
+        if self.spec==1:
+            x=np.fft.fftshift(np.fft.fftfreq(L,1.0/self.sw))
+        if self.spec>0:
+            s0 = tmp*np.exp(1j*(phase0+phase1*x))
+        else:
+            s0 = np.fft.fftshift(np.fft.fft(tmp))*np.exp(1j*(phase0+phase1*x))
+        s2 = np.real(s0)
+        ds1 = np.abs((s2[3:L]-s2[1:L-2])/2.0)
+        p1 = ds1/sum(ds1)
+        p1[np.where(p1 == 0)] = 1
+        h1  = -p1*np.log(p1)
+        H1  = sum(h1)
+        Pfun = 0.0
+        as1 = s2 - np.abs(s2)
+        sumas   = sum(as1)
+        if (np.real(sumas) < 0): 
+            Pfun = Pfun + sum(as1**2)/4/L**2
+        return H1+1000*Pfun
+        
     def setPhaseInter(self, phase0in, phase1in): #interactive changing the phase without editing the actual data
         phase0=float(phase0in)
         phase1=float(phase1in)
@@ -892,8 +915,7 @@ class CurrentStacked(Current1D):
                 x[-1:-(len(x)/2+1):-1]=x[:len(x)/2]
             x = np.repeat([x],len(self.data1D),axis=0)
         y = self.data1D
-        a=self.fig.gca()
-        a.cla()
+        self.ax.cla()
         if self.spec ==1:
             y=np.fft.ifftn(np.fft.ifftshift(y,axes=1),axes=[1])
             y= y*x
@@ -1000,8 +1022,7 @@ class CurrentStacked(Current1D):
     def showFid(self, tmpdata=None, extraX=None, extraY=None, extraColor=None,old=False): #display the 1D data
         if tmpdata is None:
             tmpdata=self.data1D
-        a=self.fig.gca()
-        a.cla()
+        self.ax.cla()
         axAdd = 0
         if self.spec == 1:
             if self.ppm:
@@ -1014,80 +1035,78 @@ class CurrentStacked(Current1D):
         if old:
             if (self.plotType==0):
                 for num in range(len(self.data1D)):
-                    a.plot(self.xax*axMult+axAdd,num*self.spacing+np.real(self.data1D[num]),c='k',alpha=0.2)
+                    self.ax.plot(self.xax*axMult+axAdd,num*self.spacing+np.real(self.data1D[num]),c='k',alpha=0.2)
             elif(self.plotType==1):
                 for num in range(len(self.data1D)):
-                    a.plot(self.xax*axMult+axAdd,num*self.spacing+np.imag(self.data1D[num]),c='k',alpha=0.2)
+                    self.ax.plot(self.xax*axMult+axAdd,num*self.spacing+np.imag(self.data1D[num]),c='k',alpha=0.2)
             elif(self.plotType==2):
                 for num in range(len(self.data1D)):
-                    a.plot(self.xax*axMult+axAdd,num*self.spacing+np.real(self.data1D[num]),c='k',alpha=0.2)
+                    self.ax.plot(self.xax*axMult+axAdd,num*self.spacing+np.real(self.data1D[num]),c='k',alpha=0.2)
             elif(self.plotType==3):
                 for num in range(len(self.data1D)):
-                    a.plot(self.xax*axMult+axAdd,num*self.spacing+np.abs(self.data1D[num]),c='k',alpha=0.2)
+                    self.ax.plot(self.xax*axMult+axAdd,num*self.spacing+np.abs(self.data1D[num]),c='k',alpha=0.2)
         if (extraX is not None):
             for num in range(len(extraY)):
-                a.plot(extraX[0]*axMult+axAdd,num*self.spacing+extraY[num],c=extraColor[0])
+                self.ax.plot(extraX[0]*axMult+axAdd,num*self.spacing+extraY[num],c=extraColor[0])
         if (self.plotType==0):
             for num in range(len(tmpdata)):
                 if num is 0:
-                    self.line = a.plot(self.xax*axMult+axAdd,num*self.spacing+np.real(tmpdata[num]),c='b')
+                    self.line = self.ax.plot(self.xax*axMult+axAdd,num*self.spacing+np.real(tmpdata[num]),c='b')
                 else:
-                    a.plot(self.xax*axMult+axAdd,num*self.spacing+np.real(tmpdata[num]),c='b')
+                    self.ax.plot(self.xax*axMult+axAdd,num*self.spacing+np.real(tmpdata[num]),c='b')
         elif(self.plotType==1):
             for num in range(len(tmpdata)):
                 if num is 0:
-                    self.line = a.plot(self.xax*axMult+axAdd,num*self.spacing+np.imag(tmpdata[num]),c='b')
+                    self.line = self.ax.plot(self.xax*axMult+axAdd,num*self.spacing+np.imag(tmpdata[num]),c='b')
                 else:
-                    a.plot(self.xax*axMult+axAdd,num*self.spacing+np.imag(tmpdata[num]),c='b')
+                    self.ax.plot(self.xax*axMult+axAdd,num*self.spacing+np.imag(tmpdata[num]),c='b')
         elif(self.plotType==2):
             for num in range(len(tmpdata)):
-                a.plot(self.xax*axMult+axAdd,num*self.spacing+np.imag(tmpdata[num]),c='r')
+                self.ax.plot(self.xax*axMult+axAdd,num*self.spacing+np.imag(tmpdata[num]),c='r')
                 if num is 0:
-                    self.line = a.plot(self.xax*axMult+axAdd,num*self.spacing+np.real(tmpdata[num]),c='b')
+                    self.line = self.ax.plot(self.xax*axMult+axAdd,num*self.spacing+np.real(tmpdata[num]),c='b')
                 else:
-                    a.plot(self.xax*axMult+axAdd,num*self.spacing+np.real(tmpdata[num]),c='b')
+                    self.ax.plot(self.xax*axMult+axAdd,num*self.spacing+np.real(tmpdata[num]),c='b')
         elif(self.plotType==3):
             for num in range(len(tmpdata)):
                 if num is 0:
-                    self.line = a.plot(self.xax*axMult+axAdd,num*self.spacing+np.abs(tmpdata[num]),c='b')
+                    self.line = self.ax.plot(self.xax*axMult+axAdd,num*self.spacing+np.abs(tmpdata[num]),c='b')
                 else:
-                    a.plot(self.xax*axMult+axAdd,num*self.spacing+np.abs(tmpdata[num]),c='b')
-        a.set_title("TD"+str(self.axes+1))
-        #a.set_xlabel('X axis label')
+                    self.ax.plot(self.xax*axMult+axAdd,num*self.spacing+np.abs(tmpdata[num]),c='b')
         if self.spec==0:
             if self.axType == 0:
-                a.set_xlabel('Time [s]')
+                self.ax.set_xlabel('Time [s]')
             elif self.axType == 1:
-                a.set_xlabel('Time [ms]')
+                self.ax.set_xlabel('Time [ms]')
             elif self.axType == 2:
-                a.set_xlabel(r'Time [$\mu$s]')
+                self.ax.set_xlabel(r'Time [$\mu$s]')
             else:
-                a.set_xlabel('User defined')
+                self.ax.set_xlabel('User defined')
         elif self.spec==1:
             if self.ppm:
-                a.set_xlabel('Frequency [ppm]')
+                self.ax.set_xlabel('Frequency [ppm]')
             else:
                 if self.axType == 0:
-                    a.set_xlabel('Frequency [Hz]')
+                    self.ax.set_xlabel('Frequency [Hz]')
                 elif self.axType == 1:
-                    a.set_xlabel('Frequency [kHz]')
+                    self.ax.set_xlabel('Frequency [kHz]')
                 elif self.axType == 2:
-                    a.set_xlabel('Frequency [MHz]')
+                    self.ax.set_xlabel('Frequency [MHz]')
                 else:
-                    a.set_xlabel('User defined')
+                    self.ax.set_xlabel('User defined')
         else:
-            a.set_xlabel('')
+            self.ax.set_xlabel('')
         if self.spec > 0 :
-            a.set_xlim(self.xmaxlim,self.xminlim)
+            self.ax.set_xlim(self.xmaxlim,self.xminlim)
         else:
-            a.set_xlim(self.xminlim,self.xmaxlim)
-        a.set_ylim(self.yminlim,self.ymaxlim)
-        a.get_xaxis().get_major_formatter().set_powerlimits((-2, 2))
-        a.get_yaxis().get_major_formatter().set_powerlimits((-2, 2))
+            self.ax.set_xlim(self.xminlim,self.xmaxlim)
+        self.ax.set_ylim(self.yminlim,self.ymaxlim)
+        self.ax.get_xaxis().get_major_formatter().set_powerlimits((-2, 2))
+        self.ax.get_yaxis().get_major_formatter().set_powerlimits((-2, 2))
         self.canvas.draw()
 
     def plotReset(self): #set the plot limits to min and max values
-        a=self.fig.gca()
+        self.ax=self.fig.gca()
         incr = np.repeat(np.arange(len(self.data1D)).reshape((len(self.data1D),1)),len(self.data1D[0]),axis=1)*self.spacing
         if self.plotType==0:
             miny = np.amin(np.real(self.data1D)+incr)
@@ -1119,10 +1138,10 @@ class CurrentStacked(Current1D):
         self.xminlim=min(self.xax*axMult+axAdd)
         self.xmaxlim=max(self.xax*axMult+axAdd)
         if self.spec > 0 :
-            a.set_xlim(self.xmaxlim,self.xminlim)
+            self.ax.set_xlim(self.xmaxlim,self.xminlim)
         else:
-            a.set_xlim(self.xminlim,self.xmaxlim)
-        a.set_ylim(self.yminlim,self.ymaxlim)
+            self.ax.set_xlim(self.xminlim,self.xmaxlim)
+        self.ax.set_ylim(self.yminlim,self.ymaxlim)
 
 #########################################################################################################
 #the class from which the arrayed data is displayed, the operations which only edit the content of this class are for previewing
@@ -1253,8 +1272,7 @@ class CurrentArrayed(Current1D):
                 x[-1:-(len(x)/2+1):-1]=x[:len(x)/2]
             x = np.repeat([x],len(self.data1D),axis=0)
         y = self.data1D
-        a=self.fig.gca()
-        a.cla()
+        self.ax.cla()
         if self.spec ==1:
             y=np.fft.ifftn(np.fft.ifftshift(y,axes=1),axes=[1])
             y= y*x
@@ -1313,20 +1331,21 @@ class CurrentArrayed(Current1D):
         maxPos = int(max(pos1,pos2))
         if minPos != maxPos:
             self.showFid(self.data1D-np.mean(self.data1D[:,minPos:maxPos]))
-    
+
     def ACMEentropy(self,phaseIn,phaseAll=True):
+        tmp = self.data1D[0]
         phase0=phaseIn[0]
         if phaseAll:
             phase1=phaseIn[1]
         else:
             phase1=0.0
-        L = len(self.data1D)
+        L = len(tmp)
         if self.spec==1:
             x=np.fft.fftshift(np.fft.fftfreq(L,1.0/self.sw))
         if self.spec>0:
-            s0 = self.data1D*np.exp(1j*(phase0+phase1*x))
+            s0 = tmp*np.exp(1j*(phase0+phase1*x))
         else:
-            s0 = np.fft.fftshift(np.fft.fft(self.data1D))*np.exp(1j*(phase0+phase1*x))
+            s0 = np.fft.fftshift(np.fft.fft(tmp))*np.exp(1j*(phase0+phase1*x))
         s2 = np.real(s0)
         ds1 = np.abs((s2[3:L]-s2[1:L-2])/2.0)
         p1 = ds1/sum(ds1)
@@ -1338,7 +1357,7 @@ class CurrentArrayed(Current1D):
         sumas   = sum(as1)
         if (np.real(sumas) < 0): 
             Pfun = Pfun + sum(as1**2)/4/L**2
-        return H1+1000*Pfun 
+        return H1+1000*Pfun
 
     def autoPhase(self,phaseNum):
         if phaseNum == 0:
@@ -1367,8 +1386,7 @@ class CurrentArrayed(Current1D):
     def showFid(self, tmpdata=None, extraX=None, extraY=None, extraColor=None,old=False): #display the 1D data
         if tmpdata is None:
             tmpdata=self.data1D
-        a=self.fig.gca()
-        a.cla()
+        self.ax.cla()
         if self.spec > 0:
             direc = slice(None,None,-1)
         else:
@@ -1385,66 +1403,64 @@ class CurrentArrayed(Current1D):
         if old:
             if (self.plotType==0):
                 for num in range(len(self.data1D)):
-                    a.plot((num*self.spacing+self.xax)*axMult+axAdd,np.real(self.data1D[num])[direc],c='k',alpha=0.2)
+                    self.ax.plot((num*self.spacing+self.xax)*axMult+axAdd,np.real(self.data1D[num])[direc],c='k',alpha=0.2)
             elif(self.plotType==1):
                 for num in range(len(self.data1D)):
-                    a.plot((num*self.spacing+self.xax)*axMult+axAdd,np.imag(self.data1D[num])[direc],c='k',alpha=0.2)
+                    self.ax.plot((num*self.spacing+self.xax)*axMult+axAdd,np.imag(self.data1D[num])[direc],c='k',alpha=0.2)
             elif(self.plotType==2):
                 for num in range(len(self.data1D)):
-                    a.plot((num*self.spacing+self.xax)*axMult+axAdd,np.real(self.data1D[num])[direc],c='k',alpha=0.2)
+                    self.ax.plot((num*self.spacing+self.xax)*axMult+axAdd,np.real(self.data1D[num])[direc],c='k',alpha=0.2)
             elif(self.plotType==3):
                 for num in range(len(self.data1D)):
-                    a.plot((num*self.spacing+self.xax)*axMult+axAdd,np.abs(self.data1D[num])[direc],c='k',alpha=0.2)
+                    self.ax.plot((num*self.spacing+self.xax)*axMult+axAdd,np.abs(self.data1D[num])[direc],c='k',alpha=0.2)
         if (extraX is not None):
             for num in range(len(extraY)):
-                a.plot((num*self.spacing+extraX[0])*axMult+axAdd,extraY[num][direc],c=extraColor[0])
+                self.ax.plot((num*self.spacing+extraX[0])*axMult+axAdd,extraY[num][direc],c=extraColor[0])
 
         self.line = []
         if (self.plotType==0):
             for num in range(len(tmpdata)):
-                self.line.append(a.plot((num*self.spacing+self.xax)*axMult,np.real(tmpdata[num])[direc],c='b')[0])
+                self.line.append(self.ax.plot((num*self.spacing+self.xax)*axMult,np.real(tmpdata[num])[direc],c='b')[0])
         elif(self.plotType==1):
             for num in range(len(tmpdata)):
-                self.line.append(a.plot((num*self.spacing+self.xax)*axMult,np.imag(tmpdata[num])[direc],c='b')[0])
+                self.line.append(self.ax.plot((num*self.spacing+self.xax)*axMult,np.imag(tmpdata[num])[direc],c='b')[0])
         elif(self.plotType==2):
             for num in range(len(tmpdata)):
-                a.plot((num*self.spacing+self.xax)*axMult,np.imag(tmpdata[num])[direc],c='r')
-                self.line.append(a.plot((num*self.spacing+self.xax)*axMult,np.real(tmpdata[num])[direc],c='b')[0])
+                self.ax.plot((num*self.spacing+self.xax)*axMult,np.imag(tmpdata[num])[direc],c='r')
+                self.line.append(self.ax.plot((num*self.spacing+self.xax)*axMult,np.real(tmpdata[num])[direc],c='b')[0])
         elif(self.plotType==3):
             for num in range(len(tmpdata)):
-                self.line.append(a.plot((num*self.spacing+self.xax)*axMult,np.abs(tmpdata[num])[direc],c='b')[0])
-        a.set_title("TD"+str(self.axes+1))
+                self.line.append(self.ax.plot((num*self.spacing+self.xax)*axMult,np.abs(tmpdata[num])[direc],c='b')[0])
         if self.spec==0:
             if self.axType == 0:
-                a.set_xlabel('Time [s]')
+                self.ax.set_xlabel('Time [s]')
             elif self.axType == 1:
-                a.set_xlabel('Time [ms]')
+                self.ax.set_xlabel('Time [ms]')
             elif self.axType == 2:
-                a.set_xlabel(r'Time [$\mu$s]')
+                self.ax.set_xlabel(r'Time [$\mu$s]')
             else:
-                a.set_xlabel('User defined')
+                self.ax.set_xlabel('User defined')
         elif self.spec==1:
             if self.ppm:
-                a.set_xlabel('Frequency [ppm]')
+                self.ax.set_xlabel('Frequency [ppm]')
             else:
                 if self.axType == 0:
-                    a.set_xlabel('Frequency [Hz]')
+                    self.ax.set_xlabel('Frequency [Hz]')
                 elif self.axType == 1:
-                    a.set_xlabel('Frequency [kHz]')
+                    self.ax.set_xlabel('Frequency [kHz]')
                 elif self.axType == 2:
-                    a.set_xlabel('Frequency [MHz]')
+                    self.ax.set_xlabel('Frequency [MHz]')
                 else:
-                    a.set_xlabel('User defined')
+                    self.ax.set_xlabel('User defined')
         else:
-            a.set_xlabel('')
-        a.set_xlim(self.xminlim,self.xmaxlim)
-        a.set_ylim(self.yminlim,self.ymaxlim)
-        a.get_xaxis().get_major_formatter().set_powerlimits((-2, 2))
-        a.get_yaxis().get_major_formatter().set_powerlimits((-2, 2))
+            self.ax.set_xlabel('')
+        self.ax.set_xlim(self.xminlim,self.xmaxlim)
+        self.ax.set_ylim(self.yminlim,self.ymaxlim)
+        self.ax.get_xaxis().get_major_formatter().set_powerlimits((-2, 2))
+        self.ax.get_yaxis().get_major_formatter().set_powerlimits((-2, 2))
         self.canvas.draw()
 
     def plotReset(self): #set the plot limits to min and max values
-        a=self.fig.gca()
         if self.plotType==0:
             miny = np.amin(np.real(self.data1D))
             maxy = np.amax(np.real(self.data1D))
@@ -1474,8 +1490,8 @@ class CurrentArrayed(Current1D):
             axMult = 1000.0**self.axType
         self.xminlim=min(self.xax*axMult+axAdd)
         self.xmaxlim=(max(self.xax)+(len(self.data1D)-1)*self.spacing)*axMult+axAdd
-        a.set_xlim(self.xminlim,self.xmaxlim)
-        a.set_ylim(self.yminlim,self.ymaxlim)
+        self.ax.set_xlim(self.xminlim,self.xmaxlim)
+        self.ax.set_ylim(self.yminlim,self.ymaxlim)
 
 #########################################################################################################
 #the class from which the contour data is displayed, the operations which only edit the content of this class are for previewing
@@ -1591,25 +1607,13 @@ class CurrentContour(Current1D):
                 x[-1:-(len(x)/2+1):-1]=x[:len(x)/2]
             x = np.repeat([x],len(self.data1D),axis=0)
         y = self.data1D
-        a=self.fig.gca()
-        a.cla()
+        self.ax.cla()
         if self.spec ==1:
             y=np.fft.ifftn(np.fft.ifftshift(y,axes=1),axes=[1])
             y= y*x
             y=np.fft.fftshift(np.fft.fftn(y,axes=[1]),axes=1)
         else:
             y= y*x
-        # if self.spec==0:
-        #     if self.plotType==0:
-        #         self.showFid(y,[t],x*np.amax(np.real(self.data1D)),['g'],old=True)
-        #     elif self.plotType==1:
-        #         self.showFid(y,[t],x*np.amax(np.imag(self.data1D)),['g'],old=True)
-        #     elif self.plotType==2:
-        #         self.showFid(y,[t],x*np.amax(np.amax(np.real(self.data1D)),np.amax(np.imag(self.data1D))),['g'],old=True)
-        #     elif self.plotType==3:
-        #         self.showFid(y,[t],x*np.amax(np.abs(self.data1D)),['g'],old=True)
-        # else:
-        #     self.showFid(y)
         self.showFid(y)
                  
     def setSizePreview(self,size): #set size only on local data
@@ -1652,20 +1656,21 @@ class CurrentContour(Current1D):
         maxPos = int(max(pos1,pos2))
         if minPos != maxPos:
             self.showFid(self.data1D-np.mean(self.data1D[:,minPos:maxPos]))
-    
+            
     def ACMEentropy(self,phaseIn,phaseAll=True):
+        tmp = self.data1D[0]
         phase0=phaseIn[0]
         if phaseAll:
             phase1=phaseIn[1]
         else:
             phase1=0.0
-        L = len(self.data1D)
+        L = len(tmp)
         if self.spec==1:
             x=np.fft.fftshift(np.fft.fftfreq(L,1.0/self.sw))
         if self.spec>0:
-            s0 = self.data1D*np.exp(1j*(phase0+phase1*x))
+            s0 = tmp*np.exp(1j*(phase0+phase1*x))
         else:
-            s0 = np.fft.fftshift(np.fft.fft(self.data1D))*np.exp(1j*(phase0+phase1*x))
+            s0 = np.fft.fftshift(np.fft.fft(tmp))*np.exp(1j*(phase0+phase1*x))
         s2 = np.real(s0)
         ds1 = np.abs((s2[3:L]-s2[1:L-2])/2.0)
         p1 = ds1/sum(ds1)
@@ -1677,7 +1682,7 @@ class CurrentContour(Current1D):
         sumas   = sum(as1)
         if (np.real(sumas) < 0): 
             Pfun = Pfun + sum(as1**2)/4/L**2
-        return H1+1000*Pfun 
+        return H1+1000*Pfun
 
     def autoPhase(self,phaseNum):
         if phaseNum == 0:
@@ -1699,8 +1704,9 @@ class CurrentContour(Current1D):
     def showFid(self, tmpdata=None): #display the 1D data
         if tmpdata is None:
             tmpdata=self.data1D
-        a=self.fig.gca()
-        a.cla()
+        self.ax.cla()
+        self.x_ax.cla()
+        self.y_ax.cla()
         axAdd = 0
         if self.spec == 1:
             if self.ppm:
@@ -1710,52 +1716,60 @@ class CurrentContour(Current1D):
                 axMult = 1.0/(1000.0**self.axType)
         elif self.spec == 0:
             axMult = 1000.0**self.axType
-        X, Y = np.meshgrid(self.xax*axMult+axAdd,self.xax2)
+        x=self.xax*axMult+axAdd
+        y=self.xax2
+        X, Y = np.meshgrid(x,y)
         self.line = []
         if (self.plotType==0):
-            self.line.append(a.contour(X, Y, np.real(tmpdata),c='b'))
+            self.line.append(self.ax.contour(X, Y, np.real(tmpdata),c='b'))
+            self.x_ax.plot(x,np.sum(np.real(tmpdata),axis=0),'b')
+            self.y_ax.plot(np.sum(np.real(tmpdata),axis=1),y,'b')
         elif(self.plotType==1):
-            self.line.append(a.contour(X, Y, np.imag(tmpdata),c='b'))
+            self.line.append(self.ax.contour(X, Y, np.imag(tmpdata),c='b'))
+            self.x_ax.plot(x,np.sum(np.imag(tmpdata),axis=0),'b')
+            self.y_ax.plot(np.sum(np.imag(tmpdata),axis=1),y,'b')
         elif(self.plotType==2):
             print('type not supported')
-            self.line.append(a.contour(X, Y, np.real(tmpdata),c='b'))
+            self.line.append(self.ax.contour(X, Y, np.real(tmpdata),c='b'))
+            self.x_ax.plot(x,np.sum(np.real(tmpdata),axis=0),'b')
+            self.y_ax.plot(np.sum(np.real(tmpdata),axis=1),y,'b')
         elif(self.plotType==3):
-            self.line.append(a.contour(X, Y, np.abs(tmpdata),c='b'))
-        a.set_title("TD"+str(self.axes+1))
+            self.line.append(self.ax.contour(X, Y, np.abs(tmpdata),c='b'))
+            self.x_ax.plot(x,np.sum(np.abs(tmpdata),axis=0),'b')
+            self.y_ax.plot(np.sum(np.abs(tmpdata),axis=1),y,'b')
         if self.spec==0:
             if self.axType == 0:
-                a.set_xlabel('Time [s]')
+                self.ax.set_xlabel('Time [s]')
             elif self.axType == 1:
-                a.set_xlabel('Time [ms]')
+                self.ax.set_xlabel('Time [ms]')
             elif self.axType == 2:
-                a.set_xlabel(r'Time [$\mu$s]')
+                self.ax.set_xlabel(r'Time [$\mu$s]')
             else:
-                a.set_xlabel('User defined')
+                self.ax.set_xlabel('User defined')
         elif self.spec==1:
             if self.ppm:
-                a.set_xlabel('Frequency [ppm]')
+                self.ax.set_xlabel('Frequency [ppm]')
             else:
                 if self.axType == 0:
-                    a.set_xlabel('Frequency [Hz]')
+                    self.ax.set_xlabel('Frequency [Hz]')
                 elif self.axType == 1:
-                    a.set_xlabel('Frequency [kHz]')
+                    self.ax.set_xlabel('Frequency [kHz]')
                 elif self.axType == 2:
-                    a.set_xlabel('Frequency [MHz]')
+                    self.ax.set_xlabel('Frequency [MHz]')
                 else:
-                    a.set_xlabel('User defined')
+                    self.ax.set_xlabel('User defined')
         else:
-            a.set_xlabel('')
+            self.ax.set_xlabel('')
         if self.spec:
-            a.set_xlim(self.xmaxlim,self.xminlim)
+            self.ax.set_xlim(self.xmaxlim,self.xminlim)
         else:
-            a.set_xlim(self.xminlim,self.xmaxlim)
-        a.set_ylim(self.yminlim,self.ymaxlim)
-        a.get_xaxis().get_major_formatter().set_powerlimits((-2, 2))
-        a.get_yaxis().get_major_formatter().set_powerlimits((-2, 2))
+            self.ax.set_xlim(self.xminlim,self.xmaxlim)
+        self.ax.set_ylim(self.yminlim,self.ymaxlim)
+        self.ax.get_xaxis().get_major_formatter().set_powerlimits((-2, 2))
+        self.ax.get_yaxis().get_major_formatter().set_powerlimits((-2, 2))
         self.canvas.draw()
 
     def plotReset(self): #set the plot limits to min and max values
-        a=self.fig.gca()
         self.yminlim=min(self.xax2)
         self.ymaxlim=max(self.xax2)
         axAdd = 0
@@ -1770,14 +1784,13 @@ class CurrentContour(Current1D):
         self.xminlim=min(self.xax*axMult+axAdd)
         self.xmaxlim=max(self.xax*axMult+axAdd)
         if self.spec:
-            a.set_xlim(self.xmaxlim,self.xminlim)
+            self.ax.set_xlim(self.xmaxlim,self.xminlim)
         else:
-            a.set_xlim(self.xminlim,self.xmaxlim)
-        a.set_ylim(self.yminlim,self.ymaxlim)
+            self.ax.set_xlim(self.xminlim,self.xmaxlim)
+        self.ax.set_ylim(self.yminlim,self.ymaxlim)
 
     #The peakpicking function needs to be changed for contour plots
     def buttonRelease(self,event):
-        a=self.fig.gca()
         if event.button == 1:
             if self.peakPick:
                 if self.rect[0] is not None:
@@ -1818,10 +1831,10 @@ class CurrentContour(Current1D):
                     self.yminlim=min([self.zoomY1,self.zoomY2])
                     self.ymaxlim=max([self.zoomY1,self.zoomY2])
                     if self.spec > 0:
-                        a.set_xlim(self.xmaxlim,self.xminlim)
+                        self.ax.set_xlim(self.xmaxlim,self.xminlim)
                     else:
-                        a.set_xlim(self.xminlim,self.xmaxlim)
-                    a.set_ylim(self.yminlim,self.ymaxlim)
+                        self.ax.set_xlim(self.xminlim,self.xmaxlim)
+                    self.ax.set_ylim(self.yminlim,self.ymaxlim)
                 self.zoomX1=None
                 self.zoomX2=None #WF: should also be cleared, memory of old zoom
                 self.zoomY1=None

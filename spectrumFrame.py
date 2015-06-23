@@ -8,6 +8,7 @@ if sys.version_info >= (3,0):
     from tkinter import *
 else:
     from Tkinter import *
+import spectrum_classes
 
 
 #########################################################################################################
@@ -16,7 +17,12 @@ class Plot1DFrame(Frame):
     def __init__(self, root):
         Frame.__init__(self,root)
         self.fig = Figure()           #figure
-        self.fig.add_subplot(111) 
+        if isinstance(self,spectrum_classes.CurrentContour):
+            self.ax = self.fig.add_subplot(223)
+            self.x_ax = self.fig.add_subplot(221,sharex=self.ax)
+            self.y_ax = self.fig.add_subplot(224,sharey=self.ax) 
+        else:
+            self.ax = self.fig.add_subplot(111) 
         self.canvas = FigureCanvasTkAgg(self.fig, master=self)
         self.canvas.get_tk_widget().pack(fill=BOTH,expand=1)
         self.leftMouse = False        #is the left mouse button currently pressed
@@ -51,7 +57,6 @@ class Plot1DFrame(Frame):
         self.peakPickFunc = None
 
     def scroll(self,event):
-        a=self.fig.gca()
         if self.rightMouse:
             middle = (self.xmaxlim+self.xminlim)/2.0
             width = self.xmaxlim-self.xminlim
@@ -59,16 +64,16 @@ class Plot1DFrame(Frame):
             self.xmaxlim = middle+width/2.0
             self.xminlim = middle-width/2.0
             if self.spec > 0:
-                a.set_xlim(self.xmaxlim,self.xminlim)
+                self.ax.set_xlim(self.xmaxlim,self.xminlim)
             else:
-                a.set_xlim(self.xminlim,self.xmaxlim)
+                self.ax.set_xlim(self.xminlim,self.xmaxlim)
         else:
             middle = (self.ymaxlim+self.yminlim)/2.0
             width = self.ymaxlim-self.yminlim
             width = width*0.9**event.step
             self.ymaxlim = middle+width/2.0
             self.yminlim = middle-width/2.0
-            a.set_ylim(self.yminlim,self.ymaxlim)
+            self.ax.set_ylim(self.yminlim,self.ymaxlim)
         self.canvas.draw()
 
     def buttonPress(self,event):
@@ -84,7 +89,6 @@ class Plot1DFrame(Frame):
             self.panY = event.ydata
 
     def buttonRelease(self,event):
-        a=self.fig.gca()
         if event.button == 1:
             if self.peakPick:
                 if self.rect[0] is not None:
@@ -122,10 +126,10 @@ class Plot1DFrame(Frame):
                     self.yminlim=min([self.zoomY1,self.zoomY2])
                     self.ymaxlim=max([self.zoomY1,self.zoomY2])
                     if self.spec > 0:
-                        a.set_xlim(self.xmaxlim,self.xminlim)
+                        self.ax.set_xlim(self.xmaxlim,self.xminlim)
                     else:
-                        a.set_xlim(self.xminlim,self.xmaxlim)
-                    a.set_ylim(self.yminlim,self.ymaxlim)
+                        self.ax.set_xlim(self.xminlim,self.xmaxlim)
+                    self.ax.set_ylim(self.yminlim,self.ymaxlim)
                 self.zoomX1=None
                 self.zoomX2=None #WF: should also be cleared, memory of old zoom
                 self.zoomY1=None
@@ -136,8 +140,7 @@ class Plot1DFrame(Frame):
 
     def pan(self,event):
         if self.rightMouse and self.panX is not None and self.panY is not None:
-            a=self.fig.gca()
-            inv = a.transData.inverted()
+            inv = self.ax.transData.inverted()
             point = inv.transform((event.x,event.y))
             diffx = point[0]-self.panX
             diffy = point[1]-self.panY
@@ -146,22 +149,20 @@ class Plot1DFrame(Frame):
             self.ymaxlim = self.ymaxlim-diffy
             self.yminlim = self.yminlim-diffy
             if self.spec > 0:
-                a.set_xlim(self.xmaxlim,self.xminlim)
+                self.ax.set_xlim(self.xmaxlim,self.xminlim)
             else:
-                a.set_xlim(self.xminlim,self.xmaxlim)
-            a.set_ylim(self.yminlim,self.ymaxlim)
+                self.ax.set_xlim(self.xminlim,self.xmaxlim)
+            self.ax.set_ylim(self.yminlim,self.ymaxlim)
             self.canvas.draw()
         elif self.peakPick:
-            a=self.fig.gca()
             if self.rect[0] is not None:
                 self.rect[0].remove()
                 self.rect[0]=None
             if event.xdata is not None:
-                self.rect[0]=a.axvline(event.xdata,c='k',linestyle='--')
+                self.rect[0]=self.ax.axvline(event.xdata,c='k',linestyle='--')
             self.canvas.draw()
         elif self.leftMouse and (self.zoomX1 is not None) and (self.zoomY1 is not None):
-            a=self.fig.gca()
-            inv = a.transData.inverted()
+            inv = self.ax.transData.inverted()
             point = inv.transform((event.x,event.y))
             self.zoomX2 =  point[0]
             self.zoomY2 = point[1]
@@ -175,8 +176,8 @@ class Plot1DFrame(Frame):
                 if self.rect[3] is not None:
                     self.rect[3].remove()
                 self.rect=[None,None,None,None]
-            self.rect[0],=a.plot([self.zoomX1,self.zoomX2],[self.zoomY2,self.zoomY2],'k',clip_on=False)
-            self.rect[1],=a.plot([self.zoomX1,self.zoomX2],[self.zoomY1,self.zoomY1],'k',clip_on=False)
-            self.rect[2],=a.plot([self.zoomX1,self.zoomX1],[self.zoomY1,self.zoomY2],'k',clip_on=False)
-            self.rect[3],=a.plot([self.zoomX2,self.zoomX2],[self.zoomY1,self.zoomY2],'k',clip_on=False)
+            self.rect[0],=self.ax.plot([self.zoomX1,self.zoomX2],[self.zoomY2,self.zoomY2],'k',clip_on=False)
+            self.rect[1],=self.ax.plot([self.zoomX1,self.zoomX2],[self.zoomY1,self.zoomY1],'k',clip_on=False)
+            self.rect[2],=self.ax.plot([self.zoomX1,self.zoomX1],[self.zoomY1,self.zoomY2],'k',clip_on=False)
+            self.rect[3],=self.ax.plot([self.zoomX2,self.zoomX2],[self.zoomY1,self.zoomY2],'k',clip_on=False)
             self.canvas.draw()
