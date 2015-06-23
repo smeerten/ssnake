@@ -12,7 +12,7 @@ class Spectrum(object):
     def __init__(self, data, freq, sw , spec=None, wholeEcho=None, ref=None):
         self.dim = len(data.shape)                    #number of dimensions
         self.data = np.array(data,dtype=complex)      #data of dimension dim
-        self.freq = freq                              #array of center frequency (length is dim, MHz)
+        self.freq = np.array(freq)                              #array of center frequency (length is dim, MHz)
         self.sw = sw                                  #array of sweepwidths
         if spec is None:
             self.spec=[0]*self.dim
@@ -23,7 +23,7 @@ class Spectrum(object):
         else:
             self.wholeEcho = wholeEcho                    #boolean array of length dim where True indicates a full Echo
         if ref is None:
-            self.ref = self.freq
+            self.ref = self.freq.copy()
         else:
             self.ref = ref
         self.xaxArray = [[] for i in range(self.dim)]
@@ -182,7 +182,12 @@ class Spectrum(object):
         self.sw[axes]=sw
         self.resetXax(axes)
         return lambda self: self.setFreq(oldFreq,oldSw,axes)
-
+    
+    def setRef(self,ref,axes):
+        oldRef = self.ref[axes]
+        self.ref[axes]=ref
+        return lambda self: self.setRef(oldRef,axes)
+    
     def setSize(self,size,axes):
         if axes>self.dim:
             print("axes bigger than dim in setsize")
@@ -451,6 +456,13 @@ class Current1D(Plot1DFrame):
         self.showFid()
         return returnValue
 
+    def setRef(self,ref): #set the frequency of the actual data
+        returnValue = self.data.setRef(ref,self.axes)
+        self.upd()
+        self.plotReset()
+        self.showFid()
+        return returnValue
+
     def setSizePreview(self,size): #set size only on local data
         if size > len(self.data1D):
             if self.wholeEcho:
@@ -627,8 +639,8 @@ class Current1D(Plot1DFrame):
         else:
             self.ppm = False
             self.axType = val
-        self.xminlim = self.xminlim * newAxMult / oldAxMult + newAxAdd - oldAxAdd 
-        self.xmaxlim = self.xmaxlim * newAxMult / oldAxMult + newAxAdd - oldAxAdd 
+        self.xminlim = (self.xminlim - oldAxAdd) * newAxMult / oldAxMult + newAxAdd
+        self.xmaxlim = (self.xmaxlim - oldAxAdd) * newAxMult / oldAxMult + newAxAdd
         self.showFid()
 
     def hilbert(self):

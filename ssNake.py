@@ -110,6 +110,7 @@ class Main1DWindow(Frame):
         plotMenu.add_command(label="Stack plot", command=self.plotStack)
         plotMenu.add_command(label="Array plot", command=self.plotArray)
         plotMenu.add_command(label="Contour plot", command=self.plotContour)
+        plotMenu.add_command(label="Set reference", command=self.createRefWindow)
         plotMenu.add_command(label="User x-axis", command=self.createXaxWindow)
 
         x=np.linspace(0,2*np.pi*10,1000)[:-1] #fake data
@@ -550,6 +551,9 @@ class Main1DWindow(Frame):
 
     def createDCWindow(self):
         DCWindow(self,self.current)
+
+    def createRefWindow(self):
+        RefWindow(self,self.current)
 
     def createIntegrateWindow(self):
         integrateWindow(self,self.current)
@@ -1832,6 +1836,70 @@ class XaxWindow(Frame): #a window for setting the xax of the current data
         else:
             print("Input is not a list or array")
 
+##########################################################################################
+class RefWindow(Frame): #a window for setting the ppm reference
+    def __init__(self, parent,current):
+        if current.spec == 0:
+            print('Setting ppm is only available for frequency data')
+            return
+        Frame.__init__(self, parent)
+        #initialize variables for the widgets
+        self.freqVal = StringVar()
+        self.freqVal.set(str(current.freq))
+        self.refVal = StringVar()
+        self.refVal.set('0.0')
+        self.parent = parent
+        self.current = current
+        self.window = Toplevel(self)
+        self.window.geometry('+0+0')
+        self.window.transient(self.parent)
+        self.window.protocol("WM_DELETE_WINDOW", self.cancelAndClose)
+        self.window.title("Set ppm reference")
+        self.window.resizable(width=FALSE, height=FALSE)
+        self.frame1 = Frame(self.window)
+        self.frame1.grid(row=0)
+        Label(self.frame1,text="Frequency").grid(row=0,column=0)
+        self.freqEntry = Entry(self.frame1,textvariable=self.freqVal,justify="center")
+        self.freqEntry.bind("<Return>", self.preview)
+        self.freqEntry.bind("<KP_Enter>", self.preview)
+        self.freqEntry.grid(row=1,column=0)
+        Label(self.frame1,text="ppm").grid(row=2,column=0)
+        self.refEntry = Entry(self.frame1,textvariable=self.refVal,justify="center")
+        self.refEntry.bind("<Return>", self.preview)
+        self.refEntry.bind("<KP_Enter>", self.preview)
+        self.refEntry.grid(row=3,column=0)
+        self.frame2 = Frame(self.window)
+        self.frame2.grid(row=1)
+        Button(self.frame2, text="Apply",command=self.applyAndClose).grid(row=0,column=0)
+        Button(self.frame2, text="Cancel",command=self.cancelAndClose).grid(row=0,column=1)
+        #activate the peak picking
+        self.current.peakPickFunc = lambda pos,self=self: self.picked(pos)
+        self.current.peakPick = True
+ 
+    def preview(self, *args): #fix the input values
+        freq = safeEval(self.freqVal.get())
+        ref = safeEval(self.refVal.get())
+        self.freqVal.set(str(freq))
+        self.refVal.set(str(ref))
+
+    def cancelAndClose(self):
+        self.current.peakPickReset()
+        self.current.showFid()
+        self.window.destroy()
+
+    def applyAndClose(self):
+        self.current.peakPickReset()
+        freq = safeEval(self.freqVal.get())
+        ref = safeEval(self.refVal.get())
+        self.parent.redoList = []
+        self.parent.undoList.append(self.current.setRef(freq/(1.0+ref*1e-6)))
+        self.window.destroy()
+        
+    def picked(self,pos): 
+        self.freqVal.set(str(self.current.freq+self.current.xax[pos[0]]))
+        self.current.peakPickFunc = lambda pos,self=self: self.picked(pos)
+        self.current.peakPick = True
+            
 #################################################################################    
 #the main program
 if __name__ == "__main__":
