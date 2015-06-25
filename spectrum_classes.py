@@ -287,10 +287,10 @@ class Spectrum(object):
             print("First and second axes are the same")
             return
         elif axes < axes2:
-            return (np.transpose(self.data[tuple(locList[:axes])+(slice(None),)+tuple(locList[axes:axes2-1])+(stackSlice,)+tuple(locList[axes2-1:])]),self.freq[axes],self.sw[axes],self.spec[axes],self.wholeEcho[axes],self.xaxArray[axes],self.xaxArray[axes2],self.ref[axes],self.ref[axes2])
+            return (np.transpose(self.data[tuple(locList[:axes])+(slice(None),)+tuple(locList[axes:axes2-1])+(stackSlice,)+tuple(locList[axes2-1:])]),self.freq[axes],self.freq[axes2],self.sw[axes],self.sw[axes2],self.spec[axes],self.spec[axes2],self.wholeEcho[axes],self.wholeEcho[axes2],self.xaxArray[axes],self.xaxArray[axes2],self.ref[axes],self.ref[axes2])
         elif axes > axes2:
-            return (self.data[tuple(locList[:axes2])+(stackSlice,)+tuple(locList[axes2:axes-1])+(slice(None),)+tuple(locList[axes-1:])],self.freq[axes],self.sw[axes],self.spec[axes],self.wholeEcho[axes],self.xaxArray[axes],self.xaxArray[axes2],self.ref[axes],self.ref[axes2])
-
+            return (self.data[tuple(locList[:axes2])+(stackSlice,)+tuple(locList[axes2:axes-1])+(slice(None),)+tuple(locList[axes-1:])],self.freq[axes],self.freq[axes2],self.sw[axes],self.sw[axes2],self.spec[axes],self.spec[axes2],self.wholeEcho[axes],self.wholeEcho[axes2],self.xaxArray[axes],self.xaxArray[axes2],self.ref[axes],self.ref[axes2])
+        
     def restoreData(self,copyData,returnValue): # restore data from an old copy for undo purposes
         self.data = copyData.data
         self.dim = len(self.data.shape)                    #number of dimensions
@@ -784,13 +784,17 @@ class CurrentStacked(Current1D):
         updateVar = self.data.getBlock(self.axes,self.axes2,self.locList,self.stackBegin, self.stackEnd, self.stackStep)
         self.data1D = updateVar[0]
         self.freq = updateVar[1]
-        self.sw = updateVar[2]
-        self.spec = updateVar[3]
-        self.wholeEcho = updateVar[4]
-        self.xax=updateVar[5]
-        self.xax2=updateVar[6]
-        self.ref=updateVar[7]
-        self.ref2=updateVar[8]
+        self.freq2 = updateVar[2]
+        self.sw = updateVar[3]
+        self.sw2 = updateVar[4]
+        self.spec = updateVar[5]
+        self.spec2 = updateVar[6]
+        self.wholeEcho = updateVar[7]
+        self.wholeEcho2 = updateVar[8]
+        self.xax=updateVar[9]
+        self.xax2=updateVar[10]
+        self.ref=updateVar[11]
+        self.ref2=updateVar[12]
 
     def setBlock(self,axes,axes2,locList,stackBegin=None,stackEnd=None,stackStep=None): #change the slice 
         self.axes = axes
@@ -1167,13 +1171,17 @@ class CurrentArrayed(Current1D):
         updateVar = self.data.getBlock(self.axes,self.axes2,self.locList,self.stackBegin, self.stackEnd, self.stackStep)
         self.data1D = updateVar[0]
         self.freq = updateVar[1]
-        self.sw = updateVar[2]
-        self.spec = updateVar[3]
-        self.wholeEcho = updateVar[4]
-        self.xax=updateVar[5]
-        self.xax2=updateVar[6]
-        self.ref=updateVar[7]
-        self.ref2=updateVar[8]
+        self.freq2 = updateVar[2]
+        self.sw = updateVar[3]
+        self.sw2 = updateVar[4]
+        self.spec = updateVar[5]
+        self.spec2 = updateVar[6]
+        self.wholeEcho = updateVar[7]
+        self.wholeEcho2 = updateVar[8]
+        self.xax=updateVar[9]
+        self.xax2=updateVar[10]
+        self.ref=updateVar[11]
+        self.ref2=updateVar[12]
  
     def setBlock(self,axes,axes2,locList,stackBegin=None,stackEnd=None,stackStep=None): #change the slice 
         self.axes = axes
@@ -1496,7 +1504,7 @@ class CurrentArrayed(Current1D):
 #########################################################################################################
 #the class from which the contour data is displayed, the operations which only edit the content of this class are for previewing
 class CurrentContour(Current1D):
-    def __init__(self, root, data, axes=None, axes2=None, locList=None, plotType=0, axType=1, ppm=False):
+    def __init__(self, root, data, axes=None, axes2=None, locList=None, plotType=0, axType=1, ppm=False, axType2=1, ppm2=False):
         self.data = data
         if axes2 is None:
             self.axes2 = len(data.data.shape)-2
@@ -1504,7 +1512,8 @@ class CurrentContour(Current1D):
             self.axes2 = axes2            
         if locList is None:
             self.resetLocList()
-        self.spacing = 0
+        self.axType2 = axType2
+        self.ppm2 = ppm2
         Current1D.__init__(self, root, data, axes, locList, plotType, axType, ppm)
         self.plotReset()
         self.showFid()
@@ -1513,13 +1522,17 @@ class CurrentContour(Current1D):
         updateVar = self.data.getBlock(self.axes,self.axes2,self.locList)
         self.data1D = updateVar[0]
         self.freq = updateVar[1]
-        self.sw = updateVar[2]
-        self.spec = updateVar[3]
-        self.wholeEcho = updateVar[4]
-        self.xax=updateVar[5]
-        self.xax2=updateVar[6]
-        self.ref=updateVar[7]
-        self.ref2=updateVar[8]
+        self.freq2 = updateVar[2]
+        self.sw = updateVar[3]
+        self.sw2 = updateVar[4]
+        self.spec = updateVar[5]
+        self.spec2 = updateVar[6]
+        self.wholeEcho = updateVar[7]
+        self.wholeEcho2 = updateVar[8]
+        self.xax=updateVar[9]
+        self.xax2=updateVar[10]
+        self.ref=updateVar[11]
+        self.ref2=updateVar[12]
 
     def setBlock(self,axes,axes2,locList): #change the slice 
         self.axes = axes
@@ -1716,27 +1729,36 @@ class CurrentContour(Current1D):
                 axMult = 1.0/(1000.0**self.axType)
         elif self.spec == 0:
             axMult = 1000.0**self.axType
+        axAdd2 = 0
+        if self.spec2 == 1:
+            if self.ppm2:
+                axAdd2 = (self.freq2-self.ref2)/self.ref2*1e6
+                axMult2 = 1e6/self.ref2
+            else:
+                axMult2 = 1.0/(1000.0**self.axType2)
+        elif self.spec2 == 0:
+            axMult2 = 1000.0**self.axType2
         x=self.xax*axMult+axAdd
-        y=self.xax2
+        y=self.xax2*axMult2+axAdd2
         X, Y = np.meshgrid(x,y)
         self.line = []
         if (self.plotType==0):
             self.line.append(self.ax.contour(X, Y, np.real(tmpdata),c='b'))
-            self.x_ax.plot(x,np.sum(np.real(tmpdata),axis=0),'b')
-            self.y_ax.plot(np.sum(np.real(tmpdata),axis=1),y,'b')
+            self.x_ax.plot(x,np.amax(np.real(tmpdata),axis=0),'b')
+            self.y_ax.plot(np.amax(np.real(tmpdata),axis=1),y,'b')
         elif(self.plotType==1):
             self.line.append(self.ax.contour(X, Y, np.imag(tmpdata),c='b'))
-            self.x_ax.plot(x,np.sum(np.imag(tmpdata),axis=0),'b')
-            self.y_ax.plot(np.sum(np.imag(tmpdata),axis=1),y,'b')
+            self.x_ax.plot(x,np.amax(np.imag(tmpdata),axis=0),'b')
+            self.y_ax.plot(np.amax(np.imag(tmpdata),axis=1),y,'b')
         elif(self.plotType==2):
             print('type not supported')
             self.line.append(self.ax.contour(X, Y, np.real(tmpdata),c='b'))
-            self.x_ax.plot(x,np.sum(np.real(tmpdata),axis=0),'b')
-            self.y_ax.plot(np.sum(np.real(tmpdata),axis=1),y,'b')
+            self.x_ax.plot(x,np.amax(np.real(tmpdata),axis=0),'b')
+            self.y_ax.plot(np.amax(np.real(tmpdata),axis=1),y,'b')
         elif(self.plotType==3):
             self.line.append(self.ax.contour(X, Y, np.abs(tmpdata),c='b'))
-            self.x_ax.plot(x,np.sum(np.abs(tmpdata),axis=0),'b')
-            self.y_ax.plot(np.sum(np.abs(tmpdata),axis=1),y,'b')
+            self.x_ax.plot(x,np.amax(np.abs(tmpdata),axis=0),'b')
+            self.y_ax.plot(np.amax(np.abs(tmpdata),axis=1),y,'b')
         if self.spec==0:
             if self.axType == 0:
                 self.ax.set_xlabel('Time [s]')
@@ -1760,18 +1782,42 @@ class CurrentContour(Current1D):
                     self.ax.set_xlabel('User defined')
         else:
             self.ax.set_xlabel('')
+        if self.spec2==0:
+            if self.axType2 == 0:
+                self.ax.set_ylabel('Time [s]')
+            elif self.axType2 == 1:
+                self.ax.set_ylabel('Time [ms]')
+            elif self.axType2 == 2:
+                self.ax.set_ylabel(r'Time [$\mu$s]')
+            else:
+                self.ax.set_ylabel('User defined')
+        elif self.spec2==1:
+            if self.ppm2:
+                self.ax.set_ylabel('Frequency [ppm]')
+            else:
+                if self.axType2 == 0:
+                    self.ax.set_ylabel('Frequency [Hz]')
+                elif self.axType2 == 1:
+                    self.ax.set_ylabel('Frequency [kHz]')
+                elif self.axType2 == 2:
+                    self.ax.set_ylabel('Frequency [MHz]')
+                else:
+                    self.ax.set_ylabel('User defined')
+        else:
+            self.ax.set_ylabel('')
         if self.spec:
             self.ax.set_xlim(self.xmaxlim,self.xminlim)
         else:
             self.ax.set_xlim(self.xminlim,self.xmaxlim)
-        self.ax.set_ylim(self.yminlim,self.ymaxlim)
+        if self.spec2:
+            self.ax.set_ylim(self.ymaxlim,self.yminlim)
+        else:
+            self.ax.set_ylim(self.yminlim,self.ymaxlim)
         self.ax.get_xaxis().get_major_formatter().set_powerlimits((-2, 2))
         self.ax.get_yaxis().get_major_formatter().set_powerlimits((-2, 2))
         self.canvas.draw()
 
     def plotReset(self): #set the plot limits to min and max values
-        self.yminlim=min(self.xax2)
-        self.ymaxlim=max(self.xax2)
         axAdd = 0
         if self.spec == 1:
             if self.ppm:
@@ -1783,11 +1829,25 @@ class CurrentContour(Current1D):
             axMult = 1000.0**self.axType
         self.xminlim=min(self.xax*axMult+axAdd)
         self.xmaxlim=max(self.xax*axMult+axAdd)
+        axAdd2 = 0
+        if self.spec2 == 1:
+            if self.ppm2:
+                axAdd2 = (self.freq2-self.ref2)/self.ref2*1e6
+                axMult2 = 1e6/self.ref2
+            else:
+                axMult2 = 1.0/(1000.0**self.axType2)
+        elif self.spec2 == 0:
+            axMult2 = 1000.0**self.axType2
+        self.yminlim=min(self.xax2*axMult2+axAdd2)
+        self.ymaxlim=max(self.xax2*axMult2+axAdd2)
         if self.spec:
             self.ax.set_xlim(self.xmaxlim,self.xminlim)
         else:
             self.ax.set_xlim(self.xminlim,self.xmaxlim)
-        self.ax.set_ylim(self.yminlim,self.ymaxlim)
+        if self.spec2:
+            self.ax.set_ylim(self.ymaxlim,self.yminlim)
+        else:
+            self.ax.set_ylim(self.yminlim,self.ymaxlim)
 
     #The peakpicking function needs to be changed for contour plots
     def buttonRelease(self,event):

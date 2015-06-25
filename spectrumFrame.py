@@ -3,6 +3,8 @@ matplotlib.use('TkAgg')
 import numpy as np
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2TkAgg
 from matplotlib.figure import Figure
+import matplotlib.gridspec as gridspec
+
 import sys
 if sys.version_info >= (3,0):
     from tkinter import *
@@ -18,9 +20,10 @@ class Plot1DFrame(Frame):
         Frame.__init__(self,root)
         self.fig = Figure()           #figure
         if isinstance(self,spectrum_classes.CurrentContour):
-            self.ax = self.fig.add_subplot(223)
-            self.x_ax = self.fig.add_subplot(221,sharex=self.ax)
-            self.y_ax = self.fig.add_subplot(224,sharey=self.ax) 
+            gs = gridspec.GridSpec(2, 2,width_ratios=[3,1],height_ratios=[1,3])
+            self.ax = self.fig.add_subplot(gs[2])
+            self.x_ax = self.fig.add_subplot(gs[0],sharex=self.ax)
+            self.y_ax = self.fig.add_subplot(gs[3],sharey=self.ax) 
         else:
             self.ax = self.fig.add_subplot(111) 
         self.canvas = FigureCanvasTkAgg(self.fig, master=self)
