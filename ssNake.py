@@ -110,6 +110,7 @@ class Main1DWindow(Frame):
         plotMenu.add_command(label="Stack plot", command=self.plotStack)
         plotMenu.add_command(label="Array plot", command=self.plotArray)
         plotMenu.add_command(label="Contour plot", command=self.plotContour)
+        plotMenu.add_command(label="Skewed plot", command=self.plotSkewed)
         plotMenu.add_command(label="Set reference", command=self.createRefWindow)
         plotMenu.add_command(label="User x-axis", command=self.createXaxWindow)
 
@@ -640,6 +641,16 @@ class Main1DWindow(Frame):
             self.updAllFrames()
         else:
             print("Data does not have enough dimensions")
+            
+    def plotSkewed(self):
+        if len(self.masterData.data.shape) > 1:
+            self.current.grid_remove()
+            self.current.destroy()
+            self.current = sc.CurrentSkewed(self,self.masterData) 
+            self.current.grid(row=0,column=0,sticky="nswe")
+            self.updAllFrames()
+        else:
+            print("Data does not have enough dimensions")
     def createXaxWindow(self):
         XaxWindow(self,self.current)
 
@@ -697,7 +708,7 @@ class SideFrame(Frame):
         self.length = len(self.shape)
         self.button1Var.set(self.current.axes)
         offset = 0
-        self.plotIs2D = isinstance(self.current, (sc.CurrentStacked,sc.CurrentArrayed,sc.CurrentContour))
+        self.plotIs2D = isinstance(self.current, (sc.CurrentStacked,sc.CurrentArrayed,sc.CurrentContour,sc.CurrentSkewed))
         if self.plotIs2D:
             offset = 1
             self.button2Var.set(self.current.axes2)
@@ -746,7 +757,7 @@ class SideFrame(Frame):
                 self.entries[num].bind("<Return>", lambda event=None,num=num: self.getSlice(event,num)) 
                 self.entries[num].bind("<KP_Enter>", lambda event=None,num=num: self.getSlice(event,num)) 
                 self.entries[num].grid(row=num*2+1,column=1+offset)
-            if isinstance(self.current, (sc.CurrentStacked,sc.CurrentArrayed)):
+            if isinstance(self.current, (sc.CurrentStacked,sc.CurrentArrayed,sc.CurrentSkewed)):
                 if self.current.stackBegin is not None:
                     self.from2D.set(str(self.current.stackBegin))
                 else:
@@ -759,7 +770,6 @@ class SideFrame(Frame):
                     self.step2D.set(str(self.current.stackStep))
                 else:
                     self.step2D.set('1')
-                self.spacing.set('%.3e' % self.current.spacing)
                 self.extraFrame = Frame(self)
                 self.extraFrame.grid(row=2*self.length+1,column=0,columnspan=2+offset,sticky='nwe')
                 self.extraFrame.grid_columnconfigure(0,weight=1)
@@ -779,14 +789,16 @@ class SideFrame(Frame):
                 self.stepSpin.bind("<Return>", self.setToFrom) 
                 self.stepSpin.bind("<KP_Enter>", self.setToFrom)
                 self.stepSpin.grid(row=6,column=0)
-                Label(self.extraFrame,text="Spacing").grid(row=7,column=0,sticky='n')
-                self.stepSpin = Entry(self.extraFrame,textvariable=self.spacing,justify="center")
-                self.stepSpin.bind("<Return>", self.setSpacing) 
-                self.stepSpin.bind("<KP_Enter>", self.setSpacing) 
-                self.stepSpin.grid(row=8,column=0)
+                if isinstance(self.current, (sc.CurrentStacked,sc.CurrentArrayed)):
+                    self.spacing.set('%.3e' % self.current.spacing)
+                    Label(self.extraFrame,text="Spacing").grid(row=7,column=0,sticky='n')
+                    self.spacingEntry = Entry(self.extraFrame,textvariable=self.spacing,justify="center")
+                    self.spacingEntry.bind("<Return>", self.setSpacing) 
+                    self.spacingEntry.bind("<KP_Enter>", self.setSpacing) 
+                    self.spacingEntry.grid(row=8,column=0)
 
     def setToFrom(self, *args):
-        if isinstance(self.current, (sc.CurrentStacked,sc.CurrentArrayed)):
+        if isinstance(self.current, (sc.CurrentStacked,sc.CurrentArrayed,sc.CurrentSkewed)):
             fromVar = int(safeEval(self.from2D.get()))
             toVar = int(safeEval(self.to2D.get()))
             stepVar = int(safeEval(self.step2D.get()))

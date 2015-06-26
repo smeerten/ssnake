@@ -4,6 +4,8 @@ import scipy.optimize
 import scipy.signal
 import scipy.ndimage
 import copy
+from mpl_toolkits.mplot3d import Axes3D
+from mpl_toolkits.mplot3d import proj3d
 from spectrumFrame import Plot1DFrame
 
 #########################################################################
@@ -287,9 +289,9 @@ class Spectrum(object):
             print("First and second axes are the same")
             return
         elif axes < axes2:
-            return (np.transpose(self.data[tuple(locList[:axes])+(slice(None),)+tuple(locList[axes:axes2-1])+(stackSlice,)+tuple(locList[axes2-1:])]),self.freq[axes],self.freq[axes2],self.sw[axes],self.sw[axes2],self.spec[axes],self.spec[axes2],self.wholeEcho[axes],self.wholeEcho[axes2],self.xaxArray[axes],self.xaxArray[axes2],self.ref[axes],self.ref[axes2])
+            return (np.transpose(self.data[tuple(locList[:axes])+(slice(None),)+tuple(locList[axes:axes2-1])+(stackSlice,)+tuple(locList[axes2-1:])]),self.freq[axes],self.freq[axes2],self.sw[axes],self.sw[axes2],self.spec[axes],self.spec[axes2],self.wholeEcho[axes],self.wholeEcho[axes2],self.xaxArray[axes],self.xaxArray[axes2][stackSlice],self.ref[axes],self.ref[axes2])
         elif axes > axes2:
-            return (self.data[tuple(locList[:axes2])+(stackSlice,)+tuple(locList[axes2:axes-1])+(slice(None),)+tuple(locList[axes-1:])],self.freq[axes],self.freq[axes2],self.sw[axes],self.sw[axes2],self.spec[axes],self.spec[axes2],self.wholeEcho[axes],self.wholeEcho[axes2],self.xaxArray[axes],self.xaxArray[axes2],self.ref[axes],self.ref[axes2])
+            return (self.data[tuple(locList[:axes2])+(stackSlice,)+tuple(locList[axes2:axes-1])+(slice(None),)+tuple(locList[axes-1:])],self.freq[axes],self.freq[axes2],self.sw[axes],self.sw[axes2],self.spec[axes],self.spec[axes2],self.wholeEcho[axes],self.wholeEcho[axes2],self.xaxArray[axes],self.xaxArray[axes2][stackSlice],self.ref[axes],self.ref[axes2])
         
     def restoreData(self,copyData,returnValue): # restore data from an old copy for undo purposes
         self.data = copyData.data
@@ -1902,3 +1904,404 @@ class CurrentContour(Current1D):
         elif event.button == 3:
             self.rightMouse = False
         self.canvas.draw()
+
+
+#########################################################################################################
+#The skewed plot class
+class CurrentSkewed(Current1D):
+    def __init__(self, root, data, axes=None, axes2=None, locList=None, plotType=0, axType=1, ppm=False, axType2=1, ppm2=False, stackBegin=None, stackEnd=None, stackStep=None):
+        self.data = data
+        if axes2 is None:
+            self.axes2 = len(data.data.shape)-2
+        else:
+            self.axes2 = axes2            #dimension from which the spectra are stacked
+        self.stackBegin = stackBegin
+        self.stackEnd = stackEnd
+        self.stackStep = stackStep
+        if locList is None:
+            self.resetLocList()
+        self.axType2 = axType2
+        self.ppm2 = ppm2
+        Current1D.__init__(self, root, data, axes, locList, plotType, axType, ppm)
+        self.plotReset()
+        self.showFid()
+        self.setSkewed(-0.2,70)
+
+    def upd(self): #get new data from the data instance
+        updateVar = self.data.getBlock(self.axes,self.axes2,self.locList,self.stackBegin, self.stackEnd, self.stackStep)
+        self.data1D = updateVar[0]
+        self.freq = updateVar[1]
+        self.freq2 = updateVar[2]
+        self.sw = updateVar[3]
+        self.sw2 = updateVar[4]
+        self.spec = updateVar[5]
+        self.spec2 = updateVar[6]
+        self.wholeEcho = updateVar[7]
+        self.wholeEcho2 = updateVar[8]
+        self.xax=updateVar[9]
+        self.xax2=updateVar[10]
+        self.ref=updateVar[11]
+        self.ref2=updateVar[12]
+ 
+    def setBlock(self,axes,axes2,locList,stackBegin=None,stackEnd=None,stackStep=None): #change the slice 
+        self.axes = axes
+        self.axes2 = axes2
+        self.stackBegin = stackBegin
+        self.stackEnd = stackEnd
+        self.stackStep = stackStep
+        self.locList = locList
+        self.upd()
+        self.plotReset()
+        self.showFid()
+
+    def setSkewed(self,skewed,elevation):
+        self.skewed = skewed
+        self.elevation = elevation
+        proj3d.persp_transformation = lambda zfront, zback : np.array([[1,0,0,0],
+                                                                       [skewed ,1.0,0,0],
+                                                                       [0,0,zfront,0],
+                                                                       [0,0,-0.00001,zback]])
+        self.ax.view_init(elev=self.elevation, azim=180*np.arctan(skewed/np.sin(np.pi*elevation/180))/np.pi-90)
+        
+    def resetLocList(self):
+        self.locList = [0]*(len(self.data.data.shape)-2)
+        
+    def stackSelect(self,stackBegin, stackEnd, stackStep):
+        self.stackBegin = stackBegin
+        self.stackEnd = stackEnd
+        self.stackStep = stackStep
+        self.upd()
+        self.showFid()
+
+    def setPhaseInter(self, phase0in, phase1in): #interactive changing the phase without editing the actual data
+        phase0=float(phase0in)
+        phase1=float(phase1in)
+        if self.spec==0:
+            tmpdata=self.fourierLocal(self.data1D,0)
+            tmpdata=tmpdata*np.exp(phase0*1j)
+            tmpdata=tmpdata*np.repeat([np.exp(np.fft.fftshift(np.fft.fftfreq(len(tmpdata[0]),1.0/self.sw))*phase1*1j)],len(tmpdata),axis=0)
+            tmpdata=self.fourierLocal(tmpdata,1)
+        else:
+            tmpdata=self.data1D*np.exp(phase0*1j)
+            tmpdata=tmpdata*np.repeat([np.exp(np.fft.fftshift(np.fft.fftfreq(len(tmpdata[0]),1.0/self.sw))*phase1*1j)],len(tmpdata),axis=0)
+        self.showFid(tmpdata)
+
+
+    def apodPreview(self,lor=None,gauss=None, cos2=None, hamming=None,shift=0.0,shifting=0.0,shiftingAxes=None): #display the 1D data including the apodization function
+        t=np.arange(0,len(self.data1D[0]))/(self.sw)
+        if shiftingAxes is not None:
+            if shiftingAxes == self.axes:
+                print('shiftingAxes cannot be equal to axes')
+            elif shiftingAxes == self.axes2:
+                ar = np.arange(self.data.data.shape[self.axes2])[slice(self.stackBegin,self.stackEnd,self.stackStep)]
+                x=np.ones((len(ar),len(self.data1D[0])))
+                for i in range(len(ar)):
+                    shift1 = shift + shifting*ar[i]
+                    t2 = t - shift1
+                    x2=np.ones(len(self.data1D[0]))
+                    if lor is not None:
+                        x2=x2*np.exp(-lor*abs(t2))
+                    if gauss is not None:
+                        x2=x2*np.exp(-(gauss*t2)**2)
+                    if cos2 is not None:
+                        x2=x2*(np.cos(cos2*(-0.5*shift1*np.pi*self.sw/len(self.data1D[0])+np.linspace(0,0.5*np.pi,len(self.data1D[0]))))**2)
+                    if hamming is not None:
+                        alpha = 0.53836 # constant for hamming window
+                        x2=x2*(alpha+(1-alpha)*np.cos(hamming*(-0.5*shift1*np.pi*self.sw/len(self.data1D)+np.linspace(0,np.pi,len(self.data1D)))))
+                    if self.wholeEcho:
+                        x2[2-1:-(len(x2)/2+1):-1]=x2[:len(x2)/2]
+                    x[i] = x2
+            else:
+                if (shiftingAxes < self.axes) and (shiftingAxes < self.axes2):
+                    shift += shifting*self.locList[shiftingAxes]
+                elif (shiftingAxes > self.axes) and (shiftingAxes > self.axes2):
+                    shift += shifting*self.locList[shiftingAxes-2]
+                else:
+                    shift += shifting*self.locList[shiftingAxes-1]
+                t2 = t - shift
+                x=np.ones(len(self.data1D[0]))
+                if lor is not None:
+                    x=x*np.exp(-lor*abs(t2))
+                if gauss is not None:
+                    x=x*np.exp(-(gauss*t2)**2)
+                if cos2 is not None:
+                    x=x*(np.cos(cos2*(-0.5*shift*np.pi*self.sw/len(self.data1D[0])+np.linspace(0,0.5*np.pi,len(self.data1D[0]))))**2)
+                if hamming is not None:
+                    alpha = 0.53836 # constant for hamming window
+                    x=x*(alpha+(1-alpha)*np.cos(hamming*(-0.5*shift*np.pi*self.sw/len(self.data1D)+np.linspace(0,np.pi,len(self.data1D)))))
+                if self.wholeEcho:
+                    x[-1:-(len(x)/2+1):-1]=x[:len(x)/2]
+                x = np.repeat([x],len(self.data1D),axis=0)
+        else:
+            t2 = t - shift
+            x=np.ones(len(self.data1D[0]))
+            if lor is not None:
+                x=x*np.exp(-lor*abs(t2))
+            if gauss is not None:
+                x=x*np.exp(-(gauss*t2)**2)
+            if cos2 is not None:
+                x=x*(np.cos(cos2*(-0.5*shift*np.pi*self.sw/len(self.data1D[0])+np.linspace(0,0.5*np.pi,len(self.data1D[0]))))**2)
+            if hamming is not None:
+                alpha = 0.53836 # constant for hamming window
+                x=x*(alpha+(1-alpha)*np.cos(hamming*(-0.5*shift*np.pi*self.sw/len(self.data1D)+np.linspace(0,np.pi,len(self.data1D)))))
+            if self.wholeEcho:
+                x[-1:-(len(x)/2+1):-1]=x[:len(x)/2]
+            x = np.repeat([x],len(self.data1D),axis=0)
+        y = self.data1D
+        self.ax.cla()
+        if self.spec ==1:
+            y=np.fft.ifftn(np.fft.ifftshift(y,axes=1),axes=[1])
+            y= y*x
+            y=np.fft.fftshift(np.fft.fftn(y,axes=[1]),axes=1)
+        else:
+            y= y*x
+        if self.spec==0:
+            if self.plotType==0:
+                self.showFid(y,[t],x*np.amax(np.real(self.data1D)),['g'],old=True)
+            elif self.plotType==1:
+                self.showFid(y,[t],x*np.amax(np.imag(self.data1D)),['g'],old=True)
+            elif self.plotType==2:
+                self.showFid(y,[t],x*np.amax(np.amax(np.real(self.data1D)),np.amax(np.imag(self.data1D))),['g'],old=True)
+            elif self.plotType==3:
+                self.showFid(y,[t],x*np.amax(np.abs(self.data1D)),['g'],old=True)
+        else:
+            self.showFid(y)
+                 
+    def setSizePreview(self,size): #set size only on local data
+        if size > len(self.data1D[0]):
+            if self.wholeEcho:
+                tmpdata = np.array_split(self.data1D,2,axis=1)
+                self.data1D = np.concatenate((np.pad(tmpdata[0],((0,0),(0,size-len(self.data1D[0]))),'constant',constant_values=0),tmpdata[1]),axis=1)
+            else:
+                self.data1D = np.pad(self.data1D,((0,0),(0,size-len(self.data1D[0]))),'constant',constant_values=0)
+        else:
+            if self.wholeEcho:
+                tmpdata = np.array_split(self.data1D,2,axis=1)
+                self.data1D = np.concatenate((tmpdata[:,:np.ceil(size/2.0)],tmpdata[:,size/2:]),axis=1)
+            else:
+                self.data1D = self.data1D[:,:size]
+        if self.spec==0:
+            self.xax=np.arange(len(self.data1D[0]))/self.sw
+        elif self.spec==1:
+            self.xax=np.fft.fftshift(np.fft.fftfreq(len(self.data1D[0]),1.0/self.sw)) 
+        self.plotReset()
+        self.showFid()
+        self.upd()
+
+    def setSwapEchoPreview(self,idx):
+        self.data1D = np.concatenate((self.data1D[:,idx:],self.data1D[:,:idx]),axis=1)
+        self.plotReset()
+        self.showFid()
+        self.upd()
+        
+    def setShiftPreview(self,shift):
+        tmpData = np.roll(self.data1D,shift)
+        if shift<0:
+            tmpData[:,shift:] = tmpData[:,shift:]*0
+        else:
+            tmpData[:,:shift] = tmpData[:,:shift]*0
+        self.showFid(tmpData)
+
+    def dcOffset(self,pos1,pos2):
+        minPos = int(min(pos1,pos2))
+        maxPos = int(max(pos1,pos2))
+        if minPos != maxPos:
+            self.showFid(self.data1D-np.mean(self.data1D[:,minPos:maxPos]))
+
+    def ACMEentropy(self,phaseIn,phaseAll=True):
+        tmp = self.data1D[0]
+        phase0=phaseIn[0]
+        if phaseAll:
+            phase1=phaseIn[1]
+        else:
+            phase1=0.0
+        L = len(tmp)
+        if self.spec==1:
+            x=np.fft.fftshift(np.fft.fftfreq(L,1.0/self.sw))
+        if self.spec>0:
+            s0 = tmp*np.exp(1j*(phase0+phase1*x))
+        else:
+            s0 = np.fft.fftshift(np.fft.fft(tmp))*np.exp(1j*(phase0+phase1*x))
+        s2 = np.real(s0)
+        ds1 = np.abs((s2[3:L]-s2[1:L-2])/2.0)
+        p1 = ds1/sum(ds1)
+        p1[np.where(p1 == 0)] = 1
+        h1  = -p1*np.log(p1)
+        H1  = sum(h1)
+        Pfun = 0.0
+        as1 = s2 - np.abs(s2)
+        sumas   = sum(as1)
+        if (np.real(sumas) < 0): 
+            Pfun = Pfun + sum(as1**2)/4/L**2
+        return H1+1000*Pfun
+
+    def autoPhase(self,phaseNum):
+        if phaseNum == 0:
+            phases = scipy.optimize.fmin(func=self.ACMEentropy,x0=[0],args=(False,))
+        elif phaseNum == 1:
+            phases = scipy.optimize.fmin(func=self.ACMEentropy,x0=[0,0])
+        return phases
+
+    def getDisplayedData(self):
+        if self.plotType==0:
+            return np.real(self.data1D[0])
+        elif self.plotType==1:
+            return np.imag(self.data1D[0])
+        elif self.plotType==2:
+            return np.real(self.data1D[0])
+        elif self.plotType==3:
+            return np.abs(self.data1D[0])      
+
+    def showFid(self, tmpdata=None, extraX=None, extraY=None, extraColor=None,old=False): #display the 1D data
+        if tmpdata is None:
+            tmpdata=self.data1D
+        self.ax.cla()
+        axAdd = 0
+        if self.spec == 1:
+            if self.ppm:
+                axAdd = (self.freq-self.ref)/self.ref*1e6
+                axMult = 1e6/self.ref
+            else:
+                axMult = 1.0/(1000.0**self.axType)
+        elif self.spec == 0:
+            axMult = 1000.0**self.axType
+        axAdd2 = 0
+        if self.spec2 == 1:
+            if self.ppm2:
+                axAdd2 = (self.freq2-self.ref2)/self.ref2*1e6
+                axMult2 = 1e6/self.ref2
+            else:
+                axMult2 = 1.0/(1000.0**self.axType2)
+        elif self.spec2 == 0:
+            axMult2 = 1000.0**self.axType2
+        x=self.xax*axMult+axAdd
+        y=self.xax2*axMult2+axAdd2
+        if old:
+            if (self.plotType==0):
+                for num in range(len(self.data1D)):
+                    self.ax.plot(x,y[num]*np.ones(len(x)),np.real(self.data1D[num]),c='k',alpha=0.2)
+            elif(self.plotType==1):
+                for num in range(len(self.data1D)):
+                    self.ax.plot(x,y[num]*np.ones(len(x)),np.imag(self.data1D[num]),c='k',alpha=0.2)
+            elif(self.plotType==2):
+                for num in range(len(self.data1D)):
+                    self.ax.plot(x,y[num]*np.ones(len(x)),np.real(self.data1D[num]),c='k',alpha=0.2)
+            elif(self.plotType==3):
+                for num in range(len(self.data1D)):
+                    self.ax.plot(x,y[num]*np.ones(len(x)),np.abs(self.data1D[num]),c='k',alpha=0.2)
+        if (extraX is not None):
+            for num in range(len(extraY)):
+                self.ax.plot(extraX[0]*axMult+axAdd,y[num]*np.ones(len(extraX[0])),extraY[num],c=extraColor[0])
+
+        self.line = []
+        if (self.plotType==0):
+            for num in range(len(tmpdata)):
+                self.line.append(self.ax.plot(x,y[num]*np.ones(len(x)),np.real(tmpdata[num]),c='b'))
+        elif(self.plotType==1):
+            for num in range(len(tmpdata)):
+                self.line.append(self.ax.plot(x,y[num]*np.ones(len(x)),np.imag(tmpdata[num]),c='b'))
+        elif(self.plotType==2):
+            for num in range(len(tmpdata)):
+                self.ax.plot(x,y[num]*np.ones(len(x)),np.imag(tmpdata[num]),c='y')
+                self.line.append(self.ax.plot(x,y[num]*np.ones(len(x)),np.real(tmpdata[num]),c='b'))
+        elif(self.plotType==3):
+            for num in range(len(tmpdata)):
+                self.line.append(self.ax.plot(x,y[num]*np.ones(len(x)),np.abs(tmpdata[num]),c='b'))
+        if self.spec==0:
+            if self.axType == 0:
+                self.ax.set_xlabel('Time [s]')
+            elif self.axType == 1:
+                self.ax.set_xlabel('Time [ms]')
+            elif self.axType == 2:
+                self.ax.set_xlabel(r'Time [$\mu$s]')
+            else:
+                self.ax.set_xlabel('User defined')
+        elif self.spec==1:
+            if self.ppm:
+                self.ax.set_xlabel('Frequency [ppm]')
+            else:
+                if self.axType == 0:
+                    self.ax.set_xlabel('Frequency [Hz]')
+                elif self.axType == 1:
+                    self.ax.set_xlabel('Frequency [kHz]')
+                elif self.axType == 2:
+                    self.ax.set_xlabel('Frequency [MHz]')
+                else:
+                    self.ax.set_xlabel('User defined')
+        else:
+            self.ax.set_xlabel('')
+        if self.spec2==0:
+            if self.axType2 == 0:
+                self.ax.set_ylabel('Time [s]')
+            elif self.axType2 == 1:
+                self.ax.set_ylabel('Time [ms]')
+            elif self.axType2 == 2:
+                self.ax.set_ylabel(r'Time [$\mu$s]')
+            else:
+                self.ax.set_ylabel('User defined')
+        elif self.spec2==1:
+            if self.ppm2:
+                self.ax.set_ylabel('Frequency [ppm]')
+            else:
+                if self.axType2 == 0:
+                    self.ax.set_ylabel('Frequency [Hz]')
+                elif self.axType2 == 1:
+                    self.ax.set_ylabel('Frequency [kHz]')
+                elif self.axType2 == 2:
+                    self.ax.set_ylabel('Frequency [MHz]')
+                else:
+                    self.ax.set_ylabel('User defined')
+        else:
+            self.ax.set_ylabel('')
+        if self.spec:
+            self.ax.set_xlim(self.xmaxlim,self.xminlim)
+        else:
+            self.ax.set_xlim(self.xminlim,self.xmaxlim)
+        if self.spec2:
+            self.ax.set_ylim(self.ymaxlim,self.yminlim)
+        else:
+            self.ax.set_ylim(self.yminlim,self.ymaxlim)
+        self.ax.get_xaxis().get_major_formatter().set_powerlimits((-2, 2))
+        self.ax.get_yaxis().get_major_formatter().set_powerlimits((-2, 2))
+        self.ax.w_zaxis.line.set_lw(0.)
+        self.ax.set_zticks([])
+        self.ax.grid(False)
+        self.ax.xaxis.pane.set_edgecolor('white')
+        self.ax.yaxis.pane.set_edgecolor('white')
+        self.ax.zaxis.pane.set_edgecolor('white')
+        self.ax.xaxis.pane.fill = False
+        self.ax.yaxis.pane.fill = False
+        self.ax.zaxis.pane.fill = False
+        self.canvas.draw()
+
+    def plotReset(self): #set the plot limits to min and max values
+        axAdd = 0
+        if self.spec == 1:
+            if self.ppm:
+                axAdd = (self.freq-self.ref)/self.ref*1e6
+                axMult = 1e6/self.ref
+            else:
+                axMult = 1.0/(1000.0**self.axType)
+        elif self.spec == 0:
+            axMult = 1000.0**self.axType
+        self.xminlim=min(self.xax*axMult+axAdd)
+        self.xmaxlim=max(self.xax*axMult+axAdd)
+        axAdd2 = 0
+        if self.spec2 == 1:
+            if self.ppm2:
+                axAdd2 = (self.freq2-self.ref2)/self.ref2*1e6
+                axMult2 = 1e6/self.ref2
+            else:
+                axMult2 = 1.0/(1000.0**self.axType2)
+        elif self.spec2 == 0:
+            axMult2 = 1000.0**self.axType2
+        self.yminlim=min(self.xax2*axMult2+axAdd2)
+        self.ymaxlim=max(self.xax2*axMult2+axAdd2)
+        if self.spec:
+            self.ax.set_xlim(self.xmaxlim,self.xminlim)
+        else:
+            self.ax.set_xlim(self.xminlim,self.xmaxlim)
+        if self.spec2:
+            self.ax.set_ylim(self.ymaxlim,self.yminlim)
+        else:
+            self.ax.set_ylim(self.yminlim,self.ymaxlim)

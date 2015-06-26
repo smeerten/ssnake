@@ -23,7 +23,9 @@ class Plot1DFrame(Frame):
             gs = gridspec.GridSpec(2, 2,width_ratios=[3,1],height_ratios=[1,3])
             self.ax = self.fig.add_subplot(gs[2])
             self.x_ax = self.fig.add_subplot(gs[0],sharex=self.ax)
-            self.y_ax = self.fig.add_subplot(gs[3],sharey=self.ax) 
+            self.y_ax = self.fig.add_subplot(gs[3],sharey=self.ax)
+        elif isinstance(self,spectrum_classes.CurrentSkewed):
+            self.ax = self.fig.add_subplot(1, 1, 1, projection='3d')
         else:
             self.ax = self.fig.add_subplot(111) 
         self.canvas = FigureCanvasTkAgg(self.fig, master=self)
@@ -46,6 +48,7 @@ class Plot1DFrame(Frame):
         self.canvas.mpl_connect('scroll_event', self.scroll)
         #variables to be initialized
         self.spec = 0
+        self.spec2 = 0
 
     def plotReset(self): #this function needs to be overriden by the classes who inherit from Plot1DFrame
         pass
@@ -76,7 +79,10 @@ class Plot1DFrame(Frame):
             width = width*0.9**event.step
             self.ymaxlim = middle+width/2.0
             self.yminlim = middle-width/2.0
-            self.ax.set_ylim(self.yminlim,self.ymaxlim)
+            if self.spec2 > 0:
+                self.ax.set_ylim(self.ymaxlim,self.yminlim)
+            else:
+                self.ax.set_ylim(self.yminlim,self.ymaxlim)
         self.canvas.draw()
 
     def buttonPress(self,event):
@@ -132,7 +138,10 @@ class Plot1DFrame(Frame):
                         self.ax.set_xlim(self.xmaxlim,self.xminlim)
                     else:
                         self.ax.set_xlim(self.xminlim,self.xmaxlim)
-                    self.ax.set_ylim(self.yminlim,self.ymaxlim)
+                    if self.spec2 > 0:
+                        self.ax.set_ylim(self.ymaxlim,self.yminlim)
+                    else:
+                        self.ax.set_ylim(self.yminlim,self.ymaxlim)
                 self.zoomX1=None
                 self.zoomX2=None #WF: should also be cleared, memory of old zoom
                 self.zoomY1=None
@@ -155,7 +164,10 @@ class Plot1DFrame(Frame):
                 self.ax.set_xlim(self.xmaxlim,self.xminlim)
             else:
                 self.ax.set_xlim(self.xminlim,self.xmaxlim)
-            self.ax.set_ylim(self.yminlim,self.ymaxlim)
+            if self.spec2 > 0:
+                self.ax.set_ylim(self.ymaxlim,self.yminlim)
+            else:
+                self.ax.set_ylim(self.yminlim,self.ymaxlim)
             self.canvas.draw()
         elif self.peakPick:
             if self.rect[0] is not None:
