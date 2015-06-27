@@ -1457,16 +1457,30 @@ class ShiftDataWindow(Frame): #a window for shifting the data
         self.window.resizable(width=FALSE, height=FALSE)
         self.frame1 = Frame(self.window)
         self.frame1.grid(row=0)
-        Label(self.frame1,text="number of points to shift").grid(row=0,column=0,columnspan=2)
+        Label(self.frame1,text="number of points to shift").grid(row=0,column=1)
+        tk.Button(self.frame1,text="<",repeatdelay=100, repeatinterval=1,command=self.stepDownShift).grid(row=1,column=0)
+        tk.Button(self.frame1,text=">",repeatdelay=100, repeatinterval=1,command=self.stepUpShift).grid(row=1,column=2)
         self.posEntry = Entry(self.frame1,textvariable=self.shiftVal,justify="center")
         self.posEntry.bind("<Return>", self.shiftPreview)
         self.posEntry.bind("<KP_Enter>", self.shiftPreview)
-        self.posEntry.grid(row=1,column=0,columnspan=2)
+        self.posEntry.grid(row=1,column=1)
         self.frame2 = Frame(self.window)
         self.frame2.grid(row=1)
         Button(self.frame2, text="Apply",command=self.applyShiftAndClose).grid(row=0,column=0)
         Button(self.frame2, text="Cancel",command=self.cancelAndClose).grid(row=0,column=1)
- 
+
+    def stepUpShift(self, *args):
+        shift = int(round(safeEval(self.shiftVal.get())))
+        shift = shift+1
+        self.shiftVal.set(str(shift))
+        self.shiftPreview()
+
+    def stepDownShift(self, *args):
+        shift = int(round(safeEval(self.shiftVal.get())))
+        shift = shift-1
+        self.shiftVal.set(str(shift))
+        self.shiftPreview()
+
     def shiftPreview(self, *args): #preview a shifted spectrum from the entry widget
         shift = int(round(safeEval(self.shiftVal.get())))
         self.current.setShiftPreview(shift)

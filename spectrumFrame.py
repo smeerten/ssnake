@@ -69,7 +69,7 @@ class Plot1DFrame(Frame):
             width = width*0.9**event.step
             self.xmaxlim = middle+width/2.0
             self.xminlim = middle-width/2.0
-            if self.spec > 0:
+            if self.spec > 0 and not isinstance(self,spectrum_classes.CurrentArrayed):
                 self.ax.set_xlim(self.xmaxlim,self.xminlim)
             else:
                 self.ax.set_xlim(self.xminlim,self.xmaxlim)
@@ -134,7 +134,7 @@ class Plot1DFrame(Frame):
                     self.xmaxlim=max([self.zoomX1,self.zoomX2])
                     self.yminlim=min([self.zoomY1,self.zoomY2])
                     self.ymaxlim=max([self.zoomY1,self.zoomY2])
-                    if self.spec > 0:
+                    if self.spec > 0 and not isinstance(self,spectrum_classes.CurrentContour):
                         self.ax.set_xlim(self.xmaxlim,self.xminlim)
                     else:
                         self.ax.set_xlim(self.xminlim,self.xmaxlim)
@@ -160,7 +160,7 @@ class Plot1DFrame(Frame):
             self.xminlim = self.xminlim-diffx
             self.ymaxlim = self.ymaxlim-diffy
             self.yminlim = self.yminlim-diffy
-            if self.spec > 0:
+            if self.spec > 0 and not isinstance(self,spectrum_classes.CurrentArrayed):
                 self.ax.set_xlim(self.xmaxlim,self.xminlim)
             else:
                 self.ax.set_xlim(self.xminlim,self.xmaxlim)

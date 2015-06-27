@@ -229,12 +229,22 @@ class Spectrum(object):
     def shiftData(self,shift,axes):
         copyData=copy.deepcopy(self)
         returnValue = lambda self: self.restoreData(copyData, lambda self: self.shiftData(shift,axes))
-        self.data = np.roll(self.data,shift,axes)
-        if shift < 0:
-            slicing = (slice(None),) * axes + (slice(shift,None),) + (slice(None),)*(self.dim-1-axes)
+        if self.spec[axes] > 0:
+            self.fourier(axes,tmp=True)
+            self.data = np.roll(self.data,shift,axes)
+            if shift < 0:
+                slicing = (slice(None),) * axes + (slice(shift,None),) + (slice(None),)*(self.dim-1-axes)
+            else:
+                slicing = (slice(None),) * axes + (slice(None,shift),) + (slice(None),)*(self.dim-1-axes)
+            self.data[slicing]=self.data[slicing]*0
+            self.fourier(axes,tmp=True)
         else:
-            slicing = (slice(None),) * axes + (slice(None,shift),) + (slice(None),)*(self.dim-1-axes)
-        self.data[slicing]=self.data[slicing]*0
+            self.data = np.roll(self.data,shift,axes)
+            if shift < 0:
+                slicing = (slice(None),) * axes + (slice(shift,None),) + (slice(None),)*(self.dim-1-axes)
+            else:
+                slicing = (slice(None),) * axes + (slice(None,shift),) + (slice(None),)*(self.dim-1-axes)
+            self.data[slicing]=self.data[slicing]*0
         return returnValue
 
     def dcOffset(self,offset):
@@ -364,12 +374,16 @@ class Current1D(Plot1DFrame):
         phase1=float(phase1in)
         if self.spec==0:
             tmpdata=self.fourierLocal(self.data1D,0)
-            tmpdata=tmpdata*np.exp(phase0*1j)
-            tmpdata=tmpdata*np.exp(np.fft.fftshift(np.fft.fftfreq(len(tmpdata),1.0/self.sw))*phase1*1j)
-            tmpdata=self.fourierLocal(tmpdata,1)
         else:
-            tmpdata=self.data1D*np.exp(phase0*1j)
-            tmpdata=tmpdata*np.exp(np.fft.fftshift(np.fft.fftfreq(len(tmpdata),1.0/self.sw))*phase1*1j)
+            tmpdata = self.data1D
+        tmpdata=tmpdata*np.exp(phase0*1j)
+        if len(self.data1D.shape) > 1:
+            mult = np.repeat([np.exp(np.fft.fftshift(np.fft.fftfreq(len(tmpdata[0]),1.0/self.sw))*phase1*1j)],len(tmpdata),axis=0)
+        else:
+            mult = np.exp(np.fft.fftshift(np.fft.fftfreq(len(tmpdata),1.0/self.sw))*phase1*1j)
+        tmpdata=tmpdata*mult
+        if self.spec==0:
+            tmpdata=self.fourierLocal(tmpdata,1)
         self.showFid(tmpdata)
 
     def applyPhase(self, phase0, phase1):# apply the phase to the actual data
@@ -392,36 +406,44 @@ class Current1D(Plot1DFrame):
         self.upd()
         self.showFid()
         return returnValue
-
+    
     def fourierLocal(self, fourData, spec): #fourier the local data for other functions
-        ax = len(self.data1D.shape)-1
+        ax = len(fourData.shape)-1
+        a = fourData
         if spec==0:
+            if not self.wholeEcho:
+                slicing = (slice(None),) * ax + (0,)
+                fourData[slicing]= fourData[slicing]*0.5
             fourData=np.fft.fftshift(np.fft.fftn(fourData,axes=[ax]),axes=ax)
         else:
             fourData=np.fft.ifftn(np.fft.ifftshift(fourData,axes=ax),axes=[ax])
+            if not self.wholeEcho:
+                slicing = (slice(None),) * ax + (0,) 
+                fourData[slicing]= fourData[slicing]*2.0
         return fourData
 
     def apodPreview(self,lor=None,gauss=None, cos2=None, hamming=None ,shift=0.0,shifting=0.0,shiftingAxes=None): #display the 1D data including the apodization function
         if shiftingAxes is not None:
             if shiftingAxes == self.axes:
-                print('shiftingAxes cannot be axes')
+                print('shiftingAxes cannot be equal to axes')
                 return
             elif shiftingAxes < self.axes:
                 shift += shifting*self.locList[shiftingAxes]
             else:
                 shift += shifting*self.locList[shiftingAxes-1]
-        t=np.arange(0,len(self.data1D))/(self.sw)
+        length = len(self.data1D)
+        t=np.arange(0,length)/(self.sw)
         t2=t-shift
-        x=np.ones(len(self.data1D))
+        x=np.ones(length)
         if lor is not None:
             x=x*np.exp(-lor*abs(t2))
         if gauss is not None:
             x=x*np.exp(-(gauss*t2)**2)
         if cos2 is not None:
-            x=x*(np.cos(cos2*(-0.5*shift*np.pi*self.sw/len(self.data1D)+np.linspace(0,0.5*np.pi,len(self.data1D))))**2)
+            x=x*(np.cos(cos2*(-0.5*shift*np.pi*self.sw/length+np.linspace(0,0.5*np.pi,len(self.data1D))))**2)
         if hamming is not None:
             alpha = 0.53836 # constant for hamming window
-            x=x*(alpha+(1-alpha)*np.cos(hamming*(-0.5*shift*np.pi*self.sw/len(self.data1D)+np.linspace(0,np.pi,len(self.data1D)))))
+            x=x*(alpha+(1-alpha)*np.cos(hamming*(-0.5*shift*np.pi*self.sw/length+np.linspace(0,np.pi,length))))
         if self.wholeEcho:
             x[-1:-(len(x)/2+1):-1]=x[:len(x)/2]
         self.ax.cla()
@@ -465,22 +487,42 @@ class Current1D(Plot1DFrame):
         return returnValue
 
     def setSizePreview(self,size): #set size only on local data
-        if size > len(self.data1D):
+        if len(self.data1D.shape) > 1:
+            length = len(self.data1D[0])
+        else:
+            length = len(self.data1D)
+        if size > length:
             if self.wholeEcho:
-                tmpdata = np.array_split(self.data1D,2)
-                self.data1D = np.concatenate((np.pad(tmpdata[0],(0,size-len(self.data1D)),'constant',constant_values=0),tmpdata[1]))
+                tmpdata = np.array_split(self.data1D,2,axis=(len(self.data1D.shape)-1))
+                if len(self.data1D.shape) > 1:
+                    self.data1D = np.concatenate((np.pad(tmpdata[0],((0,0),(0,size-length)),'constant',constant_values=0),tmpdata[1]),axis=1)
+                else:
+                    self.data1D = np.concatenate((np.pad(tmpdata[0],(0,size-length),'constant',constant_values=0),tmpdata[1]))
             else:
-                self.data1D = np.pad(self.data1D,(0,size-len(self.data1D)),'constant',constant_values=0)
+                if len(self.data1D.shape) > 1:
+                    self.data1D = np.pad(self.data1D,((0,0),(0,size-length)),'constant',constant_values=0)
+                else:
+                    self.data1D = np.pad(self.data1D,(0,size-length),'constant',constant_values=0)
         else:
             if self.wholeEcho:
-                tmpdata = np.array_split(self.data1D,2)
-                self.data1D = np.concatenate((tmpdata[:np.ceil(size/2.0)],tmpdata[size/2:]))
+                tmpdata = np.array_split(self.data1D,2,axis=(len(self.data1D.shape)-1))
+                if len(self.data1D.shape) > 1:
+                    self.data1D = np.concatenate((tmpdata[:,:np.ceil(size/2.0)],tmpdata[:,size/2:]),axis=1)
+                else:
+                    self.data1D = np.concatenate((tmpdata[:np.ceil(size/2.0)],tmpdata[size/2:]))
             else:
-                self.data1D = self.data1D[:size]
+                if len(self.data1D.shape) > 1:
+                    self.data1D = self.data1D[:,:size]
+                else:
+                    self.data1D = self.data1D[:size]
+        if len(self.data1D.shape) > 1:
+            length = len(self.data1D[0])
+        else:
+            length = len(self.data1D)
         if self.spec==0:
-            self.xax=np.arange(len(self.data1D))/self.sw
+            self.xax=np.arange(length)/self.sw
         elif self.spec==1:
-            self.xax=np.fft.fftshift(np.fft.fftfreq(len(self.data1D),1.0/self.sw)) 
+            self.xax=np.fft.fftshift(np.fft.fftfreq(length,1.0/self.sw))
         self.plotReset()
         self.showFid()
         self.upd()
@@ -506,7 +548,10 @@ class Current1D(Plot1DFrame):
         return returnValue
 
     def setSwapEchoPreview(self,idx):
-        self.data1D = np.concatenate((self.data1D[idx:],self.data1D[:idx]))
+        if len(self.data1D.shape) > 1:
+            self.data1D = np.concatenate((self.data1D[:,idx:],self.data1D[:,:idx]),axis=1)
+        else:
+            self.data1D = np.concatenate((self.data1D[idx:],self.data1D[:idx]))
         self.plotReset()
         self.showFid()
         self.upd()
@@ -524,25 +569,31 @@ class Current1D(Plot1DFrame):
         self.upd()
         self.showFid()
         return returnValue
-        
+
     def setShiftPreview(self,shift):
-        tmpData = np.roll(self.data1D,shift)
+        tmpData = self.data1D
+        dim = len(self.data1D.shape)
+        if self.spec > 0:
+            tmpData=self.fourierLocal(tmpData,1)
+        tmpData = np.roll(tmpData,shift)
         if shift<0:
-            tmpData[shift:] = tmpData[shift:]*0
+            tmpData[(slice(None),)*(dim-1)+(slice(shift,None),)] = tmpData[(slice(None),)*(dim-1)+(slice(shift,None),)]*0
         else:
-            tmpData[:shift] = tmpData[:shift]*0
+            tmpData[(slice(None),)*(dim-1)+(slice(None,shift),)] = tmpData[(slice(None),)*(dim-1)+(slice(None,shift),)]*0
+        if self.spec > 0:
+           tmpData=self.fourierLocal(tmpData,0)
         self.showFid(tmpData)
 
     def dcOffset(self,pos1,pos2):
         minPos = int(min(pos1,pos2))
         maxPos = int(max(pos1,pos2))
         if minPos != maxPos:
-            self.showFid(self.data1D-np.mean(self.data1D[minPos:maxPos]))
+            self.showFid(self.data1D-np.mean(self.data1D[(len(self.data1D.shape)-1)*(slice(None),)+(slice(minPos,maxPos),)]))
             
     def applydcOffset(self,pos1,pos2):
         minPos = int(min(pos1,pos2))
         maxPos = int(max(pos1,pos2))
-        returnValue = self.data.dcOffset(-np.mean(self.data1D[minPos:maxPos]))
+        returnValue = self.data.dcOffset(-np.mean(self.data1D[(len(self.data1D.shape)-1)*(slice(None),)+(slice(minPos,maxPos),)]))
         self.upd()
         self.showFid()
         return returnValue
@@ -569,19 +620,29 @@ class Current1D(Plot1DFrame):
         self.showFid()
         return returnValue
     
+    def shearing(self,shear,axes,axes2):
+        returnValue = self.data.shear(shear,axes,axes2)
+        self.upd()
+        self.showFid()
+        return returnValue
+    
     def ACMEentropy(self,phaseIn,phaseAll=True):
+        if len(self.data1D.shape) > 1:
+            tmp = self.data1D[0]
+        else:
+            tmp = self.data1D
         phase0=phaseIn[0]
         if phaseAll:
             phase1=phaseIn[1]
         else:
             phase1=0.0
-        L = len(self.data1D)
+        L = len(tmp)
         if self.spec==1:
             x=np.fft.fftshift(np.fft.fftfreq(L,1.0/self.sw))
         if self.spec>0:
-            s0 = self.data1D*np.exp(1j*(phase0+phase1*x))
+            s0 = tmp*np.exp(1j*(phase0+phase1*x))
         else:
-            s0 = np.fft.fftshift(np.fft.fft(self.data1D))*np.exp(1j*(phase0+phase1*x))
+            s0 = np.fft.fftshift(np.fft.fft(tmp))*np.exp(1j*(phase0+phase1*x))
         s2 = np.real(s0)
         ds1 = np.abs((s2[3:L]-s2[1:L-2])/2.0)
         p1 = ds1/sum(ds1)
@@ -651,14 +712,18 @@ class Current1D(Plot1DFrame):
         return returnValue
     
     def getDisplayedData(self):
+        if len(self.data1D.shape) > 1:
+            tmp = self.data1D[0]
+        else:
+            tmp = self.data1D
         if self.plotType==0:
-            return np.real(self.data1D)
+            return np.real(tmp)
         elif self.plotType==1:
-            return np.imag(self.data1D)
+            return np.imag(tmp)
         elif self.plotType==2:
-            return np.real(self.data1D)
+            return np.real(tmp)
         elif self.plotType==3:
-            return np.abs(self.data1D)      
+            return np.abs(tmp)      
 
     def showFid(self, tmpdata=None, extraX=None, extraY=None, extraColor=None,old=False): #display the 1D data
         if tmpdata is None:
@@ -820,46 +885,6 @@ class CurrentStacked(Current1D):
         self.upd()
         self.showFid()
 
-    def ACMEentropy(self,phaseIn,phaseAll=True):
-        tmp = self.data1D[0]
-        phase0=phaseIn[0]
-        if phaseAll:
-            phase1=phaseIn[1]
-        else:
-            phase1=0.0
-        L = len(tmp)
-        if self.spec==1:
-            x=np.fft.fftshift(np.fft.fftfreq(L,1.0/self.sw))
-        if self.spec>0:
-            s0 = tmp*np.exp(1j*(phase0+phase1*x))
-        else:
-            s0 = np.fft.fftshift(np.fft.fft(tmp))*np.exp(1j*(phase0+phase1*x))
-        s2 = np.real(s0)
-        ds1 = np.abs((s2[3:L]-s2[1:L-2])/2.0)
-        p1 = ds1/sum(ds1)
-        p1[np.where(p1 == 0)] = 1
-        h1  = -p1*np.log(p1)
-        H1  = sum(h1)
-        Pfun = 0.0
-        as1 = s2 - np.abs(s2)
-        sumas   = sum(as1)
-        if (np.real(sumas) < 0): 
-            Pfun = Pfun + sum(as1**2)/4/L**2
-        return H1+1000*Pfun
-        
-    def setPhaseInter(self, phase0in, phase1in): #interactive changing the phase without editing the actual data
-        phase0=float(phase0in)
-        phase1=float(phase1in)
-        if self.spec==0:
-            tmpdata=self.fourierLocal(self.data1D,0)
-            tmpdata=tmpdata*np.exp(phase0*1j)
-            tmpdata=tmpdata*np.repeat([np.exp(np.fft.fftshift(np.fft.fftfreq(len(tmpdata[0]),1.0/self.sw))*phase1*1j)],len(tmpdata),axis=0)
-            tmpdata=self.fourierLocal(tmpdata,1)
-        else:
-            tmpdata=self.data1D*np.exp(phase0*1j)
-            tmpdata=tmpdata*np.repeat([np.exp(np.fft.fftshift(np.fft.fftfreq(len(tmpdata[0]),1.0/self.sw))*phase1*1j)],len(tmpdata),axis=0)
-        self.showFid(tmpdata)
-
     def apodPreview(self,lor=None,gauss=None, cos2=None, hamming=None,shift=0.0,shifting=0.0,shiftingAxes=None): #display the 1D data including the apodization function
         t=np.arange(0,len(self.data1D[0]))/(self.sw)
         if shiftingAxes is not None:
@@ -880,7 +905,7 @@ class CurrentStacked(Current1D):
                         x2=x2*(np.cos(cos2*(-0.5*shift1*np.pi*self.sw/len(self.data1D[0])+np.linspace(0,0.5*np.pi,len(self.data1D[0]))))**2)
                     if hamming is not None:
                         alpha = 0.53836 # constant for hamming window
-                        x2=x2*(alpha+(1-alpha)*np.cos(hamming*(-0.5*shift1*np.pi*self.sw/len(self.data1D)+np.linspace(0,np.pi,len(self.data1D)))))
+                        x2=x2*(alpha+(1-alpha)*np.cos(hamming*(-0.5*shift1*np.pi*self.sw/len(self.data1D[0])+np.linspace(0,np.pi,len(self.data1D[0])))))
                     if self.wholeEcho:
                         x2[2-1:-(len(x2)/2+1):-1]=x2[:len(x2)/2]
                     x[i] = x2
@@ -901,7 +926,7 @@ class CurrentStacked(Current1D):
                     x=x*(np.cos(cos2*(-0.5*shift*np.pi*self.sw/len(self.data1D[0])+np.linspace(0,0.5*np.pi,len(self.data1D[0]))))**2)
                 if hamming is not None:
                     alpha = 0.53836 # constant for hamming window
-                    x=x*(alpha+(1-alpha)*np.cos(hamming*(-0.5*shift*np.pi*self.sw/len(self.data1D)+np.linspace(0,np.pi,len(self.data1D)))))
+                    x=x*(alpha+(1-alpha)*np.cos(hamming*(-0.5*shift*np.pi*self.sw/len(self.data1D[0])+np.linspace(0,np.pi,len(self.data1D[0])))))
                 if self.wholeEcho:
                     x[-1:-(len(x)/2+1):-1]=x[:len(x)/2]
                 x = np.repeat([x],len(self.data1D),axis=0)
@@ -916,7 +941,7 @@ class CurrentStacked(Current1D):
                 x=x*(np.cos(cos2*(-0.5*shift*np.pi*self.sw/len(self.data1D[0])+np.linspace(0,0.5*np.pi,len(self.data1D[0]))))**2)
             if hamming is not None:
                 alpha = 0.53836 # constant for hamming window
-                x=x*(alpha+(1-alpha)*np.cos(hamming*(-0.5*shift*np.pi*self.sw/len(self.data1D)+np.linspace(0,np.pi,len(self.data1D)))))
+                x=x*(alpha+(1-alpha)*np.cos(hamming*(-0.5*shift*np.pi*self.sw/len(self.data1D[0])+np.linspace(0,np.pi,len(self.data1D[0])))))
             if self.wholeEcho:
                 x[-1:-(len(x)/2+1):-1]=x[:len(x)/2]
             x = np.repeat([x],len(self.data1D),axis=0)
@@ -940,61 +965,6 @@ class CurrentStacked(Current1D):
         else:
             self.showFid(y)
 
-    def setSizePreview(self,size): #set size only on local data
-        if size > len(self.data1D[0]):
-            if self.wholeEcho:
-                tmpdata = np.array_split(self.data1D,2,axis=1)
-                self.data1D = np.concatenate((np.pad(tmpdata[0],((0,0),(0,size-len(self.data1D[0]))),'constant',constant_values=0),tmpdata[1]),axis=1)
-            else:
-                self.data1D = np.pad(self.data1D,((0,0),(0,size-len(self.data1D[0]))),'constant',constant_values=0)
-        else:
-            if self.wholeEcho:
-                tmpdata = np.array_split(self.data1D,2,axis=1)
-                self.data1D = np.concatenate((tmpdata[:,:np.ceil(size/2.0)],tmpdata[:,size/2:]),axis=1)
-            else:
-                self.data1D = self.data1D[:,:size]
-        if self.spec==0:
-            self.xax=np.arange(len(self.data1D[0]))/self.sw
-        elif self.spec==1:
-            self.xax=np.fft.fftshift(np.fft.fftfreq(len(self.data1D[0]),1.0/self.sw)) 
-        self.plotReset()
-        self.showFid()
-        self.upd()
-
-    def setSwapEchoPreview(self,idx):
-        self.data1D = np.concatenate((self.data1D[:,idx:],self.data1D[:,:idx]),axis=1)
-        self.plotReset()
-        self.showFid()
-        self.upd()
-        
-    def setShiftPreview(self,shift):
-        tmpData = np.roll(self.data1D,shift)
-        if shift<0:
-            tmpData[:,shift:] = tmpData[:,shift:]*0
-        else:
-            tmpData[:,:shift] = tmpData[:,:shift]*0
-        self.showFid(tmpData)
-
-    def dcOffset(self,pos1,pos2):
-        minPos = int(min(pos1,pos2))
-        maxPos = int(max(pos1,pos2))
-        if minPos != maxPos:
-            self.showFid(self.data1D-np.mean(self.data1D[:,minPos:maxPos]))
-            
-    def applydcOffset(self,pos1,pos2):
-        minPos = int(min(pos1,pos2))
-        maxPos = int(max(pos1,pos2))
-        returnValue = self.data.dcOffset(-np.mean(self.data1D[:,minPos:maxPos]))
-        self.upd()
-        self.showFid()
-        return returnValue
-
-    def shearing(self,shear,axes,axes2):
-        returnValue = self.data.shear(shear,axes,axes2)
-        self.upd()
-        self.showFid()
-        return returnValue
-    
     def setSpacing(self, spacing):
         self.spacing = spacing
         self.showFid()
@@ -1013,17 +983,7 @@ class CurrentStacked(Current1D):
         elif self.plotType==3:
             difference = np.amax(np.abs(difference))
             amp = np.amax(np.abs(self.data1D))-np.amin(np.abs(self.data1D))
-        self.spacing = difference + 0.1*amp
-
-    def getDisplayedData(self):
-        if self.plotType==0:
-            return np.real(self.data1D[0])
-        elif self.plotType==1:
-            return np.imag(self.data1D[0])
-        elif self.plotType==2:
-            return np.real(self.data1D[0])
-        elif self.plotType==3:
-            return np.abs(self.data1D[0])      
+        self.spacing = difference + 0.1*amp   
 
     def showFid(self, tmpdata=None, extraX=None, extraY=None, extraColor=None,old=False): #display the 1D data
         if tmpdata is None:
@@ -1207,20 +1167,6 @@ class CurrentArrayed(Current1D):
         self.upd()
         self.showFid()
 
-    def setPhaseInter(self, phase0in, phase1in): #interactive changing the phase without editing the actual data
-        phase0=float(phase0in)
-        phase1=float(phase1in)
-        if self.spec==0:
-            tmpdata=self.fourierLocal(self.data1D,0)
-            tmpdata=tmpdata*np.exp(phase0*1j)
-            tmpdata=tmpdata*np.repeat([np.exp(np.fft.fftshift(np.fft.fftfreq(len(tmpdata[0]),1.0/self.sw))*phase1*1j)],len(tmpdata),axis=0)
-            tmpdata=self.fourierLocal(tmpdata,1)
-        else:
-            tmpdata=self.data1D*np.exp(phase0*1j)
-            tmpdata=tmpdata*np.repeat([np.exp(np.fft.fftshift(np.fft.fftfreq(len(tmpdata[0]),1.0/self.sw))*phase1*1j)],len(tmpdata),axis=0)
-        self.showFid(tmpdata)
-
-
     def apodPreview(self,lor=None,gauss=None, cos2=None, hamming=None,shift=0.0,shifting=0.0,shiftingAxes=None): #display the 1D data including the apodization function
         t=np.arange(0,len(self.data1D[0]))/(self.sw)
         if shiftingAxes is not None:
@@ -1241,7 +1187,7 @@ class CurrentArrayed(Current1D):
                         x2=x2*(np.cos(cos2*(-0.5*shift1*np.pi*self.sw/len(self.data1D[0])+np.linspace(0,0.5*np.pi,len(self.data1D[0]))))**2)
                     if hamming is not None:
                         alpha = 0.53836 # constant for hamming window
-                        x2=x2*(alpha+(1-alpha)*np.cos(hamming*(-0.5*shift1*np.pi*self.sw/len(self.data1D)+np.linspace(0,np.pi,len(self.data1D)))))
+                        x2=x2*(alpha+(1-alpha)*np.cos(hamming*(-0.5*shift1*np.pi*self.sw/len(self.data1D[0])+np.linspace(0,np.pi,len(self.data1D[0])))))
                     if self.wholeEcho:
                         x2[2-1:-(len(x2)/2+1):-1]=x2[:len(x2)/2]
                     x[i] = x2
@@ -1300,98 +1246,13 @@ class CurrentArrayed(Current1D):
                 self.showFid(y,[t],x*np.amax(np.abs(self.data1D)),['g'],old=True)
         else:
             self.showFid(y)
-                 
-    def setSizePreview(self,size): #set size only on local data
-        if size > len(self.data1D[0]):
-            if self.wholeEcho:
-                tmpdata = np.array_split(self.data1D,2,axis=1)
-                self.data1D = np.concatenate((np.pad(tmpdata[0],((0,0),(0,size-len(self.data1D[0]))),'constant',constant_values=0),tmpdata[1]),axis=1)
-            else:
-                self.data1D = np.pad(self.data1D,((0,0),(0,size-len(self.data1D[0]))),'constant',constant_values=0)
-        else:
-            if self.wholeEcho:
-                tmpdata = np.array_split(self.data1D,2,axis=1)
-                self.data1D = np.concatenate((tmpdata[:,:np.ceil(size/2.0)],tmpdata[:,size/2:]),axis=1)
-            else:
-                self.data1D = self.data1D[:,:size]
-        if self.spec==0:
-            self.xax=np.arange(len(self.data1D[0]))/self.sw
-        elif self.spec==1:
-            self.xax=np.fft.fftshift(np.fft.fftfreq(len(self.data1D[0]),1.0/self.sw)) 
-        self.plotReset()
-        self.showFid()
-        self.upd()
-
-    def setSwapEchoPreview(self,idx):
-        self.data1D = np.concatenate((self.data1D[:,idx:],self.data1D[:,:idx]),axis=1)
-        self.plotReset()
-        self.showFid()
-        self.upd()
-        
-    def setShiftPreview(self,shift):
-        tmpData = np.roll(self.data1D,shift)
-        if shift<0:
-            tmpData[:,shift:] = tmpData[:,shift:]*0
-        else:
-            tmpData[:,:shift] = tmpData[:,:shift]*0
-        self.showFid(tmpData)
-
-    def dcOffset(self,pos1,pos2):
-        minPos = int(min(pos1,pos2))
-        maxPos = int(max(pos1,pos2))
-        if minPos != maxPos:
-            self.showFid(self.data1D-np.mean(self.data1D[:,minPos:maxPos]))
-
-    def ACMEentropy(self,phaseIn,phaseAll=True):
-        tmp = self.data1D[0]
-        phase0=phaseIn[0]
-        if phaseAll:
-            phase1=phaseIn[1]
-        else:
-            phase1=0.0
-        L = len(tmp)
-        if self.spec==1:
-            x=np.fft.fftshift(np.fft.fftfreq(L,1.0/self.sw))
-        if self.spec>0:
-            s0 = tmp*np.exp(1j*(phase0+phase1*x))
-        else:
-            s0 = np.fft.fftshift(np.fft.fft(tmp))*np.exp(1j*(phase0+phase1*x))
-        s2 = np.real(s0)
-        ds1 = np.abs((s2[3:L]-s2[1:L-2])/2.0)
-        p1 = ds1/sum(ds1)
-        p1[np.where(p1 == 0)] = 1
-        h1  = -p1*np.log(p1)
-        H1  = sum(h1)
-        Pfun = 0.0
-        as1 = s2 - np.abs(s2)
-        sumas   = sum(as1)
-        if (np.real(sumas) < 0): 
-            Pfun = Pfun + sum(as1**2)/4/L**2
-        return H1+1000*Pfun
-
-    def autoPhase(self,phaseNum):
-        if phaseNum == 0:
-            phases = scipy.optimize.fmin(func=self.ACMEentropy,x0=[0],args=(False,))
-        elif phaseNum == 1:
-            phases = scipy.optimize.fmin(func=self.ACMEentropy,x0=[0,0])
-        return phases
 
     def setSpacing(self, spacing):
         self.spacing = spacing
         self.showFid()
 
     def resetSpacing(self):
-        self.spacing = (self.xax[-1]-self.xax[0])*1.1
-
-    def getDisplayedData(self):
-        if self.plotType==0:
-            return np.real(self.data1D[0])
-        elif self.plotType==1:
-            return np.imag(self.data1D[0])
-        elif self.plotType==2:
-            return np.real(self.data1D[0])
-        elif self.plotType==3:
-            return np.abs(self.data1D[0])      
+        self.spacing = (self.xax[-1]-self.xax[0])*1.1     
 
     def showFid(self, tmpdata=None, extraX=None, extraY=None, extraColor=None,old=False): #display the 1D data
         if tmpdata is None:
@@ -1547,19 +1408,6 @@ class CurrentContour(Current1D):
     def resetLocList(self):
         self.locList = [0]*(len(self.data.data.shape)-2)
 
-    def setPhaseInter(self, phase0in, phase1in): #interactive changing the phase without editing the actual data
-        phase0=float(phase0in)
-        phase1=float(phase1in)
-        if self.spec==0:
-            tmpdata=self.fourierLocal(self.data1D,0)
-            tmpdata=tmpdata*np.exp(phase0*1j)
-            tmpdata=tmpdata*np.repeat([np.exp(np.fft.fftshift(np.fft.fftfreq(len(tmpdata[0]),1.0/self.sw))*phase1*1j)],len(tmpdata),axis=0)
-            tmpdata=self.fourierLocal(tmpdata,1)
-        else:
-            tmpdata=self.data1D*np.exp(phase0*1j)
-            tmpdata=tmpdata*np.repeat([np.exp(np.fft.fftshift(np.fft.fftfreq(len(tmpdata[0]),1.0/self.sw))*phase1*1j)],len(tmpdata),axis=0)
-        self.showFid(tmpdata)
-
 
     def apodPreview(self,lor=None,gauss=None, cos2=None, hamming=None,shift=0.0,shifting=0.0,shiftingAxes=None): #display the 1D data including the apodization function
         t=np.arange(0,len(self.data1D[0]))/(self.sw)
@@ -1581,7 +1429,7 @@ class CurrentContour(Current1D):
                         x2=x2*(np.cos(cos2*(-0.5*shift1*np.pi*self.sw/len(self.data1D[0])+np.linspace(0,0.5*np.pi,len(self.data1D[0]))))**2)
                     if hamming is not None:
                         alpha = 0.53836 # constant for hamming window
-                        x2=x2*(alpha+(1-alpha)*np.cos(hamming*(-0.5*shift1*np.pi*self.sw/len(self.data1D)+np.linspace(0,np.pi,len(self.data1D)))))
+                        x2=x2*(alpha+(1-alpha)*np.cos(hamming*(-0.5*shift1*np.pi*self.sw/len(self.data1D[0])+np.linspace(0,np.pi,len(self.data1D[0])))))
                     if self.wholeEcho:
                         x2[2-1:-(len(x2)/2+1):-1]=x2[:len(x2)/2]
                     x[i] = x2
@@ -1602,7 +1450,7 @@ class CurrentContour(Current1D):
                     x=x*(np.cos(cos2*(-0.5*shift*np.pi*self.sw/len(self.data1D[0])+np.linspace(0,0.5*np.pi,len(self.data1D[0]))))**2)
                 if hamming is not None:
                     alpha = 0.53836 # constant for hamming window
-                    x=x*(alpha+(1-alpha)*np.cos(hamming*(-0.5*shift*np.pi*self.sw/len(self.data1D)+np.linspace(0,np.pi,len(self.data1D)))))
+                    x=x*(alpha+(1-alpha)*np.cos(hamming*(-0.5*shift*np.pi*self.sw/len(self.data1D[0])+np.linspace(0,np.pi,len(self.data1D[0])))))
                 if self.wholeEcho:
                     x[-1:-(len(x)/2+1):-1]=x[:len(x)/2]
                 x = np.repeat([x],len(self.data1D),axis=0)
@@ -1617,7 +1465,7 @@ class CurrentContour(Current1D):
                 x=x*(np.cos(cos2*(-0.5*shift*np.pi*self.sw/len(self.data1D[0])+np.linspace(0,0.5*np.pi,len(self.data1D[0]))))**2)
             if hamming is not None:
                 alpha = 0.53836 # constant for hamming window
-                x=x*(alpha+(1-alpha)*np.cos(hamming*(-0.5*shift*np.pi*self.sw/len(self.data1D)+np.linspace(0,np.pi,len(self.data1D)))))
+                x=x*(alpha+(1-alpha)*np.cos(hamming*(-0.5*shift*np.pi*self.sw/len(self.data1D[0])+np.linspace(0,np.pi,len(self.data1D[0])))))
             if self.wholeEcho:
                 x[-1:-(len(x)/2+1):-1]=x[:len(x)/2]
             x = np.repeat([x],len(self.data1D),axis=0)
@@ -1630,91 +1478,6 @@ class CurrentContour(Current1D):
         else:
             y= y*x
         self.showFid(y)
-                 
-    def setSizePreview(self,size): #set size only on local data
-        if size > len(self.data1D[0]):
-            if self.wholeEcho:
-                tmpdata = np.array_split(self.data1D,2,axis=1)
-                self.data1D = np.concatenate((np.pad(tmpdata[0],((0,0),(0,size-len(self.data1D[0]))),'constant',constant_values=0),tmpdata[1]),axis=1)
-            else:
-                self.data1D = np.pad(self.data1D,((0,0),(0,size-len(self.data1D[0]))),'constant',constant_values=0)
-        else:
-            if self.wholeEcho:
-                tmpdata = np.array_split(self.data1D,2,axis=1)
-                self.data1D = np.concatenate((tmpdata[:,:np.ceil(size/2.0)],tmpdata[:,size/2:]),axis=1)
-            else:
-                self.data1D = self.data1D[:,:size]
-        if self.spec==0:
-            self.xax=np.arange(len(self.data1D[0]))/self.sw
-        elif self.spec==1:
-            self.xax=np.fft.fftshift(np.fft.fftfreq(len(self.data1D[0]),1.0/self.sw)) 
-        self.plotReset()
-        self.showFid()
-        self.upd()
-
-    def setSwapEchoPreview(self,idx):
-        self.data1D = np.concatenate((self.data1D[:,idx:],self.data1D[:,:idx]),axis=1)
-        self.plotReset()
-        self.showFid()
-        self.upd()
-        
-    def setShiftPreview(self,shift):
-        tmpData = np.roll(self.data1D,shift)
-        if shift<0:
-            tmpData[:,shift:] = tmpData[:,shift:]*0
-        else:
-            tmpData[:,:shift] = tmpData[:,:shift]*0
-        self.showFid(tmpData)
-
-    def dcOffset(self,pos1,pos2):
-        minPos = int(min(pos1,pos2))
-        maxPos = int(max(pos1,pos2))
-        if minPos != maxPos:
-            self.showFid(self.data1D-np.mean(self.data1D[:,minPos:maxPos]))
-            
-    def ACMEentropy(self,phaseIn,phaseAll=True):
-        tmp = self.data1D[0]
-        phase0=phaseIn[0]
-        if phaseAll:
-            phase1=phaseIn[1]
-        else:
-            phase1=0.0
-        L = len(tmp)
-        if self.spec==1:
-            x=np.fft.fftshift(np.fft.fftfreq(L,1.0/self.sw))
-        if self.spec>0:
-            s0 = tmp*np.exp(1j*(phase0+phase1*x))
-        else:
-            s0 = np.fft.fftshift(np.fft.fft(tmp))*np.exp(1j*(phase0+phase1*x))
-        s2 = np.real(s0)
-        ds1 = np.abs((s2[3:L]-s2[1:L-2])/2.0)
-        p1 = ds1/sum(ds1)
-        p1[np.where(p1 == 0)] = 1
-        h1  = -p1*np.log(p1)
-        H1  = sum(h1)
-        Pfun = 0.0
-        as1 = s2 - np.abs(s2)
-        sumas   = sum(as1)
-        if (np.real(sumas) < 0): 
-            Pfun = Pfun + sum(as1**2)/4/L**2
-        return H1+1000*Pfun
-
-    def autoPhase(self,phaseNum):
-        if phaseNum == 0:
-            phases = scipy.optimize.fmin(func=self.ACMEentropy,x0=[0],args=(False,))
-        elif phaseNum == 1:
-            phases = scipy.optimize.fmin(func=self.ACMEentropy,x0=[0,0])
-        return phases
-
-    def getDisplayedData(self):
-        if self.plotType==0:
-            return np.real(self.data1D[0])
-        elif self.plotType==1:
-            return np.imag(self.data1D[0])
-        elif self.plotType==2:
-            return np.real(self.data1D[0])
-        elif self.plotType==3:
-            return np.abs(self.data1D[0])      
 
     def showFid(self, tmpdata=None): #display the 1D data
         if tmpdata is None:
@@ -1973,20 +1736,6 @@ class CurrentSkewed(Current1D):
         self.upd()
         self.showFid()
 
-    def setPhaseInter(self, phase0in, phase1in): #interactive changing the phase without editing the actual data
-        phase0=float(phase0in)
-        phase1=float(phase1in)
-        if self.spec==0:
-            tmpdata=self.fourierLocal(self.data1D,0)
-            tmpdata=tmpdata*np.exp(phase0*1j)
-            tmpdata=tmpdata*np.repeat([np.exp(np.fft.fftshift(np.fft.fftfreq(len(tmpdata[0]),1.0/self.sw))*phase1*1j)],len(tmpdata),axis=0)
-            tmpdata=self.fourierLocal(tmpdata,1)
-        else:
-            tmpdata=self.data1D*np.exp(phase0*1j)
-            tmpdata=tmpdata*np.repeat([np.exp(np.fft.fftshift(np.fft.fftfreq(len(tmpdata[0]),1.0/self.sw))*phase1*1j)],len(tmpdata),axis=0)
-        self.showFid(tmpdata)
-
-
     def apodPreview(self,lor=None,gauss=None, cos2=None, hamming=None,shift=0.0,shifting=0.0,shiftingAxes=None): #display the 1D data including the apodization function
         t=np.arange(0,len(self.data1D[0]))/(self.sw)
         if shiftingAxes is not None:
@@ -2007,7 +1756,7 @@ class CurrentSkewed(Current1D):
                         x2=x2*(np.cos(cos2*(-0.5*shift1*np.pi*self.sw/len(self.data1D[0])+np.linspace(0,0.5*np.pi,len(self.data1D[0]))))**2)
                     if hamming is not None:
                         alpha = 0.53836 # constant for hamming window
-                        x2=x2*(alpha+(1-alpha)*np.cos(hamming*(-0.5*shift1*np.pi*self.sw/len(self.data1D)+np.linspace(0,np.pi,len(self.data1D)))))
+                        x2=x2*(alpha+(1-alpha)*np.cos(hamming*(-0.5*shift1*np.pi*self.sw/len(self.data1D[0])+np.linspace(0,np.pi,len(self.data1D[0])))))
                     if self.wholeEcho:
                         x2[2-1:-(len(x2)/2+1):-1]=x2[:len(x2)/2]
                     x[i] = x2
@@ -2028,7 +1777,7 @@ class CurrentSkewed(Current1D):
                     x=x*(np.cos(cos2*(-0.5*shift*np.pi*self.sw/len(self.data1D[0])+np.linspace(0,0.5*np.pi,len(self.data1D[0]))))**2)
                 if hamming is not None:
                     alpha = 0.53836 # constant for hamming window
-                    x=x*(alpha+(1-alpha)*np.cos(hamming*(-0.5*shift*np.pi*self.sw/len(self.data1D)+np.linspace(0,np.pi,len(self.data1D)))))
+                    x=x*(alpha+(1-alpha)*np.cos(hamming*(-0.5*shift*np.pi*self.sw/len(self.data1D[0])+np.linspace(0,np.pi,len(self.data1D[0])))))
                 if self.wholeEcho:
                     x[-1:-(len(x)/2+1):-1]=x[:len(x)/2]
                 x = np.repeat([x],len(self.data1D),axis=0)
@@ -2043,7 +1792,7 @@ class CurrentSkewed(Current1D):
                 x=x*(np.cos(cos2*(-0.5*shift*np.pi*self.sw/len(self.data1D[0])+np.linspace(0,0.5*np.pi,len(self.data1D[0]))))**2)
             if hamming is not None:
                 alpha = 0.53836 # constant for hamming window
-                x=x*(alpha+(1-alpha)*np.cos(hamming*(-0.5*shift*np.pi*self.sw/len(self.data1D)+np.linspace(0,np.pi,len(self.data1D)))))
+                x=x*(alpha+(1-alpha)*np.cos(hamming*(-0.5*shift*np.pi*self.sw/len(self.data1D[0])+np.linspace(0,np.pi,len(self.data1D[0])))))
             if self.wholeEcho:
                 x[-1:-(len(x)/2+1):-1]=x[:len(x)/2]
             x = np.repeat([x],len(self.data1D),axis=0)
@@ -2066,91 +1815,6 @@ class CurrentSkewed(Current1D):
                 self.showFid(y,[t],x*np.amax(np.abs(self.data1D)),['g'],old=True)
         else:
             self.showFid(y)
-                 
-    def setSizePreview(self,size): #set size only on local data
-        if size > len(self.data1D[0]):
-            if self.wholeEcho:
-                tmpdata = np.array_split(self.data1D,2,axis=1)
-                self.data1D = np.concatenate((np.pad(tmpdata[0],((0,0),(0,size-len(self.data1D[0]))),'constant',constant_values=0),tmpdata[1]),axis=1)
-            else:
-                self.data1D = np.pad(self.data1D,((0,0),(0,size-len(self.data1D[0]))),'constant',constant_values=0)
-        else:
-            if self.wholeEcho:
-                tmpdata = np.array_split(self.data1D,2,axis=1)
-                self.data1D = np.concatenate((tmpdata[:,:np.ceil(size/2.0)],tmpdata[:,size/2:]),axis=1)
-            else:
-                self.data1D = self.data1D[:,:size]
-        if self.spec==0:
-            self.xax=np.arange(len(self.data1D[0]))/self.sw
-        elif self.spec==1:
-            self.xax=np.fft.fftshift(np.fft.fftfreq(len(self.data1D[0]),1.0/self.sw)) 
-        self.plotReset()
-        self.showFid()
-        self.upd()
-
-    def setSwapEchoPreview(self,idx):
-        self.data1D = np.concatenate((self.data1D[:,idx:],self.data1D[:,:idx]),axis=1)
-        self.plotReset()
-        self.showFid()
-        self.upd()
-        
-    def setShiftPreview(self,shift):
-        tmpData = np.roll(self.data1D,shift)
-        if shift<0:
-            tmpData[:,shift:] = tmpData[:,shift:]*0
-        else:
-            tmpData[:,:shift] = tmpData[:,:shift]*0
-        self.showFid(tmpData)
-
-    def dcOffset(self,pos1,pos2):
-        minPos = int(min(pos1,pos2))
-        maxPos = int(max(pos1,pos2))
-        if minPos != maxPos:
-            self.showFid(self.data1D-np.mean(self.data1D[:,minPos:maxPos]))
-
-    def ACMEentropy(self,phaseIn,phaseAll=True):
-        tmp = self.data1D[0]
-        phase0=phaseIn[0]
-        if phaseAll:
-            phase1=phaseIn[1]
-        else:
-            phase1=0.0
-        L = len(tmp)
-        if self.spec==1:
-            x=np.fft.fftshift(np.fft.fftfreq(L,1.0/self.sw))
-        if self.spec>0:
-            s0 = tmp*np.exp(1j*(phase0+phase1*x))
-        else:
-            s0 = np.fft.fftshift(np.fft.fft(tmp))*np.exp(1j*(phase0+phase1*x))
-        s2 = np.real(s0)
-        ds1 = np.abs((s2[3:L]-s2[1:L-2])/2.0)
-        p1 = ds1/sum(ds1)
-        p1[np.where(p1 == 0)] = 1
-        h1  = -p1*np.log(p1)
-        H1  = sum(h1)
-        Pfun = 0.0
-        as1 = s2 - np.abs(s2)
-        sumas   = sum(as1)
-        if (np.real(sumas) < 0): 
-            Pfun = Pfun + sum(as1**2)/4/L**2
-        return H1+1000*Pfun
-
-    def autoPhase(self,phaseNum):
-        if phaseNum == 0:
-            phases = scipy.optimize.fmin(func=self.ACMEentropy,x0=[0],args=(False,))
-        elif phaseNum == 1:
-            phases = scipy.optimize.fmin(func=self.ACMEentropy,x0=[0,0])
-        return phases
-
-    def getDisplayedData(self):
-        if self.plotType==0:
-            return np.real(self.data1D[0])
-        elif self.plotType==1:
-            return np.imag(self.data1D[0])
-        elif self.plotType==2:
-            return np.real(self.data1D[0])
-        elif self.plotType==3:
-            return np.abs(self.data1D[0])      
 
     def showFid(self, tmpdata=None, extraX=None, extraY=None, extraColor=None,old=False): #display the 1D data
         if tmpdata is None:
