@@ -397,6 +397,8 @@ class Current1D(Plot1DFrame):
     def fourier(self): #fourier the actual data and replot
         returnValue = self.data.fourier(self.axes)
         self.upd()
+        if isinstance(self,(CurrentStacked,CurrentArrayed)):
+            self.resetSpacing()
         self.plotReset()
         self.showFid()
         return returnValue
@@ -1377,6 +1379,9 @@ class CurrentContour(Current1D):
             self.resetLocList()
         self.axType2 = axType2
         self.ppm2 = ppm2
+        self.numLevels = 20
+        self.minLevels = 0.0
+        self.maxLevels = 1.0
         Current1D.__init__(self, root, data, axes, locList, plotType, axType, ppm)
         self.plotReset()
         self.showFid()
@@ -1405,9 +1410,14 @@ class CurrentContour(Current1D):
         self.plotReset()
         self.showFid()
 
+    def setLevels(self,numLevels, maxLevels, minLevels):
+        self.numLevels = numLevels
+        self.maxLevels = maxLevels
+        self.minLevels = minLevels
+        self.showFid()
+        
     def resetLocList(self):
         self.locList = [0]*(len(self.data.data.shape)-2)
-
 
     def apodPreview(self,lor=None,gauss=None, cos2=None, hamming=None,shift=0.0,shifting=0.0,shiftingAxes=None): #display the 1D data including the apodization function
         t=np.arange(0,len(self.data1D[0]))/(self.sw)
@@ -1508,20 +1518,28 @@ class CurrentContour(Current1D):
         X, Y = np.meshgrid(x,y)
         self.line = []
         if (self.plotType==0):
-            self.line.append(self.ax.contour(X, Y, np.real(tmpdata),c='b'))
+            differ=np.amax(np.real(tmpdata))-np.amin(np.real(tmpdata))
+            contourLevels = np.linspace(self.minLevels*differ+np.amin(np.real(tmpdata)),self.maxLevels*differ+np.amin(np.real(tmpdata)),self.numLevels)
+            self.line.append(self.ax.contour(X, Y, np.real(tmpdata),c='b',levels=contourLevels))
             self.x_ax.plot(x,np.amax(np.real(tmpdata),axis=0),'b')
             self.y_ax.plot(np.amax(np.real(tmpdata),axis=1),y,'b')
         elif(self.plotType==1):
-            self.line.append(self.ax.contour(X, Y, np.imag(tmpdata),c='b'))
+            differ=np.amax(np.imag(tmpdata))-np.amin(np.imag(tmpdata))
+            contourLevels = np.linspace(self.minLevels*differ+np.amin(np.imag(tmpdata)),self.maxLevels*differ+np.amin(np.imag(tmpdata)),self.numLevels)
+            self.line.append(self.ax.contour(X, Y, np.imag(tmpdata),c='b',levels=contourLevels))
             self.x_ax.plot(x,np.amax(np.imag(tmpdata),axis=0),'b')
             self.y_ax.plot(np.amax(np.imag(tmpdata),axis=1),y,'b')
         elif(self.plotType==2):
             print('type not supported')
-            self.line.append(self.ax.contour(X, Y, np.real(tmpdata),c='b'))
+            differ=np.amax(np.real(tmpdata))-np.amin(np.real(tmpdata))
+            contourLevels = np.linspace(self.minLevels*differ+np.amin(np.real(tmpdata)),self.maxLevels*differ+np.amin(np.real(tmpdata)),self.numLevels)
+            self.line.append(self.ax.contour(X, Y, np.real(tmpdata),c='b',levels=contourLevels))
             self.x_ax.plot(x,np.amax(np.real(tmpdata),axis=0),'b')
             self.y_ax.plot(np.amax(np.real(tmpdata),axis=1),y,'b')
         elif(self.plotType==3):
-            self.line.append(self.ax.contour(X, Y, np.abs(tmpdata),c='b'))
+            differ=np.amax(np.abs(tmpdata))-np.amin(np.abs(tmpdata))
+            contourLevels = np.linspace(self.minLevels*differ+np.amin(np.abs(tmpdata)),self.maxLevels*differ+np.amin(np.abs(tmpdata)),self.numLevels)
+            self.line.append(self.ax.contour(X, Y, np.abs(tmpdata),c='b',levels=contourLevels))
             self.x_ax.plot(x,np.amax(np.abs(tmpdata),axis=0),'b')
             self.y_ax.plot(np.amax(np.abs(tmpdata),axis=1),y,'b')
         if self.spec==0:
@@ -1687,7 +1705,6 @@ class CurrentSkewed(Current1D):
         self.ppm2 = ppm2
         Current1D.__init__(self, root, data, axes, locList, plotType, axType, ppm)
         self.plotReset()
-        self.showFid()
         self.setSkewed(-0.2,70)
 
     def upd(self): #get new data from the data instance
@@ -1725,6 +1742,7 @@ class CurrentSkewed(Current1D):
                                                                        [0,0,zfront,0],
                                                                        [0,0,-0.00001,zback]])
         self.ax.view_init(elev=self.elevation, azim=180*np.arctan(skewed/np.sin(np.pi*elevation/180))/np.pi-90)
+        self.showFid()
         
     def resetLocList(self):
         self.locList = [0]*(len(self.data.data.shape)-2)
@@ -1866,7 +1884,7 @@ class CurrentSkewed(Current1D):
                 self.line.append(self.ax.plot(x,y[num]*np.ones(len(x)),np.imag(tmpdata[num]),c='b'))
         elif(self.plotType==2):
             for num in range(len(tmpdata)):
-                self.ax.plot(x,y[num]*np.ones(len(x)),np.imag(tmpdata[num]),c='y')
+                self.ax.plot(x,y[num]*np.ones(len(x)),np.imag(tmpdata[num]),c='r')
                 self.line.append(self.ax.plot(x,y[num]*np.ones(len(x)),np.real(tmpdata[num]),c='b'))
         elif(self.plotType==3):
             for num in range(len(tmpdata)):

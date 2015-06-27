@@ -697,6 +697,11 @@ class SideFrame(Frame):
         self.plotIs2D = False
         self.extraFrame = None
         self.spacing = StringVar()
+        self.skew = StringVar()
+        self.elev = StringVar()
+        self.numLevels = StringVar()
+        self.maxLevels = StringVar()
+        self.minLevels = StringVar()
         self.from2D = StringVar()
         self.to2D = StringVar()
         self.step2D = StringVar()
@@ -757,6 +762,10 @@ class SideFrame(Frame):
                 self.entries[num].bind("<Return>", lambda event=None,num=num: self.getSlice(event,num)) 
                 self.entries[num].bind("<KP_Enter>", lambda event=None,num=num: self.getSlice(event,num)) 
                 self.entries[num].grid(row=num*2+1,column=1+offset)
+            self.extraFrame = Frame(self)
+            self.extraFrame.grid(row=2*self.length+1,column=0,columnspan=2+offset,sticky='nwe')
+            self.extraFrame.grid_columnconfigure(0,weight=1)
+            Separator(self.extraFrame,orient=HORIZONTAL).grid(row=0, sticky='ew')
             if isinstance(self.current, (sc.CurrentStacked,sc.CurrentArrayed,sc.CurrentSkewed)):
                 if self.current.stackBegin is not None:
                     self.from2D.set(str(self.current.stackBegin))
@@ -770,10 +779,6 @@ class SideFrame(Frame):
                     self.step2D.set(str(self.current.stackStep))
                 else:
                     self.step2D.set('1')
-                self.extraFrame = Frame(self)
-                self.extraFrame.grid(row=2*self.length+1,column=0,columnspan=2+offset,sticky='nwe')
-                self.extraFrame.grid_columnconfigure(0,weight=1)
-                Separator(self.extraFrame,orient=HORIZONTAL).grid(row=0, sticky='ew')
                 Label(self.extraFrame,text="From").grid(row=1,column=0,sticky='n')
                 self.fromSpin = Spinbox(self.extraFrame,textvariable=self.from2D,from_=0,to=int(self.to2D.get())-1,justify="center",command=self.setToFrom)
                 self.fromSpin.bind("<Return>", self.setToFrom) 
@@ -797,6 +802,39 @@ class SideFrame(Frame):
                     self.spacingEntry.bind("<KP_Enter>", self.setSpacing) 
                     self.spacingEntry.grid(row=8,column=0)
 
+                if isinstance(self.current, (sc.CurrentSkewed)):
+                    self.skew.set('%.2f' % self.current.skewed)
+                    Label(self.extraFrame,text="Skew").grid(row=7,column=0,sticky='n')
+                    self.skewEntry = Entry(self.extraFrame,textvariable=self.skew,justify="center")
+                    self.skewEntry.bind("<Return>", self.setSkew) 
+                    self.skewEntry.bind("<KP_Enter>", self.setSkew) 
+                    self.skewEntry.grid(row=8,column=0)
+                    self.elev.set('%.1f' % self.current.elevation)
+                    Label(self.extraFrame,text="Elevation").grid(row=9,column=0,sticky='n')
+                    self.elevEntry = Entry(self.extraFrame,textvariable=self.elev,justify="center")
+                    self.elevEntry.bind("<Return>", self.setSkew) 
+                    self.elevEntry.bind("<KP_Enter>", self.setSkew) 
+                    self.elevEntry.grid(row=10,column=0)
+            if isinstance(self.current, (sc.CurrentContour)):
+                self.numLevels.set(str(self.current.numLevels))
+                self.maxLevels.set(str(self.current.maxLevels*100.0))
+                self.minLevels.set(str(self.current.minLevels*100.0))
+                Label(self.extraFrame,text="Number of contours").grid(row=1,column=0,sticky='n')
+                self.numLEntry = Entry(self.extraFrame,textvariable=self.numLevels,justify="center")
+                self.numLEntry.bind("<Return>", self.setContour) 
+                self.numLEntry.bind("<KP_Enter>", self.setContour) 
+                self.numLEntry.grid(row=2,column=0)
+                Label(self.extraFrame,text="Highest contour [%]").grid(row=3,column=0,sticky='n')
+                self.maxLEntry = Entry(self.extraFrame,textvariable=self.maxLevels,justify="center")
+                self.maxLEntry.bind("<Return>", self.setContour) 
+                self.maxLEntry.bind("<KP_Enter>", self.setContour) 
+                self.maxLEntry.grid(row=4,column=0)
+                Label(self.extraFrame,text="Lowest contour [%]").grid(row=5,column=0,sticky='n')
+                self.minLEntry = Entry(self.extraFrame,textvariable=self.minLevels,justify="center")
+                self.minLEntry.bind("<Return>", self.setContour) 
+                self.minLEntry.bind("<KP_Enter>", self.setContour) 
+                self.minLEntry.grid(row=6,column=0)
+                    
     def setToFrom(self, *args):
         if isinstance(self.current, (sc.CurrentStacked,sc.CurrentArrayed,sc.CurrentSkewed)):
             fromVar = int(safeEval(self.from2D.get()))
@@ -826,6 +864,22 @@ class SideFrame(Frame):
         self.spacing.set('%.3e' % var)
         self.current.setSpacing(var)
 
+    def setSkew(self, *args):
+        var =float(safeEval(self.skew.get()))
+        self.skew.set('%.2f' % var)
+        var2 =float(safeEval(self.elev.get()))
+        self.elev.set('%.1f' % var2)
+        self.current.setSkewed(var,var2)
+        
+    def setContour(self, *args):
+        var1 = int(round(safeEval(self.numLevels.get())))
+        self.numLevels.set(str(var1))
+        var2 =float(safeEval(self.maxLevels.get()))
+        self.maxLevels.set('%.1f' % var2)
+        var3 =float(safeEval(self.minLevels.get()))
+        self.minLevels.set('%.1f' % var3)
+        self.current.setLevels(var1,var2/100.0,var3/100.0)
+        
     def setAxes(self,first=True):
         if self.plotIs2D:
             axes= self.button1Var.get()
