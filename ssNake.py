@@ -33,11 +33,11 @@ class Main1DWindow(Frame):
         self.redoList = [] #the list to hold all the redo lambda functions
         self.parent = parent #remember your parents
         #create the menu
-        menubar = Menu(self.parent)
-        self.parent.config(menu=menubar)
+        self.menubar = Menu(self.parent)
+        self.parent.config(menu=self.menubar)
         #the file drop down menu
-        filemenu = Menu(menubar, tearoff=0)
-        menubar.add_cascade(label="File", menu=filemenu)
+        filemenu = Menu(self.menubar, tearoff=0)
+        self.menubar.add_cascade(label="File", menu=filemenu)
         filemenu.add_command(label="New", command=self.NewFile)
         filemenu.add_command(label="Open...", command=self.OpenFile)
         filemenu.add_separator()
@@ -47,27 +47,27 @@ class Main1DWindow(Frame):
         self.bind_all("<Control-z>", self.undo)
         self.bind_all("<Control-y>", self.redo)
 	#the load drop down menu
-        loadmenu = Menu(menubar, tearoff=0)
-        menubar.add_cascade(label="Load", menu=loadmenu)
+        loadmenu = Menu(self.menubar, tearoff=0)
+        self.menubar.add_cascade(label="Load", menu=loadmenu)
         loadmenu.add_command(label="Load Varian data", command=self.LoadVarianFile)
         loadmenu.add_command(label="Load Bruker Topspin/XWinNMR", command=self.LoadBrukerTopspin)
         loadmenu.add_command(label="Load Chemagnetics data", command=self.LoadChemFile)
         loadmenu.add_command(label="Load Simpson data", command=self.LoadSimpsonFile)
         
         #the save drop down menu
-        savemenu = Menu(menubar, tearoff=0)
-        menubar.add_cascade(label="Save", menu=savemenu)
+        savemenu = Menu(self.menubar, tearoff=0)
+        self.menubar.add_cascade(label="Save", menu=savemenu)
         savemenu.add_command(label="Save as Simpson data", command=self.SaveSimpsonFile)
         
 	#the edit drop down menu
-        editmenu = Menu(menubar, tearoff=0)
-        menubar.add_cascade(label="Edit", menu=editmenu)
+        editmenu = Menu(self.menubar, tearoff=0)
+        self.menubar.add_cascade(label="Edit", menu=editmenu)
         editmenu.add_command(label="Undo", command=self.undo)
         editmenu.add_command(label="Redo", command=self.redo)
 
 	#the tool drop down menu
-        toolMenu = Menu(menubar, tearoff=0)
-        menubar.add_cascade(label="Tools",menu=toolMenu)
+        toolMenu = Menu(self.menubar, tearoff=0)
+        self.menubar.add_cascade(label="Tools",menu=toolMenu)
         toolMenu.add_command(label="Real", command=self.real)
         toolMenu.add_command(label="Imag", command=self.imag)
         toolMenu.add_command(label="Abs", command=self.abs) 
@@ -80,8 +80,8 @@ class Main1DWindow(Frame):
         toolMenu.add_command(label="Correct Bruker digital filter", command=self.BrukerDigital)
 
         #the matrix drop down menu
-        matrixMenu = Menu(menubar, tearoff=0)
-        menubar.add_cascade(label="Matrix",menu=matrixMenu)
+        matrixMenu = Menu(self.menubar, tearoff=0)
+        self.menubar.add_cascade(label="Matrix",menu=matrixMenu)
         matrixMenu.add_command(label="Integrate", command=self.createIntegrateWindow)
         matrixMenu.add_command(label="Max", command=self.createMaxWindow)
         matrixMenu.add_command(label="Min", command=self.createMinWindow)
@@ -90,22 +90,22 @@ class Main1DWindow(Frame):
         matrixMenu.add_command(label="Shearing", command=self.createShearingWindow)
         
         #the fft drop down menu
-        fftMenu = Menu(menubar, tearoff=0)
-        menubar.add_cascade(label="Fourier",menu=fftMenu)
+        fftMenu = Menu(self.menubar, tearoff=0)
+        self.menubar.add_cascade(label="Fourier",menu=fftMenu)
         fftMenu.add_command(label="Fourier transform", command=self.fourier)
         fftMenu.add_command(label="Fftshift", command=self.fftshift)
         fftMenu.add_command(label="Inv fftshift", command=self.invFftshift)
         fftMenu.add_command(label="Hilbert transform", command=self.hilbert)
 
 	#the fitting drop down menu
-        fittingMenu = Menu(menubar, tearoff=0)
-        menubar.add_cascade(label="Fitting",menu=fittingMenu)
+        fittingMenu = Menu(self.menubar, tearoff=0)
+        self.menubar.add_cascade(label="Fitting",menu=fittingMenu)
         fittingMenu.add_command(label="Relaxation Curve", command=self.createRelaxWindow)
         fittingMenu.add_command(label="Peak Deconvolution", command=self.createPeakDeconvWindow)
 
 	#the plot drop down menu
-        plotMenu = Menu(menubar, tearoff=0)
-        menubar.add_cascade(label="Plot",menu=plotMenu)
+        plotMenu = Menu(self.menubar, tearoff=0)
+        self.menubar.add_cascade(label="Plot",menu=plotMenu)
         plotMenu.add_command(label="1D plot", command=self.plot1D)
         plotMenu.add_command(label="Stack plot", command=self.plotStack)
         plotMenu.add_command(label="Array plot", command=self.plotArray)
@@ -132,7 +132,21 @@ class Main1DWindow(Frame):
         self.textframe=TextFrame(self)
         self.textframe.grid(row=3,column=0,sticky='s')  
 
-#all the functions that will be called from the menu and the extra frames
+        #all the functions that will be called from the menu and the extra frames
+
+    def menuEnable(self):
+        for i in range(12):
+            self.menubar.entryconfig(i,state='normal')
+        self.sideframe.frameEnable()
+        self.bottomframe.frameEnable()
+        self.textframe.frameEnable()
+
+    def menuDisable(self):
+        for i in range(12):
+            self.menubar.entryconfig(i,state='disabled')
+        self.sideframe.frameDisable()
+        self.bottomframe.frameDisable()
+        self.textframe.frameDisable()
 
     def NewFile(self):
         print("New File!") #to be added
@@ -695,7 +709,6 @@ class SideFrame(Frame):
         self.button2Var=IntVar()
         self.button2Var.set(1)
         self.plotIs2D = False
-        self.extraFrame = None
         self.spacing = StringVar()
         self.skew = StringVar()
         self.elev = StringVar()
@@ -705,8 +718,26 @@ class SideFrame(Frame):
         self.from2D = StringVar()
         self.to2D = StringVar()
         self.step2D = StringVar()
+        self.frame1 = Frame(self)
+        self.frame1.grid(row=0,column=0)
+        Separator(self,orient=HORIZONTAL).grid(row=1, sticky='ew')
+        self.frame2 = None
         self.upd()
 
+    def frameEnable(self):
+        for child in self.frame1.winfo_children():
+            child.configure(state='normal')
+        if self.frame2 is not None:
+            for child in self.frame2.winfo_children():
+                child.configure(state='normal')
+            
+    def frameDisable(self):
+        for child in self.frame1.winfo_children():
+            child.configure(state='disabled')
+        if self.frame2 is not None:
+            for child in self.frame2.winfo_children():
+                child.configure(state='disabled')
+            
     def upd(self): #destroy the old widgets and create new ones 
         self.current = self.parent.current
         self.shape = self.current.data.data.shape
@@ -728,18 +759,18 @@ class SideFrame(Frame):
         self.buttons1=[]
         for num in self.buttons2:
             num.destroy()
-        if self.extraFrame is not None:
-            self.extraFrame.destroy()
+        if self.frame2 is not None:
+            self.frame2.destroy()
         self.buttons2=[]
         self.entryVars = []
         if self.length > 1:
             for num in range(self.length):
-                self.buttons1.append(Radiobutton(self, variable=self.button1Var, value=num, command=lambda: self.setAxes(True)))
+                self.buttons1.append(Radiobutton(self.frame1, variable=self.button1Var, value=num, command=lambda: self.setAxes(True)))
                 self.buttons1[num].grid(row=num*2+1,column=0)
                 if self.plotIs2D:
-                    self.buttons2.append(Radiobutton(self, variable=self.button2Var, value=num, command=lambda: self.setAxes(False)))
+                    self.buttons2.append(Radiobutton(self.frame1, variable=self.button2Var, value=num, command=lambda: self.setAxes(False)))
                     self.buttons2[num].grid(row=num*2+1,column=1)
-                self.labels.append(Label(self,text="TD"+str(num+1))) 
+                self.labels.append(Label(self.frame1,text="TD"+str(num+1))) 
                 self.labels[num].grid(row=num*2,column=1+offset)
                 self.entryVars.append(StringVar())
                 if not self.plotIs2D:
@@ -758,14 +789,14 @@ class SideFrame(Frame):
                         self.entryVars[num].set(str(self.current.locList[num-1]))
                     else:
                         self.entryVars[num].set(str(self.current.locList[num-2]))
-                self.entries.append(Spinbox(self,textvariable=self.entryVars[num],from_=0,to=self.shape[num]-1,justify="center",command=lambda event=None,num=num: self.getSlice(event,num)))
+                self.entries.append(Spinbox(self.frame1,textvariable=self.entryVars[num],from_=0,to=self.shape[num]-1,justify="center",command=lambda event=None,num=num: self.getSlice(event,num)))
                 self.entries[num].bind("<Return>", lambda event=None,num=num: self.getSlice(event,num)) 
                 self.entries[num].bind("<KP_Enter>", lambda event=None,num=num: self.getSlice(event,num)) 
                 self.entries[num].grid(row=num*2+1,column=1+offset)
-            self.extraFrame = Frame(self)
-            self.extraFrame.grid(row=2*self.length+1,column=0,columnspan=2+offset,sticky='nwe')
-            self.extraFrame.grid_columnconfigure(0,weight=1)
-            Separator(self.extraFrame,orient=HORIZONTAL).grid(row=0, sticky='ew')
+            self.frame2 = Frame(self)
+            self.frame2.grid(row=2,column=0,sticky='nwe')
+            self.frame2.grid_columnconfigure(0,weight=1)
+            
             if isinstance(self.current, (sc.CurrentStacked,sc.CurrentArrayed,sc.CurrentSkewed)):
                 if self.current.stackBegin is not None:
                     self.from2D.set(str(self.current.stackBegin))
@@ -779,39 +810,39 @@ class SideFrame(Frame):
                     self.step2D.set(str(self.current.stackStep))
                 else:
                     self.step2D.set('1')
-                Label(self.extraFrame,text="From").grid(row=1,column=0,sticky='n')
-                self.fromSpin = Spinbox(self.extraFrame,textvariable=self.from2D,from_=0,to=int(self.to2D.get())-1,justify="center",command=self.setToFrom)
+                Label(self.frame2,text="From").grid(row=1,column=0,sticky='n')
+                self.fromSpin = Spinbox(self.frame2,textvariable=self.from2D,from_=0,to=int(self.to2D.get())-1,justify="center",command=self.setToFrom)
                 self.fromSpin.bind("<Return>", self.setToFrom) 
                 self.fromSpin.bind("<KP_Enter>", self.setToFrom)
                 self.fromSpin.grid(row=2,column=0)
-                Label(self.extraFrame,text="To").grid(row=3,column=0,sticky='n')
-                self.toSpin = Spinbox(self.extraFrame,textvariable=self.to2D,from_=int(self.from2D.get())+1,to=self.shape[self.current.axes2],justify="center",command=self.setToFrom)
+                Label(self.frame2,text="To").grid(row=3,column=0,sticky='n')
+                self.toSpin = Spinbox(self.frame2,textvariable=self.to2D,from_=int(self.from2D.get())+1,to=self.shape[self.current.axes2],justify="center",command=self.setToFrom)
                 self.toSpin.bind("<Return>", self.setToFrom) 
                 self.toSpin.bind("<KP_Enter>", self.setToFrom) 
                 self.toSpin.grid(row=4,column=0)
-                Label(self.extraFrame,text="Step").grid(row=5,column=0,sticky='n')
-                self.stepSpin = Spinbox(self.extraFrame,textvariable=self.step2D,from_=1,to=self.shape[self.current.axes2],justify="center",command=self.setToFrom)
+                Label(self.frame2,text="Step").grid(row=5,column=0,sticky='n')
+                self.stepSpin = Spinbox(self.frame2,textvariable=self.step2D,from_=1,to=self.shape[self.current.axes2],justify="center",command=self.setToFrom)
                 self.stepSpin.bind("<Return>", self.setToFrom) 
                 self.stepSpin.bind("<KP_Enter>", self.setToFrom)
                 self.stepSpin.grid(row=6,column=0)
                 if isinstance(self.current, (sc.CurrentStacked,sc.CurrentArrayed)):
                     self.spacing.set('%.3e' % self.current.spacing)
-                    Label(self.extraFrame,text="Spacing").grid(row=7,column=0,sticky='n')
-                    self.spacingEntry = Entry(self.extraFrame,textvariable=self.spacing,justify="center")
+                    Label(self.frame2,text="Spacing").grid(row=7,column=0,sticky='n')
+                    self.spacingEntry = Entry(self.frame2,textvariable=self.spacing,justify="center")
                     self.spacingEntry.bind("<Return>", self.setSpacing) 
                     self.spacingEntry.bind("<KP_Enter>", self.setSpacing) 
                     self.spacingEntry.grid(row=8,column=0)
 
                 if isinstance(self.current, (sc.CurrentSkewed)):
                     self.skew.set('%.2f' % self.current.skewed)
-                    Label(self.extraFrame,text="Skew").grid(row=7,column=0,sticky='n')
-                    self.skewEntry = Entry(self.extraFrame,textvariable=self.skew,justify="center")
+                    Label(self.frame2,text="Skew").grid(row=7,column=0,sticky='n')
+                    self.skewEntry = Entry(self.frame2,textvariable=self.skew,justify="center")
                     self.skewEntry.bind("<Return>", self.setSkew) 
                     self.skewEntry.bind("<KP_Enter>", self.setSkew) 
                     self.skewEntry.grid(row=8,column=0)
                     self.elev.set('%.1f' % self.current.elevation)
-                    Label(self.extraFrame,text="Elevation").grid(row=9,column=0,sticky='n')
-                    self.elevEntry = Entry(self.extraFrame,textvariable=self.elev,justify="center")
+                    Label(self.frame2,text="Elevation").grid(row=9,column=0,sticky='n')
+                    self.elevEntry = Entry(self.frame2,textvariable=self.elev,justify="center")
                     self.elevEntry.bind("<Return>", self.setSkew) 
                     self.elevEntry.bind("<KP_Enter>", self.setSkew) 
                     self.elevEntry.grid(row=10,column=0)
@@ -819,18 +850,18 @@ class SideFrame(Frame):
                 self.numLevels.set(str(self.current.numLevels))
                 self.maxLevels.set(str(self.current.maxLevels*100.0))
                 self.minLevels.set(str(self.current.minLevels*100.0))
-                Label(self.extraFrame,text="Number of contours").grid(row=1,column=0,sticky='n')
-                self.numLEntry = Entry(self.extraFrame,textvariable=self.numLevels,justify="center")
+                Label(self.frame2,text="Number of contours").grid(row=1,column=0,sticky='n')
+                self.numLEntry = Entry(self.frame2,textvariable=self.numLevels,justify="center")
                 self.numLEntry.bind("<Return>", self.setContour) 
                 self.numLEntry.bind("<KP_Enter>", self.setContour) 
                 self.numLEntry.grid(row=2,column=0)
-                Label(self.extraFrame,text="Highest contour [%]").grid(row=3,column=0,sticky='n')
-                self.maxLEntry = Entry(self.extraFrame,textvariable=self.maxLevels,justify="center")
+                Label(self.frame2,text="Highest contour [%]").grid(row=3,column=0,sticky='n')
+                self.maxLEntry = Entry(self.frame2,textvariable=self.maxLevels,justify="center")
                 self.maxLEntry.bind("<Return>", self.setContour) 
                 self.maxLEntry.bind("<KP_Enter>", self.setContour) 
                 self.maxLEntry.grid(row=4,column=0)
-                Label(self.extraFrame,text="Lowest contour [%]").grid(row=5,column=0,sticky='n')
-                self.minLEntry = Entry(self.extraFrame,textvariable=self.minLevels,justify="center")
+                Label(self.frame2,text="Lowest contour [%]").grid(row=5,column=0,sticky='n')
+                self.minLEntry = Entry(self.frame2,textvariable=self.minLevels,justify="center")
                 self.minLEntry.bind("<Return>", self.setContour) 
                 self.minLEntry.bind("<KP_Enter>", self.setContour) 
                 self.minLEntry.grid(row=6,column=0)
@@ -977,7 +1008,15 @@ class BottomFrame(Frame):
         self.axisDropFreq.grid(row=1,column=6)
         self.swEntry
         self.upd()
- 
+
+    def frameEnable(self):
+        for child in self.winfo_children():
+            child.configure(state='normal')
+            
+    def frameDisable(self):
+        for child in self.winfo_children():
+            child.configure(state='disabled')
+        
     def upd(self): #upd the values displayed in the bottom menu
         self.current = self.parent.current
         self.freqVal.set(str(self.current.freq/1000000)) #show in MHz
@@ -1090,7 +1129,15 @@ class TextFrame(Frame):
         Entry(self,textvariable=self.deltaxpoint,justify='center').grid(row=0,column=8)
         Label(self,text=u"\u0394y:").grid(row=0,column=9)
         Entry(self,textvariable=self.deltaypoint,justify='center').grid(row=0,column=10)
-    
+
+    def frameEnable(self):
+        for child in self.winfo_children():
+            child.configure(state='normal')
+            
+    def frameDisable(self):
+        for child in self.winfo_children():
+            child.configure(state='disabled')
+        
     def setLabels(self,position):
         self.deltaxpoint.set('%.3e' % np.abs(self.oldx-position[1]))
         self.deltaypoint.set('%.3e' % np.abs(self.oldy-position[2]))
@@ -1108,6 +1155,7 @@ class TextFrame(Frame):
 class PhaseWindow(Frame): #a window for phasing the data
     def __init__(self, parent,current):
         Frame.__init__(self, parent)
+        parent.menuDisable()
         #initialize variables for the widgets
         self.zeroValue = StringVar()
         self.zeroValue.set("0.00")
@@ -1208,16 +1256,19 @@ class PhaseWindow(Frame): #a window for phasing the data
     def cancelAndClose(self):
         self.current.upd()
         self.current.showFid()
+        self.parent.menuEnable()
         self.window.destroy()
 
     def applyPhaseAndClose(self):
         self.parent.redoList = []
         self.parent.undoList.append(self.current.applyPhase(self.zeroValue.get(),self.firstValue.get()))
+        self.parent.menuEnable()
         self.window.destroy()
 
 ################################################################
 class ApodWindow(Frame): #a window for apodization
     def __init__(self, parent,current):
+        parent.menuDisable()
         Frame.__init__(self, parent)
         self.parent = parent
         self.current = current
@@ -1359,6 +1410,7 @@ class ApodWindow(Frame): #a window for apodization
     def cancelAndClose(self):
         self.current.upd()
         self.current.showFid()
+        self.parent.menuEnable()
         self.window.destroy()
 
     def applyApodAndClose(self):
@@ -1383,11 +1435,13 @@ class ApodWindow(Frame): #a window for apodization
             shiftingAxes = int(self.shiftingAxes.get())
         self.parent.redoList = []
         self.parent.undoList.append(self.current.applyApod(lor,gauss,cos2,hamming,shift,shifting,shiftingAxes))
+        self.parent.menuEnable()
         self.window.destroy()
 
 #######################################################################################
 class SizeWindow(Frame): #a window for changing the size of the current dimension
     def __init__(self, parent,current):
+        parent.menuDisable()
         #initialize variables for the widgets
         self.sizeVal = StringVar()
         self.sizeVal.set(str(current.data1D.shape[-1]))
@@ -1424,6 +1478,7 @@ class SizeWindow(Frame): #a window for changing the size of the current dimensio
         self.current.upd()
         self.current.plotReset()
         self.current.showFid()
+        self.parent.menuEnable()
         self.window.destroy()
 
     def applySizeAndClose(self):
@@ -1433,11 +1488,13 @@ class SizeWindow(Frame): #a window for changing the size of the current dimensio
         self.parent.redoList = []
         self.parent.undoList.append(self.current.applySize(size))
         self.parent.sideframe.upd()
+        self.parent.menuEnable()
         self.window.destroy()
 
 ##########################################################################################
 class SwapEchoWindow(Frame): #a window for changing the size of the current dimension
     def __init__(self, parent,current):
+        parent.menuDisable()
         Frame.__init__(self, parent)
         #initialize variables for the widgets
         self.posVal = StringVar()
@@ -1475,6 +1532,7 @@ class SwapEchoWindow(Frame): #a window for changing the size of the current dime
         self.current.upd()
         self.current.plotReset()
         self.current.showFid()
+        self.parent.menuEnable()
         self.window.destroy()
 
     def applySwapEchoAndClose(self):
@@ -1484,6 +1542,7 @@ class SwapEchoWindow(Frame): #a window for changing the size of the current dime
             self.parent.redoList = []
             self.parent.undoList.append(self.current.applySwapEcho(pos))
             self.parent.bottomframe.upd()
+            self.parent.menuEnable()
             self.window.destroy()
         else:
             print("not a valid index for swap echo")
@@ -1492,11 +1551,13 @@ class SwapEchoWindow(Frame): #a window for changing the size of the current dime
         self.parent.redoList = []
         self.parent.undoList.append(self.current.applySwapEcho(pos[0]))
         self.parent.bottomframe.upd()
+        self.parent.menuEnable()
         self.window.destroy()
 
 ###########################################################################
 class ShiftDataWindow(Frame): #a window for shifting the data
     def __init__(self, parent,current):
+        parent.menuDisable()
         Frame.__init__(self, parent)
         #initialize variables for the widgets
         self.shiftVal = StringVar()
@@ -1543,17 +1604,20 @@ class ShiftDataWindow(Frame): #a window for shifting the data
         self.current.upd()
         self.current.plotReset()
         self.current.showFid()
+        self.parent.menuEnable()
         self.window.destroy()
 
     def applyShiftAndClose(self):
         shift = int(round(safeEval(self.shiftVal.get())))
         self.parent.redoList = []
         self.parent.undoList.append(self.current.applyShift(shift))
+        self.parent.menuEnable()
         self.window.destroy()
 
 #############################################################
 class DCWindow(Frame): #a window for shifting the data
     def __init__(self, parent,current):
+        parent.menuDisable()
         Frame.__init__(self, parent)
         #initialize variables for the widgets
         self.minVal = StringVar()
@@ -1628,6 +1692,7 @@ class DCWindow(Frame): #a window for shifting the data
         self.current.upd()
         self.current.plotReset()
         self.current.showFid()
+        self.parent.menuEnable()
         self.window.destroy()
 
     def applyDCAndClose(self):
@@ -1645,11 +1710,13 @@ class DCWindow(Frame): #a window for shifting the data
             maximum = dataLength
         self.parent.redoList = []
         self.parent.undoList.append(self.current.applydcOffset(minimum,maximum))
+        self.parent.menuEnable()
         self.window.destroy()
 
 #############################################################
 class regionWindow(Toplevel): #A general region selection frame
     def __init__(self, parent,current,name):
+        parent.menuDisable()
         Toplevel.__init__(self)
         #initialize variables for the widgets
         self.minVal = StringVar()
@@ -1719,6 +1786,7 @@ class regionWindow(Toplevel): #A general region selection frame
     def cancelAndClose(self):
         self.current.peakPickReset()
         self.parent.updAllFrames()
+        self.parent.menuEnable()
         self.destroy()
 
     def apply(self,maximum,minimum):
@@ -1738,6 +1806,7 @@ class regionWindow(Toplevel): #A general region selection frame
         elif maximum > dataLength:
             maximum = dataLength
         self.apply(maximum,minimum)
+        self.parent.menuEnable()
         self.destroy()
         
 ############################################################
@@ -1796,6 +1865,7 @@ class extractRegionWindow(regionWindow): #A window for obtaining a selected regi
 ################################################################
 class ShearingWindow(Frame): #a window for setting the xax of the current data
     def __init__(self, parent,current):
+        parent.menuDisable()
         Frame.__init__(self, parent)
         self.parent = parent
         self.current = current
@@ -1839,6 +1909,7 @@ class ShearingWindow(Frame): #a window for setting the xax of the current data
         #self.current.upd()
         #self.current.plotReset()
         #self.current.showFid()
+        self.parent.menuEnable()
         self.window.destroy()
 
     def applyAndClose(self):
@@ -1850,11 +1921,13 @@ class ShearingWindow(Frame): #a window for setting the xax of the current data
         else:
             self.parent.redoList = []
             self.parent.undoList.append(self.current.shearing(shear,axes,axes2))
+            self.parent.menuEnable()
             self.window.destroy()
         
 ##########################################################################################
 class XaxWindow(Frame): #a window for setting the xax of the current data
     def __init__(self, parent,current):
+        parent.menuDisable()
         Frame.__init__(self, parent)
         #initialize variables for the widgets
         self.val = StringVar()
@@ -1898,6 +1971,7 @@ class XaxWindow(Frame): #a window for setting the xax of the current data
         self.current.upd()
         self.current.plotReset()
         self.current.showFid()
+        self.parent.menuEnable()
         self.window.destroy()
 
     def applyXaxAndClose(self):
@@ -1908,6 +1982,7 @@ class XaxWindow(Frame): #a window for setting the xax of the current data
             if len(val)==self.current.data1D.shape[-1]:
                 if all(isinstance(x,(int,float)) for x in val):
                     self.current.setXax(val)
+                    self.parent.menuEnable()
                     self.window.destroy()
                 else:
                     print("Array is not all of int or float type")
@@ -1919,9 +1994,9 @@ class XaxWindow(Frame): #a window for setting the xax of the current data
 ##########################################################################################
 class RefWindow(Frame): #a window for setting the ppm reference
     def __init__(self, parent,current):
+        parent.menuDisable()
         if current.spec == 0:
             print('Setting ppm is only available for frequency data')
-            return
         Frame.__init__(self, parent)
         #initialize variables for the widgets
         self.freqVal = StringVar()
@@ -1965,6 +2040,7 @@ class RefWindow(Frame): #a window for setting the ppm reference
     def cancelAndClose(self):
         self.current.peakPickReset()
         self.current.showFid()
+        self.parent.menuEnable()
         self.window.destroy()
 
     def applyAndClose(self):
@@ -1973,6 +2049,7 @@ class RefWindow(Frame): #a window for setting the ppm reference
         ref = safeEval(self.refVal.get())
         self.parent.redoList = []
         self.parent.undoList.append(self.current.setRef(freq/(1.0+ref*1e-6)))
+        self.parent.menuEnable()
         self.window.destroy()
         
     def picked(self,pos): 
