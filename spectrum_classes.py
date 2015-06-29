@@ -118,6 +118,9 @@ class Spectrum(object):
         return lambda self: self.setPhase(-phase0,-phase1,axes)
 
     def apodize(self,lor,gauss, cos2, hamming, shift, shifting, shiftingAxes, axes):
+        if shiftingAxes==None:
+            shiftingAxes = 0
+            shifting = 0
         copyData=copy.deepcopy(self)
         returnValue = lambda self: self.restoreData(copyData, lambda self: self.apodize(lor,gauss,cos2,hamming,shift,shifting,shiftingAxes,axes))
         axLen = self.data.shape[axes]
@@ -727,7 +730,7 @@ class Current1D(Plot1DFrame):
         elif self.plotType==3:
             return np.abs(tmp)      
 
-    def showFid(self, tmpdata=None, extraX=None, extraY=None, extraColor=None,old=False): #display the 1D data
+    def showFid(self, tmpdata=None, extraX=None, extraY=None, extraColor=None,old=False,output=None): #display the 1D data
         if tmpdata is None:
             tmpdata=self.data1D
         self.ax.cla()
@@ -791,6 +794,8 @@ class Current1D(Plot1DFrame):
         else:
             self.ax.set_xlim(self.xminlim,self.xmaxlim)
         self.ax.set_ylim(self.yminlim,self.ymaxlim)
+        if output is not None:
+            self.canvas.print_figure(output)
         self.canvas.draw()
 
     def plotReset(self): #set the plot limits to min and max values
@@ -829,6 +834,9 @@ class Current1D(Plot1DFrame):
             self.ax.set_xlim(self.xminlim,self.xmaxlim)
         self.ax.set_ylim(self.yminlim,self.ymaxlim)
 
+    def saveFigure(self,name):
+        self.fig.savefig(name)
+        
 #########################################################################################################
 #the class from which the stacked data is displayed, the operations which only edit the content of this class are for previewing
 class CurrentStacked(Current1D):

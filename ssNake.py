@@ -8,12 +8,14 @@ if sys.version_info >= (3,0):
     from tkinter.ttk import *
     from tkinter.filedialog import askopenfilename
     from tkinter.filedialog import asksaveasfile
+    from tkinter.filedialog import asksaveasfilename
 else:
     from Tkinter import *
     import Tkinter as tk
     from ttk import *
     from tkFileDialog   import askopenfilename
     from tkFileDialog   import asksaveasfile
+    from tkFileDialog   import asksaveasfilename
 import spectrum_classes as sc
 import fitting as fit
 import math
@@ -57,6 +59,7 @@ class Main1DWindow(Frame):
         #the save drop down menu
         savemenu = Menu(self.menubar, tearoff=0)
         self.menubar.add_cascade(label="Save", menu=savemenu)
+        savemenu.add_command(label="Save figure", command=self.saveFigure)
         savemenu.add_command(label="Save as Simpson data", command=self.SaveSimpsonFile)
         
 	#the edit drop down menu
@@ -456,7 +459,11 @@ class Main1DWindow(Frame):
                 self.updAllFrames()
             except:
                 print('Error loading Simpson data from '+FileLocation+' . No data loaded!')
-        
+
+    def saveFigure(self):
+        f=asksaveasfilename(filetypes=(('svg','.svg'),('png','.png'),('eps','.eps'),('jpg','.jpg'),('pdf','.pdf')))
+        self.current.saveFigure(f)
+                
     def SaveSimpsonFile(self):
         #TO DO:
         #Make sure that stat of second dimension (SPE/FID) is saved. This is not supported in original
@@ -721,22 +728,22 @@ class SideFrame(Frame):
         self.frame1 = Frame(self)
         self.frame1.grid(row=0,column=0)
         Separator(self,orient=HORIZONTAL).grid(row=1, sticky='ew')
-        self.frame2 = None
+        self.frame2 = Frame(self)
+        self.frame2.grid(row=2,column=0,sticky='nwe')
+        self.frame2.grid_columnconfigure(0,weight=1)
         self.upd()
 
     def frameEnable(self):
         for child in self.frame1.winfo_children():
             child.configure(state='normal')
-        if self.frame2 is not None:
-            for child in self.frame2.winfo_children():
-                child.configure(state='normal')
+        for child in self.frame2.winfo_children():
+            child.configure(state='normal')
             
     def frameDisable(self):
         for child in self.frame1.winfo_children():
             child.configure(state='disabled')
-        if self.frame2 is not None:
-            for child in self.frame2.winfo_children():
-                child.configure(state='disabled')
+        for child in self.frame2.winfo_children():
+            child.configure(state='disabled')
             
     def upd(self): #destroy the old widgets and create new ones 
         self.current = self.parent.current
@@ -759,8 +766,6 @@ class SideFrame(Frame):
         self.buttons1=[]
         for num in self.buttons2:
             num.destroy()
-        if self.frame2 is not None:
-            self.frame2.destroy()
         self.buttons2=[]
         self.entryVars = []
         if self.length > 1:
@@ -793,10 +798,8 @@ class SideFrame(Frame):
                 self.entries[num].bind("<Return>", lambda event=None,num=num: self.getSlice(event,num)) 
                 self.entries[num].bind("<KP_Enter>", lambda event=None,num=num: self.getSlice(event,num)) 
                 self.entries[num].grid(row=num*2+1,column=1+offset)
-            self.frame2 = Frame(self)
-            self.frame2.grid(row=2,column=0,sticky='nwe')
-            self.frame2.grid_columnconfigure(0,weight=1)
-            
+            for child in self.frame2.winfo_children():
+                child.destroy()
             if isinstance(self.current, (sc.CurrentStacked,sc.CurrentArrayed,sc.CurrentSkewed)):
                 if self.current.stackBegin is not None:
                     self.from2D.set(str(self.current.stackBegin))
@@ -1157,15 +1160,18 @@ class PhaseWindow(Frame): #a window for phasing the data
         Frame.__init__(self, parent)
         parent.menuDisable()
         #initialize variables for the widgets
+        self.zeroVal = 0.0
+        self.firstVal = 0.0
+        self.refVal = 0.0
         self.zeroValue = StringVar()
         self.zeroValue.set("0.00")
         self.firstValue = StringVar()
-        self.firstValue.set("0.000")
+        self.firstValue.set("0.00")
         self.refValue = StringVar()
         self.refValue.set("0.0")
         #set stepsizes for the buttons
-        self.phase0step = 0.01
-        self.phase1step = 0.001
+        self.phase0step = 1.0
+        self.phase1step = 0.01
         #create a new window
         self.parent = parent
         self.current = current
@@ -1183,74 +1189,81 @@ class PhaseWindow(Frame): #a window for phasing the data
         self.zeroEntry.grid(row=2,column=1)
         tk.Button(self.window,text="<",repeatdelay=100, repeatinterval=1,command=lambda:self.stepPhase(-1,0)).grid(row=2,column=0)
         tk.Button(self.window,text=">",repeatdelay=100, repeatinterval=1,command=lambda:self.stepPhase(1,0)).grid(row=2,column=2)
-        self.zeroScale=Scale(self.window, from_=-pi, to=pi,  orient="horizontal", command=self.setZeroOrder,length=300)
+        self.zeroScale=Scale(self.window, from_=-180, to=180,  orient="horizontal", command=self.setZeroOrder,length=300)
         self.zeroScale.grid(row=3,column=0,columnspan=3)
         Label(self.window,text="First order phasing").grid(row=4,column=0,columnspan=3)
         Button(self.window,text="Autophase 0th+1st order",command=lambda: self.autophase(1)).grid(row=5,column=1)
         self.firstEntry = Entry(self.window,textvariable=self.firstValue,justify="center")
         self.firstEntry.bind("<Return>", self.inputFirstOrder) 
-        self.firstEntry.bind("<Return>", self.inputFirstOrder) 
+        self.firstEntry.bind("<KP_Enter>", self.inputFirstOrder) 
         self.firstEntry.grid(row=6,column=1)
         tk.Button(self.window,text="<",repeatdelay=100, repeatinterval=1,command=lambda:self.stepPhase(0,-1)).grid(row=6,column=0)
         tk.Button(self.window,text=">",repeatdelay=100, repeatinterval=1,command=lambda:self.stepPhase(0,1)).grid(row=6,column=2)
-        self.firstScale=Scale(self.window, from_=-0.1*pi*(self.current.data1D.shape[-1])/self.current.sw, to=0.1*pi*self.current.data1D.shape[-1]/self.current.sw, orient="horizontal", command=self.setFirstOrder,length=300)
+        self.firstScale=Scale(self.window, from_=-0.01*180*(self.current.data1D.shape[-1])/self.current.sw, to=0.01*180*self.current.data1D.shape[-1]/self.current.sw, orient="horizontal", command=self.setFirstOrder,length=300)
         self.firstScale.grid(row=7,column=0,columnspan=3)
-        Label(self.window,text="Reference").grid(row=8,column=0,columnspan=3)
-        self.refEntry = Entry(self.window,textvariable=self.refValue,justify="center")
-        self.refEntry.bind("<Return>", self.inputRef) 
-        self.refEntry.bind("<KP_Enter>", self.inputRef)
-        self.refEntry.grid(row=9,column=1)
         if self.current.spec > 0:
+            Label(self.window,text="Reference").grid(row=8,column=0,columnspan=3)
+            self.refEntry = Entry(self.window,textvariable=self.refValue,justify="center")
+            self.refEntry.bind("<Return>", self.inputRef) 
+            self.refEntry.bind("<KP_Enter>", self.inputRef)
+            self.refEntry.grid(row=9,column=1)
             Button(self.window, text="Pick reference", command=self.pickRef).grid(row=10,column=1)
         Button(self.window, text="Apply",command=self.applyPhaseAndClose).grid(row=11,column=0)
         Button(self.window, text="Cancel",command=self.cancelAndClose).grid(row=11,column=2)      
         
     def setZeroOrder(self,value, *args): #function called by the zero order scale widget
-        self.zeroValue.set('%.3e' % float(value))
-        self.current.setPhaseInter(self.zeroValue.get(),self.firstValue.get())
+        self.zeroVal = float(value)
+        self.zeroValue.set('%.2f' % self.zeroVal)
+        self.current.setPhaseInter(np.pi*self.zeroVal/180.0,np.pi*self.firstVal/180.0)
         
     def inputZeroOrder(self, *args): #function called by the zero order entry widget
         inp = safeEval(self.zeroValue.get())
-        inp = np.mod(inp+pi,2*pi)-pi
-        self.zeroScale.set(inp) #setting the scale to a value calls the previous function, so the phase of current doesn't need to be set here
+        self.zeroVal = np.mod(inp+180,360)-180
+        self.zeroScale.set(self.zeroVal) #setting the scale to a value calls the previous function, so the phase of current doesn't need to be set here
 
     def setFirstOrder(self,value, *args): #function called by the first order scale widget
-        newZero = (float(self.zeroValue.get())-(float(value)-float(self.firstValue.get()))*float(self.refValue.get())) #calculate the new zero order phase depending on the reference
-        newZero = np.mod(newZero+pi,2*pi)-pi
-        self.firstValue.set('%.3e' % float(value))
-        self.zeroValue.set('%.3e' % newZero)
-        self.zeroScale.set(newZero)
+        newZero = (self.zeroVal-(float(value)-self.firstVal)*self.refVal) #calculate the new zero order phase depending on the reference
+        self.zeroVal = np.mod(newZero+180,360)-180
+        self.firstVal = float(value)
+        self.firstValue.set('%.2f' % self.firstVal)
+        self.zeroValue.set('%.2f' % self.zeroVal)
+        self.zeroScale.set(self.zeroVal)
 
     def inputFirstOrder(self, *args): #function called by the first order entry widget
-        inp = safeEval(self.firstValue.get())
-        self.firstScale.set(inp) #setting the scale to a value calls the previous function, so the phase of current doesn't need to be set here
+        self.firstVal = safeEval(self.firstValue.get())
+        self.firstScale.set(self.firstVal) #setting the scale to a value calls the previous function, so the phase of current doesn't need to be set here
 
     def autophase(self, num): #run the autophase for either zero order (0) or both orders (1)
         phases = self.current.autoPhase(num)
         if num == 0:
-            phase0=(np.mod(phases[0]+pi,2*pi)-pi)
-            self.zeroValue.set('%.3e' % phase0)
-            self.zeroScale.set(phase0)
+            self.zeroVal=(np.mod(phases[0]+180,360)-180)
+            self.zeroValue.set('%.2f' % self.zeroVal)
+            self.zeroScale.set(self.zeroVal)
         elif num == 1:
-            phase0=(np.mod(phases[0]+pi,2*pi)-pi)
-            self.zeroValue.set('%.3e' % phase0)
-            self.zeroScale.set(phase0)
-            self.firstValue.set('%.3e' % phases[1])
-            self.firstScale.set(phases[1])
+            self.zeroVal=(np.mod(phases[0]+180,360)-180)
+            self.zeroValue.set('%.2f' % self.zeroVal)
+            self.zeroScale.set(self.zeroVal)
+            self.firstVal = phases[1]
+            self.firstValue.set('%.2f' % self.firstVal)
+            self.firstScale.set(self.firstVal)
 
     def stepPhase(self,phase0,phase1): #step phase from < and > keys
         inp = safeEval(self.zeroValue.get())+phase0*self.phase0step
-        inp = np.mod(inp+pi,2*pi)-pi
-        self.zeroScale.set(inp)
-        inp = safeEval(self.firstValue.get())+phase1*self.phase1step
-        self.firstScale.set(inp)
+        self.zeroVal = np.mod(inp+180,360)-180
+        self.zeroScale.set(self.zeroVal)
+        self.firstVal = safeEval(self.firstValue.get())+phase1*self.phase1step
+        self.firstScale.set(self.firstVal)
 
     def inputRef(self, *args): #set the reference from the entry widget
-        inp = safeEval(self.refValue.get())
-        self.refValue.set('%.3e' % inp)
+        self.refVal = safeEval(self.refValue.get())
+        self.refValue.set('%.2f' % self.refVal)
+
+    def setRef(self,value,*args):
+        self.refVal = float(value)
+        self.refValue.set('%.2f' % self.refVal)
 
     def pickRef(self, *args): #run the pick function to pick the reference value
-        self.current.peakPickFunc = lambda pos,self=self: self.refValue.set('%.2f' % pos[1])
+        self.current.peakPickFunc = lambda pos,self=self: self.setRef(self.current.xax[pos[0]])
         self.current.peakPick = True
 
     def cancelAndClose(self):
@@ -1261,7 +1274,7 @@ class PhaseWindow(Frame): #a window for phasing the data
 
     def applyPhaseAndClose(self):
         self.parent.redoList = []
-        self.parent.undoList.append(self.current.applyPhase(self.zeroValue.get(),self.firstValue.get()))
+        self.parent.undoList.append(self.current.applyPhase(np.pi*self.zeroVal/180.0,np.pi*self.firstVal/180.0))
         self.parent.menuEnable()
         self.window.destroy()
 
@@ -1399,6 +1412,8 @@ class ApodWindow(Frame): #a window for apodization
             shifting = safeEval(self.shiftingVal.get())
             self.shiftingVal.set(shifting)
             shiftingAxes = int(self.shiftingAxes.get())
+        else:
+            shiftingAxes = None
         self.current.apodPreview(lor,gauss,cos2,hamming,shift,shifting,shiftingAxes)
 
     def stepLB(self,lorincr,gaussincr): #step linebroadening from < and > keys
@@ -1433,6 +1448,8 @@ class ApodWindow(Frame): #a window for apodization
             shifting = safeEval(self.shiftingVal.get())
             self.shiftingVal.set(shifting)
             shiftingAxes = int(self.shiftingAxes.get())
+        else:
+            shiftingAxes = None
         self.parent.redoList = []
         self.parent.undoList.append(self.current.applyApod(lor,gauss,cos2,hamming,shift,shifting,shiftingAxes))
         self.parent.menuEnable()
@@ -1805,8 +1822,8 @@ class regionWindow(Toplevel): #A general region selection frame
             maximum = 0
         elif maximum > dataLength:
             maximum = dataLength
-        self.apply(maximum,minimum)
         self.parent.menuEnable()
+        self.apply(maximum,minimum)
         self.destroy()
         
 ############################################################
