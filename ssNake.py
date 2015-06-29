@@ -1303,7 +1303,7 @@ class ApodWindow(Frame): #a window for apodization
         self.shiftingVal = StringVar()
         self.shiftingVal.set("0.0")
         if self.current.data.dim > 1:
-            options = map(str,np.delete(range(self.current.data.dim),self.current.axes))
+            options = list(map(str,np.delete(range(self.current.data.dim),self.current.axes)))
             self.shiftingAxes = StringVar()
             self.shiftingAxes.set(options[0])
         #set stepsizes for the buttons
@@ -1889,7 +1889,7 @@ class ShearingWindow(Frame): #a window for setting the xax of the current data
         #initialize variables for the widgets
         self.shear = StringVar()
         self.shear.set('0.0')
-        options = map(str,range(self.current.data.dim))
+        options = list(map(str,range(self.current.data.dim)))
         self.axes = StringVar()
         self.axes.set('0')
         self.axes2 = StringVar()
