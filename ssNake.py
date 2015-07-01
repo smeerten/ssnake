@@ -27,7 +27,16 @@ from safeEval import safeEval
 
 pi=math.pi
 
-#one window to rule them all
+#one class to rule them all
+class MainProgram:
+    def __init__(self,root):
+        self.root = root
+        self.mainWindow = Main1DWindow(self.root) #create an instance to control the main window
+        self.mainWindow.pack(fill=BOTH,expand=1)
+        self.mainWindow.rowconfigure(0, weight=1)
+        self.mainWindow.grid_columnconfigure(0, weight=1)
+
+
 class Main1DWindow(Frame):
     def __init__(self,parent):
         Frame.__init__(self,parent)
@@ -35,7 +44,7 @@ class Main1DWindow(Frame):
         self.redoList = [] #the list to hold all the redo lambda functions
         self.parent = parent #remember your parents
         #create the menu
-        self.menubar = Menu(self.parent)
+        self.menubar = Menu(self)
         self.parent.config(menu=self.menubar)
         #the file drop down menu
         filemenu = Menu(self.menubar, tearoff=0)
@@ -116,7 +125,6 @@ class Main1DWindow(Frame):
         plotMenu.add_command(label="Skewed plot", command=self.plotSkewed)
         plotMenu.add_command(label="Set reference", command=self.createRefWindow)
         plotMenu.add_command(label="User x-axis", command=self.createXaxWindow)
-
         x=np.linspace(0,2*np.pi*10,1000)[:-1] #fake data
         x2=np.linspace(0,2*np.pi*10,200)[1:] #fake data
         test=np.exp(-1j*x)*np.exp(-1*x/10.0)#fake data
@@ -238,8 +246,6 @@ class Main1DWindow(Frame):
                     print('Error loading Varian data from '+Dir+os.path.sep+'fid. No data loaded!')
             else: #If /fid does not exist
                 print(Dir+os.path.sep+'fid does not exits, no Varian data loaded!')
-                
-                
                 
     def LoadBrukerTopspin(self):
         FilePath = askopenfilename()
@@ -495,11 +501,9 @@ class Main1DWindow(Frame):
                        
                     f.write('DATA'+'\n')
                     
-                    
                     if self.masterData.dim  is 1:
                         for Line in self.masterData.data:
                             f.write(str(Line.real)+' '+ str(Line.imag)+'\n')
-                    
                     
                     if self.masterData.dim  is 2:
                         Points= self.masterData.data.shape
@@ -1155,10 +1159,17 @@ class TextFrame(Frame):
         self.parent.current.peakPick = True
         
 #################################################################################   
-class PhaseWindow(Frame): #a window for phasing the data
+class PhaseWindow(Toplevel): #a window for phasing the data
     def __init__(self, parent,current):
-        Frame.__init__(self, parent)
-        parent.menuDisable()
+        Toplevel.__init__(self)
+        self.parent = parent
+        self.current = current
+        self.geometry('+0+0')
+        self.transient(self.parent)
+        self.protocol("WM_DELETE_WINDOW", self.cancelAndClose)
+        self.title("Phasing")
+        self.resizable(width=FALSE, height=FALSE)
+        self.parent.menuDisable()
         #initialize variables for the widgets
         self.zeroVal = 0.0
         self.firstVal = 0.0
@@ -1172,44 +1183,35 @@ class PhaseWindow(Frame): #a window for phasing the data
         #set stepsizes for the buttons
         self.phase0step = 1.0
         self.phase1step = 0.01
-        #create a new window
-        self.parent = parent
-        self.current = current
-        self.window = Toplevel(self)
-        self.window.geometry('+0+0')
-        self.window.transient(self.parent)
-        self.window.protocol("WM_DELETE_WINDOW", self.cancelAndClose)
-        self.window.title("Phasing")
-        self.window.resizable(width=FALSE, height=FALSE)
-        Label(self.window,text="Zero order phasing").grid(row=0,column=0,columnspan=3)
-        Button(self.window,text="Autophase 0th order",command=lambda: self.autophase(0)).grid(row=1,column=1)
-        self.zeroEntry = Entry(self.window,textvariable=self.zeroValue,justify="center")
+        Label(self,text="Zero order phasing").grid(row=0,column=0,columnspan=3)
+        Button(self,text="Autophase 0th order",command=lambda: self.autophase(0)).grid(row=1,column=1)
+        self.zeroEntry = Entry(self,textvariable=self.zeroValue,justify="center")
         self.zeroEntry.bind("<Return>", self.inputZeroOrder)
         self.zeroEntry.bind("<KP_Enter>", self.inputZeroOrder)
         self.zeroEntry.grid(row=2,column=1)
-        tk.Button(self.window,text="<",repeatdelay=100, repeatinterval=1,command=lambda:self.stepPhase(-1,0)).grid(row=2,column=0)
-        tk.Button(self.window,text=">",repeatdelay=100, repeatinterval=1,command=lambda:self.stepPhase(1,0)).grid(row=2,column=2)
-        self.zeroScale=Scale(self.window, from_=-180, to=180,  orient="horizontal", command=self.setZeroOrder,length=300)
+        tk.Button(self,text="<",repeatdelay=100, repeatinterval=1,command=lambda:self.stepPhase(-1,0)).grid(row=2,column=0)
+        tk.Button(self,text=">",repeatdelay=100, repeatinterval=1,command=lambda:self.stepPhase(1,0)).grid(row=2,column=2)
+        self.zeroScale=Scale(self, from_=-180, to=180,  orient="horizontal", command=self.setZeroOrder,length=300)
         self.zeroScale.grid(row=3,column=0,columnspan=3)
-        Label(self.window,text="First order phasing").grid(row=4,column=0,columnspan=3)
-        Button(self.window,text="Autophase 0th+1st order",command=lambda: self.autophase(1)).grid(row=5,column=1)
-        self.firstEntry = Entry(self.window,textvariable=self.firstValue,justify="center")
+        Label(self,text="First order phasing").grid(row=4,column=0,columnspan=3)
+        Button(self,text="Autophase 0th+1st order",command=lambda: self.autophase(1)).grid(row=5,column=1)
+        self.firstEntry = Entry(self,textvariable=self.firstValue,justify="center")
         self.firstEntry.bind("<Return>", self.inputFirstOrder) 
         self.firstEntry.bind("<KP_Enter>", self.inputFirstOrder) 
         self.firstEntry.grid(row=6,column=1)
-        tk.Button(self.window,text="<",repeatdelay=100, repeatinterval=1,command=lambda:self.stepPhase(0,-1)).grid(row=6,column=0)
-        tk.Button(self.window,text=">",repeatdelay=100, repeatinterval=1,command=lambda:self.stepPhase(0,1)).grid(row=6,column=2)
-        self.firstScale=Scale(self.window, from_=-0.01*180*(self.current.data1D.shape[-1])/self.current.sw, to=0.01*180*self.current.data1D.shape[-1]/self.current.sw, orient="horizontal", command=self.setFirstOrder,length=300)
+        tk.Button(self,text="<",repeatdelay=100, repeatinterval=1,command=lambda:self.stepPhase(0,-1)).grid(row=6,column=0)
+        tk.Button(self,text=">",repeatdelay=100, repeatinterval=1,command=lambda:self.stepPhase(0,1)).grid(row=6,column=2)
+        self.firstScale=Scale(self, from_=-0.01*180*(self.current.data1D.shape[-1])/self.current.sw, to=0.01*180*self.current.data1D.shape[-1]/self.current.sw, orient="horizontal", command=self.setFirstOrder,length=300)
         self.firstScale.grid(row=7,column=0,columnspan=3)
         if self.current.spec > 0:
-            Label(self.window,text="Reference").grid(row=8,column=0,columnspan=3)
-            self.refEntry = Entry(self.window,textvariable=self.refValue,justify="center")
+            Label(self,text="Reference").grid(row=8,column=0,columnspan=3)
+            self.refEntry = Entry(self,textvariable=self.refValue,justify="center")
             self.refEntry.bind("<Return>", self.inputRef) 
             self.refEntry.bind("<KP_Enter>", self.inputRef)
             self.refEntry.grid(row=9,column=1)
-            Button(self.window, text="Pick reference", command=self.pickRef).grid(row=10,column=1)
-        Button(self.window, text="Apply",command=self.applyPhaseAndClose).grid(row=11,column=0)
-        Button(self.window, text="Cancel",command=self.cancelAndClose).grid(row=11,column=2)      
+            Button(self, text="Pick reference", command=self.pickRef).grid(row=10,column=1)
+        Button(self, text="Apply",command=self.applyPhaseAndClose).grid(row=11,column=0)
+        Button(self, text="Cancel",command=self.cancelAndClose).grid(row=11,column=2)      
         
     def setZeroOrder(self,value, *args): #function called by the zero order scale widget
         self.zeroVal = float(value)
@@ -1270,21 +1272,26 @@ class PhaseWindow(Frame): #a window for phasing the data
         self.current.upd()
         self.current.showFid()
         self.parent.menuEnable()
-        self.window.destroy()
+        self.destroy()
 
     def applyPhaseAndClose(self):
         self.parent.redoList = []
         self.parent.undoList.append(self.current.applyPhase(np.pi*self.zeroVal/180.0,np.pi*self.firstVal/180.0))
         self.parent.menuEnable()
-        self.window.destroy()
+        self.destroy()
 
 ################################################################
-class ApodWindow(Frame): #a window for apodization
+class ApodWindow(Toplevel): #a window for apodization
     def __init__(self, parent,current):
         parent.menuDisable()
-        Frame.__init__(self, parent)
+        Toplevel.__init__(self)
         self.parent = parent
         self.current = current
+        self.geometry('+0+0')
+        self.transient(self.parent)
+        self.protocol("WM_DELETE_WINDOW", self.cancelAndClose)
+        self.title("Apodize")
+        self.resizable(width=FALSE, height=FALSE)
         #initialize variables for the widgets
         self.lorTick = IntVar()
         self.lorVal = StringVar()
@@ -1309,13 +1316,7 @@ class ApodWindow(Frame): #a window for apodization
         #set stepsizes for the buttons
         self.lorstep = 1.0
         self.gaussstep = 1.0
-        self.window = Toplevel(self)
-        self.window.geometry('+0+0')
-        self.window.transient(self.parent)
-        self.window.protocol("WM_DELETE_WINDOW", self.cancelAndClose)
-        self.window.title("Apodize")
-        self.window.resizable(width=FALSE, height=FALSE)
-        self.frame1 = Frame(self.window)
+        self.frame1 = Frame(self)
         self.frame1.grid(row=0,column=0)
         Label(self.frame1,text="Lorentzian").grid(row=0,column=0,columnspan=4)
         Checkbutton(self.frame1,variable=self.lorTick, command=lambda: self.checkEval(self.lorTick,self.lorEntry)).grid(row=1,column=1)
@@ -1361,7 +1362,7 @@ class ApodWindow(Frame): #a window for apodization
             self.shiftingEntry.bind("<KP_Enter>", self.apodPreview)
             self.shiftingEntry.grid(row=13,column=2)
             OptionMenu(self.frame1,self.shiftingAxes, self.shiftingAxes.get(),*options).grid(row=14,column=2)
-        self.frame2 = Frame(self.window)
+        self.frame2 = Frame(self)
         self.frame2.grid(row=1,column=0)
         Button(self.frame2, text="Apply",command=self.applyApodAndClose).grid(row=0,column=0)
         Button(self.frame2, text="Cancel",command=self.cancelAndClose).grid(row=0,column=2) 
@@ -1426,7 +1427,7 @@ class ApodWindow(Frame): #a window for apodization
         self.current.upd()
         self.current.showFid()
         self.parent.menuEnable()
-        self.window.destroy()
+        self.destroy()
 
     def applyApodAndClose(self):
         lor = None
@@ -1453,33 +1454,32 @@ class ApodWindow(Frame): #a window for apodization
         self.parent.redoList = []
         self.parent.undoList.append(self.current.applyApod(lor,gauss,cos2,hamming,shift,shifting,shiftingAxes))
         self.parent.menuEnable()
-        self.window.destroy()
+        self.destroy()
 
 #######################################################################################
-class SizeWindow(Frame): #a window for changing the size of the current dimension
+class SizeWindow(Toplevel): #a window for changing the size of the current dimension
     def __init__(self, parent,current):
         parent.menuDisable()
         #initialize variables for the widgets
         self.sizeVal = StringVar()
         self.sizeVal.set(str(current.data1D.shape[-1]))
         #create a new window
-        Frame.__init__(self, parent)
+        Toplevel.__init__(self)
         self.parent = parent
         self.current = current
-        self.window = Toplevel(self)
-        self.window.geometry('+0+0')
-        self.window.transient(self.parent)
-        self.window.protocol("WM_DELETE_WINDOW", self.cancelAndClose)
-        self.window.title("Set size")
-        self.window.resizable(width=FALSE, height=FALSE)
-        self.frame1 = Frame(self.window)
+        self.geometry('+0+0')
+        self.transient(self.parent)
+        self.protocol("WM_DELETE_WINDOW", self.cancelAndClose)
+        self.title("Set size")
+        self.resizable(width=FALSE, height=FALSE)
+        self.frame1 = Frame(self)
         self.frame1.grid(row=0)
         Label(self.frame1,text="Set size").grid(row=0,column=0,columnspan=2)
         self.sizeEntry = Entry(self.frame1,textvariable=self.sizeVal,justify="center")
         self.sizeEntry.bind("<Return>", self.sizePreview)
         self.sizeEntry.bind("<KP_Enter>", self.sizePreview)
         self.sizeEntry.grid(row=1,column=0,columnspan=2)
-        self.frame2 = Frame(self.window)
+        self.frame2 = Frame(self)
         self.frame2.grid(row=1)
         Button(self.frame2, text="Apply",command=self.applySizeAndClose).grid(row=0,column=0)
         Button(self.frame2, text="Cancel",command=self.cancelAndClose).grid(row=0,column=1)
@@ -1496,7 +1496,7 @@ class SizeWindow(Frame): #a window for changing the size of the current dimensio
         self.current.plotReset()
         self.current.showFid()
         self.parent.menuEnable()
-        self.window.destroy()
+        self.destroy()
 
     def applySizeAndClose(self):
         size = int(round(safeEval(self.sizeVal.get())))
@@ -1506,32 +1506,31 @@ class SizeWindow(Frame): #a window for changing the size of the current dimensio
         self.parent.undoList.append(self.current.applySize(size))
         self.parent.sideframe.upd()
         self.parent.menuEnable()
-        self.window.destroy()
+        self.destroy()
 
 ##########################################################################################
-class SwapEchoWindow(Frame): #a window for changing the size of the current dimension
+class SwapEchoWindow(Toplevel): #a window for changing the size of the current dimension
     def __init__(self, parent,current):
         parent.menuDisable()
-        Frame.__init__(self, parent)
+        Toplevel.__init__(self)
         #initialize variables for the widgets
         self.posVal = StringVar()
         self.posVal.set(str(int(round(0.5*len(current.data1D)))))
         self.parent = parent
         self.current = current
-        self.window = Toplevel(self)
-        self.window.geometry('+0+0')
-        self.window.transient(self.parent)
-        self.window.protocol("WM_DELETE_WINDOW", self.cancelAndClose)
-        self.window.title("Swap echo")
-        self.window.resizable(width=FALSE, height=FALSE)
-        self.frame1 = Frame(self.window)
+        self.geometry('+0+0')
+        self.transient(self.parent)
+        self.protocol("WM_DELETE_WINDOW", self.cancelAndClose)
+        self.title("Swap echo")
+        self.resizable(width=FALSE, height=FALSE)
+        self.frame1 = Frame(self)
         self.frame1.grid(row=0)
         Label(self.frame1,text="Position").grid(row=0,column=0,columnspan=2)
         self.posEntry = Entry(self.frame1,textvariable=self.posVal,justify="center")
         self.posEntry.bind("<Return>", self.swapEchoPreview)
         self.posEntry.bind("<KP_Enter>", self.swapEchoPreview)
         self.posEntry.grid(row=1,column=0,columnspan=2)
-        self.frame2 = Frame(self.window)
+        self.frame2 = Frame(self)
         self.frame2.grid(row=1)
         Button(self.frame2, text="Apply",command=self.applySwapEchoAndClose).grid(row=0,column=0)
         Button(self.frame2, text="Cancel",command=self.cancelAndClose).grid(row=0,column=1)
@@ -1550,7 +1549,7 @@ class SwapEchoWindow(Frame): #a window for changing the size of the current dime
         self.current.plotReset()
         self.current.showFid()
         self.parent.menuEnable()
-        self.window.destroy()
+        self.destroy()
 
     def applySwapEchoAndClose(self):
         self.current.peakPickReset()
@@ -1560,7 +1559,7 @@ class SwapEchoWindow(Frame): #a window for changing the size of the current dime
             self.parent.undoList.append(self.current.applySwapEcho(pos))
             self.parent.bottomframe.upd()
             self.parent.menuEnable()
-            self.window.destroy()
+            self.destroy()
         else:
             print("not a valid index for swap echo")
         
@@ -1569,25 +1568,24 @@ class SwapEchoWindow(Frame): #a window for changing the size of the current dime
         self.parent.undoList.append(self.current.applySwapEcho(pos[0]))
         self.parent.bottomframe.upd()
         self.parent.menuEnable()
-        self.window.destroy()
+        self.destroy()
 
 ###########################################################################
-class ShiftDataWindow(Frame): #a window for shifting the data
+class ShiftDataWindow(Toplevel): #a window for shifting the data
     def __init__(self, parent,current):
         parent.menuDisable()
-        Frame.__init__(self, parent)
+        Toplevel.__init__(self)
         #initialize variables for the widgets
         self.shiftVal = StringVar()
         self.shiftVal.set("0")
         self.parent = parent
         self.current = current
-        self.window = Toplevel(self)
-        self.window.geometry('+0+0')
-        self.window.transient(self.parent)
-        self.window.protocol("WM_DELETE_WINDOW", self.cancelAndClose)
-        self.window.title("Shift data")
-        self.window.resizable(width=FALSE, height=FALSE)
-        self.frame1 = Frame(self.window)
+        self.geometry('+0+0')
+        self.transient(self.parent)
+        self.protocol("WM_DELETE_WINDOW", self.cancelAndClose)
+        self.title("Shift data")
+        self.resizable(width=FALSE, height=FALSE)
+        self.frame1 = Frame(self)
         self.frame1.grid(row=0)
         Label(self.frame1,text="number of points to shift").grid(row=0,column=1)
         tk.Button(self.frame1,text="<",repeatdelay=100, repeatinterval=1,command=self.stepDownShift).grid(row=1,column=0)
@@ -1596,7 +1594,7 @@ class ShiftDataWindow(Frame): #a window for shifting the data
         self.posEntry.bind("<Return>", self.shiftPreview)
         self.posEntry.bind("<KP_Enter>", self.shiftPreview)
         self.posEntry.grid(row=1,column=1)
-        self.frame2 = Frame(self.window)
+        self.frame2 = Frame(self)
         self.frame2.grid(row=1)
         Button(self.frame2, text="Apply",command=self.applyShiftAndClose).grid(row=0,column=0)
         Button(self.frame2, text="Cancel",command=self.cancelAndClose).grid(row=0,column=1)
@@ -1622,20 +1620,20 @@ class ShiftDataWindow(Frame): #a window for shifting the data
         self.current.plotReset()
         self.current.showFid()
         self.parent.menuEnable()
-        self.window.destroy()
+        self.destroy()
 
     def applyShiftAndClose(self):
         shift = int(round(safeEval(self.shiftVal.get())))
         self.parent.redoList = []
         self.parent.undoList.append(self.current.applyShift(shift))
         self.parent.menuEnable()
-        self.window.destroy()
+        self.destroy()
 
 #############################################################
-class DCWindow(Frame): #a window for shifting the data
+class DCWindow(Toplevel): #a window for shifting the data
     def __init__(self, parent,current):
         parent.menuDisable()
-        Frame.__init__(self, parent)
+        Frame.__init__(self)
         #initialize variables for the widgets
         self.minVal = StringVar()
         self.minVal.set("0")
@@ -1643,13 +1641,12 @@ class DCWindow(Frame): #a window for shifting the data
         self.maxVal.set(str(current.data1D.shape[-1]))
         self.parent = parent
         self.current = current
-        self.window = Toplevel(self)
-        self.window.geometry('+0+0')
-        self.window.transient(self.parent)
-        self.window.protocol("WM_DELETE_WINDOW", self.cancelAndClose)
-        self.window.title("DC offset correction")
-        self.window.resizable(width=FALSE, height=FALSE)
-        self.frame1 = Frame(self.window)
+        self.geometry('+0+0')
+        self.transient(self.parent)
+        self.protocol("WM_DELETE_WINDOW", self.cancelAndClose)
+        self.title("DC offset correction")
+        self.resizable(width=FALSE, height=FALSE)
+        self.frame1 = Frame(self)
         self.frame1.grid(row=0)
         Label(self.frame1,text="Start point").grid(row=0,column=0,columnspan=2)
         self.minEntry = Entry(self.frame1,textvariable=self.minVal,justify="center")
@@ -1661,7 +1658,7 @@ class DCWindow(Frame): #a window for shifting the data
         self.maxEntry.bind("<Return>", self.dcPreview)
         self.maxEntry.bind("<KP_Enter>", self.dcPreview)
         self.maxEntry.grid(row=3,column=0,columnspan=2)
-        self.frame2 = Frame(self.window)
+        self.frame2 = Frame(self)
         self.frame2.grid(row=1)
         Button(self.frame2, text="Apply",command=self.applyDCAndClose).grid(row=0,column=0)
         Button(self.frame2, text="Cancel",command=self.cancelAndClose).grid(row=0,column=1)
@@ -1710,7 +1707,7 @@ class DCWindow(Frame): #a window for shifting the data
         self.current.plotReset()
         self.current.showFid()
         self.parent.menuEnable()
-        self.window.destroy()
+        self.destroy()
 
     def applyDCAndClose(self):
         self.current.peakPickReset()
@@ -1728,7 +1725,7 @@ class DCWindow(Frame): #a window for shifting the data
         self.parent.redoList = []
         self.parent.undoList.append(self.current.applydcOffset(minimum,maximum))
         self.parent.menuEnable()
-        self.window.destroy()
+        self.destroy()
 
 #############################################################
 class regionWindow(Toplevel): #A general region selection frame
@@ -1880,12 +1877,17 @@ class extractRegionWindow(regionWindow): #A window for obtaining a selected regi
         self.parent.updAllFrames()
 
 ################################################################
-class ShearingWindow(Frame): #a window for setting the xax of the current data
+class ShearingWindow(Toplevel): #a window for setting the xax of the current data
     def __init__(self, parent,current):
         parent.menuDisable()
-        Frame.__init__(self, parent)
+        Toplevel.__init__(self)
         self.parent = parent
         self.current = current
+        self.geometry('+0+0')
+        self.transient(self.parent)
+        self.protocol("WM_DELETE_WINDOW", self.cancelAndClose)
+        self.title("Shearing")
+        self.resizable(width=FALSE, height=FALSE)
         #initialize variables for the widgets
         self.shear = StringVar()
         self.shear.set('0.0')
@@ -1894,15 +1896,7 @@ class ShearingWindow(Frame): #a window for setting the xax of the current data
         self.axes.set('0')
         self.axes2 = StringVar()
         self.axes2.set('1')
-        self.parent = parent
-        self.current = current
-        self.window = Toplevel(self)
-        self.window.geometry('+0+0')
-        self.window.transient(self.parent)
-        self.window.protocol("WM_DELETE_WINDOW", self.cancelAndClose)
-        self.window.title("Shearing")
-        self.window.resizable(width=FALSE, height=FALSE)
-        self.frame1 = Frame(self.window)
+        self.frame1 = Frame(self)
         self.frame1.grid(row=0)
         Label(self.frame1,text="Shearing constant").grid(row=0,column=0)
         self.shearEntry = Entry(self.frame1,textvariable=self.shear,justify="center")
@@ -1913,7 +1907,7 @@ class ShearingWindow(Frame): #a window for setting the xax of the current data
         OptionMenu(self.frame1,self.axes, self.axes.get(),*options).grid(row=3,column=0)
         Label(self.frame1,text="Shearing axis").grid(row=4,column=0)
         OptionMenu(self.frame1,self.axes2,self.axes2.get(),*options).grid(row=5,column=0)
-        self.frame2 = Frame(self.window)
+        self.frame2 = Frame(self)
         self.frame2.grid(row=1)
         Button(self.frame2, text="Apply",command=self.applyAndClose).grid(row=0,column=0)
         Button(self.frame2, text="Cancel",command=self.cancelAndClose).grid(row=0,column=1)
@@ -1927,7 +1921,7 @@ class ShearingWindow(Frame): #a window for setting the xax of the current data
         #self.current.plotReset()
         #self.current.showFid()
         self.parent.menuEnable()
-        self.window.destroy()
+        self.destroy()
 
     def applyAndClose(self):
         shear = float(safeEval(self.shear.get()))
@@ -1939,24 +1933,23 @@ class ShearingWindow(Frame): #a window for setting the xax of the current data
             self.parent.redoList = []
             self.parent.undoList.append(self.current.shearing(shear,axes,axes2))
             self.parent.menuEnable()
-            self.window.destroy()
+            self.destroy()
         
 ##########################################################################################
-class XaxWindow(Frame): #a window for setting the xax of the current data
+class XaxWindow(Toplevel): #a window for setting the xax of the current data
     def __init__(self, parent,current):
         parent.menuDisable()
-        Frame.__init__(self, parent)
+        Frame.__init__(self)
         #initialize variables for the widgets
         self.val = StringVar()
         self.parent = parent
         self.current = current
-        self.window = Toplevel(self)
-        self.window.geometry('+0+0')
-        self.window.transient(self.parent)
-        self.window.protocol("WM_DELETE_WINDOW", self.cancelAndClose)
-        self.window.title("User defined x-axis")
-        self.window.resizable(width=FALSE, height=FALSE)
-        self.frame1 = Frame(self.window)
+        self.geometry('+0+0')
+        self.transient(self.parent)
+        self.protocol("WM_DELETE_WINDOW", self.cancelAndClose)
+        self.title("User defined x-axis")
+        self.resizable(width=FALSE, height=FALSE)
+        self.frame1 = Frame(self)
         self.frame1.grid(row=0)
         Label(self.frame1,text="Expression for x-axis values").grid(row=0,column=0,columnspan=2)
         self.minEntry = Entry(self.frame1,textvariable=self.val,justify="center")
@@ -1964,7 +1957,7 @@ class XaxWindow(Frame): #a window for setting the xax of the current data
         self.minEntry.bind("<KP_Enter>", self.xaxPreview)
         self.minEntry.grid(row=1,column=0,columnspan=2)
 
-        self.frame2 = Frame(self.window)
+        self.frame2 = Frame(self)
         self.frame2.grid(row=1)
         Button(self.frame2, text="Apply",command=self.applyXaxAndClose).grid(row=0,column=0)
         Button(self.frame2, text="Cancel",command=self.cancelAndClose).grid(row=0,column=1)
@@ -1989,7 +1982,7 @@ class XaxWindow(Frame): #a window for setting the xax of the current data
         self.current.plotReset()
         self.current.showFid()
         self.parent.menuEnable()
-        self.window.destroy()
+        self.destroy()
 
     def applyXaxAndClose(self):
         env = vars(np).copy()
@@ -2000,7 +1993,7 @@ class XaxWindow(Frame): #a window for setting the xax of the current data
                 if all(isinstance(x,(int,float)) for x in val):
                     self.current.setXax(val)
                     self.parent.menuEnable()
-                    self.window.destroy()
+                    self.destroy()
                 else:
                     print("Array is not all of int or float type")
             else:
@@ -2009,12 +2002,12 @@ class XaxWindow(Frame): #a window for setting the xax of the current data
             print("Input is not a list or array")
 
 ##########################################################################################
-class RefWindow(Frame): #a window for setting the ppm reference
+class RefWindow(Toplevel): #a window for setting the ppm reference
     def __init__(self, parent,current):
         parent.menuDisable()
         if current.spec == 0:
             print('Setting ppm is only available for frequency data')
-        Frame.__init__(self, parent)
+        Toplevel.__init__(self)
         #initialize variables for the widgets
         self.freqVal = StringVar()
         self.freqVal.set(str(current.freq))
@@ -2022,13 +2015,12 @@ class RefWindow(Frame): #a window for setting the ppm reference
         self.refVal.set('0.0')
         self.parent = parent
         self.current = current
-        self.window = Toplevel(self)
-        self.window.geometry('+0+0')
-        self.window.transient(self.parent)
-        self.window.protocol("WM_DELETE_WINDOW", self.cancelAndClose)
-        self.window.title("Set ppm reference")
-        self.window.resizable(width=FALSE, height=FALSE)
-        self.frame1 = Frame(self.window)
+        self.geometry('+0+0')
+        self.transient(self.parent)
+        self.protocol("WM_DELETE_WINDOW", self.cancelAndClose)
+        self.title("Set ppm reference")
+        self.resizable(width=FALSE, height=FALSE)
+        self.frame1 = Frame(self)
         self.frame1.grid(row=0)
         Label(self.frame1,text="Frequency").grid(row=0,column=0)
         self.freqEntry = Entry(self.frame1,textvariable=self.freqVal,justify="center")
@@ -2040,7 +2032,7 @@ class RefWindow(Frame): #a window for setting the ppm reference
         self.refEntry.bind("<Return>", self.preview)
         self.refEntry.bind("<KP_Enter>", self.preview)
         self.refEntry.grid(row=3,column=0)
-        self.frame2 = Frame(self.window)
+        self.frame2 = Frame(self)
         self.frame2.grid(row=1)
         Button(self.frame2, text="Apply",command=self.applyAndClose).grid(row=0,column=0)
         Button(self.frame2, text="Cancel",command=self.cancelAndClose).grid(row=0,column=1)
@@ -2058,7 +2050,7 @@ class RefWindow(Frame): #a window for setting the ppm reference
         self.current.peakPickReset()
         self.current.showFid()
         self.parent.menuEnable()
-        self.window.destroy()
+        self.destroy()
 
     def applyAndClose(self):
         self.current.peakPickReset()
@@ -2067,7 +2059,7 @@ class RefWindow(Frame): #a window for setting the ppm reference
         self.parent.redoList = []
         self.parent.undoList.append(self.current.setRef(freq/(1.0+ref*1e-6)))
         self.parent.menuEnable()
-        self.window.destroy()
+        self.destroy()
         
     def picked(self,pos): 
         self.freqVal.set(str(self.current.freq+self.current.xax[pos[0]]))
@@ -2078,10 +2070,7 @@ class RefWindow(Frame): #a window for setting the ppm reference
 #the main program
 if __name__ == "__main__":
     root = Tk()
-    mainWindow = Main1DWindow(root) #create an instance to control the main window
-    mainWindow.pack(fill=BOTH,expand=1)
-    mainWindow.rowconfigure(0, weight=1)
-    mainWindow.grid_columnconfigure(0, weight=1)
+    MainProgram(root)
     root.title("ssNake") 
     root.style = Style()
     root.style.theme_use("clam")
