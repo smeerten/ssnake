@@ -9,6 +9,7 @@ if sys.version_info >= (3,0):
     from tkinter.filedialog import askopenfilename
     from tkinter.filedialog import asksaveasfile
     from tkinter.filedialog import asksaveasfilename
+    from tkinter.simpledialog import askstring
 else:
     from Tkinter import *
     import Tkinter as tk
@@ -16,6 +17,8 @@ else:
     from tkFileDialog   import askopenfilename
     from tkFileDialog   import asksaveasfile
     from tkFileDialog   import asksaveasfilename
+    from tkSimpleDialog import askstring
+import PIL.Image as Image
 import spectrum_classes as sc
 import fitting as fit
 import math
@@ -31,141 +34,60 @@ pi=math.pi
 class MainProgram:
     def __init__(self,root):
         self.root = root
-        self.mainWindow = Main1DWindow(self.root) #create an instance to control the main window
-        self.mainWindow.pack(fill=BOTH,expand=1)
-        self.mainWindow.rowconfigure(0, weight=1)
-        self.mainWindow.grid_columnconfigure(0, weight=1)
-
-
-class Main1DWindow(Frame):
-    def __init__(self,parent):
-        Frame.__init__(self,parent)
-        self.undoList = [] #the list to hold all the undo lambda functions
-        self.redoList = [] #the list to hold all the redo lambda functions
-        self.parent = parent #remember your parents
-        #create the menu
-        self.menubar = Menu(self)
-        self.parent.config(menu=self.menubar)
+        self.menubar = Menu(self.root)
+        self.root.config(menu=self.menubar)
+        self.workspaces = {}
         #the file drop down menu
         filemenu = Menu(self.menubar, tearoff=0)
         self.menubar.add_cascade(label="File", menu=filemenu)
-        filemenu.add_command(label="New", command=self.NewFile)
-        filemenu.add_command(label="Open...", command=self.OpenFile)
-        filemenu.add_separator()
-        filemenu.add_command(label="Exit", command=self.quit)
+        filemenu.add_command(label="Exit", command=self.root.quit)
         #the hotkeys for different commands
-        self.bind_all("<Control-q>", lambda extra: self.quit())
-        self.bind_all("<Control-z>", self.undo)
-        self.bind_all("<Control-y>", self.redo)
-	#the load drop down menu
+        self.root.bind_all("<Control-q>", lambda extra: self.root.quit())
+        self.root.bind_all("<Control-z>", self.undo)
+        self.root.bind_all("<Control-y>", self.redo)
+        #the load drop down menu
         loadmenu = Menu(self.menubar, tearoff=0)
         self.menubar.add_cascade(label="Load", menu=loadmenu)
         loadmenu.add_command(label="Load Varian data", command=self.LoadVarianFile)
         loadmenu.add_command(label="Load Bruker Topspin/XWinNMR", command=self.LoadBrukerTopspin)
         loadmenu.add_command(label="Load Chemagnetics data", command=self.LoadChemFile)
         loadmenu.add_command(label="Load Simpson data", command=self.LoadSimpsonFile)
-        
-        #the save drop down menu
-        savemenu = Menu(self.menubar, tearoff=0)
-        self.menubar.add_cascade(label="Save", menu=savemenu)
-        savemenu.add_command(label="Save figure", command=self.saveFigure)
-        savemenu.add_command(label="Save as Simpson data", command=self.SaveSimpsonFile)
-        
-	#the edit drop down menu
-        editmenu = Menu(self.menubar, tearoff=0)
-        self.menubar.add_cascade(label="Edit", menu=editmenu)
-        editmenu.add_command(label="Undo", command=self.undo)
-        editmenu.add_command(label="Redo", command=self.redo)
-
-	#the tool drop down menu
-        toolMenu = Menu(self.menubar, tearoff=0)
-        self.menubar.add_cascade(label="Tools",menu=toolMenu)
-        toolMenu.add_command(label="Real", command=self.real)
-        toolMenu.add_command(label="Imag", command=self.imag)
-        toolMenu.add_command(label="Abs", command=self.abs) 
-        toolMenu.add_command(label="Apodize", command=self.createApodWindow)
-        toolMenu.add_command(label="Phasing", command=self.createPhaseWindow)
-        toolMenu.add_command(label="Sizing", command=self.createSizeWindow) 
-        toolMenu.add_command(label="Swap Echo", command=self.createSwapEchoWindow)
-        toolMenu.add_command(label="Shift Data", command=self.createShiftDataWindow)
-        toolMenu.add_command(label="DC offset correction", command=self.createDCWindow)
-        toolMenu.add_command(label="Correct Bruker digital filter", command=self.BrukerDigital)
-
-        #the matrix drop down menu
-        matrixMenu = Menu(self.menubar, tearoff=0)
-        self.menubar.add_cascade(label="Matrix",menu=matrixMenu)
-        matrixMenu.add_command(label="Integrate", command=self.createIntegrateWindow)
-        matrixMenu.add_command(label="Max", command=self.createMaxWindow)
-        matrixMenu.add_command(label="Min", command=self.createMinWindow)
-        matrixMenu.add_command(label="Extract part", command=self.createRegionWindow)
-        matrixMenu.add_command(label="Flip L/R", command=self.flipLR)
-        matrixMenu.add_command(label="Shearing", command=self.createShearingWindow)
-        
-        #the fft drop down menu
-        fftMenu = Menu(self.menubar, tearoff=0)
-        self.menubar.add_cascade(label="Fourier",menu=fftMenu)
-        fftMenu.add_command(label="Fourier transform", command=self.fourier)
-        fftMenu.add_command(label="Fftshift", command=self.fftshift)
-        fftMenu.add_command(label="Inv fftshift", command=self.invFftshift)
-        fftMenu.add_command(label="Hilbert transform", command=self.hilbert)
-
-	#the fitting drop down menu
-        fittingMenu = Menu(self.menubar, tearoff=0)
-        self.menubar.add_cascade(label="Fitting",menu=fittingMenu)
-        fittingMenu.add_command(label="Relaxation Curve", command=self.createRelaxWindow)
-        fittingMenu.add_command(label="Peak Deconvolution", command=self.createPeakDeconvWindow)
-
-	#the plot drop down menu
-        plotMenu = Menu(self.menubar, tearoff=0)
-        self.menubar.add_cascade(label="Plot",menu=plotMenu)
-        plotMenu.add_command(label="1D plot", command=self.plot1D)
-        plotMenu.add_command(label="Stack plot", command=self.plotStack)
-        plotMenu.add_command(label="Array plot", command=self.plotArray)
-        plotMenu.add_command(label="Contour plot", command=self.plotContour)
-        plotMenu.add_command(label="Skewed plot", command=self.plotSkewed)
-        plotMenu.add_command(label="Set reference", command=self.createRefWindow)
-        plotMenu.add_command(label="User x-axis", command=self.createXaxWindow)
+        self.mainWindow = None
         x=np.linspace(0,2*np.pi*10,1000)[:-1] #fake data
         x2=np.linspace(0,2*np.pi*10,200)[1:] #fake data
         test=np.exp(-1j*x)*np.exp(-1*x/10.0)#fake data
         test2=1-np.exp(-x2)
         #self.masterData=sc.Spectrum(np.array([np.array([test,test*2,test*3]),np.array([test*3,test*4,test*5])]),[600000000.0,500000000.0,400000000.0],[1000.0,2000.0,3000.0])#create a Spectrum instance with the fake data
-        self.masterData=sc.Spectrum(np.outer(test2,test),[600000000.0,500000000.0],[1000.0,2000.0])
-        self.current=sc.Current1D(self,self.masterData) 
-        self.current.grid(row=0,column=0,sticky="nswe")
-	#create the sideframe, bottomframe and textframe
-        self.sideframe=SideFrame(self) 
-        self.sideframe.grid(row=0,column=2,sticky='n')
-        Separator(self,orient=VERTICAL).grid(row=0,column=1,rowspan=4,sticky='ns')
-        self.bottomframe=BottomFrame(self)
-        self.bottomframe.grid(row=1,column=0,sticky='w') 
-        Separator(self,orient=HORIZONTAL).grid(row=2,sticky='ew')
-        self.textframe=TextFrame(self)
-        self.textframe.grid(row=3,column=0,sticky='s')  
+        masterData=sc.Spectrum(np.outer(test2,test),[600000000.0,500000000.0],[1000.0,2000.0])
+        self.workspaces['name0'] = Main1DWindow(self.root,self,masterData) #create an instance to control the main window
+        self.changeMainWindow('name0')
 
-        #all the functions that will be called from the menu and the extra frames
+    def askName(self,names):
+        count = 0
+        name = 'spectrum'+str(count)
+        while name in names:
+            count +=1
+            name = 'spectrum'+str(count)
+        givenName = askstring('Spectrum name','Name:',initialvalue=name)
+        while (givenName in names) or givenName is '':
+            print('Name exists')
+            givenName = askstring('Name:','test')
+        return givenName
+        
+    def undo(self, *args):
+        if self.mainWindow is not None:
+            self.mainWindow.undo()
 
-    def menuEnable(self):
-        for i in range(12):
-            self.menubar.entryconfig(i,state='normal')
-        self.sideframe.frameEnable()
-        self.bottomframe.frameEnable()
-        self.textframe.frameEnable()
+    def redo(self, *args):
+        if self.mainWindow is not None:
+            self.mainWindow.redo()
 
-    def menuDisable(self):
-        for i in range(12):
-            self.menubar.entryconfig(i,state='disabled')
-        self.sideframe.frameDisable()
-        self.bottomframe.frameDisable()
-        self.textframe.frameDisable()
-
-    def NewFile(self):
-        print("New File!") #to be added
-
-    def OpenFile(self):
-        name = askopenfilename() #to be added
-        print(name)
-
+    def changeMainWindow(self, var):
+        if self.mainWindow is not None:
+            self.mainWindow.pack_forget()
+        self.mainWindow = self.workspaces[var]
+        self.mainWindow.pack(fill=BOTH,expand=1)
+        
     def LoadVarianFile(self):
         FilePath = askopenfilename()
         if FilePath is not '': #if not canceled
@@ -230,18 +152,14 @@ class Main1DWindow(Frame):
                             a.append(b)
                     a=np.complex128(a)
                     fid = a[:,::2]-1j*a[:,1::2]
-                    self.current.grid_remove()
-                    self.current.destroy()
                     if SizeTD1 is 1: #convert to 1D dat if the data is 1D (so no 1xnp data, but np)
                         fid = fid[0][:]
-                        self.masterData=sc.Spectrum(fid,[freq],[sw])
-                        self.current=sc.Current1D(self,self.masterData) #create the Current1D instance from the Spectrum  
+                        masterData=sc.Spectrum(fid,[freq],[sw])
                     else: #For 2D data
-                        self.masterData=sc.Spectrum(fid,[freq]*2,[sw]*2)
-                        self.current=sc.Current1D(self,self.masterData) #create the Current1D instance from the Spectrum  
-                    #add some check to see if current exists
-                    self.current.grid(row=0,column=0,sticky="nswe")
-                    self.updAllFrames()
+                        masterData=sc.Spectrum(fid,[freq]*2,[sw]*2)
+                    name = self.askName(self.workspaces.keys())
+                    self.workspaces[name] = Main1DWindow(self.root,self,masterData)
+                    self.changeMainWindow(name)
                 except:
                     print('Error loading Varian data from '+Dir+os.path.sep+'fid. No data loaded!')
             else: #If /fid does not exist
@@ -274,34 +192,27 @@ class Main1DWindow(Frame):
                         freq1 = float(data2[s][8:])*1e6
                     if data2[s].startswith('##$SW_h='):
                         SW1 = float(data2[s][8:])
-            
             if os.path.exists(Dir+os.path.sep+'fid'):
                 with open(Dir+os.path.sep+'fid', "rb") as f:            
                     raw = np.fromfile(f, np.int32,sizeTD1*sizeTD2)
             elif os.path.exists(Dir+os.path.sep+'ser'):
                 with open(Dir+os.path.sep+'ser', "rb") as f:            
                     raw = np.fromfile(f, np.int32,sizeTD1*sizeTD2)
-                
             if ByteOrder: #Bigendian if ByteOrder 1, otherwise smallendian
                 RawInt=raw.newbyteorder('b')
             else:
                 RawInt=raw.newbyteorder('l')
-                
             ComplexData = np.array(RawInt[0:len(RawInt):2])+1j*np.array(RawInt[1:len(RawInt):2])
-            self.current.grid_remove()
-            self.current.destroy()
             spec = [False]
             if sizeTD1 is 1:
                 #data = np.transpose(ComplexData)[0][:] #convert to 1D np.array
-                self.masterData=sc.Spectrum(ComplexData,[freq2],[SW2],spec)
-                self.current=sc.Current1D(self,self.masterData) #create the Current1D instance from the Spectrum  
+                masterData=sc.Spectrum(ComplexData,[freq2],[SW2],spec)
             else:
                 data = ComplexData.reshape(sizeTD1,sizeTD2/2)
-                self.masterData=sc.Spectrum(data,[freq1,freq2],[SW1,SW2],spec*2)
-                self.current=sc.Current1D(self,self.masterData) #create the Current1D instance from the Spectrum  
-                
-            self.current.grid(row=0,column=0,sticky="nswe")
-            self.updAllFrames()        
+                masterData=sc.Spectrum(data,[freq1,freq2],[SW1,SW2],spec*2)
+            name = self.askName(self.workspaces.keys())
+            self.workspaces[name] = Main1DWindow(self.root,self,masterData)
+            self.changeMainWindow(name)
                 
     def LoadChemFile(self):
         FileLocation = askopenfilename()
@@ -314,7 +225,6 @@ class Main1DWindow(Frame):
                 sizeTD2 = int(H['al'])
                 freq = float(H['sf'+H['ch1']])
                 sw=1/float(H['dw'][:-1])
-            
                 if any('array_num_values_' in s for s in H.keys()):
                     if 'use_array=1' in open(Dir+'/acq_2').read():
                         for s in H.keys():
@@ -330,32 +240,23 @@ class Main1DWindow(Frame):
                         sizeTD1 = int(H['al2'])
                         if 'dw2' in H:
                             sw1 = 1/float(H['dw2'][:-1])        
-                            
                 with open(Dir+os.path.sep+'data','rb') as f:
                     raw = np.fromfile(f, np.int32)
                     b=np.complex128(raw.byteswap())
                 fid = b[:len(b)/2]+1j*b[len(b)/2:]
                 fid = np.reshape(fid,(sizeTD1,sizeTD2))
-                
                 data = np.array(fid) #convert to numpy array
-                self.current.grid_remove()
-                self.current.destroy()
-                spec = [False]
-                    
+                spec = [False]                    
                 if sizeTD1 is 1:
                     data = data[0][:] #convert to 1D np.array
-                    self.masterData=sc.Spectrum(data,[freq*1e6],[sw],spec)
-                    self.current=sc.Current1D(self,self.masterData,0,[],0) #create the Current1D instance from the Spectrum  
+                    masterData=sc.Spectrum(data,[freq*1e6],[sw],spec)
                 else:
                     #data = np.transpose(data.reshape((sizeTD1,sizeTD2)))
                     data = data.reshape((sizeTD1,sizeTD2))
-                    self.masterData=sc.Spectrum(data,[freq*1e6]*2,[sw1,sw],spec*2)
-                    self.current=sc.Current1D(self,self.masterData) #create the Current1D instance from the Spectrum  
-                    
-                self.current.grid(row=0,column=0,sticky="nswe")
-                self.updAllFrames()
-           # except:
-           #     print('Error loading Chemagnetics data from '+Dir+os.path.sep+'data. No data loaded!')
+                    masterData=sc.Spectrum(data,[freq*1e6]*2,[sw1,sw],spec*2)
+                name = self.askName(self.workspaces.keys())
+                self.workspaces[name] = Main1DWindow(self.root,self,masterData)
+                self.changeMainWindow(name)
         else:
             print(Dir+os.path.sep+'data does not exits, no Chemagnetics data loaded!')
 
@@ -366,7 +267,6 @@ class Main1DWindow(Frame):
             try:
                 with open(FileLocation, 'r') as f: #read file
                     Lines = f.read().split('\n')
-            
                 NP, NI, SW, SW1, TYPE, FORMAT = 0,1,0,0,'','Normal'
                 for s in range(0,len(Lines)):
                     if Lines[s].startswith('NP='):
@@ -385,7 +285,6 @@ class Main1DWindow(Frame):
                         DataStart = s
                     elif Lines[s].startswith('END'):
                         DataEnd = s
-                
                 if 'Normal' in FORMAT: #If normal format (e.g. not binary)
                     data = []
                     for iii in range(DataStart+1,DataEnd): #exctract data
@@ -397,7 +296,6 @@ class Main1DWindow(Frame):
                     for i in range(0,len(RawData)):
                         for j in range(0,len(RawData[i])):
                             Ascii.append(ord(RawData[i][j]))
-                    
                     Values = np.array(Ascii)
                     i=0
                     idx=0
@@ -415,7 +313,6 @@ class Main1DWindow(Frame):
                             pts.append(C[0]%64 + C[1]*4- C[1]*4 % 64)
                             pts.append(C[1]%16 + C[2]*4- C[2]*4%16)
                             pts.append(C[2]%4 + C[3]*4- C[3]*4%4)
-                            
                         for k in range(0,3):
                             p=0
                             if i < 2*NP*NI:
@@ -428,7 +325,6 @@ class Main1DWindow(Frame):
                                 a3 = np.int32(math.floor(p/65536)%256 * 256)
                                 a4 = np.int32(math.floor(p/16777216)%256)
                                 rdl = a1 | a2 | a3 | a4
-    
                                 sign = math.floor(rdl/2**31)
                                 e = math.floor(rdl/8388608)%256
                                 m  = rdl% 8388608
@@ -441,30 +337,124 @@ class Main1DWindow(Frame):
                     data=[]
                     for number in range(0,int(len(TempData)/2)):
                         data.append(real[number]+1j*imag[number])
-                
-                
                 data = np.array(data) #convert to numpy array
-                self.current.grid_remove()
-                self.current.destroy()
                 if 'FID' in TYPE:
                     axis=0
                     spec = [False]
                 elif 'SPE' in TYPE:
                     axis=1
-                    spec = [True]
-                    
+                    spec = [True]                    
                 if NI is 1:
-                    self.masterData=sc.Spectrum(data,[0],[SW],spec)
-                    self.current=sc.Current1D(self,self.masterData,0,[],0) #create the Current1D instance from the Spectrum  
+                    masterData=sc.Spectrum(data,[0],[SW],spec)
                 else:
                     data = np.transpose(data.reshape((NP,NI)))
-                    self.masterData=sc.Spectrum(data,[0,0],[SW,SW1],spec*2)
-                    self.current=sc.Current1D(self,self.masterData) #create the Current1D instance from the Spectrum  
-                    
-                self.current.grid(row=0,column=0,sticky="nswe")
-                self.updAllFrames()
+                    masterData=sc.Spectrum(data,[0,0],[SW,SW1],spec*2)
+                name = self.askName(self.workspaces.keys())
+                self.workspaces[name] = Main1DWindow(self.root,self,masterData)
+                self.changeMainWindow(name)
             except:
                 print('Error loading Simpson data from '+FileLocation+' . No data loaded!')
+
+class Main1DWindow(Frame):
+    def __init__(self,parent,mainProgram,masterData):
+        Frame.__init__(self,parent)
+        self.undoList = [] #the list to hold all the undo lambda functions
+        self.redoList = [] #the list to hold all the redo lambda functions
+        self.parent = parent #remember your parents
+        self.mainProgram = mainProgram
+        self.masterData = masterData
+        self.current = sc.Current1D(self,masterData) 
+        self.menubar = self.mainProgram.menubar
+        
+        #the save drop down menu
+        savemenu = Menu(self.menubar, tearoff=0)
+        self.menubar.add_cascade(label="Save", menu=savemenu)
+        savemenu.add_command(label="Save figure", command=self.saveFigure)
+        savemenu.add_command(label="Save as Simpson data", command=self.SaveSimpsonFile)
+        
+	#the edit drop down menu
+        editmenu = Menu(self.menubar, tearoff=0)
+        self.menubar.add_cascade(label="Edit", menu=editmenu)
+        editmenu.add_command(label="Undo", command=self.undo)
+        editmenu.add_command(label="Redo", command=self.redo)
+
+	#the tool drop down menu
+        toolMenu = Menu(self.menubar, tearoff=0)
+        self.menubar.add_cascade(label="Tools",menu=toolMenu)
+        toolMenu.add_command(label="Real", command=self.real)
+        toolMenu.add_command(label="Imag", command=self.imag)
+        toolMenu.add_command(label="Abs", command=self.abs) 
+        toolMenu.add_command(label="Apodize", command=self.createApodWindow)
+        toolMenu.add_command(label="Phasing", command=self.createPhaseWindow)
+        toolMenu.add_command(label="Sizing", command=self.createSizeWindow) 
+        toolMenu.add_command(label="Swap Echo", command=self.createSwapEchoWindow)
+        toolMenu.add_command(label="Shift Data", command=self.createShiftDataWindow)
+        toolMenu.add_command(label="DC offset correction", command=self.createDCWindow)
+        toolMenu.add_command(label="Correct Bruker digital filter", command=self.BrukerDigital)
+
+        #the matrix drop down menu
+        matrixMenu = Menu(self.menubar, tearoff=0)
+        self.menubar.add_cascade(label="Matrix",menu=matrixMenu)
+        matrixMenu.add_command(label="Integrate", command=self.createIntegrateWindow)
+        matrixMenu.add_command(label="Max", command=self.createMaxWindow)
+        matrixMenu.add_command(label="Min", command=self.createMinWindow)
+        matrixMenu.add_command(label="Extract part", command=self.createRegionWindow)
+        matrixMenu.add_command(label="Flip L/R", command=self.flipLR)
+        matrixMenu.add_command(label="Shearing", command=self.createShearingWindow)
+        
+        #the fft drop down menu
+        fftMenu = Menu(self.menubar, tearoff=0)
+        self.menubar.add_cascade(label="Fourier",menu=fftMenu)
+        fftMenu.add_command(label="Fourier transform", command=self.fourier)
+        fftMenu.add_command(label="Fftshift", command=self.fftshift)
+        fftMenu.add_command(label="Inv fftshift", command=self.invFftshift)
+        fftMenu.add_command(label="Hilbert transform", command=self.hilbert)
+
+	#the fitting drop down menu
+        fittingMenu = Menu(self.menubar, tearoff=0)
+        self.menubar.add_cascade(label="Fitting",menu=fittingMenu)
+        fittingMenu.add_command(label="Relaxation Curve", command=self.createRelaxWindow)
+        fittingMenu.add_command(label="Peak Deconvolution", command=self.createPeakDeconvWindow)
+
+	#the plot drop down menu
+        plotMenu = Menu(self.menubar, tearoff=0)
+        self.menubar.add_cascade(label="Plot",menu=plotMenu)
+        plotMenu.add_command(label="1D plot", command=self.plot1D)
+        plotMenu.add_command(label="Stack plot", command=self.plotStack)
+        plotMenu.add_command(label="Array plot", command=self.plotArray)
+        plotMenu.add_command(label="Contour plot", command=self.plotContour)
+        plotMenu.add_command(label="Skewed plot", command=self.plotSkewed)
+        plotMenu.add_command(label="Set reference", command=self.createRefWindow)
+        plotMenu.add_command(label="User x-axis", command=self.createXaxWindow)
+        
+        self.current.grid(row=0,column=0,sticky="nswe")
+	#create the sideframe, bottomframe and textframe
+        self.sideframe=SideFrame(self) 
+        self.sideframe.grid(row=0,column=2,sticky='n')
+        Separator(self,orient=VERTICAL).grid(row=0,column=1,rowspan=4,sticky='ns')
+        self.bottomframe=BottomFrame(self)
+        self.bottomframe.grid(row=1,column=0,sticky='w') 
+        Separator(self,orient=HORIZONTAL).grid(row=2,sticky='ew')
+        self.textframe=TextFrame(self)
+        self.textframe.grid(row=3,column=0,sticky='s')  
+
+        self.rowconfigure(0, weight=1)
+        self.grid_columnconfigure(0, weight=1)
+        #all the functions that will be called from the menu and the extra frames
+
+    def menuEnable(self):
+        for i in range(12):
+            self.menubar.entryconfig(i,state='normal')
+        self.sideframe.frameEnable()
+        self.bottomframe.frameEnable()
+        self.textframe.frameEnable()
+
+    def menuDisable(self):
+        for i in range(12):
+            self.menubar.entryconfig(i,state='disabled')
+        self.sideframe.frameDisable()
+        self.bottomframe.frameDisable()
+        self.textframe.frameDisable()
 
     def saveFigure(self):
         f=asksaveasfilename(filetypes=(('svg','.svg'),('png','.png'),('eps','.eps'),('jpg','.jpg'),('pdf','.pdf')))
@@ -1633,7 +1623,7 @@ class ShiftDataWindow(Toplevel): #a window for shifting the data
 class DCWindow(Toplevel): #a window for shifting the data
     def __init__(self, parent,current):
         parent.menuDisable()
-        Frame.__init__(self)
+        Toplevel.__init__(self)
         #initialize variables for the widgets
         self.minVal = StringVar()
         self.minVal.set("0")
