@@ -102,7 +102,7 @@ class Spectrum(object):
         return returnValue
 
     def setPhase(self, phase0, phase1, axes):
-        vector = np.exp(np.fft.fftshift(np.fft.fftfreq(self.data.shape[axes],1.0/self.sw[axes]))*phase1*1j)
+        vector = np.exp(np.fft.fftshift(np.fft.fftfreq(self.data.shape[axes],1.0/self.sw[axes]))/self.sw[axes]*phase1*1j)
         if self.spec[axes]==0:
             self.fourier(axes,tmp=True)
             self.data=self.data*np.exp(phase0*1j)
@@ -250,6 +250,21 @@ class Spectrum(object):
             self.data[slicing]=self.data[slicing]*0
         return returnValue
 
+    def BrukerCorrection(self,Points,axes):
+        IntPoints = -int(Points)
+        #FirstOrder = (Points - IntPoints)*2*np.pi 
+        FirstOrder = 0 #Coorect unit has to be set
+        copyData=copy.deepcopy(self)
+        returnValue = lambda self: self.restoreData(copyData, lambda self: self.BrukerCorrection(Points,axes))
+        self.data = np.roll(self.data,IntPoints,axes)
+        vector = np.exp(np.fft.fftshift(np.fft.fftfreq(self.data.shape[axes],1.0/self.sw[axes]))*FirstOrder*1j)
+        self.fourier(axes,tmp=True)
+        for i in range(self.data.shape[axes]):
+            slicing = (slice(None),) * axes + (i,) + (slice(None),)*(self.dim-1-axes)
+            self.data[slicing]=self.data[slicing]*vector[i]
+        self.fourier(axes,tmp=True)
+        return returnValue
+    
     def dcOffset(self,offset):
         self.data = self.data+offset
         return lambda self: self.dcOffset(-offset)
@@ -381,9 +396,9 @@ class Current1D(Plot1DFrame):
             tmpdata = self.data1D
         tmpdata=tmpdata*np.exp(phase0*1j)
         if len(self.data1D.shape) > 1:
-            mult = np.repeat([np.exp(np.fft.fftshift(np.fft.fftfreq(len(tmpdata[0]),1.0/self.sw))*phase1*1j)],len(tmpdata),axis=0)
+            mult = np.repeat([np.exp(np.fft.fftshift(np.fft.fftfreq(len(tmpdata),1.0/self.sw))/self.sw*phase1*1j)],len(tmpdata),axis=0)
         else:
-            mult = np.exp(np.fft.fftshift(np.fft.fftfreq(len(tmpdata),1.0/self.sw))*phase1*1j)
+            mult = np.exp(np.fft.fftshift(np.fft.fftfreq(len(tmpdata),1.0/self.sw))/self.sw*phase1*1j)
         tmpdata=tmpdata*mult
         if self.spec==0:
             tmpdata=self.fourierLocal(tmpdata,1)
@@ -546,6 +561,12 @@ class Current1D(Plot1DFrame):
         self.showFid()
         return returnValue
 
+    def applyBrukerCorrection(self,points):
+        returnValue = self.data.BrukerCorrection(points,self.axes)
+        self.upd()
+        self.showFid()
+        return returnValue
+    
     def applySwapEcho(self,idx):
         returnValue = self.data.swapEcho(idx,self.axes)
         self.upd()
@@ -642,9 +663,8 @@ class Current1D(Plot1DFrame):
         else:
             phase1=0.0
         L = len(tmp)
-        if self.spec==1:
-            x=np.fft.fftshift(np.fft.fftfreq(L,1.0/self.sw))
         if self.spec>0:
+            x=np.fft.fftshift(np.fft.fftfreq(L,1.0/self.sw))/self.sw
             s0 = tmp*np.exp(1j*(phase0+phase1*x))
         else:
             s0 = np.fft.fftshift(np.fft.fft(tmp))*np.exp(1j*(phase0+phase1*x))

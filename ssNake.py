@@ -592,21 +592,44 @@ class Main1DWindow(Frame):
             ShearingWindow(self,self.current)
         else:
             print('Data has too little dimensions for shearing transform')
-        
+
     def BrukerDigital(self):
-        pass
-#        FilePath = askopenfilename()
-#        if FilePath is not '': #if not canceled
-#            Dir = os.path.dirname(FilePath) #convert path to file to path of folder
-#            if os.path.exists(Dir+os.path.sep+'acqus'):
-#                with open(Dir+os.path.sep+'acqus', 'r') as f: 
-#                    data = f.read().split('\n')
-#                for s in range(0,len(data)): #exctract info from acqus
-#                    if data[s].startswith('##$GRPDLY='):
-#                        FilterCorrection = float(data[s][10:])
-#                
-#                self.redoList = []
-#                self.undoList.append(self.current.applyPhase(0,-FilterCorrection*2*pi))
+        FilePath = askopenfilename()
+        if FilePath is not '': #if not canceled
+            Dir = os.path.dirname(FilePath) #convert path to file to path of folder
+            if os.path.exists(Dir+os.path.sep+'acqus'):
+                with open(Dir+os.path.sep+'acqus', 'r') as f: 
+                    data = f.read().split('\n')
+                FilterCorrection = -1.0
+                for s in range(0,len(data)): #exctract info from acqus
+                    if data[s].startswith('##$GRPDLY='):
+                        FilterCorrection = float(data[s][10:])
+                    if data[s].startswith('##$DECIM='):
+                        DECIM = int(data[s][9:])
+                    if data[s].startswith('##$DSPFVS='):
+                        DSPFVS = int(data[s][10:])
+                
+                self.redoList = []
+                if FilterCorrection == -1.0: #If the FilterCorrection has not been found in the acqus (old bruker format)
+                    if DSPFVS == 10 or DSPFVS == 11 or DSPFVS == 12:#get from table
+                        CorrectionList = [{'2':44.7500,'3':33.5000,'4':66.6250,'6':59.0833
+                            ,'8':68.5625,'12':60.3750,'16':69.5313,'24':61.0208,'32':70.0156
+                            ,'48':61.3438,'64':70.2578,'96':61.5052,'128':70.3789,'192':61.5859
+                            ,'256':70.4395,'384':61.6263,'512':70.4697,'768':61.6465,'1024':70.4849,'1536':61.6566,'2048':70.4924},
+                            {'2':46.0000,'3':36.5000,'4':48.0000,'6':50.1667,'8':53.2500,'12':69.5000,
+                                        '16':72.2500,'24':70.1667,'32':72.7500,'48':70.5000,'64':73.0000,'96':70.6667,
+                                        '128':72.5000,'192':71.3333,'256':72.2500,'384':71.6667,'512':72.1250,'768':71.8333,
+                                        '1024':72.0625,'1536':71.9167,'2048':72.0313},{'2':46.311,'3':36.530,'4':47.870,'6':50.229,'8':53.289,'12':69.551,'16':71.600,
+                                        '24':70.184,'32':72.138,'48':70.528,'64':72.348,'96':70.700,'128':72.524}]
+                        #Take correction from database. Based on matNMR routine (Jacco van Beek), which is itself based 
+                        #on a text by W. M. Westler and F. Abildgaard.
+                        FilterCorrection = CorrectionList[10-DSPFVS][str(DECIM)]
+    
+                    else:
+                        print('DSPFVS value not recognized (Bruker hardware version not known)')
+                if FilterCorrection != -1.0: #If changed
+                    self.redoList = []
+                    self.undoList.append(self.current.applyBrukerCorrection(FilterCorrection)) 
 
     def createRelaxWindow(self):
         root = fit.RelaxWindow(self.parent,self.current)
@@ -1165,14 +1188,14 @@ class PhaseWindow(Toplevel): #a window for phasing the data
         self.firstVal = 0.0
         self.refVal = 0.0
         self.zeroValue = StringVar()
-        self.zeroValue.set("0.00")
+        self.zeroValue.set("0.0")
         self.firstValue = StringVar()
-        self.firstValue.set("0.00")
+        self.firstValue.set("0.0")
         self.refValue = StringVar()
         self.refValue.set("0.0")
         #set stepsizes for the buttons
         self.phase0step = 1.0
-        self.phase1step = 0.01
+        self.phase1step = 1.0
         Label(self,text="Zero order phasing").grid(row=0,column=0,columnspan=3)
         Button(self,text="Autophase 0th order",command=lambda: self.autophase(0)).grid(row=1,column=1)
         self.zeroEntry = Entry(self,textvariable=self.zeroValue,justify="center")
@@ -1191,7 +1214,7 @@ class PhaseWindow(Toplevel): #a window for phasing the data
         self.firstEntry.grid(row=6,column=1)
         tk.Button(self,text="<",repeatdelay=100, repeatinterval=1,command=lambda:self.stepPhase(0,-1)).grid(row=6,column=0)
         tk.Button(self,text=">",repeatdelay=100, repeatinterval=1,command=lambda:self.stepPhase(0,1)).grid(row=6,column=2)
-        self.firstScale=Scale(self, from_=-0.01*180*(self.current.data1D.shape[-1])/self.current.sw, to=0.01*180*self.current.data1D.shape[-1]/self.current.sw, orient="horizontal", command=self.setFirstOrder,length=300)
+        self.firstScale=Scale(self, from_=-540, to=540, orient="horizontal", command=self.setFirstOrder,length=300)
         self.firstScale.grid(row=7,column=0,columnspan=3)
         if self.current.spec > 0:
             Label(self,text="Reference").grid(row=8,column=0,columnspan=3)
@@ -1214,7 +1237,7 @@ class PhaseWindow(Toplevel): #a window for phasing the data
         self.zeroScale.set(self.zeroVal) #setting the scale to a value calls the previous function, so the phase of current doesn't need to be set here
 
     def setFirstOrder(self,value, *args): #function called by the first order scale widget
-        newZero = (self.zeroVal-(float(value)-self.firstVal)*self.refVal) #calculate the new zero order phase depending on the reference
+        newZero = (self.zeroVal-(float(value)-self.firstVal)*self.refVal/self.current.sw) #calculate the new zero order phase depending on the reference
         self.zeroVal = np.mod(newZero+180,360)-180
         self.firstVal = float(value)
         self.firstValue.set('%.2f' % self.firstVal)
@@ -1227,15 +1250,13 @@ class PhaseWindow(Toplevel): #a window for phasing the data
 
     def autophase(self, num): #run the autophase for either zero order (0) or both orders (1)
         phases = self.current.autoPhase(num)
-        if num == 0:
-            self.zeroVal=(np.mod(phases[0]+180,360)-180)
-            self.zeroValue.set('%.2f' % self.zeroVal)
-            self.zeroScale.set(self.zeroVal)
-        elif num == 1:
-            self.zeroVal=(np.mod(phases[0]+180,360)-180)
-            self.zeroValue.set('%.2f' % self.zeroVal)
-            self.zeroScale.set(self.zeroVal)
-            self.firstVal = phases[1]
+        val = phases[0]/np.pi*180.0
+        self.zeroVal=(np.mod(val+180,360)-180)
+        self.zeroValue.set('%.2f' % self.zeroVal)
+        self.zeroScale.set(self.zeroVal)
+        if num == 1:
+            val = phases[1]/np.pi*180.0
+            self.firstVal = val
             self.firstValue.set('%.2f' % self.firstVal)
             self.firstScale.set(self.firstVal)
 
