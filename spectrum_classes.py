@@ -139,7 +139,8 @@ class Spectrum(object):
                 if hamming is not None:
                     alpha = 0.53836 # constant for hamming window
                     x=x*(alpha+(1-alpha)*np.cos(hamming*(-0.5*shift1*np.pi*self.sw[axes]/axLen+np.linspace(0,np.pi,axLen))))
-
+                if self.wholeEcho[axes]:
+                    x[-1:-(len(x)/2+1):-1]=x[:len(x)/2]
                 if self.spec[axes] > 0:
                     self.fourier(axes,tmp=True)
                     for i in range(self.data.shape[axes]):
@@ -168,6 +169,8 @@ class Spectrum(object):
             if hamming is not None:
                 alpha = 0.53836 # constant for hamming window
                 x=x*(alpha+(1-alpha)*np.cos(hamming*(-0.5*shift*np.pi*self.sw[axes]/axLen+np.linspace(0,np.pi,axLen))))
+            if self.wholeEcho[axes]:
+                x[-1:-(len(x)/2+1):-1]=x[:len(x)/2]
             if self.spec[axes] > 0:
                 self.fourier(axes,tmp=True)
                 for i in range(self.data.shape[axes]):
@@ -248,21 +251,6 @@ class Spectrum(object):
             else:
                 slicing = (slice(None),) * axes + (slice(None,shift),) + (slice(None),)*(self.dim-1-axes)
             self.data[slicing]=self.data[slicing]*0
-        return returnValue
-
-    def BrukerCorrection(self,Points,axes):
-        IntPoints = -int(Points)
-        #FirstOrder = (Points - IntPoints)*2*np.pi 
-        FirstOrder = 0 #Coorect unit has to be set
-        copyData=copy.deepcopy(self)
-        returnValue = lambda self: self.restoreData(copyData, lambda self: self.BrukerCorrection(Points,axes))
-        self.data = np.roll(self.data,IntPoints,axes)
-        vector = np.exp(np.fft.fftshift(np.fft.fftfreq(self.data.shape[axes],1.0/self.sw[axes]))*FirstOrder*1j)
-        self.fourier(axes,tmp=True)
-        for i in range(self.data.shape[axes]):
-            slicing = (slice(None),) * axes + (i,) + (slice(None),)*(self.dim-1-axes)
-            self.data[slicing]=self.data[slicing]*vector[i]
-        self.fourier(axes,tmp=True)
         return returnValue
     
     def dcOffset(self,offset):
@@ -558,12 +546,6 @@ class Current1D(Plot1DFrame):
         returnValue = self.data.changeSpec(val,self.axes)
         self.upd()
         self.plotReset()
-        self.showFid()
-        return returnValue
-
-    def applyBrukerCorrection(self,points):
-        returnValue = self.data.BrukerCorrection(points,self.axes)
-        self.upd()
         self.showFid()
         return returnValue
     
@@ -1804,7 +1786,7 @@ class CurrentSkewed(Current1D):
                         alpha = 0.53836 # constant for hamming window
                         x2=x2*(alpha+(1-alpha)*np.cos(hamming*(-0.5*shift1*np.pi*self.sw/len(self.data1D[0])+np.linspace(0,np.pi,len(self.data1D[0])))))
                     if self.wholeEcho:
-                        x2[2-1:-(len(x2)/2+1):-1]=x2[:len(x2)/2]
+                        x2[-1:-(len(x2)/2+1):-1]=x2[:len(x2)/2]
                     x[i] = x2
             else:
                 if (shiftingAxes < self.axes) and (shiftingAxes < self.axes2):

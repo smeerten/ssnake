@@ -37,21 +37,29 @@ class MainProgram:
         self.menubar = Menu(self.root)
         self.root.config(menu=self.menubar)
         self.workspaces = {}
+        self.workspaceVar = StringVar()
         #the file drop down menu
-        filemenu = Menu(self.menubar, tearoff=0)
-        self.menubar.add_cascade(label="File", menu=filemenu)
-        filemenu.add_command(label="Exit", command=self.root.quit)
+        self.filemenu = Menu(self.menubar, tearoff=0)
+        self.menubar.add_cascade(label="File", menu=self.filemenu)
         #the hotkeys for different commands
         self.root.bind_all("<Control-q>", lambda extra: self.root.quit())
         self.root.bind_all("<Control-z>", self.undo)
         self.root.bind_all("<Control-y>", self.redo)
+        
         #the load drop down menu
-        loadmenu = Menu(self.menubar, tearoff=0)
-        self.menubar.add_cascade(label="Load", menu=loadmenu)
-        loadmenu.add_command(label="Load Varian data", command=self.LoadVarianFile)
-        loadmenu.add_command(label="Load Bruker Topspin/XWinNMR", command=self.LoadBrukerTopspin)
-        loadmenu.add_command(label="Load Chemagnetics data", command=self.LoadChemFile)
-        loadmenu.add_command(label="Load Simpson data", command=self.LoadSimpsonFile)
+        loadmenu = Menu(self.filemenu, tearoff=0)
+        self.filemenu.add_cascade(label="Load", menu=loadmenu)
+        loadmenu.add_command(label="Varian", command=self.LoadVarianFile)
+        loadmenu.add_command(label="Bruker Topspin/XWinNMR", command=self.LoadBrukerTopspin)
+        loadmenu.add_command(label="Chemagnetics", command=self.LoadChemFile)
+        loadmenu.add_command(label="Simpson", command=self.LoadSimpsonFile)
+
+        #the save drop down menu
+        savemenu = Menu(self.filemenu, tearoff=0)
+        self.filemenu.add_cascade(label="Save", menu=savemenu)
+        savemenu.add_command(label="Save figure", command=self.saveFigure)
+        savemenu.add_command(label="Save as Simpson data", command=self.saveSimpsonFile)
+        
         self.mainWindow = None
         x=np.linspace(0,2*np.pi*10,1000)[:-1] #fake data
         x2=np.linspace(0,2*np.pi*10,200)[1:] #fake data
@@ -60,8 +68,12 @@ class MainProgram:
         #self.masterData=sc.Spectrum(np.array([np.array([test,test*2,test*3]),np.array([test*3,test*4,test*5])]),[600000000.0,500000000.0,400000000.0],[1000.0,2000.0,3000.0])#create a Spectrum instance with the fake data
         masterData=sc.Spectrum(np.outer(test2,test),[600000000.0,500000000.0],[1000.0,2000.0])
         self.workspaces['name0'] = Main1DWindow(self.root,self,masterData) #create an instance to control the main window
+        self.workspacemenu = Menu(self.menubar, tearoff=0)
+        self.menubar.add_cascade(label="Workspaces", menu=self.workspacemenu)
+        self.activemenu = None
         self.changeMainWindow('name0')
-
+        self.filemenu.add_command(label="Exit", command=self.root.quit)
+        
     def askName(self,names):
         count = 0
         name = 'spectrum'+str(count)
@@ -84,9 +96,19 @@ class MainProgram:
 
     def changeMainWindow(self, var):
         if self.mainWindow is not None:
-            self.mainWindow.pack_forget()
+            self.mainWindow.removeFromView()
         self.mainWindow = self.workspaces[var]
-        self.mainWindow.pack(fill=BOTH,expand=1)
+        self.mainWindow.addToView()
+        self.updWorkspaceMenu(var)
+
+    def updWorkspaceMenu(self,var):
+        if self.activemenu is not None:
+            self.workspacemenu.delete("Active")
+        self.activemenu = Menu(self.workspacemenu, tearoff=0)
+        self.workspacemenu.add_cascade(label="Active", menu=self.activemenu)
+        self.workspaceVar.set(var)
+        for i in self.workspaces.keys():
+            self.activemenu.add_radiobutton(label=i,variable=self.workspaceVar,value=i,command=lambda i=i: self.changeMainWindow(i))
         
     def LoadVarianFile(self):
         FilePath = askopenfilename()
@@ -355,6 +377,12 @@ class MainProgram:
             except:
                 print('Error loading Simpson data from '+FileLocation+' . No data loaded!')
 
+    def saveFigure(self):
+        self.mainWindow.saveFigure()
+
+    def saveSimpsonFile(self):
+        self.mainWindow.SaveSimpsonFile()
+                
 class Main1DWindow(Frame):
     def __init__(self,parent,mainProgram,masterData):
         Frame.__init__(self,parent)
@@ -365,13 +393,32 @@ class Main1DWindow(Frame):
         self.masterData = masterData
         self.current = sc.Current1D(self,masterData) 
         self.menubar = self.mainProgram.menubar
+        self.current.grid(row=0,column=0,sticky="nswe")
+	#create the sideframe, bottomframe and textframe
+        self.sideframe=SideFrame(self) 
+        self.sideframe.grid(row=0,column=2,sticky='n')
+        Separator(self,orient=VERTICAL).grid(row=0,column=1,rowspan=4,sticky='ns')
+        self.bottomframe=BottomFrame(self)
+        self.bottomframe.grid(row=1,column=0,sticky='w') 
+        Separator(self,orient=HORIZONTAL).grid(row=2,sticky='ew')
+        self.textframe=TextFrame(self)
+        self.textframe.grid(row=3,column=0,sticky='s')  
+
+        self.rowconfigure(0, weight=1)
+        self.grid_columnconfigure(0, weight=1)
+        #all the functions that will be called from the menu and the extra frames
         
-        #the save drop down menu
-        savemenu = Menu(self.menubar, tearoff=0)
-        self.menubar.add_cascade(label="Save", menu=savemenu)
-        savemenu.add_command(label="Save figure", command=self.saveFigure)
-        savemenu.add_command(label="Save as Simpson data", command=self.SaveSimpsonFile)
-        
+    def removeFromView(self):
+        self.menubar.delete("Edit")
+        self.menubar.delete("Tools")
+        self.menubar.delete("Matrix")
+        self.menubar.delete("Fourier")
+        self.menubar.delete("Fitting")
+        self.menubar.delete("Plot")
+        self.pack_forget()
+
+    def addToView(self):
+
 	#the edit drop down menu
         editmenu = Menu(self.menubar, tearoff=0)
         self.menubar.add_cascade(label="Edit", menu=editmenu)
@@ -426,22 +473,8 @@ class Main1DWindow(Frame):
         plotMenu.add_command(label="Skewed plot", command=self.plotSkewed)
         plotMenu.add_command(label="Set reference", command=self.createRefWindow)
         plotMenu.add_command(label="User x-axis", command=self.createXaxWindow)
+        self.pack(fill=BOTH,expand=1)
         
-        self.current.grid(row=0,column=0,sticky="nswe")
-	#create the sideframe, bottomframe and textframe
-        self.sideframe=SideFrame(self) 
-        self.sideframe.grid(row=0,column=2,sticky='n')
-        Separator(self,orient=VERTICAL).grid(row=0,column=1,rowspan=4,sticky='ns')
-        self.bottomframe=BottomFrame(self)
-        self.bottomframe.grid(row=1,column=0,sticky='w') 
-        Separator(self,orient=HORIZONTAL).grid(row=2,sticky='ew')
-        self.textframe=TextFrame(self)
-        self.textframe.grid(row=3,column=0,sticky='s')  
-
-        self.rowconfigure(0, weight=1)
-        self.grid_columnconfigure(0, weight=1)
-        #all the functions that will be called from the menu and the extra frames
-
     def menuEnable(self):
         for i in range(12):
             self.menubar.entryconfig(i,state='normal')
@@ -629,7 +662,7 @@ class Main1DWindow(Frame):
                         print('DSPFVS value not recognized (Bruker hardware version not known)')
                 if FilterCorrection != -1.0: #If changed
                     self.redoList = []
-                    self.undoList.append(self.current.applyBrukerCorrection(FilterCorrection)) 
+                    self.undoList.append(self.current.applyPhase(0, FilterCorrection*2*np.pi)) 
 
     def createRelaxWindow(self):
         root = fit.RelaxWindow(self.parent,self.current)
