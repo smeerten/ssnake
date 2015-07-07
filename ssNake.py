@@ -36,7 +36,9 @@ class MainProgram:
         self.root = root
         self.menubar = Menu(self.root)
         self.root.config(menu=self.menubar)
-        self.workspaces = {}
+        self.workspaces = []
+        self.workspaceNames = []
+        self.workspaceNum = 0
         self.workspaceVar = StringVar()
         #the file drop down menu
         self.filemenu = Menu(self.menubar, tearoff=0)
@@ -45,6 +47,9 @@ class MainProgram:
         self.root.bind_all("<Control-q>", lambda extra: self.root.quit())
         self.root.bind_all("<Control-z>", self.undo)
         self.root.bind_all("<Control-y>", self.redo)
+        self.root.bind_all("<Control-w>", self.destroyWorkspace)
+        self.root.bind_all("<Control-Prior>", lambda args: self.stepWorkspace(-1))
+        self.root.bind_all("<Control-Next>", lambda args: self.stepWorkspace(1))
         
         #the load drop down menu
         loadmenu = Menu(self.filemenu, tearoff=0)
@@ -67,21 +72,23 @@ class MainProgram:
         test2=1-np.exp(-x2)
         #self.masterData=sc.Spectrum(np.array([np.array([test,test*2,test*3]),np.array([test*3,test*4,test*5])]),[600000000.0,500000000.0,400000000.0],[1000.0,2000.0,3000.0])#create a Spectrum instance with the fake data
         masterData=sc.Spectrum(np.outer(test2,test),[600000000.0,500000000.0],[1000.0,2000.0])
-        self.workspaces['name0'] = Main1DWindow(self.root,self,masterData) #create an instance to control the main window
+        self.workspaces.append(Main1DWindow(self.root,self,masterData)) #create an instance to control the main window
+        self.workspaceNames.append('name0')
         self.workspacemenu = Menu(self.menubar, tearoff=0)
         self.menubar.add_cascade(label="Workspaces", menu=self.workspacemenu)
+        self.workspacemenu.add_command(label="Delete", command=self.destroyWorkspace)
         self.activemenu = None
         self.changeMainWindow('name0')
         self.filemenu.add_command(label="Exit", command=self.root.quit)
         
-    def askName(self,names):
+    def askName(self):
         count = 0
         name = 'spectrum'+str(count)
-        while name in names:
-            count +=1
+        while name in self.workspaceNames:
+            count += 1
             name = 'spectrum'+str(count)
         givenName = askstring('Spectrum name','Name:',initialvalue=name)
-        while (givenName in names) or givenName is '':
+        while (givenName in self.workspaceNames) or givenName is '':
             print('Name exists')
             givenName = askstring('Name:','test')
         return givenName
@@ -97,17 +104,41 @@ class MainProgram:
     def changeMainWindow(self, var):
         if self.mainWindow is not None:
             self.mainWindow.removeFromView()
-        self.mainWindow = self.workspaces[var]
+        num = self.workspaceNames.index(var)
+        self.workspaceNum = num
+        self.mainWindow = self.workspaces[num]
         self.mainWindow.addToView()
         self.updWorkspaceMenu(var)
 
+    def stepWorkspace(self, step):
+        if len(self.workspaces) > 1:
+            self.mainWindow.removeFromView()
+            self.workspaceNum += step
+            self.workspaceNum = self.workspaceNum % len(self.workspaces)
+            self.mainWindow = self.workspaces[self.workspaceNum]
+            self.mainWindow.addToView()
+            self.updWorkspaceMenu(self.workspaceNames[self.workspaceNum])
+
+    def destroyWorkspace(self, *args):
+        self.mainWindow.removeFromView()
+        self.mainWindow.destroy()
+        self.mainWindow = None
+        del self.workspaceNames[self.workspaceNum]
+        del self.workspaces[self.workspaceNum]
+        if self.workspaceNum == len(self.workspaces):
+            self.workspaceNum = 0
+        if len(self.workspaces) > 0:
+            self.changeMainWindow(self.workspaceNames[self.workspaceNum])
+        else:
+            self.updWorkspaceMenu(None)
+            
     def updWorkspaceMenu(self,var):
         if self.activemenu is not None:
             self.workspacemenu.delete("Active")
         self.activemenu = Menu(self.workspacemenu, tearoff=0)
         self.workspacemenu.add_cascade(label="Active", menu=self.activemenu)
         self.workspaceVar.set(var)
-        for i in self.workspaces.keys():
+        for i in self.workspaceNames:
             self.activemenu.add_radiobutton(label=i,variable=self.workspaceVar,value=i,command=lambda i=i: self.changeMainWindow(i))
         
     def LoadVarianFile(self):
@@ -179,8 +210,9 @@ class MainProgram:
                         masterData=sc.Spectrum(fid,[freq],[sw])
                     else: #For 2D data
                         masterData=sc.Spectrum(fid,[freq]*2,[sw]*2)
-                    name = self.askName(self.workspaces.keys())
-                    self.workspaces[name] = Main1DWindow(self.root,self,masterData)
+                    name = self.askName()
+                    self.workspaces.append(Main1DWindow(self.root,self,masterData))
+                    self.workspaceNames.append(name)
                     self.changeMainWindow(name)
                 except:
                     print('Error loading Varian data from '+Dir+os.path.sep+'fid. No data loaded!')
@@ -232,8 +264,9 @@ class MainProgram:
             else:
                 data = ComplexData.reshape(sizeTD1,sizeTD2/2)
                 masterData=sc.Spectrum(data,[freq1,freq2],[SW1,SW2],spec*2)
-            name = self.askName(self.workspaces.keys())
-            self.workspaces[name] = Main1DWindow(self.root,self,masterData)
+            name = self.askName()
+            self.workspaces.append(Main1DWindow(self.root,self,masterData))
+            self.workspaceNames.append(name)
             self.changeMainWindow(name)
                 
     def LoadChemFile(self):
@@ -276,8 +309,9 @@ class MainProgram:
                     #data = np.transpose(data.reshape((sizeTD1,sizeTD2)))
                     data = data.reshape((sizeTD1,sizeTD2))
                     masterData=sc.Spectrum(data,[freq*1e6]*2,[sw1,sw],spec*2)
-                name = self.askName(self.workspaces.keys())
-                self.workspaces[name] = Main1DWindow(self.root,self,masterData)
+                name = self.askName()
+                self.workspaces.append(Main1DWindow(self.root,self,masterData))
+                self.workspaceNames.append(name)
                 self.changeMainWindow(name)
         else:
             print(Dir+os.path.sep+'data does not exits, no Chemagnetics data loaded!')
@@ -371,8 +405,9 @@ class MainProgram:
                 else:
                     data = np.transpose(data.reshape((NP,NI)))
                     masterData=sc.Spectrum(data,[0,0],[SW,SW1],spec*2)
-                name = self.askName(self.workspaces.keys())
-                self.workspaces[name] = Main1DWindow(self.root,self,masterData)
+                name = self.askName()
+                self.workspaces.append(Main1DWindow(self.root,self,masterData))
+                self.workspaceNames.append(name)
                 self.changeMainWindow(name)
             except:
                 print('Error loading Simpson data from '+FileLocation+' . No data loaded!')
@@ -1092,13 +1127,13 @@ class BottomFrame(Frame):
             self.axisDropFreq.grid(row=1,column=6)
             val = self.current.axType
             if val == 0:
-                self.axisOption1.set("Hz")
+                self.axisOption2.set("Hz")
             elif val == 1:
-                self.axisOption1.set("kHz")
+                self.axisOption2.set("kHz")
             elif val == 2:
-                self.axisOption1.set("MHz")
+                self.axisOption2.set("MHz")
             elif val == 3:
-                self.axisOption1.set("ppm")
+                self.axisOption2.set("ppm")
         if self.current.wholeEcho:
             self.echoTick.set(1)
         else:
