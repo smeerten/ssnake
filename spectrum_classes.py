@@ -324,7 +324,7 @@ class Spectrum(object):
 #########################################################################################################
 #the class from which the 1d data is displayed, the operations which only edit the content of this class are for previewing
 class Current1D(Plot1DFrame):
-    def __init__(self, root, data, axes=None, locList=None, plotType=0, axType=1,ppm=False):
+    def __init__(self, root, data,duplicateCurrent=None):
         Plot1DFrame.__init__(self,root)
         self.xax = None               #x-axis
         self.data = data              #the actual spectrum instance
@@ -334,20 +334,39 @@ class Current1D(Plot1DFrame):
         self.spec = None              #boolean where False=time domain and True=spectral domain
         self.wholeEcho = None
         self.ref = None               #reference frequency
-        self.ppm = ppm                #display frequency as ppm
-        if axes is None:
+        if duplicateCurrent is None:
+            self.ppm = False                #display frequency as ppm
             self.axes = len(self.data.data.shape)-1
+            self.resetLocList() 
+            self.plotType = 0
+            self.axType = 1
         else:
-            self.axes = axes              #dimension of which the data is displayed
-        if locList is None:
-            self.resetLocList()
-        else:
-            self.locList = locList    
-        self.plotType = plotType
-        self.axType = axType
+            self.ppm = duplicateCurrent.ppm
+            self.axes = duplicateCurrent.axes
+            if isinstance(self,(CurrentStacked,CurrentArrayed,CurrentContour,CurrentSkewed)):
+                if (len(duplicateCurrent.locList) == self.data.dim-2):
+                    self.locList = duplicateCurrent.locList
+                else:
+                    if self.axes < self.axes2:
+                        self.locList = np.delete(duplicateCurrent.locList,self.axes2-1)
+                    else:
+                        self.locList = np.delete(duplicateCurrent.locList,self.axes2)
+            else:
+                if (len(duplicateCurrent.locList) == self.data.dim-1):
+                    self.locList = duplicateCurrent.locList
+                else:
+                    if self.axes < duplicateCurrent.axes2:
+                        self.locList = np.insert(duplicateCurrent.locList,duplicateCurrent.axes2-1,0)
+                    else:
+                        self.locList = np.insert(duplicateCurrent.locList,duplicateCurrent.axes2,0)
+            self.plotType = duplicateCurrent.plotType
+            self.axType = duplicateCurrent.axType
         self.upd()   #get the first slice of data
         self.plotReset() #reset the axes limits
         self.showFid() #plot the data
+
+    def copyCurrent(self,root, data):
+        return Current1D(root,data,self)
         
     def upd(self): #get new data from the data instance
         if (len(self.locList)+1) != self.data.dim:
@@ -842,22 +861,35 @@ class Current1D(Plot1DFrame):
 #########################################################################################################
 #the class from which the stacked data is displayed, the operations which only edit the content of this class are for previewing
 class CurrentStacked(Current1D):
-    def __init__(self, root, data, axes=None, axes2=None, locList=None, plotType=0, axType=1,ppm=False ,stackBegin=None, stackEnd=None, stackStep=None):
+    def __init__(self, root, data, duplicateCurrent=None):
         self.data = data
-        if axes2 is None:
-            self.axes2 = len(self.data.data.shape)-2
+        if hasattr(duplicateCurrent,'axes2'):
+            self.axes2 = duplicateCurrent.axes2
         else:
-            self.axes2 = axes2            #dimension from which the spectra are stacked
-        self.stackBegin = stackBegin
-        self.stackEnd = stackEnd
-        self.stackStep = stackStep
-        if locList is None:
-            self.resetLocList()
+            self.axes2 = len(self.data.data.shape)-2
+            if hasattr(duplicateCurrent,'axes'):
+                if self.axes2 == duplicateCurrent.axes:
+                    self.axes2 = (self.axes2-1) % self.data.dim
+        if hasattr(duplicateCurrent,'stackBegin'):
+            self.stackBegin = duplicateCurrent.stackBegin
+        else:
+            self.stackBegin = None
+        if hasattr(duplicateCurrent,'stackEnd'):
+            self.stackEnd = duplicateCurrent.stackEnd
+        else:
+            self.stackEnd = None
+        if hasattr(duplicateCurrent,'stackStep'):
+            self.stackStep = duplicateCurrent.stackStep
+        else:
+            self.stackStep = None
         self.spacing = 0
-        Current1D.__init__(self,root, data, axes, locList, plotType, axType,ppm)
+        Current1D.__init__(self,root, data, duplicateCurrent)
         self.resetSpacing()
         self.plotReset()
         self.showFid()
+
+    def copyCurrent(self,root, data):
+        return CurrentStacked(root,data,self)
         
     def upd(self): #get new data from the data instance
         updateVar = self.data.getBlock(self.axes,self.axes2,self.locList,self.stackBegin, self.stackEnd, self.stackStep)
@@ -1124,22 +1156,35 @@ class CurrentStacked(Current1D):
 #########################################################################################################
 #the class from which the arrayed data is displayed, the operations which only edit the content of this class are for previewing
 class CurrentArrayed(Current1D):
-    def __init__(self, root, data, axes=None, axes2=None, locList=None, plotType=0, axType=1, ppm=False, stackBegin=None, stackEnd=None, stackStep=None):
+    def __init__(self, root, data, duplicateCurrent = None):
         self.data = data
-        if axes2 is None:
-            self.axes2 = len(data.data.shape)-2
+        if hasattr(duplicateCurrent,'axes2'):
+            self.axes2 = duplicateCurrent.axes2
         else:
-            self.axes2 = axes2            #dimension from which the spectra are stacked
-        self.stackBegin = stackBegin
-        self.stackEnd = stackEnd
-        self.stackStep = stackStep
-        if locList is None:
-            self.resetLocList()
+            self.axes2 = len(self.data.data.shape)-2
+            if hasattr(duplicateCurrent,'axes'):
+                if self.axes2 == duplicateCurrent.axes:
+                    self.axes2 = (self.axes2-1) % self.data.dim
+        if hasattr(duplicateCurrent,'stackBegin'):
+            self.stackBegin = duplicateCurrent.stackBegin
+        else:
+            self.stackBegin = None
+        if hasattr(duplicateCurrent,'stackEnd'):
+            self.stackEnd = duplicateCurrent.stackEnd
+        else:
+            self.stackEnd = None
+        if hasattr(duplicateCurrent,'stackStep'):
+            self.stackStep = duplicateCurrent.stackStep
+        else:
+            self.stackStep = None
         self.spacing = 0
-        Current1D.__init__(self, root, data, axes, locList, plotType, axType, ppm)
+        Current1D.__init__(self, root, data, duplicateCurrent)
         self.resetSpacing()
         self.plotReset()
         self.showFid()
+
+    def copyCurrent(self,root, data):
+        return CurrentArrayed(root,data,self)
         
     def upd(self): #get new data from the data instance
         updateVar = self.data.getBlock(self.axes,self.axes2,self.locList,self.stackBegin, self.stackEnd, self.stackStep)
@@ -1379,22 +1424,41 @@ class CurrentArrayed(Current1D):
 #########################################################################################################
 #the class from which the contour data is displayed, the operations which only edit the content of this class are for previewing
 class CurrentContour(Current1D):
-    def __init__(self, root, data, axes=None, axes2=None, locList=None, plotType=0, axType=1, ppm=False, axType2=1, ppm2=False):
+    def __init__(self, root, data, duplicateCurrent=None):
         self.data = data
-        if axes2 is None:
-            self.axes2 = len(data.data.shape)-2
+        if hasattr(duplicateCurrent,'axes2'):
+            self.axes2 = duplicateCurrent.axes2
         else:
-            self.axes2 = axes2            
-        if locList is None:
-            self.resetLocList()
-        self.axType2 = axType2
-        self.ppm2 = ppm2
-        self.numLevels = 20
-        self.minLevels = 0.0
-        self.maxLevels = 1.0
-        Current1D.__init__(self, root, data, axes, locList, plotType, axType, ppm)
+            self.axes2 = len(self.data.data.shape)-2
+            if hasattr(duplicateCurrent,'axes'):
+                if self.axes2 == duplicateCurrent.axes:
+                    self.axes2 = (self.axes2-1) % self.data.dim
+        if hasattr(duplicateCurrent,'axType2'):
+            self.axType2 = duplicateCurrent.axType2
+        else:
+            self.axType2 = 1
+        if hasattr(duplicateCurrent,'ppm2'):
+            self.ppm2 = duplicateCurrent.ppm2
+        else:
+            self.ppm2 = False
+        if hasattr(duplicateCurrent,'numLevels'):
+            self.numLevels = duplicateCurrent.numLevels
+        else:
+            self.numLevels = 20
+        if hasattr(duplicateCurrent,'minLevels'):
+            self.minLevels = duplicateCurrent.minLevels
+        else:
+            self.minLevels = 0.0
+        if hasattr(duplicateCurrent,'maxLevels'):
+            self.maxLevels = duplicateCurrent.maxLevels
+        else:
+            self.maxLevels = 1.0
+        Current1D.__init__(self, root, data, duplicateCurrent)
         self.plotReset()
         self.showFid()
+
+    def copyCurrent(self,root, data):
+        return CurrentContour(root,data,self)
         
     def upd(self): #get new data from the data instance
         updateVar = self.data.getBlock(self.axes,self.axes2,self.locList)
@@ -1700,23 +1764,42 @@ class CurrentContour(Current1D):
 #########################################################################################################
 #The skewed plot class
 class CurrentSkewed(Current1D):
-    def __init__(self, root, data, axes=None, axes2=None, locList=None, plotType=0, axType=1, ppm=False, axType2=1, ppm2=False, stackBegin=None, stackEnd=None, stackStep=None):
+    def __init__(self, root, data, duplicateCurrent=None):
         self.data = data
-        if axes2 is None:
-            self.axes2 = len(data.data.shape)-2
+        if hasattr(duplicateCurrent,'axes2'):
+            self.axes2 = duplicateCurrent.axes2
         else:
-            self.axes2 = axes2            #dimension from which the spectra are stacked
-        self.stackBegin = stackBegin
-        self.stackEnd = stackEnd
-        self.stackStep = stackStep
-        if locList is None:
-            self.resetLocList()
-        self.axType2 = axType2
-        self.ppm2 = ppm2
-        Current1D.__init__(self, root, data, axes, locList, plotType, axType, ppm)
+            self.axes2 = len(self.data.data.shape)-2
+            if hasattr(duplicateCurrent,'axes'):
+                if self.axes2 == duplicateCurrent.axes:
+                    self.axes2 = (self.axes2-1) % self.data.dim
+        if hasattr(duplicateCurrent,'stackBegin'):
+            self.stackBegin = duplicateCurrent.stackBegin
+        else:
+            self.stackBegin = None
+        if hasattr(duplicateCurrent,'stackEnd'):
+            self.stackEnd = duplicateCurrent.stackEnd
+        else:
+            self.stackEnd = None
+        if hasattr(duplicateCurrent,'stackStep'):
+            self.stackStep = duplicateCurrent.stackStep
+        else:
+            self.stackStep = None
+        if hasattr(duplicateCurrent,'axType2'):
+            self.axType2 = duplicateCurrent.axType2
+        else:
+            self.axType2 = 1
+        if hasattr(duplicateCurrent,'ppm2'):
+            self.ppm2 = duplicateCurrent.ppm2
+        else:
+            self.ppm2 = False
+        Current1D.__init__(self, root, data, duplicateCurrent)
         self.plotReset()
         self.setSkewed(-0.2,70)
-
+        
+    def copyCurrent(self,root, data):
+        return CurrentSkewed(root,data,self)
+    
     def upd(self): #get new data from the data instance
         updateVar = self.data.getBlock(self.axes,self.axes2,self.locList,self.stackBegin, self.stackEnd, self.stackStep)
         self.data1D = updateVar[0]

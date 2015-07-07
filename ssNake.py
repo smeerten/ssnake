@@ -22,7 +22,7 @@ import PIL.Image as Image
 import spectrum_classes as sc
 import fitting as fit
 import math
-#For varianload
+import copy
 import os
 from struct import unpack
 #------------
@@ -48,6 +48,7 @@ class MainProgram:
         self.root.bind_all("<Control-z>", self.undo)
         self.root.bind_all("<Control-y>", self.redo)
         self.root.bind_all("<Control-w>", self.destroyWorkspace)
+        self.root.bind_all("<Control-d>", self.duplicateWorkspace)
         self.root.bind_all("<Control-Prior>", lambda args: self.stepWorkspace(-1))
         self.root.bind_all("<Control-Next>", lambda args: self.stepWorkspace(1))
         
@@ -76,6 +77,7 @@ class MainProgram:
         self.workspaceNames.append('name0')
         self.workspacemenu = Menu(self.menubar, tearoff=0)
         self.menubar.add_cascade(label="Workspaces", menu=self.workspacemenu)
+        self.workspacemenu.add_command(label="Duplicate", command=self.duplicateWorkspace)
         self.workspacemenu.add_command(label="Delete", command=self.destroyWorkspace)
         self.activemenu = None
         self.changeMainWindow('name0')
@@ -119,6 +121,12 @@ class MainProgram:
             self.mainWindow.addToView()
             self.updWorkspaceMenu(self.workspaceNames[self.workspaceNum])
 
+    def duplicateWorkspace(self, *args):
+        name = self.askName()
+        self.workspaces.append(Main1DWindow(self.root,self,copy.deepcopy(self.mainWindow.masterData),self.mainWindow.current))
+        self.workspaceNames.append(name)
+        self.changeMainWindow(name)
+            
     def destroyWorkspace(self, *args):
         self.mainWindow.removeFromView()
         self.mainWindow.destroy()
@@ -419,14 +427,17 @@ class MainProgram:
         self.mainWindow.SaveSimpsonFile()
                 
 class Main1DWindow(Frame):
-    def __init__(self,parent,mainProgram,masterData):
+    def __init__(self,parent,mainProgram,masterData,duplicateCurrent=None):
         Frame.__init__(self,parent)
         self.undoList = [] #the list to hold all the undo lambda functions
         self.redoList = [] #the list to hold all the redo lambda functions
         self.parent = parent #remember your parents
         self.mainProgram = mainProgram
         self.masterData = masterData
-        self.current = sc.Current1D(self,masterData) 
+        if duplicateCurrent is not None:
+            self.current = duplicateCurrent.copyCurrent(self,masterData)
+        else:
+            self.current = sc.Current1D(self,masterData)
         self.menubar = self.mainProgram.menubar
         self.current.grid(row=0,column=0,sticky="nswe")
 	#create the sideframe, bottomframe and textframe
@@ -453,7 +464,6 @@ class Main1DWindow(Frame):
         self.pack_forget()
 
     def addToView(self):
-
 	#the edit drop down menu
         editmenu = Menu(self.menubar, tearoff=0)
         self.menubar.add_cascade(label="Edit", menu=editmenu)
@@ -713,16 +723,18 @@ class Main1DWindow(Frame):
        
     def plot1D(self):
         self.current.grid_remove()
+        tmpcurrent = sc.Current1D(self,self.masterData,self.current)
         self.current.destroy()
-        self.current = sc.Current1D(self,self.masterData)
+        self.current = tmpcurrent
         self.current.grid(row=0,column=0,sticky="nswe")
         self.updAllFrames()
 
     def plotStack(self):
         if len(self.masterData.data.shape) > 1:
             self.current.grid_remove()
+            tmpcurrent = sc.CurrentStacked(self,self.masterData,self.current)
             self.current.destroy()
-            self.current = sc.CurrentStacked(self,self.masterData) 
+            self.current = tmpcurrent
             self.current.grid(row=0,column=0,sticky="nswe")
             self.updAllFrames()
         else:
@@ -731,8 +743,9 @@ class Main1DWindow(Frame):
     def plotArray(self):
         if len(self.masterData.data.shape) > 1:
             self.current.grid_remove()
+            tmpcurrent = sc.CurrentArrayed(self,self.masterData,self.current)
             self.current.destroy()
-            self.current = sc.CurrentArrayed(self,self.masterData) 
+            self.current = tmpcurrent
             self.current.grid(row=0,column=0,sticky="nswe")
             self.updAllFrames()
         else:
@@ -741,8 +754,9 @@ class Main1DWindow(Frame):
     def plotContour(self):
         if len(self.masterData.data.shape) > 1:
             self.current.grid_remove()
+            tmpcurrent = sc.CurrentContour(self,self.masterData,self.current)
             self.current.destroy()
-            self.current = sc.CurrentContour(self,self.masterData) 
+            self.current = tmpcurrent
             self.current.grid(row=0,column=0,sticky="nswe")
             self.updAllFrames()
         else:
@@ -751,12 +765,14 @@ class Main1DWindow(Frame):
     def plotSkewed(self):
         if len(self.masterData.data.shape) > 1:
             self.current.grid_remove()
+            tmpcurrent = sc.CurrentSkewed(self,self.masterData,self.current)
             self.current.destroy()
-            self.current = sc.CurrentSkewed(self,self.masterData) 
+            self.current = tmpcurrent
             self.current.grid(row=0,column=0,sticky="nswe")
             self.updAllFrames()
         else:
             print("Data does not have enough dimensions")
+            
     def createXaxWindow(self):
         XaxWindow(self,self.current)
 
@@ -1621,7 +1637,8 @@ class SwapEchoWindow(Toplevel): #a window for changing the size of the current d
         pos = int(round(safeEval(self.posVal.get())))
         if pos > 0 and pos < (self.current.data1D.shape[-1]):
             self.current.setSwapEchoPreview(pos)
-
+            self.current.peakPick = False
+            
     def cancelAndClose(self):
         self.current.peakPickReset()
         self.current.upd()
@@ -1643,11 +1660,9 @@ class SwapEchoWindow(Toplevel): #a window for changing the size of the current d
             print("not a valid index for swap echo")
         
     def pickedAndClose(self,pos): #apply directly if picked since another doesn't make pick doesn't make sense. find a good way to do both entry and picking in a proper way
-        self.parent.redoList = []
-        self.parent.undoList.append(self.current.applySwapEcho(pos[0]))
-        self.parent.bottomframe.upd()
-        self.parent.menuEnable()
-        self.destroy()
+        self.current.setSwapEchoPreview(pos[0])
+        self.current.peakPick = False
+        
 
 ###########################################################################
 class ShiftDataWindow(Toplevel): #a window for shifting the data
