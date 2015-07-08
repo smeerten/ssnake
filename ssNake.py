@@ -64,6 +64,7 @@ class MainProgram:
         savemenu = Menu(self.filemenu, tearoff=0)
         self.filemenu.add_cascade(label="Save", menu=savemenu)
         savemenu.add_command(label="Save figure", command=self.saveFigure)
+        savemenu.add_command(label="Save MATLAB", command=self.saveMatlabFile)
         savemenu.add_command(label="Save as Simpson data", command=self.saveSimpsonFile)
         
         self.mainWindow = None
@@ -425,6 +426,9 @@ class MainProgram:
 
     def saveSimpsonFile(self):
         self.mainWindow.SaveSimpsonFile()
+
+    def saveMatlabFile(self):
+        self.mainWindow.saveMatlabFile()
                 
 class Main1DWindow(Frame):
     def __init__(self,parent,mainProgram,masterData,duplicateCurrent=None):
@@ -537,7 +541,10 @@ class Main1DWindow(Frame):
     def saveFigure(self):
         f=asksaveasfilename(filetypes=(('svg','.svg'),('png','.png'),('eps','.eps'),('jpg','.jpg'),('pdf','.pdf')))
         self.current.saveFigure(f)
-                
+
+    def saveMatlabFile(self):
+        pass
+        
     def SaveSimpsonFile(self):
         #TO DO:
         #Make sure that stat of second dimension (SPE/FID) is saved. This is not supported in original
@@ -1661,6 +1668,7 @@ class SwapEchoWindow(Toplevel): #a window for changing the size of the current d
         
     def pickedAndClose(self,pos): #apply directly if picked since another doesn't make pick doesn't make sense. find a good way to do both entry and picking in a proper way
         self.current.setSwapEchoPreview(pos[0])
+        self.posVal.set(str(pos[0]))
         self.current.peakPick = False
         
 

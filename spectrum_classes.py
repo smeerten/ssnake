@@ -684,9 +684,11 @@ class Current1D(Plot1DFrame):
 
     def autoPhase(self,phaseNum):
         if phaseNum == 0:
-            phases = scipy.optimize.fmin(func=self.ACMEentropy,x0=[0],args=(False,))
+            phases = scipy.optimize.minimize(self.ACMEentropy,[0],(False,),method='Powell')
+            phases = phases['x']
         elif phaseNum == 1:
-            phases = scipy.optimize.fmin(func=self.ACMEentropy,x0=[0,0])
+            phases = scipy.optimize.minimize(self.ACMEentropy,[0,0],method='Powell')
+            phases = phases['x']
         return phases
 
     def setXaxPreview(self,xax):

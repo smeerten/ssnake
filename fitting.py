@@ -87,7 +87,7 @@ class RelaxParamFrame(Frame): #a frame for the relaxtion parameters
     def __init__(self, parent, rootwindow): 
         self.parent = parent
         self.ampVal = StringVar()
-        self.ampVal.set(str(np.amax(self.parent.data1D)))
+        self.ampVal.set("%.3e" % np.amax(self.parent.data1D))
         self.ampTick = IntVar()
         self.constVal = StringVar()
         self.constVal.set("1.0")
@@ -201,7 +201,7 @@ class RelaxParamFrame(Frame): #a frame for the relaxtion parameters
             inp = safeEval(self.ampVal.get())
             argu.append(inp)
             outAmp = inp
-            self.ampVal.set('%.2f' % inp)
+            self.ampVal.set('%.3e' % inp)
             struc.append(False)
         if self.constTick.get() == 0:
             guess.append(safeEval(self.constVal.get()))
@@ -229,12 +229,12 @@ class RelaxParamFrame(Frame): #a frame for the relaxtion parameters
                 inp = safeEval(self.T1Val[i].get())
                 argu.append(inp)
                 outT1[i] = inp
-                self.T1Val[i].set('%.2f' % inp)
+                self.T1Val[i].set('%.3e' % inp)
                 struc.append(False)
-        fitVal = scipy.optimize.minimize(self.fitFunc,guess,(numExp,struc,argu),'Nelder-Mead')
+        fitVal = scipy.optimize.minimize(self.fitFunc,guess,(numExp,struc,argu),'Nelder-Mead',options={'xtol':1e-5,'ftol':1e-5})
         counter = 0
         if struc[0]:
-            self.ampVal.set('%.2f' % fitVal['x'][counter])
+            self.ampVal.set('%.3e' % fitVal['x'][counter])
             outAmp = fitVal['x'][counter]
             counter +=1
         if struc[1]:
@@ -247,7 +247,7 @@ class RelaxParamFrame(Frame): #a frame for the relaxtion parameters
                 outCoeff[i-1] = fitVal['x'][counter]
                 counter += 1
             if struc[2*i+1]:
-                self.T1Val[i-1].set('%.2f' % fitVal['x'][counter])
+                self.T1Val[i-1].set('%.3e' % fitVal['x'][counter])
                 outT1[i-1] = fitVal['x'][counter]
                 counter += 1
         outCurve = np.zeros(numCurve)
@@ -517,7 +517,7 @@ class PeakDeconvParamFrame(Frame): #a frame for the relaxtion parameters
                 outWidth[i] = inp
                 self.widthVal[i].set('%.2f' % inp)
                 struc.append(False)
-        fitVal = scipy.optimize.minimize(self.fitFunc,guess,(numExp,struc,argu),'Nelder-Mead')
+        fitVal = scipy.optimize.minimize(self.fitFunc,guess,(numExp,struc,argu),'Nelder-Mead',options={'xtol':1e-5,'ftol':1e-5})
         counter = 0
         if struc[0]:
             self.bgrndVal.set('%.2f' % fitVal['x'][counter])
