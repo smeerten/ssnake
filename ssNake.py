@@ -25,6 +25,7 @@ import math
 import copy
 import os
 from struct import unpack
+import scipy.io
 #------------
 from safeEval import safeEval
 
@@ -59,6 +60,7 @@ class MainProgram:
         loadmenu.add_command(label="Bruker Topspin/XWinNMR", command=self.LoadBrukerTopspin)
         loadmenu.add_command(label="Chemagnetics", command=self.LoadChemFile)
         loadmenu.add_command(label="Simpson", command=self.LoadSimpsonFile)
+        loadmenu.add_command(label="MATLAB", command=self.loadMatlabFile)
 
         #the save drop down menu
         savemenu = Menu(self.filemenu, tearoff=0)
@@ -227,7 +229,20 @@ class MainProgram:
                     print('Error loading Varian data from '+Dir+os.path.sep+'fid. No data loaded!')
             else: #If /fid does not exist
                 print(Dir+os.path.sep+'fid does not exits, no Varian data loaded!')
-                
+
+    def loadMatlabFile(self):
+        filePath = askopenfilename()
+        matlabStruct = scipy.io.loadmat(filePath)
+        var = [k for k in matlabStruct.keys() if not k.startswith('__')][0]
+        mat = matlabStruct[var]
+        xaxA = [k[0] for k in (mat['xaxArray'][0,0][0])]
+        #insert some checks for data type
+        masterData=sc.Spectrum(mat['data'][0,0],list(mat['freq'][0,0][0]),list(mat['sw'][0,0][0]),list(mat['spec'][0,0][0]),np.array(mat['wholeEcho'][0,0][0])>0,list(mat['ref'][0,0][0]),xaxA)
+        name = self.askName()
+        self.workspaces.append(Main1DWindow(self.root,self,masterData))
+        self.workspaceNames.append(name)
+        self.changeMainWindow(name)
+        
     def LoadBrukerTopspin(self):
         FilePath = askopenfilename()
         if FilePath is not '': #if not canceled
@@ -543,7 +558,17 @@ class Main1DWindow(Frame):
         self.current.saveFigure(f)
 
     def saveMatlabFile(self):
-        pass
+        name=asksaveasfilename()
+        struct = {}
+        struct['data'] = self.masterData.data
+        struct['freq'] = self.masterData.freq
+        struct['sw'] = self.masterData.sw
+        struct['spec'] = self.masterData.spec
+        struct['wholeEcho'] = self.masterData.wholeEcho
+        struct['ref'] = self.masterData.ref
+        struct['xaxArray'] = self.masterData.xaxArray
+        matlabStruct = {name:struct}
+        scipy.io.savemat(name,matlabStruct)
         
     def SaveSimpsonFile(self):
         #TO DO:

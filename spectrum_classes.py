@@ -11,7 +11,7 @@ from spectrumFrame import Plot1DFrame
 #########################################################################
 #the generic data class
 class Spectrum(object):
-    def __init__(self, data, freq, sw , spec=None, wholeEcho=None, ref=None):
+    def __init__(self, data, freq, sw , spec=None, wholeEcho=None, ref=None, xaxArray=None):
         self.dim = len(data.shape)                    #number of dimensions
         self.data = np.array(data,dtype=complex)      #data of dimension dim
         self.freq = np.array(freq)                              #array of center frequency (length is dim, MHz)
@@ -28,8 +28,11 @@ class Spectrum(object):
             self.ref = self.freq.copy()
         else:
             self.ref = ref
-        self.xaxArray = [[] for i in range(self.dim)]
-        self.resetXax()
+        if xaxArray is None:
+            self.xaxArray = [[] for i in range(self.dim)]
+            self.resetXax()
+        else:
+            self.xaxArray = xaxArray
 
     def resetXax(self,axes=None):
         if axes is not None:
