@@ -25,7 +25,7 @@ class Spectrum(object):
         else:
             self.wholeEcho = wholeEcho                    #boolean array of length dim where True indicates a full Echo
         if ref is None:
-            self.ref = self.freq.copy()
+            self.ref = self.dim*[None]
         else:
             self.ref = ref
         if xaxArray is None:
@@ -45,6 +45,18 @@ class Spectrum(object):
             elif self.spec[i]==1:
                 self.xaxArray[i]=np.fft.fftshift(np.fft.fftfreq(self.data.shape[i],1.0/self.sw[i]))
 
+    def insert(self,data,pos,axes):
+        self.data = np.insert(self.data,[pos],data,axis=axes)
+        self.resetXax(axes)
+        return lambda self: self.remove(range(pos,pos+data.shape[axes]),axes)
+
+    def remove(self,pos,axes):
+        copyData=copy.deepcopy(self)
+        returnValue = lambda self: self.restoreData(copyData, lambda self: self.remove(pos,axes))
+        self.data = np.delete(self.data,pos,axes)
+        self.xaxArray[axes] = np.delete(self.xaxArray[axes],pos)
+        return returnValue
+                
     def real(self):
         copyData=copy.deepcopy(self)
         returnValue = lambda self: self.restoreData(copyData, lambda self: self.real())
@@ -382,6 +394,8 @@ class Current1D(Plot1DFrame):
         self.wholeEcho = updateVar[4]
         self.xax=updateVar[5]
         self.ref=updateVar[6]
+        if self.ref == None:
+            self.ref = self.freq
 
     def setSlice(self,axes,locList): #change the slice 
         axesSame = True
@@ -642,6 +656,24 @@ class Current1D(Plot1DFrame):
         self.upd()
         self.showFid()
         return returnValue
+
+    def insert(self,data,pos):
+        returnValue = self.data.insert(data,pos,self.axes)
+        self.upd()
+        self.showFid()
+        return returnValue
+    
+    def delete(self,pos):
+        returnValue = self.data.remove(pos,self.axes)
+        self.upd()
+        self.showFid()
+        return returnValue
+
+    def deletePreview(self,pos):
+        self.data1D = np.delete(self.data1D,pos,axis=len(self.data1D.shape)-1)
+        self.xax = np.delete(self.xax,pos)
+        self.showFid()
+        self.upd()
     
     def getRegion(self,pos1,pos2): #set the frequency of the actual data
         returnValue = self.data.getRegion(pos1,pos2,self.axes)
@@ -813,8 +845,8 @@ class Current1D(Plot1DFrame):
                     self.ax.set_xlabel('User defined')
         else:
             self.ax.set_xlabel('')
-        self.ax.get_xaxis().get_major_formatter().set_powerlimits((-2, 2))
-        self.ax.get_yaxis().get_major_formatter().set_powerlimits((-2, 2))
+        self.ax.get_xaxis().get_major_formatter().set_powerlimits((-4, 4))
+        self.ax.get_yaxis().get_major_formatter().set_powerlimits((-4, 4))
         if self.spec > 0 :
             self.ax.set_xlim(self.xmaxlim,self.xminlim)
         else:
@@ -911,6 +943,10 @@ class CurrentStacked(Current1D):
         self.xax2=updateVar[10]
         self.ref=updateVar[11]
         self.ref2=updateVar[12]
+        if self.ref is None:
+            self.ref = self.freq
+        if self.ref2 is None:
+            self.ref2 = self.freq2
 
     def setBlock(self,axes,axes2,locList,stackBegin=None,stackEnd=None,stackStep=None): #change the slice 
         self.axes = axes
@@ -1116,8 +1152,8 @@ class CurrentStacked(Current1D):
         else:
             self.ax.set_xlim(self.xminlim,self.xmaxlim)
         self.ax.set_ylim(self.yminlim,self.ymaxlim)
-        self.ax.get_xaxis().get_major_formatter().set_powerlimits((-2, 2))
-        self.ax.get_yaxis().get_major_formatter().set_powerlimits((-2, 2))
+        self.ax.get_xaxis().get_major_formatter().set_powerlimits((-4, 4))
+        self.ax.get_yaxis().get_major_formatter().set_powerlimits((-4, 4))
         self.canvas.draw()
 
     def plotReset(self): #set the plot limits to min and max values
@@ -1206,6 +1242,10 @@ class CurrentArrayed(Current1D):
         self.xax2=updateVar[10]
         self.ref=updateVar[11]
         self.ref2=updateVar[12]
+        if self.ref is None:
+            self.ref = self.freq
+        if self.ref2 is None:
+            self.ref2 = self.freq2
  
     def setBlock(self,axes,axes2,locList,stackBegin=None,stackEnd=None,stackStep=None): #change the slice 
         self.axes = axes
@@ -1389,8 +1429,8 @@ class CurrentArrayed(Current1D):
             self.ax.set_xlabel('')
         self.ax.set_xlim(self.xminlim,self.xmaxlim)
         self.ax.set_ylim(self.yminlim,self.ymaxlim)
-        self.ax.get_xaxis().get_major_formatter().set_powerlimits((-2, 2))
-        self.ax.get_yaxis().get_major_formatter().set_powerlimits((-2, 2))
+        self.ax.get_xaxis().get_major_formatter().set_powerlimits((-4, 4))
+        self.ax.get_yaxis().get_major_formatter().set_powerlimits((-4, 4))
         self.canvas.draw()
 
     def plotReset(self): #set the plot limits to min and max values
@@ -1480,6 +1520,10 @@ class CurrentContour(Current1D):
         self.xax2=updateVar[10]
         self.ref=updateVar[11]
         self.ref2=updateVar[12]
+        if self.ref is None:
+            self.ref = self.freq
+        if self.ref2 is None:
+            self.ref2 = self.freq2
 
     def setBlock(self,axes,axes2,locList): #change the slice 
         self.axes = axes
@@ -1675,8 +1719,8 @@ class CurrentContour(Current1D):
             self.ax.set_ylim(self.ymaxlim,self.yminlim)
         else:
             self.ax.set_ylim(self.yminlim,self.ymaxlim)
-        self.ax.get_xaxis().get_major_formatter().set_powerlimits((-2, 2))
-        self.ax.get_yaxis().get_major_formatter().set_powerlimits((-2, 2))
+        self.ax.get_xaxis().get_major_formatter().set_powerlimits((-4, 4))
+        self.ax.get_yaxis().get_major_formatter().set_powerlimits((-4, 4))
         self.canvas.draw()
 
     def plotReset(self): #set the plot limits to min and max values
@@ -1820,6 +1864,10 @@ class CurrentSkewed(Current1D):
         self.xax2=updateVar[10]
         self.ref=updateVar[11]
         self.ref2=updateVar[12]
+        if self.ref is None:
+            self.ref = self.freq
+        if self.ref2 is None:
+            self.ref2 = self.freq2
  
     def setBlock(self,axes,axes2,locList,stackBegin=None,stackEnd=None,stackStep=None): #change the slice 
         self.axes = axes
@@ -2041,8 +2089,8 @@ class CurrentSkewed(Current1D):
             self.ax.set_ylim(self.ymaxlim,self.yminlim)
         else:
             self.ax.set_ylim(self.yminlim,self.ymaxlim)
-        self.ax.get_xaxis().get_major_formatter().set_powerlimits((-2, 2))
-        self.ax.get_yaxis().get_major_formatter().set_powerlimits((-2, 2))
+        self.ax.get_xaxis().get_major_formatter().set_powerlimits((-4, 4))
+        self.ax.get_yaxis().get_major_formatter().set_powerlimits((-4, 4))
         self.ax.w_zaxis.line.set_lw(0.)
         self.ax.set_zticks([])
         self.ax.grid(False)

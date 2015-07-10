@@ -479,6 +479,7 @@ class Main1DWindow(Frame):
         self.menubar.delete("Matrix")
         self.menubar.delete("Fourier")
         self.menubar.delete("Fitting")
+        self.menubar.delete("Combine")
         self.menubar.delete("Plot")
         self.pack_forget()
 
@@ -511,6 +512,7 @@ class Main1DWindow(Frame):
         matrixMenu.add_command(label="Min", command=self.createMinWindow)
         matrixMenu.add_command(label="Extract part", command=self.createRegionWindow)
         matrixMenu.add_command(label="Flip L/R", command=self.flipLR)
+        matrixMenu.add_command(label="Delete", command=self.createDeleteWindow)
         matrixMenu.add_command(label="Shearing", command=self.createShearingWindow)
         
         #the fft drop down menu
@@ -526,6 +528,11 @@ class Main1DWindow(Frame):
         self.menubar.add_cascade(label="Fitting",menu=fittingMenu)
         fittingMenu.add_command(label="Relaxation Curve", command=self.createRelaxWindow)
         fittingMenu.add_command(label="Peak Deconvolution", command=self.createPeakDeconvWindow)
+
+        #the combine drop down menu
+        combineMenu = Menu(self.menubar, tearoff=0)
+        self.menubar.add_cascade(label="Combine",menu=combineMenu)
+        combineMenu.add_command(label="Insert from workspace", command=self.createInsertWindow)
 
 	#the plot drop down menu
         plotMenu = Menu(self.menubar, tearoff=0)
@@ -696,7 +703,13 @@ class Main1DWindow(Frame):
     def flipLR(self):
         self.redoList = []
         self.undoList.append(self.current.flipLR())
+        
+    def createDeleteWindow(self):
+        DeleteWindow(self,self.current)
 
+    def createInsertWindow(self):
+        InsertWindow(self,self.current)
+        
     def createShearingWindow(self):
         if self.masterData.dim > 1:
             ShearingWindow(self,self.current)
@@ -858,12 +871,9 @@ class SideFrame(Frame):
         self.from2D = StringVar()
         self.to2D = StringVar()
         self.step2D = StringVar()
-        self.frame1 = Frame(self)
-        self.frame1.grid(row=0,column=0)
-        Separator(self,orient=HORIZONTAL).grid(row=1, sticky='ew')
-        self.frame2 = Frame(self)
-        self.frame2.grid(row=2,column=0,sticky='nwe')
-        self.frame2.grid_columnconfigure(0,weight=1)
+        self.frame1=None
+        self.frame2=None
+        self.sep = None
         self.upd()
 
     def frameEnable(self):
@@ -878,7 +888,19 @@ class SideFrame(Frame):
         for child in self.frame2.winfo_children():
             child.configure(state='disabled')
             
-    def upd(self): #destroy the old widgets and create new ones 
+    def upd(self): #destroy the old widgets and create new ones
+        if self.frame1 is not None:
+            self.frame1.destroy()
+        if self.frame2 is not None:
+            self.frame2.destroy()
+        if self.sep is not None:
+            self.sep.destroy()
+        self.frame1 = Frame(self)
+        self.frame1.grid(row=0,column=0)
+        self.frame2 = Frame(self)
+        self.sep = Separator(self,orient=HORIZONTAL).grid(row=1, sticky='ew')
+        self.frame2.grid(row=2,column=0,sticky='nwe')
+        self.frame2.grid_columnconfigure(0,weight=1)
         self.current = self.parent.current
         self.shape = self.current.data.data.shape
         self.length = len(self.shape)
@@ -888,17 +910,9 @@ class SideFrame(Frame):
         if self.plotIs2D:
             offset = 1
             self.button2Var.set(self.current.axes2)
-        for num in self.labels:
-            num.destroy()
         self.labels = []
-        for num in self.entries:
-            num.destroy()
         self.entries=[]
-        for num in self.buttons1:
-            num.destroy()
         self.buttons1=[]
-        for num in self.buttons2:
-            num.destroy()
         self.buttons2=[]
         self.entryVars = []
         if self.length > 1:
@@ -931,8 +945,6 @@ class SideFrame(Frame):
                 self.entries[num].bind("<Return>", lambda event=None,num=num: self.getSlice(event,num)) 
                 self.entries[num].bind("<KP_Enter>", lambda event=None,num=num: self.getSlice(event,num)) 
                 self.entries[num].grid(row=num*2+1,column=1+offset)
-            for child in self.frame2.winfo_children():
-                child.destroy()
             if isinstance(self.current, (sc.CurrentStacked,sc.CurrentArrayed,sc.CurrentSkewed)):
                 if self.current.stackBegin is not None:
                     self.from2D.set(str(self.current.stackBegin))
@@ -2003,8 +2015,121 @@ class extractRegionWindow(regionWindow): #A window for obtaining a selected regi
         self.parent.undoList.append(self.current.getRegion(minimum,maximum))
         self.parent.updAllFrames()
 
+##############################################################
+class DeleteWindow(Toplevel):
+    def __init__(self, parent,current):
+        parent.menuDisable()
+        Toplevel.__init__(self)
+        self.parent = parent
+        self.current = current
+        self.geometry('+0+0')
+        self.transient(self.parent)
+        self.protocol("WM_DELETE_WINDOW", self.cancelAndClose)
+        self.title("Delete")
+        self.resizable(width=FALSE, height=FALSE)
+        #initialize variables for the widgets
+        self.pos = StringVar()
+        self.pos.set('0')
+        self.frame1 = Frame(self)
+        self.frame1.grid(row=0)
+        Label(self.frame1,text="Indexes to delete").grid(row=0,column=0)
+        self.posEntry = Entry(self.frame1,textvariable=self.pos,justify="center")
+        self.posEntry.bind("<Return>", self.preview)
+        self.posEntry.bind("<KP_Enter>", self.preview)
+        self.posEntry.grid(row=1,column=0)
+        self.frame2 = Frame(self)
+        self.frame2.grid(row=1)
+        Button(self.frame2, text="Apply",command=self.applyAndClose).grid(row=0,column=0)
+        Button(self.frame2, text="Cancel",command=self.cancelAndClose).grid(row=0,column=1)
+
+    def preview(self, *args):
+        env = vars(np).copy()
+        length = int(self.current.data1D.shape[-1])
+        env['length']=length # so length can be used to in equations
+        pos=np.array(eval(self.pos.get(),env))                # find a better solution, also add catch for exceptions
+        if (pos > -1).all() and (pos < length).all():
+            self.current.deletePreview(pos)
+        else:
+            print('Not all values are valid indexes to delete')
+        
+    def applyAndClose(self):
+        env = vars(np).copy()
+        length = int(self.current.data1D.shape[-1])
+        env['length']=length # so length can be used to in equations
+        pos=np.array(eval(self.pos.get(),env))                # find a better solution, also add catch for exceptions
+        if (pos > -1).all() and (pos < length).all():
+            self.parent.redoList = []
+            self.parent.undoList.append(self.current.delete(pos))
+            self.parent.menuEnable()
+            self.parent.sideframe.upd()
+            self.destroy()
+        else:
+            print('Not all values are valid indexes to delete')
+        
+    def cancelAndClose(self):
+        self.current.showFid()
+        self.parent.menuEnable()
+        self.destroy()
+
+
+##############################################################
+class InsertWindow(Toplevel):
+    def __init__(self, parent,current):
+        parent.menuDisable()
+        Toplevel.__init__(self)
+        self.parent = parent
+        self.current = current
+        self.geometry('+0+0')
+        self.transient(self.parent)
+        self.protocol("WM_DELETE_WINDOW", self.cancelAndClose)
+        self.title("Insert")
+        self.resizable(width=FALSE, height=FALSE)
+        #initialize variables for the widgets
+        self.pos = StringVar()
+        self.pos.set(str(self.current.data1D.shape[-1]))
+        self.ws = StringVar()
+        self.ws.set(self.parent.mainProgram.workspaceNames[0])
+        self.frame1 = Frame(self)
+        self.frame1.grid(row=0)
+        Label(self.frame1,text="Start insert at index").grid(row=0,column=0)
+        self.posEntry = Entry(self.frame1,textvariable=self.pos,justify="center")
+        self.posEntry.bind("<Return>", self.preview)
+        self.posEntry.bind("<KP_Enter>", self.preview)
+        self.posEntry.grid(row=1,column=0)
+        Label(self.frame1,text="Workspace to insert").grid(row=2,column=0)
+        OptionMenu(self.frame1,self.ws,self.parent.mainProgram.workspaceNames[0],*self.parent.mainProgram.workspaceNames).grid(row=3,column=0)
+        self.frame2 = Frame(self)
+        self.frame2.grid(row=1)
+        Button(self.frame2, text="Apply",command=self.applyAndClose).grid(row=0,column=0)
+        Button(self.frame2, text="Cancel",command=self.cancelAndClose).grid(row=0,column=1)
+
+    def preview(self, *args):
+        pos = int(round(safeEval(self.pos.get())))
+        if pos > self.current.data1D.shape[-1]:
+            pos = self.current.data1D.shape[-1]
+        elif pos < 0:
+            pos = 0
+        self.pos.set(str(pos))
+        
+    def applyAndClose(self):
+        pos = int(round(safeEval(self.pos.get())))
+        if pos > self.current.data1D.shape[-1]:
+            pos = self.current.data1D.shape[-1]
+        elif pos < 0:
+            pos = 0
+        ws = self.parent.mainProgram.workspaceNames.index(self.ws.get())
+        self.parent.redoList = []
+        self.parent.undoList.append(self.current.insert(self.parent.mainProgram.workspaces[ws].masterData.data,pos))
+        self.parent.menuEnable()
+        self.parent.sideframe.upd()
+        self.destroy()
+        
+    def cancelAndClose(self):
+        self.parent.menuEnable()
+        self.destroy()
+        
 ################################################################
-class ShearingWindow(Toplevel): #a window for setting the xax of the current data
+class ShearingWindow(Toplevel): 
     def __init__(self, parent,current):
         parent.menuDisable()
         Toplevel.__init__(self)
@@ -2044,9 +2169,6 @@ class ShearingWindow(Toplevel): #a window for setting the xax of the current dat
         self.shear.set(str(shear))
 
     def cancelAndClose(self):
-        #self.current.upd()
-        #self.current.plotReset()
-        #self.current.showFid()
         self.parent.menuEnable()
         self.destroy()
 
@@ -2066,7 +2188,7 @@ class ShearingWindow(Toplevel): #a window for setting the xax of the current dat
 class XaxWindow(Toplevel): #a window for setting the xax of the current data
     def __init__(self, parent,current):
         parent.menuDisable()
-        Frame.__init__(self)
+        Toplevel.__init__(self)
         #initialize variables for the widgets
         self.val = StringVar()
         self.parent = parent
@@ -2201,5 +2323,5 @@ if __name__ == "__main__":
     root.title("ssNake") 
     root.style = Style()
     root.style.theme_use("clam")
-    root.attributes('-zoomed', True)
+    #root.attributes('-zoomed', True)
     root.mainloop()

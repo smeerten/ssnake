@@ -78,8 +78,8 @@ class RelaxFrame(Plot1DFrame): #a window for fitting relaxation data
         a.set_ylabel('Y label')
         a.set_xlim(self.xminlim,self.xmaxlim)
         a.set_ylim(self.yminlim,self.ymaxlim)
-        a.get_xaxis().get_major_formatter().set_powerlimits((-2, 2))
-        a.get_yaxis().get_major_formatter().set_powerlimits((-2, 2))
+        a.get_xaxis().get_major_formatter().set_powerlimits((-4, 4))
+        a.get_yaxis().get_major_formatter().set_powerlimits((-4, 4))
         self.canvas.draw()
 
 #################################################################################
@@ -318,8 +318,8 @@ class PeakDeconvFrame(Plot1DFrame): #a window for fitting relaxation data
         a.set_ylabel('Y label')
         a.set_xlim(self.xminlim,self.xmaxlim)
         a.set_ylim(self.yminlim,self.ymaxlim)
-        a.get_xaxis().get_major_formatter().set_powerlimits((-2, 2))
-        a.get_yaxis().get_major_formatter().set_powerlimits((-2, 2))
+        a.get_xaxis().get_major_formatter().set_powerlimits((-4, 4))
+        a.get_yaxis().get_major_formatter().set_powerlimits((-4, 4))
         self.canvas.draw()
 
     def pickDeconv(self, pos):
