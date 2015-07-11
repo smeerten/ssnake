@@ -56,7 +56,34 @@ class Spectrum(object):
         self.data = np.delete(self.data,pos,axes)
         self.xaxArray[axes] = np.delete(self.xaxArray[axes],pos)
         return returnValue
-                
+
+    def concatenate(self,axes):
+        splitVal = self.data.shape[axes]
+        self.data = np.concatenate(self.data,axis=axes)
+        self.dim = len(self.data.shape)
+        self.freq = np.delete(self.freq, axes)
+        self.sw = np.delete(self.sw, axes)
+        self.spec = np.delete(self.spec, axes)
+        self.wholeEcho =  np.delete(self.wholeEcho, axes)
+        self.ref = np.delete(self.ref, axes)
+        del self.xaxArray[0]
+        #self.resetXax(axes)
+        self.resetXax()
+        return lambda self: self.split(splitVal,axes)
+    
+    def split(self,sections,axes):
+        self.data = np.array(np.split(self.data,sections,axis=axes))
+        self.dim = len(self.data.shape)
+        self.freq = np.insert(self.freq, 0, self.freq[axes])
+        self.sw = np.insert(self.sw, 0 , self.sw[axes])
+        self.spec = np.insert(self.spec, 0 , self.spec[axes])
+        self.wholeEcho =  np.insert(self.wholeEcho, 0 , self.wholeEcho[axes])
+        self.ref = np.insert(self.ref, 0 , self.ref[axes])
+        self.xaxArray.insert(0,[])
+        self.resetXax(0)
+        self.resetXax(axes+1)
+        return lambda self: self.concatenate(axes)
+    
     def real(self):
         copyData=copy.deepcopy(self)
         returnValue = lambda self: self.restoreData(copyData, lambda self: self.real())
@@ -384,6 +411,8 @@ class Current1D(Plot1DFrame):
         return Current1D(root,data,self)
         
     def upd(self): #get new data from the data instance
+        if self.data.dim >= self.axes:
+            self.axes = len(self.data.data.shape)-1
         if (len(self.locList)+1) != self.data.dim:
             self.resetLocList()
         updateVar = self.data.getSlice(self.axes,self.locList)
@@ -657,9 +686,24 @@ class Current1D(Plot1DFrame):
         self.showFid()
         return returnValue
 
+    def concatenate(self,axes):
+        returnValue = self.data.concatenate(axes)
+        self.upd()
+        self.plotReset()
+        self.showFid()
+        return returnValue
+
+    def split(self,sections):
+        returnValue = self.data.split(sections, self.axes)
+        self.upd()
+        self.plotReset()
+        self.showFid()
+        return returnValue
+    
     def insert(self,data,pos):
         returnValue = self.data.insert(data,pos,self.axes)
         self.upd()
+        self.plotReset()
         self.showFid()
         return returnValue
     

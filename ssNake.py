@@ -513,6 +513,8 @@ class Main1DWindow(Frame):
         matrixMenu.add_command(label="Extract part", command=self.createRegionWindow)
         matrixMenu.add_command(label="Flip L/R", command=self.flipLR)
         matrixMenu.add_command(label="Delete", command=self.createDeleteWindow)
+        matrixMenu.add_command(label="Split", command=self.createSplitWindow)
+        matrixMenu.add_command(label="Concatenate", command=self.createConcatenateWindow)
         matrixMenu.add_command(label="Shearing", command=self.createShearingWindow)
         
         #the fft drop down menu
@@ -706,7 +708,13 @@ class Main1DWindow(Frame):
         
     def createDeleteWindow(self):
         DeleteWindow(self,self.current)
-
+        
+    def createSplitWindow(self):
+        SplitWindow(self,self.current)
+        
+    def createConcatenateWindow(self):
+        ConcatenateWindow(self,self.current)
+        
     def createInsertWindow(self):
         InsertWindow(self,self.current)
         
@@ -2071,6 +2079,102 @@ class DeleteWindow(Toplevel):
         self.parent.menuEnable()
         self.destroy()
 
+##############################################################
+class SplitWindow(Toplevel):
+    def __init__(self, parent,current):
+        parent.menuDisable()
+        Toplevel.__init__(self)
+        self.parent = parent
+        self.current = current
+        self.geometry('+0+0')
+        self.transient(self.parent)
+        self.protocol("WM_DELETE_WINDOW", self.cancelAndClose)
+        self.title("Split")
+        self.resizable(width=FALSE, height=FALSE)
+        #initialize variables for the widgets
+        self.section = StringVar()
+        self.section.set('1')
+        self.frame1 = Frame(self)
+        self.frame1.grid(row=0)
+        Label(self.frame1,text="Number of sections").grid(row=0,column=0)
+        self.sectionEntry = Entry(self.frame1,textvariable=self.section,justify="center")
+        self.sectionEntry.bind("<Return>", self.preview)
+        self.sectionEntry.bind("<KP_Enter>", self.preview)
+        self.sectionEntry.grid(row=1,column=0)
+        self.frame2 = Frame(self)
+        self.frame2.grid(row=1)
+        Button(self.frame2, text="Apply",command=self.applyAndClose).grid(row=0,column=0)
+        Button(self.frame2, text="Cancel",command=self.cancelAndClose).grid(row=0,column=1)
+
+    def preview(self, *args):
+        val = int(safeEval(self.section.get()))
+        self.section.set(str(val))
+        
+    def applyAndClose(self):
+        val = int(safeEval(self.section.get()))
+        self.parent.redoList = []
+        self.parent.undoList.append(self.current.split(val))
+        self.parent.menuEnable()
+        self.parent.updAllFrames()
+        self.destroy()
+        
+    def cancelAndClose(self):
+        self.parent.menuEnable()
+        self.destroy()
+
+##############################################################
+class ConcatenateWindow(Toplevel):
+    def __init__(self, parent,current):
+        parent.menuDisable()
+        Toplevel.__init__(self)
+        self.parent = parent
+        self.current = current
+        self.geometry('+0+0')
+        self.transient(self.parent)
+        self.protocol("WM_DELETE_WINDOW", self.cancelAndClose)
+        self.title("Concatenate")
+        self.resizable(width=FALSE, height=FALSE)
+        #initialize variables for the widgets
+        self.axes = StringVar()
+        self.axes.set('0')
+        self.frame1 = Frame(self)
+        self.frame1.grid(row=0)
+        Label(self.frame1,text="Concatenation axes").grid(row=0,column=0)
+        self.axesEntry = Entry(self.frame1,textvariable=self.axes,justify="center")
+        self.axesEntry.bind("<Return>", self.preview)
+        self.axesEntry.bind("<KP_Enter>", self.preview)
+        self.axesEntry.grid(row=1,column=0)
+        self.frame2 = Frame(self)
+        self.frame2.grid(row=1)
+        Button(self.frame2, text="Apply",command=self.applyAndClose).grid(row=0,column=0)
+        Button(self.frame2, text="Cancel",command=self.cancelAndClose).grid(row=0,column=1)
+
+    def preview(self, *args):
+        val = int(safeEval(self.axes.get()))
+        if val < 0:
+            val = 0
+        elif val > (self.current.data.dim-2):
+            val = self.current.data.dim-2
+        self.axes.set(str(val))
+        
+    def applyAndClose(self):
+        val = int(safeEval(self.axes.get()))
+        if val < 0:
+            print("concatenate axes is too small")
+            return
+        elif val > (self.current.data.dim-2):
+            print("concatenate axes is too large")
+            return
+        self.parent.redoList = []
+        self.parent.undoList.append(self.current.concatenate(val))
+        self.parent.menuEnable()
+        self.parent.updAllFrames()
+        self.destroy()
+        
+    def cancelAndClose(self):
+        self.parent.menuEnable()
+        self.destroy()
+        
 
 ##############################################################
 class InsertWindow(Toplevel):
