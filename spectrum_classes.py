@@ -559,6 +559,26 @@ class Current1D(Plot1DFrame):
         self.showFid()
         return returnValue
 
+    def SN(self,minNoise,maxNoise,minPeak,maxPeak):
+        minN = min(minNoise,maxNoise)
+        maxN = max(minNoise,maxNoise)
+        minP = min(minPeak,maxPeak)
+        maxP = max(minPeak,maxPeak)
+        if len(self.data1D.shape) > 1:
+            tmpData = self.data1D[0]
+        else:
+            tmpData = self.data1D
+        if (self.plotType==0):
+            tmpData = np.real(tmpData)
+        elif(self.plotType==1):
+            tmpData = np.imag(tmpData)
+        elif(self.plotType==2):
+            tmpData = np.real(tmpData)
+        elif(self.plotType==3):
+            tmpData = np.abs(tmpData)
+        return (np.amax(tmpData[minP:maxP])/(np.amax(tmpData[minN:maxN])-np.amin(tmpData[minN:maxN])))
+        
+    
     def setSizePreview(self,size): #set size only on local data
         if len(self.data1D.shape) > 1:
             length = len(self.data1D[0])
@@ -764,7 +784,7 @@ class Current1D(Plot1DFrame):
     def autoPhase(self,phaseNum):
         if phaseNum == 0:
             phases = scipy.optimize.minimize(self.ACMEentropy,[0],(False,),method='Powell')
-            phases = phases['x']
+            phases = [phases['x']]
         elif phaseNum == 1:
             phases = scipy.optimize.minimize(self.ACMEentropy,[0,0],method='Powell')
             phases = phases['x']
