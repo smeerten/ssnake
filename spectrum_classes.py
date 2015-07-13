@@ -53,9 +53,13 @@ class Spectrum(object):
     def remove(self,pos,axes):
         copyData=copy.deepcopy(self)
         returnValue = lambda self: self.restoreData(copyData, lambda self: self.remove(pos,axes))
-        self.data = np.delete(self.data,pos,axes)
-        self.xaxArray[axes] = np.delete(self.xaxArray[axes],pos)
-        return returnValue
+        tmpdata = np.delete(self.data,pos,axes)
+        if (np.array(tmpdata.shape) != 0).all():
+            self.data = tmpdata
+            self.xaxArray[axes] = np.delete(self.xaxArray[axes],pos)
+            return returnValue
+        else:
+            print('Cannot delete all data')
 
     def concatenate(self,axes):
         splitVal = self.data.shape[axes]
@@ -411,7 +415,7 @@ class Current1D(Plot1DFrame):
         return Current1D(root,data,self)
         
     def upd(self): #get new data from the data instance
-        if self.data.dim >= self.axes:
+        if self.data.dim <= self.axes:
             self.axes = len(self.data.data.shape)-1
         if (len(self.locList)+1) != self.data.dim:
             self.resetLocList()
@@ -736,7 +740,8 @@ class Current1D(Plot1DFrame):
     def deletePreview(self,pos):
         self.data1D = np.delete(self.data1D,pos,axis=len(self.data1D.shape)-1)
         self.xax = np.delete(self.xax,pos)
-        self.showFid()
+        if (np.array(self.data1D.shape) != 0).all():
+            self.showFid()
         self.upd()
     
     def getRegion(self,pos1,pos2): #set the frequency of the actual data
@@ -983,6 +988,8 @@ class CurrentStacked(Current1D):
             self.stackStep = duplicateCurrent.stackStep
         else:
             self.stackStep = None
+            if self.data.data.shape[self.axes2] > 100:
+                self.stackStep = 1+int(self.data.data.shape[self.axes2])/100
         self.spacing = 0
         Current1D.__init__(self,root, data, duplicateCurrent)
         self.resetSpacing()
@@ -1018,6 +1025,9 @@ class CurrentStacked(Current1D):
         self.stackBegin = stackBegin
         self.stackEnd = stackEnd
         self.stackStep = stackStep
+        if stackStep == None:
+            if self.data.data.shape[self.axes2] > 100:
+                self.stackStep = 1+int(self.data.data.shape[self.axes2])/100
         self.locList = locList
         self.upd()
         self.resetSpacing()
@@ -1282,6 +1292,8 @@ class CurrentArrayed(Current1D):
             self.stackStep = duplicateCurrent.stackStep
         else:
             self.stackStep = None
+            if self.data.data.shape[self.axes2] > 100:
+                self.stackStep = 1+int(self.data.data.shape[self.axes2])/100
         self.spacing = 0
         Current1D.__init__(self, root, data, duplicateCurrent)
         self.resetSpacing()
@@ -1317,6 +1329,8 @@ class CurrentArrayed(Current1D):
         self.stackBegin = stackBegin
         self.stackEnd = stackEnd
         self.stackStep = stackStep
+        if self.data.data.shape[self.axes2] > 100:
+            self.stackStep = 1+int(self.data.data.shape[self.axes2])/100
         self.locList = locList
         self.upd()
         self.resetSpacing()
@@ -1898,6 +1912,8 @@ class CurrentSkewed(Current1D):
             self.stackStep = duplicateCurrent.stackStep
         else:
             self.stackStep = None
+            if self.data.data.shape[self.axes2] > 100:
+                self.stackStep = 1+int(self.data.data.shape[self.axes2])/100
         if hasattr(duplicateCurrent,'axType2'):
             self.axType2 = duplicateCurrent.axType2
         else:
@@ -1939,6 +1955,8 @@ class CurrentSkewed(Current1D):
         self.stackBegin = stackBegin
         self.stackEnd = stackEnd
         self.stackStep = stackStep
+        if self.data.data.shape[self.axes2] > 100:
+            self.stackStep = 1+int(self.data.data.shape[self.axes2])/100
         self.locList = locList
         self.upd()
         self.plotReset()

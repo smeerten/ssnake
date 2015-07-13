@@ -18,7 +18,6 @@ else:
     from tkFileDialog   import asksaveasfile
     from tkFileDialog   import asksaveasfilename
     from tkSimpleDialog import askstring
-import PIL.Image as Image
 import spectrum_classes as sc
 import fitting as fit
 import math
@@ -26,8 +25,10 @@ import copy
 import os
 from struct import unpack
 import scipy.io
+import json
 #------------
 from safeEval import safeEval
+from euro import euro
 
 pi=math.pi
 
@@ -60,12 +61,14 @@ class MainProgram:
         loadmenu.add_command(label="Bruker Topspin/XWinNMR", command=self.LoadBrukerTopspin)
         loadmenu.add_command(label="Chemagnetics", command=self.LoadChemFile)
         loadmenu.add_command(label="Simpson", command=self.LoadSimpsonFile)
+        loadmenu.add_command(label="JSON", command=self.loadJSONFile)
         loadmenu.add_command(label="MATLAB", command=self.loadMatlabFile)
 
         #the save drop down menu
         savemenu = Menu(self.filemenu, tearoff=0)
         self.filemenu.add_cascade(label="Save", menu=savemenu)
         savemenu.add_command(label="Save figure", command=self.saveFigure)
+        savemenu.add_command(label="Save JSON", command=self.saveJSONFile)
         savemenu.add_command(label="Save MATLAB", command=self.saveMatlabFile)
         savemenu.add_command(label="Save as Simpson data", command=self.saveSimpsonFile)
         
@@ -230,6 +233,21 @@ class MainProgram:
             else: #If /fid does not exist
                 print(Dir+os.path.sep+'fid does not exits, no Varian data loaded!')
 
+    def loadJSONFile(self):
+        filePath = askopenfilename()
+        with open(filePath, 'r') as inputfile:
+            struct = json.load(inputfile)
+        data = np.array(struct['dataReal']) + 1j * np.array(struct['dataImag'])
+        ref = np.where(np.isnan(struct['ref']), None, struct['ref'])
+        xaxA = []
+        for i in struct['xaxArray']:
+            xaxA.append(np.array(i))
+        masterData=sc.Spectrum(data,list(struct['freq']),list(struct['sw']),list(struct['spec']),list(struct['wholeEcho']),list(ref),xaxA)
+        name = self.askName()
+        self.workspaces.append(Main1DWindow(self.root,self,masterData))
+        self.workspaceNames.append(name)
+        self.changeMainWindow(name)
+        
     def loadMatlabFile(self):
         filePath = askopenfilename()
         matlabStruct = scipy.io.loadmat(filePath)
@@ -237,7 +255,9 @@ class MainProgram:
         mat = matlabStruct[var]
         xaxA = [k[0] for k in (mat['xaxArray'][0,0][0])]
         #insert some checks for data type
-        masterData=sc.Spectrum(mat['data'][0,0],list(mat['freq'][0,0][0]),list(mat['sw'][0,0][0]),list(mat['spec'][0,0][0]),np.array(mat['wholeEcho'][0,0][0])>0,list(mat['ref'][0,0][0]),xaxA)
+        ref = mat['ref'][0,0][0]
+        ref = np.where(np.isnan(ref), None, ref)
+        masterData=sc.Spectrum(mat['data'][0,0],list(mat['freq'][0,0][0]),list(mat['sw'][0,0][0]),list(mat['spec'][0,0][0]),list(np.array(mat['wholeEcho'][0,0][0])>0),list(ref),xaxA)
         name = self.askName()
         self.workspaces.append(Main1DWindow(self.root,self,masterData))
         self.workspaceNames.append(name)
@@ -441,7 +461,10 @@ class MainProgram:
 
     def saveSimpsonFile(self):
         self.mainWindow.SaveSimpsonFile()
-
+        
+    def saveJSONFile(self):
+        self.mainWindow.saveJSONFile()
+        
     def saveMatlabFile(self):
         self.mainWindow.saveMatlabFile()
                 
@@ -567,6 +590,23 @@ class Main1DWindow(Frame):
         f=asksaveasfilename(filetypes=(('svg','.svg'),('png','.png'),('eps','.eps'),('jpg','.jpg'),('pdf','.pdf')))
         self.current.saveFigure(f)
 
+    def saveJSONFile(self):
+        name=asksaveasfilename(filetypes=(('JSON','.json'),))
+        struct = {}
+        struct['dataReal'] = np.real(self.masterData.data).tolist()
+        struct['dataImag'] = np.imag(self.masterData.data).tolist()
+        struct['freq'] = self.masterData.freq.tolist()
+        struct['sw'] = self.masterData.sw
+        struct['spec'] = list(self.masterData.spec)
+        struct['wholeEcho'] = list(self.masterData.wholeEcho)
+        struct['ref'] = np.array(self.masterData.ref,dtype=np.float).tolist()
+        tmpXax = []
+        for i in self.masterData.xaxArray:
+            tmpXax.append(i.tolist())
+        struct['xaxArray'] = tmpXax
+        with open(name, 'w') as outfile:
+            json.dump(struct, outfile)
+        
     def saveMatlabFile(self):
         name=asksaveasfilename()
         struct = {}
@@ -575,11 +615,11 @@ class Main1DWindow(Frame):
         struct['sw'] = self.masterData.sw
         struct['spec'] = self.masterData.spec
         struct['wholeEcho'] = self.masterData.wholeEcho
-        struct['ref'] = self.masterData.ref
+        struct['ref'] = np.array(self.masterData.ref,dtype=np.float)
         struct['xaxArray'] = self.masterData.xaxArray
         matlabStruct = {name:struct}
         scipy.io.savemat(name,matlabStruct)
-        
+
     def SaveSimpsonFile(self):
         #TO DO:
         #Make sure that stat of second dimension (SPE/FID) is saved. This is not supported in original
@@ -839,11 +879,13 @@ class Main1DWindow(Frame):
 
     def undo(self, *args):
         if self.undoList:
-            self.redoList.append(self.undoList.pop()(self.masterData))
-            self.current.upd()
-            self.current.plotReset()
-            self.current.showFid()
-            self.updAllFrames()
+            undoFunc = self.undoList.pop()
+            if undoFunc is not None:
+                self.redoList.append(undoFunc(self.masterData))
+                self.current.upd()
+                self.current.plotReset()
+                self.current.showFid()
+                self.updAllFrames()
         else:
             print("no undo information")
 
@@ -1125,6 +1167,7 @@ class SideFrame(Frame):
         else:
             self.current.setSlice(dimNum,locList)
         self.parent.bottomframe.upd()
+        self.upd()
 
 ################################################################################  
 #the bottom frame holding the fourier button and stuff      
@@ -2454,11 +2497,12 @@ class XaxWindow(Toplevel): #a window for setting the xax of the current data
     def xaxPreview(self, *args):
         env = vars(np).copy()
         env['length']=int(self.current.data1D.shape[-1]) # so length can be used to in equations
+        env['euro']=euro
         val=eval(self.val.get(),env)                # find a better solution, also add catch for exceptions          
         if isinstance(val,(list,np.ndarray)):
             if len(val)==self.current.data1D.shape[-1]:
                 if all(isinstance(x,(int,float)) for x in val):
-                    self.current.setXaxPreview(val)
+                    self.current.setXaxPreview(np.array(val))
                 else:
                     print("Array is not all of int or float type")
             else:
@@ -2476,11 +2520,12 @@ class XaxWindow(Toplevel): #a window for setting the xax of the current data
     def applyXaxAndClose(self):
         env = vars(np).copy()
         env['length']=int(self.current.data1D.shape[-1]) # so length can be used to in equations
+        env['euro']=euro
         val=eval(self.val.get(),env)                # find a better solution, also add catch for exceptions
         if isinstance(val,(list,np.ndarray)):
             if len(val)==self.current.data1D.shape[-1]:
                 if all(isinstance(x,(int,float)) for x in val):
-                    self.current.setXax(val)
+                    self.current.setXax(np.array(val))
                     self.parent.menuEnable()
                     self.destroy()
                 else:
