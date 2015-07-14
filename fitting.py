@@ -74,8 +74,7 @@ class RelaxFrame(Plot1DFrame): #a window for fitting relaxation data
         a.cla()
         a.plot(tmpAx,tmpdata)
         a.scatter(self.xax,self.data1D)
-        a.set_xlabel('X axis label')
-        a.set_ylabel('Y label')
+        a.set_xlabel('Time [s]')
         a.set_xlim(self.xminlim,self.xmaxlim)
         a.set_ylim(self.yminlim,self.ymaxlim)
         a.get_xaxis().get_major_formatter().set_powerlimits((-4, 4))
@@ -154,7 +153,10 @@ class RelaxParamFrame(Frame): #a frame for the relaxtion parameters
                 self.T1Check[i].grid_remove()
                 self.T1Entries[i].grid_remove()
 
-    def fitFunc(self, param, numExp, struc, argu):
+    def fitFunc(self, x, *param):
+        numExp = self.args[0]
+        struc = self.args[1]
+        argu = self.args[2]
         testFunc = np.zeros(len(self.parent.data1D))
         if struc[0]:
             amplitude = param[0]
@@ -181,8 +183,8 @@ class RelaxParamFrame(Frame): #a frame for the relaxtion parameters
             else:
                 T1= argu[0]
                 argu=np.delete(argu,[0])
-            testFunc += coeff*np.exp(-1.0*self.parent.xax/T1) 
-        return sum((self.parent.data1D - amplitude*(constant+testFunc))**2)
+            testFunc += coeff*np.exp(-1.0*x/T1) 
+        return amplitude*(constant+testFunc)
 
 
     def fit(self,*args):
@@ -231,24 +233,26 @@ class RelaxParamFrame(Frame): #a frame for the relaxtion parameters
                 outT1[i] = inp
                 self.T1Val[i].set('%.3e' % inp)
                 struc.append(False)
-        fitVal = scipy.optimize.minimize(self.fitFunc,guess,(numExp,struc,argu),'Nelder-Mead',options={'xtol':1e-5,'ftol':1e-5})
+        #fitVal = scipy.optimize.minimize(self.fitFunc,guess,(numExp,struc,argu),'Nelder-Mead',options={'xtol':1e-5,'ftol':1e-5})
+        self.args=(numExp,struc,argu)
+        fitVal = scipy.optimize.curve_fit(self.fitFunc,self.parent.xax, self.parent.data1D,guess)
         counter = 0
         if struc[0]:
-            self.ampVal.set('%.3e' % fitVal['x'][counter])
-            outAmp = fitVal['x'][counter]
+            self.ampVal.set('%.3e' % fitVal[0][counter])
+            outAmp = fitVal[0][counter]
             counter +=1
         if struc[1]:
-            self.constVal.set('%.2f' % fitVal['x'][counter])
-            outConst = fitVal['x'][counter]
+            self.constVal.set('%.2f' % fitVal[0][counter])
+            outConst = fitVal[0][counter]
             counter +=1
         for i in range(1,numExp+1):
             if struc[2*i]:
-                self.coeffVal[i-1].set('%.2f' % fitVal['x'][counter])
-                outCoeff[i-1] = fitVal['x'][counter]
+                self.coeffVal[i-1].set('%.2f' % fitVal[0][counter])
+                outCoeff[i-1] = fitVal[0][counter]
                 counter += 1
             if struc[2*i+1]:
-                self.T1Val[i-1].set('%.3e' % fitVal['x'][counter])
-                outT1[i-1] = fitVal['x'][counter]
+                self.T1Val[i-1].set('%.3e' % fitVal[0][counter])
+                outT1[i-1] = fitVal[0][counter]
                 counter += 1
         outCurve = np.zeros(numCurve)
         x = np.linspace(min(self.parent.xax),max(self.parent.xax),numCurve)
@@ -273,7 +277,17 @@ class PeakDeconvFrame(Plot1DFrame): #a window for fitting relaxation data
         Plot1DFrame.__init__(self,rootwindow)
         self.data1D = current.getDisplayedData()
         self.current = current
-        self.xax = self.current.xax
+        self.spec = self.current.spec
+        axAdd = 0
+        if self.spec == 1:
+            if self.current.ppm:
+                axAdd = (self.current.freq-self.current.ref)/self.current.ref*1e6
+                axMult = 1e6/self.current.ref
+            else:
+                axMult = 1.0/(1000.0**self.current.axType)
+        elif self.spec == 0:
+            axMult = 1000.0**self.current.axType
+        self.xax = self.current.xax*axMult+axAdd
         self.plotType=0
         self.rootwindow = rootwindow
         self.peakPickFunc = lambda pos,self=self: self.pickDeconv(pos) 
@@ -304,9 +318,12 @@ class PeakDeconvFrame(Plot1DFrame): #a window for fitting relaxation data
         self.ymaxlim=maxy+differ
         self.xminlim=min(self.xax)
         self.xmaxlim=max(self.xax)
-        a.set_xlim(self.xminlim,self.xmaxlim)
+        if self.spec > 0 :
+            a.set_xlim(self.xmaxlim,self.xminlim)
+        else:
+            a.set_xlim(self.xminlim,self.xmaxlim)
         a.set_ylim(self.yminlim,self.ymaxlim)
-
+        
     def showPlot(self, tmpAx=None, tmpdata=None, tmpAx2=[], tmpdata2=[]): 
         a=self.fig.gca()
         a.cla()
@@ -314,17 +331,48 @@ class PeakDeconvFrame(Plot1DFrame): #a window for fitting relaxation data
         a.plot(tmpAx,tmpdata)
         for i in range(len(tmpAx2)):
             a.plot(tmpAx2[i],tmpdata2[i])
-        a.set_xlabel('X axis label')
-        a.set_ylabel('Y label')
-        a.set_xlim(self.xminlim,self.xmaxlim)
-        a.set_ylim(self.yminlim,self.ymaxlim)
+        if self.spec==0:
+            if self.current.axType == 0:
+                a.set_xlabel('Time [s]')
+            elif self.current.axType == 1:
+                a.set_xlabel('Time [ms]')
+            elif self.current.axType == 2:
+                a.set_xlabel(r'Time [$\mu$s]')
+            else:
+                a.set_xlabel('User defined')
+        elif self.spec==1:
+            if self.current.ppm:
+                a.set_xlabel('Frequency [ppm]')
+            else:
+                if self.current.axType == 0:
+                    a.set_xlabel('Frequency [Hz]')
+                elif self.current.axType == 1:
+                    a.set_xlabel('Frequency [kHz]')
+                elif self.current.axType == 2:
+                    a.set_xlabel('Frequency [MHz]')
+                else:
+                    a.set_xlabel('User defined')
+        else:
+            a.set_xlabel('')
         a.get_xaxis().get_major_formatter().set_powerlimits((-4, 4))
         a.get_yaxis().get_major_formatter().set_powerlimits((-4, 4))
+        if self.spec > 0 :
+            a.set_xlim(self.xmaxlim,self.xminlim)
+        else:
+            a.set_xlim(self.xminlim,self.xmaxlim)
+        a.set_ylim(self.yminlim,self.ymaxlim)
         self.canvas.draw()
 
     def pickDeconv(self, pos):
-        self.rootwindow.paramframe.posVal[self.pickNum].set(str(pos[1]))
-        self.rootwindow.paramframe.ampVal[self.pickNum].set(str(pos[2]))
+        self.rootwindow.paramframe.posVal[self.pickNum].set("%.2e" %pos[1])
+        self.rootwindow.paramframe.ampVal[self.pickNum].set("%.2e" %pos[2])
+        left = pos[0] - 10 #number of points to find the maximum in
+        if left < 0:
+            left = 0
+        right = pos[0] + 10 #number of points to find the maximum in
+        if right >= len(self.data1D) :
+            right = len(self.data1D)-1
+        self.rootwindow.paramframe.widthVal[self.pickNum].set("%.2e" % self.current.fwhm(left,right))
         if self.pickNum < 10:
             self.rootwindow.paramframe.numExp.set(str(self.pickNum+1))
             self.rootwindow.paramframe.changeNum()
@@ -424,7 +472,10 @@ class PeakDeconvParamFrame(Frame): #a frame for the relaxtion parameters
                 self.widthCheck[i].grid_remove()
                 self.widthEntries[i].grid_remove()
 
-    def fitFunc(self, param, numExp, struc, argu):
+    def fitFunc(self, x, *param):
+        numExp = self.args[0]
+        struc = self.args[1]
+        argu = self.args[2]
         testFunc = np.zeros(len(self.parent.data1D))
         if struc[0]:
             bgrnd = param[0]
@@ -457,10 +508,9 @@ class PeakDeconvParamFrame(Frame): #a frame for the relaxtion parameters
             else:
                 width = argu[0]
                 argu=np.delete(argu,[0])
-            testFunc += amp/(1.0+((self.parent.xax-pos)/(0.5*width))**2)
-        testFunc += bgrnd+slope*self.parent.xax
-        return sum((self.parent.data1D - testFunc)**2)
-
+            testFunc += amp/(1.0+((x-pos)/(0.5*width))**2)
+        testFunc += bgrnd+slope*x
+        return testFunc
 
     def fit(self,*args):
         #structure of the fitting arguments is : [amp,cost, coeff1, t1, coeff2, t2, coeff3, t3, coeff4, t4]
@@ -478,7 +528,7 @@ class PeakDeconvParamFrame(Frame): #a frame for the relaxtion parameters
             inp = safeEval(self.bgrndVal.get())
             argu.append(inp)
             outBgrnd = inp
-            self.bgrndVal.set('%.2f' % inp)
+            self.bgrndVal.set('%.2e' % inp)
             struc.append(False)
         if self.slopeTick.get() == 0:
             guess.append(safeEval(self.slopeVal.get()))
@@ -487,7 +537,7 @@ class PeakDeconvParamFrame(Frame): #a frame for the relaxtion parameters
             inp = safeEval(self.slopeVal.get())
             argu.append(inp)
             outSlope = inp
-            self.slopeVal.set('%.2f' % inp)
+            self.slopeVal.set('%.2e' % inp)
             struc.append(False)
         for i in range(numExp):
             if self.posTick[i].get() == 0:
@@ -497,7 +547,7 @@ class PeakDeconvParamFrame(Frame): #a frame for the relaxtion parameters
                 inp = safeEval(self.posVal[i].get())
                 argu.append(inp)
                 outPos[i] = inp
-                self.posVal[i].set('%.2f' % inp)
+                self.posVal[i].set('%.2e' % inp)
                 struc.append(False)
             if self.ampTick[i].get() == 0:
                 guess.append(safeEval(self.ampVal[i].get()))
@@ -506,7 +556,7 @@ class PeakDeconvParamFrame(Frame): #a frame for the relaxtion parameters
                 inp = safeEval(self.ampVal[i].get())
                 argu.append(inp)
                 outAmp[i] = inp
-                self.ampVal[i].set('%.2f' % inp)
+                self.ampVal[i].set('%.2e' % inp)
                 struc.append(False)
             if self.widthTick[i].get() == 0:
                 guess.append(abs(safeEval(self.widthVal[i].get())))
@@ -515,34 +565,35 @@ class PeakDeconvParamFrame(Frame): #a frame for the relaxtion parameters
                 inp = abs(safeEval(self.widthVal[i].get()))
                 argu.append(inp)
                 outWidth[i] = inp
-                self.widthVal[i].set('%.2f' % inp)
+                self.widthVal[i].set('%.2e' % inp)
                 struc.append(False)
-        fitVal = scipy.optimize.minimize(self.fitFunc,guess,(numExp,struc,argu),'Nelder-Mead',options={'xtol':1e-5,'ftol':1e-5})
+        self.args = (numExp,struc,argu)
+        fitVal = scipy.optimize.curve_fit(self.fitFunc,self.parent.xax,self.parent.data1D,p0=guess)
         counter = 0
         if struc[0]:
-            self.bgrndVal.set('%.2f' % fitVal['x'][counter])
-            outBgrnd = fitVal['x'][counter]
+            self.bgrndVal.set('%.2e' % fitVal[0][counter])
+            outBgrnd = fitVal[0][counter]
             counter +=1
         if struc[1]:
-            self.slopeVal.set('%.2f' % fitVal['x'][counter])
-            outSlope = fitVal['x'][counter]
+            self.slopeVal.set('%.2e' % fitVal[0][counter])
+            outSlope = fitVal[0][counter]
             counter +=1
         for i in range(1,numExp+1):
             if struc[3*i-1]:
-                self.posVal[i-1].set('%.2f' % fitVal['x'][counter])
-                outPos[i-1] = fitVal['x'][counter]
+                self.posVal[i-1].set('%.2e' % fitVal[0][counter])
+                outPos[i-1] = fitVal[0][counter]
                 counter += 1
             if struc[3*i]:
-                self.ampVal[i-1].set('%.2f' % fitVal['x'][counter])
-                outAmp[i-1] = fitVal['x'][counter]
+                self.ampVal[i-1].set('%.2e' % fitVal[0][counter])
+                outAmp[i-1] = fitVal[0][counter]
                 counter += 1
             if struc[3*i+1]:
-                self.widthVal[i-1].set('%.2f' % abs(fitVal['x'][counter]))
-                outWidth[i-1] = abs(fitVal['x'][counter])
+                self.widthVal[i-1].set('%.2e' % abs(fitVal[0][counter]))
+                outWidth[i-1] = abs(fitVal[0][counter])
                 counter += 1 
         tmpx = self.parent.xax
         outCurveBase = outBgrnd + tmpx*outSlope
-        outCurve = outCurveBase
+        outCurve = outCurveBase.copy()
         outCurvePart = []
         x=[]
         for i in range(numExp):

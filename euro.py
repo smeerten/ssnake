@@ -6,7 +6,7 @@ def euro(val, num):
     order = int(np.log10(val))
     if num < 1:
         return
-    numStep = int(num)/3 + 1
+    numStep = int(num)//3 + 1
     if firstDigit == 1:
         subset = [1,2,5]
     elif firstDigit == 2:

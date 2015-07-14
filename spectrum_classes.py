@@ -1,6 +1,7 @@
 import matplotlib
 import numpy as np
 import scipy.optimize
+from scipy.interpolate import UnivariateSpline
 import scipy.signal
 import scipy.ndimage
 import copy
@@ -581,7 +582,42 @@ class Current1D(Plot1DFrame):
         elif(self.plotType==3):
             tmpData = np.abs(tmpData)
         return (np.amax(tmpData[minP:maxP])/(np.amax(tmpData[minN:maxN])-np.amin(tmpData[minN:maxN])))
-        
+    
+    def fwhm(self,minPeak,maxPeak):
+        minP = min(minPeak,maxPeak)
+        maxP = max(minPeak,maxPeak)
+        if len(self.data1D.shape) > 1:
+            tmpData = self.data1D[0]
+        else:
+            tmpData = self.data1D
+        if (self.plotType==0):
+            tmpData = np.real(tmpData)
+        elif(self.plotType==1):
+            tmpData = np.imag(tmpData)
+        elif(self.plotType==2):
+            tmpData = np.real(tmpData)
+        elif(self.plotType==3):
+            tmpData = np.abs(tmpData)
+        maxPos = np.argmax(tmpData[minP:maxP])
+        axAdd = 0
+        if self.spec == 1:
+            if self.ppm:
+                axAdd = (self.freq-self.ref)/self.ref*1e6
+                axMult = 1e6/self.ref
+            else:
+                axMult = 1.0/(1000.0**self.axType)
+        elif self.spec == 0:
+            axMult = 1000.0**self.axType
+        x= self.xax*axMult+axAdd
+        maxX = x[minP:maxP][maxPos]
+        spline = UnivariateSpline(x, tmpData-tmpData[minP:maxP][maxPos]/2.0, s=0)
+        zeroPos = spline.roots()
+        left = zeroPos[zeroPos>maxX]
+        right = zeroPos[zeroPos<maxX]
+        if right.size>0 and left.size>0:
+            return abs(left[0]-right[-1])
+        else:
+            return 0.0
     
     def setSizePreview(self,size): #set size only on local data
         if len(self.data1D.shape) > 1:

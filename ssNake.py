@@ -552,6 +552,7 @@ class Main1DWindow(Frame):
         fittingMenu = Menu(self.menubar, tearoff=0)
         self.menubar.add_cascade(label="Fitting",menu=fittingMenu)
         fittingMenu.add_command(label="S/N", command=self.createSNWindow)
+        fittingMenu.add_command(label="FWHM", command=self.createFWHMWindow)
         fittingMenu.add_command(label="Relaxation Curve", command=self.createRelaxWindow)
         fittingMenu.add_command(label="Peak Deconvolution", command=self.createPeakDeconvWindow)
 
@@ -805,7 +806,10 @@ class Main1DWindow(Frame):
 
     def createSNWindow(self):
         SNWindow(self,self.current)
-                    
+        
+    def createFWHMWindow(self):
+        FWHMWindow(self,self.current)
+        
     def createRelaxWindow(self):
         root = fit.RelaxWindow(self.parent,self.current)
         root.title("Relaxation Curve") 
@@ -925,9 +929,12 @@ class SideFrame(Frame):
         self.from2D = StringVar()
         self.to2D = StringVar()
         self.step2D = StringVar()
-        self.frame1=None
-        self.frame2=None
-        self.sep = None
+        self.frame1 = Frame(self)
+        self.frame1.grid(row=0,column=0)
+        self.frame2 = Frame(self)
+        self.sep = Separator(self,orient=HORIZONTAL).grid(row=1, sticky='ew')
+        self.frame2.grid(row=2,column=0,sticky='nwe')
+        self.frame2.grid_columnconfigure(0,weight=1)
         self.upd()
 
     def frameEnable(self):
@@ -943,21 +950,28 @@ class SideFrame(Frame):
             child.configure(state='disabled')
             
     def upd(self): #destroy the old widgets and create new ones
-        if self.frame1 is not None:
-            self.frame1.destroy()
-        if self.frame2 is not None:
-            self.frame2.destroy()
-        if self.sep is not None:
-            self.sep.destroy()
-        self.frame1 = Frame(self)
-        self.frame1.grid(row=0,column=0)
-        self.frame2 = Frame(self)
-        self.sep = Separator(self,orient=HORIZONTAL).grid(row=1, sticky='ew')
-        self.frame2.grid(row=2,column=0,sticky='nwe')
-        self.frame2.grid_columnconfigure(0,weight=1)
         self.current = self.parent.current
         self.shape = self.current.data.data.shape
         self.length = len(self.shape)
+        if self.length < 2:
+            if self.frame1 is not None:
+                self.frame1.destroy()
+                self.frame1 = Frame(self)
+                self.frame1.grid(row=0,column=0)
+            if self.frame2 is not None:
+                self.frame2.destroy()
+                self.frame2 = Frame(self)
+                self.frame2.grid(row=2,column=0,sticky='nwe')
+                self.frame2.grid_columnconfigure(0,weight=1)
+            if self.sep is not None:
+                self.sep.destroy()
+                self.sep = Separator(self,orient=HORIZONTAL)
+                self.sep.grid(row=1, sticky='ew')
+        else:
+            for widget in self.frame1.winfo_children():
+                widget.destroy()
+            for widget in self.frame2.winfo_children():
+                widget.destroy()
         self.button1Var.set(self.current.axes)
         offset = 0
         self.plotIs2D = isinstance(self.current, (sc.CurrentStacked,sc.CurrentArrayed,sc.CurrentContour,sc.CurrentSkewed))
@@ -2405,6 +2419,93 @@ class SNWindow(Toplevel):
             maximum = dataLength
         self.maxVal.set(str(maximum))
         self.result.set(str(self.current.SN(minimumNoise,maximumNoise,minimum,maximum)))
+        
+    def cancelAndClose(self):
+        self.current.peakPickReset()
+        self.parent.menuEnable()
+        self.destroy()
+        
+##############################################################
+class FWHMWindow(Toplevel):
+    def __init__(self, parent,current):
+        parent.menuDisable()
+        Toplevel.__init__(self)
+        self.parent = parent
+        self.current = current
+        self.geometry('+0+0')
+        self.transient(self.parent)
+        self.protocol("WM_DELETE_WINDOW", self.cancelAndClose)
+        self.title("FWHM")
+        self.resizable(width=FALSE, height=FALSE)
+        #initialize variables for the widgets
+        self.minVal = StringVar()
+        self.minVal.set("0")
+        self.maxVal = StringVar()
+        self.maxVal.set(str(current.data1D.shape[-1]))
+        self.result = StringVar()
+        self.result.set('0.0')
+        self.frame1 = Frame(self)
+        self.frame1.grid(row=0)
+        Label(self.frame1,text="Start").grid(row=0,column=0,columnspan=2)
+        self.minEntry = Entry(self.frame1,textvariable=self.minVal,justify="center")
+        self.minEntry.bind("<Return>", self.checkValues)
+        self.minEntry.bind("<KP_Enter>", self.checkValues)
+        self.minEntry.grid(row=1,column=0,columnspan=2)
+        Label(self.frame1,text="End").grid(row=2,column=0,columnspan=2)
+        self.maxEntry = Entry(self.frame1,textvariable=self.maxVal,justify="center")
+        self.maxEntry.bind("<Return>", self.checkValues)
+        self.maxEntry.bind("<KP_Enter>", self.checkValues)
+        self.maxEntry.grid(row=3,column=0,columnspan=2)
+        Label(self.frame1,text="FWHM").grid(row=4,column=0,columnspan=2)
+        Entry(self.frame1,textvariable=self.result,justify="center").grid(row=5,column=0,columnspan=2)
+        self.frame2 = Frame(self)
+        self.frame2.grid(row=1)
+        Button(self.frame2, text="Apply",command=self.apply).grid(row=0,column=0)
+        Button(self.frame2, text="Cancel",command=self.cancelAndClose).grid(row=0,column=1)
+        self.current.peakPickFunc = lambda pos,self=self: self.picked(pos)
+        self.current.peakPick = True
+        
+    def picked(self,pos,num=0): 
+        if num == 0:
+            self.minVal.set(str(pos[0]))
+            self.current.peakPickFunc = lambda pos,self=self: self.picked(pos,1) 
+            self.current.peakPick = True
+        elif num == 1:
+            self.maxVal.set(str(pos[0]))
+            self.current.peakPickFunc = lambda pos,self=self: self.picked(pos,0) 
+            self.current.peakPick = True
+            self.apply()
+            
+    def checkValues(self, *args): 
+        dataLength = self.current.data1D.shape[-1]
+        minimum = int(round(safeEval(self.minVal.get())))
+        if minimum < 0:
+            minimum = 0
+        elif minimum > dataLength:
+            minimum = dataLength
+        self.minVal.set(str(minimum))
+        maximum = int(round(safeEval(self.maxVal.get())))
+        if maximum < 0:
+            maximum = 0
+        elif maximum > dataLength:
+            maximum = dataLength
+        self.maxVal.set(str(maximum))
+        
+    def apply(self):
+        dataLength = self.current.data1D.shape[-1]
+        minimum = int(round(safeEval(self.minVal.get())))
+        if minimum < 0:
+            minimum = 0
+        elif minimum > dataLength:
+            minimum = dataLength
+        self.minVal.set(str(minimum))
+        maximum = int(round(safeEval(self.maxVal.get())))
+        if maximum < 0:
+            maximum = 0
+        elif maximum > dataLength:
+            maximum = dataLength
+        self.maxVal.set(str(maximum))
+        self.result.set(str(self.current.fwhm(minimum,maximum)))
         
     def cancelAndClose(self):
         self.current.peakPickReset()
