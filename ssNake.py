@@ -26,6 +26,7 @@ import os
 from struct import unpack
 import scipy.io
 import json
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 #------------
 from safeEval import safeEval
 from euro import euro
@@ -120,7 +121,8 @@ class MainProgram:
 
     def stepWorkspace(self, step):
         if len(self.workspaces) > 1:
-            self.mainWindow.removeFromView()
+            if self.mainWindow is not None:
+                self.mainWindow.removeFromView()
             self.workspaceNum += step
             self.workspaceNum = self.workspaceNum % len(self.workspaces)
             self.mainWindow = self.workspaces[self.workspaceNum]
@@ -235,6 +237,8 @@ class MainProgram:
 
     def loadJSONFile(self):
         filePath = askopenfilename()
+        if not filePath:
+            return
         with open(filePath, 'r') as inputfile:
             struct = json.load(inputfile)
         data = np.array(struct['dataReal']) + 1j * np.array(struct['dataImag'])
@@ -244,12 +248,16 @@ class MainProgram:
             xaxA.append(np.array(i))
         masterData=sc.Spectrum(data,list(struct['freq']),list(struct['sw']),list(struct['spec']),list(struct['wholeEcho']),list(ref),xaxA)
         name = self.askName()
+        if not name:
+            return
         self.workspaces.append(Main1DWindow(self.root,self,masterData))
         self.workspaceNames.append(name)
         self.changeMainWindow(name)
         
     def loadMatlabFile(self):
         filePath = askopenfilename()
+        if not filePath:
+            return
         matlabStruct = scipy.io.loadmat(filePath)
         var = [k for k in matlabStruct.keys() if not k.startswith('__')][0]
         mat = matlabStruct[var]
@@ -259,6 +267,8 @@ class MainProgram:
         ref = np.where(np.isnan(ref), None, ref)
         masterData=sc.Spectrum(mat['data'][0,0],list(mat['freq'][0,0][0]),list(mat['sw'][0,0][0]),list(mat['spec'][0,0][0]),list(np.array(mat['wholeEcho'][0,0][0])>0),list(ref),xaxA)
         name = self.askName()
+        if not name:
+            return
         self.workspaces.append(Main1DWindow(self.root,self,masterData))
         self.workspaceNames.append(name)
         self.changeMainWindow(name)
@@ -457,8 +467,20 @@ class MainProgram:
                 print('Error loading Simpson data from '+FileLocation+' . No data loaded!')
 
     def saveFigure(self):
-        self.mainWindow.saveFigure()
-
+        if self.mainWindow is not None:
+            self.mainWindow.removeFromView()
+        num = self.workspaces.index(self.mainWindow)
+        self.mainWindow = MainPlotWindow(self.root,self,self.mainWindow)
+        self.workspaces[num] = self.mainWindow
+        self.mainWindow.addToView()
+        
+    def closeSaveFigure(self, mainWindow):
+        self.mainWindow.removeFromView()
+        num = self.workspaces.index(self.mainWindow)
+        self.mainWindow = mainWindow
+        self.workspaces[num] = self.mainWindow
+        self.mainWindow.addToView()
+        
     def saveSimpsonFile(self):
         self.mainWindow.SaveSimpsonFile()
         
@@ -467,7 +489,94 @@ class MainProgram:
         
     def saveMatlabFile(self):
         self.mainWindow.saveMatlabFile()
-                
+        
+class MainPlotWindow(Frame):
+    def __init__(self,parent,mainProgram,oldMainWindow):
+        Frame.__init__(self,parent)
+        self.parent = parent #remember your parents
+        self.mainProgram = mainProgram
+        self.oldMainWindow = oldMainWindow
+        self.fig = oldMainWindow.current.fig
+        self.canvas = oldMainWindow.current.canvas
+        self.ax = self.fig.gca()
+        self.frame1 = Frame(self)
+        self.frame1.grid(row=0,column=0,sticky="nw")
+        self.canvas = FigureCanvasTkAgg(self.fig, master=self.frame1)
+        self.canvas.get_tk_widget().pack(fill=BOTH,expand=1)
+        self.frame2 = Frame(self)
+        self.frame2.grid(row=0,column=1,sticky="ne")
+        Label(self.frame2,text='Title').grid(row=0,column=0)
+        self.title = StringVar()
+        self.titleBackup = self.ax.get_title()
+        self.title.set(self.titleBackup)
+        self.titleEntry = Entry(self.frame2,textvariable=self.title,justify="center")
+        self.titleEntry.bind("<Return>", self.updatePlot) 
+        self.titleEntry.bind("<KP_Enter>", self.updatePlot) 
+        self.titleEntry.grid(row=1,column=0)
+        Label(self.frame2,text='x-label').grid(row=2,column=0)
+        self.xlabel = StringVar()
+        self.xlabelBackup = self.ax.get_xlabel()
+        self.xlabel.set(self.xlabelBackup)
+        self.xlabelEntry = Entry(self.frame2,textvariable=self.xlabel,justify="center")
+        self.xlabelEntry.bind("<Return>", self.updatePlot) 
+        self.xlabelEntry.bind("<KP_Enter>", self.updatePlot) 
+        self.xlabelEntry.grid(row=3,column=0)
+        Label(self.frame2,text='y-label').grid(row=4,column=0)
+        self.ylabel = StringVar()
+        self.ylabelBackup = self.ax.get_ylabel()
+        self.ylabel.set(self.ylabelBackup)
+        self.ylabelEntry = Entry(self.frame2,textvariable=self.ylabel,justify="center")
+        self.ylabelEntry.bind("<Return>", self.updatePlot) 
+        self.ylabelEntry.bind("<KP_Enter>", self.updatePlot) 
+        self.ylabelEntry.grid(row=5,column=0)
+        Label(self.frame2,text='Width [inches]').grid(row=6,column=0)
+        self.widthBackup, self.heightBackup = self.fig.get_size_inches()
+        self.width = StringVar()
+        self.width.set(self.widthBackup)
+        self.widthEntry = Entry(self.frame2,textvariable=self.width,justify="center")
+        self.widthEntry.bind("<Return>", self.updatePlot) 
+        self.widthEntry.bind("<KP_Enter>", self.updatePlot) 
+        self.widthEntry.grid(row=7,column=0)
+        Label(self.frame2,text='height [inches]').grid(row=8,column=0)
+        self.height = StringVar()
+        self.height.set(self.heightBackup)
+        self.heightEntry = Entry(self.frame2,textvariable=self.height,justify="center")
+        self.heightEntry.bind("<Return>", self.updatePlot) 
+        self.heightEntry.bind("<KP_Enter>", self.updatePlot) 
+        self.heightEntry.grid(row=9,column=0)
+        
+        self.inFrame = Frame(self.frame2)
+        self.inFrame.grid(row=20,column=0)
+        Button(self.inFrame,text='Save',command=self.save).grid(row=0,column=0)
+        Button(self.inFrame,text='Cancel',command=self.cancel).grid(row=0,column=1)
+
+    def updatePlot(self, *args):
+        self.ax.set_title(self.titleEntry.get())
+        self.ax.set_xlabel(self.xlabelEntry.get())
+        self.ax.set_ylabel(self.ylabelEntry.get())
+        self.fig.set_size_inches((int(safeEval(self.width.get())),int(safeEval(self.height.get()))))
+        self.fig.canvas.draw()
+        
+    def addToView(self):
+        self.pack(fill=BOTH,expand=1)
+
+    def removeFromView(self):
+        self.pack_forget()
+
+    def save(self):
+        self.updatePlot()
+        f=asksaveasfilename(filetypes=(('svg','.svg'),('png','.png'),('eps','.eps'),('jpg','.jpg'),('pdf','.pdf')))
+        if f:
+            self.fig.savefig(f)
+        self.cancel()
+
+    def cancel(self):
+        self.ax.set_title(self.titleBackup)
+        self.ax.set_xlabel(self.xlabelBackup)
+        self.ax.set_ylabel(self.ylabelBackup)
+        self.fig.set_size_inches((self.widthBackup,self.heightBackup))
+        self.mainProgram.closeSaveFigure(self.oldMainWindow)
+        
 class Main1DWindow(Frame):
     def __init__(self,parent,mainProgram,masterData,duplicateCurrent=None):
         Frame.__init__(self,parent)
@@ -587,12 +696,10 @@ class Main1DWindow(Frame):
         self.bottomframe.frameDisable()
         self.textframe.frameDisable()
 
-    def saveFigure(self):
-        f=asksaveasfilename(filetypes=(('svg','.svg'),('png','.png'),('eps','.eps'),('jpg','.jpg'),('pdf','.pdf')))
-        self.current.saveFigure(f)
-
     def saveJSONFile(self):
         name=asksaveasfilename(filetypes=(('JSON','.json'),))
+        if not name:
+            return
         struct = {}
         struct['dataReal'] = np.real(self.masterData.data).tolist()
         struct['dataImag'] = np.imag(self.masterData.data).tolist()
@@ -609,7 +716,9 @@ class Main1DWindow(Frame):
             json.dump(struct, outfile)
         
     def saveMatlabFile(self):
-        name=asksaveasfilename()
+        name=asksaveasfilename(filetypes=(('MATLAB file','.mat'),))
+        if not name:
+            return
         struct = {}
         struct['data'] = self.masterData.data
         struct['freq'] = self.masterData.freq
@@ -1216,11 +1325,11 @@ class BottomFrame(Frame):
         self.swEntry.bind("<KP_Enter>", self.changeFreq)
         self.swEntry.grid(row=1,column=4)
         Label(self,text="Plot").grid(row=0,column=5)
-        self.plotDrop = OptionMenu(self, self.plotOption,"Real","Real", "Imag", "Both","Abs",command=self.changePlot)
+        self.plotDrop = OptionMenu(self, self.plotOption,self.plotOption.get(),"Real", "Imag", "Both","Abs",command=self.changePlot)
         self.plotDrop.grid(row=1,column=5)
         Label(self,text="Axis").grid(row=0,column=6)
-        self.axisDropTime = OptionMenu(self, self.axisOption1, "s", "s", "ms", u"\u03bcs",command=self.changeAxis)
-        self.axisDropFreq = OptionMenu(self, self.axisOption2, "Hz", "Hz", "kHz", "MHz","ppm",command=self.changeAxis)
+        self.axisDropTime = OptionMenu(self, self.axisOption1, self.axisOption1.get(), "s", "ms", u"\u03bcs",command=self.changeAxis)
+        self.axisDropFreq = OptionMenu(self, self.axisOption2, self.axisOption2.get(), "Hz", "kHz", "MHz","ppm",command=self.changeAxis)
         self.axisDropTime.grid(row=1,column=6)
         self.axisDropFreq.grid(row=1,column=6)
         self.swEntry
@@ -2598,7 +2707,7 @@ class XaxWindow(Toplevel): #a window for setting the xax of the current data
     def xaxPreview(self, *args):
         env = vars(np).copy()
         env['length']=int(self.current.data1D.shape[-1]) # so length can be used to in equations
-        env['euro']=euro
+        env['euro']=lambda fVal, num=int(self.current.data1D.shape[-1]): euro(fVal,num)
         val=eval(self.val.get(),env)                # find a better solution, also add catch for exceptions          
         if isinstance(val,(list,np.ndarray)):
             if len(val)==self.current.data1D.shape[-1]:
@@ -2621,7 +2730,7 @@ class XaxWindow(Toplevel): #a window for setting the xax of the current data
     def applyXaxAndClose(self):
         env = vars(np).copy()
         env['length']=int(self.current.data1D.shape[-1]) # so length can be used to in equations
-        env['euro']=euro
+        env['euro']=lambda fVal, num=int(self.current.data1D.shape[-1]): euro(fVal,num)
         val=eval(self.val.get(),env)                # find a better solution, also add catch for exceptions
         if isinstance(val,(list,np.ndarray)):
             if len(val)==self.current.data1D.shape[-1]:

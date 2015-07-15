@@ -996,9 +996,6 @@ class Current1D(Plot1DFrame):
         else:
             self.ax.set_xlim(self.xminlim,self.xmaxlim)
         self.ax.set_ylim(self.yminlim,self.ymaxlim)
-
-    def saveFigure(self,name):
-        self.fig.savefig(name)
         
 #########################################################################################################
 #the class from which the stacked data is displayed, the operations which only edit the content of this class are for previewing
@@ -1914,7 +1911,10 @@ class CurrentContour(Current1D):
                         self.ax.set_xlim(self.xmaxlim,self.xminlim)
                     else:
                         self.ax.set_xlim(self.xminlim,self.xmaxlim)
-                    self.ax.set_ylim(self.yminlim,self.ymaxlim)
+                    if self.spec2 > 0:
+                        self.ax.set_ylim(self.ymaxlim,self.yminlim)
+                    else:
+                        self.ax.set_ylim(self.yminlim,self.ymaxlim)
                 self.zoomX1=None
                 self.zoomX2=None #WF: should also be cleared, memory of old zoom
                 self.zoomY1=None
