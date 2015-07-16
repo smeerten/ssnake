@@ -2657,7 +2657,8 @@ class XaxWindow(Toplevel): #a window for setting the xax of the current data
         if isinstance(val,(list,np.ndarray)):
             if len(val)==self.current.data1D.shape[-1]:
                 if all(isinstance(x,(int,float)) for x in val):
-                    self.current.setXax(np.array(val))
+                    self.parent.redoList = []
+                    self.parent.undoList.append(self.current.setXax(np.array(val)))
                     self.parent.menuEnable()
                     self.destroy()
                 else:

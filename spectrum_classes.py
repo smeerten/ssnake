@@ -46,6 +46,11 @@ class Spectrum(object):
             elif self.spec[i]==1:
                 self.xaxArray[i]=np.fft.fftshift(np.fft.fftfreq(self.data.shape[i],1.0/self.sw[i]))
 
+    def setXax(self,xax,axes):
+        oldXax = self.xaxArray[axes]
+        self.xaxArray[axes]=xax
+        return lambda self: self.setXax(oldXax,axes)
+                
     def insert(self,data,pos,axes):
         self.data = np.insert(self.data,[pos],data,axis=axes)
         self.resetXax(axes)
@@ -838,12 +843,11 @@ class Current1D(Plot1DFrame):
         self.upd()
 
     def setXax(self,xax):
-        self.data.xaxArray[self.axes]= xax 
+        returnVal = self.data.setXax(xax,self.axes)
         self.upd()
         self.plotReset()
         self.showFid()
-        #for now the changing of the axis cannot be undone, because of problems in case of a non-linear axis on operations such as fourier transform etc.
-        #doing one of these operations will result in a return to the default axis defined by sw
+        return returnVal
 
     def setAxType(self, val):
         oldAxAdd = 0
