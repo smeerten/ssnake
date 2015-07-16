@@ -470,11 +470,26 @@ class MainProgram:
         if self.mainWindow is not None:
             self.mainWindow.removeFromView()
         num = self.workspaces.index(self.mainWindow)
-        self.mainWindow = MainPlotWindow(self.root,self,self.mainWindow)
+        self.mainWindow = fit.MainPlotWindow(self.root,self,self.mainWindow)
         self.workspaces[num] = self.mainWindow
         self.mainWindow.addToView()
         
     def closeSaveFigure(self, mainWindow):
+        self.mainWindow.removeFromView()
+        num = self.workspaces.index(self.mainWindow)
+        self.mainWindow = mainWindow
+        self.workspaces[num] = self.mainWindow
+        self.mainWindow.addToView()
+
+    def createFitWindow(self,fitWindow):
+        if self.mainWindow is not None:
+            self.mainWindow.removeFromView()
+        num = self.workspaces.index(self.mainWindow)
+        self.mainWindow = fitWindow
+        self.workspaces[num] = self.mainWindow
+        self.mainWindow.addToView()
+        
+    def closeFitWindow(self, mainWindow):
         self.mainWindow.removeFromView()
         num = self.workspaces.index(self.mainWindow)
         self.mainWindow = mainWindow
@@ -489,93 +504,6 @@ class MainProgram:
         
     def saveMatlabFile(self):
         self.mainWindow.saveMatlabFile()
-        
-class MainPlotWindow(Frame):
-    def __init__(self,parent,mainProgram,oldMainWindow):
-        Frame.__init__(self,parent)
-        self.parent = parent #remember your parents
-        self.mainProgram = mainProgram
-        self.oldMainWindow = oldMainWindow
-        self.fig = oldMainWindow.current.fig
-        self.canvas = oldMainWindow.current.canvas
-        self.ax = self.fig.gca()
-        self.frame1 = Frame(self)
-        self.frame1.grid(row=0,column=0,sticky="nw")
-        self.canvas = FigureCanvasTkAgg(self.fig, master=self.frame1)
-        self.canvas.get_tk_widget().pack(fill=BOTH,expand=1)
-        self.frame2 = Frame(self)
-        self.frame2.grid(row=0,column=1,sticky="ne")
-        Label(self.frame2,text='Title').grid(row=0,column=0)
-        self.title = StringVar()
-        self.titleBackup = self.ax.get_title()
-        self.title.set(self.titleBackup)
-        self.titleEntry = Entry(self.frame2,textvariable=self.title,justify="center")
-        self.titleEntry.bind("<Return>", self.updatePlot) 
-        self.titleEntry.bind("<KP_Enter>", self.updatePlot) 
-        self.titleEntry.grid(row=1,column=0)
-        Label(self.frame2,text='x-label').grid(row=2,column=0)
-        self.xlabel = StringVar()
-        self.xlabelBackup = self.ax.get_xlabel()
-        self.xlabel.set(self.xlabelBackup)
-        self.xlabelEntry = Entry(self.frame2,textvariable=self.xlabel,justify="center")
-        self.xlabelEntry.bind("<Return>", self.updatePlot) 
-        self.xlabelEntry.bind("<KP_Enter>", self.updatePlot) 
-        self.xlabelEntry.grid(row=3,column=0)
-        Label(self.frame2,text='y-label').grid(row=4,column=0)
-        self.ylabel = StringVar()
-        self.ylabelBackup = self.ax.get_ylabel()
-        self.ylabel.set(self.ylabelBackup)
-        self.ylabelEntry = Entry(self.frame2,textvariable=self.ylabel,justify="center")
-        self.ylabelEntry.bind("<Return>", self.updatePlot) 
-        self.ylabelEntry.bind("<KP_Enter>", self.updatePlot) 
-        self.ylabelEntry.grid(row=5,column=0)
-        Label(self.frame2,text='Width [inches]').grid(row=6,column=0)
-        self.widthBackup, self.heightBackup = self.fig.get_size_inches()
-        self.width = StringVar()
-        self.width.set(self.widthBackup)
-        self.widthEntry = Entry(self.frame2,textvariable=self.width,justify="center")
-        self.widthEntry.bind("<Return>", self.updatePlot) 
-        self.widthEntry.bind("<KP_Enter>", self.updatePlot) 
-        self.widthEntry.grid(row=7,column=0)
-        Label(self.frame2,text='height [inches]').grid(row=8,column=0)
-        self.height = StringVar()
-        self.height.set(self.heightBackup)
-        self.heightEntry = Entry(self.frame2,textvariable=self.height,justify="center")
-        self.heightEntry.bind("<Return>", self.updatePlot) 
-        self.heightEntry.bind("<KP_Enter>", self.updatePlot) 
-        self.heightEntry.grid(row=9,column=0)
-        
-        self.inFrame = Frame(self.frame2)
-        self.inFrame.grid(row=20,column=0)
-        Button(self.inFrame,text='Save',command=self.save).grid(row=0,column=0)
-        Button(self.inFrame,text='Cancel',command=self.cancel).grid(row=0,column=1)
-
-    def updatePlot(self, *args):
-        self.ax.set_title(self.titleEntry.get())
-        self.ax.set_xlabel(self.xlabelEntry.get())
-        self.ax.set_ylabel(self.ylabelEntry.get())
-        self.fig.set_size_inches((int(safeEval(self.width.get())),int(safeEval(self.height.get()))))
-        self.fig.canvas.draw()
-        
-    def addToView(self):
-        self.pack(fill=BOTH,expand=1)
-
-    def removeFromView(self):
-        self.pack_forget()
-
-    def save(self):
-        self.updatePlot()
-        f=asksaveasfilename(filetypes=(('svg','.svg'),('png','.png'),('eps','.eps'),('jpg','.jpg'),('pdf','.pdf')))
-        if f:
-            self.fig.savefig(f)
-        self.cancel()
-
-    def cancel(self):
-        self.ax.set_title(self.titleBackup)
-        self.ax.set_xlabel(self.xlabelBackup)
-        self.ax.set_ylabel(self.ylabelBackup)
-        self.fig.set_size_inches((self.widthBackup,self.heightBackup))
-        self.mainProgram.closeSaveFigure(self.oldMainWindow)
         
 class Main1DWindow(Frame):
     def __init__(self,parent,mainProgram,masterData,duplicateCurrent=None):
@@ -920,17 +848,11 @@ class Main1DWindow(Frame):
         FWHMWindow(self,self.current)
         
     def createRelaxWindow(self):
-        root = fit.RelaxWindow(self.parent,self.current)
-        root.title("Relaxation Curve") 
-        root.grid_rowconfigure(0, weight=1)
-        root.grid_columnconfigure(0, weight=1)
+        self.mainProgram.createFitWindow(fit.RelaxWindow(self.parent,self.mainProgram,self.mainProgram.mainWindow))
 
     def createPeakDeconvWindow(self):
-        root = fit.PeakDeconvWindow(self.parent,self.current)
-        root.title("Peak Deconvolution") 
-        root.grid_rowconfigure(0, weight=1)
-        root.grid_columnconfigure(0, weight=1)
-       
+        self.mainProgram.createFitWindow(fit.PeakDeconvWindow(self.parent,self.mainProgram,self.mainProgram.mainWindow))
+
     def plot1D(self):
         self.current.grid_remove()
         tmpcurrent = sc.Current1D(self,self.masterData,self.current)

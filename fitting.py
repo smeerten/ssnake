@@ -10,10 +10,12 @@ if sys.version_info >= (3,0):
     from tkinter import *
     import tkinter as tk
     from tkinter.ttk import *
+    from tkinter.filedialog import asksaveasfilename
 else:
     from Tkinter import *
     import Tkinter as tk
     from ttk import *
+    from tkFileDialog   import asksaveasfilename
 import scipy.optimize
 import math
 from safeEval import safeEval
@@ -22,16 +24,27 @@ from spectrumFrame import Plot1DFrame
 pi = math.pi
 
 ##############################################################################
-class RelaxWindow(Toplevel): #a window for fitting relaxation data
-    def __init__(self, rootwindow,current):
-        Toplevel.__init__(self,rootwindow)
-        window = RelaxFrame(self,current)
-        window.grid(row=0,column=0,sticky='nswe')
-        window.rowconfigure(0, weight=1)
-        window.columnconfigure(0, weight=1)
-        self.paramframe = RelaxParamFrame(window,self)
+class RelaxWindow(Frame): #a window for fitting relaxation data
+    def __init__(self, rootwindow,mainProgram,oldMainWindow):
+        Frame.__init__(self,rootwindow)
+        self.mainProgram = mainProgram
+        self.oldMainWindow = oldMainWindow
+        self.current = RelaxFrame(self,oldMainWindow.current)
+        self.current.grid(row=0,column=0,sticky='nswe')
+        self.current.rowconfigure(0, weight=1)
+        self.current.columnconfigure(0, weight=1)
+        self.paramframe = RelaxParamFrame(self.current,self)
         self.paramframe.grid(row=1,column=0,sticky='sw')
+        
+    def addToView(self):
+        self.pack(fill=BOTH,expand=1)
 
+    def removeFromView(self):
+        self.pack_forget()
+
+    def cancel(self):
+         self.mainProgram.closeFitWindow(self.oldMainWindow)
+        
 #################################################################################   
 class RelaxFrame(Plot1DFrame): #a window for fitting relaxation data
     def __init__(self, rootwindow,current):
@@ -100,7 +113,7 @@ class RelaxParamFrame(Frame): #a frame for the relaxtion parameters
         self.frame3 = Frame(self)
         self.frame3.grid(row=0,column=2,sticky='n')
         Button(self.frame1, text="Fit",command=self.fit).grid(row=0,column=0)
-        Button(self.frame1, text="Cancel",command=rootwindow.destroy).grid(row=1,column=0)
+        Button(self.frame1, text="Cancel",command=rootwindow.cancel).grid(row=1,column=0)
         Label(self.frame2,text="Amplitude").grid(row=0,column=0,columnspan=2)
         Checkbutton(self.frame2,variable=self.ampTick).grid(row=1,column=0)
         Entry(self.frame2,textvariable=self.ampVal,justify="center").grid(row=1,column=1)
@@ -186,7 +199,6 @@ class RelaxParamFrame(Frame): #a frame for the relaxtion parameters
             testFunc += coeff*np.exp(-1.0*x/T1) 
         return amplitude*(constant+testFunc)
 
-
     def fit(self,*args):
         #structure of the fitting arguments is : [amp,cost, coeff1, t1, coeff2, t2, coeff3, t3, coeff4, t4]
         numCurve = 100 #number of points in output curve
@@ -261,16 +273,27 @@ class RelaxParamFrame(Frame): #a frame for the relaxtion parameters
         self.parent.showPlot(x, outAmp*(outConst+outCurve))
 
 ##############################################################################
-class PeakDeconvWindow(Toplevel): #a window for fitting relaxation data
-    def __init__(self, rootwindow,current):
-        Toplevel.__init__(self,rootwindow)
-        window = PeakDeconvFrame(self,current)
-        window.grid(row=0,column=0,sticky='nswe')
-        window.rowconfigure(0, weight=1)
-        window.columnconfigure(0, weight=1)
-        self.paramframe = PeakDeconvParamFrame(window,self)
+class PeakDeconvWindow(Frame): #a window for fitting relaxation data
+    def __init__(self, rootwindow,mainProgram,oldMainWindow):
+        Frame.__init__(self,rootwindow)
+        self.mainProgram = mainProgram
+        self.oldMainWindow = oldMainWindow
+        self.current = PeakDeconvFrame(self,oldMainWindow.current)
+        self.current.grid(row=0,column=0,sticky='nswe')
+        self.current.rowconfigure(0, weight=1)
+        self.current.columnconfigure(0, weight=1)
+        self.paramframe = PeakDeconvParamFrame(self.current,self)
         self.paramframe.grid(row=1,column=0,sticky='sw')
+        
+    def addToView(self):
+        self.pack(fill=BOTH,expand=1)
 
+    def removeFromView(self):
+        self.pack_forget()
+
+    def cancel(self):
+         self.mainProgram.closeFitWindow(self.oldMainWindow)
+        
 #################################################################################   
 class PeakDeconvFrame(Plot1DFrame): #a window for fitting relaxation data
     def __init__(self, rootwindow,current):
@@ -400,7 +423,7 @@ class PeakDeconvParamFrame(Frame): #a frame for the relaxtion parameters
         self.frame3 = Frame(self)
         self.frame3.grid(row=0,column=2,sticky='n')
         Button(self.frame1, text="Fit",command=self.fit).grid(row=0,column=0)
-        Button(self.frame1, text="Cancel",command=rootwindow.destroy).grid(row=1,column=0)
+        Button(self.frame1, text="Cancel",command=rootwindow.cancel).grid(row=1,column=0)
         Label(self.frame2,text="Bgrnd").grid(row=0,column=0,columnspan=2)
         Checkbutton(self.frame2,variable=self.bgrndTick).grid(row=1,column=0)
         Entry(self.frame2,textvariable=self.bgrndVal,justify="center").grid(row=1,column=1)
@@ -602,3 +625,92 @@ class PeakDeconvParamFrame(Frame): #a frame for the relaxtion parameters
             outCurvePart.append(outCurveBase + y)
             outCurve += y
         self.parent.showPlot(tmpx, outCurve, x, outCurvePart)
+
+        
+#####################################################################################
+class MainPlotWindow(Frame):
+    def __init__(self,parent,mainProgram,oldMainWindow):
+        Frame.__init__(self,parent)
+        self.parent = parent #remember your parents
+        self.mainProgram = mainProgram
+        self.oldMainWindow = oldMainWindow
+        self.fig = oldMainWindow.current.fig
+        self.canvas = oldMainWindow.current.canvas
+        self.ax = self.fig.gca()
+        self.frame1 = Frame(self)
+        self.frame1.grid(row=0,column=0,sticky="nw")
+        self.canvas = FigureCanvasTkAgg(self.fig, master=self.frame1)
+        self.canvas.get_tk_widget().pack(fill=BOTH,expand=1)
+        self.frame2 = Frame(self)
+        self.frame2.grid(row=0,column=1,sticky="ne")
+        Label(self.frame2,text='Title').grid(row=0,column=0)
+        self.title = StringVar()
+        self.titleBackup = self.ax.get_title()
+        self.title.set(self.titleBackup)
+        self.titleEntry = Entry(self.frame2,textvariable=self.title,justify="center")
+        self.titleEntry.bind("<Return>", self.updatePlot) 
+        self.titleEntry.bind("<KP_Enter>", self.updatePlot) 
+        self.titleEntry.grid(row=1,column=0)
+        Label(self.frame2,text='x-label').grid(row=2,column=0)
+        self.xlabel = StringVar()
+        self.xlabelBackup = self.ax.get_xlabel()
+        self.xlabel.set(self.xlabelBackup)
+        self.xlabelEntry = Entry(self.frame2,textvariable=self.xlabel,justify="center")
+        self.xlabelEntry.bind("<Return>", self.updatePlot) 
+        self.xlabelEntry.bind("<KP_Enter>", self.updatePlot) 
+        self.xlabelEntry.grid(row=3,column=0)
+        Label(self.frame2,text='y-label').grid(row=4,column=0)
+        self.ylabel = StringVar()
+        self.ylabelBackup = self.ax.get_ylabel()
+        self.ylabel.set(self.ylabelBackup)
+        self.ylabelEntry = Entry(self.frame2,textvariable=self.ylabel,justify="center")
+        self.ylabelEntry.bind("<Return>", self.updatePlot) 
+        self.ylabelEntry.bind("<KP_Enter>", self.updatePlot) 
+        self.ylabelEntry.grid(row=5,column=0)
+        Label(self.frame2,text='Width [inches]').grid(row=6,column=0)
+        self.widthBackup, self.heightBackup = self.fig.get_size_inches()
+        self.width = StringVar()
+        self.width.set(self.widthBackup)
+        self.widthEntry = Entry(self.frame2,textvariable=self.width,justify="center")
+        self.widthEntry.bind("<Return>", self.updatePlot) 
+        self.widthEntry.bind("<KP_Enter>", self.updatePlot) 
+        self.widthEntry.grid(row=7,column=0)
+        Label(self.frame2,text='height [inches]').grid(row=8,column=0)
+        self.height = StringVar()
+        self.height.set(self.heightBackup)
+        self.heightEntry = Entry(self.frame2,textvariable=self.height,justify="center")
+        self.heightEntry.bind("<Return>", self.updatePlot) 
+        self.heightEntry.bind("<KP_Enter>", self.updatePlot) 
+        self.heightEntry.grid(row=9,column=0)
+        
+        self.inFrame = Frame(self.frame2)
+        self.inFrame.grid(row=20,column=0)
+        Button(self.inFrame,text='Save',command=self.save).grid(row=0,column=0)
+        Button(self.inFrame,text='Cancel',command=self.cancel).grid(row=0,column=1)
+
+    def updatePlot(self, *args):
+        self.ax.set_title(self.titleEntry.get())
+        self.ax.set_xlabel(self.xlabelEntry.get())
+        self.ax.set_ylabel(self.ylabelEntry.get())
+        self.fig.set_size_inches((int(safeEval(self.width.get())),int(safeEval(self.height.get()))))
+        self.fig.canvas.draw()
+        
+    def addToView(self):
+        self.pack(fill=BOTH,expand=1)
+
+    def removeFromView(self):
+        self.pack_forget()
+
+    def save(self):
+        self.updatePlot()
+        f=asksaveasfilename(filetypes=(('svg','.svg'),('png','.png'),('eps','.eps'),('jpg','.jpg'),('pdf','.pdf')))
+        if f:
+            self.fig.savefig(f)
+        self.cancel()
+
+    def cancel(self):
+        self.ax.set_title(self.titleBackup)
+        self.ax.set_xlabel(self.xlabelBackup)
+        self.ax.set_ylabel(self.ylabelBackup)
+        self.fig.set_size_inches((self.widthBackup,self.heightBackup))
+        self.mainProgram.closeSaveFigure(self.oldMainWindow)
