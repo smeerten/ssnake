@@ -305,8 +305,23 @@ class Spectrum(object):
             self.data[slicing]=self.data[slicing]*0
         return returnValue
     
+    def LPSVD(self,axes):
+        M = 1 #Number of frequencies
+        y = self.data[axes][0:100]
+        N=y.shape[0]						# # of complex data points in FID
+        L=math.floor(N*3/4)						# linear prediction order L = 3/4*N
+        A=scipy.linalg.hankel(np.conj(y[1:N-L+1]),np.conj(y[N-L:N]))	# backward prediction data matrix
+        h=np.conj(y[0:N-L])					# backward prediction data vector
+        U,S,V = np.linalg.svd(A)					# singular value decomposition
+        S = np.diag(S)
+        bias=np.mean(S[M:np.min([N-L-1,L])])	# bias compensation
+        PolyCoef=np.dot(-V[:,0:M],np.dot(np.diag(1/(S[0:M]-bias)),np.dot(np.transpose(U[:,0:M]),h)))	# prediction polynomial coefficients
+        s=np.conj(np.log(np.roots(np.append(PolyCoef[::-1],1))))		# polynomial rooting
+        s = s[np.where(np.real(s)<0)[0]]
+        a=1
+        
     def dcOffset(self,offset):
-        self.data = self.data+offset
+        self.data = self.data-offset
         return lambda self: self.dcOffset(-offset)
 
     def fourier(self, axes,tmp=False):
@@ -721,18 +736,28 @@ class Current1D(Plot1DFrame):
         if self.spec > 0:
            tmpData=self.fourierLocal(tmpData,0)
         self.showFid(tmpData)
-
-    def dcOffset(self,pos1,pos2):
+        
+    def getdcOffset(self,pos1,pos2):
         minPos = int(min(pos1,pos2))
         maxPos = int(max(pos1,pos2))
         if minPos != maxPos:
-            self.showFid(self.data1D-np.mean(self.data1D[(len(self.data1D.shape)-1)*(slice(None),)+(slice(minPos,maxPos),)]))
+            return np.mean(self.data1D[(len(self.data1D.shape)-1)*(slice(None),)+(slice(minPos,maxPos),)])
+        else:
+            return 0
             
-    def applydcOffset(self,pos1,pos2):
-        minPos = int(min(pos1,pos2))
-        maxPos = int(max(pos1,pos2))
-        returnValue = self.data.dcOffset(-np.mean(self.data1D[(len(self.data1D.shape)-1)*(slice(None),)+(slice(minPos,maxPos),)]))
+    def dcOffset(self,offset):
+        self.showFid(self.data1D-offset)
+            
+    def applydcOffset(self,offset):
+        returnValue = self.data.dcOffset(offset)
         self.upd()
+        self.showFid()
+        return returnValue
+    
+    def applyLPSVD(self):
+        returnValue = self.data.LPSVD(self.axes)
+        self.upd()
+        self.plotReset()
         self.showFid()
         return returnValue
     

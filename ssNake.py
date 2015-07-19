@@ -61,6 +61,7 @@ class MainProgram:
         loadmenu.add_command(label="Varian", command=self.LoadVarianFile)
         loadmenu.add_command(label="Bruker Topspin/XWinNMR", command=self.LoadBrukerTopspin)
         loadmenu.add_command(label="Chemagnetics", command=self.LoadChemFile)
+        loadmenu.add_command(label="Magritec", command=self.LoadMagritec)
         loadmenu.add_command(label="Simpson", command=self.LoadSimpsonFile)
         loadmenu.add_command(label="JSON", command=self.loadJSONFile)
         loadmenu.add_command(label="MATLAB", command=self.loadMatlabFile)
@@ -370,15 +371,58 @@ class MainProgram:
         else:
             print(Dir+os.path.sep+'data does not exits, no Chemagnetics data loaded!')
 
+    def LoadMagritec(self):
+        #Magritec load script based on some Matlab files by Ole Brauckman
+        FileLocation = askopenfilename()
+        Dir = os.path.dirname(FileLocation)
+        if FileLocation is not '': #if not empty
+            DirFiles = os.listdir(Dir)
+            Files2D = [x for x in DirFiles if '.2d' in x]
+            Files1D = [x for x in DirFiles if '.1d' in x]
+            H = dict(line.strip().split('=') for line in open(Dir+os.path.sep+'acqu.par','r'))
+            sw = float(H['bandwidth                 '])*1000 #in kHz
+            
+            sizeTD2 = int(H['nrPnts                    '])
+            freq = float(H['b1Freq                    '])
+
+            if len(Files2D)==1:
+                File=Files2D[0]
+                sizeTD1 = int(H['nrSteps                   '])
+                if 'bandwidth2                ' in H:
+                    sw1 = float(H['bandwidth2                ']) #Is already in kHz
+                else:
+                    sw1 = 50e3 #set to default 50 kHz
+                with open(Dir+os.path.sep+File,'rb') as f:
+                    raw = np.fromfile(f, np.float32)
+                Data = raw[-2*sizeTD2*sizeTD1::] #Get last 2*sizeTD2*sizeTD1 points
+                ComplexData = Data[0:Data.shape[0]:2]+1j*Data[1:Data.shape[0]:2]
+                ComplexData = ComplexData.reshape((sizeTD1,sizeTD2))
+                masterData=sc.Spectrum(ComplexData,[freq*1e6]*2,[sw,sw1],[False]*2)
+            elif len(Files1D)!=0:
+                File = 'data.1d'
+                with open(Dir+os.path.sep+File,'rb') as f:
+                    raw = np.fromfile(f, np.float32)
+                Data = raw[-2*sizeTD2::] #Get last 2*sizeTD points
+                ComplexData = Data[0:Data.shape[0]:2]+1j*Data[1:Data.shape[0]:2]
+                masterData=sc.Spectrum(ComplexData,[freq*1e6],[sw],[False])
+            name = self.askName()
+            self.workspaces.append(Main1DWindow(self.root,self,masterData))
+            self.workspaceNames.append(name)
+            self.changeMainWindow(name)
+        else:
+            print('No Magritec data found, abort!')
+            
     def LoadSimpsonFile(self):
         #Loads Simpson data (Fid or Spectrum) to the ssNake data format
         FileLocation = askopenfilename()
         if FileLocation is not '': #if not empty
-            try:
+            #try:
                 with open(FileLocation, 'r') as f: #read file
                     Lines = f.read().split('\n')
                 NP, NI, SW, SW1, TYPE, FORMAT = 0,1,0,0,'','Normal'
-                for s in range(0,len(Lines)):
+                DataStart = Lines.index('DATA')
+                DataEnd = Lines.index('END')
+                for s in range(0,DataStart):
                     if Lines[s].startswith('NP='):
                         NP = int(re.sub('NP=','',Lines[s]))
                     elif Lines[s].startswith('NI='):
@@ -391,10 +435,6 @@ class MainProgram:
                         TYPE = re.sub('TYPE=','',Lines[s])
                     elif Lines[s].startswith('FORMAT='):
                         FORMAT = re.sub('FORMAT=','',Lines[s])
-                    elif Lines[s].startswith('DATA'):
-                        DataStart = s
-                    elif Lines[s].startswith('END'):
-                        DataEnd = s
                 if 'Normal' in FORMAT: #If normal format (e.g. not binary)
                     data = []
                     for iii in range(DataStart+1,DataEnd): #exctract data
@@ -457,14 +497,14 @@ class MainProgram:
                 if NI is 1:
                     masterData=sc.Spectrum(data,[0],[SW],spec)
                 else:
-                    data = np.transpose(data.reshape((NP,NI)))
+                    data = data.reshape((NI,NP))
                     masterData=sc.Spectrum(data,[0,0],[SW,SW1],spec*2)
                 name = self.askName()
                 self.workspaces.append(Main1DWindow(self.root,self,masterData))
                 self.workspaceNames.append(name)
                 self.changeMainWindow(name)
-            except:
-                print('Error loading Simpson data from '+FileLocation+' . No data loaded!')
+            #except:
+            #    print('Error loading Simpson data from '+FileLocation+' . No data loaded!')
 
     def saveFigure(self):
         if self.mainWindow is not None:
@@ -561,8 +601,9 @@ class Main1DWindow(Frame):
         toolMenu.add_command(label="Sizing", command=self.createSizeWindow) 
         toolMenu.add_command(label="Swap Echo", command=self.createSwapEchoWindow)
         toolMenu.add_command(label="Shift Data", command=self.createShiftDataWindow)
-        toolMenu.add_command(label="DC offset correction", command=self.createDCWindow)
+        toolMenu.add_command(label="Offset correction", command=self.createDCWindow)
         toolMenu.add_command(label="Correct Bruker digital filter", command=self.BrukerDigital)
+        #toolMenu.add_command(label="LPSVD", command=self.LPSVD)
 
         #the matrix drop down menu
         matrixMenu = Menu(self.menubar, tearoff=0)
@@ -695,9 +736,9 @@ class Main1DWindow(Frame):
                     
                     if self.masterData.dim  is 2:
                         Points= self.masterData.data.shape
-                        for iii in range(0,Points[1]):
-                            for jjj in range(0,Points[0]):
-                                f.write(str(self.masterData.data[jjj][iii].real)+' '+ str(self.masterData.data[jjj][iii].imag)+'\n')
+                        for iii in range(0,Points[0]):
+                            for jjj in range(0,Points[1]):
+                                f.write(str(self.masterData.data[iii][jjj].real)+' '+ str(self.masterData.data[iii][jjj].imag)+'\n')
                         #for Line in self.masterData.data:
                         #    for SubLine in Line:
                         #        f.write(str(SubLine.real) +' '+str(SubLine.imag)+'\n')
@@ -841,6 +882,10 @@ class Main1DWindow(Frame):
                     self.redoList = []
                     self.undoList.append(self.current.applyPhase(0, FilterCorrection*2*np.pi)) 
 
+    def LPSVD(self):
+        self.redoList = []
+        self.undoList.append(self.current.applyLPSVD())   
+                    
     def createSNWindow(self):
         SNWindow(self,self.current)
         
@@ -1878,12 +1923,14 @@ class DCWindow(Toplevel): #a window for shifting the data
         self.minVal.set("0")
         self.maxVal = StringVar()
         self.maxVal.set(str(current.data1D.shape[-1]))
+        self.offsetVal = StringVar()
+        self.offsetVal.set('{:.2e}'.format(current.getdcOffset(0,current.data1D.shape[-1])))
         self.parent = parent
         self.current = current
         self.geometry('+0+0')
         self.transient(self.parent)
         self.protocol("WM_DELETE_WINDOW", self.cancelAndClose)
-        self.title("DC offset correction")
+        self.title("Offset correction")
         self.resizable(width=FALSE, height=FALSE)
         self.frame1 = Frame(self)
         self.frame1.grid(row=0)
@@ -1897,6 +1944,11 @@ class DCWindow(Toplevel): #a window for shifting the data
         self.maxEntry.bind("<Return>", self.dcPreview)
         self.maxEntry.bind("<KP_Enter>", self.dcPreview)
         self.maxEntry.grid(row=3,column=0,columnspan=2)
+        Label(self.frame1,text="Offset").grid(row=4,column=0,columnspan=2)
+        self.offsetEntry = Entry(self.frame1,textvariable=self.offsetVal,justify="center")
+        self.offsetEntry.bind("<Return>", lambda arg: self.dcPreview(arg,True))
+        self.offsetEntry.bind("<KP_Enter>", lambda arg: self.dcPreview(arg,True))
+        self.offsetEntry.grid(row=5,column=0,columnspan=2)
         self.frame2 = Frame(self)
         self.frame2.grid(row=1)
         Button(self.frame2, text="Apply",command=self.applyDCAndClose).grid(row=0,column=0)
@@ -1906,8 +1958,8 @@ class DCWindow(Toplevel): #a window for shifting the data
         self.current.peakPick = True
 
     def picked(self,pos,second=False): #pick a value alternating the first and second value determined by the second value.
+        dataLength = self.current.data1D.shape[-1]
         if second:
-            dataLength = self.current.data1D.shape[-1]
             minimum=int(round(safeEval(self.minVal.get())))
             if minimum < 0:
                 minimum = 0
@@ -1918,27 +1970,42 @@ class DCWindow(Toplevel): #a window for shifting the data
             self.maxVal.set(str(maximum))
             self.current.peakPickFunc = lambda pos,self=self: self.picked(pos) 
             self.current.peakPick = True
-            self.current.dcOffset(minimum,maximum)
+            val = self.current.getdcOffset(minimum,maximum)
+            self.offsetVal.set('{:.2e}'.format(val))
+            self.current.dcOffset(val)
         else:
             self.minVal.set(str(pos[0]))
             self.current.peakPickFunc = lambda pos,self=self: self.picked(pos,True) 
             self.current.peakPick = True
+            maximum=int(round(safeEval(self.maxVal.get())))
+            if maximum < 0:
+                maximum = 0
+            elif maximum > dataLength:
+                maximum = dataLength
+            minimum = pos[0]
+            val = self.current.getdcOffset(minimum,maximum)
+            self.offsetVal.set('{:.2e}'.format(val))
 
-    def dcPreview(self, *args): #preview the dc offset correction
-        dataLength = self.current.data1D.shape[-1]
-        minimum = int(round(safeEval(self.minVal.get())))
-        if minimum < 0:
-            minimum = 0
-        elif minimum > dataLength:
-            minimum = dataLength
-        self.minVal.set(str(minimum))
-        maximum = int(round(safeEval(self.maxVal.get())))
-        if maximum < 0:
-            maximum = 0
-        elif maximum > dataLength:
-            maximum = dataLength
-        self.maxVal.set(str(maximum))
-        self.current.dcOffset(minimum,maximum)
+    def dcPreview(self, arg, inserted=False): #preview the dc offset correction
+        if inserted:
+            self.current.dcOffset(safeEval(self.offsetVal.get()))
+        else:
+            dataLength = self.current.data1D.shape[-1]
+            minimum = int(round(safeEval(self.minVal.get())))
+            if minimum < 0:
+                minimum = 0
+            elif minimum > dataLength:
+                minimum = dataLength
+            self.minVal.set(str(minimum))
+            maximum = int(round(safeEval(self.maxVal.get())))
+            if maximum < 0:
+                maximum = 0
+            elif maximum > dataLength:
+                maximum = dataLength
+            self.maxVal.set(str(maximum))
+            val = self.current.getdcOffset(minimum,maximum)
+            self.offsetVal.set('{:.2e}'.format(val))
+            self.current.dcOffset(val)
 
     def cancelAndClose(self):
         self.current.peakPickReset()
@@ -1950,19 +2017,8 @@ class DCWindow(Toplevel): #a window for shifting the data
 
     def applyDCAndClose(self):
         self.current.peakPickReset()
-        dataLength = self.current.data1D.shape[-1]
-        minimum = int(round(safeEval(self.minVal.get())))
-        if minimum < 0:
-            minimum = 0
-        elif minimum > dataLength:
-            minimum = dataLength
-        maximum = int(round(safeEval(self.maxVal.get())))
-        if maximum < 0:
-            maximum = 0
-        elif maximum > dataLength:
-            maximum = dataLength
         self.parent.redoList = []
-        self.parent.undoList.append(self.current.applydcOffset(minimum,maximum))
+        self.parent.undoList.append(self.current.applydcOffset(safeEval(self.offsetVal.get())))
         self.parent.menuEnable()
         self.destroy()
 

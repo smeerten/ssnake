@@ -243,7 +243,7 @@ class RelaxParamFrame(Frame): #a frame for the relaxtion parameters
                 inp = safeEval(self.T1Val[i].get())
                 argu.append(inp)
                 outT1[i] = inp
-                self.T1Val[i].set('%.3e' % inp)
+                self.T1Val[i].set('%.3g' % inp)
                 struc.append(False)
         #fitVal = scipy.optimize.minimize(self.fitFunc,guess,(numExp,struc,argu),'Nelder-Mead',options={'xtol':1e-5,'ftol':1e-5})
         self.args=(numExp,struc,argu)
@@ -263,7 +263,7 @@ class RelaxParamFrame(Frame): #a frame for the relaxtion parameters
                 outCoeff[i-1] = fitVal[0][counter]
                 counter += 1
             if struc[2*i+1]:
-                self.T1Val[i-1].set('%.3e' % fitVal[0][counter])
+                self.T1Val[i-1].set('%.3g' % fitVal[0][counter])
                 outT1[i-1] = fitVal[0][counter]
                 counter += 1
         outCurve = np.zeros(numCurve)
