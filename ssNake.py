@@ -633,6 +633,7 @@ class Main1DWindow(Frame):
         fittingMenu.add_command(label="FWHM", command=self.createFWHMWindow)
         fittingMenu.add_command(label="Relaxation Curve", command=self.createRelaxWindow)
         fittingMenu.add_command(label="Peak Deconvolution", command=self.createPeakDeconvWindow)
+        fittingMenu.add_command(label="CSA tensor", command=self.createTensorDeconvWindow)
 
         #the combine drop down menu
         combineMenu = Menu(self.menubar, tearoff=0)
@@ -897,7 +898,10 @@ class Main1DWindow(Frame):
 
     def createPeakDeconvWindow(self):
         self.mainProgram.createFitWindow(fit.PeakDeconvWindow(self.parent,self.mainProgram,self.mainProgram.mainWindow))
-
+        
+    def createTensorDeconvWindow(self):
+        self.mainProgram.createFitWindow(fit.TensorDeconvWindow(self.parent,self.mainProgram,self.mainProgram.mainWindow))
+        
     def plot1D(self):
         self.current.grid_remove()
         tmpcurrent = sc.Current1D(self,self.masterData,self.current)
@@ -2797,5 +2801,7 @@ if __name__ == "__main__":
     root.title("ssNake") 
     root.style = Style()
     root.style.theme_use("clam")
+    img = tk.PhotoImage(file=os.path.dirname(os.path.realpath(__file__))+'/logo.gif')
+    root.tk.call('wm', 'iconphoto', root._w, img)
     #root.attributes('-zoomed', True)
     root.mainloop()

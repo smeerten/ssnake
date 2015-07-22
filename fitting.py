@@ -20,6 +20,7 @@ import scipy.optimize
 import math
 from safeEval import safeEval
 from spectrumFrame import Plot1DFrame
+from zcw import *
 
 pi = math.pi
 
@@ -33,8 +34,11 @@ class RelaxWindow(Frame): #a window for fitting relaxation data
         self.current.grid(row=0,column=0,sticky='nswe')
         self.current.rowconfigure(0, weight=1)
         self.current.columnconfigure(0, weight=1)
+        self.current.fig.set_size_inches(oldMainWindow.current.fig.get_size_inches())
         self.paramframe = RelaxParamFrame(self.current,self)
         self.paramframe.grid(row=1,column=0,sticky='sw')
+        self.rowconfigure(0, weight=1)
+        self.grid_columnconfigure(0, weight=1)
         
     def addToView(self):
         self.pack(fill=BOTH,expand=1)
@@ -43,7 +47,7 @@ class RelaxWindow(Frame): #a window for fitting relaxation data
         self.pack_forget()
 
     def cancel(self):
-         self.mainProgram.closeFitWindow(self.oldMainWindow)
+        self.mainProgram.closeFitWindow(self.oldMainWindow)
         
 #################################################################################   
 class RelaxFrame(Plot1DFrame): #a window for fitting relaxation data
@@ -284,6 +288,8 @@ class PeakDeconvWindow(Frame): #a window for fitting relaxation data
         self.current.columnconfigure(0, weight=1)
         self.paramframe = PeakDeconvParamFrame(self.current,self)
         self.paramframe.grid(row=1,column=0,sticky='sw')
+        self.rowconfigure(0, weight=1)
+        self.grid_columnconfigure(0, weight=1)
         
     def addToView(self):
         self.pack(fill=BOTH,expand=1)
@@ -387,15 +393,15 @@ class PeakDeconvFrame(Plot1DFrame): #a window for fitting relaxation data
         self.canvas.draw()
 
     def pickDeconv(self, pos):
-        self.rootwindow.paramframe.posVal[self.pickNum].set("%.2e" %pos[1])
-        self.rootwindow.paramframe.ampVal[self.pickNum].set("%.2e" %pos[2])
+        self.rootwindow.paramframe.posVal[self.pickNum].set("%.2g" %pos[1])
+        self.rootwindow.paramframe.ampVal[self.pickNum].set("%.2g" %pos[2])
         left = pos[0] - 10 #number of points to find the maximum in
         if left < 0:
             left = 0
         right = pos[0] + 10 #number of points to find the maximum in
         if right >= len(self.data1D) :
             right = len(self.data1D)-1
-        self.rootwindow.paramframe.widthVal[self.pickNum].set("%.2e" % self.current.fwhm(left,right))
+        self.rootwindow.paramframe.widthVal[self.pickNum].set("%.2g" % self.current.fwhm(left,right))
         if self.pickNum < 10:
             self.rootwindow.paramframe.numExp.set(str(self.pickNum+1))
             self.rootwindow.paramframe.changeNum()
@@ -411,9 +417,11 @@ class PeakDeconvParamFrame(Frame): #a frame for the relaxtion parameters
         self.bgrndVal = StringVar()
         self.bgrndVal.set("0.0")
         self.bgrndTick = IntVar()
+        self.bgrndTick.set(1)
         self.slopeVal = StringVar()
         self.slopeVal.set("0.0")
         self.slopeTick = IntVar()
+        self.slopeTick.set(1)
         self.numExp = StringVar()
         Frame.__init__(self, rootwindow)
         self.frame1 = Frame(self)
@@ -551,7 +559,7 @@ class PeakDeconvParamFrame(Frame): #a frame for the relaxtion parameters
             inp = safeEval(self.bgrndVal.get())
             argu.append(inp)
             outBgrnd = inp
-            self.bgrndVal.set('%.2e' % inp)
+            self.bgrndVal.set('%.2g' % inp)
             struc.append(False)
         if self.slopeTick.get() == 0:
             guess.append(safeEval(self.slopeVal.get()))
@@ -560,7 +568,7 @@ class PeakDeconvParamFrame(Frame): #a frame for the relaxtion parameters
             inp = safeEval(self.slopeVal.get())
             argu.append(inp)
             outSlope = inp
-            self.slopeVal.set('%.2e' % inp)
+            self.slopeVal.set('%.2g' % inp)
             struc.append(False)
         for i in range(numExp):
             if self.posTick[i].get() == 0:
@@ -570,7 +578,7 @@ class PeakDeconvParamFrame(Frame): #a frame for the relaxtion parameters
                 inp = safeEval(self.posVal[i].get())
                 argu.append(inp)
                 outPos[i] = inp
-                self.posVal[i].set('%.2e' % inp)
+                self.posVal[i].set('%.2g' % inp)
                 struc.append(False)
             if self.ampTick[i].get() == 0:
                 guess.append(safeEval(self.ampVal[i].get()))
@@ -579,7 +587,7 @@ class PeakDeconvParamFrame(Frame): #a frame for the relaxtion parameters
                 inp = safeEval(self.ampVal[i].get())
                 argu.append(inp)
                 outAmp[i] = inp
-                self.ampVal[i].set('%.2e' % inp)
+                self.ampVal[i].set('%.2g' % inp)
                 struc.append(False)
             if self.widthTick[i].get() == 0:
                 guess.append(abs(safeEval(self.widthVal[i].get())))
@@ -588,30 +596,30 @@ class PeakDeconvParamFrame(Frame): #a frame for the relaxtion parameters
                 inp = abs(safeEval(self.widthVal[i].get()))
                 argu.append(inp)
                 outWidth[i] = inp
-                self.widthVal[i].set('%.2e' % inp)
+                self.widthVal[i].set('%.2g' % inp)
                 struc.append(False)
         self.args = (numExp,struc,argu)
         fitVal = scipy.optimize.curve_fit(self.fitFunc,self.parent.xax,self.parent.data1D,p0=guess)
         counter = 0
         if struc[0]:
-            self.bgrndVal.set('%.2e' % fitVal[0][counter])
+            self.bgrndVal.set('%.2g' % fitVal[0][counter])
             outBgrnd = fitVal[0][counter]
             counter +=1
         if struc[1]:
-            self.slopeVal.set('%.2e' % fitVal[0][counter])
+            self.slopeVal.set('%.2g' % fitVal[0][counter])
             outSlope = fitVal[0][counter]
             counter +=1
         for i in range(1,numExp+1):
             if struc[3*i-1]:
-                self.posVal[i-1].set('%.2e' % fitVal[0][counter])
+                self.posVal[i-1].set('%.2g' % fitVal[0][counter])
                 outPos[i-1] = fitVal[0][counter]
                 counter += 1
             if struc[3*i]:
-                self.ampVal[i-1].set('%.2e' % fitVal[0][counter])
+                self.ampVal[i-1].set('%.2g' % fitVal[0][counter])
                 outAmp[i-1] = fitVal[0][counter]
                 counter += 1
             if struc[3*i+1]:
-                self.widthVal[i-1].set('%.2e' % abs(fitVal[0][counter]))
+                self.widthVal[i-1].set('%.2g' % abs(fitVal[0][counter]))
                 outWidth[i-1] = abs(fitVal[0][counter])
                 counter += 1 
         tmpx = self.parent.xax
@@ -626,6 +634,497 @@ class PeakDeconvParamFrame(Frame): #a frame for the relaxtion parameters
             outCurve += y
         self.parent.showPlot(tmpx, outCurve, x, outCurvePart)
 
+##############################################################################
+class TensorDeconvWindow(Frame): #a window for fitting relaxation data
+    def __init__(self, rootwindow,mainProgram,oldMainWindow):
+        Frame.__init__(self,rootwindow)
+        self.mainProgram = mainProgram
+        self.oldMainWindow = oldMainWindow
+        self.current = TensorDeconvFrame(self,oldMainWindow.current)
+        self.current.grid(row=0,column=0,sticky='nswe')
+        self.current.rowconfigure(0, weight=1)
+        self.current.columnconfigure(0, weight=1)
+        self.paramframe = TensorDeconvParamFrame(self.current,self)
+        self.paramframe.grid(row=1,column=0,sticky='sw')
+        self.rowconfigure(0, weight=1)
+        self.grid_columnconfigure(0, weight=1)
+        
+    def addToView(self):
+        self.pack(fill=BOTH,expand=1)
+
+    def removeFromView(self):
+        self.pack_forget()
+
+    def cancel(self):
+         self.mainProgram.closeFitWindow(self.oldMainWindow)
+        
+#################################################################################   
+class TensorDeconvFrame(Plot1DFrame): #a window for fitting relaxation data
+    def __init__(self, rootwindow,current):
+        Plot1DFrame.__init__(self,rootwindow)
+        self.data1D = current.getDisplayedData()
+        self.current = current
+        self.spec = self.current.spec
+        axAdd = 0
+        if self.spec == 1:
+            if self.current.ppm:
+                axAdd = (self.current.freq-self.current.ref)/self.current.ref*1e6
+                axMult = 1e6/self.current.ref
+            else:
+                axMult = 1.0/(1000.0**self.current.axType)
+        elif self.spec == 0:
+            axMult = 1000.0**self.current.axType
+        self.xax = self.current.xax*axMult+axAdd
+        self.plotType=0
+        self.rootwindow = rootwindow
+        self.peakPickFunc = lambda pos,self=self: self.pickDeconv(pos) 
+        self.peakPick = True
+        self.pickNum = 0
+        self.pickNum2 = 0
+        self.plotReset()
+        self.showPlot()
+
+    def plotReset(self): #set the plot limits to min and max values
+        a=self.fig.gca()
+        if self.plotType==0:
+            miny = min(np.real(self.data1D))
+            maxy = max(np.real(self.data1D))
+        elif self.plotType==1:
+            miny = min(np.imag(self.data1D))
+            maxy = max(np.imag(self.data1D))
+        elif self.plotType==2:
+            miny = min(min(np.real(self.data1D)),min(np.imag(self.data1D)))
+            maxy = max(max(np.real(self.data1D)),max(np.imag(self.data1D)))
+        elif self.plotType==3:
+            miny = min(np.abs(self.data1D))
+            maxy = max(np.abs(self.data1D))
+        else:
+            miny=-1
+            maxy=1
+        differ = 0.05*(maxy-miny) #amount to add to show all datapoints (10%)
+        self.yminlim=miny-differ
+        self.ymaxlim=maxy+differ
+        self.xminlim=min(self.xax)
+        self.xmaxlim=max(self.xax)
+        if self.spec > 0 :
+            a.set_xlim(self.xmaxlim,self.xminlim)
+        else:
+            a.set_xlim(self.xminlim,self.xmaxlim)
+        a.set_ylim(self.yminlim,self.ymaxlim)
+        
+    def showPlot(self, tmpAx=None, tmpdata=None, tmpAx2=[], tmpdata2=[]): 
+        a=self.fig.gca()
+        a.cla()
+        self.line = a.plot(self.xax,self.data1D)
+        a.plot(tmpAx,tmpdata)
+        for i in range(len(tmpAx2)):
+            a.plot(tmpAx2[i],tmpdata2[i])
+        if self.spec==0:
+            if self.current.axType == 0:
+                a.set_xlabel('Time [s]')
+            elif self.current.axType == 1:
+                a.set_xlabel('Time [ms]')
+            elif self.current.axType == 2:
+                a.set_xlabel(r'Time [$\mu$s]')
+            else:
+                a.set_xlabel('User defined')
+        elif self.spec==1:
+            if self.current.ppm:
+                a.set_xlabel('Frequency [ppm]')
+            else:
+                if self.current.axType == 0:
+                    a.set_xlabel('Frequency [Hz]')
+                elif self.current.axType == 1:
+                    a.set_xlabel('Frequency [kHz]')
+                elif self.current.axType == 2:
+                    a.set_xlabel('Frequency [MHz]')
+                else:
+                    a.set_xlabel('User defined')
+        else:
+            a.set_xlabel('')
+        a.get_xaxis().get_major_formatter().set_powerlimits((-4, 4))
+        a.get_yaxis().get_major_formatter().set_powerlimits((-4, 4))
+        if self.spec > 0 :
+            a.set_xlim(self.xmaxlim,self.xminlim)
+        else:
+            a.set_xlim(self.xminlim,self.xmaxlim)
+        a.set_ylim(self.yminlim,self.ymaxlim)
+        self.canvas.draw()
+
+    def pickDeconv(self, pos):
+        if self.pickNum2 == 0:
+            if self.pickNum < 10:
+                self.rootwindow.paramframe.numExp.set(str(self.pickNum+1))
+                self.rootwindow.paramframe.changeNum()
+            self.rootwindow.paramframe.t11Val[self.pickNum].set("%.2g" %pos[1])
+            self.pickNum2 = 1
+        elif self.pickNum2 == 1:
+            self.rootwindow.paramframe.t22Val[self.pickNum].set("%.2g" %pos[1])
+            self.pickNum2 = 2
+        elif self.pickNum2 == 2:
+            self.rootwindow.paramframe.t33Val[self.pickNum].set("%.2g" %pos[1])
+            self.pickNum2 = 0
+            self.pickNum += 1
+        if self.pickNum < 10:
+            self.peakPickFunc = lambda pos,self=self: self.pickDeconv(pos) 
+            self.peakPick = True 
+
+#################################################################################
+class TensorDeconvParamFrame(Frame): #a frame for the relaxtion parameters
+    def __init__(self, parent, rootwindow): 
+        self.parent = parent
+        self.bgrndVal = StringVar()
+        self.bgrndVal.set("0.0")
+        self.bgrndTick = IntVar()
+        self.bgrndTick.set(1)
+        self.slopeVal = StringVar()
+        self.slopeVal.set("0.0")
+        self.slopeTick = IntVar()
+        self.slopeTick.set(1)
+        self.numExp = StringVar()
+        self.cheng = 10
+        self.chengVal = StringVar()
+        self.chengVal.set(str(self.cheng))
+        Frame.__init__(self, rootwindow)
+        self.frame1 = Frame(self)
+        self.frame1.grid(row=0,column=0,sticky='n')
+        self.optframe = Frame(self)
+        self.optframe.grid(row=0,column=1,sticky='n')
+        self.frame2 = Frame(self)
+        self.frame2.grid(row=0,column=2,sticky='n')
+        self.frame3 = Frame(self)
+        self.frame3.grid(row=0,column=3,sticky='n')
+        Button(self.frame1, text="Sim",command=self.sim).grid(row=0,column=0)
+        Button(self.frame1, text="Fit",command=self.fit).grid(row=1,column=0)
+        Button(self.frame1, text="Cancel",command=rootwindow.cancel).grid(row=2,column=0)
+        Label(self.optframe,text="Cheng").grid(row=0,column=0)
+        self.chengEntry = Entry(self.optframe,textvariable=self.chengVal,justify="center")
+        self.chengEntry.grid(row=1,column=0)
+        self.chengEntry.bind("<Return>", self.setCheng) 
+        self.chengEntry.bind("<KP_Enter>", self.setCheng)
+        Label(self.frame2,text="Bgrnd").grid(row=0,column=0,columnspan=2)
+        Checkbutton(self.frame2,variable=self.bgrndTick).grid(row=1,column=0)
+        Entry(self.frame2,textvariable=self.bgrndVal,justify="center").grid(row=1,column=1)
+        Label(self.frame2,text="Slope").grid(row=2,column=0,columnspan=2)
+        Checkbutton(self.frame2,variable=self.slopeTick).grid(row=3,column=0)
+        Entry(self.frame2,textvariable=self.slopeVal,justify="center").grid(row=3,column=1)
+        OptionMenu(self.frame3, self.numExp, "1","1", "2", "3","4","5","6","7","8","9","10",command=self.changeNum).grid(row=0,column=0,columnspan=6)
+        Label(self.frame3,text="T11").grid(row=1,column=0,columnspan=2)
+        Label(self.frame3,text="T22").grid(row=1,column=2,columnspan=2)
+        Label(self.frame3,text="T33").grid(row=1,column=4,columnspan=2)
+        Label(self.frame3,text="Amplitude").grid(row=1,column=6,columnspan=2)
+        Label(self.frame3,text="Width").grid(row=1,column=8,columnspan=2)
+        self.t11Val = []
+        self.t11Tick = []
+        self.t22Val = []
+        self.t22Tick = []
+        self.t33Val = []
+        self.t33Tick = []
+        self.ampVal = []
+        self.ampTick = []
+        self.widthVal = []
+        self.widthTick = []
+        self.t11Check = []
+        self.t11Entries = []
+        self.t22Check = []
+        self.t22Entries = []
+        self.t33Check = []
+        self.t33Entries = []
+        self.ampCheck = []
+        self.ampEntries = []
+        self.widthCheck = []
+        self.widthEntries = []
+
+        for i in range(10):
+            self.t11Val.append(StringVar())
+            self.t11Val[i].set("0.0")
+            self.t11Tick.append(IntVar())
+            self.t22Val.append(StringVar())
+            self.t22Val[i].set("0.0")
+            self.t22Tick.append(IntVar())
+            self.t33Val.append(StringVar())
+            self.t33Val[i].set("0.0")
+            self.t33Tick.append(IntVar())
+            self.ampVal.append(StringVar())
+            self.ampVal[i].set("1.0")
+            self.ampTick.append(IntVar())
+            self.widthVal.append(StringVar())
+            self.widthVal[i].set("10.0")
+            self.widthTick.append(IntVar())
+            self.widthTick[i].set(1)
+            self.t11Check.append(Checkbutton(self.frame3,variable=self.t11Tick[i]))
+            self.t11Check[i].grid(row=i+2,column=0)
+            self.t11Entries.append(Entry(self.frame3,textvariable=self.t11Val[i],justify="center"))
+            self.t11Entries[i].grid(row=i+2,column=1)
+            self.t22Check.append(Checkbutton(self.frame3,variable=self.t22Tick[i]))
+            self.t22Check[i].grid(row=i+2,column=2)
+            self.t22Entries.append(Entry(self.frame3,textvariable=self.t22Val[i],justify="center"))
+            self.t22Entries[i].grid(row=i+2,column=3)
+            self.t33Check.append(Checkbutton(self.frame3,variable=self.t33Tick[i]))
+            self.t33Check[i].grid(row=i+2,column=4)
+            self.t33Entries.append(Entry(self.frame3,textvariable=self.t33Val[i],justify="center"))
+            self.t33Entries[i].grid(row=i+2,column=5)
+            self.ampCheck.append(Checkbutton(self.frame3,variable=self.ampTick[i]))
+            self.ampCheck[i].grid(row=i+2,column=6)
+            self.ampEntries.append(Entry(self.frame3,textvariable=self.ampVal[i],justify="center"))
+            self.ampEntries[i].grid(row=i+2,column=7)
+            self.widthCheck.append(Checkbutton(self.frame3,variable=self.widthTick[i]))
+            self.widthCheck[i].grid(row=i+2,column=8)
+            self.widthEntries.append(Entry(self.frame3,textvariable=self.widthVal[i],justify="center"))
+            self.widthEntries[i].grid(row=i+2,column=9)
+            if i > 0:
+                self.t11Check[i].grid_remove()
+                self.t11Entries[i].grid_remove()
+                self.t22Check[i].grid_remove()
+                self.t22Entries[i].grid_remove()
+                self.t33Check[i].grid_remove()
+                self.t33Entries[i].grid_remove()
+                self.ampCheck[i].grid_remove()
+                self.ampEntries[i].grid_remove()
+                self.widthCheck[i].grid_remove()
+                self.widthEntries[i].grid_remove()
+
+    def setCheng(self,*args):
+        self.cheng = int(safeEval(self.chengVal.get()))
+        self.chengVal.set(str(self.cheng))
+                
+    def changeNum(self,*args):
+        val = int(self.numExp.get())
+        for i in range(10):
+            if i < val:
+                self.t11Check[i].grid()
+                self.t11Entries[i].grid()
+                self.t22Check[i].grid()
+                self.t22Entries[i].grid()
+                self.t33Check[i].grid()
+                self.t33Entries[i].grid()
+                self.ampCheck[i].grid()
+                self.ampEntries[i].grid()
+                self.widthCheck[i].grid()
+                self.widthEntries[i].grid()
+            else:
+                self.t11Check[i].grid_remove()
+                self.t11Entries[i].grid_remove()
+                self.t22Check[i].grid_remove()
+                self.t22Entries[i].grid_remove()
+                self.t33Check[i].grid_remove()
+                self.t33Entries[i].grid_remove()
+                self.ampCheck[i].grid_remove()
+                self.ampEntries[i].grid_remove()
+                self.widthCheck[i].grid_remove()
+                self.widthEntries[i].grid_remove()
+
+    def tensorFunc(self, x, t11, t22, t33, width):
+        t11=t11*self.multt11
+        t22=t22*self.multt22
+        t33=t33*self.multt33
+        v=t11+t22+t33
+        t=np.arange(len(x))/self.parent.current.sw
+        final = np.zeros(len(x),dtype=complex)
+        for i in range(len(v)):
+            final += self.weight[i]*np.exp(1j*2*np.pi*v[i]*t)
+        I=np.real(np.fft.fftshift(np.fft.fft(final*np.exp(-width*t))))
+        return I
+                
+    def fitFunc(self, param, x, y):
+        numExp = self.args[0]
+        struc = self.args[1]
+        argu = self.args[2]
+        testFunc = np.zeros(len(self.parent.data1D))
+        if struc[0]:
+            bgrnd = param[0]
+            param=np.delete(param,[0])
+        else:
+            bgrnd = argu[0]
+            argu=np.delete(argu,[0])
+        if struc[1]:
+            slope = param[0]
+            param=np.delete(param,[0])
+        else:
+            slope = argu[0]
+            argu=np.delete(argu,[0])
+        for i in range(numExp):
+            if struc[5*i+2]:
+                t11 = param[0]
+                param=np.delete(param,[0])
+            else:
+                t11= argu[0]
+                argu=np.delete(argu,[0])
+            if struc[5*i+3]:
+                t22 = param[0]
+                param=np.delete(param,[0])
+            else:
+                t22= argu[0]
+                argu=np.delete(argu,[0])
+            if struc[5*i+4]:
+                t33 = param[0]
+                param=np.delete(param,[0])
+            else:
+                t33= argu[0]
+                argu=np.delete(argu,[0])
+            if struc[5*i+5]:
+                amp = param[0]
+                param=np.delete(param,[0])
+            else:
+                amp= argu[0]
+                argu=np.delete(argu,[0])
+            if struc[5*i+6]:
+                width = abs(param[0])
+                param=np.delete(param,[0])
+            else:
+                width = argu[0]
+                argu=np.delete(argu,[0])
+            testFunc += amp/float(len(x))*self.tensorFunc(x,t11,t22,t33,width)
+        testFunc += bgrnd+slope*x
+        return np.sum((np.real(testFunc)-y)**2)
+
+    def disp(self,outBgrnd,outSlope,outt11,outt22,outt33,outAmp,outWidth):
+        tmpx = self.parent.xax
+        outCurveBase = outBgrnd + tmpx*outSlope
+        outCurve = outCurveBase.copy()
+        outCurvePart = []
+        x=[]
+        for i in range(len(outt11)):
+            x.append(tmpx)
+            y =  outAmp[i]/float(len(tmpx))*self.tensorFunc(tmpx,outt11[i],outt22[i],outt33[i],outWidth[i])
+            outCurvePart.append(outCurveBase + y)
+            outCurve += y
+        self.parent.showPlot(tmpx, outCurve, x, outCurvePart)
+    
+    def fit(self,*args):
+        self.setCheng()
+        struc = []
+        guess = []
+        argu = []
+        numExp = int(self.numExp.get())
+        outt11 = np.zeros(numExp)
+        outt22 = np.zeros(numExp)
+        outt33 = np.zeros(numExp)
+        outAmp = np.zeros(numExp)
+        outWidth = np.zeros(numExp)
+        if self.bgrndTick.get() == 0:
+            guess.append(safeEval(self.bgrndVal.get()))
+            struc.append(True)
+        else:
+            inp = safeEval(self.bgrndVal.get())
+            argu.append(inp)
+            outBgrnd = inp
+            self.bgrndVal.set('%.2g' % inp)
+            struc.append(False)
+        if self.slopeTick.get() == 0:
+            guess.append(safeEval(self.slopeVal.get()))
+            struc.append(True)
+        else:
+            inp = safeEval(self.slopeVal.get())
+            argu.append(inp)
+            outSlope = inp
+            self.slopeVal.set('%.2g' % inp)
+            struc.append(False)
+        for i in range(numExp):
+            if self.t11Tick[i].get() == 0:
+                guess.append(safeEval(self.t11Val[i].get()))
+                struc.append(True)
+            else:
+                inp = safeEval(self.t11Val[i].get())
+                argu.append(inp)
+                outt11[i] = inp
+                self.t11Val[i].set('%.2g' % inp)
+                struc.append(False)
+            if self.t22Tick[i].get() == 0:
+                guess.append(safeEval(self.t22Val[i].get()))
+                struc.append(True)
+            else:
+                inp = safeEval(self.t22Val[i].get())
+                argu.append(inp)
+                outt22[i] = inp
+                self.t22Val[i].set('%.2g' % inp)
+                struc.append(False)
+            if self.t33Tick[i].get() == 0:
+                guess.append(safeEval(self.t33Val[i].get()))
+                struc.append(True)
+            else:
+                inp = safeEval(self.t33Val[i].get())
+                argu.append(inp)
+                outt33[i] = inp
+                self.t33Val[i].set('%.2g' % inp)
+                struc.append(False)
+            if self.ampTick[i].get() == 0:
+                guess.append(safeEval(self.ampVal[i].get()))
+                struc.append(True)
+            else:
+                inp = safeEval(self.ampVal[i].get())
+                argu.append(inp)
+                outAmp[i] = inp
+                self.ampVal[i].set('%.2g' % inp)
+                struc.append(False)
+            if self.widthTick[i].get() == 0:
+                guess.append(abs(safeEval(self.widthVal[i].get())))
+                struc.append(True)
+            else:
+                inp = abs(safeEval(self.widthVal[i].get()))
+                argu.append(inp)
+                outWidth[i] = inp
+                self.widthVal[i].set('%.2g' % inp)
+                struc.append(False)
+        self.args = (numExp,struc,argu)
+        phi,theta,self.weight = zcw_angles(self.cheng,symm=2)
+        self.multt11=np.sin(theta)**2*np.cos(phi)**2
+        self.multt22=np.sin(theta)**2*np.sin(phi)**2
+        self.multt33=np.cos(theta)**2
+        fitVal = scipy.optimize.fmin(self.fitFunc,guess, args=(self.parent.xax,np.real(self.parent.data1D)))
+        counter = 0
+        if struc[0]:
+            self.bgrndVal.set('%.2g' % fitVal[counter])
+            outBgrnd = fitVal[counter]
+            counter +=1
+        if struc[1]:
+            self.slopeVal.set('%.2g' % fitVal[counter])
+            outSlope = fitVal[counter]
+            counter +=1
+        for i in range(numExp):
+            if struc[5*i+2]:
+                self.t11Val[i].set('%.2g' % fitVal[counter])
+                outt11[i] = fitVal[counter]
+                counter += 1
+            if struc[5*i+3]:
+                self.t22Val[i].set('%.2g' % fitVal[counter])
+                outt22[i] = fitVal[counter]
+                counter += 1
+            if struc[5*i+4]:
+                self.t33Val[i].set('%.2g' % fitVal[counter])
+                outt33[i] = fitVal[counter]
+                counter += 1
+            if struc[5*i+5]:
+                self.ampVal[i].set('%.2g' % fitVal[counter])
+                outAmp[i] = fitVal[counter]
+                counter += 1
+            if struc[5*i+6]:
+                self.widthVal[i].set('%.2g' % abs(fitVal[counter]))
+                outWidth[i] = abs(fitVal[counter])
+                counter += 1
+        self.disp(outBgrnd,outSlope,outt11,outt22,outt33,outAmp,outWidth)
+
+    def sim(self):
+        self.setCheng()
+        numExp = int(self.numExp.get())
+        bgrnd = safeEval(self.bgrndVal.get())
+        slope = safeEval(self.slopeVal.get())
+        t11 = np.zeros(numExp)
+        t22 = np.zeros(numExp)
+        t33 = np.zeros(numExp)
+        amp = np.zeros(numExp)
+        width = np.zeros(numExp)
+        for i in range(numExp):
+            t11[i] = safeEval(self.t11Val[i].get())
+            t22[i] = safeEval(self.t22Val[i].get())
+            t33[i] = safeEval(self.t33Val[i].get())
+            amp[i] = safeEval(self.ampVal[i].get())
+            width[i] = safeEval(self.widthVal[i].get())
+        phi,theta,self.weight = zcw_angles(self.cheng,symm=2)
+        self.multt11=np.sin(theta)**2*np.cos(phi)**2
+        self.multt22=np.sin(theta)**2*np.sin(phi)**2
+        self.multt33=np.cos(theta)**2
+        self.disp(bgrnd,slope,t11,t22,t33,amp,width)
         
 #####################################################################################
 class MainPlotWindow(Frame):
