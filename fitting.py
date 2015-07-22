@@ -919,11 +919,14 @@ class TensorDeconvParamFrame(Frame): #a frame for the relaxtion parameters
         t22=t22*self.multt22
         t33=t33*self.multt33
         v=t11+t22+t33
-        t=np.arange(len(x))/self.parent.current.sw
-        final = np.zeros(len(x),dtype=complex)
+        length =len(x)
+        t=np.arange(length)/self.parent.current.sw
+        final = np.zeros(length)
+        mult=v/(self.parent.current.sw)*length
+        x1=np.round(mult)
         for i in range(len(v)):
-            final += self.weight[i]*np.exp(1j*2*np.pi*v[i]*t)
-        I=np.real(np.fft.fftshift(np.fft.fft(final*np.exp(-width*t))))
+            final[x1[i]] += self.weight[i]
+        I=np.real(np.fft.fftshift(np.fft.fft(np.fft.ifft(final)*np.exp(-width*t))))
         return I
                 
     def fitFunc(self, param, x, y):
