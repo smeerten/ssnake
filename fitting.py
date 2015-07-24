@@ -52,9 +52,20 @@ class RelaxWindow(Frame): #a window for fitting relaxation data
 #################################################################################   
 class RelaxFrame(Plot1DFrame): #a window for fitting relaxation data
     def __init__(self, rootwindow,current):
-        self.xax=current.xax
+        axAdd=0
+        if current.spec == 1:
+            if current.ppm:
+                axAdd = (current.freq-current.ref)/current.ref*1e6
+                axMult = 1e6/current.ref
+            else:
+                axMult = 1.0/(1000.0**current.axType)
+        elif current.spec == 0:
+            axMult = 1000.0**current.axType
+        self.xax = current.xax*axMult+axAdd
         self.data1D=current.getDisplayedData()
         self.plotType = 0
+        self.logx = 0
+        self.logy = 0
         Plot1DFrame.__init__(self,rootwindow)
         self.current = current
         self.rootwindow = rootwindow
@@ -62,7 +73,6 @@ class RelaxFrame(Plot1DFrame): #a window for fitting relaxation data
         self.showPlot()
 
     def plotReset(self): #set the plot limits to min and max values
-        a=self.fig.gca()
         if self.plotType==0:
             miny = min(np.real(self.data1D))
             maxy = max(np.real(self.data1D))
@@ -83,19 +93,65 @@ class RelaxFrame(Plot1DFrame): #a window for fitting relaxation data
         self.ymaxlim=maxy+differ
         self.xminlim=min(self.xax)
         self.xmaxlim=max(self.xax)
-        a.set_xlim(self.xminlim,self.xmaxlim)
-        a.set_ylim(self.yminlim,self.ymaxlim)
+        self.ax.set_xlim(self.xminlim,self.xmaxlim)
+        self.ax.set_ylim(self.yminlim,self.ymaxlim)
 
     def showPlot(self, tmpAx=None, tmpdata=None): 
-        a=self.fig.gca()
-        a.cla()
-        a.plot(tmpAx,tmpdata)
-        a.scatter(self.xax,self.data1D)
-        a.set_xlabel('Time [s]')
-        a.set_xlim(self.xminlim,self.xmaxlim)
-        a.set_ylim(self.yminlim,self.ymaxlim)
-        a.get_xaxis().get_major_formatter().set_powerlimits((-4, 4))
-        a.get_yaxis().get_major_formatter().set_powerlimits((-4, 4))
+        self.ax.cla()
+        self.ax.plot(tmpAx,tmpdata)
+        self.ax.scatter(self.xax,self.data1D)
+        if self.logx==0:
+            self.ax.set_xscale('linear')
+        else:
+           self.ax.set_xscale('log')
+        if self.logy==0:
+            self.ax.set_yscale('linear')
+        else:
+           self.ax.set_yscale('log') 
+        if self.spec==0:
+            if self.current.axType == 0:
+                self.ax.set_xlabel('Time [s]')
+            elif self.current.axType == 1:
+                self.ax.set_xlabel('Time [ms]')
+            elif self.current.axType == 2:
+                self.ax.set_xlabel(r'Time [$\mu$s]')
+            else:
+                self.ax.set_xlabel('User defined')
+        elif self.spec==1:
+            if self.current.ppm:
+                self.ax.set_xlabel('Frequency [ppm]')
+            else:
+                if self.current.axType == 0:
+                    self.ax.set_xlabel('Frequency [Hz]')
+                elif self.current.axType == 1:
+                    self.ax.set_xlabel('Frequency [kHz]')
+                elif self.current.axType == 2:
+                    self.ax.set_xlabel('Frequency [MHz]')
+                else:
+                    self.ax.set_xlabel('User defined')
+        else:
+            self.ax.set_xlabel('')
+        self.ax.set_xlim(self.xminlim,self.xmaxlim)
+        self.ax.set_ylim(self.yminlim,self.ymaxlim)
+        if self.logx==0:
+            self.ax.get_xaxis().get_major_formatter().set_powerlimits((-4, 4))
+        if self.logy==0:
+            self.ax.get_yaxis().get_major_formatter().set_powerlimits((-4, 4))
+        self.canvas.draw()
+
+    def setLog(self,logx,logy):
+        self.logx = logx
+        self.logy = logy
+        if self.logx==0:
+            self.ax.set_xscale('linear')
+        else:
+           self.ax.set_xscale('log')
+        if self.logy==0:
+            self.ax.set_yscale('linear')
+        else:
+           self.ax.set_yscale('log') 
+        self.ax.set_xlim(self.xminlim,self.xmaxlim)
+        self.ax.set_ylim(self.yminlim,self.ymaxlim)
         self.canvas.draw()
 
 #################################################################################
@@ -103,21 +159,26 @@ class RelaxParamFrame(Frame): #a frame for the relaxtion parameters
     def __init__(self, parent, rootwindow): 
         self.parent = parent
         self.ampVal = StringVar()
-        self.ampVal.set("%.3e" % np.amax(self.parent.data1D))
+        self.ampVal.set("%.3g" % np.amax(self.parent.data1D))
         self.ampTick = IntVar()
         self.constVal = StringVar()
         self.constVal.set("1.0")
         self.constTick = IntVar()
         self.numExp = StringVar()
+        self.xlog=IntVar()
+        self.ylog=IntVar()
         Frame.__init__(self, rootwindow)
         self.frame1 = Frame(self)
         self.frame1.grid(row=0,column=0,sticky='n')
+        self.optframe = Frame(self)
+        self.optframe.grid(row=0,column=1,sticky='n')
         self.frame2 = Frame(self)
-        self.frame2.grid(row=0,column=1,sticky='n')
+        self.frame2.grid(row=0,column=2,sticky='n')
         self.frame3 = Frame(self)
-        self.frame3.grid(row=0,column=2,sticky='n')
-        Button(self.frame1, text="Fit",command=self.fit).grid(row=0,column=0)
-        Button(self.frame1, text="Cancel",command=rootwindow.cancel).grid(row=1,column=0)
+        self.frame3.grid(row=0,column=3,sticky='n')
+        Button(self.frame1, text="Sim",command=self.sim).grid(row=0,column=0)
+        Button(self.frame1, text="Fit",command=self.fit).grid(row=1,column=0)
+        Button(self.frame1, text="Cancel",command=rootwindow.cancel).grid(row=2,column=0)
         Label(self.frame2,text="Amplitude").grid(row=0,column=0,columnspan=2)
         Checkbutton(self.frame2,variable=self.ampTick).grid(row=1,column=0)
         Entry(self.frame2,textvariable=self.ampVal,justify="center").grid(row=1,column=1)
@@ -127,6 +188,9 @@ class RelaxParamFrame(Frame): #a frame for the relaxtion parameters
         OptionMenu(self.frame3, self.numExp, "1","1", "2", "3","4",command=self.changeNum).grid(row=0,column=0,columnspan=4)
         Label(self.frame3,text="Coefficient").grid(row=1,column=0,columnspan=2)
         Label(self.frame3,text="T").grid(row=1,column=2,columnspan=2)
+        Checkbutton(self.optframe,variable=self.xlog,text='x-log',command=self.setLog).grid(row=0,column=0)
+        Checkbutton(self.optframe,variable=self.ylog,text='y-log',command=self.setLog).grid(row=1,column=0)
+        
         self.coeffVal = []
         self.coeffTick = []
         self.T1Val = []
@@ -156,6 +220,9 @@ class RelaxParamFrame(Frame): #a frame for the relaxtion parameters
                 self.T1Check[i].grid_remove()
                 self.T1Entries[i].grid_remove()
 
+    def setLog(self, *args):
+        self.parent.setLog(self.xlog.get(),self.ylog.get())
+                
     def changeNum(self,*args):
         val = int(self.numExp.get())
         for i in range(4):
@@ -205,7 +272,6 @@ class RelaxParamFrame(Frame): #a frame for the relaxtion parameters
 
     def fit(self,*args):
         #structure of the fitting arguments is : [amp,cost, coeff1, t1, coeff2, t2, coeff3, t3, coeff4, t4]
-        numCurve = 100 #number of points in output curve
         struc = []
         guess = []
         argu = []
@@ -219,7 +285,7 @@ class RelaxParamFrame(Frame): #a frame for the relaxtion parameters
             inp = safeEval(self.ampVal.get())
             argu.append(inp)
             outAmp = inp
-            self.ampVal.set('%.3e' % inp)
+            self.ampVal.set('%.3g' % inp)
             struc.append(False)
         if self.constTick.get() == 0:
             guess.append(safeEval(self.constVal.get()))
@@ -228,7 +294,7 @@ class RelaxParamFrame(Frame): #a frame for the relaxtion parameters
             inp = safeEval(self.constVal.get())
             argu.append(inp)
             outConst = inp
-            self.constVal.set('%.2f' % inp)
+            self.constVal.set('%.3g' % inp)
             struc.append(False)
         for i in range(numExp):
             if self.coeffTick[i].get() == 0:
@@ -238,7 +304,7 @@ class RelaxParamFrame(Frame): #a frame for the relaxtion parameters
                 inp = safeEval(self.coeffVal[i].get())
                 argu.append(inp)
                 outCoeff[i] = inp
-                self.coeffVal[i].set('%.2f' % inp)
+                self.coeffVal[i].set('%.3g' % inp)
                 struc.append(False)
             if self.T1Tick[i].get() == 0:
                 guess.append(safeEval(self.T1Val[i].get()))
@@ -254,28 +320,43 @@ class RelaxParamFrame(Frame): #a frame for the relaxtion parameters
         fitVal = scipy.optimize.curve_fit(self.fitFunc,self.parent.xax, self.parent.data1D,guess)
         counter = 0
         if struc[0]:
-            self.ampVal.set('%.3e' % fitVal[0][counter])
+            self.ampVal.set('%.3g' % fitVal[0][counter])
             outAmp = fitVal[0][counter]
             counter +=1
         if struc[1]:
-            self.constVal.set('%.2f' % fitVal[0][counter])
+            self.constVal.set('%.3g' % fitVal[0][counter])
             outConst = fitVal[0][counter]
             counter +=1
         for i in range(1,numExp+1):
             if struc[2*i]:
-                self.coeffVal[i-1].set('%.2f' % fitVal[0][counter])
+                self.coeffVal[i-1].set('%.3g' % fitVal[0][counter])
                 outCoeff[i-1] = fitVal[0][counter]
                 counter += 1
             if struc[2*i+1]:
                 self.T1Val[i-1].set('%.3g' % fitVal[0][counter])
                 outT1[i-1] = fitVal[0][counter]
                 counter += 1
+        self.disp(outAmp,outConst,outCoeff,outT1)
+
+    def sim(self):
+        numExp = int(self.numExp.get())
+        outAmp = safeEval(self.ampVal.get())
+        outConst = safeEval(self.constVal.get())
+        outCoeff = []
+        outT1 = []
+        for i in range(numExp):
+            outCoeff.append(safeEval(self.coeffVal[i].get()))
+            outT1.append(safeEval(self.T1Val[i].get()))
+        self.disp(outAmp,outConst,outCoeff,outT1)
+        
+    def disp(self, outAmp,outConst,outCoeff, outT1):
+        numCurve = 100 #number of points in output curve
         outCurve = np.zeros(numCurve)
         x = np.linspace(min(self.parent.xax),max(self.parent.xax),numCurve)
-        for i in range(numExp):
+        for i in range(len(outCoeff)):
             outCurve += outCoeff[i]*np.exp(-x/outT1[i])
         self.parent.showPlot(x, outAmp*(outConst+outCurve))
-
+        
 ##############################################################################
 class PeakDeconvWindow(Frame): #a window for fitting relaxation data
     def __init__(self, rootwindow,mainProgram,oldMainWindow):
@@ -394,14 +475,15 @@ class PeakDeconvFrame(Plot1DFrame): #a window for fitting relaxation data
 
     def pickDeconv(self, pos):
         self.rootwindow.paramframe.posVal[self.pickNum].set("%.2g" %pos[1])
-        self.rootwindow.paramframe.ampVal[self.pickNum].set("%.2g" %pos[2])
         left = pos[0] - 10 #number of points to find the maximum in
         if left < 0:
             left = 0
         right = pos[0] + 10 #number of points to find the maximum in
         if right >= len(self.data1D) :
             right = len(self.data1D)-1
-        self.rootwindow.paramframe.widthVal[self.pickNum].set("%.2g" % self.current.fwhm(left,right))
+        width = self.current.fwhm(left,right)
+        self.rootwindow.paramframe.ampVal[self.pickNum].set("%.2g" %(pos[2]*width*0.5*np.pi))
+        self.rootwindow.paramframe.widthVal[self.pickNum].set("%.2g" % width)
         if self.pickNum < 10:
             self.rootwindow.paramframe.numExp.set(str(self.pickNum+1))
             self.rootwindow.paramframe.changeNum()
@@ -430,8 +512,9 @@ class PeakDeconvParamFrame(Frame): #a frame for the relaxtion parameters
         self.frame2.grid(row=0,column=1,sticky='n')
         self.frame3 = Frame(self)
         self.frame3.grid(row=0,column=2,sticky='n')
-        Button(self.frame1, text="Fit",command=self.fit).grid(row=0,column=0)
-        Button(self.frame1, text="Cancel",command=rootwindow.cancel).grid(row=1,column=0)
+        Button(self.frame1, text="Sim",command=self.sim).grid(row=0,column=0)
+        Button(self.frame1, text="Fit",command=self.fit).grid(row=1,column=0)
+        Button(self.frame1, text="Cancel",command=rootwindow.cancel).grid(row=2,column=0)
         Label(self.frame2,text="Bgrnd").grid(row=0,column=0,columnspan=2)
         Checkbutton(self.frame2,variable=self.bgrndTick).grid(row=1,column=0)
         Entry(self.frame2,textvariable=self.bgrndVal,justify="center").grid(row=1,column=1)
@@ -539,7 +622,7 @@ class PeakDeconvParamFrame(Frame): #a frame for the relaxtion parameters
             else:
                 width = argu[0]
                 argu=np.delete(argu,[0])
-            testFunc += amp/(1.0+((x-pos)/(0.5*width))**2)
+            testFunc += amp/np.pi*0.5*width/((x-pos)**2+(0.5*width)**2)
         testFunc += bgrnd+slope*x
         return testFunc
 
@@ -559,7 +642,7 @@ class PeakDeconvParamFrame(Frame): #a frame for the relaxtion parameters
             inp = safeEval(self.bgrndVal.get())
             argu.append(inp)
             outBgrnd = inp
-            self.bgrndVal.set('%.2g' % inp)
+            self.bgrndVal.set('%.3g' % inp)
             struc.append(False)
         if self.slopeTick.get() == 0:
             guess.append(safeEval(self.slopeVal.get()))
@@ -568,7 +651,7 @@ class PeakDeconvParamFrame(Frame): #a frame for the relaxtion parameters
             inp = safeEval(self.slopeVal.get())
             argu.append(inp)
             outSlope = inp
-            self.slopeVal.set('%.2g' % inp)
+            self.slopeVal.set('%.3g' % inp)
             struc.append(False)
         for i in range(numExp):
             if self.posTick[i].get() == 0:
@@ -578,7 +661,7 @@ class PeakDeconvParamFrame(Frame): #a frame for the relaxtion parameters
                 inp = safeEval(self.posVal[i].get())
                 argu.append(inp)
                 outPos[i] = inp
-                self.posVal[i].set('%.2g' % inp)
+                self.posVal[i].set('%.3g' % inp)
                 struc.append(False)
             if self.ampTick[i].get() == 0:
                 guess.append(safeEval(self.ampVal[i].get()))
@@ -587,7 +670,7 @@ class PeakDeconvParamFrame(Frame): #a frame for the relaxtion parameters
                 inp = safeEval(self.ampVal[i].get())
                 argu.append(inp)
                 outAmp[i] = inp
-                self.ampVal[i].set('%.2g' % inp)
+                self.ampVal[i].set('%.3g' % inp)
                 struc.append(False)
             if self.widthTick[i].get() == 0:
                 guess.append(abs(safeEval(self.widthVal[i].get())))
@@ -596,40 +679,56 @@ class PeakDeconvParamFrame(Frame): #a frame for the relaxtion parameters
                 inp = abs(safeEval(self.widthVal[i].get()))
                 argu.append(inp)
                 outWidth[i] = inp
-                self.widthVal[i].set('%.2g' % inp)
+                self.widthVal[i].set('%.3g' % inp)
                 struc.append(False)
         self.args = (numExp,struc,argu)
         fitVal = scipy.optimize.curve_fit(self.fitFunc,self.parent.xax,self.parent.data1D,p0=guess)
         counter = 0
         if struc[0]:
-            self.bgrndVal.set('%.2g' % fitVal[0][counter])
+            self.bgrndVal.set('%.3g' % fitVal[0][counter])
             outBgrnd = fitVal[0][counter]
             counter +=1
         if struc[1]:
-            self.slopeVal.set('%.2g' % fitVal[0][counter])
+            self.slopeVal.set('%.3g' % fitVal[0][counter])
             outSlope = fitVal[0][counter]
             counter +=1
         for i in range(1,numExp+1):
             if struc[3*i-1]:
-                self.posVal[i-1].set('%.2g' % fitVal[0][counter])
+                self.posVal[i-1].set('%.3g' % fitVal[0][counter])
                 outPos[i-1] = fitVal[0][counter]
                 counter += 1
             if struc[3*i]:
-                self.ampVal[i-1].set('%.2g' % fitVal[0][counter])
+                self.ampVal[i-1].set('%.3g' % fitVal[0][counter])
                 outAmp[i-1] = fitVal[0][counter]
                 counter += 1
             if struc[3*i+1]:
-                self.widthVal[i-1].set('%.2g' % abs(fitVal[0][counter]))
+                self.widthVal[i-1].set('%.3g' % abs(fitVal[0][counter]))
                 outWidth[i-1] = abs(fitVal[0][counter])
-                counter += 1 
+                counter += 1
+        self.disp(outBgrnd, outSlope, outAmp, outPos, outWidth)
+
+    def sim(self):
+        numExp = int(self.numExp.get())
+        outPos = np.zeros(numExp)
+        outAmp = np.zeros(numExp)
+        outWidth = np.zeros(numExp)
+        outBgrnd = safeEval(self.bgrndVal.get())
+        outSlope = safeEval(self.slopeVal.get())
+        for i in range(numExp):
+            outPos[i] = safeEval(self.posVal[i].get())
+            outAmp[i] = safeEval(self.ampVal[i].get())
+            outWidth[i] = abs(safeEval(self.widthVal[i].get()))
+        self.disp(outBgrnd, outSlope, outAmp, outPos, outWidth)
+
+    def disp(self, outBgrnd, outSlope, outAmp, outPos, outWidth):
         tmpx = self.parent.xax
         outCurveBase = outBgrnd + tmpx*outSlope
         outCurve = outCurveBase.copy()
         outCurvePart = []
         x=[]
-        for i in range(numExp):
+        for i in range(len(outAmp)):
             x.append(tmpx)
-            y =  outAmp[i]/(1.0+((tmpx-outPos[i])/(0.5*outWidth[i]))**2)
+            y =  outAmp[i]/np.pi*0.5*outWidth[i]/((tmpx-outPos[i])**2+(0.5*outWidth[i])**2)
             outCurvePart.append(outCurveBase + y)
             outCurve += y
         self.parent.showPlot(tmpx, outCurve, x, outCurvePart)

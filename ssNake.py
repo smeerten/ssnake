@@ -61,7 +61,7 @@ class MainProgram:
         loadmenu.add_command(label="Varian", command=self.LoadVarianFile)
         loadmenu.add_command(label="Bruker Topspin/XWinNMR", command=self.LoadBrukerTopspin)
         loadmenu.add_command(label="Chemagnetics", command=self.LoadChemFile)
-        loadmenu.add_command(label="Magritec", command=self.LoadMagritec)
+        loadmenu.add_command(label="Magritek", command=self.LoadMagritek)
         loadmenu.add_command(label="Simpson", command=self.LoadSimpsonFile)
         loadmenu.add_command(label="JSON", command=self.loadJSONFile)
         loadmenu.add_command(label="MATLAB", command=self.loadMatlabFile)
@@ -371,8 +371,8 @@ class MainProgram:
         else:
             print(Dir+os.path.sep+'data does not exits, no Chemagnetics data loaded!')
 
-    def LoadMagritec(self):
-        #Magritec load script based on some Matlab files by Ole Brauckman
+    def LoadMagritek(self):
+        #Magritek load script based on some Matlab files by Ole Brauckman
         FileLocation = askopenfilename()
         Dir = os.path.dirname(FileLocation)
         if FileLocation is not '': #if not empty
