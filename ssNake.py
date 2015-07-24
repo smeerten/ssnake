@@ -602,6 +602,7 @@ class Main1DWindow(Frame):
         toolMenu.add_command(label="Swap Echo", command=self.createSwapEchoWindow)
         toolMenu.add_command(label="Shift Data", command=self.createShiftDataWindow)
         toolMenu.add_command(label="Offset correction", command=self.createDCWindow)
+        toolMenu.add_command(label="States-TPPI", command=self.statesTPPI)
         toolMenu.add_command(label="Correct Bruker digital filter", command=self.BrukerDigital)
         #toolMenu.add_command(label="LPSVD", command=self.LPSVD)
 
@@ -786,6 +787,11 @@ class Main1DWindow(Frame):
         self.redoList = []
         self.undoList.append(self.current.hilbert())
 
+    def statesTPPI(self):
+        self.redoList = []
+        self.undoList.append(self.current.statesTPPI())
+        self.updAllFrames()
+        
     def setFreq(self,freq,sw):
         self.redoList = []
         self.undoList.append(self.current.setFreq(freq,sw))
@@ -962,16 +968,17 @@ class Main1DWindow(Frame):
         self.sideframe.upd()
 
     def undo(self, *args):
-        if self.undoList:
+        undoFunc = None
+        while undoFunc is None and self.undoList:
             undoFunc = self.undoList.pop()
-            if undoFunc is not None:
-                self.redoList.append(undoFunc(self.masterData))
-                self.current.upd()
-                self.current.plotReset()
-                self.current.showFid()
-                self.updAllFrames()
-        else:
+        if undoFunc is None:
             print("no undo information")
+            return
+        self.redoList.append(undoFunc(self.masterData))
+        self.current.upd()
+        self.current.plotReset()
+        self.current.showFid()
+        self.updAllFrames()
 
     def redo(self, *args):
         if self.redoList:

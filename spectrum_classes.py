@@ -66,6 +66,7 @@ class Spectrum(object):
             return returnValue
         else:
             print('Cannot delete all data')
+            return None
 
     def concatenate(self,axes):
         splitVal = self.data.shape[axes]
@@ -112,6 +113,21 @@ class Spectrum(object):
         self.data = np.abs(self.data)
         return returnValue
 
+    def statesTPPI(self,axes):
+        copyData=copy.deepcopy(self)
+        returnValue = lambda self: self.restoreData(copyData, lambda self: self.statesTPPI(axes))
+        if self.data.shape[axes]%2 != 0:
+            print("data has to be even for States-TPPI")
+            return None
+        tmpdata = np.real(self.data)
+        slicing1 = (slice(None),) * axes + (slice(None,None,2),) + (slice(None),)*(self.dim-1-axes)
+        slicing2 = (slice(None),) * axes + (slice(1,None,2),) + (slice(None),)*(self.dim-1-axes)
+        tmpdata = tmpdata[slicing1]+1j*tmpdata[slicing2]
+        tmpdata[slicing2] = -1*tmpdata[slicing2]
+        self.data = tmpdata
+        self.resetXax(axes)
+        return returnValue
+    
     def matrixManip(self, pos1, pos2, axes, which):
         copyData=copy.deepcopy(self)
         returnValue = lambda self: self.restoreData(copyData, lambda self: self.matrixManip(pos1,pos2,axes,which))
@@ -251,6 +267,7 @@ class Spectrum(object):
     def setSize(self,size,axes):
         if axes>self.dim:
             print("axes bigger than dim in setsize")
+            return None
         copyData=copy.deepcopy(self)
         returnValue = lambda self: self.restoreData(copyData, lambda self: self.setSize(size,axes))
         if size > self.data.shape[axes]:
@@ -327,6 +344,7 @@ class Spectrum(object):
     def fourier(self, axes,tmp=False):
         if axes>self.dim:
             print("axes bigger than dim in fourier")
+            return None
         if self.spec[axes]==0:
             if not self.wholeEcho[axes] and not tmp:
                 slicing = (slice(None),) * axes + (0,) + (slice(None),)*(self.dim-1-axes)
@@ -346,6 +364,7 @@ class Spectrum(object):
     def fftshift(self, axes, inv=False):
         if axes>self.dim:
             print("axes bigger than dim in fourier")
+            return None
         if inv:
             self.data=np.fft.ifftshift(self.data,axes=[axes])
         else:
@@ -370,7 +389,7 @@ class Spectrum(object):
         stackSlice = slice(stackBegin, stackEnd, stackStep)
         if axes == axes2:
             print("First and second axes are the same")
-            return
+            return None
         elif axes < axes2:
             return copy.deepcopy((np.transpose(self.data[tuple(locList[:axes])+(slice(None),)+tuple(locList[axes:axes2-1])+(stackSlice,)+tuple(locList[axes2-1:])]),self.freq[axes],self.freq[axes2],self.sw[axes],self.sw[axes2],self.spec[axes],self.spec[axes2],self.wholeEcho[axes],self.wholeEcho[axes2],self.xaxArray[axes],self.xaxArray[axes2][stackSlice],self.ref[axes],self.ref[axes2]))
         elif axes > axes2:
@@ -756,6 +775,13 @@ class Current1D(Plot1DFrame):
     
     def applyLPSVD(self):
         returnValue = self.data.LPSVD(self.axes)
+        self.upd()
+        self.plotReset()
+        self.showFid()
+        return returnValue
+
+    def statesTPPI(self):
+        returnValue = self.data.statesTPPI(self.axes)
         self.upd()
         self.plotReset()
         self.showFid()
