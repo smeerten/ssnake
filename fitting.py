@@ -1343,7 +1343,7 @@ class Quad1DeconvFrame(Plot1DFrame): #a window for fitting relaxation data
         self.canvas.draw()
 
 #################################################################################
-class Quad1DeconvParamFrame(Frame): #a frame for the relaxtion parameters
+class Quad1DeconvParamFrame(Frame): #a frame for the quadrupole parameters
     def __init__(self, parent, rootwindow): 
         self.parent = parent
         self.bgrndVal = StringVar()
@@ -1521,7 +1521,7 @@ class Quad1DeconvParamFrame(Frame): #a frame for the relaxtion parameters
         weights=[]
         for i in m:
             tmp = (cq/(4*I*(2*I-1))*(I*(I+1)-3*(i+1)**2))-(cq/(4*I*(2*I-1))*(I*(I+1)-3*(i)**2))
-            v=np.append(v,tmp*self.angleStuff+pos)
+            v=np.append(v,tmp*(self.angleStuff1-eta*self.angleStuff2)+pos)
             weights=np.append(weights,self.weight)
         length =len(x)
         t=np.arange(length)/self.parent.current.sw
@@ -1602,7 +1602,12 @@ class Quad1DeconvParamFrame(Frame): #a frame for the relaxtion parameters
             outCurvePart.append(outCurveBase + y)
             outCurve += y
         self.parent.showPlot(tmpx, outCurve, x, outCurvePart)
-    
+
+    def setAngleStuff(self):
+        phi,theta,self.weight = zcw_angles(self.cheng,symm=2)
+        self.angleStuff1 = 0.5*(3*np.cos(theta)**2-1)
+        self.angleStuff2 = np.cos(2*phi)*(np.cos(theta)**2-1)
+        
     def fit(self,*args):
         self.setCheng()
         struc = []
@@ -1681,8 +1686,7 @@ class Quad1DeconvParamFrame(Frame): #a frame for the relaxtion parameters
                 struc.append(False)
             I.append(self.checkI(self.IVal[i].get()))
         self.args = (numExp,struc,argu,I)
-        phi,theta,self.weight = zcw_angles(self.cheng,symm=2)
-        self.angleStuff = (0.5*(3*np.cos(theta)**2-1)-eta*np.cos(2*phi)*(np.cos(theta)**2-1))
+        self.setAngleStuff()
         fitVal = scipy.optimize.fmin(self.fitFunc,guess, args=(self.parent.xax,np.real(self.parent.data1D)))
         counter = 0
         if struc[0]:
@@ -1734,10 +1738,74 @@ class Quad1DeconvParamFrame(Frame): #a frame for the relaxtion parameters
             amp[i] = safeEval(self.ampVal[i].get())
             width[i] = safeEval(self.widthVal[i].get())
             I[i] = self.checkI(self.IVal[i].get())
-        phi,theta,self.weight = zcw_angles(self.cheng,symm=2)
-        self.angleStuff = (0.5*(3*np.cos(theta)**2-1)-eta*np.cos(2*phi)*(np.cos(theta)**2-1))
+        self.setAngleStuff()
         self.disp(bgrnd,slope,I,pos,cq,eta,amp,width)
+
+##############################################################################
+class Quad2DeconvWindow(Frame): #a window for fitting second order quadrupole lineshapes data
+    def __init__(self, rootwindow,mainProgram,oldMainWindow,mas=False):
+        Frame.__init__(self,rootwindow)
+        self.mainProgram = mainProgram
+        self.oldMainWindow = oldMainWindow
+        self.current = Quad1DeconvFrame(self,oldMainWindow.current)
+        self.current.grid(row=0,column=0,sticky='nswe')
+        self.current.rowconfigure(0, weight=1)
+        self.current.columnconfigure(0, weight=1)
+        if mas:
+            self.paramframe = Quad2MASDeconvParamFrame(self.current,self)
+        else:
+            self.paramframe = Quad2StaticDeconvParamFrame(self.current,self)
+        self.paramframe.grid(row=1,column=0,sticky='sw')
+        self.rowconfigure(0, weight=1)
+        self.grid_columnconfigure(0, weight=1)
         
+    def addToView(self):
+        self.pack(fill=BOTH,expand=1)
+
+    def removeFromView(self):
+        self.pack_forget()
+
+    def cancel(self):
+         self.mainProgram.closeFitWindow(self.oldMainWindow)
+         
+#################################################################################
+class Quad2StaticDeconvParamFrame(Quad1DeconvParamFrame): #a frame for the quadrupole parameters
+    def __init__(self, parent, rootwindow):
+        Quad1DeconvParamFrame.__init__(self,parent,rootwindow)
+        
+    def setAngleStuff(self):
+        phi,theta,self.weight = zcw_angles(self.cheng,symm=2)
+        self.angleStuff1 = -27/8.0*np.cos(theta)**4+15/4.0*np.cos(theta)**2-3/8.0
+        self.angleStuff2 = (-9/4.0*np.cos(theta)**4+2*np.cos(theta)**2+1/4.0)*np.cos(2*phi)
+        self.angleStuff3 = -1/2.0*np.cos(theta)**2+1/3.0+(-3/8.0*np.cos(theta)**4+3/4.0*np.cos(theta)**2-3/8.0)*np.cos(2*phi)**2
+
+    def tensorFunc(self, x, I, pos, cq, eta, width):
+        v = -cq**2/(6.0*self.parent.current.freq)*(I*(I+1)-3/4.0)*(self.angleStuff1+self.angleStuff2*eta+self.angleStuff3*eta**2)+pos
+        length =len(x)
+        t=np.arange(length)/self.parent.current.sw
+        final = np.zeros(length)
+        mult=v/(self.parent.current.sw)*length
+        x1=np.round(mult)
+        weights = self.weight[np.logical_and(x1>-length,x1<length)]
+        x1 = x1[np.logical_and(x1>-length,x1<length)]
+        for i in range(len(x1)):
+            final[x1[i]] += weights[i]
+        apod = np.exp(-width*t)
+        apod[-1:-(len(apod)/2+1):-1]=apod[:len(apod)/2]
+        Inten=np.real(np.fft.fftshift(np.fft.fft(np.fft.ifft(final)*apod)))
+        return Inten
+    
+#################################################################################
+class Quad2MASDeconvParamFrame(Quad2StaticDeconvParamFrame): #a frame for the quadrupole parameters
+    def __init__(self, parent, rootwindow):
+        Quad2StaticDeconvParamFrame.__init__(self,parent,rootwindow)
+        
+    def setAngleStuff(self):
+        phi,theta,self.weight = zcw_angles(self.cheng,symm=2)
+        self.angleStuff1 = 21/16.0*np.cos(theta)**4-9/8.0*np.cos(theta)**2+5/16.0
+        self.angleStuff2 = (-7/8.0*np.cos(theta)**4+np.cos(theta)**2-1/8.0)*np.cos(2*phi)
+        self.angleStuff3 = 1/12.0*np.cos(theta)**2+(+7/48.0*np.cos(theta)**4-7/24.0*np.cos(theta)**2+7/48.0)*np.cos(2*phi)**2
+    
 #####################################################################################
 class MainPlotWindow(Frame):
     def __init__(self,parent,mainProgram,oldMainWindow):
