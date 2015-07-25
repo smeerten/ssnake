@@ -315,7 +315,6 @@ class RelaxParamFrame(Frame): #a frame for the relaxtion parameters
                 outT1[i] = inp
                 self.T1Val[i].set('%.3g' % inp)
                 struc.append(False)
-        #fitVal = scipy.optimize.minimize(self.fitFunc,guess,(numExp,struc,argu),'Nelder-Mead',options={'xtol':1e-5,'ftol':1e-5})
         self.args=(numExp,struc,argu)
         fitVal = scipy.optimize.curve_fit(self.fitFunc,self.parent.xax, self.parent.data1D,guess)
         counter = 0
@@ -784,7 +783,6 @@ class TensorDeconvFrame(Plot1DFrame): #a window for fitting relaxation data
         self.showPlot()
 
     def plotReset(self): #set the plot limits to min and max values
-        a=self.fig.gca()
         if self.plotType==0:
             miny = min(np.real(self.data1D))
             maxy = max(np.real(self.data1D))
@@ -806,48 +804,47 @@ class TensorDeconvFrame(Plot1DFrame): #a window for fitting relaxation data
         self.xminlim=min(self.xax)
         self.xmaxlim=max(self.xax)
         if self.spec > 0 :
-            a.set_xlim(self.xmaxlim,self.xminlim)
+            self.ax.set_xlim(self.xmaxlim,self.xminlim)
         else:
-            a.set_xlim(self.xminlim,self.xmaxlim)
-        a.set_ylim(self.yminlim,self.ymaxlim)
+            self.ax.set_xlim(self.xminlim,self.xmaxlim)
+        self.ax.set_ylim(self.yminlim,self.ymaxlim)
         
     def showPlot(self, tmpAx=None, tmpdata=None, tmpAx2=[], tmpdata2=[]): 
-        a=self.fig.gca()
-        a.cla()
-        self.line = a.plot(self.xax,self.data1D)
-        a.plot(tmpAx,tmpdata)
+        self.ax.cla()
+        self.line = self.ax.plot(self.xax,self.data1D)
+        self.ax.plot(tmpAx,tmpdata)
         for i in range(len(tmpAx2)):
-            a.plot(tmpAx2[i],tmpdata2[i])
+            self.ax.plot(tmpAx2[i],tmpdata2[i])
         if self.spec==0:
             if self.current.axType == 0:
-                a.set_xlabel('Time [s]')
+                self.ax.set_xlabel('Time [s]')
             elif self.current.axType == 1:
-                a.set_xlabel('Time [ms]')
+                self.ax.set_xlabel('Time [ms]')
             elif self.current.axType == 2:
-                a.set_xlabel(r'Time [$\mu$s]')
+                self.ax.set_xlabel(r'Time [$\mu$s]')
             else:
-                a.set_xlabel('User defined')
+                self.ax.set_xlabel('User defined')
         elif self.spec==1:
             if self.current.ppm:
-                a.set_xlabel('Frequency [ppm]')
+                self.ax.set_xlabel('Frequency [ppm]')
             else:
                 if self.current.axType == 0:
-                    a.set_xlabel('Frequency [Hz]')
+                    self.ax.set_xlabel('Frequency [Hz]')
                 elif self.current.axType == 1:
-                    a.set_xlabel('Frequency [kHz]')
+                    self.ax.set_xlabel('Frequency [kHz]')
                 elif self.current.axType == 2:
-                    a.set_xlabel('Frequency [MHz]')
+                    self.ax.set_xlabel('Frequency [MHz]')
                 else:
-                    a.set_xlabel('User defined')
+                    self.ax.set_xlabel('User defined')
         else:
-            a.set_xlabel('')
-        a.get_xaxis().get_major_formatter().set_powerlimits((-4, 4))
-        a.get_yaxis().get_major_formatter().set_powerlimits((-4, 4))
+            self.ax.set_xlabel('')
+        self.ax.get_xaxis().get_major_formatter().set_powerlimits((-4, 4))
+        self.ax.get_yaxis().get_major_formatter().set_powerlimits((-4, 4))
         if self.spec > 0 :
-            a.set_xlim(self.xmaxlim,self.xminlim)
+            self.ax.set_xlim(self.xmaxlim,self.xminlim)
         else:
-            a.set_xlim(self.xminlim,self.xmaxlim)
-        a.set_ylim(self.yminlim,self.ymaxlim)
+            self.ax.set_xlim(self.xminlim,self.xmaxlim)
+        self.ax.set_ylim(self.yminlim,self.ymaxlim)
         self.canvas.draw()
 
     def pickDeconv(self, pos):
@@ -855,13 +852,13 @@ class TensorDeconvFrame(Plot1DFrame): #a window for fitting relaxation data
             if self.pickNum < 10:
                 self.rootwindow.paramframe.numExp.set(str(self.pickNum+1))
                 self.rootwindow.paramframe.changeNum()
-            self.rootwindow.paramframe.t11Val[self.pickNum].set("%.2g" %pos[1])
+            self.rootwindow.paramframe.t11Val[self.pickNum].set("%.2g" %self.current.xax[pos[0]])
             self.pickNum2 = 1
         elif self.pickNum2 == 1:
-            self.rootwindow.paramframe.t22Val[self.pickNum].set("%.2g" %pos[1])
+            self.rootwindow.paramframe.t22Val[self.pickNum].set("%.2g" %self.current.xax[pos[0]])
             self.pickNum2 = 2
         elif self.pickNum2 == 2:
-            self.rootwindow.paramframe.t33Val[self.pickNum].set("%.2g" %pos[1])
+            self.rootwindow.paramframe.t33Val[self.pickNum].set("%.2g" %self.current.xax[pos[0]])
             self.pickNum2 = 0
             self.pickNum += 1
         if self.pickNum < 10:
@@ -881,7 +878,7 @@ class TensorDeconvParamFrame(Frame): #a frame for the relaxtion parameters
         self.slopeTick = IntVar()
         self.slopeTick.set(1)
         self.numExp = StringVar()
-        self.cheng = 10
+        self.cheng = 15
         self.chengVal = StringVar()
         self.chengVal.set(str(self.cheng))
         Frame.__init__(self, rootwindow)
@@ -1023,9 +1020,13 @@ class TensorDeconvParamFrame(Frame): #a frame for the relaxtion parameters
         final = np.zeros(length)
         mult=v/(self.parent.current.sw)*length
         x1=np.round(mult)
-        for i in range(len(v)):
+        weight = self.weight[np.logical_and(x1>-length,x1<length)]
+        x1 = x1[np.logical_and(x1>-length,x1<length)]
+        for i in range(len(x1)):
             final[x1[i]] += self.weight[i]
-        I=np.real(np.fft.fftshift(np.fft.fft(np.fft.ifft(final)*np.exp(-width*t))))
+        apod = np.exp(-width*t)
+        apod[-1:-(len(apod)/2+1):-1]=apod[:len(apod)/2]
+        I=np.real(np.fft.fftshift(np.fft.fft(np.fft.ifft(final)*apod)))
         return I
                 
     def fitFunc(self, param, x, y):
@@ -1076,7 +1077,7 @@ class TensorDeconvParamFrame(Frame): #a frame for the relaxtion parameters
             else:
                 width = argu[0]
                 argu=np.delete(argu,[0])
-            testFunc += amp/float(len(x))*self.tensorFunc(x,t11,t22,t33,width)
+            testFunc += amp*self.tensorFunc(x,t11,t22,t33,width)
         testFunc += bgrnd+slope*x
         return np.sum((np.real(testFunc)-y)**2)
 
@@ -1088,7 +1089,7 @@ class TensorDeconvParamFrame(Frame): #a frame for the relaxtion parameters
         x=[]
         for i in range(len(outt11)):
             x.append(tmpx)
-            y =  outAmp[i]/float(len(tmpx))*self.tensorFunc(tmpx,outt11[i],outt22[i],outt33[i],outWidth[i])
+            y =  outAmp[i]*self.tensorFunc(tmpx,outt11[i],outt22[i],outt33[i],outWidth[i])
             outCurvePart.append(outCurveBase + y)
             outCurve += y
         self.parent.showPlot(tmpx, outCurve, x, outCurvePart)
