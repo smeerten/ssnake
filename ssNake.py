@@ -635,7 +635,8 @@ class Main1DWindow(Frame):
         fittingMenu.add_command(label="Relaxation Curve", command=self.createRelaxWindow)
         fittingMenu.add_command(label="Peak Deconvolution", command=self.createPeakDeconvWindow)
         fittingMenu.add_command(label="CSA tensor", command=self.createTensorDeconvWindow)
-
+        fittingMenu.add_command(label="First order quadrupole", command=self.createQuad1DeconvWindow)
+        
         #the combine drop down menu
         combineMenu = Menu(self.menubar, tearoff=0)
         self.menubar.add_cascade(label="Combine",menu=combineMenu)
@@ -907,6 +908,9 @@ class Main1DWindow(Frame):
         
     def createTensorDeconvWindow(self):
         self.mainProgram.createFitWindow(fit.TensorDeconvWindow(self.parent,self.mainProgram,self.mainProgram.mainWindow))
+
+    def createQuad1DeconvWindow(self):
+        self.mainProgram.createFitWindow(fit.Quad1DeconvWindow(self.parent,self.mainProgram,self.mainProgram.mainWindow))
         
     def plot1D(self):
         self.current.grid_remove()
