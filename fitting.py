@@ -1344,7 +1344,10 @@ class Quad1DeconvFrame(Plot1DFrame): #a window for fitting relaxation data
 
 #################################################################################
 class Quad1DeconvParamFrame(Frame): #a frame for the quadrupole parameters
-    def __init__(self, parent, rootwindow): 
+    
+    Ioptions = ['1','3/2','2','5/2','3','7/2','4','9/2']
+    
+    def __init__(self, parent, rootwindow):
         self.parent = parent
         self.bgrndVal = StringVar()
         self.bgrndVal.set("0.0")
@@ -1430,7 +1433,7 @@ class Quad1DeconvParamFrame(Frame): #a frame for the quadrupole parameters
             self.widthVal[i].set("10.0")
             self.widthTick.append(IntVar())
             self.widthTick[i].set(1)
-            self.IDrop.append(OptionMenu(self.frame3,self.IVal[i],self.IVal[i].get(),'1','3/2','2','5/2','3','7/2','4','9/2'))
+            self.IDrop.append(OptionMenu(self.frame3,self.IVal[i],self.IVal[i].get(),*self.Ioptions))
             self.IDrop[i].grid(row=i+2,column=0)
             self.posCheck.append(Checkbutton(self.frame3,variable=self.posTick[i]))
             self.posCheck[i].grid(row=i+2,column=1)
@@ -1770,6 +1773,9 @@ class Quad2DeconvWindow(Frame): #a window for fitting second order quadrupole li
          
 #################################################################################
 class Quad2StaticDeconvParamFrame(Quad1DeconvParamFrame): #a frame for the quadrupole parameters
+
+    Ioptions = ['3/2','5/2','7/2','9/2']
+    
     def __init__(self, parent, rootwindow):
         Quad1DeconvParamFrame.__init__(self,parent,rootwindow)
         
@@ -1797,6 +1803,8 @@ class Quad2StaticDeconvParamFrame(Quad1DeconvParamFrame): #a frame for the quadr
     
 #################################################################################
 class Quad2MASDeconvParamFrame(Quad2StaticDeconvParamFrame): #a frame for the quadrupole parameters
+    Ioptions = ['3/2','5/2','7/2','9/2']
+    
     def __init__(self, parent, rootwindow):
         Quad2StaticDeconvParamFrame.__init__(self,parent,rootwindow)
         
