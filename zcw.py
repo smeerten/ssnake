@@ -6,7 +6,7 @@ def fib(n):
         print('number of angles becomes too large')
     start = np.array([[1,1],[1,0]],dtype='int64')
     temp = start[:]
-    for i in xrange(n):
+    for i in range(n):
         temp = np.dot(start,temp)
     return temp[0,0],temp[0,1],temp[1,1]
                 

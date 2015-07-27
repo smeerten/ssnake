@@ -30,6 +30,7 @@ from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 #------------
 from safeEval import safeEval
 from euro import euro
+import gc
 
 pi=math.pi
 
@@ -800,57 +801,57 @@ class Main1DWindow(Frame):
         self.undoList.append(self.current.setFreq(freq,sw))
 
     def createPhaseWindow(self):
-        PhaseWindow(self,self.current)
+        PhaseWindow(self)
         
     def createApodWindow(self):
-        ApodWindow(self,self.current)
+        ApodWindow(self)
 
     def createSizeWindow(self):
-        SizeWindow(self,self.current)
+        SizeWindow(self)
 
     def createSwapEchoWindow(self):
-        SwapEchoWindow(self,self.current)
+        SwapEchoWindow(self)
 
     def createShiftDataWindow(self):
-        ShiftDataWindow(self,self.current)
+        ShiftDataWindow(self)
 
     def createDCWindow(self):
-        DCWindow(self,self.current)
+        DCWindow(self)
 
     def createRefWindow(self):
-        RefWindow(self,self.current)
+        RefWindow(self)
 
     def createIntegrateWindow(self):
-        integrateWindow(self,self.current)
+        integrateWindow(self)
         
     def createMaxWindow(self):
-        maxWindow(self,self.current)
+        maxWindow(self)
         
     def createMinWindow(self):
-        minWindow(self,self.current)
+        minWindow(self)
         
     def createRegionWindow(self):
-        extractRegionWindow(self,self.current)
+        extractRegionWindow(self)
 
     def flipLR(self):
         self.redoList = []
         self.undoList.append(self.current.flipLR())
         
     def createDeleteWindow(self):
-        DeleteWindow(self,self.current)
+        DeleteWindow(self)
         
     def createSplitWindow(self):
-        SplitWindow(self,self.current)
+        SplitWindow(self)
         
     def createConcatenateWindow(self):
-        ConcatenateWindow(self,self.current)
+        ConcatenateWindow(self)
         
     def createInsertWindow(self):
-        InsertWindow(self,self.current)
+        InsertWindow(self)
         
     def createShearingWindow(self):
         if self.masterData.dim > 1:
-            ShearingWindow(self,self.current)
+            ShearingWindow(self)
         else:
             print('Data has too little dimensions for shearing transform')
 
@@ -897,10 +898,10 @@ class Main1DWindow(Frame):
         self.undoList.append(self.current.applyLPSVD())   
                     
     def createSNWindow(self):
-        SNWindow(self,self.current)
+        SNWindow(self)
         
     def createFWHMWindow(self):
-        FWHMWindow(self,self.current)
+        FWHMWindow(self)
         
     def createRelaxWindow(self):
         self.mainProgram.createFitWindow(fit.RelaxWindow(self.parent,self.mainProgram,self.mainProgram.mainWindow))
@@ -922,8 +923,8 @@ class Main1DWindow(Frame):
         
     def plot1D(self):
         self.current.grid_remove()
-        tmpcurrent = sc.Current1D(self,self.masterData,self.current)
-        self.current.destroy()
+        tmpcurrent = sc.Current1D(self,self.masterData)
+        self.current.kill()
         self.current = tmpcurrent
         self.current.grid(row=0,column=0,sticky="nswe")
         self.updAllFrames()
@@ -931,8 +932,9 @@ class Main1DWindow(Frame):
     def plotStack(self):
         if len(self.masterData.data.shape) > 1:
             self.current.grid_remove()
-            tmpcurrent = sc.CurrentStacked(self,self.masterData,self.current)
-            self.current.destroy()
+            tmpcurrent = sc.CurrentStacked(self,self.masterData)
+            self.current.kill()
+            gc.get_referrers(self.current)
             self.current = tmpcurrent
             self.current.grid(row=0,column=0,sticky="nswe")
             self.updAllFrames()
@@ -942,8 +944,8 @@ class Main1DWindow(Frame):
     def plotArray(self):
         if len(self.masterData.data.shape) > 1:
             self.current.grid_remove()
-            tmpcurrent = sc.CurrentArrayed(self,self.masterData,self.current)
-            self.current.destroy()
+            tmpcurrent = sc.CurrentArrayed(self,self.masterData)
+            self.current.kill()
             self.current = tmpcurrent
             self.current.grid(row=0,column=0,sticky="nswe")
             self.updAllFrames()
@@ -953,8 +955,8 @@ class Main1DWindow(Frame):
     def plotContour(self):
         if len(self.masterData.data.shape) > 1:
             self.current.grid_remove()
-            tmpcurrent = sc.CurrentContour(self,self.masterData,self.current)
-            self.current.destroy()
+            tmpcurrent = sc.CurrentContour(self,self.masterData)
+            self.current.kill()
             self.current = tmpcurrent
             self.current.grid(row=0,column=0,sticky="nswe")
             self.updAllFrames()
@@ -964,8 +966,8 @@ class Main1DWindow(Frame):
     def plotSkewed(self):
         if len(self.masterData.data.shape) > 1:
             self.current.grid_remove()
-            tmpcurrent = sc.CurrentSkewed(self,self.masterData,self.current)
-            self.current.destroy()
+            tmpcurrent = sc.CurrentSkewed(self,self.masterData)
+            self.current.kill()
             self.current = tmpcurrent
             self.current.grid(row=0,column=0,sticky="nswe")
             self.updAllFrames()
@@ -973,7 +975,7 @@ class Main1DWindow(Frame):
             print("Data does not have enough dimensions")
             
     def createXaxWindow(self):
-        XaxWindow(self,self.current)
+        XaxWindow(self)
 
     def updAllFrames(self):
         self.bottomframe.upd()
@@ -1049,8 +1051,8 @@ class SideFrame(Frame):
             child.configure(state='disabled')
             
     def upd(self): #destroy the old widgets and create new ones
-        self.current = self.parent.current
-        self.shape = self.current.data.data.shape
+        current = self.parent.current
+        self.shape = current.data.data.shape
         self.length = len(self.shape)
         if self.length < 2:
             if self.frame1 is not None:
@@ -1071,12 +1073,12 @@ class SideFrame(Frame):
                 widget.destroy()
             for widget in self.frame2.winfo_children():
                 widget.destroy()
-        self.button1Var.set(self.current.axes)
+        self.button1Var.set(current.axes)
         offset = 0
-        self.plotIs2D = isinstance(self.current, (sc.CurrentStacked,sc.CurrentArrayed,sc.CurrentContour,sc.CurrentSkewed))
+        self.plotIs2D = isinstance(current, (sc.CurrentStacked,sc.CurrentArrayed,sc.CurrentContour,sc.CurrentSkewed))
         if self.plotIs2D:
             offset = 1
-            self.button2Var.set(self.current.axes2)
+            self.button2Var.set(current.axes2)
         self.labels = []
         self.entries=[]
         self.buttons1=[]
@@ -1093,36 +1095,36 @@ class SideFrame(Frame):
                 self.labels[num].grid(row=num*2,column=1+offset)
                 self.entryVars.append(StringVar())
                 if not self.plotIs2D:
-                    if num < self.current.axes:
-                        self.entryVars[num].set(str(self.current.locList[num]))
-                    elif num == self.current.axes:
+                    if num < current.axes:
+                        self.entryVars[num].set(str(current.locList[num]))
+                    elif num == current.axes:
                         self.entryVars[num].set("0")
                     else:
-                        self.entryVars[num].set(str(self.current.locList[num-1]))
+                        self.entryVars[num].set(str(current.locList[num-1]))
                 else:
-                    if (num < self.current.axes) and (num < self.current.axes2):
-                        self.entryVars[num].set(str(self.current.locList[num]))
-                    elif (num == self.current.axes) or (num == self.current.axes2):
+                    if (num < current.axes) and (num < current.axes2):
+                        self.entryVars[num].set(str(current.locList[num]))
+                    elif (num == current.axes) or (num == current.axes2):
                         self.entryVars[num].set("0")
-                    elif (num > self.current.axes) or (num > self.current.axes2):
-                        self.entryVars[num].set(str(self.current.locList[num-1]))
+                    elif (num > current.axes) or (num > current.axes2):
+                        self.entryVars[num].set(str(current.locList[num-1]))
                     else:
-                        self.entryVars[num].set(str(self.current.locList[num-2]))
+                        self.entryVars[num].set(str(current.locList[num-2]))
                 self.entries.append(Spinbox(self.frame1,textvariable=self.entryVars[num],from_=0,to=self.shape[num]-1,justify="center",command=lambda event=None,num=num: self.getSlice(event,num)))
                 self.entries[num].bind("<Return>", lambda event=None,num=num: self.getSlice(event,num)) 
                 self.entries[num].bind("<KP_Enter>", lambda event=None,num=num: self.getSlice(event,num)) 
                 self.entries[num].grid(row=num*2+1,column=1+offset)
-            if isinstance(self.current, (sc.CurrentStacked,sc.CurrentArrayed,sc.CurrentSkewed)):
-                if self.current.stackBegin is not None:
-                    self.from2D.set(str(self.current.stackBegin))
+            if isinstance(current, (sc.CurrentStacked,sc.CurrentArrayed,sc.CurrentSkewed)):
+                if current.stackBegin is not None:
+                    self.from2D.set(str(current.stackBegin))
                 else:
                     self.from2D.set('0')
-                if self.current.stackEnd is not None:
-                    self.to2D.set(str(self.current.stackEnd))
+                if current.stackEnd is not None:
+                    self.to2D.set(str(current.stackEnd))
                 else:
-                    self.to2D.set(str(self.shape[self.current.axes2]))
-                if self.current.stackStep is not None:
-                    self.step2D.set(str(self.current.stackStep))
+                    self.to2D.set(str(self.shape[current.axes2]))
+                if current.stackStep is not None:
+                    self.step2D.set(str(current.stackStep))
                 else:
                     self.step2D.set('1')
                 Label(self.frame2,text="From").grid(row=1,column=0,sticky='n')
@@ -1131,40 +1133,40 @@ class SideFrame(Frame):
                 self.fromSpin.bind("<KP_Enter>", self.setToFrom)
                 self.fromSpin.grid(row=2,column=0)
                 Label(self.frame2,text="To").grid(row=3,column=0,sticky='n')
-                self.toSpin = Spinbox(self.frame2,textvariable=self.to2D,from_=int(self.from2D.get())+1,to=self.shape[self.current.axes2],justify="center",command=self.setToFrom)
+                self.toSpin = Spinbox(self.frame2,textvariable=self.to2D,from_=int(self.from2D.get())+1,to=self.shape[current.axes2],justify="center",command=self.setToFrom)
                 self.toSpin.bind("<Return>", self.setToFrom) 
                 self.toSpin.bind("<KP_Enter>", self.setToFrom) 
                 self.toSpin.grid(row=4,column=0)
                 Label(self.frame2,text="Step").grid(row=5,column=0,sticky='n')
-                self.stepSpin = Spinbox(self.frame2,textvariable=self.step2D,from_=1,to=self.shape[self.current.axes2],justify="center",command=self.setToFrom)
+                self.stepSpin = Spinbox(self.frame2,textvariable=self.step2D,from_=1,to=self.shape[current.axes2],justify="center",command=self.setToFrom)
                 self.stepSpin.bind("<Return>", self.setToFrom) 
                 self.stepSpin.bind("<KP_Enter>", self.setToFrom)
                 self.stepSpin.grid(row=6,column=0)
-                if isinstance(self.current, (sc.CurrentStacked,sc.CurrentArrayed)):
-                    self.spacing.set('%.3e' % self.current.spacing)
+                if isinstance(current, (sc.CurrentStacked,sc.CurrentArrayed)):
+                    self.spacing.set('%.3e' % current.spacing)
                     Label(self.frame2,text="Spacing").grid(row=7,column=0,sticky='n')
                     self.spacingEntry = Entry(self.frame2,textvariable=self.spacing,justify="center")
                     self.spacingEntry.bind("<Return>", self.setSpacing) 
                     self.spacingEntry.bind("<KP_Enter>", self.setSpacing) 
                     self.spacingEntry.grid(row=8,column=0)
 
-                if isinstance(self.current, (sc.CurrentSkewed)):
-                    self.skew.set('%.2f' % self.current.skewed)
+                if isinstance(current, (sc.CurrentSkewed)):
+                    self.skew.set('%.2f' % current.skewed)
                     Label(self.frame2,text="Skew").grid(row=7,column=0,sticky='n')
                     self.skewEntry = Entry(self.frame2,textvariable=self.skew,justify="center")
                     self.skewEntry.bind("<Return>", self.setSkew) 
                     self.skewEntry.bind("<KP_Enter>", self.setSkew) 
                     self.skewEntry.grid(row=8,column=0)
-                    self.elev.set('%.1f' % self.current.elevation)
+                    self.elev.set('%.1f' % current.elevation)
                     Label(self.frame2,text="Elevation").grid(row=9,column=0,sticky='n')
                     self.elevEntry = Entry(self.frame2,textvariable=self.elev,justify="center")
                     self.elevEntry.bind("<Return>", self.setSkew) 
                     self.elevEntry.bind("<KP_Enter>", self.setSkew) 
                     self.elevEntry.grid(row=10,column=0)
-            if isinstance(self.current, (sc.CurrentContour)):
-                self.numLevels.set(str(self.current.numLevels))
-                self.maxLevels.set(str(self.current.maxLevels*100.0))
-                self.minLevels.set(str(self.current.minLevels*100.0))
+            if isinstance(current, (sc.CurrentContour)):
+                self.numLevels.set(str(current.numLevels))
+                self.maxLevels.set(str(current.maxLevels*100.0))
+                self.minLevels.set(str(current.minLevels*100.0))
                 Label(self.frame2,text="Number of contours").grid(row=1,column=0,sticky='n')
                 self.numLEntry = Entry(self.frame2,textvariable=self.numLevels,justify="center")
                 self.numLEntry.bind("<Return>", self.setContour) 
@@ -1182,23 +1184,24 @@ class SideFrame(Frame):
                 self.minLEntry.grid(row=6,column=0)
                     
     def setToFrom(self, *args):
-        if isinstance(self.current, (sc.CurrentStacked,sc.CurrentArrayed,sc.CurrentSkewed)):
+        current = self.parent.current
+        if isinstance(current, (sc.CurrentStacked,sc.CurrentArrayed,sc.CurrentSkewed)):
             fromVar = int(safeEval(self.from2D.get()))
             toVar = int(safeEval(self.to2D.get()))
             stepVar = int(safeEval(self.step2D.get()))
             if fromVar < 0:
                 fromVar = 0
-            elif fromVar > self.shape[self.current.axes2]-1:
-                fromVar = self.shape[self.current.axes2]-1
-            if toVar > self.shape[self.current.axes2]:
-                toVar = self.shape[self.current.axes2]
+            elif fromVar > self.shape[current.axes2]-1:
+                fromVar = self.shape[current.axes2]-1
+            if toVar > self.shape[current.axes2]:
+                toVar = self.shape[current.axes2]
             elif toVar <= fromVar:
                 toVar = fromVar + 1
             if stepVar < 1:
                 stepVar = 1
-            elif stepVar > self.shape[self.current.axes2]:
-                stepVar = self.shape[self.current.axes2]
-            self.current.stackSelect(fromVar,toVar,stepVar)
+            elif stepVar > self.shape[current.axes2]:
+                stepVar = self.shape[current.axes2]
+            current.stackSelect(fromVar,toVar,stepVar)
             self.from2D.set(str(fromVar))
             self.to2D.set(str(toVar))
             self.step2D.set(str(stepVar))
@@ -1208,14 +1211,14 @@ class SideFrame(Frame):
     def setSpacing(self, *args):
         var =float(safeEval(self.spacing.get()))
         self.spacing.set('%.3e' % var)
-        self.current.setSpacing(var)
+        self.parent.current.setSpacing(var)
 
     def setSkew(self, *args):
         var =float(safeEval(self.skew.get()))
         self.skew.set('%.2f' % var)
         var2 =float(safeEval(self.elev.get()))
         self.elev.set('%.1f' % var2)
-        self.current.setSkewed(var,var2)
+        self.parent.current.setSkewed(var,var2)
         
     def setContour(self, *args):
         var1 = int(round(safeEval(self.numLevels.get())))
@@ -1224,7 +1227,7 @@ class SideFrame(Frame):
         self.maxLevels.set('%.1f' % var2)
         var3 =float(safeEval(self.minLevels.get()))
         self.minLevels.set('%.1f' % var3)
-        self.current.setLevels(var1,var2/100.0,var3/100.0)
+        self.parent.current.setLevels(var1,var2/100.0,var3/100.0)
         
     def setAxes(self,first=True):
         if self.plotIs2D:
@@ -1232,9 +1235,9 @@ class SideFrame(Frame):
             axes2=self.button2Var.get()
             if axes==axes2:
                 if first:
-                    axes2 = self.current.axes
+                    axes2 = self.parent.current.axes
                 else:
-                    axes = self.current.axes2
+                    axes = self.parent.current.axes2
             self.button2Var.set(axes2)
             self.getSlice(None, axes,True)
         else:
@@ -1244,15 +1247,15 @@ class SideFrame(Frame):
         if button:
             dimNum = entryNum
         elif not self.plotIs2D:
-            if entryNum == self.current.axes:
+            if entryNum == self.parent.current.axes:
                 if entryNum == self.length-1:
                     dimNum = self.length-2
                 else:
                     dimNum = self.length-1
             else:
-                dimNum = self.current.axes
+                dimNum = self.parent.current.axes
         else:
-            dimNum = self.current.axes
+            dimNum = self.parent.current.axes
 
         locList=[]
         for num in range(self.length):
@@ -1276,9 +1279,9 @@ class SideFrame(Frame):
                 self.entryVars[num].set(val)
         self.button1Var.set(dimNum)
         if self.plotIs2D:
-            self.current.setBlock(dimNum,self.button2Var.get(), locList)
+            self.parent.current.setBlock(dimNum,self.button2Var.get(), locList)
         else:
-            self.current.setSlice(dimNum,locList)
+            self.parent.current.setSlice(dimNum,locList)
         self.parent.bottomframe.upd()
         self.upd()
 
@@ -1288,7 +1291,6 @@ class BottomFrame(Frame):
     def __init__(self, parent):
         Frame.__init__(self,parent)
         self.parent = parent
-        self.current = parent.current
         self.specVal = IntVar() #value for the time/freq radiobutton
         self.freqVal = StringVar() #value for frequency entybox
         self.swVal = StringVar() #value for sw entrybox
@@ -1334,14 +1336,13 @@ class BottomFrame(Frame):
             child.configure(state='disabled')
         
     def upd(self): #upd the values displayed in the bottom menu
-        self.current = self.parent.current
-        self.freqVal.set(str(self.current.freq/1000000)) #show in MHz
-        self.swVal.set(str(self.current.sw/1000)) #show in kHz
-        if self.current.spec==0:
+        self.freqVal.set(str(self.parent.current.freq/1000000)) #show in MHz
+        self.swVal.set(str(self.parent.current.sw/1000)) #show in kHz
+        if self.parent.current.spec==0:
             self.specVal.set(0)
             self.axisDropFreq.grid_forget()
             self.axisDropTime.grid(row=1,column=6)
-            val = self.current.axType
+            val = self.parent.current.axType
             if val == 0:
                 self.axisOption1.set("s")
             elif val == 1:
@@ -1349,11 +1350,11 @@ class BottomFrame(Frame):
             elif val == 2:
                 self.axisOption1.set( u"\u03bcs")
                 
-        elif self.current.spec==1:
+        elif self.parent.current.spec==1:
             self.specVal.set(1)
             self.axisDropTime.grid_forget()
             self.axisDropFreq.grid(row=1,column=6)
-            val = self.current.axType
+            val = self.parent.current.axType
             if val == 0:
                 self.axisOption2.set("Hz")
             elif val == 1:
@@ -1362,17 +1363,17 @@ class BottomFrame(Frame):
                 self.axisOption2.set("MHz")
             elif val == 3:
                 self.axisOption2.set("ppm")
-        if self.current.wholeEcho:
+        if self.parent.current.wholeEcho:
             self.echoTick.set(1)
         else:
             self.echoTick.set(0)
 
     def setWholeEcho(self):
-        self.current.setWholeEcho(self.echoTick.get())
+        self.parent.current.setWholeEcho(self.echoTick.get())
 
     def changeSpec(self, *args): #change from time to spectral domain and vice versa
         self.parent.redoList = []
-        self.parent.undoList.append(self.current.changeSpec(self.specVal.get()))
+        self.parent.undoList.append(self.parent.current.changeSpec(self.specVal.get()))
         self.upd()
 
     def changeFreq(self, *args): #change the frequency and sw of the displayed axes
@@ -1385,35 +1386,35 @@ class BottomFrame(Frame):
     def changePlot(self, *args): #change the plot type
         pType = self.plotOption.get()
         if pType == "Real":
-            self.current.plotType=0
+            self.parent.current.plotType=0
         elif pType == "Imag":
-            self.current.plotType=1
+            self.parent.current.plotType=1
         elif pType == "Both":
-            self.current.plotType=2
+            self.parent.current.plotType=2
         elif pType == "Abs":
-            self.current.plotType=3
-        self.current.showFid()
+            self.parent.current.plotType=3
+        self.parent.current.showFid()
 
     def changeAxis(self, *args):
-        if self.current.spec == 0:
+        if self.parent.current.spec == 0:
             pType = self.axisOption1.get()
             if pType == "s":
-                self.current.setAxType(0)
+                self.parent.current.setAxType(0)
             elif pType == "ms":
-                self.current.setAxType(1)
+                self.parent.current.setAxType(1)
             elif pType == u"\u03bcs":
-                self.current.setAxType(2)
-        if self.current.spec == 1:
+                self.parent.current.setAxType(2)
+        if self.parent.current.spec == 1:
             pType = self.axisOption2.get()
             if pType == "Hz":
-                self.current.setAxType(0)
+                self.parent.current.setAxType(0)
             elif pType == "kHz":
-                self.current.setAxType(1)
+                self.parent.current.setAxType(1)
             elif pType == "MHz":
-                self.current.setAxType(2)
+                self.parent.current.setAxType(2)
             elif pType == "ppm":
-                self.current.setAxType('ppm')
-        self.current.showFid()
+                self.parent.current.setAxType('ppm')
+        self.parent.current.showFid()
 
 ##################################################################
 #the frame showing the get position data
@@ -1469,10 +1470,9 @@ class TextFrame(Frame):
         
 #################################################################################   
 class PhaseWindow(Toplevel): #a window for phasing the data
-    def __init__(self, parent,current):
+    def __init__(self, parent):
         Toplevel.__init__(self)
         self.parent = parent
-        self.current = current
         self.geometry('+0+0')
         self.transient(self.parent)
         self.protocol("WM_DELETE_WINDOW", self.cancelAndClose)
@@ -1512,7 +1512,7 @@ class PhaseWindow(Toplevel): #a window for phasing the data
         tk.Button(self,text=">",repeatdelay=100, repeatinterval=1,command=lambda:self.stepPhase(0,1)).grid(row=6,column=2)
         self.firstScale=Scale(self, from_=-540, to=540, orient="horizontal", command=self.setFirstOrder,length=300)
         self.firstScale.grid(row=7,column=0,columnspan=3)
-        if self.current.spec > 0:
+        if self.parent.current.spec > 0:
             Label(self,text="Reference").grid(row=8,column=0,columnspan=3)
             self.refEntry = Entry(self,textvariable=self.refValue,justify="center")
             self.refEntry.bind("<Return>", self.inputRef) 
@@ -1525,7 +1525,7 @@ class PhaseWindow(Toplevel): #a window for phasing the data
     def setZeroOrder(self,value, *args): #function called by the zero order scale widget
         self.zeroVal = float(value)
         self.zeroValue.set('%.2f' % self.zeroVal)
-        self.current.setPhaseInter(np.pi*self.zeroVal/180.0,np.pi*self.firstVal/180.0)
+        self.parent.current.setPhaseInter(np.pi*self.zeroVal/180.0,np.pi*self.firstVal/180.0)
         
     def inputZeroOrder(self, *args): #function called by the zero order entry widget
         inp = safeEval(self.zeroValue.get())
@@ -1533,7 +1533,7 @@ class PhaseWindow(Toplevel): #a window for phasing the data
         self.zeroScale.set(self.zeroVal) #setting the scale to a value calls the previous function, so the phase of current doesn't need to be set here
 
     def setFirstOrder(self,value, *args): #function called by the first order scale widget
-        newZero = (self.zeroVal-(float(value)-self.firstVal)*self.refVal/self.current.sw) #calculate the new zero order phase depending on the reference
+        newZero = (self.zeroVal-(float(value)-self.firstVal)*self.refVal/self.parent.current.sw) #calculate the new zero order phase depending on the reference
         self.zeroVal = np.mod(newZero+180,360)-180
         self.firstVal = float(value)
         self.firstValue.set('%.2f' % self.firstVal)
@@ -1545,7 +1545,7 @@ class PhaseWindow(Toplevel): #a window for phasing the data
         self.firstScale.set(self.firstVal) #setting the scale to a value calls the previous function, so the phase of current doesn't need to be set here
 
     def autophase(self, num): #run the autophase for either zero order (0) or both orders (1)
-        phases = self.current.autoPhase(num)
+        phases = self.parent.current.autoPhase(num)
         val = phases[0]/np.pi*180.0
         self.zeroVal=(np.mod(val+180,360)-180)
         self.zeroValue.set('%.2f' % self.zeroVal)
@@ -1572,28 +1572,27 @@ class PhaseWindow(Toplevel): #a window for phasing the data
         self.refValue.set('%.2f' % self.refVal)
 
     def pickRef(self, *args): #run the pick function to pick the reference value
-        self.current.peakPickFunc = lambda pos,self=self: self.setRef(self.current.xax[pos[0]])
-        self.current.peakPick = True
+        self.parent.current.peakPickFunc = lambda pos,self=self: self.setRef(self.parent.current.xax[pos[0]])
+        self.parent.current.peakPick = True
 
     def cancelAndClose(self):
-        self.current.upd()
-        self.current.showFid()
+        self.parent.current.upd()
+        self.parent.current.showFid()
         self.parent.menuEnable()
         self.destroy()
 
     def applyPhaseAndClose(self):
         self.parent.redoList = []
-        self.parent.undoList.append(self.current.applyPhase(np.pi*self.zeroVal/180.0,np.pi*self.firstVal/180.0))
+        self.parent.undoList.append(self.parent.current.applyPhase(np.pi*self.zeroVal/180.0,np.pi*self.firstVal/180.0))
         self.parent.menuEnable()
         self.destroy()
 
 ################################################################
 class ApodWindow(Toplevel): #a window for apodization
-    def __init__(self, parent,current):
+    def __init__(self, parent):
         parent.menuDisable()
         Toplevel.__init__(self)
         self.parent = parent
-        self.current = current
         self.geometry('+0+0')
         self.transient(self.parent)
         self.protocol("WM_DELETE_WINDOW", self.cancelAndClose)
@@ -1616,8 +1615,8 @@ class ApodWindow(Toplevel): #a window for apodization
         self.shiftVal.set("0.0")
         self.shiftingVal = StringVar()
         self.shiftingVal.set("0.0")
-        if self.current.data.dim > 1:
-            options = list(map(str,np.delete(range(self.current.data.dim),self.current.axes)))
+        if self.parent.current.data.dim > 1:
+            options = list(map(str,np.delete(range(self.parent.current.data.dim),self.parent.current.axes)))
             self.shiftingAxes = StringVar()
             self.shiftingAxes.set(options[0])
         #set stepsizes for the buttons
@@ -1628,12 +1627,12 @@ class ApodWindow(Toplevel): #a window for apodization
         Label(self.frame1,text="Lorentzian").grid(row=0,column=0,columnspan=4)
         Checkbutton(self.frame1,variable=self.lorTick, command=lambda: self.checkEval(self.lorTick,self.lorEntry)).grid(row=1,column=1)
         self.lorEntry = Entry(self.frame1,textvariable=self.lorVal,justify="center", state='disabled')   
-        tk.Button(self.frame1,text="<",repeatdelay=100, repeatinterval=1,command=lambda:self.stepLB(-0.5*self.current.sw/(self.current.data1D.shape[-1]),0)).grid(row=1,column=0)
-        tk.Button(self.frame1,text=">",repeatdelay=100, repeatinterval=1,command=lambda:self.stepLB(0.5*self.current.sw/(self.current.data1D.shape[-1]),0)).grid(row=1,column=4)
+        tk.Button(self.frame1,text="<",repeatdelay=100, repeatinterval=1,command=lambda:self.stepLB(-0.5*self.parent.current.sw/(self.parent.current.data1D.shape[-1]),0)).grid(row=1,column=0)
+        tk.Button(self.frame1,text=">",repeatdelay=100, repeatinterval=1,command=lambda:self.stepLB(0.5*self.parent.current.sw/(self.parent.current.data1D.shape[-1]),0)).grid(row=1,column=4)
         self.lorEntry.bind("<Return>", self.apodPreview)
         self.lorEntry.bind("<KP_Enter>", self.apodPreview)
         self.lorEntry.grid(row=1,column=2)
-        self.lorScale=Scale(self.frame1, from_=0, to=100.0*self.current.sw/(self.current.data1D.shape[-1]),  orient="horizontal", command=self.setLor,length=200)
+        self.lorScale=Scale(self.frame1, from_=0, to=100.0*self.parent.current.sw/(self.parent.current.data1D.shape[-1]),  orient="horizontal", command=self.setLor,length=200)
         self.lorScale.grid(row=2,column=1,columnspan=2)
         Label(self.frame1,text="Gaussian").grid(row=3,column=0,columnspan=4)
         Checkbutton(self.frame1,variable=self.gaussTick, command=lambda: self.checkEval(self.gaussTick,self.gaussEntry)).grid(row=4,column=1)
@@ -1641,9 +1640,9 @@ class ApodWindow(Toplevel): #a window for apodization
         self.gaussEntry.bind("<Return>", self.apodPreview)
         self.gaussEntry.bind("<KP_Enter>", self.apodPreview)
         self.gaussEntry.grid(row=4,column=2)
-        tk.Button(self.frame1,text="<",repeatdelay=100, repeatinterval=1,command=lambda:self.stepLB(0,-0.5*self.current.sw/(self.current.data1D.shape[-1]))).grid(row=4,column=0)
-        tk.Button(self.frame1,text=">",repeatdelay=100, repeatinterval=1,command=lambda:self.stepLB(0,0.5*self.current.sw/(self.current.data1D.shape[-1]))).grid(row=4,column=4)
-        self.gaussScale=Scale(self.frame1, from_=0, to=100.0*self.current.sw/(self.current.data1D.shape[-1]),  orient="horizontal", command=self.setGauss,length=200)
+        tk.Button(self.frame1,text="<",repeatdelay=100, repeatinterval=1,command=lambda:self.stepLB(0,-0.5*self.parent.current.sw/(self.parent.current.data1D.shape[-1]))).grid(row=4,column=0)
+        tk.Button(self.frame1,text=">",repeatdelay=100, repeatinterval=1,command=lambda:self.stepLB(0,0.5*self.parent.current.sw/(self.parent.current.data1D.shape[-1]))).grid(row=4,column=4)
+        self.gaussScale=Scale(self.frame1, from_=0, to=100.0*self.parent.current.sw/(self.parent.current.data1D.shape[-1]),  orient="horizontal", command=self.setGauss,length=200)
         self.gaussScale.grid(row=5,column=1,columnspan=2)
         Label(self.frame1,text="Cos^2").grid(row=6,column=0,columnspan=4)
         Checkbutton(self.frame1,variable=self.cos2Tick, command=lambda: self.checkEval(self.cos2Tick,self.cos2Entry)).grid(row=7,column=1)
@@ -1662,7 +1661,7 @@ class ApodWindow(Toplevel): #a window for apodization
         self.shiftEntry.bind("<Return>", self.apodPreview)
         self.shiftEntry.bind("<KP_Enter>", self.apodPreview)
         self.shiftEntry.grid(row=11,column=2)
-        if self.current.data.dim > 1:
+        if self.parent.current.data.dim > 1:
             Label(self.frame1,text="Shifting").grid(row=12,column=0,columnspan=4)
             self.shiftingEntry = Entry(self.frame1,textvariable=self.shiftingVal,justify="center")
             self.shiftingEntry.bind("<Return>", self.apodPreview)
@@ -1716,13 +1715,13 @@ class ApodWindow(Toplevel): #a window for apodization
             self.hammingVal.set(hamming)
         shift = safeEval(self.shiftVal.get())
         self.shiftVal.set(shift)
-        if self.current.data.dim > 1:
+        if self.parent.current.data.dim > 1:
             shifting = safeEval(self.shiftingVal.get())
             self.shiftingVal.set(shifting)
             shiftingAxes = int(self.shiftingAxes.get())
         else:
             shiftingAxes = None
-        self.current.apodPreview(lor,gauss,cos2,hamming,shift,shifting,shiftingAxes)
+        self.parent.current.apodPreview(lor,gauss,cos2,hamming,shift,shifting,shiftingAxes)
 
     def stepLB(self,lorincr,gaussincr): #step linebroadening from < and > keys
         if lorincr!=0:
@@ -1731,8 +1730,8 @@ class ApodWindow(Toplevel): #a window for apodization
             self.gaussScale.set(float(self.gaussVal.get())+gaussincr*self.gaussstep)
 
     def cancelAndClose(self):
-        self.current.upd()
-        self.current.showFid()
+        self.parent.current.upd()
+        self.parent.current.showFid()
         self.parent.menuEnable()
         self.destroy()
 
@@ -1752,20 +1751,20 @@ class ApodWindow(Toplevel): #a window for apodization
         if self.hammingTick.get() == 1:
             hamming = safeEval(self.hammingVal.get())
         shift = safeEval(self.shiftVal.get())
-        if self.current.data.dim > 1:
+        if self.parent.current.data.dim > 1:
             shifting = safeEval(self.shiftingVal.get())
             self.shiftingVal.set(shifting)
             shiftingAxes = int(self.shiftingAxes.get())
         else:
             shiftingAxes = None
         self.parent.redoList = []
-        self.parent.undoList.append(self.current.applyApod(lor,gauss,cos2,hamming,shift,shifting,shiftingAxes))
+        self.parent.undoList.append(self.parent.current.applyApod(lor,gauss,cos2,hamming,shift,shifting,shiftingAxes))
         self.parent.menuEnable()
         self.destroy()
 
 #######################################################################################
 class SizeWindow(Toplevel): #a window for changing the size of the current dimension
-    def __init__(self, parent,current):
+    def __init__(self, parent):
         parent.menuDisable()
         #initialize variables for the widgets
         self.sizeVal = StringVar()
@@ -1773,7 +1772,6 @@ class SizeWindow(Toplevel): #a window for changing the size of the current dimen
         #create a new window
         Toplevel.__init__(self)
         self.parent = parent
-        self.current = current
         self.geometry('+0+0')
         self.transient(self.parent)
         self.protocol("WM_DELETE_WINDOW", self.cancelAndClose)
@@ -1796,12 +1794,12 @@ class SizeWindow(Toplevel): #a window for changing the size of the current dimen
         if size < 1:
             size = 1
         self.sizeVal.set(str(size))
-        self.current.setSizePreview(size)
+        self.parent.current.setSizePreview(size)
 
     def cancelAndClose(self):
-        self.current.upd()
-        self.current.plotReset()
-        self.current.showFid()
+        self.parent.current.upd()
+        self.parent.current.plotReset()
+        self.parent.current.showFid()
         self.parent.menuEnable()
         self.destroy()
 
@@ -1810,21 +1808,20 @@ class SizeWindow(Toplevel): #a window for changing the size of the current dimen
         if size < 1:
             size = 1
         self.parent.redoList = []
-        self.parent.undoList.append(self.current.applySize(size))
+        self.parent.undoList.append(self.parent.current.applySize(size))
         self.parent.sideframe.upd()
         self.parent.menuEnable()
         self.destroy()
 
 ##########################################################################################
 class SwapEchoWindow(Toplevel): #a window for changing the size of the current dimension
-    def __init__(self, parent,current):
+    def __init__(self, parent):
         parent.menuDisable()
         Toplevel.__init__(self)
         #initialize variables for the widgets
         self.posVal = StringVar()
         self.posVal.set(str(int(round(0.5*len(current.data1D)))))
         self.parent = parent
-        self.current = current
         self.geometry('+0+0')
         self.transient(self.parent)
         self.protocol("WM_DELETE_WINDOW", self.cancelAndClose)
@@ -1842,29 +1839,29 @@ class SwapEchoWindow(Toplevel): #a window for changing the size of the current d
         Button(self.frame2, text="Apply",command=self.applySwapEchoAndClose).grid(row=0,column=0)
         Button(self.frame2, text="Cancel",command=self.cancelAndClose).grid(row=0,column=1)
         #activate the peak picking
-        self.current.peakPickFunc = lambda pos,self=self: self.pickedAndClose(pos) 
-        self.current.peakPick = True
+        self.parent.current.peakPickFunc = lambda pos,self=self: self.pickedAndClose(pos) 
+        self.parent.current.peakPick = True
  
     def swapEchoPreview(self, *args): #preview the swap echo result from the entry widget
         pos = int(round(safeEval(self.posVal.get())))
-        if pos > 0 and pos < (self.current.data1D.shape[-1]):
-            self.current.setSwapEchoPreview(pos)
-            self.current.peakPick = False
+        if pos > 0 and pos < (self.parent.current.data1D.shape[-1]):
+            self.parent.current.setSwapEchoPreview(pos)
+            self.parent.current.peakPick = False
             
     def cancelAndClose(self):
-        self.current.peakPickReset()
-        self.current.upd()
-        self.current.plotReset()
-        self.current.showFid()
+        self.parent.current.peakPickReset()
+        self.parent.current.upd()
+        self.parent.current.plotReset()
+        self.parent.current.showFid()
         self.parent.menuEnable()
         self.destroy()
 
     def applySwapEchoAndClose(self):
-        self.current.peakPickReset()
+        self.parent.current.peakPickReset()
         pos = int(round(safeEval(self.posVal.get())))
-        if pos > 0 and pos < (self.current.data1D.shape[-1]):
+        if pos > 0 and pos < (self.parent.current.data1D.shape[-1]):
             self.parent.redoList = []
-            self.parent.undoList.append(self.current.applySwapEcho(pos))
+            self.parent.undoList.append(self.parent.current.applySwapEcho(pos))
             self.parent.bottomframe.upd()
             self.parent.menuEnable()
             self.destroy()
@@ -1872,21 +1869,20 @@ class SwapEchoWindow(Toplevel): #a window for changing the size of the current d
             print("not a valid index for swap echo")
         
     def pickedAndClose(self,pos): #apply directly if picked since another doesn't make pick doesn't make sense. find a good way to do both entry and picking in a proper way
-        self.current.setSwapEchoPreview(pos[0])
+        self.parent.current.setSwapEchoPreview(pos[0])
         self.posVal.set(str(pos[0]))
-        self.current.peakPick = False
+        self.parent.current.peakPick = False
         
 
 ###########################################################################
 class ShiftDataWindow(Toplevel): #a window for shifting the data
-    def __init__(self, parent,current):
+    def __init__(self, parent):
         parent.menuDisable()
         Toplevel.__init__(self)
         #initialize variables for the widgets
         self.shiftVal = StringVar()
         self.shiftVal.set("0")
         self.parent = parent
-        self.current = current
         self.geometry('+0+0')
         self.transient(self.parent)
         self.protocol("WM_DELETE_WINDOW", self.cancelAndClose)
@@ -1920,25 +1916,25 @@ class ShiftDataWindow(Toplevel): #a window for shifting the data
 
     def shiftPreview(self, *args): #preview a shifted spectrum from the entry widget
         shift = int(round(safeEval(self.shiftVal.get())))
-        self.current.setShiftPreview(shift)
+        self.parent.current.setShiftPreview(shift)
 
     def cancelAndClose(self):
-        self.current.upd()
-        self.current.plotReset()
-        self.current.showFid()
+        self.parent.current.upd()
+        self.parent.current.plotReset()
+        self.parent.current.showFid()
         self.parent.menuEnable()
         self.destroy()
 
     def applyShiftAndClose(self):
         shift = int(round(safeEval(self.shiftVal.get())))
         self.parent.redoList = []
-        self.parent.undoList.append(self.current.applyShift(shift))
+        self.parent.undoList.append(self.parent.current.applyShift(shift))
         self.parent.menuEnable()
         self.destroy()
 
 #############################################################
 class DCWindow(Toplevel): #a window for shifting the data
-    def __init__(self, parent,current):
+    def __init__(self, parent):
         parent.menuDisable()
         Toplevel.__init__(self)
         #initialize variables for the widgets
@@ -1949,7 +1945,6 @@ class DCWindow(Toplevel): #a window for shifting the data
         self.offsetVal = StringVar()
         self.offsetVal.set('{:.2e}'.format(current.getdcOffset(0,current.data1D.shape[-1])))
         self.parent = parent
-        self.current = current
         self.geometry('+0+0')
         self.transient(self.parent)
         self.protocol("WM_DELETE_WINDOW", self.cancelAndClose)
@@ -1977,11 +1972,11 @@ class DCWindow(Toplevel): #a window for shifting the data
         Button(self.frame2, text="Apply",command=self.applyDCAndClose).grid(row=0,column=0)
         Button(self.frame2, text="Cancel",command=self.cancelAndClose).grid(row=0,column=1)
         #pick function
-        self.current.peakPickFunc = lambda pos,self=self: self.picked(pos) 
-        self.current.peakPick = True
+        self.parent.current.peakPickFunc = lambda pos,self=self: self.picked(pos) 
+        self.parent.current.peakPick = True
 
     def picked(self,pos,second=False): #pick a value alternating the first and second value determined by the second value.
-        dataLength = self.current.data1D.shape[-1]
+        dataLength = self.parent.current.data1D.shape[-1]
         if second:
             minimum=int(round(safeEval(self.minVal.get())))
             if minimum < 0:
@@ -1991,29 +1986,29 @@ class DCWindow(Toplevel): #a window for shifting the data
             self.minVal.set(str(minimum))
             maximum=pos[0]
             self.maxVal.set(str(maximum))
-            self.current.peakPickFunc = lambda pos,self=self: self.picked(pos) 
-            self.current.peakPick = True
-            val = self.current.getdcOffset(minimum,maximum)
+            self.parent.current.peakPickFunc = lambda pos,self=self: self.picked(pos) 
+            self.parent.current.peakPick = True
+            val = self.parent.current.getdcOffset(minimum,maximum)
             self.offsetVal.set('{:.2e}'.format(val))
-            self.current.dcOffset(val)
+            self.parent.current.dcOffset(val)
         else:
             self.minVal.set(str(pos[0]))
-            self.current.peakPickFunc = lambda pos,self=self: self.picked(pos,True) 
-            self.current.peakPick = True
+            self.parent.current.peakPickFunc = lambda pos,self=self: self.picked(pos,True) 
+            self.parent.current.peakPick = True
             maximum=int(round(safeEval(self.maxVal.get())))
             if maximum < 0:
                 maximum = 0
             elif maximum > dataLength:
                 maximum = dataLength
             minimum = pos[0]
-            val = self.current.getdcOffset(minimum,maximum)
+            val = self.parent.current.getdcOffset(minimum,maximum)
             self.offsetVal.set('{:.2e}'.format(val))
 
     def dcPreview(self, arg, inserted=False): #preview the dc offset correction
         if inserted:
-            self.current.dcOffset(safeEval(self.offsetVal.get()))
+            self.parent.current.dcOffset(safeEval(self.offsetVal.get()))
         else:
-            dataLength = self.current.data1D.shape[-1]
+            dataLength = self.parent.current.data1D.shape[-1]
             minimum = int(round(safeEval(self.minVal.get())))
             if minimum < 0:
                 minimum = 0
@@ -2026,28 +2021,28 @@ class DCWindow(Toplevel): #a window for shifting the data
             elif maximum > dataLength:
                 maximum = dataLength
             self.maxVal.set(str(maximum))
-            val = self.current.getdcOffset(minimum,maximum)
+            val = self.parent.current.getdcOffset(minimum,maximum)
             self.offsetVal.set('{:.2e}'.format(val))
-            self.current.dcOffset(val)
+            self.parent.current.dcOffset(val)
 
     def cancelAndClose(self):
-        self.current.peakPickReset()
-        self.current.upd()
-        self.current.plotReset()
-        self.current.showFid()
+        self.parent.current.peakPickReset()
+        self.parent.current.upd()
+        self.parent.current.plotReset()
+        self.parent.current.showFid()
         self.parent.menuEnable()
         self.destroy()
 
     def applyDCAndClose(self):
-        self.current.peakPickReset()
+        self.parent.current.peakPickReset()
         self.parent.redoList = []
-        self.parent.undoList.append(self.current.applydcOffset(safeEval(self.offsetVal.get())))
+        self.parent.undoList.append(self.parent.current.applydcOffset(safeEval(self.offsetVal.get())))
         self.parent.menuEnable()
         self.destroy()
 
 #############################################################
 class regionWindow(Toplevel): #A general region selection frame
-    def __init__(self, parent,current,name):
+    def __init__(self, parent,name):
         parent.menuDisable()
         Toplevel.__init__(self)
         #initialize variables for the widgets
@@ -2056,7 +2051,6 @@ class regionWindow(Toplevel): #A general region selection frame
         self.maxVal = StringVar()
         self.maxVal.set(str(current.data1D.shape[-1]))
         self.parent = parent
-        self.current = current
         self.geometry('+0+0')
         self.transient(self.parent)
         self.protocol("WM_DELETE_WINDOW", self.cancelAndClose)
@@ -2079,12 +2073,12 @@ class regionWindow(Toplevel): #A general region selection frame
         Button(self.frame2, text="Apply",command=self.applyAndClose).grid(row=0,column=0)
         Button(self.frame2, text="Cancel",command=self.cancelAndClose).grid(row=0,column=1)
         #pick function
-        self.current.peakPickFunc = lambda pos,self=self: self.picked(pos)
-        self.current.peakPick = True
+        self.parent.current.peakPickFunc = lambda pos,self=self: self.picked(pos)
+        self.parent.current.peakPick = True
 
     def picked(self,pos,second=False): #pick a value alternating the first and second value determined by the second value.
         if second:
-            dataLength = self.current.data1D.shape[-1]
+            dataLength = self.parent.current.data1D.shape[-1]
             minimum=int(round(safeEval(self.minVal.get())))
             if minimum < 0:
                 minimum = 0
@@ -2093,15 +2087,15 @@ class regionWindow(Toplevel): #A general region selection frame
             self.minVal.set(str(minimum))
             maximum=pos[0]
             self.maxVal.set(str(maximum))
-            self.current.peakPickFunc = lambda pos,self=self: self.picked(pos) 
-            self.current.peakPick = True
+            self.parent.current.peakPickFunc = lambda pos,self=self: self.picked(pos) 
+            self.parent.current.peakPick = True
         else:
             self.minVal.set(str(pos[0]))
-            self.current.peakPickFunc = lambda pos,self=self: self.picked(pos,True) 
-            self.current.peakPick = True
+            self.parent.current.peakPickFunc = lambda pos,self=self: self.picked(pos,True) 
+            self.parent.current.peakPick = True
 
     def checkValues(self, *args): #not really preview but just to check the inputs
-        dataLength = self.current.data1D.shape[-1]
+        dataLength = self.parent.current.data1D.shape[-1]
         minimum = int(round(safeEval(self.minVal.get())))
         if minimum < 0:
             minimum = 0
@@ -2116,7 +2110,7 @@ class regionWindow(Toplevel): #A general region selection frame
         self.maxVal.set(str(maximum))
 
     def cancelAndClose(self):
-        self.current.peakPickReset()
+        self.parent.current.peakPickReset()
         self.parent.updAllFrames()
         self.parent.menuEnable()
         self.destroy()
@@ -2125,8 +2119,8 @@ class regionWindow(Toplevel): #A general region selection frame
         pass
         
     def applyAndClose(self):
-        self.current.peakPickReset()
-        dataLength = self.current.data1D.shape[-1]
+        self.parent.current.peakPickReset()
+        dataLength = self.parent.current.data1D.shape[-1]
         minimum = int(round(safeEval(self.minVal.get())))
         if minimum < 0:
             minimum = 0
@@ -2143,64 +2137,63 @@ class regionWindow(Toplevel): #A general region selection frame
         
 ############################################################
 class integrateWindow(regionWindow): #A window for obtaining the integral of a selected region
-    def __init__(self, parent,current):
-        regionWindow.__init__(self,parent,current,'Integrate')
+    def __init__(self, parent):
+        regionWindow.__init__(self,parent,'Integrate')
 
     def apply(self,maximum,minimum):
         self.parent.redoList = []
-        self.parent.undoList.append(self.current.integrate(minimum,maximum))
+        self.parent.undoList.append(self.parent.current.integrate(minimum,maximum))
         self.parent.current.grid_remove()
-        self.parent.current.destroy()
+        self.parent.current.kill()
         self.parent.current=sc.Current1D(self.parent,self.parent.masterData)
         self.parent.current.grid(row=0,column=0,sticky='nswe')
         self.parent.updAllFrames()
         
 ############################################################
 class maxWindow(regionWindow): #A window for obtaining the max of a selected region
-    def __init__(self, parent,current):
-        regionWindow.__init__(self,parent,current,'Max')
+    def __init__(self, parent):
+        regionWindow.__init__(self,parent,'Max')
 
     def apply(self,maximum,minimum):
         self.parent.redoList = []
-        self.parent.undoList.append(self.current.maxMatrix(minimum,maximum))
-        #self.parent.undoList.append(self.current.maxMatrix(minimum,maximum))
+        self.parent.undoList.append(self.parent.current.maxMatrix(minimum,maximum))
+        #self.parent.undoList.append(self.parent.current.maxMatrix(minimum,maximum))
         self.parent.current.grid_remove()
-        self.parent.current.destroy()
+        self.parent.current.kill()
         self.parent.current=sc.Current1D(self.parent,self.parent.masterData)
         self.parent.current.grid(row=0,column=0,sticky='nswe')
         self.parent.updAllFrames()
 
 ############################################################
 class minWindow(regionWindow): #A window for obtaining the min of a selected region
-    def __init__(self, parent,current):
-        regionWindow.__init__(self,parent,current,'Min')
+    def __init__(self, parent):
+        regionWindow.__init__(self,parent,'Min')
 
     def apply(self,maximum,minimum):
         self.parent.redoList = []
-        self.parent.undoList.append(self.current.minMatrix(minimum,maximum))
+        self.parent.undoList.append(self.parent.current.minMatrix(minimum,maximum))
         self.parent.current.grid_remove()
-        self.parent.current.destroy()
+        self.parent.current.kill()
         self.parent.current=sc.Current1D(self.parent,self.parent.masterData)
         self.parent.current.grid(row=0,column=0,sticky='nswe')
         self.parent.updAllFrames()
         
 ############################################################
 class extractRegionWindow(regionWindow): #A window for obtaining a selected region
-    def __init__(self, parent,current):
-        regionWindow.__init__(self,parent,current,'Extract part')
+    def __init__(self, parent):
+        regionWindow.__init__(self,parent,'Extract part')
 
     def apply(self,maximum,minimum):
         self.parent.redoList = []
-        self.parent.undoList.append(self.current.getRegion(minimum,maximum))
+        self.parent.undoList.append(self.parent.current.getRegion(minimum,maximum))
         self.parent.updAllFrames()
 
 ##############################################################
 class DeleteWindow(Toplevel):
-    def __init__(self, parent,current):
+    def __init__(self, parent):
         parent.menuDisable()
         Toplevel.__init__(self)
         self.parent = parent
-        self.current = current
         self.geometry('+0+0')
         self.transient(self.parent)
         self.protocol("WM_DELETE_WINDOW", self.cancelAndClose)
@@ -2223,22 +2216,22 @@ class DeleteWindow(Toplevel):
 
     def preview(self, *args):
         env = vars(np).copy()
-        length = int(self.current.data1D.shape[-1])
+        length = int(self.parent.current.data1D.shape[-1])
         env['length']=length # so length can be used to in equations
         pos=np.array(eval(self.pos.get(),env))                # find a better solution, also add catch for exceptions
         if (pos > -1).all() and (pos < length).all():
-            self.current.deletePreview(pos)
+            self.parent.current.deletePreview(pos)
         else:
             print('Not all values are valid indexes to delete')
         
     def applyAndClose(self):
         env = vars(np).copy()
-        length = int(self.current.data1D.shape[-1])
+        length = int(self.parent.current.data1D.shape[-1])
         env['length']=length # so length can be used to in equations
         pos=np.array(eval(self.pos.get(),env))                # find a better solution, also add catch for exceptions
         if (pos > -1).all() and (pos < length).all():
             self.parent.redoList = []
-            self.parent.undoList.append(self.current.delete(pos))
+            self.parent.undoList.append(self.parent.current.delete(pos))
             self.parent.menuEnable()
             self.parent.sideframe.upd()
             self.destroy()
@@ -2246,17 +2239,16 @@ class DeleteWindow(Toplevel):
             print('Not all values are valid indexes to delete')
         
     def cancelAndClose(self):
-        self.current.showFid()
+        self.parent.current.showFid()
         self.parent.menuEnable()
         self.destroy()
 
 ##############################################################
 class SplitWindow(Toplevel):
-    def __init__(self, parent,current):
+    def __init__(self, parent):
         parent.menuDisable()
         Toplevel.__init__(self)
         self.parent = parent
-        self.current = current
         self.geometry('+0+0')
         self.transient(self.parent)
         self.protocol("WM_DELETE_WINDOW", self.cancelAndClose)
@@ -2284,7 +2276,7 @@ class SplitWindow(Toplevel):
     def applyAndClose(self):
         val = int(safeEval(self.section.get()))
         self.parent.redoList = []
-        self.parent.undoList.append(self.current.split(val))
+        self.parent.undoList.append(self.parent.current.split(val))
         self.parent.menuEnable()
         self.parent.updAllFrames()
         self.destroy()
@@ -2295,11 +2287,10 @@ class SplitWindow(Toplevel):
 
 ##############################################################
 class ConcatenateWindow(Toplevel):
-    def __init__(self, parent,current):
+    def __init__(self, parent):
         parent.menuDisable()
         Toplevel.__init__(self)
         self.parent = parent
-        self.current = current
         self.geometry('+0+0')
         self.transient(self.parent)
         self.protocol("WM_DELETE_WINDOW", self.cancelAndClose)
@@ -2324,8 +2315,8 @@ class ConcatenateWindow(Toplevel):
         val = int(safeEval(self.axes.get()))
         if val < 0:
             val = 0
-        elif val > (self.current.data.dim-2):
-            val = self.current.data.dim-2
+        elif val > (self.parent.current.data.dim-2):
+            val = self.parent.current.data.dim-2
         self.axes.set(str(val))
         
     def applyAndClose(self):
@@ -2333,11 +2324,11 @@ class ConcatenateWindow(Toplevel):
         if val < 0:
             print("concatenate axes is too small")
             return
-        elif val > (self.current.data.dim-2):
+        elif val > (self.parent.current.data.dim-2):
             print("concatenate axes is too large")
             return
         self.parent.redoList = []
-        self.parent.undoList.append(self.current.concatenate(val))
+        self.parent.undoList.append(self.parent.current.concatenate(val))
         self.parent.menuEnable()
         self.parent.updAllFrames()
         self.destroy()
@@ -2349,11 +2340,10 @@ class ConcatenateWindow(Toplevel):
 
 ##############################################################
 class InsertWindow(Toplevel):
-    def __init__(self, parent,current):
+    def __init__(self, parent):
         parent.menuDisable()
         Toplevel.__init__(self)
         self.parent = parent
-        self.current = current
         self.geometry('+0+0')
         self.transient(self.parent)
         self.protocol("WM_DELETE_WINDOW", self.cancelAndClose)
@@ -2361,7 +2351,7 @@ class InsertWindow(Toplevel):
         self.resizable(width=FALSE, height=FALSE)
         #initialize variables for the widgets
         self.pos = StringVar()
-        self.pos.set(str(self.current.data1D.shape[-1]))
+        self.pos.set(str(self.parent.current.data1D.shape[-1]))
         self.ws = StringVar()
         self.ws.set(self.parent.mainProgram.workspaceNames[0])
         self.frame1 = Frame(self)
@@ -2380,21 +2370,21 @@ class InsertWindow(Toplevel):
 
     def preview(self, *args):
         pos = int(round(safeEval(self.pos.get())))
-        if pos > self.current.data1D.shape[-1]:
-            pos = self.current.data1D.shape[-1]
+        if pos > self.parent.current.data1D.shape[-1]:
+            pos = self.parent.current.data1D.shape[-1]
         elif pos < 0:
             pos = 0
         self.pos.set(str(pos))
         
     def applyAndClose(self):
         pos = int(round(safeEval(self.pos.get())))
-        if pos > self.current.data1D.shape[-1]:
-            pos = self.current.data1D.shape[-1]
+        if pos > self.parent.current.data1D.shape[-1]:
+            pos = self.parent.current.data1D.shape[-1]
         elif pos < 0:
             pos = 0
         ws = self.parent.mainProgram.workspaceNames.index(self.ws.get())
         self.parent.redoList = []
-        self.parent.undoList.append(self.current.insert(self.parent.mainProgram.workspaces[ws].masterData.data,pos))
+        self.parent.undoList.append(self.parent.current.insert(self.parent.mainProgram.workspaces[ws].masterData.data,pos))
         self.parent.menuEnable()
         self.parent.sideframe.upd()
         self.destroy()
@@ -2405,11 +2395,10 @@ class InsertWindow(Toplevel):
 
 ##############################################################
 class SNWindow(Toplevel):
-    def __init__(self, parent,current):
+    def __init__(self, parent):
         parent.menuDisable()
         Toplevel.__init__(self)
         self.parent = parent
-        self.current = current
         self.geometry('+0+0')
         self.transient(self.parent)
         self.protocol("WM_DELETE_WINDOW", self.cancelAndClose)
@@ -2454,29 +2443,29 @@ class SNWindow(Toplevel):
         self.frame2.grid(row=1)
         Button(self.frame2, text="Apply",command=self.apply).grid(row=0,column=0)
         Button(self.frame2, text="Cancel",command=self.cancelAndClose).grid(row=0,column=1)
-        self.current.peakPickFunc = lambda pos,self=self: self.picked(pos)
-        self.current.peakPick = True
+        self.parent.current.peakPickFunc = lambda pos,self=self: self.picked(pos)
+        self.parent.current.peakPick = True
         
     def picked(self,pos,num=0): 
         if num == 0:
             self.minNoiseVal.set(str(pos[0]))
-            self.current.peakPickFunc = lambda pos,self=self: self.picked(pos,1) 
-            self.current.peakPick = True
+            self.parent.current.peakPickFunc = lambda pos,self=self: self.picked(pos,1) 
+            self.parent.current.peakPick = True
         elif num == 1:
             self.maxNoiseVal.set(str(pos[0]))
-            self.current.peakPickFunc = lambda pos,self=self: self.picked(pos,2) 
-            self.current.peakPick = True
+            self.parent.current.peakPickFunc = lambda pos,self=self: self.picked(pos,2) 
+            self.parent.current.peakPick = True
         elif num == 2:
             self.minVal.set(str(pos[0]))
-            self.current.peakPickFunc = lambda pos,self=self: self.picked(pos,3) 
-            self.current.peakPick = True
+            self.parent.current.peakPickFunc = lambda pos,self=self: self.picked(pos,3) 
+            self.parent.current.peakPick = True
         elif num == 3:
             self.maxVal.set(str(pos[0]))
-            self.current.peakPickFunc = lambda pos,self=self: self.picked(pos,0) 
-            self.current.peakPick = True
+            self.parent.current.peakPickFunc = lambda pos,self=self: self.picked(pos,0) 
+            self.parent.current.peakPick = True
             
     def checkValues(self, *args): 
-        dataLength = self.current.data1D.shape[-1]
+        dataLength = self.parent.current.data1D.shape[-1]
         minimum = int(round(safeEval(self.minNoiseVal.get())))
         if minimum < 0:
             minimum = 0
@@ -2503,7 +2492,7 @@ class SNWindow(Toplevel):
         self.maxVal.set(str(maximum))
         
     def apply(self):
-        dataLength = self.current.data1D.shape[-1]
+        dataLength = self.parent.current.data1D.shape[-1]
         minimumNoise = int(round(safeEval(self.minNoiseVal.get())))
         if minimumNoise < 0:
             minimumNoise = 0
@@ -2528,20 +2517,19 @@ class SNWindow(Toplevel):
         elif maximum > dataLength:
             maximum = dataLength
         self.maxVal.set(str(maximum))
-        self.result.set(str(self.current.SN(minimumNoise,maximumNoise,minimum,maximum)))
+        self.result.set(str(self.parent.current.SN(minimumNoise,maximumNoise,minimum,maximum)))
         
     def cancelAndClose(self):
-        self.current.peakPickReset()
+        self.parent.current.peakPickReset()
         self.parent.menuEnable()
         self.destroy()
         
 ##############################################################
 class FWHMWindow(Toplevel):
-    def __init__(self, parent,current):
+    def __init__(self, parent):
         parent.menuDisable()
         Toplevel.__init__(self)
         self.parent = parent
-        self.current = current
         self.geometry('+0+0')
         self.transient(self.parent)
         self.protocol("WM_DELETE_WINDOW", self.cancelAndClose)
@@ -2572,22 +2560,22 @@ class FWHMWindow(Toplevel):
         self.frame2.grid(row=1)
         Button(self.frame2, text="Apply",command=self.apply).grid(row=0,column=0)
         Button(self.frame2, text="Cancel",command=self.cancelAndClose).grid(row=0,column=1)
-        self.current.peakPickFunc = lambda pos,self=self: self.picked(pos)
-        self.current.peakPick = True
+        self.parent.current.peakPickFunc = lambda pos,self=self: self.picked(pos)
+        self.parent.current.peakPick = True
         
     def picked(self,pos,num=0): 
         if num == 0:
             self.minVal.set(str(pos[0]))
-            self.current.peakPickFunc = lambda pos,self=self: self.picked(pos,1) 
-            self.current.peakPick = True
+            self.parent.current.peakPickFunc = lambda pos,self=self: self.picked(pos,1) 
+            self.parent.current.peakPick = True
         elif num == 1:
             self.maxVal.set(str(pos[0]))
-            self.current.peakPickFunc = lambda pos,self=self: self.picked(pos,0) 
-            self.current.peakPick = True
+            self.parent.current.peakPickFunc = lambda pos,self=self: self.picked(pos,0) 
+            self.parent.current.peakPick = True
             self.apply()
             
     def checkValues(self, *args): 
-        dataLength = self.current.data1D.shape[-1]
+        dataLength = self.parent.current.data1D.shape[-1]
         minimum = int(round(safeEval(self.minVal.get())))
         if minimum < 0:
             minimum = 0
@@ -2602,7 +2590,7 @@ class FWHMWindow(Toplevel):
         self.maxVal.set(str(maximum))
         
     def apply(self):
-        dataLength = self.current.data1D.shape[-1]
+        dataLength = self.parent.current.data1D.shape[-1]
         minimum = int(round(safeEval(self.minVal.get())))
         if minimum < 0:
             minimum = 0
@@ -2615,20 +2603,19 @@ class FWHMWindow(Toplevel):
         elif maximum > dataLength:
             maximum = dataLength
         self.maxVal.set(str(maximum))
-        self.result.set(str(self.current.fwhm(minimum,maximum)))
+        self.result.set(str(self.parent.current.fwhm(minimum,maximum)))
         
     def cancelAndClose(self):
-        self.current.peakPickReset()
+        self.parent.current.peakPickReset()
         self.parent.menuEnable()
         self.destroy()
         
 ################################################################
 class ShearingWindow(Toplevel): 
-    def __init__(self, parent,current):
+    def __init__(self, parent):
         parent.menuDisable()
         Toplevel.__init__(self)
         self.parent = parent
-        self.current = current
         self.geometry('+0+0')
         self.transient(self.parent)
         self.protocol("WM_DELETE_WINDOW", self.cancelAndClose)
@@ -2637,7 +2624,7 @@ class ShearingWindow(Toplevel):
         #initialize variables for the widgets
         self.shear = StringVar()
         self.shear.set('0.0')
-        options = list(map(str,range(self.current.data.dim)))
+        options = list(map(str,range(self.parent.current.data.dim)))
         self.axes = StringVar()
         self.axes.set('0')
         self.axes2 = StringVar()
@@ -2674,19 +2661,18 @@ class ShearingWindow(Toplevel):
             print("Axes can't be the same for shearing")
         else:
             self.parent.redoList = []
-            self.parent.undoList.append(self.current.shearing(shear,axes,axes2))
+            self.parent.undoList.append(self.parent.current.shearing(shear,axes,axes2))
             self.parent.menuEnable()
             self.destroy()
         
 ##########################################################################################
 class XaxWindow(Toplevel): #a window for setting the xax of the current data
-    def __init__(self, parent,current):
+    def __init__(self, parent):
         parent.menuDisable()
         Toplevel.__init__(self)
         #initialize variables for the widgets
         self.val = StringVar()
         self.parent = parent
-        self.current = current
         self.geometry('+0+0')
         self.transient(self.parent)
         self.protocol("WM_DELETE_WINDOW", self.cancelAndClose)
@@ -2707,13 +2693,13 @@ class XaxWindow(Toplevel): #a window for setting the xax of the current data
 
     def xaxPreview(self, *args):
         env = vars(np).copy()
-        env['length']=int(self.current.data1D.shape[-1]) # so length can be used to in equations
-        env['euro']=lambda fVal, num=int(self.current.data1D.shape[-1]): euro(fVal,num)
+        env['length']=int(self.parent.current.data1D.shape[-1]) # so length can be used to in equations
+        env['euro']=lambda fVal, num=int(self.parent.current.data1D.shape[-1]): euro(fVal,num)
         val=eval(self.val.get(),env)                # find a better solution, also add catch for exceptions          
         if isinstance(val,(list,np.ndarray)):
-            if len(val)==self.current.data1D.shape[-1]:
+            if len(val)==self.parent.current.data1D.shape[-1]:
                 if all(isinstance(x,(int,float)) for x in val):
-                    self.current.setXaxPreview(np.array(val))
+                    self.parent.current.setXaxPreview(np.array(val))
                 else:
                     print("Array is not all of int or float type")
             else:
@@ -2722,22 +2708,22 @@ class XaxWindow(Toplevel): #a window for setting the xax of the current data
             print("Input is not a list or array")
 
     def cancelAndClose(self):
-        self.current.upd()
-        self.current.plotReset()
-        self.current.showFid()
+        self.parent.current.upd()
+        self.parent.current.plotReset()
+        self.parent.current.showFid()
         self.parent.menuEnable()
         self.destroy()
 
     def applyXaxAndClose(self):
         env = vars(np).copy()
-        env['length']=int(self.current.data1D.shape[-1]) # so length can be used to in equations
-        env['euro']=lambda fVal, num=int(self.current.data1D.shape[-1]): euro(fVal,num)
+        env['length']=int(self.parent.current.data1D.shape[-1]) # so length can be used to in equations
+        env['euro']=lambda fVal, num=int(self.parent.current.data1D.shape[-1]): euro(fVal,num)
         val=eval(self.val.get(),env)                # find a better solution, also add catch for exceptions
         if isinstance(val,(list,np.ndarray)):
-            if len(val)==self.current.data1D.shape[-1]:
+            if len(val)==self.parent.current.data1D.shape[-1]:
                 if all(isinstance(x,(int,float)) for x in val):
                     self.parent.redoList = []
-                    self.parent.undoList.append(self.current.setXax(np.array(val)))
+                    self.parent.undoList.append(self.parent.current.setXax(np.array(val)))
                     self.parent.menuEnable()
                     self.destroy()
                 else:
@@ -2749,7 +2735,7 @@ class XaxWindow(Toplevel): #a window for setting the xax of the current data
 
 ##########################################################################################
 class RefWindow(Toplevel): #a window for setting the ppm reference
-    def __init__(self, parent,current):
+    def __init__(self, parent):
         parent.menuDisable()
         if current.spec == 0:
             print('Setting ppm is only available for frequency data')
@@ -2760,7 +2746,6 @@ class RefWindow(Toplevel): #a window for setting the ppm reference
         self.refVal = StringVar()
         self.refVal.set('0.0')
         self.parent = parent
-        self.current = current
         self.geometry('+0+0')
         self.transient(self.parent)
         self.protocol("WM_DELETE_WINDOW", self.cancelAndClose)
@@ -2783,8 +2768,8 @@ class RefWindow(Toplevel): #a window for setting the ppm reference
         Button(self.frame2, text="Apply",command=self.applyAndClose).grid(row=0,column=0)
         Button(self.frame2, text="Cancel",command=self.cancelAndClose).grid(row=0,column=1)
         #activate the peak picking
-        self.current.peakPickFunc = lambda pos,self=self: self.picked(pos)
-        self.current.peakPick = True
+        self.parent.current.peakPickFunc = lambda pos,self=self: self.picked(pos)
+        self.parent.current.peakPick = True
  
     def preview(self, *args): #fix the input values
         freq = safeEval(self.freqVal.get())
@@ -2793,24 +2778,24 @@ class RefWindow(Toplevel): #a window for setting the ppm reference
         self.refVal.set(str(ref))
 
     def cancelAndClose(self):
-        self.current.peakPickReset()
-        self.current.showFid()
+        self.parent.current.peakPickReset()
+        self.parent.current.showFid()
         self.parent.menuEnable()
         self.destroy()
 
     def applyAndClose(self):
-        self.current.peakPickReset()
+        self.parent.current.peakPickReset()
         freq = safeEval(self.freqVal.get())
         ref = safeEval(self.refVal.get())
         self.parent.redoList = []
-        self.parent.undoList.append(self.current.setRef(freq/(1.0+ref*1e-6)))
+        self.parent.undoList.append(self.parent.current.setRef(freq/(1.0+ref*1e-6)))
         self.parent.menuEnable()
         self.destroy()
         
     def picked(self,pos): 
-        self.freqVal.set(str(self.current.freq+self.current.xax[pos[0]]))
-        self.current.peakPickFunc = lambda pos,self=self: self.picked(pos)
-        self.current.peakPick = True
+        self.freqVal.set(str(self.parent.current.freq+self.parent.current.xax[pos[0]]))
+        self.parent.current.peakPickFunc = lambda pos,self=self: self.picked(pos)
+        self.parent.current.peakPick = True
             
 #################################################################################    
 #the main program

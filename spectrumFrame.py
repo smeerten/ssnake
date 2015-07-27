@@ -1,4 +1,5 @@
 import matplotlib
+import matplotlib.pyplot as plt
 matplotlib.use('TkAgg')
 import numpy as np
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2TkAgg
@@ -11,6 +12,7 @@ if sys.version_info >= (3,0):
 else:
     from Tkinter import *
 import spectrum_classes
+import gc
 
 
 #########################################################################################################
@@ -50,6 +52,12 @@ class Plot1DFrame(Frame):
         self.spec = 0
         self.spec2 = 0
 
+    def kill(self):
+        plt.close(self.fig)
+        self.destroy()
+        #gc.collect()
+        #print gc.get_referrers(self)
+        
     def plotReset(self): #this function needs to be overriden by the classes who inherit from Plot1DFrame
         pass
 
