@@ -8,6 +8,7 @@ import copy
 from mpl_toolkits.mplot3d import Axes3D
 from mpl_toolkits.mplot3d import proj3d
 from spectrumFrame import Plot1DFrame
+import sys
 
 #########################################################################
 #the generic data class
@@ -34,7 +35,7 @@ class Spectrum(object):
             self.resetXax()
         else:
             self.xaxArray = xaxArray
-
+            
     def resetXax(self,axes=None):
         if axes is not None:
             val=[axes]

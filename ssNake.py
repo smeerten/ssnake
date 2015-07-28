@@ -30,7 +30,6 @@ from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 #------------
 from safeEval import safeEval
 from euro import euro
-import gc
 
 pi=math.pi
 
@@ -80,7 +79,6 @@ class MainProgram:
         x2=np.linspace(0,2*np.pi*10,200)[1:] #fake data
         test=np.exp(-1j*x)*np.exp(-1*x/10.0)#fake data
         test2=1-np.exp(-x2)
-        #self.masterData=sc.Spectrum(np.array([np.array([test,test*2,test*3]),np.array([test*3,test*4,test*5])]),[600000000.0,500000000.0,400000000.0],[1000.0,2000.0,3000.0])#create a Spectrum instance with the fake data
         masterData=sc.Spectrum(np.outer(test2,test),[600000000.0,500000000.0],[1000.0,2000.0])
         self.workspaces.append(Main1DWindow(self.root,self,masterData)) #create an instance to control the main window
         self.workspaceNames.append('name0')
@@ -139,7 +137,7 @@ class MainProgram:
             
     def destroyWorkspace(self, *args):
         self.mainWindow.removeFromView()
-        self.mainWindow.destroy()
+        self.mainWindow.kill()
         self.mainWindow = None
         del self.workspaceNames[self.workspaceNum]
         del self.workspaces[self.workspaceNum]
@@ -569,10 +567,15 @@ class Main1DWindow(Frame):
         Separator(self,orient=HORIZONTAL).grid(row=2,sticky='ew')
         self.textframe=TextFrame(self)
         self.textframe.grid(row=3,column=0,sticky='s')  
-
         self.rowconfigure(0, weight=1)
         self.grid_columnconfigure(0, weight=1)
         #all the functions that will be called from the menu and the extra frames
+
+    def kill(self):
+        self.destroy()
+        self.current.kill()
+        del self.masterData
+        del self.current
         
     def removeFromView(self):
         self.menubar.delete("Edit")
@@ -925,6 +928,7 @@ class Main1DWindow(Frame):
         self.current.grid_remove()
         tmpcurrent = sc.Current1D(self,self.masterData)
         self.current.kill()
+        del self.current
         self.current = tmpcurrent
         self.current.grid(row=0,column=0,sticky="nswe")
         self.updAllFrames()
@@ -934,7 +938,7 @@ class Main1DWindow(Frame):
             self.current.grid_remove()
             tmpcurrent = sc.CurrentStacked(self,self.masterData)
             self.current.kill()
-            gc.get_referrers(self.current)
+            del self.current
             self.current = tmpcurrent
             self.current.grid(row=0,column=0,sticky="nswe")
             self.updAllFrames()
@@ -946,6 +950,7 @@ class Main1DWindow(Frame):
             self.current.grid_remove()
             tmpcurrent = sc.CurrentArrayed(self,self.masterData)
             self.current.kill()
+            del self.current
             self.current = tmpcurrent
             self.current.grid(row=0,column=0,sticky="nswe")
             self.updAllFrames()
@@ -957,6 +962,7 @@ class Main1DWindow(Frame):
             self.current.grid_remove()
             tmpcurrent = sc.CurrentContour(self,self.masterData)
             self.current.kill()
+            del self.current
             self.current = tmpcurrent
             self.current.grid(row=0,column=0,sticky="nswe")
             self.updAllFrames()
@@ -968,6 +974,7 @@ class Main1DWindow(Frame):
             self.current.grid_remove()
             tmpcurrent = sc.CurrentSkewed(self,self.masterData)
             self.current.kill()
+            del self.current
             self.current = tmpcurrent
             self.current.grid(row=0,column=0,sticky="nswe")
             self.updAllFrames()
@@ -1434,7 +1441,6 @@ class TextFrame(Frame):
         self.deltaxpoint.set(str(0.0))
         self.deltaypoint = StringVar()   #y value of the get_position data point
         self.deltaypoint.set(str(0.0))
-        
         Button(self,text="get Position", command=self.getPosition).grid(row=0,column=0)
         Label(self,text="Position:").grid(row=0,column=1)
         Entry(self,textvariable=self.pos,justify='center').grid(row=0,column=2)
@@ -1768,7 +1774,7 @@ class SizeWindow(Toplevel): #a window for changing the size of the current dimen
         parent.menuDisable()
         #initialize variables for the widgets
         self.sizeVal = StringVar()
-        self.sizeVal.set(str(current.data1D.shape[-1]))
+        self.sizeVal.set(str(parent.current.data1D.shape[-1]))
         #create a new window
         Toplevel.__init__(self)
         self.parent = parent
@@ -1820,7 +1826,7 @@ class SwapEchoWindow(Toplevel): #a window for changing the size of the current d
         Toplevel.__init__(self)
         #initialize variables for the widgets
         self.posVal = StringVar()
-        self.posVal.set(str(int(round(0.5*len(current.data1D)))))
+        self.posVal.set(str(int(round(0.5*len(parent.current.data1D)))))
         self.parent = parent
         self.geometry('+0+0')
         self.transient(self.parent)
@@ -1941,9 +1947,9 @@ class DCWindow(Toplevel): #a window for shifting the data
         self.minVal = StringVar()
         self.minVal.set("0")
         self.maxVal = StringVar()
-        self.maxVal.set(str(current.data1D.shape[-1]))
+        self.maxVal.set(str(parent.current.data1D.shape[-1]))
         self.offsetVal = StringVar()
-        self.offsetVal.set('{:.2e}'.format(current.getdcOffset(0,current.data1D.shape[-1])))
+        self.offsetVal.set('{:.2e}'.format(parent.current.getdcOffset(0,parent.current.data1D.shape[-1])))
         self.parent = parent
         self.geometry('+0+0')
         self.transient(self.parent)
@@ -2049,7 +2055,7 @@ class regionWindow(Toplevel): #A general region selection frame
         self.minVal = StringVar()
         self.minVal.set("0")
         self.maxVal = StringVar()
-        self.maxVal.set(str(current.data1D.shape[-1]))
+        self.maxVal.set(str(parent.current.data1D.shape[-1]))
         self.parent = parent
         self.geometry('+0+0')
         self.transient(self.parent)

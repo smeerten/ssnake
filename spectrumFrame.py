@@ -12,8 +12,7 @@ if sys.version_info >= (3,0):
 else:
     from Tkinter import *
 import spectrum_classes
-import gc
-
+import weakref
 
 #########################################################################################################
 #the class from which the 1d data is displayed, the operations which only edit the content of this class are for previewing
@@ -30,7 +29,7 @@ class Plot1DFrame(Frame):
             self.ax = self.fig.add_subplot(1, 1, 1, projection='3d')
         else:
             self.ax = self.fig.add_subplot(111) 
-        self.canvas = FigureCanvasTkAgg(self.fig, master=self)
+        self.canvas = FigureCanvasTkAgg(self.fig, master=weakref.proxy(self))
         self.canvas.get_tk_widget().pack(fill=BOTH,expand=1)
         self.leftMouse = False        #is the left mouse button currently pressed
         self.panX = None              #start position of dragging the spectrum
@@ -55,9 +54,7 @@ class Plot1DFrame(Frame):
     def kill(self):
         plt.close(self.fig)
         self.destroy()
-        #gc.collect()
-        #print gc.get_referrers(self)
-        
+
     def plotReset(self): #this function needs to be overriden by the classes who inherit from Plot1DFrame
         pass
 
