@@ -606,6 +606,7 @@ class Main1DWindow(Frame):
         toolMenu.add_command(label="Swap Echo", command=self.createSwapEchoWindow)
         toolMenu.add_command(label="Shift Data", command=self.createShiftDataWindow)
         toolMenu.add_command(label="Offset correction", command=self.createDCWindow)
+        toolMenu.add_command(label="States", command=self.states)
         toolMenu.add_command(label="States-TPPI", command=self.statesTPPI)
         toolMenu.add_command(label="Correct Bruker digital filter", command=self.BrukerDigital)
         #toolMenu.add_command(label="LPSVD", command=self.LPSVD)
@@ -795,7 +796,12 @@ class Main1DWindow(Frame):
     def hilbert(self):
         self.redoList = []
         self.undoList.append(self.current.hilbert())
-
+        
+    def states(self):
+        self.redoList = []
+        self.undoList.append(self.current.states())
+        self.updAllFrames()
+        
     def statesTPPI(self):
         self.redoList = []
         self.undoList.append(self.current.statesTPPI())
@@ -1121,10 +1127,10 @@ class SideFrame(Frame):
                         self.entryVars[num].set(str(current.locList[num]))
                     elif (num == current.axes) or (num == current.axes2):
                         self.entryVars[num].set("0")
-                    elif (num > current.axes) or (num > current.axes2):
-                        self.entryVars[num].set(str(current.locList[num-1]))
-                    else:
+                    elif (num > current.axes) and (num > current.axes2):
                         self.entryVars[num].set(str(current.locList[num-2]))
+                    else:
+                        self.entryVars[num].set(str(current.locList[num-1]))
                 self.entries.append(Spinbox(self.frame1,textvariable=self.entryVars[num],from_=0,to=self.shape[num]-1,justify="center",command=lambda event=None,num=num: self.getSlice(event,num)))
                 self.entries[num].bind("<Return>", lambda event=None,num=num: self.getSlice(event,num)) 
                 self.entries[num].bind("<KP_Enter>", lambda event=None,num=num: self.getSlice(event,num)) 

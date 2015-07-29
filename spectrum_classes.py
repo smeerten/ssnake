@@ -121,7 +121,21 @@ class Spectrum(object):
         returnValue = lambda self: self.restoreData(copyData, lambda self: self.abs())
         self.data = np.abs(self.data)
         return returnValue
-
+    
+    def states(self,axes):
+        copyData=copy.deepcopy(self)
+        returnValue = lambda self: self.restoreData(copyData, lambda self: self.states(axes))
+        if self.data.shape[axes]%2 != 0:
+            print("data has to be even for States")
+            return None
+        tmpdata = np.real(self.data)
+        slicing1 = (slice(None),) * axes + (slice(None,None,2),) + (slice(None),)*(self.dim-1-axes)
+        slicing2 = (slice(None),) * axes + (slice(1,None,2),) + (slice(None),)*(self.dim-1-axes)
+        tmpdata = tmpdata[slicing1]+1j*tmpdata[slicing2]
+        self.data = tmpdata
+        self.resetXax(axes)
+        return returnValue
+    
     def statesTPPI(self,axes):
         copyData=copy.deepcopy(self)
         returnValue = lambda self: self.restoreData(copyData, lambda self: self.statesTPPI(axes))
@@ -154,7 +168,7 @@ class Spectrum(object):
         self.sw = np.delete(self.sw,axes)
         self.spec = np.delete(self.spec,axes)
         self.wholeEcho = np.delete(self.wholeEcho,axes)
-        self.xaxArray = np.delete(self.xaxArray,axes)
+        del self.xaxArray[axes]
         return returnValue
 
     def getRegion(self, pos1, pos2,axes):
@@ -478,6 +492,7 @@ class Current1D(Plot1DFrame):
         self.ref=updateVar[6]
         if self.ref == None:
             self.ref = self.freq
+        self.single = self.data1D.shape[-1]==1
 
     def setSlice(self,axes,locList): #change the slice 
         axesSame = True
@@ -788,7 +803,14 @@ class Current1D(Plot1DFrame):
         self.plotReset()
         self.showFid()
         return returnValue
-
+    
+    def states(self):
+        returnValue = self.data.states(self.axes)
+        self.upd()
+        self.plotReset()
+        self.showFid()
+        return returnValue
+    
     def statesTPPI(self):
         returnValue = self.data.statesTPPI(self.axes)
         self.upd()
@@ -986,25 +1008,53 @@ class Current1D(Plot1DFrame):
             axMult = 1000.0**self.axType
         if old:
             if (self.plotType==0):
-                self.ax.plot(self.xax*axMult+axAdd,np.real(self.data1D),c='k',alpha=0.2)
+                if self.single:
+                    self.ax.scatter(self.xax*axMult+axAdd,np.real(self.data1D),c='k',alpha=0.2)
+                else:
+                    self.ax.plot(self.xax*axMult+axAdd,np.real(self.data1D),c='k',alpha=0.2)
             elif(self.plotType==1):
-               self.ax.plot(self.xax*axMult+axAdd,np.imag(self.data1D),c='k',alpha=0.2)
+                if self.single:
+                    self.ax.scatter(self.xax*axMult+axAdd,np.imag(self.data1D),c='k',alpha=0.2)
+                else:
+                    self.ax.plot(self.xax*axMult+axAdd,np.imag(self.data1D),c='k',alpha=0.2)
             elif(self.plotType==2):
-              self.ax.plot(self.xax*axMult+axAdd,np.real(self.data1D),c='k',alpha=0.2)
+                if self.single:
+                    self.ax.scatter(self.xax*axMult+axAdd,np.real(self.data1D),c='k',alpha=0.2)
+                else:
+                    self.ax.plot(self.xax*axMult+axAdd,np.real(self.data1D),c='k',alpha=0.2)
             elif(self.plotType==3):
-               self.ax.plot(self.xax*axMult+axAdd,np.abs(self.data1D),c='k',alpha=0.2)
+                if self.single:
+                    self.ax.scatter(self.xax*axMult+axAdd,np.abs(self.data1D),c='k',alpha=0.2)
+                else:
+                    self.ax.plot(self.xax*axMult+axAdd,np.abs(self.data1D),c='k',alpha=0.2)
         if (extraX is not None):
             for num in range(len(extraX)):
-               self.ax.plot(extraX[num]*axMult+axAdd,extraY[num],c=extraColor[num])
+                if self.single:
+                    self.ax.scatter(extraX[num]*axMult+axAdd,extraY[num],c=extraColor[num])
+                else:
+                    self.ax.plot(extraX[num]*axMult+axAdd,extraY[num],c=extraColor[num])
         if (self.plotType==0):
-            self.line = self.ax.plot(self.xax*axMult+axAdd,np.real(tmpdata),c='b')
+            if self.single:
+                self.line = self.ax.scatter(self.xax*axMult+axAdd,np.real(tmpdata),c='b')
+            else:
+                self.line = self.ax.plot(self.xax*axMult+axAdd,np.real(tmpdata),c='b')
         elif(self.plotType==1):
-            self.line =self.ax.plot(self.xax*axMult+axAdd,np.imag(tmpdata),c='b')
+            if self.single:
+                self.line =self.ax.scatter(self.xax*axMult+axAdd,np.imag(tmpdata),c='b')
+            else:
+                self.line =self.ax.plot(self.xax*axMult+axAdd,np.imag(tmpdata),c='b')
         elif(self.plotType==2):
-            self.ax.plot(self.xax*axMult+axAdd,np.imag(tmpdata),c='r')
-            self.line = self.ax.plot(self.xax*axMult+axAdd,np.real(tmpdata),c='b')
+            if self.single:
+                self.ax.scatter(self.xax*axMult+axAdd,np.imag(tmpdata),c='r')
+                self.line = self.ax.scatter(self.xax*axMult+axAdd,np.real(tmpdata),c='b')
+            else:
+                self.ax.plot(self.xax*axMult+axAdd,np.imag(tmpdata),c='r')
+                self.line = self.ax.plot(self.xax*axMult+axAdd,np.real(tmpdata),c='b')
         elif(self.plotType==3):
-            self.line =self.ax.plot(self.xax*axMult+axAdd,np.abs(tmpdata),c='b')
+            if self.single:
+                self.line =self.ax.scatter(self.xax*axMult+axAdd,np.abs(tmpdata),c='b')
+            else:
+                self.line =self.ax.plot(self.xax*axMult+axAdd,np.abs(tmpdata),c='b')
         if self.spec==0:
             if self.axType == 0:
                 self.ax.set_xlabel('Time [s]')
@@ -1111,6 +1161,8 @@ class CurrentStacked(Current1D):
         return CurrentStacked(root,data,self)
         
     def upd(self): #get new data from the data instance
+        if (len(self.locList)+2) != self.data.dim:
+            self.resetLocList()
         updateVar = self.data.getBlock(self.axes,self.axes2,self.locList,self.stackBegin, self.stackEnd, self.stackStep)
         self.data1D = updateVar[0]
         self.freq = updateVar[1]
@@ -1129,6 +1181,7 @@ class CurrentStacked(Current1D):
             self.ref = self.freq
         if self.ref2 is None:
             self.ref2 = self.freq2
+        self.single = self.data1D.shape[-1]==1
 
     def setBlock(self,axes,axes2,locList,stackBegin=None,stackEnd=None,stackStep=None): #change the slice 
         self.axes = axes
@@ -1241,19 +1294,22 @@ class CurrentStacked(Current1D):
 
     def resetSpacing(self):
         difference = np.diff(self.data1D,axis=0)
-        if self.plotType==0:
-            difference = np.amax(np.real(difference))
-            amp = np.amax(np.real(self.data1D))-np.amin(np.real(self.data1D))
-        elif self.plotType==1:
-            difference = np.amax(np.imag(difference))
-            amp = np.amax(np.imag(self.data1D))-np.amin(np.imag(self.data1D))
-        elif self.plotType==2:
-            difference = np.amax((np.real(difference),np.imag(difference)))
-            amp = np.amax((np.real(self.data1D),np.imag(self.data1D)))-np.amin((np.real(self.data1D),np.imag(self.data1D)))
-        elif self.plotType==3:
-            difference = np.amax(np.abs(difference))
-            amp = np.amax(np.abs(self.data1D))-np.amin(np.abs(self.data1D))
-        self.spacing = difference + 0.1*amp   
+        if difference.size == 0:
+            self.spacing = 0
+        else:
+            if self.plotType==0:
+                difference = np.amax(np.real(difference))
+                amp = np.amax(np.real(self.data1D))-np.amin(np.real(self.data1D))
+            elif self.plotType==1:
+                difference = np.amax(np.imag(difference))
+                amp = np.amax(np.imag(self.data1D))-np.amin(np.imag(self.data1D))
+            elif self.plotType==2:
+                difference = np.amax((np.real(difference),np.imag(difference)))
+                amp = np.amax((np.real(self.data1D),np.imag(self.data1D)))-np.amin((np.real(self.data1D),np.imag(self.data1D)))
+            elif self.plotType==3:
+                difference = np.amax(np.abs(difference))
+                amp = np.amax(np.abs(self.data1D))-np.amin(np.abs(self.data1D))
+            self.spacing = difference + 0.1*amp   
 
     def showFid(self, tmpdata=None, extraX=None, extraY=None, extraColor=None,old=False): #display the 1D data
         if tmpdata is None:
@@ -1271,44 +1327,56 @@ class CurrentStacked(Current1D):
         if old:
             if (self.plotType==0):
                 for num in range(len(self.data1D)):
-                    self.ax.plot(self.xax*axMult+axAdd,num*self.spacing+np.real(self.data1D[num]),c='k',alpha=0.2)
+                    if self.single:
+                        self.ax.scatter(self.xax*axMult+axAdd,num*self.spacing+np.real(self.data1D[num]),c='k',alpha=0.2)
+                    else:
+                        self.ax.plot(self.xax*axMult+axAdd,num*self.spacing+np.real(self.data1D[num]),c='k',alpha=0.2)
             elif(self.plotType==1):
                 for num in range(len(self.data1D)):
-                    self.ax.plot(self.xax*axMult+axAdd,num*self.spacing+np.imag(self.data1D[num]),c='k',alpha=0.2)
+                    if self.single:
+                        self.ax.scatter(self.xax*axMult+axAdd,num*self.spacing+np.imag(self.data1D[num]),c='k',alpha=0.2)
+                    else:
+                        self.ax.plot(self.xax*axMult+axAdd,num*self.spacing+np.imag(self.data1D[num]),c='k',alpha=0.2)
             elif(self.plotType==2):
                 for num in range(len(self.data1D)):
-                    self.ax.plot(self.xax*axMult+axAdd,num*self.spacing+np.real(self.data1D[num]),c='k',alpha=0.2)
+                    if self.single:
+                        self.ax.scatter(self.xax*axMult+axAdd,num*self.spacing+np.real(self.data1D[num]),c='k',alpha=0.2)
+                    else:
+                        self.ax.plot(self.xax*axMult+axAdd,num*self.spacing+np.real(self.data1D[num]),c='k',alpha=0.2)
             elif(self.plotType==3):
                 for num in range(len(self.data1D)):
-                    self.ax.plot(self.xax*axMult+axAdd,num*self.spacing+np.abs(self.data1D[num]),c='k',alpha=0.2)
+                    if self.single:
+                        self.ax.scatter(self.xax*axMult+axAdd,num*self.spacing+np.abs(self.data1D[num]),c='k',alpha=0.2)
+                    else:
+                        self.ax.plot(self.xax*axMult+axAdd,num*self.spacing+np.abs(self.data1D[num]),c='k',alpha=0.2)
         if (extraX is not None):
             for num in range(len(extraY)):
-                self.ax.plot(extraX[0]*axMult+axAdd,num*self.spacing+extraY[num],c=extraColor[0])
+                if self.single:
+                    self.ax.scatter(extraX[0]*axMult+axAdd,num*self.spacing+extraY[num],c=extraColor[0])
+                else:
+                    self.ax.plot(extraX[0]*axMult+axAdd,num*self.spacing+extraY[num],c=extraColor[0])
         if (self.plotType==0):
-            for num in range(len(tmpdata)):
-                if num is 0:
-                    self.line = self.ax.plot(self.xax*axMult+axAdd,num*self.spacing+np.real(tmpdata[num]),c='b')
-                else:
-                    self.ax.plot(self.xax*axMult+axAdd,num*self.spacing+np.real(tmpdata[num]),c='b')
-        elif(self.plotType==1):
-            for num in range(len(tmpdata)):
-                if num is 0:
-                    self.line = self.ax.plot(self.xax*axMult+axAdd,num*self.spacing+np.imag(tmpdata[num]),c='b')
-                else:
-                    self.ax.plot(self.xax*axMult+axAdd,num*self.spacing+np.imag(tmpdata[num]),c='b')
-        elif(self.plotType==2):
-            for num in range(len(tmpdata)):
-                self.ax.plot(self.xax*axMult+axAdd,num*self.spacing+np.imag(tmpdata[num]),c='r')
-                if num is 0:
-                    self.line = self.ax.plot(self.xax*axMult+axAdd,num*self.spacing+np.real(tmpdata[num]),c='b')
-                else:
-                    self.ax.plot(self.xax*axMult+axAdd,num*self.spacing+np.real(tmpdata[num]),c='b')
+            tmpdata = np.real(tmpdata)
+        elif (self.plotType==1):
+            tmpdata = np.imag(tmpdata)
         elif(self.plotType==3):
+            tmpdata = np.abs(tmpdata)
+        if self.single:
             for num in range(len(tmpdata)):
+                if (self.plotType==2):
+                    self.ax.scatter(self.xax*axMult+axAdd,num*self.spacing+np.imag(tmpdata[num]),c='r')
                 if num is 0:
-                    self.line = self.ax.plot(self.xax*axMult+axAdd,num*self.spacing+np.abs(tmpdata[num]),c='b')
+                    self.line = self.ax.scatter(self.xax*axMult+axAdd,num*self.spacing+np.real(tmpdata[num]),c='b')
                 else:
-                    self.ax.plot(self.xax*axMult+axAdd,num*self.spacing+np.abs(tmpdata[num]),c='b')
+                    self.ax.scatter(self.xax*axMult+axAdd,num*self.spacing+np.real(tmpdata[num]),c='b')
+        else:
+            for num in range(len(tmpdata)):
+                if (self.plotType==2):
+                    self.ax.plot(self.xax*axMult+axAdd,num*self.spacing+np.imag(tmpdata[num]),c='r')
+                if num is 0:
+                    self.line = self.ax.plot(self.xax*axMult+axAdd,num*self.spacing+np.real(tmpdata[num]),c='b')
+                else:
+                    self.ax.plot(self.xax*axMult+axAdd,num*self.spacing+np.real(tmpdata[num]),c='b')  
         if self.spec==0:
             if self.axType == 0:
                 self.ax.set_xlabel('Time [s]')
@@ -1415,6 +1483,8 @@ class CurrentArrayed(Current1D):
         return CurrentArrayed(root,data,self)
         
     def upd(self): #get new data from the data instance
+        if (len(self.locList)+2) != self.data.dim:
+            self.resetLocList()
         updateVar = self.data.getBlock(self.axes,self.axes2,self.locList,self.stackBegin, self.stackEnd, self.stackStep)
         self.data1D = updateVar[0]
         self.freq = updateVar[1]
@@ -1433,6 +1503,7 @@ class CurrentArrayed(Current1D):
             self.ref = self.freq
         if self.ref2 is None:
             self.ref2 = self.freq2
+        self.single = self.data1D.shape[-1]==1
  
     def setBlock(self,axes,axes2,locList,stackBegin=None,stackEnd=None,stackStep=None): #change the slice 
         self.axes = axes
@@ -1564,35 +1635,42 @@ class CurrentArrayed(Current1D):
             axMult = 1000.0**self.axType
         if old:
             if (self.plotType==0):
-                for num in range(len(self.data1D)):
-                    self.ax.plot((num*self.spacing+self.xax)*axMult+axAdd,np.real(self.data1D[num])[direc],c='k',alpha=0.2)
+                oldData = np.real(self.data1D)
             elif(self.plotType==1):
-                for num in range(len(self.data1D)):
-                    self.ax.plot((num*self.spacing+self.xax)*axMult+axAdd,np.imag(self.data1D[num])[direc],c='k',alpha=0.2)
+                oldData = np.imag(self.data1D)
             elif(self.plotType==2):
-                for num in range(len(self.data1D)):
-                    self.ax.plot((num*self.spacing+self.xax)*axMult+axAdd,np.real(self.data1D[num])[direc],c='k',alpha=0.2)
+                oldData = np.real(self.data1D)
             elif(self.plotType==3):
-                for num in range(len(self.data1D)):
-                    self.ax.plot((num*self.spacing+self.xax)*axMult+axAdd,np.abs(self.data1D[num])[direc],c='k',alpha=0.2)
+                oldData = np.abs(self.data1D)
+            for num in range(len(self.data1D)):
+                if self.single:
+                    self.ax.scatter((num*self.spacing+self.xax)*axMult+axAdd,oldData[num][direc],c='k',alpha=0.2)
+                else:
+                    self.ax.plot((num*self.spacing+self.xax)*axMult+axAdd,oldData[num][direc],c='k',alpha=0.2)
         if (extraX is not None):
             for num in range(len(extraY)):
-                self.ax.plot((num*self.spacing+extraX[0])*axMult+axAdd,extraY[num][direc],c=extraColor[0])
-
+                if self.single:
+                    self.ax.scatter((num*self.spacing+extraX[0])*axMult+axAdd,extraY[num][direc],c=extraColor[0])
+                else:
+                    self.ax.plot((num*self.spacing+extraX[0])*axMult+axAdd,extraY[num][direc],c=extraColor[0])
         self.line = []
         if (self.plotType==0):
-            for num in range(len(tmpdata)):
-                self.line.append(self.ax.plot((num*self.spacing+self.xax)*axMult,np.real(tmpdata[num])[direc],c='b')[0])
+            tmpdata = np.real(tmpdata)
         elif(self.plotType==1):
-            for num in range(len(tmpdata)):
-                self.line.append(self.ax.plot((num*self.spacing+self.xax)*axMult,np.imag(tmpdata[num])[direc],c='b')[0])
-        elif(self.plotType==2):
-            for num in range(len(tmpdata)):
-                self.ax.plot((num*self.spacing+self.xax)*axMult,np.imag(tmpdata[num])[direc],c='r')
-                self.line.append(self.ax.plot((num*self.spacing+self.xax)*axMult,np.real(tmpdata[num])[direc],c='b')[0])
+            tmpdata = np.imag(tmpdata)
         elif(self.plotType==3):
+            tmpdata = np.abs(tmpdata)
+        if self.single:
             for num in range(len(tmpdata)):
-                self.line.append(self.ax.plot((num*self.spacing+self.xax)*axMult,np.abs(tmpdata[num])[direc],c='b')[0])
+                if (self.plotType==2):
+                    self.ax.scatter((num*self.spacing+self.xax)*axMult,np.imag(tmpdata[num])[direc],c='r')
+                self.line.append(self.ax.scatter((num*self.spacing+self.xax)*axMult,np.real(tmpdata[num])[direc],c='b')[0])
+        else:
+            for num in range(len(tmpdata)):
+                if (self.plotType==2):
+                    self.ax.plot((num*self.spacing+self.xax)*axMult,np.imag(tmpdata[num])[direc],c='r')
+                self.line.append(self.ax.plot((num*self.spacing+self.xax)*axMult,np.real(tmpdata[num])[direc],c='b')[0])
+        
         if self.spec==0:
             if self.axType == 0:
                 self.ax.set_xlabel('Time [s]')
@@ -1695,6 +1773,8 @@ class CurrentContour(Current1D):
         return CurrentContour(root,data,self)
         
     def upd(self): #get new data from the data instance
+        if (len(self.locList)+2) != self.data.dim:
+            self.resetLocList()
         updateVar = self.data.getBlock(self.axes,self.axes2,self.locList)
         self.data1D = updateVar[0]
         self.freq = updateVar[1]
@@ -1713,6 +1793,7 @@ class CurrentContour(Current1D):
             self.ref = self.freq
         if self.ref2 is None:
             self.ref2 = self.freq2
+        self.single = self.data1D.shape[-1]==1
 
     def setBlock(self,axes,axes2,locList): #change the slice 
         self.axes = axes
@@ -2044,6 +2125,8 @@ class CurrentSkewed(Current1D):
         return CurrentSkewed(root,data,self)
     
     def upd(self): #get new data from the data instance
+        if (len(self.locList)+2) != self.data.dim:
+            self.resetLocList()
         updateVar = self.data.getBlock(self.axes,self.axes2,self.locList,self.stackBegin, self.stackEnd, self.stackStep)
         self.data1D = updateVar[0]
         self.freq = updateVar[1]
@@ -2062,6 +2145,7 @@ class CurrentSkewed(Current1D):
             self.ref = self.freq
         if self.ref2 is None:
             self.ref2 = self.freq2
+        self.single = self.data1D.shape[-1]==1
  
     def setBlock(self,axes,axes2,locList,stackBegin=None,stackEnd=None,stackStep=None): #change the slice 
         self.axes = axes
