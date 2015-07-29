@@ -69,6 +69,14 @@ class Spectrum(object):
             print('Cannot delete all data')
             return None
 
+    def add(self,data):
+        self.data = self.data + data
+        return lambda self: self.subtract(data)
+        
+    def subtract(self,data):
+        self.data = self.data - data
+        return lambda self: self.add(data)
+
     def concatenate(self,axes):
         splitVal = self.data.shape[axes]
         self.data = np.concatenate(self.data,axis=axes)
@@ -836,6 +844,20 @@ class Current1D(Plot1DFrame):
         if (np.array(self.data1D.shape) != 0).all():
             self.showFid()
         self.upd()
+    
+    def add(self,data):
+        returnValue = self.data.add(data)
+        self.upd()
+        self.plotReset()
+        self.showFid()
+        return returnValue
+        
+    def subtract(self,data):
+        returnValue = self.data.subtract(data)
+        self.upd()
+        self.plotReset()
+        self.showFid()
+        return returnValue
     
     def getRegion(self,pos1,pos2): #set the frequency of the actual data
         returnValue = self.data.getRegion(pos1,pos2,self.axes)

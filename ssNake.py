@@ -647,6 +647,8 @@ class Main1DWindow(Frame):
         combineMenu = Menu(self.menubar, tearoff=0)
         self.menubar.add_cascade(label="Combine",menu=combineMenu)
         combineMenu.add_command(label="Insert from workspace", command=self.createInsertWindow)
+        combineMenu.add_command(label="Add", command=self.createAddWindow)
+        combineMenu.add_command(label="Subtract", command=self.createSubtractWindow)
 
 	#the plot drop down menu
         plotMenu = Menu(self.menubar, tearoff=0)
@@ -851,6 +853,12 @@ class Main1DWindow(Frame):
         
     def createInsertWindow(self):
         InsertWindow(self)
+        
+    def createAddWindow(self):
+        AddWindow(self)
+        
+    def createSubtractWindow(self):
+        SubtractWindow(self)
         
     def createShearingWindow(self):
         if self.masterData.dim > 1:
@@ -1462,11 +1470,11 @@ class TextFrame(Frame):
             child.configure(state='disabled')
         
     def setLabels(self,position):
-        self.deltaxpoint.set('%.3e' % np.abs(self.oldx-position[1]))
-        self.deltaypoint.set('%.3e' % np.abs(self.oldy-position[2]))
+        self.deltaxpoint.set('%.3g' % np.abs(self.oldx-position[1]))
+        self.deltaypoint.set('%.3g' % np.abs(self.oldy-position[2]))
         self.pos.set(str(position[0]))
-        self.xpoint.set('%.3e' % position[1])
-        self.ypoint.set('%.3e' % position[2])
+        self.xpoint.set('%.3g' % position[1])
+        self.ypoint.set('%.3g' % position[2])
         self.oldx = position[1]
         self.oldy = position[2]
 
@@ -1588,6 +1596,8 @@ class PhaseWindow(Toplevel): #a window for phasing the data
         self.destroy()
 
     def applyPhaseAndClose(self):
+        self.inputZeroOrder()
+        self.inputFirstOrder()
         self.parent.redoList = []
         self.parent.undoList.append(self.parent.current.applyPhase(np.pi*self.zeroVal/180.0,np.pi*self.firstVal/180.0))
         self.parent.menuEnable()
@@ -2400,6 +2410,76 @@ class InsertWindow(Toplevel):
         self.destroy()
 
 ##############################################################
+class AddWindow(Toplevel):
+    def __init__(self, parent):
+        parent.menuDisable()
+        Toplevel.__init__(self)
+        self.parent = parent
+        self.geometry('+0+0')
+        self.transient(self.parent)
+        self.protocol("WM_DELETE_WINDOW", self.cancelAndClose)
+        self.title("Add")
+        self.resizable(width=FALSE, height=FALSE)
+        #initialize variables for the widgets
+        self.ws = StringVar()
+        self.ws.set(self.parent.mainProgram.workspaceNames[0])
+        self.frame1 = Frame(self)
+        self.frame1.grid(row=0)
+        Label(self.frame1,text="Workspace to add").grid(row=0,column=0)
+        OptionMenu(self.frame1,self.ws,self.parent.mainProgram.workspaceNames[0],*self.parent.mainProgram.workspaceNames).grid(row=1,column=0)
+        self.frame2 = Frame(self)
+        self.frame2.grid(row=1)
+        Button(self.frame2, text="Apply",command=self.applyAndClose).grid(row=0,column=0)
+        Button(self.frame2, text="Cancel",command=self.cancelAndClose).grid(row=0,column=1)
+        
+    def applyAndClose(self):
+        ws = self.parent.mainProgram.workspaceNames.index(self.ws.get())
+        self.parent.redoList = []
+        self.parent.undoList.append(self.parent.current.add(self.parent.mainProgram.workspaces[ws].masterData.data))
+        self.parent.menuEnable()
+        self.parent.sideframe.upd()
+        self.destroy()
+        
+    def cancelAndClose(self):
+        self.parent.menuEnable()
+        self.destroy()
+        
+##############################################################
+class SubtractWindow(Toplevel):
+    def __init__(self, parent):
+        parent.menuDisable()
+        Toplevel.__init__(self)
+        self.parent = parent
+        self.geometry('+0+0')
+        self.transient(self.parent)
+        self.protocol("WM_DELETE_WINDOW", self.cancelAndClose)
+        self.title("Subtract")
+        self.resizable(width=FALSE, height=FALSE)
+        #initialize variables for the widgets
+        self.ws = StringVar()
+        self.ws.set(self.parent.mainProgram.workspaceNames[0])
+        self.frame1 = Frame(self)
+        self.frame1.grid(row=0)
+        Label(self.frame1,text="Workspace to subtract").grid(row=0,column=0)
+        OptionMenu(self.frame1,self.ws,self.parent.mainProgram.workspaceNames[0],*self.parent.mainProgram.workspaceNames).grid(row=1,column=0)
+        self.frame2 = Frame(self)
+        self.frame2.grid(row=1)
+        Button(self.frame2, text="Apply",command=self.applyAndClose).grid(row=0,column=0)
+        Button(self.frame2, text="Cancel",command=self.cancelAndClose).grid(row=0,column=1)
+        
+    def applyAndClose(self):
+        ws = self.parent.mainProgram.workspaceNames.index(self.ws.get())
+        self.parent.redoList = []
+        self.parent.undoList.append(self.parent.current.subtract(self.parent.mainProgram.workspaces[ws].masterData.data))
+        self.parent.menuEnable()
+        self.parent.sideframe.upd()
+        self.destroy()
+        
+    def cancelAndClose(self):
+        self.parent.menuEnable()
+        self.destroy()
+
+##############################################################
 class SNWindow(Toplevel):
     def __init__(self, parent):
         parent.menuDisable()
@@ -2807,11 +2887,11 @@ class RefWindow(Toplevel): #a window for setting the ppm reference
 #the main program
 if __name__ == "__main__":
     root = Tk()
+    img = tk.PhotoImage(file=os.path.dirname(os.path.realpath(__file__))+'/logo.gif')
+    root.tk.call('wm', 'iconphoto', root._w, img)
     MainProgram(root)
     root.title("ssNake") 
     root.style = Style()
     root.style.theme_use("clam")
-    img = tk.PhotoImage(file=os.path.dirname(os.path.realpath(__file__))+'/logo.gif')
-    root.tk.call('wm', 'iconphoto', root._w, img)
     #root.attributes('-zoomed', True)
     root.mainloop()
