@@ -58,13 +58,13 @@ class MainProgram:
         #the load drop down menu
         loadmenu = Menu(self.filemenu, tearoff=0)
         self.filemenu.add_cascade(label="Load", menu=loadmenu)
-        loadmenu.add_command(label="Varian", command=self.LoadVarianFile)
-        loadmenu.add_command(label="Bruker Topspin/XWinNMR", command=self.LoadBrukerTopspin)
-        loadmenu.add_command(label="Chemagnetics", command=self.LoadChemFile)
-        loadmenu.add_command(label="Magritek", command=self.LoadMagritek)
-        loadmenu.add_command(label="Simpson", command=self.LoadSimpsonFile)
-        loadmenu.add_command(label="JSON", command=self.loadJSONFile)
-        loadmenu.add_command(label="MATLAB", command=self.loadMatlabFile)
+        loadmenu.add_command(label="Varian", command=lambda : self.loading(0))
+        loadmenu.add_command(label="Bruker Topspin/XWinNMR", command=lambda : self.loading(1))
+        loadmenu.add_command(label="Chemagnetics", command=lambda : self.loading(2))
+        loadmenu.add_command(label="Magritek", command=lambda : self.loading(3))
+        loadmenu.add_command(label="Simpson", command=lambda : self.loading(4))
+        loadmenu.add_command(label="JSON", command=lambda : self.loading(5))
+        loadmenu.add_command(label="MATLAB", command=lambda : self.loading(6))
 
         #the save drop down menu
         savemenu = Menu(self.filemenu, tearoff=0)
@@ -79,7 +79,7 @@ class MainProgram:
         x2=np.linspace(0,2*np.pi*10,200)[1:] #fake data
         test=np.exp(-1j*x)*np.exp(-1*x/10.0)#fake data
         test2=1-np.exp(-x2)
-        masterData=sc.Spectrum(np.outer(test2,test),[600000000.0,500000000.0],[1000.0,2000.0])
+        masterData=sc.Spectrum(np.outer(test2,test),None,[600000000.0,500000000.0],[1000.0,2000.0])
         self.workspaces.append(Main1DWindow(self.root,self,masterData)) #create an instance to control the main window
         self.workspaceNames.append('name0')
         self.workspacemenu = Menu(self.menubar, tearoff=0)
@@ -156,89 +156,102 @@ class MainProgram:
         self.workspaceVar.set(var)
         for i in self.workspaceNames:
             self.activemenu.add_radiobutton(label=i,variable=self.workspaceVar,value=i,command=lambda i=i: self.changeMainWindow(i))
-        
-    def LoadVarianFile(self):
-        FilePath = askopenfilename()
-        if FilePath is not '': #if not canceled
-            Dir = os.path.dirname(FilePath) #convert path to file to path of folder
-            #Extract Procpar data if it exist------------------------
-            #Initilize standard values
-            freq = 300e6
-            sw   = 50e3
-            sw1  = 50e3
-            if os.path.exists(Dir+os.path.sep+'procpar'):
-                with open(Dir+os.path.sep+'procpar', 'r') as f: #read entire procfile (data[0] gives first line)
-                    data = f.read().split('\n')
-                for s in range(0,len(data)): #exctract info from procpar
-                    if data[s].startswith('sfrq '):
-                        freq=float(data[s+1].split()[1])*1e6 #convert to MHz
-                    elif data[s].startswith('sw '):
-                        sw=float(data[s+1].split()[1])
-                    elif data[s].startswith('sw1 '):
-                        sw1=float(data[s+1].split()[1])
-            else:
-                print(Dir+os.path.sep+'procpar does not exits, used standard sw and freq')
-            #Get fid data----------------------------- 
-            if os.path.exists(Dir+os.path.sep+'fid'):    
-                try:
-                    with open(Dir+os.path.sep+'fid', "rb") as f:
-                        raw = np.fromfile(f, np.int32,6) #read 6 steps, 32 bits
-                        nblocks = unpack('>l', raw[0])[0] #unpack bitstring using bigendian and as LONG interger
-                        ntraces = unpack('>l', raw[1])[0]
-                        npoints = unpack('>l', raw[2])[0]
-                        ebytes = unpack('>l', raw[3])[0]
-                        tbytes = unpack('>l', raw[4])[0]
-                        bbytes = unpack('>l', raw[5])[0]
-                        raw = np.fromfile(f, np.int16,2) #16bit, 2 steps
-                        vers_id = unpack('>h', raw[0])[0] #bigendian short
-                        status = unpack('>h', raw[1])[0]
-                        raw = np.fromfile(f, np.int32,1) 
-                        nbheaders = unpack('>l', raw[0])[0]
-                        SizeTD2 = npoints
-                        SizeTD1 = nblocks*ntraces
-                        a = []
-                        fid32 = bin(status)[-3] #check if 32 bits, or float
-                        fidfloat = bin(status)[-4]
-                        for iter1 in range(0,nblocks): #now read all blocks
-                            b = []
-                            for iter2 in range(0,nbheaders):
-                                raw = np.fromfile(f, np.int16,nbheaders*14)
-                            if not fid32 and not fidfloat:
-                                raw = np.fromfile(f, np.int16,ntraces*npoints)
-                                for iter3 in raw:
-                                    b.append(unpack('>h', iter3)[0])
-                            elif fid32 and not fidfloat:
-                                raw = np.fromfile(f, np.int32,ntraces*npoints)
-                                for iter3 in raw:
-                                    b.append(unpack('>l', iter3)[0])
-                            else:
-                                raw = np.fromfile(f, np.float32,ntraces*npoints)
-                                for iter3 in raw:
-                                    b.append(unpack('>f', iter3)[0])
-                            b=np.array(b)
-                            if(len(b) != ntraces*npoints):
-                                b.append(np.zeros(ntraces*npoints-len(b)))
-                            a.append(b)
-                    a=np.complex128(a)
-                    fid = a[:,::2]-1j*a[:,1::2]
-                    if SizeTD1 is 1: #convert to 1D dat if the data is 1D (so no 1xnp data, but np)
-                        fid = fid[0][:]
-                        masterData=sc.Spectrum(fid,[freq],[sw])
-                    else: #For 2D data
-                        masterData=sc.Spectrum(fid,[freq]*2,[sw]*2)
-                    name = self.askName()
-                    self.workspaces.append(Main1DWindow(self.root,self,masterData))
-                    self.workspaceNames.append(name)
-                    self.changeMainWindow(name)
-                except:
-                    print('Error loading Varian data from '+Dir+os.path.sep+'fid. No data loaded!')
-            else: #If /fid does not exist
-                print(Dir+os.path.sep+'fid does not exits, no Varian data loaded!')
 
-    def loadJSONFile(self):
+    def loading(self,num):
         filePath = askopenfilename()
-        if not filePath:
+        if len(filePath)==0:
             return
+        name = self.askName()
+        if name is None:
+            return
+        if num==0:
+            masterData = self.LoadVarianFile(filePath)
+        elif num==1:
+            masterData = self.LoadBrukerTopspin(filePath)
+        elif num==2:
+            masterData = self.LoadChemFile(filePath)
+        elif num==3:
+            masterData = self.LoadMagritek(filePath)
+        elif num==4:
+            masterData = self.LoadSimpsonFile(filePath)
+        elif num==5:
+            masterData = self.loadJSONFile(filePath)
+        elif num==6:
+            masterData = self.loadMatlabFile(filePath)
+        if masterData is not None:
+            self.workspaces.append(Main1DWindow(self.root,self,masterData))
+            self.workspaceNames.append(name)
+            self.changeMainWindow(name)
+            
+    def LoadVarianFile(self,filePath):
+        Dir = os.path.dirname(filePath) #convert path to file to path of folder
+        #Extract Procpar data if it exist------------------------
+        #Initilize standard values
+        freq = 300e6
+        sw   = 50e3
+        sw1  = 50e3
+        if os.path.exists(Dir+os.path.sep+'procpar'):
+            with open(Dir+os.path.sep+'procpar', 'r') as f: #read entire procfile (data[0] gives first line)
+                data = f.read().split('\n')
+            for s in range(0,len(data)): #exctract info from procpar
+                if data[s].startswith('sfrq '):
+                    freq=float(data[s+1].split()[1])*1e6 #convert to MHz
+                elif data[s].startswith('sw '):
+                    sw=float(data[s+1].split()[1])
+                elif data[s].startswith('sw1 '):
+                    sw1=float(data[s+1].split()[1])
+        else:
+            print(Dir+os.path.sep+'procpar does not exits, used standard sw and freq')
+        #Get fid data----------------------------- 
+        if os.path.exists(Dir+os.path.sep+'fid'):    
+            with open(Dir+os.path.sep+'fid', "rb") as f:
+                raw = np.fromfile(f, np.int32,6) #read 6 steps, 32 bits
+                nblocks = unpack('>l', raw[0])[0] #unpack bitstring using bigendian and as LONG interger
+                ntraces = unpack('>l', raw[1])[0]
+                npoints = unpack('>l', raw[2])[0]
+                ebytes = unpack('>l', raw[3])[0]
+                tbytes = unpack('>l', raw[4])[0]
+                bbytes = unpack('>l', raw[5])[0]
+                raw = np.fromfile(f, np.int16,2) #16bit, 2 steps
+                vers_id = unpack('>h', raw[0])[0] #bigendian short
+                status = unpack('>h', raw[1])[0]
+                raw = np.fromfile(f, np.int32,1) 
+                nbheaders = unpack('>l', raw[0])[0]
+                SizeTD2 = npoints
+                SizeTD1 = nblocks*ntraces
+                a = []
+                fid32 = bin(status)[-3] #check if 32 bits, or float
+                fidfloat = bin(status)[-4]
+                for iter1 in range(0,nblocks): #now read all blocks
+                    b = []
+                    for iter2 in range(0,nbheaders):
+                        raw = np.fromfile(f, np.int16,nbheaders*14)
+                    if not fid32 and not fidfloat:
+                        raw = np.fromfile(f, np.int16,ntraces*npoints)
+                        for iter3 in raw:
+                            b.append(unpack('>h', iter3)[0])
+                    elif fid32 and not fidfloat:
+                        raw = np.fromfile(f, np.int32,ntraces*npoints)
+                        for iter3 in raw:
+                            b.append(unpack('>l', iter3)[0])
+                    else:
+                        raw = np.fromfile(f, np.float32,ntraces*npoints)
+                        for iter3 in raw:
+                            b.append(unpack('>f', iter3)[0])
+                b=np.array(b)
+                if(len(b) != ntraces*npoints):
+                    b.append(np.zeros(ntraces*npoints-len(b)))
+                a.append(b)
+        a=np.complex128(a)
+        fid = a[:,::2]-1j*a[:,1::2]
+        if SizeTD1 is 1: #convert to 1D dat if the data is 1D (so no 1xnp data, but np)
+            fid = fid[0][:]
+            masterData=sc.Spectrum(fid,lambda self :self.LoadVarianFile(filePath),[freq],[sw])
+        else: #For 2D data
+            masterData=sc.Spectrum(fid,lambda self :self.LoadVarianFile(filePath),[freq]*2,[sw]*2)
+        return masterData
+
+    def loadJSONFile(self,filePath):
         with open(filePath, 'r') as inputfile:
             struct = json.load(inputfile)
         data = np.array(struct['dataReal']) + 1j * np.array(struct['dataImag'])
@@ -246,18 +259,10 @@ class MainProgram:
         xaxA = []
         for i in struct['xaxArray']:
             xaxA.append(np.array(i))
-        masterData=sc.Spectrum(data,list(struct['freq']),list(struct['sw']),list(struct['spec']),list(struct['wholeEcho']),list(ref),xaxA)
-        name = self.askName()
-        if not name:
-            return
-        self.workspaces.append(Main1DWindow(self.root,self,masterData))
-        self.workspaceNames.append(name)
-        self.changeMainWindow(name)
+        masterData=sc.Spectrum(data,lambda self :self.loadJSONFile(filePath),list(struct['freq']),list(struct['sw']),list(struct['spec']),list(struct['wholeEcho']),list(ref),xaxA)
+        return masterData
         
-    def loadMatlabFile(self):
-        filePath = askopenfilename()
-        if not filePath:
-            return
+    def loadMatlabFile(self,filePath):
         matlabStruct = scipy.io.loadmat(filePath)
         var = [k for k in matlabStruct.keys() if not k.startswith('__')][0]
         mat = matlabStruct[var]
@@ -265,245 +270,210 @@ class MainProgram:
         #insert some checks for data type
         ref = mat['ref'][0,0][0]
         ref = np.where(np.isnan(ref), None, ref)
-        masterData=sc.Spectrum(mat['data'][0,0],list(mat['freq'][0,0][0]),list(mat['sw'][0,0][0]),list(mat['spec'][0,0][0]),list(np.array(mat['wholeEcho'][0,0][0])>0),list(ref),xaxA)
-        name = self.askName()
-        if not name:
-            return
-        self.workspaces.append(Main1DWindow(self.root,self,masterData))
-        self.workspaceNames.append(name)
-        self.changeMainWindow(name)
+        masterData=sc.Spectrum(mat['data'][0,0],lambda self :self.loadMatlabFile(filePath),list(mat['freq'][0,0][0]),list(mat['sw'][0,0][0]),list(mat['spec'][0,0][0]),list(np.array(mat['wholeEcho'][0,0][0])>0),list(ref),xaxA)
+        return masterData
         
-    def LoadBrukerTopspin(self):
-        FilePath = askopenfilename()
-        if FilePath is not '': #if not canceled
-            Dir = os.path.dirname(FilePath) #convert path to file to path of folder
-            if os.path.exists(Dir+os.path.sep+'acqus'):
-                with open(Dir+os.path.sep+'acqus', 'r') as f: 
-                    data = f.read().split('\n')
-                for s in range(0,len(data)): #exctract info from acqus
-                    if data[s].startswith('##$TD='):
-                        sizeTD2 = int(data[s][6:])
-                    if data[s].startswith('##$SFO1='):
-                        freq2 = float(data[s][8:])*1e6
-                    if data[s].startswith('##$SW_h='):
-                        SW2 = float(data[s][8:])
-                    if data[s].startswith('##$BYTORDA='):
-                        ByteOrder = int(data[s][11:]) #1 little endian, 0 big endian 
-            sizeTD1=1 #Preset to one           
-            if os.path.exists(Dir+os.path.sep+'acqu2s'): #read 2d pars if available
-                with open(Dir+os.path.sep+'acqu2s', 'r') as f: 
-                    data2 = f.read().split('\n')
-                for s in range(0,len(data2)): #exctract info from acqus
-                    if data2[s].startswith('##$TD='):
-                        sizeTD1 = int(data2[s][6:])
-                    if data2[s].startswith('##$SFO1='):
-                        freq1 = float(data2[s][8:])*1e6
-                    if data2[s].startswith('##$SW_h='):
-                        SW1 = float(data2[s][8:])
-            if os.path.exists(Dir+os.path.sep+'fid'):
-                with open(Dir+os.path.sep+'fid', "rb") as f:            
-                    raw = np.fromfile(f, np.int32,sizeTD1*sizeTD2)
-            elif os.path.exists(Dir+os.path.sep+'ser'):
-                with open(Dir+os.path.sep+'ser', "rb") as f:            
-                    raw = np.fromfile(f, np.int32,sizeTD1*sizeTD2)
-            if ByteOrder: #Bigendian if ByteOrder 1, otherwise smallendian
-                RawInt=raw.newbyteorder('b')
-            else:
-                RawInt=raw.newbyteorder('l')
-            ComplexData = np.array(RawInt[0:len(RawInt):2])+1j*np.array(RawInt[1:len(RawInt):2])
-            spec = [False]
-            if sizeTD1 is 1:
-                #data = np.transpose(ComplexData)[0][:] #convert to 1D np.array
-                masterData=sc.Spectrum(ComplexData,[freq2],[SW2],spec)
-            else:
-                data = ComplexData.reshape(sizeTD1,sizeTD2/2)
-                masterData=sc.Spectrum(data,[freq1,freq2],[SW1,SW2],spec*2)
-            name = self.askName()
-            self.workspaces.append(Main1DWindow(self.root,self,masterData))
-            self.workspaceNames.append(name)
-            self.changeMainWindow(name)
+    def LoadBrukerTopspin(self,filePath):
+        Dir = os.path.dirname(filePath) #convert path to file to path of folder
+        if os.path.exists(Dir+os.path.sep+'acqus'):
+            with open(Dir+os.path.sep+'acqus', 'r') as f: 
+                data = f.read().split('\n')
+            for s in range(0,len(data)): #exctract info from acqus
+                if data[s].startswith('##$TD='):
+                    sizeTD2 = int(data[s][6:])
+                if data[s].startswith('##$SFO1='):
+                    freq2 = float(data[s][8:])*1e6
+                if data[s].startswith('##$SW_h='):
+                    SW2 = float(data[s][8:])
+                if data[s].startswith('##$BYTORDA='):
+                    ByteOrder = int(data[s][11:]) #1 little endian, 0 big endian 
+        sizeTD1=1 #Preset to one           
+        if os.path.exists(Dir+os.path.sep+'acqu2s'): #read 2d pars if available
+            with open(Dir+os.path.sep+'acqu2s', 'r') as f: 
+                data2 = f.read().split('\n')
+            for s in range(0,len(data2)): #exctract info from acqus
+                if data2[s].startswith('##$TD='):
+                    sizeTD1 = int(data2[s][6:])
+                if data2[s].startswith('##$SFO1='):
+                    freq1 = float(data2[s][8:])*1e6
+                if data2[s].startswith('##$SW_h='):
+                    SW1 = float(data2[s][8:])
+        if os.path.exists(Dir+os.path.sep+'fid'):
+            with open(Dir+os.path.sep+'fid', "rb") as f:            
+                raw = np.fromfile(f, np.int32,sizeTD1*sizeTD2)
+        elif os.path.exists(Dir+os.path.sep+'ser'):
+            with open(Dir+os.path.sep+'ser', "rb") as f:            
+                raw = np.fromfile(f, np.int32,sizeTD1*sizeTD2)
+        if ByteOrder: #Bigendian if ByteOrder 1, otherwise smallendian
+            RawInt=raw.newbyteorder('b')
+        else:
+            RawInt=raw.newbyteorder('l')
+        ComplexData = np.array(RawInt[0:len(RawInt):2])+1j*np.array(RawInt[1:len(RawInt):2])
+        spec = [False]
+        if sizeTD1 is 1:
+            #data = np.transpose(ComplexData)[0][:] #convert to 1D np.array
+            masterData=sc.Spectrum(ComplexData,lambda self :self.LoadBrukerTopspin(filePath),[freq2],[SW2],spec)
+        else:
+            data = ComplexData.reshape(sizeTD1,sizeTD2/2)
+            masterData=sc.Spectrum(data,lambda self :self.LoadBrukerTopspin(filePath),[freq1,freq2],[SW1,SW2],spec*2)
+        return masterData
                 
-    def LoadChemFile(self):
-        FileLocation = askopenfilename()
-        Dir = os.path.dirname(FileLocation)
-        if FileLocation is not '': #if not empty
-           # try:
-                sizeTD1=1
-                sw1=50e3
-                H = dict(line.strip().split('=') for line in open(Dir+os.path.sep+'acq','r'))
-                sizeTD2 = int(H['al'])
-                freq = float(H['sf'+H['ch1']])
-                sw=1/float(H['dw'][:-1])
-                if any('array_num_values_' in s for s in H.keys()):
-                    if 'use_array=1' in open(Dir+'/acq_2').read():
-                        for s in H.keys():
-                            if ('array_num_values_' in s):
-                                sizeTD1 = sizeTD1*int(H[s])
-                    else:
-                        if 'al2' in H:
-                            sizeTD1 = int(H['al2'])
-                            if 'dw2' in H:
-                                sw1 = 1/float(H['dw2'][:-1])
-                else:
-                    if 'al2' in H:
-                        sizeTD1 = int(H['al2'])
-                        if 'dw2' in H:
-                            sw1 = 1/float(H['dw2'][:-1])        
-                with open(Dir+os.path.sep+'data','rb') as f:
-                    raw = np.fromfile(f, np.int32)
-                    b=np.complex128(raw.byteswap())
-                fid = b[:len(b)/2]+1j*b[len(b)/2:]
-                fid = np.reshape(fid,(sizeTD1,sizeTD2))
-                data = np.array(fid) #convert to numpy array
-                spec = [False]                    
-                if sizeTD1 is 1:
-                    data = data[0][:] #convert to 1D np.array
-                    masterData=sc.Spectrum(data,[freq*1e6],[sw],spec)
-                else:
-                    #data = np.transpose(data.reshape((sizeTD1,sizeTD2)))
-                    data = data.reshape((sizeTD1,sizeTD2))
-                    masterData=sc.Spectrum(data,[freq*1e6]*2,[sw1,sw],spec*2)
-                name = self.askName()
-                self.workspaces.append(Main1DWindow(self.root,self,masterData))
-                self.workspaceNames.append(name)
-                self.changeMainWindow(name)
+    def LoadChemFile(self,filePath):
+        Dir = os.path.dirname(filePath)
+        sizeTD1=1
+        sw1=50e3
+        H = dict(line.strip().split('=') for line in open(Dir+os.path.sep+'acq','r'))
+        sizeTD2 = int(H['al'])
+        freq = float(H['sf'+H['ch1']])
+        sw=1/float(H['dw'][:-1])
+        if any('array_num_values_' in s for s in H.keys()):
+            if 'use_array=1' in open(Dir+'/acq_2').read():
+                for s in H.keys():
+                    if ('array_num_values_' in s):
+                        sizeTD1 = sizeTD1*int(H[s])
+            else:
+                if 'al2' in H:
+                    sizeTD1 = int(H['al2'])
+                    if 'dw2' in H:
+                        sw1 = 1/float(H['dw2'][:-1])
         else:
-            print(Dir+os.path.sep+'data does not exits, no Chemagnetics data loaded!')
+            if 'al2' in H:
+                sizeTD1 = int(H['al2'])
+                if 'dw2' in H:
+                    sw1 = 1/float(H['dw2'][:-1])        
+        with open(Dir+os.path.sep+'data','rb') as f:
+            raw = np.fromfile(f, np.int32)
+            b=np.complex128(raw.byteswap())
+        fid = b[:len(b)/2]+1j*b[len(b)/2:]
+        fid = np.reshape(fid,(sizeTD1,sizeTD2))
+        data = np.array(fid) #convert to numpy array
+        spec = [False]                    
+        if sizeTD1 is 1:
+            data = data[0][:] #convert to 1D np.array
+            masterData=sc.Spectrum(data,lambda self :self.LoadChemFile(filePath),[freq*1e6],[sw],spec)
+        else:
+            #data = np.transpose(data.reshape((sizeTD1,sizeTD2)))
+            data = data.reshape((sizeTD1,sizeTD2))
+            masterData=sc.Spectrum(data,lambda self :self.LoadChemFile(filePath),[freq*1e6]*2,[sw1,sw],spec*2)
+        return masterData
 
-    def LoadMagritek(self):
+    def LoadMagritek(self,filePath):
         #Magritek load script based on some Matlab files by Ole Brauckman
-        FileLocation = askopenfilename()
-        Dir = os.path.dirname(FileLocation)
-        if FileLocation is not '': #if not empty
-            DirFiles = os.listdir(Dir)
-            Files2D = [x for x in DirFiles if '.2d' in x]
-            Files1D = [x for x in DirFiles if '.1d' in x]
-            H = dict(line.strip().split('=') for line in open(Dir+os.path.sep+'acqu.par','r'))
-            sw = float(H['bandwidth                 '])*1000 #in kHz
+        Dir = os.path.dirname(filePath)
+        DirFiles = os.listdir(Dir)
+        Files2D = [x for x in DirFiles if '.2d' in x]
+        Files1D = [x for x in DirFiles if '.1d' in x]
+        H = dict(line.strip().split('=') for line in open(Dir+os.path.sep+'acqu.par','r'))
+        sw = float(H['bandwidth                 '])*1000 #in kHz
+        sizeTD2 = int(H['nrPnts                    '])
+        freq = float(H['b1Freq                    '])
+        if len(Files2D)==1:
+            File=Files2D[0]
+            sizeTD1 = int(H['nrSteps                   '])
+            if 'bandwidth2                ' in H:
+                sw1 = float(H['bandwidth2                ']) #Is already in kHz
+            else:
+                sw1 = 50e3 #set to default 50 kHz
+            with open(Dir+os.path.sep+File,'rb') as f:
+                raw = np.fromfile(f, np.float32)
+            Data = raw[-2*sizeTD2*sizeTD1::] #Get last 2*sizeTD2*sizeTD1 points
+            ComplexData = Data[0:Data.shape[0]:2]+1j*Data[1:Data.shape[0]:2]
+            ComplexData = ComplexData.reshape((sizeTD1,sizeTD2))
+            masterData=sc.Spectrum(ComplexData,lambda self :self.LoadMagritek(filePath),[freq*1e6]*2,[sw,sw1],[False]*2)
+        elif len(Files1D)!=0:
+            File = 'data.1d'
+            with open(Dir+os.path.sep+File,'rb') as f:
+                raw = np.fromfile(f, np.float32)
+            Data = raw[-2*sizeTD2::] #Get last 2*sizeTD points
+            ComplexData = Data[0:Data.shape[0]:2]+1j*Data[1:Data.shape[0]:2]
+            masterData=sc.Spectrum(ComplexData,lambda self :self.LoadMagritek(filePath),[freq*1e6],[sw],[False])
+        return masterData
             
-            sizeTD2 = int(H['nrPnts                    '])
-            freq = float(H['b1Freq                    '])
-
-            if len(Files2D)==1:
-                File=Files2D[0]
-                sizeTD1 = int(H['nrSteps                   '])
-                if 'bandwidth2                ' in H:
-                    sw1 = float(H['bandwidth2                ']) #Is already in kHz
-                else:
-                    sw1 = 50e3 #set to default 50 kHz
-                with open(Dir+os.path.sep+File,'rb') as f:
-                    raw = np.fromfile(f, np.float32)
-                Data = raw[-2*sizeTD2*sizeTD1::] #Get last 2*sizeTD2*sizeTD1 points
-                ComplexData = Data[0:Data.shape[0]:2]+1j*Data[1:Data.shape[0]:2]
-                ComplexData = ComplexData.reshape((sizeTD1,sizeTD2))
-                masterData=sc.Spectrum(ComplexData,[freq*1e6]*2,[sw,sw1],[False]*2)
-            elif len(Files1D)!=0:
-                File = 'data.1d'
-                with open(Dir+os.path.sep+File,'rb') as f:
-                    raw = np.fromfile(f, np.float32)
-                Data = raw[-2*sizeTD2::] #Get last 2*sizeTD points
-                ComplexData = Data[0:Data.shape[0]:2]+1j*Data[1:Data.shape[0]:2]
-                masterData=sc.Spectrum(ComplexData,[freq*1e6],[sw],[False])
-            name = self.askName()
-            self.workspaces.append(Main1DWindow(self.root,self,masterData))
-            self.workspaceNames.append(name)
-            self.changeMainWindow(name)
-        else:
-            print('No Magritec data found, abort!')
-            
-    def LoadSimpsonFile(self):
+    def LoadSimpsonFile(self,filePath):
         #Loads Simpson data (Fid or Spectrum) to the ssNake data format
-        FileLocation = askopenfilename()
-        if FileLocation is not '': #if not empty
-            #try:
-                with open(FileLocation, 'r') as f: #read file
-                    Lines = f.read().split('\n')
-                NP, NI, SW, SW1, TYPE, FORMAT = 0,1,0,0,'','Normal'
-                DataStart = Lines.index('DATA')
-                DataEnd = Lines.index('END')
-                for s in range(0,DataStart):
-                    if Lines[s].startswith('NP='):
-                        NP = int(re.sub('NP=','',Lines[s]))
-                    elif Lines[s].startswith('NI='):
-                        NI = int(re.sub('NI=','',Lines[s]))
-                    elif Lines[s].startswith('SW='):
-                        SW = float(re.sub('SW=','',Lines[s]))
-                    elif Lines[s].startswith('SW1='):
-                        SW1 = float(re.sub('SW1=','',Lines[s]))
-                    elif Lines[s].startswith('TYPE='):
-                        TYPE = re.sub('TYPE=','',Lines[s])
-                    elif Lines[s].startswith('FORMAT='):
-                        FORMAT = re.sub('FORMAT=','',Lines[s])
-                if 'Normal' in FORMAT: #If normal format (e.g. not binary)
-                    data = []
-                    for iii in range(DataStart+1,DataEnd): #exctract data
-                        temp = Lines[iii].split()
-                        data.append(float(temp[0])+1j*float(temp[1]))
-                elif 'BINARY' in FORMAT: #needs to be im-plemented
-                    RawData = np.array(Lines[DataStart+1:DataEnd])
-                    Ascii=[]
-                    for i in range(0,len(RawData)):
-                        for j in range(0,len(RawData[i])):
-                            Ascii.append(ord(RawData[i][j]))
-                    Values = np.array(Ascii)
-                    i=0
-                    idx=0
-                    TempData=[]
-                    while i < 2*NP*NI:
-                        pts=[]
+        with open(filePath, 'r') as f: #read file
+            Lines = f.read().split('\n')
+        NP, NI, SW, SW1, TYPE, FORMAT = 0,1,0,0,'','Normal'
+        DataStart = Lines.index('DATA')
+        DataEnd = Lines.index('END')
+        for s in range(0,DataStart):
+            if Lines[s].startswith('NP='):
+                NP = int(re.sub('NP=','',Lines[s]))
+            elif Lines[s].startswith('NI='):
+                NI = int(re.sub('NI=','',Lines[s]))
+            elif Lines[s].startswith('SW='):
+                SW = float(re.sub('SW=','',Lines[s]))
+            elif Lines[s].startswith('SW1='):
+                SW1 = float(re.sub('SW1=','',Lines[s]))
+            elif Lines[s].startswith('TYPE='):
+                TYPE = re.sub('TYPE=','',Lines[s])
+            elif Lines[s].startswith('FORMAT='):
+                FORMAT = re.sub('FORMAT=','',Lines[s])
+        if 'Normal' in FORMAT: #If normal format (e.g. not binary)
+            data = []
+            for iii in range(DataStart+1,DataEnd): #exctract data
+                temp = Lines[iii].split()
+                data.append(float(temp[0])+1j*float(temp[1]))
+        elif 'BINARY' in FORMAT: #needs to be im-plemented
+            RawData = np.array(Lines[DataStart+1:DataEnd])
+            Ascii=[]
+            for i in range(0,len(RawData)):
+                for j in range(0,len(RawData[i])):
+                    Ascii.append(ord(RawData[i][j]))
+            Values = np.array(Ascii)
+            i=0
+            idx=0
+            TempData=[]
+            while i < 2*NP*NI:
+                pts=[]
+                for j in range(0,4):
+                    C=[]
+                    for h in range(4):
+                        try: 
+                            C.append(Values[idx]-33)
+                        except: #if end of file, append zeroes
+                            C.append(0)
+                        idx+=1
+                    pts.append(C[0]%64 + C[1]*4- C[1]*4 % 64)
+                    pts.append(C[1]%16 + C[2]*4- C[2]*4%16)
+                    pts.append(C[2]%4 + C[3]*4- C[3]*4%4)
+                for k in range(0,3):
+                    p=0
+                    if i < 2*NP*NI:
                         for j in range(0,4):
-                            C=[]
-                            for h in range(4):
-                                try: 
-                                    C.append(Values[idx]-33)
-                                except: #if end of file, append zeroes
-                                    C.append(0)
-                                idx+=1
-                            pts.append(C[0]%64 + C[1]*4- C[1]*4 % 64)
-                            pts.append(C[1]%16 + C[2]*4- C[2]*4%16)
-                            pts.append(C[2]%4 + C[3]*4- C[3]*4%4)
-                        for k in range(0,3):
-                            p=0
-                            if i < 2*NP*NI:
-                                for j in range(0,4):
-                                   p = np.int32(p*256);
-                                   p = np.int32(p | pts[4*k+j])
-                                #Simpson to float
-                                a1 = np.int32(math.floor(p)%256 * 16777216)
-                                a2 = np.int32(math.floor(p/256)%256 * 65536)
-                                a3 = np.int32(math.floor(p/65536)%256 * 256)
-                                a4 = np.int32(math.floor(p/16777216)%256)
-                                rdl = a1 | a2 | a3 | a4
-                                sign = math.floor(rdl/2**31)
-                                e = math.floor(rdl/8388608)%256
-                                m  = rdl% 8388608
-                                Value = (2.0*sign+1)*m*2.0**(e-150);   
-                                #----------------
-                                TempData.append(Value)
-                                i+=1
-                    real = TempData[0:len(TempData):2]
-                    imag = TempData[1:len(TempData):2]
-                    data=[]
-                    for number in range(0,int(len(TempData)/2)):
-                        data.append(real[number]+1j*imag[number])
-                data = np.array(data) #convert to numpy array
-                if 'FID' in TYPE:
-                    axis=0
-                    spec = [False]
-                elif 'SPE' in TYPE:
-                    axis=1
-                    spec = [True]                    
-                if NI is 1:
-                    masterData=sc.Spectrum(data,[0],[SW],spec)
-                else:
-                    data = data.reshape((NI,NP))
-                    masterData=sc.Spectrum(data,[0,0],[SW,SW1],spec*2)
-                name = self.askName()
-                self.workspaces.append(Main1DWindow(self.root,self,masterData))
-                self.workspaceNames.append(name)
-                self.changeMainWindow(name)
-            #except:
-            #    print('Error loading Simpson data from '+FileLocation+' . No data loaded!')
+                            p = np.int32(p*256);
+                            p = np.int32(p | pts[4*k+j])
+                        #Simpson to float
+                        a1 = np.int32(math.floor(p)%256 * 16777216)
+                        a2 = np.int32(math.floor(p/256)%256 * 65536)
+                        a3 = np.int32(math.floor(p/65536)%256 * 256)
+                        a4 = np.int32(math.floor(p/16777216)%256)
+                        rdl = a1 | a2 | a3 | a4
+                        sign = math.floor(rdl/2**31)
+                        e = math.floor(rdl/8388608)%256
+                        m  = rdl% 8388608
+                        Value = (2.0*sign+1)*m*2.0**(e-150);   
+                        #----------------
+                        TempData.append(Value)
+                        i+=1
+            real = TempData[0:len(TempData):2]
+            imag = TempData[1:len(TempData):2]
+            data=[]
+            for number in range(0,int(len(TempData)/2)):
+                data.append(real[number]+1j*imag[number])
+        data = np.array(data) #convert to numpy array
+        if 'FID' in TYPE:
+            axis=0
+            spec = [False]
+        elif 'SPE' in TYPE:
+            axis=1
+            spec = [True]                    
+        if NI is 1:
+            masterData=sc.Spectrum(data,lambda self :self.LoadSimsponFile(filePath),[0],[SW],spec)
+        else:
+            data = data.reshape((NI,NP))
+            masterData=sc.Spectrum(data,lambda self :self.LoadSimpsonFile(filePath),[0,0],[SW,SW1],spec*2)
+        return masterData
 
     def saveFigure(self):
         if self.mainWindow is not None:
@@ -593,6 +563,7 @@ class Main1DWindow(Frame):
         self.menubar.add_cascade(label="Edit", menu=editmenu)
         editmenu.add_command(label="Undo", command=self.undo)
         editmenu.add_command(label="Redo", command=self.redo)
+        editmenu.add_command(label="Reload", command=self.reloadLast)
 
 	#the tool drop down menu
         toolMenu = Menu(self.menubar, tearoff=0)
@@ -723,7 +694,6 @@ class Main1DWindow(Frame):
                     f=asksaveasfile(mode='w',defaultextension=".spe")
                 elif sum(self.masterData.spec) == 0: #If all are false (i.e all FID)
                     f=asksaveasfile(mode='w',defaultextension=".fid")
-                 
                 if 'f' in locals(): #If no 'f', there is a mixed fid/spe format, which simpson does not support 
                     f.write('SIMP\n')
                     if self.masterData.dim  is 2:
@@ -734,18 +704,14 @@ class Main1DWindow(Frame):
                     else:
                         f.write('NP='+str(self.masterData.data.shape[0])+'\n')
                         f.write('SW='+str(self.masterData.sw[0])+'\n')
-                        
                     if self.masterData.spec[0]:
                        f.write('TYPE=SPE'+'\n') 
                     else:
                        f.write('TYPE=FID'+'\n') 
-                       
                     f.write('DATA'+'\n')
-                    
                     if self.masterData.dim  is 1:
                         for Line in self.masterData.data:
                             f.write(str(Line.real)+' '+ str(Line.imag)+'\n')
-                    
                     if self.masterData.dim  is 2:
                         Points= self.masterData.data.shape
                         for iii in range(0,Points[0]):
@@ -754,12 +720,19 @@ class Main1DWindow(Frame):
                         #for Line in self.masterData.data:
                         #    for SubLine in Line:
                         #        f.write(str(SubLine.real) +' '+str(SubLine.imag)+'\n')
-                                
                     f.write('END')
                     f.close()
         except:
              print('An error occured while saving to Simpson format')
-        
+
+    def reloadLast(self):
+        self.redoList = []
+        self.undoList.append(self.masterData.reload(self.mainProgram))
+        self.current.upd()
+        self.current.plotReset()
+        self.current.showFid()
+        self.updAllFrames()
+             
     def real(self):
         self.redoList = []
         self.undoList.append(self.masterData.real())
@@ -1304,7 +1277,6 @@ class SideFrame(Frame):
         else:
             self.parent.current.setSlice(dimNum,locList)
         self.parent.bottomframe.upd()
-        self.upd()
 
 ################################################################################  
 #the bottom frame holding the fourier button and stuff      
@@ -1357,7 +1329,7 @@ class BottomFrame(Frame):
             child.configure(state='disabled')
         
     def upd(self): #upd the values displayed in the bottom menu
-        self.freqVal.set(str(self.parent.current.freq/1000000)) #show in MHz
+        self.freqVal.set('%.6f' %(self.parent.current.freq/1000000)) #show in MHz
         self.swVal.set(str(self.parent.current.sw/1000)) #show in kHz
         if self.parent.current.spec==0:
             self.specVal.set(0)

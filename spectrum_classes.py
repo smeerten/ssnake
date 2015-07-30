@@ -13,9 +13,10 @@ import sys
 #########################################################################
 #the generic data class
 class Spectrum(object):
-    def __init__(self, data, freq, sw , spec=None, wholeEcho=None, ref=None, xaxArray=None):
+    def __init__(self, data, loadFunc ,freq , sw , spec=None, wholeEcho=None, ref=None, xaxArray=None):
         self.dim = len(data.shape)                    #number of dimensions
         self.data = np.array(data,dtype=complex)      #data of dimension dim
+        self.loadFunc = loadFunc
         self.freq = np.array(freq)                              #array of center frequency (length is dim, MHz)
         self.sw = sw                                  #array of sweepwidths
         if spec is None:
@@ -35,6 +36,12 @@ class Spectrum(object):
             self.resetXax()
         else:
             self.xaxArray = xaxArray
+
+    def reload(self,mainProgram):
+        copyData=copy.deepcopy(self)
+        returnValue = lambda self: self.restoreData(copyData, lambda self: self.reload(mainProgram))
+        self.restoreData(self.loadFunc(mainProgram),None)
+        return returnValue
             
     def resetXax(self,axes=None):
         if axes is not None:
@@ -422,6 +429,7 @@ class Spectrum(object):
         self.data = copyData.data
         self.dim = len(self.data.shape)                    #number of dimensions
         self.freq = copyData.freq                              #array of center frequency (length is dim, MHz)
+        self.loadFunc = copyData.loadFunc
         self.sw = copyData.sw                                  #array of sweepwidths
         self.spec = copyData.spec
         self.wholeEcho = copyData.wholeEcho
