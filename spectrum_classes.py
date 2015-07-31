@@ -293,6 +293,10 @@ class Spectrum(object):
         oldRef = self.ref[axes]
         self.ref[axes]=ref
         return lambda self: self.setRef(oldRef,axes)
+
+    def setWholeEcho(self,val,axes):
+        self.wholeEcho[axes]=val
+        return lambda self: self.setWholeEcho(not val,axes)
     
     def setSize(self,size,axes):
         if axes>self.dim:
@@ -481,7 +485,7 @@ class Current1D(Plot1DFrame):
         self.upd()   #get the first slice of data
         self.plotReset() #reset the axes limits
         self.showFid() #plot the data
-
+        
     def copyCurrent(self,root, data):
         return Current1D(root,data,self)
         
@@ -539,6 +543,7 @@ class Current1D(Plot1DFrame):
         returnValue = self.data.setPhase(phase0,phase1,self.axes)
         self.upd()
         self.showFid()
+        self.root.addMacro(['phase',(phase0,phase1,self.axes)])
         return returnValue
 
     def fourier(self): #fourier the actual data and replot
@@ -548,12 +553,14 @@ class Current1D(Plot1DFrame):
             self.resetSpacing()
         self.plotReset()
         self.showFid()
+        self.root.addMacro(['fourier',(self.axes,)])
         return returnValue
 
     def fftshift(self,inv=False): #fftshift the actual data and replot
         returnValue = self.data.fftshift(self.axes,inv)
         self.upd()
         self.showFid()
+        self.root.addMacro(['fftshift',(self.axes,inv)])
         return returnValue
     
     def fourierLocal(self, fourData, spec): #fourier the local data for other functions
@@ -618,7 +625,8 @@ class Current1D(Plot1DFrame):
     def applyApod(self,lor=None,gauss=None,cos2=None,hamming=None,shift=0.0,shifting=0.0,shiftingAxes=0): #apply the apodization to the actual data
         returnValue = self.data.apodize(lor,gauss,cos2,hamming,shift,shifting,shiftingAxes,self.axes)
         self.upd() 
-        self.showFid()     
+        self.showFid()
+        self.root.addMacro(['apodize',(lor,gauss,cos2,hamming,shift,shifting,shiftingAxes,self.axes)])
         return returnValue
 
     def setFreq(self,freq,sw): #set the frequency of the actual data
@@ -626,6 +634,7 @@ class Current1D(Plot1DFrame):
         self.upd()
         self.plotReset()
         self.showFid()
+        self.root.addMacro(['freq',(freq,sw,self.axes)])
         return returnValue
 
     def setRef(self,ref): #set the frequency of the actual data
@@ -633,6 +642,7 @@ class Current1D(Plot1DFrame):
         self.upd()
         self.plotReset()
         self.showFid()
+        self.root.addMacro(['ref',(ref,self.axes)])
         return returnValue
 
     def SN(self,minNoise,maxNoise,minPeak,maxPeak):
@@ -736,6 +746,7 @@ class Current1D(Plot1DFrame):
         self.upd()
         self.plotReset()
         self.showFid()
+        self.root.addMacro(['size',(size,self.axes)])
         return returnValue
 
     def changeSpec(self,val): #change from time to freq domain of the actual data
@@ -743,12 +754,14 @@ class Current1D(Plot1DFrame):
         self.upd()
         self.plotReset()
         self.showFid()
+        self.root.addMacro(['spec',(val,self.axes)])
         return returnValue
     
     def applySwapEcho(self,idx):
         returnValue = self.data.swapEcho(idx,self.axes)
         self.upd()
         self.showFid()
+        self.root.addMacro(['swapecho',(idx,self.axes)])
         return returnValue
 
     def setSwapEchoPreview(self,idx):
@@ -762,16 +775,20 @@ class Current1D(Plot1DFrame):
 
     def setWholeEcho(self, value):
         if value == 0:
-            self.data.wholeEcho[self.axes]=False
+            returnValue = self.data.setWholeEcho(False,self.axes)
             self.wholeEcho = False
+            self.root.addMacro(['wholeEcho',(False,self.axes)])
         else:
-            self.data.wholeEcho[self.axes]=True
+            returnValue = self.data.setWholeEcho(True,self.axes)
             self.wholeEcho = True
+            self.root.addMacro(['wholeEcho',(True,self.axes)])
+        return returnValue
 
     def applyShift(self,shift):
         returnValue = self.data.shiftData(shift,self.axes)
         self.upd()
         self.showFid()
+        self.root.addMacro(['shift',(shift,self.axes)])
         return returnValue
 
     def setShiftPreview(self,shift):
@@ -803,6 +820,7 @@ class Current1D(Plot1DFrame):
         returnValue = self.data.dcOffset(offset)
         self.upd()
         self.showFid()
+        self.root.addMacro(['offset',(offset,)])
         return returnValue
     
     def applyLPSVD(self):
@@ -810,6 +828,7 @@ class Current1D(Plot1DFrame):
         self.upd()
         self.plotReset()
         self.showFid()
+        self.root.addMacro(['lpsvd',(self.axes,)])
         return returnValue
     
     def states(self):
@@ -817,6 +836,7 @@ class Current1D(Plot1DFrame):
         self.upd()
         self.plotReset()
         self.showFid()
+        self.root.addMacro(['states',(self.axes,)])
         return returnValue
     
     def statesTPPI(self):
@@ -824,21 +844,26 @@ class Current1D(Plot1DFrame):
         self.upd()
         self.plotReset()
         self.showFid()
+        self.root.addMacro(['statesTPPI',(self.axes,)])
         return returnValue
     
     def integrate(self,pos1,pos2):
+        self.root.addMacro(['integrate',(pos1,pos2,self.axes,)])
         return self.data.matrixManip(pos1,pos2,self.axes,0)
 
     def maxMatrix(self,pos1,pos2):
+        self.root.addMacro(['max',(pos1,pos2,self.axes,)])
         return self.data.matrixManip(pos1,pos2,self.axes,1)
     
     def minMatrix(self,pos1,pos2):
+        self.root.addMacro(['min',(pos1,pos2,self.axes,)])
         return self.data.matrixManip(pos1,pos2,self.axes,2)
 
     def flipLR(self):
         returnValue = self.data.flipLR(self.axes)
         self.upd()
         self.showFid()
+        self.root.addMacro(['fliplr',(self.axes,)])
         return returnValue
 
     def concatenate(self,axes):
@@ -846,6 +871,7 @@ class Current1D(Plot1DFrame):
         self.upd()
         self.plotReset()
         self.showFid()
+        self.root.addMacro(['concatenate',(axes,)])
         return returnValue
 
     def split(self,sections):
@@ -853,6 +879,7 @@ class Current1D(Plot1DFrame):
         self.upd()
         self.plotReset()
         self.showFid()
+        self.root.addMacro(['split',(sections,self.axes)])
         return returnValue
     
     def insert(self,data,pos):
@@ -860,12 +887,14 @@ class Current1D(Plot1DFrame):
         self.upd()
         self.plotReset()
         self.showFid()
+        self.root.addMacro(['insert',(data,pos,self.axes)])
         return returnValue
     
     def delete(self,pos):
         returnValue = self.data.remove(pos,self.axes)
         self.upd()
         self.showFid()
+        self.root.addMacro(['delete',(pos,self.axes)])
         return returnValue
 
     def deletePreview(self,pos):
@@ -880,6 +909,7 @@ class Current1D(Plot1DFrame):
         self.upd()
         self.plotReset()
         self.showFid()
+        self.root.addMacro(['add',(data,)])
         return returnValue
         
     def subtract(self,data):
@@ -887,6 +917,7 @@ class Current1D(Plot1DFrame):
         self.upd()
         self.plotReset()
         self.showFid()
+        self.root.addMacro(['subtract',(data,)])
         return returnValue
     
     def getRegion(self,pos1,pos2): #set the frequency of the actual data
@@ -900,6 +931,7 @@ class Current1D(Plot1DFrame):
         returnValue = self.data.shear(shear,axes,axes2)
         self.upd()
         self.showFid()
+        self.root.addMacro(['shear',(shear,axes,axes2)])
         return returnValue
     
     def ACMEentropy(self,phaseIn,phaseAll=True):
@@ -951,6 +983,7 @@ class Current1D(Plot1DFrame):
         self.upd()
         self.plotReset()
         self.showFid()
+        self.root.addMacro(['setxax',(xax,self.axes)])
         return returnVal
 
     def setAxType(self, val):
@@ -985,6 +1018,7 @@ class Current1D(Plot1DFrame):
         returnValue = self.data.hilbert(self.axes)
         self.upd()
         self.showFid()
+        self.root.addMacro(['hilbert',(self.axes,)])
         return returnValue
     
     def getDisplayedData(self):

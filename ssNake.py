@@ -26,6 +26,7 @@ import os
 from struct import unpack
 import scipy.io
 import json
+import copy
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 #------------
 from safeEval import safeEval
@@ -43,6 +44,7 @@ class MainProgram:
         self.workspaceNames = []
         self.workspaceNum = 0
         self.workspaceVar = StringVar()
+        self.macros = {}
         #the file drop down menu
         self.filemenu = Menu(self.menubar, tearoff=0)
         self.menubar.add_cascade(label="File", menu=self.filemenu)
@@ -73,7 +75,7 @@ class MainProgram:
         savemenu.add_command(label="Save JSON", command=self.saveJSONFile)
         savemenu.add_command(label="Save MATLAB", command=self.saveMatlabFile)
         savemenu.add_command(label="Save as Simpson data", command=self.saveSimpsonFile)
-        
+
         self.mainWindow = None
         x=np.linspace(0,2*np.pi*10,1000)[:-1] #fake data
         x2=np.linspace(0,2*np.pi*10,200)[1:] #fake data
@@ -87,6 +89,15 @@ class MainProgram:
         self.workspacemenu.add_command(label="Duplicate", command=self.duplicateWorkspace)
         self.workspacemenu.add_command(label="Delete", command=self.destroyWorkspace)
         self.activemenu = None
+
+        #the macro menu
+        macromenu = Menu(self.menubar, tearoff=0)
+        self.menubar.add_cascade(label="Macros", menu=macromenu)
+        macromenu.add_command(label="Start recording", command=self.macroCreate)
+        macromenu.add_command(label="Stop recording", command=self.stopMacro)
+        self.macrolistmenu = Menu(macromenu, tearoff=0)
+        macromenu.add_cascade(label="Run", menu=self.macrolistmenu)
+        
         self.changeMainWindow('name0')
         self.filemenu.add_command(label="Exit", command=self.root.quit)
         
@@ -99,7 +110,7 @@ class MainProgram:
         givenName = askstring('Spectrum name','Name:',initialvalue=name)
         while (givenName in self.workspaceNames) or givenName is '':
             print('Name exists')
-            givenName = askstring('Name:','test')
+            givenName = askstring('Spectrum name','Name:')
         return givenName
         
     def undo(self, *args):
@@ -110,6 +121,40 @@ class MainProgram:
         if self.mainWindow is not None:
             self.mainWindow.redo()
 
+    def macroCreate(self):
+        if self.mainWindow is None:
+            return
+        if self.mainWindow.currentMacro is not None:
+            return
+        count = 0
+        name = 'macro'+str(count)
+        while name in self.macros.keys():
+            count += 1
+            name = 'macro'+str(count)
+        givenName = askstring('Macro name','Name:',initialvalue=name)
+        while (givenName in self.macros.keys()) or givenName is '':
+            print('Name exists')
+            givenName = askstring('Macro name','Name:')
+        self.macros[givenName] = []
+        self.mainWindow.redoMacro = []
+        self.mainWindow.currentMacro = givenName
+        self.macrolistmenu.add_command(label=givenName,command=lambda name=givenName: self.runMacro(name))
+
+    def stopMacro(self):
+        if self.mainWindow is None:
+            return
+        if self.mainWindow.currentMacro is None:
+            return
+        self.mainWindow.redoMacro = []
+        self.mainWindow.currentMacro = None
+    
+    def macroAdd(self,name,macros):
+        self.macros[name].append(macros)
+
+    def runMacro(self,name):
+        if self.mainWindow is not None:
+            self.mainWindow.runMacro(self.macros[name])
+        
     def changeMainWindow(self, var):
         if self.mainWindow is not None:
             self.mainWindow.removeFromView()
@@ -519,6 +564,8 @@ class Main1DWindow(Frame):
         Frame.__init__(self,parent)
         self.undoList = [] #the list to hold all the undo lambda functions
         self.redoList = [] #the list to hold all the redo lambda functions
+        self.currentMacro = None
+        self.redoMacro = []
         self.parent = parent #remember your parents
         self.mainProgram = mainProgram
         self.masterData = masterData
@@ -648,6 +695,77 @@ class Main1DWindow(Frame):
         self.bottomframe.frameDisable()
         self.textframe.frameDisable()
 
+    def runMacro(self,macro):
+        self.redoList = []
+        for iter1 in macro:
+            if iter1[0] is 'reload':
+                self.undoList.append(self.masterData.reload(self))
+            elif iter1[0] is 'phase':
+                self.undoList.append(self.masterData.setPhase(*iter1[1]))
+            elif iter1[0] is 'fourier':
+                self.undoList.append(self.masterData.fourier(*iter1[1]))
+            elif iter1[0] is 'fftshift':
+                self.undoList.append(self.masterData.fftshift(*iter1[1]))
+            elif iter1[0] is 'apodize':
+                self.undoList.append(self.masterData.apodize(*iter1[1]))
+            elif iter1[0] is 'freq':
+                self.undoList.append(self.masterData.setFreq(*iter1[1]))
+            elif iter1[0] is 'ref':
+                self.undoList.append(self.masterData.setRef(*iter1[1]))
+            elif iter1[0] is 'size':
+                self.undoList.append(self.masterData.setSize(*iter1[1]))
+            elif iter1[0] is 'spec':
+                self.undoList.append(self.masterData.changeSpec(*iter1[1]))
+            elif iter1[0] is 'swapecho':
+                self.undoList.append(self.masterData.swapEcho(*iter1[1]))
+            elif iter1[0] is 'wholeEcho':
+                self.undoList.append(self.masterData.wholeEcho(*iter1[1]))
+            elif iter1[0] is 'shift':
+                self.undoList.append(self.masterData.shiftData(*iter1[1]))
+            elif iter1[0] is 'offset':
+                self.undoList.append(self.masterData.dcOffset(*iter1[1]))
+            elif iter1[0] is 'lpsvd':
+                self.undoList.append(self.masterData.LPSVD(*iter1[1]))
+            elif iter1[0] is 'states':
+                self.undoList.append(self.masterData.states(*iter1[1]))
+            elif iter1[0] is 'statesTPPI':
+                self.undoList.append(self.masterData.statesTPPI(*iter1[1]))
+            elif iter1[0] is 'integrate':
+                self.undoList.append(self.masterData.matrixManip(*iter1[1],which=0))
+            elif iter1[0] is 'max':
+                self.undoList.append(self.masterData.matrixManip(*iter1[1],which=1))
+            elif iter1[0] is 'min':
+                self.undoList.append(self.masterData.matrixManip(*iter1[1],which=2))
+            elif iter1[0] is 'fliplr':
+                self.undoList.append(self.masterData.flipLR(*iter1[1]))
+            elif iter1[0] is 'concatenate':
+                self.undoList.append(self.masterData.concatenate(*iter1[1]))
+            elif iter1[0] is 'split':
+                self.undoList.append(self.masterData.split(*iter1[1]))
+            elif iter1[0] is 'insert':
+                self.undoList.append(self.masterData.insert(*iter1[1]))
+            elif iter1[0] is 'delete':
+                self.undoList.append(self.masterData.delete(*iter1[1]))
+            elif iter1[0] is 'add':
+                self.undoList.append(self.masterData.add(*iter1[1]))
+            elif iter1[0] is 'subtract':
+                self.undoList.append(self.masterData.subtract(*iter1[1]))
+            elif iter1[0] is 'shear':
+                self.undoList.append(self.masterData.shear(*iter1[1]))
+            elif iter1[0] is 'setxax':
+                self.undoList.append(self.masterData.setXax(*iter1[1]))
+            elif iter1[0] is 'hilbert':
+                self.undoList.append(self.masterData.hilbert(*iter1[1]))
+        self.current.upd()   #get the first slice of data
+        self.current.plotReset() #reset the axes limits
+        self.current.showFid() #plot the data
+        self.updAllFrames()
+                
+    def addMacro(self,macroStep):
+        if self.currentMacro is not None:
+            self.mainProgram.macroAdd(self.currentMacro,macroStep)
+            self.redoMacro = []
+        
     def saveJSONFile(self):
         name=asksaveasfilename(filetypes=(('JSON','.json'),))
         if not name:
@@ -732,6 +850,7 @@ class Main1DWindow(Frame):
         self.current.plotReset()
         self.current.showFid()
         self.updAllFrames()
+        self.macroAdd(['reload'])
              
     def real(self):
         self.redoList = []
@@ -860,8 +979,6 @@ class Main1DWindow(Frame):
                         DECIM = int(data[s][9:])
                     if data[s].startswith('##$DSPFVS='):
                         DSPFVS = int(data[s][10:])
-                
-                self.redoList = []
                 if FilterCorrection == -1.0: #If the FilterCorrection has not been found in the acqus (old bruker format)
                     if DSPFVS == 10 or DSPFVS == 11 or DSPFVS == 12:#get from table
                         CorrectionList = [{'2':44.7500,'3':33.5000,'4':66.6250,'6':59.0833
@@ -876,16 +993,15 @@ class Main1DWindow(Frame):
                         #Take correction from database. Based on matNMR routine (Jacco van Beek), which is itself based 
                         #on a text by W. M. Westler and F. Abildgaard.
                         FilterCorrection = CorrectionList[10-DSPFVS][str(DECIM)]
-    
                     else:
                         print('DSPFVS value not recognized (Bruker hardware version not known)')
                 if FilterCorrection != -1.0: #If changed
                     self.redoList = []
-                    self.undoList.append(self.current.applyPhase(0, FilterCorrection*2*np.pi)) 
-
+                    self.undoList.append(self.current.applyPhase(0, FilterCorrection*2*np.pi))
+                    
     def LPSVD(self):
         self.redoList = []
-        self.undoList.append(self.current.applyLPSVD())   
+        self.undoList.append(self.current.applyLPSVD())
                     
     def createSNWindow(self):
         SNWindow(self)
@@ -987,6 +1103,8 @@ class Main1DWindow(Frame):
         self.current.plotReset()
         self.current.showFid()
         self.updAllFrames()
+        if self.currentMacro is not None:
+            self.redoMacro.append(self.mainProgram.macros[self.currentMacro].pop())
 
     def redo(self, *args):
         if self.redoList:
@@ -995,6 +1113,8 @@ class Main1DWindow(Frame):
             self.current.plotReset()
             self.current.showFid()
             self.updAllFrames()
+            if self.currentMacro is not None:
+                self.mainProgram.macroAdd(self.currentMacro,self.redoMacro.pop())
         else:
             print("no redo information")
 
@@ -1362,7 +1482,7 @@ class BottomFrame(Frame):
             self.echoTick.set(0)
 
     def setWholeEcho(self):
-        self.parent.current.setWholeEcho(self.echoTick.get())
+        self.parent.undoList.append(self.parent.current.setWholeEcho(self.echoTick.get()))
 
     def changeSpec(self, *args): #change from time to spectral domain and vice versa
         self.parent.redoList = []
@@ -2472,11 +2592,11 @@ class SNWindow(Toplevel):
         self.minNoiseVal = StringVar()
         self.minNoiseVal.set("0")
         self.maxNoiseVal = StringVar()
-        self.maxNoiseVal.set(str(current.data1D.shape[-1]))
+        self.maxNoiseVal.set(str(parent.current.data1D.shape[-1]))
         self.minVal = StringVar()
         self.minVal.set("0")
         self.maxVal = StringVar()
-        self.maxVal.set(str(current.data1D.shape[-1]))
+        self.maxVal.set(str(parent.current.data1D.shape[-1]))
         self.result = StringVar()
         self.result.set('0.0')
         self.frame1 = Frame(self)
@@ -2603,7 +2723,7 @@ class FWHMWindow(Toplevel):
         self.minVal = StringVar()
         self.minVal.set("0")
         self.maxVal = StringVar()
-        self.maxVal.set(str(current.data1D.shape[-1]))
+        self.maxVal.set(str(parent.current.data1D.shape[-1]))
         self.result = StringVar()
         self.result.set('0.0')
         self.frame1 = Frame(self)

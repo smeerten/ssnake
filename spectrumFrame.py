@@ -19,6 +19,7 @@ import weakref
 class Plot1DFrame(Frame):
     def __init__(self, root):
         Frame.__init__(self,root)
+        self.root = root
         self.fig = Figure()           #figure
         if isinstance(self,spectrum_classes.CurrentContour):
             gs = gridspec.GridSpec(2, 2,width_ratios=[3,1],height_ratios=[1,3])
@@ -63,6 +64,9 @@ class Plot1DFrame(Frame):
     ################
 
     def peakPickReset(self):
+        if self.rect[0] is not None:
+            self.rect[0].remove()
+            self.canvas.draw()
         self.rect=[None,None,None,None]
         self.peakPick=False
         self.peakPickFunc = None
