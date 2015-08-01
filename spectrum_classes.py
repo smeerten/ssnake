@@ -626,7 +626,7 @@ class Current1D(Plot1DFrame):
         returnValue = self.data.apodize(lor,gauss,cos2,hamming,shift,shifting,shiftingAxes,self.axes)
         self.upd() 
         self.showFid()
-        self.root.addMacro(['apodize',(lor,gauss,cos2,hamming,shift,shifting,shiftingAxes,self.axes)])
+        self.root.addMacro([u'apodize',(lor,gauss,cos2,hamming,shift,shifting,shiftingAxes,self.axes)])
         return returnValue
 
     def setFreq(self,freq,sw): #set the frequency of the actual data

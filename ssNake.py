@@ -97,7 +97,9 @@ class MainProgram:
         macromenu.add_command(label="Stop recording", command=self.stopMacro)
         self.macrolistmenu = Menu(macromenu, tearoff=0)
         macromenu.add_cascade(label="Run", menu=self.macrolistmenu)
-        
+        self.macrosavemenu = Menu(macromenu, tearoff=0)
+        macromenu.add_cascade(label="Save", menu=self.macrosavemenu)
+        macromenu.add_command(label="Load", command=self.loadMacro)
         self.changeMainWindow('name0')
         self.filemenu.add_command(label="Exit", command=self.root.quit)
         
@@ -139,6 +141,7 @@ class MainProgram:
         self.mainWindow.redoMacro = []
         self.mainWindow.currentMacro = givenName
         self.macrolistmenu.add_command(label=givenName,command=lambda name=givenName: self.runMacro(name))
+        self.macrosavemenu.add_command(label=givenName,command=lambda name=givenName: self.saveMacro(name))
 
     def stopMacro(self):
         if self.mainWindow is None:
@@ -154,7 +157,32 @@ class MainProgram:
     def runMacro(self,name):
         if self.mainWindow is not None:
             self.mainWindow.runMacro(self.macros[name])
-        
+
+    def saveMacro(self,name):
+        fileName=asksaveasfilename(filetypes=(('JSON','.json'),))
+        if not fileName:
+            return
+        with open(fileName,'w') as f:
+            json.dump(self.macros[name],f)
+            
+    def loadMacro(self):
+        filePath = askopenfilename()
+        if len(filePath)==0:
+            return
+        count = 0
+        name = 'macro'+str(count)
+        while name in self.macros.keys():
+            count += 1
+            name = 'macro'+str(count)
+        givenName = askstring('Macro name','Name:',initialvalue=name)
+        while (givenName in self.macros.keys()) or givenName is '':
+            print('Name exists')
+            givenName = askstring('Macro name','Name:')
+        with open(filePath,'r') as f:
+            self.macros[givenName] = json.load(f)
+        self.macrolistmenu.add_command(label=givenName,command=lambda name=givenName: self.runMacro(givenName))
+        self.macrosavemenu.add_command(label=givenName,command=lambda name=givenName: self.saveMacro(givenName))
+            
     def changeMainWindow(self, var):
         if self.mainWindow is not None:
             self.mainWindow.removeFromView()
@@ -698,64 +726,66 @@ class Main1DWindow(Frame):
     def runMacro(self,macro):
         self.redoList = []
         for iter1 in macro:
-            if iter1[0] is 'reload':
+            if iter1[0] == 'reload':
                 self.undoList.append(self.masterData.reload(self))
-            elif iter1[0] is 'phase':
+            elif iter1[0] == 'phase':
                 self.undoList.append(self.masterData.setPhase(*iter1[1]))
-            elif iter1[0] is 'fourier':
+            elif iter1[0] == 'fourier':
                 self.undoList.append(self.masterData.fourier(*iter1[1]))
-            elif iter1[0] is 'fftshift':
+            elif iter1[0] == 'fftshift':
                 self.undoList.append(self.masterData.fftshift(*iter1[1]))
-            elif iter1[0] is 'apodize':
+            elif iter1[0] == 'apodize':
                 self.undoList.append(self.masterData.apodize(*iter1[1]))
-            elif iter1[0] is 'freq':
+            elif iter1[0] == 'freq':
                 self.undoList.append(self.masterData.setFreq(*iter1[1]))
-            elif iter1[0] is 'ref':
+            elif iter1[0] == 'ref':
                 self.undoList.append(self.masterData.setRef(*iter1[1]))
-            elif iter1[0] is 'size':
+            elif iter1[0] == 'size':
                 self.undoList.append(self.masterData.setSize(*iter1[1]))
-            elif iter1[0] is 'spec':
+            elif iter1[0] == 'spec':
                 self.undoList.append(self.masterData.changeSpec(*iter1[1]))
-            elif iter1[0] is 'swapecho':
+            elif iter1[0] == 'swapecho':
                 self.undoList.append(self.masterData.swapEcho(*iter1[1]))
-            elif iter1[0] is 'wholeEcho':
+            elif iter1[0] == 'wholeEcho':
                 self.undoList.append(self.masterData.wholeEcho(*iter1[1]))
-            elif iter1[0] is 'shift':
+            elif iter1[0] == 'shift':
                 self.undoList.append(self.masterData.shiftData(*iter1[1]))
-            elif iter1[0] is 'offset':
+            elif iter1[0] == 'offset':
                 self.undoList.append(self.masterData.dcOffset(*iter1[1]))
-            elif iter1[0] is 'lpsvd':
+            elif iter1[0] == 'lpsvd':
                 self.undoList.append(self.masterData.LPSVD(*iter1[1]))
-            elif iter1[0] is 'states':
+            elif iter1[0] == 'states':
                 self.undoList.append(self.masterData.states(*iter1[1]))
-            elif iter1[0] is 'statesTPPI':
+            elif iter1[0] == 'statesTPPI':
                 self.undoList.append(self.masterData.statesTPPI(*iter1[1]))
-            elif iter1[0] is 'integrate':
+            elif iter1[0] == 'integrate':
                 self.undoList.append(self.masterData.matrixManip(*iter1[1],which=0))
-            elif iter1[0] is 'max':
+            elif iter1[0] == 'max':
                 self.undoList.append(self.masterData.matrixManip(*iter1[1],which=1))
-            elif iter1[0] is 'min':
+            elif iter1[0] == 'min':
                 self.undoList.append(self.masterData.matrixManip(*iter1[1],which=2))
-            elif iter1[0] is 'fliplr':
+            elif iter1[0] == 'fliplr':
                 self.undoList.append(self.masterData.flipLR(*iter1[1]))
-            elif iter1[0] is 'concatenate':
+            elif iter1[0] == 'concatenate':
                 self.undoList.append(self.masterData.concatenate(*iter1[1]))
-            elif iter1[0] is 'split':
+            elif iter1[0] == 'split':
                 self.undoList.append(self.masterData.split(*iter1[1]))
-            elif iter1[0] is 'insert':
+            elif iter1[0] == 'insert':
                 self.undoList.append(self.masterData.insert(*iter1[1]))
-            elif iter1[0] is 'delete':
+            elif iter1[0] == 'delete':
                 self.undoList.append(self.masterData.delete(*iter1[1]))
-            elif iter1[0] is 'add':
+            elif iter1[0] == 'add':
                 self.undoList.append(self.masterData.add(*iter1[1]))
-            elif iter1[0] is 'subtract':
+            elif iter1[0] == 'subtract':
                 self.undoList.append(self.masterData.subtract(*iter1[1]))
-            elif iter1[0] is 'shear':
+            elif iter1[0] == 'shear':
                 self.undoList.append(self.masterData.shear(*iter1[1]))
-            elif iter1[0] is 'setxax':
+            elif iter1[0] == 'setxax':
                 self.undoList.append(self.masterData.setXax(*iter1[1]))
-            elif iter1[0] is 'hilbert':
+            elif iter1[0] == 'hilbert':
                 self.undoList.append(self.masterData.hilbert(*iter1[1]))
+            else:
+                print('unknown macro command: '+iter1[0])
         self.current.upd()   #get the first slice of data
         self.current.plotReset() #reset the axes limits
         self.current.showFid() #plot the data
