@@ -523,6 +523,7 @@ class Current1D(Plot1DFrame):
     def setPhaseInter(self, phase0in, phase1in): #interactive changing the phase without editing the actual data
         phase0=float(phase0in)
         phase1=float(phase1in)
+        self.upd()
         if self.spec==0:
             tmpdata=self.fourierLocal(self.data1D,0)
         else:
@@ -535,7 +536,8 @@ class Current1D(Plot1DFrame):
         tmpdata=tmpdata*mult
         if self.spec==0:
             tmpdata=self.fourierLocal(tmpdata,1)
-        self.showFid(tmpdata)
+        self.data1D = tmpdata
+        self.showFid()
 
     def applyPhase(self, phase0, phase1):# apply the phase to the actual data
         phase0=float(phase0)
@@ -964,6 +966,7 @@ class Current1D(Plot1DFrame):
         return H1+1000*Pfun 
 
     def autoPhase(self,phaseNum):
+        self.upd()
         if phaseNum == 0:
             phases = scipy.optimize.minimize(self.ACMEentropy,[0],(False,),method='Powell')
             phases = [phases['x']]

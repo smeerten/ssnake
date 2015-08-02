@@ -311,10 +311,10 @@ class MainProgram:
                         raw = np.fromfile(f, np.float32,ntraces*npoints)
                         for iter3 in raw:
                             b.append(unpack('>f', iter3)[0])
-                b=np.array(b)
-                if(len(b) != ntraces*npoints):
-                    b.append(np.zeros(ntraces*npoints-len(b)))
-                a.append(b)
+                    b=np.array(b)
+                    if(len(b) != ntraces*npoints):
+                        b.append(np.zeros(ntraces*npoints-len(b)))
+                    a.append(b)
         a=np.complex128(a)
         fid = a[:,::2]-1j*a[:,1::2]
         if SizeTD1 is 1: #convert to 1D dat if the data is 1D (so no 1xnp data, but np)

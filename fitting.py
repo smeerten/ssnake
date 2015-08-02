@@ -351,7 +351,10 @@ class RelaxParamFrame(Frame): #a frame for the relaxtion parameters
     def disp(self, outAmp,outConst,outCoeff, outT1):
         numCurve = 100 #number of points in output curve
         outCurve = np.zeros(numCurve)
-        x = np.linspace(min(self.parent.xax),max(self.parent.xax),numCurve)
+        if self.xlog.get() == 1:
+            x = np.logspace(np.log(min(self.parent.xax)),np.log(max(self.parent.xax)),numCurve)
+        else:
+            x = np.linspace(min(self.parent.xax),max(self.parent.xax),numCurve)
         for i in range(len(outCoeff)):
             outCurve += outCoeff[i]*np.exp(-x/outT1[i])
         self.parent.showPlot(x, outAmp*(outConst+outCurve))
