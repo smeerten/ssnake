@@ -79,6 +79,7 @@ class MainProgram:
         self.mainWindow = None
         x=np.linspace(0,2*np.pi*10,1000)[:-1] #fake data
         x2=np.linspace(0,2*np.pi*10,200)[1:] #fake data
+        #test2=np.linspace(0.2,1,2) #fake data
         test=np.exp(-1j*x)*np.exp(-1*x/10.0)#fake data
         test2=1-np.exp(-x2)
         masterData=sc.Spectrum(np.outer(test2,test),None,[600000000.0,500000000.0],[1000.0,2000.0])

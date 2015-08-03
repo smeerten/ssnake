@@ -53,15 +53,10 @@ class RelaxWindow(Frame): #a window for fitting relaxation data
 class RelaxFrame(Plot1DFrame): #a window for fitting relaxation data
     def __init__(self, rootwindow,current):
         axAdd=0
-        if current.spec == 1:
-            if current.ppm:
-                axAdd = (current.freq-current.ref)/current.ref*1e6
-                axMult = 1e6/current.ref
-            else:
-                axMult = 1.0/(1000.0**current.axType)
-        elif current.spec == 0:
-            axMult = 1000.0**current.axType
-        self.xax = current.xax*axMult+axAdd
+        self.ref = current.ref
+        self.axType = current.axType
+        self.freq = current.freq
+        self.xax = current.xax
         self.data1D=current.getDisplayedData()
         self.plotType = 0
         self.logx = 0
@@ -91,15 +86,34 @@ class RelaxFrame(Plot1DFrame): #a window for fitting relaxation data
         differ = 0.05*(maxy-miny) #amount to add to show all datapoints (10%)
         self.yminlim=miny-differ
         self.ymaxlim=maxy+differ
-        self.xminlim=min(self.xax)
-        self.xmaxlim=max(self.xax)
+        axAdd = 0.0
+        if self.spec == 1:
+            if self.ppm:
+                axAdd = (self.freq-self.ref)/self.ref*1e6
+                axMult = 1e6/self.ref
+            else:
+                axMult = 1.0/(1000.0**self.axType)
+        elif self.spec == 0:
+            axMult = 1000.0**self.axType
+        self.xminlim=min(self.xax*axMult+axAdd)
+        self.xmaxlim=max(self.xax*axMult+axAdd)
         self.ax.set_xlim(self.xminlim,self.xmaxlim)
         self.ax.set_ylim(self.yminlim,self.ymaxlim)
 
     def showPlot(self, tmpAx=None, tmpdata=None): 
         self.ax.cla()
-        self.ax.plot(tmpAx,tmpdata)
-        self.ax.scatter(self.xax,self.data1D)
+        axAdd = 0.0
+        if self.spec == 1:
+            if self.ppm:
+                axAdd = (self.freq-self.ref)/self.ref*1e6
+                axMult = 1e6/self.ref
+            else:
+                axMult = 1.0/(1000.0**self.axType)
+        elif self.spec == 0:
+            axMult = 1000.0**self.axType
+        if tmpAx is not None:
+            self.ax.plot(tmpAx*axMult+axAdd,tmpdata)
+        self.ax.scatter(self.xax*axMult+axAdd,self.data1D)
         if self.logx==0:
             self.ax.set_xscale('linear')
         else:
@@ -187,7 +201,7 @@ class RelaxParamFrame(Frame): #a frame for the relaxtion parameters
         Entry(self.frame2,textvariable=self.constVal,justify="center",width=10).grid(row=3,column=1)
         OptionMenu(self.frame3, self.numExp, "1","1", "2", "3","4",command=self.changeNum).grid(row=0,column=0,columnspan=4)
         Label(self.frame3,text="Coefficient").grid(row=1,column=0,columnspan=2)
-        Label(self.frame3,text="T").grid(row=1,column=2,columnspan=2)
+        Label(self.frame3,text="T [s]").grid(row=1,column=2,columnspan=2)
         Checkbutton(self.optframe,variable=self.xlog,text='x-log',command=self.setLog).grid(row=0,column=0)
         Checkbutton(self.optframe,variable=self.ylog,text='y-log',command=self.setLog).grid(row=1,column=0)
         
@@ -390,16 +404,7 @@ class PeakDeconvFrame(Plot1DFrame): #a window for fitting relaxation data
         self.data1D = current.getDisplayedData()
         self.current = current
         self.spec = self.current.spec
-        axAdd = 0
-        if self.spec == 1:
-            if self.current.ppm:
-                axAdd = (self.current.freq-self.current.ref)/self.current.ref*1e6
-                axMult = 1e6/self.current.ref
-            else:
-                axMult = 1.0/(1000.0**self.current.axType)
-        elif self.spec == 0:
-            axMult = 1000.0**self.current.axType
-        self.xax = self.current.xax*axMult+axAdd
+        self.xax = self.current.xax
         self.plotType=0
         self.rootwindow = rootwindow
         self.peakPickFunc = lambda pos,self=self: self.pickDeconv(pos) 
@@ -428,8 +433,17 @@ class PeakDeconvFrame(Plot1DFrame): #a window for fitting relaxation data
         differ = 0.05*(maxy-miny) #amount to add to show all datapoints (10%)
         self.yminlim=miny-differ
         self.ymaxlim=maxy+differ
-        self.xminlim=min(self.xax)
-        self.xmaxlim=max(self.xax)
+        axAdd = 0
+        if self.spec == 1:
+            if self.current.ppm:
+                axAdd = (self.current.freq-self.current.ref)/self.current.ref*1e6
+                axMult = 1e6/self.current.ref
+            else:
+                axMult = 1.0/(1000.0**self.current.axType)
+        elif self.spec == 0:
+            axMult = 1000.0**self.current.axType
+        self.xminlim=min(self.xax*axMult+axAdd)
+        self.xmaxlim=max(self.xax*axMult+axAdd)
         if self.spec > 0 :
             a.set_xlim(self.xmaxlim,self.xminlim)
         else:
@@ -439,10 +453,20 @@ class PeakDeconvFrame(Plot1DFrame): #a window for fitting relaxation data
     def showPlot(self, tmpAx=None, tmpdata=None, tmpAx2=[], tmpdata2=[]): 
         a=self.fig.gca()
         a.cla()
-        self.line = a.plot(self.xax,self.data1D)
-        a.plot(tmpAx,tmpdata)
+        axAdd = 0
+        if self.spec == 1:
+            if self.current.ppm:
+                axAdd = (self.current.freq-self.current.ref)/self.current.ref*1e6
+                axMult = 1e6/self.current.ref
+            else:
+                axMult = 1.0/(1000.0**self.current.axType)
+        elif self.spec == 0:
+            axMult = 1000.0**self.current.axType
+        self.line = a.plot(self.xax*axMult+axAdd,self.data1D)
+        if tmpAx is not None:
+            a.plot(tmpAx*axMult+axAdd,tmpdata)
         for i in range(len(tmpAx2)):
-            a.plot(tmpAx2[i],tmpdata2[i])
+            a.plot(tmpAx2[i]*axMult+axAdd,tmpdata2[i])
         if self.spec==0:
             if self.current.axType == 0:
                 a.set_xlabel('Time [s]')
@@ -476,16 +500,25 @@ class PeakDeconvFrame(Plot1DFrame): #a window for fitting relaxation data
         self.canvas.draw()
 
     def pickDeconv(self, pos):
-        self.rootwindow.paramframe.posVal[self.pickNum].set("%.2g" %pos[1])
+        self.rootwindow.paramframe.posVal[self.pickNum].set("%.3g" %pos[1])
         left = pos[0] - 10 #number of points to find the maximum in
         if left < 0:
             left = 0
         right = pos[0] + 10 #number of points to find the maximum in
         if right >= len(self.data1D) :
             right = len(self.data1D)-1
-        width = self.current.fwhm(left,right)
-        self.rootwindow.paramframe.ampVal[self.pickNum].set("%.2g" %(pos[2]*width*0.5*np.pi))
-        self.rootwindow.paramframe.widthVal[self.pickNum].set("%.2g" % width)
+        axAdd = 0
+        if self.current.spec == 1:
+            if self.current.ppm:
+                axAdd = (self.current.freq-self.current.ref)/self.current.ref*1e6
+                axMult = 1e6/self.current.ref
+            else:
+                axMult = 1.0/(1000.0**self.current.axType)
+        elif self.current.spec == 0:
+            axMult = 1000.0**self.current.axType
+        width = (self.current.fwhm(left,right)-axAdd)/axMult
+        self.rootwindow.paramframe.ampVal[self.pickNum].set("%.3g" %(pos[2]*width*0.5*np.pi))
+        self.rootwindow.paramframe.widthVal[self.pickNum].set("%.3g" % width)
         if self.pickNum < 10:
             self.rootwindow.paramframe.numExp.set(str(self.pickNum+1))
             self.rootwindow.paramframe.changeNum()
@@ -498,6 +531,15 @@ class PeakDeconvFrame(Plot1DFrame): #a window for fitting relaxation data
 class PeakDeconvParamFrame(Frame): #a frame for the relaxtion parameters
     def __init__(self, parent, rootwindow): 
         self.parent = parent
+        self.axAdd = 0
+        if self.parent.current.spec == 1:
+            if self.parent.current.ppm:
+                self.axAdd = (self.parent.current.freq-self.parent.current.ref)/self.parent.current.ref*1e6
+                self.axMult = 1e6/self.parent.current.ref
+            else:
+                self.axMult = 1.0/(1000.0**self.parent.current.axType)
+        elif self.parent.current.spec == 0:
+            self.axMult = 1000.0**self.parent.current.axType
         self.bgrndVal = StringVar()
         self.bgrndVal.set("0.0")
         self.bgrndTick = IntVar()
@@ -526,7 +568,7 @@ class PeakDeconvParamFrame(Frame): #a frame for the relaxtion parameters
         OptionMenu(self.frame3, self.numExp, "1","1", "2", "3","4","5","6","7","8","9","10",command=self.changeNum).grid(row=0,column=0,columnspan=6)
         Label(self.frame3,text="Position").grid(row=1,column=0,columnspan=2)
         Label(self.frame3,text="Amplitude").grid(row=1,column=2,columnspan=2)
-        Label(self.frame3,text="Width").grid(row=1,column=4,columnspan=2)
+        Label(self.frame3,text="Width [Hz]").grid(row=1,column=4,columnspan=2)
         self.posVal = []
         self.posTick = []
         self.ampVal = []
@@ -624,7 +666,7 @@ class PeakDeconvParamFrame(Frame): #a frame for the relaxtion parameters
             else:
                 width = argu[0]
                 argu=np.delete(argu,[0])
-            testFunc += amp/np.pi*0.5*width/((x-pos)**2+(0.5*width)**2)
+            testFunc += amp/np.pi*0.5*width/((x-(pos-self.axAdd)/self.axMult)**2+(0.5*width)**2)
         testFunc += bgrnd+slope*x
         return testFunc
 
@@ -730,7 +772,7 @@ class PeakDeconvParamFrame(Frame): #a frame for the relaxtion parameters
         x=[]
         for i in range(len(outAmp)):
             x.append(tmpx)
-            y =  outAmp[i]/np.pi*0.5*outWidth[i]/((tmpx-outPos[i])**2+(0.5*outWidth[i])**2)
+            y =  outAmp[i]/np.pi*0.5*outWidth[i]/((tmpx-(outPos[i]-self.axAdd)/self.axMult)**2+(0.5*outWidth[i])**2)
             outCurvePart.append(outCurveBase + y)
             outCurve += y
         self.parent.showPlot(tmpx, outCurve, x, outCurvePart)

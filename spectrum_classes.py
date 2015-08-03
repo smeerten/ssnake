@@ -530,7 +530,7 @@ class Current1D(Plot1DFrame):
             tmpdata = self.data1D
         tmpdata=tmpdata*np.exp(phase0*1j)
         if len(self.data1D.shape) > 1:
-            mult = np.repeat([np.exp(np.fft.fftshift(np.fft.fftfreq(len(tmpdata),1.0/self.sw))/self.sw*phase1*1j)],len(tmpdata),axis=0)
+            mult = np.repeat([np.exp(np.fft.fftshift(np.fft.fftfreq(len(tmpdata[0]),1.0/self.sw))/self.sw*phase1*1j)],len(tmpdata),axis=0)
         else:
             mult = np.exp(np.fft.fftshift(np.fft.fftfreq(len(tmpdata),1.0/self.sw))/self.sw*phase1*1j)
         tmpdata=tmpdata*mult
@@ -1343,18 +1343,18 @@ class CurrentStacked(Current1D):
             self.spacing = 0
         else:
             if self.plotType==0:
-                difference = np.amax(np.real(difference))
+                difference = np.amin(np.real(difference))
                 amp = np.amax(np.real(self.data1D))-np.amin(np.real(self.data1D))
             elif self.plotType==1:
-                difference = np.amax(np.imag(difference))
+                difference = np.amin(np.imag(difference))
                 amp = np.amax(np.imag(self.data1D))-np.amin(np.imag(self.data1D))
             elif self.plotType==2:
-                difference = np.amax((np.real(difference),np.imag(difference)))
+                difference = np.amin((np.real(difference),np.imag(difference)))
                 amp = np.amax((np.real(self.data1D),np.imag(self.data1D)))-np.amin((np.real(self.data1D),np.imag(self.data1D)))
             elif self.plotType==3:
-                difference = np.amax(np.abs(difference))
+                difference = np.amin(np.abs(difference))
                 amp = np.amax(np.abs(self.data1D))-np.amin(np.abs(self.data1D))
-            self.spacing = difference + 0.1*amp   
+            self.spacing = np.abs(difference) + 0.1*amp   
 
     def showFid(self, tmpdata=None, extraX=None, extraY=None, extraColor=None,old=False): #display the 1D data
         if tmpdata is None:
