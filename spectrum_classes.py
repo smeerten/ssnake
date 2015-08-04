@@ -412,7 +412,7 @@ class Spectrum(object):
         copyData=copy.deepcopy(self)
         returnValue = lambda self: self.restoreData(copyData, lambda self: self.shear(shear,axes, axes2))
         shearMatrix = np.identity(self.dim)
-        shearMatrix[axes,axes2]=shear
+        shearMatrix[axes,axes2]=shear*self.sw[axes]/self.sw[axes2]
         self.data = scipy.ndimage.interpolation.affine_transform(np.real(self.data),shearMatrix,mode='wrap') + 1j*scipy.ndimage.interpolation.affine_transform(np.imag(self.data),shearMatrix,mode='wrap')
         return returnValue
     

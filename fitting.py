@@ -1748,15 +1748,15 @@ class Quad1DeconvParamFrame(Frame): #a frame for the quadrupole parameters
         for i in range(numExp):
             if struc[5*i+2]:
                 self.posVal[i].set('%.2g' % fitVal[counter])
-                outpos[i] = fitVal[counter]
+                outPos[i] = fitVal[counter]
                 counter += 1
             if struc[5*i+3]:
                 self.cqVal[i].set('%.2g' % fitVal[counter])
-                outcq[i] = fitVal[counter]
+                outCq[i] = fitVal[counter]
                 counter += 1
             if struc[5*i+4]:
                 self.etaVal[i].set('%.2g' % fitVal[counter])
-                outeta[i] = fitVal[counter]
+                outEta[i] = fitVal[counter]
                 counter += 1
             if struc[5*i+5]:
                 self.ampVal[i].set('%.2g' % fitVal[counter])
@@ -1766,7 +1766,7 @@ class Quad1DeconvParamFrame(Frame): #a frame for the quadrupole parameters
                 self.widthVal[i].set('%.2g' % abs(fitVal[counter]))
                 outWidth[i] = abs(fitVal[counter])
                 counter += 1
-        self.disp(outBgrnd,outSlope,outpos,outcq,outeta,outAmp,outWidth)
+        self.disp(outBgrnd,outSlope,I,outPos,outCq,outEta,outAmp,outWidth)
 
     def sim(self):
         self.setCheng()

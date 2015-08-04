@@ -6,6 +6,7 @@ if sys.version_info >= (3,0):
     from tkinter import *
     import tkinter as tk
     from tkinter.ttk import *
+    import tkinter.tkmessagebox as tkMessageBox
     from tkinter.filedialog import askopenfilename
     from tkinter.filedialog import asksaveasfile
     from tkinter.filedialog import asksaveasfilename
@@ -14,6 +15,7 @@ else:
     from Tkinter import *
     import Tkinter as tk
     from ttk import *
+    import tkMessageBox as tkMessageBox
     from tkFileDialog   import askopenfilename
     from tkFileDialog   import asksaveasfile
     from tkFileDialog   import asksaveasfilename
@@ -49,7 +51,8 @@ class MainProgram:
         self.filemenu = Menu(self.menubar, tearoff=0)
         self.menubar.add_cascade(label="File", menu=self.filemenu)
         #the hotkeys for different commands
-        self.root.bind_all("<Control-q>", lambda extra: self.root.quit())
+        self.root.protocol("WM_DELETE_WINDOW", self.kill)
+        self.root.bind_all("<Control-q>", lambda extra: self.kill())
         self.root.bind_all("<Control-z>", self.undo)
         self.root.bind_all("<Control-y>", self.redo)
         self.root.bind_all("<Control-w>", self.destroyWorkspace)
@@ -92,18 +95,40 @@ class MainProgram:
         self.activemenu = None
 
         #the macro menu
-        macromenu = Menu(self.menubar, tearoff=0)
-        self.menubar.add_cascade(label="Macros", menu=macromenu)
-        macromenu.add_command(label="Start recording", command=self.macroCreate)
-        macromenu.add_command(label="Stop recording", command=self.stopMacro)
-        self.macrolistmenu = Menu(macromenu, tearoff=0)
-        macromenu.add_cascade(label="Run", menu=self.macrolistmenu)
-        self.macrosavemenu = Menu(macromenu, tearoff=0)
-        macromenu.add_cascade(label="Save", menu=self.macrosavemenu)
-        macromenu.add_command(label="Load", command=self.loadMacro)
+        self.macromenu = Menu(self.menubar, tearoff=0)
+        self.menubar.add_cascade(label="Macros", menu=self.macromenu)
+        self.macromenu.add_command(label="Start recording", command=self.macroCreate)
+        self.macromenu.add_command(label="Stop recording", command=self.stopMacro)
+        self.macrolistmenu = Menu(self.macromenu, tearoff=0)
+        self.macromenu.add_cascade(label="Run", menu=self.macrolistmenu)
+        self.macrosavemenu = Menu(self.macromenu, tearoff=0)
+        self.macromenu.add_cascade(label="Save", menu=self.macrosavemenu)
+        self.macromenu.add_command(label="Load", command=self.loadMacro)
         self.changeMainWindow('name0')
         self.filemenu.add_command(label="Exit", command=self.root.quit)
-        
+        self.menuCheck()
+
+    def kill(self):
+        answer = tkMessageBox.askquestion("Question", "Are you sure you want to quit?")
+        if answer == 'yes':
+            self.root.quit()
+
+    def menuCheck(self):
+        if self.mainWindow is None:
+            self.filemenu.entryconfig('Save',state='disabled')
+            self.workspacemenu.entryconfig('Delete',state='disabled')
+            self.menubar.entryconfig('Macros',state='disabled')
+        else:
+            self.menubar.entryconfig('Macros',state='normal')
+            if self.mainWindow.currentMacro is None:
+                self.macromenu.entryconfig('Stop recording',state='disabled')
+                self.macromenu.entryconfig('Start recording',state='normal')
+            else:
+                self.macromenu.entryconfig('Stop recording',state='normal')
+                self.macromenu.entryconfig('Start recording',state='disabled')
+            self.filemenu.entryconfig('Save',state='normal')
+            self.workspacemenu.entryconfig('Delete',state='normal')
+            
     def askName(self):
         count = 0
         name = 'spectrum'+str(count)
@@ -143,6 +168,7 @@ class MainProgram:
         self.mainWindow.currentMacro = givenName
         self.macrolistmenu.add_command(label=givenName,command=lambda name=givenName: self.runMacro(name))
         self.macrosavemenu.add_command(label=givenName,command=lambda name=givenName: self.saveMacro(name))
+        self.menuCheck()
 
     def stopMacro(self):
         if self.mainWindow is None:
@@ -151,6 +177,7 @@ class MainProgram:
             return
         self.mainWindow.redoMacro = []
         self.mainWindow.currentMacro = None
+        self.menuCheck()
     
     def macroAdd(self,name,macros):
         self.macros[name].append(macros)
@@ -183,6 +210,7 @@ class MainProgram:
             self.macros[givenName] = json.load(f)
         self.macrolistmenu.add_command(label=givenName,command=lambda name=givenName: self.runMacro(givenName))
         self.macrosavemenu.add_command(label=givenName,command=lambda name=givenName: self.saveMacro(givenName))
+        self.menuCheck()
             
     def changeMainWindow(self, var):
         if self.mainWindow is not None:
@@ -192,6 +220,7 @@ class MainProgram:
         self.mainWindow = self.workspaces[num]
         self.mainWindow.addToView()
         self.updWorkspaceMenu(var)
+        self.menuCheck()
 
     def stepWorkspace(self, step):
         if len(self.workspaces) > 1:
@@ -202,9 +231,12 @@ class MainProgram:
             self.mainWindow = self.workspaces[self.workspaceNum]
             self.mainWindow.addToView()
             self.updWorkspaceMenu(self.workspaceNames[self.workspaceNum])
+            self.menuCheck()
 
     def duplicateWorkspace(self, *args):
         name = self.askName()
+        if name is None:
+            return
         self.workspaces.append(Main1DWindow(self.root,self,copy.deepcopy(self.mainWindow.masterData),self.mainWindow.current))
         self.workspaceNames.append(name)
         self.changeMainWindow(name)
@@ -230,6 +262,7 @@ class MainProgram:
         self.workspaceVar.set(var)
         for i in self.workspaceNames:
             self.activemenu.add_radiobutton(label=i,variable=self.workspaceVar,value=i,command=lambda i=i: self.changeMainWindow(i))
+        self.menuCheck()
 
     def loading(self,num):
         filePath = askopenfilename()
@@ -635,11 +668,11 @@ class Main1DWindow(Frame):
 
     def addToView(self):
 	#the edit drop down menu
-        editmenu = Menu(self.menubar, tearoff=0)
-        self.menubar.add_cascade(label="Edit", menu=editmenu)
-        editmenu.add_command(label="Undo", command=self.undo)
-        editmenu.add_command(label="Redo", command=self.redo)
-        editmenu.add_command(label="Reload", command=self.reloadLast)
+        self.editmenu = Menu(self.menubar, tearoff=0)
+        self.menubar.add_cascade(label="Edit", menu=self.editmenu)
+        self.editmenu.add_command(label="Undo", command=self.undo)
+        self.editmenu.add_command(label="Redo", command=self.redo)
+        self.editmenu.add_command(label="Reload", command=self.reloadLast)
 
 	#the tool drop down menu
         toolMenu = Menu(self.menubar, tearoff=0)
@@ -659,17 +692,17 @@ class Main1DWindow(Frame):
         #toolMenu.add_command(label="LPSVD", command=self.LPSVD)
 
         #the matrix drop down menu
-        matrixMenu = Menu(self.menubar, tearoff=0)
-        self.menubar.add_cascade(label="Matrix",menu=matrixMenu)
-        matrixMenu.add_command(label="Integrate", command=self.createIntegrateWindow)
-        matrixMenu.add_command(label="Max", command=self.createMaxWindow)
-        matrixMenu.add_command(label="Min", command=self.createMinWindow)
-        matrixMenu.add_command(label="Extract part", command=self.createRegionWindow)
-        matrixMenu.add_command(label="Flip L/R", command=self.flipLR)
-        matrixMenu.add_command(label="Delete", command=self.createDeleteWindow)
-        matrixMenu.add_command(label="Split", command=self.createSplitWindow)
-        matrixMenu.add_command(label="Concatenate", command=self.createConcatenateWindow)
-        matrixMenu.add_command(label="Shearing", command=self.createShearingWindow)
+        self.matrixMenu = Menu(self.menubar, tearoff=0)
+        self.menubar.add_cascade(label="Matrix",menu=self.matrixMenu)
+        self.matrixMenu.add_command(label="Integrate", command=self.createIntegrateWindow)
+        self.matrixMenu.add_command(label="Max", command=self.createMaxWindow)
+        self.matrixMenu.add_command(label="Min", command=self.createMinWindow)
+        self.matrixMenu.add_command(label="Extract part", command=self.createRegionWindow)
+        self.matrixMenu.add_command(label="Flip L/R", command=self.flipLR)
+        self.matrixMenu.add_command(label="Delete", command=self.createDeleteWindow)
+        self.matrixMenu.add_command(label="Split", command=self.createSplitWindow)
+        self.matrixMenu.add_command(label="Concatenate", command=self.createConcatenateWindow)
+        self.matrixMenu.add_command(label="Shearing", command=self.createShearingWindow)
         
         #the fft drop down menu
         fftMenu = Menu(self.menubar, tearoff=0)
@@ -699,16 +732,17 @@ class Main1DWindow(Frame):
         combineMenu.add_command(label="Subtract", command=self.createSubtractWindow)
 
 	#the plot drop down menu
-        plotMenu = Menu(self.menubar, tearoff=0)
-        self.menubar.add_cascade(label="Plot",menu=plotMenu)
-        plotMenu.add_command(label="1D plot", command=self.plot1D)
-        plotMenu.add_command(label="Stack plot", command=self.plotStack)
-        plotMenu.add_command(label="Array plot", command=self.plotArray)
-        plotMenu.add_command(label="Contour plot", command=self.plotContour)
-        plotMenu.add_command(label="Skewed plot", command=self.plotSkewed)
-        plotMenu.add_command(label="Set reference", command=self.createRefWindow)
-        plotMenu.add_command(label="User x-axis", command=self.createXaxWindow)
+        self.plotMenu = Menu(self.menubar, tearoff=0)
+        self.menubar.add_cascade(label="Plot",menu=self.plotMenu)
+        self.plotMenu.add_command(label="1D plot", command=self.plot1D)
+        self.plotMenu.add_command(label="Stack plot", command=self.plotStack)
+        self.plotMenu.add_command(label="Array plot", command=self.plotArray)
+        self.plotMenu.add_command(label="Contour plot", command=self.plotContour)
+        self.plotMenu.add_command(label="Skewed plot", command=self.plotSkewed)
+        self.plotMenu.add_command(label="Set reference", command=self.createRefWindow)
+        self.plotMenu.add_command(label="User x-axis", command=self.createXaxWindow)
         self.pack(fill=BOTH,expand=1)
+        self.menuCheck()
         
     def menuEnable(self):
         for i in range(12):
@@ -716,7 +750,32 @@ class Main1DWindow(Frame):
         self.sideframe.frameEnable()
         self.bottomframe.frameEnable()
         self.textframe.frameEnable()
+        self.menuCheck()
 
+    def menuCheck(self):
+        if (len(self.masterData.data.shape) < 2):
+            self.matrixMenu.entryconfig('Concatenate',state='disabled')
+            self.matrixMenu.entryconfig('Shearing',state='disabled')
+            self.plotMenu.entryconfig('Stack plot',state='disabled')
+            self.plotMenu.entryconfig('Array plot',state='disabled')
+            self.plotMenu.entryconfig('Contour plot',state='disabled')
+            self.plotMenu.entryconfig('Skewed plot',state='disabled')
+        else:
+            self.matrixMenu.entryconfig('Concatenate',state='normal')
+            self.matrixMenu.entryconfig('Shearing',state='normal')
+            self.plotMenu.entryconfig('Stack plot',state='normal')
+            self.plotMenu.entryconfig('Array plot',state='normal')
+            self.plotMenu.entryconfig('Contour plot',state='normal')
+            self.plotMenu.entryconfig('Skewed plot',state='normal')
+        if not self.undoList:
+            self.editmenu.entryconfig('Undo',state='disabled')
+        else:
+            self.editmenu.entryconfig('Undo',state='normal')
+        if not self.redoList:
+            self.editmenu.entryconfig('Redo',state='disabled')
+        else:
+            self.editmenu.entryconfig('Redo',state='normal')
+        
     def menuDisable(self):
         for i in range(12):
             self.menubar.entryconfig(i,state='disabled')
@@ -791,6 +850,7 @@ class Main1DWindow(Frame):
         self.current.plotReset() #reset the axes limits
         self.current.showFid() #plot the data
         self.updAllFrames()
+        self.menuCheck()
                 
     def addMacro(self,macroStep):
         if self.currentMacro is not None:
@@ -882,57 +942,68 @@ class Main1DWindow(Frame):
         self.current.showFid()
         self.updAllFrames()
         self.macroAdd(['reload'])
+        self.menuCheck()
              
     def real(self):
         self.redoList = []
         self.undoList.append(self.masterData.real())
         self.current.upd()
         self.current.showFid()
+        self.menuCheck()
 
     def imag(self):
         self.redoList = []
         self.undoList.append(self.masterData.imag())
         self.current.upd()
         self.current.showFid()
+        self.menuCheck()
 
     def abs(self):
         self.redoList = []
         self.undoList.append(self.masterData.abs())
         self.current.upd()
         self.current.showFid()
+        self.menuCheck()
 
     def fourier(self):
         self.redoList = []
         self.undoList.append(self.current.fourier())
         self.bottomframe.upd()
+        self.menuCheck()
 
     def fftshift(self):
         self.redoList = []
         self.undoList.append(self.current.fftshift())
         self.updAllFrames()
+        self.menuCheck()
 
     def invFftshift(self):
         self.redoList = []
         self.undoList.append(self.current.fftshift(inv=True))
         self.updAllFrames()
+        self.menuCheck()
     
     def hilbert(self):
         self.redoList = []
         self.undoList.append(self.current.hilbert())
+        self.menuCheck()
         
     def states(self):
         self.redoList = []
         self.undoList.append(self.current.states())
         self.updAllFrames()
+        self.menuCheck()
         
     def statesTPPI(self):
         self.redoList = []
         self.undoList.append(self.current.statesTPPI())
         self.updAllFrames()
+        self.menuCheck()
         
     def setFreq(self,freq,sw):
         self.redoList = []
         self.undoList.append(self.current.setFreq(freq,sw))
+        self.menuCheck()
 
     def createPhaseWindow(self):
         PhaseWindow(self)
@@ -970,6 +1041,7 @@ class Main1DWindow(Frame):
     def flipLR(self):
         self.redoList = []
         self.undoList.append(self.current.flipLR())
+        self.menuCheck()
         
     def createDeleteWindow(self):
         DeleteWindow(self)
@@ -1029,10 +1101,12 @@ class Main1DWindow(Frame):
                 if FilterCorrection != -1.0: #If changed
                     self.redoList = []
                     self.undoList.append(self.current.applyPhase(0, FilterCorrection*2*np.pi))
+                    self.menuCheck()
                     
     def LPSVD(self):
         self.redoList = []
         self.undoList.append(self.current.applyLPSVD())
+        self.menuCheck()
                     
     def createSNWindow(self):
         SNWindow(self)
@@ -1136,6 +1210,7 @@ class Main1DWindow(Frame):
         self.updAllFrames()
         if self.currentMacro is not None:
             self.redoMacro.append(self.mainProgram.macros[self.currentMacro].pop())
+        self.menuCheck()
 
     def redo(self, *args):
         if self.redoList:
@@ -1146,6 +1221,7 @@ class Main1DWindow(Frame):
             self.updAllFrames()
             if self.currentMacro is not None:
                 self.mainProgram.macroAdd(self.currentMacro,self.redoMacro.pop())
+            self.menuCheck()
         else:
             print("no redo information")
 
@@ -1514,11 +1590,13 @@ class BottomFrame(Frame):
 
     def setWholeEcho(self):
         self.parent.undoList.append(self.parent.current.setWholeEcho(self.echoTick.get()))
+        self.parent.menuCheck()
 
     def changeSpec(self, *args): #change from time to spectral domain and vice versa
         self.parent.redoList = []
         self.parent.undoList.append(self.parent.current.changeSpec(self.specVal.get()))
         self.upd()
+        self.parent.menuCheck()
 
     def changeFreq(self, *args): #change the frequency and sw of the displayed axes
         freq = safeEval(self.freqVal.get())*1000000 #show in MHz
@@ -2276,8 +2354,8 @@ class regionWindow(Toplevel): #A general region selection frame
             maximum = 0
         elif maximum > dataLength:
             maximum = dataLength
-        self.parent.menuEnable()
         self.apply(maximum,minimum)
+        self.parent.menuEnable()
         self.destroy()
         
 ############################################################
@@ -2952,12 +3030,12 @@ class XaxWindow(Toplevel): #a window for setting the xax of the current data
 class RefWindow(Toplevel): #a window for setting the ppm reference
     def __init__(self, parent):
         parent.menuDisable()
-        if current.spec == 0:
+        if parent.current.spec == 0:
             print('Setting ppm is only available for frequency data')
         Toplevel.__init__(self)
         #initialize variables for the widgets
         self.freqVal = StringVar()
-        self.freqVal.set(str(current.freq))
+        self.freqVal.set(str(parent.current.freq))
         self.refVal = StringVar()
         self.refVal.set('0.0')
         self.parent = parent
