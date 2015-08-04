@@ -6,7 +6,7 @@ if sys.version_info >= (3,0):
     from tkinter import *
     import tkinter as tk
     from tkinter.ttk import *
-    import tkinter.tkmessagebox as tkMessageBox
+    from tkinter import messagebox as tkMessageBox
     from tkinter.filedialog import askopenfilename
     from tkinter.filedialog import asksaveasfile
     from tkinter.filedialog import asksaveasfilename
