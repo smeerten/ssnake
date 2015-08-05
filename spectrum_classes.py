@@ -412,8 +412,10 @@ class Spectrum(object):
         copyData=copy.deepcopy(self)
         returnValue = lambda self: self.restoreData(copyData, lambda self: self.shear(shear,axes, axes2))
         shearMatrix = np.identity(self.dim)
-        shearMatrix[axes,axes2]=shear*self.sw[axes]/self.sw[axes2]
-        self.data = scipy.ndimage.interpolation.affine_transform(np.real(self.data),shearMatrix,mode='wrap') + 1j*scipy.ndimage.interpolation.affine_transform(np.imag(self.data),shearMatrix,mode='wrap')
+        shearMatrix[axes,axes2]=shear*self.sw[axes2]*self.data.shape[axes]/(self.sw[axes]*self.data.shape[axes2])
+        offset = np.zeros(self.dim)
+        offset[axes] = -(self.data.shape[axes2]*0.5)*shear*self.sw[axes2]*self.data.shape[axes]/(self.sw[axes]*self.data.shape[axes2])
+        self.data = scipy.ndimage.interpolation.affine_transform(np.real(self.data),shearMatrix,mode='wrap',offset=offset) + 1j*scipy.ndimage.interpolation.affine_transform(np.imag(self.data),shearMatrix,mode='wrap',offset=offset)
         return returnValue
     
     def getSlice(self,axes,locList):
@@ -1169,6 +1171,79 @@ class Current1D(Plot1DFrame):
         else:
             self.ax.set_xlim(self.xminlim,self.xmaxlim)
         self.ax.set_ylim(self.yminlim,self.ymaxlim)
+
+#########################################################################################################
+class CurrentScatter(Current1D):
+    def __init__(self, root, data, duplicateCurrent=None):
+        Current1D.__init__(self,root, data, duplicateCurrent)
+
+    def showFid(self, tmpdata=None, extraX=None, extraY=None, extraColor=None,old=False,output=None): #display the 1D data
+        if tmpdata is None:
+            tmpdata=self.data1D
+        self.ax.cla()
+        axAdd = 0
+        if self.spec == 1:
+            if self.ppm:
+                axAdd = (self.freq-self.ref)/self.ref*1e6
+                axMult = 1e6/self.ref
+            else:
+                axMult = 1.0/(1000.0**self.axType)
+        elif self.spec == 0:
+            axMult = 1000.0**self.axType
+        if old:
+            if (self.plotType==0):
+                self.ax.scatter(self.xax*axMult+axAdd,np.real(self.data1D),c='k',alpha=0.2)
+            elif(self.plotType==1):
+                self.ax.scatter(self.xax*axMult+axAdd,np.imag(self.data1D),c='k',alpha=0.2)
+            elif(self.plotType==2):
+                self.ax.scatter(self.xax*axMult+axAdd,np.real(self.data1D),c='k',alpha=0.2)
+            elif(self.plotType==3):
+                self.ax.scatter(self.xax*axMult+axAdd,np.abs(self.data1D),c='k',alpha=0.2)
+        if (extraX is not None):
+            for num in range(len(extraX)):
+                self.ax.scatter(extraX[num]*axMult+axAdd,extraY[num],c=extraColor[num])
+        if (self.plotType==0):
+            self.line = self.ax.scatter(self.xax*axMult+axAdd,np.real(tmpdata),c='b')
+        elif(self.plotType==1):
+            self.line =self.ax.scatter(self.xax*axMult+axAdd,np.imag(tmpdata),c='b')
+        elif(self.plotType==2):
+            self.ax.scatter(self.xax*axMult+axAdd,np.imag(tmpdata),c='r')
+            self.line = self.ax.scatter(self.xax*axMult+axAdd,np.real(tmpdata),c='b')
+        elif(self.plotType==3):
+            self.line =self.ax.scatter(self.xax*axMult+axAdd,np.abs(tmpdata),c='b')
+        if self.spec==0:
+            if self.axType == 0:
+                self.ax.set_xlabel('Time [s]')
+            elif self.axType == 1:
+                self.ax.set_xlabel('Time [ms]')
+            elif self.axType == 2:
+                self.ax.set_xlabel(r'Time [$\mu$s]')
+            else:
+                self.ax.set_xlabel('User defined')
+        elif self.spec==1:
+            if self.ppm:
+                self.ax.set_xlabel('Frequency [ppm]')
+            else:
+                if self.axType == 0:
+                    self.ax.set_xlabel('Frequency [Hz]')
+                elif self.axType == 1:
+                    self.ax.set_xlabel('Frequency [kHz]')
+                elif self.axType == 2:
+                    self.ax.set_xlabel('Frequency [MHz]')
+                else:
+                    self.ax.set_xlabel('User defined')
+        else:
+            self.ax.set_xlabel('')
+        self.ax.get_xaxis().get_major_formatter().set_powerlimits((-4, 4))
+        self.ax.get_yaxis().get_major_formatter().set_powerlimits((-4, 4))
+        if self.spec > 0 :
+            self.ax.set_xlim(self.xmaxlim,self.xminlim)
+        else:
+            self.ax.set_xlim(self.xminlim,self.xmaxlim)
+        self.ax.set_ylim(self.yminlim,self.ymaxlim)
+        if output is not None:
+            self.canvas.print_figure(output)
+        self.canvas.draw()
         
 #########################################################################################################
 #the class from which the stacked data is displayed, the operations which only edit the content of this class are for previewing

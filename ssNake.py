@@ -112,6 +112,7 @@ class MainProgram:
         answer = tkMessageBox.askquestion("Question", "Are you sure you want to quit?")
         if answer == 'yes':
             self.root.quit()
+            self.root.destroy()
 
     def menuCheck(self):
         if self.mainWindow is None:
@@ -579,7 +580,7 @@ class MainProgram:
             masterData=sc.Spectrum(data,lambda self :self.LoadSimsponFile(filePath),[0],[SW],spec)
         else:
             data = data.reshape((NI,NP))
-            masterData=sc.Spectrum(data,lambda self :self.LoadSimpsonFile(filePath),[0,0],[SW,SW1],spec*2)
+            masterData=sc.Spectrum(data,lambda self :self.LoadSimpsonFile(filePath),[0,0],[SW1,SW],spec*2)
         return masterData
 
     def saveFigure(self):
@@ -735,6 +736,7 @@ class Main1DWindow(Frame):
         self.plotMenu = Menu(self.menubar, tearoff=0)
         self.menubar.add_cascade(label="Plot",menu=self.plotMenu)
         self.plotMenu.add_command(label="1D plot", command=self.plot1D)
+        self.plotMenu.add_command(label="Scatter plot", command=self.plotScatter)
         self.plotMenu.add_command(label="Stack plot", command=self.plotStack)
         self.plotMenu.add_command(label="Array plot", command=self.plotArray)
         self.plotMenu.add_command(label="Contour plot", command=self.plotContour)
@@ -788,6 +790,12 @@ class Main1DWindow(Frame):
         for iter1 in macro:
             if iter1[0] == 'reload':
                 self.undoList.append(self.masterData.reload(self))
+            elif iter1[0] == 'real':
+                self.undoList.append(self.masterData.real())
+            elif iter1[0] == 'imag':
+                self.undoList.append(self.masterData.imag())
+            elif iter1[0] == 'abs':
+                self.undoList.append(self.masterData.abs()) 
             elif iter1[0] == 'phase':
                 self.undoList.append(self.masterData.setPhase(*iter1[1]))
             elif iter1[0] == 'fourier':
@@ -888,7 +896,7 @@ class Main1DWindow(Frame):
         struct['wholeEcho'] = self.masterData.wholeEcho
         struct['ref'] = np.array(self.masterData.ref,dtype=np.float)
         struct['xaxArray'] = self.masterData.xaxArray
-        matlabStruct = {name:struct}
+        matlabStruct = {self.mainProgram.workspaceNames[self.mainProgram.workspaceNum]:struct}
         scipy.io.savemat(name,matlabStruct)
 
     def SaveSimpsonFile(self):
@@ -949,6 +957,7 @@ class Main1DWindow(Frame):
         self.undoList.append(self.masterData.real())
         self.current.upd()
         self.current.showFid()
+        self.macroAdd(['real'])
         self.menuCheck()
 
     def imag(self):
@@ -956,6 +965,7 @@ class Main1DWindow(Frame):
         self.undoList.append(self.masterData.imag())
         self.current.upd()
         self.current.showFid()
+        self.macroAdd(['imag'])
         self.menuCheck()
 
     def abs(self):
@@ -963,6 +973,7 @@ class Main1DWindow(Frame):
         self.undoList.append(self.masterData.abs())
         self.current.upd()
         self.current.showFid()
+        self.macroAdd(['abs'])
         self.menuCheck()
 
     def fourier(self):
@@ -1135,6 +1146,15 @@ class Main1DWindow(Frame):
     def plot1D(self):
         self.current.grid_remove()
         tmpcurrent = sc.Current1D(self,self.masterData)
+        self.current.kill()
+        del self.current
+        self.current = tmpcurrent
+        self.current.grid(row=0,column=0,sticky="nswe")
+        self.updAllFrames()
+
+    def plotScatter(self):
+        self.current.grid_remove()
+        tmpcurrent = sc.CurrentScatter(self,self.masterData)
         self.current.kill()
         del self.current
         self.current = tmpcurrent

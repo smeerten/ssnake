@@ -152,7 +152,177 @@ class RelaxFrame(Plot1DFrame): #a window for fitting relaxation data
         if self.logy==0:
             self.ax.get_yaxis().get_major_formatter().set_powerlimits((-4, 4))
         self.canvas.draw()
+        
+    def scroll(self,event):
+        if self.rightMouse:
+            if self.logx == 0:
+                middle = (self.xmaxlim+self.xminlim)/2.0
+                width = self.xmaxlim-self.xminlim
+                width = width*0.9**event.step
+                self.xmaxlim = middle+width/2.0
+                self.xminlim = middle-width/2.0
+                if self.spec > 0 and not isinstance(self,spectrum_classes.CurrentArrayed):
+                    self.ax.set_xlim(self.xmaxlim,self.xminlim)
+                else:
+                    self.ax.set_xlim(self.xminlim,self.xmaxlim)
+            else:
+                middle = (np.log(self.xmaxlim)+np.log(self.xminlim))/2.0
+                width = np.log(self.xmaxlim)-np.log(self.xminlim)
+                width = width*0.9**event.step
+                self.xmaxlim = np.exp(middle+width/2.0)
+                self.xminlim = np.exp(middle-width/2.0)
+                if self.spec > 0 and not isinstance(self,spectrum_classes.CurrentArrayed):
+                    self.ax.set_xlim(self.xmaxlim,self.xminlim)
+                else:
+                    self.ax.set_xlim(self.xminlim,self.xmaxlim)
+        else:
+            if self.logy == 0:
+                middle = (self.ymaxlim+self.yminlim)/2.0
+                width = self.ymaxlim-self.yminlim
+                width = width*0.9**event.step
+                self.ymaxlim = middle+width/2.0
+                self.yminlim = middle-width/2.0
+                if self.spec2 > 0 and isinstance(self,spectrum_classes.CurrentContour):
+                    self.ax.set_ylim(self.ymaxlim,self.yminlim)
+                else:
+                    self.ax.set_ylim(self.yminlim,self.ymaxlim)
+            else:
+                middle = (np.log(self.ymaxlim)+np.log(self.yminlim))/2.0
+                width = np.log(self.ymaxlim)-np.log(self.yminlim)
+                width = width*0.9**event.step
+                self.ymaxlim = np.exp(middle+width/2.0)
+                self.yminlim = np.exp(middle-width/2.0)
+                if self.spec2 > 0 and isinstance(self,spectrum_classes.CurrentContour):
+                    self.ax.set_ylim(self.ymaxlim,self.yminlim)
+                else:
+                    self.ax.set_ylim(self.yminlim,self.ymaxlim)
+        self.canvas.draw()
+        
+    def buttonRelease(self,event):
+        if event.button == 1:
+            if self.peakPick:
+                if self.rect[0] is not None:
+                    self.rect[0].remove()
+                    self.rect[0]=None
+                    self.peakPick = False
+                    minim = np.min(np.abs(self.line[0].get_xdata()-event.xdata))
+                    minPos = 0
+                    for i in range(1,len(self.line)):
+                        minimNew = np.min(np.abs(self.line[i].get_xdata()-event.xdata))
+                        if minimNew < minim:
+                            minim = minimNew
+                            minPos = i
+                    xdata = self.line[minPos].get_xdata()
+                    ydata = self.line[minPos].get_ydata()
+                    idx = np.argmin(np.abs(xdata-event.xdata))
+                    if self.peakPickFunc is not None:
+                        self.peakPickFunc((idx,xdata[idx],ydata[idx]))
+                    if not self.peakPick: #check if peakpicking is still required
+                        self.peakPickFunc = None
+            else:
+                self.leftMouse = False
+                if self.rect[0] is not None:
+                    self.rect[0].remove()
+                if self.rect[1] is not None:
+                    self.rect[1].remove()
+                if self.rect[2] is not None:
+                    self.rect[2].remove()
+                if self.rect[3] is not None:
+                    self.rect[3].remove()
+                self.rect=[None,None,None,None]
+                if self.zoomX2 is not None and self.zoomY2 is not None:
+                    self.xminlim=min([self.zoomX1,self.zoomX2])
+                    self.xmaxlim=max([self.zoomX1,self.zoomX2])
+                    self.yminlim=min([self.zoomY1,self.zoomY2])
+                    self.ymaxlim=max([self.zoomY1,self.zoomY2])
+                    if self.spec > 0 and not isinstance(self,spectrum_classes.CurrentArrayed):
+                        self.ax.set_xlim(self.xmaxlim,self.xminlim)
+                    else:
+                        self.ax.set_xlim(self.xminlim,self.xmaxlim)
+                    if self.spec2 > 0 and isinstance(self,spectrum_classes.CurrentContour):
+                        self.ax.set_ylim(self.ymaxlim,self.yminlim)
+                    else:
+                        self.ax.set_ylim(self.yminlim,self.ymaxlim)
+                self.zoomX1=None
+                self.zoomX2=None #WF: should also be cleared, memory of old zoom
+                self.zoomY1=None
+                self.zoomY2=None #WF: should also be cleared, memory of old zoom
+        elif event.button == 3:
+            self.rightMouse = False
+        self.canvas.draw()
 
+    def pan(self,event):
+        if self.rightMouse and self.panX is not None and self.panY is not None:
+            if self.logx==0 and self.logy==0:
+                inv = self.ax.transData.inverted()
+                point = inv.transform((event.x,event.y))
+                x=point[0]
+                y=point[1]
+            else:
+                x=event.xdata
+                y=event.ydata
+                if x is None or y is None:
+                    return
+            if self.logx == 0:
+                diffx = x-self.panX
+                self.xmaxlim = self.xmaxlim-diffx
+                self.xminlim = self.xminlim-diffx
+            else:
+                diffx = np.log(x)-np.log(self.panX)
+                self.xmaxlim = np.exp(np.log(self.xmaxlim)-diffx)
+                self.xminlim = np.exp(np.log(self.xminlim)-diffx)
+            if self.logy == 0:
+                diffy = y-self.panY
+                self.ymaxlim = self.ymaxlim-diffy
+                self.yminlim = self.yminlim-diffy
+            else:
+                diffy = np.log(y)-np.log(self.panY)
+                self.ymaxlim = np.exp(np.log(self.ymaxlim)-diffy)
+                self.yminlim = np.exp(np.log(self.yminlim)-diffy)
+            if self.spec > 0 and not isinstance(self,spectrum_classes.CurrentArrayed):
+                self.ax.set_xlim(self.xmaxlim,self.xminlim)
+            else:
+                self.ax.set_xlim(self.xminlim,self.xmaxlim)
+            if self.spec2 > 0 and isinstance(self,spectrum_classes.CurrentContour):
+                self.ax.set_ylim(self.ymaxlim,self.yminlim)
+            else:
+                self.ax.set_ylim(self.yminlim,self.ymaxlim)
+            self.canvas.draw()
+        elif self.peakPick:
+            if self.rect[0] is not None:
+                self.rect[0].remove()
+                self.rect[0]=None
+            if event.xdata is not None:
+                self.rect[0]=self.ax.axvline(event.xdata,c='k',linestyle='--')
+            self.canvas.draw()
+        elif self.leftMouse and (self.zoomX1 is not None) and (self.zoomY1 is not None):
+            if self.logx==0 and self.logy==0:
+                inv = self.ax.transData.inverted()
+                point = inv.transform((event.x,event.y))
+                self.zoomX2=point[0]
+                self.zoomY2=point[1]
+            else:
+                self.zoomX2=event.xdata
+                self.zoomY2=event.ydata
+                if self.zoomX2 is None or self.zoomY2 is None:
+                    return
+            if self.rect[0] is not None:
+                if self.rect[0] is not None:
+                    self.rect[0].remove()
+                if self.rect[1] is not None:
+                    self.rect[1].remove()
+                if self.rect[2] is not None:
+                    self.rect[2].remove()
+                if self.rect[3] is not None:
+                    self.rect[3].remove()
+                self.rect=[None,None,None,None]
+            self.rect[0],=self.ax.plot([self.zoomX1,self.zoomX2],[self.zoomY2,self.zoomY2],'k',clip_on=False)
+            self.rect[1],=self.ax.plot([self.zoomX1,self.zoomX2],[self.zoomY1,self.zoomY1],'k',clip_on=False)
+            self.rect[2],=self.ax.plot([self.zoomX1,self.zoomX1],[self.zoomY1,self.zoomY2],'k',clip_on=False)
+            self.rect[3],=self.ax.plot([self.zoomX2,self.zoomX2],[self.zoomY1,self.zoomY2],'k',clip_on=False)
+            self.canvas.draw()
+
+            
     def setLog(self,logx,logy):
         self.logx = logx
         self.logy = logy
@@ -954,7 +1124,7 @@ class TensorDeconvParamFrame(Frame): #a frame for the relaxtion parameters
         Label(self.frame3,text="T22").grid(row=1,column=2,columnspan=2)
         Label(self.frame3,text="T33").grid(row=1,column=4,columnspan=2)
         Label(self.frame3,text="Amplitude").grid(row=1,column=6,columnspan=2)
-        Label(self.frame3,text="Width").grid(row=1,column=8,columnspan=2)
+        Label(self.frame3,text="Width [Hz]").grid(row=1,column=8,columnspan=2)
         self.t11Val = []
         self.t11Tick = []
         self.t22Val = []
@@ -1305,16 +1475,7 @@ class Quad1DeconvFrame(Plot1DFrame): #a window for fitting relaxation data
         self.data1D = current.getDisplayedData()
         self.current = current
         self.spec = self.current.spec
-        axAdd = 0
-        if self.spec == 1:
-            if self.current.ppm:
-                axAdd = (self.current.freq-self.current.ref)/self.current.ref*1e6
-                axMult = 1e6/self.current.ref
-            else:
-                axMult = 1.0/(1000.0**self.current.axType)
-        elif self.spec == 0:
-            axMult = 1000.0**self.current.axType
-        self.xax = self.current.xax*axMult+axAdd
+        self.xax = self.current.xax
         self.plotType=0
         self.rootwindow = rootwindow
         self.pickNum = 0
@@ -1341,8 +1502,17 @@ class Quad1DeconvFrame(Plot1DFrame): #a window for fitting relaxation data
         differ = 0.05*(maxy-miny) #amount to add to show all datapoints (10%)
         self.yminlim=miny-differ
         self.ymaxlim=maxy+differ
-        self.xminlim=min(self.xax)
-        self.xmaxlim=max(self.xax)
+        axAdd = 0
+        if self.spec == 1:
+            if self.current.ppm:
+                axAdd = (self.current.freq-self.current.ref)/self.current.ref*1e6
+                axMult = 1e6/self.current.ref
+            else:
+                axMult = 1.0/(1000.0**self.current.axType)
+        elif self.spec == 0:
+            axMult = 1000.0**self.current.axType
+        self.xminlim=min(self.xax*axMult+axAdd)
+        self.xmaxlim=max(self.xax*axMult+axAdd)
         if self.spec > 0 :
             self.ax.set_xlim(self.xmaxlim,self.xminlim)
         else:
@@ -1351,10 +1521,20 @@ class Quad1DeconvFrame(Plot1DFrame): #a window for fitting relaxation data
         
     def showPlot(self, tmpAx=None, tmpdata=None, tmpAx2=[], tmpdata2=[]): 
         self.ax.cla()
-        self.line = self.ax.plot(self.xax,self.data1D)
-        self.ax.plot(tmpAx,tmpdata)
+        axAdd = 0
+        if self.spec == 1:
+            if self.current.ppm:
+                axAdd = (self.current.freq-self.current.ref)/self.current.ref*1e6
+                axMult = 1e6/self.current.ref
+            else:
+                axMult = 1.0/(1000.0**self.current.axType)
+        elif self.spec == 0:
+            axMult = 1000.0**self.current.axType
+        self.line = self.ax.plot(self.xax*axMult+axAdd,self.data1D)
+        if tmpAx is not None:
+            self.ax.plot(tmpAx*axMult+axAdd,tmpdata)
         for i in range(len(tmpAx2)):
-            self.ax.plot(tmpAx2[i],tmpdata2[i])
+            self.ax.plot(tmpAx2[i]*axMult+axAdd,tmpdata2[i])
         if self.spec==0:
             if self.current.axType == 0:
                 self.ax.set_xlabel('Time [s]')
@@ -1432,10 +1612,10 @@ class Quad1DeconvParamFrame(Frame): #a frame for the quadrupole parameters
         OptionMenu(self.frame3, self.numExp, "1","1", "2", "3","4","5","6","7","8","9","10",command=self.changeNum).grid(row=0,column=0,columnspan=6)
         Label(self.frame3,text="I").grid(row=1,column=0,columnspan=2)
         Label(self.frame3,text="Pos").grid(row=1,column=1,columnspan=2)
-        Label(self.frame3,text="Cq").grid(row=1,column=3,columnspan=2)
+        Label(self.frame3,text="Cq [MHz]").grid(row=1,column=3,columnspan=2)
         Label(self.frame3,text="Eta").grid(row=1,column=5,columnspan=2)
         Label(self.frame3,text="Amplitude").grid(row=1,column=7,columnspan=2)
-        Label(self.frame3,text="Width").grid(row=1,column=9,columnspan=2)
+        Label(self.frame3,text="Width [Hz]").grid(row=1,column=9,columnspan=2)
         self.IVal = []
         self.posVal = []
         self.posTick = []
@@ -1700,7 +1880,7 @@ class Quad1DeconvParamFrame(Frame): #a frame for the quadrupole parameters
                 guess.append(safeEval(self.cqVal[i].get()))
                 struc.append(True)
             else:
-                inp = safeEval(self.cqVal[i].get())
+                inp = safeEval(self.cqVal[i].get())*1e6
                 argu.append(inp)
                 outcq[i] = inp
                 self.cqVal[i].set('%.2g' % inp)
@@ -1751,7 +1931,7 @@ class Quad1DeconvParamFrame(Frame): #a frame for the quadrupole parameters
                 outPos[i] = fitVal[counter]
                 counter += 1
             if struc[5*i+3]:
-                self.cqVal[i].set('%.2g' % fitVal[counter])
+                self.cqVal[i].set('%.2g' % (fitVal[counter]*1e-6))
                 outCq[i] = fitVal[counter]
                 counter += 1
             if struc[5*i+4]:
@@ -1781,7 +1961,7 @@ class Quad1DeconvParamFrame(Frame): #a frame for the quadrupole parameters
         I = np.zeros(numExp)
         for i in range(numExp):
             pos[i] = safeEval(self.posVal[i].get())
-            cq[i] = safeEval(self.cqVal[i].get())
+            cq[i] = safeEval(self.cqVal[i].get())*1e6
             eta[i] = safeEval(self.etaVal[i].get())
             amp[i] = safeEval(self.ampVal[i].get())
             width[i] = safeEval(self.widthVal[i].get())
