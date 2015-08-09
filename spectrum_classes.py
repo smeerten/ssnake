@@ -2,6 +2,7 @@ import matplotlib
 import numpy as np
 import scipy.optimize
 from scipy.interpolate import UnivariateSpline
+import numpy.polynomial.polynomial as poly
 import scipy.signal
 import scipy.ndimage
 import copy
@@ -84,6 +85,11 @@ class Spectrum(object):
         self.data = self.data - data
         return lambda self: self.add(data)
 
+    def baselineCorrection(self,baseline,axes):
+        baselinetmp = baseline.reshape((1,)*axes+(self.data.shape[axes],)+(1,)*(self.dim-axes-1))
+        self.data = self.data - baselinetmp
+        return lambda self: self.baselineCorrection(-baseline,axes) 
+    
     def concatenate(self,axes):
         splitVal = self.data.shape[axes]
         self.data = np.concatenate(self.data,axis=axes)
@@ -826,6 +832,63 @@ class Current1D(Plot1DFrame):
         self.showFid()
         self.root.addMacro(['offset',(offset,)])
         return returnValue
+
+    def applyBaseline(self,degree,removeList):
+        if len(self.data1D.shape) > 1:
+            tmpData = self.data1D[0]
+        else:
+            tmpData = self.data1D
+        bArray = [True]*self.data1D.shape[-1]
+        for i in range(int(np.floor(len(removeList)/2.0))):
+            minVal = min(removeList[2*i],removeList[2*i+1])
+            maxVal = max(removeList[2*i],removeList[2*i+1])
+            bArray = np.logical_and(bArray,np.logical_or((self.xax < minVal),(self.xax > maxVal)))
+        polyCoeff = poly.polyfit(self.xax[bArray],tmpData[bArray],degree)
+        y = poly.polyval(self.xax,polyCoeff)
+        self.root.addMacro(['baselineCorrection',(y,self.axes)])
+        return self.data.baselineCorrection(y,self.axes)
+    
+    def previewBaseline(self,degree,removeList):
+        if len(self.data1D.shape) > 1:
+            tmpData = self.data1D[0]
+        else:
+            tmpData = self.data1D
+        bArray = [True]*self.data1D.shape[-1]
+        for i in range(int(np.floor(len(removeList)/2.0))):
+            minVal = min(removeList[2*i],removeList[2*i+1])
+            maxVal = max(removeList[2*i],removeList[2*i+1])
+            bArray = np.logical_and(bArray,np.logical_or((self.xax < minVal),(self.xax > maxVal)))
+        polyCoeff = poly.polyfit(self.xax[bArray],tmpData[bArray],degree)
+        y = poly.polyval(self.xax,polyCoeff)
+        if (self.plotType==0):
+            y = np.real(y)
+        elif (self.plotType==1):
+            y = np.imag(y)
+        elif (self.plotType==2):
+            y = np.real(y)
+        elif (self.plotType==3):
+            y = np.abs(y)
+        self.resetPreviewRemoveList()
+        if len(self.data1D.shape) > 1:
+            self.showFid(self.data1D,[self.xax],[y]*self.data1D.shape[0],['r'])
+        else:
+            self.showFid(self.data1D,[self.xax],[y],['r'])
+        self.previewRemoveList(removeList)
+    
+    def previewRemoveList(self,removeList):
+        self.resetPreviewRemoveList()
+        self.removeListLines = []
+        for i in range(int(np.floor(len(removeList)/2.0))):
+            self.removeListLines.append(self.ax.axvspan(removeList[2*i],removeList[2*i+1],color='r'))
+        if len(removeList)%2:
+            self.removeListLines.append(self.ax.axvline(removeList[-1],c='r',linestyle='--'))
+        self.canvas.draw()
+
+    def resetPreviewRemoveList(self):
+        if hasattr(self, 'removeListLines'):
+            for i in self.removeListLines:
+                i.remove()
+            del self.removeListLines
     
     def applyLPSVD(self):
         returnValue = self.data.LPSVD(self.axes)
@@ -1041,6 +1104,7 @@ class Current1D(Plot1DFrame):
             return np.abs(tmp)      
 
     def showFid(self, tmpdata=None, extraX=None, extraY=None, extraColor=None,old=False,output=None): #display the 1D data
+        self.peakPickReset()
         if tmpdata is None:
             tmpdata=self.data1D
         self.ax.cla()
@@ -1178,6 +1242,7 @@ class CurrentScatter(Current1D):
         Current1D.__init__(self,root, data, duplicateCurrent)
 
     def showFid(self, tmpdata=None, extraX=None, extraY=None, extraColor=None,old=False,output=None): #display the 1D data
+        self.peakPickReset()
         if tmpdata is None:
             tmpdata=self.data1D
         self.ax.cla()
@@ -1432,6 +1497,7 @@ class CurrentStacked(Current1D):
             self.spacing = np.abs(difference) + 0.1*amp   
 
     def showFid(self, tmpdata=None, extraX=None, extraY=None, extraColor=None,old=False): #display the 1D data
+        self.peakPickReset()
         if tmpdata is None:
             tmpdata=self.data1D
         self.ax.cla()
@@ -1737,6 +1803,7 @@ class CurrentArrayed(Current1D):
         self.spacing = (self.xax[-1]-self.xax[0])*1.1     
 
     def showFid(self, tmpdata=None, extraX=None, extraY=None, extraColor=None,old=False): #display the 1D data
+        self.peakPickReset()
         if tmpdata is None:
             tmpdata=self.data1D
         self.ax.cla()
@@ -2003,6 +2070,7 @@ class CurrentContour(Current1D):
         self.showFid(y)
 
     def showFid(self, tmpdata=None): #display the 1D data
+        self.peakPickReset()
         if tmpdata is None:
             tmpdata=self.data1D
         self.ax.cla()
@@ -2381,6 +2449,7 @@ class CurrentSkewed(Current1D):
             self.showFid(y)
 
     def showFid(self, tmpdata=None, extraX=None, extraY=None, extraColor=None,old=False): #display the 1D data
+        self.peakPickReset()
         if tmpdata is None:
             tmpdata=self.data1D
         self.ax.cla()

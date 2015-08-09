@@ -687,6 +687,7 @@ class Main1DWindow(Frame):
         toolMenu.add_command(label="Swap Echo", command=self.createSwapEchoWindow)
         toolMenu.add_command(label="Shift Data", command=self.createShiftDataWindow)
         toolMenu.add_command(label="Offset correction", command=self.createDCWindow)
+        toolMenu.add_command(label="Baseline correction", command=self.createBaselineWindow)
         toolMenu.add_command(label="States", command=self.states)
         toolMenu.add_command(label="States-TPPI", command=self.statesTPPI)
         toolMenu.add_command(label="Correct Bruker digital filter", command=self.BrukerDigital)
@@ -826,6 +827,8 @@ class Main1DWindow(Frame):
                 self.undoList.append(self.masterData.states(*iter1[1]))
             elif iter1[0] == 'statesTPPI':
                 self.undoList.append(self.masterData.statesTPPI(*iter1[1]))
+            elif iter1[0] == 'baselineCorrection':
+                self.undoList.append(self.masterData.baselineCorrection(*iter1[1]))
             elif iter1[0] == 'integrate':
                 self.undoList.append(self.masterData.matrixManip(*iter1[1],which=0))
             elif iter1[0] == 'max':
@@ -1033,7 +1036,10 @@ class Main1DWindow(Frame):
 
     def createDCWindow(self):
         DCWindow(self)
-
+        
+    def createBaselineWindow(self):
+        BaselineWindow(self)
+        
     def createRefWindow(self):
         RefWindow(self)
 
@@ -2176,7 +2182,7 @@ class ShiftDataWindow(Toplevel): #a window for shifting the data
         self.destroy()
 
 #############################################################
-class DCWindow(Toplevel): #a window for shifting the data
+class DCWindow(Toplevel): #a window for changing the offset of the data
     def __init__(self, parent):
         parent.menuDisable()
         Toplevel.__init__(self)
@@ -2283,6 +2289,73 @@ class DCWindow(Toplevel): #a window for shifting the data
         self.parent.menuEnable()
         self.destroy()
 
+#############################################################
+class BaselineWindow(Toplevel):
+    def __init__(self, parent):
+        parent.menuDisable()
+        Toplevel.__init__(self)
+        self.degreeVal = StringVar()
+        self.degreeVal.set('3')
+        self.removeList = []
+        self.parent = parent
+        self.geometry('+0+0')
+        self.transient(self.parent)
+        self.protocol("WM_DELETE_WINDOW", self.cancelAndClose)
+        self.title("Baseline correction")
+        self.resizable(width=FALSE, height=FALSE)
+        self.frame1 = Frame(self)
+        self.frame1.grid(row=0)
+        Label(self.frame1,text="Polynomial Degree:").grid(row=0,column=0,columnspan=2)
+        self.degreeEntry = Entry(self.frame1,textvariable=self.degreeVal,justify="center")
+        self.degreeEntry.bind("<Return>", self.setDegree)
+        self.degreeEntry.bind("<KP_Enter>", self.setDegree)
+        self.degreeEntry.grid(row=1,column=0,columnspan=2)
+        Button(self.frame1, text="Fit",command=self.preview).grid(row=2,column=0)
+        Button(self.frame1, text="Reset",command=self.reset).grid(row=2,column=1)
+        self.frame2 = Frame(self)
+        self.frame2.grid(row=1)
+        Button(self.frame2, text="Apply",command=self.applyAndClose).grid(row=0,column=0)
+        Button(self.frame2, text="Cancel",command=self.cancelAndClose).grid(row=0,column=1)
+        self.parent.current.peakPickFunc = lambda pos,self=self: self.picked(pos) 
+        self.parent.current.peakPick = True
+
+    def picked(self,pos):
+        self.removeList.append(pos[1])
+        self.parent.current.previewRemoveList(self.removeList)
+        self.parent.current.peakPickFunc = lambda pos,self=self: self.picked(pos) 
+        self.parent.current.peakPick = True
+
+    def setDegree(self):
+        degree = safeEval(self.degreeVal.get())
+        self.degreeVal.set(str(degree))
+        
+    def preview(self, *args): 
+        degree = safeEval(self.degreeVal.get())
+        self.degreeVal.set(str(degree))
+        self.parent.current.previewBaseline(degree,self.removeList)
+        self.parent.current.peakPickFunc = lambda pos,self=self: self.picked(pos) 
+        self.parent.current.peakPick = True
+
+    def reset(self, *args):
+        self.removeList = []
+        self.parent.current.resetPreviewRemoveList()
+
+    def cancelAndClose(self):
+        self.parent.current.peakPickReset()
+        self.parent.current.showFid()
+        self.parent.menuEnable()
+        self.destroy()
+
+    def applyAndClose(self):
+        degree = safeEval(self.degreeVal.get())
+        self.parent.current.peakPickReset()
+        self.parent.redoList = []
+        self.parent.undoList.append(self.parent.current.applyBaseline(degree,self.removeList))
+        self.parent.current.upd()
+        self.parent.current.showFid()
+        self.parent.menuEnable()
+        self.destroy()
+        
 #############################################################
 class regionWindow(Toplevel): #A general region selection frame
     def __init__(self, parent,name):
