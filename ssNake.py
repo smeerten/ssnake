@@ -328,8 +328,8 @@ class MainProgram:
                 SizeTD2 = npoints
                 SizeTD1 = nblocks*ntraces
                 a = []
-                fid32 = bin(status)[-3] #check if 32 bits, or float
-                fidfloat = bin(status)[-4]
+                fid32 = int(bin(status)[-3]) #check if 32 bits, or float
+                fidfloat = int(bin(status)[-4])
                 for iter1 in range(0,nblocks): #now read all blocks
                     b = []
                     for iter2 in range(0,nbheaders):
@@ -2320,7 +2320,7 @@ class BaselineWindow(Toplevel):
         self.parent.current.peakPick = True
 
     def picked(self,pos):
-        self.removeList.append(pos[1])
+        self.removeList.append(pos[0])
         self.parent.current.previewRemoveList(self.removeList)
         self.parent.current.peakPickFunc = lambda pos,self=self: self.picked(pos) 
         self.parent.current.peakPick = True
@@ -2342,6 +2342,7 @@ class BaselineWindow(Toplevel):
 
     def cancelAndClose(self):
         self.parent.current.peakPickReset()
+        self.parent.current.resetPreviewRemoveList()
         self.parent.current.showFid()
         self.parent.menuEnable()
         self.destroy()
@@ -2349,6 +2350,7 @@ class BaselineWindow(Toplevel):
     def applyAndClose(self):
         degree = safeEval(self.degreeVal.get())
         self.parent.current.peakPickReset()
+        self.parent.current.resetPreviewRemoveList()
         self.parent.redoList = []
         self.parent.undoList.append(self.parent.current.applyBaseline(degree,self.removeList))
         self.parent.current.upd()

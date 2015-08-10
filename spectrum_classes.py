@@ -838,11 +838,12 @@ class Current1D(Plot1DFrame):
             tmpData = self.data1D[0]
         else:
             tmpData = self.data1D
+        tmpAx = np.arange(self.data1D.shape[-1])
         bArray = [True]*self.data1D.shape[-1]
         for i in range(int(np.floor(len(removeList)/2.0))):
             minVal = min(removeList[2*i],removeList[2*i+1])
             maxVal = max(removeList[2*i],removeList[2*i+1])
-            bArray = np.logical_and(bArray,np.logical_or((self.xax < minVal),(self.xax > maxVal)))
+            bArray = np.logical_and(bArray,np.logical_or((tmpAx < minVal),(tmpAx > maxVal)))
         polyCoeff = poly.polyfit(self.xax[bArray],tmpData[bArray],degree)
         y = poly.polyval(self.xax,polyCoeff)
         self.root.addMacro(['baselineCorrection',(y,self.axes)])
@@ -853,11 +854,13 @@ class Current1D(Plot1DFrame):
             tmpData = self.data1D[0]
         else:
             tmpData = self.data1D
-        bArray = [True]*self.data1D.shape[-1]
+        tmpAx = np.arange(self.data1D.shape[-1])
+        bArray = np.array([True]*self.data1D.shape[-1])
         for i in range(int(np.floor(len(removeList)/2.0))):
             minVal = min(removeList[2*i],removeList[2*i+1])
             maxVal = max(removeList[2*i],removeList[2*i+1])
-            bArray = np.logical_and(bArray,np.logical_or((self.xax < minVal),(self.xax > maxVal)))
+            bArray = np.logical_and(bArray,np.logical_or((tmpAx < minVal),(tmpAx > maxVal)))
+        print bArray
         polyCoeff = poly.polyfit(self.xax[bArray],tmpData[bArray],degree)
         y = poly.polyval(self.xax,polyCoeff)
         if (self.plotType==0):
@@ -870,18 +873,27 @@ class Current1D(Plot1DFrame):
             y = np.abs(y)
         self.resetPreviewRemoveList()
         if len(self.data1D.shape) > 1:
-            self.showFid(self.data1D,[self.xax],[y]*self.data1D.shape[0],['r'])
+            self.showFid(self.data1D,[self.xax],[y]*self.data1D.shape[0],['g'])
         else:
-            self.showFid(self.data1D,[self.xax],[y],['r'])
+            self.showFid(self.data1D,[self.xax],[y],['g'])
         self.previewRemoveList(removeList)
     
     def previewRemoveList(self,removeList):
+        axAdd = 0
+        if self.spec == 1:
+            if self.ppm:
+                axAdd = (self.freq-self.ref)/self.ref*1e6
+                axMult = 1e6/self.ref
+            else:
+                axMult = 1.0/(1000.0**self.axType)
+        elif self.spec == 0:
+            axMult = 1000.0**self.axType
         self.resetPreviewRemoveList()
         self.removeListLines = []
         for i in range(int(np.floor(len(removeList)/2.0))):
-            self.removeListLines.append(self.ax.axvspan(removeList[2*i],removeList[2*i+1],color='r'))
+            self.removeListLines.append(self.ax.axvspan(self.xax[removeList[2*i]]*axMult+axAdd,self.xax[removeList[2*i+1]]*axMult+axAdd,color='r'))
         if len(removeList)%2:
-            self.removeListLines.append(self.ax.axvline(removeList[-1],c='r',linestyle='--'))
+            self.removeListLines.append(self.ax.axvline(self.xax[removeList[-1]]*axMult+axAdd,c='r',linestyle='--'))
         self.canvas.draw()
 
     def resetPreviewRemoveList(self):
