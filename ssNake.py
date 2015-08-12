@@ -1555,6 +1555,8 @@ class BottomFrame(Frame):
         self.plotOption.set("Real")
         self.axisOption1 = StringVar()
         self.axisOption2 = StringVar()
+        self.axis2Option1 = StringVar()
+        self.axis2Option2 = StringVar()
         self.echoTick = IntVar()
         self.echoTick.set(0)
         Button(self, text="Fourier",command=self.parent.fourier).grid(row=0,column=0,rowspan=2)
@@ -1581,6 +1583,10 @@ class BottomFrame(Frame):
         self.axisDropFreq = OptionMenu(self, self.axisOption2, self.axisOption2.get(), "Hz", "kHz", "MHz","ppm",command=self.changeAxis)
         self.axisDropTime.grid(row=1,column=6)
         self.axisDropFreq.grid(row=1,column=6)
+        self.axisDropTime2 = OptionMenu(self, self.axis2Option1, self.axis2Option1.get(), "s", "ms", u"\u03bcs",command=self.changeAxis)
+        self.axisDropFreq2 = OptionMenu(self, self.axis2Option2, self.axis2Option2.get(), "Hz", "kHz", "MHz","ppm",command=self.changeAxis)
+        self.axisDropTime2.grid(row=2,column=6)
+        self.axisDropFreq2.grid(row=2,column=6)
         self.swEntry
         self.upd()
 
@@ -1595,6 +1601,8 @@ class BottomFrame(Frame):
     def upd(self): #upd the values displayed in the bottom menu
         self.freqVal.set('%.6f' %(self.parent.current.freq/1000000)) #show in MHz
         self.swVal.set(str(self.parent.current.sw/1000)) #show in kHz
+        self.axisDropTime2.grid_forget()
+        self.axisDropFreq2.grid_forget()
         if self.parent.current.spec==0:
             self.specVal.set(0)
             self.axisDropFreq.grid_forget()
@@ -1620,6 +1628,27 @@ class BottomFrame(Frame):
                 self.axisOption2.set("MHz")
             elif val == 3:
                 self.axisOption2.set("ppm")
+        if isinstance(self.parent.current,sc.CurrentContour):
+            if self.parent.current.spec2==0:
+                self.axisDropTime2.grid(row=2,column=6)
+                val = self.parent.current.axType2
+                if val == 0:
+                    self.axis2Option1.set("s")
+                elif val == 1:
+                    self.axis2Option1.set("ms")
+                elif val == 2:
+                    self.axis2Option1.set( u"\u03bcs")
+            elif self.parent.current.spec2==1:
+                self.axisDropFreq2.grid(row=2,column=6)
+                val = self.parent.current.axType2
+                if val == 0:
+                    self.axis2Option2.set("Hz")
+                elif val == 1:
+                    self.axis2Option2.set("kHz")
+                elif val == 2:
+                    self.axis2Option2.set("MHz")
+                elif val == 3:
+                    self.axis2Option2.set("ppm")
         if self.parent.current.wholeEcho:
             self.echoTick.set(1)
         else:
@@ -1673,6 +1702,25 @@ class BottomFrame(Frame):
                 self.parent.current.setAxType(2)
             elif pType == "ppm":
                 self.parent.current.setAxType('ppm')
+        if isinstance(self.parent.current,sc.CurrentContour):
+            if self.parent.current.spec2 == 0:
+                pType = self.axis2Option1.get()
+                if pType == "s":
+                    self.parent.current.setAxType2(0)
+                elif pType == "ms":
+                    self.parent.current.setAxType2(1)
+                elif pType == u"\u03bcs":
+                    self.parent.current.setAxType2(2)
+            if self.parent.current.spec2 == 1:
+                pType = self.axis2Option2.get()
+                if pType == "Hz":
+                    self.parent.current.setAxType2(0)
+                elif pType == "kHz":
+                    self.parent.current.setAxType2(1)
+                elif pType == "MHz":
+                    self.parent.current.setAxType2(2)
+                elif pType == "ppm":
+                    self.parent.current.setAxType2('ppm')
         self.parent.current.showFid()
 
 ##################################################################

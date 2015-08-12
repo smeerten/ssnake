@@ -2036,6 +2036,34 @@ class CurrentContour(Current1D):
     def resetLocList(self):
         self.locList = [0]*(len(self.data.data.shape)-2)
 
+    def setAxType2(self, val):
+        oldAxAdd = 0
+        if self.spec2 == 1:
+            if self.ppm2:
+                oldAxAdd = (self.freq2-self.ref2)/self.ref2*1e6
+                oldAxMult = 1e6/self.ref2
+            else:
+                oldAxMult = 1.0/(1000.0**self.axType2)
+        elif self.spec == 0:
+            oldAxMult = 1000.0**self.axType2
+        newAxAdd = 0
+        if self.spec2 == 1:
+            if val == 'ppm':
+                newAxAdd = (self.freq2-self.ref2)/self.ref2*1e6
+                newAxMult = 1e6/self.ref2
+            else:
+                newAxMult = 1.0/(1000.0**val)
+        elif self.spec2 == 0:
+            newAxMult = 1000.0**val 
+        if val == 'ppm':
+            self.ppm2 = True
+        else:
+            self.ppm2 = False
+            self.axType2 = val
+        self.yminlim = (self.yminlim - oldAxAdd) * newAxMult / oldAxMult + newAxAdd
+        self.ymaxlim = (self.ymaxlim - oldAxAdd) * newAxMult / oldAxMult + newAxAdd
+        self.showFid()
+        
     def apodPreview(self,lor=None,gauss=None, cos2=None, hamming=None,shift=0.0,shifting=0.0,shiftingAxes=None): #display the 1D data including the apodization function
         t=np.arange(0,len(self.data1D[0]))/(self.sw)
         if shiftingAxes is not None:
