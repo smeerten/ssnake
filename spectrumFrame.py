@@ -2,7 +2,7 @@ import matplotlib
 import matplotlib.pyplot as plt
 matplotlib.use('TkAgg')
 import numpy as np
-from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2TkAgg
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from matplotlib.figure import Figure
 import matplotlib.gridspec as gridspec
 
@@ -97,14 +97,24 @@ class Plot1DFrame(Frame):
     def buttonPress(self,event):
         if event.button == 1 and not self.peakPick:
             self.leftMouse = True
-            self.zoomX1 = event.xdata
-            self.zoomY1 = event.ydata
+            if isinstance(self,spectrum_classes.CurrentSkewed):
+                a = self.ax.format_coord(event.xdata,event.ydata)
+                self.zoomX1 = float(a[2:14])
+                self.zoomY1 = float(a[18:30])
+            else:
+                self.zoomX1 = event.xdata
+                self.zoomY1 = event.ydata
         elif (event.button == 3) and event.dblclick:
             self.plotReset()
         elif event.button == 3:
             self.rightMouse = True
-            self.panX = event.xdata
-            self.panY = event.ydata
+            if isinstance(self,spectrum_classes.CurrentSkewed):
+                a = self.ax.format_coord(event.xdata,event.ydata)
+                self.panX = float(a[2:14])
+                self.panY = float(a[18:30])
+            else:
+                self.panX = event.xdata
+                self.panY = event.ydata
 
     def buttonRelease(self,event):
         if event.button == 1:
@@ -161,10 +171,16 @@ class Plot1DFrame(Frame):
 
     def pan(self,event):
         if self.rightMouse and self.panX is not None and self.panY is not None:
-            inv = self.ax.transData.inverted()
-            point = inv.transform((event.x,event.y))
-            diffx = point[0]-self.panX
-            diffy = point[1]-self.panY
+            if isinstance(self,spectrum_classes.CurrentSkewed):
+                a = self.ax.format_coord(event.xdata,event.ydata)
+                diffx = float(a[2:14])-self.panX
+                diffy = float(a[18:30])-self.panY
+            else:
+                inv = self.ax.transData.inverted()
+                point = inv.transform((event.x,event.y))
+                diffx = point[0]-self.panX
+                diffy = point[1]-self.panY
+                
             self.xmaxlim = self.xmaxlim-diffx
             self.xminlim = self.xminlim-diffx
             self.ymaxlim = self.ymaxlim-diffy
@@ -186,10 +202,15 @@ class Plot1DFrame(Frame):
                 self.rect[0]=self.ax.axvline(event.xdata,c='k',linestyle='--')
             self.canvas.draw()
         elif self.leftMouse and (self.zoomX1 is not None) and (self.zoomY1 is not None):
-            inv = self.ax.transData.inverted()
-            point = inv.transform((event.x,event.y))
-            self.zoomX2 =  point[0]
-            self.zoomY2 = point[1]
+            if isinstance(self,spectrum_classes.CurrentSkewed):
+                a = self.ax.format_coord(event.xdata,event.ydata)
+                self.zoomX2 = float(a[2:14])
+                self.zoomY2 = float(a[18:30])
+            else:
+                inv = self.ax.transData.inverted()
+                point = inv.transform((event.x,event.y))
+                self.zoomX2 =  point[0]
+                self.zoomY2 = point[1]
             if self.rect[0] is not None:
                 if self.rect[0] is not None:
                     self.rect[0].remove()

@@ -60,7 +60,8 @@ class Spectrum(object):
         self.xaxArray[axes]=xax
         return lambda self: self.setXax(oldXax,axes)
                 
-    def insert(self,data,pos,axes):
+    def insert(self,data,pos,axes,dataImag=0):
+        data = np.array(data) + 1j*np.array(dataImag)
         self.data = np.insert(self.data,[pos],data,axis=axes)
         self.resetXax(axes)
         return lambda self: self.remove(range(pos,pos+data.shape[axes]),axes)
@@ -77,15 +78,26 @@ class Spectrum(object):
             print('Cannot delete all data')
             return None
 
-    def add(self,data):
+    def add(self,data,dataImag=0):
+        data = np.array(data) + 1j*np.array(dataImag)
         self.data = self.data + data
         return lambda self: self.subtract(data)
         
-    def subtract(self,data):
+    def subtract(self,data,dataImag=0):
+        data = np.array(data) + 1j*np.array(dataImag)
         self.data = self.data - data
         return lambda self: self.add(data)
 
-    def baselineCorrection(self,baseline,axes):
+    def multiply(self,mult,axes,multImag=0):
+        mult = np.array(mult) + 1j*np.array(mult)
+        copyData=copy.deepcopy(self)
+        returnValue = lambda self: self.restoreData(copyData, lambda self: self.multiply(mult,axes))
+        multtmp = mult.reshape((1,)*axes+(self.data.shape[axes],)+(1,)*(self.dim-axes-1))
+        self.data = self.data*multtmp
+        return returnValue
+        
+    def baselineCorrection(self,baseline,axes,baselineImag = 0):
+        baseline = np.array(baseline) + 1j*np.array(baselineImag)
         baselinetmp = baseline.reshape((1,)*axes+(self.data.shape[axes],)+(1,)*(self.dim-axes-1))
         self.data = self.data - baselinetmp
         return lambda self: self.baselineCorrection(-baseline,axes) 
@@ -377,8 +389,8 @@ class Spectrum(object):
         s = s[np.where(np.real(s)<0)[0]]
         a=1
         
-    def dcOffset(self,offset):
-        self.data = self.data-offset
+    def dcOffset(self,offset,offsetImag=0):
+        self.data = self.data-offset+1j*offsetImag
         return lambda self: self.dcOffset(-offset)
 
     def fourier(self, axes,tmp=False):
@@ -830,7 +842,7 @@ class Current1D(Plot1DFrame):
         returnValue = self.data.dcOffset(offset)
         self.upd()
         self.showFid()
-        self.root.addMacro(['offset',(offset,)])
+        self.root.addMacro(['offset',(float(np.real(offset)),float(np.imag(offset)))])
         return returnValue
 
     def applyBaseline(self,degree,removeList):
@@ -839,14 +851,14 @@ class Current1D(Plot1DFrame):
         else:
             tmpData = self.data1D
         tmpAx = np.arange(self.data1D.shape[-1])
-        bArray = [True]*self.data1D.shape[-1]
+        bArray = np.array([True]*self.data1D.shape[-1])
         for i in range(int(np.floor(len(removeList)/2.0))):
             minVal = min(removeList[2*i],removeList[2*i+1])
             maxVal = max(removeList[2*i],removeList[2*i+1])
             bArray = np.logical_and(bArray,np.logical_or((tmpAx < minVal),(tmpAx > maxVal)))
         polyCoeff = poly.polyfit(self.xax[bArray],tmpData[bArray],degree)
         y = poly.polyval(self.xax,polyCoeff)
-        self.root.addMacro(['baselineCorrection',(y,self.axes)])
+        self.root.addMacro(['baselineCorrection',(list(np.real(y)),self.axes,list(np.imag(y)))])
         return self.data.baselineCorrection(y,self.axes)
     
     def previewBaseline(self,degree,removeList):
@@ -860,7 +872,6 @@ class Current1D(Plot1DFrame):
             minVal = min(removeList[2*i],removeList[2*i+1])
             maxVal = max(removeList[2*i],removeList[2*i+1])
             bArray = np.logical_and(bArray,np.logical_or((tmpAx < minVal),(tmpAx > maxVal)))
-        print bArray
         polyCoeff = poly.polyfit(self.xax[bArray],tmpData[bArray],degree)
         y = poly.polyval(self.xax,polyCoeff)
         if (self.plotType==0):
@@ -966,7 +977,7 @@ class Current1D(Plot1DFrame):
         self.upd()
         self.plotReset()
         self.showFid()
-        self.root.addMacro(['insert',(data,pos,self.axes)])
+        self.root.addMacro(['insert',(np.real(data).tolist(),pos,self.axes,np.imag(data).tolist())])
         return returnValue
     
     def delete(self,pos):
@@ -988,7 +999,7 @@ class Current1D(Plot1DFrame):
         self.upd()
         self.plotReset()
         self.showFid()
-        self.root.addMacro(['add',(data,)])
+        self.root.addMacro(['add',(np.real(data).tolist(),np.imag(data).tolist())])
         return returnValue
         
     def subtract(self,data):
@@ -996,10 +1007,18 @@ class Current1D(Plot1DFrame):
         self.upd()
         self.plotReset()
         self.showFid()
-        self.root.addMacro(['subtract',(data,)])
+        self.root.addMacro(['subtract',(np.real(data).tolist(),np.imag(data).tolist())])
+        return returnValue
+
+    def multiply(self,data):
+        returnValue = self.data.multiply(data,self.axes)
+        self.upd()
+        self.plotReset()
+        self.showFid()
+        self.root.addMacro(['multiply',(np.real(data).tolist(),self.axes,np.imag(data).tolist())])
         return returnValue
     
-    def getRegion(self,pos1,pos2): #set the frequency of the actual data
+    def getRegion(self,pos1,pos2): 
         returnValue = self.data.getRegion(pos1,pos2,self.axes)
         self.upd()
         self.plotReset()
@@ -1358,6 +1377,8 @@ class CurrentStacked(Current1D):
         return CurrentStacked(root,data,self)
         
     def upd(self): #get new data from the data instance
+        if self.data.dim < 2:
+            self.root.rescue()
         if (len(self.locList)+2) != self.data.dim:
             self.resetLocList()
         updateVar = self.data.getBlock(self.axes,self.axes2,self.locList,self.stackBegin, self.stackEnd, self.stackStep)
@@ -1681,6 +1702,8 @@ class CurrentArrayed(Current1D):
         return CurrentArrayed(root,data,self)
         
     def upd(self): #get new data from the data instance
+        if self.data.dim < 2:
+            self.root.rescue()
         if (len(self.locList)+2) != self.data.dim:
             self.resetLocList()
         updateVar = self.data.getBlock(self.axes,self.axes2,self.locList,self.stackBegin, self.stackEnd, self.stackStep)
@@ -1972,6 +1995,8 @@ class CurrentContour(Current1D):
         return CurrentContour(root,data,self)
         
     def upd(self): #get new data from the data instance
+        if self.data.dim < 2:
+            self.root.rescue()
         if (len(self.locList)+2) != self.data.dim:
             self.resetLocList()
         updateVar = self.data.getBlock(self.axes,self.axes2,self.locList)
@@ -2325,6 +2350,8 @@ class CurrentSkewed(Current1D):
         return CurrentSkewed(root,data,self)
     
     def upd(self): #get new data from the data instance
+        if self.data.dim < 2:
+            self.root.rescue()
         if (len(self.locList)+2) != self.data.dim:
             self.resetLocList()
         updateVar = self.data.getBlock(self.axes,self.axes2,self.locList,self.stackBegin, self.stackEnd, self.stackStep)

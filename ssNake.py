@@ -656,6 +656,11 @@ class Main1DWindow(Frame):
         self.current.kill()
         del self.masterData
         del self.current
+
+    def rescue(self):
+        self.current.kill()
+        self.current = self.current = sc.Current1D(self,masterData)
+        self.current.grid(row=0,column=0,sticky="nswe")
         
     def removeFromView(self):
         self.menubar.delete("Edit")
@@ -703,6 +708,7 @@ class Main1DWindow(Frame):
         self.matrixMenu.add_command(label="Flip L/R", command=self.flipLR)
         self.matrixMenu.add_command(label="Delete", command=self.createDeleteWindow)
         self.matrixMenu.add_command(label="Split", command=self.createSplitWindow)
+        self.matrixMenu.add_command(label="Multiply", command=self.createMultiplyWindow)
         self.matrixMenu.add_command(label="Concatenate", command=self.createConcatenateWindow)
         self.matrixMenu.add_command(label="Shearing", command=self.createShearingWindow)
         
@@ -849,6 +855,8 @@ class Main1DWindow(Frame):
                 self.undoList.append(self.masterData.add(*iter1[1]))
             elif iter1[0] == 'subtract':
                 self.undoList.append(self.masterData.subtract(*iter1[1]))
+            elif iter1[0] == 'multiply':
+                self.undoList.append(self.masterData.multiply(*iter1[1]))
             elif iter1[0] == 'shear':
                 self.undoList.append(self.masterData.shear(*iter1[1]))
             elif iter1[0] == 'setxax':
@@ -876,7 +884,7 @@ class Main1DWindow(Frame):
         struct['dataReal'] = np.real(self.masterData.data).tolist()
         struct['dataImag'] = np.imag(self.masterData.data).tolist()
         struct['freq'] = self.masterData.freq.tolist()
-        struct['sw'] = self.masterData.sw
+        struct['sw'] = list(self.masterData.sw)
         struct['spec'] = list(self.masterData.spec)
         struct['wholeEcho'] = list(self.masterData.wholeEcho)
         struct['ref'] = np.array(self.masterData.ref,dtype=np.float).tolist()
@@ -952,7 +960,7 @@ class Main1DWindow(Frame):
         self.current.plotReset()
         self.current.showFid()
         self.updAllFrames()
-        self.macroAdd(['reload'])
+        self.addMacro(['reload'])
         self.menuCheck()
              
     def real(self):
@@ -960,7 +968,7 @@ class Main1DWindow(Frame):
         self.undoList.append(self.masterData.real())
         self.current.upd()
         self.current.showFid()
-        self.macroAdd(['real'])
+        self.addMacro(['real'])
         self.menuCheck()
 
     def imag(self):
@@ -968,7 +976,7 @@ class Main1DWindow(Frame):
         self.undoList.append(self.masterData.imag())
         self.current.upd()
         self.current.showFid()
-        self.macroAdd(['imag'])
+        self.addMacro(['imag'])
         self.menuCheck()
 
     def abs(self):
@@ -976,7 +984,7 @@ class Main1DWindow(Frame):
         self.undoList.append(self.masterData.abs())
         self.current.upd()
         self.current.showFid()
-        self.macroAdd(['abs'])
+        self.addMacro(['abs'])
         self.menuCheck()
 
     def fourier(self):
@@ -1045,6 +1053,9 @@ class Main1DWindow(Frame):
 
     def createIntegrateWindow(self):
         integrateWindow(self)
+        
+    def createMultiplyWindow(self):
+        MultiplyWindow(self)
         
     def createMaxWindow(self):
         maxWindow(self)
@@ -3052,7 +3063,75 @@ class ShearingWindow(Toplevel):
             self.parent.undoList.append(self.parent.current.shearing(shear,axes,axes2))
             self.parent.menuEnable()
             self.destroy()
-        
+
+##########################################################################################
+class MultiplyWindow(Toplevel): 
+    def __init__(self, parent):
+        parent.menuDisable()
+        Toplevel.__init__(self)
+        #initialize variables for the widgets
+        self.val = StringVar()
+        self.parent = parent
+        self.geometry('+0+0')
+        self.transient(self.parent)
+        self.protocol("WM_DELETE_WINDOW", self.cancelAndClose)
+        self.title("Multiply")
+        self.resizable(width=FALSE, height=FALSE)
+        self.frame1 = Frame(self)
+        self.frame1.grid(row=0)
+        Label(self.frame1,text="Array:").grid(row=0,column=0,columnspan=2)
+        self.minEntry = Entry(self.frame1,textvariable=self.val,justify="center")
+        self.minEntry.bind("<Return>", self.xaxPreview)
+        self.minEntry.bind("<KP_Enter>", self.xaxPreview)
+        self.minEntry.grid(row=1,column=0,columnspan=2)
+        self.frame2 = Frame(self)
+        self.frame2.grid(row=1)
+        Button(self.frame2, text="Apply",command=self.applyAndClose).grid(row=0,column=0)
+        Button(self.frame2, text="Cancel",command=self.cancelAndClose).grid(row=0,column=1)
+
+    def xaxPreview(self, *args):
+        env = vars(np).copy()
+        env['length']=int(self.parent.current.data1D.shape[-1]) # so length can be used to in equations
+        env['euro']=lambda fVal, num=int(self.parent.current.data1D.shape[-1]): euro(fVal,num)
+        val=eval(self.val.get(),env)                # find a better solution, also add catch for exceptions          
+        if isinstance(val,(list,np.ndarray)):
+            if len(val)==self.parent.current.data1D.shape[-1]:
+                if all(isinstance(x,(int,float)) for x in val):
+                    pass
+                    #self.parent.current.setMultiplyPreview(np.array(val))
+                else:
+                    print("Array is not all of int or float type")
+            else:
+                print("Length of input does not match length of data")
+        else:
+            print("Input is not a list or array")
+
+    def cancelAndClose(self):
+        self.parent.current.upd()
+        self.parent.current.plotReset()
+        self.parent.current.showFid()
+        self.parent.menuEnable()
+        self.destroy()
+
+    def applyAndClose(self):
+        env = vars(np).copy()
+        env['length']=int(self.parent.current.data1D.shape[-1]) # so length can be used to in equations
+        env['euro']=lambda fVal, num=int(self.parent.current.data1D.shape[-1]): euro(fVal,num)
+        val=eval(self.val.get(),env)                # find a better solution, also add catch for exceptions
+        if isinstance(val,(list,np.ndarray)):
+            if len(val)==self.parent.current.data1D.shape[-1]:
+                if all(isinstance(x,(int,float)) for x in val):
+                    self.parent.redoList = []
+                    self.parent.undoList.append(self.parent.current.multiply(np.array(val)))
+                    self.parent.menuEnable()
+                    self.destroy()
+                else:
+                    print("Array is not all of int or float type")
+            else:
+                print("Length of input does not match length of data")
+        else:
+            print("Input is not a list or array")
+            
 ##########################################################################################
 class XaxWindow(Toplevel): #a window for setting the xax of the current data
     def __init__(self, parent):
