@@ -367,18 +367,23 @@ class MainProgram:
         xaxA = []
         for i in struct['xaxArray']:
             xaxA.append(np.array(i))
-        masterData=sc.Spectrum(data,lambda self :self.loadJSONFile(filePath),list(struct['freq']),list(struct['sw']),list(struct['spec']),list(struct['wholeEcho']),list(ref),xaxA)
+        masterData=sc.Spectrum(data,lambda self :self.loadJSONFile(filePath),list(struct['freq']),list(struct['sw']),list(struct['spec']),list(np.array(struct['wholeEcho'],dtype=bool)),list(ref),xaxA)
         return masterData
         
     def loadMatlabFile(self,filePath):
         matlabStruct = scipy.io.loadmat(filePath)
         var = [k for k in matlabStruct.keys() if not k.startswith('__')][0]
         mat = matlabStruct[var]
-        xaxA = [k[0] for k in (mat['xaxArray'][0,0][0])]
+        if mat['dim']==1:
+            xaxA = [k[0] for k in (mat['xaxArray'][0])]
+            data = mat['data'][0,0][0]
+        else:
+            xaxA = [k[0] for k in (mat['xaxArray'][0,0][0])]
+            data = mat['data'][0,0]
         #insert some checks for data type
         ref = mat['ref'][0,0][0]
         ref = np.where(np.isnan(ref), None, ref)
-        masterData=sc.Spectrum(mat['data'][0,0],lambda self :self.loadMatlabFile(filePath),list(mat['freq'][0,0][0]),list(mat['sw'][0,0][0]),list(mat['spec'][0,0][0]),list(np.array(mat['wholeEcho'][0,0][0])>0),list(ref),xaxA)
+        masterData=sc.Spectrum(data,lambda self :self.loadMatlabFile(filePath),list(mat['freq'][0,0][0]),list(mat['sw'][0,0][0]),list(mat['spec'][0,0][0]),list(np.array(mat['wholeEcho'][0,0][0])>0),list(ref),xaxA)
         return masterData
         
     def LoadBrukerTopspin(self,filePath):
@@ -659,7 +664,7 @@ class Main1DWindow(Frame):
 
     def rescue(self):
         self.current.kill()
-        self.current = self.current = sc.Current1D(self,masterData)
+        self.current = sc.Current1D(self,self.masterData)
         self.current.grid(row=0,column=0,sticky="nswe")
         
     def removeFromView(self):
@@ -704,6 +709,8 @@ class Main1DWindow(Frame):
         self.matrixMenu.add_command(label="Integrate", command=self.createIntegrateWindow)
         self.matrixMenu.add_command(label="Max", command=self.createMaxWindow)
         self.matrixMenu.add_command(label="Min", command=self.createMinWindow)
+        self.matrixMenu.add_command(label="Max position", command=self.createArgMaxWindow)
+        self.matrixMenu.add_command(label="Min position", command=self.createArgMinWindow)
         self.matrixMenu.add_command(label="Extract part", command=self.createRegionWindow)
         self.matrixMenu.add_command(label="Flip L/R", command=self.flipLR)
         self.matrixMenu.add_command(label="Delete", command=self.createDeleteWindow)
@@ -841,6 +848,10 @@ class Main1DWindow(Frame):
                 self.undoList.append(self.masterData.matrixManip(*iter1[1],which=1))
             elif iter1[0] == 'min':
                 self.undoList.append(self.masterData.matrixManip(*iter1[1],which=2))
+            elif iter1[0] == 'argmax':
+                self.undoList.append(self.masterData.matrixManip(*iter1[1],which=3))
+            elif iter1[0] == 'argmin':
+                self.undoList.append(self.masterData.matrixManip(*iter1[1],which=4))
             elif iter1[0] == 'fliplr':
                 self.undoList.append(self.masterData.flipLR(*iter1[1]))
             elif iter1[0] == 'concatenate':
@@ -886,7 +897,7 @@ class Main1DWindow(Frame):
         struct['freq'] = self.masterData.freq.tolist()
         struct['sw'] = list(self.masterData.sw)
         struct['spec'] = list(self.masterData.spec)
-        struct['wholeEcho'] = list(self.masterData.wholeEcho)
+        struct['wholeEcho'] = list(1*self.masterData.wholeEcho)
         struct['ref'] = np.array(self.masterData.ref,dtype=np.float).tolist()
         tmpXax = []
         for i in self.masterData.xaxArray:
@@ -900,6 +911,7 @@ class Main1DWindow(Frame):
         if not name:
             return
         struct = {}
+        struct['dim'] = self.masterData.dim #because matlab cannot remember the number of dimensions
         struct['data'] = self.masterData.data
         struct['freq'] = self.masterData.freq
         struct['sw'] = self.masterData.sw
@@ -1062,6 +1074,12 @@ class Main1DWindow(Frame):
         
     def createMinWindow(self):
         minWindow(self)
+
+    def createArgMaxWindow(self):
+        argmaxWindow(self)
+        
+    def createArgMinWindow(self):
+        argminWindow(self)
         
     def createRegionWindow(self):
         extractRegionWindow(self)
@@ -1541,7 +1559,7 @@ class SideFrame(Frame):
         else:
             self.parent.current.setSlice(dimNum,locList)
         self.parent.bottomframe.upd()
-
+        
 ################################################################################  
 #the bottom frame holding the fourier button and stuff      
 class BottomFrame(Frame):
@@ -2549,6 +2567,35 @@ class minWindow(regionWindow): #A window for obtaining the min of a selected reg
     def apply(self,maximum,minimum):
         self.parent.redoList = []
         self.parent.undoList.append(self.parent.current.minMatrix(minimum,maximum))
+        self.parent.current.grid_remove()
+        self.parent.current.kill()
+        self.parent.current=sc.Current1D(self.parent,self.parent.masterData)
+        self.parent.current.grid(row=0,column=0,sticky='nswe')
+        self.parent.updAllFrames()
+        
+############################################################
+class argmaxWindow(regionWindow): #A window for obtaining the max of a selected region
+    def __init__(self, parent):
+        regionWindow.__init__(self,parent,'Max position')
+
+    def apply(self,maximum,minimum):
+        self.parent.redoList = []
+        self.parent.undoList.append(self.parent.current.argmaxMatrix(minimum,maximum))
+        #self.parent.undoList.append(self.parent.current.maxMatrix(minimum,maximum))
+        self.parent.current.grid_remove()
+        self.parent.current.kill()
+        self.parent.current=sc.Current1D(self.parent,self.parent.masterData)
+        self.parent.current.grid(row=0,column=0,sticky='nswe')
+        self.parent.updAllFrames()
+
+############################################################
+class argminWindow(regionWindow): #A window for obtaining the min of a selected region
+    def __init__(self, parent):
+        regionWindow.__init__(self,parent,'Min position')
+
+    def apply(self,maximum,minimum):
+        self.parent.redoList = []
+        self.parent.undoList.append(self.parent.current.argminMatrix(minimum,maximum))
         self.parent.current.grid_remove()
         self.parent.current.kill()
         self.parent.current=sc.Current1D(self.parent,self.parent.masterData)

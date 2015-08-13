@@ -188,6 +188,14 @@ class Spectrum(object):
             self.data = np.amax(self.data[slicing],axis=axes)
         elif which == 2:
             self.data = np.amin(self.data[slicing],axis=axes)
+        elif which == 3:
+            maxArgPos = np.argmax(np.real(self.data[slicing]),axis=axes)
+            tmpmaxPos = maxArgPos.flatten()
+            self.data = self.xaxArray[axes][slice(minPos,maxPos)][tmpmaxPos].reshape(maxArgPos.shape)
+        elif which == 4:
+            minArgPos = np.argmin(np.real(self.data[slicing]),axis=axes)
+            tmpminPos = minArgPos.flatten()
+            self.data = self.xaxArray[axes][slice(minPos,maxPos)][tmpminPos].reshape(minArgPos.shape)
         self.dim = self.dim - 1
         self.freq = np.delete(self.freq,axes)
         self.sw = np.delete(self.sw,axes)
@@ -948,7 +956,15 @@ class Current1D(Plot1DFrame):
     def minMatrix(self,pos1,pos2):
         self.root.addMacro(['min',(pos1,pos2,self.axes,)])
         return self.data.matrixManip(pos1,pos2,self.axes,2)
+    
+    def argmaxMatrix(self,pos1,pos2):
+        self.root.addMacro(['argmax',(pos1,pos2,self.axes,)])
+        return self.data.matrixManip(pos1,pos2,self.axes,3)
 
+    def argminMatrix(self,pos1,pos2):
+        self.root.addMacro(['argmin',(pos1,pos2,self.axes,)])
+        return self.data.matrixManip(pos1,pos2,self.axes,4)
+    
     def flipLR(self):
         returnValue = self.data.flipLR(self.axes)
         self.upd()
@@ -2035,7 +2051,7 @@ class CurrentContour(Current1D):
         
     def resetLocList(self):
         self.locList = [0]*(len(self.data.data.shape)-2)
-
+        
     def setAxType2(self, val):
         oldAxAdd = 0
         if self.spec2 == 1:
