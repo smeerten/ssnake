@@ -176,7 +176,7 @@ class Spectrum(object):
         self.resetXax(axes)
         return returnValue
     
-    def matrixManip(self, pos1, pos2, axes, which):
+    def matrixManip(self, pos1, pos2, axes, argType=0, which=0):
         copyData=copy.deepcopy(self)
         returnValue = lambda self: self.restoreData(copyData, lambda self: self.matrixManip(pos1,pos2,axes,which))
         minPos = min(pos1,pos2)
@@ -189,7 +189,14 @@ class Spectrum(object):
         elif which == 2:
             self.data = np.amin(self.data[slicing],axis=axes)
         elif which == 3:
-            maxArgPos = np.argmax(np.real(self.data[slicing]),axis=axes)
+            if argType == 0:
+                maxArgPos = np.argmax(np.real(self.data[slicing]),axis=axes)
+            elif argType == 1:
+                maxArgPos = np.argmax(np.imag(self.data[slicing]),axis=axes)
+            elif argType == 2:
+                maxArgPos = np.argmax(np.real(self.data[slicing]),axis=axes)
+            elif argType == 3:
+                maxArgPos = np.argmax(np.abs(self.data[slicing]),axis=axes)
             tmpmaxPos = maxArgPos.flatten()
             self.data = self.xaxArray[axes][slice(minPos,maxPos)][tmpmaxPos].reshape(maxArgPos.shape)
         elif which == 4:
@@ -947,23 +954,23 @@ class Current1D(Plot1DFrame):
     
     def integrate(self,pos1,pos2):
         self.root.addMacro(['integrate',(pos1,pos2,self.axes,)])
-        return self.data.matrixManip(pos1,pos2,self.axes,0)
+        return self.data.matrixManip(pos1,pos2,self.axes,which=0)
 
     def maxMatrix(self,pos1,pos2):
         self.root.addMacro(['max',(pos1,pos2,self.axes,)])
-        return self.data.matrixManip(pos1,pos2,self.axes,1)
+        return self.data.matrixManip(pos1,pos2,self.axes,which=1)
     
     def minMatrix(self,pos1,pos2):
         self.root.addMacro(['min',(pos1,pos2,self.axes,)])
-        return self.data.matrixManip(pos1,pos2,self.axes,2)
+        return self.data.matrixManip(pos1,pos2,self.axes,which=2)
     
     def argmaxMatrix(self,pos1,pos2):
-        self.root.addMacro(['argmax',(pos1,pos2,self.axes,)])
-        return self.data.matrixManip(pos1,pos2,self.axes,3)
+        self.root.addMacro(['argmax',(pos1,pos2,self.axes,self.axType,)])
+        return self.data.matrixManip(pos1,pos2,self.axes,self.axType,which=3)
 
     def argminMatrix(self,pos1,pos2):
-        self.root.addMacro(['argmin',(pos1,pos2,self.axes,)])
-        return self.data.matrixManip(pos1,pos2,self.axes,4)
+        self.root.addMacro(['argmin',(pos1,pos2,self.axes,self.axType)])
+        return self.data.matrixManip(pos1,pos2,self.axes,self.axType,which=4)
     
     def flipLR(self):
         returnValue = self.data.flipLR(self.axes)
