@@ -89,13 +89,13 @@ class Spectrum(object):
         return lambda self: self.add(data)
 
     def multiply(self,mult,axes,multImag=0):
-        mult = np.array(mult) + 1j*np.array(mult)
+        mult = np.array(mult) + 1j*np.array(multImag)
         copyData=copy.deepcopy(self)
         returnValue = lambda self: self.restoreData(copyData, lambda self: self.multiply(mult,axes))
         multtmp = mult.reshape((1,)*axes+(self.data.shape[axes],)+(1,)*(self.dim-axes-1))
         self.data = self.data*multtmp
         return returnValue
-        
+
     def baselineCorrection(self,baseline,axes,baselineImag = 0):
         baseline = np.array(baseline) + 1j*np.array(baselineImag)
         baselinetmp = baseline.reshape((1,)*axes+(self.data.shape[axes],)+(1,)*(self.dim-axes-1))
@@ -1029,10 +1029,14 @@ class Current1D(Plot1DFrame):
     def multiply(self,data):
         returnValue = self.data.multiply(data,self.axes)
         self.upd()
-        self.plotReset()
         self.showFid()
         self.root.addMacro(['multiply',(np.real(data).tolist(),self.axes,np.imag(data).tolist())])
         return returnValue
+    
+    def multiplyPreview(self,data):
+        self.data1D = self.data1D*data
+        self.showFid()
+        self.upd()
     
     def getRegion(self,pos1,pos2): 
         returnValue = self.data.getRegion(pos1,pos2,self.axes)
@@ -2260,6 +2264,8 @@ class CurrentContour(Current1D):
             self.ax.set_ylim(self.yminlim,self.ymaxlim)
         self.ax.get_xaxis().get_major_formatter().set_powerlimits((-4, 4))
         self.ax.get_yaxis().get_major_formatter().set_powerlimits((-4, 4))
+        self.x_ax.get_yaxis().get_major_formatter().set_powerlimits((-4, 4))
+        self.y_ax.get_xaxis().get_major_formatter().set_powerlimits((-4, 4))
         self.canvas.draw()
 
     def plotReset(self): #set the plot limits to min and max values

@@ -3174,32 +3174,22 @@ class MultiplyWindow(Toplevel):
         self.resizable(width=FALSE, height=FALSE)
         self.frame1 = Frame(self)
         self.frame1.grid(row=0)
-        Label(self.frame1,text="Array:").grid(row=0,column=0,columnspan=2)
+        Label(self.frame1,text="Values:").grid(row=0,column=0,columnspan=2)
         self.minEntry = Entry(self.frame1,textvariable=self.val,justify="center")
-        self.minEntry.bind("<Return>", self.xaxPreview)
-        self.minEntry.bind("<KP_Enter>", self.xaxPreview)
+        self.minEntry.bind("<Return>", self.preview)
+        self.minEntry.bind("<KP_Enter>", self.preview)
         self.minEntry.grid(row=1,column=0,columnspan=2)
         self.frame2 = Frame(self)
         self.frame2.grid(row=1)
         Button(self.frame2, text="Apply",command=self.applyAndClose).grid(row=0,column=0)
         Button(self.frame2, text="Cancel",command=self.cancelAndClose).grid(row=0,column=1)
 
-    def xaxPreview(self, *args):
+    def preview(self, *args):
         env = vars(np).copy()
         env['length']=int(self.parent.current.data1D.shape[-1]) # so length can be used to in equations
         env['euro']=lambda fVal, num=int(self.parent.current.data1D.shape[-1]): euro(fVal,num)
         val=eval(self.val.get(),env)                # find a better solution, also add catch for exceptions          
-        if isinstance(val,(list,np.ndarray)):
-            if len(val)==self.parent.current.data1D.shape[-1]:
-                if all(isinstance(x,(int,float)) for x in val):
-                    pass
-                    #self.parent.current.setMultiplyPreview(np.array(val))
-                else:
-                    print("Array is not all of int or float type")
-            else:
-                print("Length of input does not match length of data")
-        else:
-            print("Input is not a list or array")
+        self.parent.current.multiplyPreview(np.array(val))
 
     def cancelAndClose(self):
         self.parent.current.upd()
