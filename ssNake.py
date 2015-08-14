@@ -582,7 +582,7 @@ class MainProgram:
             axis=1
             spec = [True]                    
         if NI is 1:
-            masterData=sc.Spectrum(data,lambda self :self.LoadSimsponFile(filePath),[0],[SW],spec)
+            masterData=sc.Spectrum(data,lambda self :self.LoadSimpsonFile(filePath),[0],[SW],spec)
         else:
             data = data.reshape((NI,NP))
             masterData=sc.Spectrum(data,lambda self :self.LoadSimpsonFile(filePath),[0,0],[SW1,SW],spec*2)
@@ -1419,7 +1419,7 @@ class SideFrame(Frame):
                 self.stepSpin.bind("<KP_Enter>", self.setToFrom)
                 self.stepSpin.grid(row=6,column=0)
                 if isinstance(current, (sc.CurrentStacked,sc.CurrentArrayed)):
-                    self.spacing.set('%.3e' % current.spacing)
+                    self.spacing.set('%.3g' % current.spacing)
                     Label(self.frame2,text="Spacing").grid(row=7,column=0,sticky='n')
                     self.spacingEntry = Entry(self.frame2,textvariable=self.spacing,justify="center",width=10)
                     self.spacingEntry.bind("<Return>", self.setSpacing) 
@@ -1486,7 +1486,7 @@ class SideFrame(Frame):
 
     def setSpacing(self, *args):
         var =float(safeEval(self.spacing.get()))
-        self.spacing.set('%.3e' % var)
+        self.spacing.set('%.3g' % var)
         self.parent.current.setSpacing(var)
 
     def setSkew(self, *args):
@@ -1617,8 +1617,8 @@ class BottomFrame(Frame):
             child.configure(state='disabled')
         
     def upd(self): #upd the values displayed in the bottom menu
-        self.freqVal.set('%.6f' %(self.parent.current.freq/1000000)) #show in MHz
-        self.swVal.set(str(self.parent.current.sw/1000)) #show in kHz
+        self.freqVal.set('%.6f' %(self.parent.current.freq/1000000.0)) #show in MHz
+        self.swVal.set('%.6f' %(self.parent.current.sw/1000.0)) #show in kHz
         self.axisDropTime2.grid_forget()
         self.axisDropFreq2.grid_forget()
         if self.parent.current.spec==0:

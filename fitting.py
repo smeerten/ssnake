@@ -2109,9 +2109,6 @@ class MainPlotWindow(Frame):
         self.ylimRightEntry.bind("<Return>", self.updatePlot) 
         self.ylimRightEntry.bind("<KP_Enter>", self.updatePlot) 
         self.ylimRightEntry.grid(row=13,column=0)
-
-        for i in self.ax.get_lines():
-            print i.get_color()
         
         Label(self.frame2,text='Width [inches]').grid(row=26,column=0)
         self.widthBackup, self.heightBackup = self.fig.get_size_inches()
