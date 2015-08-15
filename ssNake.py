@@ -1804,6 +1804,7 @@ class PhaseWindow(Toplevel): #a window for phasing the data
         self.resizable(width=FALSE, height=FALSE)
         self.parent.menuDisable()
         #initialize variables for the widgets
+        self.P1LIMIT=540.0 
         self.zeroVal = 0.0
         self.firstVal = 0.0
         self.refVal = 0.0
@@ -1834,7 +1835,7 @@ class PhaseWindow(Toplevel): #a window for phasing the data
         self.firstEntry.grid(row=6,column=1)
         tk.Button(self,text="<",repeatdelay=100, repeatinterval=1,command=lambda:self.stepPhase(0,-1)).grid(row=6,column=0)
         tk.Button(self,text=">",repeatdelay=100, repeatinterval=1,command=lambda:self.stepPhase(0,1)).grid(row=6,column=2)
-        self.firstScale=Scale(self, from_=-540, to=540, orient="horizontal", command=self.setFirstOrder,length=300)
+        self.firstScale=Scale(self, from_=-self.P1LIMIT, to=self.P1LIMIT, orient="horizontal", command=self.setFirstOrder,length=300)
         self.firstScale.grid(row=7,column=0,columnspan=3)
         if self.parent.current.spec > 0:
             Label(self,text="Reference").grid(row=8,column=0,columnspan=3)
@@ -1865,8 +1866,19 @@ class PhaseWindow(Toplevel): #a window for phasing the data
         self.zeroScale.set(self.zeroVal)
 
     def inputFirstOrder(self, *args): #function called by the first order entry widget
-        self.firstVal = safeEval(self.firstValue.get())
-        self.firstScale.set(self.firstVal) #setting the scale to a value calls the previous function, so the phase of current doesn't need to be set here
+        tmpFirstVal = float(safeEval(self.firstValue.get()))
+        if -self.P1LIMIT <= tmpFirstVal <= self.P1LIMIT:
+            self.firstScale.set(tmpFirstVal) #setting the scale to a value calls the previous function, so the phase of current doesn't need to be set here
+        elif -self.P1LIMIT > tmpFirstVal:
+            if float(self.firstScale.get()) != -self.P1LIMIT:
+                self.firstScale.set(-self.P1LIMIT)
+            self.setFirstOrder(tmpFirstVal)
+            self.parent.current.setPhaseInter(np.pi*self.zeroVal/180.0,np.pi*self.firstVal/180.0)
+        elif self.P1LIMIT < tmpFirstVal:
+            if float(self.firstScale.get()) != self.P1LIMIT:
+                self.firstScale.set(self.P1LIMIT)
+            self.setFirstOrder(tmpFirstVal)
+            self.parent.current.setPhaseInter(np.pi*self.zeroVal/180.0,np.pi*self.firstVal/180.0)
 
     def autophase(self, num): #run the autophase for either zero order (0) or both orders (1)
         phases = self.parent.current.autoPhase(num)
@@ -1878,14 +1890,15 @@ class PhaseWindow(Toplevel): #a window for phasing the data
             val = phases[1]/np.pi*180.0
             self.firstVal = val
             self.firstValue.set('%.2f' % self.firstVal)
-            self.firstScale.set(self.firstVal)
+            self.inputFirstOrder()
 
     def stepPhase(self,phase0,phase1): #step phase from < and > keys
         inp = safeEval(self.zeroValue.get())+phase0*self.phase0step
         self.zeroVal = np.mod(inp+180,360)-180
         self.zeroScale.set(self.zeroVal)
         self.firstVal = safeEval(self.firstValue.get())+phase1*self.phase1step
-        self.firstScale.set(self.firstVal)
+        self.firstValue.set('%.2f' % self.firstVal)
+        self.inputFirstOrder()
 
     def inputRef(self, *args): #set the reference from the entry widget
         self.refVal = safeEval(self.refValue.get())
@@ -1942,7 +1955,7 @@ class ApodWindow(Toplevel): #a window for apodization
         self.shiftingVal = StringVar()
         self.shiftingVal.set("0.0")
         if self.parent.current.data.dim > 1:
-            options = list(map(str,np.delete(range(self.parent.current.data.dim),self.parent.current.axes)))
+            options = list(map(str,np.delete(range(1,self.parent.current.data.dim+1),self.parent.current.axes)))
             self.shiftingAxes = StringVar()
             self.shiftingAxes.set(options[0])
         #set stepsizes for the buttons
@@ -2044,7 +2057,7 @@ class ApodWindow(Toplevel): #a window for apodization
         if self.parent.current.data.dim > 1:
             shifting = safeEval(self.shiftingVal.get())
             self.shiftingVal.set(shifting)
-            shiftingAxes = int(self.shiftingAxes.get())
+            shiftingAxes = int(self.shiftingAxes.get())-1
         else:
             shiftingAxes = None
         self.parent.current.apodPreview(lor,gauss,cos2,hamming,shift,shifting,shiftingAxes)
@@ -2080,7 +2093,7 @@ class ApodWindow(Toplevel): #a window for apodization
         if self.parent.current.data.dim > 1:
             shifting = safeEval(self.shiftingVal.get())
             self.shiftingVal.set(shifting)
-            shiftingAxes = int(self.shiftingAxes.get())
+            shiftingAxes = int(self.shiftingAxes.get())-1
         else:
             shiftingAxes = None
         self.parent.redoList = []
@@ -3118,11 +3131,11 @@ class ShearingWindow(Toplevel):
         #initialize variables for the widgets
         self.shear = StringVar()
         self.shear.set('0.0')
-        options = list(map(str,range(self.parent.current.data.dim)))
+        options = list(map(str,range(1,self.parent.masterData.dim+1)))
         self.axes = StringVar()
-        self.axes.set('0')
+        self.axes.set(str(self.parent.masterData.dim-1))
         self.axes2 = StringVar()
-        self.axes2.set('1')
+        self.axes2.set(str(self.parent.masterData.dim))
         self.frame1 = Frame(self)
         self.frame1.grid(row=0)
         Label(self.frame1,text="Shearing constant").grid(row=0,column=0)
@@ -3149,8 +3162,8 @@ class ShearingWindow(Toplevel):
 
     def applyAndClose(self):
         shear = float(safeEval(self.shear.get()))
-        axes = int(self.axes.get())
-        axes2 = int(self.axes2.get())
+        axes = int(self.axes.get())-1
+        axes2 = int(self.axes2.get())-1
         if axes == axes2:
             print("Axes can't be the same for shearing")
         else:
