@@ -251,7 +251,7 @@ class Spectrum(object):
         t=np.arange(0,axLen)/self.sw[axes]
         if shifting != 0.0:
             for j in range(self.data.shape[shiftingAxes]):
-                shift1 = shift + shifting*j
+                shift1 = shift + shifting*j*self.data.shape[shiftingAxes]/self.sw[shiftingAxes]
                 t2 = t - shift1
                 x=np.ones(axLen)
                 if lor is not None:
@@ -614,9 +614,9 @@ class Current1D(Plot1DFrame):
                 print('shiftingAxes cannot be equal to axes')
                 return
             elif shiftingAxes < self.axes:
-                shift += shifting*self.locList[shiftingAxes]
+                shift += shifting*self.locList[shiftingAxes]*self.data.data.shape[shiftingAxes]/self.data.sw[shiftingAxes]
             else:
-                shift += shifting*self.locList[shiftingAxes-1]
+                shift += shifting*self.locList[shiftingAxes-1]*self.data.data.shape[shiftingAxes]/self.data.sw[shiftingAxes]
         length = len(self.data1D)
         t=np.arange(0,length)/(self.sw)
         t2=t-shift
@@ -1251,7 +1251,7 @@ class Current1D(Plot1DFrame):
             self.canvas.print_figure(output)
         self.canvas.draw()
 
-    def plotReset(self): #set the plot limits to min and max values
+    def plotReset(self,xReset=True,yReset=True): #set the plot limits to min and max values
         if self.plotType==0:
             miny = min(np.real(self.data1D))
             maxy = max(np.real(self.data1D))
@@ -1268,8 +1268,9 @@ class Current1D(Plot1DFrame):
             miny=-1
             maxy=1
         differ = 0.05*(maxy-miny) #amount to add to show all datapoints (10%)
-        self.yminlim=miny-differ
-        self.ymaxlim=maxy+differ
+        if yReset:
+            self.yminlim=miny-differ
+            self.ymaxlim=maxy+differ
         axAdd = 0
         if self.spec == 1:
             if self.ppm:
@@ -1279,8 +1280,9 @@ class Current1D(Plot1DFrame):
                 axMult = 1.0/(1000.0**self.axType)
         elif self.spec == 0:
             axMult = 1000.0**self.axType
-        self.xminlim=min(self.xax*axMult+axAdd)
-        self.xmaxlim=max(self.xax*axMult+axAdd)
+        if xReset:
+            self.xminlim=min(self.xax*axMult+axAdd)
+            self.xmaxlim=max(self.xax*axMult+axAdd)
         if self.spec > 0 :
             self.ax.set_xlim(self.xmaxlim,self.xminlim)
         else:
@@ -1444,6 +1446,7 @@ class CurrentStacked(Current1D):
         self.stackEnd = stackEnd
         self.stackStep = stackStep
         self.upd()
+        self.plotReset(False,True)
         self.showFid()
 
     def apodPreview(self,lor=None,gauss=None, cos2=None, hamming=None,shift=0.0,shifting=0.0,shiftingAxes=None): #display the 1D data including the apodization function
@@ -1455,7 +1458,7 @@ class CurrentStacked(Current1D):
                 ar = np.arange(self.data.data.shape[self.axes2])[slice(self.stackBegin,self.stackEnd,self.stackStep)]
                 x=np.ones((len(ar),len(self.data1D[0])))
                 for i in range(len(ar)):
-                    shift1 = shift + shifting*ar[i]
+                    shift1 = shift + shifting*ar[i]*self.data.data.shape[shiftingAxes]/self.data.sw[shiftingAxes]
                     t2 = t - shift1
                     x2=np.ones(len(self.data1D[0]))
                     if lor is not None:
@@ -1472,11 +1475,11 @@ class CurrentStacked(Current1D):
                     x[i] = x2
             else:
                 if (shiftingAxes < self.axes) and (shiftingAxes < self.axes2):
-                    shift += shifting*self.locList[shiftingAxes]
+                    shift += shifting*self.locList[shiftingAxes]*self.data.data.shape[shiftingAxes]/self.data.sw[shiftingAxes]
                 elif (shiftingAxes > self.axes) and (shiftingAxes > self.axes2):
-                    shift += shifting*self.locList[shiftingAxes-2]
+                    shift += shifting*self.locList[shiftingAxes-2]*self.data.data.shape[shiftingAxes]/self.data.sw[shiftingAxes]
                 else:
-                    shift += shifting*self.locList[shiftingAxes-1]
+                    shift += shifting*self.locList[shiftingAxes-1]*self.data.data.shape[shiftingAxes]/self.data.sw[shiftingAxes]
                 t2 = t - shift
                 x=np.ones(len(self.data1D[0]))
                 if lor is not None:
@@ -1648,7 +1651,7 @@ class CurrentStacked(Current1D):
         self.ax.get_yaxis().get_major_formatter().set_powerlimits((-4, 4))
         self.canvas.draw()
 
-    def plotReset(self): #set the plot limits to min and max values
+    def plotReset(self,xReset=True,yReset=True): #set the plot limits to min and max values
         self.ax=self.fig.gca()
         incr = np.repeat(np.arange(len(self.data1D)).reshape((len(self.data1D),1)),len(self.data1D[0]),axis=1)*self.spacing
         if self.plotType==0:
@@ -1667,8 +1670,9 @@ class CurrentStacked(Current1D):
             miny=-1
             maxy=1
         differ = 0.05*(maxy-miny) #amount to add to show all datapoints (10%)
-        self.yminlim=miny-differ
-        self.ymaxlim=maxy+differ
+        if yReset:
+            self.yminlim=miny-differ
+            self.ymaxlim=maxy+differ
         axAdd = 0
         if self.spec == 1:
             if self.ppm:
@@ -1678,8 +1682,9 @@ class CurrentStacked(Current1D):
                 axMult = 1.0/(1000.0**self.axType)
         elif self.spec == 0:
             axMult = 1000.0**self.axType
-        self.xminlim=min(self.xax*axMult+axAdd)
-        self.xmaxlim=max(self.xax*axMult+axAdd)
+        if xReset:
+            self.xminlim=min(self.xax*axMult+axAdd)
+            self.xmaxlim=max(self.xax*axMult+axAdd)
         if self.spec > 0 :
             self.ax.set_xlim(self.xmaxlim,self.xminlim)
         else:
@@ -1768,6 +1773,7 @@ class CurrentArrayed(Current1D):
         self.stackEnd = stackEnd
         self.stackStep = stackStep
         self.upd()
+        self.plotReset(True,False)
         self.showFid()
 
     def apodPreview(self,lor=None,gauss=None, cos2=None, hamming=None,shift=0.0,shifting=0.0,shiftingAxes=None): #display the 1D data including the apodization function
@@ -1779,7 +1785,7 @@ class CurrentArrayed(Current1D):
                 ar = np.arange(self.data.data.shape[self.axes2])[slice(self.stackBegin,self.stackEnd,self.stackStep)]
                 x=np.ones((len(ar),len(self.data1D[0])))
                 for i in range(len(ar)):
-                    shift1 = shift + shifting*ar[i]
+                    shift1 = shift + shifting*ar[i]*self.data.data.shape[shiftingAxes]/self.data.sw[shiftingAxes]
                     t2 = t - shift1
                     x2=np.ones(len(self.data1D[0]))
                     if lor is not None:
@@ -1796,11 +1802,11 @@ class CurrentArrayed(Current1D):
                     x[i] = x2
             else:
                 if (shiftingAxes < self.axes) and (shiftingAxes < self.axes2):
-                    shift += shifting*self.locList[shiftingAxes]
+                    shift += shifting*self.locList[shiftingAxes]*self.data.data.shape[shiftingAxes]/self.data.sw[shiftingAxes]
                 elif (shiftingAxes > self.axes) and (shiftingAxes > self.axes2):
-                    shift += shifting*self.locList[shiftingAxes-2]
+                    shift += shifting*self.locList[shiftingAxes-2]*self.data.data.shape[shiftingAxes]/self.data.sw[shiftingAxes]
                 else:
-                    shift += shifting*self.locList[shiftingAxes-1]
+                    shift += shifting*self.locList[shiftingAxes-1]*self.data.data.shape[shiftingAxes]/self.data.sw[shiftingAxes]
                 t2 = t - shift
                 x=np.ones(len(self.data1D[0]))
                 if lor is not None:
@@ -1942,7 +1948,7 @@ class CurrentArrayed(Current1D):
         self.ax.get_yaxis().get_major_formatter().set_powerlimits((-4, 4))
         self.canvas.draw()
 
-    def plotReset(self): #set the plot limits to min and max values
+    def plotReset(self,xReset=True,yReset=True): #set the plot limits to min and max values
         if self.plotType==0:
             miny = np.amin(np.real(self.data1D))
             maxy = np.amax(np.real(self.data1D))
@@ -1959,8 +1965,9 @@ class CurrentArrayed(Current1D):
             miny=-1
             maxy=1
         differ = 0.05*(maxy-miny) #amount to add to show all datapoints (10%)
-        self.yminlim=miny-differ
-        self.ymaxlim=maxy+differ
+        if yReset:
+            self.yminlim=miny-differ
+            self.ymaxlim=maxy+differ
         axAdd = 0
         if self.spec == 1:
             if self.ppm:
@@ -1970,8 +1977,9 @@ class CurrentArrayed(Current1D):
                 axMult = 1.0/(1000.0**self.axType)
         elif self.spec == 0:
             axMult = 1000.0**self.axType
-        self.xminlim=min(self.xax*axMult+axAdd)
-        self.xmaxlim=(max(self.xax)+(len(self.data1D)-1)*self.spacing)*axMult+axAdd
+        if xReset:
+            self.xminlim=min(self.xax*axMult+axAdd)
+            self.xmaxlim=(max(self.xax)+(len(self.data1D)-1)*self.spacing)*axMult+axAdd
         self.ax.set_xlim(self.xminlim,self.xmaxlim)
         self.ax.set_ylim(self.yminlim,self.ymaxlim)
 
@@ -2093,7 +2101,7 @@ class CurrentContour(Current1D):
                 ar = np.arange(self.data.data.shape[self.axes2])
                 x=np.ones((len(ar),len(self.data1D[0])))
                 for i in range(len(ar)):
-                    shift1 = shift + shifting*ar[i]
+                    shift1 = shift + shifting*ar[i]*self.data.data.shape[shiftingAxes]/self.data.sw[shiftingAxes]
                     t2 = t - shift1
                     x2=np.ones(len(self.data1D[0]))
                     if lor is not None:
@@ -2110,11 +2118,11 @@ class CurrentContour(Current1D):
                     x[i] = x2
             else:
                 if (shiftingAxes < self.axes) and (shiftingAxes < self.axes2):
-                    shift += shifting*self.locList[shiftingAxes]
+                    shift += shifting*self.locList[shiftingAxes]*self.data.data.shape[shiftingAxes]/self.data.sw[shiftingAxes]
                 elif (shiftingAxes > self.axes) and (shiftingAxes > self.axes2):
-                    shift += shifting*self.locList[shiftingAxes-2]
+                    shift += shifting*self.locList[shiftingAxes-2]*self.data.data.shape[shiftingAxes]/self.data.sw[shiftingAxes]
                 else:
-                    shift += shifting*self.locList[shiftingAxes-1]
+                    shift += shifting*self.locList[shiftingAxes-1]*self.data.data.shape[shiftingAxes]/self.data.sw[shiftingAxes]
                 t2 = t - shift
                 x=np.ones(len(self.data1D[0]))
                 if lor is not None:
@@ -2268,7 +2276,7 @@ class CurrentContour(Current1D):
         self.y_ax.get_xaxis().get_major_formatter().set_powerlimits((-4, 4))
         self.canvas.draw()
 
-    def plotReset(self): #set the plot limits to min and max values
+    def plotReset(self,xReset=True,yReset=True): #set the plot limits to min and max values
         axAdd = 0
         if self.spec == 1:
             if self.ppm:
@@ -2278,8 +2286,9 @@ class CurrentContour(Current1D):
                 axMult = 1.0/(1000.0**self.axType)
         elif self.spec == 0:
             axMult = 1000.0**self.axType
-        self.xminlim=min(self.xax*axMult+axAdd)
-        self.xmaxlim=max(self.xax*axMult+axAdd)
+        if xReset:
+            self.xminlim=min(self.xax*axMult+axAdd)
+            self.xmaxlim=max(self.xax*axMult+axAdd)
         axAdd2 = 0
         if self.spec2 == 1:
             if self.ppm2:
@@ -2289,8 +2298,9 @@ class CurrentContour(Current1D):
                 axMult2 = 1.0/(1000.0**self.axType2)
         elif self.spec2 == 0:
             axMult2 = 1000.0**self.axType2
-        self.yminlim=min(self.xax2*axMult2+axAdd2)
-        self.ymaxlim=max(self.xax2*axMult2+axAdd2)
+        if yReset:
+            self.yminlim=min(self.xax2*axMult2+axAdd2)
+            self.ymaxlim=max(self.xax2*axMult2+axAdd2)
         if self.spec:
             self.ax.set_xlim(self.xmaxlim,self.xminlim)
         else:
@@ -2455,6 +2465,7 @@ class CurrentSkewed(Current1D):
         self.stackEnd = stackEnd
         self.stackStep = stackStep
         self.upd()
+        self.plotReset(False,True)
         self.showFid()
 
     def apodPreview(self,lor=None,gauss=None, cos2=None, hamming=None,shift=0.0,shifting=0.0,shiftingAxes=None): #display the 1D data including the apodization function
@@ -2466,7 +2477,7 @@ class CurrentSkewed(Current1D):
                 ar = np.arange(self.data.data.shape[self.axes2])[slice(self.stackBegin,self.stackEnd,self.stackStep)]
                 x=np.ones((len(ar),len(self.data1D[0])))
                 for i in range(len(ar)):
-                    shift1 = shift + shifting*ar[i]
+                    shift1 = shift + shifting*ar[i]*self.data.data.shape[shiftingAxes]/self.data.sw[shiftingAxes]
                     t2 = t - shift1
                     x2=np.ones(len(self.data1D[0]))
                     if lor is not None:
@@ -2483,11 +2494,11 @@ class CurrentSkewed(Current1D):
                     x[i] = x2
             else:
                 if (shiftingAxes < self.axes) and (shiftingAxes < self.axes2):
-                    shift += shifting*self.locList[shiftingAxes]
+                    shift += shifting*self.locList[shiftingAxes]*self.data.data.shape[shiftingAxes]/self.data.sw[shiftingAxes]
                 elif (shiftingAxes > self.axes) and (shiftingAxes > self.axes2):
-                    shift += shifting*self.locList[shiftingAxes-2]
+                    shift += shifting*self.locList[shiftingAxes-2]*self.data.data.shape[shiftingAxes]/self.data.sw[shiftingAxes]
                 else:
-                    shift += shifting*self.locList[shiftingAxes-1]
+                    shift += shifting*self.locList[shiftingAxes-1]*self.data.data.shape[shiftingAxes]/self.data.sw[shiftingAxes]
                 t2 = t - shift
                 x=np.ones(len(self.data1D[0]))
                 if lor is not None:
@@ -2660,7 +2671,7 @@ class CurrentSkewed(Current1D):
         self.ax.zaxis.pane.fill = False
         self.canvas.draw()
 
-    def plotReset(self): #set the plot limits to min and max values
+    def plotReset(self,xReset=True,yReset=True): #set the plot limits to min and max values
         axAdd = 0
         if self.spec == 1:
             if self.ppm:
@@ -2670,8 +2681,9 @@ class CurrentSkewed(Current1D):
                 axMult = 1.0/(1000.0**self.axType)
         elif self.spec == 0:
             axMult = 1000.0**self.axType
-        self.xminlim=min(self.xax*axMult+axAdd)
-        self.xmaxlim=max(self.xax*axMult+axAdd)
+        if xReset:
+            self.xminlim=min(self.xax*axMult+axAdd)
+            self.xmaxlim=max(self.xax*axMult+axAdd)
         axAdd2 = 0
         if self.spec2 == 1:
             if self.ppm2:
@@ -2681,8 +2693,9 @@ class CurrentSkewed(Current1D):
                 axMult2 = 1.0/(1000.0**self.axType2)
         elif self.spec2 == 0:
             axMult2 = 1000.0**self.axType2
-        self.yminlim=min(self.xax2*axMult2+axAdd2)
-        self.ymaxlim=max(self.xax2*axMult2+axAdd2)
+        if yReset:
+            self.yminlim=min(self.xax2*axMult2+axAdd2)
+            self.ymaxlim=max(self.xax2*axMult2+axAdd2)
         if self.spec:
             self.ax.set_xlim(self.xmaxlim,self.xminlim)
         else:
