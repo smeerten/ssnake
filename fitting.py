@@ -39,13 +39,27 @@ class RelaxWindow(Frame): #a window for fitting relaxation data
         self.paramframe.grid(row=1,column=0,sticky='sw')
         self.rowconfigure(0, weight=1)
         self.grid_columnconfigure(0, weight=1)
+
+    def get_mainWindow(self):
+        return self.oldMainWindow
         
+    def get_masterData(self):
+        return self.oldMainWindow.get_masterData()
+    
+    def get_current(self):
+        return self.oldMainWindow.get_current()
+    
     def addToView(self):
         self.pack(fill=BOTH,expand=1)
 
     def removeFromView(self):
         self.pack_forget()
 
+    def kill(self):
+        self.current.kill()
+        self.oldMainWindow.kill()
+        del self.current
+        
     def cancel(self):
         self.mainProgram.closeFitWindow(self.oldMainWindow)
         
@@ -557,6 +571,15 @@ class PeakDeconvWindow(Frame): #a window for fitting relaxation data
         self.paramframe.grid(row=1,column=0,sticky='sw')
         self.rowconfigure(0, weight=1)
         self.grid_columnconfigure(0, weight=1)
+
+    def get_mainWindow(self):
+        return self.oldMainWindow
+        
+    def get_masterData(self):
+        return self.oldMainWindow.get_masterData()
+    
+    def get_current(self):
+        return self.oldMainWindow.get_current()
         
     def addToView(self):
         self.pack(fill=BOTH,expand=1)
@@ -564,6 +587,11 @@ class PeakDeconvWindow(Frame): #a window for fitting relaxation data
     def removeFromView(self):
         self.pack_forget()
 
+    def kill(self):
+        self.current.kill()
+        self.oldMainWindow.kill()
+        del self.current
+        
     def cancel(self):
          self.mainProgram.closeFitWindow(self.oldMainWindow)
         
@@ -961,6 +989,15 @@ class TensorDeconvWindow(Frame): #a window for fitting relaxation data
         self.paramframe.grid(row=1,column=0,sticky='sw')
         self.rowconfigure(0, weight=1)
         self.grid_columnconfigure(0, weight=1)
+
+    def get_mainWindow(self):
+        return self.oldMainWindow
+        
+    def get_masterData(self):
+        return self.oldMainWindow.get_masterData()
+    
+    def get_current(self):
+        return self.oldMainWindow.get_current()
         
     def addToView(self):
         self.pack(fill=BOTH,expand=1)
@@ -968,6 +1005,11 @@ class TensorDeconvWindow(Frame): #a window for fitting relaxation data
     def removeFromView(self):
         self.pack_forget()
 
+    def kill(self):
+        self.current.kill()
+        self.oldMainWindow.kill()
+        del self.current
+        
     def cancel(self):
          self.mainProgram.closeFitWindow(self.oldMainWindow)
         
@@ -1458,6 +1500,15 @@ class Quad1DeconvWindow(Frame): #a window for fitting relaxation data
         self.paramframe.grid(row=1,column=0,sticky='sw')
         self.rowconfigure(0, weight=1)
         self.grid_columnconfigure(0, weight=1)
+
+    def get_mainWindow(self):
+        return self.oldMainWindow
+        
+    def get_masterData(self):
+        return self.oldMainWindow.get_masterData()
+    
+    def get_current(self):
+        return self.oldMainWindow.get_current()
         
     def addToView(self):
         self.pack(fill=BOTH,expand=1)
@@ -1465,6 +1516,11 @@ class Quad1DeconvWindow(Frame): #a window for fitting relaxation data
     def removeFromView(self):
         self.pack_forget()
 
+    def kill(self):
+        self.current.kill()
+        self.oldMainWindow.kill()
+        del self.current
+        
     def cancel(self):
          self.mainProgram.closeFitWindow(self.oldMainWindow)
         
@@ -1986,6 +2042,15 @@ class Quad2DeconvWindow(Frame): #a window for fitting second order quadrupole li
         self.paramframe.grid(row=1,column=0,sticky='sw')
         self.rowconfigure(0, weight=1)
         self.grid_columnconfigure(0, weight=1)
+
+    def get_mainWindow(self):
+        return self.oldMainWindow
+        
+    def get_masterData(self):
+        return self.oldMainWindow.get_masterData()
+    
+    def get_current(self):
+        return self.oldMainWindow.get_current()
         
     def addToView(self):
         self.pack(fill=BOTH,expand=1)
@@ -1993,6 +2058,11 @@ class Quad2DeconvWindow(Frame): #a window for fitting second order quadrupole li
     def removeFromView(self):
         self.pack_forget()
 
+    def kill(self):
+        self.current.kill()
+        self.oldMainWindow.kill()
+        del self.current
+        
     def cancel(self):
          self.mainProgram.closeFitWindow(self.oldMainWindow)
          
@@ -2140,6 +2210,15 @@ class MainPlotWindow(Frame):
         self.ax.set_ylim((safeEval(self.ylimLeft.get()),safeEval(self.ylimRight.get())))
         self.fig.set_size_inches((int(safeEval(self.width.get())),int(safeEval(self.height.get()))))
         self.fig.canvas.draw()
+
+    def get_mainWindow(self):
+        return self.oldMainWindow
+        
+    def get_masterData(self):
+        return self.oldMainWindow.get_masterData()
+    
+    def get_current(self):
+        return self.oldMainWindow.get_current()
         
     def addToView(self):
         self.pack(fill=BOTH,expand=1)
@@ -2147,6 +2226,10 @@ class MainPlotWindow(Frame):
     def removeFromView(self):
         self.pack_forget()
 
+    def kill(self):
+        self.oldMainWindow.kill()
+        self.destroy()
+        
     def save(self):
         self.updatePlot()
         f=asksaveasfilename(filetypes=(('svg','.svg'),('png','.png'),('eps','.eps'),('jpg','.jpg'),('pdf','.pdf')))

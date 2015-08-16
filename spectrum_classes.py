@@ -92,7 +92,10 @@ class Spectrum(object):
         mult = np.array(mult) + 1j*np.array(multImag)
         copyData=copy.deepcopy(self)
         returnValue = lambda self: self.restoreData(copyData, lambda self: self.multiply(mult,axes))
-        multtmp = mult.reshape((1,)*axes+(self.data.shape[axes],)+(1,)*(self.dim-axes-1))
+        if len(mult.shape) == 0:
+            multtmp = mult
+        else:
+            multtmp = mult.reshape((1,)*axes+(self.data.shape[axes],)+(1,)*(self.dim-axes-1))
         self.data = self.data*multtmp
         return returnValue
 
@@ -1036,7 +1039,6 @@ class Current1D(Plot1DFrame):
     def multiplyPreview(self,data):
         self.data1D = self.data1D*data
         self.showFid()
-        self.upd()
     
     def getRegion(self,pos1,pos2): 
         returnValue = self.data.getRegion(pos1,pos2,self.axes)

@@ -72,12 +72,12 @@ class MainProgram:
         loadmenu.add_command(label="MATLAB", command=lambda : self.loading(6))
 
         #the save drop down menu
-        savemenu = Menu(self.filemenu, tearoff=0)
-        self.filemenu.add_cascade(label="Save", menu=savemenu)
-        savemenu.add_command(label="Save figure", command=self.saveFigure)
-        savemenu.add_command(label="Save JSON", command=self.saveJSONFile)
-        savemenu.add_command(label="Save MATLAB", command=self.saveMatlabFile)
-        savemenu.add_command(label="Save as Simpson data", command=self.saveSimpsonFile)
+        self.savemenu = Menu(self.filemenu, tearoff=0)
+        self.filemenu.add_cascade(label="Save", menu=self.savemenu)
+        self.savemenu.add_command(label="Save figure", command=self.saveFigure)
+        self.savemenu.add_command(label="Save JSON", command=self.saveJSONFile)
+        self.savemenu.add_command(label="Save MATLAB", command=self.saveMatlabFile)
+        self.savemenu.add_command(label="Save as Simpson data", command=self.saveSimpsonFile)
 
         self.mainWindow = None
         x=np.linspace(0,2*np.pi*10,1000)[:-1] #fake data
@@ -117,10 +117,11 @@ class MainProgram:
     def menuCheck(self):
         if self.mainWindow is None:
             self.filemenu.entryconfig('Save',state='disabled')
-            self.workspacemenu.entryconfig('Delete',state='disabled')
+            self.menubar.entryconfig('Workspaces',state='disabled')
             self.menubar.entryconfig('Macros',state='disabled')
-        else:
+        elif isinstance(self.mainWindow, Main1DWindow):
             self.menubar.entryconfig('Macros',state='normal')
+            self.savemenu.entryconfig('Save figure',state='normal')
             if self.mainWindow.currentMacro is None:
                 self.macromenu.entryconfig('Stop recording',state='disabled')
                 self.macromenu.entryconfig('Start recording',state='normal')
@@ -128,7 +129,17 @@ class MainProgram:
                 self.macromenu.entryconfig('Stop recording',state='normal')
                 self.macromenu.entryconfig('Start recording',state='disabled')
             self.filemenu.entryconfig('Save',state='normal')
-            self.workspacemenu.entryconfig('Delete',state='normal')
+            self.menubar.entryconfig('Workspaces',state='normal')
+        elif isinstance(self.mainWindow, fit.MainPlotWindow):
+            self.filemenu.entryconfig('Save',state='normal')
+            self.savemenu.entryconfig('Save figure',state='disabled')
+            self.menubar.entryconfig('Workspaces',state='normal')
+            self.menubar.entryconfig('Macros',state='disabled')
+        else:
+            self.filemenu.entryconfig('Save',state='normal')
+            self.savemenu.entryconfig('Save figure',state='normal')
+            self.menubar.entryconfig('Workspaces',state='normal')
+            self.menubar.entryconfig('Macros',state='disabled')
             
     def askName(self):
         count = 0
@@ -238,7 +249,7 @@ class MainProgram:
         name = self.askName()
         if name is None:
             return
-        self.workspaces.append(Main1DWindow(self.root,self,copy.deepcopy(self.mainWindow.masterData),self.mainWindow.current))
+        self.workspaces.append(Main1DWindow(self.root,self,copy.deepcopy(self.mainWindow.get_masterData()),self.mainWindow.get_current()))
         self.workspaceNames.append(name)
         self.changeMainWindow(name)
             
@@ -595,6 +606,7 @@ class MainProgram:
         self.mainWindow = fit.MainPlotWindow(self.root,self,self.mainWindow)
         self.workspaces[num] = self.mainWindow
         self.mainWindow.addToView()
+        self.menuCheck()
         
     def closeSaveFigure(self, mainWindow):
         self.mainWindow.removeFromView()
@@ -602,6 +614,7 @@ class MainProgram:
         self.mainWindow = mainWindow
         self.workspaces[num] = self.mainWindow
         self.mainWindow.addToView()
+        self.menuCheck()
 
     def createFitWindow(self,fitWindow):
         if self.mainWindow is not None:
@@ -610,6 +623,7 @@ class MainProgram:
         self.mainWindow = fitWindow
         self.workspaces[num] = self.mainWindow
         self.mainWindow.addToView()
+        self.menuCheck()
         
     def closeFitWindow(self, mainWindow):
         self.mainWindow.removeFromView()
@@ -617,15 +631,16 @@ class MainProgram:
         self.mainWindow = mainWindow
         self.workspaces[num] = self.mainWindow
         self.mainWindow.addToView()
+        self.menuCheck()
         
     def saveSimpsonFile(self):
-        self.mainWindow.SaveSimpsonFile()
+        self.mainWindow.get_mainWindow().SaveSimpsonFile()
         
     def saveJSONFile(self):
-        self.mainWindow.saveJSONFile()
+        self.mainWindow.get_mainWindow().saveJSONFile()
         
     def saveMatlabFile(self):
-        self.mainWindow.saveMatlabFile()
+        self.mainWindow.get_mainWindow().saveMatlabFile()
         
 class Main1DWindow(Frame):
     def __init__(self,parent,mainProgram,masterData,duplicateCurrent=None):
@@ -656,6 +671,15 @@ class Main1DWindow(Frame):
         self.grid_columnconfigure(0, weight=1)
         #all the functions that will be called from the menu and the extra frames
 
+    def get_mainWindow(self):
+        return self
+        
+    def get_masterData(self):
+        return self.masterData
+
+    def get_current(self):
+        return self.current
+        
     def kill(self):
         self.destroy()
         self.current.kill()
@@ -3216,19 +3240,11 @@ class MultiplyWindow(Toplevel):
         env['length']=int(self.parent.current.data1D.shape[-1]) # so length can be used to in equations
         env['euro']=lambda fVal, num=int(self.parent.current.data1D.shape[-1]): euro(fVal,num)
         val=eval(self.val.get(),env)                # find a better solution, also add catch for exceptions
-        if isinstance(val,(list,np.ndarray)):
-            if len(val)==self.parent.current.data1D.shape[-1]:
-                if all(isinstance(x,(int,float)) for x in val):
-                    self.parent.redoList = []
-                    self.parent.undoList.append(self.parent.current.multiply(np.array(val)))
-                    self.parent.menuEnable()
-                    self.destroy()
-                else:
-                    print("Array is not all of int or float type")
-            else:
-                print("Length of input does not match length of data")
-        else:
-            print("Input is not a list or array")
+        self.parent.redoList = []
+        self.parent.undoList.append(self.parent.current.multiply(np.array(val)))
+        self.parent.menuEnable()
+        self.destroy()
+
             
 ##########################################################################################
 class XaxWindow(Toplevel): #a window for setting the xax of the current data
