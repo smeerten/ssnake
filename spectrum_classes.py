@@ -1037,6 +1037,7 @@ class Current1D(Plot1DFrame):
         return returnValue
     
     def multiplyPreview(self,data):
+        self.upd()
         self.data1D = self.data1D*data
         self.showFid()
     
