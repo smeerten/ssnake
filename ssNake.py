@@ -1391,7 +1391,7 @@ class SideFrame(Frame):
                 if self.plotIs2D:
                     self.buttons2.append(Radiobutton(self.frame1, variable=self.button2Var, value=num, command=lambda: self.setAxes(False)))
                     self.buttons2[num].grid(row=num*2+1,column=1)
-                self.labels.append(Label(self.frame1,text="TD"+str(num+1))) 
+                self.labels.append(Label(self.frame1,text="D"+str(num+1))) 
                 self.labels[num].grid(row=num*2,column=1+offset)
                 self.entryVars.append(StringVar())
                 if not self.plotIs2D:
