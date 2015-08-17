@@ -80,14 +80,6 @@ class MainProgram:
         self.savemenu.add_command(label="Save as Simpson data", command=self.saveSimpsonFile)
 
         self.mainWindow = None
-        x=np.linspace(0,2*np.pi*10,1000)[:-1] #fake data
-        x2=np.linspace(0,2*np.pi*10,200)[1:] #fake data
-        #test2=np.linspace(0.2,1,2) #fake data
-        test=np.exp(-1j*x)*np.exp(-1*x/10.0)#fake data
-        test2=1-np.exp(-x2)
-        masterData=sc.Spectrum(np.outer(test2,test),None,[600000000.0,500000000.0],[1000.0,2000.0])
-        self.workspaces.append(Main1DWindow(self.root,self,masterData)) #create an instance to control the main window
-        self.workspaceNames.append('name0')
         self.workspacemenu = Menu(self.menubar, tearoff=0)
         self.menubar.add_cascade(label="Workspaces", menu=self.workspacemenu)
         self.workspacemenu.add_command(label="Duplicate", command=self.duplicateWorkspace)
@@ -104,9 +96,12 @@ class MainProgram:
         self.macrosavemenu = Menu(self.macromenu, tearoff=0)
         self.macromenu.add_cascade(label="Save", menu=self.macrosavemenu)
         self.macromenu.add_command(label="Load", command=self.loadMacro)
-        self.changeMainWindow('name0')
         self.filemenu.add_command(label="Exit", command=self.root.quit)
         self.menuCheck()
+        photo = PhotoImage(file='logo.gif')
+        self.logo = Label(self.root,image=photo)
+        self.logo.image = photo # keep a reference!
+        self.logo.pack()
 
     def kill(self):
         answer = tkMessageBox.askquestion("Question", "Are you sure you want to quit?")
@@ -225,6 +220,7 @@ class MainProgram:
         self.menuCheck()
             
     def changeMainWindow(self, var):
+        self.logo.pack_forget()
         if self.mainWindow is not None:
             self.mainWindow.removeFromView()
         num = self.workspaceNames.index(var)
@@ -264,6 +260,7 @@ class MainProgram:
         if len(self.workspaces) > 0:
             self.changeMainWindow(self.workspaceNames[self.workspaceNum])
         else:
+            self.logo.pack()
             self.updWorkspaceMenu(None)
             
     def updWorkspaceMenu(self,var):
