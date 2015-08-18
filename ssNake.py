@@ -30,6 +30,7 @@ import scipy.io
 import json
 import copy
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+import weakref
 #------------
 from safeEval import safeEval
 from euro import euro
@@ -96,7 +97,7 @@ class MainProgram:
         self.macrosavemenu = Menu(self.macromenu, tearoff=0)
         self.macromenu.add_cascade(label="Save", menu=self.macrosavemenu)
         self.macromenu.add_command(label="Load", command=self.loadMacro)
-        self.filemenu.add_command(label="Exit", command=self.root.quit)
+        self.filemenu.add_command(label="Exit", command=self.kill)
         self.menuCheck()
         photo = PhotoImage(file='logo.gif')
         self.logo = Label(self.root,image=photo)
@@ -656,18 +657,18 @@ class Main1DWindow(Frame):
         self.menubar = self.mainProgram.menubar
         self.current.grid(row=0,column=0,sticky="nswe")
 	#create the sideframe, bottomframe and textframe
-        self.sideframe=SideFrame(self) 
+        self.sideframe=SideFrame(weakref.proxy(self))
         self.sideframe.grid(row=0,column=2,sticky='n')
-        Separator(self,orient=VERTICAL).grid(row=0,column=1,rowspan=4,sticky='ns')
-        self.bottomframe=BottomFrame(self)
+        Separator(weakref.proxy(self),orient=VERTICAL).grid(row=0,column=1,rowspan=4,sticky='ns')
+        self.bottomframe=BottomFrame(weakref.proxy(self))
         self.bottomframe.grid(row=1,column=0,sticky='w') 
-        Separator(self,orient=HORIZONTAL).grid(row=2,sticky='ew')
-        self.textframe=TextFrame(self)
+        Separator(weakref.proxy(self),orient=HORIZONTAL).grid(row=2,sticky='ew')
+        self.textframe=TextFrame(weakref.proxy(self))
         self.textframe.grid(row=3,column=0,sticky='s')  
         self.rowconfigure(0, weight=1)
         self.grid_columnconfigure(0, weight=1)
         #all the functions that will be called from the menu and the extra frames
-
+        
     def get_mainWindow(self):
         return self
         
@@ -680,8 +681,8 @@ class Main1DWindow(Frame):
     def kill(self):
         self.destroy()
         self.current.kill()
-        del self.masterData
         del self.current
+        del self.masterData
 
     def rescue(self):
         self.current.kill()
@@ -696,6 +697,19 @@ class Main1DWindow(Frame):
         self.menubar.delete("Fitting")
         self.menubar.delete("Combine")
         self.menubar.delete("Plot")
+        self.editmenu.destroy()
+        del self.editmenu
+        self.matrixMenu.destroy()
+        del self.matrixMenu
+        self.plotMenu.destroy()
+        del self.plotMenu
+        self.toolMenu.destroy()
+        del self.toolMenu
+        self.fftMenu.destroy()
+        del self.fftMenu
+        self.fittingMenu.destroy()
+        del self.fittingMenu
+        self.combineMenu.destroy()
         self.pack_forget()
 
     def addToView(self):
@@ -707,22 +721,22 @@ class Main1DWindow(Frame):
         self.editmenu.add_command(label="Reload", command=self.reloadLast)
 
 	#the tool drop down menu
-        toolMenu = Menu(self.menubar, tearoff=0)
-        self.menubar.add_cascade(label="Tools",menu=toolMenu)
-        toolMenu.add_command(label="Real", command=self.real)
-        toolMenu.add_command(label="Imag", command=self.imag)
-        toolMenu.add_command(label="Abs", command=self.abs) 
-        toolMenu.add_command(label="Apodize", command=self.createApodWindow)
-        toolMenu.add_command(label="Phasing", command=self.createPhaseWindow)
-        toolMenu.add_command(label="Sizing", command=self.createSizeWindow) 
-        toolMenu.add_command(label="Swap Echo", command=self.createSwapEchoWindow)
-        toolMenu.add_command(label="Shift Data", command=self.createShiftDataWindow)
-        toolMenu.add_command(label="Offset correction", command=self.createDCWindow)
-        toolMenu.add_command(label="Baseline correction", command=self.createBaselineWindow)
-        toolMenu.add_command(label="States", command=self.states)
-        toolMenu.add_command(label="States-TPPI", command=self.statesTPPI)
-        toolMenu.add_command(label="Correct Bruker digital filter", command=self.BrukerDigital)
-        #toolMenu.add_command(label="LPSVD", command=self.LPSVD)
+        self.toolMenu = Menu(self.menubar, tearoff=0)
+        self.menubar.add_cascade(label="Tools",menu=self.toolMenu)
+        self.toolMenu.add_command(label="Real", command=self.real)
+        self.toolMenu.add_command(label="Imag", command=self.imag)
+        self.toolMenu.add_command(label="Abs", command=self.abs) 
+        self.toolMenu.add_command(label="Apodize", command=self.createApodWindow)
+        self.toolMenu.add_command(label="Phasing", command=self.createPhaseWindow)
+        self.toolMenu.add_command(label="Sizing", command=self.createSizeWindow) 
+        self.toolMenu.add_command(label="Swap Echo", command=self.createSwapEchoWindow)
+        self.toolMenu.add_command(label="Shift Data", command=self.createShiftDataWindow)
+        self.toolMenu.add_command(label="Offset correction", command=self.createDCWindow)
+        self.toolMenu.add_command(label="Baseline correction", command=self.createBaselineWindow)
+        self.toolMenu.add_command(label="States", command=self.states)
+        self.toolMenu.add_command(label="States-TPPI", command=self.statesTPPI)
+        self.toolMenu.add_command(label="Correct Bruker digital filter", command=self.BrukerDigital)
+        #self.toolMenu.add_command(label="LPSVD", command=self.LPSVD)
 
         #the matrix drop down menu
         self.matrixMenu = Menu(self.menubar, tearoff=0)
@@ -741,31 +755,31 @@ class Main1DWindow(Frame):
         self.matrixMenu.add_command(label="Shearing", command=self.createShearingWindow)
         
         #the fft drop down menu
-        fftMenu = Menu(self.menubar, tearoff=0)
-        self.menubar.add_cascade(label="Fourier",menu=fftMenu)
-        fftMenu.add_command(label="Fourier transform", command=self.fourier)
-        fftMenu.add_command(label="Fftshift", command=self.fftshift)
-        fftMenu.add_command(label="Inv fftshift", command=self.invFftshift)
-        fftMenu.add_command(label="Hilbert transform", command=self.hilbert)
+        self.fftMenu = Menu(self.menubar, tearoff=0)
+        self.menubar.add_cascade(label="Fourier",menu=self.fftMenu)
+        self.fftMenu.add_command(label="Fourier transform", command=self.fourier)
+        self.fftMenu.add_command(label="Fftshift", command=self.fftshift)
+        self.fftMenu.add_command(label="Inv fftshift", command=self.invFftshift)
+        self.fftMenu.add_command(label="Hilbert transform", command=self.hilbert)
 
 	#the fitting drop down menu
-        fittingMenu = Menu(self.menubar, tearoff=0)
-        self.menubar.add_cascade(label="Fitting",menu=fittingMenu)
-        fittingMenu.add_command(label="S/N", command=self.createSNWindow)
-        fittingMenu.add_command(label="FWHM", command=self.createFWHMWindow)
-        fittingMenu.add_command(label="Relaxation Curve", command=self.createRelaxWindow)
-        fittingMenu.add_command(label="Peak Deconvolution", command=self.createPeakDeconvWindow)
-        fittingMenu.add_command(label="CSA tensor", command=self.createTensorDeconvWindow)
-        fittingMenu.add_command(label="First order quadrupole", command=self.createQuad1DeconvWindow)
-        fittingMenu.add_command(label="Second order quadrupole static", command=self.createQuad2StaticDeconvWindow)
-        fittingMenu.add_command(label="Second order quadrupole MAS", command=self.createQuad2MASDeconvWindow)
+        self.fittingMenu = Menu(self.menubar, tearoff=0)
+        self.menubar.add_cascade(label="Fitting",menu=self.fittingMenu)
+        self.fittingMenu.add_command(label="S/N", command=self.createSNWindow)
+        self.fittingMenu.add_command(label="FWHM", command=self.createFWHMWindow)
+        self.fittingMenu.add_command(label="Relaxation Curve", command=self.createRelaxWindow)
+        self.fittingMenu.add_command(label="Peak Deconvolution", command=self.createPeakDeconvWindow)
+        self.fittingMenu.add_command(label="CSA tensor", command=self.createTensorDeconvWindow)
+        self.fittingMenu.add_command(label="First order quadrupole", command=self.createQuad1DeconvWindow)
+        self.fittingMenu.add_command(label="Second order quadrupole static", command=self.createQuad2StaticDeconvWindow)
+        self.fittingMenu.add_command(label="Second order quadrupole MAS", command=self.createQuad2MASDeconvWindow)
         
         #the combine drop down menu
-        combineMenu = Menu(self.menubar, tearoff=0)
-        self.menubar.add_cascade(label="Combine",menu=combineMenu)
-        combineMenu.add_command(label="Insert from workspace", command=self.createInsertWindow)
-        combineMenu.add_command(label="Add", command=self.createAddWindow)
-        combineMenu.add_command(label="Subtract", command=self.createSubtractWindow)
+        self.combineMenu = Menu(self.menubar, tearoff=0)
+        self.menubar.add_cascade(label="Combine",menu=self.combineMenu)
+        self.combineMenu.add_command(label="Insert from workspace", command=self.createInsertWindow)
+        self.combineMenu.add_command(label="Add", command=self.createAddWindow)
+        self.combineMenu.add_command(label="Subtract", command=self.createSubtractWindow)
 
 	#the plot drop down menu
         self.plotMenu = Menu(self.menubar, tearoff=0)
@@ -1628,7 +1642,7 @@ class BottomFrame(Frame):
         self.axisDropFreq2.grid(row=2,column=6)
         self.swEntry
         self.upd()
-
+        
     def frameEnable(self):
         for child in self.winfo_children():
             child.configure(state='normal')

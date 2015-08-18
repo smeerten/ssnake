@@ -37,7 +37,7 @@ class Spectrum(object):
             self.resetXax()
         else:
             self.xaxArray = xaxArray
-
+            
     def reload(self,mainProgram):
         copyData=copy.deepcopy(self)
         returnValue = lambda self: self.restoreData(copyData, lambda self: self.reload(mainProgram))
