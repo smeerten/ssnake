@@ -99,7 +99,7 @@ class MainProgram:
         self.macromenu.add_command(label="Load", command=self.loadMacro)
         self.filemenu.add_command(label="Exit", command=self.kill)
         self.menuCheck()
-        photo = PhotoImage(file='logo.gif')
+        photo = PhotoImage(file=os.path.dirname(os.path.realpath(__file__))+'/logo.gif')
         self.logo = Label(self.root,image=photo)
         self.logo.image = photo # keep a reference!
         self.logo.pack()
