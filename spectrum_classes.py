@@ -44,8 +44,13 @@ class Spectrum(object):
         self.restoreData(self.loadFunc(mainProgram),None)
         return returnValue
             
-    def resetXax(self,axes=None):
+    def resetXax(self,axes=None):  
         if axes is not None:
+            if axes < 0:
+                axes = axes + self.dim
+            if not (0 <= axes < self.dim):
+                print('Not a valid axes')
+                return None
             val=[axes]
         else:
             val=range(self.dim)
@@ -56,17 +61,32 @@ class Spectrum(object):
                 self.xaxArray[i]=np.fft.fftshift(np.fft.fftfreq(self.data.shape[i],1.0/self.sw[i]))
 
     def setXax(self,xax,axes):
+        if axes < 0:
+            axes = axes + self.dim
+        if not (0 <= axes < self.dim):
+            print('Not a valid axes')
+            return None
         oldXax = self.xaxArray[axes]
         self.xaxArray[axes]=xax
         return lambda self: self.setXax(oldXax,axes)
                 
     def insert(self,data,pos,axes,dataImag=0):
+        if axes < 0:
+            axes = axes + self.dim
+        if not (0 <= axes < self.dim):
+            print('Not a valid axes')
+            return None
         data = np.array(data) + 1j*np.array(dataImag)
         self.data = np.insert(self.data,[pos],data,axis=axes)
         self.resetXax(axes)
         return lambda self: self.remove(range(pos,pos+data.shape[axes]),axes)
 
     def remove(self,pos,axes):
+        if axes < 0:
+            axes = axes + self.dim
+        if not (0 <= axes < self.dim):
+            print('Not a valid axes')
+            return None
         copyData=copy.deepcopy(self)
         returnValue = lambda self: self.restoreData(copyData, lambda self: self.remove(pos,axes))
         tmpdata = np.delete(self.data,pos,axes)
@@ -89,6 +109,11 @@ class Spectrum(object):
         return lambda self: self.add(data)
 
     def multiply(self,mult,axes,multImag=0):
+        if axes < 0:
+            axes = axes + self.dim
+        if not (0 <= axes < self.dim):
+            print('Not a valid axes')
+            return None
         mult = np.array(mult) + 1j*np.array(multImag)
         copyData=copy.deepcopy(self)
         returnValue = lambda self: self.restoreData(copyData, lambda self: self.multiply(mult,axes))
@@ -100,12 +125,22 @@ class Spectrum(object):
         return returnValue
 
     def baselineCorrection(self,baseline,axes,baselineImag = 0):
+        if axes < 0:
+            axes = axes + self.dim
+        if not (0 <= axes < self.dim):
+            print('Not a valid axes')
+            return None
         baseline = np.array(baseline) + 1j*np.array(baselineImag)
         baselinetmp = baseline.reshape((1,)*axes+(self.data.shape[axes],)+(1,)*(self.dim-axes-1))
         self.data = self.data - baselinetmp
         return lambda self: self.baselineCorrection(-baseline,axes) 
     
     def concatenate(self,axes):
+        if axes < 0:
+            axes = axes + self.dim
+        if not (0 <= axes < self.dim):
+            print('Not a valid axes')
+            return None
         splitVal = self.data.shape[axes]
         self.data = np.concatenate(self.data,axis=axes)
         self.dim = len(self.data.shape)
@@ -120,6 +155,11 @@ class Spectrum(object):
         return lambda self: self.split(splitVal,axes)
     
     def split(self,sections,axes):
+        if axes < 0:
+            axes = axes + self.dim
+        if not (0 <= axes < self.dim):
+            print('Not a valid axes')
+            return None
         self.data = np.array(np.split(self.data,sections,axis=axes))
         self.dim = len(self.data.shape)
         self.freq = np.insert(self.freq, 0, self.freq[axes])
@@ -151,6 +191,11 @@ class Spectrum(object):
         return returnValue
     
     def states(self,axes):
+        if axes < 0:
+            axes = axes + self.dim
+        if not (0 <= axes < self.dim):
+            print('Not a valid axes')
+            return None
         copyData=copy.deepcopy(self)
         returnValue = lambda self: self.restoreData(copyData, lambda self: self.states(axes))
         if self.data.shape[axes]%2 != 0:
@@ -165,6 +210,11 @@ class Spectrum(object):
         return returnValue
     
     def statesTPPI(self,axes):
+        if axes < 0:
+            axes = axes + self.dim
+        if not (0 <= axes < self.dim):
+            print('Not a valid axes')
+            return None
         copyData=copy.deepcopy(self)
         returnValue = lambda self: self.restoreData(copyData, lambda self: self.statesTPPI(axes))
         if self.data.shape[axes]%2 != 0:
@@ -180,6 +230,11 @@ class Spectrum(object):
         return returnValue
     
     def matrixManip(self, pos1, pos2, axes, which):
+        if axes < 0:
+            axes = axes + self.dim
+        if not (0 <= axes < self.dim):
+            print('Not a valid axes')
+            return None
         copyData=copy.deepcopy(self)
         returnValue = lambda self: self.restoreData(copyData, lambda self: self.matrixManip(pos1,pos2,axes,which))
         minPos = min(pos1,pos2)
@@ -199,15 +254,24 @@ class Spectrum(object):
             minArgPos = np.argmin(np.real(self.data[slicing]),axis=axes)
             tmpminPos = minArgPos.flatten()
             self.data = self.xaxArray[axes][slice(minPos,maxPos)][tmpminPos].reshape(minArgPos.shape)
-        self.dim = self.dim - 1
-        self.freq = np.delete(self.freq,axes)
-        self.sw = np.delete(self.sw,axes)
-        self.spec = np.delete(self.spec,axes)
-        self.wholeEcho = np.delete(self.wholeEcho,axes)
-        del self.xaxArray[axes]
+        if self.dim==1:
+            self.data = np.array([self.data])
+            self.resetXax(axes)
+        else:
+            self.dim = self.dim - 1
+            self.freq = np.delete(self.freq,axes)
+            self.sw = np.delete(self.sw,axes)
+            self.spec = np.delete(self.spec,axes)
+            self.wholeEcho = np.delete(self.wholeEcho,axes)
+            del self.xaxArray[axes]
         return returnValue
 
     def getRegion(self, pos1, pos2,axes):
+        if axes < 0:
+            axes = axes + self.dim
+        if not (0 <= axes < self.dim):
+            print('Not a valid axes')
+            return None
         copyData=copy.deepcopy(self)
         returnValue = lambda self: self.restoreData(copyData, lambda self: self.getRegion(axes,pos1,pos2))
         minPos = min(pos1,pos2)
@@ -218,17 +282,32 @@ class Spectrum(object):
         return returnValue
 
     def flipLR(self, axes):
+        if axes < 0:
+            axes = axes + self.dim
+        if not (0 <= axes < self.dim):
+            print('Not a valid axes')
+            return None
         slicing = (slice(None),) * axes + (slice(None,None,-1),) + (slice(None),)*(self.dim-1-axes)
         self.data = self.data[slicing]
         return lambda self: self.flipLR(axes)
     
     def hilbert(self,axes):
+        if axes < 0:
+            axes = axes + self.dim
+        if not (0 <= axes < self.dim):
+            print('Not a valid axes')
+            return None
         copyData=copy.deepcopy(self)
         returnValue = lambda self: self.restoreData(copyData, lambda self: self.hilbert(axes))
         self.data = scipy.signal.hilbert(np.real(self.data), axis=axes)
         return returnValue
 
     def setPhase(self, phase0, phase1, axes):
+        if axes < 0:
+            axes = axes + self.dim
+        if not (0 <= axes < self.dim):
+            print('Not a valid axes')
+            return None
         vector = np.exp(np.fft.fftshift(np.fft.fftfreq(self.data.shape[axes],1.0/self.sw[axes]))/self.sw[axes]*phase1*1j)
         if self.spec[axes]==0:
             self.fourier(axes,tmp=True)
@@ -245,6 +324,11 @@ class Spectrum(object):
         return lambda self: self.setPhase(-phase0,-phase1,axes)
 
     def apodize(self,lor,gauss, cos2, hamming, shift, shifting, shiftingAxes, axes):
+        if axes < 0:
+            axes = axes + self.dim
+        if not (0 <= axes < self.dim):
+            print('Not a valid axes')
+            return None
         if shiftingAxes==None:
             shiftingAxes = 0
             shifting = 0
@@ -311,6 +395,11 @@ class Spectrum(object):
         return returnValue
 
     def setFreq(self,freq,sw,axes):
+        if axes < 0:
+            axes = axes + self.dim
+        if not (0 <= axes < self.dim):
+            print('Not a valid axes')
+            return None
         oldFreq = self.freq[axes]
         oldSw = self.sw[axes]
         self.freq[axes]=freq
@@ -319,17 +408,29 @@ class Spectrum(object):
         return lambda self: self.setFreq(oldFreq,oldSw,axes)
     
     def setRef(self,ref,axes):
+        if axes < 0:
+            axes = axes + self.dim
+        if not (0 <= axes < self.dim):
+            print('Not a valid axes')
+            return None
         oldRef = self.ref[axes]
         self.ref[axes]=ref
         return lambda self: self.setRef(oldRef,axes)
 
     def setWholeEcho(self,val,axes):
+        if axes < 0:
+            axes = axes + self.dim
+        if not (0 <= axes < self.dim):
+            print('Not a valid axes')
+            return None
         self.wholeEcho[axes]=val
         return lambda self: self.setWholeEcho(not val,axes)
     
     def setSize(self,size,axes):
-        if axes>self.dim:
-            print("axes bigger than dim in setsize")
+        if axes < 0:
+            axes = axes + self.dim
+        if not (0 <= axes < self.dim):
+            print('Not a valid axes')
             return None
         copyData=copy.deepcopy(self)
         returnValue = lambda self: self.restoreData(copyData, lambda self: self.setSize(size,axes))
@@ -352,12 +453,22 @@ class Spectrum(object):
         return returnValue
 
     def changeSpec(self,val,axes):
+        if axes < 0:
+            axes = axes + self.dim
+        if not (0 <= axes < self.dim):
+            print('Not a valid axes')
+            return None
         oldVal = self.spec[axes]
         self.spec[axes] = val
         self.resetXax(axes)
         return lambda self: self.changeSpec(oldVal,axes)
 
     def swapEcho(self,idx,axes):
+        if axes < 0:
+            axes = axes + self.dim
+        if not (0 <= axes < self.dim):
+            print('Not a valid axes')
+            return None
         slicing1=(slice(None),) * axes + (slice(None,idx),) + (slice(None),)*(self.dim-1-axes)
         slicing2=(slice(None),) * axes + (slice(idx,None),) + (slice(None),)*(self.dim-1-axes)
         self.data = np.concatenate((self.data[slicing2],self.data[slicing1]),axes)
@@ -365,6 +476,11 @@ class Spectrum(object):
         return lambda self: self.swapEcho(-idx,axes)
             
     def shiftData(self,shift,axes):
+        if axes < 0:
+            axes = axes + self.dim
+        if not (0 <= axes < self.dim):
+            print('Not a valid axes')
+            return None
         copyData=copy.deepcopy(self)
         returnValue = lambda self: self.restoreData(copyData, lambda self: self.shiftData(shift,axes))
         if self.spec[axes] > 0:
@@ -386,6 +502,11 @@ class Spectrum(object):
         return returnValue
     
     def LPSVD(self,axes):
+        if axes < 0:
+            axes = axes + self.dim
+        if not (0 <= axes < self.dim):
+            print('Not a valid axes')
+            return None
         M = 1 #Number of frequencies
         y = self.data[axes][0:100]
         N=y.shape[0]						# # of complex data points in FID
@@ -405,8 +526,10 @@ class Spectrum(object):
         return lambda self: self.dcOffset(-offset)
 
     def fourier(self, axes,tmp=False):
-        if axes>self.dim:
-            print("axes bigger than dim in fourier")
+        if axes < 0:
+            axes = axes + self.dim
+        if not (0 <= axes < self.dim):
+            print('Not a valid axes')
             return None
         if self.spec[axes]==0:
             if not self.wholeEcho[axes] and not tmp:
@@ -425,8 +548,10 @@ class Spectrum(object):
         return lambda self: self.fourier(axes)
 
     def fftshift(self, axes, inv=False):
-        if axes>self.dim:
-            print("axes bigger than dim in fourier")
+        if axes < 0:
+            axes = axes + self.dim
+        if not (0 <= axes < self.dim):
+            print('Not a valid axes')
             return None
         if inv:
             self.data=np.fft.ifftshift(self.data,axes=[axes])
@@ -435,6 +560,19 @@ class Spectrum(object):
         return lambda self: self.fftshift(axes,not(inv))
 
     def shear(self, shear, axes, axes2):
+        if axes < 0:
+            axes = axes + self.dim
+        if not (0 <= axes < self.dim):
+            print('Not a valid axes')
+            return None
+        if axes2 < 0:
+            axes2 = axes2 + self.dim
+        if not (0 <= axes2 < self.dim):
+            print('Not a valid axes')
+            return None
+        if axes == axes2:
+            print('Both shearing axes cannot be equal')
+            return None
         if self.dim < 2:
             print("The data does not have enough dimensions for a shearing transformation")
             return None
@@ -448,9 +586,24 @@ class Spectrum(object):
         return returnValue
     
     def getSlice(self,axes,locList):
+        if axes < 0:
+            axes = axes + self.dim
+        if not (0 <= axes < self.dim):
+            print('Not a valid axes')
+            return None
         return copy.deepcopy((self.data[tuple(locList[:axes])+(slice(None),)+tuple(locList[axes:])],self.freq[axes],self.sw[axes],self.spec[axes],self.wholeEcho[axes],self.xaxArray[axes],self.ref[axes]))
 
     def getBlock(self, axes, axes2, locList, stackBegin=None, stackEnd=None, stackStep=None):
+        if axes < 0:
+            axes = axes + self.dim
+        if not (0 <= axes < self.dim):
+            print('Not a valid axes')
+            return None
+        if axes2 < 0:
+            axes2 = axes2 + self.dim
+        if not (0 <= axes2 < self.dim):
+            print('Not a valid axes')
+            return None
         stackSlice = slice(stackBegin, stackEnd, stackStep)
         if axes == axes2:
             print("First and second axes are the same")
@@ -576,7 +729,7 @@ class Current1D(Plot1DFrame):
         returnValue = self.data.setPhase(phase0,phase1,self.axes)
         self.upd()
         self.showFid()
-        self.root.addMacro(['phase',(phase0,phase1,self.axes)])
+        self.root.addMacro(['phase',(phase0,phase1,self.axes-self.data.dim)])
         return returnValue
 
     def fourier(self): #fourier the actual data and replot
@@ -586,14 +739,14 @@ class Current1D(Plot1DFrame):
             self.resetSpacing()
         self.plotReset()
         self.showFid()
-        self.root.addMacro(['fourier',(self.axes,)])
+        self.root.addMacro(['fourier',(self.axes-self.data.dim,)])
         return returnValue
 
     def fftshift(self,inv=False): #fftshift the actual data and replot
         returnValue = self.data.fftshift(self.axes,inv)
         self.upd()
         self.showFid()
-        self.root.addMacro(['fftshift',(self.axes,inv)])
+        self.root.addMacro(['fftshift',(self.axes-self.data.dim,inv)])
         return returnValue
     
     def fourierLocal(self, fourData, spec): #fourier the local data for other functions
@@ -659,7 +812,7 @@ class Current1D(Plot1DFrame):
         returnValue = self.data.apodize(lor,gauss,cos2,hamming,shift,shifting,shiftingAxes,self.axes)
         self.upd() 
         self.showFid()
-        self.root.addMacro([u'apodize',(lor,gauss,cos2,hamming,shift,shifting,shiftingAxes,self.axes)])
+        self.root.addMacro([u'apodize',(lor,gauss,cos2,hamming,shift,shifting,shiftingAxes,self.axes-self.data.dim)])
         return returnValue
 
     def setFreq(self,freq,sw): #set the frequency of the actual data
@@ -667,7 +820,7 @@ class Current1D(Plot1DFrame):
         self.upd()
         self.plotReset()
         self.showFid()
-        self.root.addMacro(['freq',(freq,sw,self.axes)])
+        self.root.addMacro(['freq',(freq,sw,self.axes-self.data.dim)])
         return returnValue
 
     def setRef(self,ref): #set the frequency of the actual data
@@ -675,7 +828,7 @@ class Current1D(Plot1DFrame):
         self.upd()
         self.plotReset()
         self.showFid()
-        self.root.addMacro(['ref',(ref,self.axes)])
+        self.root.addMacro(['ref',(ref,self.axes-self.data.dim)])
         return returnValue
 
     def SN(self,minNoise,maxNoise,minPeak,maxPeak):
@@ -779,7 +932,7 @@ class Current1D(Plot1DFrame):
         self.upd()
         self.plotReset()
         self.showFid()
-        self.root.addMacro(['size',(size,self.axes)])
+        self.root.addMacro(['size',(size,self.axes-self.data.dim)])
         return returnValue
 
     def changeSpec(self,val): #change from time to freq domain of the actual data
@@ -787,14 +940,14 @@ class Current1D(Plot1DFrame):
         self.upd()
         self.plotReset()
         self.showFid()
-        self.root.addMacro(['spec',(val,self.axes)])
+        self.root.addMacro(['spec',(val,self.axes-self.data.dim)])
         return returnValue
     
     def applySwapEcho(self,idx):
         returnValue = self.data.swapEcho(idx,self.axes)
         self.upd()
         self.showFid()
-        self.root.addMacro(['swapecho',(idx,self.axes)])
+        self.root.addMacro(['swapecho',(idx,self.axes-self.data.dim)])
         return returnValue
 
     def setSwapEchoPreview(self,idx):
@@ -810,18 +963,18 @@ class Current1D(Plot1DFrame):
         if value == 0:
             returnValue = self.data.setWholeEcho(False,self.axes)
             self.wholeEcho = False
-            self.root.addMacro(['wholeEcho',(False,self.axes)])
+            self.root.addMacro(['wholeEcho',(False,self.axes-self.data.dim)])
         else:
             returnValue = self.data.setWholeEcho(True,self.axes)
             self.wholeEcho = True
-            self.root.addMacro(['wholeEcho',(True,self.axes)])
+            self.root.addMacro(['wholeEcho',(True,self.axes-self.data.dim)])
         return returnValue
 
     def applyShift(self,shift):
         returnValue = self.data.shiftData(shift,self.axes)
         self.upd()
         self.showFid()
-        self.root.addMacro(['shift',(shift,self.axes)])
+        self.root.addMacro(['shift',(shift,self.axes-self.data.dim)])
         return returnValue
 
     def setShiftPreview(self,shift):
@@ -869,7 +1022,7 @@ class Current1D(Plot1DFrame):
             bArray = np.logical_and(bArray,np.logical_or((tmpAx < minVal),(tmpAx > maxVal)))
         polyCoeff = poly.polyfit(self.xax[bArray],tmpData[bArray],degree)
         y = poly.polyval(self.xax,polyCoeff)
-        self.root.addMacro(['baselineCorrection',(list(np.real(y)),self.axes,list(np.imag(y)))])
+        self.root.addMacro(['baselineCorrection',(list(np.real(y)),self.axes-self.data.dim,list(np.imag(y)))])
         return self.data.baselineCorrection(y,self.axes)
     
     def previewBaseline(self,degree,removeList):
@@ -929,7 +1082,7 @@ class Current1D(Plot1DFrame):
         self.upd()
         self.plotReset()
         self.showFid()
-        self.root.addMacro(['lpsvd',(self.axes,)])
+        self.root.addMacro(['lpsvd',(self.axes-self.data.dim,)])
         return returnValue
     
     def states(self):
@@ -937,7 +1090,7 @@ class Current1D(Plot1DFrame):
         self.upd()
         self.plotReset()
         self.showFid()
-        self.root.addMacro(['states',(self.axes,)])
+        self.root.addMacro(['states',(self.axes-self.data.dim,)])
         return returnValue
     
     def statesTPPI(self):
@@ -945,34 +1098,34 @@ class Current1D(Plot1DFrame):
         self.upd()
         self.plotReset()
         self.showFid()
-        self.root.addMacro(['statesTPPI',(self.axes,)])
+        self.root.addMacro(['statesTPPI',(self.axes-self.data.dim,)])
         return returnValue
     
     def integrate(self,pos1,pos2):
-        self.root.addMacro(['integrate',(pos1,pos2,self.axes,)])
+        self.root.addMacro(['integrate',(pos1,pos2,self.axes-self.data.dim,)])
         return self.data.matrixManip(pos1,pos2,self.axes,0)
 
     def maxMatrix(self,pos1,pos2):
-        self.root.addMacro(['max',(pos1,pos2,self.axes,)])
+        self.root.addMacro(['max',(pos1,pos2,self.axes-self.data.dim,)])
         return self.data.matrixManip(pos1,pos2,self.axes,1)
     
     def minMatrix(self,pos1,pos2):
-        self.root.addMacro(['min',(pos1,pos2,self.axes,)])
+        self.root.addMacro(['min',(pos1,pos2,self.axes-self.data.dim,)])
         return self.data.matrixManip(pos1,pos2,self.axes,2)
     
     def argmaxMatrix(self,pos1,pos2):
-        self.root.addMacro(['argmax',(pos1,pos2,self.axes,)])
+        self.root.addMacro(['argmax',(pos1,pos2,self.axes-self.data.dim,)])
         return self.data.matrixManip(pos1,pos2,self.axes,3)
 
     def argminMatrix(self,pos1,pos2):
-        self.root.addMacro(['argmin',(pos1,pos2,self.axes,)])
+        self.root.addMacro(['argmin',(pos1,pos2,self.axes-self.data.dim,)])
         return self.data.matrixManip(pos1,pos2,self.axes,4)
     
     def flipLR(self):
         returnValue = self.data.flipLR(self.axes)
         self.upd()
         self.showFid()
-        self.root.addMacro(['fliplr',(self.axes,)])
+        self.root.addMacro(['fliplr',(self.axes-self.data.dim,)])
         return returnValue
 
     def concatenate(self,axes):
@@ -980,7 +1133,7 @@ class Current1D(Plot1DFrame):
         self.upd()
         self.plotReset()
         self.showFid()
-        self.root.addMacro(['concatenate',(axes,)])
+        self.root.addMacro(['concatenate',(axes-self.data.dim,)])
         return returnValue
 
     def split(self,sections):
@@ -988,7 +1141,7 @@ class Current1D(Plot1DFrame):
         self.upd()
         self.plotReset()
         self.showFid()
-        self.root.addMacro(['split',(sections,self.axes)])
+        self.root.addMacro(['split',(sections,self.axes-self.data.dim)])
         return returnValue
     
     def insert(self,data,pos):
@@ -996,14 +1149,14 @@ class Current1D(Plot1DFrame):
         self.upd()
         self.plotReset()
         self.showFid()
-        self.root.addMacro(['insert',(np.real(data).tolist(),pos,self.axes,np.imag(data).tolist())])
+        self.root.addMacro(['insert',(np.real(data).tolist(),pos,self.axes-self.data.dim,np.imag(data).tolist())])
         return returnValue
     
     def delete(self,pos):
         returnValue = self.data.remove(pos,self.axes)
         self.upd()
         self.showFid()
-        self.root.addMacro(['delete',(pos,self.axes)])
+        self.root.addMacro(['delete',(pos,self.axes-self.data.dim)])
         return returnValue
 
     def deletePreview(self,pos):
@@ -1033,7 +1186,7 @@ class Current1D(Plot1DFrame):
         returnValue = self.data.multiply(data,self.axes)
         self.upd()
         self.showFid()
-        self.root.addMacro(['multiply',(np.real(data).tolist(),self.axes,np.imag(data).tolist())])
+        self.root.addMacro(['multiply',(np.real(data).tolist(),self.axes-self.data.dim,np.imag(data).tolist())])
         return returnValue
     
     def multiplyPreview(self,data):
@@ -1052,7 +1205,7 @@ class Current1D(Plot1DFrame):
         returnValue = self.data.shear(shear,axes,axes2)
         self.upd()
         self.showFid()
-        self.root.addMacro(['shear',(shear,axes,axes2)])
+        self.root.addMacro(['shear',(shear,axes-self.data.dim,axes2-self.data.dim)])
         return returnValue
     
     def ACMEentropy(self,phaseIn,phaseAll=True):
@@ -1105,7 +1258,7 @@ class Current1D(Plot1DFrame):
         self.upd()
         self.plotReset()
         self.showFid()
-        self.root.addMacro(['setxax',(xax,self.axes)])
+        self.root.addMacro(['setxax',(xax,self.axes-self.data.dim)])
         return returnVal
 
     def setAxType(self, val):
@@ -1140,7 +1293,7 @@ class Current1D(Plot1DFrame):
         returnValue = self.data.hilbert(self.axes)
         self.upd()
         self.showFid()
-        self.root.addMacro(['hilbert',(self.axes,)])
+        self.root.addMacro(['hilbert',(self.axes-self.data.dim,)])
         return returnValue
     
     def getDisplayedData(self):
