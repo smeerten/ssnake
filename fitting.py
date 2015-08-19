@@ -716,7 +716,7 @@ class PeakDeconvFrame(Plot1DFrame): #a window for fitting relaxation data
             axMult = 1000.0**self.current.axType
         width = (self.current.fwhm(left,right)-axAdd)/axMult
         self.rootwindow.paramframe.ampVal[self.pickNum].set("%.3g" %(pos[2]*width*0.5*np.pi))
-        self.rootwindow.paramframe.widthVal[self.pickNum].set("%.3g" % width)
+        self.rootwindow.paramframe.widthVal[self.pickNum].set("%.3g" % abs(width))
         if self.pickNum < 10:
             self.rootwindow.paramframe.numExp.set(str(self.pickNum+1))
             self.rootwindow.paramframe.changeNum()
@@ -960,6 +960,7 @@ class PeakDeconvParamFrame(Frame): #a frame for the relaxtion parameters
             outPos[i] = safeEval(self.posVal[i].get())
             outAmp[i] = safeEval(self.ampVal[i].get())
             outWidth[i] = abs(safeEval(self.widthVal[i].get()))
+            self.widthVal[i].set('%.3g' % outWidth[i])
         self.disp(outBgrnd, outSlope, outAmp, outPos, outWidth)
 
     def disp(self, outBgrnd, outSlope, outAmp, outPos, outWidth):
