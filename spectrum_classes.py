@@ -1687,6 +1687,7 @@ class CurrentStacked(Current1D):
 
     def setSpacing(self, spacing):
         self.spacing = spacing
+        self.plotReset(False,True)
         self.showFid()
 
     def resetSpacing(self):
@@ -2014,6 +2015,7 @@ class CurrentArrayed(Current1D):
 
     def setSpacing(self, spacing):
         self.spacing = spacing
+        self.plotReset(True,False)
         self.showFid()
 
     def resetSpacing(self):

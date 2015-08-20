@@ -94,9 +94,12 @@ class MainProgram:
         self.macromenu.add_command(label="Stop recording", command=self.stopMacro)
         self.macrolistmenu = Menu(self.macromenu, tearoff=0)
         self.macromenu.add_cascade(label="Run", menu=self.macrolistmenu)
+        self.macrodeletemenu = Menu(self.macromenu, tearoff=0)
+        self.macromenu.add_cascade(label="Delete", menu=self.macrodeletemenu)
         self.macrosavemenu = Menu(self.macromenu, tearoff=0)
         self.macromenu.add_cascade(label="Save", menu=self.macrosavemenu)
         self.macromenu.add_command(label="Load", command=self.loadMacro)
+
         self.filemenu.add_command(label="Exit", command=self.kill)
         self.menuCheck()
         photo = PhotoImage(file=os.path.dirname(os.path.realpath(__file__))+'/logo.gif')
@@ -176,6 +179,7 @@ class MainProgram:
         self.mainWindow.currentMacro = givenName
         self.macrolistmenu.add_command(label=givenName,command=lambda name=givenName: self.runMacro(name))
         self.macrosavemenu.add_command(label=givenName,command=lambda name=givenName: self.saveMacro(name))
+        self.macrodeletemenu.add_command(label=givenName,command=lambda name=givenName: self.deleteMacro(name))
         self.menuCheck()
 
     def stopMacro(self):
@@ -200,6 +204,16 @@ class MainProgram:
             return
         with open(fileName,'w') as f:
             json.dump(self.macros[name],f)
+
+    def deleteMacro(self,name):
+        self.macrolistmenu.delete(name)
+        self.macrosavemenu.delete(name)
+        self.macrodeletemenu.delete(name)
+        del self.macros[name]
+        for i in self.workspaces:
+            if i.currentMacro == name:
+                i.currentMacro = None
+        self.menuCheck()
             
     def loadMacro(self):
         filePath = askopenfilename()
