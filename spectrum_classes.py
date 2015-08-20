@@ -98,17 +98,17 @@ class Spectrum(object):
             print('Cannot delete all data')
             return None
 
-    def add(self,data,dataImag=0):
+    def add(self,data,dataImag=0,select=slice(None)):
         data = np.array(data) + 1j*np.array(dataImag)
-        self.data = self.data + data
-        return lambda self: self.subtract(data)
+        self.data[select] = self.data[select] + data
+        return lambda self: self.subtract(data,select=select)
         
-    def subtract(self,data,dataImag=0):
+    def subtract(self,data,dataImag=0,select=slice(None)):
         data = np.array(data) + 1j*np.array(dataImag)
-        self.data = self.data - data
-        return lambda self: self.add(data)
+        self.data[select] = self.data[select] - data
+        return lambda self: self.add(data,select=select)
 
-    def multiply(self,mult,axes,multImag=0):
+    def multiply(self,mult,axes,multImag=0,select=slice(None)):
         if axes < 0:
             axes = axes + self.dim
         if not (0 <= axes < self.dim):
@@ -116,15 +116,11 @@ class Spectrum(object):
             return None
         mult = np.array(mult) + 1j*np.array(multImag)
         copyData=copy.deepcopy(self)
-        returnValue = lambda self: self.restoreData(copyData, lambda self: self.multiply(mult,axes))
-        if len(mult.shape) == 0:
-            multtmp = mult
-        else:
-            multtmp = mult.reshape((1,)*axes+(self.data.shape[axes],)+(1,)*(self.dim-axes-1))
-        self.data = self.data*multtmp
+        returnValue = lambda self: self.restoreData(copyData, lambda self: self.multiply(mult,axes,select=select))
+        self.data[select] = np.apply_along_axis(np.multiply,axes,self.data[select],multtmp)
         return returnValue
 
-    def baselineCorrection(self,baseline,axes,baselineImag = 0):
+    def baselineCorrection(self,baseline,axes,baselineImag = 0,select=slice(None)):
         if axes < 0:
             axes = axes + self.dim
         if not (0 <= axes < self.dim):
@@ -132,8 +128,8 @@ class Spectrum(object):
             return None
         baseline = np.array(baseline) + 1j*np.array(baselineImag)
         baselinetmp = baseline.reshape((1,)*axes+(self.data.shape[axes],)+(1,)*(self.dim-axes-1))
-        self.data = self.data - baselinetmp
-        return lambda self: self.baselineCorrection(-baseline,axes) 
+        self.data[select] = self.data[select] - baselinetmp
+        return lambda self: self.baselineCorrection(-baseline,axes,select=select) 
     
     def concatenate(self,axes):
         if axes < 0:
@@ -2230,7 +2226,7 @@ class CurrentContour(Current1D):
                 oldAxMult = 1e6/self.ref2
             else:
                 oldAxMult = 1.0/(1000.0**self.axType2)
-        elif self.spec == 0:
+        elif self.spec2 == 0:
             oldAxMult = 1000.0**self.axType2
         newAxAdd = 0
         if self.spec2 == 1:
