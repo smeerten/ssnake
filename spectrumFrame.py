@@ -1,10 +1,9 @@
-import matplotlib
-matplotlib.use('TkAgg')
-import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from matplotlib.figure import Figure
 import matplotlib.gridspec as gridspec
+from mpl_toolkits.mplot3d import Axes3D
+from mpl_toolkits.mplot3d import proj3d
 
 import sys
 if sys.version_info >= (3,0):
@@ -30,7 +29,7 @@ class Plot1DFrame(Frame):
             self.ax = self.fig.add_subplot(1, 1, 1, projection='3d')
         else:
             self.ax = self.fig.add_subplot(111) 
-        self.canvas = FigureCanvasTkAgg(self.fig, master=weakref.proxy(self))
+        self.canvas = FigureCanvasTkAgg(weakref.proxy(self.fig), master=weakref.proxy(self))
         self.canvas.get_tk_widget().pack(fill=BOTH,expand=1)
         self.leftMouse = False        #is the left mouse button currently pressed
         self.panX = None              #start position of dragging the spectrum
@@ -51,9 +50,12 @@ class Plot1DFrame(Frame):
         #variables to be initialized
         self.spec = 0
         self.spec2 = 0
-
+        
     def kill(self):
-        plt.close(self.fig)
+        self.fig.clf()
+        self.canvas.get_tk_widget().destroy()
+        del self.fig
+        del self.canvas
         self.destroy()
 
     def plotReset(self): #this function needs to be overriden by the classes who inherit from Plot1DFrame

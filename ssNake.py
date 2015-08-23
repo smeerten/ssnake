@@ -20,6 +20,8 @@ else:
     from tkFileDialog   import asksaveasfile
     from tkFileDialog   import asksaveasfilename
     from tkSimpleDialog import askstring
+import matplotlib
+matplotlib.use('TkAgg')
 import spectrum_classes as sc
 import fitting as fit
 import math
@@ -29,7 +31,6 @@ from struct import unpack
 import scipy.io
 import json
 import copy
-from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 import weakref
 #------------
 from safeEval import safeEval

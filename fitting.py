@@ -1,10 +1,6 @@
 #!/usr/bin/env python
 
-import matplotlib
-matplotlib.use('TkAgg')
 import numpy as np
-from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
-from matplotlib.figure import Figure
 import sys
 if sys.version_info >= (3,0):
     from tkinter import *
