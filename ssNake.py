@@ -22,6 +22,10 @@ else:
     from tkSimpleDialog import askstring
 import matplotlib
 matplotlib.use('TkAgg')
+from matplotlib.figure import Figure
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+from matplotlib  import rcParams
+rcParams['toolbar'] = 'None' 
 import spectrum_classes as sc
 import fitting as fit
 import math
@@ -49,6 +53,7 @@ class MainProgram:
         self.workspaceNum = 0
         self.workspaceVar = StringVar()
         self.macros = {}
+        self.figOrphanage = []
         #the file drop down menu
         self.filemenu = Menu(self.menubar, tearoff=0)
         self.menubar.add_cascade(label="File", menu=self.filemenu)
@@ -114,6 +119,17 @@ class MainProgram:
             self.root.quit()
             self.root.destroy()
 
+    def donateFig(self,fig):
+        self.figOrphanage.append(fig)
+
+    def getFig(self):
+        if len(self.figOrphanage)==0:
+            return Figure()
+        else:
+            fig = self.figOrphanage.pop()
+            fig.clf()
+            return fig
+            
     def menuCheck(self):
         if self.mainWindow is None:
             self.filemenu.entryconfig('Save',state='disabled')
@@ -658,6 +674,9 @@ class MainProgram:
 class Main1DWindow(Frame):
     def __init__(self,parent,mainProgram,masterData,duplicateCurrent=None):
         Frame.__init__(self,parent)
+        self.fig = mainProgram.getFig()
+        self.canvas = FigureCanvasTkAgg(self.fig, master=weakref.proxy(self))
+        self.canvas.get_tk_widget().grid(row=0,column=0,sticky="nswe")
         self.undoList = [] #the list to hold all the undo lambda functions
         self.redoList = [] #the list to hold all the redo lambda functions
         self.currentMacro = None
@@ -666,11 +685,11 @@ class Main1DWindow(Frame):
         self.mainProgram = mainProgram
         self.masterData = masterData
         if duplicateCurrent is not None:
-            self.current = duplicateCurrent.copyCurrent(self,masterData)
+            self.current = duplicateCurrent.copyCurrent(self,self.fig,self.canvas,masterData)
         else:
-            self.current = sc.Current1D(self,masterData)
+            self.current = sc.Current1D(self,self.fig,self.canvas,masterData)
         self.menubar = self.mainProgram.menubar
-        self.current.grid(row=0,column=0,sticky="nswe")
+        #self.current.grid(row=0,column=0,sticky="nswe")
 	#create the sideframe, bottomframe and textframe
         self.sideframe=SideFrame(weakref.proxy(self))
         self.sideframe.grid(row=0,column=2,sticky='n')
@@ -683,6 +702,23 @@ class Main1DWindow(Frame):
         self.rowconfigure(0, weight=1)
         self.grid_columnconfigure(0, weight=1)
         #all the functions that will be called from the menu and the extra frames
+        #connect click events to the canvas
+        self.canvas.mpl_connect('button_press_event', self.buttonPress)      
+        self.canvas.mpl_connect('button_release_event', self.buttonRelease)
+        self.canvas.mpl_connect('motion_notify_event', self.pan)
+        self.canvas.mpl_connect('scroll_event', self.scroll)
+
+    def buttonPress(self,event):
+        self.current.buttonPress(event)
+
+    def buttonRelease(self,event):
+        self.current.buttonRelease(event)
+
+    def pan(self,event):
+        self.current.pan(event)
+
+    def scroll(self,event):
+        self.current.scroll(event)
         
     def get_mainWindow(self):
         return self
@@ -698,11 +734,12 @@ class Main1DWindow(Frame):
         self.current.kill()
         del self.current
         del self.masterData
+        self.canvas
+        self.mainProgram.donateFig(self.fig)
 
     def rescue(self):
         self.current.kill()
-        self.current = sc.Current1D(self,self.masterData)
-        self.current.grid(row=0,column=0,sticky="nswe")
+        self.current = sc.Current1D(self,fig,canvas,self.masterData)
         
     def removeFromView(self):
         self.menubar.delete("Edit")
@@ -1229,67 +1266,55 @@ class Main1DWindow(Frame):
         self.mainProgram.createFitWindow(fit.Quad2DeconvWindow(self.parent,self.mainProgram,self.mainProgram.mainWindow,True))
         
     def plot1D(self):
-        self.current.grid_remove()
-        tmpcurrent = sc.Current1D(self,self.masterData)
+        tmpcurrent = sc.Current1D(self,self.fig,self.canvas,self.masterData)
         self.current.kill()
         del self.current
         self.current = tmpcurrent
-        self.current.grid(row=0,column=0,sticky="nswe")
         self.updAllFrames()
 
     def plotScatter(self):
-        self.current.grid_remove()
-        tmpcurrent = sc.CurrentScatter(self,self.masterData)
+        tmpcurrent = sc.CurrentScatter(self,self.fig,self.canvas,self.masterData)
         self.current.kill()
         del self.current
         self.current = tmpcurrent
-        self.current.grid(row=0,column=0,sticky="nswe")
         self.updAllFrames()
 
     def plotStack(self):
         if len(self.masterData.data.shape) > 1:
-            self.current.grid_remove()
-            tmpcurrent = sc.CurrentStacked(self,self.masterData)
+            tmpcurrent = sc.CurrentStacked(self,self.fig,self.canvas,self.masterData)
             self.current.kill()
             del self.current
             self.current = tmpcurrent
-            self.current.grid(row=0,column=0,sticky="nswe")
             self.updAllFrames()
         else:
             print("Data does not have enough dimensions")
 
     def plotArray(self):
         if len(self.masterData.data.shape) > 1:
-            self.current.grid_remove()
-            tmpcurrent = sc.CurrentArrayed(self,self.masterData)
+            tmpcurrent = sc.CurrentArrayed(self,self.fig,self.canvas,self.masterData)
             self.current.kill()
             del self.current
             self.current = tmpcurrent
-            self.current.grid(row=0,column=0,sticky="nswe")
             self.updAllFrames()
         else:
             print("Data does not have enough dimensions")
             
     def plotContour(self):
         if len(self.masterData.data.shape) > 1:
-            self.current.grid_remove()
-            tmpcurrent = sc.CurrentContour(self,self.masterData)
+            tmpcurrent = sc.CurrentContour(self,self.fig,self.canvas,self.masterData)
             self.current.kill()
             del self.current
             self.current = tmpcurrent
-            self.current.grid(row=0,column=0,sticky="nswe")
             self.updAllFrames()
         else:
             print("Data does not have enough dimensions")
             
     def plotSkewed(self):
         if len(self.masterData.data.shape) > 1:
-            self.current.grid_remove()
-            tmpcurrent = sc.CurrentSkewed(self,self.masterData)
+            tmpcurrent = sc.CurrentSkewed(self,self.fig,self.canvas,self.masterData)
             self.current.kill()
             del self.current
             self.current = tmpcurrent
-            self.current.grid(row=0,column=0,sticky="nswe")
             self.updAllFrames()
         else:
             print("Data does not have enough dimensions")

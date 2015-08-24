@@ -12,6 +12,9 @@ else:
     import Tkinter as tk
     from ttk import *
     from tkFileDialog   import asksaveasfilename
+from matplotlib.figure import Figure
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+import weakref
 import scipy.optimize
 import math
 from safeEval import safeEval
@@ -26,11 +29,10 @@ class RelaxWindow(Frame): #a window for fitting relaxation data
         Frame.__init__(self,rootwindow)
         self.mainProgram = mainProgram
         self.oldMainWindow = oldMainWindow
-        self.current = RelaxFrame(self,oldMainWindow.current)
-        self.current.grid(row=0,column=0,sticky='nswe')
-        self.current.rowconfigure(0, weight=1)
-        self.current.columnconfigure(0, weight=1)
-        self.current.fig.set_size_inches(oldMainWindow.current.fig.get_size_inches())
+        self.fig = self.mainProgram.getFig()
+        self.canvas = FigureCanvasTkAgg(self.fig, master=weakref.proxy(self))
+        self.canvas.get_tk_widget().grid(row=0,column=0,sticky="nswe")
+        self.current = RelaxFrame(self,self.fig,self.canvas,oldMainWindow.current)
         self.paramframe = RelaxParamFrame(self.current,self)
         self.paramframe.grid(row=1,column=0,sticky='sw')
         self.rowconfigure(0, weight=1)
@@ -61,7 +63,7 @@ class RelaxWindow(Frame): #a window for fitting relaxation data
         
 #################################################################################   
 class RelaxFrame(Plot1DFrame): #a window for fitting relaxation data
-    def __init__(self, rootwindow,current):
+    def __init__(self, rootwindow,fig,canvas,current):
         axAdd=0
         self.ref = current.ref
         self.axType = current.axType
@@ -71,7 +73,7 @@ class RelaxFrame(Plot1DFrame): #a window for fitting relaxation data
         self.plotType = 0
         self.logx = 0
         self.logy = 0
-        Plot1DFrame.__init__(self,rootwindow)
+        Plot1DFrame.__init__(self,rootwindow,fig,canvas)
         self.current = current
         self.rootwindow = rootwindow
         self.plotReset()
@@ -559,10 +561,10 @@ class PeakDeconvWindow(Frame): #a window for fitting relaxation data
         Frame.__init__(self,rootwindow)
         self.mainProgram = mainProgram
         self.oldMainWindow = oldMainWindow
-        self.current = PeakDeconvFrame(self,oldMainWindow.current)
-        self.current.grid(row=0,column=0,sticky='nswe')
-        self.current.rowconfigure(0, weight=1)
-        self.current.columnconfigure(0, weight=1)
+        self.fig = self.mainProgram.getFig()
+        self.canvas = FigureCanvasTkAgg(self.fig, master=weakref.proxy(self))
+        self.canvas.get_tk_widget().grid(row=0,column=0,sticky="nswe")
+        self.current = PeakDeconvFrame(self,self.fig,self.canvas,oldMainWindow.current)
         self.paramframe = PeakDeconvParamFrame(self.current,self)
         self.paramframe.grid(row=1,column=0,sticky='sw')
         self.rowconfigure(0, weight=1)
@@ -593,8 +595,8 @@ class PeakDeconvWindow(Frame): #a window for fitting relaxation data
         
 #################################################################################   
 class PeakDeconvFrame(Plot1DFrame): #a window for fitting relaxation data
-    def __init__(self, rootwindow,current):
-        Plot1DFrame.__init__(self,rootwindow)
+    def __init__(self, rootwindow,fig,canvas,current):
+        Plot1DFrame.__init__(self,rootwindow,fig,canvas)
         self.data1D = current.getDisplayedData()
         self.current = current
         self.spec = self.current.spec
@@ -978,10 +980,10 @@ class TensorDeconvWindow(Frame): #a window for fitting relaxation data
         Frame.__init__(self,rootwindow)
         self.mainProgram = mainProgram
         self.oldMainWindow = oldMainWindow
-        self.current = TensorDeconvFrame(self,oldMainWindow.current)
-        self.current.grid(row=0,column=0,sticky='nswe')
-        self.current.rowconfigure(0, weight=1)
-        self.current.columnconfigure(0, weight=1)
+        self.fig = self.mainProgram.getFig()
+        self.canvas = FigureCanvasTkAgg(self.fig, master=weakref.proxy(self))
+        self.canvas.get_tk_widget().grid(row=0,column=0,sticky="nswe")
+        self.current = TensorDeconvFrame(self,self.fig,self.canvas,oldMainWindow.current)
         self.paramframe = TensorDeconvParamFrame(self.current,self)
         self.paramframe.grid(row=1,column=0,sticky='sw')
         self.rowconfigure(0, weight=1)
@@ -1012,8 +1014,8 @@ class TensorDeconvWindow(Frame): #a window for fitting relaxation data
         
 #################################################################################   
 class TensorDeconvFrame(Plot1DFrame): #a window for fitting relaxation data
-    def __init__(self, rootwindow,current):
-        Plot1DFrame.__init__(self,rootwindow)
+    def __init__(self, rootwindow,fig,canvas,current):
+        Plot1DFrame.__init__(self,rootwindow,fig,canvas)
         self.data1D = current.getDisplayedData()
         self.current = current
         self.spec = self.current.spec
@@ -1489,10 +1491,10 @@ class Quad1DeconvWindow(Frame): #a window for fitting relaxation data
         Frame.__init__(self,rootwindow)
         self.mainProgram = mainProgram
         self.oldMainWindow = oldMainWindow
-        self.current = Quad1DeconvFrame(self,oldMainWindow.current)
-        self.current.grid(row=0,column=0,sticky='nswe')
-        self.current.rowconfigure(0, weight=1)
-        self.current.columnconfigure(0, weight=1)
+        self.fig = self.mainProgram.getFig()
+        self.canvas = FigureCanvasTkAgg(self.fig, master=weakref.proxy(self))
+        self.canvas.get_tk_widget().grid(row=0,column=0,sticky="nswe")
+        self.current = Quad1DeconvFrame(self,self.fig,self.canvas,oldMainWindow.current)
         self.paramframe = Quad1DeconvParamFrame(self.current,self)
         self.paramframe.grid(row=1,column=0,sticky='sw')
         self.rowconfigure(0, weight=1)
@@ -1523,8 +1525,8 @@ class Quad1DeconvWindow(Frame): #a window for fitting relaxation data
         
 #################################################################################   
 class Quad1DeconvFrame(Plot1DFrame): #a window for fitting relaxation data
-    def __init__(self, rootwindow,current):
-        Plot1DFrame.__init__(self,rootwindow)
+    def __init__(self, rootwindow,fig,canvas,current):
+        Plot1DFrame.__init__(self,rootwindow,fig,canvas)
         self.data1D = current.getDisplayedData()
         self.current = current
         self.spec = self.current.spec
@@ -2028,10 +2030,10 @@ class Quad2DeconvWindow(Frame): #a window for fitting second order quadrupole li
         Frame.__init__(self,rootwindow)
         self.mainProgram = mainProgram
         self.oldMainWindow = oldMainWindow
-        self.current = Quad1DeconvFrame(self,oldMainWindow.current)
-        self.current.grid(row=0,column=0,sticky='nswe')
-        self.current.rowconfigure(0, weight=1)
-        self.current.columnconfigure(0, weight=1)
+        self.fig = self.mainProgram.getFig()
+        self.canvas = FigureCanvasTkAgg(self.fig, master=weakref.proxy(self))
+        self.canvas.get_tk_widget().grid(row=0,column=0,sticky="nswe")
+        self.current = Quad1DeconvFrame(self,self.fig,self.canvas,oldMainWindow.current)
         if mas:
             self.paramframe = Quad2MASDeconvParamFrame(self.current,self)
         else:
@@ -2238,5 +2240,7 @@ class MainPlotWindow(Frame):
         self.ax.set_title(self.titleBackup)
         self.ax.set_xlabel(self.xlabelBackup)
         self.ax.set_ylabel(self.ylabelBackup)
+        self.ax.set_xlim((self.xlimBackup[0],self.xlimBackup[1]))
+        self.ax.set_ylim((self.ylimBackup[0],self.ylimBackup[1]))
         self.fig.set_size_inches((self.widthBackup,self.heightBackup))
         self.mainProgram.closeSaveFigure(self.oldMainWindow)
