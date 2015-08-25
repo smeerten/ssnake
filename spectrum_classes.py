@@ -778,7 +778,7 @@ class Current1D(Plot1DFrame):
             tmpData = np.real(tmpData)
         elif(self.plotType==3):
             tmpData = np.abs(tmpData)
-        return (np.amax(tmpData[minP:maxP])/(np.amax(tmpData[minN:maxN])-np.amin(tmpData[minN:maxN])))
+        return (np.amax(tmpData[minP:maxP])/(np.std(tmpData[minN:maxN])))
     
     def fwhm(self,minPeak,maxPeak):
         minP = min(minPeak,maxPeak)

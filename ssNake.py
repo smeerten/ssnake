@@ -36,6 +36,7 @@ import scipy.io
 import json
 import copy
 import weakref
+
 #------------
 from safeEval import safeEval
 from euro import euro
@@ -730,11 +731,12 @@ class Main1DWindow(Frame):
         return self.current
         
     def kill(self):
+        self.canvas._tkcanvas = None
         self.destroy()
         self.current.kill()
         del self.current
         del self.masterData
-        self.canvas
+        del self.canvas
         self.mainProgram.donateFig(self.fig)
 
     def rescue(self):
