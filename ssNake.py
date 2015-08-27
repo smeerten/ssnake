@@ -812,6 +812,7 @@ class Main1DWindow(Frame):
         self.fftMenu = Menu(self.menubar, tearoff=0)
         self.menubar.add_cascade(label="Fourier",menu=self.fftMenu)
         self.fftMenu.add_command(label="Fourier transform", command=self.fourier)
+        self.fftMenu.add_command(label="Real Fourier transform", command=self.realFourier)
         self.fftMenu.add_command(label="Fftshift", command=self.fftshift)
         self.fftMenu.add_command(label="Inv fftshift", command=self.invFftshift)
         self.fftMenu.add_command(label="Hilbert transform", command=self.hilbert)
@@ -903,6 +904,8 @@ class Main1DWindow(Frame):
                 self.undoList.append(self.masterData.setPhase(*iter1[1]))
             elif iter1[0] == 'fourier':
                 self.undoList.append(self.masterData.fourier(*iter1[1]))
+            elif iter1[0] == 'realFourier':
+                self.undoList.append(self.masterData.realFourier(*iter1[1]))
             elif iter1[0] == 'fftshift':
                 self.undoList.append(self.masterData.fftshift(*iter1[1]))
             elif iter1[0] == 'apodize':
@@ -921,8 +924,6 @@ class Main1DWindow(Frame):
                 self.undoList.append(self.masterData.wholeEcho(*iter1[1]))
             elif iter1[0] == 'shift':
                 self.undoList.append(self.masterData.shiftData(*iter1[1]))
-            elif iter1[0] == 'offset':
-                self.undoList.append(self.masterData.dcOffset(*iter1[1]))
             elif iter1[0] == 'lpsvd':
                 self.undoList.append(self.masterData.LPSVD(*iter1[1]))
             elif iter1[0] == 'states':
@@ -1091,6 +1092,12 @@ class Main1DWindow(Frame):
     def fourier(self):
         self.redoList = []
         self.undoList.append(self.current.fourier())
+        self.bottomframe.upd()
+        self.menuCheck()
+
+    def realFourier(self):
+        self.redoList = []
+        self.undoList.append(self.current.realFourier())
         self.bottomframe.upd()
         self.menuCheck()
 
@@ -1891,38 +1898,45 @@ class PhaseWindow(Toplevel): #a window for phasing the data
         self.firstValue.set("0.0")
         self.refValue = StringVar()
         self.refValue.set("0.0")
+        self.singleSlice = IntVar()
+        self.singleSlice.set(0)
         #set stepsizes for the buttons
         self.phase0step = 1.0
         self.phase1step = 1.0
-        Label(self,text="Zero order phasing").grid(row=0,column=0,columnspan=3)
-        Button(self,text="Autophase 0th order",command=lambda: self.autophase(0)).grid(row=1,column=1)
-        self.zeroEntry = Entry(self,textvariable=self.zeroValue,justify="center")
+        self.frame1 = Frame(self)
+        self.frame1.grid(row=0,column=0)
+        Label(self.frame1,text="Zero order phasing").grid(row=0,column=0,columnspan=3)
+        Button(self.frame1,text="Autophase 0th order",command=lambda: self.autophase(0)).grid(row=1,column=1)
+        self.zeroEntry = Entry(self.frame1,textvariable=self.zeroValue,justify="center")
         self.zeroEntry.bind("<Return>", self.inputZeroOrder)
         self.zeroEntry.bind("<KP_Enter>", self.inputZeroOrder)
         self.zeroEntry.grid(row=2,column=1)
-        tk.Button(self,text="<",repeatdelay=100, repeatinterval=1,command=lambda:self.stepPhase(-1,0)).grid(row=2,column=0)
-        tk.Button(self,text=">",repeatdelay=100, repeatinterval=1,command=lambda:self.stepPhase(1,0)).grid(row=2,column=2)
-        self.zeroScale=Scale(self, from_=-180, to=180,  orient="horizontal", command=self.setZeroOrder,length=300)
+        tk.Button(self.frame1,text="<",repeatdelay=100, repeatinterval=1,command=lambda:self.stepPhase(-1,0)).grid(row=2,column=0)
+        tk.Button(self.frame1,text=">",repeatdelay=100, repeatinterval=1,command=lambda:self.stepPhase(1,0)).grid(row=2,column=2)
+        self.zeroScale=Scale(self.frame1, from_=-180, to=180,  orient="horizontal", command=self.setZeroOrder,length=300)
         self.zeroScale.grid(row=3,column=0,columnspan=3)
-        Label(self,text="First order phasing").grid(row=4,column=0,columnspan=3)
-        Button(self,text="Autophase 0th+1st order",command=lambda: self.autophase(1)).grid(row=5,column=1)
-        self.firstEntry = Entry(self,textvariable=self.firstValue,justify="center")
+        Label(self.frame1,text="First order phasing").grid(row=4,column=0,columnspan=3)
+        Button(self.frame1,text="Autophase 0th+1st order",command=lambda: self.autophase(1)).grid(row=5,column=1)
+        self.firstEntry = Entry(self.frame1,textvariable=self.firstValue,justify="center")
         self.firstEntry.bind("<Return>", self.inputFirstOrder) 
         self.firstEntry.bind("<KP_Enter>", self.inputFirstOrder) 
         self.firstEntry.grid(row=6,column=1)
-        tk.Button(self,text="<",repeatdelay=100, repeatinterval=1,command=lambda:self.stepPhase(0,-1)).grid(row=6,column=0)
-        tk.Button(self,text=">",repeatdelay=100, repeatinterval=1,command=lambda:self.stepPhase(0,1)).grid(row=6,column=2)
-        self.firstScale=Scale(self, from_=-self.P1LIMIT, to=self.P1LIMIT, orient="horizontal", command=self.setFirstOrder,length=300)
+        tk.Button(self.frame1,text="<",repeatdelay=100, repeatinterval=1,command=lambda:self.stepPhase(0,-1)).grid(row=6,column=0)
+        tk.Button(self.frame1,text=">",repeatdelay=100, repeatinterval=1,command=lambda:self.stepPhase(0,1)).grid(row=6,column=2)
+        self.firstScale=Scale(self.frame1, from_=-self.P1LIMIT, to=self.P1LIMIT, orient="horizontal", command=self.setFirstOrder,length=300)
         self.firstScale.grid(row=7,column=0,columnspan=3)
         if self.parent.current.spec > 0:
-            Label(self,text="Reference").grid(row=8,column=0,columnspan=3)
-            self.refEntry = Entry(self,textvariable=self.refValue,justify="center")
+            Label(self.frame1,text="Reference").grid(row=8,column=0,columnspan=3)
+            self.refEntry = Entry(self.frame1,textvariable=self.refValue,justify="center")
             self.refEntry.bind("<Return>", self.inputRef) 
             self.refEntry.bind("<KP_Enter>", self.inputRef)
             self.refEntry.grid(row=9,column=1)
-            Button(self, text="Pick reference", command=self.pickRef).grid(row=10,column=1)
-        Button(self, text="Apply",command=self.applyPhaseAndClose).grid(row=11,column=0)
-        Button(self, text="Cancel",command=self.cancelAndClose).grid(row=11,column=2)      
+        Button(self.frame1, text="Pick reference", command=self.pickRef).grid(row=10,column=1)
+        self.frame2 = Frame(self)
+        self.frame2.grid(row=1,column=0)
+        Checkbutton(self.frame2, text="Single slice", variable=self.singleSlice).grid(row=0,column=0,columnspan=2)
+        Button(self.frame2, text="Apply",command=self.applyPhaseAndClose).grid(row=1,column=0)
+        Button(self.frame2, text="Cancel",command=self.cancelAndClose).grid(row=1,column=1)      
         
     def setZeroOrder(self,value, *args): #function called by the zero order scale widget
         self.zeroVal = float(value)
@@ -1999,7 +2013,7 @@ class PhaseWindow(Toplevel): #a window for phasing the data
         self.inputZeroOrder()
         self.inputFirstOrder()
         self.parent.redoList = []
-        self.parent.undoList.append(self.parent.current.applyPhase(np.pi*self.zeroVal/180.0,np.pi*self.firstVal/180.0))
+        self.parent.undoList.append(self.parent.current.applyPhase(np.pi*self.zeroVal/180.0,np.pi*self.firstVal/180.0,(self.singleSlice.get()==1)))
         self.parent.menuEnable()
         self.destroy()
 
@@ -2035,6 +2049,8 @@ class ApodWindow(Toplevel): #a window for apodization
             options = list(map(str,np.delete(range(1,self.parent.current.data.dim+1),self.parent.current.axes)))
             self.shiftingAxes = StringVar()
             self.shiftingAxes.set(options[0])
+        self.singleSlice = IntVar()
+        self.singleSlice.set(0)
         #set stepsizes for the buttons
         self.lorstep = 1.0
         self.gaussstep = 1.0
@@ -2086,8 +2102,9 @@ class ApodWindow(Toplevel): #a window for apodization
             OptionMenu(self.frame1,self.shiftingAxes, self.shiftingAxes.get(),*options).grid(row=14,column=2)
         self.frame2 = Frame(self)
         self.frame2.grid(row=1,column=0)
-        Button(self.frame2, text="Apply",command=self.applyApodAndClose).grid(row=0,column=0)
-        Button(self.frame2, text="Cancel",command=self.cancelAndClose).grid(row=0,column=2) 
+        Checkbutton(self.frame2, text="Single slice", variable=self.singleSlice).grid(row=0,column=0,columnspan=2)
+        Button(self.frame2, text="Apply",command=self.applyApodAndClose).grid(row=1,column=0)
+        Button(self.frame2, text="Cancel",command=self.cancelAndClose).grid(row=1,column=1) 
 
     def checkEval(self,checkVar,entryVar): #change the state of the entry widget that the 
         if checkVar.get() == 0:
@@ -2174,7 +2191,7 @@ class ApodWindow(Toplevel): #a window for apodization
         else:
             shiftingAxes = None
         self.parent.redoList = []
-        self.parent.undoList.append(self.parent.current.applyApod(lor,gauss,cos2,hamming,shift,shifting,shiftingAxes))
+        self.parent.undoList.append(self.parent.current.applyApod(lor,gauss,cos2,hamming,shift,shifting,shiftingAxes,(self.singleSlice.get()==1)))
         self.parent.menuEnable()
         self.destroy()
 
@@ -2298,6 +2315,8 @@ class ShiftDataWindow(Toplevel): #a window for shifting the data
         #initialize variables for the widgets
         self.shiftVal = StringVar()
         self.shiftVal.set("0")
+        self.singleSlice = IntVar()
+        self.singleSlice.set(0)
         self.parent = parent
         self.geometry('+0+0')
         self.transient(self.parent)
@@ -2315,8 +2334,9 @@ class ShiftDataWindow(Toplevel): #a window for shifting the data
         self.posEntry.grid(row=1,column=1)
         self.frame2 = Frame(self)
         self.frame2.grid(row=1)
-        Button(self.frame2, text="Apply",command=self.applyShiftAndClose).grid(row=0,column=0)
-        Button(self.frame2, text="Cancel",command=self.cancelAndClose).grid(row=0,column=1)
+        Checkbutton(self.frame2, text="Single slice", variable=self.singleSlice).grid(row=0,column=0,columnspan=2)
+        Button(self.frame2, text="Apply",command=self.applyShiftAndClose).grid(row=1,column=0)
+        Button(self.frame2, text="Cancel",command=self.cancelAndClose).grid(row=1,column=1)
 
     def stepUpShift(self, *args):
         shift = int(round(safeEval(self.shiftVal.get())))
@@ -2344,7 +2364,7 @@ class ShiftDataWindow(Toplevel): #a window for shifting the data
     def applyShiftAndClose(self):
         shift = int(round(safeEval(self.shiftVal.get())))
         self.parent.redoList = []
-        self.parent.undoList.append(self.parent.current.applyShift(shift))
+        self.parent.undoList.append(self.parent.current.applyShift(shift,(self.singleSlice.get()==1)))
         self.parent.menuEnable()
         self.destroy()
 
@@ -2360,6 +2380,8 @@ class DCWindow(Toplevel): #a window for changing the offset of the data
         self.maxVal.set(str(parent.current.data1D.shape[-1]))
         self.offsetVal = StringVar()
         self.offsetVal.set('{:.2e}'.format(parent.current.getdcOffset(int(round(0.8*parent.current.data1D.shape[-1])),parent.current.data1D.shape[-1])))
+        self.singleSlice = IntVar()
+        self.singleSlice.set(0)
         self.parent = parent
         self.geometry('+0+0')
         self.transient(self.parent)
@@ -2385,8 +2407,9 @@ class DCWindow(Toplevel): #a window for changing the offset of the data
         self.offsetEntry.grid(row=5,column=0,columnspan=2)
         self.frame2 = Frame(self)
         self.frame2.grid(row=1)
-        Button(self.frame2, text="Apply",command=self.applyDCAndClose).grid(row=0,column=0)
-        Button(self.frame2, text="Cancel",command=self.cancelAndClose).grid(row=0,column=1)
+        Checkbutton(self.frame2, text="Single slice", variable=self.singleSlice).grid(row=0,column=0,columnspan=2)
+        Button(self.frame2, text="Apply",command=self.applyDCAndClose).grid(row=1,column=0)
+        Button(self.frame2, text="Cancel",command=self.cancelAndClose).grid(row=1,column=1)
         #pick function
         self.parent.current.peakPickFunc = lambda pos,self=self: self.picked(pos) 
         self.parent.current.peakPick = True
@@ -2452,7 +2475,7 @@ class DCWindow(Toplevel): #a window for changing the offset of the data
     def applyDCAndClose(self):
         self.parent.current.peakPickReset()
         self.parent.redoList = []
-        self.parent.undoList.append(self.parent.current.applydcOffset(safeEval(self.offsetVal.get())))
+        self.parent.undoList.append(self.parent.current.subtract(safeEval(self.offsetVal.get()),(self.singleSlice.get()==1)))
         self.parent.menuEnable()
         self.destroy()
 
@@ -2463,6 +2486,8 @@ class BaselineWindow(Toplevel):
         Toplevel.__init__(self)
         self.degreeVal = StringVar()
         self.degreeVal.set('3')
+        self.singleSlice = IntVar()
+        self.singleSlice.set(0)
         self.removeList = []
         self.parent = parent
         self.geometry('+0+0')
@@ -2481,8 +2506,9 @@ class BaselineWindow(Toplevel):
         Button(self.frame1, text="Reset",command=self.reset).grid(row=2,column=1)
         self.frame2 = Frame(self)
         self.frame2.grid(row=1)
-        Button(self.frame2, text="Apply",command=self.applyAndClose).grid(row=0,column=0)
-        Button(self.frame2, text="Cancel",command=self.cancelAndClose).grid(row=0,column=1)
+        Checkbutton(self.frame2, text="Single slice", variable=self.singleSlice).grid(row=0,column=0,columnspan=2)
+        Button(self.frame2, text="Apply",command=self.applyAndClose).grid(row=1,column=0)
+        Button(self.frame2, text="Cancel",command=self.cancelAndClose).grid(row=1,column=1)
         self.parent.current.peakPickFunc = lambda pos,self=self: self.picked(pos) 
         self.parent.current.peakPick = True
 
@@ -2519,7 +2545,7 @@ class BaselineWindow(Toplevel):
         self.parent.current.peakPickReset()
         self.parent.current.resetPreviewRemoveList()
         self.parent.redoList = []
-        self.parent.undoList.append(self.parent.current.applyBaseline(degree,self.removeList))
+        self.parent.undoList.append(self.parent.current.applyBaseline(degree,self.removeList,(self.singleSlice.get()==1)))
         self.parent.current.upd()
         self.parent.current.showFid()
         self.parent.menuEnable()
@@ -2671,7 +2697,6 @@ class argmaxWindow(regionWindow): #A window for obtaining the max of a selected 
     def apply(self,maximum,minimum):
         self.parent.redoList = []
         self.parent.undoList.append(self.parent.current.argmaxMatrix(minimum,maximum))
-        #self.parent.undoList.append(self.parent.current.maxMatrix(minimum,maximum))
         self.parent.current.grid_remove()
         self.parent.current.kill()
         self.parent.current=sc.Current1D(self.parent,self.parent.masterData)
@@ -2851,7 +2876,6 @@ class ConcatenateWindow(Toplevel):
         self.parent.menuEnable()
         self.destroy()
         
-
 ##############################################################
 class InsertWindow(Toplevel):
     def __init__(self, parent):
@@ -2921,19 +2945,22 @@ class AddWindow(Toplevel):
         #initialize variables for the widgets
         self.ws = StringVar()
         self.ws.set(self.parent.mainProgram.workspaceNames[0])
+        self.singleSlice = IntVar()
+        self.singleSlice.set(0)
         self.frame1 = Frame(self)
         self.frame1.grid(row=0)
         Label(self.frame1,text="Workspace to add").grid(row=0,column=0)
         OptionMenu(self.frame1,self.ws,self.parent.mainProgram.workspaceNames[0],*self.parent.mainProgram.workspaceNames).grid(row=1,column=0)
         self.frame2 = Frame(self)
         self.frame2.grid(row=1)
-        Button(self.frame2, text="Apply",command=self.applyAndClose).grid(row=0,column=0)
-        Button(self.frame2, text="Cancel",command=self.cancelAndClose).grid(row=0,column=1)
+        Checkbutton(self.frame2, text="Single slice", variable=self.singleSlice).grid(row=0,column=0,columnspan=2)
+        Button(self.frame2, text="Apply",command=self.applyAndClose).grid(row=1,column=0)
+        Button(self.frame2, text="Cancel",command=self.cancelAndClose).grid(row=1,column=1)
         
     def applyAndClose(self):
         ws = self.parent.mainProgram.workspaceNames.index(self.ws.get())
         self.parent.redoList = []
-        self.parent.undoList.append(self.parent.current.add(self.parent.mainProgram.workspaces[ws].masterData.data))
+        self.parent.undoList.append(self.parent.current.add(self.parent.mainProgram.workspaces[ws].masterData.data,(self.singleSlice.get()==1)))
         self.parent.menuEnable()
         self.parent.sideframe.upd()
         self.destroy()
@@ -2956,19 +2983,22 @@ class SubtractWindow(Toplevel):
         #initialize variables for the widgets
         self.ws = StringVar()
         self.ws.set(self.parent.mainProgram.workspaceNames[0])
+        self.singleSlice = IntVar()
+        self.singleSlice.set(0)
         self.frame1 = Frame(self)
         self.frame1.grid(row=0)
         Label(self.frame1,text="Workspace to subtract").grid(row=0,column=0)
         OptionMenu(self.frame1,self.ws,self.parent.mainProgram.workspaceNames[0],*self.parent.mainProgram.workspaceNames).grid(row=1,column=0)
         self.frame2 = Frame(self)
         self.frame2.grid(row=1)
-        Button(self.frame2, text="Apply",command=self.applyAndClose).grid(row=0,column=0)
-        Button(self.frame2, text="Cancel",command=self.cancelAndClose).grid(row=0,column=1)
+        Checkbutton(self.frame2, text="Single slice", variable=self.singleSlice).grid(row=0,column=0,columnspan=2)
+        Button(self.frame2, text="Apply",command=self.applyAndClose).grid(row=1,column=0)
+        Button(self.frame2, text="Cancel",command=self.cancelAndClose).grid(row=1,column=1)
         
     def applyAndClose(self):
         ws = self.parent.mainProgram.workspaceNames.index(self.ws.get())
         self.parent.redoList = []
-        self.parent.undoList.append(self.parent.current.subtract(self.parent.mainProgram.workspaces[ws].masterData.data))
+        self.parent.undoList.append(self.parent.current.subtract(self.parent.mainProgram.workspaces[ws].masterData.data,(self.singleSlice.get()==1)))
         self.parent.menuEnable()
         self.parent.sideframe.upd()
         self.destroy()
@@ -3256,6 +3286,8 @@ class MultiplyWindow(Toplevel):
         Toplevel.__init__(self)
         #initialize variables for the widgets
         self.val = StringVar()
+        self.singleSlice = IntVar()
+        self.singleSlice.set(0)
         self.parent = parent
         self.geometry('+0+0')
         self.transient(self.parent)
@@ -3271,8 +3303,9 @@ class MultiplyWindow(Toplevel):
         self.minEntry.grid(row=1,column=0,columnspan=2)
         self.frame2 = Frame(self)
         self.frame2.grid(row=1)
-        Button(self.frame2, text="Apply",command=self.applyAndClose).grid(row=0,column=0)
-        Button(self.frame2, text="Cancel",command=self.cancelAndClose).grid(row=0,column=1)
+        Checkbutton(self.frame2, text="Single slice", variable=self.singleSlice).grid(row=0,column=0,columnspan=2)
+        Button(self.frame2, text="Apply",command=self.applyAndClose).grid(row=1,column=0)
+        Button(self.frame2, text="Cancel",command=self.cancelAndClose).grid(row=1,column=1)
 
     def preview(self, *args):
         env = vars(np).copy()
@@ -3294,7 +3327,7 @@ class MultiplyWindow(Toplevel):
         env['euro']=lambda fVal, num=int(self.parent.current.data1D.shape[-1]): euro(fVal,num)
         val=eval(self.val.get(),env)                # find a better solution, also add catch for exceptions
         self.parent.redoList = []
-        self.parent.undoList.append(self.parent.current.multiply(np.array(val)))
+        self.parent.undoList.append(self.parent.current.multiply(np.array(val),(self.singleSlice.get()==1)))
         self.parent.menuEnable()
         self.destroy()
 

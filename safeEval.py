@@ -9,6 +9,7 @@ def safeEval(inp):
     env["__name__"] = None
     env["__file__"] = None
     env["__builtins__"] = None
+    env["slice"] = slice
     inp =  re.sub('([0-9]+)[k,K]','\g<1>*1024',inp) #WF: allow 'K' input
     try:
         return eval(inp,env)

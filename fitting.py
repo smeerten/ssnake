@@ -764,7 +764,7 @@ class PeakDeconvParamFrame(Frame): #a frame for the relaxtion parameters
         OptionMenu(self.frame3, self.numExp, "1","1", "2", "3","4","5","6","7","8","9","10",command=self.changeNum).grid(row=0,column=0,columnspan=6)
         Label(self.frame3,text="Position").grid(row=1,column=0,columnspan=2)
         Label(self.frame3,text="Amplitude").grid(row=1,column=2,columnspan=2)
-        Label(self.frame3,text="Width [Hz]").grid(row=1,column=4,columnspan=2)
+        Label(self.frame3,text="Lorentz [Hz]").grid(row=1,column=4,columnspan=2)
         self.posVal = []
         self.posTick = []
         self.ampVal = []

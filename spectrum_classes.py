@@ -8,6 +8,7 @@ import copy
 from mpl_toolkits.mplot3d import proj3d
 
 from spectrumFrame import Plot1DFrame
+from safeEval import safeEval
 import sys
 
 #########################################################################
@@ -98,26 +99,34 @@ class Spectrum:
             return None
 
     def add(self,data,dataImag=0,select=slice(None)):
+        if isinstance(select,(str,unicode)):
+            select = safeEval(select)
         data = np.array(data) + 1j*np.array(dataImag)
         self.data[select] = self.data[select] + data
         return lambda self: self.subtract(data,select=select)
         
     def subtract(self,data,dataImag=0,select=slice(None)):
+        if isinstance(select,(str,unicode)):
+            select = safeEval(select)
         data = np.array(data) + 1j*np.array(dataImag)
         self.data[select] = self.data[select] - data
         return lambda self: self.add(data,select=select)
 
     def multiply(self,mult,axes,multImag=0,select=slice(None)):
+        if isinstance(select,(str,unicode)):
+            select = safeEval(select)
         axes = self.checkAxes(axes)
         if axes == None:
             return None
         mult = np.array(mult) + 1j*np.array(multImag)
         copyData=copy.deepcopy(self)
         returnValue = lambda self: self.restoreData(copyData, lambda self: self.multiply(mult,axes,select=select))
-        self.data[select] = np.apply_along_axis(np.multiply,axes,self.data[select],multtmp)
+        self.data[select] = np.apply_along_axis(np.multiply,axes,self.data,mult)[select]
         return returnValue
 
     def baselineCorrection(self,baseline,axes,baselineImag = 0,select=slice(None)):
+        if isinstance(select,(str,unicode)):
+            select = safeEval(select)
         axes = self.checkAxes(axes)
         if axes == None:
             return None
@@ -278,6 +287,8 @@ class Spectrum:
         return returnValue
 
     def setPhase(self, phase0, phase1, axes,select=slice(None)):
+        if isinstance(select,(str,unicode)):
+            select = safeEval(select)
         axes = self.checkAxes(axes)
         if axes == None:
             return None
@@ -285,14 +296,16 @@ class Spectrum:
         if self.spec[axes]==0:
             self.fourier(axes,tmp=True)
             self.data[select] = self.data[select]*np.exp(phase0*1j)
-            self.data[select] = np.apply_along_axis(np.multiply,axes,self.data[select],vector)
+            self.data[select] = np.apply_along_axis(np.multiply,axes,self.data,vector)[select]
             self.fourier(axes,tmp=True)
         else:
             self.data[select] = self.data[select]*np.exp(phase0*1j)
-            self.data[select] = np.apply_along_axis(np.multiply,axes,self.data[select],vector)
+            self.data[select] = np.apply_along_axis(np.multiply,axes,self.data,vector)[select]
         return lambda self: self.setPhase(-phase0,-phase1,axes,select=select)
 
     def apodize(self,lor,gauss, cos2, hamming, shift, shifting, shiftingAxes, axes,select=slice(None)):
+        if isinstance(select,(str,unicode)):
+            select = safeEval(select)
         axes = self.checkAxes(axes)
         if axes == None:
             return None
@@ -351,10 +364,10 @@ class Spectrum:
                 x[-1:-(len(x)/2+1):-1]=x[:len(x)/2]
             if self.spec[axes] > 0:
                 self.fourier(axes,tmp=True)
-                self.data[select] = np.apply_along_axis(np.multiply,axes,self.data[select],x)
+                self.data[select] = np.apply_along_axis(np.multiply,axes,self.data,x)[select]
                 self.fourier(axes,tmp=True)
             else:
-                self.data[select] = np.apply_along_axis(np.multiply,axes,self.data[select],x)
+                self.data[select] = np.apply_along_axis(np.multiply,axes,self.data,x)[select]
         return returnValue
 
     def setFreq(self,freq,sw,axes):
@@ -427,6 +440,8 @@ class Spectrum:
         return lambda self: self.swapEcho(-idx,axes)
             
     def shiftData(self,shift,axes,select=slice(None)):
+        if isinstance(select,(str,unicode)):
+            select = safeEval(select)
         axes = self.checkAxes(axes)
         if axes == None:
             return None
@@ -434,13 +449,13 @@ class Spectrum:
         returnValue = lambda self: self.restoreData(copyData, lambda self: self.shiftData(shift,axes,select=select))
         if self.spec[axes] > 0:
             self.fourier(axes,tmp=True)
-        self.data[select] = np.roll(self.data[select],shift,axes)
+        self.data[select] = np.roll(self.data,shift,axes)[select]
         mask = np.ones(self.data.shape[axes])
         if shift < 0:
             mask[slice(shift,None)] = 0
         else:
             mask[slice(None,shift)] = 0
-        self.data[select] = np.apply_along_axis(np.multiply,axes,self.data[select],mask)
+        self.data[select] = np.apply_along_axis(np.multiply,axes,self.data,mask)[select]
         if self.spec[axes] > 0:
             self.fourier(axes,tmp=True)
         return returnValue
@@ -462,10 +477,6 @@ class Spectrum:
         s=np.conj(np.log(np.roots(np.append(PolyCoef[::-1],1))))		# polynomial rooting
         s = s[np.where(np.real(s)<0)[0]]
         a=1
-        
-    def dcOffset(self,offset,offsetImag=0,select=slice(None)):
-        self.data[select] = self.data[select]-offset+1j*offsetImag
-        return lambda self: self.dcOffset(-offset,select=select)
 
     def fourier(self, axes,tmp=False):
         axes = self.checkAxes(axes)
@@ -486,6 +497,27 @@ class Spectrum:
             self.spec[axes]=0
         self.resetXax(axes)
         return lambda self: self.fourier(axes)
+
+    def realFourier(self, axes):
+        axes = self.checkAxes(axes)
+        if axes == None:
+            return None
+        copyData=copy.deepcopy(self)
+        returnValue = lambda self: self.restoreData(copyData, lambda self: self.realFourier(axes))
+        if self.spec[axes]==0:
+            if not self.wholeEcho[axes]:
+                slicing = (slice(None),) * axes + (0,) + (slice(None),)*(self.dim-1-axes)
+                self.data[slicing]= self.data[slicing]*0.5
+            self.data=np.fft.fftshift(np.fft.fftn(np.real(self.data),axes=[axes]),axes=axes)
+            self.spec[axes]=1
+        else:
+            self.data=np.fft.ifftn(np.fft.ifftshift(np.real(self.data),axes=axes),axes=[axes])
+            if not self.wholeEcho[axes]:
+                slicing = (slice(None),) * axes + (0,) + (slice(None),)*(self.dim-1-axes)
+                self.data[slicing]= self.data[slicing]*2.0
+            self.spec[axes]=0
+        self.resetXax(axes)
+        return returnValue
 
     def fftshift(self, axes, inv=False):
         axes = self.checkAxes(axes)
@@ -619,7 +651,7 @@ class Current1D(Plot1DFrame):
         if self.ref == None:
             self.ref = self.freq
         self.single = self.data1D.shape[-1]==1
-
+        
     def setSlice(self,axes,locList): #change the slice 
         axesSame = True
         if self.axes != axes:
@@ -633,6 +665,17 @@ class Current1D(Plot1DFrame):
 
     def resetLocList(self):
         self.locList = [0]*(len(self.data.data.shape)-1)
+
+    def getSelect(self):
+        tmp = list(self.locList)
+        if len(self.data1D.shape) > 1:
+            minVal = min(self.axes,self.axes2)
+            maxVal = max(self.axes,self.axes2)
+            tmp.insert(minVal,slice(None))
+            tmp.insert(maxVal,slice(None))
+        else:
+            tmp.insert(self.axes,slice(None))
+        return tmp
         
     def setPhaseInter(self, phase0in, phase1in): #interactive changing the phase without editing the actual data
         phase0=float(phase0in)
@@ -653,13 +696,17 @@ class Current1D(Plot1DFrame):
         self.data1D = tmpdata
         self.showFid()
 
-    def applyPhase(self, phase0, phase1):# apply the phase to the actual data
+    def applyPhase(self, phase0, phase1,select=False):# apply the phase to the actual data
         phase0=float(phase0)
         phase1=float(phase1)
-        returnValue = self.data.setPhase(phase0,phase1,self.axes)
+        if select:
+            selectSlice = self.getSelect()
+        else:
+            selectSlice = slice(None)
+        returnValue = self.data.setPhase(phase0,phase1,self.axes,selectSlice)
         self.upd()
         self.showFid()
-        self.root.addMacro(['phase',(phase0,phase1,self.axes-self.data.dim)])
+        self.root.addMacro(['phase',(phase0,phase1,self.axes-self.data.dim,str(selectSlice))])
         return returnValue
 
     def fourier(self): #fourier the actual data and replot
@@ -670,6 +717,16 @@ class Current1D(Plot1DFrame):
         self.plotReset()
         self.showFid()
         self.root.addMacro(['fourier',(self.axes-self.data.dim,)])
+        return returnValue
+
+    def realFourier(self): #fourier the real data and replot
+        returnValue = self.data.realFourier(self.axes)
+        self.upd()
+        if isinstance(self,(CurrentStacked,CurrentArrayed)):
+            self.resetSpacing()
+        self.plotReset()
+        self.showFid()
+        self.root.addMacro(['realFourier',(self.axes-self.data.dim,)])
         return returnValue
 
     def fftshift(self,inv=False): #fftshift the actual data and replot
@@ -738,11 +795,15 @@ class Current1D(Plot1DFrame):
         else:
             self.showFid(y)
 
-    def applyApod(self,lor=None,gauss=None,cos2=None,hamming=None,shift=0.0,shifting=0.0,shiftingAxes=0): #apply the apodization to the actual data
-        returnValue = self.data.apodize(lor,gauss,cos2,hamming,shift,shifting,shiftingAxes,self.axes)
+    def applyApod(self,lor=None,gauss=None,cos2=None,hamming=None,shift=0.0,shifting=0.0,shiftingAxes=0,select=False): #apply the apodization to the actual data
+        if select:
+            selectSlice = self.getSelect()
+        else:
+            selectSlice = slice(None)
+        returnValue = self.data.apodize(lor,gauss,cos2,hamming,shift,shifting,shiftingAxes,self.axes,selectSlice)
         self.upd() 
         self.showFid()
-        self.root.addMacro([u'apodize',(lor,gauss,cos2,hamming,shift,shifting,shiftingAxes,self.axes-self.data.dim)])
+        self.root.addMacro(['apodize',(lor,gauss,cos2,hamming,shift,shifting,shiftingAxes,self.axes-self.data.dim,str(selectSlice))])
         return returnValue
 
     def setFreq(self,freq,sw): #set the frequency of the actual data
@@ -900,11 +961,15 @@ class Current1D(Plot1DFrame):
             self.root.addMacro(['wholeEcho',(True,self.axes-self.data.dim)])
         return returnValue
 
-    def applyShift(self,shift):
-        returnValue = self.data.shiftData(shift,self.axes)
+    def applyShift(self,shift,select=False):
+        if select:
+            selectSlice = self.getSelect()
+        else:
+            selectSlice = slice(None)
+        returnValue = self.data.shiftData(shift,self.axes,selectSlice)
         self.upd()
         self.showFid()
-        self.root.addMacro(['shift',(shift,self.axes-self.data.dim)])
+        self.root.addMacro(['shift',(shift,self.axes-self.data.dim,str(selectSlice))])
         return returnValue
 
     def setShiftPreview(self,shift):
@@ -931,15 +996,12 @@ class Current1D(Plot1DFrame):
             
     def dcOffset(self,offset):
         self.showFid(self.data1D-offset)
-            
-    def applydcOffset(self,offset):
-        returnValue = self.data.dcOffset(offset)
-        self.upd()
-        self.showFid()
-        self.root.addMacro(['offset',(float(np.real(offset)),float(np.imag(offset)))])
-        return returnValue
 
-    def applyBaseline(self,degree,removeList):
+    def applyBaseline(self,degree,removeList,select=False):
+        if select:
+            selectSlice = self.getSelect()
+        else:
+            selectSlice = slice(None)
         if len(self.data1D.shape) > 1:
             tmpData = self.data1D[0]
         else:
@@ -952,8 +1014,8 @@ class Current1D(Plot1DFrame):
             bArray = np.logical_and(bArray,np.logical_or((tmpAx < minVal),(tmpAx > maxVal)))
         polyCoeff = poly.polyfit(self.xax[bArray],tmpData[bArray],degree)
         y = poly.polyval(self.xax,polyCoeff)
-        self.root.addMacro(['baselineCorrection',(list(np.real(y)),self.axes-self.data.dim,list(np.imag(y)))])
-        return self.data.baselineCorrection(y,self.axes)
+        self.root.addMacro(['baselineCorrection',(list(np.real(y)),self.axes-self.data.dim,list(np.imag(y)),str(selectSlice))])
+        return self.data.baselineCorrection(y,self.axes,select=selectSlice)
     
     def previewBaseline(self,degree,removeList):
         if len(self.data1D.shape) > 1:
@@ -1096,27 +1158,39 @@ class Current1D(Plot1DFrame):
             self.showFid()
         self.upd()
     
-    def add(self,data):
-        returnValue = self.data.add(data)
+    def add(self,data,select=False):
+        if select:
+            selectSlice = self.getSelect()
+        else:
+            selectSlice = slice(None)
+        returnValue = self.data.add(data,select=selectSlice)
         self.upd()
         self.plotReset()
         self.showFid()
-        self.root.addMacro(['add',(np.real(data).tolist(),np.imag(data).tolist())])
+        self.root.addMacro(['add',(np.real(data).tolist(),np.imag(data).tolist(),str(selectSlice))])
         return returnValue
         
-    def subtract(self,data):
-        returnValue = self.data.subtract(data)
+    def subtract(self,data,select=False):
+        if select:
+            selectSlice = self.getSelect()
+        else:
+            selectSlice = slice(None)
+        returnValue = self.data.subtract(data,select=selectSlice)
         self.upd()
         self.plotReset()
         self.showFid()
-        self.root.addMacro(['subtract',(np.real(data).tolist(),np.imag(data).tolist())])
+        self.root.addMacro(['subtract',(np.real(data).tolist(),np.imag(data).tolist(),str(selectSlice))])
         return returnValue
 
-    def multiply(self,data):
-        returnValue = self.data.multiply(data,self.axes)
+    def multiply(self,data,select=False):
+        if select:
+            selectSlice = self.getSelect()
+        else:
+            selectSlice = slice(None)
+        returnValue = self.data.multiply(data,self.axes,select=selectSlice)
         self.upd()
         self.showFid()
-        self.root.addMacro(['multiply',(np.real(data).tolist(),self.axes-self.data.dim,np.imag(data).tolist())])
+        self.root.addMacro(['multiply',(np.real(data).tolist(),self.axes-self.data.dim,np.imag(data).tolist(),str(selectSlice))])
         return returnValue
     
     def multiplyPreview(self,data):
