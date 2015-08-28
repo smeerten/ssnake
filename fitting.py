@@ -20,6 +20,7 @@ import math
 from safeEval import safeEval
 from spectrumFrame import Plot1DFrame
 from zcw import *
+import os.path
 
 pi = math.pi
 
@@ -37,7 +38,23 @@ class RelaxWindow(Frame): #a window for fitting relaxation data
         self.paramframe.grid(row=1,column=0,sticky='sw')
         self.rowconfigure(0, weight=1)
         self.grid_columnconfigure(0, weight=1)
+        self.canvas.mpl_connect('button_press_event', self.buttonPress)      
+        self.canvas.mpl_connect('button_release_event', self.buttonRelease)
+        self.canvas.mpl_connect('motion_notify_event', self.pan)
+        self.canvas.mpl_connect('scroll_event', self.scroll)
 
+    def buttonPress(self,event):
+        self.current.buttonPress(event)
+
+    def buttonRelease(self,event):
+        self.current.buttonRelease(event)
+
+    def pan(self,event):
+        self.current.pan(event)
+
+    def scroll(self,event):
+        self.current.scroll(event)
+        
     def get_mainWindow(self):
         return self.oldMainWindow
         
@@ -569,7 +586,23 @@ class PeakDeconvWindow(Frame): #a window for fitting relaxation data
         self.paramframe.grid(row=1,column=0,sticky='sw')
         self.rowconfigure(0, weight=1)
         self.grid_columnconfigure(0, weight=1)
+        self.canvas.mpl_connect('button_press_event', self.buttonPress)      
+        self.canvas.mpl_connect('button_release_event', self.buttonRelease)
+        self.canvas.mpl_connect('motion_notify_event', self.pan)
+        self.canvas.mpl_connect('scroll_event', self.scroll)
 
+    def buttonPress(self,event):
+        self.current.buttonPress(event)
+
+    def buttonRelease(self,event):
+        self.current.buttonRelease(event)
+
+    def pan(self,event):
+        self.current.pan(event)
+
+    def scroll(self,event):
+        self.current.scroll(event)
+        
     def get_mainWindow(self):
         return self.oldMainWindow
         
@@ -594,7 +627,7 @@ class PeakDeconvWindow(Frame): #a window for fitting relaxation data
          self.mainProgram.closeFitWindow(self.oldMainWindow)
         
 #################################################################################   
-class PeakDeconvFrame(Plot1DFrame): #a window for fitting relaxation data
+class PeakDeconvFrame(Plot1DFrame): 
     def __init__(self, rootwindow,fig,canvas,current):
         Plot1DFrame.__init__(self,rootwindow,fig,canvas)
         self.data1D = current.getDisplayedData()
@@ -603,13 +636,11 @@ class PeakDeconvFrame(Plot1DFrame): #a window for fitting relaxation data
         self.xax = self.current.xax
         self.plotType=0
         self.rootwindow = rootwindow
-        self.peakPickFunc = lambda pos,self=self: self.pickDeconv(pos) 
-        self.peakPick = True
         self.pickNum = 0
         self.plotReset()
         self.showPlot()
 
-    def plotReset(self): #set the plot limits to min and max values
+    def plotReset(self): 
         a=self.fig.gca()
         if self.plotType==0:
             miny = min(np.real(self.data1D))
@@ -626,7 +657,7 @@ class PeakDeconvFrame(Plot1DFrame): #a window for fitting relaxation data
         else:
             miny=-1
             maxy=1
-        differ = 0.05*(maxy-miny) #amount to add to show all datapoints (10%)
+        differ = 0.05*(maxy-miny) 
         self.yminlim=miny-differ
         self.ymaxlim=maxy+differ
         axAdd = 0
@@ -695,6 +726,14 @@ class PeakDeconvFrame(Plot1DFrame): #a window for fitting relaxation data
         a.set_ylim(self.yminlim,self.ymaxlim)
         self.canvas.draw()
 
+    def togglePick(self,var):
+        if var==1:
+            self.peakPickFunc = lambda pos,self=self: self.pickDeconv(pos) 
+            self.peakPick = True
+        else:
+            self.peakPickFunc = None
+            self.peakPick = False
+        
     def pickDeconv(self, pos):
         self.rootwindow.paramframe.posVal[self.pickNum].set("%.3g" %pos[1])
         left = pos[0] - 10 #number of points to find the maximum in
@@ -737,14 +776,11 @@ class PeakDeconvParamFrame(Frame): #a frame for the relaxtion parameters
         elif self.parent.current.spec == 0:
             self.axMult = 1000.0**self.parent.current.axType
         self.bgrndVal = StringVar()
-        self.bgrndVal.set("0.0")
         self.bgrndTick = IntVar()
-        self.bgrndTick.set(1)
         self.slopeVal = StringVar()
-        self.slopeVal.set("0.0")
         self.slopeTick = IntVar()
-        self.slopeTick.set(1)
         self.numExp = StringVar()
+        self.pickTick = IntVar()
         Frame.__init__(self, rootwindow)
         self.frame1 = Frame(self)
         self.frame1.grid(row=0,column=0,sticky='n')
@@ -755,6 +791,8 @@ class PeakDeconvParamFrame(Frame): #a frame for the relaxtion parameters
         Button(self.frame1, text="Sim",command=self.sim).grid(row=0,column=0)
         Button(self.frame1, text="Fit",command=self.fit).grid(row=1,column=0)
         Button(self.frame1, text="Cancel",command=rootwindow.cancel).grid(row=2,column=0)
+        Button(self.frame1, text="Reset",command=self.reset).grid(row=0,column=1)
+        Checkbutton(self.frame1, variable=self.pickTick,text="Picking",command=self.togglePick).grid(row=1,column=1)
         Label(self.frame2,text="Bgrnd").grid(row=0,column=0,columnspan=2)
         Checkbutton(self.frame2,variable=self.bgrndTick).grid(row=1,column=0)
         Entry(self.frame2,textvariable=self.bgrndVal,justify="center",width=10).grid(row=1,column=1)
@@ -780,13 +818,10 @@ class PeakDeconvParamFrame(Frame): #a frame for the relaxtion parameters
 
         for i in range(10):
             self.posVal.append(StringVar())
-            self.posVal[i].set("0.0")
             self.posTick.append(IntVar())
             self.ampVal.append(StringVar())
-            self.ampVal[i].set("1.0")
             self.ampTick.append(IntVar())
             self.widthVal.append(StringVar())
-            self.widthVal[i].set("1.0")
             self.widthTick.append(IntVar())
             self.posCheck.append(Checkbutton(self.frame3,variable=self.posTick[i]))
             self.posCheck[i].grid(row=i+2,column=0)
@@ -800,6 +835,23 @@ class PeakDeconvParamFrame(Frame): #a frame for the relaxtion parameters
             self.widthCheck[i].grid(row=i+2,column=4)
             self.widthEntries.append(Entry(self.frame3,textvariable=self.widthVal[i],justify="center",width=10))
             self.widthEntries[i].grid(row=i+2,column=5)
+        self.reset()
+
+    def reset(self):
+        self.parent.pickNum=0
+        self.bgrndVal.set("0.0")
+        self.bgrndTick.set(1)
+        self.slopeVal.set("0.0")
+        self.slopeTick.set(1)
+        self.numExp.set('1')
+        self.pickTick.set(1)
+        for i in range(10):
+            self.posVal[i].set("0.0")
+            self.posTick[i].set(0)
+            self.ampVal[i].set("1.0")
+            self.ampTick[i].set(0)
+            self.widthVal[i].set("1.0")
+            self.widthTick[i].set(0)
             if i > 0:
                 self.posCheck[i].grid_remove()
                 self.posEntries[i].grid_remove()
@@ -807,6 +859,7 @@ class PeakDeconvParamFrame(Frame): #a frame for the relaxtion parameters
                 self.ampEntries[i].grid_remove()
                 self.widthCheck[i].grid_remove()
                 self.widthEntries[i].grid_remove()
+        self.togglePick()
 
     def changeNum(self,*args):
         val = int(self.numExp.get())
@@ -826,6 +879,9 @@ class PeakDeconvParamFrame(Frame): #a frame for the relaxtion parameters
                 self.widthCheck[i].grid_remove()
                 self.widthEntries[i].grid_remove()
 
+    def togglePick(self):
+        self.parent.togglePick(self.pickTick.get())
+                
     def fitFunc(self, x, *param):
         numExp = self.args[0]
         struc = self.args[1]
@@ -988,7 +1044,23 @@ class TensorDeconvWindow(Frame): #a window for fitting relaxation data
         self.paramframe.grid(row=1,column=0,sticky='sw')
         self.rowconfigure(0, weight=1)
         self.grid_columnconfigure(0, weight=1)
+        self.canvas.mpl_connect('button_press_event', self.buttonPress)      
+        self.canvas.mpl_connect('button_release_event', self.buttonRelease)
+        self.canvas.mpl_connect('motion_notify_event', self.pan)
+        self.canvas.mpl_connect('scroll_event', self.scroll)
 
+    def buttonPress(self,event):
+        self.current.buttonPress(event)
+
+    def buttonRelease(self,event):
+        self.current.buttonRelease(event)
+
+    def pan(self,event):
+        self.current.pan(event)
+
+    def scroll(self,event):
+        self.current.scroll(event)
+        
     def get_mainWindow(self):
         return self.oldMainWindow
         
@@ -1031,8 +1103,6 @@ class TensorDeconvFrame(Plot1DFrame): #a window for fitting relaxation data
         self.xax = self.current.xax*axMult+axAdd
         self.plotType=0
         self.rootwindow = rootwindow
-        self.peakPickFunc = lambda pos,self=self: self.pickDeconv(pos) 
-        self.peakPick = True
         self.pickNum = 0
         self.pickNum2 = 0
         self.plotReset()
@@ -1103,6 +1173,14 @@ class TensorDeconvFrame(Plot1DFrame): #a window for fitting relaxation data
         self.ax.set_ylim(self.yminlim,self.ymaxlim)
         self.canvas.draw()
 
+    def togglePick(self,var):
+        if var==1:
+            self.peakPickFunc = lambda pos,self=self: self.pickDeconv(pos) 
+            self.peakPick = True
+        else:
+            self.peakPickFunc = None
+            self.peakPick = False
+        
     def pickDeconv(self, pos):
         if self.pickNum2 == 0:
             if self.pickNum < 10:
@@ -1126,17 +1204,13 @@ class TensorDeconvParamFrame(Frame): #a frame for the relaxtion parameters
     def __init__(self, parent, rootwindow): 
         self.parent = parent
         self.bgrndVal = StringVar()
-        self.bgrndVal.set("0.0")
         self.bgrndTick = IntVar()
-        self.bgrndTick.set(1)
         self.slopeVal = StringVar()
-        self.slopeVal.set("0.0")
         self.slopeTick = IntVar()
-        self.slopeTick.set(1)
         self.numExp = StringVar()
-        self.cheng = 15
         self.chengVal = StringVar()
-        self.chengVal.set(str(self.cheng))
+        self.pickTick = IntVar()
+        self.pickTick.set(1)
         Frame.__init__(self, rootwindow)
         self.frame1 = Frame(self)
         self.frame1.grid(row=0,column=0,sticky='n')
@@ -1149,6 +1223,8 @@ class TensorDeconvParamFrame(Frame): #a frame for the relaxtion parameters
         Button(self.frame1, text="Sim",command=self.sim).grid(row=0,column=0)
         Button(self.frame1, text="Fit",command=self.fit).grid(row=1,column=0)
         Button(self.frame1, text="Cancel",command=rootwindow.cancel).grid(row=2,column=0)
+        Button(self.frame1, text="Reset",command=self.reset).grid(row=0,column=1)
+        Checkbutton(self.frame1, variable=self.pickTick,text="Picking",command=self.togglePick).grid(row=1,column=1)
         Label(self.optframe,text="Cheng").grid(row=0,column=0)
         self.chengEntry = Entry(self.optframe,textvariable=self.chengVal,justify="center",width=10)
         self.chengEntry.grid(row=1,column=0)
@@ -1189,21 +1265,15 @@ class TensorDeconvParamFrame(Frame): #a frame for the relaxtion parameters
 
         for i in range(10):
             self.t11Val.append(StringVar())
-            self.t11Val[i].set("0.0")
             self.t11Tick.append(IntVar())
             self.t22Val.append(StringVar())
-            self.t22Val[i].set("0.0")
             self.t22Tick.append(IntVar())
             self.t33Val.append(StringVar())
-            self.t33Val[i].set("0.0")
             self.t33Tick.append(IntVar())
             self.ampVal.append(StringVar())
-            self.ampVal[i].set("1.0")
             self.ampTick.append(IntVar())
             self.widthVal.append(StringVar())
-            self.widthVal[i].set("10.0")
             self.widthTick.append(IntVar())
-            self.widthTick[i].set(1)
             self.t11Check.append(Checkbutton(self.frame3,variable=self.t11Tick[i]))
             self.t11Check[i].grid(row=i+2,column=0)
             self.t11Entries.append(Entry(self.frame3,textvariable=self.t11Val[i],justify="center",width=10))
@@ -1224,6 +1294,29 @@ class TensorDeconvParamFrame(Frame): #a frame for the relaxtion parameters
             self.widthCheck[i].grid(row=i+2,column=8)
             self.widthEntries.append(Entry(self.frame3,textvariable=self.widthVal[i],justify="center",width=10))
             self.widthEntries[i].grid(row=i+2,column=9)
+        self.reset()
+
+    def reset(self):
+        self.parent.pickNum=0
+        self.parent.pickNum2=0
+        self.bgrndVal.set("0.0")
+        self.bgrndTick.set(1)
+        self.slopeVal.set("0.0")
+        self.slopeTick.set(1)
+        self.cheng = 15
+        self.chengVal.set(str(self.cheng))
+        self.pickTick.set(1)
+        for i in range(10):
+            self.t11Val[i].set("0.0")
+            self.t11Tick[i].set(0)
+            self.t22Val[i].set("0.0")
+            self.t22Tick[i].set(0)
+            self.t33Val[i].set("0.0")
+            self.t33Tick[i].set(0)
+            self.ampVal[i].set("1.0")
+            self.ampTick[i].set(0)
+            self.widthVal[i].set("10.0")
+            self.widthTick[i].set(1)
             if i > 0:
                 self.t11Check[i].grid_remove()
                 self.t11Entries[i].grid_remove()
@@ -1235,7 +1328,11 @@ class TensorDeconvParamFrame(Frame): #a frame for the relaxtion parameters
                 self.ampEntries[i].grid_remove()
                 self.widthCheck[i].grid_remove()
                 self.widthEntries[i].grid_remove()
+        self.togglePick()
 
+    def togglePick(self):
+        self.parent.togglePick(self.pickTick.get())
+                
     def setCheng(self,*args):
         self.cheng = int(safeEval(self.chengVal.get()))
         self.chengVal.set(str(self.cheng))
@@ -1499,7 +1596,23 @@ class Quad1DeconvWindow(Frame): #a window for fitting relaxation data
         self.paramframe.grid(row=1,column=0,sticky='sw')
         self.rowconfigure(0, weight=1)
         self.grid_columnconfigure(0, weight=1)
+        self.canvas.mpl_connect('button_press_event', self.buttonPress)      
+        self.canvas.mpl_connect('button_release_event', self.buttonRelease)
+        self.canvas.mpl_connect('motion_notify_event', self.pan)
+        self.canvas.mpl_connect('scroll_event', self.scroll)
 
+    def buttonPress(self,event):
+        self.current.buttonPress(event)
+
+    def buttonRelease(self,event):
+        self.current.buttonRelease(event)
+
+    def pan(self,event):
+        self.current.pan(event)
+
+    def scroll(self,event):
+        self.current.scroll(event)
+        
     def get_mainWindow(self):
         return self.oldMainWindow
         
@@ -1665,7 +1778,7 @@ class Quad1DeconvParamFrame(Frame): #a frame for the quadrupole parameters
         Checkbutton(self.frame2,variable=self.slopeTick).grid(row=3,column=0)
         Entry(self.frame2,textvariable=self.slopeVal,justify="center",width=10).grid(row=3,column=1)
         OptionMenu(self.frame3, self.numExp, "1","1", "2", "3","4","5","6","7","8","9","10",command=self.changeNum).grid(row=0,column=0,columnspan=6)
-        Label(self.frame3,text="I").grid(row=1,column=0,columnspan=2)
+        Label(self.frame3,text="I").grid(row=1,column=0)
         Label(self.frame3,text="Pos").grid(row=1,column=1,columnspan=2)
         Label(self.frame3,text="Cq [MHz]").grid(row=1,column=3,columnspan=2)
         Label(self.frame3,text="Eta").grid(row=1,column=5,columnspan=2)
@@ -2041,7 +2154,23 @@ class Quad2DeconvWindow(Frame): #a window for fitting second order quadrupole li
         self.paramframe.grid(row=1,column=0,sticky='sw')
         self.rowconfigure(0, weight=1)
         self.grid_columnconfigure(0, weight=1)
+        self.canvas.mpl_connect('button_press_event', self.buttonPress)      
+        self.canvas.mpl_connect('button_release_event', self.buttonRelease)
+        self.canvas.mpl_connect('motion_notify_event', self.pan)
+        self.canvas.mpl_connect('scroll_event', self.scroll)
 
+    def buttonPress(self,event):
+        self.current.buttonPress(event)
+
+    def buttonRelease(self,event):
+        self.current.buttonRelease(event)
+
+    def pan(self,event):
+        self.current.pan(event)
+
+    def scroll(self,event):
+        self.current.scroll(event)
+        
     def get_mainWindow(self):
         return self.oldMainWindow
         
@@ -2179,23 +2308,29 @@ class MainPlotWindow(Frame):
         self.ylimRightEntry.bind("<KP_Enter>", self.updatePlot) 
         self.ylimRightEntry.grid(row=13,column=0)
         
-        Label(self.frame2,text='Width [inches]').grid(row=26,column=0)
+        Label(self.frame2,text='Width [cm]').grid(row=26,column=0)
         self.widthBackup, self.heightBackup = self.fig.get_size_inches()
+        self.widthBackup = self.widthBackup*2.54
+        self.heightBackup = self.heightBackup*2.54
         self.width = StringVar()
         self.width.set(self.widthBackup)
         self.widthEntry = Entry(self.frame2,textvariable=self.width,justify="center")
         self.widthEntry.bind("<Return>", self.updatePlot) 
         self.widthEntry.bind("<KP_Enter>", self.updatePlot) 
         self.widthEntry.grid(row=27,column=0)
-        Label(self.frame2,text='height [inches]').grid(row=28,column=0)
+        Label(self.frame2,text='height [cm]').grid(row=28,column=0)
         self.height = StringVar()
         self.height.set(self.heightBackup)
         self.heightEntry = Entry(self.frame2,textvariable=self.height,justify="center")
         self.heightEntry.bind("<Return>", self.updatePlot) 
         self.heightEntry.bind("<KP_Enter>", self.updatePlot) 
         self.heightEntry.grid(row=29,column=0)
+        Label(self.frame2,text='file type').grid(row=30,column=0)
+        self.fileType = StringVar()
+        self.fileType.set('svg')
+        OptionMenu(self.frame2, self.fileType, self.fileType.get(), 'svg', 'png', 'eps', 'jpg', 'pdf').grid(row=31,column=0)
         self.inFrame = Frame(self.frame2)
-        self.inFrame.grid(row=30,column=0)
+        self.inFrame.grid(row=32,column=0)
         Button(self.inFrame,text='Save',command=self.save).grid(row=0,column=0)
         Button(self.inFrame,text='Cancel',command=self.cancel).grid(row=0,column=1)
         self.rowconfigure(0, weight=1)
@@ -2207,7 +2342,7 @@ class MainPlotWindow(Frame):
         self.ax.set_ylabel(self.ylabelEntry.get())
         self.ax.set_xlim((safeEval(self.xlimLeft.get()),safeEval(self.xlimRight.get())))
         self.ax.set_ylim((safeEval(self.ylimLeft.get()),safeEval(self.ylimRight.get())))
-        self.fig.set_size_inches((int(safeEval(self.width.get())),int(safeEval(self.height.get()))))
+        self.fig.set_size_inches((int(safeEval(self.width.get()))/2.54,int(safeEval(self.height.get()))/2.54))
         self.fig.canvas.draw()
 
     def get_mainWindow(self):
@@ -2231,8 +2366,9 @@ class MainPlotWindow(Frame):
         
     def save(self):
         self.updatePlot()
-        f=asksaveasfilename(filetypes=(('svg','.svg'),('png','.png'),('eps','.eps'),('jpg','.jpg'),('pdf','.pdf')))
+        f=asksaveasfilename()
         if f:
+            f=os.path.splitext(f)[0]+'.'+self.fileType.get()
             self.fig.savefig(f)
         self.cancel()
 
@@ -2242,5 +2378,5 @@ class MainPlotWindow(Frame):
         self.ax.set_ylabel(self.ylabelBackup)
         self.ax.set_xlim((self.xlimBackup[0],self.xlimBackup[1]))
         self.ax.set_ylim((self.ylimBackup[0],self.ylimBackup[1]))
-        self.fig.set_size_inches((self.widthBackup,self.heightBackup))
+        self.fig.set_size_inches((self.widthBackup/2.54,self.heightBackup/2.54))
         self.mainProgram.closeSaveFigure(self.oldMainWindow)

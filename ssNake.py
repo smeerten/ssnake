@@ -92,6 +92,7 @@ class MainProgram:
         self.menubar.add_cascade(label="Workspaces", menu=self.workspacemenu)
         self.workspacemenu.add_command(label="Duplicate", command=self.duplicateWorkspace)
         self.workspacemenu.add_command(label="Delete", command=self.destroyWorkspace)
+        self.workspacemenu.add_command(label="Rename", command=self.renameWorkspace)
         self.activemenu = None
 
         #the macro menu
@@ -281,7 +282,14 @@ class MainProgram:
         self.workspaces.append(Main1DWindow(self.root,self,copy.deepcopy(self.mainWindow.get_masterData()),self.mainWindow.get_current()))
         self.workspaceNames.append(name)
         self.changeMainWindow(name)
-            
+        
+    def renameWorkspace(self, *args):
+        name = self.askName()
+        if name is None:
+            return
+        self.workspaceNames[self.workspaceNum] = name
+        self.updWorkspaceMenu(name)
+    
     def destroyWorkspace(self, *args):
         self.mainWindow.removeFromView()
         self.mainWindow.kill()
@@ -741,7 +749,7 @@ class Main1DWindow(Frame):
 
     def rescue(self):
         self.current.kill()
-        self.current = sc.Current1D(self,fig,canvas,self.masterData)
+        self.current = sc.Current1D(self,self.current.fig,self.current.canvas,self.masterData)
         
     def removeFromView(self):
         self.menubar.delete("Edit")
@@ -2654,10 +2662,6 @@ class integrateWindow(regionWindow): #A window for obtaining the integral of a s
     def apply(self,maximum,minimum):
         self.parent.redoList = []
         self.parent.undoList.append(self.parent.current.integrate(minimum,maximum))
-        self.parent.current.grid_remove()
-        self.parent.current.kill()
-        self.parent.current=sc.Current1D(self.parent,self.parent.masterData)
-        self.parent.current.grid(row=0,column=0,sticky='nswe')
         self.parent.updAllFrames()
         
 ############################################################
@@ -2668,11 +2672,6 @@ class maxWindow(regionWindow): #A window for obtaining the max of a selected reg
     def apply(self,maximum,minimum):
         self.parent.redoList = []
         self.parent.undoList.append(self.parent.current.maxMatrix(minimum,maximum))
-        #self.parent.undoList.append(self.parent.current.maxMatrix(minimum,maximum))
-        self.parent.current.grid_remove()
-        self.parent.current.kill()
-        self.parent.current=sc.Current1D(self.parent,self.parent.masterData)
-        self.parent.current.grid(row=0,column=0,sticky='nswe')
         self.parent.updAllFrames()
 
 ############################################################
@@ -2683,10 +2682,6 @@ class minWindow(regionWindow): #A window for obtaining the min of a selected reg
     def apply(self,maximum,minimum):
         self.parent.redoList = []
         self.parent.undoList.append(self.parent.current.minMatrix(minimum,maximum))
-        self.parent.current.grid_remove()
-        self.parent.current.kill()
-        self.parent.current=sc.Current1D(self.parent,self.parent.masterData)
-        self.parent.current.grid(row=0,column=0,sticky='nswe')
         self.parent.updAllFrames()
         
 ############################################################
@@ -2697,10 +2692,6 @@ class argmaxWindow(regionWindow): #A window for obtaining the max of a selected 
     def apply(self,maximum,minimum):
         self.parent.redoList = []
         self.parent.undoList.append(self.parent.current.argmaxMatrix(minimum,maximum))
-        self.parent.current.grid_remove()
-        self.parent.current.kill()
-        self.parent.current=sc.Current1D(self.parent,self.parent.masterData)
-        self.parent.current.grid(row=0,column=0,sticky='nswe')
         self.parent.updAllFrames()
 
 ############################################################
@@ -2711,10 +2702,6 @@ class argminWindow(regionWindow): #A window for obtaining the min of a selected 
     def apply(self,maximum,minimum):
         self.parent.redoList = []
         self.parent.undoList.append(self.parent.current.argminMatrix(minimum,maximum))
-        self.parent.current.grid_remove()
-        self.parent.current.kill()
-        self.parent.current=sc.Current1D(self.parent,self.parent.masterData)
-        self.parent.current.grid(row=0,column=0,sticky='nswe')
         self.parent.updAllFrames()
         
 ############################################################

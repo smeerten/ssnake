@@ -46,7 +46,7 @@ class Plot1DFrame:
         self.spec2 = 0
         
     def kill(self):
-        pass
+        self.fig.clf()
 
     def plotReset(self): #this function needs to be overriden by the classes who inherit from Plot1DFrame
         pass

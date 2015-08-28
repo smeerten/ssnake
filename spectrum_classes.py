@@ -99,21 +99,21 @@ class Spectrum:
             return None
 
     def add(self,data,dataImag=0,select=slice(None)):
-        if isinstance(select,(str,unicode)):
+        if isinstance(select,basestring):
             select = safeEval(select)
         data = np.array(data) + 1j*np.array(dataImag)
         self.data[select] = self.data[select] + data
         return lambda self: self.subtract(data,select=select)
         
     def subtract(self,data,dataImag=0,select=slice(None)):
-        if isinstance(select,(str,unicode)):
+        if isinstance(select,basestring):
             select = safeEval(select)
         data = np.array(data) + 1j*np.array(dataImag)
         self.data[select] = self.data[select] - data
         return lambda self: self.add(data,select=select)
 
     def multiply(self,mult,axes,multImag=0,select=slice(None)):
-        if isinstance(select,(str,unicode)):
+        if isinstance(select,basestring):
             select = safeEval(select)
         axes = self.checkAxes(axes)
         if axes == None:
@@ -125,7 +125,7 @@ class Spectrum:
         return returnValue
 
     def baselineCorrection(self,baseline,axes,baselineImag = 0,select=slice(None)):
-        if isinstance(select,(str,unicode)):
+        if isinstance(select,basestring):
             select = safeEval(select)
         axes = self.checkAxes(axes)
         if axes == None:
@@ -287,7 +287,7 @@ class Spectrum:
         return returnValue
 
     def setPhase(self, phase0, phase1, axes,select=slice(None)):
-        if isinstance(select,(str,unicode)):
+        if isinstance(select,basestring):
             select = safeEval(select)
         axes = self.checkAxes(axes)
         if axes == None:
@@ -304,7 +304,7 @@ class Spectrum:
         return lambda self: self.setPhase(-phase0,-phase1,axes,select=select)
 
     def apodize(self,lor,gauss, cos2, hamming, shift, shifting, shiftingAxes, axes,select=slice(None)):
-        if isinstance(select,(str,unicode)):
+        if isinstance(select,basestring):
             select = safeEval(select)
         axes = self.checkAxes(axes)
         if axes == None:
@@ -440,7 +440,7 @@ class Spectrum:
         return lambda self: self.swapEcho(-idx,axes)
             
     def shiftData(self,shift,axes,select=slice(None)):
-        if isinstance(select,(str,unicode)):
+        if isinstance(select,basestring):
             select = safeEval(select)
         axes = self.checkAxes(axes)
         if axes == None:
@@ -1095,23 +1095,43 @@ class Current1D(Plot1DFrame):
     
     def integrate(self,pos1,pos2):
         self.root.addMacro(['integrate',(pos1,pos2,self.axes-self.data.dim,)])
-        return self.data.matrixManip(pos1,pos2,self.axes,0)
+        returnValue = self.data.matrixManip(pos1,pos2,self.axes,0)
+        self.upd()
+        self.plotReset()
+        self.showFid()
+        return returnValue
 
     def maxMatrix(self,pos1,pos2):
         self.root.addMacro(['max',(pos1,pos2,self.axes-self.data.dim,)])
-        return self.data.matrixManip(pos1,pos2,self.axes,1)
+        returnValue = self.data.matrixManip(pos1,pos2,self.axes,1)
+        self.upd()
+        self.plotReset()
+        self.showFid()
+        return returnValue
     
     def minMatrix(self,pos1,pos2):
         self.root.addMacro(['min',(pos1,pos2,self.axes-self.data.dim,)])
-        return self.data.matrixManip(pos1,pos2,self.axes,2)
+        returnValue = self.data.matrixManip(pos1,pos2,self.axes,2)
+        self.upd()
+        self.plotReset()
+        self.showFid()
+        return returnValue
     
     def argmaxMatrix(self,pos1,pos2):
         self.root.addMacro(['argmax',(pos1,pos2,self.axes-self.data.dim,)])
-        return self.data.matrixManip(pos1,pos2,self.axes,3)
+        returnValue = self.data.matrixManip(pos1,pos2,self.axes,3)
+        self.upd()
+        self.plotReset()
+        self.showFid()
+        return returnValue
 
     def argminMatrix(self,pos1,pos2):
         self.root.addMacro(['argmin',(pos1,pos2,self.axes-self.data.dim,)])
-        return self.data.matrixManip(pos1,pos2,self.axes,4)
+        returnValue = self.data.matrixManip(pos1,pos2,self.axes,4)
+        self.upd()
+        self.plotReset()
+        self.showFid()
+        return returnValue
     
     def flipLR(self):
         returnValue = self.data.flipLR(self.axes)
