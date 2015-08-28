@@ -295,12 +295,10 @@ class Spectrum:
         vector = np.exp(np.fft.fftshift(np.fft.fftfreq(self.data.shape[axes],1.0/self.sw[axes]))/self.sw[axes]*phase1*1j)
         if self.spec[axes]==0:
             self.fourier(axes,tmp=True)
-            self.data[select] = self.data[select]*np.exp(phase0*1j)
-            self.data[select] = np.apply_along_axis(np.multiply,axes,self.data,vector)[select]
-            self.fourier(axes,tmp=True)
-        else:
-            self.data[select] = self.data[select]*np.exp(phase0*1j)
-            self.data[select] = np.apply_along_axis(np.multiply,axes,self.data,vector)[select]
+        self.data[select] = self.data[select]*np.exp(phase0*1j)
+        self.data[select] = np.apply_along_axis(np.multiply,axes,self.data,vector)[select]
+        if self.spec[axes]==0:
+            self.fourier(axes,tmp=True,inv=True)
         return lambda self: self.setPhase(-phase0,-phase1,axes,select=select)
 
     def apodize(self,lor,gauss, cos2, hamming, shift, shifting, shiftingAxes, axes,select=slice(None)):
@@ -334,20 +332,14 @@ class Spectrum:
                     x[-1:-(len(x)/2+1):-1]=x[:len(x)/2]
                 if self.spec[axes] > 0:
                     self.fourier(axes,tmp=True)
-                    for i in range(self.data.shape[axes]):
-                        if axes < shiftingAxes:
-                            slicing = (slice(None),) * axes + (i,) + (slice(None),)*(shiftingAxes-1-axes) + (j,) + (slice(None),)*(self.dim-2-shiftingAxes)
-                        else:
-                            slicing = (slice(None),) * shiftingAxes + (j,) + (slice(None),)*(axes-1-shiftingAxes) + (i,) + (slice(None),)*(self.dim-2-axes)
-                        self.data[slicing]=self.data[slicing]*x[i]
-                    self.fourier(axes,tmp=True)
-                else:
-                    for i in range(self.data.shape[axes]):
-                        if axes < shiftingAxes:
-                            slicing = (slice(None),) * axes + (i,) + (slice(None),)*(shiftingAxes-1-axes) + (j,) + (slice(None),)*(self.dim-2-shiftingAxes)
-                        else:
-                            slicing = (slice(None),) * shiftingAxes + (j,) + (slice(None),)*(axes-1-shiftingAxes) + (i,) + (slice(None),)*(self.dim-2-axes)
-                        self.data[slicing]=self.data[slicing]*x[i]
+                for i in range(self.data.shape[axes]):
+                    if axes < shiftingAxes:
+                        slicing = (slice(None),) * axes + (i,) + (slice(None),)*(shiftingAxes-1-axes) + (j,) + (slice(None),)*(self.dim-2-shiftingAxes)
+                    else:
+                        slicing = (slice(None),) * shiftingAxes + (j,) + (slice(None),)*(axes-1-shiftingAxes) + (i,) + (slice(None),)*(self.dim-2-axes)
+                    self.data[slicing]=self.data[slicing]*x[i]
+                if self.spec[axes] > 0:
+                    self.fourier(axes,tmp=True,inv=True)
         else:
             t2 = t - shift
             x=np.ones(axLen)
@@ -364,10 +356,9 @@ class Spectrum:
                 x[-1:-(len(x)/2+1):-1]=x[:len(x)/2]
             if self.spec[axes] > 0:
                 self.fourier(axes,tmp=True)
-                self.data[select] = np.apply_along_axis(np.multiply,axes,self.data,x)[select]
-                self.fourier(axes,tmp=True)
-            else:
-                self.data[select] = np.apply_along_axis(np.multiply,axes,self.data,x)[select]
+            self.data[select] = np.apply_along_axis(np.multiply,axes,self.data,x)[select]
+            if self.spec[axes] > 0:
+                self.fourier(axes,tmp=True,inv=True)
         return returnValue
 
     def setFreq(self,freq,sw,axes):
@@ -402,6 +393,8 @@ class Spectrum:
             return None
         copyData=copy.deepcopy(self)
         returnValue = lambda self: self.restoreData(copyData, lambda self: self.setSize(size,axes))
+        if self.spec[axes] > 0:
+            self.fourier(axes,tmp=True)
         if size > self.data.shape[axes]:
             if self.wholeEcho[axes]:
                 tmpdata = np.array_split(self.data,2,axes)
@@ -416,6 +409,8 @@ class Spectrum:
             else:
                 slicing = (slice(None),) * axes + (slice(0,size),) + (slice(None),)*(self.dim-1-axes)
                 self.data = self.data[slicing]
+        if self.spec[axes] > 0:
+            self.fourier(axes,tmp=True,inv=True)
         self.dim = len(self.data.shape)
         self.resetXax(axes)
         return returnValue
@@ -457,7 +452,7 @@ class Spectrum:
             mask[slice(None,shift)] = 0
         self.data[select] = np.apply_along_axis(np.multiply,axes,self.data,mask)[select]
         if self.spec[axes] > 0:
-            self.fourier(axes,tmp=True)
+            self.fourier(axes,tmp=True,inv=True)
         return returnValue
     
     def LPSVD(self,axes):
@@ -478,23 +473,24 @@ class Spectrum:
         s = s[np.where(np.real(s)<0)[0]]
         a=1
 
-    def fourier(self, axes,tmp=False):
+    def fourier(self, axes,tmp=False,inv=False):
         axes = self.checkAxes(axes)
         if axes == None:
             return None
-        if self.spec[axes]==0:
+        if np.logical_xor(self.spec[axes],inv)==0:
             if not self.wholeEcho[axes] and not tmp:
                 slicing = (slice(None),) * axes + (0,) + (slice(None),)*(self.dim-1-axes)
                 self.data[slicing]= self.data[slicing]*0.5
             self.data=np.fft.fftshift(np.fft.fftn(self.data,axes=[axes]),axes=axes)
-            self.spec[axes]=1
-            
+            if not tmp:
+                self.spec[axes]=1
         else:
             self.data=np.fft.ifftn(np.fft.ifftshift(self.data,axes=axes),axes=[axes])
             if not self.wholeEcho[axes] and not tmp:
                 slicing = (slice(None),) * axes + (0,) + (slice(None),)*(self.dim-1-axes)
                 self.data[slicing]= self.data[slicing]*2.0
-            self.spec[axes]=0
+            if not tmp:
+                self.spec[axes]=0
         self.resetXax(axes)
         return lambda self: self.fourier(axes)
 
@@ -882,30 +878,38 @@ class Current1D(Plot1DFrame):
             length = len(self.data1D[0])
         else:
             length = len(self.data1D)
+        if self.spec==1:
+            tmpdata=self.fourierLocal(self.data1D,1)
+        else:
+            tmpdata = self.data1D
         if size > length:
             if self.wholeEcho:
-                tmpdata = np.array_split(self.data1D,2,axis=(len(self.data1D.shape)-1))
+                tmpdata = np.array_split(tmpdata,2,axis=(len(self.data1D.shape)-1))
                 if len(self.data1D.shape) > 1:
-                    self.data1D = np.concatenate((np.pad(tmpdata[0],((0,0),(0,size-length)),'constant',constant_values=0),tmpdata[1]),axis=1)
+                    tmpdata = np.concatenate((np.pad(tmpdata[0],((0,0),(0,size-length)),'constant',constant_values=0),tmpdata[1]),axis=1)
                 else:
-                    self.data1D = np.concatenate((np.pad(tmpdata[0],(0,size-length),'constant',constant_values=0),tmpdata[1]))
+                    tmpdata = np.concatenate((np.pad(tmpdata[0],(0,size-length),'constant',constant_values=0),tmpdata[1]))
             else:
                 if len(self.data1D.shape) > 1:
-                    self.data1D = np.pad(self.data1D,((0,0),(0,size-length)),'constant',constant_values=0)
+                    tmpdata = np.pad(tmpdata,((0,0),(0,size-length)),'constant',constant_values=0)
                 else:
-                    self.data1D = np.pad(self.data1D,(0,size-length),'constant',constant_values=0)
+                    tmpdata = np.pad(tmpdata,(0,size-length),'constant',constant_values=0)
         else:
             if self.wholeEcho:
-                tmpdata = np.array_split(self.data1D,2,axis=(len(self.data1D.shape)-1))
+                tmpdata = np.array_split(tmpdata,2,axis=(len(self.data1D.shape)-1))
                 if len(self.data1D.shape) > 1:
-                    self.data1D = np.concatenate((tmpdata[0][:,:int(np.ceil(size/2.0))],tmpdata[1][:,(-int(np.ceil(size/2.0))-1):]),axis=1)
+                    tmpdata = np.concatenate((tmpdata[0][:,:int(np.ceil(size/2.0))],tmpdata[1][:,(-int(np.ceil(size/2.0))-1):]),axis=1)
                 else:
-                    self.data1D = np.concatenate((tmpdata[0][:int(np.ceil(size/2.0))],tmpdata[1][(-int(np.ceil(size/2.0))-1):]))
+                    tmpdata = np.concatenate((tmpdata[0][:int(np.ceil(size/2.0))],tmpdata[1][(-int(np.ceil(size/2.0))-1):]))
             else:
                 if len(self.data1D.shape) > 1:
-                    self.data1D = self.data1D[:,:size]
+                    tmpdata = tmpdata[:,:size]
                 else:
-                    self.data1D = self.data1D[:size]
+                    tmpdata = tmpdata[:size]
+        if self.spec==1:
+            self.data1D=self.fourierLocal(tmpdata,0)
+        else:
+            self.data1D = tmpdata
         if len(self.data1D.shape) > 1:
             length = len(self.data1D[0])
         else:
