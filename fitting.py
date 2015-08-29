@@ -2255,7 +2255,7 @@ class MainPlotWindow(Frame):
         self.frame2.grid(row=0,column=1,sticky="ne")
         Label(self.frame2,text='Title').grid(row=0,column=0)
         self.title = StringVar()
-        self.titleBackup = self.ax.get_title()
+        self.titleBackup = ''
         self.title.set(self.titleBackup)
         self.titleEntry = Entry(self.frame2,textvariable=self.title,justify="center")
         self.titleEntry.bind("<Return>", self.updatePlot) 
@@ -2337,7 +2337,7 @@ class MainPlotWindow(Frame):
         self.grid_columnconfigure(0, weight=1)
 
     def updatePlot(self, *args):
-        self.ax.set_title(self.titleEntry.get())
+        self.fig.suptitle(self.titleEntry.get())
         self.ax.set_xlabel(self.xlabelEntry.get())
         self.ax.set_ylabel(self.ylabelEntry.get())
         self.ax.set_xlim((safeEval(self.xlimLeft.get()),safeEval(self.xlimRight.get())))
@@ -2373,7 +2373,7 @@ class MainPlotWindow(Frame):
         self.cancel()
 
     def cancel(self):
-        self.ax.set_title(self.titleBackup)
+        self.fig.suptitle(self.titleBackup)
         self.ax.set_xlabel(self.xlabelBackup)
         self.ax.set_ylabel(self.ylabelBackup)
         self.ax.set_xlim((self.xlimBackup[0],self.xlimBackup[1]))

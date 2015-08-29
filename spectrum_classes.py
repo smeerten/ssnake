@@ -2463,8 +2463,8 @@ class CurrentContour(Current1D):
             self.ax.set_ylim(self.yminlim,self.ymaxlim)
         self.ax.get_xaxis().get_major_formatter().set_powerlimits((-4, 4))
         self.ax.get_yaxis().get_major_formatter().set_powerlimits((-4, 4))
-        self.x_ax.get_yaxis().get_major_formatter().set_powerlimits((-4, 4))
-        self.y_ax.get_xaxis().get_major_formatter().set_powerlimits((-4, 4))
+        self.x_ax.get_yaxis().get_major_formatter().set_powerlimits((-2, 2))
+        self.y_ax.get_xaxis().get_major_formatter().set_powerlimits((-2, 2))
         self.canvas.draw()
 
     def plotReset(self,xReset=True,yReset=True): #set the plot limits to min and max values
