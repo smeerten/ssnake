@@ -637,6 +637,7 @@ class PeakDeconvFrame(Plot1DFrame):
         self.plotType=0
         self.rootwindow = rootwindow
         self.pickNum = 0
+        self.pickWidth = False
         self.plotReset()
         self.showPlot()
 
@@ -735,29 +736,34 @@ class PeakDeconvFrame(Plot1DFrame):
             self.peakPick = False
         
     def pickDeconv(self, pos):
-        self.rootwindow.paramframe.posVal[self.pickNum].set("%.3g" %pos[1])
-        left = pos[0] - 10 #number of points to find the maximum in
-        if left < 0:
-            left = 0
-        right = pos[0] + 10 #number of points to find the maximum in
-        if right >= len(self.data1D) :
-            right = len(self.data1D)-1
-        axAdd = 0
-        if self.current.spec == 1:
-            if self.current.ppm:
-                axAdd = (self.current.freq-self.current.ref)/self.current.ref*1e6
-                axMult = 1e6/self.current.ref
-            else:
-                axMult = 1.0/(1000.0**self.current.axType)
-        elif self.current.spec == 0:
-            axMult = 1000.0**self.current.axType
-        width = (self.current.fwhm(left,right)-axAdd)/axMult
-        self.rootwindow.paramframe.ampVal[self.pickNum].set("%.3g" %(pos[2]*width*0.5*np.pi))
-        self.rootwindow.paramframe.widthVal[self.pickNum].set("%.3g" % abs(width))
-        if self.pickNum < 10:
-            self.rootwindow.paramframe.numExp.set(str(self.pickNum+1))
-            self.rootwindow.paramframe.changeNum()
-        self.pickNum += 1
+        if self.pickWidth:
+            axAdd = 0
+            if self.current.spec == 1:
+                if self.current.ppm:
+                    axAdd = (self.current.freq-self.current.ref)/self.current.ref*1e6
+                    axMult = 1e6/self.current.ref
+                else:
+                    axMult = 1.0/(1000.0**self.current.axType)
+            elif self.current.spec == 0:
+                axMult = 1000.0**self.current.axType
+            width = (2*abs(float(self.rootwindow.paramframe.posVal[self.pickNum].get())-pos[1])-axAdd)/axMult
+            self.rootwindow.paramframe.ampVal[self.pickNum].set("%.3g" %(float(self.rootwindow.paramframe.ampVal[self.pickNum].get())*width))
+            self.rootwindow.paramframe.widthVal[self.pickNum].set("%.3g" % abs(width))
+            self.pickNum += 1
+            self.pickWidth = False
+        else:
+            self.rootwindow.paramframe.posVal[self.pickNum].set("%.3g" %pos[1])
+            left = pos[0] - 10 
+            if left < 0:
+                left = 0
+            right = pos[0] + 10
+            if right >= len(self.data1D) :
+                right = len(self.data1D)-1
+            self.rootwindow.paramframe.ampVal[self.pickNum].set("%.3g" %(pos[2]*0.5*np.pi))
+            if self.pickNum < 10:
+                self.rootwindow.paramframe.numExp.set(str(self.pickNum+1))
+                self.rootwindow.paramframe.changeNum()
+            self.pickWidth = True
         if self.pickNum < 10:
             self.peakPickFunc = lambda pos,self=self: self.pickDeconv(pos) 
             self.peakPick = True 
@@ -860,6 +866,7 @@ class PeakDeconvParamFrame(Frame): #a frame for the relaxtion parameters
                 self.widthCheck[i].grid_remove()
                 self.widthEntries[i].grid_remove()
         self.togglePick()
+        self.parent.pickWidth=False
 
     def changeNum(self,*args):
         val = int(self.numExp.get())
