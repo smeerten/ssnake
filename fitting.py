@@ -1248,7 +1248,7 @@ class TensorDeconvParamFrame(Frame): #a frame for the relaxtion parameters
         Label(self.frame3,text="T22").grid(row=1,column=2,columnspan=2)
         Label(self.frame3,text="T33").grid(row=1,column=4,columnspan=2)
         Label(self.frame3,text="Amplitude").grid(row=1,column=6,columnspan=2)
-        Label(self.frame3,text="Width [Hz]").grid(row=1,column=8,columnspan=2)
+        Label(self.frame3,text="Lorentz [Hz]").grid(row=1,column=8,columnspan=2)
         self.t11Val = []
         self.t11Tick = []
         self.t22Val = []
@@ -1379,14 +1379,13 @@ class TensorDeconvParamFrame(Frame): #a frame for the relaxtion parameters
         t=np.arange(length)/self.parent.current.sw
         final = np.zeros(length)
         mult=v/(self.parent.current.sw)*length
-        x1=np.round(mult)
-        weight = self.weight[np.logical_and(x1>-length,x1<length)]
-        x1 = x1[np.logical_and(x1>-length,x1<length)]
-        for i in range(len(x1)):
-            final[x1[i]] += weight[i]
+        x1=np.array(np.round(mult)+np.floor(length/2.0),dtype=int)
+        weight = self.weight[np.logical_and(x1>=0,x1<length)]
+        x1 = x1[np.logical_and(x1>=0,x1<length)]
+        final = np.bincount(x1,weight,length)
         apod = np.exp(-width*t)
         apod[-1:-(len(apod)/2+1):-1]=apod[:len(apod)/2]
-        I=np.real(np.fft.fftshift(np.fft.fft(np.fft.ifft(final)*apod)))
+        I=np.real(np.fft.fft(np.fft.ifft(final)*apod))
         return I
                 
     def fitFunc(self, param, x, y):
@@ -1790,7 +1789,7 @@ class Quad1DeconvParamFrame(Frame): #a frame for the quadrupole parameters
         Label(self.frame3,text="Cq [MHz]").grid(row=1,column=3,columnspan=2)
         Label(self.frame3,text="Eta").grid(row=1,column=5,columnspan=2)
         Label(self.frame3,text="Amplitude").grid(row=1,column=7,columnspan=2)
-        Label(self.frame3,text="Width [Hz]").grid(row=1,column=9,columnspan=2)
+        Label(self.frame3,text="Lorentz [Hz]").grid(row=1,column=9,columnspan=2)
         self.IVal = []
         self.posVal = []
         self.posTick = []
@@ -1930,15 +1929,14 @@ class Quad1DeconvParamFrame(Frame): #a frame for the quadrupole parameters
         t=np.arange(length)/self.parent.current.sw
         final = np.zeros(length)
         mult=v/(self.parent.current.sw)*length
-        x1=np.round(mult)
-        weights = weights[np.logical_and(x1>-length,x1<length)]
-        x1 = x1[np.logical_and(x1>-length,x1<length)]
-        for i in range(len(x1)):
-            final[x1[i]] += weights[i]
+        x1=np.array(np.round(mult)+np.floor(length/2),dtype=int)
+        weights = weights[np.logical_and(x1>=0,x1<length)]
+        x1 = x1[np.logical_and(x1>=0,x1<length)]
+        final = np.bincount(x1,weights,length)
         apod = np.exp(-width*t)
         apod[-1:-(len(apod)/2+1):-1]=apod[:len(apod)/2]
-        Inten=np.real(np.fft.fftshift(np.fft.fft(np.fft.ifft(final)*apod)))
-        return Inten
+        inten=np.real(np.fft.fft(np.fft.ifft(final)*apod))
+        return inten
                 
     def fitFunc(self, param, x, y):
         numExp = self.args[0]
@@ -2221,15 +2219,14 @@ class Quad2StaticDeconvParamFrame(Quad1DeconvParamFrame): #a frame for the quadr
         t=np.arange(length)/self.parent.current.sw
         final = np.zeros(length)
         mult=v/(self.parent.current.sw)*length
-        x1=np.round(mult)
-        weights = self.weight[np.logical_and(x1>-length,x1<length)]
-        x1 = x1[np.logical_and(x1>-length,x1<length)]
-        for i in range(len(x1)):
-            final[x1[i]] += weights[i]
+        x1=np.array(np.round(mult)+np.floor(length/2),dtype=int)
+        weights = self.weight[np.logical_and(x1>=0,x1<length)]
+        x1 = x1[np.logical_and(x1>=0,x1<length)]
+        final = np.bincount(x1,weights,length)
         apod = np.exp(-width*t)
         apod[-1:-(len(apod)/2+1):-1]=apod[:len(apod)/2]
-        Inten=np.real(np.fft.fftshift(np.fft.fft(np.fft.ifft(final)*apod)))
-        return Inten
+        inten=np.real(np.fft.fft(np.fft.ifft(final)*apod))
+        return inten
     
 #################################################################################
 class Quad2MASDeconvParamFrame(Quad2StaticDeconvParamFrame): #a frame for the quadrupole parameters
