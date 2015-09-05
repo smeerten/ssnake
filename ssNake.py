@@ -68,16 +68,7 @@ class MainProgram:
         self.root.bind_all("<Control-Prior>", lambda args: self.stepWorkspace(-1))
         self.root.bind_all("<Control-Next>", lambda args: self.stepWorkspace(1))
         
-        #the load drop down menu
-        loadmenu = Menu(self.filemenu, tearoff=0)
-        self.filemenu.add_cascade(label="Load", menu=loadmenu)
-        loadmenu.add_command(label="Varian", command=lambda : self.loading(0))
-        loadmenu.add_command(label="Bruker Topspin/XWinNMR", command=lambda : self.loading(1))
-        loadmenu.add_command(label="Chemagnetics", command=lambda : self.loading(2))
-        loadmenu.add_command(label="Magritek", command=lambda : self.loading(3))
-        loadmenu.add_command(label="Simpson", command=lambda : self.loading(4))
-        loadmenu.add_command(label="JSON", command=lambda : self.loading(5))
-        loadmenu.add_command(label="MATLAB", command=lambda : self.loading(6))
+        self.filemenu.add_command(label="Load", command=self.autoLoad)
 
         #the save drop down menu
         self.savemenu = Menu(self.filemenu, tearoff=0)
@@ -314,10 +305,34 @@ class MainProgram:
             self.activemenu.add_radiobutton(label=i,variable=self.workspaceVar,value=i,command=lambda i=i: self.changeMainWindow(i))
         self.menuCheck()
 
-    def loading(self,num):
+    def autoLoad(self):
         filePath = askopenfilename()
         if len(filePath)==0:
             return
+        direc = os.path.dirname(filePath)
+        filename = os.path.basename(filePath)
+        if filename.endswith('.fid') or filename.endswith('.spe'): 
+            self.loading(4,filePath)
+        elif filename.endswith('.json') or filename.endswith('.JSON'):
+            self.loading(5,filePath)
+        elif filename.endswith('.mat') or filename.endswith('.MAT'):
+            self.loading(6,filePath)
+        elif os.path.exists(direc+os.path.sep+'procpar') and os.path.exists(direc+os.path.sep+'fid'):
+            self.loading(0,filePath)
+        elif os.path.exists(direc+os.path.sep+'acqus') and (os.path.exists(direc+os.path.sep+'fid') or os.path.exists(direc+os.path.sep+'ser')):
+            self.loading(1,filePath)
+        elif os.path.exists(direc+os.path.sep+'acq') and os.path.exists(direc+os.path.sep+'data'):
+            self.loading(2,filePath)
+        elif os.path.exists(direc+os.path.sep+'acqu.par'):
+            dirFiles = os.listdir(direc)
+            files2D = [x for x in dirFiles if '.2d' in x]
+            files1D = [x for x in dirFiles if '.1d' in x]
+            if len(files2D)!=0 or len(files1D)!=0:
+                self.loading(3,filePath)
+        else:
+            return
+        
+    def loading(self,num,filePath):
         name = self.askName()
         if name is None:
             return
