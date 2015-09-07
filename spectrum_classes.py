@@ -1884,7 +1884,7 @@ class CurrentStacked(Current1D):
 #########################################################################################################
 #the class from which the arrayed data is displayed, the operations which only edit the content of this class are for previewing
 class CurrentArrayed(Current1D):
-    def __init__(self, root,fig,canvas, data, duplicateCurrent = None):
+    def __init__(self, root,fig,canvas, data, duplicateCurrent=None):
         self.data = data
         if hasattr(duplicateCurrent,'axes2'):
             self.axes2 = duplicateCurrent.axes2

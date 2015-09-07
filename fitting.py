@@ -30,6 +30,7 @@ class RelaxWindow(Frame): #a window for fitting relaxation data
         Frame.__init__(self,rootwindow)
         self.mainProgram = mainProgram
         self.oldMainWindow = oldMainWindow
+        self.name = self.oldMainWindow.name
         self.fig = self.mainProgram.getFig()
         self.canvas = FigureCanvasTkAgg(self.fig, master=weakref.proxy(self))
         self.canvas.get_tk_widget().grid(row=0,column=0,sticky="nswe")
@@ -43,6 +44,11 @@ class RelaxWindow(Frame): #a window for fitting relaxation data
         self.canvas.mpl_connect('motion_notify_event', self.pan)
         self.canvas.mpl_connect('scroll_event', self.scroll)
 
+    def rename(self,name):
+        self.fig.suptitle(name)
+        self.canvas.draw()
+        self.oldMainWindow.rename(name)
+        
     def buttonPress(self,event):
         self.current.buttonPress(event)
 
@@ -578,6 +584,7 @@ class PeakDeconvWindow(Frame): #a window for fitting relaxation data
         Frame.__init__(self,rootwindow)
         self.mainProgram = mainProgram
         self.oldMainWindow = oldMainWindow
+        self.name = self.oldMainWindow.name
         self.fig = self.mainProgram.getFig()
         self.canvas = FigureCanvasTkAgg(self.fig, master=weakref.proxy(self))
         self.canvas.get_tk_widget().grid(row=0,column=0,sticky="nswe")
@@ -590,7 +597,12 @@ class PeakDeconvWindow(Frame): #a window for fitting relaxation data
         self.canvas.mpl_connect('button_release_event', self.buttonRelease)
         self.canvas.mpl_connect('motion_notify_event', self.pan)
         self.canvas.mpl_connect('scroll_event', self.scroll)
-
+        
+    def rename(self,name):
+        self.fig.suptitle(name)
+        self.canvas.draw()
+        self.oldMainWindow.rename(name)
+        
     def buttonPress(self,event):
         self.current.buttonPress(event)
 
@@ -1043,6 +1055,7 @@ class TensorDeconvWindow(Frame): #a window for fitting relaxation data
         Frame.__init__(self,rootwindow)
         self.mainProgram = mainProgram
         self.oldMainWindow = oldMainWindow
+        self.name = self.oldMainWindow.name
         self.fig = self.mainProgram.getFig()
         self.canvas = FigureCanvasTkAgg(self.fig, master=weakref.proxy(self))
         self.canvas.get_tk_widget().grid(row=0,column=0,sticky="nswe")
@@ -1055,7 +1068,12 @@ class TensorDeconvWindow(Frame): #a window for fitting relaxation data
         self.canvas.mpl_connect('button_release_event', self.buttonRelease)
         self.canvas.mpl_connect('motion_notify_event', self.pan)
         self.canvas.mpl_connect('scroll_event', self.scroll)
-
+        
+    def rename(self,name):
+        self.fig.suptitle(name)
+        self.canvas.draw()
+        self.oldMainWindow.rename(name)
+        
     def buttonPress(self,event):
         self.current.buttonPress(event)
 
@@ -1594,6 +1612,7 @@ class Quad1DeconvWindow(Frame): #a window for fitting relaxation data
         Frame.__init__(self,rootwindow)
         self.mainProgram = mainProgram
         self.oldMainWindow = oldMainWindow
+        self.name = self.oldMainWindow.name
         self.fig = self.mainProgram.getFig()
         self.canvas = FigureCanvasTkAgg(self.fig, master=weakref.proxy(self))
         self.canvas.get_tk_widget().grid(row=0,column=0,sticky="nswe")
@@ -1606,6 +1625,11 @@ class Quad1DeconvWindow(Frame): #a window for fitting relaxation data
         self.canvas.mpl_connect('button_release_event', self.buttonRelease)
         self.canvas.mpl_connect('motion_notify_event', self.pan)
         self.canvas.mpl_connect('scroll_event', self.scroll)
+
+    def rename(self,name):
+        self.fig.suptitle(name)
+        self.canvas.draw()
+        self.oldMainWindow.rename(name)
 
     def buttonPress(self,event):
         self.current.buttonPress(event)
@@ -2148,6 +2172,7 @@ class Quad2DeconvWindow(Frame): #a window for fitting second order quadrupole li
         Frame.__init__(self,rootwindow)
         self.mainProgram = mainProgram
         self.oldMainWindow = oldMainWindow
+        self.name = self.oldMainWindow.name
         self.fig = self.mainProgram.getFig()
         self.canvas = FigureCanvasTkAgg(self.fig, master=weakref.proxy(self))
         self.canvas.get_tk_widget().grid(row=0,column=0,sticky="nswe")
@@ -2163,7 +2188,12 @@ class Quad2DeconvWindow(Frame): #a window for fitting second order quadrupole li
         self.canvas.mpl_connect('button_release_event', self.buttonRelease)
         self.canvas.mpl_connect('motion_notify_event', self.pan)
         self.canvas.mpl_connect('scroll_event', self.scroll)
-
+        
+    def rename(self,name):
+        self.fig.suptitle(name)
+        self.canvas.draw()
+        self.oldMainWindow.rename(name)
+        
     def buttonPress(self,event):
         self.current.buttonPress(event)
 
@@ -2259,7 +2289,7 @@ class MainPlotWindow(Frame):
         self.frame2.grid(row=0,column=1,sticky="ne")
         Label(self.frame2,text='Title').grid(row=0,column=0)
         self.title = StringVar()
-        self.titleBackup = ''
+        self.titleBackup = oldMainWindow.name
         self.title.set(self.titleBackup)
         self.titleEntry = Entry(self.frame2,textvariable=self.title,justify="center")
         self.titleEntry.bind("<Return>", self.updatePlot) 
@@ -2339,7 +2369,10 @@ class MainPlotWindow(Frame):
         Button(self.inFrame,text='Cancel',command=self.cancel).grid(row=0,column=1)
         self.rowconfigure(0, weight=1)
         self.grid_columnconfigure(0, weight=1)
-
+        
+    def rename(self,name):
+        self.oldMainWindow.rename(name)
+        
     def updatePlot(self, *args):
         self.fig.suptitle(self.titleEntry.get())
         self.ax.set_xlabel(self.xlabelEntry.get())

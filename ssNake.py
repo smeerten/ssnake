@@ -270,7 +270,7 @@ class MainProgram:
         name = self.askName()
         if name is None:
             return
-        self.workspaces.append(Main1DWindow(self.root,self,copy.deepcopy(self.mainWindow.get_masterData()),self.mainWindow.get_current()))
+        self.workspaces.append(Main1DWindow(self.root,self,copy.deepcopy(self.mainWindow.get_masterData()),self.mainWindow.get_current(),name=name))
         self.workspaceNames.append(name)
         self.changeMainWindow(name)
         
@@ -280,6 +280,7 @@ class MainProgram:
             return
         self.workspaceNames[self.workspaceNum] = name
         self.updWorkspaceMenu(name)
+        self.workspaces[self.workspaceNum].rename(name)
     
     def destroyWorkspace(self, *args):
         self.mainWindow.removeFromView()
@@ -351,7 +352,7 @@ class MainProgram:
         elif num==6:
             masterData = self.loadMatlabFile(filePath)
         if masterData is not None:
-            self.workspaces.append(Main1DWindow(self.root,self,masterData))
+            self.workspaces.append(Main1DWindow(self.root,self,masterData,name=name))
             self.workspaceNames.append(name)
             self.changeMainWindow(name)
             
@@ -696,16 +697,17 @@ class MainProgram:
         self.mainWindow.get_mainWindow().saveMatlabFile()
         
 class Main1DWindow(Frame):
-    def __init__(self,parent,mainProgram,masterData,duplicateCurrent=None):
+    def __init__(self,parent,mainProgram,masterData,duplicateCurrent=None,name=''):
         Frame.__init__(self,parent)
+        self.name = name
         self.fig = mainProgram.getFig()
         self.canvas = FigureCanvasTkAgg(self.fig, master=weakref.proxy(self))
         self.canvas.get_tk_widget().grid(row=0,column=0,sticky="nswe")
-        self.undoList = [] #the list to hold all the undo lambda functions
-        self.redoList = [] #the list to hold all the redo lambda functions
+        self.undoList = [] 
+        self.redoList = []
         self.currentMacro = None
         self.redoMacro = []
-        self.parent = parent #remember your parents
+        self.parent = parent
         self.mainProgram = mainProgram
         self.masterData = masterData
         if duplicateCurrent is not None:
@@ -713,8 +715,6 @@ class Main1DWindow(Frame):
         else:
             self.current = sc.Current1D(self,self.fig,self.canvas,masterData)
         self.menubar = self.mainProgram.menubar
-        #self.current.grid(row=0,column=0,sticky="nswe")
-	#create the sideframe, bottomframe and textframe
         self.sideframe=SideFrame(weakref.proxy(self))
         self.sideframe.grid(row=0,column=2,sticky='n')
         Separator(weakref.proxy(self),orient=VERTICAL).grid(row=0,column=1,rowspan=4,sticky='ns')
@@ -725,13 +725,16 @@ class Main1DWindow(Frame):
         self.textframe.grid(row=3,column=0,sticky='s')  
         self.rowconfigure(0, weight=1)
         self.grid_columnconfigure(0, weight=1)
-        #all the functions that will be called from the menu and the extra frames
-        #connect click events to the canvas
         self.canvas.mpl_connect('button_press_event', self.buttonPress)      
         self.canvas.mpl_connect('button_release_event', self.buttonRelease)
         self.canvas.mpl_connect('motion_notify_event', self.pan)
         self.canvas.mpl_connect('scroll_event', self.scroll)
 
+    def rename(self,name):
+        self.name = name
+        self.fig.suptitle(name)
+        self.canvas.draw()
+        
     def buttonPress(self,event):
         self.current.buttonPress(event)
 
