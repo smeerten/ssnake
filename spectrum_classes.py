@@ -320,9 +320,9 @@ class Spectrum:
                 t2 = t - shift1
                 x=np.ones(axLen)
                 if lor is not None:
-                    x=x*np.exp(-lor*abs(t2))
+                    x=x*np.exp(-np.pi*lor*abs(t2))
                 if gauss is not None:
-                    x=x*np.exp(-(gauss*t2)**2)
+                    x=x*np.exp(-((np.pi*gauss*t2)**2)/(4*np.log(2)))
                 if cos2 is not None:
                     x=x*(np.cos(cos2*(-0.5*shift1*np.pi*self.sw[axes]/axLen+np.linspace(0,0.5*np.pi,axLen)))**2)
                 if hamming is not None:
@@ -344,9 +344,9 @@ class Spectrum:
             t2 = t - shift
             x=np.ones(axLen)
             if lor is not None:
-                x=x*np.exp(-lor*abs(t2))
+                x=x*np.exp(-np.pi*lor*abs(t2))
             if gauss is not None:
-                x=x*np.exp(-(gauss*t2)**2)
+                x=x*np.exp(-((np.pi*gauss*t2)**2)/(4*np.log(2)))
             if cos2 is not None:
                 x=x*(np.cos(cos2*(-0.5*shift*np.pi*self.sw[axes]/axLen+np.linspace(0,0.5*np.pi,axLen)))**2)
             if hamming is not None:
@@ -761,9 +761,9 @@ class Current1D(Plot1DFrame):
         t2=t-shift
         x=np.ones(length)
         if lor is not None:
-            x=x*np.exp(-lor*abs(t2))
+            x=x*np.exp(-np.pi*lor*abs(t2))
         if gauss is not None:
-            x=x*np.exp(-(gauss*t2)**2)
+            x=x*np.exp(-((np.pi*gauss*t2)**2)/(4*np.log(2)))
         if cos2 is not None:
             x=x*(np.cos(cos2*(-0.5*shift*np.pi*self.sw/length+np.linspace(0,0.5*np.pi,len(self.data1D))))**2)
         if hamming is not None:
@@ -1651,9 +1651,9 @@ class CurrentStacked(Current1D):
                     t2 = t - shift1
                     x2=np.ones(len(self.data1D[0]))
                     if lor is not None:
-                        x2=x2*np.exp(-lor*abs(t2))
+                        x2=x2*np.exp(-np.pi*lor*abs(t2))
                     if gauss is not None:
-                        x2=x2*np.exp(-(gauss*t2)**2)
+                        x2=x2*np.exp(-((np.pi*gauss*t2)**2)/(4*np.log(2)))
                     if cos2 is not None:
                         x2=x2*(np.cos(cos2*(-0.5*shift1*np.pi*self.sw/len(self.data1D[0])+np.linspace(0,0.5*np.pi,len(self.data1D[0]))))**2)
                     if hamming is not None:
@@ -1981,9 +1981,9 @@ class CurrentArrayed(Current1D):
                     t2 = t - shift1
                     x2=np.ones(len(self.data1D[0]))
                     if lor is not None:
-                        x2=x2*np.exp(-lor*abs(t2))
+                        x2=x2*np.exp(-np.pi*lor*abs(t2))
                     if gauss is not None:
-                        x2=x2*np.exp(-(gauss*t2)**2)
+                        x2=x2*np.exp(-((np.pi*gauss*t2)**2)/(4*np.log(2)))
                     if cos2 is not None:
                         x2=x2*(np.cos(cos2*(-0.5*shift1*np.pi*self.sw/len(self.data1D[0])+np.linspace(0,0.5*np.pi,len(self.data1D[0]))))**2)
                     if hamming is not None:
@@ -2296,9 +2296,9 @@ class CurrentContour(Current1D):
                     t2 = t - shift1
                     x2=np.ones(len(self.data1D[0]))
                     if lor is not None:
-                        x2=x2*np.exp(-lor*abs(t2))
+                        x2=x2*np.exp(-np.pi*lor*abs(t2))
                     if gauss is not None:
-                        x2=x2*np.exp(-(gauss*t2)**2)
+                        x2=x2*np.exp(-((np.pi*gauss*t2)**2)/(4*np.log(2)))
                     if cos2 is not None:
                         x2=x2*(np.cos(cos2*(-0.5*shift1*np.pi*self.sw/len(self.data1D[0])+np.linspace(0,0.5*np.pi,len(self.data1D[0]))))**2)
                     if hamming is not None:
@@ -2674,9 +2674,9 @@ class CurrentSkewed(Current1D):
                     t2 = t - shift1
                     x2=np.ones(len(self.data1D[0]))
                     if lor is not None:
-                        x2=x2*np.exp(-lor*abs(t2))
+                        x2=x2*np.exp(-np.pi*lor*abs(t2))
                     if gauss is not None:
-                        x2=x2*np.exp(-(gauss*t2)**2)
+                        x2=x2*np.exp(-((np.pi*gauss*t2)**2)/(4*np.log(2)))
                     if cos2 is not None:
                         x2=x2*(np.cos(cos2*(-0.5*shift1*np.pi*self.sw/len(self.data1D[0])+np.linspace(0,0.5*np.pi,len(self.data1D[0]))))**2)
                     if hamming is not None:
