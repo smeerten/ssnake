@@ -6,10 +6,10 @@ import scipy.signal
 import scipy.ndimage
 import copy
 from mpl_toolkits.mplot3d import proj3d
-
+import sys
+from six import string_types
 from spectrumFrame import Plot1DFrame
 from safeEval import safeEval
-import sys
 
 #########################################################################
 #the generic data class
@@ -99,21 +99,21 @@ class Spectrum:
             return None
 
     def add(self,data,dataImag=0,select=slice(None)):
-        if isinstance(select,basestring):
+        if isinstance(select,string_types):
             select = safeEval(select)
         data = np.array(data) + 1j*np.array(dataImag)
         self.data[select] = self.data[select] + data
         return lambda self: self.subtract(data,select=select)
         
     def subtract(self,data,dataImag=0,select=slice(None)):
-        if isinstance(select,basestring):
+        if isinstance(select,string_types):
             select = safeEval(select)
         data = np.array(data) + 1j*np.array(dataImag)
         self.data[select] = self.data[select] - data
         return lambda self: self.add(data,select=select)
 
     def multiply(self,mult,axes,multImag=0,select=slice(None)):
-        if isinstance(select,basestring):
+        if isinstance(select,string_types):
             select = safeEval(select)
         axes = self.checkAxes(axes)
         if axes == None:
@@ -125,7 +125,7 @@ class Spectrum:
         return returnValue
 
     def baselineCorrection(self,baseline,axes,baselineImag = 0,select=slice(None)):
-        if isinstance(select,basestring):
+        if isinstance(select,string_types):
             select = safeEval(select)
         axes = self.checkAxes(axes)
         if axes == None:
@@ -287,7 +287,7 @@ class Spectrum:
         return returnValue
 
     def setPhase(self, phase0, phase1, axes,select=slice(None)):
-        if isinstance(select,basestring):
+        if isinstance(select,string_types):
             select = safeEval(select)
         axes = self.checkAxes(axes)
         if axes == None:
@@ -302,7 +302,7 @@ class Spectrum:
         return lambda self: self.setPhase(-phase0,-phase1,axes,select=select)
 
     def apodize(self,lor,gauss, cos2, hamming, shift, shifting, shiftingAxes, axes,select=slice(None)):
-        if isinstance(select,basestring):
+        if isinstance(select,string_types):
             select = safeEval(select)
         axes = self.checkAxes(axes)
         if axes == None:
@@ -435,7 +435,7 @@ class Spectrum:
         return lambda self: self.swapEcho(-idx,axes)
             
     def shiftData(self,shift,axes,select=slice(None)):
-        if isinstance(select,basestring):
+        if isinstance(select,string_types):
             select = safeEval(select)
         axes = self.checkAxes(axes)
         if axes == None:
@@ -1590,6 +1590,7 @@ class CurrentStacked(Current1D):
     def upd(self): #get new data from the data instance
         if self.data.dim < 2:
             self.root.rescue()
+            return
         if (len(self.locList)+2) != self.data.dim:
             self.resetLocList()
         updateVar = self.data.getBlock(self.axes,self.axes2,self.locList,self.stackBegin, self.stackEnd, self.stackStep)
@@ -1921,6 +1922,7 @@ class CurrentArrayed(Current1D):
     def upd(self): #get new data from the data instance
         if self.data.dim < 2:
             self.root.rescue()
+            return
         if (len(self.locList)+2) != self.data.dim:
             self.resetLocList()
         updateVar = self.data.getBlock(self.axes,self.axes2,self.locList,self.stackBegin, self.stackEnd, self.stackStep)
@@ -2216,6 +2218,7 @@ class CurrentContour(Current1D):
     def upd(self): #get new data from the data instance
         if self.data.dim < 2:
             self.root.rescue()
+            return
         if (len(self.locList)+2) != self.data.dim:
             self.resetLocList()
         updateVar = self.data.getBlock(self.axes,self.axes2,self.locList)
@@ -2605,6 +2608,7 @@ class CurrentSkewed(Current1D):
     def upd(self): #get new data from the data instance
         if self.data.dim < 2:
             self.root.rescue()
+            return
         if (len(self.locList)+2) != self.data.dim:
             self.resetLocList()
         updateVar = self.data.getBlock(self.axes,self.axes2,self.locList,self.stackBegin, self.stackEnd, self.stackStep)

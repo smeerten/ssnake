@@ -490,7 +490,6 @@ class RelaxParamFrame(Frame): #a frame for the relaxtion parameters
         return amplitude*(constant+testFunc)
 
     def fit(self,*args):
-        #structure of the fitting arguments is : [amp,cost, coeff1, t1, coeff2, t2, coeff3, t3, coeff4, t4]
         struc = []
         guess = []
         argu = []
@@ -821,18 +820,23 @@ class PeakDeconvParamFrame(Frame): #a frame for the relaxtion parameters
         Label(self.frame3,text="Position").grid(row=1,column=0,columnspan=2)
         Label(self.frame3,text="Amplitude").grid(row=1,column=2,columnspan=2)
         Label(self.frame3,text="Lorentz [Hz]").grid(row=1,column=4,columnspan=2)
+        Label(self.frame3,text="Gauss [Hz]").grid(row=1,column=6,columnspan=2)
         self.posVal = []
         self.posTick = []
         self.ampVal = []
         self.ampTick = []
         self.widthVal = []
         self.widthTick = []
+        self.gaussVal = []
+        self.gaussTick = []
         self.posCheck = []
         self.posEntries = []
         self.ampCheck = []
         self.ampEntries = []
         self.widthCheck = []
         self.widthEntries = []
+        self.gaussCheck = []
+        self.gaussEntries = []
 
         for i in range(10):
             self.posVal.append(StringVar())
@@ -841,6 +845,8 @@ class PeakDeconvParamFrame(Frame): #a frame for the relaxtion parameters
             self.ampTick.append(IntVar())
             self.widthVal.append(StringVar())
             self.widthTick.append(IntVar())
+            self.gaussVal.append(StringVar())
+            self.gaussTick.append(IntVar())
             self.posCheck.append(Checkbutton(self.frame3,variable=self.posTick[i]))
             self.posCheck[i].grid(row=i+2,column=0)
             self.posEntries.append(Entry(self.frame3,textvariable=self.posVal[i],justify="center",width=10))
@@ -853,6 +859,10 @@ class PeakDeconvParamFrame(Frame): #a frame for the relaxtion parameters
             self.widthCheck[i].grid(row=i+2,column=4)
             self.widthEntries.append(Entry(self.frame3,textvariable=self.widthVal[i],justify="center",width=10))
             self.widthEntries[i].grid(row=i+2,column=5)
+            self.gaussCheck.append(Checkbutton(self.frame3,variable=self.gaussTick[i]))
+            self.gaussCheck[i].grid(row=i+2,column=6)
+            self.gaussEntries.append(Entry(self.frame3,textvariable=self.gaussVal[i],justify="center",width=10))
+            self.gaussEntries[i].grid(row=i+2,column=7)
         self.reset()
 
     def reset(self):
@@ -870,6 +880,8 @@ class PeakDeconvParamFrame(Frame): #a frame for the relaxtion parameters
             self.ampTick[i].set(0)
             self.widthVal[i].set("1.0")
             self.widthTick[i].set(0)
+            self.gaussVal[i].set("0.0")
+            self.gaussTick[i].set(1)
             if i > 0:
                 self.posCheck[i].grid_remove()
                 self.posEntries[i].grid_remove()
@@ -877,8 +889,11 @@ class PeakDeconvParamFrame(Frame): #a frame for the relaxtion parameters
                 self.ampEntries[i].grid_remove()
                 self.widthCheck[i].grid_remove()
                 self.widthEntries[i].grid_remove()
+                self.gaussCheck[i].grid_remove()
+                self.gaussEntries[i].grid_remove()
         self.togglePick()
         self.parent.pickWidth=False
+        self.parent.showPlot()
 
     def changeNum(self,*args):
         val = int(self.numExp.get())
@@ -890,6 +905,8 @@ class PeakDeconvParamFrame(Frame): #a frame for the relaxtion parameters
                 self.ampEntries[i].grid()
                 self.widthCheck[i].grid()
                 self.widthEntries[i].grid()
+                self.gaussCheck[i].grid()
+                self.gaussEntries[i].grid()
             else:
                 self.posCheck[i].grid_remove()
                 self.posEntries[i].grid_remove()
@@ -897,6 +914,8 @@ class PeakDeconvParamFrame(Frame): #a frame for the relaxtion parameters
                 self.ampEntries[i].grid_remove()
                 self.widthCheck[i].grid_remove()
                 self.widthEntries[i].grid_remove()
+                self.gaussCheck[i].grid_remove()
+                self.gaussEntries[i].grid_remove()
 
     def togglePick(self):
         self.parent.togglePick(self.pickTick.get())
@@ -918,26 +937,35 @@ class PeakDeconvParamFrame(Frame): #a frame for the relaxtion parameters
         else:
             slope = argu[0]
             argu=np.delete(argu,[0])
-        for i in range(1,numExp+1):
-            if struc[3*i-1]:
+        for i in range(numExp):
+            if struc[4*i+2]:
                 pos = param[0]
                 param=np.delete(param,[0])
             else:
                 pos= argu[0]
                 argu=np.delete(argu,[0])
-            if struc[3*i]:
+            if struc[4*i+3]:
                 amp = param[0]
                 param=np.delete(param,[0])
             else:
                 amp= argu[0]
                 argu=np.delete(argu,[0])
-            if struc[3*i+1]:
+            if struc[4*i+4]:
                 width = abs(param[0])
                 param=np.delete(param,[0])
             else:
                 width = argu[0]
                 argu=np.delete(argu,[0])
-            testFunc += amp/np.pi*0.5*width/((x-(pos-self.axAdd)/self.axMult)**2+(0.5*width)**2)
+            if struc[4*i+5]:
+                gauss = abs(param[0])
+                param=np.delete(param,[0])
+            else:
+                gauss = argu[0]
+                argu=np.delete(argu,[0])
+            t=np.arange(len(x))/self.parent.current.sw
+            timeSignal = np.exp(1j*2*np.pi*t*((pos-self.axAdd)/self.axMult))/len(x)*np.exp(-np.pi*width*t)*np.exp(-((np.pi*gauss*t)**2)/(4*np.log(2)))
+            testFunc += amp*np.real(np.fft.fftshift(np.fft.fft(timeSignal)))
+            #testFunc += amp/np.pi*0.5*width/((x-(pos-self.axAdd)/self.axMult)**2+(0.5*width)**2)
         testFunc += bgrnd+slope*x
         return testFunc
 
@@ -950,6 +978,7 @@ class PeakDeconvParamFrame(Frame): #a frame for the relaxtion parameters
         outPos = np.zeros(numExp)
         outAmp = np.zeros(numExp)
         outWidth = np.zeros(numExp)
+        outGauss = np.zeros(numExp)
         if self.bgrndTick.get() == 0:
             guess.append(safeEval(self.bgrndVal.get()))
             struc.append(True)
@@ -996,6 +1025,15 @@ class PeakDeconvParamFrame(Frame): #a frame for the relaxtion parameters
                 outWidth[i] = inp
                 self.widthVal[i].set('%.3g' % inp)
                 struc.append(False)
+            if self.gaussTick[i].get() == 0:
+                guess.append(abs(safeEval(self.gaussVal[i].get())))
+                struc.append(True)
+            else:
+                inp = abs(safeEval(self.gaussVal[i].get()))
+                argu.append(inp)
+                outGauss[i] = inp
+                self.gaussVal[i].set('%.3g' % inp)
+                struc.append(False)
         self.args = (numExp,struc,argu)
         fitVal = scipy.optimize.curve_fit(self.fitFunc,self.parent.xax,self.parent.data1D,p0=guess)
         counter = 0
@@ -1007,26 +1045,31 @@ class PeakDeconvParamFrame(Frame): #a frame for the relaxtion parameters
             self.slopeVal.set('%.3g' % fitVal[0][counter])
             outSlope = fitVal[0][counter]
             counter +=1
-        for i in range(1,numExp+1):
-            if struc[3*i-1]:
+        for i in range(numExp):
+            if struc[4*i+2]:
                 self.posVal[i-1].set('%.3g' % fitVal[0][counter])
                 outPos[i-1] = fitVal[0][counter]
                 counter += 1
-            if struc[3*i]:
+            if struc[4*i+3]:
                 self.ampVal[i-1].set('%.3g' % fitVal[0][counter])
                 outAmp[i-1] = fitVal[0][counter]
                 counter += 1
-            if struc[3*i+1]:
+            if struc[4*i+4]:
                 self.widthVal[i-1].set('%.3g' % abs(fitVal[0][counter]))
                 outWidth[i-1] = abs(fitVal[0][counter])
                 counter += 1
-        self.disp(outBgrnd, outSlope, outAmp, outPos, outWidth)
+            if struc[4*i+5]:
+                self.gaussVal[i-1].set('%.3g' % abs(fitVal[0][counter]))
+                outGauss[i-1] = abs(fitVal[0][counter])
+                counter += 1
+        self.disp(outBgrnd, outSlope, outAmp, outPos, outWidth, outGauss)
 
     def sim(self):
         numExp = int(self.numExp.get())
         outPos = np.zeros(numExp)
         outAmp = np.zeros(numExp)
         outWidth = np.zeros(numExp)
+        outGauss = np.zeros(numExp)
         outBgrnd = safeEval(self.bgrndVal.get())
         outSlope = safeEval(self.slopeVal.get())
         for i in range(numExp):
@@ -1034,17 +1077,21 @@ class PeakDeconvParamFrame(Frame): #a frame for the relaxtion parameters
             outAmp[i] = safeEval(self.ampVal[i].get())
             outWidth[i] = abs(safeEval(self.widthVal[i].get()))
             self.widthVal[i].set('%.3g' % outWidth[i])
-        self.disp(outBgrnd, outSlope, outAmp, outPos, outWidth)
+            outGauss[i] = abs(safeEval(self.gaussVal[i].get()))
+            self.gaussVal[i].set('%.3g' % outGauss[i])
+        self.disp(outBgrnd, outSlope, outAmp, outPos, outWidth, outGauss)
 
-    def disp(self, outBgrnd, outSlope, outAmp, outPos, outWidth):
+    def disp(self, outBgrnd, outSlope, outAmp, outPos, outWidth, outGauss):
         tmpx = self.parent.xax
         outCurveBase = outBgrnd + tmpx*outSlope
         outCurve = outCurveBase.copy()
         outCurvePart = []
         x=[]
+        t=np.arange(len(tmpx))/self.parent.current.sw
         for i in range(len(outAmp)):
             x.append(tmpx)
-            y =  outAmp[i]/np.pi*0.5*outWidth[i]/((tmpx-(outPos[i]-self.axAdd)/self.axMult)**2+(0.5*outWidth[i])**2)
+            timeSignal = np.exp(1j*2*np.pi*t*((outPos[i]-self.axAdd)/self.axMult))/len(tmpx)*np.exp(-np.pi*outWidth[i]*t)*np.exp(-((np.pi*outGauss[i]*t)**2)/(4*np.log(2)))
+            y = outAmp[i]*np.real(np.fft.fftshift(np.fft.fft(timeSignal)))
             outCurvePart.append(outCurveBase + y)
             outCurve += y
         self.parent.showPlot(tmpx, outCurve, x, outCurvePart)
@@ -1267,6 +1314,7 @@ class TensorDeconvParamFrame(Frame): #a frame for the relaxtion parameters
         Label(self.frame3,text="T33").grid(row=1,column=4,columnspan=2)
         Label(self.frame3,text="Amplitude").grid(row=1,column=6,columnspan=2)
         Label(self.frame3,text="Lorentz [Hz]").grid(row=1,column=8,columnspan=2)
+        Label(self.frame3,text="Gauss [Hz]").grid(row=1,column=10,columnspan=2)
         self.t11Val = []
         self.t11Tick = []
         self.t22Val = []
@@ -1277,6 +1325,8 @@ class TensorDeconvParamFrame(Frame): #a frame for the relaxtion parameters
         self.ampTick = []
         self.widthVal = []
         self.widthTick = []
+        self.gaussVal = []
+        self.gaussTick = []
         self.t11Check = []
         self.t11Entries = []
         self.t22Check = []
@@ -1287,6 +1337,8 @@ class TensorDeconvParamFrame(Frame): #a frame for the relaxtion parameters
         self.ampEntries = []
         self.widthCheck = []
         self.widthEntries = []
+        self.gaussCheck = []
+        self.gaussEntries = []
 
         for i in range(10):
             self.t11Val.append(StringVar())
@@ -1299,6 +1351,8 @@ class TensorDeconvParamFrame(Frame): #a frame for the relaxtion parameters
             self.ampTick.append(IntVar())
             self.widthVal.append(StringVar())
             self.widthTick.append(IntVar())
+            self.gaussVal.append(StringVar())
+            self.gaussTick.append(IntVar())
             self.t11Check.append(Checkbutton(self.frame3,variable=self.t11Tick[i]))
             self.t11Check[i].grid(row=i+2,column=0)
             self.t11Entries.append(Entry(self.frame3,textvariable=self.t11Val[i],justify="center",width=10))
@@ -1319,6 +1373,10 @@ class TensorDeconvParamFrame(Frame): #a frame for the relaxtion parameters
             self.widthCheck[i].grid(row=i+2,column=8)
             self.widthEntries.append(Entry(self.frame3,textvariable=self.widthVal[i],justify="center",width=10))
             self.widthEntries[i].grid(row=i+2,column=9)
+            self.gaussCheck.append(Checkbutton(self.frame3,variable=self.gaussTick[i]))
+            self.gaussCheck[i].grid(row=i+2,column=10)
+            self.gaussEntries.append(Entry(self.frame3,textvariable=self.gaussVal[i],justify="center",width=10))
+            self.gaussEntries[i].grid(row=i+2,column=11)
         self.reset()
 
     def reset(self):
@@ -1342,6 +1400,8 @@ class TensorDeconvParamFrame(Frame): #a frame for the relaxtion parameters
             self.ampTick[i].set(0)
             self.widthVal[i].set("10.0")
             self.widthTick[i].set(1)
+            self.gaussVal[i].set("0.0")
+            self.gaussTick[i].set(1)
             if i > 0:
                 self.t11Check[i].grid_remove()
                 self.t11Entries[i].grid_remove()
@@ -1353,7 +1413,10 @@ class TensorDeconvParamFrame(Frame): #a frame for the relaxtion parameters
                 self.ampEntries[i].grid_remove()
                 self.widthCheck[i].grid_remove()
                 self.widthEntries[i].grid_remove()
+                self.gaussCheck[i].grid_remove()
+                self.gaussEntries[i].grid_remove()
         self.togglePick()
+        self.parent.showPlot()
 
     def togglePick(self):
         self.parent.togglePick(self.pickTick.get())
@@ -1376,6 +1439,8 @@ class TensorDeconvParamFrame(Frame): #a frame for the relaxtion parameters
                 self.ampEntries[i].grid()
                 self.widthCheck[i].grid()
                 self.widthEntries[i].grid()
+                self.gaussCheck[i].grid()
+                self.gaussEntries[i].grid()
             else:
                 self.t11Check[i].grid_remove()
                 self.t11Entries[i].grid_remove()
@@ -1387,8 +1452,10 @@ class TensorDeconvParamFrame(Frame): #a frame for the relaxtion parameters
                 self.ampEntries[i].grid_remove()
                 self.widthCheck[i].grid_remove()
                 self.widthEntries[i].grid_remove()
+                self.gaussCheck[i].grid_remove()
+                self.gaussEntries[i].grid_remove()
 
-    def tensorFunc(self, x, t11, t22, t33, width):
+    def tensorFunc(self, x, t11, t22, t33, lor, gauss):
         t11=t11*self.multt11
         t22=t22*self.multt22
         t33=t33*self.multt33
@@ -1401,7 +1468,7 @@ class TensorDeconvParamFrame(Frame): #a frame for the relaxtion parameters
         weight = self.weight[np.logical_and(x1>=0,x1<length)]
         x1 = x1[np.logical_and(x1>=0,x1<length)]
         final = np.bincount(x1,weight,length)
-        apod = np.exp(-width*t)
+        apod = np.exp(-np.pi*lor*t)*np.exp(-((np.pi*gauss*t)**2)/(4*np.log(2)))
         apod[-1:-(len(apod)/2+1):-1]=apod[:len(apod)/2]
         I=np.real(np.fft.fft(np.fft.ifft(final)*apod))
         return I
@@ -1424,41 +1491,47 @@ class TensorDeconvParamFrame(Frame): #a frame for the relaxtion parameters
             slope = argu[0]
             argu=np.delete(argu,[0])
         for i in range(numExp):
-            if struc[5*i+2]:
+            if struc[6*i+2]:
                 t11 = param[0]
                 param=np.delete(param,[0])
             else:
                 t11= argu[0]
                 argu=np.delete(argu,[0])
-            if struc[5*i+3]:
+            if struc[6*i+3]:
                 t22 = param[0]
                 param=np.delete(param,[0])
             else:
                 t22= argu[0]
                 argu=np.delete(argu,[0])
-            if struc[5*i+4]:
+            if struc[6*i+4]:
                 t33 = param[0]
                 param=np.delete(param,[0])
             else:
                 t33= argu[0]
                 argu=np.delete(argu,[0])
-            if struc[5*i+5]:
+            if struc[6*i+5]:
                 amp = param[0]
                 param=np.delete(param,[0])
             else:
                 amp= argu[0]
                 argu=np.delete(argu,[0])
-            if struc[5*i+6]:
+            if struc[6*i+6]:
                 width = abs(param[0])
                 param=np.delete(param,[0])
             else:
                 width = argu[0]
                 argu=np.delete(argu,[0])
-            testFunc += amp*self.tensorFunc(x,t11,t22,t33,width)
+            if struc[6*i+7]:
+                gauss = abs(param[0])
+                param=np.delete(param,[0])
+            else:
+                gauss = argu[0]
+                argu=np.delete(argu,[0])
+            testFunc += amp*self.tensorFunc(x,t11,t22,t33,width,gauss)
         testFunc += bgrnd+slope*x
         return np.sum((np.real(testFunc)-y)**2)
 
-    def disp(self,outBgrnd,outSlope,outt11,outt22,outt33,outAmp,outWidth):
+    def disp(self,outBgrnd,outSlope,outt11,outt22,outt33,outAmp,outWidth,outGauss):
         tmpx = self.parent.xax
         outCurveBase = outBgrnd + tmpx*outSlope
         outCurve = outCurveBase.copy()
@@ -1466,7 +1539,7 @@ class TensorDeconvParamFrame(Frame): #a frame for the relaxtion parameters
         x=[]
         for i in range(len(outt11)):
             x.append(tmpx)
-            y =  outAmp[i]*self.tensorFunc(tmpx,outt11[i],outt22[i],outt33[i],outWidth[i])
+            y =  outAmp[i]*self.tensorFunc(tmpx,outt11[i],outt22[i],outt33[i],outWidth[i],outGauss[i])
             outCurvePart.append(outCurveBase + y)
             outCurve += y
         self.parent.showPlot(tmpx, outCurve, x, outCurvePart)
@@ -1482,6 +1555,7 @@ class TensorDeconvParamFrame(Frame): #a frame for the relaxtion parameters
         outt33 = np.zeros(numExp)
         outAmp = np.zeros(numExp)
         outWidth = np.zeros(numExp)
+        outGauss = np.zeros(numExp)
         if self.bgrndTick.get() == 0:
             guess.append(safeEval(self.bgrndVal.get()))
             struc.append(True)
@@ -1546,6 +1620,15 @@ class TensorDeconvParamFrame(Frame): #a frame for the relaxtion parameters
                 outWidth[i] = inp
                 self.widthVal[i].set('%.2g' % inp)
                 struc.append(False)
+            if self.gaussTick[i].get() == 0:
+                guess.append(abs(safeEval(self.gaussVal[i].get())))
+                struc.append(True)
+            else:
+                inp = abs(safeEval(self.gaussVal[i].get()))
+                argu.append(inp)
+                outGauss[i] = inp
+                self.gaussVal[i].set('%.2g' % inp)
+                struc.append(False)
         self.args = (numExp,struc,argu)
         phi,theta,self.weight = zcw_angles(self.cheng,symm=2)
         self.multt11=np.sin(theta)**2*np.cos(phi)**2
@@ -1562,27 +1645,31 @@ class TensorDeconvParamFrame(Frame): #a frame for the relaxtion parameters
             outSlope = fitVal[counter]
             counter +=1
         for i in range(numExp):
-            if struc[5*i+2]:
+            if struc[6*i+2]:
                 self.t11Val[i].set('%.2g' % fitVal[counter])
                 outt11[i] = fitVal[counter]
                 counter += 1
-            if struc[5*i+3]:
+            if struc[6*i+3]:
                 self.t22Val[i].set('%.2g' % fitVal[counter])
                 outt22[i] = fitVal[counter]
                 counter += 1
-            if struc[5*i+4]:
+            if struc[6*i+4]:
                 self.t33Val[i].set('%.2g' % fitVal[counter])
                 outt33[i] = fitVal[counter]
                 counter += 1
-            if struc[5*i+5]:
+            if struc[6*i+5]:
                 self.ampVal[i].set('%.2g' % fitVal[counter])
                 outAmp[i] = fitVal[counter]
                 counter += 1
-            if struc[5*i+6]:
+            if struc[6*i+6]:
                 self.widthVal[i].set('%.2g' % abs(fitVal[counter]))
                 outWidth[i] = abs(fitVal[counter])
                 counter += 1
-        self.disp(outBgrnd,outSlope,outt11,outt22,outt33,outAmp,outWidth)
+            if struc[6*i+7]:
+                self.gaussVal[i].set('%.2g' % abs(fitVal[counter]))
+                outGauss[i] = abs(fitVal[counter])
+                counter += 1
+        self.disp(outBgrnd,outSlope,outt11,outt22,outt33,outAmp,outWidth,outGauss)
 
     def sim(self):
         self.setCheng()
@@ -1594,17 +1681,19 @@ class TensorDeconvParamFrame(Frame): #a frame for the relaxtion parameters
         t33 = np.zeros(numExp)
         amp = np.zeros(numExp)
         width = np.zeros(numExp)
+        gauss = np.zeros(numExp)
         for i in range(numExp):
             t11[i] = safeEval(self.t11Val[i].get())
             t22[i] = safeEval(self.t22Val[i].get())
             t33[i] = safeEval(self.t33Val[i].get())
             amp[i] = safeEval(self.ampVal[i].get())
             width[i] = safeEval(self.widthVal[i].get())
+            gauss[i] = safeEval(self.gaussVal[i].get())
         phi,theta,self.weight = zcw_angles(self.cheng,symm=2)
         self.multt11=np.sin(theta)**2*np.cos(phi)**2
         self.multt22=np.sin(theta)**2*np.sin(phi)**2
         self.multt33=np.cos(theta)**2
-        self.disp(bgrnd,slope,t11,t22,t33,amp,width)
+        self.disp(bgrnd,slope,t11,t22,t33,amp,width,gauss)
         
 ##############################################################################
 class Quad1DeconvWindow(Frame): #a window for fitting relaxation data
@@ -1814,6 +1903,7 @@ class Quad1DeconvParamFrame(Frame): #a frame for the quadrupole parameters
         Label(self.frame3,text="Eta").grid(row=1,column=5,columnspan=2)
         Label(self.frame3,text="Amplitude").grid(row=1,column=7,columnspan=2)
         Label(self.frame3,text="Lorentz [Hz]").grid(row=1,column=9,columnspan=2)
+        Label(self.frame3,text="Gauss [Hz]").grid(row=1,column=11,columnspan=2)
         self.IVal = []
         self.posVal = []
         self.posTick = []
@@ -1825,6 +1915,8 @@ class Quad1DeconvParamFrame(Frame): #a frame for the quadrupole parameters
         self.ampTick = []
         self.widthVal = []
         self.widthTick = []
+        self.gaussVal = []
+        self.gaussTick = []
         self.IDrop = []
         self.posCheck = []
         self.posEntries = []
@@ -1836,6 +1928,8 @@ class Quad1DeconvParamFrame(Frame): #a frame for the quadrupole parameters
         self.ampEntries = []
         self.widthCheck = []
         self.widthEntries = []
+        self.gaussCheck = []
+        self.gaussEntries = []
 
         for i in range(10):
             self.IVal.append(StringVar())
@@ -1856,6 +1950,10 @@ class Quad1DeconvParamFrame(Frame): #a frame for the quadrupole parameters
             self.widthVal[i].set("10.0")
             self.widthTick.append(IntVar())
             self.widthTick[i].set(1)
+            self.gaussVal.append(StringVar())
+            self.gaussVal[i].set("0.0")
+            self.gaussTick.append(IntVar())
+            self.gaussTick[i].set(1)
             self.IDrop.append(OptionMenu(self.frame3,self.IVal[i],self.IVal[i].get(),*self.Ioptions))
             self.IDrop[i].grid(row=i+2,column=0)
             self.posCheck.append(Checkbutton(self.frame3,variable=self.posTick[i]))
@@ -1878,6 +1976,10 @@ class Quad1DeconvParamFrame(Frame): #a frame for the quadrupole parameters
             self.widthCheck[i].grid(row=i+2,column=9)
             self.widthEntries.append(Entry(self.frame3,textvariable=self.widthVal[i],justify="center",width=10))
             self.widthEntries[i].grid(row=i+2,column=10)
+            self.gaussCheck.append(Checkbutton(self.frame3,variable=self.gaussTick[i]))
+            self.gaussCheck[i].grid(row=i+2,column=11)
+            self.gaussEntries.append(Entry(self.frame3,textvariable=self.gaussVal[i],justify="center",width=10))
+            self.gaussEntries[i].grid(row=i+2,column=12)
             if i > 0:
                 self.IDrop[i].grid_remove()
                 self.posCheck[i].grid_remove()
@@ -1890,6 +1992,8 @@ class Quad1DeconvParamFrame(Frame): #a frame for the quadrupole parameters
                 self.ampEntries[i].grid_remove()
                 self.widthCheck[i].grid_remove()
                 self.widthEntries[i].grid_remove()
+                self.gaussCheck[i].grid_remove()
+                self.gaussEntries[i].grid_remove()
 
     def checkI(self,I):
         if I == '1':
@@ -1928,6 +2032,8 @@ class Quad1DeconvParamFrame(Frame): #a frame for the quadrupole parameters
                 self.ampEntries[i].grid()
                 self.widthCheck[i].grid()
                 self.widthEntries[i].grid()
+                self.gaussCheck[i].grid()
+                self.gaussEntries[i].grid()
             else:
                 self.IDrop[i].grid_remove()
                 self.posCheck[i].grid_remove()
@@ -1940,8 +2046,10 @@ class Quad1DeconvParamFrame(Frame): #a frame for the quadrupole parameters
                 self.ampEntries[i].grid_remove()
                 self.widthCheck[i].grid_remove()
                 self.widthEntries[i].grid_remove()
+                self.gaussCheck[i].grid_remove()
+                self.gaussEntries[i].grid_remove()
 
-    def tensorFunc(self, x, I, pos, cq, eta, width):
+    def tensorFunc(self, x, I, pos, cq, eta, width, gauss):
         m=np.arange(-I,I)
         v=[]
         weights=[]
@@ -1957,7 +2065,7 @@ class Quad1DeconvParamFrame(Frame): #a frame for the quadrupole parameters
         weights = weights[np.logical_and(x1>=0,x1<length)]
         x1 = x1[np.logical_and(x1>=0,x1<length)]
         final = np.bincount(x1,weights,length)
-        apod = np.exp(-width*t)
+        apod = np.exp(-np.pi*width*t)*np.exp(-((np.pi*gauss*t)**2)/(4*np.log(2)))
         apod[-1:-(len(apod)/2+1):-1]=apod[:len(apod)/2]
         inten=np.real(np.fft.fft(np.fft.ifft(final)*apod))
         return inten
@@ -1981,41 +2089,47 @@ class Quad1DeconvParamFrame(Frame): #a frame for the quadrupole parameters
             slope = argu[0]
             argu=np.delete(argu,[0])
         for i in range(numExp):
-            if struc[5*i+2]:
+            if struc[6*i+2]:
                 pos = param[0]
                 param=np.delete(param,[0])
             else:
                 pos= argu[0]
                 argu=np.delete(argu,[0])
-            if struc[5*i+3]:
+            if struc[6*i+3]:
                 cq = param[0]
                 param=np.delete(param,[0])
             else:
                 cq= argu[0]
                 argu=np.delete(argu,[0])
-            if struc[5*i+4]:
+            if struc[6*i+4]:
                 eta = param[0]
                 param=np.delete(param,[0])
             else:
                 eta= argu[0]
                 argu=np.delete(argu,[0])
-            if struc[5*i+5]:
+            if struc[6*i+5]:
                 amp = param[0]
                 param=np.delete(param,[0])
             else:
                 amp= argu[0]
                 argu=np.delete(argu,[0])
-            if struc[5*i+6]:
+            if struc[6*i+6]:
                 width = abs(param[0])
                 param=np.delete(param,[0])
             else:
                 width = argu[0]
                 argu=np.delete(argu,[0])
-            testFunc += amp*self.tensorFunc(x,I[i],pos,cq,eta,width)
+            if struc[6*i+7]:
+                gauss = abs(param[0])
+                param=np.delete(param,[0])
+            else:
+                gauss = argu[0]
+                argu=np.delete(argu,[0])
+            testFunc += amp*self.tensorFunc(x,I[i],pos,cq,eta,width,gauss)
         testFunc += bgrnd+slope*x
         return np.sum((np.real(testFunc)-y)**2)
 
-    def disp(self,outBgrnd,outSlope,outI,outPos,outCq,outEta,outAmp,outWidth):
+    def disp(self,outBgrnd,outSlope,outI,outPos,outCq,outEta,outAmp,outWidth,outGauss):
         tmpx = self.parent.xax
         outCurveBase = outBgrnd + tmpx*outSlope
         outCurve = outCurveBase.copy()
@@ -2023,7 +2137,7 @@ class Quad1DeconvParamFrame(Frame): #a frame for the quadrupole parameters
         x=[]
         for i in range(len(outPos)):
             x.append(tmpx)
-            y =  outAmp[i]*self.tensorFunc(tmpx,outI[i],outPos[i],outCq[i],outEta[i],outWidth[i])
+            y =  outAmp[i]*self.tensorFunc(tmpx,outI[i],outPos[i],outCq[i],outEta[i],outWidth[i],outGauss[i])
             outCurvePart.append(outCurveBase + y)
             outCurve += y
         self.parent.showPlot(tmpx, outCurve, x, outCurvePart)
@@ -2045,6 +2159,7 @@ class Quad1DeconvParamFrame(Frame): #a frame for the quadrupole parameters
         outEta = np.zeros(numExp)
         outAmp = np.zeros(numExp)
         outWidth = np.zeros(numExp)
+        outGauss = np.zeros(numExp)
         if self.bgrndTick.get() == 0:
             guess.append(safeEval(self.bgrndVal.get()))
             struc.append(True)
@@ -2109,6 +2224,15 @@ class Quad1DeconvParamFrame(Frame): #a frame for the quadrupole parameters
                 outWidth[i] = inp
                 self.widthVal[i].set('%.2g' % inp)
                 struc.append(False)
+            if self.gaussTick[i].get() == 0:
+                guess.append(abs(safeEval(self.gaussVal[i].get())))
+                struc.append(True)
+            else:
+                inp = abs(safeEval(self.gaussVal[i].get()))
+                argu.append(inp)
+                outGauss[i] = inp
+                self.gaussVal[i].set('%.2g' % inp)
+                struc.append(False)
             I.append(self.checkI(self.IVal[i].get()))
         self.args = (numExp,struc,argu,I)
         self.setAngleStuff()
@@ -2123,27 +2247,31 @@ class Quad1DeconvParamFrame(Frame): #a frame for the quadrupole parameters
             outSlope = fitVal[counter]
             counter +=1
         for i in range(numExp):
-            if struc[5*i+2]:
+            if struc[6*i+2]:
                 self.posVal[i].set('%.2g' % fitVal[counter])
                 outPos[i] = fitVal[counter]
                 counter += 1
-            if struc[5*i+3]:
+            if struc[6*i+3]:
                 self.cqVal[i].set('%.2g' % (fitVal[counter]*1e-6))
                 outCq[i] = fitVal[counter]
                 counter += 1
-            if struc[5*i+4]:
+            if struc[6*i+4]:
                 self.etaVal[i].set('%.2g' % fitVal[counter])
                 outEta[i] = fitVal[counter]
                 counter += 1
-            if struc[5*i+5]:
+            if struc[6*i+5]:
                 self.ampVal[i].set('%.2g' % fitVal[counter])
                 outAmp[i] = fitVal[counter]
                 counter += 1
-            if struc[5*i+6]:
+            if struc[6*i+6]:
                 self.widthVal[i].set('%.2g' % abs(fitVal[counter]))
                 outWidth[i] = abs(fitVal[counter])
                 counter += 1
-        self.disp(outBgrnd,outSlope,I,outPos,outCq,outEta,outAmp,outWidth)
+            if struc[6*i+7]:
+                self.gaussVal[i].set('%.2g' % abs(fitVal[counter]))
+                outGauss[i] = abs(fitVal[counter])
+                counter += 1
+        self.disp(outBgrnd,outSlope,I,outPos,outCq,outEta,outAmp,outWidth,outGauss)
 
     def sim(self):
         self.setCheng()
@@ -2155,6 +2283,7 @@ class Quad1DeconvParamFrame(Frame): #a frame for the quadrupole parameters
         eta = np.zeros(numExp)
         amp = np.zeros(numExp)
         width = np.zeros(numExp)
+        gauss = np.zeros(numExp)
         I = np.zeros(numExp)
         for i in range(numExp):
             pos[i] = safeEval(self.posVal[i].get())
@@ -2162,9 +2291,10 @@ class Quad1DeconvParamFrame(Frame): #a frame for the quadrupole parameters
             eta[i] = safeEval(self.etaVal[i].get())
             amp[i] = safeEval(self.ampVal[i].get())
             width[i] = safeEval(self.widthVal[i].get())
+            gauss[i] = safeEval(self.gaussVal[i].get())
             I[i] = self.checkI(self.IVal[i].get())
         self.setAngleStuff()
-        self.disp(bgrnd,slope,I,pos,cq,eta,amp,width)
+        self.disp(bgrnd,slope,I,pos,cq,eta,amp,width,gauss)
 
 ##############################################################################
 class Quad2DeconvWindow(Frame): #a window for fitting second order quadrupole lineshapes data
@@ -2243,7 +2373,7 @@ class Quad2StaticDeconvParamFrame(Quad1DeconvParamFrame): #a frame for the quadr
         self.angleStuff2 = (-9/4.0*np.cos(theta)**4+2*np.cos(theta)**2+1/4.0)*np.cos(2*phi)
         self.angleStuff3 = -1/2.0*np.cos(theta)**2+1/3.0+(-3/8.0*np.cos(theta)**4+3/4.0*np.cos(theta)**2-3/8.0)*np.cos(2*phi)**2
 
-    def tensorFunc(self, x, I, pos, cq, eta, width):
+    def tensorFunc(self, x, I, pos, cq, eta, width, gauss):
         v = -cq**2/(6.0*self.parent.current.freq)*(I*(I+1)-3/4.0)*(self.angleStuff1+self.angleStuff2*eta+self.angleStuff3*eta**2)+pos
         length =len(x)
         t=np.arange(length)/self.parent.current.sw
@@ -2253,7 +2383,7 @@ class Quad2StaticDeconvParamFrame(Quad1DeconvParamFrame): #a frame for the quadr
         weights = self.weight[np.logical_and(x1>=0,x1<length)]
         x1 = x1[np.logical_and(x1>=0,x1<length)]
         final = np.bincount(x1,weights,length)
-        apod = np.exp(-width*t)
+        apod = np.exp(-np.pi*width*t)*np.exp(-((np.pi*gauss*t)**2)/(4*np.log(2)))
         apod[-1:-(len(apod)/2+1):-1]=apod[:len(apod)/2]
         inten=np.real(np.fft.fft(np.fft.ifft(final)*apod))
         return inten
