@@ -849,6 +849,7 @@ class Main1DWindow(Frame):
         self.fittingMenu.add_command(label="S/N", command=self.createSNWindow)
         self.fittingMenu.add_command(label="FWHM", command=self.createFWHMWindow)
         self.fittingMenu.add_command(label="Relaxation Curve", command=self.createRelaxWindow)
+        self.fittingMenu.add_command(label="Diffusion Curve", command=self.createDiffusionWindow)
         self.fittingMenu.add_command(label="Peak Deconvolution", command=self.createPeakDeconvWindow)
         self.fittingMenu.add_command(label="CSA tensor", command=self.createTensorDeconvWindow)
         self.fittingMenu.add_command(label="First order quadrupole", command=self.createQuad1DeconvWindow)
@@ -1284,7 +1285,10 @@ class Main1DWindow(Frame):
         
     def createRelaxWindow(self):
         self.mainProgram.createFitWindow(fit.RelaxWindow(self.parent,self.mainProgram,self.mainProgram.mainWindow))
-
+        
+    def createDiffusionWindow(self):
+        self.mainProgram.createFitWindow(fit.DiffusionWindow(self.parent,self.mainProgram,self.mainProgram.mainWindow))
+        
     def createPeakDeconvWindow(self):
         self.mainProgram.createFitWindow(fit.PeakDeconvWindow(self.parent,self.mainProgram,self.mainProgram.mainWindow))
         

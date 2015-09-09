@@ -356,7 +356,6 @@ class RelaxFrame(Plot1DFrame): #a window for fitting relaxation data
             self.rect[2],=self.ax.plot([self.zoomX1,self.zoomX1],[self.zoomY1,self.zoomY2],'k',clip_on=False)
             self.rect[3],=self.ax.plot([self.zoomX2,self.zoomX2],[self.zoomY1,self.zoomY2],'k',clip_on=False)
             self.canvas.draw()
-
             
     def setLog(self,logx,logy):
         self.logx = logx
@@ -576,9 +575,588 @@ class RelaxParamFrame(Frame): #a frame for the relaxtion parameters
         for i in range(len(outCoeff)):
             outCurve += outCoeff[i]*np.exp(-x/outT1[i])
         self.parent.showPlot(x, outAmp*(outConst+outCurve))
+
+##############################################################################
+class DiffusionWindow(Frame): #a window for fitting relaxation data
+    def __init__(self, rootwindow,mainProgram,oldMainWindow):
+        Frame.__init__(self,rootwindow)
+        self.mainProgram = mainProgram
+        self.oldMainWindow = oldMainWindow
+        self.name = self.oldMainWindow.name
+        self.fig = self.mainProgram.getFig()
+        self.canvas = FigureCanvasTkAgg(self.fig, master=weakref.proxy(self))
+        self.canvas.get_tk_widget().grid(row=0,column=0,sticky="nswe")
+        self.current = DiffusionFrame(self,self.fig,self.canvas,oldMainWindow.current)
+        self.paramframe = DiffusionParamFrame(self.current,self)
+        self.paramframe.grid(row=1,column=0,sticky='sw')
+        self.rowconfigure(0, weight=1)
+        self.grid_columnconfigure(0, weight=1)
+        self.canvas.mpl_connect('button_press_event', self.buttonPress)      
+        self.canvas.mpl_connect('button_release_event', self.buttonRelease)
+        self.canvas.mpl_connect('motion_notify_event', self.pan)
+        self.canvas.mpl_connect('scroll_event', self.scroll)
+
+    def rename(self,name):
+        self.fig.suptitle(name)
+        self.canvas.draw()
+        self.oldMainWindow.rename(name)
+        
+    def buttonPress(self,event):
+        self.current.buttonPress(event)
+
+    def buttonRelease(self,event):
+        self.current.buttonRelease(event)
+
+    def pan(self,event):
+        self.current.pan(event)
+
+    def scroll(self,event):
+        self.current.scroll(event)
+        
+    def get_mainWindow(self):
+        return self.oldMainWindow
+        
+    def get_masterData(self):
+        return self.oldMainWindow.get_masterData()
+    
+    def get_current(self):
+        return self.oldMainWindow.get_current()
+    
+    def addToView(self):
+        self.pack(fill=BOTH,expand=1)
+
+    def removeFromView(self):
+        self.pack_forget()
+
+    def kill(self):
+        self.current.kill()
+        self.oldMainWindow.kill()
+        del self.current
+        
+    def cancel(self):
+        self.mainProgram.closeFitWindow(self.oldMainWindow)
+        
+#################################################################################   
+class DiffusionFrame(Plot1DFrame): #a window for fitting relaxation data
+    def __init__(self, rootwindow,fig,canvas,current):
+        axAdd=0
+        self.ref = current.ref
+        self.axType = current.axType
+        self.freq = current.freq
+        self.xax = current.xax
+        self.data1D=current.getDisplayedData()
+        self.plotType = 0
+        self.logx = 0
+        self.logy = 0
+        Plot1DFrame.__init__(self,rootwindow,fig,canvas)
+        self.current = current
+        self.rootwindow = rootwindow
+        self.plotReset()
+        self.showPlot()
+
+    def plotReset(self): #set the plot limits to min and max values
+        if self.plotType==0:
+            miny = min(np.real(self.data1D))
+            maxy = max(np.real(self.data1D))
+        elif self.plotType==1:
+            miny = min(np.imag(self.data1D))
+            maxy = max(np.imag(self.data1D))
+        elif self.plotType==2:
+            miny = min(min(np.real(self.data1D)),min(np.imag(self.data1D)))
+            maxy = max(max(np.real(self.data1D)),max(np.imag(self.data1D)))
+        elif self.plotType==3:
+            miny = min(np.abs(self.data1D))
+            maxy = max(np.abs(self.data1D))
+        else:
+            miny=-1
+            maxy=1
+        differ = 0.05*(maxy-miny) #amount to add to show all datapoints (10%)
+        self.yminlim=miny-differ
+        self.ymaxlim=maxy+differ
+        axAdd = 0.0
+        if self.spec == 1:
+            if self.ppm:
+                axAdd = (self.freq-self.ref)/self.ref*1e6
+                axMult = 1e6/self.ref
+            else:
+                axMult = 1.0/(1000.0**self.axType)
+        elif self.spec == 0:
+            axMult = 1000.0**self.axType
+        self.xminlim=min(self.xax*axMult+axAdd)
+        self.xmaxlim=max(self.xax*axMult+axAdd)
+        self.ax.set_xlim(self.xminlim,self.xmaxlim)
+        self.ax.set_ylim(self.yminlim,self.ymaxlim)
+
+    def showPlot(self, tmpAx=None, tmpdata=None): 
+        self.ax.cla()
+        axAdd = 0.0
+        if self.spec == 1:
+            if self.ppm:
+                axAdd = (self.freq-self.ref)/self.ref*1e6
+                axMult = 1e6/self.ref
+            else:
+                axMult = 1.0/(1000.0**self.axType)
+        elif self.spec == 0:
+            axMult = 1000.0**self.axType
+        if tmpAx is not None:
+            self.ax.plot(tmpAx*axMult+axAdd,tmpdata)
+        self.ax.scatter(self.xax*axMult+axAdd,self.data1D)
+        if self.logx==0:
+            self.ax.set_xscale('linear')
+        else:
+           self.ax.set_xscale('log')
+        if self.logy==0:
+            self.ax.set_yscale('linear')
+        else:
+           self.ax.set_yscale('log') 
+        if self.spec==0:
+            if self.current.axType == 0:
+                self.ax.set_xlabel('Time [s]')
+            elif self.current.axType == 1:
+                self.ax.set_xlabel('Time [ms]')
+            elif self.current.axType == 2:
+                self.ax.set_xlabel(r'Time [$\mu$s]')
+            else:
+                self.ax.set_xlabel('User defined')
+        elif self.spec==1:
+            if self.current.ppm:
+                self.ax.set_xlabel('Frequency [ppm]')
+            else:
+                if self.current.axType == 0:
+                    self.ax.set_xlabel('Frequency [Hz]')
+                elif self.current.axType == 1:
+                    self.ax.set_xlabel('Frequency [kHz]')
+                elif self.current.axType == 2:
+                    self.ax.set_xlabel('Frequency [MHz]')
+                else:
+                    self.ax.set_xlabel('User defined')
+        else:
+            self.ax.set_xlabel('')
+        self.ax.set_xlim(self.xminlim,self.xmaxlim)
+        self.ax.set_ylim(self.yminlim,self.ymaxlim)
+        if self.logx==0:
+            self.ax.get_xaxis().get_major_formatter().set_powerlimits((-4, 4))
+        if self.logy==0:
+            self.ax.get_yaxis().get_major_formatter().set_powerlimits((-4, 4))
+        self.canvas.draw()
+        
+    def scroll(self,event):
+        if self.rightMouse:
+            if self.logx == 0:
+                middle = (self.xmaxlim+self.xminlim)/2.0
+                width = self.xmaxlim-self.xminlim
+                width = width*0.9**event.step
+                self.xmaxlim = middle+width/2.0
+                self.xminlim = middle-width/2.0
+                if self.spec > 0 and not isinstance(self,spectrum_classes.CurrentArrayed):
+                    self.ax.set_xlim(self.xmaxlim,self.xminlim)
+                else:
+                    self.ax.set_xlim(self.xminlim,self.xmaxlim)
+            else:
+                middle = (np.log(self.xmaxlim)+np.log(self.xminlim))/2.0
+                width = np.log(self.xmaxlim)-np.log(self.xminlim)
+                width = width*0.9**event.step
+                self.xmaxlim = np.exp(middle+width/2.0)
+                self.xminlim = np.exp(middle-width/2.0)
+                if self.spec > 0 and not isinstance(self,spectrum_classes.CurrentArrayed):
+                    self.ax.set_xlim(self.xmaxlim,self.xminlim)
+                else:
+                    self.ax.set_xlim(self.xminlim,self.xmaxlim)
+        else:
+            if self.logy == 0:
+                middle = (self.ymaxlim+self.yminlim)/2.0
+                width = self.ymaxlim-self.yminlim
+                width = width*0.9**event.step
+                self.ymaxlim = middle+width/2.0
+                self.yminlim = middle-width/2.0
+                if self.spec2 > 0 and isinstance(self,spectrum_classes.CurrentContour):
+                    self.ax.set_ylim(self.ymaxlim,self.yminlim)
+                else:
+                    self.ax.set_ylim(self.yminlim,self.ymaxlim)
+            else:
+                middle = (np.log(self.ymaxlim)+np.log(self.yminlim))/2.0
+                width = np.log(self.ymaxlim)-np.log(self.yminlim)
+                width = width*0.9**event.step
+                self.ymaxlim = np.exp(middle+width/2.0)
+                self.yminlim = np.exp(middle-width/2.0)
+                if self.spec2 > 0 and isinstance(self,spectrum_classes.CurrentContour):
+                    self.ax.set_ylim(self.ymaxlim,self.yminlim)
+                else:
+                    self.ax.set_ylim(self.yminlim,self.ymaxlim)
+        self.canvas.draw()
+        
+    def buttonRelease(self,event):
+        if event.button == 1:
+            if self.peakPick:
+                if self.rect[0] is not None:
+                    self.rect[0].remove()
+                    self.rect[0]=None
+                    self.peakPick = False
+                    minim = np.min(np.abs(self.line[0].get_xdata()-event.xdata))
+                    minPos = 0
+                    for i in range(1,len(self.line)):
+                        minimNew = np.min(np.abs(self.line[i].get_xdata()-event.xdata))
+                        if minimNew < minim:
+                            minim = minimNew
+                            minPos = i
+                    xdata = self.line[minPos].get_xdata()
+                    ydata = self.line[minPos].get_ydata()
+                    idx = np.argmin(np.abs(xdata-event.xdata))
+                    if self.peakPickFunc is not None:
+                        self.peakPickFunc((idx,xdata[idx],ydata[idx]))
+                    if not self.peakPick: #check if peakpicking is still required
+                        self.peakPickFunc = None
+            else:
+                self.leftMouse = False
+                if self.rect[0] is not None:
+                    self.rect[0].remove()
+                if self.rect[1] is not None:
+                    self.rect[1].remove()
+                if self.rect[2] is not None:
+                    self.rect[2].remove()
+                if self.rect[3] is not None:
+                    self.rect[3].remove()
+                self.rect=[None,None,None,None]
+                if self.zoomX2 is not None and self.zoomY2 is not None:
+                    self.xminlim=min([self.zoomX1,self.zoomX2])
+                    self.xmaxlim=max([self.zoomX1,self.zoomX2])
+                    self.yminlim=min([self.zoomY1,self.zoomY2])
+                    self.ymaxlim=max([self.zoomY1,self.zoomY2])
+                    if self.spec > 0 and not isinstance(self,spectrum_classes.CurrentArrayed):
+                        self.ax.set_xlim(self.xmaxlim,self.xminlim)
+                    else:
+                        self.ax.set_xlim(self.xminlim,self.xmaxlim)
+                    if self.spec2 > 0 and isinstance(self,spectrum_classes.CurrentContour):
+                        self.ax.set_ylim(self.ymaxlim,self.yminlim)
+                    else:
+                        self.ax.set_ylim(self.yminlim,self.ymaxlim)
+                self.zoomX1=None
+                self.zoomX2=None 
+                self.zoomY1=None
+                self.zoomY2=None 
+        elif event.button == 3:
+            self.rightMouse = False
+        self.canvas.draw()
+
+    def pan(self,event):
+        if self.rightMouse and self.panX is not None and self.panY is not None:
+            if self.logx==0 and self.logy==0:
+                inv = self.ax.transData.inverted()
+                point = inv.transform((event.x,event.y))
+                x=point[0]
+                y=point[1]
+            else:
+                x=event.xdata
+                y=event.ydata
+                if x is None or y is None:
+                    return
+            if self.logx == 0:
+                diffx = x-self.panX
+                self.xmaxlim = self.xmaxlim-diffx
+                self.xminlim = self.xminlim-diffx
+            else:
+                diffx = np.log(x)-np.log(self.panX)
+                self.xmaxlim = np.exp(np.log(self.xmaxlim)-diffx)
+                self.xminlim = np.exp(np.log(self.xminlim)-diffx)
+            if self.logy == 0:
+                diffy = y-self.panY
+                self.ymaxlim = self.ymaxlim-diffy
+                self.yminlim = self.yminlim-diffy
+            else:
+                diffy = np.log(y)-np.log(self.panY)
+                self.ymaxlim = np.exp(np.log(self.ymaxlim)-diffy)
+                self.yminlim = np.exp(np.log(self.yminlim)-diffy)
+            if self.spec > 0 and not isinstance(self,spectrum_classes.CurrentArrayed):
+                self.ax.set_xlim(self.xmaxlim,self.xminlim)
+            else:
+                self.ax.set_xlim(self.xminlim,self.xmaxlim)
+            if self.spec2 > 0 and isinstance(self,spectrum_classes.CurrentContour):
+                self.ax.set_ylim(self.ymaxlim,self.yminlim)
+            else:
+                self.ax.set_ylim(self.yminlim,self.ymaxlim)
+            self.canvas.draw()
+        elif self.peakPick:
+            if self.rect[0] is not None:
+                self.rect[0].remove()
+                self.rect[0]=None
+            if event.xdata is not None:
+                self.rect[0]=self.ax.axvline(event.xdata,c='k',linestyle='--')
+            self.canvas.draw()
+        elif self.leftMouse and (self.zoomX1 is not None) and (self.zoomY1 is not None):
+            if self.logx==0 and self.logy==0:
+                inv = self.ax.transData.inverted()
+                point = inv.transform((event.x,event.y))
+                self.zoomX2=point[0]
+                self.zoomY2=point[1]
+            else:
+                self.zoomX2=event.xdata
+                self.zoomY2=event.ydata
+                if self.zoomX2 is None or self.zoomY2 is None:
+                    return
+            if self.rect[0] is not None:
+                if self.rect[0] is not None:
+                    self.rect[0].remove()
+                if self.rect[1] is not None:
+                    self.rect[1].remove()
+                if self.rect[2] is not None:
+                    self.rect[2].remove()
+                if self.rect[3] is not None:
+                    self.rect[3].remove()
+                self.rect=[None,None,None,None]
+            self.rect[0],=self.ax.plot([self.zoomX1,self.zoomX2],[self.zoomY2,self.zoomY2],'k',clip_on=False)
+            self.rect[1],=self.ax.plot([self.zoomX1,self.zoomX2],[self.zoomY1,self.zoomY1],'k',clip_on=False)
+            self.rect[2],=self.ax.plot([self.zoomX1,self.zoomX1],[self.zoomY1,self.zoomY2],'k',clip_on=False)
+            self.rect[3],=self.ax.plot([self.zoomX2,self.zoomX2],[self.zoomY1,self.zoomY2],'k',clip_on=False)
+            self.canvas.draw()
+            
+    def setLog(self,logx,logy):
+        self.logx = logx
+        self.logy = logy
+        if self.logx==0:
+            self.ax.set_xscale('linear')
+        else:
+           self.ax.set_xscale('log')
+        if self.logy==0:
+            self.ax.set_yscale('linear')
+        else:
+           self.ax.set_yscale('log') 
+        self.ax.set_xlim(self.xminlim,self.xmaxlim)
+        self.ax.set_ylim(self.yminlim,self.ymaxlim)
+        self.canvas.draw()
+
+#################################################################################
+class DiffusionParamFrame(Frame): #a frame for the relaxtion parameters
+    def __init__(self, parent, rootwindow): 
+        self.parent = parent
+        self.gammaVal = StringVar()
+        self.gammaVal.set("42.576")
+        self.deltaVal = StringVar()
+        self.deltaVal.set("1.0")
+        self.triangleVal = StringVar()
+        self.triangleVal.set("1.0")
+        self.ampVal = StringVar()
+        self.ampVal.set("%.3g" % np.amax(self.parent.data1D))
+        self.ampTick = IntVar()
+        self.constVal = StringVar()
+        self.constVal.set("0.0")
+        self.constTick = IntVar()
+        self.constTick.set(1)
+        self.numExp = StringVar()
+        self.xlog=IntVar()
+        self.ylog=IntVar()
+        Frame.__init__(self, rootwindow)
+        self.frame1 = Frame(self)
+        self.frame1.grid(row=0,column=0,sticky='n')
+        self.optframe = Frame(self)
+        self.optframe.grid(row=0,column=1,sticky='n')
+        self.frame2 = Frame(self)
+        self.frame2.grid(row=0,column=2,sticky='n')
+        self.frame3 = Frame(self)
+        self.frame3.grid(row=0,column=3,sticky='n')
+        self.frame4 = Frame(self)
+        self.frame4.grid(row=0,column=4,sticky='n')
+        Button(self.frame1, text="Sim",command=self.sim).grid(row=0,column=0)
+        Button(self.frame1, text="Fit",command=self.fit).grid(row=1,column=0)
+        Button(self.frame1, text="Cancel",command=rootwindow.cancel).grid(row=2,column=0)
+        Label(self.frame2,text=u"\u03b3 [MHz/T]").grid(row=0,column=0)
+        Entry(self.frame2,textvariable=self.gammaVal,justify="center",width=10).grid(row=1,column=0)
+        Label(self.frame2,text=u"\u03b4 [s]").grid(row=2,column=0)
+        Entry(self.frame2,textvariable=self.deltaVal,justify="center",width=10).grid(row=3,column=0)
+        Label(self.frame2,text=u"\u0394 [s]").grid(row=4,column=0)
+        Entry(self.frame2,textvariable=self.triangleVal,justify="center",width=10).grid(row=5,column=0)
+        Label(self.frame3,text="Amplitude").grid(row=0,column=0,columnspan=2)
+        Checkbutton(self.frame3,variable=self.ampTick).grid(row=1,column=0)
+        Entry(self.frame3,textvariable=self.ampVal,justify="center",width=10).grid(row=1,column=1)
+        Label(self.frame3,text="Constant").grid(row=2,column=0,columnspan=2)
+        Checkbutton(self.frame3,variable=self.constTick).grid(row=3,column=0)
+        Entry(self.frame3,textvariable=self.constVal,justify="center",width=10).grid(row=3,column=1)
+        OptionMenu(self.frame4, self.numExp, "1","1", "2", "3","4",command=self.changeNum).grid(row=0,column=0,columnspan=4)
+        Label(self.frame4,text="Coefficient").grid(row=1,column=0,columnspan=2)
+        Label(self.frame4,text="D").grid(row=1,column=2,columnspan=2)
+        Checkbutton(self.optframe,variable=self.xlog,text='x-log',command=self.setLog).grid(row=0,column=0)
+        Checkbutton(self.optframe,variable=self.ylog,text='y-log',command=self.setLog).grid(row=1,column=0)
+        
+        self.coeffVal = []
+        self.coeffTick = []
+        self.DVal = []
+        self.DTick = []
+        self.coeffCheck = []
+        self.coeffEntries = []
+        self.DCheck = []
+        self.DEntries = []
+        for i in range(4):
+            self.coeffVal.append(StringVar())
+            self.coeffVal[i].set("1.0")
+            self.coeffTick.append(IntVar())
+            self.DVal.append(StringVar())
+            self.DVal[i].set("1.0e-9")
+            self.DTick.append(IntVar())
+            self.coeffCheck.append(Checkbutton(self.frame4,variable=self.coeffTick[i]))
+            self.coeffCheck[i].grid(row=i+2,column=0)
+            self.coeffEntries.append(Entry(self.frame4,textvariable=self.coeffVal[i],justify="center",width=10))
+            self.coeffEntries[i].grid(row=i+2,column=1)
+            self.DCheck.append(Checkbutton(self.frame4,variable=self.DTick[i]))
+            self.DCheck[i].grid(row=i+2,column=2)
+            self.DEntries.append(Entry(self.frame4,textvariable=self.DVal[i],justify="center",width=10))
+            self.DEntries[i].grid(row=i+2,column=3)
+            if i > 0:
+                self.coeffCheck[i].grid_remove()
+                self.coeffEntries[i].grid_remove()
+                self.DCheck[i].grid_remove()
+                self.DEntries[i].grid_remove()
+
+    def setLog(self, *args):
+        self.parent.setLog(self.xlog.get(),self.ylog.get())
+                
+    def changeNum(self,*args):
+        val = int(self.numExp.get())
+        for i in range(4):
+            if i < val:
+                self.coeffCheck[i].grid()
+                self.coeffEntries[i].grid()
+                self.DCheck[i].grid()
+                self.DEntries[i].grid()
+            else:
+                self.coeffCheck[i].grid_remove()
+                self.coeffEntries[i].grid_remove()
+                self.DCheck[i].grid_remove()
+                self.DEntries[i].grid_remove()
+
+    def fitFunc(self, x, *param):
+        numExp = self.args[0]
+        struc = self.args[1]
+        argu = self.args[2]
+        gamma = self.args[3]
+        delta = self.args[4]
+        triangle = self.args[5]
+        testFunc = np.zeros(len(self.parent.data1D))
+        if struc[0]:
+            amplitude = param[0]
+            param=np.delete(param,[0])
+        else:
+            amplitude = argu[0]
+            argu=np.delete(argu,[0])
+        if struc[1]:
+            constant = param[0]
+            param=np.delete(param,[0])
+        else:
+            constant = argu[0]
+            argu=np.delete(argu,[0])
+        for i in range(1,numExp+1):
+            if struc[2*i]:
+                coeff = param[0]
+                param=np.delete(param,[0])
+            else:
+                coeff= argu[0]
+                argu=np.delete(argu,[0])
+            if struc[2*i+1]:
+                D = param[0]
+                param=np.delete(param,[0])
+            else:
+                D = argu[0]
+                argu=np.delete(argu,[0])
+            testFunc += coeff*np.exp(-(gamma*delta*x)**2*D*(triangle-delta/3.0)) 
+        return amplitude*(constant+testFunc)
+
+    def fit(self,*args):
+        struc = []
+        guess = []
+        argu = []
+        numExp = int(self.numExp.get())
+        outCoeff = np.zeros(numExp)
+        outD = np.zeros(numExp)
+        gamma = safeEval(self.gammaVal.get())
+        self.gammaVal.set('%.3g' % gamma)
+        delta = safeEval(self.deltaVal.get())
+        self.deltaVal.set('%.3g' % delta)
+        triangle = safeEval(self.triangleVal.get())
+        self.triangleVal.set('%.3g' % triangle)
+        if self.ampTick.get() == 0:
+            guess.append(safeEval(self.ampVal.get()))
+            struc.append(True)
+        else:
+            inp = safeEval(self.ampVal.get())
+            argu.append(inp)
+            outAmp = inp
+            self.ampVal.set('%.3g' % inp)
+            struc.append(False)
+        if self.constTick.get() == 0:
+            guess.append(safeEval(self.constVal.get()))
+            struc.append(True)
+        else:
+            inp = safeEval(self.constVal.get())
+            argu.append(inp)
+            outConst = inp
+            self.constVal.set('%.3g' % inp)
+            struc.append(False)
+        for i in range(numExp):
+            if self.coeffTick[i].get() == 0:
+                guess.append(safeEval(self.coeffVal[i].get()))
+                struc.append(True)
+            else:
+                inp = safeEval(self.coeffVal[i].get())
+                argu.append(inp)
+                outCoeff[i] = inp
+                self.coeffVal[i].set('%.3g' % inp)
+                struc.append(False)
+            if self.DTick[i].get() == 0:
+                guess.append(safeEval(self.DVal[i].get()))
+                struc.append(True)
+            else:
+                inp = safeEval(self.DVal[i].get())
+                argu.append(inp)
+                outD[i] = inp
+                self.DVal[i].set('%.3g' % inp)
+                struc.append(False)
+        self.args=(numExp, struc, argu, gamma, delta, triangle)
+        fitVal = scipy.optimize.curve_fit(self.fitFunc, self.parent.xax, self.parent.data1D, guess)
+        counter = 0
+        if struc[0]:
+            self.ampVal.set('%.3g' % fitVal[0][counter])
+            outAmp = fitVal[0][counter]
+            counter +=1
+        if struc[1]:
+            self.constVal.set('%.3g' % fitVal[0][counter])
+            outConst = fitVal[0][counter]
+            counter +=1
+        for i in range(1,numExp+1):
+            if struc[2*i]:
+                self.coeffVal[i-1].set('%.3g' % fitVal[0][counter])
+                outCoeff[i-1] = fitVal[0][counter]
+                counter += 1
+            if struc[2*i+1]:
+                self.DVal[i-1].set('%.3g' % fitVal[0][counter])
+                outD[i-1] = fitVal[0][counter]
+                counter += 1
+        self.disp(outAmp, outConst, outCoeff, outD, gamma, delta, triangle)
+
+    def sim(self):
+        numExp = int(self.numExp.get())
+        outAmp = safeEval(self.ampVal.get())
+        outConst = safeEval(self.constVal.get())
+        gamma = safeEval(self.gammaVal.get())
+        delta = safeEval(self.deltaVal.get())
+        triangle = safeEval(self.triangleVal.get())
+        outCoeff = []
+        outD = []
+        for i in range(numExp):
+            outCoeff.append(safeEval(self.coeffVal[i].get()))
+            outD.append(safeEval(self.DVal[i].get()))
+        self.disp(outAmp,outConst,outCoeff,outD,gamma,delta,triangle)
+        
+    def disp(self, outAmp, outConst, outCoeff, outD, gamma, delta, triangle):
+        numCurve = 100 
+        outCurve = np.zeros(numCurve)
+        if self.xlog.get() == 1:
+            x = np.logspace(np.log(min(self.parent.xax)),np.log(max(self.parent.xax)),numCurve)
+        else:
+            x = np.linspace(min(self.parent.xax),max(self.parent.xax),numCurve)
+        for i in range(len(outCoeff)):
+            outCurve += outCoeff[i]*np.exp(-(gamma*delta*x)**2*outD[i]*(triangle-delta/3.0))
+        self.parent.showPlot(x, outAmp*(outConst+outCurve))
         
 ##############################################################################
-class PeakDeconvWindow(Frame): #a window for fitting relaxation data
+class PeakDeconvWindow(Frame): 
     def __init__(self, rootwindow,mainProgram,oldMainWindow):
         Frame.__init__(self,rootwindow)
         self.mainProgram = mainProgram
@@ -970,7 +1548,6 @@ class PeakDeconvParamFrame(Frame): #a frame for the relaxtion parameters
         return testFunc
 
     def fit(self,*args):
-        #structure of the fitting arguments is : [amp,cost, coeff1, t1, coeff2, t2, coeff3, t3, coeff4, t4]
         struc = []
         guess = []
         argu = []

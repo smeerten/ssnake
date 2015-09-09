@@ -647,6 +647,7 @@ class Current1D(Plot1DFrame):
         if self.ref == None:
             self.ref = self.freq
         self.single = self.data1D.shape[-1]==1
+        return True
         
     def setSlice(self,axes,locList): #change the slice 
         axesSame = True
@@ -1100,41 +1101,41 @@ class Current1D(Plot1DFrame):
     def integrate(self,pos1,pos2):
         self.root.addMacro(['integrate',(pos1,pos2,self.axes-self.data.dim,)])
         returnValue = self.data.matrixManip(pos1,pos2,self.axes,0)
-        self.upd()
-        self.plotReset()
-        self.showFid()
+        if self.upd():
+            self.plotReset()
+            self.showFid()
         return returnValue
 
     def maxMatrix(self,pos1,pos2):
         self.root.addMacro(['max',(pos1,pos2,self.axes-self.data.dim,)])
         returnValue = self.data.matrixManip(pos1,pos2,self.axes,1)
-        self.upd()
-        self.plotReset()
-        self.showFid()
+        if self.upd():
+            self.plotReset()
+            self.showFid()
         return returnValue
     
     def minMatrix(self,pos1,pos2):
         self.root.addMacro(['min',(pos1,pos2,self.axes-self.data.dim,)])
         returnValue = self.data.matrixManip(pos1,pos2,self.axes,2)
-        self.upd()
-        self.plotReset()
-        self.showFid()
+        if self.upd():
+            self.plotReset()
+            self.showFid()
         return returnValue
     
     def argmaxMatrix(self,pos1,pos2):
         self.root.addMacro(['argmax',(pos1,pos2,self.axes-self.data.dim,)])
         returnValue = self.data.matrixManip(pos1,pos2,self.axes,3)
-        self.upd()
-        self.plotReset()
-        self.showFid()
+        if self.upd():
+            self.plotReset()
+            self.showFid()
         return returnValue
 
     def argminMatrix(self,pos1,pos2):
         self.root.addMacro(['argmin',(pos1,pos2,self.axes-self.data.dim,)])
         returnValue = self.data.matrixManip(pos1,pos2,self.axes,4)
-        self.upd()
-        self.plotReset()
-        self.showFid()
+        if self.upd():
+            self.plotReset()
+            self.showFid()
         return returnValue
     
     def flipLR(self):
@@ -1590,7 +1591,7 @@ class CurrentStacked(Current1D):
     def upd(self): #get new data from the data instance
         if self.data.dim < 2:
             self.root.rescue()
-            return
+            return False
         if (len(self.locList)+2) != self.data.dim:
             self.resetLocList()
         updateVar = self.data.getBlock(self.axes,self.axes2,self.locList,self.stackBegin, self.stackEnd, self.stackStep)
@@ -1612,6 +1613,7 @@ class CurrentStacked(Current1D):
         if self.ref2 is None:
             self.ref2 = self.freq2
         self.single = self.data1D.shape[-1]==1
+        return True
 
     def setBlock(self,axes,axes2,locList,stackBegin=None,stackEnd=None,stackStep=None): #change the slice 
         self.axes = axes
@@ -1922,7 +1924,7 @@ class CurrentArrayed(Current1D):
     def upd(self): #get new data from the data instance
         if self.data.dim < 2:
             self.root.rescue()
-            return
+            return False
         if (len(self.locList)+2) != self.data.dim:
             self.resetLocList()
         updateVar = self.data.getBlock(self.axes,self.axes2,self.locList,self.stackBegin, self.stackEnd, self.stackStep)
@@ -1944,6 +1946,7 @@ class CurrentArrayed(Current1D):
         if self.ref2 is None:
             self.ref2 = self.freq2
         self.single = self.data1D.shape[-1]==1
+        return True
  
     def setBlock(self,axes,axes2,locList,stackBegin=None,stackEnd=None,stackStep=None): #change the slice 
         self.axes = axes
@@ -2218,7 +2221,7 @@ class CurrentContour(Current1D):
     def upd(self): #get new data from the data instance
         if self.data.dim < 2:
             self.root.rescue()
-            return
+            return False
         if (len(self.locList)+2) != self.data.dim:
             self.resetLocList()
         updateVar = self.data.getBlock(self.axes,self.axes2,self.locList)
@@ -2240,6 +2243,7 @@ class CurrentContour(Current1D):
         if self.ref2 is None:
             self.ref2 = self.freq2
         self.single = self.data1D.shape[-1]==1
+        return True
 
     def setBlock(self,axes,axes2,locList): #change the slice 
         self.axes = axes
@@ -2608,7 +2612,7 @@ class CurrentSkewed(Current1D):
     def upd(self): #get new data from the data instance
         if self.data.dim < 2:
             self.root.rescue()
-            return
+            return False
         if (len(self.locList)+2) != self.data.dim:
             self.resetLocList()
         updateVar = self.data.getBlock(self.axes,self.axes2,self.locList,self.stackBegin, self.stackEnd, self.stackStep)
@@ -2630,6 +2634,7 @@ class CurrentSkewed(Current1D):
         if self.ref2 is None:
             self.ref2 = self.freq2
         self.single = self.data1D.shape[-1]==1
+        return True
  
     def setBlock(self,axes,axes2,locList,stackBegin=None,stackEnd=None,stackStep=None): #change the slice 
         self.axes = axes
