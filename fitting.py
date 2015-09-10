@@ -1624,20 +1624,20 @@ class PeakDeconvParamFrame(Frame): #a frame for the relaxtion parameters
             counter +=1
         for i in range(numExp):
             if struc[4*i+2]:
-                self.posVal[i-1].set('%.3g' % fitVal[0][counter])
-                outPos[i-1] = fitVal[0][counter]
+                self.posVal[i].set('%.3g' % fitVal[0][counter])
+                outPos[i] = fitVal[0][counter]
                 counter += 1
             if struc[4*i+3]:
-                self.ampVal[i-1].set('%.3g' % fitVal[0][counter])
-                outAmp[i-1] = fitVal[0][counter]
+                self.ampVal[i].set('%.3g' % fitVal[0][counter])
+                outAmp[i] = fitVal[0][counter]
                 counter += 1
             if struc[4*i+4]:
-                self.widthVal[i-1].set('%.3g' % abs(fitVal[0][counter]))
-                outWidth[i-1] = abs(fitVal[0][counter])
+                self.widthVal[i].set('%.3g' % abs(fitVal[0][counter]))
+                outWidth[i] = abs(fitVal[0][counter])
                 counter += 1
             if struc[4*i+5]:
-                self.gaussVal[i-1].set('%.3g' % abs(fitVal[0][counter]))
-                outGauss[i-1] = abs(fitVal[0][counter])
+                self.gaussVal[i].set('%.3g' % abs(fitVal[0][counter]))
+                outGauss[i] = abs(fitVal[0][counter])
                 counter += 1
         self.disp(outBgrnd, outSlope, outAmp, outPos, outWidth, outGauss)
 
