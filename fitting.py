@@ -3115,7 +3115,7 @@ class Quad2StaticCzjzekParamFrame(Frame):
         Label(self.frame3,text="Pos").grid(row=1,column=1,columnspan=2)
         Label(self.frame3,text=u"\u03c3 [MHz]").grid(row=1,column=3,columnspan=2)
         Label(self.frame3,text="Amplitude").grid(row=1,column=5,columnspan=2)
-        Label(self.frame3,text="Lorentz [Hz]").grid(row=1,column107,columnspan=2)
+        Label(self.frame3,text="Lorentz [Hz]").grid(row=1,column=7,columnspan=2)
         Label(self.frame3,text="Gauss [Hz]").grid(row=1,column=9,columnspan=2)
         self.posVal = []
         self.posTick = []
