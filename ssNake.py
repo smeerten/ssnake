@@ -1,5 +1,22 @@
 #!/usr/bin/env python
 
+# Copyright 2015 Bas van Meerten and Wouter Franssen
+
+#This file is part of ssNake.
+#
+#ssNake is free software: you can redistribute it and/or modify
+#it under the terms of the GNU General Public License as published by
+#the Free Software Foundation, either version 3 of the License, or
+#(at your option) any later version.
+#
+#ssNake is distributed in the hope that it will be useful,
+#but WITHOUT ANY WARRANTY; without even the implied warranty of
+#MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#GNU General Public License for more details.
+#
+#You should have received a copy of the GNU General Public License
+#along with ssNake. If not, see <http://www.gnu.org/licenses/>.
+
 import numpy as np
 import sys
 if sys.version_info >= (3,0):
@@ -855,6 +872,8 @@ class Main1DWindow(Frame):
         self.fittingMenu.add_command(label="First order quadrupole", command=self.createQuad1DeconvWindow)
         self.fittingMenu.add_command(label="Second order quadrupole static", command=self.createQuad2StaticDeconvWindow)
         self.fittingMenu.add_command(label="Second order quadrupole MAS", command=self.createQuad2MASDeconvWindow)
+        self.fittingMenu.add_command(label="Czjzek static", command=self.createQuad2StaticCzjzekWindow)
+        self.fittingMenu.add_command(label="Czjzek MAS", command=self.createQuad2MASCzjzekWindow)
         
         #the combine drop down menu
         self.combineMenu = Menu(self.menubar, tearoff=0)
@@ -1303,6 +1322,12 @@ class Main1DWindow(Frame):
         
     def createQuad2MASDeconvWindow(self):
         self.mainProgram.createFitWindow(fit.Quad2DeconvWindow(self.parent,self.mainProgram,self.mainProgram.mainWindow,True))
+
+    def createQuad2StaticCzjzekWindow(self):
+        self.mainProgram.createFitWindow(fit.Quad2CzjzekWindow(self.parent,self.mainProgram,self.mainProgram.mainWindow))
+        
+    def createQuad2MASCzjzekWindow(self):
+        self.mainProgram.createFitWindow(fit.Quad2CzjzekWindow(self.parent,self.mainProgram,self.mainProgram.mainWindow,True))
         
     def plot1D(self):
         tmpcurrent = sc.Current1D(self,self.fig,self.canvas,self.masterData)
