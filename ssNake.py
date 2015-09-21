@@ -3503,7 +3503,7 @@ class RefWindow(Toplevel): #a window for setting the ppm reference
 if __name__ == "__main__":
     root = Tk()
     img = tk.PhotoImage(file=os.path.dirname(os.path.realpath(__file__))+'/logo.gif')
-    root.tk.call('wm', 'iconphoto', root._w, img)
+    root.tk.call('wm', 'iconphoto',root._w,'-default',img)
     MainProgram(root)
     root.title("ssNake") 
     root.style = Style()
