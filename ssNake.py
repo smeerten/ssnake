@@ -572,7 +572,7 @@ class MainProgram:
             with open(Dir+os.path.sep+File,'rb') as f:
                 raw = np.fromfile(f, np.float32)
             Data = raw[-2*sizeTD2*sizeTD1::] #Get last 2*sizeTD2*sizeTD1 points
-            ComplexData = Data[0:Data.shape[0]:2]+1j*Data[1:Data.shape[0]:2]
+            ComplexData = Data[0:Data.shape[0]:2]-1j*Data[1:Data.shape[0]:2]
             ComplexData = ComplexData.reshape((sizeTD1,sizeTD2))
             masterData=sc.Spectrum(ComplexData,lambda self :self.LoadMagritek(filePath),[freq*1e6]*2,[sw,sw1],[False]*2)
         elif len(Files1D)!=0:
@@ -580,7 +580,7 @@ class MainProgram:
             with open(Dir+os.path.sep+File,'rb') as f:
                 raw = np.fromfile(f, np.float32)
             Data = raw[-2*sizeTD2::] #Get last 2*sizeTD points
-            ComplexData = Data[0:Data.shape[0]:2]+1j*Data[1:Data.shape[0]:2]
+            ComplexData = Data[0:Data.shape[0]:2]-1j*Data[1:Data.shape[0]:2]
             masterData=sc.Spectrum(ComplexData,lambda self :self.LoadMagritek(filePath),[freq*1e6],[sw],[False])
         return masterData
             
