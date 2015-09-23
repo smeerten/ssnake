@@ -1,4 +1,22 @@
-import matplotlib
+#!/usr/bin/env python
+
+# Copyright 2015 Bas van Meerten and Wouter Franssen
+
+#This file is part of ssNake.
+#
+#ssNake is free software: you can redistribute it and/or modify
+#it under the terms of the GNU General Public License as published by
+#the Free Software Foundation, either version 3 of the License, or
+#(at your option) any later version.
+#
+#ssNake is distributed in the hope that it will be useful,
+#but WITHOUT ANY WARRANTY; without even the implied warranty of
+#MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#GNU General Public License for more details.
+#
+#You should have received a copy of the GNU General Public License
+#along with ssNake. If not, see <http://www.gnu.org/licenses/>.
+
 import numpy as np
 import scipy.optimize
 from scipy.interpolate import UnivariateSpline
@@ -6,14 +24,15 @@ import numpy.polynomial.polynomial as poly
 import scipy.signal
 import scipy.ndimage
 import copy
-from mpl_toolkits.mplot3d import Axes3D
 from mpl_toolkits.mplot3d import proj3d
-from spectrumFrame import Plot1DFrame
 import sys
+from six import string_types
+from spectrumFrame import Plot1DFrame
+from safeEval import safeEval
 
 #########################################################################
 #the generic data class
-class Spectrum(object):
+class Spectrum:
     def __init__(self, data, loadFunc ,freq , sw , spec=None, wholeEcho=None, ref=None, xaxArray=None):
         self.dim = len(data.shape)                    #number of dimensions
         self.data = np.array(data,dtype=complex)      #data of dimension dim
@@ -38,6 +57,14 @@ class Spectrum(object):
         else:
             self.xaxArray = xaxArray
             
+    def checkAxes(self,axes):
+        if axes < 0:
+            axes = axes + self.dim
+        if not (0 <= axes < self.dim):
+            print('Not a valid axes')
+            return None
+        return axes
+            
     def reload(self,mainProgram):
         copyData=copy.deepcopy(self)
         returnValue = lambda self: self.restoreData(copyData, lambda self: self.reload(mainProgram))
@@ -46,10 +73,8 @@ class Spectrum(object):
             
     def resetXax(self,axes=None):  
         if axes is not None:
-            if axes < 0:
-                axes = axes + self.dim
-            if not (0 <= axes < self.dim):
-                print('Not a valid axes')
+            axes = self.checkAxes(axes)
+            if axes == None:
                 return None
             val=[axes]
         else:
@@ -61,20 +86,16 @@ class Spectrum(object):
                 self.xaxArray[i]=np.fft.fftshift(np.fft.fftfreq(self.data.shape[i],1.0/self.sw[i]))
 
     def setXax(self,xax,axes):
-        if axes < 0:
-            axes = axes + self.dim
-        if not (0 <= axes < self.dim):
-            print('Not a valid axes')
+        axes = self.checkAxes(axes)
+        if axes == None:
             return None
         oldXax = self.xaxArray[axes]
         self.xaxArray[axes]=xax
         return lambda self: self.setXax(oldXax,axes)
                 
     def insert(self,data,pos,axes,dataImag=0):
-        if axes < 0:
-            axes = axes + self.dim
-        if not (0 <= axes < self.dim):
-            print('Not a valid axes')
+        axes = self.checkAxes(axes)
+        if axes == None:
             return None
         data = np.array(data) + 1j*np.array(dataImag)
         self.data = np.insert(self.data,[pos],data,axis=axes)
@@ -82,10 +103,8 @@ class Spectrum(object):
         return lambda self: self.remove(range(pos,pos+data.shape[axes]),axes)
 
     def remove(self,pos,axes):
-        if axes < 0:
-            axes = axes + self.dim
-        if not (0 <= axes < self.dim):
-            print('Not a valid axes')
+        axes = self.checkAxes(axes)
+        if axes == None:
             return None
         copyData=copy.deepcopy(self)
         returnValue = lambda self: self.restoreData(copyData, lambda self: self.remove(pos,axes))
@@ -98,48 +117,46 @@ class Spectrum(object):
             print('Cannot delete all data')
             return None
 
-    def add(self,data,dataImag=0):
+    def add(self,data,dataImag=0,select=slice(None)):
+        if isinstance(select,string_types):
+            select = safeEval(select)
         data = np.array(data) + 1j*np.array(dataImag)
-        self.data = self.data + data
-        return lambda self: self.subtract(data)
+        self.data[select] = self.data[select] + data
+        return lambda self: self.subtract(data,select=select)
         
-    def subtract(self,data,dataImag=0):
+    def subtract(self,data,dataImag=0,select=slice(None)):
+        if isinstance(select,string_types):
+            select = safeEval(select)
         data = np.array(data) + 1j*np.array(dataImag)
-        self.data = self.data - data
-        return lambda self: self.add(data)
+        self.data[select] = self.data[select] - data
+        return lambda self: self.add(data,select=select)
 
-    def multiply(self,mult,axes,multImag=0):
-        if axes < 0:
-            axes = axes + self.dim
-        if not (0 <= axes < self.dim):
-            print('Not a valid axes')
+    def multiply(self,mult,axes,multImag=0,select=slice(None)):
+        if isinstance(select,string_types):
+            select = safeEval(select)
+        axes = self.checkAxes(axes)
+        if axes == None:
             return None
         mult = np.array(mult) + 1j*np.array(multImag)
         copyData=copy.deepcopy(self)
-        returnValue = lambda self: self.restoreData(copyData, lambda self: self.multiply(mult,axes))
-        if len(mult.shape) == 0:
-            multtmp = mult
-        else:
-            multtmp = mult.reshape((1,)*axes+(self.data.shape[axes],)+(1,)*(self.dim-axes-1))
-        self.data = self.data*multtmp
+        returnValue = lambda self: self.restoreData(copyData, lambda self: self.multiply(mult,axes,select=select))
+        self.data[select] = np.apply_along_axis(np.multiply,axes,self.data,mult)[select]
         return returnValue
 
-    def baselineCorrection(self,baseline,axes,baselineImag = 0):
-        if axes < 0:
-            axes = axes + self.dim
-        if not (0 <= axes < self.dim):
-            print('Not a valid axes')
+    def baselineCorrection(self,baseline,axes,baselineImag = 0,select=slice(None)):
+        if isinstance(select,string_types):
+            select = safeEval(select)
+        axes = self.checkAxes(axes)
+        if axes == None:
             return None
         baseline = np.array(baseline) + 1j*np.array(baselineImag)
         baselinetmp = baseline.reshape((1,)*axes+(self.data.shape[axes],)+(1,)*(self.dim-axes-1))
-        self.data = self.data - baselinetmp
-        return lambda self: self.baselineCorrection(-baseline,axes) 
+        self.data[select] = self.data[select] - baselinetmp
+        return lambda self: self.baselineCorrection(-baseline,axes,select=select) 
     
     def concatenate(self,axes):
-        if axes < 0:
-            axes = axes + self.dim
-        if not (0 <= axes < self.dim):
-            print('Not a valid axes')
+        axes = self.checkAxes(axes)
+        if axes == None:
             return None
         splitVal = self.data.shape[axes]
         self.data = np.concatenate(self.data,axis=axes)
@@ -155,10 +172,8 @@ class Spectrum(object):
         return lambda self: self.split(splitVal,axes)
     
     def split(self,sections,axes):
-        if axes < 0:
-            axes = axes + self.dim
-        if not (0 <= axes < self.dim):
-            print('Not a valid axes')
+        axes = self.checkAxes(axes)
+        if axes == None:
             return None
         self.data = np.array(np.split(self.data,sections,axis=axes))
         self.dim = len(self.data.shape)
@@ -191,10 +206,8 @@ class Spectrum(object):
         return returnValue
     
     def states(self,axes):
-        if axes < 0:
-            axes = axes + self.dim
-        if not (0 <= axes < self.dim):
-            print('Not a valid axes')
+        axes = self.checkAxes(axes)
+        if axes == None:
             return None
         copyData=copy.deepcopy(self)
         returnValue = lambda self: self.restoreData(copyData, lambda self: self.states(axes))
@@ -210,10 +223,8 @@ class Spectrum(object):
         return returnValue
     
     def statesTPPI(self,axes):
-        if axes < 0:
-            axes = axes + self.dim
-        if not (0 <= axes < self.dim):
-            print('Not a valid axes')
+        axes = self.checkAxes(axes)
+        if axes == None:
             return None
         copyData=copy.deepcopy(self)
         returnValue = lambda self: self.restoreData(copyData, lambda self: self.statesTPPI(axes))
@@ -230,10 +241,8 @@ class Spectrum(object):
         return returnValue
     
     def matrixManip(self, pos1, pos2, axes, which):
-        if axes < 0:
-            axes = axes + self.dim
-        if not (0 <= axes < self.dim):
-            print('Not a valid axes')
+        axes = self.checkAxes(axes)
+        if axes == None:
             return None
         copyData=copy.deepcopy(self)
         returnValue = lambda self: self.restoreData(copyData, lambda self: self.matrixManip(pos1,pos2,axes,which))
@@ -267,10 +276,8 @@ class Spectrum(object):
         return returnValue
 
     def getRegion(self, pos1, pos2,axes):
-        if axes < 0:
-            axes = axes + self.dim
-        if not (0 <= axes < self.dim):
-            print('Not a valid axes')
+        axes = self.checkAxes(axes)
+        if axes == None:
             return None
         copyData=copy.deepcopy(self)
         returnValue = lambda self: self.restoreData(copyData, lambda self: self.getRegion(axes,pos1,pos2))
@@ -282,58 +289,48 @@ class Spectrum(object):
         return returnValue
 
     def flipLR(self, axes):
-        if axes < 0:
-            axes = axes + self.dim
-        if not (0 <= axes < self.dim):
-            print('Not a valid axes')
+        axes = self.checkAxes(axes)
+        if axes == None:
             return None
         slicing = (slice(None),) * axes + (slice(None,None,-1),) + (slice(None),)*(self.dim-1-axes)
         self.data = self.data[slicing]
         return lambda self: self.flipLR(axes)
     
     def hilbert(self,axes):
-        if axes < 0:
-            axes = axes + self.dim
-        if not (0 <= axes < self.dim):
-            print('Not a valid axes')
+        axes = self.checkAxes(axes)
+        if axes == None:
             return None
         copyData=copy.deepcopy(self)
         returnValue = lambda self: self.restoreData(copyData, lambda self: self.hilbert(axes))
         self.data = scipy.signal.hilbert(np.real(self.data), axis=axes)
         return returnValue
 
-    def setPhase(self, phase0, phase1, axes):
-        if axes < 0:
-            axes = axes + self.dim
-        if not (0 <= axes < self.dim):
-            print('Not a valid axes')
+    def setPhase(self, phase0, phase1, axes,select=slice(None)):
+        if isinstance(select,string_types):
+            select = safeEval(select)
+        axes = self.checkAxes(axes)
+        if axes == None:
             return None
         vector = np.exp(np.fft.fftshift(np.fft.fftfreq(self.data.shape[axes],1.0/self.sw[axes]))/self.sw[axes]*phase1*1j)
         if self.spec[axes]==0:
             self.fourier(axes,tmp=True)
-            self.data=self.data*np.exp(phase0*1j)
-            for i in range(self.data.shape[axes]):
-                slicing = (slice(None),) * axes + (i,) + (slice(None),)*(self.dim-1-axes)
-                self.data[slicing]=self.data[slicing]*vector[i]
-            self.fourier(axes,tmp=True)
-        else:
-            self.data=self.data*np.exp(phase0*1j)
-            for i in range(self.data.shape[axes]):
-                slicing = (slice(None),) * axes + (i,) + (slice(None),)*(self.dim-1-axes)
-                self.data[slicing]=self.data[slicing]*vector[i]
-        return lambda self: self.setPhase(-phase0,-phase1,axes)
+        self.data[select] = self.data[select]*np.exp(phase0*1j)
+        self.data[select] = np.apply_along_axis(np.multiply,axes,self.data,vector)[select]
+        if self.spec[axes]==0:
+            self.fourier(axes,tmp=True,inv=True)
+        return lambda self: self.setPhase(-phase0,-phase1,axes,select=select)
 
-    def apodize(self,lor,gauss, cos2, hamming, shift, shifting, shiftingAxes, axes):
-        if axes < 0:
-            axes = axes + self.dim
-        if not (0 <= axes < self.dim):
-            print('Not a valid axes')
+    def apodize(self,lor,gauss, cos2, hamming, shift, shifting, shiftingAxes, axes,select=slice(None)):
+        if isinstance(select,string_types):
+            select = safeEval(select)
+        axes = self.checkAxes(axes)
+        if axes == None:
             return None
         if shiftingAxes==None:
             shiftingAxes = 0
             shifting = 0
         copyData=copy.deepcopy(self)
-        returnValue = lambda self: self.restoreData(copyData, lambda self: self.apodize(lor,gauss,cos2,hamming,shift,shifting,shiftingAxes,axes))
+        returnValue = lambda self: self.restoreData(copyData, lambda self: self.apodize(lor,gauss,cos2,hamming,shift,shifting,shiftingAxes,axes,select=select))
         axLen = self.data.shape[axes]
         t=np.arange(0,axLen)/self.sw[axes]
         if shifting != 0.0:
@@ -342,9 +339,9 @@ class Spectrum(object):
                 t2 = t - shift1
                 x=np.ones(axLen)
                 if lor is not None:
-                    x=x*np.exp(-lor*abs(t2))
+                    x=x*np.exp(-np.pi*lor*abs(t2))
                 if gauss is not None:
-                    x=x*np.exp(-(gauss*t2)**2)
+                    x=x*np.exp(-((np.pi*gauss*t2)**2)/(4*np.log(2)))
                 if cos2 is not None:
                     x=x*(np.cos(cos2*(-0.5*shift1*np.pi*self.sw[axes]/axLen+np.linspace(0,0.5*np.pi,axLen)))**2)
                 if hamming is not None:
@@ -354,27 +351,21 @@ class Spectrum(object):
                     x[-1:-(len(x)/2+1):-1]=x[:len(x)/2]
                 if self.spec[axes] > 0:
                     self.fourier(axes,tmp=True)
-                    for i in range(self.data.shape[axes]):
-                        if axes < shiftingAxes:
-                            slicing = (slice(None),) * axes + (i,) + (slice(None),)*(shiftingAxes-1-axes) + (j,) + (slice(None),)*(self.dim-2-shiftingAxes)
-                        else:
-                            slicing = (slice(None),) * shiftingAxes + (j,) + (slice(None),)*(axes-1-shiftingAxes) + (i,) + (slice(None),)*(self.dim-2-axes)
-                        self.data[slicing]=self.data[slicing]*x[i]
-                    self.fourier(axes,tmp=True)
-                else:
-                    for i in range(self.data.shape[axes]):
-                        if axes < shiftingAxes:
-                            slicing = (slice(None),) * axes + (i,) + (slice(None),)*(shiftingAxes-1-axes) + (j,) + (slice(None),)*(self.dim-2-shiftingAxes)
-                        else:
-                            slicing = (slice(None),) * shiftingAxes + (j,) + (slice(None),)*(axes-1-shiftingAxes) + (i,) + (slice(None),)*(self.dim-2-axes)
-                        self.data[slicing]=self.data[slicing]*x[i]
+                for i in range(self.data.shape[axes]):
+                    if axes < shiftingAxes:
+                        slicing = (slice(None),) * axes + (i,) + (slice(None),)*(shiftingAxes-1-axes) + (j,) + (slice(None),)*(self.dim-2-shiftingAxes)
+                    else:
+                        slicing = (slice(None),) * shiftingAxes + (j,) + (slice(None),)*(axes-1-shiftingAxes) + (i,) + (slice(None),)*(self.dim-2-axes)
+                    self.data[slicing]=self.data[slicing]*x[i]
+                if self.spec[axes] > 0:
+                    self.fourier(axes,tmp=True,inv=True)
         else:
             t2 = t - shift
             x=np.ones(axLen)
             if lor is not None:
-                x=x*np.exp(-lor*abs(t2))
+                x=x*np.exp(-np.pi*lor*abs(t2))
             if gauss is not None:
-                x=x*np.exp(-(gauss*t2)**2)
+                x=x*np.exp(-((np.pi*gauss*t2)**2)/(4*np.log(2)))
             if cos2 is not None:
                 x=x*(np.cos(cos2*(-0.5*shift*np.pi*self.sw[axes]/axLen+np.linspace(0,0.5*np.pi,axLen)))**2)
             if hamming is not None:
@@ -384,21 +375,14 @@ class Spectrum(object):
                 x[-1:-(len(x)/2+1):-1]=x[:len(x)/2]
             if self.spec[axes] > 0:
                 self.fourier(axes,tmp=True)
-                for i in range(self.data.shape[axes]):
-                    slicing = (slice(None),) * axes + (i,) + (slice(None),)*(self.dim-1-axes)
-                    self.data[slicing]=self.data[slicing]*x[i]
-                self.fourier(axes,tmp=True)
-            else:
-                for i in range(self.data.shape[axes]):
-                    slicing = (slice(None),) * axes + (i,) + (slice(None),)*(self.dim-1-axes)
-                    self.data[slicing]=self.data[slicing]*x[i]
+            self.data[select] = np.apply_along_axis(np.multiply,axes,self.data,x)[select]
+            if self.spec[axes] > 0:
+                self.fourier(axes,tmp=True,inv=True)
         return returnValue
 
     def setFreq(self,freq,sw,axes):
-        if axes < 0:
-            axes = axes + self.dim
-        if not (0 <= axes < self.dim):
-            print('Not a valid axes')
+        axes = self.checkAxes(axes)
+        if axes == None:
             return None
         oldFreq = self.freq[axes]
         oldSw = self.sw[axes]
@@ -408,32 +392,28 @@ class Spectrum(object):
         return lambda self: self.setFreq(oldFreq,oldSw,axes)
     
     def setRef(self,ref,axes):
-        if axes < 0:
-            axes = axes + self.dim
-        if not (0 <= axes < self.dim):
-            print('Not a valid axes')
+        axes = self.checkAxes(axes)
+        if axes == None:
             return None
         oldRef = self.ref[axes]
         self.ref[axes]=ref
         return lambda self: self.setRef(oldRef,axes)
 
     def setWholeEcho(self,val,axes):
-        if axes < 0:
-            axes = axes + self.dim
-        if not (0 <= axes < self.dim):
-            print('Not a valid axes')
+        axes = self.checkAxes(axes)
+        if axes == None:
             return None
         self.wholeEcho[axes]=val
         return lambda self: self.setWholeEcho(not val,axes)
     
     def setSize(self,size,axes):
-        if axes < 0:
-            axes = axes + self.dim
-        if not (0 <= axes < self.dim):
-            print('Not a valid axes')
+        axes = self.checkAxes(axes)
+        if axes == None:
             return None
         copyData=copy.deepcopy(self)
         returnValue = lambda self: self.restoreData(copyData, lambda self: self.setSize(size,axes))
+        if self.spec[axes] > 0:
+            self.fourier(axes,tmp=True)
         if size > self.data.shape[axes]:
             if self.wholeEcho[axes]:
                 tmpdata = np.array_split(self.data,2,axes)
@@ -448,15 +428,15 @@ class Spectrum(object):
             else:
                 slicing = (slice(None),) * axes + (slice(0,size),) + (slice(None),)*(self.dim-1-axes)
                 self.data = self.data[slicing]
+        if self.spec[axes] > 0:
+            self.fourier(axes,tmp=True,inv=True)
         self.dim = len(self.data.shape)
         self.resetXax(axes)
         return returnValue
 
     def changeSpec(self,val,axes):
-        if axes < 0:
-            axes = axes + self.dim
-        if not (0 <= axes < self.dim):
-            print('Not a valid axes')
+        axes = self.checkAxes(axes)
+        if axes == None:
             return None
         oldVal = self.spec[axes]
         self.spec[axes] = val
@@ -464,10 +444,8 @@ class Spectrum(object):
         return lambda self: self.changeSpec(oldVal,axes)
 
     def swapEcho(self,idx,axes):
-        if axes < 0:
-            axes = axes + self.dim
-        if not (0 <= axes < self.dim):
-            print('Not a valid axes')
+        axes = self.checkAxes(axes)
+        if axes == None:
             return None
         slicing1=(slice(None),) * axes + (slice(None,idx),) + (slice(None),)*(self.dim-1-axes)
         slicing2=(slice(None),) * axes + (slice(idx,None),) + (slice(None),)*(self.dim-1-axes)
@@ -475,37 +453,30 @@ class Spectrum(object):
         self.wholeEcho[axes] = not self.wholeEcho[axes]
         return lambda self: self.swapEcho(-idx,axes)
             
-    def shiftData(self,shift,axes):
-        if axes < 0:
-            axes = axes + self.dim
-        if not (0 <= axes < self.dim):
-            print('Not a valid axes')
+    def shiftData(self,shift,axes,select=slice(None)):
+        if isinstance(select,string_types):
+            select = safeEval(select)
+        axes = self.checkAxes(axes)
+        if axes == None:
             return None
         copyData=copy.deepcopy(self)
-        returnValue = lambda self: self.restoreData(copyData, lambda self: self.shiftData(shift,axes))
+        returnValue = lambda self: self.restoreData(copyData, lambda self: self.shiftData(shift,axes,select=select))
         if self.spec[axes] > 0:
             self.fourier(axes,tmp=True)
-            self.data = np.roll(self.data,shift,axes)
-            if shift < 0:
-                slicing = (slice(None),) * axes + (slice(shift,None),) + (slice(None),)*(self.dim-1-axes)
-            else:
-                slicing = (slice(None),) * axes + (slice(None,shift),) + (slice(None),)*(self.dim-1-axes)
-            self.data[slicing]=self.data[slicing]*0
-            self.fourier(axes,tmp=True)
+        self.data[select] = np.roll(self.data,shift,axes)[select]
+        mask = np.ones(self.data.shape[axes])
+        if shift < 0:
+            mask[slice(shift,None)] = 0
         else:
-            self.data = np.roll(self.data,shift,axes)
-            if shift < 0:
-                slicing = (slice(None),) * axes + (slice(shift,None),) + (slice(None),)*(self.dim-1-axes)
-            else:
-                slicing = (slice(None),) * axes + (slice(None,shift),) + (slice(None),)*(self.dim-1-axes)
-            self.data[slicing]=self.data[slicing]*0
+            mask[slice(None,shift)] = 0
+        self.data[select] = np.apply_along_axis(np.multiply,axes,self.data,mask)[select]
+        if self.spec[axes] > 0:
+            self.fourier(axes,tmp=True,inv=True)
         return returnValue
     
     def LPSVD(self,axes):
-        if axes < 0:
-            axes = axes + self.dim
-        if not (0 <= axes < self.dim):
-            print('Not a valid axes')
+        axes = self.checkAxes(axes)
+        if axes == None:
             return None
         M = 1 #Number of frequencies
         y = self.data[axes][0:100]
@@ -520,38 +491,52 @@ class Spectrum(object):
         s=np.conj(np.log(np.roots(np.append(PolyCoef[::-1],1))))		# polynomial rooting
         s = s[np.where(np.real(s)<0)[0]]
         a=1
-        
-    def dcOffset(self,offset,offsetImag=0):
-        self.data = self.data-offset+1j*offsetImag
-        return lambda self: self.dcOffset(-offset)
 
-    def fourier(self, axes,tmp=False):
-        if axes < 0:
-            axes = axes + self.dim
-        if not (0 <= axes < self.dim):
-            print('Not a valid axes')
+    def fourier(self, axes,tmp=False,inv=False):
+        axes = self.checkAxes(axes)
+        if axes == None:
             return None
-        if self.spec[axes]==0:
+        if np.logical_xor(self.spec[axes],inv)==0:
             if not self.wholeEcho[axes] and not tmp:
                 slicing = (slice(None),) * axes + (0,) + (slice(None),)*(self.dim-1-axes)
                 self.data[slicing]= self.data[slicing]*0.5
             self.data=np.fft.fftshift(np.fft.fftn(self.data,axes=[axes]),axes=axes)
-            self.spec[axes]=1
-            
+            if not tmp:
+                self.spec[axes]=1
         else:
             self.data=np.fft.ifftn(np.fft.ifftshift(self.data,axes=axes),axes=[axes])
             if not self.wholeEcho[axes] and not tmp:
                 slicing = (slice(None),) * axes + (0,) + (slice(None),)*(self.dim-1-axes)
                 self.data[slicing]= self.data[slicing]*2.0
-            self.spec[axes]=0
+            if not tmp:
+                self.spec[axes]=0
         self.resetXax(axes)
         return lambda self: self.fourier(axes)
 
+    def realFourier(self, axes):
+        axes = self.checkAxes(axes)
+        if axes == None:
+            return None
+        copyData=copy.deepcopy(self)
+        returnValue = lambda self: self.restoreData(copyData, lambda self: self.realFourier(axes))
+        if self.spec[axes]==0:
+            if not self.wholeEcho[axes]:
+                slicing = (slice(None),) * axes + (0,) + (slice(None),)*(self.dim-1-axes)
+                self.data[slicing]= self.data[slicing]*0.5
+            self.data=np.fft.fftshift(np.fft.fftn(np.real(self.data),axes=[axes]),axes=axes)
+            self.spec[axes]=1
+        else:
+            self.data=np.fft.ifftn(np.fft.ifftshift(np.real(self.data),axes=axes),axes=[axes])
+            if not self.wholeEcho[axes]:
+                slicing = (slice(None),) * axes + (0,) + (slice(None),)*(self.dim-1-axes)
+                self.data[slicing]= self.data[slicing]*2.0
+            self.spec[axes]=0
+        self.resetXax(axes)
+        return returnValue
+
     def fftshift(self, axes, inv=False):
-        if axes < 0:
-            axes = axes + self.dim
-        if not (0 <= axes < self.dim):
-            print('Not a valid axes')
+        axes = self.checkAxes(axes)
+        if axes == None:
             return None
         if inv:
             self.data=np.fft.ifftshift(self.data,axes=[axes])
@@ -560,15 +545,11 @@ class Spectrum(object):
         return lambda self: self.fftshift(axes,not(inv))
 
     def shear(self, shear, axes, axes2):
-        if axes < 0:
-            axes = axes + self.dim
-        if not (0 <= axes < self.dim):
-            print('Not a valid axes')
+        axes = self.checkAxes(axes)
+        if axes == None:
             return None
-        if axes2 < 0:
-            axes2 = axes2 + self.dim
-        if not (0 <= axes2 < self.dim):
-            print('Not a valid axes')
+        axes2 = self.checkAxes(axes2)
+        if axes2 == None:
             return None
         if axes == axes2:
             print('Both shearing axes cannot be equal')
@@ -586,23 +567,17 @@ class Spectrum(object):
         return returnValue
     
     def getSlice(self,axes,locList):
-        if axes < 0:
-            axes = axes + self.dim
-        if not (0 <= axes < self.dim):
-            print('Not a valid axes')
+        axes = self.checkAxes(axes)
+        if axes == None:
             return None
         return copy.deepcopy((self.data[tuple(locList[:axes])+(slice(None),)+tuple(locList[axes:])],self.freq[axes],self.sw[axes],self.spec[axes],self.wholeEcho[axes],self.xaxArray[axes],self.ref[axes]))
 
     def getBlock(self, axes, axes2, locList, stackBegin=None, stackEnd=None, stackStep=None):
-        if axes < 0:
-            axes = axes + self.dim
-        if not (0 <= axes < self.dim):
-            print('Not a valid axes')
+        axes = self.checkAxes(axes)
+        if axes == None:
             return None
-        if axes2 < 0:
-            axes2 = axes2 + self.dim
-        if not (0 <= axes2 < self.dim):
-            print('Not a valid axes')
+        axes2 = self.checkAxes(axes2)
+        if axes2 == None:
             return None
         stackSlice = slice(stackBegin, stackEnd, stackStep)
         if axes == axes2:
@@ -625,12 +600,11 @@ class Spectrum(object):
         self.ref = copyData.ref
         return returnValue
 
-
 #########################################################################################################
 #the class from which the 1d data is displayed, the operations which only edit the content of this class are for previewing
 class Current1D(Plot1DFrame):
-    def __init__(self, root, data,duplicateCurrent=None):
-        Plot1DFrame.__init__(self,root)
+    def __init__(self, root, fig,canvas,data,duplicateCurrent=None):
+        Plot1DFrame.__init__(self,root,fig,canvas)
         self.xax = None               #x-axis
         self.data = data              #the actual spectrum instance
         self.freq = None              #frequency of the slice 
@@ -667,11 +641,14 @@ class Current1D(Plot1DFrame):
             self.plotType = duplicateCurrent.plotType
             self.axType = duplicateCurrent.axType
         self.upd()   #get the first slice of data
+        self.startUp()
+        
+    def startUp(self):
         self.plotReset() #reset the axes limits
         self.showFid() #plot the data
         
-    def copyCurrent(self,root, data):
-        return Current1D(root,data,self)
+    def copyCurrent(self,root,fig,canvas, data):
+        return Current1D(root,fig,canvas,data,self)
         
     def upd(self): #get new data from the data instance
         if self.data.dim <= self.axes:
@@ -689,7 +666,8 @@ class Current1D(Plot1DFrame):
         if self.ref == None:
             self.ref = self.freq
         self.single = self.data1D.shape[-1]==1
-
+        return True
+        
     def setSlice(self,axes,locList): #change the slice 
         axesSame = True
         if self.axes != axes:
@@ -703,6 +681,17 @@ class Current1D(Plot1DFrame):
 
     def resetLocList(self):
         self.locList = [0]*(len(self.data.data.shape)-1)
+
+    def getSelect(self):
+        tmp = list(self.locList)
+        if len(self.data1D.shape) > 1:
+            minVal = min(self.axes,self.axes2)
+            maxVal = max(self.axes,self.axes2)
+            tmp.insert(minVal,slice(None))
+            tmp.insert(maxVal,slice(None))
+        else:
+            tmp.insert(self.axes,slice(None))
+        return tmp
         
     def setPhaseInter(self, phase0in, phase1in): #interactive changing the phase without editing the actual data
         phase0=float(phase0in)
@@ -723,13 +712,17 @@ class Current1D(Plot1DFrame):
         self.data1D = tmpdata
         self.showFid()
 
-    def applyPhase(self, phase0, phase1):# apply the phase to the actual data
+    def applyPhase(self, phase0, phase1,select=False):# apply the phase to the actual data
         phase0=float(phase0)
         phase1=float(phase1)
-        returnValue = self.data.setPhase(phase0,phase1,self.axes)
+        if select:
+            selectSlice = self.getSelect()
+        else:
+            selectSlice = slice(None)
+        returnValue = self.data.setPhase(phase0,phase1,self.axes,selectSlice)
         self.upd()
         self.showFid()
-        self.root.addMacro(['phase',(phase0,phase1,self.axes-self.data.dim)])
+        self.root.addMacro(['phase',(phase0,phase1,self.axes-self.data.dim,str(selectSlice))])
         return returnValue
 
     def fourier(self): #fourier the actual data and replot
@@ -740,6 +733,16 @@ class Current1D(Plot1DFrame):
         self.plotReset()
         self.showFid()
         self.root.addMacro(['fourier',(self.axes-self.data.dim,)])
+        return returnValue
+
+    def realFourier(self): #fourier the real data and replot
+        returnValue = self.data.realFourier(self.axes)
+        self.upd()
+        if isinstance(self,(CurrentStacked,CurrentArrayed)):
+            self.resetSpacing()
+        self.plotReset()
+        self.showFid()
+        self.root.addMacro(['realFourier',(self.axes-self.data.dim,)])
         return returnValue
 
     def fftshift(self,inv=False): #fftshift the actual data and replot
@@ -778,9 +781,9 @@ class Current1D(Plot1DFrame):
         t2=t-shift
         x=np.ones(length)
         if lor is not None:
-            x=x*np.exp(-lor*abs(t2))
+            x=x*np.exp(-np.pi*lor*abs(t2))
         if gauss is not None:
-            x=x*np.exp(-(gauss*t2)**2)
+            x=x*np.exp(-((np.pi*gauss*t2)**2)/(4*np.log(2)))
         if cos2 is not None:
             x=x*(np.cos(cos2*(-0.5*shift*np.pi*self.sw/length+np.linspace(0,0.5*np.pi,len(self.data1D))))**2)
         if hamming is not None:
@@ -808,11 +811,15 @@ class Current1D(Plot1DFrame):
         else:
             self.showFid(y)
 
-    def applyApod(self,lor=None,gauss=None,cos2=None,hamming=None,shift=0.0,shifting=0.0,shiftingAxes=0): #apply the apodization to the actual data
-        returnValue = self.data.apodize(lor,gauss,cos2,hamming,shift,shifting,shiftingAxes,self.axes)
+    def applyApod(self,lor=None,gauss=None,cos2=None,hamming=None,shift=0.0,shifting=0.0,shiftingAxes=0,select=False): #apply the apodization to the actual data
+        if select:
+            selectSlice = self.getSelect()
+        else:
+            selectSlice = slice(None)
+        returnValue = self.data.apodize(lor,gauss,cos2,hamming,shift,shifting,shiftingAxes,self.axes,selectSlice)
         self.upd() 
         self.showFid()
-        self.root.addMacro([u'apodize',(lor,gauss,cos2,hamming,shift,shifting,shiftingAxes,self.axes-self.data.dim)])
+        self.root.addMacro(['apodize',(lor,gauss,cos2,hamming,shift,shifting,shiftingAxes,self.axes-self.data.dim,str(selectSlice))])
         return returnValue
 
     def setFreq(self,freq,sw): #set the frequency of the actual data
@@ -848,7 +855,7 @@ class Current1D(Plot1DFrame):
             tmpData = np.real(tmpData)
         elif(self.plotType==3):
             tmpData = np.abs(tmpData)
-        return (np.amax(tmpData[minP:maxP])/(np.amax(tmpData[minN:maxN])-np.amin(tmpData[minN:maxN])))
+        return (np.amax(tmpData[minP:maxP])/(np.std(tmpData[minN:maxN])))
     
     def fwhm(self,minPeak,maxPeak):
         minP = min(minPeak,maxPeak)
@@ -891,30 +898,38 @@ class Current1D(Plot1DFrame):
             length = len(self.data1D[0])
         else:
             length = len(self.data1D)
+        if self.spec==1:
+            tmpdata=self.fourierLocal(self.data1D,1)
+        else:
+            tmpdata = self.data1D
         if size > length:
             if self.wholeEcho:
-                tmpdata = np.array_split(self.data1D,2,axis=(len(self.data1D.shape)-1))
+                tmpdata = np.array_split(tmpdata,2,axis=(len(self.data1D.shape)-1))
                 if len(self.data1D.shape) > 1:
-                    self.data1D = np.concatenate((np.pad(tmpdata[0],((0,0),(0,size-length)),'constant',constant_values=0),tmpdata[1]),axis=1)
+                    tmpdata = np.concatenate((np.pad(tmpdata[0],((0,0),(0,size-length)),'constant',constant_values=0),tmpdata[1]),axis=1)
                 else:
-                    self.data1D = np.concatenate((np.pad(tmpdata[0],(0,size-length),'constant',constant_values=0),tmpdata[1]))
+                    tmpdata = np.concatenate((np.pad(tmpdata[0],(0,size-length),'constant',constant_values=0),tmpdata[1]))
             else:
                 if len(self.data1D.shape) > 1:
-                    self.data1D = np.pad(self.data1D,((0,0),(0,size-length)),'constant',constant_values=0)
+                    tmpdata = np.pad(tmpdata,((0,0),(0,size-length)),'constant',constant_values=0)
                 else:
-                    self.data1D = np.pad(self.data1D,(0,size-length),'constant',constant_values=0)
+                    tmpdata = np.pad(tmpdata,(0,size-length),'constant',constant_values=0)
         else:
             if self.wholeEcho:
-                tmpdata = np.array_split(self.data1D,2,axis=(len(self.data1D.shape)-1))
+                tmpdata = np.array_split(tmpdata,2,axis=(len(self.data1D.shape)-1))
                 if len(self.data1D.shape) > 1:
-                    self.data1D = np.concatenate((tmpdata[0][:,:int(np.ceil(size/2.0))],tmpdata[1][:,(-int(np.ceil(size/2.0))-1):]),axis=1)
+                    tmpdata = np.concatenate((tmpdata[0][:,:int(np.ceil(size/2.0))],tmpdata[1][:,(-int(np.ceil(size/2.0))-1):]),axis=1)
                 else:
-                    self.data1D = np.concatenate((tmpdata[0][:int(np.ceil(size/2.0))],tmpdata[1][(-int(np.ceil(size/2.0))-1):]))
+                    tmpdata = np.concatenate((tmpdata[0][:int(np.ceil(size/2.0))],tmpdata[1][(-int(np.ceil(size/2.0))-1):]))
             else:
                 if len(self.data1D.shape) > 1:
-                    self.data1D = self.data1D[:,:size]
+                    tmpdata = tmpdata[:,:size]
                 else:
-                    self.data1D = self.data1D[:size]
+                    tmpdata = tmpdata[:size]
+        if self.spec==1:
+            self.data1D=self.fourierLocal(tmpdata,0)
+        else:
+            self.data1D = tmpdata
         if len(self.data1D.shape) > 1:
             length = len(self.data1D[0])
         else:
@@ -970,11 +985,15 @@ class Current1D(Plot1DFrame):
             self.root.addMacro(['wholeEcho',(True,self.axes-self.data.dim)])
         return returnValue
 
-    def applyShift(self,shift):
-        returnValue = self.data.shiftData(shift,self.axes)
+    def applyShift(self,shift,select=False):
+        if select:
+            selectSlice = self.getSelect()
+        else:
+            selectSlice = slice(None)
+        returnValue = self.data.shiftData(shift,self.axes,selectSlice)
         self.upd()
         self.showFid()
-        self.root.addMacro(['shift',(shift,self.axes-self.data.dim)])
+        self.root.addMacro(['shift',(shift,self.axes-self.data.dim,str(selectSlice))])
         return returnValue
 
     def setShiftPreview(self,shift):
@@ -1001,15 +1020,12 @@ class Current1D(Plot1DFrame):
             
     def dcOffset(self,offset):
         self.showFid(self.data1D-offset)
-            
-    def applydcOffset(self,offset):
-        returnValue = self.data.dcOffset(offset)
-        self.upd()
-        self.showFid()
-        self.root.addMacro(['offset',(float(np.real(offset)),float(np.imag(offset)))])
-        return returnValue
 
-    def applyBaseline(self,degree,removeList):
+    def applyBaseline(self,degree,removeList,select=False):
+        if select:
+            selectSlice = self.getSelect()
+        else:
+            selectSlice = slice(None)
         if len(self.data1D.shape) > 1:
             tmpData = self.data1D[0]
         else:
@@ -1022,8 +1038,8 @@ class Current1D(Plot1DFrame):
             bArray = np.logical_and(bArray,np.logical_or((tmpAx < minVal),(tmpAx > maxVal)))
         polyCoeff = poly.polyfit(self.xax[bArray],tmpData[bArray],degree)
         y = poly.polyval(self.xax,polyCoeff)
-        self.root.addMacro(['baselineCorrection',(list(np.real(y)),self.axes-self.data.dim,list(np.imag(y)))])
-        return self.data.baselineCorrection(y,self.axes)
+        self.root.addMacro(['baselineCorrection',(list(np.real(y)),self.axes-self.data.dim,list(np.imag(y)),str(selectSlice))])
+        return self.data.baselineCorrection(y,self.axes,select=selectSlice)
     
     def previewBaseline(self,degree,removeList):
         if len(self.data1D.shape) > 1:
@@ -1103,23 +1119,43 @@ class Current1D(Plot1DFrame):
     
     def integrate(self,pos1,pos2):
         self.root.addMacro(['integrate',(pos1,pos2,self.axes-self.data.dim,)])
-        return self.data.matrixManip(pos1,pos2,self.axes,0)
+        returnValue = self.data.matrixManip(pos1,pos2,self.axes,0)
+        if self.upd():
+            self.plotReset()
+            self.showFid()
+        return returnValue
 
     def maxMatrix(self,pos1,pos2):
         self.root.addMacro(['max',(pos1,pos2,self.axes-self.data.dim,)])
-        return self.data.matrixManip(pos1,pos2,self.axes,1)
+        returnValue = self.data.matrixManip(pos1,pos2,self.axes,1)
+        if self.upd():
+            self.plotReset()
+            self.showFid()
+        return returnValue
     
     def minMatrix(self,pos1,pos2):
         self.root.addMacro(['min',(pos1,pos2,self.axes-self.data.dim,)])
-        return self.data.matrixManip(pos1,pos2,self.axes,2)
+        returnValue = self.data.matrixManip(pos1,pos2,self.axes,2)
+        if self.upd():
+            self.plotReset()
+            self.showFid()
+        return returnValue
     
     def argmaxMatrix(self,pos1,pos2):
         self.root.addMacro(['argmax',(pos1,pos2,self.axes-self.data.dim,)])
-        return self.data.matrixManip(pos1,pos2,self.axes,3)
+        returnValue = self.data.matrixManip(pos1,pos2,self.axes,3)
+        if self.upd():
+            self.plotReset()
+            self.showFid()
+        return returnValue
 
     def argminMatrix(self,pos1,pos2):
         self.root.addMacro(['argmin',(pos1,pos2,self.axes-self.data.dim,)])
-        return self.data.matrixManip(pos1,pos2,self.axes,4)
+        returnValue = self.data.matrixManip(pos1,pos2,self.axes,4)
+        if self.upd():
+            self.plotReset()
+            self.showFid()
+        return returnValue
     
     def flipLR(self):
         returnValue = self.data.flipLR(self.axes)
@@ -1166,27 +1202,39 @@ class Current1D(Plot1DFrame):
             self.showFid()
         self.upd()
     
-    def add(self,data):
-        returnValue = self.data.add(data)
+    def add(self,data,select=False):
+        if select:
+            selectSlice = self.getSelect()
+        else:
+            selectSlice = slice(None)
+        returnValue = self.data.add(data,select=selectSlice)
         self.upd()
         self.plotReset()
         self.showFid()
-        self.root.addMacro(['add',(np.real(data).tolist(),np.imag(data).tolist())])
+        self.root.addMacro(['add',(np.real(data).tolist(),np.imag(data).tolist(),str(selectSlice))])
         return returnValue
         
-    def subtract(self,data):
-        returnValue = self.data.subtract(data)
+    def subtract(self,data,select=False):
+        if select:
+            selectSlice = self.getSelect()
+        else:
+            selectSlice = slice(None)
+        returnValue = self.data.subtract(data,select=selectSlice)
         self.upd()
         self.plotReset()
         self.showFid()
-        self.root.addMacro(['subtract',(np.real(data).tolist(),np.imag(data).tolist())])
+        self.root.addMacro(['subtract',(np.real(data).tolist(),np.imag(data).tolist(),str(selectSlice))])
         return returnValue
 
-    def multiply(self,data):
-        returnValue = self.data.multiply(data,self.axes)
+    def multiply(self,data,select=False):
+        if select:
+            selectSlice = self.getSelect()
+        else:
+            selectSlice = slice(None)
+        returnValue = self.data.multiply(data,self.axes,select=selectSlice)
         self.upd()
         self.showFid()
-        self.root.addMacro(['multiply',(np.real(data).tolist(),self.axes-self.data.dim,np.imag(data).tolist())])
+        self.root.addMacro(['multiply',(np.real(data).tolist(),self.axes-self.data.dim,np.imag(data).tolist(),str(selectSlice))])
         return returnValue
     
     def multiplyPreview(self,data):
@@ -1447,8 +1495,8 @@ class Current1D(Plot1DFrame):
 
 #########################################################################################################
 class CurrentScatter(Current1D):
-    def __init__(self, root, data, duplicateCurrent=None):
-        Current1D.__init__(self,root, data, duplicateCurrent)
+    def __init__(self, root, fig, canvas, data, duplicateCurrent=None):
+        Current1D.__init__(self,root,fig,canvas, data, duplicateCurrent)
 
     def showFid(self, tmpdata=None, extraX=None, extraY=None, extraColor=None,old=False,output=None): #display the 1D data
         self.peakPickReset()
@@ -1522,7 +1570,7 @@ class CurrentScatter(Current1D):
 #########################################################################################################
 #the class from which the stacked data is displayed, the operations which only edit the content of this class are for previewing
 class CurrentStacked(Current1D):
-    def __init__(self, root, data, duplicateCurrent=None):
+    def __init__(self, root,fig,canvas, data, duplicateCurrent=None):
         self.data = data
         if hasattr(duplicateCurrent,'axes2'):
             self.axes2 = duplicateCurrent.axes2
@@ -1546,17 +1594,23 @@ class CurrentStacked(Current1D):
             if self.data.data.shape[self.axes2] > 100:
                 self.stackStep = 1+int(self.data.data.shape[self.axes2])/100
         self.spacing = 0
-        Current1D.__init__(self,root, data, duplicateCurrent)
+        Current1D.__init__(self,root,fig,canvas, data, duplicateCurrent)
         self.resetSpacing()
         self.plotReset()
         self.showFid()
 
-    def copyCurrent(self,root, data):
-        return CurrentStacked(root,data,self)
+    def startUp(self):
+        self.resetSpacing()
+        self.plotReset()
+        self.showFid()
+        
+    def copyCurrent(self,root,fig,canvas, data):
+        return CurrentStacked(root,fig,canvas,data,self)
         
     def upd(self): #get new data from the data instance
         if self.data.dim < 2:
             self.root.rescue()
+            return False
         if (len(self.locList)+2) != self.data.dim:
             self.resetLocList()
         updateVar = self.data.getBlock(self.axes,self.axes2,self.locList,self.stackBegin, self.stackEnd, self.stackStep)
@@ -1578,6 +1632,7 @@ class CurrentStacked(Current1D):
         if self.ref2 is None:
             self.ref2 = self.freq2
         self.single = self.data1D.shape[-1]==1
+        return True
 
     def setBlock(self,axes,axes2,locList,stackBegin=None,stackEnd=None,stackStep=None): #change the slice 
         self.axes = axes
@@ -1618,9 +1673,9 @@ class CurrentStacked(Current1D):
                     t2 = t - shift1
                     x2=np.ones(len(self.data1D[0]))
                     if lor is not None:
-                        x2=x2*np.exp(-lor*abs(t2))
+                        x2=x2*np.exp(-np.pi*lor*abs(t2))
                     if gauss is not None:
-                        x2=x2*np.exp(-(gauss*t2)**2)
+                        x2=x2*np.exp(-((np.pi*gauss*t2)**2)/(4*np.log(2)))
                     if cos2 is not None:
                         x2=x2*(np.cos(cos2*(-0.5*shift1*np.pi*self.sw/len(self.data1D[0])+np.linspace(0,0.5*np.pi,len(self.data1D[0]))))**2)
                     if hamming is not None:
@@ -1687,6 +1742,7 @@ class CurrentStacked(Current1D):
 
     def setSpacing(self, spacing):
         self.spacing = spacing
+        self.plotReset(False,True)
         self.showFid()
 
     def resetSpacing(self):
@@ -1850,7 +1906,7 @@ class CurrentStacked(Current1D):
 #########################################################################################################
 #the class from which the arrayed data is displayed, the operations which only edit the content of this class are for previewing
 class CurrentArrayed(Current1D):
-    def __init__(self, root, data, duplicateCurrent = None):
+    def __init__(self, root,fig,canvas, data, duplicateCurrent=None):
         self.data = data
         if hasattr(duplicateCurrent,'axes2'):
             self.axes2 = duplicateCurrent.axes2
@@ -1874,17 +1930,20 @@ class CurrentArrayed(Current1D):
             if self.data.data.shape[self.axes2] > 100:
                 self.stackStep = 1+int(self.data.data.shape[self.axes2])/100
         self.spacing = 0
-        Current1D.__init__(self, root, data, duplicateCurrent)
+        Current1D.__init__(self, root,fig,canvas, data, duplicateCurrent)
+
+    def startUp(self):
         self.resetSpacing()
         self.plotReset()
         self.showFid()
 
-    def copyCurrent(self,root, data):
-        return CurrentArrayed(root,data,self)
+    def copyCurrent(self,root,fig,canvas, data):
+        return CurrentArrayed(root,fig,canvas,data,self)
         
     def upd(self): #get new data from the data instance
         if self.data.dim < 2:
             self.root.rescue()
+            return False
         if (len(self.locList)+2) != self.data.dim:
             self.resetLocList()
         updateVar = self.data.getBlock(self.axes,self.axes2,self.locList,self.stackBegin, self.stackEnd, self.stackStep)
@@ -1906,6 +1965,7 @@ class CurrentArrayed(Current1D):
         if self.ref2 is None:
             self.ref2 = self.freq2
         self.single = self.data1D.shape[-1]==1
+        return True
  
     def setBlock(self,axes,axes2,locList,stackBegin=None,stackEnd=None,stackStep=None): #change the slice 
         self.axes = axes
@@ -1945,9 +2005,9 @@ class CurrentArrayed(Current1D):
                     t2 = t - shift1
                     x2=np.ones(len(self.data1D[0]))
                     if lor is not None:
-                        x2=x2*np.exp(-lor*abs(t2))
+                        x2=x2*np.exp(-np.pi*lor*abs(t2))
                     if gauss is not None:
-                        x2=x2*np.exp(-(gauss*t2)**2)
+                        x2=x2*np.exp(-((np.pi*gauss*t2)**2)/(4*np.log(2)))
                     if cos2 is not None:
                         x2=x2*(np.cos(cos2*(-0.5*shift1*np.pi*self.sw/len(self.data1D[0])+np.linspace(0,0.5*np.pi,len(self.data1D[0]))))**2)
                     if hamming is not None:
@@ -2014,6 +2074,7 @@ class CurrentArrayed(Current1D):
 
     def setSpacing(self, spacing):
         self.spacing = spacing
+        self.plotReset(True,False)
         self.showFid()
 
     def resetSpacing(self):
@@ -2142,7 +2203,7 @@ class CurrentArrayed(Current1D):
 #########################################################################################################
 #the class from which the contour data is displayed, the operations which only edit the content of this class are for previewing
 class CurrentContour(Current1D):
-    def __init__(self, root, data, duplicateCurrent=None):
+    def __init__(self, root, fig,canvas,data, duplicateCurrent=None):
         self.data = data
         if hasattr(duplicateCurrent,'axes2'):
             self.axes2 = duplicateCurrent.axes2
@@ -2171,16 +2232,15 @@ class CurrentContour(Current1D):
             self.maxLevels = duplicateCurrent.maxLevels
         else:
             self.maxLevels = 1.0
-        Current1D.__init__(self, root, data, duplicateCurrent)
-        self.plotReset()
-        self.showFid()
-
-    def copyCurrent(self,root, data):
-        return CurrentContour(root,data,self)
+        Current1D.__init__(self, root,fig,canvas, data, duplicateCurrent)
+        
+    def copyCurrent(self,root,fig,canvas, data):
+        return CurrentContour(root,fig,canvas,data,self)
         
     def upd(self): #get new data from the data instance
         if self.data.dim < 2:
             self.root.rescue()
+            return False
         if (len(self.locList)+2) != self.data.dim:
             self.resetLocList()
         updateVar = self.data.getBlock(self.axes,self.axes2,self.locList)
@@ -2202,6 +2262,7 @@ class CurrentContour(Current1D):
         if self.ref2 is None:
             self.ref2 = self.freq2
         self.single = self.data1D.shape[-1]==1
+        return True
 
     def setBlock(self,axes,axes2,locList): #change the slice 
         self.axes = axes
@@ -2228,7 +2289,7 @@ class CurrentContour(Current1D):
                 oldAxMult = 1e6/self.ref2
             else:
                 oldAxMult = 1.0/(1000.0**self.axType2)
-        elif self.spec == 0:
+        elif self.spec2 == 0:
             oldAxMult = 1000.0**self.axType2
         newAxAdd = 0
         if self.spec2 == 1:
@@ -2261,9 +2322,9 @@ class CurrentContour(Current1D):
                     t2 = t - shift1
                     x2=np.ones(len(self.data1D[0]))
                     if lor is not None:
-                        x2=x2*np.exp(-lor*abs(t2))
+                        x2=x2*np.exp(-np.pi*lor*abs(t2))
                     if gauss is not None:
-                        x2=x2*np.exp(-(gauss*t2)**2)
+                        x2=x2*np.exp(-((np.pi*gauss*t2)**2)/(4*np.log(2)))
                     if cos2 is not None:
                         x2=x2*(np.cos(cos2*(-0.5*shift1*np.pi*self.sw/len(self.data1D[0])+np.linspace(0,0.5*np.pi,len(self.data1D[0]))))**2)
                     if hamming is not None:
@@ -2428,8 +2489,8 @@ class CurrentContour(Current1D):
             self.ax.set_ylim(self.yminlim,self.ymaxlim)
         self.ax.get_xaxis().get_major_formatter().set_powerlimits((-4, 4))
         self.ax.get_yaxis().get_major_formatter().set_powerlimits((-4, 4))
-        self.x_ax.get_yaxis().get_major_formatter().set_powerlimits((-4, 4))
-        self.y_ax.get_xaxis().get_major_formatter().set_powerlimits((-4, 4))
+        self.x_ax.get_yaxis().get_major_formatter().set_powerlimits((-2, 2))
+        self.y_ax.get_xaxis().get_major_formatter().set_powerlimits((-2, 2))
         self.canvas.draw()
 
     def plotReset(self,xReset=True,yReset=True): #set the plot limits to min and max values
@@ -2527,7 +2588,7 @@ class CurrentContour(Current1D):
 #########################################################################################################
 #The skewed plot class
 class CurrentSkewed(Current1D):
-    def __init__(self, root, data, duplicateCurrent=None):
+    def __init__(self, root,fig,canvas, data, duplicateCurrent=None):
         self.data = data
         if hasattr(duplicateCurrent,'axes2'):
             self.axes2 = duplicateCurrent.axes2
@@ -2558,16 +2619,19 @@ class CurrentSkewed(Current1D):
             self.ppm2 = duplicateCurrent.ppm2
         else:
             self.ppm2 = False
-        Current1D.__init__(self, root, data, duplicateCurrent)
+        Current1D.__init__(self, root, fig,canvas,data, duplicateCurrent)
+
+    def startUp(self):
         self.plotReset()
         self.setSkewed(-0.2,70)
         
-    def copyCurrent(self,root, data):
-        return CurrentSkewed(root,data,self)
+    def copyCurrent(self,root, fig,canvas,data):
+        return CurrentSkewed(root,fig,canvas,data,self)
     
     def upd(self): #get new data from the data instance
         if self.data.dim < 2:
             self.root.rescue()
+            return False
         if (len(self.locList)+2) != self.data.dim:
             self.resetLocList()
         updateVar = self.data.getBlock(self.axes,self.axes2,self.locList,self.stackBegin, self.stackEnd, self.stackStep)
@@ -2589,6 +2653,7 @@ class CurrentSkewed(Current1D):
         if self.ref2 is None:
             self.ref2 = self.freq2
         self.single = self.data1D.shape[-1]==1
+        return True
  
     def setBlock(self,axes,axes2,locList,stackBegin=None,stackEnd=None,stackStep=None): #change the slice 
         self.axes = axes
@@ -2637,9 +2702,9 @@ class CurrentSkewed(Current1D):
                     t2 = t - shift1
                     x2=np.ones(len(self.data1D[0]))
                     if lor is not None:
-                        x2=x2*np.exp(-lor*abs(t2))
+                        x2=x2*np.exp(-np.pi*lor*abs(t2))
                     if gauss is not None:
-                        x2=x2*np.exp(-(gauss*t2)**2)
+                        x2=x2*np.exp(-((np.pi*gauss*t2)**2)/(4*np.log(2)))
                     if cos2 is not None:
                         x2=x2*(np.cos(cos2*(-0.5*shift1*np.pi*self.sw/len(self.data1D[0])+np.linspace(0,0.5*np.pi,len(self.data1D[0]))))**2)
                     if hamming is not None:

@@ -1,5 +1,22 @@
 #!/usr/bin/env python
 
+# Copyright 2015 Bas van Meerten and Wouter Franssen
+
+#This file is part of ssNake.
+#
+#ssNake is free software: you can redistribute it and/or modify
+#it under the terms of the GNU General Public License as published by
+#the Free Software Foundation, either version 3 of the License, or
+#(at your option) any later version.
+#
+#ssNake is distributed in the hope that it will be useful,
+#but WITHOUT ANY WARRANTY; without even the implied warranty of
+#MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#GNU General Public License for more details.
+#
+#You should have received a copy of the GNU General Public License
+#along with ssNake. If not, see <http://www.gnu.org/licenses/>.
+
 import numpy as np
 import sys
 if sys.version_info >= (3,0):
@@ -20,6 +37,12 @@ else:
     from tkFileDialog   import asksaveasfile
     from tkFileDialog   import asksaveasfilename
     from tkSimpleDialog import askstring
+import matplotlib
+matplotlib.use('TkAgg')
+from matplotlib.figure import Figure
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+from matplotlib  import rcParams
+rcParams['toolbar'] = 'None' 
 import spectrum_classes as sc
 import fitting as fit
 import math
@@ -29,8 +52,8 @@ from struct import unpack
 import scipy.io
 import json
 import copy
-from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 import weakref
+
 #------------
 from safeEval import safeEval
 from euro import euro
@@ -48,6 +71,7 @@ class MainProgram:
         self.workspaceNum = 0
         self.workspaceVar = StringVar()
         self.macros = {}
+        self.figOrphanage = []
         #the file drop down menu
         self.filemenu = Menu(self.menubar, tearoff=0)
         self.menubar.add_cascade(label="File", menu=self.filemenu)
@@ -61,16 +85,7 @@ class MainProgram:
         self.root.bind_all("<Control-Prior>", lambda args: self.stepWorkspace(-1))
         self.root.bind_all("<Control-Next>", lambda args: self.stepWorkspace(1))
         
-        #the load drop down menu
-        loadmenu = Menu(self.filemenu, tearoff=0)
-        self.filemenu.add_cascade(label="Load", menu=loadmenu)
-        loadmenu.add_command(label="Varian", command=lambda : self.loading(0))
-        loadmenu.add_command(label="Bruker Topspin/XWinNMR", command=lambda : self.loading(1))
-        loadmenu.add_command(label="Chemagnetics", command=lambda : self.loading(2))
-        loadmenu.add_command(label="Magritek", command=lambda : self.loading(3))
-        loadmenu.add_command(label="Simpson", command=lambda : self.loading(4))
-        loadmenu.add_command(label="JSON", command=lambda : self.loading(5))
-        loadmenu.add_command(label="MATLAB", command=lambda : self.loading(6))
+        self.filemenu.add_command(label="Load", command=self.autoLoad)
 
         #the save drop down menu
         self.savemenu = Menu(self.filemenu, tearoff=0)
@@ -85,6 +100,7 @@ class MainProgram:
         self.menubar.add_cascade(label="Workspaces", menu=self.workspacemenu)
         self.workspacemenu.add_command(label="Duplicate", command=self.duplicateWorkspace)
         self.workspacemenu.add_command(label="Delete", command=self.destroyWorkspace)
+        self.workspacemenu.add_command(label="Rename", command=self.renameWorkspace)
         self.activemenu = None
 
         #the macro menu
@@ -94,9 +110,12 @@ class MainProgram:
         self.macromenu.add_command(label="Stop recording", command=self.stopMacro)
         self.macrolistmenu = Menu(self.macromenu, tearoff=0)
         self.macromenu.add_cascade(label="Run", menu=self.macrolistmenu)
+        self.macrodeletemenu = Menu(self.macromenu, tearoff=0)
+        self.macromenu.add_cascade(label="Delete", menu=self.macrodeletemenu)
         self.macrosavemenu = Menu(self.macromenu, tearoff=0)
         self.macromenu.add_cascade(label="Save", menu=self.macrosavemenu)
         self.macromenu.add_command(label="Load", command=self.loadMacro)
+
         self.filemenu.add_command(label="Exit", command=self.kill)
         self.menuCheck()
         photo = PhotoImage(file=os.path.dirname(os.path.realpath(__file__))+'/logo.gif')
@@ -110,6 +129,17 @@ class MainProgram:
             self.root.quit()
             self.root.destroy()
 
+    def donateFig(self,fig):
+        self.figOrphanage.append(fig)
+
+    def getFig(self):
+        if len(self.figOrphanage)==0:
+            return Figure()
+        else:
+            fig = self.figOrphanage.pop()
+            fig.clf()
+            return fig
+            
     def menuCheck(self):
         if self.mainWindow is None:
             self.filemenu.entryconfig('Save',state='disabled')
@@ -176,6 +206,7 @@ class MainProgram:
         self.mainWindow.currentMacro = givenName
         self.macrolistmenu.add_command(label=givenName,command=lambda name=givenName: self.runMacro(name))
         self.macrosavemenu.add_command(label=givenName,command=lambda name=givenName: self.saveMacro(name))
+        self.macrodeletemenu.add_command(label=givenName,command=lambda name=givenName: self.deleteMacro(name))
         self.menuCheck()
 
     def stopMacro(self):
@@ -200,6 +231,16 @@ class MainProgram:
             return
         with open(fileName,'w') as f:
             json.dump(self.macros[name],f)
+
+    def deleteMacro(self,name):
+        self.macrolistmenu.delete(name)
+        self.macrosavemenu.delete(name)
+        self.macrodeletemenu.delete(name)
+        del self.macros[name]
+        for i in self.workspaces:
+            if i.currentMacro == name:
+                i.currentMacro = None
+        self.menuCheck()
             
     def loadMacro(self):
         filePath = askopenfilename()
@@ -246,10 +287,18 @@ class MainProgram:
         name = self.askName()
         if name is None:
             return
-        self.workspaces.append(Main1DWindow(self.root,self,copy.deepcopy(self.mainWindow.get_masterData()),self.mainWindow.get_current()))
+        self.workspaces.append(Main1DWindow(self.root,self,copy.deepcopy(self.mainWindow.get_masterData()),self.mainWindow.get_current(),name=name))
         self.workspaceNames.append(name)
         self.changeMainWindow(name)
-            
+        
+    def renameWorkspace(self, *args):
+        name = self.askName()
+        if name is None:
+            return
+        self.workspaceNames[self.workspaceNum] = name
+        self.updWorkspaceMenu(name)
+        self.workspaces[self.workspaceNum].rename(name)
+    
     def destroyWorkspace(self, *args):
         self.mainWindow.removeFromView()
         self.mainWindow.kill()
@@ -274,10 +323,34 @@ class MainProgram:
             self.activemenu.add_radiobutton(label=i,variable=self.workspaceVar,value=i,command=lambda i=i: self.changeMainWindow(i))
         self.menuCheck()
 
-    def loading(self,num):
+    def autoLoad(self):
         filePath = askopenfilename()
         if len(filePath)==0:
             return
+        direc = os.path.dirname(filePath)
+        filename = os.path.basename(filePath)
+        if filename.endswith('.fid') or filename.endswith('.spe'): 
+            self.loading(4,filePath)
+        elif filename.endswith('.json') or filename.endswith('.JSON'):
+            self.loading(5,filePath)
+        elif filename.endswith('.mat') or filename.endswith('.MAT'):
+            self.loading(6,filePath)
+        elif os.path.exists(direc+os.path.sep+'procpar') and os.path.exists(direc+os.path.sep+'fid'):
+            self.loading(0,filePath)
+        elif os.path.exists(direc+os.path.sep+'acqus') and (os.path.exists(direc+os.path.sep+'fid') or os.path.exists(direc+os.path.sep+'ser')):
+            self.loading(1,filePath)
+        elif os.path.exists(direc+os.path.sep+'acq') and os.path.exists(direc+os.path.sep+'data'):
+            self.loading(2,filePath)
+        elif os.path.exists(direc+os.path.sep+'acqu.par'):
+            dirFiles = os.listdir(direc)
+            files2D = [x for x in dirFiles if '.2d' in x]
+            files1D = [x for x in dirFiles if '.1d' in x]
+            if len(files2D)!=0 or len(files1D)!=0:
+                self.loading(3,filePath)
+        else:
+            return
+        
+    def loading(self,num,filePath):
         name = self.askName()
         if name is None:
             return
@@ -296,7 +369,7 @@ class MainProgram:
         elif num==6:
             masterData = self.loadMatlabFile(filePath)
         if masterData is not None:
-            self.workspaces.append(Main1DWindow(self.root,self,masterData))
+            self.workspaces.append(Main1DWindow(self.root,self,masterData,name=name))
             self.workspaceNames.append(name)
             self.changeMainWindow(name)
             
@@ -499,7 +572,7 @@ class MainProgram:
             with open(Dir+os.path.sep+File,'rb') as f:
                 raw = np.fromfile(f, np.float32)
             Data = raw[-2*sizeTD2*sizeTD1::] #Get last 2*sizeTD2*sizeTD1 points
-            ComplexData = Data[0:Data.shape[0]:2]+1j*Data[1:Data.shape[0]:2]
+            ComplexData = Data[0:Data.shape[0]:2]-1j*Data[1:Data.shape[0]:2]
             ComplexData = ComplexData.reshape((sizeTD1,sizeTD2))
             masterData=sc.Spectrum(ComplexData,lambda self :self.LoadMagritek(filePath),[freq*1e6]*2,[sw,sw1],[False]*2)
         elif len(Files1D)!=0:
@@ -507,7 +580,7 @@ class MainProgram:
             with open(Dir+os.path.sep+File,'rb') as f:
                 raw = np.fromfile(f, np.float32)
             Data = raw[-2*sizeTD2::] #Get last 2*sizeTD points
-            ComplexData = Data[0:Data.shape[0]:2]+1j*Data[1:Data.shape[0]:2]
+            ComplexData = Data[0:Data.shape[0]:2]-1j*Data[1:Data.shape[0]:2]
             masterData=sc.Spectrum(ComplexData,lambda self :self.LoadMagritek(filePath),[freq*1e6],[sw],[False])
         return masterData
             
@@ -641,22 +714,24 @@ class MainProgram:
         self.mainWindow.get_mainWindow().saveMatlabFile()
         
 class Main1DWindow(Frame):
-    def __init__(self,parent,mainProgram,masterData,duplicateCurrent=None):
+    def __init__(self,parent,mainProgram,masterData,duplicateCurrent=None,name=''):
         Frame.__init__(self,parent)
-        self.undoList = [] #the list to hold all the undo lambda functions
-        self.redoList = [] #the list to hold all the redo lambda functions
+        self.name = name
+        self.fig = mainProgram.getFig()
+        self.canvas = FigureCanvasTkAgg(self.fig, master=weakref.proxy(self))
+        self.canvas.get_tk_widget().grid(row=0,column=0,sticky="nswe")
+        self.undoList = [] 
+        self.redoList = []
         self.currentMacro = None
         self.redoMacro = []
-        self.parent = parent #remember your parents
+        self.parent = parent
         self.mainProgram = mainProgram
         self.masterData = masterData
         if duplicateCurrent is not None:
-            self.current = duplicateCurrent.copyCurrent(self,masterData)
+            self.current = duplicateCurrent.copyCurrent(self,self.fig,self.canvas,masterData)
         else:
-            self.current = sc.Current1D(self,masterData)
+            self.current = sc.Current1D(self,self.fig,self.canvas,masterData)
         self.menubar = self.mainProgram.menubar
-        self.current.grid(row=0,column=0,sticky="nswe")
-	#create the sideframe, bottomframe and textframe
         self.sideframe=SideFrame(weakref.proxy(self))
         self.sideframe.grid(row=0,column=2,sticky='n')
         Separator(weakref.proxy(self),orient=VERTICAL).grid(row=0,column=1,rowspan=4,sticky='ns')
@@ -667,7 +742,27 @@ class Main1DWindow(Frame):
         self.textframe.grid(row=3,column=0,sticky='s')  
         self.rowconfigure(0, weight=1)
         self.grid_columnconfigure(0, weight=1)
-        #all the functions that will be called from the menu and the extra frames
+        self.canvas.mpl_connect('button_press_event', self.buttonPress)      
+        self.canvas.mpl_connect('button_release_event', self.buttonRelease)
+        self.canvas.mpl_connect('motion_notify_event', self.pan)
+        self.canvas.mpl_connect('scroll_event', self.scroll)
+
+    def rename(self,name):
+        self.name = name
+        self.fig.suptitle(name)
+        self.canvas.draw()
+        
+    def buttonPress(self,event):
+        self.current.buttonPress(event)
+
+    def buttonRelease(self,event):
+        self.current.buttonRelease(event)
+
+    def pan(self,event):
+        self.current.pan(event)
+
+    def scroll(self,event):
+        self.current.scroll(event)
         
     def get_mainWindow(self):
         return self
@@ -679,15 +774,17 @@ class Main1DWindow(Frame):
         return self.current
         
     def kill(self):
+        self.canvas._tkcanvas = None
         self.destroy()
         self.current.kill()
         del self.current
         del self.masterData
+        del self.canvas
+        self.mainProgram.donateFig(self.fig)
 
     def rescue(self):
         self.current.kill()
-        self.current = sc.Current1D(self,self.masterData)
-        self.current.grid(row=0,column=0,sticky="nswe")
+        self.current = sc.Current1D(self,self.current.fig,self.current.canvas,self.masterData)
         
     def removeFromView(self):
         self.menubar.delete("Edit")
@@ -758,6 +855,7 @@ class Main1DWindow(Frame):
         self.fftMenu = Menu(self.menubar, tearoff=0)
         self.menubar.add_cascade(label="Fourier",menu=self.fftMenu)
         self.fftMenu.add_command(label="Fourier transform", command=self.fourier)
+        self.fftMenu.add_command(label="Real Fourier transform", command=self.realFourier)
         self.fftMenu.add_command(label="Fftshift", command=self.fftshift)
         self.fftMenu.add_command(label="Inv fftshift", command=self.invFftshift)
         self.fftMenu.add_command(label="Hilbert transform", command=self.hilbert)
@@ -768,11 +866,14 @@ class Main1DWindow(Frame):
         self.fittingMenu.add_command(label="S/N", command=self.createSNWindow)
         self.fittingMenu.add_command(label="FWHM", command=self.createFWHMWindow)
         self.fittingMenu.add_command(label="Relaxation Curve", command=self.createRelaxWindow)
+        self.fittingMenu.add_command(label="Diffusion Curve", command=self.createDiffusionWindow)
         self.fittingMenu.add_command(label="Peak Deconvolution", command=self.createPeakDeconvWindow)
         self.fittingMenu.add_command(label="CSA tensor", command=self.createTensorDeconvWindow)
         self.fittingMenu.add_command(label="First order quadrupole", command=self.createQuad1DeconvWindow)
         self.fittingMenu.add_command(label="Second order quadrupole static", command=self.createQuad2StaticDeconvWindow)
         self.fittingMenu.add_command(label="Second order quadrupole MAS", command=self.createQuad2MASDeconvWindow)
+        self.fittingMenu.add_command(label="Czjzek static", command=self.createQuad2StaticCzjzekWindow)
+        self.fittingMenu.add_command(label="Czjzek MAS", command=self.createQuad2MASCzjzekWindow)
         
         #the combine drop down menu
         self.combineMenu = Menu(self.menubar, tearoff=0)
@@ -849,6 +950,8 @@ class Main1DWindow(Frame):
                 self.undoList.append(self.masterData.setPhase(*iter1[1]))
             elif iter1[0] == 'fourier':
                 self.undoList.append(self.masterData.fourier(*iter1[1]))
+            elif iter1[0] == 'realFourier':
+                self.undoList.append(self.masterData.realFourier(*iter1[1]))
             elif iter1[0] == 'fftshift':
                 self.undoList.append(self.masterData.fftshift(*iter1[1]))
             elif iter1[0] == 'apodize':
@@ -867,8 +970,6 @@ class Main1DWindow(Frame):
                 self.undoList.append(self.masterData.wholeEcho(*iter1[1]))
             elif iter1[0] == 'shift':
                 self.undoList.append(self.masterData.shiftData(*iter1[1]))
-            elif iter1[0] == 'offset':
-                self.undoList.append(self.masterData.dcOffset(*iter1[1]))
             elif iter1[0] == 'lpsvd':
                 self.undoList.append(self.masterData.LPSVD(*iter1[1]))
             elif iter1[0] == 'states':
@@ -1040,6 +1141,12 @@ class Main1DWindow(Frame):
         self.bottomframe.upd()
         self.menuCheck()
 
+    def realFourier(self):
+        self.redoList = []
+        self.undoList.append(self.current.realFourier())
+        self.bottomframe.upd()
+        self.menuCheck()
+
     def fftshift(self):
         self.redoList = []
         self.undoList.append(self.current.fftshift())
@@ -1197,7 +1304,10 @@ class Main1DWindow(Frame):
         
     def createRelaxWindow(self):
         self.mainProgram.createFitWindow(fit.RelaxWindow(self.parent,self.mainProgram,self.mainProgram.mainWindow))
-
+        
+    def createDiffusionWindow(self):
+        self.mainProgram.createFitWindow(fit.DiffusionWindow(self.parent,self.mainProgram,self.mainProgram.mainWindow))
+        
     def createPeakDeconvWindow(self):
         self.mainProgram.createFitWindow(fit.PeakDeconvWindow(self.parent,self.mainProgram,self.mainProgram.mainWindow))
         
@@ -1212,69 +1322,63 @@ class Main1DWindow(Frame):
         
     def createQuad2MASDeconvWindow(self):
         self.mainProgram.createFitWindow(fit.Quad2DeconvWindow(self.parent,self.mainProgram,self.mainProgram.mainWindow,True))
+
+    def createQuad2StaticCzjzekWindow(self):
+        self.mainProgram.createFitWindow(fit.Quad2CzjzekWindow(self.parent,self.mainProgram,self.mainProgram.mainWindow))
+        
+    def createQuad2MASCzjzekWindow(self):
+        self.mainProgram.createFitWindow(fit.Quad2CzjzekWindow(self.parent,self.mainProgram,self.mainProgram.mainWindow,True))
         
     def plot1D(self):
-        self.current.grid_remove()
-        tmpcurrent = sc.Current1D(self,self.masterData)
+        tmpcurrent = sc.Current1D(self,self.fig,self.canvas,self.masterData)
         self.current.kill()
         del self.current
         self.current = tmpcurrent
-        self.current.grid(row=0,column=0,sticky="nswe")
         self.updAllFrames()
 
     def plotScatter(self):
-        self.current.grid_remove()
-        tmpcurrent = sc.CurrentScatter(self,self.masterData)
+        tmpcurrent = sc.CurrentScatter(self,self.fig,self.canvas,self.masterData)
         self.current.kill()
         del self.current
         self.current = tmpcurrent
-        self.current.grid(row=0,column=0,sticky="nswe")
         self.updAllFrames()
 
     def plotStack(self):
         if len(self.masterData.data.shape) > 1:
-            self.current.grid_remove()
-            tmpcurrent = sc.CurrentStacked(self,self.masterData)
+            tmpcurrent = sc.CurrentStacked(self,self.fig,self.canvas,self.masterData)
             self.current.kill()
             del self.current
             self.current = tmpcurrent
-            self.current.grid(row=0,column=0,sticky="nswe")
             self.updAllFrames()
         else:
             print("Data does not have enough dimensions")
 
     def plotArray(self):
         if len(self.masterData.data.shape) > 1:
-            self.current.grid_remove()
-            tmpcurrent = sc.CurrentArrayed(self,self.masterData)
+            tmpcurrent = sc.CurrentArrayed(self,self.fig,self.canvas,self.masterData)
             self.current.kill()
             del self.current
             self.current = tmpcurrent
-            self.current.grid(row=0,column=0,sticky="nswe")
             self.updAllFrames()
         else:
             print("Data does not have enough dimensions")
             
     def plotContour(self):
         if len(self.masterData.data.shape) > 1:
-            self.current.grid_remove()
-            tmpcurrent = sc.CurrentContour(self,self.masterData)
+            tmpcurrent = sc.CurrentContour(self,self.fig,self.canvas,self.masterData)
             self.current.kill()
             del self.current
             self.current = tmpcurrent
-            self.current.grid(row=0,column=0,sticky="nswe")
             self.updAllFrames()
         else:
             print("Data does not have enough dimensions")
             
     def plotSkewed(self):
         if len(self.masterData.data.shape) > 1:
-            self.current.grid_remove()
-            tmpcurrent = sc.CurrentSkewed(self,self.masterData)
+            tmpcurrent = sc.CurrentSkewed(self,self.fig,self.canvas,self.masterData)
             self.current.kill()
             del self.current
             self.current = tmpcurrent
-            self.current.grid(row=0,column=0,sticky="nswe")
             self.updAllFrames()
         else:
             print("Data does not have enough dimensions")
@@ -1849,38 +1953,45 @@ class PhaseWindow(Toplevel): #a window for phasing the data
         self.firstValue.set("0.0")
         self.refValue = StringVar()
         self.refValue.set("0.0")
+        self.singleSlice = IntVar()
+        self.singleSlice.set(0)
         #set stepsizes for the buttons
         self.phase0step = 1.0
         self.phase1step = 1.0
-        Label(self,text="Zero order phasing").grid(row=0,column=0,columnspan=3)
-        Button(self,text="Autophase 0th order",command=lambda: self.autophase(0)).grid(row=1,column=1)
-        self.zeroEntry = Entry(self,textvariable=self.zeroValue,justify="center")
+        self.frame1 = Frame(self)
+        self.frame1.grid(row=0,column=0)
+        Label(self.frame1,text="Zero order phasing").grid(row=0,column=0,columnspan=3)
+        Button(self.frame1,text="Autophase 0th order",command=lambda: self.autophase(0)).grid(row=1,column=1)
+        self.zeroEntry = Entry(self.frame1,textvariable=self.zeroValue,justify="center")
         self.zeroEntry.bind("<Return>", self.inputZeroOrder)
         self.zeroEntry.bind("<KP_Enter>", self.inputZeroOrder)
         self.zeroEntry.grid(row=2,column=1)
-        tk.Button(self,text="<",repeatdelay=100, repeatinterval=1,command=lambda:self.stepPhase(-1,0)).grid(row=2,column=0)
-        tk.Button(self,text=">",repeatdelay=100, repeatinterval=1,command=lambda:self.stepPhase(1,0)).grid(row=2,column=2)
-        self.zeroScale=Scale(self, from_=-180, to=180,  orient="horizontal", command=self.setZeroOrder,length=300)
+        tk.Button(self.frame1,text="<",repeatdelay=100, repeatinterval=1,command=lambda:self.stepPhase(-1,0)).grid(row=2,column=0)
+        tk.Button(self.frame1,text=">",repeatdelay=100, repeatinterval=1,command=lambda:self.stepPhase(1,0)).grid(row=2,column=2)
+        self.zeroScale=Scale(self.frame1, from_=-180, to=180,  orient="horizontal", command=self.setZeroOrder,length=300)
         self.zeroScale.grid(row=3,column=0,columnspan=3)
-        Label(self,text="First order phasing").grid(row=4,column=0,columnspan=3)
-        Button(self,text="Autophase 0th+1st order",command=lambda: self.autophase(1)).grid(row=5,column=1)
-        self.firstEntry = Entry(self,textvariable=self.firstValue,justify="center")
+        Label(self.frame1,text="First order phasing").grid(row=4,column=0,columnspan=3)
+        Button(self.frame1,text="Autophase 0th+1st order",command=lambda: self.autophase(1)).grid(row=5,column=1)
+        self.firstEntry = Entry(self.frame1,textvariable=self.firstValue,justify="center")
         self.firstEntry.bind("<Return>", self.inputFirstOrder) 
         self.firstEntry.bind("<KP_Enter>", self.inputFirstOrder) 
         self.firstEntry.grid(row=6,column=1)
-        tk.Button(self,text="<",repeatdelay=100, repeatinterval=1,command=lambda:self.stepPhase(0,-1)).grid(row=6,column=0)
-        tk.Button(self,text=">",repeatdelay=100, repeatinterval=1,command=lambda:self.stepPhase(0,1)).grid(row=6,column=2)
-        self.firstScale=Scale(self, from_=-self.P1LIMIT, to=self.P1LIMIT, orient="horizontal", command=self.setFirstOrder,length=300)
+        tk.Button(self.frame1,text="<",repeatdelay=100, repeatinterval=1,command=lambda:self.stepPhase(0,-1)).grid(row=6,column=0)
+        tk.Button(self.frame1,text=">",repeatdelay=100, repeatinterval=1,command=lambda:self.stepPhase(0,1)).grid(row=6,column=2)
+        self.firstScale=Scale(self.frame1, from_=-self.P1LIMIT, to=self.P1LIMIT, orient="horizontal", command=self.setFirstOrder,length=300)
         self.firstScale.grid(row=7,column=0,columnspan=3)
         if self.parent.current.spec > 0:
-            Label(self,text="Reference").grid(row=8,column=0,columnspan=3)
-            self.refEntry = Entry(self,textvariable=self.refValue,justify="center")
+            Label(self.frame1,text="Reference").grid(row=8,column=0,columnspan=3)
+            self.refEntry = Entry(self.frame1,textvariable=self.refValue,justify="center")
             self.refEntry.bind("<Return>", self.inputRef) 
             self.refEntry.bind("<KP_Enter>", self.inputRef)
             self.refEntry.grid(row=9,column=1)
-            Button(self, text="Pick reference", command=self.pickRef).grid(row=10,column=1)
-        Button(self, text="Apply",command=self.applyPhaseAndClose).grid(row=11,column=0)
-        Button(self, text="Cancel",command=self.cancelAndClose).grid(row=11,column=2)      
+        Button(self.frame1, text="Pick reference", command=self.pickRef).grid(row=10,column=1)
+        self.frame2 = Frame(self)
+        self.frame2.grid(row=1,column=0)
+        Checkbutton(self.frame2, text="Single slice", variable=self.singleSlice).grid(row=0,column=0,columnspan=2)
+        Button(self.frame2, text="Apply",command=self.applyPhaseAndClose).grid(row=1,column=0)
+        Button(self.frame2, text="Cancel",command=self.cancelAndClose).grid(row=1,column=1)      
         
     def setZeroOrder(self,value, *args): #function called by the zero order scale widget
         self.zeroVal = float(value)
@@ -1957,7 +2068,7 @@ class PhaseWindow(Toplevel): #a window for phasing the data
         self.inputZeroOrder()
         self.inputFirstOrder()
         self.parent.redoList = []
-        self.parent.undoList.append(self.parent.current.applyPhase(np.pi*self.zeroVal/180.0,np.pi*self.firstVal/180.0))
+        self.parent.undoList.append(self.parent.current.applyPhase(np.pi*self.zeroVal/180.0,np.pi*self.firstVal/180.0,(self.singleSlice.get()==1)))
         self.parent.menuEnable()
         self.destroy()
 
@@ -1993,6 +2104,8 @@ class ApodWindow(Toplevel): #a window for apodization
             options = list(map(str,np.delete(range(1,self.parent.current.data.dim+1),self.parent.current.axes)))
             self.shiftingAxes = StringVar()
             self.shiftingAxes.set(options[0])
+        self.singleSlice = IntVar()
+        self.singleSlice.set(0)
         #set stepsizes for the buttons
         self.lorstep = 1.0
         self.gaussstep = 1.0
@@ -2044,8 +2157,9 @@ class ApodWindow(Toplevel): #a window for apodization
             OptionMenu(self.frame1,self.shiftingAxes, self.shiftingAxes.get(),*options).grid(row=14,column=2)
         self.frame2 = Frame(self)
         self.frame2.grid(row=1,column=0)
-        Button(self.frame2, text="Apply",command=self.applyApodAndClose).grid(row=0,column=0)
-        Button(self.frame2, text="Cancel",command=self.cancelAndClose).grid(row=0,column=2) 
+        Checkbutton(self.frame2, text="Single slice", variable=self.singleSlice).grid(row=0,column=0,columnspan=2)
+        Button(self.frame2, text="Apply",command=self.applyApodAndClose).grid(row=1,column=0)
+        Button(self.frame2, text="Cancel",command=self.cancelAndClose).grid(row=1,column=1) 
 
     def checkEval(self,checkVar,entryVar): #change the state of the entry widget that the 
         if checkVar.get() == 0:
@@ -2132,7 +2246,7 @@ class ApodWindow(Toplevel): #a window for apodization
         else:
             shiftingAxes = None
         self.parent.redoList = []
-        self.parent.undoList.append(self.parent.current.applyApod(lor,gauss,cos2,hamming,shift,shifting,shiftingAxes))
+        self.parent.undoList.append(self.parent.current.applyApod(lor,gauss,cos2,hamming,shift,shifting,shiftingAxes,(self.singleSlice.get()==1)))
         self.parent.menuEnable()
         self.destroy()
 
@@ -2256,6 +2370,8 @@ class ShiftDataWindow(Toplevel): #a window for shifting the data
         #initialize variables for the widgets
         self.shiftVal = StringVar()
         self.shiftVal.set("0")
+        self.singleSlice = IntVar()
+        self.singleSlice.set(0)
         self.parent = parent
         self.geometry('+0+0')
         self.transient(self.parent)
@@ -2273,8 +2389,9 @@ class ShiftDataWindow(Toplevel): #a window for shifting the data
         self.posEntry.grid(row=1,column=1)
         self.frame2 = Frame(self)
         self.frame2.grid(row=1)
-        Button(self.frame2, text="Apply",command=self.applyShiftAndClose).grid(row=0,column=0)
-        Button(self.frame2, text="Cancel",command=self.cancelAndClose).grid(row=0,column=1)
+        Checkbutton(self.frame2, text="Single slice", variable=self.singleSlice).grid(row=0,column=0,columnspan=2)
+        Button(self.frame2, text="Apply",command=self.applyShiftAndClose).grid(row=1,column=0)
+        Button(self.frame2, text="Cancel",command=self.cancelAndClose).grid(row=1,column=1)
 
     def stepUpShift(self, *args):
         shift = int(round(safeEval(self.shiftVal.get())))
@@ -2302,7 +2419,7 @@ class ShiftDataWindow(Toplevel): #a window for shifting the data
     def applyShiftAndClose(self):
         shift = int(round(safeEval(self.shiftVal.get())))
         self.parent.redoList = []
-        self.parent.undoList.append(self.parent.current.applyShift(shift))
+        self.parent.undoList.append(self.parent.current.applyShift(shift,(self.singleSlice.get()==1)))
         self.parent.menuEnable()
         self.destroy()
 
@@ -2318,6 +2435,8 @@ class DCWindow(Toplevel): #a window for changing the offset of the data
         self.maxVal.set(str(parent.current.data1D.shape[-1]))
         self.offsetVal = StringVar()
         self.offsetVal.set('{:.2e}'.format(parent.current.getdcOffset(int(round(0.8*parent.current.data1D.shape[-1])),parent.current.data1D.shape[-1])))
+        self.singleSlice = IntVar()
+        self.singleSlice.set(0)
         self.parent = parent
         self.geometry('+0+0')
         self.transient(self.parent)
@@ -2343,8 +2462,9 @@ class DCWindow(Toplevel): #a window for changing the offset of the data
         self.offsetEntry.grid(row=5,column=0,columnspan=2)
         self.frame2 = Frame(self)
         self.frame2.grid(row=1)
-        Button(self.frame2, text="Apply",command=self.applyDCAndClose).grid(row=0,column=0)
-        Button(self.frame2, text="Cancel",command=self.cancelAndClose).grid(row=0,column=1)
+        Checkbutton(self.frame2, text="Single slice", variable=self.singleSlice).grid(row=0,column=0,columnspan=2)
+        Button(self.frame2, text="Apply",command=self.applyDCAndClose).grid(row=1,column=0)
+        Button(self.frame2, text="Cancel",command=self.cancelAndClose).grid(row=1,column=1)
         #pick function
         self.parent.current.peakPickFunc = lambda pos,self=self: self.picked(pos) 
         self.parent.current.peakPick = True
@@ -2410,7 +2530,7 @@ class DCWindow(Toplevel): #a window for changing the offset of the data
     def applyDCAndClose(self):
         self.parent.current.peakPickReset()
         self.parent.redoList = []
-        self.parent.undoList.append(self.parent.current.applydcOffset(safeEval(self.offsetVal.get())))
+        self.parent.undoList.append(self.parent.current.subtract(safeEval(self.offsetVal.get()),(self.singleSlice.get()==1)))
         self.parent.menuEnable()
         self.destroy()
 
@@ -2421,6 +2541,8 @@ class BaselineWindow(Toplevel):
         Toplevel.__init__(self)
         self.degreeVal = StringVar()
         self.degreeVal.set('3')
+        self.singleSlice = IntVar()
+        self.singleSlice.set(0)
         self.removeList = []
         self.parent = parent
         self.geometry('+0+0')
@@ -2439,8 +2561,9 @@ class BaselineWindow(Toplevel):
         Button(self.frame1, text="Reset",command=self.reset).grid(row=2,column=1)
         self.frame2 = Frame(self)
         self.frame2.grid(row=1)
-        Button(self.frame2, text="Apply",command=self.applyAndClose).grid(row=0,column=0)
-        Button(self.frame2, text="Cancel",command=self.cancelAndClose).grid(row=0,column=1)
+        Checkbutton(self.frame2, text="Single slice", variable=self.singleSlice).grid(row=0,column=0,columnspan=2)
+        Button(self.frame2, text="Apply",command=self.applyAndClose).grid(row=1,column=0)
+        Button(self.frame2, text="Cancel",command=self.cancelAndClose).grid(row=1,column=1)
         self.parent.current.peakPickFunc = lambda pos,self=self: self.picked(pos) 
         self.parent.current.peakPick = True
 
@@ -2477,7 +2600,7 @@ class BaselineWindow(Toplevel):
         self.parent.current.peakPickReset()
         self.parent.current.resetPreviewRemoveList()
         self.parent.redoList = []
-        self.parent.undoList.append(self.parent.current.applyBaseline(degree,self.removeList))
+        self.parent.undoList.append(self.parent.current.applyBaseline(degree,self.removeList,(self.singleSlice.get()==1)))
         self.parent.current.upd()
         self.parent.current.showFid()
         self.parent.menuEnable()
@@ -2586,10 +2709,6 @@ class integrateWindow(regionWindow): #A window for obtaining the integral of a s
     def apply(self,maximum,minimum):
         self.parent.redoList = []
         self.parent.undoList.append(self.parent.current.integrate(minimum,maximum))
-        self.parent.current.grid_remove()
-        self.parent.current.kill()
-        self.parent.current=sc.Current1D(self.parent,self.parent.masterData)
-        self.parent.current.grid(row=0,column=0,sticky='nswe')
         self.parent.updAllFrames()
         
 ############################################################
@@ -2600,11 +2719,6 @@ class maxWindow(regionWindow): #A window for obtaining the max of a selected reg
     def apply(self,maximum,minimum):
         self.parent.redoList = []
         self.parent.undoList.append(self.parent.current.maxMatrix(minimum,maximum))
-        #self.parent.undoList.append(self.parent.current.maxMatrix(minimum,maximum))
-        self.parent.current.grid_remove()
-        self.parent.current.kill()
-        self.parent.current=sc.Current1D(self.parent,self.parent.masterData)
-        self.parent.current.grid(row=0,column=0,sticky='nswe')
         self.parent.updAllFrames()
 
 ############################################################
@@ -2615,10 +2729,6 @@ class minWindow(regionWindow): #A window for obtaining the min of a selected reg
     def apply(self,maximum,minimum):
         self.parent.redoList = []
         self.parent.undoList.append(self.parent.current.minMatrix(minimum,maximum))
-        self.parent.current.grid_remove()
-        self.parent.current.kill()
-        self.parent.current=sc.Current1D(self.parent,self.parent.masterData)
-        self.parent.current.grid(row=0,column=0,sticky='nswe')
         self.parent.updAllFrames()
         
 ############################################################
@@ -2629,11 +2739,6 @@ class argmaxWindow(regionWindow): #A window for obtaining the max of a selected 
     def apply(self,maximum,minimum):
         self.parent.redoList = []
         self.parent.undoList.append(self.parent.current.argmaxMatrix(minimum,maximum))
-        #self.parent.undoList.append(self.parent.current.maxMatrix(minimum,maximum))
-        self.parent.current.grid_remove()
-        self.parent.current.kill()
-        self.parent.current=sc.Current1D(self.parent,self.parent.masterData)
-        self.parent.current.grid(row=0,column=0,sticky='nswe')
         self.parent.updAllFrames()
 
 ############################################################
@@ -2644,10 +2749,6 @@ class argminWindow(regionWindow): #A window for obtaining the min of a selected 
     def apply(self,maximum,minimum):
         self.parent.redoList = []
         self.parent.undoList.append(self.parent.current.argminMatrix(minimum,maximum))
-        self.parent.current.grid_remove()
-        self.parent.current.kill()
-        self.parent.current=sc.Current1D(self.parent,self.parent.masterData)
-        self.parent.current.grid(row=0,column=0,sticky='nswe')
         self.parent.updAllFrames()
         
 ############################################################
@@ -2809,7 +2910,6 @@ class ConcatenateWindow(Toplevel):
         self.parent.menuEnable()
         self.destroy()
         
-
 ##############################################################
 class InsertWindow(Toplevel):
     def __init__(self, parent):
@@ -2879,19 +2979,22 @@ class AddWindow(Toplevel):
         #initialize variables for the widgets
         self.ws = StringVar()
         self.ws.set(self.parent.mainProgram.workspaceNames[0])
+        self.singleSlice = IntVar()
+        self.singleSlice.set(0)
         self.frame1 = Frame(self)
         self.frame1.grid(row=0)
         Label(self.frame1,text="Workspace to add").grid(row=0,column=0)
         OptionMenu(self.frame1,self.ws,self.parent.mainProgram.workspaceNames[0],*self.parent.mainProgram.workspaceNames).grid(row=1,column=0)
         self.frame2 = Frame(self)
         self.frame2.grid(row=1)
-        Button(self.frame2, text="Apply",command=self.applyAndClose).grid(row=0,column=0)
-        Button(self.frame2, text="Cancel",command=self.cancelAndClose).grid(row=0,column=1)
+        Checkbutton(self.frame2, text="Single slice", variable=self.singleSlice).grid(row=0,column=0,columnspan=2)
+        Button(self.frame2, text="Apply",command=self.applyAndClose).grid(row=1,column=0)
+        Button(self.frame2, text="Cancel",command=self.cancelAndClose).grid(row=1,column=1)
         
     def applyAndClose(self):
         ws = self.parent.mainProgram.workspaceNames.index(self.ws.get())
         self.parent.redoList = []
-        self.parent.undoList.append(self.parent.current.add(self.parent.mainProgram.workspaces[ws].masterData.data))
+        self.parent.undoList.append(self.parent.current.add(self.parent.mainProgram.workspaces[ws].masterData.data,(self.singleSlice.get()==1)))
         self.parent.menuEnable()
         self.parent.sideframe.upd()
         self.destroy()
@@ -2914,19 +3017,22 @@ class SubtractWindow(Toplevel):
         #initialize variables for the widgets
         self.ws = StringVar()
         self.ws.set(self.parent.mainProgram.workspaceNames[0])
+        self.singleSlice = IntVar()
+        self.singleSlice.set(0)
         self.frame1 = Frame(self)
         self.frame1.grid(row=0)
         Label(self.frame1,text="Workspace to subtract").grid(row=0,column=0)
         OptionMenu(self.frame1,self.ws,self.parent.mainProgram.workspaceNames[0],*self.parent.mainProgram.workspaceNames).grid(row=1,column=0)
         self.frame2 = Frame(self)
         self.frame2.grid(row=1)
-        Button(self.frame2, text="Apply",command=self.applyAndClose).grid(row=0,column=0)
-        Button(self.frame2, text="Cancel",command=self.cancelAndClose).grid(row=0,column=1)
+        Checkbutton(self.frame2, text="Single slice", variable=self.singleSlice).grid(row=0,column=0,columnspan=2)
+        Button(self.frame2, text="Apply",command=self.applyAndClose).grid(row=1,column=0)
+        Button(self.frame2, text="Cancel",command=self.cancelAndClose).grid(row=1,column=1)
         
     def applyAndClose(self):
         ws = self.parent.mainProgram.workspaceNames.index(self.ws.get())
         self.parent.redoList = []
-        self.parent.undoList.append(self.parent.current.subtract(self.parent.mainProgram.workspaces[ws].masterData.data))
+        self.parent.undoList.append(self.parent.current.subtract(self.parent.mainProgram.workspaces[ws].masterData.data,(self.singleSlice.get()==1)))
         self.parent.menuEnable()
         self.parent.sideframe.upd()
         self.destroy()
@@ -3214,6 +3320,8 @@ class MultiplyWindow(Toplevel):
         Toplevel.__init__(self)
         #initialize variables for the widgets
         self.val = StringVar()
+        self.singleSlice = IntVar()
+        self.singleSlice.set(0)
         self.parent = parent
         self.geometry('+0+0')
         self.transient(self.parent)
@@ -3229,8 +3337,9 @@ class MultiplyWindow(Toplevel):
         self.minEntry.grid(row=1,column=0,columnspan=2)
         self.frame2 = Frame(self)
         self.frame2.grid(row=1)
-        Button(self.frame2, text="Apply",command=self.applyAndClose).grid(row=0,column=0)
-        Button(self.frame2, text="Cancel",command=self.cancelAndClose).grid(row=0,column=1)
+        Checkbutton(self.frame2, text="Single slice", variable=self.singleSlice).grid(row=0,column=0,columnspan=2)
+        Button(self.frame2, text="Apply",command=self.applyAndClose).grid(row=1,column=0)
+        Button(self.frame2, text="Cancel",command=self.cancelAndClose).grid(row=1,column=1)
 
     def preview(self, *args):
         env = vars(np).copy()
@@ -3252,7 +3361,7 @@ class MultiplyWindow(Toplevel):
         env['euro']=lambda fVal, num=int(self.parent.current.data1D.shape[-1]): euro(fVal,num)
         val=eval(self.val.get(),env)                # find a better solution, also add catch for exceptions
         self.parent.redoList = []
-        self.parent.undoList.append(self.parent.current.multiply(np.array(val)))
+        self.parent.undoList.append(self.parent.current.multiply(np.array(val),(self.singleSlice.get()==1)))
         self.parent.menuEnable()
         self.destroy()
 
@@ -3394,7 +3503,7 @@ class RefWindow(Toplevel): #a window for setting the ppm reference
 if __name__ == "__main__":
     root = Tk()
     img = tk.PhotoImage(file=os.path.dirname(os.path.realpath(__file__))+'/logo.gif')
-    root.tk.call('wm', 'iconphoto', root._w, img)
+    root.tk.call('wm', 'iconphoto',root._w,'-default',img)
     MainProgram(root)
     root.title("ssNake") 
     root.style = Style()

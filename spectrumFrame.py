@@ -1,10 +1,27 @@
-import matplotlib
-matplotlib.use('TkAgg')
-import matplotlib.pyplot as plt
+#!/usr/bin/env python
+
+# Copyright 2015 Bas van Meerten and Wouter Franssen
+
+#This file is part of ssNake.
+#
+#ssNake is free software: you can redistribute it and/or modify
+#it under the terms of the GNU General Public License as published by
+#the Free Software Foundation, either version 3 of the License, or
+#(at your option) any later version.
+#
+#ssNake is distributed in the hope that it will be useful,
+#but WITHOUT ANY WARRANTY; without even the implied warranty of
+#MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#GNU General Public License for more details.
+#
+#You should have received a copy of the GNU General Public License
+#along with ssNake. If not, see <http://www.gnu.org/licenses/>.
+
 import numpy as np
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from matplotlib.figure import Figure
 import matplotlib.gridspec as gridspec
+from mpl_toolkits.mplot3d import Axes3D
 
 import sys
 if sys.version_info >= (3,0):
@@ -16,11 +33,12 @@ import weakref
 
 #########################################################################################################
 #the class from which the 1d data is displayed, the operations which only edit the content of this class are for previewing
-class Plot1DFrame(Frame):
-    def __init__(self, root):
-        Frame.__init__(self,root)
+class Plot1DFrame:
+    def __init__(self,root, fig, canvas):
         self.root = root
-        self.fig = Figure()           #figure
+        self.fig = fig
+        self.canvas = canvas
+        self.fig.clf()
         if isinstance(self,spectrum_classes.CurrentContour):
             gs = gridspec.GridSpec(2, 2,width_ratios=[3,1],height_ratios=[1,3])
             self.ax = self.fig.add_subplot(gs[2])
@@ -28,10 +46,9 @@ class Plot1DFrame(Frame):
             self.y_ax = self.fig.add_subplot(gs[3],sharey=self.ax)
         elif isinstance(self,spectrum_classes.CurrentSkewed):
             self.ax = self.fig.add_subplot(1, 1, 1, projection='3d')
+            self.ax.disable_mouse_rotation()
         else:
             self.ax = self.fig.add_subplot(111) 
-        self.canvas = FigureCanvasTkAgg(self.fig, master=weakref.proxy(self))
-        self.canvas.get_tk_widget().pack(fill=BOTH,expand=1)
         self.leftMouse = False        #is the left mouse button currently pressed
         self.panX = None              #start position of dragging the spectrum
         self.panY = None              #start position of dragging the spectrum 
@@ -43,18 +60,13 @@ class Plot1DFrame(Frame):
         self.rightMouse = False              #is the right mouse button currently pressed
         self.peakPick = False         #currently peakPicking
         self.peakPickFunc = None      #the function that needs to be called after peakPicking
-        #connect click events to the canvas
-        self.canvas.mpl_connect('button_press_event', self.buttonPress)      
-        self.canvas.mpl_connect('button_release_event', self.buttonRelease)
-        self.canvas.mpl_connect('motion_notify_event', self.pan)
-        self.canvas.mpl_connect('scroll_event', self.scroll)
         #variables to be initialized
         self.spec = 0
         self.spec2 = 0
-
+        self.fig.suptitle(root.name)
+        
     def kill(self):
-        plt.close(self.fig)
-        self.destroy()
+        pass
 
     def plotReset(self): #this function needs to be overriden by the classes who inherit from Plot1DFrame
         pass
