@@ -135,18 +135,9 @@ class Plot1DFrame:
                     self.rect[0].remove()
                     self.rect[0]=None
                     self.peakPick = False
-                    minim = np.min(np.abs(self.line[0].get_xdata()-event.xdata))
-                    minPos = 0
-                    for i in range(1,len(self.line)):
-                        minimNew = np.min(np.abs(self.line[i].get_xdata()-event.xdata))
-                        if minimNew < minim:
-                            minim = minimNew
-                            minPos = i
-                    xdata = self.line[minPos].get_xdata()
-                    ydata = self.line[minPos].get_ydata()
-                    idx = np.argmin(np.abs(xdata-event.xdata))
+                    idx = np.argmin(np.abs(self.line_xdata-event.xdata))
                     if self.peakPickFunc is not None:
-                        self.peakPickFunc((idx,xdata[idx],ydata[idx]))
+                        self.peakPickFunc((idx,self.line_xdata[idx],self.line_ydata[idx]))
                     if not self.peakPick: #check if peakpicking is still required
                         self.peakPickFunc = None
             else:
