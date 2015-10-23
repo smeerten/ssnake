@@ -386,8 +386,8 @@ class Spectrum:
             return None
         oldFreq = self.freq[axes]
         oldSw = self.sw[axes]
-        self.freq[axes]=freq
-        self.sw[axes]=sw
+        self.freq[axes]=float(freq)
+        self.sw[axes]=float(sw)
         self.resetXax(axes)
         return lambda self: self.setFreq(oldFreq,oldSw,axes)
     
@@ -396,7 +396,7 @@ class Spectrum:
         if axes == None:
             return None
         oldRef = self.ref[axes]
-        self.ref[axes]=ref
+        self.ref[axes]=float(ref)
         return lambda self: self.setRef(oldRef,axes)
 
     def setWholeEcho(self,val,axes):
@@ -557,14 +557,22 @@ class Spectrum:
         if self.dim < 2:
             print("The data does not have enough dimensions for a shearing transformation")
             return None
-        copyData=copy.deepcopy(self)
-        returnValue = lambda self: self.restoreData(copyData, lambda self: self.shear(shear,axes, axes2))
-        shearMatrix = np.identity(self.dim)
-        shearMatrix[axes,axes2]=shear*self.sw[axes2]*self.data.shape[axes]/(self.sw[axes]*self.data.shape[axes2])
-        offset = np.zeros(self.dim)
-        offset[axes] = -(self.data.shape[axes2]*0.5)*shear*self.sw[axes2]*self.data.shape[axes]/(self.sw[axes]*self.data.shape[axes2])
-        self.data = scipy.ndimage.interpolation.affine_transform(np.real(self.data),shearMatrix,mode='wrap',offset=offset) + 1j*scipy.ndimage.interpolation.affine_transform(np.imag(self.data),shearMatrix,mode='wrap',offset=offset)
-        return returnValue
+        shape = self.data.shape
+        vec1 = np.linspace(0,shear*2*np.pi*shape[axes]/self.sw[axes],shape[axes]+1)[:-1]
+        vec2 = np.fft.fftshift(np.fft.fftfreq(shape[axes2],1/self.sw[axes2]))
+        newShape = [1,]*self.dim
+        newShape[axes] = shape[axes]
+        newShape[axes2] = shape[axes2]
+        if axes > axes2:
+            shearMatrix = np.exp(1j*np.outer(vec2,vec1))
+        elif axes < axes2:
+            shearMatrix = np.exp(1j*np.outer(vec1,vec2))
+        if self.spec[axes] > 0:
+            self.fourier(axes,tmp=True)
+        self.data = self.data*shearMatrix.reshape(shape)
+        if self.spec[axes] > 0:
+            self.fourier(axes,tmp=True,inv=True)
+        return lambda self: self.shear(-shear, axes, axes2)
     
     def getSlice(self,axes,locList):
         axes = self.checkAxes(axes)
