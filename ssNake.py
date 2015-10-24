@@ -42,7 +42,7 @@ matplotlib.use('TkAgg')
 from matplotlib.figure import Figure
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from matplotlib  import rcParams
-rcParams['toolbar'] = 'None' 
+rcParams['toolbar'] = 'None'
 import spectrum_classes as sc
 import fitting as fit
 import math
@@ -84,7 +84,8 @@ class MainProgram:
         self.root.bind_all("<Control-d>", self.duplicateWorkspace)
         self.root.bind_all("<Control-Prior>", lambda args: self.stepWorkspace(-1))
         self.root.bind_all("<Control-Next>", lambda args: self.stepWorkspace(1))
-        
+        self.root.bind_all("<Shift_L>", lambda args: sc.setShiftFlag(True))
+        self.root.bind_all("<KeyRelease-Shift_L>", lambda args: sc.setShiftFlag(False))
         self.filemenu.add_command(label="Load", command=self.autoLoad)
 
         #the save drop down menu
@@ -1330,14 +1331,14 @@ class Main1DWindow(Frame):
         self.mainProgram.createFitWindow(fit.Quad2CzjzekWindow(self.parent,self.mainProgram,self.mainProgram.mainWindow,True))
         
     def plot1D(self):
-        tmpcurrent = sc.Current1D(self,self.fig,self.canvas,self.masterData)
+        tmpcurrent = sc.Current1D(self,self.fig,self.canvas,self.masterData,self.current)
         self.current.kill()
         del self.current
         self.current = tmpcurrent
         self.updAllFrames()
 
     def plotScatter(self):
-        tmpcurrent = sc.CurrentScatter(self,self.fig,self.canvas,self.masterData)
+        tmpcurrent = sc.CurrentScatter(self,self.fig,self.canvas,self.masterData,self.current)
         self.current.kill()
         del self.current
         self.current = tmpcurrent
@@ -1345,7 +1346,7 @@ class Main1DWindow(Frame):
 
     def plotStack(self):
         if len(self.masterData.data.shape) > 1:
-            tmpcurrent = sc.CurrentStacked(self,self.fig,self.canvas,self.masterData)
+            tmpcurrent = sc.CurrentStacked(self,self.fig,self.canvas,self.masterData,self.current)
             self.current.kill()
             del self.current
             self.current = tmpcurrent
@@ -1355,7 +1356,7 @@ class Main1DWindow(Frame):
 
     def plotArray(self):
         if len(self.masterData.data.shape) > 1:
-            tmpcurrent = sc.CurrentArrayed(self,self.fig,self.canvas,self.masterData)
+            tmpcurrent = sc.CurrentArrayed(self,self.fig,self.canvas,self.masterData,self.current)
             self.current.kill()
             del self.current
             self.current = tmpcurrent
@@ -1365,7 +1366,7 @@ class Main1DWindow(Frame):
             
     def plotContour(self):
         if len(self.masterData.data.shape) > 1:
-            tmpcurrent = sc.CurrentContour(self,self.fig,self.canvas,self.masterData)
+            tmpcurrent = sc.CurrentContour(self,self.fig,self.canvas,self.masterData,self.current)
             self.current.kill()
             del self.current
             self.current = tmpcurrent
@@ -1375,7 +1376,7 @@ class Main1DWindow(Frame):
             
     def plotSkewed(self):
         if len(self.masterData.data.shape) > 1:
-            tmpcurrent = sc.CurrentSkewed(self,self.fig,self.canvas,self.masterData)
+            tmpcurrent = sc.CurrentSkewed(self,self.fig,self.canvas,self.masterData,self.current)
             self.current.kill()
             del self.current
             self.current = tmpcurrent
@@ -1623,6 +1624,9 @@ class SideFrame(Frame):
             self.fromSpin.config(to=toVar-1)
             self.toSpin.config(from_=fromVar+1)
 
+    def scrollSpacing(self, var):
+        self.spacing.set('%.3g' % var)
+            
     def setSpacing(self, *args):
         var =float(safeEval(self.spacing.get()))
         self.spacing.set('%.3g' % var)

@@ -30,7 +30,7 @@ else:
     from Tkinter import *
 import spectrum_classes
 import weakref
-
+    
 #########################################################################################################
 #the class from which the 1d data is displayed, the operations which only edit the content of this class are for previewing
 class Plot1DFrame:
@@ -84,28 +84,34 @@ class Plot1DFrame:
         self.peakPickFunc = None
 
     def scroll(self,event):
-        if self.rightMouse:
-            middle = (self.xmaxlim+self.xminlim)/2.0
-            width = self.xmaxlim-self.xminlim
-            width = width*0.9**event.step
-            self.xmaxlim = middle+width/2.0
-            self.xminlim = middle-width/2.0
-            if self.spec > 0 and not isinstance(self,spectrum_classes.CurrentArrayed):
-                self.ax.set_xlim(self.xmaxlim,self.xminlim)
-            else:
-                self.ax.set_xlim(self.xminlim,self.xmaxlim)
+        if spectrum_classes.SHIFTPRESSED:
+            self.altScroll(event)
         else:
-            middle = (self.ymaxlim+self.yminlim)/2.0
-            width = self.ymaxlim-self.yminlim
-            width = width*0.9**event.step
-            self.ymaxlim = middle+width/2.0
-            self.yminlim = middle-width/2.0
-            if self.spec2 > 0 and isinstance(self,spectrum_classes.CurrentContour):
-                self.ax.set_ylim(self.ymaxlim,self.yminlim)
+            if self.rightMouse:
+                middle = (self.xmaxlim+self.xminlim)/2.0
+                width = self.xmaxlim-self.xminlim
+                width = width*0.9**event.step
+                self.xmaxlim = middle+width/2.0
+                self.xminlim = middle-width/2.0
+                if self.spec > 0 and not isinstance(self,spectrum_classes.CurrentArrayed):
+                    self.ax.set_xlim(self.xmaxlim,self.xminlim)
+                else:
+                    self.ax.set_xlim(self.xminlim,self.xmaxlim)
             else:
-                self.ax.set_ylim(self.yminlim,self.ymaxlim)
-        self.canvas.draw()
+                middle = (self.ymaxlim+self.yminlim)/2.0
+                width = self.ymaxlim-self.yminlim
+                width = width*0.9**event.step
+                self.ymaxlim = middle+width/2.0
+                self.yminlim = middle-width/2.0
+                if self.spec2 > 0 and isinstance(self,spectrum_classes.CurrentContour):
+                    self.ax.set_ylim(self.ymaxlim,self.yminlim)
+                else:
+                    self.ax.set_ylim(self.yminlim,self.ymaxlim)
+            self.canvas.draw()
 
+    def altScroll(self,event):
+        pass
+        
     def buttonPress(self,event):
         if event.button == 1 and not self.peakPick:
             self.leftMouse = True

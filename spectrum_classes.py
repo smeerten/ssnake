@@ -30,6 +30,13 @@ from six import string_types
 from spectrumFrame import Plot1DFrame
 from safeEval import safeEval
 
+SHIFTPRESSED = False
+
+#Function to set and release the shift flag
+def setShiftFlag(val):
+    global SHIFTPRESSED
+    SHIFTPRESSED = val
+
 #########################################################################
 #the generic data class
 class Spectrum:
@@ -611,6 +618,10 @@ class Spectrum:
 #########################################################################################################
 #the class from which the 1d data is displayed, the operations which only edit the content of this class are for previewing
 class Current1D(Plot1DFrame):
+
+    X_RESIZE = False
+    Y_RESIZE = False
+    
     def __init__(self, root, fig,canvas,data,duplicateCurrent=None):
         Plot1DFrame.__init__(self,root,fig,canvas)
         self.xax = None               #x-axis
@@ -627,6 +638,8 @@ class Current1D(Plot1DFrame):
             self.resetLocList() 
             self.plotType = 0
             self.axType = 1
+            self.upd()   #get the first slice of data
+            self.startUp()
         else:
             self.ppm = duplicateCurrent.ppm
             self.axes = duplicateCurrent.axes
@@ -648,11 +661,17 @@ class Current1D(Plot1DFrame):
                         self.locList = np.insert(duplicateCurrent.locList,duplicateCurrent.axes2,0)
             self.plotType = duplicateCurrent.plotType
             self.axType = duplicateCurrent.axType
-        self.upd()   #get the first slice of data
-        self.startUp()
+            self.xminlim = duplicateCurrent.xminlim
+            self.xmaxlim = duplicateCurrent.xmaxlim
+            self.yminlim = duplicateCurrent.yminlim
+            self.ymaxlim = duplicateCurrent.ymaxlim
+            xReset = self.X_RESIZE or duplicateCurrent.X_RESIZE
+            yReset = self.Y_RESIZE or duplicateCurrent.Y_RESIZE
+            self.upd()   #get the first slice of data
+            self.startUp(xReset,yReset)
         
-    def startUp(self):
-        self.plotReset() #reset the axes limits
+    def startUp(self,xReset=True,yReset=True):
+        self.plotReset(xReset,yReset) #reset the axes limits
         self.showFid() #plot the data
         
     def copyCurrent(self,root,fig,canvas, data):
@@ -1508,6 +1527,10 @@ class Current1D(Plot1DFrame):
 
 #########################################################################################################
 class CurrentScatter(Current1D):
+
+    X_RESIZE = False
+    Y_RESIZE = False
+    
     def __init__(self, root, fig, canvas, data, duplicateCurrent=None):
         Current1D.__init__(self,root,fig,canvas, data, duplicateCurrent)
 
@@ -1588,6 +1611,10 @@ class CurrentScatter(Current1D):
 #########################################################################################################
 #the class from which the stacked data is displayed, the operations which only edit the content of this class are for previewing
 class CurrentStacked(Current1D):
+
+    X_RESIZE = False
+    Y_RESIZE = True
+    
     def __init__(self, root,fig,canvas, data, duplicateCurrent=None):
         self.data = data
         if hasattr(duplicateCurrent,'axes2'):
@@ -1613,13 +1640,11 @@ class CurrentStacked(Current1D):
                 self.stackStep = 1+int(self.data.data.shape[self.axes2])/100
         self.spacing = 0
         Current1D.__init__(self,root,fig,canvas, data, duplicateCurrent)
-        self.resetSpacing()
-        self.plotReset()
-        self.showFid()
+        #self.startUp()
 
-    def startUp(self):
+    def startUp(self,xReset=True,yReset=True):
         self.resetSpacing()
-        self.plotReset()
+        self.plotReset(xReset,yReset)
         self.showFid()
         
     def copyCurrent(self,root,fig,canvas, data):
@@ -1782,6 +1807,11 @@ class CurrentStacked(Current1D):
                 amp = np.amax(np.abs(self.data1D))-np.amin(np.abs(self.data1D))
             self.spacing = np.abs(difference) + 0.1*amp   
 
+    def altScroll(self,event):
+        self.spacing = self.spacing*1.1**event.step
+        self.root.sideframe.scrollSpacing(self.spacing)
+        self.showFid()
+            
     def showFid(self, tmpdata=None, extraX=None, extraY=None, extraColor=None,old=False): #display the 1D data
         self.peakPickReset()
         if tmpdata is None:
@@ -1920,6 +1950,10 @@ class CurrentStacked(Current1D):
 #########################################################################################################
 #the class from which the arrayed data is displayed, the operations which only edit the content of this class are for previewing
 class CurrentArrayed(Current1D):
+
+    X_RESIZE = True
+    Y_RESIZE = False
+    
     def __init__(self, root,fig,canvas, data, duplicateCurrent=None):
         self.data = data
         if hasattr(duplicateCurrent,'axes2'):
@@ -1946,9 +1980,9 @@ class CurrentArrayed(Current1D):
         self.spacing = 0
         Current1D.__init__(self, root,fig,canvas, data, duplicateCurrent)
 
-    def startUp(self):
+    def startUp(self,xReset=True,yReset=True):
         self.resetSpacing()
-        self.plotReset()
+        self.plotReset(xReset,yReset)
         self.showFid()
 
     def copyCurrent(self,root,fig,canvas, data):
@@ -2094,6 +2128,11 @@ class CurrentArrayed(Current1D):
     def resetSpacing(self):
         self.spacing = (self.xax[-1]-self.xax[0])*1.1     
 
+    def altScroll(self,event):
+        self.spacing = self.spacing*1.1**event.step
+        self.root.sideframe.scrollSpacing(self.spacing)
+        self.showFid()
+        
     def showFid(self, tmpdata=None, extraX=None, extraY=None, extraColor=None,old=False): #display the 1D data
         self.peakPickReset()
         if tmpdata is None:
@@ -2221,6 +2260,10 @@ class CurrentArrayed(Current1D):
 #########################################################################################################
 #the class from which the contour data is displayed, the operations which only edit the content of this class are for previewing
 class CurrentContour(Current1D):
+
+    X_RESIZE = False
+    Y_RESIZE = True
+    
     def __init__(self, root, fig,canvas,data, duplicateCurrent=None):
         self.data = data
         if hasattr(duplicateCurrent,'axes2'):
@@ -2610,6 +2653,10 @@ class CurrentContour(Current1D):
 #########################################################################################################
 #The skewed plot class
 class CurrentSkewed(Current1D):
+
+    X_RESIZE = False
+    Y_RESIZE = True
+    
     def __init__(self, root,fig,canvas, data, duplicateCurrent=None):
         self.data = data
         if hasattr(duplicateCurrent,'axes2'):
