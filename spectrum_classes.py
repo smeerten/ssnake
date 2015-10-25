@@ -1978,10 +1978,27 @@ class CurrentArrayed(Current1D):
             if self.data.data.shape[self.axes2] > 100:
                 self.stackStep = 1+int(self.data.data.shape[self.axes2])/100
         self.spacing = 0
+        if duplicateCurrent is not None:
+            if isinstance(duplicateCurrent,CurrentArrayed):
+                self.zminlim = duplicateCurrent.zminlim
+                self.zmaxlim = duplicateCurrent.zmaxlim
+            else:
+                #The z-axes limits are in xax units unlike the x-axes and y-axes limits
+                axAdd = 0
+                if duplicateCurrent.spec == 1:
+                    if duplicateCurrent.ppm:
+                        axAdd = (duplicateCurrent.freq-duplicateCurrent.ref)/duplicateCurrent.ref*1e6
+                        axMult = 1e6/duplicateCurrent.ref
+                    else:
+                        axMult = 1.0/(1000.0**duplicateCurrent.axType)
+                elif duplicateCurrent.spec == 0:
+                    axMult = 1000.0**duplicateCurrent.axType
+                self.zminlim = (duplicateCurrent.xminlim-axAdd)/axMult
+                self.zmaxlim = (duplicateCurrent.xmaxlim-axAdd)/axMult
         Current1D.__init__(self, root,fig,canvas, data, duplicateCurrent)
 
     def startUp(self,xReset=True,yReset=True):
-        self.resetSpacing()
+        self.resetSpacing(False)
         self.plotReset(xReset,yReset)
         self.showFid()
 
@@ -2125,8 +2142,12 @@ class CurrentArrayed(Current1D):
         self.plotReset(True,False)
         self.showFid()
 
-    def resetSpacing(self):
-        self.spacing = (self.xax[-1]-self.xax[0])*1.1     
+    def resetSpacing(self,zlims=True):
+        if zlims:
+            self.zminlim = min(self.xax)
+            self.zmaxlim = max(self.xax)
+        xaxZlims = (self.xax > self.zminlim) & (self.xax < self.zmaxlim)
+        self.spacing = (self.xax[xaxZlims][-1]-self.xax[xaxZlims][0])*1.1
 
     def altScroll(self,event):
         self.spacing = self.spacing*1.1**event.step
@@ -2141,7 +2162,8 @@ class CurrentArrayed(Current1D):
         if self.spec > 0:
             direc = slice(None,None,-1)
         else:
-            direc = slice(None,None,1)
+            direc = slice(None,None,1) 
+        xaxZlims = (self.xax > self.zminlim) & (self.xax < self.zmaxlim)
         axAdd = 0
         if self.spec == 1:
             if self.ppm:
@@ -2162,15 +2184,16 @@ class CurrentArrayed(Current1D):
                 oldData = np.abs(self.data1D)
             for num in range(len(self.data1D)):
                 if self.single:
-                    self.ax.scatter((num*self.spacing+self.xax)*axMult+axAdd,oldData[num][direc],c='k',alpha=0.2)
+                    self.ax.scatter((num*self.spacing+self.xax[xaxZlims])*axMult+axAdd,oldData[num][xaxZlims][direc],c='k',alpha=0.2)
                 else:
-                    self.ax.plot((num*self.spacing+self.xax)*axMult+axAdd,oldData[num][direc],c='k',alpha=0.2)
+                    self.ax.plot((num*self.spacing+self.xax[xaxZlims])*axMult+axAdd,oldData[num][xaxZlims][direc],c='k',alpha=0.2)
         if (extraX is not None):
+            extraZlims = (extraX[0] > self.zminlim) & (extraX[0] < self.zmaxlim)
             for num in range(len(extraY)):
                 if self.single:
-                    self.ax.scatter((num*self.spacing+extraX[0])*axMult+axAdd,extraY[num][direc],c=extraColor[0])
+                    self.ax.scatter((num*self.spacing+extraX[0][extraZlims])*axMult+axAdd,extraY[num][extraZlims][direc],c=extraColor[0])
                 else:
-                    self.ax.plot((num*self.spacing+extraX[0])*axMult+axAdd,extraY[num][direc],c=extraColor[0])
+                    self.ax.plot((num*self.spacing+extraX[0][extraZlims])*axMult+axAdd,extraY[num][extraZlims][direc],c=extraColor[0])
         if (self.plotType==0):
             tmpdata = np.real(tmpdata)
         elif(self.plotType==1):
@@ -2182,17 +2205,17 @@ class CurrentArrayed(Current1D):
         if self.single:
             for num in range(len(tmpdata)):
                 if (self.plotType==2):
-                    self.ax.scatter((num*self.spacing+self.xax)*axMult,np.imag(tmpdata[num])[direc],c='r')
-                self.line_xdata = np.append(self.line_xdata,(num*self.spacing+self.xax)*axMult)
-                self.line_ydata = np.append(self.line_ydata,np.real(tmpdata[num])[direc])
-                self.ax.scatter((num*self.spacing+self.xax)*axMult,np.real(tmpdata[num])[direc],c='b')
+                    self.ax.scatter((num*self.spacing+self.xax[xaxZlims])*axMult+axAdd,np.imag(tmpdata[num][xaxZlims])[direc],c='r')
+                self.line_xdata = np.append(self.line_xdata,(num*self.spacing+self.xax[xaxZlims])*axMult+axAdd)
+                self.line_ydata = np.append(self.line_ydata,np.real(tmpdata[num][xaxZlims])[direc])
+                self.ax.scatter((num*self.spacing+self.xax[xaxZlims])*axMult+axAdd,np.real(tmpdata[num][xaxZlims])[direc],c='b')
         else:
             for num in range(len(tmpdata)):
                 if (self.plotType==2):
-                    self.ax.plot((num*self.spacing+self.xax)*axMult,np.imag(tmpdata[num])[direc],c='r')
-                self.line_xdata = np.append(self.line_xdata,(num*self.spacing+self.xax)*axMult)
-                self.line_ydata = np.append(self.line_ydata,np.real(tmpdata[num])[direc])
-                self.ax.plot((num*self.spacing+self.xax)*axMult,np.real(tmpdata[num])[direc],c='b')
+                    self.ax.plot((num*self.spacing+self.xax[xaxZlims])*axMult+axAdd,np.imag(tmpdata[num])[direc],c='r')
+                self.line_xdata = np.append(self.line_xdata,(num*self.spacing+self.xax[xaxZlims])*axMult+axAdd)
+                self.line_ydata = np.append(self.line_ydata,np.real(tmpdata[num][xaxZlims])[direc])
+                self.ax.plot((num*self.spacing+self.xax[xaxZlims])*axMult+axAdd,np.real(tmpdata[num][xaxZlims])[direc],c='b')
         if self.spec==0:
             if self.axType == 0:
                 self.ax.set_xlabel('Time [s]')
@@ -2242,18 +2265,19 @@ class CurrentArrayed(Current1D):
         if yReset:
             self.yminlim=miny-differ
             self.ymaxlim=maxy+differ
-        axAdd = 0
-        if self.spec == 1:
-            if self.ppm:
-                axAdd = (self.freq-self.ref)/self.ref*1e6
-                axMult = 1e6/self.ref
-            else:
-                axMult = 1.0/(1000.0**self.axType)
-        elif self.spec == 0:
-            axMult = 1000.0**self.axType
         if xReset:
-            self.xminlim=min(self.xax*axMult+axAdd)
-            self.xmaxlim=(max(self.xax)+(len(self.data1D)-1)*self.spacing)*axMult+axAdd
+            xaxZlims = (self.xax > self.zminlim) & (self.xax < self.zmaxlim)
+            axAdd = 0
+            if self.spec == 1:
+                if self.ppm:
+                    axAdd = (self.freq-self.ref)/self.ref*1e6
+                    axMult = 1e6/self.ref
+                else:
+                    axMult = 1.0/(1000.0**self.axType)
+            elif self.spec == 0:
+                axMult = 1000.0**self.axType
+            self.xminlim=min(self.xax[xaxZlims]*axMult+axAdd)
+            self.xmaxlim=(max(self.xax[xaxZlims])+(len(self.data1D)-1)*self.spacing)*axMult+axAdd
         self.ax.set_xlim(self.xminlim,self.xmaxlim)
         self.ax.set_ylim(self.yminlim,self.ymaxlim)
 
@@ -2690,8 +2714,8 @@ class CurrentSkewed(Current1D):
             self.ppm2 = False
         Current1D.__init__(self, root, fig,canvas,data, duplicateCurrent)
 
-    def startUp(self):
-        self.plotReset()
+    def startUp(self,xReset=True,yReset=True):
+        self.plotReset(xReset,yReset)
         self.setSkewed(-0.2,70)
         
     def copyCurrent(self,root, fig,canvas,data):
