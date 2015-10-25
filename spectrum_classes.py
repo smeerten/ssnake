@@ -1806,12 +1806,17 @@ class CurrentStacked(Current1D):
                 difference = np.amin(np.abs(difference))
                 amp = np.amax(np.abs(self.data1D))-np.amin(np.abs(self.data1D))
             self.spacing = np.abs(difference) + 0.1*amp   
-
+            
     def altScroll(self,event):
         self.spacing = self.spacing*1.1**event.step
         self.root.sideframe.scrollSpacing(self.spacing)
         self.showFid()
-            
+
+    def altReset(self):
+        self.resetSpacing()
+        self.root.sideframe.scrollSpacing(self.spacing)
+        self.showFid()
+        
     def showFid(self, tmpdata=None, extraX=None, extraY=None, extraColor=None,old=False): #display the 1D data
         self.peakPickReset()
         if tmpdata is None:
@@ -2151,6 +2156,11 @@ class CurrentArrayed(Current1D):
 
     def altScroll(self,event):
         self.spacing = self.spacing*1.1**event.step
+        self.root.sideframe.scrollSpacing(self.spacing)
+        self.showFid()
+
+    def altReset(self):
+        self.resetSpacing()
         self.root.sideframe.scrollSpacing(self.spacing)
         self.showFid()
         

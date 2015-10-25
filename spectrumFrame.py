@@ -111,6 +111,9 @@ class Plot1DFrame:
 
     def altScroll(self,event):
         pass
+
+    def altReset(self):
+        pass
         
     def buttonPress(self,event):
         if event.button == 1 and not self.peakPick:
@@ -123,7 +126,10 @@ class Plot1DFrame:
                 self.zoomX1 = event.xdata
                 self.zoomY1 = event.ydata
         elif (event.button == 3) and event.dblclick:
-            self.plotReset()
+            if spectrum_classes.SHIFTPRESSED:
+                self.altReset()
+            else:
+                self.plotReset()
         elif event.button == 3:
             self.rightMouse = True
             if isinstance(self,spectrum_classes.CurrentSkewed):
