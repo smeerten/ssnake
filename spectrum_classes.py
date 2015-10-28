@@ -49,7 +49,7 @@ class Spectrum:
         if spec is None:
             self.spec=[0]*self.dim
         else:
-            self.spec = spec                              #int array of length dim where 0 = time domain, 1 = complex spectral domain and 2= real spectral domain
+            self.spec = spec                              #int array of length dim where 0 = time domain, 1 = complex spectral
         if wholeEcho is None:
             self.wholeEcho = [False]*self.dim
         else:

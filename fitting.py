@@ -35,10 +35,12 @@ import weakref
 import scipy.optimize
 import scipy.ndimage
 import math
+import os.path
+import copy
 from safeEval import safeEval
 from spectrumFrame import Plot1DFrame
 from zcw import *
-import os.path
+
 
 pi = math.pi
 
@@ -62,6 +64,10 @@ class RelaxWindow(Frame):
         self.canvas.mpl_connect('motion_notify_event', self.pan)
         self.canvas.mpl_connect('scroll_event', self.scroll)
 
+    def createNewData(self,data, axes):
+        masterData = self.get_masterData()
+        self.mainProgram.dataFromFit(data, copy.deepcopy(masterData.freq), copy.deepcopy(masterData.sw) , copy.deepcopy(masterData.spec), copy.deepcopy(masterData.wholeEcho), copy.deepcopy(masterData.ref), copy.deepcopy(masterData.xaxArray), axes)
+        
     def rename(self,name):
         self.fig.suptitle(name)
         self.canvas.draw()
@@ -385,6 +391,7 @@ class RelaxFrame(Plot1DFrame):
 class RelaxParamFrame(Frame): 
     def __init__(self, parent, rootwindow): 
         self.parent = parent
+        self.rootwindow = rootwindow
         self.ampVal = StringVar()
         self.ampVal.set("%.3g" % np.amax(self.parent.data1D))
         self.ampTick = IntVar()
@@ -405,7 +412,8 @@ class RelaxParamFrame(Frame):
         self.frame3.grid(row=0,column=3,sticky='n')
         Button(self.frame1, text="Sim",command=self.sim).grid(row=0,column=0)
         Button(self.frame1, text="Fit",command=self.fit).grid(row=1,column=0)
-        Button(self.frame1, text="Cancel",command=rootwindow.cancel).grid(row=2,column=0)
+        Button(self.frame1, text="Fit all",command=self.fitAll).grid(row=2,column=0)
+        Button(self.frame1, text="Cancel",command=rootwindow.cancel).grid(row=3,column=0)
         Label(self.frame2,text="Amplitude").grid(row=0,column=0,columnspan=2)
         Checkbutton(self.frame2,variable=self.ampTick).grid(row=1,column=0)
         Entry(self.frame2,textvariable=self.ampVal,justify="center",width=10).grid(row=1,column=1)
@@ -468,7 +476,7 @@ class RelaxParamFrame(Frame):
         numExp = self.args[0]
         struc = self.args[1]
         argu = self.args[2]
-        testFunc = np.zeros(len(self.parent.data1D))
+        testFunc = np.zeros(len(x))
         if struc[0]:
             amplitude = param[0]
             param=np.delete(param,[0])
@@ -563,6 +571,96 @@ class RelaxParamFrame(Frame):
                 counter += 1
         self.disp(outAmp,outConst,outCoeff,outT1)
 
+    def fitAll(self, *args):
+        FitAllSelectionWindow(self,["Amplitude","Constant","Coefficient","T"])
+        
+    def fitAllFunc(self,outputs):
+        struc = []
+        guess = []
+        argu = []
+        numExp = int(self.numExp.get())
+        outCoeff = np.zeros(numExp)
+        outT1 = np.zeros(numExp)
+        if self.ampTick.get() == 0:
+            guess.append(safeEval(self.ampVal.get()))
+            struc.append(True)
+        else:
+            inp = safeEval(self.ampVal.get())
+            argu.append(inp)
+            outAmp = inp
+            self.ampVal.set('%.3g' % inp)
+            struc.append(False)
+        if self.constTick.get() == 0:
+            guess.append(safeEval(self.constVal.get()))
+            struc.append(True)
+        else:
+            inp = safeEval(self.constVal.get())
+            argu.append(inp)
+            outConst = inp
+            self.constVal.set('%.3g' % inp)
+            struc.append(False)
+        for i in range(numExp):
+            if self.coeffTick[i].get() == 0:
+                guess.append(safeEval(self.coeffVal[i].get()))
+                struc.append(True)
+            else:
+                inp = safeEval(self.coeffVal[i].get())
+                argu.append(inp)
+                outCoeff[i] = inp
+                self.coeffVal[i].set('%.3g' % inp)
+                struc.append(False)
+            if self.T1Tick[i].get() == 0:
+                guess.append(safeEval(self.T1Val[i].get()))
+                struc.append(True)
+            else:
+                inp = safeEval(self.T1Val[i].get())
+                argu.append(inp)
+                outT1[i] = inp
+                self.T1Val[i].set('%.3g' % inp)
+                struc.append(False)
+        self.args=(numExp,struc,argu)
+        fullData = self.parent.current.data.data
+        axes = self.parent.current.axes
+        dataShape = fullData.shape
+        dataShape2 = np.delete(dataShape,axes)
+        rolledData = np.rollaxis(fullData,axes)
+        intOutputs = np.array(outputs,dtype=int)
+        numOutputs = np.sum(intOutputs[:2]) + numExp*np.sum(intOutputs[2:])
+        outputData = np.zeros((np.product(dataShape2),numOutputs),dtype=complex)
+        counter2 = 0
+        for j in rolledData.reshape(dataShape[axes],np.product(dataShape2)).T:
+            try:
+                fitVal = scipy.optimize.curve_fit(self.fitFunc,self.parent.xax, np.real(j),guess)
+            except:
+                fitVal = [[0]*10]
+            counter = 0
+            if struc[0]:
+                outAmp = fitVal[0][counter]
+                counter +=1
+            if struc[1]:
+                outConst = fitVal[0][counter]
+                counter +=1
+            for i in range(1,numExp+1):
+                if struc[2*i]:
+                    outCoeff[i-1] = fitVal[0][counter]
+                    counter += 1
+                if struc[2*i+1]:
+                    outT1[i-1] = fitVal[0][counter]
+                    counter += 1
+            outputArray = []
+            if outputs[0]:
+                outputArray = np.concatenate((outputArray,[outAmp]))
+            if outputs[1]:
+                outputArray = np.concatenate((outputArray,[outConst]))
+            if outputs[2]:
+                outputArray = np.concatenate((outputArray,outCoeff))
+            if outputs[3]:
+                outputArray = np.concatenate((outputArray,outT1))
+            outputData[counter2] = outputArray
+            counter2 += 1
+        newShape = np.concatenate((np.array(dataShape2),[numOutputs]))
+        self.rootwindow.createNewData(np.rollaxis(outputData.reshape(newShape),-1,axes), axes)
+        
     def sim(self):
         numExp = int(self.numExp.get())
         outAmp = safeEval(self.ampVal.get())
@@ -3646,3 +3744,32 @@ class MainPlotWindow(Frame):
         self.ax.set_ylim((self.ylimBackup[0],self.ylimBackup[1]))
         self.fig.set_size_inches((self.widthBackup/2.54,self.heightBackup/2.54))
         self.mainProgram.closeSaveFigure(self.oldMainWindow)
+
+######################################################################
+
+class FitAllSelectionWindow(Toplevel): #a window to select wich data fields should be saved after fitting
+    def __init__(self, parent, fitNames):
+        Toplevel.__init__(self)
+        self.parent = parent
+        self.geometry('+0+0')
+        self.transient()
+        self.title("Select output")
+        self.resizable(width=FALSE, height=FALSE)
+        self.frame1 = Frame(self)
+        self.frame1.grid(row=0)
+        self.values = []
+        for i in range(len(fitNames)):
+            self.values.append(IntVar())
+            self.values[-1].set(0)
+            Checkbutton(self.frame1, text=fitNames[i], variable=self.values[i]).grid(row=i,column=0,sticky='w')
+        self.frame2 = Frame(self)
+        self.frame2.grid(row=1)
+        Button(self.frame2, text="Fit",command=self.fit).grid(row=0,column=0)
+        Button(self.frame2, text="Cancel",command=self.destroy).grid(row=0,column=1)
+        
+    def fit(self):
+        returnVals = []
+        for i in self.values:
+            returnVals.append(i.get())
+        self.parent.fitAllFunc(np.array(returnVals,dtype=bool))
+        self.destroy()

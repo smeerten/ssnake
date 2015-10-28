@@ -350,7 +350,17 @@ class MainProgram:
                 self.loading(3,filePath)
         else:
             return
-        
+
+    def dataFromFit(self, data, freq , sw , spec, wholeEcho, ref, xaxArray,axes):
+        name = self.askName()
+        if name is None:
+            return
+        masterData=sc.Spectrum(data,lambda self :self.dataFromFit(data, freq , sw , spec, wholeEcho, ref, xaxArray), freq , sw , spec, wholeEcho, ref, xaxArray)
+        masterData.resetXax(axes)
+        self.workspaces.append(Main1DWindow(self.root,self,masterData,name=name))
+        self.workspaceNames.append(name)
+        self.changeMainWindow(name)
+            
     def loading(self,num,filePath):
         name = self.askName()
         if name is None:
