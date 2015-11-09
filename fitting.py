@@ -19,46 +19,36 @@
 
 import numpy as np
 import sys
-if sys.version_info >= (3,0):
-    from tkinter import *
-    import tkinter as tk
-    from tkinter.ttk import *
-    from tkinter.filedialog import asksaveasfilename
-else:
-    from Tkinter import *
-    import Tkinter as tk
-    from ttk import *
-    from tkFileDialog   import asksaveasfilename
+from PyQt4 import QtGui, QtCore
 from matplotlib.figure import Figure
-from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
-import weakref
+from matplotlib.backends.backend_qt4agg import FigureCanvasQTAgg as FigureCanvas
 import scipy.optimize
 import scipy.ndimage
 import math
 import os.path
 import copy
-from safeEval import safeEval
+from safeEval import *
 from spectrumFrame import Plot1DFrame
 from zcw import *
-
 
 pi = math.pi
 
 ##############################################################################
-class RelaxWindow(Frame): 
+class RelaxWindow(QtGui.QWidget): 
     def __init__(self, rootwindow,mainProgram,oldMainWindow):
-        Frame.__init__(self,rootwindow)
+        QtGui.QWidget.__init__(self,rootwindow)
         self.mainProgram = mainProgram
         self.oldMainWindow = oldMainWindow
         self.name = self.oldMainWindow.name
-        self.fig = self.mainProgram.getFig()
-        self.canvas = FigureCanvasTkAgg(self.fig, master=weakref.proxy(self))
-        self.canvas.get_tk_widget().grid(row=0,column=0,sticky="nswe")
+        self.fig = Figure()
+        self.canvas =  FigureCanvas(self.fig)
+        grid = QtGui.QGridLayout(self)
+        grid.addWidget(self.canvas,0,0)
         self.current = RelaxFrame(self,self.fig,self.canvas,oldMainWindow.current)
         self.paramframe = RelaxParamFrame(self.current,self)
-        self.paramframe.grid(row=1,column=0,sticky='sw')
-        self.rowconfigure(0, weight=1)
-        self.grid_columnconfigure(0, weight=1)
+        grid.addWidget(self.paramframe,1,0)
+        grid.setColumnStretch(0,1)
+        grid.setRowStretch(0,1)
         self.canvas.mpl_connect('button_press_event', self.buttonPress)      
         self.canvas.mpl_connect('button_release_event', self.buttonRelease)
         self.canvas.mpl_connect('motion_notify_event', self.pan)
@@ -95,10 +85,10 @@ class RelaxWindow(Frame):
         return self.oldMainWindow.get_current()
     
     def addToView(self):
-        self.pack(fill=BOTH,expand=1)
+        self.show()
 
     def removeFromView(self):
-        self.pack_forget()
+        self.hide()
 
     def kill(self):
         self.current.kill()
@@ -388,89 +378,109 @@ class RelaxFrame(Plot1DFrame):
         self.canvas.draw()
 
 #################################################################################
-class RelaxParamFrame(Frame): 
-    def __init__(self, parent, rootwindow): 
+class RelaxParamFrame(QtGui.QWidget): 
+    def __init__(self, parent, rootwindow):
+        QtGui.QWidget.__init__(self, rootwindow)
         self.parent = parent
         self.rootwindow = rootwindow
-        self.ampVal = StringVar()
-        self.ampVal.set("%.3g" % np.amax(self.parent.data1D))
-        self.ampTick = IntVar()
-        self.constVal = StringVar()
-        self.constVal.set("1.0")
-        self.constTick = IntVar()
-        self.numExp = StringVar()
-        self.xlog=IntVar()
-        self.ylog=IntVar()
-        Frame.__init__(self, rootwindow)
-        self.frame1 = Frame(self)
-        self.frame1.grid(row=0,column=0,sticky='n')
-        self.optframe = Frame(self)
-        self.optframe.grid(row=0,column=1,sticky='n')
-        self.frame2 = Frame(self)
-        self.frame2.grid(row=0,column=2,sticky='n')
-        self.frame3 = Frame(self)
-        self.frame3.grid(row=0,column=3,sticky='n')
-        Button(self.frame1, text="Sim",command=self.sim).grid(row=0,column=0)
-        Button(self.frame1, text="Fit",command=self.fit).grid(row=1,column=0)
-        Button(self.frame1, text="Fit all",command=self.fitAll).grid(row=2,column=0)
-        Button(self.frame1, text="Cancel",command=rootwindow.cancel).grid(row=3,column=0)
-        Label(self.frame2,text="Amplitude").grid(row=0,column=0,columnspan=2)
-        Checkbutton(self.frame2,variable=self.ampTick).grid(row=1,column=0)
-        Entry(self.frame2,textvariable=self.ampVal,justify="center",width=10).grid(row=1,column=1)
-        Label(self.frame2,text="Constant").grid(row=2,column=0,columnspan=2)
-        Checkbutton(self.frame2,variable=self.constTick).grid(row=3,column=0)
-        Entry(self.frame2,textvariable=self.constVal,justify="center",width=10).grid(row=3,column=1)
-        OptionMenu(self.frame3, self.numExp, "1","1", "2", "3","4",command=self.changeNum).grid(row=0,column=0,columnspan=4)
-        Label(self.frame3,text="Coefficient").grid(row=1,column=0,columnspan=2)
-        Label(self.frame3,text="T [s]").grid(row=1,column=2,columnspan=2)
-        Checkbutton(self.optframe,variable=self.xlog,text='x-log',command=self.setLog).grid(row=0,column=0)
-        Checkbutton(self.optframe,variable=self.ylog,text='y-log',command=self.setLog).grid(row=1,column=0)
+        grid = QtGui.QGridLayout(self)
+        self.setLayout(grid)
+        self.frame1 = QtGui.QGridLayout()
+        self.optframe = QtGui.QGridLayout()
+        self.frame2 = QtGui.QGridLayout()
+        self.frame3 = QtGui.QGridLayout()
+        grid.addLayout(self.frame1,0,0)
+        grid.addLayout(self.optframe,0,1)
+        grid.addLayout(self.frame2,0,2)
+        grid.addLayout(self.frame3,0,3)
+        simButton = QtGui.QPushButton("Sim")
+        simButton.clicked.connect(self.sim)
+        self.frame1.addWidget(simButton,0,0)
+        fitButton = QtGui.QPushButton("Fit")
+        fitButton.clicked.connect(self.fit)
+        self.frame1.addWidget(fitButton,1,0)
+        fitAllButton = QtGui.QPushButton("Fit all")
+        fitAllButton.clicked.connect(self.fitAll)
+        self.frame1.addWidget(fitAllButton,2,0)
+        cancelButton = QtGui.QPushButton("Cancel")
+        cancelButton.clicked.connect(rootwindow.cancel)
+        self.frame1.addWidget(cancelButton,3,0)
+        self.frame1.setColumnStretch(10,1)
+        self.frame1.setAlignment(QtCore.Qt.AlignTop)
+        self.frame2.addWidget(QLabel("Amplitude:"),0,0,1,2)
+        self.ampTick = QtGui.QCheckBox('')
+        self.frame2.addWidget(self.ampTick,1,0)
+        self.ampEntry = QtGui.QLineEdit()
+        self.ampEntry.setAlignment(QtCore.Qt.AlignHCenter)
+        self.ampEntry.setText("%.3g" % np.amax(self.parent.data1D))
+        self.frame2.addWidget(self.ampEntry,1,1)
+        self.frame2.addWidget(QLabel("Constant:"),2,0,1,2)
+        self.constTick = QtGui.QCheckBox('')
+        self.frame2.addWidget(self.constTick,3,0)
+        self.constEntry = QtGui.QLineEdit()
+        self.constEntry.setAlignment(QtCore.Qt.AlignHCenter)
+        self.constEntry.setText("1.0")
+        self.frame2.addWidget(self.constEntry,3,1)
+        self.frame2.setColumnStretch(10,1)
+        self.frame2.setAlignment(QtCore.Qt.AlignTop)
+        self.numExp = QtGui.QComboBox()
+        self.numExp.addItems(['1','2','3','4'])
+        self.numExp.currentIndexChanged.connect(self.changeNum)
+        self.frame3.addWidget(self.numExp,0,0,1,2)
+        self.frame3.addWidget(QLabel("Coefficient:"),1,0,1,2)
+        self.frame3.addWidget(QLabel("T [s]:"),1,2,1,2)
+        self.frame3.setColumnStretch(10,1)
+        self.frame3.setAlignment(QtCore.Qt.AlignTop)
+        self.xlog = QtGui.QCheckBox('x-log')
+        self.xlog.stateChanged.connect(self.setLog)
+        self.optframe.addWidget(self.xlog,0,0,QtCore.Qt.AlignTop)
+        self.ylog = QtGui.QCheckBox('y-log')
+        self.ylog.stateChanged.connect(self.setLog)
+        self.optframe.addWidget(self.ylog,1,0,QtCore.Qt.AlignTop)
+        self.optframe.setColumnStretch(10,1)
+        self.optframe.setAlignment(QtCore.Qt.AlignTop)
+        grid.setColumnStretch(10,1)
+        grid.setAlignment(QtCore.Qt.AlignLeft)
         
-        self.coeffVal = []
-        self.coeffTick = []
-        self.T1Val = []
-        self.T1Tick = []
-        self.coeffCheck = []
+        self.coeffTicks = []
         self.coeffEntries = []
-        self.T1Check = []
-        self.T1Entries = []
+        self.t1Ticks = []
+        self.t1Entries = []
         for i in range(4):
-            self.coeffVal.append(StringVar())
-            self.coeffVal[i].set("-1.0")
-            self.coeffTick.append(IntVar())
-            self.T1Val.append(StringVar())
-            self.T1Val[i].set("1.0")
-            self.T1Tick.append(IntVar())
-            self.coeffCheck.append(Checkbutton(self.frame3,variable=self.coeffTick[i]))
-            self.coeffCheck[i].grid(row=i+2,column=0)
-            self.coeffEntries.append(Entry(self.frame3,textvariable=self.coeffVal[i],justify="center",width=10))
-            self.coeffEntries[i].grid(row=i+2,column=1)
-            self.T1Check.append(Checkbutton(self.frame3,variable=self.T1Tick[i]))
-            self.T1Check[i].grid(row=i+2,column=2)
-            self.T1Entries.append(Entry(self.frame3,textvariable=self.T1Val[i],justify="center",width=10))
-            self.T1Entries[i].grid(row=i+2,column=3)
+            self.coeffTicks.append(QtGui.QCheckBox(''))
+            self.frame3.addWidget(self.coeffTicks[i],i+2,0)
+            self.coeffEntries.append(QtGui.QLineEdit())
+            self.coeffEntries[i].setText("-1.0")
+            self.coeffEntries[i].setAlignment(QtCore.Qt.AlignHCenter)
+            self.frame3.addWidget(self.coeffEntries[i],i+2,1)
+            self.t1Ticks.append(QtGui.QCheckBox(''))
+            self.frame3.addWidget(self.t1Ticks[i],i+2,2)
+            self.t1Entries.append(QtGui.QLineEdit())
+            self.t1Entries[i].setText("1.0")
+            self.t1Entries[i].setAlignment(QtCore.Qt.AlignHCenter)
+            self.frame3.addWidget(self.t1Entries[i],i+2,3)
             if i > 0:
-                self.coeffCheck[i].grid_remove()
-                self.coeffEntries[i].grid_remove()
-                self.T1Check[i].grid_remove()
-                self.T1Entries[i].grid_remove()
+                self.coeffTicks[i].hide()
+                self.coeffEntries[i].hide()
+                self.t1Ticks[i].hide()
+                self.t1Entries[i].hide()
 
     def setLog(self, *args):
-        self.parent.setLog(self.xlog.get(),self.ylog.get())
+        self.parent.setLog(self.xlog.isChecked(),self.ylog.isChecked())
                 
     def changeNum(self,*args):
-        val = int(self.numExp.get())
+        val = self.numExp.currentIndex()+1
         for i in range(4):
             if i < val:
-                self.coeffCheck[i].grid()
-                self.coeffEntries[i].grid()
-                self.T1Check[i].grid()
-                self.T1Entries[i].grid()
+                self.coeffTicks[i].show()
+                self.coeffEntries[i].show()
+                self.t1Ticks[i].show()
+                self.t1Entries[i].show()
             else:
-                self.coeffCheck[i].grid_remove()
-                self.coeffEntries[i].grid_remove()
-                self.T1Check[i].grid_remove()
-                self.T1Entries[i].grid_remove()
+                self.coeffTicks[i].hide()
+                self.coeffEntries[i].hide()
+                self.t1Ticks[i].hide()
+                self.t1Entries[i].hide()
 
     def fitFunc(self, x, *param):
         numExp = self.args[0]
@@ -505,68 +515,84 @@ class RelaxParamFrame(Frame):
             testFunc += coeff*np.exp(-1.0*x/T1) 
         return amplitude*(constant+testFunc)
 
+    def checkInputs(self):
+        numExp = self.numExp.currentIndex()+1
+        inp = safeEval(self.ampEntry.text())
+        if inp is None:
+            return False
+        self.ampEntry.setText('%.3g' % inp)
+        inp = safeEval(self.constEntry.text())
+        if inp is None:
+            return False
+        self.constEntry.setText('%.3g' % inp)
+        for i in range(numExp):
+            inp = safeEval(self.coeffEntries[i].text())
+            if inp is None:
+                return False
+            self.coeffEntries[i].setText('%.3g' % inp)
+            inp = safeEval(self.t1Entries[i].text())
+            if inp is None:
+                return False
+            self.t1Entries[i].setText('%.3g' % inp)
+        return True
+    
     def fit(self,*args):
+        if not self.checkInputs():
+            print("One of the inputs is not valid")
+            return
         struc = []
         guess = []
         argu = []
-        numExp = int(self.numExp.get())
+        numExp = self.numExp.currentIndex()+1
         outCoeff = np.zeros(numExp)
         outT1 = np.zeros(numExp)
-        if self.ampTick.get() == 0:
-            guess.append(safeEval(self.ampVal.get()))
+        if not self.ampTick.isChecked():
+            guess.append(float(self.ampEntry.text()))
             struc.append(True)
         else:
-            inp = safeEval(self.ampVal.get())
-            argu.append(inp)
-            outAmp = inp
-            self.ampVal.set('%.3g' % inp)
+            outAmp = float(self.ampEntry.text())
+            argu.append(outAmp)
             struc.append(False)
-        if self.constTick.get() == 0:
-            guess.append(safeEval(self.constVal.get()))
+        if not self.constTick.isChecked():
+            guess.append(float(self.constEntry.text()))
             struc.append(True)
         else:
-            inp = safeEval(self.constVal.get())
-            argu.append(inp)
-            outConst = inp
-            self.constVal.set('%.3g' % inp)
+            outConst = float(self.constEntry.text())
+            argu.append(outConst)
             struc.append(False)
         for i in range(numExp):
-            if self.coeffTick[i].get() == 0:
-                guess.append(safeEval(self.coeffVal[i].get()))
+            if not self.coeffTicks[i].isChecked():
+                guess.append(float(self.coeffEntries[i].text()))
                 struc.append(True)
             else:
-                inp = safeEval(self.coeffVal[i].get())
-                argu.append(inp)
-                outCoeff[i] = inp
-                self.coeffVal[i].set('%.3g' % inp)
+                outCoeff[i] = float(self.coeffEntries[i].text())
+                argu.append(outCoeff[i])
                 struc.append(False)
-            if self.T1Tick[i].get() == 0:
-                guess.append(safeEval(self.T1Val[i].get()))
+            if not self.t1Ticks[i].isChecked():
+                guess.append(float(self.t1Entries[i].text()))
                 struc.append(True)
             else:
-                inp = safeEval(self.T1Val[i].get())
-                argu.append(inp)
-                outT1[i] = inp
-                self.T1Val[i].set('%.3g' % inp)
+                outT1[i] = safeEval(self.t1Entries[i].text())
+                argu.append(outT1[i])
                 struc.append(False)
         self.args=(numExp,struc,argu)
         fitVal = scipy.optimize.curve_fit(self.fitFunc,self.parent.xax, self.parent.data1D,guess)
         counter = 0
         if struc[0]:
-            self.ampVal.set('%.3g' % fitVal[0][counter])
+            self.ampEntry.setText('%.3g' % fitVal[0][counter])
             outAmp = fitVal[0][counter]
             counter +=1
         if struc[1]:
-            self.constVal.set('%.3g' % fitVal[0][counter])
+            self.constEntry.setText('%.3g' % fitVal[0][counter])
             outConst = fitVal[0][counter]
             counter +=1
         for i in range(1,numExp+1):
             if struc[2*i]:
-                self.coeffVal[i-1].set('%.3g' % fitVal[0][counter])
+                self.coeffEntries[i-1].setText('%.3g' % fitVal[0][counter])
                 outCoeff[i-1] = fitVal[0][counter]
                 counter += 1
             if struc[2*i+1]:
-                self.T1Val[i-1].set('%.3g' % fitVal[0][counter])
+                self.t1Entries[i-1].setText('%.3g' % fitVal[0][counter])
                 outT1[i-1] = fitVal[0][counter]
                 counter += 1
         self.disp(outAmp,outConst,outCoeff,outT1)
@@ -575,48 +601,43 @@ class RelaxParamFrame(Frame):
         FitAllSelectionWindow(self,["Amplitude","Constant","Coefficient","T"])
         
     def fitAllFunc(self,outputs):
+        if not self.checkInputs():
+            print("One of the inputs is not valid")
+            return
         struc = []
         guess = []
         argu = []
-        numExp = int(self.numExp.get())
+        numExp = self.numExp.currentIndex()+1
         outCoeff = np.zeros(numExp)
         outT1 = np.zeros(numExp)
-        if self.ampTick.get() == 0:
-            guess.append(safeEval(self.ampVal.get()))
+        if not self.ampTick.isChecked():
+            guess.append(float(self.ampEntry.text()))
             struc.append(True)
         else:
-            inp = safeEval(self.ampVal.get())
-            argu.append(inp)
-            outAmp = inp
-            self.ampVal.set('%.3g' % inp)
+            outAmp = float(self.ampEntry.text())
+            argu.append(outAmp)
             struc.append(False)
-        if self.constTick.get() == 0:
-            guess.append(safeEval(self.constVal.get()))
+        if not self.constTick.isChecked():
+            guess.append(float(self.constEntry.text()))
             struc.append(True)
         else:
-            inp = safeEval(self.constVal.get())
-            argu.append(inp)
-            outConst = inp
-            self.constVal.set('%.3g' % inp)
+            outConst = float(self.constEntry.text())
+            argu.append(outConst)
             struc.append(False)
         for i in range(numExp):
-            if self.coeffTick[i].get() == 0:
-                guess.append(safeEval(self.coeffVal[i].get()))
+            if not self.coeffTicks[i].isChecked():
+                guess.append(float(self.coeffEntries[i].text()))
                 struc.append(True)
             else:
-                inp = safeEval(self.coeffVal[i].get())
-                argu.append(inp)
-                outCoeff[i] = inp
-                self.coeffVal[i].set('%.3g' % inp)
+                outCoeff[i] = float(self.coeffEntries[i].text())
+                argu.append(outCoeff[i])
                 struc.append(False)
-            if self.T1Tick[i].get() == 0:
-                guess.append(safeEval(self.T1Val[i].get()))
+            if not self.t1Ticks[i].isChecked():
+                guess.append(float(self.t1Entries[i].text()))
                 struc.append(True)
             else:
-                inp = safeEval(self.T1Val[i].get())
-                argu.append(inp)
-                outT1[i] = inp
-                self.T1Val[i].set('%.3g' % inp)
+                outT1[i] = safeEval(self.t1Entries[i].text())
+                argu.append(outT1[i])
                 struc.append(False)
         self.args=(numExp,struc,argu)
         fullData = self.parent.current.data.data
@@ -662,20 +683,26 @@ class RelaxParamFrame(Frame):
         self.rootwindow.createNewData(np.rollaxis(outputData.reshape(newShape),-1,axes), axes)
         
     def sim(self):
-        numExp = int(self.numExp.get())
-        outAmp = safeEval(self.ampVal.get())
-        outConst = safeEval(self.constVal.get())
+        numExp = self.numExp.currentIndex()+1
+        outAmp = safeEval(self.ampEntry.text())
+        outConst = safeEval(self.constEntry.text())
+        if outAmp is None or outConst is None:
+            print("One of the inputs is not valid")
+            return
         outCoeff = []
         outT1 = []
         for i in range(numExp):
-            outCoeff.append(safeEval(self.coeffVal[i].get()))
-            outT1.append(safeEval(self.T1Val[i].get()))
+            outCoeff.append(safeEval(self.coeffEntries[i].text()))
+            outT1.append(safeEval(self.t1Entries[i].text()))
+            if outCoeff[i] is None or outT1[i] is None:
+                print("One of the inputs is not valid")
+                return
         self.disp(outAmp,outConst,outCoeff,outT1)
         
     def disp(self, outAmp,outConst,outCoeff, outT1):
         numCurve = 100 #number of points in output curve
         outCurve = np.zeros(numCurve)
-        if self.xlog.get() == 1:
+        if self.xlog.isChecked():
             x = np.logspace(np.log(min(self.parent.xax)),np.log(max(self.parent.xax)),numCurve)
         else:
             x = np.linspace(min(self.parent.xax),max(self.parent.xax),numCurve)
@@ -684,20 +711,22 @@ class RelaxParamFrame(Frame):
         self.parent.showPlot(x, outAmp*(outConst+outCurve))
 
 ##############################################################################
-class DiffusionWindow(Frame): 
+class DiffusionWindow(QtGui.QWidget): 
     def __init__(self, rootwindow,mainProgram,oldMainWindow):
-        Frame.__init__(self,rootwindow)
+        QtGui.QWidget.__init__(self,rootwindow)
         self.mainProgram = mainProgram
         self.oldMainWindow = oldMainWindow
         self.name = self.oldMainWindow.name
-        self.fig = self.mainProgram.getFig()
-        self.canvas = FigureCanvasTkAgg(self.fig, master=weakref.proxy(self))
-        self.canvas.get_tk_widget().grid(row=0,column=0,sticky="nswe")
+        #self.fig = self.mainProgram.getFig()
+        self.fig = Figure()
+        self.canvas =  FigureCanvas(self.fig)
+        grid = QtGui.QGridLayout(self)
+        grid.addWidget(self.canvas,0,0)
         self.current = DiffusionFrame(self,self.fig,self.canvas,oldMainWindow.current)
         self.paramframe = DiffusionParamFrame(self.current,self)
-        self.paramframe.grid(row=1,column=0,sticky='sw')
-        self.rowconfigure(0, weight=1)
-        self.grid_columnconfigure(0, weight=1)
+        grid.addWidget(self.paramframe,1,0)
+        grid.setColumnStretch(0,1)
+        grid.setRowStretch(0,1)
         self.canvas.mpl_connect('button_press_event', self.buttonPress)      
         self.canvas.mpl_connect('button_release_event', self.buttonRelease)
         self.canvas.mpl_connect('motion_notify_event', self.pan)
@@ -730,10 +759,10 @@ class DiffusionWindow(Frame):
         return self.oldMainWindow.get_current()
     
     def addToView(self):
-        self.pack(fill=BOTH,expand=1)
+        self.show()
 
     def removeFromView(self):
-        self.pack_forget()
+        self.hide()
 
     def kill(self):
         self.current.kill()
@@ -1023,102 +1052,128 @@ class DiffusionFrame(Plot1DFrame):
         self.canvas.draw()
 
 #################################################################################
-class DiffusionParamFrame(Frame): 
+class DiffusionParamFrame(QtGui.QWidget): 
     def __init__(self, parent, rootwindow): 
+        QtGui.QWidget.__init__(self, rootwindow)
         self.parent = parent
-        self.gammaVal = StringVar()
-        self.gammaVal.set("42.576")
-        self.deltaVal = StringVar()
-        self.deltaVal.set("1.0")
-        self.triangleVal = StringVar()
-        self.triangleVal.set("1.0")
-        self.ampVal = StringVar()
-        self.ampVal.set("%.3g" % np.amax(self.parent.data1D))
-        self.ampTick = IntVar()
-        self.constVal = StringVar()
-        self.constVal.set("0.0")
-        self.constTick = IntVar()
-        self.constTick.set(1)
-        self.numExp = StringVar()
-        self.xlog=IntVar()
-        self.ylog=IntVar()
-        Frame.__init__(self, rootwindow)
-        self.frame1 = Frame(self)
-        self.frame1.grid(row=0,column=0,sticky='n')
-        self.optframe = Frame(self)
-        self.optframe.grid(row=0,column=1,sticky='n')
-        self.frame2 = Frame(self)
-        self.frame2.grid(row=0,column=2,sticky='n')
-        self.frame3 = Frame(self)
-        self.frame3.grid(row=0,column=3,sticky='n')
-        self.frame4 = Frame(self)
-        self.frame4.grid(row=0,column=4,sticky='n')
-        Button(self.frame1, text="Sim",command=self.sim).grid(row=0,column=0)
-        Button(self.frame1, text="Fit",command=self.fit).grid(row=1,column=0)
-        Button(self.frame1, text="Cancel",command=rootwindow.cancel).grid(row=2,column=0)
-        Label(self.frame2,text=u"\u03b3 [MHz/T]").grid(row=0,column=0)
-        Entry(self.frame2,textvariable=self.gammaVal,justify="center",width=10).grid(row=1,column=0)
-        Label(self.frame2,text=u"\u03b4 [s]").grid(row=2,column=0)
-        Entry(self.frame2,textvariable=self.deltaVal,justify="center",width=10).grid(row=3,column=0)
-        Label(self.frame2,text=u"\u0394 [s]").grid(row=4,column=0)
-        Entry(self.frame2,textvariable=self.triangleVal,justify="center",width=10).grid(row=5,column=0)
-        Label(self.frame3,text="Amplitude").grid(row=0,column=0,columnspan=2)
-        Checkbutton(self.frame3,variable=self.ampTick).grid(row=1,column=0)
-        Entry(self.frame3,textvariable=self.ampVal,justify="center",width=10).grid(row=1,column=1)
-        Label(self.frame3,text="Constant").grid(row=2,column=0,columnspan=2)
-        Checkbutton(self.frame3,variable=self.constTick).grid(row=3,column=0)
-        Entry(self.frame3,textvariable=self.constVal,justify="center",width=10).grid(row=3,column=1)
-        OptionMenu(self.frame4, self.numExp, "1","1", "2", "3","4",command=self.changeNum).grid(row=0,column=0,columnspan=4)
-        Label(self.frame4,text="Coefficient").grid(row=1,column=0,columnspan=2)
-        Label(self.frame4,text="D").grid(row=1,column=2,columnspan=2)
-        Checkbutton(self.optframe,variable=self.xlog,text='x-log',command=self.setLog).grid(row=0,column=0)
-        Checkbutton(self.optframe,variable=self.ylog,text='y-log',command=self.setLog).grid(row=1,column=0)
-        
-        self.coeffVal = []
-        self.coeffTick = []
-        self.DVal = []
-        self.DTick = []
-        self.coeffCheck = []
+        self.rootwindow = rootwindow
+        grid = QtGui.QGridLayout(self)
+        self.setLayout(grid)
+        self.frame1 = QtGui.QGridLayout()
+        self.optframe = QtGui.QGridLayout()
+        self.frame2 = QtGui.QGridLayout()
+        self.frame3 = QtGui.QGridLayout()
+        self.frame4 = QtGui.QGridLayout()
+        grid.addLayout(self.frame1,0,0)
+        grid.addLayout(self.optframe,0,1)
+        grid.addLayout(self.frame2,0,2)
+        grid.addLayout(self.frame3,0,3)
+        grid.addLayout(self.frame4,0,4)
+        simButton = QtGui.QPushButton("Sim")
+        simButton.clicked.connect(self.sim)
+        self.frame1.addWidget(simButton,0,0)
+        fitButton = QtGui.QPushButton("Fit")
+        fitButton.clicked.connect(self.fit)
+        self.frame1.addWidget(fitButton,1,0)
+        #fitAllButton = QtGui.QPushButton("Fit all")
+        #fitAllButton.clicked.connect(self.fitAll)
+        #self.frame1.addWidget(fitAllButton,2,0)
+        cancelButton = QtGui.QPushButton("Cancel")
+        cancelButton.clicked.connect(rootwindow.cancel)
+        self.frame1.addWidget(cancelButton,3,0)
+        self.frame1.setColumnStretch(10,1)
+        self.frame1.setAlignment(QtCore.Qt.AlignTop)
+        self.frame2.addWidget(QLabel(u"\u03b3 [MHz/T]:"),0,0)
+        self.gammaEntry = QtGui.QLineEdit()
+        self.gammaEntry.setAlignment(QtCore.Qt.AlignHCenter)
+        self.gammaEntry.setText("42.576")
+        self.frame2.addWidget(self.gammaEntry,1,0)
+        self.frame2.addWidget(QLabel(u"\u03b4 [s]:"),2,0)
+        self.deltaEntry = QtGui.QLineEdit()
+        self.deltaEntry.setAlignment(QtCore.Qt.AlignHCenter)
+        self.deltaEntry.setText("1.0")
+        self.frame2.addWidget(self.deltaEntry,3,0)
+        self.frame2.addWidget(QLabel(u"\u0394 [s]:"),4,0)
+        self.triangleEntry = QtGui.QLineEdit()
+        self.triangleEntry.setAlignment(QtCore.Qt.AlignHCenter)
+        self.triangleEntry.setText("1.0")
+        self.frame2.addWidget(self.triangleEntry,5,0)
+        self.frame2.setColumnStretch(10,1)
+        self.frame2.setAlignment(QtCore.Qt.AlignTop)
+        self.frame3.addWidget(QLabel("Amplitude:"),0,0,1,2)
+        self.ampTick = QtGui.QCheckBox('')
+        self.frame3.addWidget(self.ampTick,1,0)
+        self.ampEntry = QtGui.QLineEdit()
+        self.ampEntry.setAlignment(QtCore.Qt.AlignHCenter)
+        self.ampEntry.setText("%.3g" % np.amax(self.parent.data1D))
+        self.frame3.addWidget(self.ampEntry,1,1)
+        self.frame3.addWidget(QLabel("Constant:"),2,0,1,2)
+        self.constTick = QtGui.QCheckBox('')
+        self.constTick.setChecked(True)
+        self.frame3.addWidget(self.constTick,3,0)
+        self.constEntry = QtGui.QLineEdit()
+        self.constEntry.setAlignment(QtCore.Qt.AlignHCenter)
+        self.constEntry.setText("0.0")
+        self.frame3.addWidget(self.constEntry,3,1)
+        self.frame3.setColumnStretch(10,1)
+        self.frame3.setAlignment(QtCore.Qt.AlignTop)
+        self.numExp = QtGui.QComboBox()
+        self.numExp.addItems(['1','2','3','4'])
+        self.numExp.currentIndexChanged.connect(self.changeNum)
+        self.frame4.addWidget(self.numExp,0,0,1,2)
+        self.frame4.addWidget(QLabel("Coefficient:"),1,0,1,2)
+        self.frame4.addWidget(QLabel("D [m^2/s]:"),1,2,1,2)
+        self.frame4.setColumnStretch(20,1)
+        self.frame4.setAlignment(QtCore.Qt.AlignTop)
+        self.xlog = QtGui.QCheckBox('x-log')
+        self.xlog.stateChanged.connect(self.setLog)
+        self.optframe.addWidget(self.xlog,0,0)
+        self.ylog = QtGui.QCheckBox('y-log')
+        self.ylog.stateChanged.connect(self.setLog)
+        self.optframe.addWidget(self.ylog,1,0)
+        self.optframe.setColumnStretch(10,1)
+        self.optframe.setAlignment(QtCore.Qt.AlignTop)
+        grid.setColumnStretch(10,1)
+        grid.setAlignment(QtCore.Qt.AlignLeft)
         self.coeffEntries = []
-        self.DCheck = []
-        self.DEntries = []
+        self.coeffTicks = []
+        self.dEntries = []
+        self.dTicks = []
         for i in range(4):
-            self.coeffVal.append(StringVar())
-            self.coeffVal[i].set("1.0")
-            self.coeffTick.append(IntVar())
-            self.DVal.append(StringVar())
-            self.DVal[i].set("1.0e-9")
-            self.DTick.append(IntVar())
-            self.coeffCheck.append(Checkbutton(self.frame4,variable=self.coeffTick[i]))
-            self.coeffCheck[i].grid(row=i+2,column=0)
-            self.coeffEntries.append(Entry(self.frame4,textvariable=self.coeffVal[i],justify="center",width=10))
-            self.coeffEntries[i].grid(row=i+2,column=1)
-            self.DCheck.append(Checkbutton(self.frame4,variable=self.DTick[i]))
-            self.DCheck[i].grid(row=i+2,column=2)
-            self.DEntries.append(Entry(self.frame4,textvariable=self.DVal[i],justify="center",width=10))
-            self.DEntries[i].grid(row=i+2,column=3)
+            self.coeffTicks.append(QtGui.QCheckBox(''))
+            self.frame4.addWidget(self.coeffTicks[i],i+2,0)
+            self.coeffEntries.append(QtGui.QLineEdit())
+            self.coeffEntries[i].setText("1.0")
+            self.coeffEntries[i].setAlignment(QtCore.Qt.AlignHCenter)
+            self.frame4.addWidget(self.coeffEntries[i],i+2,1)
+            self.dTicks.append(QtGui.QCheckBox(''))
+            self.frame4.addWidget(self.dTicks[i],i+2,2)
+            self.dEntries.append(QtGui.QLineEdit())
+            self.dEntries[i].setText("1.0e-9")
+            self.dEntries[i].setAlignment(QtCore.Qt.AlignHCenter)
+            self.frame4.addWidget(self.dEntries[i],i+2,3)
             if i > 0:
-                self.coeffCheck[i].grid_remove()
-                self.coeffEntries[i].grid_remove()
-                self.DCheck[i].grid_remove()
-                self.DEntries[i].grid_remove()
-
+                self.coeffTicks[i].hide()
+                self.coeffEntries[i].hide()
+                self.dTicks[i].hide()
+                self.dEntries[i].hide()
+                
     def setLog(self, *args):
-        self.parent.setLog(self.xlog.get(),self.ylog.get())
+        self.parent.setLog(self.xlog.isChecked(),self.ylog.isChecked())
                 
     def changeNum(self,*args):
-        val = int(self.numExp.get())
+        val = self.numExp.currentIndex()+1
         for i in range(4):
             if i < val:
-                self.coeffCheck[i].grid()
-                self.coeffEntries[i].grid()
-                self.DCheck[i].grid()
-                self.DEntries[i].grid()
+                self.coeffTicks[i].show()
+                self.coeffEntries[i].show()
+                self.dTicks[i].show()
+                self.dEntries[i].show()
             else:
-                self.coeffCheck[i].grid_remove()
-                self.coeffEntries[i].grid_remove()
-                self.DCheck[i].grid_remove()
-                self.DEntries[i].grid_remove()
+                self.coeffTicks[i].hide()
+                self.coeffEntries[i].hide()
+                self.dTicks[i].hide()
+                self.dEntries[i].hide()
 
     def fitFunc(self, x, *param):
         numExp = self.args[0]
@@ -1155,97 +1210,128 @@ class DiffusionParamFrame(Frame):
                 argu=np.delete(argu,[0])
             testFunc += coeff*np.exp(-(gamma*delta*x)**2*D*(triangle-delta/3.0)) 
         return amplitude*(constant+testFunc)
-
+    
+    def checkInputs(self):
+        numExp = self.numExp.currentIndex()+1
+        inp = safeEval(self.gammaEntry.text())
+        if inp is None:
+            return False
+        self.gammaEntry.setText('%.3g' % inp)
+        inp = safeEval(self.deltaEntry.text())
+        if inp is None:
+            return False
+        self.deltaEntry.setText('%.3g' % inp)
+        inp = safeEval(self.triangleEntry.text())
+        if inp is None:
+            return False
+        self.triangleEntry.setText('%.3g' % inp)
+        inp = safeEval(self.ampEntry.text())
+        if inp is None:
+            return False
+        self.ampEntry.setText('%.3g' % inp)
+        inp = safeEval(self.constEntry.text())
+        if inp is None:
+            return False
+        self.constEntry.setText('%.3g' % inp)
+        for i in range(numExp):
+            inp = safeEval(self.coeffEntries[i].text())
+            if inp is None:
+                return False
+            self.coeffEntries[i].setText('%.3g' % inp)
+            inp = safeEval(self.dEntries[i].text())
+            if inp is None:
+                return False
+            self.dEntries[i].setText('%.3g' % inp)
+        return True
+    
     def fit(self,*args):
+        if not self.checkInputs():
+            print("One of the inputs is not valid")
+            return
         struc = []
         guess = []
         argu = []
-        numExp = int(self.numExp.get())
+        numExp = self.numExp.currentIndex()+1
         outCoeff = np.zeros(numExp)
         outD = np.zeros(numExp)
-        gamma = safeEval(self.gammaVal.get())
-        self.gammaVal.set('%.3g' % gamma)
-        delta = safeEval(self.deltaVal.get())
-        self.deltaVal.set('%.3g' % delta)
-        triangle = safeEval(self.triangleVal.get())
-        self.triangleVal.set('%.3g' % triangle)
-        if self.ampTick.get() == 0:
-            guess.append(safeEval(self.ampVal.get()))
+        gamma = float(self.gammaEntry.text())
+        delta = float(self.deltaEntry.text())
+        triangle = float(self.triangleEntry.text())
+        if not self.ampTick.isChecked():
+            guess.append(float(self.ampEntry.text()))
             struc.append(True)
         else:
-            inp = safeEval(self.ampVal.get())
-            argu.append(inp)
-            outAmp = inp
-            self.ampVal.set('%.3g' % inp)
+            outAmp = float(self.ampEntry.text())
+            argu.append(outAmp)
             struc.append(False)
-        if self.constTick.get() == 0:
-            guess.append(safeEval(self.constVal.get()))
+        if not self.constTick.isChecked():
+            guess.append(float(self.constEntry.text()))
             struc.append(True)
         else:
-            inp = safeEval(self.constVal.get())
-            argu.append(inp)
-            outConst = inp
-            self.constVal.set('%.3g' % inp)
+            outConst = float(self.constEntry.text())
+            argu.append(outConst)
             struc.append(False)
         for i in range(numExp):
-            if self.coeffTick[i].get() == 0:
-                guess.append(safeEval(self.coeffVal[i].get()))
+            if not self.coeffTicks[i].isChecked():
+                guess.append(float(self.coeffEntries[i].text()))
                 struc.append(True)
             else:
-                inp = safeEval(self.coeffVal[i].get())
-                argu.append(inp)
-                outCoeff[i] = inp
-                self.coeffVal[i].set('%.3g' % inp)
+                outCoeff[i] = float(self.coeffEntries[i].text())
+                argu.append(outCoeff[i])
                 struc.append(False)
-            if self.DTick[i].get() == 0:
-                guess.append(safeEval(self.DVal[i].get()))
+            if not self.dTicks[i].isChecked():
+                guess.append(float(self.dEntries[i].text()))
                 struc.append(True)
             else:
-                inp = safeEval(self.DVal[i].get())
-                argu.append(inp)
-                outD[i] = inp
-                self.DVal[i].set('%.3g' % inp)
+                outD[i] = float(self.dEntries[i].text())
+                argu.append(outD[i])
                 struc.append(False)
         self.args=(numExp, struc, argu, gamma, delta, triangle)
         fitVal = scipy.optimize.curve_fit(self.fitFunc, self.parent.xax, self.parent.data1D, guess)
         counter = 0
         if struc[0]:
-            self.ampVal.set('%.3g' % fitVal[0][counter])
+            self.ampEntry.setText('%.3g' % fitVal[0][counter])
             outAmp = fitVal[0][counter]
             counter +=1
         if struc[1]:
-            self.constVal.set('%.3g' % fitVal[0][counter])
+            self.constEntry.setText('%.3g' % fitVal[0][counter])
             outConst = fitVal[0][counter]
             counter +=1
         for i in range(1,numExp+1):
             if struc[2*i]:
-                self.coeffVal[i-1].set('%.3g' % fitVal[0][counter])
+                self.coeffEntries[i-1].setText('%.3g' % fitVal[0][counter])
                 outCoeff[i-1] = fitVal[0][counter]
                 counter += 1
             if struc[2*i+1]:
-                self.DVal[i-1].set('%.3g' % fitVal[0][counter])
+                self.dEntries[i-1].set('%.3g' % fitVal[0][counter])
                 outD[i-1] = fitVal[0][counter]
                 counter += 1
         self.disp(outAmp, outConst, outCoeff, outD, gamma, delta, triangle)
 
     def sim(self):
-        numExp = int(self.numExp.get())
-        outAmp = safeEval(self.ampVal.get())
-        outConst = safeEval(self.constVal.get())
-        gamma = safeEval(self.gammaVal.get())
-        delta = safeEval(self.deltaVal.get())
-        triangle = safeEval(self.triangleVal.get())
+        numExp = self.numExp.currentIndex()+1
+        outAmp = safeEval(self.ampEntry.text())
+        outConst = safeEval(self.constEntry.text())
+        gamma = safeEval(self.gammaEntry.text())
+        delta = safeEval(self.deltaEntry.text())
+        triangle = safeEval(self.triangleEntry.text())
+        if not np.isfinite([outAmp, outConst, gamma, delta, triangle]).all():
+            print("One of the inputs is not valid")
+            return
         outCoeff = []
         outD = []
         for i in range(numExp):
-            outCoeff.append(safeEval(self.coeffVal[i].get()))
-            outD.append(safeEval(self.DVal[i].get()))
+            outCoeff.append(safeEval(self.coeffEntries[i].text()))
+            outD.append(safeEval(self.dEntries[i].text()))
+            if outCoeff[i] is None or outD[i] is None:
+                print("One of the inputs is not valid")
+                return
         self.disp(outAmp,outConst,outCoeff,outD,gamma,delta,triangle)
         
     def disp(self, outAmp, outConst, outCoeff, outD, gamma, delta, triangle):
         numCurve = 100 
         outCurve = np.zeros(numCurve)
-        if self.xlog.get() == 1:
+        if self.xlog.isChecked():
             x = np.logspace(np.log(min(self.parent.xax)),np.log(max(self.parent.xax)),numCurve)
         else:
             x = np.linspace(min(self.parent.xax),max(self.parent.xax),numCurve)
@@ -1254,20 +1340,22 @@ class DiffusionParamFrame(Frame):
         self.parent.showPlot(x, outAmp*(outConst+outCurve))
         
 ##############################################################################
-class PeakDeconvWindow(Frame): 
+class PeakDeconvWindow(QtGui.QWidget): 
     def __init__(self, rootwindow,mainProgram,oldMainWindow):
-        Frame.__init__(self,rootwindow)
+        QtGui.QWidget.__init__(self,rootwindow)
         self.mainProgram = mainProgram
         self.oldMainWindow = oldMainWindow
         self.name = self.oldMainWindow.name
-        self.fig = self.mainProgram.getFig()
-        self.canvas = FigureCanvasTkAgg(self.fig, master=weakref.proxy(self))
-        self.canvas.get_tk_widget().grid(row=0,column=0,sticky="nswe")
+        #self.fig = self.mainProgram.getFig()
+        self.fig = Figure()
+        self.canvas =  FigureCanvas(self.fig)
+        grid = QtGui.QGridLayout(self)
+        grid.addWidget(self.canvas,0,0)
         self.current = PeakDeconvFrame(self,self.fig,self.canvas,oldMainWindow.current)
         self.paramframe = PeakDeconvParamFrame(self.current,self)
-        self.paramframe.grid(row=1,column=0,sticky='sw')
-        self.rowconfigure(0, weight=1)
-        self.grid_columnconfigure(0, weight=1)
+        grid.addWidget(self.paramframe,1,0)
+        grid.setColumnStretch(0,1)
+        grid.setRowStretch(0,1)
         self.canvas.mpl_connect('button_press_event', self.buttonPress)      
         self.canvas.mpl_connect('button_release_event', self.buttonRelease)
         self.canvas.mpl_connect('motion_notify_event', self.pan)
@@ -1300,10 +1388,10 @@ class PeakDeconvWindow(Frame):
         return self.oldMainWindow.get_current()
         
     def addToView(self):
-        self.pack(fill=BOTH,expand=1)
+        self.show()
 
     def removeFromView(self):
-        self.pack_forget()
+        self.hide()
 
     def kill(self):
         self.current.kill()
@@ -1435,22 +1523,22 @@ class PeakDeconvFrame(Plot1DFrame):
                     axMult = 1.0/(1000.0**self.current.axType)
             elif self.current.spec == 0:
                 axMult = 1000.0**self.current.axType
-            width = (2*abs(float(self.rootwindow.paramframe.posVal[self.pickNum].get())-pos[1])-axAdd)/axMult
-            self.rootwindow.paramframe.ampVal[self.pickNum].set("%.3g" %(float(self.rootwindow.paramframe.ampVal[self.pickNum].get())*width))
-            self.rootwindow.paramframe.widthVal[self.pickNum].set("%.3g" % abs(width))
+            width = (2*abs(float(self.rootwindow.paramframe.posEntries[self.pickNum].text())-pos[1])-axAdd)/axMult
+            self.rootwindow.paramframe.ampEntries[self.pickNum].setText("%.3g" %(float(self.rootwindow.paramframe.ampEntries[self.pickNum].text())*width))
+            self.rootwindow.paramframe.lorEntries[self.pickNum].setText("%.3g" % abs(width))
             self.pickNum += 1
             self.pickWidth = False
         else:
-            self.rootwindow.paramframe.posVal[self.pickNum].set("%.3g" %pos[1])
+            self.rootwindow.paramframe.posEntries[self.pickNum].setText("%.3g" %pos[1])
             left = pos[0] - 10 
             if left < 0:
                 left = 0
             right = pos[0] + 10
             if right >= len(self.data1D) :
                 right = len(self.data1D)-1
-            self.rootwindow.paramframe.ampVal[self.pickNum].set("%.3g" %(pos[2]*0.5*np.pi))
+            self.rootwindow.paramframe.ampEntries[self.pickNum].setText("%.3g" %(pos[2]*0.5*np.pi))
             if self.pickNum < 10:
-                self.rootwindow.paramframe.numExp.set(str(self.pickNum+1))
+                self.rootwindow.paramframe.numExp.setCurrentIndex(self.pickNum)
                 self.rootwindow.paramframe.changeNum()
             self.pickWidth = True
         if self.pickNum < 10:
@@ -1458,9 +1546,13 @@ class PeakDeconvFrame(Plot1DFrame):
             self.peakPick = True 
 
 #################################################################################
-class PeakDeconvParamFrame(Frame): #a frame for the relaxtion parameters
-    def __init__(self, parent, rootwindow): 
+class PeakDeconvParamFrame(QtGui.QWidget): 
+    def __init__(self, parent, rootwindow):
+        QtGui.QWidget.__init__(self, rootwindow)
         self.parent = parent
+        self.rootwindow = rootwindow
+        grid = QtGui.QGridLayout(self)
+        self.setLayout(grid)
         self.axAdd = 0
         if self.parent.current.spec == 1:
             if self.parent.current.ppm:
@@ -1470,133 +1562,142 @@ class PeakDeconvParamFrame(Frame): #a frame for the relaxtion parameters
                 self.axMult = 1.0/(1000.0**self.parent.current.axType)
         elif self.parent.current.spec == 0:
             self.axMult = 1000.0**self.parent.current.axType
-        self.bgrndVal = StringVar()
-        self.bgrndTick = IntVar()
-        self.slopeVal = StringVar()
-        self.slopeTick = IntVar()
-        self.numExp = StringVar()
-        self.pickTick = IntVar()
-        Frame.__init__(self, rootwindow)
-        self.frame1 = Frame(self)
-        self.frame1.grid(row=0,column=0,sticky='n')
-        self.frame2 = Frame(self)
-        self.frame2.grid(row=0,column=1,sticky='n')
-        self.frame3 = Frame(self)
-        self.frame3.grid(row=0,column=2,sticky='n')
-        Button(self.frame1, text="Sim",command=self.sim).grid(row=0,column=0)
-        Button(self.frame1, text="Fit",command=self.fit).grid(row=1,column=0)
-        Button(self.frame1, text="Cancel",command=rootwindow.cancel).grid(row=2,column=0)
-        Button(self.frame1, text="Reset",command=self.reset).grid(row=0,column=1)
-        Checkbutton(self.frame1, variable=self.pickTick,text="Picking",command=self.togglePick).grid(row=1,column=1)
-        Label(self.frame2,text="Bgrnd").grid(row=0,column=0,columnspan=2)
-        Checkbutton(self.frame2,variable=self.bgrndTick).grid(row=1,column=0)
-        Entry(self.frame2,textvariable=self.bgrndVal,justify="center",width=10).grid(row=1,column=1)
-        Label(self.frame2,text="Slope").grid(row=2,column=0,columnspan=2)
-        Checkbutton(self.frame2,variable=self.slopeTick).grid(row=3,column=0)
-        Entry(self.frame2,textvariable=self.slopeVal,justify="center",width=10).grid(row=3,column=1)
-        OptionMenu(self.frame3, self.numExp, "1","1", "2", "3","4","5","6","7","8","9","10",command=self.changeNum).grid(row=0,column=0,columnspan=6)
-        Label(self.frame3,text="Position").grid(row=1,column=0,columnspan=2)
-        Label(self.frame3,text="Amplitude").grid(row=1,column=2,columnspan=2)
-        Label(self.frame3,text="Lorentz [Hz]").grid(row=1,column=4,columnspan=2)
-        Label(self.frame3,text="Gauss [Hz]").grid(row=1,column=6,columnspan=2)
-        self.posVal = []
-        self.posTick = []
-        self.ampVal = []
-        self.ampTick = []
-        self.widthVal = []
-        self.widthTick = []
-        self.gaussVal = []
-        self.gaussTick = []
-        self.posCheck = []
+        self.frame1 = QtGui.QGridLayout()
+        self.frame2 = QtGui.QGridLayout()
+        self.frame3 = QtGui.QGridLayout()
+        grid.addLayout(self.frame1,0,0)
+        grid.addLayout(self.frame2,0,1)
+        grid.addLayout(self.frame3,0,2)
+        simButton = QtGui.QPushButton("Sim")
+        simButton.clicked.connect(self.sim)
+        self.frame1.addWidget(simButton,0,0)
+        fitButton = QtGui.QPushButton("Fit")
+        fitButton.clicked.connect(self.fit)
+        self.frame1.addWidget(fitButton,1,0)
+        cancelButton = QtGui.QPushButton("Cancel")
+        cancelButton.clicked.connect(rootwindow.cancel)
+        self.frame1.addWidget(cancelButton,3,0)
+        resetButton = QtGui.QPushButton("Reset")
+        resetButton.clicked.connect(self.reset)
+        self.frame1.addWidget(resetButton,0,1)
+        self.pickTick = QtGui.QCheckBox("Pick")
+        self.pickTick.stateChanged.connect(self.togglePick)
+        self.frame1.addWidget(self.pickTick,1,1)
+        self.frame1.setColumnStretch(10,1)
+        self.frame1.setAlignment(QtCore.Qt.AlignTop)
+        self.frame2.addWidget(QLabel("Bgrnd:"),0,0,1,2)
+        self.bgrndTick = QtGui.QCheckBox('')
+        self.frame2.addWidget(self.bgrndTick,1,0)
+        self.bgrndEntry = QtGui.QLineEdit()
+        self.bgrndEntry.setAlignment(QtCore.Qt.AlignHCenter)
+        self.bgrndEntry.setText("0.0")
+        self.frame2.addWidget(self.bgrndEntry,1,1)
+        self.frame2.addWidget(QLabel("Slope:"),2,0,1,2)
+        self.slopeTick = QtGui.QCheckBox('')
+        self.frame2.addWidget(self.slopeTick,3,0)
+        self.slopeEntry = QtGui.QLineEdit()
+        self.slopeEntry.setAlignment(QtCore.Qt.AlignHCenter)
+        self.slopeEntry.setText("0.0")
+        self.frame2.addWidget(self.slopeEntry,3,1)
+        self.frame2.setColumnStretch(10,1)
+        self.frame2.setAlignment(QtCore.Qt.AlignTop)
+        self.numExp = QtGui.QComboBox()
+        self.numExp.addItems(['1','2','3','4','5','6','7','8','9','10'])
+        self.numExp.currentIndexChanged.connect(self.changeNum)
+        self.frame3.addWidget(self.numExp,0,0,1,2)
+        self.frame3.addWidget(QLabel("Position:"),1,0,1,2)
+        self.frame3.addWidget(QLabel("Amplitude:"),1,2,1,2)
+        self.frame3.addWidget(QLabel("Lorentz [Hz]:"),1,4,1,2)
+        self.frame3.addWidget(QLabel("Gauss [Hz]:"),1,6,1,2)
+        self.frame3.setColumnStretch(20,1)
+        self.frame3.setAlignment(QtCore.Qt.AlignTop)
+        self.posTicks = []
         self.posEntries = []
-        self.ampCheck = []
+        self.ampTicks = []
         self.ampEntries = []
-        self.widthCheck = []
-        self.widthEntries = []
-        self.gaussCheck = []
+        self.lorTicks = []
+        self.lorEntries = []
+        self.gaussTicks = []
         self.gaussEntries = []
-
         for i in range(10):
-            self.posVal.append(StringVar())
-            self.posTick.append(IntVar())
-            self.ampVal.append(StringVar())
-            self.ampTick.append(IntVar())
-            self.widthVal.append(StringVar())
-            self.widthTick.append(IntVar())
-            self.gaussVal.append(StringVar())
-            self.gaussTick.append(IntVar())
-            self.posCheck.append(Checkbutton(self.frame3,variable=self.posTick[i]))
-            self.posCheck[i].grid(row=i+2,column=0)
-            self.posEntries.append(Entry(self.frame3,textvariable=self.posVal[i],justify="center",width=10))
-            self.posEntries[i].grid(row=i+2,column=1)
-            self.ampCheck.append(Checkbutton(self.frame3,variable=self.ampTick[i]))
-            self.ampCheck[i].grid(row=i+2,column=2)
-            self.ampEntries.append(Entry(self.frame3,textvariable=self.ampVal[i],justify="center",width=10))
-            self.ampEntries[i].grid(row=i+2,column=3)
-            self.widthCheck.append(Checkbutton(self.frame3,variable=self.widthTick[i]))
-            self.widthCheck[i].grid(row=i+2,column=4)
-            self.widthEntries.append(Entry(self.frame3,textvariable=self.widthVal[i],justify="center",width=10))
-            self.widthEntries[i].grid(row=i+2,column=5)
-            self.gaussCheck.append(Checkbutton(self.frame3,variable=self.gaussTick[i]))
-            self.gaussCheck[i].grid(row=i+2,column=6)
-            self.gaussEntries.append(Entry(self.frame3,textvariable=self.gaussVal[i],justify="center",width=10))
-            self.gaussEntries[i].grid(row=i+2,column=7)
+            self.posTicks.append(QtGui.QCheckBox(''))
+            self.frame3.addWidget(self.posTicks[i],i+2,0)
+            self.posEntries.append(QtGui.QLineEdit())
+            self.posEntries[i].setAlignment(QtCore.Qt.AlignHCenter)
+            self.frame3.addWidget(self.posEntries[i],i+2,1)
+            self.ampTicks.append(QtGui.QCheckBox(''))
+            self.frame3.addWidget(self.ampTicks[i],i+2,2)
+            self.ampEntries.append(QtGui.QLineEdit())
+            self.ampEntries[i].setAlignment(QtCore.Qt.AlignHCenter)
+            self.frame3.addWidget(self.ampEntries[i],i+2,3)
+            self.lorTicks.append(QtGui.QCheckBox(''))
+            self.frame3.addWidget(self.lorTicks[i],i+2,4)
+            self.lorEntries.append(QtGui.QLineEdit())
+            self.lorEntries[i].setAlignment(QtCore.Qt.AlignHCenter)
+            self.frame3.addWidget(self.lorEntries[i],i+2,5)
+            self.gaussTicks.append(QtGui.QCheckBox(''))
+            self.frame3.addWidget(self.gaussTicks[i],i+2,6)
+            self.gaussEntries.append(QtGui.QLineEdit())
+            self.gaussEntries[i].setAlignment(QtCore.Qt.AlignHCenter)
+            self.frame3.addWidget(self.gaussEntries[i],i+2,7)
         self.reset()
+        grid.setColumnStretch(10,1)
+        grid.setAlignment(QtCore.Qt.AlignLeft)
 
     def reset(self):
         self.parent.pickNum=0
-        self.bgrndVal.set("0.0")
-        self.bgrndTick.set(1)
-        self.slopeVal.set("0.0")
-        self.slopeTick.set(1)
-        self.numExp.set('1')
-        self.pickTick.set(1)
+        self.bgrndEntry.setText("0.0")
+        self.bgrndTick.setChecked(True)
+        self.slopeEntry.setText("0.0")
+        self.slopeTick.setChecked(True)
+        self.numExp.setCurrentIndex(0)
+        self.pickTick.setChecked(True)
         for i in range(10):
-            self.posVal[i].set("0.0")
-            self.posTick[i].set(0)
-            self.ampVal[i].set("1.0")
-            self.ampTick[i].set(0)
-            self.widthVal[i].set("1.0")
-            self.widthTick[i].set(0)
-            self.gaussVal[i].set("0.0")
-            self.gaussTick[i].set(1)
+            self.posEntries[i].setText("0.0")
+            self.posTicks[i].setChecked(False)
+            self.ampEntries[i].setText("1.0")
+            self.ampTicks[i].setChecked(False)
+            self.lorEntries[i].setText("1.0")
+            self.lorTicks[i].setChecked(False)
+            self.gaussEntries[i].setText("0.0")
+            self.gaussTicks[i].setChecked(True)
             if i > 0:
-                self.posCheck[i].grid_remove()
-                self.posEntries[i].grid_remove()
-                self.ampCheck[i].grid_remove()
-                self.ampEntries[i].grid_remove()
-                self.widthCheck[i].grid_remove()
-                self.widthEntries[i].grid_remove()
-                self.gaussCheck[i].grid_remove()
-                self.gaussEntries[i].grid_remove()
+                self.posTicks[i].hide()
+                self.posEntries[i].hide()
+                self.ampTicks[i].hide()
+                self.ampEntries[i].hide()
+                self.lorTicks[i].hide()
+                self.lorEntries[i].hide()
+                self.gaussTicks[i].hide()
+                self.gaussEntries[i].hide()
         self.togglePick()
         self.parent.pickWidth=False
         self.parent.showPlot()
 
     def changeNum(self,*args):
-        val = int(self.numExp.get())
+        val = self.numExp.currentIndex()+1
         for i in range(10):
             if i < val:
-                self.posCheck[i].grid()
-                self.posEntries[i].grid()
-                self.ampCheck[i].grid()
-                self.ampEntries[i].grid()
-                self.widthCheck[i].grid()
-                self.widthEntries[i].grid()
-                self.gaussCheck[i].grid()
-                self.gaussEntries[i].grid()
+                self.posTicks[i].show()
+                self.posEntries[i].show()
+                self.ampTicks[i].show()
+                self.ampEntries[i].show()
+                self.lorTicks[i].show()
+                self.lorEntries[i].show()
+                self.gaussTicks[i].show()
+                self.gaussEntries[i].show()
             else:
-                self.posCheck[i].grid_remove()
-                self.posEntries[i].grid_remove()
-                self.ampCheck[i].grid_remove()
-                self.ampEntries[i].grid_remove()
-                self.widthCheck[i].grid_remove()
-                self.widthEntries[i].grid_remove()
-                self.gaussCheck[i].grid_remove()
-                self.gaussEntries[i].grid_remove()
+                self.posTicks[i].hide()
+                self.posEntries[i].hide()
+                self.ampTicks[i].hide()
+                self.ampEntries[i].hide()
+                self.lorTicks[i].hide()
+                self.lorEntries[i].hide()
+                self.gaussTicks[i].hide()
+                self.gaussEntries[i].hide()
 
     def togglePick(self):
-        self.parent.togglePick(self.pickTick.get())
+        self.parent.togglePick(self.pickTick.isChecked())
                 
     def fitFunc(self, x, *param):
         numExp = self.args[0]
@@ -1643,119 +1744,144 @@ class PeakDeconvParamFrame(Frame): #a frame for the relaxtion parameters
             t=np.arange(len(x))/self.parent.current.sw
             timeSignal = np.exp(1j*2*np.pi*t*((pos-self.axAdd)/self.axMult))/len(x)*np.exp(-np.pi*width*t)*np.exp(-((np.pi*gauss*t)**2)/(4*np.log(2)))
             testFunc += amp*np.real(np.fft.fftshift(np.fft.fft(timeSignal)))
-            #testFunc += amp/np.pi*0.5*width/((x-(pos-self.axAdd)/self.axMult)**2+(0.5*width)**2)
         testFunc += bgrnd+slope*x
         return testFunc
 
+    def checkInputs(self):
+        numExp = self.numExp.currentIndex()+1
+        inp = safeEval(self.bgrndEntry.text())
+        if inp is None:
+            return False
+        self.bgrndEntry.setText('%.3g' % inp)
+        inp = safeEval(self.slopeEntry.text())
+        if inp is None:
+            return False
+        self.slopeEntry.setText('%.3g' % inp)
+        for i in range(numExp):
+            inp = safeEval(self.posEntries[i].text())
+            if inp is None:
+                return False
+            self.posEntries[i].setText('%.3g' % inp)
+            inp = safeEval(self.ampEntries[i].text())
+            if inp is None:
+                return False
+            self.ampEntries[i].setText('%.3g' % inp)
+            inp = safeEval(self.lorEntries[i].text())
+            if inp is None:
+                return False
+            self.lorEntries[i].setText('%.3g' % inp)
+            inp = safeEval(self.gaussEntries[i].text())
+            if inp is None:
+                return False
+            self.gaussEntries[i].setText('%.3g' % inp)
+        return True
+    
     def fit(self,*args):
+        if not self.checkInputs():
+            print("One of the inputs is not valid")
+            return
         struc = []
         guess = []
         argu = []
-        numExp = int(self.numExp.get())
+        numExp = self.numExp.currentIndex()+1
         outPos = np.zeros(numExp)
         outAmp = np.zeros(numExp)
         outWidth = np.zeros(numExp)
         outGauss = np.zeros(numExp)
-        if self.bgrndTick.get() == 0:
-            guess.append(safeEval(self.bgrndVal.get()))
+        if not self.bgrndTick.isChecked():
+            guess.append(float(self.bgrndEntry.text()))
             struc.append(True)
         else:
-            inp = safeEval(self.bgrndVal.get())
-            argu.append(inp)
-            outBgrnd = inp
-            self.bgrndVal.set('%.3g' % inp)
+            outBgrnd = float(self.bgrndEntry.text())
+            argu.append(outBgrnd)
             struc.append(False)
-        if self.slopeTick.get() == 0:
-            guess.append(safeEval(self.slopeVal.get()))
+        if not self.slopeTick.isChecked():
+            guess.append(float(self.slopeEntry.text()))
             struc.append(True)
         else:
-            inp = safeEval(self.slopeVal.get())
-            argu.append(inp)
-            outSlope = inp
-            self.slopeVal.set('%.3g' % inp)
+            outSlope = float(self.slopeEntry.text())
+            argu.append(outSlope)
             struc.append(False)
         for i in range(numExp):
-            if self.posTick[i].get() == 0:
-                guess.append(safeEval(self.posVal[i].get()))
+            if not self.posTicks[i].isChecked():
+                guess.append(float(self.posEntries[i].text()))
                 struc.append(True)
             else:
-                inp = safeEval(self.posVal[i].get())
-                argu.append(inp)
-                outPos[i] = inp
-                self.posVal[i].set('%.3g' % inp)
+                outPos[i] = float(self.posEntries[i].text())
+                argu.append(outPos[i])
                 struc.append(False)
-            if self.ampTick[i].get() == 0:
-                guess.append(safeEval(self.ampVal[i].get()))
+            if not self.ampTicks[i].isChecked():
+                guess.append(float(self.ampEntries[i].text()))
                 struc.append(True)
             else:
-                inp = safeEval(self.ampVal[i].get())
-                argu.append(inp)
-                outAmp[i] = inp
-                self.ampVal[i].set('%.3g' % inp)
+                outAmp[i] = float(self.ampEntries[i].text())
+                argu.append(outAmp[i])
                 struc.append(False)
-            if self.widthTick[i].get() == 0:
-                guess.append(abs(safeEval(self.widthVal[i].get())))
+            if not self.lorTicks[i].isChecked():
+                guess.append(abs(float(self.lorEntries[i].text())))
                 struc.append(True)
             else:
-                inp = abs(safeEval(self.widthVal[i].get()))
-                argu.append(inp)
-                outWidth[i] = inp
-                self.widthVal[i].set('%.3g' % inp)
+                outWidth[i] = abs(float(self.lorEntries[i].text()))
+                argu.append(outWidth[i])
                 struc.append(False)
-            if self.gaussTick[i].get() == 0:
-                guess.append(abs(safeEval(self.gaussVal[i].get())))
+            if not self.gaussTicks[i].isChecked():
+                guess.append(abs(float(self.gaussEntries[i].text())))
                 struc.append(True)
             else:
-                inp = abs(safeEval(self.gaussVal[i].get()))
-                argu.append(inp)
-                outGauss[i] = inp
-                self.gaussVal[i].set('%.3g' % inp)
+                outGauss[i] = abs(float(self.gaussEntries[i].text()))
+                argu.append(outGauss[i])
                 struc.append(False)
         self.args = (numExp,struc,argu)
         fitVal = scipy.optimize.curve_fit(self.fitFunc,self.parent.xax,self.parent.data1D,p0=guess)
         counter = 0
         if struc[0]:
-            self.bgrndVal.set('%.3g' % fitVal[0][counter])
+            self.bgrndEntry.setText('%.3g' % fitVal[0][counter])
             outBgrnd = fitVal[0][counter]
             counter +=1
         if struc[1]:
-            self.slopeVal.set('%.3g' % fitVal[0][counter])
+            self.slopeEntry.setText('%.3g' % fitVal[0][counter])
             outSlope = fitVal[0][counter]
             counter +=1
         for i in range(numExp):
             if struc[4*i+2]:
-                self.posVal[i].set('%.3g' % fitVal[0][counter])
+                self.posEntries[i].setText('%.3g' % fitVal[0][counter])
                 outPos[i] = fitVal[0][counter]
                 counter += 1
             if struc[4*i+3]:
-                self.ampVal[i].set('%.3g' % fitVal[0][counter])
+                self.ampEntries[i].setText('%.3g' % fitVal[0][counter])
                 outAmp[i] = fitVal[0][counter]
                 counter += 1
             if struc[4*i+4]:
-                self.widthVal[i].set('%.3g' % abs(fitVal[0][counter]))
+                self.lorEntries[i].setText('%.3g' % abs(fitVal[0][counter]))
                 outWidth[i] = abs(fitVal[0][counter])
                 counter += 1
             if struc[4*i+5]:
-                self.gaussVal[i].set('%.3g' % abs(fitVal[0][counter]))
+                self.gaussEntries[i].setText('%.3g' % abs(fitVal[0][counter]))
                 outGauss[i] = abs(fitVal[0][counter])
                 counter += 1
         self.disp(outBgrnd, outSlope, outAmp, outPos, outWidth, outGauss)
 
     def sim(self):
-        numExp = int(self.numExp.get())
+        numExp = self.numExp.currentIndex()+1
         outPos = np.zeros(numExp)
         outAmp = np.zeros(numExp)
         outWidth = np.zeros(numExp)
         outGauss = np.zeros(numExp)
-        outBgrnd = safeEval(self.bgrndVal.get())
-        outSlope = safeEval(self.slopeVal.get())
+        outBgrnd = safeEval(self.bgrndEntry.text())
+        outSlope = safeEval(self.slopeEntry.text())
+        if outBgrnd is None or outSlope is None:
+            print("One of the inputs is not valid")
+            return
         for i in range(numExp):
-            outPos[i] = safeEval(self.posVal[i].get())
-            outAmp[i] = safeEval(self.ampVal[i].get())
-            outWidth[i] = abs(safeEval(self.widthVal[i].get()))
-            self.widthVal[i].set('%.3g' % outWidth[i])
-            outGauss[i] = abs(safeEval(self.gaussVal[i].get()))
-            self.gaussVal[i].set('%.3g' % outGauss[i])
+            outPos[i] = safeEval(self.posEntries[i].text())
+            outAmp[i] = safeEval(self.ampEntries[i].text())
+            outWidth[i] = abs(safeEval(self.lorEntries[i].text()))
+            outGauss[i] = abs(safeEval(self.gaussEntries[i].text()))
+            if not np.isfinite([outPos[i],outAmp[i],outWidth[i],outGauss[i]]).all():
+                print("One of the inputs is not valid")
+                return
+            self.lorEntries[i].setText('%.3g' % outWidth[i])
+            self.gaussEntries[i].setText('%.3g' % outGauss[i])
         self.disp(outBgrnd, outSlope, outAmp, outPos, outWidth, outGauss)
 
     def disp(self, outBgrnd, outSlope, outAmp, outPos, outWidth, outGauss):
@@ -1774,20 +1900,22 @@ class PeakDeconvParamFrame(Frame): #a frame for the relaxtion parameters
         self.parent.showPlot(tmpx, outCurve, x, outCurvePart)
 
 ##############################################################################
-class TensorDeconvWindow(Frame): #a window for fitting relaxation data
+class TensorDeconvWindow(QtGui.QWidget): 
     def __init__(self, rootwindow,mainProgram,oldMainWindow):
-        Frame.__init__(self,rootwindow)
+        QtGui.QWidget.__init__(self,rootwindow)
         self.mainProgram = mainProgram
         self.oldMainWindow = oldMainWindow
         self.name = self.oldMainWindow.name
-        self.fig = self.mainProgram.getFig()
-        self.canvas = FigureCanvasTkAgg(self.fig, master=weakref.proxy(self))
-        self.canvas.get_tk_widget().grid(row=0,column=0,sticky="nswe")
+        #self.fig = self.mainProgram.getFig()
+        self.fig = Figure()
+        self.canvas =  FigureCanvas(self.fig)
+        grid = QtGui.QGridLayout(self)
+        grid.addWidget(self.canvas,0,0)
         self.current = TensorDeconvFrame(self,self.fig,self.canvas,oldMainWindow.current)
         self.paramframe = TensorDeconvParamFrame(self.current,self)
-        self.paramframe.grid(row=1,column=0,sticky='sw')
-        self.rowconfigure(0, weight=1)
-        self.grid_columnconfigure(0, weight=1)
+        grid.addWidget(self.paramframe,1,0)
+        grid.setColumnStretch(0,1)
+        grid.setRowStretch(0,1)
         self.canvas.mpl_connect('button_press_event', self.buttonPress)      
         self.canvas.mpl_connect('button_release_event', self.buttonRelease)
         self.canvas.mpl_connect('motion_notify_event', self.pan)
@@ -1820,10 +1948,10 @@ class TensorDeconvWindow(Frame): #a window for fitting relaxation data
         return self.oldMainWindow.get_current()
         
     def addToView(self):
-        self.pack(fill=BOTH,expand=1)
+        self.show()
 
     def removeFromView(self):
-        self.pack_forget()
+        self.hide()
 
     def kill(self):
         self.current.kill()
@@ -1834,7 +1962,7 @@ class TensorDeconvWindow(Frame): #a window for fitting relaxation data
          self.mainProgram.closeFitWindow(self.oldMainWindow)
         
 #################################################################################   
-class TensorDeconvFrame(Plot1DFrame): #a window for fitting relaxation data
+class TensorDeconvFrame(Plot1DFrame): 
     def __init__(self, rootwindow,fig,canvas,current):
         Plot1DFrame.__init__(self,rootwindow,fig,canvas)
         self.data1D = current.getDisplayedData()
@@ -1935,15 +2063,15 @@ class TensorDeconvFrame(Plot1DFrame): #a window for fitting relaxation data
     def pickDeconv(self, pos):
         if self.pickNum2 == 0:
             if self.pickNum < 10:
-                self.rootwindow.paramframe.numExp.set(str(self.pickNum+1))
+                self.rootwindow.paramframe.numExp.setCurrentIndex(self.pickNum)
                 self.rootwindow.paramframe.changeNum()
-            self.rootwindow.paramframe.t11Val[self.pickNum].set("%.2g" %self.current.xax[pos[0]])
+            self.rootwindow.paramframe.t11Entries[self.pickNum].setText("%.2g" %self.current.xax[pos[0]])
             self.pickNum2 = 1
         elif self.pickNum2 == 1:
-            self.rootwindow.paramframe.t22Val[self.pickNum].set("%.2g" %self.current.xax[pos[0]])
+            self.rootwindow.paramframe.t22Entries[self.pickNum].setText("%.2g" %self.current.xax[pos[0]])
             self.pickNum2 = 2
         elif self.pickNum2 == 2:
-            self.rootwindow.paramframe.t33Val[self.pickNum].set("%.2g" %self.current.xax[pos[0]])
+            self.rootwindow.paramframe.t33Entries[self.pickNum].setText("%.2g" %self.current.xax[pos[0]])
             self.pickNum2 = 0
             self.pickNum += 1
         if self.pickNum < 10:
@@ -1951,188 +2079,200 @@ class TensorDeconvFrame(Plot1DFrame): #a window for fitting relaxation data
             self.peakPick = True 
 
 #################################################################################
-class TensorDeconvParamFrame(Frame): #a frame for the relaxtion parameters
-    def __init__(self, parent, rootwindow): 
+class TensorDeconvParamFrame(QtGui.QWidget): 
+    def __init__(self, parent, rootwindow):
+        QtGui.QWidget.__init__(self, rootwindow)
         self.parent = parent
-        self.bgrndVal = StringVar()
-        self.bgrndTick = IntVar()
-        self.slopeVal = StringVar()
-        self.slopeTick = IntVar()
-        self.numExp = StringVar()
-        self.chengVal = StringVar()
-        self.pickTick = IntVar()
-        self.pickTick.set(1)
-        Frame.__init__(self, rootwindow)
-        self.frame1 = Frame(self)
-        self.frame1.grid(row=0,column=0,sticky='n')
-        self.optframe = Frame(self)
-        self.optframe.grid(row=0,column=1,sticky='n')
-        self.frame2 = Frame(self)
-        self.frame2.grid(row=0,column=2,sticky='n')
-        self.frame3 = Frame(self)
-        self.frame3.grid(row=0,column=3,sticky='n')
-        Button(self.frame1, text="Sim",command=self.sim).grid(row=0,column=0)
-        Button(self.frame1, text="Fit",command=self.fit).grid(row=1,column=0)
-        Button(self.frame1, text="Cancel",command=rootwindow.cancel).grid(row=2,column=0)
-        Button(self.frame1, text="Reset",command=self.reset).grid(row=0,column=1)
-        Checkbutton(self.frame1, variable=self.pickTick,text="Picking",command=self.togglePick).grid(row=1,column=1)
-        Label(self.optframe,text="Cheng").grid(row=0,column=0)
-        self.chengEntry = Entry(self.optframe,textvariable=self.chengVal,justify="center",width=10)
-        self.chengEntry.grid(row=1,column=0)
-        self.chengEntry.bind("<Return>", self.setCheng) 
-        self.chengEntry.bind("<KP_Enter>", self.setCheng)
-        Label(self.frame2,text="Bgrnd").grid(row=0,column=0,columnspan=2)
-        Checkbutton(self.frame2,variable=self.bgrndTick).grid(row=1,column=0)
-        Entry(self.frame2,textvariable=self.bgrndVal,justify="center",width=10).grid(row=1,column=1)
-        Label(self.frame2,text="Slope").grid(row=2,column=0,columnspan=2)
-        Checkbutton(self.frame2,variable=self.slopeTick).grid(row=3,column=0)
-        Entry(self.frame2,textvariable=self.slopeVal,justify="center",width=10).grid(row=3,column=1)
-        OptionMenu(self.frame3, self.numExp, "1","1", "2", "3","4","5","6","7","8","9","10",command=self.changeNum).grid(row=0,column=0,columnspan=6)
-        Label(self.frame3,text="T11").grid(row=1,column=0,columnspan=2)
-        Label(self.frame3,text="T22").grid(row=1,column=2,columnspan=2)
-        Label(self.frame3,text="T33").grid(row=1,column=4,columnspan=2)
-        Label(self.frame3,text="Amplitude").grid(row=1,column=6,columnspan=2)
-        Label(self.frame3,text="Lorentz [Hz]").grid(row=1,column=8,columnspan=2)
-        Label(self.frame3,text="Gauss [Hz]").grid(row=1,column=10,columnspan=2)
-        self.t11Val = []
-        self.t11Tick = []
-        self.t22Val = []
-        self.t22Tick = []
-        self.t33Val = []
-        self.t33Tick = []
-        self.ampVal = []
-        self.ampTick = []
-        self.widthVal = []
-        self.widthTick = []
-        self.gaussVal = []
-        self.gaussTick = []
-        self.t11Check = []
+        self.rootwindow = rootwindow
+        self.cheng = 15
+        grid = QtGui.QGridLayout(self)
+        self.setLayout(grid)
+        self.frame1 = QtGui.QGridLayout()
+        self.optframe = QtGui.QGridLayout()
+        self.frame2 = QtGui.QGridLayout()
+        self.frame3 = QtGui.QGridLayout()
+        grid.addLayout(self.frame1,0,0)
+        grid.addLayout(self.optframe,0,1)
+        grid.addLayout(self.frame2,0,2)
+        grid.addLayout(self.frame3,0,3)
+        simButton = QtGui.QPushButton("Sim")
+        simButton.clicked.connect(self.sim)
+        self.frame1.addWidget(simButton,0,0)
+        fitButton = QtGui.QPushButton("Fit")
+        fitButton.clicked.connect(self.fit)
+        self.frame1.addWidget(fitButton,1,0)
+        cancelButton = QtGui.QPushButton("Cancel")
+        cancelButton.clicked.connect(rootwindow.cancel)
+        self.frame1.addWidget(cancelButton,3,0)
+        resetButton = QtGui.QPushButton("Reset")
+        resetButton.clicked.connect(self.reset)
+        self.frame1.addWidget(resetButton,0,1)
+        self.pickTick = QtGui.QCheckBox("Pick")
+        self.pickTick.stateChanged.connect(self.togglePick)
+        self.frame1.addWidget(self.pickTick,1,1)
+        self.frame1.setColumnStretch(10,1)
+        self.frame1.setAlignment(QtCore.Qt.AlignTop)
+        self.optframe.addWidget(QLabel("Cheng"),0,0)
+        self.chengEntry = QtGui.QLineEdit()
+        self.chengEntry.setAlignment(QtCore.Qt.AlignHCenter)
+        self.chengEntry.setText(str(self.cheng))
+        self.optframe.addWidget(self.chengEntry,1,0)
+        self.optframe.setColumnStretch(10,1)
+        self.optframe.setAlignment(QtCore.Qt.AlignTop)
+        self.frame2.addWidget(QLabel("Bgrnd"),0,0,1,2)
+        self.bgrndTick = QtGui.QCheckBox('')
+        self.frame2.addWidget(self.bgrndTick,1,0)
+        self.bgrndEntry = QtGui.QLineEdit()
+        self.bgrndEntry.setAlignment(QtCore.Qt.AlignHCenter)
+        self.bgrndEntry.setText("0.0")
+        self.frame2.addWidget(self.bgrndEntry,1,1)
+        self.frame2.addWidget(QLabel("Slope"),2,0,1,2)
+        self.slopeTick = QtGui.QCheckBox('')
+        self.frame2.addWidget(self.slopeTick,3,0)
+        self.slopeEntry = QtGui.QLineEdit()
+        self.slopeEntry.setAlignment(QtCore.Qt.AlignHCenter)
+        self.slopeEntry.setText("0.0")
+        self.frame2.addWidget(self.slopeEntry,3,1)
+        self.frame2.setColumnStretch(10,1)
+        self.frame2.setAlignment(QtCore.Qt.AlignTop)
+        self.numExp = QtGui.QComboBox()
+        self.numExp.addItems(['1','2','3','4','5','6','7','8','9','10'])
+        self.numExp.currentIndexChanged.connect(self.changeNum)
+        self.frame3.addWidget(self.numExp,0,0,1,2)
+        self.frame3.addWidget(QLabel("T11"),1,0,1,2)
+        self.frame3.addWidget(QLabel("T22"),1,2,1,2)
+        self.frame3.addWidget(QLabel("T33"),1,4,1,2)
+        self.frame3.addWidget(QLabel("Amplitude"),1,6,1,2)
+        self.frame3.addWidget(QLabel("Lorentz [Hz]"),1,8,1,2)
+        self.frame3.addWidget(QLabel("Gauss [Hz]"),1,10,1,2)
+        self.frame3.setColumnStretch(20,1)
+        self.frame3.setAlignment(QtCore.Qt.AlignTop)
         self.t11Entries = []
-        self.t22Check = []
+        self.t11Ticks = []
         self.t22Entries = []
-        self.t33Check = []
+        self.t22Ticks = []
         self.t33Entries = []
-        self.ampCheck = []
+        self.t33Ticks = []
         self.ampEntries = []
-        self.widthCheck = []
-        self.widthEntries = []
-        self.gaussCheck = []
+        self.ampTicks = []
+        self.lorEntries = []
+        self.lorTicks = []
         self.gaussEntries = []
-
+        self.gaussTicks = []
         for i in range(10):
-            self.t11Val.append(StringVar())
-            self.t11Tick.append(IntVar())
-            self.t22Val.append(StringVar())
-            self.t22Tick.append(IntVar())
-            self.t33Val.append(StringVar())
-            self.t33Tick.append(IntVar())
-            self.ampVal.append(StringVar())
-            self.ampTick.append(IntVar())
-            self.widthVal.append(StringVar())
-            self.widthTick.append(IntVar())
-            self.gaussVal.append(StringVar())
-            self.gaussTick.append(IntVar())
-            self.t11Check.append(Checkbutton(self.frame3,variable=self.t11Tick[i]))
-            self.t11Check[i].grid(row=i+2,column=0)
-            self.t11Entries.append(Entry(self.frame3,textvariable=self.t11Val[i],justify="center",width=10))
-            self.t11Entries[i].grid(row=i+2,column=1)
-            self.t22Check.append(Checkbutton(self.frame3,variable=self.t22Tick[i]))
-            self.t22Check[i].grid(row=i+2,column=2)
-            self.t22Entries.append(Entry(self.frame3,textvariable=self.t22Val[i],justify="center",width=10))
-            self.t22Entries[i].grid(row=i+2,column=3)
-            self.t33Check.append(Checkbutton(self.frame3,variable=self.t33Tick[i]))
-            self.t33Check[i].grid(row=i+2,column=4)
-            self.t33Entries.append(Entry(self.frame3,textvariable=self.t33Val[i],justify="center",width=10))
-            self.t33Entries[i].grid(row=i+2,column=5)
-            self.ampCheck.append(Checkbutton(self.frame3,variable=self.ampTick[i]))
-            self.ampCheck[i].grid(row=i+2,column=6)
-            self.ampEntries.append(Entry(self.frame3,textvariable=self.ampVal[i],justify="center",width=10))
-            self.ampEntries[i].grid(row=i+2,column=7)
-            self.widthCheck.append(Checkbutton(self.frame3,variable=self.widthTick[i]))
-            self.widthCheck[i].grid(row=i+2,column=8)
-            self.widthEntries.append(Entry(self.frame3,textvariable=self.widthVal[i],justify="center",width=10))
-            self.widthEntries[i].grid(row=i+2,column=9)
-            self.gaussCheck.append(Checkbutton(self.frame3,variable=self.gaussTick[i]))
-            self.gaussCheck[i].grid(row=i+2,column=10)
-            self.gaussEntries.append(Entry(self.frame3,textvariable=self.gaussVal[i],justify="center",width=10))
-            self.gaussEntries[i].grid(row=i+2,column=11)
+            self.t11Ticks.append(QtGui.QCheckBox(''))
+            self.frame3.addWidget(self.t11Ticks[i],i+2,0)
+            self.t11Entries.append(QtGui.QLineEdit())
+            self.t11Entries[i].setAlignment(QtCore.Qt.AlignHCenter)
+            self.frame3.addWidget(self.t11Entries[i],i+2,1)
+            self.t22Ticks.append(QtGui.QCheckBox(''))
+            self.frame3.addWidget(self.t22Ticks[i],i+2,2)
+            self.t22Entries.append(QtGui.QLineEdit())
+            self.t22Entries[i].setAlignment(QtCore.Qt.AlignHCenter)
+            self.frame3.addWidget(self.t22Entries[i],i+2,3)
+            self.t33Ticks.append(QtGui.QCheckBox(''))
+            self.frame3.addWidget(self.t33Ticks[i],i+2,4)
+            self.t33Entries.append(QtGui.QLineEdit())
+            self.t33Entries[i].setAlignment(QtCore.Qt.AlignHCenter)
+            self.frame3.addWidget(self.t33Entries[i],i+2,5)
+            self.ampTicks.append(QtGui.QCheckBox(''))
+            self.frame3.addWidget(self.ampTicks[i],i+2,6)
+            self.ampEntries.append(QtGui.QLineEdit())
+            self.ampEntries[i].setAlignment(QtCore.Qt.AlignHCenter)
+            self.frame3.addWidget(self.ampEntries[i],i+2,7)
+            self.lorTicks.append(QtGui.QCheckBox(''))
+            self.frame3.addWidget(self.lorTicks[i],i+2,8)
+            self.lorEntries.append(QtGui.QLineEdit())
+            self.lorEntries[i].setAlignment(QtCore.Qt.AlignHCenter)
+            self.frame3.addWidget(self.lorEntries[i],i+2,9)
+            self.gaussTicks.append(QtGui.QCheckBox(''))
+            self.frame3.addWidget(self.gaussTicks[i],i+2,10)
+            self.gaussEntries.append(QtGui.QLineEdit())
+            self.gaussEntries[i].setAlignment(QtCore.Qt.AlignHCenter)
+            self.frame3.addWidget(self.gaussEntries[i],i+2,11)
         self.reset()
-
+        grid.setColumnStretch(10,1)
+        grid.setAlignment(QtCore.Qt.AlignLeft)
+        
     def reset(self):
         self.parent.pickNum=0
         self.parent.pickNum2=0
-        self.bgrndVal.set("0.0")
-        self.bgrndTick.set(1)
-        self.slopeVal.set("0.0")
-        self.slopeTick.set(1)
+        self.bgrndEntry.setText("0.0")
+        self.bgrndTick.setChecked(True)
+        self.slopeEntry.setText("0.0")
+        self.slopeTick.setChecked(True)
         self.cheng = 15
-        self.chengVal.set(str(self.cheng))
-        self.pickTick.set(1)
+        self.chengEntry.setText(str(self.cheng))
+        self.pickTick.setChecked(True)
         for i in range(10):
-            self.t11Val[i].set("0.0")
-            self.t11Tick[i].set(0)
-            self.t22Val[i].set("0.0")
-            self.t22Tick[i].set(0)
-            self.t33Val[i].set("0.0")
-            self.t33Tick[i].set(0)
-            self.ampVal[i].set("1.0")
-            self.ampTick[i].set(0)
-            self.widthVal[i].set("10.0")
-            self.widthTick[i].set(1)
-            self.gaussVal[i].set("0.0")
-            self.gaussTick[i].set(1)
+            self.t11Entries[i].setText("0.0")
+            self.t11Ticks[i].setChecked(False)
+            self.t22Entries[i].setText("0.0")
+            self.t22Ticks[i].setChecked(False)
+            self.t33Entries[i].setText("0.0")
+            self.t33Ticks[i].setChecked(False)
+            self.ampEntries[i].setText("1.0")
+            self.ampTicks[i].setChecked(False)
+            self.lorEntries[i].setText("10.0")
+            self.lorTicks[i].setChecked(True)
+            self.gaussEntries[i].setText("0.0")
+            self.gaussTicks[i].setChecked(True)
             if i > 0:
-                self.t11Check[i].grid_remove()
-                self.t11Entries[i].grid_remove()
-                self.t22Check[i].grid_remove()
-                self.t22Entries[i].grid_remove()
-                self.t33Check[i].grid_remove()
-                self.t33Entries[i].grid_remove()
-                self.ampCheck[i].grid_remove()
-                self.ampEntries[i].grid_remove()
-                self.widthCheck[i].grid_remove()
-                self.widthEntries[i].grid_remove()
-                self.gaussCheck[i].grid_remove()
-                self.gaussEntries[i].grid_remove()
+                self.t11Ticks[i].hide()
+                self.t11Entries[i].hide()
+                self.t22Ticks[i].hide()
+                self.t22Entries[i].hide()
+                self.t33Ticks[i].hide()
+                self.t33Entries[i].hide()
+                self.ampTicks[i].hide()
+                self.ampEntries[i].hide()
+                self.lorTicks[i].hide()
+                self.lorEntries[i].hide()
+                self.gaussTicks[i].hide()
+                self.gaussEntries[i].hide()
         self.togglePick()
         self.parent.showPlot()
 
     def togglePick(self):
-        self.parent.togglePick(self.pickTick.get())
+        self.parent.togglePick(self.pickTick.isChecked())
                 
     def setCheng(self,*args):
-        self.cheng = int(safeEval(self.chengVal.get()))
-        self.chengVal.set(str(self.cheng))
+        inp = safeEval(self.chengEntry.text())
+        if inp is None:
+            self.cheng = 15
+        else:
+            self.cheng = int(inp)
+        self.chengEntry.setText(str(self.cheng))
                 
     def changeNum(self,*args):
-        val = int(self.numExp.get())
+        val = self.numExp.currentIndex()+1
         for i in range(10):
             if i < val:
-                self.t11Check[i].grid()
-                self.t11Entries[i].grid()
-                self.t22Check[i].grid()
-                self.t22Entries[i].grid()
-                self.t33Check[i].grid()
-                self.t33Entries[i].grid()
-                self.ampCheck[i].grid()
-                self.ampEntries[i].grid()
-                self.widthCheck[i].grid()
-                self.widthEntries[i].grid()
-                self.gaussCheck[i].grid()
-                self.gaussEntries[i].grid()
+                self.t11Ticks[i].show()
+                self.t11Entries[i].show()
+                self.t22Ticks[i].show()
+                self.t22Entries[i].show()
+                self.t33Ticks[i].show()
+                self.t33Entries[i].show()
+                self.ampTicks[i].show()
+                self.ampEntries[i].show()
+                self.lorTicks[i].show()
+                self.lorEntries[i].show()
+                self.gaussTicks[i].show()
+                self.gaussEntries[i].show()
             else:
-                self.t11Check[i].grid_remove()
-                self.t11Entries[i].grid_remove()
-                self.t22Check[i].grid_remove()
-                self.t22Entries[i].grid_remove()
-                self.t33Check[i].grid_remove()
-                self.t33Entries[i].grid_remove()
-                self.ampCheck[i].grid_remove()
-                self.ampEntries[i].grid_remove()
-                self.widthCheck[i].grid_remove()
-                self.widthEntries[i].grid_remove()
-                self.gaussCheck[i].grid_remove()
-                self.gaussEntries[i].grid_remove()
+                self.t11Ticks[i].hide()
+                self.t11Entries[i].hide()
+                self.t22Ticks[i].hide()
+                self.t22Entries[i].hide()
+                self.t33Ticks[i].hide()
+                self.t33Entries[i].hide()
+                self.ampTicks[i].hide()
+                self.ampEntries[i].hide()
+                self.lorTicks[i].hide()
+                self.lorEntries[i].hide()
+                self.gaussTicks[i].hide()
+                self.gaussEntries[i].hide()
 
     def tensorFunc(self, x, t11, t22, t33, lor, gauss):
         t11=t11*self.multt11
@@ -2222,91 +2362,115 @@ class TensorDeconvParamFrame(Frame): #a frame for the relaxtion parameters
             outCurvePart.append(outCurveBase + y)
             outCurve += y
         self.parent.showPlot(tmpx, outCurve, x, outCurvePart)
-    
+
+    def checkInputs(self):
+        numExp = self.numExp.currentIndex()+1
+        inp = safeEval(self.bgrndEntry.text())
+        if inp is None:
+            return False
+        self.bgrndEntry.setText('%.3g' % inp)
+        inp = safeEval(self.slopeEntry.text())
+        if inp is None:
+            return False
+        self.slopeEntry.setText('%.3g' % inp)
+        for i in range(numExp):
+            inp = safeEval(self.t11Entries[i].text())
+            if inp is None:
+                return False
+            self.t11Entries[i].setText('%.3g' % inp)
+            inp = safeEval(self.t22Entries[i].text())
+            if inp is None:
+                return False
+            self.t22Entries[i].setText('%.3g' % inp)
+            inp = safeEval(self.t33Entries[i].text())
+            if inp is None:
+                return False
+            self.t33Entries[i].setText('%.3g' % inp)
+            inp = safeEval(self.ampEntries[i].text())
+            if inp is None:
+                return False
+            self.ampEntries[i].setText('%.3g' % inp)
+            inp = safeEval(self.lorEntries[i].text())
+            if inp is None:
+                return False
+            self.lorEntries[i].setText('%.3g' % inp)
+            inp = safeEval(self.gaussEntries[i].text())
+            if inp is None:
+                return False
+            self.gaussEntries[i].setText('%.3g' % inp)
+        return True
+        
     def fit(self,*args):
         self.setCheng()
+        if not self.checkInputs():
+            print("One of the inputs is not valid")
+            return
         struc = []
         guess = []
         argu = []
-        numExp = int(self.numExp.get())
+        numExp = self.numExp.currentIndex()+1
         outt11 = np.zeros(numExp)
         outt22 = np.zeros(numExp)
         outt33 = np.zeros(numExp)
         outAmp = np.zeros(numExp)
         outWidth = np.zeros(numExp)
         outGauss = np.zeros(numExp)
-        if self.bgrndTick.get() == 0:
-            guess.append(safeEval(self.bgrndVal.get()))
+        if not self.bgrndTick.isChecked():
+            guess.append(float(self.bgrndEntry.text()))
             struc.append(True)
         else:
-            inp = safeEval(self.bgrndVal.get())
-            argu.append(inp)
-            outBgrnd = inp
-            self.bgrndVal.set('%.2g' % inp)
+            outBgrnd = float(self.bgrndEntry.text())
+            argu.append(outBgrnd)
             struc.append(False)
-        if self.slopeTick.get() == 0:
-            guess.append(safeEval(self.slopeVal.get()))
+        if not self.slopeTick.isChecked():
+            guess.append(float(self.slopeEntry.text()))
             struc.append(True)
         else:
-            inp = safeEval(self.slopeVal.get())
-            argu.append(inp)
-            outSlope = inp
-            self.slopeVal.set('%.2g' % inp)
+            outSlope = float(self.slopeEntry.text())
+            argu.append(outSlope)
             struc.append(False)
         for i in range(numExp):
-            if self.t11Tick[i].get() == 0:
-                guess.append(safeEval(self.t11Val[i].get()))
+            if not self.t11Ticks[i].isChecked():
+                guess.append(float(self.t11Entries[i].text()))
                 struc.append(True)
             else:
-                inp = safeEval(self.t11Val[i].get())
-                argu.append(inp)
-                outt11[i] = inp
-                self.t11Val[i].set('%.2g' % inp)
+                outt11[i] = float(self.t11Entries[i].text())
+                argu.append(outt11[i])
                 struc.append(False)
-            if self.t22Tick[i].get() == 0:
-                guess.append(safeEval(self.t22Val[i].get()))
+            if not self.t22Ticks[i].isChecked():
+                guess.append(float(self.t22Entries[i].text()))
                 struc.append(True)
             else:
-                inp = safeEval(self.t22Val[i].get())
-                argu.append(inp)
-                outt22[i] = inp
-                self.t22Val[i].set('%.2g' % inp)
+                outt22[i] = float(self.t22Entries[i].text())
+                argu.append(outt22[i])
                 struc.append(False)
-            if self.t33Tick[i].get() == 0:
-                guess.append(safeEval(self.t33Val[i].get()))
+            if not self.t33Ticks[i].isChecked():
+                guess.append(float(self.t33Entries[i].text()))
                 struc.append(True)
             else:
-                inp = safeEval(self.t33Val[i].get())
-                argu.append(inp)
-                outt33[i] = inp
-                self.t33Val[i].set('%.2g' % inp)
+                outt33[i] = float(self.t33Entries[i].text())
+                argu.append(outt33[i])
                 struc.append(False)
-            if self.ampTick[i].get() == 0:
-                guess.append(safeEval(self.ampVal[i].get()))
+            if not self.ampTicks[i].isChecked():
+                guess.append(float(self.ampEntries[i].text()))
                 struc.append(True)
             else:
-                inp = safeEval(self.ampVal[i].get())
-                argu.append(inp)
-                outAmp[i] = inp
-                self.ampVal[i].set('%.2g' % inp)
+                outAmp[i] = float(self.ampEntries[i].text())
+                argu.append(outAmp[i])
                 struc.append(False)
-            if self.widthTick[i].get() == 0:
-                guess.append(abs(safeEval(self.widthVal[i].get())))
+            if not self.lorTicks[i].isChecked():
+                guess.append(abs(float(self.lorEntries[i].text())))
                 struc.append(True)
             else:
-                inp = abs(safeEval(self.widthVal[i].get()))
-                argu.append(inp)
-                outWidth[i] = inp
-                self.widthVal[i].set('%.2g' % inp)
+                outWidth[i] = abs(float(self.lorEntries[i].text()))
+                argu.append(outWidth[i])
                 struc.append(False)
-            if self.gaussTick[i].get() == 0:
-                guess.append(abs(safeEval(self.gaussVal[i].get())))
+            if not self.gaussTick[i].isChecked():
+                guess.append(abs(float(self.gaussEntries[i].text())))
                 struc.append(True)
             else:
-                inp = abs(safeEval(self.gaussVal[i].get()))
-                argu.append(inp)
-                outGauss[i] = inp
-                self.gaussVal[i].set('%.2g' % inp)
+                outGauss[i] = abs(float(self.gaussEntries[i].text()))
+                argu.append(outGauss[i])
                 struc.append(False)
         self.args = (numExp,struc,argu)
         phi,theta,self.weight = zcw_angles(self.cheng,symm=2)
@@ -2316,45 +2480,48 @@ class TensorDeconvParamFrame(Frame): #a frame for the relaxtion parameters
         fitVal = scipy.optimize.fmin(self.fitFunc,guess, args=(self.parent.xax,np.real(self.parent.data1D)))
         counter = 0
         if struc[0]:
-            self.bgrndVal.set('%.2g' % fitVal[counter])
+            self.bgrndEntry.setText('%.2g' % fitVal[counter])
             outBgrnd = fitVal[counter]
             counter +=1
         if struc[1]:
-            self.slopeVal.set('%.2g' % fitVal[counter])
+            self.slopeEntry.setText('%.2g' % fitVal[counter])
             outSlope = fitVal[counter]
             counter +=1
         for i in range(numExp):
             if struc[6*i+2]:
-                self.t11Val[i].set('%.2g' % fitVal[counter])
+                self.t11Entries[i].setText('%.2g' % fitVal[counter])
                 outt11[i] = fitVal[counter]
                 counter += 1
             if struc[6*i+3]:
-                self.t22Val[i].set('%.2g' % fitVal[counter])
+                self.t22Entries[i].setText('%.2g' % fitVal[counter])
                 outt22[i] = fitVal[counter]
                 counter += 1
             if struc[6*i+4]:
-                self.t33Val[i].set('%.2g' % fitVal[counter])
+                self.t33Entries[i].setText('%.2g' % fitVal[counter])
                 outt33[i] = fitVal[counter]
                 counter += 1
             if struc[6*i+5]:
-                self.ampVal[i].set('%.2g' % fitVal[counter])
+                self.ampEntries[i].setText('%.2g' % fitVal[counter])
                 outAmp[i] = fitVal[counter]
                 counter += 1
             if struc[6*i+6]:
-                self.widthVal[i].set('%.2g' % abs(fitVal[counter]))
+                self.lorEntries[i].setText('%.2g' % abs(fitVal[counter]))
                 outWidth[i] = abs(fitVal[counter])
                 counter += 1
             if struc[6*i+7]:
-                self.gaussVal[i].set('%.2g' % abs(fitVal[counter]))
+                self.gaussEntries[i].setText('%.2g' % abs(fitVal[counter]))
                 outGauss[i] = abs(fitVal[counter])
                 counter += 1
         self.disp(outBgrnd,outSlope,outt11,outt22,outt33,outAmp,outWidth,outGauss)
 
     def sim(self):
         self.setCheng()
-        numExp = int(self.numExp.get())
-        bgrnd = safeEval(self.bgrndVal.get())
-        slope = safeEval(self.slopeVal.get())
+        numExp = self.numExp.currentIndex()+1
+        bgrnd = safeEval(self.bgrndEntry.text())
+        slope = safeEval(self.slopeEntry.text())
+        if bgrnd is None or slope is None:
+            print("One of the inputs is not valid")
+            return
         t11 = np.zeros(numExp)
         t22 = np.zeros(numExp)
         t33 = np.zeros(numExp)
@@ -2362,12 +2529,15 @@ class TensorDeconvParamFrame(Frame): #a frame for the relaxtion parameters
         width = np.zeros(numExp)
         gauss = np.zeros(numExp)
         for i in range(numExp):
-            t11[i] = safeEval(self.t11Val[i].get())
-            t22[i] = safeEval(self.t22Val[i].get())
-            t33[i] = safeEval(self.t33Val[i].get())
-            amp[i] = safeEval(self.ampVal[i].get())
-            width[i] = safeEval(self.widthVal[i].get())
-            gauss[i] = safeEval(self.gaussVal[i].get())
+            t11[i] = safeEval(self.t11Entries[i].text())
+            t22[i] = safeEval(self.t22Entries[i].text())
+            t33[i] = safeEval(self.t33Entries[i].text())
+            amp[i] = safeEval(self.ampEntries[i].text())
+            width[i] = safeEval(self.lorEntries[i].text())
+            gauss[i] = safeEval(self.gaussEntries[i].text())
+            if not np.isfinite([t11[i], t22[i], t33[i], amp[i], width[i], gauss[i]]).all():
+                print("One of the inputs is not valid")
+                return
         phi,theta,self.weight = zcw_angles(self.cheng,symm=2)
         self.multt11=np.sin(theta)**2*np.cos(phi)**2
         self.multt22=np.sin(theta)**2*np.sin(phi)**2
@@ -2375,20 +2545,22 @@ class TensorDeconvParamFrame(Frame): #a frame for the relaxtion parameters
         self.disp(bgrnd,slope,t11,t22,t33,amp,width,gauss)
         
 ##############################################################################
-class Quad1DeconvWindow(Frame): #a window for fitting relaxation data
+class Quad1DeconvWindow(QtGui.QWidget): 
     def __init__(self, rootwindow,mainProgram,oldMainWindow):
-        Frame.__init__(self,rootwindow)
+        QtGui.QWidget.__init__(self,rootwindow)
         self.mainProgram = mainProgram
         self.oldMainWindow = oldMainWindow
         self.name = self.oldMainWindow.name
-        self.fig = self.mainProgram.getFig()
-        self.canvas = FigureCanvasTkAgg(self.fig, master=weakref.proxy(self))
-        self.canvas.get_tk_widget().grid(row=0,column=0,sticky="nswe")
+        #self.fig = self.mainProgram.getFig()
+        self.fig = Figure()
+        self.canvas =  FigureCanvas(self.fig)
+        grid = QtGui.QGridLayout(self)
+        grid.addWidget(self.canvas,0,0)
         self.current = Quad1DeconvFrame(self,self.fig,self.canvas,oldMainWindow.current)
         self.paramframe = Quad1DeconvParamFrame(self.current,self)
-        self.paramframe.grid(row=1,column=0,sticky='sw')
-        self.rowconfigure(0, weight=1)
-        self.grid_columnconfigure(0, weight=1)
+        grid.addWidget(self.paramframe,1,0)
+        grid.setColumnStretch(0,1)
+        grid.setRowStretch(0,1)
         self.canvas.mpl_connect('button_press_event', self.buttonPress)      
         self.canvas.mpl_connect('button_release_event', self.buttonRelease)
         self.canvas.mpl_connect('motion_notify_event', self.pan)
@@ -2421,10 +2593,10 @@ class Quad1DeconvWindow(Frame): #a window for fitting relaxation data
         return self.oldMainWindow.get_current()
         
     def addToView(self):
-        self.pack(fill=BOTH,expand=1)
+        self.show()
 
     def removeFromView(self):
-        self.pack_forget()
+        self.hide()
 
     def kill(self):
         self.current.kill()
@@ -2435,7 +2607,7 @@ class Quad1DeconvWindow(Frame): #a window for fitting relaxation data
          self.mainProgram.closeFitWindow(self.oldMainWindow)
         
 #################################################################################   
-class Quad1DeconvFrame(Plot1DFrame): #a window for fitting relaxation data
+class Quad1DeconvFrame(Plot1DFrame):
     def __init__(self, rootwindow,fig,canvas,current):
         Plot1DFrame.__init__(self,rootwindow,fig,canvas)
         self.data1D = current.getDisplayedData()
@@ -2536,192 +2708,186 @@ class Quad1DeconvFrame(Plot1DFrame): #a window for fitting relaxation data
         self.canvas.draw()
 
 #################################################################################
-class Quad1DeconvParamFrame(Frame): #a frame for the quadrupole parameters
+class Quad1DeconvParamFrame(QtGui.QWidget):
     
     Ioptions = ['1','3/2','2','5/2','3','7/2','4','9/2']
     
     def __init__(self, parent, rootwindow):
+        QtGui.QWidget.__init__(self, rootwindow)
         self.parent = parent
-        self.bgrndVal = StringVar()
-        self.bgrndVal.set("0.0")
-        self.bgrndTick = IntVar()
-        self.bgrndTick.set(1)
-        self.slopeVal = StringVar()
-        self.slopeVal.set("0.0")
-        self.slopeTick = IntVar()
-        self.slopeTick.set(1)
-        self.numExp = StringVar()
+        self.rootwindow = rootwindow
         self.cheng = 15
-        self.chengVal = StringVar()
-        self.chengVal.set(str(self.cheng))
-        self.IVal = StringVar()
-        self.IVal.set("3/2")
-        Frame.__init__(self, rootwindow)
-        self.frame1 = Frame(self)
-        self.frame1.grid(row=0,column=0,sticky='n')
-        self.optframe = Frame(self)
-        self.optframe.grid(row=0,column=1,sticky='n')
-        self.frame2 = Frame(self)
-        self.frame2.grid(row=0,column=2,sticky='n')
-        self.frame3 = Frame(self)
-        self.frame3.grid(row=0,column=3,sticky='n')
-        Button(self.frame1, text="Sim",command=self.sim).grid(row=0,column=0)
-        Button(self.frame1, text="Fit",command=self.fit).grid(row=1,column=0)
-        Button(self.frame1, text="Cancel",command=rootwindow.cancel).grid(row=2,column=0)
-        Label(self.optframe,text="Cheng").grid(row=0,column=0)
-        self.chengEntry = Entry(self.optframe,textvariable=self.chengVal,justify="center",width=10)
-        self.chengEntry.grid(row=1,column=0)
-        self.chengEntry.bind("<Return>", self.setCheng) 
-        self.chengEntry.bind("<KP_Enter>", self.setCheng)
-        Label(self.optframe,text="I").grid(row=0,column=1)
-        OptionMenu(self.optframe,self.IVal,self.IVal.get(),*self.Ioptions).grid(row=1,column=1)
-        Label(self.frame2,text="Bgrnd").grid(row=0,column=0,columnspan=2)
-        Checkbutton(self.frame2,variable=self.bgrndTick).grid(row=1,column=0)
-        Entry(self.frame2,textvariable=self.bgrndVal,justify="center",width=10).grid(row=1,column=1)
-        Label(self.frame2,text="Slope").grid(row=2,column=0,columnspan=2)
-        Checkbutton(self.frame2,variable=self.slopeTick).grid(row=3,column=0)
-        Entry(self.frame2,textvariable=self.slopeVal,justify="center",width=10).grid(row=3,column=1)
-        OptionMenu(self.frame3, self.numExp, "1","1", "2", "3","4","5","6","7","8","9","10",command=self.changeNum).grid(row=0,column=0,columnspan=6)
-        Label(self.frame3,text="Pos").grid(row=1,column=0,columnspan=2)
-        Label(self.frame3,text="Cq [MHz]").grid(row=1,column=2,columnspan=2)
-        Label(self.frame3,text="Eta").grid(row=1,column=4,columnspan=2)
-        Label(self.frame3,text="Amplitude").grid(row=1,column=6,columnspan=2)
-        Label(self.frame3,text="Lorentz [Hz]").grid(row=1,column=8,columnspan=2)
-        Label(self.frame3,text="Gauss [Hz]").grid(row=1,column=10,columnspan=2)
-        self.posVal = []
-        self.posTick = []
-        self.cqVal = []
-        self.cqTick = []
-        self.etaVal = []
-        self.etaTick = []
-        self.ampVal = []
-        self.ampTick = []
-        self.widthVal = []
-        self.widthTick = []
-        self.gaussVal = []
-        self.gaussTick = []
-        self.posCheck = []
+        grid = QtGui.QGridLayout(self)
+        self.setLayout(grid)
+        self.frame1 = QtGui.QGridLayout()
+        self.optframe = QtGui.QGridLayout()
+        self.frame2 = QtGui.QGridLayout()
+        self.frame3 = QtGui.QGridLayout()
+        grid.addLayout(self.frame1,0,0)
+        grid.addLayout(self.optframe,0,1)
+        grid.addLayout(self.frame2,0,2)
+        grid.addLayout(self.frame3,0,3)
+        simButton = QtGui.QPushButton("Sim")
+        simButton.clicked.connect(self.sim)
+        self.frame1.addWidget(simButton,0,0)
+        fitButton = QtGui.QPushButton("Fit")
+        fitButton.clicked.connect(self.fit)
+        self.frame1.addWidget(fitButton,1,0)
+        cancelButton = QtGui.QPushButton("Cancel")
+        cancelButton.clicked.connect(rootwindow.cancel)
+        self.frame1.addWidget(cancelButton,3,0)
+        self.frame1.setColumnStretch(10,1)
+        self.frame1.setAlignment(QtCore.Qt.AlignTop)
+        self.optframe.addWidget(QLabel("Cheng:"),0,0)
+        self.chengEntry = QtGui.QLineEdit()
+        self.chengEntry.setAlignment(QtCore.Qt.AlignHCenter)
+        self.chengEntry.setText(str(self.cheng))
+        self.optframe.addWidget(self.chengEntry,1,0)
+        self.optframe.addWidget(QLabel("I:"),0,1)
+        self.IEntry = QtGui.QComboBox()
+        self.IEntry.addItems(self.Ioptions)
+        self.IEntry.setCurrentIndex(1)
+        self.optframe.addWidget(self.IEntry,1,1)
+        self.optframe.setColumnStretch(10,1)
+        self.optframe.setAlignment(QtCore.Qt.AlignTop)
+        self.frame2.addWidget(QLabel("Bgrnd:"),0,0,1,2)
+        self.bgrndTick = QtGui.QCheckBox('')
+        self.bgrndTick.setChecked(True)
+        self.frame2.addWidget(self.bgrndTick,1,0)
+        self.bgrndEntry = QtGui.QLineEdit()
+        self.bgrndEntry.setAlignment(QtCore.Qt.AlignHCenter)
+        self.bgrndEntry.setText("0.0")
+        self.frame2.addWidget(self.bgrndEntry,1,1)
+        self.frame2.addWidget(QLabel("Slope:"),2,0,1,2)
+        self.slopeTick = QtGui.QCheckBox('')
+        self.slopeTick.setChecked(True)
+        self.frame2.addWidget(self.slopeTick,3,0)
+        self.slopeEntry = QtGui.QLineEdit()
+        self.slopeEntry.setAlignment(QtCore.Qt.AlignHCenter)
+        self.slopeEntry.setText("0.0")
+        self.frame2.addWidget(self.slopeEntry,3,1)
+        self.frame2.setColumnStretch(10,1)
+        self.frame2.setAlignment(QtCore.Qt.AlignTop)
+        self.numExp = QtGui.QComboBox()
+        self.numExp.addItems(['1','2','3','4','5','6','7','8','9','10'])
+        self.numExp.currentIndexChanged.connect(self.changeNum)
+        self.frame3.addWidget(self.numExp,0,0,1,2)
+        self.frame3.addWidget(QLabel("Pos:"),1,0,1,2)
+        self.frame3.addWidget(QLabel("Cq [MHz]:"),1,2,1,2)
+        self.frame3.addWidget(QLabel(u"\u03b7:"),1,4,1,2)
+        self.frame3.addWidget(QLabel("Amplitude:"),1,6,1,2)
+        self.frame3.addWidget(QLabel("Lorentz [Hz]:"),1,8,1,2)
+        self.frame3.addWidget(QLabel("Gauss [Hz]:"),1,10,1,2)
+        self.frame3.setColumnStretch(20,1)
+        self.frame3.setAlignment(QtCore.Qt.AlignTop)
         self.posEntries = []
-        self.cqCheck = []
+        self.posTicks = []
         self.cqEntries = []
-        self.etaCheck = []
+        self.cqTicks = []
         self.etaEntries = []
-        self.ampCheck = []
+        self.etaTicks = []
         self.ampEntries = []
-        self.widthCheck = []
-        self.widthEntries = []
-        self.gaussCheck = []
+        self.ampTicks = []
+        self.lorEntries = []
+        self.lorTicks = []
         self.gaussEntries = []
+        self.gaussTicks = []
         for i in range(10):
-            self.posVal.append(StringVar())
-            self.posVal[i].set("0.0")
-            self.posTick.append(IntVar())
-            self.cqVal.append(StringVar())
-            self.cqVal[i].set("0.0")
-            self.cqTick.append(IntVar())
-            self.etaVal.append(StringVar())
-            self.etaVal[i].set("0.0")
-            self.etaTick.append(IntVar())
-            self.ampVal.append(StringVar())
-            self.ampVal[i].set("1.0")
-            self.ampTick.append(IntVar())
-            self.widthVal.append(StringVar())
-            self.widthVal[i].set("10.0")
-            self.widthTick.append(IntVar())
-            self.widthTick[i].set(1)
-            self.gaussVal.append(StringVar())
-            self.gaussVal[i].set("0.0")
-            self.gaussTick.append(IntVar())
-            self.gaussTick[i].set(1)
-            self.posCheck.append(Checkbutton(self.frame3,variable=self.posTick[i]))
-            self.posCheck[i].grid(row=i+2,column=0)
-            self.posEntries.append(Entry(self.frame3,textvariable=self.posVal[i],justify="center",width=10))
-            self.posEntries[i].grid(row=i+2,column=1)
-            self.cqCheck.append(Checkbutton(self.frame3,variable=self.cqTick[i]))
-            self.cqCheck[i].grid(row=i+2,column=2)
-            self.cqEntries.append(Entry(self.frame3,textvariable=self.cqVal[i],justify="center",width=10))
-            self.cqEntries[i].grid(row=i+2,column=3)
-            self.etaCheck.append(Checkbutton(self.frame3,variable=self.etaTick[i]))
-            self.etaCheck[i].grid(row=i+2,column=4)
-            self.etaEntries.append(Entry(self.frame3,textvariable=self.etaVal[i],justify="center",width=10))
-            self.etaEntries[i].grid(row=i+2,column=5)
-            self.ampCheck.append(Checkbutton(self.frame3,variable=self.ampTick[i]))
-            self.ampCheck[i].grid(row=i+2,column=6)
-            self.ampEntries.append(Entry(self.frame3,textvariable=self.ampVal[i],justify="center",width=10))
-            self.ampEntries[i].grid(row=i+2,column=7)
-            self.widthCheck.append(Checkbutton(self.frame3,variable=self.widthTick[i]))
-            self.widthCheck[i].grid(row=i+2,column=8)
-            self.widthEntries.append(Entry(self.frame3,textvariable=self.widthVal[i],justify="center",width=10))
-            self.widthEntries[i].grid(row=i+2,column=9)
-            self.gaussCheck.append(Checkbutton(self.frame3,variable=self.gaussTick[i]))
-            self.gaussCheck[i].grid(row=i+2,column=10)
-            self.gaussEntries.append(Entry(self.frame3,textvariable=self.gaussVal[i],justify="center",width=10))
-            self.gaussEntries[i].grid(row=i+2,column=11)
-            if i > 0:
-                self.posCheck[i].grid_remove()
-                self.posEntries[i].grid_remove()
-                self.cqCheck[i].grid_remove()
-                self.cqEntries[i].grid_remove()
-                self.etaCheck[i].grid_remove()
-                self.etaEntries[i].grid_remove()
-                self.ampCheck[i].grid_remove()
-                self.ampEntries[i].grid_remove()
-                self.widthCheck[i].grid_remove()
-                self.widthEntries[i].grid_remove()
-                self.gaussCheck[i].grid_remove()
-                self.gaussEntries[i].grid_remove()
+            self.posTicks.append(QtGui.QCheckBox(''))
+            self.frame3.addWidget(self.posTicks[i],i+2,0)
+            self.posEntries.append(QtGui.QLineEdit())
+            self.posEntries[i].setAlignment(QtCore.Qt.AlignHCenter)
+            self.posEntries[i].setText("0.0")
+            self.frame3.addWidget(self.posEntries[i],i+2,1)
+            self.cqTicks.append(QtGui.QCheckBox(''))
+            self.frame3.addWidget(self.cqTicks[i],i+2,2)
+            self.cqEntries.append(QtGui.QLineEdit())
+            self.cqEntries[i].setAlignment(QtCore.Qt.AlignHCenter)
+            self.cqEntries[i].setText("0.0")
+            self.frame3.addWidget(self.cqEntries[i],i+2,3)
+            self.etaTicks.append(QtGui.QCheckBox(''))
+            self.frame3.addWidget(self.etaTicks[i],i+2,4)
+            self.etaEntries.append(QtGui.QLineEdit())
+            self.etaEntries[i].setAlignment(QtCore.Qt.AlignHCenter)
+            self.etaEntries[i].setText("0.0")
+            self.frame3.addWidget(self.etaEntries[i],i+2,5)
+            self.ampTicks.append(QtGui.QCheckBox(''))
+            self.frame3.addWidget(self.ampTicks[i],i+2,6)
+            self.ampEntries.append(QtGui.QLineEdit())
+            self.ampEntries[i].setAlignment(QtCore.Qt.AlignHCenter)
+            self.ampEntries[i].setText("1.0")
+            self.frame3.addWidget(self.ampEntries[i],i+2,7)
+            self.lorTicks.append(QtGui.QCheckBox(''))
+            self.lorTicks[i].setChecked(True)
+            self.frame3.addWidget(self.lorTicks[i],i+2,8)
+            self.lorEntries.append(QtGui.QLineEdit())
+            self.lorEntries[i].setAlignment(QtCore.Qt.AlignHCenter)
+            self.lorEntries[i].setText("10.0")
+            self.frame3.addWidget(self.lorEntries[i],i+2,9)
+            self.gaussTicks.append(QtGui.QCheckBox(''))
+            self.gaussTicks[i].setChecked(True)
+            self.frame3.addWidget(self.gaussTicks[i],i+2,10)
+            self.gaussEntries.append(QtGui.QLineEdit())
+            self.gaussEntries[i].setAlignment(QtCore.Qt.AlignHCenter)
+            self.gaussEntries[i].setText("0.0")
+            self.frame3.addWidget(self.gaussEntries[i],i+2,11)
 
+            if i > 0:
+                self.posTicks[i].hide()
+                self.posEntries[i].hide()
+                self.cqTicks[i].hide()
+                self.cqEntries[i].hide()
+                self.etaTicks[i].hide()
+                self.etaEntries[i].hide()
+                self.ampTicks[i].hide()
+                self.ampEntries[i].hide()
+                self.lorTicks[i].hide()
+                self.lorEntries[i].hide()
+                self.gaussTicks[i].hide()
+                self.gaussEntries[i].hide()
+        grid.setColumnStretch(10,1)
+        grid.setAlignment(QtCore.Qt.AlignLeft)
+        
     def checkI(self,I):
-        if I == '1':
-            return 1.0
-        elif I == '3/2':
-            return 1.5
-        elif I == '2':
-            return 2
-        elif I == '5/2':
-            return 2.5
-        elif I == '3':
-            return 3
-        elif I == '7/2':
-            return 3.5
-        elif I == '4':
-            return 4
-        elif I == '9/2':
-            return 4.5
+        return I*0.5+1
                 
     def setCheng(self,*args):
-        self.cheng = int(safeEval(self.chengVal.get()))
-        self.chengVal.set(str(self.cheng))
+        inp = safeEval(self.chengEntry.text())
+        if inp is None:
+            print("One of the inputs is not valid")
+            return
+        self.cheng = int(inp)
+        self.chengEntry.setText(str(self.cheng))
                 
     def changeNum(self,*args):
-        val = int(self.numExp.get())
+        val = self.numExp.currentIndex()+1
         for i in range(10):
             if i < val:
-                self.posCheck[i].grid()
-                self.posEntries[i].grid()
-                self.cqCheck[i].grid()
-                self.cqEntries[i].grid()
-                self.etaCheck[i].grid()
-                self.etaEntries[i].grid()
-                self.ampCheck[i].grid()
-                self.ampEntries[i].grid()
-                self.widthCheck[i].grid()
-                self.widthEntries[i].grid()
-                self.gaussCheck[i].grid()
-                self.gaussEntries[i].grid()
+                self.posTicks[i].show()
+                self.posEntries[i].show()
+                self.cqTicks[i].show()
+                self.cqEntries[i].show()
+                self.etaTicks[i].show()
+                self.etaEntries[i].show()
+                self.ampTicks[i].show()
+                self.ampEntries[i].show()
+                self.lorTicks[i].show()
+                self.lorEntries[i].show()
+                self.gaussTicks[i].show()
+                self.gaussEntries[i].show()
             else:
-                self.posCheck[i].grid_remove()
-                self.posEntries[i].grid_remove()
-                self.cqCheck[i].grid_remove()
-                self.cqEntries[i].grid_remove()
-                self.etaCheck[i].grid_remove()
-                self.etaEntries[i].grid_remove()
-                self.ampCheck[i].grid_remove()
-                self.ampEntries[i].grid_remove()
-                self.widthCheck[i].grid_remove()
-                self.widthEntries[i].grid_remove()
-                self.gaussCheck[i].grid_remove()
-                self.gaussEntries[i].grid_remove()
+                self.posTicks[i].hide()
+                self.posEntries[i].hide()
+                self.cqTicks[i].hide()
+                self.cqEntries[i].hide()
+                self.etaTicks[i].hide()
+                self.etaEntries[i].hide()
+                self.ampTicks[i].hide()
+                self.ampEntries[i].hide()
+                self.lorTicks[i].hide()
+                self.lorEntries[i].hide()
+                self.gaussTicks[i].hide()
+                self.gaussEntries[i].hide()
 
     def tensorFunc(self, x, I, pos, cq, eta, width, gauss):
         m=np.arange(-I,I)
@@ -2821,171 +2987,200 @@ class Quad1DeconvParamFrame(Frame): #a frame for the quadrupole parameters
         self.angleStuff1 = 0.5*(3*np.cos(theta)**2-1)
         self.angleStuff2 = np.cos(2*phi)*(np.cos(theta)**2-1)
         
+    def checkInputs(self):
+        numExp = self.numExp.currentIndex()+1
+        inp = safeEval(self.bgrndEntry.text())
+        if inp is None:
+            return False
+        self.bgrndEntry.setText('%.3g' % inp)
+        inp = safeEval(self.slopeEntry.text())
+        if inp is None:
+            return False
+        self.slopeEntry.setText('%.3g' % inp)
+        for i in range(numExp):
+            inp = safeEval(self.posEntries[i].text())
+            if inp is None:
+                return False
+            self.posEntries[i].setText('%.3g' % inp)
+            inp = safeEval(self.cqEntries[i].text())
+            if inp is None:
+                return False
+            self.cqEntries[i].setText('%.3g' % inp)
+            inp = safeEval(self.etaEntries[i].text())
+            if inp is None:
+                return False
+            self.etaEntries[i].setText('%.3g' % inp)
+            inp = safeEval(self.ampEntries[i].text())
+            if inp is None:
+                return False
+            self.ampEntries[i].setText('%.3g' % inp)
+            inp = safeEval(self.lorEntries[i].text())
+            if inp is None:
+                return False
+            self.lorEntries[i].setText('%.3g' % inp)
+            inp = safeEval(self.gaussEntries[i].text())
+            if inp is None:
+                return False
+            self.gaussEntries[i].setText('%.3g' % inp)
+        return True
+    
     def fit(self,*args):
         self.setCheng()
+        if not self.checkInputs():
+            print("One of the inputs is not valid")
+            return
         struc = []
         guess = []
         argu = []
-        numExp = int(self.numExp.get())
+        numExp = self.numExp.currentIndex()+1
         outPos = np.zeros(numExp)
         outCq = np.zeros(numExp)
         outEta = np.zeros(numExp)
         outAmp = np.zeros(numExp)
         outWidth = np.zeros(numExp)
         outGauss = np.zeros(numExp)
-        I = self.checkI(self.IVal.get())
-        if self.bgrndTick.get() == 0:
-            guess.append(safeEval(self.bgrndVal.get()))
+        I = self.checkI(self.IEntry.currentIndex())
+        if not self.bgrndTick.isChecked():
+            guess.append(float(self.bgrndEntry.text()))
             struc.append(True)
         else:
-            inp = safeEval(self.bgrndVal.get())
-            argu.append(inp)
-            outBgrnd = inp
-            self.bgrndVal.set('%.2g' % inp)
+            outBgrnd = float(self.bgrndEntry.text())
+            argu.append(outBgrnd)
             struc.append(False)
-        if self.slopeTick.get() == 0:
-            guess.append(safeEval(self.slopeVal.get()))
+        if not self.slopeTick.isChecked():
+            guess.append(float(self.slopeEntry.text()))
             struc.append(True)
         else:
-            inp = safeEval(self.slopeVal.get())
-            argu.append(inp)
-            outSlope = inp
-            self.slopeVal.set('%.2g' % inp)
+            outSlope = float(self.slopeEntry.text())
+            argu.append(outSlope)
             struc.append(False)
         for i in range(numExp):
-            if self.posTick[i].get() == 0:
-                guess.append(safeEval(self.posVal[i].get()))
+            if not self.posTicks[i].isChecked():
+                guess.append(float(self.posEntries[i].text()))
                 struc.append(True)
             else:
-                inp = safeEval(self.posVal[i].get())
-                argu.append(inp)
-                outPos[i] = inp
-                self.posVal[i].set('%.2g' % inp)
+                outPos[i] = float(self.posEntries[i].text())
+                argu.append(outPos[i])
                 struc.append(False)
-            if self.cqTick[i].get() == 0:
-                guess.append(safeEval(self.cqVal[i].get())*1e6)
+            if not self.cqTicks[i].isChecked():
+                guess.append(float(self.cqEntries[i].text())*1e6)
                 struc.append(True)
             else:
-                inp = safeEval(self.cqVal[i].get())
-                argu.append(inp*1e6)
-                outCq[i] = inp*1e6
-                self.cqVal[i].set('%.2g' % inp)
+                outCq[i] = float(self.cqEntries[i].text())*1e6
+                argu.append(outCq[i])
                 struc.append(False)
-            if self.etaTick[i].get() == 0:
-                guess.append(safeEval(self.etaVal[i].get()))
+            if not self.etaTicks[i].isChecked():
+                guess.append(float(self.etaEntries[i].text()))
                 struc.append(True)
             else:
-                inp = safeEval(self.etaVal[i].get())
-                argu.append(inp)
-                outEta[i] = inp
-                self.etaVal[i].set('%.2g' % inp)
+                outEta[i] = float(self.etaEntries[i].text())
+                argu.append(outEta[i])
                 struc.append(False)
-            if self.ampTick[i].get() == 0:
-                guess.append(safeEval(self.ampVal[i].get()))
+            if not self.ampTicks[i].isChecked():
+                guess.append(float(self.ampEntries[i].text()))
                 struc.append(True)
             else:
-                inp = safeEval(self.ampVal[i].get())
-                argu.append(inp)
-                outAmp[i] = inp
-                self.ampVal[i].set('%.2g' % inp)
+                outAmp[i] = float(self.ampEntries[i].text())
+                argu.append(outAmp[i])
                 struc.append(False)
-            if self.widthTick[i].get() == 0:
-                guess.append(abs(safeEval(self.widthVal[i].get())))
+            if not self.lorTicks[i].isChecked():
+                guess.append(abs(float(self.lorEntries[i].text())))
                 struc.append(True)
             else:
-                inp = abs(safeEval(self.widthVal[i].get()))
-                argu.append(inp)
-                outWidth[i] = inp
-                self.widthVal[i].set('%.2g' % inp)
+                outWidth[i] = abs(float(self.lorEntries[i].text()))
+                argu.append(outWidth[i])
                 struc.append(False)
-            if self.gaussTick[i].get() == 0:
-                guess.append(abs(safeEval(self.gaussVal[i].get())))
+            if not self.gaussTicks[i].isChecked():
+                guess.append(abs(float(self.gaussEntries[i].text())))
                 struc.append(True)
             else:
-                inp = abs(safeEval(self.gaussVal[i].get()))
-                argu.append(inp)
-                outGauss[i] = inp
-                self.gaussVal[i].set('%.2g' % inp)
+                outGauss[i] = abs(float(self.gaussEntries[i].text()))
+                argu.append(outGauss[i])
                 struc.append(False)
         self.args = (numExp,struc,argu,I)
         self.setAngleStuff()
         fitVal = scipy.optimize.fmin(self.fitFunc,guess, args=(self.parent.xax,np.real(self.parent.data1D)))
         counter = 0
         if struc[0]:
-            self.bgrndVal.set('%.2g' % fitVal[counter])
+            self.bgrndEntry.setText('%.2g' % fitVal[counter])
             outBgrnd = fitVal[counter]
             counter +=1
         if struc[1]:
-            self.slopeVal.set('%.2g' % fitVal[counter])
+            self.slopeEntry.setText('%.2g' % fitVal[counter])
             outSlope = fitVal[counter]
             counter +=1
         for i in range(numExp):
             if struc[6*i+2]:
-                self.posVal[i].set('%.2g' % fitVal[counter])
+                self.posEntries[i].setText('%.2g' % fitVal[counter])
                 outPos[i] = fitVal[counter]
                 counter += 1
             if struc[6*i+3]:
-                self.cqVal[i].set('%.2g' % (fitVal[counter]*1e-6))
+                self.cqEntries[i].setText('%.2g' % (fitVal[counter]*1e-6))
                 outCq[i] = fitVal[counter]
                 counter += 1
             if struc[6*i+4]:
-                self.etaVal[i].set('%.2g' % fitVal[counter])
+                self.etaEntries[i].setText('%.2g' % abs(fitVal[counter]))
                 outEta[i] = fitVal[counter]
                 counter += 1
             if struc[6*i+5]:
-                self.ampVal[i].set('%.2g' % fitVal[counter])
+                self.ampEntries[i].setText('%.2g' % fitVal[counter])
                 outAmp[i] = fitVal[counter]
                 counter += 1
             if struc[6*i+6]:
-                self.widthVal[i].set('%.2g' % abs(fitVal[counter]))
+                self.lorEntries[i].setText('%.2g' % abs(fitVal[counter]))
                 outWidth[i] = abs(fitVal[counter])
                 counter += 1
             if struc[6*i+7]:
-                self.gaussVal[i].set('%.2g' % abs(fitVal[counter]))
+                self.gaussEntries[i].setText('%.2g' % abs(fitVal[counter]))
                 outGauss[i] = abs(fitVal[counter])
                 counter += 1
         self.disp(outBgrnd,outSlope,I,outPos,outCq,outEta,outAmp,outWidth,outGauss)
 
     def sim(self):
         self.setCheng()
-        numExp = int(self.numExp.get())
-        bgrnd = safeEval(self.bgrndVal.get())
-        slope = safeEval(self.slopeVal.get())
+        if not self.checkInputs():
+            print("One of the inputs is not valid")
+            return
+        numExp = self.numExp.currentIndex()
+        bgrnd = float(self.bgrndEntry.text())
+        slope = float(self.slopeEntry.text())
         pos = np.zeros(numExp)
         cq = np.zeros(numExp)
         eta = np.zeros(numExp)
         amp = np.zeros(numExp)
         width = np.zeros(numExp)
         gauss = np.zeros(numExp)
-        I = self.checkI(self.IVal.get())
+        I = self.checkI(self.IEntry.currentIndex())
         for i in range(numExp):
-            pos[i] = safeEval(self.posVal[i].get())
-            cq[i] = safeEval(self.cqVal[i].get())*1e6
-            eta[i] = safeEval(self.etaVal[i].get())
-            amp[i] = safeEval(self.ampVal[i].get())
-            width[i] = safeEval(self.widthVal[i].get())
-            gauss[i] = safeEval(self.gaussVal[i].get())
+            pos[i] = float(self.posEntries[i].text())
+            cq[i] = float(self.cqEntries[i].text())*1e6
+            eta[i] = float(self.etaEntries[i].text())
+            amp[i] = float(self.ampEntries[i].text())
+            width[i] = float(self.lorEntries[i].text())
+            gauss[i] = float(self.gaussEntries[i].text())
         self.setAngleStuff()
         self.disp(bgrnd,slope,I,pos,cq,eta,amp,width,gauss)
 
 ##############################################################################
-class Quad2DeconvWindow(Frame): 
+class Quad2DeconvWindow(QtGui.QWidget): 
     def __init__(self, rootwindow,mainProgram,oldMainWindow,mas=False):
-        Frame.__init__(self,rootwindow)
+        QtGui.QWidget.__init__(self,rootwindow)
         self.mainProgram = mainProgram
         self.oldMainWindow = oldMainWindow
         self.name = self.oldMainWindow.name
-        self.fig = self.mainProgram.getFig()
-        self.canvas = FigureCanvasTkAgg(self.fig, master=weakref.proxy(self))
-        self.canvas.get_tk_widget().grid(row=0,column=0,sticky="nswe")
+        #self.fig = self.mainProgram.getFig()
+        self.fig = Figure()
+        self.canvas =  FigureCanvas(self.fig)
+        grid = QtGui.QGridLayout(self)
+        grid.addWidget(self.canvas,0,0)
         self.current = Quad1DeconvFrame(self,self.fig,self.canvas,oldMainWindow.current)
         if mas:
             self.paramframe = Quad2MASDeconvParamFrame(self.current,self)
         else:
             self.paramframe = Quad2StaticDeconvParamFrame(self.current,self)
-        self.paramframe.grid(row=1,column=0,sticky='sw')
-        self.rowconfigure(0, weight=1)
-        self.grid_columnconfigure(0, weight=1)
+        grid.addWidget(self.paramframe,1,0)
+        grid.setColumnStretch(0,1)
+        grid.setRowStretch(0,1)
         self.canvas.mpl_connect('button_press_event', self.buttonPress)      
         self.canvas.mpl_connect('button_release_event', self.buttonRelease)
         self.canvas.mpl_connect('motion_notify_event', self.pan)
@@ -3018,10 +3213,10 @@ class Quad2DeconvWindow(Frame):
         return self.oldMainWindow.get_current()
         
     def addToView(self):
-        self.pack(fill=BOTH,expand=1)
+        self.show()
 
     def removeFromView(self):
-        self.pack_forget()
+        self.hide()
 
     def kill(self):
         self.current.kill()
@@ -3039,6 +3234,9 @@ class Quad2StaticDeconvParamFrame(Quad1DeconvParamFrame):
     def __init__(self, parent, rootwindow):
         Quad1DeconvParamFrame.__init__(self,parent,rootwindow)
         
+    def checkI(self,I):
+        return I*1.0+1.5
+    
     def setAngleStuff(self):
         phi,theta,self.weight = zcw_angles(self.cheng,symm=2)
         self.angleStuff1 = -27/8.0*np.cos(theta)**4+15/4.0*np.cos(theta)**2-3/8.0
@@ -3074,23 +3272,24 @@ class Quad2MASDeconvParamFrame(Quad2StaticDeconvParamFrame):
         self.angleStuff3 = 1/12.0*np.cos(theta)**2+(+7/48.0*np.cos(theta)**4-7/24.0*np.cos(theta)**2+7/48.0)*np.cos(2*phi)**2
 
 ##############################################################################
-class Quad2CzjzekWindow(Frame): 
+class Quad2CzjzekWindow(QtGui.QWidget): 
     def __init__(self, rootwindow,mainProgram,oldMainWindow,mas=False):
-        Frame.__init__(self,rootwindow)
+        QtGui.QWidget.__init__(self,rootwindow)
         self.mainProgram = mainProgram
         self.oldMainWindow = oldMainWindow
         self.name = self.oldMainWindow.name
-        self.fig = self.mainProgram.getFig()
-        self.canvas = FigureCanvasTkAgg(self.fig, master=weakref.proxy(self))
-        self.canvas.get_tk_widget().grid(row=0,column=0,sticky="nswe")
+        self.fig = Figure()
+        self.canvas =  FigureCanvas(self.fig)
+        grid = QtGui.QGridLayout(self)
+        grid.addWidget(self.canvas,0,0)
         self.current = Quad1DeconvFrame(self,self.fig,self.canvas,oldMainWindow.current)
         if mas:
             self.paramframe = Quad2MASCzjzekParamFrame(self.current,self)
         else:
             self.paramframe = Quad2StaticCzjzekParamFrame(self.current,self)
-        self.paramframe.grid(row=1,column=0,sticky='sw')
-        self.rowconfigure(0, weight=1)
-        self.grid_columnconfigure(0, weight=1)
+        grid.addWidget(self.paramframe,1,0)
+        grid.setColumnStretch(0,1)
+        grid.setRowStretch(0,1)
         self.canvas.mpl_connect('button_press_event', self.buttonPress)      
         self.canvas.mpl_connect('button_release_event', self.buttonRelease)
         self.canvas.mpl_connect('motion_notify_event', self.pan)
@@ -3123,10 +3322,10 @@ class Quad2CzjzekWindow(Frame):
         return self.oldMainWindow.get_current()
         
     def addToView(self):
-        self.pack(fill=BOTH,expand=1)
+        self.show()
 
     def removeFromView(self):
-        self.pack_forget()
+        self.hide()
 
     def kill(self):
         self.current.kill()
@@ -3137,202 +3336,194 @@ class Quad2CzjzekWindow(Frame):
          self.mainProgram.closeFitWindow(self.oldMainWindow)
 
 #################################################################################
-class Quad2StaticCzjzekParamFrame(Frame): 
+class Quad2StaticCzjzekParamFrame(QtGui.QWidget): 
 
     Ioptions = ['3/2','5/2','7/2','9/2']
 
     def __init__(self, parent, rootwindow):
+        QtGui.QWidget.__init__(self, rootwindow)
         self.parent = parent
-        self.bgrndVal = StringVar()
-        self.bgrndVal.set("0.0")
-        self.bgrndTick = IntVar()
-        self.bgrndTick.set(1)
-        self.slopeVal = StringVar()
-        self.slopeVal.set("0.0")
-        self.slopeTick = IntVar()
-        self.slopeTick.set(1)
-        self.numExp = StringVar()
+        self.rootwindow = rootwindow
         self.cheng = 15
-        self.chengVal = StringVar()
-        self.chengVal.set(str(self.cheng))
-        self.cqGridVal = StringVar()
-        self.cqGridVal.set('50')
-        self.etaGridVal = StringVar()
-        self.etaGridVal.set('10')
-        self.IVal = StringVar()
-        self.IVal.set('3/2')
-        Frame.__init__(self, rootwindow)
-        self.frame1 = Frame(self)
-        self.frame1.grid(row=0,column=0,sticky='n')
-        self.optframe = Frame(self)
-        self.optframe.grid(row=0,column=1,sticky='n')
-        self.frame2 = Frame(self)
-        self.frame2.grid(row=0,column=2,sticky='n')
-        self.frame3 = Frame(self)
-        self.frame3.grid(row=0,column=3,sticky='n')
-        Button(self.frame1, text="Sim",command=self.sim).grid(row=0,column=0)
-        Button(self.frame1, text="Fit",command=self.fit).grid(row=1,column=0)
-        Button(self.frame1, text="Cancel",command=rootwindow.cancel).grid(row=2,column=0)
-        Label(self.optframe,text="Cheng").grid(row=0,column=0)
-        self.chengEntry = Entry(self.optframe,textvariable=self.chengVal,justify="center",width=10)
-        self.chengEntry.grid(row=1,column=0)
-        self.chengEntry.bind("<Return>", self.setCheng) 
-        self.chengEntry.bind("<KP_Enter>", self.setCheng)
-        Label(self.optframe,text="Cq grid size").grid(row=2,column=0)
-        self.cqGridEntry = Entry(self.optframe,textvariable=self.cqGridVal,justify="center",width=10)
-        self.cqGridEntry.grid(row=3,column=0)
-        self.cqGridEntry.bind("<Return>", self.setGrid) 
-        self.cqGridEntry.bind("<KP_Enter>", self.setGrid)
-        Label(self.optframe,text=u"\u03b7 grid size").grid(row=4,column=0)
-        self.etaGridEntry = Entry(self.optframe,textvariable=self.etaGridVal,justify="center",width=10)
-        self.etaGridEntry.grid(row=5,column=0)
-        self.etaGridEntry.bind("<Return>", self.setGrid) 
-        self.etaGridEntry.bind("<KP_Enter>", self.setGrid)
-        Label(self.optframe,text="I").grid(row=0,column=1)
-        OptionMenu(self.optframe,self.IVal,self.IVal.get(),*self.Ioptions).grid(row=1,column=1)
-        Label(self.frame2,text="Bgrnd").grid(row=0,column=0,columnspan=2)
-        Checkbutton(self.frame2,variable=self.bgrndTick).grid(row=1,column=0)
-        Entry(self.frame2,textvariable=self.bgrndVal,justify="center",width=10).grid(row=1,column=1)
-        Label(self.frame2,text="Slope").grid(row=2,column=0,columnspan=2)
-        Checkbutton(self.frame2,variable=self.slopeTick).grid(row=3,column=0)
-        Entry(self.frame2,textvariable=self.slopeVal,justify="center",width=10).grid(row=3,column=1)
-        OptionMenu(self.frame3, self.numExp, "1","1", "2", "3","4","5","6","7","8","9","10",command=self.changeNum).grid(row=0,column=0,columnspan=6)
-        Label(self.frame3,text="d").grid(row=1,column=0)
-        Label(self.frame3,text="Pos").grid(row=1,column=1,columnspan=2)
-        Label(self.frame3,text=u"\u03c3 [MHz]").grid(row=1,column=3,columnspan=2)
-        Label(self.frame3,text="Amplitude").grid(row=1,column=5,columnspan=2)
-        Label(self.frame3,text="Lorentz [Hz]").grid(row=1,column=7,columnspan=2)
-        Label(self.frame3,text="Gauss [Hz]").grid(row=1,column=9,columnspan=2)
-        self.posVal = []
-        self.posTick = []
-        self.sigmaVal = []
-        self.sigmaTick = []
-        self.dVal = []
-        self.ampVal = []
-        self.ampTick = []
-        self.widthVal = []
-        self.widthTick = []
-        self.gaussVal = []
-        self.gaussTick = []
-        self.posCheck = []
+        grid = QtGui.QGridLayout(self)
+        self.setLayout(grid)
+        self.frame1 = QtGui.QGridLayout()
+        self.optframe = QtGui.QGridLayout()
+        self.frame2 = QtGui.QGridLayout()
+        self.frame3 = QtGui.QGridLayout()
+        grid.addLayout(self.frame1,0,0)
+        grid.addLayout(self.optframe,0,1)
+        grid.addLayout(self.frame2,0,2)
+        grid.addLayout(self.frame3,0,3)
+        simButton = QtGui.QPushButton("Sim")
+        simButton.clicked.connect(self.sim)
+        self.frame1.addWidget(simButton,0,0)
+        fitButton = QtGui.QPushButton("Fit")
+        fitButton.clicked.connect(self.fit)
+        self.frame1.addWidget(fitButton,1,0)
+        cancelButton = QtGui.QPushButton("Cancel")
+        cancelButton.clicked.connect(rootwindow.cancel)
+        self.frame1.addWidget(cancelButton,3,0)
+        self.frame1.setColumnStretch(10,1)
+        self.frame1.setAlignment(QtCore.Qt.AlignTop)
+        self.optframe.addWidget(QLabel("Cheng:"),0,0)
+        self.chengEntry = QtGui.QLineEdit()
+        self.chengEntry.setAlignment(QtCore.Qt.AlignHCenter)
+        self.chengEntry.setText(str(self.cheng))
+        self.optframe.addWidget(self.chengEntry,1,0)
+        self.optframe.addWidget(QLabel("I"),0,1)
+        self.IEntry = QtGui.QComboBox()
+        self.IEntry.addItems(self.Ioptions)
+        self.IEntry.setCurrentIndex(1)
+        self.optframe.addWidget(self.IEntry,1,1)
+        self.optframe.addWidget(QLabel("Cq grid size:"),2,0)
+        self.cqGridEntry = QtGui.QLineEdit()
+        self.cqGridEntry.setAlignment(QtCore.Qt.AlignHCenter)
+        self.cqGridEntry.setText("50")
+        self.cqGridEntry.returnPressed.connect(self.setGrid)
+        self.optframe.addWidget(self.cqGridEntry,3,0)
+        self.optframe.addWidget(QLabel(u"\u03b7 grid size:"),4,0)
+        self.etaGridEntry = QtGui.QLineEdit()
+        self.etaGridEntry.setAlignment(QtCore.Qt.AlignHCenter)
+        self.etaGridEntry.setText("10")
+        self.etaGridEntry.returnPressed.connect(self.setGrid)
+        self.optframe.addWidget(self.etaGridEntry,5,0)
+        self.optframe.setColumnStretch(10,1)
+        self.optframe.setAlignment(QtCore.Qt.AlignTop)
+        self.frame2.addWidget(QLabel("Bgrnd:"),0,0,1,2)
+        self.bgrndTick = QtGui.QCheckBox('')
+        self.bgrndTick.setChecked(True)
+        self.frame2.addWidget(self.bgrndTick,1,0)
+        self.bgrndEntry = QtGui.QLineEdit()
+        self.bgrndEntry.setAlignment(QtCore.Qt.AlignHCenter)
+        self.bgrndEntry.setText("0.0")
+        self.frame2.addWidget(self.bgrndEntry,1,1)
+        self.frame2.addWidget(QLabel("Slope:"),2,0,1,2)
+        self.slopeTick = QtGui.QCheckBox('')
+        self.slopeTick.setChecked(True)
+        self.frame2.addWidget(self.slopeTick,3,0)
+        self.slopeEntry = QtGui.QLineEdit()
+        self.slopeEntry.setAlignment(QtCore.Qt.AlignHCenter)
+        self.slopeEntry.setText("0.0")
+        self.frame2.addWidget(self.slopeEntry,3,1)
+        self.frame2.setColumnStretch(10,1)
+        self.frame2.setAlignment(QtCore.Qt.AlignTop)
+        self.numExp = QtGui.QComboBox()
+        self.numExp.addItems(['1','2','3','4','5','6','7','8','9','10'])
+        self.numExp.currentIndexChanged.connect(self.changeNum)
+        self.frame3.addWidget(self.numExp,0,0)
+        self.frame3.addWidget(QLabel("d:"),1,0)
+        self.frame3.addWidget(QLabel("Pos:"),1,1,1,2)
+        self.frame3.addWidget(QLabel(u"\u03c3 [MHz]:"),1,3,1,2)
+        self.frame3.addWidget(QLabel("Amplitude:"),1,5,1,2)
+        self.frame3.addWidget(QLabel("Lorentz [Hz]:"),1,7,1,2)
+        self.frame3.addWidget(QLabel("Gauss [Hz]:"),1,9,1,2)
+        self.frame3.setColumnStretch(20,1)
+        self.frame3.setAlignment(QtCore.Qt.AlignTop)
         self.posEntries = []
-        self.sigmaCheck = []
+        self.posTicks = []
         self.sigmaEntries = []
+        self.sigmaTicks = []
         self.dEntries = []
-        self.ampCheck = []
         self.ampEntries = []
-        self.widthCheck = []
-        self.widthEntries = []
-        self.gaussCheck = []
+        self.ampTicks = []
+        self.lorEntries = []
+        self.lorTicks = []
         self.gaussEntries = []
+        self.gaussTicks = []
         for i in range(10):
-            self.posVal.append(StringVar())
-            self.posVal[i].set("0.0")
-            self.posTick.append(IntVar())
-            self.sigmaVal.append(StringVar())
-            self.sigmaVal[i].set("1.0")
-            self.sigmaTick.append(IntVar())
-            self.dVal.append(StringVar())
-            self.dVal[i].set("5")
-            self.ampVal.append(StringVar())
-            self.ampVal[i].set("1.0")
-            self.ampTick.append(IntVar())
-            self.widthVal.append(StringVar())
-            self.widthVal[i].set("10.0")
-            self.widthTick.append(IntVar())
-            self.widthTick[i].set(1)
-            self.gaussVal.append(StringVar())
-            self.gaussVal[i].set("0.0")
-            self.gaussTick.append(IntVar())
-            self.gaussTick[i].set(1)
-            self.dEntries.append(Entry(self.frame3,textvariable=self.dVal[i],justify="center",width=10))
-            self.dEntries[i].grid(row=i+2,column=0)
-            self.posCheck.append(Checkbutton(self.frame3,variable=self.posTick[i]))
-            self.posCheck[i].grid(row=i+2,column=1)
-            self.posEntries.append(Entry(self.frame3,textvariable=self.posVal[i],justify="center",width=10))
-            self.posEntries[i].grid(row=i+2,column=2)
-            self.sigmaCheck.append(Checkbutton(self.frame3,variable=self.sigmaTick[i]))
-            self.sigmaCheck[i].grid(row=i+2,column=3)
-            self.sigmaEntries.append(Entry(self.frame3,textvariable=self.sigmaVal[i],justify="center",width=10))
-            self.sigmaEntries[i].grid(row=i+2,column=4)
-            self.ampCheck.append(Checkbutton(self.frame3,variable=self.ampTick[i]))
-            self.ampCheck[i].grid(row=i+2,column=5)
-            self.ampEntries.append(Entry(self.frame3,textvariable=self.ampVal[i],justify="center",width=10))
-            self.ampEntries[i].grid(row=i+2,column=6)
-            self.widthCheck.append(Checkbutton(self.frame3,variable=self.widthTick[i]))
-            self.widthCheck[i].grid(row=i+2,column=7)
-            self.widthEntries.append(Entry(self.frame3,textvariable=self.widthVal[i],justify="center",width=10))
-            self.widthEntries[i].grid(row=i+2,column=8)
-            self.gaussCheck.append(Checkbutton(self.frame3,variable=self.gaussTick[i]))
-            self.gaussCheck[i].grid(row=i+2,column=9)
-            self.gaussEntries.append(Entry(self.frame3,textvariable=self.gaussVal[i],justify="center",width=10))
-            self.gaussEntries[i].grid(row=i+2,column=10)
+            self.dEntries.append(QtGui.QLineEdit())
+            self.dEntries[i].setText("5")
+            self.frame3.addWidget(self.dEntries[i],i+2,0)
+            self.posTicks.append(QtGui.QCheckBox(''))
+            self.frame3.addWidget(self.posTicks[i],i+2,1)
+            self.posEntries.append(QtGui.QLineEdit())
+            self.posEntries[i].setText("0.0")
+            self.frame3.addWidget(self.posEntries[i],i+2,2)
+            self.sigmaTicks.append(QtGui.QCheckBox(''))
+            self.frame3.addWidget(self.sigmaTicks[i],i+2,3)
+            self.sigmaEntries.append(QtGui.QLineEdit())
+            self.sigmaEntries[i].setText("1.0")
+            self.frame3.addWidget(self.sigmaEntries[i],i+2,4)
+            self.ampTicks.append(QtGui.QCheckBox(''))
+            self.frame3.addWidget(self.ampTicks[i],i+2,5)
+            self.ampEntries.append(QtGui.QLineEdit())
+            self.ampEntries[i].setText("1.0")
+            self.frame3.addWidget(self.ampEntries[i],i+2,6)
+            self.lorTicks.append(QtGui.QCheckBox(''))
+            self.lorTicks[i].setChecked(True)
+            self.frame3.addWidget(self.lorTicks[i],i+2,7)
+            self.lorEntries.append(QtGui.QLineEdit())
+            self.lorEntries[i].setText("10.0")
+            self.frame3.addWidget(self.lorEntries[i],i+2,8)
+            self.gaussTicks.append(QtGui.QCheckBox(''))
+            self.gaussTicks[i].setChecked(True)
+            self.frame3.addWidget(self.gaussTicks[i],i+2,9)
+            self.gaussEntries.append(QtGui.QLineEdit())
+            self.gaussEntries[i].setText("0.0")
+            self.frame3.addWidget(self.gaussEntries[i],i+2,10)
+
             if i > 0:
-                self.posCheck[i].grid_remove()
-                self.posEntries[i].grid_remove()
-                self.sigmaCheck[i].grid_remove()
-                self.sigmaEntries[i].grid_remove()
-                self.dEntries[i].grid_remove()
-                self.ampCheck[i].grid_remove()
-                self.ampEntries[i].grid_remove()
-                self.widthCheck[i].grid_remove()
-                self.widthEntries[i].grid_remove()
-                self.gaussCheck[i].grid_remove()
-                self.gaussEntries[i].grid_remove()
+                self.dEntries[i].hide()
+                self.posTicks[i].hide()
+                self.posEntries[i].hide()
+                self.sigmaTicks[i].hide()
+                self.sigmaEntries[i].hide()
+                self.ampTicks[i].hide()
+                self.ampEntries[i].hide()
+                self.lorTicks[i].hide()
+                self.lorEntries[i].hide()
+                self.gaussTicks[i].hide()
+                self.gaussEntries[i].hide()
+        grid.setColumnStretch(10,1)
+        grid.setAlignment(QtCore.Qt.AlignLeft)
 
     def checkI(self,I):
-        if I == '1':
-            return 1.0
-        elif I == '3/2':
-            return 1.5
-        elif I == '2':
-            return 2
-        elif I == '5/2':
-            return 2.5
-        elif I == '3':
-            return 3
-        elif I == '7/2':
-            return 3.5
-        elif I == '4':
-            return 4
-        elif I == '9/2':
-            return 4.5
+        return I*1.0+1.5
                 
     def setCheng(self,*args):
-        self.cheng = int(safeEval(self.chengVal.get()))
-        self.chengVal.set(str(self.cheng))
+        inp = safeEval(self.chengEntry.text())
+        if inp is None:
+            self.cheng = 15
+        else:
+            self.cheng = int(inp)
+        self.chengEntry.setText(str(self.cheng))
 
     def setGrid(self, *args):
-        self.cqGridVal(str(int(safeEval(self.cqGridVal.get()))))
-        self.etaGridVal(str(int(safeEval(self.etaGridVal.get()))))
+        inp = safeEval(self.cqGridEntry.text())
+        if inp is not None:
+            self.cqGridEntry(str(int(inp)))
+        inp = safeEval(self.etaGridEntry.text())
+        if inp is not None:
+            self.etaGridEntry(str(int(inp)))
         
     def changeNum(self,*args):
-        val = int(self.numExp.get())
+        val = self.numExp.currentIndex()+1
         for i in range(10):
             if i < val:
-                self.posCheck[i].grid()
-                self.posEntries[i].grid()
-                self.sigmaCheck[i].grid()
-                self.sigmaEntries[i].grid()
-                self.dEntries[i].grid()
-                self.ampCheck[i].grid()
-                self.ampEntries[i].grid()
-                self.widthCheck[i].grid()
-                self.widthEntries[i].grid()
-                self.gaussCheck[i].grid()
-                self.gaussEntries[i].grid()
+                self.posCheck[i].show()
+                self.posEntries[i].show()
+                self.sigmaCheck[i].show()
+                self.sigmaEntries[i].show()
+                self.dEntries[i].show()
+                self.ampCheck[i].show()
+                self.ampEntries[i].show()
+                self.lorCheck[i].show()
+                self.lorEntries[i].show()
+                self.gaussCheck[i].show()
+                self.gaussEntries[i].show()
             else:
-                self.posCheck[i].grid_remove()
-                self.posEntries[i].grid_remove()
-                self.sigmaCheck[i].grid_remove()
-                self.sigmaEntries[i].grid_remove()
-                self.dEntries[i].grid_remove()
-                self.ampCheck[i].grid_remove()
-                self.ampEntries[i].grid_remove()
-                self.widthCheck[i].grid_remove()
-                self.widthEntries[i].grid_remove()
-                self.gaussCheck[i].grid_remove()
-                self.gaussEntries[i].grid_remove()
+                self.posCheck[i].hide()
+                self.posEntries[i].hide()
+                self.sigmaCheck[i].hide()
+                self.sigmaEntries[i].hide()
+                self.dEntries[i].hide()
+                self.ampCheck[i].hide()
+                self.ampEntries[i].hide()
+                self.lorCheck[i].hide()
+                self.lorEntries[i].hide()
+                self.gaussCheck[i].hide()
+                self.gaussEntries[i].hide()
 
     def bincounting(self, x1, weight, length):
         weights = weight[np.logical_and(x1>=0,x1<length)]
@@ -3358,7 +3549,48 @@ class Quad2StaticCzjzekParamFrame(Frame):
         apod = np.exp(-np.pi*width*t)*np.exp(-((np.pi*gauss*t)**2)/(4*np.log(2)))
         apod[-1:-(len(apod)/2+1):-1]=apod[:len(apod)/2]
         return scipy.ndimage.interpolation.shift(np.real(np.fft.fft(fid*apod)),len(fid)*pos/self.parent.current.sw)
-                
+    
+    def checkInputs(self):
+        numExp = self.numExp.currentIndex()+1
+        inp = safeEval(self.bgrndEntry.text())
+        if inp is None:
+            return False
+        self.bgrndEntry.setText('%.3g' % inp)
+        inp = safeEval(self.slopeEntry.text())
+        if inp is None:
+            return False
+        self.slopeEntry.setText('%.3g' % inp)
+        for i in range(numExp):
+            inp = safeEval(self.dEntries[i].text())
+            if inp is None:
+                return False
+            if inp < 1:
+                inp = 1
+            elif inp > 5:
+                inp = 5
+            self.dEntries[i].setText(str(int(inp)))
+            inp = safeEval(self.posEntries[i].text())
+            if inp is None:
+                return False
+            self.posEntries[i].setText('%.3g' % inp)
+            inp = safeEval(self.sigmaEntries[i].text())
+            if inp is None:
+                return False
+            self.sigmaEntries[i].setText('%.3g' % inp)
+            inp = safeEval(self.ampEntries[i].text())
+            if inp is None:
+                return False
+            self.ampEntries[i].setText('%.3g' % inp)
+            inp = safeEval(self.lorEntries[i].text())
+            if inp is None:
+                return False
+            self.lorEntries[i].setText('%.3g' % inp)
+            inp = safeEval(self.gaussEntries[i].text())
+            if inp is None:
+                return False
+            self.gaussEntries[i].setText('%.3g' % inp)
+        return True
+    
     def fitFunc(self, param, x, y):
         numExp = self.args[0]
         struc = self.args[1]
@@ -3434,153 +3666,152 @@ class Quad2StaticCzjzekParamFrame(Frame):
         
     def fit(self,*args):
         self.setCheng()
+        if not self.setGrid():
+            print("One of the inputs is not valid")
+            return
+        if not self.checkInputs():
+            print("One of the inputs is not valid")
+            return
         struc = []
         guess = []
         argu = []
         maxCq = 0.0
-        I = self.checkI(self.IVal.get())
-        numExp = int(self.numExp.get())
+        I = self.checkI(self.IEntry.currentIndex())
+        numExp = self.numExp.currentIndex()+1
         outPos = np.zeros(numExp)
         outSigma = np.zeros(numExp)
         outD = np.zeros(numExp)
         outAmp = np.zeros(numExp)
         outWidth = np.zeros(numExp)
         outGauss = np.zeros(numExp)
-        if self.bgrndTick.get() == 0:
-            guess.append(safeEval(self.bgrndVal.get()))
+        if not self.bgrndTick.isChecked():
+            guess.append(float(self.bgrndEntry.text()))
             struc.append(True)
         else:
-            inp = safeEval(self.bgrndVal.get())
-            argu.append(inp)
-            outBgrnd = inp
-            self.bgrndVal.set('%.2g' % inp)
+            outBgrnd = float(self.bgrndEntry.text())
+            argu.append(outBgrnd)
             struc.append(False)
-        if self.slopeTick.get() == 0:
-            guess.append(safeEval(self.slopeVal.get()))
+        if not self.slopeTick.isChecked():
+            guess.append(float(self.slopeEntry.text()))
             struc.append(True)
         else:
-            inp = safeEval(self.slopeVal.get())
-            argu.append(inp)
-            outSlope = inp
-            self.slopeVal.set('%.2g' % inp)
+            outSlope = safeEval(self.slopeEntry.text())
+            argu.append(outSlope)
             struc.append(False)
         for i in range(numExp):
-            inp = int(safeEval(self.dVal[i].get()))
+            inp = int(self.dEntries[i].text())
             if inp < 1:
                 inp = 1
             elif inp > 5:
                 inp = 5
             argu.append(inp)
             outD[i] = inp
-            self.dVal[i].set('%.2g' % inp)
-            if self.posTick[i].get() == 0:
-                guess.append(safeEval(self.posVal[i].get()))
+            self.dEntries[i].setText('%.2g' % inp)
+            if not self.posTicks[i].isChecked():
+                guess.append(float(self.posEntries[i].text()))
                 struc.append(True)
             else:
-                inp = safeEval(self.posVal[i].get())
-                argu.append(inp)
-                outPos[i] = inp
-                self.posVal[i].set('%.2g' % inp)
+                outPos[i] = float(self.posEntries[i].text())
+                argu.append(outPos[i])
                 struc.append(False)
-            if self.sigmaTick[i].get() == 0:
-                inp = safeEval(self.sigmaVal[i].get())
+            if not self.sigmaTicks[i].isChecked():
+                inp = float(self.sigmaEntries[i].text())
                 maxCq = max(maxCq,inp*1e6)
                 guess.append(inp*1e6)
                 struc.append(True)
             else:
-                inp = safeEval(self.sigmaVal[i].get())
+                inp = float(self.sigmaEntries[i].text())
                 maxCq = max(maxCq,inp*1e6)
                 argu.append(inp*1e6)
                 outSigma[i] = inp
-                self.sigmaVal[i].set('%.2g' % inp)
                 struc.append(False)
-            if self.ampTick[i].get() == 0:
-                guess.append(safeEval(self.ampVal[i].get()))
+            if not self.ampTicks[i].isChecked():
+                guess.append(float(self.ampEntries[i].text()))
                 struc.append(True)
             else:
-                inp = safeEval(self.ampVal[i].get())
-                argu.append(inp)
-                outAmp[i] = inp
-                self.ampVal[i].set('%.2g' % inp)
+                outAmp[i] = float(self.ampEntries[i].text())
+                argu.append(outAmp[i])
                 struc.append(False)
-            if self.widthTick[i].get() == 0:
-                guess.append(abs(safeEval(self.widthVal[i].get())))
+            if not self.lorTicks[i].isChecked():
+                guess.append(abs(float(self.lorEntries[i].text())))
                 struc.append(True)
             else:
-                inp = abs(safeEval(self.widthVal[i].get()))
-                argu.append(inp)
-                outWidth[i] = inp
-                self.widthVal[i].set('%.2g' % inp)
+                outWidth[i] = abs(float(self.lorEntries[i].text()))
+                argu.append(outWidth[i])
                 struc.append(False)
-            if self.gaussTick[i].get() == 0:
-                guess.append(abs(safeEval(self.gaussVal[i].get())))
+            if not self.gaussTicks[i].text():
+                guess.append(abs(float(self.gaussEntries[i].text())))
                 struc.append(True)
             else:
-                inp = abs(safeEval(self.gaussVal[i].get()))
-                argu.append(inp)
-                outGauss[i] = inp
-                self.gaussVal[i].set('%.2g' % inp)
+                outGauss[i] = abs(float(self.gaussEntries[i].text()))
+                argu.append(outGauss[i])
                 struc.append(False)
         self.args = (numExp,struc,argu)
         self.setAngleStuff()
-        numCq = int(safeEval(self.cqGridVal.get()))
-        numEta = int(safeEval(self.etaGridVal.get()))
+        numCq = int(self.cqGridEntry.text())
+        numEta = int(self.etaGridEntry.text())
         self.genLib(len(self.parent.xax), I, maxCq*4.0, numCq, numEta)
         fitVal = scipy.optimize.fmin(self.fitFunc,guess, args=(self.parent.xax,np.real(self.parent.data1D)))
         counter = 0
         if struc[0]:
-            self.bgrndVal.set('%.2g' % fitVal[counter])
+            self.bgrndEntry.setText('%.2g' % fitVal[counter])
             outBgrnd = fitVal[counter]
             counter +=1
         if struc[1]:
-            self.slopeVal.set('%.2g' % fitVal[counter])
+            self.slopeEntry.setText('%.2g' % fitVal[counter])
             outSlope = fitVal[counter]
             counter +=1
         for i in range(numExp):
             if struc[5*i+2]:
-                self.posVal[i].set('%.2g' % fitVal[counter])
+                self.posEntries[i].setText('%.2g' % fitVal[counter])
                 outPos[i] = fitVal[counter]
                 counter += 1
             if struc[5*i+3]:
-                self.sigmaVal[i].set('%.2g' % (fitVal[counter]*1e-6))
+                self.sigmaEntries[i].setText('%.2g' % (fitVal[counter]*1e-6))
                 outCq[i] = fitVal[counter]
                 counter += 1
             if struc[5*i+4]:
-                self.ampVal[i].set('%.2g' % fitVal[counter])
+                self.ampEntries[i].setText('%.2g' % fitVal[counter])
                 outAmp[i] = fitVal[counter]
                 counter += 1
             if struc[5*i+5]:
-                self.widthVal[i].set('%.2g' % abs(fitVal[counter]))
+                self.lorEntries[i].setText('%.2g' % abs(fitVal[counter]))
                 outWidth[i] = abs(fitVal[counter])
                 counter += 1
             if struc[5*i+6]:
-                self.gaussVal[i].set('%.2g' % abs(fitVal[counter]))
+                self.gaussEntries[i].setText('%.2g' % abs(fitVal[counter]))
                 outGauss[i] = abs(fitVal[counter])
                 counter += 1
         self.disp(outBgrnd,outSlope,outPos,outSigma,outD,outAmp,outWidth,outGauss)
 
     def sim(self):
         self.setCheng()
-        numExp = int(self.numExp.get())
-        bgrnd = safeEval(self.bgrndVal.get())
-        slope = safeEval(self.slopeVal.get())
+        if not self.setGrid():
+            print("One of the inputs is not valid")
+            return
+        if not self.checkInputs():
+            print("One of the inputs is not valid")
+            return
+        numExp = self.numExp.currentIndex()+1
+        bgrnd = float(self.bgrndEntry.text())
+        slope = float(self.slopeEntry.text())
         pos = np.zeros(numExp)
         sigma = np.zeros(numExp)
         d = np.zeros(numExp)
         amp = np.zeros(numExp)
         width = np.zeros(numExp)
         gauss = np.zeros(numExp)
-        I = self.checkI(self.IVal.get())
+        I = self.checkI(self.IEntry.currentIndex())
         for i in range(numExp):
-            pos[i] = safeEval(self.posVal[i].get())
-            sigma[i] = safeEval(self.sigmaVal[i].get())*1e6
-            d[i] = safeEval(self.dVal[i].get())
-            amp[i] = safeEval(self.ampVal[i].get())
-            width[i] = safeEval(self.widthVal[i].get())
-            gauss[i] = safeEval(self.gaussVal[i].get())
+            pos[i] = safeEval(self.posEntries[i].text())
+            sigma[i] = safeEval(self.sigmaEntries[i].text())*1e6
+            d[i] = safeEval(self.dEntries[i].text())
+            amp[i] = safeEval(self.ampEntries[i].text())
+            width[i] = safeEval(self.lorEntries[i].text())
+            gauss[i] = safeEval(self.gaussEntries[i].text())
         self.setAngleStuff()
-        numCq = int(safeEval(self.cqGridVal.get()))
-        numEta = int(safeEval(self.etaGridVal.get()))
+        numCq = int(self.cqGridEntry.text())
+        numEta = int(self.etaGridEntry.text())
         self.genLib(len(self.parent.xax), I, max(sigma)*4.0, numCq, numEta)
         self.disp(bgrnd,slope,pos,sigma,d,amp,width,gauss)
     
@@ -3599,114 +3830,108 @@ class Quad2MASCzjzekParamFrame(Quad2StaticCzjzekParamFrame):
         self.angleStuff3 = 1/12.0*np.cos(theta)**2+(+7/48.0*np.cos(theta)**4-7/24.0*np.cos(theta)**2+7/48.0)*np.cos(2*phi)**2
          
 #####################################################################################
-class MainPlotWindow(Frame):
-    def __init__(self,parent,mainProgram,oldMainWindow):
-        Frame.__init__(self,parent)
-        self.parent = parent 
-        self.mainProgram = mainProgram
+class MainPlotWindow(QtGui.QWidget):
+    def __init__(self,father,oldMainWindow):
+        QtGui.QWidget.__init__(self,father)
+        self.father = father 
         self.oldMainWindow = oldMainWindow
         self.fig = oldMainWindow.current.fig
-        self.canvas = oldMainWindow.current.canvas
+        self.canvas = FigureCanvas(self.fig)
+        #self.canvas = oldMainWindow.current.canvas
         self.ax = oldMainWindow.current.ax
-        self.frame1 = Frame(self)
-        self.frame1.grid(row=0,column=0,sticky="nw")
-        self.canvas = FigureCanvasTkAgg(self.fig, master=self.frame1)
-        self.canvas.get_tk_widget().pack(fill=BOTH,expand=1)
-        self.frame2 = Frame(self)
-        self.frame2.grid(row=0,column=1,sticky="ne")
-        Label(self.frame2,text='Title').grid(row=0,column=0)
-        self.title = StringVar()
+        grid = QtGui.QGridLayout(self)
+        grid.addWidget(self.canvas,0,0)
+        self.frame1 = QtGui.QGridLayout()
+        grid.addLayout(self.frame1,0,1)
+        self.frame1.addWidget(QLabel("Title:"),0,0)
+        self.titleEntry = QtGui.QLineEdit()
+        self.titleEntry.setAlignment(QtCore.Qt.AlignHCenter)
         self.titleBackup = oldMainWindow.name
-        self.title.set(self.titleBackup)
-        self.titleEntry = Entry(self.frame2,textvariable=self.title,justify="center")
-        self.titleEntry.bind("<Return>", self.updatePlot) 
-        self.titleEntry.bind("<KP_Enter>", self.updatePlot) 
-        self.titleEntry.grid(row=1,column=0)
-        Label(self.frame2,text='x-label').grid(row=2,column=0)
-        self.xlabel = StringVar()
+        self.titleEntry.setText(self.titleBackup)
+        self.titleEntry.returnPressed.connect(self.updatePlot)
+        self.frame1.addWidget(self.titleEntry,1,0)
+        self.frame1.addWidget(QLabel("x-label:"),2,0)
+        self.xlabelEntry = QtGui.QLineEdit()
+        self.xlabelEntry.setAlignment(QtCore.Qt.AlignHCenter)
         self.xlabelBackup = self.ax.get_xlabel()
-        self.xlabel.set(self.xlabelBackup)
-        self.xlabelEntry = Entry(self.frame2,textvariable=self.xlabel,justify="center")
-        self.xlabelEntry.bind("<Return>", self.updatePlot) 
-        self.xlabelEntry.bind("<KP_Enter>", self.updatePlot) 
-        self.xlabelEntry.grid(row=3,column=0)
-        Label(self.frame2,text='y-label').grid(row=4,column=0)
-        self.ylabel = StringVar()
+        self.xlabelEntry.setText(self.xlabelBackup)
+        self.xlabelEntry.returnPressed.connect(self.updatePlot)
+        self.frame1.addWidget(self.xlabelEntry,3,0)
+        self.frame1.addWidget(QLabel("y-label:"),4,0)
+        self.ylabelEntry = QtGui.QLineEdit()
+        self.ylabelEntry.setAlignment(QtCore.Qt.AlignHCenter)
         self.ylabelBackup = self.ax.get_ylabel()
-        self.ylabel.set(self.ylabelBackup)
-        self.ylabelEntry = Entry(self.frame2,textvariable=self.ylabel,justify="center")
-        self.ylabelEntry.bind("<Return>", self.updatePlot) 
-        self.ylabelEntry.bind("<KP_Enter>", self.updatePlot) 
-        self.ylabelEntry.grid(row=5,column=0)
+        self.ylabelEntry.setText(self.ylabelBackup)
+        self.ylabelEntry.returnPressed.connect(self.updatePlot)
+        self.frame1.addWidget(self.ylabelEntry,5,0)
         self.xlimBackup = self.ax.get_xlim()
-        Label(self.frame2,text='x-limit left').grid(row=6,column=0)
-        self.xlimLeft = StringVar()
-        self.xlimLeft.set(self.xlimBackup[0])
-        self.xlimLeftEntry = Entry(self.frame2,textvariable=self.xlimLeft,justify="center")
-        self.xlimLeftEntry.bind("<Return>", self.updatePlot) 
-        self.xlimLeftEntry.bind("<KP_Enter>", self.updatePlot) 
-        self.xlimLeftEntry.grid(row=7,column=0)
-        Label(self.frame2,text='x-limit right').grid(row=8,column=0)
-        self.xlimRight = StringVar()
-        self.xlimRight.set(self.xlimBackup[1])
-        self.xlimRightEntry = Entry(self.frame2,textvariable=self.xlimRight,justify="center")
-        self.xlimRightEntry.bind("<Return>", self.updatePlot) 
-        self.xlimRightEntry.bind("<KP_Enter>", self.updatePlot) 
-        self.xlimRightEntry.grid(row=9,column=0)
+        self.frame1.addWidget(QLabel("x-limit left:"),6,0)
+        self.xlimLeftEntry = QtGui.QLineEdit()
+        self.xlimLeftEntry.setAlignment(QtCore.Qt.AlignHCenter)
+        self.xlimLeftEntry.setText(str(self.xlimBackup[0]))
+        self.xlimLeftEntry.returnPressed.connect(self.updatePlot)
+        self.frame1.addWidget(self.xlimLeftEntry,7,0)
+        self.frame1.addWidget(QLabel("x-limit right:"),8,0)
+        self.xlimRightEntry = QtGui.QLineEdit()
+        self.xlimRightEntry.setAlignment(QtCore.Qt.AlignHCenter)
+        self.xlimRightEntry.setText(str(self.xlimBackup[1]))
+        self.xlimRightEntry.returnPressed.connect(self.updatePlot)
+        self.frame1.addWidget(self.xlimRightEntry,9,0)
         self.ylimBackup = self.ax.get_ylim()
-        Label(self.frame2,text='y-limit down').grid(row=10,column=0)
-        self.ylimLeft = StringVar()
-        self.ylimLeft.set(self.ylimBackup[0])
-        self.ylimLeftEntry = Entry(self.frame2,textvariable=self.ylimLeft,justify="center")
-        self.ylimLeftEntry.bind("<Return>", self.updatePlot) 
-        self.ylimLeftEntry.bind("<KP_Enter>", self.updatePlot) 
-        self.ylimLeftEntry.grid(row=11,column=0)
-        Label(self.frame2,text='y-limit up').grid(row=12,column=0)
-        self.ylimRight = StringVar()
-        self.ylimRight.set(self.ylimBackup[1])
-        self.ylimRightEntry = Entry(self.frame2,textvariable=self.ylimRight,justify="center")
-        self.ylimRightEntry.bind("<Return>", self.updatePlot) 
-        self.ylimRightEntry.bind("<KP_Enter>", self.updatePlot) 
-        self.ylimRightEntry.grid(row=13,column=0)
-        
-        Label(self.frame2,text='Width [cm]').grid(row=26,column=0)
+        self.frame1.addWidget(QLabel("y-limit left:"),10,0)
+        self.ylimLeftEntry = QtGui.QLineEdit()
+        self.ylimLeftEntry.setAlignment(QtCore.Qt.AlignHCenter)
+        self.ylimLeftEntry.setText(str(self.ylimBackup[0]))
+        self.ylimLeftEntry.returnPressed.connect(self.updatePlot)
+        self.frame1.addWidget(self.ylimLeftEntry,11,0)
+        self.frame1.addWidget(QLabel("y-limit right:"),12,0)
+        self.ylimRightEntry = QtGui.QLineEdit()
+        self.ylimRightEntry.setAlignment(QtCore.Qt.AlignHCenter)
+        self.ylimRightEntry.setText(str(self.ylimBackup[1]))
+        self.ylimRightEntry.returnPressed.connect(self.updatePlot)
+        self.frame1.addWidget(self.ylimRightEntry,13,0)
+
         self.widthBackup, self.heightBackup = self.fig.get_size_inches()
         self.widthBackup = self.widthBackup*2.54
         self.heightBackup = self.heightBackup*2.54
-        self.width = StringVar()
-        self.width.set(self.widthBackup)
-        self.widthEntry = Entry(self.frame2,textvariable=self.width,justify="center")
-        self.widthEntry.bind("<Return>", self.updatePlot) 
-        self.widthEntry.bind("<KP_Enter>", self.updatePlot) 
-        self.widthEntry.grid(row=27,column=0)
-        Label(self.frame2,text='height [cm]').grid(row=28,column=0)
-        self.height = StringVar()
-        self.height.set(self.heightBackup)
-        self.heightEntry = Entry(self.frame2,textvariable=self.height,justify="center")
-        self.heightEntry.bind("<Return>", self.updatePlot) 
-        self.heightEntry.bind("<KP_Enter>", self.updatePlot) 
-        self.heightEntry.grid(row=29,column=0)
-        Label(self.frame2,text='file type').grid(row=30,column=0)
-        self.fileType = StringVar()
-        self.fileType.set('svg')
-        OptionMenu(self.frame2, self.fileType, self.fileType.get(), 'svg', 'png', 'eps', 'jpg', 'pdf').grid(row=31,column=0)
-        self.inFrame = Frame(self.frame2)
-        self.inFrame.grid(row=32,column=0)
-        Button(self.inFrame,text='Save',command=self.save).grid(row=0,column=0)
-        Button(self.inFrame,text='Cancel',command=self.cancel).grid(row=0,column=1)
-        self.rowconfigure(0, weight=1)
-        self.grid_columnconfigure(0, weight=1)
+        self.frame1.addWidget(QLabel("Width [cm]:"),26,0)
+        self.widthEntry = QtGui.QLineEdit()
+        self.widthEntry.setAlignment(QtCore.Qt.AlignHCenter)
+        self.widthEntry.setText(str(self.widthBackup))
+        self.widthEntry.returnPressed.connect(self.updatePlot)
+        self.frame1.addWidget(self.widthEntry,27,0)
+        self.frame1.addWidget(QLabel("Height [cm]:"),28,0)
+        self.heightEntry = QtGui.QLineEdit()
+        self.heightEntry.setAlignment(QtCore.Qt.AlignHCenter)
+        self.heightEntry.setText(str(self.heightBackup))
+        self.heightEntry.returnPressed.connect(self.updatePlot)
+        self.frame1.addWidget(self.heightEntry,29,0)
+        self.frame1.addWidget(QLabel("File type:"),30,0)
+        self.filetypeEntry = QtGui.QComboBox()
+        self.fileOptions = ['svg', 'png', 'eps', 'jpg', 'pdf']
+        self.filetypeEntry.addItems(self.fileOptions)
+        self.frame1.addWidget(self.filetypeEntry,31,0)
+        self.inFrame = QtGui.QGridLayout()
+        self.frame1.addLayout(self.inFrame,32,0)
+        cancelButton = QtGui.QPushButton("&Cancel")
+        cancelButton.clicked.connect(self.cancel)
+        self.inFrame.addWidget(cancelButton,0,0)
+        okButton = QtGui.QPushButton("&Save")
+        okButton.clicked.connect(self.save)
+        self.inFrame.addWidget(okButton,0,1)
+        grid.setColumnStretch(0,1)
+        grid.setRowStretch(0,1)
         
     def rename(self,name):
         self.oldMainWindow.rename(name)
         
     def updatePlot(self, *args):
-        self.fig.suptitle(self.titleEntry.get())
-        self.ax.set_xlabel(self.xlabelEntry.get())
-        self.ax.set_ylabel(self.ylabelEntry.get())
-        self.ax.set_xlim((safeEval(self.xlimLeft.get()),safeEval(self.xlimRight.get())))
-        self.ax.set_ylim((safeEval(self.ylimLeft.get()),safeEval(self.ylimRight.get())))
-        self.fig.set_size_inches((int(safeEval(self.width.get()))/2.54,int(safeEval(self.height.get()))/2.54))
+        self.fig.suptitle(self.titleEntry.text())
+        self.ax.set_xlabel(self.xlabelEntry.text())
+        self.ax.set_ylabel(self.ylabelEntry.text())
+        self.ax.set_xlim((safeEval(self.xlimLeftEntry.text()),safeEval(self.xlimRightEntry.text())))
+        self.ax.set_ylim((safeEval(self.ylimLeftEntry.text()),safeEval(self.ylimRightEntry.text())))
+        #self.fig.set_size_inches((int(safeEval(self.widthEntry.text()))/2.54,int(safeEval(self.heightEntry.text()))/2.54))
         self.fig.canvas.draw()
 
     def get_mainWindow(self):
@@ -3719,10 +3944,10 @@ class MainPlotWindow(Frame):
         return self.oldMainWindow.get_current()
         
     def addToView(self):
-        self.pack(fill=BOTH,expand=1)
+        self.show()
 
     def removeFromView(self):
-        self.pack_forget()
+        self.hide()
 
     def kill(self):
         self.oldMainWindow.kill()
@@ -3730,9 +3955,10 @@ class MainPlotWindow(Frame):
         
     def save(self):
         self.updatePlot()
-        f=asksaveasfilename()
+        self.fig.set_size_inches((int(safeEval(self.widthEntry.text()))/2.54,int(safeEval(self.heightEntry.text()))/2.54))
+        f = QtGui.QFileDialog.getSaveFileName(self, 'Save File')
         if f:
-            f=os.path.splitext(f)[0]+'.'+self.fileType.get()
+            f=os.path.splitext(f)[0]+'.'+self.fileOptions[self.filetypeEntry.currentIndex()]
             self.fig.savefig(f)
         self.cancel()
 
@@ -3743,33 +3969,37 @@ class MainPlotWindow(Frame):
         self.ax.set_xlim((self.xlimBackup[0],self.xlimBackup[1]))
         self.ax.set_ylim((self.ylimBackup[0],self.ylimBackup[1]))
         self.fig.set_size_inches((self.widthBackup/2.54,self.heightBackup/2.54))
-        self.mainProgram.closeSaveFigure(self.oldMainWindow)
+        self.father.closeSaveFigure(self.oldMainWindow)
 
 ######################################################################
 
-class FitAllSelectionWindow(Toplevel): #a window to select wich data fields should be saved after fitting
+class FitAllSelectionWindow(QtGui.QWidget): 
     def __init__(self, parent, fitNames):
-        Toplevel.__init__(self)
-        self.parent = parent
-        self.geometry('+0+0')
-        self.transient()
-        self.title("Select output")
-        self.resizable(width=FALSE, height=FALSE)
-        self.frame1 = Frame(self)
-        self.frame1.grid(row=0)
-        self.values = []
+        QtGui.QWidget.__init__(self,parent)
+        self.setWindowFlags(QtCore.Qt.Window | QtCore.Qt.Tool)
+        self.father = parent
+        self.setWindowTitle("Select output")
+        layout = QtGui.QGridLayout(self)
+        grid = QtGui.QGridLayout()
+        layout.addLayout(grid,0,0,1,2)
+        
+        self.ticks = []
         for i in range(len(fitNames)):
-            self.values.append(IntVar())
-            self.values[-1].set(0)
-            Checkbutton(self.frame1, text=fitNames[i], variable=self.values[i]).grid(row=i,column=0,sticky='w')
-        self.frame2 = Frame(self)
-        self.frame2.grid(row=1)
-        Button(self.frame2, text="Fit",command=self.fit).grid(row=0,column=0)
-        Button(self.frame2, text="Cancel",command=self.destroy).grid(row=0,column=1)
+            self.ticks.append(QtGui.QCheckBox(fitNames[i]))
+            grid.addWidget(self.ticks[i],i,0)
+        
+        cancelButton = QtGui.QPushButton("&Cancel")
+        cancelButton.clicked.connect(self.closeEvent)
+        layout.addWidget(cancelButton,1,0)
+        okButton = QtGui.QPushButton("&Ok")
+        okButton.clicked.connect(self.fit)
+        layout.addWidget(okButton,1,1)
+        self.show()
+        self.setFixedSize(self.size())
         
     def fit(self):
         returnVals = []
-        for i in self.values:
-            returnVals.append(i.get())
-        self.parent.fitAllFunc(np.array(returnVals,dtype=bool))
-        self.destroy()
+        for i in self.ticks:
+            returnVals.append(i.isChecked())
+        self.deleteLater()
+        self.father.fitAllFunc(np.array(returnVals,dtype=bool))

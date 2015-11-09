@@ -30,13 +30,6 @@ from six import string_types
 from spectrumFrame import Plot1DFrame
 from safeEval import safeEval
 
-SHIFTPRESSED = False
-
-#Function to set and release the shift flag
-def setShiftFlag(val):
-    global SHIFTPRESSED
-    SHIFTPRESSED = val
-
 #########################################################################
 #the generic data class
 class Spectrum:
@@ -615,7 +608,7 @@ class Spectrum:
         self.ref = copyData.ref
         return returnValue
 
-#########################################################################################################
+##################################################################################################
 #the class from which the 1d data is displayed, the operations which only edit the content of this class are for previewing
 class Current1D(Plot1DFrame):
 
@@ -1348,14 +1341,14 @@ class Current1D(Plot1DFrame):
             oldAxMult = 1000.0**self.axType
         newAxAdd = 0
         if self.spec == 1:
-            if val == 'ppm':
+            if val == 3:
                 newAxAdd = (self.freq-self.ref)/self.ref*1e6
                 newAxMult = 1e6/self.ref
             else:
                 newAxMult = 1.0/(1000.0**val)
         elif self.spec == 0:
             newAxMult = 1000.0**val 
-        if val == 'ppm':
+        if val == 3:
             self.ppm = True
         else:
             self.ppm = False
@@ -1524,6 +1517,7 @@ class Current1D(Plot1DFrame):
         else:
             self.ax.set_xlim(self.xminlim,self.xmaxlim)
         self.ax.set_ylim(self.yminlim,self.ymaxlim)
+
 
 #########################################################################################################
 class CurrentScatter(Current1D):
@@ -2388,14 +2382,14 @@ class CurrentContour(Current1D):
             oldAxMult = 1000.0**self.axType2
         newAxAdd = 0
         if self.spec2 == 1:
-            if val == 'ppm':
+            if val == 3:
                 newAxAdd = (self.freq2-self.ref2)/self.ref2*1e6
                 newAxMult = 1e6/self.ref2
             else:
                 newAxMult = 1.0/(1000.0**val)
         elif self.spec2 == 0:
             newAxMult = 1000.0**val 
-        if val == 'ppm':
+        if val == 3:
             self.ppm2 = True
         else:
             self.ppm2 = False

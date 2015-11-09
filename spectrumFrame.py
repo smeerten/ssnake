@@ -18,19 +18,17 @@
 #along with ssNake. If not, see <http://www.gnu.org/licenses/>.
 
 import numpy as np
-from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from matplotlib.figure import Figure
+from matplotlib.backends.backend_qt4agg import FigureCanvasQTAgg as FigureCanvas
 import matplotlib.gridspec as gridspec
 from mpl_toolkits.mplot3d import Axes3D
-
 import sys
-if sys.version_info >= (3,0):
-    from tkinter import *
-else:
-    from Tkinter import *
+
+from PyQt4 import QtGui, QtCore
+
 import spectrum_classes
 import weakref
-    
+
 #########################################################################################################
 #the class from which the 1d data is displayed, the operations which only edit the content of this class are for previewing
 class Plot1DFrame:
@@ -84,7 +82,8 @@ class Plot1DFrame:
         self.peakPickFunc = None
 
     def scroll(self,event):
-        if spectrum_classes.SHIFTPRESSED:
+        modifiers = QtGui.QApplication.keyboardModifiers()
+        if modifiers == QtCore.Qt.ShiftModifier:
             self.altScroll(event)
         else:
             if self.rightMouse:
@@ -126,7 +125,8 @@ class Plot1DFrame:
                 self.zoomX1 = event.xdata
                 self.zoomY1 = event.ydata
         elif (event.button == 3) and event.dblclick:
-            if spectrum_classes.SHIFTPRESSED:
+            modifiers = QtGui.QApplication.keyboardModifiers()
+            if modifiers == QtCore.Qt.ShiftModifier:
                 self.altReset()
             else:
                 self.plotReset()

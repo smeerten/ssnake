@@ -17,8 +17,11 @@
 #You should have received a copy of the GNU General Public License
 #along with ssNake. If not, see <http://www.gnu.org/licenses/>.
 
+from PyQt4 import QtGui, QtCore
 import math
 import re
+import numpy as np
+from euro import euro
 
 def safeEval(inp):
     env = vars(math).copy()
@@ -28,9 +31,47 @@ def safeEval(inp):
     env["__file__"] = None
     env["__builtins__"] = None
     env["slice"] = slice
-    inp =  re.sub('([0-9]+)[k,K]','\g<1>*1024',inp) #WF: allow 'K' input
+    inp =  re.sub('([0-9]+)[k,K]','\g<1>*1024',str(inp)) #WF: allow 'K' input
     try:
         return eval(inp,env)
     except:
-        print("Could not interpret input")
-        return 0
+        return None
+
+class SliceValidator(QtGui.QValidator):    
+    def validate(self, string, position):
+        string = str(string)
+        try:
+            int(safeEval(string))
+            return (QtGui.QValidator.Acceptable,string,position)
+        except:
+            return (QtGui.QValidator.Intermediate,string,position)
+
+class SliceSpinBox(QtGui.QSpinBox):
+    def __init__(self, parent,minimum,maximum,*args, **kwargs):
+        self.validator = SliceValidator()
+        QtGui.QDoubleSpinBox.__init__(self,parent,*args, **kwargs)
+        self.setMinimum(minimum)
+        self.setMaximum(maximum)
+
+    def validate(self, text, position):
+        return self.validator.validate(text, position)
+
+    def fixup(self, text):
+        return self.validator.fixup(text)
+
+    def valueFromText(self, text):
+        inp = int(safeEval(str(text)))
+        if inp < 0:
+            inp = inp + self.maximum()
+        return inp
+
+    def textFromValue(self, value):
+        inp = int(value)
+        if inp < 0:
+            inp = inp + self.maximum()
+        return str(inp)
+
+class QLabel(QtGui.QLabel):
+    def __init__(self, parent,*args, **kwargs):
+        QtGui.QLabel.__init__(self, parent,*args, **kwargs)
+        self.setAlignment(QtCore.Qt.AlignCenter)
