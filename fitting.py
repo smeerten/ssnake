@@ -101,7 +101,6 @@ class RelaxWindow(QtGui.QWidget):
 #################################################################################   
 class RelaxFrame(Plot1DFrame): 
     def __init__(self, rootwindow,fig,canvas,current):
-        axAdd=0
         self.ref = current.ref
         self.axType = current.axType
         self.freq = current.freq
@@ -135,34 +134,30 @@ class RelaxFrame(Plot1DFrame):
         differ = 0.05*(maxy-miny) 
         self.yminlim=miny-differ
         self.ymaxlim=maxy+differ
-        axAdd = 0.0
         if self.spec == 1:
             if self.ppm:
-                axAdd = (self.freq-self.ref)/self.ref*1e6
                 axMult = 1e6/self.ref
             else:
                 axMult = 1.0/(1000.0**self.axType)
         elif self.spec == 0:
             axMult = 1000.0**self.axType
-        self.xminlim=min(self.xax*axMult+axAdd)
-        self.xmaxlim=max(self.xax*axMult+axAdd)
+        self.xminlim=min(self.xax*axMult)
+        self.xmaxlim=max(self.xax*axMult)
         self.ax.set_xlim(self.xminlim,self.xmaxlim)
         self.ax.set_ylim(self.yminlim,self.ymaxlim)
 
     def showPlot(self, tmpAx=None, tmpdata=None): 
         self.ax.cla()
-        axAdd = 0.0
         if self.spec == 1:
             if self.ppm:
-                axAdd = (self.freq-self.ref)/self.ref*1e6
                 axMult = 1e6/self.ref
             else:
                 axMult = 1.0/(1000.0**self.axType)
         elif self.spec == 0:
             axMult = 1000.0**self.axType
         if tmpAx is not None:
-            self.ax.plot(tmpAx*axMult+axAdd,tmpdata)
-        self.ax.scatter(self.xax*axMult+axAdd,self.data1D)
+            self.ax.plot(tmpAx*axMult,tmpdata)
+        self.ax.scatter(self.xax*axMult,self.data1D)
         if self.logx==0:
             self.ax.set_xscale('linear')
         else:
@@ -775,7 +770,6 @@ class DiffusionWindow(QtGui.QWidget):
 #################################################################################   
 class DiffusionFrame(Plot1DFrame): 
     def __init__(self, rootwindow,fig,canvas,current):
-        axAdd=0
         self.ref = current.ref
         self.axType = current.axType
         self.freq = current.freq
@@ -809,34 +803,30 @@ class DiffusionFrame(Plot1DFrame):
         differ = 0.05*(maxy-miny) 
         self.yminlim=miny-differ
         self.ymaxlim=maxy+differ
-        axAdd = 0.0
         if self.spec == 1:
             if self.ppm:
-                axAdd = (self.freq-self.ref)/self.ref*1e6
                 axMult = 1e6/self.ref
             else:
                 axMult = 1.0/(1000.0**self.axType)
         elif self.spec == 0:
             axMult = 1000.0**self.axType
-        self.xminlim=min(self.xax*axMult+axAdd)
-        self.xmaxlim=max(self.xax*axMult+axAdd)
+        self.xminlim=min(self.xax*axMult)
+        self.xmaxlim=max(self.xax*axMult)
         self.ax.set_xlim(self.xminlim,self.xmaxlim)
         self.ax.set_ylim(self.yminlim,self.ymaxlim)
 
     def showPlot(self, tmpAx=None, tmpdata=None): 
         self.ax.cla()
-        axAdd = 0.0
         if self.spec == 1:
             if self.ppm:
-                axAdd = (self.freq-self.ref)/self.ref*1e6
                 axMult = 1e6/self.ref
             else:
                 axMult = 1.0/(1000.0**self.axType)
         elif self.spec == 0:
             axMult = 1000.0**self.axType
         if tmpAx is not None:
-            self.ax.plot(tmpAx*axMult+axAdd,tmpdata)
-        self.ax.scatter(self.xax*axMult+axAdd,self.data1D)
+            self.ax.plot(tmpAx*axMult,tmpdata)
+        self.ax.scatter(self.xax*axMult,self.data1D)
         if self.logx==0:
             self.ax.set_xscale('linear')
         else:
@@ -1436,17 +1426,15 @@ class PeakDeconvFrame(Plot1DFrame):
         differ = 0.05*(maxy-miny) 
         self.yminlim=miny-differ
         self.ymaxlim=maxy+differ
-        axAdd = 0
         if self.spec == 1:
             if self.current.ppm:
-                axAdd = (self.current.freq-self.current.ref)/self.current.ref*1e6
                 axMult = 1e6/self.current.ref
             else:
                 axMult = 1.0/(1000.0**self.current.axType)
         elif self.spec == 0:
             axMult = 1000.0**self.current.axType
-        self.xminlim=min(self.xax*axMult+axAdd)
-        self.xmaxlim=max(self.xax*axMult+axAdd)
+        self.xminlim=min(self.xax*axMult)
+        self.xmaxlim=max(self.xax*axMult)
         if self.spec > 0 :
             a.set_xlim(self.xmaxlim,self.xminlim)
         else:
@@ -1456,22 +1444,20 @@ class PeakDeconvFrame(Plot1DFrame):
     def showPlot(self, tmpAx=None, tmpdata=None, tmpAx2=[], tmpdata2=[]): 
         a=self.fig.gca()
         a.cla()
-        axAdd = 0
         if self.spec == 1:
             if self.current.ppm:
-                axAdd = (self.current.freq-self.current.ref)/self.current.ref*1e6
                 axMult = 1e6/self.current.ref
             else:
                 axMult = 1.0/(1000.0**self.current.axType)
         elif self.spec == 0:
             axMult = 1000.0**self.current.axType
-        self.line_xdata = self.xax*axMult+axAdd
+        self.line_xdata = self.xax*axMult
         self.line_ydata = self.data1D
-        a.plot(self.xax*axMult+axAdd,self.data1D)
+        a.plot(self.xax*axMult,self.data1D)
         if tmpAx is not None:
-            a.plot(tmpAx*axMult+axAdd,tmpdata)
+            a.plot(tmpAx*axMult,tmpdata)
         for i in range(len(tmpAx2)):
-            a.plot(tmpAx2[i]*axMult+axAdd,tmpdata2[i])
+            a.plot(tmpAx2[i]*axMult,tmpdata2[i])
         if self.spec==0:
             if self.current.axType == 0:
                 a.set_xlabel('Time [s]')
@@ -1505,6 +1491,7 @@ class PeakDeconvFrame(Plot1DFrame):
         self.canvas.draw()
 
     def togglePick(self,var):
+        self.peakPickReset()
         if var==1:
             self.peakPickFunc = lambda pos,self=self: self.pickDeconv(pos) 
             self.peakPick = True
@@ -1514,16 +1501,14 @@ class PeakDeconvFrame(Plot1DFrame):
         
     def pickDeconv(self, pos):
         if self.pickWidth:
-            axAdd = 0
             if self.current.spec == 1:
                 if self.current.ppm:
-                    axAdd = (self.current.freq-self.current.ref)/self.current.ref*1e6
                     axMult = 1e6/self.current.ref
                 else:
                     axMult = 1.0/(1000.0**self.current.axType)
             elif self.current.spec == 0:
                 axMult = 1000.0**self.current.axType
-            width = (2*abs(float(self.rootwindow.paramframe.posEntries[self.pickNum].text())-pos[1])-axAdd)/axMult
+            width = (2*abs(float(self.rootwindow.paramframe.posEntries[self.pickNum].text())-pos[1]))/axMult
             self.rootwindow.paramframe.ampEntries[self.pickNum].setText("%.3g" %(float(self.rootwindow.paramframe.ampEntries[self.pickNum].text())*width))
             self.rootwindow.paramframe.lorEntries[self.pickNum].setText("%.3g" % abs(width))
             self.pickNum += 1
@@ -1553,15 +1538,15 @@ class PeakDeconvParamFrame(QtGui.QWidget):
         self.rootwindow = rootwindow
         grid = QtGui.QGridLayout(self)
         self.setLayout(grid)
-        self.axAdd = 0
         if self.parent.current.spec == 1:
+            self.axAdd = self.parent.current.freq-self.parent.current.ref
             if self.parent.current.ppm:
-                self.axAdd = (self.parent.current.freq-self.parent.current.ref)/self.parent.current.ref*1e6
                 self.axMult = 1e6/self.parent.current.ref
             else:
                 self.axMult = 1.0/(1000.0**self.parent.current.axType)
         elif self.parent.current.spec == 0:
             self.axMult = 1000.0**self.parent.current.axType
+            self.axAdd = 0
         self.frame1 = QtGui.QGridLayout()
         self.frame2 = QtGui.QGridLayout()
         self.frame3 = QtGui.QGridLayout()
@@ -1742,7 +1727,7 @@ class PeakDeconvParamFrame(QtGui.QWidget):
                 gauss = argu[0]
                 argu=np.delete(argu,[0])
             t=np.arange(len(x))/self.parent.current.sw
-            timeSignal = np.exp(1j*2*np.pi*t*((pos-self.axAdd)/self.axMult))/len(x)*np.exp(-np.pi*width*t)*np.exp(-((np.pi*gauss*t)**2)/(4*np.log(2)))
+            timeSignal = np.exp(1j*2*np.pi*t*(pos/self.axMult-self.axAdd))/len(x)*np.exp(-np.pi*width*t)*np.exp(-((np.pi*gauss*t)**2)/(4*np.log(2)))
             testFunc += amp*np.real(np.fft.fftshift(np.fft.fft(timeSignal)))
         testFunc += bgrnd+slope*x
         return testFunc
@@ -1893,7 +1878,7 @@ class PeakDeconvParamFrame(QtGui.QWidget):
         t=np.arange(len(tmpx))/self.parent.current.sw
         for i in range(len(outAmp)):
             x.append(tmpx)
-            timeSignal = np.exp(1j*2*np.pi*t*((outPos[i]-self.axAdd)/self.axMult))/len(tmpx)*np.exp(-np.pi*outWidth[i]*t)*np.exp(-((np.pi*outGauss[i]*t)**2)/(4*np.log(2)))
+            timeSignal = np.exp(1j*2*np.pi*t*(outPos[i]/self.axMult-self.axAdd))/len(tmpx)*np.exp(-np.pi*outWidth[i]*t)*np.exp(-((np.pi*outGauss[i]*t)**2)/(4*np.log(2)))
             y = outAmp[i]*np.real(np.fft.fftshift(np.fft.fft(timeSignal)))
             outCurvePart.append(outCurveBase + y)
             outCurve += y
@@ -1968,16 +1953,14 @@ class TensorDeconvFrame(Plot1DFrame):
         self.data1D = current.getDisplayedData()
         self.current = current
         self.spec = self.current.spec
-        axAdd = 0
         if self.spec == 1:
             if self.current.ppm:
-                axAdd = (self.current.freq-self.current.ref)/self.current.ref*1e6
                 axMult = 1e6/self.current.ref
             else:
                 axMult = 1.0/(1000.0**self.current.axType)
         elif self.spec == 0:
             axMult = 1000.0**self.current.axType
-        self.xax = self.current.xax*axMult+axAdd
+        self.xax = self.current.xax*axMult
         self.plotType=0
         self.rootwindow = rootwindow
         self.pickNum = 0
@@ -2053,6 +2036,7 @@ class TensorDeconvFrame(Plot1DFrame):
         self.canvas.draw()
 
     def togglePick(self,var):
+        self.peakPickReset()
         if var==1:
             self.peakPickFunc = lambda pos,self=self: self.pickDeconv(pos) 
             self.peakPick = True
@@ -2087,6 +2071,10 @@ class TensorDeconvParamFrame(QtGui.QWidget):
         self.cheng = 15
         grid = QtGui.QGridLayout(self)
         self.setLayout(grid)
+        if self.parent.current.spec == 1:
+            self.axAdd = self.parent.current.freq-self.parent.current.ref
+        elif self.parent.current.spec == 0:
+            self.axAdd = 0
         self.frame1 = QtGui.QGridLayout()
         self.optframe = QtGui.QGridLayout()
         self.frame2 = QtGui.QGridLayout()
@@ -2278,7 +2266,7 @@ class TensorDeconvParamFrame(QtGui.QWidget):
         t11=t11*self.multt11
         t22=t22*self.multt22
         t33=t33*self.multt33
-        v=t11+t22+t33
+        v=t11+t22+t33-self.axAdd
         length =len(x)
         t=np.arange(length)/self.parent.current.sw
         final = np.zeros(length)
@@ -2465,7 +2453,7 @@ class TensorDeconvParamFrame(QtGui.QWidget):
                 outWidth[i] = abs(float(self.lorEntries[i].text()))
                 argu.append(outWidth[i])
                 struc.append(False)
-            if not self.gaussTick[i].isChecked():
+            if not self.gaussTicks[i].isChecked():
                 guess.append(abs(float(self.gaussEntries[i].text())))
                 struc.append(True)
             else:
@@ -2640,17 +2628,15 @@ class Quad1DeconvFrame(Plot1DFrame):
         differ = 0.05*(maxy-miny) #amount to add to show all datapoints (10%)
         self.yminlim=miny-differ
         self.ymaxlim=maxy+differ
-        axAdd = 0
         if self.spec == 1:
             if self.current.ppm:
-                axAdd = (self.current.freq-self.current.ref)/self.current.ref*1e6
                 axMult = 1e6/self.current.ref
             else:
                 axMult = 1.0/(1000.0**self.current.axType)
         elif self.spec == 0:
             axMult = 1000.0**self.current.axType
-        self.xminlim=min(self.xax*axMult+axAdd)
-        self.xmaxlim=max(self.xax*axMult+axAdd)
+        self.xminlim=min(self.xax*axMult)
+        self.xmaxlim=max(self.xax*axMult)
         if self.spec > 0 :
             self.ax.set_xlim(self.xmaxlim,self.xminlim)
         else:
@@ -2659,22 +2645,20 @@ class Quad1DeconvFrame(Plot1DFrame):
         
     def showPlot(self, tmpAx=None, tmpdata=None, tmpAx2=[], tmpdata2=[]): 
         self.ax.cla()
-        axAdd = 0
         if self.spec == 1:
             if self.current.ppm:
-                axAdd = (self.current.freq-self.current.ref)/self.current.ref*1e6
                 axMult = 1e6/self.current.ref
             else:
                 axMult = 1.0/(1000.0**self.current.axType)
         elif self.spec == 0:
             axMult = 1000.0**self.current.axType
-        self.line_xdata = self.xax*axMult+axAdd
+        self.line_xdata = self.xax*axMult
         self.line_ydata = self.data1D
-        self.ax.plot(self.xax*axMult+axAdd,self.data1D)
+        self.ax.plot(self.xax*axMult,self.data1D)
         if tmpAx is not None:
-            self.ax.plot(tmpAx*axMult+axAdd,tmpdata)
+            self.ax.plot(tmpAx*axMult,tmpdata)
         for i in range(len(tmpAx2)):
-            self.ax.plot(tmpAx2[i]*axMult+axAdd,tmpdata2[i])
+            self.ax.plot(tmpAx2[i]*axMult,tmpdata2[i])
         if self.spec==0:
             if self.current.axType == 0:
                 self.ax.set_xlabel('Time [s]')
@@ -2719,6 +2703,10 @@ class Quad1DeconvParamFrame(QtGui.QWidget):
         self.cheng = 15
         grid = QtGui.QGridLayout(self)
         self.setLayout(grid)
+        if self.parent.current.spec == 1:
+            self.axAdd = self.parent.current.freq-self.parent.current.ref
+        elif self.parent.current.spec == 0:
+            self.axAdd = 0
         self.frame1 = QtGui.QGridLayout()
         self.optframe = QtGui.QGridLayout()
         self.frame2 = QtGui.QGridLayout()
@@ -2893,6 +2881,7 @@ class Quad1DeconvParamFrame(QtGui.QWidget):
         m=np.arange(-I,I)
         v=[]
         weights=[]
+        pos = pos - self.axAdd
         for i in m:
             tmp = (cq/(4*I*(2*I-1))*(I*(I+1)-3*(i+1)**2))-(cq/(4*I*(2*I-1))*(I*(I+1)-3*(i)**2))
             v=np.append(v,tmp*(self.angleStuff1-eta*self.angleStuff2)+pos)
@@ -3244,6 +3233,7 @@ class Quad2StaticDeconvParamFrame(Quad1DeconvParamFrame):
         self.angleStuff3 = -1/2.0*np.cos(theta)**2+1/3.0+(-3/8.0*np.cos(theta)**4+3/4.0*np.cos(theta)**2-3/8.0)*np.cos(2*phi)**2
 
     def tensorFunc(self, x, I, pos, cq, eta, width, gauss):
+        pos = pos - self.axAdd
         v = -cq**2/(6.0*self.parent.current.freq)*(I*(I+1)-3/4.0)*(self.angleStuff1+self.angleStuff2*eta+self.angleStuff3*eta**2)+pos
         length =len(x)
         t=np.arange(length)/self.parent.current.sw
@@ -3347,6 +3337,10 @@ class Quad2StaticCzjzekParamFrame(QtGui.QWidget):
         self.cheng = 15
         grid = QtGui.QGridLayout(self)
         self.setLayout(grid)
+        if self.parent.current.spec == 1:
+            self.axAdd = self.parent.current.freq-self.parent.current.ref
+        elif self.parent.current.spec == 0:
+            self.axAdd = 0
         self.frame1 = QtGui.QGridLayout()
         self.optframe = QtGui.QGridLayout()
         self.frame2 = QtGui.QGridLayout()
@@ -3540,6 +3534,7 @@ class Quad2StaticCzjzekParamFrame(QtGui.QWidget):
         self.lib = np.apply_along_axis(self.bincounting,2,x1,self.weight,length)
 
     def tensorFunc(self,sigma,d,pos,width,gauss):
+        pos = pos - self.axAdd
         cq = self.cq
         eta = self.eta
         czjzek = cq**(d-1)*eta/(np.sqrt(2*np.pi)*sigma)*(1-eta**2/9.0)*np.exp(-cq**2/(2.0*sigma**2)*(1+eta**2/3.0))

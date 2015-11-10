@@ -109,8 +109,8 @@ class MainProgram(QtGui.QMainWindow):
                 self.macrostopAct.setEnabled(False)
                 self.macrostartAct.setEnabled(True)
             else:
-                self.macrostopAct.setEnabled(False)
-                self.macrostartAct.setEnabled(True)
+                self.macrostopAct.setEnabled(True)
+                self.macrostartAct.setEnabled(False)
             self.savemenu.menuAction().setEnabled(True)
             self.workspacemenu.menuAction().setEnabled(True)
         elif isinstance(self.mainWindow, fit.MainPlotWindow):
@@ -165,9 +165,9 @@ class MainProgram(QtGui.QMainWindow):
         self.macros[givenName] = []
         self.mainWindow.redoMacro = []
         self.mainWindow.currentMacro = givenName
-        action1 = self.macrolistmenu.add_command(label=givenName,command=lambda name=givenName: self.runMacro(name))
-        action2 = self.macrosavemenu.add_command(label=givenName,command=lambda name=givenName: self.saveMacro(name))
-        action3 = self.macrodeletemenu.add_command(label=givenName,command=lambda name=givenName: self.deleteMacro(name))
+        action1 = self.macrolistmenu.addAction(givenName,lambda name=givenName: self.runMacro(name))
+        action2 = self.macrosavemenu.addAction(givenName,lambda name=givenName: self.saveMacro(name))
+        action3 = self.macrodeletemenu.addAction(givenName,lambda name=givenName: self.deleteMacro(name))
         self.macroActions[givenName] = [action1,action2,action3]
         self.menuCheck()
 
@@ -690,7 +690,7 @@ class MainProgram(QtGui.QMainWindow):
 
     def closeEvent(self, event):
         quit_msg = "Are you sure you want to exit the program?"
-        reply = QtGui.QMessageBox.question(self, 'Message', 
+        reply = QtGui.QMessageBox.question(self, 'Close', 
                                            quit_msg, QtGui.QMessageBox.Yes, QtGui.QMessageBox.No)
         if reply == QtGui.QMessageBox.Yes:
             event.accept()
@@ -1460,7 +1460,6 @@ class SideFrame(QtGui.QWidget):
                 self.frame1.addWidget(QLabel("D"+str(num+1),self),num*2,1+offset)
                 self.entries.append(SliceSpinBox(self,0,self.shape[num]-1))
                 self.frame1.addWidget(self.entries[num],num*2+1,1+offset)
-                self.entries[num].valueChanged.connect(lambda event=None,num=num: self.getSlice(event,num))
                 if not self.plotIs2D:
                     if num < current.axes:
                         self.entries[num].setValue(current.locList[num])
@@ -1477,6 +1476,7 @@ class SideFrame(QtGui.QWidget):
                         self.entries[num].setValue(current.locList[num-2])
                     else:
                         self.entries[num].setValue(current.locList[num-1])
+                self.entries[num].valueChanged.connect(lambda event=None,num=num: self.getSlice(event,num))
             if isinstance(current, (sc.CurrentStacked,sc.CurrentArrayed,sc.CurrentSkewed)):
                 if current.stackBegin is not None:
                     from2D = current.stackBegin
@@ -1902,6 +1902,7 @@ class PhaseWindow(QtGui.QWidget):
         self.available = False
         self.zeroScale.setValue(round(self.zeroVal/180.0*self.RESOLUTION))
         self.available = True
+        self.father.current.setPhaseInter(np.pi*self.zeroVal/180.0,np.pi*self.firstVal/180.0)
 
     def setFirstOrder(self,value, *args):
         if self.available:
@@ -3115,6 +3116,7 @@ class SNWindow(QtGui.QWidget):
             self.maxEntry.setText(str(pos[0]))
             self.father.current.peakPickFunc = lambda pos,self=self: self.picked(pos,0) 
             self.father.current.peakPick = True
+            self.apply()
             
     def checkValues(self, *args): 
         dataLength = self.father.current.data1D.shape[-1]
@@ -3154,10 +3156,11 @@ class SNWindow(QtGui.QWidget):
         elif maximum > dataLength:
             maximum = dataLength
         self.maxEntry.setText(str(maximum))
+        self.apply()
         
     def apply(self):
         dataLength = self.father.current.data1D.shape[-1]
-        inp = safeEval(self.minNoiseVal.get())
+        inp = safeEval(self.minNoiseEntry.text())
         if inp is None:
             print("Not a valid value")
             return
@@ -3166,8 +3169,8 @@ class SNWindow(QtGui.QWidget):
             minimumNoise = 0
         elif minimumNoise > dataLength:
             minimumNoise = dataLength
-        self.minNoiseVal.set(str(minimumNoise))
-        inp = safeEval(self.maxNoiseVal.get())
+        self.minNoiseEntry.setText(str(minimumNoise))
+        inp = safeEval(self.maxNoiseEntry.text())
         if inp is None:
             print("Not a valid value")
             return
@@ -3176,8 +3179,8 @@ class SNWindow(QtGui.QWidget):
             maximumNoise = 0
         elif maximumNoise > dataLength:
             maximumNoise = dataLength
-        self.maxNoiseVal.set(str(maximumNoise))
-        inp = safeEval(self.minVal.get())
+        self.maxNoiseEntry.setText(str(maximumNoise))
+        inp = safeEval(self.minEntry.text())
         if inp is None:
             print("Not a valid value")
             return
@@ -3186,8 +3189,8 @@ class SNWindow(QtGui.QWidget):
             minimum = 0
         elif minimum > dataLength:
             minimum = dataLength
-        self.minVal.set(str(minimum))
-        inp = safeEval(self.maxVal.get())
+        self.minEntry.setText(str(minimum))
+        inp = safeEval(self.maxEntry.text())
         if inp is None:
             print("Not a valid value")
             return
@@ -3226,7 +3229,22 @@ class FWHMWindow(QtGui.QWidget):
         self.maxEntry.setText(str(parent.current.data1D.shape[-1]))
         self.maxEntry.returnPressed.connect(self.checkValues)
         grid.addWidget(self.maxEntry,3,0)
-        grid.addWidget(QLabel("FWHM:"),4,0)
+        if self.father.current.spec == 1:
+            if self.father.current.axType == 0:
+                grid.addWidget(QLabel("FWHM [Hz]:"),4,0)
+            elif self.father.current.axType == 1:
+                grid.addWidget(QLabel("FWHM [kHz]:"),4,0)
+            elif self.father.current.axType == 2:
+                grid.addWidget(QLabel("FWHM [MHz]:"),4,0)
+            elif self.father.current.axType == 3:
+                grid.addWidget(QLabel("FWHM [ppm]:"),4,0)
+        else:
+            if self.father.current.axType == 0:
+                grid.addWidget(QLabel("FWHM [s]:"),4,0)
+            elif self.father.current.axType == 1:
+                grid.addWidget(QLabel("FWHM [ms]:"),4,0)
+            elif self.father.current.axType == 2:
+                grid.addWidget(QLabel(u"FWHM [\u03bcs]:"),4,0)
         self.fwhmEntry = QtGui.QLineEdit()
         self.fwhmEntry.setAlignment(QtCore.Qt.AlignHCenter)
         self.fwhmEntry.setText('0.0')
@@ -3245,11 +3263,11 @@ class FWHMWindow(QtGui.QWidget):
         
     def picked(self,pos,num=0): 
         if num == 0:
-            self.minVal.set(str(pos[0]))
+            self.minEntry.setText(str(pos[0]))
             self.father.current.peakPickFunc = lambda pos,self=self: self.picked(pos,1) 
             self.father.current.peakPick = True
         elif num == 1:
-            self.maxVal.set(str(pos[0]))
+            self.maxEntry.setText(str(pos[0]))
             self.father.current.peakPickFunc = lambda pos,self=self: self.picked(pos,0) 
             self.father.current.peakPick = True
             self.apply()
@@ -3274,6 +3292,7 @@ class FWHMWindow(QtGui.QWidget):
         elif maximum > dataLength:
             maximum = dataLength
         self.maxEntry.setText(str(maximum))
+        self.apply()
         
     def apply(self):
         dataLength = self.father.current.data1D.shape[-1]
@@ -3286,7 +3305,7 @@ class FWHMWindow(QtGui.QWidget):
             minimum = 0
         elif minimum > dataLength:
             minimum = dataLength
-        self.minVal.set(str(minimum))
+        self.minEntry.setText(str(minimum))
         inp = safeEval(self.maxEntry.text())
         if inp is None:
             print("Not a valid value")
@@ -3498,13 +3517,15 @@ class RefWindow(QtGui.QWidget):
             print('Setting ppm is only available for frequency data')
             self.deleteLater()
             return
-        grid.addWidget(QLabel("Frequency:"),0,0)
+        grid.addWidget(QLabel("Frequency [MHz]:"),0,0)
         self.freqEntry = QtGui.QLineEdit()
+        self.freqEntry.setText("%.7f" % (self.father.current.ref*1e-6))
         self.freqEntry.setAlignment(QtCore.Qt.AlignHCenter)
         self.freqEntry.returnPressed.connect(self.preview)
         grid.addWidget(self.freqEntry,1,0)
-        grid.addWidget(QLabel("Reference:"),2,0)
+        grid.addWidget(QLabel("Reference [ppm]:"),2,0)
         self.refEntry = QtGui.QLineEdit()
+        self.refEntry.setText("0.0")
         self.refEntry.setAlignment(QtCore.Qt.AlignHCenter)
         self.refEntry.returnPressed.connect(self.preview)
         grid.addWidget(self.refEntry,3,0)
@@ -3525,8 +3546,8 @@ class RefWindow(QtGui.QWidget):
         ref = safeEval(self.refEntry.text())
         if freq is None or ref is None:
             return
-        self.freqVal.set(str(freq))
-        self.refVal.set(str(ref))
+        self.freqEntry.setText("%.7f" % (freq))
+        self.refEntry.setText(str(ref))
 
     def closeEvent(self, *args):
         self.father.current.peakPickReset()
@@ -3541,13 +3562,14 @@ class RefWindow(QtGui.QWidget):
         if freq is None or ref is None:
             print("Not a valid value")
             return
+        freq = freq*1e6
         self.father.redoList = []
         self.father.undoList.append(self.father.current.setRef(freq/(1.0+ref*1e-6)))
         self.father.menuEnable()
         self.deleteLater()
         
     def picked(self,pos): 
-        self.freqVal.set(str(self.father.current.freq+self.father.current.xax[pos[0]]))
+        self.freqEntry.setText("%.7f" % ((self.father.current.ref+self.father.current.xax[pos[0]])*1e-6))
         self.father.current.peakPickFunc = lambda pos,self=self: self.picked(pos)
         self.father.current.peakPick = True
 

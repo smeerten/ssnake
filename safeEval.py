@@ -52,6 +52,7 @@ class SliceSpinBox(QtGui.QSpinBox):
         QtGui.QDoubleSpinBox.__init__(self,parent,*args, **kwargs)
         self.setMinimum(minimum)
         self.setMaximum(maximum)
+        self.setKeyboardTracking(False)
 
     def validate(self, text, position):
         return self.validator.validate(text, position)
@@ -62,13 +63,13 @@ class SliceSpinBox(QtGui.QSpinBox):
     def valueFromText(self, text):
         inp = int(safeEval(str(text)))
         if inp < 0:
-            inp = inp + self.maximum()
+            inp = inp + self.maximum() +1
         return inp
 
     def textFromValue(self, value):
         inp = int(value)
         if inp < 0:
-            inp = inp + self.maximum()
+            inp = inp + self.maximum() + 1
         return str(inp)
 
 class QLabel(QtGui.QLabel):

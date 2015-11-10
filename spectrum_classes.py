@@ -84,6 +84,9 @@ class Spectrum:
                 self.xaxArray[i]=np.arange(self.data.shape[i])/(self.sw[i])
             elif self.spec[i]==1:
                 self.xaxArray[i]=np.fft.fftshift(np.fft.fftfreq(self.data.shape[i],1.0/self.sw[i]))
+                if self.ref[i] is not None:
+                    self.xaxArray[i] += self.freq[i]-self.ref[i]
+                    
 
     def setXax(self,xax,axes):
         axes = self.checkAxes(axes)
@@ -397,6 +400,7 @@ class Spectrum:
             return None
         oldRef = self.ref[axes]
         self.ref[axes]=float(ref)
+        self.resetXax(axes)
         return lambda self: self.setRef(oldRef,axes)
 
     def setWholeEcho(self,val,axes):
@@ -893,16 +897,14 @@ class Current1D(Plot1DFrame):
         elif(self.plotType==3):
             tmpData = np.abs(tmpData)
         maxPos = np.argmax(tmpData[minP:maxP])
-        axAdd = 0
         if self.spec == 1:
             if self.ppm:
-                axAdd = (self.freq-self.ref)/self.ref*1e6
                 axMult = 1e6/self.ref
             else:
                 axMult = 1.0/(1000.0**self.axType)
         elif self.spec == 0:
             axMult = 1000.0**self.axType
-        x= self.xax*axMult+axAdd
+        x= self.xax*axMult
         maxX = x[minP:maxP][maxPos]
         spline = UnivariateSpline(x, tmpData-tmpData[minP:maxP][maxPos]/2.0, s=0)
         zeroPos = spline.roots()
@@ -957,7 +959,7 @@ class Current1D(Plot1DFrame):
         if self.spec==0:
             self.xax=np.arange(length)/self.sw
         elif self.spec==1:
-            self.xax=np.fft.fftshift(np.fft.fftfreq(length,1.0/self.sw))
+            self.xax=np.fft.fftshift(np.fft.fftfreq(length,1.0/self.sw))+self.freq-self.ref
         self.plotReset()
         self.showFid()
         self.upd()
@@ -1090,10 +1092,8 @@ class Current1D(Plot1DFrame):
         self.previewRemoveList(removeList)
     
     def previewRemoveList(self,removeList):
-        axAdd = 0
         if self.spec == 1:
             if self.ppm:
-                axAdd = (self.freq-self.ref)/self.ref*1e6
                 axMult = 1e6/self.ref
             else:
                 axMult = 1.0/(1000.0**self.axType)
@@ -1102,9 +1102,9 @@ class Current1D(Plot1DFrame):
         self.resetPreviewRemoveList()
         self.removeListLines = []
         for i in range(int(np.floor(len(removeList)/2.0))):
-            self.removeListLines.append(self.ax.axvspan(self.xax[removeList[2*i]]*axMult+axAdd,self.xax[removeList[2*i+1]]*axMult+axAdd,color='r'))
+            self.removeListLines.append(self.ax.axvspan(self.xax[removeList[2*i]]*axMult,self.xax[removeList[2*i+1]]*axMult,color='r'))
         if len(removeList)%2:
-            self.removeListLines.append(self.ax.axvline(self.xax[removeList[-1]]*axMult+axAdd,c='r',linestyle='--'))
+            self.removeListLines.append(self.ax.axvline(self.xax[removeList[-1]]*axMult,c='r',linestyle='--'))
         self.canvas.draw()
 
     def resetPreviewRemoveList(self):
@@ -1330,19 +1330,15 @@ class Current1D(Plot1DFrame):
         return returnVal
 
     def setAxType(self, val):
-        oldAxAdd = 0
         if self.spec == 1:
             if self.ppm:
-                oldAxAdd = (self.freq-self.ref)/self.ref*1e6
                 oldAxMult = 1e6/self.ref
             else:
                 oldAxMult = 1.0/(1000.0**self.axType)
         elif self.spec == 0:
             oldAxMult = 1000.0**self.axType
-        newAxAdd = 0
         if self.spec == 1:
             if val == 3:
-                newAxAdd = (self.freq-self.ref)/self.ref*1e6
                 newAxMult = 1e6/self.ref
             else:
                 newAxMult = 1.0/(1000.0**val)
@@ -1353,8 +1349,8 @@ class Current1D(Plot1DFrame):
         else:
             self.ppm = False
             self.axType = val
-        self.xminlim = (self.xminlim - oldAxAdd) * newAxMult / oldAxMult + newAxAdd
-        self.xmaxlim = (self.xmaxlim - oldAxAdd) * newAxMult / oldAxMult + newAxAdd
+        self.xminlim = self.xminlim * newAxMult / oldAxMult
+        self.xmaxlim = self.xmaxlim * newAxMult / oldAxMult
         self.showFid()
 
     def hilbert(self):
@@ -1383,16 +1379,14 @@ class Current1D(Plot1DFrame):
         if tmpdata is None:
             tmpdata=self.data1D
         self.ax.cla()
-        axAdd = 0
         if self.spec == 1:
             if self.ppm:
-                axAdd = (self.freq-self.ref)/self.ref*1e6
                 axMult = 1e6/self.ref
             else:
                 axMult = 1.0/(1000.0**self.axType)
         elif self.spec == 0:
             axMult = 1000.0**self.axType
-        self.line_xdata = self.xax*axMult+axAdd
+        self.line_xdata = self.xax*axMult
         if old:
             if (self.plotType==0):
                 if self.single:
@@ -1417,9 +1411,9 @@ class Current1D(Plot1DFrame):
         if (extraX is not None):
             for num in range(len(extraX)):
                 if self.single:
-                    self.ax.scatter(extraX[num]*axMult+axAdd,extraY[num],c=extraColor[num])
+                    self.ax.scatter(extraX[num]*axMult,extraY[num],c=extraColor[num])
                 else:
-                    self.ax.plot(extraX[num]*axMult+axAdd,extraY[num],c=extraColor[num])
+                    self.ax.plot(extraX[num]*axMult,extraY[num],c=extraColor[num])
         if (self.plotType==0):
             self.line_ydata = np.real(tmpdata)
             if self.single:
@@ -1500,18 +1494,16 @@ class Current1D(Plot1DFrame):
         if yReset:
             self.yminlim=miny-differ
             self.ymaxlim=maxy+differ
-        axAdd = 0
         if self.spec == 1:
             if self.ppm:
-                axAdd = (self.freq-self.ref)/self.ref*1e6
                 axMult = 1e6/self.ref
             else:
                 axMult = 1.0/(1000.0**self.axType)
         elif self.spec == 0:
             axMult = 1000.0**self.axType
         if xReset:
-            self.xminlim=min(self.xax*axMult+axAdd)
-            self.xmaxlim=max(self.xax*axMult+axAdd)
+            self.xminlim=min(self.xax*axMult)
+            self.xmaxlim=max(self.xax*axMult)
         if self.spec > 0 :
             self.ax.set_xlim(self.xmaxlim,self.xminlim)
         else:
@@ -1533,16 +1525,14 @@ class CurrentScatter(Current1D):
         if tmpdata is None:
             tmpdata=self.data1D
         self.ax.cla()
-        axAdd = 0
         if self.spec == 1:
             if self.ppm:
-                axAdd = (self.freq-self.ref)/self.ref*1e6
                 axMult = 1e6/self.ref
             else:
                 axMult = 1.0/(1000.0**self.axType)
         elif self.spec == 0:
             axMult = 1000.0**self.axType
-        self.line_xdata = self.xax*axMult+axAdd
+        self.line_xdata = self.xax*axMult
         if old:
             if (self.plotType==0):
                 self.ax.scatter(self.line_xdata,np.real(self.data1D),c='k',alpha=0.2)
@@ -1554,7 +1544,7 @@ class CurrentScatter(Current1D):
                 self.ax.scatter(self.line_xdata,np.abs(self.data1D),c='k',alpha=0.2)
         if (extraX is not None):
             for num in range(len(extraX)):
-                self.ax.scatter(extraX[num]*axMult+axAdd,extraY[num],c=extraColor[num])
+                self.ax.scatter(extraX[num]*axMult,extraY[num],c=extraColor[num])
         if (self.plotType==0):
             self.line_ydata = np.real(tmpdata)
             self.ax.scatter(self.line_xdata,np.real(tmpdata),c='b')
@@ -1816,16 +1806,14 @@ class CurrentStacked(Current1D):
         if tmpdata is None:
             tmpdata=self.data1D
         self.ax.cla()
-        axAdd = 0
         if self.spec == 1:
             if self.ppm:
-                axAdd = (self.freq-self.ref)/self.ref*1e6
                 axMult = 1e6/self.ref
             else:
                 axMult = 1.0/(1000.0**self.axType)
         elif self.spec == 0:
             axMult = 1000.0**self.axType
-        self.line_xdata = self.xax*axMult+axAdd
+        self.line_xdata = self.xax*axMult
         if old:
             if (self.plotType==0):
                 for num in range(len(self.data1D)):
@@ -1854,9 +1842,9 @@ class CurrentStacked(Current1D):
         if (extraX is not None):
             for num in range(len(extraY)):
                 if self.single:
-                    self.ax.scatter(extraX[0]*axMult+axAdd,num*self.spacing+extraY[num],c=extraColor[0])
+                    self.ax.scatter(extraX[0]*axMult,num*self.spacing+extraY[num],c=extraColor[0])
                 else:
-                    self.ax.plot(extraX[0]*axMult+axAdd,num*self.spacing+extraY[num],c=extraColor[0])
+                    self.ax.plot(extraX[0]*axMult,num*self.spacing+extraY[num],c=extraColor[0])
         if (self.plotType==0):
             tmpdata = np.real(tmpdata)
         elif (self.plotType==1):
@@ -1928,18 +1916,16 @@ class CurrentStacked(Current1D):
         if yReset:
             self.yminlim=miny-differ
             self.ymaxlim=maxy+differ
-        axAdd = 0
         if self.spec == 1:
             if self.ppm:
-                axAdd = (self.freq-self.ref)/self.ref*1e6
                 axMult = 1e6/self.ref
             else:
                 axMult = 1.0/(1000.0**self.axType)
         elif self.spec == 0:
             axMult = 1000.0**self.axType
         if xReset:
-            self.xminlim=min(self.xax*axMult+axAdd)
-            self.xmaxlim=max(self.xax*axMult+axAdd)
+            self.xminlim=min(self.xax*axMult)
+            self.xmaxlim=max(self.xax*axMult)
         if self.spec > 0 :
             self.ax.set_xlim(self.xmaxlim,self.xminlim)
         else:
@@ -1983,17 +1969,15 @@ class CurrentArrayed(Current1D):
                 self.zmaxlim = duplicateCurrent.zmaxlim
             else:
                 #The z-axes limits are in xax units unlike the x-axes and y-axes limits
-                axAdd = 0
                 if duplicateCurrent.spec == 1:
                     if duplicateCurrent.ppm:
-                        axAdd = (duplicateCurrent.freq-duplicateCurrent.ref)/duplicateCurrent.ref*1e6
                         axMult = 1e6/duplicateCurrent.ref
                     else:
                         axMult = 1.0/(1000.0**duplicateCurrent.axType)
                 elif duplicateCurrent.spec == 0:
                     axMult = 1000.0**duplicateCurrent.axType
-                self.zminlim = (duplicateCurrent.xminlim-axAdd)/axMult
-                self.zmaxlim = (duplicateCurrent.xmaxlim-axAdd)/axMult
+                self.zminlim = (duplicateCurrent.xminlim)/axMult
+                self.zmaxlim = (duplicateCurrent.xmaxlim)/axMult
         Current1D.__init__(self, root,fig,canvas, data, duplicateCurrent)
 
     def startUp(self,xReset=True,yReset=True):
@@ -2168,10 +2152,8 @@ class CurrentArrayed(Current1D):
         else:
             direc = slice(None,None,1) 
         xaxZlims = (self.xax > self.zminlim) & (self.xax < self.zmaxlim)
-        axAdd = 0
         if self.spec == 1:
             if self.ppm:
-                axAdd = (self.freq-self.ref)/self.ref*1e6
                 axMult = 1e6/self.ref
             else:
                 axMult = 1.0/(1000.0**self.axType)
@@ -2188,16 +2170,16 @@ class CurrentArrayed(Current1D):
                 oldData = np.abs(self.data1D)
             for num in range(len(self.data1D)):
                 if self.single:
-                    self.ax.scatter((num*self.spacing+self.xax[xaxZlims])*axMult+axAdd,oldData[num][xaxZlims][direc],c='k',alpha=0.2)
+                    self.ax.scatter((num*self.spacing+self.xax[xaxZlims])*axMult,oldData[num][xaxZlims][direc],c='k',alpha=0.2)
                 else:
-                    self.ax.plot((num*self.spacing+self.xax[xaxZlims])*axMult+axAdd,oldData[num][xaxZlims][direc],c='k',alpha=0.2)
+                    self.ax.plot((num*self.spacing+self.xax[xaxZlims])*axMult,oldData[num][xaxZlims][direc],c='k',alpha=0.2)
         if (extraX is not None):
             extraZlims = (extraX[0] > self.zminlim) & (extraX[0] < self.zmaxlim)
             for num in range(len(extraY)):
                 if self.single:
-                    self.ax.scatter((num*self.spacing+extraX[0][extraZlims])*axMult+axAdd,extraY[num][extraZlims][direc],c=extraColor[0])
+                    self.ax.scatter((num*self.spacing+extraX[0][extraZlims])*axMult,extraY[num][extraZlims][direc],c=extraColor[0])
                 else:
-                    self.ax.plot((num*self.spacing+extraX[0][extraZlims])*axMult+axAdd,extraY[num][extraZlims][direc],c=extraColor[0])
+                    self.ax.plot((num*self.spacing+extraX[0][extraZlims])*axMult,extraY[num][extraZlims][direc],c=extraColor[0])
         if (self.plotType==0):
             tmpdata = np.real(tmpdata)
         elif(self.plotType==1):
@@ -2209,17 +2191,17 @@ class CurrentArrayed(Current1D):
         if self.single:
             for num in range(len(tmpdata)):
                 if (self.plotType==2):
-                    self.ax.scatter((num*self.spacing+self.xax[xaxZlims])*axMult+axAdd,np.imag(tmpdata[num][xaxZlims])[direc],c='r')
-                self.line_xdata = np.append(self.line_xdata,(num*self.spacing+self.xax[xaxZlims])*axMult+axAdd)
+                    self.ax.scatter((num*self.spacing+self.xax[xaxZlims])*axMult,np.imag(tmpdata[num][xaxZlims])[direc],c='r')
+                self.line_xdata = np.append(self.line_xdata,(num*self.spacing+self.xax[xaxZlims])*axMult)
                 self.line_ydata = np.append(self.line_ydata,np.real(tmpdata[num][xaxZlims])[direc])
-                self.ax.scatter((num*self.spacing+self.xax[xaxZlims])*axMult+axAdd,np.real(tmpdata[num][xaxZlims])[direc],c='b')
+                self.ax.scatter((num*self.spacing+self.xax[xaxZlims])*axMult,np.real(tmpdata[num][xaxZlims])[direc],c='b')
         else:
             for num in range(len(tmpdata)):
                 if (self.plotType==2):
-                    self.ax.plot((num*self.spacing+self.xax[xaxZlims])*axMult+axAdd,np.imag(tmpdata[num])[direc],c='r')
-                self.line_xdata = np.append(self.line_xdata,(num*self.spacing+self.xax[xaxZlims])*axMult+axAdd)
+                    self.ax.plot((num*self.spacing+self.xax[xaxZlims])*axMult,np.imag(tmpdata[num])[direc],c='r')
+                self.line_xdata = np.append(self.line_xdata,(num*self.spacing+self.xax[xaxZlims])*axMult)
                 self.line_ydata = np.append(self.line_ydata,np.real(tmpdata[num][xaxZlims])[direc])
-                self.ax.plot((num*self.spacing+self.xax[xaxZlims])*axMult+axAdd,np.real(tmpdata[num][xaxZlims])[direc],c='b')
+                self.ax.plot((num*self.spacing+self.xax[xaxZlims])*axMult,np.real(tmpdata[num][xaxZlims])[direc],c='b')
         if self.spec==0:
             if self.axType == 0:
                 self.ax.set_xlabel('Time [s]')
@@ -2271,17 +2253,15 @@ class CurrentArrayed(Current1D):
             self.ymaxlim=maxy+differ
         if xReset:
             xaxZlims = (self.xax > self.zminlim) & (self.xax < self.zmaxlim)
-            axAdd = 0
             if self.spec == 1:
                 if self.ppm:
-                    axAdd = (self.freq-self.ref)/self.ref*1e6
                     axMult = 1e6/self.ref
                 else:
                     axMult = 1.0/(1000.0**self.axType)
             elif self.spec == 0:
                 axMult = 1000.0**self.axType
-            self.xminlim=min(self.xax[xaxZlims]*axMult+axAdd)
-            self.xmaxlim=(max(self.xax[xaxZlims])+(len(self.data1D)-1)*self.spacing)*axMult+axAdd
+            self.xminlim=min(self.xax[xaxZlims]*axMult)
+            self.xmaxlim=(max(self.xax[xaxZlims])+(len(self.data1D)-1)*self.spacing)*axMult
         self.ax.set_xlim(self.xminlim,self.xmaxlim)
         self.ax.set_ylim(self.yminlim,self.ymaxlim)
 
@@ -2371,19 +2351,15 @@ class CurrentContour(Current1D):
         self.locList = [0]*(len(self.data.data.shape)-2)
         
     def setAxType2(self, val):
-        oldAxAdd = 0
         if self.spec2 == 1:
             if self.ppm2:
-                oldAxAdd = (self.freq2-self.ref2)/self.ref2*1e6
                 oldAxMult = 1e6/self.ref2
             else:
                 oldAxMult = 1.0/(1000.0**self.axType2)
         elif self.spec2 == 0:
             oldAxMult = 1000.0**self.axType2
-        newAxAdd = 0
         if self.spec2 == 1:
             if val == 3:
-                newAxAdd = (self.freq2-self.ref2)/self.ref2*1e6
                 newAxMult = 1e6/self.ref2
             else:
                 newAxMult = 1.0/(1000.0**val)
@@ -2394,8 +2370,8 @@ class CurrentContour(Current1D):
         else:
             self.ppm2 = False
             self.axType2 = val
-        self.yminlim = (self.yminlim - oldAxAdd) * newAxMult / oldAxMult + newAxAdd
-        self.ymaxlim = (self.ymaxlim - oldAxAdd) * newAxMult / oldAxMult + newAxAdd
+        self.yminlim = self.yminlim * newAxMult / oldAxMult
+        self.ymaxlim = self.ymaxlim * newAxMult / oldAxMult
         self.showFid()
         
     def apodPreview(self,lor=None,gauss=None, cos2=None, hamming=None,shift=0.0,shifting=0.0,shiftingAxes=None): #display the 1D data including the apodization function
@@ -2475,27 +2451,23 @@ class CurrentContour(Current1D):
         self.ax.cla()
         self.x_ax.cla()
         self.y_ax.cla()
-        axAdd = 0
         if self.spec == 1:
             if self.ppm:
-                axAdd = (self.freq-self.ref)/self.ref*1e6
                 axMult = 1e6/self.ref
             else:
                 axMult = 1.0/(1000.0**self.axType)
         elif self.spec == 0:
             axMult = 1000.0**self.axType
-        axAdd2 = 0
         if self.spec2 == 1:
             if self.ppm2:
-                axAdd2 = (self.freq2-self.ref2)/self.ref2*1e6
                 axMult2 = 1e6/self.ref2
             else:
                 axMult2 = 1.0/(1000.0**self.axType2)
         elif self.spec2 == 0:
             axMult2 = 1000.0**self.axType2
-        x=self.xax*axMult+axAdd
+        x=self.xax*axMult
         self.line_xdata = x
-        y=self.xax2*axMult2+axAdd2
+        y=self.xax2*axMult2
         X, Y = np.meshgrid(x,y)
         if (self.plotType==0):
             differ=np.amax(np.real(tmpdata))-np.amin(np.real(tmpdata))
@@ -2587,30 +2559,26 @@ class CurrentContour(Current1D):
         self.canvas.draw()
 
     def plotReset(self,xReset=True,yReset=True): #set the plot limits to min and max values
-        axAdd = 0
         if self.spec == 1:
             if self.ppm:
-                axAdd = (self.freq-self.ref)/self.ref*1e6
                 axMult = 1e6/self.ref
             else:
                 axMult = 1.0/(1000.0**self.axType)
         elif self.spec == 0:
             axMult = 1000.0**self.axType
         if xReset:
-            self.xminlim=min(self.xax*axMult+axAdd)
-            self.xmaxlim=max(self.xax*axMult+axAdd)
-        axAdd2 = 0
+            self.xminlim=min(self.xax*axMult)
+            self.xmaxlim=max(self.xax*axMult)
         if self.spec2 == 1:
             if self.ppm2:
-                axAdd2 = (self.freq2-self.ref2)/self.ref2*1e6
                 axMult2 = 1e6/self.ref2
             else:
                 axMult2 = 1.0/(1000.0**self.axType2)
         elif self.spec2 == 0:
             axMult2 = 1000.0**self.axType2
         if yReset:
-            self.yminlim=min(self.xax2*axMult2+axAdd2)
-            self.ymaxlim=max(self.xax2*axMult2+axAdd2)
+            self.yminlim=min(self.xax2*axMult2)
+            self.ymaxlim=max(self.xax2*axMult2)
         if self.spec:
             self.ax.set_xlim(self.xmaxlim,self.xminlim)
         else:
@@ -2628,16 +2596,14 @@ class CurrentContour(Current1D):
                     self.rect[0].remove()
                     self.rect[0]=None
                     self.peakPick = False
-                    axAdd = 0
                     if self.spec == 1:
                         if self.ppm:
-                            axAdd = (self.freq-self.ref)/self.ref*1e6
                             axMult = 1e6/self.ref
                         else:
                             axMult = 1.0/(1000.0**self.axType)
                     elif self.spec == 0:
                         axMult = 1000.0**self.axType
-                    xdata = self.xax*axMult+axAdd
+                    xdata = self.xax*axMult
                     ydata = self.xax2
                     idx = np.argmin(np.abs(xdata-event.xdata))
                     if self.peakPickFunc is not None:
@@ -2871,27 +2837,23 @@ class CurrentSkewed(Current1D):
         if tmpdata is None:
             tmpdata=self.data1D
         self.ax.cla()
-        axAdd = 0
         if self.spec == 1:
             if self.ppm:
-                axAdd = (self.freq-self.ref)/self.ref*1e6
                 axMult = 1e6/self.ref
             else:
                 axMult = 1.0/(1000.0**self.axType)
         elif self.spec == 0:
             axMult = 1000.0**self.axType
-        axAdd2 = 0
         if self.spec2 == 1:
             if self.ppm2:
-                axAdd2 = (self.freq2-self.ref2)/self.ref2*1e6
                 axMult2 = 1e6/self.ref2
             else:
                 axMult2 = 1.0/(1000.0**self.axType2)
         elif self.spec2 == 0:
             axMult2 = 1000.0**self.axType2
-        x=self.xax*axMult+axAdd
+        x=self.xax*axMult
         self.line_xdata = x
-        y=self.xax2*axMult2+axAdd2
+        y=self.xax2*axMult2
         if old:
             if (self.plotType==0):
                 for num in range(len(self.data1D)):
@@ -2907,7 +2869,7 @@ class CurrentSkewed(Current1D):
                     self.ax.plot(x,y[num]*np.ones(len(x)),np.abs(self.data1D[num]),c='k',alpha=0.2)
         if (extraX is not None):
             for num in range(len(extraY)):
-                self.ax.plot(extraX[0]*axMult+axAdd,y[num]*np.ones(len(extraX[0])),extraY[num],c=extraColor[0])
+                self.ax.plot(extraX[0]*axMult,y[num]*np.ones(len(extraX[0])),extraY[num],c=extraColor[0])
         if (self.plotType==0):
             self.line_ydata = np.real(tmpdata[0])
             for num in range(len(tmpdata)):
@@ -2993,30 +2955,26 @@ class CurrentSkewed(Current1D):
         self.canvas.draw()
 
     def plotReset(self,xReset=True,yReset=True): #set the plot limits to min and max values
-        axAdd = 0
         if self.spec == 1:
             if self.ppm:
-                axAdd = (self.freq-self.ref)/self.ref*1e6
                 axMult = 1e6/self.ref
             else:
                 axMult = 1.0/(1000.0**self.axType)
         elif self.spec == 0:
             axMult = 1000.0**self.axType
         if xReset:
-            self.xminlim=min(self.xax*axMult+axAdd)
-            self.xmaxlim=max(self.xax*axMult+axAdd)
-        axAdd2 = 0
+            self.xminlim=min(self.xax*axMult)
+            self.xmaxlim=max(self.xax*axMult)
         if self.spec2 == 1:
             if self.ppm2:
-                axAdd2 = (self.freq2-self.ref2)/self.ref2*1e6
                 axMult2 = 1e6/self.ref2
             else:
                 axMult2 = 1.0/(1000.0**self.axType2)
         elif self.spec2 == 0:
             axMult2 = 1000.0**self.axType2
         if yReset:
-            self.yminlim=min(self.xax2*axMult2+axAdd2)
-            self.ymaxlim=max(self.xax2*axMult2+axAdd2)
+            self.yminlim=min(self.xax2*axMult2)
+            self.ymaxlim=max(self.xax2*axMult2)
         if self.spec:
             self.ax.set_xlim(self.xmaxlim,self.xminlim)
         else:
