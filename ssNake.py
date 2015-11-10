@@ -65,8 +65,8 @@ class MainProgram(QtGui.QMainWindow):
         
         self.workspacemenu = QtGui.QMenu('Workspaces',self)
         self.menubar.addMenu(self.workspacemenu)
-        self.workspacemenu.addAction('Duplicate', self.duplicateWorkspace)
-        self.workspacemenu.addAction('Delete', self.destroyWorkspace)
+        self.workspacemenu.addAction('Duplicate', self.duplicateWorkspace,QtGui.QKeySequence.New)
+        self.workspacemenu.addAction('Delete', self.destroyWorkspace,QtGui.QKeySequence.Close)
         self.workspacemenu.addAction('Rename', self.renameWorkspace)
         self.activemenu = QtGui.QMenu('Active',self)
         self.workspacemenu.addMenu(self.activemenu)
@@ -813,7 +813,7 @@ class Main1DWindow(QtGui.QWidget):
         #the fft drop down menu
         self.fftMenu = QtGui.QMenu("Fourier",self)
         self.menubar.addMenu(self.fftMenu)
-        self.fftMenu.addAction("Fourier transform", self.fourier)
+        self.fftMenu.addAction("Fourier transform", self.fourier, QtCore.Qt.CTRL + QtCore.Qt.Key_F)
         self.fftMenu.addAction("Real Fourier transform", self.realFourier)
         self.fftMenu.addAction("Fftshift", self.fftshift)
         self.fftMenu.addAction("Inv fftshift", self.invFftshift)
