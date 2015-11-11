@@ -44,6 +44,7 @@ class MainProgram(QtGui.QMainWindow):
     def __init__(self):
         QtGui.QMainWindow.__init__(self)
         self.setAttribute(QtCore.Qt.WA_DeleteOnClose)
+        self.setAcceptDrops(True)
         self.mainWindow = None
         self.workspaces = []
         self.workspaceNames = []
@@ -54,7 +55,7 @@ class MainProgram(QtGui.QMainWindow):
         self.menubar = self.menuBar()
         self.filemenu = QtGui.QMenu('File', self)
         self.menubar.addMenu(self.filemenu)
-        self.filemenu.addAction('Open', self.autoLoad,QtGui.QKeySequence.Open)
+        self.filemenu.addAction('Open', self.loadFromMenu,QtGui.QKeySequence.Open)
         self.savemenu = QtGui.QMenu('Save',self)
         self.filemenu.addMenu(self.savemenu)
         self.savefigAct = self.savemenu.addAction('Save figure', self.saveFigure,QtGui.QKeySequence.Print)
@@ -95,7 +96,20 @@ class MainProgram(QtGui.QMainWindow):
         
         self.main_widget.setFocus()
         self.setCentralWidget(self.main_widget)
-        
+
+
+    def dragEnterEvent(self, event):
+        if event.mimeData().hasUrls:
+            event.accept()
+        else:
+            event.ignore()
+
+    def dropEvent(self, event):
+        for url in event.mimeData().urls():
+            path = url.toLocalFile()
+            if os.path.isfile(path):
+                self.autoLoad(path)
+   
     def menuCheck(self):
         if self.mainWindow is None:
             self.savemenu.menuAction().setEnabled(False)
@@ -286,10 +300,14 @@ class MainProgram(QtGui.QMainWindow):
             self.activemenu.addAction(i, lambda i=i: self.changeMainWindow(i))
         self.menuCheck()
 
-    def autoLoad(self):
+    def loadFromMenu(self):
         filePath = str(QtGui.QFileDialog.getOpenFileName(self, 'Open File'))
         if len(filePath)==0:
             return
+        self.autoLoad(filePath)
+        
+        
+    def autoLoad(self,filePath):
         direc = os.path.dirname(filePath)
         filename = os.path.basename(filePath)
         if filename.endswith('.fid') or filename.endswith('.spe'): 
@@ -1815,6 +1833,7 @@ class PhaseWindow(QtGui.QWidget):
     def __init__(self, parent):
         QtGui.QWidget.__init__(self,parent.father)
         self.setWindowFlags(QtCore.Qt.Window | QtCore.Qt.Tool)
+        self.setGeometry(0,0,0,0)
         self.father = parent
         self.zeroVal = 0.0
         self.firstVal = 0.0
@@ -1994,6 +2013,7 @@ class ApodWindow(QtGui.QWidget):
         parent.menuDisable()
         QtGui.QWidget.__init__(self,parent)
         self.setWindowFlags(QtCore.Qt.Window | QtCore.Qt.Tool)
+        self.setGeometry(0,0,0,0)
         self.father = parent
         self.entries = []
         self.ticks = []
@@ -2094,7 +2114,8 @@ class ApodWindow(QtGui.QWidget):
             self.shiftingEntry.returnPressed.connect(self.apodPreview)
             grid.addWidget(self.shiftingEntry,13,1)
             self.shiftingAxes = QtGui.QComboBox()
-            self.shiftingAxes.addItems(list(map(str,np.delete(range(1,self.father.current.data.dim+1),self.father.current.axes))))
+            self.shiftingValues = list(map(str,np.delete(range(1,self.father.current.data.dim+1),self.father.current.axes)))
+            self.shiftingAxes.addItems(self.shiftingValues)
             self.shiftingAxes.currentIndexChanged.connect(self.apodPreview)
             grid.addWidget(self.shiftingAxes,14,1)
             
@@ -2158,7 +2179,7 @@ class ApodWindow(QtGui.QWidget):
         if self.father.current.data.dim > 1:
             shifting = safeEval(self.shiftingEntry.text())
             self.shiftingEntry.setText('%.2f' % shifting)
-            shiftingAxes = int(self.shiftingAxes.currentIndex())
+            shiftingAxes = int(self.shiftingValues[self.shiftingAxes.currentIndex()])-1
         else:
             shiftingAxes = None
         self.available = True
@@ -2193,7 +2214,7 @@ class ApodWindow(QtGui.QWidget):
         shift = safeEval(self.shiftEntry.text())
         if self.father.current.data.dim > 1:
             shifting = safeEval(self.shiftingEntry.text())
-            shiftingAxes = int(self.shiftingAxes.currentIndex())
+            shiftingAxes = int(self.shiftingValues[self.shiftingAxes.currentIndex()])-1
         else:
             shiftingAxes = None
         self.father.redoList = []
@@ -2206,6 +2227,7 @@ class SizeWindow(QtGui.QWidget):
     def __init__(self, parent):
         QtGui.QWidget.__init__(self,parent)
         self.setWindowFlags(QtCore.Qt.Window| QtCore.Qt.Tool)
+        self.setGeometry(0,0,0,0)
         parent.menuDisable()
         self.father = parent
         self.setWindowTitle("Set size")
@@ -2262,6 +2284,7 @@ class SwapEchoWindow(QtGui.QWidget):
     def __init__(self, parent):
         QtGui.QWidget.__init__(self, parent)
         self.setWindowFlags(QtCore.Qt.Window | QtCore.Qt.Tool)
+        self.setGeometry(0,0,0,0)
         self.father = parent
         self.setWindowTitle("Swap echo")
         layout = QtGui.QGridLayout(self)
@@ -2326,6 +2349,7 @@ class ShiftDataWindow(QtGui.QWidget):
     def __init__(self, parent):
         QtGui.QWidget.__init__(self,parent)
         self.setWindowFlags(QtCore.Qt.Window | QtCore.Qt.Tool)
+        self.setGeometry(0,0,0,0)
         self.father = parent
         self.setWindowTitle("Shifting data")
         layout = QtGui.QGridLayout(self)
@@ -2404,6 +2428,7 @@ class DCWindow(QtGui.QWidget):
     def __init__(self, parent):
         QtGui.QWidget.__init__(self,parent)
         self.setWindowFlags(QtCore.Qt.Window| QtCore.Qt.Tool)
+        self.setGeometry(0,0,0,0)
         self.father = parent
         self.setWindowTitle("Offset correction")
         layout = QtGui.QGridLayout(self)
@@ -2526,6 +2551,7 @@ class BaselineWindow(QtGui.QWidget):
     def __init__(self, parent):
         QtGui.QWidget.__init__(self,parent)
         self.setWindowFlags(QtCore.Qt.Window| QtCore.Qt.Tool)
+        self.setGeometry(0,0,0,0)
         self.father = parent
         self.setWindowTitle("Baseline correction")
         layout = QtGui.QGridLayout(self)
@@ -2610,6 +2636,7 @@ class regionWindow(QtGui.QWidget):
     def __init__(self, parent,name):
         QtGui.QWidget.__init__(self,parent)
         self.setWindowFlags(QtCore.Qt.Window| QtCore.Qt.Tool)
+        self.setGeometry(0,0,0,0)
         self.father = parent
         self.setWindowTitle(name)
         layout = QtGui.QGridLayout(self)
@@ -2779,6 +2806,7 @@ class DeleteWindow(QtGui.QWidget):
     def __init__(self, parent):
         QtGui.QWidget.__init__(self,parent)
         self.setWindowFlags(QtCore.Qt.Window| QtCore.Qt.Tool)
+        self.setGeometry(0,0,0,0)
         self.father = parent
         self.setWindowTitle("Delete")
         layout = QtGui.QGridLayout(self)
@@ -2834,6 +2862,7 @@ class SplitWindow(QtGui.QWidget):
     def __init__(self, parent):
         QtGui.QWidget.__init__(self,parent)
         self.setWindowFlags(QtCore.Qt.Window| QtCore.Qt.Tool)
+        self.setGeometry(0,0,0,0)
         self.father = parent
         self.setWindowTitle("Split")
         layout = QtGui.QGridLayout(self)
@@ -2880,6 +2909,7 @@ class ConcatenateWindow(QtGui.QWidget):
     def __init__(self, parent):
         QtGui.QWidget.__init__(self,parent)
         self.setWindowFlags(QtCore.Qt.Window| QtCore.Qt.Tool)
+        self.setGeometry(0,0,0,0)
         self.father = parent
         self.setWindowTitle("Concatenate")
         layout = QtGui.QGridLayout(self)
@@ -2915,6 +2945,7 @@ class InsertWindow(QtGui.QWidget):
     def __init__(self, parent):
         QtGui.QWidget.__init__(self,parent)
         self.setWindowFlags(QtCore.Qt.Window| QtCore.Qt.Tool)
+        self.setGeometry(0,0,0,0)
         self.father = parent
         self.setWindowTitle("Insert")
         layout = QtGui.QGridLayout(self)
@@ -2977,6 +3008,7 @@ class AddWindow(QtGui.QWidget):
     def __init__(self, parent):
         QtGui.QWidget.__init__(self,parent)
         self.setWindowFlags(QtCore.Qt.Window| QtCore.Qt.Tool)
+        self.setGeometry(0,0,0,0)
         self.father = parent
         self.setWindowTitle("Add")
         layout = QtGui.QGridLayout(self)
@@ -3015,6 +3047,7 @@ class SubtractWindow(QtGui.QWidget):
     def __init__(self, parent):
         QtGui.QWidget.__init__(self,parent)
         self.setWindowFlags(QtCore.Qt.Window| QtCore.Qt.Tool)
+        self.setGeometry(0,0,0,0)
         self.father = parent
         self.setWindowTitle("Subtract")
         layout = QtGui.QGridLayout(self)
@@ -3053,6 +3086,7 @@ class SNWindow(QtGui.QWidget):
     def __init__(self, parent):
         QtGui.QWidget.__init__(self,parent)
         self.setWindowFlags(QtCore.Qt.Window| QtCore.Qt.Tool)
+        self.setGeometry(0,0,0,0)
         self.father = parent
         self.setWindowTitle("Signal to noise")
         layout = QtGui.QGridLayout(self)
@@ -3090,7 +3124,7 @@ class SNWindow(QtGui.QWidget):
         cancelButton = QtGui.QPushButton("&Cancel")
         cancelButton.clicked.connect(self.closeEvent)
         layout.addWidget(cancelButton,2,0)
-        okButton = QtGui.QPushButton("&Ok")
+        okButton = QtGui.QPushButton("&Fit")
         okButton.clicked.connect(self.apply)
         layout.addWidget(okButton,2,1)
         self.show()
@@ -3212,6 +3246,7 @@ class FWHMWindow(QtGui.QWidget):
     def __init__(self, parent):
         QtGui.QWidget.__init__(self,parent)
         self.setWindowFlags(QtCore.Qt.Window| QtCore.Qt.Tool)
+        self.setGeometry(0,0,0,0)
         self.father = parent
         self.setWindowTitle("FWHM")
         layout = QtGui.QGridLayout(self)
@@ -3252,7 +3287,7 @@ class FWHMWindow(QtGui.QWidget):
         cancelButton = QtGui.QPushButton("&Cancel")
         cancelButton.clicked.connect(self.closeEvent)
         layout.addWidget(cancelButton,2,0)
-        okButton = QtGui.QPushButton("&Ok")
+        okButton = QtGui.QPushButton("&Fit")
         okButton.clicked.connect(self.apply)
         layout.addWidget(okButton,2,1)
         self.show()
@@ -3328,6 +3363,7 @@ class ShearingWindow(QtGui.QWidget):
     def __init__(self, parent):
         QtGui.QWidget.__init__(self,parent)
         self.setWindowFlags(QtCore.Qt.Window| QtCore.Qt.Tool)
+        self.setGeometry(0,0,0,0)
         self.father = parent
         self.setWindowTitle("Shearing")
         layout = QtGui.QGridLayout(self)
@@ -3390,6 +3426,7 @@ class MultiplyWindow(QtGui.QWidget):
     def __init__(self, parent):
         QtGui.QWidget.__init__(self,parent)
         self.setWindowFlags(QtCore.Qt.Window| QtCore.Qt.Tool)
+        self.setGeometry(0,0,0,0)
         self.father = parent
         self.setWindowTitle("Multiply")
         layout = QtGui.QGridLayout(self)
@@ -3441,6 +3478,7 @@ class XaxWindow(QtGui.QWidget):
     def __init__(self, parent):
         QtGui.QWidget.__init__(self,parent)
         self.setWindowFlags(QtCore.Qt.Window| QtCore.Qt.Tool)
+        self.setGeometry(0,0,0,0)
         self.father = parent
         self.setWindowTitle("User defined x-axis")
         layout = QtGui.QGridLayout(self)
@@ -3508,6 +3546,7 @@ class RefWindow(QtGui.QWidget):
     def __init__(self, parent):
         QtGui.QWidget.__init__(self,parent)
         self.setWindowFlags(QtCore.Qt.Window| QtCore.Qt.Tool)
+        self.setGeometry(0,0,0,0)
         self.father = parent
         self.setWindowTitle("Reference")
         layout = QtGui.QGridLayout(self)

@@ -56,7 +56,7 @@ class Spectrum:
             self.resetXax()
         else:
             self.xaxArray = xaxArray
-            
+       
     def checkAxes(self,axes):
         if axes < 0:
             axes = axes + self.dim
@@ -679,7 +679,11 @@ class Current1D(Plot1DFrame):
             self.axes = len(self.data.data.shape)-1
         if (len(self.locList)+1) != self.data.dim:
             self.resetLocList()
-        updateVar = self.data.getSlice(self.axes,self.locList)
+        try:
+            updateVar = self.data.getSlice(self.axes,self.locList)
+        except:
+            self.resetLocList()
+            updateVar = self.data.getSlice(self.axes,self.locList)
         self.data1D = updateVar[0]
         self.freq = updateVar[1]
         self.sw = updateVar[2]
@@ -1640,7 +1644,11 @@ class CurrentStacked(Current1D):
             return False
         if (len(self.locList)+2) != self.data.dim:
             self.resetLocList()
-        updateVar = self.data.getBlock(self.axes,self.axes2,self.locList,self.stackBegin, self.stackEnd, self.stackStep)
+        try:
+            updateVar = self.data.getBlock(self.axes,self.axes2,self.locList,self.stackBegin, self.stackEnd, self.stackStep)
+        except:
+            self.resetLocList()
+            updateVar = self.data.getBlock(self.axes,self.axes2,self.locList,self.stackBegin, self.stackEnd, self.stackStep)
         self.data1D = updateVar[0]
         self.freq = updateVar[1]
         self.freq2 = updateVar[2]
@@ -1994,7 +2002,11 @@ class CurrentArrayed(Current1D):
             return False
         if (len(self.locList)+2) != self.data.dim:
             self.resetLocList()
-        updateVar = self.data.getBlock(self.axes,self.axes2,self.locList,self.stackBegin, self.stackEnd, self.stackStep)
+        try:
+            updateVar = self.data.getBlock(self.axes,self.axes2,self.locList,self.stackBegin, self.stackEnd, self.stackStep)
+        except:
+            self.resetLocList()
+            updateVar = self.data.getBlock(self.axes,self.axes2,self.locList,self.stackBegin, self.stackEnd, self.stackStep)
         self.data1D = updateVar[0]
         self.freq = updateVar[1]
         self.freq2 = updateVar[2]
@@ -2312,7 +2324,11 @@ class CurrentContour(Current1D):
             return False
         if (len(self.locList)+2) != self.data.dim:
             self.resetLocList()
-        updateVar = self.data.getBlock(self.axes,self.axes2,self.locList)
+        try:
+            updateVar = self.data.getBlock(self.axes,self.axes2,self.locList)
+        except:
+            self.resetLocList()
+            updateVar = self.data.getBlock(self.axes,self.axes2,self.locList)
         self.data1D = updateVar[0]
         self.freq = updateVar[1]
         self.freq2 = updateVar[2]
@@ -2697,7 +2713,11 @@ class CurrentSkewed(Current1D):
             return False
         if (len(self.locList)+2) != self.data.dim:
             self.resetLocList()
-        updateVar = self.data.getBlock(self.axes,self.axes2,self.locList,self.stackBegin, self.stackEnd, self.stackStep)
+        try:
+            updateVar = self.data.getBlock(self.axes,self.axes2,self.locList,self.stackBegin, self.stackEnd, self.stackStep)
+        except:
+            self.resetLocList()
+            updateVar = self.data.getBlock(self.axes,self.axes2,self.locList,self.stackBegin, self.stackEnd, self.stackStep)
         self.data1D = updateVar[0]
         self.freq = updateVar[1]
         self.freq2 = updateVar[2]
