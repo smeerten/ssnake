@@ -3991,6 +3991,7 @@ class FitAllSelectionWindow(QtGui.QWidget):
         layout.addWidget(okButton,1,1)
         self.show()
         self.setFixedSize(self.size())
+        self.setGeometry(0,0,0,0)
         
     def fit(self):
         returnVals = []

@@ -37,6 +37,22 @@ def safeEval(inp):
     except:
         return None
 
+class MyEventFilter(QtCore.QObject):
+    def __init__(self,root,*args):
+        QtCore.QObject.__init__(self,*args)
+        self.root = root
+    
+    def eventFilter(self, receiver, event):
+        if event.type() == QtCore.QEvent.KeyPress:
+            if event.key()==QtCore.Qt.Key_Z:
+                if (event.modifiers() & QtCore.Qt.ControlModifier) and (event.modifiers() & QtCore.Qt.ShiftModifier):
+                    self.root.redo()
+                    return True
+                elif event.modifiers() == (QtCore.Qt.ControlModifier):
+                    self.root.undo()
+                    return True
+        return False
+     
 class SliceValidator(QtGui.QValidator):    
     def validate(self, string, position):
         string = str(string)
