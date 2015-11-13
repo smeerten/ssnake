@@ -1521,7 +1521,7 @@ class PeakDeconvFrame(Plot1DFrame):
             right = pos[0] + 10
             if right >= len(self.data1D) :
                 right = len(self.data1D)-1
-            self.rootwindow.paramframe.ampEntries[self.pickNum].setText("%.3g" %(pos[2]*0.5*np.pi))
+            self.rootwindow.paramframe.ampEntries[self.pickNum].setText("%.3g" %(pos[2]*np.pi*0.5))
             if self.pickNum < 10:
                 self.rootwindow.paramframe.numExp.setCurrentIndex(self.pickNum)
                 self.rootwindow.paramframe.changeNum()
@@ -1591,7 +1591,7 @@ class PeakDeconvParamFrame(QtGui.QWidget):
         self.numExp.currentIndexChanged.connect(self.changeNum)
         self.frame3.addWidget(self.numExp,0,0,1,2)
         self.frame3.addWidget(QLabel("Position:"),1,0,1,2)
-        self.frame3.addWidget(QLabel("Amplitude:"),1,2,1,2)
+        self.frame3.addWidget(QLabel("Integral:"),1,2,1,2)
         self.frame3.addWidget(QLabel("Lorentz [Hz]:"),1,4,1,2)
         self.frame3.addWidget(QLabel("Gauss [Hz]:"),1,6,1,2)
         self.frame3.setColumnStretch(20,1)
@@ -1727,7 +1727,8 @@ class PeakDeconvParamFrame(QtGui.QWidget):
                 gauss = argu[0]
                 argu=np.delete(argu,[0])
             t=np.arange(len(x))/self.parent.current.sw
-            timeSignal = np.exp(1j*2*np.pi*t*(pos/self.axMult-self.axAdd))/len(x)*np.exp(-np.pi*width*t)*np.exp(-((np.pi*gauss*t)**2)/(4*np.log(2)))
+            timeSignal = np.exp(1j*2*np.pi*t*(pos/self.axMult-self.axAdd))*np.exp(-np.pi*width*t)*np.exp(-((np.pi*gauss*t)**2)/(4*np.log(2)))*2/self.parent.current.sw
+            timeSignal[0] = timeSignal[0]*0.5
             testFunc += amp*np.real(np.fft.fftshift(np.fft.fft(timeSignal)))
         testFunc += bgrnd+slope*x
         return testFunc
@@ -1878,7 +1879,8 @@ class PeakDeconvParamFrame(QtGui.QWidget):
         t=np.arange(len(tmpx))/self.parent.current.sw
         for i in range(len(outAmp)):
             x.append(tmpx)
-            timeSignal = np.exp(1j*2*np.pi*t*(outPos[i]/self.axMult-self.axAdd))/len(tmpx)*np.exp(-np.pi*outWidth[i]*t)*np.exp(-((np.pi*outGauss[i]*t)**2)/(4*np.log(2)))
+            timeSignal = np.exp(1j*2*np.pi*t*(outPos[i]/self.axMult-self.axAdd))*np.exp(-np.pi*outWidth[i]*t)*np.exp(-((np.pi*outGauss[i]*t)**2)/(4*np.log(2)))*2/self.parent.current.sw
+            timeSignal[0] = timeSignal[0]*0.5
             y = outAmp[i]*np.real(np.fft.fftshift(np.fft.fft(timeSignal)))
             outCurvePart.append(outCurveBase + y)
             outCurve += y
@@ -2100,21 +2102,21 @@ class TensorDeconvParamFrame(QtGui.QWidget):
         self.frame1.addWidget(self.pickTick,1,1)
         self.frame1.setColumnStretch(10,1)
         self.frame1.setAlignment(QtCore.Qt.AlignTop)
-        self.optframe.addWidget(QLabel("Cheng"),0,0)
+        self.optframe.addWidget(QLabel("Cheng:"),0,0)
         self.chengEntry = QtGui.QLineEdit()
         self.chengEntry.setAlignment(QtCore.Qt.AlignHCenter)
         self.chengEntry.setText(str(self.cheng))
         self.optframe.addWidget(self.chengEntry,1,0)
         self.optframe.setColumnStretch(10,1)
         self.optframe.setAlignment(QtCore.Qt.AlignTop)
-        self.frame2.addWidget(QLabel("Bgrnd"),0,0,1,2)
+        self.frame2.addWidget(QLabel("Bgrnd:"),0,0,1,2)
         self.bgrndTick = QtGui.QCheckBox('')
         self.frame2.addWidget(self.bgrndTick,1,0)
         self.bgrndEntry = QtGui.QLineEdit()
         self.bgrndEntry.setAlignment(QtCore.Qt.AlignHCenter)
         self.bgrndEntry.setText("0.0")
         self.frame2.addWidget(self.bgrndEntry,1,1)
-        self.frame2.addWidget(QLabel("Slope"),2,0,1,2)
+        self.frame2.addWidget(QLabel("Slope:"),2,0,1,2)
         self.slopeTick = QtGui.QCheckBox('')
         self.frame2.addWidget(self.slopeTick,3,0)
         self.slopeEntry = QtGui.QLineEdit()
@@ -2127,12 +2129,12 @@ class TensorDeconvParamFrame(QtGui.QWidget):
         self.numExp.addItems(['1','2','3','4','5','6','7','8','9','10'])
         self.numExp.currentIndexChanged.connect(self.changeNum)
         self.frame3.addWidget(self.numExp,0,0,1,2)
-        self.frame3.addWidget(QLabel("T11"),1,0,1,2)
-        self.frame3.addWidget(QLabel("T22"),1,2,1,2)
-        self.frame3.addWidget(QLabel("T33"),1,4,1,2)
-        self.frame3.addWidget(QLabel("Amplitude"),1,6,1,2)
-        self.frame3.addWidget(QLabel("Lorentz [Hz]"),1,8,1,2)
-        self.frame3.addWidget(QLabel("Gauss [Hz]"),1,10,1,2)
+        self.frame3.addWidget(QLabel("T11:"),1,0,1,2)
+        self.frame3.addWidget(QLabel("T22:"),1,2,1,2)
+        self.frame3.addWidget(QLabel("T33:"),1,4,1,2)
+        self.frame3.addWidget(QLabel("Integral:"),1,6,1,2)
+        self.frame3.addWidget(QLabel("Lorentz [Hz]:"),1,8,1,2)
+        self.frame3.addWidget(QLabel("Gauss [Hz]:"),1,10,1,2)
         self.frame3.setColumnStretch(20,1)
         self.frame3.setAlignment(QtCore.Qt.AlignTop)
         self.t11Entries = []
@@ -2278,6 +2280,7 @@ class TensorDeconvParamFrame(QtGui.QWidget):
         apod = np.exp(-np.pi*lor*t)*np.exp(-((np.pi*gauss*t)**2)/(4*np.log(2)))
         apod[-1:-(len(apod)/2+1):-1]=apod[:len(apod)/2]
         I=np.real(np.fft.fft(np.fft.ifft(final)*apod))
+        I = I/self.parent.current.sw*len(I)
         return I
                 
     def fitFunc(self, param, x, y):
@@ -2763,7 +2766,7 @@ class Quad1DeconvParamFrame(QtGui.QWidget):
         self.frame3.addWidget(QLabel("Pos:"),1,0,1,2)
         self.frame3.addWidget(QLabel("Cq [MHz]:"),1,2,1,2)
         self.frame3.addWidget(QLabel(u"\u03b7:"),1,4,1,2)
-        self.frame3.addWidget(QLabel("Amplitude:"),1,6,1,2)
+        self.frame3.addWidget(QLabel("integral:"),1,6,1,2)
         self.frame3.addWidget(QLabel("Lorentz [Hz]:"),1,8,1,2)
         self.frame3.addWidget(QLabel("Gauss [Hz]:"),1,10,1,2)
         self.frame3.setColumnStretch(20,1)
@@ -2897,6 +2900,7 @@ class Quad1DeconvParamFrame(QtGui.QWidget):
         apod = np.exp(-np.pi*width*t)*np.exp(-((np.pi*gauss*t)**2)/(4*np.log(2)))
         apod[-1:-(len(apod)/2+1):-1]=apod[:len(apod)/2]
         inten=np.real(np.fft.fft(np.fft.ifft(final)*apod))
+        inten = inten/self.parent.current.sw*len(inten)
         return inten
                 
     def fitFunc(self, param, x, y):
@@ -3130,7 +3134,7 @@ class Quad1DeconvParamFrame(QtGui.QWidget):
         if not self.checkInputs():
             print("One of the inputs is not valid")
             return
-        numExp = self.numExp.currentIndex()
+        numExp = self.numExp.currentIndex()+1
         bgrnd = float(self.bgrndEntry.text())
         slope = float(self.slopeEntry.text())
         pos = np.zeros(numExp)
@@ -3246,6 +3250,7 @@ class Quad2StaticDeconvParamFrame(Quad1DeconvParamFrame):
         apod = np.exp(-np.pi*width*t)*np.exp(-((np.pi*gauss*t)**2)/(4*np.log(2)))
         apod[-1:-(len(apod)/2+1):-1]=apod[:len(apod)/2]
         inten=np.real(np.fft.fft(np.fft.ifft(final)*apod))
+        inten = inten/self.parent.current.sw/len(inten)
         return inten
     
 #################################################################################
@@ -3365,7 +3370,7 @@ class Quad2StaticCzjzekParamFrame(QtGui.QWidget):
         self.chengEntry.setAlignment(QtCore.Qt.AlignHCenter)
         self.chengEntry.setText(str(self.cheng))
         self.optframe.addWidget(self.chengEntry,1,0)
-        self.optframe.addWidget(QLabel("I"),0,1)
+        self.optframe.addWidget(QLabel("I:"),0,1)
         self.IEntry = QtGui.QComboBox()
         self.IEntry.addItems(self.Ioptions)
         self.IEntry.setCurrentIndex(1)
@@ -3409,7 +3414,7 @@ class Quad2StaticCzjzekParamFrame(QtGui.QWidget):
         self.frame3.addWidget(QLabel("d:"),1,0)
         self.frame3.addWidget(QLabel("Pos:"),1,1,1,2)
         self.frame3.addWidget(QLabel(u"\u03c3 [MHz]:"),1,3,1,2)
-        self.frame3.addWidget(QLabel("Amplitude:"),1,5,1,2)
+        self.frame3.addWidget(QLabel("Integral:"),1,5,1,2)
         self.frame3.addWidget(QLabel("Lorentz [Hz]:"),1,7,1,2)
         self.frame3.addWidget(QLabel("Gauss [Hz]:"),1,9,1,2)
         self.frame3.setColumnStretch(20,1)
@@ -3485,11 +3490,14 @@ class Quad2StaticCzjzekParamFrame(QtGui.QWidget):
 
     def setGrid(self, *args):
         inp = safeEval(self.cqGridEntry.text())
-        if inp is not None:
-            self.cqGridEntry(str(int(inp)))
+        if inp is None:
+            return False
+        self.cqGridEntry.setText(str(int(inp)))
         inp = safeEval(self.etaGridEntry.text())
-        if inp is not None:
-            self.etaGridEntry(str(int(inp)))
+        if inp is None:
+            return False
+        self.etaGridEntry.setText(str(int(inp)))
+        return True
         
     def changeNum(self,*args):
         val = self.numExp.currentIndex()+1
@@ -3543,7 +3551,9 @@ class Quad2StaticCzjzekParamFrame(QtGui.QWidget):
         t=np.arange(len(fid))/self.parent.current.sw
         apod = np.exp(-np.pi*width*t)*np.exp(-((np.pi*gauss*t)**2)/(4*np.log(2)))
         apod[-1:-(len(apod)/2+1):-1]=apod[:len(apod)/2]
-        return scipy.ndimage.interpolation.shift(np.real(np.fft.fft(fid*apod)),len(fid)*pos/self.parent.current.sw)
+        spectrum = scipy.ndimage.interpolation.shift(np.real(np.fft.fft(fid*apod)),len(fid)*pos/self.parent.current.sw)
+        spectrum = spectrum/self.parent.current.sw*len(spectrum)
+        return spectrum
     
     def checkInputs(self):
         numExp = self.numExp.currentIndex()+1
@@ -3873,13 +3883,13 @@ class MainPlotWindow(QtGui.QWidget):
         self.xlimRightEntry.returnPressed.connect(self.updatePlot)
         self.frame1.addWidget(self.xlimRightEntry,9,0)
         self.ylimBackup = self.ax.get_ylim()
-        self.frame1.addWidget(QLabel("y-limit left:"),10,0)
+        self.frame1.addWidget(QLabel("y-limit down:"),10,0)
         self.ylimLeftEntry = QtGui.QLineEdit()
         self.ylimLeftEntry.setAlignment(QtCore.Qt.AlignHCenter)
         self.ylimLeftEntry.setText(str(self.ylimBackup[0]))
         self.ylimLeftEntry.returnPressed.connect(self.updatePlot)
         self.frame1.addWidget(self.ylimLeftEntry,11,0)
-        self.frame1.addWidget(QLabel("y-limit right:"),12,0)
+        self.frame1.addWidget(QLabel("y-limit up:"),12,0)
         self.ylimRightEntry = QtGui.QLineEdit()
         self.ylimRightEntry.setAlignment(QtCore.Qt.AlignHCenter)
         self.ylimRightEntry.setText(str(self.ylimBackup[1]))
@@ -3955,7 +3965,7 @@ class MainPlotWindow(QtGui.QWidget):
         if f:
             f=os.path.splitext(f)[0]+'.'+self.fileOptions[self.filetypeEntry.currentIndex()]
             self.fig.savefig(f)
-        self.cancel()
+            self.cancel()
 
     def cancel(self):
         self.fig.suptitle(self.titleBackup)

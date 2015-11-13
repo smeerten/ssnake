@@ -109,8 +109,7 @@ class MainProgram(QtGui.QMainWindow):
     def dropEvent(self, event):
         for url in event.mimeData().urls():
             path = url.toLocalFile()
-            if os.path.isfile(path):
-                self.autoLoad(path)
+            self.autoLoad(path)
    
     def menuCheck(self):
         if self.mainWindow is None:
@@ -140,18 +139,22 @@ class MainProgram(QtGui.QMainWindow):
             self.workspacemenu.menuAction().setEnabled(True)
             self.macromenu.menuAction().setEnabled(False)
 
-    def askName(self):
+    def askName(self,filePath=None):
+        if filePath is None:
+            message = 'Spectrum name'
+        else:
+            message = 'Spectrum name for: ' + filePath
         count = 0
         name = 'spectrum'+str(count)
         while name in self.workspaceNames:
             count += 1
             name = 'spectrum'+str(count)
-        givenName, ok = QtGui.QInputDialog.getText(self, 'Spectrum name', 'Name:',text=name)
+        givenName, ok = QtGui.QInputDialog.getText(self, message, 'Name:',text=name)
         if not ok:
             return
         while (givenName in self.workspaceNames) or givenName=='':
             print('Name exists')
-            givenName, ok = QtGui.QInputDialog.getText(self, 'Spectrum name', 'Name:',text=name)
+            givenName, ok = QtGui.QInputDialog.getText(self, message, 'Name:',text=name)
             if not ok:
                 return
         return givenName
@@ -303,35 +306,41 @@ class MainProgram(QtGui.QMainWindow):
         self.menuCheck()
 
     def loadFromMenu(self):
-        filePath = str(QtGui.QFileDialog.getOpenFileName(self, 'Open File'))
+        filePath = str(QtGui.QFileDialog.getOpenFileName(self,'Open File'))
         if len(filePath)==0:
             return
         self.autoLoad(filePath)
         
-        
     def autoLoad(self,filePath):
-        direc = os.path.dirname(filePath)
-        filename = os.path.basename(filePath)
-        if filename.endswith('.fid') or filename.endswith('.spe'): 
-            self.loading(4,filePath)
-        elif filename.endswith('.json') or filename.endswith('.JSON'):
-            self.loading(5,filePath)
-        elif filename.endswith('.mat') or filename.endswith('.MAT'):
-            self.loading(6,filePath)
-        elif os.path.exists(direc+os.path.sep+'procpar') and os.path.exists(direc+os.path.sep+'fid'):
+        if os.path.isfile(filePath):
+            filename = os.path.basename(filePath)
+            if filename.endswith('.fid') or filename.endswith('.spe'): 
+                self.loading(4,filePath)
+                return
+            elif filename.endswith('.json') or filename.endswith('.JSON'):
+                self.loading(5,filePath)
+                return
+            elif filename.endswith('.mat') or filename.endswith('.MAT'):
+                self.loading(6,filePath)
+                return
+            filePath = os.path.dirname(filePath)
+        direc = filePath
+        if os.path.exists(direc+os.path.sep+'procpar') and os.path.exists(direc+os.path.sep+'fid'):
             self.loading(0,filePath)
+            return
         elif os.path.exists(direc+os.path.sep+'acqus') and (os.path.exists(direc+os.path.sep+'fid') or os.path.exists(direc+os.path.sep+'ser')):
             self.loading(1,filePath)
+            return
         elif os.path.exists(direc+os.path.sep+'acq') and os.path.exists(direc+os.path.sep+'data'):
             self.loading(2,filePath)
+            return
         elif os.path.exists(direc+os.path.sep+'acqu.par'):
             dirFiles = os.listdir(direc)
             files2D = [x for x in dirFiles if '.2d' in x]
             files1D = [x for x in dirFiles if '.1d' in x]
             if len(files2D)!=0 or len(files1D)!=0:
                 self.loading(3,filePath)
-        else:
-            return
+                return
 
     def dataFromFit(self, data, freq , sw , spec, wholeEcho, ref, xaxArray,axes):
         name = self.askName()
@@ -346,7 +355,7 @@ class MainProgram(QtGui.QMainWindow):
         self.changeMainWindow(name)
 
     def loading(self,num,filePath):
-        name = self.askName()
+        name = self.askName(filePath)
         if name is None:
             return
         if num==0:
@@ -371,7 +380,7 @@ class MainProgram(QtGui.QMainWindow):
             self.changeMainWindow(name)
 
     def LoadVarianFile(self,filePath):
-        Dir = os.path.dirname(filePath) 
+        Dir = filePath 
         freq = 300e6
         sw   = 50e3
         sw1  = 50e3
@@ -463,7 +472,7 @@ class MainProgram(QtGui.QMainWindow):
         return masterData
         
     def LoadBrukerTopspin(self,filePath):
-        Dir = os.path.dirname(filePath) 
+        Dir = filePath 
         if os.path.exists(Dir+os.path.sep+'acqus'):
             with open(Dir+os.path.sep+'acqus', 'r') as f: 
                 data = f.read().split('\n')
@@ -507,7 +516,7 @@ class MainProgram(QtGui.QMainWindow):
         return masterData
                 
     def LoadChemFile(self,filePath):
-        Dir = os.path.dirname(filePath)
+        Dir = filePath
         sizeTD1=1
         sw1=50e3
         H = dict(line.strip().split('=') for line in open(Dir+os.path.sep+'acq','r'))
@@ -546,7 +555,7 @@ class MainProgram(QtGui.QMainWindow):
 
     def LoadMagritek(self,filePath):
         #Magritek load script based on some Matlab files by Ole Brauckman
-        Dir = os.path.dirname(filePath)
+        Dir = filePath
         DirFiles = os.listdir(Dir)
         Files2D = [x for x in DirFiles if '.2d' in x]
         Files1D = [x for x in DirFiles if '.1d' in x]
@@ -794,7 +803,9 @@ class Main1DWindow(QtGui.QWidget):
         self.editmenu = QtGui.QMenu("Edit",self)
         self.menubar.addMenu(self.editmenu)
         self.undoAction = self.editmenu.addAction("Undo",self.undo,QtGui.QKeySequence.Undo)
+        self.undoAction.setShortcutContext(QtCore.Qt.WidgetShortcut)
         self.redoAction = self.editmenu.addAction("Redo",self.redo,QtGui.QKeySequence.Redo)
+        self.redoAction.setShortcutContext(QtCore.Qt.WidgetShortcut)
         self.editmenu.addAction("Reload", self.reloadLast,QtGui.QKeySequence.Refresh)
 
 	#the tool drop down menu
@@ -1662,7 +1673,7 @@ class BottomFrame(QtGui.QWidget):
         self.wholeEcho.clicked.connect(self.setWholeEcho)
         grid.addWidget(self.wholeEcho,0,2,2,1)
         grid.addWidget(QLabel("Freq [MHz]"),0,3)
-        self.freqEntry = QtGui.QLineEdit()
+        self.freqEntry = QtGui.QLineEdit(self)
         self.freqEntry.setAlignment(QtCore.Qt.AlignHCenter)
         self.freqEntry.editingFinished.connect(self.changeFreq)
         grid.addWidget(self.freqEntry,1,3)
@@ -3614,7 +3625,7 @@ class RefWindow(QtGui.QWidget):
         self.father.current.peakPick = True
 
 root = QtGui.QApplication(sys.argv)
-root.setWindowIcon(QtGui.QIcon('logo.gif'))
+root.setWindowIcon(QtGui.QIcon(os.path.dirname(os.path.realpath(__file__))+'/logo.gif')) 
 mainProgram = MainProgram(root)
 mainProgram.setWindowTitle("ssNake")
 mainProgram.show()
