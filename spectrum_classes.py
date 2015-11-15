@@ -253,6 +253,11 @@ class Spectrum:
         maxPos = max(pos1,pos2)
         slicing = (slice(None),) * axes + (slice(minPos,maxPos),) + (slice(None),)*(self.dim-1-axes)
         if which == 0:
+            if self.spec[axes]==0:
+                self.data = np.sum(self.data[slicing],axis=axes)/self.sw[axes]
+            else:
+                self.data = np.sum(self.data[slicing],axis=axes)*self.sw[axes]/(1.0*self.data.shape[axes])
+        if which == 5:
             self.data = np.sum(self.data[slicing],axis=axes)
         elif which == 1:
             self.data = np.amax(self.data[slicing],axis=axes)
@@ -287,8 +292,16 @@ class Spectrum:
         minPos = min(pos1,pos2)
         maxPos = max(pos1,pos2)
         slicing = (slice(None),) * axes + (slice(minPos,maxPos),) + (slice(None),)*(self.dim-1-axes)
+        if self.spec[axes] == 1:
+            oldFxax = self.xaxArray[axes][slice(minPos,maxPos)][0]
+            self.sw[axes] = self.sw[axes]*(maxPos-minPos)/(1.0*self.data.shape[axes])
         self.data = self.data[slicing]
-        self.xaxArray[axes] = self.xaxArray[axes][slice(minPos,maxPos)] #what to do with sw?
+        if self.spec[axes] == 1:
+            newFxax = np.fft.fftshift(np.fft.fftfreq(self.data.shape[axes],1.0/self.sw[axes]))[0]
+            if self.ref[axes] is None:
+                self.ref[axes] = self.freq[axes]
+            self.ref[axes] = self.ref[axes] + newFxax-oldFxax
+        self.resetXax(axes)
         return returnValue
 
     def flipLR(self, axes):
@@ -1144,6 +1157,14 @@ class Current1D(Plot1DFrame):
     def integrate(self,pos1,pos2):
         self.root.addMacro(['integrate',(pos1,pos2,self.axes-self.data.dim,)])
         returnValue = self.data.matrixManip(pos1,pos2,self.axes,0)
+        if self.upd():
+            self.plotReset()
+            self.showFid()
+        return returnValue
+
+    def sum(self,pos1,pos2):
+        self.root.addMacro(['sum',(pos1,pos2,self.axes-self.data.dim,)])
+        returnValue = self.data.matrixManip(pos1,pos2,self.axes,5)
         if self.upd():
             self.plotReset()
             self.showFid()

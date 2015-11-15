@@ -829,6 +829,7 @@ class Main1DWindow(QtGui.QWidget):
         self.matrixMenu.addAction("Sizing", self.createSizeWindow)
         self.matrixMenu.addAction("Shift Data", self.createShiftDataWindow)
         self.matrixMenu.addAction("Integrate", self.createIntegrateWindow)
+        self.matrixMenu.addAction("Sum", self.createSumWindow)
         self.matrixMenu.addAction("Max", self.createMaxWindow)
         self.matrixMenu.addAction("Min", self.createMinWindow)
         self.matrixMenu.addAction("Max position", self.createArgMaxWindow)
@@ -997,6 +998,8 @@ class Main1DWindow(QtGui.QWidget):
                 self.undoList.append(self.masterData.baselineCorrection(*iter1[1]))
             elif iter1[0] == 'integrate':
                 self.undoList.append(self.masterData.matrixManip(*iter1[1],which=0))
+            elif iter1[0] == 'sum':
+                self.undoList.append(self.masterData.matrixManip(*iter1[1],which=5))
             elif iter1[0] == 'max':
                 self.undoList.append(self.masterData.matrixManip(*iter1[1],which=1))
             elif iter1[0] == 'min':
@@ -1219,6 +1222,9 @@ class Main1DWindow(QtGui.QWidget):
 
     def createIntegrateWindow(self):
         self.extraWindow = integrateWindow(self)
+        
+    def createSumWindow(self):
+        self.extraWindow = sumWindow(self)
         
     def createMultiplyWindow(self):
         self.extraWindow = MultiplyWindow(self)
@@ -2761,6 +2767,16 @@ class integrateWindow(regionWindow):
     def apply(self,maximum,minimum):
         self.father.redoList = []
         self.father.undoList.append(self.father.current.integrate(minimum,maximum))
+        self.father.updAllFrames()
+
+############################################################
+class sumWindow(regionWindow): 
+    def __init__(self, parent):
+        regionWindow.__init__(self,parent,'Sum')
+
+    def apply(self,maximum,minimum):
+        self.father.redoList = []
+        self.father.undoList.append(self.father.current.sum(minimum,maximum))
         self.father.updAllFrames()
         
 ############################################################
