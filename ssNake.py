@@ -1609,8 +1609,8 @@ class SideFrame(QtGui.QWidget):
         self.numLEntry.setText(str(var1))
         var2 =float(safeEval(self.maxLEntry.text()))
         self.maxLEntry.setText('%.1f' % var2)
-        var3 =float(safeEval(self.minLEmtry.text()))
-        self.minLevels.setText('%.1f' % var3)
+        var3 =float(safeEval(self.minLEntry.text()))
+        self.minLEntry.setText('%.1f' % var3)
         self.father.current.setLevels(var1,var2/100.0,var3/100.0)
         
     def setAxes(self,first=True):

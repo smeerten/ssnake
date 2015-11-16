@@ -325,9 +325,13 @@ class Spectrum:
         if isinstance(select,string_types):
             select = safeEval(select)
         axes = self.checkAxes(axes)
-        if axes == None:
+        if axes is None:
             return None
-        vector = np.exp(np.fft.fftshift(np.fft.fftfreq(self.data.shape[axes],1.0/self.sw[axes]))/self.sw[axes]*phase1*1j)
+        if self.ref[axes] is None:
+            offset = 0
+        else:
+            offset = self.freq[axes]-self.ref[axes]
+        vector = np.exp(np.fft.fftshift(np.fft.fftfreq(self.data.shape[axes],1.0/self.sw[axes])+offset)/self.sw[axes]*phase1*1j)
         if self.spec[axes]==0:
             self.fourier(axes,tmp=True)
         self.data[select] = self.data[select]*np.exp(phase0*1j)
@@ -743,10 +747,14 @@ class Current1D(Plot1DFrame):
         else:
             tmpdata = self.data1D
         tmpdata=tmpdata*np.exp(phase0*1j)
-        if len(self.data1D.shape) > 1:
-            mult = np.repeat([np.exp(np.fft.fftshift(np.fft.fftfreq(len(tmpdata[0]),1.0/self.sw))/self.sw*phase1*1j)],len(tmpdata),axis=0)
+        if self.ref is None:
+            offset = 0
         else:
-            mult = np.exp(np.fft.fftshift(np.fft.fftfreq(len(tmpdata),1.0/self.sw))/self.sw*phase1*1j)
+            offset = +self.freq-self.ref
+        if len(self.data1D.shape) > 1:
+            mult = np.repeat([np.exp(np.fft.fftshift(np.fft.fftfreq(len(tmpdata[0]),1.0/self.sw)+offset)/self.sw*phase1*1j)],len(tmpdata),axis=0)
+        else:
+            mult = np.exp(np.fft.fftshift(np.fft.fftfreq(len(tmpdata),1.0/self.sw)+offset)/self.sw*phase1*1j)
         tmpdata=tmpdata*mult
         if self.spec==0:
             tmpdata=self.fourierLocal(tmpdata,1)
@@ -2511,30 +2519,30 @@ class CurrentContour(Current1D):
             contourLevels = np.linspace(self.minLevels*differ+np.amin(np.real(tmpdata)),self.maxLevels*differ+np.amin(np.real(tmpdata)),self.numLevels)
             self.ax.contour(X, Y, np.real(tmpdata),c='b',levels=contourLevels)
             self.line_ydata = np.real(tmpdata[0])
-            self.x_ax.plot(x,np.amax(np.real(tmpdata),axis=0),'b')
-            self.y_ax.plot(np.amax(np.real(tmpdata),axis=1),y,'b')
+            self.x_ax.plot(x,np.sum(np.real(tmpdata),axis=0),'b')
+            self.y_ax.plot(np.sum(np.real(tmpdata),axis=1),y,'b')
         elif(self.plotType==1):
             differ=np.amax(np.imag(tmpdata))-np.amin(np.imag(tmpdata))
             contourLevels = np.linspace(self.minLevels*differ+np.amin(np.imag(tmpdata)),self.maxLevels*differ+np.amin(np.imag(tmpdata)),self.numLevels)
             self.ax.contour(X, Y, np.imag(tmpdata),c='b',levels=contourLevels)
             self.line_ydata = np.imag(tmpdata[0])
-            self.x_ax.plot(x,np.amax(np.imag(tmpdata),axis=0),'b')
-            self.y_ax.plot(np.amax(np.imag(tmpdata),axis=1),y,'b')
+            self.x_ax.plot(x,np.sum(np.imag(tmpdata),axis=0),'b')
+            self.y_ax.plot(np.sum(np.imag(tmpdata),axis=1),y,'b')
         elif(self.plotType==2):
             print('type not supported')
             differ=np.amax(np.real(tmpdata))-np.amin(np.real(tmpdata))
             contourLevels = np.linspace(self.minLevels*differ+np.amin(np.real(tmpdata)),self.maxLevels*differ+np.amin(np.real(tmpdata)),self.numLevels)
             self.ax.contour(X, Y, np.real(tmpdata),c='b',levels=contourLevels)
             self.line_ydata = np.real(tmpdata[0])
-            self.x_ax.plot(x,np.amax(np.real(tmpdata),axis=0),'b')
-            self.y_ax.plot(np.amax(np.real(tmpdata),axis=1),y,'b')
+            self.x_ax.plot(x,np.sum(np.real(tmpdata),axis=0),'b')
+            self.y_ax.plot(np.sum(np.real(tmpdata),axis=1),y,'b')
         elif(self.plotType==3):
             differ=np.amax(np.abs(tmpdata))-np.amin(np.abs(tmpdata))
             contourLevels = np.linspace(self.minLevels*differ+np.amin(np.abs(tmpdata)),self.maxLevels*differ+np.amin(np.abs(tmpdata)),self.numLevels)
             self.ax.contour(X, Y, np.abs(tmpdata),c='b',levels=contourLevels)
             self.line_ydata = np.abs(tmpdata[0])
-            self.x_ax.plot(x,np.amax(np.abs(tmpdata),axis=0),'b')
-            self.y_ax.plot(np.amax(np.abs(tmpdata),axis=1),y,'b')
+            self.x_ax.plot(x,np.sum(np.abs(tmpdata),axis=0),'b')
+            self.y_ax.plot(np.sum(np.abs(tmpdata),axis=1),y,'b')
         if self.spec==0:
             if self.axType == 0:
                 self.ax.set_xlabel('Time [s]')
