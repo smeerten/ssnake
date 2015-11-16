@@ -3917,7 +3917,7 @@ class MainPlotWindow(QtGui.QWidget):
         self.filetypeEntry.addItems(self.fileOptions)
         self.frame1.addWidget(self.filetypeEntry,31,0)
         self.inFrame = QtGui.QGridLayout()
-        self.frame1.addLayout(self.inFrame,32,0)
+        self.frame1.addLayout(self.inFrame,50,0)
         cancelButton = QtGui.QPushButton("&Cancel")
         cancelButton.clicked.connect(self.cancel)
         self.inFrame.addWidget(cancelButton,0,0)
@@ -3926,6 +3926,8 @@ class MainPlotWindow(QtGui.QWidget):
         self.inFrame.addWidget(okButton,0,1)
         grid.setColumnStretch(0,1)
         grid.setRowStretch(0,1)
+        self.frame1.setRowStretch(40,1)
+        self.frame1.setAlignment(QtCore.Qt.AlignTop)
         
     def rename(self,name):
         self.oldMainWindow.rename(name)
