@@ -407,7 +407,7 @@ class RelaxParamFrame(QtGui.QWidget):
         self.frame2.addWidget(self.ampTick,1,0)
         self.ampEntry = QtGui.QLineEdit()
         self.ampEntry.setAlignment(QtCore.Qt.AlignHCenter)
-        self.ampEntry.setText("%.3g" % np.amax(self.parent.data1D))
+        self.ampEntry.setText("%#.3g" % np.amax(self.parent.data1D))
         self.frame2.addWidget(self.ampEntry,1,1)
         self.frame2.addWidget(QLabel("Constant:"),2,0,1,2)
         self.constTick = QtGui.QCheckBox('')
@@ -515,20 +515,20 @@ class RelaxParamFrame(QtGui.QWidget):
         inp = safeEval(self.ampEntry.text())
         if inp is None:
             return False
-        self.ampEntry.setText('%.3g' % inp)
+        self.ampEntry.setText('%#.3g' % inp)
         inp = safeEval(self.constEntry.text())
         if inp is None:
             return False
-        self.constEntry.setText('%.3g' % inp)
+        self.constEntry.setText('%#.3g' % inp)
         for i in range(numExp):
             inp = safeEval(self.coeffEntries[i].text())
             if inp is None:
                 return False
-            self.coeffEntries[i].setText('%.3g' % inp)
+            self.coeffEntries[i].setText('%#.3g' % inp)
             inp = safeEval(self.t1Entries[i].text())
             if inp is None:
                 return False
-            self.t1Entries[i].setText('%.3g' % inp)
+            self.t1Entries[i].setText('%#.3g' % inp)
         return True
     
     def fit(self,*args):
@@ -574,20 +574,20 @@ class RelaxParamFrame(QtGui.QWidget):
         fitVal = scipy.optimize.curve_fit(self.fitFunc,self.parent.xax, self.parent.data1D,guess)
         counter = 0
         if struc[0]:
-            self.ampEntry.setText('%.3g' % fitVal[0][counter])
+            self.ampEntry.setText('%#.3g' % fitVal[0][counter])
             outAmp = fitVal[0][counter]
             counter +=1
         if struc[1]:
-            self.constEntry.setText('%.3g' % fitVal[0][counter])
+            self.constEntry.setText('%#.3g' % fitVal[0][counter])
             outConst = fitVal[0][counter]
             counter +=1
         for i in range(1,numExp+1):
             if struc[2*i]:
-                self.coeffEntries[i-1].setText('%.3g' % fitVal[0][counter])
+                self.coeffEntries[i-1].setText('%#.3g' % fitVal[0][counter])
                 outCoeff[i-1] = fitVal[0][counter]
                 counter += 1
             if struc[2*i+1]:
-                self.t1Entries[i-1].setText('%.3g' % fitVal[0][counter])
+                self.t1Entries[i-1].setText('%#.3g' % fitVal[0][counter])
                 outT1[i-1] = fitVal[0][counter]
                 counter += 1
         self.disp(outAmp,outConst,outCoeff,outT1)
@@ -1095,7 +1095,7 @@ class DiffusionParamFrame(QtGui.QWidget):
         self.frame3.addWidget(self.ampTick,1,0)
         self.ampEntry = QtGui.QLineEdit()
         self.ampEntry.setAlignment(QtCore.Qt.AlignHCenter)
-        self.ampEntry.setText("%.3g" % np.amax(self.parent.data1D))
+        self.ampEntry.setText("%#.3g" % np.amax(self.parent.data1D))
         self.frame3.addWidget(self.ampEntry,1,1)
         self.frame3.addWidget(QLabel("Constant:"),2,0,1,2)
         self.constTick = QtGui.QCheckBox('')
@@ -1206,32 +1206,32 @@ class DiffusionParamFrame(QtGui.QWidget):
         inp = safeEval(self.gammaEntry.text())
         if inp is None:
             return False
-        self.gammaEntry.setText('%.3g' % inp)
+        self.gammaEntry.setText('%#.3g' % inp)
         inp = safeEval(self.deltaEntry.text())
         if inp is None:
             return False
-        self.deltaEntry.setText('%.3g' % inp)
+        self.deltaEntry.setText('%#.3g' % inp)
         inp = safeEval(self.triangleEntry.text())
         if inp is None:
             return False
-        self.triangleEntry.setText('%.3g' % inp)
+        self.triangleEntry.setText('%#.3g' % inp)
         inp = safeEval(self.ampEntry.text())
         if inp is None:
             return False
-        self.ampEntry.setText('%.3g' % inp)
+        self.ampEntry.setText('%#.3g' % inp)
         inp = safeEval(self.constEntry.text())
         if inp is None:
             return False
-        self.constEntry.setText('%.3g' % inp)
+        self.constEntry.setText('%#.3g' % inp)
         for i in range(numExp):
             inp = safeEval(self.coeffEntries[i].text())
             if inp is None:
                 return False
-            self.coeffEntries[i].setText('%.3g' % inp)
+            self.coeffEntries[i].setText('%#.3g' % inp)
             inp = safeEval(self.dEntries[i].text())
             if inp is None:
                 return False
-            self.dEntries[i].setText('%.3g' % inp)
+            self.dEntries[i].setText('%#.3g' % inp)
         return True
     
     def fit(self,*args):
@@ -1280,20 +1280,20 @@ class DiffusionParamFrame(QtGui.QWidget):
         fitVal = scipy.optimize.curve_fit(self.fitFunc, self.parent.xax, self.parent.data1D, guess)
         counter = 0
         if struc[0]:
-            self.ampEntry.setText('%.3g' % fitVal[0][counter])
+            self.ampEntry.setText('%#.3g' % fitVal[0][counter])
             outAmp = fitVal[0][counter]
             counter +=1
         if struc[1]:
-            self.constEntry.setText('%.3g' % fitVal[0][counter])
+            self.constEntry.setText('%#.3g' % fitVal[0][counter])
             outConst = fitVal[0][counter]
             counter +=1
         for i in range(1,numExp+1):
             if struc[2*i]:
-                self.coeffEntries[i-1].setText('%.3g' % fitVal[0][counter])
+                self.coeffEntries[i-1].setText('%#.3g' % fitVal[0][counter])
                 outCoeff[i-1] = fitVal[0][counter]
                 counter += 1
             if struc[2*i+1]:
-                self.dEntries[i-1].set('%.3g' % fitVal[0][counter])
+                self.dEntries[i-1].set('%#.3g' % fitVal[0][counter])
                 outD[i-1] = fitVal[0][counter]
                 counter += 1
         self.disp(outAmp, outConst, outCoeff, outD, gamma, delta, triangle)
@@ -1509,19 +1509,19 @@ class PeakDeconvFrame(Plot1DFrame):
             elif self.current.spec == 0:
                 axMult = 1000.0**self.current.axType
             width = (2*abs(float(self.rootwindow.paramframe.posEntries[self.pickNum].text())-pos[1]))/axMult
-            self.rootwindow.paramframe.ampEntries[self.pickNum].setText("%.3g" %(float(self.rootwindow.paramframe.ampEntries[self.pickNum].text())*width))
-            self.rootwindow.paramframe.lorEntries[self.pickNum].setText("%.3g" % abs(width))
+            self.rootwindow.paramframe.ampEntries[self.pickNum].setText("%#.3g" %(float(self.rootwindow.paramframe.ampEntries[self.pickNum].text())*width))
+            self.rootwindow.paramframe.lorEntries[self.pickNum].setText("%#.3g" % abs(width))
             self.pickNum += 1
             self.pickWidth = False
         else:
-            self.rootwindow.paramframe.posEntries[self.pickNum].setText("%.3g" %pos[1])
+            self.rootwindow.paramframe.posEntries[self.pickNum].setText("%#.3g" %pos[1])
             left = pos[0] - 10 
             if left < 0:
                 left = 0
             right = pos[0] + 10
             if right >= len(self.data1D) :
                 right = len(self.data1D)-1
-            self.rootwindow.paramframe.ampEntries[self.pickNum].setText("%.3g" %(pos[2]*np.pi*0.5))
+            self.rootwindow.paramframe.ampEntries[self.pickNum].setText("%#.3g" %(pos[2]*np.pi*0.5))
             if self.pickNum < 10:
                 self.rootwindow.paramframe.numExp.setCurrentIndex(self.pickNum)
                 self.rootwindow.paramframe.changeNum()
@@ -1738,28 +1738,28 @@ class PeakDeconvParamFrame(QtGui.QWidget):
         inp = safeEval(self.bgrndEntry.text())
         if inp is None:
             return False
-        self.bgrndEntry.setText('%.3g' % inp)
+        self.bgrndEntry.setText('%#.3g' % inp)
         inp = safeEval(self.slopeEntry.text())
         if inp is None:
             return False
-        self.slopeEntry.setText('%.3g' % inp)
+        self.slopeEntry.setText('%#.3g' % inp)
         for i in range(numExp):
             inp = safeEval(self.posEntries[i].text())
             if inp is None:
                 return False
-            self.posEntries[i].setText('%.3g' % inp)
+            self.posEntries[i].setText('%#.3g' % inp)
             inp = safeEval(self.ampEntries[i].text())
             if inp is None:
                 return False
-            self.ampEntries[i].setText('%.3g' % inp)
+            self.ampEntries[i].setText('%#.3g' % inp)
             inp = safeEval(self.lorEntries[i].text())
             if inp is None:
                 return False
-            self.lorEntries[i].setText('%.3g' % inp)
+            self.lorEntries[i].setText('%#.3g' % inp)
             inp = safeEval(self.gaussEntries[i].text())
             if inp is None:
                 return False
-            self.gaussEntries[i].setText('%.3g' % inp)
+            self.gaussEntries[i].setText('%#.3g' % inp)
         return True
     
     def fit(self,*args):
@@ -1821,28 +1821,28 @@ class PeakDeconvParamFrame(QtGui.QWidget):
         fitVal = scipy.optimize.curve_fit(self.fitFunc,self.parent.xax,self.parent.data1D,p0=guess)
         counter = 0
         if struc[0]:
-            self.bgrndEntry.setText('%.3g' % fitVal[0][counter])
+            self.bgrndEntry.setText('%#.3g' % fitVal[0][counter])
             outBgrnd = fitVal[0][counter]
             counter +=1
         if struc[1]:
-            self.slopeEntry.setText('%.3g' % fitVal[0][counter])
+            self.slopeEntry.setText('%#.3g' % fitVal[0][counter])
             outSlope = fitVal[0][counter]
             counter +=1
         for i in range(numExp):
             if struc[4*i+2]:
-                self.posEntries[i].setText('%.3g' % fitVal[0][counter])
+                self.posEntries[i].setText('%#.3g' % fitVal[0][counter])
                 outPos[i] = fitVal[0][counter]
                 counter += 1
             if struc[4*i+3]:
-                self.ampEntries[i].setText('%.3g' % fitVal[0][counter])
+                self.ampEntries[i].setText('%#.3g' % fitVal[0][counter])
                 outAmp[i] = fitVal[0][counter]
                 counter += 1
             if struc[4*i+4]:
-                self.lorEntries[i].setText('%.3g' % abs(fitVal[0][counter]))
+                self.lorEntries[i].setText('%#.3g' % abs(fitVal[0][counter]))
                 outWidth[i] = abs(fitVal[0][counter])
                 counter += 1
             if struc[4*i+5]:
-                self.gaussEntries[i].setText('%.3g' % abs(fitVal[0][counter]))
+                self.gaussEntries[i].setText('%#.3g' % abs(fitVal[0][counter]))
                 outGauss[i] = abs(fitVal[0][counter])
                 counter += 1
         self.disp(outBgrnd, outSlope, outAmp, outPos, outWidth, outGauss)
@@ -1866,8 +1866,8 @@ class PeakDeconvParamFrame(QtGui.QWidget):
             if not np.isfinite([outPos[i],outAmp[i],outWidth[i],outGauss[i]]).all():
                 print("One of the inputs is not valid")
                 return
-            self.lorEntries[i].setText('%.3g' % outWidth[i])
-            self.gaussEntries[i].setText('%.3g' % outGauss[i])
+            self.lorEntries[i].setText('%#.3g' % outWidth[i])
+            self.gaussEntries[i].setText('%#.3g' % outGauss[i])
         self.disp(outBgrnd, outSlope, outAmp, outPos, outWidth, outGauss)
 
     def disp(self, outBgrnd, outSlope, outAmp, outPos, outWidth, outGauss):
@@ -2359,36 +2359,36 @@ class TensorDeconvParamFrame(QtGui.QWidget):
         inp = safeEval(self.bgrndEntry.text())
         if inp is None:
             return False
-        self.bgrndEntry.setText('%.3g' % inp)
+        self.bgrndEntry.setText('%#.3g' % inp)
         inp = safeEval(self.slopeEntry.text())
         if inp is None:
             return False
-        self.slopeEntry.setText('%.3g' % inp)
+        self.slopeEntry.setText('%#.3g' % inp)
         for i in range(numExp):
             inp = safeEval(self.t11Entries[i].text())
             if inp is None:
                 return False
-            self.t11Entries[i].setText('%.3g' % inp)
+            self.t11Entries[i].setText('%#.3g' % inp)
             inp = safeEval(self.t22Entries[i].text())
             if inp is None:
                 return False
-            self.t22Entries[i].setText('%.3g' % inp)
+            self.t22Entries[i].setText('%#.3g' % inp)
             inp = safeEval(self.t33Entries[i].text())
             if inp is None:
                 return False
-            self.t33Entries[i].setText('%.3g' % inp)
+            self.t33Entries[i].setText('%#.3g' % inp)
             inp = safeEval(self.ampEntries[i].text())
             if inp is None:
                 return False
-            self.ampEntries[i].setText('%.3g' % inp)
+            self.ampEntries[i].setText('%#.3g' % inp)
             inp = safeEval(self.lorEntries[i].text())
             if inp is None:
                 return False
-            self.lorEntries[i].setText('%.3g' % inp)
+            self.lorEntries[i].setText('%#.3g' % inp)
             inp = safeEval(self.gaussEntries[i].text())
             if inp is None:
                 return False
-            self.gaussEntries[i].setText('%.3g' % inp)
+            self.gaussEntries[i].setText('%#.3g' % inp)
         return True
         
     def fit(self,*args):
@@ -2985,36 +2985,36 @@ class Quad1DeconvParamFrame(QtGui.QWidget):
         inp = safeEval(self.bgrndEntry.text())
         if inp is None:
             return False
-        self.bgrndEntry.setText('%.3g' % inp)
+        self.bgrndEntry.setText('%#.3g' % inp)
         inp = safeEval(self.slopeEntry.text())
         if inp is None:
             return False
-        self.slopeEntry.setText('%.3g' % inp)
+        self.slopeEntry.setText('%#.3g' % inp)
         for i in range(numExp):
             inp = safeEval(self.posEntries[i].text())
             if inp is None:
                 return False
-            self.posEntries[i].setText('%.3g' % inp)
+            self.posEntries[i].setText('%#.3g' % inp)
             inp = safeEval(self.cqEntries[i].text())
             if inp is None:
                 return False
-            self.cqEntries[i].setText('%.3g' % inp)
+            self.cqEntries[i].setText('%#.3g' % inp)
             inp = safeEval(self.etaEntries[i].text())
             if inp is None:
                 return False
-            self.etaEntries[i].setText('%.3g' % inp)
+            self.etaEntries[i].setText('%#.3g' % inp)
             inp = safeEval(self.ampEntries[i].text())
             if inp is None:
                 return False
-            self.ampEntries[i].setText('%.3g' % inp)
+            self.ampEntries[i].setText('%#.3g' % inp)
             inp = safeEval(self.lorEntries[i].text())
             if inp is None:
                 return False
-            self.lorEntries[i].setText('%.3g' % inp)
+            self.lorEntries[i].setText('%#.3g' % inp)
             inp = safeEval(self.gaussEntries[i].text())
             if inp is None:
                 return False
-            self.gaussEntries[i].setText('%.3g' % inp)
+            self.gaussEntries[i].setText('%#.3g' % inp)
         return True
     
     def fit(self,*args):
@@ -3560,11 +3560,11 @@ class Quad2StaticCzjzekParamFrame(QtGui.QWidget):
         inp = safeEval(self.bgrndEntry.text())
         if inp is None:
             return False
-        self.bgrndEntry.setText('%.3g' % inp)
+        self.bgrndEntry.setText('%#.3g' % inp)
         inp = safeEval(self.slopeEntry.text())
         if inp is None:
             return False
-        self.slopeEntry.setText('%.3g' % inp)
+        self.slopeEntry.setText('%#.3g' % inp)
         for i in range(numExp):
             inp = safeEval(self.dEntries[i].text())
             if inp is None:
@@ -3577,23 +3577,23 @@ class Quad2StaticCzjzekParamFrame(QtGui.QWidget):
             inp = safeEval(self.posEntries[i].text())
             if inp is None:
                 return False
-            self.posEntries[i].setText('%.3g' % inp)
+            self.posEntries[i].setText('%#.3g' % inp)
             inp = safeEval(self.sigmaEntries[i].text())
             if inp is None:
                 return False
-            self.sigmaEntries[i].setText('%.3g' % inp)
+            self.sigmaEntries[i].setText('%#.3g' % inp)
             inp = safeEval(self.ampEntries[i].text())
             if inp is None:
                 return False
-            self.ampEntries[i].setText('%.3g' % inp)
+            self.ampEntries[i].setText('%#.3g' % inp)
             inp = safeEval(self.lorEntries[i].text())
             if inp is None:
                 return False
-            self.lorEntries[i].setText('%.3g' % inp)
+            self.lorEntries[i].setText('%#.3g' % inp)
             inp = safeEval(self.gaussEntries[i].text())
             if inp is None:
                 return False
-            self.gaussEntries[i].setText('%.3g' % inp)
+            self.gaussEntries[i].setText('%#.3g' % inp)
         return True
     
     def fitFunc(self, param, x, y):

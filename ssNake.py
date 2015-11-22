@@ -1544,7 +1544,7 @@ class SideFrame(QtGui.QWidget):
                 if isinstance(current, (sc.CurrentStacked,sc.CurrentArrayed)):
                     self.frame2.addWidget(QLabel("Spacing",self),7,0)
                     self.spacingEntry = QtGui.QLineEdit(self)
-                    self.spacingEntry.setText('%.3g' % current.spacing)
+                    self.spacingEntry.setText('%#.3g' % current.spacing)
                     self.spacingEntry.editingFinished.connect(self.setSpacing)
                     self.frame2.addWidget(self.spacingEntry,8,0)
                 elif isinstance(current, (sc.CurrentSkewed)):
@@ -1590,11 +1590,11 @@ class SideFrame(QtGui.QWidget):
         self.toSpin.setMinimum(fromVar+1)
 
     def scrollSpacing(self, var):
-        self.spacingEntry.setText('%.3g' % var)
+        self.spacingEntry.setText('%#.3g' % var)
             
     def setSpacing(self, *args):
         var = float(safeEval(self.spacingEntry.text()))
-        self.spacingEntry.setText('%.3g' % var)
+        self.spacingEntry.setText('%#.3g' % var)
         self.father.current.setSpacing(var)
 
     def setSkew(self, *args):
@@ -1828,11 +1828,11 @@ class TextFrame(QtGui.QWidget):
             child.setEnabled(False)
         
     def setLabels(self,position):
-        self.deltaxpoint.setText('%.3g' % np.abs(self.oldx-position[1]))
-        self.deltaypoint.setText('%.3g' % np.abs(self.oldy-position[2]))
+        self.deltaxpoint.setText('%#.3g' % np.abs(self.oldx-position[1]))
+        self.deltaypoint.setText('%#.3g' % np.abs(self.oldy-position[2]))
         self.pos.setText(str(position[0]))
-        self.xpoint.setText('%.3g' % position[1])
-        self.ypoint.setText('%.3g' % position[2])
+        self.xpoint.setText('%#.3g' % position[1])
+        self.ypoint.setText('%#.3g' % position[2])
         self.oldx = position[1]
         self.oldy = position[2]
 
