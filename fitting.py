@@ -727,6 +727,10 @@ class DiffusionWindow(QtGui.QWidget):
         self.canvas.mpl_connect('motion_notify_event', self.pan)
         self.canvas.mpl_connect('scroll_event', self.scroll)
 
+    def createNewData(self,data, axes):
+        masterData = self.get_masterData()
+        self.mainProgram.dataFromFit(data, copy.deepcopy(masterData.freq), copy.deepcopy(masterData.sw) , copy.deepcopy(masterData.spec), copy.deepcopy(masterData.wholeEcho), copy.deepcopy(masterData.ref), copy.deepcopy(masterData.xaxArray), axes)
+        
     def rename(self,name):
         self.fig.suptitle(name)
         self.canvas.draw()
@@ -1065,9 +1069,9 @@ class DiffusionParamFrame(QtGui.QWidget):
         fitButton = QtGui.QPushButton("Fit")
         fitButton.clicked.connect(self.fit)
         self.frame1.addWidget(fitButton,1,0)
-        #fitAllButton = QtGui.QPushButton("Fit all")
-        #fitAllButton.clicked.connect(self.fitAll)
-        #self.frame1.addWidget(fitAllButton,2,0)
+        fitAllButton = QtGui.QPushButton("Fit all")
+        fitAllButton.clicked.connect(self.fitAll)
+        self.frame1.addWidget(fitAllButton,2,0)
         cancelButton = QtGui.QPushButton("Cancel")
         cancelButton.clicked.connect(rootwindow.cancel)
         self.frame1.addWidget(cancelButton,3,0)
@@ -1298,6 +1302,91 @@ class DiffusionParamFrame(QtGui.QWidget):
                 counter += 1
         self.disp(outAmp, outConst, outCoeff, outD, gamma, delta, triangle)
 
+    def fitAll(self, *args):
+        FitAllSelectionWindow(self,["Amplitude","Constant","Coefficient","D"])
+        
+    def fitAllFunc(self,outputs):
+        if not self.checkInputs():
+            print("One of the inputs is not valid")
+            return
+        struc = []
+        guess = []
+        argu = []
+        numExp = self.numExp.currentIndex()+1
+        outCoeff = np.zeros(numExp)
+        outD = np.zeros(numExp)
+        if not self.ampTick.isChecked():
+            guess.append(float(self.ampEntry.text()))
+            struc.append(True)
+        else:
+            outAmp = float(self.ampEntry.text())
+            argu.append(outAmp)
+            struc.append(False)
+        if not self.constTick.isChecked():
+            guess.append(float(self.constEntry.text()))
+            struc.append(True)
+        else:
+            outConst = float(self.constEntry.text())
+            argu.append(outConst)
+            struc.append(False)
+        for i in range(numExp):
+            if not self.coeffTicks[i].isChecked():
+                guess.append(float(self.coeffEntries[i].text()))
+                struc.append(True)
+            else:
+                outCoeff[i] = float(self.coeffEntries[i].text())
+                argu.append(outCoeff[i])
+                struc.append(False)
+            if not self.dTicks[i].isChecked():
+                guess.append(float(self.dEntries[i].text()))
+                struc.append(True)
+            else:
+                outD[i] = safeEval(self.dEntries[i].text())
+                argu.append(outD[i])
+                struc.append(False)
+        self.args=(numExp,struc,argu)
+        fullData = self.parent.current.data.data
+        axes = self.parent.current.axes
+        dataShape = fullData.shape
+        dataShape2 = np.delete(dataShape,axes)
+        rolledData = np.rollaxis(fullData,axes)
+        intOutputs = np.array(outputs,dtype=int)
+        numOutputs = np.sum(intOutputs[:2]) + numExp*np.sum(intOutputs[2:])
+        outputData = np.zeros((np.product(dataShape2),numOutputs),dtype=complex)
+        counter2 = 0
+        for j in rolledData.reshape(dataShape[axes],np.product(dataShape2)).T:
+            try:
+                fitVal = scipy.optimize.curve_fit(self.fitFunc,self.parent.xax, np.real(j),guess)
+            except:
+                fitVal = [[0]*10]
+            counter = 0
+            if struc[0]:
+                outAmp = fitVal[0][counter]
+                counter +=1
+            if struc[1]:
+                outConst = fitVal[0][counter]
+                counter +=1
+            for i in range(1,numExp+1):
+                if struc[2*i]:
+                    outCoeff[i-1] = fitVal[0][counter]
+                    counter += 1
+                if struc[2*i+1]:
+                    outD[i-1] = fitVal[0][counter]
+                    counter += 1
+            outputArray = []
+            if outputs[0]:
+                outputArray = np.concatenate((outputArray,[outAmp]))
+            if outputs[1]:
+                outputArray = np.concatenate((outputArray,[outConst]))
+            if outputs[2]:
+                outputArray = np.concatenate((outputArray,outCoeff))
+            if outputs[3]:
+                outputArray = np.concatenate((outputArray,outD))
+            outputData[counter2] = outputArray
+            counter2 += 1
+        newShape = np.concatenate((np.array(dataShape2),[numOutputs]))
+        self.rootwindow.createNewData(np.rollaxis(outputData.reshape(newShape),-1,axes), axes)
+        
     def sim(self):
         numExp = self.numExp.currentIndex()+1
         outAmp = safeEval(self.ampEntry.text())
@@ -1350,6 +1439,10 @@ class PeakDeconvWindow(QtGui.QWidget):
         self.canvas.mpl_connect('button_release_event', self.buttonRelease)
         self.canvas.mpl_connect('motion_notify_event', self.pan)
         self.canvas.mpl_connect('scroll_event', self.scroll)
+
+    def createNewData(self,data, axes):
+        masterData = self.get_masterData()
+        self.mainProgram.dataFromFit(data, copy.deepcopy(masterData.freq), copy.deepcopy(masterData.sw) , copy.deepcopy(masterData.spec), copy.deepcopy(masterData.wholeEcho), copy.deepcopy(masterData.ref), copy.deepcopy(masterData.xaxArray), axes)
         
     def rename(self,name):
         self.fig.suptitle(name)
@@ -1559,6 +1652,9 @@ class PeakDeconvParamFrame(QtGui.QWidget):
         fitButton = QtGui.QPushButton("Fit")
         fitButton.clicked.connect(self.fit)
         self.frame1.addWidget(fitButton,1,0)
+        fitAllButton = QtGui.QPushButton("Fit all")
+        fitAllButton.clicked.connect(self.fitAll)
+        self.frame1.addWidget(fitAllButton,2,0)
         cancelButton = QtGui.QPushButton("Cancel")
         cancelButton.clicked.connect(rootwindow.cancel)
         self.frame1.addWidget(cancelButton,3,0)
@@ -1847,6 +1943,118 @@ class PeakDeconvParamFrame(QtGui.QWidget):
                 counter += 1
         self.disp(outBgrnd, outSlope, outAmp, outPos, outWidth, outGauss)
 
+    def fitAll(self, *args):
+        FitAllSelectionWindow(self,["Background","Slope","Position","Integral","Lorentz","Gauss"])
+        
+    def fitAllFunc(self,outputs):
+        if not self.checkInputs():
+            print("One of the inputs is not valid")
+            return
+        struc = []
+        guess = []
+        argu = []
+        numExp = self.numExp.currentIndex()+1
+        outPos = np.zeros(numExp)
+        outAmp = np.zeros(numExp)
+        outWidth = np.zeros(numExp)
+        outGauss = np.zeros(numExp)
+        if not self.bgrndTick.isChecked():
+            guess.append(float(self.bgrndEntry.text()))
+            struc.append(True)
+        else:
+            outBgrnd = float(self.bgrndEntry.text())
+            argu.append(outBgrnd)
+            struc.append(False)
+        if not self.slopeTick.isChecked():
+            guess.append(float(self.slopeEntry.text()))
+            struc.append(True)
+        else:
+            outSlope = float(self.slopeEntry.text())
+            argu.append(outSlope)
+            struc.append(False)
+        for i in range(numExp):
+            if not self.posTicks[i].isChecked():
+                guess.append(float(self.posEntries[i].text()))
+                struc.append(True)
+            else:
+                outPos[i] = float(self.posEntries[i].text())
+                argu.append(outPos[i])
+                struc.append(False)
+            if not self.ampTicks[i].isChecked():
+                guess.append(float(self.ampEntries[i].text()))
+                struc.append(True)
+            else:
+                outAmp[i] = float(self.ampEntries[i].text())
+                argu.append(outAmp[i])
+                struc.append(False)
+            if not self.lorTicks[i].isChecked():
+                guess.append(abs(float(self.lorEntries[i].text())))
+                struc.append(True)
+            else:
+                outWidth[i] = abs(float(self.lorEntries[i].text()))
+                argu.append(outWidth[i])
+                struc.append(False)
+            if not self.gaussTicks[i].isChecked():
+                guess.append(abs(float(self.gaussEntries[i].text())))
+                struc.append(True)
+            else:
+                outGauss[i] = abs(float(self.gaussEntries[i].text()))
+                argu.append(outGauss[i])
+                struc.append(False)
+        self.args = (numExp,struc,argu)
+        fullData = self.parent.current.data.data
+        axes = self.parent.current.axes
+        dataShape = fullData.shape
+        dataShape2 = np.delete(dataShape,axes)
+        rolledData = np.rollaxis(fullData,axes)
+        intOutputs = np.array(outputs,dtype=int)
+        numOutputs = np.sum(intOutputs[:2]) + numExp*np.sum(intOutputs[2:])
+        outputData = np.zeros((np.product(dataShape2),numOutputs),dtype=complex)
+        counter2 = 0
+        for j in rolledData.reshape(dataShape[axes],np.product(dataShape2)).T:
+            try:
+                fitVal = scipy.optimize.curve_fit(self.fitFunc,self.parent.xax, np.real(j),guess)
+            except:
+                fitVal = [[0]*10]
+        
+            counter = 0
+            if struc[0]:
+                outBgrnd = fitVal[0][counter]
+                counter +=1
+            if struc[1]:
+                outSlope = fitVal[0][counter]
+                counter +=1
+            for i in range(numExp):
+                if struc[4*i+2]:
+                    outPos[i] = fitVal[0][counter]
+                    counter += 1
+                if struc[4*i+3]:
+                    outAmp[i] = fitVal[0][counter]
+                    counter += 1
+                if struc[4*i+4]:
+                    outWidth[i] = abs(fitVal[0][counter])
+                    counter += 1
+                if struc[4*i+5]:
+                    outGauss[i] = abs(fitVal[0][counter])
+                    counter += 1
+            outputArray = []
+            if outputs[0]:
+                outputArray = np.concatenate((outputArray,[outBgrnd]))
+            if outputs[1]:
+                outputArray = np.concatenate((outputArray,[outSlope]))
+            if outputs[2]:
+                outputArray = np.concatenate((outputArray,outPos))
+            if outputs[3]:
+                outputArray = np.concatenate((outputArray,outAmp))
+            if outputs[4]:
+                outputArray = np.concatenate((outputArray,outWidth))
+            if outputs[5]:
+                outputArray = np.concatenate((outputArray,outGauss))
+            outputData[counter2] = outputArray
+            counter2 += 1
+        newShape = np.concatenate((np.array(dataShape2),[numOutputs]))
+        self.rootwindow.createNewData(np.rollaxis(outputData.reshape(newShape),-1,axes), axes)
+
     def sim(self):
         numExp = self.numExp.currentIndex()+1
         outPos = np.zeros(numExp)
@@ -1907,6 +2115,10 @@ class TensorDeconvWindow(QtGui.QWidget):
         self.canvas.mpl_connect('button_release_event', self.buttonRelease)
         self.canvas.mpl_connect('motion_notify_event', self.pan)
         self.canvas.mpl_connect('scroll_event', self.scroll)
+
+    def createNewData(self,data, axes):
+        masterData = self.get_masterData()
+        self.mainProgram.dataFromFit(data, copy.deepcopy(masterData.freq), copy.deepcopy(masterData.sw) , copy.deepcopy(masterData.spec), copy.deepcopy(masterData.wholeEcho), copy.deepcopy(masterData.ref), copy.deepcopy(masterData.xaxArray), axes)
         
     def rename(self,name):
         self.fig.suptitle(name)
@@ -2091,6 +2303,9 @@ class TensorDeconvParamFrame(QtGui.QWidget):
         fitButton = QtGui.QPushButton("Fit")
         fitButton.clicked.connect(self.fit)
         self.frame1.addWidget(fitButton,1,0)
+        fitAllButton = QtGui.QPushButton("Fit all")
+        fitAllButton.clicked.connect(self.fitAll)
+        self.frame1.addWidget(fitAllButton,2,0)
         cancelButton = QtGui.QPushButton("Cancel")
         cancelButton.clicked.connect(rootwindow.cancel)
         self.frame1.addWidget(cancelButton,3,0)
@@ -2505,6 +2720,148 @@ class TensorDeconvParamFrame(QtGui.QWidget):
                 counter += 1
         self.disp(outBgrnd,outSlope,outt11,outt22,outt33,outAmp,outWidth,outGauss)
 
+    def fitAll(self, *args):
+        FitAllSelectionWindow(self,["Background","Slope","T11","T22","T33","Integral","Lorentz","Gauss"])
+
+    def fitAllFunc(self,outputs):
+        self.setCheng()
+        if not self.checkInputs():
+            print("One of the inputs is not valid")
+            return
+        struc = []
+        guess = []
+        argu = []
+        numExp = self.numExp.currentIndex()+1
+        outt11 = np.zeros(numExp)
+        outt22 = np.zeros(numExp)
+        outt33 = np.zeros(numExp)
+        outAmp = np.zeros(numExp)
+        outWidth = np.zeros(numExp)
+        outGauss = np.zeros(numExp)
+        if not self.bgrndTick.isChecked():
+            guess.append(float(self.bgrndEntry.text()))
+            struc.append(True)
+        else:
+            outBgrnd = float(self.bgrndEntry.text())
+            argu.append(outBgrnd)
+            struc.append(False)
+        if not self.slopeTick.isChecked():
+            guess.append(float(self.slopeEntry.text()))
+            struc.append(True)
+        else:
+            outSlope = float(self.slopeEntry.text())
+            argu.append(outSlope)
+            struc.append(False)
+        for i in range(numExp):
+            if not self.t11Ticks[i].isChecked():
+                guess.append(float(self.t11Entries[i].text()))
+                struc.append(True)
+            else:
+                outt11[i] = float(self.t11Entries[i].text())
+                argu.append(outt11[i])
+                struc.append(False)
+            if not self.t22Ticks[i].isChecked():
+                guess.append(float(self.t22Entries[i].text()))
+                struc.append(True)
+            else:
+                outt22[i] = float(self.t22Entries[i].text())
+                argu.append(outt22[i])
+                struc.append(False)
+            if not self.t33Ticks[i].isChecked():
+                guess.append(float(self.t33Entries[i].text()))
+                struc.append(True)
+            else:
+                outt33[i] = float(self.t33Entries[i].text())
+                argu.append(outt33[i])
+                struc.append(False)
+            if not self.ampTicks[i].isChecked():
+                guess.append(float(self.ampEntries[i].text()))
+                struc.append(True)
+            else:
+                outAmp[i] = float(self.ampEntries[i].text())
+                argu.append(outAmp[i])
+                struc.append(False)
+            if not self.lorTicks[i].isChecked():
+                guess.append(abs(float(self.lorEntries[i].text())))
+                struc.append(True)
+            else:
+                outWidth[i] = abs(float(self.lorEntries[i].text()))
+                argu.append(outWidth[i])
+                struc.append(False)
+            if not self.gaussTicks[i].isChecked():
+                guess.append(abs(float(self.gaussEntries[i].text())))
+                struc.append(True)
+            else:
+                outGauss[i] = abs(float(self.gaussEntries[i].text()))
+                argu.append(outGauss[i])
+                struc.append(False)
+        self.args = (numExp,struc,argu)
+        phi,theta,self.weight = zcw_angles(self.cheng,symm=2)
+        self.multt11=np.sin(theta)**2*np.cos(phi)**2
+        self.multt22=np.sin(theta)**2*np.sin(phi)**2
+        self.multt33=np.cos(theta)**2
+        fullData = self.parent.current.data.data
+        axes = self.parent.current.axes
+        dataShape = fullData.shape
+        dataShape2 = np.delete(dataShape,axes)
+        rolledData = np.rollaxis(fullData,axes)
+        intOutputs = np.array(outputs,dtype=int)
+        numOutputs = np.sum(intOutputs[:2]) + numExp*np.sum(intOutputs[2:])
+        outputData = np.zeros((np.product(dataShape2),numOutputs),dtype=complex)
+        counter2 = 0
+        for j in rolledData.reshape(dataShape[axes],np.product(dataShape2)).T:
+            try:
+                fitVal = scipy.optimize.fmin(self.fitFunc,guess, args=(self.parent.xax,np.real(j)))
+            except:
+                fitVal = [[0]*10]
+            counter = 0
+            if struc[0]:
+                outBgrnd = fitVal[counter]
+                counter +=1
+            if struc[1]:
+                outSlope = fitVal[counter]
+                counter +=1
+            for i in range(numExp):
+                if struc[6*i+2]:
+                    outt11[i] = fitVal[counter]
+                    counter += 1
+                if struc[6*i+3]:
+                    outt22[i] = fitVal[counter]
+                    counter += 1
+                if struc[6*i+4]:
+                    outt33[i] = fitVal[counter]
+                    counter += 1
+                if struc[6*i+5]:
+                    outAmp[i] = fitVal[counter]
+                    counter += 1
+                if struc[6*i+6]:
+                    outWidth[i] = abs(fitVal[counter])
+                    counter += 1
+                if struc[6*i+7]:
+                    outGauss[i] = abs(fitVal[counter])
+                    counter += 1
+            outputArray = []
+            if outputs[0]:
+                outputArray = np.concatenate((outputArray,[outBgrnd]))
+            if outputs[1]:
+                outputArray = np.concatenate((outputArray,[outSlope]))
+            if outputs[2]:
+                outputArray = np.concatenate((outputArray,outt11))
+            if outputs[3]:
+                outputArray = np.concatenate((outputArray,outt22))
+            if outputs[4]:
+                outputArray = np.concatenate((outputArray,outt33))
+            if outputs[5]:
+                outputArray = np.concatenate((outputArray,outAmp)) 
+            if outputs[6]:
+                outputArray = np.concatenate((outputArray,outWidth))
+            if outputs[7]:
+                outputArray = np.concatenate((outputArray,outGauss))
+            outputData[counter2] = outputArray
+            counter2 += 1
+        newShape = np.concatenate((np.array(dataShape2),[numOutputs]))
+        self.rootwindow.createNewData(np.rollaxis(outputData.reshape(newShape),-1,axes), axes)
+        
     def sim(self):
         self.setCheng()
         numExp = self.numExp.currentIndex()+1
@@ -2557,6 +2914,10 @@ class Quad1DeconvWindow(QtGui.QWidget):
         self.canvas.mpl_connect('motion_notify_event', self.pan)
         self.canvas.mpl_connect('scroll_event', self.scroll)
 
+    def createNewData(self,data, axes):
+        masterData = self.get_masterData()
+        self.mainProgram.dataFromFit(data, copy.deepcopy(masterData.freq), copy.deepcopy(masterData.sw) , copy.deepcopy(masterData.spec), copy.deepcopy(masterData.wholeEcho), copy.deepcopy(masterData.ref), copy.deepcopy(masterData.xaxArray), axes)
+        
     def rename(self,name):
         self.fig.suptitle(name)
         self.canvas.draw()
@@ -2724,6 +3085,9 @@ class Quad1DeconvParamFrame(QtGui.QWidget):
         fitButton = QtGui.QPushButton("Fit")
         fitButton.clicked.connect(self.fit)
         self.frame1.addWidget(fitButton,1,0)
+        fitAllButton = QtGui.QPushButton("Fit all")
+        fitAllButton.clicked.connect(self.fitAll)
+        self.frame1.addWidget(fitAllButton,2,0)
         cancelButton = QtGui.QPushButton("Cancel")
         cancelButton.clicked.connect(rootwindow.cancel)
         self.frame1.addWidget(cancelButton,3,0)
@@ -3129,6 +3493,146 @@ class Quad1DeconvParamFrame(QtGui.QWidget):
                 counter += 1
         self.disp(outBgrnd,outSlope,I,outPos,outCq,outEta,outAmp,outWidth,outGauss)
 
+    def fitAll(self, *args):
+        FitAllSelectionWindow(self,["Background","Slope","Position","Cq",u"\u03b7","Integral","Lorentz","Gauss"])
+
+    def fitAllFunc(self,outputs):
+        self.setCheng()
+        if not self.checkInputs():
+            print("One of the inputs is not valid")
+            return
+        struc = []
+        guess = []
+        argu = []
+        numExp = self.numExp.currentIndex()+1
+        outPos = np.zeros(numExp)
+        outCq = np.zeros(numExp)
+        outEta = np.zeros(numExp)
+        outAmp = np.zeros(numExp)
+        outWidth = np.zeros(numExp)
+        outGauss = np.zeros(numExp)
+        I = self.checkI(self.IEntry.currentIndex())
+        if not self.bgrndTick.isChecked():
+            guess.append(float(self.bgrndEntry.text()))
+            struc.append(True)
+        else:
+            outBgrnd = float(self.bgrndEntry.text())
+            argu.append(outBgrnd)
+            struc.append(False)
+        if not self.slopeTick.isChecked():
+            guess.append(float(self.slopeEntry.text()))
+            struc.append(True)
+        else:
+            outSlope = float(self.slopeEntry.text())
+            argu.append(outSlope)
+            struc.append(False)
+        for i in range(numExp):
+            if not self.posTicks[i].isChecked():
+                guess.append(float(self.posEntries[i].text()))
+                struc.append(True)
+            else:
+                outPos[i] = float(self.posEntries[i].text())
+                argu.append(outPos[i])
+                struc.append(False)
+            if not self.cqTicks[i].isChecked():
+                guess.append(float(self.cqEntries[i].text())*1e6)
+                struc.append(True)
+            else:
+                outCq[i] = float(self.cqEntries[i].text())*1e6
+                argu.append(outCq[i])
+                struc.append(False)
+            if not self.etaTicks[i].isChecked():
+                guess.append(float(self.etaEntries[i].text()))
+                struc.append(True)
+            else:
+                outEta[i] = float(self.etaEntries[i].text())
+                argu.append(outEta[i])
+                struc.append(False)
+            if not self.ampTicks[i].isChecked():
+                guess.append(float(self.ampEntries[i].text()))
+                struc.append(True)
+            else:
+                outAmp[i] = float(self.ampEntries[i].text())
+                argu.append(outAmp[i])
+                struc.append(False)
+            if not self.lorTicks[i].isChecked():
+                guess.append(abs(float(self.lorEntries[i].text())))
+                struc.append(True)
+            else:
+                outWidth[i] = abs(float(self.lorEntries[i].text()))
+                argu.append(outWidth[i])
+                struc.append(False)
+            if not self.gaussTicks[i].isChecked():
+                guess.append(abs(float(self.gaussEntries[i].text())))
+                struc.append(True)
+            else:
+                outGauss[i] = abs(float(self.gaussEntries[i].text()))
+                argu.append(outGauss[i])
+                struc.append(False)
+        self.args = (numExp,struc,argu,I)
+        self.setAngleStuff()
+        fullData = self.parent.current.data.data
+        axes = self.parent.current.axes
+        dataShape = fullData.shape
+        dataShape2 = np.delete(dataShape,axes)
+        rolledData = np.rollaxis(fullData,axes)
+        intOutputs = np.array(outputs,dtype=int)
+        numOutputs = np.sum(intOutputs[:2]) + numExp*np.sum(intOutputs[2:])
+        outputData = np.zeros((np.product(dataShape2),numOutputs),dtype=complex)
+        counter2 = 0
+        for j in rolledData.reshape(dataShape[axes],np.product(dataShape2)).T:
+            try:
+                fitVal = scipy.optimize.fmin(self.fitFunc,guess, args=(self.parent.xax,np.real(j)))
+            except:
+                fitVal = [[0]*10]
+            counter = 0
+            if struc[0]:
+                outBgrnd = fitVal[counter]
+                counter +=1
+            if struc[1]:
+                outSlope = fitVal[counter]
+                counter +=1
+            for i in range(numExp):
+                if struc[6*i+2]:
+                    outPos[i] = fitVal[counter]
+                    counter += 1
+                if struc[6*i+3]:
+                    outCq[i] = fitVal[counter]
+                    counter += 1
+                if struc[6*i+4]:
+                    outEta[i] = fitVal[counter]
+                    counter += 1
+                if struc[6*i+5]:
+                    outAmp[i] = fitVal[counter]
+                    counter += 1
+                if struc[6*i+6]:
+                    outWidth[i] = abs(fitVal[counter])
+                    counter += 1
+                if struc[6*i+7]:
+                    outGauss[i] = abs(fitVal[counter])
+                    counter += 1
+            outputArray = []
+            if outputs[0]:
+                outputArray = np.concatenate((outputArray,[outBgrnd]))
+            if outputs[1]:
+                outputArray = np.concatenate((outputArray,[outSlope]))
+            if outputs[2]:
+                outputArray = np.concatenate((outputArray,outPos))
+            if outputs[3]:
+                outputArray = np.concatenate((outputArray,outCq))
+            if outputs[4]:
+                outputArray = np.concatenate((outputArray,outEta))
+            if outputs[5]:
+                outputArray = np.concatenate((outputArray,outAmp)) 
+            if outputs[6]:
+                outputArray = np.concatenate((outputArray,outWidth))
+            if outputs[7]:
+                outputArray = np.concatenate((outputArray,outGauss))
+            outputData[counter2] = outputArray
+            counter2 += 1
+        newShape = np.concatenate((np.array(dataShape2),[numOutputs]))
+        self.rootwindow.createNewData(np.rollaxis(outputData.reshape(newShape),-1,axes), axes)
+        
     def sim(self):
         self.setCheng()
         if not self.checkInputs():
@@ -3178,6 +3682,10 @@ class Quad2DeconvWindow(QtGui.QWidget):
         self.canvas.mpl_connect('button_release_event', self.buttonRelease)
         self.canvas.mpl_connect('motion_notify_event', self.pan)
         self.canvas.mpl_connect('scroll_event', self.scroll)
+
+    def createNewData(self,data, axes):
+        masterData = self.get_masterData()
+        self.mainProgram.dataFromFit(data, copy.deepcopy(masterData.freq), copy.deepcopy(masterData.sw) , copy.deepcopy(masterData.spec), copy.deepcopy(masterData.wholeEcho), copy.deepcopy(masterData.ref), copy.deepcopy(masterData.xaxArray), axes)
         
     def rename(self,name):
         self.fig.suptitle(name)
@@ -3289,6 +3797,10 @@ class Quad2CzjzekWindow(QtGui.QWidget):
         self.canvas.mpl_connect('button_release_event', self.buttonRelease)
         self.canvas.mpl_connect('motion_notify_event', self.pan)
         self.canvas.mpl_connect('scroll_event', self.scroll)
+
+    def createNewData(self,data, axes):
+        masterData = self.get_masterData()
+        self.mainProgram.dataFromFit(data, copy.deepcopy(masterData.freq), copy.deepcopy(masterData.sw) , copy.deepcopy(masterData.spec), copy.deepcopy(masterData.wholeEcho), copy.deepcopy(masterData.ref), copy.deepcopy(masterData.xaxArray), axes)
         
     def rename(self,name):
         self.fig.suptitle(name)
@@ -3360,6 +3872,9 @@ class Quad2StaticCzjzekParamFrame(QtGui.QWidget):
         fitButton = QtGui.QPushButton("Fit")
         fitButton.clicked.connect(self.fit)
         self.frame1.addWidget(fitButton,1,0)
+        fitAllButton = QtGui.QPushButton("Fit all")
+        fitAllButton.clicked.connect(self.fitAll)
+        self.frame1.addWidget(fitAllButton,2,0)
         cancelButton = QtGui.QPushButton("Cancel")
         cancelButton.clicked.connect(rootwindow.cancel)
         self.frame1.addWidget(cancelButton,3,0)
@@ -3789,6 +4304,153 @@ class Quad2StaticCzjzekParamFrame(QtGui.QWidget):
                 counter += 1
         self.disp(outBgrnd,outSlope,outPos,outSigma,outD,outAmp,outWidth,outGauss)
 
+    def fitAll(self, *args):
+        FitAllSelectionWindow(self,["Background","Slope","Position",u"\u03c3","Integral","Lorentz","Gauss"])
+
+    def fitAllFunc(self,outputs):
+        self.setCheng()
+        if not self.setGrid():
+            print("One of the inputs is not valid")
+            return
+        if not self.checkInputs():
+            print("One of the inputs is not valid")
+            return
+        struc = []
+        guess = []
+        argu = []
+        maxCq = 0.0
+        I = self.checkI(self.IEntry.currentIndex())
+        numExp = self.numExp.currentIndex()+1
+        outPos = np.zeros(numExp)
+        outSigma = np.zeros(numExp)
+        outD = np.zeros(numExp)
+        outAmp = np.zeros(numExp)
+        outWidth = np.zeros(numExp)
+        outGauss = np.zeros(numExp)
+        if not self.bgrndTick.isChecked():
+            guess.append(float(self.bgrndEntry.text()))
+            struc.append(True)
+        else:
+            outBgrnd = float(self.bgrndEntry.text())
+            argu.append(outBgrnd)
+            struc.append(False)
+        if not self.slopeTick.isChecked():
+            guess.append(float(self.slopeEntry.text()))
+            struc.append(True)
+        else:
+            outSlope = safeEval(self.slopeEntry.text())
+            argu.append(outSlope)
+            struc.append(False)
+        for i in range(numExp):
+            inp = int(self.dEntries[i].text())
+            if inp < 1:
+                inp = 1
+            elif inp > 5:
+                inp = 5
+            argu.append(inp)
+            outD[i] = inp
+            self.dEntries[i].setText('%.2g' % inp)
+            if not self.posTicks[i].isChecked():
+                guess.append(float(self.posEntries[i].text()))
+                struc.append(True)
+            else:
+                outPos[i] = float(self.posEntries[i].text())
+                argu.append(outPos[i])
+                struc.append(False)
+            if not self.sigmaTicks[i].isChecked():
+                inp = float(self.sigmaEntries[i].text())
+                maxCq = max(maxCq,inp*1e6)
+                guess.append(inp*1e6)
+                struc.append(True)
+            else:
+                inp = float(self.sigmaEntries[i].text())
+                maxCq = max(maxCq,inp*1e6)
+                argu.append(inp*1e6)
+                outSigma[i] = inp
+                struc.append(False)
+            if not self.ampTicks[i].isChecked():
+                guess.append(float(self.ampEntries[i].text()))
+                struc.append(True)
+            else:
+                outAmp[i] = float(self.ampEntries[i].text())
+                argu.append(outAmp[i])
+                struc.append(False)
+            if not self.lorTicks[i].isChecked():
+                guess.append(abs(float(self.lorEntries[i].text())))
+                struc.append(True)
+            else:
+                outWidth[i] = abs(float(self.lorEntries[i].text()))
+                argu.append(outWidth[i])
+                struc.append(False)
+            if not self.gaussTicks[i].text():
+                guess.append(abs(float(self.gaussEntries[i].text())))
+                struc.append(True)
+            else:
+                outGauss[i] = abs(float(self.gaussEntries[i].text()))
+                argu.append(outGauss[i])
+                struc.append(False)
+        self.args = (numExp,struc,argu)
+        self.setAngleStuff()
+        numCq = int(self.cqGridEntry.text())
+        numEta = int(self.etaGridEntry.text())
+        self.genLib(len(self.parent.xax), I, maxCq*4.0, numCq, numEta)
+        fullData = self.parent.current.data.data
+        axes = self.parent.current.axes
+        dataShape = fullData.shape
+        dataShape2 = np.delete(dataShape,axes)
+        rolledData = np.rollaxis(fullData,axes)
+        intOutputs = np.array(outputs,dtype=int)
+        numOutputs = np.sum(intOutputs[:2]) + numExp*np.sum(intOutputs[2:])
+        outputData = np.zeros((np.product(dataShape2),numOutputs),dtype=complex)
+        counter2 = 0
+        for j in rolledData.reshape(dataShape[axes],np.product(dataShape2)).T:
+            try:
+                fitVal = scipy.optimize.fmin(self.fitFunc,guess, args=(self.parent.xax,np.real(j)))
+            except:
+                fitVal = [[0]*10]
+            counter = 0
+            if struc[0]:
+                outBgrnd = fitVal[counter]
+                counter +=1
+            if struc[1]:
+                outSlope = fitVal[counter]
+                counter +=1
+            for i in range(numExp):
+                if struc[5*i+2]:
+                    outPos[i] = fitVal[counter]
+                    counter += 1
+                if struc[5*i+3]:
+                    outCq[i] = fitVal[counter]
+                    counter += 1
+                if struc[5*i+4]:
+                    outAmp[i] = fitVal[counter]
+                    counter += 1
+                if struc[5*i+5]:
+                    outWidth[i] = abs(fitVal[counter])
+                    counter += 1
+                if struc[5*i+6]:
+                    outGauss[i] = abs(fitVal[counter])
+                    counter += 1
+            outputArray = []
+            if outputs[0]:
+                outputArray = np.concatenate((outputArray,[outBgrnd]))
+            if outputs[1]:
+                outputArray = np.concatenate((outputArray,[outSlope]))
+            if outputs[2]:
+                outputArray = np.concatenate((outputArray,outPos))
+            if outputs[3]:
+                outputArray = np.concatenate((outputArray,outSigma))
+            if outputs[4]:
+                outputArray = np.concatenate((outputArray,outAmp)) 
+            if outputs[5]:
+                outputArray = np.concatenate((outputArray,outWidth))
+            if outputs[6]:
+                outputArray = np.concatenate((outputArray,outGauss))
+            outputData[counter2] = outputArray
+            counter2 += 1
+        newShape = np.concatenate((np.array(dataShape2),[numOutputs]))
+        self.rootwindow.createNewData(np.rollaxis(outputData.reshape(newShape),-1,axes), axes)
+        
     def sim(self):
         self.setCheng()
         if not self.setGrid():
