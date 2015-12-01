@@ -80,6 +80,8 @@ class MainProgram(QtGui.QMainWindow):
         self.macrostopAct = self.macromenu.addAction('Stop recording', self.stopMacro)
         self.macrolistmenu = QtGui.QMenu('Run',self)
         self.macromenu.addMenu(self.macrolistmenu)
+        self.macrorenamemenu = QtGui.QMenu('Rename',self)
+        self.macromenu.addMenu(self.macrorenamemenu)
         self.macrodeletemenu = QtGui.QMenu('Delete',self)
         self.macromenu.addMenu(self.macrodeletemenu)
         self.macrosavemenu = QtGui.QMenu('Save',self)
@@ -187,9 +189,37 @@ class MainProgram(QtGui.QMainWindow):
         action1 = self.macrolistmenu.addAction(givenName,lambda name=givenName: self.runMacro(name))
         action2 = self.macrosavemenu.addAction(givenName,lambda name=givenName: self.saveMacro(name))
         action3 = self.macrodeletemenu.addAction(givenName,lambda name=givenName: self.deleteMacro(name))
-        self.macroActions[givenName] = [action1,action2,action3]
+        action4 = self.macrorenamemenu.addAction(givenName,lambda name=givenName: self.renameMacro(name))
+        self.macroActions[givenName] = [action1,action2,action3,action4]
         self.menuCheck()
 
+    def renameMacro(self,oldName):
+        if self.mainWindow is None:
+            return
+        count = 0
+        name = 'macro'+str(count)
+        while name in self.macros.keys():
+            count += 1
+            name = 'macro'+str(count)
+        givenName, ok = QtGui.QInputDialog.getText(self, 'Macro name', 'Name:',text=name)
+        while (givenName in self.macros.keys()) or givenName is '':
+            print('Name exists')
+            givenName, ok = QtGui.QInputDialog.getText(self, 'Macro name', 'Name:',text=name)
+        self.macros[givenName] = self.macros.pop(oldName)
+        if self.mainWindow.currentMacro == oldName:
+            self.mainWindow.currentMacro = givenName
+        oldActions = self.macroActions.pop(oldName)
+        self.macrolistmenu.removeAction(oldActions[0])
+        self.macrosavemenu.removeAction(oldActions[1])
+        self.macrodeletemenu.removeAction(oldActions[2])
+        self.macrorenamemenu.removeAction(oldActions[3])
+        action1 = self.macrolistmenu.addAction(givenName,lambda name=givenName: self.runMacro(name))
+        action2 = self.macrosavemenu.addAction(givenName,lambda name=givenName: self.saveMacro(name))
+        action3 = self.macrodeletemenu.addAction(givenName,lambda name=givenName: self.deleteMacro(name))
+        action4 = self.macrorenamemenu.addAction(givenName,lambda name=givenName: self.renameMacro(name))
+        self.macroActions[givenName] = [action1,action2,action3,action4]
+        self.menuCheck()
+        
     def stopMacro(self):
         if self.mainWindow is None:
             return
@@ -217,6 +247,7 @@ class MainProgram(QtGui.QMainWindow):
         self.macrolistmenu.removeAction(self.macroActions[name][0])
         self.macrosavemenu.removeAction(self.macroActions[name][1])
         self.macrodeletemenu.removeAction(self.macroActions[name][2])
+        self.macrorenamemenu.removeAction(self.macroActions[name][3])
         del self.macros[name]
         del self.macroActions[name]
         for i in self.workspaces:
@@ -1053,7 +1084,7 @@ class Main1DWindow(QtGui.QWidget):
         struct['freq'] = self.masterData.freq.tolist()
         struct['sw'] = list(self.masterData.sw)
         struct['spec'] = list(self.masterData.spec)
-        struct['wholeEcho'] = list(1*self.masterData.wholeEcho)
+        struct['wholeEcho'] = list(np.array(self.masterData.wholeEcho,dtype=int))
         struct['ref'] = np.array(self.masterData.ref,dtype=np.float).tolist()
         tmpXax = []
         for i in self.masterData.xaxArray:
@@ -2206,6 +2237,10 @@ class ApodWindow(QtGui.QWidget):
     def stepLB(self,lorincr,gaussincr):
         self.entries[0].setText('%.2f' %(float(self.entries[0].text())+lorincr*self.lorstep))
         self.entries[1].setText('%.2f' %(float(self.entries[1].text())+gaussincr*self.gaussstep))
+        if (lorincr!=0) and (not self.ticks[0].isChecked()):
+            self.ticks[0].setChecked(1)
+        if (gaussincr!=0) and (not self.ticks[1].isChecked()):
+            self.ticks[1].setChecked(1)
         self.apodPreview()
 
     def closeEvent(self, *args):
