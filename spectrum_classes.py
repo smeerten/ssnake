@@ -277,6 +277,7 @@ class Spectrum:
         else:
             self.dim = self.dim - 1
             self.freq = np.delete(self.freq,axes)
+            self.ref = np.delete(self.ref,axes)
             self.sw = np.delete(self.sw,axes)
             self.spec = np.delete(self.spec,axes)
             self.wholeEcho = np.delete(self.wholeEcho,axes)
