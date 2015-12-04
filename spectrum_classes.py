@@ -305,6 +305,25 @@ class Spectrum:
         self.resetXax(axes)
         return returnValue
 
+    def diff(self, axes):
+        axes = self.checkAxes(axes)
+        if axes == None:
+            return None
+        copyData=copy.deepcopy(self)
+        returnValue = lambda self: self.restoreData(copyData, lambda self: self.diff(axes))
+        self.data = np.diff(self.data,axis=axes)
+        self.resetXax(axes)
+        return returnValue
+
+    def cumsum(self,axes):
+        axes = self.checkAxes(axes)
+        if axes == None:
+            return None
+        copyData=copy.deepcopy(self)
+        returnValue = lambda self: self.restoreData(copyData, lambda self: self.cumsum(axes))
+        self.data = np.cumsum(self.data,axis=axes)
+        return returnValue
+    
     def flipLR(self, axes):
         axes = self.checkAxes(axes)
         if axes == None:
@@ -1233,6 +1252,22 @@ class Current1D(Plot1DFrame):
         self.showFid()
         self.root.addMacro(['split',(sections,self.axes-self.data.dim)])
         return returnValue
+
+    def diff(self):
+        returnValue = self.data.diff(self.axes)
+        self.upd()
+        self.plotReset()
+        self.showFid()
+        self.root.addMacro(['diff',(self.axes-self.data.dim)])
+        return returnValue
+
+    def cumsum(self):
+        returnValue = self.data.cumsum(self.axes)
+        self.upd()
+        self.plotReset()
+        self.showFid()
+        self.root.addMacro(['cumsum',(self.axes-self.data.dim)])
+        return returnValue
     
     def insert(self,data,pos):
         returnValue = self.data.insert(data,pos,self.axes)
@@ -1279,7 +1314,7 @@ class Current1D(Plot1DFrame):
         self.showFid()
         self.root.addMacro(['subtract',(np.real(data).tolist(),np.imag(data).tolist(),str(selectSlice))])
         return returnValue
-
+    
     def multiply(self,data,select=False):
         if select:
             selectSlice = self.getSelect()

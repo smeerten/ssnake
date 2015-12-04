@@ -865,6 +865,8 @@ class Main1DWindow(QtGui.QWidget):
         self.matrixMenu.addAction("Min", self.createMinWindow)
         self.matrixMenu.addAction("Max position", self.createArgMaxWindow)
         self.matrixMenu.addAction("Min position", self.createArgMinWindow)
+        self.matrixMenu.addAction("Diff", self.diff)
+        self.matrixMenu.addAction("Cumsum", self.cumsum)
         self.matrixMenu.addAction("Extract part", self.createRegionWindow)
         self.matrixMenu.addAction("Flip L/R", self.flipLR)
         self.matrixMenu.addAction("Delete", self.createDeleteWindow)
@@ -1005,6 +1007,10 @@ class Main1DWindow(QtGui.QWidget):
                 self.undoList.append(self.masterData.realFourier(*iter1[1]))
             elif iter1[0] == 'fftshift':
                 self.undoList.append(self.masterData.fftshift(*iter1[1]))
+            elif iter1[0] == 'diff':
+                self.undoList.append(self.masterData.diff(*iter1[1]))
+            elif iter1[0] == 'cumsum':
+                self.undoList.append(self.masterData.cumsum(*iter1[1]))
             elif iter1[0] == 'apodize':
                 self.undoList.append(self.masterData.apodize(*iter1[1]))
             elif iter1[0] == 'freq':
@@ -1199,7 +1205,19 @@ class Main1DWindow(QtGui.QWidget):
         self.undoList.append(self.current.fftshift(inv=True))
         self.updAllFrames()
         self.menuCheck()
-    
+
+    def diff(self):
+        self.redoList = []
+        self.undoList.append(self.current.diff())
+        self.updAllFrames()
+        self.menuCheck()
+
+    def cumsum(self):
+        self.redoList = []
+        self.undoList.append(self.current.cumsum())
+        self.updAllFrames()
+        self.menuCheck()    
+        
     def hilbert(self):
         self.redoList = []
         self.undoList.append(self.current.hilbert())
