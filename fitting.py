@@ -4420,7 +4420,7 @@ class Quad2StaticCzjzekParamFrame(QtGui.QWidget):
                     outPos[i] = fitVal[counter]
                     counter += 1
                 if struc[5*i+3]:
-                    outCq[i] = fitVal[counter]
+                    outSigma[i] = fitVal[counter]
                     counter += 1
                 if struc[5*i+4]:
                     outAmp[i] = fitVal[counter]

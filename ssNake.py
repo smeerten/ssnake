@@ -304,6 +304,7 @@ class MainProgram(QtGui.QMainWindow):
             return
         self.workspaces.append(Main1DWindow(self,copy.deepcopy(self.mainWindow.get_masterData()),self.mainWindow.get_current(),name=name))
         self.mainFrame.addWidget(self.workspaces[-1])
+        self.mainWindow.removeFromView()
         self.workspaces[-1].initUI()
         self.workspaceNames.append(name)
         self.changeMainWindow(name)
@@ -2913,7 +2914,8 @@ class DeleteWindow(QtGui.QWidget):
         env = vars(np).copy()
         length = int(self.father.current.data1D.shape[-1])
         env['length']=length # so length can be used to in equations
-        pos=np.array(eval(self.delEntry.text(),env))                # find a better solution, also add catch for exceptions
+        pos=np.array(eval(self.delEntry.text(),env)).flatten()                # find a better solution, also add catch for exceptions
+        pos[pos<0]=pos[pos<0]+length
         if (pos > -1).all() and (pos < length).all():
             self.father.current.deletePreview(pos)
         else:
@@ -2923,7 +2925,8 @@ class DeleteWindow(QtGui.QWidget):
         env = vars(np).copy()
         length = int(self.father.current.data1D.shape[-1])
         env['length']=length # so length can be used to in equations
-        pos=np.array(eval(self.delEntry.text(),env))                # find a better solution, also add catch for exceptions
+        pos=np.array(eval(self.delEntry.text(),env)).flatten()                # find a better solution, also add catch for exceptions
+        pos[pos<0]=pos[pos<0]+length
         if (pos > -1).all() and (pos < length).all():
             self.father.redoList = []
             self.father.undoList.append(self.father.current.delete(pos))
