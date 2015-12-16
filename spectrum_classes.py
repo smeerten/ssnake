@@ -2373,7 +2373,7 @@ class CurrentContour(Current1D):
         if hasattr(duplicateCurrent,'minLevels'):
             self.minLevels = duplicateCurrent.minLevels
         else:
-            self.minLevels = 0.0
+            self.minLevels = 0.1
         if hasattr(duplicateCurrent,'maxLevels'):
             self.maxLevels = duplicateCurrent.maxLevels
         else:

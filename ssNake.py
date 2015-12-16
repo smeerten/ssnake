@@ -1336,9 +1336,6 @@ class Main1DWindow(QtGui.QWidget):
                 DECIM = int(float(data[s][9:]))
             if data[s].startswith('##$DSPFVS='):
                 DSPFVS = int(float(data[s][10:]))
-        if FilterCorrection != -1.0:
-            print('DSPFVS value not recognized (Bruker hardware version not known)')
-            return
         if DSPFVS == 10 or DSPFVS == 11 or DSPFVS == 12:#get from table
             CorrectionList = [{'2':44.7500,'3':33.5000,'4':66.6250,'6':59.0833
                                ,'8':68.5625,'12':60.3750,'16':69.5313,'24':61.0208,'32':70.0156
@@ -1353,6 +1350,9 @@ class Main1DWindow(QtGui.QWidget):
             #Take correction from database. Based on matNMR routine (Jacco van Beek), which is itself based 
             #on a text by W. M. Westler and F. Abildgaard.
             FilterCorrection = CorrectionList[10-DSPFVS][str(DECIM)]
+        if FilterCorrection == -1.0:
+            print('DSPFVS value not recognized (Bruker hardware version not known)')
+            return
         if FilterCorrection != -1.0: #If changed
             self.redoList = []
             self.undoList.append(self.current.applyPhase(0, FilterCorrection*2*np.pi))

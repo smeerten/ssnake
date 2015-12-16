@@ -4288,7 +4288,7 @@ class Quad2StaticCzjzekParamFrame(QtGui.QWidget):
                 counter += 1
             if struc[5*i+3]:
                 self.sigmaEntries[i].setText('%.2g' % (fitVal[counter]*1e-6))
-                outCq[i] = fitVal[counter]
+                outSigma[i] = fitVal[counter]
                 counter += 1
             if struc[5*i+4]:
                 self.ampEntries[i].setText('%.2g' % fitVal[counter])
