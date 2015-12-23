@@ -890,6 +890,7 @@ class Main1DWindow(QtGui.QWidget):
         self.menubar.addMenu(self.fittingMenu)
         self.fittingMenu.addAction("S/N", self.createSNWindow)
         self.fittingMenu.addAction("FWHM", self.createFWHMWindow)
+        self.fittingMenu.addAction("Integrals", self.createIntegralsWindow)
         self.fittingMenu.addAction("Relaxation Curve", self.createRelaxWindow)
         self.fittingMenu.addAction("Diffusion Curve", self.createDiffusionWindow)
         self.fittingMenu.addAction("Peak Deconvolution", self.createPeakDeconvWindow)
@@ -1366,6 +1367,9 @@ class Main1DWindow(QtGui.QWidget):
 
     def createXaxWindow(self):
         self.extraWindow = XaxWindow(self)
+
+    def createIntegralsWindow(self):
+        self.mainProgram.createFitWindow(fit.IntegralsWindow(self.father,self.mainProgram,self.mainProgram.mainWindow))
         
     def createRelaxWindow(self):
         self.mainProgram.createFitWindow(fit.RelaxWindow(self.father,self.mainProgram,self.mainProgram.mainWindow))

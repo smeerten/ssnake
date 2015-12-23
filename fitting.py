@@ -34,6 +34,361 @@ from zcw import *
 pi = math.pi
 
 ##############################################################################
+class IntegralsWindow(QtGui.QWidget): 
+    def __init__(self, rootwindow,mainProgram,oldMainWindow):
+        QtGui.QWidget.__init__(self,rootwindow)
+        self.mainProgram = mainProgram
+        self.oldMainWindow = oldMainWindow
+        self.name = self.oldMainWindow.name
+        self.fig = Figure()
+        self.canvas =  FigureCanvas(self.fig)
+        grid = QtGui.QGridLayout(self)
+        grid.addWidget(self.canvas,0,0)
+        self.current = IntegralsFrame(self,self.fig,self.canvas,oldMainWindow.current)
+        self.paramframe = IntegralsParamFrame(self.current,self)
+        grid.addWidget(self.paramframe,1,0)
+        grid.setColumnStretch(0,1)
+        grid.setRowStretch(0,1)
+        self.canvas.mpl_connect('button_press_event', self.buttonPress)      
+        self.canvas.mpl_connect('button_release_event', self.buttonRelease)
+        self.canvas.mpl_connect('motion_notify_event', self.pan)
+        self.canvas.mpl_connect('scroll_event', self.scroll)
+
+    def createNewData(self,data, axes):
+        masterData = self.get_masterData()
+        self.mainProgram.dataFromFit(data, copy.deepcopy(masterData.freq), copy.deepcopy(masterData.sw) , copy.deepcopy(masterData.spec), copy.deepcopy(masterData.wholeEcho), copy.deepcopy(masterData.ref), copy.deepcopy(masterData.xaxArray), axes)
+        
+    def rename(self,name):
+        self.fig.suptitle(name)
+        self.canvas.draw()
+        self.oldMainWindow.rename(name)
+        
+    def buttonPress(self,event):
+        self.current.buttonPress(event)
+
+    def buttonRelease(self,event):
+        self.current.buttonRelease(event)
+
+    def pan(self,event):
+        self.current.pan(event)
+
+    def scroll(self,event):
+        self.current.scroll(event)
+        
+    def get_mainWindow(self):
+        return self.oldMainWindow
+        
+    def get_masterData(self):
+        return self.oldMainWindow.get_masterData()
+    
+    def get_current(self):
+        return self.oldMainWindow.get_current()
+        
+    def addToView(self):
+        self.show()
+
+    def removeFromView(self):
+        self.hide()
+
+    def kill(self):
+        self.current.kill()
+        self.oldMainWindow.kill()
+        del self.current
+        
+    def cancel(self):
+         self.mainProgram.closeFitWindow(self.oldMainWindow)
+        
+#################################################################################   
+class IntegralsFrame(Plot1DFrame): 
+    def __init__(self, rootwindow,fig,canvas,current):
+        Plot1DFrame.__init__(self,rootwindow,fig,canvas)
+        self.data1D = current.getDisplayedData()
+        self.current = current
+        self.spec = self.current.spec
+        self.xax = self.current.xax
+        self.plotType=0
+        self.rootwindow = rootwindow
+        self.pickNum = 0
+        self.pickWidth = False
+        self.plotReset()
+        self.showPlot()
+
+    def plotReset(self): 
+        a=self.fig.gca()
+        if self.plotType==0:
+            miny = min(np.real(self.data1D))
+            maxy = max(np.real(self.data1D))
+        elif self.plotType==1:
+            miny = min(np.imag(self.data1D))
+            maxy = max(np.imag(self.data1D))
+        elif self.plotType==2:
+            miny = min(min(np.real(self.data1D)),min(np.imag(self.data1D)))
+            maxy = max(max(np.real(self.data1D)),max(np.imag(self.data1D)))
+        elif self.plotType==3:
+            miny = min(np.abs(self.data1D))
+            maxy = max(np.abs(self.data1D))
+        else:
+            miny=-1
+            maxy=1
+        differ = 0.05*(maxy-miny) 
+        self.yminlim=miny-differ
+        self.ymaxlim=maxy+differ
+        if self.spec == 1:
+            if self.current.ppm:
+                axMult = 1e6/self.current.ref
+            else:
+                axMult = 1.0/(1000.0**self.current.axType)
+        elif self.spec == 0:
+            axMult = 1000.0**self.current.axType
+        self.xminlim=min(self.xax*axMult)
+        self.xmaxlim=max(self.xax*axMult)
+        if self.spec > 0 :
+            a.set_xlim(self.xmaxlim,self.xminlim)
+        else:
+            a.set_xlim(self.xminlim,self.xmaxlim)
+        a.set_ylim(self.yminlim,self.ymaxlim)
+        
+    def showPlot(self, tmpAx=None, tmpdata=None, tmpAx2=[], tmpdata2=[]): 
+        a=self.fig.gca()
+        a.cla()
+        if self.spec == 1:
+            if self.current.ppm:
+                axMult = 1e6/self.current.ref
+            else:
+                axMult = 1.0/(1000.0**self.current.axType)
+        elif self.spec == 0:
+            axMult = 1000.0**self.current.axType
+        self.line_xdata = self.xax*axMult
+        self.line_ydata = self.data1D
+        a.plot(self.xax*axMult,self.data1D)
+        if tmpAx is not None:
+            a.plot(tmpAx*axMult,tmpdata)
+        for i in range(len(tmpAx2)):
+            a.plot(tmpAx2[i]*axMult,tmpdata2[i])
+        if self.spec==0:
+            if self.current.axType == 0:
+                a.set_xlabel('Time [s]')
+            elif self.current.axType == 1:
+                a.set_xlabel('Time [ms]')
+            elif self.current.axType == 2:
+                a.set_xlabel(r'Time [$\mu$s]')
+            else:
+                a.set_xlabel('User defined')
+        elif self.spec==1:
+            if self.current.ppm:
+                a.set_xlabel('Frequency [ppm]')
+            else:
+                if self.current.axType == 0:
+                    a.set_xlabel('Frequency [Hz]')
+                elif self.current.axType == 1:
+                    a.set_xlabel('Frequency [kHz]')
+                elif self.current.axType == 2:
+                    a.set_xlabel('Frequency [MHz]')
+                else:
+                    a.set_xlabel('User defined')
+        else:
+            a.set_xlabel('')
+        a.get_xaxis().get_major_formatter().set_powerlimits((-4, 4))
+        a.get_yaxis().get_major_formatter().set_powerlimits((-4, 4))
+        if self.spec > 0 :
+            a.set_xlim(self.xmaxlim,self.xminlim)
+        else:
+            a.set_xlim(self.xminlim,self.xmaxlim)
+        a.set_ylim(self.yminlim,self.ymaxlim)
+        self.canvas.draw()
+
+    def togglePick(self,var):
+        self.peakPickReset()
+        if var==1:
+            self.peakPickFunc = lambda pos,self=self: self.pickDeconv(pos) 
+            self.peakPick = True
+        else:
+            self.peakPickFunc = None
+            self.peakPick = False
+        
+    def pickDeconv(self, pos):
+        self.rootwindow.paramframe.addValue(pos[1])
+        self.peakPickFunc = lambda pos,self=self: self.pickDeconv(pos) 
+        self.peakPick = True 
+
+#################################################################################
+class IntegralsParamFrame(QtGui.QWidget): 
+    def __init__(self, parent, rootwindow):
+        QtGui.QWidget.__init__(self, rootwindow)
+        self.parent = parent
+        self.rootwindow = rootwindow
+        grid = QtGui.QGridLayout(self)
+        self.setLayout(grid)
+        self.frame1 = QtGui.QGridLayout()
+        self.frame2 = QtGui.QGridLayout()
+        self.frame3 = QtGui.QGridLayout()
+        grid.addLayout(self.frame1,0,0)
+        grid.addLayout(self.frame2,0,1)
+        grid.addLayout(self.frame3,0,2)
+        fitButton = QtGui.QPushButton("Fit")
+        fitButton.clicked.connect(self.fit)
+        self.frame1.addWidget(fitButton,0,0)
+        cancelButton = QtGui.QPushButton("Cancel")
+        cancelButton.clicked.connect(rootwindow.cancel)
+        self.frame1.addWidget(cancelButton,1,0)
+        resetButton = QtGui.QPushButton("Reset")
+        resetButton.clicked.connect(self.reset)
+        self.frame1.addWidget(resetButton,0,1)
+        self.pickTick = QtGui.QCheckBox("Pick")
+        self.pickTick.stateChanged.connect(self.togglePick)
+        self.frame1.addWidget(self.pickTick,1,1)
+        self.frame1.setColumnStretch(10,1)
+        self.frame1.setAlignment(QtCore.Qt.AlignTop)
+        self.frame3.addWidget(QLabel("Min bounds:"),1,0)
+        self.frame3.addWidget(QLabel("Max bounds:"),1,1)
+        self.frame3.addWidget(QLabel("Integral:"),1,2)
+        self.frame3.setColumnStretch(20,1)
+        self.frame3.setAlignment(QtCore.Qt.AlignTop)
+        self.integralIter = 0
+        self.minValues = []
+        self.maxValues = []
+        self.intValues = []
+        self.minEntries = []
+        self.maxEntries = []
+        self.intEntries = []
+        self.deleteButtons = []
+        self.minEntries.append(QtGui.QLineEdit())
+        self.minEntries[0].setAlignment(QtCore.Qt.AlignHCenter)
+        self.frame3.addWidget(self.minEntries[0],2,0)
+        self.maxEntries.append(QtGui.QLineEdit())
+        self.maxEntries[0].setAlignment(QtCore.Qt.AlignHCenter)
+        self.frame3.addWidget(self.maxEntries[0],2,1)
+        self.intEntries.append(QtGui.QLineEdit())
+        self.intEntries[0].setAlignment(QtCore.Qt.AlignHCenter)
+        self.frame3.addWidget(self.intEntries[0],2,3)
+        self.deleteButtons.append(QtGui.QPushButton("X"))
+        self.deleteButtons[0].clicked.connect(lambda extra,self=self: self.deleteEntry(self.deleteButtons[0]))
+        self.frame3.addWidget(self.deleteButtons[0],2,3)
+        self.reset()
+        grid.setColumnStretch(10,1)
+        grid.setAlignment(QtCore.Qt.AlignLeft)
+
+    def reset(self):
+        for i in range(self.integralIter+1):
+            self.deleteEntry(num=0,reset=True)
+        self.pickTick.setChecked(True)
+        self.togglePick()
+        self.parent.showPlot()
+
+    def addValue(self, value):
+        if self.first:
+            self.minValues = np.append(self.minValues,value)
+            self.minEntries[self.integralIter].setText("%#.3g" % value)
+            self.first = False
+        else:
+            tmp = self.minValues[self.integralIter]
+            self.minValues[self.integralIter] = min(value,tmp)
+            self.maxValues = np.append(self.maxValues,max(value,tmp))
+            self.minEntries[self.integralIter].setText("%#.3g" % min(value,tmp))
+            self.maxEntries[self.integralIter].setText("%#.3g" % max(value,tmp))
+            self.integralIter += 1
+            self.minEntries.append(QtGui.QLineEdit())
+            self.minEntries[self.integralIter].setAlignment(QtCore.Qt.AlignHCenter)
+            self.frame3.addWidget(self.minEntries[self.integralIter],2+self.entryCount,0)
+            self.maxEntries.append(QtGui.QLineEdit())
+            self.maxEntries[self.integralIter].setAlignment(QtCore.Qt.AlignHCenter)
+            self.frame3.addWidget(self.maxEntries[self.integralIter],2+self.entryCount,1)
+            self.intEntries.append(QtGui.QLineEdit())
+            self.intEntries[self.integralIter].setAlignment(QtCore.Qt.AlignHCenter)
+            self.frame3.addWidget(self.intEntries[self.integralIter],2+self.entryCount,2)
+            self.deleteButtons.append(QtGui.QPushButton("X"))
+            self.deleteButtons[self.integralIter].clicked.connect(lambda extra,self=self,tmp=self.deleteButtons[self.integralIter]: self.deleteEntry(tmp))
+            self.frame3.addWidget(self.deleteButtons[self.integralIter],2+self.entryCount,3)
+            self.entryCount += 1
+            self.first = True
+            self.fit()
+
+    def deleteEntry(self, button=None, num=None, reset=False):
+        if num is None:
+            num = self.deleteButtons.index(button)
+        self.frame3.removeWidget(self.maxEntries[num])
+        self.frame3.removeWidget(self.minEntries[num])
+        self.frame3.removeWidget(self.deleteButtons[num])
+        self.frame3.removeWidget(self.intEntries[num])
+        self.maxEntries[num].deleteLater()
+        self.minEntries[num].deleteLater()
+        self.deleteButtons[num].deleteLater()
+        self.intEntries[num].deleteLater()
+        self.maxEntries.pop(num)
+        self.minEntries.pop(num)
+        self.deleteButtons.pop(num)
+        self.intEntries.pop(num)
+        self.integralIter -= 1
+        if self.integralIter == -1:
+            self.minValues = []
+            self.maxValues = []
+            self.intValues = []
+            self.minEntries = []
+            self.maxEntries = []
+            self.intEntries = []
+            self.deleteButtons = []
+            self.minEntries.append(QtGui.QLineEdit())
+            self.minEntries[0].setAlignment(QtCore.Qt.AlignHCenter)
+            self.frame3.addWidget(self.minEntries[0],2,0)
+            self.maxEntries.append(QtGui.QLineEdit())
+            self.maxEntries[0].setAlignment(QtCore.Qt.AlignHCenter)
+            self.frame3.addWidget(self.maxEntries[0],2,1)
+            self.intEntries.append(QtGui.QLineEdit())
+            self.intEntries[0].setAlignment(QtCore.Qt.AlignHCenter)
+            self.frame3.addWidget(self.intEntries[0],2,2)
+            self.deleteButtons.append(QtGui.QPushButton("X"))
+            self.deleteButtons[0].clicked.connect(lambda extra,self=self: self.deleteEntry(self.deleteButtons[0]))
+            self.frame3.addWidget(self.deleteButtons[0],2,3)
+            self.integralIter = 0
+            self.entryCount = 1
+            self.first = True
+        if not reset:
+            self.fit()
+            
+    def togglePick(self):
+        self.parent.togglePick(self.pickTick.isChecked())
+
+    def checkInputs(self):
+        return True
+    
+    def fit(self,*args):
+        if not self.checkInputs():
+            print("One of the inputs is not valid")
+            return
+        if self.parent.spec == 1:
+            if self.parent.current.ppm:
+                axMult = 1e6/self.parent.current.ref
+            else:
+                axMult = 1.0/(1000.0**self.parent.current.axType)
+        elif self.parent.spec == 0:
+            axMult = 1000.0**self.parent.current.axType
+        xax = self.parent.current.xax * axMult
+        x = []
+        y = []
+        if self.integralIter == 0:
+            self.parent.showPlot()
+            return
+        for i in range(self.integralIter):
+            tmpx = self.parent.current.xax[(self.minValues[i]<xax)&(self.maxValues[i]>xax)]
+            if self.parent.current.plotType == 0:
+                tmpy = np.real(self.parent.current.data1D[(self.minValues[i]<xax)&(self.maxValues[i]>xax)])
+            elif self.parent.current.plotType == 1:
+                tmpy = np.imag(self.parent.current.data1D[(self.minValues[i]<xax)&(self.maxValues[i]>xax)])
+            elif self.parent.current.plotType == 2:
+                tmpy = np.real(self.parent.current.data1D[(self.minValues[i]<xax)&(self.maxValues[i]>xax)])
+            elif self.parent.current.plotType == 3:
+                tmpy = np.abs(self.parent.current.data1D[(self.minValues[i]<xax)&(self.maxValues[i]>xax)])
+            if self.parent.spec == 1:
+                x = np.append(x,tmpx[::-1])
+                y = np.append(y,np.cumsum(tmpy[::-1]))
+            else:
+                x = np.append(x,tmpx)
+                y = np.append(y,np.cumsum(tmpy))
+            x = np.append(x,float('nan'))
+            y = np.append(y,float('nan'))
+        self.parent.showPlot(x,y)
+        
+##############################################################################
 class RelaxWindow(QtGui.QWidget): 
     def __init__(self, rootwindow,mainProgram,oldMainWindow):
         QtGui.QWidget.__init__(self,rootwindow)
@@ -3342,7 +3697,7 @@ class Quad1DeconvParamFrame(QtGui.QWidget):
     def setAngleStuff(self):
         phi,theta,self.weight = zcw_angles(self.cheng,symm=2)
         self.angleStuff1 = 0.5*(3*np.cos(theta)**2-1)
-        self.angleStuff2 = np.cos(2*phi)*(np.cos(theta)**2-1)
+        self.angleStuff2 = 0.5*np.cos(2*phi)*(np.sin(theta)**2)
         
     def checkInputs(self):
         numExp = self.numExp.currentIndex()+1
