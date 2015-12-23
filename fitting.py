@@ -245,9 +245,10 @@ class IntegralsParamFrame(QtGui.QWidget):
         self.frame3.setColumnStretch(20,1)
         self.frame3.setAlignment(QtCore.Qt.AlignTop)
         self.integralIter = 0
+        self.refNum = 0
         self.minValues = []
         self.maxValues = []
-        self.intValues = []
+        self.intValues = np.array([1.0])
         self.minEntries = []
         self.maxEntries = []
         self.intEntries = []
@@ -284,6 +285,7 @@ class IntegralsParamFrame(QtGui.QWidget):
             tmp = self.minValues[self.integralIter]
             self.minValues[self.integralIter] = min(value,tmp)
             self.maxValues = np.append(self.maxValues,max(value,tmp))
+            self.intValues = np.append(self.intValues,1)
             self.minEntries[self.integralIter].setText("%#.3g" % min(value,tmp))
             self.maxEntries[self.integralIter].setText("%#.3g" % max(value,tmp))
             self.integralIter += 1
@@ -318,11 +320,12 @@ class IntegralsParamFrame(QtGui.QWidget):
         self.minEntries.pop(num)
         self.deleteButtons.pop(num)
         self.intEntries.pop(num)
+        self.intValues = np.delete(self.intValues,num)
         self.integralIter -= 1
         if self.integralIter == -1:
             self.minValues = []
             self.maxValues = []
-            self.intValues = []
+            self.intValues = np.array([1.0])
             self.minEntries = []
             self.maxEntries = []
             self.intEntries = []
@@ -350,6 +353,11 @@ class IntegralsParamFrame(QtGui.QWidget):
 
     def checkInputs(self):
         return True
+
+    def displayInt(self):
+        tmpInts = self.intValues/float(self.intValues[self.refNum])
+        for i in range(self.integralIter):
+            self.intEntries[i].setText("%#.3g" % tmpInts[i])
     
     def fit(self,*args):
         if not self.checkInputs():
@@ -378,6 +386,7 @@ class IntegralsParamFrame(QtGui.QWidget):
                 tmpy = np.real(self.parent.current.data1D[(self.minValues[i]<xax)&(self.maxValues[i]>xax)])
             elif self.parent.current.plotType == 3:
                 tmpy = np.abs(self.parent.current.data1D[(self.minValues[i]<xax)&(self.maxValues[i]>xax)])
+            self.intValues[i] = np.sum(tmpy)
             if self.parent.spec == 1:
                 x = np.append(x,tmpx[::-1])
                 y = np.append(y,np.cumsum(tmpy[::-1]))
@@ -386,6 +395,7 @@ class IntegralsParamFrame(QtGui.QWidget):
                 y = np.append(y,np.cumsum(tmpy))
             x = np.append(x,float('nan'))
             y = np.append(y,float('nan'))
+            self.displayInt()
         self.parent.showPlot(x,y)
         
 ##############################################################################

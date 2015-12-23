@@ -33,7 +33,7 @@ import json
 import copy
 import math
 from struct import unpack
-
+import h5py #For .mat v 7.3 support
 import spectrum_classes as sc
 import fitting as fit
 from safeEval import *
@@ -486,23 +486,47 @@ class MainProgram(QtGui.QMainWindow):
             xaxA.append(np.array(i))
         masterData=sc.Spectrum(data,lambda self :self.loadJSONFile(filePath),list(struct['freq']),list(struct['sw']),list(struct['spec']),list(np.array(struct['wholeEcho'],dtype=bool)),list(ref),xaxA)
         return masterData
-        
+
     def loadMatlabFile(self,filePath):
-        matlabStruct = scipy.io.loadmat(filePath)
-        var = [k for k in matlabStruct.keys() if not k.startswith('__')][0]
-        mat = matlabStruct[var]
-        if mat['dim']==1:
-            xaxA = [k[0] for k in (mat['xaxArray'][0])]
-            data = mat['data'][0,0][0]
-        else:
-            xaxA = [k[0] for k in (mat['xaxArray'][0,0][0])]
-            data = mat['data'][0,0]
-        #insert some checks for data type
-        ref = mat['ref'][0,0][0]
-        ref = np.where(np.isnan(ref), None, ref)
-        masterData=sc.Spectrum(data,lambda self :self.loadMatlabFile(filePath),list(mat['freq'][0,0][0]),list(mat['sw'][0,0][0]),list(mat['spec'][0,0][0]),list(np.array(mat['wholeEcho'][0,0][0])>0),list(ref),xaxA)
-        return masterData
-        
+        with open(filePath, 'rb') as inputfile: #read first several bytes the check .mat version
+             teststring=inputfile.read(13)
+        version=float(str(teststring)[9:12]) #extract version from the binary array
+        if version<7.3: #all versions below 7.3 are supported
+            matlabStruct = scipy.io.loadmat(filePath)
+            var = [k for k in matlabStruct.keys() if not k.startswith('__')][0]
+            mat = matlabStruct[var]
+            if mat['dim']==1:
+                xaxA = [k[0] for k in (mat['xaxArray'][0])]
+                data = mat['data'][0,0][0]
+            else:
+                xaxA = [k[0] for k in (mat['xaxArray'][0,0][0])]
+                data = mat['data'][0,0]
+            #insert some checks for data type
+            ref = mat['ref'][0,0][0]
+            ref = np.where(np.isnan(ref), None, ref)
+            masterData=sc.Spectrum(data,lambda self :self.loadMatlabFile(filePath),list(mat['freq'][0,0][0]),list(mat['sw'][0,0][0]),list(mat['spec'][0,0][0]),list(np.array(mat['wholeEcho'][0,0][0])>0),list(ref),xaxA)
+            return masterData
+        else:#If the version is 7.3, use HDF5 type loading
+            f=h5py.File(filePath,'r')
+            Groups=[]
+            for name in f:
+                if name != '#refs#':
+                    Groups.append(name)
+            DataGroup=Groups[0] #get the groupo name
+            mat=f[DataGroup]            
+            if np.array(mat['dim'])[0][0]==1:
+                xaxA = list([np.array(mat['xaxArray'])[:,0]])
+                data = np.array(mat['data'])
+                data = (data['real']+data['imag']*1j)[:,0] #split and use real and imag part
+            else:
+                xaxA = [np.array(mat[k[0]]) for k in (mat['xaxArray'])]
+                data = np.transpose(np.array(mat['data']))
+                data = data['real']+data['imag']*1j
+            ref = np.array(mat['ref'])[:,0]
+            ref = np.where(np.isnan(ref), None, ref)
+            masterData=sc.Spectrum(data,lambda self :self.loadMatlabFile(filePath),list(np.array(mat['freq'])[:,0]),list(np.array(mat['sw'])[:,0]),list(np.array(mat['spec'])[:,0]),list(np.array(mat['wholeEcho'])[:,0]>0),list(ref),xaxA)
+            return masterData
+
     def LoadBrukerTopspin(self,filePath):
         Dir = filePath 
         if os.path.exists(Dir+os.path.sep+'acqus'):

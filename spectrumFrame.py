@@ -75,7 +75,10 @@ class Plot1DFrame:
 
     def peakPickReset(self):
         if self.rect[0] is not None:
-            self.rect[0].remove()
+            try:
+                self.rect[0].remove()
+            except:
+                pass
             self.canvas.draw()
         self.rect=[None,None,None,None]
         self.peakPick=False
@@ -144,8 +147,10 @@ class Plot1DFrame:
         if event.button == 1:
             if self.peakPick:
                 if self.rect[0] is not None:
-                    self.rect[0].remove()
-                    self.rect[0]=None
+                    try:
+                        self.rect[0].remove()
+                    finally:
+                        self.rect[0]=None
                     self.peakPick = False
                     idx = np.argmin(np.abs(self.line_xdata-event.xdata))
                     if self.peakPickFunc is not None:
@@ -154,15 +159,17 @@ class Plot1DFrame:
                         self.peakPickFunc = None
             else:
                 self.leftMouse = False
-                if self.rect[0] is not None:
-                    self.rect[0].remove()
-                if self.rect[1] is not None:
-                    self.rect[1].remove()
-                if self.rect[2] is not None:
-                    self.rect[2].remove()
-                if self.rect[3] is not None:
-                    self.rect[3].remove()
-                self.rect=[None,None,None,None]
+                try:
+                    if self.rect[0] is not None:
+                        self.rect[0].remove()
+                    if self.rect[1] is not None:
+                        self.rect[1].remove()
+                    if self.rect[2] is not None:
+                        self.rect[2].remove()
+                    if self.rect[3] is not None:
+                        self.rect[3].remove()
+                finally:
+                    self.rect=[None,None,None,None]
                 if self.zoomX2 is not None and self.zoomY2 is not None:
                     self.xminlim=min([self.zoomX1,self.zoomX2])
                     self.xmaxlim=max([self.zoomX1,self.zoomX2])
@@ -211,7 +218,10 @@ class Plot1DFrame:
             self.canvas.draw()
         elif self.peakPick:
             if self.rect[0] is not None:
-                self.rect[0].remove()
+                try:
+                    self.rect[0].remove()
+                except:
+                    pass
                 self.rect[0]=None
             if event.xdata is not None:
                 self.rect[0]=self.ax.axvline(event.xdata,c='k',linestyle='--')
@@ -227,15 +237,17 @@ class Plot1DFrame:
                 self.zoomX2 =  point[0]
                 self.zoomY2 = point[1]
             if self.rect[0] is not None:
-                if self.rect[0] is not None:
-                    self.rect[0].remove()
-                if self.rect[1] is not None:
-                    self.rect[1].remove()
-                if self.rect[2] is not None:
-                    self.rect[2].remove()
-                if self.rect[3] is not None:
-                    self.rect[3].remove()
-                self.rect=[None,None,None,None]
+                try:
+                    if self.rect[0] is not None:
+                        self.rect[0].remove()
+                    if self.rect[1] is not None:
+                        self.rect[1].remove()
+                    if self.rect[2] is not None:
+                        self.rect[2].remove()
+                    if self.rect[3] is not None:
+                        self.rect[3].remove()
+                finally:
+                    self.rect=[None,None,None,None]
             self.rect[0],=self.ax.plot([self.zoomX1,self.zoomX2],[self.zoomY2,self.zoomY2],'k',clip_on=False)
             self.rect[1],=self.ax.plot([self.zoomX1,self.zoomX2],[self.zoomY1,self.zoomY1],'k',clip_on=False)
             self.rect[2],=self.ax.plot([self.zoomX1,self.zoomX1],[self.zoomY1,self.zoomY2],'k',clip_on=False)
