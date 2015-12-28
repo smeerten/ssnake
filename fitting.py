@@ -246,13 +246,25 @@ class IntegralsParamFrame(QtGui.QWidget):
         self.frame3.setAlignment(QtCore.Qt.AlignTop)
         self.integralIter = 0
         self.refNum = 0
-        self.minValues = []
-        self.maxValues = []
-        self.intValues = np.array([1.0])
+        self.minValues = np.array([0.0]) #dummy variables
+        self.maxValues = np.array([0.0]) #dummy variables
+        self.intValues = np.array([1.0]) #dummy variables
         self.minEntries = []
         self.maxEntries = []
         self.intEntries = []
         self.deleteButtons = []
+        if self.parent.current.plotType==0:
+            self.maxy = max(np.real(self.parent.current.data1D))
+            self.diffy = self.maxy - min(np.real(self.parent.current.data1D))
+        elif self.parent.current.plotType==1:
+            self.maxy = max(np.imag(self.parent.current.data1D))
+            self.diffy = self.maxy - min(np.imag(self.parent.current.data1D))
+        elif self.parent.current.plotType==2:
+            self.maxy = max(np.real(self.parent.current.data1D))
+            self.diffy = self.maxy - min(np.real(self.parent.current.data1D))
+        elif self.parent.current.plotType==3:
+            self.maxy = max(np.abs(self.parent.current.data1D))
+            self.diffy = self.maxy - min(np.abs(self.parent.current.data1D))
         self.minEntries.append(QtGui.QLineEdit())
         self.minEntries[0].setAlignment(QtCore.Qt.AlignHCenter)
         self.frame3.addWidget(self.minEntries[0],2,0)
@@ -278,13 +290,15 @@ class IntegralsParamFrame(QtGui.QWidget):
 
     def addValue(self, value):
         if self.first:
-            self.minValues = np.append(self.minValues,value)
+            self.minValues[self.integralIter] = value
             self.minEntries[self.integralIter].setText("%#.3g" % value)
             self.first = False
         else:
             tmp = self.minValues[self.integralIter]
             self.minValues[self.integralIter] = min(value,tmp)
-            self.maxValues = np.append(self.maxValues,max(value,tmp))
+            self.maxValues[self.integralIter] = max(value,tmp)
+            self.minValues = np.append(self.minValues,0.0)
+            self.maxValues = np.append(self.maxValues,0.0)
             self.intValues = np.append(self.intValues,1)
             self.minEntries[self.integralIter].setText("%#.3g" % min(value,tmp))
             self.maxEntries[self.integralIter].setText("%#.3g" % max(value,tmp))
@@ -320,11 +334,13 @@ class IntegralsParamFrame(QtGui.QWidget):
         self.minEntries.pop(num)
         self.deleteButtons.pop(num)
         self.intEntries.pop(num)
+        self.minValues = np.delete(self.minValues,num)
+        self.maxValues = np.delete(self.maxValues,num)
         self.intValues = np.delete(self.intValues,num)
         self.integralIter -= 1
         if self.integralIter == -1:
-            self.minValues = []
-            self.maxValues = []
+            self.minValues = np.array([0.0])
+            self.maxValues = np.array([0.0])
             self.intValues = np.array([1.0])
             self.minEntries = []
             self.maxEntries = []
@@ -395,7 +411,8 @@ class IntegralsParamFrame(QtGui.QWidget):
                 y = np.append(y,np.cumsum(tmpy))
             x = np.append(x,float('nan'))
             y = np.append(y,float('nan'))
-            self.displayInt()
+        self.displayInt()
+        y = y / (max(y)-min(y)) * self.diffy
         self.parent.showPlot(x,y)
         
 ##############################################################################
@@ -4111,7 +4128,8 @@ class Quad2StaticDeconvParamFrame(Quad1DeconvParamFrame):
 
     def tensorFunc(self, x, I, pos, cq, eta, width, gauss):
         pos = pos - self.axAdd
-        v = -cq**2/(6.0*self.parent.current.freq)*(I*(I+1)-3/4.0)*(self.angleStuff1+self.angleStuff2*eta+self.angleStuff3*eta**2)+pos
+        # v = -cq**2/(6.0*self.parent.current.freq)*(I*(I+1)-3/4.0)*(self.angleStuff1+self.angleStuff2*eta+self.angleStuff3*eta**2)+pos
+        v = -1/(6*self.parent.current.freq)*(3*cq/(2*I*(2*I-1)))**2*(I*(I+1)-3.0/4)*(self.angleStuff1+self.angleStuff2*eta+self.angleStuff3*eta**2)+pos
         length =len(x)
         t=np.arange(length)/self.parent.current.sw
         final = np.zeros(length)
