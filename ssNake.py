@@ -52,6 +52,7 @@ class MainProgram(QtGui.QMainWindow):
         self.workspaceNum = 0
         self.macros = {}
         self.macroActions = {} 
+        self.LastLocation = ''
         
         self.menubar = self.menuBar()
         self.filemenu = QtGui.QMenu('File', self)
@@ -112,6 +113,7 @@ class MainProgram(QtGui.QMainWindow):
         for url in event.mimeData().urls():
             path = url.toLocalFile()
             self.autoLoad(path)
+            self.LastLocation = os.path.dirname(path) #Save used path
    
     def menuCheck(self):
         if self.mainWindow is None:
@@ -256,7 +258,12 @@ class MainProgram(QtGui.QMainWindow):
         self.menuCheck()
 
     def loadMacro(self):
-        filename = QtGui.QFileDialog.getOpenFileName(self, 'Open File')
+        if self.LastLocation == '': #If there is no previous path
+            filename = QtGui.QFileDialog.getOpenFileName(self, 'Open File')
+        else:
+            filename = QtGui.QFileDialog.getOpenFileName(self, 'Open File',self.LastLocation)
+        self.LastLocation = os.path.dirname(filename) #Save used path
+        
         if len(filePath)==0:
             return
         count = 0
@@ -338,7 +345,11 @@ class MainProgram(QtGui.QMainWindow):
         self.menuCheck()
 
     def loadFromMenu(self):
-        filePath = str(QtGui.QFileDialog.getOpenFileName(self,'Open File'))
+        if self.LastLocation == '': #If there is no previous path
+            filePath = str(QtGui.QFileDialog.getOpenFileName(self,'Open File'))
+        else:
+            filePath = str(QtGui.QFileDialog.getOpenFileName(self,'Open File',self.LastLocation))
+        self.LastLocation = os.path.dirname(filePath) #Save used path
         if len(filePath)==0:
             return
         self.autoLoad(filePath)

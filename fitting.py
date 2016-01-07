@@ -244,15 +244,26 @@ class IntegralsParamFrame(QtGui.QWidget):
         self.frame3.addWidget(QLabel("Integral:"),1,2)
         self.frame3.setColumnStretch(20,1)
         self.frame3.setAlignment(QtCore.Qt.AlignTop)
+        if self.parent.spec == 1:
+            if self.parent.current.ppm:
+                axMult = 1e6/self.parent.current.ref
+            else:
+                axMult = 1.0/(1000.0**self.parent.current.axType)
+        elif self.parent.spec == 0:
+            axMult = 1000.0**self.parent.current.axType
+        self.xax = self.parent.current.xax * axMult
         self.integralIter = 0
-        self.refNum = 0
-        self.minValues = np.array([0.0]) #dummy variables
-        self.maxValues = np.array([0.0]) #dummy variables
+        self.refVal = None
+        self.minValues = np.array([min(self.xax)]) #dummy variables
+        self.maxValues = np.array([max(self.xax)]) #dummy variables
         self.intValues = np.array([1.0]) #dummy variables
         self.minEntries = []
         self.maxEntries = []
         self.intEntries = []
         self.deleteButtons = []
+        self.integralIter = 0
+        self.entryCount = 1
+        self.first = True
         if self.parent.current.plotType==0:
             self.maxy = max(np.real(self.parent.current.data1D))
             self.diffy = self.maxy - min(np.real(self.parent.current.data1D))
@@ -267,16 +278,20 @@ class IntegralsParamFrame(QtGui.QWidget):
             self.diffy = self.maxy - min(np.abs(self.parent.current.data1D))
         self.minEntries.append(QtGui.QLineEdit())
         self.minEntries[0].setAlignment(QtCore.Qt.AlignHCenter)
+        self.minEntries[0].editingFinished.connect(lambda self=self: self.setVal(self.minEntries[0],True))
         self.frame3.addWidget(self.minEntries[0],2,0)
         self.maxEntries.append(QtGui.QLineEdit())
         self.maxEntries[0].setAlignment(QtCore.Qt.AlignHCenter)
+        self.maxEntries[0].editingFinished.connect(lambda self=self: self.setVal(self.maxEntries[0],False))
         self.frame3.addWidget(self.maxEntries[0],2,1)
         self.intEntries.append(QtGui.QLineEdit())
         self.intEntries[0].setAlignment(QtCore.Qt.AlignHCenter)
-        self.frame3.addWidget(self.intEntries[0],2,3)
+        self.intEntries[0].editingFinished.connect(lambda self=self: self.setRef(self.intEntries[0]))
+        self.frame3.addWidget(self.intEntries[0],2,2)
         self.deleteButtons.append(QtGui.QPushButton("X"))
         self.deleteButtons[0].clicked.connect(lambda extra,self=self: self.deleteEntry(self.deleteButtons[0]))
         self.frame3.addWidget(self.deleteButtons[0],2,3)
+        self.minEntries.append(QtGui.QLineEdit())
         self.reset()
         grid.setColumnStretch(10,1)
         grid.setAlignment(QtCore.Qt.AlignLeft)
@@ -284,6 +299,7 @@ class IntegralsParamFrame(QtGui.QWidget):
     def reset(self):
         for i in range(self.integralIter+1):
             self.deleteEntry(num=0,reset=True)
+        self.refVal = None
         self.pickTick.setChecked(True)
         self.togglePick()
         self.parent.showPlot()
@@ -297,20 +313,23 @@ class IntegralsParamFrame(QtGui.QWidget):
             tmp = self.minValues[self.integralIter]
             self.minValues[self.integralIter] = min(value,tmp)
             self.maxValues[self.integralIter] = max(value,tmp)
-            self.minValues = np.append(self.minValues,0.0)
-            self.maxValues = np.append(self.maxValues,0.0)
+            self.minValues = np.append(self.minValues,min(self.xax))
+            self.maxValues = np.append(self.maxValues,max(self.xax))
             self.intValues = np.append(self.intValues,1)
             self.minEntries[self.integralIter].setText("%#.3g" % min(value,tmp))
             self.maxEntries[self.integralIter].setText("%#.3g" % max(value,tmp))
             self.integralIter += 1
             self.minEntries.append(QtGui.QLineEdit())
             self.minEntries[self.integralIter].setAlignment(QtCore.Qt.AlignHCenter)
+            self.minEntries[self.integralIter].editingFinished.connect(lambda self=self,tmp=self.minEntries[self.integralIter]: self.setVal(tmp,True))
             self.frame3.addWidget(self.minEntries[self.integralIter],2+self.entryCount,0)
             self.maxEntries.append(QtGui.QLineEdit())
             self.maxEntries[self.integralIter].setAlignment(QtCore.Qt.AlignHCenter)
+            self.maxEntries[self.integralIter].editingFinished.connect(lambda self=self,tmp=self.maxEntries[self.integralIter]: self.setVal(tmp,False))
             self.frame3.addWidget(self.maxEntries[self.integralIter],2+self.entryCount,1)
             self.intEntries.append(QtGui.QLineEdit())
             self.intEntries[self.integralIter].setAlignment(QtCore.Qt.AlignHCenter)
+            self.intEntries[self.integralIter].editingFinished.connect(lambda self=self,tmp=self.intEntries[self.integralIter]: self.setRef(tmp))
             self.frame3.addWidget(self.intEntries[self.integralIter],2+self.entryCount,2)
             self.deleteButtons.append(QtGui.QPushButton("X"))
             self.deleteButtons[self.integralIter].clicked.connect(lambda extra,self=self,tmp=self.deleteButtons[self.integralIter]: self.deleteEntry(tmp))
@@ -322,6 +341,14 @@ class IntegralsParamFrame(QtGui.QWidget):
     def deleteEntry(self, button=None, num=None, reset=False):
         if num is None:
             num = self.deleteButtons.index(button)
+        if num == self.integralIter:
+            self.minValues[num] = min(self.xax)
+            self.maxValues[num] = max(self.xax)
+            self.intValues[num] = 1.0
+            self.minEntries[num].setText("")
+            self.maxEntries[num].setText("")
+            self.first=True
+            return
         self.frame3.removeWidget(self.maxEntries[num])
         self.frame3.removeWidget(self.minEntries[num])
         self.frame3.removeWidget(self.deleteButtons[num])
@@ -338,70 +365,87 @@ class IntegralsParamFrame(QtGui.QWidget):
         self.maxValues = np.delete(self.maxValues,num)
         self.intValues = np.delete(self.intValues,num)
         self.integralIter -= 1
-        if self.integralIter == -1:
-            self.minValues = np.array([0.0])
-            self.maxValues = np.array([0.0])
-            self.intValues = np.array([1.0])
-            self.minEntries = []
-            self.maxEntries = []
-            self.intEntries = []
-            self.deleteButtons = []
-            self.minEntries.append(QtGui.QLineEdit())
-            self.minEntries[0].setAlignment(QtCore.Qt.AlignHCenter)
-            self.frame3.addWidget(self.minEntries[0],2,0)
-            self.maxEntries.append(QtGui.QLineEdit())
-            self.maxEntries[0].setAlignment(QtCore.Qt.AlignHCenter)
-            self.frame3.addWidget(self.maxEntries[0],2,1)
-            self.intEntries.append(QtGui.QLineEdit())
-            self.intEntries[0].setAlignment(QtCore.Qt.AlignHCenter)
-            self.frame3.addWidget(self.intEntries[0],2,2)
-            self.deleteButtons.append(QtGui.QPushButton("X"))
-            self.deleteButtons[0].clicked.connect(lambda extra,self=self: self.deleteEntry(self.deleteButtons[0]))
-            self.frame3.addWidget(self.deleteButtons[0],2,3)
-            self.integralIter = 0
-            self.entryCount = 1
-            self.first = True
         if not reset:
             self.fit()
             
     def togglePick(self):
         self.parent.togglePick(self.pickTick.isChecked())
 
-    def checkInputs(self):
-        return True
-
+    def setVal(self,entry,isMin=False):
+        inp = safeEval(entry.text())
+        if inp is None:
+            print("One of the inputs is not valid")
+            return
+        if inp < min(self.xax):
+            inp = min(self.xax)
+        if inp > max(self.xax):
+            inp = max(self.xax) 
+        if isMin:
+            num = self.minEntries.index(entry)
+            self.minValues[num] = min(inp,self.maxValues[num])
+            self.maxValues[num] = max(inp,self.maxValues[num])
+        else:
+            num = self.maxEntries.index(entry)
+            self.maxValues[num] = max(inp,self.minValues[num])
+            self.minValues[num] = min(inp,self.minValues[num])
+        if num == self.integralIter:
+            self.integralIter += 1
+            self.minValues = np.append(self.minValues,min(self.xax))
+            self.maxValues = np.append(self.maxValues,max(self.xax))
+            self.intValues = np.append(self.intValues,1)
+            self.minEntries.append(QtGui.QLineEdit())
+            self.minEntries[self.integralIter].setAlignment(QtCore.Qt.AlignHCenter)
+            self.minEntries[self.integralIter].editingFinished.connect(lambda self=self,tmp=self.minEntries[self.integralIter]: self.setVal(tmp,True))
+            self.frame3.addWidget(self.minEntries[self.integralIter],2+self.entryCount,0)
+            self.maxEntries.append(QtGui.QLineEdit())
+            self.maxEntries[self.integralIter].setAlignment(QtCore.Qt.AlignHCenter)
+            self.maxEntries[self.integralIter].editingFinished.connect(lambda self=self,tmp=self.maxEntries[self.integralIter]: self.setVal(tmp,False))
+            self.frame3.addWidget(self.maxEntries[self.integralIter],2+self.entryCount,1)
+            self.intEntries.append(QtGui.QLineEdit())
+            self.intEntries[self.integralIter].setAlignment(QtCore.Qt.AlignHCenter)
+            self.intEntries[self.integralIter].editingFinished.connect(lambda self=self,tmp=self.intEntries[self.integralIter]: self.setRef(tmp))
+            self.frame3.addWidget(self.intEntries[self.integralIter],2+self.entryCount,2)
+            self.deleteButtons.append(QtGui.QPushButton("X"))
+            self.deleteButtons[self.integralIter].clicked.connect(lambda extra,self=self,tmp=self.deleteButtons[self.integralIter]: self.deleteEntry(tmp))
+            self.frame3.addWidget(self.deleteButtons[self.integralIter],2+self.entryCount,3)
+            self.entryCount += 1
+            self.first = True
+        self.minEntries[num].setText("%#.3g" %self.minValues[num])
+        self.maxEntries[num].setText("%#.3g" %self.maxValues[num])
+        self.fit()
+            
+    def setRef(self, entry):
+        num = self.intEntries.index(entry)
+        inp = safeEval(entry.text())
+        if inp is None:
+            print("One of the inputs is not valid")
+            return
+        self.refVal =  self.intValues[num] / float(inp)
+        self.fit()
+    
     def displayInt(self):
-        tmpInts = self.intValues/float(self.intValues[self.refNum])
+        if self.refVal is None:
+            self.refVal = self.intValues[0]
+        tmpInts = self.intValues/float(self.refVal)
         for i in range(self.integralIter):
             self.intEntries[i].setText("%#.3g" % tmpInts[i])
     
     def fit(self,*args):
-        if not self.checkInputs():
-            print("One of the inputs is not valid")
-            return
-        if self.parent.spec == 1:
-            if self.parent.current.ppm:
-                axMult = 1e6/self.parent.current.ref
-            else:
-                axMult = 1.0/(1000.0**self.parent.current.axType)
-        elif self.parent.spec == 0:
-            axMult = 1000.0**self.parent.current.axType
-        xax = self.parent.current.xax * axMult
         x = []
         y = []
         if self.integralIter == 0:
             self.parent.showPlot()
             return
         for i in range(self.integralIter):
-            tmpx = self.parent.current.xax[(self.minValues[i]<xax)&(self.maxValues[i]>xax)]
+            tmpx = self.parent.current.xax[(self.minValues[i]<self.xax)&(self.maxValues[i]>self.xax)]
             if self.parent.current.plotType == 0:
-                tmpy = np.real(self.parent.current.data1D[(self.minValues[i]<xax)&(self.maxValues[i]>xax)])
+                tmpy = np.real(self.parent.current.data1D[(self.minValues[i]<self.xax)&(self.maxValues[i]>self.xax)])
             elif self.parent.current.plotType == 1:
-                tmpy = np.imag(self.parent.current.data1D[(self.minValues[i]<xax)&(self.maxValues[i]>xax)])
+                tmpy = np.imag(self.parent.current.data1D[(self.minValues[i]<self.xax)&(self.maxValues[i]>self.xax)])
             elif self.parent.current.plotType == 2:
-                tmpy = np.real(self.parent.current.data1D[(self.minValues[i]<xax)&(self.maxValues[i]>xax)])
+                tmpy = np.real(self.parent.current.data1D[(self.minValues[i]<self.xax)&(self.maxValues[i]>self.xax)])
             elif self.parent.current.plotType == 3:
-                tmpy = np.abs(self.parent.current.data1D[(self.minValues[i]<xax)&(self.maxValues[i]>xax)])
+                tmpy = np.abs(self.parent.current.data1D[(self.minValues[i]<self.xax)&(self.maxValues[i]>self.xax)])
             self.intValues[i] = np.sum(tmpy)
             if self.parent.spec == 1:
                 x = np.append(x,tmpx[::-1])
@@ -4434,7 +4478,8 @@ class Quad2StaticCzjzekParamFrame(QtGui.QWidget):
         self.cq, self.eta = np.meshgrid(np.linspace(0,maxCq,numCq),np.linspace(0,1,numEta))
         cq=self.cq[...,None]
         eta = self.eta[...,None]
-        v = -cq**2/(6.0*self.parent.current.freq)*(I*(I+1)-3/4.0)*(self.angleStuff1+self.angleStuff2*eta+self.angleStuff3*eta**2)
+       # v = -cq**2/(6.0*self.parent.current.freq)*(I*(I+1)-3/4.0)*(self.angleStuff1+self.angleStuff2*eta+self.angleStuff3*eta**2)
+        v = -1/(6.0*self.parent.current.freq)*(3*cq/(2*I*(2*I-1)))**2*(I*(I+1)-3.0/4)*(self.angleStuff1+self.angleStuff2*eta+self.angleStuff3*eta**2)
         mult=v/(self.parent.current.sw)*length
         x1=np.array(np.round(mult)+np.floor(length/2),dtype=int)
         self.lib = np.apply_along_axis(self.bincounting,2,x1,self.weight,length)
@@ -4443,7 +4488,7 @@ class Quad2StaticCzjzekParamFrame(QtGui.QWidget):
         pos = pos - self.axAdd
         cq = self.cq
         eta = self.eta
-        czjzek = cq**(d-1)*eta/(np.sqrt(2*np.pi)*sigma)*(1-eta**2/9.0)*np.exp(-cq**2/(2.0*sigma**2)*(1+eta**2/3.0))
+        czjzek = cq**(d-1)*eta/(np.sqrt(2*np.pi)*sigma**d)*(1-eta**2/9.0)*np.exp(-cq**2/(2.0*sigma**2)*(1+eta**2/3.0))
         czjzek = czjzek/np.sum(czjzek)
         fid = np.sum(self.lib*czjzek[...,None],axis=(0,1))
         t=np.arange(len(fid))/self.parent.current.sw
