@@ -113,7 +113,8 @@ class MainProgram(QtGui.QMainWindow):
         for url in event.mimeData().urls():
             path = url.toLocalFile()
             self.autoLoad(path)
-            self.LastLocation = os.path.dirname(path) #Save used path
+            if path != '': #if not cancelled
+                self.LastLocation = os.path.dirname(path) #Save used path
    
     def menuCheck(self):
         if self.mainWindow is None:
@@ -239,7 +240,9 @@ class MainProgram(QtGui.QMainWindow):
             self.mainWindow.runMacro(self.macros[name])
 
     def saveMacro(self,name):
-        filename = QtGui.QFileDialog.getSaveFileName(self, 'Save File')
+        fileName = QtGui.QFileDialog.getSaveFileName(self, 'Save File',self.LastLocation)
+        if fileName: #if not cancelled
+            self.LastLocation = os.path.dirname(fileName)
         if not fileName:
             return
         with open(fileName,'w') as f:
@@ -258,11 +261,9 @@ class MainProgram(QtGui.QMainWindow):
         self.menuCheck()
 
     def loadMacro(self):
-        if self.LastLocation == '': #If there is no previous path
-            filename = QtGui.QFileDialog.getOpenFileName(self, 'Open File')
-        else:
-            filename = QtGui.QFileDialog.getOpenFileName(self, 'Open File',self.LastLocation)
-        self.LastLocation = os.path.dirname(filename) #Save used path
+        filename = QtGui.QFileDialog.getOpenFileName(self, 'Open File',self.LastLocation)
+        if filename: #if not cancelled
+            self.LastLocation = os.path.dirname(filename) #Save used path
         
         if len(filePath)==0:
             return
@@ -345,11 +346,9 @@ class MainProgram(QtGui.QMainWindow):
         self.menuCheck()
 
     def loadFromMenu(self):
-        if self.LastLocation == '': #If there is no previous path
-            filePath = str(QtGui.QFileDialog.getOpenFileName(self,'Open File'))
-        else:
-            filePath = str(QtGui.QFileDialog.getOpenFileName(self,'Open File',self.LastLocation))
-        self.LastLocation = os.path.dirname(filePath) #Save used path
+        filePath = str(QtGui.QFileDialog.getOpenFileName(self,'Open File',self.LastLocation))
+        if filePath: #if not cancelled
+            self.LastLocation = os.path.dirname(filePath) #Save used path
         if len(filePath)==0:
             return
         self.autoLoad(filePath)
@@ -1118,7 +1117,9 @@ class Main1DWindow(QtGui.QWidget):
             self.redoMacro = []
 
     def saveJSONFile(self):
-        name = QtGui.QFileDialog.getSaveFileName(self, 'Save File','','JSON (*.json)')
+        name = QtGui.QFileDialog.getSaveFileName(self, 'Save File',self.father.LastLocation,'JSON (*.json)')
+        if name:
+            self.father.LastLocation = os.path.dirname(name) #Save used path
         if not name:
             return
         struct = {}
@@ -1137,7 +1138,9 @@ class Main1DWindow(QtGui.QWidget):
             json.dump(struct, outfile)
 
     def saveMatlabFile(self):
-        name = QtGui.QFileDialog.getSaveFileName(self, 'Save File','','MATLAB file (*.mat)')
+        name = QtGui.QFileDialog.getSaveFileName(self, 'Save File',self.father.LastLocation,'MATLAB file (*.mat)')
+        if name:        
+            self.father.LastLocation = os.path.dirname(name) #Save used path
         if not name:
             return
         struct = {}
@@ -1157,9 +1160,15 @@ class Main1DWindow(QtGui.QWidget):
             print('Saving to Simpson format only allowed for 1D and 2D data!')
             return
         if sum(self.masterData.spec)/len(self.masterData.spec)==1:
-            name = QtGui.QFileDialog.getSaveFileName(self, 'Save File','','SIMPSON file (*.spe)')
+            name = QtGui.QFileDialog.getSaveFileName(self, 'Save File',self.father.LastLocation,'SIMPSON file (*.spe)')
+            if name:            
+                self.father.LastLocation = os.path.dirname(name) #Save used path
         elif sum(self.masterData.spec) == 0: 
-            name = QtGui.QFileDialog.getSaveFileName(self, 'Save File','','SIMPSON file (*.fid)')
+            name = QtGui.QFileDialog.getSaveFileName(self, 'Save File',self.father.LastLocation,'SIMPSON file (*.fid)')
+            if name:
+                self.father.LastLocation = os.path.dirname(name) #Save used path
+        if not name: #of no path
+            return
         with open(name) as f: 
             f.write('SIMP\n')
             if self.masterData.dim  is 2:
@@ -1355,7 +1364,8 @@ class Main1DWindow(QtGui.QWidget):
             print('Data has too little dimensions for shearing transform')
 
     def BrukerDigital(self):
-        FilePath = QtGui.QFileDialog.getOpenFileName(self, 'Open File')
+        FilePath = QtGui.QFileDialog.getOpenFileName(self, 'Open File',self.father.LastLocation)
+        self.father.LastLocation = os.path.dirname(FilePath) #Save used path
         if FilePath is '':
             return
         Dir = os.path.dirname(FilePath)
@@ -1745,7 +1755,7 @@ class SideFrame(QtGui.QWidget):
         else:
             self.father.current.setSlice(dimNum,locList)
         self.father.bottomframe.upd()
-            
+
 ################################################################################  
 class BottomFrame(QtGui.QWidget):
     def __init__(self, parent):
@@ -1767,22 +1777,22 @@ class BottomFrame(QtGui.QWidget):
         self.wholeEcho = QtGui.QCheckBox("Whole echo")
         self.wholeEcho.clicked.connect(self.setWholeEcho)
         grid.addWidget(self.wholeEcho,0,2,2,1)
-        grid.addWidget(QLabel("Freq [MHz]"),0,3)
+        grid.addWidget(QLabel("Freq [MHz]:"),0,3)
         self.freqEntry = QtGui.QLineEdit(self)
         self.freqEntry.setAlignment(QtCore.Qt.AlignHCenter)
         self.freqEntry.editingFinished.connect(self.changeFreq)
         grid.addWidget(self.freqEntry,1,3)
-        grid.addWidget(QLabel("Sweepwidth [kHz]"),0,4)
+        grid.addWidget(QLabel("Sweepwidth [kHz]:"),0,4)
         self.swEntry = QtGui.QLineEdit()
         self.swEntry.setAlignment(QtCore.Qt.AlignHCenter)
         self.swEntry.editingFinished.connect(self.changeFreq)
         grid.addWidget(self.swEntry,1,4)
-        grid.addWidget(QLabel("Plot"),0,5)
+        grid.addWidget(QLabel("Plot:"),0,5)
         self.plotDrop = QtGui.QComboBox()
         self.plotDrop.addItems(["Real", "Imag", "Both","Abs"])
         self.plotDrop.activated.connect(self.changePlot)
         grid.addWidget(self.plotDrop,1,5)
-        grid.addWidget(QLabel("Axis"),0,6)
+        grid.addWidget(QLabel("Axis:"),0,6)
         self.axisDropTime = QtGui.QComboBox()
         self.axisDropTime.addItems(["s", "ms", u"\u03bcs"])
         self.axisDropTime.activated.connect(self.changeAxis)
@@ -1791,7 +1801,7 @@ class BottomFrame(QtGui.QWidget):
         self.axisDropFreq.addItems(["Hz", "kHz", "MHz","ppm"])
         self.axisDropFreq.activated.connect(self.changeAxis)
         grid.addWidget(self.axisDropFreq,1,6)
-        self.ax2Label = QLabel("Axis2")
+        self.ax2Label = QLabel("Axis2:")
         grid.addWidget(self.ax2Label,0,7)
         self.axisDropTime2 = QtGui.QComboBox()
         self.axisDropTime2.addItems(["s", "ms", u"\u03bcs"])
@@ -1801,6 +1811,18 @@ class BottomFrame(QtGui.QWidget):
         self.axisDropFreq2.addItems(["Hz", "kHz", "MHz","ppm"])
         self.axisDropFreq2.activated.connect(self.changeAxis2)
         grid.addWidget(self.axisDropFreq2,1,7)
+        self.proj1Label = QLabel("Proj top:")
+        grid.addWidget(self.proj1Label,0,8)
+        self.projDrop1 = QtGui.QComboBox()
+        self.projDrop1.addItems(["sum", "max", "min"])
+        self.projDrop1.activated.connect(lambda val, self=self: self.changeProj(val,1))
+        grid.addWidget(self.projDrop1,1,8)
+        self.proj2Label = QLabel("Proj right:")
+        grid.addWidget(self.proj2Label,0,9)
+        self.projDrop2 = QtGui.QComboBox()
+        self.projDrop2.addItems(["sum", "max", "min"])
+        self.projDrop2.activated.connect(lambda val, self=self: self.changeProj(val,2))
+        grid.addWidget(self.projDrop2,1,9)
         grid.setColumnStretch(10,1)
         grid.setAlignment(QtCore.Qt.AlignLeft)
         self.upd()
@@ -1816,6 +1838,10 @@ class BottomFrame(QtGui.QWidget):
         self.swEntry.setText('%.6f' %(self.father.current.sw/1000.0)) 
         self.axisDropTime2.hide()
         self.axisDropFreq2.hide()
+        self.proj1Label.hide()
+        self.proj2Label.hide()
+        self.projDrop1.hide()
+        self.projDrop2.hide()
         if self.father.current.spec==0:
             self.specGroup.button(0).toggle()
             self.axisDropFreq.hide()
@@ -1830,6 +1856,10 @@ class BottomFrame(QtGui.QWidget):
             self.axisDropFreq.setCurrentIndex(self.father.current.axType)
         if isinstance(self.father.current,sc.CurrentContour):
             self.ax2Label.show()
+            self.proj1Label.show()
+            self.proj2Label.show()
+            self.projDrop1.show()
+            self.projDrop2.show()
             if self.father.current.spec2==0:
                 self.axisDropTime2.show()
                 self.axisDropTime2.setCurrentIndex(self.father.current.axType2)
@@ -1868,6 +1898,10 @@ class BottomFrame(QtGui.QWidget):
         
     def changeAxis2(self, pType):
         self.father.current.setAxType2(pType)
+        self.father.current.showFid()
+
+    def changeProj(self, pType, direc):
+        self.father.current.setProjType(pType,direc)
         self.father.current.showFid()
 
 ##################################################################

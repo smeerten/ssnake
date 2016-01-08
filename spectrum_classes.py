@@ -2378,6 +2378,14 @@ class CurrentContour(Current1D):
             self.maxLevels = duplicateCurrent.maxLevels
         else:
             self.maxLevels = 1.0
+        if hasattr(duplicateCurrent,'projType1'):
+            self.projType1 = duplicateCurrent.projType1
+        else:
+            self.projType1 = 0
+        if hasattr(duplicateCurrent,'projType2'):
+            self.projType2 = duplicateCurrent.projType2
+        else:
+            self.projType2 = 0
         Current1D.__init__(self, root,fig,canvas, data, duplicateCurrent)
         
     def copyCurrent(self,root,fig,canvas, data):
@@ -2454,6 +2462,12 @@ class CurrentContour(Current1D):
         self.yminlim = self.yminlim * newAxMult / oldAxMult
         self.ymaxlim = self.ymaxlim * newAxMult / oldAxMult
         self.showFid()
+
+    def setProjType(self, val, direc):
+        if direc == 1:
+            self.projType1 = val
+        if direc == 2:
+            self.projType2 = val
         
     def apodPreview(self,lor=None,gauss=None, cos2=None, hamming=None,shift=0.0,shifting=0.0,shiftingAxes=None): #display the 1D data including the apodization function
         t=np.arange(0,len(self.data1D[0]))/(self.sw)
@@ -2551,34 +2565,29 @@ class CurrentContour(Current1D):
         y=self.xax2*axMult2
         X, Y = np.meshgrid(x,y)
         if (self.plotType==0):
-            differ=np.amax(np.real(tmpdata))-np.amin(np.real(tmpdata))
-            contourLevels = np.linspace(self.minLevels*differ+np.amin(np.real(tmpdata)),self.maxLevels*differ+np.amin(np.real(tmpdata)),self.numLevels)
-            self.ax.contour(X, Y, np.real(tmpdata),c='b',levels=contourLevels)
-            self.line_ydata = np.real(tmpdata[0])
-            self.x_ax.plot(x,np.sum(np.real(tmpdata),axis=0),'b')
-            self.y_ax.plot(np.sum(np.real(tmpdata),axis=1),y,'b')
+            tmpdata = np.real(tmpdata)
         elif(self.plotType==1):
-            differ=np.amax(np.imag(tmpdata))-np.amin(np.imag(tmpdata))
-            contourLevels = np.linspace(self.minLevels*differ+np.amin(np.imag(tmpdata)),self.maxLevels*differ+np.amin(np.imag(tmpdata)),self.numLevels)
-            self.ax.contour(X, Y, np.imag(tmpdata),c='b',levels=contourLevels)
-            self.line_ydata = np.imag(tmpdata[0])
-            self.x_ax.plot(x,np.sum(np.imag(tmpdata),axis=0),'b')
-            self.y_ax.plot(np.sum(np.imag(tmpdata),axis=1),y,'b')
+            tmpdata = np.imag(tmpdata)
         elif(self.plotType==2):
-            print('type not supported')
-            differ=np.amax(np.real(tmpdata))-np.amin(np.real(tmpdata))
-            contourLevels = np.linspace(self.minLevels*differ+np.amin(np.real(tmpdata)),self.maxLevels*differ+np.amin(np.real(tmpdata)),self.numLevels)
-            self.ax.contour(X, Y, np.real(tmpdata),c='b',levels=contourLevels)
-            self.line_ydata = np.real(tmpdata[0])
-            self.x_ax.plot(x,np.sum(np.real(tmpdata),axis=0),'b')
-            self.y_ax.plot(np.sum(np.real(tmpdata),axis=1),y,'b')
+            tmpdata = np.real(tmpdata)
         elif(self.plotType==3):
-            differ=np.amax(np.abs(tmpdata))-np.amin(np.abs(tmpdata))
-            contourLevels = np.linspace(self.minLevels*differ+np.amin(np.abs(tmpdata)),self.maxLevels*differ+np.amin(np.abs(tmpdata)),self.numLevels)
-            self.ax.contour(X, Y, np.abs(tmpdata),c='b',levels=contourLevels)
-            self.line_ydata = np.abs(tmpdata[0])
-            self.x_ax.plot(x,np.sum(np.abs(tmpdata),axis=0),'b')
-            self.y_ax.plot(np.sum(np.abs(tmpdata),axis=1),y,'b')
+            tmpdata = np.abs(tmpdata)
+        differ=np.amax(tmpdata)-np.amin(tmpdata)
+        contourLevels = np.linspace(self.minLevels*differ+np.amin(tmpdata),self.maxLevels*differ+np.amin(tmpdata),self.numLevels)
+        self.ax.contour(X, Y, tmpdata,c='b',levels=contourLevels)
+        self.line_ydata = tmpdata[0]
+        if self.projType1 == 0:
+            self.x_ax.plot(x,np.sum(tmpdata,axis=0),'b')
+        elif self.projType1 == 1:
+            self.x_ax.plot(x,np.max(tmpdata,axis=0),'b')
+        elif self.projType1 == 2:
+            self.x_ax.plot(x,np.min(tmpdata,axis=0),'b')
+        if self.projType2 == 0:
+            self.y_ax.plot(np.sum(tmpdata,axis=1),y,'b')
+        elif self.projType2 == 1:
+            self.y_ax.plot(np.max(tmpdata,axis=1),y,'b')
+        elif self.projType2 == 2:
+            self.y_ax.plot(np.min(tmpdata,axis=1),y,'b')
         if self.spec==0:
             if self.axType == 0:
                 self.ax.set_xlabel('Time [s]')

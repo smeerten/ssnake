@@ -5053,8 +5053,9 @@ class MainPlotWindow(QtGui.QWidget):
     def save(self):
         self.updatePlot()
         self.fig.set_size_inches((int(safeEval(self.widthEntry.text()))/2.54,int(safeEval(self.heightEntry.text()))/2.54))
-        f = QtGui.QFileDialog.getSaveFileName(self, 'Save File')
+        f = QtGui.QFileDialog.getSaveFileName(self, 'Save File',self.father.LastLocation)
         if f:
+            self.father.LastLocation = os.path.dirname(f)
             f=os.path.splitext(f)[0]+'.'+self.fileOptions[self.filetypeEntry.currentIndex()]
             self.fig.savefig(f)
             self.cancel()
