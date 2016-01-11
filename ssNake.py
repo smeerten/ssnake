@@ -500,7 +500,7 @@ class MainProgram(QtGui.QMainWindow):
     def loadMatlabFile(self,filePath):
         with open(filePath, 'rb') as inputfile: #read first several bytes the check .mat version
              teststring=inputfile.read(13)
-        version=float(str(teststring)[9:12]) #extract version from the binary array
+        version=float(teststring.decode("utf-8")[7:10]) #extract version from the binary array
         if version<7.3: #all versions below 7.3 are supported
             matlabStruct = scipy.io.loadmat(filePath)
             var = [k for k in matlabStruct.keys() if not k.startswith('__')][0]

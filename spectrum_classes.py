@@ -1782,7 +1782,7 @@ class CurrentStacked(Current1D):
                         alpha = 0.53836 # constant for hamming window
                         x2=x2*(alpha+(1-alpha)*np.cos(hamming*(-0.5*shift1*np.pi*self.sw/len(self.data1D[0])+np.linspace(0,np.pi,len(self.data1D[0])))))
                     if self.wholeEcho:
-                        x2[2-1:-(len(x2)/2+1):-1]=x2[:len(x2)/2]
+                        x2[-1:-(len(x2)/2+1):-1]=x2[:len(x2)/2]
                     x[i] = x2
             else:
                 if (shiftingAxes < self.axes) and (shiftingAxes < self.axes2):
@@ -2139,7 +2139,7 @@ class CurrentArrayed(Current1D):
                         alpha = 0.53836 # constant for hamming window
                         x2=x2*(alpha+(1-alpha)*np.cos(hamming*(-0.5*shift1*np.pi*self.sw/len(self.data1D[0])+np.linspace(0,np.pi,len(self.data1D[0])))))
                     if self.wholeEcho:
-                        x2[2-1:-(len(x2)/2+1):-1]=x2[:len(x2)/2]
+                        x2[-1:-(len(x2)/2+1):-1]=x2[:len(x2)/2]
                     x[i] = x2
             else:
                 if (shiftingAxes < self.axes) and (shiftingAxes < self.axes2):
@@ -2491,7 +2491,7 @@ class CurrentContour(Current1D):
                         alpha = 0.53836 # constant for hamming window
                         x2=x2*(alpha+(1-alpha)*np.cos(hamming*(-0.5*shift1*np.pi*self.sw/len(self.data1D[0])+np.linspace(0,np.pi,len(self.data1D[0])))))
                     if self.wholeEcho:
-                        x2[2-1:-(len(x2)/2+1):-1]=x2[:len(x2)/2]
+                        x2[-1:-(len(x2)/2+1):-1]=x2[:len(x2)/2]
                     x[i] = x2
             else:
                 if (shiftingAxes < self.axes) and (shiftingAxes < self.axes2):

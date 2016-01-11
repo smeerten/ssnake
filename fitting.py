@@ -4687,7 +4687,7 @@ class Quad2StaticCzjzekParamFrame(QtGui.QWidget):
                 outWidth[i] = abs(float(self.lorEntries[i].text()))
                 argu.append(outWidth[i])
                 struc.append(False)
-            if not self.gaussTicks[i].text():
+            if not self.gaussTicks[i].isChecked():
                 guess.append(abs(float(self.gaussEntries[i].text())))
                 struc.append(True)
             else:
