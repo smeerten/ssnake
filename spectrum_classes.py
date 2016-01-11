@@ -2775,6 +2775,7 @@ class CurrentSkewed(Current1D):
         Current1D.__init__(self, root, fig,canvas,data, duplicateCurrent)
 
     def startUp(self,xReset=True,yReset=True):
+        self.altReset()
         self.plotReset(xReset,yReset)
         self.setSkewed(-0.2,70)
         
@@ -3035,6 +3036,7 @@ class CurrentSkewed(Current1D):
             self.ax.set_ylim(self.ymaxlim,self.yminlim)
         else:
             self.ax.set_ylim(self.yminlim,self.ymaxlim)
+        self.ax.set_zlim(self.zminlim,self.zmaxlim)
         self.ax.get_xaxis().get_major_formatter().set_powerlimits((-4, 4))
         self.ax.get_yaxis().get_major_formatter().set_powerlimits((-4, 4))
         self.ax.w_zaxis.line.set_lw(0.)
@@ -3077,3 +3079,34 @@ class CurrentSkewed(Current1D):
             self.ax.set_ylim(self.ymaxlim,self.yminlim)
         else:
             self.ax.set_ylim(self.yminlim,self.ymaxlim)
+
+    def altScroll(self,event):
+        middle = (self.zmaxlim+self.zminlim)/2.0
+        width = self.zmaxlim-self.zminlim
+        width = width*0.9**event.step
+        self.zmaxlim = middle+width/2.0
+        self.zminlim = middle-width/2.0
+        self.ax.set_zlim(self.zminlim,self.zmaxlim)
+        self.canvas.draw()
+        
+    def altReset(self):
+        if self.plotType==0:
+            minz = np.amin(np.real(self.data1D))
+            maxz = np.amax(np.real(self.data1D))
+        elif self.plotType==1:
+            minz = np.amin(np.imag(self.data1D))
+            maxz = np.amax(np.imag(self.data1D))
+        elif self.plotType==2:
+            minz = np.amin(np.amin(np.real(self.data1D)),np.amin(np.imag(self.data1D)))
+            maxz = np.amax(np.amax(np.real(self.data1D)),np.amax(np.imag(self.data1D)))
+        elif self.plotType==3:
+            minz = np.amin(np.abs(self.data1D))
+            maxz = np.amax(np.abs(self.data1D))
+        else:
+            minz=-1
+            maxz=1
+        differ = 0.05*(maxz-minz) #amount to add to show all datapoints (10%)
+        self.zminlim=minz-differ
+        self.zmaxlim=maxz+differ
+        self.ax.set_zlim(self.zminlim,self.zmaxlim)
+        self.canvas.draw()

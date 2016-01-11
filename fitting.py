@@ -1723,7 +1723,7 @@ class DiffusionParamFrame(QtGui.QWidget):
                 outCoeff[i-1] = fitVal[0][counter]
                 counter += 1
             if struc[2*i+1]:
-                self.dEntries[i-1].set('%#.3g' % fitVal[0][counter])
+                self.dEntries[i-1].setText('%#.3g' % fitVal[0][counter])
                 outD[i-1] = fitVal[0][counter]
                 counter += 1
         self.disp(outAmp, outConst, outCoeff, outD, gamma, delta, triangle)
