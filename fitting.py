@@ -49,11 +49,12 @@ class IntegralsWindow(QtGui.QWidget):
         grid.addWidget(self.paramframe,1,0)
         grid.setColumnStretch(0,1)
         grid.setRowStretch(0,1)
+        self.grid = grid
         self.canvas.mpl_connect('button_press_event', self.buttonPress)      
         self.canvas.mpl_connect('button_release_event', self.buttonRelease)
         self.canvas.mpl_connect('motion_notify_event', self.pan)
         self.canvas.mpl_connect('scroll_event', self.scroll)
-
+        
     def createNewData(self,data, axes):
         masterData = self.get_masterData()
         self.mainProgram.dataFromFit(data, copy.deepcopy(masterData.freq), copy.deepcopy(masterData.sw) , copy.deepcopy(masterData.spec), copy.deepcopy(masterData.wholeEcho), copy.deepcopy(masterData.ref), copy.deepcopy(masterData.xaxArray), axes)
@@ -96,7 +97,12 @@ class IntegralsWindow(QtGui.QWidget):
         del self.current
         
     def cancel(self):
-         self.mainProgram.closeFitWindow(self.oldMainWindow)
+        for i in reversed(range(self.grid.count())): 
+            self.grid.itemAt(i).widget().deleteLater()
+        self.grid.deleteLater()
+        del self.current
+        del self.paramframe
+        self.mainProgram.closeFitWindow(self.oldMainWindow)
         
 #################################################################################   
 class IntegralsFrame(Plot1DFrame): 
@@ -112,7 +118,7 @@ class IntegralsFrame(Plot1DFrame):
         self.pickWidth = False
         self.plotReset()
         self.showPlot()
-
+        
     def plotReset(self): 
         a=self.fig.gca()
         if self.plotType==0:
@@ -295,7 +301,7 @@ class IntegralsParamFrame(QtGui.QWidget):
         self.reset()
         grid.setColumnStretch(10,1)
         grid.setAlignment(QtCore.Qt.AlignLeft)
-
+        
     def reset(self):
         for i in range(self.integralIter+1):
             self.deleteEntry(num=0,reset=True)

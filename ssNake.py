@@ -327,6 +327,7 @@ class MainProgram(QtGui.QMainWindow):
 
     def destroyWorkspace(self, *args):
         self.mainWindow.removeFromView()
+        self.mainFrame.removeWidget(self.mainWindow)
         self.mainWindow.kill()
         self.mainWindow = None
         del self.workspaceNames[self.workspaceNum]
@@ -791,7 +792,8 @@ class MainProgram(QtGui.QMainWindow):
             event.accept()
         else:
             event.ignore()
-        
+
+######################################################################################################            
 class Main1DWindow(QtGui.QWidget):
     def __init__(self,father,masterData,duplicateCurrent=None,name=''):
         QtGui.QWidget.__init__(self,father)
@@ -820,11 +822,12 @@ class Main1DWindow(QtGui.QWidget):
         grid.addWidget(self.textframe,2,0)
         grid.setColumnStretch(0,1)
         grid.setRowStretch(0,1)
+        self.grid = grid
         self.canvas.mpl_connect('button_press_event', self.buttonPress)      
         self.canvas.mpl_connect('button_release_event', self.buttonRelease)
         self.canvas.mpl_connect('motion_notify_event', self.pan)
         self.canvas.mpl_connect('scroll_event', self.scroll)
-
+        
     def rename(self,name):
         self.name = name
         self.fig.suptitle(name)
@@ -850,14 +853,23 @@ class Main1DWindow(QtGui.QWidget):
 
     def get_current(self):
         return self.current
-
+        
     def kill(self):
-        self.destroy()
         self.current.kill()
         del self.current
         del self.masterData
         del self.canvas
         del self.fig    #fig is destroyed
+        for i in reversed(range(self.grid.count())): 
+            self.grid.itemAt(i).widget().deleteLater()
+        self.grid.deleteLater()
+        self.bottomframe.kill()
+        del self.bottomframe
+        self.textframe.kill()
+        del self.textframe
+        self.sideframe.kill()
+        del self.sideframe
+        self.deleteLater()
 
     def rescue(self):
         self.current.kill()
@@ -1552,8 +1564,14 @@ class SideFrame(QtGui.QWidget):
         frame2Widget.setLayout(self.frame2)
         self.frame1.setAlignment(QtCore.Qt.AlignTop)
         self.frame2.setAlignment(QtCore.Qt.AlignTop)
+        self.grid = grid
         self.upd()
-
+        
+    def kill(self):
+        for i in reversed(range(self.grid.count())): 
+            self.grid.itemAt(i).widget().deleteLater()
+        self.grid.deleteLater()
+                
     def frameEnable(self):
         self.setEnabled(True)
             
@@ -1763,69 +1781,75 @@ class BottomFrame(QtGui.QWidget):
         self.father = parent
         grid = QtGui.QGridLayout(self)
         self.setLayout(grid)
-        fourierButton = QtGui.QPushButton("Fourier")
+        fourierButton = QtGui.QPushButton("Fourier",parent=self)
         fourierButton.clicked.connect(self.father.fourier)
         grid.addWidget(fourierButton,0,0,2,1)
         self.specGroup = QtGui.QButtonGroup(self)
         self.specGroup.buttonClicked.connect(self.changeSpec)
-        timeButton = QtGui.QRadioButton('Time')
+        timeButton = QtGui.QRadioButton('Time',parent=self)
         self.specGroup.addButton(timeButton,0)
         grid.addWidget(timeButton,0,1)
-        freqButton = QtGui.QRadioButton('Frequency')
+        freqButton = QtGui.QRadioButton('Frequency',parent=self)
         self.specGroup.addButton(freqButton,1)
         grid.addWidget(freqButton,1,1)
-        self.wholeEcho = QtGui.QCheckBox("Whole echo")
+        self.wholeEcho = QtGui.QCheckBox("Whole echo",parent=self)
         self.wholeEcho.clicked.connect(self.setWholeEcho)
         grid.addWidget(self.wholeEcho,0,2,2,1)
-        grid.addWidget(QLabel("Freq [MHz]:"),0,3)
-        self.freqEntry = QtGui.QLineEdit(self)
+        grid.addWidget(QLabel("Freq [MHz]:",self),0,3)
+        self.freqEntry = QtGui.QLineEdit(parent=self)
         self.freqEntry.setAlignment(QtCore.Qt.AlignHCenter)
         self.freqEntry.editingFinished.connect(self.changeFreq)
         grid.addWidget(self.freqEntry,1,3)
-        grid.addWidget(QLabel("Sweepwidth [kHz]:"),0,4)
-        self.swEntry = QtGui.QLineEdit()
+        grid.addWidget(QLabel("Sweepwidth [kHz]:",self),0,4)
+        self.swEntry = QtGui.QLineEdit(parent=self)
         self.swEntry.setAlignment(QtCore.Qt.AlignHCenter)
         self.swEntry.editingFinished.connect(self.changeFreq)
         grid.addWidget(self.swEntry,1,4)
-        grid.addWidget(QLabel("Plot:"),0,5)
-        self.plotDrop = QtGui.QComboBox()
+        grid.addWidget(QLabel("Plot:",self),0,5)
+        self.plotDrop = QtGui.QComboBox(parent=self)
         self.plotDrop.addItems(["Real", "Imag", "Both","Abs"])
         self.plotDrop.activated.connect(self.changePlot)
         grid.addWidget(self.plotDrop,1,5)
-        grid.addWidget(QLabel("Axis:"),0,6)
-        self.axisDropTime = QtGui.QComboBox()
+        grid.addWidget(QLabel("Axis:",self),0,6)
+        self.axisDropTime = QtGui.QComboBox(parent=self)
         self.axisDropTime.addItems(["s", "ms", u"\u03bcs"])
         self.axisDropTime.activated.connect(self.changeAxis)
         grid.addWidget(self.axisDropTime,1,6)
-        self.axisDropFreq = QtGui.QComboBox()
+        self.axisDropFreq = QtGui.QComboBox(parent=self)
         self.axisDropFreq.addItems(["Hz", "kHz", "MHz","ppm"])
         self.axisDropFreq.activated.connect(self.changeAxis)
         grid.addWidget(self.axisDropFreq,1,6)
-        self.ax2Label = QLabel("Axis2:")
+        self.ax2Label = QLabel("Axis2:",self)
         grid.addWidget(self.ax2Label,0,7)
-        self.axisDropTime2 = QtGui.QComboBox()
+        self.axisDropTime2 = QtGui.QComboBox(parent=self)
         self.axisDropTime2.addItems(["s", "ms", u"\u03bcs"])
         self.axisDropTime2.activated.connect(self.changeAxis2)
         grid.addWidget(self.axisDropTime2,1,7)
-        self.axisDropFreq2 = QtGui.QComboBox()
+        self.axisDropFreq2 = QtGui.QComboBox(parent=self)
         self.axisDropFreq2.addItems(["Hz", "kHz", "MHz","ppm"])
         self.axisDropFreq2.activated.connect(self.changeAxis2)
         grid.addWidget(self.axisDropFreq2,1,7)
-        self.proj1Label = QLabel("Proj top:")
+        self.proj1Label = QLabel("Proj top:",self)
         grid.addWidget(self.proj1Label,0,8)
-        self.projDrop1 = QtGui.QComboBox()
+        self.projDrop1 = QtGui.QComboBox(parent=self)
         self.projDrop1.addItems(["sum", "max", "min"])
         self.projDrop1.activated.connect(lambda val, self=self: self.changeProj(val,1))
         grid.addWidget(self.projDrop1,1,8)
-        self.proj2Label = QLabel("Proj right:")
+        self.proj2Label = QLabel("Proj right:",self)
         grid.addWidget(self.proj2Label,0,9)
-        self.projDrop2 = QtGui.QComboBox()
+        self.projDrop2 = QtGui.QComboBox(parent=self)
         self.projDrop2.addItems(["sum", "max", "min"])
         self.projDrop2.activated.connect(lambda val, self=self: self.changeProj(val,2))
         grid.addWidget(self.projDrop2,1,9)
         grid.setColumnStretch(10,1)
         grid.setAlignment(QtCore.Qt.AlignLeft)
+        self.grid = grid
         self.upd()
+
+    def kill(self):
+        for i in reversed(range(self.grid.count())): 
+            self.grid.itemAt(i).widget().deleteLater()
+        self.grid.deleteLater()
         
     def frameEnable(self):
         self.setEnabled(True)
@@ -1941,6 +1965,12 @@ class TextFrame(QtGui.QWidget):
         self.deltaypoint.setText("0.0")
         grid.addWidget(self.deltaypoint,0,11)
         grid.setColumnStretch(20,1)
+        self.grid = grid
+
+    def kill(self):
+        for i in reversed(range(self.grid.count())): 
+            self.grid.itemAt(i).widget().deleteLater()
+        self.grid.deleteLater()
         
     def frameEnable(self):
         for child in self.children():
