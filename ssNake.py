@@ -144,13 +144,14 @@ class MainProgram(QtGui.QMainWindow):
             self.workspacemenu.menuAction().setEnabled(True)
             self.macromenu.menuAction().setEnabled(False)
 
-    def askName(self,filePath=None):
+    def askName(self,filePath=None,name=None):
         if filePath is None:
             message = 'Spectrum name'
         else:
             message = 'Spectrum name for: ' + filePath
         count = 0
-        name = 'spectrum'+str(count)
+        if name is None:
+            name = 'spectrum'+str(count)
         while name in self.workspaceNames:
             count += 1
             name = 'spectrum'+str(count)
@@ -326,6 +327,8 @@ class MainProgram(QtGui.QMainWindow):
         self.workspaces[self.workspaceNum].rename(name)
 
     def destroyWorkspace(self, *args):
+        if self.mainWindow is None:
+            return
         self.mainWindow.removeFromView()
         self.mainFrame.removeWidget(self.mainWindow)
         self.mainWindow.kill()
@@ -398,7 +401,7 @@ class MainProgram(QtGui.QMainWindow):
         self.changeMainWindow(name)
 
     def loading(self,num,filePath):
-        name = self.askName(filePath)
+        name = self.askName(filePath,os.path.splitext(os.path.basename(filePath))[0])
         if name is None:
             return
         if num==0:
@@ -786,8 +789,7 @@ class MainProgram(QtGui.QMainWindow):
 
     def closeEvent(self, event):
         quit_msg = "Are you sure you want to exit the program?"
-        reply = QtGui.QMessageBox.question(self, 'Close', 
-                                           quit_msg, QtGui.QMessageBox.Yes, QtGui.QMessageBox.No)
+        reply = QtGui.QMessageBox.question(self, 'Close', quit_msg, QtGui.QMessageBox.Yes, QtGui.QMessageBox.No)
         if reply == QtGui.QMessageBox.Yes:
             event.accept()
         else:
@@ -1130,10 +1132,11 @@ class Main1DWindow(QtGui.QWidget):
 
     def saveJSONFile(self):
         name = QtGui.QFileDialog.getSaveFileName(self, 'Save File',self.father.LastLocation,'JSON (*.json)')
-        if name:
-            self.father.LastLocation = os.path.dirname(name) #Save used path
         if not name:
             return
+        if not name.lower().endswith('.json'):
+            name = name + '.json'
+        self.father.LastLocation = os.path.dirname(name) #Save used path
         struct = {}
         struct['dataReal'] = np.real(self.masterData.data).tolist()
         struct['dataImag'] = np.imag(self.masterData.data).tolist()
@@ -1151,10 +1154,9 @@ class Main1DWindow(QtGui.QWidget):
 
     def saveMatlabFile(self):
         name = QtGui.QFileDialog.getSaveFileName(self, 'Save File',self.father.LastLocation,'MATLAB file (*.mat)')
-        if name:        
-            self.father.LastLocation = os.path.dirname(name) #Save used path
         if not name:
             return
+        self.father.LastLocation = os.path.dirname(name) #Save used path
         struct = {}
         struct['dim'] = self.masterData.dim
         struct['data'] = self.masterData.data
@@ -1173,14 +1175,11 @@ class Main1DWindow(QtGui.QWidget):
             return
         if sum(self.masterData.spec)/len(self.masterData.spec)==1:
             name = QtGui.QFileDialog.getSaveFileName(self, 'Save File',self.father.LastLocation,'SIMPSON file (*.spe)')
-            if name:            
-                self.father.LastLocation = os.path.dirname(name) #Save used path
         elif sum(self.masterData.spec) == 0: 
             name = QtGui.QFileDialog.getSaveFileName(self, 'Save File',self.father.LastLocation,'SIMPSON file (*.fid)')
-            if name:
-                self.father.LastLocation = os.path.dirname(name) #Save used path
         if not name: #of no path
             return
+        self.father.LastLocation = os.path.dirname(name) #Save used path
         with open(name) as f: 
             f.write('SIMP\n')
             if self.masterData.dim  is 2:
