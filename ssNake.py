@@ -778,7 +778,9 @@ class MainProgram(QtGui.QMainWindow):
         
     def closeFitWindow(self, mainWindow):
         self.mainWindow.removeFromView()
+        self.mainFrame.removeWidget(self.mainWindow)
         num = self.workspaces.index(self.mainWindow)
+        del self.mainWindow
         self.mainWindow = mainWindow
         self.workspaces[num] = self.mainWindow
         self.mainWindow.addToView()

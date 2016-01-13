@@ -92,9 +92,16 @@ class IntegralsWindow(QtGui.QWidget):
         self.hide()
 
     def kill(self):
+        for i in reversed(range(self.grid.count())): 
+            self.grid.itemAt(i).widget().deleteLater()
+        self.grid.deleteLater()
         self.current.kill()
         self.oldMainWindow.kill()
         del self.current
+        del self.paramframe
+        del self.fig
+        del self.canvas
+        self.deleteLater()
         
     def cancel(self):
         for i in reversed(range(self.grid.count())): 
@@ -102,7 +109,10 @@ class IntegralsWindow(QtGui.QWidget):
         self.grid.deleteLater()
         del self.current
         del self.paramframe
+        del self.canvas
+        del self.fig
         self.mainProgram.closeFitWindow(self.oldMainWindow)
+        self.deleteLater()
         
 #################################################################################   
 class IntegralsFrame(Plot1DFrame): 
@@ -485,6 +495,7 @@ class RelaxWindow(QtGui.QWidget):
         self.canvas.mpl_connect('button_release_event', self.buttonRelease)
         self.canvas.mpl_connect('motion_notify_event', self.pan)
         self.canvas.mpl_connect('scroll_event', self.scroll)
+        self.grid = grid
 
     def createNewData(self,data, axes):
         masterData = self.get_masterData()
@@ -523,12 +534,27 @@ class RelaxWindow(QtGui.QWidget):
         self.hide()
 
     def kill(self):
+        for i in reversed(range(self.grid.count())): 
+            self.grid.itemAt(i).widget().deleteLater()
+        self.grid.deleteLater()
         self.current.kill()
         self.oldMainWindow.kill()
         del self.current
+        del self.paramframe
+        del self.fig
+        del self.canvas
+        self.deleteLater()
         
     def cancel(self):
+        for i in reversed(range(self.grid.count())): 
+            self.grid.itemAt(i).widget().deleteLater()
+        self.grid.deleteLater()
+        del self.current
+        del self.paramframe
+        del self.canvas
+        del self.fig
         self.mainProgram.closeFitWindow(self.oldMainWindow)
+        self.deleteLater()
         
 #################################################################################   
 class RelaxFrame(Plot1DFrame): 
@@ -1158,6 +1184,7 @@ class DiffusionWindow(QtGui.QWidget):
         self.canvas.mpl_connect('button_release_event', self.buttonRelease)
         self.canvas.mpl_connect('motion_notify_event', self.pan)
         self.canvas.mpl_connect('scroll_event', self.scroll)
+        self.grid = grid
 
     def createNewData(self,data, axes):
         masterData = self.get_masterData()
@@ -1194,14 +1221,29 @@ class DiffusionWindow(QtGui.QWidget):
 
     def removeFromView(self):
         self.hide()
-
+        
     def kill(self):
+        for i in reversed(range(self.grid.count())): 
+            self.grid.itemAt(i).widget().deleteLater()
+        self.grid.deleteLater()
         self.current.kill()
         self.oldMainWindow.kill()
         del self.current
+        del self.paramframe
+        del self.fig
+        del self.canvas
+        self.deleteLater()
         
     def cancel(self):
+        for i in reversed(range(self.grid.count())): 
+            self.grid.itemAt(i).widget().deleteLater()
+        self.grid.deleteLater()
+        del self.current
+        del self.paramframe
+        del self.canvas
+        del self.fig
         self.mainProgram.closeFitWindow(self.oldMainWindow)
+        self.deleteLater()
         
 #################################################################################   
 class DiffusionFrame(Plot1DFrame): 
@@ -1871,6 +1913,7 @@ class PeakDeconvWindow(QtGui.QWidget):
         self.canvas.mpl_connect('button_release_event', self.buttonRelease)
         self.canvas.mpl_connect('motion_notify_event', self.pan)
         self.canvas.mpl_connect('scroll_event', self.scroll)
+        self.grid = grid
 
     def createNewData(self,data, axes):
         masterData = self.get_masterData()
@@ -1907,14 +1950,29 @@ class PeakDeconvWindow(QtGui.QWidget):
 
     def removeFromView(self):
         self.hide()
-
+        
     def kill(self):
+        for i in reversed(range(self.grid.count())): 
+            self.grid.itemAt(i).widget().deleteLater()
+        self.grid.deleteLater()
         self.current.kill()
         self.oldMainWindow.kill()
         del self.current
+        del self.paramframe
+        del self.fig
+        del self.canvas
+        self.deleteLater()
         
     def cancel(self):
-         self.mainProgram.closeFitWindow(self.oldMainWindow)
+        for i in reversed(range(self.grid.count())): 
+            self.grid.itemAt(i).widget().deleteLater()
+        self.grid.deleteLater()
+        del self.current
+        del self.paramframe
+        del self.canvas
+        del self.fig
+        self.mainProgram.closeFitWindow(self.oldMainWindow)
+        self.deleteLater()
         
 #################################################################################   
 class PeakDeconvFrame(Plot1DFrame): 
@@ -2547,6 +2605,7 @@ class TensorDeconvWindow(QtGui.QWidget):
         self.canvas.mpl_connect('button_release_event', self.buttonRelease)
         self.canvas.mpl_connect('motion_notify_event', self.pan)
         self.canvas.mpl_connect('scroll_event', self.scroll)
+        self.grid = grid
 
     def createNewData(self,data, axes):
         masterData = self.get_masterData()
@@ -2583,14 +2642,29 @@ class TensorDeconvWindow(QtGui.QWidget):
 
     def removeFromView(self):
         self.hide()
-
+        
     def kill(self):
+        for i in reversed(range(self.grid.count())): 
+            self.grid.itemAt(i).widget().deleteLater()
+        self.grid.deleteLater()
         self.current.kill()
         self.oldMainWindow.kill()
         del self.current
+        del self.paramframe
+        del self.fig
+        del self.canvas
+        self.deleteLater()
         
     def cancel(self):
-         self.mainProgram.closeFitWindow(self.oldMainWindow)
+        for i in reversed(range(self.grid.count())): 
+            self.grid.itemAt(i).widget().deleteLater()
+        self.grid.deleteLater()
+        del self.current
+        del self.paramframe
+        del self.canvas
+        del self.fig
+        self.mainProgram.closeFitWindow(self.oldMainWindow)
+        self.deleteLater()
         
 #################################################################################   
 class TensorDeconvFrame(Plot1DFrame): 
@@ -3345,6 +3419,7 @@ class Quad1DeconvWindow(QtGui.QWidget):
         self.canvas.mpl_connect('button_release_event', self.buttonRelease)
         self.canvas.mpl_connect('motion_notify_event', self.pan)
         self.canvas.mpl_connect('scroll_event', self.scroll)
+        self.grid = grid
 
     def createNewData(self,data, axes):
         masterData = self.get_masterData()
@@ -3381,14 +3456,29 @@ class Quad1DeconvWindow(QtGui.QWidget):
 
     def removeFromView(self):
         self.hide()
-
+        
     def kill(self):
+        for i in reversed(range(self.grid.count())): 
+            self.grid.itemAt(i).widget().deleteLater()
+        self.grid.deleteLater()
         self.current.kill()
         self.oldMainWindow.kill()
         del self.current
+        del self.paramframe
+        del self.fig
+        del self.canvas
+        self.deleteLater()
         
     def cancel(self):
-         self.mainProgram.closeFitWindow(self.oldMainWindow)
+        for i in reversed(range(self.grid.count())): 
+            self.grid.itemAt(i).widget().deleteLater()
+        self.grid.deleteLater()
+        del self.current
+        del self.paramframe
+        del self.canvas
+        del self.fig
+        self.mainProgram.closeFitWindow(self.oldMainWindow)
+        self.deleteLater()
         
 #################################################################################   
 class Quad1DeconvFrame(Plot1DFrame):
@@ -4114,6 +4204,7 @@ class Quad2DeconvWindow(QtGui.QWidget):
         self.canvas.mpl_connect('button_release_event', self.buttonRelease)
         self.canvas.mpl_connect('motion_notify_event', self.pan)
         self.canvas.mpl_connect('scroll_event', self.scroll)
+        self.grid = grid
 
     def createNewData(self,data, axes):
         masterData = self.get_masterData()
@@ -4150,14 +4241,29 @@ class Quad2DeconvWindow(QtGui.QWidget):
 
     def removeFromView(self):
         self.hide()
-
+        
     def kill(self):
+        for i in reversed(range(self.grid.count())): 
+            self.grid.itemAt(i).widget().deleteLater()
+        self.grid.deleteLater()
         self.current.kill()
         self.oldMainWindow.kill()
         del self.current
+        del self.paramframe
+        del self.fig
+        del self.canvas
+        self.deleteLater()
         
     def cancel(self):
-         self.mainProgram.closeFitWindow(self.oldMainWindow)
+        for i in reversed(range(self.grid.count())): 
+            self.grid.itemAt(i).widget().deleteLater()
+        self.grid.deleteLater()
+        del self.current
+        del self.paramframe
+        del self.canvas
+        del self.fig
+        self.mainProgram.closeFitWindow(self.oldMainWindow)
+        self.deleteLater()
          
 #################################################################################
 class Quad2StaticDeconvParamFrame(Quad1DeconvParamFrame): 
@@ -4230,6 +4336,7 @@ class Quad2CzjzekWindow(QtGui.QWidget):
         self.canvas.mpl_connect('button_release_event', self.buttonRelease)
         self.canvas.mpl_connect('motion_notify_event', self.pan)
         self.canvas.mpl_connect('scroll_event', self.scroll)
+        self.grid = grid
 
     def createNewData(self,data, axes):
         masterData = self.get_masterData()
@@ -4266,14 +4373,29 @@ class Quad2CzjzekWindow(QtGui.QWidget):
 
     def removeFromView(self):
         self.hide()
-
+        
     def kill(self):
+        for i in reversed(range(self.grid.count())): 
+            self.grid.itemAt(i).widget().deleteLater()
+        self.grid.deleteLater()
         self.current.kill()
         self.oldMainWindow.kill()
         del self.current
+        del self.paramframe
+        del self.fig
+        del self.canvas
+        self.deleteLater()
         
     def cancel(self):
-         self.mainProgram.closeFitWindow(self.oldMainWindow)
+        for i in reversed(range(self.grid.count())): 
+            self.grid.itemAt(i).widget().deleteLater()
+        self.grid.deleteLater()
+        del self.current
+        del self.paramframe
+        del self.canvas
+        del self.fig
+        self.mainProgram.closeFitWindow(self.oldMainWindow)
+        self.deleteLater()
 
 #################################################################################
 class Quad2StaticCzjzekParamFrame(QtGui.QWidget): 
@@ -5024,6 +5146,7 @@ class MainPlotWindow(QtGui.QWidget):
         grid.setRowStretch(0,1)
         self.frame1.setRowStretch(40,1)
         self.frame1.setAlignment(QtCore.Qt.AlignTop)
+        self.grid = grid
         
     def rename(self,name):
         self.oldMainWindow.rename(name)
@@ -5053,8 +5176,13 @@ class MainPlotWindow(QtGui.QWidget):
         self.hide()
 
     def kill(self):
+        for i in reversed(range(self.grid.count())): 
+            self.grid.itemAt(i).widget().deleteLater()
+        self.grid.deleteLater()
         self.oldMainWindow.kill()
-        self.destroy()
+        del self.fig
+        del self.canvas
+        self.deleteLater()
         
     def save(self):
         self.updatePlot()
@@ -5073,7 +5201,11 @@ class MainPlotWindow(QtGui.QWidget):
         self.ax.set_xlim((self.xlimBackup[0],self.xlimBackup[1]))
         self.ax.set_ylim((self.ylimBackup[0],self.ylimBackup[1]))
         self.fig.set_size_inches((self.widthBackup/2.54,self.heightBackup/2.54))
+        self.grid.deleteLater()
+        del self.canvas
+        del self.fig
         self.father.closeSaveFigure(self.oldMainWindow)
+        self.deleteLater()
 
 ######################################################################
 
