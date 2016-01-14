@@ -22,12 +22,10 @@ from matplotlib.figure import Figure
 from matplotlib.backends.backend_qt4agg import FigureCanvasQTAgg as FigureCanvas
 import matplotlib.gridspec as gridspec
 from mpl_toolkits.mplot3d import Axes3D
-import sys
 
 from PyQt4 import QtGui, QtCore
 
 import spectrum_classes
-import weakref
 
 #########################################################################################################
 #the class from which the 1d data is displayed, the operations which only edit the content of this class are for previewing

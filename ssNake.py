@@ -21,24 +21,18 @@ import sip
 sip.setapi('QString', 2)
 
 from PyQt4 import QtGui, QtCore
-from numpy import arange, sin, pi
 from matplotlib.backends.backend_qt4agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.figure import Figure
 
 import numpy as np
 import sys
 import os
-import scipy.io
-import json
 import copy
-import math
-from struct import unpack
-import h5py #For .mat v 7.3 support
 import spectrum_classes as sc
 import fitting as fit
 from safeEval import *
 
-pi=math.pi
+pi=np.pi
 
 class MainProgram(QtGui.QMainWindow):
     def __init__(self,root):
@@ -241,6 +235,7 @@ class MainProgram(QtGui.QMainWindow):
             self.mainWindow.runMacro(self.macros[name])
 
     def saveMacro(self,name):
+        import json
         fileName = QtGui.QFileDialog.getSaveFileName(self, 'Save File',self.LastLocation)
         if fileName: #if not cancelled
             self.LastLocation = os.path.dirname(fileName)
@@ -262,6 +257,7 @@ class MainProgram(QtGui.QMainWindow):
         self.menuCheck()
 
     def loadMacro(self):
+        import json
         filename = QtGui.QFileDialog.getOpenFileName(self, 'Open File',self.LastLocation)
         if filename: #if not cancelled
             self.LastLocation = os.path.dirname(filename) #Save used path
@@ -426,6 +422,7 @@ class MainProgram(QtGui.QMainWindow):
             self.changeMainWindow(name)
 
     def LoadVarianFile(self,filePath):
+        from struct import unpack
         Dir = filePath 
         freq = 300e6
         sw   = 50e3
@@ -491,6 +488,7 @@ class MainProgram(QtGui.QMainWindow):
         return masterData
 
     def loadJSONFile(self,filePath):
+        import json
         with open(filePath, 'r') as inputfile:
             struct = json.load(inputfile)
         data = np.array(struct['dataReal']) + 1j * np.array(struct['dataImag'])
@@ -502,6 +500,8 @@ class MainProgram(QtGui.QMainWindow):
         return masterData
 
     def loadMatlabFile(self,filePath):
+        import scipy.io
+        import h5py #For .mat v 7.3 support
         with open(filePath, 'rb') as inputfile: #read first several bytes the check .mat version
              teststring=inputfile.read(13)
         version=float(teststring.decode("utf-8")[7:10]) #extract version from the binary array
@@ -708,13 +708,13 @@ class MainProgram(QtGui.QMainWindow):
                         for j in range(0,4):
                             p = np.int32(p*256);
                             p = np.int32(p | pts[4*k+j])
-                        a1 = np.int32(math.floor(p)%256 * 16777216)
-                        a2 = np.int32(math.floor(p/256)%256 * 65536)
-                        a3 = np.int32(math.floor(p/65536)%256 * 256)
-                        a4 = np.int32(math.floor(p/16777216)%256)
+                        a1 = np.int32(np.floor(p)%256 * 16777216)
+                        a2 = np.int32(np.floor(p/256)%256 * 65536)
+                        a3 = np.int32(np.floor(p/65536)%256 * 256)
+                        a4 = np.int32(np.floor(p/16777216)%256)
                         rdl = a1 | a2 | a3 | a4
-                        sign = math.floor(rdl/2**31)
-                        e = math.floor(rdl/8388608)%256
+                        sign = np.floor(rdl/2**31)
+                        e = np.floor(rdl/8388608)%256
                         m  = rdl% 8388608
                         Value = (2.0*sign+1)*m*2.0**(e-150);   
                         #----------------
@@ -1133,6 +1133,7 @@ class Main1DWindow(QtGui.QWidget):
             self.redoMacro = []
 
     def saveJSONFile(self):
+        import json
         name = QtGui.QFileDialog.getSaveFileName(self, 'Save File',self.father.LastLocation,'JSON (*.json)')
         if not name:
             return
@@ -1155,6 +1156,7 @@ class Main1DWindow(QtGui.QWidget):
             json.dump(struct, outfile)
 
     def saveMatlabFile(self):
+        import scipy.io
         name = QtGui.QFileDialog.getSaveFileName(self, 'Save File',self.father.LastLocation,'MATLAB file (*.mat)')
         if not name:
             return

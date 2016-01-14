@@ -19,13 +19,8 @@
 
 import numpy as np
 import scipy.optimize
-from scipy.interpolate import UnivariateSpline
-import numpy.polynomial.polynomial as poly
-import scipy.signal
-import scipy.ndimage
 import copy
 from mpl_toolkits.mplot3d import proj3d
-import sys
 from six import string_types
 from spectrumFrame import Plot1DFrame
 from safeEval import safeEval
@@ -333,6 +328,7 @@ class Spectrum:
         return lambda self: self.flipLR(axes)
     
     def hilbert(self,axes):
+        import scipy.signal
         axes = self.checkAxes(axes)
         if axes == None:
             return None
@@ -927,6 +923,7 @@ class Current1D(Plot1DFrame):
         return (np.amax(tmpData[minP:maxP])/(np.std(tmpData[minN:maxN])))
     
     def fwhm(self,minPeak,maxPeak):
+        from scipy.interpolate import UnivariateSpline
         minP = min(minPeak,maxPeak)
         maxP = max(minPeak,maxPeak)
         if len(self.data1D.shape) > 1:
@@ -1089,6 +1086,7 @@ class Current1D(Plot1DFrame):
         self.showFid(self.data1D-offset)
 
     def applyBaseline(self,degree,removeList,select=False):
+        import numpy.polynomial.polynomial as poly
         if select:
             selectSlice = self.getSelect()
         else:
@@ -1109,6 +1107,7 @@ class Current1D(Plot1DFrame):
         return self.data.baselineCorrection(y,self.axes,select=selectSlice)
     
     def previewBaseline(self,degree,removeList):
+        import numpy.polynomial.polynomial as poly
         if len(self.data1D.shape) > 1:
             tmpData = self.data1D[0]
         else:

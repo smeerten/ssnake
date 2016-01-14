@@ -18,20 +18,17 @@
 #along with ssNake. If not, see <http://www.gnu.org/licenses/>.
 
 import numpy as np
-import sys
 from PyQt4 import QtGui, QtCore
 from matplotlib.figure import Figure
 from matplotlib.backends.backend_qt4agg import FigureCanvasQTAgg as FigureCanvas
 import scipy.optimize
-import scipy.ndimage
-import math
 import os.path
 import copy
 from safeEval import *
 from spectrumFrame import Plot1DFrame
 from zcw import *
 
-pi = math.pi
+pi = np.pi
 
 ##############################################################################
 class IntegralsWindow(QtGui.QWidget): 
@@ -4613,6 +4610,7 @@ class Quad2StaticCzjzekParamFrame(QtGui.QWidget):
         self.lib = np.apply_along_axis(self.bincounting,2,x1,self.weight,length)
 
     def tensorFunc(self,sigma,d,pos,width,gauss):
+        import scipy.ndimage
         pos = pos - self.axAdd
         cq = self.cq
         eta = self.eta
