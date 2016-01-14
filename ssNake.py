@@ -1145,7 +1145,7 @@ class Main1DWindow(QtGui.QWidget):
         struct['freq'] = self.masterData.freq.tolist()
         struct['sw'] = list(self.masterData.sw)
         struct['spec'] = list(self.masterData.spec)
-        struct['wholeEcho'] = list(np.array(self.masterData.wholeEcho,dtype=int))
+        struct['wholeEcho'] = list(1.0*np.array(self.masterData.wholeEcho))
         struct['ref'] = np.array(self.masterData.ref,dtype=np.float).tolist()
         tmpXax = []
         for i in self.masterData.xaxArray:
