@@ -1,3 +1,5 @@
+![Alt text](/src/SSNAKElogo.svg?raw=true)
+
 ssNake
 ======
 
