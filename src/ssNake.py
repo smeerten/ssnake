@@ -2068,7 +2068,7 @@ class PhaseWindow(QtGui.QWidget):
         self.show()
         self.setFixedSize(self.size())
         self.father.menuDisable()
-        self.setGeometry(0,0,0,0)
+        self.setGeometry(self.frameSize().width()-self.geometry().width(),self.frameSize().height()-self.geometry().height(),0,0)
         
     def setZeroOrder(self,value, *args):
         if self.available:
@@ -2291,7 +2291,7 @@ class ApodWindow(QtGui.QWidget):
         self.show()
         self.setFixedSize(self.size())
         self.father.menuDisable()
-        self.setGeometry(0,0,0,0)
+        self.setGeometry(self.frameSize().width()-self.geometry().width(),self.frameSize().height()-self.geometry().height(),0,0)
 
     def checkEval(self,num):
         if self.ticks[num].isChecked():
@@ -2415,7 +2415,7 @@ class SizeWindow(QtGui.QWidget):
         self.show()
         self.setFixedSize(self.size())
         self.father.menuDisable()
-        self.setGeometry(0,0,0,0)
+        self.setGeometry(self.frameSize().width()-self.geometry().width(),self.frameSize().height()-self.geometry().height(),0,0)
  
     def sizePreview(self, *args):
         inp = safeEval(self.sizeEntry.text())
@@ -2473,7 +2473,7 @@ class SwapEchoWindow(QtGui.QWidget):
         self.father.menuDisable()
         self.father.current.peakPickFunc = lambda pos,self=self: self.picked(pos) 
         self.father.current.peakPick = True
-        self.setGeometry(0,0,0,0)
+        self.setGeometry(self.frameSize().width()-self.geometry().width(),self.frameSize().height()-self.geometry().height(),0,0)
  
     def swapEchoPreview(self, *args):
         inp = safeEval(self.posEntry.text())
@@ -2546,7 +2546,7 @@ class ShiftDataWindow(QtGui.QWidget):
         self.show()
         self.setFixedSize(self.size())
         self.father.menuDisable()
-        self.setGeometry(0,0,0,0)
+        self.setGeometry(self.frameSize().width()-self.geometry().width(),self.frameSize().height()-self.geometry().height(),0,0)
 
     def stepUpShift(self, *args):
         inp = safeEval(self.shiftEntry.text())
@@ -2633,7 +2633,7 @@ class DCWindow(QtGui.QWidget):
         self.father.menuDisable()
         self.father.current.peakPickFunc = lambda pos,self=self: self.picked(pos) 
         self.father.current.peakPick = True
-        self.setGeometry(0,0,0,0)
+        self.setGeometry(self.frameSize().width()-self.geometry().width(),self.frameSize().height()-self.geometry().height(),0,0)
 
     def picked(self,pos,second=False): 
         dataLength = self.father.current.data1D.shape[-1]
@@ -2749,7 +2749,7 @@ class BaselineWindow(QtGui.QWidget):
         self.father.menuDisable()
         self.father.current.peakPickFunc = lambda pos,self=self: self.picked(pos) 
         self.father.current.peakPick = True
-        self.setGeometry(0,0,0,0)
+        self.setGeometry(self.frameSize().width()-self.geometry().width(),self.frameSize().height()-self.geometry().height(),0,0)
 
     def picked(self,pos):
         self.removeList.append(pos[0])
@@ -2832,7 +2832,7 @@ class regionWindow(QtGui.QWidget):
         self.father.menuDisable()
         self.father.current.peakPickFunc = lambda pos,self=self: self.picked(pos) 
         self.father.current.peakPick = True
-        self.setGeometry(0,0,0,0)
+        self.setGeometry(self.frameSize().width()-self.geometry().width(),self.frameSize().height()-self.geometry().height(),0,0)
 
     def picked(self,pos,second=False): 
         if second:
@@ -3002,7 +3002,7 @@ class DeleteWindow(QtGui.QWidget):
         self.show()
         self.setFixedSize(self.size())
         self.father.menuDisable()
-        self.setGeometry(0,0,0,0)
+        self.setGeometry(self.frameSize().width()-self.geometry().width(),self.frameSize().height()-self.geometry().height(),0,0)
         
     def preview(self, *args):
         env = vars(np).copy()
@@ -3060,7 +3060,7 @@ class SplitWindow(QtGui.QWidget):
         self.show()
         self.setFixedSize(self.size())
         self.father.menuDisable()
-        self.setGeometry(0,0,0,0)
+        self.setGeometry(self.frameSize().width()-self.geometry().width(),self.frameSize().height()-self.geometry().height(),0,0)
 
     def preview(self, *args):
         val = safeEval(self.splitEntry.text())
@@ -3105,7 +3105,7 @@ class ConcatenateWindow(QtGui.QWidget):
         self.show()
         self.setFixedSize(self.size())
         self.father.menuDisable()
-        self.setGeometry(0,0,0,0)
+        self.setGeometry(self.frameSize().width()-self.geometry().width(),self.frameSize().height()-self.geometry().height(),0,0)
         
     def applyAndClose(self):
         self.father.redoList = []
@@ -3147,7 +3147,7 @@ class InsertWindow(QtGui.QWidget):
         self.show()
         self.setFixedSize(self.size())
         self.father.menuDisable()
-        self.setGeometry(0,0,0,0)
+        self.setGeometry(self.frameSize().width()-self.geometry().width(),self.frameSize().height()-self.geometry().height(),0,0)
 
     def preview(self, *args):
         pos = safeEval(self.posEntry.text())
@@ -3206,7 +3206,7 @@ class AddWindow(QtGui.QWidget):
         self.show()
         self.setFixedSize(self.size())
         self.father.menuDisable()
-        self.setGeometry(0,0,0,0)
+        self.setGeometry(self.frameSize().width()-self.geometry().width(),self.frameSize().height()-self.geometry().height(),0,0)
 
     def applyAndClose(self):
         ws = self.wsEntry.currentIndex()
@@ -3245,7 +3245,7 @@ class SubtractWindow(QtGui.QWidget):
         self.show()
         self.setFixedSize(self.size())
         self.father.menuDisable()
-        self.setGeometry(0,0,0,0)
+        self.setGeometry(self.frameSize().width()-self.geometry().width(),self.frameSize().height()-self.geometry().height(),0,0)
 
     def applyAndClose(self):
         ws = self.wsEntry.currentIndex()
@@ -3309,7 +3309,7 @@ class SNWindow(QtGui.QWidget):
         self.father.menuDisable()
         self.father.current.peakPickFunc = lambda pos,self=self: self.picked(pos) 
         self.father.current.peakPick = True
-        self.setGeometry(0,0,0,0)
+        self.setGeometry(self.frameSize().width()-self.geometry().width(),self.frameSize().height()-self.geometry().height(),0,0)
         
     def picked(self,pos,num=0): 
         if num == 0:
@@ -3475,7 +3475,7 @@ class FWHMWindow(QtGui.QWidget):
         self.father.menuDisable()
         self.father.current.peakPickFunc = lambda pos,self=self: self.picked(pos) 
         self.father.current.peakPick = True
-        self.setGeometry(0,0,0,0)
+        self.setGeometry(self.frameSize().width()-self.geometry().width(),self.frameSize().height()-self.geometry().height(),0,0)
         
     def picked(self,pos,num=0): 
         if num == 0:
@@ -3575,7 +3575,7 @@ class ShearingWindow(QtGui.QWidget):
         self.show()
         self.setFixedSize(self.size())
         self.father.menuDisable()
-        self.setGeometry(0,0,0,0)
+        self.setGeometry(self.frameSize().width()-self.geometry().width(),self.frameSize().height()-self.geometry().height(),0,0)
 
     def shearPreview(self, *args):
         shear = safeEval(self.shearEntry.text())
@@ -3628,7 +3628,7 @@ class MultiplyWindow(QtGui.QWidget):
         self.show()
         self.setFixedSize(self.size())
         self.father.menuDisable()
-        self.setGeometry(0,0,0,0)
+        self.setGeometry(self.frameSize().width()-self.geometry().width(),self.frameSize().height()-self.geometry().height(),0,0)
 
     def preview(self, *args):
         env = vars(np).copy()
@@ -3678,7 +3678,7 @@ class XaxWindow(QtGui.QWidget):
         self.show()
         self.setFixedSize(self.size())
         self.father.menuDisable()
-        self.setGeometry(0,0,0,0)
+        self.setGeometry(self.frameSize().width()-self.geometry().width(),self.frameSize().height()-self.geometry().height(),0,0)
         
     def xaxPreview(self, *args):
         env = vars(np).copy()
@@ -3759,7 +3759,7 @@ class RefWindow(QtGui.QWidget):
         self.father.menuDisable()
         self.father.current.peakPickFunc = lambda pos,self=self: self.picked(pos) 
         self.father.current.peakPick = True
-        self.setGeometry(0,0,0,0)
+        self.setGeometry(self.frameSize().width()-self.geometry().width(),self.frameSize().height()-self.geometry().height(),0,0)
 
     def preview(self, *args): 
         freq = safeEval(self.freqEntry.text())
