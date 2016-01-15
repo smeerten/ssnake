@@ -674,68 +674,56 @@ class MainProgram(QtGui.QMainWindow):
                 TYPE = re.sub('TYPE=','',Lines[s])
             elif Lines[s].startswith('FORMAT='):
                 FORMAT = re.sub('FORMAT=','',Lines[s])
-        if 'Normal' in FORMAT: 
-            data = []
-            for iii in range(DataStart+1,DataEnd):
-                temp = Lines[iii].split()
-                data.append(float(temp[0])+1j*float(temp[1]))
+        if 'Normal' in FORMAT:
+            length = DataEnd-DataStart-1
+            data = np.zeros(length,dtype=complex)
+            for i in range(length):
+                temp = Lines[DataStart+1+i].split()
+                data[i] = float(temp[0])+1j*float(temp[1])
         elif 'BINARY' in FORMAT: 
-            RawData = np.array(Lines[DataStart+1:DataEnd])
-            Ascii=[]
-            for i in range(0,len(RawData)):
-                for j in range(0,len(RawData[i])):
-                    Ascii.append(ord(RawData[i][j]))
-            Values = np.array(Ascii)
-            i=0
-            idx=0
-            TempData=[]
-            while i < 2*NP*NI:
-                pts=[]
-                for j in range(0,4):
-                    C=[]
-                    for h in range(4):
-                        try: 
-                            C.append(Values[idx]-33)
-                        except: 
-                            C.append(0)
-                        idx+=1
-                    pts.append(C[0]%64 + C[1]*4- C[1]*4 % 64)
-                    pts.append(C[1]%16 + C[2]*4- C[2]*4%16)
-                    pts.append(C[2]%4 + C[3]*4- C[3]*4%4)
-                for k in range(0,3):
-                    p=0
-                    if i < 2*NP*NI:
-                        for j in range(0,4):
-                            p = np.int32(p*256);
-                            p = np.int32(p | pts[4*k+j])
-                        a1 = np.int32(np.floor(p)%256 * 16777216)
-                        a2 = np.int32(np.floor(p/256)%256 * 65536)
-                        a3 = np.int32(np.floor(p/65536)%256 * 256)
-                        a4 = np.int32(np.floor(p/16777216)%256)
-                        rdl = a1 | a2 | a3 | a4
-                        sign = np.floor(rdl/2**31)
-                        e = np.floor(rdl/8388608)%256
-                        m  = rdl% 8388608
-                        Value = (2.0*sign+1)*m*2.0**(e-150);   
-                        #----------------
-                        TempData.append(Value)
-                        i+=1
-            real = TempData[0:len(TempData):2]
-            imag = TempData[1:len(TempData):2]
-            data=[]
-            for number in range(0,int(len(TempData)/2)):
-                data.append(real[number]+1j*imag[number])
-        data = np.array(data) 
+            #Binary code based on:
+            #pysimpson: Python module for reading SIMPSON files 
+            #By: Jonathan J. Helmus (jjhelmus@gmail.com)
+            #Version: 0.1 (2012-04-13)
+            #License: GPL
+            chardata=''
+            for line in Lines[DataStart+1:DataEnd]:
+                chardata += line
+            nquads, mod = divmod(len(chardata), 4)
+            assert mod == 0     # character should be in blocks of 4
+            Bytes = []
+            for i in range(nquads):
+                chars = chardata[i * 4:(i + 1) * 4]
+                BASE = 33
+                FIRST = lambda f,x: ((x) & ~(~0 << f))
+                LAST = lambda f,x: ((x) & (~0 << (8-f)))
+                c0, c1, c2, c3 = [ord(c) - BASE for c in chars]
+                Bytes+= [FIRST(6, c0) | LAST(2, c1 << 2),FIRST(4, c1) | LAST(4, c2 << 2),FIRST(2, c2) | LAST(6, c3 << 2)]
+            # convert every 4 'bytes' to a float
+            num_points, num_pad = divmod(len(Bytes), 4)
+            data = np.empty( (num_points, ), dtype='float32')
+            for i in range(num_points):
+                BytesTemp = Bytes[i * 4 : (i + 1) * 4]
+                b0, b1, b2, b3 = BytesTemp
+                mantissa = ((b2 % 128) << 16) + (b1 << 8) + b0
+                exponent = (b3 % 128) * 2 + (b2 >= 128) * 1
+                negative = b3 >= 128
+                e = exponent - 0x7f
+                m = np.abs(mantissa) / np.float64(1 << 23)
+                if negative:
+                    data[i] =  -math.ldexp(m, e)
+                else:
+                    data[i] = math.ldexp(m, e)
+            data=data.view('complex64')
+        if NI != 1: # 2D data, reshape to NI, NP
+            data = data.reshape(int(NI), -1)    
         if 'FID' in TYPE:
-            axis=0
             spec = [False]
         elif 'SPE' in TYPE:
-            axis=1
             spec = [True]                    
         if NI is 1:
             masterData=sc.Spectrum(data,lambda self :self.LoadSimpsonFile(filePath),[0],[SW],spec)
         else:
-            data = data.reshape((NI,NP))
             masterData=sc.Spectrum(data,lambda self :self.LoadSimpsonFile(filePath),[0,0],[SW1,SW],spec*2)
         return masterData
     
