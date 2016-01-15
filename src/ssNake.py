@@ -3442,14 +3442,17 @@ class FWHMWindow(QtGui.QWidget):
         self.maxEntry.returnPressed.connect(self.checkValues)
         grid.addWidget(self.maxEntry,3,0)
         if self.father.current.spec == 1:
-            if self.father.current.axType == 0:
-                grid.addWidget(QLabel("FWHM [Hz]:"),4,0)
-            elif self.father.current.axType == 1:
-                grid.addWidget(QLabel("FWHM [kHz]:"),4,0)
-            elif self.father.current.axType == 2:
-                grid.addWidget(QLabel("FWHM [MHz]:"),4,0)
-            elif self.father.current.axType == 3:
+            if self.father.current.ppm:
                 grid.addWidget(QLabel("FWHM [ppm]:"),4,0)
+            else:
+                if self.father.current.axType == 0:
+                    grid.addWidget(QLabel("FWHM [Hz]:"),4,0)
+                elif self.father.current.axType == 1:
+                    grid.addWidget(QLabel("FWHM [kHz]:"),4,0)
+                elif self.father.current.axType == 2:
+                    grid.addWidget(QLabel("FWHM [MHz]:"),4,0)
+                elif self.father.current.axType == 3:
+                    grid.addWidget(QLabel("FWHM [ppm]:"),4,0)
         else:
             if self.father.current.axType == 0:
                 grid.addWidget(QLabel("FWHM [s]:"),4,0)
