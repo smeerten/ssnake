@@ -778,7 +778,7 @@ class MainProgram(QtGui.QMainWindow):
         self.close()
 
     def closeEvent(self, event):
-        quit_msg = "Are you sure you want to exit the program?"
+        quit_msg = "Are you sure you want to close ssNake?"
         reply = QtGui.QMessageBox.question(self, 'Close', quit_msg, QtGui.QMessageBox.Yes, QtGui.QMessageBox.No)
         if reply == QtGui.QMessageBox.Yes:
             event.accept()
