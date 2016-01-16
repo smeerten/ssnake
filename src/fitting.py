@@ -250,6 +250,10 @@ class IntegralsParamFrame(QtGui.QWidget):
         self.pickTick = QtGui.QCheckBox("Pick")
         self.pickTick.stateChanged.connect(self.togglePick)
         self.frame1.addWidget(self.pickTick,1,1)
+        self.absIntTick = QtGui.QCheckBox("Relative integrals")
+        self.absIntTick.setChecked(True)
+        self.absIntTick.stateChanged.connect(self.fit)
+        self.frame1.addWidget(self.absIntTick,2,0,1,2)
         self.frame1.setColumnStretch(10,1)
         self.frame1.setAlignment(QtCore.Qt.AlignTop)
         self.frame3.addWidget(QLabel("Min bounds:"),1,0)
@@ -439,7 +443,10 @@ class IntegralsParamFrame(QtGui.QWidget):
     def displayInt(self):
         if self.refVal is None:
             self.refVal = self.intValues[0]
-        tmpInts = self.intValues/float(self.refVal)
+        if self.absIntTick.isChecked():
+            tmpInts = self.intValues/float(self.refVal)
+        else:
+            tmpInts = self.intValues
         for i in range(self.integralIter):
             self.intEntries[i].setText("%#.3g" % tmpInts[i])
     
