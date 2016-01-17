@@ -247,7 +247,7 @@ Can be used to save a macro to the disk as a .json file. This is a plain text fi
 Loads a saved macro in ssNake. Execution of the macro can then be performed using Macros $\rightarrow$ Run.
 
 \subsection{Notes on usage of macros}
-Note that ssNake only records the actions that are not undone. If you perform an action when recording is one, and you undo it while recording, the macro has no entries. However, performing two actions that cancel each other \textit{are} recorded. For example, issuing Fourier twice has no net effect, but a macro of this includes both commands.
+Note that ssNake only records the actions that are not undone. If you perform an action when recording is on, and you undo it while recording, the macro has no entries. However, performing two actions that cancel each other \textit{are} recorded. For example, issuing Fourier twice has no net effect, but a macro of this includes both commands.
 
 SOME PART ABOUT RUNNING MACROS ON MORE OR LESS DIMENSIONS THEN THEY WERE CREATED FOR.
 
@@ -285,22 +285,29 @@ F_\text{new} = \sqrt{\text{real}(F_\text{old})^2 + \text{imag}(F_\text{old})^2}
 \end{equation*}
 for all points in the complex data.
 
-
-
-\subsection{Sizing}
-The sizing tool can be used to edit the number of points in the current dimension. 
+\subsection{Phasing}
+Opens a tool that can be use to change the phasing in the current spectrum or fid. Supports zero order, first order and autophasing.
 
 \subsubsection*{Background}
-The number of point taken in an NMR time signal is usually restricted, as increasing the acquisition time leads to more noise (as the signal has decayed) or adds to much strain on the device (if decoupling is used). As the number of points in the spectrum is equal to the number of points in the time signal, this limits the \textit{digital} resolution of the spectrum, making it less easy to extract the desired data. However, if the signal has decayed at the end, the digital resolution in the spectrum can be enhanced by adding zeroes at the end, without effecting the spectrum in terms of signal-to-noise and appearance. This is termed `zero filling' and is often used in NMR.
+NMR data is usually recorded as complex data. Here the real part can be said to be the x-magnetization, and the imaginary part the y-magnetization. This gives the NMR signal as a complex vector, that is rotating in the complex plane during the signal acquisition. An ideal NMR signal consists of a cosine in the real part, and a sine in the imaginary part. This gives, after Fourier transform, a spectrum were a pure absorption lineshape (i.e. a peak) is seen. Depending on the way the time signal is recorded, there can be a distortion to this line, as a constant phase is added to both the sinusoids. With zero order phase correction, an additional phase is added to both the complex and the real part, to adjust for this effect. When expressed in complex exponentials, the following holds:
+\begin{equation}
+f_\text{new} = f_\text{old}\cdot\text{e}^{i\pi\cdot\theta/180} 
+\end{equation}
+were $f$ is a complex value in the time or frequency domain and $\theta$ the desired phase correction in degrees. When using this zero order phase correction, all points in the time or frequency domain get the same phase correction.
 
-If the time signal has not fully decayed, the signal abruptly changes to zero. This leads to distortions in the spectrum (i.e. sinc wiggles) as the time signal is effectively multiplied with a block function. General Fourier theory then states that the spectrum must then be convoluted with the Fourier transform of the block function, which is $\sin(x)/x$, i.e. sinc.
+In the spectral domain, a \textit{first} order phase correction is also defined. This leads to a phase correction that linearly depends on the frequency offset with respect to a set central frequency. 
+
 
 \subsubsection*{ssNake implementation}
-Selecting `Tools $\rightarrow$ Sizing' creates a sizing window. In here a single number has to be filled in the box. Decimal values will be rounded to the nearest integer. Apart from numbers, the command `k' (or `K') is also supported, which stands for `1024'. When using this definition there has to be a number before the `k'. A valid input would therefore be: `2k'. Which sets the number of points to $2 \cdot 1024=2048$. Pressing `Apply' executes the sizing command on all traces in all dimensions.
+Selecting phasing in the tools menu opens the phasing window. In this windows, the zero and first order phasing can be set, as well as the reference frequency (centre point) for the first order phasing. The values can be either filled in the boxes,  changed by pushing the left and right buttons, or set by dragging the slider to the left or the right. For zero order phase correction, the limits are -180 and 180 degrees. For first order correction, these are -540 and 540 degrees. Higher values for the first order correction sometimes make sense, and can be filled in the box directly. Note that the values for the zero order correction are circular, so that -180 and 180 degrees lead to the same effect.
 
-If the supplied number is larger than the current size, zeroes are added at the right-hand side of the time signal. If the value is lower, points are removed from the right-hand side of the time signal. If the whole echo type is on, the zeroes are added in the centre of the time signal, or points are taken symmetrically from the centre, if the size is reduced.
+While in this menu, the effect of a certain phasing can be immediately viewed in the ssNake window. When a good setting is reach, `Ok' can be pushed to apply the phasing. Note that for multidimensional data, the preview only shows the current trace. Pushing `Ok' the applies the same phasing correction on all the traces (might take some time for large data). If the phasing should only be applied on the current spectrum or fid, the box `Single slice' can be ticked. Note that you still have to push `Ok' to apply the phasing.
 
-When applied to the frequency domain, zero filling makes no real sense. However ssNake does support this. In this case zeroes are added to the left-hand side of the spectrum (due to the mirroring of the spectrum used in NMR), or taken from them. When doing this, the spectra width should be changed to be still correct. This is not done, and it is therefore not recommended to use this option in the frequency domain.
+Apart from manual phasing, ssNake also supports two types of autophasing: zero order only, and zero and first order. When pushing these buttons, ssNake will search for the best phasing in the \textit{current} trace, with only first order phasing correction, or with both zero and first order. Do note that the setting that ssNake finds might not be the best: phasing an NMR spectrum is tricky and has no unique mathematical solution. However, for a fast analysis it can be useful.
+
+Also, note that first order phase correction has no meaning in NMR when applied to the time domain. ssNake therefore always applies first order phasing in the \textit{frequency} domain. When first order phasing is applied in the time domain, ssNake transforms to the spectral domain, does the phase correction, and transforms back. As Fourier transforms are quite fast, this provides no issues when viewing the effect of the phase correction.
+
+
 
 \subsection{Swap echo}
 A tool to swap the time domain data symmetrically around a selected point.
@@ -312,16 +319,7 @@ In some NMR experiments, the rise and fall of a spin echo is recorded. One way o
 Echo swapping is done by left clicking on the echo maximum of the time signal. By default, the swapping is set at the centre of the time signal. After left clicking, a preview is shown. Pushing `Apply' applies the transformation to all traces of this dimension. Also, the tag `Whole echo' is set in the footer. When this is on, Fourier transforming does not multiply the first point by 0.5 (as is needed for data that decays to zero), and line broadening is applied symmetrically around zero.
 
 
-\subsection{Shift data}
-Shifts the data to the left or to the right, by removing data points on the left or on the right, and filling with zeroes on the other side.
 
-\subsubsection*{Background}
-Data shifting can be used if some data points on the left or right of the time signal are unnecessary or unwanted. When measuring a spin echo, for example, it is not uncommon to start recording the signal some microseconds before the expected echo top, to make sure the full signal is measured. The data can then be left shifted to remove the data points before the echo maximum, and yield a regular spectrum.
-
-\subsubsection*{ssNake implementation}
-Starting the shift data tool creates an input window. Within this window, a integer number must be filled in that equals the number of data points of the  desired \textit{right} shift. Left shifts can be made by using negative values. Alternatively, the arrows on the right and left side of the input box can be used to shift the data in the direction of the arrow. The effect of the operation on the current 1D can be seen in the main window. When pushing `Apply' the shift is performed on all traces of the nD data.
-
-ssNake can also perform the time domain shift from within the frequency domain. When in a spectrum, an inverse Fourier transform is used to go back to the time domain. The data is then shifted with the desired measure, and a forward Fourier transform gives the spectrum of the shifted time signal. The effect of the sift on the current 1D can be seen in the main window. As this calculation is a bit more involved, it can take some time if the data set is large.
 
 
 
@@ -368,6 +366,34 @@ Using this tool opens a windows, in which you have to open (again) the current B
 
 \section{Matrix}
 This section describes the ssNake matrix manipulation tools. NMR data is nothing more then a data matrix of a specific dimension. Using the matrix tools, you can change the size of a dimension, split the data into more dimension, integrate, multiply, mirror etc. In the following, the different supported matrix manipulations will be introduced.
+
+
+\subsection{Sizing}
+The sizing tool can be used to edit the number of points in the current dimension. 
+
+\subsubsection*{Background}
+The number of point taken in an NMR time signal is usually restricted, as increasing the acquisition time leads to more noise (if the signal has decayed) or adds too much strain on the device (if decoupling is used). As the number of points in the spectrum is equal to the number of points in the time signal, this limits the \textit{digital} resolution of the spectrum, making it less easy to extract the desired data. However, if the signal has decayed at the end, the digital resolution in the spectrum can be enhanced by adding zeroes at the end, without effecting the spectrum in terms of signal-to-noise and appearance. This is termed `zero filling' and is often used in NMR.
+
+If the time signal has not fully decayed, the signal abruptly changes to zero when zero-filling is applied. This leads to distortions in the spectrum (i.e. sinc wiggles) as the time signal is effectively multiplied with a block function. General Fourier theory then states that the spectrum must then be convoluted with the Fourier transform of the block function, which is $\sin(x)/x$, i.e. sinc.
+
+\subsubsection*{ssNake implementation}
+Selecting `Matrix $\rightarrow$ Sizing' creates a sizing window. In here a single number has to be filled in the box. Decimal values will be rounded to the nearest integer. Apart from numbers, the command `k' (or `K') is also supported, which stands for `1024'. When using this definition there has to be a number before the `k'. A valid input would therefore be: `2k'. Which sets the number of points to $2 \cdot 1024=2048$. Pressing `Apply' executes the sizing command on all traces in all dimensions.
+
+If the supplied number is larger than the current size, zeroes are added at the right-hand side of the time signal. If the value is lower, points are removed from the right-hand side of the time signal. If the whole echo type is on, the zeroes are added in the centre of the time signal, or points are taken symmetrically from the centre, if the size is reduced.
+
+When applied to the frequency domain, zero filling makes no real sense. However ssNake does support this. In this case zeroes are added to the left-hand side of the spectrum (due to the mirroring of the spectrum used in NMR), or taken from them. When doing this, the spectra width should be changed to be still correct. This is not done, and it is therefore not recommended to use this option in the frequency domain.
+
+\subsection{Shift data}
+Shifts the data to the left or to the right, by removing data points on the left or on the right, and filling with zeroes on the other side.
+
+\subsubsection*{Background}
+Data shifting can be used if some data points on the left or right of the time signal are unnecessary or unwanted. When measuring a spin echo, for example, it is not uncommon to start recording the signal some microseconds before the expected echo top, to make sure the full signal is measured. The data can then be left shifted to remove the data points before the echo maximum, and yield a regular spectrum.
+
+\subsubsection*{ssNake implementation}
+Starting the shift data tool creates an input window. Within this window, a integer number must be filled in that equals the number of data points of the  desired \textit{right} shift. Left shifts can be made by using negative values. Alternatively, the arrows on the right and left side of the input box can be used to shift the data in the direction of the arrow. The effect of the operation on the current 1D can be seen in the main window. When pushing `Apply' the shift is performed on all traces of the nD data.
+
+ssNake can also perform the time domain shift from within the frequency domain. When in a spectrum, an inverse Fourier transform is used to go back to the time domain. The data is then shifted with the desired measure, and a forward Fourier transform gives the spectrum of the shifted time signal. The effect of the sift on the current 1D can be seen in the main window. As this calculation is a bit more involved, it can take some time if the data set is large.
+
 
 \subsection{Integrate}
 Integrates a specific part of the current dimension on all traces.
