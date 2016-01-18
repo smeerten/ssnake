@@ -47,28 +47,39 @@ class MainProgram(QtGui.QMainWindow):
         self.macros = {}
         self.macroActions = {} 
         self.LastLocation = ''
-        
+        self.initMenu()
+        self.menuCheck()
+        self.main_widget = QtGui.QWidget(self)
+        self.mainFrame = QtGui.QGridLayout(self.main_widget)
+        self.logo = QtGui.QLabel(self)
+        self.logo.setPixmap(QtGui.QPixmap(os.path.dirname(os.path.realpath(__file__)) + "/logo.gif"))
+        self.mainFrame.addWidget(self.logo,0,0,QtCore.Qt.AlignCenter)
+        self.main_widget.setFocus()
+        self.setCentralWidget(self.main_widget)
+        self.eventFilter = MyEventFilter(self)
+        self.root.installEventFilter(self.eventFilter)
+
+    def initMenu(self):
         self.menubar = self.menuBar()
         self.filemenu = QtGui.QMenu('File', self)
         self.menubar.addMenu(self.filemenu)
-        self.filemenu.addAction('Open', self.loadFromMenu,QtGui.QKeySequence.Open)
+        self.openAct = self.filemenu.addAction('Open', self.loadFromMenu,QtGui.QKeySequence.Open)
         self.savemenu = QtGui.QMenu('Save',self)
         self.filemenu.addMenu(self.savemenu)
         self.savefigAct = self.savemenu.addAction('Save figure', self.saveFigure,QtGui.QKeySequence.Print)
-        self.savemenu.addAction('Save JSON', self.saveJSONFile,QtGui.QKeySequence.Save)
+        self.saveAct = self.savemenu.addAction('Save JSON', self.saveJSONFile,QtGui.QKeySequence.Save)
         self.savemenu.addAction('Save MATLAB', self.saveMatlabFile)
         self.savemenu.addAction('Save as Simpson data', self.saveSimpsonFile)
         self.filemenu.addAction('Quit', self.fileQuit, QtGui.QKeySequence.Quit)
-        
         self.workspacemenu = QtGui.QMenu('Workspaces',self)
         self.menubar.addMenu(self.workspacemenu)
-        self.workspacemenu.addAction('Duplicate', self.duplicateWorkspace,QtGui.QKeySequence.New)
-        self.workspacemenu.addAction('Delete', self.destroyWorkspace,QtGui.QKeySequence.Close)
+        self.newAct = self.workspacemenu.addAction('Duplicate', self.duplicateWorkspace,QtGui.QKeySequence.New)
+        self.closeAct = self.workspacemenu.addAction('Delete', self.destroyWorkspace,QtGui.QKeySequence.Close)
         self.workspacemenu.addAction('Rename', self.renameWorkspace)
         self.activemenu = QtGui.QMenu('Active',self)
         self.workspacemenu.addMenu(self.activemenu)
-        self.workspacemenu.addAction('Next', lambda: self.stepWorkspace(1),QtGui.QKeySequence.Forward)
-        self.workspacemenu.addAction('Previous', lambda: self.stepWorkspace(-1),QtGui.QKeySequence.Back)
+        self.forwardAct = self.workspacemenu.addAction('Next', lambda: self.stepWorkspace(1),QtGui.QKeySequence.Forward)
+        self.backAct = self.workspacemenu.addAction('Previous', lambda: self.stepWorkspace(-1),QtGui.QKeySequence.Back)
         self.macromenu = QtGui.QMenu('Macros',self)
         self.menubar.addMenu(self.macromenu)
         self.macrostartAct = self.macromenu.addAction('Start recording', self.macroCreate)
@@ -82,20 +93,101 @@ class MainProgram(QtGui.QMainWindow):
         self.macrosavemenu = QtGui.QMenu('Save',self)
         self.macromenu.addMenu(self.macrosavemenu)
         self.macromenu.addAction('Load', self.loadMacro)
-
-        self.menuCheck()
         
-        self.main_widget = QtGui.QWidget(self)
-        self.mainFrame = QtGui.QGridLayout(self.main_widget)
+        self.multiDActions = []
+        #the edit drop down menu
+        self.editmenu = QtGui.QMenu("Edit",self)
+        self.menubar.addMenu(self.editmenu)
+        self.undoAction = self.editmenu.addAction("Undo",self.undo,QtGui.QKeySequence.Undo)
+        self.undoAction.setShortcutContext(QtCore.Qt.WidgetShortcut)
+        self.redoAction = self.editmenu.addAction("Redo",self.redo,QtGui.QKeySequence.Redo)
+        self.redoAction.setShortcutContext(QtCore.Qt.WidgetShortcut)
+        self.editmenu.addAction("Reload", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.reloadLast()),QtGui.QKeySequence.Refresh)
 
-        self.logo = QtGui.QLabel(self)
-        self.logo.setPixmap(QtGui.QPixmap(os.path.dirname(os.path.realpath(__file__)) + "/logo.gif"))
-        self.mainFrame.addWidget(self.logo,0,0,QtCore.Qt.AlignCenter)
+	#the tool drop down menu
+        self.toolMenu = QtGui.QMenu("Tools",self)
+        self.menubar.addMenu(self.toolMenu)
+        self.toolMenu.addAction("Real", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.real()))
+        self.toolMenu.addAction("Imag", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.imag()))
+        self.toolMenu.addAction("Abs", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.abs())) 
+        self.toolMenu.addAction("Apodize", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.createApodWindow()))
+        self.toolMenu.addAction("Phasing", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.createPhaseWindow()))
+        self.toolMenu.addAction("Swap Echo", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.createSwapEchoWindow()))
+        self.toolMenu.addAction("Offset correction", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.createDCWindow()))
+        self.toolMenu.addAction("Baseline correction", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.createBaselineWindow()))
+        self.toolMenu.addAction("States", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.states()))
+        self.toolMenu.addAction("States-TPPI", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.statesTPPI()))
+        self.toolMenu.addAction("Correct Bruker digital filter", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.BrukerDigital()))
+
+        #the matrix drop down menu
+        self.matrixMenu = QtGui.QMenu("Matrix",self)
+        self.menubar.addMenu(self.matrixMenu)
+        self.matrixMenu.addAction("Sizing", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.createSizeWindow()))
+        self.matrixMenu.addAction("Shift Data", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.createShiftDataWindow()))
+        self.matrixMenu.addAction("Integrate", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.createIntegrateWindow()))
+        self.matrixMenu.addAction("Sum", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.createSumWindow()))
+        self.matrixMenu.addAction("Max", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.createMaxWindow()))
+        self.matrixMenu.addAction("Min", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.createMinWindow()))
+        self.matrixMenu.addAction("Max position", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.createArgMaxWindow()))
+        self.matrixMenu.addAction("Min position", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.createArgMinWindow()))
+        self.matrixMenu.addAction("Diff", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.diff()))
+        self.matrixMenu.addAction("Cumsum", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.cumsum()))
+        self.matrixMenu.addAction("Extract part", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.createRegionWindow()))
+        self.matrixMenu.addAction("Flip L/R", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.flipLR()))
+        self.matrixMenu.addAction("Delete", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.createDeleteWindow()))
+        self.matrixMenu.addAction("Split", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.createSplitWindow()))
+        self.matrixMenu.addAction("Multiply", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.createMultiplyWindow()))
+        self.multiDActions.append(self.matrixMenu.addAction("Concatenate", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.createConcatenateWindow())))
+        self.multiDActions.append(self.matrixMenu.addAction("Shearing", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.createShearingWindow())))
         
-        self.main_widget.setFocus()
-        self.setCentralWidget(self.main_widget)
-        self.eventFilter = MyEventFilter(self)
-        self.root.installEventFilter(self.eventFilter)
+        #the fft drop down menu
+        self.fftMenu = QtGui.QMenu("Fourier",self)
+        self.menubar.addMenu(self.fftMenu)
+        self.fftMenu.addAction("Fourier transform",lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.fourier()), QtCore.Qt.CTRL + QtCore.Qt.Key_F)
+        self.fftMenu.addAction("Real Fourier transform", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.realFourier()))
+        self.fftMenu.addAction("Fftshift", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.fftshift()))
+        self.fftMenu.addAction("Inv fftshift", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.invFftshift()))
+        self.fftMenu.addAction("Hilbert transform", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.hilbert()))
+        
+	#the fitting drop down menu
+        self.fittingMenu = QtGui.QMenu("Fitting",self)
+        self.menubar.addMenu(self.fittingMenu)
+        self.fittingMenu.addAction("S/N", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.createSNWindow()))
+        self.fittingMenu.addAction("FWHM", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.createFWHMWindow()))
+        self.fittingMenu.addAction("Integrals", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.createIntegralsWindow()))
+        self.fittingMenu.addAction("Relaxation Curve", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.createRelaxWindow()))
+        self.fittingMenu.addAction("Diffusion Curve", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.createDiffusionWindow()))
+        self.fittingMenu.addAction("Peak Deconvolution", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.createPeakDeconvWindow()))
+        self.fittingMenu.addAction("CSA tensor", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.createTensorDeconvWindow()))
+        self.fittingMenu.addAction("First order quadrupole", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.createQuad1DeconvWindow()))
+        self.fittingMenu.addAction("Second order quadrupole static",lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.createQuad2StaticDeconvWindow()))
+        self.fittingMenu.addAction("Second order quadrupole MAS", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.createQuad2MASDeconvWindow()))
+        self.fittingMenu.addAction("Czjzek static", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.createQuad2StaticCzjzekWindow()))
+        self.fittingMenu.addAction("Czjzek MAS", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.createQuad2MASCzjzekWindow()))
+        
+        #the combine drop down menu
+        self.combineMenu = QtGui.QMenu("Combine",self)
+        self.menubar.addMenu(self.combineMenu)
+        self.combineMenu.addAction("Insert from workspace", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.createInsertWindow()))
+        self.combineMenu.addAction("Add", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.createAddWindow()))
+        self.combineMenu.addAction("Subtract", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.createSubtractWindow()))
+
+	#the plot drop down menu
+        self.plotMenu = QtGui.QMenu("Plot",self)
+        self.menubar.addMenu(self.plotMenu)
+        self.plotMenu.addAction("1D plot", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.plot1D()))
+        self.plotMenu.addAction("Scatter plot", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.plotScatter()))
+        self.multiDActions.append(self.plotMenu.addAction("Stack plot", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.plotStack())))
+        self.multiDActions.append(self.plotMenu.addAction("Array plot", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.plotArray())))
+        self.multiDActions.append(self.plotMenu.addAction("Contour plot", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.plotContour())))
+        self.multiDActions.append(self.plotMenu.addAction("Skewed plot", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.plotSkewed())))
+        self.plotMenu.addAction("Set reference", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.createRefWindow()))
+        self.plotMenu.addAction("User x-axis", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.createXaxWindow()))
+
+    def mainWindowCheck(self, transfer):
+        #checks if mainWindow exist to execute the function
+        if self.mainWindow is not None:
+            transfer(self.mainWindow)
         
     def dragEnterEvent(self, event):
         if event.mimeData().hasUrls:
@@ -115,29 +207,88 @@ class MainProgram(QtGui.QMainWindow):
             self.savemenu.menuAction().setEnabled(False)
             self.workspacemenu.menuAction().setEnabled(False)
             self.macromenu.menuAction().setEnabled(False)
-        elif isinstance(self.mainWindow, Main1DWindow):
-            self.savemenu.menuAction().setEnabled(True)
-            self.savefigAct.setEnabled(True)
-            self.macromenu.menuAction().setEnabled(True)
-            if self.mainWindow.currentMacro is None:
-                self.macrostopAct.setEnabled(False)
-                self.macrostartAct.setEnabled(True)
-            else:
-                self.macrostopAct.setEnabled(True)
-                self.macrostartAct.setEnabled(False)
-            self.savemenu.menuAction().setEnabled(True)
-            self.workspacemenu.menuAction().setEnabled(True)
-        elif isinstance(self.mainWindow, fit.MainPlotWindow):
-            self.savemenu.menuAction().setEnabled(True)
-            self.savefigAct.setEnabled(False)
-            self.workspacemenu.menuAction().setEnabled(True)
-            self.macromenu.menuAction().setEnabled(False)
+            self.editmenu.menuAction().setVisible(False)
+            self.toolMenu.menuAction().setVisible(False)
+            self.matrixMenu.menuAction().setVisible(False)
+            self.fftMenu.menuAction().setVisible(False)
+            self.fittingMenu.menuAction().setVisible(False)
+            self.combineMenu.menuAction().setVisible(False)
+            self.plotMenu.menuAction().setVisible(False)
         else:
-            self.savemenu.menuAction().setEnabled(True)
-            self.savefigAct.setEnabled(True)
-            self.workspacemenu.menuAction().setEnabled(True)
-            self.macromenu.menuAction().setEnabled(False)
+            self.editmenu.menuAction().setVisible(True)
+            self.toolMenu.menuAction().setVisible(True)
+            self.matrixMenu.menuAction().setVisible(True)
+            self.fftMenu.menuAction().setVisible(True)
+            self.fittingMenu.menuAction().setVisible(True)
+            self.combineMenu.menuAction().setVisible(True)
+            self.plotMenu.menuAction().setVisible(True)
+            if isinstance(self.mainWindow, Main1DWindow):
+                self.savemenu.menuAction().setEnabled(True)
+                self.savefigAct.setEnabled(True)
+                self.macromenu.menuAction().setEnabled(True)
+                if self.mainWindow.currentMacro is None:
+                    self.macrostopAct.setEnabled(False)
+                    self.macrostartAct.setEnabled(True)
+                else:
+                    self.macrostopAct.setEnabled(True)
+                    self.macrostartAct.setEnabled(False)
+                self.savemenu.menuAction().setEnabled(True)
+                self.workspacemenu.menuAction().setEnabled(True)
+            elif isinstance(self.mainWindow, fit.MainPlotWindow):
+                self.savemenu.menuAction().setEnabled(True)
+                self.savefigAct.setEnabled(False)
+                self.workspacemenu.menuAction().setEnabled(True)
+                self.macromenu.menuAction().setEnabled(False)
+            else:
+                self.savemenu.menuAction().setEnabled(True)
+                self.savefigAct.setEnabled(True)
+                self.workspacemenu.menuAction().setEnabled(True)
+                self.macromenu.menuAction().setEnabled(False)
 
+    def menuEnable(self,internalWindow=False):
+        self.macromenu.menuAction().setEnabled(True)
+        self.editmenu.menuAction().setEnabled(True)
+        self.toolMenu.menuAction().setEnabled(True)
+        self.matrixMenu.menuAction().setEnabled(True)
+        self.fftMenu.menuAction().setEnabled(True)
+        self.fittingMenu.menuAction().setEnabled(True)
+        self.combineMenu.menuAction().setEnabled(True)
+        self.plotMenu.menuAction().setEnabled(True)
+        if not internalWindow:
+            self.filemenu.menuAction().setEnabled(True)
+            self.workspacemenu.menuAction().setEnabled(True)
+            self.openAct.setEnabled(True)
+            self.savefigAct.setEnabled(True)
+            self.saveAct.setEnabled(True)
+            self.newAct.setEnabled(True)
+            self.closeAct.setEnabled(True)
+            self.forwardAct.setEnabled(True)
+            self.backAct.setEnabled(True)
+        self.undoAction.setEnabled(True)
+        self.redoAction.setEnabled(True)
+        
+    def menuDisable(self,internalWindow=False):
+        self.macromenu.menuAction().setEnabled(False)
+        self.editmenu.menuAction().setEnabled(False)
+        self.toolMenu.menuAction().setEnabled(False)
+        self.matrixMenu.menuAction().setEnabled(False)
+        self.fftMenu.menuAction().setEnabled(False)
+        self.fittingMenu.menuAction().setEnabled(False)
+        self.combineMenu.menuAction().setEnabled(False)
+        self.plotMenu.menuAction().setEnabled(False)
+        if not internalWindow:
+            self.filemenu.menuAction().setEnabled(False)
+            self.workspacemenu.menuAction().setEnabled(False)
+            self.openAct.setEnabled(False)
+            self.savefigAct.setEnabled(False)
+            self.saveAct.setEnabled(False)
+            self.newAct.setEnabled(False)
+            self.closeAct.setEnabled(False)
+            self.forwardAct.setEnabled(False)
+            self.backAct.setEnabled(False)
+        self.undoAction.setEnabled(False)
+        self.redoAction.setEnabled(False)
+            
     def askName(self,filePath=None,name=None):
         if filePath is None:
             message = 'Spectrum name'
@@ -310,7 +461,6 @@ class MainProgram(QtGui.QMainWindow):
         self.workspaces.append(Main1DWindow(self,copy.deepcopy(self.mainWindow.get_masterData()),self.mainWindow.get_current(),name=name))
         self.mainFrame.addWidget(self.workspaces[-1])
         self.mainWindow.removeFromView()
-        self.workspaces[-1].initUI()
         self.workspaceNames.append(name)
         self.changeMainWindow(name)
 
@@ -392,7 +542,6 @@ class MainProgram(QtGui.QMainWindow):
         masterData.resetXax(axes)
         self.workspaces.append(Main1DWindow(self,masterData,name=name))
         self.mainFrame.addWidget(self.workspaces[-1])
-        self.workspaces[-1].initUI()
         self.workspaceNames.append(name)
         self.changeMainWindow(name)
 
@@ -417,7 +566,6 @@ class MainProgram(QtGui.QMainWindow):
         if masterData is not None:
             self.workspaces.append(Main1DWindow(self,masterData,name=name))
             self.mainFrame.addWidget(self.workspaces[-1])
-            self.workspaces[-1].initUI()
             self.workspaceNames.append(name)
             self.changeMainWindow(name)
 
@@ -737,8 +885,10 @@ class MainProgram(QtGui.QMainWindow):
         self.mainWindow.get_mainWindow().saveMatlabFile()
         
     def saveFigure(self):
-        if self.mainWindow is not None:
-            self.mainWindow.removeFromView()
+        if self.mainWindow is None:
+            return
+        self.menuDisable(True)
+        self.mainWindow.removeFromView()
         num = self.workspaces.index(self.mainWindow)
         self.mainWindow = fit.MainPlotWindow(self,self.mainWindow)
         self.mainFrame.addWidget(self.mainWindow)
@@ -752,11 +902,14 @@ class MainProgram(QtGui.QMainWindow):
         self.mainWindow = mainWindow
         self.workspaces[num] = self.mainWindow
         self.mainWindow.addToView()
+        self.menuEnable(True)
         self.menuCheck()
 
     def createFitWindow(self,fitWindow):
-        if self.mainWindow is not None:
-            self.mainWindow.removeFromView()
+        if self.mainWindow is None:
+            return
+        self.menuDisable(True)
+        self.mainWindow.removeFromView()
         num = self.workspaces.index(self.mainWindow)
         self.mainWindow = fitWindow
         self.mainFrame.addWidget(self.mainWindow)
@@ -772,6 +925,7 @@ class MainProgram(QtGui.QMainWindow):
         self.mainWindow = mainWindow
         self.workspaces[num] = self.mainWindow
         self.mainWindow.addToView()
+        self.menuEnable(True)
         self.menuCheck()
         
     def fileQuit(self):
@@ -866,167 +1020,42 @@ class Main1DWindow(QtGui.QWidget):
     def rescue(self):
         self.current.kill()
         self.current = sc.Current1D(self,self.current.fig,self.current.canvas,self.masterData)
-        
-    def initUI(self):
-        self.multiDActions = []
-        #the edit drop down menu
-        self.editmenu = QtGui.QMenu("Edit",self)
-        self.menubar.addMenu(self.editmenu)
-        self.undoAction = self.editmenu.addAction("Undo",self.undo,QtGui.QKeySequence.Undo)
-        self.undoAction.setShortcutContext(QtCore.Qt.WidgetShortcut)
-        self.redoAction = self.editmenu.addAction("Redo",self.redo,QtGui.QKeySequence.Redo)
-        self.redoAction.setShortcutContext(QtCore.Qt.WidgetShortcut)
-        self.editmenu.addAction("Reload", self.reloadLast,QtGui.QKeySequence.Refresh)
-
-	#the tool drop down menu
-        self.toolMenu = QtGui.QMenu("Tools",self)
-        self.menubar.addMenu(self.toolMenu)
-        self.toolMenu.addAction("Real", self.real)
-        self.toolMenu.addAction("Imag", self.imag)
-        self.toolMenu.addAction("Abs", self.abs) 
-        self.toolMenu.addAction("Apodize", self.createApodWindow)
-        self.toolMenu.addAction("Phasing", self.createPhaseWindow)
-        self.toolMenu.addAction("Swap Echo", self.createSwapEchoWindow)
-        self.toolMenu.addAction("Offset correction", self.createDCWindow)
-        self.toolMenu.addAction("Baseline correction", self.createBaselineWindow)
-        self.toolMenu.addAction("States", self.states)
-        self.toolMenu.addAction("States-TPPI", self.statesTPPI)
-        self.toolMenu.addAction("Correct Bruker digital filter", self.BrukerDigital)
-
-        #the matrix drop down menu
-        self.matrixMenu = QtGui.QMenu("Matrix",self)
-        self.menubar.addMenu(self.matrixMenu)
-        self.matrixMenu.addAction("Sizing", self.createSizeWindow)
-        self.matrixMenu.addAction("Shift Data", self.createShiftDataWindow)
-        self.matrixMenu.addAction("Integrate", self.createIntegrateWindow)
-        self.matrixMenu.addAction("Sum", self.createSumWindow)
-        self.matrixMenu.addAction("Max", self.createMaxWindow)
-        self.matrixMenu.addAction("Min", self.createMinWindow)
-        self.matrixMenu.addAction("Max position", self.createArgMaxWindow)
-        self.matrixMenu.addAction("Min position", self.createArgMinWindow)
-        self.matrixMenu.addAction("Diff", self.diff)
-        self.matrixMenu.addAction("Cumsum", self.cumsum)
-        self.matrixMenu.addAction("Extract part", self.createRegionWindow)
-        self.matrixMenu.addAction("Flip L/R", self.flipLR)
-        self.matrixMenu.addAction("Delete", self.createDeleteWindow)
-        self.matrixMenu.addAction("Split", self.createSplitWindow)
-        self.matrixMenu.addAction("Multiply", self.createMultiplyWindow)
-        self.multiDActions.append(self.matrixMenu.addAction("Concatenate", self.createConcatenateWindow))
-        self.multiDActions.append(self.matrixMenu.addAction("Shearing", self.createShearingWindow))
-        
-        #the fft drop down menu
-        self.fftMenu = QtGui.QMenu("Fourier",self)
-        self.menubar.addMenu(self.fftMenu)
-        self.fftMenu.addAction("Fourier transform", self.fourier, QtCore.Qt.CTRL + QtCore.Qt.Key_F)
-        self.fftMenu.addAction("Real Fourier transform", self.realFourier)
-        self.fftMenu.addAction("Fftshift", self.fftshift)
-        self.fftMenu.addAction("Inv fftshift", self.invFftshift)
-        self.fftMenu.addAction("Hilbert transform", self.hilbert)
-
-	#the fitting drop down menu
-        self.fittingMenu = QtGui.QMenu("Fitting",self)
-        self.menubar.addMenu(self.fittingMenu)
-        self.fittingMenu.addAction("S/N", self.createSNWindow)
-        self.fittingMenu.addAction("FWHM", self.createFWHMWindow)
-        self.fittingMenu.addAction("Integrals", self.createIntegralsWindow)
-        self.fittingMenu.addAction("Relaxation Curve", self.createRelaxWindow)
-        self.fittingMenu.addAction("Diffusion Curve", self.createDiffusionWindow)
-        self.fittingMenu.addAction("Peak Deconvolution", self.createPeakDeconvWindow)
-        self.fittingMenu.addAction("CSA tensor", self.createTensorDeconvWindow)
-        self.fittingMenu.addAction("First order quadrupole", self.createQuad1DeconvWindow)
-        self.fittingMenu.addAction("Second order quadrupole static", self.createQuad2StaticDeconvWindow)
-        self.fittingMenu.addAction("Second order quadrupole MAS", self.createQuad2MASDeconvWindow)
-        self.fittingMenu.addAction("Czjzek static", self.createQuad2StaticCzjzekWindow)
-        self.fittingMenu.addAction("Czjzek MAS", self.createQuad2MASCzjzekWindow)
-        
-        #the combine drop down menu
-        self.combineMenu = QtGui.QMenu("Combine",self)
-        self.menubar.addMenu(self.combineMenu)
-        self.combineMenu.addAction("Insert from workspace", self.createInsertWindow)
-        self.combineMenu.addAction("Add", self.createAddWindow)
-        self.combineMenu.addAction("Subtract", self.createSubtractWindow)
-
-	#the plot drop down menu
-        self.plotMenu = QtGui.QMenu("Plot",self)
-        self.menubar.addMenu(self.plotMenu)
-        self.plotMenu.addAction("1D plot", self.plot1D)
-        self.plotMenu.addAction("Scatter plot", self.plotScatter)
-        self.multiDActions.append(self.plotMenu.addAction("Stack plot", self.plotStack))
-        self.multiDActions.append(self.plotMenu.addAction("Array plot", self.plotArray))
-        self.multiDActions.append(self.plotMenu.addAction("Contour plot", self.plotContour))
-        self.multiDActions.append(self.plotMenu.addAction("Skewed plot", self.plotSkewed))
-        self.plotMenu.addAction("Set reference", self.createRefWindow)
-        self.plotMenu.addAction("User x-axis", self.createXaxWindow)
-        self.show()
-        self.menuCheck()
 
     def addToView(self):
-        self.editmenu.menuAction().setVisible(True)
-        self.matrixMenu.menuAction().setVisible(True)
-        self.plotMenu.menuAction().setVisible(True)
-        self.toolMenu.menuAction().setVisible(True)
-        self.fftMenu.menuAction().setVisible(True)
-        self.fittingMenu.menuAction().setVisible(True)
-        self.combineMenu.menuAction().setVisible(True)
         self.show()
         self.menuCheck()
         
     def removeFromView(self):
-        self.editmenu.menuAction().setVisible(False)
-        self.matrixMenu.menuAction().setVisible(False)
-        self.plotMenu.menuAction().setVisible(False)
-        self.toolMenu.menuAction().setVisible(False)
-        self.fftMenu.menuAction().setVisible(False)
-        self.fittingMenu.menuAction().setVisible(False)
-        self.combineMenu.menuAction().setVisible(False)
         self.hide()
 
     def menuEnable(self):
-        self.mainProgram.filemenu.menuAction().setEnabled(True)
-        self.mainProgram.workspacemenu.menuAction().setEnabled(True)
-        self.mainProgram.macromenu.menuAction().setEnabled(True)
-        self.editmenu.menuAction().setEnabled(True)
-        self.matrixMenu.menuAction().setEnabled(True)
-        self.plotMenu.menuAction().setEnabled(True)
-        self.toolMenu.menuAction().setEnabled(True)
-        self.fftMenu.menuAction().setEnabled(True)
-        self.fittingMenu.menuAction().setEnabled(True)
-        self.combineMenu.menuAction().setEnabled(True)
+        self.father.menuEnable()
         self.sideframe.frameEnable()
         self.bottomframe.frameEnable()
         self.textframe.frameEnable()
         self.menuCheck()
 
     def menuDisable(self):
-        self.mainProgram.filemenu.menuAction().setEnabled(False)
-        self.mainProgram.workspacemenu.menuAction().setEnabled(False)
-        self.mainProgram.macromenu.menuAction().setEnabled(False)
-        self.editmenu.menuAction().setEnabled(False)
-        self.matrixMenu.menuAction().setEnabled(False)
-        self.plotMenu.menuAction().setEnabled(False)
-        self.toolMenu.menuAction().setEnabled(False)
-        self.fftMenu.menuAction().setEnabled(False)
-        self.fittingMenu.menuAction().setEnabled(False)
-        self.combineMenu.menuAction().setEnabled(False)
+        self.father.menuDisable()
         self.sideframe.frameDisable()
         self.bottomframe.frameDisable()
         self.textframe.frameDisable()
 
     def menuCheck(self):
         if (len(self.masterData.data.shape) < 2):
-            for i in self.multiDActions:
+            for i in self.father.multiDActions:
                 i.setEnabled(False)
         else:
-            for i in self.multiDActions:
+            for i in self.father.multiDActions:
                 i.setEnabled(True)
         if not self.undoList:
-            self.undoAction.setEnabled(False)
+            self.father.undoAction.setEnabled(False)
         else:
-            self.undoAction.setEnabled(True)
+            self.father.undoAction.setEnabled(True)
         if not self.redoList:
-            self.redoAction.setEnabled(False)
+            self.father.redoAction.setEnabled(False)
         else:
-            self.redoAction.setEnabled(True)
+            self.father.redoAction.setEnabled(True)
 
     def runMacro(self,macro):
         self.redoList = []
@@ -1890,7 +1919,7 @@ class BottomFrame(QtGui.QWidget):
             self.wholeEcho.setCheckState(QtCore.Qt.Unchecked)
 
     def setWholeEcho(self, inp):
-        self.father.undoList.append(self.father.current.setWholeEcho(inp/2))
+        self.father.undoList.append(self.father.current.setWholeEcho(inp))
         self.father.menuCheck()
 
     def changeSpec(self):
