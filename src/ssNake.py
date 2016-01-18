@@ -1122,7 +1122,8 @@ class Main1DWindow(QtGui.QWidget):
 
     def saveJSONFile(self):
         import json
-        name = QtGui.QFileDialog.getSaveFileName(self, 'Save File',self.father.LastLocation,'JSON (*.json)')
+        WorkspaceName = self.mainProgram.workspaceNames[self.mainProgram.workspaceNum] #Set name of file to be saved to workspace name to start
+        name = QtGui.QFileDialog.getSaveFileName(self, 'Save File',self.father.LastLocation+os.path.sep+WorkspaceName,'JSON (*.json)')
         if not name:
             return
         if not name.lower().endswith('.json'):
@@ -1145,7 +1146,8 @@ class Main1DWindow(QtGui.QWidget):
 
     def saveMatlabFile(self):
         import scipy.io
-        name = QtGui.QFileDialog.getSaveFileName(self, 'Save File',self.father.LastLocation,'MATLAB file (*.mat)')
+        WorkspaceName = self.mainProgram.workspaceNames[self.mainProgram.workspaceNum]#Set name of file to be saved to workspace name to start
+        name = QtGui.QFileDialog.getSaveFileName(self, 'Save File',self.father.LastLocation+os.path.sep+WorkspaceName,'MATLAB file (*.mat)')
         if not name:
             return
         self.father.LastLocation = os.path.dirname(name) #Save used path
@@ -1165,14 +1167,15 @@ class Main1DWindow(QtGui.QWidget):
         if self.masterData.dim   > 2:
             print('Saving to Simpson format only allowed for 1D and 2D data!')
             return
+        WorkspaceName = self.mainProgram.workspaceNames[self.mainProgram.workspaceNum]#Set name of file to be saved to workspace name to start
         if sum(self.masterData.spec)/len(self.masterData.spec)==1:
-            name = QtGui.QFileDialog.getSaveFileName(self, 'Save File',self.father.LastLocation,'SIMPSON file (*.spe)')
+            name = QtGui.QFileDialog.getSaveFileName(self, 'Save File',self.father.LastLocation+os.path.sep+WorkspaceName,'SIMPSON file (*.spe)')
         elif sum(self.masterData.spec) == 0: 
-            name = QtGui.QFileDialog.getSaveFileName(self, 'Save File',self.father.LastLocation,'SIMPSON file (*.fid)')
+            name = QtGui.QFileDialog.getSaveFileName(self, 'Save File',self.father.LastLocation+os.path.sep+WorkspaceName,'SIMPSON file (*.fid)')
         if not name: #of no path
             return
         self.father.LastLocation = os.path.dirname(name) #Save used path
-        with open(name) as f: 
+        with open(name,'w') as f: 
             f.write('SIMP\n')
             if self.masterData.dim  is 2:
                 f.write('NP='+str(self.masterData.data.shape[1])+'\n')
