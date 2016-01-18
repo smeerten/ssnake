@@ -1793,6 +1793,9 @@ class DiffusionParamFrame(QtGui.QWidget):
         numExp = self.numExp.currentIndex()+1
         outCoeff = np.zeros(numExp)
         outD = np.zeros(numExp)
+        gamma = float(self.gammaEntry.text())
+        delta = float(self.deltaEntry.text())
+        triangle = float(self.triangleEntry.text())
         if not self.ampTick.isChecked():
             guess.append(float(self.ampEntry.text()))
             struc.append(True)
@@ -1822,7 +1825,7 @@ class DiffusionParamFrame(QtGui.QWidget):
                 outD[i] = safeEval(self.dEntries[i].text())
                 argu.append(outD[i])
                 struc.append(False)
-        self.args=(numExp,struc,argu)
+        self.args=(numExp,struc,argu, gamma, delta, triangle)
         fullData = self.parent.current.data.data
         axes = self.parent.current.axes
         dataShape = fullData.shape
