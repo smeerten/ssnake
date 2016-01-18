@@ -54,6 +54,13 @@ class MainProgram(QtGui.QMainWindow):
         self.logo = QtGui.QLabel(self)
         self.logo.setPixmap(QtGui.QPixmap(os.path.dirname(os.path.realpath(__file__)) + "/logo.gif"))
         self.mainFrame.addWidget(self.logo,0,0,QtCore.Qt.AlignCenter)
+        self.tabs = QtGui.QTabWidget(self)
+        self.allowChange = True
+        self.tabs.setTabsClosable(True)
+        self.tabs.currentChanged.connect(self.changeMainWindow)
+        self.tabs.tabCloseRequested.connect(self.destroyWorkspace)
+        self.mainFrame.addWidget(self.tabs,0,0)
+        self.tabs.hide()
         self.main_widget.setFocus()
         self.setCentralWidget(self.main_widget)
         self.eventFilter = MyEventFilter(self)
@@ -223,6 +230,7 @@ class MainProgram(QtGui.QMainWindow):
             self.combineMenu.menuAction().setVisible(True)
             self.plotMenu.menuAction().setVisible(True)
             if isinstance(self.mainWindow, Main1DWindow):
+                self.menuEnable()
                 self.savemenu.menuAction().setEnabled(True)
                 self.savefigAct.setEnabled(True)
                 self.macromenu.menuAction().setEnabled(True)
@@ -235,13 +243,15 @@ class MainProgram(QtGui.QMainWindow):
                 self.savemenu.menuAction().setEnabled(True)
                 self.workspacemenu.menuAction().setEnabled(True)
             elif isinstance(self.mainWindow, fit.MainPlotWindow):
+                self.menuDisable(True)
                 self.savemenu.menuAction().setEnabled(True)
                 self.savefigAct.setEnabled(False)
                 self.workspacemenu.menuAction().setEnabled(True)
                 self.macromenu.menuAction().setEnabled(False)
             else:
+                self.menuDisable(True)
                 self.savemenu.menuAction().setEnabled(True)
-                self.savefigAct.setEnabled(True)
+                self.savefigAct.setEnabled(False)
                 self.workspacemenu.menuAction().setEnabled(True)
                 self.macromenu.menuAction().setEnabled(False)
 
@@ -264,6 +274,8 @@ class MainProgram(QtGui.QMainWindow):
             self.closeAct.setEnabled(True)
             self.forwardAct.setEnabled(True)
             self.backAct.setEnabled(True)
+            for i in range(self.tabs.count()):
+                self.tabs.setTabEnabled(i,True)
         self.undoAction.setEnabled(True)
         self.redoAction.setEnabled(True)
         
@@ -286,6 +298,9 @@ class MainProgram(QtGui.QMainWindow):
             self.closeAct.setEnabled(False)
             self.forwardAct.setEnabled(False)
             self.backAct.setEnabled(False)
+            for i in range(self.tabs.count()):
+                if i != self.workspaceNum:
+                    self.tabs.setTabEnabled(i,False)
         self.undoAction.setEnabled(False)
         self.redoAction.setEnabled(False)
             
@@ -433,24 +448,26 @@ class MainProgram(QtGui.QMainWindow):
         self.menuCheck()
 
     def changeMainWindow(self, var):
+        if not self.allowChange:
+            return
         self.logo.hide()
-        if self.mainWindow is not None:
-            self.mainWindow.removeFromView()
-        num = self.workspaceNames.index(var)
+        self.tabs.show()
+        if isinstance(var,int):
+            num = var
+        else:
+            num = self.workspaceNames.index(var)
         self.workspaceNum = num
         self.mainWindow = self.workspaces[num]
-        self.mainWindow.addToView()
+        self.tabs.setCurrentIndex(num)
         self.updWorkspaceMenu(var)
         self.menuCheck()
         
     def stepWorkspace(self, step):
         if len(self.workspaces) > 1:
-            if self.mainWindow is not None:
-                self.mainWindow.removeFromView()
             self.workspaceNum += step
             self.workspaceNum = self.workspaceNum % len(self.workspaces)
             self.mainWindow = self.workspaces[self.workspaceNum]
-            self.mainWindow.addToView()
+            self.tabs.setCurrentIndex(self.workspaceNum)
             self.updWorkspaceMenu(self.workspaceNames[self.workspaceNum])
             self.menuCheck()
 
@@ -459,8 +476,7 @@ class MainProgram(QtGui.QMainWindow):
         if name is None:
             return
         self.workspaces.append(Main1DWindow(self,copy.deepcopy(self.mainWindow.get_masterData()),self.mainWindow.get_current(),name=name))
-        self.mainFrame.addWidget(self.workspaces[-1])
-        self.mainWindow.removeFromView()
+        self.tabs.addTab(self.workspaces[-1],name)
         self.workspaceNames.append(name)
         self.changeMainWindow(name)
 
@@ -469,25 +485,34 @@ class MainProgram(QtGui.QMainWindow):
         if name is None:
             return
         self.workspaceNames[self.workspaceNum] = name
+        self.tabs.setTabText(self.workspaceNum,name)
         self.updWorkspaceMenu(name)
         self.workspaces[self.workspaceNum].rename(name)
 
-    def destroyWorkspace(self, *args):
+    def destroyWorkspace(self, num=None):
         if self.mainWindow is None:
             return
-        self.mainWindow.removeFromView()
-        self.mainFrame.removeWidget(self.mainWindow)
-        self.mainWindow.kill()
-        self.mainWindow = None
-        del self.workspaceNames[self.workspaceNum]
-        del self.workspaces[self.workspaceNum]
-        if self.workspaceNum == len(self.workspaces):
-            self.workspaceNum = 0
-        if len(self.workspaces) > 0:
-            self.changeMainWindow(self.workspaceNames[self.workspaceNum])
+        if num == None:
+            num = self.workspaceNum
+        self.allowChange = False
+        self.tabs.removeTab(num)
+        self.allowChange = True
+        if num == self.workspaceNum:
+            self.mainWindow.kill()
+            self.mainWindow = None
         else:
-            self.logo.show()
-            self.updWorkspaceMenu(None)
+            self.workspaces[num].kill()
+        del self.workspaceNames[num]
+        del self.workspaces[num]
+        if num == self.workspaceNum:
+            if self.workspaceNum == len(self.workspaces):
+                self.workspaceNum = 0
+            if len(self.workspaces) > 0:
+                self.changeMainWindow(self.workspaceNames[num])
+            else:
+                self.logo.show()
+                self.tabs.hide()
+                self.updWorkspaceMenu(None)
 
     def updWorkspaceMenu(self,var):
         self.activemenu.clear()
@@ -541,7 +566,7 @@ class MainProgram(QtGui.QMainWindow):
         masterData=sc.Spectrum(data,lambda self :self.dataFromFit(data, freq , sw , spec, wholeEcho, ref, xaxArray), freq , sw , spec, wholeEcho, ref, xaxArray)
         masterData.resetXax(axes)
         self.workspaces.append(Main1DWindow(self,masterData,name=name))
-        self.mainFrame.addWidget(self.workspaces[-1])
+        self.tabs.addWidget(self.workspaces[-1],name)
         self.workspaceNames.append(name)
         self.changeMainWindow(name)
 
@@ -565,7 +590,7 @@ class MainProgram(QtGui.QMainWindow):
             masterData = self.loadMatlabFile(filePath)
         if masterData is not None:
             self.workspaces.append(Main1DWindow(self,masterData,name=name))
-            self.mainFrame.addWidget(self.workspaces[-1])
+            self.tabs.addTab(self.workspaces[-1],name)
             self.workspaceNames.append(name)
             self.changeMainWindow(name)
 
@@ -887,46 +912,56 @@ class MainProgram(QtGui.QMainWindow):
     def saveFigure(self):
         if self.mainWindow is None:
             return
+        self.allowChange = False
         self.menuDisable(True)
-        self.mainWindow.removeFromView()
         num = self.workspaces.index(self.mainWindow)
         self.mainWindow = fit.MainPlotWindow(self,self.mainWindow)
-        self.mainFrame.addWidget(self.mainWindow)
+        self.tabs.removeTab(num)
+        self.tabs.insertTab(num,self.mainWindow,self.workspaceNames[num])
         self.workspaces[num] = self.mainWindow
-        self.mainWindow.addToView()
+        self.tabs.setCurrentIndex(num)
         self.menuCheck()
+        self.allowChange = True
 
     def closeSaveFigure(self, mainWindow):
-        self.mainWindow.removeFromView()
+        self.allowChange = False
         num = self.workspaces.index(self.mainWindow)
+        self.tabs.removeTab(num)
         self.mainWindow = mainWindow
         self.workspaces[num] = self.mainWindow
-        self.mainWindow.addToView()
+        self.tabs.insertTab(num,self.mainWindow,self.workspaceNames[num])
+        self.tabs.setCurrentIndex(num)
         self.menuEnable(True)
+        self.tabs.setCurrentIndex(num)
         self.menuCheck()
+        self.allowChange = True
 
     def createFitWindow(self,fitWindow):
         if self.mainWindow is None:
             return
+        self.allowChange = False
         self.menuDisable(True)
-        self.mainWindow.removeFromView()
         num = self.workspaces.index(self.mainWindow)
+        self.tabs.removeTab(num)
         self.mainWindow = fitWindow
-        self.mainFrame.addWidget(self.mainWindow)
+        self.tabs.insertTab(num,self.mainWindow,self.workspaceNames[num])
         self.workspaces[num] = self.mainWindow
-        self.mainWindow.addToView()
+        self.tabs.setCurrentIndex(num)
         self.menuCheck()
+        self.allowChange = True
         
     def closeFitWindow(self, mainWindow):
-        self.mainWindow.removeFromView()
-        self.mainFrame.removeWidget(self.mainWindow)
+        self.allowChange = False
         num = self.workspaces.index(self.mainWindow)
+        self.tabs.removeTab(num)
         del self.mainWindow
         self.mainWindow = mainWindow
         self.workspaces[num] = self.mainWindow
-        self.mainWindow.addToView()
+        self.tabs.insertTab(num,self.mainWindow,self.workspaceNames[num])
         self.menuEnable(True)
+        self.tabs.setCurrentIndex(num)
         self.menuCheck()
+        self.allowChange = True
         
     def fileQuit(self):
         self.close()
@@ -1020,13 +1055,6 @@ class Main1DWindow(QtGui.QWidget):
     def rescue(self):
         self.current.kill()
         self.current = sc.Current1D(self,self.current.fig,self.current.canvas,self.masterData)
-
-    def addToView(self):
-        self.show()
-        self.menuCheck()
-        
-    def removeFromView(self):
-        self.hide()
 
     def menuEnable(self):
         self.father.menuEnable()

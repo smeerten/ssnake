@@ -82,12 +82,6 @@ class IntegralsWindow(QtGui.QWidget):
     def get_current(self):
         return self.oldMainWindow.get_current()
         
-    def addToView(self):
-        self.show()
-
-    def removeFromView(self):
-        self.hide()
-
     def kill(self):
         for i in reversed(range(self.grid.count())): 
             self.grid.itemAt(i).widget().deleteLater()
@@ -530,12 +524,6 @@ class RelaxWindow(QtGui.QWidget):
     
     def get_current(self):
         return self.oldMainWindow.get_current()
-    
-    def addToView(self):
-        self.show()
-
-    def removeFromView(self):
-        self.hide()
 
     def kill(self):
         for i in reversed(range(self.grid.count())): 
@@ -1219,12 +1207,6 @@ class DiffusionWindow(QtGui.QWidget):
     
     def get_current(self):
         return self.oldMainWindow.get_current()
-    
-    def addToView(self):
-        self.show()
-
-    def removeFromView(self):
-        self.hide()
         
     def kill(self):
         for i in reversed(range(self.grid.count())): 
@@ -1952,12 +1934,6 @@ class PeakDeconvWindow(QtGui.QWidget):
     def get_current(self):
         return self.oldMainWindow.get_current()
         
-    def addToView(self):
-        self.show()
-
-    def removeFromView(self):
-        self.hide()
-        
     def kill(self):
         for i in reversed(range(self.grid.count())): 
             self.grid.itemAt(i).widget().deleteLater()
@@ -2643,12 +2619,6 @@ class TensorDeconvWindow(QtGui.QWidget):
     
     def get_current(self):
         return self.oldMainWindow.get_current()
-        
-    def addToView(self):
-        self.show()
-
-    def removeFromView(self):
-        self.hide()
         
     def kill(self):
         for i in reversed(range(self.grid.count())): 
@@ -3458,12 +3428,6 @@ class Quad1DeconvWindow(QtGui.QWidget):
     def get_current(self):
         return self.oldMainWindow.get_current()
         
-    def addToView(self):
-        self.show()
-
-    def removeFromView(self):
-        self.hide()
-        
     def kill(self):
         for i in reversed(range(self.grid.count())): 
             self.grid.itemAt(i).widget().deleteLater()
@@ -4243,12 +4207,6 @@ class Quad2DeconvWindow(QtGui.QWidget):
     def get_current(self):
         return self.oldMainWindow.get_current()
         
-    def addToView(self):
-        self.show()
-
-    def removeFromView(self):
-        self.hide()
-        
     def kill(self):
         for i in reversed(range(self.grid.count())): 
             self.grid.itemAt(i).widget().deleteLater()
@@ -4374,12 +4332,6 @@ class Quad2CzjzekWindow(QtGui.QWidget):
     
     def get_current(self):
         return self.oldMainWindow.get_current()
-        
-    def addToView(self):
-        self.show()
-
-    def removeFromView(self):
-        self.hide()
         
     def kill(self):
         for i in reversed(range(self.grid.count())): 
@@ -5176,12 +5128,6 @@ class MainPlotWindow(QtGui.QWidget):
     
     def get_current(self):
         return self.oldMainWindow.get_current()
-        
-    def addToView(self):
-        self.show()
-
-    def removeFromView(self):
-        self.hide()
 
     def kill(self):
         for i in reversed(range(self.grid.count())): 
