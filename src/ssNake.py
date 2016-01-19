@@ -205,7 +205,17 @@ class MainProgram(QtGui.QMainWindow):
     def dropEvent(self, event):
         for url in event.mimeData().urls():
             path = url.toLocalFile()
-            self.autoLoad(path)
+            if path.endswith('.zip'):
+                import tempfile, shutil, zipfile
+                try:
+                    temp_dir = tempfile.mkdtemp()
+                    zipfile.ZipFile(path).extractall(temp_dir)
+                    for i in os.listdir(temp_dir):
+                        self.autoLoad(os.path.join(temp_dir,i))
+                finally:
+                    shutil.rmtree(temp_dir)
+            else:
+                self.autoLoad(path)
             if path != '': #if not cancelled
                 self.LastLocation = os.path.dirname(path) #Save used path
    
@@ -527,7 +537,17 @@ class MainProgram(QtGui.QMainWindow):
             self.LastLocation = os.path.dirname(filePath) #Save used path
         if len(filePath)==0:
             return
-        self.autoLoad(filePath)
+        if filePath.endswith('.zip'):
+            import tempfile, shutil, zipfile
+            try:
+                temp_dir = tempfile.mkdtemp()
+                zipfile.ZipFile(filePath).extractall(temp_dir)
+                for i in os.listdir(temp_dir):
+                    self.autoLoad(os.path.join(temp_dir,i))
+            finally:
+                shutil.rmtree(temp_dir)
+        else:
+            self.autoLoad(filePath)
         
     def autoLoad(self,filePath):
         if os.path.isfile(filePath):
