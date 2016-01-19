@@ -505,14 +505,15 @@ class MainProgram(QtGui.QMainWindow):
         del self.workspaceNames[num]
         del self.workspaces[num]
         if num == self.workspaceNum:
-            if self.workspaceNum == len(self.workspaces):
-                self.workspaceNum = 0
-            if len(self.workspaces) > 0:
-                self.changeMainWindow(self.workspaceNames[num])
-            else:
-                self.logo.show()
-                self.tabs.hide()
-                self.updWorkspaceMenu(None)
+            self.workspaceNum = 0
+        if num < self.workspaceNum:
+            self.workspaceNum -= 1
+        if len(self.workspaces) > 0:
+            self.changeMainWindow(self.workspaceNames[self.workspaceNum])
+        else:
+            self.logo.show()
+            self.tabs.hide()
+            self.updWorkspaceMenu(None)
 
     def updWorkspaceMenu(self,var):
         self.activemenu.clear()
