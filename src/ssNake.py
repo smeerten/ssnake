@@ -709,11 +709,14 @@ class MainProgram(QtGui.QMainWindow):
             var = [k for k in matlabStruct.keys() if not k.startswith('__')][0]
             mat = matlabStruct[var]
             if mat['dim']==1:
-                xaxA = [k[0] for k in (mat['xaxArray'][0])]
                 data = mat['data'][0,0][0]
+                xaxA = [k[0] for k in (mat['xaxArray'][0])]
             else:
-                xaxA = [k[0] for k in (mat['xaxArray'][0,0][0])]
                 data = mat['data'][0,0]
+                if all(x==data.shape[0] for x in data.shape):
+                    xaxA = [k for k in (mat['xaxArray'][0,0])]
+                else:
+                    xaxA = [k[0] for k in (mat['xaxArray'][0,0][0])]
             #insert some checks for data type
             ref = mat['ref'][0,0][0]
             ref = np.where(np.isnan(ref), None, ref)
@@ -732,9 +735,12 @@ class MainProgram(QtGui.QMainWindow):
                 data = np.array(mat['data'])
                 data = (data['real']+data['imag']*1j)[:,0] #split and use real and imag part
             else:
-                xaxA = [np.array(mat[k[0]]) for k in (mat['xaxArray'])]
                 data = np.transpose(np.array(mat['data']))
                 data = data['real']+data['imag']*1j
+                if all(x==data.shape[0] for x in data.shape):
+                    xaxA = [np.array(mat[k]) for k in (mat['xaxArray'])]
+                else:
+                    xaxA = [np.array(mat[k[0]]) for k in (mat['xaxArray'])]
             ref = np.array(mat['ref'])[:,0]
             ref = np.where(np.isnan(ref), None, ref)
             masterData=sc.Spectrum(data,lambda self :self.loadMatlabFile(filePath),list(np.array(mat['freq'])[:,0]),list(np.array(mat['sw'])[:,0]),list(np.array(mat['spec'])[:,0]),list(np.array(mat['wholeEcho'])[:,0]>0),list(ref),xaxA)
