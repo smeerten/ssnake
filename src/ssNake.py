@@ -794,12 +794,12 @@ class MainProgram(QtGui.QMainWindow):
                         sizeTD1 = sizeTD1*int(H[s])
             else:
                 if 'al2' in H:
-                    sizeTD1 = int(H['al2'])
+                    sizeTD1 = int(float(H['al2']))
                     if 'dw2' in H:
                         sw1 = 1/float(H['dw2'][:-1])
         else:
             if 'al2' in H:
-                sizeTD1 = int(H['al2'])
+                sizeTD1 = int(float(H['al2']))
                 if 'dw2' in H:
                     sw1 = 1/float(H['dw2'][:-1])        
         with open(Dir+os.path.sep+'data','rb') as f:
