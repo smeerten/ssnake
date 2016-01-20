@@ -211,7 +211,8 @@ class MainProgram(QtGui.QMainWindow):
                     temp_dir = tempfile.mkdtemp()
                     zipfile.ZipFile(path).extractall(temp_dir)
                     for i in os.listdir(temp_dir):
-                        self.autoLoad(os.path.join(temp_dir,i))
+                        if self.autoLoad(os.path.join(temp_dir,i)):
+                            break
                 finally:
                     shutil.rmtree(temp_dir)
             else:
@@ -532,54 +533,58 @@ class MainProgram(QtGui.QMainWindow):
         self.menuCheck()
 
     def loadFromMenu(self):
-        filePath = str(QtGui.QFileDialog.getOpenFileName(self,'Open File',self.LastLocation))
-        if filePath: #if not cancelled
-            self.LastLocation = os.path.dirname(filePath) #Save used path
-        if len(filePath)==0:
-            return
-        if filePath.endswith('.zip'):
-            import tempfile, shutil, zipfile
-            try:
-                temp_dir = tempfile.mkdtemp()
-                zipfile.ZipFile(filePath).extractall(temp_dir)
-                for i in os.listdir(temp_dir):
-                    self.autoLoad(os.path.join(temp_dir,i))
-            finally:
-                shutil.rmtree(temp_dir)
-        else:
-            self.autoLoad(filePath)
+        fileList = QtGui.QFileDialog.getOpenFileNames(self,'Open File',self.LastLocation)
+        for filePath in fileList:
+            if filePath: #if not cancelled
+                self.LastLocation = os.path.dirname(filePath) #Save used path
+            if len(filePath)==0:
+                return
+            if filePath.endswith('.zip'):
+                import tempfile, shutil, zipfile
+                try:
+                    temp_dir = tempfile.mkdtemp()
+                    zipfile.ZipFile(filePath).extractall(temp_dir)
+                    for i in os.listdir(temp_dir):
+                        if self.autoLoad(os.path.join(temp_dir,i)):
+                            break
+                finally:
+                    shutil.rmtree(temp_dir)
+            else:
+                self.autoLoad(filePath)
         
     def autoLoad(self,filePath):
+        returnVal =  0
         if os.path.isfile(filePath):
             filename = os.path.basename(filePath)
             if filename.endswith('.fid') or filename.endswith('.spe'): 
                 self.loading(4,filePath)
-                return
+                return returnVal
             elif filename.endswith('.json') or filename.endswith('.JSON'):
                 self.loading(5,filePath)
-                return
+                return returnVal
             elif filename.endswith('.mat') or filename.endswith('.MAT'):
                 self.loading(6,filePath)
-                return
+                return returnVal
             filePath = os.path.dirname(filePath)
+            returnVal = 1
         direc = filePath
         if os.path.exists(direc+os.path.sep+'procpar') and os.path.exists(direc+os.path.sep+'fid'):
             self.loading(0,filePath)
-            return
+            return returnVal
         elif os.path.exists(direc+os.path.sep+'acqus') and (os.path.exists(direc+os.path.sep+'fid') or os.path.exists(direc+os.path.sep+'ser')):
             self.loading(1,filePath)
-            return
+            return returnVal
         elif os.path.exists(direc+os.path.sep+'acq') and os.path.exists(direc+os.path.sep+'data'):
             self.loading(2,filePath)
-            return
+            return returnVal
         elif os.path.exists(direc+os.path.sep+'acqu.par'):
             dirFiles = os.listdir(direc)
             files2D = [x for x in dirFiles if '.2d' in x]
             files1D = [x for x in dirFiles if '.1d' in x]
             if len(files2D)!=0 or len(files1D)!=0:
                 self.loading(3,filePath)
-                return
-
+                return returnVal
+        
     def dataFromFit(self, data, freq , sw , spec, wholeEcho, ref, xaxArray,axes):
         name = self.askName()
         if name is None:
