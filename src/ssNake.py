@@ -242,6 +242,20 @@ class MainProgram(QtGui.QMainWindow):
             self.plotMenu.menuAction().setVisible(True)
             if isinstance(self.mainWindow, Main1DWindow):
                 self.menuEnable()
+                if (len(self.mainWindow.masterData.data.shape) < 2):
+                    for i in self.multiDActions:
+                        i.setEnabled(False)
+                else:
+                    for i in self.multiDActions:
+                        i.setEnabled(True)
+                if not self.mainWindow.undoList:
+                    self.undoAction.setEnabled(False)
+                else:
+                    self.undoAction.setEnabled(True)
+                if not self.mainWindow.redoList:
+                    self.redoAction.setEnabled(False)
+                else:
+                    self.redoAction.setEnabled(True)
                 self.savemenu.menuAction().setEnabled(True)
                 self.savefigAct.setEnabled(True)
                 self.macromenu.menuAction().setEnabled(True)
@@ -1102,20 +1116,7 @@ class Main1DWindow(QtGui.QWidget):
         self.textframe.frameDisable()
 
     def menuCheck(self):
-        if (len(self.masterData.data.shape) < 2):
-            for i in self.father.multiDActions:
-                i.setEnabled(False)
-        else:
-            for i in self.father.multiDActions:
-                i.setEnabled(True)
-        if not self.undoList:
-            self.father.undoAction.setEnabled(False)
-        else:
-            self.father.undoAction.setEnabled(True)
-        if not self.redoList:
-            self.father.redoAction.setEnabled(False)
-        else:
-            self.father.redoAction.setEnabled(True)
+        self.father.menuCheck()
 
     def runMacro(self,macro):
         self.redoList = []
@@ -1192,6 +1193,8 @@ class Main1DWindow(QtGui.QWidget):
                 self.undoList.append(self.masterData.multiply(*iter1[1]))
             elif iter1[0] == 'shear':
                 self.undoList.append(self.masterData.shear(*iter1[1]))
+            elif iter1[0] == 'extract':
+                self.undoList.append(self.masterData.getRegion(*iter1[1]))
             elif iter1[0] == 'setxax':
                 self.undoList.append(self.masterData.setXax(*iter1[1]))
             elif iter1[0] == 'hilbert':

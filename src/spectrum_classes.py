@@ -1335,6 +1335,7 @@ class Current1D(Plot1DFrame):
         self.upd()
         self.plotReset()
         self.showFid()
+        self.root.addMacro(['extract',(pos1,pos2,self.axes-self.data.dim)])
         return returnValue
     
     def shearing(self,shear,axes,axes2):
