@@ -1241,7 +1241,7 @@ class Current1D(Plot1DFrame):
         self.upd()
         self.plotReset()
         self.showFid()
-        self.root.addMacro(['concatenate',(axes-self.data.dim,)])
+        self.root.addMacro(['concatenate',(axes-self.data.dim+1,)])
         return returnValue
 
     def split(self,sections):
@@ -1249,7 +1249,7 @@ class Current1D(Plot1DFrame):
         self.upd()
         self.plotReset()
         self.showFid()
-        self.root.addMacro(['split',(sections,self.axes-self.data.dim)])
+        self.root.addMacro(['split',(sections,self.axes-self.data.dim-1)])
         return returnValue
 
     def diff(self):
