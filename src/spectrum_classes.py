@@ -24,6 +24,8 @@ from mpl_toolkits.mplot3d import proj3d
 from six import string_types
 from spectrumFrame import Plot1DFrame
 from safeEval import safeEval
+from ffm import *
+import signal
 
 #########################################################################
 #the generic data class
@@ -82,7 +84,6 @@ class Spectrum:
                 if self.ref[i] is not None:
                     self.xaxArray[i] += self.freq[i]-self.ref[i]
                     
-
     def setXax(self,xax,axes):
         axes = self.checkAxes(axes)
         if axes == None:
@@ -610,7 +611,47 @@ class Spectrum:
         if self.spec[axes] > 0:
             self.fourier(axes,tmp=True,inv=True)
         return lambda self: self.shear(-shear, axes, axes2)
+
+    def reorder(self, pos, newLength, axes):
+        axes = self.checkAxes(axes)
+        if axes == None:
+            return None
+        if newLength is None:
+            newLength = max(pos)+1
+        if (max(pos) >= newLength) or (min(pos)< 0):
+            print("Invalid positions")
+            return None
+        copyData=copy.deepcopy(self)
+        returnValue = lambda self: self.restoreData(copyData, lambda self: self.reorder(pos,newLength,axes))
+        newShape = np.array(self.data.shape)
+        newShape[axes] = newLength
+        tmpData = np.zeros(newShape,dtype=complex)
+        slicing = (slice(None),) * axes + (pos,) + (slice(None),)*(self.dim-1-axes)
+        tmpData[slicing] = self.data
+        self.data = tmpData
+        self.resetXax(axes)
+        return returnValue
     
+    def ffm_1d(self, posList, axes):
+        tmpData = np.rollaxis(self.data,axes,self.dim)
+        tmpShape = tmpData.shape
+        tmpData = tmpData.reshape((tmpData.size/shape[-1],tmpShape[-1]))
+        self.pool = multiprocessing.Pool(multiprocessing.cpu_count())
+        self.pool.map_async(fmm,[(i, posList) for i in tmpData], callback=lambda result:self.ffm_1d_finished(result,tmpShape,axes))
+        self.pool.close()
+        signal.signal(signal.SIGALRM, self.cleanUpPool)
+        signal.alarm(10)
+        #self.pool.join()
+
+    def ffm_1d_finished(self,result,shape,axes):
+        self.data = np.rollaxis(np.array(result).reshape(shape),-1,axes)
+
+    def cleanUpPool(self):
+        if multiprocessing.active_children():
+            signal.alarm(10)
+        else:
+            signal.alarm(0)
+        
     def getSlice(self,axes,locList):
         axes = self.checkAxes(axes)
         if axes == None:
@@ -1343,6 +1384,13 @@ class Current1D(Plot1DFrame):
         self.upd()
         self.showFid()
         self.root.addMacro(['shear',(shear,axes-self.data.dim,axes2-self.data.dim)])
+        return returnValue
+
+    def reorder(self, pos, newLength):
+        returnValue = self.data.reorder(pos, newLength,self.axes)
+        self.upd()
+        self.showFid()
+        self.root.addMacro(['reorder',(pos, newLength,self.axes-self.data.dim)])
         return returnValue
     
     def ACMEentropy(self,phaseIn,phaseAll=True):
