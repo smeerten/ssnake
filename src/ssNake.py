@@ -105,9 +105,9 @@ class MainProgram(QtGui.QMainWindow):
         #the edit drop down menu
         self.editmenu = QtGui.QMenu("&Edit",self)
         self.menubar.addMenu(self.editmenu)
-        self.undoAction = self.editmenu.addAction("&Undo",self.undo,QtGui.QKeySequence.Undo)
+        self.undoAction = self.editmenu.addAction(QtGui.QIcon(os.path.dirname(os.path.realpath(__file__))+os.path.sep+'Icons'+os.path.sep+'undo.png'),"&Undo",self.undo,QtGui.QKeySequence.Undo)
         self.undoAction.setShortcutContext(QtCore.Qt.WidgetShortcut)
-        self.redoAction = self.editmenu.addAction("&Redo",self.redo,QtGui.QKeySequence.Redo)
+        self.redoAction = self.editmenu.addAction(QtGui.QIcon(os.path.dirname(os.path.realpath(__file__))+os.path.sep+'Icons'+os.path.sep+'redo.png'),"&Redo",self.redo,QtGui.QKeySequence.Redo)
         self.redoAction.setShortcutContext(QtCore.Qt.WidgetShortcut)
         self.editmenu.addAction("Re&load", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.reloadLast()),QtGui.QKeySequence.Refresh)
 
@@ -118,7 +118,7 @@ class MainProgram(QtGui.QMainWindow):
         self.toolMenu.addAction(QtGui.QIcon(os.path.dirname(os.path.realpath(__file__))+os.path.sep+'Icons'+os.path.sep+'imag.png'),"&Imag", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.imag()))
         self.toolMenu.addAction(QtGui.QIcon(os.path.dirname(os.path.realpath(__file__))+os.path.sep+'Icons'+os.path.sep+'abs.png'),"&Abs", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.abs())) 
         self.toolMenu.addAction("Apo&dize", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.createApodWindow()))
-        self.toolMenu.addAction(QtGui.QIcon('Icons'+os.path.sep+'phase.png'),"&Phasing", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.createPhaseWindow()))
+        self.toolMenu.addAction(QtGui.QIcon(os.path.dirname(os.path.realpath(__file__))+os.path.sep+'Icons'+os.path.sep+'phase.png'),"&Phasing", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.createPhaseWindow()))
         self.toolMenu.addAction("Swap &Echo", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.createSwapEchoWindow()))
         self.toolMenu.addAction("&Offset correction", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.createDCWindow()))
         self.toolMenu.addAction("&Baseline correction", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.createBaselineWindow()))
