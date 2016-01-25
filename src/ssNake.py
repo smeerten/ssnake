@@ -144,6 +144,7 @@ class MainProgram(QtGui.QMainWindow):
         self.matrixMenu.addAction("De&lete", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.createDeleteWindow()))
         self.matrixMenu.addAction("S&plit", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.createSplitWindow()))
         self.matrixMenu.addAction("Mul&tiply", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.createMultiplyWindow()))
+        self.matrixMenu.addAction("&Reorder", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.createReorderWindow()))
         self.multiDActions.append(self.matrixMenu.addAction("C&oncatenate", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.createConcatenateWindow())))
         self.multiDActions.append(self.matrixMenu.addAction("Shearin&g", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.createShearingWindow())))
         
@@ -452,7 +453,6 @@ class MainProgram(QtGui.QMainWindow):
         filename = QtGui.QFileDialog.getOpenFileName(self, 'Open File',self.LastLocation)
         if filename: #if not cancelled
             self.LastLocation = os.path.dirname(filename) #Save used path
-        
         if len(filePath)==0:
             return
         count = 0
@@ -1191,6 +1191,8 @@ class Main1DWindow(QtGui.QWidget):
                 self.undoList.append(self.masterData.subtract(*iter1[1]))
             elif iter1[0] == 'multiply':
                 self.undoList.append(self.masterData.multiply(*iter1[1]))
+            elif iter1[0] == 'reorder':
+                self.undoList.append(self.masterData.reorder(*iter1[1]))
             elif iter1[0] == 'shear':
                 self.undoList.append(self.masterData.shear(*iter1[1]))
             elif iter1[0] == 'extract':
@@ -1442,6 +1444,9 @@ class Main1DWindow(QtGui.QWidget):
         
     def createSplitWindow(self):
         self.extraWindow = SplitWindow(self)
+        
+    def createReorderWindow(self):
+        self.extraWindow = ReorderWindow(self)
         
     def createConcatenateWindow(self):
         self.extraWindow = ConcatenateWindow(self)
@@ -3634,6 +3639,77 @@ class FWHMWindow(QtGui.QWidget):
         self.father.menuEnable()
         self.deleteLater()        
 
+##########################################################################################
+class ReorderWindow(QtGui.QWidget): 
+    def __init__(self, parent):
+        QtGui.QWidget.__init__(self,parent)
+        self.setWindowFlags(QtCore.Qt.Window| QtCore.Qt.Tool)
+        self.father = parent
+        self.setWindowTitle("Reorder")
+        layout = QtGui.QGridLayout(self)
+        grid = QtGui.QGridLayout()
+        layout.addLayout(grid,0,0,1,2)
+        grid.addWidget(QLabel("Positions of the spectra:"),0,0)
+        self.valEntry = QtGui.QLineEdit()
+        self.valEntry.setAlignment(QtCore.Qt.AlignHCenter)
+        self.valEntry.returnPressed.connect(self.preview)
+        grid.addWidget(self.valEntry,1,0)
+        fileButton = QtGui.QPushButton("&Browse")
+        fileButton.clicked.connect(self.getPosFromFile)
+        grid.addWidget(fileButton,2,0)
+        grid.addWidget(QLabel("Length of dimension:"),3,0)
+        self.lengthEntry = QtGui.QLineEdit()
+        self.lengthEntry.setAlignment(QtCore.Qt.AlignHCenter)
+        self.lengthEntry.returnPressed.connect(self.preview)
+        grid.addWidget(self.lengthEntry,4,0)
+        cancelButton = QtGui.QPushButton("&Cancel")
+        cancelButton.clicked.connect(self.closeEvent)
+        layout.addWidget(cancelButton,2,0)
+        okButton = QtGui.QPushButton("&Ok")
+        okButton.clicked.connect(self.applyAndClose)
+        layout.addWidget(okButton,2,1)
+        self.show()
+        self.setFixedSize(self.size())
+        self.father.menuDisable()
+        self.setGeometry(self.frameSize().width()-self.geometry().width(),self.frameSize().height()-self.geometry().height(),0,0)
+        
+    def preview(self, *args):
+        pass
+
+    def getPosFromFile(self):
+        filename = QtGui.QFileDialog.getOpenFileName(self, 'Open File',self.father.mainProgram.LastLocation)
+        if filename: #if not cancelled
+            self.father.mainProgram.LastLocation = os.path.dirname(filename) #Save used path
+        if len(filename)==0:
+            return
+        self.valEntry.setText(repr(np.loadtxt(filename)))
+    
+    def closeEvent(self, *args):
+        #self.father.current.upd()
+        #self.father.current.plotReset()
+        #self.father.current.showFid()
+        self.father.menuEnable()
+        self.deleteLater()
+
+    def applyAndClose(self):
+        newLength = safeEval(self.lengthEntry.text())
+        env = vars(np).copy()
+        env['length']=int(self.father.current.data1D.shape[-1]) # so length can be used to in equations
+        env['euro']=lambda fVal, num=int(self.father.current.data1D.shape[-1]): euro(fVal,num)
+        val=eval(self.valEntry.text(),env)                # find a better solution, also add catch for exceptions
+        if not isinstance(val,(list,np.ndarray)):
+            print("Input is not a list or array")
+            return
+        if len(val)!=self.father.current.data1D.shape[-1]:
+            print("Length of input does not match length of data")
+            return
+        val = np.array(val,dtype=int)
+        self.father.redoList = []
+        self.father.undoList.append(self.father.current.reorder(val,newLength))
+        self.father.menuEnable()
+        self.father.updAllFrames()
+        self.deleteLater()
+        
 ################################################################
 class ShearingWindow(QtGui.QWidget): 
     def __init__(self, parent):
