@@ -156,6 +156,7 @@ class MainProgram(QtGui.QMainWindow):
         self.fftMenu.addAction("Fft&shift", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.fftshift()))
         self.fftMenu.addAction("&Inv fftshift", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.invFftshift()))
         self.fftMenu.addAction("&Hilbert transform", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.hilbert()))
+        self.fftMenu.addAction("FF&M", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.createFFMWindow()))
         
 	#the fitting drop down menu
         self.fittingMenu = QtGui.QMenu("F&itting",self)
@@ -1193,6 +1194,8 @@ class Main1DWindow(QtGui.QWidget):
                 self.undoList.append(self.masterData.multiply(*iter1[1]))
             elif iter1[0] == 'reorder':
                 self.undoList.append(self.masterData.reorder(*iter1[1]))
+            elif iter1[0] == 'ffm':
+                self.undoList.append(self.masterData.ffm_1d(*iter1[1]))
             elif iter1[0] == 'shear':
                 self.undoList.append(self.masterData.shear(*iter1[1]))
             elif iter1[0] == 'extract':
@@ -1447,6 +1450,9 @@ class Main1DWindow(QtGui.QWidget):
         
     def createReorderWindow(self):
         self.extraWindow = ReorderWindow(self)
+
+    def createFFMWindow(self):
+        self.extraWindow = FFMWindow(self)
         
     def createConcatenateWindow(self):
         self.extraWindow = ConcatenateWindow(self)
@@ -3708,6 +3714,71 @@ class ReorderWindow(QtGui.QWidget):
         self.father.undoList.append(self.father.current.reorder(val,newLength))
         self.father.menuEnable()
         self.father.updAllFrames()
+        self.deleteLater()
+
+##########################################################################################
+class FFMWindow(QtGui.QWidget): 
+    def __init__(self, parent):
+        QtGui.QWidget.__init__(self,parent)
+        self.setWindowFlags(QtCore.Qt.Window| QtCore.Qt.Tool)
+        self.father = parent
+        self.setWindowTitle("FFM")
+        layout = QtGui.QGridLayout(self)
+        grid = QtGui.QGridLayout()
+        layout.addLayout(grid,0,0,1,2)
+        grid.addWidget(QLabel("Positions of the spectra:"),0,0)
+        self.valEntry = QtGui.QLineEdit()
+        self.valEntry.setAlignment(QtCore.Qt.AlignHCenter)
+        self.valEntry.returnPressed.connect(self.preview)
+        grid.addWidget(self.valEntry,1,0)
+        fileButton = QtGui.QPushButton("&Browse")
+        fileButton.clicked.connect(self.getPosFromFile)
+        grid.addWidget(fileButton,2,0)
+        self.typeDrop = QtGui.QComboBox(parent=self)
+        self.typeDrop.addItems(["Complex", "States/States-TPPI", "TPPI"])
+        grid.addWidget(self.typeDrop,3,0)
+        cancelButton = QtGui.QPushButton("&Cancel")
+        cancelButton.clicked.connect(self.closeEvent)
+        layout.addWidget(cancelButton,2,0)
+        okButton = QtGui.QPushButton("&Ok")
+        okButton.clicked.connect(self.applyAndClose)
+        layout.addWidget(okButton,2,1)
+        self.show()
+        self.setFixedSize(self.size())
+        self.father.menuDisable()
+        self.setGeometry(self.frameSize().width()-self.geometry().width(),self.frameSize().height()-self.geometry().height(),0,0)
+        
+    def preview(self, *args):
+        pass
+
+    def getPosFromFile(self):
+        filename = QtGui.QFileDialog.getOpenFileName(self, 'Open File',self.father.mainProgram.LastLocation)
+        if filename: #if not cancelled
+            self.father.mainProgram.LastLocation = os.path.dirname(filename) #Save used path
+        if len(filename)==0:
+            return
+        self.valEntry.setText(repr(np.loadtxt(filename)))
+    
+    def closeEvent(self, *args):
+        #self.father.current.upd()
+        #self.father.current.plotReset()
+        #self.father.current.showFid()
+        self.father.menuEnable()
+        self.deleteLater()
+
+    def applyAndClose(self):
+        env = vars(np).copy()
+        env['length']=int(self.father.current.data1D.shape[-1]) # so length can be used to in equations
+        env['euro']=lambda fVal, num=int(self.father.current.data1D.shape[-1]): euro(fVal,num)
+        val=eval(self.valEntry.text(),env)                # find a better solution, also add catch for exceptions
+        if not isinstance(val,(list,np.ndarray)):
+            print("Input is not a list or array")
+            return
+        val = np.array(val,dtype=int)
+        self.father.redoList = []
+        self.father.undoList.append(self.father.current.ffm(val,self.typeDrop.currentIndex(),self.closeEvent))
+        self.father.updAllFrames()
+        self.father.menuEnable()
         self.deleteLater()
         
 ################################################################
