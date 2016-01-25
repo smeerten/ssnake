@@ -109,7 +109,7 @@ class MainProgram(QtGui.QMainWindow):
         self.undoAction.setShortcutContext(QtCore.Qt.WidgetShortcut)
         self.redoAction = self.editmenu.addAction(QtGui.QIcon(os.path.dirname(os.path.realpath(__file__))+os.path.sep+'Icons'+os.path.sep+'redo.png'),"&Redo",self.redo,QtGui.QKeySequence.Redo)
         self.redoAction.setShortcutContext(QtCore.Qt.WidgetShortcut)
-        self.editmenu.addAction("Re&load", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.reloadLast()),QtGui.QKeySequence.Refresh)
+        self.editmenu.addAction(QtGui.QIcon(os.path.dirname(os.path.realpath(__file__))+os.path.sep+'Icons'+os.path.sep+'reload.png'),"Re&load", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.reloadLast()),QtGui.QKeySequence.Refresh)
 
 	#the tool drop down menu
         self.toolMenu = QtGui.QMenu("&Tools",self)
