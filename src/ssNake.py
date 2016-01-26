@@ -608,7 +608,7 @@ class MainProgram(QtGui.QMainWindow):
         masterData=sc.Spectrum(data,lambda self :self.dataFromFit(data, freq , sw , spec, wholeEcho, ref, xaxArray), freq , sw , spec, wholeEcho, ref, xaxArray)
         masterData.resetXax(axes)
         self.workspaces.append(Main1DWindow(self,masterData,name=name))
-        self.tabs.addWidget(self.workspaces[-1],name)
+        self.tabs.addTab(self.workspaces[-1],name)
         self.workspaceNames.append(name)
         self.changeMainWindow(name)
 
@@ -3689,7 +3689,7 @@ class ReorderWindow(QtGui.QWidget):
             self.father.mainProgram.LastLocation = os.path.dirname(filename) #Save used path
         if len(filename)==0:
             return
-        self.valEntry.setText(repr(np.loadtxt(filename)))
+        self.valEntry.setText(repr(np.loadtxt(filename,dtype=int)))
     
     def closeEvent(self, *args):
         #self.father.current.upd()
@@ -3738,6 +3738,7 @@ class FFMWindow(QtGui.QWidget):
         self.typeDrop = QtGui.QComboBox(parent=self)
         self.typeDrop.addItems(["Complex", "States/States-TPPI", "TPPI"])
         grid.addWidget(self.typeDrop,3,0)
+        grid.addWidget(QLabel("Reconstruction may take a while"),4,0)
         cancelButton = QtGui.QPushButton("&Cancel")
         cancelButton.clicked.connect(self.closeEvent)
         layout.addWidget(cancelButton,2,0)
@@ -3758,7 +3759,7 @@ class FFMWindow(QtGui.QWidget):
             self.father.mainProgram.LastLocation = os.path.dirname(filename) #Save used path
         if len(filename)==0:
             return
-        self.valEntry.setText(repr(np.loadtxt(filename)))
+        self.valEntry.setText(repr(np.loadtxt(filename,dtype=int)))
     
     def closeEvent(self, *args):
         #self.father.current.upd()

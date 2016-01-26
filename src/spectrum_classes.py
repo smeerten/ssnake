@@ -632,12 +632,14 @@ class Spectrum:
         self.resetXax(axes)
         return returnValue
     
-    def ffm_1d(self, posList, typeVal, axes, finishFunc=None):
+    def ffm_1d(self, pos, typeVal, axes, finishFunc=None):
         axes = self.checkAxes(axes)
         if axes == None:
             return None
         copyData=copy.deepcopy(self)
         returnValue = lambda self: self.restoreData(copyData, None)
+        #pos contains the values of fixed points which not to be translated to missing points
+        posList = np.delete(range(self.data.shape[axes]),pos)
         if typeVal == 1: #type is States or States-TPPI, the positions need to be divided by 2
             posList = int(np.floor(posList/2))
         if typeVal == 2: #type is TPPI, for now handle the same as Complex
