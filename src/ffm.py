@@ -20,14 +20,14 @@
 import numpy as np
 import scipy.optimize
 
-def ent_ffm(missingPoints,posArray,fid):
+def ent_ffm(missingPoints,fid,posArray):
     fid[posArray] = missingPoints[:len(posArray)] + 1j*missingPoints[len(posArray):]
     spec = np.fft.fft(fid)
     zn = np.fft.fft((np.imag(spec)+1j*np.real(spec))/np.abs(spec))
     return (np.sum(np.abs(spec)), np.append(np.imag(zn[posArray]),np.real(zn[posArray]))) #Current entropy is the norm 
 
 def ffm(inp):
-    l=len(inp[0]) 
+    l=len(inp[1])
     res = scipy.optimize.minimize(ent_ffm, np.zeros(l*2), method='L-BFGS-B', args=inp,jac=True)
-    z[pos] = res['x'][:l] + 1j*res['x'][l:]
-    return z
+    inp[0][inp[1]] = res['x'][:l] + 1j*res['x'][l:]
+    return inp[0]

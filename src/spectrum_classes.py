@@ -25,7 +25,7 @@ from six import string_types
 from spectrumFrame import Plot1DFrame
 from safeEval import safeEval
 from ffm import *
-import signal
+import multiprocessing
 
 #########################################################################
 #the generic data class
@@ -632,26 +632,27 @@ class Spectrum:
         self.resetXax(axes)
         return returnValue
     
-    def ffm_1d(self, posList, axes):
+    def ffm_1d(self, posList, typeVal, axes, finishFunc=None):
+        axes = self.checkAxes(axes)
+        if axes == None:
+            return None
+        copyData=copy.deepcopy(self)
+        returnValue = lambda self: self.restoreData(copyData, None)
+        if typeVal == 1: #type is States or States-TPPI, the positions need to be divided by 2
+            posList = int(np.floor(posList/2))
+        if typeVal == 2: #type is TPPI, for now handle the same as Complex
+            pass
+        posList = np.unique(posList)
         tmpData = np.rollaxis(self.data,axes,self.dim)
         tmpShape = tmpData.shape
-        tmpData = tmpData.reshape((tmpData.size/shape[-1],tmpShape[-1]))
-        self.pool = multiprocessing.Pool(multiprocessing.cpu_count())
-        self.pool.map_async(fmm,[(i, posList) for i in tmpData], callback=lambda result:self.ffm_1d_finished(result,tmpShape,axes))
-        self.pool.close()
-        signal.signal(signal.SIGALRM, self.cleanUpPool)
-        signal.alarm(10)
-        #self.pool.join()
-
-    def ffm_1d_finished(self,result,shape,axes):
-        self.data = np.rollaxis(np.array(result).reshape(shape),-1,axes)
-
-    def cleanUpPool(self):
-        if multiprocessing.active_children():
-            signal.alarm(10)
-        else:
-            signal.alarm(0)
-        
+        tmpData = tmpData.reshape((tmpData.size/tmpShape[-1],tmpShape[-1]))
+        pool = multiprocessing.Pool(multiprocessing.cpu_count())
+        fit = pool.map_async(ffm,[(i, posList) for i in tmpData])
+        pool.close()
+        pool.join()
+        self.data = np.rollaxis(np.array(fit.get()).reshape(tmpShape),-1,axes)
+        return returnValue
+            
     def getSlice(self,axes,locList):
         axes = self.checkAxes(axes)
         if axes == None:
@@ -675,6 +676,9 @@ class Spectrum:
             return copy.deepcopy((self.data[tuple(locList[:axes2])+(stackSlice,)+tuple(locList[axes2:axes-1])+(slice(None),)+tuple(locList[axes-1:])],self.freq[axes],self.freq[axes2],self.sw[axes],self.sw[axes2],self.spec[axes],self.spec[axes2],self.wholeEcho[axes],self.wholeEcho[axes2],self.xaxArray[axes],self.xaxArray[axes2][stackSlice],self.ref[axes],self.ref[axes2]))
         
     def restoreData(self,copyData,returnValue): # restore data from an old copy for undo purposes
+        if returnValue is None:
+            copyData2=copy.deepcopy(self)
+            returnValue = lambda self: self.restoreData(copyData2, None)
         self.data = copyData.data
         self.dim = len(self.data.shape)                    #number of dimensions
         self.freq = copyData.freq                              #array of center frequency (length is dim, MHz)
@@ -1391,6 +1395,13 @@ class Current1D(Plot1DFrame):
         self.upd()
         self.showFid()
         self.root.addMacro(['reorder',(pos, newLength,self.axes-self.data.dim)])
+        return returnValue
+
+    def ffm(self, posList, typeVal, finishFunc):
+        returnValue = self.data.ffm_1d(posList, typeVal, self.axes, finishFunc)
+        self.upd()
+        self.showFid()
+        self.root.addMacro(['ffm',(posList, typeVal,self.axes-self.data.dim, finishFunc)])
         return returnValue
     
     def ACMEentropy(self,phaseIn,phaseAll=True):
