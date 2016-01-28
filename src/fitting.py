@@ -460,7 +460,7 @@ class IntegralsParamFrame(QtGui.QWidget):
                 tmpy = np.real(self.parent.current.data1D[(self.minValues[i]<self.xax)&(self.maxValues[i]>self.xax)])
             elif self.parent.current.plotType == 3:
                 tmpy = np.abs(self.parent.current.data1D[(self.minValues[i]<self.xax)&(self.maxValues[i]>self.xax)])
-            self.intValues[i] = np.sum(tmpy)
+            self.intValues[i] = np.sum(tmpy)*self.parent.current.sw/float(self.parent.current.data1D.shape[-1])
             if self.parent.spec == 1:
                 x = np.append(x,tmpx[::-1])
                 y = np.append(y,np.cumsum(tmpy[::-1]))
