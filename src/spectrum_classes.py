@@ -297,7 +297,7 @@ class Spectrum:
             newFxax = np.fft.fftshift(np.fft.fftfreq(self.data.shape[axes],1.0/self.sw[axes]))[0]
             if self.ref[axes] is None:
                 self.ref[axes] = self.freq[axes]
-            self.ref[axes] = self.ref[axes] + newFxax-oldFxax
+            self.freq[axes] = self.freq[axes] - newFxax+oldFxax
         self.resetXax(axes)
         return returnValue
 
