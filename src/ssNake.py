@@ -1853,7 +1853,6 @@ class SideFrame(QtGui.QWidget):
                 dimNum = self.father.current.axes
         else:
             dimNum = self.father.current.axes
-
         locList=[]
         for num in range(self.length):
             appendLoc = True
@@ -1871,6 +1870,7 @@ class SideFrame(QtGui.QWidget):
         else:
             self.father.current.setSlice(dimNum,locList)
         self.father.bottomframe.upd()
+        self.upd()
 
 ################################################################################  
 class BottomFrame(QtGui.QWidget):
