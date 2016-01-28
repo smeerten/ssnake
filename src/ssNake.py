@@ -2725,7 +2725,7 @@ class DCWindow(QtGui.QWidget):
         self.offsetEntry.setAlignment(QtCore.Qt.AlignHCenter)
         val = parent.current.getdcOffset(int(round(0.8*parent.current.data1D.shape[-1])),parent.current.data1D.shape[-1])
         self.offsetEntry.setText('{:.2e}'.format(val))
-        self.offsetEntry.returnPressed.connect(lambda arg: self.offsetPreview(arg,True))
+        self.offsetEntry.returnPressed.connect(lambda: self.offsetPreview(True))
         grid.addWidget(self.offsetEntry,5,0)
         self.singleSlice = QtGui.QCheckBox("Single slice")
         layout.addWidget(self.singleSlice,1,0,1,2)
@@ -2775,7 +2775,7 @@ class DCWindow(QtGui.QWidget):
             self.father.current.peakPickFunc = lambda pos,self=self: self.picked(pos,True) 
             self.father.current.peakPick = True
 
-    def offsetPreview(self, arg, inserted=False):
+    def offsetPreview(self, inserted=False):
         if inserted:
             self.father.current.dcOffset(safeEval(self.offsetEntry.text()))
         else:
@@ -2787,7 +2787,7 @@ class DCWindow(QtGui.QWidget):
                 self.startVal = 0
             elif self.startVal > dataLength:
                 self.startVal = dataLength
-            self.minVal.setText(str(self.startVal))
+            self.startEntry.setText(str(self.startVal))
             inp = safeEval(self.endEntry.text())
             if inp is not None:
                 self.endVal=int(round(inp))
@@ -2795,7 +2795,7 @@ class DCWindow(QtGui.QWidget):
                 self.endVal = 0
             elif self.endVal > dataLength:
                 self.endVal = dataLength
-            self.maxEntry.setText(str(self.endVal))
+            self.endEntry.setText(str(self.endVal))
             val = self.father.current.getdcOffset(self.startVal,self.endVal)
             self.offsetEntry.setText('{:.2e}'.format(val))
             self.father.current.dcOffset(val)
@@ -2978,7 +2978,7 @@ class regionWindow(QtGui.QWidget):
             self.endVal = 0
         elif self.endVal > dataLength:
             self.endVal = dataLength
-        self.maxEntry.setText(str(self.endVal))
+        self.endEntry.setText(str(self.endVal))
         
     def apply(self,maximum,minimum):
         pass
