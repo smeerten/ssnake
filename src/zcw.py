@@ -20,8 +20,6 @@
 import numpy as np
 
 def fib(n):
-    if n > 50:
-        print('number of angles becomes too large')
     start = np.array([[1,1],[1,0]],dtype='int64')
     temp = start[:]
     for i in range(n):

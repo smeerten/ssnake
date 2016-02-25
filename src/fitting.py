@@ -385,7 +385,7 @@ class IntegralsParamFrame(QtGui.QWidget):
     def setVal(self,entry,isMin=False):
         inp = safeEval(entry.text())
         if inp is None:
-            print("One of the inputs is not valid")
+            self.rootwindow.mainProgram.dispMsg("One of the inputs is not valid")
             return
         if inp < min(self.xax):
             inp = min(self.xax)
@@ -429,7 +429,7 @@ class IntegralsParamFrame(QtGui.QWidget):
         num = self.intEntries.index(entry)
         inp = safeEval(entry.text())
         if inp is None:
-            print("One of the inputs is not valid")
+            self.rootwindow.mainProgram.dispMsg("One of the inputs is not valid")
             return
         self.refVal =  self.intValues[num] / float(inp)
         self.fit()
@@ -983,7 +983,7 @@ class RelaxParamFrame(QtGui.QWidget):
     
     def fit(self,*args):
         if not self.checkInputs():
-            print("One of the inputs is not valid")
+            self.rootwindow.mainProgram.dispMsg("One of the inputs is not valid")
             return
         struc = []
         guess = []
@@ -1047,7 +1047,7 @@ class RelaxParamFrame(QtGui.QWidget):
         
     def fitAllFunc(self,outputs):
         if not self.checkInputs():
-            print("One of the inputs is not valid")
+            self.rootwindow.mainProgram.dispMsg("One of the inputs is not valid")
             return
         struc = []
         guess = []
@@ -1132,7 +1132,7 @@ class RelaxParamFrame(QtGui.QWidget):
         outAmp = safeEval(self.ampEntry.text())
         outConst = safeEval(self.constEntry.text())
         if outAmp is None or outConst is None:
-            print("One of the inputs is not valid")
+            self.rootwindow.mainProgram.dispMsg("One of the inputs is not valid")
             return
         outCoeff = []
         outT1 = []
@@ -1140,7 +1140,7 @@ class RelaxParamFrame(QtGui.QWidget):
             outCoeff.append(safeEval(self.coeffEntries[i].text()))
             outT1.append(safeEval(self.t1Entries[i].text()))
             if outCoeff[i] is None or outT1[i] is None:
-                print("One of the inputs is not valid")
+                self.rootwindow.mainProgram.dispMsg("One of the inputs is not valid")
                 return
         self.disp(outAmp,outConst,outCoeff,outT1)
         
@@ -1700,7 +1700,7 @@ class DiffusionParamFrame(QtGui.QWidget):
     
     def fit(self,*args):
         if not self.checkInputs():
-            print("One of the inputs is not valid")
+            self.rootwindow.mainProgram.dispMsg("One of the inputs is not valid")
             return
         struc = []
         guess = []
@@ -1767,7 +1767,7 @@ class DiffusionParamFrame(QtGui.QWidget):
         
     def fitAllFunc(self,outputs):
         if not self.checkInputs():
-            print("One of the inputs is not valid")
+            self.rootwindow.mainProgram.dispMsg("One of the inputs is not valid")
             return
         struc = []
         guess = []
@@ -1858,7 +1858,7 @@ class DiffusionParamFrame(QtGui.QWidget):
         delta = safeEval(self.deltaEntry.text())
         triangle = safeEval(self.triangleEntry.text())
         if not np.isfinite([outAmp, outConst, gamma, delta, triangle]).all():
-            print("One of the inputs is not valid")
+            self.rootwindow.mainProgram.dispMsg("One of the inputs is not valid")
             return
         outCoeff = []
         outD = []
@@ -1866,7 +1866,7 @@ class DiffusionParamFrame(QtGui.QWidget):
             outCoeff.append(safeEval(self.coeffEntries[i].text()))
             outD.append(safeEval(self.dEntries[i].text()))
             if outCoeff[i] is None or outD[i] is None:
-                print("One of the inputs is not valid")
+                self.rootwindow.mainProgram.dispMsg("One of the inputs is not valid")
                 return
         self.disp(outAmp,outConst,outCoeff,outD,gamma,delta,triangle)
         
@@ -2333,7 +2333,7 @@ class PeakDeconvParamFrame(QtGui.QWidget):
     
     def fit(self,*args):
         if not self.checkInputs():
-            print("One of the inputs is not valid")
+            self.rootwindow.mainProgram.dispMsg("One of the inputs is not valid")
             return
         struc = []
         guess = []
@@ -2421,7 +2421,7 @@ class PeakDeconvParamFrame(QtGui.QWidget):
         
     def fitAllFunc(self,outputs):
         if not self.checkInputs():
-            print("One of the inputs is not valid")
+            self.rootwindow.mainProgram.dispMsg("One of the inputs is not valid")
             return
         struc = []
         guess = []
@@ -2537,7 +2537,7 @@ class PeakDeconvParamFrame(QtGui.QWidget):
         outBgrnd = safeEval(self.bgrndEntry.text())
         outSlope = safeEval(self.slopeEntry.text())
         if outBgrnd is None or outSlope is None:
-            print("One of the inputs is not valid")
+            self.rootwindow.mainProgram.dispMsg("One of the inputs is not valid")
             return
         for i in range(numExp):
             outPos[i] = safeEval(self.posEntries[i].text())
@@ -2545,7 +2545,7 @@ class PeakDeconvParamFrame(QtGui.QWidget):
             outWidth[i] = abs(safeEval(self.lorEntries[i].text()))
             outGauss[i] = abs(safeEval(self.gaussEntries[i].text()))
             if not np.isfinite([outPos[i],outAmp[i],outWidth[i],outGauss[i]]).all():
-                print("One of the inputs is not valid")
+                self.rootwindow.mainProgram.dispMsg("One of the inputs is not valid")
                 return
             self.lorEntries[i].setText('%#.3g' % outWidth[i])
             self.gaussEntries[i].setText('%#.3g' % outGauss[i])
@@ -3092,7 +3092,7 @@ class TensorDeconvParamFrame(QtGui.QWidget):
     def fit(self,*args):
         self.setCheng()
         if not self.checkInputs():
-            print("One of the inputs is not valid")
+            self.rootwindow.mainProgram.dispMsg("One of the inputs is not valid")
             return
         struc = []
         guess = []
@@ -3209,7 +3209,7 @@ class TensorDeconvParamFrame(QtGui.QWidget):
     def fitAllFunc(self,outputs):
         self.setCheng()
         if not self.checkInputs():
-            print("One of the inputs is not valid")
+            self.rootwindow.mainProgram.dispMsg("One of the inputs is not valid")
             return
         struc = []
         guess = []
@@ -3351,7 +3351,7 @@ class TensorDeconvParamFrame(QtGui.QWidget):
         bgrnd = safeEval(self.bgrndEntry.text())
         slope = safeEval(self.slopeEntry.text())
         if bgrnd is None or slope is None:
-            print("One of the inputs is not valid")
+            self.rootwindow.mainProgram.dispMsg("One of the inputs is not valid")
             return
         t11 = np.zeros(numExp)
         t22 = np.zeros(numExp)
@@ -3367,7 +3367,7 @@ class TensorDeconvParamFrame(QtGui.QWidget):
             width[i] = safeEval(self.lorEntries[i].text())
             gauss[i] = safeEval(self.gaussEntries[i].text())
             if not np.isfinite([t11[i], t22[i], t33[i], amp[i], width[i], gauss[i]]).all():
-                print("One of the inputs is not valid")
+                self.rootwindow.mainProgram.dispMsg("One of the inputs is not valid")
                 return
         phi,theta,self.weight = zcw_angles(self.cheng,symm=2)
         self.multt11=np.sin(theta)**2*np.cos(phi)**2
@@ -3702,7 +3702,7 @@ class Quad1DeconvParamFrame(QtGui.QWidget):
     def setCheng(self,*args):
         inp = safeEval(self.chengEntry.text())
         if inp is None:
-            print("One of the inputs is not valid")
+            self.rootwindow.mainProgram.dispMsg("One of the inputs is not valid")
             return
         self.cheng = int(inp)
         self.chengEntry.setText(str(self.cheng))
@@ -3877,7 +3877,7 @@ class Quad1DeconvParamFrame(QtGui.QWidget):
     def fit(self,*args):
         self.setCheng()
         if not self.checkInputs():
-            print("One of the inputs is not valid")
+            self.rootwindow.mainProgram.dispMsg("One of the inputs is not valid")
             return
         struc = []
         guess = []
@@ -3992,7 +3992,7 @@ class Quad1DeconvParamFrame(QtGui.QWidget):
     def fitAllFunc(self,outputs):
         self.setCheng()
         if not self.checkInputs():
-            print("One of the inputs is not valid")
+            self.rootwindow.mainProgram.dispMsg("One of the inputs is not valid")
             return
         struc = []
         guess = []
@@ -4129,7 +4129,7 @@ class Quad1DeconvParamFrame(QtGui.QWidget):
     def sim(self):
         self.setCheng()
         if not self.checkInputs():
-            print("One of the inputs is not valid")
+            self.rootwindow.mainProgram.dispMsg("One of the inputs is not valid")
             return
         numExp = self.numExp.currentIndex()+1
         bgrnd = float(self.bgrndEntry.text())
@@ -4703,10 +4703,10 @@ class Quad2StaticCzjzekParamFrame(QtGui.QWidget):
     def fit(self,*args):
         self.setCheng()
         if not self.setGrid():
-            print("One of the inputs is not valid")
+            self.rootwindow.mainProgram.dispMsg("One of the inputs is not valid")
             return
         if not self.checkInputs():
-            print("One of the inputs is not valid")
+            self.rootwindow.mainProgram.dispMsg("One of the inputs is not valid")
             return
         struc = []
         guess = []
@@ -4826,10 +4826,10 @@ class Quad2StaticCzjzekParamFrame(QtGui.QWidget):
     def fitAllFunc(self,outputs):
         self.setCheng()
         if not self.setGrid():
-            print("One of the inputs is not valid")
+            self.rootwindow.mainProgram.dispMsg("One of the inputs is not valid")
             return
         if not self.checkInputs():
-            print("One of the inputs is not valid")
+            self.rootwindow.mainProgram.dispMsg("One of the inputs is not valid")
             return
         struc = []
         guess = []
@@ -4970,10 +4970,10 @@ class Quad2StaticCzjzekParamFrame(QtGui.QWidget):
     def sim(self):
         self.setCheng()
         if not self.setGrid():
-            print("One of the inputs is not valid")
+            self.rootwindow.mainProgram.dispMsg("One of the inputs is not valid")
             return
         if not self.checkInputs():
-            print("One of the inputs is not valid")
+            self.rootwindow.mainProgram.dispMsg("One of the inputs is not valid")
             return
         numExp = self.numExp.currentIndex()+1
         bgrnd = float(self.bgrndEntry.text())

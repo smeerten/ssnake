@@ -60,11 +60,16 @@ class MainProgram(QtGui.QMainWindow):
         self.tabs.currentChanged.connect(self.changeMainWindow)
         self.tabs.tabCloseRequested.connect(self.destroyWorkspace)
         self.mainFrame.addWidget(self.tabs,0,0)
+        self.statusBar = QtGui.QStatusBar(self)
+        self.setStatusBar(self.statusBar)
         self.tabs.hide()
         self.main_widget.setFocus()
         self.setCentralWidget(self.main_widget)
         self.eventFilter = MyEventFilter(self)
         self.root.installEventFilter(self.eventFilter)
+
+    def dispMsg(self,msg):
+        self.statusBar.showMessage(msg,10000)
         
     def initMenu(self):
         IconDirectory = os.path.dirname(os.path.realpath(__file__))+os.path.sep+'Icons'+os.path.sep        
@@ -347,7 +352,7 @@ class MainProgram(QtGui.QMainWindow):
         if not ok:
             return
         while (givenName in self.workspaceNames) or givenName=='':
-            print('Name exists')
+            self.dispMsg('Name exists')
             givenName, ok = QtGui.QInputDialog.getText(self, message, 'Name:',text=name)
             if not ok:
                 return
@@ -373,7 +378,7 @@ class MainProgram(QtGui.QMainWindow):
             name = 'macro'+str(count)
         givenName, ok = QtGui.QInputDialog.getText(self, 'Macro name', 'Name:',text=name)
         while (givenName in self.macros.keys()) or givenName is '':
-            print('Name exists')
+            self.dispMsg('Name exists')
             givenName, ok = QtGui.QInputDialog.getText(self, 'Macro name', 'Name:',text=name)
         self.macros[givenName] = []
         self.mainWindow.redoMacro = []
@@ -395,7 +400,7 @@ class MainProgram(QtGui.QMainWindow):
             name = 'macro'+str(count)
         givenName, ok = QtGui.QInputDialog.getText(self, 'Macro name', 'Name:',text=name)
         while (givenName in self.macros.keys()) or givenName is '':
-            print('Name exists')
+            self.dispMsg('Name exists')
             givenName, ok = QtGui.QInputDialog.getText(self, 'Macro name', 'Name:',text=name)
         self.macros[givenName] = self.macros.pop(oldName)
         if self.mainWindow.currentMacro == oldName:
@@ -464,7 +469,7 @@ class MainProgram(QtGui.QMainWindow):
             name = 'macro'+str(count)
         givenName, ok = QtGui.QInputDialog.getText(self, 'Macro name', 'Name:',text=name)
         while (givenName in self.macros.keys()) or givenName is '':
-            print('Name exists')
+            self.dispMsg('Name exists')
             givenName, ok = QtGui.QInputDialog.getText(self, 'Macro name', 'Name:',text=name)
         with open(filePath,'r') as f:
             self.macros[givenName] = json.load(f)
@@ -605,7 +610,7 @@ class MainProgram(QtGui.QMainWindow):
         name = self.askName()
         if name is None:
             return
-        masterData=sc.Spectrum(data,lambda self :self.dataFromFit(data, freq , sw , spec, wholeEcho, ref, xaxArray), freq , sw , spec, wholeEcho, ref, xaxArray)
+        masterData=sc.Spectrum(data,lambda self :self.dataFromFit(data, freq , sw , spec, wholeEcho, ref, xaxArray), freq , sw , spec, wholeEcho, ref, xaxArray, msgHandler=lambda msg: self.dispMsg(msg))
         masterData.resetXax(axes)
         self.workspaces.append(Main1DWindow(self,masterData,name=name))
         self.tabs.addTab(self.workspaces[-1],name)
@@ -653,7 +658,7 @@ class MainProgram(QtGui.QMainWindow):
                 elif data[s].startswith('sw1 '):
                     sw1=float(data[s+1].split()[1])
         else:
-            print(Dir+os.path.sep+'procpar does not exits, used standard sw and freq')
+            self.dispMsg(Dir+os.path.sep+'procpar does not exits, used standard sw and freq')
         if os.path.exists(Dir+os.path.sep+'fid'):    
             with open(Dir+os.path.sep+'fid', "rb") as f:
                 raw = np.fromfile(f, np.int32,6) 
@@ -697,9 +702,9 @@ class MainProgram(QtGui.QMainWindow):
         fid = a[:,::2]-1j*a[:,1::2]
         if SizeTD1 is 1: 
             fid = fid[0][:]
-            masterData=sc.Spectrum(fid,lambda self :self.LoadVarianFile(filePath),[freq],[sw])
+            masterData=sc.Spectrum(fid,lambda self :self.LoadVarianFile(filePath),[freq],[sw], msgHandler=lambda msg: self.dispMsg(msg))
         else: 
-            masterData=sc.Spectrum(fid,lambda self :self.LoadVarianFile(filePath),[freq]*2,[sw]*2)
+            masterData=sc.Spectrum(fid,lambda self :self.LoadVarianFile(filePath),[freq]*2,[sw]*2, msgHandler=lambda msg: self.dispMsg(msg))
         return masterData
 
     def loadJSONFile(self,filePath):
@@ -711,7 +716,7 @@ class MainProgram(QtGui.QMainWindow):
         xaxA = []
         for i in struct['xaxArray']:
             xaxA.append(np.array(i))
-        masterData=sc.Spectrum(data,lambda self :self.loadJSONFile(filePath),list(struct['freq']),list(struct['sw']),list(struct['spec']),list(np.array(struct['wholeEcho'],dtype=bool)),list(ref),xaxA)
+        masterData=sc.Spectrum(data,lambda self :self.loadJSONFile(filePath),list(struct['freq']),list(struct['sw']),list(struct['spec']),list(np.array(struct['wholeEcho'],dtype=bool)),list(ref),xaxA, msgHandler=lambda msg: self.dispMsg(msg))
         return masterData
 
     def loadMatlabFile(self,filePath):
@@ -736,7 +741,7 @@ class MainProgram(QtGui.QMainWindow):
             #insert some checks for data type
             ref = mat['ref'][0,0][0]
             ref = np.where(np.isnan(ref), None, ref)
-            masterData=sc.Spectrum(data,lambda self :self.loadMatlabFile(filePath),list(mat['freq'][0,0][0]),list(mat['sw'][0,0][0]),list(mat['spec'][0,0][0]),list(np.array(mat['wholeEcho'][0,0][0])>0),list(ref),xaxA)
+            masterData=sc.Spectrum(data,lambda self :self.loadMatlabFile(filePath),list(mat['freq'][0,0][0]),list(mat['sw'][0,0][0]),list(mat['spec'][0,0][0]),list(np.array(mat['wholeEcho'][0,0][0])>0),list(ref),xaxA, msgHandler=lambda msg: self.dispMsg(msg))
             return masterData
         else:#If the version is 7.3, use HDF5 type loading
             f=h5py.File(filePath,'r')
@@ -759,7 +764,7 @@ class MainProgram(QtGui.QMainWindow):
                     xaxA = [np.array(mat[k[0]]) for k in (mat['xaxArray'])]
             ref = np.array(mat['ref'])[:,0]
             ref = np.where(np.isnan(ref), None, ref)
-            masterData=sc.Spectrum(data,lambda self :self.loadMatlabFile(filePath),list(np.array(mat['freq'])[:,0]),list(np.array(mat['sw'])[:,0]),list(np.array(mat['spec'])[:,0]),list(np.array(mat['wholeEcho'])[:,0]>0),list(ref),xaxA)
+            masterData=sc.Spectrum(data,lambda self :self.loadMatlabFile(filePath),list(np.array(mat['freq'])[:,0]),list(np.array(mat['sw'])[:,0]),list(np.array(mat['spec'])[:,0]),list(np.array(mat['wholeEcho'])[:,0]>0),list(ref),xaxA, msgHandler=lambda msg: self.dispMsg(msg))
             return masterData
 
     def LoadBrukerTopspin(self,filePath):
@@ -800,10 +805,10 @@ class MainProgram(QtGui.QMainWindow):
         ComplexData = np.array(RawInt[0:len(RawInt):2])+1j*np.array(RawInt[1:len(RawInt):2])
         spec = [False]
         if sizeTD1 is 1:
-            masterData=sc.Spectrum(ComplexData,lambda self :self.LoadBrukerTopspin(filePath),[freq2],[SW2],spec)
+            masterData=sc.Spectrum(ComplexData,lambda self :self.LoadBrukerTopspin(filePath),[freq2],[SW2],spec, msgHandler=lambda msg: self.dispMsg(msg))
         else:
             data = ComplexData.reshape(sizeTD1,sizeTD2/2)
-            masterData=sc.Spectrum(data,lambda self :self.LoadBrukerTopspin(filePath),[freq1,freq2],[SW1,SW2],spec*2)
+            masterData=sc.Spectrum(data,lambda self :self.LoadBrukerTopspin(filePath),[freq1,freq2],[SW1,SW2],spec*2, msgHandler=lambda msg: self.dispMsg(msg))
         return masterData
                 
     def LoadChemFile(self,filePath):
@@ -838,10 +843,10 @@ class MainProgram(QtGui.QMainWindow):
         spec = [False]                    
         if sizeTD1 is 1:
             data = data[0][:]
-            masterData=sc.Spectrum(data,lambda self :self.LoadChemFile(filePath),[freq*1e6],[sw],spec)
+            masterData=sc.Spectrum(data,lambda self :self.LoadChemFile(filePath),[freq*1e6],[sw],spec, msgHandler=lambda msg: self.dispMsg(msg))
         else:
             data = data.reshape((sizeTD1,sizeTD2))
-            masterData=sc.Spectrum(data,lambda self :self.LoadChemFile(filePath),[freq*1e6]*2,[sw1,sw],spec*2)
+            masterData=sc.Spectrum(data,lambda self :self.LoadChemFile(filePath),[freq*1e6]*2,[sw1,sw],spec*2, msgHandler=lambda msg: self.dispMsg(msg))
         return masterData
 
     def LoadMagritek(self,filePath):
@@ -866,14 +871,14 @@ class MainProgram(QtGui.QMainWindow):
             Data = raw[-2*sizeTD2*sizeTD1::]
             ComplexData = Data[0:Data.shape[0]:2]-1j*Data[1:Data.shape[0]:2]
             ComplexData = ComplexData.reshape((sizeTD1,sizeTD2))
-            masterData=sc.Spectrum(ComplexData,lambda self :self.LoadMagritek(filePath),[freq*1e6]*2,[sw,sw1],[False]*2)
+            masterData=sc.Spectrum(ComplexData,lambda self :self.LoadMagritek(filePath),[freq*1e6]*2,[sw,sw1],[False]*2, msgHandler=lambda msg: self.dispMsg(msg))
         elif len(Files1D)!=0:
             File = 'data.1d'
             with open(Dir+os.path.sep+File,'rb') as f:
                 raw = np.fromfile(f, np.float32)
             Data = raw[-2*sizeTD2::]
             ComplexData = Data[0:Data.shape[0]:2]-1j*Data[1:Data.shape[0]:2]
-            masterData=sc.Spectrum(ComplexData,lambda self :self.LoadMagritek(filePath),[freq*1e6],[sw],[False])
+            masterData=sc.Spectrum(ComplexData,lambda self :self.LoadMagritek(filePath),[freq*1e6],[sw],[False], msgHandler=lambda msg: self.dispMsg(msg))
         return masterData
             
     def LoadSimpsonFile(self,filePath):
@@ -943,9 +948,9 @@ class MainProgram(QtGui.QMainWindow):
         elif 'SPE' in TYPE:
             spec = [True]                    
         if NI is 1:
-            masterData=sc.Spectrum(data,lambda self :self.LoadSimpsonFile(filePath),[0],[SW],spec)
+            masterData=sc.Spectrum(data,lambda self :self.LoadSimpsonFile(filePath),[0],[SW],spec, msgHandler=lambda msg: self.dispMsg(msg))
         else:
-            masterData=sc.Spectrum(data,lambda self :self.LoadSimpsonFile(filePath),[0,0],[SW1,SW],spec*2)
+            masterData=sc.Spectrum(data,lambda self :self.LoadSimpsonFile(filePath),[0,0],[SW1,SW],spec*2, msgHandler=lambda msg: self.dispMsg(msg))
         return masterData
     
     def saveSimpsonFile(self):
@@ -1206,7 +1211,7 @@ class Main1DWindow(QtGui.QWidget):
             elif iter1[0] == 'hilbert':
                 self.undoList.append(self.masterData.hilbert(*iter1[1]))
             else:
-                print('unknown macro command: '+iter1[0])
+                self.father.dispMsg('unknown macro command: '+iter1[0])
         self.current.upd()   #get the first slice of data
         self.current.plotReset() #reset the axes limits
         self.current.showFid() #plot the data
@@ -1263,7 +1268,7 @@ class Main1DWindow(QtGui.QWidget):
 
     def SaveSimpsonFile(self):
         if self.masterData.dim   > 2:
-            print('Saving to Simpson format only allowed for 1D and 2D data!')
+            self.father.dispMsg('Saving to Simpson format only allowed for 1D and 2D data!')
             return
         WorkspaceName = self.mainProgram.workspaceNames[self.mainProgram.workspaceNum]#Set name of file to be saved to workspace name to start
         if sum(self.masterData.spec)/len(self.masterData.spec)==1:
@@ -1471,7 +1476,7 @@ class Main1DWindow(QtGui.QWidget):
         if self.masterData.dim > 1:
             self.extraWindow = ShearingWindow(self)
         else:
-            print('Data has too little dimensions for shearing transform')
+            self.father.dispMsg('Data has too little dimensions for shearing transform')
 
     def BrukerDigital(self):
         FilePath = QtGui.QFileDialog.getOpenFileName(self, 'Open File',self.father.LastLocation)
@@ -1480,7 +1485,7 @@ class Main1DWindow(QtGui.QWidget):
             return
         Dir = os.path.dirname(FilePath)
         if not os.path.exists(Dir+os.path.sep+'acqus'):
-            print("acqus file does not exist")
+            self.father.dispMsg("acqus file does not exist")
             return
         with open(Dir+os.path.sep+'acqus', 'r') as f: 
             data = f.read().split('\n')
@@ -1507,7 +1512,7 @@ class Main1DWindow(QtGui.QWidget):
             #on a text by W. M. Westler and F. Abildgaard.
             FilterCorrection = CorrectionList[10-DSPFVS][str(DECIM)]
         if FilterCorrection == -1.0:
-            print('DSPFVS value not recognized (Bruker hardware version not known)')
+            self.father.dispMsg('DSPFVS value not recognized (Bruker hardware version not known)')
             return
         if FilterCorrection != -1.0: #If changed
             self.redoList = []
@@ -1575,7 +1580,7 @@ class Main1DWindow(QtGui.QWidget):
             self.current = tmpcurrent
             self.updAllFrames()
         else:
-            print("Data does not have enough dimensions")
+            self.father.dispMsg("Data does not have enough dimensions")
 
     def plotArray(self):
         if len(self.masterData.data.shape) > 1:
@@ -1585,7 +1590,7 @@ class Main1DWindow(QtGui.QWidget):
             self.current = tmpcurrent
             self.updAllFrames()
         else:
-            print("Data does not have enough dimensions")
+            self.father.dispMsg("Data does not have enough dimensions")
             
     def plotContour(self):
         if len(self.masterData.data.shape) > 1:
@@ -1595,7 +1600,7 @@ class Main1DWindow(QtGui.QWidget):
             self.current = tmpcurrent
             self.updAllFrames()
         else:
-            print("Data does not have enough dimensions")
+            self.father.dispMsg("Data does not have enough dimensions")
             
     def plotSkewed(self):
         if len(self.masterData.data.shape) > 1:
@@ -1605,7 +1610,7 @@ class Main1DWindow(QtGui.QWidget):
             self.current = tmpcurrent
             self.updAllFrames()
         else:
-            print("Data does not have enough dimensions")
+            self.father.dispMsg("Data does not have enough dimensions")
 
     def updAllFrames(self):
         self.sideframe.upd()
@@ -1616,7 +1621,7 @@ class Main1DWindow(QtGui.QWidget):
         while undoFunc is None and self.undoList:
             undoFunc = self.undoList.pop()
         if undoFunc is None:
-            print("no undo information")
+            self.father.dispMsg("no undo information")
             return
         self.redoList.append(undoFunc(self.masterData))
         self.current.upd()
@@ -1638,7 +1643,7 @@ class Main1DWindow(QtGui.QWidget):
                 self.mainProgram.macroAdd(self.currentMacro,self.redoMacro.pop())
             self.menuCheck()
         else:
-            print("no redo information")
+            self.father.dispMsg("no redo information")
 
 ########################################################################################
 class SideFrame(QtGui.QWidget):
@@ -2610,7 +2615,7 @@ class SwapEchoWindow(QtGui.QWidget):
             self.father.menuEnable()
             self.deleteLater()
         else:
-            print("not a valid index for swap echo")
+            self.father.father.dispMsg("not a valid index for swap echo")
         
     def picked(self,pos):
         self.father.current.setSwapEchoPreview(pos[0])
@@ -2688,7 +2693,7 @@ class ShiftDataWindow(QtGui.QWidget):
     def applyAndClose(self):
         inp = safeEval(self.shiftEntry.text())
         if inp is None:
-            print("Not a valid input")
+            self.father.father.dispMsg("Not a valid input")
             return
         shift = int(round(inp))
         self.father.redoList = []
@@ -2811,7 +2816,7 @@ class DCWindow(QtGui.QWidget):
     def applyAndClose(self):
         inp = safeEval(self.offsetEntry.text())
         if inp is None:
-            print("Not a valid value")
+            self.father.father.dispMsg("Not a valid value")
             return
         self.father.current.peakPickReset()
         self.father.redoList = []
@@ -2893,7 +2898,7 @@ class BaselineWindow(QtGui.QWidget):
     def applyAndClose(self):
         inp = safeEval(self.degreeEntry.text())
         if inp is None:
-            print("Not a valid value")
+            self.father.father.dispMsg("Not a valid value")
             return
         self.father.current.peakPickReset()
         self.father.current.resetPreviewRemoveList()
@@ -2994,7 +2999,7 @@ class regionWindow(QtGui.QWidget):
         dataLength = self.father.current.data1D.shape[-1]
         inp = safeEval(self.startEntry.text())
         if inp is None:
-            print("Not a valid value")
+            self.father.father.dispMsg("Not a valid value")
             return
         self.startVal = int(round(inp))
         if self.startVal < 0:
@@ -3003,7 +3008,7 @@ class regionWindow(QtGui.QWidget):
             self.startVal = dataLength
         inp = safeEval(self.endEntry.text())
         if inp is None:
-            print("Not a valid value")
+            self.father.father.dispMsg("Not a valid value")
             return
         self.endVal = int(round(inp))
         if self.endVal < 0:
@@ -3120,7 +3125,7 @@ class DeleteWindow(QtGui.QWidget):
         if (pos > -1).all() and (pos < length).all():
             self.father.current.deletePreview(pos)
         else:
-            print('Not all values are valid indexes to delete')
+            self.father.father.dispMsg('Not all values are valid indexes to delete')
         
     def applyAndClose(self):
         env = vars(np).copy()
@@ -3135,7 +3140,7 @@ class DeleteWindow(QtGui.QWidget):
             self.father.sideframe.upd()
             self.deleteLater()
         else:
-            print('Not all values are valid indexes to delete')
+            self.father.father.dispMsg('Not all values are valid indexes to delete')
         
     def closeEvent(self, *args):
         self.father.current.showFid()
@@ -3177,7 +3182,7 @@ class SplitWindow(QtGui.QWidget):
     def applyAndClose(self):
         val = safeEval(self.splitEntry.text())
         if val is None:
-            print("Not a valid value")
+            self.father.father.dispMsg("Not a valid value")
             return
         self.father.redoList = []
         self.father.undoList.append(self.father.current.split(int(round(val))))
@@ -3270,7 +3275,7 @@ class InsertWindow(QtGui.QWidget):
     def applyAndClose(self):
         pos = safeEval(self.posEntry.text())
         if pos is None:
-            print("Not a valid value")
+            self.father.father.dispMsg("Not a valid value")
             return
         pos = int(round(pos))
         if pos > self.father.current.data1D.shape[-1]:
@@ -3481,7 +3486,7 @@ class SNWindow(QtGui.QWidget):
         dataLength = self.father.current.data1D.shape[-1]
         inp = safeEval(self.minNoiseEntry.text())
         if inp is None:
-            print("Not a valid value")
+            self.father.father.dispMsg("Not a valid value")
             return
         minimumNoise = int(round(inp))
         if minimumNoise < 0:
@@ -3491,7 +3496,7 @@ class SNWindow(QtGui.QWidget):
         self.minNoiseEntry.setText(str(minimumNoise))
         inp = safeEval(self.maxNoiseEntry.text())
         if inp is None:
-            print("Not a valid value")
+            self.father.father.dispMsg("Not a valid value")
             return
         maximumNoise = int(round(inp))
         if maximumNoise < 0:
@@ -3501,7 +3506,7 @@ class SNWindow(QtGui.QWidget):
         self.maxNoiseEntry.setText(str(maximumNoise))
         inp = safeEval(self.minEntry.text())
         if inp is None:
-            print("Not a valid value")
+            self.father.father.dispMsg("Not a valid value")
             return
         minimum = int(round(inp))
         if minimum < 0:
@@ -3511,7 +3516,7 @@ class SNWindow(QtGui.QWidget):
         self.minEntry.setText(str(minimum))
         inp = safeEval(self.maxEntry.text())
         if inp is None:
-            print("Not a valid value")
+            self.father.father.dispMsg("Not a valid value")
             return
         maximum = int(round(inp))
         if maximum < 0:
@@ -3621,7 +3626,7 @@ class FWHMWindow(QtGui.QWidget):
         dataLength = self.father.current.data1D.shape[-1]
         inp = safeEval(self.minEntry.text())
         if inp is None:
-            print("Not a valid value")
+            self.father.father.dispMsg("Not a valid value")
             return
         minimum = int(round(inp))
         if minimum < 0:
@@ -3631,7 +3636,7 @@ class FWHMWindow(QtGui.QWidget):
         self.minEntry.setText(str(minimum))
         inp = safeEval(self.maxEntry.text())
         if inp is None:
-            print("Not a valid value")
+            self.father.father.dispMsg("Not a valid value")
             return
         maximum = int(round(inp))
         if maximum < 0:
@@ -3705,10 +3710,10 @@ class ReorderWindow(QtGui.QWidget):
         env['euro']=lambda fVal, num=int(self.father.current.data1D.shape[-1]): euro(fVal,num)
         val=eval(self.valEntry.text(),env)                # find a better solution, also add catch for exceptions
         if not isinstance(val,(list,np.ndarray)):
-            print("Input is not a list or array")
+            self.father.father.dispMsg("Input is not a list or array")
             return
         if len(val)!=self.father.current.data1D.shape[-1]:
-            print("Length of input does not match length of data")
+            self.father.father.dispMsg("Length of input does not match length of data")
             return
         val = np.array(val,dtype=int)
         self.father.redoList = []
@@ -3775,7 +3780,7 @@ class FFMWindow(QtGui.QWidget):
         env['euro']=lambda fVal, num=int(self.father.current.data1D.shape[-1]): euro(fVal,num)
         val=eval(self.valEntry.text(),env)                # find a better solution, also add catch for exceptions
         if not isinstance(val,(list,np.ndarray)):
-            print("Input is not a list or array")
+            self.father.father.dispMsg("Input is not a list or array")
             return
         val = np.array(val,dtype=int)
         self.father.redoList = []
@@ -3834,12 +3839,12 @@ class ShearingWindow(QtGui.QWidget):
     def applyAndClose(self):
         shear = safeEval(self.shearEntry.text())
         if inp is None:
-            print("Not a valid value")
+            self.father.father.dispMsg("Not a valid value")
             return
         axes = self.dirEntry.currentIndex()
         axes2 = self.axEntry.currentIndex()
         if axes == axes2:
-            print("Axes can't be the same for shearing")
+            self.father.father.dispMsg("Axes can't be the same for shearing")
             return
         else:
             self.father.redoList = []
@@ -3931,13 +3936,13 @@ class XaxWindow(QtGui.QWidget):
         env['euro']=lambda fVal, num=int(self.father.current.data1D.shape[-1]): euro(fVal,num)
         val=eval(self.valEntry.text(),env)                # find a better solution, also add catch for exceptions          
         if not isinstance(val,(list,np.ndarray)):
-            print("Input is not a list or array")
+            self.father.father.dispMsg("Input is not a list or array")
             return
         if len(val)!=self.father.current.data1D.shape[-1]:
-            print("Length of input does not match length of data")
+            self.father.father.dispMsg("Length of input does not match length of data")
             return
         if not all(isinstance(x,(int,float)) for x in val):
-            print("Array is not all of int or float type")
+            self.father.father.dispMsg("Array is not all of int or float type")
             return
         self.father.current.setXaxPreview(np.array(val))
 
@@ -3954,13 +3959,13 @@ class XaxWindow(QtGui.QWidget):
         env['euro']=lambda fVal, num=int(self.father.current.data1D.shape[-1]): euro(fVal,num)
         val=eval(self.valEntry.text(),env)                # find a better solution, also add catch for exceptions
         if not isinstance(val,(list,np.ndarray)):
-            print("Input is not a list or array")
+            self.father.father.dispMsg("Input is not a list or array")
             return
         if len(val)!=self.father.current.data1D.shape[-1]:
-            print("Length of input does not match length of data")
+            self.father.father.dispMsg("Length of input does not match length of data")
             return
         if not all(isinstance(x,(int,float)) for x in val):
-            print("Array is not all of int or float type")
+            self.father.father.dispMsg("Array is not all of int or float type")
             return
         self.father.redoList = []
         self.father.undoList.append(self.father.current.setXax(np.array(val)))
@@ -3978,7 +3983,7 @@ class RefWindow(QtGui.QWidget):
         grid = QtGui.QGridLayout()
         layout.addLayout(grid,0,0,1,2)
         if parent.current.spec == 0:
-            print('Setting ppm is only available for frequency data')
+            self.father.father.dispMsg('Setting ppm is only available for frequency data')
             self.deleteLater()
             return
         grid.addWidget(QLabel("Frequency [MHz]:"),0,0)
@@ -4025,7 +4030,7 @@ class RefWindow(QtGui.QWidget):
         freq = safeEval(self.freqEntry.text())
         ref = safeEval(self.refEntry.text())
         if freq is None or ref is None:
-            print("Not a valid value")
+            self.father.father.dispMsg("Not a valid value")
             return
         freq = freq*1e6
         self.father.redoList = []

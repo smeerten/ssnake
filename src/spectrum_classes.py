@@ -30,7 +30,7 @@ import multiprocessing
 #########################################################################
 #the generic data class
 class Spectrum:
-    def __init__(self, data, loadFunc ,freq , sw , spec=None, wholeEcho=None, ref=None, xaxArray=None):
+    def __init__(self, data, loadFunc ,freq , sw , spec=None, wholeEcho=None, ref=None, xaxArray=None, msgHandler=None):
         self.dim = len(data.shape)                    #number of dimensions
         self.data = np.array(data,dtype=complex)      #data of dimension dim
         self.loadFunc = loadFunc
@@ -53,12 +53,19 @@ class Spectrum:
             self.resetXax()
         else:
             self.xaxArray = xaxArray
-       
+        self.msgHandler = msgHandler
+
+    def dispMsg(self, msg):
+        if self.msgHandler == None:
+            print(msg)
+        else:
+            self.msgHandler(msg)
+            
     def checkAxes(self,axes):
         if axes < 0:
             axes = axes + self.dim
         if not (0 <= axes < self.dim):
-            print('Not a valid axes')
+            self.dispMsg('Not a valid axes')
             return None
         return axes
             
@@ -113,7 +120,7 @@ class Spectrum:
             self.xaxArray[axes] = np.delete(self.xaxArray[axes],pos)
             return returnValue
         else:
-            print('Cannot delete all data')
+            self.dispMsg('Cannot delete all data')
             return None
 
     def add(self,data,dataImag=0,select=slice(None)):
@@ -211,7 +218,7 @@ class Spectrum:
         copyData=copy.deepcopy(self)
         returnValue = lambda self: self.restoreData(copyData, lambda self: self.states(axes))
         if self.data.shape[axes]%2 != 0:
-            print("data has to be even for States")
+            self.dispMsg("data has to be even for States")
             return None
         tmpdata = np.real(self.data)
         slicing1 = (slice(None),) * axes + (slice(None,None,2),) + (slice(None),)*(self.dim-1-axes)
@@ -228,7 +235,7 @@ class Spectrum:
         copyData=copy.deepcopy(self)
         returnValue = lambda self: self.restoreData(copyData, lambda self: self.statesTPPI(axes))
         if self.data.shape[axes]%2 != 0:
-            print("data has to be even for States-TPPI")
+            self.dispMsg("data has to be even for States-TPPI")
             return None
         tmpdata = np.real(self.data)
         slicing1 = (slice(None),) * axes + (slice(None,None,2),) + (slice(None),)*(self.dim-1-axes)
@@ -590,10 +597,10 @@ class Spectrum:
         if axes2 == None:
             return None
         if axes == axes2:
-            print('Both shearing axes cannot be equal')
+            self.dispMsg('Both shearing axes cannot be equal')
             return None
         if self.dim < 2:
-            print("The data does not have enough dimensions for a shearing transformation")
+            self.dispMsg("The data does not have enough dimensions for a shearing transformation")
             return None
         shape = self.data.shape
         vec1 = np.linspace(0,shear*2*np.pi*shape[axes]/self.sw[axes],shape[axes]+1)[:-1]
@@ -619,7 +626,7 @@ class Spectrum:
         if newLength is None:
             newLength = max(pos)+1
         if (max(pos) >= newLength) or (min(pos)< 0):
-            print("Invalid positions")
+            self.dispMsg("Invalid positions")
             return None
         copyData=copy.deepcopy(self)
         returnValue = lambda self: self.restoreData(copyData, lambda self: self.reorder(pos,newLength,axes))
@@ -670,7 +677,7 @@ class Spectrum:
             return None
         stackSlice = slice(stackBegin, stackEnd, stackStep)
         if axes == axes2:
-            print("First and second axes are the same")
+            self.dispMsg("First and second axes are the same")
             return None
         elif axes < axes2:
             return copy.deepcopy((np.transpose(self.data[tuple(locList[:axes])+(slice(None),)+tuple(locList[axes:axes2-1])+(stackSlice,)+tuple(locList[axes2-1:])]),self.freq[axes],self.freq[axes2],self.sw[axes],self.sw[axes2],self.spec[axes],self.spec[axes2],self.wholeEcho[axes],self.wholeEcho[axes2],self.xaxArray[axes],self.xaxArray[axes2][stackSlice],self.ref[axes],self.ref[axes2]))
@@ -746,7 +753,10 @@ class Current1D(Plot1DFrame):
             yReset = self.Y_RESIZE or duplicateCurrent.Y_RESIZE
             self.upd()   #get the first slice of data
             self.startUp(xReset,yReset)
-        
+
+    def dispMsg():
+        self.data1D.dispMsg()
+            
     def startUp(self,xReset=True,yReset=True):
         self.plotReset(xReset,yReset) #reset the axes limits
         self.showFid() #plot the data
@@ -882,7 +892,7 @@ class Current1D(Plot1DFrame):
     def apodPreview(self,lor=None,gauss=None, cos2=None, hamming=None ,shift=0.0,shifting=0.0,shiftingAxes=None): #display the 1D data including the apodization function
         if shiftingAxes is not None:
             if shiftingAxes == self.axes:
-                print('shiftingAxes cannot be equal to axes')
+                self.dispMsg('shiftingAxes cannot be equal to axes')
                 return
             elif shiftingAxes < self.axes:
                 shift += shifting*self.locList[shiftingAxes]*self.data.data.shape[shiftingAxes]/self.data.sw[shiftingAxes]
@@ -1825,7 +1835,7 @@ class CurrentStacked(Current1D):
         t=np.arange(0,len(self.data1D[0]))/(self.sw)
         if shiftingAxes is not None:
             if shiftingAxes == self.axes:
-                print('shiftingAxes cannot be equal to axes')
+                self.dispMsg('shiftingAxes cannot be equal to axes')
             elif shiftingAxes == self.axes2:
                 ar = np.arange(self.data.data.shape[self.axes2])[slice(self.stackBegin,self.stackEnd,self.stackStep)]
                 x=np.ones((len(ar),len(self.data1D[0])))
@@ -2182,7 +2192,7 @@ class CurrentArrayed(Current1D):
         t=np.arange(0,len(self.data1D[0]))/(self.sw)
         if shiftingAxes is not None:
             if shiftingAxes == self.axes:
-                print('shiftingAxes cannot be equal to axes')
+                self.dispMsg('shiftingAxes cannot be equal to axes')
             elif shiftingAxes == self.axes2:
                 ar = np.arange(self.data.data.shape[self.axes2])[slice(self.stackBegin,self.stackEnd,self.stackStep)]
                 x=np.ones((len(ar),len(self.data1D[0])))
@@ -2534,7 +2544,7 @@ class CurrentContour(Current1D):
         t=np.arange(0,len(self.data1D[0]))/(self.sw)
         if shiftingAxes is not None:
             if shiftingAxes == self.axes:
-                print('shiftingAxes cannot be equal to axes')
+                self.dispMsg('shiftingAxes cannot be equal to axes')
             elif shiftingAxes == self.axes2:
                 ar = np.arange(self.data.data.shape[self.axes2])
                 x=np.ones((len(ar),len(self.data1D[0])))
@@ -2912,7 +2922,7 @@ class CurrentSkewed(Current1D):
         t=np.arange(0,len(self.data1D[0]))/(self.sw)
         if shiftingAxes is not None:
             if shiftingAxes == self.axes:
-                print('shiftingAxes cannot be equal to axes')
+                self.dispMsg('shiftingAxes cannot be equal to axes')
             elif shiftingAxes == self.axes2:
                 ar = np.arange(self.data.data.shape[self.axes2])[slice(self.stackBegin,self.stackEnd,self.stackStep)]
                 x=np.ones((len(ar),len(self.data1D[0])))
