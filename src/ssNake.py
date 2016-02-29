@@ -198,12 +198,19 @@ class MainProgram(QtGui.QMainWindow):
         self.multiDActions.append(self.plotMenu.addAction("S&kewed plot", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.plotSkewed())))
         self.plotMenu.addAction("Set &reference", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.createRefWindow()))
         self.plotMenu.addAction("&User x-axis", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.createXaxWindow()))        
+
+        #the history drop down menu
+        self.historyMenu = QtGui.QMenu("&History",self)
+        self.menubar.addMenu(self.historyMenu)
+        self.historyMenu.addAction("&History", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.createHistoryWindow()))
         
     def mainWindowCheck(self, transfer):
         #checks if mainWindow exist to execute the function
         if self.mainWindow is not None:
             transfer(self.mainWindow)
-        
+        else:
+            self.dispMsg("No workspaces open")
+            
     def dragEnterEvent(self, event):
         if event.mimeData().hasUrls:
             event.accept()
@@ -1527,6 +1534,9 @@ class Main1DWindow(QtGui.QWidget):
 
     def createXaxWindow(self):
         self.extraWindow = XaxWindow(self)
+
+    def createHistoryWindow(self):
+        self.extraWindow = HistoryWindow(self)
 
     def createIntegralsWindow(self):
         self.mainProgram.createFitWindow(fit.IntegralsWindow(self.father,self.mainProgram,self.mainProgram.mainWindow))
@@ -4043,6 +4053,33 @@ class RefWindow(QtGui.QWidget):
         self.father.current.peakPickFunc = lambda pos,self=self: self.picked(pos)
         self.father.current.peakPick = True
 
+##########################################################################################
+class HistoryWindow(QtGui.QWidget): 
+    def __init__(self, parent):
+        QtGui.QWidget.__init__(self,parent)
+        self.setWindowFlags(QtCore.Qt.Window| QtCore.Qt.Tool)
+        self.father = parent
+        self.setWindowTitle("Processing history")
+        layout = QtGui.QGridLayout(self)
+        grid = QtGui.QGridLayout()
+        layout.addLayout(grid,0,0,1,2)
+        #grid.addWidget(QLabel("History:"),0,0)
+        self.valEntry = QtGui.QTextEdit()
+        self.valEntry.setReadOnly(True)
+        self.valEntry.setLineWrapMode(QtGui.QTextEdit.NoWrap)
+        self.valEntry.setText(self.father.masterData.getHistory())
+        grid.addWidget(self.valEntry,1,0)
+        cancelButton = QtGui.QPushButton("&Close")
+        cancelButton.clicked.connect(self.closeEvent)
+        layout.addWidget(cancelButton,2,0)
+        layout.setColumnStretch(1,1)
+        self.show()
+        self.father.menuDisable()
+        
+    def closeEvent(self, *args):
+        self.father.menuEnable()
+        self.deleteLater()
+            
 root = QtGui.QApplication(sys.argv)
 root.setWindowIcon(QtGui.QIcon(os.path.dirname(os.path.realpath(__file__))+'/logo.gif')) 
 mainProgram = MainProgram(root)

@@ -30,7 +30,7 @@ import multiprocessing
 #########################################################################
 #the generic data class
 class Spectrum:
-    def __init__(self, data, loadFunc ,freq , sw , spec=None, wholeEcho=None, ref=None, xaxArray=None, msgHandler=None):
+    def __init__(self, data, loadFunc ,freq , sw , spec=None, wholeEcho=None, ref=None, xaxArray=None, history=None, msgHandler=None):
         self.dim = len(data.shape)                    #number of dimensions
         self.data = np.array(data,dtype=complex)      #data of dimension dim
         self.loadFunc = loadFunc
@@ -53,6 +53,10 @@ class Spectrum:
             self.resetXax()
         else:
             self.xaxArray = xaxArray
+        if history is None:
+            self.history = []                            #list of strings describing all performed operations
+        else:
+            self.history = history
         self.msgHandler = msgHandler
 
     def dispMsg(self, msg):
@@ -60,7 +64,13 @@ class Spectrum:
             print(msg)
         else:
             self.msgHandler(msg)
-            
+
+    def getHistory(self):
+        return "\n".join(self.history)
+
+    def addHistory(self, msg):
+        self.history.append(msg)
+    
     def checkAxes(self,axes):
         if axes < 0:
             axes = axes + self.dim
@@ -97,6 +107,7 @@ class Spectrum:
             return None
         oldXax = self.xaxArray[axes]
         self.xaxArray[axes]=xax
+        self.addHistory("The X-axes of dim "+str(axes+1)+" was set to "+str(xax).replace('\n', ''))
         return lambda self: self.setXax(oldXax,axes)
                 
     def insert(self,data,pos,axes,dataImag=0):
@@ -104,8 +115,10 @@ class Spectrum:
         if axes == None:
             return None
         data = np.array(data) + 1j*np.array(dataImag)
+        oldSize = self.data.shape[axes]
         self.data = np.insert(self.data,[pos],data,axis=axes)
         self.resetXax(axes)
+        self.addHistory(str(self.data.shape[axes]-oldSize) + " datapoints were inserted in dim "+str(axes+1)+" at position "+str(pos))
         return lambda self: self.remove(range(pos,pos+data.shape[axes]),axes)
 
     def remove(self,pos,axes):
@@ -118,6 +131,7 @@ class Spectrum:
         if (np.array(tmpdata.shape) != 0).all():
             self.data = tmpdata
             self.xaxArray[axes] = np.delete(self.xaxArray[axes],pos)
+            self.addHistory(str(len(pos)) + " datapoints were removed from dim "+str(axes+1)+" at position "+str(pos))
             return returnValue
         else:
             self.dispMsg('Cannot delete all data')
@@ -128,6 +142,7 @@ class Spectrum:
             select = safeEval(select)
         data = np.array(data) + 1j*np.array(dataImag)
         self.data[select] = self.data[select] + data
+        self.addHistory("The following values were added to the spectrum ( "+str(select)+" ): "+str(data).replace('\n', ''))
         return lambda self: self.subtract(data,select=select)
         
     def subtract(self,data,dataImag=0,select=slice(None)):
@@ -135,6 +150,7 @@ class Spectrum:
             select = safeEval(select)
         data = np.array(data) + 1j*np.array(dataImag)
         self.data[select] = self.data[select] - data
+        self.addHistory("The following values were subtracted from the spectrum ( "+str(select)+" ): "+str(data).replace('\n', ''))
         return lambda self: self.add(data,select=select)
 
     def multiply(self,mult,axes,multImag=0,select=slice(None)):
