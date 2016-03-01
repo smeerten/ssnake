@@ -107,7 +107,7 @@ class Spectrum:
             return None
         oldXax = self.xaxArray[axes]
         self.xaxArray[axes]=xax
-        self.addHistory("The X-axes of dim "+str(axes+1)+" was set to "+str(xax).replace('\n', ''))
+        self.addHistory("X-axes of dimension "+str(axes+1)+" was set to "+str(xax).replace('\n', ''))
         return lambda self: self.setXax(oldXax,axes)
                 
     def insert(self,data,pos,axes,dataImag=0):
@@ -118,7 +118,7 @@ class Spectrum:
         oldSize = self.data.shape[axes]
         self.data = np.insert(self.data,[pos],data,axis=axes)
         self.resetXax(axes)
-        self.addHistory(str(self.data.shape[axes]-oldSize) + " datapoints were inserted in dim "+str(axes+1)+" at position "+str(pos))
+        self.addHistory("Inserted " + str(self.data.shape[axes]-oldSize) + " datapoints in dimension "+str(axes+1)+" at position "+str(pos))
         return lambda self: self.remove(range(pos,pos+data.shape[axes]),axes)
 
     def remove(self,pos,axes):
@@ -131,7 +131,7 @@ class Spectrum:
         if (np.array(tmpdata.shape) != 0).all():
             self.data = tmpdata
             self.xaxArray[axes] = np.delete(self.xaxArray[axes],pos)
-            self.addHistory(str(len(pos)) + " datapoints were removed from dim "+str(axes+1)+" at position "+str(pos))
+            self.addHistory("Removed "+ str(len(pos)) + " datapoints from dimension "+str(axes+1)+" at position "+str(pos))
             return returnValue
         else:
             self.dispMsg('Cannot delete all data')
@@ -142,7 +142,7 @@ class Spectrum:
             select = safeEval(select)
         data = np.array(data) + 1j*np.array(dataImag)
         self.data[select] = self.data[select] + data
-        self.addHistory("The following values were added to the spectrum ( "+str(select)+" ): "+str(data).replace('\n', ''))
+        self.addHistory("Added to data["+str(select)+"]: "+str(data).replace('\n', ''))
         return lambda self: self.subtract(data,select=select)
         
     def subtract(self,data,dataImag=0,select=slice(None)):
@@ -150,7 +150,7 @@ class Spectrum:
             select = safeEval(select)
         data = np.array(data) + 1j*np.array(dataImag)
         self.data[select] = self.data[select] - data
-        self.addHistory("The following values were subtracted from the spectrum ( "+str(select)+" ): "+str(data).replace('\n', ''))
+        self.addHistory("Subtracted from data["+str(select)+"]: "+str(data).replace('\n', ''))
         return lambda self: self.add(data,select=select)
 
     def multiply(self,mult,axes,multImag=0,select=slice(None)):
@@ -163,6 +163,7 @@ class Spectrum:
         copyData=copy.deepcopy(self)
         returnValue = lambda self: self.restoreData(copyData, lambda self: self.multiply(mult,axes,select=select))
         self.data[select] = np.apply_along_axis(np.multiply,axes,self.data,mult)[select]
+        self.addHistory("Multiplied dimension "+str(axes+1)+" of data["+str(select)+"]: "+str(mult).replace('\n', ''))
         return returnValue
 
     def baselineCorrection(self,baseline,axes,baselineImag = 0,select=slice(None)):
@@ -174,6 +175,7 @@ class Spectrum:
         baseline = np.array(baseline) + 1j*np.array(baselineImag)
         baselinetmp = baseline.reshape((1,)*axes+(self.data.shape[axes],)+(1,)*(self.dim-axes-1))
         self.data[select] = self.data[select] - baselinetmp
+        self.addHistory("Baseline corrected dimension "+str(axes+1)+" of data["+str(select)+"]: "+str(baseline).replace('\n', ''))
         return lambda self: self.baselineCorrection(-baseline,axes,select=select) 
     
     def concatenate(self,axes):
@@ -191,6 +193,7 @@ class Spectrum:
         del self.xaxArray[0]
         #self.resetXax(axes)
         self.resetXax()
+        self.addHistory("Concatenated dimension "+str(axes+1))
         return lambda self: self.split(splitVal,axes)
     
     def split(self,sections,axes):
@@ -207,24 +210,28 @@ class Spectrum:
         self.xaxArray.insert(0,[])
         self.resetXax(0)
         self.resetXax(axes+1)
+        self.addHistory("Split dimension " + str(axes+1) + " into " + str(sections) + " sections")
         return lambda self: self.concatenate(axes)
     
     def real(self):
         copyData=copy.deepcopy(self)
         returnValue = lambda self: self.restoreData(copyData, lambda self: self.real())
         self.data = np.real(self.data)
+        self.addHistory("Real")
         return returnValue
 
     def imag(self):
         copyData=copy.deepcopy(self)
         returnValue = lambda self: self.restoreData(copyData, lambda self: self.imag())
         self.data = np.imag(self.data)
+        self.addHistory("Imaginary")
         return returnValue
 
     def abs(self):
         copyData=copy.deepcopy(self)
         returnValue = lambda self: self.restoreData(copyData, lambda self: self.abs())
         self.data = np.abs(self.data)
+        self.addHistory("Absolute")
         return returnValue
     
     def states(self,axes):
@@ -242,6 +249,7 @@ class Spectrum:
         tmpdata = tmpdata[slicing1]+1j*tmpdata[slicing2]
         self.data = tmpdata
         self.resetXax(axes)
+        self.addHistory("States conversion on dimension " + str(axes+1))
         return returnValue
     
     def statesTPPI(self,axes):
@@ -260,6 +268,7 @@ class Spectrum:
         tmpdata[slicing2] = -1*tmpdata[slicing2]
         self.data = tmpdata
         self.resetXax(axes)
+        self.addHistory("States-TPPI conversion on dimension " + str(axes+1))
         return returnValue
     
     def matrixManip(self, pos1, pos2, axes, which):
@@ -276,20 +285,26 @@ class Spectrum:
                 self.data = np.sum(self.data[slicing],axis=axes)/self.sw[axes]
             else:
                 self.data = np.sum(self.data[slicing],axis=axes)*self.sw[axes]/(1.0*self.data.shape[axes])
+            self.addHistory("Integrate between " + str(minPos) + " and " + str(maxPos) + " of dimension " + str(axes+1))
         if which == 5:
             self.data = np.sum(self.data[slicing],axis=axes)
+            self.addHistory("Sum between " + str(minPos) + " and " + str(maxPos) + " of dimension " + str(axes+1))
         elif which == 1:
             self.data = np.amax(self.data[slicing],axis=axes)
+            self.addHistory("Maximum between " + str(minPos) + " and " + str(maxPos) + " of dimension " + str(axes+1))
         elif which == 2:
             self.data = np.amin(self.data[slicing],axis=axes)
+            self.addHistory("Minimum between " + str(minPos) + " and " + str(maxPos) + " of dimension " + str(axes+1))
         elif which == 3:
             maxArgPos = np.argmax(np.real(self.data[slicing]),axis=axes)
             tmpmaxPos = maxArgPos.flatten()
             self.data = self.xaxArray[axes][slice(minPos,maxPos)][tmpmaxPos].reshape(maxArgPos.shape)
+            self.addHistory("Maximum position between " + str(minPos) + " and " + str(maxPos) + " of dimension " + str(axes+1))
         elif which == 4:
             minArgPos = np.argmin(np.real(self.data[slicing]),axis=axes)
             tmpminPos = minArgPos.flatten()
             self.data = self.xaxArray[axes][slice(minPos,maxPos)][tmpminPos].reshape(minArgPos.shape)
+            self.addHistory("Minimum position between " + str(minPos) + " and " + str(maxPos) + " of dimension " + str(axes+1))
         if self.dim==1:
             self.data = np.array([self.data])
             self.resetXax(axes)
@@ -322,6 +337,7 @@ class Spectrum:
                 self.ref[axes] = self.freq[axes]
             self.freq[axes] = self.freq[axes] - newFxax+oldFxax
         self.resetXax(axes)
+        self.addHistory("Extracted part between " + str(minPos) + " and " + str(maxPos) + " of dimension " + str(axes+1))
         return returnValue
 
     def diff(self, axes):
@@ -332,6 +348,7 @@ class Spectrum:
         returnValue = lambda self: self.restoreData(copyData, lambda self: self.diff(axes))
         self.data = np.diff(self.data,axis=axes)
         self.resetXax(axes)
+        self.addHistory("Differences over dimension " + str(axes+1))
         return returnValue
 
     def cumsum(self,axes):
@@ -341,6 +358,7 @@ class Spectrum:
         copyData=copy.deepcopy(self)
         returnValue = lambda self: self.restoreData(copyData, lambda self: self.cumsum(axes))
         self.data = np.cumsum(self.data,axis=axes)
+        self.addHistory("Cumulative sum over dimension " + str(axes+1))
         return returnValue
     
     def flipLR(self, axes):
@@ -349,6 +367,7 @@ class Spectrum:
             return None
         slicing = (slice(None),) * axes + (slice(None,None,-1),) + (slice(None),)*(self.dim-1-axes)
         self.data = self.data[slicing]
+        self.addHistory("Flipped dimension " + str(axes+1))
         return lambda self: self.flipLR(axes)
     
     def hilbert(self,axes):
@@ -359,6 +378,7 @@ class Spectrum:
         copyData=copy.deepcopy(self)
         returnValue = lambda self: self.restoreData(copyData, lambda self: self.hilbert(axes))
         self.data = scipy.signal.hilbert(np.real(self.data), axis=axes)
+        self.addHistory("Hilbert transform on dimension " + str(axes+1))
         return returnValue
 
     def setPhase(self, phase0, phase1, axes,select=slice(None)):
@@ -378,6 +398,7 @@ class Spectrum:
         self.data[select] = np.apply_along_axis(np.multiply,axes,self.data,vector)[select]
         if self.spec[axes]==0:
             self.fourier(axes,tmp=True,inv=True)
+        self.addHistory("Phasing: phase0 = " + str(phase0*180/np.pi) + " and phase1 = " + str(phase1*180/np.pi) + " for dimension " + str(axes+1) + " of data["+str(select)+"]")
         return lambda self: self.setPhase(-phase0,-phase1,axes,select=select)
 
     def apodize(self,lor,gauss, cos2, hamming, shift, shifting, shiftingAxes, axes,select=slice(None)):
@@ -438,6 +459,7 @@ class Spectrum:
             self.data[select] = np.apply_along_axis(np.multiply,axes,self.data,x)[select]
             if self.spec[axes] > 0:
                 self.fourier(axes,tmp=True,inv=True)
+        self.addHistory("Apodization: Lorentzian = " + str(lor) + ", Gaussian =" + str(gauss) + ", Cos2 =" + str(cos2) + ", Hamming =" + str(hamming) + ", shift =" + str(shift) + ", shifting =" + str(shifting) + ", shiftingAxes =" + str(shiftingAxes) + " for dimension " + str(axes+1) + " of data["+str(select)+"]")
         return returnValue
 
     def setFreq(self,freq,sw,axes):
@@ -449,6 +471,7 @@ class Spectrum:
         self.freq[axes]=float(freq)
         self.sw[axes]=float(sw)
         self.resetXax(axes)
+        self.addHistory("Frequency set to "+str(freq*1e-6)+ " MHz and sw set to "+ str(sw*1e-3) + " kHz for dimension " + str(axes+1))
         return lambda self: self.setFreq(oldFreq,oldSw,axes)
     
     def setRef(self,ref,axes):
@@ -458,6 +481,7 @@ class Spectrum:
         oldRef = self.ref[axes]
         self.ref[axes]=float(ref)
         self.resetXax(axes)
+        self.addHistory("Reference frequency set to "+str(ref*1e-6)+ " MHz for dimension " + str(axes+1))
         return lambda self: self.setRef(oldRef,axes)
 
     def setWholeEcho(self,val,axes):
@@ -465,6 +489,7 @@ class Spectrum:
         if axes == None:
             return None
         self.wholeEcho[axes]=val
+        self.addHistory("Whole echo set to "+str(val)+ " for dimension " + str(axes+1))
         return lambda self: self.setWholeEcho(not val,axes)
     
     def setSize(self,size,axes):
@@ -493,6 +518,7 @@ class Spectrum:
             self.fourier(axes,tmp=True,inv=True)
         self.dim = len(self.data.shape)
         self.resetXax(axes)
+        self.addHistory("Resized dimension " + str(axes+1) + " to " +str(size)+ " points")
         return returnValue
 
     def changeSpec(self,val,axes):
@@ -502,6 +528,10 @@ class Spectrum:
         oldVal = self.spec[axes]
         self.spec[axes] = val
         self.resetXax(axes)
+        if val:
+            self.addHistory("Dimension " + str(axes+1) + " set to FID")
+        else:
+            self.addHistory("Dimension " + str(axes+1) + " set to spectrum")
         return lambda self: self.changeSpec(oldVal,axes)
 
     def swapEcho(self,idx,axes):
@@ -512,6 +542,7 @@ class Spectrum:
         slicing2=(slice(None),) * axes + (slice(idx,None),) + (slice(None),)*(self.dim-1-axes)
         self.data = np.concatenate((self.data[slicing2],self.data[slicing1]),axes)
         self.wholeEcho[axes] = not self.wholeEcho[axes]
+        self.addHistory("Swap echo at position "+str(idx)+" for dimension " + str(axes+1))
         return lambda self: self.swapEcho(-idx,axes)
             
     def shiftData(self,shift,axes,select=slice(None)):
@@ -533,6 +564,7 @@ class Spectrum:
         self.data[select] = np.apply_along_axis(np.multiply,axes,self.data,mask)[select]
         if self.spec[axes] > 0:
             self.fourier(axes,tmp=True,inv=True)
+        self.addHistory("Shifted "+str(shift)+" points dimension " + str(axes+1) + " of data["+str(select)+"]")
         return returnValue
     
     def LPSVD(self,axes):
@@ -564,6 +596,7 @@ class Spectrum:
             self.data=np.fft.fftshift(np.fft.fftn(self.data,axes=[axes]),axes=axes)
             if not tmp:
                 self.spec[axes]=1
+                self.addHistory("Fourier transform dimension " + str(axes+1))
         else:
             self.data=np.fft.ifftn(np.fft.ifftshift(self.data,axes=axes),axes=[axes])
             if not self.wholeEcho[axes] and not tmp:
@@ -571,6 +604,7 @@ class Spectrum:
                 self.data[slicing]= self.data[slicing]*2.0
             if not tmp:
                 self.spec[axes]=0
+                self.addHistory("Inverse Fourier transform dimension " + str(axes+1))
         self.resetXax(axes)
         return lambda self: self.fourier(axes)
 
@@ -586,12 +620,14 @@ class Spectrum:
                 self.data[slicing]= self.data[slicing]*0.5
             self.data=np.fft.fftshift(np.fft.fftn(np.real(self.data),axes=[axes]),axes=axes)
             self.spec[axes]=1
+            self.addHistory("Real Fourier transform dimension " + str(axes+1))
         else:
             self.data=np.fft.ifftn(np.fft.ifftshift(np.real(self.data),axes=axes),axes=[axes])
             if not self.wholeEcho[axes]:
                 slicing = (slice(None),) * axes + (0,) + (slice(None),)*(self.dim-1-axes)
                 self.data[slicing]= self.data[slicing]*2.0
             self.spec[axes]=0
+            self.addHistory("Real inverse Fourier transform dimension " + str(axes+1))
         self.resetXax(axes)
         return returnValue
 
@@ -601,8 +637,10 @@ class Spectrum:
             return None
         if inv:
             self.data=np.fft.ifftshift(self.data,axes=[axes])
+            self.addHistory("Inverse Fourier shift dimension " + str(axes+1))
         else:
             self.data=np.fft.fftshift(self.data,axes=axes)
+            self.addHistory("Fourier shift dimension " + str(axes+1))
         return lambda self: self.fftshift(axes,not(inv))
 
     def shear(self, shear, axes, axes2):
@@ -633,6 +671,7 @@ class Spectrum:
         self.data = self.data*shearMatrix.reshape(shape)
         if self.spec[axes] > 0:
             self.fourier(axes,tmp=True,inv=True)
+        self.addHistory("Shearing transform with shearing value "+str(shear)+" over dimensions " + str(axes+1)) + " and " + str(axes2+1)
         return lambda self: self.shear(-shear, axes, axes2)
 
     def reorder(self, pos, newLength, axes):
@@ -653,6 +692,7 @@ class Spectrum:
         tmpData[slicing] = self.data
         self.data = tmpData
         self.resetXax(axes)
+        self.addHistory("Reorder dimension " + str(axes+1) + " to obtain a new length of "+str(newLength)+" with positions "+str(pos))
         return returnValue
     
     def ffm_1d(self, pos, typeVal, axes, finishFunc=None):
@@ -676,6 +716,7 @@ class Spectrum:
         pool.close()
         pool.join()
         self.data = np.rollaxis(np.array(fit.get()).reshape(tmpShape),-1,axes)
+        self.addHistory("Fast Forward Maximum Entropy reconstruction of dimension " + str(axes+1) + " at positions "+str(pos))
         return returnValue
             
     def getSlice(self,axes,locList):
@@ -713,6 +754,7 @@ class Spectrum:
         self.wholeEcho = copyData.wholeEcho
         self.xaxArray = copyData.xaxArray
         self.ref = copyData.ref
+        self.addHistory("Data was restored to a previous state ")
         return returnValue
 
 ##################################################################################################
