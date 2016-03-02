@@ -720,10 +720,14 @@ class MainProgram(QtGui.QMainWindow):
             struct = json.load(inputfile)
         data = np.array(struct['dataReal']) + 1j * np.array(struct['dataImag'])
         ref = np.where(np.isnan(struct['ref']), None, struct['ref'])
+        if 'history' in struct.keys():
+            history = struct['history']
+        else:
+            history = None
         xaxA = []
         for i in struct['xaxArray']:
             xaxA.append(np.array(i))
-        masterData=sc.Spectrum(data,lambda self :self.loadJSONFile(filePath),list(struct['freq']),list(struct['sw']),list(struct['spec']),list(np.array(struct['wholeEcho'],dtype=bool)),list(ref),xaxA, msgHandler=lambda msg: self.dispMsg(msg))
+        masterData=sc.Spectrum(data,lambda self :self.loadJSONFile(filePath),list(struct['freq']),list(struct['sw']),list(struct['spec']),list(np.array(struct['wholeEcho'],dtype=bool)),list(ref),xaxA, msgHandler=lambda msg: self.dispMsg(msg), history=history)
         return masterData
 
     def loadMatlabFile(self,filePath):
@@ -748,7 +752,12 @@ class MainProgram(QtGui.QMainWindow):
             #insert some checks for data type
             ref = mat['ref'][0,0][0]
             ref = np.where(np.isnan(ref), None, ref)
-            masterData=sc.Spectrum(data,lambda self :self.loadMatlabFile(filePath),list(mat['freq'][0,0][0]),list(mat['sw'][0,0][0]),list(mat['spec'][0,0][0]),list(np.array(mat['wholeEcho'][0,0][0])>0),list(ref),xaxA, msgHandler=lambda msg: self.dispMsg(msg))
+            if 'history' in mat.dtype.names:
+                history = list(np.array(mat['history'][0,0],dtype=str))
+                print history
+            else:
+                history = None
+            masterData=sc.Spectrum(data,lambda self :self.loadMatlabFile(filePath),list(mat['freq'][0,0][0]),list(mat['sw'][0,0][0]),list(mat['spec'][0,0][0]),list(np.array(mat['wholeEcho'][0,0][0])>0),list(ref),xaxA, msgHandler=lambda msg: self.dispMsg(msg), history=history)
             return masterData
         else:#If the version is 7.3, use HDF5 type loading
             f=h5py.File(filePath,'r')
@@ -1247,6 +1256,7 @@ class Main1DWindow(QtGui.QWidget):
         struct['spec'] = list(self.masterData.spec)
         struct['wholeEcho'] = list(1.0*np.array(self.masterData.wholeEcho))
         struct['ref'] = np.array(self.masterData.ref,dtype=np.float).tolist()
+        struct['history'] = self.masterData.history
         tmpXax = []
         for i in self.masterData.xaxArray:
             tmpXax.append(i.tolist())
@@ -1269,6 +1279,7 @@ class Main1DWindow(QtGui.QWidget):
         struct['spec'] = self.masterData.spec
         struct['wholeEcho'] = self.masterData.wholeEcho
         struct['ref'] = np.array(self.masterData.ref,dtype=np.float)
+        struct['history'] = self.masterData.history
         struct['xaxArray'] = self.masterData.xaxArray
         matlabStruct = {self.mainProgram.workspaceNames[self.mainProgram.workspaceNum]:struct}
         scipy.io.savemat(name,matlabStruct)          
