@@ -70,7 +70,13 @@ class Spectrum:
 
     def addHistory(self, msg):
         self.history.append(msg)
-    
+
+    def removeFromHistory(self, num):
+        for i in range(num):
+            if len(self.history) > 0:
+                self.history.pop()
+            
+        
     def checkAxes(self,axes):
         if axes < 0:
             axes = axes + self.dim

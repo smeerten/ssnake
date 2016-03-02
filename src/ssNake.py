@@ -1634,6 +1634,7 @@ class Main1DWindow(QtGui.QWidget):
             self.father.dispMsg("no undo information")
             return
         self.redoList.append(undoFunc(self.masterData))
+        self.masterData.removeFromHistory(2)
         self.current.upd()
         self.current.plotReset()
         self.current.showFid()
