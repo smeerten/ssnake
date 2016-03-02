@@ -1241,11 +1241,9 @@ class Main1DWindow(QtGui.QWidget):
     def saveJSONFile(self):
         import json
         WorkspaceName = self.mainProgram.workspaceNames[self.mainProgram.workspaceNum] #Set name of file to be saved to workspace name to start
-        name = QtGui.QFileDialog.getSaveFileName(self, 'Save File',self.father.LastLocation+os.path.sep+WorkspaceName,'JSON (*.json)')
+        name = QtGui.QFileDialog.getSaveFileName(self, 'Save File',self.father.LastLocation+os.path.sep+WorkspaceName+'.json','JSON (*.json)')
         if not name:
             return
-        if not name.lower().endswith('.json'):
-            name = name + '.json'
         self.father.LastLocation = os.path.dirname(name) #Save used path
         struct = {}
         struct['dataReal'] = np.real(self.masterData.data).tolist()
@@ -1266,7 +1264,7 @@ class Main1DWindow(QtGui.QWidget):
     def saveMatlabFile(self):
         import scipy.io
         WorkspaceName = self.mainProgram.workspaceNames[self.mainProgram.workspaceNum]#Set name of file to be saved to workspace name to start
-        name = QtGui.QFileDialog.getSaveFileName(self, 'Save File',self.father.LastLocation+os.path.sep+WorkspaceName,'MATLAB file (*.mat)')
+        name = QtGui.QFileDialog.getSaveFileName(self, 'Save File',self.father.LastLocation+os.path.sep+WorkspaceName+'.mat','MATLAB file (*.mat)')
         if not name:
             return
         self.father.LastLocation = os.path.dirname(name) #Save used path
@@ -1289,18 +1287,13 @@ class Main1DWindow(QtGui.QWidget):
             return
         WorkspaceName = self.mainProgram.workspaceNames[self.mainProgram.workspaceNum]#Set name of file to be saved to workspace name to start
         if sum(self.masterData.spec)/len(self.masterData.spec)==1:
-            name = QtGui.QFileDialog.getSaveFileName(self, 'Save File',self.father.LastLocation+os.path.sep+WorkspaceName,'SIMPSON file (*.spe)')
+            name = QtGui.QFileDialog.getSaveFileName(self, 'Save File',self.father.LastLocation+os.path.sep+WorkspaceName+'.spe','SIMPSON file (*.spe)')
             if not name:
                 return
-            if not name.lower().endswith('.spe'):
-                name = name + '.spe'
         elif sum(self.masterData.spec) == 0: 
-            name = QtGui.QFileDialog.getSaveFileName(self, 'Save File',self.father.LastLocation+os.path.sep+WorkspaceName,'SIMPSON file (*.fid)')
+            name = QtGui.QFileDialog.getSaveFileName(self, 'Save File',self.father.LastLocation+os.path.sep+WorkspaceName+'.fid','SIMPSON file (*.fid)')
             if not name:
                 return
-            if not name.lower().endswith('.fid'):
-                name = name + '.fid'
-
         self.father.LastLocation = os.path.dirname(name) #Save used path
         with open(name,'w') as f: 
             f.write('SIMP\n')
