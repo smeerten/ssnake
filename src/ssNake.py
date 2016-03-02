@@ -754,7 +754,6 @@ class MainProgram(QtGui.QMainWindow):
             ref = np.where(np.isnan(ref), None, ref)
             if 'history' in mat.dtype.names:
                 history = list(np.array(mat['history'][0,0],dtype=str))
-                print history
             else:
                 history = None
             masterData=sc.Spectrum(data,lambda self :self.loadMatlabFile(filePath),list(mat['freq'][0,0][0]),list(mat['sw'][0,0][0]),list(mat['spec'][0,0][0]),list(np.array(mat['wholeEcho'][0,0][0])>0),list(ref),xaxA, msgHandler=lambda msg: self.dispMsg(msg), history=history)
@@ -1291,10 +1290,17 @@ class Main1DWindow(QtGui.QWidget):
         WorkspaceName = self.mainProgram.workspaceNames[self.mainProgram.workspaceNum]#Set name of file to be saved to workspace name to start
         if sum(self.masterData.spec)/len(self.masterData.spec)==1:
             name = QtGui.QFileDialog.getSaveFileName(self, 'Save File',self.father.LastLocation+os.path.sep+WorkspaceName,'SIMPSON file (*.spe)')
+            if not name:
+                return
+            if not name.lower().endswith('.spe'):
+                name = name + '.spe'
         elif sum(self.masterData.spec) == 0: 
             name = QtGui.QFileDialog.getSaveFileName(self, 'Save File',self.father.LastLocation+os.path.sep+WorkspaceName,'SIMPSON file (*.fid)')
-        if not name: #of no path
-            return
+            if not name:
+                return
+            if not name.lower().endswith('.fid'):
+                name = name + '.fid'
+
         self.father.LastLocation = os.path.dirname(name) #Save used path
         with open(name,'w') as f: 
             f.write('SIMP\n')
