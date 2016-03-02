@@ -247,6 +247,7 @@ class MainProgram(QtGui.QMainWindow):
             self.fittingMenu.menuAction().setVisible(False)
             self.combineMenu.menuAction().setVisible(False)
             self.plotMenu.menuAction().setVisible(False)
+            self.historyMenu.menuAction().setVisible(False)
         else:
             self.editmenu.menuAction().setVisible(True)
             self.toolMenu.menuAction().setVisible(True)
@@ -255,6 +256,7 @@ class MainProgram(QtGui.QMainWindow):
             self.fittingMenu.menuAction().setVisible(True)
             self.combineMenu.menuAction().setVisible(True)
             self.plotMenu.menuAction().setVisible(True)
+            self.historyMenu.menuAction().setVisible(True)
             if isinstance(self.mainWindow, Main1DWindow):
                 self.menuEnable()
                 if (len(self.mainWindow.masterData.data.shape) < 2):
@@ -304,6 +306,7 @@ class MainProgram(QtGui.QMainWindow):
         self.fittingMenu.menuAction().setEnabled(True)
         self.combineMenu.menuAction().setEnabled(True)
         self.plotMenu.menuAction().setEnabled(True)
+        self.historyMenu.menuAction().setEnabled(True)
         if not internalWindow:
             self.filemenu.menuAction().setEnabled(True)
             self.workspacemenu.menuAction().setEnabled(True)
@@ -328,6 +331,7 @@ class MainProgram(QtGui.QMainWindow):
         self.fittingMenu.menuAction().setEnabled(False)
         self.combineMenu.menuAction().setEnabled(False)
         self.plotMenu.menuAction().setEnabled(False)
+        self.historyMenu.menuAction().setEnabled(False)
         if not internalWindow:
             self.filemenu.menuAction().setEnabled(False)
             self.workspacemenu.menuAction().setEnabled(False)
@@ -613,11 +617,11 @@ class MainProgram(QtGui.QMainWindow):
                 self.loading(3,filePath)
                 return returnVal
         
-    def dataFromFit(self, data, freq , sw , spec, wholeEcho, ref, xaxArray,axes):
+    def dataFromFit(self, data, freq , sw , spec, wholeEcho, ref, xaxArray, axes):
         name = self.askName()
         if name is None:
             return
-        masterData=sc.Spectrum(data,lambda self :self.dataFromFit(data, freq , sw , spec, wholeEcho, ref, xaxArray), freq , sw , spec, wholeEcho, ref, xaxArray, msgHandler=lambda msg: self.dispMsg(msg))
+        masterData=sc.Spectrum(data,lambda self :self.dataFromFit(data, freq , sw , spec, wholeEcho, ref, xaxArray, msgHandler=lambda msg: self.dispMsg(msg), history=['Data obtained from fit']), freq , sw , spec, wholeEcho, ref, xaxArray, msgHandler=lambda msg: self.dispMsg(msg), history=['Data obtained from fit'])
         masterData.resetXax(axes)
         self.workspaces.append(Main1DWindow(self,masterData,name=name))
         self.tabs.addTab(self.workspaces[-1],name)
@@ -712,6 +716,7 @@ class MainProgram(QtGui.QMainWindow):
             masterData=sc.Spectrum(fid,lambda self :self.LoadVarianFile(filePath),[freq],[sw], msgHandler=lambda msg: self.dispMsg(msg))
         else: 
             masterData=sc.Spectrum(fid,lambda self :self.LoadVarianFile(filePath),[freq]*2,[sw]*2, msgHandler=lambda msg: self.dispMsg(msg))
+        masterData.addHistory("Varian data loaded from "+filePath)
         return masterData
 
     def loadJSONFile(self,filePath):
@@ -728,6 +733,7 @@ class MainProgram(QtGui.QMainWindow):
         for i in struct['xaxArray']:
             xaxA.append(np.array(i))
         masterData=sc.Spectrum(data,lambda self :self.loadJSONFile(filePath),list(struct['freq']),list(struct['sw']),list(struct['spec']),list(np.array(struct['wholeEcho'],dtype=bool)),list(ref),xaxA, msgHandler=lambda msg: self.dispMsg(msg), history=history)
+        masterData.addHistory("JSON data loaded from "+filePath)
         return masterData
 
     def loadMatlabFile(self,filePath):
@@ -757,6 +763,7 @@ class MainProgram(QtGui.QMainWindow):
             else:
                 history = None
             masterData=sc.Spectrum(data,lambda self :self.loadMatlabFile(filePath),list(mat['freq'][0,0][0]),list(mat['sw'][0,0][0]),list(mat['spec'][0,0][0]),list(np.array(mat['wholeEcho'][0,0][0])>0),list(ref),xaxA, msgHandler=lambda msg: self.dispMsg(msg), history=history)
+            masterData.addHistory("Matlab data loaded from "+filePath)
             return masterData
         else:#If the version is 7.3, use HDF5 type loading
             f=h5py.File(filePath,'r')
@@ -780,6 +787,7 @@ class MainProgram(QtGui.QMainWindow):
             ref = np.array(mat['ref'])[:,0]
             ref = np.where(np.isnan(ref), None, ref)
             masterData=sc.Spectrum(data,lambda self :self.loadMatlabFile(filePath),list(np.array(mat['freq'])[:,0]),list(np.array(mat['sw'])[:,0]),list(np.array(mat['spec'])[:,0]),list(np.array(mat['wholeEcho'])[:,0]>0),list(ref),xaxA, msgHandler=lambda msg: self.dispMsg(msg))
+            masterData.addHistory("Matlab data loaded from "+filePath)
             return masterData
 
     def LoadBrukerTopspin(self,filePath):
@@ -824,6 +832,7 @@ class MainProgram(QtGui.QMainWindow):
         else:
             data = ComplexData.reshape(sizeTD1,sizeTD2/2)
             masterData=sc.Spectrum(data,lambda self :self.LoadBrukerTopspin(filePath),[freq1,freq2],[SW1,SW2],spec*2, msgHandler=lambda msg: self.dispMsg(msg))
+        masterData.addHistory("Bruker data loaded from "+filePath)
         return masterData
                 
     def LoadChemFile(self,filePath):
@@ -862,6 +871,7 @@ class MainProgram(QtGui.QMainWindow):
         else:
             data = data.reshape((sizeTD1,sizeTD2))
             masterData=sc.Spectrum(data,lambda self :self.LoadChemFile(filePath),[freq*1e6]*2,[sw1,sw],spec*2, msgHandler=lambda msg: self.dispMsg(msg))
+        masterData.addHistory("Chemagnetics data loaded from "+filePath)
         return masterData
 
     def LoadMagritek(self,filePath):
@@ -894,6 +904,7 @@ class MainProgram(QtGui.QMainWindow):
             Data = raw[-2*sizeTD2::]
             ComplexData = Data[0:Data.shape[0]:2]-1j*Data[1:Data.shape[0]:2]
             masterData=sc.Spectrum(ComplexData,lambda self :self.LoadMagritek(filePath),[freq*1e6],[sw],[False], msgHandler=lambda msg: self.dispMsg(msg))
+        masterData.addHistory("Magritek data loaded from "+filePath)
         return masterData
             
     def LoadSimpsonFile(self,filePath):
@@ -966,6 +977,7 @@ class MainProgram(QtGui.QMainWindow):
             masterData=sc.Spectrum(data,lambda self :self.LoadSimpsonFile(filePath),[0],[SW],spec, msgHandler=lambda msg: self.dispMsg(msg))
         else:
             masterData=sc.Spectrum(data,lambda self :self.LoadSimpsonFile(filePath),[0,0],[SW1,SW],spec*2, msgHandler=lambda msg: self.dispMsg(msg))
+        masterData.addHistory("SIMPSON data loaded from "+filePath)
         return masterData
     
     def saveSimpsonFile(self):
