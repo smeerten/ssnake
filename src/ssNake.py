@@ -786,7 +786,13 @@ class MainProgram(QtGui.QMainWindow):
                     xaxA = [np.array(mat[k[0]]) for k in (mat['xaxArray'])]
             ref = np.array(mat['ref'])[:,0]
             ref = np.where(np.isnan(ref), None, ref)
-            masterData=sc.Spectrum(data,lambda self :self.loadMatlabFile(filePath),list(np.array(mat['freq'])[:,0]),list(np.array(mat['sw'])[:,0]),list(np.array(mat['spec'])[:,0]),list(np.array(mat['wholeEcho'])[:,0]>0),list(ref),xaxA, msgHandler=lambda msg: self.dispMsg(msg))
+            if 'history' in mat.keys():
+                history = list()
+                history.append([item.astype(np.int8).tostring().decode("ascii") for item in np.array(mat['history']).transpose()])
+                history=history[0]
+            else:
+                history = None
+            masterData=sc.Spectrum(data,lambda self :self.loadMatlabFile(filePath),list(np.array(mat['freq'])[:,0]),list(np.array(mat['sw'])[:,0]),list(np.array(mat['spec'])[:,0]),list(np.array(mat['wholeEcho'])[:,0]>0),list(ref),xaxA, msgHandler=lambda msg: self.dispMsg(msg),history=history)
             masterData.addHistory("Matlab data loaded from "+filePath)
             return masterData
 
