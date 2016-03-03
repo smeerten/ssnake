@@ -196,6 +196,7 @@ class MainProgram(QtGui.QMainWindow):
         self.multiDActions.append(self.plotMenu.addAction("&Array plot", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.plotArray())))
         self.multiDActions.append(self.plotMenu.addAction("&Contour plot", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.plotContour())))
         self.multiDActions.append(self.plotMenu.addAction("S&kewed plot", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.plotSkewed())))
+        self.plotMenu.addAction("&Multi plot", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.plotMulti()))
         self.plotMenu.addAction("Set &reference", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.createRefWindow()))
         self.plotMenu.addAction("&User x-axis", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.createXaxWindow()))        
 
@@ -1650,6 +1651,13 @@ class Main1DWindow(QtGui.QWidget):
         else:
             self.father.dispMsg("Data does not have enough dimensions")
 
+    def plotMulti(self):
+        tmpcurrent = sc.CurrentMulti(self,self.fig,self.canvas,self.masterData,self.current)
+        self.current.kill()
+        del self.current
+        self.current = tmpcurrent
+        self.updAllFrames()
+            
     def updAllFrames(self):
         self.sideframe.upd()
         self.bottomframe.upd()
@@ -1833,6 +1841,18 @@ class SideFrame(QtGui.QWidget):
                 self.minLEntry.setText(str(current.minLevels*100.0))
                 self.minLEntry.editingFinished.connect(self.setContour)
                 self.frame2.addWidget(self.minLEntry,6,0)
+            if isinstance(current, (sc.CurrentMulti)):
+                for i in range(len(current.extraData)):
+                    name = current.extraName[i]
+                    if len(name)>20:
+                        name = name[:20]
+                    self.frame2.addWidget(QLabel(name,self),i,0)
+                    button = QtGui.QPushButton("x",self)
+                    button.clicked.connect(lambda: self.delMultiSpec(i))
+                    self.frame2.addWidget(button,i,1)
+                addButton = QtGui.QPushButton("Add spectrum",self)
+                addButton.clicked.connect(self.addMultiSpec)
+                self.frame2.addWidget(addButton,100,0,1,2)
             self.buttons1Group.button(current.axes).toggle()
             if self.plotIs2D:
                 self.buttons2Group.button(current.axes2).toggle()
@@ -1914,6 +1934,16 @@ class SideFrame(QtGui.QWidget):
         else:
             self.father.current.setSlice(dimNum,locList)
         self.father.bottomframe.upd()
+        self.upd()
+
+    def addMultiSpec(self, *args):
+        text = QtGui.QInputDialog.getItem(self, "Select spectrum to show", "Spectrum name:", self.father.father.workspaceNames, 0, False)
+        if text[1]:
+            self.father.current.addExtraData(self.father.father.workspaces[self.father.father.workspaceNames.index(text[0])].masterData, str(text[0]))
+            self.upd()
+
+    def delMultiSpec(self, num):
+        self.father.current.delExtraData(num)
         self.upd()
 
 ################################################################################  
