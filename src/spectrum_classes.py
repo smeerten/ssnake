@@ -1818,17 +1818,27 @@ class CurrentMulti(Current1D):
         if hasattr(duplicateCurrent,'extraName'):
             self.extraName = duplicateCurrent.extraName
         else:
-            self.extraName = []  
+            self.extraName = []
+        if hasattr(duplicateCurrent,'extraAxes'):
+            self.extraAxes = duplicateCurrent.extraAxes
+        else:
+            self.extraAxes = [] 
         Current1D.__init__(self,root,fig,canvas, data, duplicateCurrent)
+
+    def setExtraSlice(self,extraNum,axes,locList): #change the slice
+        self.extraAxes[extraNum] = axes
+        self.extraLoc[extraNum] = locList
+        #self.showFid()
         
     def copyCurrent(self, root, fig, canvas, data):
         return CurrentMulti(root,fig,canvas,data,self)
-
+    
     def addExtraData(self, data, name):
         self.extraName.append(name)
         self.extraData.append(data)
         self.extraLoc.append([0]*(len(self.extraData[-1].data.shape)-1))
         self.extraColor.append('k')                                        #find a good color system
+        self.extraAxes.append(len(data.data.shape)-1)
         self.showFid()
 
     def delExtraData(self, num):
@@ -1836,6 +1846,7 @@ class CurrentMulti(Current1D):
         del self.extraLoc[num]
         del self.extraColor[num]
         del self.extraName[num]
+        del self.extraAxes[num]
         self.showFid()
     
     def resetLocList(self):
@@ -1855,10 +1866,13 @@ class CurrentMulti(Current1D):
         for i in range(len(self.extraData)):
             data = self.extraData[i]
             try:
-                updateVar = data.getSlice(self.axes,self.extraLoc[i])
+                if self.extraData[i].dim <= self.extraAxes[i]:
+                    self.extraAxes[i] = len(self.extraData[i].data.shape)-1
+                    self.resetExtraLocList(i)
+                updateVar = data.getSlice(self.extraAxes[i],self.extraLoc[i])
             except:
                 self.resetExtraLocList(i)
-                updateVar = data.getSlice(self.axes,self.extraLoc[i])
+                updateVar = data.getSlice(self.extraAxes[i],self.extraLoc[i])
             data1D = updateVar[0]
             spec = updateVar[3]
             xax = updateVar[5]

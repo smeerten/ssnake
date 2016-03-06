@@ -63,7 +63,7 @@ class SliceValidator(QtGui.QValidator):
             return (QtGui.QValidator.Intermediate,string,position)
 
 class SliceSpinBox(QtGui.QSpinBox):
-    def __init__(self, parent,minimum,maximum,*args, **kwargs):
+    def __init__(self, parent, minimum, maximum, *args, **kwargs):
         self.validator = SliceValidator()
         QtGui.QDoubleSpinBox.__init__(self,parent,*args, **kwargs)
         self.setMinimum(minimum)

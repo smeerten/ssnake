@@ -505,6 +505,8 @@ class MainProgram(QtGui.QMainWindow):
         self.tabs.setCurrentIndex(num)
         self.updWorkspaceMenu(var)
         self.menuCheck()
+        if isinstance(self.mainWindow.current, (sc.CurrentMulti)):
+            self.mainWindow.sideframe.checkChanged()
         
     def stepWorkspace(self, step):
         if len(self.workspaces) > 1:
@@ -514,6 +516,8 @@ class MainProgram(QtGui.QMainWindow):
             self.tabs.setCurrentIndex(self.workspaceNum)
             self.updWorkspaceMenu(self.workspaceNames[self.workspaceNum])
             self.menuCheck()
+            if isinstance(self.mainWindow.current, (sc.CurrentMulti)):
+                self.mainWindow.sideframe.checkChanged()
 
     def duplicateWorkspace(self, *args):
         name = self.askName()
@@ -1841,22 +1845,54 @@ class SideFrame(QtGui.QWidget):
                 self.minLEntry.setText(str(current.minLevels*100.0))
                 self.minLEntry.editingFinished.connect(self.setContour)
                 self.frame2.addWidget(self.minLEntry,6,0)
-            if isinstance(current, (sc.CurrentMulti)):
-                for i in range(len(current.extraData)):
-                    name = current.extraName[i]
-                    if len(name)>20:
-                        name = name[:20]
-                    self.frame2.addWidget(QLabel(name,self),i,0)
-                    button = QtGui.QPushButton("x",self)
-                    button.clicked.connect(lambda: self.delMultiSpec(i))
-                    self.frame2.addWidget(button,i,1)
-                addButton = QtGui.QPushButton("Add spectrum",self)
-                addButton.clicked.connect(self.addMultiSpec)
-                self.frame2.addWidget(addButton,100,0,1,2)
             self.buttons1Group.button(current.axes).toggle()
             if self.plotIs2D:
                 self.buttons2Group.button(current.axes2).toggle()
+        if isinstance(current, (sc.CurrentMulti)):
+            self.extraEntries = []
+            self.extraButtons1 = []
+            self.extraButtons1Group = []
+            iter1 = 0
+            for i in range(len(current.extraData)):
+                frameWidget = QtGui.QWidget(self)
+                frame = QtGui.QGridLayout(frameWidget)
+                self.frame2.addWidget(frameWidget,iter1,0)
+                frameWidget.setLayout(frame)
+                name = current.extraName[i]
+                if len(name)>20:
+                    name = name[:20]
+                frame.addWidget(QLabel(name,self),0,0,1,2)
+                button = QtGui.QPushButton("x",self)
+                button.clicked.connect(lambda: self.delMultiSpec(i))
+                frame.addWidget(button,1,1)
+                entries = []
+                self.extraEntries.append(entries)
+                buttons1 = []
+                self.extraButtons1.append(buttons1)
+                self.extraButtons1Group.append(QtGui.QButtonGroup(self))
+                self.extraButtons1Group[i].buttonClicked.connect(lambda: self.setExtraAxes(True))
+                if current.extraData[i].data.ndim > 1:
+                    for num in range(current.extraData[i].data.ndim):
+                        buttons1.append(QtGui.QRadioButton(''))
+                        self.extraButtons1Group[i].addButton(buttons1[num],num)
+                        frame.addWidget(buttons1[num],num*2+3,0)
+                        frame.addWidget(QLabel("D"+str(num+1),self),num*2+2,1)                    
+                        entries.append(SliceSpinBox(self,0,current.extraData[i].data.shape[num]-1))
+                        frame.addWidget(entries[num],num*2+3,1)
+                        if num < current.extraAxes[i]:
+                            entries[num].setValue(current.extraLoc[i][num])
+                        elif num == current.extraAxes[i]:
+                            entries[num].setValue(0)
+                        else:
+                            entries[num].setValue(current.extraLoc[i][num-1])
+                        entries[num].valueChanged.connect(lambda event=None,num=num,i=i: self.getExtraSlice(event,num,i))
                     
+                    self.extraButtons1Group[i].button(current.extraAxes[i]).toggle()
+                iter1 += 1
+            addButton = QtGui.QPushButton("Add spectrum",self)
+            addButton.clicked.connect(self.addMultiSpec)
+            self.frame2.addWidget(addButton,iter1,0,1,2)
+                          
     def setToFrom(self, *args):
         current = self.father.current
         if not isinstance(current, (sc.CurrentStacked,sc.CurrentArrayed,sc.CurrentSkewed)):
@@ -1934,8 +1970,56 @@ class SideFrame(QtGui.QWidget):
         else:
             self.father.current.setSlice(dimNum,locList)
         self.father.bottomframe.upd()
-        self.upd()
+        #self.upd()
 
+    def setExtraAxes(self, first=True):
+        for i in range(len(self.extraButtons1Group)):
+            axes = self.extraButtons1Group[i].checkedId()
+            self.getExtraSlice(None, axes, i, True)
+        self.father.current.showFid()
+
+    def getExtraSlice(self, event, entryNum, entryi, button=False):
+        length = self.father.current.extraData[entryi].data.ndim
+        if button:
+            dimNum = entryNum
+        else:
+            if entryNum == self.father.current.extraAxes[entryi]:
+                if entryNum == length-1:
+                    dimNum = length-2
+                else:
+                    dimNum = length-1
+            else:
+                dimNum = self.father.current.extraAxes[entryi]
+        locList=[]
+        for num in range(length):
+            inp = self.extraEntries[entryi][num].value()
+            if num == dimNum:
+                pass
+            else:
+                locList.append(inp)
+        self.extraButtons1Group[entryi].button(dimNum).toggle()
+        self.father.current.setExtraSlice(entryi,dimNum,locList)
+        if not button:
+            self.father.current.showFid()
+        #self.upd()
+
+    def checkChanged(self):
+        for i in range(len(self.father.current.extraData)):
+            extraData = self.father.current.extraData[i]
+            if extraData.data.ndim == 1:
+                if len(self.extraEntries[i]) > 0:
+                    self.upd()
+                    self.father.current.showFid()
+                    return
+            else:
+                if len(self.extraEntries[i]) != extraData.data.ndim:
+                    self.upd()
+                    self.father.current.showFid()
+                    return
+                else:
+                    for j in range(len(self.extraEntries[i])):
+                        self.extraEntries[i][j].setMaximum(extraData.data.shape[j])
+        
     def addMultiSpec(self, *args):
         text = QtGui.QInputDialog.getItem(self, "Select spectrum to show", "Spectrum name:", self.father.father.workspaceNames, 0, False)
         if text[1]:
