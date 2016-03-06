@@ -1837,7 +1837,7 @@ class CurrentMulti(Current1D):
         self.extraName.append(name)
         self.extraData.append(data)
         self.extraLoc.append([0]*(len(self.extraData[-1].data.shape)-1))
-        self.extraColor.append('k')                                        #find a good color system
+        self.extraColor.append((0,0,0,1))                                        #find a good color system
         self.extraAxes.append(len(data.data.shape)-1)
         self.showFid()
 
@@ -1848,7 +1848,14 @@ class CurrentMulti(Current1D):
         del self.extraName[num]
         del self.extraAxes[num]
         self.showFid()
-    
+
+    def setExtraColor(self, num, color):
+        self.extraColor[num] = color
+        self.showFid()
+
+    def getExtraColor(self, num):
+        return tuple(np.array(255*np.array(self.extraColor[num]),dtype=int))
+        
     def resetLocList(self):
         self.locList = [0]*(len(self.data.data.shape)-1)
         self.resetExtraLocList()

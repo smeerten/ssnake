@@ -1852,6 +1852,7 @@ class SideFrame(QtGui.QWidget):
             self.extraEntries = []
             self.extraButtons1 = []
             self.extraButtons1Group = []
+            self.nameLabels = []
             iter1 = 0
             for i in range(len(current.extraData)):
                 frameWidget = QtGui.QWidget(self)
@@ -1861,7 +1862,12 @@ class SideFrame(QtGui.QWidget):
                 name = current.extraName[i]
                 if len(name)>20:
                     name = name[:20]
-                frame.addWidget(QLabel(name,self),0,0,1,2)
+                self.nameLabels.append(QLabel(name,self))
+                frame.addWidget(self.nameLabels[i],0,0,1,2)
+                self.nameLabels[i].setStyleSheet("QLabel { color: rgb"+str(current.getExtraColor(i))+";}")
+                colorbutton = QtGui.QPushButton("Color",self)
+                colorbutton.clicked.connect(lambda: self.setExtraColor(i))
+                frame.addWidget(colorbutton,1,0)
                 button = QtGui.QPushButton("x",self)
                 button.clicked.connect(lambda: self.delMultiSpec(i))
                 frame.addWidget(button,1,1)
@@ -2019,7 +2025,12 @@ class SideFrame(QtGui.QWidget):
                 else:
                     for j in range(len(self.extraEntries[i])):
                         self.extraEntries[i][j].setMaximum(extraData.data.shape[j])
-        
+
+    def setExtraColor(self, num):
+        color = QtGui.QColorDialog.getColor()
+        self.father.current.setExtraColor(num, color.getRgbF())
+        self.nameLabels[num].setStyleSheet("QLabel { color: rgb"+str(self.father.current.getExtraColor(num))+";}")
+                        
     def addMultiSpec(self, *args):
         text = QtGui.QInputDialog.getItem(self, "Select spectrum to show", "Spectrum name:", self.father.father.workspaceNames, 0, False)
         if text[1]:
