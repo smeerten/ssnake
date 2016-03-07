@@ -280,86 +280,155 @@ class Spectrum:
         axes = self.checkAxes(axes)
         if axes == None:
             return None
+        if isinstance(pos1, int):
+            pos1 = np.array([pos1])
+            pos2 = np.array([pos2])
+        if len(pos1) != len(pos2):
+            self.dispMsg("Length of the two arrays is not equal")
+            return None
         copyData=copy.deepcopy(self)
         returnValue = lambda self: self.restoreData(copyData, lambda self: self.matrixManip(pos1,pos2,axes,which))
-        minPos = min(pos1,pos2)
-        maxPos = max(pos1,pos2)
-        slicing = (slice(None),) * axes + (slice(minPos,maxPos),) + (slice(None),)*(self.dim-1-axes)
-        if which == 0:
-            if self.spec[axes]==0:
-                self.data = np.sum(self.data[slicing],axis=axes)/self.sw[axes]
-            else:
-                self.data = np.sum(self.data[slicing],axis=axes)*self.sw[axes]/(1.0*self.data.shape[axes])
-            self.addHistory("Integrate between " + str(minPos) + " and " + str(maxPos) + " of dimension " + str(axes+1))
-        if which == 5:
-            self.data = np.sum(self.data[slicing],axis=axes)
-            self.addHistory("Sum between " + str(minPos) + " and " + str(maxPos) + " of dimension " + str(axes+1))
-        elif which == 1:
-            self.data = np.amax(self.data[slicing],axis=axes)
-            self.addHistory("Maximum between " + str(minPos) + " and " + str(maxPos) + " of dimension " + str(axes+1))
-        elif which == 2:
-            self.data = np.amin(self.data[slicing],axis=axes)
-            self.addHistory("Minimum between " + str(minPos) + " and " + str(maxPos) + " of dimension " + str(axes+1))
-        elif which == 3:
-            maxArgPos = np.argmax(np.real(self.data[slicing]),axis=axes)
-            tmpmaxPos = maxArgPos.flatten()
-            self.data = self.xaxArray[axes][slice(minPos,maxPos)][tmpmaxPos].reshape(maxArgPos.shape)
-            self.addHistory("Maximum position between " + str(minPos) + " and " + str(maxPos) + " of dimension " + str(axes+1))
-        elif which == 4:
-            minArgPos = np.argmin(np.real(self.data[slicing]),axis=axes)
-            tmpminPos = minArgPos.flatten()
-            self.data = self.xaxArray[axes][slice(minPos,maxPos)][tmpminPos].reshape(minArgPos.shape)
-            self.addHistory("Minimum position between " + str(minPos) + " and " + str(maxPos) + " of dimension " + str(axes+1))
-        if self.dim==1:
-            self.data = np.array([self.data])
-            self.resetXax(axes)
+        tmpdata = ()
+        if len(pos1) == 1:
+            keepdims = False
         else:
-            self.dim = self.dim - 1
-            self.freq = np.delete(self.freq,axes)
-            self.ref = np.delete(self.ref,axes)
-            self.sw = np.delete(self.sw,axes)
-            self.spec = np.delete(self.spec,axes)
-            self.wholeEcho = np.delete(self.wholeEcho,axes)
-            del self.xaxArray[axes]
+            keepdims = True
+        for i in range(len(pos1)):
+            minPos = min(pos1[i], pos2[i])
+            maxPos = max(pos1[i], pos2[i])
+            slicing = (slice(None),) * axes + (slice(minPos, maxPos),) + (slice(None),)*(self.dim-1-axes)
+            if which == 0:
+                if self.spec[axes]==0:
+                    tmpdata += (np.sum(self.data[slicing], axis=axes, keepdims=keepdims)/self.sw[axes],)
+                else:
+                    tmpdata += (np.sum(self.data[slicing], axis=axes, keepdims=keepdims)*self.sw[axes]/(1.0*self.data.shape[axes]),)
+            elif which == 5:
+                tmpdata += (np.sum(self.data[slicing], axis=axes, keepdims=keepdims),)
+            elif which == 1:
+                tmpdata += (np.amax(self.data[slicing], axis=axes, keepdims=keepdims),)
+            elif which == 2:
+                tmpdata += (np.amin(self.data[slicing], axis=axes, keepdims=keepdims),)
+            elif which == 3:
+                maxArgPos = np.argmax(np.real(self.data[slicing]), axis=axes)
+                tmpmaxPos = maxArgPos.flatten()
+                tmp = self.xaxArray[axes][slice(minPos,maxPos)][tmpmaxPos].reshape(maxArgPos.shape)
+                if keepdims:
+                    tmpdata += (np.expand_dims(tmp, axes),)
+                else:
+                    tmpdata += (tmp,)
+            elif which == 4:
+                minArgPos = np.argmin(np.real(self.data[slicing]), axis=axes)
+                tmpminPos = minArgPos.flatten()
+                tmp = self.xaxArray[axes][slice(minPos,maxPos)][tmpminPos].reshape(minArgPos.shape)
+                if keepdims:
+                    tmpdata += (np.expand_dims(tmp, axes),)
+                else:
+                    tmpdata += (tmp,)
+        if which == 0:
+            self.addHistory("Integrate between " + str(pos1) + " and " + str(pos2) + " of dimension " + str(axes+1))
+        elif which == 5:
+            self.addHistory("Sum between " + str(pos1) + " and " + str(pos2) + " of dimension " + str(axes+1))
+        elif which == 1:
+            self.addHistory("Maximum between " + str(pos1) + " and " + str(pos2) + " of dimension " + str(axes+1))
+        elif which == 2:        
+            self.addHistory("Minimum between " + str(pos1) + " and " + str(pos2) + " of dimension " + str(axes+1))
+        elif which == 3:
+            self.addHistory("Maximum position between " + str(pos1) + " and " + str(pos2) + " of dimension " + str(axes+1))
+        elif which == 4:
+            self.addHistory("Minimum position between " + str(pos1) + " and " + str(pos2) + " of dimension " + str(axes+1))
+        if len(tmpdata)==1:
+            if self.dim==1:
+                self.data = np.array([tmpdata[0]])
+                self.resetXax(axes)
+                print self.data.shape
+            else:
+                self.data = np.concatenate(tmpdata, axis=axes)
+                self.dim = self.dim - 1
+                self.freq = np.delete(self.freq,axes)
+                self.ref = np.delete(self.ref,axes)
+                self.sw = np.delete(self.sw,axes)
+                self.spec = np.delete(self.spec,axes)
+                self.wholeEcho = np.delete(self.wholeEcho,axes)
+                del self.xaxArray[axes]
+        else:
+            self.data = np.concatenate(tmpdata, axis=axes)
+            self.resetXax(axes)
         return returnValue
 
     def matrixManipNew(self, pos1, pos2, axes, which):
         axes = self.checkAxes(axes)
         if axes == None:
             return None
-        minPos = min(pos1,pos2)
-        maxPos = max(pos1,pos2)
-        slicing = (slice(None),) * axes + (slice(minPos,maxPos),) + (slice(None),)*(self.dim-1-axes)
-        if which == 0:
-            if self.spec[axes]==0:
-                tmpdata = np.sum(self.data[slicing],axis=axes)/self.sw[axes]
+        if isinstance(pos1, int):
+            pos1 = np.array([pos1])
+            pos2 = np.array([pos2])
+        if len(pos1) != len(pos2):
+            self.dispMsg("Length of the two arrays is not equal")
+            return None
+        tmpdata = ()
+        if len(pos1) == 1:
+            keepdims = False
+        else:
+            keepdims = True
+        for i in range(len(pos1)):
+            minPos = min(pos1[i], pos2[i])
+            maxPos = max(pos1[i], pos2[i])
+            slicing = (slice(None),) * axes + (slice(minPos, maxPos),) + (slice(None),)*(self.dim-1-axes)
+            if which == 0:
+                if self.spec[axes]==0:
+                    tmpdata += (np.sum(self.data[slicing], axis=axes, keepdims=keepdims)/self.sw[axes],)
+                else:
+                    tmpdata += (np.sum(self.data[slicing], axis=axes, keepdims=keepdims)*self.sw[axes]/(1.0*self.data.shape[axes]),)
+            elif which == 5:
+                tmpdata += (np.sum(self.data[slicing], axis=axes, keepdims=keepdims),)
+            elif which == 1:
+                tmpdata += (np.amax(self.data[slicing], axis=axes, keepdims=keepdims),)
+            elif which == 2:
+                tmpdata += (np.amin(self.data[slicing], axis=axes, keepdims=keepdims),)
+            elif which == 3:
+                maxArgPos = np.argmax(np.real(self.data[slicing]), axis=axes)
+                tmpmaxPos = maxArgPos.flatten()
+                tmp = self.xaxArray[axes][slice(minPos,maxPos)][tmpmaxPos].reshape(maxArgPos.shape)
+                if keepdims:
+                    tmpdata += (np.expand_dims(tmp, axes),)
+                else:
+                    tmpdata += (tmp,)
+            elif which == 4:
+                minArgPos = np.argmin(np.real(self.data[slicing]), axis=axes)
+                tmpminPos = minArgPos.flatten()
+                tmp = self.xaxArray[axes][slice(minPos,maxPos)][tmpminPos].reshape(minArgPos.shape)
+                if keepdims:
+                    tmpdata += (np.expand_dims(tmp, axes),)
+                else:
+                    tmpdata += (tmp,)
+        if len(tmpdata)==1:
+            if self.dim==1:
+                tmpdata = np.array([tmpdata[0]])
+                newSpec = Spectrum(tmpdata, self.loadFunc, copy.deepcopy(self.freq), copy.deepcopy(self.sw), copy.deepcopy(self.spec), copy.deepcopy(self.wholeEcho), copy.deepcopy(self.ref), copy.deepcopy(self.xaxArray), copy.deepcopy(self.history), self.msgHandler)
+                newSpec.resetXax(axes)
             else:
-                tmpdata = np.sum(self.data[slicing],axis=axes)*self.sw[axes]/(1.0*self.data.shape[axes])
-        if which == 5:
-            tmpdata = np.sum(self.data[slicing],axis=axes)
-        elif which == 1:
-            tmpdata = np.amax(self.data[slicing],axis=axes)
-        elif which == 2:
-            tmpdata = np.amin(self.data[slicing],axis=axes)
-        elif which == 3:
-            maxArgPos = np.argmax(np.real(self.data[slicing]),axis=axes)
-            tmpmaxPos = maxArgPos.flatten()
-            tmpdata = self.xaxArray[axes][slice(minPos,maxPos)][tmpmaxPos].reshape(maxArgPos.shape)
-        elif which == 4:
-            minArgPos = np.argmin(np.real(self.data[slicing]),axis=axes)
-            tmpminPos = minArgPos.flatten()
-            tmpdata = self.xaxArray[axes][slice(minPos,maxPos)][tmpminPos].reshape(minArgPos.shape)
-        if self.dim==1:
-            tmpdata = np.array([tmpdata])
+                tmpXax = copy.deepcopy(self.xaxArray)
+                del tmpXax[axes]
+                newSpec = Spectrum(np.concatenate(tmpdata, axis=axes), self.loadFunc, copy.deepcopy(np.delete(self.freq,axes)), copy.deepcopy(np.delete(self.sw,axes)), copy.deepcopy(np.delete(self.spec,axes)), copy.deepcopy(np.delete(self.wholeEcho,axes)), copy.deepcopy(np.delete(self.ref,axes)), tmpXax, copy.deepcopy(self.history), self.msgHandler)
+        else:
+            tmpdata = np.concatenate(tmpdata, axis=axes)
             newSpec = Spectrum(tmpdata, self.loadFunc, copy.deepcopy(self.freq), copy.deepcopy(self.sw), copy.deepcopy(self.spec), copy.deepcopy(self.wholeEcho), copy.deepcopy(self.ref), copy.deepcopy(self.xaxArray), copy.deepcopy(self.history), self.msgHandler)
             newSpec.resetXax(axes)
-        else:
-            tmpXax = copy.deepcopy(self.xaxArray)
-            del tmpXax[axes]
-            newSpec = Spectrum(tmpdata, self.loadFunc, copy.deepcopy(np.delete(self.freq,axes)), copy.deepcopy(np.delete(self.sw,axes)), copy.deepcopy(np.delete(self.spec,axes)), copy.deepcopy(np.delete(self.wholeEcho,axes)), copy.deepcopy(np.delete(self.ref,axes)), tmpXax, copy.deepcopy(self.history), self.msgHandler)
+        if which == 0:
+            newSpec.addHistory("Integrate between " + str(pos1) + " and " + str(pos2) + " of dimension " + str(axes+1))
+        elif which == 5:
+            newSpec.addHistory("Sum between " + str(pos1) + " and " + str(pos2) + " of dimension " + str(axes+1))
+        elif which == 1:
+            newSpec.addHistory("Maximum between " + str(pos1) + " and " + str(pos2) + " of dimension " + str(axes+1))
+        elif which == 2:        
+            newSpec.addHistory("Minimum between " + str(pos1) + " and " + str(pos2) + " of dimension " + str(axes+1))
+        elif which == 3:
+            newSpec.addHistory("Maximum position between " + str(pos1) + " and " + str(pos2) + " of dimension " + str(axes+1))
+        elif which == 4:
+            newSpec.addHistory("Minimum position between " + str(pos1) + " and " + str(pos2) + " of dimension " + str(axes+1))           
         return newSpec
     
-    def getRegion(self, pos1, pos2,axes):
+    def getRegion(self, pos1, pos2, axes):
         axes = self.checkAxes(axes)
         if axes == None:
             return None
@@ -402,6 +471,7 @@ class Spectrum:
             tmpfreq[axes] = tmpfreq[axes] - newFxax+oldFxax
         newSpec = Spectrum(tmpdata, self.loadFunc, tmpfreq, tmpsw, copy.deepcopy(self.spec), copy.deepcopy(self.wholeEcho), tmpref, copy.deepcopy(self.xaxArray), copy.deepcopy(self.history), self.msgHandler)
         newSpec.resetXax(axes)
+        newSpec.addHistory("Extracted part between " + str(minPos) + " and " + str(maxPos) + " of dimension " + str(axes+1))
         return newSpec
     
     def diff(self, axes):
