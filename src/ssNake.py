@@ -569,6 +569,15 @@ class MainProgram(QtGui.QMainWindow):
             self.activemenu.addAction(i, lambda i=i: self.changeMainWindow(i))
         self.menuCheck()
 
+    def newWorkspace(self, masterData):
+        name = self.askName()
+        if name is None:
+            return
+        self.workspaces.append(Main1DWindow(self,masterData,name=name))
+        self.tabs.addTab(self.workspaces[-1],name)
+        self.workspaceNames.append(name)
+        self.changeMainWindow(name)
+        
     def loadFromMenu(self):
         fileList = QtGui.QFileDialog.getOpenFileNames(self,'Open File',self.LastLocation)
         for filePath in fileList:
@@ -632,7 +641,7 @@ class MainProgram(QtGui.QMainWindow):
         self.tabs.addTab(self.workspaces[-1],name)
         self.workspaceNames.append(name)
         self.changeMainWindow(name)
-
+        
     def loading(self,num,filePath):
         name = self.askName(filePath,os.path.splitext(os.path.basename(filePath))[0])
         if name is None:
@@ -3097,6 +3106,8 @@ class regionWindow(QtGui.QWidget):
         self.endEntry.setText(str(self.endVal))
         self.endEntry.returnPressed.connect(self.checkValues)
         grid.addWidget(self.endEntry,3,0)
+        self.newSpec = QtGui.QCheckBox("Result in new workspace")
+        layout.addWidget(self.newSpec,1,0,1,2)
         cancelButton = QtGui.QPushButton("&Cancel")
         cancelButton.clicked.connect(self.closeEvent)
         layout.addWidget(cancelButton,2,0)
@@ -3179,7 +3190,7 @@ class regionWindow(QtGui.QWidget):
             self.endVal = 0
         elif self.endVal > dataLength:
             self.endVal = dataLength
-        self.apply(self.startVal,self.endVal)
+        self.apply(self.startVal, self.endVal, self.newSpec.isChecked())
         self.father.menuEnable()
         self.deleteLater()
 
@@ -3188,70 +3199,91 @@ class integrateWindow(regionWindow):
     def __init__(self, parent):
         regionWindow.__init__(self,parent,'Integrate')
 
-    def apply(self,maximum,minimum):
-        self.father.redoList = []
-        self.father.undoList.append(self.father.current.integrate(minimum,maximum))
-        self.father.updAllFrames()
+    def apply(self, maximum, minimum, newSpec):
+        if newSpec:
+            self.father.father.newWorkspace(self.father.current.integrate(minimum, maximum, newSpec))
+        else:
+            self.father.redoList = []
+            self.father.undoList.append(self.father.current.integrate(minimum, maximum))
+            self.father.updAllFrames()
 
 ############################################################
 class sumWindow(regionWindow): 
     def __init__(self, parent):
         regionWindow.__init__(self,parent,'Sum')
 
-    def apply(self,maximum,minimum):
-        self.father.redoList = []
-        self.father.undoList.append(self.father.current.sum(minimum,maximum))
-        self.father.updAllFrames()
+    def apply(self, maximum, minimum, newSpec):
+        if newSpec:
+            self.father.father.newWorkspace(self.father.current.sum(minimum, maximum, newSpec))
+        else:
+            self.father.redoList = []
+            self.father.undoList.append(self.father.current.sum(minimum, maximum, newSpec))
+            self.father.updAllFrames()
         
 ############################################################
 class maxWindow(regionWindow): 
     def __init__(self, parent):
         regionWindow.__init__(self,parent,'Max')
 
-    def apply(self,maximum,minimum):
-        self.father.redoList = []
-        self.father.undoList.append(self.father.current.maxMatrix(minimum,maximum))
-        self.father.updAllFrames()
+    def apply(self, maximum, minimum, newSpec):
+        if newSpec:
+            self.father.father.newWorkspace(self.father.current.maxMatrix(minimum, maximum, newSpec))
+        else:
+            self.father.redoList = []
+            self.father.undoList.append(self.father.current.maxMatrix(minimum, maximum, newSpec))
+            self.father.updAllFrames()
 
 ############################################################
 class minWindow(regionWindow): 
     def __init__(self, parent):
         regionWindow.__init__(self,parent,'Min')
 
-    def apply(self,maximum,minimum):
-        self.father.redoList = []
-        self.father.undoList.append(self.father.current.minMatrix(minimum,maximum))
-        self.father.updAllFrames()
+    def apply(self, maximum, minimum, newSpec):
+        if newSpec:
+            self.father.father.newWorkspace(self.father.current.minMatrix(minimum, maximum, newSpec))
+        else:
+            self.father.redoList = []
+            self.father.undoList.append(self.father.current.minMatrix(minimum, maximum, newSpec))
+            self.father.updAllFrames()
         
 ############################################################
 class argmaxWindow(regionWindow):
     def __init__(self, parent):
         regionWindow.__init__(self,parent,'Max position')
 
-    def apply(self,maximum,minimum):
-        self.father.redoList = []
-        self.father.undoList.append(self.father.current.argmaxMatrix(minimum,maximum))
-        self.father.updAllFrames()
+    def apply(self, maximum, minimum, newSpec):
+        if newSpec:
+            self.father.father.newWorkspace(self.father.current.argmaxMatrix(minimum, maximum, newSpec))
+        else:
+            self.father.redoList = []
+            self.father.undoList.append(self.father.current.argmaxMatrix(minimum, maximum, newSpec))
+            self.father.updAllFrames()
 
 ############################################################
 class argminWindow(regionWindow):
     def __init__(self, parent):
         regionWindow.__init__(self,parent,'Min position')
 
-    def apply(self,maximum,minimum):
-        self.father.redoList = []
-        self.father.undoList.append(self.father.current.argminMatrix(minimum,maximum))
-        self.father.updAllFrames()
+    def apply(self, maximum, minimum, newSpec):
+        if newSpec:
+            self.father.father.newWorkspace(self.father.current.argminMatrix(minimum, maximum, newSpec))
+        else:
+            self.father.redoList = []
+            self.father.undoList.append(self.father.current.argminMatrix(minimum, maximum, newSpec))
+            self.father.updAllFrames()
         
 ############################################################
 class extractRegionWindow(regionWindow):
     def __init__(self, parent):
         regionWindow.__init__(self,parent,'Extract part')
 
-    def apply(self,maximum,minimum):
-        self.father.redoList = []
-        self.father.undoList.append(self.father.current.getRegion(minimum,maximum))
-        self.father.updAllFrames()
+    def apply(self, maximum, minimum, newSpec):
+        if newSpec:
+            self.father.father.newWorkspace(self.father.current.getRegion(minimum, maximum, newSpec))
+        else:
+            self.father.redoList = []
+            self.father.undoList.append(self.father.current.getRegion(minimum, maximum, newSpec))
+            self.father.updAllFrames()
 
 ##############################################################
 class DeleteWindow(QtGui.QWidget):

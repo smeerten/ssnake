@@ -323,6 +323,42 @@ class Spectrum:
             del self.xaxArray[axes]
         return returnValue
 
+    def matrixManipNew(self, pos1, pos2, axes, which):
+        axes = self.checkAxes(axes)
+        if axes == None:
+            return None
+        minPos = min(pos1,pos2)
+        maxPos = max(pos1,pos2)
+        slicing = (slice(None),) * axes + (slice(minPos,maxPos),) + (slice(None),)*(self.dim-1-axes)
+        if which == 0:
+            if self.spec[axes]==0:
+                tmpdata = np.sum(self.data[slicing],axis=axes)/self.sw[axes]
+            else:
+                tmpdata = np.sum(self.data[slicing],axis=axes)*self.sw[axes]/(1.0*self.data.shape[axes])
+        if which == 5:
+            tmpdata = np.sum(self.data[slicing],axis=axes)
+        elif which == 1:
+            tmpdata = np.amax(self.data[slicing],axis=axes)
+        elif which == 2:
+            tmpdata = np.amin(self.data[slicing],axis=axes)
+        elif which == 3:
+            maxArgPos = np.argmax(np.real(self.data[slicing]),axis=axes)
+            tmpmaxPos = maxArgPos.flatten()
+            tmpdata = self.xaxArray[axes][slice(minPos,maxPos)][tmpmaxPos].reshape(maxArgPos.shape)
+        elif which == 4:
+            minArgPos = np.argmin(np.real(self.data[slicing]),axis=axes)
+            tmpminPos = minArgPos.flatten()
+            tmpdata = self.xaxArray[axes][slice(minPos,maxPos)][tmpminPos].reshape(minArgPos.shape)
+        if self.dim==1:
+            tmpdata = np.array([tmpdata])
+            newSpec = Spectrum(tmpdata, self.loadFunc, copy.deepcopy(self.freq), copy.deepcopy(self.sw), copy.deepcopy(self.spec), copy.deepcopy(self.wholeEcho), copy.deepcopy(self.ref), copy.deepcopy(self.xaxArray), copy.deepcopy(self.history), self.msgHandler)
+            newSpec.resetXax(axes)
+        else:
+            tmpXax = copy.deepcopy(self.xaxArray)
+            del tmpXax[axes]
+            newSpec = Spectrum(tmpdata, self.loadFunc, copy.deepcopy(np.delete(self.freq,axes)), copy.deepcopy(np.delete(self.sw,axes)), copy.deepcopy(np.delete(self.spec,axes)), copy.deepcopy(np.delete(self.wholeEcho,axes)), copy.deepcopy(np.delete(self.ref,axes)), tmpXax, copy.deepcopy(self.history), self.msgHandler)
+        return newSpec
+    
     def getRegion(self, pos1, pos2,axes):
         axes = self.checkAxes(axes)
         if axes == None:
@@ -344,7 +380,30 @@ class Spectrum:
         self.resetXax(axes)
         self.addHistory("Extracted part between " + str(minPos) + " and " + str(maxPos) + " of dimension " + str(axes+1))
         return returnValue
-
+    
+    def getRegionNew(self, pos1, pos2, axes):
+        axes = self.checkAxes(axes)
+        if axes == None:
+            return None
+        minPos = min(pos1,pos2)
+        maxPos = max(pos1,pos2)
+        slicing = (slice(None),) * axes + (slice(minPos,maxPos),) + (slice(None),)*(self.dim-1-axes)
+        tmpsw = copy.deepcopy(self.sw)
+        tmpfreq = copy.deepcopy(self.freq)
+        tmpref = copy.deepcopy(self.ref)
+        if self.spec[axes] == 1:
+            oldFxax = self.xaxArray[axes][slice(minPos,maxPos)][0]
+            tmpsw[axes] = tmpsw[axes]*(maxPos-minPos)/(1.0*self.data.shape[axes])
+        tmpdata = self.data[slicing]
+        if self.spec[axes] == 1:
+            newFxax = np.fft.fftshift(np.fft.fftfreq(tmpdata.shape[axes],1.0/tmpsw[axes]))[0]
+            if tmpref[axes] is None:
+                tmpref[axes] = tmpfreq[axes]
+            tmpfreq[axes] = tmpfreq[axes] - newFxax+oldFxax
+        newSpec = Spectrum(tmpdata, self.loadFunc, tmpfreq, tmpsw, copy.deepcopy(self.spec), copy.deepcopy(self.wholeEcho), tmpref, copy.deepcopy(self.xaxArray), copy.deepcopy(self.history), self.msgHandler)
+        newSpec.resetXax(axes)
+        return newSpec
+    
     def diff(self, axes):
         axes = self.checkAxes(axes)
         if axes == None:
@@ -1301,53 +1360,71 @@ class Current1D(Plot1DFrame):
         self.root.addMacro(['statesTPPI',(self.axes-self.data.dim,)])
         return returnValue
     
-    def integrate(self,pos1,pos2):
-        self.root.addMacro(['integrate',(pos1,pos2,self.axes-self.data.dim,)])
-        returnValue = self.data.matrixManip(pos1,pos2,self.axes,0)
-        if self.upd():
-            self.plotReset()
-            self.showFid()
-        return returnValue
+    def integrate(self, pos1, pos2, newSpec=False):
+        if newSpec:
+            return self.data.matrixManipNew(pos1, pos2, self.axes, 0)
+        else:
+            self.root.addMacro(['integrate',(pos1, pos2, self.axes-self.data.dim,)])
+            returnValue = self.data.matrixManip(pos1, pos2, self.axes, 0)
+            if self.upd():
+                self.plotReset()
+                self.showFid()
+            return returnValue
 
-    def sum(self,pos1,pos2):
-        self.root.addMacro(['sum',(pos1,pos2,self.axes-self.data.dim,)])
-        returnValue = self.data.matrixManip(pos1,pos2,self.axes,5)
-        if self.upd():
-            self.plotReset()
-            self.showFid()
-        return returnValue
+    def sum(self, pos1, pos2, newSpec=False):
+        if newSpec:
+            return self.data.matrixManipNew(pos1, pos2, self.axes, 5)
+        else:
+            self.root.addMacro(['sum',(pos1, pos2, self.axes-self.data.dim,)])
+            returnValue = self.data.matrixManip(pos1, pos2, self.axes, 5)
+            if self.upd():
+                self.plotReset()
+                self.showFid()
+            return returnValue
 
-    def maxMatrix(self,pos1,pos2):
-        self.root.addMacro(['max',(pos1,pos2,self.axes-self.data.dim,)])
-        returnValue = self.data.matrixManip(pos1,pos2,self.axes,1)
-        if self.upd():
-            self.plotReset()
-            self.showFid()
-        return returnValue
+    def maxMatrix(self, pos1, pos2, newSpec=False):
+        if newSpec:
+            return self.data.matrixManipNew(pos1, pos2,self.axes, 1)
+        else:
+            self.root.addMacro(['max',(pos1, pos2, self.axes-self.data.dim,)])
+            returnValue = self.data.matrixManip(pos1, pos2, self.axes, 1)
+            if self.upd():
+                self.plotReset()
+                self.showFid()
+            return returnValue
     
-    def minMatrix(self,pos1,pos2):
-        self.root.addMacro(['min',(pos1,pos2,self.axes-self.data.dim,)])
-        returnValue = self.data.matrixManip(pos1,pos2,self.axes,2)
-        if self.upd():
-            self.plotReset()
-            self.showFid()
-        return returnValue
+    def minMatrix(self, pos1, pos2, newSpec=False):
+        if newSpec:
+            return self.data.matrixManipNew(pos1, pos2,self.axes, 2)
+        else:
+            self.root.addMacro(['min',(pos1, pos2, self.axes-self.data.dim,)])
+            returnValue = self.data.matrixManip(pos1, pos2, self.axes, 2)
+            if self.upd():
+                self.plotReset()
+                self.showFid()
+            return returnValue
     
-    def argmaxMatrix(self,pos1,pos2):
-        self.root.addMacro(['argmax',(pos1,pos2,self.axes-self.data.dim,)])
-        returnValue = self.data.matrixManip(pos1,pos2,self.axes,3)
-        if self.upd():
-            self.plotReset()
-            self.showFid()
-        return returnValue
+    def argmaxMatrix(self, pos1, pos2, newSpec=False):
+        if newSpec:
+            return self.data.matrixManipNew(pos1, pos2,self.axes, 3)
+        else:
+            self.root.addMacro(['argmax',(pos1, pos2, self.axes-self.data.dim,)])
+            returnValue = self.data.matrixManip(pos1, pos2, self.axes, 3)
+            if self.upd():
+                self.plotReset()
+                self.showFid()
+            return returnValue
 
-    def argminMatrix(self,pos1,pos2):
-        self.root.addMacro(['argmin',(pos1,pos2,self.axes-self.data.dim,)])
-        returnValue = self.data.matrixManip(pos1,pos2,self.axes,4)
-        if self.upd():
-            self.plotReset()
-            self.showFid()
-        return returnValue
+    def argminMatrix(self, pos1, pos2, newSpec=False):
+        if newSpec:
+            return self.data.matrixManipNew(pos1, pos2,self.axes, 4)
+        else:
+            self.root.addMacro(['argmin',(pos1, pos2, self.axes-self.data.dim,)])
+            returnValue = self.data.matrixManip(pos1, pos2, self.axes, 4)
+            if self.upd():
+                self.plotReset()
+                self.showFid()
+            return returnValue
     
     def flipLR(self):
         returnValue = self.data.flipLR(self.axes)
@@ -1450,13 +1527,16 @@ class Current1D(Plot1DFrame):
         self.data1D = self.data1D*data
         self.showFid()
     
-    def getRegion(self,pos1,pos2): 
-        returnValue = self.data.getRegion(pos1,pos2,self.axes)
-        self.upd()
-        self.plotReset()
-        self.showFid()
-        self.root.addMacro(['extract',(pos1,pos2,self.axes-self.data.dim)])
-        return returnValue
+    def getRegion(self, pos1, pos2, newSpec=False):
+        if newSpec:
+            return self.data.getRegionNew(pos1, pos2, self.axes)
+        else:
+            returnValue = self.data.getRegion(pos1, pos2, self.axes)
+            self.upd()
+            self.plotReset()
+            self.showFid()
+            self.root.addMacro(['extract',(pos1,pos2,self.axes-self.data.dim)])
+            return returnValue
     
     def shearing(self,shear,axes,axes2):
         returnValue = self.data.shear(shear,axes,axes2)
