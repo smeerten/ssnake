@@ -3106,22 +3106,31 @@ class regionWindow(QtGui.QWidget):
         self.father = parent
         self.setWindowTitle(name)
         layout = QtGui.QGridLayout(self)
-        grid = QtGui.QGridLayout()
-        layout.addLayout(grid,0,0,1,2)
-        self.startVal = 0
-        self.endVal = parent.current.data1D.shape[-1]
-        grid.addWidget(QLabel("Start point:"),0,0)
-        grid.addWidget(QLabel("End point:"),0,1)
-        self.startEntry = QtGui.QLineEdit()
-        self.startEntry.setAlignment(QtCore.Qt.AlignHCenter)
-        self.startEntry.setText(str(self.startVal))
-        self.startEntry.returnPressed.connect(self.checkValues)
-        grid.addWidget(self.startEntry,1,0)
-        self.endEntry = QtGui.QLineEdit()
-        self.endEntry.setAlignment(QtCore.Qt.AlignHCenter)
-        self.endEntry.setText(str(self.endVal))
-        self.endEntry.returnPressed.connect(self.checkValues)
-        grid.addWidget(self.endEntry,1,1)
+        self.grid = QtGui.QGridLayout()
+        layout.addLayout(self.grid,0,0,1,2)
+        self.startVal = [0] #dummy variables
+        self.endVal = [parent.current.data1D.shape[-1]] #dummy variables
+        self.grid.addWidget(QLabel("Start point:"),0,0)
+        self.grid.addWidget(QLabel("End point:"),0,1)
+        self.startEntry = []
+        self.endEntry = []
+        self.deleteButton = []
+        self.partIter = 0
+        self.entryCount = 1
+        self.first = True
+        self.startEntry.append(QtGui.QLineEdit())
+        self.startEntry[0].setAlignment(QtCore.Qt.AlignHCenter)
+        self.startEntry[0].setText("")
+        self.startEntry[0].editingFinished.connect(lambda self=self,tmp=self.startEntry[0]: self.setVal(tmp,True))
+        self.grid.addWidget(self.startEntry[0],1,0)
+        self.endEntry.append(QtGui.QLineEdit())
+        self.endEntry[0].setAlignment(QtCore.Qt.AlignHCenter)
+        self.endEntry[0].setText("")
+        self.endEntry[0].editingFinished.connect(lambda self=self,tmp=self.endEntry[0]: self.setVal(tmp,False))
+        self.grid.addWidget(self.endEntry[0],1,1)
+        self.deleteButton.append(QtGui.QPushButton("X"))
+        self.deleteButton[0].clicked.connect(lambda extra,self=self: self.deleteEntry(self.deleteButton[0]))
+        self.grid.addWidget(self.deleteButton[0],1,2)
         self.newSpec = QtGui.QCheckBox("Result in new workspace")
         layout.addWidget(self.newSpec,1,0,1,2)
         cancelButton = QtGui.QPushButton("&Cancel")
@@ -3130,51 +3139,106 @@ class regionWindow(QtGui.QWidget):
         okButton = QtGui.QPushButton("&Ok")
         okButton.clicked.connect(self.applyAndClose)
         layout.addWidget(okButton,2,1)
+        self.grid.setRowStretch(100,1)
         self.show()
-        self.setFixedSize(self.size())
+        #self.setFixedSize(self.size())
         self.father.menuDisable()
         self.father.current.peakPickFunc = lambda pos,self=self: self.picked(pos) 
         self.father.current.peakPick = True
         self.setGeometry(self.frameSize().width()-self.geometry().width(),self.frameSize().height()-self.geometry().height(),0,0)
 
-    def picked(self,pos,second=False): 
-        if second:
-            dataLength = self.father.current.data1D.shape[-1]
-            inp = safeEval(self.startEntry.text())
-            if inp is not None:
-                self.startVal = int(round(inp))
-            if self.startVal < 0:
-                self.startVal = 0
-            elif self.startVal > dataLength:
-                self.startVal = dataLength
-            self.startEntry.setText(str(self.startVal))
-            self.endVal=pos[0]
-            self.endEntry.setText(str(self.endVal))
-            self.father.current.peakPickFunc = lambda pos,self=self: self.picked(pos) 
-            self.father.current.peakPick = True
+    def addValue(self, pos):
+        if self.first:
+            self.startVal[self.partIter] = pos
+            self.startEntry[self.partIter].setText(str(pos))
+            self.first = False
         else:
-            self.startEntry.setText(str(pos[0]))
-            self.father.current.peakPickFunc = lambda pos,self=self: self.picked(pos,True) 
-            self.father.current.peakPick = True
+            tmp = self.startVal[self.partIter]
+            self.startVal[self.partIter] = min(pos,tmp)
+            self.endVal[self.partIter] = max(pos,tmp)
+            self.startVal = np.append(self.startVal, 0)
+            self.endVal = np.append(self.endVal, self.father.current.data1D.shape[-1])
+            self.startEntry[self.partIter].setText(str(self.startVal[self.partIter]))
+            self.endEntry[self.partIter].setText(str(self.endVal[self.partIter]))
+            self.partIter += 1
+            self.startEntry.append(QtGui.QLineEdit())
+            self.startEntry[self.partIter].setAlignment(QtCore.Qt.AlignHCenter)
+            self.startEntry[self.partIter].editingFinished.connect(lambda self=self,tmp=self.startEntry[self.partIter]: self.setVal(tmp,True))
+            self.grid.addWidget(self.startEntry[self.partIter],1+self.entryCount,0)
+            self.endEntry.append(QtGui.QLineEdit())
+            self.endEntry[self.partIter].setAlignment(QtCore.Qt.AlignHCenter)
+            self.endEntry[self.partIter].editingFinished.connect(lambda self=self,tmp=self.endEntry[self.partIter]: self.setVal(tmp,False))
+            self.grid.addWidget(self.endEntry[self.partIter],1+self.entryCount,1)
+            self.deleteButton.append(QtGui.QPushButton("X"))
+            self.deleteButton[self.partIter].clicked.connect(lambda extra,self=self,tmp=self.deleteButton[self.partIter]: self.deleteEntry(tmp))
+            self.grid.addWidget(self.deleteButton[self.partIter],1+self.entryCount,2)
+            self.entryCount += 1
+            self.first = True
 
-    def checkValues(self, *args): 
-        dataLength = self.father.current.data1D.shape[-1]
-        inp = safeEval(self.startEntry.text())
-        if inp is not None:
-            self.startVal = int(round(inp))
-        if self.startVal < 0:
-            self.startVal = 0
-        elif self.startVal > dataLength:
-            self.startVal = dataLength
-        self.startEntry.setText(str(self.startVal))
-        inp = safeEval(self.endEntry.text())
-        if inp is not None:
-            self.endVal = int(round(inp))
-        if self.endVal < 0:
-            self.endVal = 0
-        elif self.endVal > dataLength:
-            self.endVal = dataLength
-        self.endEntry.setText(str(self.endVal))
+    def deleteEntry(self, button=None, num=None):
+        if num is None:
+            num = self.deleteButton.index(button)
+        if num == self.partIter:
+            self.startVal[num] = 0
+            self.endVal[num] = self.father.current.data1D.shape[-1]
+            self.startEntry[num].setText("")
+            self.endEntry[num].setText("")
+            self.first=True
+            return
+        self.grid.removeWidget(self.endEntry[num])
+        self.grid.removeWidget(self.startEntry[num])
+        self.grid.removeWidget(self.deleteButton[num])
+        self.endEntry[num].deleteLater()
+        self.startEntry[num].deleteLater()
+        self.deleteButton[num].deleteLater()
+        self.endEntry.pop(num)
+        self.startEntry.pop(num)
+        self.deleteButton.pop(num)
+        self.startVal = np.delete(self.startVal,num)
+        self.endVal = np.delete(self.endVal,num)
+        self.partIter -= 1
+            
+    def picked(self, pos):
+        self.addValue(pos[0])
+        self.father.current.peakPickFunc = lambda pos,self=self: self.picked(pos) 
+        self.father.current.peakPick = True
+
+    def setVal(self,entry,isMin=False):
+        inp = safeEval(entry.text())
+        if inp is None:
+            return
+        inp = int(inp)
+        if inp < 0:
+            inp = 0
+        if inp > self.father.current.data1D.shape[-1]:
+            inp = self.father.current.data1D.shape[-1]
+        if isMin:
+            num = self.startEntry.index(entry)
+            self.startVal[num] = min(inp,self.endVal[num])
+            self.endVal[num] = max(inp,self.endVal[num])
+        else:
+            num = self.endEntry.index(entry)
+            self.endVal[num] = max(inp,self.startVal[num])
+            self.startVal[num] = min(inp,self.startVal[num])
+        if num == self.partIter:
+            self.partIter += 1
+            self.startVal = np.append(self.startVal, 0)
+            self.endVal = np.append(self.endVal, self.father.current.data1D.shape[-1])
+            self.startEntry.append(QtGui.QLineEdit())
+            self.startEntry[self.partIter].setAlignment(QtCore.Qt.AlignHCenter)
+            self.startEntry[self.partIter].editingFinished.connect(lambda self=self,tmp=self.startEntry[self.partIter]: self.setVal(tmp,True))
+            self.grid.addWidget(self.startEntry[self.partIter],1+self.entryCount,0)
+            self.endEntry.append(QtGui.QLineEdit())
+            self.endEntry[self.partIter].setAlignment(QtCore.Qt.AlignHCenter)
+            self.endEntry[self.partIter].editingFinished.connect(lambda self=self,tmp=self.endEntry[self.partIter]: self.setVal(tmp,False))
+            self.grid.addWidget(self.endEntry[self.partIter],1+self.entryCount,1)
+            self.deleteButton.append(QtGui.QPushButton("X"))
+            self.deleteButton[self.partIter].clicked.connect(lambda extra,self=self,tmp=self.deleteButton[self.partIter]: self.deleteEntry(tmp))
+            self.grid.addWidget(self.deleteButton[self.partIter],1+self.entryCount,2)
+            self.entryCount += 1
+            self.first = True
+        self.startEntry[num].setText(str(self.startVal[num]))
+        self.endEntry[num].setText(str(self.endVal[num]))
         
     def apply(self, maximum, minimum, newSpec):
         pass
@@ -3187,26 +3251,29 @@ class regionWindow(QtGui.QWidget):
         
     def applyAndClose(self):
         self.father.current.peakPickReset()
-        dataLength = self.father.current.data1D.shape[-1]
-        inp = safeEval(self.startEntry.text())
-        if inp is None:
-            self.father.father.dispMsg("Not a valid value")
+        # dataLength = self.father.current.data1D.shape[-1]
+        # inp = safeEval(self.startEntry.text())
+        # if inp is None:
+        #     self.father.father.dispMsg("Not a valid value")
+        #     return
+        # self.startVal = int(round(inp))
+        # if self.startVal < 0:
+        #     self.startVal = 0
+        # elif self.startVal > dataLength:
+        #     self.startVal = dataLength
+        # inp = safeEval(self.endEntry.text())
+        # if inp is None:
+        #     self.father.father.dispMsg("Not a valid value")
+        #     return
+        # self.endVal = int(round(inp))
+        # if self.endVal < 0:
+        #     self.endVal = 0
+        # elif self.endVal > dataLength:
+        #     self.endVal = dataLength
+        if self.partIter == 0:
+            self.father.father.dispMsg("No boundaries")
             return
-        self.startVal = int(round(inp))
-        if self.startVal < 0:
-            self.startVal = 0
-        elif self.startVal > dataLength:
-            self.startVal = dataLength
-        inp = safeEval(self.endEntry.text())
-        if inp is None:
-            self.father.father.dispMsg("Not a valid value")
-            return
-        self.endVal = int(round(inp))
-        if self.endVal < 0:
-            self.endVal = 0
-        elif self.endVal > dataLength:
-            self.endVal = dataLength
-        self.apply(self.startVal, self.endVal, self.newSpec.isChecked())
+        self.apply(self.startVal[:self.partIter], self.endVal[:self.partIter], self.newSpec.isChecked())
         self.father.menuEnable()
         self.deleteLater()
 
