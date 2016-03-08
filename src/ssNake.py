@@ -449,13 +449,13 @@ class MainProgram(QtGui.QMainWindow):
 
     def saveMacro(self,name):
         import json
-        fileName = QtGui.QFileDialog.getSaveFileName(self, 'Save File',self.LastLocation)
+        fileName = QtGui.QFileDialog.getSaveFileName(self, 'Save File',self.LastLocation+os.path.sep+name+'.json','JSON (*.json)')
         if fileName: #if not cancelled
             self.LastLocation = os.path.dirname(fileName)
         if not fileName:
             return
         with open(fileName,'w') as f:
-            json.dump(self.macros[name],f)
+            json.dump(self.macros[name], f, indent=4)
 
     def deleteMacro(self,name):
         self.macrolistmenu.removeAction(self.macroActions[name][0])
@@ -474,8 +474,9 @@ class MainProgram(QtGui.QMainWindow):
         filename = QtGui.QFileDialog.getOpenFileName(self, 'Open File',self.LastLocation)
         if filename: #if not cancelled
             self.LastLocation = os.path.dirname(filename) #Save used path
-        if len(filePath)==0:
+        if len(filename)==0:
             return
+        self.stopMacro()
         count = 0
         name = 'macro'+str(count)
         while name in self.macros.keys():
@@ -483,14 +484,17 @@ class MainProgram(QtGui.QMainWindow):
             name = 'macro'+str(count)
         givenName, ok = QtGui.QInputDialog.getText(self, 'Macro name', 'Name:',text=name)
         while (givenName in self.macros.keys()) or givenName is '':
+            if not ok:
+                return
             self.dispMsg('Name exists')
             givenName, ok = QtGui.QInputDialog.getText(self, 'Macro name', 'Name:',text=name)
-        with open(filePath,'r') as f:
+        with open(filename,'r') as f:
             self.macros[givenName] = json.load(f)
-        action1 = self.macrolistmenu.add_command(label=givenName,command=lambda name=givenName: self.runMacro(name))
-        action2 = self.macrosavemenu.add_command(label=givenName,command=lambda name=givenName: self.saveMacro(name))
-        action3 = self.macrodeletemenu.add_command(label=givenName,command=lambda name=givenName: self.deleteMacro(name))
-        self.macroActions[givenName] = [action1,action2,action3]
+        action1 = self.macrolistmenu.addAction(givenName,lambda name=givenName: self.runMacro(name))
+        action2 = self.macrosavemenu.addAction(givenName,lambda name=givenName: self.saveMacro(name))
+        action3 = self.macrodeletemenu.addAction(givenName,lambda name=givenName: self.deleteMacro(name))
+        action4 = self.macrorenamemenu.addAction(givenName,lambda name=givenName: self.renameMacro(name))
+        self.macroActions[givenName] = [action1,action2,action3,action4]
         self.menuCheck()
 
     def changeMainWindow(self, var):
@@ -2045,7 +2049,7 @@ class SideFrame(QtGui.QWidget):
                     return
                 else:
                     for j in range(len(self.extraEntries[i])):
-                        self.extraEntries[i][j].setMaximum(extraData.data.shape[j])
+                        self.extraEntries[i][j].setMaximum(extraData.data.shape[j]-1)
 
     def setExtraColor(self, num):
         color = QtGui.QColorDialog.getColor()
@@ -3107,17 +3111,17 @@ class regionWindow(QtGui.QWidget):
         self.startVal = 0
         self.endVal = parent.current.data1D.shape[-1]
         grid.addWidget(QLabel("Start point:"),0,0)
+        grid.addWidget(QLabel("End point:"),0,1)
         self.startEntry = QtGui.QLineEdit()
         self.startEntry.setAlignment(QtCore.Qt.AlignHCenter)
         self.startEntry.setText(str(self.startVal))
         self.startEntry.returnPressed.connect(self.checkValues)
         grid.addWidget(self.startEntry,1,0)
-        grid.addWidget(QLabel("End point:"),2,0)
         self.endEntry = QtGui.QLineEdit()
         self.endEntry.setAlignment(QtCore.Qt.AlignHCenter)
         self.endEntry.setText(str(self.endVal))
         self.endEntry.returnPressed.connect(self.checkValues)
-        grid.addWidget(self.endEntry,3,0)
+        grid.addWidget(self.endEntry,1,1)
         self.newSpec = QtGui.QCheckBox("Result in new workspace")
         layout.addWidget(self.newSpec,1,0,1,2)
         cancelButton = QtGui.QPushButton("&Cancel")
@@ -3172,7 +3176,7 @@ class regionWindow(QtGui.QWidget):
             self.endVal = dataLength
         self.endEntry.setText(str(self.endVal))
         
-    def apply(self,maximum,minimum):
+    def apply(self, maximum, minimum, newSpec):
         pass
     
     def closeEvent(self, *args):
@@ -3283,11 +3287,115 @@ class argminWindow(regionWindow):
             self.father.redoList = []
             self.father.undoList.append(self.father.current.argminMatrix(minimum, maximum, newSpec))
             self.father.updAllFrames()
-        
-############################################################
-class extractRegionWindow(regionWindow):
+
+#############################################################
+class extractRegionWindow(QtGui.QWidget): 
     def __init__(self, parent):
-        regionWindow.__init__(self,parent,'Extract part')
+        QtGui.QWidget.__init__(self,parent)
+        self.setWindowFlags(QtCore.Qt.Window| QtCore.Qt.Tool)
+        self.father = parent
+        self.setWindowTitle('Extract part')
+        layout = QtGui.QGridLayout(self)
+        grid = QtGui.QGridLayout()
+        layout.addLayout(grid,0,0,1,2)
+        self.startVal = 0
+        self.endVal = parent.current.data1D.shape[-1]
+        grid.addWidget(QLabel("Start point:"),0,0)
+        self.startEntry = QtGui.QLineEdit()
+        self.startEntry.setAlignment(QtCore.Qt.AlignHCenter)
+        self.startEntry.setText(str(self.startVal))
+        self.startEntry.returnPressed.connect(self.checkValues)
+        grid.addWidget(self.startEntry,1,0)
+        grid.addWidget(QLabel("End point:"),2,0)
+        self.endEntry = QtGui.QLineEdit()
+        self.endEntry.setAlignment(QtCore.Qt.AlignHCenter)
+        self.endEntry.setText(str(self.endVal))
+        self.endEntry.returnPressed.connect(self.checkValues)
+        grid.addWidget(self.endEntry,3,0)
+        self.newSpec = QtGui.QCheckBox("Result in new workspace")
+        layout.addWidget(self.newSpec,1,0,1,2)
+        cancelButton = QtGui.QPushButton("&Cancel")
+        cancelButton.clicked.connect(self.closeEvent)
+        layout.addWidget(cancelButton,2,0)
+        okButton = QtGui.QPushButton("&Ok")
+        okButton.clicked.connect(self.applyAndClose)
+        layout.addWidget(okButton,2,1)
+        self.show()
+        self.setFixedSize(self.size())
+        self.father.menuDisable()
+        self.father.current.peakPickFunc = lambda pos,self=self: self.picked(pos) 
+        self.father.current.peakPick = True
+        self.setGeometry(self.frameSize().width()-self.geometry().width(),self.frameSize().height()-self.geometry().height(),0,0)
+
+    def picked(self,pos,second=False): 
+        if second:
+            dataLength = self.father.current.data1D.shape[-1]
+            inp = safeEval(self.startEntry.text())
+            if inp is not None:
+                self.startVal = int(round(inp))
+            if self.startVal < 0:
+                self.startVal = 0
+            elif self.startVal > dataLength:
+                self.startVal = dataLength
+            self.startEntry.setText(str(self.startVal))
+            self.endVal=pos[0]
+            self.endEntry.setText(str(self.endVal))
+            self.father.current.peakPickFunc = lambda pos,self=self: self.picked(pos) 
+            self.father.current.peakPick = True
+        else:
+            self.startEntry.setText(str(pos[0]))
+            self.father.current.peakPickFunc = lambda pos,self=self: self.picked(pos,True) 
+            self.father.current.peakPick = True
+
+    def checkValues(self, *args): 
+        dataLength = self.father.current.data1D.shape[-1]
+        inp = safeEval(self.startEntry.text())
+        if inp is not None:
+            self.startVal = int(round(inp))
+        if self.startVal < 0:
+            self.startVal = 0
+        elif self.startVal > dataLength:
+            self.startVal = dataLength
+        self.startEntry.setText(str(self.startVal))
+        inp = safeEval(self.endEntry.text())
+        if inp is not None:
+            self.endVal = int(round(inp))
+        if self.endVal < 0:
+            self.endVal = 0
+        elif self.endVal > dataLength:
+            self.endVal = dataLength
+        self.endEntry.setText(str(self.endVal))
+        
+    def closeEvent(self, *args):
+        self.father.current.peakPickReset()
+        self.father.updAllFrames()
+        self.father.menuEnable()
+        self.deleteLater()
+        
+    def applyAndClose(self):
+        self.father.current.peakPickReset()
+        dataLength = self.father.current.data1D.shape[-1]
+        inp = safeEval(self.startEntry.text())
+        if inp is None:
+            self.father.father.dispMsg("Not a valid value")
+            return
+        self.startVal = int(round(inp))
+        if self.startVal < 0:
+            self.startVal = 0
+        elif self.startVal > dataLength:
+            self.startVal = dataLength
+        inp = safeEval(self.endEntry.text())
+        if inp is None:
+            self.father.father.dispMsg("Not a valid value")
+            return
+        self.endVal = int(round(inp))
+        if self.endVal < 0:
+            self.endVal = 0
+        elif self.endVal > dataLength:
+            self.endVal = dataLength
+        self.apply(self.startVal, self.endVal, self.newSpec.isChecked())
+        self.father.menuEnable()
+        self.deleteLater()
 
     def apply(self, maximum, minimum, newSpec):
         if newSpec:
