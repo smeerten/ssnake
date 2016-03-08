@@ -200,7 +200,13 @@ class MainProgram(QtGui.QMainWindow):
         self.multiDActions.append(self.plotMenu.addAction("S&kewed plot", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.plotSkewed())))
         self.plotMenu.addAction("&Multi plot", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.plotMulti()))
         self.plotMenu.addAction("Set &reference", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.createRefWindow()))
-        self.plotMenu.addAction("&User x-axis", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.createXaxWindow()))        
+        self.plotMenu.addAction("&User x-axis", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.createXaxWindow()))
+        self.xgridAction = QtGui.QAction("&X-grid", self.plotMenu, checkable=True)
+        self.xgridAction.triggered.connect(lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.setGrid()))
+        self.plotMenu.addAction(self.xgridAction)
+        self.ygridAction = QtGui.QAction("&Y-grid", self.plotMenu, checkable=True)     
+        self.ygridAction.triggered.connect(lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.setGrid()))
+        self.plotMenu.addAction(self.ygridAction)
 
         #the history drop down menu
         self.historyMenu = QtGui.QMenu("&History",self)
@@ -287,6 +293,8 @@ class MainProgram(QtGui.QMainWindow):
                     self.macrostartAct.setEnabled(False)
                 self.savemenu.menuAction().setEnabled(True)
                 self.workspacemenu.menuAction().setEnabled(True)
+                self.xgridAction.setChecked(self.mainWindow.current.grids[0])
+                self.ygridAction.setChecked(self.mainWindow.current.grids[1])
             elif isinstance(self.mainWindow, fit.MainPlotWindow):
                 self.menuDisable(True)
                 self.savemenu.menuAction().setEnabled(True)
@@ -1378,6 +1386,9 @@ class Main1DWindow(QtGui.QWidget):
         self.addMacro(['reload'])
         self.menuCheck()
 
+    def setGrid(self):
+        self.current.setGrids([self.father.xgridAction.isChecked(), self.father.ygridAction.isChecked()])
+        
     def real(self):
         self.redoList = []
         self.undoList.append(self.masterData.real())

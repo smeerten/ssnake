@@ -913,6 +913,7 @@ class Current1D(Plot1DFrame):
             self.resetLocList() 
             self.plotType = 0
             self.axType = 1
+            self.grids = [False, False] # display x and y grid
             self.upd()   #get the first slice of data
             self.startUp()
         else:
@@ -936,6 +937,7 @@ class Current1D(Plot1DFrame):
                         self.locList = np.insert(duplicateCurrent.locList,duplicateCurrent.axes2,0)
             self.plotType = duplicateCurrent.plotType
             self.axType = duplicateCurrent.axType
+            self.grids = duplicateCurrent.grids
             self.xminlim = duplicateCurrent.xminlim
             self.xmaxlim = duplicateCurrent.xmaxlim
             self.yminlim = duplicateCurrent.yminlim
@@ -1001,7 +1003,11 @@ class Current1D(Plot1DFrame):
         else:
             tmp.insert(self.axes,slice(None))
         return tmp
-        
+
+    def setGrids(self, grids):
+        self.grids = grids
+        self.showFid()
+    
     def setPhaseInter(self, phase0in, phase1in): #interactive changing the phase without editing the actual data
         phase0=float(phase0in)
         phase1=float(phase1in)
@@ -1817,6 +1823,8 @@ class Current1D(Plot1DFrame):
             self.ax.set_xlabel('')
         self.ax.get_xaxis().get_major_formatter().set_powerlimits((-4, 4))
         self.ax.get_yaxis().get_major_formatter().set_powerlimits((-4, 4))
+        self.ax.xaxis.grid(self.grids[0])
+        self.ax.yaxis.grid(self.grids[1])
         if self.spec > 0 :
             self.ax.set_xlim(self.xmaxlim,self.xminlim)
         else:
@@ -1935,6 +1943,8 @@ class CurrentScatter(Current1D):
             self.ax.set_xlabel('')
         self.ax.get_xaxis().get_major_formatter().set_powerlimits((-4, 4))
         self.ax.get_yaxis().get_major_formatter().set_powerlimits((-4, 4))
+        self.ax.xaxis.grid(self.grids[0])
+        self.ax.yaxis.grid(self.grids[1])
         if self.spec > 0 :
             self.ax.set_xlim(self.xmaxlim,self.xminlim)
         else:
@@ -2149,6 +2159,8 @@ class CurrentMulti(Current1D):
             self.ax.set_xlabel('')
         self.ax.get_xaxis().get_major_formatter().set_powerlimits((-4, 4))
         self.ax.get_yaxis().get_major_formatter().set_powerlimits((-4, 4))
+        self.ax.xaxis.grid(self.grids[0])
+        self.ax.yaxis.grid(self.grids[1])
         if self.spec > 0 :
             self.ax.set_xlim(self.xmaxlim,self.xminlim)
         else:
@@ -2462,6 +2474,8 @@ class CurrentStacked(Current1D):
         self.ax.set_ylim(self.yminlim,self.ymaxlim)
         self.ax.get_xaxis().get_major_formatter().set_powerlimits((-4, 4))
         self.ax.get_yaxis().get_major_formatter().set_powerlimits((-4, 4))
+        self.ax.xaxis.grid(self.grids[0])
+        self.ax.yaxis.grid(self.grids[1])
         self.canvas.draw()
 
     def plotReset(self,xReset=True,yReset=True): #set the plot limits to min and max values
@@ -2803,6 +2817,8 @@ class CurrentArrayed(Current1D):
         self.ax.set_ylim(self.yminlim,self.ymaxlim)
         self.ax.get_xaxis().get_major_formatter().set_powerlimits((-4, 4))
         self.ax.get_yaxis().get_major_formatter().set_powerlimits((-4, 4))
+        self.ax.xaxis.grid(self.grids[0])
+        self.ax.yaxis.grid(self.grids[1])
         self.canvas.draw()
 
     def plotReset(self,xReset=True,yReset=True): #set the plot limits to min and max values
@@ -3143,6 +3159,8 @@ class CurrentContour(Current1D):
         self.ax.get_yaxis().get_major_formatter().set_powerlimits((-4, 4))
         self.x_ax.get_yaxis().get_major_formatter().set_powerlimits((-2, 2))
         self.y_ax.get_xaxis().get_major_formatter().set_powerlimits((-2, 2))
+        self.ax.xaxis.grid(self.grids[0])
+        self.ax.yaxis.grid(self.grids[1])
         self.canvas.draw()
 
     def plotReset(self,xReset=True,yReset=True): #set the plot limits to min and max values
