@@ -340,9 +340,8 @@ class Spectrum:
             if self.dim==1:
                 self.data = np.array([tmpdata[0]])
                 self.resetXax(axes)
-                print self.data.shape
             else:
-                self.data = np.concatenate(tmpdata, axis=axes)
+                self.data = tmpdata[0]
                 self.dim = self.dim - 1
                 self.freq = np.delete(self.freq,axes)
                 self.ref = np.delete(self.ref,axes)
@@ -409,7 +408,7 @@ class Spectrum:
             else:
                 tmpXax = copy.deepcopy(self.xaxArray)
                 del tmpXax[axes]
-                newSpec = Spectrum(np.concatenate(tmpdata, axis=axes), self.loadFunc, copy.deepcopy(np.delete(self.freq,axes)), copy.deepcopy(np.delete(self.sw,axes)), copy.deepcopy(np.delete(self.spec,axes)), copy.deepcopy(np.delete(self.wholeEcho,axes)), copy.deepcopy(np.delete(self.ref,axes)), tmpXax, copy.deepcopy(self.history), self.msgHandler)
+                newSpec = Spectrum(tmpdata[0], self.loadFunc, copy.deepcopy(np.delete(self.freq,axes)), copy.deepcopy(np.delete(self.sw,axes)), copy.deepcopy(np.delete(self.spec,axes)), copy.deepcopy(np.delete(self.wholeEcho,axes)), copy.deepcopy(np.delete(self.ref,axes)), tmpXax, copy.deepcopy(self.history), self.msgHandler)
         else:
             tmpdata = np.concatenate(tmpdata, axis=axes)
             newSpec = Spectrum(tmpdata, self.loadFunc, copy.deepcopy(self.freq), copy.deepcopy(self.sw), copy.deepcopy(self.spec), copy.deepcopy(self.wholeEcho), copy.deepcopy(self.ref), copy.deepcopy(self.xaxArray), copy.deepcopy(self.history), self.msgHandler)

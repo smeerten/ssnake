@@ -55,6 +55,8 @@ class MainProgram(QtGui.QMainWindow):
         self.logo.setPixmap(QtGui.QPixmap(os.path.dirname(os.path.realpath(__file__)) + "/logo.gif"))
         self.mainFrame.addWidget(self.logo,0,0,QtCore.Qt.AlignCenter)
         self.tabs = QtGui.QTabWidget(self)
+        self.tabs.setMovable(True)
+        self.tabs.tabBar().tabMoved.connect(self.moveWorkspace)
         self.allowChange = True
         self.tabs.setTabsClosable(True)
         self.tabs.currentChanged.connect(self.changeMainWindow)
@@ -507,7 +509,17 @@ class MainProgram(QtGui.QMainWindow):
         self.menuCheck()
         if isinstance(self.mainWindow.current, (sc.CurrentMulti)):
             self.mainWindow.sideframe.checkChanged()
-        
+    
+    def moveWorkspace(self, end, start):
+        self.workspaces.insert(end, self.workspaces.pop(start))
+        self.workspaceNames.insert(end, self.workspaceNames.pop(start))
+        if self.workspaceNum == start:
+            self.workspaceNum = end
+        elif self.workspaceNum > end and self.workspaceNum < start:
+            self.workspaceNum += 1
+        elif self.workspaceNum < end and self.workspaceNum > start:
+            self.workspaceNum -= 1
+    
     def stepWorkspace(self, step):
         if len(self.workspaces) > 1:
             self.workspaceNum += step
