@@ -142,21 +142,21 @@ class Spectrum:
             self.dispMsg('Cannot delete all data')
             return None
 
-    def add(self,data,dataImag=0,select=slice(None)):
-        if isinstance(select,string_types):
+    def add(self, data, dataImag=0, select=slice(None)):
+        if isinstance(select, string_types):
             select = safeEval(select)
         data = np.array(data) + 1j*np.array(dataImag)
         self.data[select] = self.data[select] + data
         self.addHistory("Added to data["+str(select)+"]: "+str(data).replace('\n', ''))
-        return lambda self: self.subtract(data,select=select)
+        return lambda self: self.subtract(data, select=select)
         
-    def subtract(self,data,dataImag=0,select=slice(None)):
+    def subtract(self, data, dataImag=0, select=slice(None)):
         if isinstance(select,string_types):
             select = safeEval(select)
         data = np.array(data) + 1j*np.array(dataImag)
         self.data[select] = self.data[select] - data
         self.addHistory("Subtracted from data["+str(select)+"]: "+str(data).replace('\n', ''))
-        return lambda self: self.add(data,select=select)
+        return lambda self: self.add(data, select=select)
 
     def multiply(self,mult,axes,multImag=0,select=slice(None)):
         if isinstance(select,string_types):
@@ -324,6 +324,8 @@ class Spectrum:
                     tmpdata += (np.expand_dims(tmp, axes),)
                 else:
                     tmpdata += (tmp,)
+            elif which == 6:
+                tmpdata += (np.mean(self.data[slicing], axis=axes, keepdims=keepdims),)
         if which == 0:
             self.addHistory("Integrate between " + str(pos1) + " and " + str(pos2) + " of dimension " + str(axes+1))
         elif which == 5:
@@ -336,6 +338,8 @@ class Spectrum:
             self.addHistory("Maximum position between " + str(pos1) + " and " + str(pos2) + " of dimension " + str(axes+1))
         elif which == 4:
             self.addHistory("Minimum position between " + str(pos1) + " and " + str(pos2) + " of dimension " + str(axes+1))
+        elif which == 6:
+            self.addHistory("Average between " + str(pos1) + " and " + str(pos2) + " of dimension " + str(axes+1))
         if len(tmpdata)==1:
             if self.dim==1:
                 self.data = np.array([tmpdata[0]])
@@ -400,6 +404,8 @@ class Spectrum:
                     tmpdata += (np.expand_dims(tmp, axes),)
                 else:
                     tmpdata += (tmp,)
+            elif which == 6:
+                tmpdata += (np.mean(self.data[slicing], axis=axes, keepdims=keepdims),)
         if len(tmpdata)==1:
             if self.dim==1:
                 tmpdata = np.array([tmpdata[0]])
@@ -424,7 +430,9 @@ class Spectrum:
         elif which == 3:
             newSpec.addHistory("Maximum position between " + str(pos1) + " and " + str(pos2) + " of dimension " + str(axes+1))
         elif which == 4:
-            newSpec.addHistory("Minimum position between " + str(pos1) + " and " + str(pos2) + " of dimension " + str(axes+1))           
+            newSpec.addHistory("Minimum position between " + str(pos1) + " and " + str(pos2) + " of dimension " + str(axes+1)) 
+        elif which == 6:
+            newSpec.addHistory("Average between " + str(pos1) + " and " + str(pos2) + " of dimension " + str(axes+1))          
         return newSpec
     
     def getRegion(self, pos1, pos2, axes):
@@ -1501,6 +1509,17 @@ class Current1D(Plot1DFrame):
                 self.showFid()
             return returnValue
     
+    def average(self, pos1, pos2, newSpec=False):
+        if newSpec:
+            return self.data.matrixManipNew(pos1, pos2, self.axes, 6)
+        else:
+            self.root.addMacro(['average',(pos1, pos2, self.axes-self.data.dim,)])
+            returnValue = self.data.matrixManip(pos1, pos2, self.axes, 6)
+            if self.upd():
+                self.plotReset()
+                self.showFid()
+            return returnValue
+
     def flipLR(self):
         returnValue = self.data.flipLR(self.axes)
         self.upd()
@@ -1562,28 +1581,28 @@ class Current1D(Plot1DFrame):
             self.showFid()
         self.upd()
     
-    def add(self,data,select=False):
+    def add(self, data, select=False):
         if select:
             selectSlice = self.getSelect()
         else:
             selectSlice = slice(None)
-        returnValue = self.data.add(data,select=selectSlice)
+        returnValue = self.data.add(data, select=selectSlice)
         self.upd()
         self.plotReset()
         self.showFid()
-        self.root.addMacro(['add',(np.real(data).tolist(),np.imag(data).tolist(),str(selectSlice))])
+        self.root.addMacro(['add', (np.real(data).tolist(), np.imag(data).tolist(), str(selectSlice))])
         return returnValue
         
-    def subtract(self,data,select=False):
+    def subtract(self, data, select=False):
         if select:
             selectSlice = self.getSelect()
         else:
             selectSlice = slice(None)
-        returnValue = self.data.subtract(data,select=selectSlice)
+        returnValue = self.data.subtract(data, select=selectSlice)
         self.upd()
         self.plotReset()
         self.showFid()
-        self.root.addMacro(['subtract',(np.real(data).tolist(),np.imag(data).tolist(),str(selectSlice))])
+        self.root.addMacro(['subtract', (np.real(data).tolist(), np.imag(data).tolist(), str(selectSlice))])
         return returnValue
     
     def multiply(self,data,select=False):

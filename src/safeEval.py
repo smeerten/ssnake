@@ -23,7 +23,7 @@ import re
 import numpy as np
 from euro import euro
 
-def safeEval(inp):
+def safeEval(inp, length=None):
     env = vars(math).copy()
     env["locals"]   = None
     env["globals"]  = None
@@ -31,6 +31,8 @@ def safeEval(inp):
     env["__file__"] = None
     env["__builtins__"] = None
     env["slice"] = slice
+    if length is not None:
+        env["length"] = length
     inp =  re.sub('([0-9]+)[k,K]','\g<1>*1024',str(inp)) #WF: allow 'K' input
     try:
         return eval(inp,env)
@@ -92,3 +94,4 @@ class QLabel(QtGui.QLabel):
     def __init__(self, parent,*args, **kwargs):
         QtGui.QLabel.__init__(self, parent,*args, **kwargs)
         self.setAlignment(QtCore.Qt.AlignCenter)
+

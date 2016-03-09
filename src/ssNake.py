@@ -139,12 +139,15 @@ class MainProgram(QtGui.QMainWindow):
         self.menubar.addMenu(self.matrixMenu)
         self.matrixMenu.addAction("&Sizing", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.createSizeWindow()))
         self.matrixMenu.addAction("S&hift Data", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.createShiftDataWindow()))
-        self.matrixMenu.addAction(QtGui.QIcon(IconDirectory + 'int.png'),"&Integrate", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.createIntegrateWindow()))
-        self.matrixMenu.addAction(QtGui.QIcon(IconDirectory + 'sum.png'),"S&um", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.createSumWindow()))
-        self.matrixMenu.addAction("M&ax", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.createMaxWindow()))
-        self.matrixMenu.addAction("M&in", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.createMinWindow()))
-        self.matrixMenu.addAction("Ma&x position", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.createArgMaxWindow()))
-        self.matrixMenu.addAction("Mi&n position", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.createArgMinWindow()))
+        self.regionMenu = QtGui.QMenu("Region",self)
+        self.matrixMenu.addMenu(self.regionMenu)
+        self.regionMenu.addAction(QtGui.QIcon(IconDirectory + 'int.png'),"&Integrate", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.createIntegrateWindow()))
+        self.regionMenu.addAction(QtGui.QIcon(IconDirectory + 'sum.png'),"S&um", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.createSumWindow()))
+        self.regionMenu.addAction("&Max", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.createMaxWindow()))
+        self.regionMenu.addAction("M&in", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.createMinWindow()))
+        self.regionMenu.addAction("Ma&x position", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.createArgMaxWindow()))
+        self.regionMenu.addAction("Mi&n position", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.createArgMinWindow()))
+        self.regionMenu.addAction("&Average", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.createAvgWindow()))
         self.matrixMenu.addAction("&Diff", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.diff()))
         self.matrixMenu.addAction("&Cumsum", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.cumsum()))
         self.matrixMenu.addAction("&Extract part", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.createRegionWindow()))
@@ -1253,6 +1256,8 @@ class Main1DWindow(QtGui.QWidget):
                 self.undoList.append(self.masterData.matrixManip(*iter1[1],which=3))
             elif iter1[0] == 'argmin':
                 self.undoList.append(self.masterData.matrixManip(*iter1[1],which=4))
+            elif iter1[0] == 'average':
+                self.undoList.append(self.masterData.matrixManip(*iter1[1],which=6))
             elif iter1[0] == 'fliplr':
                 self.undoList.append(self.masterData.flipLR(*iter1[1]))
             elif iter1[0] == 'concatenate':
@@ -1520,6 +1525,9 @@ class Main1DWindow(QtGui.QWidget):
         
     def createArgMinWindow(self):
         self.extraWindow = argminWindow(self)
+
+    def createAvgWindow(self):
+        self.extraWindow = avgWindow(self)
         
     def createRegionWindow(self):
         self.extraWindow = extractRegionWindow(self)
@@ -3366,6 +3374,19 @@ class argminWindow(regionWindow):
             self.father.undoList.append(self.father.current.argminMatrix(minimum, maximum, newSpec))
             self.father.updAllFrames()
 
+############################################################
+class avgWindow(regionWindow):
+    def __init__(self, parent):
+        regionWindow.__init__(self,parent,'Average')
+
+    def apply(self, maximum, minimum, newSpec):
+        if newSpec:
+            self.father.father.newWorkspace(self.father.current.average(minimum, maximum, newSpec))
+        else:
+            self.father.redoList = []
+            self.father.undoList.append(self.father.current.average(minimum, maximum, newSpec))
+            self.father.updAllFrames()
+
 #############################################################
 class extractRegionWindow(QtGui.QWidget): 
     def __init__(self, parent):
@@ -3569,12 +3590,12 @@ class SplitWindow(QtGui.QWidget):
         self.setGeometry(self.frameSize().width()-self.geometry().width(),self.frameSize().height()-self.geometry().height(),0,0)
 
     def preview(self, *args):
-        val = safeEval(self.splitEntry.text())
+        val = safeEval(self.splitEntry.text(), self.father.current.data1D.shape[-1])
         if val is not None:
             self.splitEntry.setText(str(int(round(val))))
         
     def applyAndClose(self):
-        val = safeEval(self.splitEntry.text())
+        val = safeEval(self.splitEntry.text(), self.father.current.data1D.shape[-1])
         if val is None:
             self.father.father.dispMsg("Not a valid value")
             return
