@@ -3116,10 +3116,13 @@ class BaselineWindow(QtGui.QWidget):
         if inp is None:
             self.father.father.dispMsg("Not a valid value")
             return
+        returnValue = self.father.current.applyBaseline(self.degree,self.removeList,self.singleSlice.isChecked())
+        if returnValue is None:
+            return
         self.father.current.peakPickReset()
         self.father.current.resetPreviewRemoveList()
         self.father.redoList = []
-        self.father.undoList.append(self.father.current.applyBaseline(self.degree,self.removeList,self.singleSlice.isChecked()))
+        self.father.undoList.append(returnValue)
         self.father.current.upd()
         self.father.current.showFid()
         self.father.menuEnable()
@@ -3277,11 +3280,12 @@ class regionWindow(QtGui.QWidget):
         self.deleteLater()
         
     def applyAndClose(self):
-        self.father.current.peakPickReset()
         if self.partIter == 0:
             self.father.father.dispMsg("No boundaries")
             return
-        self.apply(self.startVal[:self.partIter], self.endVal[:self.partIter], self.newSpec.isChecked())
+        if self.apply(self.startVal[:self.partIter], self.endVal[:self.partIter], self.newSpec.isChecked()) is None:
+            return
+        self.father.current.peakPickReset()
         self.father.menuEnable()
         self.deleteLater()
 
@@ -3292,11 +3296,16 @@ class integrateWindow(regionWindow):
 
     def apply(self, maximum, minimum, newSpec):
         if newSpec:
-            self.father.father.newWorkspace(self.father.current.integrate(minimum, maximum, newSpec))
+            if self.father.father.newWorkspace(self.father.current.integrate(minimum, maximum, newSpec)) is None:
+                return None
         else:
+            returnValue = self.father.current.integrate(minimum, maximum, newSpec)
+            if returnValue is None:
+                return None
             self.father.redoList = []
-            self.father.undoList.append(self.father.current.integrate(minimum, maximum))
+            self.father.undoList.append(returnValue)
             self.father.updAllFrames()
+        return 1
 
 ############################################################
 class sumWindow(regionWindow): 
@@ -3305,11 +3314,16 @@ class sumWindow(regionWindow):
 
     def apply(self, maximum, minimum, newSpec):
         if newSpec:
-            self.father.father.newWorkspace(self.father.current.sum(minimum, maximum, newSpec))
+            if self.father.father.newWorkspace(self.father.current.sum(minimum, maximum, newSpec)) is None:
+                return None
         else:
+            returnValue = self.father.current.sum(minimum, maximum, newSpec)
+            if returnValue is None:
+                return None
             self.father.redoList = []
-            self.father.undoList.append(self.father.current.sum(minimum, maximum, newSpec))
+            self.father.undoList.append(returnValue)
             self.father.updAllFrames()
+        return 1
         
 ############################################################
 class maxWindow(regionWindow): 
@@ -3318,11 +3332,16 @@ class maxWindow(regionWindow):
 
     def apply(self, maximum, minimum, newSpec):
         if newSpec:
-            self.father.father.newWorkspace(self.father.current.maxMatrix(minimum, maximum, newSpec))
+            if self.father.father.newWorkspace(self.father.current.maxMatrix(minimum, maximum, newSpec)) is None:
+                return None
         else:
+            returnValue = self.father.current.maxMatrix(minimum, maximum, newSpec)
+            if returnValue is None:
+                return None
             self.father.redoList = []
-            self.father.undoList.append(self.father.current.maxMatrix(minimum, maximum, newSpec))
+            self.father.undoList.append(returnValue)
             self.father.updAllFrames()
+        return 1
 
 ############################################################
 class minWindow(regionWindow): 
@@ -3331,11 +3350,16 @@ class minWindow(regionWindow):
 
     def apply(self, maximum, minimum, newSpec):
         if newSpec:
-            self.father.father.newWorkspace(self.father.current.minMatrix(minimum, maximum, newSpec))
+            if self.father.father.newWorkspace(self.father.current.minMatrix(minimum, maximum, newSpec)) is None:
+                return None
         else:
+            returnValue = self.father.current.minMatrix(minimum, maximum, newSpec)
+            if returnValue is None:
+                return None
             self.father.redoList = []
-            self.father.undoList.append(self.father.current.minMatrix(minimum, maximum, newSpec))
+            self.father.undoList.append(returnValue)
             self.father.updAllFrames()
+        return 1
         
 ############################################################
 class argmaxWindow(regionWindow):
@@ -3344,11 +3368,16 @@ class argmaxWindow(regionWindow):
 
     def apply(self, maximum, minimum, newSpec):
         if newSpec:
-            self.father.father.newWorkspace(self.father.current.argmaxMatrix(minimum, maximum, newSpec))
+            if self.father.father.newWorkspace(self.father.current.argmaxMatrix(minimum, maximum, newSpec)) is None:
+                return None
         else:
+            returnValue = self.father.current.argmaxMatrix(minimum, maximum, newSpec)
+            if returnValue is None:
+                return None
             self.father.redoList = []
-            self.father.undoList.append(self.father.current.argmaxMatrix(minimum, maximum, newSpec))
+            self.father.undoList.append(returnValue)
             self.father.updAllFrames()
+        return 1
 
 ############################################################
 class argminWindow(regionWindow):
@@ -3357,11 +3386,16 @@ class argminWindow(regionWindow):
 
     def apply(self, maximum, minimum, newSpec):
         if newSpec:
-            self.father.father.newWorkspace(self.father.current.argminMatrix(minimum, maximum, newSpec))
+            if self.father.father.newWorkspace(self.father.current.argminMatrix(minimum, maximum, newSpec)) is None:
+                return None
         else:
+            returnValue = self.father.current.argminMatrix(minimum, maximum, newSpec)
+            if returnValue is None:
+                return None
             self.father.redoList = []
-            self.father.undoList.append(self.father.current.argminMatrix(minimum, maximum, newSpec))
+            self.father.undoList.append(returnValue)
             self.father.updAllFrames()
+        return 1
 
 ############################################################
 class avgWindow(regionWindow):
@@ -3370,11 +3404,16 @@ class avgWindow(regionWindow):
 
     def apply(self, maximum, minimum, newSpec):
         if newSpec:
-            self.father.father.newWorkspace(self.father.current.average(minimum, maximum, newSpec))
+            if self.father.father.newWorkspace(self.father.current.average(minimum, maximum, newSpec)) is None:
+                return None
         else:
+            returnValue = self.father.current.avgMatrix(minimum, maximum, newSpec)
+            if returnValue is None:
+                return None
             self.father.redoList = []
-            self.father.undoList.append(self.father.current.average(minimum, maximum, newSpec))
+            self.father.undoList.append(returnValue)
             self.father.updAllFrames()
+        return 1
 
 #############################################################
 class regionWindow2(QtGui.QWidget): 
@@ -3470,7 +3509,6 @@ class regionWindow2(QtGui.QWidget):
         self.deleteLater()
         
     def applyAndClose(self):
-        self.father.current.peakPickReset()
         dataLength = self.father.current.data1D.shape[-1]
         inp = safeEval(self.startEntry.text())
         if inp is None:
@@ -3490,7 +3528,9 @@ class regionWindow2(QtGui.QWidget):
             self.endVal = 0
         elif self.endVal > dataLength:
             self.endVal = dataLength
-        self.apply(self.startVal, self.endVal, self.newSpec.isChecked())
+        if self.apply(self.startVal, self.endVal, self.newSpec.isChecked()) is None:
+            return
+        self.father.current.peakPickReset()
         self.father.menuEnable()
         self.deleteLater()
 
@@ -3504,11 +3544,16 @@ class extractRegionWindow(regionWindow2):
 
     def apply(self, maximum, minimum, newSpec):
         if newSpec:
-            self.father.father.newWorkspace(self.father.current.getRegion(minimum, maximum, newSpec))
+            if self.father.father.newWorkspace(self.father.current.getRegion(minimum, maximum, newSpec)) is None:
+                return None
         else:
+            returnValue = self.father.current.getRegion(minimum, maximum, newSpec)
+            if returnValue is None:
+                return None
             self.father.redoList = []
-            self.father.undoList.append(self.father.current.getRegion(minimum, maximum, newSpec))
+            self.father.undoList.append(returnValue)
             self.father.updAllFrames()
+        return 1
 
 ############################################################
 class SubtractAvgWindow(regionWindow2):
@@ -3516,9 +3561,13 @@ class SubtractAvgWindow(regionWindow2):
         regionWindow2.__init__(self,parent, 'Subtract Avg', False)
 
     def apply(self, maximum, minimum, newSpec):
+        returnValue = self.father.current.subtractAvg(maximum, minimum)
+        if returnValue is None:
+            return None
         self.father.redoList = []
-        self.father.undoList.append(self.father.current.subtractAvg(maximum, minimum))
+        self.father.undoList.append(returnValue)
         self.father.updAllFrames()
+        return 1
 
     def preview(self, maximum, minimum):
         self.father.current.subtractAvgPreview(maximum, minimum)
@@ -3618,8 +3667,11 @@ class SplitWindow(QtGui.QWidget):
         if val is None:
             self.father.father.dispMsg("Not a valid value")
             return
+        returnValue = self.father.current.split(int(round(val)))
+        if returnValue is None:
+            return
         self.father.redoList = []
-        self.father.undoList.append(self.father.current.split(int(round(val))))
+        self.father.undoList.append(returnValue)
         self.father.menuEnable()
         self.father.updAllFrames()
         self.deleteLater()
@@ -3654,8 +3706,11 @@ class ConcatenateWindow(QtGui.QWidget):
         self.setGeometry(self.frameSize().width()-self.geometry().width(),self.frameSize().height()-self.geometry().height(),0,0)
         
     def applyAndClose(self):
+        returnValue = self.father.current.concatenate(self.axesEntry.currentIndex())
+        if returnValue is None:
+            return
         self.father.redoList = []
-        self.father.undoList.append(self.father.current.concatenate(self.axesEntry.currentIndex()))
+        self.father.undoList.append()
         self.father.menuEnable()
         self.father.updAllFrames()
         self.deleteLater()
@@ -3756,8 +3811,11 @@ class AddWindow(QtGui.QWidget):
 
     def applyAndClose(self):
         ws = self.wsEntry.currentIndex()
+        returnValue = self.father.current.add(self.father.mainProgram.workspaces[ws].masterData.data,self.singleSlice.isChecked())
+        if returnValue is None:
+            return
         self.father.redoList = []
-        self.father.undoList.append(self.father.current.add(self.father.mainProgram.workspaces[ws].masterData.data,self.singleSlice.isChecked()))
+        self.father.undoList.append(returnValue)
         self.father.menuEnable()
         self.father.sideframe.upd()
         self.deleteLater()
@@ -3795,8 +3853,11 @@ class SubtractWindow(QtGui.QWidget):
 
     def applyAndClose(self):
         ws = self.wsEntry.currentIndex()
+        returnValue = self.father.current.subtract(self.father.mainProgram.workspaces[ws].masterData.data,self.singleSlice.isChecked())
+        if returnValue is None:
+            return
         self.father.redoList = []
-        self.father.undoList.append(self.father.current.subtract(self.father.mainProgram.workspaces[ws].masterData.data,self.singleSlice.isChecked()))
+        self.father.undoList.append(returnValue)
         self.father.menuEnable()
         self.father.sideframe.upd()
         self.deleteLater()
@@ -4427,8 +4488,11 @@ class MultiplyWindow(QtGui.QWidget):
         env['length']=int(self.father.current.data1D.shape[-1]) # so length can be used to in equations
         env['euro']=lambda fVal, num=int(self.father.current.data1D.shape[-1]): euro(fVal,num)
         val=eval(self.valEntry.text(),env)                # find a better solution, also add catch for exceptions
+        returnValue = self.father.current.multiply(np.array(val),self.singleSlice.isChecked())
+        if returnValue is None:
+            return
         self.father.redoList = []
-        self.father.undoList.append(self.father.current.multiply(np.array(val),self.singleSlice.isChecked()))
+        self.father.undoList.append(returnValue)
         self.father.menuEnable()
         self.deleteLater()
 

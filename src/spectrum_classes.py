@@ -148,41 +148,57 @@ class Spectrum:
     def add(self, data, dataImag=0, select=slice(None)):
         if isinstance(select, string_types):
             select = safeEval(select)
-        data = np.array(data) + 1j*np.array(dataImag)
-        self.data[select] = self.data[select] + data
+        try:
+            data = np.array(data) + 1j*np.array(dataImag)
+            self.data[select] = self.data[select] + data
+        except ValueError as error:
+            self.dispMsg(str(error))
+            return None
         self.addHistory("Added to data["+str(select)+"]: "+str(data).replace('\n', ''))
         return lambda self: self.subtract(data, select=select)
         
     def subtract(self, data, dataImag=0, select=slice(None)):
-        if isinstance(select,string_types):
+        if isinstance(select, string_types):
             select = safeEval(select)
-        data = np.array(data) + 1j*np.array(dataImag)
-        self.data[select] = self.data[select] - data
+        try:
+            data = np.array(data) + 1j*np.array(dataImag)
+            self.data[select] = self.data[select] - data
+        except ValueError as error:
+            self.dispMsg(str(error))
+            return None
         self.addHistory("Subtracted from data["+str(select)+"]: "+str(data).replace('\n', ''))
         return lambda self: self.add(data, select=select)
 
-    def multiply(self,mult,axes,multImag=0,select=slice(None)):
-        if isinstance(select,string_types):
+    def multiply(self, mult, axes, multImag=0, select=slice(None)):
+        if isinstance(select, string_types):
             select = safeEval(select)
         axes = self.checkAxes(axes)
         if axes == None:
             return None
-        mult = np.array(mult) + 1j*np.array(multImag)
-        copyData=copy.deepcopy(self)
-        returnValue = lambda self: self.restoreData(copyData, lambda self: self.multiply(mult,axes,select=select))
-        self.data[select] = np.apply_along_axis(np.multiply,axes,self.data,mult)[select]
+        try:
+            mult = np.array(mult) + 1j*np.array(multImag)
+            copyData=copy.deepcopy(self)
+            returnValue = lambda self: self.restoreData(copyData, lambda self: self.multiply(mult, axes, select=select))
+            self.data[select] = np.apply_along_axis(np.multiply, axes, self.data,mult)[select]
+        except ValueError as error:
+            self.dispMsg(str(error))
+            return None
         self.addHistory("Multiplied dimension "+str(axes+1)+" of data["+str(select)+"]: "+str(mult).replace('\n', ''))
         return returnValue
 
-    def baselineCorrection(self,baseline,axes,baselineImag = 0,select=slice(None)):
-        if isinstance(select,string_types):
+    def baselineCorrection(self, baseline, axes, baselineImag = 0, select=slice(None)):
+        if isinstance(select, string_types):
             select = safeEval(select)
         axes = self.checkAxes(axes)
         if axes == None:
             return None
-        baseline = np.array(baseline) + 1j*np.array(baselineImag)
-        baselinetmp = baseline.reshape((1,)*axes+(self.data.shape[axes],)+(1,)*(self.dim-axes-1))
-        self.data[select] = self.data[select] - baselinetmp
+        try:
+            baseline = np.array(baseline) + 1j*np.array(baselineImag)
+            baselinetmp = baseline.reshape((1,)*axes+(self.data.shape[axes],)+(1,)*(self.dim-axes-1))
+            self.data[select] = self.data[select] - baselinetmp
+        except ValueError as error:
+            self.dispMsg(str(error))
+            return None
         self.addHistory("Baseline corrected dimension "+str(axes+1)+" of data["+str(select)+"]: "+str(baseline).replace('\n', ''))
         return lambda self: self.baselineCorrection(-baseline,axes,select=select) 
     
@@ -191,7 +207,11 @@ class Spectrum:
         if axes == None:
             return None
         splitVal = self.data.shape[axes]
-        self.data = np.concatenate(self.data,axis=axes)
+        try:
+            self.data = np.concatenate(self.data,axis=axes)
+        except ValueError as error:
+            self.dispMsg(str(error))
+            return None
         self.dim = len(self.data.shape)
         self.freq = np.delete(self.freq, axes)
         self.sw = np.delete(self.sw, axes)
@@ -208,7 +228,11 @@ class Spectrum:
         axes = self.checkAxes(axes)
         if axes == None:
             return None
-        self.data = np.array(np.split(self.data,sections,axis=axes))
+        try:
+            self.data = np.array(np.split(self.data,sections,axis=axes))
+        except ValueError as error:
+            self.dispMsg(str(error))
+            return None
         self.dim = len(self.data.shape)
         self.freq = np.insert(self.freq, 0, self.freq[axes])
         self.sw = np.insert(self.sw, 0 , self.sw[axes])
@@ -283,6 +307,15 @@ class Spectrum:
         axes = self.checkAxes(axes)
         if axes == None:
             return None
+        if not (0 <= pos1 <= self.data.shape[axes]):
+            self.dispMsg("Indices not within range")
+            return None
+        if not (0 <= pos2 <= self.data.shape[axes]):
+            self.dispMsg("Indices not within range")
+            return None
+        if pos1 == pos2:
+            self.dispMsg("Indices cannot be equal")
+            return None
         minPos = min(pos1, pos2)
         maxPos = max(pos1, pos2)
         slicing = (slice(None),) * axes + (slice(minPos, maxPos),) + (slice(None),)*(self.dim-1-axes)
@@ -309,6 +342,15 @@ class Spectrum:
         else:
             keepdims = True
         for i in range(len(pos1)):
+            if not (0 <= pos1[i] <= self.data.shape[axes]):
+                self.dispMsg("Indices not within range")
+                return None
+            if not (0 <= pos2[i] <= self.data.shape[axes]):
+                self.dispMsg("Indices not within range")
+                return None
+            if pos1[i] == pos2[i]:
+                self.dispMsg("Indices cannot be equal")
+                return None
             minPos = min(pos1[i], pos2[i])
             maxPos = max(pos1[i], pos2[i])
             slicing = (slice(None),) * axes + (slice(minPos, maxPos),) + (slice(None),)*(self.dim-1-axes)
@@ -389,6 +431,15 @@ class Spectrum:
         else:
             keepdims = True
         for i in range(len(pos1)):
+            if not (0 <= pos1[i] <= self.data.shape[axes]):
+                self.dispMsg("Indices not within range")
+                return None
+            if not (0 <= pos2[i] <= self.data.shape[axes]):
+                self.dispMsg("Indices not within range")
+                return None
+            if pos1[i] == pos2[i]:
+                self.dispMsg("Indices cannot be equal")
+                return None
             minPos = min(pos1[i], pos2[i])
             maxPos = max(pos1[i], pos2[i])
             slicing = (slice(None),) * axes + (slice(minPos, maxPos),) + (slice(None),)*(self.dim-1-axes)
