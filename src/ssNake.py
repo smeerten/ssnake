@@ -169,6 +169,7 @@ class MainProgram(QtGui.QMainWindow):
         self.fftMenu.addAction("&Inv fftshift", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.invFftshift()))
         self.fftMenu.addAction("&Hilbert transform", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.hilbert()))
         self.fftMenu.addAction("FF&M", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.createFFMWindow()))
+        self.fftMenu.addAction("&CLEAN", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.createCLEANWindow()))
         
 	#the fitting drop down menu
         self.fittingMenu = QtGui.QMenu("F&itting",self)
@@ -1281,6 +1282,8 @@ class Main1DWindow(QtGui.QWidget):
                 self.undoList.append(self.masterData.reorder(*iter1[1]))
             elif iter1[0] == 'ffm':
                 self.undoList.append(self.masterData.ffm_1d(*iter1[1]))
+            elif iter1[0] == 'clean':
+                self.undoList.append(self.masterData.clean(*iter1[1]))
             elif iter1[0] == 'shear':
                 self.undoList.append(self.masterData.shear(*iter1[1]))
             elif iter1[0] == 'extract':
@@ -1549,6 +1552,9 @@ class Main1DWindow(QtGui.QWidget):
 
     def createFFMWindow(self):
         self.extraWindow = FFMWindow(self)
+
+    def createCLEANWindow(self):
+        self.extraWindow = CLEANWindow(self)
         
     def createConcatenateWindow(self):
         self.extraWindow = ConcatenateWindow(self)
@@ -4206,7 +4212,108 @@ class FFMWindow(QtGui.QWidget):
             return
         val = np.array(val,dtype=int)
         self.father.redoList = []
-        self.father.undoList.append(self.father.current.ffm(val,self.typeDrop.currentIndex(),self.closeEvent))
+        self.father.undoList.append(self.father.current.ffm(val,self.typeDrop.currentIndex()))
+        self.father.updAllFrames()
+        self.father.menuEnable()
+        self.deleteLater()
+
+##########################################################################################
+class CLEANWindow(QtGui.QWidget): 
+    def __init__(self, parent):
+        QtGui.QWidget.__init__(self, parent)
+        self.setWindowFlags(QtCore.Qt.Window | QtCore.Qt.Tool)
+        self.father = parent
+        self.setWindowTitle("CLEAN")
+        layout = QtGui.QGridLayout(self)
+        grid = QtGui.QGridLayout()
+        layout.addLayout(grid,0,0,1,2)
+        grid.addWidget(QLabel("Positions of the spectra:"),0,0)
+        self.valEntry = QtGui.QLineEdit()
+        self.valEntry.setAlignment(QtCore.Qt.AlignHCenter)
+        self.valEntry.returnPressed.connect(self.preview)
+        grid.addWidget(self.valEntry,1,0)
+        fileButton = QtGui.QPushButton("&Browse")
+        fileButton.clicked.connect(self.getPosFromFile)
+        grid.addWidget(fileButton,2,0)
+        grid.addWidget(QLabel("Type of the position list:"),3,0)
+        self.typeDrop = QtGui.QComboBox(parent=self)
+        self.typeDrop.addItems(["Complex", "States/States-TPPI", "TPPI"])
+        grid.addWidget(self.typeDrop,4,0)
+        grid.addWidget(QLabel("Gamma:"),5,0)
+        self.gammaEntry = QtGui.QLineEdit()
+        self.gammaEntry.setAlignment(QtCore.Qt.AlignHCenter)
+        self.gammaEntry.setText("0.2")
+        grid.addWidget(self.gammaEntry,6,0)
+        grid.addWidget(QLabel("Threshold [%]:"),7,0)
+        self.thresholdEntry = QtGui.QLineEdit()
+        self.thresholdEntry.setAlignment(QtCore.Qt.AlignHCenter)
+        self.thresholdEntry.setText("1.0")
+        grid.addWidget(self.thresholdEntry,8,0)
+        grid.addWidget(QLabel("Linewidth [Hz]:"),9,0)
+        self.lbEntry = QtGui.QLineEdit()
+        self.lbEntry.setAlignment(QtCore.Qt.AlignHCenter)
+        self.lbEntry.setText("1.0")
+        grid.addWidget(self.lbEntry,10,0)
+        grid.addWidget(QLabel("Max. iterations:"),11,0)
+        self.maxIterEntry = QtGui.QLineEdit()
+        self.maxIterEntry.setAlignment(QtCore.Qt.AlignHCenter)
+        self.maxIterEntry.setText("2000")
+        grid.addWidget(self.maxIterEntry,12,0)
+        cancelButton = QtGui.QPushButton("&Cancel")
+        cancelButton.clicked.connect(self.closeEvent)
+        layout.addWidget(cancelButton,2,0)
+        okButton = QtGui.QPushButton("&Ok")
+        okButton.clicked.connect(self.applyAndClose)
+        layout.addWidget(okButton,2,1)
+        self.show()
+        self.setFixedSize(self.size())
+        self.father.menuDisable()
+        self.setGeometry(self.frameSize().width()-self.geometry().width(),self.frameSize().height()-self.geometry().height(),0,0)
+        
+    def preview(self, *args):
+        pass
+
+    def getPosFromFile(self):
+        filename = QtGui.QFileDialog.getOpenFileName(self, 'Open File',self.father.mainProgram.LastLocation)
+        if filename: #if not cancelled
+            self.father.mainProgram.LastLocation = os.path.dirname(filename) #Save used path
+        if len(filename)==0:
+            return
+        self.valEntry.setText(repr(np.loadtxt(filename,dtype=int)))
+    
+    def closeEvent(self, *args):
+        self.father.menuEnable()
+        self.deleteLater()
+
+    def applyAndClose(self):
+        env = vars(np).copy()
+        env['length']=int(self.father.current.data1D.shape[-1]) # so length can be used to in equations
+        env['euro']=lambda fVal, num=int(self.father.current.data1D.shape[-1]): euro(fVal,num)
+        val=eval(self.valEntry.text(),env)                # find a better solution, also add catch for exceptions
+        if not isinstance(val,(list,np.ndarray)):
+            self.father.father.dispMsg("Input is not a list or array")
+            return
+        val = np.array(val,dtype=int)
+        gamma = safeEval(self.gammaEntry.text())
+        if gamma is None:
+            self.father.dispMsg("One of the inputs is not valid")
+            return
+        threshold = safeEval(self.thresholdEntry.text())
+        if threshold is None:
+            self.father.dispMsg("One of the inputs is not valid")
+            return
+        threshold = threshold / 100.0
+        lb = safeEval(self.lbEntry.text())
+        if lb is None:
+            self.father.dispMsg("One of the inputs is not valid")
+            return
+        maxIter = safeEval(self.maxIterEntry.text())
+        if maxIter is None:
+            self.father.dispMsg("One of the inputs is not valid")
+            return
+        maxIter = int(maxIter)
+        self.father.redoList = []
+        self.father.undoList.append(self.father.current.clean(val, self.typeDrop.currentIndex(), gamma, threshold, lb, maxIter))
         self.father.updAllFrames()
         self.father.menuEnable()
         self.deleteLater()
@@ -4251,7 +4358,7 @@ class ShearingWindow(QtGui.QWidget):
 
     def shearPreview(self, *args):
         shear = safeEval(self.shearEntry.text())
-        if inp is not None:
+        if shear is not None:
             self.shear.set(str(float(shear)))
 
     def closeEvent(self, *args):
@@ -4260,7 +4367,7 @@ class ShearingWindow(QtGui.QWidget):
 
     def applyAndClose(self):
         shear = safeEval(self.shearEntry.text())
-        if inp is None:
+        if shear is None:
             self.father.father.dispMsg("Not a valid value")
             return
         axes = self.dirEntry.currentIndex()

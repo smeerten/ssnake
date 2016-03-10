@@ -24,7 +24,7 @@ from mpl_toolkits.mplot3d import proj3d
 from six import string_types
 from spectrumFrame import Plot1DFrame
 from safeEval import safeEval
-from ffm import *
+from nus import *
 import multiprocessing
 
 #########################################################################
@@ -851,7 +851,7 @@ class Spectrum:
         self.addHistory("Reorder dimension " + str(axes+1) + " to obtain a new length of "+str(newLength)+" with positions "+str(pos))
         return returnValue
     
-    def ffm_1d(self, pos, typeVal, axes, finishFunc=None):
+    def ffm_1d(self, pos, typeVal, axes):
         axes = self.checkAxes(axes)
         if axes == None:
             return None
@@ -864,17 +864,44 @@ class Spectrum:
         if typeVal == 2: #type is TPPI, for now handle the same as Complex
             pass
         posList = np.unique(posList)
-        tmpData = np.rollaxis(self.data,axes,self.dim)
+        tmpData = np.rollaxis(self.data, axes, self.dim)
         tmpShape = tmpData.shape
         tmpData = tmpData.reshape((tmpData.size/tmpShape[-1],tmpShape[-1]))
         pool = multiprocessing.Pool(multiprocessing.cpu_count())
-        fit = pool.map_async(ffm,[(i, posList) for i in tmpData])
+        fit = pool.map_async(ffm, [(i, posList) for i in tmpData])
         pool.close()
         pool.join()
         self.data = np.rollaxis(np.array(fit.get()).reshape(tmpShape),-1,axes)
         self.addHistory("Fast Forward Maximum Entropy reconstruction of dimension " + str(axes+1) + " at positions "+str(pos))
         return returnValue
-            
+    
+    def clean(self, pos, typeVal, axes, gamma, threshold, lb, maxIter):
+        axes = self.checkAxes(axes)
+        if axes == None:
+            return None
+        copyData=copy.deepcopy(self)
+        returnValue = lambda self: self.restoreData(copyData, None)
+        #pos contains the values of fixed points which not to be translated to missing points
+        posList = np.delete(range(self.data.shape[axes]),pos)
+        if typeVal == 1: #type is States or States-TPPI, the positions need to be divided by 2
+            posList = np.array(np.floor(posList/2),dtype=int)
+        if typeVal == 2: #type is TPPI, for now handle the same as Complex
+            pass
+        posList = np.unique(posList)
+        tmpData = np.rollaxis(np.real(np.fft.fft(self.data, axis=axes)), axes, self.dim)    # abs or real???
+        tmpShape = tmpData.shape
+        tmpData = tmpData.reshape((tmpData.size/tmpShape[-1], tmpShape[-1]))
+        mask = np.exp(-np.pi*lb*np.arange(tmpShape[-1]) / (self.sw[axes]))/float(tmpShape[-1])
+        mask[posList] = 0.0
+        mask = np.real(np.fft.fft(mask))                                                    # abs or real???
+        pool = multiprocessing.Pool(multiprocessing.cpu_count())
+        fit = pool.map_async(clean, [(i, mask, gamma, threshold*np.amax(tmpData), maxIter) for i in tmpData])
+        pool.close()
+        pool.join()
+        self.data = np.fft.ifft(np.rollaxis(np.array(fit.get()).reshape(tmpShape), -1, axes), axis=axes)
+        self.addHistory("CLEAN reconstruction of dimension " + str(axes+1) + " at positions "+str(pos))
+        return returnValue
+    
     def getSlice(self,axes,locList):
         axes = self.checkAxes(axes)
         if axes == None:
@@ -1677,11 +1704,18 @@ class Current1D(Plot1DFrame):
         self.root.addMacro(['reorder',(pos, newLength,self.axes-self.data.dim)])
         return returnValue
 
-    def ffm(self, posList, typeVal, finishFunc):
-        returnValue = self.data.ffm_1d(posList, typeVal, self.axes, finishFunc)
+    def ffm(self, posList, typeVal):
+        returnValue = self.data.ffm_1d(posList, typeVal, self.axes)
         self.upd()
         self.showFid()
-        self.root.addMacro(['ffm',(posList, typeVal,self.axes-self.data.dim, finishFunc)])
+        self.root.addMacro(['ffm',(posList, typeVal, self.axes-self.data.dim)])
+        return returnValue
+    
+    def clean(self, posList, typeVal, gamma, threshold, lb, maxIter):
+        returnValue = self.data.clean(posList, typeVal, self.axes, gamma, threshold, lb, maxIter)
+        self.upd()
+        self.showFid()
+        self.root.addMacro(['clean',(posList, typeVal, self.axes-self.data.dim, gamma, threshold, lb, maxIter)])
         return returnValue
     
     def ACMEentropy(self,phaseIn,phaseAll=True):
