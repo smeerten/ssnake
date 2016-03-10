@@ -275,6 +275,18 @@ class Spectrum:
         self.resetXax(axes)
         self.addHistory("States-TPPI conversion on dimension " + str(axes+1))
         return returnValue
+
+    def subtractAvg(self, pos1, pos2, axes):
+        axes = self.checkAxes(axes)
+        if axes == None:
+            return None
+        minPos = min(pos1, pos2)
+        maxPos = max(pos1, pos2)
+        slicing = (slice(None),) * axes + (slice(minPos, maxPos),) + (slice(None),)*(self.dim-1-axes)
+        averages = np.mean(self.data[slicing], axis=axes, keepdims=True)
+        self.data -= averages
+        self.addHistory("Subtracted average determined between " + str(pos1) + " and " + str(pos2) + " of dimension " + str(axes+1))
+        return lambda self: self.add(averages) 
     
     def matrixManip(self, pos1, pos2, axes, which):
         axes = self.checkAxes(axes)
@@ -1620,7 +1632,23 @@ class Current1D(Plot1DFrame):
         self.upd()
         self.data1D = self.data1D*data
         self.showFid()
-    
+
+    def subtractAvg(self, pos1, pos2):
+        returnValue = self.data.subtractAvg(pos1, pos2, self.axes)
+        self.upd()
+        self.showFid()
+        self.root.addMacro(['subtractAvg',(pos1, pos2, self.axes-self.data.dim)])
+        return returnValue
+
+    def subtractAvgPreview(self, pos1, pos2):
+        self.upd()
+        axes = self.data1D.ndim - 1
+        minPos = min(pos1, pos2)
+        maxPos = max(pos1, pos2)
+        slicing = (slice(None),) * axes + (slice(minPos, maxPos),) + (slice(None),)*(self.data1D.ndim-1-axes)
+        self.data1D -= np.mean(self.data1D[slicing], axis=-1, keepdims=True)
+        self.showFid()
+        
     def getRegion(self, pos1, pos2, newSpec=False):
         if newSpec:
             return self.data.getRegionNew(pos1, pos2, self.axes)

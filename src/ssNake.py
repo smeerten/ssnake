@@ -130,6 +130,7 @@ class MainProgram(QtGui.QMainWindow):
         self.toolMenu.addAction("Swap &Echo", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.createSwapEchoWindow()))
         self.toolMenu.addAction("&Offset correction", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.createDCWindow()))
         self.toolMenu.addAction("&Baseline correction", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.createBaselineWindow()))
+        self.toolMenu.addAction("S&ubtract averages", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.createSubtractAvgWindow()))
         self.toolMenu.addAction("&States", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.states()))
         self.toolMenu.addAction("States-&TPPI", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.statesTPPI()))
         self.toolMenu.addAction("&Correct Bruker digital filter", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.BrukerDigital()))
@@ -1274,6 +1275,8 @@ class Main1DWindow(QtGui.QWidget):
                 self.undoList.append(self.masterData.subtract(*iter1[1]))
             elif iter1[0] == 'multiply':
                 self.undoList.append(self.masterData.multiply(*iter1[1]))
+            elif iter1[0] == 'subtractAvg':
+                self.undoList.append(self.masterData.subtractAvg(*iter1[1]))
             elif iter1[0] == 'reorder':
                 self.undoList.append(self.masterData.reorder(*iter1[1]))
             elif iter1[0] == 'ffm':
@@ -1513,7 +1516,10 @@ class Main1DWindow(QtGui.QWidget):
         
     def createMultiplyWindow(self):
         self.extraWindow = MultiplyWindow(self)
-        
+
+    def createSubtractAvgWindow(self):
+        self.extraWindow = SubtractAvgWindow(self)
+ 
     def createMaxWindow(self):
         self.extraWindow = maxWindow(self)
         
@@ -3388,12 +3394,12 @@ class avgWindow(regionWindow):
             self.father.updAllFrames()
 
 #############################################################
-class extractRegionWindow(QtGui.QWidget): 
-    def __init__(self, parent):
-        QtGui.QWidget.__init__(self,parent)
-        self.setWindowFlags(QtCore.Qt.Window| QtCore.Qt.Tool)
+class regionWindow2(QtGui.QWidget): 
+    def __init__(self, parent, name, newSpecOption):
+        QtGui.QWidget.__init__(self, parent)
+        self.setWindowFlags(QtCore.Qt.Window | QtCore.Qt.Tool)
         self.father = parent
-        self.setWindowTitle('Extract part')
+        self.setWindowTitle(name)
         layout = QtGui.QGridLayout(self)
         grid = QtGui.QGridLayout()
         layout.addLayout(grid,0,0,1,2)
@@ -3412,6 +3418,8 @@ class extractRegionWindow(QtGui.QWidget):
         self.endEntry.returnPressed.connect(self.checkValues)
         grid.addWidget(self.endEntry,3,0)
         self.newSpec = QtGui.QCheckBox("Result in new workspace")
+        if not newSpecOption:
+            self.newSpec.hide()
         layout.addWidget(self.newSpec,1,0,1,2)
         cancelButton = QtGui.QPushButton("&Cancel")
         cancelButton.clicked.connect(self.closeEvent)
@@ -3426,6 +3434,9 @@ class extractRegionWindow(QtGui.QWidget):
         self.father.current.peakPick = True
         self.setGeometry(self.frameSize().width()-self.geometry().width(),self.frameSize().height()-self.geometry().height(),0,0)
 
+    def preview(self, maximum, minimum):
+        pass
+        
     def picked(self,pos,second=False): 
         if second:
             dataLength = self.father.current.data1D.shape[-1]
@@ -3441,6 +3452,7 @@ class extractRegionWindow(QtGui.QWidget):
             self.endEntry.setText(str(self.endVal))
             self.father.current.peakPickFunc = lambda pos,self=self: self.picked(pos) 
             self.father.current.peakPick = True
+            self.preview(self.startVal, self.endVal)
         else:
             self.startEntry.setText(str(pos[0]))
             self.father.current.peakPickFunc = lambda pos,self=self: self.picked(pos,True) 
@@ -3464,9 +3476,12 @@ class extractRegionWindow(QtGui.QWidget):
         elif self.endVal > dataLength:
             self.endVal = dataLength
         self.endEntry.setText(str(self.endVal))
+        self.preview(self.startVal, self.endVal)
         
     def closeEvent(self, *args):
         self.father.current.peakPickReset()
+        self.father.current.upd()
+        self.father.current.showFid()
         self.father.updAllFrames()
         self.father.menuEnable()
         self.deleteLater()
@@ -3497,6 +3512,14 @@ class extractRegionWindow(QtGui.QWidget):
         self.deleteLater()
 
     def apply(self, maximum, minimum, newSpec):
+        pass
+
+############################################################
+class extractRegionWindow(regionWindow2):
+    def __init__(self, parent):
+        regionWindow2.__init__(self,parent, 'Extract part', True)
+
+    def apply(self, maximum, minimum, newSpec):
         if newSpec:
             self.father.father.newWorkspace(self.father.current.getRegion(minimum, maximum, newSpec))
         else:
@@ -3504,6 +3527,19 @@ class extractRegionWindow(QtGui.QWidget):
             self.father.undoList.append(self.father.current.getRegion(minimum, maximum, newSpec))
             self.father.updAllFrames()
 
+############################################################
+class SubtractAvgWindow(regionWindow2):
+    def __init__(self, parent):
+        regionWindow2.__init__(self,parent, 'Subtract Avg', False)
+
+    def apply(self, maximum, minimum, newSpec):
+        self.father.redoList = []
+        self.father.undoList.append(self.father.current.subtractAvg(maximum, minimum))
+        self.father.updAllFrames()
+
+    def preview(self, maximum, minimum):
+        self.father.current.subtractAvgPreview(maximum, minimum)
+            
 ##############################################################
 class DeleteWindow(QtGui.QWidget):
     def __init__(self, parent):
