@@ -32,20 +32,20 @@ import multiprocessing
 class Spectrum:
     def __init__(self, data, loadFunc ,freq , sw , spec=None, wholeEcho=None, ref=None, xaxArray=None, history=None, msgHandler=None):
         self.dim = len(data.shape)                    #number of dimensions
-        self.data = np.array(data,dtype=complex)      #data of dimension dim
+        self.data = np.array(data, dtype=complex)      #data of dimension dim
         self.loadFunc = loadFunc
         self.freq = np.array(freq)                              #array of center frequency (length is dim, MHz)
         self.sw = sw                                  #array of sweepwidths
         if spec is None:
-            self.spec=[0]*self.dim
+            self.spec=[0] * self.dim
         else:
             self.spec = spec                              #int array of length dim where 0 = time domain, 1 = complex spectral
         if wholeEcho is None:
-            self.wholeEcho = [False]*self.dim
+            self.wholeEcho = [False] * self.dim
         else:
             self.wholeEcho = wholeEcho                    #boolean array of length dim where True indicates a full Echo
         if ref is None:
-            self.ref = self.dim*[None]
+            self.ref = self.dim * [None]
         else:
             self.ref = ref
         if xaxArray is None:
@@ -76,7 +76,7 @@ class Spectrum:
             if len(self.history) > 0:
                 self.history.pop()
                    
-    def checkAxes(self,axes):
+    def checkAxes(self, axes):
         if axes < 0:
             axes = axes + self.dim
         if not (0 <= axes < self.dim):
@@ -84,13 +84,13 @@ class Spectrum:
             return None
         return axes
             
-    def reload(self,mainProgram):
+    def reload(self, mainProgram):
         copyData=copy.deepcopy(self)
         returnValue = lambda self: self.restoreData(copyData, lambda self: self.reload(mainProgram))
         self.restoreData(self.loadFunc(mainProgram),None)
         return returnValue
             
-    def resetXax(self,axes=None):  
+    def resetXax(self, axes=None):  
         if axes is not None:
             axes = self.checkAxes(axes)
             if axes == None:
@@ -99,43 +99,46 @@ class Spectrum:
         else:
             val=range(self.dim)
         for i in val:
-            if self.spec[i]==0:
-                self.xaxArray[i]=np.arange(self.data.shape[i])/(self.sw[i])
-            elif self.spec[i]==1:
-                self.xaxArray[i]=np.fft.fftshift(np.fft.fftfreq(self.data.shape[i],1.0/self.sw[i]))
+            if self.spec[i] == 0:
+                self.xaxArray[i] = np.arange(self.data.shape[i]) / (self.sw[i])
+            elif self.spec[i] == 1:
+                self.xaxArray[i] = np.fft.fftshift(np.fft.fftfreq(self.data.shape[i], 1.0/self.sw[i]))
                 if self.ref[i] is not None:
-                    self.xaxArray[i] += self.freq[i]-self.ref[i]
+                    self.xaxArray[i] += self.freq[i] - self.ref[i]
                     
-    def setXax(self,xax,axes):
+    def setXax(self, xax, axes):
         axes = self.checkAxes(axes)
         if axes == None:
             return None
+        if len(xax) != self.data.shape[axes]:
+            self.dispMsg("Length of new x-axis does not match length of the data")
+            return None
         oldXax = self.xaxArray[axes]
-        self.xaxArray[axes]=xax
+        self.xaxArray[axes] = xax
         self.addHistory("X-axes of dimension "+str(axes+1)+" was set to "+str(xax).replace('\n', ''))
-        return lambda self: self.setXax(oldXax,axes)
+        return lambda self: self.setXax(oldXax, axes)
                 
-    def insert(self,data,pos,axes,dataImag=0):
+    def insert(self, data, pos, axes, dataImag=0):
         axes = self.checkAxes(axes)
         if axes == None:
             return None
         data = np.array(data) + 1j*np.array(dataImag)
         oldSize = self.data.shape[axes]
-        self.data = np.insert(self.data,[pos],data,axis=axes)
+        self.data = np.insert(self.data, [pos], data, axis=axes)
         self.resetXax(axes)
         self.addHistory("Inserted " + str(self.data.shape[axes]-oldSize) + " datapoints in dimension "+str(axes+1)+" at position "+str(pos))
-        return lambda self: self.remove(range(pos,pos+data.shape[axes]),axes)
+        return lambda self: self.remove(range(pos,pos+data.shape[axes]), axes)
 
-    def remove(self,pos,axes):
+    def remove(self, pos, axes):
         axes = self.checkAxes(axes)
         if axes == None:
             return None
         copyData=copy.deepcopy(self)
-        returnValue = lambda self: self.restoreData(copyData, lambda self: self.remove(pos,axes))
-        tmpdata = np.delete(self.data,pos,axes)
+        returnValue = lambda self: self.restoreData(copyData, lambda self: self.remove(pos, axes))
+        tmpdata = np.delete(self.data, pos, axes)
         if (np.array(tmpdata.shape) != 0).all():
             self.data = tmpdata
-            self.xaxArray[axes] = np.delete(self.xaxArray[axes],pos)
+            self.xaxArray[axes] = np.delete(self.xaxArray[axes], pos)
             self.addHistory("Removed "+ str(len(pos)) + " datapoints from dimension "+str(axes+1)+" at position "+str(pos))
             return returnValue
         else:

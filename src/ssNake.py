@@ -2754,7 +2754,6 @@ class SizeWindow(QtGui.QWidget):
 
     def closeEvent(self, *args):
         self.father.current.upd()
-        self.father.current.plotReset()
         self.father.current.showFid()
         self.father.menuEnable()
         self.deleteLater()
@@ -2812,7 +2811,6 @@ class SwapEchoWindow(QtGui.QWidget):
     def closeEvent(self, *args):
         self.father.current.peakPickReset()
         self.father.current.upd()
-        self.father.current.plotReset()
         self.father.current.showFid()
         self.father.menuEnable()
         self.deleteLater()
@@ -2899,7 +2897,6 @@ class ShiftDataWindow(QtGui.QWidget):
 
     def closeEvent(self, *args):
         self.father.current.upd()
-        self.father.current.plotReset()
         self.father.current.showFid()
         self.father.menuEnable()
         self.deleteLater()
@@ -3022,7 +3019,6 @@ class DCWindow(QtGui.QWidget):
     def closeEvent(self, *args):
         self.father.current.peakPickReset()
         self.father.current.upd()
-        self.father.current.plotReset()
         self.father.current.showFid()
         self.father.menuEnable()
         self.deleteLater()
@@ -3276,25 +3272,6 @@ class regionWindow(QtGui.QWidget):
         
     def applyAndClose(self):
         self.father.current.peakPickReset()
-        # dataLength = self.father.current.data1D.shape[-1]
-        # inp = safeEval(self.startEntry.text())
-        # if inp is None:
-        #     self.father.father.dispMsg("Not a valid value")
-        #     return
-        # self.startVal = int(round(inp))
-        # if self.startVal < 0:
-        #     self.startVal = 0
-        # elif self.startVal > dataLength:
-        #     self.startVal = dataLength
-        # inp = safeEval(self.endEntry.text())
-        # if inp is None:
-        #     self.father.father.dispMsg("Not a valid value")
-        #     return
-        # self.endVal = int(round(inp))
-        # if self.endVal < 0:
-        #     self.endVal = 0
-        # elif self.endVal > dataLength:
-        #     self.endVal = dataLength
         if self.partIter == 0:
             self.father.father.dispMsg("No boundaries")
             return
@@ -4148,9 +4125,6 @@ class ReorderWindow(QtGui.QWidget):
         self.valEntry.setText(repr(np.loadtxt(filename,dtype=int)))
     
     def closeEvent(self, *args):
-        #self.father.current.upd()
-        #self.father.current.plotReset()
-        #self.father.current.showFid()
         self.father.menuEnable()
         self.deleteLater()
 
@@ -4219,9 +4193,6 @@ class FFMWindow(QtGui.QWidget):
         self.valEntry.setText(repr(np.loadtxt(filename,dtype=int)))
     
     def closeEvent(self, *args):
-        #self.father.current.upd()
-        #self.father.current.plotReset()
-        #self.father.current.showFid()
         self.father.menuEnable()
         self.deleteLater()
 
@@ -4340,7 +4311,6 @@ class MultiplyWindow(QtGui.QWidget):
 
     def closeEvent(self, *args):
         self.father.current.upd()
-        self.father.current.plotReset()
         self.father.current.showFid()
         self.father.menuEnable()
         self.deleteLater()
@@ -4399,7 +4369,6 @@ class XaxWindow(QtGui.QWidget):
 
     def closeEvent(self, *args):
         self.father.current.upd()
-        self.father.current.plotReset()
         self.father.current.showFid()
         self.father.menuEnable()
         self.deleteLater()
