@@ -38,11 +38,11 @@ def clean(inp):
     gamma = inp[2]
     stopLevel = inp[3]
     maxIter = inp[4]
-    replica = np.zeros(len(residuals))
+    replica = np.zeros(len(residuals),dtype=complex)
     for i in range(maxIter):
-        findMax = np.argmax(residuals)
+        findMax = np.argmax(np.abs(residuals))
         maxAmp = residuals[findMax]
-        if maxAmp < stopLevel:
+        if np.abs(maxAmp) < np.abs(np.mean(residuals))*stopLevel:
             break
         replica[findMax] += maxAmp * gamma
         residuals -= maxAmp * gamma * np.roll(mask, findMax)  

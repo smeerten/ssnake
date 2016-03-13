@@ -4305,16 +4305,16 @@ class CLEANWindow(QtGui.QWidget):
         self.gammaEntry.setAlignment(QtCore.Qt.AlignHCenter)
         self.gammaEntry.setText("0.2")
         grid.addWidget(self.gammaEntry,6,0)
-        grid.addWidget(QLabel("Threshold [%]:"),7,0)
+        grid.addWidget(QLabel("Threshold:"),7,0)
         self.thresholdEntry = QtGui.QLineEdit()
         self.thresholdEntry.setAlignment(QtCore.Qt.AlignHCenter)
-        self.thresholdEntry.setText("1.0")
+        self.thresholdEntry.setText("2.0")
         grid.addWidget(self.thresholdEntry,8,0)
-        grid.addWidget(QLabel("Linewidth [Hz]:"),9,0)
-        self.lbEntry = QtGui.QLineEdit()
-        self.lbEntry.setAlignment(QtCore.Qt.AlignHCenter)
-        self.lbEntry.setText("1.0")
-        grid.addWidget(self.lbEntry,10,0)
+        #grid.addWidget(QLabel("Linewidth [Hz]:"),9,0)
+        #self.lbEntry = QtGui.QLineEdit()
+        #self.lbEntry.setAlignment(QtCore.Qt.AlignHCenter)
+        #self.lbEntry.setText("1.0")
+        #grid.addWidget(self.lbEntry,10,0)
         grid.addWidget(QLabel("Max. iterations:"),11,0)
         self.maxIterEntry = QtGui.QLineEdit()
         self.maxIterEntry.setAlignment(QtCore.Qt.AlignHCenter)
@@ -4363,18 +4363,18 @@ class CLEANWindow(QtGui.QWidget):
         if threshold is None:
             self.father.dispMsg("One of the inputs is not valid")
             return
-        threshold = threshold / 100.0
-        lb = safeEval(self.lbEntry.text())
-        if lb is None:
-            self.father.dispMsg("One of the inputs is not valid")
-            return
+        threshold = threshold
+        #lb = safeEval(self.lbEntry.text())
+        #if lb is None:
+        #    self.father.dispMsg("One of the inputs is not valid")
+        #    return
         maxIter = safeEval(self.maxIterEntry.text())
         if maxIter is None:
             self.father.dispMsg("One of the inputs is not valid")
             return
         maxIter = int(maxIter)
         self.father.redoList = []
-        self.father.undoList.append(self.father.current.clean(val, self.typeDrop.currentIndex(), gamma, threshold, lb, maxIter))
+        self.father.undoList.append(self.father.current.clean(val, self.typeDrop.currentIndex(), gamma, threshold, maxIter))
         self.father.updAllFrames()
         self.father.menuEnable()
         self.deleteLater()

@@ -926,7 +926,7 @@ class Spectrum:
         self.addHistory("Fast Forward Maximum Entropy reconstruction of dimension " + str(axes+1) + " at positions "+str(pos))
         return returnValue
     
-    def clean(self, pos, typeVal, axes, gamma, threshold, lb, maxIter):
+    def clean(self, pos, typeVal, axes, gamma, threshold, maxIter):
         axes = self.checkAxes(axes)
         if axes == None:
             return None
@@ -939,14 +939,15 @@ class Spectrum:
         if typeVal == 2: #type is TPPI, for now handle the same as Complex
             pass
         posList = np.unique(posList)
-        tmpData = np.rollaxis(np.real(np.fft.fft(self.data, axis=axes)), axes, self.dim)    # abs or real???
+        tmpData = np.rollaxis(np.fft.fft(self.data, axis=axes), axes, self.dim) 
         tmpShape = tmpData.shape
         tmpData = tmpData.reshape((tmpData.size/tmpShape[-1], tmpShape[-1]))
-        mask = np.exp(-np.pi*lb*np.arange(tmpShape[-1]) / (self.sw[axes]))/float(tmpShape[-1])
+        mask = np.ones(tmpShape[-1])/float(tmpShape[-1])
+        #mask = np.exp(-np.pi*lb*np.arange(tmpShape[-1]) / (self.sw[axes]))/float(tmpShape[-1])
         mask[posList] = 0.0
-        mask = np.real(np.fft.fft(mask))                                                    # abs or real???
+        mask = np.fft.fft(mask)                                                    # abs or real???
         pool = multiprocessing.Pool(multiprocessing.cpu_count())
-        fit = pool.map_async(clean, [(i, mask, gamma, threshold*np.amax(tmpData), maxIter) for i in tmpData])
+        fit = pool.map_async(clean, [(i, mask, gamma, threshold, maxIter) for i in tmpData])
         pool.close()
         pool.join()
         self.data = np.fft.ifft(np.rollaxis(np.array(fit.get()).reshape(tmpShape), -1, axes), axis=axes)
