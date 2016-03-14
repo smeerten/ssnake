@@ -606,6 +606,7 @@ class MainProgram(QtGui.QMainWindow):
         self.tabs.addTab(self.workspaces[-1],name)
         self.workspaceNames.append(name)
         self.changeMainWindow(name)
+        return 1
         
     def loadFromMenu(self):
         fileList = QtGui.QFileDialog.getOpenFileNames(self,'Open File',self.LastLocation)
