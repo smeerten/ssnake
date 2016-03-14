@@ -31,3 +31,20 @@ def ffm(inp):
     res = scipy.optimize.minimize(ent_ffm, np.zeros(l*2), method='L-BFGS-B', args=inp,jac=True)
     inp[0][inp[1]] = res['x'][:l] + 1j*res['x'][l:]
     return inp[0]
+
+def clean(inp):
+    residuals = inp[0]
+    mask = inp[1]
+    gamma = inp[2]
+    stopLevel = inp[3]
+    maxIter = inp[4]
+    replica = np.zeros(len(residuals),dtype=complex)
+    for i in range(maxIter):
+        findMax = np.argmax(np.abs(residuals))
+        maxAmp = residuals[findMax]
+        if np.abs(maxAmp) < np.abs(np.mean(residuals))*stopLevel:
+            break
+        replica[findMax] += maxAmp * gamma
+        residuals -= maxAmp * gamma * np.roll(mask, findMax)  
+    replica += residuals
+    return replica
