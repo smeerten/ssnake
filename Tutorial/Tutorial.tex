@@ -144,13 +144,13 @@ One commonly used value on the `goodness' of a spectrum is the signal-to-noise r
 
 
 \begin{tcolorbox}[breakable,colback=green!5,colframe=MyGreenD,title=\large ssNake workspaces,boxrule=2mm,colback=MyGreenD!30!white]
-Every time you load new data into ssNake, you are prompted to supply a name. The reason for this is that ssNake supports workspaces, i.e. multiple loaded data files at the same time. You can go to a different workspace (if any) by going to Workspaces $\rightarrow$ Active, and selecting the name of the desired workspace to go to. Via the same window you can delete the current workspace, or make a duplicate copy. Some of this can also be done using shortcuts:
+Every time you load new data into ssNake, you are prompted to supply a name. The reason for this is that ssNake supports workspaces, i.e. multiple loaded data files at the same time. You can go to a different workspace (if any) by clicking on itsa respective tab in the top of the ssNake window. Alternatively, use Workspaces $\rightarrow$ Active, and select the name of the desired workspace to go to. Via the same menu you can delete the current workspace, or make a duplicate copy. Some of this can also be done using shortcuts:
 \begin{itemize}
 \item Next workspace: alt-rightarrow
 \item Previous workspace: alt-leftarrow
 \item Delete workspace: ctrl-w
 \end{itemize}
-Note that the workspaces are regarded to form a circle, so pushing alt-rightarrow when you are in the last workspace makes you go back to the first (and vice versa). Changing workspace does nothing to the data and the view of the workspace that you left, so no worries there. Do note, however, that to many open workspaces can take a lot of memory on your computer.
+Note that the workspaces are regarded to form a circle, so pushing alt-rightarrow when you are in the last workspace makes you go back to the first (and vice versa). Changing workspace does nothing to the data and the view of the workspace that you left, so no worries there. Do note, however, that to many open workspaces can take a lot of memory on your computer. Workspaces can also be reorganised by dragging their respective tab to the left or the right.
 \end{tcolorbox}
 
 \subsection{Chemical shift referencing}
@@ -158,7 +158,7 @@ Until now, we have only viewed the spectrum in it's default settings. For ssNake
 
 Now we are in ppm, but the ppm scale is always defined as `x ppm relative to signal y'. The current reference is just the centre of the spectrum (which is now zero), but this is often not correct. Let's just state that the signal we see (which is now at roughly 6.0 ppm) is the true zero point. We must then shift the axis to have `0' at this point. Do it via Plot $\rightarrow$ Set reference. This opens a menu were you can click on the peak in the spectrum (remember to zoom, to be extra accurate). Clicking here sets the frequency (something close to 600 MHz). Leave the zero at `ppm' and push apply. Presto! Now the signal is defined as zero ppm.
 
-Now that we have analysed this data you can close this workspace by going to Workspaces $\rightarrow$ Delete, or by typing ctrl-w. Use this to clean op and close all the workspaces. You can view the current workspaces via Workspaces $\rightarrow$ Active. You can click on a non-active workspace to go there, or use alt-rightarrow and alt-leftarrow to cycle through the list.
+Now that we have analysed this data you can close this workspace by going to Workspaces $\rightarrow$ Delete, by typing ctrl-w, or by clicking on the cross button on the tab. Use this to clean up and close all the workspaces. You can view the current workspaces via Workspaces $\rightarrow$ Active. You can click on a non-active workspace to go there, or use alt-rightarrow and alt-leftarrow to cycle through the list.
 
 \section{Fitting a T$_1$ relaxation curve}
 ssNake can also be used for fitting exponential decays such as T$_1$ and T$_2$. For this we are going to open a true experimental spectrum measured on one of our Varian spectrometers. Go to Load and navigate to the folder `satrec2D.fid' and open the `fid' file from this folder to load the data. Name it `KI' (it is the $^{127}$I signal of potassium iodide).
@@ -183,6 +183,15 @@ However, the  current plot is not correct! The data has been measured with an in
 
 
 To open the fitting window go to Fitting $\rightarrow$ Relaxation Curve. The current view is now changed to a fitting window. Pushing `fit' performs the fit; `cancel' returns to the regular view. To examine our relaxation curve better it is nice to put the x-axis on log scale (use the checkbox on the screen). Before we perform the fit, we have to set some initial guesses to make sure the fit converges. ssNake puts the amplitude automatically to the value of the last point, so we don't have to worry about this one. For the moment, we can tell ssNake to keep the variable `constant' and `coefficient' static by checking the boxes that are next to them. For the `T' value we have to supply a guess. As the signal is about maximum around 2 seconds, the initial guess of 1 s is quite good, so we keep it there. Now, push `Sim' to show the plot of the current setting. Pretty close already! The fit will certainly converge, so push `Fit'. This should give a value of around 0.3 seconds for this T$_1$. You can now fit it also with `constant' and `coefficient' released. This should give roughly the same T value.
+
+\section{Integrating}
+If an NMR experiment is performed in a suitable way, the resulting spectrum is quantitative. That is to say, the number of nuclei that have NMR frequency $a$ are directly proportional to the signal integral of peak $a$. This is used often in NMR to judge the ratio of nuclei between different signals in a spectrum. Naturally, ssNake also supports the calculation of integrals. To start, open `1Dintegrate.json'. As you can see, this is already a spectrum (and it says `Frequency' at the lower left radio buttons). We see two signals, at +10 and -10 ppm. Clearly, they do not have the same height, but how about the integral? Go to Fitting $\rightarrow$ Integrals. This opens a windows were you can select multiple regions for integral calculation. Use the mouse to left-click on the left of the leftmost peak, and then on the right side. Make sure that the whole peak is in the selected region to get a correct integral. The lower boxes now show the selected region and the calculate integral:
+\includegraphics[width=\linewidth]{Images/1Dintegrate.png}
+
+
+ By default ssNake displays the relative integral: the first integral is set to `1'. You can untick the box `Relative integrals' to show the real integral. Now, select the region of the rightmost peak and put the integrals back to relative. Clearly, the ratio between the peak integrals is about 1:2 (actually, it is exactly two, but the noise limits our accuracy). Now, delete the integral number for the second peak and type `1' in the box and press `enter'. ssNake now scales all the integrals in such a way that this value becomes 1. Pretty neat! Do note that this technique can only be accurately used if the signals do not overlap!
+
+
 
 \section{Saving data}
 Just as ssNake can load data, it can also save it back to the disk. ssNake currently supports three formats: JSON, .mat and SIMPSON. Of these, the first two save all the relevant data, the SIMPSON format does not include some stuff that ssNake needs to set all parameters right when loading the data again. It is therefore recommended to save the data in one of the two remaining formats. JSON (JavaScript Object Notation) is a plain text format (i.e. you can open it in a regular text editor and view/change the data), while .mat is a binary format. We favour JSON as it is a nice and intuitive format. However, the .mat file is more space efficient, which is useful for larger datasets. Also, as the .mat file is the native format of {\sc Matlab}, it can be loaded in {\sc Matlab} if some extra data manipulation is necessary. You can find the save options in File $\rightarrow$ Save. 
