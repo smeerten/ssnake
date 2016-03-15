@@ -3570,7 +3570,7 @@ class HerzfeldBergerParamFrame(QtGui.QWidget):
         self.frame3 = QtGui.QGridLayout()
         self.frame4 = QtGui.QGridLayout()
         grid.addLayout(self.frame1,0,0,2,1)
-        grid.addLayout(self.optframe,0,1)
+        grid.addLayout(self.optframe,0,1,2,1)
         grid.addLayout(self.frame2,0,2)
         grid.addLayout(self.frame3,0,3)
         grid.addLayout(self.frame4,1,3)
@@ -3580,9 +3580,6 @@ class HerzfeldBergerParamFrame(QtGui.QWidget):
         fitButton = QtGui.QPushButton("Fit")
         fitButton.clicked.connect(self.fit)
         self.frame1.addWidget(fitButton,1,0)
-        fitAllButton = QtGui.QPushButton("Fit all")
-        fitAllButton.clicked.connect(self.fitAll)
-        self.frame1.addWidget(fitAllButton,2,0)
         cancelButton = QtGui.QPushButton("&Cancel")
         cancelButton.clicked.connect(rootwindow.cancel)
         self.frame1.addWidget(cancelButton,3,0)
@@ -3601,26 +3598,32 @@ class HerzfeldBergerParamFrame(QtGui.QWidget):
         self.optframe.addWidget(self.chengEntry,1,0)
         self.optframe.setColumnStretch(10,1)
         self.optframe.setAlignment(QtCore.Qt.AlignTop)
-        self.frame2.addWidget(QLabel(r"\nu_r:"),0,0)
-        self.frame2.setColumnStretch(10,1)
-        self.frame2.setAlignment(QtCore.Qt.AlignTop)
-        self.frame3.addWidget(self.numExp,0,0,1,2)
-        self.frame3.addWidget(QLabel(r"\delta:"),1,0,1,2)
-        self.frame3.addWidget(QLabel(r"\eta:"),1,2,1,2)
+        self.optframe.addWidget(QLabel("Spinning speed [kHz]:"),2,0)
+        self.spinEntry = QtGui.QLineEdit()
+        self.spinEntry.setAlignment(QtCore.Qt.AlignHCenter)
+        self.spinEntry.setText(str(30))
+        self.optframe.addWidget(self.spinEntry, 3, 0)
+        #self.frame2.setColumnStretch(10,1)
+        #self.frame2.setAlignment(QtCore.Qt.AlignTop)
+        self.frame3.addWidget(QLabel(u"\u03B4 [ppm]:"),1,0,1,2)
+        self.frame3.addWidget(QLabel(u"\u03B7:"),1,2,1,2)
         self.frame3.setColumnStretch(20,1)
         self.frame3.setAlignment(QtCore.Qt.AlignTop)
         self.deltaEntry = QtGui.QLineEdit()
         self.deltaEntry.setAlignment(QtCore.Qt.AlignHCenter)
+        self.deltaEntry.setText("10.0")
         self.frame3.addWidget(self.deltaEntry, 2, 1)
         self.deltaTick = QtGui.QCheckBox('')
         self.frame3.addWidget(self.deltaTick, 2, 0)
         self.etaEntry = QtGui.QLineEdit()
         self.etaEntry.setAlignment(QtCore.Qt.AlignHCenter)
+        self.etaEntry.setText("0.0")
         self.frame3.addWidget(self.etaEntry, 2, 3)
         self.etaTick = QtGui.QCheckBox('')
         self.frame3.addWidget(self.etaTick, 2, 2)
         self.frame4.addWidget(QLabel("Sideband:"),0,0)
         self.frame4.addWidget(QLabel("Integral:"),1,0)
+        self.frame4.setColumnStretch(100,1)
         self.sidebandList = []
         self.sidebandEntries = []
         self.integralList = []
@@ -3646,20 +3649,20 @@ class HerzfeldBergerParamFrame(QtGui.QWidget):
         self.parent.showPlot()
 
     def addValue(self, value):
-        if self.tmPos is None:
+        if self.tmpPos is None:
             self.tmpPos = value
         else:
-            n = len(self.integralList)+1
+            n = len(self.integralList)
             self.sidebandList.append((-1)**n*n//2)
             self.integralList.append(np.sum(self.parent.data1D[min(self.tmpPos, value):min(self.tmpPos, value)])*self.parent.current.sw/float(self.parent.data1D.shape[-1]))
             self.tmpPos = None
-            self.sidebandEntries.append(QtGui.QSpinbox(self, ))
+            self.sidebandEntries.append(QtGui.QSpinBox(self, ))
             self.sidebandEntries[-1].setMinimum(-99)
             self.sidebandEntries[-1].setValue(self.sidebandList[-1])
-            self.frame4.addWidget(self.sidebandEntries[-1],len(self.sidebandEntries),0)
+            self.frame4.addWidget(self.sidebandEntries[-1], 0, len(self.sidebandEntries))
             self.integralEntries.append(QtGui.QLineEdit())
             self.integralEntries[-1].setText(str(self.integralList[-1]))
-            self.frame4.addWidget(self.sidebandEntries[-1],len(self.sidebandEntries),1)
+            self.frame4.addWidget(self.integralEntries[-1], 1, len(self.sidebandEntries))
 
     def togglePick(self):
         self.parent.togglePick(self.pickTick.isChecked())
@@ -3736,11 +3739,12 @@ class HerzfeldBergerParamFrame(QtGui.QWidget):
         struc = []
         guess = []
         argu = []
+        omegar = float(self.nurEntry.text())*1e3*np.pi*2
         if not self.deltaTick.isChecked():
-            guess.append(float(self.deltaEntry.text()))
+            guess.append(float(self.deltaEntry.text())*1e6)
             struc.append(True)
         else:
-            outDelta = float(self.deltaEntry.text())
+            outDelta = float(self.deltaEntry.text())*1e6
             argu.append(outDelta)
             struc.append(False)
         if not self.etaTick.isChecked():
@@ -3750,221 +3754,65 @@ class HerzfeldBergerParamFrame(QtGui.QWidget):
             outEta = float(self.etaEntry.text())
             argu.append(outEta)
             struc.append(False)
-        #for i in range(len(self.integralEntries)):
-            
         self.args = (numExp,struc,argu)
-        phi,theta,self.weight = zcw_angles(self.cheng,symm=2)
-        self.multt11=np.sin(theta)**2*np.cos(phi)**2
-        self.multt22=np.sin(theta)**2*np.sin(phi)**2
-        self.multt33=np.cos(theta)**2
-        fitVal = scipy.optimize.fmin(self.fitFunc,guess, args=(self.parent.xax,np.real(self.parent.data1D)))
+        phi, theta, self.weight = zcw_angles(self.cheng,symm=2)
+        sinPhi = np.sin(phi)
+        cosPhi = np.cos(phi)
+        sin2Theta = np.sin(2*theta)
+        cos2Theta = np.cos(2*theta)
+        nsteps = 50                                                 # Make adjustable?
+        tresolution = 2*np.pi/omegar/nsteps
+        t = np.linspace(0,tresolution*(nsteps-1),nsteps)
+        cosOmegarT = np.cos(omegar*t)
+        cos2OmegarT = np.cos(2*omegar*t)
+        self.S1 = np.array([np.sqrt(2)/3 *  sinPhi * sin2Theta]).transpose()* np.sin(omegar*t)
+        self.S2 =  np.array([cosPhi * sin2Theta/3]).transpose()* np.sin(2*omegar*t)
+        self.C1 = np.array([np.sqrt(2)/3 *  sinPhi * cosPhi * 3 ]).transpose()* cosOmegarT
+        self.C1eta = np.transpose([cos2Theta / 3.0]) * C1
+        self.C2 = np.array([-1.0 / 3 *  3/2*sinPhi**2 ]).transpose()* cos2OmegarT
+        self.C2eta = np.array([1.0 / 3 /2*(1+cosPhi**2)*cos2Theta ]).transpose()* cos2OmegarT
+        fitVal = scipy.optimize.fmin(self.fitFunc, guess, args=(self.sidebandList, np.real(self.integralList), self.parent.current.freq*np.pi*2, tresolution))
         counter = 0
         if struc[0]:
-            self.bgrndEntry.setText('%.3g' % fitVal[counter])
-            outBgrnd = fitVal[counter]
+            self.deltaEntry.setText('%.3g' % fitVal[counter])
+            outDelta = fitVal[counter]
             counter +=1
         if struc[1]:
-            self.slopeEntry.setText('%.3g' % fitVal[counter])
-            outSlope = fitVal[counter]
+            self.etaEntry.setText('%.3g' % fitVal[counter])
+            outEta = fitVal[counter]
             counter +=1
-        for i in range(numExp):
-            if struc[6*i+2]:
-                self.t11Entries[i].setText('%.3g' % fitVal[counter])
-                outt11[i] = fitVal[counter]
-                counter += 1
-            if struc[6*i+3]:
-                self.t22Entries[i].setText('%.3g' % fitVal[counter])
-                outt22[i] = fitVal[counter]
-                counter += 1
-            if struc[6*i+4]:
-                self.t33Entries[i].setText('%.3g' % fitVal[counter])
-                outt33[i] = fitVal[counter]
-                counter += 1
-            if struc[6*i+5]:
-                self.ampEntries[i].setText('%.3g' % fitVal[counter])
-                outAmp[i] = fitVal[counter]
-                counter += 1
-            if struc[6*i+6]:
-                self.lorEntries[i].setText('%.3g' % abs(fitVal[counter]))
-                outWidth[i] = abs(fitVal[counter])
-                counter += 1
-            if struc[6*i+7]:
-                self.gaussEntries[i].setText('%.3g' % abs(fitVal[counter]))
-                outGauss[i] = abs(fitVal[counter])
-                counter += 1
-        self.disp(outBgrnd,outSlope,outt11,outt22,outt33,outAmp,outWidth,outGauss)
-
-    def fitAll(self, *args):
-        FitAllSelectionWindow(self,["Background","Slope","T11","T22","T33","Integral","Lorentz","Gauss"])
-
-    def fitAllFunc(self,outputs):
-        self.setCheng()
-        if not self.checkInputs():
-            self.rootwindow.mainProgram.dispMsg("One of the inputs is not valid")
-            return
-        struc = []
-        guess = []
-        argu = []
-        numExp = self.numExp.currentIndex()+1
-        outt11 = np.zeros(numExp)
-        outt22 = np.zeros(numExp)
-        outt33 = np.zeros(numExp)
-        outAmp = np.zeros(numExp)
-        outWidth = np.zeros(numExp)
-        outGauss = np.zeros(numExp)
-        if not self.bgrndTick.isChecked():
-            guess.append(float(self.bgrndEntry.text()))
-            struc.append(True)
-        else:
-            outBgrnd = float(self.bgrndEntry.text())
-            argu.append(outBgrnd)
-            struc.append(False)
-        if not self.slopeTick.isChecked():
-            guess.append(float(self.slopeEntry.text()))
-            struc.append(True)
-        else:
-            outSlope = float(self.slopeEntry.text())
-            argu.append(outSlope)
-            struc.append(False)
-        for i in range(numExp):
-            if not self.t11Ticks[i].isChecked():
-                guess.append(float(self.t11Entries[i].text()))
-                struc.append(True)
-            else:
-                outt11[i] = float(self.t11Entries[i].text())
-                argu.append(outt11[i])
-                struc.append(False)
-            if not self.t22Ticks[i].isChecked():
-                guess.append(float(self.t22Entries[i].text()))
-                struc.append(True)
-            else:
-                outt22[i] = float(self.t22Entries[i].text())
-                argu.append(outt22[i])
-                struc.append(False)
-            if not self.t33Ticks[i].isChecked():
-                guess.append(float(self.t33Entries[i].text()))
-                struc.append(True)
-            else:
-                outt33[i] = float(self.t33Entries[i].text())
-                argu.append(outt33[i])
-                struc.append(False)
-            if not self.ampTicks[i].isChecked():
-                guess.append(float(self.ampEntries[i].text()))
-                struc.append(True)
-            else:
-                outAmp[i] = float(self.ampEntries[i].text())
-                argu.append(outAmp[i])
-                struc.append(False)
-            if not self.lorTicks[i].isChecked():
-                guess.append(abs(float(self.lorEntries[i].text())))
-                struc.append(True)
-            else:
-                outWidth[i] = abs(float(self.lorEntries[i].text()))
-                argu.append(outWidth[i])
-                struc.append(False)
-            if not self.gaussTicks[i].isChecked():
-                guess.append(abs(float(self.gaussEntries[i].text())))
-                struc.append(True)
-            else:
-                outGauss[i] = abs(float(self.gaussEntries[i].text()))
-                argu.append(outGauss[i])
-                struc.append(False)
-        self.args = (numExp,struc,argu)
-        phi,theta,self.weight = zcw_angles(self.cheng,symm=2)
-        self.multt11=np.sin(theta)**2*np.cos(phi)**2
-        self.multt22=np.sin(theta)**2*np.sin(phi)**2
-        self.multt33=np.cos(theta)**2
-        fullData = self.parent.current.data.data
-        axes = self.parent.current.axes
-        dataShape = fullData.shape
-        dataShape2 = np.delete(dataShape,axes)
-        rolledData = np.rollaxis(fullData,axes)
-        intOutputs = np.array(outputs,dtype=int)
-        numOutputs = np.sum(intOutputs[:2]) + numExp*np.sum(intOutputs[2:])
-        outputData = np.zeros((np.product(dataShape2),numOutputs),dtype=complex)
-        counter2 = 0
-        for j in rolledData.reshape(dataShape[axes],np.product(dataShape2)).T:
-            try:
-                fitVal = scipy.optimize.fmin(self.fitFunc,guess, args=(self.parent.xax,np.real(j)))
-            except:
-                fitVal = [[0]*10]
-            counter = 0
-            if struc[0]:
-                outBgrnd = fitVal[counter]
-                counter +=1
-            if struc[1]:
-                outSlope = fitVal[counter]
-                counter +=1
-            for i in range(numExp):
-                if struc[6*i+2]:
-                    outt11[i] = fitVal[counter]
-                    counter += 1
-                if struc[6*i+3]:
-                    outt22[i] = fitVal[counter]
-                    counter += 1
-                if struc[6*i+4]:
-                    outt33[i] = fitVal[counter]
-                    counter += 1
-                if struc[6*i+5]:
-                    outAmp[i] = fitVal[counter]
-                    counter += 1
-                if struc[6*i+6]:
-                    outWidth[i] = abs(fitVal[counter])
-                    counter += 1
-                if struc[6*i+7]:
-                    outGauss[i] = abs(fitVal[counter])
-                    counter += 1
-            outputArray = []
-            if outputs[0]:
-                outputArray = np.concatenate((outputArray,[outBgrnd]))
-            if outputs[1]:
-                outputArray = np.concatenate((outputArray,[outSlope]))
-            if outputs[2]:
-                outputArray = np.concatenate((outputArray,outt11))
-            if outputs[3]:
-                outputArray = np.concatenate((outputArray,outt22))
-            if outputs[4]:
-                outputArray = np.concatenate((outputArray,outt33))
-            if outputs[5]:
-                outputArray = np.concatenate((outputArray,outAmp)) 
-            if outputs[6]:
-                outputArray = np.concatenate((outputArray,outWidth))
-            if outputs[7]:
-                outputArray = np.concatenate((outputArray,outGauss))
-            outputData[counter2] = outputArray
-            counter2 += 1
-        newShape = np.concatenate((np.array(dataShape2),[numOutputs]))
-        self.rootwindow.createNewData(np.rollaxis(outputData.reshape(newShape),-1,axes), axes)
-        
+        self.disp(outDelta, outEta)
+ 
     def sim(self):
-        self.setCheng()
-        numExp = self.numExp.currentIndex()+1
-        bgrnd = safeEval(self.bgrndEntry.text())
-        slope = safeEval(self.slopeEntry.text())
-        if bgrnd is None or slope is None:
-            self.rootwindow.mainProgram.dispMsg("One of the inputs is not valid")
-            return
-        t11 = np.zeros(numExp)
-        t22 = np.zeros(numExp)
-        t33 = np.zeros(numExp)
-        amp = np.zeros(numExp)
-        width = np.zeros(numExp)
-        gauss = np.zeros(numExp)
-        for i in range(numExp):
-            t11[i] = safeEval(self.t11Entries[i].text())
-            t22[i] = safeEval(self.t22Entries[i].text())
-            t33[i] = safeEval(self.t33Entries[i].text())
-            amp[i] = safeEval(self.ampEntries[i].text())
-            width[i] = safeEval(self.lorEntries[i].text())
-            gauss[i] = safeEval(self.gaussEntries[i].text())
-            if not np.isfinite([t11[i], t22[i], t33[i], amp[i], width[i], gauss[i]]).all():
-                self.rootwindow.mainProgram.dispMsg("One of the inputs is not valid")
-                return
-        phi,theta,self.weight = zcw_angles(self.cheng,symm=2)
-        self.multt11=np.sin(theta)**2*np.cos(phi)**2
-        self.multt22=np.sin(theta)**2*np.sin(phi)**2
-        self.multt33=np.cos(theta)**2
-        self.disp(bgrnd,slope,t11,t22,t33,amp,width,gauss)
+        pass
+        # self.setCheng()
+        # numExp = self.numExp.currentIndex()+1
+        # bgrnd = safeEval(self.bgrndEntry.text())
+        # slope = safeEval(self.slopeEntry.text())
+        # if bgrnd is None or slope is None:
+        #     self.rootwindow.mainProgram.dispMsg("One of the inputs is not valid")
+        #     return
+        # t11 = np.zeros(numExp)
+        # t22 = np.zeros(numExp)
+        # t33 = np.zeros(numExp)
+        # amp = np.zeros(numExp)
+        # width = np.zeros(numExp)
+        # gauss = np.zeros(numExp)
+        # for i in range(numExp):
+        #     t11[i] = safeEval(self.t11Entries[i].text())
+        #     t22[i] = safeEval(self.t22Entries[i].text())
+        #     t33[i] = safeEval(self.t33Entries[i].text())
+        #     amp[i] = safeEval(self.ampEntries[i].text())
+        #     width[i] = safeEval(self.lorEntries[i].text())
+        #     gauss[i] = safeEval(self.gaussEntries[i].text())
+        #     if not np.isfinite([t11[i], t22[i], t33[i], amp[i], width[i], gauss[i]]).all():
+        #         self.rootwindow.mainProgram.dispMsg("One of the inputs is not valid")
+        #         return
+        # phi,theta,self.weight = zcw_angles(self.cheng,symm=2)
+        # self.multt11=np.sin(theta)**2*np.cos(phi)**2
+        # self.multt22=np.sin(theta)**2*np.sin(phi)**2
+        # self.multt33=np.cos(theta)**2
+        # self.disp(bgrnd,slope,t11,t22,t33,amp,width,gauss)
         
 ##############################################################################
 class Quad1DeconvWindow(QtGui.QWidget): 
