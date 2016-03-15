@@ -2746,13 +2746,13 @@ class TensorDeconvFrame(Plot1DFrame):
             if self.pickNum < 10:
                 self.rootwindow.paramframe.numExp.setCurrentIndex(self.pickNum)
                 self.rootwindow.paramframe.changeNum()
-            self.rootwindow.paramframe.t11Entries[self.pickNum].setText("%.2g" %self.current.xax[pos[0]])
+            self.rootwindow.paramframe.t11Entries[self.pickNum].setText("%.3g" %self.current.xax[pos[0]])
             self.pickNum2 = 1
         elif self.pickNum2 == 1:
-            self.rootwindow.paramframe.t22Entries[self.pickNum].setText("%.2g" %self.current.xax[pos[0]])
+            self.rootwindow.paramframe.t22Entries[self.pickNum].setText("%.3g" %self.current.xax[pos[0]])
             self.pickNum2 = 2
         elif self.pickNum2 == 2:
-            self.rootwindow.paramframe.t33Entries[self.pickNum].setText("%.2g" %self.current.xax[pos[0]])
+            self.rootwindow.paramframe.t33Entries[self.pickNum].setText("%.3g" %self.current.xax[pos[0]])
             self.pickNum2 = 0
             self.pickNum += 1
         if self.pickNum < 10:
@@ -3169,36 +3169,36 @@ class TensorDeconvParamFrame(QtGui.QWidget):
         fitVal = scipy.optimize.fmin(self.fitFunc,guess, args=(self.parent.xax,np.real(self.parent.data1D)))
         counter = 0
         if struc[0]:
-            self.bgrndEntry.setText('%.2g' % fitVal[counter])
+            self.bgrndEntry.setText('%.3g' % fitVal[counter])
             outBgrnd = fitVal[counter]
             counter +=1
         if struc[1]:
-            self.slopeEntry.setText('%.2g' % fitVal[counter])
+            self.slopeEntry.setText('%.3g' % fitVal[counter])
             outSlope = fitVal[counter]
             counter +=1
         for i in range(numExp):
             if struc[6*i+2]:
-                self.t11Entries[i].setText('%.2g' % fitVal[counter])
+                self.t11Entries[i].setText('%.3g' % fitVal[counter])
                 outt11[i] = fitVal[counter]
                 counter += 1
             if struc[6*i+3]:
-                self.t22Entries[i].setText('%.2g' % fitVal[counter])
+                self.t22Entries[i].setText('%.3g' % fitVal[counter])
                 outt22[i] = fitVal[counter]
                 counter += 1
             if struc[6*i+4]:
-                self.t33Entries[i].setText('%.2g' % fitVal[counter])
+                self.t33Entries[i].setText('%.3g' % fitVal[counter])
                 outt33[i] = fitVal[counter]
                 counter += 1
             if struc[6*i+5]:
-                self.ampEntries[i].setText('%.2g' % fitVal[counter])
+                self.ampEntries[i].setText('%.3g' % fitVal[counter])
                 outAmp[i] = fitVal[counter]
                 counter += 1
             if struc[6*i+6]:
-                self.lorEntries[i].setText('%.2g' % abs(fitVal[counter]))
+                self.lorEntries[i].setText('%.3g' % abs(fitVal[counter]))
                 outWidth[i] = abs(fitVal[counter])
                 counter += 1
             if struc[6*i+7]:
-                self.gaussEntries[i].setText('%.2g' % abs(fitVal[counter]))
+                self.gaussEntries[i].setText('%.3g' % abs(fitVal[counter]))
                 outGauss[i] = abs(fitVal[counter])
                 counter += 1
         self.disp(outBgrnd,outSlope,outt11,outt22,outt33,outAmp,outWidth,outGauss)
@@ -3760,36 +3760,36 @@ class HerzfeldBergerParamFrame(QtGui.QWidget):
         fitVal = scipy.optimize.fmin(self.fitFunc,guess, args=(self.parent.xax,np.real(self.parent.data1D)))
         counter = 0
         if struc[0]:
-            self.bgrndEntry.setText('%.2g' % fitVal[counter])
+            self.bgrndEntry.setText('%.3g' % fitVal[counter])
             outBgrnd = fitVal[counter]
             counter +=1
         if struc[1]:
-            self.slopeEntry.setText('%.2g' % fitVal[counter])
+            self.slopeEntry.setText('%.3g' % fitVal[counter])
             outSlope = fitVal[counter]
             counter +=1
         for i in range(numExp):
             if struc[6*i+2]:
-                self.t11Entries[i].setText('%.2g' % fitVal[counter])
+                self.t11Entries[i].setText('%.3g' % fitVal[counter])
                 outt11[i] = fitVal[counter]
                 counter += 1
             if struc[6*i+3]:
-                self.t22Entries[i].setText('%.2g' % fitVal[counter])
+                self.t22Entries[i].setText('%.3g' % fitVal[counter])
                 outt22[i] = fitVal[counter]
                 counter += 1
             if struc[6*i+4]:
-                self.t33Entries[i].setText('%.2g' % fitVal[counter])
+                self.t33Entries[i].setText('%.3g' % fitVal[counter])
                 outt33[i] = fitVal[counter]
                 counter += 1
             if struc[6*i+5]:
-                self.ampEntries[i].setText('%.2g' % fitVal[counter])
+                self.ampEntries[i].setText('%.3g' % fitVal[counter])
                 outAmp[i] = fitVal[counter]
                 counter += 1
             if struc[6*i+6]:
-                self.lorEntries[i].setText('%.2g' % abs(fitVal[counter]))
+                self.lorEntries[i].setText('%.3g' % abs(fitVal[counter]))
                 outWidth[i] = abs(fitVal[counter])
                 counter += 1
             if struc[6*i+7]:
-                self.gaussEntries[i].setText('%.2g' % abs(fitVal[counter]))
+                self.gaussEntries[i].setText('%.3g' % abs(fitVal[counter]))
                 outGauss[i] = abs(fitVal[counter])
                 counter += 1
         self.disp(outBgrnd,outSlope,outt11,outt22,outt33,outAmp,outWidth,outGauss)
@@ -4543,36 +4543,36 @@ class Quad1DeconvParamFrame(QtGui.QWidget):
         fitVal = scipy.optimize.fmin(self.fitFunc,guess, args=(self.parent.xax,np.real(self.parent.data1D)))
         counter = 0
         if struc[0]:
-            self.bgrndEntry.setText('%.2g' % fitVal[counter])
+            self.bgrndEntry.setText('%.3g' % fitVal[counter])
             outBgrnd = fitVal[counter]
             counter +=1
         if struc[1]:
-            self.slopeEntry.setText('%.2g' % fitVal[counter])
+            self.slopeEntry.setText('%.3g' % fitVal[counter])
             outSlope = fitVal[counter]
             counter +=1
         for i in range(numExp):
             if struc[6*i+2]:
-                self.posEntries[i].setText('%.2g' % fitVal[counter])
+                self.posEntries[i].setText('%.3g' % fitVal[counter])
                 outPos[i] = fitVal[counter]
                 counter += 1
             if struc[6*i+3]:
-                self.cqEntries[i].setText('%.2g' % (fitVal[counter]*1e-6))
+                self.cqEntries[i].setText('%.3g' % (fitVal[counter]*1e-6))
                 outCq[i] = fitVal[counter]
                 counter += 1
             if struc[6*i+4]:
-                self.etaEntries[i].setText('%.2g' % abs(fitVal[counter]))
+                self.etaEntries[i].setText('%.3g' % abs(fitVal[counter]))
                 outEta[i] = fitVal[counter]
                 counter += 1
             if struc[6*i+5]:
-                self.ampEntries[i].setText('%.2g' % fitVal[counter])
+                self.ampEntries[i].setText('%.3g' % fitVal[counter])
                 outAmp[i] = fitVal[counter]
                 counter += 1
             if struc[6*i+6]:
-                self.lorEntries[i].setText('%.2g' % abs(fitVal[counter]))
+                self.lorEntries[i].setText('%.3g' % abs(fitVal[counter]))
                 outWidth[i] = abs(fitVal[counter])
                 counter += 1
             if struc[6*i+7]:
-                self.gaussEntries[i].setText('%.2g' % abs(fitVal[counter]))
+                self.gaussEntries[i].setText('%.3g' % abs(fitVal[counter]))
                 outGauss[i] = abs(fitVal[counter])
                 counter += 1
         self.disp(outBgrnd,outSlope,I,outPos,outCq,outEta,outAmp,outWidth,outGauss)
@@ -5333,7 +5333,7 @@ class Quad2StaticCzjzekParamFrame(QtGui.QWidget):
                 inp = 5
             argu.append(inp)
             outD[i] = inp
-            self.dEntries[i].setText('%.2g' % inp)
+            self.dEntries[i].setText('%.3g' % inp)
             if not self.posTicks[i].isChecked():
                 guess.append(float(self.posEntries[i].text()))
                 struc.append(True)
@@ -5381,32 +5381,32 @@ class Quad2StaticCzjzekParamFrame(QtGui.QWidget):
         fitVal = scipy.optimize.fmin(self.fitFunc,guess, args=(self.parent.xax,np.real(self.parent.data1D)))
         counter = 0
         if struc[0]:
-            self.bgrndEntry.setText('%.2g' % fitVal[counter])
+            self.bgrndEntry.setText('%.3g' % fitVal[counter])
             outBgrnd = fitVal[counter]
             counter +=1
         if struc[1]:
-            self.slopeEntry.setText('%.2g' % fitVal[counter])
+            self.slopeEntry.setText('%.3g' % fitVal[counter])
             outSlope = fitVal[counter]
             counter +=1
         for i in range(numExp):
             if struc[5*i+2]:
-                self.posEntries[i].setText('%.2g' % fitVal[counter])
+                self.posEntries[i].setText('%.3g' % fitVal[counter])
                 outPos[i] = fitVal[counter]
                 counter += 1
             if struc[5*i+3]:
-                self.sigmaEntries[i].setText('%.2g' % (fitVal[counter]*1e-6))
+                self.sigmaEntries[i].setText('%.3g' % (fitVal[counter]*1e-6))
                 outSigma[i] = fitVal[counter]
                 counter += 1
             if struc[5*i+4]:
-                self.ampEntries[i].setText('%.2g' % fitVal[counter])
+                self.ampEntries[i].setText('%.3g' % fitVal[counter])
                 outAmp[i] = fitVal[counter]
                 counter += 1
             if struc[5*i+5]:
-                self.lorEntries[i].setText('%.2g' % abs(fitVal[counter]))
+                self.lorEntries[i].setText('%.3g' % abs(fitVal[counter]))
                 outWidth[i] = abs(fitVal[counter])
                 counter += 1
             if struc[5*i+6]:
-                self.gaussEntries[i].setText('%.2g' % abs(fitVal[counter]))
+                self.gaussEntries[i].setText('%.3g' % abs(fitVal[counter]))
                 outGauss[i] = abs(fitVal[counter])
                 counter += 1
         self.disp(outBgrnd,outSlope,outPos,outSigma,outD,outAmp,outWidth,outGauss)
@@ -5456,7 +5456,7 @@ class Quad2StaticCzjzekParamFrame(QtGui.QWidget):
                 inp = 5
             argu.append(inp)
             outD[i] = inp
-            self.dEntries[i].setText('%.2g' % inp)
+            self.dEntries[i].setText('%.3g' % inp)
             if not self.posTicks[i].isChecked():
                 guess.append(float(self.posEntries[i].text()))
                 struc.append(True)
