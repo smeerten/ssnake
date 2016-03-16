@@ -3558,6 +3558,7 @@ class HerzfeldBergerParamFrame(QtGui.QWidget):
         self.parent = parent
         self.rootwindow = rootwindow
         self.cheng = 15
+        self.NSTEPS = 30
         grid = QtGui.QGridLayout(self)
         self.setLayout(grid)
         if self.parent.current.spec == 1:
@@ -3601,7 +3602,7 @@ class HerzfeldBergerParamFrame(QtGui.QWidget):
         self.optframe.addWidget(QLabel("Spinning speed [kHz]:"),2,0)
         self.spinEntry = QtGui.QLineEdit()
         self.spinEntry.setAlignment(QtCore.Qt.AlignHCenter)
-        self.spinEntry.setText(str(30))
+        self.spinEntry.setText("30.0")
         self.optframe.addWidget(self.spinEntry, 3, 0)
         #self.frame2.setColumnStretch(10,1)
         #self.frame2.setAlignment(QtCore.Qt.AlignTop)
@@ -3617,33 +3618,39 @@ class HerzfeldBergerParamFrame(QtGui.QWidget):
         self.frame3.addWidget(self.deltaTick, 2, 0)
         self.etaEntry = QtGui.QLineEdit()
         self.etaEntry.setAlignment(QtCore.Qt.AlignHCenter)
-        self.etaEntry.setText("0.0")
+        self.etaEntry.setText("0.00")
         self.frame3.addWidget(self.etaEntry, 2, 3)
         self.etaTick = QtGui.QCheckBox('')
         self.frame3.addWidget(self.etaTick, 2, 2)
         self.frame4.addWidget(QLabel("Sideband:"),0,0)
         self.frame4.addWidget(QLabel("Integral:"),1,0)
+        self.frame4.addWidget(QLabel("Result:"),2,0)
         self.frame4.setColumnStretch(100,1)
         self.sidebandList = []
         self.sidebandEntries = []
         self.integralList = []
         self.integralEntries = []
+        self.resultList = []
+        self.resultLabels = []
         self.tmpPos = None
         self.reset()
         grid.setColumnStretch(10,1)
         grid.setAlignment(QtCore.Qt.AlignLeft)
 
     def reset(self):
-        self.refVal = None
         self.sidebandList = []
         self.integralList = []
+        self.resultList = []
         for i in range(len(self.sidebandEntries)):
             self.frame4.removeWidget(self.sidebandEntries[i])
             self.frame4.removeWidget(self.integralEntries[i])
+            self.frame4.removeWidget(self.resultLabels[i])
             self.sidebandEntries[i].deleteLater()
             self.integralEntries[i].deleteLater()
+            self.resultLabels[i].deleteLater()
         self.sidebandEntries = []
         self.integralEntries = []
+        self.resultLabels = []
         self.pickTick.setChecked(True)
         self.togglePick()
         self.parent.showPlot()
@@ -3654,15 +3661,17 @@ class HerzfeldBergerParamFrame(QtGui.QWidget):
         else:
             n = len(self.integralList)
             self.sidebandList.append((-1)**n*n//2)
-            self.integralList.append(np.sum(self.parent.data1D[min(self.tmpPos, value):min(self.tmpPos, value)])*self.parent.current.sw/float(self.parent.data1D.shape[-1]))
+            self.integralList.append(np.sum(self.parent.data1D[min(self.tmpPos, value):max(self.tmpPos, value)])*self.parent.current.sw/float(self.parent.data1D.shape[-1]))
             self.tmpPos = None
             self.sidebandEntries.append(QtGui.QSpinBox(self, ))
             self.sidebandEntries[-1].setMinimum(-99)
             self.sidebandEntries[-1].setValue(self.sidebandList[-1])
             self.frame4.addWidget(self.sidebandEntries[-1], 0, len(self.sidebandEntries))
             self.integralEntries.append(QtGui.QLineEdit())
-            self.integralEntries[-1].setText(str(self.integralList[-1]))
+            self.integralEntries[-1].setText('%#.5g' % self.integralList[-1])
             self.frame4.addWidget(self.integralEntries[-1], 1, len(self.sidebandEntries))
+            self.resultLabels.append(QtGui.QLabel())
+            self.frame4.addWidget(self.resultLabels[-1], 2, len(self.sidebandEntries))
 
     def togglePick(self):
         self.parent.togglePick(self.pickTick.isChecked())
@@ -3675,18 +3684,14 @@ class HerzfeldBergerParamFrame(QtGui.QWidget):
             self.cheng = int(inp)
         self.chengEntry.setText(str(self.cheng))
 
-    def hbFunc(self, omega0, delta, eta, tresolution, t):
-        nsteps = len(t)
+    def hbFunc(self, omega0, delta, eta):
         omegars =  omega0*delta*(self.C1  + self.C2 +  eta*(self.C1eta + self.C2eta + self.S1 + self.S2 ))
-        
-        QTrs= np.exp(-1j*np.cumsum(omegars,axis=1)*tresolution)
+        QTrs= np.exp(-1j*np.cumsum(omegars,axis=1)*self.tresolution)
         rhoT0sr = np.conj(QTrs)
-
         #calculate the gamma-averaged FID over 1 rotor period for all crystallites
-        favrs = np.zeros(nsteps,dtype=complex)
-        for j in range(0,nsteps):
-            favrs[j] += np.sum(weight * np.sum(rhoT0sr * np.roll(QTrs, -j, axis=1), 1) / nsteps**2)
-
+        favrs = np.zeros(self.NSTEPS,dtype=complex)
+        for j in range(self.NSTEPS):
+            favrs[j] += np.sum(self.weight * np.sum(rhoT0sr * np.roll(QTrs, -j, axis=1), 1) / self.NSTEPS**2)
         #calculate the sideband intensities by doing an FT and pick the ones that are needed further
         sidebands = np.real(np.fft.fft(favrs))
         return sidebands
@@ -3695,8 +3700,6 @@ class HerzfeldBergerParamFrame(QtGui.QWidget):
         struc = self.args[0]
         argu = self.args[1]
         omega0 = self.args[2]
-        tresolution = self.args[3]
-        t = self.args[4]
         if struc[0]:
             delta = param[0]
             param = np.delete(param, [0])
@@ -3709,11 +3712,15 @@ class HerzfeldBergerParamFrame(QtGui.QWidget):
         else:
             eta = argu[0]
             argu=np.delete(argu,[0])
-        testFunc = self.tensorFunc(omega0, delta, eta, tresolution, t)
+        testFunc = self.hbFunc(omega0, delta, eta)
         return np.sum((testFunc[x]-np.mean(testFunc[x])-y-np.mean(y))**2)
 
     def disp(self, outDelta, outEta):
-        pass
+        testFunc = self.hbFunc(self.parent.current.freq*np.pi*2, outDelta, outEta)
+        results = testFunc[self.sidebandList]
+        results /= results[0]
+        for i in range(len(self.resultLabels)):
+            self.resultLabels[i].setText('%#.5g' % (results[i]*self.integralList[0]))
 
     def checkInputs(self):
         inp = safeEval(self.deltaEntry.text())
@@ -3724,14 +3731,21 @@ class HerzfeldBergerParamFrame(QtGui.QWidget):
         if inp is None:
             return False
         self.etaEntry.setText('%#.3g' % inp)
-        for i in range(self.sidebandList):
+        if np.unique(self.sidebandList).size != len(self.sidebandList):
+            self.rootwindow.mainProgram.dispMsg("Multiple sidebands have the same index")
+            return False
+        for i in range(len(self.sidebandList)):
             inp = safeEval(self.integralEntries[i].text())
+            self.integralList[i] = inp
             if inp is None:
                 return False
-            self.integralEntries[i].setText('%#.3g' % inp)
+            self.integralEntries[i].setText('%#.5g' % inp)
         return True
         
     def fit(self,*args):
+        if len(self.integralList) < 2:
+            self.rootwindow.mainProgram.dispMsg("Not enough integrals selected")
+            return
         self.setCheng()
         if not self.checkInputs():
             self.rootwindow.mainProgram.dispMsg("One of the inputs is not valid")
@@ -3739,7 +3753,7 @@ class HerzfeldBergerParamFrame(QtGui.QWidget):
         struc = []
         guess = []
         argu = []
-        omegar = float(self.nurEntry.text())*1e3*np.pi*2
+        omegar = float(self.spinEntry.text())*1e3*np.pi*2
         if not self.deltaTick.isChecked():
             guess.append(float(self.deltaEntry.text())*1e6)
             struc.append(True)
@@ -3754,24 +3768,23 @@ class HerzfeldBergerParamFrame(QtGui.QWidget):
             outEta = float(self.etaEntry.text())
             argu.append(outEta)
             struc.append(False)
-        self.args = (numExp,struc,argu)
+        self.args = (struc, argu, self.parent.current.freq*np.pi*2)
         phi, theta, self.weight = zcw_angles(self.cheng,symm=2)
         sinPhi = np.sin(phi)
         cosPhi = np.cos(phi)
         sin2Theta = np.sin(2*theta)
         cos2Theta = np.cos(2*theta)
-        nsteps = 50                                                 # Make adjustable?
-        tresolution = 2*np.pi/omegar/nsteps
-        t = np.linspace(0,tresolution*(nsteps-1),nsteps)
-        cosOmegarT = np.cos(omegar*t)
-        cos2OmegarT = np.cos(2*omegar*t)
-        self.S1 = np.array([np.sqrt(2)/3 *  sinPhi * sin2Theta]).transpose()* np.sin(omegar*t)
-        self.S2 =  np.array([cosPhi * sin2Theta/3]).transpose()* np.sin(2*omegar*t)
+        self.tresolution = 2*np.pi/omegar/self.NSTEPS
+        self.t = np.linspace(0, self.tresolution*(self.NSTEPS-1), self.NSTEPS)
+        cosOmegarT = np.cos(omegar*self.t)
+        cos2OmegarT = np.cos(2*omegar*self.t)
+        self.S1 = np.array([np.sqrt(2)/3 *  sinPhi * sin2Theta]).transpose()* np.sin(omegar*self.t)
+        self.S2 =  np.array([cosPhi * sin2Theta/3]).transpose()* np.sin(2*omegar*self.t)
         self.C1 = np.array([np.sqrt(2)/3 *  sinPhi * cosPhi * 3 ]).transpose()* cosOmegarT
-        self.C1eta = np.transpose([cos2Theta / 3.0]) * C1
+        self.C1eta = np.transpose([cos2Theta / 3.0]) * self.C1
         self.C2 = np.array([-1.0 / 3 *  3/2*sinPhi**2 ]).transpose()* cos2OmegarT
         self.C2eta = np.array([1.0 / 3 /2*(1+cosPhi**2)*cos2Theta ]).transpose()* cos2OmegarT
-        fitVal = scipy.optimize.fmin(self.fitFunc, guess, args=(self.sidebandList, np.real(self.integralList), self.parent.current.freq*np.pi*2, tresolution))
+        fitVal = scipy.optimize.fmin(self.fitFunc, guess, args=(self.sidebandList, np.real(self.integralList)))
         counter = 0
         if struc[0]:
             self.deltaEntry.setText('%.3g' % fitVal[counter])
@@ -3784,35 +3797,33 @@ class HerzfeldBergerParamFrame(QtGui.QWidget):
         self.disp(outDelta, outEta)
  
     def sim(self):
-        pass
-        # self.setCheng()
-        # numExp = self.numExp.currentIndex()+1
-        # bgrnd = safeEval(self.bgrndEntry.text())
-        # slope = safeEval(self.slopeEntry.text())
-        # if bgrnd is None or slope is None:
-        #     self.rootwindow.mainProgram.dispMsg("One of the inputs is not valid")
-        #     return
-        # t11 = np.zeros(numExp)
-        # t22 = np.zeros(numExp)
-        # t33 = np.zeros(numExp)
-        # amp = np.zeros(numExp)
-        # width = np.zeros(numExp)
-        # gauss = np.zeros(numExp)
-        # for i in range(numExp):
-        #     t11[i] = safeEval(self.t11Entries[i].text())
-        #     t22[i] = safeEval(self.t22Entries[i].text())
-        #     t33[i] = safeEval(self.t33Entries[i].text())
-        #     amp[i] = safeEval(self.ampEntries[i].text())
-        #     width[i] = safeEval(self.lorEntries[i].text())
-        #     gauss[i] = safeEval(self.gaussEntries[i].text())
-        #     if not np.isfinite([t11[i], t22[i], t33[i], amp[i], width[i], gauss[i]]).all():
-        #         self.rootwindow.mainProgram.dispMsg("One of the inputs is not valid")
-        #         return
-        # phi,theta,self.weight = zcw_angles(self.cheng,symm=2)
-        # self.multt11=np.sin(theta)**2*np.cos(phi)**2
-        # self.multt22=np.sin(theta)**2*np.sin(phi)**2
-        # self.multt33=np.cos(theta)**2
-        # self.disp(bgrnd,slope,t11,t22,t33,amp,width,gauss)
+        if len(self.integralList) < 2:
+            self.rootwindow.mainProgram.dispMsg("Not enough integrals selected")
+            return
+        self.setCheng()
+        if not self.checkInputs():
+            self.rootwindow.mainProgram.dispMsg("One of the inputs is not valid")
+            return
+        omegar = float(self.spinEntry.text())*1e3*np.pi*2
+        outDelta = float(self.deltaEntry.text())*1e6
+        outEta = float(self.etaEntry.text())
+        phi, theta, self.weight = zcw_angles(self.cheng,symm=2)
+        sinPhi = np.sin(phi)
+        cosPhi = np.cos(phi)
+        sin2Theta = np.sin(2*theta)
+        cos2Theta = np.cos(2*theta)
+        self.tresolution = 2*np.pi/omegar/self.NSTEPS
+        self.t = np.linspace(0, self.tresolution*(self.NSTEPS-1), self.NSTEPS)
+        cosOmegarT = np.cos(omegar*self.t)
+        cos2OmegarT = np.cos(2*omegar*self.t)
+        self.S1 = np.array([np.sqrt(2)/3 *  sinPhi * sin2Theta]).transpose()* np.sin(omegar*self.t)
+        self.S2 =  np.array([cosPhi * sin2Theta/3]).transpose()* np.sin(2*omegar*self.t)
+        self.C1 = np.array([np.sqrt(2)/3 *  sinPhi * cosPhi * 3 ]).transpose()* cosOmegarT
+        self.C1eta = np.transpose([cos2Theta / 3.0]) * self.C1
+        self.C2 = np.array([-1.0 / 3 *  3/2*sinPhi**2 ]).transpose()* cos2OmegarT
+        self.C2eta = np.array([1.0 / 3 /2*(1+cosPhi**2)*cos2Theta ]).transpose()* cos2OmegarT
+        self.disp(outDelta, outEta)
+
         
 ##############################################################################
 class Quad1DeconvWindow(QtGui.QWidget): 
