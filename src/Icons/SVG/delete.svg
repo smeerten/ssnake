@@ -16,23 +16,23 @@
    id="svg2"
    version="1.1"
    inkscape:version="0.91 r13725"
-   inkscape:export-filename="/media/HDD/ssnake/Icons/record.png"
+   inkscape:export-filename="/media/HDD/ssnake/Icons/delete.png"
    inkscape:export-xdpi="162.56"
    inkscape:export-ydpi="162.56"
-   sodipodi:docname="record.svg">
+   sodipodi:docname="delete.svg">
   <defs
      id="defs4">
     <linearGradient
        inkscape:collect="always"
-       id="linearGradient4180">
+       id="linearGradient4198">
       <stop
          style="stop-color:#ff0000;stop-opacity:1;"
          offset="0"
-         id="stop4182" />
+         id="stop4200" />
       <stop
          style="stop-color:#ff0000;stop-opacity:0;"
          offset="1"
-         id="stop4184" />
+         id="stop4202" />
     </linearGradient>
     <style
        id="style4260"
@@ -216,17 +216,15 @@
            style="stroke:none;" />
       </symbol>
     </g>
-    <radialGradient
+    <linearGradient
        inkscape:collect="always"
-       xlink:href="#linearGradient4180"
-       id="radialGradient4186"
-       cx="17.716534"
-       cy="1034.6456"
-       fx="17.716534"
-       fy="1034.6456"
-       r="13.287401"
-       gradientUnits="userSpaceOnUse"
-       gradientTransform="matrix(3.7806189,-2.445715e-8,0,3.6009884,-49.262926,-2691.1012)" />
+       xlink:href="#linearGradient4198"
+       id="linearGradient4204"
+       x1="17.464993"
+       y1="1056.2434"
+       x2="17.464993"
+       y2="959.1311"
+       gradientUnits="userSpaceOnUse" />
   </defs>
   <sodipodi:namedview
      id="base"
@@ -235,9 +233,9 @@
      borderopacity="1.0"
      inkscape:pageopacity="0.0"
      inkscape:pageshadow="2"
-     inkscape:zoom="5.6"
-     inkscape:cx="-24.470966"
-     inkscape:cy="17.334724"
+     inkscape:zoom="6.4358502"
+     inkscape:cx="-34.953555"
+     inkscape:cy="9.4709318"
      inkscape:document-units="px"
      inkscape:current-layer="layer1"
      showgrid="false"
@@ -263,11 +261,10 @@
      inkscape:groupmode="layer"
      id="layer1"
      transform="translate(0,-1016.9291)">
-    <circle
-       style="opacity:0.99999999;fill:url(#radialGradient4186);fill-opacity:1;fill-rule:nonzero;stroke:#ad0000;stroke-width:1.692;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
-       id="path4181"
-       cx="17.716534"
-       cy="1034.6456"
-       r="12.441401" />
+    <path
+       style="opacity:1;fill:url(#linearGradient4204);fill-opacity:1;fill-rule:nonzero;stroke:#ad0000;stroke-width:1.69200003;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+       d="m 9.9418117,1019.8972 -6.97373,6.9736 7.7747243,7.7747 -7.7747243,7.7749 6.97373,6.9736 7.7747233,-7.7747 7.774724,7.7747 6.97373,-6.9736 -7.774724,-7.7749 7.774724,-7.7747 -6.97373,-6.9736 -7.774724,7.7746 -7.7747233,-7.7746 z"
+       id="rect4180"
+       inkscape:connector-curvature="0" />
   </g>
 </svg>
