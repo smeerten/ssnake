@@ -16,7 +16,7 @@
    id="svg2"
    version="1.1"
    inkscape:version="0.91 r13725"
-   inkscape:export-filename="/media/HDD/ssnake/Icons/undo.png"
+   inkscape:export-filename="/media/HDD/ssnake/ssnake/src/Icons/previous.png"
    inkscape:export-xdpi="162.56"
    inkscape:export-ydpi="162.56"
    sodipodi:docname="previous.svg">
@@ -251,7 +251,7 @@
      inkscape:pageshadow="2"
      inkscape:zoom="9.1016664"
      inkscape:cx="15.061876"
-     inkscape:cy="30.632282"
+     inkscape:cy="17.447883"
      inkscape:document-units="px"
      inkscape:current-layer="layer1"
      showgrid="false"
