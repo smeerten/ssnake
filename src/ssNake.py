@@ -34,6 +34,14 @@ from safeEval import *
 
 pi=np.pi
 
+class SsnakeTabs(QtGui.QTabWidget):
+    #A tab widget were tabs can be closed with the middle mouse button
+    def mousePressEvent(self, event):
+        if event.button() == QtCore.Qt.MidButton:
+            index = self.tabBar().tabAt(event.pos())
+            if index >= 0:
+                self.tabCloseRequested.emit(index)
+
 class MainProgram(QtGui.QMainWindow):
     def __init__(self,root):
         QtGui.QMainWindow.__init__(self)
@@ -54,7 +62,7 @@ class MainProgram(QtGui.QMainWindow):
         self.logo = QtGui.QLabel(self)
         self.logo.setPixmap(QtGui.QPixmap(os.path.dirname(os.path.realpath(__file__)) + "/logo.gif"))
         self.mainFrame.addWidget(self.logo,0,0,QtCore.Qt.AlignCenter)
-        self.tabs = QtGui.QTabWidget(self)
+        self.tabs = SsnakeTabs(self)
         self.tabs.setMovable(True)
         self.tabs.tabBar().tabMoved.connect(self.moveWorkspace)
         self.allowChange = True
