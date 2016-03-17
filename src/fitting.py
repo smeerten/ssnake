@@ -3755,10 +3755,10 @@ class HerzfeldBergerParamFrame(QtGui.QWidget):
         argu = []
         omegar = float(self.spinEntry.text())*1e3*np.pi*2
         if not self.deltaTick.isChecked():
-            guess.append(float(self.deltaEntry.text())*1e6)
+            guess.append(float(self.deltaEntry.text())*1e-6)
             struc.append(True)
         else:
-            outDelta = float(self.deltaEntry.text())*1e6
+            outDelta = float(self.deltaEntry.text())*1e-6
             argu.append(outDelta)
             struc.append(False)
         if not self.etaTick.isChecked():
@@ -3787,7 +3787,7 @@ class HerzfeldBergerParamFrame(QtGui.QWidget):
         fitVal = scipy.optimize.fmin(self.fitFunc, guess, args=(self.sidebandList, np.real(self.integralList)))
         counter = 0
         if struc[0]:
-            self.deltaEntry.setText('%.3g' % fitVal[counter])
+            self.deltaEntry.setText('%.3g' % (fitVal[counter]*1e6))
             outDelta = fitVal[counter]
             counter +=1
         if struc[1]:
@@ -3805,7 +3805,7 @@ class HerzfeldBergerParamFrame(QtGui.QWidget):
             self.rootwindow.mainProgram.dispMsg("One of the inputs is not valid")
             return
         omegar = float(self.spinEntry.text())*1e3*np.pi*2
-        outDelta = float(self.deltaEntry.text())*1e6
+        outDelta = float(self.deltaEntry.text())*1e-6
         outEta = float(self.etaEntry.text())
         phi, theta, self.weight = zcw_angles(self.cheng,symm=2)
         sinPhi = np.sin(phi)

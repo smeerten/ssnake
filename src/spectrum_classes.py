@@ -2179,6 +2179,8 @@ class CurrentMulti(Current1D):
             spec = updateVar[3]
             xax = updateVar[5]
             ref = updateVar[6]
+            if ref is None:
+                ref = data.freq[self.extraAxes[i]]
             if spec == 1:
                 if self.ppm:
                     axMult = 1e6/ref
