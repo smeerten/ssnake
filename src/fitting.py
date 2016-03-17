@@ -31,7 +31,8 @@ from zcw import *
 pi = np.pi
 
 ##############################################################################
-class IntegralsWindow(QtGui.QWidget): 
+class FittingWindow(QtGui.QWidget):
+    #Inherited by the fitting windows
     def __init__(self, rootwindow,mainProgram,oldMainWindow):
         QtGui.QWidget.__init__(self,rootwindow)
         self.mainProgram = mainProgram
@@ -41,8 +42,7 @@ class IntegralsWindow(QtGui.QWidget):
         self.canvas =  FigureCanvas(self.fig)
         grid = QtGui.QGridLayout(self)
         grid.addWidget(self.canvas,0,0)
-        self.current = IntegralsFrame(self,self.fig,self.canvas,oldMainWindow.current)
-        self.paramframe = IntegralsParamFrame(self.current,self)
+        self.setup()
         grid.addWidget(self.paramframe,1,0)
         grid.setColumnStretch(0,1)
         grid.setRowStretch(0,1)
@@ -51,10 +51,16 @@ class IntegralsWindow(QtGui.QWidget):
         self.canvas.mpl_connect('button_release_event', self.buttonRelease)
         self.canvas.mpl_connect('motion_notify_event', self.pan)
         self.canvas.mpl_connect('scroll_event', self.scroll)
+
+    def setup(self):
+        pass
         
-    def createNewData(self,data, axes):
+    def createNewData(self,data, axes, store=False):
         masterData = self.get_masterData()
-        self.mainProgram.dataFromFit(data, copy.deepcopy(masterData.freq), copy.deepcopy(masterData.sw) , copy.deepcopy(masterData.spec), copy.deepcopy(masterData.wholeEcho), copy.deepcopy(masterData.ref), copy.deepcopy(masterData.xaxArray), axes)
+        if store:
+            self.mainProgram.dataFromFit(data, [masterData.freq[axes], masterData.freq[axes]], [masterData.sw[axes], masterData.sw[axes]] , [False, masterData.spec[axes]], [False, masterData.wholeEcho[axes]], [None, masterData.ref[axes]], [np.arange(len(self.data)), masterData.xaxArray[axes]], axes)
+        else:
+            self.mainProgram.dataFromFit(data, copy.deepcopy(masterData.freq), copy.deepcopy(masterData.sw) , copy.deepcopy(masterData.spec), copy.deepcopy(masterData.wholeEcho), copy.deepcopy(masterData.ref), copy.deepcopy(masterData.xaxArray), axes)
         
     def rename(self,name):
         self.fig.suptitle(name)
@@ -104,6 +110,15 @@ class IntegralsWindow(QtGui.QWidget):
         del self.fig
         self.mainProgram.closeFitWindow(self.oldMainWindow)
         self.deleteLater()
+
+##############################################################################
+class IntegralsWindow(FittingWindow): 
+    def __init__(self, rootwindow,mainProgram,oldMainWindow):
+        FittingWindow.__init__(self,rootwindow,mainProgram,oldMainWindow)
+
+    def setup():
+        self.current = IntegralsFrame(self,self.fig,self.canvas,self.oldMainWindow.current)
+        self.paramframe = IntegralsParamFrame(self.current,self)
         
 #################################################################################   
 class IntegralsFrame(Plot1DFrame): 
@@ -474,79 +489,13 @@ class IntegralsParamFrame(QtGui.QWidget):
         self.parent.showPlot(x,y)
         
 ##############################################################################
-class RelaxWindow(QtGui.QWidget): 
+class RelaxWindow(FittingWindow): 
     def __init__(self, rootwindow,mainProgram,oldMainWindow):
-        QtGui.QWidget.__init__(self,rootwindow)
-        self.mainProgram = mainProgram
-        self.oldMainWindow = oldMainWindow
-        self.name = self.oldMainWindow.name
-        self.fig = Figure()
-        self.canvas =  FigureCanvas(self.fig)
-        grid = QtGui.QGridLayout(self)
-        grid.addWidget(self.canvas,0,0)
-        self.current = RelaxFrame(self,self.fig,self.canvas,oldMainWindow.current)
+        FittingWindow.__init__(self,rootwindow,mainProgram,oldMainWindow)
+
+    def setup(self):
+        self.current = RelaxFrame(self,self.fig,self.canvas,self.oldMainWindow.current)
         self.paramframe = RelaxParamFrame(self.current,self)
-        grid.addWidget(self.paramframe,1,0)
-        grid.setColumnStretch(0,1)
-        grid.setRowStretch(0,1)
-        self.canvas.mpl_connect('button_press_event', self.buttonPress)      
-        self.canvas.mpl_connect('button_release_event', self.buttonRelease)
-        self.canvas.mpl_connect('motion_notify_event', self.pan)
-        self.canvas.mpl_connect('scroll_event', self.scroll)
-        self.grid = grid
-
-    def createNewData(self,data, axes):
-        masterData = self.get_masterData()
-        self.mainProgram.dataFromFit(data, copy.deepcopy(masterData.freq), copy.deepcopy(masterData.sw) , copy.deepcopy(masterData.spec), copy.deepcopy(masterData.wholeEcho), copy.deepcopy(masterData.ref), copy.deepcopy(masterData.xaxArray), axes)
-        
-    def rename(self,name):
-        self.fig.suptitle(name)
-        self.canvas.draw()
-        self.oldMainWindow.rename(name)
-        
-    def buttonPress(self,event):
-        self.current.buttonPress(event)
-
-    def buttonRelease(self,event):
-        self.current.buttonRelease(event)
-
-    def pan(self,event):
-        self.current.pan(event)
-
-    def scroll(self,event):
-        self.current.scroll(event)
-        
-    def get_mainWindow(self):
-        return self.oldMainWindow
-        
-    def get_masterData(self):
-        return self.oldMainWindow.get_masterData()
-    
-    def get_current(self):
-        return self.oldMainWindow.get_current()
-
-    def kill(self):
-        for i in reversed(range(self.grid.count())): 
-            self.grid.itemAt(i).widget().deleteLater()
-        self.grid.deleteLater()
-        self.current.kill()
-        self.oldMainWindow.kill()
-        del self.current
-        del self.paramframe
-        del self.fig
-        del self.canvas
-        self.deleteLater()
-        
-    def cancel(self):
-        for i in reversed(range(self.grid.count())): 
-            self.grid.itemAt(i).widget().deleteLater()
-        self.grid.deleteLater()
-        del self.current
-        del self.paramframe
-        del self.canvas
-        del self.fig
-        self.mainProgram.closeFitWindow(self.oldMainWindow)
-        self.deleteLater()
         
 #################################################################################   
 class RelaxFrame(Plot1DFrame): 
@@ -847,9 +796,12 @@ class RelaxParamFrame(QtGui.QWidget):
         fitAllButton = QtGui.QPushButton("Fit all")
         fitAllButton.clicked.connect(self.fitAll)
         self.frame1.addWidget(fitAllButton,2,0)
+        copyResultButton = QtGui.QPushButton("Copy result")
+        copyResultButton.clicked.connect(lambda: self.sim(True))
+        self.frame1.addWidget(copyResultButton,3,0)
         cancelButton = QtGui.QPushButton("&Cancel")
         cancelButton.clicked.connect(rootwindow.cancel)
-        self.frame1.addWidget(cancelButton,3,0)
+        self.frame1.addWidget(cancelButton,4,0)
         self.frame1.setColumnStretch(10,1)
         self.frame1.setAlignment(QtCore.Qt.AlignTop)
         self.frame2.addWidget(QLabel("Amplitude:"),0,0,1,2)
@@ -886,7 +838,6 @@ class RelaxParamFrame(QtGui.QWidget):
         self.optframe.setAlignment(QtCore.Qt.AlignTop)
         grid.setColumnStretch(10,1)
         grid.setAlignment(QtCore.Qt.AlignLeft)
-        
         self.coeffTicks = []
         self.coeffEntries = []
         self.t1Ticks = []
@@ -1021,7 +972,7 @@ class RelaxParamFrame(QtGui.QWidget):
                 argu.append(outT1[i])
                 struc.append(False)
         self.args=(numExp,struc,argu)
-        fitVal = scipy.optimize.curve_fit(self.fitFunc,self.parent.xax, self.parent.data1D,guess)
+        fitVal = scipy.optimize.curve_fit(self.fitFunc, self.parent.xax, self.parent.data1D, guess)
         counter = 0
         if struc[0]:
             self.ampEntry.setText('%#.3g' % fitVal[0][counter])
@@ -1096,7 +1047,7 @@ class RelaxParamFrame(QtGui.QWidget):
         counter2 = 0
         for j in rolledData.reshape(dataShape[axes],np.product(dataShape2)).T:
             try:
-                fitVal = scipy.optimize.curve_fit(self.fitFunc,self.parent.xax, np.real(j),guess)
+                fitVal = scipy.optimize.curve_fit(self.fitFunc, self.parent.xax, np.real(j), guess)
             except:
                 fitVal = [[0]*10]
             counter = 0
@@ -1127,7 +1078,7 @@ class RelaxParamFrame(QtGui.QWidget):
         newShape = np.concatenate((np.array(dataShape2),[numOutputs]))
         self.rootwindow.createNewData(np.rollaxis(outputData.reshape(newShape),-1,axes), axes)
         
-    def sim(self):
+    def sim(self, store=False):
         numExp = self.numExp.currentIndex()+1
         outAmp = safeEval(self.ampEntry.text())
         outConst = safeEval(self.constEntry.text())
@@ -1142,95 +1093,41 @@ class RelaxParamFrame(QtGui.QWidget):
             if outCoeff[i] is None or outT1[i] is None:
                 self.rootwindow.mainProgram.dispMsg("One of the inputs is not valid")
                 return
-        self.disp(outAmp,outConst,outCoeff,outT1)
+        if store:
+            self.copyResult(outAmp, outConst, outCoeff, outT1)
+        else:
+            self.disp(outAmp, outConst, outCoeff, outT1)
+
+    def copyResult(self, outAmp, outConst, outCoeff, outT1):
+        outCurve = np.zeros((len(outCoeff)+2, len(self.parent.xax)))
+        tmp = np.zeros(len(self.parent.xax))
+        for i in range(len(outCoeff)):
+            outCurve[i] = outAmp * (outConst + outCoeff[i]*np.exp(-self.parent.xax/outT1[i]))
+            tmp += outCurve[i] 
+        outCurve[len(outCoeff)] = tmp - (len(outCoeff)-1)*outAmp * outConst
+        outCurve[len(outCoeff)+1] = self.parent.data1D
+        self.rootwindow.createNewData(outCurve, self.parent.current.axes, False)
         
-    def disp(self, outAmp,outConst,outCoeff, outT1):
+    def disp(self, outAmp, outConst, outCoeff, outT1):
         numCurve = 100 #number of points in output curve
         outCurve = np.zeros(numCurve)
         if self.xlog.isChecked():
-            x = np.logspace(np.log(min(self.parent.xax)),np.log(max(self.parent.xax)),numCurve)
+            x = np.logspace(np.log(min(self.parent.xax)),np.log(max(self.parent.xax)), numCurve)
         else:
-            x = np.linspace(min(self.parent.xax),max(self.parent.xax),numCurve)
+            x = np.linspace(min(self.parent.xax),max(self.parent.xax), numCurve)
         for i in range(len(outCoeff)):
             outCurve += outCoeff[i]*np.exp(-x/outT1[i])
         self.parent.showPlot(x, outAmp*(outConst+outCurve))
 
 ##############################################################################
-class DiffusionWindow(QtGui.QWidget): 
+class DiffusionWindow(FittingWindow): 
     def __init__(self, rootwindow,mainProgram,oldMainWindow):
-        QtGui.QWidget.__init__(self,rootwindow)
-        self.mainProgram = mainProgram
-        self.oldMainWindow = oldMainWindow
-        self.name = self.oldMainWindow.name
-        #self.fig = self.mainProgram.getFig()
-        self.fig = Figure()
-        self.canvas =  FigureCanvas(self.fig)
-        grid = QtGui.QGridLayout(self)
-        grid.addWidget(self.canvas,0,0)
-        self.current = DiffusionFrame(self,self.fig,self.canvas,oldMainWindow.current)
+        FittingWindow.__init__(self,rootwindow,mainProgram,oldMainWindow)
+
+    def setup(self):
+        self.current = DiffusionFrame(self,self.fig,self.canvas,self.oldMainWindow.current)
         self.paramframe = DiffusionParamFrame(self.current,self)
-        grid.addWidget(self.paramframe,1,0)
-        grid.setColumnStretch(0,1)
-        grid.setRowStretch(0,1)
-        self.canvas.mpl_connect('button_press_event', self.buttonPress)      
-        self.canvas.mpl_connect('button_release_event', self.buttonRelease)
-        self.canvas.mpl_connect('motion_notify_event', self.pan)
-        self.canvas.mpl_connect('scroll_event', self.scroll)
-        self.grid = grid
-
-    def createNewData(self,data, axes):
-        masterData = self.get_masterData()
-        self.mainProgram.dataFromFit(data, copy.deepcopy(masterData.freq), copy.deepcopy(masterData.sw) , copy.deepcopy(masterData.spec), copy.deepcopy(masterData.wholeEcho), copy.deepcopy(masterData.ref), copy.deepcopy(masterData.xaxArray), axes)
-        
-    def rename(self,name):
-        self.fig.suptitle(name)
-        self.canvas.draw()
-        self.oldMainWindow.rename(name)
-        
-    def buttonPress(self,event):
-        self.current.buttonPress(event)
-
-    def buttonRelease(self,event):
-        self.current.buttonRelease(event)
-
-    def pan(self,event):
-        self.current.pan(event)
-
-    def scroll(self,event):
-        self.current.scroll(event)
-        
-    def get_mainWindow(self):
-        return self.oldMainWindow
-        
-    def get_masterData(self):
-        return self.oldMainWindow.get_masterData()
     
-    def get_current(self):
-        return self.oldMainWindow.get_current()
-        
-    def kill(self):
-        for i in reversed(range(self.grid.count())): 
-            self.grid.itemAt(i).widget().deleteLater()
-        self.grid.deleteLater()
-        self.current.kill()
-        self.oldMainWindow.kill()
-        del self.current
-        del self.paramframe
-        del self.fig
-        del self.canvas
-        self.deleteLater()
-        
-    def cancel(self):
-        for i in reversed(range(self.grid.count())): 
-            self.grid.itemAt(i).widget().deleteLater()
-        self.grid.deleteLater()
-        del self.current
-        del self.paramframe
-        del self.canvas
-        del self.fig
-        self.mainProgram.closeFitWindow(self.oldMainWindow)
-        self.deleteLater()
-        
 #################################################################################   
 class DiffusionFrame(Plot1DFrame): 
     def __init__(self, rootwindow,fig,canvas,current):
@@ -1532,9 +1429,12 @@ class DiffusionParamFrame(QtGui.QWidget):
         fitAllButton = QtGui.QPushButton("Fit all")
         fitAllButton.clicked.connect(self.fitAll)
         self.frame1.addWidget(fitAllButton,2,0)
+        copyResultButton = QtGui.QPushButton("Copy result")
+        copyResultButton.clicked.connect(lambda: self.sim(True))
+        self.frame1.addWidget(copyResultButton,3,0)
         cancelButton = QtGui.QPushButton("&Cancel")
         cancelButton.clicked.connect(rootwindow.cancel)
-        self.frame1.addWidget(cancelButton,3,0)
+        self.frame1.addWidget(cancelButton,4,0)
         self.frame1.setColumnStretch(10,1)
         self.frame1.setAlignment(QtCore.Qt.AlignTop)
         self.frame2.addWidget(QLabel(u"\u03b3 [MHz/T]:"),0,0)
@@ -1850,7 +1750,7 @@ class DiffusionParamFrame(QtGui.QWidget):
         newShape = np.concatenate((np.array(dataShape2),[numOutputs]))
         self.rootwindow.createNewData(np.rollaxis(outputData.reshape(newShape),-1,axes), axes)
         
-    def sim(self):
+    def sim(self, store=False):
         numExp = self.numExp.currentIndex()+1
         outAmp = safeEval(self.ampEntry.text())
         outConst = safeEval(self.constEntry.text())
@@ -1868,7 +1768,20 @@ class DiffusionParamFrame(QtGui.QWidget):
             if outCoeff[i] is None or outD[i] is None:
                 self.rootwindow.mainProgram.dispMsg("One of the inputs is not valid")
                 return
-        self.disp(outAmp,outConst,outCoeff,outD,gamma,delta,triangle)
+        if store:
+            self.copyResult(outAmp, outConst, outCoeff, outD, gamma, delta, triangle)
+        else: 
+            self.disp(outAmp, outConst, outCoeff, outD, gamma, delta, triangle)
+
+    def copyResult(self, outAmp, outConst, outCoeff, outD, gamma, delta, triangle):
+        outCurve = np.zeros((len(outCoeff)+2, len(self.parent.xax)))
+        tmp = np.zeros(len(self.parent.xax))
+        for i in range(len(outCoeff)):
+            outCurve[i] = outCoeff[i]*np.exp(-(gamma*delta*self.parent.xax)**2*outD[i]*(triangle-delta/3.0))
+            tmp += outCurve[i]
+        outCurve[len(outCoeff)] = tmp
+        outCurve[len(outCoeff)+1] = self.parent.data1D
+        self.rootwindow.createNewData(outCurve, self.parent.current.axes, False)
         
     def disp(self, outAmp, outConst, outCoeff, outD, gamma, delta, triangle):
         numCurve = 100 
@@ -1882,81 +1795,14 @@ class DiffusionParamFrame(QtGui.QWidget):
         self.parent.showPlot(x, outAmp*(outConst+outCurve))
         
 ##############################################################################
-class PeakDeconvWindow(QtGui.QWidget): 
+class PeakDeconvWindow(FittingWindow): 
     def __init__(self, rootwindow,mainProgram,oldMainWindow):
-        QtGui.QWidget.__init__(self,rootwindow)
-        self.mainProgram = mainProgram
-        self.oldMainWindow = oldMainWindow
-        self.name = self.oldMainWindow.name
-        #self.fig = self.mainProgram.getFig()
-        self.fig = Figure()
-        self.canvas =  FigureCanvas(self.fig)
-        grid = QtGui.QGridLayout(self)
-        grid.addWidget(self.canvas,0,0)
-        self.current = PeakDeconvFrame(self,self.fig,self.canvas,oldMainWindow.current)
+        FittingWindow.__init__(self,rootwindow,mainProgram,oldMainWindow)
+
+    def setup(self):
+        self.current = PeakDeconvFrame(self,self.fig,self.canvas,self.oldMainWindow.current)
         self.paramframe = PeakDeconvParamFrame(self.current,self)
-        grid.addWidget(self.paramframe,1,0)
-        grid.setColumnStretch(0,1)
-        grid.setRowStretch(0,1)
-        self.canvas.mpl_connect('button_press_event', self.buttonPress)      
-        self.canvas.mpl_connect('button_release_event', self.buttonRelease)
-        self.canvas.mpl_connect('motion_notify_event', self.pan)
-        self.canvas.mpl_connect('scroll_event', self.scroll)
-        self.grid = grid
 
-    def createNewData(self,data, axes):
-        masterData = self.get_masterData()
-        self.mainProgram.dataFromFit(data, copy.deepcopy(masterData.freq), copy.deepcopy(masterData.sw) , copy.deepcopy(masterData.spec), copy.deepcopy(masterData.wholeEcho), copy.deepcopy(masterData.ref), copy.deepcopy(masterData.xaxArray), axes)
-        
-    def rename(self,name):
-        self.fig.suptitle(name)
-        self.canvas.draw()
-        self.oldMainWindow.rename(name)
-        
-    def buttonPress(self,event):
-        self.current.buttonPress(event)
-
-    def buttonRelease(self,event):
-        self.current.buttonRelease(event)
-
-    def pan(self,event):
-        self.current.pan(event)
-
-    def scroll(self,event):
-        self.current.scroll(event)
-        
-    def get_mainWindow(self):
-        return self.oldMainWindow
-        
-    def get_masterData(self):
-        return self.oldMainWindow.get_masterData()
-    
-    def get_current(self):
-        return self.oldMainWindow.get_current()
-        
-    def kill(self):
-        for i in reversed(range(self.grid.count())): 
-            self.grid.itemAt(i).widget().deleteLater()
-        self.grid.deleteLater()
-        self.current.kill()
-        self.oldMainWindow.kill()
-        del self.current
-        del self.paramframe
-        del self.fig
-        del self.canvas
-        self.deleteLater()
-        
-    def cancel(self):
-        for i in reversed(range(self.grid.count())): 
-            self.grid.itemAt(i).widget().deleteLater()
-        self.grid.deleteLater()
-        del self.current
-        del self.paramframe
-        del self.canvas
-        del self.fig
-        self.mainProgram.closeFitWindow(self.oldMainWindow)
-        self.deleteLater()
-        
 #################################################################################   
 class PeakDeconvFrame(Plot1DFrame): 
     def __init__(self, rootwindow,fig,canvas,current):
@@ -2128,9 +1974,12 @@ class PeakDeconvParamFrame(QtGui.QWidget):
         fitAllButton = QtGui.QPushButton("Fit all")
         fitAllButton.clicked.connect(self.fitAll)
         self.frame1.addWidget(fitAllButton,2,0)
+        copyResultButton = QtGui.QPushButton("Copy result")
+        copyResultButton.clicked.connect(lambda: self.sim(True))
+        self.frame1.addWidget(copyResultButton,3,0)
         cancelButton = QtGui.QPushButton("&Cancel")
         cancelButton.clicked.connect(rootwindow.cancel)
-        self.frame1.addWidget(cancelButton,3,0)
+        self.frame1.addWidget(cancelButton,4,0)
         resetButton = QtGui.QPushButton("Reset")
         resetButton.clicked.connect(self.reset)
         self.frame1.addWidget(resetButton,0,1)
@@ -2528,7 +2377,7 @@ class PeakDeconvParamFrame(QtGui.QWidget):
         newShape = np.concatenate((np.array(dataShape2),[numOutputs]))
         self.rootwindow.createNewData(np.rollaxis(outputData.reshape(newShape),-1,axes), axes)
 
-    def sim(self):
+    def sim(self, store=False):
         numExp = self.numExp.currentIndex()+1
         outPos = np.zeros(numExp)
         outAmp = np.zeros(numExp)
@@ -2549,9 +2398,9 @@ class PeakDeconvParamFrame(QtGui.QWidget):
                 return
             self.lorEntries[i].setText('%#.3g' % outWidth[i])
             self.gaussEntries[i].setText('%#.3g' % outGauss[i])
-        self.disp(outBgrnd, outSlope, outAmp, outPos, outWidth, outGauss)
-
-    def disp(self, outBgrnd, outSlope, outAmp, outPos, outWidth, outGauss):
+        self.disp(outBgrnd, outSlope, outAmp, outPos, outWidth, outGauss, store)
+        
+    def disp(self, outBgrnd, outSlope, outAmp, outPos, outWidth, outGauss, store=False):
         tmpx = self.parent.xax
         outCurveBase = outBgrnd + tmpx*outSlope
         outCurve = outCurveBase.copy()
@@ -2565,83 +2414,21 @@ class PeakDeconvParamFrame(QtGui.QWidget):
             y = outAmp[i]*np.real(np.fft.fftshift(np.fft.fft(timeSignal)))
             outCurvePart.append(outCurveBase + y)
             outCurve += y
-        self.parent.showPlot(tmpx, outCurve, x, outCurvePart)
+        if store:
+            outCurvePart.append(outCurve)
+            outCurvePart.append(self.parent.data1D)
+            self.rootwindow.createNewData(np.array(outCurvePart), self.parent.current.axes, False)
+        else:
+            self.parent.showPlot(tmpx, outCurve, x, outCurvePart)
 
 ##############################################################################
-class TensorDeconvWindow(QtGui.QWidget): 
+class TensorDeconvWindow(FittingWindow): 
     def __init__(self, rootwindow,mainProgram,oldMainWindow):
-        QtGui.QWidget.__init__(self,rootwindow)
-        self.mainProgram = mainProgram
-        self.oldMainWindow = oldMainWindow
-        self.name = self.oldMainWindow.name
-        #self.fig = self.mainProgram.getFig()
-        self.fig = Figure()
-        self.canvas =  FigureCanvas(self.fig)
-        grid = QtGui.QGridLayout(self)
-        grid.addWidget(self.canvas,0,0)
-        self.current = TensorDeconvFrame(self,self.fig,self.canvas,oldMainWindow.current)
+        FittingWindow.__init__(self,rootwindow,mainProgram,oldMainWindow)
+
+    def setup(self):
+        self.current = TensorDeconvFrame(self,self.fig,self.canvas,self.oldMainWindow.current)
         self.paramframe = TensorDeconvParamFrame(self.current,self)
-        grid.addWidget(self.paramframe,1,0)
-        grid.setColumnStretch(0,1)
-        grid.setRowStretch(0,1)
-        self.canvas.mpl_connect('button_press_event', self.buttonPress)      
-        self.canvas.mpl_connect('button_release_event', self.buttonRelease)
-        self.canvas.mpl_connect('motion_notify_event', self.pan)
-        self.canvas.mpl_connect('scroll_event', self.scroll)
-        self.grid = grid
-
-    def createNewData(self,data, axes):
-        masterData = self.get_masterData()
-        self.mainProgram.dataFromFit(data, copy.deepcopy(masterData.freq), copy.deepcopy(masterData.sw) , copy.deepcopy(masterData.spec), copy.deepcopy(masterData.wholeEcho), copy.deepcopy(masterData.ref), copy.deepcopy(masterData.xaxArray), axes)
-        
-    def rename(self,name):
-        self.fig.suptitle(name)
-        self.canvas.draw()
-        self.oldMainWindow.rename(name)
-        
-    def buttonPress(self,event):
-        self.current.buttonPress(event)
-
-    def buttonRelease(self,event):
-        self.current.buttonRelease(event)
-
-    def pan(self,event):
-        self.current.pan(event)
-
-    def scroll(self,event):
-        self.current.scroll(event)
-        
-    def get_mainWindow(self):
-        return self.oldMainWindow
-        
-    def get_masterData(self):
-        return self.oldMainWindow.get_masterData()
-    
-    def get_current(self):
-        return self.oldMainWindow.get_current()
-        
-    def kill(self):
-        for i in reversed(range(self.grid.count())): 
-            self.grid.itemAt(i).widget().deleteLater()
-        self.grid.deleteLater()
-        self.current.kill()
-        self.oldMainWindow.kill()
-        del self.current
-        del self.paramframe
-        del self.fig
-        del self.canvas
-        self.deleteLater()
-        
-    def cancel(self):
-        for i in reversed(range(self.grid.count())): 
-            self.grid.itemAt(i).widget().deleteLater()
-        self.grid.deleteLater()
-        del self.current
-        del self.paramframe
-        del self.canvas
-        del self.fig
-        self.mainProgram.closeFitWindow(self.oldMainWindow)
-        self.deleteLater()
         
 #################################################################################   
 class TensorDeconvFrame(Plot1DFrame): 
@@ -2789,9 +2576,12 @@ class TensorDeconvParamFrame(QtGui.QWidget):
         fitAllButton = QtGui.QPushButton("Fit all")
         fitAllButton.clicked.connect(self.fitAll)
         self.frame1.addWidget(fitAllButton,2,0)
+        copyResultButton = QtGui.QPushButton("Copy result")
+        copyResultButton.clicked.connect(lambda: self.sim(True))
+        self.frame1.addWidget(copyResultButton,3,0)
         cancelButton = QtGui.QPushButton("&Cancel")
         cancelButton.clicked.connect(rootwindow.cancel)
-        self.frame1.addWidget(cancelButton,3,0)
+        self.frame1.addWidget(cancelButton,4,0)
         resetButton = QtGui.QPushButton("Reset")
         resetButton.clicked.connect(self.reset)
         self.frame1.addWidget(resetButton,0,1)
@@ -3038,19 +2828,6 @@ class TensorDeconvParamFrame(QtGui.QWidget):
             testFunc += amp*self.tensorFunc(x,t11,t22,t33,width,gauss)
         testFunc += bgrnd+slope*x
         return np.sum((np.real(testFunc)-y)**2)
-
-    def disp(self,outBgrnd,outSlope,outt11,outt22,outt33,outAmp,outWidth,outGauss):
-        tmpx = self.parent.xax
-        outCurveBase = outBgrnd + tmpx*outSlope
-        outCurve = outCurveBase.copy()
-        outCurvePart = []
-        x=[]
-        for i in range(len(outt11)):
-            x.append(tmpx)
-            y =  outAmp[i]*self.tensorFunc(tmpx,outt11[i],outt22[i],outt33[i],outWidth[i],outGauss[i])
-            outCurvePart.append(outCurveBase + y)
-            outCurve += y
-        self.parent.showPlot(tmpx, outCurve, x, outCurvePart)
 
     def checkInputs(self):
         numExp = self.numExp.currentIndex()+1
@@ -3345,7 +3122,7 @@ class TensorDeconvParamFrame(QtGui.QWidget):
         newShape = np.concatenate((np.array(dataShape2),[numOutputs]))
         self.rootwindow.createNewData(np.rollaxis(outputData.reshape(newShape),-1,axes), axes)
         
-    def sim(self):
+    def sim(self, store=False):
         self.setCheng()
         numExp = self.numExp.currentIndex()+1
         bgrnd = safeEval(self.bgrndEntry.text())
@@ -3373,82 +3150,34 @@ class TensorDeconvParamFrame(QtGui.QWidget):
         self.multt11=np.sin(theta)**2*np.cos(phi)**2
         self.multt22=np.sin(theta)**2*np.sin(phi)**2
         self.multt33=np.cos(theta)**2
-        self.disp(bgrnd,slope,t11,t22,t33,amp,width,gauss)
-
+        self.disp(bgrnd,slope,t11,t22,t33,amp,width,gauss,store)
+        
+    def disp(self,outBgrnd,outSlope,outt11,outt22,outt33,outAmp,outWidth,outGauss,store=False):
+        tmpx = self.parent.xax
+        outCurveBase = outBgrnd + tmpx*outSlope
+        outCurve = outCurveBase.copy()
+        outCurvePart = []
+        x=[]
+        for i in range(len(outt11)):
+            x.append(tmpx)
+            y =  outAmp[i]*self.tensorFunc(tmpx,outt11[i],outt22[i],outt33[i],outWidth[i],outGauss[i])
+            outCurvePart.append(outCurveBase + y)
+            outCurve += y
+        if store:
+            outCurvePart.append(outCurve)
+            outCurvePart.append(self.parent.data1D)
+            self.rootwindow.createNewData(np.array(outCurvePart), self.parent.current.axes, False)
+        else:
+            self.parent.showPlot(tmpx, outCurve, x, outCurvePart)
+        
 ##############################################################################
-class HerzfeldBergerWindow(QtGui.QWidget): 
+class HerzfeldBergerWindow(FittingWindow): 
     def __init__(self, rootwindow,mainProgram,oldMainWindow):
-        QtGui.QWidget.__init__(self,rootwindow)
-        self.mainProgram = mainProgram
-        self.oldMainWindow = oldMainWindow
-        self.name = self.oldMainWindow.name
-        self.fig = Figure()
-        self.canvas =  FigureCanvas(self.fig)
-        grid = QtGui.QGridLayout(self)
-        grid.addWidget(self.canvas,0,0)
-        self.current = HerzfeldBergerFrame(self,self.fig,self.canvas,oldMainWindow.current)
+        FittingWindow.__init__(self,rootwindow,mainProgram,oldMainWindow)
+
+    def setup(self):
+        self.current = HerzfeldBergerFrame(self,self.fig,self.canvas,self.oldMainWindow.current)
         self.paramframe = HerzfeldBergerParamFrame(self.current,self)
-        grid.addWidget(self.paramframe,1,0)
-        grid.setColumnStretch(0,1)
-        grid.setRowStretch(0,1)
-        self.canvas.mpl_connect('button_press_event', self.buttonPress)      
-        self.canvas.mpl_connect('button_release_event', self.buttonRelease)
-        self.canvas.mpl_connect('motion_notify_event', self.pan)
-        self.canvas.mpl_connect('scroll_event', self.scroll)
-        self.grid = grid
-
-    def createNewData(self,data, axes):
-        masterData = self.get_masterData()
-        self.mainProgram.dataFromFit(data, copy.deepcopy(masterData.freq), copy.deepcopy(masterData.sw) , copy.deepcopy(masterData.spec), copy.deepcopy(masterData.wholeEcho), copy.deepcopy(masterData.ref), copy.deepcopy(masterData.xaxArray), axes)
-        
-    def rename(self,name):
-        self.fig.suptitle(name)
-        self.canvas.draw()
-        self.oldMainWindow.rename(name)
-        
-    def buttonPress(self,event):
-        self.current.buttonPress(event)
-
-    def buttonRelease(self,event):
-        self.current.buttonRelease(event)
-
-    def pan(self,event):
-        self.current.pan(event)
-
-    def scroll(self,event):
-        self.current.scroll(event)
-        
-    def get_mainWindow(self):
-        return self.oldMainWindow
-        
-    def get_masterData(self):
-        return self.oldMainWindow.get_masterData()
-    
-    def get_current(self):
-        return self.oldMainWindow.get_current()
-        
-    def kill(self):
-        for i in reversed(range(self.grid.count())): 
-            self.grid.itemAt(i).widget().deleteLater()
-        self.grid.deleteLater()
-        self.current.kill()
-        self.oldMainWindow.kill()
-        del self.current
-        del self.paramframe
-        del self.fig
-        del self.canvas
-        self.deleteLater()
-        
-    def cancel(self):
-        for i in reversed(range(self.grid.count())): 
-            self.grid.itemAt(i).widget().deleteLater()
-        self.grid.deleteLater()
-        del self.current
-        del self.paramframe
-        del self.canvas
-        del self.fig
-        self.mainProgram.closeFitWindow(self.oldMainWindow)
-        self.deleteLater()
         
 #################################################################################   
 class HerzfeldBergerFrame(Plot1DFrame): 
@@ -3823,84 +3552,16 @@ class HerzfeldBergerParamFrame(QtGui.QWidget):
         self.C2 = np.array([-1.0 / 3 *  3/2*sinPhi**2 ]).transpose()* cos2OmegarT
         self.C2eta = np.array([1.0 / 3 /2*(1+cosPhi**2)*cos2Theta ]).transpose()* cos2OmegarT
         self.disp(outDelta, outEta)
-
-        
+       
 ##############################################################################
-class Quad1DeconvWindow(QtGui.QWidget): 
+class Quad1DeconvWindow(FittingWindow): 
     def __init__(self, rootwindow,mainProgram,oldMainWindow):
-        QtGui.QWidget.__init__(self,rootwindow)
-        self.mainProgram = mainProgram
-        self.oldMainWindow = oldMainWindow
-        self.name = self.oldMainWindow.name
-        #self.fig = self.mainProgram.getFig()
-        self.fig = Figure()
-        self.canvas =  FigureCanvas(self.fig)
-        grid = QtGui.QGridLayout(self)
-        grid.addWidget(self.canvas,0,0)
-        self.current = Quad1DeconvFrame(self,self.fig,self.canvas,oldMainWindow.current)
+        FittingWindow.__init__(self,rootwindow,mainProgram,oldMainWindow)
+
+    def setup(self):
+        self.current = Quad1DeconvFrame(self,self.fig,self.canvas,self.oldMainWindow.current)
         self.paramframe = Quad1DeconvParamFrame(self.current,self)
-        grid.addWidget(self.paramframe,1,0)
-        grid.setColumnStretch(0,1)
-        grid.setRowStretch(0,1)
-        self.canvas.mpl_connect('button_press_event', self.buttonPress)      
-        self.canvas.mpl_connect('button_release_event', self.buttonRelease)
-        self.canvas.mpl_connect('motion_notify_event', self.pan)
-        self.canvas.mpl_connect('scroll_event', self.scroll)
-        self.grid = grid
 
-    def createNewData(self,data, axes):
-        masterData = self.get_masterData()
-        self.mainProgram.dataFromFit(data, copy.deepcopy(masterData.freq), copy.deepcopy(masterData.sw) , copy.deepcopy(masterData.spec), copy.deepcopy(masterData.wholeEcho), copy.deepcopy(masterData.ref), copy.deepcopy(masterData.xaxArray), axes)
-        
-    def rename(self,name):
-        self.fig.suptitle(name)
-        self.canvas.draw()
-        self.oldMainWindow.rename(name)
-
-    def buttonPress(self,event):
-        self.current.buttonPress(event)
-
-    def buttonRelease(self,event):
-        self.current.buttonRelease(event)
-
-    def pan(self,event):
-        self.current.pan(event)
-
-    def scroll(self,event):
-        self.current.scroll(event)
-        
-    def get_mainWindow(self):
-        return self.oldMainWindow
-        
-    def get_masterData(self):
-        return self.oldMainWindow.get_masterData()
-    
-    def get_current(self):
-        return self.oldMainWindow.get_current()
-        
-    def kill(self):
-        for i in reversed(range(self.grid.count())): 
-            self.grid.itemAt(i).widget().deleteLater()
-        self.grid.deleteLater()
-        self.current.kill()
-        self.oldMainWindow.kill()
-        del self.current
-        del self.paramframe
-        del self.fig
-        del self.canvas
-        self.deleteLater()
-        
-    def cancel(self):
-        for i in reversed(range(self.grid.count())): 
-            self.grid.itemAt(i).widget().deleteLater()
-        self.grid.deleteLater()
-        del self.current
-        del self.paramframe
-        del self.canvas
-        del self.fig
-        self.mainProgram.closeFitWindow(self.oldMainWindow)
-        self.deleteLater()
-        
 #################################################################################   
 class Quad1DeconvFrame(Plot1DFrame):
     def __init__(self, rootwindow,fig,canvas,current):
@@ -4031,9 +3692,12 @@ class Quad1DeconvParamFrame(QtGui.QWidget):
         fitAllButton = QtGui.QPushButton("Fit all")
         fitAllButton.clicked.connect(self.fitAll)
         self.frame1.addWidget(fitAllButton,2,0)
+        copyResultButton = QtGui.QPushButton("Copy result")
+        copyResultButton.clicked.connect(lambda: self.sim(True))
+        self.frame1.addWidget(copyResultButton,3,0)
         cancelButton = QtGui.QPushButton("&Cancel")
         cancelButton.clicked.connect(rootwindow.cancel)
-        self.frame1.addWidget(cancelButton,3,0)
+        self.frame1.addWidget(cancelButton,4,0)
         self.frame1.setColumnStretch(10,1)
         self.frame1.setAlignment(QtCore.Qt.AlignTop)
         self.optframe.addWidget(QLabel("Cheng:"),0,0)
@@ -4129,7 +3793,6 @@ class Quad1DeconvParamFrame(QtGui.QWidget):
             self.gaussEntries[i].setAlignment(QtCore.Qt.AlignHCenter)
             self.gaussEntries[i].setText("0.0")
             self.frame3.addWidget(self.gaussEntries[i],i+2,11)
-
             if i > 0:
                 self.posTicks[i].hide()
                 self.posEntries[i].hide()
@@ -4268,19 +3931,6 @@ class Quad1DeconvParamFrame(QtGui.QWidget):
             testFunc += amp*self.tensorFunc(x,I,pos,cq,eta,width,gauss)
         testFunc += bgrnd+slope*x
         return np.sum((np.real(testFunc)-y)**2)
-
-    def disp(self,outBgrnd,outSlope,outI,outPos,outCq,outEta,outAmp,outWidth,outGauss):
-        tmpx = self.parent.xax
-        outCurveBase = outBgrnd + tmpx*outSlope
-        outCurve = outCurveBase.copy()
-        outCurvePart = []
-        x=[]
-        for i in range(len(outPos)):
-            x.append(tmpx)
-            y =  outAmp[i]*self.tensorFunc(tmpx,outI,outPos[i],outCq[i],outEta[i],outWidth[i],outGauss[i])
-            outCurvePart.append(outCurveBase + y)
-            outCurve += y
-        self.parent.showPlot(tmpx, outCurve, x, outCurvePart)
 
     def setAngleStuff(self):
         phi,theta,self.weight = zcw_angles(self.cheng,symm=2)
@@ -4576,7 +4226,7 @@ class Quad1DeconvParamFrame(QtGui.QWidget):
         newShape = np.concatenate((np.array(dataShape2),[numOutputs]))
         self.rootwindow.createNewData(np.rollaxis(outputData.reshape(newShape),-1,axes), axes)
         
-    def sim(self):
+    def sim(self, store=False):
         self.setCheng()
         if not self.checkInputs():
             self.rootwindow.mainProgram.dispMsg("One of the inputs is not valid")
@@ -4599,86 +4249,38 @@ class Quad1DeconvParamFrame(QtGui.QWidget):
             width[i] = float(self.lorEntries[i].text())
             gauss[i] = float(self.gaussEntries[i].text())
         self.setAngleStuff()
-        self.disp(bgrnd,slope,I,pos,cq,eta,amp,width,gauss)
+        self.disp(bgrnd,slope,I,pos,cq,eta,amp,width,gauss,store)
 
+    def disp(self,outBgrnd,outSlope,outI,outPos,outCq,outEta,outAmp,outWidth,outGauss,store=False):
+        tmpx = self.parent.xax
+        outCurveBase = outBgrnd + tmpx*outSlope
+        outCurve = outCurveBase.copy()
+        outCurvePart = []
+        x=[]
+        for i in range(len(outPos)):
+            x.append(tmpx)
+            y =  outAmp[i]*self.tensorFunc(tmpx,outI,outPos[i],outCq[i],outEta[i],outWidth[i],outGauss[i])
+            outCurvePart.append(outCurveBase + y)
+            outCurve += y
+        if store:
+            outCurvePart.append(outCurve)
+            outCurvePart.append(self.parent.data1D)
+            self.rootwindow.createNewData(np.array(outCurvePart), self.parent.current.axes, False)
+        else:
+            self.parent.showPlot(tmpx, outCurve, x, outCurvePart)
+        
 ##############################################################################
-class Quad2DeconvWindow(QtGui.QWidget): 
+class Quad2DeconvWindow(FittingWindow): 
     def __init__(self, rootwindow,mainProgram,oldMainWindow,mas=False):
-        QtGui.QWidget.__init__(self,rootwindow)
-        self.mainProgram = mainProgram
-        self.oldMainWindow = oldMainWindow
-        self.name = self.oldMainWindow.name
-        #self.fig = self.mainProgram.getFig()
-        self.fig = Figure()
-        self.canvas =  FigureCanvas(self.fig)
-        grid = QtGui.QGridLayout(self)
-        grid.addWidget(self.canvas,0,0)
-        self.current = Quad1DeconvFrame(self,self.fig,self.canvas,oldMainWindow.current)
-        if mas:
+        self.mas = mas
+        FittingWindow.__init__(self,rootwindow,mainProgram,oldMainWindow)
+
+    def setup(self):
+        self.current = Quad1DeconvFrame(self,self.fig,self.canvas,self.oldMainWindow.current)
+        if self.mas:
             self.paramframe = Quad2MASDeconvParamFrame(self.current,self)
         else:
             self.paramframe = Quad2StaticDeconvParamFrame(self.current,self)
-        grid.addWidget(self.paramframe,1,0)
-        grid.setColumnStretch(0,1)
-        grid.setRowStretch(0,1)
-        self.canvas.mpl_connect('button_press_event', self.buttonPress)      
-        self.canvas.mpl_connect('button_release_event', self.buttonRelease)
-        self.canvas.mpl_connect('motion_notify_event', self.pan)
-        self.canvas.mpl_connect('scroll_event', self.scroll)
-        self.grid = grid
-
-    def createNewData(self,data, axes):
-        masterData = self.get_masterData()
-        self.mainProgram.dataFromFit(data, copy.deepcopy(masterData.freq), copy.deepcopy(masterData.sw) , copy.deepcopy(masterData.spec), copy.deepcopy(masterData.wholeEcho), copy.deepcopy(masterData.ref), copy.deepcopy(masterData.xaxArray), axes)
-        
-    def rename(self,name):
-        self.fig.suptitle(name)
-        self.canvas.draw()
-        self.oldMainWindow.rename(name)
-        
-    def buttonPress(self,event):
-        self.current.buttonPress(event)
-
-    def buttonRelease(self,event):
-        self.current.buttonRelease(event)
-
-    def pan(self,event):
-        self.current.pan(event)
-
-    def scroll(self,event):
-        self.current.scroll(event)
-        
-    def get_mainWindow(self):
-        return self.oldMainWindow
-        
-    def get_masterData(self):
-        return self.oldMainWindow.get_masterData()
-    
-    def get_current(self):
-        return self.oldMainWindow.get_current()
-        
-    def kill(self):
-        for i in reversed(range(self.grid.count())): 
-            self.grid.itemAt(i).widget().deleteLater()
-        self.grid.deleteLater()
-        self.current.kill()
-        self.oldMainWindow.kill()
-        del self.current
-        del self.paramframe
-        del self.fig
-        del self.canvas
-        self.deleteLater()
-        
-    def cancel(self):
-        for i in reversed(range(self.grid.count())): 
-            self.grid.itemAt(i).widget().deleteLater()
-        self.grid.deleteLater()
-        del self.current
-        del self.paramframe
-        del self.canvas
-        del self.fig
-        self.mainProgram.closeFitWindow(self.oldMainWindow)
-        self.deleteLater()
          
 #################################################################################
 class Quad2StaticDeconvParamFrame(Quad1DeconvParamFrame): 
@@ -4729,82 +4331,17 @@ class Quad2MASDeconvParamFrame(Quad2StaticDeconvParamFrame):
         self.angleStuff3 = 1/12.0*np.cos(theta)**2+(+7/48.0*np.cos(theta)**4-7/24.0*np.cos(theta)**2+7/48.0)*np.cos(2*phi)**2
 
 ##############################################################################
-class Quad2CzjzekWindow(QtGui.QWidget): 
+class Quad2CzjzekWindow(FittingWindow): 
     def __init__(self, rootwindow,mainProgram,oldMainWindow,mas=False):
-        QtGui.QWidget.__init__(self,rootwindow)
-        self.mainProgram = mainProgram
-        self.oldMainWindow = oldMainWindow
-        self.name = self.oldMainWindow.name
-        self.fig = Figure()
-        self.canvas =  FigureCanvas(self.fig)
-        grid = QtGui.QGridLayout(self)
-        grid.addWidget(self.canvas,0,0)
-        self.current = Quad1DeconvFrame(self,self.fig,self.canvas,oldMainWindow.current)
-        if mas:
+        self.mas = mas
+        FittingWindow.__init__(self,rootwindow,mainProgram,oldMainWindow)
+
+    def setup(self):
+        self.current = Quad1DeconvFrame(self,self.fig,self.canvas,self.oldMainWindow.current)
+        if self.mas:
             self.paramframe = Quad2MASCzjzekParamFrame(self.current,self)
         else:
             self.paramframe = Quad2StaticCzjzekParamFrame(self.current,self)
-        grid.addWidget(self.paramframe,1,0)
-        grid.setColumnStretch(0,1)
-        grid.setRowStretch(0,1)
-        self.canvas.mpl_connect('button_press_event', self.buttonPress)      
-        self.canvas.mpl_connect('button_release_event', self.buttonRelease)
-        self.canvas.mpl_connect('motion_notify_event', self.pan)
-        self.canvas.mpl_connect('scroll_event', self.scroll)
-        self.grid = grid
-
-    def createNewData(self,data, axes):
-        masterData = self.get_masterData()
-        self.mainProgram.dataFromFit(data, copy.deepcopy(masterData.freq), copy.deepcopy(masterData.sw) , copy.deepcopy(masterData.spec), copy.deepcopy(masterData.wholeEcho), copy.deepcopy(masterData.ref), copy.deepcopy(masterData.xaxArray), axes)
-        
-    def rename(self,name):
-        self.fig.suptitle(name)
-        self.canvas.draw()
-        self.oldMainWindow.rename(name)
-        
-    def buttonPress(self,event):
-        self.current.buttonPress(event)
-
-    def buttonRelease(self,event):
-        self.current.buttonRelease(event)
-
-    def pan(self,event):
-        self.current.pan(event)
-
-    def scroll(self,event):
-        self.current.scroll(event)
-        
-    def get_mainWindow(self):
-        return self.oldMainWindow
-        
-    def get_masterData(self):
-        return self.oldMainWindow.get_masterData()
-    
-    def get_current(self):
-        return self.oldMainWindow.get_current()
-        
-    def kill(self):
-        for i in reversed(range(self.grid.count())): 
-            self.grid.itemAt(i).widget().deleteLater()
-        self.grid.deleteLater()
-        self.current.kill()
-        self.oldMainWindow.kill()
-        del self.current
-        del self.paramframe
-        del self.fig
-        del self.canvas
-        self.deleteLater()
-        
-    def cancel(self):
-        for i in reversed(range(self.grid.count())): 
-            self.grid.itemAt(i).widget().deleteLater()
-        self.grid.deleteLater()
-        del self.current
-        del self.paramframe
-        del self.canvas
-        del self.fig
-        self.mainProgram.closeFitWindow(self.oldMainWindow)
-        self.deleteLater()
 
 #################################################################################
 class Quad2StaticCzjzekParamFrame(QtGui.QWidget): 
@@ -4839,9 +4376,12 @@ class Quad2StaticCzjzekParamFrame(QtGui.QWidget):
         fitAllButton = QtGui.QPushButton("Fit all")
         fitAllButton.clicked.connect(self.fitAll)
         self.frame1.addWidget(fitAllButton,2,0)
+        copyResultButton = QtGui.QPushButton("Copy result")
+        copyResultButton.clicked.connect(lambda: self.sim(True))
+        self.frame1.addWidget(copyResultButton,3,0)
         cancelButton = QtGui.QPushButton("&Cancel")
         cancelButton.clicked.connect(rootwindow.cancel)
-        self.frame1.addWidget(cancelButton,3,0)
+        self.frame1.addWidget(cancelButton,4,0)
         self.frame1.setColumnStretch(10,1)
         self.frame1.setAlignment(QtCore.Qt.AlignTop)
         self.optframe.addWidget(QLabel("Cheng:"),0,0)
@@ -5131,19 +4671,6 @@ class Quad2StaticCzjzekParamFrame(QtGui.QWidget):
         testFunc += bgrnd+slope*x
         return np.sum((np.real(testFunc)-y)**2)
 
-    def disp(self,outBgrnd,outSlope,outPos,outSigma,outD,outAmp,outWidth,outGauss):
-        tmpx = self.parent.xax
-        outCurveBase = outBgrnd + tmpx*outSlope
-        outCurve = outCurveBase.copy()
-        outCurvePart = []
-        x=[]
-        for i in range(len(outPos)):
-            x.append(tmpx)
-            y =  outAmp[i]*self.tensorFunc(outSigma[i],outD[i],outPos[i],outWidth[i],outGauss[i])
-            outCurvePart.append(outCurveBase + y)
-            outCurve += y
-        self.parent.showPlot(tmpx, outCurve, x, outCurvePart)
-
     def setAngleStuff(self):
         phi,theta,self.weight = zcw_angles(self.cheng,symm=2)
         self.angleStuff1 = -27/8.0*np.cos(theta)**4+15/4.0*np.cos(theta)**2-3/8.0
@@ -5417,7 +4944,7 @@ class Quad2StaticCzjzekParamFrame(QtGui.QWidget):
         newShape = np.concatenate((np.array(dataShape2),[numOutputs]))
         self.rootwindow.createNewData(np.rollaxis(outputData.reshape(newShape),-1,axes), axes)
         
-    def sim(self):
+    def sim(self, store=False):
         self.setCheng()
         if not self.setGrid():
             self.rootwindow.mainProgram.dispMsg("One of the inputs is not valid")
@@ -5446,8 +4973,28 @@ class Quad2StaticCzjzekParamFrame(QtGui.QWidget):
         numCq = int(self.cqGridEntry.text())
         numEta = int(self.etaGridEntry.text())
         self.genLib(len(self.parent.xax), I, max(sigma)*4.0, numCq, numEta)
-        self.disp(bgrnd,slope,pos,sigma,d,amp,width,gauss)
-    
+        self.disp(bgrnd,slope,pos,sigma,d,amp,width,gauss,store)
+
+
+    def disp(self,outBgrnd,outSlope,outPos,outSigma,outD,outAmp,outWidth,outGauss, store=False):
+        tmpx = self.parent.xax
+        outCurveBase = outBgrnd + tmpx*outSlope
+        outCurve = outCurveBase.copy()
+        outCurvePart = []
+        x=[]
+        for i in range(len(outPos)):
+            x.append(tmpx)
+            y =  outAmp[i]*self.tensorFunc(outSigma[i],outD[i],outPos[i],outWidth[i],outGauss[i])
+            outCurvePart.append(outCurveBase + y)
+            outCurve += y
+        if store:
+            outCurvePart.append(outCurve)
+            outCurvePart.append(self.parent.data1D)
+            self.rootwindow.createNewData(np.array(outCurvePart), self.parent.current.axes, False)
+        else:
+            self.parent.showPlot(tmpx, outCurve, x, outCurvePart)
+        self.parent.showPlot(tmpx, outCurve, x, outCurvePart)
+        
 #################################################################################
 class Quad2MASCzjzekParamFrame(Quad2StaticCzjzekParamFrame): 
 
