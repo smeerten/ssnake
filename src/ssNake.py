@@ -143,6 +143,7 @@ class MainProgram(QtGui.QMainWindow):
         self.toolMenu.addAction("S&ubtract averages", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.createSubtractAvgWindow()))
         self.toolMenu.addAction("&States", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.states()))
         self.toolMenu.addAction("States-&TPPI", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.statesTPPI()))
+        self.toolMenu.addAction("Ec&ho-antiecho", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.echoAntiEcho()))
         self.toolMenu.addAction("&Correct Bruker digital filter", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.BrukerDigital()))
 
         #the matrix drop down menu
@@ -1261,6 +1262,8 @@ class Main1DWindow(QtGui.QWidget):
                 self.undoList.append(self.masterData.states(*iter1[1]))
             elif iter1[0] == 'statesTPPI':
                 self.undoList.append(self.masterData.statesTPPI(*iter1[1]))
+            elif iter1[0] == 'echoAntiEcho':
+                self.undoList.append(self.masterData.echoAntiEcho(*iter1[1]))
             elif iter1[0] == 'baselineCorrection':
                 self.undoList.append(self.masterData.baselineCorrection(*iter1[1]))
             elif iter1[0] == 'integrate':
@@ -1491,6 +1494,12 @@ class Main1DWindow(QtGui.QWidget):
     def statesTPPI(self):
         self.redoList = []
         self.undoList.append(self.current.statesTPPI())
+        self.updAllFrames()
+        self.menuCheck()
+        
+    def echoAntiEcho(self):
+        self.redoList = []
+        self.undoList.append(self.current.echoAntiEcho())
         self.updAllFrames()
         self.menuCheck()
         

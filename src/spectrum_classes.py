@@ -303,6 +303,23 @@ class Spectrum:
         self.addHistory("States-TPPI conversion on dimension " + str(axes+1))
         return returnValue
 
+    def echoAntiEcho(self,axes):
+        axes = self.checkAxes(axes)
+        if axes == None:
+            return None
+        copyData=copy.deepcopy(self)
+        returnValue = lambda self: self.restoreData(copyData, lambda self: self.echoAntiEcho(axes))
+        if self.data.shape[axes]%2 != 0:
+            self.dispMsg("data has to be even for echo-antiecho")
+            return None
+        slicing1 = (slice(None),) * axes + (slice(None,None,2),) + (slice(None),)*(self.dim-1-axes)
+        slicing2 = (slice(None),) * axes + (slice(1,None,2),) + (slice(None),)*(self.dim-1-axes)
+        tmpdata = np.real(self.data[slicing1]+self.data[slicing2])-1j*np.real(self.data[slicing1]-self.data[slicing2])
+        self.data = tmpdata
+        self.resetXax(axes)
+        self.addHistory("Echo-antiecho conversion on dimension " + str(axes+1))
+        return returnValue
+
     def subtractAvg(self, pos1, pos2, axes):
         axes = self.checkAxes(axes)
         if axes == None:
@@ -1535,6 +1552,14 @@ class Current1D(Plot1DFrame):
         self.plotReset()
         self.showFid()
         self.root.addMacro(['statesTPPI',(self.axes-self.data.dim,)])
+        return returnValue
+
+    def echoAntiEcho(self):
+        returnValue = self.data.echoAntiEcho(self.axes)
+        self.upd()
+        self.plotReset()
+        self.showFid()
+        self.root.addMacro(['echoAntiEcho',(self.axes-self.data.dim,)])
         return returnValue
     
     def integrate(self, pos1, pos2, newSpec=False):
