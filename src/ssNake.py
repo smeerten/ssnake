@@ -31,16 +31,9 @@ import copy
 import spectrum_classes as sc
 import fitting as fit
 from safeEval import *
+from widgetClasses import *
 
 pi=np.pi
-
-class SsnakeTabs(QtGui.QTabWidget):
-    #A tab widget were tabs can be closed with the middle mouse button
-    def mousePressEvent(self, event):
-        if event.button() == QtCore.Qt.MidButton:
-            index = self.tabBar().tabAt(event.pos())
-            if index >= 0:
-                self.tabCloseRequested.emit(index)
 
 class MainProgram(QtGui.QMainWindow):
     def __init__(self,root):

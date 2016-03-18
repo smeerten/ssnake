@@ -17,7 +17,6 @@
 #You should have received a copy of the GNU General Public License
 #along with ssNake. If not, see <http://www.gnu.org/licenses/>.
 
-from PyQt4 import QtGui, QtCore
 import math
 import re
 import numpy as np
@@ -38,60 +37,3 @@ def safeEval(inp, length=None):
         return eval(inp,env)
     except:
         return None
-
-class MyEventFilter(QtCore.QObject):
-    def __init__(self,root,*args):
-        QtCore.QObject.__init__(self,*args)
-        self.root = root
-    
-    def eventFilter(self, receiver, event):
-        if event.type() == QtCore.QEvent.KeyPress:
-            if event.key()==QtCore.Qt.Key_Z:
-                if (event.modifiers() & QtCore.Qt.ControlModifier) and (event.modifiers() & QtCore.Qt.ShiftModifier):
-                    self.root.redo()
-                    return True
-                elif event.modifiers() == (QtCore.Qt.ControlModifier):
-                    self.root.undo()
-                    return True
-        return False
-     
-class SliceValidator(QtGui.QValidator):    
-    def validate(self, string, position):
-        string = str(string)
-        try:
-            int(safeEval(string))
-            return (QtGui.QValidator.Acceptable,string,position)
-        except:
-            return (QtGui.QValidator.Intermediate,string,position)
-
-class SliceSpinBox(QtGui.QSpinBox):
-    def __init__(self, parent, minimum, maximum, *args, **kwargs):
-        self.validator = SliceValidator()
-        QtGui.QDoubleSpinBox.__init__(self,parent,*args, **kwargs)
-        self.setMinimum(minimum)
-        self.setMaximum(maximum)
-        self.setKeyboardTracking(False)
-
-    def validate(self, text, position):
-        return self.validator.validate(text, position)
-
-    def fixup(self, text):
-        return self.validator.fixup(text)
-
-    def valueFromText(self, text):
-        inp = int(safeEval(str(text)))
-        if inp < 0:
-            inp = inp + self.maximum() +1
-        return inp
-
-    def textFromValue(self, value):
-        inp = int(value)
-        if inp < 0:
-            inp = inp + self.maximum() + 1
-        return str(inp)
-
-class QLabel(QtGui.QLabel):
-    def __init__(self, parent,*args, **kwargs):
-        QtGui.QLabel.__init__(self, parent,*args, **kwargs)
-        self.setAlignment(QtCore.Qt.AlignCenter)
-
