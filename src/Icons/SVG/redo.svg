@@ -16,7 +16,7 @@
    id="svg2"
    version="1.1"
    inkscape:version="0.91 r13725"
-   inkscape:export-filename="/media/HDD/ssnake/Icons/redo.png"
+   inkscape:export-filename="/media/HDD/ssnake/ssnake/src/Icons/redo.png"
    inkscape:export-xdpi="162.56"
    inkscape:export-ydpi="162.56"
    sodipodi:docname="redo.svg">
@@ -250,7 +250,7 @@
      inkscape:pageopacity="0.0"
      inkscape:pageshadow="2"
      inkscape:zoom="12.8717"
-     inkscape:cx="7.3009137"
+     inkscape:cx="10.54"
      inkscape:cy="14.693531"
      inkscape:document-units="px"
      inkscape:current-layer="layer1"
@@ -277,6 +277,13 @@
      inkscape:groupmode="layer"
      id="layer1"
      transform="translate(0,-1016.9291)">
+    <rect
+       style="opacity:1;fill:#ffffff;fill-opacity:1;fill-rule:nonzero;stroke:none;stroke-width:1;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+       id="rect4245"
+       width="35.433071"
+       height="35.433071"
+       x="-1.3516643e-07"
+       y="1016.9291" />
     <path
        style="fill:url(#linearGradient4233);fill-opacity:1;stroke:url(#linearGradient4241);stroke-width:0.79240912;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
        d="m 22.934549,1023.9348 0,5.7489 -20.7666909,0 0,8.0624 0,1.9687 0,6.1567 7.795822,0 0,-8.0989 12.9708689,0 0,5.1242 5.073275,-4.7389 5.073276,-4.7421 -5.073276,-4.7389 z"

@@ -8,10 +8,37 @@
    xmlns:svg="http://www.w3.org/2000/svg"
    xmlns="http://www.w3.org/2000/svg"
    xmlns:xlink="http://www.w3.org/1999/xlink"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
    version="1.1"
    width="160"
    height="160"
-   id="svg-001">
+   id="svg-001"
+   inkscape:version="0.91 r13725"
+   sodipodi:docname="JSON.svg"
+   inkscape:export-filename="/media/HDD/ssnake/ssnake/src/Icons/JSON.png"
+   inkscape:export-xdpi="36"
+   inkscape:export-ydpi="36">
+  <sodipodi:namedview
+     pagecolor="#ffffff"
+     bordercolor="#666666"
+     borderopacity="1"
+     objecttolerance="10"
+     gridtolerance="10"
+     guidetolerance="10"
+     inkscape:pageopacity="0"
+     inkscape:pageshadow="2"
+     inkscape:window-width="1440"
+     inkscape:window-height="851"
+     id="namedview13"
+     showgrid="false"
+     inkscape:zoom="1.475"
+     inkscape:cx="80"
+     inkscape:cy="80"
+     inkscape:window-x="0"
+     inkscape:window-y="0"
+     inkscape:window-maximized="1"
+     inkscape:current-layer="svg-001" />
   <title
      id="title-001">JSON logo</title>
   <defs
@@ -62,7 +89,7 @@
           </cc:Agent>
         </dc:creator>
         <cc:license
-           rdf:resource="http://creativecommons.org/licenses/publicdomain/" />
+           rdf:resource="http://creativecommons.org/publicdomain/zero/1.0/" />
         <dc:rights>
           <cc:Agent>
             <dc:title>PD</dc:title>
@@ -93,6 +120,13 @@
       </cc:License>
     </rdf:RDF>
   </metadata>
+  <rect
+     style="opacity:1;fill:#ffffff;fill-opacity:1;fill-rule:nonzero;stroke:none;stroke-width:1;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+     id="rect4245"
+     width="160"
+     height="160"
+     x="0"
+     y="0" />
   <path
      d="m 79.8646,119.09957 c 35.39768,48.25534 70.03957,-13.46852 69.98868,-50.58675 C 149.79308,24.62677 105.31237,0.09913 79.8356,0.09913 38.94318,0.09913 0,33.89521 0,80.13502 c 0,51.396 44.64038,79.86497 79.8356,79.86497 -7.96447,-1.14675 -34.5062,-6.83395 -34.86292,-67.96677 -0.23987,-41.3466 13.48757,-57.86551 34.80527,-50.59905 0.47743,0.17707 23.51392,9.26451 23.51392,38.95053 0,29.55992 -23.42727,38.71487 -23.42727,38.71487 z"
      id="path7508"

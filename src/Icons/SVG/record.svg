@@ -16,7 +16,7 @@
    id="svg2"
    version="1.1"
    inkscape:version="0.91 r13725"
-   inkscape:export-filename="/media/HDD/ssnake/Icons/record.png"
+   inkscape:export-filename="/media/HDD/ssnake/ssnake/src/Icons/record.png"
    inkscape:export-xdpi="162.56"
    inkscape:export-ydpi="162.56"
    sodipodi:docname="record.svg">
@@ -236,7 +236,7 @@
      inkscape:pageopacity="0.0"
      inkscape:pageshadow="2"
      inkscape:zoom="5.6"
-     inkscape:cx="-24.470966"
+     inkscape:cx="-55.810252"
      inkscape:cy="17.334724"
      inkscape:document-units="px"
      inkscape:current-layer="layer1"
@@ -263,6 +263,13 @@
      inkscape:groupmode="layer"
      id="layer1"
      transform="translate(0,-1016.9291)">
+    <rect
+       style="opacity:1;fill:#ffffff;fill-opacity:1;fill-rule:nonzero;stroke:none;stroke-width:1;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+       id="rect4245"
+       width="35.433071"
+       height="35.433071"
+       x="-1.3516643e-07"
+       y="1016.9291" />
     <circle
        style="opacity:0.99999999;fill:url(#radialGradient4186);fill-opacity:1;fill-rule:nonzero;stroke:#ad0000;stroke-width:1.692;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
        id="path4181"

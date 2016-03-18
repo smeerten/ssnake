@@ -16,7 +16,7 @@
    id="svg2"
    version="1.1"
    inkscape:version="0.91 r13725"
-   inkscape:export-filename="/media/HDD/ssnake/Icons/phase.png"
+   inkscape:export-filename="/media/HDD/ssnake/ssnake/src/Icons/sum.png"
    inkscape:export-xdpi="162.56"
    inkscape:export-ydpi="162.56"
    sodipodi:docname="sum.svg">
@@ -248,7 +248,7 @@
      inkscape:pageopacity="0.0"
      inkscape:pageshadow="2"
      inkscape:zoom="5.6"
-     inkscape:cx="-19.307331"
+     inkscape:cx="-50.646617"
      inkscape:cy="2.8274196"
      inkscape:document-units="px"
      inkscape:current-layer="layer1"
@@ -266,7 +266,7 @@
         <dc:format>image/svg+xml</dc:format>
         <dc:type
            rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
-        <dc:title></dc:title>
+        <dc:title />
       </cc:Work>
     </rdf:RDF>
   </metadata>
@@ -275,6 +275,13 @@
      inkscape:groupmode="layer"
      id="layer1"
      transform="translate(0,-1016.9291)">
+    <rect
+       style="opacity:1;fill:#ffffff;fill-opacity:1;fill-rule:nonzero;stroke:none;stroke-width:1;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+       id="rect4245"
+       width="35.433071"
+       height="35.433071"
+       x="-1.3516643e-07"
+       y="1016.9291" />
     <g
        style="fill:#000000;fill-opacity:1;stroke-linecap:butt;stroke-linejoin:round"
        id="g4503"

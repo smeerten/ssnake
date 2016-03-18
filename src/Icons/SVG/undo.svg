@@ -16,7 +16,7 @@
    id="svg2"
    version="1.1"
    inkscape:version="0.91 r13725"
-   inkscape:export-filename="/media/HDD/ssnake/Icons/undo.png"
+   inkscape:export-filename="/media/HDD/ssnake/ssnake/src/Icons/undo.png"
    inkscape:export-xdpi="162.56"
    inkscape:export-ydpi="162.56"
    sodipodi:docname="undo.svg">
@@ -248,7 +248,7 @@
      inkscape:pageopacity="0.0"
      inkscape:pageshadow="2"
      inkscape:zoom="12.8717"
-     inkscape:cx="4.1459784"
+     inkscape:cx="-9.4885842"
      inkscape:cy="17.983477"
      inkscape:document-units="px"
      inkscape:current-layer="layer1"
@@ -266,7 +266,7 @@
         <dc:format>image/svg+xml</dc:format>
         <dc:type
            rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
-        <dc:title></dc:title>
+        <dc:title />
       </cc:Work>
     </rdf:RDF>
   </metadata>
@@ -275,6 +275,13 @@
      inkscape:groupmode="layer"
      id="layer1"
      transform="translate(0,-1016.9291)">
+    <rect
+       style="opacity:1;fill:#ffffff;fill-opacity:1;fill-rule:nonzero;stroke:none;stroke-width:1;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+       id="rect4245"
+       width="35.433071"
+       height="35.433071"
+       x="-1.3516643e-07"
+       y="1016.9291" />
     <path
        style="fill:url(#linearGradient4288);fill-opacity:1;stroke:url(#linearGradient4296);stroke-width:0.792;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
        d="m 12.498522,1045.355 0,-5.7489 20.766691,0 0,-8.0624 0,-1.9687 0,-6.1567 -7.795822,0 0,8.0989 -12.970869,0 0,-5.1242 -5.0732745,4.7389 -5.073276,4.7421 5.073276,4.7389 z"

@@ -88,7 +88,7 @@ class MainProgram(QtGui.QMainWindow):
         self.filemenu.addMenu(self.exportmenu)        
         self.savefigAct = self.exportmenu.addAction('Figure', self.saveFigure,QtGui.QKeySequence.Print)
         self.exportmenu.addAction(QtGui.QIcon(IconDirectory + 'simpson.png'),'Simpson', self.saveSimpsonFile)
-        self.filemenu.addAction('&Quit', self.fileQuit, QtGui.QKeySequence.Quit)
+        self.filemenu.addAction(QtGui.QIcon(IconDirectory + 'quit.png'),'&Quit', self.fileQuit, QtGui.QKeySequence.Quit)
         self.workspacemenu = QtGui.QMenu('&Workspaces',self)
         self.menubar.addMenu(self.workspacemenu)
         self.newAct = self.workspacemenu.addAction('D&uplicate', self.duplicateWorkspace,QtGui.QKeySequence.New)

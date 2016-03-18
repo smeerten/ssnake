@@ -234,7 +234,7 @@
      inkscape:pageopacity="0.0"
      inkscape:pageshadow="2"
      inkscape:zoom="6.4358502"
-     inkscape:cx="-34.953555"
+     inkscape:cx="4.7521107"
      inkscape:cy="9.4709318"
      inkscape:document-units="px"
      inkscape:current-layer="layer1"
@@ -261,6 +261,16 @@
      inkscape:groupmode="layer"
      id="layer1"
      transform="translate(0,-1016.9291)">
+    <rect
+       style="opacity:1;fill:#ffffff;fill-opacity:1;fill-rule:nonzero;stroke:none;stroke-width:1;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+       id="rect4245"
+       width="35.433071"
+       height="35.433071"
+       x="-1.3516643e-07"
+       y="1016.9291"
+       inkscape:export-filename="/media/HDD/ssnake/ssnake/src/Icons/delete.png"
+       inkscape:export-xdpi="162"
+       inkscape:export-ydpi="162" />
     <path
        style="opacity:1;fill:url(#linearGradient4204);fill-opacity:1;fill-rule:nonzero;stroke:#ad0000;stroke-width:1.69200003;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
        d="m 9.9418117,1019.8972 -6.97373,6.9736 7.7747243,7.7747 -7.7747243,7.7749 6.97373,6.9736 7.7747233,-7.7747 7.774724,7.7747 6.97373,-6.9736 -7.774724,-7.7749 7.774724,-7.7747 -6.97373,-6.9736 -7.774724,7.7746 -7.7747233,-7.7746 z"
