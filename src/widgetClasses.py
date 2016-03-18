@@ -18,6 +18,7 @@
 #along with ssNake. If not, see <http://www.gnu.org/licenses/>.
 
 from PyQt4 import QtGui, QtCore
+from safeEval import *
 
 class SsnakeTabs(QtGui.QTabWidget):
     #A tab widget were tabs can be closed with the middle mouse button
