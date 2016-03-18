@@ -27,6 +27,7 @@ import copy
 from safeEval import *
 from spectrumFrame import Plot1DFrame
 from zcw import *
+from widgetClasses import *
 
 pi = np.pi
 
@@ -58,7 +59,7 @@ class FittingWindow(QtGui.QWidget):
     def createNewData(self,data, axes, store=False):
         masterData = self.get_masterData()
         if store:
-            self.mainProgram.dataFromFit(data, [masterData.freq[axes], masterData.freq[axes]], [masterData.sw[axes], masterData.sw[axes]] , [False, masterData.spec[axes]], [False, masterData.wholeEcho[axes]], [None, masterData.ref[axes]], [np.arange(len(self.data)), masterData.xaxArray[axes]], axes)
+            self.mainProgram.dataFromFit(data, [masterData.freq[axes], masterData.freq[axes]], [masterData.sw[axes], masterData.sw[axes]] , [False, masterData.spec[axes]], [False, masterData.wholeEcho[axes]], [None, masterData.ref[axes]], [np.arange(len(data)), masterData.xaxArray[axes]], axes)
         else:
             self.mainProgram.dataFromFit(data, copy.deepcopy(masterData.freq), copy.deepcopy(masterData.sw) , copy.deepcopy(masterData.spec), copy.deepcopy(masterData.wholeEcho), copy.deepcopy(masterData.ref), copy.deepcopy(masterData.xaxArray), axes)
         
@@ -1106,7 +1107,7 @@ class RelaxParamFrame(QtGui.QWidget):
             tmp += outCurve[i] 
         outCurve[len(outCoeff)] = tmp - (len(outCoeff)-1)*outAmp * outConst
         outCurve[len(outCoeff)+1] = self.parent.data1D
-        self.rootwindow.createNewData(outCurve, self.parent.current.axes, False)
+        self.rootwindow.createNewData(np.array(outCurve), self.parent.current.axes, True)
         
     def disp(self, outAmp, outConst, outCoeff, outT1):
         numCurve = 100 #number of points in output curve
@@ -1781,7 +1782,7 @@ class DiffusionParamFrame(QtGui.QWidget):
             tmp += outCurve[i]
         outCurve[len(outCoeff)] = tmp
         outCurve[len(outCoeff)+1] = self.parent.data1D
-        self.rootwindow.createNewData(outCurve, self.parent.current.axes, False)
+        self.rootwindow.createNewData(np.array(outCurve), self.parent.current.axes, True)
         
     def disp(self, outAmp, outConst, outCoeff, outD, gamma, delta, triangle):
         numCurve = 100 
@@ -2417,7 +2418,7 @@ class PeakDeconvParamFrame(QtGui.QWidget):
         if store:
             outCurvePart.append(outCurve)
             outCurvePart.append(self.parent.data1D)
-            self.rootwindow.createNewData(np.array(outCurvePart), self.parent.current.axes, False)
+            self.rootwindow.createNewData(np.array(outCurvePart), self.parent.current.axes, True)
         else:
             self.parent.showPlot(tmpx, outCurve, x, outCurvePart)
 
@@ -3166,7 +3167,7 @@ class TensorDeconvParamFrame(QtGui.QWidget):
         if store:
             outCurvePart.append(outCurve)
             outCurvePart.append(self.parent.data1D)
-            self.rootwindow.createNewData(np.array(outCurvePart), self.parent.current.axes, False)
+            self.rootwindow.createNewData(np.array(outCurvePart), self.parent.current.axes, True)
         else:
             self.parent.showPlot(tmpx, outCurve, x, outCurvePart)
         
@@ -4265,7 +4266,7 @@ class Quad1DeconvParamFrame(QtGui.QWidget):
         if store:
             outCurvePart.append(outCurve)
             outCurvePart.append(self.parent.data1D)
-            self.rootwindow.createNewData(np.array(outCurvePart), self.parent.current.axes, False)
+            self.rootwindow.createNewData(np.array(outCurvePart), self.parent.current.axes, True)
         else:
             self.parent.showPlot(tmpx, outCurve, x, outCurvePart)
         
@@ -4990,7 +4991,7 @@ class Quad2StaticCzjzekParamFrame(QtGui.QWidget):
         if store:
             outCurvePart.append(outCurve)
             outCurvePart.append(self.parent.data1D)
-            self.rootwindow.createNewData(np.array(outCurvePart), self.parent.current.axes, False)
+            self.rootwindow.createNewData(np.array(outCurvePart), self.parent.current.axes, True)
         else:
             self.parent.showPlot(tmpx, outCurve, x, outCurvePart)
         self.parent.showPlot(tmpx, outCurve, x, outCurvePart)
