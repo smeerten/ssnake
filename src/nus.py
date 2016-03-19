@@ -9,7 +9,7 @@
 #the Free Software Foundation, either version 3 of the License, or
 #(at your option) any later version.
 #
-#ssNake is distributed in the hope that it will be useful,
+#ssNake is distributed in the hope that it will be useful, 
 #but WITHOUT ANY WARRANTY; without even the implied warranty of
 #MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 #GNU General Public License for more details.
@@ -20,15 +20,15 @@
 import numpy as np
 import scipy.optimize
 
-def ent_ffm(missingPoints,fid,posArray):
+def ent_ffm(missingPoints, fid, posArray):
     fid[posArray] = missingPoints[:len(posArray)] + 1j*missingPoints[len(posArray):]
     spec = np.fft.fft(fid)
     zn = np.fft.fft((np.imag(spec)+1j*np.real(spec))/np.abs(spec))
-    return (np.sum(np.abs(spec)), np.append(np.imag(zn[posArray]),np.real(zn[posArray]))) #Current entropy is the norm 
+    return (np.sum(np.abs(spec)), np.append(np.imag(zn[posArray]), np.real(zn[posArray]))) #Current entropy is the norm 
 
 def ffm(inp):
-    l=len(inp[1])
-    res = scipy.optimize.minimize(ent_ffm, np.zeros(l*2), method='L-BFGS-B', args=inp,jac=True)
+    l = len(inp[1])
+    res = scipy.optimize.minimize(ent_ffm, np.zeros(l*2), method='L-BFGS-B', args=inp, jac=True)
     inp[0][inp[1]] = res['x'][:l] + 1j*res['x'][l:]
     return inp[0]
 
@@ -38,7 +38,7 @@ def clean(inp):
     gamma = inp[2]
     stopLevel = inp[3]
     maxIter = inp[4]
-    replica = np.zeros(len(residuals),dtype=complex)
+    replica = np.zeros(len(residuals), dtype=complex)
     for i in range(maxIter):
         findMax = np.argmax(np.abs(residuals))
         maxAmp = residuals[findMax]

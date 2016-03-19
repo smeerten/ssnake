@@ -27,14 +27,14 @@ def euro(val, num):
         return
     numStep = int(num)//3 + 1
     if firstDigit == 1:
-        subset = [1,2,5]
+        subset = [1, 2, 5]
     elif firstDigit == 2:
-        subset = [2,5,10]
+        subset = [2, 5, 10]
     elif firstDigit==5:
-        subset = [5,10,20]
+        subset = [5, 10, 20]
     else:
         return
-    returnVal = np.tile(subset,numStep)
-    orderArray = np.repeat(range(numStep),3)+order
+    returnVal = np.tile(subset, numStep)
+    orderArray = np.repeat(range(numStep), 3)+order
     returnVal = returnVal*10.0**orderArray
     return returnVal[:num]

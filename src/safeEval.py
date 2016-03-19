@@ -24,16 +24,16 @@ from euro import euro
 
 def safeEval(inp, length=None):
     env = vars(math).copy()
-    env["locals"]   = None
-    env["globals"]  = None
+    env["locals"] = None
+    env["globals"] = None
     env["__name__"] = None
     env["__file__"] = None
     env["__builtins__"] = None
     env["slice"] = slice
     if length is not None:
         env["length"] = length
-    inp =  re.sub('([0-9]+)[k,K]','\g<1>*1024',str(inp)) #WF: allow 'K' input
+    inp = re.sub('([0-9]+)[k,K]', '\g<1>*1024', str(inp))
     try:
-        return eval(inp,env)
+        return eval(inp, env)
     except:
         return None

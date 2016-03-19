@@ -29,13 +29,13 @@ class SsnakeTabs(QtGui.QTabWidget):
                 self.tabCloseRequested.emit(index)
       
 class MyEventFilter(QtCore.QObject):
-    def __init__(self,root,*args):
-        QtCore.QObject.__init__(self,*args)
+    def __init__(self, root, *args):
+        QtCore.QObject.__init__(self, *args)
         self.root = root
     
     def eventFilter(self, receiver, event):
         if event.type() == QtCore.QEvent.KeyPress:
-            if event.key()==QtCore.Qt.Key_Z:
+            if event.key() == QtCore.Qt.Key_Z:
                 if (event.modifiers() & QtCore.Qt.ControlModifier) and (event.modifiers() & QtCore.Qt.ShiftModifier):
                     self.root.redo()
                     return True
@@ -49,14 +49,14 @@ class SliceValidator(QtGui.QValidator):
         string = str(string)
         try:
             int(safeEval(string))
-            return (QtGui.QValidator.Acceptable,string,position)
+            return (QtGui.QValidator.Acceptable, string, position)
         except:
-            return (QtGui.QValidator.Intermediate,string,position)
+            return (QtGui.QValidator.Intermediate, string, position)
 
 class SliceSpinBox(QtGui.QSpinBox):
     def __init__(self, parent, minimum, maximum, *args, **kwargs):
         self.validator = SliceValidator()
-        QtGui.QDoubleSpinBox.__init__(self,parent,*args, **kwargs)
+        QtGui.QDoubleSpinBox.__init__(self, parent, *args, **kwargs)
         self.setMinimum(minimum)
         self.setMaximum(maximum)
         self.setKeyboardTracking(False)
@@ -80,7 +80,7 @@ class SliceSpinBox(QtGui.QSpinBox):
         return str(inp)
 
 class QLabel(QtGui.QLabel):
-    def __init__(self, parent,*args, **kwargs):
-        QtGui.QLabel.__init__(self, parent,*args, **kwargs)
+    def __init__(self, parent, *args, **kwargs):
+        QtGui.QLabel.__init__(self, parent, *args, **kwargs)
         self.setAlignment(QtCore.Qt.AlignCenter)
 
