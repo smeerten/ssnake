@@ -32,13 +32,17 @@ import spectrum_classes as sc
 import fitting as fit
 from safeEval import *
 from widgetClasses import *
+from updateWindow import *
 
 pi = np.pi
+
+VERSION = 'v0.4b'
 
 class MainProgram(QtGui.QMainWindow):
     def __init__(self, root):
         QtGui.QMainWindow.__init__(self)
         self.root = root
+        self.VERSION = VERSION
         self.setAttribute(QtCore.Qt.WA_DeleteOnClose)
         self.setAcceptDrops(True)
         self.mainWindow = None
@@ -223,6 +227,12 @@ class MainProgram(QtGui.QMainWindow):
         self.historyMenu = QtGui.QMenu("&History", self)
         self.menubar.addMenu(self.historyMenu)
         self.historyMenu.addAction("&History", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.createHistoryWindow()))
+
+        #the help drop down menu
+        self.helpMenu = QtGui.QMenu("&Help", self)
+        self.menubar.addMenu(self.helpMenu)
+        self.helpMenu.addAction("&Update", self.updateMenu)
+        self.helpMenu.addAction("&About", self.about)
         
     def mainWindowCheck(self, transfer):
         #checks if mainWindow exist to execute the function
@@ -1103,6 +1113,13 @@ class MainProgram(QtGui.QMainWindow):
         self.tabs.setCurrentIndex(num)
         self.menuCheck()
         self.allowChange = True
+
+    def updateMenu(self):
+        UpdateWindow(self)
+
+    def about(self):
+        message = "ssNake "+VERSION
+        QtGui.QMessageBox.about(self, 'About', message)
         
     def fileQuit(self):
         self.close()
