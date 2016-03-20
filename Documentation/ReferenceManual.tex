@@ -384,7 +384,7 @@ If the supplied number is larger than the current size, zeroes are added at the 
 When applied to the frequency domain, zero filling makes no real sense. However ssNake does support this. In this case zeroes are added to the left-hand side of the spectrum (due to the mirroring of the spectrum used in NMR), or taken from them. When doing this, the spectra width should be changed to be still correct. This is not done, and it is therefore not recommended to use this option in the frequency domain.
 
 \subsection{Shift data}
-Shifts the data to the left or to the right, by removing data points on the left or on the right, and filling with zeroes on the other side.
+Shifts the data to the left or to the right, by removing data points on the left or on the right, and filling with zeroes on the other side. Negative shifts are left shifts, positive right shifts.
 
 \subsubsection*{Background}
 Data shifting can be used if some data points on the left or right of the time signal are unnecessary or unwanted. When measuring a spin echo, for example, it is not uncommon to start recording the signal some microseconds before the expected echo top, to make sure the full signal is measured. The data can then be left shifted to remove the data points before the echo maximum, and yield a regular spectrum.
@@ -422,6 +422,15 @@ When analysing some experiments, it is useful to make a plot of the position of 
 \subsection{Min position}
 Returns the x value of the minimum position within the selected area for all traces. Works the same as Max position.
 
+\subsection{Average}
+Returns the average of the selected region. Implementation is the same as with integration.
+
+\subsection{Diff}
+Differentiates the data in the current dimension (i.e. returns the difference between each data point and the next data point). This is equal to the slope between the points. Remember that NMR data is the frequency domain is always depicted from right to left, so the direction of differentiating is different in the time domain than in the frequency domain (or, in fact, it is the same but $looks$ different).
+
+\subsection{Cumsum}
+Performs a cumulative sum on the data in the current dimension. This means that each point is now equal to its old value, and those of all the previous points added. Remember (as with Diff) that the frequency domain is mirrored, and the direction of Cumsum is also different.
+
 
 \subsection{Extract part}
 Deletes all parts of the current dimension that are outside the selected region.
@@ -429,6 +438,11 @@ Deletes all parts of the current dimension that are outside the selected region.
 \subsubsection*{ssNake implementation}
 This function can be used to delete parts from the current spectrum or fid. Left clicking on a prt sets the first limit on the first click, and the second limit on the second click. Apply deletes all parts outside this region on all traces. When doing this in the spectrum, the spectral width and zero point (reference frequency) are also changed to keep all peaks at the same frequency.
 
+\subsection{Multiply}
+Multiplies the y-values of the data in the current dimension by a given number. If a single number is supplied, all the points are multiplied by this number. Alternatively, an array with the same length as the data can be given to specify a position dependent multiplication. For example, for a dimension with 3 data points: [1,3.34,2]. This multiplies the first data point by 1, second by 3.34, etc. Do not forget the about the mirroring in the spectral domain (see Diff)!
+
+\subsection{Reorder}
+Reorders the data in the current dimension. Input is an array with the new, desired positions. For example, [0,2,1] keeps the position of the first element (`0'), but interchanges the second and the third. It is also possible to supply the input array by loading a filer (as is used in Non-Uniform Sampling). If the new data length is longer than the old, the missing points are filled with zeros. Also, the length of the desired new dimension can be given. If the length of the final data is shorter than this value, some zeros are appended.
 
 \subsection{Flip L/R}
 Flips (i.e. mirrors) the left and right side of the current dimension. The axis is not flipped.
@@ -437,11 +451,7 @@ Flips (i.e. mirrors) the left and right side of the current dimension. The axis 
 Deletes specific data points from the current dimension. Should be entered in array from. For example: [1,2,40] deletes data points 1, 2 and 40. Remember that ssNake uses the python way of array indexing: 0 is the first point. The above code therefore deletes the second, third and forty--first data point. Do remember that the indexing goes from right to left in the case the current dimension is a spectrum (the frequency axis is flipped).
 
 \subsection{Split}
-Splits the current dimension in $n$ parts with an equal number of data points.
-
-\subsubsection*{Background}
-
-
+Splits the current dimension in $n$ parts with an equal number of data points. The newly created dimension is named D1, and all the other dimension numbers are increased by one (shifted one lower). This tool can only spilt the data in parts of equal size. It is therefore necessary to make sure that the size of the data in the current dimension is divisible by $n$, or in math.
 
 \section{Fitting}
 In NMR spectroscopy, the shape of the resonance lines can provide information on the strength of interactions that the nucleus experiences. ssNake can, as many other programs, fit some idealized lineshapes with are often encountered in real life spectra. Fitting in ssNake ranges from trivial `full width at half maximum' (FWHM) fitting, to the complex quadrupolar Czjzek distribution. The following section will explain the way ssNake handles the different types of spectra it can fit, and which equations are used simulate the different spectra.
