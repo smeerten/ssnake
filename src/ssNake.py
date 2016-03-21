@@ -216,17 +216,17 @@ class MainProgram(QtGui.QMainWindow):
         self.plotMenu.addAction("&Multi plot", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.plotMulti()))
         self.plotMenu.addAction("Set &reference", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.createRefWindow()))
         self.plotMenu.addAction("&User x-axis", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.createXaxWindow()))
-        self.xgridAction = QtGui.QAction("&X-grid", self.plotMenu, checkable=True)
+        self.xgridAction = QtGui.QAction(QtGui.QIcon(IconDirectory + 'xgrid.png'),"&X-grid", self.plotMenu, checkable=True)
         self.xgridAction.triggered.connect(lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.setGrid()))
         self.plotMenu.addAction(self.xgridAction)
-        self.ygridAction = QtGui.QAction("&Y-grid", self.plotMenu, checkable=True)     
+        self.ygridAction = QtGui.QAction(QtGui.QIcon(IconDirectory + 'ygrid.png'),"&Y-grid", self.plotMenu, checkable=True)     
         self.ygridAction.triggered.connect(lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.setGrid()))
         self.plotMenu.addAction(self.ygridAction)
 
         #the history drop down menu
         self.historyMenu = QtGui.QMenu("&History", self)
         self.menubar.addMenu(self.historyMenu)
-        self.historyMenu.addAction("&History", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.createHistoryWindow()))
+        self.historyMenu.addAction(QtGui.QIcon(IconDirectory + 'history.png'),"&History", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.createHistoryWindow()))
 
         #the help drop down menu
         self.helpMenu = QtGui.QMenu("&Help", self)
