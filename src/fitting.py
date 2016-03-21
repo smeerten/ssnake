@@ -117,7 +117,7 @@ class IntegralsWindow(FittingWindow):
     def __init__(self, rootwindow, mainProgram, oldMainWindow):
         FittingWindow.__init__(self, rootwindow, mainProgram, oldMainWindow)
 
-    def setup():
+    def setup(self):
         self.current = IntegralsFrame(self, self.fig, self.canvas, self.oldMainWindow.current)
         self.paramframe = IntegralsParamFrame(self.current, self)
         
