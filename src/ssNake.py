@@ -4836,6 +4836,6 @@ class HistoryWindow(QtGui.QWidget):
 root = QtGui.QApplication(sys.argv)
 root.setWindowIcon(QtGui.QIcon(os.path.dirname(os.path.realpath(__file__))+'/logo.gif')) 
 mainProgram = MainProgram(root)
-mainProgram.setWindowTitle("ssNake")
+mainProgram.setWindowTitle("ssNake - " +VERSION)
 mainProgram.show()
 sys.exit(root.exec_())
