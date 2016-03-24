@@ -93,15 +93,20 @@ class MainProgram(QtGui.QMainWindow):
         self.savefigAct = self.exportmenu.addAction('Figure', self.saveFigure, QtGui.QKeySequence.Print)
         self.exportmenu.addAction(QtGui.QIcon(IconDirectory + 'simpson.png'), 'Simpson', self.saveSimpsonFile)
         self.filemenu.addAction(QtGui.QIcon(IconDirectory + 'quit.png'), '&Quit', self.fileQuit, QtGui.QKeySequence.Quit)
+        
+        
+        #Workspaces menu
         self.workspacemenu = QtGui.QMenu('&Workspaces', self)
         self.menubar.addMenu(self.workspacemenu)
         self.newAct = self.workspacemenu.addAction('D&uplicate', self.duplicateWorkspace, QtGui.QKeySequence.New)
         self.closeAct = self.workspacemenu.addAction(QtGui.QIcon(IconDirectory + 'delete.png'), '&Delete', self.destroyWorkspace, QtGui.QKeySequence.Close)
-        self.workspacemenu.addAction('&Rename', self.renameWorkspace)
+        self.workspacemenu.addAction('&Rename', self.renameWorkspace,QtCore.Qt.Key_F2)
         self.activemenu = QtGui.QMenu('&Active', self)
         self.workspacemenu.addMenu(self.activemenu)
         self.forwardAct = self.workspacemenu.addAction(QtGui.QIcon(IconDirectory + 'next.png'), '&Next', lambda: self.stepWorkspace(1), QtGui.QKeySequence.Forward)
         self.backAct = self.workspacemenu.addAction(QtGui.QIcon(IconDirectory + 'previous.png'), '&Previous', lambda: self.stepWorkspace(-1), QtGui.QKeySequence.Back)
+        
+        #MAcro menu
         self.macromenu = QtGui.QMenu('&Macros', self)
         self.menubar.addMenu(self.macromenu)
         self.macrostartAct = self.macromenu.addAction(QtGui.QIcon(IconDirectory + 'record.png'), 'St&art recording', self.macroCreate)
