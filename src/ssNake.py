@@ -723,6 +723,7 @@ class MainProgram(QtGui.QMainWindow):
         freq = 300e6
         sw   = 50e3
         sw1  = 50e3
+        freq1 = 0 #intialize second dimension freqency as 0
         if os.path.exists(Dir+os.path.sep+'procpar'):
             with open(Dir+os.path.sep+'procpar', 'r') as f: 
                 data = f.read().split('\n')
@@ -733,6 +734,8 @@ class MainProgram(QtGui.QMainWindow):
                     sw = float(data[s+1].split()[1])
                 elif data[s].startswith('sw1 '):
                     sw1 = float(data[s+1].split()[1])
+                elif data[s].startswith('dfrq '):
+                    freq1 = float(data[s+1].split()[1])*1e6
         else:
             self.dispMsg(Dir+os.path.sep+'procpar does not exits, used standard sw and freq')
         if os.path.exists(Dir+os.path.sep+'fid'):    
@@ -780,7 +783,7 @@ class MainProgram(QtGui.QMainWindow):
             fid = fid[0][:]
             masterData = sc.Spectrum(fid, lambda self :self.LoadVarianFile(filePath), [freq], [sw], msgHandler=lambda msg: self.dispMsg(msg))
         else: 
-            masterData = sc.Spectrum(fid, lambda self :self.LoadVarianFile(filePath), [freq]*2, [sw]*2, msgHandler=lambda msg: self.dispMsg(msg))
+            masterData = sc.Spectrum(fid, lambda self :self.LoadVarianFile(filePath), [freq1,freq], [sw1,sw], msgHandler=lambda msg: self.dispMsg(msg))
         masterData.addHistory("Varian data loaded from "+filePath)
         return masterData
 
