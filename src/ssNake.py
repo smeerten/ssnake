@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-# Copyright 2015 Bas van Meerten and Wouter Franssen
+# Copyright 2016 Bas van Meerten and Wouter Franssen
 
 #This file is part of ssNake.
 #
@@ -92,6 +92,7 @@ class MainProgram(QtGui.QMainWindow):
         self.filemenu.addMenu(self.exportmenu)        
         self.savefigAct = self.exportmenu.addAction('Figure', self.saveFigure, QtGui.QKeySequence.Print)
         self.exportmenu.addAction(QtGui.QIcon(IconDirectory + 'simpson.png'), 'Simpson', self.saveSimpsonFile)
+        self.exportmenu.addAction(QtGui.QIcon('logo.gif'), 'ASCII', self.saveASCIIFile)
         self.filemenu.addAction(QtGui.QIcon(IconDirectory + 'quit.png'), '&Quit', self.fileQuit, QtGui.QKeySequence.Quit)
         
         
@@ -1062,6 +1063,9 @@ class MainProgram(QtGui.QMainWindow):
     def saveSimpsonFile(self):
         self.mainWindow.get_mainWindow().SaveSimpsonFile()
         
+    def saveASCIIFile(self):
+        self.mainWindow.get_mainWindow().saveASCIIFile()
+        
     def saveJSONFile(self):
         self.mainWindow.get_mainWindow().saveJSONFile()
         
@@ -1427,6 +1431,22 @@ class Main1DWindow(QtGui.QWidget):
                     for jjj in range(0, Points[1]):
                         f.write(str(self.masterData.data[iii][jjj].real)+' '+ str(self.masterData.data[iii][jjj].imag)+'\n')
             f.write('END')
+
+
+    def saveASCIIFile(self):
+        if self.masterData.dim   > 1:
+            self.father.dispMsg('Saving to ASCII format only allowed for 1D data!')
+            return
+        WorkspaceName = self.mainProgram.workspaceNames[self.mainProgram.workspaceNum]#Set name of file to be saved to workspace name to start
+        name = QtGui.QFileDialog.getSaveFileName(self, 'Save File', self.father.LastLocation+os.path.sep+WorkspaceName+'.txt', 'ASCII file (*.txt)')
+        if not name:
+            return
+        self.father.LastLocation = os.path.dirname(name) #Save used path
+        axis = np.array([self.masterData.xaxArray[0]]).transpose()
+        data = np.array(np.split(self.masterData.data.view(dtype=np.float64),2)).transpose()
+        data=np.concatenate((axis,data), axis=1)
+        np.savetxt(name,np.real(data),delimiter='\t')
+            
 
     def reloadLast(self):
         self.redoList = []
