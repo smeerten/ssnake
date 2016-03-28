@@ -92,7 +92,7 @@ class MainProgram(QtGui.QMainWindow):
         self.filemenu.addMenu(self.exportmenu)        
         self.savefigAct = self.exportmenu.addAction('Figure', self.saveFigure, QtGui.QKeySequence.Print)
         self.exportmenu.addAction(QtGui.QIcon(IconDirectory + 'simpson.png'), 'Simpson', self.saveSimpsonFile)
-        self.exportmenu.addAction(QtGui.QIcon('logo.gif'), 'ASCII', self.saveASCIIFile)
+        self.exportmenu.addAction(QtGui.QIcon('logo.gif'), 'ASCII (1D/2D)', self.saveASCIIFile)
         self.filemenu.addAction(QtGui.QIcon(IconDirectory + 'quit.png'), '&Quit', self.fileQuit, QtGui.QKeySequence.Quit)
         
         
@@ -1434,18 +1434,28 @@ class Main1DWindow(QtGui.QWidget):
 
 
     def saveASCIIFile(self):
-        if self.masterData.dim   > 1:
-            self.father.dispMsg('Saving to ASCII format only allowed for 1D data!')
+        if self.masterData.dim   > 2:
+            self.father.dispMsg('Saving to ASCII format only allowed for 1D and 2D data!')
             return
         WorkspaceName = self.mainProgram.workspaceNames[self.mainProgram.workspaceNum]#Set name of file to be saved to workspace name to start
         name = QtGui.QFileDialog.getSaveFileName(self, 'Save File', self.father.LastLocation+os.path.sep+WorkspaceName+'.txt', 'ASCII file (*.txt)')
         if not name:
             return
+            
         self.father.LastLocation = os.path.dirname(name) #Save used path
-        axis = np.array([self.masterData.xaxArray[0]]).transpose()
-        data = np.array(np.split(self.masterData.data.view(dtype=np.float64),2)).transpose()
-        data=np.concatenate((axis,data), axis=1)
-        np.savetxt(name,np.real(data),delimiter='\t')
+        axis = np.array([self.masterData.xaxArray[-1]]).transpose()
+        if self.masterData.dim   == 1: #create nx1 matrix if it is a 1d data set
+            data = np.array([self.masterData.data]).transpose()
+        else:
+            data = self.masterData.data.transpose()
+            
+        splitdata=np.zeros([data.shape[0],data.shape[1]*2])
+        for line in np.arange(data.shape[1]):
+            splitdata[:,line*2] = np.real(data[:,line])
+            splitdata[:,line*2+1] = np.imag(data[:,line])
+        
+        data=np.concatenate((axis,splitdata), axis=1)
+        np.savetxt(name,data,delimiter='\t')
             
 
     def reloadLast(self):
