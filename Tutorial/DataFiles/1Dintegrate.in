@@ -1,0 +1,54 @@
+# MAS CSA spectrum of a single nuclei
+# Uses direct calculation of propagators
+
+# 212 sec on a 166 MHz Pentium II w/Linux
+
+spinsys {
+    nuclei 1H 1H 1H
+    channels 1H
+    shift 1 10p 0 0 0 0 0
+    shift 2 -10p 0 0 0 0 0
+    shift 3 -10p 0 0 0 0 0
+}
+
+par {
+  variable noise  0.4
+    method	     direct
+    start_operator   Inx
+    detect_operator  Inp
+    spin_rate        0
+    gamma_angles    1
+    sw               50000
+    crystal_file    alpha0beta0
+    np               1024
+    proton_frequency 600e6
+	verbose			 1111
+}
+
+proc pulseq {} {
+    global par
+
+
+    set tdwell [expr 1.0e6/$par(sw)]
+    acq
+    for {set i 1} {$i < $par(np)} {incr i} {     
+        delay $tdwell
+        acq
+    }
+}
+
+proc faddnoise {f {level 0.01}} {
+  fexpr $f "\$re+$level*(0.5-rand())" "\$im+$level*(0.5-rand())"
+}
+
+
+proc main {} {
+  global par
+  set f [fsimpson]
+  faddlb $f 100 0
+  faddnoise $f $par(noise)
+  fphase $f -scale 2
+  fzerofill $f 1024
+  fft $f 
+  fsave $f $par(name).spe
+}
