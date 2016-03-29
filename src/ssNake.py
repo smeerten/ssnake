@@ -36,7 +36,7 @@ from updateWindow import *
 
 pi = np.pi
 
-VERSION = 'v0.4'
+VERSION = 'v0.5b'
 
 class MainProgram(QtGui.QMainWindow):
     def __init__(self, root):
@@ -196,7 +196,7 @@ class MainProgram(QtGui.QMainWindow):
         self.fittingMenu.addAction("&Diffusion Curve", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.createDiffusionWindow()))
         self.fittingMenu.addAction("&Peak Deconvolution", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.createPeakDeconvWindow()))
         self.fittingMenu.addAction("&CSA static", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.createTensorDeconvWindow()))
-       # self.fittingMenu.addAction("CSA MAS", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.createHerzfeldBergerWindow()))
+        self.fittingMenu.addAction("CSA MAS", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.createHerzfeldBergerWindow()))
         self.fittingMenu.addAction("First order &quadrupole", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.createQuad1DeconvWindow()))
         self.fittingMenu.addAction("S&econd order quadrupole static", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.createQuad2StaticDeconvWindow()))
         self.fittingMenu.addAction("Se&cond order quadrupole MAS", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.createQuad2MASDeconvWindow()))
