@@ -657,7 +657,11 @@ class Spectrum:
         self.data[select] = np.apply_along_axis(np.multiply, axes, self.data, vector)[select]
         if self.spec[axes] == 0:
             self.fourier(axes, tmp=True, inv=True)
-        self.addHistory("Phasing: phase0 = " + str(phase0*180/np.pi) + " and phase1 = " + str(phase1*180/np.pi) + " for dimension " + str(axes+1) + " of data["+str(select)+"]")
+            
+        Message = "Phasing: phase0 = " + str(phase0*180/np.pi) + " and phase1 = " + str(phase1*180/np.pi) + " for dimension "+ str(axes+1)
+        if select != slice(None,None,None):
+            Message = Message + " of data["+str(select)+"]"
+        self.addHistory(Message)
         return lambda self: self.setPhase(-phase0, -phase1, axes, select=select)
 
     def apodize(self, lor, gauss, cos2, hamming, shift, shifting, shiftingAxes, axes, select=slice(None)):
@@ -718,7 +722,30 @@ class Spectrum:
             self.data[select] = np.apply_along_axis(np.multiply, axes, self.data, x)[select]
             if self.spec[axes] > 0:
                 self.fourier(axes, tmp=True, inv=True)
-        self.addHistory("Apodization: Lorentzian = " + str(lor) + ", Gaussian =" + str(gauss) + ", Cos2 =" + str(cos2) + ", Hamming =" + str(hamming) + ", shift =" + str(shift) + ", shifting =" + str(shifting) + ", shiftingAxes =" + str(shiftingAxes) + " for dimension " + str(axes+1) + " of data["+str(select)+"]")
+                
+                
+        # Create the history message based on the input values.
+        Message = "Apodization: "
+        if lor is not None:
+            Message = Message + "Lorentzian = " + str(lor) + ", "
+        if gauss is not None:
+            Message = Message + "Gaussian = " + str(gauss) + ", "
+        if cos2 is not None:
+            Message = Message + "Cos2 = " + str(cos2) + ", "
+        if hamming is not None:
+            Message = Message + "Hamming = " + str(hamming) + ", "
+        if shift != 0.0:
+            Message = Message + "shift = " + str(shift) + ", "
+        if shifting != 0:
+            Message = Message + "shifting = " + str(shifting) + ", "
+        if shiftingAxes != 0:
+            Message = Message + "shiftingAxes = " + str(shiftingAxes) + ", "
+        if lor is None and gauss is None and cos2 is None and hamming is None: #If all none, make special message with `zero apodization'
+            Message = Message + "zero apodization"
+        Message = Message + " for dimension " + str(axes+1)
+        if select != slice(None,None,None):
+            Message = Message + " of data["+str(select)+"]"
+        self.addHistory(Message)
         return returnValue
 
     def setFreq(self, freq, sw, axes):
@@ -823,7 +850,11 @@ class Spectrum:
         self.data[select] = np.apply_along_axis(np.multiply, axes, self.data, mask)[select]
         if self.spec[axes] > 0:
             self.fourier(axes, tmp=True, inv=True)
-        self.addHistory("Shifted "+str(shift)+" points dimension " + str(axes+1) + " of data["+str(select)+"]")
+            
+        Message = "Shifted "+str(shift)+" points in dimension " + str(axes+1)
+        if select != slice(None,None,None):
+            Message = Message + " of data["+str(select)+"]"
+        self.addHistory(Message)
         return returnValue
     
     def LPSVD(self, axes):
