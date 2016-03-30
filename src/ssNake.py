@@ -2717,14 +2717,14 @@ class ApodWindow(QtGui.QWidget):
 
     def setLor(self, value, *args):
         if self.available:
-            self.entries[0].setText('%.2f' % (float(value)*self.maximum/self.RESOLUTION))
+            self.entries[0].setText('%.4g' % (float(value)*self.maximum/self.RESOLUTION))
             if not self.ticks[0].isChecked():
                 self.ticks[0].setChecked(1)
             self.apodPreview()
 
     def setGauss(self, value, *args):
         if self.available:
-            self.entries[1].setText('%.2f' % (float(value)*self.maximum/self.RESOLUTION))
+            self.entries[1].setText('%.4g' % (float(value)*self.maximum/self.RESOLUTION))
             if not self.ticks[1].isChecked():
                 self.ticks[1].setChecked(1)
             self.apodPreview()
@@ -2739,23 +2739,23 @@ class ApodWindow(QtGui.QWidget):
         shiftingAxes = 0
         if self.ticks[0].isChecked():
             lor = safeEval(self.entries[0].text())
-            self.entries[0].setText('%.2f' % lor)
+            self.entries[0].setText('%.4g' % lor)
             self.lorScale.setValue(round(lor*self.RESOLUTION/self.maximum))
         if self.ticks[1].isChecked():
             gauss = safeEval(self.entries[1].text())
-            self.entries[1].setText('%.2f' % gauss)
+            self.entries[1].setText('%.4g' % gauss)
             self.gaussScale.setValue(round(gauss*self.RESOLUTION/self.maximum))
         if self.ticks[2].isChecked():
             cos2 = safeEval(self.entries[2].text())
-            self.entries[2].setText('%.2f' % cos2)
+            self.entries[2].setText('%.4g' % cos2)
         if self.ticks[3].isChecked():
             hamming = safeEval(self.entries[3].text())
-            self.entries[3].setText('%.2f' % hamming)
+            self.entries[3].setText('%.4g' % hamming)
         shift = safeEval(self.shiftEntry.text())
-        self.shiftEntry.setText('%.2f' % shift)
+        self.shiftEntry.setText('%.4g' % shift)
         if self.father.current.data.dim > 1:
             shifting = safeEval(self.shiftingEntry.text())
-            self.shiftingEntry.setText('%.2f' % shifting)
+            self.shiftingEntry.setText('%.4g' % shifting)
             shiftingAxes = int(self.shiftingValues[self.shiftingAxes.currentIndex()])-1
         else:
             shiftingAxes = None
@@ -2763,8 +2763,8 @@ class ApodWindow(QtGui.QWidget):
         self.father.current.apodPreview(lor, gauss, cos2, hamming, shift, shifting, shiftingAxes)
 
     def stepLB(self, lorincr, gaussincr):
-        self.entries[0].setText('%.2f' %(float(self.entries[0].text())+lorincr*self.lorstep))
-        self.entries[1].setText('%.2f' %(float(self.entries[1].text())+gaussincr*self.gaussstep))
+        self.entries[0].setText('%.4g' %(float(self.entries[0].text())+lorincr*self.lorstep))
+        self.entries[1].setText('%.4g' %(float(self.entries[1].text())+gaussincr*self.gaussstep))
         if (lorincr != 0) and (not self.ticks[0].isChecked()):
             self.ticks[0].setChecked(1)
         if (gaussincr != 0) and (not self.ticks[1].isChecked()):
@@ -3920,7 +3920,7 @@ class ConcatenateWindow(QtGui.QWidget):
         if returnValue is None:
             return
         self.father.redoList = []
-        self.father.undoList.append()
+        self.father.undoList.append(returnValue)
         self.father.menuEnable()
         self.father.updAllFrames()
         self.deleteLater()
