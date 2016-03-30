@@ -26,6 +26,7 @@ from spectrumFrame import Plot1DFrame
 from safeEval import safeEval
 from nus import *
 import multiprocessing
+from matplotlib import cm
 
 #########################################################################
 #the generic data class
@@ -3129,7 +3130,7 @@ class CurrentContour(Current1D):
         if hasattr(duplicateCurrent, 'minLevels'):
             self.minLevels = duplicateCurrent.minLevels
         else:
-            self.minLevels = 0.1
+            self.minLevels = 0.01
         if hasattr(duplicateCurrent, 'maxLevels'):
             self.maxLevels = duplicateCurrent.maxLevels
         else:
@@ -3328,9 +3329,13 @@ class CurrentContour(Current1D):
             tmpdata = np.real(tmpdata)
         elif(self.plotType == 3):
             tmpdata = np.abs(tmpdata)
-        differ = np.amax(tmpdata)-np.amin(tmpdata)
-        contourLevels = np.linspace(self.minLevels*differ+np.amin(tmpdata), self.maxLevels*differ+np.amin(tmpdata), self.numLevels)
-        self.ax.contour(X, Y, tmpdata, c='b', levels=contourLevels)
+        # differ = np.amax(tmpdata)-np.amin(tmpdata)
+        # contourLevels = np.linspace(self.minLevels*differ+np.amin(tmpdata), self.maxLevels*differ+np.amin(tmpdata), self.numLevels)
+        # self.ax.contour(X, Y, tmpdata, c='b', levels=contourLevels)        
+        differ = np.amax(np.abs(tmpdata))
+        contourLevels = np.linspace(self.minLevels*differ, self.maxLevels*differ, self.numLevels)
+        self.ax.contour(X, Y, tmpdata, cmap=cm.Reds, levels=contourLevels)
+        self.ax.contour(X, Y, tmpdata, cmap=cm.Blues_r, levels=-contourLevels[::-1])
         self.line_ydata = tmpdata[0]
         if self.projType1 == 0:
             self.x_ax.plot(x, np.sum(tmpdata, axis=0), 'b')
