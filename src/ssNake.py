@@ -1836,14 +1836,18 @@ class Main1DWindow(QtGui.QWidget):
             self.father.dispMsg("no redo information")
 
 ########################################################################################
-class SideFrame(QtGui.QWidget):
+class SideFrame(QtGui.QScrollArea):
     def __init__(self, parent):
         QtGui.QWidget.__init__(self, parent)
         self.father = parent
         self.entries = []
         self.plotIs2D = False
-        grid = QtGui.QGridLayout(self)
-        self.setLayout(grid)
+        self.content = QtGui.QWidget()
+        grid = QtGui.QGridLayout(self.content)
+        grid.setSizeConstraint(QtGui.QLayout.SetFixedSize)
+        self.setWidget(self.content)
+        #self.setLayout(grid)
+        #grid.setSizeConstraint(QtGui.QLayout.SetFixedSize)
         splitter = QtGui.QSplitter(QtCore.Qt.Vertical)
         frame1Widget = QtGui.QWidget()
         frame2Widget = QtGui.QWidget()
@@ -1857,6 +1861,7 @@ class SideFrame(QtGui.QWidget):
         frame2Widget.setLayout(self.frame2)
         self.frame1.setAlignment(QtCore.Qt.AlignTop)
         self.frame2.setAlignment(QtCore.Qt.AlignTop)
+        self.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
         self.grid = grid
         self.upd()
         
@@ -1871,7 +1876,7 @@ class SideFrame(QtGui.QWidget):
     def frameDisable(self):
         self.setEnabled(False)
             
-    def upd(self): 
+    def upd(self):
         current = self.father.current
         self.shape = current.data.data.shape
         self.length = len(self.shape)
@@ -2037,7 +2042,11 @@ class SideFrame(QtGui.QWidget):
             addButton = QtGui.QPushButton("Add spectrum", self)
             addButton.clicked.connect(self.addMultiSpec)
             self.frame2.addWidget(addButton, iter1, 0, 1, 2)
-                          
+        QtCore.QTimer.singleShot(100, self.resizeAll)
+        
+    def resizeAll(self):
+        self.setMinimumWidth(self.grid.sizeHint().width() + self.verticalScrollBar().sizeHint().width())
+        
     def setToFrom(self, *args):
         current = self.father.current
         if not isinstance(current, (sc.CurrentStacked, sc.CurrentArrayed, sc.CurrentSkewed)):
