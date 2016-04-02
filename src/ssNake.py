@@ -154,7 +154,7 @@ class MainProgram(QtGui.QMainWindow):
         self.matrixMenu = QtGui.QMenu("M&atrix", self)
         self.menubar.addMenu(self.matrixMenu)
         self.matrixMenu.addAction("&Sizing", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.createSizeWindow()))
-        self.matrixMenu.addAction("S&hift Data", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.createShiftDataWindow()))
+        self.matrixMenu.addAction(QtGui.QIcon(IconDirectory + 'shift.png'),"S&hift Data", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.createShiftDataWindow()))
         self.regionMenu = QtGui.QMenu("Region", self)
         self.matrixMenu.addMenu(self.regionMenu)
         self.regionMenu.addAction(QtGui.QIcon(IconDirectory + 'int.png'), "&Integrate", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.createIntegrateWindow()))
