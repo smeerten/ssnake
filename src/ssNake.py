@@ -1838,23 +1838,17 @@ class Main1DWindow(QtGui.QWidget):
 ########################################################################################
 class SideFrame(QtGui.QScrollArea):
     def __init__(self, parent):
-        QtGui.QWidget.__init__(self, parent)
+        QtGui.QScrollArea.__init__(self, parent)
         self.father = parent
         self.entries = []
         self.plotIs2D = False
         content = QtGui.QWidget()
         grid = QtGui.QGridLayout(content)
         grid.setSizeConstraint(QtGui.QLayout.SetFixedSize)
-        self.setWidget(content)
-        #self.setLayout(grid)
-        #grid.setSizeConstraint(QtGui.QLayout.SetFixedSize)
-        #splitter = QtGui.QSplitter(QtCore.Qt.Vertical)
         frame1Widget = QtGui.QWidget()
         frame2Widget = QtGui.QWidget()
         grid.addWidget(frame1Widget,0,0)
         grid.addWidget(frame2Widget,1,0)
-        #splitter.setStretchFactor(1, 1)
-        #grid.addWidget(splitter)
         self.frame1 = QtGui.QGridLayout()
         self.frame2 = QtGui.QGridLayout()
         frame1Widget.setLayout(self.frame1)
@@ -1863,6 +1857,7 @@ class SideFrame(QtGui.QScrollArea):
         self.frame2.setAlignment(QtCore.Qt.AlignTop)
         self.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
         self.grid = grid
+        self.setWidget(content)
         self.upd()
         
     def kill(self):
@@ -2344,13 +2339,14 @@ class BottomFrame(QtGui.QWidget):
         self.father.current.showFid()
 
 ##################################################################
-class TextFrame(QtGui.QWidget):
+class TextFrame(QtGui.QScrollArea):
     def __init__(self, parent):
-        QtGui.QWidget.__init__(self, parent)
+        QtGui.QScrollArea.__init__(self, parent)
         self.father = parent
         self.oldx = 0.0
         self.oldy = 0.0
-        grid = QtGui.QGridLayout(self)
+        content = QtGui.QWidget()
+        grid = QtGui.QGridLayout(content)
         getButton = QtGui.QPushButton("Get Position")
         getButton.clicked.connect(self.getPosition)
         grid.addWidget(getButton, 0, 1)
@@ -2381,6 +2377,9 @@ class TextFrame(QtGui.QWidget):
         grid.addWidget(self.deltaypoint, 0, 11)
         grid.setColumnStretch(20, 1)
         self.grid = grid
+        self.setVerticalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
+        self.setWidget(content)
+        self.setMaximumHeight(self.grid.sizeHint().height() + self.horizontalScrollBar().sizeHint().height())
 
     def kill(self):
         for i in reversed(range(self.grid.count())): 
