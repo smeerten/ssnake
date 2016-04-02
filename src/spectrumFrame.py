@@ -182,9 +182,9 @@ class Plot1DFrame:
                     else:
                         self.ax.set_ylim(self.yminlim, self.ymaxlim)
                 self.zoomX1 = None
-                self.zoomX2 = None #WF: should also be cleared, memory of old zoom
+                self.zoomX2 = None 
                 self.zoomY1 = None
-                self.zoomY2 = None #WF: should also be cleared, memory of old zoom
+                self.zoomY2 = None 
         elif event.button == 3:
             self.rightMouse = False
         self.canvas.draw()

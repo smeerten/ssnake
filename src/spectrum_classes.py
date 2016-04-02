@@ -1330,7 +1330,6 @@ class Current1D(Plot1DFrame):
     def setFreq(self, freq, sw): #set the frequency of the actual data
         returnValue = self.data.setFreq(freq, sw, self.axes)
         self.upd()
-        self.plotReset()
         self.showFid()
         self.root.addMacro(['freq', (freq, sw, self.axes-self.data.dim)])
         return returnValue
@@ -1442,14 +1441,14 @@ class Current1D(Plot1DFrame):
             self.xax = np.arange(length)/self.sw
         elif self.spec == 1:
             self.xax = np.fft.fftshift(np.fft.fftfreq(length, 1.0/self.sw))+self.freq-self.ref
-        self.plotReset()
         self.showFid()
         self.upd()
 
     def applySize(self, size): #set size to the actual data
         returnValue = self.data.setSize(size, self.axes)
         self.upd()
-        self.plotReset()
+        if not self.spec:
+            self.plotReset()
         self.showFid()
         self.root.addMacro(['size', (size, self.axes-self.data.dim)])
         return returnValue
@@ -1474,7 +1473,6 @@ class Current1D(Plot1DFrame):
             self.data1D = np.concatenate((self.data1D[:, idx:], self.data1D[:, :idx]), axis=1)
         else:
             self.data1D = np.concatenate((self.data1D[idx:], self.data1D[:idx]))
-        self.plotReset()
         self.showFid()
         self.upd()
 
@@ -1600,7 +1598,6 @@ class Current1D(Plot1DFrame):
     def applyLPSVD(self):
         returnValue = self.data.LPSVD(self.axes)
         self.upd()
-        self.plotReset()
         self.showFid()
         self.root.addMacro(['lpsvd', (self.axes-self.data.dim, )])
         return returnValue
@@ -1608,7 +1605,6 @@ class Current1D(Plot1DFrame):
     def states(self):
         returnValue = self.data.states(self.axes)
         self.upd()
-        self.plotReset()
         self.showFid()
         self.root.addMacro(['states', (self.axes-self.data.dim, )])
         return returnValue
@@ -1616,7 +1612,6 @@ class Current1D(Plot1DFrame):
     def statesTPPI(self):
         returnValue = self.data.statesTPPI(self.axes)
         self.upd()
-        self.plotReset()
         self.showFid()
         self.root.addMacro(['statesTPPI', (self.axes-self.data.dim, )])
         return returnValue
@@ -1624,7 +1619,6 @@ class Current1D(Plot1DFrame):
     def echoAntiEcho(self):
         returnValue = self.data.echoAntiEcho(self.axes)
         self.upd()
-        self.plotReset()
         self.showFid()
         self.root.addMacro(['echoAntiEcho', (self.axes-self.data.dim, )])
         return returnValue
@@ -1732,7 +1726,6 @@ class Current1D(Plot1DFrame):
     def diff(self):
         returnValue = self.data.diff(self.axes)
         self.upd()
-        self.plotReset()
         self.showFid()
         self.root.addMacro(['diff', (self.axes-self.data.dim)])
         return returnValue
@@ -1740,7 +1733,6 @@ class Current1D(Plot1DFrame):
     def cumsum(self):
         returnValue = self.data.cumsum(self.axes)
         self.upd()
-        self.plotReset()
         self.showFid()
         self.root.addMacro(['cumsum', (self.axes-self.data.dim)])
         return returnValue
@@ -1774,7 +1766,6 @@ class Current1D(Plot1DFrame):
             selectSlice = slice(None)
         returnValue = self.data.add(data, select=selectSlice)
         self.upd()
-        self.plotReset()
         self.showFid()
         self.root.addMacro(['add', (np.real(data).tolist(), np.imag(data).tolist(), str(selectSlice))])
         return returnValue
@@ -1786,7 +1777,6 @@ class Current1D(Plot1DFrame):
             selectSlice = slice(None)
         returnValue = self.data.subtract(data, select=selectSlice)
         self.upd()
-        self.plotReset()
         self.showFid()
         self.root.addMacro(['subtract', (np.real(data).tolist(), np.imag(data).tolist(), str(selectSlice))])
         return returnValue

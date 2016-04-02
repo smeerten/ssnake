@@ -1842,19 +1842,19 @@ class SideFrame(QtGui.QScrollArea):
         self.father = parent
         self.entries = []
         self.plotIs2D = False
-        self.content = QtGui.QWidget()
-        grid = QtGui.QGridLayout(self.content)
+        content = QtGui.QWidget()
+        grid = QtGui.QGridLayout(content)
         grid.setSizeConstraint(QtGui.QLayout.SetFixedSize)
-        self.setWidget(self.content)
+        self.setWidget(content)
         #self.setLayout(grid)
         #grid.setSizeConstraint(QtGui.QLayout.SetFixedSize)
-        splitter = QtGui.QSplitter(QtCore.Qt.Vertical)
+        #splitter = QtGui.QSplitter(QtCore.Qt.Vertical)
         frame1Widget = QtGui.QWidget()
         frame2Widget = QtGui.QWidget()
-        splitter.addWidget(frame1Widget)
-        splitter.addWidget(frame2Widget)
-        splitter.setStretchFactor(1, 1)
-        grid.addWidget(splitter)
+        grid.addWidget(frame1Widget,0,0)
+        grid.addWidget(frame2Widget,1,0)
+        #splitter.setStretchFactor(1, 1)
+        #grid.addWidget(splitter)
         self.frame1 = QtGui.QGridLayout()
         self.frame2 = QtGui.QGridLayout()
         frame1Widget.setLayout(self.frame1)
@@ -3224,7 +3224,7 @@ class BaselineWindow(QtGui.QWidget):
 class regionWindow(QtGui.QWidget): 
     def __init__(self, parent, name):
         QtGui.QWidget.__init__(self, parent)
-        self.setWindowFlags(QtCore.Qt.Window| QtCore.Qt.Tool)
+        self.setWindowFlags(QtCore.Qt.Window | QtCore.Qt.Tool)
         self.father = parent
         self.setWindowTitle(name)
         layout = QtGui.QGridLayout(self)
