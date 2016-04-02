@@ -138,13 +138,13 @@ class MainProgram(QtGui.QMainWindow):
         self.toolMenu.addAction(QtGui.QIcon(IconDirectory + 'real.png'), "&Real", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.real()))
         self.toolMenu.addAction(QtGui.QIcon(IconDirectory + 'imag.png'), "&Imag", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.imag()))
         self.toolMenu.addAction(QtGui.QIcon(IconDirectory + 'abs.png'), "&Abs", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.abs())) 
-        self.toolMenu.addAction("Apo&dize", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.createApodWindow()))
-        self.toolMenu.addAction(QtGui.QIcon(IconDirectory + 'phase.png'), "&Phasing", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.createPhaseWindow()))
-        self.toolMenu.addAction("Swap &Echo", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.createSwapEchoWindow()))
-        self.toolMenu.addAction("&Offset correction", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.createDCWindow()))
-        self.toolMenu.addAction("&Baseline correction", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.createBaselineWindow()))
-        self.toolMenu.addAction("S&ubtract averages", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.createSubtractAvgWindow()))
-        self.toolMenu.addAction("Re&ference deconvolution", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.createFiddleWindow()))
+        self.toolMenu.addAction("Apo&dize", lambda: self.mainWindowCheck(lambda mainWindow: ApodWindow(mainWindow)))
+        self.toolMenu.addAction(QtGui.QIcon(IconDirectory + 'phase.png'), "&Phasing", lambda: self.mainWindowCheck(lambda mainWindow: PhaseWindow(mainWindow)))
+        self.toolMenu.addAction("Swap &Echo", lambda: self.mainWindowCheck(lambda mainWindow: SwapEchoWindow(mainWindow)))
+        self.toolMenu.addAction("&Offset correction", lambda: self.mainWindowCheck(lambda mainWindow: DCWindow(mainWindow)))
+        self.toolMenu.addAction("&Baseline correction", lambda: self.mainWindowCheck(lambda mainWindow: BaselineWindow(mainWindow)))
+        self.toolMenu.addAction("S&ubtract averages", lambda: self.mainWindowCheck(lambda mainWindow: SubtractAvgWindow(mainWindow)))
+        self.toolMenu.addAction("Re&ference deconvolution", lambda: self.mainWindowCheck(lambda mainWindow: FiddleWindow(mainWindow)))
         self.toolMenu.addAction("&States", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.states()))
         self.toolMenu.addAction("States-&TPPI", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.statesTPPI()))
         self.toolMenu.addAction("Ec&ho-antiecho", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.echoAntiEcho()))
@@ -153,27 +153,27 @@ class MainProgram(QtGui.QMainWindow):
         #the matrix drop down menu
         self.matrixMenu = QtGui.QMenu("M&atrix", self)
         self.menubar.addMenu(self.matrixMenu)
-        self.matrixMenu.addAction("&Sizing", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.createSizeWindow()))
-        self.matrixMenu.addAction(QtGui.QIcon(IconDirectory + 'shift.png'),"S&hift Data", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.createShiftDataWindow()))
+        self.matrixMenu.addAction("&Sizing", lambda: self.mainWindowCheck(lambda mainWindow: SizeWindow(mainWindow)))
+        self.matrixMenu.addAction(QtGui.QIcon(IconDirectory + 'shift.png'),"S&hift Data", lambda: self.mainWindowCheck(lambda mainWindow: ShiftDataWindow(mainWindow)))
         self.regionMenu = QtGui.QMenu("Region", self)
         self.matrixMenu.addMenu(self.regionMenu)
-        self.regionMenu.addAction(QtGui.QIcon(IconDirectory + 'int.png'), "&Integrate", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.createIntegrateWindow()))
-        self.regionMenu.addAction(QtGui.QIcon(IconDirectory + 'sum.png'), "S&um", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.createSumWindow()))
-        self.regionMenu.addAction(QtGui.QIcon(IconDirectory + 'max.png'),"&Max", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.createMaxWindow()))
-        self.regionMenu.addAction(QtGui.QIcon(IconDirectory + 'min.png'),"M&in", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.createMinWindow()))
-        self.regionMenu.addAction("Ma&x position", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.createArgMaxWindow()))
-        self.regionMenu.addAction("Mi&n position", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.createArgMinWindow()))
-        self.regionMenu.addAction(QtGui.QIcon(IconDirectory + 'average.png'),"&Average", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.createAvgWindow()))
+        self.regionMenu.addAction(QtGui.QIcon(IconDirectory + 'int.png'), "&Integrate", lambda: self.mainWindowCheck(lambda mainWindow: integrateWindow(mainWindow)))
+        self.regionMenu.addAction(QtGui.QIcon(IconDirectory + 'sum.png'), "S&um", lambda: self.mainWindowCheck(lambda mainWindow: sumWindow(mainWindow)))
+        self.regionMenu.addAction(QtGui.QIcon(IconDirectory + 'max.png'),"&Max", lambda: self.mainWindowCheck(lambda mainWindow: maxWindow(mainWindow)))
+        self.regionMenu.addAction(QtGui.QIcon(IconDirectory + 'min.png'),"M&in", lambda: self.mainWindowCheck(lambda mainWindow: minWindow(mainWindow)))
+        self.regionMenu.addAction("Ma&x position", lambda: self.mainWindowCheck(lambda mainWindow: argmaxWindow(mainWindow)))
+        self.regionMenu.addAction("Mi&n position", lambda: self.mainWindowCheck(lambda mainWindow: argminWindow(mainWindow)))
+        self.regionMenu.addAction(QtGui.QIcon(IconDirectory + 'average.png'),"&Average", lambda: self.mainWindowCheck(lambda mainWindow: avgWindow(mainWindow)))
         self.matrixMenu.addAction(QtGui.QIcon(IconDirectory + 'diff.png'),"&Diff", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.diff()))
         self.matrixMenu.addAction(QtGui.QIcon(IconDirectory + 'cumsum.png'),"&Cumsum", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.cumsum()))
-        self.matrixMenu.addAction("&Extract part", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.createRegionWindow()))
+        self.matrixMenu.addAction("&Extract part", lambda: self.mainWindowCheck(lambda mainWindow: extractRegionWindow(mainWindow)))
         self.matrixMenu.addAction(QtGui.QIcon(IconDirectory + 'fliplr.png'),"&Flip L/R", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.flipLR()))
-        self.matrixMenu.addAction(QtGui.QIcon(IconDirectory + 'matrixdelete.png'), "De&lete", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.createDeleteWindow()))
-        self.matrixMenu.addAction("S&plit", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.createSplitWindow()))
-        self.matrixMenu.addAction(QtGui.QIcon(IconDirectory + 'multiply.png'), "Mul&tiply", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.createMultiplyWindow()))
-        self.matrixMenu.addAction(QtGui.QIcon(IconDirectory + 'reorder.png'),"&Reorder", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.createReorderWindow()))
-        self.multiDActions.append(self.matrixMenu.addAction("C&oncatenate", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.createConcatenateWindow())))
-        self.multiDActions.append(self.matrixMenu.addAction("Shearin&g", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.createShearingWindow())))
+        self.matrixMenu.addAction(QtGui.QIcon(IconDirectory + 'matrixdelete.png'), "De&lete", lambda: self.mainWindowCheck(lambda mainWindow: DeleteWindow(mainWindow)))
+        self.matrixMenu.addAction("S&plit", lambda: self.mainWindowCheck(lambda mainWindow: SplitWindow(mainWindow)))
+        self.matrixMenu.addAction(QtGui.QIcon(IconDirectory + 'multiply.png'), "Mul&tiply", lambda: self.mainWindowCheck(lambda mainWindow: MultiplyWindow(mainWindow)))
+        self.matrixMenu.addAction(QtGui.QIcon(IconDirectory + 'reorder.png'),"&Reorder", lambda: self.mainWindowCheck(lambda mainWindow: ReorderWindow(mainWindow)))
+        self.multiDActions.append(self.matrixMenu.addAction("C&oncatenate", lambda: self.mainWindowCheck(lambda mainWindow: ConcatenateWindow(mainWindow))))
+        self.multiDActions.append(self.matrixMenu.addAction("Shearin&g", lambda: self.mainWindowCheck(lambda mainWindow: ShearingWindow(mainWindow))))
         
         #the fft drop down menu
         self.fftMenu = QtGui.QMenu("T&ransforms", self)
@@ -183,14 +183,14 @@ class MainProgram(QtGui.QMainWindow):
         self.fftMenu.addAction("Fft&shift", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.fftshift()))
         self.fftMenu.addAction("&Inv fftshift", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.invFftshift()))
         self.fftMenu.addAction("&Hilbert transform", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.hilbert()))
-        self.fftMenu.addAction("FF&M", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.createFFMWindow()))
-        self.fftMenu.addAction("&CLEAN", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.createCLEANWindow()))
+        self.fftMenu.addAction("FF&M", lambda: self.mainWindowCheck(lambda mainWindow: FFMWindow(mainWindow)))
+        self.fftMenu.addAction("&CLEAN", lambda: self.mainWindowCheck(lambda mainWindow: CLEANWindow(mainWindow)))
         
 	#the fitting drop down menu
         self.fittingMenu = QtGui.QMenu("F&itting", self)
         self.menubar.addMenu(self.fittingMenu)
-        self.fittingMenu.addAction("&S/N", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.createSNWindow()))
-        self.fittingMenu.addAction("&FWHM", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.createFWHMWindow()))
+        self.fittingMenu.addAction("&S/N", lambda: self.mainWindowCheck(lambda mainWindow: SNWindow(mainWindow)))
+        self.fittingMenu.addAction("&FWHM", lambda: self.mainWindowCheck(lambda mainWindow: FWHMWindow(mainWindow)))
         self.fittingMenu.addAction("&Integrals", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.createIntegralsWindow()))
         self.fittingMenu.addAction("&Relaxation Curve", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.createRelaxWindow()))
         self.fittingMenu.addAction("&Diffusion Curve", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.createDiffusionWindow()))
@@ -206,9 +206,9 @@ class MainProgram(QtGui.QMainWindow):
         #the combine drop down menu
         self.combineMenu = QtGui.QMenu("Com&bine", self)
         self.menubar.addMenu(self.combineMenu)
-        self.combineMenu.addAction("&Insert from workspace", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.createInsertWindow()))
-        self.combineMenu.addAction("&Add", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.createAddWindow()))
-        self.combineMenu.addAction("&Subtract", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.createSubtractWindow()))
+        self.combineMenu.addAction("&Insert from workspace", lambda: self.mainWindowCheck(lambda mainWindow: InsertWindow(mainWindow)))
+        self.combineMenu.addAction("&Add", lambda: self.mainWindowCheck(lambda mainWindow: AddWindow(mainWindow)))
+        self.combineMenu.addAction("&Subtract", lambda: self.mainWindowCheck(lambda mainWindow: SubtractWindow(mainWindow)))
 
 	#the plot drop down menu
         self.plotMenu = QtGui.QMenu("&Plot", self)
@@ -220,8 +220,8 @@ class MainProgram(QtGui.QMainWindow):
         self.multiDActions.append(self.plotMenu.addAction("&Contour plot", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.plotContour())))
         self.multiDActions.append(self.plotMenu.addAction("S&kewed plot", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.plotSkewed())))
         self.plotMenu.addAction("&Multi plot", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.plotMulti()))
-        self.plotMenu.addAction("Set &reference", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.createRefWindow()))
-        self.plotMenu.addAction("&User x-axis", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.createXaxWindow()))
+        self.plotMenu.addAction("Set &reference", lambda: self.mainWindowCheck(lambda mainWindow: RefWindow(mainWindow)))
+        self.plotMenu.addAction("&User x-axis", lambda: self.mainWindowCheck(lambda mainWindow: XaxWindow(mainWindow)))
         self.xgridAction = QtGui.QAction(QtGui.QIcon(IconDirectory + 'xgrid.png'),"&X-grid", self.plotMenu, checkable=True)
         self.xgridAction.triggered.connect(lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.setGrid()))
         self.plotMenu.addAction(self.xgridAction)
@@ -232,7 +232,7 @@ class MainProgram(QtGui.QMainWindow):
         #the history drop down menu
         self.historyMenu = QtGui.QMenu("&History", self)
         self.menubar.addMenu(self.historyMenu)
-        self.historyMenu.addAction(QtGui.QIcon(IconDirectory + 'history.png'),"&History", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.createHistoryWindow()))
+        self.historyMenu.addAction(QtGui.QIcon(IconDirectory + 'history.png'),"&History", lambda: self.mainWindowCheck(lambda mainWindow: HistoryWindow(mainWindow)))
 
         #the help drop down menu
         self.helpMenu = QtGui.QMenu("&Help", self)
@@ -1164,7 +1164,7 @@ class Main1DWindow(QtGui.QWidget):
             self.current = duplicateCurrent.copyCurrent(self, self.fig, self.canvas, masterData)
         else:
             self.current = sc.Current1D(self, self.fig, self.canvas, masterData)
-        self.menubar = self.mainProgram.menubar
+        self.menubar = self.father.menubar
         self.sideframe = SideFrame(self)
         grid.addWidget(self.sideframe, 0, 1)
         self.bottomframe = BottomFrame(self)
@@ -1347,12 +1347,12 @@ class Main1DWindow(QtGui.QWidget):
 
     def addMacro(self, macroStep):
         if self.currentMacro is not None:
-            self.mainProgram.macroAdd(self.currentMacro, macroStep)
+            self.father.macroAdd(self.currentMacro, macroStep)
             self.redoMacro = []
 
     def saveJSONFile(self):
         import json
-        WorkspaceName = self.mainProgram.workspaceNames[self.mainProgram.workspaceNum] #Set name of file to be saved to workspace name to start
+        WorkspaceName = self.father.workspaceNames[self.father.workspaceNum] #Set name of file to be saved to workspace name to start
         name = QtGui.QFileDialog.getSaveFileName(self, 'Save File', self.father.LastLocation+os.path.sep+WorkspaceName+'.json', 'JSON (*.json)')
         if not name:
             return
@@ -1375,7 +1375,7 @@ class Main1DWindow(QtGui.QWidget):
 
     def saveMatlabFile(self):
         import scipy.io
-        WorkspaceName = self.mainProgram.workspaceNames[self.mainProgram.workspaceNum]#Set name of file to be saved to workspace name to start
+        WorkspaceName = self.father.workspaceNames[self.father.workspaceNum]#Set name of file to be saved to workspace name to start
         name = QtGui.QFileDialog.getSaveFileName(self, 'Save File', self.father.LastLocation+os.path.sep+WorkspaceName+'.mat', 'MATLAB file (*.mat)')
         if not name:
             return
@@ -1390,14 +1390,14 @@ class Main1DWindow(QtGui.QWidget):
         struct['ref'] = np.array(self.masterData.ref, dtype=np.float)
         struct['history'] = self.masterData.history
         struct['xaxArray'] = self.masterData.xaxArray
-        matlabStruct = {self.mainProgram.workspaceNames[self.mainProgram.workspaceNum]:struct}
+        matlabStruct = {self.father.workspaceNames[self.father.workspaceNum]:struct}
         scipy.io.savemat(name, matlabStruct)          
 
     def SaveSimpsonFile(self):
         if self.masterData.dim   > 2:
             self.father.dispMsg('Saving to Simpson format only allowed for 1D and 2D data!')
             return
-        WorkspaceName = self.mainProgram.workspaceNames[self.mainProgram.workspaceNum]#Set name of file to be saved to workspace name to start
+        WorkspaceName = self.father.workspaceNames[self.father.workspaceNum]#Set name of file to be saved to workspace name to start
         if sum(self.masterData.spec)/len(self.masterData.spec) == 1:
             name = QtGui.QFileDialog.getSaveFileName(self, 'Save File', self.father.LastLocation+os.path.sep+WorkspaceName+'.spe', 'SIMPSON file (*.spe)')
             if not name:
@@ -1437,7 +1437,7 @@ class Main1DWindow(QtGui.QWidget):
         if self.masterData.dim   > 2:
             self.father.dispMsg('Saving to ASCII format only allowed for 1D and 2D data!')
             return
-        WorkspaceName = self.mainProgram.workspaceNames[self.mainProgram.workspaceNum]#Set name of file to be saved to workspace name to start
+        WorkspaceName = self.father.workspaceNames[self.father.workspaceNum]#Set name of file to be saved to workspace name to start
         name = QtGui.QFileDialog.getSaveFileName(self, 'Save File', self.father.LastLocation+os.path.sep+WorkspaceName+'.txt', 'ASCII file (*.txt)')
         if not name:
             return
@@ -1460,7 +1460,7 @@ class Main1DWindow(QtGui.QWidget):
 
     def reloadLast(self):
         self.redoList = []
-        self.undoList.append(self.masterData.reload(self.mainProgram))
+        self.undoList.append(self.masterData.reload(self.father))
         self.current.upd()
         self.current.plotReset()
         self.current.showFid()
@@ -1563,96 +1563,6 @@ class Main1DWindow(QtGui.QWidget):
         self.redoList = []
         self.undoList.append(self.current.flipLR())
         self.menuCheck()
-        
-    def createPhaseWindow(self):
-        self.extraWindow = PhaseWindow(self)
-        
-    def createApodWindow(self):
-        self.extraWindow = ApodWindow(self)
-
-    def createSizeWindow(self):
-        self.extraWindow = SizeWindow(self)
-
-    def createSwapEchoWindow(self):
-        self.extraWindow = SwapEchoWindow(self)
-
-    def createShiftDataWindow(self):
-        self.extraWindow = ShiftDataWindow(self)
-
-    def createDCWindow(self):
-        self.extraWindow = DCWindow(self)
-        
-    def createBaselineWindow(self):
-        self.extraWindow = BaselineWindow(self)
-        
-    def createRefWindow(self):
-        self.extraWindow = RefWindow(self)
-
-    def createIntegrateWindow(self):
-        self.extraWindow = integrateWindow(self)
-        
-    def createSumWindow(self):
-        self.extraWindow = sumWindow(self)
-        
-    def createMultiplyWindow(self):
-        self.extraWindow = MultiplyWindow(self)
-
-    def createSubtractAvgWindow(self):
-        self.extraWindow = SubtractAvgWindow(self)
- 
-    def createMaxWindow(self):
-        self.extraWindow = maxWindow(self)
-        
-    def createMinWindow(self):
-        self.extraWindow = minWindow(self)
-
-    def createArgMaxWindow(self):
-        self.extraWindow = argmaxWindow(self)
-        
-    def createArgMinWindow(self):
-        self.extraWindow = argminWindow(self)
-
-    def createAvgWindow(self):
-        self.extraWindow = avgWindow(self)
-        
-    def createRegionWindow(self):
-        self.extraWindow = extractRegionWindow(self)
-
-    def createFiddleWindow(self):
-        self.extraWindow = FiddleWindow(self)
-
-    def createDeleteWindow(self):
-        self.extraWindow = DeleteWindow(self)
-        
-    def createSplitWindow(self):
-        self.extraWindow = SplitWindow(self)
-        
-    def createReorderWindow(self):
-        self.extraWindow = ReorderWindow(self)
-
-    def createFFMWindow(self):
-        self.extraWindow = FFMWindow(self)
-
-    def createCLEANWindow(self):
-        self.extraWindow = CLEANWindow(self)
-        
-    def createConcatenateWindow(self):
-        self.extraWindow = ConcatenateWindow(self)
-        
-    def createInsertWindow(self):
-        self.extraWindow = InsertWindow(self)
-        
-    def createAddWindow(self):
-        self.extraWindow = AddWindow(self)
-        
-    def createSubtractWindow(self):
-        self.extraWindow = SubtractWindow(self)
-        
-    def createShearingWindow(self):
-        if self.masterData.dim > 1:
-            self.extraWindow = ShearingWindow(self)
-        else:
-            self.father.dispMsg('Data has too little dimensions for shearing transform')
 
     def BrukerDigital(self):
         FilePath = QtGui.QFileDialog.getOpenFileName(self, 'Open File', self.father.LastLocation)
@@ -1694,51 +1604,39 @@ class Main1DWindow(QtGui.QWidget):
             self.redoList = []
             self.undoList.append(self.current.applyPhase(0, FilterCorrection*2*np.pi))
             self.menuCheck()
-                    
-    def createSNWindow(self):
-        self.extraWindow = SNWindow(self)
-        
-    def createFWHMWindow(self):
-        self.extraWindow = FWHMWindow(self)
-
-    def createXaxWindow(self):
-        self.extraWindow = XaxWindow(self)
-
-    def createHistoryWindow(self):
-        self.extraWindow = HistoryWindow(self)
 
     def createIntegralsWindow(self):
-        self.mainProgram.createFitWindow(fit.IntegralsWindow(self.father, self.mainProgram, self.mainProgram.mainWindow))
+        self.father.createFitWindow(fit.IntegralsWindow(self.father, self.father.mainWindow))
         
     def createRelaxWindow(self):
-        self.mainProgram.createFitWindow(fit.RelaxWindow(self.father, self.mainProgram, self.mainProgram.mainWindow))
+        self.father.createFitWindow(fit.RelaxWindow(self.father, self.father.mainWindow))
         
     def createDiffusionWindow(self):
-        self.mainProgram.createFitWindow(fit.DiffusionWindow(self.father, self.mainProgram, self.mainProgram.mainWindow))
+        self.father.createFitWindow(fit.DiffusionWindow(self.father, self.father.mainWindow))
         
     def createPeakDeconvWindow(self):
-        self.mainProgram.createFitWindow(fit.PeakDeconvWindow(self.father, self.mainProgram, self.mainProgram.mainWindow))
+        self.father.createFitWindow(fit.PeakDeconvWindow(self.father, self.father.mainWindow))
         
     def createTensorDeconvWindow(self):
-        self.mainProgram.createFitWindow(fit.TensorDeconvWindow(self.father, self.mainProgram, self.mainProgram.mainWindow))
+        self.father.createFitWindow(fit.TensorDeconvWindow(self.father, self.father.mainWindow))
 
     def createHerzfeldBergerWindow(self):
-        self.mainProgram.createFitWindow(fit.HerzfeldBergerWindow(self.father, self.mainProgram, self.mainProgram.mainWindow))
+        self.father.createFitWindow(fit.HerzfeldBergerWindow(self.father, self.father.mainWindow))
 
     def createQuad1DeconvWindow(self):
-        self.mainProgram.createFitWindow(fit.Quad1DeconvWindow(self.father, self.mainProgram, self.mainProgram.mainWindow))
+        self.father.createFitWindow(fit.Quad1DeconvWindow(self.father, self.father.mainWindow))
         
     def createQuad2StaticDeconvWindow(self):
-        self.mainProgram.createFitWindow(fit.Quad2DeconvWindow(self.father, self.mainProgram, self.mainProgram.mainWindow))
+        self.father.createFitWindow(fit.Quad2DeconvWindow(self.father, self.father.mainWindow))
         
     def createQuad2MASDeconvWindow(self):
-        self.mainProgram.createFitWindow(fit.Quad2DeconvWindow(self.father, self.mainProgram, self.mainProgram.mainWindow, True))
+        self.father.createFitWindow(fit.Quad2DeconvWindow(self.father, self.father.mainWindow, True))
 
     def createQuad2StaticCzjzekWindow(self):
-        self.mainProgram.createFitWindow(fit.Quad2CzjzekWindow(self.father, self.mainProgram, self.mainProgram.mainWindow))
+        self.father.createFitWindow(fit.Quad2CzjzekWindow(self.father,  self.father.mainWindow))
         
     def createQuad2MASCzjzekWindow(self):
-        self.mainProgram.createFitWindow(fit.Quad2CzjzekWindow(self.father, self.mainProgram, self.mainProgram.mainWindow, True))
+        self.father.createFitWindow(fit.Quad2CzjzekWindow(self.father, self.father.mainWindow, True))
         
     def plot1D(self):
         tmpcurrent = sc.Current1D(self, self.fig, self.canvas, self.masterData, self.current)
@@ -1819,7 +1717,7 @@ class Main1DWindow(QtGui.QWidget):
         self.current.showFid()
         self.updAllFrames()
         if self.currentMacro is not None:
-            self.redoMacro.append(self.mainProgram.macros[self.currentMacro].pop())
+            self.redoMacro.append(self.father.macros[self.currentMacro].pop())
         self.menuCheck()
 
     def redo(self, *args):
@@ -1830,7 +1728,7 @@ class Main1DWindow(QtGui.QWidget):
             self.current.showFid()
             self.updAllFrames()
             if self.currentMacro is not None:
-                self.mainProgram.macroAdd(self.currentMacro, self.redoMacro.pop())
+                self.father.macroAdd(self.currentMacro, self.redoMacro.pop())
             self.menuCheck()
         else:
             self.father.dispMsg("no redo information")
@@ -2347,7 +2245,7 @@ class TextFrame(QtGui.QScrollArea):
         self.oldy = 0.0
         content = QtGui.QWidget()
         grid = QtGui.QGridLayout(content)
-        getButton = QtGui.QPushButton("Get Position")
+        getButton = QtGui.QPushButton("&Get Position")
         getButton.clicked.connect(self.getPosition)
         grid.addWidget(getButton, 0, 1)
         grid.addWidget(QLabel("Position:"), 0, 2)
@@ -3955,7 +3853,7 @@ class InsertWindow(QtGui.QWidget):
         grid.addWidget(self.posEntry, 1, 0)
         grid.addWidget(QLabel("Workspace to insert:"), 2, 0)
         self.wsEntry = QtGui.QComboBox()
-        self.wsEntry.addItems(self.father.mainProgram.workspaceNames)
+        self.wsEntry.addItems(self.father.father.workspaceNames)
         grid.addWidget(self.wsEntry, 3, 0)
         cancelButton = QtGui.QPushButton("&Cancel")
         cancelButton.clicked.connect(self.closeEvent)
@@ -3991,7 +3889,7 @@ class InsertWindow(QtGui.QWidget):
             pos = 0
         ws = self.wsEntry.currentIndex()
         self.father.redoList = []
-        self.father.undoList.append(self.father.current.insert(self.father.mainProgram.workspaces[ws].masterData.data, pos))
+        self.father.undoList.append(self.father.current.insert(self.father.father.workspaces[ws].masterData.data, pos))
         self.father.menuEnable()
         self.father.sideframe.upd()
         self.deleteLater()
@@ -4012,7 +3910,7 @@ class AddWindow(QtGui.QWidget):
         layout.addLayout(grid, 0, 0, 1, 2)
         grid.addWidget(QLabel("Workspace to add:"), 0, 0)
         self.wsEntry = QtGui.QComboBox()
-        self.wsEntry.addItems(self.father.mainProgram.workspaceNames)
+        self.wsEntry.addItems(self.father.father.workspaceNames)
         grid.addWidget(self.wsEntry, 1, 0)
         self.singleSlice = QtGui.QCheckBox("Single slice")
         layout.addWidget(self.singleSlice, 1, 0, 1, 2)
@@ -4029,7 +3927,7 @@ class AddWindow(QtGui.QWidget):
 
     def applyAndClose(self):
         ws = self.wsEntry.currentIndex()
-        returnValue = self.father.current.add(self.father.mainProgram.workspaces[ws].masterData.data, self.singleSlice.isChecked())
+        returnValue = self.father.current.add(self.father.father.workspaces[ws].masterData.data, self.singleSlice.isChecked())
         if returnValue is None:
             return
         self.father.redoList = []
@@ -4054,7 +3952,7 @@ class SubtractWindow(QtGui.QWidget):
         layout.addLayout(grid, 0, 0, 1, 2)
         grid.addWidget(QLabel("Workspace to subtract:"), 0, 0)
         self.wsEntry = QtGui.QComboBox()
-        self.wsEntry.addItems(self.father.mainProgram.workspaceNames)
+        self.wsEntry.addItems(self.father.father.workspaceNames)
         grid.addWidget(self.wsEntry, 1, 0)
         self.singleSlice = QtGui.QCheckBox("Single slice")
         layout.addWidget(self.singleSlice, 1, 0, 1, 2)
@@ -4071,7 +3969,7 @@ class SubtractWindow(QtGui.QWidget):
 
     def applyAndClose(self):
         ws = self.wsEntry.currentIndex()
-        returnValue = self.father.current.subtract(self.father.mainProgram.workspaces[ws].masterData.data, self.singleSlice.isChecked())
+        returnValue = self.father.current.subtract(self.father.father.workspaces[ws].masterData.data, self.singleSlice.isChecked())
         if returnValue is None:
             return
         self.father.redoList = []
@@ -4402,9 +4300,9 @@ class ReorderWindow(QtGui.QWidget):
         pass
 
     def getPosFromFile(self):
-        filename = QtGui.QFileDialog.getOpenFileName(self, 'Open File', self.father.mainProgram.LastLocation)
+        filename = QtGui.QFileDialog.getOpenFileName(self, 'Open File', self.father.father.LastLocation)
         if filename: #if not cancelled
-            self.father.mainProgram.LastLocation = os.path.dirname(filename) #Save used path
+            self.father.father.LastLocation = os.path.dirname(filename) #Save used path
         if len(filename) == 0:
             return
         self.valEntry.setText(repr(np.loadtxt(filename, dtype=int)))
@@ -4470,9 +4368,9 @@ class FFMWindow(QtGui.QWidget):
         pass
 
     def getPosFromFile(self):
-        filename = QtGui.QFileDialog.getOpenFileName(self, 'Open File', self.father.mainProgram.LastLocation)
+        filename = QtGui.QFileDialog.getOpenFileName(self, 'Open File', self.father.father.LastLocation)
         if filename: #if not cancelled
-            self.father.mainProgram.LastLocation = os.path.dirname(filename) #Save used path
+            self.father.father.LastLocation = os.path.dirname(filename) #Save used path
         if len(filename) == 0:
             return
         self.valEntry.setText(repr(np.loadtxt(filename, dtype=int)))
@@ -4553,9 +4451,9 @@ class CLEANWindow(QtGui.QWidget):
         pass
 
     def getPosFromFile(self):
-        filename = QtGui.QFileDialog.getOpenFileName(self, 'Open File', self.father.mainProgram.LastLocation)
+        filename = QtGui.QFileDialog.getOpenFileName(self, 'Open File', self.father.father.LastLocation)
         if filename: #if not cancelled
-            self.father.mainProgram.LastLocation = os.path.dirname(filename) #Save used path
+            self.father.father.LastLocation = os.path.dirname(filename) #Save used path
         if len(filename) == 0:
             return
         self.valEntry.setText(repr(np.loadtxt(filename, dtype=int)))

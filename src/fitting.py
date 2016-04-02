@@ -34,8 +34,8 @@ pi = np.pi
 ##############################################################################
 class FittingWindow(QtGui.QWidget):
     #Inherited by the fitting windows
-    def __init__(self, rootwindow, mainProgram, oldMainWindow):
-        QtGui.QWidget.__init__(self, rootwindow)
+    def __init__(self, mainProgram, oldMainWindow):
+        QtGui.QWidget.__init__(self, mainProgram)
         self.mainProgram = mainProgram
         self.oldMainWindow = oldMainWindow
         self.name = self.oldMainWindow.name
@@ -114,8 +114,8 @@ class FittingWindow(QtGui.QWidget):
 
 ##############################################################################
 class IntegralsWindow(FittingWindow): 
-    def __init__(self, rootwindow, mainProgram, oldMainWindow):
-        FittingWindow.__init__(self, rootwindow, mainProgram, oldMainWindow)
+    def __init__(self, mainProgram, oldMainWindow):
+        FittingWindow.__init__(self, mainProgram, oldMainWindow)
 
     def setup(self):
         self.current = IntegralsFrame(self, self.fig, self.canvas, self.oldMainWindow.current)
@@ -491,8 +491,8 @@ class IntegralsParamFrame(QtGui.QWidget):
         
 ##############################################################################
 class RelaxWindow(FittingWindow): 
-    def __init__(self, rootwindow, mainProgram, oldMainWindow):
-        FittingWindow.__init__(self, rootwindow, mainProgram, oldMainWindow)
+    def __init__(self, mainProgram, oldMainWindow):
+        FittingWindow.__init__(self, mainProgram, oldMainWindow)
 
     def setup(self):
         self.current = RelaxFrame(self, self.fig, self.canvas, self.oldMainWindow.current)
@@ -1122,8 +1122,8 @@ class RelaxParamFrame(QtGui.QWidget):
 
 ##############################################################################
 class DiffusionWindow(FittingWindow): 
-    def __init__(self, rootwindow, mainProgram, oldMainWindow):
-        FittingWindow.__init__(self, rootwindow, mainProgram, oldMainWindow)
+    def __init__(self, mainProgram, oldMainWindow):
+        FittingWindow.__init__(self, mainProgram, oldMainWindow)
 
     def setup(self):
         self.current = DiffusionFrame(self, self.fig, self.canvas, self.oldMainWindow.current)
@@ -1797,8 +1797,8 @@ class DiffusionParamFrame(QtGui.QWidget):
         
 ##############################################################################
 class PeakDeconvWindow(FittingWindow): 
-    def __init__(self, rootwindow, mainProgram, oldMainWindow):
-        FittingWindow.__init__(self, rootwindow, mainProgram, oldMainWindow)
+    def __init__(self, mainProgram, oldMainWindow):
+        FittingWindow.__init__(self, mainProgram, oldMainWindow)
 
     def setup(self):
         self.current = PeakDeconvFrame(self, self.fig, self.canvas, self.oldMainWindow.current)
@@ -2424,8 +2424,8 @@ class PeakDeconvParamFrame(QtGui.QWidget):
 
 ##############################################################################
 class TensorDeconvWindow(FittingWindow): 
-    def __init__(self, rootwindow, mainProgram, oldMainWindow):
-        FittingWindow.__init__(self, rootwindow, mainProgram, oldMainWindow)
+    def __init__(self, mainProgram, oldMainWindow):
+        FittingWindow.__init__(self, mainProgram, oldMainWindow)
 
     def setup(self):
         self.current = TensorDeconvFrame(self, self.fig, self.canvas, self.oldMainWindow.current)
@@ -3173,8 +3173,8 @@ class TensorDeconvParamFrame(QtGui.QWidget):
         
 ##############################################################################
 class HerzfeldBergerWindow(FittingWindow): 
-    def __init__(self, rootwindow, mainProgram, oldMainWindow):
-        FittingWindow.__init__(self, rootwindow, mainProgram, oldMainWindow)
+    def __init__(self, mainProgram, oldMainWindow):
+        FittingWindow.__init__(self, mainProgram, oldMainWindow)
 
     def setup(self):
         self.current = HerzfeldBergerFrame(self, self.fig, self.canvas, self.oldMainWindow.current)
@@ -3556,8 +3556,8 @@ class HerzfeldBergerParamFrame(QtGui.QWidget):
        
 ##############################################################################
 class Quad1DeconvWindow(FittingWindow): 
-    def __init__(self, rootwindow, mainProgram, oldMainWindow):
-        FittingWindow.__init__(self, rootwindow, mainProgram, oldMainWindow)
+    def __init__(self, mainProgram, oldMainWindow):
+        FittingWindow.__init__(self, mainProgram, oldMainWindow)
 
     def setup(self):
         self.current = Quad1DeconvFrame(self, self.fig, self.canvas, self.oldMainWindow.current)
@@ -4272,9 +4272,9 @@ class Quad1DeconvParamFrame(QtGui.QWidget):
         
 ##############################################################################
 class Quad2DeconvWindow(FittingWindow): 
-    def __init__(self, rootwindow, mainProgram, oldMainWindow, mas=False):
+    def __init__(self, mainProgram, oldMainWindow, mas=False):
         self.mas = mas
-        FittingWindow.__init__(self, rootwindow, mainProgram, oldMainWindow)
+        FittingWindow.__init__(self, mainProgram, oldMainWindow)
 
     def setup(self):
         self.current = Quad1DeconvFrame(self, self.fig, self.canvas, self.oldMainWindow.current)
@@ -4333,9 +4333,9 @@ class Quad2MASDeconvParamFrame(Quad2StaticDeconvParamFrame):
 
 ##############################################################################
 class Quad2CzjzekWindow(FittingWindow): 
-    def __init__(self, rootwindow, mainProgram, oldMainWindow, mas=False):
+    def __init__(self, mainProgram, oldMainWindow, mas=False):
         self.mas = mas
-        FittingWindow.__init__(self, rootwindow, mainProgram, oldMainWindow)
+        FittingWindow.__init__(self, mainProgram, oldMainWindow)
 
     def setup(self):
         self.current = Quad1DeconvFrame(self, self.fig, self.canvas, self.oldMainWindow.current)
