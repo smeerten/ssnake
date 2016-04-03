@@ -5021,7 +5021,10 @@ class MainPlotWindow(QtGui.QWidget):
         #self.canvas = oldMainWindow.current.canvas
         self.ax = oldMainWindow.current.ax
         grid = QtGui.QGridLayout(self)
-        grid.addWidget(self.canvas, 0, 0)
+        scroll2 = QtGui.QScrollArea()
+        grid.addWidget(scroll2, 0, 0)
+        scroll2.setWidget(self.canvas)
+        #grid.addWidget(self.canvas, 0, 0)
         self.frame1 = QtGui.QGridLayout()
         grid.addLayout(self.frame1, 0, 1)
         scroll = QtGui.QScrollArea()
@@ -5109,6 +5112,7 @@ class MainPlotWindow(QtGui.QWidget):
         self.optionFrame.setAlignment(QtCore.Qt.AlignTop)
         self.grid = grid
         scroll.setWidget(content)
+        self.updatePlot()
         
     def rename(self, name):
         self.oldMainWindow.rename(name)
@@ -5119,8 +5123,9 @@ class MainPlotWindow(QtGui.QWidget):
         self.ax.set_ylabel(self.ylabelEntry.text())
         self.ax.set_xlim((safeEval(self.xlimLeftEntry.text()), safeEval(self.xlimRightEntry.text())))
         self.ax.set_ylim((safeEval(self.ylimLeftEntry.text()), safeEval(self.ylimRightEntry.text())))
-        #self.fig.set_size_inches((int(safeEval(self.widthEntry.text()))/2.54, int(safeEval(self.heightEntry.text()))/2.54))
-        self.fig.canvas.draw()
+        self.fig.set_size_inches((int(safeEval(self.widthEntry.text()))/2.54, int(safeEval(self.heightEntry.text()))/2.54))
+        self.canvas.draw()
+        self.canvas.adjustSize()
 
     def get_mainWindow(self):
         return self.oldMainWindow

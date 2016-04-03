@@ -1702,6 +1702,7 @@ class Main1DWindow(QtGui.QWidget):
     def updAllFrames(self):
         self.sideframe.upd()
         self.bottomframe.upd()
+        self.textframe.upd()
 
     def undo(self, *args):
         undoFunc = None
@@ -2243,6 +2244,7 @@ class TextFrame(QtGui.QScrollArea):
         self.father = parent
         self.oldx = 0.0
         self.oldy = 0.0
+        self.oldamp = 0.0
         content = QtGui.QWidget()
         grid = QtGui.QGridLayout(content)
         getButton = QtGui.QPushButton("&Get Position")
@@ -2258,27 +2260,52 @@ class TextFrame(QtGui.QScrollArea):
         self.xpoint.setAlignment(QtCore.Qt.AlignHCenter)
         self.xpoint.setText("0.0")
         grid.addWidget(self.xpoint, 0, 5)
-        grid.addWidget(QLabel("amp:"), 0, 6)
+        self.ylabel = QLabel("y-value:")
+        grid.addWidget(self.ylabel, 0, 6)
         self.ypoint = QtGui.QLineEdit()
         self.ypoint.setAlignment(QtCore.Qt.AlignHCenter)
         self.ypoint.setText("0.0")
         grid.addWidget(self.ypoint, 0, 7)
-        grid.addWidget(QLabel(u"\u0394x:"), 0, 8)
+        grid.addWidget(QLabel("amp:"), 0, 8)
+        self.amppoint = QtGui.QLineEdit()
+        self.amppoint.setAlignment(QtCore.Qt.AlignHCenter)
+        self.amppoint.setText("0.0")
+        grid.addWidget(self.amppoint, 0, 9)
+        grid.addWidget(QLabel(u"\u0394x:"), 0, 10)
         self.deltaxpoint = QtGui.QLineEdit()
         self.deltaxpoint.setAlignment(QtCore.Qt.AlignHCenter)
         self.deltaxpoint.setText("0.0")
-        grid.addWidget(self.deltaxpoint, 0, 9)
-        grid.addWidget(QLabel(u"\u0394amp:"), 0, 10)
+        grid.addWidget(self.deltaxpoint, 0, 11)
+        self.deltaylabel = QLabel(u"\u0394y:")
+        grid.addWidget(self.deltaylabel, 0, 12)
         self.deltaypoint = QtGui.QLineEdit()
         self.deltaypoint.setAlignment(QtCore.Qt.AlignHCenter)
         self.deltaypoint.setText("0.0")
-        grid.addWidget(self.deltaypoint, 0, 11)
+        grid.addWidget(self.deltaypoint, 0, 13)
+        grid.addWidget(QLabel(u"\u0394amp:"), 0, 14)
+        self.deltaamppoint = QtGui.QLineEdit()
+        self.deltaamppoint.setAlignment(QtCore.Qt.AlignHCenter)
+        self.deltaamppoint.setText("0.0")
+        grid.addWidget(self.deltaamppoint, 0, 15)
         grid.setColumnStretch(20, 1)
         self.grid = grid
         self.setVerticalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
         self.setWidget(content)
         self.setMaximumHeight(self.grid.sizeHint().height() + self.horizontalScrollBar().sizeHint().height())
+        self.upd()
 
+    def upd(self):
+        if isinstance(self.father.current, sc.CurrentContour):
+            self.ypoint.show()
+            self.deltaypoint.show()
+            self.ylabel.show()
+            self.deltaylabel.show()
+        else:
+            self.ypoint.hide()
+            self.deltaypoint.hide()
+            self.ylabel.hide()
+            self.deltaylabel.hide()
+        
     def kill(self):
         for i in reversed(range(self.grid.count())): 
             self.grid.itemAt(i).widget().deleteLater()
@@ -2293,13 +2320,17 @@ class TextFrame(QtGui.QScrollArea):
             child.setEnabled(False)
         
     def setLabels(self, position):
+        if len(position) > 3:
+            self.deltaypoint.setText('%#.3g' % np.abs(self.oldy-position[3]))
+            self.ypoint.setText('%#.3g' % position[3])
+            self.oldy = position[3]
         self.deltaxpoint.setText('%#.3g' % np.abs(self.oldx-position[1]))
-        self.deltaypoint.setText('%#.3g' % np.abs(self.oldy-position[2]))
+        self.deltaamppoint.setText('%#.3g' % np.abs(self.oldamp-position[2]))
         self.pos.setText(str(position[0]))
         self.xpoint.setText('%#.3g' % position[1])
-        self.ypoint.setText('%#.3g' % position[2])
+        self.amppoint.setText('%#.3g' % position[2])
         self.oldx = position[1]
-        self.oldy = position[2]
+        self.oldamp = position[2]
 
     def getPosition(self, *args):
         self.father.current.peakPickFunc = lambda pos, self=self: self.setLabels(pos)
