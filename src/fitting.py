@@ -5094,8 +5094,29 @@ class MainPlotWindow(QtGui.QWidget):
         self.heightEntry.setText(str(self.heightBackup))
         self.heightEntry.returnPressed.connect(self.updatePlot)
         self.optionFrame.addWidget(self.heightEntry, 29, 0)
+        self.titleFontSizeBackup = 12
+        self.optionFrame.addWidget(QLabel("Title font size:"), 30, 0)
+        self.titleFontSizeEntry = QtGui.QLineEdit()
+        self.titleFontSizeEntry.setAlignment(QtCore.Qt.AlignHCenter)
+        self.titleFontSizeEntry.setText(str(self.titleFontSizeBackup))
+        self.titleFontSizeEntry.returnPressed.connect(self.updatePlot)
+        self.optionFrame.addWidget(self.titleFontSizeEntry, 31, 0)
+        self.xlabelFontSizeBackup = 12
+        self.optionFrame.addWidget(QLabel("X-label font size:"), 32, 0)
+        self.xlabelFontSizeEntry = QtGui.QLineEdit()
+        self.xlabelFontSizeEntry.setAlignment(QtCore.Qt.AlignHCenter)
+        self.xlabelFontSizeEntry.setText(str(self.xlabelFontSizeBackup))
+        self.xlabelFontSizeEntry.returnPressed.connect(self.updatePlot)
+        self.optionFrame.addWidget(self.xlabelFontSizeEntry, 33, 0)
+        self.ylabelFontSizeBackup = 12
+        self.optionFrame.addWidget(QLabel("Y-label font size:"), 34, 0)
+        self.ylabelFontSizeEntry = QtGui.QLineEdit()
+        self.ylabelFontSizeEntry.setAlignment(QtCore.Qt.AlignHCenter)
+        self.ylabelFontSizeEntry.setText(str(self.ylabelFontSizeBackup))
+        self.ylabelFontSizeEntry.returnPressed.connect(self.updatePlot)
+        self.optionFrame.addWidget(self.ylabelFontSizeEntry, 35, 0)
         self.inFrame = QtGui.QGridLayout()
-        self.frame1.addLayout(self.inFrame, 50, 0)
+        self.frame1.addLayout(self.inFrame, 1, 0)
         self.inFrame.addWidget(QLabel("File type:"), 0, 0, 1, 2)
         self.filetypeEntry = QtGui.QComboBox()
         self.fileOptions = ['svg', 'png', 'eps', 'jpg', 'pdf']
@@ -5118,9 +5139,9 @@ class MainPlotWindow(QtGui.QWidget):
         self.oldMainWindow.rename(name)
         
     def updatePlot(self, *args):
-        self.fig.suptitle(self.titleEntry.text())
-        self.ax.set_xlabel(self.xlabelEntry.text())
-        self.ax.set_ylabel(self.ylabelEntry.text())
+        self.fig.suptitle(self.titleEntry.text(), fontsize=safeEval(self.titleFontSizeEntry.text()))
+        self.ax.set_xlabel(self.xlabelEntry.text(), fontsize=safeEval(self.xlabelFontSizeEntry.text()))
+        self.ax.set_ylabel(self.ylabelEntry.text(), fontsize=safeEval(self.ylabelFontSizeEntry.text()))
         self.ax.set_xlim((safeEval(self.xlimLeftEntry.text()), safeEval(self.xlimRightEntry.text())))
         self.ax.set_ylim((safeEval(self.ylimLeftEntry.text()), safeEval(self.ylimRightEntry.text())))
         self.fig.set_size_inches((int(safeEval(self.widthEntry.text()))/2.54, int(safeEval(self.heightEntry.text()))/2.54))
@@ -5156,9 +5177,9 @@ class MainPlotWindow(QtGui.QWidget):
             self.cancel()
 
     def cancel(self):
-        self.fig.suptitle(self.titleBackup)
-        self.ax.set_xlabel(self.xlabelBackup)
-        self.ax.set_ylabel(self.ylabelBackup)
+        self.fig.suptitle(self.titleBackup, fontsize=self.titleFontSizeBackup)
+        self.ax.set_xlabel(self.xlabelBackup, fontsize=self.xlabelFontSizeBackup)
+        self.ax.set_ylabel(self.ylabelBackup, fontsize=self.ylabelFontSizeBackup)
         self.ax.set_xlim((self.xlimBackup[0], self.xlimBackup[1]))
         self.ax.set_ylim((self.ylimBackup[0], self.ylimBackup[1]))
         self.fig.set_size_inches((self.widthBackup/2.54, self.heightBackup/2.54))
