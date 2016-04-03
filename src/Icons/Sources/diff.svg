@@ -26,7 +26,7 @@
         <dc:format>image/svg+xml</dc:format>
         <dc:type
            rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
-        <dc:title></dc:title>
+        <dc:title />
       </cc:Work>
     </rdf:RDF>
   </metadata>
@@ -44,9 +44,9 @@
      id="namedview36"
      showgrid="false"
      units="mm"
-     inkscape:zoom="3.5881171"
-     inkscape:cx="-17.616681"
-     inkscape:cy="49.935647"
+     inkscape:zoom="5.0743639"
+     inkscape:cx="-64.377663"
+     inkscape:cy="33.309022"
      inkscape:window-x="0"
      inkscape:window-y="0"
      inkscape:window-maximized="1"
@@ -107,6 +107,26 @@
       </symbol>
     </g>
   </defs>
+  <rect
+     style="opacity:1;fill:#ffffff;fill-opacity:1;fill-rule:nonzero;stroke:none;stroke-width:2.0999999;stroke-linecap:butt;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1"
+     id="rect4162"
+     width="28.34646"
+     height="28.34646"
+     x="-4.7308239e-07"
+     y="-1.9989614e-06"
+     inkscape:export-filename="/media/HDD/ssnake/ssnake/src/Icons/diff.png"
+     inkscape:export-xdpi="162"
+     inkscape:export-ydpi="162" />
+  <rect
+     style="opacity:1;fill:#ffffff;fill-opacity:1;fill-rule:nonzero;stroke:none;stroke-width:2.0999999;stroke-linecap:butt;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1"
+     id="rect4146"
+     width="28.34646"
+     height="28.34646"
+     x="-4.7308239e-07"
+     y="-1.9989614e-06"
+     inkscape:export-filename="/media/HDD/ssnake/ssnake/src/Icons/rename.png"
+     inkscape:export-xdpi="162"
+     inkscape:export-ydpi="162" />
   <g
      id="g4336"
      transform="matrix(1.0526316,0,0,1.0526316,-0.74596413,-0.53265956)">
