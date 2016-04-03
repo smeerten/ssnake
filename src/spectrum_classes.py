@@ -3435,6 +3435,9 @@ class CurrentContour(Current1D):
     def buttonRelease(self, event):
         if event.button == 1:
             if self.peakPick:
+                if self.rect[1] is not None:
+                    self.rect[1].remove()
+                    self.rect[1] = None
                 if self.rect[0] is not None:
                     self.rect[0].remove()
                     self.rect[0] = None
@@ -3447,11 +3450,26 @@ class CurrentContour(Current1D):
                     elif self.spec == 0:
                         axMult = 1000.0**self.axType
                     xdata = self.xax*axMult
-                    ydata = self.xax2
+                    if self.spec2 == 1:
+                        if self.ppm2:
+                            axMult2 = 1e6/self.ref2
+                        else:
+                            axMult2 = 1.0/(1000.0**self.axType2)
+                    elif self.spec2 == 0:
+                        axMult2 = 1000.0**self.axType2
+                    ydata = self.xax2*axMult2
                     idx = np.argmin(np.abs(xdata-event.xdata))
+                    idy = np.argmin(np.abs(ydata-event.ydata))
                     if self.peakPickFunc is not None:
-                        #self.peakPickFunc((idx, xdata[idx], ydata[idx]))
-                        self.peakPickFunc((idx, xdata[idx], 0))
+                        if (self.plotType == 0):
+                            tmpdata = np.real(self.data1D[idy, idx])
+                        elif(self.plotType == 1):
+                            tmpdata = np.imag(self.data1D[idy, idx])
+                        elif(self.plotType == 2):
+                            tmpdata = np.real(self.data1D[idy, idx])
+                        elif(self.plotType == 3):
+                            tmpdata = np.abs(self.data1D[idy, idx])
+                        self.peakPickFunc((idx, xdata[idx], tmpdata))
                     if not self.peakPick: #check if peakpicking is still required
                         self.peakPickFunc = None
             else:
@@ -3479,9 +3497,9 @@ class CurrentContour(Current1D):
                     else:
                         self.ax.set_ylim(self.yminlim, self.ymaxlim)
                 self.zoomX1 = None
-                self.zoomX2 = None #WF: should also be cleared, memory of old zoom
+                self.zoomX2 = None 
                 self.zoomY1 = None
-                self.zoomY2 = None #WF: should also be cleared, memory of old zoom
+                self.zoomY2 = None 
         elif event.button == 3:
             self.rightMouse = False
         self.canvas.draw()

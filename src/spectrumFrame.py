@@ -54,7 +54,7 @@ class Plot1DFrame:
         self.zoomY2 = None            #second corner of the zoombox
         self.rect = [None, None, None, None]      #lines for zooming or peak picking
         self.rightMouse = False              #is the right mouse button currently pressed
-        self.peakPick = False         #currently peakPicking
+        self.peakPick = False         #currently peakPicking (if 2 display cross)
         self.peakPickFunc = None      #the function that needs to be called after peakPicking
         #variables to be initialized
         self.spec = 0
@@ -75,6 +75,12 @@ class Plot1DFrame:
         if self.rect[0] is not None:
             try:
                 self.rect[0].remove()
+            except:
+                pass
+            self.canvas.draw()
+        if self.rect[1] is not None:
+            try:
+                self.rect[1].remove()
             except:
                 pass
             self.canvas.draw()
@@ -149,6 +155,11 @@ class Plot1DFrame:
                         self.rect[0].remove()
                     finally:
                         self.rect[0] = None
+                    if self.rect[1] is not None:
+                        try:
+                            self.rect[1].remove()
+                        finally:
+                            self.rect[1] = None
                     self.peakPick = False
                     idx = np.argmin(np.abs(self.line_xdata-event.xdata))
                     if self.peakPickFunc is not None:
@@ -221,8 +232,17 @@ class Plot1DFrame:
                 except:
                     pass
                 self.rect[0] = None
+            if self.rect[1] is not None:
+                try:
+                    self.rect[1].remove()
+                except:
+                    pass
+                self.rect[1] = None
             if event.xdata is not None:
                 self.rect[0] = self.ax.axvline(event.xdata, c='k', linestyle='--')
+            if self.peakPick == 2:
+                if event.ydata is not None:
+                    self.rect[1] = self.ax.axhline(event.ydata, c='k', linestyle='--')
             self.canvas.draw()
         elif self.leftMouse and (self.zoomX1 is not None) and (self.zoomY1 is not None):
             if isinstance(self, spectrum_classes.CurrentSkewed):

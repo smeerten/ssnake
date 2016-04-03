@@ -2258,7 +2258,7 @@ class TextFrame(QtGui.QScrollArea):
         self.xpoint.setAlignment(QtCore.Qt.AlignHCenter)
         self.xpoint.setText("0.0")
         grid.addWidget(self.xpoint, 0, 5)
-        grid.addWidget(QLabel("y-value:"), 0, 6)
+        grid.addWidget(QLabel("amp:"), 0, 6)
         self.ypoint = QtGui.QLineEdit()
         self.ypoint.setAlignment(QtCore.Qt.AlignHCenter)
         self.ypoint.setText("0.0")
@@ -2268,7 +2268,7 @@ class TextFrame(QtGui.QScrollArea):
         self.deltaxpoint.setAlignment(QtCore.Qt.AlignHCenter)
         self.deltaxpoint.setText("0.0")
         grid.addWidget(self.deltaxpoint, 0, 9)
-        grid.addWidget(QLabel(u"\u0394y:"), 0, 10)
+        grid.addWidget(QLabel(u"\u0394amp:"), 0, 10)
         self.deltaypoint = QtGui.QLineEdit()
         self.deltaypoint.setAlignment(QtCore.Qt.AlignHCenter)
         self.deltaypoint.setText("0.0")
@@ -2302,8 +2302,11 @@ class TextFrame(QtGui.QScrollArea):
         self.oldy = position[2]
 
     def getPosition(self, *args):
-        self.father.current.peakPickFunc = lambda pos, self=self: self.setLabels(pos) 
-        self.father.current.peakPick = True
+        self.father.current.peakPickFunc = lambda pos, self=self: self.setLabels(pos)
+        if isinstance(self.father.current, sc.CurrentContour):
+            self.father.current.peakPick = 2
+        else:
+            self.father.current.peakPick = True
 
 #################################################################################   
 class PhaseWindow(QtGui.QWidget): 
