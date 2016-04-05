@@ -2777,7 +2777,8 @@ class SizeWindow(QtGui.QWidget):
         if inp is not None:
             self.sizeVal = int(round(inp))
         if self.sizeVal < 1:
-            self.sizeVal = 1
+            self.father.father.dispMsg('Value is not valid')
+            return
         self.sizeEntry.setText(str(self.sizeVal))
         self.father.current.setSizePreview(self.sizeVal)
 
@@ -2792,7 +2793,8 @@ class SizeWindow(QtGui.QWidget):
         if inp is not None:
             self.sizeVal = int(round(inp))
         if self.sizeVal < 1:
-            self.sizeVal = 1
+            self.father.father.dispMsg('Value is not valid')
+            return
         self.father.redoList = []
         self.father.undoList.append(self.father.current.applySize(self.sizeVal))
         self.father.sideframe.upd()
@@ -3189,8 +3191,9 @@ class regionWindow(QtGui.QWidget):
         cancelButton = QtGui.QPushButton("&Cancel")
         cancelButton.clicked.connect(self.closeEvent)
         layout.addWidget(cancelButton, 2, 0)
-        okButton = QtGui.QPushButton("&Ok")
+        okButton = QtGui.QPushButton("&Ok", self)
         okButton.clicked.connect(self.applyAndClose)
+        okButton.setFocus()
         layout.addWidget(okButton, 2, 1)
         self.grid.setRowStretch(100, 1)
         self.show()
@@ -3304,10 +3307,11 @@ class regionWindow(QtGui.QWidget):
         
     def applyAndClose(self):
         if self.partIter == 0:
-            self.father.father.dispMsg("No boundaries")
-            return
-        if self.apply(self.startVal[:self.partIter], self.endVal[:self.partIter], self.newSpec.isChecked()) is None:
-            return
+            if self.apply([0], [self.father.current.data1D.shape[-1]], self.newSpec.isChecked()) is None:
+                return
+        else:
+            if self.apply(self.startVal[:self.partIter], self.endVal[:self.partIter], self.newSpec.isChecked()) is None:
+                return
         self.father.current.peakPickReset()
         self.father.menuEnable()
         self.deleteLater()
