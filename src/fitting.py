@@ -3416,7 +3416,11 @@ class HerzfeldBergerParamFrame(QtGui.QWidget):
 
     def hbFunc(self, omega0, delta, eta):
         omegars =  omega0*delta*(self.C1  + self.C2 +  eta*(self.C1eta + self.C2eta + self.S1 + self.S2 ))
-        QTrs = np.exp(-1j*np.cumsum(omegars, axis=1)*self.tresolution)
+        #QTrs = np.exp(-1j*np.cumsum(omegars, axis=1)*self.tresolution)
+        nsteps = self.C1.shape[1]
+        QTrs = np.concatenate([np.ones([self.C1.shape[0],1]),np.exp(-1j*np.cumsum(omegars, axis=1)*self.tresolution)[:,:-1]],1)
+        for j in range(1,nsteps):
+            QTrs[:,j] = np.exp(-1j*np.sum(omegars[:,0:j]*self.tresolution,1))
         rhoT0sr = np.conj(QTrs)
         #calculate the gamma-averaged FID over 1 rotor period for all crystallites
         favrs = np.zeros(self.NSTEPS, dtype=complex)
@@ -3443,14 +3447,15 @@ class HerzfeldBergerParamFrame(QtGui.QWidget):
             eta = argu[0]
             argu = np.delete(argu, [0])
         testFunc = self.hbFunc(omega0, delta, eta)
-        return np.sum((testFunc[x]-np.mean(testFunc[x])-y-np.mean(y))**2)
+        testFunc = testFunc[x]/np.sum(testFunc[x])*np.sum(self.integralList)
+        return np.sum((testFunc-y)**2)
 
     def disp(self, outDelta, outEta):
         testFunc = self.hbFunc(self.parent.current.freq*np.pi*2, outDelta, outEta)
         results = testFunc[self.sidebandList]
-        results /= results[0]
+        results /= np.sum(results)
         for i in range(len(self.resultLabels)):
-            self.resultLabels[i].setText('%#.5g' % (results[i]*self.integralList[0]))
+            self.resultLabels[i].setText('%#.5g' % (results[i]*np.sum(self.integralList)))
 
     def checkInputs(self):
         inp = safeEval(self.deltaEntry.text())
@@ -3499,7 +3504,7 @@ class HerzfeldBergerParamFrame(QtGui.QWidget):
             argu.append(outEta)
             struc.append(False)
         self.args = (struc, argu, self.parent.current.freq*np.pi*2)
-        phi, theta, self.weight = zcw_angles(self.cheng, symm=2)
+        theta, phi, self.weight = zcw_angles(self.cheng, symm=2) #Theta and phi switched as algorithm actually uses alpha and beta as input.
         sinPhi = np.sin(phi)
         cosPhi = np.cos(phi)
         sin2Theta = np.sin(2*theta)
@@ -3537,7 +3542,7 @@ class HerzfeldBergerParamFrame(QtGui.QWidget):
         omegar = float(self.spinEntry.text())*1e3*np.pi*2
         outDelta = float(self.deltaEntry.text())*1e-6
         outEta = float(self.etaEntry.text())
-        phi, theta, self.weight = zcw_angles(self.cheng, symm=2)
+        theta, phi, self.weight = zcw_angles(self.cheng, symm=2) #Theta and phi switched as algorithm actually uses alpha and beta as input.
         sinPhi = np.sin(phi)
         cosPhi = np.cos(phi)
         sin2Theta = np.sin(2*theta)
