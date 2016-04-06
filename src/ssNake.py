@@ -20,6 +20,9 @@
 import sip
 sip.setapi('QString', 2)
 
+import matplotlib
+matplotlib.use('Qt4Agg')
+
 from PyQt4 import QtGui, QtCore
 from matplotlib.backends.backend_qt4agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.figure import Figure
