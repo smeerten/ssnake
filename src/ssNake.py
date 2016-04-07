@@ -36,6 +36,7 @@ import fitting as fit
 from safeEval import *
 from widgetClasses import *
 from updateWindow import *
+from plotWindow import *
 
 pi = np.pi
 
@@ -328,7 +329,7 @@ class MainProgram(QtGui.QMainWindow):
                 self.workspacemenu.menuAction().setEnabled(True)
                 self.xgridAction.setChecked(self.mainWindow.current.grids[0])
                 self.ygridAction.setChecked(self.mainWindow.current.grids[1])
-            elif isinstance(self.mainWindow, fit.MainPlotWindow):
+            elif isinstance(self.mainWindow, MainPlotWindow):
                 self.menuDisable(True)
                 self.savemenu.menuAction().setEnabled(True)
                 self.exportmenu.menuAction().setEnabled(True)
@@ -339,7 +340,7 @@ class MainProgram(QtGui.QMainWindow):
                 self.menuDisable(True)
                 self.savemenu.menuAction().setEnabled(True)
                 self.exportmenu.menuAction().setEnabled(True)
-                self.savefigAct.setEnabled(False)
+                self.savefigAct.setEnabled(True)
                 self.workspacemenu.menuAction().setEnabled(True)
                 self.macromenu.menuAction().setEnabled(False)
 
@@ -1081,7 +1082,7 @@ class MainProgram(QtGui.QMainWindow):
         self.allowChange = False
         self.menuDisable(True)
         num = self.workspaces.index(self.mainWindow)
-        self.mainWindow = fit.MainPlotWindow(self, self.mainWindow)
+        self.mainWindow = MainPlotWindow(self, self.mainWindow)
         self.tabs.removeTab(num)
         self.tabs.insertTab(num, self.mainWindow, self.workspaceNames[num])
         self.workspaces[num] = self.mainWindow
