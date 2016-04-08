@@ -21,6 +21,7 @@ from PyQt4 import QtGui, QtCore
 from matplotlib.figure import Figure
 from matplotlib.backends.backend_qt4agg import FigureCanvasQTAgg as FigureCanvas
 from widgetClasses import *
+import os
 
 #####################################################################################
 class MainPlotWindow(QtGui.QWidget):
