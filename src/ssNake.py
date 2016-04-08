@@ -1887,6 +1887,12 @@ class SideFrame(QtGui.QScrollArea):
                 self.minLEntry.setText(str(current.minLevels*100.0))
                 self.minLEntry.editingFinished.connect(self.setContour)
                 self.frame2.addWidget(self.minLEntry, 6, 0)
+                self.frame2.addWidget(QLabel("Color map:", self), 7, 0)
+                self.cmEntry = QtGui.QComboBox(self)
+                self.cmEntry.addItems(sc.COLORMAPLIST)
+                self.cmEntry.setCurrentIndex(sc.COLORMAPLIST.index(current.colorMap))
+                self.cmEntry.currentIndexChanged.connect(self.setColorMap)
+                self.frame2.addWidget(self.cmEntry, 8, 0)
             self.buttons1Group.button(current.axes).toggle()
             if self.plotIs2D:
                 self.buttons2Group.button(current.axes2).toggle()
@@ -1979,6 +1985,9 @@ class SideFrame(QtGui.QScrollArea):
         var3 = float(safeEval(self.minLEntry.text()))
         self.minLEntry.setText('%.1f' % var3)
         self.father.current.setLevels(var1, var2/100.0, var3/100.0)
+
+    def setColorMap(self, num):
+        self.father.current.setColorMap(num)
         
     def setAxes(self, first=True):
         axes = self.buttons1Group.checkedId()

@@ -27,6 +27,10 @@ from safeEval import safeEval
 from nus import *
 import multiprocessing
 from matplotlib import cm
+from matplotlib.pyplot import get_cmap
+
+COLORMAPLIST = ['seismic', 'BrBG', 'bwr', 'coolwarm', 'PiYG', 'PRGn', 'PuOr',
+                'RdBu', 'RdGy', 'RdYlBu', 'RdYlGn', 'Spectral', 'rainbow', 'jet']
 
 #########################################################################
 #the generic data class
@@ -1100,6 +1104,7 @@ class Current1D(Plot1DFrame):
             self.plotType = 0
             self.axType = 1
             self.grids = [False, False] # display x and y grid
+            self.colorMap = 'seismic' # colormap for contour like plots
             self.upd()   #get the first slice of data
             self.startUp()
         else:
@@ -1121,6 +1126,7 @@ class Current1D(Plot1DFrame):
                         self.locList = np.insert(duplicateCurrent.locList, duplicateCurrent.axes2-1, 0)
                     else:
                         self.locList = np.insert(duplicateCurrent.locList, duplicateCurrent.axes2, 0)
+            self.colorMap = duplicateCurrent.colorMap
             self.plotType = duplicateCurrent.plotType
             self.axType = duplicateCurrent.axType
             self.grids = duplicateCurrent.grids
@@ -1964,6 +1970,10 @@ class Current1D(Plot1DFrame):
         elif self.plotType == 3:
             return np.abs(tmp)      
 
+    def setColorMap(self, num):
+        self.colorMap = COLORMAPLIST[num]
+        self.showFid()
+        
     def showFid(self, tmpdata=None, extraX=None, extraY=None, extraColor=None, old=False, output=None): #display the 1D data
         self.peakPickReset()
         if tmpdata is None:
@@ -3120,7 +3130,7 @@ class CurrentContour(Current1D):
         if hasattr(duplicateCurrent, 'minLevels'):
             self.minLevels = duplicateCurrent.minLevels
         else:
-            self.minLevels = 0.01
+            self.minLevels = 0.1
         if hasattr(duplicateCurrent, 'maxLevels'):
             self.maxLevels = duplicateCurrent.maxLevels
         else:
@@ -3285,7 +3295,7 @@ class CurrentContour(Current1D):
         else:
             y = y*x
         self.showFid(y)
-
+        
     def showFid(self, tmpdata=None): #display the 1D data
         self.peakPickReset()
         if tmpdata is None:
@@ -3318,14 +3328,13 @@ class CurrentContour(Current1D):
         elif(self.plotType == 2):
             tmpdata = np.real(tmpdata)
         elif(self.plotType == 3):
-            tmpdata = np.abs(tmpdata)
-        # differ = np.amax(tmpdata)-np.amin(tmpdata)
-        # contourLevels = np.linspace(self.minLevels*differ+np.amin(tmpdata), self.maxLevels*differ+np.amin(tmpdata), self.numLevels)
-        # self.ax.contour(X, Y, tmpdata, c='b', levels=contourLevels)        
+            tmpdata = np.abs(tmpdata)   
         differ = np.amax(np.abs(tmpdata))
         contourLevels = np.linspace(self.minLevels*differ, self.maxLevels*differ, self.numLevels)
-        self.ax.contour(X, Y, tmpdata, cmap=cm.Reds, levels=contourLevels)
-        self.ax.contour(X, Y, tmpdata, cmap=cm.Blues_r, levels=-contourLevels[::-1])
+        vmax = max(np.abs(self.minLevels*differ), np.abs(self.maxLevels*differ))
+        vmin = -vmax
+        self.ax.contour(X, Y, tmpdata, cmap=get_cmap(self.colorMap), levels=contourLevels, vmax=vmax, vmin=vmin)
+        self.ax.contour(X, Y, tmpdata, cmap=get_cmap(self.colorMap), levels=-contourLevels[::-1], vmax=vmax, vmin=vmin)
         self.line_ydata = tmpdata[0]
         if self.projType1 == 0:
             self.x_ax.plot(x, np.sum(tmpdata, axis=0), 'b')
