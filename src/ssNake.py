@@ -2067,19 +2067,11 @@ class SideFrame(QtGui.QScrollArea):
     def checkChanged(self):
         for i in range(len(self.father.current.extraData)):
             extraData = self.father.current.extraData[i]
-            if extraData.data.ndim == 1:
-                if len(self.extraEntries[i]) > 0:
-                    self.upd()
-                    self.father.current.showFid()
-                    return
-            else:
-                if len(self.extraEntries[i]) != extraData.data.ndim:
-                    self.upd()
-                    self.father.current.showFid()
-                    return
-                else:
-                    for j in range(len(self.extraEntries[i])):
+            if extraData.data.ndim > 1:
+                for j in range(len(self.extraEntries[i])):
                         self.extraEntries[i][j].setMaximum(extraData.data.shape[j]-1)
+            self.upd()
+            self.father.current.showFid()
 
     def setExtraColor(self, num):
         color = QtGui.QColorDialog.getColor()
