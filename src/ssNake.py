@@ -211,8 +211,8 @@ class MainProgram(QtGui.QMainWindow):
         self.combineMenu = QtGui.QMenu("Com&bine", self)
         self.menubar.addMenu(self.combineMenu)
         self.combineMenu.addAction("&Insert from workspace", lambda: self.mainWindowCheck(lambda mainWindow: InsertWindow(mainWindow)))
-        self.combineMenu.addAction("&Add", lambda: self.mainWindowCheck(lambda mainWindow: AddWindow(mainWindow)))
-        self.combineMenu.addAction("&Subtract", lambda: self.mainWindowCheck(lambda mainWindow: SubtractWindow(mainWindow)))
+        self.combineMenu.addAction(QtGui.QIcon(IconDirectory + 'add.png'),"&Add", lambda: self.mainWindowCheck(lambda mainWindow: AddWindow(mainWindow)))
+        self.combineMenu.addAction(QtGui.QIcon(IconDirectory + 'subtract.png'),"&Subtract", lambda: self.mainWindowCheck(lambda mainWindow: SubtractWindow(mainWindow)))
 
 	#the plot drop down menu
         self.plotMenu = QtGui.QMenu("&Plot", self)
