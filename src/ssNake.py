@@ -30,6 +30,7 @@ from matplotlib.figure import Figure
 import numpy as np
 import sys
 import os
+import re
 import copy
 import spectrum_classes as sc
 import fitting as fit
@@ -681,6 +682,9 @@ class MainProgram(QtGui.QMainWindow):
         elif os.path.exists(direc+os.path.sep+'acqus') and (os.path.exists(direc+os.path.sep+'fid') or os.path.exists(direc+os.path.sep+'ser')):
             self.loading(1, filePath)
             return returnVal
+        elif os.path.exists(direc+os.path.sep+'procs') and (os.path.exists(direc+os.path.sep+'1r') or os.path.exists(direc+os.path.sep+'2rr')):
+            self.loading(7, filePath)
+            return returnVal    
         elif os.path.exists(direc+os.path.sep+'acq') and os.path.exists(direc+os.path.sep+'data'):
             self.loading(2, filePath)
             return returnVal
@@ -721,6 +725,8 @@ class MainProgram(QtGui.QMainWindow):
             masterData = self.loadJSONFile(filePath)
         elif num == 6:
             masterData = self.loadMatlabFile(filePath)
+        elif num == 7:
+           masterData = self.LoadBrukerSpectrum(filePath) 
         if masterData is not None:
             self.workspaces.append(Main1DWindow(self, masterData, name=name))
             self.tabs.addTab(self.workspaces[-1], name)
@@ -918,7 +924,89 @@ class MainProgram(QtGui.QMainWindow):
             masterData = sc.Spectrum(data, lambda self :self.LoadBrukerTopspin(filePath), [freq1, freq2], [SW1, SW2], spec*2, msgHandler=lambda msg: self.dispMsg(msg))
         masterData.addHistory("Bruker data loaded from "+filePath)
         return masterData
-                
+         
+         
+    def LoadBrukerSpectrum(self, filePath):
+        Dir = filePath 
+        if os.path.exists(Dir+os.path.sep+'procs'):#Get D2 parameters
+            with open(Dir+os.path.sep+'procs', 'r') as f: 
+                data = f.read().split('\n')
+            for s in range(0, len(data)):
+                if data[s].startswith('##$SI='):
+                    sizeTD2 = int(re.findall("\#\#\$SI= (.*.)", data[s])[0])
+#                if data[s].startswith('##$XDIM='):
+#                    blockingD2 = int(data[s][8:])
+                if data[s].startswith('##$BYTORDP='):
+                    ByteOrder = int(data[s][11:]) 
+                if data[s].startswith('##$SW_p='):
+                    SW2 = float(data[s][8:])
+                    
+        freq2 = 0            
+        if os.path.exists(Dir+os.path.sep+'..'+os.path.sep+'..'+os.path.sep+'acqus'):#Get D2 parameters from fid directory, if available
+            with open(Dir+os.path.sep+'..'+os.path.sep+'..'+os.path.sep+'acqus', 'r') as f: 
+                data = f.read().split('\n')
+            for s in range(0, len(data)):
+                if data[s].startswith('##$SFO1='):
+                    freq2 = float(data[s][8:])*1e6
+                    
+        sizeTD1 = 1 
+        if os.path.exists(Dir+os.path.sep+'proc2s'): #Get D1 parameters
+            with open(Dir+os.path.sep+'proc2s', 'r') as f: 
+                data2 = f.read().split('\n')
+            for s in range(0, len(data2)):
+                if data2[s].startswith('##$SI='):
+                    sizeTD1 = int(data2[s][6:])
+#                if data2[s].startswith('##$XDIM='):
+#                    blockingD1 = int(data[s][8:])
+                if data2[s].startswith('##$SW_p='):
+                    SW1 = float(data2[s][8:])
+                    
+        freq1 = 0            
+        if os.path.exists(Dir+os.path.sep+'..'+os.path.sep+'..'+os.path.sep+'acqu2s'):#Get D1 parameters from fid directory, if available
+            with open(Dir+os.path.sep+'..'+os.path.sep+'..'+os.path.sep+'acqu2s', 'r') as f: 
+                data = f.read().split('\n')
+            for s in range(0, len(data)):
+                if data[s].startswith('##$SFO1='):
+                    freq1 = float(data[s][8:])*1e6
+
+        if os.path.exists(Dir+os.path.sep+'1r'):#Get D2 data
+            with open(Dir+os.path.sep+'1r', "rb") as f:            
+                    RawReal = np.fromfile(f, np.int32, sizeTD1*sizeTD2)
+            RawImag = np.zeros([sizeTD1*sizeTD2])        
+            if os.path.exists(Dir+os.path.sep+'1i'): 
+                with open(Dir+os.path.sep+'1i', "rb") as f:            
+                    RawImag = np.fromfile(f, np.int32, sizeTD1*sizeTD2)
+        elif os.path.exists(Dir+os.path.sep+'2rr'): #Get D1 data
+            with open(Dir+os.path.sep+'2rr', "rb") as f:            
+                RawReal = np.fromfile(f, np.int32, sizeTD1*sizeTD2)
+            RawImag = np.zeros([sizeTD1*sizeTD2])        
+            if os.path.exists(Dir+os.path.sep+'2ir'): #If hypercomplex
+                with open(Dir+os.path.sep+'2ir', "rb") as f:            
+                    RawImag = np.fromfile(f, np.int32, sizeTD1*sizeTD2)
+            elif os.path.exists(Dir+os.path.sep+'2ii'): 
+                with open(Dir+os.path.sep+'2ii', "rb") as f:            
+                    RawImag = np.fromfile(f, np.int32, sizeTD1*sizeTD2)
+            
+        if ByteOrder: 
+            RawReal = RawReal.newbyteorder('b')
+            RawImag = RawImag.newbyteorder('b')
+        else:
+            RawReal = RawReal.newbyteorder('l')
+            RawImag = RawImag.newbyteorder('l')
+        Data=np.flipud(RawReal)  - 1j*  np.flipud(RawImag)
+        
+        spec = [True]
+
+        if sizeTD1 is 1:
+            masterData = sc.Spectrum(Data, lambda self :self.LoadBrukerSpectrum(filePath), [freq2], [SW2], spec, msgHandler=lambda msg: self.dispMsg(msg))
+        else:
+            Data = Data.reshape(sizeTD1, sizeTD2)
+            masterData = sc.Spectrum(Data, lambda self :self.LoadBrukerSpectrum(filePath), [freq1, freq2], [SW1, SW2], spec*2, msgHandler=lambda msg: self.dispMsg(msg))
+        masterData.addHistory("Bruker spectrum data loaded from "+filePath)
+        return masterData
+        
+        
+        
     def LoadChemFile(self, filePath):
         Dir = filePath
         sizeTD1 = 1
