@@ -679,6 +679,10 @@ class MainProgram(QtGui.QMainWindow):
         if os.path.exists(direc+os.path.sep+'procpar') and os.path.exists(direc+os.path.sep+'fid'):
             self.loading(0, filePath)
             return returnVal
+            #And for varian processed data
+        if (os.path.exists(direc+os.path.sep+'..'+os.path.sep+'procpar') or os.path.exists(direc+os.path.sep+'procpar')) and os.path.exists(direc+os.path.sep+'data'):
+            self.loading(0, filePath)
+            return returnVal
         elif os.path.exists(direc+os.path.sep+'acqus') and (os.path.exists(direc+os.path.sep+'fid') or os.path.exists(direc+os.path.sep+'ser')):
             self.loading(1, filePath)
             return returnVal
@@ -740,8 +744,16 @@ class MainProgram(QtGui.QMainWindow):
         sw   = 50e3
         sw1  = 50e3
         freq1 = 0 #intialize second dimension freqency as 0
+        
         if os.path.exists(Dir+os.path.sep+'procpar'):
-            with open(Dir+os.path.sep+'procpar', 'r') as f: 
+            file = Dir+os.path.sep+'procpar'
+        elif os.path.exists(Dir+os.path.sep + '..' + os.path.sep + 'procpar'):
+            file = Dir+os.path.sep + '..' + os.path.sep + 'procpar'
+        else:
+            self.dispMsg(Dir+os.path.sep+'procpar does not exits, used standard sw and freq')
+            file = None
+        if file is not None:
+            with open(file, 'r') as f: 
                 data = f.read().split('\n')
             for s in range(0, len(data)): 
                 if data[s].startswith('sfrq '):
@@ -752,54 +764,61 @@ class MainProgram(QtGui.QMainWindow):
                     sw1 = float(data[s+1].split()[1])
                 elif data[s].startswith('dfrq '):
                     freq1 = float(data[s+1].split()[1])*1e6
-        else:
-            self.dispMsg(Dir+os.path.sep+'procpar does not exits, used standard sw and freq')
-        if os.path.exists(Dir+os.path.sep+'fid'):    
-            with open(Dir+os.path.sep+'fid', "rb") as f:
-                raw = np.fromfile(f, np.int32, 6) 
-                nblocks = unpack('>l', raw[0])[0]
-                ntraces = unpack('>l', raw[1])[0]
-                npoints = unpack('>l', raw[2])[0]
-                ebytes = unpack('>l', raw[3])[0]
-                tbytes = unpack('>l', raw[4])[0]
-                bbytes = unpack('>l', raw[5])[0]
-                raw = np.fromfile(f, np.int16, 2)
-                vers_id = unpack('>h', raw[0])[0] 
-                status = unpack('>h', raw[1])[0]
-                raw = np.fromfile(f, np.int32, 1) 
-                nbheaders = unpack('>l', raw[0])[0]
-                SizeTD2 = npoints
-                SizeTD1 = nblocks*ntraces
-                a = []
-                fid32 = int(bin(status)[-3]) 
-                fidfloat = int(bin(status)[-4])
-                for iter1 in range(0, nblocks): 
-                    b = []
-                    for iter2 in range(0, nbheaders):
-                        raw = np.fromfile(f, np.int16, nbheaders*14)
-                    if not fid32 and not fidfloat:
-                        raw = np.fromfile(f, np.int16, ntraces*npoints)
-                        for iter3 in raw:
-                            b.append(unpack('>h', iter3)[0])
-                    elif fid32 and not fidfloat:
-                        raw = np.fromfile(f, np.int32, ntraces*npoints)
-                        for iter3 in raw:
-                            b.append(unpack('>l', iter3)[0])
-                    else:
-                        raw = np.fromfile(f, np.float32, ntraces*npoints)
-                        for iter3 in raw:
-                            b.append(unpack('>f', iter3)[0])
-                    b = np.array(b)
-                    if(len(b) != ntraces*npoints):
-                        b.append(np.zeros(ntraces*npoints-len(b)))
-                    a.append(b)
+                        
+        if os.path.exists(Dir+os.path.sep+'fid'):
+            datafile = Dir+os.path.sep+'fid'
+        elif os.path.exists(Dir+os.path.sep+'data'):
+            datafile = Dir+os.path.sep+'data'
+            
+  
+        with open(datafile, "rb") as f:
+            raw = np.fromfile(f, np.int32, 6) 
+            nblocks = unpack('>l', raw[0])[0]
+            ntraces = unpack('>l', raw[1])[0]
+            npoints = unpack('>l', raw[2])[0]
+            ebytes = unpack('>l', raw[3])[0]
+            tbytes = unpack('>l', raw[4])[0]
+            bbytes = unpack('>l', raw[5])[0]
+            raw = np.fromfile(f, np.int16, 2)
+            vers_id = unpack('>h', raw[0])[0] 
+            status = unpack('>h', raw[1])[0]
+            spec = bool(int(bin(status)[-2]))
+            raw = np.fromfile(f, np.int32, 1) 
+            nbheaders = unpack('>l', raw[0])[0]
+            SizeTD2 = npoints
+            SizeTD1 = nblocks*ntraces
+            a = []
+            fid32 = int(bin(status)[-3]) 
+            fidfloat = int(bin(status)[-4])
+            for iter1 in range(0, nblocks): 
+                b = []
+                for iter2 in range(0, nbheaders):
+                    raw = np.fromfile(f, np.int16, nbheaders*14)
+                if not fid32 and not fidfloat:
+                    raw = np.fromfile(f, np.int16, ntraces*npoints)
+                    for iter3 in raw:
+                        b.append(unpack('>h', iter3)[0])
+                elif fid32 and not fidfloat:
+                    raw = np.fromfile(f, np.int32, ntraces*npoints)
+                    for iter3 in raw:
+                        b.append(unpack('>l', iter3)[0])
+                else:
+                    raw = np.fromfile(f, np.float32, ntraces*npoints)
+                    for iter3 in raw:
+                        b.append(unpack('>f', iter3)[0])
+                b = np.array(b)
+                if(len(b) != ntraces*npoints):
+                    b.append(np.zeros(ntraces*npoints-len(b)))
+                a.append(b)
         a = np.complex128(a)
         fid = a[:, ::2]-1j*a[:, 1::2]
         if SizeTD1 is 1: 
             fid = fid[0][:]
-            masterData = sc.Spectrum(fid, lambda self :self.LoadVarianFile(filePath), [freq], [sw], msgHandler=lambda msg: self.dispMsg(msg))
+            if spec: #flip if spectrum
+                fid = np.flipud(fid)
+            masterData = sc.Spectrum(fid, lambda self :self.LoadVarianFile(filePath), [freq], [sw],[bool(int(spec))], msgHandler=lambda msg: self.dispMsg(msg))
         else: 
-            masterData = sc.Spectrum(fid, lambda self :self.LoadVarianFile(filePath), [freq1,freq], [sw1,sw], msgHandler=lambda msg: self.dispMsg(msg))
+            masterData = sc.Spectrum(fid, lambda self :self.LoadVarianFile(filePath), [freq1,freq], [sw1,sw],[bool(int(spec))]*2, msgHandler=lambda msg: self.dispMsg(msg))
         masterData.addHistory("Varian data loaded from "+filePath)
         return masterData
 
