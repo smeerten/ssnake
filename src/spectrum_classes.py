@@ -1865,11 +1865,11 @@ class Current1D(Plot1DFrame):
         self.root.addMacro(['ffm', (posList, typeVal, self.axes-self.data.dim)])
         return returnValue
     
-    def clean(self, posList, typeVal, gamma, threshold, lb, maxIter):
-        returnValue = self.data.clean(posList, typeVal, self.axes, gamma, threshold, lb, maxIter)
+    def clean(self, posList, typeVal, gamma, threshold, maxIter):
+        returnValue = self.data.clean(posList, typeVal, self.axes, gamma, threshold, maxIter)
         self.upd()
         self.showFid()
-        self.root.addMacro(['clean', (posList, typeVal, self.axes-self.data.dim, gamma, threshold, lb, maxIter)])
+        self.root.addMacro(['clean', (posList, typeVal, self.axes-self.data.dim, gamma, threshold, maxIter)])
         return returnValue
     
     def ACMEentropy(self, phaseIn, phaseAll=True):

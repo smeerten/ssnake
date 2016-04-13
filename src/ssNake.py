@@ -39,6 +39,8 @@ from widgetClasses import *
 from updateWindow import *
 from plotWindow import *
 
+np.set_printoptions(threshold=np.nan)
+
 pi = np.pi
 
 VERSION = 'v0.5b'
@@ -1965,34 +1967,34 @@ class SideFrame(QtGui.QScrollArea):
                     self.frame2.addWidget(QLabel("Spacing", self), 7, 0)
                     self.spacingEntry = QtGui.QLineEdit(self)
                     self.spacingEntry.setText('%#.3g' % current.spacing)
-                    self.spacingEntry.editingFinished.connect(self.setSpacing)
+                    self.spacingEntry.returnPressed.connect(self.setSpacing)
                     self.frame2.addWidget(self.spacingEntry, 8, 0)
                 elif isinstance(current, (sc.CurrentSkewed)):
                     self.frame2.addWidget(QLabel("Skew", self), 7, 0)
                     self.skewEntry = QtGui.QLineEdit(self)
                     self.skewEntry.setText('%.2f' % current.skewed)
-                    self.skewEntry.editingFinished.connect(self.setSkew)
+                    self.skewEntry.returnPressed.connect(self.setSkew)
                     self.frame2.addWidget(self.skewEntry, 8, 0)
                     self.frame2.addWidget(QLabel("Elevation", self), 9, 0)
                     self.elevEntry = QtGui.QLineEdit(self)
                     self.elevEntry.setText('%.1f' % current.elevation)
-                    self.elevEntry.editingFinished.connect(self.setSkew)
+                    self.elevEntry.returnPressed.connect(self.setSkew)
                     self.frame2.addWidget(self.elevEntry, 10, 0)
             if isinstance(current, (sc.CurrentContour)):
                 self.frame2.addWidget(QLabel("Number of contours", self), 1, 0)
                 self.numLEntry = QtGui.QLineEdit(self)
                 self.numLEntry.setText(str(current.numLevels))
-                self.numLEntry.editingFinished.connect(self.setContour)
+                self.numLEntry.returnPressed.connect(self.setContour)
                 self.frame2.addWidget(self.numLEntry, 2, 0)
                 self.frame2.addWidget(QLabel("Highest contour [%]", self), 3, 0)
                 self.maxLEntry = QtGui.QLineEdit(self)
                 self.maxLEntry.setText(str(current.maxLevels*100.0))
-                self.maxLEntry.editingFinished.connect(self.setContour)
+                self.maxLEntry.returnPressed.connect(self.setContour)
                 self.frame2.addWidget(self.maxLEntry, 4, 0)
                 self.frame2.addWidget(QLabel("Lowest contour [%]", self), 5, 0)
                 self.minLEntry = QtGui.QLineEdit(self)
                 self.minLEntry.setText(str(current.minLevels*100.0))
-                self.minLEntry.editingFinished.connect(self.setContour)
+                self.minLEntry.returnPressed.connect(self.setContour)
                 self.frame2.addWidget(self.minLEntry, 6, 0)
                 self.frame2.addWidget(QLabel("Color map:", self), 7, 0)
                 self.cmEntry = QtGui.QComboBox(self)
@@ -2219,12 +2221,12 @@ class BottomFrame(QtGui.QWidget):
         grid.addWidget(QLabel("Freq [MHz]:", self), 0, 3)
         self.freqEntry = QtGui.QLineEdit(parent=self)
         self.freqEntry.setAlignment(QtCore.Qt.AlignHCenter)
-        self.freqEntry.editingFinished.connect(self.changeFreq)
+        self.freqEntry.returnPressed.connect(self.changeFreq)
         grid.addWidget(self.freqEntry, 1, 3)
         grid.addWidget(QLabel("Sweepwidth [kHz]:", self), 0, 4)
         self.swEntry = QtGui.QLineEdit(parent=self)
         self.swEntry.setAlignment(QtCore.Qt.AlignHCenter)
-        self.swEntry.editingFinished.connect(self.changeFreq)
+        self.swEntry.returnPressed.connect(self.changeFreq)
         grid.addWidget(self.swEntry, 1, 4)
         grid.addWidget(QLabel("Plot:", self), 0, 5)
         self.plotDrop = QtGui.QComboBox(parent=self)
@@ -2529,7 +2531,7 @@ class PhaseWindow(QtGui.QWidget):
             self.refEntry = QtGui.QLineEdit()
             self.refEntry.setAlignment(QtCore.Qt.AlignHCenter)
             self.refEntry.setText('%.3f' % self.refVal)
-            self.refEntry.editingFinished.connect(self.inputRef)
+            self.refEntry.returnPressed.connect(self.inputRef)
             grid.addWidget(self.refEntry, 10, 1)
 
         self.singleSlice = QtGui.QCheckBox("Single slice")
