@@ -2485,7 +2485,8 @@ class TensorDeconvFrame(Plot1DFrame):
         self.line_xdata = self.xax
         self.line_ydata = self.data1D
         self.ax.plot(self.xax, self.data1D)
-        self.ax.plot(tmpAx, tmpdata)
+        if tmpAx is not None:
+            self.ax.plot(tmpAx, tmpdata)
         for i in range(len(tmpAx2)):
             self.ax.plot(tmpAx2[i], tmpdata2[i])
         if self.spec == 0:
@@ -3232,7 +3233,8 @@ class HerzfeldBergerFrame(Plot1DFrame):
         self.line_xdata = self.xax
         self.line_ydata = self.data1D
         self.ax.plot(self.xax, self.data1D)
-        self.ax.plot(tmpAx, tmpdata)
+        if tmpAx is not None:
+            self.ax.plot(tmpAx, tmpdata)
         for i in range(len(tmpAx2)):
             self.ax.plot(tmpAx2[i], tmpdata2[i])
         if self.spec == 0:
