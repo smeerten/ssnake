@@ -109,9 +109,9 @@ We have run into issue while using older versions of numpy. It seems that versio
 
 
 \section{File}
-Using the ssNake load tools is quite easy. Go to File $\rightarrow$ Load. Navigating and double clicking on the desired file then loads the data. Many formats supported by ssNake (like Bruker and Varian) have their data in a folder, in which several files with a fixed name are present. For these formats, loading any of the files in this directory is accepted (ssNake searches for the expected files in the selected directory). Loading large data files might take some time, depending on your computer hardware.
+Using the ssNake load tools is quite easy. Go to File $\rightarrow$ Open. Navigating and double clicking on the desired file then loads the data. Many formats supported by ssNake (like Bruker and Varian) have their data in a folder, in which several files with a fixed name are present. For these formats, loading any of the files in this directory is accepted (ssNake searches for the expected files in the selected directory). Loading large data files might take some time, depending on your computer hardware.
 
-When loading the data, the user is prompted to give in a name for the data by which it is identified in the workspace selector (see the Worspaces section for more on this).
+When loading the data, the user is prompted to give in a name for the data by which it is identified in the workspace selector (see the Worspaces section for more on this). The default name is the name of the file (or folder for data in which the file name is fixed). If the name already exists as a workspace, the name spectrum\textit{n} is used (with \textit{n} the lowest integer that is not in use).
 
 
 \subsection{Formats}
@@ -123,8 +123,8 @@ ssNake is able to extract NMR data from a number of formats from several vendors
 Name & Specification \\
 \midrule
 \rowcolor{gray!30!white}
-Varian/Agilent & VnmrJ 2 and newer\\
-Bruker & Topspin and XWinNMR (fid \& ser) \\
+Varian/Agilent & VnmrJ 2 and newer. fid and data (spectrum)\\
+Bruker & Topspin and XWinNMR (fid \& ser,1r/i \& 2rr/ii) \\
 \rowcolor{gray!30!white}
 Chemagnetics & ??? \\
 Magritek & Both 1D and 2D data \\
@@ -140,11 +140,16 @@ Matlab & ssNake .mat file (binary)\\
 Generally, ssNake loads the data raw data and searches for some variables (e.g. spectral width and spectrometer frequency). The above data formats do not support data with more then two dimensions in a nice way. Getting the higher dimensions is therefore not straightforward. ssNake treats this data as 2D, after which you can split the data yourselves using Matrix $\rightarrow$ Split.
 
 \subsubsection*{Varian/Agilent}
-Loading Varian/Agilent files requires a \textit{procpar} file and a \textit{fid} file. From the \textit{procpar}, the spectral frequency and the spectral width in one or two dimensions is extracted. The \textit{fid} file is then checked for the version (VnmrJ 2 or 3) and the data is extracted from this file.
+Loading a Varian/Agilent fid file requires a \textit{procpar} file and a \textit{fid} file. From the \textit{procpar}, the spectral frequency and the spectral width in one or two dimensions is extracted. The \textit{fid} file is then checked for the version (VnmrJ 2 or 3) and the data is extracted from this file.
+
+For processed data (\textit{data}, in the datdir folder for example) it searches for a \textit{procpar} file in that directory or in the parent folder, from which additional parameters are extracted.
 
 \subsubsection*{Bruker}
 The Bruker load first checks for the \textit{acqus} and \textit{acqu2s} files and extracts the number of points in both dimensions, the spectral widths and the spectral frequency. Also, the bitorder is checked, which describes the way the data is saved in the \textit{fid} or \textit{ser} file. Using this, the data is extracted.
 
+Bruker processed spectra can be loaded from \textit{1r} and \textit{1i} files for 1D data, \textit{2rr} and \textit{2ii} for 2D data, and \textit{2rr} and \textit{2ir} for hypercomplex data. It additionally takes parameters from \textit{procs} or \textit{proc2s} files in that directory. Moreover, the spectral frequency is extracted from the \textit{acqus} and/or \textit{acqu2s} files located \textit{two directories up}.
+
+ 
 \subsubsection*{Chemagnetics}
 Loading Chemagnetics data requires a \textit{acq} (and \textit{acq\_2} for 2D) and \textit{data} file. From the former, the number of points in both dimensions is extracted, the spectral widths and the spectral frequency. All the data points are then extracted form the \textit{data} file, and reshaped to a 2D array when necessary.
 
@@ -152,19 +157,19 @@ Loading Chemagnetics data requires a \textit{acq} (and \textit{acq\_2} for 2D) a
 Magritek requires two or three files: \textit{acqu.par} for the spactral variables, and a file that ends with \textit{.1d}. For 2D data, a file that ends with \textit{.2d} is also needed. As with the other formats, the number of data points in the two dimensions is extracted from the parameter file (along with the spectral data) and the binary data in the \textit{.1d} or \textit{.2d} is unpacked.
 
 \subsubsection*{Simpson}
-Simpson data files are plain text files, \textit{.fid} or \textit{.spe} as file extension. From the file, the number of points in both dimensions is extracted, and the spectral widths. The spectral frequency is \textit{not} included in the Simpson format, and is put at 0. Simpson files cannot contain a mixture of time and frequency data (both dimensions must be the same type). Simpson binary data is also supported, but is very slow to load.
+Simpson data files are plain text files, \textit{.fid} or \textit{.spe} as file extension. From the file, the number of points in both dimensions is extracted, and the spectral widths. The spectral frequency is \textit{not} included in the Simpson format, and is put at 0. Simpson files cannot contain a mixture of time and frequency data (both dimensions must be the same type). Simpson binary data is also supported, but not raw binary.
 
 \subsubsection*{JSON}
 Loads a JSON file that is saved with ssNake. File must have the \textit{.json} or \textit{.JSON} extension.
 
 \subsubsection*{Matlab}
-Loads a Matlab file that is saved with ssNake. File must have the \textit{.mat} or \textit{.MAT} extension.
+Loads a Matlab file that is saved with ssNake. File must have the \textit{.mat} or \textit{.MAT} extension. Also supports .mat files that have been resaved to matlab v7.3 format.
 
 
 \subsubsection*{Unsupported file formats}
 Currently, we support all the data formats that we have access to. While we have some code lying around for loading JEOL data, for example, we cannot include this if we cannot test it. If you want your favourite data format to be support by ssNake, please send us a request along with some sample data (1D and 2D).
 
-\subsection{Load}
+\subsection{Open}
 When using ssNake's load function, ssNake analyses the selected file name and the names of other files in the directory to figure out the format you want to load. ssNake only needs to check for files that are actually needed for loading the data, so removing useless files from the format does not pose a problem. Below, the checks used by ssNake in this function can be found for each format.
 
 \begin{center}
@@ -173,8 +178,12 @@ When using ssNake's load function, ssNake analyses the selected file name and th
 Name & Folder contains files & File extension\\
 \midrule
 \rowcolor{gray!30!white}
-Varian/Agilent &  procpar and fid & \\
-Bruker &  acqus (and acqu2s for 2D) and fid or ser &\\
+Varian/Agilent fid &  procpar and fid & \\
+Varian/Agilent spectrum&  data and procpar or ../procpar & \\
+\rowcolor{gray!30!white}
+Bruker fid &  acqus (and acqu2s for 2D) and fid or ser &\\
+Bruker spectrum & (1r/1i) or (2rr and 2ii/2ir) with procs/proc2s  &\\
+ &and ../../acqus and ../../acqu2s & \\
 \rowcolor{gray!30!white}
 Chemagnetics &  acq (and acq\_2 for 2D) and data &\\
 Magritek &  acqu.par and *.1d or *.2d&\\
@@ -192,7 +201,7 @@ Matlab & & .mat or .MAT\\
 
 
 \subsection{Save data}
-Naturally, ssNake can also be used to save data. When saving data, the current ND data is saved, along with the spectral widths, frequencies and if the axis is in time or frequency units. Ppm references and the current view are \textit{not} saved. Saving to Simpson format also has some restrictions as pointed out below.
+Naturally, ssNake can also be used to save data. When saving data, the current ND data is saved, along with the spectral widths, frequencies and if the axis is in time or frequency units. Also, ppm references are saved, along with the processing history. Undo information is \textit{not} saved.
 
 \subsubsection*{JSON}
 JSON (JavaScript Object Notation) is a ascii format (i.e. regular text) used to save data structures. Within ssNake this can be used to save the current data in a clear, human readable format. As JSON data is in ascii, it is not efficient in file size and in speed. If these are necessary then consider saving the data as a matlab binary.
@@ -200,10 +209,18 @@ JSON (JavaScript Object Notation) is a ascii format (i.e. regular text) used to 
 \subsubsection*{MATLAB}
 The MATLAB binary format is a open source format in which many different types of data can be saved. Also, it is the native format of MATLAB, which can be used for more special data manipulation, if necessary. As the format is binary, it is efficient in both speed and file size. The content of the file is the same as the JSON file.
 
+
+\subsection{Export data}
+Using ssNAke you can also export your data. Exporting never saves all the info our own formats do, so there will be loss of information. It is suggested you only use these formats for exchanging data to another program, but not for archiving.
+
+
 \subsubsection*{Simpson}
 Simpson is a general NMR simulation program with its own data format. The format only supports 1D and 2D data, and only if the data in both dimensions is of the same type (i.e. both spectrum, or both time). Apart from that, Simpson is a ascii format, and therefore has the same speed restrictions as the JSON format. The parameters that are saved within the Simpson data are restricted (no offset frequency), so when loading it back into ssNake some information is lost. We therefore advise to use the Simpson format only for transferring data to another program.
 
-\subsection{Save Figure}
+\subsubsection*{ASCII (1D/2D)}
+This option saves the current data to a bare ascii format (text file). The first column is the axis in units of Hz or seconds. The next columns are alternating real and imaginary for all traces in the 2D data. For 1D data, only a single set of real and imaginary data is printed. The axis of dimension 1 of the 2D data is not saved.
+
+\subsection{Figure}
 The Save Figure option can be used to save any Figure plot within ssNake. The title, axis labels and size of the Figure can be changed. Be aware that choosing a to small height can cause the x-axis label to disappear. After all the titles have been set, pushing `Save' will save the Figure to a directory of your choice. The Figure can be saved in vector format (.eps, .pdf, .svg), in lossless pixel format (.png), and in lossy pixel format (.jpg). We advice to use vector formats to make high quality pictures.
 
 
