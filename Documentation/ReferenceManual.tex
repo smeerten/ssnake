@@ -220,14 +220,16 @@ Simpson is a general NMR simulation program with its own data format. The format
 \subsubsection*{ASCII (1D/2D)}
 This option saves the current data to a bare ascii format (text file). The first column is the axis in units of Hz or seconds. The next columns are alternating real and imaginary for all traces in the 2D data. For 1D data, only a single set of real and imaginary data is printed. The axis of dimension 1 of the 2D data is not saved.
 
-\subsection{Figure}
-The Save Figure option can be used to save any Figure plot within ssNake. The title, axis labels and size of the Figure can be changed. Be aware that choosing a to small height can cause the x-axis label to disappear. After all the titles have been set, pushing `Save' will save the Figure to a directory of your choice. The Figure can be saved in vector format (.eps, .pdf, .svg), in lossless pixel format (.png), and in lossy pixel format (.jpg). We advice to use vector formats to make high quality pictures.
+\subsubsection*{Figure}
+The Figure option can be used to export any Figure plot within ssNake. The title, axis labels and size of the Figure can be changed. Be aware that choosing a to small height can cause the x-axis label to disappear. After all the titles have been set, pushing `Save' will save the Figure to a directory of your choice. The Figure can be saved in vector format (.eps, .pdf, .svg), in lossless pixel format (.png), and in lossy pixel format (.jpg). We advice to use vector formats to make high quality pictures.
 
+\subsection{Quit}
+Closes the ssNake application.
 
 \section{Workspaces}
 Within ssNake you can have multiple data files opened. Each loaded file gets its own environment in which you can process the data. These are called workspaces. All ssNake workspaces are independent, meaning that the data from workspace 1 cannot be changed while viewing any other workspace. Going back to a workspace from another goes back to the same view as before:  nothing is discarded when switching between workspaces. Also: every workspace has its own undo/redo information. Some tools can transfer data from other workspaces to the current workspace. You can find more about these tools later on, in their respective sections.
 
-When loading data, ssNake prompts for a name. This will become the name of the workspace in which the data is loaded. The title of the graph will be set to this name, and the name will be set in the list of opened workspaces in Workspaces $\rightarrow$ Active. Note that you cannot have multiple workspaces with the same name.
+When loading data, ssNake prompts for a name. This will become the name of the workspace in which the data is loaded. The title of the graph will be set to this name, and the name will be set in the list of opened workspaces in Workspaces $\rightarrow$ Active. You can also switch workspace using the tabs that are created for every workspace. Note that you cannot have multiple workspaces with the same name.
 
 \subsection{Duplicate}
 Makes a copy of the current workspace to another workspace, of which the name is asked. All the data and the current view is copied to this new workspace. No undo and redo data is transferred. Also, the current workspace is now the new, duplicated one.
@@ -239,7 +241,7 @@ Deletes the current workspace and all references to it. The view is changed to t
 Renames the current workspace. Note that two workspaces cannot have the same name.
 
 \subsection{Active}
-Shows a list of all workspaces and indicates the active one with a dot in front. The current workspaces can be changed by clicking on a not active one.
+Shows a list of all workspaces. The current workspaces can be changed by clicking on another workspace name.
 
 \subsection{Keyboard shortcuts}
 ssNake features several keyboard shortcuts to work with the workspaces. Below is a list of all the combinations.
@@ -260,7 +262,7 @@ Ctrl + Page Down & Change current workspace to the one below in the list\\
 When the current workspace is the last in the list, and Ctrl + Page Down is pressed, the current workspace is set to the first in the list.
 
 \section{Macros}
-Macros can be used to save a particular series of action performed on the data, for later fast reuse. Say that you want to load several data files, and want to set the size of them to 4096 points and perform a Fourier transform. Doing this many times can be annoying. When you create a macro to do this, you only need to execute the macro for every data file. Thus saving time and making sure all are precessed in an identical way. Also, macros are shared between workspaces: there is only one pool of macros. How to use macros is explained below. 
+Macros can be used to save a particular series of action performed on the data, for later fast reuse. Say that you want to load several data files, and want to set the size of them to 4096 points and perform a Fourier transform. Doing this many times can be annoying. When you create a macro to do this, you only need to execute the macro for every data file. Thus saving time and making sure all are processed in an identical way. Also, macros are shared between workspaces: there is only one pool of macros. How to use macros is explained below. 
 
 \subsection{Start recording}
 To create a macros, you must tell ssNake that you want to record a series of action, to be saved in the macro. Executing Macros $\rightarrow$ Start Recording prompts for a name of the future macro, and enables the recording. From now on, all the actions you perform on the data are recorded and saved in this macro.
@@ -298,9 +300,10 @@ Undo cannot be used the undo the current view to the previous view as this is no
 When Undo is used, the action that is undone is put in the redo list. Using Undo and then Redo therefore performs no net action. Every time a new action (i.e. something other then redo) is performed the redo list is cleared.
 
 \subsection{Reload}
-This action reloads the data from the original source. All undo and redo information is cleared. Can be useful if you use some external program to change the source, and you want ssNake to update its data. Creating a macro of the actions you perform on this data might be useful in this case.
+This action reloads the data from the original source. All undo and redo information is retained., so you can undo back to before you reloaded the data. Note that the undo information can take quite some memory on your computer, especially for bigger data sets.
 
 \section{Tools}
+This section explains all the options included in the Tools menu. 
 
 \subsection{Real}
 Real puts the imaginary values of all data points at zero.
@@ -317,7 +320,7 @@ Abs replaces all complex datapoints by the length of the vector they span in the
 \begin{equation*}
 F_\text{new} = \sqrt{\text{real}(F_\text{old})^2 + \text{imag}(F_\text{old})^2}
 \end{equation*}
-for all points in the complex data.
+for all points in the complex data. These values are put as the real part. The imaginary part is zeroed.
 
 \subsection{Phasing}
 Opens a tool that can be use to change the phasing in the current spectrum or fid. Supports zero order, first order and autophasing.
@@ -339,7 +342,7 @@ While in this menu, the effect of a certain phasing can be immediately viewed in
 
 Apart from manual phasing, ssNake also supports two types of autophasing: zero order only, and zero and first order. When pushing these buttons, ssNake will search for the best phasing in the \textit{current} trace, with only first order phasing correction, or with both zero and first order. Do note that the setting that ssNake finds might not be the best: phasing an NMR spectrum is tricky and has no unique mathematical solution. However, for a fast analysis it can be useful.
 
-Also, note that first order phase correction has no meaning in NMR when applied to the time domain. ssNake therefore always applies first order phasing in the \textit{frequency} domain. When first order phasing is applied in the time domain, ssNake transforms to the spectral domain, does the phase correction, and transforms back. As Fourier transforms are quite fast, this provides no issues when viewing the effect of the phase correction.
+Also, note that first order phase correction has no meaning in NMR when applied to the time domain. ssNake therefore always applies first order phasing in the \textit{frequency} domain. When first order phasing is applied when viewing the time domain signal, ssNake transforms to the spectral domain, does the phase correction, and transforms back. As Fourier transforms are quite fast, this provides no issues when viewing the effect of the phase correction.
 
 
 
@@ -353,16 +356,11 @@ In some NMR experiments, the rise and fall of a spin echo is recorded. One way o
 Echo swapping is done by left clicking on the echo maximum of the time signal. By default, the swapping is set at the centre of the time signal. After left clicking, a preview is shown. Pushing `Apply' applies the transformation to all traces of this dimension. Also, the tag `Whole echo' is set in the footer. When this is on, Fourier transforming does not multiply the first point by 0.5 (as is needed for data that decays to zero), and line broadening is applied symmetrically around zero.
 
 
-
-
-
-
-
 \subsection{Offset correction}
 Subtracts the average value of the selected data points from all data points.
 
 \subsubsection*{Background}
-It can sometimes happen that NMR data does not decay to zero, but to another value. In this case, a time signal with zero frequency and no decay can be thought seems to be added to the NMR signal. Usually, this is due to issues with the electronics, and does not imply a NMR signal with these properties. For proper analysis of the signal, this offset should be removed, as it leads to a signal at 0 Hz, which can interfere with the spectrum. This can be solved by subtracting the average value of the last points of the time domain data from all the data points.
+It can sometimes happen that NMR data does not decay to zero, but to another value. In this case, a time signal with zero frequency and no decay can be thought to have been added to the NMR signal. Usually, this is due to issues with the electronics, and does not imply a NMR signal with these properties. For proper analysis of the signal, this offset should be removed, as it leads to a signal at 0 Hz, which can interfere with the spectrum. This can be solved by subtracting the average value of the last points of the time domain data from all the data points.
 
 \subsubsection*{ssNake implementation}
 Using the Offset correction tool opens a new window. By default, the last 20\% of the time data is selected as containing only noise (of which the average is the offset which should be subtracted). Left clicking two times in the graph sets the limits between which the average value is calculated. Pushing apply subtracts this value from all time data points. If the data has more dimensions then 1, the average value is subtracted from all data points. Take note that the average is only calculated for the current graph. If you want to correct the offset for each graph you can select the `Single slice' option, and do the correction separately in each desired trace.
@@ -380,9 +378,22 @@ In ssNake, baseline correction is performed by fitting a $n$th degree polynomial
 \begin{equation*}
 S_\text{corr} = \sum_{i=0}^n a_i x^i ,
 \end{equation*}
-with $a_i$ the amplitude of the $i$th degree polynomial. Fitting this to the spectrum is a mathematical operation with a single unique solution. Prior to doing this, specific parts of the spectrum can be selectively ignored in the fitting procedure. This can be done by left clicking in the spectrum at the two limits of the area that is to be ignored. The area is then marked with a red background. This way, multiple areas can be selected. Pressing  `Fit' then performs and shows the fir. Apply subtracts the line from the spectrum. Note that by default this single fit is subtracted from \textit{all} the traces. This is useful if the background is identical in all of them. Alternatively, the box `Single slice' can be ticked to only apply the correction on the current spectrum.
+with $a_i$ the amplitude of the $i$th degree polynomial. Fitting this to the spectrum is a mathematical operation with a single unique solution. Prior to doing this, specific parts of the spectrum can be selectively ignored in the fitting procedure. This can be done by left clicking in the spectrum at the two limits of the area that is to be ignored. The area is then marked with a red background. This way, multiple areas can be selected. Pressing  `Fit' then performs and shows the fit. Apply subtracts the line from the spectrum. Note that by default this single fit is subtracted from \textit{all} the traces. This is useful if the background is identical in all of them. Alternatively, the box `Single slice' can be ticked to only apply the correction on the current spectrum.
 
+\subsection{Subtract averages}
+Subtracts the average of a region from the respective data. The analysis is performed independently for every slices in the $n$D data. This effectively does the same as Offset Correction, but then for each trace independently.
 
+\subsubsection*{ssNake implementation}
+Opening this tool gives a window were the left and right limit of the selected data can be set. Alternatively, left clicking on the plot sets the start limit on the first click, and the end limit on the second click. Pushing apply performs the subtraction.
+
+\subsection{Reference deconvolution}
+Uses the FIDDLE algorithm to deconvolute a peak shape in the spectrum.
+
+\subsubsection*{Background}
+Due to issues with magnetic field inhomogeneity (i.e. shimming), peaks in an NMR spectrum can have a weird shape with extra ridges and small peaks on the side. In some cases it is known from prior knowledge that the visible peak should be a single Lorentzian line. If so, the line can be deconvoluted to give this Lorentzian line. Naturally, all other lines in the spectrum should have the same distortions. Using the known shape of the easy Lorentzian reference, all other lines can also have their shape corrected.
+
+\subsubsection*{ssNake implementation}
+Using the `Reference deconvolution' opens a window, in which the region of the reference signal has to be set (by left clicking, or by filling in the values). Additionally, the new linewidth of the peak has to be specified. Note that the algorithm cannot increase resolution, only make better lineshapes. Filling in a too small linewidth will result in a heavily distorted spectrum. Pushing apply performs the analysis for all traces.
 
 \subsection{Correct Bruker digital filter}
 Corrects a Bruker fid to start at $t=0$.
