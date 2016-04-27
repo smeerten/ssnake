@@ -3676,11 +3676,13 @@ class Quad1MASDeconvFrame(Plot1DFrame):
 
 #################################################################################
 class Quad1MASDeconvParamFrame(QtGui.QWidget): 
+    Ioptions = ['1']
+    
     def __init__(self, parent, rootwindow):
         QtGui.QWidget.__init__(self, rootwindow)
         self.parent = parent
         self.rootwindow = rootwindow
-        self.cheng = 15
+        self.cheng = 12
         self.NSTEPS = 30
         grid = QtGui.QGridLayout(self)
         self.setLayout(grid)
@@ -3715,19 +3717,30 @@ class Quad1MASDeconvParamFrame(QtGui.QWidget):
         self.frame1.addWidget(self.pickTick, 1, 1)
         self.frame1.setColumnStretch(10, 1)
         self.frame1.setAlignment(QtCore.Qt.AlignTop)
-        self.optframe.addWidget(QLabel("Cheng:"), 0, 0)
+        
+        
+        self.frame1.addWidget(QLabel("I:"), 2,1)
+        self.IEntry = QtGui.QComboBox()
+        self.IEntry.addItems(self.Ioptions)
+        self.IEntry.setCurrentIndex(0)
+        self.frame1.addWidget(self.IEntry,3, 1)
+        self.frame1.setColumnStretch(10, 1)
+        self.frame1.setAlignment(QtCore.Qt.AlignTop)
+        
+        
+        self.optframe.addWidget(QLabel("Cheng:"), 2, 0)
         self.chengEntry = QtGui.QLineEdit()
         self.chengEntry.setAlignment(QtCore.Qt.AlignHCenter)
         self.chengEntry.setText(str(self.cheng))
-        self.optframe.addWidget(self.chengEntry, 1, 0)
+        self.optframe.addWidget(self.chengEntry, 3, 0)
         self.optframe.setColumnStretch(10, 1)
         self.optframe.setAlignment(QtCore.Qt.AlignTop)
-        self.optframe.addWidget(QLabel("Spinning speed [kHz]:"), 2, 0)
+        self.optframe.addWidget(QLabel("Spinning speed [kHz]:"), 4, 0)
         self.spinEntry = QtGui.QLineEdit()
         self.spinEntry.setAlignment(QtCore.Qt.AlignHCenter)
         self.spinEntry.setText("30.0")
-        self.optframe.addWidget(self.spinEntry, 3, 0)
-        self.I = 1 #the spin quantum number (now fixed)
+        self.optframe.addWidget(self.spinEntry,5, 0)
+        
         #self.frame2.setColumnStretch(10, 1)
         #self.frame2.setAlignment(QtCore.Qt.AlignTop)
         self.frame3.addWidget(QLabel(u"Cq [MHz]:"), 1, 0, 1, 2)
@@ -3898,6 +3911,7 @@ class Quad1MASDeconvParamFrame(QtGui.QWidget):
             outEta = float(self.etaEntry.text())
             argu.append(outEta)
             struc.append(False)
+        self.I = int(self.IEntry.currentText())
         self.args = (struc, argu, self.parent.current.freq*np.pi*2)
         theta, phi, self.weight = zcw_angles(self.cheng, symm=2) #Theta and phi switched as algorithm actually uses alpha and beta as input.
         sinPhi = np.sin(phi)
@@ -3934,6 +3948,7 @@ class Quad1MASDeconvParamFrame(QtGui.QWidget):
         if not self.checkInputs():
             self.rootwindow.mainProgram.dispMsg("One of the inputs is not valid")
             return
+        self.I = int(self.IEntry.currentText())
         omegar = float(self.spinEntry.text())*1e3*np.pi*2
         outDelta = float(self.deltaEntry.text())
         outEta = float(self.etaEntry.text())
