@@ -2945,7 +2945,7 @@ class TensorDeconvParamFrame(QtGui.QWidget):
         self.multt11 = np.sin(theta)**2*np.cos(phi)**2
         self.multt22 = np.sin(theta)**2*np.sin(phi)**2
         self.multt33 = np.cos(theta)**2
-        fitVal = scipy.optimize.fmin(self.fitFunc, guess, args=(self.parent.xax, np.real(self.parent.data1D)))
+        fitVal = scipy.optimize.fmin(self.fitFunc, guess, args=(self.parent.xax, np.real(self.parent.data1D)),disp=False)
         counter = 0
         if struc[0]:
             self.bgrndEntry.setText('%.3g' % fitVal[counter])
@@ -3073,7 +3073,7 @@ class TensorDeconvParamFrame(QtGui.QWidget):
         counter2 = 0
         for j in rolledData.reshape(dataShape[axes], np.product(dataShape2)).T:
             try:
-                fitVal = scipy.optimize.fmin(self.fitFunc, guess, args=(self.parent.xax, np.real(j)))
+                fitVal = scipy.optimize.fmin(self.fitFunc, guess, args=(self.parent.xax, np.real(j)),disp=False)
             except:
                 fitVal = [[0]*10]
             counter = 0
@@ -3521,7 +3521,7 @@ class HerzfeldBergerParamFrame(QtGui.QWidget):
         self.C1eta = np.transpose([cos2Theta / 3.0]) * self.C1
         self.C2 = np.array([-1.0 / 3 *  3/2*sinPhi**2 ]).transpose()* cos2OmegarT
         self.C2eta = np.array([1.0 / 3 /2*(1+cosPhi**2)*cos2Theta ]).transpose()* cos2OmegarT
-        fitVal = scipy.optimize.fmin(self.fitFunc, guess, args=(self.sidebandList, np.real(self.integralList)))
+        fitVal = scipy.optimize.fmin(self.fitFunc, guess, args=(self.sidebandList, np.real(self.integralList)),disp=False)
         counter = 0
         if struc[0]:
             self.deltaEntry.setText('%.3g' % (fitVal[counter]*1e6))
@@ -3560,7 +3560,402 @@ class HerzfeldBergerParamFrame(QtGui.QWidget):
         self.C2 = np.array([-1.0 / 3 *  3/2*sinPhi**2 ]).transpose()* cos2OmegarT
         self.C2eta = np.array([1.0 / 3 /2*(1+cosPhi**2)*cos2Theta ]).transpose()* cos2OmegarT
         self.disp(outDelta, outEta)
-       
+  
+
+
+##############################################################################
+class Quad1MASDeconvWindow(FittingWindow): 
+    def __init__(self, mainProgram, oldMainWindow):
+        FittingWindow.__init__(self, mainProgram, oldMainWindow)
+
+    def setup(self):
+        self.current = Quad1MASDeconvFrame(self, self.fig, self.canvas, self.oldMainWindow.current)
+        self.paramframe = Quad1MASDeconvParamFrame(self.current, self)
+        
+#################################################################################   
+class Quad1MASDeconvFrame(Plot1DFrame): 
+    def __init__(self, rootwindow, fig, canvas, current):
+        Plot1DFrame.__init__(self, rootwindow, fig, canvas)
+        self.data1D = current.getDisplayedData()
+        self.current = current
+        self.spec = self.current.spec
+        if self.spec == 1:
+            if self.current.ppm:
+                axMult = 1e6/self.current.ref
+            else:
+                axMult = 1.0/(1000.0**self.current.axType)
+        elif self.spec == 0:
+            axMult = 1000.0**self.current.axType
+        self.xax = self.current.xax*axMult
+        self.plotType = 0
+        self.rootwindow = rootwindow
+        self.plotReset()
+        self.showPlot()
+
+    def plotReset(self): #set the plot limits to min and max values
+        if self.plotType == 0:
+            miny = min(np.real(self.data1D))
+            maxy = max(np.real(self.data1D))
+        elif self.plotType == 1:
+            miny = min(np.imag(self.data1D))
+            maxy = max(np.imag(self.data1D))
+        elif self.plotType == 2:
+            miny = min(min(np.real(self.data1D)), min(np.imag(self.data1D)))
+            maxy = max(max(np.real(self.data1D)), max(np.imag(self.data1D)))
+        elif self.plotType == 3:
+            miny = min(np.abs(self.data1D))
+            maxy = max(np.abs(self.data1D))
+        else:
+            miny = -1
+            maxy = 1
+        differ = 0.05*(maxy-miny) #amount to add to show all datapoints (10%)
+        self.yminlim = miny-differ
+        self.ymaxlim = maxy+differ
+        self.xminlim = min(self.xax)
+        self.xmaxlim = max(self.xax)
+        if self.spec > 0 :
+            self.ax.set_xlim(self.xmaxlim, self.xminlim)
+        else:
+            self.ax.set_xlim(self.xminlim, self.xmaxlim)
+        self.ax.set_ylim(self.yminlim, self.ymaxlim)
+        
+    def showPlot(self, tmpAx=None, tmpdata=None, tmpAx2=[], tmpdata2=[]): 
+        self.ax.cla()
+        self.line_xdata = self.xax
+        self.line_ydata = self.data1D
+        self.ax.plot(self.xax, self.data1D)
+        if tmpAx is not None:
+            self.ax.plot(tmpAx, tmpdata)
+        for i in range(len(tmpAx2)):
+            self.ax.plot(tmpAx2[i], tmpdata2[i])
+        if self.spec == 0:
+            if self.current.axType == 0:
+                self.ax.set_xlabel('Time [s]')
+            elif self.current.axType == 1:
+                self.ax.set_xlabel('Time [ms]')
+            elif self.current.axType == 2:
+                self.ax.set_xlabel(r'Time [$\mu$s]')
+            else:
+                self.ax.set_xlabel('User defined')
+        elif self.spec == 1:
+            if self.current.ppm:
+                self.ax.set_xlabel('Frequency [ppm]')
+            else:
+                if self.current.axType == 0:
+                    self.ax.set_xlabel('Frequency [Hz]')
+                elif self.current.axType == 1:
+                    self.ax.set_xlabel('Frequency [kHz]')
+                elif self.current.axType == 2:
+                    self.ax.set_xlabel('Frequency [MHz]')
+                else:
+                    self.ax.set_xlabel('User defined')
+        else:
+            self.ax.set_xlabel('')
+        self.ax.get_xaxis().get_major_formatter().set_powerlimits((-4, 4))
+        self.ax.get_yaxis().get_major_formatter().set_powerlimits((-4, 4))
+        if self.spec > 0 :
+            self.ax.set_xlim(self.xmaxlim, self.xminlim)
+        else:
+            self.ax.set_xlim(self.xminlim, self.xmaxlim)
+        self.ax.set_ylim(self.yminlim, self.ymaxlim)
+        self.canvas.draw()
+
+    def togglePick(self, var):
+        self.peakPickReset()
+        if var == 1:
+            self.peakPickFunc = lambda pos, self=self: self.pickDeconv(pos) 
+            self.peakPick = True
+        else:
+            self.peakPickFunc = None
+            self.peakPick = False
+        
+    def pickDeconv(self, pos):
+        self.rootwindow.paramframe.addValue(pos[0])
+        self.peakPickFunc = lambda pos, self=self: self.pickDeconv(pos) 
+        self.peakPick = True 
+
+#################################################################################
+class Quad1MASDeconvParamFrame(QtGui.QWidget): 
+    def __init__(self, parent, rootwindow):
+        QtGui.QWidget.__init__(self, rootwindow)
+        self.parent = parent
+        self.rootwindow = rootwindow
+        self.cheng = 15
+        self.NSTEPS = 30
+        grid = QtGui.QGridLayout(self)
+        self.setLayout(grid)
+        if self.parent.current.spec == 1:
+            self.axAdd = self.parent.current.freq-self.parent.current.ref
+        elif self.parent.current.spec == 0:
+            self.axAdd = 0
+        self.frame1 = QtGui.QGridLayout()
+        self.optframe = QtGui.QGridLayout()
+        self.frame2 = QtGui.QGridLayout()
+        self.frame3 = QtGui.QGridLayout()
+        self.frame4 = QtGui.QGridLayout()
+        grid.addLayout(self.frame1, 0, 0, 2, 1)
+        grid.addLayout(self.optframe, 0, 1, 2, 1)
+        grid.addLayout(self.frame2, 0, 2)
+        grid.addLayout(self.frame3, 0, 3)
+        grid.addLayout(self.frame4, 1, 3)
+        simButton = QtGui.QPushButton("Sim")
+        simButton.clicked.connect(self.sim)
+        self.frame1.addWidget(simButton, 0, 0)
+        fitButton = QtGui.QPushButton("Fit")
+        fitButton.clicked.connect(self.fit)
+        self.frame1.addWidget(fitButton, 1, 0)
+        cancelButton = QtGui.QPushButton("&Cancel")
+        cancelButton.clicked.connect(rootwindow.cancel)
+        self.frame1.addWidget(cancelButton, 3, 0)
+        resetButton = QtGui.QPushButton("Reset")
+        resetButton.clicked.connect(self.reset)
+        self.frame1.addWidget(resetButton, 0, 1)
+        self.pickTick = QtGui.QCheckBox("Pick")
+        self.pickTick.stateChanged.connect(self.togglePick)
+        self.frame1.addWidget(self.pickTick, 1, 1)
+        self.frame1.setColumnStretch(10, 1)
+        self.frame1.setAlignment(QtCore.Qt.AlignTop)
+        self.optframe.addWidget(QLabel("Cheng:"), 0, 0)
+        self.chengEntry = QtGui.QLineEdit()
+        self.chengEntry.setAlignment(QtCore.Qt.AlignHCenter)
+        self.chengEntry.setText(str(self.cheng))
+        self.optframe.addWidget(self.chengEntry, 1, 0)
+        self.optframe.setColumnStretch(10, 1)
+        self.optframe.setAlignment(QtCore.Qt.AlignTop)
+        self.optframe.addWidget(QLabel("Spinning speed [kHz]:"), 2, 0)
+        self.spinEntry = QtGui.QLineEdit()
+        self.spinEntry.setAlignment(QtCore.Qt.AlignHCenter)
+        self.spinEntry.setText("30.0")
+        self.optframe.addWidget(self.spinEntry, 3, 0)
+        self.I = 1 #the spin quantum number (now fixed)
+        #self.frame2.setColumnStretch(10, 1)
+        #self.frame2.setAlignment(QtCore.Qt.AlignTop)
+        self.frame3.addWidget(QLabel(u"Cq [MHz]:"), 1, 0, 1, 2)
+        self.frame3.addWidget(QLabel(u"\u03B7:"), 1, 2, 1, 2)
+        self.frame3.setColumnStretch(20, 1)
+        self.frame3.setAlignment(QtCore.Qt.AlignTop)
+        self.deltaEntry = QtGui.QLineEdit()
+        self.deltaEntry.setAlignment(QtCore.Qt.AlignHCenter)
+        self.deltaEntry.setText("1.0")
+        self.frame3.addWidget(self.deltaEntry, 2, 1)
+        self.deltaTick = QtGui.QCheckBox('')
+        self.frame3.addWidget(self.deltaTick, 2, 0)
+        self.etaEntry = QtGui.QLineEdit()
+        self.etaEntry.setAlignment(QtCore.Qt.AlignHCenter)
+        self.etaEntry.setText("0.00")
+        self.frame3.addWidget(self.etaEntry, 2, 3)
+        self.etaTick = QtGui.QCheckBox('')
+        self.frame3.addWidget(self.etaTick, 2, 2)
+        self.frame4.addWidget(QLabel("Sideband:"), 0, 0)
+        self.frame4.addWidget(QLabel("Integral:"), 1, 0)
+        self.frame4.addWidget(QLabel("Result:"), 2, 0)
+        self.frame4.setColumnStretch(100, 1)
+        self.sidebandList = []
+        self.sidebandEntries = []
+        self.integralList = []
+        self.integralEntries = []
+        self.resultList = []
+        self.resultLabels = []
+        self.tmpPos = None
+        self.reset()
+        grid.setColumnStretch(10, 1)
+        grid.setAlignment(QtCore.Qt.AlignLeft)
+
+    def reset(self):
+        self.sidebandList = []
+        self.integralList = []
+        self.resultList = []
+        for i in range(len(self.sidebandEntries)):
+            self.frame4.removeWidget(self.sidebandEntries[i])
+            self.frame4.removeWidget(self.integralEntries[i])
+            self.frame4.removeWidget(self.resultLabels[i])
+            self.sidebandEntries[i].deleteLater()
+            self.integralEntries[i].deleteLater()
+            self.resultLabels[i].deleteLater()
+        self.sidebandEntries = []
+        self.integralEntries = []
+        self.resultLabels = []
+        self.pickTick.setChecked(True)
+        self.togglePick()
+        self.parent.showPlot()
+
+    def addValue(self, value):
+        if self.tmpPos is None:
+            self.tmpPos = value
+        else:
+            n = len(self.integralList)
+            self.sidebandList.append((-1)**n*n//2)
+            self.integralList.append(np.sum(self.parent.data1D[min(self.tmpPos, value):max(self.tmpPos, value)])*self.parent.current.sw/float(self.parent.data1D.shape[-1]))
+            self.tmpPos = None
+            self.sidebandEntries.append(QtGui.QSpinBox(self, ))
+            self.sidebandEntries[-1].setMinimum(-99)
+            self.sidebandEntries[-1].setValue(self.sidebandList[-1])
+            self.frame4.addWidget(self.sidebandEntries[-1], 0, len(self.sidebandEntries))
+            self.integralEntries.append(QtGui.QLineEdit())
+            self.integralEntries[-1].setText('%#.5g' % self.integralList[-1])
+            self.frame4.addWidget(self.integralEntries[-1], 1, len(self.sidebandEntries))
+            self.resultLabels.append(QtGui.QLabel())
+            self.frame4.addWidget(self.resultLabels[-1], 2, len(self.sidebandEntries))
+
+    def togglePick(self):
+        self.parent.togglePick(self.pickTick.isChecked())
+                
+    def setCheng(self, *args):
+        inp = safeEval(self.chengEntry.text())
+        if inp is None:
+            self.cheng = 15
+        else:
+            self.cheng = int(inp)
+        self.chengEntry.setText(str(self.cheng))
+
+    def hbFunc(self, omega0, Cq, eta):
+        delta = 0.5*2*np.pi*3/(2*self.I*(2*self.I-1))*Cq*1e6 #Calc delta based on Cq [MHz] and spin qunatum
+        omegars =  delta*(self.C1  + self.C2 +  eta*(self.C1eta + self.C2eta + self.S1 + self.S2 ))
+        #QTrs = np.exp(-1j*np.cumsum(omegars, axis=1)*self.tresolution)
+        nsteps = self.C1.shape[1]
+        QTrs = np.concatenate([np.ones([self.C1.shape[0],1]),np.exp(-1j*np.cumsum(omegars, axis=1)*self.tresolution)[:,:-1]],1)
+        for j in range(1,nsteps):
+            QTrs[:,j] = np.exp(-1j*np.sum(omegars[:,0:j]*self.tresolution,1))
+        rhoT0sr = np.conj(QTrs)
+        #calculate the gamma-averaged FID over 1 rotor period for all crystallites
+        favrs = np.zeros(self.NSTEPS, dtype=complex)
+        for j in range(self.NSTEPS):
+            favrs[j] += np.sum(self.weight * np.sum(rhoT0sr * np.roll(QTrs, -j, axis=1), 1) / self.NSTEPS**2)
+        #calculate the sideband intensities by doing an FT and pick the ones that are needed further
+        sidebands = np.real(np.fft.fft(favrs))
+        return sidebands
+                
+    def fitFunc(self, param, x, y):
+        struc = self.args[0]
+        argu = self.args[1]
+        omega0 = self.args[2]
+        if struc[0]:
+            delta = param[0]
+            param = np.delete(param, [0])
+        else:
+            delta = argu[0]
+            argu = np.delete(argu, [0])
+        if struc[1]:
+            eta = param[0]
+            param = np.delete(param, [0])
+        else:
+            eta = argu[0]
+            argu = np.delete(argu, [0])
+        testFunc = self.hbFunc(omega0, delta, eta)
+        testFunc = (0.5*testFunc[np.array(x)]+0.5*testFunc[-np.array(x)])/np.sum(testFunc[x])*np.sum(self.integralList)
+        return np.sum((testFunc-y)**2)
+
+    def disp(self, outDelta, outEta):
+        testFunc = self.hbFunc(self.parent.current.freq*np.pi*2, outDelta, outEta)
+        results =  (0.5*testFunc[np.array(self.sidebandList)]+0.5*testFunc[-np.array(self.sidebandList)])
+        results /= np.sum(results)
+        for i in range(len(self.resultLabels)):
+            self.resultLabels[i].setText('%#.5g' % (results[i]*np.sum(self.integralList)))
+
+    def checkInputs(self):
+        inp = safeEval(self.deltaEntry.text())
+        if inp is None:
+            return False
+        self.deltaEntry.setText('%#.3g' % inp)
+        inp = safeEval(self.etaEntry.text())
+        if inp is None:
+            return False
+        self.etaEntry.setText('%#.3g' % inp)
+        if np.unique(self.sidebandList).size != len(self.sidebandList):
+            self.rootwindow.mainProgram.dispMsg("Multiple sidebands have the same index")
+            return False
+        for i in range(len(self.sidebandList)):
+            inp = safeEval(self.integralEntries[i].text())
+            self.integralList[i] = inp
+            if inp is None:
+                return False
+            self.integralEntries[i].setText('%#.5g' % inp)
+        return True
+        
+    def fit(self, *args):
+        if len(self.integralList) < 2:
+            self.rootwindow.mainProgram.dispMsg("Not enough integrals selected")
+            return
+        self.setCheng()
+        if not self.checkInputs():
+            self.rootwindow.mainProgram.dispMsg("One of the inputs is not valid")
+            return
+        struc = []
+        guess = []
+        argu = []
+        omegar = float(self.spinEntry.text())*1e3*np.pi*2
+        if not self.deltaTick.isChecked():
+            guess.append(float(self.deltaEntry.text()))
+            struc.append(True)
+        else:
+            outDelta = float(self.deltaEntry.text())
+            argu.append(outDelta)
+            struc.append(False)
+        if not self.etaTick.isChecked():
+            guess.append(float(self.etaEntry.text()))
+            struc.append(True)
+        else:
+            outEta = float(self.etaEntry.text())
+            argu.append(outEta)
+            struc.append(False)
+        self.args = (struc, argu, self.parent.current.freq*np.pi*2)
+        theta, phi, self.weight = zcw_angles(self.cheng, symm=2) #Theta and phi switched as algorithm actually uses alpha and beta as input.
+        sinPhi = np.sin(phi)
+        cosPhi = np.cos(phi)
+        sin2Theta = np.sin(2*theta)
+        cos2Theta = np.cos(2*theta)
+        self.tresolution = 2*np.pi/omegar/self.NSTEPS
+        self.t = np.linspace(0, self.tresolution*(self.NSTEPS-1), self.NSTEPS)
+        cosOmegarT = np.cos(omegar*self.t)
+        cos2OmegarT = np.cos(2*omegar*self.t)
+        self.S1 = np.array([np.sqrt(2)/3 *  sinPhi * sin2Theta]).transpose()* np.sin(omegar*self.t)
+        self.S2 =  np.array([cosPhi * sin2Theta/3]).transpose()* np.sin(2*omegar*self.t)
+        self.C1 = np.array([np.sqrt(2)/3 *  sinPhi * cosPhi * 3 ]).transpose()* cosOmegarT
+        self.C1eta = np.transpose([cos2Theta / 3.0]) * self.C1
+        self.C2 = np.array([-1.0 / 3 *  3/2*sinPhi**2 ]).transpose()* cos2OmegarT
+        self.C2eta = np.array([1.0 / 3 /2*(1+cosPhi**2)*cos2Theta ]).transpose()* cos2OmegarT
+        fitVal = scipy.optimize.fmin(self.fitFunc, guess, args=(self.sidebandList, np.real(self.integralList)),disp=False)
+        counter = 0
+        if struc[0]:
+            self.deltaEntry.setText('%.3g' % (fitVal[counter]))
+            outDelta = fitVal[counter]
+            counter += 1
+        if struc[1]:
+            self.etaEntry.setText('%.3g' % fitVal[counter])
+            outEta = fitVal[counter]
+            counter += 1
+        self.disp(outDelta, outEta)
+ 
+    def sim(self):
+        if len(self.integralList) < 2:
+            self.rootwindow.mainProgram.dispMsg("Not enough integrals selected")
+            return
+        self.setCheng()
+        if not self.checkInputs():
+            self.rootwindow.mainProgram.dispMsg("One of the inputs is not valid")
+            return
+        omegar = float(self.spinEntry.text())*1e3*np.pi*2
+        outDelta = float(self.deltaEntry.text())
+        outEta = float(self.etaEntry.text())
+        theta, phi, self.weight = zcw_angles(self.cheng, symm=2) #Theta and phi switched as algorithm actually uses alpha and beta as input.
+        sinPhi = np.sin(phi)
+        cosPhi = np.cos(phi)
+        sin2Theta = np.sin(2*theta)
+        cos2Theta = np.cos(2*theta)
+        self.tresolution = 2*np.pi/omegar/self.NSTEPS
+        self.t = np.linspace(0, self.tresolution*(self.NSTEPS-1), self.NSTEPS)
+        cosOmegarT = np.cos(omegar*self.t)
+        cos2OmegarT = np.cos(2*omegar*self.t)
+        self.S1 = np.array([np.sqrt(2)/3 *  sinPhi * sin2Theta]).transpose()* np.sin(omegar*self.t)
+        self.S2 =  np.array([cosPhi * sin2Theta/3]).transpose()* np.sin(2*omegar*self.t)
+        self.C1 = np.array([np.sqrt(2)/3 *  sinPhi * cosPhi * 3 ]).transpose()* cosOmegarT
+        self.C1eta = np.transpose([cos2Theta / 3.0]) * self.C1
+        self.C2 = np.array([-1.0 / 3 *  3/2*sinPhi**2 ]).transpose()* cos2OmegarT
+        self.C2eta = np.array([1.0 / 3 /2*(1+cosPhi**2)*cos2Theta ]).transpose()* cos2OmegarT
+        self.disp(outDelta, outEta)     
+
+
+
 ##############################################################################
 class Quad1DeconvWindow(FittingWindow): 
     def __init__(self, mainProgram, oldMainWindow):
@@ -4057,7 +4452,7 @@ class Quad1DeconvParamFrame(QtGui.QWidget):
                 struc.append(False)
         self.args = (numExp, struc, argu, I)
         self.setAngleStuff()
-        fitVal = scipy.optimize.fmin(self.fitFunc, guess, args=(self.parent.xax, np.real(self.parent.data1D)))
+        fitVal = scipy.optimize.fmin(self.fitFunc, guess, args=(self.parent.xax, np.real(self.parent.data1D)),disp=False)
         counter = 0
         if struc[0]:
             self.bgrndEntry.setText('%.3g' % fitVal[counter])
@@ -4183,7 +4578,7 @@ class Quad1DeconvParamFrame(QtGui.QWidget):
         counter2 = 0
         for j in rolledData.reshape(dataShape[axes], np.product(dataShape2)).T:
             try:
-                fitVal = scipy.optimize.fmin(self.fitFunc, guess, args=(self.parent.xax, np.real(j)))
+                fitVal = scipy.optimize.fmin(self.fitFunc, guess, args=(self.parent.xax, np.real(j)),disp=False)
             except:
                 fitVal = [[0]*10]
             counter = 0
@@ -4772,7 +5167,7 @@ class Quad2StaticCzjzekParamFrame(QtGui.QWidget):
         numCq = int(self.cqGridEntry.text())
         numEta = int(self.etaGridEntry.text())
         self.genLib(len(self.parent.xax), I, maxCq*4.0, numCq, numEta)
-        fitVal = scipy.optimize.fmin(self.fitFunc, guess, args=(self.parent.xax, np.real(self.parent.data1D)))
+        fitVal = scipy.optimize.fmin(self.fitFunc, guess, args=(self.parent.xax, np.real(self.parent.data1D)),disp=False)
         counter = 0
         if struc[0]:
             self.bgrndEntry.setText('%.3g' % fitVal[counter])
@@ -4906,7 +5301,7 @@ class Quad2StaticCzjzekParamFrame(QtGui.QWidget):
         counter2 = 0
         for j in rolledData.reshape(dataShape[axes], np.product(dataShape2)).T:
             try:
-                fitVal = scipy.optimize.fmin(self.fitFunc, guess, args=(self.parent.xax, np.real(j)))
+                fitVal = scipy.optimize.fmin(self.fitFunc, guess, args=(self.parent.xax, np.real(j)),disp=False)
             except:
                 fitVal = [[0]*10]
             counter = 0

@@ -205,6 +205,7 @@ class MainProgram(QtGui.QMainWindow):
         self.fittingMenu.addAction("&CSA static", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.createTensorDeconvWindow()))
         self.fittingMenu.addAction("CSA MAS", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.createHerzfeldBergerWindow()))
         self.fittingMenu.addAction("First order &quadrupole", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.createQuad1DeconvWindow()))
+        self.fittingMenu.addAction("First order &quadrupole MAS", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.createQuad1MASDeconvWindow()))
         self.fittingMenu.addAction("S&econd order quadrupole static", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.createQuad2StaticDeconvWindow()))
         self.fittingMenu.addAction("Se&cond order quadrupole MAS", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.createQuad2MASDeconvWindow()))
         self.fittingMenu.addAction("Czjzek s&tatic", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.createQuad2StaticCzjzekWindow()))
@@ -1735,6 +1736,9 @@ class Main1DWindow(QtGui.QWidget):
 
     def createHerzfeldBergerWindow(self):
         self.father.createFitWindow(fit.HerzfeldBergerWindow(self.father, self.father.mainWindow))
+
+    def createQuad1MASDeconvWindow(self):
+        self.father.createFitWindow(fit.Quad1MASDeconvWindow(self.father, self.father.mainWindow))
 
     def createQuad1DeconvWindow(self):
         self.father.createFitWindow(fit.Quad1DeconvWindow(self.father, self.father.mainWindow))
