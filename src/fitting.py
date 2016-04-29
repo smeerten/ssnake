@@ -3676,7 +3676,8 @@ class Quad1MASDeconvFrame(Plot1DFrame):
 
 #################################################################################
 class Quad1MASDeconvParamFrame(QtGui.QWidget): 
-    Ioptions = ['1']
+    Ioptions = ['1','3/2','2','5/2','3','7/2','4','9/2']
+    Ivalues=[1.0,1.5,2.0,2.5,3.0,3.5,4.0,4.5]
     
     def __init__(self, parent, rootwindow):
         QtGui.QWidget.__init__(self, rootwindow)
@@ -3822,20 +3823,31 @@ class Quad1MASDeconvParamFrame(QtGui.QWidget):
         self.chengEntry.setText(str(self.cheng))
 
     def hbFunc(self, omega0, Cq, eta):
-        delta = 0.5*2*np.pi*3/(2*self.I*(2*self.I-1))*Cq*1e6 #Calc delta based on Cq [MHz] and spin qunatum
-        omegars =  delta*(self.C1  + self.C2 +  eta*(self.C1eta + self.C2eta + self.S1 + self.S2 ))
-        #QTrs = np.exp(-1j*np.cumsum(omegars, axis=1)*self.tresolution)
+        m=np.arange(-self.I,0) #Only half the transitions have to be caclulated, as the others are mirror images (sidebands inversed)
+        eff = self.I**2+self.I-m*(m+1) #The detection efficiencies of the top half transitions
+        splitting = np.arange(self.I-0.5,-0.1,-1) #The quadrupolar couplings of the top half transitions
         nsteps = self.C1.shape[1]
-        QTrs = np.concatenate([np.ones([self.C1.shape[0],1]),np.exp(-1j*np.cumsum(omegars, axis=1)*self.tresolution)[:,:-1]],1)
-        for j in range(1,nsteps):
-            QTrs[:,j] = np.exp(-1j*np.sum(omegars[:,0:j]*self.tresolution,1))
-        rhoT0sr = np.conj(QTrs)
-        #calculate the gamma-averaged FID over 1 rotor period for all crystallites
-        favrs = np.zeros(self.NSTEPS, dtype=complex)
-        for j in range(self.NSTEPS):
-            favrs[j] += np.sum(self.weight * np.sum(rhoT0sr * np.roll(QTrs, -j, axis=1), 1) / self.NSTEPS**2)
-        #calculate the sideband intensities by doing an FT and pick the ones that are needed further
-        sidebands = np.real(np.fft.fft(favrs))
+        sidebands=np.zeros(nsteps)
+        
+        for transition in range(len(eff)): #For all transitions
+            if splitting[transition] != 0: #If quad coupling not zero: calculate sideban pattern
+                delta = splitting[transition]*2*np.pi*3/(2*self.I*(2*self.I-1))*Cq*1e6 #Calc delta based on Cq [MHz] and spin qunatum
+                omegars =  delta*(self.C1  + self.C2 +  eta*(self.C1eta + self.C2eta + self.S1 + self.S2 ))
+                #QTrs = np.exp(-1j*np.cumsum(omegars, axis=1)*self.tresolution)
+                
+                QTrs = np.concatenate([np.ones([self.C1.shape[0],1]),np.exp(-1j*np.cumsum(omegars, axis=1)*self.tresolution)[:,:-1]],1)
+                for j in range(1,nsteps):
+                    QTrs[:,j] = np.exp(-1j*np.sum(omegars[:,0:j]*self.tresolution,1))
+                rhoT0sr = np.conj(QTrs)
+                #calculate the gamma-averaged FID over 1 rotor period for all crystallites
+                favrs = np.zeros(self.NSTEPS, dtype=complex)
+                for j in range(self.NSTEPS):
+                    favrs[j] += np.sum(self.weight * np.sum(rhoT0sr * np.roll(QTrs, -j, axis=1), 1) / self.NSTEPS**2)
+                #calculate the sideband intensities by doing an FT and pick the ones that are needed further
+                partbands=np.real(np.fft.fft(favrs))
+                sidebands = sidebands + eff[transition]*(partbands+np.roll(np.flipud(partbands),1))
+            else:#If zero: add all the intensity to the centreband
+                sidebands[0] =  sidebands[0] + eff[transition]
         return sidebands
                 
     def fitFunc(self, param, x, y):
@@ -3855,12 +3867,12 @@ class Quad1MASDeconvParamFrame(QtGui.QWidget):
             eta = argu[0]
             argu = np.delete(argu, [0])
         testFunc = self.hbFunc(omega0, delta, eta)
-        testFunc = (0.5*testFunc[np.array(x)]+0.5*testFunc[-np.array(x)])/np.sum(testFunc[x])*np.sum(self.integralList)
+        testFunc = testFunc[np.array(x)]/np.sum(testFunc[x])*np.sum(self.integralList)
         return np.sum((testFunc-y)**2)
 
     def disp(self, outDelta, outEta):
         testFunc = self.hbFunc(self.parent.current.freq*np.pi*2, outDelta, outEta)
-        results =  (0.5*testFunc[np.array(self.sidebandList)]+0.5*testFunc[-np.array(self.sidebandList)])
+        results =  testFunc[np.array(self.sidebandList)]
         results /= np.sum(results)
         for i in range(len(self.resultLabels)):
             self.resultLabels[i].setText('%#.5g' % (results[i]*np.sum(self.integralList)))
@@ -3911,7 +3923,7 @@ class Quad1MASDeconvParamFrame(QtGui.QWidget):
             outEta = float(self.etaEntry.text())
             argu.append(outEta)
             struc.append(False)
-        self.I = int(self.IEntry.currentText())
+        self.I = self.Ivalues[self.IEntry.currentIndex()]
         self.args = (struc, argu, self.parent.current.freq*np.pi*2)
         theta, phi, self.weight = zcw_angles(self.cheng, symm=2) #Theta and phi switched as algorithm actually uses alpha and beta as input.
         sinPhi = np.sin(phi)
@@ -3948,7 +3960,7 @@ class Quad1MASDeconvParamFrame(QtGui.QWidget):
         if not self.checkInputs():
             self.rootwindow.mainProgram.dispMsg("One of the inputs is not valid")
             return
-        self.I = int(self.IEntry.currentText())
+        self.I = self.Ivalues[self.IEntry.currentIndex()]
         omegar = float(self.spinEntry.text())*1e3*np.pi*2
         outDelta = float(self.deltaEntry.text())
         outEta = float(self.etaEntry.text())
