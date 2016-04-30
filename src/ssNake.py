@@ -102,7 +102,6 @@ class MainProgram(QtGui.QMainWindow):
         self.exportmenu.addAction(QtGui.QIcon(IconDirectory + 'ssnake.png'), 'ASCII (1D/2D)', self.saveASCIIFile)
         self.filemenu.addAction(QtGui.QIcon(IconDirectory + 'quit.png'), '&Quit', self.fileQuit, QtGui.QKeySequence.Quit)
         
-        
         #Workspaces menu
         self.workspacemenu = QtGui.QMenu('&Workspaces', self)
         self.menubar.addMenu(self.workspacemenu)
@@ -113,6 +112,7 @@ class MainProgram(QtGui.QMainWindow):
         self.workspacemenu.addMenu(self.activemenu)
         self.forwardAct = self.workspacemenu.addAction(QtGui.QIcon(IconDirectory + 'next.png'), '&Next', lambda: self.stepWorkspace(1), QtGui.QKeySequence.Forward)
         self.backAct = self.workspacemenu.addAction(QtGui.QIcon(IconDirectory + 'previous.png'), '&Previous', lambda: self.stepWorkspace(-1), QtGui.QKeySequence.Back)
+        self.workspacemenu.addAction('&Combine', self.createCombineWorkspaceWindow)
         
         #Macro menu
         self.macromenu = QtGui.QMenu('&Macros', self)
@@ -642,7 +642,31 @@ class MainProgram(QtGui.QMainWindow):
         self.workspaceNames.append(name)
         self.changeMainWindow(name)
         return 1
-        
+
+    def createCombineWorkspaceWindow(self):
+        CombineWorkspaceWindow(self)
+
+    def combineWorkspace(self, combineNames):
+        wsname = self.askName()
+        if wsname is None:
+            return
+        i = self.workspaceNames.index(combineNames[0])
+        combineMasterData = copy.deepcopy(self.workspaces[i].get_masterData())
+        shapeRequired = combineMasterData.data.shape
+        combineMasterData.split(1,-1)
+        for name in combineNames[1:]:
+            i = self.workspaceNames.index(name)
+            addData = self.workspaces[i].get_masterData()
+            if addData.data.shape != shapeRequired:
+                self.dispMsg("Not all the data has the required shape")
+                return False
+            combineMasterData.insert(addData.data, combineMasterData.data.shape[0], 0)            
+        self.workspaces.append(Main1DWindow(self, combineMasterData, name=wsname))
+        self.tabs.addTab(self.workspaces[-1], wsname)
+        self.workspaceNames.append(wsname)
+        self.changeMainWindow(wsname)
+        return True
+
     def loadFromMenu(self):
         fileList = QtGui.QFileDialog.getOpenFileNames(self, 'Open File', self.LastLocation)
         for filePath in fileList:
@@ -4918,7 +4942,7 @@ class RefWindow(QtGui.QWidget):
 class HistoryWindow(QtGui.QWidget): 
     def __init__(self, parent):
         QtGui.QWidget.__init__(self, parent)
-        self.setWindowFlags(QtCore.Qt.Window| QtCore.Qt.Tool)
+        self.setWindowFlags(QtCore.Qt.Window | QtCore.Qt.Tool)
         self.father = parent
         self.setWindowTitle("Processing history")
         layout = QtGui.QGridLayout(self)
@@ -4940,7 +4964,81 @@ class HistoryWindow(QtGui.QWidget):
     def closeEvent(self, *args):
         self.father.menuEnable()
         self.deleteLater()
-            
+
+#########################################################################################
+class OrigListWidget(QtGui.QListWidget):
+    def __init__(self, type, parent=None):
+        super(OrigListWidget, self).__init__(parent)
+        self.setDragDropMode(QtGui.QAbstractItemView.DragDrop)
+        self.setSelectionMode(QtGui.QAbstractItemView.ExtendedSelection)
+        self.setAcceptDrops(True)
+
+    def dropEvent(self, event):
+        pass
+
+#########################################################################################
+class DestListWidget(QtGui.QListWidget):
+    def __init__(self, type, parent=None):
+        super(DestListWidget, self).__init__(parent)
+        self.setDragDropMode(QtGui.QAbstractItemView.DragDrop)
+        self.setSelectionMode(QtGui.QAbstractItemView.ExtendedSelection)
+        self.setAcceptDrops(True)
+
+    def dropEvent(self, event):
+        if event.source() == self:
+            event.setDropAction(QtCore.Qt.MoveAction)
+            super(DestListWidget, self).dropEvent(event)
+        else:
+            event.setDropAction(QtCore.Qt.CopyAction)
+            super(DestListWidget, self).dropEvent(event)
+
+    def keyPressEvent(self, event):
+        if event.key() == QtCore.Qt.Key_Delete:
+            for item in self.selectedItems():
+                self.takeItem(self.row(item))
+        
+##########################################################################################
+class CombineWorkspaceWindow(QtGui.QWidget):
+    def __init__(self, parent):
+        QtGui.QWidget.__init__(self, parent)
+        self.setWindowFlags(QtCore.Qt.Window | QtCore.Qt.Tool)
+        self.father = parent
+        self.setWindowTitle("Combine workspaces")
+        layout = QtGui.QGridLayout(self)
+        grid = QtGui.QGridLayout()
+        layout.addLayout(grid, 0, 0, 1, 3)
+        grid.addWidget(QLabel("Workspaces:"), 0, 0)
+        grid.addWidget(QLabel("Combined spectrum:"), 0, 1)
+        self.listA = OrigListWidget(self)
+        for i in self.father.workspaceNames:
+            QtGui.QListWidgetItem(i, self.listA)
+        self.listB = DestListWidget(self)
+        grid.addWidget(self.listA, 1, 0)
+        grid.addWidget(self.listB, 1, 1)
+        cancelButton = QtGui.QPushButton("&Close")
+        cancelButton.clicked.connect(self.closeEvent)
+        layout.addWidget(cancelButton, 2, 0)
+        okButton = QtGui.QPushButton("&Ok")
+        okButton.clicked.connect(self.applyAndClose)
+        layout.addWidget(okButton, 2, 1)
+        layout.setColumnStretch(2, 1)
+        self.show()
+        self.setFixedSize(self.size())
+        self.father.menuDisable()
+        self.setGeometry(self.frameSize().width()-self.geometry().width(), self.frameSize().height()-self.geometry().height(), 0, 0)
+
+    def applyAndClose(self, *args):
+        items = []
+        for index in range(self.listB.count()):
+            items.append(self.listB.item(index).text())
+        if self.father.combineWorkspace(items):
+            self.father.menuEnable()
+            self.deleteLater()
+        
+    def closeEvent(self, *args):
+        self.father.menuEnable()
+        self.deleteLater()
+        
 root = QtGui.QApplication(sys.argv)
 root.setWindowIcon(QtGui.QIcon(os.path.dirname(os.path.realpath(__file__))+'/logo.gif')) 
 mainProgram = MainProgram(root)
