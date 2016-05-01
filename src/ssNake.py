@@ -57,7 +57,9 @@ class MainProgram(QtGui.QMainWindow):
         self.workspaceNames = []
         self.workspaceNum = 0
         self.macros = {}
-        self.macroActions = {} 
+        self.macroActions = {}
+        self.referenceName=[] #List with saved refrence names
+        self.referenceValue=[] #List with saved refrence values
         self.LastLocation = ''
         self.initMenu()
         self.menuCheck()
@@ -228,7 +230,26 @@ class MainProgram(QtGui.QMainWindow):
         self.multiDActions.append(self.plotMenu.addAction("&Contour plot", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.plotContour())))
         self.multiDActions.append(self.plotMenu.addAction("S&kewed plot", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.plotSkewed())))
         self.plotMenu.addAction("&Multi plot", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.plotMulti()))
-        self.plotMenu.addAction("Set &reference", lambda: self.mainWindowCheck(lambda mainWindow: RefWindow(mainWindow)))
+        
+        
+        self.referencelistmenu = QtGui.QMenu('&Reference', self)
+        self.plotMenu.addMenu(self.referencelistmenu)
+        self.referencelistmenu.addAction("Set &reference", lambda: self.mainWindowCheck(lambda mainWindow: RefWindow(mainWindow)))
+        self.referencerunmenu = QtGui.QMenu('&Run', self)
+        self.referencelistmenu.addMenu(self.referencerunmenu)
+        
+        
+#        self.macrorenamemenu = QtGui.QMenu('Re&name', self)
+#        self.macromenu.addMenu(self.macrorenamemenu)
+#        self.macrodeletemenu = QtGui.QMenu('&Delete', self)
+#        self.macromenu.addMenu(self.macrodeletemenu)
+#        self.macrosavemenu = QtGui.QMenu('&Save', self)
+#        self.macromenu.addMenu(self.macrosavemenu)
+#        self.macromenu.addAction('&Load', self.loadMacro)
+        
+        
+        
+        
         self.plotMenu.addAction("&User x-axis", lambda: self.mainWindowCheck(lambda mainWindow: XaxWindow(mainWindow)))
         self.xgridAction = QtGui.QAction(QtGui.QIcon(IconDirectory + 'xgrid.png'),"&X-grid", self.plotMenu, checkable=True)
         self.xgridAction.triggered.connect(lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.setGrid()))
@@ -4881,18 +4902,22 @@ class RefWindow(QtGui.QWidget):
             self.father.father.dispMsg('Setting ppm is only available for frequency data')
             self.deleteLater()
             return
-        grid.addWidget(QLabel("Frequency [MHz]:"), 0, 0)
+        grid.addWidget(QLabel("Name:"), 0, 0)
+        self.refName = QtGui.QLineEdit()
+        self.refName.setAlignment(QtCore.Qt.AlignHCenter)
+        grid.addWidget(self.refName, 1, 0)
+        grid.addWidget(QLabel("Frequency [MHz]:"), 2, 0)
         self.freqEntry = QtGui.QLineEdit()
         self.freqEntry.setText("%.7f" % (self.father.current.ref*1e-6))
         self.freqEntry.setAlignment(QtCore.Qt.AlignHCenter)
         self.freqEntry.returnPressed.connect(self.preview)
-        grid.addWidget(self.freqEntry, 1, 0)
-        grid.addWidget(QLabel("Reference [ppm]:"), 2, 0)
+        grid.addWidget(self.freqEntry, 3, 0)
+        grid.addWidget(QLabel("Reference [ppm]:"), 4, 0)
         self.refEntry = QtGui.QLineEdit()
         self.refEntry.setText("0.0")
         self.refEntry.setAlignment(QtCore.Qt.AlignHCenter)
         self.refEntry.returnPressed.connect(self.preview)
-        grid.addWidget(self.refEntry, 3, 0)
+        grid.addWidget(self.refEntry, 5, 0)
         cancelButton = QtGui.QPushButton("&Cancel")
         cancelButton.clicked.connect(self.closeEvent)
         layout.addWidget(cancelButton, 2, 0)
@@ -4921,6 +4946,7 @@ class RefWindow(QtGui.QWidget):
         self.deleteLater()
 
     def applyAndClose(self):
+
         self.father.current.peakPickReset()
         freq = safeEval(self.freqEntry.text())
         ref = safeEval(self.refEntry.text())
@@ -4930,8 +4956,17 @@ class RefWindow(QtGui.QWidget):
         freq = freq*1e6
         self.father.redoList = []
         self.father.undoList.append(self.father.current.setRef(freq/(1.0+ref*1e-6)))
+        givenname = self.refName.text()
+      #  if givenname:#If name is filled in
+       #     self.father.mainProgram.referenceName.append(givenname) #List with saved refrence names
+       #     self.father.mainProgram.referenceValue.append(freq/(1.0+ref*1e-6)) #List with saved refrence values
+       #     action1 = self.father.mainProgram.referencerunmenu.addAction(givenname, lambda name=givenname: self.RunReference(name))
         self.father.menuEnable()
         self.deleteLater()
+        
+    #def RunReference(self,name):
+    #    self.undoList.append(self.father.current.setRef(self.father.mainProgram.referenceValue[-1]))
+        
         
     def picked(self, pos): 
         self.freqEntry.setText("%.7f" % ((self.father.current.ref+self.father.current.xax[pos[0]])*1e-6))
