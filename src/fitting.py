@@ -38,12 +38,12 @@ class FittingWindow(QtGui.QWidget):
         QtGui.QWidget.__init__(self, mainProgram)
         self.mainProgram = mainProgram
         self.oldMainWindow = oldMainWindow
-        self.name = self.oldMainWindow.name
         self.fig = Figure()
         self.canvas = FigureCanvas(self.fig)
         grid = QtGui.QGridLayout(self)
         grid.addWidget(self.canvas, 0, 0)
         self.setup()
+        self.fig.suptitle(self.oldMainWindow.masterData.name)
         grid.addWidget(self.paramframe, 1, 0)
         grid.setColumnStretch(0, 1)
         grid.setRowStretch(0, 1)

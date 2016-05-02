@@ -35,7 +35,8 @@ COLORMAPLIST = ['seismic', 'BrBG', 'bwr', 'coolwarm', 'PiYG', 'PRGn', 'PuOr',
 #########################################################################
 #the generic data class
 class Spectrum:
-    def __init__(self, data, loadFunc , freq , sw , spec=None, wholeEcho=None, ref=None, xaxArray=None, history=None, msgHandler=None):
+    def __init__(self, name, data, loadFunc , freq , sw , spec=None, wholeEcho=None, ref=None, xaxArray=None, history=None, msgHandler=None):
+        self.name = name
         self.dim = len(data.shape)                    #number of dimensions
         self.data = np.array(data, dtype=complex)      #data of dimension dim
         self.loadFunc = loadFunc
@@ -70,6 +71,9 @@ class Spectrum:
         else:
             self.msgHandler(msg)
 
+    def rename(self, name):
+        self.name = name
+            
     def getHistory(self):
         return "\n".join(self.history)
 
@@ -497,15 +501,15 @@ class Spectrum:
         if len(tmpdata) == 1:
             if self.dim == 1:
                 tmpdata = np.array([tmpdata[0]])
-                newSpec = Spectrum(tmpdata, self.loadFunc, copy.deepcopy(self.freq), copy.deepcopy(self.sw), copy.deepcopy(self.spec), copy.deepcopy(self.wholeEcho), copy.deepcopy(self.ref), copy.deepcopy(self.xaxArray), copy.deepcopy(self.history), self.msgHandler)
+                newSpec = Spectrum(self.name, tmpdata, self.loadFunc, copy.deepcopy(self.freq), copy.deepcopy(self.sw), copy.deepcopy(self.spec), copy.deepcopy(self.wholeEcho), copy.deepcopy(self.ref), copy.deepcopy(self.xaxArray), copy.deepcopy(self.history), self.msgHandler)
                 newSpec.resetXax(axes)
             else:
                 tmpXax = copy.deepcopy(self.xaxArray)
                 del tmpXax[axes]
-                newSpec = Spectrum(tmpdata[0], self.loadFunc, copy.deepcopy(np.delete(self.freq, axes)), copy.deepcopy(np.delete(self.sw, axes)), copy.deepcopy(np.delete(self.spec, axes)), copy.deepcopy(np.delete(self.wholeEcho, axes)), copy.deepcopy(np.delete(self.ref, axes)), tmpXax, copy.deepcopy(self.history), self.msgHandler)
+                newSpec = Spectrum(self.name, tmpdata[0], self.loadFunc, copy.deepcopy(np.delete(self.freq, axes)), copy.deepcopy(np.delete(self.sw, axes)), copy.deepcopy(np.delete(self.spec, axes)), copy.deepcopy(np.delete(self.wholeEcho, axes)), copy.deepcopy(np.delete(self.ref, axes)), tmpXax, copy.deepcopy(self.history), self.msgHandler)
         else:
             tmpdata = np.concatenate(tmpdata, axis=axes)
-            newSpec = Spectrum(tmpdata, self.loadFunc, copy.deepcopy(self.freq), copy.deepcopy(self.sw), copy.deepcopy(self.spec), copy.deepcopy(self.wholeEcho), copy.deepcopy(self.ref), copy.deepcopy(self.xaxArray), copy.deepcopy(self.history), self.msgHandler)
+            newSpec = Spectrum(self.name, tmpdata, self.loadFunc, copy.deepcopy(self.freq), copy.deepcopy(self.sw), copy.deepcopy(self.spec), copy.deepcopy(self.wholeEcho), copy.deepcopy(self.ref), copy.deepcopy(self.xaxArray), copy.deepcopy(self.history), self.msgHandler)
             newSpec.resetXax(axes)
         if which == 0:
             newSpec.addHistory("Integrate between " + str(pos1) + " and " + str(pos2) + " of dimension " + str(axes+1))
@@ -564,7 +568,7 @@ class Spectrum:
             if tmpref[axes] is None:
                 tmpref[axes] = tmpfreq[axes]
             tmpfreq[axes] = tmpfreq[axes] - newFxax+oldFxax
-        newSpec = Spectrum(tmpdata, self.loadFunc, tmpfreq, tmpsw, copy.deepcopy(self.spec), copy.deepcopy(self.wholeEcho), tmpref, copy.deepcopy(self.xaxArray), copy.deepcopy(self.history), self.msgHandler)
+        newSpec = Spectrum(self.name, tmpdata, self.loadFunc, tmpfreq, tmpsw, copy.deepcopy(self.spec), copy.deepcopy(self.wholeEcho), tmpref, copy.deepcopy(self.xaxArray), copy.deepcopy(self.history), self.msgHandler)
         newSpec.resetXax(axes)
         newSpec.addHistory("Extracted part between " + str(minPos) + " and " + str(maxPos) + " of dimension " + str(axes+1))
         return newSpec
@@ -1106,6 +1110,7 @@ class Current1D(Plot1DFrame):
             self.grids = [False, False] # display x and y grid
             self.colorMap = 'seismic' # colormap for contour like plots
             self.upd()   #get the first slice of data
+            self.fig.suptitle(self.data.name)
             self.startUp()
         else:
             self.ppm = duplicateCurrent.ppm
@@ -1137,14 +1142,20 @@ class Current1D(Plot1DFrame):
             xReset = self.X_RESIZE or duplicateCurrent.X_RESIZE
             yReset = self.Y_RESIZE or duplicateCurrent.Y_RESIZE
             self.upd()   #get the first slice of data
+            self.fig.suptitle(self.data.name)
             self.startUp(xReset, yReset)
-
+            
     def dispMsg():
         self.data1D.dispMsg()
             
     def startUp(self, xReset=True, yReset=True):
         self.plotReset(xReset, yReset) #reset the axes limits
         self.showFid() #plot the data
+
+    def rename(self, name):
+        self.data.rename(name)
+        self.fig.suptitle(name)
+        self.canvas.draw()
         
     def copyCurrent(self, root, fig, canvas, data):
         return Current1D(root, fig, canvas, data, self)
@@ -1990,7 +2001,7 @@ class Current1D(Plot1DFrame):
         if old:
             if (self.plotType == 0):
                 if self.single:
-                    self.ax.scatter(self.line_xdata, np.real(self.data1D), c='k', alpha=0.2)
+                    self.ax.scatter(self.line_xdata, np.real(self.data1D), c='k', alpha=0.2, label=self.name)
                 else:
                     self.ax.plot(self.line_xdata, np.real(self.data1D), c='k', alpha=0.2)
             elif(self.plotType == 1):

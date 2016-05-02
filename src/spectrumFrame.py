@@ -59,7 +59,6 @@ class Plot1DFrame:
         #variables to be initialized
         self.spec = 0
         self.spec2 = 0
-        self.fig.suptitle(root.name)
         
     def kill(self):
         pass

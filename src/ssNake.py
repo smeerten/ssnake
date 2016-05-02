@@ -621,7 +621,8 @@ class MainProgram(QtGui.QMainWindow):
         name = self.askName()
         if name is None:
             return
-        self.workspaces.append(Main1DWindow(self, copy.deepcopy(self.mainWindow.get_masterData()), self.mainWindow.get_current(), name=name))
+        self.workspaces.append(Main1DWindow(self, copy.deepcopy(self.mainWindow.get_masterData()), self.mainWindow.get_current()))
+        self.workspaces[-1].rename(name)
         self.tabs.addTab(self.workspaces[-1], name)
         self.workspaceNames.append(name)
         self.changeMainWindow(name)
@@ -671,7 +672,8 @@ class MainProgram(QtGui.QMainWindow):
         name = self.askName()
         if name is None:
             return
-        self.workspaces.append(Main1DWindow(self, masterData, name=name))
+        self.workspaces.append(Main1DWindow(self, masterData))
+        self.workspaces[-1].rename(name)
         self.tabs.addTab(self.workspaces[-1], name)
         self.workspaceNames.append(name)
         self.changeMainWindow(name)
@@ -695,7 +697,8 @@ class MainProgram(QtGui.QMainWindow):
                 self.dispMsg("Not all the data has the required shape")
                 return False
             combineMasterData.insert(addData.data, combineMasterData.data.shape[0], 0)            
-        self.workspaces.append(Main1DWindow(self, combineMasterData, name=wsname))
+        self.workspaces.append(Main1DWindow(self, combineMasterData))
+        self.workspaces[-1].rename(wsname)
         self.tabs.addTab(self.workspaces[-1], wsname)
         self.workspaceNames.append(wsname)
         self.changeMainWindow(wsname)
@@ -765,9 +768,9 @@ class MainProgram(QtGui.QMainWindow):
         name = self.askName()
         if name is None:
             return
-        masterData = sc.Spectrum(data, lambda self :self.dataFromFit(data, freq , sw , spec, wholeEcho, ref, xaxArray, msgHandler=lambda msg: self.dispMsg(msg), history=['Data obtained from fit']), freq , sw , spec, wholeEcho, ref, xaxArray, msgHandler=lambda msg: self.dispMsg(msg), history=['Data obtained from fit'])
+        masterData = sc.Spectrum(name, data, lambda self :self.dataFromFit(data, freq , sw , spec, wholeEcho, ref, xaxArray, msgHandler=lambda msg: self.dispMsg(msg), history=['Data obtained from fit']), freq , sw , spec, wholeEcho, ref, xaxArray, msgHandler=lambda msg: self.dispMsg(msg), history=['Data obtained from fit'])
         masterData.resetXax(axes)
-        self.workspaces.append(Main1DWindow(self, masterData, name=name))
+        self.workspaces.append(Main1DWindow(self, masterData))
         self.tabs.addTab(self.workspaces[-1], name)
         self.workspaceNames.append(name)
         self.changeMainWindow(name)
@@ -777,28 +780,28 @@ class MainProgram(QtGui.QMainWindow):
         if name is None:
             return
         if num == 0:
-            masterData = self.LoadVarianFile(filePath)
+            masterData = self.LoadVarianFile(filePath, name)
         elif num == 1:
-            masterData = self.LoadBrukerTopspin(filePath)
+            masterData = self.LoadBrukerTopspin(filePath, name)
         elif num == 2:
-            masterData = self.LoadChemFile(filePath)
+            masterData = self.LoadChemFile(filePath, name)
         elif num == 3:
-            masterData = self.LoadMagritek(filePath)
+            masterData = self.LoadMagritek(filePath, name)
         elif num == 4:
-            masterData = self.LoadSimpsonFile(filePath)
+            masterData = self.LoadSimpsonFile(filePath, name)
         elif num == 5:
-            masterData = self.loadJSONFile(filePath)
+            masterData = self.loadJSONFile(filePath, name)
         elif num == 6:
-            masterData = self.loadMatlabFile(filePath)
+            masterData = self.loadMatlabFile(filePath, name)
         elif num == 7:
-           masterData = self.LoadBrukerSpectrum(filePath) 
+           masterData = self.LoadBrukerSpectrum(filePath, name) 
         if masterData is not None:
-            self.workspaces.append(Main1DWindow(self, masterData, name=name))
+            self.workspaces.append(Main1DWindow(self, masterData))
             self.tabs.addTab(self.workspaces[-1], name)
             self.workspaceNames.append(name)
             self.changeMainWindow(name)
 
-    def LoadVarianFile(self, filePath):
+    def LoadVarianFile(self, filePath, name=''):
         from struct import unpack
         Dir = filePath 
         freq = 300e6
@@ -830,8 +833,6 @@ class MainProgram(QtGui.QMainWindow):
             datafile = Dir+os.path.sep+'fid'
         elif os.path.exists(Dir+os.path.sep+'data'):
             datafile = Dir+os.path.sep+'data'
-            
-  
         with open(datafile, "rb") as f:
             raw = np.fromfile(f, np.int32, 6) 
             nblocks = unpack('>l', raw[0])[0]
@@ -877,13 +878,13 @@ class MainProgram(QtGui.QMainWindow):
             fid = fid[0][:]
             if spec: #flip if spectrum
                 fid = np.flipud(fid)
-            masterData = sc.Spectrum(fid, lambda self :self.LoadVarianFile(filePath), [freq], [sw],[bool(int(spec))], msgHandler=lambda msg: self.dispMsg(msg))
+            masterData = sc.Spectrum(name, fid, lambda self :self.LoadVarianFile(filePath), [freq], [sw],[bool(int(spec))], msgHandler=lambda msg: self.dispMsg(msg))
         else: 
-            masterData = sc.Spectrum(fid, lambda self :self.LoadVarianFile(filePath), [freq1,freq], [sw1,sw],[bool(int(spec))]*2, msgHandler=lambda msg: self.dispMsg(msg))
+            masterData = sc.Spectrum(name, fid, lambda self :self.LoadVarianFile(filePath), [freq1,freq], [sw1,sw],[bool(int(spec))]*2, msgHandler=lambda msg: self.dispMsg(msg))
         masterData.addHistory("Varian data loaded from "+filePath)
         return masterData
 
-    def loadJSONFile(self, filePath):
+    def loadJSONFile(self, filePath, name=''):
         import json
         with open(filePath, 'r') as inputfile:
             struct = json.load(inputfile)
@@ -896,11 +897,11 @@ class MainProgram(QtGui.QMainWindow):
         xaxA = []
         for i in struct['xaxArray']:
             xaxA.append(np.array(i))
-        masterData = sc.Spectrum(data, lambda self :self.loadJSONFile(filePath), list(struct['freq']), list(struct['sw']), list(struct['spec']), list(np.array(struct['wholeEcho'], dtype=bool)), list(ref), xaxA, msgHandler=lambda msg: self.dispMsg(msg), history=history)
+        masterData = sc.Spectrum(name, data, lambda self :self.loadJSONFile(filePath), list(struct['freq']), list(struct['sw']), list(struct['spec']), list(np.array(struct['wholeEcho'], dtype=bool)), list(ref), xaxA, msgHandler=lambda msg: self.dispMsg(msg), history=history)
         masterData.addHistory("JSON data loaded from "+filePath)
         return masterData
 
-    def loadMatlabFile(self, filePath):
+    def loadMatlabFile(self, filePath, name=''):
         import scipy.io
         import h5py #For .mat v 7.3 support
         with open(filePath, 'rb') as inputfile: #read first several bytes the check .mat version
@@ -926,7 +927,7 @@ class MainProgram(QtGui.QMainWindow):
                 history = list(np.array(mat['history'][0, 0], dtype=str))
             else:
                 history = None
-            masterData = sc.Spectrum(data, lambda self :self.loadMatlabFile(filePath), list(mat['freq'][0, 0][0]), list(mat['sw'][0, 0][0]), list(mat['spec'][0, 0][0]), list(np.array(mat['wholeEcho'][0, 0][0])>0), list(ref), xaxA, msgHandler=lambda msg: self.dispMsg(msg), history=history)
+            masterData = sc.Spectrum(name, data, lambda self :self.loadMatlabFile(filePath), list(mat['freq'][0, 0][0]), list(mat['sw'][0, 0][0]), list(mat['spec'][0, 0][0]), list(np.array(mat['wholeEcho'][0, 0][0])>0), list(ref), xaxA, msgHandler=lambda msg: self.dispMsg(msg), history=history)
             masterData.addHistory("Matlab data loaded from "+filePath)
             return masterData
         else:#If the version is 7.3, use HDF5 type loading
@@ -956,11 +957,11 @@ class MainProgram(QtGui.QMainWindow):
                 history = history[0]
             else:
                 history = None
-            masterData = sc.Spectrum(data, lambda self :self.loadMatlabFile(filePath), list(np.array(mat['freq'])[:, 0]), list(np.array(mat['sw'])[:, 0]), list(np.array(mat['spec'])[:, 0]), list(np.array(mat['wholeEcho'])[:, 0]>0), list(ref), xaxA, msgHandler=lambda msg: self.dispMsg(msg), history=history)
+            masterData = sc.Spectrum(name, data, lambda self :self.loadMatlabFile(filePath), list(np.array(mat['freq'])[:, 0]), list(np.array(mat['sw'])[:, 0]), list(np.array(mat['spec'])[:, 0]), list(np.array(mat['wholeEcho'])[:, 0]>0), list(ref), xaxA, msgHandler=lambda msg: self.dispMsg(msg), history=history)
             masterData.addHistory("Matlab data loaded from "+filePath)
             return masterData
 
-    def LoadBrukerTopspin(self, filePath):
+    def LoadBrukerTopspin(self, filePath, name=''):
         Dir = filePath 
         if os.path.exists(Dir+os.path.sep+'acqus'):
             with open(Dir+os.path.sep+'acqus', 'r') as f: 
@@ -998,15 +999,14 @@ class MainProgram(QtGui.QMainWindow):
         ComplexData = np.array(RawInt[0:len(RawInt):2])+1j*np.array(RawInt[1:len(RawInt):2])
         spec = [False]
         if sizeTD1 is 1:
-            masterData = sc.Spectrum(ComplexData, lambda self :self.LoadBrukerTopspin(filePath), [freq2], [SW2], spec, msgHandler=lambda msg: self.dispMsg(msg))
+            masterData = sc.Spectrum(name, ComplexData, lambda self :self.LoadBrukerTopspin(filePath), [freq2], [SW2], spec, msgHandler=lambda msg: self.dispMsg(msg))
         else:
             data = ComplexData.reshape(sizeTD1, sizeTD2/2)
-            masterData = sc.Spectrum(data, lambda self :self.LoadBrukerTopspin(filePath), [freq1, freq2], [SW1, SW2], spec*2, msgHandler=lambda msg: self.dispMsg(msg))
+            masterData = sc.Spectrum(name, data, lambda self :self.LoadBrukerTopspin(filePath), [freq1, freq2], [SW1, SW2], spec*2, msgHandler=lambda msg: self.dispMsg(msg))
         masterData.addHistory("Bruker data loaded from "+filePath)
         return masterData
          
-         
-    def LoadBrukerSpectrum(self, filePath):
+    def LoadBrukerSpectrum(self, filePath, name=''):
         Dir = filePath 
         if os.path.exists(Dir+os.path.sep+'procs'):#Get D2 parameters
             with open(Dir+os.path.sep+'procs', 'r') as f: 
@@ -1019,16 +1019,14 @@ class MainProgram(QtGui.QMainWindow):
                 if data[s].startswith('##$BYTORDP='):
                     ByteOrder = int(data[s][11:]) 
                 if data[s].startswith('##$SW_p='):
-                    SW2 = float(data[s][8:])
-                    
+                    SW2 = float(data[s][8:])          
         freq2 = 0            
         if os.path.exists(Dir+os.path.sep+'..'+os.path.sep+'..'+os.path.sep+'acqus'):#Get D2 parameters from fid directory, if available
             with open(Dir+os.path.sep+'..'+os.path.sep+'..'+os.path.sep+'acqus', 'r') as f: 
                 data = f.read().split('\n')
             for s in range(0, len(data)):
                 if data[s].startswith('##$SFO1='):
-                    freq2 = float(data[s][8:])*1e6
-                    
+                    freq2 = float(data[s][8:])*1e6                    
         sizeTD1 = 1 
         if os.path.exists(Dir+os.path.sep+'proc2s'): #Get D1 parameters
             with open(Dir+os.path.sep+'proc2s', 'r') as f: 
@@ -1039,8 +1037,7 @@ class MainProgram(QtGui.QMainWindow):
 #                if data2[s].startswith('##$XDIM='):
 #                    blockingD1 = int(data[s][8:])
                 if data2[s].startswith('##$SW_p='):
-                    SW1 = float(data2[s][8:])
-                    
+                    SW1 = float(data2[s][8:])               
         freq1 = 0            
         if os.path.exists(Dir+os.path.sep+'..'+os.path.sep+'..'+os.path.sep+'acqu2s'):#Get D1 parameters from fid directory, if available
             with open(Dir+os.path.sep+'..'+os.path.sep+'..'+os.path.sep+'acqu2s', 'r') as f: 
@@ -1048,7 +1045,6 @@ class MainProgram(QtGui.QMainWindow):
             for s in range(0, len(data)):
                 if data[s].startswith('##$SFO1='):
                     freq1 = float(data[s][8:])*1e6
-
         if os.path.exists(Dir+os.path.sep+'1r'):#Get D2 data
             with open(Dir+os.path.sep+'1r', "rb") as f:            
                     RawReal = np.fromfile(f, np.int32, sizeTD1*sizeTD2)
@@ -1065,8 +1061,7 @@ class MainProgram(QtGui.QMainWindow):
                     RawImag = np.fromfile(f, np.int32, sizeTD1*sizeTD2)
             elif os.path.exists(Dir+os.path.sep+'2ii'): 
                 with open(Dir+os.path.sep+'2ii', "rb") as f:            
-                    RawImag = np.fromfile(f, np.int32, sizeTD1*sizeTD2)
-            
+                    RawImag = np.fromfile(f, np.int32, sizeTD1*sizeTD2)     
         if ByteOrder: 
             RawReal = RawReal.newbyteorder('b')
             RawImag = RawImag.newbyteorder('b')
@@ -1074,20 +1069,16 @@ class MainProgram(QtGui.QMainWindow):
             RawReal = RawReal.newbyteorder('l')
             RawImag = RawImag.newbyteorder('l')
         Data=np.flipud(RawReal)  - 1j*  np.flipud(RawImag)
-        
         spec = [True]
-
         if sizeTD1 is 1:
-            masterData = sc.Spectrum(Data, lambda self :self.LoadBrukerSpectrum(filePath), [freq2], [SW2], spec, msgHandler=lambda msg: self.dispMsg(msg))
+            masterData = sc.Spectrum(name, Data, lambda self :self.LoadBrukerSpectrum(filePath), [freq2], [SW2], spec, msgHandler=lambda msg: self.dispMsg(msg))
         else:
             Data = Data.reshape(sizeTD1, sizeTD2)
-            masterData = sc.Spectrum(Data, lambda self :self.LoadBrukerSpectrum(filePath), [freq1, freq2], [SW1, SW2], spec*2, msgHandler=lambda msg: self.dispMsg(msg))
+            masterData = sc.Spectrum(name, Data, lambda self :self.LoadBrukerSpectrum(filePath), [freq1, freq2], [SW1, SW2], spec*2, msgHandler=lambda msg: self.dispMsg(msg))
         masterData.addHistory("Bruker spectrum data loaded from "+filePath)
         return masterData
         
-        
-        
-    def LoadChemFile(self, filePath):
+    def LoadChemFile(self, filePath, name=''):
         Dir = filePath
         sizeTD1 = 1
         sw1 = 50e3
@@ -1119,14 +1110,14 @@ class MainProgram(QtGui.QMainWindow):
         spec = [False]                    
         if sizeTD1 is 1:
             data = data[0][:]
-            masterData = sc.Spectrum(data, lambda self :self.LoadChemFile(filePath), [freq*1e6], [sw], spec, msgHandler=lambda msg: self.dispMsg(msg))
+            masterData = sc.Spectrum(name, data, lambda self :self.LoadChemFile(filePath), [freq*1e6], [sw], spec, msgHandler=lambda msg: self.dispMsg(msg))
         else:
             data = data.reshape((sizeTD1, sizeTD2))
-            masterData = sc.Spectrum(data, lambda self :self.LoadChemFile(filePath), [freq*1e6]*2, [sw1, sw], spec*2, msgHandler=lambda msg: self.dispMsg(msg))
+            masterData = sc.Spectrum(name, data, lambda self :self.LoadChemFile(filePath), [freq*1e6]*2, [sw1, sw], spec*2, msgHandler=lambda msg: self.dispMsg(msg))
         masterData.addHistory("Chemagnetics data loaded from "+filePath)
         return masterData
 
-    def LoadMagritek(self, filePath):
+    def LoadMagritek(self, filePath, name=''):
         #Magritek load script based on some Matlab files by Ole Brauckman
         Dir = filePath
         DirFiles = os.listdir(Dir)
@@ -1148,18 +1139,18 @@ class MainProgram(QtGui.QMainWindow):
             Data = raw[-2*sizeTD2*sizeTD1::]
             ComplexData = Data[0:Data.shape[0]:2]-1j*Data[1:Data.shape[0]:2]
             ComplexData = ComplexData.reshape((sizeTD1, sizeTD2))
-            masterData = sc.Spectrum(ComplexData, lambda self :self.LoadMagritek(filePath), [freq*1e6]*2, [sw, sw1], [False]*2, msgHandler=lambda msg: self.dispMsg(msg))
+            masterData = sc.Spectrum(name, ComplexData, lambda self :self.LoadMagritek(filePath), [freq*1e6]*2, [sw, sw1], [False]*2, msgHandler=lambda msg: self.dispMsg(msg))
         elif len(Files1D) != 0:
             File = 'data.1d'
             with open(Dir+os.path.sep+File, 'rb') as f:
                 raw = np.fromfile(f, np.float32)
             Data = raw[-2*sizeTD2::]
             ComplexData = Data[0:Data.shape[0]:2]-1j*Data[1:Data.shape[0]:2]
-            masterData = sc.Spectrum(ComplexData, lambda self :self.LoadMagritek(filePath), [freq*1e6], [sw], [False], msgHandler=lambda msg: self.dispMsg(msg))
+            masterData = sc.Spectrum(name, ComplexData, lambda self :self.LoadMagritek(filePath), [freq*1e6], [sw], [False], msgHandler=lambda msg: self.dispMsg(msg))
         masterData.addHistory("Magritek data loaded from "+filePath)
         return masterData
             
-    def LoadSimpsonFile(self, filePath):
+    def LoadSimpsonFile(self, filePath, name=''):
         with open(filePath, 'r') as f: 
             Lines = f.read().split('\n')
         NP, NI, SW, SW1, TYPE, FORMAT = 0, 1, 0, 0, '', 'Normal'
@@ -1226,9 +1217,9 @@ class MainProgram(QtGui.QMainWindow):
         elif 'SPE' in TYPE:
             spec = [True]                    
         if NI is 1:
-            masterData = sc.Spectrum(data, lambda self :self.LoadSimpsonFile(filePath), [0], [SW], spec, msgHandler=lambda msg: self.dispMsg(msg))
+            masterData = sc.Spectrum(name, data, lambda self :self.LoadSimpsonFile(filePath), [0], [SW], spec, msgHandler=lambda msg: self.dispMsg(msg))
         else:
-            masterData = sc.Spectrum(data, lambda self :self.LoadSimpsonFile(filePath), [0, 0], [SW1, SW], spec*2, msgHandler=lambda msg: self.dispMsg(msg))
+            masterData = sc.Spectrum(name, data, lambda self :self.LoadSimpsonFile(filePath), [0, 0], [SW1, SW], spec*2, msgHandler=lambda msg: self.dispMsg(msg))
         masterData.addHistory("SIMPSON data loaded from "+filePath)
         return masterData
     
@@ -1318,9 +1309,8 @@ class MainProgram(QtGui.QMainWindow):
 
 ######################################################################################################            
 class Main1DWindow(QtGui.QWidget):
-    def __init__(self, father, masterData, duplicateCurrent=None, name=''):
+    def __init__(self, father, masterData, duplicateCurrent=None):
         QtGui.QWidget.__init__(self, father)
-        self.name = name
         self.fig = Figure()
         self.canvas = FigureCanvas(self.fig)
         grid = QtGui.QGridLayout(self)
@@ -1352,9 +1342,7 @@ class Main1DWindow(QtGui.QWidget):
         self.canvas.mpl_connect('scroll_event', self.scroll)
         
     def rename(self, name):
-        self.name = name
-        self.fig.suptitle(name)
-        self.canvas.draw()
+        self.current.rename(name)
         
     def buttonPress(self, event):
         self.current.buttonPress(event)

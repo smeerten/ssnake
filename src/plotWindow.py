@@ -48,7 +48,7 @@ class MainPlotWindow(QtGui.QWidget):
         self.optionFrame.addWidget(QLabel("Title:"), 0, 0)
         self.titleEntry = QtGui.QLineEdit()
         self.titleEntry.setAlignment(QtCore.Qt.AlignHCenter)
-        self.titleBackup = oldMainWindow.name
+        self.titleBackup = oldMainWindow.masterData.name
         self.titleEntry.setText(self.titleBackup)
         self.titleEntry.returnPressed.connect(self.updatePlot)
         self.optionFrame.addWidget(self.titleEntry, 1, 0)
@@ -142,6 +142,11 @@ class MainPlotWindow(QtGui.QWidget):
         self.ytickFontSizeEntry.setText(str(self.ytickFontSizeBackup))
         self.ytickFontSizeEntry.returnPressed.connect(self.updatePlot)
         self.optionFrame.addWidget(self.ytickFontSizeEntry, 39, 0)
+
+        # self.legendCheck = QtGui.QCheckBox('Legend')
+        # self.legendCheck.stateChanged.connect(self.updatePlot)
+        # self.optionFrame.addWidget(self.legendCheck, 40, 0)
+        
         self.inFrame = QtGui.QGridLayout()
         self.frame1.addLayout(self.inFrame, 1, 0)
         self.inFrame.addWidget(QLabel("File type:"), 0, 0, 1, 2)
@@ -173,6 +178,12 @@ class MainPlotWindow(QtGui.QWidget):
         self.ax.set_ylim((safeEval(self.ylimLeftEntry.text()), safeEval(self.ylimRightEntry.text())))
         self.ax.tick_params(axis='x', labelsize=safeEval(self.xtickFontSizeEntry.text()))
         self.ax.tick_params(axis='y', labelsize=safeEval(self.ytickFontSizeEntry.text()))
+        # if self.legendCheck.isChecked():
+        #     self.ax.legend(loc='best')
+        # else:
+        #     legend = self.ax.legend()
+        #     if legend is not None:
+        #         legend.remove()
         self.fig.set_size_inches((int(safeEval(self.widthEntry.text()))/2.54, int(safeEval(self.heightEntry.text()))/2.54))
         self.canvas.draw()
         self.canvas.adjustSize()
