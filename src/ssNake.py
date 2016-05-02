@@ -2073,10 +2073,10 @@ class SideFrame(QtGui.QScrollArea):
                 frame.addWidget(self.nameLabels[i], 0, 0, 1, 2)
                 self.nameLabels[i].setStyleSheet("QLabel { color: rgb"+str(current.getExtraColor(i))+";}")
                 colorbutton = QtGui.QPushButton("Color", self)
-                colorbutton.clicked.connect(lambda: self.setExtraColor(i))
+                colorbutton.clicked.connect(lambda arg, num=i: self.setExtraColor(num))
                 frame.addWidget(colorbutton, 1, 0)
                 button = QtGui.QPushButton("x", self)
-                button.clicked.connect(lambda: self.delMultiSpec(i))
+                button.clicked.connect(lambda arg, num=i: self.delMultiSpec(num))
                 frame.addWidget(button, 1, 1)
                 entries = []
                 self.extraEntries.append(entries)
