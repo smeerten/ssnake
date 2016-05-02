@@ -60,6 +60,7 @@ class MainProgram(QtGui.QMainWindow):
         self.macroActions = {}
         self.referenceName=[] #List with saved refrence names
         self.referenceValue=[] #List with saved refrence values
+        self.referenceActions = {}
         self.LastLocation = ''
         self.initMenu()
         self.menuCheck()
@@ -237,17 +238,10 @@ class MainProgram(QtGui.QMainWindow):
         self.referencelistmenu.addAction("Set &reference", lambda: self.mainWindowCheck(lambda mainWindow: RefWindow(mainWindow)))
         self.referencerunmenu = QtGui.QMenu('&Run', self)
         self.referencelistmenu.addMenu(self.referencerunmenu)
+        self.referencedeletemenu = QtGui.QMenu('&Delete', self)
+        self.referencelistmenu.addMenu(self.referencedeletemenu)
         
-        
-#        self.macrorenamemenu = QtGui.QMenu('Re&name', self)
-#        self.macromenu.addMenu(self.macrorenamemenu)
-#        self.macrodeletemenu = QtGui.QMenu('&Delete', self)
-#        self.macromenu.addMenu(self.macrodeletemenu)
-#        self.macrosavemenu = QtGui.QMenu('&Save', self)
-#        self.macromenu.addMenu(self.macrosavemenu)
-#        self.macromenu.addAction('&Load', self.loadMacro)
-        
-        
+       
         
         
         self.plotMenu.addAction("&User x-axis", lambda: self.mainWindowCheck(lambda mainWindow: XaxWindow(mainWindow)))
@@ -566,6 +560,25 @@ class MainProgram(QtGui.QMainWindow):
         self.macroActions[givenName] = [action1, action2, action3, action4]
         self.menuCheck()
 
+
+
+    def referenceAdd(self,reffreq,name):
+        self.referenceName.append(name)
+        self.referenceValue.append(reffreq) #List with saved refrence values
+        action1 = self.referencerunmenu.addAction(name, lambda name=name: self.referenceRun(name))
+        action2 = self.referencedeletemenu.addAction(name, lambda name=name: self.referenceRemove(name))
+        self.referenceActions[name] = [action1,action2]
+
+    def referenceRun(self,name):
+        reffreq = self.referenceValue[self.referenceName.index(name)]
+        self.mainWindow.undoList.append(self.mainWindow.current.setRef(reffreq))
+        
+    def referenceRemove(self,name):
+        self.referenceName.remove(name)
+        self.referencerunmenu.removeAction(self.referenceActions[name][0])
+        self.referencedeletemenu.removeAction(self.referenceActions[name][1])
+        del self.referenceActions[name]
+        
     def changeMainWindow(self, var):
         if not self.allowChange:
             return
@@ -4954,18 +4967,22 @@ class RefWindow(QtGui.QWidget):
             self.father.father.dispMsg("Not a valid value")
             return
         freq = freq*1e6
-        self.father.redoList = []
-        self.father.undoList.append(self.father.current.setRef(freq/(1.0+ref*1e-6)))
+        reffreq = freq/(1.0+ref*1e-6)
         givenname = self.refName.text()
-      #  if givenname:#If name is filled in
-       #     self.father.mainProgram.referenceName.append(givenname) #List with saved refrence names
-       #     self.father.mainProgram.referenceValue.append(freq/(1.0+ref*1e-6)) #List with saved refrence values
-       #     action1 = self.father.mainProgram.referencerunmenu.addAction(givenname, lambda name=givenname: self.RunReference(name))
-        self.father.menuEnable()
-        self.deleteLater()
-        
-    #def RunReference(self,name):
-    #    self.undoList.append(self.father.current.setRef(self.father.mainProgram.referenceValue[-1]))
+        nameOK = True
+        if givenname:#If name is filled in
+            if  self.father.father.referenceName.__contains__(givenname): #if exists
+                self.father.father.dispMsg("Reference name '"+givenname+"' already exists")
+                nameOK = False
+            else:
+                self.father.mainProgram.referenceAdd(reffreq,givenname)
+                
+        if nameOK:
+            self.father.redoList = []
+            self.father.undoList.append(self.father.current.setRef(reffreq))
+            self.father.menuEnable()
+            self.deleteLater()
+       
         
         
     def picked(self, pos): 
