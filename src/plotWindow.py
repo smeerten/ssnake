@@ -143,10 +143,14 @@ class MainPlotWindow(QtGui.QWidget):
         self.ytickFontSizeEntry.returnPressed.connect(self.updatePlot)
         self.optionFrame.addWidget(self.ytickFontSizeEntry, 39, 0)
         self.legend = None
+        self.legendPos = 'best'
         self.legendCheck = QtGui.QCheckBox('Legend')
         self.legendCheck.stateChanged.connect(self.updatePlot)
         self.optionFrame.addWidget(self.legendCheck, 40, 0)
-
+        legendButton = QtGui.QPushButton('Legend settings')
+        legendButton.clicked.connect(lambda : LegendWindow(self))
+        self.optionFrame.addWidget(legendButton, 41, 0)
+        
         self.inFrame = QtGui.QGridLayout()
         self.frame1.addLayout(self.inFrame, 1, 0)
         self.inFrame.addWidget(QLabel("File type:"), 0, 0, 1, 2)
@@ -179,7 +183,8 @@ class MainPlotWindow(QtGui.QWidget):
         self.ax.tick_params(axis='x', labelsize=safeEval(self.xtickFontSizeEntry.text()))
         self.ax.tick_params(axis='y', labelsize=safeEval(self.ytickFontSizeEntry.text()))
         if self.legendCheck.isChecked():
-            self.legend = self.ax.legend(loc='best')
+            self.legend = self.ax.legend(loc=self.legendPos)
+            self.legend.draggable(True)
         else:
             if self.legend is not None:
                 self.legend.set_visible(False)
@@ -231,3 +236,55 @@ class MainPlotWindow(QtGui.QWidget):
         del self.fig
         self.father.closeSaveFigure(self.oldMainWindow)
         self.deleteLater()
+
+#####################################################################################################################
+class LegendWindow(QtGui.QWidget):
+    def __init__(self, parent):
+        QtGui.QWidget.__init__(self, parent)
+        self.setWindowFlags(QtCore.Qt.Window | QtCore.Qt.Tool)
+        self.father = parent
+        self.setWindowTitle("Legend")
+        layout = QtGui.QGridLayout(self)
+        grid = QtGui.QGridLayout()
+        layout.addLayout(grid, 0, 0, 1, 2)
+        grid.addWidget(QLabel("Legend position:"), 0, 0)
+        self.posVal = self.father.legendPos
+        self.posEntry = QtGui.QLineEdit()
+        self.posEntry.setAlignment(QtCore.Qt.AlignHCenter)
+        self.posEntry.setText(self.posVal)
+        self.posEntry.returnPressed.connect(self.preview)
+        grid.addWidget(self.posEntry, 1, 0)
+        cancelButton = QtGui.QPushButton("&Cancel")
+        cancelButton.clicked.connect(self.closeEvent)
+        layout.addWidget(cancelButton, 1, 0)
+        okButton = QtGui.QPushButton("&Ok")
+        okButton.clicked.connect(self.applyAndClose)
+        layout.addWidget(okButton, 1, 1)
+        self.father.legendCheck.setChecked(True)
+        self.show()
+        self.setFixedSize(self.size())
+        self.setGeometry(self.frameSize().width()-self.geometry().width(), self.frameSize().height()-self.geometry().height(), 0, 0)
+
+    def preview(self, *args):
+        env = vars(np).copy()
+        try:
+            inp = eval(self.posEntry.text(), env)                
+        except:
+            inp = self.posEntry.text()
+        self.father.ax.legend(loc=inp)
+        self.father.canvas.draw()
+        
+    def closeEvent(self, *args):
+        self.deleteLater()
+        self.father.updatePlot()
+        
+    def applyAndClose(self):
+        env = vars(np).copy()
+        try:
+            inp = eval(self.posEntry.text(), env)                
+        except:
+            inp = self.posEntry.text()
+        self.father.legendPos = inp
+        self.closeEvent()
+        
+ 
