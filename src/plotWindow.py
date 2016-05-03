@@ -22,6 +22,7 @@ from matplotlib.figure import Figure
 from matplotlib.backends.backend_qt4agg import FigureCanvasQTAgg as FigureCanvas
 from widgetClasses import *
 import os
+import copy
 
 #####################################################################################
 class MainPlotWindow(QtGui.QWidget):
@@ -142,10 +143,15 @@ class MainPlotWindow(QtGui.QWidget):
         self.ytickFontSizeEntry.setText(str(self.ytickFontSizeBackup))
         self.ytickFontSizeEntry.returnPressed.connect(self.updatePlot)
         self.optionFrame.addWidget(self.ytickFontSizeEntry, 39, 0)
-        self.legend = None
+        self.legend = self.ax.legend()
+        self.legend.draggable(True)
         self.legendPos = 'best'
+        self.legendTextList = []
+        for line in self.legend.get_texts():
+            self.legendTextList.append(line.get_text())
+        self.legend.set_visible(False)
         self.legendCheck = QtGui.QCheckBox('Legend')
-        self.legendCheck.stateChanged.connect(self.updatePlot)
+        self.legendCheck.stateChanged.connect(self.updateLegend)
         self.optionFrame.addWidget(self.legendCheck, 40, 0)
         legendButton = QtGui.QPushButton('Legend settings')
         legendButton.clicked.connect(lambda : LegendWindow(self))
@@ -173,6 +179,15 @@ class MainPlotWindow(QtGui.QWidget):
         
     def rename(self, name):
         self.oldMainWindow.rename(name)
+
+    def updateLegend(self, *args):
+        if self.legendCheck.isChecked():
+            self.legend = self.ax.legend(self.legendTextList, loc=self.legendPos)
+            self.legend.draggable(True)
+        else:
+            if self.legend is not None:
+                self.legend.set_visible(False)
+        self.updatePlot()
         
     def updatePlot(self, *args):
         self.fig.suptitle(self.titleEntry.text(), fontsize=safeEval(self.titleFontSizeEntry.text()))
@@ -182,12 +197,6 @@ class MainPlotWindow(QtGui.QWidget):
         self.ax.set_ylim((safeEval(self.ylimLeftEntry.text()), safeEval(self.ylimRightEntry.text())))
         self.ax.tick_params(axis='x', labelsize=safeEval(self.xtickFontSizeEntry.text()))
         self.ax.tick_params(axis='y', labelsize=safeEval(self.ytickFontSizeEntry.text()))
-        if self.legendCheck.isChecked():
-            self.legend = self.ax.legend(loc=self.legendPos)
-            self.legend.draggable(True)
-        else:
-            if self.legend is not None:
-                self.legend.set_visible(False)
         self.fig.set_size_inches((int(safeEval(self.widthEntry.text()))/2.54, int(safeEval(self.heightEntry.text()))/2.54))
         self.canvas.draw()
         self.canvas.adjustSize()
@@ -254,31 +263,57 @@ class LegendWindow(QtGui.QWidget):
         self.posEntry.setText(self.posVal)
         self.posEntry.returnPressed.connect(self.preview)
         grid.addWidget(self.posEntry, 1, 0)
+        grid.addWidget(QLabel("Legend:"), 2, 0)
+        self.father.legendCheck.setChecked(True)
+        self.father.legendTextLis = []
+        self.spinBox = QtGui.QSpinBox()
+        self.spinBox.setMaximum(len(self.father.legendTextList)-1)
+        self.spinBox.valueChanged.connect(self.changeEdit)
+        grid.addWidget(self.spinBox, 3, 0)
+        self.legendEditList = []
+        for i in range(len(self.father.legendTextList)):
+            self.legendEditList.append(QtGui.QLineEdit())
+            self.legendEditList[i].setAlignment(QtCore.Qt.AlignHCenter)
+            self.legendEditList[i].setText(self.father.legendTextList[i])
+            self.legendEditList[i].returnPressed.connect(self.preview)
+            grid.addWidget(self.legendEditList[i], 4, 0)
+            self.legendEditList[i].setVisible(False)
+        self.legendEditList[0].setVisible(True)
         cancelButton = QtGui.QPushButton("&Cancel")
         cancelButton.clicked.connect(self.closeEvent)
         layout.addWidget(cancelButton, 1, 0)
         okButton = QtGui.QPushButton("&Ok")
         okButton.clicked.connect(self.applyAndClose)
         layout.addWidget(okButton, 1, 1)
-        self.father.legendCheck.setChecked(True)
         self.show()
         self.setFixedSize(self.size())
         self.setGeometry(self.frameSize().width()-self.geometry().width(), self.frameSize().height()-self.geometry().height(), 0, 0)
 
+    def changeEdit(self, num):
+        for i in range(len(self.legendEditList)):
+            self.legendEditList[i].setVisible(False)
+        self.legendEditList[num].setVisible(True)
+        
     def preview(self, *args):
+        tmp = copy.deepcopy(self.father.legendTextList)
+        for i in range(len(self.legendEditList)):
+            tmp[i] = self.legendEditList[i].text()
         env = vars(np).copy()
         try:
             inp = eval(self.posEntry.text(), env)                
         except:
             inp = self.posEntry.text()
-        self.father.ax.legend(loc=inp)
+        self.father.ax.legend(tmp, loc=inp)
+        self.father.legend.draggable(True)
         self.father.canvas.draw()
         
     def closeEvent(self, *args):
         self.deleteLater()
-        self.father.updatePlot()
+        self.father.updateLegend()
         
     def applyAndClose(self):
+        for i in range(len(self.legendEditList)):
+            self.father.legendTextList[i] = self.legendEditList[i].text()
         env = vars(np).copy()
         try:
             inp = eval(self.posEntry.text(), env)                
