@@ -1644,7 +1644,7 @@ class Current1D(Plot1DFrame):
         if newSpec:
             return self.data.matrixManipNew(pos1, pos2, self.axes, 0)
         else:
-            self.root.addMacro(['integrate', (pos1.tolist(), pos2.tolist(), self.axes-self.data.dim, )])
+            self.root.addMacro(['integrate', (list(pos1), list(pos2), self.axes-self.data.dim, )])
             returnValue = self.data.matrixManip(pos1, pos2, self.axes, 0)
             if self.upd():
                 self.plotReset()
@@ -1655,7 +1655,7 @@ class Current1D(Plot1DFrame):
         if newSpec:
             return self.data.matrixManipNew(pos1, pos2, self.axes, 5)
         else:
-            self.root.addMacro(['sum', (pos1.tolist(), pos2.tolist(), self.axes-self.data.dim, )])
+            self.root.addMacro(['sum', (list(pos1), list(pos2), self.axes-self.data.dim, )])
             returnValue = self.data.matrixManip(pos1, pos2, self.axes, 5)
             if self.upd():
                 self.plotReset()
@@ -1666,7 +1666,7 @@ class Current1D(Plot1DFrame):
         if newSpec:
             return self.data.matrixManipNew(pos1, pos2, self.axes, 1)
         else:
-            self.root.addMacro(['max', (pos1.tolist(), pos2.tolist(), self.axes-self.data.dim, )])
+            self.root.addMacro(['max', (list(pos1), list(pos2), self.axes-self.data.dim, )])
             returnValue = self.data.matrixManip(pos1, pos2, self.axes, 1)
             if self.upd():
                 self.plotReset()
@@ -1677,7 +1677,7 @@ class Current1D(Plot1DFrame):
         if newSpec:
             return self.data.matrixManipNew(pos1, pos2, self.axes, 2)
         else:
-            self.root.addMacro(['min', (pos1.tolist(), pos2.tolist(), self.axes-self.data.dim, )])
+            self.root.addMacro(['min', (list(pos1), list(pos2), self.axes-self.data.dim, )])
             returnValue = self.data.matrixManip(pos1, pos2, self.axes, 2)
             if self.upd():
                 self.plotReset()
@@ -1688,7 +1688,7 @@ class Current1D(Plot1DFrame):
         if newSpec:
             return self.data.matrixManipNew(pos1, pos2, self.axes, 3)
         else:
-            self.root.addMacro(['argmax', (pos1.tolist(), pos2.tolist(), self.axes-self.data.dim, )])
+            self.root.addMacro(['argmax', (list(pos1), list(pos2), self.axes-self.data.dim, )])
             returnValue = self.data.matrixManip(pos1, pos2, self.axes, 3)
             if self.upd():
                 self.plotReset()
@@ -1699,7 +1699,7 @@ class Current1D(Plot1DFrame):
         if newSpec:
             return self.data.matrixManipNew(pos1, pos2, self.axes, 4)
         else:
-            self.root.addMacro(['argmin', (pos1.tolist(), pos2.tolist(), self.axes-self.data.dim, )])
+            self.root.addMacro(['argmin', (list(pos1), list(pos2), self.axes-self.data.dim, )])
             returnValue = self.data.matrixManip(pos1, pos2, self.axes, 4)
             if self.upd():
                 self.plotReset()
@@ -1710,7 +1710,7 @@ class Current1D(Plot1DFrame):
         if newSpec:
             return self.data.matrixManipNew(pos1, pos2, self.axes, 6)
         else:
-            self.root.addMacro(['average', (pos1.tolist(), pos2.tolist(), self.axes-self.data.dim, )])
+            self.root.addMacro(['average', (list(pos1), list(pos2), self.axes-self.data.dim, )])
             returnValue = self.data.matrixManip(pos1, pos2, self.axes, 6)
             if self.upd():
                 self.plotReset()
@@ -2498,7 +2498,10 @@ class CurrentStacked(Current1D):
         self.single = self.data1D.shape[-1] == 1
         return True
 
-    def setBlock(self, axes, axes2, locList, stackBegin=None, stackEnd=None, stackStep=None): #change the slice 
+    def setBlock(self, axes, axes2, locList, stackBegin=None, stackEnd=None, stackStep=None): #change the slice
+        axesSame = True
+        if (self.axes != axes) or (self.axes2 != axes2) :
+            axesSame = False
         self.axes = axes
         self.axes2 = axes2
         self.stackBegin = stackBegin
@@ -2509,8 +2512,9 @@ class CurrentStacked(Current1D):
                 self.stackStep = 1+int(self.data.data.shape[self.axes2])/100
         self.locList = locList
         self.upd()
-        self.resetSpacing()
-        self.plotReset()
+        if not axesSame:
+            self.resetSpacing()
+            self.plotReset()
         self.showFid()
 
     def resetLocList(self):
@@ -2858,7 +2862,10 @@ class CurrentArrayed(Current1D):
         self.single = self.data1D.shape[-1] == 1
         return True
  
-    def setBlock(self, axes, axes2, locList, stackBegin=None, stackEnd=None, stackStep=None): #change the slice 
+    def setBlock(self, axes, axes2, locList, stackBegin=None, stackEnd=None, stackStep=None): #change the slice
+        axesSame = True
+        if (self.axes != axes) or (self.axes2 != axes2) :
+            axesSame = False
         self.axes = axes
         self.axes2 = axes2
         self.stackBegin = stackBegin
@@ -2868,8 +2875,9 @@ class CurrentArrayed(Current1D):
             self.stackStep = 1+int(self.data.data.shape[self.axes2])/100
         self.locList = locList
         self.upd()
-        self.resetSpacing()
-        self.plotReset()
+        if not axesSame:
+            self.resetSpacing()
+            self.plotReset()
         self.showFid()
 
     def resetLocList(self):
@@ -3190,12 +3198,16 @@ class CurrentContour(Current1D):
         self.single = self.data1D.shape[-1] == 1
         return True
 
-    def setBlock(self, axes, axes2, locList): #change the slice 
+    def setBlock(self, axes, axes2, locList): #change the slice
+        axesSame = True
+        if (self.axes != axes) or (self.axes2 != axes2) :
+            axesSame = False
         self.axes = axes
         self.axes2 = axes2
         self.locList = locList
         self.upd()
-        self.plotReset()
+        if not axesSame:
+            self.plotReset()
         self.showFid()
 
     def setLevels(self, numLevels, maxLevels, minLevels):
@@ -3604,7 +3616,10 @@ class CurrentSkewed(Current1D):
         self.single = self.data1D.shape[-1] == 1
         return True
  
-    def setBlock(self, axes, axes2, locList, stackBegin=None, stackEnd=None, stackStep=None): #change the slice 
+    def setBlock(self, axes, axes2, locList, stackBegin=None, stackEnd=None, stackStep=None): #change the slice
+        axesSame = True
+        if (self.axes != axes) or (self.axes2 != axes2) :
+            axesSame = False
         self.axes = axes
         self.axes2 = axes2
         self.stackBegin = stackBegin
@@ -3614,7 +3629,8 @@ class CurrentSkewed(Current1D):
             self.stackStep = 1+int(self.data.data.shape[self.axes2])/100
         self.locList = locList
         self.upd()
-        self.plotReset()
+        if not axesSame:
+            self.plotReset()
         self.showFid()
 
     def setSkewed(self, skewed, elevation):
