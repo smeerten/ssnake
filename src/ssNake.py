@@ -574,6 +574,7 @@ class MainProgram(QtGui.QMainWindow):
         self.mainWindow.undoList.append(self.mainWindow.current.setRef(reffreq))
         
     def referenceRemove(self,name):
+        self.referenceValue.remove(self.referenceValue[self.referenceName.index(name)])
         self.referenceName.remove(name)
         self.referencerunmenu.removeAction(self.referenceActions[name][0])
         self.referencedeletemenu.removeAction(self.referenceActions[name][1])
