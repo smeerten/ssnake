@@ -232,7 +232,6 @@ class MainProgram(QtGui.QMainWindow):
         self.multiDActions.append(self.plotMenu.addAction("S&kewed plot", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.plotSkewed())))
         self.plotMenu.addAction("&Multi plot", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.plotMulti()))
         
-        
         self.referencelistmenu = QtGui.QMenu('&Reference', self)
         self.plotMenu.addMenu(self.referencelistmenu)
         self.referencelistmenu.addAction("Set &reference", lambda: self.mainWindowCheck(lambda mainWindow: RefWindow(mainWindow)))
@@ -241,9 +240,6 @@ class MainProgram(QtGui.QMainWindow):
         self.referencedeletemenu = QtGui.QMenu('&Delete', self)
         self.referencelistmenu.addMenu(self.referencedeletemenu)
         
-       
-        
-        
         self.plotMenu.addAction("&User x-axis", lambda: self.mainWindowCheck(lambda mainWindow: XaxWindow(mainWindow)))
         self.xgridAction = QtGui.QAction(QtGui.QIcon(IconDirectory + 'xgrid.png'),"&X-grid", self.plotMenu, checkable=True)
         self.xgridAction.triggered.connect(lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.setGrid()))
@@ -251,6 +247,7 @@ class MainProgram(QtGui.QMainWindow):
         self.ygridAction = QtGui.QAction(QtGui.QIcon(IconDirectory + 'ygrid.png'),"&Y-grid", self.plotMenu, checkable=True)     
         self.ygridAction.triggered.connect(lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.setGrid()))
         self.plotMenu.addAction(self.ygridAction)
+        self.plotMenu.addAction("&Plot settings", lambda: self.mainWindowCheck(lambda mainWindow: PlotSettingsWindow(mainWindow)))
 
         #the history drop down menu
         self.historyMenu = QtGui.QMenu("&History", self)
@@ -629,8 +626,11 @@ class MainProgram(QtGui.QMainWindow):
         self.changeMainWindow(name)
 
     def renameWorkspace(self, *args):
-        name = self.askName()
+        tmp = self.workspaceNames[self.workspaceNum]
+        self.workspaceNames[self.workspaceNum] = ''
+        name = self.askName(tmp, tmp)
         if name is None:
+            self.workspaceNames[self.workspaceNum] = tmp
             return
         self.workspaceNames[self.workspaceNum] = name
         self.tabs.setTabText(self.workspaceNum, name)
@@ -5052,7 +5052,7 @@ class CombineWorkspaceWindow(QtGui.QWidget):
         grid.addWidget(QLabel("Combined spectrum:"), 0, 1)
         self.listA = OrigListWidget(self)
         for i in self.father.workspaceNames:
-            QtGui.QListWidgetItem(i, self.listA)
+            QtGui.QListWidgetItem(i, self.listA).setToolTip(i)
         self.listB = DestListWidget(self)
         grid.addWidget(self.listA, 1, 0)
         grid.addWidget(self.listB, 1, 1)
@@ -5077,6 +5077,63 @@ class CombineWorkspaceWindow(QtGui.QWidget):
             self.deleteLater()
         
     def closeEvent(self, *args):
+        self.father.menuEnable()
+        self.deleteLater()
+
+##########################################################################################
+class PlotSettingsWindow(QtGui.QWidget):
+    def __init__(self, parent):
+        QtGui.QWidget.__init__(self, parent)
+        self.setWindowFlags(QtCore.Qt.Window | QtCore.Qt.Tool)
+        self.father = parent
+        self.setWindowTitle("Plot settings")
+        layout = QtGui.QGridLayout(self)
+        grid = QtGui.QGridLayout()
+        layout.addLayout(grid, 0, 0, 1, 3)
+        self.color = None
+        lineColorButton = QtGui.QPushButton("&Line color")
+        lineColorButton.clicked.connect(self.setColor)
+        grid.addWidget(lineColorButton, 0, 0)
+        grid.addWidget(QtGui.QLabel("Linewidth:"), 1, 0)
+        self.lwSpinBox = QtGui.QDoubleSpinBox()
+        self.lwSpinBox.setSingleStep(0.1)
+        self.lwSpinBox.setValue(self.father.current.linewidth)
+        self.lwSpinBox.valueChanged.connect(self.preview)
+        grid.addWidget(self.lwSpinBox, 2, 0)
+        cancelButton = QtGui.QPushButton("&Close")
+        cancelButton.clicked.connect(self.closeEvent)
+        layout.addWidget(cancelButton, 2, 0)
+        okButton = QtGui.QPushButton("&Ok")
+        okButton.clicked.connect(self.applyAndClose)
+        layout.addWidget(okButton, 2, 1)
+        layout.setColumnStretch(2, 1)
+        self.show()
+        self.setFixedSize(self.size())
+        self.father.menuDisable()
+        self.setGeometry(self.frameSize().width()-self.geometry().width(), self.frameSize().height()-self.geometry().height(), 0, 0)
+
+    def setColor(self, *args):
+        self.color = QtGui.QColorDialog.getColor().getRgbF()
+        self.preview()
+
+    def preview(self, *args):
+        tmpLw = self.father.current.linewidth
+        self.father.current.linewidth = self.lwSpinBox.value()
+        tmpColor = self.father.current.color
+        self.father.current.color = self.color
+        self.father.current.showFid()
+        self.father.current.linewidth = tmpLw
+        self.father.current.color = tmpColor
+        
+    def applyAndClose(self, *args):
+        if self.color is not None:
+            self.father.current.setColor(self.color)
+        self.father.current.setLw(self.lwSpinBox.value())
+        self.father.menuEnable()
+        self.deleteLater()
+        
+    def closeEvent(self, *args):
+        self.father.current.showFid()
         self.father.menuEnable()
         self.deleteLater()
         

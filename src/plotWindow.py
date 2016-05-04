@@ -265,7 +265,7 @@ class LegendWindow(QtGui.QWidget):
         grid.addWidget(self.posEntry, 1, 0)
         grid.addWidget(QLabel("Legend:"), 2, 0)
         self.father.legendCheck.setChecked(True)
-        self.father.legendTextLis = []
+        self.father.legendTextList = []
         self.spinBox = QtGui.QSpinBox()
         self.spinBox.setMaximum(len(self.father.legendTextList)-1)
         self.spinBox.valueChanged.connect(self.changeEdit)

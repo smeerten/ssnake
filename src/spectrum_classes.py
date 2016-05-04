@@ -1102,14 +1102,16 @@ class Current1D(Plot1DFrame):
         self.wholeEcho = None
         self.ref = None               #reference frequency
         if duplicateCurrent is None:
-            self.ppm = False                #display frequency as ppm
+            self.ppm = False             # display frequency as ppm
             self.axes = len(self.data.data.shape)-1
             self.resetLocList() 
             self.plotType = 0
             self.axType = 1
+            self.color = 'b'            # color of the main line
+            self.linewidth = 1.0 
             self.grids = [False, False] # display x and y grid
-            self.colorMap = 'seismic' # colormap for contour like plots
-            self.upd()   #get the first slice of data
+            self.colorMap = 'seismic'   # colormap for contour like plots
+            self.upd()                  # get the first slice of data
             self.fig.suptitle(self.data.name)
             self.startUp()
         else:
@@ -1131,6 +1133,8 @@ class Current1D(Plot1DFrame):
                         self.locList = np.insert(duplicateCurrent.locList, duplicateCurrent.axes2-1, 0)
                     else:
                         self.locList = np.insert(duplicateCurrent.locList, duplicateCurrent.axes2, 0)
+            self.color = duplicateCurrent.color
+            self.linewidth = duplicateCurrent.linewidth
             self.colorMap = duplicateCurrent.colorMap
             self.plotType = duplicateCurrent.plotType
             self.axType = duplicateCurrent.axType
@@ -1984,6 +1988,14 @@ class Current1D(Plot1DFrame):
     def setColorMap(self, num):
         self.colorMap = COLORMAPLIST[num]
         self.showFid()
+
+    def setColor(self, color):
+        self.color = color
+        self.showFid()
+
+    def setLw(self, lw):
+        self.linewidth = lw
+        self.showFid()
         
     def showFid(self, tmpdata=None, extraX=None, extraY=None, extraColor=None, old=False, output=None): #display the 1D data
         self.peakPickReset()
@@ -2003,54 +2015,54 @@ class Current1D(Plot1DFrame):
                 if self.single:
                     self.ax.scatter(self.line_xdata, np.real(self.data1D), c='k', alpha=0.2, label=self.data.name+'_old')
                 else:
-                    self.ax.plot(self.line_xdata, np.real(self.data1D), c='k', alpha=0.2, label=self.data.name+'_old')
+                    self.ax.plot(self.line_xdata, np.real(self.data1D), c='k', alpha=0.2, linewidth=self.linewidth, label=self.data.name+'_old')
             elif(self.plotType == 1):
                 if self.single:
                     self.ax.scatter(self.line_xdata, np.imag(self.data1D), c='k', alpha=0.2, label=self.data.name+'_old')
                 else:
-                    self.ax.plot(self.line_xdata, np.imag(self.data1D), c='k', alpha=0.2, label=self.data.name+'_old')
+                    self.ax.plot(self.line_xdata, np.imag(self.data1D), c='k', alpha=0.2, linewidth=self.linewidth, label=self.data.name+'_old')
             elif(self.plotType == 2):
                 if self.single:
                     self.ax.scatter(self.line_xdata, np.real(self.data1D), c='k', alpha=0.2, label=self.data.name+'_old')
                 else:
-                    self.ax.plot(self.line_xdata, np.real(self.data1D), c='k', alpha=0.2, label=self.data.name+'_old')
+                    self.ax.plot(self.line_xdata, np.real(self.data1D), c='k', alpha=0.2, linewidth=self.linewidth, label=self.data.name+'_old')
             elif(self.plotType == 3):
                 if self.single:
                     self.ax.scatter(self.line_xdata, np.abs(self.data1D), c='k', alpha=0.2, label=self.data.name+'_old')
                 else:
-                    self.ax.plot(self.line_xdata, np.abs(self.data1D), c='k', alpha=0.2, label=self.data.name+'_old')
+                    self.ax.plot(self.line_xdata, np.abs(self.data1D), c='k', alpha=0.2, linewidth=self.linewidth, label=self.data.name+'_old')
         if (extraX is not None):
             for num in range(len(extraX)):
                 if self.single:
                     self.ax.scatter(extraX[num]*axMult, extraY[num], c=extraColor[num])
                 else:
-                    self.ax.plot(extraX[num]*axMult, extraY[num], c=extraColor[num])
+                    self.ax.plot(extraX[num]*axMult, extraY[num], c=extraColor[num], linewidth=self.linewidth)
         if (self.plotType == 0):
             self.line_ydata = np.real(tmpdata)
             if self.single:
-                self.ax.scatter(self.line_xdata, np.real(tmpdata), c='b', label=self.data.name)
+                self.ax.scatter(self.line_xdata, np.real(tmpdata), c=self.color, label=self.data.name)
             else:
-                self.ax.plot(self.line_xdata, np.real(tmpdata), c='b', label=self.data.name)
+                self.ax.plot(self.line_xdata, np.real(tmpdata), c=self.color, linewidth=self.linewidth, label=self.data.name)
         elif(self.plotType == 1):
             self.line_ydata = np.imag(tmpdata)
             if self.single:
-                self.ax.scatter(self.line_xdata, np.imag(tmpdata), c='b', label=self.data.name)
+                self.ax.scatter(self.line_xdata, np.imag(tmpdata), c=self.color, label=self.data.name)
             else:
-                self.ax.plot(self.line_xdata, np.imag(tmpdata), c='b', label=self.data.name)
+                self.ax.plot(self.line_xdata, np.imag(tmpdata), c=self.color, linewidth=self.linewidth, label=self.data.name)
         elif(self.plotType == 2):
             self.line_ydata = np.real(tmpdata)
             if self.single:
                 self.ax.scatter(self.line_xdata, np.imag(tmpdata), c='r', label=self.data.name+'_imag')
-                self.ax.scatter(self.line_xdata, np.real(tmpdata), c='b', label=self.data.name)
+                self.ax.scatter(self.line_xdata, np.real(tmpdata), c=self.color, label=self.data.name)
             else:
-                self.ax.plot(self.line_xdata, np.imag(tmpdata), c='r', label=self.data.name+'_imag')
-                self.ax.plot(self.line_xdata, np.real(tmpdata), c='b', label=self.data.name)
+                self.ax.plot(self.line_xdata, np.imag(tmpdata), c='r', linewidth=self.linewidth, label=self.data.name+'_imag')
+                self.ax.plot(self.line_xdata, np.real(tmpdata), c=self.color, linewidth=self.linewidth, label=self.data.name)
         elif(self.plotType == 3):
             self.line_ydata = np.abs(tmpdata)
             if self.single:
-                self.ax.scatter(self.line_xdata, np.abs(tmpdata), c='b', label=self.data.name)
+                self.ax.scatter(self.line_xdata, np.abs(tmpdata), c=self.color, label=self.data.name)
             else:
-                self.ax.plot(self.line_xdata, np.abs(tmpdata), c='b', label=self.data.name)
+                self.ax.plot(self.line_xdata, np.abs(tmpdata), c=self.color, linewidth=self.linewidth, label=self.data.name)
         if self.spec == 0:
             if self.axType == 0:
                 self.ax.set_xlabel('Time [s]')
@@ -2160,17 +2172,17 @@ class CurrentScatter(Current1D):
                 self.ax.scatter(extraX[num]*axMult, extraY[num], c=extraColor[num])
         if (self.plotType == 0):
             self.line_ydata = np.real(tmpdata)
-            self.ax.scatter(self.line_xdata, np.real(tmpdata), c='b', label=self.data.name)
+            self.ax.scatter(self.line_xdata, np.real(tmpdata), c=self.color, label=self.data.name)
         elif(self.plotType == 1):
             self.line_ydata = np.imag(tmpdata)
-            self.ax.scatter(self.line_xdata, np.imag(tmpdata), c='b', label=self.data.name)
+            self.ax.scatter(self.line_xdata, np.imag(tmpdata), c=self.color, label=self.data.name)
         elif(self.plotType == 2):
             self.line_ydata = np.real(tmpdata)
             self.ax.scatter(self.line_xdata, np.imag(tmpdata), c='r', label=self.data.name+'_imag')
-            self.ax.scatter(self.line_xdata, np.real(tmpdata), c='b', label=self.data.name)
+            self.ax.scatter(self.line_xdata, np.real(tmpdata), c=self.color, label=self.data.name)
         elif(self.plotType == 3):
             self.line_ydata = np.abs(tmpdata)
-            self.ax.scatter(self.line_xdata, np.abs(tmpdata), c='b', label=self.data.name)
+            self.ax.scatter(self.line_xdata, np.abs(tmpdata), c=self.color, label=self.data.name)
         if self.spec == 0:
             if self.axType == 0:
                 self.ax.set_xlabel('Time [s]')
@@ -2310,22 +2322,22 @@ class CurrentMulti(Current1D):
                 if len(data1D) == 1:
                     self.ax.scatter(line_xdata, np.real(data1D), c=self.extraColor[i], label=data.name)
                 else:
-                    self.ax.plot(line_xdata, np.real(data1D), c=self.extraColor[i], label=data.name)
+                    self.ax.plot(line_xdata, np.real(data1D), c=self.extraColor[i], linewidth=self.linewidth, label=data.name)
             elif(self.plotType == 1):
                 if len(data1D) == 1:
                     self.ax.scatter(line_xdata, np.imag(data1D), c=self.extraColor[i], label=data.name)
                 else:
-                    self.ax.plot(line_xdata, np.imag(data1D), c=self.extraColor[i], label=data.name)
+                    self.ax.plot(line_xdata, np.imag(data1D), c=self.extraColor[i], linewidth=self.linewidth, label=data.name)
             elif(self.plotType == 2):
                 if len(data1D) == 1:
                     self.ax.scatter(line_xdata, np.real(data1D), c=self.extraColor[i], label=data.name)
                 else:
-                    self.ax.plot(line_xdata, np.real(data1D), c=self.extraColor[i], label=data.name)
+                    self.ax.plot(line_xdata, np.real(data1D), c=self.extraColor[i], linewidth=self.linewidth, label=data.name)
             elif(self.plotType == 3):
                 if len(data1D) == 1:
                     self.ax.scatter(line_xdata, np.abs(data1D), c=self.extraColor[i], label=data.name)
                 else:
-                    self.ax.plot(line_xdata, np.abs(data1D), c=self.extraColor[i], label=data.name)
+                    self.ax.plot(line_xdata, np.abs(data1D), c=self.extraColor[i], linewidth=self.linewidth, label=data.name)
         if tmpdata is None:
             tmpdata = self.data1D
         if self.spec == 1:
@@ -2341,54 +2353,54 @@ class CurrentMulti(Current1D):
                 if self.single:
                     self.ax.scatter(self.line_xdata, np.real(self.data1D), c='k', alpha=0.2, label=self.data.name+'_old')
                 else:
-                    self.ax.plot(self.line_xdata, np.real(self.data1D), c='k', alpha=0.2, label=self.data.name+'_old')
+                    self.ax.plot(self.line_xdata, np.real(self.data1D), c='k', alpha=0.2, linewidth=self.linewidth, label=self.data.name+'_old')
             elif(self.plotType == 1):
                 if self.single:
                     self.ax.scatter(self.line_xdata, np.imag(self.data1D), c='k', alpha=0.2, label=self.data.name+'_old')
                 else:
-                    self.ax.plot(self.line_xdata, np.imag(self.data1D), c='k', alpha=0.2, label=self.data.name+'_old')
+                    self.ax.plot(self.line_xdata, np.imag(self.data1D), c='k', alpha=0.2, linewidth=self.linewidth, label=self.data.name+'_old')
             elif(self.plotType == 2):
                 if self.single:
                     self.ax.scatter(self.line_xdata, np.real(self.data1D), c='k', alpha=0.2, label=self.data.name+'_old')
                 else:
-                    self.ax.plot(self.line_xdata, np.real(self.data1D), c='k', alpha=0.2, label=self.data.name+'_old')
+                    self.ax.plot(self.line_xdata, np.real(self.data1D), c='k', alpha=0.2, linewidth=self.linewidth, label=self.data.name+'_old')
             elif(self.plotType == 3):
                 if self.single:
                     self.ax.scatter(self.line_xdata, np.abs(self.data1D), c='k', alpha=0.2, label=self.data.name+'_old')
                 else:
-                    self.ax.plot(self.line_xdata, np.abs(self.data1D), c='k', alpha=0.2, label=self.data.name+'_old')
+                    self.ax.plot(self.line_xdata, np.abs(self.data1D), c='k', alpha=0.2, linewidth=self.linewidth, label=self.data.name+'_old')
         if (extraX is not None):
             for num in range(len(extraX)):
                 if self.single:
                     self.ax.scatter(extraX[num]*axMult, extraY[num], c=extraColor[num])
                 else:
-                    self.ax.plot(extraX[num]*axMult, extraY[num], c=extraColor[num])
+                    self.ax.plot(extraX[num]*axMult, extraY[num], linewidth=self.linewidth, c=extraColor[num])
         if (self.plotType == 0):
             self.line_ydata = np.real(tmpdata)
             if self.single:
-                self.ax.scatter(self.line_xdata, np.real(tmpdata), c='b', label=self.data.name)
+                self.ax.scatter(self.line_xdata, np.real(tmpdata), c=self.color, label=self.data.name)
             else:
-                self.ax.plot(self.line_xdata, np.real(tmpdata), c='b', label=self.data.name)
+                self.ax.plot(self.line_xdata, np.real(tmpdata), c=self.color, linewidth=self.linewidth, label=self.data.name)
         elif(self.plotType == 1):
             self.line_ydata = np.imag(tmpdata)
             if self.single:
-                self.ax.scatter(self.line_xdata, np.imag(tmpdata), c='b', label=self.data.name)
+                self.ax.scatter(self.line_xdata, np.imag(tmpdata), c=self.color, label=self.data.name)
             else:
-                self.ax.plot(self.line_xdata, np.imag(tmpdata), c='b', label=self.data.name)
+                self.ax.plot(self.line_xdata, np.imag(tmpdata), c=self.color, linewidth=self.linewidth, label=self.data.name)
         elif(self.plotType == 2):
             self.line_ydata = np.real(tmpdata)
             if self.single:
                 self.ax.scatter(self.line_xdata, np.imag(tmpdata), c='r', label=self.data.name+'_imag')
-                self.ax.scatter(self.line_xdata, np.real(tmpdata), c='b', label=self.data.name)
+                self.ax.scatter(self.line_xdata, np.real(tmpdata), c=self.color, label=self.data.name)
             else:
-                self.ax.plot(self.line_xdata, np.imag(tmpdata), c='r', label=self.data.name+'_imag')
-                self.ax.plot(self.line_xdata, np.real(tmpdata), c='b', label=self.data.name)
+                self.ax.plot(self.line_xdata, np.imag(tmpdata), c='r', linewidth=self.linewidth, label=self.data.name+'_imag')
+                self.ax.plot(self.line_xdata, np.real(tmpdata), c=self.color, linewidth=self.linewidth, label=self.data.name)
         elif(self.plotType == 3):
             self.line_ydata = np.abs(tmpdata)
             if self.single:
-                self.ax.scatter(self.line_xdata, np.abs(tmpdata), c='b', label=self.data.name)
+                self.ax.scatter(self.line_xdata, np.abs(tmpdata), c=self.color, label=self.data.name)
             else:
-                self.ax.plot(self.line_xdata, np.abs(tmpdata), c='b', label=self.data.name)
+                self.ax.plot(self.line_xdata, np.abs(tmpdata), c=self.color, linewidth=self.linewidth, label=self.data.name)
         if self.spec == 0:
             if self.axType == 0:
                 self.ax.set_xlabel('Time [s]')
@@ -2661,31 +2673,31 @@ class CurrentStacked(Current1D):
                     if self.single:
                         self.ax.scatter(self.line_xdata, num*self.spacing+np.real(self.data1D[num]), c='k', alpha=0.2, label=self.data.name+'_old')
                     else:
-                        self.ax.plot(self.line_xdata, num*self.spacing+np.real(self.data1D[num]), c='k', alpha=0.2, label=self.data.name+'_old')
+                        self.ax.plot(self.line_xdata, num*self.spacing+np.real(self.data1D[num]), c='k', alpha=0.2, linewidth=self.linewidth, label=self.data.name+'_old')
             elif(self.plotType == 1):
                 for num in range(len(self.data1D)):
                     if self.single:
                         self.ax.scatter(self.line_xdata, num*self.spacing+np.imag(self.data1D[num]), c='k', alpha=0.2, label=self.data.name+'_old')
                     else:
-                        self.ax.plot(self.line_xdata, num*self.spacing+np.imag(self.data1D[num]), c='k', alpha=0.2, label=self.data.name+'_old')
+                        self.ax.plot(self.line_xdata, num*self.spacing+np.imag(self.data1D[num]), c='k', alpha=0.2, linewidth=self.linewidth, label=self.data.name+'_old')
             elif(self.plotType == 2):
                 for num in range(len(self.data1D)):
                     if self.single:
                         self.ax.scatter(self.line_xdata, num*self.spacing+np.real(self.data1D[num]), c='k', alpha=0.2, label=self.data.name+'_old')
                     else:
-                        self.ax.plot(self.line_xdata, num*self.spacing+np.real(self.data1D[num]), c='k', alpha=0.2, label=self.data.name+'_old')
+                        self.ax.plot(self.line_xdata, num*self.spacing+np.real(self.data1D[num]), c='k', alpha=0.2, linewidth=self.linewidth, label=self.data.name+'_old')
             elif(self.plotType == 3):
                 for num in range(len(self.data1D)):
                     if self.single:
                         self.ax.scatter(self.line_xdata, num*self.spacing+np.abs(self.data1D[num]), c='k', alpha=0.2, label=self.data.name+'_old')
                     else:
-                        self.ax.plot(self.line_xdata, num*self.spacing+np.abs(self.data1D[num]), c='k', alpha=0.2, label=self.data.name+'_old')
+                        self.ax.plot(self.line_xdata, num*self.spacing+np.abs(self.data1D[num]), c='k', alpha=0.2, linewidth=self.linewidth, label=self.data.name+'_old')
         if (extraX is not None):
             for num in range(len(extraY)):
                 if self.single:
                     self.ax.scatter(extraX[0]*axMult, num*self.spacing+extraY[num], c=extraColor[0])
                 else:
-                    self.ax.plot(extraX[0]*axMult, num*self.spacing+extraY[num], c=extraColor[0])
+                    self.ax.plot(extraX[0]*axMult, num*self.spacing+extraY[num], linewidth=self.linewidth, c=extraColor[0])
         if (self.plotType == 0):
             tmpdata = np.real(tmpdata)
         elif (self.plotType == 1):
@@ -2697,12 +2709,12 @@ class CurrentStacked(Current1D):
             for num in range(len(tmpdata)):
                 if (self.plotType == 2):
                     self.ax.scatter(self.line_xdata, num*self.spacing+np.imag(tmpdata[num]), c='r', label=self.data.name+'_imag')
-                self.ax.scatter(self.line_xdata, num*self.spacing+np.real(tmpdata[num]), c='b', label=self.data.name)
+                self.ax.scatter(self.line_xdata, num*self.spacing+np.real(tmpdata[num]), c=self.color, label=self.data.name)
         else:
             for num in range(len(tmpdata)):
                 if (self.plotType == 2):
-                    self.ax.plot(self.line_xdata, num*self.spacing+np.imag(tmpdata[num]), c='r', label=self.data.name+'_imag')
-                self.ax.plot(self.line_xdata, num*self.spacing+np.real(tmpdata[num]), c='b', label=self.data.name)  
+                    self.ax.plot(self.line_xdata, num*self.spacing+np.imag(tmpdata[num]), c='r', linewidth=self.linewidth, label=self.data.name+'_imag')
+                self.ax.plot(self.line_xdata, num*self.spacing+np.real(tmpdata[num]), c=self.color, linewidth=self.linewidth, label=self.data.name)  
         if self.spec == 0:
             if self.axType == 0:
                 self.ax.set_xlabel('Time [s]')
@@ -3023,14 +3035,14 @@ class CurrentArrayed(Current1D):
                 if self.single:
                     self.ax.scatter((num*self.spacing+self.xax[xaxZlims])*axMult, oldData[num][xaxZlims][direc], c='k', alpha=0.2, label=self.data.name+'_old')
                 else:
-                    self.ax.plot((num*self.spacing+self.xax[xaxZlims])*axMult, oldData[num][xaxZlims][direc], c='k', alpha=0.2, label=self.data.name+'_old')
+                    self.ax.plot((num*self.spacing+self.xax[xaxZlims])*axMult, oldData[num][xaxZlims][direc], c='k', alpha=0.2, linewidth=self.linewidth, label=self.data.name+'_old')
         if (extraX is not None):
             extraZlims = (extraX[0] > self.zminlim) & (extraX[0] < self.zmaxlim)
             for num in range(len(extraY)):
                 if self.single:
                     self.ax.scatter((num*self.spacing+extraX[0][extraZlims])*axMult, extraY[num][extraZlims][direc], c=extraColor[0])
                 else:
-                    self.ax.plot((num*self.spacing+extraX[0][extraZlims])*axMult, extraY[num][extraZlims][direc], c=extraColor[0])
+                    self.ax.plot((num*self.spacing+extraX[0][extraZlims])*axMult, extraY[num][extraZlims][direc], linewidth=self.linewidth, c=extraColor[0])
         if (self.plotType == 0):
             tmpdata = np.real(tmpdata)
         elif(self.plotType == 1):
@@ -3045,14 +3057,14 @@ class CurrentArrayed(Current1D):
                     self.ax.scatter((num*self.spacing+self.xax[xaxZlims])*axMult, np.imag(tmpdata[num][xaxZlims])[direc], c='r', label=self.data.name+'_imag')
                 self.line_xdata = np.append(self.line_xdata, (num*self.spacing+self.xax[xaxZlims])*axMult)
                 self.line_ydata = np.append(self.line_ydata, np.real(tmpdata[num][xaxZlims])[direc])
-                self.ax.scatter((num*self.spacing+self.xax[xaxZlims])*axMult, np.real(tmpdata[num][xaxZlims])[direc], c='b', label=self.data.name)
+                self.ax.scatter((num*self.spacing+self.xax[xaxZlims])*axMult, np.real(tmpdata[num][xaxZlims])[direc], c=self.color, label=self.data.name)
         else:
             for num in range(len(tmpdata)):
                 if (self.plotType == 2):
-                    self.ax.plot((num*self.spacing+self.xax[xaxZlims])*axMult, np.imag(tmpdata[num])[direc], c='r', label=self.data.name+'_imag')
+                    self.ax.plot((num*self.spacing+self.xax[xaxZlims])*axMult, np.imag(tmpdata[num])[direc], c='r', linewidth=self.linewidth, label=self.data.name+'_imag')
                 self.line_xdata = np.append(self.line_xdata, (num*self.spacing+self.xax[xaxZlims])*axMult)
                 self.line_ydata = np.append(self.line_ydata, np.real(tmpdata[num][xaxZlims])[direc])
-                self.ax.plot((num*self.spacing+self.xax[xaxZlims])*axMult, np.real(tmpdata[num][xaxZlims])[direc], c='b', label=self.data.name)
+                self.ax.plot((num*self.spacing+self.xax[xaxZlims])*axMult, np.real(tmpdata[num][xaxZlims])[direc], c=self.color, linewidth=self.linewidth, label=self.data.name)
         if self.spec == 0:
             if self.axType == 0:
                 self.ax.set_xlabel('Time [s]')
@@ -3356,21 +3368,21 @@ class CurrentContour(Current1D):
         contourLevels = np.linspace(self.minLevels*differ, self.maxLevels*differ, self.numLevels)
         vmax = max(np.abs(self.minLevels*differ), np.abs(self.maxLevels*differ))
         vmin = -vmax
-        self.ax.contour(X, Y, tmpdata, cmap=get_cmap(self.colorMap), levels=contourLevels, vmax=vmax, vmin=vmin, label=self.data.name)
-        self.ax.contour(X, Y, tmpdata, cmap=get_cmap(self.colorMap), levels=-contourLevels[::-1], vmax=vmax, vmin=vmin)
+        self.ax.contour(X, Y, tmpdata, cmap=get_cmap(self.colorMap), levels=contourLevels, vmax=vmax, vmin=vmin, linewidths=self.linewidth, label=self.data.name)
+        self.ax.contour(X, Y, tmpdata, cmap=get_cmap(self.colorMap), levels=-contourLevels[::-1], vmax=vmax, vmin=vmin, linewidths=self.linewidth)
         self.line_ydata = tmpdata[0]
         if self.projType1 == 0:
-            self.x_ax.plot(x, np.sum(tmpdata, axis=0), 'b')
+            self.x_ax.plot(x, np.sum(tmpdata, axis=0), color=self.color, linewidth=self.linewidth)
         elif self.projType1 == 1:
-            self.x_ax.plot(x, np.max(tmpdata, axis=0), 'b')
+            self.x_ax.plot(x, np.max(tmpdata, axis=0), color=self.color, linewidth=self.linewidth)
         elif self.projType1 == 2:
-            self.x_ax.plot(x, np.min(tmpdata, axis=0), 'b')
+            self.x_ax.plot(x, np.min(tmpdata, axis=0), color=self.color, linewidth=self.linewidth)
         if self.projType2 == 0:
-            self.y_ax.plot(np.sum(tmpdata, axis=1), y, 'b')
+            self.y_ax.plot(np.sum(tmpdata, axis=1), y, color=self.color, linewidth=self.linewidth)
         elif self.projType2 == 1:
-            self.y_ax.plot(np.max(tmpdata, axis=1), y, 'b')
+            self.y_ax.plot(np.max(tmpdata, axis=1), y, color=self.color, linewidth=self.linewidth)
         elif self.projType2 == 2:
-            self.y_ax.plot(np.min(tmpdata, axis=1), y, 'b')
+            self.y_ax.plot(np.min(tmpdata, axis=1), y, color=self.color, linewidth=self.linewidth, )
         if self.spec == 0:
             if self.axType == 0:
                 self.ax.set_xlabel('Time [s]')
@@ -3759,36 +3771,36 @@ class CurrentSkewed(Current1D):
         if old:
             if (self.plotType == 0):
                 for num in range(len(self.data1D)):
-                    self.ax.plot(x, y[num]*np.ones(len(x)), np.real(self.data1D[num]), c='k', alpha=0.2, label=self.data.name+'_old')
+                    self.ax.plot(x, y[num]*np.ones(len(x)), np.real(self.data1D[num]), c='k', alpha=0.2, linewidth=self.linewidth, label=self.data.name+'_old')
             elif(self.plotType == 1):
                 for num in range(len(self.data1D)):
-                    self.ax.plot(x, y[num]*np.ones(len(x)), np.imag(self.data1D[num]), c='k', alpha=0.2, label=self.data.name+'_old')
+                    self.ax.plot(x, y[num]*np.ones(len(x)), np.imag(self.data1D[num]), c='k', alpha=0.2, linewidth=self.linewidth, label=self.data.name+'_old')
             elif(self.plotType == 2):
                 for num in range(len(self.data1D)):
-                    self.ax.plot(x, y[num]*np.ones(len(x)), np.real(self.data1D[num]), c='k', alpha=0.2, label=self.data.name+'_old')
+                    self.ax.plot(x, y[num]*np.ones(len(x)), np.real(self.data1D[num]), c='k', alpha=0.2, linewidth=self.linewidth, label=self.data.name+'_old')
             elif(self.plotType == 3):
                 for num in range(len(self.data1D)):
-                    self.ax.plot(x, y[num]*np.ones(len(x)), np.abs(self.data1D[num]), c='k', alpha=0.2, label=self.data.name+'_old')
+                    self.ax.plot(x, y[num]*np.ones(len(x)), np.abs(self.data1D[num]), c='k', alpha=0.2, linewidth=self.linewidth, label=self.data.name+'_old')
         if (extraX is not None):
             for num in range(len(extraY)):
-                self.ax.plot(extraX[0]*axMult, y[num]*np.ones(len(extraX[0])), extraY[num], c= extraColor[0])
+                self.ax.plot(extraX[0]*axMult, y[num]*np.ones(len(extraX[0])), extraY[num], c= extraColor[0], linewidth=self.linewidth)
         if (self.plotType == 0):
             self.line_ydata = np.real(tmpdata[0])
             for num in range(len(tmpdata)):
-                self.ax.plot(x, y[num]*np.ones(len(x)), np.real(tmpdata[num]), c='b', label=self.data.name)
+                self.ax.plot(x, y[num]*np.ones(len(x)), np.real(tmpdata[num]), c=self.color, linewidth=self.linewidth, label=self.data.name)
         elif(self.plotType == 1):
             self.line_ydata = np.imag(tmpdata[0])
             for num in range(len(tmpdata)):
-                self.ax.plot(x, y[num]*np.ones(len(x)), np.imag(tmpdata[num]), c='b', label=self.data.name)
+                self.ax.plot(x, y[num]*np.ones(len(x)), np.imag(tmpdata[num]), c=self.color, linewidth=self.linewidth, label=self.data.name)
         elif(self.plotType == 2):
             self.line_ydata = np.real(tmpdata[0])
             for num in range(len(tmpdata)):
-                self.ax.plot(x, y[num]*np.ones(len(x)), np.imag(tmpdata[num]), c='r', label=self.data.name+'_imag')
-                self.ax.plot(x, y[num]*np.ones(len(x)), np.real(tmpdata[num]), c='b', label=self.data.name)
+                self.ax.plot(x, y[num]*np.ones(len(x)), np.imag(tmpdata[num]), c='r', linewidth=self.linewidth, label=self.data.name+'_imag')
+                self.ax.plot(x, y[num]*np.ones(len(x)), np.real(tmpdata[num]), c=self.color, linewidth=self.linewidth, label=self.data.name)
         elif(self.plotType == 3):
             self.line_ydata = np.abs(tmpdata[0])
             for num in range(len(tmpdata)):
-                self.ax.plot(x, y[num]*np.ones(len(x)), np.abs(tmpdata[num]), c='b', label=self.data.name)
+                self.ax.plot(x, y[num]*np.ones(len(x)), np.abs(tmpdata[num]), c=self.color, linewidth=self.linewidth, label=self.data.name)
         if self.spec == 0:
             if self.axType == 0:
                 self.ax.set_xlabel('Time [s]')

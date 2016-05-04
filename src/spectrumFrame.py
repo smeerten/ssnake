@@ -76,13 +76,13 @@ class Plot1DFrame:
                 self.rect[0].remove()
             except:
                 pass
-            self.canvas.draw()
+            self.canvas.draw_idle()
         if self.rect[1] is not None:
             try:
                 self.rect[1].remove()
             except:
                 pass
-            self.canvas.draw()
+            self.canvas.draw_idle()
         self.rect = [None, None, None, None]
         self.peakPick = False
         self.peakPickFunc = None
@@ -112,7 +112,8 @@ class Plot1DFrame:
                     self.ax.set_ylim(self.ymaxlim, self.yminlim)
                 else:
                     self.ax.set_ylim(self.yminlim, self.ymaxlim)
-            self.canvas.draw()
+            self.canvas.update()
+            self.canvas.draw_idle()
 
     def altScroll(self, event):
         pass
@@ -197,7 +198,7 @@ class Plot1DFrame:
                 self.zoomY2 = None 
         elif event.button == 3:
             self.rightMouse = False
-        self.canvas.draw()
+        self.canvas.draw_idle()
 
     def pan(self, event):
         if self.rightMouse and self.panX is not None and self.panY is not None:
@@ -223,7 +224,7 @@ class Plot1DFrame:
                 self.ax.set_ylim(self.ymaxlim, self.yminlim)
             else:
                 self.ax.set_ylim(self.yminlim, self.ymaxlim)
-            self.canvas.draw()
+            self.canvas.draw_idle()
         elif self.peakPick:
             if self.rect[0] is not None:
                 try:
@@ -242,7 +243,7 @@ class Plot1DFrame:
             if self.peakPick == 2:
                 if event.ydata is not None:
                     self.rect[1] = self.ax.axhline(event.ydata, c='k', linestyle='--')
-            self.canvas.draw()
+            self.canvas.draw_idle()
         elif self.leftMouse and (self.zoomX1 is not None) and (self.zoomY1 is not None):
             if isinstance(self, spectrum_classes.CurrentSkewed):
                 a = self.ax.format_coord(event.xdata, event.ydata)
@@ -269,4 +270,4 @@ class Plot1DFrame:
             self.rect[1], = self.ax.plot([self.zoomX1, self.zoomX2], [self.zoomY1, self.zoomY1], 'k', clip_on=False)
             self.rect[2], = self.ax.plot([self.zoomX1, self.zoomX1], [self.zoomY1, self.zoomY2], 'k', clip_on=False)
             self.rect[3], = self.ax.plot([self.zoomX2, self.zoomX2], [self.zoomY1, self.zoomY2], 'k', clip_on=False)
-            self.canvas.draw()
+            self.canvas.draw_idle()
