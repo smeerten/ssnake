@@ -234,16 +234,16 @@ class MainProgram(QtGui.QMainWindow):
         
         self.referencelistmenu = QtGui.QMenu('&Reference', self)
         self.plotMenu.addMenu(self.referencelistmenu)
-        self.referencelistmenu.addAction("Set &reference", lambda: self.mainWindowCheck(lambda mainWindow: RefWindow(mainWindow)))
-        self.referencerunmenu = QtGui.QMenu('Run', self)
+        self.referencelistmenu.addAction("&Set reference", lambda: self.mainWindowCheck(lambda mainWindow: RefWindow(mainWindow)))
+        self.referencerunmenu = QtGui.QMenu('&Run', self)
         self.referencelistmenu.addMenu(self.referencerunmenu)
         self.referencedeletemenu = QtGui.QMenu('&Delete', self)
         self.referencelistmenu.addMenu(self.referencedeletemenu)
-        self.referencerenamemenu = QtGui.QMenu('Rename', self)
+        self.referencerenamemenu = QtGui.QMenu('Re&name', self)
         self.referencelistmenu.addMenu(self.referencerenamemenu)
         self.referencesavemenu = QtGui.QMenu('&Save', self)
         self.referencelistmenu.addMenu(self.referencesavemenu)
-        
+        self.referencelistmenu.addAction("&Load", self.referenceLoad)
         
         
         self.plotMenu.addAction("&User x-axis", lambda: self.mainWindowCheck(lambda mainWindow: XaxWindow(mainWindow)))
@@ -632,6 +632,47 @@ class MainProgram(QtGui.QMainWindow):
         reffreq = self.referenceValue[self.referenceName.index(name)]
         with open(fileName, 'w') as f:
             f.write(str(reffreq))
+            
+            
+            
+    def referenceLoad(self):
+        filename = QtGui.QFileDialog.getOpenFileName(self, 'Open File', self.LastLocation)
+        if filename: #if not cancelled
+            self.LastLocation = os.path.dirname(filename) #Save used path
+        if len(filename) == 0:
+            return
+        count = 0
+        name = 'ref'+str(count)
+        while name in self.referenceName:
+            count += 1
+            name = 'ref'+str(count)
+            
+        givenName, ok = QtGui.QInputDialog.getText(self, 'Reference name', 'Name:', text=name)
+        
+        while (givenName in self.macros.keys()) or givenName is '':
+            if not ok:
+                return
+            self.dispMsg('Name exists')
+            givenName, ok = QtGui.QInputDialog.getText(self, 'Macro name', 'Name:', text=name)
+            
+            
+        with open(filename, 'r') as f:
+            self.referenceName.append(givenName)
+            try:
+                freq=float(f.read())
+                
+            except:
+                self.dispMsg("Failed loading '"+filename+"' as reference.")
+                return
+            
+        self.referenceValue.append(freq)
+        action1 = self.referencerunmenu.addAction(givenName, lambda name=givenName: self.referenceRun(name))
+        action2 = self.referencedeletemenu.addAction(givenName, lambda name=givenName: self.referenceRemove(name))
+        action3 = self.referencerenamemenu.addAction(givenName, lambda name=givenName: self.referenceRename(name))
+        action4 = self.referencesavemenu.addAction(givenName, lambda name=givenName: self.referenceSave(name))
+        self.referenceActions[givenName] = [action1, action2, action3, action4]
+        self.menuCheck()
+        
         
     def changeMainWindow(self, var):
         if not self.allowChange:
