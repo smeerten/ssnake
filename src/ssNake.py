@@ -84,7 +84,66 @@ class MainProgram(QtGui.QMainWindow):
         self.setCentralWidget(self.main_widget)
         self.eventFilter = MyEventFilter(self)
         self.root.installEventFilter(self.eventFilter)
+        self.loadDefaults()
+        self.resize(self.defaultWidth, self.defaultHeight)
+        if self.defaultMaximized:
+            self.showMaximized()
 
+    def loadDefaults(self):
+        QtCore.QSettings.setDefaultFormat(QtCore.QSettings.IniFormat)
+        QtCore.QCoreApplication.setOrganizationName("ssNake")
+        QtCore.QCoreApplication.setApplicationName("ssNake")
+        settings = QtCore.QSettings()
+        self.defaultColor = settings.value("plot/color", 'b', str)
+        try:
+            self.defaultLinewidth = settings.value("plot/linewidth", 1.0, float)
+        except TypeError:
+            self.dispMsg("Incorrect value in the config file for the plot/linewidth")
+            self.defaultLinewidth = 1.0
+        self.defaultGrids = [settings.value("plot/xgrid", False, bool), settings.value("plot/ygrid", False, bool)]
+        self.defaultColorMap = settings.value("contour/colormap", 'seismic', str)
+        if not str(self.defaultColorMap) in sc.COLORMAPLIST:
+            self.dispMsg("Incorrect colormap in config file")
+            self.defaultColorMap = 'seismic'
+        self.defaultMaximized = settings.value("maximized", False, bool)
+        try:
+            self.defaultWidth = settings.value("width", 0, int)
+        except TypeError:
+            self.dispMsg("Incorrect value in the config file for the width")
+            self.defaultWidth = 0
+        try:
+            self.defaultHeight = settings.value("height", 0, int)
+        except TypeError:
+            self.dispMsg("Incorrect value in the config file for the height")
+            self.defaultHeight = 0
+        try:
+            self.defaultWidthRatio = settings.value("contour/width_ratio", 3.0, float)
+        except TypeError:
+            self.dispMsg("Incorrect value in the config file for the contour/width_ratio")
+            self.defaultWidthRatio = 3.0
+        try:
+            self.defaultHeightRatio = settings.value("contour/height_ratio", 3.0, float)
+        except TypeError:
+            self.dispMsg("Incorrect value in the config file for the contour/height_ratio")
+            self.defaultHeightRatio = 3.0
+        
+    def saveDefaults(self):
+        QtCore.QSettings.setDefaultFormat(QtCore.QSettings.IniFormat)
+        QtCore.QCoreApplication.setOrganizationName("ssNake")
+        QtCore.QCoreApplication.setApplicationName("ssNake")
+        settings = QtCore.QSettings()
+        settings.setValue("plot/color", self.defaultColor)
+        settings.setValue("plot/linewidth", self.defaultLinewidth)
+        settings.setValue("plot/colormap", self.defaultColorMap)
+        settings.setValue("plot/xgrid", self.defaultGrids[0])
+        settings.setValue("plot/ygrid", self.defaultGrids[1])
+        settings.setValue("maximized", self.defaultMaximized)
+        settings.setValue("width", self.defaultWidth)
+        settings.setValue("height", self.defaultHeight)
+        settings.setValue("contour/colormap", self.defaultColorMap)
+        settings.setValue("contour/width_ratio", self.defaultWidthRatio)
+        settings.setValue("contour/height_ratio", self.defaultHeightRatio)
+        
     def dispMsg(self, msg):
         self.statusBar.showMessage(msg, 10000)
         
