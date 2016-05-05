@@ -1107,10 +1107,10 @@ class Current1D(Plot1DFrame):
             self.resetLocList() 
             self.plotType = 0
             self.axType = 1
-            self.color = 'b'            # color of the main line
-            self.linewidth = 1.0 
-            self.grids = [False, False] # display x and y grid
-            self.colorMap = 'seismic'   # colormap for contour like plots
+            self.color = self.root.father.defaultColor # color of the main line
+            self.linewidth = self.root.father.defaultLinewidth  
+            self.grids = self.root.father.defaultGrids # display x and y grid
+            self.colorMap = self.root.father.defaultColorMap   # colormap for contour like plots
             self.upd()                  # get the first slice of data
             self.fig.suptitle(self.data.name)
             self.startUp()

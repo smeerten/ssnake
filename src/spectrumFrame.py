@@ -36,7 +36,7 @@ class Plot1DFrame:
         self.canvas = canvas
         self.fig.clf()
         if isinstance(self, spectrum_classes.CurrentContour):
-            gs = gridspec.GridSpec(2, 2, width_ratios=[3, 1], height_ratios=[1, 3])
+            gs = gridspec.GridSpec(2, 2, width_ratios=[self.root.father.defaultWidthRatio, 1], height_ratios=[1, self.root.father.defaultHeightRatio])
             self.ax = self.fig.add_subplot(gs[2])
             self.x_ax = self.fig.add_subplot(gs[0], sharex=self.ax)
             self.y_ax = self.fig.add_subplot(gs[3], sharey=self.ax)
