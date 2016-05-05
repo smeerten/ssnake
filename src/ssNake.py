@@ -89,43 +89,49 @@ class MainProgram(QtGui.QMainWindow):
         if self.defaultMaximized:
             self.showMaximized()
 
+    def resetDefaults(self):
+        self.defaultWidth = 0
+        self.defaultHeight = 0
+        self.defaultMaximized = False
+        self.defaultLinewidth = 1.0
+        self.defaultColor = '#0000FF'
+        self.defaultGrids = [False, False]
+        self.defaultColorMap = 'seismic'
+        self.defaultWidthRatio = 3.0
+        self.defaultHeightRatio = 3.0
+            
     def loadDefaults(self):
+        self.resetDefaults()
         QtCore.QSettings.setDefaultFormat(QtCore.QSettings.IniFormat)
         QtCore.QCoreApplication.setOrganizationName("ssNake")
         QtCore.QCoreApplication.setApplicationName("ssNake")
         settings = QtCore.QSettings()
-        self.defaultColor = settings.value("plot/color", 'b', str)
+        self.defaultColor = settings.value("plot/color", self.defaultColor, str)
         try:
-            self.defaultLinewidth = settings.value("plot/linewidth", 1.0, float)
+            self.defaultLinewidth = settings.value("plot/linewidth", self.defaultLinewidth, float)
         except TypeError:
             self.dispMsg("Incorrect value in the config file for the plot/linewidth")
-            self.defaultLinewidth = 1.0
-        self.defaultGrids = [settings.value("plot/xgrid", False, bool), settings.value("plot/ygrid", False, bool)]
-        self.defaultColorMap = settings.value("contour/colormap", 'seismic', str)
+        self.defaultGrids = [settings.value("plot/xgrid", self.defaultGrids[0], bool), settings.value("plot/ygrid", self.defaultGrids[1], bool)]
+        self.defaultColorMap = settings.value("contour/colormap", self.defaultColorMap, str)
         if not str(self.defaultColorMap) in sc.COLORMAPLIST:
             self.dispMsg("Incorrect colormap in config file")
-            self.defaultColorMap = 'seismic'
-        self.defaultMaximized = settings.value("maximized", False, bool)
+        self.defaultMaximized = settings.value("maximized", self.defaultMaximized, bool)
         try:
-            self.defaultWidth = settings.value("width", 0, int)
+            self.defaultWidth = settings.value("width", self.defaultWidth, int)
         except TypeError:
             self.dispMsg("Incorrect value in the config file for the width")
-            self.defaultWidth = 0
         try:
-            self.defaultHeight = settings.value("height", 0, int)
+            self.defaultHeight = settings.value("height", self.defaultHeight, int)
         except TypeError:
             self.dispMsg("Incorrect value in the config file for the height")
-            self.defaultHeight = 0
         try:
-            self.defaultWidthRatio = settings.value("contour/width_ratio", 3.0, float)
+            self.defaultWidthRatio = settings.value("contour/width_ratio", self.defaultWidthRatio, float)
         except TypeError:
             self.dispMsg("Incorrect value in the config file for the contour/width_ratio")
-            self.defaultWidthRatio = 3.0
         try:
-            self.defaultHeightRatio = settings.value("contour/height_ratio", 3.0, float)
+            self.defaultHeightRatio = settings.value("contour/height_ratio", self.defaultHeightRatio, float)
         except TypeError:
             self.dispMsg("Incorrect value in the config file for the contour/height_ratio")
-            self.defaultHeightRatio = 3.0
         
     def saveDefaults(self):
         QtCore.QSettings.setDefaultFormat(QtCore.QSettings.IniFormat)
@@ -134,7 +140,6 @@ class MainProgram(QtGui.QMainWindow):
         settings = QtCore.QSettings()
         settings.setValue("plot/color", self.defaultColor)
         settings.setValue("plot/linewidth", self.defaultLinewidth)
-        settings.setValue("plot/colormap", self.defaultColorMap)
         settings.setValue("plot/xgrid", self.defaultGrids[0])
         settings.setValue("plot/ygrid", self.defaultGrids[1])
         settings.setValue("maximized", self.defaultMaximized)
@@ -162,6 +167,7 @@ class MainProgram(QtGui.QMainWindow):
         self.savefigAct = self.exportmenu.addAction(QtGui.QIcon(IconDirectory + 'figure.png'),'Figure', self.saveFigure, QtGui.QKeySequence.Print)
         self.exportmenu.addAction(QtGui.QIcon(IconDirectory + 'simpson.png'), 'Simpson', self.saveSimpsonFile)
         self.exportmenu.addAction(QtGui.QIcon(IconDirectory + 'ssnake.png'), 'ASCII (1D/2D)', self.saveASCIIFile)
+        self.filemenu.addAction('&Preferences', lambda : PreferenceWindow(self))
         self.filemenu.addAction(QtGui.QIcon(IconDirectory + 'quit.png'), '&Quit', self.fileQuit, QtGui.QKeySequence.Quit)
         
         #Workspaces menu
@@ -5246,7 +5252,7 @@ class PlotSettingsWindow(QtGui.QWidget):
         layout = QtGui.QGridLayout(self)
         grid = QtGui.QGridLayout()
         layout.addLayout(grid, 0, 0, 1, 3)
-        self.color = None
+        self.color = self.father.current.color
         lineColorButton = QtGui.QPushButton("&Line color")
         lineColorButton.clicked.connect(self.setColor)
         grid.addWidget(lineColorButton, 0, 0)
@@ -5269,7 +5275,7 @@ class PlotSettingsWindow(QtGui.QWidget):
         self.setGeometry(self.frameSize().width()-self.geometry().width(), self.frameSize().height()-self.geometry().height(), 0, 0)
 
     def setColor(self, *args):
-        self.color = QtGui.QColorDialog.getColor().getRgbF()
+        self.color = QtGui.QColorDialog.getColor(QtGui.QColor(self.color)).name()
         self.preview()
 
     def preview(self, *args):
@@ -5282,8 +5288,7 @@ class PlotSettingsWindow(QtGui.QWidget):
         self.father.current.color = tmpColor
         
     def applyAndClose(self, *args):
-        if self.color is not None:
-            self.father.current.setColor(self.color)
+        self.father.current.setColor(self.color)
         self.father.current.setLw(self.lwSpinBox.value())
         self.father.menuEnable()
         self.deleteLater()
@@ -5292,7 +5297,120 @@ class PlotSettingsWindow(QtGui.QWidget):
         self.father.current.showFid()
         self.father.menuEnable()
         self.deleteLater()
+
+##############################################################################
+class PreferenceWindow(QtGui.QWidget):
+    def __init__(self, parent):
+        QtGui.QWidget.__init__(self, parent)
+        self.setWindowFlags(QtCore.Qt.Window| QtCore.Qt.Tool)
+        self.father = parent
+        self.setWindowTitle("Preferences")
+        tabWidget = QtGui.QTabWidget()
+        tab1 = QtGui.QWidget()
+        tab2 = QtGui.QWidget()
+        tab3 = QtGui.QWidget()
+        tabWidget.addTab(tab1, "Window")
+        tabWidget.addTab(tab2, "Plot")
+        tabWidget.addTab(tab3, "Contour")
+        grid1 = QtGui.QGridLayout()
+        grid2 = QtGui.QGridLayout()
+        grid3 = QtGui.QGridLayout()
+        tab1.setLayout(grid1)
+        tab2.setLayout(grid2)
+        tab3.setLayout(grid3)
+        grid1.setColumnStretch(10, 1)
+        grid1.setRowStretch(10, 1)
+        grid2.setColumnStretch(10, 1)
+        grid2.setRowStretch(10, 1)
+        grid3.setColumnStretch(10, 1)
+        grid3.setRowStretch(10, 1)
+        #grid1.addWidget(QLabel("Window size:"), 0, 0, 1, 2)
+        grid1.addWidget(QLabel("Width:"), 1, 0)
+        self.widthSpinBox = QtGui.QSpinBox()
+        self.widthSpinBox.setMaximum(100000)
+        self.widthSpinBox.setValue(self.father.defaultWidth)
+        grid1.addWidget(self.widthSpinBox, 1, 1)
+        grid1.addWidget(QLabel("Height:"), 2, 0)
+        self.heightSpinBox = QtGui.QSpinBox()
+        self.heightSpinBox.setMaximum(100000)
+        self.heightSpinBox.setValue(self.father.defaultHeight)
+        grid1.addWidget(self.heightSpinBox, 2, 1)
+        self.maximizedCheck = QtGui.QCheckBox("Open maximized")
+        self.maximizedCheck.setChecked(self.father.defaultMaximized)
+        grid1.addWidget(self.maximizedCheck, 3, 0, 1, 2)
+
+        grid2.addWidget(QtGui.QLabel("Linewidth:"), 1, 0)
+        self.lwSpinBox = QtGui.QDoubleSpinBox()
+        self.lwSpinBox.setSingleStep(0.1)
+        self.lwSpinBox.setValue(self.father.defaultLinewidth)
+        grid2.addWidget(self.lwSpinBox, 1, 1)
+        self.color = self.father.defaultColor
+        lineColorButton = QtGui.QPushButton("Line color")
+        lineColorButton.clicked.connect(self.setColor)
+        grid2.addWidget(lineColorButton, 2, 0)
+        self.xgridCheck = QtGui.QCheckBox("x-grid")
+        self.xgridCheck.setChecked(self.father.defaultGrids[0])
+        grid2.addWidget(self.xgridCheck, 3, 0, 1, 2)
+        self.ygridCheck = QtGui.QCheckBox("y-grid")
+        self.ygridCheck.setChecked(self.father.defaultGrids[1])
+        grid2.addWidget(self.ygridCheck, 4, 0, 1, 2)
+
+        grid3.addWidget(QtGui.QLabel("Colormap:"), 1, 0)
+        self.cmEntry = QtGui.QComboBox(self)
+        self.cmEntry.addItems(sc.COLORMAPLIST)
+        self.cmEntry.setCurrentIndex(sc.COLORMAPLIST.index(self.father.defaultColorMap))
+        grid3.addWidget(self.cmEntry, 1, 1)
+        grid3.addWidget(QtGui.QLabel("Width ratio:"), 2, 0)
+        self.WRSpinBox = QtGui.QDoubleSpinBox()
+        self.WRSpinBox.setSingleStep(0.1)
+        self.WRSpinBox.setValue(self.father.defaultWidthRatio)
+        grid3.addWidget(self.WRSpinBox, 2, 1)
+        grid3.addWidget(QtGui.QLabel("Height ratio:"), 3, 0)
+        self.HRSpinBox = QtGui.QDoubleSpinBox()
+        self.HRSpinBox.setSingleStep(0.1)
+        self.HRSpinBox.setValue(self.father.defaultHeightRatio)
+        grid3.addWidget(self.HRSpinBox, 3, 1)
         
+        layout = QtGui.QGridLayout(self)
+        layout.addWidget(tabWidget, 0, 0, 1, 4)
+        cancelButton = QtGui.QPushButton("&Close")
+        cancelButton.clicked.connect(self.closeEvent)
+        layout.addWidget(cancelButton, 1, 0)
+        okButton = QtGui.QPushButton("&Store")
+        okButton.clicked.connect(self.applyAndClose)
+        layout.addWidget(okButton, 1, 1)
+        resetButton = QtGui.QPushButton("&Reset")
+        resetButton.clicked.connect(self.reset)
+        layout.addWidget(resetButton, 1, 2)
+        layout.setColumnStretch(3, 1)
+        self.show()
+
+    def setColor(self, *args):
+        self.color = QtGui.QColorDialog.getColor(QtGui.QColor(self.color)).name()
+
+    def applyAndClose(self, *args):
+        self.father.defaultWidth = self.widthSpinBox.value()
+        self.father.defaultHeight = self.heightSpinBox.value()
+        self.father.defaultMaximized = self.maximizedCheck.isChecked()
+        self.father.defaultLinewidth = self.lwSpinBox.value()
+        self.father.defaultColor = self.color
+        self.father.defaultGrids[0] = self.xgridCheck.isChecked()
+        self.father.defaultGrids[1] = self.ygridCheck.isChecked()
+        self.father.defaultColorMap = self.cmEntry.currentText()
+        self.father.defaultWidthRatio = self.WRSpinBox.value()
+        self.father.defaultHeightRatio = self.HRSpinBox.value()
+        self.father.saveDefaults()
+        self.closeEvent()
+
+    def reset(self, *args):
+        self.father.resetDefaults()
+        self.father.saveDefaults()
+        self.closeEvent()
+        
+    def closeEvent(self, *args):
+        self.deleteLater()
+        
+
 root = QtGui.QApplication(sys.argv)
 root.setWindowIcon(QtGui.QIcon(os.path.dirname(os.path.realpath(__file__))+'/logo.gif')) 
 mainProgram = MainProgram(root)
