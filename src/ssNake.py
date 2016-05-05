@@ -235,10 +235,16 @@ class MainProgram(QtGui.QMainWindow):
         self.referencelistmenu = QtGui.QMenu('&Reference', self)
         self.plotMenu.addMenu(self.referencelistmenu)
         self.referencelistmenu.addAction("Set &reference", lambda: self.mainWindowCheck(lambda mainWindow: RefWindow(mainWindow)))
-        self.referencerunmenu = QtGui.QMenu('&Run', self)
+        self.referencerunmenu = QtGui.QMenu('Run', self)
         self.referencelistmenu.addMenu(self.referencerunmenu)
         self.referencedeletemenu = QtGui.QMenu('&Delete', self)
         self.referencelistmenu.addMenu(self.referencedeletemenu)
+        self.referencerenamemenu = QtGui.QMenu('Rename', self)
+        self.referencelistmenu.addMenu(self.referencerenamemenu)
+        self.referencesavemenu = QtGui.QMenu('&Save', self)
+        self.referencelistmenu.addMenu(self.referencesavemenu)
+        
+        
         
         self.plotMenu.addAction("&User x-axis", lambda: self.mainWindowCheck(lambda mainWindow: XaxWindow(mainWindow)))
         self.xgridAction = QtGui.QAction(QtGui.QIcon(IconDirectory + 'xgrid.png'),"&X-grid", self.plotMenu, checkable=True)
@@ -451,9 +457,13 @@ class MainProgram(QtGui.QMainWindow):
             count += 1
             name = 'macro'+str(count)
         givenName, ok = QtGui.QInputDialog.getText(self, 'Macro name', 'Name:', text=name)
+        if not ok:
+            return
         while (givenName in self.macros.keys()) or givenName is '':
             self.dispMsg('Name exists')
             givenName, ok = QtGui.QInputDialog.getText(self, 'Macro name', 'Name:', text=name)
+            if not ok:
+                return
         self.macros[givenName] = []
         self.mainWindow.redoMacro = []
         self.mainWindow.currentMacro = givenName
@@ -564,7 +574,10 @@ class MainProgram(QtGui.QMainWindow):
         self.referenceValue.append(reffreq) #List with saved refrence values
         action1 = self.referencerunmenu.addAction(name, lambda name=name: self.referenceRun(name))
         action2 = self.referencedeletemenu.addAction(name, lambda name=name: self.referenceRemove(name))
-        self.referenceActions[name] = [action1,action2]
+        action3 = self.referencerenamemenu.addAction(name, lambda name=name: self.referenceRename(name))
+        action4 = self.referencesavemenu.addAction(name, lambda name=name: self.referenceSave(name))
+        self.referenceActions[name] = [action1,action2,action3,action4]
+        self.menuCheck()
 
     def referenceRun(self,name):
         reffreq = self.referenceValue[self.referenceName.index(name)]
@@ -575,7 +588,50 @@ class MainProgram(QtGui.QMainWindow):
         self.referenceName.remove(name)
         self.referencerunmenu.removeAction(self.referenceActions[name][0])
         self.referencedeletemenu.removeAction(self.referenceActions[name][1])
+        self.referencerenamemenu.removeAction(self.referenceActions[name][2])
+        self.referencesavemenu.removeAction(self.referenceActions[name][3])
         del self.referenceActions[name]
+        self.menuCheck()
+        
+        
+    def referenceRename(self, oldName):
+        if self.mainWindow is None:
+            return
+        givenName, ok = QtGui.QInputDialog.getText(self, 'Reference name', 'Name:', text=oldName)
+        if givenName == oldName or ok == False:
+            return
+        while (givenName in self.referenceName) or givenName is '':
+            self.dispMsg('Name exists')
+            givenName, ok = QtGui.QInputDialog.getText(self, 'Reference name', 'Name:', text=oldName)
+            if not ok:
+                return
+            
+        self.referenceName[self.referenceName.index(oldName)] = givenName
+        oldActions = self.referenceActions.pop(oldName)
+        self.referencerunmenu.removeAction(oldActions[0])
+        self.referencedeletemenu.removeAction(oldActions[1])
+        self.referencerenamemenu.removeAction(oldActions[2])
+        self.referencesavemenu.removeAction(oldActions[3])
+#        self.macrorenamemenu.removeAction(oldActions[3])
+        action1 = self.referencerunmenu.addAction(givenName, lambda name=givenName: self.referenceRun(name))
+        action2 = self.referencedeletemenu.addAction(givenName, lambda name=givenName: self.referenceRemove(name))
+        action3 = self.referencerenamemenu.addAction(givenName, lambda name=givenName: self.referenceRename(name))
+        action4 = self.referencesavemenu.addAction(givenName, lambda name=givenName: self.referenceSave(name))
+        
+#        action4 = self.macrorenamemenu.addAction(givenName, lambda name=givenName: self.renameMacro(name))
+        self.referenceActions[givenName] = [action1, action2, action3,action4]
+        self.menuCheck()
+        
+    def referenceSave(self, name):
+        fileName = QtGui.QFileDialog.getSaveFileName(self, 'Save reference', self.LastLocation+os.path.sep+name+'.txt', 'txt (*.json)')
+        if not fileName:
+            return
+        else:
+            self.LastLocation = os.path.dirname(fileName)
+            
+        reffreq = self.referenceValue[self.referenceName.index(name)]
+        with open(fileName, 'w') as f:
+            f.write(str(reffreq))
         
     def changeMainWindow(self, var):
         if not self.allowChange:
