@@ -167,7 +167,7 @@ class MainProgram(QtGui.QMainWindow):
         self.savefigAct = self.exportmenu.addAction(QtGui.QIcon(IconDirectory + 'figure.png'),'Figure', self.saveFigure, QtGui.QKeySequence.Print)
         self.exportmenu.addAction(QtGui.QIcon(IconDirectory + 'simpson.png'), 'Simpson', self.saveSimpsonFile)
         self.exportmenu.addAction(QtGui.QIcon(IconDirectory + 'ssnake.png'), 'ASCII (1D/2D)', self.saveASCIIFile)
-        self.filemenu.addAction('&Preferences', lambda : PreferenceWindow(self))
+        self.filemenu.addAction(QtGui.QIcon(IconDirectory + 'preferences.png'),'&Preferences', lambda : PreferenceWindow(self))
         self.filemenu.addAction(QtGui.QIcon(IconDirectory + 'quit.png'), '&Quit', self.fileQuit, QtGui.QKeySequence.Quit)
         
         #Workspaces menu
