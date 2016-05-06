@@ -5059,6 +5059,10 @@ class RefWindow(QtGui.QWidget):
         self.setWindowFlags(QtCore.Qt.Window| QtCore.Qt.Tool)
         self.father = parent
         self.setWindowTitle("Reference")
+        
+        #Secondary reference definitions
+        self.secRefNames = ["User Defined","1H: Adamantane (centre)","13C: Adamantane (left)","13C: Adamantane (right)"]
+        self.secRefValues = ["0.0","1.85","38.520","29.472"]
         layout = QtGui.QGridLayout(self)
         grid = QtGui.QGridLayout()
         layout.addLayout(grid, 0, 0, 1, 2)
@@ -5076,12 +5080,19 @@ class RefWindow(QtGui.QWidget):
         self.freqEntry.setAlignment(QtCore.Qt.AlignHCenter)
         self.freqEntry.returnPressed.connect(self.preview)
         grid.addWidget(self.freqEntry, 3, 0)
-        grid.addWidget(QLabel("Reference [ppm]:"), 4, 0)
+        grid.addWidget(QLabel("Secondary Reference"), 4, 0)
+        self.refSecond = QtGui.QComboBox(parent=self)
+        self.refSecond.addItems(self.secRefNames)
+        self.refSecond.activated.connect(self.fillSecondaryRef)
+        grid.addWidget(self.refSecond, 5, 0)
+        
+        
+        grid.addWidget(QLabel("Reference [ppm]:"), 6, 0)
         self.refEntry = QtGui.QLineEdit()
         self.refEntry.setText("0.0")
         self.refEntry.setAlignment(QtCore.Qt.AlignHCenter)
         self.refEntry.returnPressed.connect(self.preview)
-        grid.addWidget(self.refEntry, 5, 0)
+        grid.addWidget(self.refEntry, 7, 0)
         cancelButton = QtGui.QPushButton("&Cancel")
         cancelButton.clicked.connect(self.closeEvent)
         layout.addWidget(cancelButton, 2, 0)
@@ -5102,6 +5113,10 @@ class RefWindow(QtGui.QWidget):
             return
         self.freqEntry.setText("%.7f" % (freq))
         self.refEntry.setText(str(ref))
+        
+    def fillSecondaryRef(self):
+        self.refEntry.setText(self.secRefValues[self.refSecond.currentIndex()])
+
 
     def closeEvent(self, *args):
         self.father.current.peakPickReset()
