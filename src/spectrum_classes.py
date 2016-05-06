@@ -774,9 +774,14 @@ class Spectrum:
         if axes == None:
             return None
         oldRef = self.ref[axes]
-        self.ref[axes] = float(ref)
+        if ref is None:
+           self.ref[axes] = None
+           self.addHistory("Reference frequency set to 'None' for dimension " + str(axes+1))
+        else:
+            self.ref[axes] = float(ref)
+            self.addHistory("Reference frequency set to "+str(ref*1e-6)+ " MHz for dimension " + str(axes+1))
         self.resetXax(axes)
-        self.addHistory("Reference frequency set to "+str(ref*1e-6)+ " MHz for dimension " + str(axes+1))
+        
         return lambda self: self.setRef(oldRef, axes)
 
     def setWholeEcho(self, val, axes):
