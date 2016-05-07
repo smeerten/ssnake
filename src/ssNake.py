@@ -300,6 +300,7 @@ class MainProgram(QtGui.QMainWindow):
         self.referencelistmenu = QtGui.QMenu('&Reference', self)
         self.plotMenu.addMenu(self.referencelistmenu)
         self.referencelistmenu.addAction("&Set reference", lambda: self.mainWindowCheck(lambda mainWindow: RefWindow(mainWindow)))
+        self.referencelistmenu.addAction("&Clear current reference", self.referenceClear)
         self.referencerunmenu = QtGui.QMenu('&Run', self)
         self.referencelistmenu.addMenu(self.referencerunmenu)
         self.referencedeletemenu = QtGui.QMenu('&Delete', self)
@@ -643,6 +644,9 @@ class MainProgram(QtGui.QMainWindow):
         action4 = self.referencesavemenu.addAction(name, lambda name=name: self.referenceSave(name))
         self.referenceActions[name] = [action1,action2,action3,action4]
         self.menuCheck()
+        
+    def referenceClear(self):
+        self.mainWindow.undoList.append(self.mainWindow.current.setRef(None))
 
     def referenceRun(self,name):
         reffreq = self.referenceValue[self.referenceName.index(name)]
