@@ -180,7 +180,7 @@ class MainProgram(QtGui.QMainWindow):
         self.workspacemenu.addMenu(self.activemenu)
         self.forwardAct = self.workspacemenu.addAction(QtGui.QIcon(IconDirectory + 'next.png'), '&Next', lambda: self.stepWorkspace(1), QtGui.QKeySequence.Forward)
         self.backAct = self.workspacemenu.addAction(QtGui.QIcon(IconDirectory + 'previous.png'), '&Previous', lambda: self.stepWorkspace(-1), QtGui.QKeySequence.Back)
-        self.workspacemenu.addAction('&Combine', self.createCombineWorkspaceWindow)
+        self.workspacemenu.addAction(QtGui.QIcon(IconDirectory + 'combine.png'),'&Combine', self.createCombineWorkspaceWindow)
         
         #Macro menu
         self.macromenu = QtGui.QMenu('&Macros', self)
@@ -195,7 +195,7 @@ class MainProgram(QtGui.QMainWindow):
         self.macromenu.addMenu(self.macrodeletemenu)
         self.macrosavemenu = QtGui.QMenu('&Save', self)
         self.macromenu.addMenu(self.macrosavemenu)
-        self.macromenu.addAction('&Load', self.loadMacro)
+        self.macromenu.addAction(QtGui.QIcon(IconDirectory + 'open.png'),'&Load', self.loadMacro)
         
         self.multiDActions = []
         #the edit drop down menu
@@ -215,7 +215,7 @@ class MainProgram(QtGui.QMainWindow):
         self.toolMenu.addAction(QtGui.QIcon(IconDirectory + 'abs.png'), "&Abs", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.abs())) 
         self.toolMenu.addAction("Apo&dize", lambda: self.mainWindowCheck(lambda mainWindow: ApodWindow(mainWindow)))
         self.toolMenu.addAction(QtGui.QIcon(IconDirectory + 'phase.png'), "&Phasing", lambda: self.mainWindowCheck(lambda mainWindow: PhaseWindow(mainWindow)))
-        self.toolMenu.addAction("Swap &Echo", lambda: self.mainWindowCheck(lambda mainWindow: SwapEchoWindow(mainWindow)))
+        self.toolMenu.addAction(QtGui.QIcon(IconDirectory + 'fliplr.png'),"Swap &Echo", lambda: self.mainWindowCheck(lambda mainWindow: SwapEchoWindow(mainWindow)))
         self.toolMenu.addAction("&Offset correction", lambda: self.mainWindowCheck(lambda mainWindow: DCWindow(mainWindow)))
         self.toolMenu.addAction("&Baseline correction", lambda: self.mainWindowCheck(lambda mainWindow: BaselineWindow(mainWindow)))
         self.toolMenu.addAction("S&ubtract averages", lambda: self.mainWindowCheck(lambda mainWindow: SubtractAvgWindow(mainWindow)))
@@ -294,7 +294,7 @@ class MainProgram(QtGui.QMainWindow):
         self.plotMenu.addAction(QtGui.QIcon(IconDirectory + 'scatterplot.png'), "&Scatter plot", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.plotScatter()))
         self.multiDActions.append(self.plotMenu.addAction("S&tack plot", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.plotStack())))
         self.multiDActions.append(self.plotMenu.addAction("&Array plot", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.plotArray())))
-        self.multiDActions.append(self.plotMenu.addAction("&Contour plot", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.plotContour())))
+        self.multiDActions.append(self.plotMenu.addAction(QtGui.QIcon(IconDirectory + 'contour.png'),"&Contour plot", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.plotContour())))
         self.multiDActions.append(self.plotMenu.addAction("S&kewed plot", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.plotSkewed())))
         self.plotMenu.addAction("&Multi plot", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.plotMulti()))
         
@@ -310,7 +310,7 @@ class MainProgram(QtGui.QMainWindow):
         self.referencelistmenu.addMenu(self.referencerenamemenu)
         self.referencesavemenu = QtGui.QMenu('&Save', self)
         self.referencelistmenu.addMenu(self.referencesavemenu)
-        self.referencelistmenu.addAction("&Load", self.referenceLoad)
+        self.referencelistmenu.addAction(QtGui.QIcon(IconDirectory + 'open.png'),"&Load", self.referenceLoad)
         
         
         self.plotMenu.addAction("&User x-axis", lambda: self.mainWindowCheck(lambda mainWindow: XaxWindow(mainWindow)))
