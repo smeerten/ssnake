@@ -224,6 +224,7 @@ class MainProgram(QtGui.QMainWindow):
         self.toolMenu.addAction("States-&TPPI", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.statesTPPI()))
         self.toolMenu.addAction("Ec&ho-antiecho", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.echoAntiEcho()))
         self.toolMenu.addAction("&Correct Bruker digital filter", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.BrukerDigital()))
+        self.toolMenu.addAction("&LPSVD", lambda: self.mainWindowCheck(lambda mainWindow: LPSVDWindow(mainWindow)))
 
         #the matrix drop down menu
         self.matrixMenu = QtGui.QMenu("M&atrix", self)
@@ -3205,6 +3206,89 @@ class SwapEchoWindow(QtGui.QWidget):
         self.father.current.peakPick = False
 
 ###########################################################################
+
+
+class LPSVDWindow(QtGui.QWidget):
+    def __init__(self, parent):
+        QtGui.QWidget.__init__(self, parent)
+        self.setWindowFlags(QtCore.Qt.Window| QtCore.Qt.Tool)
+        parent.menuDisable()
+        self.father = parent
+        self.setWindowTitle("LPSVD")
+        layout = QtGui.QGridLayout(self)
+        grid = QtGui.QGridLayout()
+        layout.addLayout(grid, 0, 0, 1, 2)
+        grid.addWidget(QLabel("# points for analysis:"), 0, 0)
+        self.analPoints = 200
+        self.aPointsEntry = QtGui.QLineEdit()
+        self.aPointsEntry.setAlignment(QtCore.Qt.AlignHCenter)
+        self.aPointsEntry.setText(str(self.analPoints))
+        grid.addWidget(self.aPointsEntry, 1, 0)
+        grid.addWidget(QLabel("Number of frequencies:"), 2, 0)
+        self.numberFreq = 1
+        self.nFreqEntry = QtGui.QLineEdit()
+        self.nFreqEntry.setAlignment(QtCore.Qt.AlignHCenter)
+        self.nFreqEntry.setText(str(self.numberFreq))
+        grid.addWidget(self.nFreqEntry, 3, 0)
+        
+        grid.addWidget(QLabel("Number prediction points:"), 4, 0)
+        self.predictPoints = 10
+        self.nPredictEntry = QtGui.QLineEdit()
+        self.nPredictEntry.setAlignment(QtCore.Qt.AlignHCenter)
+        self.nPredictEntry.setText(str(self.predictPoints))
+        grid.addWidget(self.nPredictEntry, 5, 0)
+        
+        
+        
+        cancelButton = QtGui.QPushButton("&Cancel")
+        cancelButton.clicked.connect(self.closeEvent)
+        layout.addWidget(cancelButton, 1, 0)
+        okButton = QtGui.QPushButton("&Ok")
+        okButton.clicked.connect(self.applyAndClose)
+        layout.addWidget(okButton, 1, 1)
+        self.show()
+        self.setFixedSize(self.size())
+        self.father.menuDisable()
+        self.setGeometry(self.frameSize().width()-self.geometry().width(), self.frameSize().height()-self.geometry().height(), 0, 0)
+ 
+#    def sizePreview(self, *args):
+#        inp = safeEval(self.sizeEntry.text())
+#        if inp is not None:
+#            self.sizeVal = int(round(inp))
+#        if self.sizeVal < 1:
+#            self.father.father.dispMsg('Value is not valid')
+#            return
+#        self.sizeEntry.setText(str(self.sizeVal))
+#        self.father.current.setSizePreview(self.sizeVal)
+
+    def closeEvent(self, *args):
+        self.father.current.upd()
+        self.father.current.showFid()
+        self.father.menuEnable()
+        self.deleteLater()
+
+    def applyAndClose(self):
+#        inp = safeEval(self.sizeEntry.text())
+#        if inp is not None:
+#            self.sizeVal = int(round(inp))
+#        if self.sizeVal < 1:
+#            self.father.father.dispMsg('Value is not valid')
+#            return
+        self.analPoints = safeEval(self.aPointsEntry.text())
+        self.numberFreq = safeEval(self.nFreqEntry.text())
+        self.predictPoints = safeEval(self.nPredictEntry.text())
+        
+        
+        
+        self.father.redoList = []
+        self.father.undoList.append(self.father.current.applyLPSVD(self.analPoints,self.numberFreq,self.predictPoints))
+        self.father.sideframe.upd()
+        self.father.menuEnable()
+        self.deleteLater()
+        
+###########################################################################        
+
+
 class ShiftDataWindow(QtGui.QWidget):
     def __init__(self, parent):
         QtGui.QWidget.__init__(self, parent)
@@ -5084,7 +5168,7 @@ class RefWindow(QtGui.QWidget):
         self.freqEntry.setAlignment(QtCore.Qt.AlignHCenter)
         self.freqEntry.returnPressed.connect(self.preview)
         grid.addWidget(self.freqEntry, 3, 0)
-        grid.addWidget(QLabel("Secondary Reference"), 4, 0)
+        grid.addWidget(QLabel("Secondary Reference:"), 4, 0)
         self.refSecond = QtGui.QComboBox(parent=self)
         self.refSecond.addItems(self.secRefNames)
         self.refSecond.activated.connect(self.fillSecondaryRef)
