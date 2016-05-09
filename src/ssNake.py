@@ -26,6 +26,7 @@ matplotlib.use('Qt4Agg')
 from PyQt4 import QtGui, QtCore
 from matplotlib.backends.backend_qt4agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.figure import Figure
+matplotlib.rc('font', family='DejaVu Sans')
 
 import numpy as np
 import sys

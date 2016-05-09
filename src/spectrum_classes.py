@@ -2120,7 +2120,7 @@ class Current1D(Plot1DFrame):
             elif self.axType == 1:
                 self.ax.set_xlabel('Time [ms]')
             elif self.axType == 2:
-                self.ax.set_xlabel(r'Time [$\mu$s]')
+                self.ax.set_xlabel(u'Time [\u03BCs]')
             else:
                 self.ax.set_xlabel('User defined')
         elif self.spec ==1:
@@ -2240,7 +2240,7 @@ class CurrentScatter(Current1D):
             elif self.axType == 1:
                 self.ax.set_xlabel('Time [ms]')
             elif self.axType == 2:
-                self.ax.set_xlabel(r'Time [$\mu$s]')
+                self.ax.set_xlabel(u'Time [\u03BCs]')
             else:
                 self.ax.set_xlabel('User defined')
         elif self.spec == 1:
@@ -2458,7 +2458,7 @@ class CurrentMulti(Current1D):
             elif self.axType == 1:
                 self.ax.set_xlabel('Time [ms]')
             elif self.axType == 2:
-                self.ax.set_xlabel(r'Time [$\mu$s]')
+                self.ax.set_xlabel(u'Time [\u03BCs]')
             else:
                 self.ax.set_xlabel('User defined')
         elif self.spec == 1:
@@ -2772,7 +2772,7 @@ class CurrentStacked(Current1D):
             elif self.axType == 1:
                 self.ax.set_xlabel('Time [ms]')
             elif self.axType == 2:
-                self.ax.set_xlabel(r'Time [$\mu$s]')
+                self.ax.set_xlabel(u'Time [\u03BCs]')
             else:
                 self.ax.set_xlabel('User defined')
         elif self.spec == 1:
@@ -3122,7 +3122,7 @@ class CurrentArrayed(Current1D):
             elif self.axType == 1:
                 self.ax.set_xlabel('Time [ms]')
             elif self.axType == 2:
-                self.ax.set_xlabel(r'Time [$\mu$s]')
+                self.ax.set_xlabel(u'Time [\u03BCs]')
             else:
                 self.ax.set_xlabel('User defined')
         elif self.spec == 1:
@@ -3440,7 +3440,7 @@ class CurrentContour(Current1D):
             elif self.axType == 1:
                 self.ax.set_xlabel('Time [ms]')
             elif self.axType == 2:
-                self.ax.set_xlabel(r'Time [$\mu$s]')
+                self.ax.set_xlabel(u'Time [\u03BCs]')
             else:
                 self.ax.set_xlabel('User defined')
         elif self.spec == 1:
@@ -3463,7 +3463,7 @@ class CurrentContour(Current1D):
             elif self.axType2 == 1:
                 self.ax.set_ylabel('Time [ms]')
             elif self.axType2 == 2:
-                self.ax.set_ylabel(r'Time [$\mu$s]')
+                self.ax.set_ylabel(u'Time [\u03BCs]')
             else:
                 self.ax.set_ylabel('User defined')
         elif self.spec2 == 1:
@@ -3858,7 +3858,7 @@ class CurrentSkewed(Current1D):
             elif self.axType == 1:
                 self.ax.set_xlabel('Time [ms]')
             elif self.axType == 2:
-                self.ax.set_xlabel(r'Time [$\mu$s]')
+                self.ax.set_xlabel(u'Time [\u03BCs]')
             else:
                 self.ax.set_xlabel('User defined')
         elif self.spec == 1:
@@ -3881,7 +3881,7 @@ class CurrentSkewed(Current1D):
             elif self.axType2 == 1:
                 self.ax.set_ylabel('Time [ms]')
             elif self.axType2 == 2:
-                self.ax.set_ylabel(r'Time [$\mu$s]')
+                self.ax.set_ylabel(u'Time [\u03BCs]')
             else:
                 self.ax.set_ylabel('User defined')
         elif self.spec2 == 1:
