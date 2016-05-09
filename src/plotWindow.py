@@ -156,6 +156,15 @@ class MainPlotWindow(QtGui.QWidget):
         legendButton = QtGui.QPushButton('Legend settings')
         legendButton.clicked.connect(lambda : LegendWindow(self))
         self.optionFrame.addWidget(legendButton, 41, 0)
+
+
+
+        execFileButton = QtGui.QPushButton('Execute file')
+        execFileButton.clicked.connect(self.exFile)
+        self.optionFrame.addWidget(execFileButton, 42, 0)
+
+
+
         
         self.inFrame = QtGui.QGridLayout()
         self.frame1.addLayout(self.inFrame, 1, 0)
@@ -203,6 +212,20 @@ class MainPlotWindow(QtGui.QWidget):
         self.canvas.draw()
         self.canvas.adjustSize()
 
+    def exFile(self):    
+        warning_msg = "This is an advanced feature. Do not execute files you haven't inspected yourself. Are you sure you want to continue?"
+        reply = QtGui.QMessageBox.question(self, 'Warning', warning_msg, QtGui.QMessageBox.Yes, QtGui.QMessageBox.No)
+        if reply == QtGui.QMessageBox.Yes:
+            filename = QtGui.QFileDialog.getOpenFileName(self, 'Execute File', self.father.LastLocation)
+            fig = self.fig
+            ax = self.ax
+            if filename:
+                try:
+                    exec(open(filename).read())
+                except Exception as e:
+                    self.father.dispMsg(str(e))
+                self.canvas.draw()
+        
     def get_mainWindow(self):
         return self.oldMainWindow
         
