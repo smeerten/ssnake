@@ -1265,7 +1265,6 @@ class Current1D(Plot1DFrame):
 
     def setGrids(self, grids):
         self.grids = grids
-        self.showFid()
     
     def setPhaseInter(self, phase0in, phase1in): #interactive changing the phase without editing the actual data
         phase0 = float(phase0in)
@@ -2036,17 +2035,17 @@ class Current1D(Plot1DFrame):
         elif self.plotType == 3:
             return np.abs(tmp)      
 
+    def getColorMap(self):
+        return COLORMAPLIST.index(self.colorMap)
+        
     def setColorMap(self, num):
         self.colorMap = COLORMAPLIST[num]
-        self.showFid()
 
     def setColor(self, color):
         self.color = color
-        self.showFid()
 
     def setLw(self, lw):
         self.linewidth = lw
-        self.showFid()
         
     def showFid(self, tmpdata=None, extraX=None, extraY=None, extraColor=None, old=False, output=None): #display the 1D data
         self.peakPickReset()

@@ -315,12 +315,6 @@ class MainProgram(QtGui.QMainWindow):
         
         
         self.plotMenu.addAction("&User x-axis", lambda: self.mainWindowCheck(lambda mainWindow: XaxWindow(mainWindow)))
-        self.xgridAction = QtGui.QAction(QtGui.QIcon(IconDirectory + 'xgrid.png'),"&X-grid", self.plotMenu, checkable=True)
-        self.xgridAction.triggered.connect(lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.setGrid()))
-        self.plotMenu.addAction(self.xgridAction)
-        self.ygridAction = QtGui.QAction(QtGui.QIcon(IconDirectory + 'ygrid.png'),"&Y-grid", self.plotMenu, checkable=True)     
-        self.ygridAction.triggered.connect(lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.setGrid()))
-        self.plotMenu.addAction(self.ygridAction)
         self.plotMenu.addAction("&Plot settings", lambda: self.mainWindowCheck(lambda mainWindow: PlotSettingsWindow(mainWindow)))
 
         #the history drop down menu
@@ -417,8 +411,6 @@ class MainProgram(QtGui.QMainWindow):
                 self.savemenu.menuAction().setEnabled(True)
                 self.exportmenu.menuAction().setEnabled(True)
                 self.workspacemenu.menuAction().setEnabled(True)
-                self.xgridAction.setChecked(self.mainWindow.current.grids[0])
-                self.ygridAction.setChecked(self.mainWindow.current.grids[1])
             elif isinstance(self.mainWindow, MainPlotWindow):
                 self.menuDisable(True)
                 self.savemenu.menuAction().setEnabled(True)
@@ -1796,9 +1788,6 @@ class Main1DWindow(QtGui.QWidget):
         self.updAllFrames()
         self.addMacro(['reload'])
         self.menuCheck()
-
-    def setGrid(self):
-        self.current.setGrids([self.father.xgridAction.isChecked(), self.father.ygridAction.isChecked()])
         
     def real(self):
         self.redoList = []
@@ -2215,12 +2204,6 @@ class SideFrame(QtGui.QScrollArea):
                 self.minLEntry.setText(str(current.minLevels*100.0))
                 self.minLEntry.returnPressed.connect(self.setContour)
                 self.frame2.addWidget(self.minLEntry, 6, 0)
-                self.frame2.addWidget(QLabel("Color map:", self), 7, 0)
-                self.cmEntry = QtGui.QComboBox(self)
-                self.cmEntry.addItems(sc.COLORMAPLIST)
-                self.cmEntry.setCurrentIndex(sc.COLORMAPLIST.index(current.colorMap))
-                self.cmEntry.currentIndexChanged.connect(self.setColorMap)
-                self.frame2.addWidget(self.cmEntry, 8, 0)
             self.buttons1Group.button(current.axes).toggle()
             if self.plotIs2D:
                 self.buttons2Group.button(current.axes2).toggle()
@@ -2313,9 +2296,6 @@ class SideFrame(QtGui.QScrollArea):
         var3 = float(safeEval(self.minLEntry.text()))
         self.minLEntry.setText('%.1f' % var3)
         self.father.current.setLevels(var1, var2/100.0, var3/100.0)
-
-    def setColorMap(self, num):
-        self.father.current.setColorMap(num)
         
     def setAxes(self, first=True):
         axes = self.buttons1Group.checkedId()
@@ -5346,54 +5326,94 @@ class CombineWorkspaceWindow(QtGui.QWidget):
         self.father.menuEnable()
         self.deleteLater()
 
-##########################################################################################
+##############################################################################
 class PlotSettingsWindow(QtGui.QWidget):
     def __init__(self, parent):
         QtGui.QWidget.__init__(self, parent)
-        self.setWindowFlags(QtCore.Qt.Window | QtCore.Qt.Tool)
+        self.setWindowFlags(QtCore.Qt.Window| QtCore.Qt.Tool)
         self.father = parent
-        self.setWindowTitle("Plot settings")
-        layout = QtGui.QGridLayout(self)
-        grid = QtGui.QGridLayout()
-        layout.addLayout(grid, 0, 0, 1, 3)
-        self.color = self.father.current.color
-        lineColorButton = QtGui.QPushButton("&Line color")
-        lineColorButton.clicked.connect(self.setColor)
-        grid.addWidget(lineColorButton, 0, 0)
-        grid.addWidget(QtGui.QLabel("Linewidth:"), 1, 0)
+        self.setWindowTitle("Preferences")
+        tabWidget = QtGui.QTabWidget()
+        tab1 = QtGui.QWidget()
+        tab2 = QtGui.QWidget()
+        #tab3 = QtGui.QWidget()
+        tabWidget.addTab(tab1, "Plot")
+        tabWidget.addTab(tab2, "Contour")
+        grid1 = QtGui.QGridLayout()
+        grid2 = QtGui.QGridLayout()
+        #grid3 = QtGui.QGridLayout()
+        tab1.setLayout(grid1)
+        tab2.setLayout(grid2)
+        #tab3.setLayout(grid3)
+        grid1.setColumnStretch(10, 1)
+        grid1.setRowStretch(10, 1)
+        grid2.setColumnStretch(10, 1)
+        grid2.setRowStretch(10, 1)
+        #grid3.setColumnStretch(10, 1)
+        #grid3.setRowStretch(10, 1)
+        
+        grid1.addWidget(QtGui.QLabel("Linewidth:"), 1, 0)
         self.lwSpinBox = QtGui.QDoubleSpinBox()
         self.lwSpinBox.setSingleStep(0.1)
         self.lwSpinBox.setValue(self.father.current.linewidth)
         self.lwSpinBox.valueChanged.connect(self.preview)
-        grid.addWidget(self.lwSpinBox, 2, 0)
+        grid1.addWidget(self.lwSpinBox, 1, 1)
+        self.color = self.father.current.color
+        lineColorButton = QtGui.QPushButton("Line color")
+        lineColorButton.clicked.connect(self.setColor)
+        grid1.addWidget(lineColorButton, 2, 0)
+        self.xgridCheck = QtGui.QCheckBox("x-grid")
+        self.xgridCheck.setChecked(self.father.current.grids[0])
+        self.xgridCheck.stateChanged.connect(self.preview)
+        grid1.addWidget(self.xgridCheck, 3, 0, 1, 2)
+        self.ygridCheck = QtGui.QCheckBox("y-grid")
+        self.ygridCheck.setChecked(self.father.current.grids[1])
+        grid1.addWidget(self.ygridCheck, 4, 0, 1, 2)
+        self.ygridCheck.stateChanged.connect(self.preview)
+
+        grid2.addWidget(QtGui.QLabel("Colormap:"), 1, 0)
+        self.cmEntry = QtGui.QComboBox(self)
+        self.cmEntry.addItems(sc.COLORMAPLIST)
+        self.cmEntry.setCurrentIndex(sc.COLORMAPLIST.index(self.father.current.colorMap))
+        self.cmEntry.currentIndexChanged.connect(self.preview)
+        grid2.addWidget(self.cmEntry, 1, 1)
+        
+        layout = QtGui.QGridLayout(self)
+        layout.addWidget(tabWidget, 0, 0, 1, 4)
         cancelButton = QtGui.QPushButton("&Close")
         cancelButton.clicked.connect(self.closeEvent)
-        layout.addWidget(cancelButton, 2, 0)
+        layout.addWidget(cancelButton, 1, 0)
         okButton = QtGui.QPushButton("&Ok")
         okButton.clicked.connect(self.applyAndClose)
-        layout.addWidget(okButton, 2, 1)
-        layout.setColumnStretch(2, 1)
+        layout.addWidget(okButton, 1, 1)
         self.show()
-        self.setFixedSize(self.size())
         self.father.menuDisable()
-        self.setGeometry(self.frameSize().width()-self.geometry().width(), self.frameSize().height()-self.geometry().height(), 0, 0)
 
+    def preview(self, *args):
+        tmpLw = self.father.current.linewidth
+        self.father.current.setLw(self.lwSpinBox.value())
+        tmpColor = self.father.current.color
+        self.father.current.setColor(self.color)
+        tmpColorMap = self.father.current.getColorMap()
+        self.father.current.setColorMap(self.cmEntry.currentIndex())
+        tmpGrids = self.father.current.grids
+        self.father.current.setGrids([self.xgridCheck.isChecked(), self.ygridCheck.isChecked()])
+        self.father.current.showFid()
+        self.father.current.setLw(tmpLw)
+        self.father.current.setColor(tmpColor)
+        self.father.current.setColorMap(tmpColorMap)
+        self.father.current.setGrids(tmpGrids)
+        
     def setColor(self, *args):
         self.color = QtGui.QColorDialog.getColor(QtGui.QColor(self.color)).name()
         self.preview()
 
-    def preview(self, *args):
-        tmpLw = self.father.current.linewidth
-        self.father.current.linewidth = self.lwSpinBox.value()
-        tmpColor = self.father.current.color
-        self.father.current.color = self.color
-        self.father.current.showFid()
-        self.father.current.linewidth = tmpLw
-        self.father.current.color = tmpColor
-        
     def applyAndClose(self, *args):
         self.father.current.setColor(self.color)
         self.father.current.setLw(self.lwSpinBox.value())
+        self.father.current.setGrids([self.xgridCheck.isChecked(), self.ygridCheck.isChecked()])
+        self.father.current.setColorMap(self.cmEntry.currentIndex())
+        self.father.current.showFid()
         self.father.menuEnable()
         self.deleteLater()
         
@@ -5401,7 +5421,7 @@ class PlotSettingsWindow(QtGui.QWidget):
         self.father.current.showFid()
         self.father.menuEnable()
         self.deleteLater()
-
+              
 ##############################################################################
 class PreferenceWindow(QtGui.QWidget):
     def __init__(self, parent):
