@@ -183,9 +183,9 @@ class IntegralsFrame(Plot1DFrame):
             axMult = 1000.0**self.current.axType
         self.line_xdata = self.xax*axMult
         self.line_ydata = self.data1D
-        a.plot(self.xax*axMult, self.data1D)
+        a.plot(self.xax*axMult, self.data1D, c=self.current.color, linewidth=self.current.linewidth, label=self.current.data.name)
         if tmpAx is not None:
-            a.plot(tmpAx*axMult, tmpdata)
+            a.plot(tmpAx*axMult, tmpdata, c='g')
         for i in range(len(tmpAx2)):
             a.plot(tmpAx2[i]*axMult, tmpdata2[i])
         if self.spec == 0:
@@ -556,8 +556,8 @@ class RelaxFrame(Plot1DFrame):
         elif self.spec == 0:
             axMult = 1000.0**self.axType
         if tmpAx is not None:
-            self.ax.plot(tmpAx*axMult, tmpdata)
-        self.ax.scatter(self.xax*axMult, self.data1D)
+            self.ax.plot(tmpAx*axMult, tmpdata, c=self.current.color, linewidth=self.current.linewidth, label=self.current.data.name)
+        self.ax.scatter(self.xax*axMult, self.data1D, c=self.current.color, linewidth=self.current.linewidth, label=self.current.data.name)
         if self.logx == 0:
             self.ax.set_xscale('linear')
         else:
@@ -1187,8 +1187,8 @@ class DiffusionFrame(Plot1DFrame):
         elif self.spec == 0:
             axMult = 1000.0**self.axType
         if tmpAx is not None:
-            self.ax.plot(tmpAx*axMult, tmpdata)
-        self.ax.scatter(self.xax*axMult, self.data1D)
+            self.ax.plot(tmpAx*axMult, tmpdata, c=self.current.color, linewidth=self.current.linewidth, label=self.current.data.name)
+        self.ax.scatter(self.xax*axMult, self.data1D, c=self.current.color, linewidth=self.current.linewidth, label=self.current.data.name)
         if self.logx == 0:
             self.ax.set_xscale('linear')
         else:
@@ -1866,7 +1866,7 @@ class PeakDeconvFrame(Plot1DFrame):
             axMult = 1000.0**self.current.axType
         self.line_xdata = self.xax*axMult
         self.line_ydata = self.data1D
-        a.plot(self.xax*axMult, self.data1D)
+        a.plot(self.xax*axMult, self.data1D, c=self.current.color, linewidth=self.current.linewidth, label=self.current.data.name)
         if tmpAx is not None:
             a.plot(tmpAx*axMult, tmpdata)
         for i in range(len(tmpAx2)):
@@ -2484,7 +2484,7 @@ class TensorDeconvFrame(Plot1DFrame):
         self.ax.cla()
         self.line_xdata = self.xax
         self.line_ydata = self.data1D
-        self.ax.plot(self.xax, self.data1D)
+        self.ax.plot(self.xax, self.data1D, c=self.current.color, linewidth=self.current.linewidth, label=self.current.data.name)
         if tmpAx is not None:
             self.ax.plot(tmpAx, tmpdata)
         for i in range(len(tmpAx2)):
@@ -3232,7 +3232,7 @@ class HerzfeldBergerFrame(Plot1DFrame):
         self.ax.cla()
         self.line_xdata = self.xax
         self.line_ydata = self.data1D
-        self.ax.plot(self.xax, self.data1D)
+        self.ax.plot(self.xax, self.data1D, c=self.current.color, linewidth=self.current.linewidth, label=self.current.data.name)
         if tmpAx is not None:
             self.ax.plot(tmpAx, tmpdata)
         for i in range(len(tmpAx2)):
@@ -3623,7 +3623,7 @@ class Quad1MASDeconvFrame(Plot1DFrame):
         self.ax.cla()
         self.line_xdata = self.xax
         self.line_ydata = self.data1D
-        self.ax.plot(self.xax, self.data1D)
+        self.ax.plot(self.xax, self.data1D, c=self.current.color, linewidth=self.current.linewidth, label=self.current.data.name)
         if tmpAx is not None:
             self.ax.plot(tmpAx, tmpdata)
         for i in range(len(tmpAx2)):
@@ -4052,7 +4052,7 @@ class Quad1DeconvFrame(Plot1DFrame):
             axMult = 1000.0**self.current.axType
         self.line_xdata = self.xax*axMult
         self.line_ydata = self.data1D
-        self.ax.plot(self.xax*axMult, self.data1D)
+        self.ax.plot(self.xax*axMult, self.data1D, c=self.current.color, linewidth=self.current.linewidth, label=self.current.data.name)
         if tmpAx is not None:
             self.ax.plot(tmpAx*axMult, tmpdata)
         for i in range(len(tmpAx2)):
