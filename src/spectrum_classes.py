@@ -1159,11 +1159,13 @@ class Current1D(Plot1DFrame):
             self.resetLocList() 
             self.plotType = 0
             self.axType = 1
-            self.color = self.root.father.defaultColor # color of the main line
+            self.color = self.root.father.defaultColor                  # color of the main line
             self.linewidth = self.root.father.defaultLinewidth  
-            self.grids = self.root.father.defaultGrids # display x and y grid
-            self.colorMap = self.root.father.defaultColorMap   # colormap for contour like plots
-            self.upd()                  # get the first slice of data
+            self.grids = self.root.father.defaultGrids                  # display x and y grid
+            self.colorMap = self.root.father.defaultColorMap            # colormap for contour like plots
+            self.contourConst = self.root.father.defaultContourConst    # bool contour levels have constant color
+            self.contourColors = [self.root.father.defaultPosColor, self.root.father.defaultNegColor]  # The colors of the constant color contours
+            self.upd()                                                  # get the first slice of data
             self.fig.suptitle(self.data.name)
             self.startUp()
         else:
@@ -1191,6 +1193,8 @@ class Current1D(Plot1DFrame):
             self.plotType = duplicateCurrent.plotType
             self.axType = duplicateCurrent.axType
             self.grids = duplicateCurrent.grids
+            self.contourConst = duplicateCurrent.contourConst
+            self.contourColors = duplicateCurrent.contourColors
             self.xminlim = duplicateCurrent.xminlim
             self.xmaxlim = duplicateCurrent.xmaxlim
             self.yminlim = duplicateCurrent.yminlim
@@ -2046,6 +2050,12 @@ class Current1D(Plot1DFrame):
 
     def setLw(self, lw):
         self.linewidth = lw
+
+    def setContourColors(self, colors):
+        self.contourColors = colors
+
+    def setContourConst(self, constant):
+        self.contourConst = constant
         
     def showFid(self, tmpdata=None, extraX=None, extraY=None, extraColor=None, old=False, output=None): #display the 1D data
         self.peakPickReset()
@@ -3418,8 +3428,12 @@ class CurrentContour(Current1D):
         contourLevels = np.linspace(self.minLevels*differ, self.maxLevels*differ, self.numLevels)
         vmax = max(np.abs(self.minLevels*differ), np.abs(self.maxLevels*differ))
         vmin = -vmax
-        self.ax.contour(X, Y, tmpdata, cmap=get_cmap(self.colorMap), levels=contourLevels, vmax=vmax, vmin=vmin, linewidths=self.linewidth, label=self.data.name)
-        self.ax.contour(X, Y, tmpdata, cmap=get_cmap(self.colorMap), levels=-contourLevels[::-1], vmax=vmax, vmin=vmin, linewidths=self.linewidth)
+        if self.contourConst:
+            self.ax.contour(X, Y, tmpdata, colors=self.contourColors[0], levels=contourLevels, vmax=vmax, vmin=vmin, linewidths=self.linewidth, label=self.data.name, linestyles='solid')
+            self.ax.contour(X, Y, tmpdata, colors=self.contourColors[1], levels=-contourLevels[::-1], vmax=vmax, vmin=vmin, linewidths=self.linewidth, linestyles='solid')
+        else:
+            self.ax.contour(X, Y, tmpdata, cmap=get_cmap(self.colorMap), levels=contourLevels, vmax=vmax, vmin=vmin, linewidths=self.linewidth, label=self.data.name, linestyles='solid')
+            self.ax.contour(X, Y, tmpdata, cmap=get_cmap(self.colorMap), levels=-contourLevels[::-1], vmax=vmax, vmin=vmin, linewidths=self.linewidth, linestyles='solid')
         self.line_ydata = tmpdata[0]
         if self.projType1 == 0:
             self.x_ax.plot(x, np.sum(tmpdata, axis=0), color=self.color, linewidth=self.linewidth)
