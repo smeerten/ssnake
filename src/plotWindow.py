@@ -149,6 +149,7 @@ class MainPlotWindow(QtGui.QWidget):
         self.legendTextList = []
         for line in self.legend.get_texts():
             self.legendTextList.append(line.get_text())
+        
         self.legend.set_visible(False)
         self.legendCheck = QtGui.QCheckBox('Legend')
         self.legendCheck.stateChanged.connect(self.updateLegend)
@@ -197,6 +198,7 @@ class MainPlotWindow(QtGui.QWidget):
             if self.legend is not None:
                 self.legend.set_visible(False)
         self.updatePlot()
+        
         
     def updatePlot(self, *args):
         self.fig.suptitle(self.titleEntry.text(), fontsize=safeEval(self.titleFontSizeEntry.text()))
@@ -292,7 +294,6 @@ class LegendWindow(QtGui.QWidget):
         grid.addWidget(self.posEntry, 1, 0)
         grid.addWidget(QLabel("Legend:"), 2, 0)
         self.father.legendCheck.setChecked(True)
-        self.father.legendTextList = []
         self.spinBox = QtGui.QSpinBox()
         self.spinBox.setMaximum(len(self.father.legendTextList)-1)
         self.spinBox.valueChanged.connect(self.changeEdit)
