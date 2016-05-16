@@ -22,7 +22,7 @@ import numpy as np
 def euro(val, num):
     firstDigit = '%.0e' % val
     firstDigit = int(firstDigit[0])
-    order = int(np.log10(val))
+    order = int(np.floor(np.log10(val)))
     if num < 1:
         return
     numStep = int(num)//3 + 1
