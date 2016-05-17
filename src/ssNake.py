@@ -3092,7 +3092,15 @@ class SizeWindow(QtGui.QWidget):
         self.sizeEntry.setAlignment(QtCore.Qt.AlignHCenter)
         self.sizeEntry.setText(str(self.sizeVal))
         self.sizeEntry.returnPressed.connect(self.sizePreview)
+
         grid.addWidget(self.sizeEntry, 1, 0)
+        grid.addWidget(QLabel("Size position:"), 2, 0)
+        self.posVal = len(parent.current.data1D)
+        self.posEntry = QtGui.QLineEdit()
+        self.posEntry.setAlignment(QtCore.Qt.AlignHCenter)
+        self.posEntry.setText(str(self.posVal))
+        self.posEntry.returnPressed.connect(self.sizePreview)
+        grid.addWidget(self.posEntry, 3, 0)
         cancelButton = QtGui.QPushButton("&Cancel")
         cancelButton.clicked.connect(self.closeEvent)
         layout.addWidget(cancelButton, 1, 0)
@@ -3102,8 +3110,14 @@ class SizeWindow(QtGui.QWidget):
         self.show()
         self.setFixedSize(self.size())
         self.father.menuDisable()
+        self.father.current.peakPickFunc = lambda pos, self=self: self.picked(pos) 
+        self.father.current.peakPick = True
         self.setGeometry(self.frameSize().width()-self.geometry().width(), self.frameSize().height()-self.geometry().height(), 0, 0)
  
+        
+ 
+            
+            
     def sizePreview(self, *args):
         inp = safeEval(self.sizeEntry.text())
         if inp is not None:
@@ -3132,6 +3146,12 @@ class SizeWindow(QtGui.QWidget):
         self.father.sideframe.upd()
         self.father.menuEnable()
         self.deleteLater()
+        
+    def picked(self, pos):
+        self.father.current.setSizePreview(self.sizeVal)
+        self.posEntry.setText(str(pos[0]))
+        self.father.current.peakPick = True
+        self.father.current.peakPickFunc = lambda pos, self=self: self.picked(pos) 
         
 ##########################################################################################
 class SwapEchoWindow(QtGui.QWidget):
