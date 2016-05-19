@@ -3095,7 +3095,10 @@ class SizeWindow(QtGui.QWidget):
 
         grid.addWidget(self.sizeEntry, 1, 0)
         grid.addWidget(QLabel("Size position:"), 2, 0)
-        self.posVal = len(parent.current.data1D)
+        if self.father.current.wholeEcho:
+            self.posVal = int(floor(parent.current.data1D.shape[-1]/2.0))
+        else:
+            self.posVal = parent.current.data1D.shape[-1]
         self.posEntry = QtGui.QLineEdit()
         self.posEntry.setAlignment(QtCore.Qt.AlignHCenter)
         self.posEntry.setText(str(self.posVal))
@@ -3110,14 +3113,11 @@ class SizeWindow(QtGui.QWidget):
         self.show()
         self.setFixedSize(self.size())
         self.father.menuDisable()
-        self.father.current.peakPickFunc = lambda pos, self=self: self.picked(pos) 
-        self.father.current.peakPick = True
+        if not self.father.current.spec:
+            self.father.current.peakPickFunc = lambda pos, self=self: self.picked(pos) 
+            self.father.current.peakPick = True
         self.setGeometry(self.frameSize().width()-self.geometry().width(), self.frameSize().height()-self.geometry().height(), 0, 0)
- 
-        
- 
-            
-            
+   
     def sizePreview(self, *args):
         inp = safeEval(self.sizeEntry.text())
         if inp is not None:
@@ -3126,7 +3126,11 @@ class SizeWindow(QtGui.QWidget):
             self.father.father.dispMsg('Value is not valid')
             return
         self.sizeEntry.setText(str(self.sizeVal))
-        self.father.current.setSizePreview(self.sizeVal)
+        inp = safeEval(self.posEntry.text())
+        if inp is not None:
+            self.posVal = int(round(inp))
+        self.posEntry.setText(str(self.posVal))
+        self.father.current.setSizePreview(self.sizeVal, self.posVal)
 
     def closeEvent(self, *args):
         self.father.current.upd()
@@ -3141,15 +3145,18 @@ class SizeWindow(QtGui.QWidget):
         if self.sizeVal < 1:
             self.father.father.dispMsg('Value is not valid')
             return
+        inp = safeEval(self.posEntry.text())
+        if inp is not None:
+            self.posVal = int(round(inp))
         self.father.redoList = []
-        self.father.undoList.append(self.father.current.applySize(self.sizeVal))
+        self.father.undoList.append(self.father.current.applySize(self.sizeVal, self.posVal))
         self.father.sideframe.upd()
         self.father.menuEnable()
         self.deleteLater()
         
     def picked(self, pos):
-        self.father.current.setSizePreview(self.sizeVal)
         self.posEntry.setText(str(pos[0]))
+        self.sizePreview()
         self.father.current.peakPick = True
         self.father.current.peakPickFunc = lambda pos, self=self: self.picked(pos) 
         

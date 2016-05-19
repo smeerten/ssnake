@@ -793,35 +793,38 @@ class Spectrum:
         self.addHistory("Whole echo set to "+str(val)+ " for dimension " + str(axes+1))
         return lambda self: self.setWholeEcho(not val, axes)
     
-    def setSize(self, size, axes):
+    def setSize(self, size, pos, axes):
         axes = self.checkAxes(axes)
         if axes == None:
             return None
         copyData = copy.deepcopy(self)
-        returnValue = lambda self: self.restoreData(copyData, lambda self: self.setSize(size, axes))
+        returnValue = lambda self: self.restoreData(copyData, lambda self: self.setSize(size, pos, axes))
         if self.spec[axes] > 0:
             self.fourier(axes, tmp=True)
         if size > self.data.shape[axes]:
-            if self.wholeEcho[axes]:
-                tmpdata = np.array_split(self.data, 2, axes)
-                self.data = np.concatenate((np.pad(tmpdata[0], [(0, 0)]*axes+[(0, size-self.data.shape[axes])]+[(0, 0)]*(self.dim-axes-1), 'constant', constant_values=0), tmpdata[1]), axes)
-            else:
-                self.data = np.pad(self.data, [(0, 0)]*axes+[(0, size-self.data.shape[axes])]+[(0, 0)]*(self.dim-axes-1), 'constant', constant_values=0)
+            slicing1  = (slice(None), ) * axes + (slice(None, pos), ) + (slice(None), )*(self.dim-1-axes)
+            slicing2  = (slice(None), ) * axes + (slice(pos, None), ) + (slice(None), )*(self.dim-1-axes)
+            self.data = np.concatenate((np.pad(self.data[slicing1], [(0, 0)]*axes+[(0, size-self.data.shape[axes])]+[(0, 0)]*(self.dim-axes-1), 'constant', constant_values=0), self.data[slicing2]), axes)
         else:
-            if self.wholeEcho[axes]:
-                slicing1  = (slice(None), ) * axes + (slice(0, int(np.ceil(size/2.0))), ) + (slice(None), )*(self.dim-1-axes)
-                slicing2  = (slice(None), ) * axes + (slice(-int(np.ceil(size/2.0))-1, None), ) + (slice(None), )*(self.dim-1-axes)
-                self.data = np.concatenate((self.data[slicing1], self.data[slicing2]), axis=axes)
-            else:
-                slicing = (slice(None), ) * axes + (slice(0, size), ) + (slice(None), )*(self.dim-1-axes)
+            difference = self.data.shape[axes] - size
+            removeBegin = int(np.floor(difference/2))
+            removeEnd = difference - removeBegin
+            if pos < removeBegin:
+                slicing = (slice(None), ) * axes + (slice(self.data.shape[axes]-size, None), ) + (slice(None), )*(self.dim-1-axes)
                 self.data = self.data[slicing]
+            elif self.data.shape[axes]-pos < removeEnd:
+                slicing = (slice(None), ) * axes + (slice(None, size), ) + (slice(None), )*(self.dim-1-axes)
+                self.data = self.data[slicing]
+            else:
+                slicing1  = (slice(None), ) * axes + (slice(None, pos-removeBegin), ) + (slice(None), )*(self.dim-1-axes)
+                slicing2  = (slice(None), ) * axes + (slice(pos+removeEnd, None), ) + (slice(None), )*(self.dim-1-axes)
+                self.data = np.concatenate((self.data[slicing1], self.data[slicing2]), axis=axes)
         if self.spec[axes] > 0:
             self.fourier(axes, tmp=True, inv=True)
         self.dim = len(self.data.shape)
         self.resetXax(axes)
-        self.addHistory("Resized dimension " + str(axes+1) + " to " +str(size)+ " points")
+        self.addHistory("Resized dimension " + str(axes+1) + " to " + str(size) + " points at position " +str(pos))
         return returnValue
-
 
     def setLPSVD(self,nAnalyse,nFreq,nPredict, axes):
         axes = self.checkAxes(axes)
@@ -1472,7 +1475,7 @@ class Current1D(Plot1DFrame):
         else:
             return 0.0
     
-    def setSizePreview(self, size): #set size only on local data
+    def setSizePreview(self, size, pos): #set size only on local data
         if len(self.data1D.shape) > 1:
             length = len(self.data1D[0])
         else:
@@ -1481,30 +1484,25 @@ class Current1D(Plot1DFrame):
             tmpdata = self.fourierLocal(self.data1D, 1)
         else:
             tmpdata = self.data1D
+        axes = len(self.data1D.shape)-1
         if size > length:
-            if self.wholeEcho:
-                tmpdata = np.array_split(tmpdata, 2, axis=(len(self.data1D.shape)-1))
-                if len(self.data1D.shape) > 1:
-                    tmpdata = np.concatenate((np.pad(tmpdata[0], ((0, 0), (0, size-length)), 'constant', constant_values=0), tmpdata[1]), axis=1)
-                else:
-                    tmpdata = np.concatenate((np.pad(tmpdata[0], (0, size-length), 'constant', constant_values=0), tmpdata[1]))
-            else:
-                if len(self.data1D.shape) > 1:
-                    tmpdata = np.pad(tmpdata, ((0, 0), (0, size-length)), 'constant', constant_values=0)
-                else:
-                    tmpdata = np.pad(tmpdata, (0, size-length), 'constant', constant_values=0)
+            slicing1  = (slice(None), ) * axes + (slice(None, pos), ) + (slice(None), )*(tmpdata.ndim-1-axes)
+            slicing2  = (slice(None), ) * axes + (slice(pos, None), ) + (slice(None), )*(tmpdata.ndim-1-axes)
+            tmpdata = np.concatenate((np.pad(tmpdata[slicing1], [(0, 0)]*axes+[(0, size-tmpdata.shape[axes])]+[(0, 0)]*(tmpdata.ndim-axes-1), 'constant', constant_values=0), tmpdata[slicing2]), axes)
         else:
-            if self.wholeEcho:
-                tmpdata = np.array_split(tmpdata, 2, axis=(len(self.data1D.shape)-1))
-                if len(self.data1D.shape) > 1:
-                    tmpdata = np.concatenate((tmpdata[0][:, :int(np.ceil(size/2.0))], tmpdata[1][:, (-int(np.ceil(size/2.0))-1):]), axis=1)
-                else:
-                    tmpdata = np.concatenate((tmpdata[0][:int(np.ceil(size/2.0))], tmpdata[1][(-int(np.ceil(size/2.0))-1):]))
+            difference = tmpdata.shape[axes] - size
+            removeBegin = int(np.floor(difference/2))
+            removeEnd = difference - removeBegin
+            if pos < removeBegin:
+                slicing = (slice(None), ) * axes + (slice(tmpdata.shape[axes]-size, None), ) + (slice(None), )*(tmpdata.ndim-1-axes)
+                tmpdata = tmpdata[slicing]
+            elif tmpdata.shape[axes]-pos < removeEnd:
+                slicing = (slice(None), ) * axes + (slice(None, size), ) + (slice(None), )*(tmpdata.ndim-1-axes)
+                tmpdata = tmpdata[slicing]
             else:
-                if len(self.data1D.shape) > 1:
-                    tmpdata = tmpdata[:, :size]
-                else:
-                    tmpdata = tmpdata[:size]
+                slicing1  = (slice(None), ) * axes + (slice(None, pos-removeBegin), ) + (slice(None), )*(tmpdata.ndim-1-axes)
+                slicing2  = (slice(None), ) * axes + (slice(pos+removeEnd, None), ) + (slice(None), )*(tmpdata.ndim-1-axes)
+                tmpdata = np.concatenate((tmpdata[slicing1], tmpdata[slicing2]), axis=axes)
         if self.spec == 1:
             self.data1D = self.fourierLocal(tmpdata, 0)
         else:
@@ -1520,13 +1518,13 @@ class Current1D(Plot1DFrame):
         self.showFid()
         self.upd()
 
-    def applySize(self, size): #set size to the actual data
-        returnValue = self.data.setSize(size, self.axes)
+    def applySize(self, size, pos): #set size to the actual data
+        returnValue = self.data.setSize(size, pos, self.axes)
         self.upd()
-        if not self.spec:
-            self.plotReset()
+        #if not self.spec:
+        #    self.plotReset()
         self.showFid()
-        self.root.addMacro(['size', (size, self.axes-self.data.dim)])
+        self.root.addMacro(['size', (size, pos, self.axes-self.data.dim)])
         return returnValue
         
     def applyLPSVD(self,nAnalyse,nFreq,nPredict):
