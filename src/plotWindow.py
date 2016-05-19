@@ -49,7 +49,7 @@ class MainPlotWindow(QtGui.QWidget):
         self.optionFrame.addWidget(QLabel("Title:"), 0, 0)
         self.titleEntry = QtGui.QLineEdit()
         self.titleEntry.setAlignment(QtCore.Qt.AlignHCenter)
-        self.titleBackup = oldMainWindow.masterData.name
+        self.titleBackup = oldMainWindow.get_masterData().name
         self.titleEntry.setText(self.titleBackup)
         self.titleEntry.returnPressed.connect(self.updatePlot)
         self.optionFrame.addWidget(self.titleEntry, 1, 0)
@@ -158,15 +158,10 @@ class MainPlotWindow(QtGui.QWidget):
         legendButton.clicked.connect(lambda : LegendWindow(self))
         self.optionFrame.addWidget(legendButton, 41, 0)
 
-
-
         execFileButton = QtGui.QPushButton('Execute file')
         execFileButton.clicked.connect(self.exFile)
         self.optionFrame.addWidget(execFileButton, 42, 0)
 
-
-
-        
         self.inFrame = QtGui.QGridLayout()
         self.frame1.addLayout(self.inFrame, 1, 0)
         self.inFrame.addWidget(QLabel("File type:"), 0, 0, 1, 2)
