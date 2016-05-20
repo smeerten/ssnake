@@ -1025,7 +1025,7 @@ class Spectrum:
         self.data = self.data*shearMatrix.reshape(shape)
         if self.spec[axes] > 0:
             self.fourier(axes, tmp=True, inv=True)
-        self.addHistory("Shearing transform with shearing value "+str(shear)+" over dimensions " + str(axes+1)) + " and " + str(axes2+1)
+        self.addHistory("Shearing transform with shearing value "+str(shear)+" over dimensions " + str(axes+1) + " and " + str(axes2+1))
         return lambda self: self.shear(-shear, axes, axes2)
 
     def reorder(self, pos, newLength, axes):

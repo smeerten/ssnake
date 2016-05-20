@@ -5016,7 +5016,7 @@ class ShearingWindow(QtGui.QWidget):
     def shearPreview(self, *args):
         shear = safeEval(self.shearEntry.text())
         if shear is not None:
-            self.shear.set(str(float(shear)))
+            self.shearEntry.setText(str(float(shear)))
 
     def closeEvent(self, *args):
         self.father.menuEnable()
