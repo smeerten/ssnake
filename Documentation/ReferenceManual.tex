@@ -62,7 +62,7 @@
 
 
 
-\usepackage[hidelinks,colorlinks,allcolors=black, pdftitle={The ssNake reference manual},pdfauthor={W.M.J.\ Franssen}]{hyperref}
+\usepackage[hidelinks,colorlinks,allcolors=blue, pdftitle={The ssNake reference manual},pdfauthor={W.M.J.\ Franssen}]{hyperref}
 
 \interfootnotelinepenalty=10000 %prevents splitting of footnote over multiple pages
 \linespread{1.2}
@@ -422,11 +422,11 @@ The number of point taken in an NMR time signal is usually restricted, as increa
 If the time signal has not fully decayed, the signal abruptly changes to zero when zero-filling is applied. This leads to distortions in the spectrum (i.e. sinc wiggles) as the time signal is effectively multiplied with a block function. General Fourier theory then states that the spectrum must then be convoluted with the Fourier transform of the block function, which is $\sin(x)/x$, i.e. sinc.
 
 \subsubsection*{ssNake implementation}
-Selecting `Matrix $\rightarrow$ Sizing' creates a sizing window. In here a single number has to be filled in the box. Decimal values will be rounded to the nearest integer. Apart from numbers, the command `k' (or `K') is also supported, which stands for `1024'. When using this definition there has to be a number before the `k'. A valid input would therefore be: `2k'. Which sets the number of points to $2 \cdot 1024=2048$. Pressing `Apply' executes the sizing command on all traces in all dimensions.
+Selecting `Matrix $\rightarrow$ Sizing' creates a sizing window. In here a single number has to be filled in the box titled `Size'. Decimal values will be rounded to the nearest integer. Apart from numbers, the command `k' (or `K') is also supported, which stands for `1024'. When using this definition there has to be a number before the `k'. A valid input would therefore be: `2k'. Which sets the number of points to $2 \cdot 1024=2048$. Pressing `Apply' executes the sizing command on all traces in all dimensions.
 
-If the supplied number is larger than the current size, zeroes are added at the right-hand side of the time signal. If the value is lower, points are removed from the right-hand side of the time signal. If the whole echo type is on, the zeroes are added in the centre of the time signal, or points are taken symmetrically from the centre, if the size is reduced.
+If the supplied number is larger than the current size, zeroes are added at the right-hand side of the time signal. If the value is lower, points are removed from the right-hand side of the time signal. If the whole echo type is on, the zeroes are added in the centre of the time signal, or points are taken symmetrically from the centre, if the size is reduced. Alternatively, the position of the zero filling can be specified by left-clicking in the spectrum, or by manually filling in the desired offset value in the box `Offset'.
 
-When applied to the frequency domain, zero filling makes no real sense. However ssNake does support this. In this case zeroes are added to the left-hand side of the spectrum (due to the mirroring of the spectrum used in NMR), or taken from them. When doing this, the spectra width should be changed to be still correct. This is not done, and it is therefore not recommended to use this option in the frequency domain.
+When applied to the frequency domain, zero filling makes no real sense. Therefore, ssNake always applies it in the time domain. So when the size is chaed within a spectrum, it is transformed back to the time domain, the size is changed, and a forward Fourier transform gets the data back to the frequency domain.
 
 \subsection{Shift data}
 Shifts the data to the left or to the right, by removing data points on the left or on the right, and filling with zeroes on the other side. Negative shifts are left shifts, positive right shifts.
@@ -480,14 +480,9 @@ Performs a cumulative sum on the data in the current dimension. This means that 
 \subsection{Extract part}
 Deletes all parts of the current dimension that are outside the selected region.
 
+
 \subsubsection*{ssNake implementation}
 This function can be used to delete parts from the current spectrum or fid. Left clicking on a prt sets the first limit on the first click, and the second limit on the second click. Apply deletes all parts outside this region on all traces. When doing this in the spectrum, the spectral width and zero point (reference frequency) are also changed to keep all peaks at the same frequency.
-
-\subsection{Multiply}
-Multiplies the y-values of the data in the current dimension by a given number. If a single number is supplied, all the points are multiplied by this number. Alternatively, an array with the same length as the data can be given to specify a position dependent multiplication. For example, for a dimension with 3 data points: [1,3.34,2]. This multiplies the first data point by 1, second by 3.34, etc. Do not forget the about the mirroring in the spectral domain (see Diff)!
-
-\subsection{Reorder}
-Reorders the data in the current dimension. Input is an array with the new, desired positions. For example, [0,2,1] keeps the position of the first element (`0'), but interchanges the second and the third. It is also possible to supply the input array by loading a filer (as is used in Non-Uniform Sampling). If the new data length is longer than the old, the missing points are filled with zeros. Also, the length of the desired new dimension can be given. If the length of the final data is shorter than this value, some zeros are appended.
 
 \subsection{Flip L/R}
 Flips (i.e. mirrors) the left and right side of the current dimension. The axis is not flipped.
@@ -497,6 +492,17 @@ Deletes specific data points from the current dimension. Should be entered in ar
 
 \subsection{Split}
 Splits the current dimension in $n$ parts with an equal number of data points. The newly created dimension is named D1, and all the other dimension numbers are increased by one (shifted one lower). This tool can only spilt the data in parts of equal size. It is therefore necessary to make sure that the size of the data in the current dimension is divisible by $n$, or in math.
+
+\subsection{Multiply}
+Multiplies the y-values of the data in the current dimension by a given number. If a single number is supplied, all the points are multiplied by this number. Alternatively, an array with the same length as the data can be given to specify a position dependent multiplication. For example, for a dimension with 3 data points: [1,3.34,2]. This multiplies the first data point by 1, second by 3.34, etc. Do not forget the about the mirroring in the spectral domain (see Diff)!
+
+\subsection{Reorder}
+Reorders the data in the current dimension. Input is an array with the new, desired positions. For example, [0,2,1] keeps the position of the first element (`0'), but interchanges the second and the third. It is also possible to supply the input array by loading a filer (as is used in Non-Uniform Sampling). If the new data length is longer than the old, the missing points are filled with zeros. Also, the length of the desired new dimension can be given. If the length of the final data is shorter than this value, some zeros are appended.
+
+\subsection{Concatenate}
+Concatenates (i.e. sticks) that data of dimension $n$ after dimension $n+1$. So if the original data is 10x5x3, and dimension 2 is selected, it becomes 10x15. This can be seen as the opasite of the `Split' function. Note that after applying this function the numbers of the dimensions in the ssNake window changes accordingly.
+
+
 
 \section{Fitting}
 In NMR spectroscopy, the shape of the resonance lines can provide information on the strength of interactions that the nucleus experiences. ssNake can, as many other programs, fit some idealized lineshapes with are often encountered in real life spectra. Fitting in ssNake ranges from trivial `full width at half maximum' (FWHM) fitting, to the complex quadrupolar Czjzek distribution. The following section will explain the way ssNake handles the different types of spectra it can fit, and which equations are used simulate the different spectra.
