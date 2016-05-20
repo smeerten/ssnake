@@ -879,10 +879,12 @@ class RelaxParamFrame(QtGui.QWidget):
                 self.t1Ticks[i].hide()
                 self.t1Entries[i].hide()
 
-    def fitFunc(self, x, *param):
-        numExp = self.args[0]
-        struc = self.args[1]
-        argu = self.args[2]
+    def fitFunc(self, param, args):
+        x = param[0]
+        param = np.delete(param, [0])
+        numExp = args[0]
+        struc = args[1]
+        argu = args[2]
         testFunc = np.zeros(len(x))
         if struc[0]:
             amplitude = param[0]
@@ -972,8 +974,8 @@ class RelaxParamFrame(QtGui.QWidget):
                 outT1[i] = safeEval(self.t1Entries[i].text())
                 argu.append(outT1[i])
                 struc.append(False)
-        self.args = (numExp, struc, argu)
-        fitVal = scipy.optimize.curve_fit(self.fitFunc, self.parent.xax, self.parent.data1D, guess)
+        args = (numExp, struc, argu)
+        fitVal = scipy.optimize.curve_fit(lambda *param: self.fitFunc(param, args), self.parent.xax, self.parent.data1D, guess)
         counter = 0
         if struc[0]:
             self.ampEntry.setText('%#.3g' % fitVal[0][counter])
@@ -1036,7 +1038,7 @@ class RelaxParamFrame(QtGui.QWidget):
                 outT1[i] = safeEval(self.t1Entries[i].text())
                 argu.append(outT1[i])
                 struc.append(False)
-        self.args = (numExp, struc, argu)
+        args = (numExp, struc, argu)
         fullData = self.parent.current.data.data
         axes = self.parent.current.axes
         dataShape = fullData.shape
@@ -1048,7 +1050,7 @@ class RelaxParamFrame(QtGui.QWidget):
         counter2 = 0
         for j in rolledData.reshape(dataShape[axes], np.product(dataShape2)).T:
             try:
-                fitVal = scipy.optimize.curve_fit(self.fitFunc, self.parent.xax, np.real(j), guess)
+                fitVal = scipy.optimize.curve_fit(lambda *param: self.fitFunc(param, args), self.parent.xax, np.real(j), guess)
             except:
                 fitVal = [[0]*10]
             counter = 0
