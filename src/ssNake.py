@@ -3096,7 +3096,7 @@ class SizeWindow(QtGui.QWidget):
         grid.addWidget(self.sizeEntry, 1, 0)
         grid.addWidget(QLabel("Size position:"), 2, 0)
         if self.father.current.wholeEcho:
-            self.posVal = int(floor(parent.current.data1D.shape[-1]/2.0))
+            self.posVal = int(np.floor(parent.current.data1D.shape[-1]/2.0))
         else:
             self.posVal = parent.current.data1D.shape[-1]
         self.posEntry = QtGui.QLineEdit()
