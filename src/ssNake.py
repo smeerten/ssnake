@@ -4785,10 +4785,10 @@ class COMWindow(QtGui.QWidget):#Centre of Mass Window
                 grid.addWidget(QLabel("Centre of Mass [ms]:"), 4, 0)
             elif self.father.current.axType == 2:
                 grid.addWidget(QLabel(u"Centre of Mass [\u03bcs]:"), 4, 0)
-        self.fwhmEntry = QtGui.QLineEdit()
-        self.fwhmEntry.setAlignment(QtCore.Qt.AlignHCenter)
-        self.fwhmEntry.setText('0.0')
-        grid.addWidget(self.fwhmEntry, 5, 0)
+        self.comEntry = QtGui.QLineEdit()
+        self.comEntry.setAlignment(QtCore.Qt.AlignHCenter)
+        self.comEntry.setText('0.0')
+        grid.addWidget(self.comEntry, 5, 0)
         cancelButton = QtGui.QPushButton("&Cancel")
         cancelButton.clicked.connect(self.closeEvent)
         layout.addWidget(cancelButton, 2, 0)
@@ -4857,7 +4857,7 @@ class COMWindow(QtGui.QWidget):#Centre of Mass Window
         elif maximum > dataLength:
             maximum = dataLength
         self.maxEntry.setText(str(maximum))
-        self.fwhmEntry.setText(str(self.father.current.COM(minimum, maximum)))
+        self.comEntry.setText(str(self.father.current.COM(minimum, maximum)))
         
     def closeEvent(self, *args):
         self.father.current.peakPickReset()
