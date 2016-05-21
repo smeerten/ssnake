@@ -1474,6 +1474,40 @@ class Current1D(Plot1DFrame):
             return abs(left[0]-right[-1])
         else:
             return 0.0
+            
+    def COM(self, minPeak, maxPeak): #Centre of Mass
+        from scipy.interpolate import UnivariateSpline
+        minP = min(minPeak, maxPeak)
+        maxP = max(minPeak, maxPeak)
+        if len(self.data1D.shape) > 1:
+            tmpData = self.data1D[0]
+            tmpAxis = self.xax[0]
+        else:
+            tmpData = self.data1D
+            tmpAxis = self.xax
+        if (self.plotType == 0):
+            tmpData = np.real(tmpData)
+        elif(self.plotType == 1):
+            tmpData = np.imag(tmpData)
+        elif(self.plotType == 2):
+            tmpData = np.real(tmpData)
+        elif(self.plotType == 3):
+            tmpData = np.abs(tmpData)
+        
+        if self.spec == 1:
+            if self.ppm:
+                axMult = 1e6/self.ref
+            else:
+                axMult = 1.0/(1000.0**self.axType)
+        elif self.spec == 0:
+            axMult = 1000.0**self.axType
+        tmpAxis = tmpAxis[minP:maxP]*axMult
+        
+        tmpData = tmpData[minP:maxP]
+        #COM = 1/M *sum(m_i * r_i)
+        CentreOM = 1.0/np.sum(tmpData) * np.sum(tmpData*tmpAxis)
+        return CentreOM
+        
     
     def setSizePreview(self, size, pos): #set size only on local data
         if len(self.data1D.shape) > 1:

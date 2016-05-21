@@ -277,6 +277,7 @@ class MainProgram(QtGui.QMainWindow):
         self.menubar.addMenu(self.fittingMenu)
         self.fittingMenu.addAction("&S/N", lambda: self.mainWindowCheck(lambda mainWindow: SNWindow(mainWindow)))
         self.fittingMenu.addAction("&FWHM", lambda: self.mainWindowCheck(lambda mainWindow: FWHMWindow(mainWindow)))
+        self.fittingMenu.addAction("Centre of Mass", lambda: self.mainWindowCheck(lambda mainWindow: COMWindow(mainWindow)))        
         self.fittingMenu.addAction("&Integrals", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.createIntegralsWindow()))
         self.fittingMenu.addAction("&Relaxation Curve", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.createRelaxWindow()))
         self.fittingMenu.addAction("&Diffusion Curve", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.createDiffusionWindow()))
@@ -4741,7 +4742,128 @@ class FWHMWindow(QtGui.QWidget):
         self.father.current.peakPickReset()
         self.father.menuEnable()
         self.deleteLater()        
-
+##############################################################
+        
+        
+class COMWindow(QtGui.QWidget):#Centre of Mass Window
+    def __init__(self, parent):
+        QtGui.QWidget.__init__(self, parent)
+        self.setWindowFlags(QtCore.Qt.Window| QtCore.Qt.Tool)
+        self.father = parent
+        self.setWindowTitle("Centre of Mass")
+        layout = QtGui.QGridLayout(self)
+        grid = QtGui.QGridLayout()
+        layout.addLayout(grid, 0, 0, 1, 2)
+        grid.addWidget(QLabel("Start point:"), 0, 0)
+        self.minEntry = QtGui.QLineEdit()
+        self.minEntry.setAlignment(QtCore.Qt.AlignHCenter)
+        self.minEntry.setText("0")
+        self.minEntry.returnPressed.connect(self.checkValues)
+        grid.addWidget(self.minEntry, 1, 0)
+        grid.addWidget(QLabel("End point:"), 2, 0)
+        self.maxEntry = QtGui.QLineEdit()
+        self.maxEntry.setAlignment(QtCore.Qt.AlignHCenter)
+        self.maxEntry.setText(str(parent.current.data1D.shape[-1]))
+        self.maxEntry.returnPressed.connect(self.checkValues)
+        grid.addWidget(self.maxEntry, 3, 0)
+        if self.father.current.spec == 1:
+            if self.father.current.ppm:
+                grid.addWidget(QLabel("Centre of Mass [ppm]:"), 4, 0)
+            else:
+                if self.father.current.axType == 0:
+                    grid.addWidget(QLabel("Centre of Mass [Hz]:"), 4, 0)
+                elif self.father.current.axType == 1:
+                    grid.addWidget(QLabel("Centre of Mass [kHz]:"), 4, 0)
+                elif self.father.current.axType == 2:
+                    grid.addWidget(QLabel("Centre of Mass [MHz]:"), 4, 0)
+                elif self.father.current.axType == 3:
+                    grid.addWidget(QLabel("Centre of Mass [ppm]:"), 4, 0)
+        else:
+            if self.father.current.axType == 0:
+                grid.addWidget(QLabel("Centre of Mass [s]:"), 4, 0)
+            elif self.father.current.axType == 1:
+                grid.addWidget(QLabel("Centre of Mass [ms]:"), 4, 0)
+            elif self.father.current.axType == 2:
+                grid.addWidget(QLabel(u"Centre of Mass [\u03bcs]:"), 4, 0)
+        self.fwhmEntry = QtGui.QLineEdit()
+        self.fwhmEntry.setAlignment(QtCore.Qt.AlignHCenter)
+        self.fwhmEntry.setText('0.0')
+        grid.addWidget(self.fwhmEntry, 5, 0)
+        cancelButton = QtGui.QPushButton("&Cancel")
+        cancelButton.clicked.connect(self.closeEvent)
+        layout.addWidget(cancelButton, 2, 0)
+        okButton = QtGui.QPushButton("&Fit")
+        okButton.clicked.connect(self.apply)
+        layout.addWidget(okButton, 2, 1)
+        self.show()
+        self.setFixedSize(self.size())
+        self.father.menuDisable()
+        self.father.current.peakPickFunc = lambda pos, self=self: self.picked(pos) 
+        self.father.current.peakPick = True
+        self.setGeometry(self.frameSize().width()-self.geometry().width(), self.frameSize().height()-self.geometry().height(), 0, 0)
+        
+    def picked(self, pos, num=0): 
+        if num == 0:
+            self.minEntry.setText(str(pos[0]))
+            self.father.current.peakPickFunc = lambda pos, self=self: self.picked(pos, 1) 
+            self.father.current.peakPick = True
+        elif num == 1:
+            self.maxEntry.setText(str(pos[0]))
+            self.father.current.peakPickFunc = lambda pos, self=self: self.picked(pos, 0) 
+            self.father.current.peakPick = True
+            self.apply()
+            
+    def checkValues(self, *args): 
+        dataLength = self.father.current.data1D.shape[-1]
+        inp = safeEval(self.minEntry.text())
+        if inp is None:
+            return
+        minimum = int(round(inp))
+        if minimum < 0:
+            minimum = 0
+        elif minimum > dataLength:
+            minimum = dataLength
+        self.minEntry.setText(str(minimum))
+        inp = safeEval(self.maxEntry.text())
+        if inp is None:
+            return
+        maximum = int(round(inp))
+        if maximum < 0:
+            maximum = 0
+        elif maximum > dataLength:
+            maximum = dataLength
+        self.maxEntry.setText(str(maximum))
+        self.apply()
+        
+    def apply(self):
+        dataLength = self.father.current.data1D.shape[-1]
+        inp = safeEval(self.minEntry.text())
+        if inp is None:
+            self.father.father.dispMsg("Not a valid value")
+            return
+        minimum = int(round(inp))
+        if minimum < 0:
+            minimum = 0
+        elif minimum > dataLength:
+            minimum = dataLength
+        self.minEntry.setText(str(minimum))
+        inp = safeEval(self.maxEntry.text())
+        if inp is None:
+            self.father.father.dispMsg("Not a valid value")
+            return
+        maximum = int(round(inp))
+        if maximum < 0:
+            maximum = 0
+        elif maximum > dataLength:
+            maximum = dataLength
+        self.maxEntry.setText(str(maximum))
+        self.fwhmEntry.setText(str(self.father.current.COM(minimum, maximum)))
+        
+    def closeEvent(self, *args):
+        self.father.current.peakPickReset()
+        self.father.menuEnable()
+        self.deleteLater()     
+        
 ##########################################################################################
 class ReorderWindow(QtGui.QWidget): 
     def __init__(self, parent):
