@@ -900,7 +900,12 @@ class MainProgram(QtGui.QMainWindow):
         if os.path.isfile(filePath):
             filename = os.path.basename(filePath)
             if filename.endswith('.fid') or filename.endswith('.spe'): 
-                self.loading(4, filePath)
+                with open(filePath, 'r') as f:
+                    check = int(np.fromfile(f, np.float32, 1))
+                if check ==0:
+                    self.loading(8, filePath) #Suspected NMRpipe format
+                else: #SIMPSON
+                    self.loading(4, filePath)
                 return returnVal
             elif filename.endswith('.json') or filename.endswith('.JSON'):
                 self.loading(5, filePath)
@@ -966,6 +971,8 @@ class MainProgram(QtGui.QMainWindow):
             masterData = self.loadMatlabFile(filePath, name)
         elif num == 7:
            masterData = self.LoadBrukerSpectrum(filePath, name) 
+        elif num == 8:
+           masterData = self.LoadPipe(filePath, name) 
         if masterData is not None:
             self.workspaces.append(Main1DWindow(self, masterData))
             self.tabs.addTab(self.workspaces[-1], name)
@@ -1054,7 +1061,29 @@ class MainProgram(QtGui.QMainWindow):
             masterData = sc.Spectrum(name, fid, lambda self :self.LoadVarianFile(filePath), [freq1,freq], [sw1,sw],[bool(int(spec))]*2, msgHandler=lambda msg: self.dispMsg(msg))
         masterData.addHistory("Varian data loaded from "+filePath)
         return masterData
-
+        
+    def LoadPipe(self, filePath, name=''):
+        with open(filePath, 'r') as f: 
+            header = np.fromfile(f, np.float32, 512) 
+            
+            NumberofPoints = int(header[99])
+            data = np.fromfile(f, np.float32,NumberofPoints )
+            
+            spec = int(header[220]) # 1 if ft, 0 if time
+            freq = header[119] *1e6
+            sw = header[100]
+            reference = header[101] #frequency of last point in Hz
+        
+        
+        sidefreq = -math.floor(NumberofPoints/2)/NumberofPoints*sw #freqeuency of last point on axis
+        ref = sidefreq + freq - reference
+        if spec == 1:
+            data = np.flipud(data)        
+        
+        masterData = sc.Spectrum(name, data, lambda self :self.LoadPipe(filePath), [freq], [sw], [spec],ref=[ref], msgHandler=lambda msg: self.dispMsg(msg))
+        masterData.addHistory("NMR pipe data loaded from "+filePath)
+        return masterData
+        
     def loadJSONFile(self, filePath, name=''):
         import json
         with open(filePath, 'r') as inputfile:
