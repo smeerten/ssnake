@@ -1068,7 +1068,9 @@ class MainProgram(QtGui.QMainWindow):
             
             NumberofPoints = int(header[99])
             data = np.fromfile(f, np.float32,NumberofPoints )
-            
+            if int(header[106]) == 0: #if complex
+                data = data + 1j*np.fromfile(f, np.float32,NumberofPoints )
+                
             spec = int(header[220]) # 1 if ft, 0 if time
             freq = header[119] *1e6
             sw = header[100]
