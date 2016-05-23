@@ -22,12 +22,15 @@ from PyQt4 import QtGui, QtCore
 from matplotlib.figure import Figure
 from matplotlib.backends.backend_qt4agg import FigureCanvasQTAgg as FigureCanvas
 import scipy.optimize
+import multiprocessing
 import os.path
 import copy
 from safeEval import *
 from spectrumFrame import Plot1DFrame
 from zcw import *
 from widgetClasses import *
+
+import time
 
 pi = np.pi
 
@@ -794,6 +797,12 @@ class RelaxParamFrame(QtGui.QWidget):
         fitButton = QtGui.QPushButton("Fit")
         fitButton.clicked.connect(self.fit)
         self.frame1.addWidget(fitButton, 1, 0)
+        self.stopButton = QtGui.QPushButton("Stop")
+        self.stopButton.clicked.connect(self.stopMP)
+        self.frame1.addWidget(self.stopButton, 1, 0)
+        self.stopButton.hide()
+        self.process1 = None
+        self.queue = None
         fitAllButton = QtGui.QPushButton("Fit all")
         fitAllButton.clicked.connect(self.fitAll)
         self.frame1.addWidget(fitAllButton, 2, 0)
@@ -934,6 +943,13 @@ class RelaxParamFrame(QtGui.QWidget):
                 return False
             self.t1Entries[i].setText('%#.3g' % inp)
         return True
+
+    def mpFit(self, xax, data1D, guess, args, queue):
+        try:
+            fitVal = scipy.optimize.curve_fit(lambda *param: self.fitFunc(param, args), xax, data1D, guess)
+        except:
+            fitVal = None
+        queue.put(fitVal)
     
     def fit(self, *args):
         if not self.checkInputs():
@@ -975,7 +991,23 @@ class RelaxParamFrame(QtGui.QWidget):
                 argu.append(outT1[i])
                 struc.append(False)
         args = (numExp, struc, argu)
-        fitVal = scipy.optimize.curve_fit(lambda *param: self.fitFunc(param, args), self.parent.xax, self.parent.data1D, guess)
+        self.queue = multiprocessing.Queue()
+        self.process1 = multiprocessing.Process(target=self.mpFit, args=(self.parent.xax, self.parent.data1D, guess, args, self.queue))
+        self.process1.start()
+        self.running = True
+        self.stopButton.show()
+        while self.running:
+            if not self.queue.empty():
+                self.running = False
+            QtGui.qApp.processEvents()
+            time.sleep(0.1)
+        if self.queue is None:
+            return
+        fitVal = self.queue.get(timeout=2)
+        self.stopMP()
+        if fitVal is None:
+            self.rootwindow.mainProgram.dispMsg('Optimal parameters not found')
+            return
         counter = 0
         if struc[0]:
             self.ampEntry.setText('%#.3g' % fitVal[0][counter])
@@ -996,6 +1028,17 @@ class RelaxParamFrame(QtGui.QWidget):
                 counter += 1
         self.disp(outAmp, outConst, outCoeff, outT1)
 
+    def stopMP(self, *args):
+        if self.queue is not None:
+            self.process1.terminate()
+            self.queue.close()
+            self.queue.join_thread()
+            self.process1.join()
+        self.queue = None
+        self.process1 = None
+        self.running = False
+        self.stopButton.hide()
+        
     def fitAll(self, *args):
         FitAllSelectionWindow(self, ["Amplitude", "Constant", "Coefficient", "T"])
         
@@ -5474,3 +5517,6 @@ class FitAllSelectionWindow(QtGui.QWidget):
             returnVals.append(i.isChecked())
         self.deleteLater()
         self.father.fitAllFunc(np.array(returnVals, dtype=bool))
+
+    def closeEvent(self, *args):
+        self.deleteLater()
