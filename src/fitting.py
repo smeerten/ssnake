@@ -4826,12 +4826,12 @@ class Quad2StaticCzjzekParamFrame(QtGui.QWidget):
         self.IEntry.addItems(self.Ioptions)
         self.IEntry.setCurrentIndex(1)
         self.optframe.addWidget(self.IEntry, 1, 1)
-        self.optframe.addWidget(QLabel("Cq grid size:"), 2, 0)
-        self.cqGridEntry = QtGui.QLineEdit()
-        self.cqGridEntry.setAlignment(QtCore.Qt.AlignHCenter)
-        self.cqGridEntry.setText("50")
-        self.cqGridEntry.returnPressed.connect(self.setGrid)
-        self.optframe.addWidget(self.cqGridEntry, 3, 0)
+        self.optframe.addWidget(QLabel("Wq grid size:"), 2, 0)
+        self.wqGridEntry = QtGui.QLineEdit()
+        self.wqGridEntry.setAlignment(QtCore.Qt.AlignHCenter)
+        self.wqGridEntry.setText("50")
+        self.wqGridEntry.returnPressed.connect(self.setGrid)
+        self.optframe.addWidget(self.wqGridEntry, 3, 0)
         self.optframe.addWidget(QLabel(u"\u03b7 grid size:"), 4, 0)
         self.etaGridEntry = QtGui.QLineEdit()
         self.etaGridEntry.setAlignment(QtCore.Qt.AlignHCenter)
@@ -4940,10 +4940,10 @@ class Quad2StaticCzjzekParamFrame(QtGui.QWidget):
         self.chengEntry.setText(str(self.cheng))
 
     def setGrid(self, *args):
-        inp = safeEval(self.cqGridEntry.text())
+        inp = safeEval(self.wqGridEntry.text())
         if inp is None:
             return False
-        self.cqGridEntry.setText(str(int(inp)))
+        self.wqGridEntry.setText(str(int(inp)))
         inp = safeEval(self.etaGridEntry.text())
         if inp is None:
             return False
@@ -4983,12 +4983,12 @@ class Quad2StaticCzjzekParamFrame(QtGui.QWidget):
         x1 = x1[np.logical_and(x1>=0, x1<length)]
         return np.fft.ifft(np.bincount(x1, weights, length))
     
-    def genLib(self, length, I, maxCq, numCq, numEta):
-        self.cq, self.eta = np.meshgrid(np.linspace(0, maxCq, numCq), np.linspace(0, 1, numEta))
-        cq = self.cq[..., None]
+    def genLib(self, length, I, maxWq, numWq, numEta):
+        self.wq, self.eta = np.meshgrid(np.linspace(0, maxWq, numWq), np.linspace(0, 1, numEta))
+        wq = self.wq[..., None]
         eta = self.eta[..., None]
-       # v = -cq**2/(6.0*self.parent.current.freq)*(I*(I+1)-3/4.0)*(self.angleStuff1+self.angleStuff2*eta+self.angleStuff3*eta**2)
-        v = -1/(6.0*self.parent.current.freq)*(3*cq/(2*I*(2*I-1)))**2*(I*(I+1)-3.0/4)*(self.angleStuff1+self.angleStuff2*eta+self.angleStuff3*eta**2)
+       # v = -wq**2/(6.0*self.parent.current.freq)*(I*(I+1)-3/4.0)*(self.angleStuff1+self.angleStuff2*eta+self.angleStuff3*eta**2)
+        v = -1/(6.0*self.parent.current.freq)*wq**2*(I*(I+1)-3.0/4)*(self.angleStuff1+self.angleStuff2*eta+self.angleStuff3*eta**2)
         mult = v/(self.parent.current.sw)*length
         x1 = np.array(np.round(mult)+np.floor(length/2), dtype=int)
         self.lib = np.apply_along_axis(self.bincounting, 2, x1, self.weight, length)
@@ -4996,9 +4996,9 @@ class Quad2StaticCzjzekParamFrame(QtGui.QWidget):
     def tensorFunc(self, sigma, d, pos, width, gauss):
         import scipy.ndimage
         pos = pos - self.axAdd
-        cq = self.cq
+        wq = self.wq
         eta = self.eta
-        czjzek = cq**(d-1)*eta/(np.sqrt(2*np.pi)*sigma**d)*(1-eta**2/9.0)*np.exp(-cq**2/(2.0*sigma**2)*(1+eta**2/3.0))
+        czjzek = wq**(d-1)*eta/(np.sqrt(2*np.pi)*sigma**d)*(1-eta**2/9.0)*np.exp(-wq**2/(2.0*sigma**2)*(1+eta**2/3.0))
         czjzek = czjzek/np.sum(czjzek)
         fid = np.sum(self.lib*czjzek[..., None], axis=(0, 1))
         t = np.arange(len(fid))/self.parent.current.sw
@@ -5120,7 +5120,7 @@ class Quad2StaticCzjzekParamFrame(QtGui.QWidget):
         struc = []
         guess = []
         argu = []
-        maxCq = 0.0
+        maxWq = 0.0
         I = self.checkI(self.IEntry.currentIndex())
         numExp = self.numExp.currentIndex()+1
         outPos = np.zeros(numExp)
@@ -5161,12 +5161,12 @@ class Quad2StaticCzjzekParamFrame(QtGui.QWidget):
                 struc.append(False)
             if not self.sigmaTicks[i].isChecked():
                 inp = float(self.sigmaEntries[i].text())
-                maxCq = max(maxCq, inp*1e6)
+                maxWq = max(maxWq, inp*1e6)
                 guess.append(inp*1e6)
                 struc.append(True)
             else:
                 inp = float(self.sigmaEntries[i].text())
-                maxCq = max(maxCq, inp*1e6)
+                maxWq = max(maxWq, inp*1e6)
                 argu.append(inp*1e6)
                 outSigma[i] = inp
                 struc.append(False)
@@ -5193,9 +5193,9 @@ class Quad2StaticCzjzekParamFrame(QtGui.QWidget):
                 struc.append(False)
         self.args = (numExp, struc, argu)
         self.setAngleStuff()
-        numCq = int(self.cqGridEntry.text())
+        numWq = int(self.wqGridEntry.text())
         numEta = int(self.etaGridEntry.text())
-        self.genLib(len(self.parent.xax), I, maxCq*4.0, numCq, numEta)
+        self.genLib(len(self.parent.xax), I, maxWq*4.0, numWq, numEta)
         fitVal = scipy.optimize.fmin(self.fitFunc, guess, args=(self.parent.xax, np.real(self.parent.data1D)),disp=False)
         counter = 0
         if struc[0]:
@@ -5243,7 +5243,7 @@ class Quad2StaticCzjzekParamFrame(QtGui.QWidget):
         struc = []
         guess = []
         argu = []
-        maxCq = 0.0
+        maxWq = 0.0
         I = self.checkI(self.IEntry.currentIndex())
         numExp = self.numExp.currentIndex()+1
         outPos = np.zeros(numExp)
@@ -5284,12 +5284,12 @@ class Quad2StaticCzjzekParamFrame(QtGui.QWidget):
                 struc.append(False)
             if not self.sigmaTicks[i].isChecked():
                 inp = float(self.sigmaEntries[i].text())
-                maxCq = max(maxCq, inp*1e6)
+                maxWq = max(maxWq, inp*1e6)
                 guess.append(inp*1e6)
                 struc.append(True)
             else:
                 inp = float(self.sigmaEntries[i].text())
-                maxCq = max(maxCq, inp*1e6)
+                maxWq = max(maxWq, inp*1e6)
                 argu.append(inp*1e6)
                 outSigma[i] = inp
                 struc.append(False)
@@ -5316,9 +5316,9 @@ class Quad2StaticCzjzekParamFrame(QtGui.QWidget):
                 struc.append(False)
         self.args = (numExp, struc, argu)
         self.setAngleStuff()
-        numCq = int(self.cqGridEntry.text())
+        numWq = int(self.wqGridEntry.text())
         numEta = int(self.etaGridEntry.text())
-        self.genLib(len(self.parent.xax), I, maxCq*4.0, numCq, numEta)
+        self.genLib(len(self.parent.xax), I, maxWq*4.0, numWq, numEta)
         fullData = self.parent.current.data.data
         axes = self.parent.current.axes
         dataShape = fullData.shape
@@ -5402,9 +5402,9 @@ class Quad2StaticCzjzekParamFrame(QtGui.QWidget):
             width[i] = safeEval(self.lorEntries[i].text())
             gauss[i] = safeEval(self.gaussEntries[i].text())
         self.setAngleStuff()
-        numCq = int(self.cqGridEntry.text())
+        numWq = int(self.wqGridEntry.text())
         numEta = int(self.etaGridEntry.text())
-        self.genLib(len(self.parent.xax), I, max(sigma)*4.0, numCq, numEta)
+        self.genLib(len(self.parent.xax), I, max(sigma)*4.0, numWq, numEta)
         self.disp(bgrnd, slope, pos, sigma, d, amp, width, gauss, store)
 
 
