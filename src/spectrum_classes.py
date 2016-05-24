@@ -209,7 +209,7 @@ class Spectrum:
         except ValueError as error:
             self.dispMsg(str(error))
             return None
-        self.addHistory("Baseline corrected dimension "+str(axes+1)+" of data["+str(select)+"]: "+str(baseline).replace('\n', ''))
+        self.addHistory("Baseline corrected dimension "+str(axes+1)+" of data["+str(select)+"]")
         return lambda self: self.baselineCorrection(-baseline, axes, select=select) 
     
     def concatenate(self, axes):

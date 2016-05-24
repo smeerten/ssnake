@@ -502,7 +502,7 @@ class MainProgram(QtGui.QMainWindow):
         if not ok:
             return
         while (givenName in self.workspaceNames) or givenName == '':
-            self.dispMsg('Name exists')
+            self.dispMsg("Workspace name '"+givenName+"' already exists")
             givenName, ok = QtGui.QInputDialog.getText(self, message, 'Name:', text=name)
             if not ok:
                 return
@@ -530,7 +530,7 @@ class MainProgram(QtGui.QMainWindow):
         if not ok:
             return
         while (givenName in self.macros.keys()) or givenName is '':
-            self.dispMsg('Name exists')
+            self.dispMsg("Macro name '"+givenName+"' already exists")
             givenName, ok = QtGui.QInputDialog.getText(self, 'Macro name', 'Name:', text=name)
             if not ok:
                 return
@@ -554,8 +554,11 @@ class MainProgram(QtGui.QMainWindow):
             name = 'macro'+str(count)
         givenName, ok = QtGui.QInputDialog.getText(self, 'Macro name', 'Name:', text=name)
         while (givenName in self.macros.keys()) or givenName is '':
-            self.dispMsg('Name exists')
+            if not ok:
+                return
+            self.dispMsg("Macro name '"+givenName+"' already exists")
             givenName, ok = QtGui.QInputDialog.getText(self, 'Macro name', 'Name:', text=name)
+
         self.macros[givenName] = self.macros.pop(oldName)
         if self.mainWindow.currentMacro == oldName:
             self.mainWindow.currentMacro = givenName
@@ -626,7 +629,7 @@ class MainProgram(QtGui.QMainWindow):
         while (givenName in self.macros.keys()) or givenName is '':
             if not ok:
                 return
-            self.dispMsg('Name exists')
+            self.dispMsg("Macro name '"+givenName+"' already exists")
             givenName, ok = QtGui.QInputDialog.getText(self, 'Macro name', 'Name:', text=name)
         with open(filename, 'r') as f:
             self.macros[givenName] = json.load(f)
@@ -1768,6 +1771,9 @@ class Main1DWindow(QtGui.QWidget):
             name = QtGui.QFileDialog.getSaveFileName(self, 'Save File', self.father.LastLocation+os.path.sep+WorkspaceName+'.fid', 'SIMPSON file (*.fid)')
             if not name:
                 return
+        else:
+            self.father.dispMsg('Saving to Simpson format not allowed for mixed time/frequency domain data!')
+            return
         self.father.LastLocation = os.path.dirname(name) #Save used path
         with open(name, 'w') as f: 
             f.write('SIMP\n')
