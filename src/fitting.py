@@ -810,7 +810,7 @@ class RelaxParamFrame(QtGui.QWidget):
         copyResultButton.clicked.connect(lambda: self.sim(True))
         self.frame1.addWidget(copyResultButton, 3, 0)
         cancelButton = QtGui.QPushButton("&Cancel")
-        cancelButton.clicked.connect(rootwindow.cancel)
+        cancelButton.clicked.connect(self.closeWindow)
         self.frame1.addWidget(cancelButton, 4, 0)
         self.frame1.setColumnStretch(10, 1)
         self.frame1.setAlignment(QtCore.Qt.AlignTop)
@@ -871,6 +871,10 @@ class RelaxParamFrame(QtGui.QWidget):
                 self.t1Ticks[i].hide()
                 self.t1Entries[i].hide()
 
+    def closeWindow(self, *args):
+        self.stopMP()
+        self.rootwindow.cancel()
+                
     def setLog(self, *args):
         self.parent.setLog(self.xlog.isChecked(), self.ylog.isChecked())
                 
@@ -1041,6 +1045,16 @@ class RelaxParamFrame(QtGui.QWidget):
         
     def fitAll(self, *args):
         FitAllSelectionWindow(self, ["Amplitude", "Constant", "Coefficient", "T"])
+
+    def mpAllFit(self, xax, data, guess, args, queue):
+        fitVal = []
+        for j in data:
+            try:
+                fitVal.append(scipy.optimize.curve_fit(lambda *param: self.fitFunc(param, args), xax, np.real(j), guess))
+            except:
+                fitVal.append([[0]*10])
+        queue.put(fitVal)
+
         
     def fitAllFunc(self, outputs):
         if not self.checkInputs():
@@ -1091,11 +1105,22 @@ class RelaxParamFrame(QtGui.QWidget):
         numOutputs = np.sum(intOutputs[:2]) + numExp*np.sum(intOutputs[2:])
         outputData = np.zeros((np.product(dataShape2), numOutputs), dtype=complex)
         counter2 = 0
-        for j in rolledData.reshape(dataShape[axes], np.product(dataShape2)).T:
-            try:
-                fitVal = scipy.optimize.curve_fit(lambda *param: self.fitFunc(param, args), self.parent.xax, np.real(j), guess)
-            except:
-                fitVal = [[0]*10]
+        fitData = rolledData.reshape(dataShape[axes], np.product(dataShape2)).T
+        self.queue = multiprocessing.Queue()
+        self.process1 = multiprocessing.Process(target=self.mpAllFit, args=(self.parent.xax, fitData, guess, args, self.queue))
+        self.process1.start()
+        self.running = True
+        self.stopButton.show()
+        while self.running:
+            if not self.queue.empty():
+                self.running = False
+            QtGui.qApp.processEvents()
+            time.sleep(0.1)
+        if self.queue is None:
+            return
+        returnVal = self.queue.get(timeout=2)
+        self.stopMP()
+        for fitVal in returnVal:
             counter = 0
             if struc[0]:
                 outAmp = fitVal[0][counter]
