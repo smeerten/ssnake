@@ -1549,20 +1549,22 @@ class Current1D(Plot1DFrame):
             self.xax = np.arange(length)/self.sw
         elif self.spec == 1:
             self.xax = np.fft.fftshift(np.fft.fftfreq(length, 1.0/self.sw))+self.freq-self.ref
+        if not self.spec:
+            self.plotReset(True, False)
         self.showFid()
         self.upd()
 
     def applySize(self, size, pos): #set size to the actual data
         returnValue = self.data.setSize(size, pos, self.axes)
         self.upd()
-        #if not self.spec:
-        #    self.plotReset()
+        if not self.spec:
+            self.plotReset(True, False)
         self.showFid()
         self.root.addMacro(['size', (size, pos, self.axes-self.data.dim)])
         return returnValue
         
-    def applyLPSVD(self,nAnalyse,nFreq,nPredict):
-        returnValue = self.data.setLPSVD(nAnalyse,nFreq,nPredict, self.axes)
+    def applyLPSVD(self, nAnalyse, nFreq, nPredict):
+        returnValue = self.data.setLPSVD(nAnalyse, nFreq, nPredict, self.axes)
         self.upd()
         self.showFid()
         return returnValue
