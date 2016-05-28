@@ -336,6 +336,7 @@ class MainProgram(QtGui.QMainWindow):
         self.helpMenu = QtGui.QMenu("&Help", self)
         self.menubar.addMenu(self.helpMenu)
         self.helpMenu.addAction("&Update", self.updateMenu)
+        self.helpMenu.addAction("&Chemical shift conversion tool", lambda: shiftConversionWindow(self))
         self.helpMenu.addAction("&About", self.about)
         
     def mainWindowCheck(self, transfer):
@@ -5790,6 +5791,258 @@ class PreferenceWindow(QtGui.QWidget):
         
     def closeEvent(self, *args):
         self.deleteLater()
+        
+##############################################################################
+        
+class shiftConversionWindow(QtGui.QWidget):
+    def __init__(self, parent):
+        QtGui.QWidget.__init__(self, parent)
+        self.setWindowFlags(QtCore.Qt.Window| QtCore.Qt.Tool)
+        self.father = parent
+        QtGui.QWidget.__init__(self)
+        
+        self.setWindowTitle("Chemical Shift Conversions")
+
+        
+        grid = QtGui.QGridLayout()
+        grid.setColumnStretch(10, 1)
+        grid.setRowStretch(14, 1)
+        
+        StConv = QtGui.QLabel("Standard Convention:")
+        StConv.setAlignment(QtCore.Qt.AlignHCenter)
+        grid.addWidget(StConv, 0, 0)
+        D11label = QtGui.QLabel(u'\u03b4'+'<sub>11</sub> (ppm)')
+        D11label.setAlignment(QtCore.Qt.AlignHCenter)
+        grid.addWidget(D11label, 0, 1)
+        D22label = QtGui.QLabel(u'\u03b4'+'<sub>22</sub> (ppm)')
+        D22label.setAlignment(QtCore.Qt.AlignHCenter)
+        grid.addWidget(D22label, 0, 2)
+        D33label = QtGui.QLabel(u'\u03b4'+'<sub>33</sub> (ppm)')
+        D33label.setAlignment(QtCore.Qt.AlignHCenter)
+        grid.addWidget(D33label, 0, 3)
+        standardGO = QtGui.QPushButton("Go")
+        grid.addWidget(standardGO, 1, 0)
+        standardGO.clicked.connect(lambda: self.shiftCalc(0))
+        self.D11 = QtGui.QLineEdit()
+        self.D11.setText("0")
+        self.D11.setAlignment(QtCore.Qt.AlignHCenter)
+        grid.addWidget(self.D11, 1, 1)
+        self.D22 = QtGui.QLineEdit()
+        self.D22.setText("0")
+        self.D22.setAlignment(QtCore.Qt.AlignHCenter)
+        grid.addWidget(self.D22, 1, 2)
+        self.D33 = QtGui.QLineEdit()
+        self.D33.setText("0")
+        self.D33.setAlignment(QtCore.Qt.AlignHCenter)
+        grid.addWidget(self.D33, 1, 3)
+        
+        
+        
+        #xyz Convention
+        grid.addWidget(QtGui.QLabel(""), 2, 0)
+        StConv = QtGui.QLabel("xyz Convention:")
+        StConv.setAlignment(QtCore.Qt.AlignHCenter)
+        grid.addWidget(StConv, 3, 0)
+        dxxlabel = QtGui.QLabel(u'\u03b4'+'<sub>xx</sub> (ppm)')
+        dxxlabel.setAlignment(QtCore.Qt.AlignHCenter)
+        grid.addWidget(dxxlabel, 3, 1)
+        dyylabel = QtGui.QLabel(u'\u03b4'+'<sub>yy</sub> (ppm)')
+        dyylabel.setAlignment(QtCore.Qt.AlignHCenter)
+        grid.addWidget(dyylabel, 3, 2)
+        dzzlabel = QtGui.QLabel(u'\u03b4'+'<sub>zz</sub> (ppm)')
+        dzzlabel.setAlignment(QtCore.Qt.AlignHCenter)
+        grid.addWidget(dzzlabel, 3, 3)
+        
+        xyzGO = QtGui.QPushButton("Go")
+        grid.addWidget(xyzGO, 4, 0)
+        xyzGO.clicked.connect(lambda: self.shiftCalc(1))
+        self.dxx = QtGui.QLineEdit()
+        self.dxx.setText("0")
+        self.dxx.setAlignment(QtCore.Qt.AlignHCenter)
+        grid.addWidget(self.dxx, 4, 1)
+        self.dyy = QtGui.QLineEdit()
+        self.dyy.setText("0")
+        self.dyy.setAlignment(QtCore.Qt.AlignHCenter)
+        grid.addWidget(self.dyy, 4, 2)
+        self.dzz = QtGui.QLineEdit()
+        self.dzz.setText("0")
+        self.dzz.setAlignment(QtCore.Qt.AlignHCenter)
+        grid.addWidget(self.dzz, 4, 3)
+        
+        
+        #Haeberlen Convention
+        grid.addWidget(QtGui.QLabel(""), 5, 0)
+        StConv = QtGui.QLabel("Haeberlen Convention:")
+        StConv.setAlignment(QtCore.Qt.AlignHCenter)
+        grid.addWidget(StConv, 6, 0)
+        disolabel = QtGui.QLabel(u'\u03b4'+'<sub>iso</sub> (ppm)')
+        disolabel.setAlignment(QtCore.Qt.AlignHCenter)
+        grid.addWidget(disolabel, 6, 1)
+        danisolabel = QtGui.QLabel(u'\u03b4'+'<sub>aniso</sub> (ppm)')
+        danisolabel.setAlignment(QtCore.Qt.AlignHCenter)
+        grid.addWidget(danisolabel, 6, 2)
+        etalabel = QtGui.QLabel(u'\u03b7')
+        etalabel.setAlignment(QtCore.Qt.AlignHCenter)
+        grid.addWidget(etalabel, 6, 3)
+        
+        haeberGO = QtGui.QPushButton("Go")
+        grid.addWidget(haeberGO, 7, 0)
+        haeberGO.clicked.connect(lambda: self.shiftCalc(2))
+        self.diso = QtGui.QLineEdit()
+        self.diso.setText("0")
+        self.diso.setAlignment(QtCore.Qt.AlignHCenter)
+        grid.addWidget(self.diso, 7, 1)
+        self.daniso = QtGui.QLineEdit()
+        self.daniso.setText("0")
+        self.daniso.setAlignment(QtCore.Qt.AlignHCenter)
+        grid.addWidget(self.daniso, 7, 2)
+        self.eta = QtGui.QLineEdit()
+        self.eta.setText("0")
+        self.eta.setAlignment(QtCore.Qt.AlignHCenter)
+        grid.addWidget(self.eta, 7, 3)
+
+        #Hertzfeld berger
+        grid.addWidget(QtGui.QLabel(""), 8, 0)
+        HbConv = QtGui.QLabel("Hertzfeld-Berger Convention:")
+        HbConv.setAlignment(QtCore.Qt.AlignHCenter)
+        grid.addWidget(HbConv, 9, 0)
+        hbdisolabel = QtGui.QLabel(u'\u03b4'+'<sub>iso</sub> (ppm)')
+        hbdisolabel.setAlignment(QtCore.Qt.AlignHCenter)
+        grid.addWidget(hbdisolabel, 9, 1)
+        omegalabel = QtGui.QLabel(u'\u03a9 (ppm)')
+        omegalabel.setAlignment(QtCore.Qt.AlignHCenter)
+        grid.addWidget(omegalabel, 9, 2)
+        skewlabel = QtGui.QLabel(u'\u03ba')
+        skewlabel.setAlignment(QtCore.Qt.AlignHCenter)
+        grid.addWidget(skewlabel, 9, 3)
+        
+        hbGO = QtGui.QPushButton("Go")
+        grid.addWidget(hbGO, 10, 0)
+        hbGO.clicked.connect(lambda: self.shiftCalc(3))
+        self.hbdiso = QtGui.QLineEdit()
+        self.hbdiso.setText("0")
+        self.hbdiso.setAlignment(QtCore.Qt.AlignHCenter)
+        grid.addWidget(self.hbdiso, 10, 1)
+        self.hbdaniso = QtGui.QLineEdit()
+        self.hbdaniso.setText("0")
+        self.hbdaniso.setAlignment(QtCore.Qt.AlignHCenter)
+        grid.addWidget(self.hbdaniso, 10, 2)
+        self.hbskew = QtGui.QLineEdit()
+        self.hbskew.setText("0")
+        self.hbskew.setAlignment(QtCore.Qt.AlignHCenter)
+        grid.addWidget(self.hbskew, 10, 3)
+        
+        
+        #Reset
+        grid.addWidget(QtGui.QLabel(""), 11, 0)
+        resetbutton = QtGui.QPushButton("Reset")
+        grid.addWidget(resetbutton, 12, 0)
+        resetbutton.clicked.connect(self.reset)
+        
+        closebutton = QtGui.QPushButton("Close")
+        grid.addWidget(closebutton, 12, 3)
+        closebutton.clicked.connect(self.closecommand)
+        
+        
+        mainbox = QtGui.QWidget()
+        vbox = QtGui.QVBoxLayout()
+        vbox.addWidget(mainbox)
+        mainbox.setLayout(grid)
+        
+        self.setLayout(vbox)
+        self.show()
+
+    def shiftCalc(self,Type):
+        if Type ==0: #If from standard
+            delta11 = float(self.D11.text())
+            delta22 = float(self.D22.text())
+            delta33 = float(self.D33.text())
+            
+            deltaArray = np.array([delta11,delta22,delta33])
+            
+        if Type == 1: #If from xyz
+            delta11 = float(self.dxx.text()) #Treat xyz as 123, as it reorders them anyway
+            delta22 = float(self.dyy.text())
+            delta33 = float(self.dzz.text())
+            
+        if Type ==2: #From haeberlen
+             eta = float(self.eta.text())
+             delta = float(self.daniso.text())
+             iso = float(self.diso.text())
+             delta11 = delta+iso #Treat xyz as 123, as it reorders them anyway
+             delta22 = (eta*delta+iso*3-delta11)/2.0
+             delta33 = iso*3-delta11-delta22
+        if Type ==3: #From hertzeld-berger
+           iso = float(self.hbdiso.text())
+           span =  float(self.hbdaniso.text())
+           skew = float(self.hbskew.text())
+           delta22 = iso + skew*span/3.0
+           delta33 = (3*iso-delta22-span)/2.0
+           delta11 = 3*iso-delta22-delta33
+           
+        #Force right order    
+        deltaArray = np.array([delta11,delta22,delta33])   
+        deltaSorted = np.sort(deltaArray)
+        D11 = deltaSorted[2]
+        D22 = deltaSorted[1]
+        D33 = deltaSorted[0]
+        self.D11.setText('%#.4g' % D11)
+        self.D22.setText('%#.4g' % D22)
+        self.D33.setText('%#.4g' % D33)
+        
+        
+        #Convert to haeberlen convention and xxyyzz
+        iso = (D11+D22+D33)/3.0
+        xyzIndex = np.argsort(np.abs(deltaArray-iso))
+        zz = deltaArray[xyzIndex[2]]
+        yy = deltaArray[xyzIndex[0]]
+        xx = deltaArray[xyzIndex[1]]
+        self.dxx.setText('%#.4g' % xx) 
+        self.dyy.setText('%#.4g' % yy) 
+        self.dzz.setText('%#.4g' % zz) 
+
+        
+        aniso = zz - iso
+        if aniso != 0.0: #Only is not zero
+            eta = (yy-xx)/aniso
+            self.eta.setText('%#.4g' % eta)
+        else:
+            self.eta.setText('ND')
+        self.diso.setText('%#.4g' % iso)
+        self.daniso.setText('%#.4g' % aniso)
+        
+        
+        #Convert to Herzfeld-Berger Convention
+        span = D11 - D33
+        if span != 0.0: #Only is not zero
+            skew = 3.0*(D22-iso)/span
+            self.hbskew.setText('%#.4g' % skew)
+        else:
+            self.hbskew.setText('ND')
+        
+        self.hbdiso.setText('%#.4g' % iso)
+        self.hbdaniso.setText('%#.4g' % span)
+        
+    def reset(self): #Resets all the boxes to 0
+        self.D11.setText('0')
+        self.D22.setText('0')
+        self.D33.setText('0')
+        
+        self.dxx.setText('0') 
+        self.dyy.setText('0') 
+        self.dzz.setText('0') 
+        
+        self.eta.setText('0')
+        self.diso.setText('0')
+        self.daniso.setText('0')
+        
+        self.hbskew.setText('0')
+        self.hbdiso.setText('0')
+        self.hbdaniso.setText('0')
+        
+    def closecommand(self):
+        self.deleteLater()
+        
         
 
 root = QtGui.QApplication(sys.argv)
