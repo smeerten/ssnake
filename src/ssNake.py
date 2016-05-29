@@ -1996,15 +1996,27 @@ class Main1DWindow(QtGui.QWidget):
         self.father.createFitWindow(fit.Quad1DeconvWindow(self.father, self.father.mainWindow))
         
     def createQuad2StaticDeconvWindow(self):
+        if self.current.freq == 0.0:
+            self.father.dispMsg("Please set the spectrometer frequency first!")
+            return
         self.father.createFitWindow(fit.Quad2DeconvWindow(self.father, self.father.mainWindow))
         
     def createQuad2MASDeconvWindow(self):
+        if self.current.freq == 0.0:
+            self.father.dispMsg("Please set the spectrometer frequency first!")
+            return
         self.father.createFitWindow(fit.Quad2DeconvWindow(self.father, self.father.mainWindow, True))
 
     def createQuad2StaticCzjzekWindow(self):
+        if self.current.freq == 0.0:
+            self.father.dispMsg("Please set the spectrometer frequency first!")
+            return
         self.father.createFitWindow(fit.Quad2CzjzekWindow(self.father,  self.father.mainWindow))
         
     def createQuad2MASCzjzekWindow(self):
+        if self.current.freq == 0.0:
+            self.father.dispMsg("Please set the spectrometer frequency first!")
+            return
         self.father.createFitWindow(fit.Quad2CzjzekWindow(self.father, self.father.mainWindow, True))
         
     def plot1D(self):
