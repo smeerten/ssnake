@@ -833,8 +833,15 @@ class Spectrum:
         copyData = copy.deepcopy(self)
         returnValue = lambda self: self.restoreData(copyData, lambda self: self.setLPSVD(nAnalyse,nFreq,nPredict, axes))
 
-        #LPSVD algorithm
-        Y=self.data[0:nAnalyse]
+        self.data = np.apply_along_axis(self.LPSVDfunction,axes,self.data,nAnalyse,nFreq,nPredict)
+
+        self.resetXax(axes)
+        self.addHistory("LPSVD ")
+        return returnValue
+        
+    def LPSVDfunction(self,data,nAnalyse,nFreq,nPredict):
+         #LPSVD algorithm
+        Y=data[0:nAnalyse]
         N=len(Y)						# # of complex data points in FID
         L=math.floor(N*3/4)						# linear prediction order L = 3/4*N
         A=scipy.linalg.hankel(np.conj(Y[1:N-L+1]),np.conj(Y[N-L:N]))	# backward prediction data matrix
@@ -863,11 +870,8 @@ class Spectrum:
             
         
         
-        self.data = np.concatenate((reconstructed,self.data))
-
-        self.resetXax(axes)
-        self.addHistory("LPSVD ")
-        return returnValue
+        data = np.concatenate((reconstructed,data))
+        return data
         
         
         
@@ -920,24 +924,24 @@ class Spectrum:
             Message = Message + " of data["+str(select)+"]"
         self.addHistory(Message)
         return returnValue
-    
-    def LPSVD(self, axes):
-        axes = self.checkAxes(axes)
-        if axes == None:
-            return None
-        M = 1 #Number of frequencies
-        y = self.data[axes][0:100]
-        N = y.shape[0]						# # of complex data points in FID
-        L = math.floor(N*3/4)						# linear prediction order L = 3/4*N
-        A = scipy.linalg.hankel(np.conj(y[1:N-L+1]), np.conj(y[N-L:N]))	# backward prediction data matrix
-        h = np.conj(y[0:N-L])					# backward prediction data vector
-        U, S, V = np.linalg.svd(A)					# singular value decomposition
-        S = np.diag(S)
-        bias = np.mean(S[M:np.min([N-L-1, L])])	# bias compensation
-        PolyCoef = np.dot(-V[:, 0:M], np.dot(np.diag(1/(S[0:M]-bias)), np.dot(np.transpose(U[:, 0:M]), h)))	# prediction polynomial coefficients
-        s = np.conj(np.log(np.roots(np.append(PolyCoef[::-1], 1))))		# polynomial rooting
-        s = s[np.where(np.real(s)<0)[0]]
-        a = 1
+#    
+#    def LPSVD(self, axes):
+#        axes = self.checkAxes(axes)
+#        if axes == None:
+#            return None
+#        M = 1 #Number of frequencies
+#        y = self.data[axes][0:100]
+#        N = y.shape[0]						# # of complex data points in FID
+#        L = math.floor(N*3/4)						# linear prediction order L = 3/4*N
+#        A = scipy.linalg.hankel(np.conj(y[1:N-L+1]), np.conj(y[N-L:N]))	# backward prediction data matrix
+#        h = np.conj(y[0:N-L])					# backward prediction data vector
+#        U, S, V = np.linalg.svd(A)					# singular value decomposition
+#        S = np.diag(S)
+#        bias = np.mean(S[M:np.min([N-L-1, L])])	# bias compensation
+#        PolyCoef = np.dot(-V[:, 0:M], np.dot(np.diag(1/(S[0:M]-bias)), np.dot(np.transpose(U[:, 0:M]), h)))	# prediction polynomial coefficients
+#        s = np.conj(np.log(np.roots(np.append(PolyCoef[::-1], 1))))		# polynomial rooting
+#        s = s[np.where(np.real(s)<0)[0]]
+#        a = 1
 
     def fourier(self, axes, tmp=False, inv=False):
         axes = self.checkAxes(axes)

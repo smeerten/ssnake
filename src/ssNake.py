@@ -3309,15 +3309,6 @@ class LPSVDWindow(QtGui.QWidget):
         self.father.menuDisable()
         self.setGeometry(self.frameSize().width()-self.geometry().width(), self.frameSize().height()-self.geometry().height(), 0, 0)
  
-#    def sizePreview(self, *args):
-#        inp = safeEval(self.sizeEntry.text())
-#        if inp is not None:
-#            self.sizeVal = int(round(inp))
-#        if self.sizeVal < 1:
-#            self.father.father.dispMsg('Value is not valid')
-#            return
-#        self.sizeEntry.setText(str(self.sizeVal))
-#        self.father.current.setSizePreview(self.sizeVal)
 
     def closeEvent(self, *args):
         self.father.current.upd()
@@ -3326,17 +3317,13 @@ class LPSVDWindow(QtGui.QWidget):
         self.deleteLater()
 
     def applyAndClose(self):
-#        inp = safeEval(self.sizeEntry.text())
-#        if inp is not None:
-#            self.sizeVal = int(round(inp))
-#        if self.sizeVal < 1:
-#            self.father.father.dispMsg('Value is not valid')
-#            return
         self.analPoints = safeEval(self.aPointsEntry.text())
         self.numberFreq = safeEval(self.nFreqEntry.text())
         self.predictPoints = safeEval(self.nPredictEntry.text())
         
-        
+        if self.analPoints > len(self.father.current.data1D):
+            self.father.father.dispMsg('Number of points for analysis cannot be more than data size!')
+            return
         
         self.father.redoList = []
         self.father.undoList.append(self.father.current.applyLPSVD(self.analPoints,self.numberFreq,self.predictPoints))
