@@ -826,22 +826,25 @@ class Spectrum:
         self.addHistory("Resized dimension " + str(axes+1) + " to " + str(size) + " points at position " +str(pos))
         return returnValue
 
-    def setLPSVD(self,nAnalyse,nFreq,nPredict, axes):
+    def setLPSVD(self,nAnalyse,nFreq,nPredict,Direction, axes):
         axes = self.checkAxes(axes)
         if axes == None:
             return None
         copyData = copy.deepcopy(self)
-        returnValue = lambda self: self.restoreData(copyData, lambda self: self.setLPSVD(nAnalyse,nFreq,nPredict, axes))
+        returnValue = lambda self: self.restoreData(copyData, lambda self: self.setLPSVD(nAnalyse,nFreq,nPredict,Direction, axes))
 
-        self.data = np.apply_along_axis(self.LPSVDfunction,axes,self.data,nAnalyse,nFreq,nPredict)
+        self.data = np.apply_along_axis(self.LPSVDfunction,axes,self.data,nAnalyse,nFreq,nPredict,Direction)
 
         self.resetXax(axes)
         self.addHistory("LPSVD ")
         return returnValue
         
-    def LPSVDfunction(self,data,nAnalyse,nFreq,nPredict):
+    def LPSVDfunction(self,data,nAnalyse,nFreq,nPredict,Direction):
          #LPSVD algorithm
-        Y=data[0:nAnalyse]
+        if Direction ==1: #If backward
+            Y=data[0:nAnalyse]
+        else:
+            Y = data[-nAnalyse:]
         N=len(Y)						# # of complex data points in FID
         L=math.floor(N*3/4)						# linear prediction order L = 3/4*N
         A=scipy.linalg.hankel(np.conj(Y[1:N-L+1]),np.conj(Y[N-L:N]))	# backward prediction data matrix
@@ -864,16 +867,20 @@ class Spectrum:
             
             para=np.array([-np.real(s), np.imag(s)/2/np.pi, np.abs(a), np.imag(np.log(a/np.abs(a)))]) #WF: reintroduce the scaling factor
             
-            xpredict = np.arange(-nPredict,0)
-            
-            for signal in range( para.shape[1]):
-                reconstructed += para[2,signal]*np.exp(1j*(xpredict*para[1,signal]*2*np.pi+para[3,signal]))*np.exp(-xpredict*para[0,signal])
-
-            
-            
-        
-        
-        data = np.concatenate((reconstructed,data))
+            if Direction ==1: #If backward
+                xpredict = np.arange(-nPredict,0)
+                for signal in range( para.shape[1]):
+                    reconstructed += para[2,signal]*np.exp(1j*(xpredict*para[1,signal]*2*np.pi+para[3,signal]))*np.exp(-xpredict*para[0,signal])
+                data = np.concatenate((reconstructed,data))
+            else:
+                xpredict = np.arange(N,N+nPredict)
+                for signal in range( para.shape[1]):
+                    reconstructed += para[2,signal]*np.exp(1j*(xpredict*para[1,signal]*2*np.pi+para[3,signal]))*np.exp(-xpredict*para[0,signal])
+                data = np.concatenate((data,reconstructed))
+                    
+        else:
+            data = np.concatenate((reconstructed,data))
+         
         return data
         
         
@@ -1572,8 +1579,8 @@ class Current1D(Plot1DFrame):
         self.root.addMacro(['size', (size, pos, self.axes-self.data.dim)])
         return returnValue
         
-    def applyLPSVD(self, nAnalyse, nFreq, nPredict):
-        returnValue = self.data.setLPSVD(nAnalyse, nFreq, nPredict, self.axes)
+    def applyLPSVD(self, nAnalyse, nFreq, nPredict,Direction):
+        returnValue = self.data.setLPSVD(nAnalyse, nFreq, nPredict,Direction, self.axes)
         self.upd()
         self.showFid()
         return returnValue

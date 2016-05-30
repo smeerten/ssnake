@@ -3352,7 +3352,7 @@ class LPSVDWindow(QtGui.QWidget):
             return
         
         self.father.redoList = []
-        self.father.undoList.append(self.father.current.applyLPSVD(self.analPoints,self.numberFreq,self.predictPoints))
+        self.father.undoList.append(self.father.current.applyLPSVD(self.analPoints,self.numberFreq,self.predictPoints,self.specGroup.checkedId()))
         self.father.sideframe.upd()
         self.father.menuEnable()
         self.deleteLater()
