@@ -853,20 +853,23 @@ class Spectrum:
         PolyCoef=np.dot(-V[:,0:nFreq],np.dot(np.diag(1/(S[0:nFreq]-bias)),np.dot(np.conj(np.transpose(U[:,0:nFreq])),h)))	# prediction polynomial coefficients
         s=np.conj(np.log(np.roots(np.append(PolyCoef[::-1],1))))		# polynomial rooting
         s = s[np.where(s<0)[0]]
-        
-        Z=np.zeros([N,len(s)],dtype=np.complex)
-        for k in range(0,len(s)):
-            Z[:,k]=np.exp(s[k])**np.arange(0,N)
-        
-        
-        a=np.linalg.lstsq(Z, Y)[0]
-        
-        para=np.array([-np.real(s), np.imag(s)/2/np.pi, np.abs(a), np.imag(np.log(a/np.abs(a)))]) #WF: reintroduce the scaling factor
-        
-        xpredict = np.arange(-nPredict,0)
         reconstructed = np.zeros(nPredict,dtype=np.complex128)
-        for signal in range( para.shape[1]):
-            reconstructed += para[2,signal]*np.exp(1j*(xpredict*para[1,signal]*2*np.pi+para[3,signal]))*np.exp(-xpredict*para[0,signal])
+        if len(s): #If there are found frequencies
+            Z=np.zeros([N,len(s)],dtype=np.complex)
+            for k in range(0,len(s)):
+                Z[:,k]=np.exp(s[k])**np.arange(0,N)
+            
+            
+            a=np.linalg.lstsq(Z, Y)[0]
+            
+            para=np.array([-np.real(s), np.imag(s)/2/np.pi, np.abs(a), np.imag(np.log(a/np.abs(a)))]) #WF: reintroduce the scaling factor
+            
+            xpredict = np.arange(-nPredict,0)
+            
+            for signal in range( para.shape[1]):
+                reconstructed += para[2,signal]*np.exp(1j*(xpredict*para[1,signal]*2*np.pi+para[3,signal]))*np.exp(-xpredict*para[0,signal])
+
+            
             
         
         

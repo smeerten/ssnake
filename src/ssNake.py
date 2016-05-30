@@ -3336,6 +3336,9 @@ class LPSVDWindow(QtGui.QWidget):
         if self.analPoints > len(self.father.current.data1D):
             self.father.father.dispMsg('Number of points for analysis cannot be more than data size!')
             return
+        if self.analPoints <= self.numberFreq*4:
+            self.father.father.dispMsg('Number of points for analysis must be more than 4 times the number of frequencies!')
+            return
         
         self.father.redoList = []
         self.father.undoList.append(self.father.current.applyLPSVD(self.analPoints,self.numberFreq,self.predictPoints))
