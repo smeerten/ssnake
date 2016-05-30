@@ -1234,6 +1234,8 @@ class Current1D(Plot1DFrame):
             self.resetLocList()
         try:
             updateVar = self.data.getSlice(self.axes, self.locList)
+            if updateVar is None:
+                self.root.rescue()
         except:
             self.resetLocList()
             updateVar = self.data.getSlice(self.axes, self.locList)
@@ -2585,6 +2587,9 @@ class CurrentStacked(Current1D):
             self.resetLocList()
         try:
             updateVar = self.data.getBlock(self.axes, self.axes2, self.locList, self.stackBegin, self.stackEnd, self.stackStep)
+            if updateVar is None:
+                self.root.rescue()
+                return False
         except:
             self.resetLocList()
             updateVar = self.data.getBlock(self.axes, self.axes2, self.locList, self.stackBegin, self.stackEnd, self.stackStep)
@@ -2949,6 +2954,9 @@ class CurrentArrayed(Current1D):
             self.resetLocList()
         try:
             updateVar = self.data.getBlock(self.axes, self.axes2, self.locList, self.stackBegin, self.stackEnd, self.stackStep)
+            if updateVar is None:
+                self.root.rescue()
+                return False
         except:
             self.resetLocList()
             updateVar = self.data.getBlock(self.axes, self.axes2, self.locList, self.stackBegin, self.stackEnd, self.stackStep)
@@ -3285,6 +3293,9 @@ class CurrentContour(Current1D):
             self.resetLocList()
         try:
             updateVar = self.data.getBlock(self.axes, self.axes2, self.locList)
+            if updateVar is None:
+                self.root.rescue()
+                return False
         except:
             self.resetLocList()
             updateVar = self.data.getBlock(self.axes, self.axes2, self.locList)
@@ -3707,6 +3718,9 @@ class CurrentSkewed(Current1D):
             self.resetLocList()
         try:
             updateVar = self.data.getBlock(self.axes, self.axes2, self.locList, self.stackBegin, self.stackEnd, self.stackStep)
+            if updateVar is None:
+                self.root.rescue()
+                return False
         except:
             self.resetLocList()
             updateVar = self.data.getBlock(self.axes, self.axes2, self.locList, self.stackBegin, self.stackEnd, self.stackStep)
