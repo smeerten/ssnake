@@ -3288,25 +3288,36 @@ class LPSVDWindow(QtGui.QWidget):
         layout = QtGui.QGridLayout(self)
         grid = QtGui.QGridLayout()
         layout.addLayout(grid, 0, 0, 1, 2)
-        grid.addWidget(QLabel("# points for analysis:"), 0, 0)
+        #grid.addWidget(QLabel("# points for analysis:"), 2, 0)
+        self.specGroup = QtGui.QButtonGroup(self)
+        #self.specGroup.buttonClicked.connect(self.changeSpec)
+        backwardButton = QtGui.QRadioButton('Backward', parent=self)
+        self.specGroup.addButton(backwardButton, 1)
+        forwardButton = QtGui.QRadioButton('Forward', parent=self)
+        self.specGroup.addButton(forwardButton, 0)
+        grid.addWidget(backwardButton, 1, 0)
+        grid.addWidget(forwardButton, 2, 0)
+        backwardButton.setChecked(True)
+        
+        grid.addWidget(QLabel("# points for analysis:"), 3, 0)
         self.analPoints = 200
         self.aPointsEntry = QtGui.QLineEdit()
         self.aPointsEntry.setAlignment(QtCore.Qt.AlignHCenter)
         self.aPointsEntry.setText(str(self.analPoints))
-        grid.addWidget(self.aPointsEntry, 1, 0)
-        grid.addWidget(QLabel("Number of frequencies:"), 2, 0)
+        grid.addWidget(self.aPointsEntry, 4, 0)
+        grid.addWidget(QLabel("Number of frequencies:"), 5, 0)
         self.numberFreq = 1
         self.nFreqEntry = QtGui.QLineEdit()
         self.nFreqEntry.setAlignment(QtCore.Qt.AlignHCenter)
         self.nFreqEntry.setText(str(self.numberFreq))
-        grid.addWidget(self.nFreqEntry, 3, 0)
+        grid.addWidget(self.nFreqEntry, 6, 0)
         
-        grid.addWidget(QLabel("Number prediction points:"), 4, 0)
+        grid.addWidget(QLabel("Number prediction points:"), 7, 0)
         self.predictPoints = 10
         self.nPredictEntry = QtGui.QLineEdit()
         self.nPredictEntry.setAlignment(QtCore.Qt.AlignHCenter)
         self.nPredictEntry.setText(str(self.predictPoints))
-        grid.addWidget(self.nPredictEntry, 5, 0)
+        grid.addWidget(self.nPredictEntry, 8, 0)
         
         
         
