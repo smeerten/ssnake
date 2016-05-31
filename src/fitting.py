@@ -3824,8 +3824,6 @@ class HerzfeldBergerParamFrame(QtGui.QWidget):
         self.C2eta = np.array([1.0 / 3 /2*(1+cosPhi**2)*cos2Theta ]).transpose()* cos2OmegarT
         self.disp(outDelta, outEta)
   
-
-
 ##############################################################################
 class Quad1MASDeconvWindow(FittingWindow): 
     def __init__(self, mainProgram, oldMainWindow):
@@ -3981,8 +3979,6 @@ class Quad1MASDeconvParamFrame(QtGui.QWidget):
         self.frame1.addWidget(self.pickTick, 1, 1)
         self.frame1.setColumnStretch(10, 1)
         self.frame1.setAlignment(QtCore.Qt.AlignTop)
-        
-        
         self.frame1.addWidget(QLabel("I:"), 2,1)
         self.IEntry = QtGui.QComboBox()
         self.IEntry.addItems(self.Ioptions)
@@ -3990,8 +3986,6 @@ class Quad1MASDeconvParamFrame(QtGui.QWidget):
         self.frame1.addWidget(self.IEntry,3, 1)
         self.frame1.setColumnStretch(10, 1)
         self.frame1.setAlignment(QtCore.Qt.AlignTop)
-        
-        
         self.optframe.addWidget(QLabel("Cheng:"), 2, 0)
         self.chengEntry = QtGui.QLineEdit()
         self.chengEntry.setAlignment(QtCore.Qt.AlignHCenter)
@@ -4004,9 +3998,6 @@ class Quad1MASDeconvParamFrame(QtGui.QWidget):
         self.spinEntry.setAlignment(QtCore.Qt.AlignHCenter)
         self.spinEntry.setText("30.0")
         self.optframe.addWidget(self.spinEntry,5, 0)
-        
-        #self.frame2.setColumnStretch(10, 1)
-        #self.frame2.setAlignment(QtCore.Qt.AlignTop)
         self.frame3.addWidget(QLabel(u"Cq [MHz]:"), 1, 0, 1, 2)
         self.frame3.addWidget(QLabel(u"\u03B7:"), 1, 2, 1, 2)
         self.frame3.setColumnStretch(20, 1)
@@ -4244,8 +4235,6 @@ class Quad1MASDeconvParamFrame(QtGui.QWidget):
         self.C2eta = np.array([1.0 / 3 /2*(1+cosPhi**2)*cos2Theta ]).transpose()* cos2OmegarT
         self.disp(outDelta, outEta)     
 
-
-
 ##############################################################################
 class Quad1DeconvWindow(FittingWindow): 
     def __init__(self, mainProgram, oldMainWindow):
@@ -4382,6 +4371,12 @@ class Quad1DeconvParamFrame(QtGui.QWidget):
         fitButton = QtGui.QPushButton("Fit")
         fitButton.clicked.connect(self.fit)
         self.frame1.addWidget(fitButton, 1, 0)
+        self.stopButton = QtGui.QPushButton("Stop")
+        self.stopButton.clicked.connect(self.stopMP)
+        self.frame1.addWidget(self.stopButton, 1, 0)
+        self.stopButton.hide()
+        self.process1 = None
+        self.queue = None
         fitAllButton = QtGui.QPushButton("Fit all")
         fitAllButton.clicked.connect(self.fitAll)
         self.frame1.addWidget(fitAllButton, 2, 0)
@@ -4389,7 +4384,7 @@ class Quad1DeconvParamFrame(QtGui.QWidget):
         copyResultButton.clicked.connect(lambda: self.sim(True))
         self.frame1.addWidget(copyResultButton, 3, 0)
         cancelButton = QtGui.QPushButton("&Cancel")
-        cancelButton.clicked.connect(rootwindow.cancel)
+        cancelButton.clicked.connect(self.closeWindow)
         self.frame1.addWidget(cancelButton, 4, 0)
         self.frame1.setColumnStretch(10, 1)
         self.frame1.setAlignment(QtCore.Qt.AlignTop)
@@ -4501,6 +4496,10 @@ class Quad1DeconvParamFrame(QtGui.QWidget):
                 self.gaussEntries[i].hide()
         grid.setColumnStretch(10, 1)
         grid.setAlignment(QtCore.Qt.AlignLeft)
+
+    def closeWindow(self, *args):
+        self.stopMP()
+        self.rootwindow.cancel()
         
     def checkI(self, I):
         return I*0.5+1
@@ -4543,19 +4542,19 @@ class Quad1DeconvParamFrame(QtGui.QWidget):
                 self.gaussTicks[i].hide()
                 self.gaussEntries[i].hide()
 
-    def tensorFunc(self, x, I, pos, cq, eta, width, gauss):
+    def tensorFunc(self, x, I, pos, cq, eta, width, gauss, angleStuff, freq, sw, weight, axAdd):
         m = np.arange(-I, I)
         v = []
         weights = []
-        pos = pos - self.axAdd
+        pos = pos - axAdd
         for i in m:
             tmp = (cq/(4*I*(2*I-1))*(I*(I+1)-3*(i+1)**2))-(cq/(4*I*(2*I-1))*(I*(I+1)-3*(i)**2))
-            v = np.append(v, tmp*(self.angleStuff1-eta*self.angleStuff2)+pos)
-            weights = np.append(weights, self.weight)
+            v = np.append(v, tmp*(angleStuff[0]-eta*angleStuff[1])+pos)
+            weights = np.append(weights, weight)
         length = len(x)
-        t = np.arange(length)/self.parent.current.sw
+        t = np.arange(length)/sw
         final = np.zeros(length)
-        mult = v/(self.parent.current.sw)*length
+        mult = v/sw*length
         x1 = np.array(np.round(mult)+np.floor(length/2), dtype=int)
         weights = weights[np.logical_and(x1>=0, x1<length)]
         x1 = x1[np.logical_and(x1>=0, x1<length)]
@@ -4563,15 +4562,11 @@ class Quad1DeconvParamFrame(QtGui.QWidget):
         apod = np.exp(-np.pi*width*t)*np.exp(-((np.pi*gauss*t)**2)/(4*np.log(2)))
         apod[-1:-(len(apod)/2+1):-1] = apod[:len(apod)/2]
         inten = np.real(np.fft.fft(np.fft.ifft(final)*apod))
-        inten = inten/self.parent.current.sw*len(inten)
+        inten = inten/sw*len(inten)
         return inten
                 
-    def fitFunc(self, param, x, y):
-        numExp = self.args[0]
-        struc = self.args[1]
-        argu = self.args[2]
-        I = self.args[3]
-        testFunc = np.zeros(len(self.parent.data1D))
+    def fitFunc(self, param, numExp, struc, argu, I, freq, sw, axAdd, angleStuff, weight, x, y):
+        testFunc = np.zeros(len(x))
         if struc[0]:
             bgrnd = param[0]
             param = np.delete(param, [0])
@@ -4621,14 +4616,14 @@ class Quad1DeconvParamFrame(QtGui.QWidget):
             else:
                 gauss = argu[0]
                 argu = np.delete(argu, [0])
-            testFunc += amp*self.tensorFunc(x, I, pos, cq, eta, width, gauss)
+            testFunc += amp*self.tensorFunc(x, I, pos, cq, eta, width, gauss, angleStuff, freq, sw, weight, axAdd)
         testFunc += bgrnd+slope*x
         return np.sum((np.real(testFunc)-y)**2)
 
-    def setAngleStuff(self):
-        phi, theta, self.weight = zcw_angles(self.cheng, symm=2)
-        self.angleStuff1 = 0.5*(3*np.cos(theta)**2-1)
-        self.angleStuff2 = 0.5*np.cos(2*phi)*(np.sin(theta)**2)
+    def setAngleStuff(self, cheng):
+        phi, theta, weight = zcw_angles(cheng, symm=2)
+        angleStuff = [0.5*(3*np.cos(theta)**2-1), 0.5*np.cos(2*phi)*(np.sin(theta)**2)]
+        return weight, angleStuff
         
     def checkInputs(self):
         numExp = self.numExp.currentIndex()+1
@@ -4666,6 +4661,15 @@ class Quad1DeconvParamFrame(QtGui.QWidget):
                 return False
             self.gaussEntries[i].setText('%#.3g' % inp)
         return True
+
+    def mpFit(self, xax, data1D, guess, args, queue, cheng):
+        weight, angleStuff = self.setAngleStuff(cheng)
+        arg = args + (angleStuff, weight, xax, data1D)
+        try:
+            fitVal = scipy.optimize.fmin(self.fitFunc, guess, args=arg, disp=False)
+        except:
+            fitVal = None
+        queue.put(fitVal)
     
     def fit(self, *args):
         self.setCheng()
@@ -4740,9 +4744,24 @@ class Quad1DeconvParamFrame(QtGui.QWidget):
                 outGauss[i] = abs(float(self.gaussEntries[i].text()))
                 argu.append(outGauss[i])
                 struc.append(False)
-        self.args = (numExp, struc, argu, I)
-        self.setAngleStuff()
-        fitVal = scipy.optimize.fmin(self.fitFunc, guess, args=(self.parent.xax, np.real(self.parent.data1D)),disp=False)
+        args = (numExp, struc, argu, I, self.parent.current.freq, self.parent.current.sw, self.axAdd)
+        self.queue = multiprocessing.Queue()
+        self.process1 = multiprocessing.Process(target=self.mpFit, args=(self.parent.xax, np.real(self.parent.data1D), guess, args, self.queue, self.cheng))
+        self.process1.start()
+        self.running = True
+        self.stopButton.show()
+        while self.running:
+            if not self.queue.empty():
+                self.running = False
+            QtGui.qApp.processEvents()
+            time.sleep(0.1)
+        if self.queue is None:
+            return
+        fitVal = self.queue.get(timeout=2)
+        self.stopMP()
+        if fitVal is None:
+            self.rootwindow.mainProgram.dispMsg('Optimal parameters not found')
+            return
         counter = 0
         if struc[0]:
             self.bgrndEntry.setText('%.3g' % fitVal[counter])
@@ -4779,9 +4798,31 @@ class Quad1DeconvParamFrame(QtGui.QWidget):
                 counter += 1
         self.disp(outBgrnd, outSlope, I, outPos, outCq, outEta, outAmp, outWidth, outGauss)
 
+    def stopMP(self, *args):
+        if self.queue is not None:
+            self.process1.terminate()
+            self.queue.close()
+            self.queue.join_thread()
+            self.process1.join()
+        self.queue = None
+        self.process1 = None
+        self.running = False
+        self.stopButton.hide()
+        
     def fitAll(self, *args):
         FitAllSelectionWindow(self, ["Background", "Slope", "Position", "Cq", u"\u03b7", "Integral", "Lorentz", "Gauss"])
-
+        
+    def mpAllFit(self, xax, data, guess, args, queue, cheng):
+        weight, angleStuff = self.setAngleStuff(cheng)
+        fitVal = []
+        for j in data:
+            arg = args + (angleStuff, weight, xax, j)
+            try:
+                fitVal.append(scipy.optimize.fmin(self.fitFunc, guess, args=arg, disp=False))
+            except:
+                fitVal.append([[0]*10])
+        queue.put(fitVal)
+        
     def fitAllFunc(self, outputs):
         self.setCheng()
         if not self.checkInputs():
@@ -4855,8 +4896,7 @@ class Quad1DeconvParamFrame(QtGui.QWidget):
                 outGauss[i] = abs(float(self.gaussEntries[i].text()))
                 argu.append(outGauss[i])
                 struc.append(False)
-        self.args = (numExp, struc, argu, I)
-        self.setAngleStuff()
+        args = (numExp, struc, argu, I, self.parent.current.freq, self.parent.current.sw, self.axAdd)   
         fullData = self.parent.current.data.data
         axes = self.parent.current.axes
         dataShape = fullData.shape
@@ -4866,11 +4906,25 @@ class Quad1DeconvParamFrame(QtGui.QWidget):
         numOutputs = np.sum(intOutputs[:2]) + numExp*np.sum(intOutputs[2:])
         outputData = np.zeros((np.product(dataShape2), numOutputs), dtype=complex)
         counter2 = 0
-        for j in rolledData.reshape(dataShape[axes], np.product(dataShape2)).T:
-            try:
-                fitVal = scipy.optimize.fmin(self.fitFunc, guess, args=(self.parent.xax, np.real(j)),disp=False)
-            except:
-                fitVal = [[0]*10]
+        fitData = rolledData.reshape(dataShape[axes], np.product(dataShape2)).T
+        self.queue = multiprocessing.Queue()
+        self.process1 = multiprocessing.Process(target=self.mpAllFit, args=(self.parent.xax, np.real(fitData), guess, args, self.queue, self.cheng))
+        self.process1.start()
+        self.running = True
+        self.stopButton.show()
+        while self.running:
+            if not self.queue.empty():
+                self.running = False
+            QtGui.qApp.processEvents()
+            time.sleep(0.1)
+        if self.queue is None:
+            return
+        returnVal = self.queue.get(timeout=2)
+        self.stopMP()
+        if returnVal is None:
+            self.rootwindow.mainProgram.dispMsg('Optimal parameters not found')
+            return
+        for fitVal in returnVal:
             counter = 0
             if struc[0]:
                 outBgrnd = fitVal[counter]
@@ -4941,7 +4995,6 @@ class Quad1DeconvParamFrame(QtGui.QWidget):
             amp[i] = float(self.ampEntries[i].text())
             width[i] = float(self.lorEntries[i].text())
             gauss[i] = float(self.gaussEntries[i].text())
-        self.setAngleStuff()
         self.disp(bgrnd, slope, I, pos, cq, eta, amp, width, gauss, store)
 
     def disp(self, outBgrnd, outSlope, outI, outPos, outCq, outEta, outAmp, outWidth, outGauss, store=False):
@@ -4950,9 +5003,10 @@ class Quad1DeconvParamFrame(QtGui.QWidget):
         outCurve = outCurveBase.copy()
         outCurvePart = []
         x = []
+        weight, angleStuff = self.setAngleStuff(self.cheng)
         for i in range(len(outPos)):
             x.append(tmpx)
-            y =  outAmp[i]*self.tensorFunc(tmpx, outI, outPos[i], outCq[i], outEta[i], outWidth[i], outGauss[i])
+            y =  outAmp[i]*self.tensorFunc(tmpx, outI, outPos[i], outCq[i], outEta[i], outWidth[i], outGauss[i], angleStuff, self.parent.current.freq, self.parent.current.sw, weight, self.axAdd)
             outCurvePart.append(outCurveBase + y)
             outCurve += y
         if store:
@@ -4986,28 +5040,29 @@ class Quad2StaticDeconvParamFrame(Quad1DeconvParamFrame):
     def checkI(self, I):
         return I*1.0+1.5
     
-    def setAngleStuff(self):
-        phi, theta, self.weight = zcw_angles(self.cheng, symm=2)
-        self.angleStuff1 = -27/8.0*np.cos(theta)**4+15/4.0*np.cos(theta)**2-3/8.0
-        self.angleStuff2 = (-9/4.0*np.cos(theta)**4+2*np.cos(theta)**2+1/4.0)*np.cos(2*phi)
-        self.angleStuff3 = -1/2.0*np.cos(theta)**2+1/3.0+(-3/8.0*np.cos(theta)**4+3/4.0*np.cos(theta)**2-3/8.0)*np.cos(2*phi)**2
+    def setAngleStuff(self, cheng):
+        phi, theta, weight = zcw_angles(cheng, symm=2)
+        angleStuff = [-27/8.0*np.cos(theta)**4+15/4.0*np.cos(theta)**2-3/8.0,
+                      (-9/4.0*np.cos(theta)**4+2*np.cos(theta)**2+1/4.0)*np.cos(2*phi),
+                      -1/2.0*np.cos(theta)**2+1/3.0+(-3/8.0*np.cos(theta)**4+3/4.0*np.cos(theta)**2-3/8.0)*np.cos(2*phi)**2]
+        return weight, angleStuff
 
-    def tensorFunc(self, x, I, pos, cq, eta, width, gauss):
-        pos = pos - self.axAdd
-        # v = -cq**2/(6.0*self.parent.current.freq)*(I*(I+1)-3/4.0)*(self.angleStuff1+self.angleStuff2*eta+self.angleStuff3*eta**2)+pos
-        v = -1/(6*self.parent.current.freq)*(3*cq/(2*I*(2*I-1)))**2*(I*(I+1)-3.0/4)*(self.angleStuff1+self.angleStuff2*eta+self.angleStuff3*eta**2)+pos
+    def tensorFunc(self, x, I, pos, cq, eta, width, gauss, angleStuff, freq, sw, weight, axAdd):
+        pos = pos - axAdd
+        # v = -cq**2/(6.0*freq)*(I*(I+1)-3/4.0)*(angleStuff[0]+self.angleStuff[1]*eta+angleStuff[2]*eta**2)+pos
+        v = -1/(6*freq)*(3*cq/(2*I*(2*I-1)))**2*(I*(I+1)-3.0/4)*(angleStuff[0]+angleStuff[1]*eta+angleStuff[2]*eta**2)+pos
         length = len(x)
-        t = np.arange(length)/self.parent.current.sw
+        t = np.arange(length)/sw
         final = np.zeros(length)
-        mult = v/(self.parent.current.sw)*length
+        mult = v/sw*length
         x1 = np.array(np.round(mult)+np.floor(length/2), dtype=int)
-        weights = self.weight[np.logical_and(x1>=0, x1<length)]
+        weights = weight[np.logical_and(x1>=0, x1<length)]
         x1 = x1[np.logical_and(x1>=0, x1<length)]
         final = np.bincount(x1, weights, length)
         apod = np.exp(-np.pi*width*t)*np.exp(-((np.pi*gauss*t)**2)/(4*np.log(2)))
         apod[-1:-(len(apod)/2+1):-1] = apod[:len(apod)/2]
         inten = np.real(np.fft.fft(np.fft.ifft(final)*apod))
-        inten = inten/self.parent.current.sw/len(inten)
+        inten = inten/sw/len(inten)
         return inten
     
 #################################################################################
@@ -5017,11 +5072,12 @@ class Quad2MASDeconvParamFrame(Quad2StaticDeconvParamFrame):
     def __init__(self, parent, rootwindow):
         Quad2StaticDeconvParamFrame.__init__(self, parent, rootwindow)
         
-    def setAngleStuff(self):
-        phi, theta, self.weight = zcw_angles(self.cheng, symm=2)
-        self.angleStuff1 = 21/16.0*np.cos(theta)**4-9/8.0*np.cos(theta)**2+5/16.0
-        self.angleStuff2 = (-7/8.0*np.cos(theta)**4+np.cos(theta)**2-1/8.0)*np.cos(2*phi)
-        self.angleStuff3 = 1/12.0*np.cos(theta)**2+(+7/48.0*np.cos(theta)**4-7/24.0*np.cos(theta)**2+7/48.0)*np.cos(2*phi)**2
+    def setAngleStuff(self, cheng):
+        phi, theta, weight = zcw_angles(cheng, symm=2)
+        angleStuff = [21/16.0*np.cos(theta)**4-9/8.0*np.cos(theta)**2+5/16.0,
+                      (-7/8.0*np.cos(theta)**4+np.cos(theta)**2-1/8.0)*np.cos(2*phi),
+                      1/12.0*np.cos(theta)**2+(+7/48.0*np.cos(theta)**4-7/24.0*np.cos(theta)**2+7/48.0)*np.cos(2*phi)**2]
+        return weight, angleStuff
 
 ##############################################################################
 class Quad2CzjzekWindow(FittingWindow): 
@@ -5042,6 +5098,7 @@ class Quad2StaticCzjzekParamFrame(QtGui.QWidget):
     Ioptions = ['3/2', '5/2', '7/2', '9/2']
 
     def __init__(self, parent, rootwindow):
+        import scipy.ndimage
         QtGui.QWidget.__init__(self, rootwindow)
         self.parent = parent
         self.rootwindow = rootwindow
@@ -5066,6 +5123,12 @@ class Quad2StaticCzjzekParamFrame(QtGui.QWidget):
         fitButton = QtGui.QPushButton("Fit")
         fitButton.clicked.connect(self.fit)
         self.frame1.addWidget(fitButton, 1, 0)
+        self.stopButton = QtGui.QPushButton("Stop")
+        self.stopButton.clicked.connect(self.stopMP)
+        self.frame1.addWidget(self.stopButton, 1, 0)
+        self.stopButton.hide()
+        self.process1 = None
+        self.queue = None
         fitAllButton = QtGui.QPushButton("Fit all")
         fitAllButton.clicked.connect(self.fitAll)
         self.frame1.addWidget(fitAllButton, 2, 0)
@@ -5073,7 +5136,7 @@ class Quad2StaticCzjzekParamFrame(QtGui.QWidget):
         copyResultButton.clicked.connect(lambda: self.sim(True))
         self.frame1.addWidget(copyResultButton, 3, 0)
         cancelButton = QtGui.QPushButton("&Cancel")
-        cancelButton.clicked.connect(rootwindow.cancel)
+        cancelButton.clicked.connect(self.closeWindow)
         self.frame1.addWidget(cancelButton, 4, 0)
         self.frame1.setColumnStretch(10, 1)
         self.frame1.setAlignment(QtCore.Qt.AlignTop)
@@ -5173,7 +5236,6 @@ class Quad2StaticCzjzekParamFrame(QtGui.QWidget):
             self.gaussEntries.append(QtGui.QLineEdit())
             self.gaussEntries[i].setText("0.0")
             self.frame3.addWidget(self.gaussEntries[i], i+2, 10)
-
             if i > 0:
                 self.dEntries[i].hide()
                 self.posTicks[i].hide()
@@ -5189,6 +5251,10 @@ class Quad2StaticCzjzekParamFrame(QtGui.QWidget):
         grid.setColumnStretch(10, 1)
         grid.setAlignment(QtCore.Qt.AlignLeft)
 
+    def closeWindow(self, *args):
+        self.stopMP()
+        self.rootwindow.cancel()
+        
     def checkI(self, I):
         return I*1.0+1.5
                 
@@ -5244,29 +5310,29 @@ class Quad2StaticCzjzekParamFrame(QtGui.QWidget):
         x1 = x1[np.logical_and(x1>=0, x1<length)]
         return np.fft.ifft(np.bincount(x1, weights, length))
     
-    def genLib(self, length, I, maxWq, numWq, numEta):
-        self.wq, self.eta = np.meshgrid(np.linspace(0, maxWq, numWq), np.linspace(0, 1, numEta))
-        wq = self.wq[..., None]
-        eta = self.eta[..., None]
-       # v = -wq**2/(6.0*self.parent.current.freq)*(I*(I+1)-3/4.0)*(self.angleStuff1+self.angleStuff2*eta+self.angleStuff3*eta**2)
-        v = -1/(6.0*self.parent.current.freq)*wq**2*(I*(I+1)-3.0/4)*(self.angleStuff1+self.angleStuff2*eta+self.angleStuff3*eta**2)
-        mult = v/(self.parent.current.sw)*length
+    def genLib(self, length, I, maxWq, numWq, numEta, angleStuff, freq, sw, weight, axAdd):
+        wq_return, eta_return = np.meshgrid(np.linspace(0, maxWq, numWq), np.linspace(0, 1, numEta))
+        wq = wq_return[..., None]
+        eta = eta_return[..., None]
+       # v = -wq**2/(6.0*freq)*(I*(I+1)-3/4.0)*(angleStuff[0]+angleStuff[1]*eta+angleStuff[2]*eta**2)
+        v = -1/(6.0*freq)*wq**2*(I*(I+1)-3.0/4)*(angleStuff[0]+angleStuff[1]*eta+angleStuff[2]*eta**2)
+        mult = v/sw*length
         x1 = np.array(np.round(mult)+np.floor(length/2), dtype=int)
-        self.lib = np.apply_along_axis(self.bincounting, 2, x1, self.weight, length)
+        lib = np.apply_along_axis(self.bincounting, 2, x1, weight, length)
+        return lib, wq_return, eta_return
 
-    def tensorFunc(self, sigma, d, pos, width, gauss):
-        import scipy.ndimage
-        pos = pos - self.axAdd
-        wq = self.wq
-        eta = self.eta
+    def tensorFunc(self, sigma, d, pos, width, gauss, wq, eta, lib, freq, sw, axAdd):
+        pos = pos - axAdd
+        wq = wq
+        eta = eta
         czjzek = wq**(d-1)*eta/(np.sqrt(2*np.pi)*sigma**d)*(1-eta**2/9.0)*np.exp(-wq**2/(2.0*sigma**2)*(1+eta**2/3.0))
         czjzek = czjzek/np.sum(czjzek)
-        fid = np.sum(self.lib*czjzek[..., None], axis=(0, 1))
-        t = np.arange(len(fid))/self.parent.current.sw
+        fid = np.sum(lib*czjzek[..., None], axis=(0, 1))
+        t = np.arange(len(fid))/sw
         apod = np.exp(-np.pi*width*t)*np.exp(-((np.pi*gauss*t)**2)/(4*np.log(2)))
         apod[-1:-(len(apod)/2+1):-1] = apod[:len(apod)/2]
-        spectrum = scipy.ndimage.interpolation.shift(np.real(np.fft.fft(fid*apod)), len(fid)*pos/self.parent.current.sw)
-        spectrum = spectrum/self.parent.current.sw*len(spectrum)
+        spectrum = scipy.ndimage.interpolation.shift(np.real(np.fft.fft(fid*apod)), len(fid)*pos/sw)
+        spectrum = spectrum/sw*len(spectrum)
         return spectrum
     
     def checkInputs(self):
@@ -5310,11 +5376,8 @@ class Quad2StaticCzjzekParamFrame(QtGui.QWidget):
             self.gaussEntries[i].setText('%#.3g' % inp)
         return True
     
-    def fitFunc(self, param, x, y):
-        numExp = self.args[0]
-        struc = self.args[1]
-        argu = self.args[2]
-        testFunc = np.zeros(len(self.parent.data1D))
+    def fitFunc(self, param, numExp, struc, argu, freq, sw, axAdd, wq, eta, lib, x, y):
+        testFunc = np.zeros(len(x))
         if struc[0]:
             bgrnd = param[0]
             param = np.delete(param, [0])
@@ -5360,16 +5423,25 @@ class Quad2StaticCzjzekParamFrame(QtGui.QWidget):
             else:
                 gauss = argu[0]
                 argu = np.delete(argu, [0])
-            testFunc += amp*self.tensorFunc(sigma, d, pos, width, gauss)
+            testFunc += amp*self.tensorFunc(sigma, d, pos, width, gauss, wq, eta, lib, freq, sw, axAdd)
         testFunc += bgrnd+slope*x
         return np.sum((np.real(testFunc)-y)**2)
 
-    def setAngleStuff(self):
-        phi, theta, self.weight = zcw_angles(self.cheng, symm=2)
-        self.angleStuff1 = -27/8.0*np.cos(theta)**4+15/4.0*np.cos(theta)**2-3/8.0
-        self.angleStuff2 = (-9/4.0*np.cos(theta)**4+2*np.cos(theta)**2+1/4.0)*np.cos(2*phi)
-        self.angleStuff3 = -1/2.0*np.cos(theta)**2+1/3.0+(-3/8.0*np.cos(theta)**4+3/4.0*np.cos(theta)**2-3/8.0)*np.cos(2*phi)**2
-        
+    def setAngleStuff(self, cheng):
+        phi, theta, weight = zcw_angles(cheng, symm=2)
+        angleStuff = [-27/8.0*np.cos(theta)**4+15/4.0*np.cos(theta)**2-3/8.0,
+                      (-9/4.0*np.cos(theta)**4+2*np.cos(theta)**2+1/4.0)*np.cos(2*phi),
+                      -1/2.0*np.cos(theta)**2+1/3.0+(-3/8.0*np.cos(theta)**4+3/4.0*np.cos(theta)**2-3/8.0)*np.cos(2*phi)**2]
+        return weight, angleStuff
+
+    def mpFit(self, xax, data1D, guess, args, queue, I, lib, wq, eta):
+        arg = args + (wq, eta, lib, xax, data1D)
+        try:
+            fitVal = scipy.optimize.fmin(self.fitFunc, guess, args=arg, disp=False)
+        except:
+            fitVal = None
+        queue.put(fitVal)
+    
     def fit(self, *args):
         self.setCheng()
         if not self.setGrid():
@@ -5452,12 +5524,28 @@ class Quad2StaticCzjzekParamFrame(QtGui.QWidget):
                 outGauss[i] = abs(float(self.gaussEntries[i].text()))
                 argu.append(outGauss[i])
                 struc.append(False)
-        self.args = (numExp, struc, argu)
-        self.setAngleStuff()
+        args = (numExp, struc, argu, self.parent.current.freq, self.parent.current.sw, self.axAdd)
         numWq = int(self.wqGridEntry.text())
         numEta = int(self.etaGridEntry.text())
-        self.genLib(len(self.parent.xax), I, maxWq*4.0, numWq, numEta)
-        fitVal = scipy.optimize.fmin(self.fitFunc, guess, args=(self.parent.xax, np.real(self.parent.data1D)),disp=False)
+        weight, angleStuff = self.setAngleStuff(self.cheng)
+        self.lib, self.wq, self.eta = self.genLib(len(self.parent.xax), I, maxWq*4.0, numWq, numEta, angleStuff, self.parent.current.freq, self.parent.current.sw, weight, self.axAdd)
+        self.queue = multiprocessing.Queue()
+        self.process1 = multiprocessing.Process(target=self.mpFit, args=(self.parent.xax, np.real(self.parent.data1D), guess, args, self.queue, I, self.lib, self.wq, self.eta))
+        self.process1.start()
+        self.running = True
+        self.stopButton.show()
+        while self.running:
+            if not self.queue.empty():
+                self.running = False
+            QtGui.qApp.processEvents()
+            time.sleep(0.1)
+        if self.queue is None:
+            return
+        fitVal = self.queue.get(timeout=2)
+        self.stopMP()
+        if fitVal is None:
+            self.rootwindow.mainProgram.dispMsg('Optimal parameters not found')
+            return
         counter = 0
         if struc[0]:
             self.bgrndEntry.setText('%.3g' % fitVal[counter])
@@ -5490,9 +5578,30 @@ class Quad2StaticCzjzekParamFrame(QtGui.QWidget):
                 counter += 1
         self.disp(outBgrnd, outSlope, outPos, outSigma, outD, outAmp, outWidth, outGauss)
 
+    def stopMP(self, *args):
+        if self.queue is not None:
+            self.process1.terminate()
+            self.queue.close()
+            self.queue.join_thread()
+            self.process1.join()
+        self.queue = None
+        self.process1 = None
+        self.running = False
+        self.stopButton.hide()
+        
     def fitAll(self, *args):
         FitAllSelectionWindow(self, ["Background", "Slope", "Position", u"\u03c3", "Integral", "Lorentz", "Gauss"])
-
+        
+    def mpAllFit(self, xax, data, guess, args, queue, I, lib, wq, eta):
+        fitVal = []
+        for j in data:
+            arg = args + (wq, eta, lib, xax, j)
+            try:
+                fitVal.append(scipy.optimize.fmin(self.fitFunc, guess, args=arg, disp=False))
+            except:
+                fitVal.append([[0]*10])
+        queue.put(fitVal)
+        
     def fitAllFunc(self, outputs):
         self.setCheng()
         if not self.setGrid():
@@ -5575,11 +5684,11 @@ class Quad2StaticCzjzekParamFrame(QtGui.QWidget):
                 outGauss[i] = abs(float(self.gaussEntries[i].text()))
                 argu.append(outGauss[i])
                 struc.append(False)
-        self.args = (numExp, struc, argu)
-        self.setAngleStuff()
+        args = (numExp, struc, argu, self.parent.current.freq, self.parent.current.sw, self.axAdd)
         numWq = int(self.wqGridEntry.text())
         numEta = int(self.etaGridEntry.text())
-        self.genLib(len(self.parent.xax), I, maxWq*4.0, numWq, numEta)
+        weight, angleStuff = self.setAngleStuff(self.cheng)
+        self.lib, self.wq, self.eta = self.genLib(len(self.parent.xax), I, maxWq*4.0, numWq, numEta, angleStuff, self.parent.current.freq, self.parent.current.sw, weight, self.axAdd)
         fullData = self.parent.current.data.data
         axes = self.parent.current.axes
         dataShape = fullData.shape
@@ -5589,11 +5698,25 @@ class Quad2StaticCzjzekParamFrame(QtGui.QWidget):
         numOutputs = np.sum(intOutputs[:2]) + numExp*np.sum(intOutputs[2:])
         outputData = np.zeros((np.product(dataShape2), numOutputs), dtype=complex)
         counter2 = 0
-        for j in rolledData.reshape(dataShape[axes], np.product(dataShape2)).T:
-            try:
-                fitVal = scipy.optimize.fmin(self.fitFunc, guess, args=(self.parent.xax, np.real(j)),disp=False)
-            except:
-                fitVal = [[0]*10]
+        fitData = rolledData.reshape(dataShape[axes], np.product(dataShape2)).T
+        self.queue = multiprocessing.Queue()
+        self.process1 = multiprocessing.Process(target=self.mpAllFit, args=(self.parent.xax, np.real(fitData), guess, args, self.queue, I, self.lib, self.wq, self.eta))
+        self.process1.start()
+        self.running = True
+        self.stopButton.show()
+        while self.running:
+            if not self.queue.empty():
+                self.running = False
+            QtGui.qApp.processEvents()
+            time.sleep(0.1)
+        if self.queue is None:
+            return
+        returnVal = self.queue.get(timeout=2)
+        self.stopMP()
+        if returnVal is None:
+            self.rootwindow.mainProgram.dispMsg('Optimal parameters not found')
+            return
+        for fitVal in returnVal:
             counter = 0
             if struc[0]:
                 outBgrnd = fitVal[counter]
@@ -5662,12 +5785,11 @@ class Quad2StaticCzjzekParamFrame(QtGui.QWidget):
             amp[i] = safeEval(self.ampEntries[i].text())
             width[i] = safeEval(self.lorEntries[i].text())
             gauss[i] = safeEval(self.gaussEntries[i].text())
-        self.setAngleStuff()
+        weight, angleStuff = self.setAngleStuff(self.cheng)
         numWq = int(self.wqGridEntry.text())
         numEta = int(self.etaGridEntry.text())
-        self.genLib(len(self.parent.xax), I, max(sigma)*4.0, numWq, numEta)
+        self.lib, self.wq, self.eta = self.genLib(len(self.parent.xax), I, max(sigma)*4.0, numWq, numEta, angleStuff, self.parent.current.freq, self.parent.current.sw, weight, self.axAdd)
         self.disp(bgrnd, slope, pos, sigma, d, amp, width, gauss, store)
-
 
     def disp(self, outBgrnd, outSlope, outPos, outSigma, outD, outAmp, outWidth, outGauss, store=False):
         tmpx = self.parent.xax
@@ -5677,7 +5799,7 @@ class Quad2StaticCzjzekParamFrame(QtGui.QWidget):
         x = []
         for i in range(len(outPos)):
             x.append(tmpx)
-            y =  outAmp[i]*self.tensorFunc(outSigma[i], outD[i], outPos[i], outWidth[i], outGauss[i])
+            y =  outAmp[i]*self.tensorFunc(outSigma[i], outD[i], outPos[i], outWidth[i], outGauss[i], self.wq, self.eta, self.lib, self.parent.current.freq, self.parent.current.sw, self.axAdd)
             outCurvePart.append(outCurveBase + y)
             outCurve += y
         if store:
@@ -5696,11 +5818,12 @@ class Quad2MASCzjzekParamFrame(Quad2StaticCzjzekParamFrame):
     def __init__(self, parent, rootwindow):
         Quad2StaticCzjzekParamFrame.__init__(self, parent, rootwindow)
         
-    def setAngleStuff(self):
-        phi, theta, self.weight = zcw_angles(self.cheng, symm=2)
-        self.angleStuff1 = 21/16.0*np.cos(theta)**4-9/8.0*np.cos(theta)**2+5/16.0
-        self.angleStuff2 = (-7/8.0*np.cos(theta)**4+np.cos(theta)**2-1/8.0)*np.cos(2*phi)
-        self.angleStuff3 = 1/12.0*np.cos(theta)**2+(+7/48.0*np.cos(theta)**4-7/24.0*np.cos(theta)**2+7/48.0)*np.cos(2*phi)**2
+    def setAngleStuff(self, cheng):
+        phi, theta, weight = zcw_angles(cheng, symm=2)
+        angleStuff = [21/16.0*np.cos(theta)**4-9/8.0*np.cos(theta)**2+5/16.0,
+                      (-7/8.0*np.cos(theta)**4+np.cos(theta)**2-1/8.0)*np.cos(2*phi),
+                      1/12.0*np.cos(theta)**2+(+7/48.0*np.cos(theta)**4-7/24.0*np.cos(theta)**2+7/48.0)*np.cos(2*phi)**2]
+        return weight, angleStuff
          
 ######################################################################
 
