@@ -1054,7 +1054,6 @@ class RelaxParamFrame(QtGui.QWidget):
             except:
                 fitVal.append([[0]*10])
         queue.put(fitVal)
-
         
     def fitAllFunc(self, outputs):
         if not self.checkInputs():
@@ -1497,6 +1496,12 @@ class DiffusionParamFrame(QtGui.QWidget):
         fitButton = QtGui.QPushButton("Fit")
         fitButton.clicked.connect(self.fit)
         self.frame1.addWidget(fitButton, 1, 0)
+        self.stopButton = QtGui.QPushButton("Stop")
+        self.stopButton.clicked.connect(self.stopMP)
+        self.frame1.addWidget(self.stopButton, 1, 0)
+        self.stopButton.hide()
+        self.process1 = None
+        self.queue = None
         fitAllButton = QtGui.QPushButton("Fit all")
         fitAllButton.clicked.connect(self.fitAll)
         self.frame1.addWidget(fitAllButton, 2, 0)
@@ -1504,7 +1509,7 @@ class DiffusionParamFrame(QtGui.QWidget):
         copyResultButton.clicked.connect(lambda: self.sim(True))
         self.frame1.addWidget(copyResultButton, 3, 0)
         cancelButton = QtGui.QPushButton("&Cancel")
-        cancelButton.clicked.connect(rootwindow.cancel)
+        cancelButton.clicked.connect(self.closeWindow)
         self.frame1.addWidget(cancelButton, 4, 0)
         self.frame1.setColumnStretch(10, 1)
         self.frame1.setAlignment(QtCore.Qt.AlignTop)
@@ -1583,6 +1588,10 @@ class DiffusionParamFrame(QtGui.QWidget):
                 self.dTicks[i].hide()
                 self.dEntries[i].hide()
                 
+    def closeWindow(self, *args):
+        self.stopMP()
+        self.rootwindow.cancel()
+        
     def setLog(self, *args):
         self.parent.setLog(self.xlog.isChecked(), self.ylog.isChecked())
                 
@@ -1600,14 +1609,16 @@ class DiffusionParamFrame(QtGui.QWidget):
                 self.dTicks[i].hide()
                 self.dEntries[i].hide()
 
-    def fitFunc(self, x, *param):
-        numExp = self.args[0]
-        struc = self.args[1]
-        argu = self.args[2]
-        gamma = self.args[3]
-        delta = self.args[4]
-        triangle = self.args[5]
-        testFunc = np.zeros(len(self.parent.data1D))
+    def fitFunc(self, param, args):
+        x = param[0]
+        param = np.delete(param, [0])
+        numExp = args[0]
+        struc = args[1]
+        argu = args[2]
+        gamma = args[3]
+        delta = args[4]
+        triangle = args[5]
+        testFunc = np.zeros(len(x))
         if struc[0]:
             amplitude = param[0]
             param = np.delete(param, [0])
@@ -1668,6 +1679,13 @@ class DiffusionParamFrame(QtGui.QWidget):
                 return False
             self.dEntries[i].setText('%#.3g' % inp)
         return True
+
+    def mpFit(self, xax, data1D, guess, args, queue):
+        try:
+            fitVal = scipy.optimize.curve_fit(lambda *param: self.fitFunc(param, args), xax, data1D, guess)
+        except:
+            fitVal = None
+        queue.put(fitVal)
     
     def fit(self, *args):
         if not self.checkInputs():
@@ -1711,8 +1729,24 @@ class DiffusionParamFrame(QtGui.QWidget):
                 outD[i] = float(self.dEntries[i].text())
                 argu.append(outD[i])
                 struc.append(False)
-        self.args = (numExp, struc, argu, gamma, delta, triangle)
-        fitVal = scipy.optimize.curve_fit(self.fitFunc, self.parent.xax, self.parent.data1D, guess)
+        args = (numExp, struc, argu, gamma, delta, triangle)
+        self.queue = multiprocessing.Queue()
+        self.process1 = multiprocessing.Process(target=self.mpFit, args=(self.parent.xax, self.parent.data1D, guess, args, self.queue))
+        self.process1.start()
+        self.running = True
+        self.stopButton.show()
+        while self.running:
+            if not self.queue.empty():
+                self.running = False
+            QtGui.qApp.processEvents()
+            time.sleep(0.1)
+        if self.queue is None:
+            return
+        fitVal = self.queue.get(timeout=2)
+        self.stopMP()
+        if fitVal is None:
+            self.rootwindow.mainProgram.dispMsg('Optimal parameters not found')
+            return
         counter = 0
         if struc[0]:
             self.ampEntry.setText('%#.3g' % fitVal[0][counter])
@@ -1733,8 +1767,28 @@ class DiffusionParamFrame(QtGui.QWidget):
                 counter += 1
         self.disp(outAmp, outConst, outCoeff, outD, gamma, delta, triangle)
 
+    def stopMP(self, *args):
+        if self.queue is not None:
+            self.process1.terminate()
+            self.queue.close()
+            self.queue.join_thread()
+            self.process1.join()
+        self.queue = None
+        self.process1 = None
+        self.running = False
+        self.stopButton.hide()
+        
     def fitAll(self, *args):
         FitAllSelectionWindow(self, ["Amplitude", "Constant", "Coefficient", "D"])
+
+    def mpAllFit(self, xax, data, guess, args, queue):
+        fitVal = []
+        for j in data:
+            try:
+                fitVal.append(scipy.optimize.curve_fit(lambda *param: self.fitFunc(param, args), xax, np.real(j), guess))
+            except:
+                fitVal.append([[0]*10])
+        queue.put(fitVal)
         
     def fitAllFunc(self, outputs):
         if not self.checkInputs():
@@ -1778,7 +1832,7 @@ class DiffusionParamFrame(QtGui.QWidget):
                 outD[i] = safeEval(self.dEntries[i].text())
                 argu.append(outD[i])
                 struc.append(False)
-        self.args = (numExp, struc, argu, gamma, delta, triangle)
+        args = (numExp, struc, argu, gamma, delta, triangle)
         fullData = self.parent.current.data.data
         axes = self.parent.current.axes
         dataShape = fullData.shape
@@ -1788,11 +1842,22 @@ class DiffusionParamFrame(QtGui.QWidget):
         numOutputs = np.sum(intOutputs[:2]) + numExp*np.sum(intOutputs[2:])
         outputData = np.zeros((np.product(dataShape2), numOutputs), dtype=complex)
         counter2 = 0
-        for j in rolledData.reshape(dataShape[axes], np.product(dataShape2)).T:
-            try:
-                fitVal = scipy.optimize.curve_fit(self.fitFunc, self.parent.xax, np.real(j), guess)
-            except:
-                fitVal = [[0]*10]
+        fitData = rolledData.reshape(dataShape[axes], np.product(dataShape2)).T
+        self.queue = multiprocessing.Queue()
+        self.process1 = multiprocessing.Process(target=self.mpAllFit, args=(self.parent.xax, fitData, guess, args, self.queue))
+        self.process1.start()
+        self.running = True
+        self.stopButton.show()
+        while self.running:
+            if not self.queue.empty():
+                self.running = False
+            QtGui.qApp.processEvents()
+            time.sleep(0.1)
+        if self.queue is None:
+            return
+        returnVal = self.queue.get(timeout=2)
+        self.stopMP()
+        for fitVal in returnVal:
             counter = 0
             if struc[0]:
                 outAmp = fitVal[0][counter]
@@ -2042,6 +2107,12 @@ class PeakDeconvParamFrame(QtGui.QWidget):
         fitButton = QtGui.QPushButton("Fit")
         fitButton.clicked.connect(self.fit)
         self.frame1.addWidget(fitButton, 1, 0)
+        self.stopButton = QtGui.QPushButton("Stop")
+        self.stopButton.clicked.connect(self.stopMP)
+        self.frame1.addWidget(self.stopButton, 1, 0)
+        self.stopButton.hide()
+        self.process1 = None
+        self.queue = None
         fitAllButton = QtGui.QPushButton("Fit all")
         fitAllButton.clicked.connect(self.fitAll)
         self.frame1.addWidget(fitAllButton, 2, 0)
@@ -2049,7 +2120,7 @@ class PeakDeconvParamFrame(QtGui.QWidget):
         copyResultButton.clicked.connect(lambda: self.sim(True))
         self.frame1.addWidget(copyResultButton, 3, 0)
         cancelButton = QtGui.QPushButton("&Cancel")
-        cancelButton.clicked.connect(rootwindow.cancel)
+        cancelButton.clicked.connect(self.closeWindow)
         self.frame1.addWidget(cancelButton, 4, 0)
         resetButton = QtGui.QPushButton("Reset")
         resetButton.clicked.connect(self.reset)
@@ -2118,6 +2189,10 @@ class PeakDeconvParamFrame(QtGui.QWidget):
         grid.setColumnStretch(10, 1)
         grid.setAlignment(QtCore.Qt.AlignLeft)
 
+    def closeWindow(self, *args):
+        self.stopMP()
+        self.rootwindow.cancel()
+        
     def reset(self):
         self.parent.pickNum = 0
         self.bgrndEntry.setText("0.0")
@@ -2173,11 +2248,16 @@ class PeakDeconvParamFrame(QtGui.QWidget):
     def togglePick(self):
         self.parent.togglePick(self.pickTick.isChecked())
                 
-    def fitFunc(self, x, *param):
-        numExp = self.args[0]
-        struc = self.args[1]
-        argu = self.args[2]
-        testFunc = np.zeros(len(self.parent.data1D))
+    def fitFunc(self, param, args):
+        x = param[0]
+        param = np.delete(param, [0])
+        numExp = args[0]
+        struc = args[1]
+        argu = args[2]
+        sw = args[3]
+        axAdd = args[4]
+        axMult = args[5]
+        testFunc = np.zeros(len(x))
         if struc[0]:
             bgrnd = param[0]
             param = np.delete(param, [0])
@@ -2215,8 +2295,8 @@ class PeakDeconvParamFrame(QtGui.QWidget):
             else:
                 gauss = argu[0]
                 argu = np.delete(argu, [0])
-            t = np.arange(len(x))/self.parent.current.sw
-            timeSignal = np.exp(1j*2*np.pi*t*(pos/self.axMult-self.axAdd))*np.exp(-np.pi*width*t)*np.exp(-((np.pi*gauss*t)**2)/(4*np.log(2)))*2/self.parent.current.sw
+            t = np.arange(len(x))/sw
+            timeSignal = np.exp(1j*2*np.pi*t*(pos/axMult-axAdd))*np.exp(-np.pi*width*t)*np.exp(-((np.pi*gauss*t)**2)/(4*np.log(2)))*2/sw
             timeSignal[0] = timeSignal[0]*0.5
             testFunc += amp*np.real(np.fft.fftshift(np.fft.fft(timeSignal)))
         testFunc += bgrnd+slope*x
@@ -2250,6 +2330,13 @@ class PeakDeconvParamFrame(QtGui.QWidget):
                 return False
             self.gaussEntries[i].setText('%#.3g' % inp)
         return True
+
+    def mpFit(self, xax, data1D, guess, args, queue):
+        try:
+            fitVal = scipy.optimize.curve_fit(lambda *param: self.fitFunc(param, args), xax, data1D, guess)
+        except:
+            fitVal = None
+        queue.put(fitVal)
     
     def fit(self, *args):
         if not self.checkInputs():
@@ -2306,8 +2393,24 @@ class PeakDeconvParamFrame(QtGui.QWidget):
                 outGauss[i] = abs(float(self.gaussEntries[i].text()))
                 argu.append(outGauss[i])
                 struc.append(False)
-        self.args = (numExp, struc, argu)
-        fitVal = scipy.optimize.curve_fit(self.fitFunc, self.parent.xax, self.parent.data1D, p0=guess)
+        args = (numExp, struc, argu, self.parent.current.sw, self.axAdd, self.axMult)
+        self.queue = multiprocessing.Queue()
+        self.process1 = multiprocessing.Process(target=self.mpFit, args=(self.parent.xax, self.parent.data1D, guess, args, self.queue))
+        self.process1.start()
+        self.running = True
+        self.stopButton.show()
+        while self.running:
+            if not self.queue.empty():
+                self.running = False
+            QtGui.qApp.processEvents()
+            time.sleep(0.1)
+        if self.queue is None:
+            return
+        fitVal = self.queue.get(timeout=2)
+        self.stopMP()
+        if fitVal is None:
+            self.rootwindow.mainProgram.dispMsg('Optimal parameters not found')
+            return
         counter = 0
         if struc[0]:
             self.bgrndEntry.setText('%#.3g' % fitVal[0][counter])
@@ -2336,8 +2439,28 @@ class PeakDeconvParamFrame(QtGui.QWidget):
                 counter += 1
         self.disp(outBgrnd, outSlope, outAmp, outPos, outWidth, outGauss)
 
+    def stopMP(self, *args):
+        if self.queue is not None:
+            self.process1.terminate()
+            self.queue.close()
+            self.queue.join_thread()
+            self.process1.join()
+        self.queue = None
+        self.process1 = None
+        self.running = False
+        self.stopButton.hide()
+        
     def fitAll(self, *args):
         FitAllSelectionWindow(self, ["Background", "Slope", "Position", "Integral", "Lorentz", "Gauss"])
+
+    def mpAllFit(self, xax, data, guess, args, queue):
+        fitVal = []
+        for j in data:
+            try:
+                fitVal.append(scipy.optimize.curve_fit(lambda *param: self.fitFunc(param, args), xax, np.real(j), guess))
+            except:
+                fitVal.append([[0]*10])
+        queue.put(fitVal)
         
     def fitAllFunc(self, outputs):
         if not self.checkInputs():
@@ -2394,7 +2517,7 @@ class PeakDeconvParamFrame(QtGui.QWidget):
                 outGauss[i] = abs(float(self.gaussEntries[i].text()))
                 argu.append(outGauss[i])
                 struc.append(False)
-        self.args = (numExp, struc, argu)
+        args = (numExp, struc, argu, self.parent.current.sw, self.axAdd, self.axMult)
         fullData = self.parent.current.data.data
         axes = self.parent.current.axes
         dataShape = fullData.shape
@@ -2404,12 +2527,22 @@ class PeakDeconvParamFrame(QtGui.QWidget):
         numOutputs = np.sum(intOutputs[:2]) + numExp*np.sum(intOutputs[2:])
         outputData = np.zeros((np.product(dataShape2), numOutputs), dtype=complex)
         counter2 = 0
-        for j in rolledData.reshape(dataShape[axes], np.product(dataShape2)).T:
-            try:
-                fitVal = scipy.optimize.curve_fit(self.fitFunc, self.parent.xax, np.real(j), guess)
-            except:
-                fitVal = [[0]*10]
-        
+        fitData = rolledData.reshape(dataShape[axes], np.product(dataShape2)).T
+        self.queue = multiprocessing.Queue()
+        self.process1 = multiprocessing.Process(target=self.mpAllFit, args=(self.parent.xax, fitData, guess, args, self.queue))
+        self.process1.start()
+        self.running = True
+        self.stopButton.show()
+        while self.running:
+            if not self.queue.empty():
+                self.running = False
+            QtGui.qApp.processEvents()
+            time.sleep(0.1)
+        if self.queue is None:
+            return
+        returnVal = self.queue.get(timeout=2)
+        self.stopMP()
+        for fitVal in returnVal:
             counter = 0
             if struc[0]:
                 outBgrnd = fitVal[0][counter]
@@ -2645,6 +2778,12 @@ class TensorDeconvParamFrame(QtGui.QWidget):
         fitButton = QtGui.QPushButton("Fit")
         fitButton.clicked.connect(self.fit)
         self.frame1.addWidget(fitButton, 1, 0)
+        self.stopButton = QtGui.QPushButton("Stop")
+        self.stopButton.clicked.connect(self.stopMP)
+        self.frame1.addWidget(self.stopButton, 1, 0)
+        self.stopButton.hide()
+        self.process1 = None
+        self.queue = None
         fitAllButton = QtGui.QPushButton("Fit all")
         fitAllButton.clicked.connect(self.fitAll)
         self.frame1.addWidget(fitAllButton, 2, 0)
@@ -2652,7 +2791,7 @@ class TensorDeconvParamFrame(QtGui.QWidget):
         copyResultButton.clicked.connect(lambda: self.sim(True))
         self.frame1.addWidget(copyResultButton, 3, 0)
         cancelButton = QtGui.QPushButton("&Cancel")
-        cancelButton.clicked.connect(rootwindow.cancel)
+        cancelButton.clicked.connect(self.closeWindow)
         self.frame1.addWidget(cancelButton, 4, 0)
         resetButton = QtGui.QPushButton("Reset")
         resetButton.clicked.connect(self.reset)
@@ -2744,6 +2883,10 @@ class TensorDeconvParamFrame(QtGui.QWidget):
         grid.setColumnStretch(10, 1)
         grid.setAlignment(QtCore.Qt.AlignLeft)
         
+    def closeWindow(self, *args):
+        self.stopMP()
+        self.rootwindow.cancel()
+        
     def reset(self):
         self.parent.pickNum = 0
         self.parent.pickNum2 = 0
@@ -2824,30 +2967,27 @@ class TensorDeconvParamFrame(QtGui.QWidget):
                 self.gaussTicks[i].hide()
                 self.gaussEntries[i].hide()
 
-    def tensorFunc(self, x, t11, t22, t33, lor, gauss):
-        t11 = t11*self.multt11
-        t22 = t22*self.multt22
-        t33 = t33*self.multt33
-        v = t11+t22+t33-self.axAdd
+    def tensorFunc(self, x, t11, t22, t33, lor, gauss, multt, sw, weight, axAdd):
+        t11 = t11*multt[0]
+        t22 = t22*multt[1]
+        t33 = t33*multt[2]
+        v = t11+t22+t33-axAdd
         length = len(x)
-        t = np.arange(length)/self.parent.current.sw
+        t = np.arange(length)/sw
         final = np.zeros(length)
-        mult = v/(self.parent.current.sw)*length
+        mult = v/sw*length
         x1 = np.array(np.round(mult)+np.floor(length/2.0), dtype=int)
-        weight = self.weight[np.logical_and(x1>=0, x1<length)]
+        weight = weight[np.logical_and(x1>=0, x1<length)]
         x1 = x1[np.logical_and(x1>=0, x1<length)]
         final = np.bincount(x1, weight, length)
         apod = np.exp(-np.pi*lor*t)*np.exp(-((np.pi*gauss*t)**2)/(4*np.log(2)))
         apod[-1:-(len(apod)/2+1):-1] = apod[:len(apod)/2]
         I = np.real(np.fft.fft(np.fft.ifft(final)*apod))
-        I = I/self.parent.current.sw*len(I)
+        I = I/sw*len(I)
         return I
                 
-    def fitFunc(self, param, x, y):
-        numExp = self.args[0]
-        struc = self.args[1]
-        argu = self.args[2]
-        testFunc = np.zeros(len(self.parent.data1D))
+    def fitFunc(self, param, numExp, struc, argu, sw, axAdd, multt, weight, x, y):
+        testFunc = np.zeros(len(x))
         if struc[0]:
             bgrnd = param[0]
             param = np.delete(param, [0])
@@ -2897,7 +3037,7 @@ class TensorDeconvParamFrame(QtGui.QWidget):
             else:
                 gauss = argu[0]
                 argu = np.delete(argu, [0])
-            testFunc += amp*self.tensorFunc(x, t11, t22, t33, width, gauss)
+            testFunc += amp*self.tensorFunc(x, t11, t22, t33, width, gauss, multt, sw, weight, axAdd)
         testFunc += bgrnd+slope*x
         return np.sum((np.real(testFunc)-y)**2)
 
@@ -2937,7 +3077,17 @@ class TensorDeconvParamFrame(QtGui.QWidget):
                 return False
             self.gaussEntries[i].setText('%#.3g' % inp)
         return True
-        
+
+    def mpFit(self, xax, data1D, guess, args, queue, cheng):
+        phi, theta, weight = zcw_angles(cheng, symm=2)
+        multt = [np.sin(theta)**2*np.cos(phi)**2, np.sin(theta)**2*np.sin(phi)**2, np.cos(theta)**2]
+        arg = args + (multt, weight, xax, data1D)
+        try:
+            fitVal = scipy.optimize.fmin(self.fitFunc, guess, args=arg, disp=False)
+        except:
+            fitVal = None
+        queue.put(fitVal)
+    
     def fit(self, *args):
         self.setCheng()
         if not self.checkInputs():
@@ -3010,12 +3160,24 @@ class TensorDeconvParamFrame(QtGui.QWidget):
                 outGauss[i] = abs(float(self.gaussEntries[i].text()))
                 argu.append(outGauss[i])
                 struc.append(False)
-        self.args = (numExp, struc, argu)
-        phi, theta, self.weight = zcw_angles(self.cheng, symm=2)
-        self.multt11 = np.sin(theta)**2*np.cos(phi)**2
-        self.multt22 = np.sin(theta)**2*np.sin(phi)**2
-        self.multt33 = np.cos(theta)**2
-        fitVal = scipy.optimize.fmin(self.fitFunc, guess, args=(self.parent.xax, np.real(self.parent.data1D)),disp=False)
+        args = (numExp, struc, argu, self.parent.current.sw, self.axAdd)
+        self.queue = multiprocessing.Queue()
+        self.process1 = multiprocessing.Process(target=self.mpFit, args=(self.parent.xax, np.real(self.parent.data1D), guess, args, self.queue, self.cheng))
+        self.process1.start()
+        self.running = True
+        self.stopButton.show()
+        while self.running:
+            if not self.queue.empty():
+                self.running = False
+            QtGui.qApp.processEvents()
+            time.sleep(0.1)
+        if self.queue is None:
+            return
+        fitVal = self.queue.get(timeout=2)
+        self.stopMP()
+        if fitVal is None:
+            self.rootwindow.mainProgram.dispMsg('Optimal parameters not found')
+            return
         counter = 0
         if struc[0]:
             self.bgrndEntry.setText('%.3g' % fitVal[counter])
@@ -3052,9 +3214,32 @@ class TensorDeconvParamFrame(QtGui.QWidget):
                 counter += 1
         self.disp(outBgrnd, outSlope, outt11, outt22, outt33, outAmp, outWidth, outGauss)
 
+    def stopMP(self, *args):
+        if self.queue is not None:
+            self.process1.terminate()
+            self.queue.close()
+            self.queue.join_thread()
+            self.process1.join()
+        self.queue = None
+        self.process1 = None
+        self.running = False
+        self.stopButton.hide()
+        
     def fitAll(self, *args):
         FitAllSelectionWindow(self, ["Background", "Slope", "T11", "T22", "T33", "Integral", "Lorentz", "Gauss"])
 
+    def mpAllFit(self, xax, data, guess, args, queue, cheng):
+        phi, theta, weight = zcw_angles(cheng, symm=2)
+        multt = [np.sin(theta)**2*np.cos(phi)**2, np.sin(theta)**2*np.sin(phi)**2, np.cos(theta)**2]
+        fitVal = []
+        for j in data:
+            arg = args + (multt, weight, xax, j)
+            try:
+                fitVal.append(scipy.optimize.fmin(self.fitFunc, guess, args=arg, disp=False))
+            except:
+                fitVal.append([[0]*10])
+        queue.put(fitVal)
+        
     def fitAllFunc(self, outputs):
         self.setCheng()
         if not self.checkInputs():
@@ -3127,11 +3312,7 @@ class TensorDeconvParamFrame(QtGui.QWidget):
                 outGauss[i] = abs(float(self.gaussEntries[i].text()))
                 argu.append(outGauss[i])
                 struc.append(False)
-        self.args = (numExp, struc, argu)
-        phi, theta, self.weight = zcw_angles(self.cheng, symm=2)
-        self.multt11 = np.sin(theta)**2*np.cos(phi)**2
-        self.multt22 = np.sin(theta)**2*np.sin(phi)**2
-        self.multt33 = np.cos(theta)**2
+        args = (numExp, struc, argu, self.parent.current.sw, self.axAdd)
         fullData = self.parent.current.data.data
         axes = self.parent.current.axes
         dataShape = fullData.shape
@@ -3141,11 +3322,25 @@ class TensorDeconvParamFrame(QtGui.QWidget):
         numOutputs = np.sum(intOutputs[:2]) + numExp*np.sum(intOutputs[2:])
         outputData = np.zeros((np.product(dataShape2), numOutputs), dtype=complex)
         counter2 = 0
-        for j in rolledData.reshape(dataShape[axes], np.product(dataShape2)).T:
-            try:
-                fitVal = scipy.optimize.fmin(self.fitFunc, guess, args=(self.parent.xax, np.real(j)),disp=False)
-            except:
-                fitVal = [[0]*10]
+        fitData = rolledData.reshape(dataShape[axes], np.product(dataShape2)).T
+        self.queue = multiprocessing.Queue()
+        self.process1 = multiprocessing.Process(target=self.mpAllFit, args=(self.parent.xax, np.real(fitData), guess, args, self.queue, self.cheng))
+        self.process1.start()
+        self.running = True
+        self.stopButton.show()
+        while self.running:
+            if not self.queue.empty():
+                self.running = False
+            QtGui.qApp.processEvents()
+            time.sleep(0.1)
+        if self.queue is None:
+            return
+        returnVal = self.queue.get(timeout=2)
+        self.stopMP()
+        if returnVal is None:
+            self.rootwindow.mainProgram.dispMsg('Optimal parameters not found')
+            return
+        for fitVal in returnVal:
             counter = 0
             if struc[0]:
                 outBgrnd = fitVal[counter]
@@ -3218,13 +3413,11 @@ class TensorDeconvParamFrame(QtGui.QWidget):
             if not np.isfinite([t11[i], t22[i], t33[i], amp[i], width[i], gauss[i]]).all():
                 self.rootwindow.mainProgram.dispMsg("One of the inputs is not valid")
                 return
-        phi, theta, self.weight = zcw_angles(self.cheng, symm=2)
-        self.multt11 = np.sin(theta)**2*np.cos(phi)**2
-        self.multt22 = np.sin(theta)**2*np.sin(phi)**2
-        self.multt33 = np.cos(theta)**2
         self.disp(bgrnd, slope, t11, t22, t33, amp, width, gauss, store)
         
     def disp(self, outBgrnd, outSlope, outt11, outt22, outt33, outAmp, outWidth, outGauss, store=False):
+        phi, theta, weight = zcw_angles(self.cheng, symm=2)
+        multt = [np.sin(theta)**2*np.cos(phi)**2, np.sin(theta)**2*np.sin(phi)**2, np.cos(theta)**2]
         tmpx = self.parent.xax
         outCurveBase = outBgrnd + tmpx*outSlope
         outCurve = outCurveBase.copy()
@@ -3232,7 +3425,7 @@ class TensorDeconvParamFrame(QtGui.QWidget):
         x = []
         for i in range(len(outt11)):
             x.append(tmpx)
-            y =  outAmp[i]*self.tensorFunc(tmpx, outt11[i], outt22[i], outt33[i], outWidth[i], outGauss[i])
+            y =  outAmp[i]*self.tensorFunc(tmpx, outt11[i], outt22[i], outt33[i], outWidth[i], outGauss[i], multt, self.parent.current.sw, weight, self.axAdd)
             outCurvePart.append(outCurveBase + y)
             outCurve += y
         if store:
