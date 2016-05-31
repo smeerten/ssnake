@@ -3062,22 +3062,34 @@ class ApodWindow(QtGui.QWidget):
         shiftingAxes = 0
         if self.ticks[0].isChecked():
             lor = safeEval(self.entries[0].text())
+            if lor is None:
+                self.father.father.dispMsg('Lorentzian value is not valid!')
             self.entries[0].setText('%.4g' % lor)
             self.lorScale.setValue(round(lor*self.RESOLUTION/self.maximum))
         if self.ticks[1].isChecked():
             gauss = safeEval(self.entries[1].text())
+            if gauss is None:
+                self.father.father.dispMsg('Gaussian value is not valid!')
             self.entries[1].setText('%.4g' % gauss)
             self.gaussScale.setValue(round(gauss*self.RESOLUTION/self.maximum))
         if self.ticks[2].isChecked():
             cos2 = safeEval(self.entries[2].text())
+            if cos2 is None:
+                self.father.father.dispMsg('cos^2 value is not valid!')
             self.entries[2].setText('%.4g' % cos2)
         if self.ticks[3].isChecked():
             hamming = safeEval(self.entries[3].text())
+            if hamming is None:
+                self.father.father.dispMsg('Hamming value is not valid!')
             self.entries[3].setText('%.4g' % hamming)
         shift = safeEval(self.shiftEntry.text())
+        if shift is None:
+            self.father.father.dispMsg('Shift value is not valid!')
         self.shiftEntry.setText('%.4g' % shift)
         if self.father.current.data.dim > 1:
             shifting = safeEval(self.shiftingEntry.text())
+            if shifting is None:
+                self.father.father.dispMsg('Shifting value is not valid!')
             self.shiftingEntry.setText('%.4g' % shifting)
             shiftingAxes = int(self.shiftingValues[self.shiftingAxes.currentIndex()])-1
         else:
@@ -3109,15 +3121,33 @@ class ApodWindow(QtGui.QWidget):
         shiftingAxes = 0
         if self.ticks[0].isChecked():
             lor = safeEval(self.entries[0].text())
+            if lor is None:
+                self.father.father.dispMsg('Lorentzian value is not valid!')
+                return
         if self.ticks[1].isChecked():
             gauss = safeEval(self.entries[1].text())
+            if gauss is None:
+                self.father.father.dispMsg('Gaussian value is not valid!')
+                return
         if self.ticks[2].isChecked():
             cos2 = safeEval(self.entries[2].text())
+            if cos2 is None:
+                self.father.father.dispMsg('cos^2 value is not valid!')
+                return
         if self.ticks[3].isChecked():
             hamming = safeEval(self.entries[3].text())
+            if hamming is None:
+                self.father.father.dispMsg('Hamming value is not valid!')
+                return
         shift = safeEval(self.shiftEntry.text())
+        if shift is None:
+            self.father.father.dispMsg('Shift value is not valid!')
+            return
         if self.father.current.data.dim > 1:
             shifting = safeEval(self.shiftingEntry.text())
+            if shifting is None:
+                self.father.father.dispMsg('Shifting value is not valid!')
+                return
             shiftingAxes = int(self.shiftingValues[self.shiftingAxes.currentIndex()])-1
         else:
             shiftingAxes = None
