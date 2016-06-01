@@ -3576,8 +3576,14 @@ class HerzfeldBergerParamFrame(QtGui.QWidget):
         fitButton = QtGui.QPushButton("Fit")
         fitButton.clicked.connect(self.fit)
         self.frame1.addWidget(fitButton, 1, 0)
+        self.stopButton = QtGui.QPushButton("Stop")
+        self.stopButton.clicked.connect(self.stopMP)
+        self.frame1.addWidget(self.stopButton, 1, 0)
+        self.stopButton.hide()
+        self.process1 = None
+        self.queue = None
         cancelButton = QtGui.QPushButton("&Cancel")
-        cancelButton.clicked.connect(rootwindow.cancel)
+        cancelButton.clicked.connect(self.closeWindow)
         self.frame1.addWidget(cancelButton, 3, 0)
         resetButton = QtGui.QPushButton("Reset")
         resetButton.clicked.connect(self.reset)
@@ -3631,7 +3637,11 @@ class HerzfeldBergerParamFrame(QtGui.QWidget):
         self.reset()
         grid.setColumnStretch(10, 1)
         grid.setAlignment(QtCore.Qt.AlignLeft)
-
+        
+    def closeWindow(self, *args):
+        self.stopMP()
+        self.rootwindow.cancel()
+        
     def reset(self):
         self.sidebandList = []
         self.integralList = []
@@ -3679,26 +3689,24 @@ class HerzfeldBergerParamFrame(QtGui.QWidget):
             self.cheng = int(inp)
         self.chengEntry.setText(str(self.cheng))
 
-    def hbFunc(self, omega0, delta, eta):
-        omegars =  omega0*delta*(self.C1  + self.C2 +  eta*(self.C1eta + self.C2eta + self.S1 + self.S2 ))
+    def hbFunc(self, omega0, delta, eta, NSTEPS, tresolution, angleStuff, weight):
+        omegars =  omega0*delta*(angleStuff[0]  + angleStuff[1] +  eta*(angleStuff[2] + angleStuff[3] + angleStuff[4] + angleStuff[5] ))
+        #omegars =  omega0*delta*(self.C1  + self.C2 +  eta*(self.C1eta + self.C2eta + self.S1 + self.S2 ))
         #QTrs = np.exp(-1j*np.cumsum(omegars, axis=1)*self.tresolution)
-        nsteps = self.C1.shape[1]
-        QTrs = np.concatenate([np.ones([self.C1.shape[0],1]),np.exp(-1j*np.cumsum(omegars, axis=1)*self.tresolution)[:,:-1]],1)
+        nsteps = angleStuff[0].shape[1]
+        QTrs = np.concatenate([np.ones([angleStuff[0].shape[0],1]),np.exp(-1j*np.cumsum(omegars, axis=1)*tresolution)[:,:-1]],1)
         for j in range(1,nsteps):
-            QTrs[:,j] = np.exp(-1j*np.sum(omegars[:,0:j]*self.tresolution,1))
+            QTrs[:,j] = np.exp(-1j*np.sum(omegars[:,0:j]*tresolution,1))
         rhoT0sr = np.conj(QTrs)
         #calculate the gamma-averaged FID over 1 rotor period for all crystallites
-        favrs = np.zeros(self.NSTEPS, dtype=complex)
-        for j in range(self.NSTEPS):
-            favrs[j] += np.sum(self.weight * np.sum(rhoT0sr * np.roll(QTrs, -j, axis=1), 1) / self.NSTEPS**2)
+        favrs = np.zeros(NSTEPS, dtype=complex)
+        for j in range(NSTEPS):
+            favrs[j] += np.sum(weight * np.sum(rhoT0sr * np.roll(QTrs, -j, axis=1), 1) / NSTEPS**2)
         #calculate the sideband intensities by doing an FT and pick the ones that are needed further
         sidebands = np.real(np.fft.fft(favrs))
         return sidebands
                 
-    def fitFunc(self, param, x, y):
-        struc = self.args[0]
-        argu = self.args[1]
-        omega0 = self.args[2]
+    def fitFunc(self, param, struc, argu, omega0, NSTEPS, tresolution, angleStuff, weight, x, y):
         if struc[0]:
             delta = param[0]
             param = np.delete(param, [0])
@@ -3711,16 +3719,32 @@ class HerzfeldBergerParamFrame(QtGui.QWidget):
         else:
             eta = argu[0]
             argu = np.delete(argu, [0])
-        testFunc = self.hbFunc(omega0, delta, eta)
-        testFunc = testFunc[x]/np.sum(testFunc[x])*np.sum(self.integralList)
+        testFunc = self.hbFunc(omega0, delta, eta, NSTEPS, tresolution, angleStuff, weight)
+        testFunc = testFunc[x]/np.sum(testFunc[x])*np.real(np.sum(y))
         return np.sum((testFunc-y)**2)
-
-    def disp(self, outDelta, outEta):
-        testFunc = self.hbFunc(self.parent.current.freq*np.pi*2, outDelta, outEta)
-        results = testFunc[self.sidebandList]
-        results /= np.sum(results)
-        for i in range(len(self.resultLabels)):
-            self.resultLabels[i].setText('%#.5g' % (results[i]*np.sum(self.integralList)))
+    
+    def mpFit(self, xax, data1D, guess, args, queue, NSTEPS, omegar, cheng):
+        theta, phi, weight = zcw_angles(cheng, symm=2) 
+        sinPhi = np.sin(phi)
+        cosPhi = np.cos(phi)
+        sin2Theta = np.sin(2*theta)
+        cos2Theta = np.cos(2*theta)
+        tresolution = 2*np.pi/omegar/NSTEPS
+        t = np.linspace(0, tresolution*(NSTEPS-1), NSTEPS)
+        cosOmegarT = np.cos(omegar*t)
+        cos2OmegarT = np.cos(2*omegar*t)
+        angleStuff = [np.array([np.sqrt(2)/3 *  sinPhi * cosPhi * 3 ]).transpose()* cosOmegarT,
+                      np.array([-1.0 / 3 *  3/2*sinPhi**2 ]).transpose()* cos2OmegarT,
+                      np.transpose([cos2Theta / 3.0]) * (np.array([np.sqrt(2)/3 *  sinPhi * cosPhi * 3 ]).transpose()* cosOmegarT),
+                      np.array([1.0 / 3 /2*(1+cosPhi**2)*cos2Theta ]).transpose()* cos2OmegarT,
+                      np.array([np.sqrt(2)/3 *  sinPhi * sin2Theta]).transpose()* np.sin(omegar*t),
+                      np.array([cosPhi * sin2Theta/3]).transpose()* np.sin(2*omegar*t)]
+        arg = args + (NSTEPS, tresolution, angleStuff, weight, xax, data1D)
+        try:
+            fitVal = scipy.optimize.fmin(self.fitFunc, guess, args=arg, disp=False)
+        except:
+            fitVal = None
+        queue.put(fitVal)
 
     def checkInputs(self):
         inp = safeEval(self.deltaEntry.text())
@@ -3768,23 +3792,24 @@ class HerzfeldBergerParamFrame(QtGui.QWidget):
             outEta = float(self.etaEntry.text())
             argu.append(outEta)
             struc.append(False)
-        self.args = (struc, argu, self.parent.current.freq*np.pi*2)
-        theta, phi, self.weight = zcw_angles(self.cheng, symm=2) #Theta and phi switched as algorithm actually uses alpha and beta as input.
-        sinPhi = np.sin(phi)
-        cosPhi = np.cos(phi)
-        sin2Theta = np.sin(2*theta)
-        cos2Theta = np.cos(2*theta)
-        self.tresolution = 2*np.pi/omegar/self.NSTEPS
-        self.t = np.linspace(0, self.tresolution*(self.NSTEPS-1), self.NSTEPS)
-        cosOmegarT = np.cos(omegar*self.t)
-        cos2OmegarT = np.cos(2*omegar*self.t)
-        self.S1 = np.array([np.sqrt(2)/3 *  sinPhi * sin2Theta]).transpose()* np.sin(omegar*self.t)
-        self.S2 =  np.array([cosPhi * sin2Theta/3]).transpose()* np.sin(2*omegar*self.t)
-        self.C1 = np.array([np.sqrt(2)/3 *  sinPhi * cosPhi * 3 ]).transpose()* cosOmegarT
-        self.C1eta = np.transpose([cos2Theta / 3.0]) * self.C1
-        self.C2 = np.array([-1.0 / 3 *  3/2*sinPhi**2 ]).transpose()* cos2OmegarT
-        self.C2eta = np.array([1.0 / 3 /2*(1+cosPhi**2)*cos2Theta ]).transpose()* cos2OmegarT
-        fitVal = scipy.optimize.fmin(self.fitFunc, guess, args=(self.sidebandList, np.real(self.integralList)),disp=False)
+        args = (struc, argu, self.parent.current.freq*np.pi*2)
+        self.queue = multiprocessing.Queue()
+        self.process1 = multiprocessing.Process(target=self.mpFit, args=(self.parent.xax, np.real(self.integralList), guess, args, self.queue, self.NSTEPS, omegar, self.cheng))
+        self.process1.start()
+        self.running = True
+        self.stopButton.show()
+        while self.running:
+            if not self.queue.empty():
+                self.running = False
+            QtGui.qApp.processEvents()
+            time.sleep(0.1)
+        if self.queue is None:
+            return
+        fitVal = self.queue.get(timeout=2)
+        self.stopMP()
+        if fitVal is None:
+            self.rootwindow.mainProgram.dispMsg('Optimal parameters not found')
+            return
         counter = 0
         if struc[0]:
             self.deltaEntry.setText('%.3g' % (fitVal[counter]*1e6))
@@ -3794,8 +3819,19 @@ class HerzfeldBergerParamFrame(QtGui.QWidget):
             self.etaEntry.setText('%.3g' % fitVal[counter])
             outEta = fitVal[counter]
             counter += 1
-        self.disp(outDelta, outEta)
- 
+        self.disp(outDelta, outEta, self.NSTEPS, omegar, self.cheng)
+
+    def stopMP(self, *args):
+        if self.queue is not None:
+            self.process1.terminate()
+            self.queue.close()
+            self.queue.join_thread()
+            self.process1.join()
+        self.queue = None
+        self.process1 = None
+        self.running = False
+        self.stopButton.hide()
+        
     def sim(self):
         if len(self.integralList) < 2:
             self.rootwindow.mainProgram.dispMsg("Not enough integrals selected")
@@ -3807,22 +3843,30 @@ class HerzfeldBergerParamFrame(QtGui.QWidget):
         omegar = float(self.spinEntry.text())*1e3*np.pi*2
         outDelta = float(self.deltaEntry.text())*1e-6
         outEta = float(self.etaEntry.text())
-        theta, phi, self.weight = zcw_angles(self.cheng, symm=2) #Theta and phi switched as algorithm actually uses alpha and beta as input.
+        self.disp(outDelta, outEta, self.NSTEPS, omegar, self.cheng)
+
+    def disp(self, outDelta, outEta, NSTEPS, omegar, cheng):
+        theta, phi, weight = zcw_angles(cheng, symm=2) 
         sinPhi = np.sin(phi)
         cosPhi = np.cos(phi)
         sin2Theta = np.sin(2*theta)
         cos2Theta = np.cos(2*theta)
-        self.tresolution = 2*np.pi/omegar/self.NSTEPS
-        self.t = np.linspace(0, self.tresolution*(self.NSTEPS-1), self.NSTEPS)
-        cosOmegarT = np.cos(omegar*self.t)
-        cos2OmegarT = np.cos(2*omegar*self.t)
-        self.S1 = np.array([np.sqrt(2)/3 *  sinPhi * sin2Theta]).transpose()* np.sin(omegar*self.t)
-        self.S2 =  np.array([cosPhi * sin2Theta/3]).transpose()* np.sin(2*omegar*self.t)
-        self.C1 = np.array([np.sqrt(2)/3 *  sinPhi * cosPhi * 3 ]).transpose()* cosOmegarT
-        self.C1eta = np.transpose([cos2Theta / 3.0]) * self.C1
-        self.C2 = np.array([-1.0 / 3 *  3/2*sinPhi**2 ]).transpose()* cos2OmegarT
-        self.C2eta = np.array([1.0 / 3 /2*(1+cosPhi**2)*cos2Theta ]).transpose()* cos2OmegarT
-        self.disp(outDelta, outEta)
+        tresolution = 2*np.pi/omegar/NSTEPS
+        t = np.linspace(0, tresolution*(NSTEPS-1), NSTEPS)
+        cosOmegarT = np.cos(omegar*t)
+        cos2OmegarT = np.cos(2*omegar*t)
+        angleStuff = [np.array([np.sqrt(2)/3 *  sinPhi * cosPhi * 3 ]).transpose()* cosOmegarT,
+                      np.array([-1.0 / 3 *  3/2*sinPhi**2 ]).transpose()* cos2OmegarT,
+                      np.transpose([cos2Theta / 3.0]) * (np.array([np.sqrt(2)/3 *  sinPhi * cosPhi * 3 ]).transpose()* cosOmegarT),
+                      np.array([1.0 / 3 /2*(1+cosPhi**2)*cos2Theta ]).transpose()* cos2OmegarT,
+                      np.array([np.sqrt(2)/3 *  sinPhi * sin2Theta]).transpose()* np.sin(omegar*t),
+                      np.array([cosPhi * sin2Theta/3]).transpose()* np.sin(2*omegar*t)]
+        testFunc = self.hbFunc(self.parent.current.freq*np.pi*2, outDelta, outEta, NSTEPS, tresolution, angleStuff, weight)
+        results = testFunc[self.sidebandList]
+        results /= np.sum(results)
+        for i in range(len(self.resultLabels)):
+            self.resultLabels[i].setText('%#.5g' % (results[i]*np.sum(self.integralList)))
+        
   
 ##############################################################################
 class Quad1MASDeconvWindow(FittingWindow): 
@@ -3968,8 +4012,14 @@ class Quad1MASDeconvParamFrame(QtGui.QWidget):
         fitButton = QtGui.QPushButton("Fit")
         fitButton.clicked.connect(self.fit)
         self.frame1.addWidget(fitButton, 1, 0)
+        self.stopButton = QtGui.QPushButton("Stop")
+        self.stopButton.clicked.connect(self.stopMP)
+        self.frame1.addWidget(self.stopButton, 1, 0)
+        self.stopButton.hide()
+        self.process1 = None
+        self.queue = None
         cancelButton = QtGui.QPushButton("&Cancel")
-        cancelButton.clicked.connect(rootwindow.cancel)
+        cancelButton.clicked.connect(self.closeWindow)
         self.frame1.addWidget(cancelButton, 3, 0)
         resetButton = QtGui.QPushButton("Reset")
         resetButton.clicked.connect(self.reset)
@@ -4028,7 +4078,11 @@ class Quad1MASDeconvParamFrame(QtGui.QWidget):
         self.reset()
         grid.setColumnStretch(10, 1)
         grid.setAlignment(QtCore.Qt.AlignLeft)
-
+        
+    def closeWindow(self, *args):
+        self.stopMP()
+        self.rootwindow.cancel()
+        
     def reset(self):
         self.sidebandList = []
         self.integralList = []
@@ -4076,27 +4130,26 @@ class Quad1MASDeconvParamFrame(QtGui.QWidget):
             self.cheng = int(inp)
         self.chengEntry.setText(str(self.cheng))
 
-    def hbFunc(self, omega0, Cq, eta):
-        m=np.arange(-self.I,0) #Only half the transitions have to be caclulated, as the others are mirror images (sidebands inversed)
-        eff = self.I**2+self.I-m*(m+1) #The detection efficiencies of the top half transitions
-        splitting = np.arange(self.I-0.5,-0.1,-1) #The quadrupolar couplings of the top half transitions
-        nsteps = self.C1.shape[1]
+    def hbFunc(self, omega0, Cq, eta, I, NSTEPS, tresolution, angleStuff, weight):
+        m=np.arange(-I,0) #Only half the transitions have to be caclulated, as the others are mirror images (sidebands inversed)
+        eff = I**2+I-m*(m+1) #The detection efficiencies of the top half transitions
+        splitting = np.arange(I-0.5,-0.1,-1) #The quadrupolar couplings of the top half transitions
+        nsteps = angleStuff[0].shape[1]
         sidebands=np.zeros(nsteps)
-        
         for transition in range(len(eff)): #For all transitions
             if splitting[transition] != 0: #If quad coupling not zero: calculate sideban pattern
-                delta = splitting[transition]*2*np.pi*3/(2*self.I*(2*self.I-1))*Cq*1e6 #Calc delta based on Cq [MHz] and spin qunatum
-                omegars =  delta*(self.C1  + self.C2 +  eta*(self.C1eta + self.C2eta + self.S1 + self.S2 ))
+                delta = splitting[transition]*2*np.pi*3/(2*I*(2*I-1))*Cq*1e6 #Calc delta based on Cq [MHz] and spin qunatum
+                omegars =  delta*(angleStuff[0]  + angleStuff[1] +  eta*(angleStuff[2] + angleStuff[3] + angleStuff[4] + angleStuff[5] ))
                 #QTrs = np.exp(-1j*np.cumsum(omegars, axis=1)*self.tresolution)
                 
-                QTrs = np.concatenate([np.ones([self.C1.shape[0],1]),np.exp(-1j*np.cumsum(omegars, axis=1)*self.tresolution)[:,:-1]],1)
+                QTrs = np.concatenate([np.ones([angleStuff[0].shape[0],1]),np.exp(-1j*np.cumsum(omegars, axis=1)*tresolution)[:,:-1]],1)
                 for j in range(1,nsteps):
-                    QTrs[:,j] = np.exp(-1j*np.sum(omegars[:,0:j]*self.tresolution,1))
+                    QTrs[:,j] = np.exp(-1j*np.sum(omegars[:,0:j]*tresolution,1))
                 rhoT0sr = np.conj(QTrs)
                 #calculate the gamma-averaged FID over 1 rotor period for all crystallites
-                favrs = np.zeros(self.NSTEPS, dtype=complex)
-                for j in range(self.NSTEPS):
-                    favrs[j] += np.sum(self.weight * np.sum(rhoT0sr * np.roll(QTrs, -j, axis=1), 1) / self.NSTEPS**2)
+                favrs = np.zeros(NSTEPS, dtype=complex)
+                for j in range(NSTEPS):
+                    favrs[j] += np.sum(weight * np.sum(rhoT0sr * np.roll(QTrs, -j, axis=1), 1) / NSTEPS**2)
                 #calculate the sideband intensities by doing an FT and pick the ones that are needed further
                 partbands=np.real(np.fft.fft(favrs))
                 sidebands = sidebands + eff[transition]*(partbands+np.roll(np.flipud(partbands),1))
@@ -4104,10 +4157,7 @@ class Quad1MASDeconvParamFrame(QtGui.QWidget):
                 sidebands[0] =  sidebands[0] + eff[transition]
         return sidebands
                 
-    def fitFunc(self, param, x, y):
-        struc = self.args[0]
-        argu = self.args[1]
-        omega0 = self.args[2]
+    def fitFunc(self, param, struc, argu, omega0, I, NSTEPS, tresolution, angleStuff, weight, x, y):
         if struc[0]:
             delta = param[0]
             param = np.delete(param, [0])
@@ -4120,16 +4170,32 @@ class Quad1MASDeconvParamFrame(QtGui.QWidget):
         else:
             eta = argu[0]
             argu = np.delete(argu, [0])
-        testFunc = self.hbFunc(omega0, delta, eta)
-        testFunc = testFunc[np.array(x)]/np.sum(testFunc[x])*np.sum(self.integralList)
+        testFunc = self.hbFunc(omega0, delta, eta, I, NSTEPS, tresolution, angleStuff, weight)
+        testFunc = testFunc[np.array(x)]/np.sum(testFunc[x])*np.sum(y)
         return np.sum((testFunc-y)**2)
 
-    def disp(self, outDelta, outEta):
-        testFunc = self.hbFunc(self.parent.current.freq*np.pi*2, outDelta, outEta)
-        results =  testFunc[np.array(self.sidebandList)]
-        results /= np.sum(results)
-        for i in range(len(self.resultLabels)):
-            self.resultLabels[i].setText('%#.5g' % (results[i]*np.sum(self.integralList)))
+    def mpFit(self, xax, data1D, guess, args, queue, I, NSTEPS, omegar, cheng):
+        theta, phi, weight = zcw_angles(cheng, symm=2) 
+        sinPhi = np.sin(phi)
+        cosPhi = np.cos(phi)
+        sin2Theta = np.sin(2*theta)
+        cos2Theta = np.cos(2*theta)
+        tresolution = 2*np.pi/omegar/NSTEPS
+        t = np.linspace(0, tresolution*(NSTEPS-1), NSTEPS)
+        cosOmegarT = np.cos(omegar*t)
+        cos2OmegarT = np.cos(2*omegar*t)
+        angleStuff = [np.array([np.sqrt(2)/3 *  sinPhi * cosPhi * 3 ]).transpose()* cosOmegarT,
+                      np.array([-1.0 / 3 *  3/2*sinPhi**2 ]).transpose()* cos2OmegarT,
+                      np.transpose([cos2Theta / 3.0]) * (np.array([np.sqrt(2)/3 *  sinPhi * cosPhi * 3 ]).transpose()* cosOmegarT),
+                      np.array([1.0 / 3 /2*(1+cosPhi**2)*cos2Theta ]).transpose()* cos2OmegarT,
+                      np.array([np.sqrt(2)/3 *  sinPhi * sin2Theta]).transpose()* np.sin(omegar*t),
+                      np.array([cosPhi * sin2Theta/3]).transpose()* np.sin(2*omegar*t)]
+        arg = args + (I, NSTEPS, tresolution, angleStuff, weight, xax, data1D)
+        try:
+            fitVal = scipy.optimize.fmin(self.fitFunc, guess, args=arg, disp=False)
+        except:
+            fitVal = None
+        queue.put(fitVal)
 
     def checkInputs(self):
         inp = safeEval(self.deltaEntry.text())
@@ -4177,24 +4243,25 @@ class Quad1MASDeconvParamFrame(QtGui.QWidget):
             outEta = float(self.etaEntry.text())
             argu.append(outEta)
             struc.append(False)
-        self.I = self.Ivalues[self.IEntry.currentIndex()]
-        self.args = (struc, argu, self.parent.current.freq*np.pi*2)
-        theta, phi, self.weight = zcw_angles(self.cheng, symm=2) #Theta and phi switched as algorithm actually uses alpha and beta as input.
-        sinPhi = np.sin(phi)
-        cosPhi = np.cos(phi)
-        sin2Theta = np.sin(2*theta)
-        cos2Theta = np.cos(2*theta)
-        self.tresolution = 2*np.pi/omegar/self.NSTEPS
-        self.t = np.linspace(0, self.tresolution*(self.NSTEPS-1), self.NSTEPS)
-        cosOmegarT = np.cos(omegar*self.t)
-        cos2OmegarT = np.cos(2*omegar*self.t)
-        self.S1 = np.array([np.sqrt(2)/3 *  sinPhi * sin2Theta]).transpose()* np.sin(omegar*self.t)
-        self.S2 =  np.array([cosPhi * sin2Theta/3]).transpose()* np.sin(2*omegar*self.t)
-        self.C1 = np.array([np.sqrt(2)/3 *  sinPhi * cosPhi * 3 ]).transpose()* cosOmegarT
-        self.C1eta = np.transpose([cos2Theta / 3.0]) * self.C1
-        self.C2 = np.array([-1.0 / 3 *  3/2*sinPhi**2 ]).transpose()* cos2OmegarT
-        self.C2eta = np.array([1.0 / 3 /2*(1+cosPhi**2)*cos2Theta ]).transpose()* cos2OmegarT
-        fitVal = scipy.optimize.fmin(self.fitFunc, guess, args=(self.sidebandList, np.real(self.integralList)),disp=False)
+        I = self.Ivalues[self.IEntry.currentIndex()]
+        args = (struc, argu, self.parent.current.freq*np.pi*2)
+        self.queue = multiprocessing.Queue()
+        self.process1 = multiprocessing.Process(target=self.mpFit, args=(self.parent.xax, np.real(self.integralList), guess, args, self.queue, I, self.NSTEPS, omegar, self.cheng))
+        self.process1.start()
+        self.running = True
+        self.stopButton.show()
+        while self.running:
+            if not self.queue.empty():
+                self.running = False
+            QtGui.qApp.processEvents()
+            time.sleep(0.1)
+        if self.queue is None:
+            return
+        fitVal = self.queue.get(timeout=2)
+        self.stopMP()
+        if fitVal is None:
+            self.rootwindow.mainProgram.dispMsg('Optimal parameters not found')
+            return
         counter = 0
         if struc[0]:
             self.deltaEntry.setText('%.3g' % (fitVal[counter]))
@@ -4205,7 +4272,18 @@ class Quad1MASDeconvParamFrame(QtGui.QWidget):
             outEta = fitVal[counter]
             counter += 1
         self.disp(outDelta, outEta)
- 
+        
+    def stopMP(self, *args):
+        if self.queue is not None:
+            self.process1.terminate()
+            self.queue.close()
+            self.queue.join_thread()
+            self.process1.join()
+        self.queue = None
+        self.process1 = None
+        self.running = False
+        self.stopButton.hide()
+        
     def sim(self):
         if len(self.integralList) < 2:
             self.rootwindow.mainProgram.dispMsg("Not enough integrals selected")
@@ -4214,27 +4292,34 @@ class Quad1MASDeconvParamFrame(QtGui.QWidget):
         if not self.checkInputs():
             self.rootwindow.mainProgram.dispMsg("One of the inputs is not valid")
             return
-        self.I = self.Ivalues[self.IEntry.currentIndex()]
+        I = self.Ivalues[self.IEntry.currentIndex()]
         omegar = float(self.spinEntry.text())*1e3*np.pi*2
         outDelta = float(self.deltaEntry.text())
         outEta = float(self.etaEntry.text())
-        theta, phi, self.weight = zcw_angles(self.cheng, symm=2) #Theta and phi switched as algorithm actually uses alpha and beta as input.
+        self.disp(outDelta, outEta, I, self.NSTEPS, omegar, self.cheng)     
+
+    def disp(self, outDelta, outEta, I, NSTEPS, omegar, cheng):
+        theta, phi, weight = zcw_angles(cheng, symm=2) 
         sinPhi = np.sin(phi)
         cosPhi = np.cos(phi)
         sin2Theta = np.sin(2*theta)
         cos2Theta = np.cos(2*theta)
-        self.tresolution = 2*np.pi/omegar/self.NSTEPS
-        self.t = np.linspace(0, self.tresolution*(self.NSTEPS-1), self.NSTEPS)
-        cosOmegarT = np.cos(omegar*self.t)
-        cos2OmegarT = np.cos(2*omegar*self.t)
-        self.S1 = np.array([np.sqrt(2)/3 *  sinPhi * sin2Theta]).transpose()* np.sin(omegar*self.t)
-        self.S2 =  np.array([cosPhi * sin2Theta/3]).transpose()* np.sin(2*omegar*self.t)
-        self.C1 = np.array([np.sqrt(2)/3 *  sinPhi * cosPhi * 3 ]).transpose()* cosOmegarT
-        self.C1eta = np.transpose([cos2Theta / 3.0]) * self.C1
-        self.C2 = np.array([-1.0 / 3 *  3/2*sinPhi**2 ]).transpose()* cos2OmegarT
-        self.C2eta = np.array([1.0 / 3 /2*(1+cosPhi**2)*cos2Theta ]).transpose()* cos2OmegarT
-        self.disp(outDelta, outEta)     
-
+        tresolution = 2*np.pi/omegar/NSTEPS
+        t = np.linspace(0, tresolution*(NSTEPS-1), NSTEPS)
+        cosOmegarT = np.cos(omegar*t)
+        cos2OmegarT = np.cos(2*omegar*t)
+        angleStuff = [np.array([np.sqrt(2)/3 *  sinPhi * cosPhi * 3 ]).transpose()* cosOmegarT,
+                      np.array([-1.0 / 3 *  3/2*sinPhi**2 ]).transpose()* cos2OmegarT,
+                      np.transpose([cos2Theta / 3.0]) * (np.array([np.sqrt(2)/3 *  sinPhi * cosPhi * 3 ]).transpose()* cosOmegarT),
+                      np.array([1.0 / 3 /2*(1+cosPhi**2)*cos2Theta ]).transpose()* cos2OmegarT,
+                      np.array([np.sqrt(2)/3 *  sinPhi * sin2Theta]).transpose()* np.sin(omegar*t),
+                      np.array([cosPhi * sin2Theta/3]).transpose()* np.sin(2*omegar*t)]
+        testFunc = self.hbFunc(self.parent.current.freq*np.pi*2, outDelta, outEta, I, NSTEPS, tresolution, angleStuff, weight)
+        results =  testFunc[np.array(self.sidebandList)]
+        results /= np.sum(results)
+        for i in range(len(self.resultLabels)):
+            self.resultLabels[i].setText('%#.5g' % (results[i]*np.sum(self.integralList)))
+        
 ##############################################################################
 class Quad1DeconvWindow(FittingWindow): 
     def __init__(self, mainProgram, oldMainWindow):
