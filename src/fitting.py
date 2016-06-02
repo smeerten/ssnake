@@ -2,20 +2,20 @@
 
 # Copyright 2016 Bas van Meerten and Wouter Franssen
 
-#This file is part of ssNake.
+# This file is part of ssNake.
 #
-#ssNake is free software: you can redistribute it and/or modify
-#it under the terms of the GNU General Public License as published by
-#the Free Software Foundation, either version 3 of the License, or
-#(at your option) any later version.
+# ssNake is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
 #
-#ssNake is distributed in the hope that it will be useful,
-#but WITHOUT ANY WARRANTY; without even the implied warranty of
-#MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-#GNU General Public License for more details.
+# ssNake is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
 #
-#You should have received a copy of the GNU General Public License
-#along with ssNake. If not, see <http://www.gnu.org/licenses/>.
+# You should have received a copy of the GNU General Public License
+# along with ssNake. If not, see <http://www.gnu.org/licenses/>.
 
 import numpy as np
 from PyQt4 import QtGui, QtCore
@@ -23,20 +23,23 @@ from matplotlib.figure import Figure
 from matplotlib.backends.backend_qt4agg import FigureCanvasQTAgg as FigureCanvas
 import scipy.optimize
 import multiprocessing
-import os.path
 import copy
-from safeEval import *
+import spectrum_classes
+from safeEval import safeEval
 from spectrumFrame import Plot1DFrame
-from zcw import *
-from widgetClasses import *
+from zcw import zcw_angles
+from widgetClasses import QLabel
 
 import time
 
 pi = np.pi
 
 ##############################################################################
+
+
 class FittingWindow(QtGui.QWidget):
-    #Inherited by the fitting windows
+    # Inherited by the fitting windows
+
     def __init__(self, mainProgram, oldMainWindow):
         QtGui.QWidget.__init__(self, mainProgram)
         self.mainProgram = mainProgram
@@ -51,26 +54,40 @@ class FittingWindow(QtGui.QWidget):
         grid.setColumnStretch(0, 1)
         grid.setRowStretch(0, 1)
         self.grid = grid
-        self.canvas.mpl_connect('button_press_event', self.buttonPress)      
+        self.canvas.mpl_connect('button_press_event', self.buttonPress)
         self.canvas.mpl_connect('button_release_event', self.buttonRelease)
         self.canvas.mpl_connect('motion_notify_event', self.pan)
         self.canvas.mpl_connect('scroll_event', self.scroll)
 
     def setup(self):
         pass
-        
+
     def createNewData(self, data, axes, store=False):
         masterData = self.get_masterData()
         if store:
-            self.mainProgram.dataFromFit(data, [masterData.freq[axes], masterData.freq[axes]], [masterData.sw[axes], masterData.sw[axes]] , [False, masterData.spec[axes]], [False, masterData.wholeEcho[axes]], [None, masterData.ref[axes]], [np.arange(len(data)), masterData.xaxArray[axes]], axes)
+            self.mainProgram.dataFromFit(data,
+                                         [masterData.freq[axes], masterData.freq[axes]],
+                                         [masterData.sw[axes], masterData.sw[axes]],
+                                         [False, masterData.spec[axes]],
+                                         [False, masterData.wholeEcho[axes]],
+                                         [None, masterData.ref[axes]],
+                                         [np.arange(len(data)), masterData.xaxArray[axes]],
+                                         axes)
         else:
-            self.mainProgram.dataFromFit(data, copy.deepcopy(masterData.freq), copy.deepcopy(masterData.sw) , copy.deepcopy(masterData.spec), copy.deepcopy(masterData.wholeEcho), copy.deepcopy(masterData.ref), copy.deepcopy(masterData.xaxArray), axes)
-        
+            self.mainProgram.dataFromFit(data,
+                                         copy.deepcopy(masterData.freq),
+                                         copy.deepcopy(masterData.sw),
+                                         copy.deepcopy(masterData.spec),
+                                         copy.deepcopy(masterData.wholeEcho),
+                                         copy.deepcopy(masterData.ref),
+                                         copy.deepcopy(masterData.xaxArray),
+                                         axes)
+
     def rename(self, name):
         self.fig.suptitle(name)
         self.canvas.draw()
         self.oldMainWindow.rename(name)
-        
+
     def buttonPress(self, event):
         self.current.buttonPress(event)
 
@@ -82,18 +99,18 @@ class FittingWindow(QtGui.QWidget):
 
     def scroll(self, event):
         self.current.scroll(event)
-        
+
     def get_mainWindow(self):
         return self.oldMainWindow
-        
+
     def get_masterData(self):
         return self.oldMainWindow.get_masterData()
-    
+
     def get_current(self):
         return self.oldMainWindow.get_current()
-        
+
     def kill(self):
-        for i in reversed(range(self.grid.count())): 
+        for i in reversed(range(self.grid.count())):
             self.grid.itemAt(i).widget().deleteLater()
         self.grid.deleteLater()
         self.current.kill()
@@ -103,9 +120,9 @@ class FittingWindow(QtGui.QWidget):
         del self.fig
         del self.canvas
         self.deleteLater()
-        
+
     def cancel(self):
-        for i in reversed(range(self.grid.count())): 
+        for i in reversed(range(self.grid.count())):
             self.grid.itemAt(i).widget().deleteLater()
         self.grid.deleteLater()
         del self.current
@@ -116,16 +133,22 @@ class FittingWindow(QtGui.QWidget):
         self.deleteLater()
 
 ##############################################################################
-class IntegralsWindow(FittingWindow): 
+
+
+class IntegralsWindow(FittingWindow):
+
     def __init__(self, mainProgram, oldMainWindow):
         FittingWindow.__init__(self, mainProgram, oldMainWindow)
 
     def setup(self):
         self.current = IntegralsFrame(self, self.fig, self.canvas, self.oldMainWindow.current)
         self.paramframe = IntegralsParamFrame(self.current, self)
-        
-#################################################################################   
-class IntegralsFrame(Plot1DFrame): 
+
+#################################################################################
+
+
+class IntegralsFrame(Plot1DFrame):
+
     def __init__(self, rootwindow, fig, canvas, current):
         Plot1DFrame.__init__(self, rootwindow, fig, canvas)
         self.data1D = current.getDisplayedData()
@@ -138,8 +161,8 @@ class IntegralsFrame(Plot1DFrame):
         self.pickWidth = False
         self.plotReset()
         self.showPlot()
-        
-    def plotReset(self): 
+
+    def plotReset(self):
         a = self.fig.gca()
         if self.plotType == 0:
             miny = min(np.real(self.data1D))
@@ -156,41 +179,41 @@ class IntegralsFrame(Plot1DFrame):
         else:
             miny = -1
             maxy = 1
-        differ = 0.05*(maxy-miny) 
-        self.yminlim = miny-differ
-        self.ymaxlim = maxy+differ
+        differ = 0.05 * (maxy - miny)
+        self.yminlim = miny - differ
+        self.ymaxlim = maxy + differ
         if self.spec == 1:
             if self.current.ppm:
-                axMult = 1e6/self.current.ref
+                axMult = 1e6 / self.current.ref
             else:
-                axMult = 1.0/(1000.0**self.current.axType)
+                axMult = 1.0 / (1000.0**self.current.axType)
         elif self.spec == 0:
             axMult = 1000.0**self.current.axType
-        self.xminlim = min(self.xax*axMult)
-        self.xmaxlim = max(self.xax*axMult)
-        if self.spec > 0 :
+        self.xminlim = min(self.xax * axMult)
+        self.xmaxlim = max(self.xax * axMult)
+        if self.spec > 0:
             a.set_xlim(self.xmaxlim, self.xminlim)
         else:
             a.set_xlim(self.xminlim, self.xmaxlim)
         a.set_ylim(self.yminlim, self.ymaxlim)
-        
-    def showPlot(self, tmpAx=None, tmpdata=None, tmpAx2=[], tmpdata2=[]): 
+
+    def showPlot(self, tmpAx=None, tmpdata=None, tmpAx2=[], tmpdata2=[]):
         a = self.fig.gca()
         a.cla()
         if self.spec == 1:
             if self.current.ppm:
-                axMult = 1e6/self.current.ref
+                axMult = 1e6 / self.current.ref
             else:
-                axMult = 1.0/(1000.0**self.current.axType)
+                axMult = 1.0 / (1000.0**self.current.axType)
         elif self.spec == 0:
             axMult = 1000.0**self.current.axType
-        self.line_xdata = self.xax*axMult
+        self.line_xdata = self.xax * axMult
         self.line_ydata = self.data1D
-        a.plot(self.xax*axMult, self.data1D, c=self.current.color, linewidth=self.current.linewidth, label=self.current.data.name)
+        a.plot(self.xax * axMult, self.data1D, c=self.current.color, linewidth=self.current.linewidth, label=self.current.data.name)
         if tmpAx is not None:
-            a.plot(tmpAx*axMult, tmpdata, c='g')
+            a.plot(tmpAx * axMult, tmpdata, c='g')
         for i in range(len(tmpAx2)):
-            a.plot(tmpAx2[i]*axMult, tmpdata2[i])
+            a.plot(tmpAx2[i] * axMult, tmpdata2[i])
         if self.spec == 0:
             if self.current.axType == 0:
                 a.set_xlabel('Time [s]')
@@ -216,7 +239,7 @@ class IntegralsFrame(Plot1DFrame):
             a.set_xlabel('')
         a.get_xaxis().get_major_formatter().set_powerlimits((-4, 4))
         a.get_yaxis().get_major_formatter().set_powerlimits((-4, 4))
-        if self.spec > 0 :
+        if self.spec > 0:
             a.set_xlim(self.xmaxlim, self.xminlim)
         else:
             a.set_xlim(self.xminlim, self.xmaxlim)
@@ -226,19 +249,22 @@ class IntegralsFrame(Plot1DFrame):
     def togglePick(self, var):
         self.peakPickReset()
         if var == 1:
-            self.peakPickFunc = lambda pos, self=self: self.pickDeconv(pos) 
+            self.peakPickFunc = lambda pos, self=self: self.pickDeconv(pos)
             self.peakPick = True
         else:
             self.peakPickFunc = None
             self.peakPick = False
-        
+
     def pickDeconv(self, pos):
         self.rootwindow.paramframe.addValue(pos[1])
-        self.peakPickFunc = lambda pos, self=self: self.pickDeconv(pos) 
-        self.peakPick = True 
+        self.peakPickFunc = lambda pos, self=self: self.pickDeconv(pos)
+        self.peakPick = True
 
 #################################################################################
-class IntegralsParamFrame(QtGui.QWidget): 
+
+
+class IntegralsParamFrame(QtGui.QWidget):
+
     def __init__(self, parent, rootwindow):
         QtGui.QWidget.__init__(self, rootwindow)
         self.parent = parent
@@ -276,17 +302,17 @@ class IntegralsParamFrame(QtGui.QWidget):
         self.frame3.setAlignment(QtCore.Qt.AlignTop)
         if self.parent.spec == 1:
             if self.parent.current.ppm:
-                axMult = 1e6/self.parent.current.ref
+                axMult = 1e6 / self.parent.current.ref
             else:
-                axMult = 1.0/(1000.0**self.parent.current.axType)
+                axMult = 1.0 / (1000.0**self.parent.current.axType)
         elif self.parent.spec == 0:
             axMult = 1000.0**self.parent.current.axType
         self.xax = self.parent.current.xax * axMult
         self.integralIter = 0
         self.refVal = None
-        self.minValues = np.array([min(self.xax)]) #dummy variables
-        self.maxValues = np.array([max(self.xax)]) #dummy variables
-        self.intValues = np.array([1.0]) #dummy variables
+        self.minValues = np.array([min(self.xax)])  # dummy variables
+        self.maxValues = np.array([max(self.xax)])  # dummy variables
+        self.intValues = np.array([1.0])  # dummy variables
         self.minEntries = []
         self.maxEntries = []
         self.intEntries = []
@@ -325,9 +351,9 @@ class IntegralsParamFrame(QtGui.QWidget):
         self.reset()
         grid.setColumnStretch(10, 1)
         grid.setAlignment(QtCore.Qt.AlignLeft)
-        
+
     def reset(self):
-        for i in range(self.integralIter+1):
+        for i in range(self.integralIter + 1):
             self.deleteEntry(num=0, reset=True)
         self.refVal = None
         self.pickTick.setChecked(True)
@@ -352,18 +378,18 @@ class IntegralsParamFrame(QtGui.QWidget):
             self.minEntries.append(QtGui.QLineEdit())
             self.minEntries[self.integralIter].setAlignment(QtCore.Qt.AlignHCenter)
             self.minEntries[self.integralIter].editingFinished.connect(lambda self=self, tmp=self.minEntries[self.integralIter]: self.setVal(tmp, True))
-            self.frame3.addWidget(self.minEntries[self.integralIter], 2+self.entryCount, 0)
+            self.frame3.addWidget(self.minEntries[self.integralIter], 2 + self.entryCount, 0)
             self.maxEntries.append(QtGui.QLineEdit())
             self.maxEntries[self.integralIter].setAlignment(QtCore.Qt.AlignHCenter)
             self.maxEntries[self.integralIter].editingFinished.connect(lambda self=self, tmp=self.maxEntries[self.integralIter]: self.setVal(tmp, False))
-            self.frame3.addWidget(self.maxEntries[self.integralIter], 2+self.entryCount, 1)
+            self.frame3.addWidget(self.maxEntries[self.integralIter], 2 + self.entryCount, 1)
             self.intEntries.append(QtGui.QLineEdit())
             self.intEntries[self.integralIter].setAlignment(QtCore.Qt.AlignHCenter)
             self.intEntries[self.integralIter].editingFinished.connect(lambda self=self, tmp=self.intEntries[self.integralIter]: self.setRef(tmp))
-            self.frame3.addWidget(self.intEntries[self.integralIter], 2+self.entryCount, 2)
+            self.frame3.addWidget(self.intEntries[self.integralIter], 2 + self.entryCount, 2)
             self.deleteButtons.append(QtGui.QPushButton("X"))
             self.deleteButtons[self.integralIter].clicked.connect(lambda extra, self=self, tmp=self.deleteButtons[self.integralIter]: self.deleteEntry(tmp))
-            self.frame3.addWidget(self.deleteButtons[self.integralIter], 2+self.entryCount, 3)
+            self.frame3.addWidget(self.deleteButtons[self.integralIter], 2 + self.entryCount, 3)
             self.entryCount += 1
             self.first = True
             self.fit()
@@ -397,7 +423,7 @@ class IntegralsParamFrame(QtGui.QWidget):
         self.integralIter -= 1
         if not reset:
             self.fit()
-            
+
     def togglePick(self):
         self.parent.togglePick(self.pickTick.isChecked())
 
@@ -409,7 +435,7 @@ class IntegralsParamFrame(QtGui.QWidget):
         if inp < min(self.xax):
             inp = min(self.xax)
         if inp > max(self.xax):
-            inp = max(self.xax) 
+            inp = max(self.xax)
         if isMin:
             num = self.minEntries.index(entry)
             self.minValues[num] = min(inp, self.maxValues[num])
@@ -426,43 +452,43 @@ class IntegralsParamFrame(QtGui.QWidget):
             self.minEntries.append(QtGui.QLineEdit())
             self.minEntries[self.integralIter].setAlignment(QtCore.Qt.AlignHCenter)
             self.minEntries[self.integralIter].editingFinished.connect(lambda self=self, tmp=self.minEntries[self.integralIter]: self.setVal(tmp, True))
-            self.frame3.addWidget(self.minEntries[self.integralIter], 2+self.entryCount, 0)
+            self.frame3.addWidget(self.minEntries[self.integralIter], 2 + self.entryCount, 0)
             self.maxEntries.append(QtGui.QLineEdit())
             self.maxEntries[self.integralIter].setAlignment(QtCore.Qt.AlignHCenter)
             self.maxEntries[self.integralIter].editingFinished.connect(lambda self=self, tmp=self.maxEntries[self.integralIter]: self.setVal(tmp, False))
-            self.frame3.addWidget(self.maxEntries[self.integralIter], 2+self.entryCount, 1)
+            self.frame3.addWidget(self.maxEntries[self.integralIter], 2 + self.entryCount, 1)
             self.intEntries.append(QtGui.QLineEdit())
             self.intEntries[self.integralIter].setAlignment(QtCore.Qt.AlignHCenter)
             self.intEntries[self.integralIter].editingFinished.connect(lambda self=self, tmp=self.intEntries[self.integralIter]: self.setRef(tmp))
-            self.frame3.addWidget(self.intEntries[self.integralIter], 2+self.entryCount, 2)
+            self.frame3.addWidget(self.intEntries[self.integralIter], 2 + self.entryCount, 2)
             self.deleteButtons.append(QtGui.QPushButton("X"))
             self.deleteButtons[self.integralIter].clicked.connect(lambda extra, self=self, tmp=self.deleteButtons[self.integralIter]: self.deleteEntry(tmp))
-            self.frame3.addWidget(self.deleteButtons[self.integralIter], 2+self.entryCount, 3)
+            self.frame3.addWidget(self.deleteButtons[self.integralIter], 2 + self.entryCount, 3)
             self.entryCount += 1
             self.first = True
-        self.minEntries[num].setText("%#.3g" %self.minValues[num])
-        self.maxEntries[num].setText("%#.3g" %self.maxValues[num])
+        self.minEntries[num].setText("%#.3g" % self.minValues[num])
+        self.maxEntries[num].setText("%#.3g" % self.maxValues[num])
         self.fit()
-            
+
     def setRef(self, entry):
         num = self.intEntries.index(entry)
         inp = safeEval(entry.text())
         if inp is None:
             self.rootwindow.mainProgram.dispMsg("One of the inputs is not valid")
             return
-        self.refVal =  self.intValues[num] / float(inp)
+        self.refVal = self.intValues[num] / float(inp)
         self.fit()
-    
+
     def displayInt(self):
         if self.refVal is None:
             self.refVal = self.intValues[0]
         if self.absIntTick.isChecked():
-            tmpInts = self.intValues/float(self.refVal)
+            tmpInts = self.intValues / float(self.refVal)
         else:
             tmpInts = self.intValues
         for i in range(self.integralIter):
             self.intEntries[i].setText("%#.3g" % tmpInts[i])
-    
+
     def fit(self, *args):
         x = []
         y = []
@@ -470,16 +496,16 @@ class IntegralsParamFrame(QtGui.QWidget):
             self.parent.showPlot()
             return
         for i in range(self.integralIter):
-            tmpx = self.parent.current.xax[(self.minValues[i]<self.xax)&(self.maxValues[i]>self.xax)]
+            tmpx = self.parent.current.xax[(self.minValues[i] < self.xax) & (self.maxValues[i] > self.xax)]
             if self.parent.current.plotType == 0:
-                tmpy = np.real(self.parent.current.data1D[(self.minValues[i]<self.xax)&(self.maxValues[i]>self.xax)])
+                tmpy = np.real(self.parent.current.data1D[(self.minValues[i] < self.xax) & (self.maxValues[i] > self.xax)])
             elif self.parent.current.plotType == 1:
-                tmpy = np.imag(self.parent.current.data1D[(self.minValues[i]<self.xax)&(self.maxValues[i]>self.xax)])
+                tmpy = np.imag(self.parent.current.data1D[(self.minValues[i] < self.xax) & (self.maxValues[i] > self.xax)])
             elif self.parent.current.plotType == 2:
-                tmpy = np.real(self.parent.current.data1D[(self.minValues[i]<self.xax)&(self.maxValues[i]>self.xax)])
+                tmpy = np.real(self.parent.current.data1D[(self.minValues[i] < self.xax) & (self.maxValues[i] > self.xax)])
             elif self.parent.current.plotType == 3:
-                tmpy = np.abs(self.parent.current.data1D[(self.minValues[i]<self.xax)&(self.maxValues[i]>self.xax)])
-            self.intValues[i] = np.sum(tmpy)*self.parent.current.sw/float(self.parent.current.data1D.shape[-1])
+                tmpy = np.abs(self.parent.current.data1D[(self.minValues[i] < self.xax) & (self.maxValues[i] > self.xax)])
+            self.intValues[i] = np.sum(tmpy) * self.parent.current.sw / float(self.parent.current.data1D.shape[-1])
             if self.parent.spec == 1:
                 x = np.append(x, tmpx[::-1])
                 y = np.append(y, np.cumsum(tmpy[::-1]))
@@ -489,20 +515,26 @@ class IntegralsParamFrame(QtGui.QWidget):
             x = np.append(x, float('nan'))
             y = np.append(y, float('nan'))
         self.displayInt()
-        y = y / (max(y)-min(y)) * self.diffy
+        y = y / (max(y) - min(y)) * self.diffy
         self.parent.showPlot(x, y)
-        
+
 ##############################################################################
-class RelaxWindow(FittingWindow): 
+
+
+class RelaxWindow(FittingWindow):
+
     def __init__(self, mainProgram, oldMainWindow):
         FittingWindow.__init__(self, mainProgram, oldMainWindow)
 
     def setup(self):
         self.current = RelaxFrame(self, self.fig, self.canvas, self.oldMainWindow.current)
         self.paramframe = RelaxParamFrame(self.current, self)
-        
-#################################################################################   
-class RelaxFrame(Plot1DFrame): 
+
+#################################################################################
+
+
+class RelaxFrame(Plot1DFrame):
+
     def __init__(self, rootwindow, fig, canvas, current):
         self.ref = current.ref
         self.axType = current.axType
@@ -518,7 +550,7 @@ class RelaxFrame(Plot1DFrame):
         self.plotReset()
         self.showPlot()
 
-    def plotReset(self): 
+    def plotReset(self):
         if self.plotType == 0:
             miny = min(np.real(self.data1D))
             maxy = max(np.real(self.data1D))
@@ -534,41 +566,41 @@ class RelaxFrame(Plot1DFrame):
         else:
             miny = -1
             maxy = 1
-        differ = 0.05*(maxy-miny) 
-        self.yminlim = miny-differ
-        self.ymaxlim = maxy+differ
+        differ = 0.05 * (maxy - miny)
+        self.yminlim = miny - differ
+        self.ymaxlim = maxy + differ
         if self.spec == 1:
             if self.ppm:
-                axMult = 1e6/self.ref
+                axMult = 1e6 / self.ref
             else:
-                axMult = 1.0/(1000.0**self.axType)
+                axMult = 1.0 / (1000.0**self.axType)
         elif self.spec == 0:
             axMult = 1000.0**self.axType
-        self.xminlim = min(self.xax*axMult)
-        self.xmaxlim = max(self.xax*axMult)
+        self.xminlim = min(self.xax * axMult)
+        self.xmaxlim = max(self.xax * axMult)
         self.ax.set_xlim(self.xminlim, self.xmaxlim)
         self.ax.set_ylim(self.yminlim, self.ymaxlim)
 
-    def showPlot(self, tmpAx=None, tmpdata=None): 
+    def showPlot(self, tmpAx=None, tmpdata=None):
         self.ax.cla()
         if self.spec == 1:
             if self.ppm:
-                axMult = 1e6/self.ref
+                axMult = 1e6 / self.ref
             else:
-                axMult = 1.0/(1000.0**self.axType)
+                axMult = 1.0 / (1000.0**self.axType)
         elif self.spec == 0:
             axMult = 1000.0**self.axType
         if tmpAx is not None:
-            self.ax.plot(tmpAx*axMult, tmpdata, c=self.current.color, linewidth=self.current.linewidth, label=self.current.data.name)
-        self.ax.scatter(self.xax*axMult, self.data1D, c=self.current.color, linewidth=self.current.linewidth, label=self.current.data.name)
+            self.ax.plot(tmpAx * axMult, tmpdata, c=self.current.color, linewidth=self.current.linewidth, label=self.current.data.name)
+        self.ax.scatter(self.xax * axMult, self.data1D, c=self.current.color, linewidth=self.current.linewidth, label=self.current.data.name)
         if self.logx == 0:
             self.ax.set_xscale('linear')
         else:
-           self.ax.set_xscale('log')
+            self.ax.set_xscale('log')
         if self.logy == 0:
             self.ax.set_yscale('linear')
         else:
-           self.ax.set_yscale('log') 
+            self.ax.set_yscale('log')
         if self.spec == 0:
             if self.current.axType == 0:
                 self.ax.set_xlabel('Time [s]')
@@ -599,52 +631,52 @@ class RelaxFrame(Plot1DFrame):
         if self.logy == 0:
             self.ax.get_yaxis().get_major_formatter().set_powerlimits((-4, 4))
         self.canvas.draw()
-        
+
     def scroll(self, event):
         if self.rightMouse:
             if self.logx == 0:
-                middle = (self.xmaxlim+self.xminlim)/2.0
-                width = self.xmaxlim-self.xminlim
-                width = width*0.9**event.step
-                self.xmaxlim = middle+width/2.0
-                self.xminlim = middle-width/2.0
+                middle = (self.xmaxlim + self.xminlim) / 2.0
+                width = self.xmaxlim - self.xminlim
+                width = width * 0.9**event.step
+                self.xmaxlim = middle + width / 2.0
+                self.xminlim = middle - width / 2.0
                 if self.spec > 0 and not isinstance(self, spectrum_classes.CurrentArrayed):
                     self.ax.set_xlim(self.xmaxlim, self.xminlim)
                 else:
                     self.ax.set_xlim(self.xminlim, self.xmaxlim)
             else:
-                middle = (np.log(self.xmaxlim)+np.log(self.xminlim))/2.0
-                width = np.log(self.xmaxlim)-np.log(self.xminlim)
-                width = width*0.9**event.step
-                self.xmaxlim = np.exp(middle+width/2.0)
-                self.xminlim = np.exp(middle-width/2.0)
+                middle = (np.log(self.xmaxlim) + np.log(self.xminlim)) / 2.0
+                width = np.log(self.xmaxlim) - np.log(self.xminlim)
+                width = width * 0.9**event.step
+                self.xmaxlim = np.exp(middle + width / 2.0)
+                self.xminlim = np.exp(middle - width / 2.0)
                 if self.spec > 0 and not isinstance(self, spectrum_classes.CurrentArrayed):
                     self.ax.set_xlim(self.xmaxlim, self.xminlim)
                 else:
                     self.ax.set_xlim(self.xminlim, self.xmaxlim)
         else:
             if self.logy == 0:
-                middle = (self.ymaxlim+self.yminlim)/2.0
-                width = self.ymaxlim-self.yminlim
-                width = width*0.9**event.step
-                self.ymaxlim = middle+width/2.0
-                self.yminlim = middle-width/2.0
+                middle = (self.ymaxlim + self.yminlim) / 2.0
+                width = self.ymaxlim - self.yminlim
+                width = width * 0.9**event.step
+                self.ymaxlim = middle + width / 2.0
+                self.yminlim = middle - width / 2.0
                 if self.spec2 > 0 and isinstance(self, spectrum_classes.CurrentContour):
                     self.ax.set_ylim(self.ymaxlim, self.yminlim)
                 else:
                     self.ax.set_ylim(self.yminlim, self.ymaxlim)
             else:
-                middle = (np.log(self.ymaxlim)+np.log(self.yminlim))/2.0
-                width = np.log(self.ymaxlim)-np.log(self.yminlim)
-                width = width*0.9**event.step
-                self.ymaxlim = np.exp(middle+width/2.0)
-                self.yminlim = np.exp(middle-width/2.0)
+                middle = (np.log(self.ymaxlim) + np.log(self.yminlim)) / 2.0
+                width = np.log(self.ymaxlim) - np.log(self.yminlim)
+                width = width * 0.9**event.step
+                self.ymaxlim = np.exp(middle + width / 2.0)
+                self.yminlim = np.exp(middle - width / 2.0)
                 if self.spec2 > 0 and isinstance(self, spectrum_classes.CurrentContour):
                     self.ax.set_ylim(self.ymaxlim, self.yminlim)
                 else:
                     self.ax.set_ylim(self.yminlim, self.ymaxlim)
         self.canvas.draw()
-        
+
     def buttonRelease(self, event):
         if event.button == 1:
             if self.peakPick:
@@ -652,10 +684,10 @@ class RelaxFrame(Plot1DFrame):
                     self.rect[0].remove()
                     self.rect[0] = None
                     self.peakPick = False
-                    idx = np.argmin(np.abs(self.line_xdata-event.xdata))
+                    idx = np.argmin(np.abs(self.line_xdata - event.xdata))
                     if self.peakPickFunc is not None:
                         self.peakPickFunc((idx, self.line_xdata[idx], self.line_ydata[idx]))
-                    if not self.peakPick: #check if peakpicking is still required
+                    if not self.peakPick:  # check if peakpicking is still required
                         self.peakPickFunc = None
             else:
                 self.leftMouse = False
@@ -682,9 +714,9 @@ class RelaxFrame(Plot1DFrame):
                     else:
                         self.ax.set_ylim(self.yminlim, self.ymaxlim)
                 self.zoomX1 = None
-                self.zoomX2 = None 
+                self.zoomX2 = None
                 self.zoomY1 = None
-                self.zoomY2 = None 
+                self.zoomY2 = None
         elif event.button == 3:
             self.rightMouse = False
         self.canvas.draw()
@@ -702,21 +734,21 @@ class RelaxFrame(Plot1DFrame):
                 if x is None or y is None:
                     return
             if self.logx == 0:
-                diffx = x-self.panX
-                self.xmaxlim = self.xmaxlim-diffx
-                self.xminlim = self.xminlim-diffx
+                diffx = x - self.panX
+                self.xmaxlim = self.xmaxlim - diffx
+                self.xminlim = self.xminlim - diffx
             else:
-                diffx = np.log(x)-np.log(self.panX)
-                self.xmaxlim = np.exp(np.log(self.xmaxlim)-diffx)
-                self.xminlim = np.exp(np.log(self.xminlim)-diffx)
+                diffx = np.log(x) - np.log(self.panX)
+                self.xmaxlim = np.exp(np.log(self.xmaxlim) - diffx)
+                self.xminlim = np.exp(np.log(self.xminlim) - diffx)
             if self.logy == 0:
-                diffy = y-self.panY
-                self.ymaxlim = self.ymaxlim-diffy
-                self.yminlim = self.yminlim-diffy
+                diffy = y - self.panY
+                self.ymaxlim = self.ymaxlim - diffy
+                self.yminlim = self.yminlim - diffy
             else:
-                diffy = np.log(y)-np.log(self.panY)
-                self.ymaxlim = np.exp(np.log(self.ymaxlim)-diffy)
-                self.yminlim = np.exp(np.log(self.yminlim)-diffy)
+                diffy = np.log(y) - np.log(self.panY)
+                self.ymaxlim = np.exp(np.log(self.ymaxlim) - diffy)
+                self.yminlim = np.exp(np.log(self.yminlim) - diffy)
             if self.spec > 0 and not isinstance(self, spectrum_classes.CurrentArrayed):
                 self.ax.set_xlim(self.xmaxlim, self.xminlim)
             else:
@@ -754,29 +786,32 @@ class RelaxFrame(Plot1DFrame):
                 if self.rect[3] is not None:
                     self.rect[3].remove()
                 self.rect = [None, None, None, None]
-            self.rect[0], = self.ax.plot([self.zoomX1, self.zoomX2], [self.zoomY2, self.zoomY2], 'k', clip_on= False)
+            self.rect[0], = self.ax.plot([self.zoomX1, self.zoomX2], [self.zoomY2, self.zoomY2], 'k', clip_on=False)
             self.rect[1], = self.ax.plot([self.zoomX1, self.zoomX2], [self.zoomY1, self.zoomY1], 'k', clip_on=False)
             self.rect[2], = self.ax.plot([self.zoomX1, self.zoomX1], [self.zoomY1, self.zoomY2], 'k', clip_on=False)
             self.rect[3], = self.ax.plot([self.zoomX2, self.zoomX2], [self.zoomY1, self.zoomY2], 'k', clip_on=False)
             self.canvas.draw()
-            
+
     def setLog(self, logx, logy):
         self.logx = logx
         self.logy = logy
         if self.logx == 0:
             self.ax.set_xscale('linear')
         else:
-           self.ax.set_xscale('log')
+            self.ax.set_xscale('log')
         if self.logy == 0:
             self.ax.set_yscale('linear')
         else:
-           self.ax.set_yscale('log') 
+            self.ax.set_yscale('log')
         self.ax.set_xlim(self.xminlim, self.xmaxlim)
         self.ax.set_ylim(self.yminlim, self.ymaxlim)
         self.canvas.draw()
 
 #################################################################################
-class RelaxParamFrame(QtGui.QWidget): 
+
+
+class RelaxParamFrame(QtGui.QWidget):
+
     def __init__(self, parent, rootwindow):
         QtGui.QWidget.__init__(self, rootwindow)
         self.parent = parent
@@ -854,17 +889,17 @@ class RelaxParamFrame(QtGui.QWidget):
         self.t1Entries = []
         for i in range(4):
             self.coeffTicks.append(QtGui.QCheckBox(''))
-            self.frame3.addWidget(self.coeffTicks[i], i+2, 0)
+            self.frame3.addWidget(self.coeffTicks[i], i + 2, 0)
             self.coeffEntries.append(QtGui.QLineEdit())
             self.coeffEntries[i].setText("-1.0")
             self.coeffEntries[i].setAlignment(QtCore.Qt.AlignHCenter)
-            self.frame3.addWidget(self.coeffEntries[i], i+2, 1)
+            self.frame3.addWidget(self.coeffEntries[i], i + 2, 1)
             self.t1Ticks.append(QtGui.QCheckBox(''))
-            self.frame3.addWidget(self.t1Ticks[i], i+2, 2)
+            self.frame3.addWidget(self.t1Ticks[i], i + 2, 2)
             self.t1Entries.append(QtGui.QLineEdit())
             self.t1Entries[i].setText("1.0")
             self.t1Entries[i].setAlignment(QtCore.Qt.AlignHCenter)
-            self.frame3.addWidget(self.t1Entries[i], i+2, 3)
+            self.frame3.addWidget(self.t1Entries[i], i + 2, 3)
             if i > 0:
                 self.coeffTicks[i].hide()
                 self.coeffEntries[i].hide()
@@ -874,12 +909,12 @@ class RelaxParamFrame(QtGui.QWidget):
     def closeWindow(self, *args):
         self.stopMP()
         self.rootwindow.cancel()
-                
+
     def setLog(self, *args):
         self.parent.setLog(self.xlog.isChecked(), self.ylog.isChecked())
-                
+
     def changeNum(self, *args):
-        val = self.numExp.currentIndex()+1
+        val = self.numExp.currentIndex() + 1
         for i in range(4):
             if i < val:
                 self.coeffTicks[i].show()
@@ -911,24 +946,24 @@ class RelaxParamFrame(QtGui.QWidget):
         else:
             constant = argu[0]
             argu = np.delete(argu, [0])
-        for i in range(1, numExp+1):
-            if struc[2*i]:
+        for i in range(1, numExp + 1):
+            if struc[2 * i]:
                 coeff = param[0]
                 param = np.delete(param, [0])
             else:
                 coeff = argu[0]
                 argu = np.delete(argu, [0])
-            if struc[2*i+1]:
+            if struc[2 * i + 1]:
                 T1 = param[0]
                 param = np.delete(param, [0])
             else:
                 T1 = argu[0]
                 argu = np.delete(argu, [0])
-            testFunc += coeff*np.exp(-1.0*x/T1) 
-        return amplitude*(constant+testFunc)
+            testFunc += coeff * np.exp(-1.0 * x / T1)
+        return amplitude * (constant + testFunc)
 
     def checkInputs(self):
-        numExp = self.numExp.currentIndex()+1
+        numExp = self.numExp.currentIndex() + 1
         inp = safeEval(self.ampEntry.text())
         if inp is None:
             return False
@@ -954,7 +989,7 @@ class RelaxParamFrame(QtGui.QWidget):
         except:
             fitVal = None
         queue.put(fitVal)
-    
+
     def fit(self, *args):
         if not self.checkInputs():
             self.rootwindow.mainProgram.dispMsg("One of the inputs is not valid")
@@ -962,7 +997,7 @@ class RelaxParamFrame(QtGui.QWidget):
         struc = []
         guess = []
         argu = []
-        numExp = self.numExp.currentIndex()+1
+        numExp = self.numExp.currentIndex() + 1
         outCoeff = np.zeros(numExp)
         outT1 = np.zeros(numExp)
         if not self.ampTick.isChecked():
@@ -1021,14 +1056,14 @@ class RelaxParamFrame(QtGui.QWidget):
             self.constEntry.setText('%#.3g' % fitVal[0][counter])
             outConst = fitVal[0][counter]
             counter += 1
-        for i in range(1, numExp+1):
-            if struc[2*i]:
-                self.coeffEntries[i-1].setText('%#.3g' % fitVal[0][counter])
-                outCoeff[i-1] = fitVal[0][counter]
+        for i in range(1, numExp + 1):
+            if struc[2 * i]:
+                self.coeffEntries[i - 1].setText('%#.3g' % fitVal[0][counter])
+                outCoeff[i - 1] = fitVal[0][counter]
                 counter += 1
-            if struc[2*i+1]:
-                self.t1Entries[i-1].setText('%#.3g' % fitVal[0][counter])
-                outT1[i-1] = fitVal[0][counter]
+            if struc[2 * i + 1]:
+                self.t1Entries[i - 1].setText('%#.3g' % fitVal[0][counter])
+                outT1[i - 1] = fitVal[0][counter]
                 counter += 1
         self.disp(outAmp, outConst, outCoeff, outT1)
 
@@ -1042,7 +1077,7 @@ class RelaxParamFrame(QtGui.QWidget):
         self.process1 = None
         self.running = False
         self.stopButton.hide()
-        
+
     def fitAll(self, *args):
         FitAllSelectionWindow(self, ["Amplitude", "Constant", "Coefficient", "T"])
 
@@ -1052,9 +1087,9 @@ class RelaxParamFrame(QtGui.QWidget):
             try:
                 fitVal.append(scipy.optimize.curve_fit(lambda *param: self.fitFunc(param, args), xax, np.real(j), guess))
             except:
-                fitVal.append([[0]*10])
+                fitVal.append([[0] * 10])
         queue.put(fitVal)
-        
+
     def fitAllFunc(self, outputs):
         if not self.checkInputs():
             self.rootwindow.mainProgram.dispMsg("One of the inputs is not valid")
@@ -1062,7 +1097,7 @@ class RelaxParamFrame(QtGui.QWidget):
         struc = []
         guess = []
         argu = []
-        numExp = self.numExp.currentIndex()+1
+        numExp = self.numExp.currentIndex() + 1
         outCoeff = np.zeros(numExp)
         outT1 = np.zeros(numExp)
         if not self.ampTick.isChecked():
@@ -1101,7 +1136,7 @@ class RelaxParamFrame(QtGui.QWidget):
         dataShape2 = np.delete(dataShape, axes)
         rolledData = np.rollaxis(fullData, axes)
         intOutputs = np.array(outputs, dtype=int)
-        numOutputs = np.sum(intOutputs[:2]) + numExp*np.sum(intOutputs[2:])
+        numOutputs = np.sum(intOutputs[:2]) + numExp * np.sum(intOutputs[2:])
         outputData = np.zeros((np.product(dataShape2), numOutputs), dtype=complex)
         counter2 = 0
         fitData = rolledData.reshape(dataShape[axes], np.product(dataShape2)).T
@@ -1127,12 +1162,12 @@ class RelaxParamFrame(QtGui.QWidget):
             if struc[1]:
                 outConst = fitVal[0][counter]
                 counter += 1
-            for i in range(1, numExp+1):
-                if struc[2*i]:
-                    outCoeff[i-1] = fitVal[0][counter]
+            for i in range(1, numExp + 1):
+                if struc[2 * i]:
+                    outCoeff[i - 1] = fitVal[0][counter]
                     counter += 1
-                if struc[2*i+1]:
-                    outT1[i-1] = fitVal[0][counter]
+                if struc[2 * i + 1]:
+                    outT1[i - 1] = fitVal[0][counter]
                     counter += 1
             outputArray = []
             if outputs[0]:
@@ -1147,9 +1182,9 @@ class RelaxParamFrame(QtGui.QWidget):
             counter2 += 1
         newShape = np.concatenate((np.array(dataShape2), [numOutputs]))
         self.rootwindow.createNewData(np.rollaxis(outputData.reshape(newShape), -1, axes), axes)
-        
+
     def sim(self, store=False):
-        numExp = self.numExp.currentIndex()+1
+        numExp = self.numExp.currentIndex() + 1
         outAmp = safeEval(self.ampEntry.text())
         outConst = safeEval(self.constEntry.text())
         if outAmp is None or outConst is None:
@@ -1169,37 +1204,43 @@ class RelaxParamFrame(QtGui.QWidget):
             self.disp(outAmp, outConst, outCoeff, outT1)
 
     def copyResult(self, outAmp, outConst, outCoeff, outT1):
-        outCurve = np.zeros((len(outCoeff)+2, len(self.parent.xax)))
+        outCurve = np.zeros((len(outCoeff) + 2, len(self.parent.xax)))
         tmp = np.zeros(len(self.parent.xax))
         for i in range(len(outCoeff)):
-            outCurve[i] = outAmp * (outConst + outCoeff[i]*np.exp(-self.parent.xax/outT1[i]))
-            tmp += outCurve[i] 
-        outCurve[len(outCoeff)] = tmp - (len(outCoeff)-1)*outAmp * outConst
-        outCurve[len(outCoeff)+1] = self.parent.data1D
+            outCurve[i] = outAmp * (outConst + outCoeff[i] * np.exp(-self.parent.xax / outT1[i]))
+            tmp += outCurve[i]
+        outCurve[len(outCoeff)] = tmp - (len(outCoeff) - 1) * outAmp * outConst
+        outCurve[len(outCoeff) + 1] = self.parent.data1D
         self.rootwindow.createNewData(np.array(outCurve), self.parent.current.axes, True)
-        
+
     def disp(self, outAmp, outConst, outCoeff, outT1):
-        numCurve = 100 #number of points in output curve
+        numCurve = 100  # number of points in output curve
         outCurve = np.zeros(numCurve)
         if self.xlog.isChecked():
             x = np.logspace(np.log(min(self.parent.xax)), np.log(max(self.parent.xax)), numCurve)
         else:
             x = np.linspace(min(self.parent.xax), max(self.parent.xax), numCurve)
         for i in range(len(outCoeff)):
-            outCurve += outCoeff[i]*np.exp(-x/outT1[i])
-        self.parent.showPlot(x, outAmp*(outConst+outCurve))
+            outCurve += outCoeff[i] * np.exp(-x / outT1[i])
+        self.parent.showPlot(x, outAmp * (outConst + outCurve))
 
 ##############################################################################
-class DiffusionWindow(FittingWindow): 
+
+
+class DiffusionWindow(FittingWindow):
+
     def __init__(self, mainProgram, oldMainWindow):
         FittingWindow.__init__(self, mainProgram, oldMainWindow)
 
     def setup(self):
         self.current = DiffusionFrame(self, self.fig, self.canvas, self.oldMainWindow.current)
         self.paramframe = DiffusionParamFrame(self.current, self)
-    
-#################################################################################   
-class DiffusionFrame(Plot1DFrame): 
+
+#################################################################################
+
+
+class DiffusionFrame(Plot1DFrame):
+
     def __init__(self, rootwindow, fig, canvas, current):
         self.ref = current.ref
         self.axType = current.axType
@@ -1215,7 +1256,7 @@ class DiffusionFrame(Plot1DFrame):
         self.plotReset()
         self.showPlot()
 
-    def plotReset(self): 
+    def plotReset(self):
         if self.plotType == 0:
             miny = min(np.real(self.data1D))
             maxy = max(np.real(self.data1D))
@@ -1231,41 +1272,41 @@ class DiffusionFrame(Plot1DFrame):
         else:
             miny = -1
             maxy = 1
-        differ = 0.05*(maxy-miny) 
-        self.yminlim = miny-differ
-        self.ymaxlim = maxy+differ
+        differ = 0.05 * (maxy - miny)
+        self.yminlim = miny - differ
+        self.ymaxlim = maxy + differ
         if self.spec == 1:
             if self.ppm:
-                axMult = 1e6/self.ref
+                axMult = 1e6 / self.ref
             else:
-                axMult = 1.0/(1000.0**self.axType)
+                axMult = 1.0 / (1000.0**self.axType)
         elif self.spec == 0:
             axMult = 1000.0**self.axType
-        self.xminlim = min(self.xax*axMult)
-        self.xmaxlim = max(self.xax*axMult)
+        self.xminlim = min(self.xax * axMult)
+        self.xmaxlim = max(self.xax * axMult)
         self.ax.set_xlim(self.xminlim, self.xmaxlim)
         self.ax.set_ylim(self.yminlim, self.ymaxlim)
 
-    def showPlot(self, tmpAx=None, tmpdata=None): 
+    def showPlot(self, tmpAx=None, tmpdata=None):
         self.ax.cla()
         if self.spec == 1:
             if self.ppm:
-                axMult = 1e6/self.ref
+                axMult = 1e6 / self.ref
             else:
-                axMult = 1.0/(1000.0**self.axType)
+                axMult = 1.0 / (1000.0**self.axType)
         elif self.spec == 0:
             axMult = 1000.0**self.axType
         if tmpAx is not None:
-            self.ax.plot(tmpAx*axMult, tmpdata, c=self.current.color, linewidth=self.current.linewidth, label=self.current.data.name)
-        self.ax.scatter(self.xax*axMult, self.data1D, c=self.current.color, linewidth=self.current.linewidth, label=self.current.data.name)
+            self.ax.plot(tmpAx * axMult, tmpdata, c=self.current.color, linewidth=self.current.linewidth, label=self.current.data.name)
+        self.ax.scatter(self.xax * axMult, self.data1D, c=self.current.color, linewidth=self.current.linewidth, label=self.current.data.name)
         if self.logx == 0:
             self.ax.set_xscale('linear')
         else:
-           self.ax.set_xscale('log')
+            self.ax.set_xscale('log')
         if self.logy == 0:
             self.ax.set_yscale('linear')
         else:
-           self.ax.set_yscale('log') 
+            self.ax.set_yscale('log')
         if self.spec == 0:
             if self.current.axType == 0:
                 self.ax.set_xlabel('Time [s]')
@@ -1296,52 +1337,52 @@ class DiffusionFrame(Plot1DFrame):
         if self.logy == 0:
             self.ax.get_yaxis().get_major_formatter().set_powerlimits((-4, 4))
         self.canvas.draw()
-        
+
     def scroll(self, event):
         if self.rightMouse:
             if self.logx == 0:
-                middle = (self.xmaxlim+self.xminlim)/2.0
-                width = self.xmaxlim-self.xminlim
-                width = width*0.9**event.step
-                self.xmaxlim = middle+width/2.0
-                self.xminlim = middle-width/2.0
+                middle = (self.xmaxlim + self.xminlim) / 2.0
+                width = self.xmaxlim - self.xminlim
+                width = width * 0.9**event.step
+                self.xmaxlim = middle + width / 2.0
+                self.xminlim = middle - width / 2.0
                 if self.spec > 0 and not isinstance(self, spectrum_classes.CurrentArrayed):
                     self.ax.set_xlim(self.xmaxlim, self.xminlim)
                 else:
                     self.ax.set_xlim(self.xminlim, self.xmaxlim)
             else:
-                middle = (np.log(self.xmaxlim)+np.log(self.xminlim))/2.0
-                width = np.log(self.xmaxlim)-np.log(self.xminlim)
-                width = width*0.9**event.step
-                self.xmaxlim = np.exp(middle+width/2.0)
-                self.xminlim = np.exp(middle-width/2.0)
+                middle = (np.log(self.xmaxlim) + np.log(self.xminlim)) / 2.0
+                width = np.log(self.xmaxlim) - np.log(self.xminlim)
+                width = width * 0.9**event.step
+                self.xmaxlim = np.exp(middle + width / 2.0)
+                self.xminlim = np.exp(middle - width / 2.0)
                 if self.spec > 0 and not isinstance(self, spectrum_classes.CurrentArrayed):
                     self.ax.set_xlim(self.xmaxlim, self.xminlim)
                 else:
                     self.ax.set_xlim(self.xminlim, self.xmaxlim)
         else:
             if self.logy == 0:
-                middle = (self.ymaxlim+self.yminlim)/2.0
-                width = self.ymaxlim-self.yminlim
-                width = width*0.9**event.step
-                self.ymaxlim = middle+width/2.0
-                self.yminlim = middle-width/2.0
+                middle = (self.ymaxlim + self.yminlim) / 2.0
+                width = self.ymaxlim - self.yminlim
+                width = width * 0.9**event.step
+                self.ymaxlim = middle + width / 2.0
+                self.yminlim = middle - width / 2.0
                 if self.spec2 > 0 and isinstance(self, spectrum_classes.CurrentContour):
                     self.ax.set_ylim(self.ymaxlim, self.yminlim)
                 else:
                     self.ax.set_ylim(self.yminlim, self.ymaxlim)
             else:
-                middle = (np.log(self.ymaxlim)+np.log(self.yminlim))/2.0
-                width = np.log(self.ymaxlim)-np.log(self.yminlim)
-                width = width*0.9**event.step
-                self.ymaxlim = np.exp(middle+width/2.0)
-                self.yminlim = np.exp(middle-width/2.0)
+                middle = (np.log(self.ymaxlim) + np.log(self.yminlim)) / 2.0
+                width = np.log(self.ymaxlim) - np.log(self.yminlim)
+                width = width * 0.9**event.step
+                self.ymaxlim = np.exp(middle + width / 2.0)
+                self.yminlim = np.exp(middle - width / 2.0)
                 if self.spec2 > 0 and isinstance(self, spectrum_classes.CurrentContour):
                     self.ax.set_ylim(self.ymaxlim, self.yminlim)
                 else:
                     self.ax.set_ylim(self.yminlim, self.ymaxlim)
         self.canvas.draw()
-        
+
     def buttonRelease(self, event):
         if event.button == 1:
             if self.peakPick:
@@ -1349,10 +1390,10 @@ class DiffusionFrame(Plot1DFrame):
                     self.rect[0].remove()
                     self.rect[0] = None
                     self.peakPick = False
-                    idx = np.argmin(np.abs(self.line_xdata-event.xdata))
+                    idx = np.argmin(np.abs(self.line_xdata - event.xdata))
                     if self.peakPickFunc is not None:
                         self.peakPickFunc((idx, self.line_xdata[idx], self.line_ydata[idx]))
-                    if not self.peakPick: #check if peakpicking is still required
+                    if not self.peakPick:  # check if peakpicking is still required
                         self.peakPickFunc = None
             else:
                 self.leftMouse = False
@@ -1379,9 +1420,9 @@ class DiffusionFrame(Plot1DFrame):
                     else:
                         self.ax.set_ylim(self.yminlim, self.ymaxlim)
                 self.zoomX1 = None
-                self.zoomX2 = None 
+                self.zoomX2 = None
                 self.zoomY1 = None
-                self.zoomY2 = None 
+                self.zoomY2 = None
         elif event.button == 3:
             self.rightMouse = False
         self.canvas.draw()
@@ -1399,21 +1440,21 @@ class DiffusionFrame(Plot1DFrame):
                 if x is None or y is None:
                     return
             if self.logx == 0:
-                diffx = x-self.panX
-                self.xmaxlim = self.xmaxlim-diffx
-                self.xminlim = self.xminlim-diffx
+                diffx = x - self.panX
+                self.xmaxlim = self.xmaxlim - diffx
+                self.xminlim = self.xminlim - diffx
             else:
-                diffx = np.log(x)-np.log(self.panX)
-                self.xmaxlim = np.exp(np.log(self.xmaxlim)-diffx)
-                self.xminlim = np.exp(np.log(self.xminlim)-diffx)
+                diffx = np.log(x) - np.log(self.panX)
+                self.xmaxlim = np.exp(np.log(self.xmaxlim) - diffx)
+                self.xminlim = np.exp(np.log(self.xminlim) - diffx)
             if self.logy == 0:
-                diffy = y-self.panY
-                self.ymaxlim = self.ymaxlim-diffy
-                self.yminlim = self.yminlim-diffy
+                diffy = y - self.panY
+                self.ymaxlim = self.ymaxlim - diffy
+                self.yminlim = self.yminlim - diffy
             else:
-                diffy = np.log(y)-np.log(self.panY)
-                self.ymaxlim = np.exp(np.log(self.ymaxlim)-diffy)
-                self.yminlim = np.exp(np.log(self.yminlim)-diffy)
+                diffy = np.log(y) - np.log(self.panY)
+                self.ymaxlim = np.exp(np.log(self.ymaxlim) - diffy)
+                self.yminlim = np.exp(np.log(self.yminlim) - diffy)
             if self.spec > 0 and not isinstance(self, spectrum_classes.CurrentArrayed):
                 self.ax.set_xlim(self.xmaxlim, self.xminlim)
             else:
@@ -1456,25 +1497,28 @@ class DiffusionFrame(Plot1DFrame):
             self.rect[2], = self.ax.plot([self.zoomX1, self.zoomX1], [self.zoomY1, self.zoomY2], 'k', clip_on=False)
             self.rect[3], = self.ax.plot([self.zoomX2, self.zoomX2], [self.zoomY1, self.zoomY2], 'k', clip_on=False)
             self.canvas.draw()
-            
+
     def setLog(self, logx, logy):
         self.logx = logx
         self.logy = logy
         if self.logx == 0:
             self.ax.set_xscale('linear')
         else:
-           self.ax.set_xscale('log')
+            self.ax.set_xscale('log')
         if self.logy == 0:
             self.ax.set_yscale('linear')
         else:
-           self.ax.set_yscale('log') 
+            self.ax.set_yscale('log')
         self.ax.set_xlim(self.xminlim, self.xmaxlim)
         self.ax.set_ylim(self.yminlim, self.ymaxlim)
         self.canvas.draw()
 
 #################################################################################
-class DiffusionParamFrame(QtGui.QWidget): 
-    def __init__(self, parent, rootwindow): 
+
+
+class DiffusionParamFrame(QtGui.QWidget):
+
+    def __init__(self, parent, rootwindow):
         QtGui.QWidget.__init__(self, rootwindow)
         self.parent = parent
         self.rootwindow = rootwindow
@@ -1571,32 +1615,32 @@ class DiffusionParamFrame(QtGui.QWidget):
         self.dTicks = []
         for i in range(4):
             self.coeffTicks.append(QtGui.QCheckBox(''))
-            self.frame4.addWidget(self.coeffTicks[i], i+2, 0)
+            self.frame4.addWidget(self.coeffTicks[i], i + 2, 0)
             self.coeffEntries.append(QtGui.QLineEdit())
             self.coeffEntries[i].setText("1.0")
             self.coeffEntries[i].setAlignment(QtCore.Qt.AlignHCenter)
-            self.frame4.addWidget(self.coeffEntries[i], i+2, 1)
+            self.frame4.addWidget(self.coeffEntries[i], i + 2, 1)
             self.dTicks.append(QtGui.QCheckBox(''))
-            self.frame4.addWidget(self.dTicks[i], i+2, 2)
+            self.frame4.addWidget(self.dTicks[i], i + 2, 2)
             self.dEntries.append(QtGui.QLineEdit())
             self.dEntries[i].setText("1.0e-9")
             self.dEntries[i].setAlignment(QtCore.Qt.AlignHCenter)
-            self.frame4.addWidget(self.dEntries[i], i+2, 3)
+            self.frame4.addWidget(self.dEntries[i], i + 2, 3)
             if i > 0:
                 self.coeffTicks[i].hide()
                 self.coeffEntries[i].hide()
                 self.dTicks[i].hide()
                 self.dEntries[i].hide()
-                
+
     def closeWindow(self, *args):
         self.stopMP()
         self.rootwindow.cancel()
-        
+
     def setLog(self, *args):
         self.parent.setLog(self.xlog.isChecked(), self.ylog.isChecked())
-                
+
     def changeNum(self, *args):
-        val = self.numExp.currentIndex()+1
+        val = self.numExp.currentIndex() + 1
         for i in range(4):
             if i < val:
                 self.coeffTicks[i].show()
@@ -1631,24 +1675,24 @@ class DiffusionParamFrame(QtGui.QWidget):
         else:
             constant = argu[0]
             argu = np.delete(argu, [0])
-        for i in range(1, numExp+1):
-            if struc[2*i]:
+        for i in range(1, numExp + 1):
+            if struc[2 * i]:
                 coeff = param[0]
                 param = np.delete(param, [0])
             else:
                 coeff = argu[0]
                 argu = np.delete(argu, [0])
-            if struc[2*i+1]:
+            if struc[2 * i + 1]:
                 D = param[0]
                 param = np.delete(param, [0])
             else:
                 D = argu[0]
                 argu = np.delete(argu, [0])
-            testFunc += coeff*np.exp(-(gamma*delta*x)**2*D*(triangle-delta/3.0)) 
-        return amplitude*(constant+testFunc)
-    
+            testFunc += coeff * np.exp(-(gamma * delta * x)**2 * D * (triangle - delta / 3.0))
+        return amplitude * (constant + testFunc)
+
     def checkInputs(self):
-        numExp = self.numExp.currentIndex()+1
+        numExp = self.numExp.currentIndex() + 1
         inp = safeEval(self.gammaEntry.text())
         if inp is None:
             return False
@@ -1686,7 +1730,7 @@ class DiffusionParamFrame(QtGui.QWidget):
         except:
             fitVal = None
         queue.put(fitVal)
-    
+
     def fit(self, *args):
         if not self.checkInputs():
             self.rootwindow.mainProgram.dispMsg("One of the inputs is not valid")
@@ -1694,7 +1738,7 @@ class DiffusionParamFrame(QtGui.QWidget):
         struc = []
         guess = []
         argu = []
-        numExp = self.numExp.currentIndex()+1
+        numExp = self.numExp.currentIndex() + 1
         outCoeff = np.zeros(numExp)
         outD = np.zeros(numExp)
         gamma = float(self.gammaEntry.text())
@@ -1756,14 +1800,14 @@ class DiffusionParamFrame(QtGui.QWidget):
             self.constEntry.setText('%#.3g' % fitVal[0][counter])
             outConst = fitVal[0][counter]
             counter += 1
-        for i in range(1, numExp+1):
-            if struc[2*i]:
-                self.coeffEntries[i-1].setText('%#.3g' % fitVal[0][counter])
-                outCoeff[i-1] = fitVal[0][counter]
+        for i in range(1, numExp + 1):
+            if struc[2 * i]:
+                self.coeffEntries[i - 1].setText('%#.3g' % fitVal[0][counter])
+                outCoeff[i - 1] = fitVal[0][counter]
                 counter += 1
-            if struc[2*i+1]:
-                self.dEntries[i-1].setText('%#.3g' % fitVal[0][counter])
-                outD[i-1] = fitVal[0][counter]
+            if struc[2 * i + 1]:
+                self.dEntries[i - 1].setText('%#.3g' % fitVal[0][counter])
+                outD[i - 1] = fitVal[0][counter]
                 counter += 1
         self.disp(outAmp, outConst, outCoeff, outD, gamma, delta, triangle)
 
@@ -1777,7 +1821,7 @@ class DiffusionParamFrame(QtGui.QWidget):
         self.process1 = None
         self.running = False
         self.stopButton.hide()
-        
+
     def fitAll(self, *args):
         FitAllSelectionWindow(self, ["Amplitude", "Constant", "Coefficient", "D"])
 
@@ -1787,9 +1831,9 @@ class DiffusionParamFrame(QtGui.QWidget):
             try:
                 fitVal.append(scipy.optimize.curve_fit(lambda *param: self.fitFunc(param, args), xax, np.real(j), guess))
             except:
-                fitVal.append([[0]*10])
+                fitVal.append([[0] * 10])
         queue.put(fitVal)
-        
+
     def fitAllFunc(self, outputs):
         if not self.checkInputs():
             self.rootwindow.mainProgram.dispMsg("One of the inputs is not valid")
@@ -1797,7 +1841,7 @@ class DiffusionParamFrame(QtGui.QWidget):
         struc = []
         guess = []
         argu = []
-        numExp = self.numExp.currentIndex()+1
+        numExp = self.numExp.currentIndex() + 1
         outCoeff = np.zeros(numExp)
         outD = np.zeros(numExp)
         gamma = float(self.gammaEntry.text())
@@ -1839,7 +1883,7 @@ class DiffusionParamFrame(QtGui.QWidget):
         dataShape2 = np.delete(dataShape, axes)
         rolledData = np.rollaxis(fullData, axes)
         intOutputs = np.array(outputs, dtype=int)
-        numOutputs = np.sum(intOutputs[:2]) + numExp*np.sum(intOutputs[2:])
+        numOutputs = np.sum(intOutputs[:2]) + numExp * np.sum(intOutputs[2:])
         outputData = np.zeros((np.product(dataShape2), numOutputs), dtype=complex)
         counter2 = 0
         fitData = rolledData.reshape(dataShape[axes], np.product(dataShape2)).T
@@ -1865,12 +1909,12 @@ class DiffusionParamFrame(QtGui.QWidget):
             if struc[1]:
                 outConst = fitVal[0][counter]
                 counter += 1
-            for i in range(1, numExp+1):
-                if struc[2*i]:
-                    outCoeff[i-1] = fitVal[0][counter]
+            for i in range(1, numExp + 1):
+                if struc[2 * i]:
+                    outCoeff[i - 1] = fitVal[0][counter]
                     counter += 1
-                if struc[2*i+1]:
-                    outD[i-1] = fitVal[0][counter]
+                if struc[2 * i + 1]:
+                    outD[i - 1] = fitVal[0][counter]
                     counter += 1
             outputArray = []
             if outputs[0]:
@@ -1885,9 +1929,9 @@ class DiffusionParamFrame(QtGui.QWidget):
             counter2 += 1
         newShape = np.concatenate((np.array(dataShape2), [numOutputs]))
         self.rootwindow.createNewData(np.rollaxis(outputData.reshape(newShape), -1, axes), axes)
-        
+
     def sim(self, store=False):
-        numExp = self.numExp.currentIndex()+1
+        numExp = self.numExp.currentIndex() + 1
         outAmp = safeEval(self.ampEntry.text())
         outConst = safeEval(self.constEntry.text())
         gamma = safeEval(self.gammaEntry.text())
@@ -1906,32 +1950,35 @@ class DiffusionParamFrame(QtGui.QWidget):
                 return
         if store:
             self.copyResult(outAmp, outConst, outCoeff, outD, gamma, delta, triangle)
-        else: 
+        else:
             self.disp(outAmp, outConst, outCoeff, outD, gamma, delta, triangle)
 
     def copyResult(self, outAmp, outConst, outCoeff, outD, gamma, delta, triangle):
-        outCurve = np.zeros((len(outCoeff)+2, len(self.parent.xax)))
+        outCurve = np.zeros((len(outCoeff) + 2, len(self.parent.xax)))
         tmp = np.zeros(len(self.parent.xax))
         for i in range(len(outCoeff)):
-            outCurve[i] = outCoeff[i]*np.exp(-(gamma*delta*self.parent.xax)**2*outD[i]*(triangle-delta/3.0))
+            outCurve[i] = outCoeff[i] * np.exp(-(gamma * delta * self.parent.xax)**2 * outD[i] * (triangle - delta / 3.0))
             tmp += outCurve[i]
         outCurve[len(outCoeff)] = tmp
-        outCurve[len(outCoeff)+1] = self.parent.data1D
+        outCurve[len(outCoeff) + 1] = self.parent.data1D
         self.rootwindow.createNewData(np.array(outCurve), self.parent.current.axes, True)
-        
+
     def disp(self, outAmp, outConst, outCoeff, outD, gamma, delta, triangle):
-        numCurve = 100 
+        numCurve = 100
         outCurve = np.zeros(numCurve)
         if self.xlog.isChecked():
             x = np.logspace(np.log(min(self.parent.xax)), np.log(max(self.parent.xax)), numCurve)
         else:
             x = np.linspace(min(self.parent.xax), max(self.parent.xax), numCurve)
         for i in range(len(outCoeff)):
-            outCurve += outCoeff[i]*np.exp(-(gamma*delta*x)**2*outD[i]*(triangle-delta/3.0))
-        self.parent.showPlot(x, outAmp*(outConst+outCurve))
-        
+            outCurve += outCoeff[i] * np.exp(-(gamma * delta * x)**2 * outD[i] * (triangle - delta / 3.0))
+        self.parent.showPlot(x, outAmp * (outConst + outCurve))
+
 ##############################################################################
-class PeakDeconvWindow(FittingWindow): 
+
+
+class PeakDeconvWindow(FittingWindow):
+
     def __init__(self, mainProgram, oldMainWindow):
         FittingWindow.__init__(self, mainProgram, oldMainWindow)
 
@@ -1939,8 +1986,11 @@ class PeakDeconvWindow(FittingWindow):
         self.current = PeakDeconvFrame(self, self.fig, self.canvas, self.oldMainWindow.current)
         self.paramframe = PeakDeconvParamFrame(self.current, self)
 
-#################################################################################   
-class PeakDeconvFrame(Plot1DFrame): 
+#################################################################################
+
+
+class PeakDeconvFrame(Plot1DFrame):
+
     def __init__(self, rootwindow, fig, canvas, current):
         Plot1DFrame.__init__(self, rootwindow, fig, canvas)
         self.data1D = current.getDisplayedData()
@@ -1954,7 +2004,7 @@ class PeakDeconvFrame(Plot1DFrame):
         self.plotReset()
         self.showPlot()
 
-    def plotReset(self): 
+    def plotReset(self):
         a = self.fig.gca()
         if self.plotType == 0:
             miny = min(np.real(self.data1D))
@@ -1971,41 +2021,41 @@ class PeakDeconvFrame(Plot1DFrame):
         else:
             miny = -1
             maxy = 1
-        differ = 0.05*(maxy-miny) 
-        self.yminlim = miny-differ
-        self.ymaxlim = maxy+differ
+        differ = 0.05 * (maxy - miny)
+        self.yminlim = miny - differ
+        self.ymaxlim = maxy + differ
         if self.spec == 1:
             if self.current.ppm:
-                axMult = 1e6/self.current.ref
+                axMult = 1e6 / self.current.ref
             else:
-                axMult = 1.0/(1000.0**self.current.axType)
+                axMult = 1.0 / (1000.0**self.current.axType)
         elif self.spec == 0:
             axMult = 1000.0**self.current.axType
-        self.xminlim = min(self.xax*axMult)
-        self.xmaxlim = max(self.xax*axMult)
-        if self.spec > 0 :
+        self.xminlim = min(self.xax * axMult)
+        self.xmaxlim = max(self.xax * axMult)
+        if self.spec > 0:
             a.set_xlim(self.xmaxlim, self.xminlim)
         else:
             a.set_xlim(self.xminlim, self.xmaxlim)
         a.set_ylim(self.yminlim, self.ymaxlim)
-        
-    def showPlot(self, tmpAx=None, tmpdata=None, tmpAx2=[], tmpdata2=[]): 
+
+    def showPlot(self, tmpAx=None, tmpdata=None, tmpAx2=[], tmpdata2=[]):
         a = self.fig.gca()
         a.cla()
         if self.spec == 1:
             if self.current.ppm:
-                axMult = 1e6/self.current.ref
+                axMult = 1e6 / self.current.ref
             else:
-                axMult = 1.0/(1000.0**self.current.axType)
+                axMult = 1.0 / (1000.0**self.current.axType)
         elif self.spec == 0:
             axMult = 1000.0**self.current.axType
-        self.line_xdata = self.xax*axMult
+        self.line_xdata = self.xax * axMult
         self.line_ydata = self.data1D
-        a.plot(self.xax*axMult, self.data1D, c=self.current.color, linewidth=self.current.linewidth, label=self.current.data.name)
+        a.plot(self.xax * axMult, self.data1D, c=self.current.color, linewidth=self.current.linewidth, label=self.current.data.name)
         if tmpAx is not None:
-            a.plot(tmpAx*axMult, tmpdata)
+            a.plot(tmpAx * axMult, tmpdata)
         for i in range(len(tmpAx2)):
-            a.plot(tmpAx2[i]*axMult, tmpdata2[i])
+            a.plot(tmpAx2[i] * axMult, tmpdata2[i])
         if self.spec == 0:
             if self.current.axType == 0:
                 a.set_xlabel('Time [s]')
@@ -2031,7 +2081,7 @@ class PeakDeconvFrame(Plot1DFrame):
             a.set_xlabel('')
         a.get_xaxis().get_major_formatter().set_powerlimits((-4, 4))
         a.get_yaxis().get_major_formatter().set_powerlimits((-4, 4))
-        if self.spec > 0 :
+        if self.spec > 0:
             a.set_xlim(self.xmaxlim, self.xminlim)
         else:
             a.set_xlim(self.xminlim, self.xmaxlim)
@@ -2041,45 +2091,48 @@ class PeakDeconvFrame(Plot1DFrame):
     def togglePick(self, var):
         self.peakPickReset()
         if var == 1:
-            self.peakPickFunc = lambda pos, self=self: self.pickDeconv(pos) 
+            self.peakPickFunc = lambda pos, self=self: self.pickDeconv(pos)
             self.peakPick = True
         else:
             self.peakPickFunc = None
             self.peakPick = False
-        
+
     def pickDeconv(self, pos):
         if self.pickWidth:
             if self.current.spec == 1:
                 if self.current.ppm:
-                    axMult = 1e6/self.current.ref
+                    axMult = 1e6 / self.current.ref
                 else:
-                    axMult = 1.0/(1000.0**self.current.axType)
+                    axMult = 1.0 / (1000.0**self.current.axType)
             elif self.current.spec == 0:
                 axMult = 1000.0**self.current.axType
-            width = (2*abs(float(self.rootwindow.paramframe.posEntries[self.pickNum].text())-pos[1]))/axMult
-            self.rootwindow.paramframe.ampEntries[self.pickNum].setText("%#.3g" %(float(self.rootwindow.paramframe.ampEntries[self.pickNum].text())*width))
+            width = (2 * abs(float(self.rootwindow.paramframe.posEntries[self.pickNum].text()) - pos[1])) / axMult
+            self.rootwindow.paramframe.ampEntries[self.pickNum].setText("%#.3g" % (float(self.rootwindow.paramframe.ampEntries[self.pickNum].text()) * width))
             self.rootwindow.paramframe.lorEntries[self.pickNum].setText("%#.3g" % abs(width))
             self.pickNum += 1
             self.pickWidth = False
         else:
-            self.rootwindow.paramframe.posEntries[self.pickNum].setText("%#.3g" %pos[1])
-            left = pos[0] - 10 
+            self.rootwindow.paramframe.posEntries[self.pickNum].setText("%#.3g" % pos[1])
+            left = pos[0] - 10
             if left < 0:
                 left = 0
             right = pos[0] + 10
-            if right >= len(self.data1D) :
-                right = len(self.data1D)-1
-            self.rootwindow.paramframe.ampEntries[self.pickNum].setText("%#.3g" %(pos[2]*np.pi*0.5))
+            if right >= len(self.data1D):
+                right = len(self.data1D) - 1
+            self.rootwindow.paramframe.ampEntries[self.pickNum].setText("%#.3g" % (pos[2] * np.pi * 0.5))
             if self.pickNum < 10:
                 self.rootwindow.paramframe.numExp.setCurrentIndex(self.pickNum)
                 self.rootwindow.paramframe.changeNum()
             self.pickWidth = True
         if self.pickNum < 10:
-            self.peakPickFunc = lambda pos, self=self: self.pickDeconv(pos) 
-            self.peakPick = True 
+            self.peakPickFunc = lambda pos, self=self: self.pickDeconv(pos)
+            self.peakPick = True
 
 #################################################################################
-class PeakDeconvParamFrame(QtGui.QWidget): 
+
+
+class PeakDeconvParamFrame(QtGui.QWidget):
+
     def __init__(self, parent, rootwindow):
         QtGui.QWidget.__init__(self, rootwindow)
         self.parent = parent
@@ -2087,11 +2140,11 @@ class PeakDeconvParamFrame(QtGui.QWidget):
         grid = QtGui.QGridLayout(self)
         self.setLayout(grid)
         if self.parent.current.spec == 1:
-            self.axAdd = self.parent.current.freq-self.parent.current.ref
+            self.axAdd = self.parent.current.freq - self.parent.current.ref
             if self.parent.current.ppm:
-                self.axMult = 1e6/self.parent.current.ref
+                self.axMult = 1e6 / self.parent.current.ref
             else:
-                self.axMult = 1.0/(1000.0**self.parent.current.axType)
+                self.axMult = 1.0 / (1000.0**self.parent.current.axType)
         elif self.parent.current.spec == 0:
             self.axMult = 1000.0**self.parent.current.axType
             self.axAdd = 0
@@ -2166,25 +2219,25 @@ class PeakDeconvParamFrame(QtGui.QWidget):
         self.gaussEntries = []
         for i in range(10):
             self.posTicks.append(QtGui.QCheckBox(''))
-            self.frame3.addWidget(self.posTicks[i], i+2, 0)
+            self.frame3.addWidget(self.posTicks[i], i + 2, 0)
             self.posEntries.append(QtGui.QLineEdit())
             self.posEntries[i].setAlignment(QtCore.Qt.AlignHCenter)
-            self.frame3.addWidget(self.posEntries[i], i+2, 1)
+            self.frame3.addWidget(self.posEntries[i], i + 2, 1)
             self.ampTicks.append(QtGui.QCheckBox(''))
-            self.frame3.addWidget(self.ampTicks[i], i+2, 2)
+            self.frame3.addWidget(self.ampTicks[i], i + 2, 2)
             self.ampEntries.append(QtGui.QLineEdit())
             self.ampEntries[i].setAlignment(QtCore.Qt.AlignHCenter)
-            self.frame3.addWidget(self.ampEntries[i], i+2, 3)
+            self.frame3.addWidget(self.ampEntries[i], i + 2, 3)
             self.lorTicks.append(QtGui.QCheckBox(''))
-            self.frame3.addWidget(self.lorTicks[i], i+2, 4)
+            self.frame3.addWidget(self.lorTicks[i], i + 2, 4)
             self.lorEntries.append(QtGui.QLineEdit())
             self.lorEntries[i].setAlignment(QtCore.Qt.AlignHCenter)
-            self.frame3.addWidget(self.lorEntries[i], i+2, 5)
+            self.frame3.addWidget(self.lorEntries[i], i + 2, 5)
             self.gaussTicks.append(QtGui.QCheckBox(''))
-            self.frame3.addWidget(self.gaussTicks[i], i+2, 6)
+            self.frame3.addWidget(self.gaussTicks[i], i + 2, 6)
             self.gaussEntries.append(QtGui.QLineEdit())
             self.gaussEntries[i].setAlignment(QtCore.Qt.AlignHCenter)
-            self.frame3.addWidget(self.gaussEntries[i], i+2, 7)
+            self.frame3.addWidget(self.gaussEntries[i], i + 2, 7)
         self.reset()
         grid.setColumnStretch(10, 1)
         grid.setAlignment(QtCore.Qt.AlignLeft)
@@ -2192,7 +2245,7 @@ class PeakDeconvParamFrame(QtGui.QWidget):
     def closeWindow(self, *args):
         self.stopMP()
         self.rootwindow.cancel()
-        
+
     def reset(self):
         self.parent.pickNum = 0
         self.bgrndEntry.setText("0.0")
@@ -2224,7 +2277,7 @@ class PeakDeconvParamFrame(QtGui.QWidget):
         self.parent.showPlot()
 
     def changeNum(self, *args):
-        val = self.numExp.currentIndex()+1
+        val = self.numExp.currentIndex() + 1
         for i in range(10):
             if i < val:
                 self.posTicks[i].show()
@@ -2247,7 +2300,7 @@ class PeakDeconvParamFrame(QtGui.QWidget):
 
     def togglePick(self):
         self.parent.togglePick(self.pickTick.isChecked())
-                
+
     def fitFunc(self, param, args):
         x = param[0]
         param = np.delete(param, [0])
@@ -2271,39 +2324,39 @@ class PeakDeconvParamFrame(QtGui.QWidget):
             slope = argu[0]
             argu = np.delete(argu, [0])
         for i in range(numExp):
-            if struc[4*i+2]:
+            if struc[4 * i + 2]:
                 pos = param[0]
                 param = np.delete(param, [0])
             else:
                 pos = argu[0]
                 argu = np.delete(argu, [0])
-            if struc[4*i+3]:
+            if struc[4 * i + 3]:
                 amp = param[0]
                 param = np.delete(param, [0])
             else:
                 amp = argu[0]
                 argu = np.delete(argu, [0])
-            if struc[4*i+4]:
+            if struc[4 * i + 4]:
                 width = abs(param[0])
                 param = np.delete(param, [0])
             else:
                 width = argu[0]
                 argu = np.delete(argu, [0])
-            if struc[4*i+5]:
+            if struc[4 * i + 5]:
                 gauss = abs(param[0])
                 param = np.delete(param, [0])
             else:
                 gauss = argu[0]
                 argu = np.delete(argu, [0])
-            t = np.arange(len(x))/sw
-            timeSignal = np.exp(1j*2*np.pi*t*(pos/axMult-axAdd))*np.exp(-np.pi*width*t)*np.exp(-((np.pi*gauss*t)**2)/(4*np.log(2)))*2/sw
-            timeSignal[0] = timeSignal[0]*0.5
-            testFunc += amp*np.real(np.fft.fftshift(np.fft.fft(timeSignal)))
-        testFunc += bgrnd+slope*x
+            t = np.arange(len(x)) / sw
+            timeSignal = np.exp(1j * 2 * np.pi * t * (pos / axMult - axAdd)) * np.exp(-np.pi * width * t) * np.exp(-((np.pi * gauss * t)**2) / (4 * np.log(2))) * 2 / sw
+            timeSignal[0] = timeSignal[0] * 0.5
+            testFunc += amp * np.real(np.fft.fftshift(np.fft.fft(timeSignal)))
+        testFunc += bgrnd + slope * x
         return testFunc
 
     def checkInputs(self):
-        numExp = self.numExp.currentIndex()+1
+        numExp = self.numExp.currentIndex() + 1
         inp = safeEval(self.bgrndEntry.text())
         if inp is None:
             return False
@@ -2337,7 +2390,7 @@ class PeakDeconvParamFrame(QtGui.QWidget):
         except:
             fitVal = None
         queue.put(fitVal)
-    
+
     def fit(self, *args):
         if not self.checkInputs():
             self.rootwindow.mainProgram.dispMsg("One of the inputs is not valid")
@@ -2345,7 +2398,7 @@ class PeakDeconvParamFrame(QtGui.QWidget):
         struc = []
         guess = []
         argu = []
-        numExp = self.numExp.currentIndex()+1
+        numExp = self.numExp.currentIndex() + 1
         outPos = np.zeros(numExp)
         outAmp = np.zeros(numExp)
         outWidth = np.zeros(numExp)
@@ -2421,19 +2474,19 @@ class PeakDeconvParamFrame(QtGui.QWidget):
             outSlope = fitVal[0][counter]
             counter += 1
         for i in range(numExp):
-            if struc[4*i+2]:
+            if struc[4 * i + 2]:
                 self.posEntries[i].setText('%#.3g' % fitVal[0][counter])
                 outPos[i] = fitVal[0][counter]
                 counter += 1
-            if struc[4*i+3]:
+            if struc[4 * i + 3]:
                 self.ampEntries[i].setText('%#.3g' % fitVal[0][counter])
                 outAmp[i] = fitVal[0][counter]
                 counter += 1
-            if struc[4*i+4]:
+            if struc[4 * i + 4]:
                 self.lorEntries[i].setText('%#.3g' % abs(fitVal[0][counter]))
                 outWidth[i] = abs(fitVal[0][counter])
                 counter += 1
-            if struc[4*i+5]:
+            if struc[4 * i + 5]:
                 self.gaussEntries[i].setText('%#.3g' % abs(fitVal[0][counter]))
                 outGauss[i] = abs(fitVal[0][counter])
                 counter += 1
@@ -2449,7 +2502,7 @@ class PeakDeconvParamFrame(QtGui.QWidget):
         self.process1 = None
         self.running = False
         self.stopButton.hide()
-        
+
     def fitAll(self, *args):
         FitAllSelectionWindow(self, ["Background", "Slope", "Position", "Integral", "Lorentz", "Gauss"])
 
@@ -2459,9 +2512,9 @@ class PeakDeconvParamFrame(QtGui.QWidget):
             try:
                 fitVal.append(scipy.optimize.curve_fit(lambda *param: self.fitFunc(param, args), xax, np.real(j), guess))
             except:
-                fitVal.append([[0]*10])
+                fitVal.append([[0] * 10])
         queue.put(fitVal)
-        
+
     def fitAllFunc(self, outputs):
         if not self.checkInputs():
             self.rootwindow.mainProgram.dispMsg("One of the inputs is not valid")
@@ -2469,7 +2522,7 @@ class PeakDeconvParamFrame(QtGui.QWidget):
         struc = []
         guess = []
         argu = []
-        numExp = self.numExp.currentIndex()+1
+        numExp = self.numExp.currentIndex() + 1
         outPos = np.zeros(numExp)
         outAmp = np.zeros(numExp)
         outWidth = np.zeros(numExp)
@@ -2524,7 +2577,7 @@ class PeakDeconvParamFrame(QtGui.QWidget):
         dataShape2 = np.delete(dataShape, axes)
         rolledData = np.rollaxis(fullData, axes)
         intOutputs = np.array(outputs, dtype=int)
-        numOutputs = np.sum(intOutputs[:2]) + numExp*np.sum(intOutputs[2:])
+        numOutputs = np.sum(intOutputs[:2]) + numExp * np.sum(intOutputs[2:])
         outputData = np.zeros((np.product(dataShape2), numOutputs), dtype=complex)
         counter2 = 0
         fitData = rolledData.reshape(dataShape[axes], np.product(dataShape2)).T
@@ -2551,16 +2604,16 @@ class PeakDeconvParamFrame(QtGui.QWidget):
                 outSlope = fitVal[0][counter]
                 counter += 1
             for i in range(numExp):
-                if struc[4*i+2]:
+                if struc[4 * i + 2]:
                     outPos[i] = fitVal[0][counter]
                     counter += 1
-                if struc[4*i+3]:
+                if struc[4 * i + 3]:
                     outAmp[i] = fitVal[0][counter]
                     counter += 1
-                if struc[4*i+4]:
+                if struc[4 * i + 4]:
                     outWidth[i] = abs(fitVal[0][counter])
                     counter += 1
-                if struc[4*i+5]:
+                if struc[4 * i + 5]:
                     outGauss[i] = abs(fitVal[0][counter])
                     counter += 1
             outputArray = []
@@ -2582,7 +2635,7 @@ class PeakDeconvParamFrame(QtGui.QWidget):
         self.rootwindow.createNewData(np.rollaxis(outputData.reshape(newShape), -1, axes), axes)
 
     def sim(self, store=False):
-        numExp = self.numExp.currentIndex()+1
+        numExp = self.numExp.currentIndex() + 1
         outPos = np.zeros(numExp)
         outAmp = np.zeros(numExp)
         outWidth = np.zeros(numExp)
@@ -2603,19 +2656,19 @@ class PeakDeconvParamFrame(QtGui.QWidget):
             self.lorEntries[i].setText('%#.3g' % outWidth[i])
             self.gaussEntries[i].setText('%#.3g' % outGauss[i])
         self.disp(outBgrnd, outSlope, outAmp, outPos, outWidth, outGauss, store)
-        
+
     def disp(self, outBgrnd, outSlope, outAmp, outPos, outWidth, outGauss, store=False):
         tmpx = self.parent.xax
-        outCurveBase = outBgrnd + tmpx*outSlope
+        outCurveBase = outBgrnd + tmpx * outSlope
         outCurve = outCurveBase.copy()
         outCurvePart = []
         x = []
-        t = np.arange(len(tmpx))/self.parent.current.sw
+        t = np.arange(len(tmpx)) / self.parent.current.sw
         for i in range(len(outAmp)):
             x.append(tmpx)
-            timeSignal = np.exp(1j*2*np.pi*t*(outPos[i]/self.axMult-self.axAdd))*np.exp(-np.pi*outWidth[i]*t)*np.exp(-((np.pi*outGauss[i]*t)**2)/(4*np.log(2)))*2/self.parent.current.sw
-            timeSignal[0] = timeSignal[0]*0.5
-            y = outAmp[i]*np.real(np.fft.fftshift(np.fft.fft(timeSignal)))
+            timeSignal = np.exp(1j * 2 * np.pi * t * (outPos[i] / self.axMult - self.axAdd)) * np.exp(-np.pi * outWidth[i] * t) * np.exp(-((np.pi * outGauss[i] * t)**2) / (4 * np.log(2))) * 2 / self.parent.current.sw
+            timeSignal[0] = timeSignal[0] * 0.5
+            y = outAmp[i] * np.real(np.fft.fftshift(np.fft.fft(timeSignal)))
             outCurvePart.append(outCurveBase + y)
             outCurve += y
         if store:
@@ -2626,16 +2679,22 @@ class PeakDeconvParamFrame(QtGui.QWidget):
             self.parent.showPlot(tmpx, outCurve, x, outCurvePart)
 
 ##############################################################################
-class TensorDeconvWindow(FittingWindow): 
+
+
+class TensorDeconvWindow(FittingWindow):
+
     def __init__(self, mainProgram, oldMainWindow):
         FittingWindow.__init__(self, mainProgram, oldMainWindow)
 
     def setup(self):
         self.current = TensorDeconvFrame(self, self.fig, self.canvas, self.oldMainWindow.current)
         self.paramframe = TensorDeconvParamFrame(self.current, self)
-        
-#################################################################################   
-class TensorDeconvFrame(Plot1DFrame): 
+
+#################################################################################
+
+
+class TensorDeconvFrame(Plot1DFrame):
+
     def __init__(self, rootwindow, fig, canvas, current):
         Plot1DFrame.__init__(self, rootwindow, fig, canvas)
         self.data1D = current.getDisplayedData()
@@ -2643,12 +2702,12 @@ class TensorDeconvFrame(Plot1DFrame):
         self.spec = self.current.spec
         if self.spec == 1:
             if self.current.ppm:
-                axMult = 1e6/self.current.ref
+                axMult = 1e6 / self.current.ref
             else:
-                axMult = 1.0/(1000.0**self.current.axType)
+                axMult = 1.0 / (1000.0**self.current.axType)
         elif self.spec == 0:
             axMult = 1000.0**self.current.axType
-        self.xax = self.current.xax*axMult
+        self.xax = self.current.xax * axMult
         self.plotType = 0
         self.rootwindow = rootwindow
         self.pickNum = 0
@@ -2656,7 +2715,7 @@ class TensorDeconvFrame(Plot1DFrame):
         self.plotReset()
         self.showPlot()
 
-    def plotReset(self): #set the plot limits to min and max values
+    def plotReset(self):  # set the plot limits to min and max values
         if self.plotType == 0:
             miny = min(np.real(self.data1D))
             maxy = max(np.real(self.data1D))
@@ -2672,18 +2731,18 @@ class TensorDeconvFrame(Plot1DFrame):
         else:
             miny = -1
             maxy = 1
-        differ = 0.05*(maxy-miny) #amount to add to show all datapoints (10%)
-        self.yminlim = miny-differ
-        self.ymaxlim = maxy+differ
+        differ = 0.05 * (maxy - miny)  # amount to add to show all datapoints (10%)
+        self.yminlim = miny - differ
+        self.ymaxlim = maxy + differ
         self.xminlim = min(self.xax)
         self.xmaxlim = max(self.xax)
-        if self.spec > 0 :
+        if self.spec > 0:
             self.ax.set_xlim(self.xmaxlim, self.xminlim)
         else:
             self.ax.set_xlim(self.xminlim, self.xmaxlim)
         self.ax.set_ylim(self.yminlim, self.ymaxlim)
-        
-    def showPlot(self, tmpAx=None, tmpdata=None, tmpAx2=[], tmpdata2=[]): 
+
+    def showPlot(self, tmpAx=None, tmpdata=None, tmpAx2=[], tmpdata2=[]):
         self.ax.cla()
         self.line_xdata = self.xax
         self.line_ydata = self.data1D
@@ -2717,7 +2776,7 @@ class TensorDeconvFrame(Plot1DFrame):
             self.ax.set_xlabel('')
         self.ax.get_xaxis().get_major_formatter().set_powerlimits((-4, 4))
         self.ax.get_yaxis().get_major_formatter().set_powerlimits((-4, 4))
-        if self.spec > 0 :
+        if self.spec > 0:
             self.ax.set_xlim(self.xmaxlim, self.xminlim)
         else:
             self.ax.set_xlim(self.xminlim, self.xmaxlim)
@@ -2727,32 +2786,35 @@ class TensorDeconvFrame(Plot1DFrame):
     def togglePick(self, var):
         self.peakPickReset()
         if var == 1:
-            self.peakPickFunc = lambda pos, self=self: self.pickDeconv(pos) 
+            self.peakPickFunc = lambda pos, self=self: self.pickDeconv(pos)
             self.peakPick = True
         else:
             self.peakPickFunc = None
             self.peakPick = False
-        
+
     def pickDeconv(self, pos):
         if self.pickNum2 == 0:
             if self.pickNum < 10:
                 self.rootwindow.paramframe.numExp.setCurrentIndex(self.pickNum)
                 self.rootwindow.paramframe.changeNum()
-            self.rootwindow.paramframe.t11Entries[self.pickNum].setText("%.3g" %self.current.xax[pos[0]])
+            self.rootwindow.paramframe.t11Entries[self.pickNum].setText("%.3g" % self.current.xax[pos[0]])
             self.pickNum2 = 1
         elif self.pickNum2 == 1:
-            self.rootwindow.paramframe.t22Entries[self.pickNum].setText("%.3g" %self.current.xax[pos[0]])
+            self.rootwindow.paramframe.t22Entries[self.pickNum].setText("%.3g" % self.current.xax[pos[0]])
             self.pickNum2 = 2
         elif self.pickNum2 == 2:
-            self.rootwindow.paramframe.t33Entries[self.pickNum].setText("%.3g" %self.current.xax[pos[0]])
+            self.rootwindow.paramframe.t33Entries[self.pickNum].setText("%.3g" % self.current.xax[pos[0]])
             self.pickNum2 = 0
             self.pickNum += 1
         if self.pickNum < 10:
-            self.peakPickFunc = lambda pos, self=self: self.pickDeconv(pos) 
-            self.peakPick = True 
+            self.peakPickFunc = lambda pos, self=self: self.pickDeconv(pos)
+            self.peakPick = True
 
 #################################################################################
-class TensorDeconvParamFrame(QtGui.QWidget): 
+
+
+class TensorDeconvParamFrame(QtGui.QWidget):
+
     def __init__(self, parent, rootwindow):
         QtGui.QWidget.__init__(self, rootwindow)
         self.parent = parent
@@ -2761,7 +2823,7 @@ class TensorDeconvParamFrame(QtGui.QWidget):
         grid = QtGui.QGridLayout(self)
         self.setLayout(grid)
         if self.parent.current.spec == 1:
-            self.axAdd = self.parent.current.freq-self.parent.current.ref
+            self.axAdd = self.parent.current.freq - self.parent.current.ref
         elif self.parent.current.spec == 0:
             self.axAdd = 0
         self.frame1 = QtGui.QGridLayout()
@@ -2850,43 +2912,43 @@ class TensorDeconvParamFrame(QtGui.QWidget):
         self.gaussTicks = []
         for i in range(10):
             self.t11Ticks.append(QtGui.QCheckBox(''))
-            self.frame3.addWidget(self.t11Ticks[i], i+2, 0)
+            self.frame3.addWidget(self.t11Ticks[i], i + 2, 0)
             self.t11Entries.append(QtGui.QLineEdit())
             self.t11Entries[i].setAlignment(QtCore.Qt.AlignHCenter)
-            self.frame3.addWidget(self.t11Entries[i], i+2, 1)
+            self.frame3.addWidget(self.t11Entries[i], i + 2, 1)
             self.t22Ticks.append(QtGui.QCheckBox(''))
-            self.frame3.addWidget(self.t22Ticks[i], i+2, 2)
+            self.frame3.addWidget(self.t22Ticks[i], i + 2, 2)
             self.t22Entries.append(QtGui.QLineEdit())
             self.t22Entries[i].setAlignment(QtCore.Qt.AlignHCenter)
-            self.frame3.addWidget(self.t22Entries[i], i+2, 3)
+            self.frame3.addWidget(self.t22Entries[i], i + 2, 3)
             self.t33Ticks.append(QtGui.QCheckBox(''))
-            self.frame3.addWidget(self.t33Ticks[i], i+2, 4)
+            self.frame3.addWidget(self.t33Ticks[i], i + 2, 4)
             self.t33Entries.append(QtGui.QLineEdit())
             self.t33Entries[i].setAlignment(QtCore.Qt.AlignHCenter)
-            self.frame3.addWidget(self.t33Entries[i], i+2, 5)
+            self.frame3.addWidget(self.t33Entries[i], i + 2, 5)
             self.ampTicks.append(QtGui.QCheckBox(''))
-            self.frame3.addWidget(self.ampTicks[i], i+2, 6)
+            self.frame3.addWidget(self.ampTicks[i], i + 2, 6)
             self.ampEntries.append(QtGui.QLineEdit())
             self.ampEntries[i].setAlignment(QtCore.Qt.AlignHCenter)
-            self.frame3.addWidget(self.ampEntries[i], i+2, 7)
+            self.frame3.addWidget(self.ampEntries[i], i + 2, 7)
             self.lorTicks.append(QtGui.QCheckBox(''))
-            self.frame3.addWidget(self.lorTicks[i], i+2, 8)
+            self.frame3.addWidget(self.lorTicks[i], i + 2, 8)
             self.lorEntries.append(QtGui.QLineEdit())
             self.lorEntries[i].setAlignment(QtCore.Qt.AlignHCenter)
-            self.frame3.addWidget(self.lorEntries[i], i+2, 9)
+            self.frame3.addWidget(self.lorEntries[i], i + 2, 9)
             self.gaussTicks.append(QtGui.QCheckBox(''))
-            self.frame3.addWidget(self.gaussTicks[i], i+2, 10)
+            self.frame3.addWidget(self.gaussTicks[i], i + 2, 10)
             self.gaussEntries.append(QtGui.QLineEdit())
             self.gaussEntries[i].setAlignment(QtCore.Qt.AlignHCenter)
-            self.frame3.addWidget(self.gaussEntries[i], i+2, 11)
+            self.frame3.addWidget(self.gaussEntries[i], i + 2, 11)
         self.reset()
         grid.setColumnStretch(10, 1)
         grid.setAlignment(QtCore.Qt.AlignLeft)
-        
+
     def closeWindow(self, *args):
         self.stopMP()
         self.rootwindow.cancel()
-        
+
     def reset(self):
         self.parent.pickNum = 0
         self.parent.pickNum2 = 0
@@ -2928,7 +2990,7 @@ class TensorDeconvParamFrame(QtGui.QWidget):
 
     def togglePick(self):
         self.parent.togglePick(self.pickTick.isChecked())
-                
+
     def setCheng(self, *args):
         inp = safeEval(self.chengEntry.text())
         if inp is None:
@@ -2936,9 +2998,9 @@ class TensorDeconvParamFrame(QtGui.QWidget):
         else:
             self.cheng = int(inp)
         self.chengEntry.setText(str(self.cheng))
-                
+
     def changeNum(self, *args):
-        val = self.numExp.currentIndex()+1
+        val = self.numExp.currentIndex() + 1
         for i in range(10):
             if i < val:
                 self.t11Ticks[i].show()
@@ -2968,24 +3030,24 @@ class TensorDeconvParamFrame(QtGui.QWidget):
                 self.gaussEntries[i].hide()
 
     def tensorFunc(self, x, t11, t22, t33, lor, gauss, multt, sw, weight, axAdd):
-        t11 = t11*multt[0]
-        t22 = t22*multt[1]
-        t33 = t33*multt[2]
-        v = t11+t22+t33-axAdd
+        t11 = t11 * multt[0]
+        t22 = t22 * multt[1]
+        t33 = t33 * multt[2]
+        v = t11 + t22 + t33 - axAdd
         length = len(x)
-        t = np.arange(length)/sw
+        t = np.arange(length) / sw
         final = np.zeros(length)
-        mult = v/sw*length
-        x1 = np.array(np.round(mult)+np.floor(length/2.0), dtype=int)
-        weight = weight[np.logical_and(x1>=0, x1<length)]
-        x1 = x1[np.logical_and(x1>=0, x1<length)]
+        mult = v / sw * length
+        x1 = np.array(np.round(mult) + np.floor(length / 2.0), dtype=int)
+        weight = weight[np.logical_and(x1 >= 0, x1 < length)]
+        x1 = x1[np.logical_and(x1 >= 0, x1 < length)]
         final = np.bincount(x1, weight, length)
-        apod = np.exp(-np.pi*lor*t)*np.exp(-((np.pi*gauss*t)**2)/(4*np.log(2)))
-        apod[-1:-(len(apod)/2+1):-1] = apod[:len(apod)/2]
-        I = np.real(np.fft.fft(np.fft.ifft(final)*apod))
-        I = I/sw*len(I)
+        apod = np.exp(-np.pi * lor * t) * np.exp(-((np.pi * gauss * t)**2) / (4 * np.log(2)))
+        apod[-1:-(len(apod) / 2 + 1):-1] = apod[:len(apod) / 2]
+        I = np.real(np.fft.fft(np.fft.ifft(final) * apod))
+        I = I / sw * len(I)
         return I
-                
+
     def fitFunc(self, param, numExp, struc, argu, sw, axAdd, multt, weight, x, y):
         testFunc = np.zeros(len(x))
         if struc[0]:
@@ -3001,48 +3063,48 @@ class TensorDeconvParamFrame(QtGui.QWidget):
             slope = argu[0]
             argu = np.delete(argu, [0])
         for i in range(numExp):
-            if struc[6*i+2]:
+            if struc[6 * i + 2]:
                 t11 = param[0]
                 param = np.delete(param, [0])
             else:
                 t11 = argu[0]
                 argu = np.delete(argu, [0])
-            if struc[6*i+3]:
+            if struc[6 * i + 3]:
                 t22 = param[0]
                 param = np.delete(param, [0])
             else:
                 t22 = argu[0]
                 argu = np.delete(argu, [0])
-            if struc[6*i+4]:
+            if struc[6 * i + 4]:
                 t33 = param[0]
                 param = np.delete(param, [0])
             else:
                 t33 = argu[0]
                 argu = np.delete(argu, [0])
-            if struc[6*i+5]:
+            if struc[6 * i + 5]:
                 amp = param[0]
                 param = np.delete(param, [0])
             else:
                 amp = argu[0]
                 argu = np.delete(argu, [0])
-            if struc[6*i+6]:
+            if struc[6 * i + 6]:
                 width = abs(param[0])
                 param = np.delete(param, [0])
             else:
                 width = argu[0]
                 argu = np.delete(argu, [0])
-            if struc[6*i+7]:
+            if struc[6 * i + 7]:
                 gauss = abs(param[0])
                 param = np.delete(param, [0])
             else:
                 gauss = argu[0]
                 argu = np.delete(argu, [0])
-            testFunc += amp*self.tensorFunc(x, t11, t22, t33, width, gauss, multt, sw, weight, axAdd)
-        testFunc += bgrnd+slope*x
-        return np.sum((np.real(testFunc)-y)**2)
+            testFunc += amp * self.tensorFunc(x, t11, t22, t33, width, gauss, multt, sw, weight, axAdd)
+        testFunc += bgrnd + slope * x
+        return np.sum((np.real(testFunc) - y)**2)
 
     def checkInputs(self):
-        numExp = self.numExp.currentIndex()+1
+        numExp = self.numExp.currentIndex() + 1
         inp = safeEval(self.bgrndEntry.text())
         if inp is None:
             return False
@@ -3080,14 +3142,14 @@ class TensorDeconvParamFrame(QtGui.QWidget):
 
     def mpFit(self, xax, data1D, guess, args, queue, cheng):
         phi, theta, weight = zcw_angles(cheng, symm=2)
-        multt = [np.sin(theta)**2*np.cos(phi)**2, np.sin(theta)**2*np.sin(phi)**2, np.cos(theta)**2]
+        multt = [np.sin(theta)**2 * np.cos(phi)**2, np.sin(theta)**2 * np.sin(phi)**2, np.cos(theta)**2]
         arg = args + (multt, weight, xax, data1D)
         try:
             fitVal = scipy.optimize.fmin(self.fitFunc, guess, args=arg, disp=False)
         except:
             fitVal = None
         queue.put(fitVal)
-    
+
     def fit(self, *args):
         self.setCheng()
         if not self.checkInputs():
@@ -3096,7 +3158,7 @@ class TensorDeconvParamFrame(QtGui.QWidget):
         struc = []
         guess = []
         argu = []
-        numExp = self.numExp.currentIndex()+1
+        numExp = self.numExp.currentIndex() + 1
         outt11 = np.zeros(numExp)
         outt22 = np.zeros(numExp)
         outt33 = np.zeros(numExp)
@@ -3188,27 +3250,27 @@ class TensorDeconvParamFrame(QtGui.QWidget):
             outSlope = fitVal[counter]
             counter += 1
         for i in range(numExp):
-            if struc[6*i+2]:
+            if struc[6 * i + 2]:
                 self.t11Entries[i].setText('%.3g' % fitVal[counter])
                 outt11[i] = fitVal[counter]
                 counter += 1
-            if struc[6*i+3]:
+            if struc[6 * i + 3]:
                 self.t22Entries[i].setText('%.3g' % fitVal[counter])
                 outt22[i] = fitVal[counter]
                 counter += 1
-            if struc[6*i+4]:
+            if struc[6 * i + 4]:
                 self.t33Entries[i].setText('%.3g' % fitVal[counter])
                 outt33[i] = fitVal[counter]
                 counter += 1
-            if struc[6*i+5]:
+            if struc[6 * i + 5]:
                 self.ampEntries[i].setText('%.3g' % fitVal[counter])
                 outAmp[i] = fitVal[counter]
                 counter += 1
-            if struc[6*i+6]:
+            if struc[6 * i + 6]:
                 self.lorEntries[i].setText('%.3g' % abs(fitVal[counter]))
                 outWidth[i] = abs(fitVal[counter])
                 counter += 1
-            if struc[6*i+7]:
+            if struc[6 * i + 7]:
                 self.gaussEntries[i].setText('%.3g' % abs(fitVal[counter]))
                 outGauss[i] = abs(fitVal[counter])
                 counter += 1
@@ -3224,22 +3286,22 @@ class TensorDeconvParamFrame(QtGui.QWidget):
         self.process1 = None
         self.running = False
         self.stopButton.hide()
-        
+
     def fitAll(self, *args):
         FitAllSelectionWindow(self, ["Background", "Slope", "T11", "T22", "T33", "Integral", "Lorentz", "Gauss"])
 
     def mpAllFit(self, xax, data, guess, args, queue, cheng):
         phi, theta, weight = zcw_angles(cheng, symm=2)
-        multt = [np.sin(theta)**2*np.cos(phi)**2, np.sin(theta)**2*np.sin(phi)**2, np.cos(theta)**2]
+        multt = [np.sin(theta)**2 * np.cos(phi)**2, np.sin(theta)**2 * np.sin(phi)**2, np.cos(theta)**2]
         fitVal = []
         for j in data:
             arg = args + (multt, weight, xax, j)
             try:
                 fitVal.append(scipy.optimize.fmin(self.fitFunc, guess, args=arg, disp=False))
             except:
-                fitVal.append([[0]*10])
+                fitVal.append([[0] * 10])
         queue.put(fitVal)
-        
+
     def fitAllFunc(self, outputs):
         self.setCheng()
         if not self.checkInputs():
@@ -3248,7 +3310,7 @@ class TensorDeconvParamFrame(QtGui.QWidget):
         struc = []
         guess = []
         argu = []
-        numExp = self.numExp.currentIndex()+1
+        numExp = self.numExp.currentIndex() + 1
         outt11 = np.zeros(numExp)
         outt22 = np.zeros(numExp)
         outt33 = np.zeros(numExp)
@@ -3319,7 +3381,7 @@ class TensorDeconvParamFrame(QtGui.QWidget):
         dataShape2 = np.delete(dataShape, axes)
         rolledData = np.rollaxis(fullData, axes)
         intOutputs = np.array(outputs, dtype=int)
-        numOutputs = np.sum(intOutputs[:2]) + numExp*np.sum(intOutputs[2:])
+        numOutputs = np.sum(intOutputs[:2]) + numExp * np.sum(intOutputs[2:])
         outputData = np.zeros((np.product(dataShape2), numOutputs), dtype=complex)
         counter2 = 0
         fitData = rolledData.reshape(dataShape[axes], np.product(dataShape2)).T
@@ -3349,22 +3411,22 @@ class TensorDeconvParamFrame(QtGui.QWidget):
                 outSlope = fitVal[counter]
                 counter += 1
             for i in range(numExp):
-                if struc[6*i+2]:
+                if struc[6 * i + 2]:
                     outt11[i] = fitVal[counter]
                     counter += 1
-                if struc[6*i+3]:
+                if struc[6 * i + 3]:
                     outt22[i] = fitVal[counter]
                     counter += 1
-                if struc[6*i+4]:
+                if struc[6 * i + 4]:
                     outt33[i] = fitVal[counter]
                     counter += 1
-                if struc[6*i+5]:
+                if struc[6 * i + 5]:
                     outAmp[i] = fitVal[counter]
                     counter += 1
-                if struc[6*i+6]:
+                if struc[6 * i + 6]:
                     outWidth[i] = abs(fitVal[counter])
                     counter += 1
-                if struc[6*i+7]:
+                if struc[6 * i + 7]:
                     outGauss[i] = abs(fitVal[counter])
                     counter += 1
             outputArray = []
@@ -3379,7 +3441,7 @@ class TensorDeconvParamFrame(QtGui.QWidget):
             if outputs[4]:
                 outputArray = np.concatenate((outputArray, outt33))
             if outputs[5]:
-                outputArray = np.concatenate((outputArray, outAmp)) 
+                outputArray = np.concatenate((outputArray, outAmp))
             if outputs[6]:
                 outputArray = np.concatenate((outputArray, outWidth))
             if outputs[7]:
@@ -3388,10 +3450,10 @@ class TensorDeconvParamFrame(QtGui.QWidget):
             counter2 += 1
         newShape = np.concatenate((np.array(dataShape2), [numOutputs]))
         self.rootwindow.createNewData(np.rollaxis(outputData.reshape(newShape), -1, axes), axes)
-        
+
     def sim(self, store=False):
         self.setCheng()
-        numExp = self.numExp.currentIndex()+1
+        numExp = self.numExp.currentIndex() + 1
         bgrnd = safeEval(self.bgrndEntry.text())
         slope = safeEval(self.slopeEntry.text())
         if bgrnd is None or slope is None:
@@ -3414,18 +3476,18 @@ class TensorDeconvParamFrame(QtGui.QWidget):
                 self.rootwindow.mainProgram.dispMsg("One of the inputs is not valid")
                 return
         self.disp(bgrnd, slope, t11, t22, t33, amp, width, gauss, store)
-        
+
     def disp(self, outBgrnd, outSlope, outt11, outt22, outt33, outAmp, outWidth, outGauss, store=False):
         phi, theta, weight = zcw_angles(self.cheng, symm=2)
-        multt = [np.sin(theta)**2*np.cos(phi)**2, np.sin(theta)**2*np.sin(phi)**2, np.cos(theta)**2]
+        multt = [np.sin(theta)**2 * np.cos(phi)**2, np.sin(theta)**2 * np.sin(phi)**2, np.cos(theta)**2]
         tmpx = self.parent.xax
-        outCurveBase = outBgrnd + tmpx*outSlope
+        outCurveBase = outBgrnd + tmpx * outSlope
         outCurve = outCurveBase.copy()
         outCurvePart = []
         x = []
         for i in range(len(outt11)):
             x.append(tmpx)
-            y =  outAmp[i]*self.tensorFunc(tmpx, outt11[i], outt22[i], outt33[i], outWidth[i], outGauss[i], multt, self.parent.current.sw, weight, self.axAdd)
+            y = outAmp[i] * self.tensorFunc(tmpx, outt11[i], outt22[i], outt33[i], outWidth[i], outGauss[i], multt, self.parent.current.sw, weight, self.axAdd)
             outCurvePart.append(outCurveBase + y)
             outCurve += y
         if store:
@@ -3434,18 +3496,24 @@ class TensorDeconvParamFrame(QtGui.QWidget):
             self.rootwindow.createNewData(np.array(outCurvePart), self.parent.current.axes, True)
         else:
             self.parent.showPlot(tmpx, outCurve, x, outCurvePart)
-        
+
 ##############################################################################
-class HerzfeldBergerWindow(FittingWindow): 
+
+
+class HerzfeldBergerWindow(FittingWindow):
+
     def __init__(self, mainProgram, oldMainWindow):
         FittingWindow.__init__(self, mainProgram, oldMainWindow)
 
     def setup(self):
         self.current = HerzfeldBergerFrame(self, self.fig, self.canvas, self.oldMainWindow.current)
         self.paramframe = HerzfeldBergerParamFrame(self.current, self)
-        
-#################################################################################   
-class HerzfeldBergerFrame(Plot1DFrame): 
+
+#################################################################################
+
+
+class HerzfeldBergerFrame(Plot1DFrame):
+
     def __init__(self, rootwindow, fig, canvas, current):
         Plot1DFrame.__init__(self, rootwindow, fig, canvas)
         self.data1D = current.getDisplayedData()
@@ -3453,18 +3521,18 @@ class HerzfeldBergerFrame(Plot1DFrame):
         self.spec = self.current.spec
         if self.spec == 1:
             if self.current.ppm:
-                axMult = 1e6/self.current.ref
+                axMult = 1e6 / self.current.ref
             else:
-                axMult = 1.0/(1000.0**self.current.axType)
+                axMult = 1.0 / (1000.0**self.current.axType)
         elif self.spec == 0:
             axMult = 1000.0**self.current.axType
-        self.xax = self.current.xax*axMult
+        self.xax = self.current.xax * axMult
         self.plotType = 0
         self.rootwindow = rootwindow
         self.plotReset()
         self.showPlot()
 
-    def plotReset(self): #set the plot limits to min and max values
+    def plotReset(self):  # set the plot limits to min and max values
         if self.plotType == 0:
             miny = min(np.real(self.data1D))
             maxy = max(np.real(self.data1D))
@@ -3480,18 +3548,18 @@ class HerzfeldBergerFrame(Plot1DFrame):
         else:
             miny = -1
             maxy = 1
-        differ = 0.05*(maxy-miny) #amount to add to show all datapoints (10%)
-        self.yminlim = miny-differ
-        self.ymaxlim = maxy+differ
+        differ = 0.05 * (maxy - miny)  # amount to add to show all datapoints (10%)
+        self.yminlim = miny - differ
+        self.ymaxlim = maxy + differ
         self.xminlim = min(self.xax)
         self.xmaxlim = max(self.xax)
-        if self.spec > 0 :
+        if self.spec > 0:
             self.ax.set_xlim(self.xmaxlim, self.xminlim)
         else:
             self.ax.set_xlim(self.xminlim, self.xmaxlim)
         self.ax.set_ylim(self.yminlim, self.ymaxlim)
-        
-    def showPlot(self, tmpAx=None, tmpdata=None, tmpAx2=[], tmpdata2=[]): 
+
+    def showPlot(self, tmpAx=None, tmpdata=None, tmpAx2=[], tmpdata2=[]):
         self.ax.cla()
         self.line_xdata = self.xax
         self.line_ydata = self.data1D
@@ -3525,7 +3593,7 @@ class HerzfeldBergerFrame(Plot1DFrame):
             self.ax.set_xlabel('')
         self.ax.get_xaxis().get_major_formatter().set_powerlimits((-4, 4))
         self.ax.get_yaxis().get_major_formatter().set_powerlimits((-4, 4))
-        if self.spec > 0 :
+        if self.spec > 0:
             self.ax.set_xlim(self.xmaxlim, self.xminlim)
         else:
             self.ax.set_xlim(self.xminlim, self.xmaxlim)
@@ -3535,19 +3603,22 @@ class HerzfeldBergerFrame(Plot1DFrame):
     def togglePick(self, var):
         self.peakPickReset()
         if var == 1:
-            self.peakPickFunc = lambda pos, self=self: self.pickDeconv(pos) 
+            self.peakPickFunc = lambda pos, self=self: self.pickDeconv(pos)
             self.peakPick = True
         else:
             self.peakPickFunc = None
             self.peakPick = False
-        
+
     def pickDeconv(self, pos):
         self.rootwindow.paramframe.addValue(pos[0])
-        self.peakPickFunc = lambda pos, self=self: self.pickDeconv(pos) 
-        self.peakPick = True 
+        self.peakPickFunc = lambda pos, self=self: self.pickDeconv(pos)
+        self.peakPick = True
 
 #################################################################################
-class HerzfeldBergerParamFrame(QtGui.QWidget): 
+
+
+class HerzfeldBergerParamFrame(QtGui.QWidget):
+
     def __init__(self, parent, rootwindow):
         QtGui.QWidget.__init__(self, rootwindow)
         self.parent = parent
@@ -3557,7 +3628,7 @@ class HerzfeldBergerParamFrame(QtGui.QWidget):
         grid = QtGui.QGridLayout(self)
         self.setLayout(grid)
         if self.parent.current.spec == 1:
-            self.axAdd = self.parent.current.freq-self.parent.current.ref
+            self.axAdd = self.parent.current.freq - self.parent.current.ref
         elif self.parent.current.spec == 0:
             self.axAdd = 0
         self.frame1 = QtGui.QGridLayout()
@@ -3606,7 +3677,7 @@ class HerzfeldBergerParamFrame(QtGui.QWidget):
         self.spinEntry.setText("30.0")
         self.optframe.addWidget(self.spinEntry, 3, 0)
         #self.frame2.setColumnStretch(10, 1)
-        #self.frame2.setAlignment(QtCore.Qt.AlignTop)
+        # self.frame2.setAlignment(QtCore.Qt.AlignTop)
         self.frame3.addWidget(QLabel(u"\u03B4 [ppm]:"), 1, 0, 1, 2)
         self.frame3.addWidget(QLabel(u"\u03B7:"), 1, 2, 1, 2)
         self.frame3.setColumnStretch(20, 1)
@@ -3637,11 +3708,11 @@ class HerzfeldBergerParamFrame(QtGui.QWidget):
         self.reset()
         grid.setColumnStretch(10, 1)
         grid.setAlignment(QtCore.Qt.AlignLeft)
-        
+
     def closeWindow(self, *args):
         self.stopMP()
         self.rootwindow.cancel()
-        
+
     def reset(self):
         self.sidebandList = []
         self.integralList = []
@@ -3665,8 +3736,8 @@ class HerzfeldBergerParamFrame(QtGui.QWidget):
             self.tmpPos = value
         else:
             n = len(self.integralList)
-            self.sidebandList.append((-1)**n*n//2)
-            self.integralList.append(np.sum(self.parent.data1D[min(self.tmpPos, value):max(self.tmpPos, value)])*self.parent.current.sw/float(self.parent.data1D.shape[-1]))
+            self.sidebandList.append((-1)**n * n // 2)
+            self.integralList.append(np.sum(self.parent.data1D[min(self.tmpPos, value):max(self.tmpPos, value)]) * self.parent.current.sw / float(self.parent.data1D.shape[-1]))
             self.tmpPos = None
             self.sidebandEntries.append(QtGui.QSpinBox(self, ))
             self.sidebandEntries[-1].setMinimum(-99)
@@ -3680,7 +3751,7 @@ class HerzfeldBergerParamFrame(QtGui.QWidget):
 
     def togglePick(self):
         self.parent.togglePick(self.pickTick.isChecked())
-                
+
     def setCheng(self, *args):
         inp = safeEval(self.chengEntry.text())
         if inp is None:
@@ -3690,22 +3761,22 @@ class HerzfeldBergerParamFrame(QtGui.QWidget):
         self.chengEntry.setText(str(self.cheng))
 
     def hbFunc(self, omega0, delta, eta, NSTEPS, tresolution, angleStuff, weight):
-        omegars =  omega0*delta*(angleStuff[0]  + angleStuff[1] +  eta*(angleStuff[2] + angleStuff[3] + angleStuff[4] + angleStuff[5] ))
+        omegars = omega0 * delta * (angleStuff[0] + angleStuff[1] + eta * (angleStuff[2] + angleStuff[3] + angleStuff[4] + angleStuff[5]))
         #omegars =  omega0*delta*(self.C1  + self.C2 +  eta*(self.C1eta + self.C2eta + self.S1 + self.S2 ))
         #QTrs = np.exp(-1j*np.cumsum(omegars, axis=1)*self.tresolution)
         nsteps = angleStuff[0].shape[1]
-        QTrs = np.concatenate([np.ones([angleStuff[0].shape[0],1]),np.exp(-1j*np.cumsum(omegars, axis=1)*tresolution)[:,:-1]],1)
-        for j in range(1,nsteps):
-            QTrs[:,j] = np.exp(-1j*np.sum(omegars[:,0:j]*tresolution,1))
+        QTrs = np.concatenate([np.ones([angleStuff[0].shape[0], 1]), np.exp(-1j * np.cumsum(omegars, axis=1) * tresolution)[:, :-1]], 1)
+        for j in range(1, nsteps):
+            QTrs[:, j] = np.exp(-1j * np.sum(omegars[:, 0:j] * tresolution, 1))
         rhoT0sr = np.conj(QTrs)
-        #calculate the gamma-averaged FID over 1 rotor period for all crystallites
+        # calculate the gamma-averaged FID over 1 rotor period for all crystallites
         favrs = np.zeros(NSTEPS, dtype=complex)
         for j in range(NSTEPS):
             favrs[j] += np.sum(weight * np.sum(rhoT0sr * np.roll(QTrs, -j, axis=1), 1) / NSTEPS**2)
-        #calculate the sideband intensities by doing an FT and pick the ones that are needed further
+        # calculate the sideband intensities by doing an FT and pick the ones that are needed further
         sidebands = np.real(np.fft.fft(favrs))
         return sidebands
-                
+
     def fitFunc(self, param, struc, argu, omega0, NSTEPS, tresolution, angleStuff, weight, x, y):
         if struc[0]:
             delta = param[0]
@@ -3720,25 +3791,25 @@ class HerzfeldBergerParamFrame(QtGui.QWidget):
             eta = argu[0]
             argu = np.delete(argu, [0])
         testFunc = self.hbFunc(omega0, delta, eta, NSTEPS, tresolution, angleStuff, weight)
-        testFunc = testFunc[x]/np.sum(testFunc[x])*np.real(np.sum(y))
-        return np.sum((testFunc-y)**2)
-    
+        testFunc = testFunc[x] / np.sum(testFunc[x]) * np.real(np.sum(y))
+        return np.sum((testFunc - y)**2)
+
     def mpFit(self, xax, data1D, guess, args, queue, NSTEPS, omegar, cheng):
-        theta, phi, weight = zcw_angles(cheng, symm=2) 
+        theta, phi, weight = zcw_angles(cheng, symm=2)
         sinPhi = np.sin(phi)
         cosPhi = np.cos(phi)
-        sin2Theta = np.sin(2*theta)
-        cos2Theta = np.cos(2*theta)
-        tresolution = 2*np.pi/omegar/NSTEPS
-        t = np.linspace(0, tresolution*(NSTEPS-1), NSTEPS)
-        cosOmegarT = np.cos(omegar*t)
-        cos2OmegarT = np.cos(2*omegar*t)
-        angleStuff = [np.array([np.sqrt(2)/3 *  sinPhi * cosPhi * 3 ]).transpose()* cosOmegarT,
-                      np.array([-1.0 / 3 *  3/2*sinPhi**2 ]).transpose()* cos2OmegarT,
-                      np.transpose([cos2Theta / 3.0]) * (np.array([np.sqrt(2)/3 *  sinPhi * cosPhi * 3 ]).transpose()* cosOmegarT),
-                      np.array([1.0 / 3 /2*(1+cosPhi**2)*cos2Theta ]).transpose()* cos2OmegarT,
-                      np.array([np.sqrt(2)/3 *  sinPhi * sin2Theta]).transpose()* np.sin(omegar*t),
-                      np.array([cosPhi * sin2Theta/3]).transpose()* np.sin(2*omegar*t)]
+        sin2Theta = np.sin(2 * theta)
+        cos2Theta = np.cos(2 * theta)
+        tresolution = 2 * np.pi / omegar / NSTEPS
+        t = np.linspace(0, tresolution * (NSTEPS - 1), NSTEPS)
+        cosOmegarT = np.cos(omegar * t)
+        cos2OmegarT = np.cos(2 * omegar * t)
+        angleStuff = [np.array([np.sqrt(2) / 3 * sinPhi * cosPhi * 3]).transpose() * cosOmegarT,
+                      np.array([-1.0 / 3 * 3 / 2 * sinPhi**2]).transpose() * cos2OmegarT,
+                      np.transpose([cos2Theta / 3.0]) * (np.array([np.sqrt(2) / 3 * sinPhi * cosPhi * 3]).transpose() * cosOmegarT),
+                      np.array([1.0 / 3 / 2 * (1 + cosPhi**2) * cos2Theta]).transpose() * cos2OmegarT,
+                      np.array([np.sqrt(2) / 3 * sinPhi * sin2Theta]).transpose() * np.sin(omegar * t),
+                      np.array([cosPhi * sin2Theta / 3]).transpose() * np.sin(2 * omegar * t)]
         arg = args + (NSTEPS, tresolution, angleStuff, weight, xax, data1D)
         try:
             fitVal = scipy.optimize.fmin(self.fitFunc, guess, args=arg, disp=False)
@@ -3765,7 +3836,7 @@ class HerzfeldBergerParamFrame(QtGui.QWidget):
                 return False
             self.integralEntries[i].setText('%#.5g' % inp)
         return True
-        
+
     def fit(self, *args):
         if len(self.integralList) < 2:
             self.rootwindow.mainProgram.dispMsg("Not enough integrals selected")
@@ -3777,12 +3848,12 @@ class HerzfeldBergerParamFrame(QtGui.QWidget):
         struc = []
         guess = []
         argu = []
-        omegar = float(self.spinEntry.text())*1e3*np.pi*2
+        omegar = float(self.spinEntry.text()) * 1e3 * np.pi * 2
         if not self.deltaTick.isChecked():
-            guess.append(float(self.deltaEntry.text())*1e-6)
+            guess.append(float(self.deltaEntry.text()) * 1e-6)
             struc.append(True)
         else:
-            outDelta = float(self.deltaEntry.text())*1e-6
+            outDelta = float(self.deltaEntry.text()) * 1e-6
             argu.append(outDelta)
             struc.append(False)
         if not self.etaTick.isChecked():
@@ -3792,7 +3863,7 @@ class HerzfeldBergerParamFrame(QtGui.QWidget):
             outEta = float(self.etaEntry.text())
             argu.append(outEta)
             struc.append(False)
-        args = (struc, argu, self.parent.current.freq*np.pi*2)
+        args = (struc, argu, self.parent.current.freq * np.pi * 2)
         self.queue = multiprocessing.Queue()
         self.process1 = multiprocessing.Process(target=self.mpFit, args=(self.parent.xax, np.real(self.integralList), guess, args, self.queue, self.NSTEPS, omegar, self.cheng))
         self.process1.start()
@@ -3812,7 +3883,7 @@ class HerzfeldBergerParamFrame(QtGui.QWidget):
             return
         counter = 0
         if struc[0]:
-            self.deltaEntry.setText('%.3g' % (fitVal[counter]*1e6))
+            self.deltaEntry.setText('%.3g' % (fitVal[counter] * 1e6))
             outDelta = fitVal[counter]
             counter += 1
         if struc[1]:
@@ -3831,7 +3902,7 @@ class HerzfeldBergerParamFrame(QtGui.QWidget):
         self.process1 = None
         self.running = False
         self.stopButton.hide()
-        
+
     def sim(self):
         if len(self.integralList) < 2:
             self.rootwindow.mainProgram.dispMsg("Not enough integrals selected")
@@ -3840,45 +3911,50 @@ class HerzfeldBergerParamFrame(QtGui.QWidget):
         if not self.checkInputs():
             self.rootwindow.mainProgram.dispMsg("One of the inputs is not valid")
             return
-        omegar = float(self.spinEntry.text())*1e3*np.pi*2
-        outDelta = float(self.deltaEntry.text())*1e-6
+        omegar = float(self.spinEntry.text()) * 1e3 * np.pi * 2
+        outDelta = float(self.deltaEntry.text()) * 1e-6
         outEta = float(self.etaEntry.text())
         self.disp(outDelta, outEta, self.NSTEPS, omegar, self.cheng)
 
     def disp(self, outDelta, outEta, NSTEPS, omegar, cheng):
-        theta, phi, weight = zcw_angles(cheng, symm=2) 
+        theta, phi, weight = zcw_angles(cheng, symm=2)
         sinPhi = np.sin(phi)
         cosPhi = np.cos(phi)
-        sin2Theta = np.sin(2*theta)
-        cos2Theta = np.cos(2*theta)
-        tresolution = 2*np.pi/omegar/NSTEPS
-        t = np.linspace(0, tresolution*(NSTEPS-1), NSTEPS)
-        cosOmegarT = np.cos(omegar*t)
-        cos2OmegarT = np.cos(2*omegar*t)
-        angleStuff = [np.array([np.sqrt(2)/3 *  sinPhi * cosPhi * 3 ]).transpose()* cosOmegarT,
-                      np.array([-1.0 / 3 *  3/2*sinPhi**2 ]).transpose()* cos2OmegarT,
-                      np.transpose([cos2Theta / 3.0]) * (np.array([np.sqrt(2)/3 *  sinPhi * cosPhi * 3 ]).transpose()* cosOmegarT),
-                      np.array([1.0 / 3 /2*(1+cosPhi**2)*cos2Theta ]).transpose()* cos2OmegarT,
-                      np.array([np.sqrt(2)/3 *  sinPhi * sin2Theta]).transpose()* np.sin(omegar*t),
-                      np.array([cosPhi * sin2Theta/3]).transpose()* np.sin(2*omegar*t)]
-        testFunc = self.hbFunc(self.parent.current.freq*np.pi*2, outDelta, outEta, NSTEPS, tresolution, angleStuff, weight)
+        sin2Theta = np.sin(2 * theta)
+        cos2Theta = np.cos(2 * theta)
+        tresolution = 2 * np.pi / omegar / NSTEPS
+        t = np.linspace(0, tresolution * (NSTEPS - 1), NSTEPS)
+        cosOmegarT = np.cos(omegar * t)
+        cos2OmegarT = np.cos(2 * omegar * t)
+        angleStuff = [np.array([np.sqrt(2) / 3 * sinPhi * cosPhi * 3]).transpose() * cosOmegarT,
+                      np.array([-1.0 / 3 * 3 / 2 * sinPhi**2]).transpose() * cos2OmegarT,
+                      np.transpose([cos2Theta / 3.0]) * (np.array([np.sqrt(2) / 3 * sinPhi * cosPhi * 3]).transpose() * cosOmegarT),
+                      np.array([1.0 / 3 / 2 * (1 + cosPhi**2) * cos2Theta]).transpose() * cos2OmegarT,
+                      np.array([np.sqrt(2) / 3 * sinPhi * sin2Theta]).transpose() * np.sin(omegar * t),
+                      np.array([cosPhi * sin2Theta / 3]).transpose() * np.sin(2 * omegar * t)]
+        testFunc = self.hbFunc(self.parent.current.freq * np.pi * 2, outDelta, outEta, NSTEPS, tresolution, angleStuff, weight)
         results = testFunc[self.sidebandList]
         results /= np.sum(results)
         for i in range(len(self.resultLabels)):
-            self.resultLabels[i].setText('%#.5g' % (results[i]*np.sum(self.integralList)))
-        
-  
+            self.resultLabels[i].setText('%#.5g' % (results[i] * np.sum(self.integralList)))
+
 ##############################################################################
-class Quad1MASDeconvWindow(FittingWindow): 
+
+
+class Quad1MASDeconvWindow(FittingWindow):
+
     def __init__(self, mainProgram, oldMainWindow):
         FittingWindow.__init__(self, mainProgram, oldMainWindow)
 
     def setup(self):
         self.current = Quad1MASDeconvFrame(self, self.fig, self.canvas, self.oldMainWindow.current)
         self.paramframe = Quad1MASDeconvParamFrame(self.current, self)
-        
-#################################################################################   
-class Quad1MASDeconvFrame(Plot1DFrame): 
+
+#################################################################################
+
+
+class Quad1MASDeconvFrame(Plot1DFrame):
+
     def __init__(self, rootwindow, fig, canvas, current):
         Plot1DFrame.__init__(self, rootwindow, fig, canvas)
         self.data1D = current.getDisplayedData()
@@ -3886,18 +3962,18 @@ class Quad1MASDeconvFrame(Plot1DFrame):
         self.spec = self.current.spec
         if self.spec == 1:
             if self.current.ppm:
-                axMult = 1e6/self.current.ref
+                axMult = 1e6 / self.current.ref
             else:
-                axMult = 1.0/(1000.0**self.current.axType)
+                axMult = 1.0 / (1000.0**self.current.axType)
         elif self.spec == 0:
             axMult = 1000.0**self.current.axType
-        self.xax = self.current.xax*axMult
+        self.xax = self.current.xax * axMult
         self.plotType = 0
         self.rootwindow = rootwindow
         self.plotReset()
         self.showPlot()
 
-    def plotReset(self): #set the plot limits to min and max values
+    def plotReset(self):  # set the plot limits to min and max values
         if self.plotType == 0:
             miny = min(np.real(self.data1D))
             maxy = max(np.real(self.data1D))
@@ -3913,18 +3989,18 @@ class Quad1MASDeconvFrame(Plot1DFrame):
         else:
             miny = -1
             maxy = 1
-        differ = 0.05*(maxy-miny) #amount to add to show all datapoints (10%)
-        self.yminlim = miny-differ
-        self.ymaxlim = maxy+differ
+        differ = 0.05 * (maxy - miny)  # amount to add to show all datapoints (10%)
+        self.yminlim = miny - differ
+        self.ymaxlim = maxy + differ
         self.xminlim = min(self.xax)
         self.xmaxlim = max(self.xax)
-        if self.spec > 0 :
+        if self.spec > 0:
             self.ax.set_xlim(self.xmaxlim, self.xminlim)
         else:
             self.ax.set_xlim(self.xminlim, self.xmaxlim)
         self.ax.set_ylim(self.yminlim, self.ymaxlim)
-        
-    def showPlot(self, tmpAx=None, tmpdata=None, tmpAx2=[], tmpdata2=[]): 
+
+    def showPlot(self, tmpAx=None, tmpdata=None, tmpAx2=[], tmpdata2=[]):
         self.ax.cla()
         self.line_xdata = self.xax
         self.line_ydata = self.data1D
@@ -3958,7 +4034,7 @@ class Quad1MASDeconvFrame(Plot1DFrame):
             self.ax.set_xlabel('')
         self.ax.get_xaxis().get_major_formatter().set_powerlimits((-4, 4))
         self.ax.get_yaxis().get_major_formatter().set_powerlimits((-4, 4))
-        if self.spec > 0 :
+        if self.spec > 0:
             self.ax.set_xlim(self.xmaxlim, self.xminlim)
         else:
             self.ax.set_xlim(self.xminlim, self.xmaxlim)
@@ -3968,22 +4044,24 @@ class Quad1MASDeconvFrame(Plot1DFrame):
     def togglePick(self, var):
         self.peakPickReset()
         if var == 1:
-            self.peakPickFunc = lambda pos, self=self: self.pickDeconv(pos) 
+            self.peakPickFunc = lambda pos, self=self: self.pickDeconv(pos)
             self.peakPick = True
         else:
             self.peakPickFunc = None
             self.peakPick = False
-        
+
     def pickDeconv(self, pos):
         self.rootwindow.paramframe.addValue(pos[0])
-        self.peakPickFunc = lambda pos, self=self: self.pickDeconv(pos) 
-        self.peakPick = True 
+        self.peakPickFunc = lambda pos, self=self: self.pickDeconv(pos)
+        self.peakPick = True
 
 #################################################################################
-class Quad1MASDeconvParamFrame(QtGui.QWidget): 
-    Ioptions = ['1','3/2','2','5/2','3','7/2','4','9/2']
-    Ivalues=[1.0,1.5,2.0,2.5,3.0,3.5,4.0,4.5]
-    
+
+
+class Quad1MASDeconvParamFrame(QtGui.QWidget):
+    Ioptions = ['1', '3/2', '2', '5/2', '3', '7/2', '4', '9/2']
+    Ivalues = [1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 4.0, 4.5]
+
     def __init__(self, parent, rootwindow):
         QtGui.QWidget.__init__(self, rootwindow)
         self.parent = parent
@@ -3993,7 +4071,7 @@ class Quad1MASDeconvParamFrame(QtGui.QWidget):
         grid = QtGui.QGridLayout(self)
         self.setLayout(grid)
         if self.parent.current.spec == 1:
-            self.axAdd = self.parent.current.freq-self.parent.current.ref
+            self.axAdd = self.parent.current.freq - self.parent.current.ref
         elif self.parent.current.spec == 0:
             self.axAdd = 0
         self.frame1 = QtGui.QGridLayout()
@@ -4029,11 +4107,11 @@ class Quad1MASDeconvParamFrame(QtGui.QWidget):
         self.frame1.addWidget(self.pickTick, 1, 1)
         self.frame1.setColumnStretch(10, 1)
         self.frame1.setAlignment(QtCore.Qt.AlignTop)
-        self.frame1.addWidget(QLabel("I:"), 2,1)
+        self.frame1.addWidget(QLabel("I:"), 2, 1)
         self.IEntry = QtGui.QComboBox()
         self.IEntry.addItems(self.Ioptions)
         self.IEntry.setCurrentIndex(0)
-        self.frame1.addWidget(self.IEntry,3, 1)
+        self.frame1.addWidget(self.IEntry, 3, 1)
         self.frame1.setColumnStretch(10, 1)
         self.frame1.setAlignment(QtCore.Qt.AlignTop)
         self.optframe.addWidget(QLabel("Cheng:"), 2, 0)
@@ -4047,7 +4125,7 @@ class Quad1MASDeconvParamFrame(QtGui.QWidget):
         self.spinEntry = QtGui.QLineEdit()
         self.spinEntry.setAlignment(QtCore.Qt.AlignHCenter)
         self.spinEntry.setText("30.0")
-        self.optframe.addWidget(self.spinEntry,5, 0)
+        self.optframe.addWidget(self.spinEntry, 5, 0)
         self.frame3.addWidget(QLabel(u"Cq [MHz]:"), 1, 0, 1, 2)
         self.frame3.addWidget(QLabel(u"\u03B7:"), 1, 2, 1, 2)
         self.frame3.setColumnStretch(20, 1)
@@ -4078,11 +4156,11 @@ class Quad1MASDeconvParamFrame(QtGui.QWidget):
         self.reset()
         grid.setColumnStretch(10, 1)
         grid.setAlignment(QtCore.Qt.AlignLeft)
-        
+
     def closeWindow(self, *args):
         self.stopMP()
         self.rootwindow.cancel()
-        
+
     def reset(self):
         self.sidebandList = []
         self.integralList = []
@@ -4106,8 +4184,8 @@ class Quad1MASDeconvParamFrame(QtGui.QWidget):
             self.tmpPos = value
         else:
             n = len(self.integralList)
-            self.sidebandList.append((-1)**n*n//2)
-            self.integralList.append(np.sum(self.parent.data1D[min(self.tmpPos, value):max(self.tmpPos, value)])*self.parent.current.sw/float(self.parent.data1D.shape[-1]))
+            self.sidebandList.append((-1)**n * n // 2)
+            self.integralList.append(np.sum(self.parent.data1D[min(self.tmpPos, value):max(self.tmpPos, value)]) * self.parent.current.sw / float(self.parent.data1D.shape[-1]))
             self.tmpPos = None
             self.sidebandEntries.append(QtGui.QSpinBox(self, ))
             self.sidebandEntries[-1].setMinimum(-99)
@@ -4121,7 +4199,7 @@ class Quad1MASDeconvParamFrame(QtGui.QWidget):
 
     def togglePick(self):
         self.parent.togglePick(self.pickTick.isChecked())
-                
+
     def setCheng(self, *args):
         inp = safeEval(self.chengEntry.text())
         if inp is None:
@@ -4131,32 +4209,32 @@ class Quad1MASDeconvParamFrame(QtGui.QWidget):
         self.chengEntry.setText(str(self.cheng))
 
     def hbFunc(self, omega0, Cq, eta, I, NSTEPS, tresolution, angleStuff, weight):
-        m=np.arange(-I,0) #Only half the transitions have to be caclulated, as the others are mirror images (sidebands inversed)
-        eff = I**2+I-m*(m+1) #The detection efficiencies of the top half transitions
-        splitting = np.arange(I-0.5,-0.1,-1) #The quadrupolar couplings of the top half transitions
+        m = np.arange(-I, 0)  # Only half the transitions have to be caclulated, as the others are mirror images (sidebands inversed)
+        eff = I**2 + I - m * (m + 1)  # The detection efficiencies of the top half transitions
+        splitting = np.arange(I - 0.5, -0.1, -1)  # The quadrupolar couplings of the top half transitions
         nsteps = angleStuff[0].shape[1]
-        sidebands=np.zeros(nsteps)
-        for transition in range(len(eff)): #For all transitions
-            if splitting[transition] != 0: #If quad coupling not zero: calculate sideban pattern
-                delta = splitting[transition]*2*np.pi*3/(2*I*(2*I-1))*Cq*1e6 #Calc delta based on Cq [MHz] and spin qunatum
-                omegars =  delta*(angleStuff[0]  + angleStuff[1] +  eta*(angleStuff[2] + angleStuff[3] + angleStuff[4] + angleStuff[5] ))
+        sidebands = np.zeros(nsteps)
+        for transition in range(len(eff)):  # For all transitions
+            if splitting[transition] != 0:  # If quad coupling not zero: calculate sideban pattern
+                delta = splitting[transition] * 2 * np.pi * 3 / (2 * I * (2 * I - 1)) * Cq * 1e6  # Calc delta based on Cq [MHz] and spin qunatum
+                omegars = delta * (angleStuff[0] + angleStuff[1] + eta * (angleStuff[2] + angleStuff[3] + angleStuff[4] + angleStuff[5]))
                 #QTrs = np.exp(-1j*np.cumsum(omegars, axis=1)*self.tresolution)
-                
-                QTrs = np.concatenate([np.ones([angleStuff[0].shape[0],1]),np.exp(-1j*np.cumsum(omegars, axis=1)*tresolution)[:,:-1]],1)
-                for j in range(1,nsteps):
-                    QTrs[:,j] = np.exp(-1j*np.sum(omegars[:,0:j]*tresolution,1))
+
+                QTrs = np.concatenate([np.ones([angleStuff[0].shape[0], 1]), np.exp(-1j * np.cumsum(omegars, axis=1) * tresolution)[:, :-1]], 1)
+                for j in range(1, nsteps):
+                    QTrs[:, j] = np.exp(-1j * np.sum(omegars[:, 0:j] * tresolution, 1))
                 rhoT0sr = np.conj(QTrs)
-                #calculate the gamma-averaged FID over 1 rotor period for all crystallites
+                # calculate the gamma-averaged FID over 1 rotor period for all crystallites
                 favrs = np.zeros(NSTEPS, dtype=complex)
                 for j in range(NSTEPS):
                     favrs[j] += np.sum(weight * np.sum(rhoT0sr * np.roll(QTrs, -j, axis=1), 1) / NSTEPS**2)
-                #calculate the sideband intensities by doing an FT and pick the ones that are needed further
-                partbands=np.real(np.fft.fft(favrs))
-                sidebands = sidebands + eff[transition]*(partbands+np.roll(np.flipud(partbands),1))
-            else:#If zero: add all the intensity to the centreband
-                sidebands[0] =  sidebands[0] + eff[transition]
+                # calculate the sideband intensities by doing an FT and pick the ones that are needed further
+                partbands = np.real(np.fft.fft(favrs))
+                sidebands = sidebands + eff[transition] * (partbands + np.roll(np.flipud(partbands), 1))
+            else:  # If zero: add all the intensity to the centreband
+                sidebands[0] = sidebands[0] + eff[transition]
         return sidebands
-                
+
     def fitFunc(self, param, struc, argu, omega0, I, NSTEPS, tresolution, angleStuff, weight, x, y):
         if struc[0]:
             delta = param[0]
@@ -4171,25 +4249,25 @@ class Quad1MASDeconvParamFrame(QtGui.QWidget):
             eta = argu[0]
             argu = np.delete(argu, [0])
         testFunc = self.hbFunc(omega0, delta, eta, I, NSTEPS, tresolution, angleStuff, weight)
-        testFunc = testFunc[np.array(x)]/np.sum(testFunc[x])*np.sum(y)
-        return np.sum((testFunc-y)**2)
+        testFunc = testFunc[np.array(x)] / np.sum(testFunc[x]) * np.sum(y)
+        return np.sum((testFunc - y)**2)
 
     def mpFit(self, xax, data1D, guess, args, queue, I, NSTEPS, omegar, cheng):
-        theta, phi, weight = zcw_angles(cheng, symm=2) 
+        theta, phi, weight = zcw_angles(cheng, symm=2)
         sinPhi = np.sin(phi)
         cosPhi = np.cos(phi)
-        sin2Theta = np.sin(2*theta)
-        cos2Theta = np.cos(2*theta)
-        tresolution = 2*np.pi/omegar/NSTEPS
-        t = np.linspace(0, tresolution*(NSTEPS-1), NSTEPS)
-        cosOmegarT = np.cos(omegar*t)
-        cos2OmegarT = np.cos(2*omegar*t)
-        angleStuff = [np.array([np.sqrt(2)/3 *  sinPhi * cosPhi * 3 ]).transpose()* cosOmegarT,
-                      np.array([-1.0 / 3 *  3/2*sinPhi**2 ]).transpose()* cos2OmegarT,
-                      np.transpose([cos2Theta / 3.0]) * (np.array([np.sqrt(2)/3 *  sinPhi * cosPhi * 3 ]).transpose()* cosOmegarT),
-                      np.array([1.0 / 3 /2*(1+cosPhi**2)*cos2Theta ]).transpose()* cos2OmegarT,
-                      np.array([np.sqrt(2)/3 *  sinPhi * sin2Theta]).transpose()* np.sin(omegar*t),
-                      np.array([cosPhi * sin2Theta/3]).transpose()* np.sin(2*omegar*t)]
+        sin2Theta = np.sin(2 * theta)
+        cos2Theta = np.cos(2 * theta)
+        tresolution = 2 * np.pi / omegar / NSTEPS
+        t = np.linspace(0, tresolution * (NSTEPS - 1), NSTEPS)
+        cosOmegarT = np.cos(omegar * t)
+        cos2OmegarT = np.cos(2 * omegar * t)
+        angleStuff = [np.array([np.sqrt(2) / 3 * sinPhi * cosPhi * 3]).transpose() * cosOmegarT,
+                      np.array([-1.0 / 3 * 3 / 2 * sinPhi**2]).transpose() * cos2OmegarT,
+                      np.transpose([cos2Theta / 3.0]) * (np.array([np.sqrt(2) / 3 * sinPhi * cosPhi * 3]).transpose() * cosOmegarT),
+                      np.array([1.0 / 3 / 2 * (1 + cosPhi**2) * cos2Theta]).transpose() * cos2OmegarT,
+                      np.array([np.sqrt(2) / 3 * sinPhi * sin2Theta]).transpose() * np.sin(omegar * t),
+                      np.array([cosPhi * sin2Theta / 3]).transpose() * np.sin(2 * omegar * t)]
         arg = args + (I, NSTEPS, tresolution, angleStuff, weight, xax, data1D)
         try:
             fitVal = scipy.optimize.fmin(self.fitFunc, guess, args=arg, disp=False)
@@ -4216,7 +4294,7 @@ class Quad1MASDeconvParamFrame(QtGui.QWidget):
                 return False
             self.integralEntries[i].setText('%#.5g' % inp)
         return True
-        
+
     def fit(self, *args):
         if len(self.integralList) < 2:
             self.rootwindow.mainProgram.dispMsg("Not enough integrals selected")
@@ -4228,7 +4306,7 @@ class Quad1MASDeconvParamFrame(QtGui.QWidget):
         struc = []
         guess = []
         argu = []
-        omegar = float(self.spinEntry.text())*1e3*np.pi*2
+        omegar = float(self.spinEntry.text()) * 1e3 * np.pi * 2
         if not self.deltaTick.isChecked():
             guess.append(float(self.deltaEntry.text()))
             struc.append(True)
@@ -4244,7 +4322,7 @@ class Quad1MASDeconvParamFrame(QtGui.QWidget):
             argu.append(outEta)
             struc.append(False)
         I = self.Ivalues[self.IEntry.currentIndex()]
-        args = (struc, argu, self.parent.current.freq*np.pi*2)
+        args = (struc, argu, self.parent.current.freq * np.pi * 2)
         self.queue = multiprocessing.Queue()
         self.process1 = multiprocessing.Process(target=self.mpFit, args=(self.parent.xax, np.real(self.integralList), guess, args, self.queue, I, self.NSTEPS, omegar, self.cheng))
         self.process1.start()
@@ -4272,7 +4350,7 @@ class Quad1MASDeconvParamFrame(QtGui.QWidget):
             outEta = fitVal[counter]
             counter += 1
         self.disp(outDelta, outEta)
-        
+
     def stopMP(self, *args):
         if self.queue is not None:
             self.process1.terminate()
@@ -4283,7 +4361,7 @@ class Quad1MASDeconvParamFrame(QtGui.QWidget):
         self.process1 = None
         self.running = False
         self.stopButton.hide()
-        
+
     def sim(self):
         if len(self.integralList) < 2:
             self.rootwindow.mainProgram.dispMsg("Not enough integrals selected")
@@ -4293,35 +4371,38 @@ class Quad1MASDeconvParamFrame(QtGui.QWidget):
             self.rootwindow.mainProgram.dispMsg("One of the inputs is not valid")
             return
         I = self.Ivalues[self.IEntry.currentIndex()]
-        omegar = float(self.spinEntry.text())*1e3*np.pi*2
+        omegar = float(self.spinEntry.text()) * 1e3 * np.pi * 2
         outDelta = float(self.deltaEntry.text())
         outEta = float(self.etaEntry.text())
-        self.disp(outDelta, outEta, I, self.NSTEPS, omegar, self.cheng)     
+        self.disp(outDelta, outEta, I, self.NSTEPS, omegar, self.cheng)
 
     def disp(self, outDelta, outEta, I, NSTEPS, omegar, cheng):
-        theta, phi, weight = zcw_angles(cheng, symm=2) 
+        theta, phi, weight = zcw_angles(cheng, symm=2)
         sinPhi = np.sin(phi)
         cosPhi = np.cos(phi)
-        sin2Theta = np.sin(2*theta)
-        cos2Theta = np.cos(2*theta)
-        tresolution = 2*np.pi/omegar/NSTEPS
-        t = np.linspace(0, tresolution*(NSTEPS-1), NSTEPS)
-        cosOmegarT = np.cos(omegar*t)
-        cos2OmegarT = np.cos(2*omegar*t)
-        angleStuff = [np.array([np.sqrt(2)/3 *  sinPhi * cosPhi * 3 ]).transpose()* cosOmegarT,
-                      np.array([-1.0 / 3 *  3/2*sinPhi**2 ]).transpose()* cos2OmegarT,
-                      np.transpose([cos2Theta / 3.0]) * (np.array([np.sqrt(2)/3 *  sinPhi * cosPhi * 3 ]).transpose()* cosOmegarT),
-                      np.array([1.0 / 3 /2*(1+cosPhi**2)*cos2Theta ]).transpose()* cos2OmegarT,
-                      np.array([np.sqrt(2)/3 *  sinPhi * sin2Theta]).transpose()* np.sin(omegar*t),
-                      np.array([cosPhi * sin2Theta/3]).transpose()* np.sin(2*omegar*t)]
-        testFunc = self.hbFunc(self.parent.current.freq*np.pi*2, outDelta, outEta, I, NSTEPS, tresolution, angleStuff, weight)
-        results =  testFunc[np.array(self.sidebandList)]
+        sin2Theta = np.sin(2 * theta)
+        cos2Theta = np.cos(2 * theta)
+        tresolution = 2 * np.pi / omegar / NSTEPS
+        t = np.linspace(0, tresolution * (NSTEPS - 1), NSTEPS)
+        cosOmegarT = np.cos(omegar * t)
+        cos2OmegarT = np.cos(2 * omegar * t)
+        angleStuff = [np.array([np.sqrt(2) / 3 * sinPhi * cosPhi * 3]).transpose() * cosOmegarT,
+                      np.array([-1.0 / 3 * 3 / 2 * sinPhi**2]).transpose() * cos2OmegarT,
+                      np.transpose([cos2Theta / 3.0]) * (np.array([np.sqrt(2) / 3 * sinPhi * cosPhi * 3]).transpose() * cosOmegarT),
+                      np.array([1.0 / 3 / 2 * (1 + cosPhi**2) * cos2Theta]).transpose() * cos2OmegarT,
+                      np.array([np.sqrt(2) / 3 * sinPhi * sin2Theta]).transpose() * np.sin(omegar * t),
+                      np.array([cosPhi * sin2Theta / 3]).transpose() * np.sin(2 * omegar * t)]
+        testFunc = self.hbFunc(self.parent.current.freq * np.pi * 2, outDelta, outEta, I, NSTEPS, tresolution, angleStuff, weight)
+        results = testFunc[np.array(self.sidebandList)]
         results /= np.sum(results)
         for i in range(len(self.resultLabels)):
-            self.resultLabels[i].setText('%#.5g' % (results[i]*np.sum(self.integralList)))
-        
+            self.resultLabels[i].setText('%#.5g' % (results[i] * np.sum(self.integralList)))
+
 ##############################################################################
-class Quad1DeconvWindow(FittingWindow): 
+
+
+class Quad1DeconvWindow(FittingWindow):
+
     def __init__(self, mainProgram, oldMainWindow):
         FittingWindow.__init__(self, mainProgram, oldMainWindow)
 
@@ -4329,8 +4410,11 @@ class Quad1DeconvWindow(FittingWindow):
         self.current = Quad1DeconvFrame(self, self.fig, self.canvas, self.oldMainWindow.current)
         self.paramframe = Quad1DeconvParamFrame(self.current, self)
 
-#################################################################################   
+#################################################################################
+
+
 class Quad1DeconvFrame(Plot1DFrame):
+
     def __init__(self, rootwindow, fig, canvas, current):
         Plot1DFrame.__init__(self, rootwindow, fig, canvas)
         self.data1D = current.getDisplayedData()
@@ -4344,7 +4428,7 @@ class Quad1DeconvFrame(Plot1DFrame):
         self.plotReset()
         self.showPlot()
 
-    def plotReset(self): #set the plot limits to min and max values
+    def plotReset(self):  # set the plot limits to min and max values
         if self.plotType == 0:
             miny = min(np.real(self.data1D))
             maxy = max(np.real(self.data1D))
@@ -4360,40 +4444,40 @@ class Quad1DeconvFrame(Plot1DFrame):
         else:
             miny = -1
             maxy = 1
-        differ = 0.05*(maxy-miny) #amount to add to show all datapoints (10%)
-        self.yminlim = miny-differ
-        self.ymaxlim = maxy+differ
+        differ = 0.05 * (maxy - miny)  # amount to add to show all datapoints (10%)
+        self.yminlim = miny - differ
+        self.ymaxlim = maxy + differ
         if self.spec == 1:
             if self.current.ppm:
-                axMult = 1e6/self.current.ref
+                axMult = 1e6 / self.current.ref
             else:
-                axMult = 1.0/(1000.0**self.current.axType)
+                axMult = 1.0 / (1000.0**self.current.axType)
         elif self.spec == 0:
             axMult = 1000.0**self.current.axType
-        self.xminlim = min(self.xax*axMult)
-        self.xmaxlim = max(self.xax*axMult)
-        if self.spec > 0 :
+        self.xminlim = min(self.xax * axMult)
+        self.xmaxlim = max(self.xax * axMult)
+        if self.spec > 0:
             self.ax.set_xlim(self.xmaxlim, self.xminlim)
         else:
             self.ax.set_xlim(self.xminlim, self.xmaxlim)
         self.ax.set_ylim(self.yminlim, self.ymaxlim)
-        
-    def showPlot(self, tmpAx=None, tmpdata=None, tmpAx2=[], tmpdata2=[]): 
+
+    def showPlot(self, tmpAx=None, tmpdata=None, tmpAx2=[], tmpdata2=[]):
         self.ax.cla()
         if self.spec == 1:
             if self.current.ppm:
-                axMult = 1e6/self.current.ref
+                axMult = 1e6 / self.current.ref
             else:
-                axMult = 1.0/(1000.0**self.current.axType)
+                axMult = 1.0 / (1000.0**self.current.axType)
         elif self.spec == 0:
             axMult = 1000.0**self.current.axType
-        self.line_xdata = self.xax*axMult
+        self.line_xdata = self.xax * axMult
         self.line_ydata = self.data1D
-        self.ax.plot(self.xax*axMult, self.data1D, c=self.current.color, linewidth=self.current.linewidth, label=self.current.data.name)
+        self.ax.plot(self.xax * axMult, self.data1D, c=self.current.color, linewidth=self.current.linewidth, label=self.current.data.name)
         if tmpAx is not None:
-            self.ax.plot(tmpAx*axMult, tmpdata)
+            self.ax.plot(tmpAx * axMult, tmpdata)
         for i in range(len(tmpAx2)):
-            self.ax.plot(tmpAx2[i]*axMult, tmpdata2[i])
+            self.ax.plot(tmpAx2[i] * axMult, tmpdata2[i])
         if self.spec == 0:
             if self.current.axType == 0:
                 self.ax.set_xlabel('Time [s]')
@@ -4419,7 +4503,7 @@ class Quad1DeconvFrame(Plot1DFrame):
             self.ax.set_xlabel('')
         self.ax.get_xaxis().get_major_formatter().set_powerlimits((-4, 4))
         self.ax.get_yaxis().get_major_formatter().set_powerlimits((-4, 4))
-        if self.spec > 0 :
+        if self.spec > 0:
             self.ax.set_xlim(self.xmaxlim, self.xminlim)
         else:
             self.ax.set_xlim(self.xminlim, self.xmaxlim)
@@ -4427,10 +4511,12 @@ class Quad1DeconvFrame(Plot1DFrame):
         self.canvas.draw()
 
 #################################################################################
+
+
 class Quad1DeconvParamFrame(QtGui.QWidget):
-    
+
     Ioptions = ['1', '3/2', '2', '5/2', '3', '7/2', '4', '9/2']
-    
+
     def __init__(self, parent, rootwindow):
         QtGui.QWidget.__init__(self, rootwindow)
         self.parent = parent
@@ -4439,7 +4525,7 @@ class Quad1DeconvParamFrame(QtGui.QWidget):
         grid = QtGui.QGridLayout(self)
         self.setLayout(grid)
         if self.parent.current.spec == 1:
-            self.axAdd = self.parent.current.freq-self.parent.current.ref
+            self.axAdd = self.parent.current.freq - self.parent.current.ref
         elif self.parent.current.spec == 0:
             self.axAdd = 0
         self.frame1 = QtGui.QGridLayout()
@@ -4529,43 +4615,43 @@ class Quad1DeconvParamFrame(QtGui.QWidget):
         self.gaussTicks = []
         for i in range(10):
             self.posTicks.append(QtGui.QCheckBox(''))
-            self.frame3.addWidget(self.posTicks[i], i+2, 0)
+            self.frame3.addWidget(self.posTicks[i], i + 2, 0)
             self.posEntries.append(QtGui.QLineEdit())
             self.posEntries[i].setAlignment(QtCore.Qt.AlignHCenter)
             self.posEntries[i].setText("0.0")
-            self.frame3.addWidget(self.posEntries[i], i+2, 1)
+            self.frame3.addWidget(self.posEntries[i], i + 2, 1)
             self.cqTicks.append(QtGui.QCheckBox(''))
-            self.frame3.addWidget(self.cqTicks[i], i+2, 2)
+            self.frame3.addWidget(self.cqTicks[i], i + 2, 2)
             self.cqEntries.append(QtGui.QLineEdit())
             self.cqEntries[i].setAlignment(QtCore.Qt.AlignHCenter)
             self.cqEntries[i].setText("0.0")
-            self.frame3.addWidget(self.cqEntries[i], i+2, 3)
+            self.frame3.addWidget(self.cqEntries[i], i + 2, 3)
             self.etaTicks.append(QtGui.QCheckBox(''))
-            self.frame3.addWidget(self.etaTicks[i], i+2, 4)
+            self.frame3.addWidget(self.etaTicks[i], i + 2, 4)
             self.etaEntries.append(QtGui.QLineEdit())
             self.etaEntries[i].setAlignment(QtCore.Qt.AlignHCenter)
             self.etaEntries[i].setText("0.0")
-            self.frame3.addWidget(self.etaEntries[i], i+2, 5)
+            self.frame3.addWidget(self.etaEntries[i], i + 2, 5)
             self.ampTicks.append(QtGui.QCheckBox(''))
-            self.frame3.addWidget(self.ampTicks[i], i+2, 6)
+            self.frame3.addWidget(self.ampTicks[i], i + 2, 6)
             self.ampEntries.append(QtGui.QLineEdit())
             self.ampEntries[i].setAlignment(QtCore.Qt.AlignHCenter)
             self.ampEntries[i].setText("1.0")
-            self.frame3.addWidget(self.ampEntries[i], i+2, 7)
+            self.frame3.addWidget(self.ampEntries[i], i + 2, 7)
             self.lorTicks.append(QtGui.QCheckBox(''))
             self.lorTicks[i].setChecked(True)
-            self.frame3.addWidget(self.lorTicks[i], i+2, 8)
+            self.frame3.addWidget(self.lorTicks[i], i + 2, 8)
             self.lorEntries.append(QtGui.QLineEdit())
             self.lorEntries[i].setAlignment(QtCore.Qt.AlignHCenter)
             self.lorEntries[i].setText("10.0")
-            self.frame3.addWidget(self.lorEntries[i], i+2, 9)
+            self.frame3.addWidget(self.lorEntries[i], i + 2, 9)
             self.gaussTicks.append(QtGui.QCheckBox(''))
             self.gaussTicks[i].setChecked(True)
-            self.frame3.addWidget(self.gaussTicks[i], i+2, 10)
+            self.frame3.addWidget(self.gaussTicks[i], i + 2, 10)
             self.gaussEntries.append(QtGui.QLineEdit())
             self.gaussEntries[i].setAlignment(QtCore.Qt.AlignHCenter)
             self.gaussEntries[i].setText("0.0")
-            self.frame3.addWidget(self.gaussEntries[i], i+2, 11)
+            self.frame3.addWidget(self.gaussEntries[i], i + 2, 11)
             if i > 0:
                 self.posTicks[i].hide()
                 self.posEntries[i].hide()
@@ -4585,10 +4671,10 @@ class Quad1DeconvParamFrame(QtGui.QWidget):
     def closeWindow(self, *args):
         self.stopMP()
         self.rootwindow.cancel()
-        
+
     def checkI(self, I):
-        return I*0.5+1
-                
+        return I * 0.5 + 1
+
     def setCheng(self, *args):
         inp = safeEval(self.chengEntry.text())
         if inp is None:
@@ -4596,9 +4682,9 @@ class Quad1DeconvParamFrame(QtGui.QWidget):
             return
         self.cheng = int(inp)
         self.chengEntry.setText(str(self.cheng))
-                
+
     def changeNum(self, *args):
-        val = self.numExp.currentIndex()+1
+        val = self.numExp.currentIndex() + 1
         for i in range(10):
             if i < val:
                 self.posTicks[i].show()
@@ -4633,23 +4719,23 @@ class Quad1DeconvParamFrame(QtGui.QWidget):
         weights = []
         pos = pos - axAdd
         for i in m:
-            tmp = (cq/(4*I*(2*I-1))*(I*(I+1)-3*(i+1)**2))-(cq/(4*I*(2*I-1))*(I*(I+1)-3*(i)**2))
-            v = np.append(v, tmp*(angleStuff[0]-eta*angleStuff[1])+pos)
+            tmp = (cq / (4 * I * (2 * I - 1)) * (I * (I + 1) - 3 * (i + 1)**2)) - (cq / (4 * I * (2 * I - 1)) * (I * (I + 1) - 3 * (i)**2))
+            v = np.append(v, tmp * (angleStuff[0] - eta * angleStuff[1]) + pos)
             weights = np.append(weights, weight)
         length = len(x)
-        t = np.arange(length)/sw
+        t = np.arange(length) / sw
         final = np.zeros(length)
-        mult = v/sw*length
-        x1 = np.array(np.round(mult)+np.floor(length/2), dtype=int)
-        weights = weights[np.logical_and(x1>=0, x1<length)]
-        x1 = x1[np.logical_and(x1>=0, x1<length)]
+        mult = v / sw * length
+        x1 = np.array(np.round(mult) + np.floor(length / 2), dtype=int)
+        weights = weights[np.logical_and(x1 >= 0, x1 < length)]
+        x1 = x1[np.logical_and(x1 >= 0, x1 < length)]
         final = np.bincount(x1, weights, length)
-        apod = np.exp(-np.pi*width*t)*np.exp(-((np.pi*gauss*t)**2)/(4*np.log(2)))
-        apod[-1:-(len(apod)/2+1):-1] = apod[:len(apod)/2]
-        inten = np.real(np.fft.fft(np.fft.ifft(final)*apod))
-        inten = inten/sw*len(inten)
+        apod = np.exp(-np.pi * width * t) * np.exp(-((np.pi * gauss * t)**2) / (4 * np.log(2)))
+        apod[-1:-(len(apod) / 2 + 1):-1] = apod[:len(apod) / 2]
+        inten = np.real(np.fft.fft(np.fft.ifft(final) * apod))
+        inten = inten / sw * len(inten)
         return inten
-                
+
     def fitFunc(self, param, numExp, struc, argu, I, freq, sw, axAdd, angleStuff, weight, x, y):
         testFunc = np.zeros(len(x))
         if struc[0]:
@@ -4665,53 +4751,53 @@ class Quad1DeconvParamFrame(QtGui.QWidget):
             slope = argu[0]
             argu = np.delete(argu, [0])
         for i in range(numExp):
-            if struc[6*i+2]:
+            if struc[6 * i + 2]:
                 pos = param[0]
                 param = np.delete(param, [0])
             else:
                 pos = argu[0]
                 argu = np.delete(argu, [0])
-            if struc[6*i+3]:
+            if struc[6 * i + 3]:
                 cq = param[0]
                 param = np.delete(param, [0])
             else:
                 cq = argu[0]
                 argu = np.delete(argu, [0])
-            if struc[6*i+4]:
+            if struc[6 * i + 4]:
                 eta = param[0]
                 param = np.delete(param, [0])
             else:
                 eta = argu[0]
                 argu = np.delete(argu, [0])
-            if struc[6*i+5]:
+            if struc[6 * i + 5]:
                 amp = param[0]
                 param = np.delete(param, [0])
             else:
                 amp = argu[0]
                 argu = np.delete(argu, [0])
-            if struc[6*i+6]:
+            if struc[6 * i + 6]:
                 width = abs(param[0])
                 param = np.delete(param, [0])
             else:
                 width = argu[0]
                 argu = np.delete(argu, [0])
-            if struc[6*i+7]:
+            if struc[6 * i + 7]:
                 gauss = abs(param[0])
                 param = np.delete(param, [0])
             else:
                 gauss = argu[0]
                 argu = np.delete(argu, [0])
-            testFunc += amp*self.tensorFunc(x, I, pos, cq, eta, width, gauss, angleStuff, freq, sw, weight, axAdd)
-        testFunc += bgrnd+slope*x
-        return np.sum((np.real(testFunc)-y)**2)
+            testFunc += amp * self.tensorFunc(x, I, pos, cq, eta, width, gauss, angleStuff, freq, sw, weight, axAdd)
+        testFunc += bgrnd + slope * x
+        return np.sum((np.real(testFunc) - y)**2)
 
     def setAngleStuff(self, cheng):
         phi, theta, weight = zcw_angles(cheng, symm=2)
-        angleStuff = [0.5*(3*np.cos(theta)**2-1), 0.5*np.cos(2*phi)*(np.sin(theta)**2)]
+        angleStuff = [0.5 * (3 * np.cos(theta)**2 - 1), 0.5 * np.cos(2 * phi) * (np.sin(theta)**2)]
         return weight, angleStuff
-        
+
     def checkInputs(self):
-        numExp = self.numExp.currentIndex()+1
+        numExp = self.numExp.currentIndex() + 1
         inp = safeEval(self.bgrndEntry.text())
         if inp is None:
             return False
@@ -4755,7 +4841,7 @@ class Quad1DeconvParamFrame(QtGui.QWidget):
         except:
             fitVal = None
         queue.put(fitVal)
-    
+
     def fit(self, *args):
         self.setCheng()
         if not self.checkInputs():
@@ -4764,7 +4850,7 @@ class Quad1DeconvParamFrame(QtGui.QWidget):
         struc = []
         guess = []
         argu = []
-        numExp = self.numExp.currentIndex()+1
+        numExp = self.numExp.currentIndex() + 1
         outPos = np.zeros(numExp)
         outCq = np.zeros(numExp)
         outEta = np.zeros(numExp)
@@ -4795,10 +4881,10 @@ class Quad1DeconvParamFrame(QtGui.QWidget):
                 argu.append(outPos[i])
                 struc.append(False)
             if not self.cqTicks[i].isChecked():
-                guess.append(float(self.cqEntries[i].text())*1e6)
+                guess.append(float(self.cqEntries[i].text()) * 1e6)
                 struc.append(True)
             else:
-                outCq[i] = float(self.cqEntries[i].text())*1e6
+                outCq[i] = float(self.cqEntries[i].text()) * 1e6
                 argu.append(outCq[i])
                 struc.append(False)
             if not self.etaTicks[i].isChecked():
@@ -4857,27 +4943,27 @@ class Quad1DeconvParamFrame(QtGui.QWidget):
             outSlope = fitVal[counter]
             counter += 1
         for i in range(numExp):
-            if struc[6*i+2]:
+            if struc[6 * i + 2]:
                 self.posEntries[i].setText('%.3g' % fitVal[counter])
                 outPos[i] = fitVal[counter]
                 counter += 1
-            if struc[6*i+3]:
-                self.cqEntries[i].setText('%.3g' % (fitVal[counter]*1e-6))
+            if struc[6 * i + 3]:
+                self.cqEntries[i].setText('%.3g' % (fitVal[counter] * 1e-6))
                 outCq[i] = fitVal[counter]
                 counter += 1
-            if struc[6*i+4]:
+            if struc[6 * i + 4]:
                 self.etaEntries[i].setText('%.3g' % abs(fitVal[counter]))
                 outEta[i] = fitVal[counter]
                 counter += 1
-            if struc[6*i+5]:
+            if struc[6 * i + 5]:
                 self.ampEntries[i].setText('%.3g' % fitVal[counter])
                 outAmp[i] = fitVal[counter]
                 counter += 1
-            if struc[6*i+6]:
+            if struc[6 * i + 6]:
                 self.lorEntries[i].setText('%.3g' % abs(fitVal[counter]))
                 outWidth[i] = abs(fitVal[counter])
                 counter += 1
-            if struc[6*i+7]:
+            if struc[6 * i + 7]:
                 self.gaussEntries[i].setText('%.3g' % abs(fitVal[counter]))
                 outGauss[i] = abs(fitVal[counter])
                 counter += 1
@@ -4893,10 +4979,10 @@ class Quad1DeconvParamFrame(QtGui.QWidget):
         self.process1 = None
         self.running = False
         self.stopButton.hide()
-        
+
     def fitAll(self, *args):
         FitAllSelectionWindow(self, ["Background", "Slope", "Position", "Cq", u"\u03b7", "Integral", "Lorentz", "Gauss"])
-        
+
     def mpAllFit(self, xax, data, guess, args, queue, cheng):
         weight, angleStuff = self.setAngleStuff(cheng)
         fitVal = []
@@ -4905,9 +4991,9 @@ class Quad1DeconvParamFrame(QtGui.QWidget):
             try:
                 fitVal.append(scipy.optimize.fmin(self.fitFunc, guess, args=arg, disp=False))
             except:
-                fitVal.append([[0]*10])
+                fitVal.append([[0] * 10])
         queue.put(fitVal)
-        
+
     def fitAllFunc(self, outputs):
         self.setCheng()
         if not self.checkInputs():
@@ -4916,7 +5002,7 @@ class Quad1DeconvParamFrame(QtGui.QWidget):
         struc = []
         guess = []
         argu = []
-        numExp = self.numExp.currentIndex()+1
+        numExp = self.numExp.currentIndex() + 1
         outPos = np.zeros(numExp)
         outCq = np.zeros(numExp)
         outEta = np.zeros(numExp)
@@ -4947,10 +5033,10 @@ class Quad1DeconvParamFrame(QtGui.QWidget):
                 argu.append(outPos[i])
                 struc.append(False)
             if not self.cqTicks[i].isChecked():
-                guess.append(float(self.cqEntries[i].text())*1e6)
+                guess.append(float(self.cqEntries[i].text()) * 1e6)
                 struc.append(True)
             else:
-                outCq[i] = float(self.cqEntries[i].text())*1e6
+                outCq[i] = float(self.cqEntries[i].text()) * 1e6
                 argu.append(outCq[i])
                 struc.append(False)
             if not self.etaTicks[i].isChecked():
@@ -4981,14 +5067,14 @@ class Quad1DeconvParamFrame(QtGui.QWidget):
                 outGauss[i] = abs(float(self.gaussEntries[i].text()))
                 argu.append(outGauss[i])
                 struc.append(False)
-        args = (numExp, struc, argu, I, self.parent.current.freq, self.parent.current.sw, self.axAdd)   
+        args = (numExp, struc, argu, I, self.parent.current.freq, self.parent.current.sw, self.axAdd)
         fullData = self.parent.current.data.data
         axes = self.parent.current.axes
         dataShape = fullData.shape
         dataShape2 = np.delete(dataShape, axes)
         rolledData = np.rollaxis(fullData, axes)
         intOutputs = np.array(outputs, dtype=int)
-        numOutputs = np.sum(intOutputs[:2]) + numExp*np.sum(intOutputs[2:])
+        numOutputs = np.sum(intOutputs[:2]) + numExp * np.sum(intOutputs[2:])
         outputData = np.zeros((np.product(dataShape2), numOutputs), dtype=complex)
         counter2 = 0
         fitData = rolledData.reshape(dataShape[axes], np.product(dataShape2)).T
@@ -5018,22 +5104,22 @@ class Quad1DeconvParamFrame(QtGui.QWidget):
                 outSlope = fitVal[counter]
                 counter += 1
             for i in range(numExp):
-                if struc[6*i+2]:
+                if struc[6 * i + 2]:
                     outPos[i] = fitVal[counter]
                     counter += 1
-                if struc[6*i+3]:
+                if struc[6 * i + 3]:
                     outCq[i] = fitVal[counter]
                     counter += 1
-                if struc[6*i+4]:
+                if struc[6 * i + 4]:
                     outEta[i] = fitVal[counter]
                     counter += 1
-                if struc[6*i+5]:
+                if struc[6 * i + 5]:
                     outAmp[i] = fitVal[counter]
                     counter += 1
-                if struc[6*i+6]:
+                if struc[6 * i + 6]:
                     outWidth[i] = abs(fitVal[counter])
                     counter += 1
-                if struc[6*i+7]:
+                if struc[6 * i + 7]:
                     outGauss[i] = abs(fitVal[counter])
                     counter += 1
             outputArray = []
@@ -5048,7 +5134,7 @@ class Quad1DeconvParamFrame(QtGui.QWidget):
             if outputs[4]:
                 outputArray = np.concatenate((outputArray, outEta))
             if outputs[5]:
-                outputArray = np.concatenate((outputArray, outAmp)) 
+                outputArray = np.concatenate((outputArray, outAmp))
             if outputs[6]:
                 outputArray = np.concatenate((outputArray, outWidth))
             if outputs[7]:
@@ -5057,13 +5143,13 @@ class Quad1DeconvParamFrame(QtGui.QWidget):
             counter2 += 1
         newShape = np.concatenate((np.array(dataShape2), [numOutputs]))
         self.rootwindow.createNewData(np.rollaxis(outputData.reshape(newShape), -1, axes), axes)
-        
+
     def sim(self, store=False):
         self.setCheng()
         if not self.checkInputs():
             self.rootwindow.mainProgram.dispMsg("One of the inputs is not valid")
             return
-        numExp = self.numExp.currentIndex()+1
+        numExp = self.numExp.currentIndex() + 1
         bgrnd = float(self.bgrndEntry.text())
         slope = float(self.slopeEntry.text())
         pos = np.zeros(numExp)
@@ -5075,7 +5161,7 @@ class Quad1DeconvParamFrame(QtGui.QWidget):
         I = self.checkI(self.IEntry.currentIndex())
         for i in range(numExp):
             pos[i] = float(self.posEntries[i].text())
-            cq[i] = float(self.cqEntries[i].text())*1e6
+            cq[i] = float(self.cqEntries[i].text()) * 1e6
             eta[i] = float(self.etaEntries[i].text())
             amp[i] = float(self.ampEntries[i].text())
             width[i] = float(self.lorEntries[i].text())
@@ -5084,14 +5170,14 @@ class Quad1DeconvParamFrame(QtGui.QWidget):
 
     def disp(self, outBgrnd, outSlope, outI, outPos, outCq, outEta, outAmp, outWidth, outGauss, store=False):
         tmpx = self.parent.xax
-        outCurveBase = outBgrnd + tmpx*outSlope
+        outCurveBase = outBgrnd + tmpx * outSlope
         outCurve = outCurveBase.copy()
         outCurvePart = []
         x = []
         weight, angleStuff = self.setAngleStuff(self.cheng)
         for i in range(len(outPos)):
             x.append(tmpx)
-            y =  outAmp[i]*self.tensorFunc(tmpx, outI, outPos[i], outCq[i], outEta[i], outWidth[i], outGauss[i], angleStuff, self.parent.current.freq, self.parent.current.sw, weight, self.axAdd)
+            y = outAmp[i] * self.tensorFunc(tmpx, outI, outPos[i], outCq[i], outEta[i], outWidth[i], outGauss[i], angleStuff, self.parent.current.freq, self.parent.current.sw, weight, self.axAdd)
             outCurvePart.append(outCurveBase + y)
             outCurve += y
         if store:
@@ -5100,9 +5186,12 @@ class Quad1DeconvParamFrame(QtGui.QWidget):
             self.rootwindow.createNewData(np.array(outCurvePart), self.parent.current.axes, True)
         else:
             self.parent.showPlot(tmpx, outCurve, x, outCurvePart)
-        
+
 ##############################################################################
-class Quad2DeconvWindow(FittingWindow): 
+
+
+class Quad2DeconvWindow(FittingWindow):
+
     def __init__(self, mainProgram, oldMainWindow, mas=False):
         self.mas = mas
         FittingWindow.__init__(self, mainProgram, oldMainWindow)
@@ -5113,59 +5202,66 @@ class Quad2DeconvWindow(FittingWindow):
             self.paramframe = Quad2MASDeconvParamFrame(self.current, self)
         else:
             self.paramframe = Quad2StaticDeconvParamFrame(self.current, self)
-         
+
 #################################################################################
-class Quad2StaticDeconvParamFrame(Quad1DeconvParamFrame): 
+
+
+class Quad2StaticDeconvParamFrame(Quad1DeconvParamFrame):
 
     Ioptions = ['3/2', '5/2', '7/2', '9/2']
-    
+
     def __init__(self, parent, rootwindow):
         Quad1DeconvParamFrame.__init__(self, parent, rootwindow)
-        
+
     def checkI(self, I):
-        return I*1.0+1.5
-    
+        return I * 1.0 + 1.5
+
     def setAngleStuff(self, cheng):
         phi, theta, weight = zcw_angles(cheng, symm=2)
-        angleStuff = [-27/8.0*np.cos(theta)**4+15/4.0*np.cos(theta)**2-3/8.0,
-                      (-9/4.0*np.cos(theta)**4+2*np.cos(theta)**2+1/4.0)*np.cos(2*phi),
-                      -1/2.0*np.cos(theta)**2+1/3.0+(-3/8.0*np.cos(theta)**4+3/4.0*np.cos(theta)**2-3/8.0)*np.cos(2*phi)**2]
+        angleStuff = [-27 / 8.0 * np.cos(theta)**4 + 15 / 4.0 * np.cos(theta)**2 - 3 / 8.0,
+                      (-9 / 4.0 * np.cos(theta)**4 + 2 * np.cos(theta)**2 + 1 / 4.0) * np.cos(2 * phi),
+                      -1 / 2.0 * np.cos(theta)**2 + 1 / 3.0 + (-3 / 8.0 * np.cos(theta)**4 + 3 / 4.0 * np.cos(theta)**2 - 3 / 8.0) * np.cos(2 * phi)**2]
         return weight, angleStuff
 
     def tensorFunc(self, x, I, pos, cq, eta, width, gauss, angleStuff, freq, sw, weight, axAdd):
         pos = pos - axAdd
         # v = -cq**2/(6.0*freq)*(I*(I+1)-3/4.0)*(angleStuff[0]+self.angleStuff[1]*eta+angleStuff[2]*eta**2)+pos
-        v = -1/(6*freq)*(3*cq/(2*I*(2*I-1)))**2*(I*(I+1)-3.0/4)*(angleStuff[0]+angleStuff[1]*eta+angleStuff[2]*eta**2)+pos
+        v = -1 / (6 * freq) * (3 * cq / (2 * I * (2 * I - 1)))**2 * (I * (I + 1) - 3.0 / 4) * (angleStuff[0] + angleStuff[1] * eta + angleStuff[2] * eta**2) + pos
         length = len(x)
-        t = np.arange(length)/sw
+        t = np.arange(length) / sw
         final = np.zeros(length)
-        mult = v/sw*length
-        x1 = np.array(np.round(mult)+np.floor(length/2), dtype=int)
-        weights = weight[np.logical_and(x1>=0, x1<length)]
-        x1 = x1[np.logical_and(x1>=0, x1<length)]
+        mult = v / sw * length
+        x1 = np.array(np.round(mult) + np.floor(length / 2), dtype=int)
+        weights = weight[np.logical_and(x1 >= 0, x1 < length)]
+        x1 = x1[np.logical_and(x1 >= 0, x1 < length)]
         final = np.bincount(x1, weights, length)
-        apod = np.exp(-np.pi*width*t)*np.exp(-((np.pi*gauss*t)**2)/(4*np.log(2)))
-        apod[-1:-(len(apod)/2+1):-1] = apod[:len(apod)/2]
-        inten = np.real(np.fft.fft(np.fft.ifft(final)*apod))
-        inten = inten/sw/len(inten)
+        apod = np.exp(-np.pi * width * t) * np.exp(-((np.pi * gauss * t)**2) / (4 * np.log(2)))
+        apod[-1:-(len(apod) / 2 + 1):-1] = apod[:len(apod) / 2]
+        inten = np.real(np.fft.fft(np.fft.ifft(final) * apod))
+        inten = inten / sw / len(inten)
         return inten
-    
+
 #################################################################################
-class Quad2MASDeconvParamFrame(Quad2StaticDeconvParamFrame): 
+
+
+class Quad2MASDeconvParamFrame(Quad2StaticDeconvParamFrame):
     Ioptions = ['3/2', '5/2', '7/2', '9/2']
-    
+
     def __init__(self, parent, rootwindow):
         Quad2StaticDeconvParamFrame.__init__(self, parent, rootwindow)
-        
+
     def setAngleStuff(self, cheng):
         phi, theta, weight = zcw_angles(cheng, symm=2)
-        angleStuff = [21/16.0*np.cos(theta)**4-9/8.0*np.cos(theta)**2+5/16.0,
-                      (-7/8.0*np.cos(theta)**4+np.cos(theta)**2-1/8.0)*np.cos(2*phi),
-                      1/12.0*np.cos(theta)**2+(+7/48.0*np.cos(theta)**4-7/24.0*np.cos(theta)**2+7/48.0)*np.cos(2*phi)**2]
+        angleStuff = [21 / 16.0 * np.cos(theta)**4 - 9 / 8.0 * np.cos(theta)**2 + 5 / 16.0,
+                      (-7 / 8.0 * np.cos(theta)**4 + np.cos(theta)**2 - 1 / 8.0) * np.cos(2 * phi),
+                      1 / 12.0 * np.cos(theta)**2 + (+7 / 48.0 * np.cos(theta)**4 - 7 / 24.0 * np.cos(theta)**2 + 7 / 48.0) * np.cos(2 * phi)**2]
         return weight, angleStuff
 
 ##############################################################################
-class Quad2CzjzekWindow(FittingWindow): 
+
+
+class Quad2CzjzekWindow(FittingWindow):
+
     def __init__(self, mainProgram, oldMainWindow, mas=False):
         self.mas = mas
         FittingWindow.__init__(self, mainProgram, oldMainWindow)
@@ -5178,7 +5274,9 @@ class Quad2CzjzekWindow(FittingWindow):
             self.paramframe = Quad2StaticCzjzekParamFrame(self.current, self)
 
 #################################################################################
-class Quad2StaticCzjzekParamFrame(QtGui.QWidget): 
+
+
+class Quad2StaticCzjzekParamFrame(QtGui.QWidget):
 
     Ioptions = ['3/2', '5/2', '7/2', '9/2']
 
@@ -5191,7 +5289,7 @@ class Quad2StaticCzjzekParamFrame(QtGui.QWidget):
         grid = QtGui.QGridLayout(self)
         self.setLayout(grid)
         if self.parent.current.spec == 1:
-            self.axAdd = self.parent.current.freq-self.parent.current.ref
+            self.axAdd = self.parent.current.freq - self.parent.current.ref
         elif self.parent.current.spec == 0:
             self.axAdd = 0
         self.frame1 = QtGui.QGridLayout()
@@ -5293,34 +5391,34 @@ class Quad2StaticCzjzekParamFrame(QtGui.QWidget):
         for i in range(10):
             self.dEntries.append(QtGui.QLineEdit())
             self.dEntries[i].setText("5")
-            self.frame3.addWidget(self.dEntries[i], i+2, 0)
+            self.frame3.addWidget(self.dEntries[i], i + 2, 0)
             self.posTicks.append(QtGui.QCheckBox(''))
-            self.frame3.addWidget(self.posTicks[i], i+2, 1)
+            self.frame3.addWidget(self.posTicks[i], i + 2, 1)
             self.posEntries.append(QtGui.QLineEdit())
             self.posEntries[i].setText("0.0")
-            self.frame3.addWidget(self.posEntries[i], i+2, 2)
+            self.frame3.addWidget(self.posEntries[i], i + 2, 2)
             self.sigmaTicks.append(QtGui.QCheckBox(''))
-            self.frame3.addWidget(self.sigmaTicks[i], i+2, 3)
+            self.frame3.addWidget(self.sigmaTicks[i], i + 2, 3)
             self.sigmaEntries.append(QtGui.QLineEdit())
             self.sigmaEntries[i].setText("1.0")
-            self.frame3.addWidget(self.sigmaEntries[i], i+2, 4)
+            self.frame3.addWidget(self.sigmaEntries[i], i + 2, 4)
             self.ampTicks.append(QtGui.QCheckBox(''))
-            self.frame3.addWidget(self.ampTicks[i], i+2, 5)
+            self.frame3.addWidget(self.ampTicks[i], i + 2, 5)
             self.ampEntries.append(QtGui.QLineEdit())
             self.ampEntries[i].setText("1.0")
-            self.frame3.addWidget(self.ampEntries[i], i+2, 6)
+            self.frame3.addWidget(self.ampEntries[i], i + 2, 6)
             self.lorTicks.append(QtGui.QCheckBox(''))
             self.lorTicks[i].setChecked(True)
-            self.frame3.addWidget(self.lorTicks[i], i+2, 7)
+            self.frame3.addWidget(self.lorTicks[i], i + 2, 7)
             self.lorEntries.append(QtGui.QLineEdit())
             self.lorEntries[i].setText("10.0")
-            self.frame3.addWidget(self.lorEntries[i], i+2, 8)
+            self.frame3.addWidget(self.lorEntries[i], i + 2, 8)
             self.gaussTicks.append(QtGui.QCheckBox(''))
             self.gaussTicks[i].setChecked(True)
-            self.frame3.addWidget(self.gaussTicks[i], i+2, 9)
+            self.frame3.addWidget(self.gaussTicks[i], i + 2, 9)
             self.gaussEntries.append(QtGui.QLineEdit())
             self.gaussEntries[i].setText("0.0")
-            self.frame3.addWidget(self.gaussEntries[i], i+2, 10)
+            self.frame3.addWidget(self.gaussEntries[i], i + 2, 10)
             if i > 0:
                 self.dEntries[i].hide()
                 self.posTicks[i].hide()
@@ -5339,10 +5437,10 @@ class Quad2StaticCzjzekParamFrame(QtGui.QWidget):
     def closeWindow(self, *args):
         self.stopMP()
         self.rootwindow.cancel()
-        
+
     def checkI(self, I):
-        return I*1.0+1.5
-                
+        return I * 1.0 + 1.5
+
     def setCheng(self, *args):
         inp = safeEval(self.chengEntry.text())
         if inp is None:
@@ -5361,9 +5459,9 @@ class Quad2StaticCzjzekParamFrame(QtGui.QWidget):
             return False
         self.etaGridEntry.setText(str(int(inp)))
         return True
-        
+
     def changeNum(self, *args):
-        val = self.numExp.currentIndex()+1
+        val = self.numExp.currentIndex() + 1
         for i in range(10):
             if i < val:
                 self.dEntries[i].show()
@@ -5391,18 +5489,18 @@ class Quad2StaticCzjzekParamFrame(QtGui.QWidget):
                 self.gaussEntries[i].hide()
 
     def bincounting(self, x1, weight, length):
-        weights = weight[np.logical_and(x1>=0, x1<length)]
-        x1 = x1[np.logical_and(x1>=0, x1<length)]
+        weights = weight[np.logical_and(x1 >= 0, x1 < length)]
+        x1 = x1[np.logical_and(x1 >= 0, x1 < length)]
         return np.fft.ifft(np.bincount(x1, weights, length))
-    
+
     def genLib(self, length, I, maxWq, numWq, numEta, angleStuff, freq, sw, weight, axAdd):
         wq_return, eta_return = np.meshgrid(np.linspace(0, maxWq, numWq), np.linspace(0, 1, numEta))
         wq = wq_return[..., None]
         eta = eta_return[..., None]
        # v = -wq**2/(6.0*freq)*(I*(I+1)-3/4.0)*(angleStuff[0]+angleStuff[1]*eta+angleStuff[2]*eta**2)
-        v = -1/(6.0*freq)*wq**2*(I*(I+1)-3.0/4)*(angleStuff[0]+angleStuff[1]*eta+angleStuff[2]*eta**2)
-        mult = v/sw*length
-        x1 = np.array(np.round(mult)+np.floor(length/2), dtype=int)
+        v = -1 / (6.0 * freq) * wq**2 * (I * (I + 1) - 3.0 / 4) * (angleStuff[0] + angleStuff[1] * eta + angleStuff[2] * eta**2)
+        mult = v / sw * length
+        x1 = np.array(np.round(mult) + np.floor(length / 2), dtype=int)
         lib = np.apply_along_axis(self.bincounting, 2, x1, weight, length)
         return lib, wq_return, eta_return
 
@@ -5410,18 +5508,18 @@ class Quad2StaticCzjzekParamFrame(QtGui.QWidget):
         pos = pos - axAdd
         wq = wq
         eta = eta
-        czjzek = wq**(d-1)*eta/(np.sqrt(2*np.pi)*sigma**d)*(1-eta**2/9.0)*np.exp(-wq**2/(2.0*sigma**2)*(1+eta**2/3.0))
-        czjzek = czjzek/np.sum(czjzek)
-        fid = np.sum(lib*czjzek[..., None], axis=(0, 1))
-        t = np.arange(len(fid))/sw
-        apod = np.exp(-np.pi*width*t)*np.exp(-((np.pi*gauss*t)**2)/(4*np.log(2)))
-        apod[-1:-(len(apod)/2+1):-1] = apod[:len(apod)/2]
-        spectrum = scipy.ndimage.interpolation.shift(np.real(np.fft.fft(fid*apod)), len(fid)*pos/sw)
-        spectrum = spectrum/sw*len(spectrum)
+        czjzek = wq**(d - 1) * eta / (np.sqrt(2 * np.pi) * sigma**d) * (1 - eta**2 / 9.0) * np.exp(-wq**2 / (2.0 * sigma**2) * (1 + eta**2 / 3.0))
+        czjzek = czjzek / np.sum(czjzek)
+        fid = np.sum(lib * czjzek[..., None], axis=(0, 1))
+        t = np.arange(len(fid)) / sw
+        apod = np.exp(-np.pi * width * t) * np.exp(-((np.pi * gauss * t)**2) / (4 * np.log(2)))
+        apod[-1:-(len(apod) / 2 + 1):-1] = apod[:len(apod) / 2]
+        spectrum = scipy.ndimage.interpolation.shift(np.real(np.fft.fft(fid * apod)), len(fid) * pos / sw)
+        spectrum = spectrum / sw * len(spectrum)
         return spectrum
-    
+
     def checkInputs(self):
-        numExp = self.numExp.currentIndex()+1
+        numExp = self.numExp.currentIndex() + 1
         inp = safeEval(self.bgrndEntry.text())
         if inp is None:
             return False
@@ -5460,7 +5558,7 @@ class Quad2StaticCzjzekParamFrame(QtGui.QWidget):
                 return False
             self.gaussEntries[i].setText('%#.3g' % inp)
         return True
-    
+
     def fitFunc(self, param, numExp, struc, argu, freq, sw, axAdd, wq, eta, lib, x, y):
         testFunc = np.zeros(len(x))
         if struc[0]:
@@ -5478,45 +5576,45 @@ class Quad2StaticCzjzekParamFrame(QtGui.QWidget):
         for i in range(numExp):
             d = argu[0]
             argu = np.delete(argu, [0])
-            if struc[5*i+2]:
+            if struc[5 * i + 2]:
                 pos = param[0]
                 param = np.delete(param, [0])
             else:
                 pos = argu[0]
                 argu = np.delete(argu, [0])
-            if struc[5*i+3]:
+            if struc[5 * i + 3]:
                 sigma = param[0]
                 param = np.delete(param, [0])
             else:
                 sigma = argu[0]
                 argu = np.delete(argu, [0])
-            if struc[5*i+4]:
+            if struc[5 * i + 4]:
                 amp = param[0]
                 param = np.delete(param, [0])
             else:
                 amp = argu[0]
                 argu = np.delete(argu, [0])
-            if struc[5*i+5]:
+            if struc[5 * i + 5]:
                 width = abs(param[0])
                 param = np.delete(param, [0])
             else:
                 width = argu[0]
                 argu = np.delete(argu, [0])
-            if struc[5*i+6]:
+            if struc[5 * i + 6]:
                 gauss = abs(param[0])
                 param = np.delete(param, [0])
             else:
                 gauss = argu[0]
                 argu = np.delete(argu, [0])
-            testFunc += amp*self.tensorFunc(sigma, d, pos, width, gauss, wq, eta, lib, freq, sw, axAdd)
-        testFunc += bgrnd+slope*x
-        return np.sum((np.real(testFunc)-y)**2)
+            testFunc += amp * self.tensorFunc(sigma, d, pos, width, gauss, wq, eta, lib, freq, sw, axAdd)
+        testFunc += bgrnd + slope * x
+        return np.sum((np.real(testFunc) - y)**2)
 
     def setAngleStuff(self, cheng):
         phi, theta, weight = zcw_angles(cheng, symm=2)
-        angleStuff = [-27/8.0*np.cos(theta)**4+15/4.0*np.cos(theta)**2-3/8.0,
-                      (-9/4.0*np.cos(theta)**4+2*np.cos(theta)**2+1/4.0)*np.cos(2*phi),
-                      -1/2.0*np.cos(theta)**2+1/3.0+(-3/8.0*np.cos(theta)**4+3/4.0*np.cos(theta)**2-3/8.0)*np.cos(2*phi)**2]
+        angleStuff = [-27 / 8.0 * np.cos(theta)**4 + 15 / 4.0 * np.cos(theta)**2 - 3 / 8.0,
+                      (-9 / 4.0 * np.cos(theta)**4 + 2 * np.cos(theta)**2 + 1 / 4.0) * np.cos(2 * phi),
+                      -1 / 2.0 * np.cos(theta)**2 + 1 / 3.0 + (-3 / 8.0 * np.cos(theta)**4 + 3 / 4.0 * np.cos(theta)**2 - 3 / 8.0) * np.cos(2 * phi)**2]
         return weight, angleStuff
 
     def mpFit(self, xax, data1D, guess, args, queue, I, lib, wq, eta):
@@ -5526,7 +5624,7 @@ class Quad2StaticCzjzekParamFrame(QtGui.QWidget):
         except:
             fitVal = None
         queue.put(fitVal)
-    
+
     def fit(self, *args):
         self.setCheng()
         if not self.setGrid():
@@ -5540,7 +5638,7 @@ class Quad2StaticCzjzekParamFrame(QtGui.QWidget):
         argu = []
         maxWq = 0.0
         I = self.checkI(self.IEntry.currentIndex())
-        numExp = self.numExp.currentIndex()+1
+        numExp = self.numExp.currentIndex() + 1
         outPos = np.zeros(numExp)
         outSigma = np.zeros(numExp)
         outD = np.zeros(numExp)
@@ -5579,13 +5677,13 @@ class Quad2StaticCzjzekParamFrame(QtGui.QWidget):
                 struc.append(False)
             if not self.sigmaTicks[i].isChecked():
                 inp = float(self.sigmaEntries[i].text())
-                maxWq = max(maxWq, inp*1e6)
-                guess.append(inp*1e6)
+                maxWq = max(maxWq, inp * 1e6)
+                guess.append(inp * 1e6)
                 struc.append(True)
             else:
                 inp = float(self.sigmaEntries[i].text())
-                maxWq = max(maxWq, inp*1e6)
-                argu.append(inp*1e6)
+                maxWq = max(maxWq, inp * 1e6)
+                argu.append(inp * 1e6)
                 outSigma[i] = inp
                 struc.append(False)
             if not self.ampTicks[i].isChecked():
@@ -5613,7 +5711,7 @@ class Quad2StaticCzjzekParamFrame(QtGui.QWidget):
         numWq = int(self.wqGridEntry.text())
         numEta = int(self.etaGridEntry.text())
         weight, angleStuff = self.setAngleStuff(self.cheng)
-        self.lib, self.wq, self.eta = self.genLib(len(self.parent.xax), I, maxWq*4.0, numWq, numEta, angleStuff, self.parent.current.freq, self.parent.current.sw, weight, self.axAdd)
+        self.lib, self.wq, self.eta = self.genLib(len(self.parent.xax), I, maxWq * 4.0, numWq, numEta, angleStuff, self.parent.current.freq, self.parent.current.sw, weight, self.axAdd)
         self.queue = multiprocessing.Queue()
         self.process1 = multiprocessing.Process(target=self.mpFit, args=(self.parent.xax, np.real(self.parent.data1D), guess, args, self.queue, I, self.lib, self.wq, self.eta))
         self.process1.start()
@@ -5641,23 +5739,23 @@ class Quad2StaticCzjzekParamFrame(QtGui.QWidget):
             outSlope = fitVal[counter]
             counter += 1
         for i in range(numExp):
-            if struc[5*i+2]:
+            if struc[5 * i + 2]:
                 self.posEntries[i].setText('%.3g' % fitVal[counter])
                 outPos[i] = fitVal[counter]
                 counter += 1
-            if struc[5*i+3]:
-                self.sigmaEntries[i].setText('%.3g' % (fitVal[counter]*1e-6))
+            if struc[5 * i + 3]:
+                self.sigmaEntries[i].setText('%.3g' % (fitVal[counter] * 1e-6))
                 outSigma[i] = fitVal[counter]
                 counter += 1
-            if struc[5*i+4]:
+            if struc[5 * i + 4]:
                 self.ampEntries[i].setText('%.3g' % fitVal[counter])
                 outAmp[i] = fitVal[counter]
                 counter += 1
-            if struc[5*i+5]:
+            if struc[5 * i + 5]:
                 self.lorEntries[i].setText('%.3g' % abs(fitVal[counter]))
                 outWidth[i] = abs(fitVal[counter])
                 counter += 1
-            if struc[5*i+6]:
+            if struc[5 * i + 6]:
                 self.gaussEntries[i].setText('%.3g' % abs(fitVal[counter]))
                 outGauss[i] = abs(fitVal[counter])
                 counter += 1
@@ -5673,10 +5771,10 @@ class Quad2StaticCzjzekParamFrame(QtGui.QWidget):
         self.process1 = None
         self.running = False
         self.stopButton.hide()
-        
+
     def fitAll(self, *args):
         FitAllSelectionWindow(self, ["Background", "Slope", "Position", u"\u03c3", "Integral", "Lorentz", "Gauss"])
-        
+
     def mpAllFit(self, xax, data, guess, args, queue, I, lib, wq, eta):
         fitVal = []
         for j in data:
@@ -5684,9 +5782,9 @@ class Quad2StaticCzjzekParamFrame(QtGui.QWidget):
             try:
                 fitVal.append(scipy.optimize.fmin(self.fitFunc, guess, args=arg, disp=False))
             except:
-                fitVal.append([[0]*10])
+                fitVal.append([[0] * 10])
         queue.put(fitVal)
-        
+
     def fitAllFunc(self, outputs):
         self.setCheng()
         if not self.setGrid():
@@ -5700,7 +5798,7 @@ class Quad2StaticCzjzekParamFrame(QtGui.QWidget):
         argu = []
         maxWq = 0.0
         I = self.checkI(self.IEntry.currentIndex())
-        numExp = self.numExp.currentIndex()+1
+        numExp = self.numExp.currentIndex() + 1
         outPos = np.zeros(numExp)
         outSigma = np.zeros(numExp)
         outD = np.zeros(numExp)
@@ -5739,13 +5837,13 @@ class Quad2StaticCzjzekParamFrame(QtGui.QWidget):
                 struc.append(False)
             if not self.sigmaTicks[i].isChecked():
                 inp = float(self.sigmaEntries[i].text())
-                maxWq = max(maxWq, inp*1e6)
-                guess.append(inp*1e6)
+                maxWq = max(maxWq, inp * 1e6)
+                guess.append(inp * 1e6)
                 struc.append(True)
             else:
                 inp = float(self.sigmaEntries[i].text())
-                maxWq = max(maxWq, inp*1e6)
-                argu.append(inp*1e6)
+                maxWq = max(maxWq, inp * 1e6)
+                argu.append(inp * 1e6)
                 outSigma[i] = inp
                 struc.append(False)
             if not self.ampTicks[i].isChecked():
@@ -5773,14 +5871,14 @@ class Quad2StaticCzjzekParamFrame(QtGui.QWidget):
         numWq = int(self.wqGridEntry.text())
         numEta = int(self.etaGridEntry.text())
         weight, angleStuff = self.setAngleStuff(self.cheng)
-        self.lib, self.wq, self.eta = self.genLib(len(self.parent.xax), I, maxWq*4.0, numWq, numEta, angleStuff, self.parent.current.freq, self.parent.current.sw, weight, self.axAdd)
+        self.lib, self.wq, self.eta = self.genLib(len(self.parent.xax), I, maxWq * 4.0, numWq, numEta, angleStuff, self.parent.current.freq, self.parent.current.sw, weight, self.axAdd)
         fullData = self.parent.current.data.data
         axes = self.parent.current.axes
         dataShape = fullData.shape
         dataShape2 = np.delete(dataShape, axes)
         rolledData = np.rollaxis(fullData, axes)
         intOutputs = np.array(outputs, dtype=int)
-        numOutputs = np.sum(intOutputs[:2]) + numExp*np.sum(intOutputs[2:])
+        numOutputs = np.sum(intOutputs[:2]) + numExp * np.sum(intOutputs[2:])
         outputData = np.zeros((np.product(dataShape2), numOutputs), dtype=complex)
         counter2 = 0
         fitData = rolledData.reshape(dataShape[axes], np.product(dataShape2)).T
@@ -5810,19 +5908,19 @@ class Quad2StaticCzjzekParamFrame(QtGui.QWidget):
                 outSlope = fitVal[counter]
                 counter += 1
             for i in range(numExp):
-                if struc[5*i+2]:
+                if struc[5 * i + 2]:
                     outPos[i] = fitVal[counter]
                     counter += 1
-                if struc[5*i+3]:
+                if struc[5 * i + 3]:
                     outSigma[i] = fitVal[counter]
                     counter += 1
-                if struc[5*i+4]:
+                if struc[5 * i + 4]:
                     outAmp[i] = fitVal[counter]
                     counter += 1
-                if struc[5*i+5]:
+                if struc[5 * i + 5]:
                     outWidth[i] = abs(fitVal[counter])
                     counter += 1
-                if struc[5*i+6]:
+                if struc[5 * i + 6]:
                     outGauss[i] = abs(fitVal[counter])
                     counter += 1
             outputArray = []
@@ -5835,7 +5933,7 @@ class Quad2StaticCzjzekParamFrame(QtGui.QWidget):
             if outputs[3]:
                 outputArray = np.concatenate((outputArray, outSigma))
             if outputs[4]:
-                outputArray = np.concatenate((outputArray, outAmp)) 
+                outputArray = np.concatenate((outputArray, outAmp))
             if outputs[5]:
                 outputArray = np.concatenate((outputArray, outWidth))
             if outputs[6]:
@@ -5844,7 +5942,7 @@ class Quad2StaticCzjzekParamFrame(QtGui.QWidget):
             counter2 += 1
         newShape = np.concatenate((np.array(dataShape2), [numOutputs]))
         self.rootwindow.createNewData(np.rollaxis(outputData.reshape(newShape), -1, axes), axes)
-        
+
     def sim(self, store=False):
         self.setCheng()
         if not self.setGrid():
@@ -5853,7 +5951,7 @@ class Quad2StaticCzjzekParamFrame(QtGui.QWidget):
         if not self.checkInputs():
             self.rootwindow.mainProgram.dispMsg("One of the inputs is not valid")
             return
-        numExp = self.numExp.currentIndex()+1
+        numExp = self.numExp.currentIndex() + 1
         bgrnd = float(self.bgrndEntry.text())
         slope = float(self.slopeEntry.text())
         pos = np.zeros(numExp)
@@ -5865,7 +5963,7 @@ class Quad2StaticCzjzekParamFrame(QtGui.QWidget):
         I = self.checkI(self.IEntry.currentIndex())
         for i in range(numExp):
             pos[i] = safeEval(self.posEntries[i].text())
-            sigma[i] = safeEval(self.sigmaEntries[i].text())*1e6
+            sigma[i] = safeEval(self.sigmaEntries[i].text()) * 1e6
             d[i] = safeEval(self.dEntries[i].text())
             amp[i] = safeEval(self.ampEntries[i].text())
             width[i] = safeEval(self.lorEntries[i].text())
@@ -5873,18 +5971,18 @@ class Quad2StaticCzjzekParamFrame(QtGui.QWidget):
         weight, angleStuff = self.setAngleStuff(self.cheng)
         numWq = int(self.wqGridEntry.text())
         numEta = int(self.etaGridEntry.text())
-        self.lib, self.wq, self.eta = self.genLib(len(self.parent.xax), I, max(sigma)*4.0, numWq, numEta, angleStuff, self.parent.current.freq, self.parent.current.sw, weight, self.axAdd)
+        self.lib, self.wq, self.eta = self.genLib(len(self.parent.xax), I, max(sigma) * 4.0, numWq, numEta, angleStuff, self.parent.current.freq, self.parent.current.sw, weight, self.axAdd)
         self.disp(bgrnd, slope, pos, sigma, d, amp, width, gauss, store)
 
     def disp(self, outBgrnd, outSlope, outPos, outSigma, outD, outAmp, outWidth, outGauss, store=False):
         tmpx = self.parent.xax
-        outCurveBase = outBgrnd + tmpx*outSlope
+        outCurveBase = outBgrnd + tmpx * outSlope
         outCurve = outCurveBase.copy()
         outCurvePart = []
         x = []
         for i in range(len(outPos)):
             x.append(tmpx)
-            y =  outAmp[i]*self.tensorFunc(outSigma[i], outD[i], outPos[i], outWidth[i], outGauss[i], self.wq, self.eta, self.lib, self.parent.current.freq, self.parent.current.sw, self.axAdd)
+            y = outAmp[i] * self.tensorFunc(outSigma[i], outD[i], outPos[i], outWidth[i], outGauss[i], self.wq, self.eta, self.lib, self.parent.current.freq, self.parent.current.sw, self.axAdd)
             outCurvePart.append(outCurveBase + y)
             outCurve += y
         if store:
@@ -5894,25 +5992,29 @@ class Quad2StaticCzjzekParamFrame(QtGui.QWidget):
         else:
             self.parent.showPlot(tmpx, outCurve, x, outCurvePart)
         self.parent.showPlot(tmpx, outCurve, x, outCurvePart)
-        
+
 #################################################################################
-class Quad2MASCzjzekParamFrame(Quad2StaticCzjzekParamFrame): 
+
+
+class Quad2MASCzjzekParamFrame(Quad2StaticCzjzekParamFrame):
 
     Ioptions = ['3/2', '5/2', '7/2', '9/2']
-    
+
     def __init__(self, parent, rootwindow):
         Quad2StaticCzjzekParamFrame.__init__(self, parent, rootwindow)
-        
+
     def setAngleStuff(self, cheng):
         phi, theta, weight = zcw_angles(cheng, symm=2)
-        angleStuff = [21/16.0*np.cos(theta)**4-9/8.0*np.cos(theta)**2+5/16.0,
-                      (-7/8.0*np.cos(theta)**4+np.cos(theta)**2-1/8.0)*np.cos(2*phi),
-                      1/12.0*np.cos(theta)**2+(+7/48.0*np.cos(theta)**4-7/24.0*np.cos(theta)**2+7/48.0)*np.cos(2*phi)**2]
+        angleStuff = [21 / 16.0 * np.cos(theta)**4 - 9 / 8.0 * np.cos(theta)**2 + 5 / 16.0,
+                      (-7 / 8.0 * np.cos(theta)**4 + np.cos(theta)**2 - 1 / 8.0) * np.cos(2 * phi),
+                      1 / 12.0 * np.cos(theta)**2 + (+7 / 48.0 * np.cos(theta)**4 - 7 / 24.0 * np.cos(theta)**2 + 7 / 48.0) * np.cos(2 * phi)**2]
         return weight, angleStuff
-         
+
 ######################################################################
 
-class FitAllSelectionWindow(QtGui.QWidget): 
+
+class FitAllSelectionWindow(QtGui.QWidget):
+
     def __init__(self, parent, fitNames):
         QtGui.QWidget.__init__(self, parent)
         self.setWindowFlags(QtCore.Qt.Window | QtCore.Qt.Tool)
@@ -5921,12 +6023,12 @@ class FitAllSelectionWindow(QtGui.QWidget):
         layout = QtGui.QGridLayout(self)
         grid = QtGui.QGridLayout()
         layout.addLayout(grid, 0, 0, 1, 2)
-        
+
         self.ticks = []
         for i in range(len(fitNames)):
             self.ticks.append(QtGui.QCheckBox(fitNames[i]))
             grid.addWidget(self.ticks[i], i, 0)
-        
+
         cancelButton = QtGui.QPushButton("&Cancel")
         cancelButton.clicked.connect(self.closeEvent)
         layout.addWidget(cancelButton, 1, 0)
@@ -5935,8 +6037,8 @@ class FitAllSelectionWindow(QtGui.QWidget):
         layout.addWidget(okButton, 1, 1)
         self.show()
         self.setFixedSize(self.size())
-        self.setGeometry(self.frameSize().width()-self.geometry().width(), self.frameSize().height()-self.geometry().height(), 0, 0)
-        
+        self.setGeometry(self.frameSize().width() - self.geometry().width(), self.frameSize().height() - self.geometry().height(), 0, 0)
+
     def fit(self):
         returnVals = []
         for i in self.ticks:

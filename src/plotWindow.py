@@ -2,43 +2,45 @@
 
 # Copyright 2016 Bas van Meerten and Wouter Franssen
 
-#This file is part of ssNake.
+# This file is part of ssNake.
 #
-#ssNake is free software: you can redistribute it and/or modify
-#it under the terms of the GNU General Public License as published by
-#the Free Software Foundation, either version 3 of the License, or
-#(at your option) any later version.
+# ssNake is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
 #
-#ssNake is distributed in the hope that it will be useful,
-#but WITHOUT ANY WARRANTY; without even the implied warranty of
-#MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-#GNU General Public License for more details.
+# ssNake is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
 #
-#You should have received a copy of the GNU General Public License
-#along with ssNake. If not, see <http://www.gnu.org/licenses/>.
+# You should have received a copy of the GNU General Public License
+# along with ssNake. If not, see <http://www.gnu.org/licenses/>.
 
 from PyQt4 import QtGui, QtCore
-from matplotlib.figure import Figure
 from matplotlib.backends.backend_qt4agg import FigureCanvasQTAgg as FigureCanvas
-from widgetClasses import *
+from widgetClasses import QLabel
+from safeEval import safeEval
+import numpy as np
 import os
 import copy
 
 #####################################################################################
+
+
 class MainPlotWindow(QtGui.QWidget):
+
     def __init__(self, father, oldMainWindow):
         QtGui.QWidget.__init__(self, father)
-        self.father = father 
+        self.father = father
         self.oldMainWindow = oldMainWindow
         self.fig = oldMainWindow.current.fig
         self.canvas = FigureCanvas(self.fig)
-        #self.canvas = oldMainWindow.current.canvas
         self.ax = oldMainWindow.current.ax
         grid = QtGui.QGridLayout(self)
         scroll2 = QtGui.QScrollArea()
         grid.addWidget(scroll2, 0, 0)
         scroll2.setWidget(self.canvas)
-        #grid.addWidget(self.canvas, 0, 0)
         self.frame1 = QtGui.QGridLayout()
         grid.addLayout(self.frame1, 0, 1)
         scroll = QtGui.QScrollArea()
@@ -94,8 +96,8 @@ class MainPlotWindow(QtGui.QWidget):
         self.ylimRightEntry.returnPressed.connect(self.updatePlot)
         self.optionFrame.addWidget(self.ylimRightEntry, 13, 0)
         self.widthBackup, self.heightBackup = self.fig.get_size_inches()
-        self.widthBackup = self.widthBackup*2.54
-        self.heightBackup = self.heightBackup*2.54
+        self.widthBackup = self.widthBackup * 2.54
+        self.heightBackup = self.heightBackup * 2.54
         self.optionFrame.addWidget(QLabel("Width [cm]:"), 26, 0)
         self.widthEntry = QtGui.QLineEdit()
         self.widthEntry.setAlignment(QtCore.Qt.AlignHCenter)
@@ -149,13 +151,13 @@ class MainPlotWindow(QtGui.QWidget):
         self.legendTextList = []
         for line in self.legend.get_texts():
             self.legendTextList.append(line.get_text())
-        
+
         self.legend.set_visible(False)
         self.legendCheck = QtGui.QCheckBox('Legend')
         self.legendCheck.stateChanged.connect(self.updateLegend)
         self.optionFrame.addWidget(self.legendCheck, 40, 0)
         legendButton = QtGui.QPushButton('Legend settings')
-        legendButton.clicked.connect(lambda : LegendWindow(self))
+        legendButton.clicked.connect(lambda: LegendWindow(self))
         self.optionFrame.addWidget(legendButton, 41, 0)
 
         execFileButton = QtGui.QPushButton('Execute file')
@@ -181,7 +183,7 @@ class MainPlotWindow(QtGui.QWidget):
         self.grid = grid
         scroll.setWidget(content)
         self.updatePlot()
-        
+
     def rename(self, name):
         self.oldMainWindow.rename(name)
 
@@ -193,8 +195,7 @@ class MainPlotWindow(QtGui.QWidget):
             if self.legend is not None:
                 self.legend.set_visible(False)
         self.updatePlot()
-        
-        
+
     def updatePlot(self, *args):
         self.fig.suptitle(self.titleEntry.text(), fontsize=safeEval(self.titleFontSizeEntry.text()))
         self.ax.set_xlabel(self.xlabelEntry.text(), fontsize=safeEval(self.xlabelFontSizeEntry.text()))
@@ -205,11 +206,11 @@ class MainPlotWindow(QtGui.QWidget):
         self.ax.xaxis.get_offset_text().set_fontsize(safeEval(self.xtickFontSizeEntry.text()))
         self.ax.tick_params(axis='y', labelsize=safeEval(self.ytickFontSizeEntry.text()))
         self.ax.yaxis.get_offset_text().set_fontsize(safeEval(self.ytickFontSizeEntry.text()))
-        self.fig.set_size_inches((int(safeEval(self.widthEntry.text()))/2.54, int(safeEval(self.heightEntry.text()))/2.54))
+        self.fig.set_size_inches((int(safeEval(self.widthEntry.text())) / 2.54, int(safeEval(self.heightEntry.text())) / 2.54))
         self.canvas.draw()
         self.canvas.adjustSize()
 
-    def exFile(self):    
+    def exFile(self):
         warning_msg = "This is an advanced feature. Do not execute files you haven't inspected yourself. Are you sure you want to continue?"
         reply = QtGui.QMessageBox.question(self, 'Warning', warning_msg, QtGui.QMessageBox.Yes, QtGui.QMessageBox.No)
         if reply == QtGui.QMessageBox.Yes:
@@ -222,30 +223,30 @@ class MainPlotWindow(QtGui.QWidget):
                 except Exception as e:
                     self.father.dispMsg(str(e))
                 self.canvas.draw()
-        
+
     def get_mainWindow(self):
         return self.oldMainWindow
-        
+
     def get_masterData(self):
         return self.oldMainWindow.get_masterData()
-    
+
     def get_current(self):
         return self.oldMainWindow.get_current()
 
     def kill(self):
-        for i in reversed(range(self.grid.count())): 
+        for i in reversed(range(self.grid.count())):
             self.grid.itemAt(i).widget().deleteLater()
         self.grid.deleteLater()
         self.oldMainWindow.kill()
         del self.fig
         del self.canvas
         self.deleteLater()
-        
+
     def save(self):
         self.updatePlot()
-        self.fig.set_size_inches((int(safeEval(self.widthEntry.text()))/2.54, int(safeEval(self.heightEntry.text()))/2.54))
-        WorkspaceName = self.father.workspaceNames[self.father.workspaceNum] #Set name of file to be saved to workspace name to start
-        f = QtGui.QFileDialog.getSaveFileName(self, 'Save File', self.father.LastLocation+os.path.sep+WorkspaceName+'.'+self.fileOptions[self.filetypeEntry.currentIndex()])
+        self.fig.set_size_inches((int(safeEval(self.widthEntry.text())) / 2.54, int(safeEval(self.heightEntry.text())) / 2.54))
+        WorkspaceName = self.father.workspaceNames[self.father.workspaceNum]  # Set name of file to be saved to workspace name to start
+        f = QtGui.QFileDialog.getSaveFileName(self, 'Save File', self.father.LastLocation + os.path.sep + WorkspaceName + '.' + self.fileOptions[self.filetypeEntry.currentIndex()])
         if f:
             self.father.LastLocation = os.path.dirname(f)
             self.fig.savefig(f)
@@ -263,7 +264,7 @@ class MainPlotWindow(QtGui.QWidget):
         self.ax.yaxis.get_offset_text().set_fontsize(self.ytickFontSizeBackup)
         if self.legend is not None:
             self.legend.set_visible(False)
-        self.fig.set_size_inches((self.widthBackup/2.54, self.heightBackup/2.54))
+        self.fig.set_size_inches((self.widthBackup / 2.54, self.heightBackup / 2.54))
         self.grid.deleteLater()
         del self.canvas
         del self.fig
@@ -271,7 +272,10 @@ class MainPlotWindow(QtGui.QWidget):
         self.deleteLater()
 
 #####################################################################################################################
+
+
 class LegendWindow(QtGui.QWidget):
+
     def __init__(self, parent):
         QtGui.QWidget.__init__(self, parent)
         self.setWindowFlags(QtCore.Qt.Window | QtCore.Qt.Tool)
@@ -290,7 +294,7 @@ class LegendWindow(QtGui.QWidget):
         grid.addWidget(QLabel("Legend:"), 2, 0)
         self.father.legendCheck.setChecked(True)
         self.spinBox = QtGui.QSpinBox()
-        self.spinBox.setMaximum(len(self.father.legendTextList)-1)
+        self.spinBox.setMaximum(len(self.father.legendTextList) - 1)
         self.spinBox.valueChanged.connect(self.changeEdit)
         grid.addWidget(self.spinBox, 3, 0)
         self.legendEditList = []
@@ -310,39 +314,37 @@ class LegendWindow(QtGui.QWidget):
         layout.addWidget(okButton, 1, 1)
         self.show()
         self.setFixedSize(self.size())
-        self.setGeometry(self.frameSize().width()-self.geometry().width(), self.frameSize().height()-self.geometry().height(), 0, 0)
+        self.setGeometry(self.frameSize().width() - self.geometry().width(), self.frameSize().height() - self.geometry().height(), 0, 0)
 
     def changeEdit(self, num):
         for i in range(len(self.legendEditList)):
             self.legendEditList[i].setVisible(False)
         self.legendEditList[num].setVisible(True)
-        
+
     def preview(self, *args):
         tmp = copy.deepcopy(self.father.legendTextList)
         for i in range(len(self.legendEditList)):
             tmp[i] = self.legendEditList[i].text()
         env = vars(np).copy()
         try:
-            inp = eval(self.posEntry.text(), env)                
+            inp = eval(self.posEntry.text(), env)
         except:
             inp = self.posEntry.text()
         self.father.ax.legend(tmp, loc=inp)
         self.father.legend.draggable(True)
         self.father.canvas.draw()
-        
+
     def closeEvent(self, *args):
         self.deleteLater()
         self.father.updateLegend()
-        
+
     def applyAndClose(self):
         for i in range(len(self.legendEditList)):
             self.father.legendTextList[i] = self.legendEditList[i].text()
         env = vars(np).copy()
         try:
-            inp = eval(self.posEntry.text(), env)                
+            inp = eval(self.posEntry.text(), env)
         except:
             inp = self.posEntry.text()
         self.father.legendPos = inp
         self.closeEvent()
-        
- 
