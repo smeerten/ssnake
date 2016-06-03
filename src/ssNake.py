@@ -35,6 +35,7 @@ from safeEval import safeEval
 import widgetClasses as wc
 from updateWindow import UpdateWindow
 from plotWindow import MainPlotWindow
+from euro import euro
 
 
 matplotlib.rc('font', family='DejaVu Sans')
