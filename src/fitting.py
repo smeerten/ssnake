@@ -3676,7 +3676,7 @@ class HerzfeldBergerParamFrame(QtGui.QWidget):
         self.spinEntry.setAlignment(QtCore.Qt.AlignHCenter)
         self.spinEntry.setText("30.0")
         self.optframe.addWidget(self.spinEntry, 3, 0)
-        #self.frame2.setColumnStretch(10, 1)
+        # self.frame2.setColumnStretch(10, 1)
         # self.frame2.setAlignment(QtCore.Qt.AlignTop)
         self.frame3.addWidget(QLabel(u"\u03B4 [ppm]:"), 1, 0, 1, 2)
         self.frame3.addWidget(QLabel(u"\u03B7:"), 1, 2, 1, 2)
@@ -3762,8 +3762,8 @@ class HerzfeldBergerParamFrame(QtGui.QWidget):
 
     def hbFunc(self, omega0, delta, eta, NSTEPS, tresolution, angleStuff, weight):
         omegars = omega0 * delta * (angleStuff[0] + angleStuff[1] + eta * (angleStuff[2] + angleStuff[3] + angleStuff[4] + angleStuff[5]))
-        #omegars =  omega0*delta*(self.C1  + self.C2 +  eta*(self.C1eta + self.C2eta + self.S1 + self.S2 ))
-        #QTrs = np.exp(-1j*np.cumsum(omegars, axis=1)*self.tresolution)
+        # omegars =  omega0*delta*(self.C1  + self.C2 +  eta*(self.C1eta + self.C2eta + self.S1 + self.S2 ))
+        # QTrs = np.exp(-1j*np.cumsum(omegars, axis=1)*self.tresolution)
         nsteps = angleStuff[0].shape[1]
         QTrs = np.concatenate([np.ones([angleStuff[0].shape[0], 1]), np.exp(-1j * np.cumsum(omegars, axis=1) * tresolution)[:, :-1]], 1)
         for j in range(1, nsteps):
@@ -3794,7 +3794,7 @@ class HerzfeldBergerParamFrame(QtGui.QWidget):
         testFunc = testFunc[x] / np.sum(testFunc[x]) * np.real(np.sum(y))
         return np.sum((testFunc - y)**2)
 
-    def mpFit(self, xax, data1D, guess, args, queue, NSTEPS, omegar, cheng):
+    def mpFit(self, sidebandList, integralList, guess, args, queue, NSTEPS, omegar, cheng):
         theta, phi, weight = zcw_angles(cheng, symm=2)
         sinPhi = np.sin(phi)
         cosPhi = np.cos(phi)
@@ -3810,7 +3810,7 @@ class HerzfeldBergerParamFrame(QtGui.QWidget):
                       np.array([1.0 / 3 / 2 * (1 + cosPhi**2) * cos2Theta]).transpose() * cos2OmegarT,
                       np.array([np.sqrt(2) / 3 * sinPhi * sin2Theta]).transpose() * np.sin(omegar * t),
                       np.array([cosPhi * sin2Theta / 3]).transpose() * np.sin(2 * omegar * t)]
-        arg = args + (NSTEPS, tresolution, angleStuff, weight, xax, data1D)
+        arg = args + (NSTEPS, tresolution, angleStuff, weight, sidebandList, integralList)
         try:
             fitVal = scipy.optimize.fmin(self.fitFunc, guess, args=arg, disp=False)
         except:
@@ -3865,7 +3865,7 @@ class HerzfeldBergerParamFrame(QtGui.QWidget):
             struc.append(False)
         args = (struc, argu, self.parent.current.freq * np.pi * 2)
         self.queue = multiprocessing.Queue()
-        self.process1 = multiprocessing.Process(target=self.mpFit, args=(self.parent.xax, np.real(self.integralList), guess, args, self.queue, self.NSTEPS, omegar, self.cheng))
+        self.process1 = multiprocessing.Process(target=self.mpFit, args=(self.sidebandList, np.real(self.integralList), guess, args, self.queue, self.NSTEPS, omegar, self.cheng))
         self.process1.start()
         self.running = True
         self.stopButton.show()
@@ -4218,7 +4218,7 @@ class Quad1MASDeconvParamFrame(QtGui.QWidget):
             if splitting[transition] != 0:  # If quad coupling not zero: calculate sideban pattern
                 delta = splitting[transition] * 2 * np.pi * 3 / (2 * I * (2 * I - 1)) * Cq * 1e6  # Calc delta based on Cq [MHz] and spin qunatum
                 omegars = delta * (angleStuff[0] + angleStuff[1] + eta * (angleStuff[2] + angleStuff[3] + angleStuff[4] + angleStuff[5]))
-                #QTrs = np.exp(-1j*np.cumsum(omegars, axis=1)*self.tresolution)
+                # QTrs = np.exp(-1j*np.cumsum(omegars, axis=1)*self.tresolution)
 
                 QTrs = np.concatenate([np.ones([angleStuff[0].shape[0], 1]), np.exp(-1j * np.cumsum(omegars, axis=1) * tresolution)[:, :-1]], 1)
                 for j in range(1, nsteps):
@@ -4252,7 +4252,7 @@ class Quad1MASDeconvParamFrame(QtGui.QWidget):
         testFunc = testFunc[np.array(x)] / np.sum(testFunc[x]) * np.sum(y)
         return np.sum((testFunc - y)**2)
 
-    def mpFit(self, xax, data1D, guess, args, queue, I, NSTEPS, omegar, cheng):
+    def mpFit(self, sidebandList, integralList, guess, args, queue, I, NSTEPS, omegar, cheng):
         theta, phi, weight = zcw_angles(cheng, symm=2)
         sinPhi = np.sin(phi)
         cosPhi = np.cos(phi)
@@ -4268,7 +4268,7 @@ class Quad1MASDeconvParamFrame(QtGui.QWidget):
                       np.array([1.0 / 3 / 2 * (1 + cosPhi**2) * cos2Theta]).transpose() * cos2OmegarT,
                       np.array([np.sqrt(2) / 3 * sinPhi * sin2Theta]).transpose() * np.sin(omegar * t),
                       np.array([cosPhi * sin2Theta / 3]).transpose() * np.sin(2 * omegar * t)]
-        arg = args + (I, NSTEPS, tresolution, angleStuff, weight, xax, data1D)
+        arg = args + (I, NSTEPS, tresolution, angleStuff, weight, sidebandList, integralList)
         try:
             fitVal = scipy.optimize.fmin(self.fitFunc, guess, args=arg, disp=False)
         except:
@@ -4324,7 +4324,7 @@ class Quad1MASDeconvParamFrame(QtGui.QWidget):
         I = self.Ivalues[self.IEntry.currentIndex()]
         args = (struc, argu, self.parent.current.freq * np.pi * 2)
         self.queue = multiprocessing.Queue()
-        self.process1 = multiprocessing.Process(target=self.mpFit, args=(self.parent.xax, np.real(self.integralList), guess, args, self.queue, I, self.NSTEPS, omegar, self.cheng))
+        self.process1 = multiprocessing.Process(target=self.mpFit, args=(self.sidebandList, np.real(self.integralList), guess, args, self.queue, I, self.NSTEPS, omegar, self.cheng))
         self.process1.start()
         self.running = True
         self.stopButton.show()
@@ -4349,7 +4349,7 @@ class Quad1MASDeconvParamFrame(QtGui.QWidget):
             self.etaEntry.setText('%.3g' % fitVal[counter])
             outEta = fitVal[counter]
             counter += 1
-        self.disp(outDelta, outEta)
+        self.disp(outDelta, outEta, I, self.NSTEPS, omegar, self.cheng)
 
     def stopMP(self, *args):
         if self.queue is not None:
