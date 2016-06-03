@@ -3714,7 +3714,7 @@ class CurrentContour(Current1D):
                             tmpdata = np.real(self.data1D[idy, idx])
                         elif(self.plotType == 3):
                             tmpdata = np.abs(self.data1D[idy, idx])
-                        self.peakPickFunc((idx, xdata[idx], tmpdata, ydata[idy]))
+                        self.peakPickFunc((idx, xdata[idx], tmpdata, idy, ydata[idy]))
                     if not self.peakPick:  # check if peakpicking is still required
                         self.peakPickFunc = None
             else:
