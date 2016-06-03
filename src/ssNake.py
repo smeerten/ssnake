@@ -90,7 +90,21 @@ class MainProgram(QtGui.QMainWindow):
         self.resize(self.defaultWidth, self.defaultHeight)
         if self.defaultMaximized:
             self.showMaximized()
+        QtGui.QShortcut(QtGui.QKeySequence.Paste, self).activated.connect(self.handlePaste)
+        QtGui.QShortcut(QtGui.QKeySequence.Copy, self).activated.connect(self.handleCopy)
 
+    def handlePaste(self):
+        clipboard_text = QtGui.QApplication.instance().clipboard().text()
+        for name in clipboard_text.splitlines():
+            if self.autoLoad(name) is not None:
+                self.LastLocation = os.path.dirname(name)
+
+    def handleCopy(self):
+        if self.mainWindow is None:
+            return
+        pixmap = QtGui.QPixmap.grabWidget(self.mainWindow.canvas)
+        QtGui.QApplication.clipboard().setPixmap(pixmap)
+        
     def resetDefaults(self):
         self.defaultWidth = 0
         self.defaultHeight = 0
@@ -1594,6 +1608,8 @@ class Main1DWindow(QtGui.QWidget):
         self.canvas.mpl_connect('button_release_event', self.buttonRelease)
         self.canvas.mpl_connect('motion_notify_event', self.pan)
         self.canvas.mpl_connect('scroll_event', self.scroll)
+        self.canvas.setFocusPolicy(QtCore.Qt.ClickFocus)
+        self.canvas.setFocus()
 
     def rename(self, name):
         self.current.rename(name)
