@@ -505,14 +505,15 @@ Concatenates (i.e. sticks) that data of dimension $n$ after dimension $n+1$. So 
 
 
 \section{Fitting}
-In NMR spectroscopy, the shape of the resonance lines can provide information on the strength of interactions that the nucleus experiences. ssNake can, as many other programs, fit some idealized lineshapes with are often encountered in real life spectra. Fitting in ssNake ranges from trivial `full width at half maximum' (FWHM) fitting, to the complex quadrupolar Czjzek distribution. The following section will explain the way ssNake handles the different types of spectra it can fit, and which equations are used simulate the different spectra.
+In NMR spectroscopy, the shape of the resonance lines can provide information on the strength of interactions that the nucleus experiences. ssNake can, as many other programs, fit some idealized lineshapes with are often encountered in real life spectra. Fitting in ssNake ranges from trivial `full width at half maximum' (FWHM) fitting, to the complex quadrupolar Czjzek distribution. The following section will explain the way ssNake handles the different types of spectra it can fit, and which equations are used to simulate the different spectra.
 
 \subsection{Fitting basics}
 Roughly speaking, ssNake uses two types of fitting procedures: those with a mathematical solution, and those who have to be approximated iteratively. An example of the former type is the fitting of the width of a peak at halve height (FWHM). This involves nothing more than finding the left and right side of the peak (at halve height) and to calculate the width of this interval. This can be done in one easy mathematical procedure, and involves no iterative loop. The second type of fitting procedure is used for the powder lineshapes (e.g. quadrupolar and chemical shift lineshapes). With these problems, there is no direct mathematical solution. We are searching a parameter space for the solution that best fits the experimental spectrum. This is done by trying different settings, and qualifying hoe well these fit. Based on these attempts, a new setting is tested. This is continued until an optimum has been found. There are several ways to do such an iterative fitting: ssNake uses the Nelder-Mead algorithm \cite{nelder1965simplex} (also known as ``Simplex'').
 
 
 
-
+\subsection{FWHM}
+FWHM, or Full Width at Half Maximum, is a tool to calcualted the width of a peak. Selecting the tool in the menu creates a window. In this, the boundaries of the peak of interest have to be set where ssNake will search for the width of the peak. Make sure that there is only one peak in the slected window, otherwise the result might be inaccurate. The easiest way to select the regions is by left clicking in the spectrum. After valid input is given, ssNake directly calculates the FWHM in the units of the current axis.
 
 
 
@@ -531,6 +532,7 @@ A &= -\dfrac{27}{8}\cos(\theta)^4+\dfrac{15}{4}\cos(\theta)^2-\dfrac{3}{8} \\
 B &= \left(-\dfrac{9}{4}\cos(\theta)^4+2\cos(\theta)^2+\dfrac{1}{4}\right)\cos(2\phi) \\
 C &=-\dfrac{1}{2}\cos(\theta)^2+\dfrac{1}{3}+\left(-\dfrac{3}{8}\cos(\theta)^4+\dfrac{3}{4}\cos(\theta)^2-\dfrac{3}{8}\right)\cos(2\phi)^2
 \end{align}
+For a given cheng number (i.e. number of powder orientations), the $A$, $B$ and $C$ parameters are contant, and only have to be calculated once for the fitting procedure.
 
 
 %A = -27/8.0*np.cos(theta)**4+15/4.0*np.cos(theta)**2-3/8.0
