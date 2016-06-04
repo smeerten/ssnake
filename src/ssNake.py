@@ -109,6 +109,7 @@ class MainProgram(QtGui.QMainWindow):
         self.defaultWidth = 0
         self.defaultHeight = 0
         self.defaultMaximized = False
+        self.defaultAskName = True
         self.defaultLinewidth = 1.0
         self.defaultColor = '#0000FF'
         self.defaultGrids = [False, False]
@@ -146,6 +147,7 @@ class MainProgram(QtGui.QMainWindow):
             self.defaultHeight = settings.value("height", self.defaultHeight, int)
         except TypeError:
             self.dispMsg("Incorrect value in the config file for the height")
+        self.defaultAskName = settings.value("ask_name", self.defaultAskName, bool)
         try:
             self.defaultWidthRatio = settings.value("contour/width_ratio", self.defaultWidthRatio, float)
         except TypeError:
@@ -167,6 +169,7 @@ class MainProgram(QtGui.QMainWindow):
         settings.setValue("maximized", self.defaultMaximized)
         settings.setValue("width", self.defaultWidth)
         settings.setValue("height", self.defaultHeight)
+        settings.setValue("ask_name", self.defaultAskName)
         settings.setValue("contour/colormap", self.defaultColorMap)
         settings.setValue("contour/constantcolors", self.defaultContourConst)
         settings.setValue("contour/poscolor", self.defaultPosColor)
@@ -986,9 +989,16 @@ class MainProgram(QtGui.QMainWindow):
         self.changeMainWindow(name)
 
     def loading(self, num, filePath):
-        name = self.askName(filePath, os.path.splitext(os.path.basename(filePath))[0])
-        if name is None:
-            return
+        name = os.path.splitext(os.path.basename(filePath))[0]
+        if self.defaultAskName:
+            name = self.askName(filePath, name)
+            if name is None:
+                return
+        else:
+            count = 0
+            while name in self.workspaceNames:
+                name = 'spectrum' + str(count)
+                count += 1
         if num == 0:
             masterData = self.LoadVarianFile(filePath, name)
         elif num == 1:
@@ -5931,6 +5941,9 @@ class PreferenceWindow(QtGui.QWidget):
         self.maximizedCheck = QtGui.QCheckBox("Open maximized")
         self.maximizedCheck.setChecked(self.father.defaultMaximized)
         grid1.addWidget(self.maximizedCheck, 3, 0, 1, 2)
+        self.askNameCheck = QtGui.QCheckBox("Ask workspace name when loading")
+        self.askNameCheck.setChecked(self.father.defaultAskName)
+        grid1.addWidget(self.askNameCheck, 4, 0, 1, 2)
 
         grid2.addWidget(QtGui.QLabel("Linewidth:"), 1, 0)
         self.lwSpinBox = QtGui.QDoubleSpinBox()
@@ -6008,6 +6021,7 @@ class PreferenceWindow(QtGui.QWidget):
         self.father.defaultWidth = self.widthSpinBox.value()
         self.father.defaultHeight = self.heightSpinBox.value()
         self.father.defaultMaximized = self.maximizedCheck.isChecked()
+        self.father.defaultAskName = self.askNameCheck.isChecked()
         self.father.defaultLinewidth = self.lwSpinBox.value()
         self.father.defaultColor = self.color
         self.father.defaultGrids[0] = self.xgridCheck.isChecked()
