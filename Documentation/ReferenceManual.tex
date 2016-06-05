@@ -55,10 +55,9 @@
 \let\ps@plain\ps@empty
 \makeatother
 %----------------------
-\usepackage{titlesec, blindtext, color}
+\usepackage{blindtext, color}
 \definecolor{gray75}{gray}{0.75}
 \newcommand{\hsp}{\hspace{20pt}}
-\titleformat{\chapter}[hang]{\Huge\bfseries}{\thechapter\hsp\textcolor{gray75}{|}\hsp}{0pt}{\Huge\bfseries}
 
 
 
@@ -67,9 +66,9 @@
 \interfootnotelinepenalty=10000 %prevents splitting of footnote over multiple pages
 \linespread{1.2}
 
-\usepgfplotslibrary{external}%creates all external tikz images that are included.
-\tikzexternalize[shell escape=-enable-write18]%activate externalization
-\tikzsetexternalprefix{GeneratedFigures/}
+%\usepgfplotslibrary{external}%creates all external tikz images that are included.
+%\tikzexternalize[shell escape=-enable-write18]%activate externalization
+%\tikzsetexternalprefix{GeneratedFigures/}
 %\tikzset{external/force remake} %Enable forced remake
 
 
@@ -510,12 +509,22 @@ In NMR spectroscopy, the shape of the resonance lines can provide information on
 \subsection{Fitting basics}
 Roughly speaking, ssNake uses two types of fitting procedures: those with a mathematical solution, and those who have to be approximated iteratively. An example of the former type is the fitting of the width of a peak at halve height (FWHM). This involves nothing more than finding the left and right side of the peak (at halve height) and to calculate the width of this interval. This can be done in one easy mathematical procedure, and involves no iterative loop. The second type of fitting procedure is used for the powder lineshapes (e.g. quadrupolar and chemical shift lineshapes). With these problems, there is no direct mathematical solution. We are searching a parameter space for the solution that best fits the experimental spectrum. This is done by trying different settings, and qualifying hoe well these fit. Based on these attempts, a new setting is tested. This is continued until an optimum has been found. There are several ways to do such an iterative fitting: ssNake uses the Nelder-Mead algorithm \cite{nelder1965simplex} (also known as ``Simplex'').
 
-
+\subsection{S/N}
+S/N (or SNR) calculates the signal-to-noise ratio between a defined section of noise, and a peak. SNR is a useful way to describe the quality of a spectrum, with too low values being a sign for inaccurate data. In ssNake, opening the S/N tool creates a window, in which the limits of the section of noise has to be set, as well as the region with the peak of interest. Left clicking in the plot can set these values (noise limits first, then signal limits). Note that it is essential that the region that is specified as `noise' really is noise. Any remaining signal will disrupt the SNR calculation. When the limits are set, ssNake directly calculates the SNR, using:
+\begin{equation}
+\text{SNR} = a_\text{max} / \text{std(NoiseRange)}
+\end{equation}
+with $a_\text{max}$ the maximum value within the range with the signal, and $\text{std(NoiseRange)}$ the standard deviation of the noise.
 
 \subsection{FWHM}
-FWHM, or Full Width at Half Maximum, is a tool to calcualted the width of a peak. Selecting the tool in the menu creates a window. In this, the boundaries of the peak of interest have to be set where ssNake will search for the width of the peak. Make sure that there is only one peak in the slected window, otherwise the result might be inaccurate. The easiest way to select the regions is by left clicking in the spectrum. After valid input is given, ssNake directly calculates the FWHM in the units of the current axis.
+FWHM, or Full Width at Half Maximum, is a tool to calculated the width of a peak. Selecting the tool in the menu creates a window, in which the boundaries of the peak of interest have to be set, for ssNake to search for the width of the peak. Make sure that there is only one peak in the selected window, otherwise the result might be inaccurate. The easiest way to select the regions is by left clicking in the spectrum. After valid input is given, ssNake directly calculates the FWHM in the units of the current axis. The order of input of the two limits is not important for the eventual calculation.
 
-
+\subsection{Centre of Mass}
+Calculates the centre of mass of a selected part of a spectrum or FID. For a symmetric peak, this is equal to the centre of the peak. However, for an asymmetric peak, identifying the centre is not possible via visual methods and a centre of mass calculation is required. Opening the tool creates an input window, in which the limits have to be set (as with the FWHM tool). After these are set, the centre of mass is calculated in units of the current axis, using:
+\begin{equation}
+R = \frac{1}{M} \sum_i y_i \cdot x_i  \quad,
+\end{equation}
+with $M = \sum y_i$ and $y_i$ the y-value corresponding to x-value $x_i$.
 
 \subsection{Second order quadrupole static}
 This fitting routine can be used to fit a static powder lineshape that is caused by the second order quadrupolar effect. A simplex method is used to find the (local) optimal solution. It is therefore necessary to make sure the initial parameters are somewhat close to the final fit, especially for fits with multiple sites.
