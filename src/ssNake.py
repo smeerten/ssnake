@@ -2830,7 +2830,7 @@ class PhaseWindow(QtGui.QWidget):
         self.firstVal = 0.0
         self.refVal = 0.0
         self.available = True
-        self.setWindowTiptle("Phasing")
+        self.setWindowTitle("Phasing")
         layout = QtGui.QGridLayout(self)
         grid = QtGui.QGridLayout()
         layout.addLayout(grid, 0, 0, 1, 2)
