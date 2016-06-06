@@ -1818,7 +1818,7 @@ class Main1DWindow(QtGui.QWidget):
             return
         self.father.LastLocation = os.path.dirname(name)  # Save used path
         struct = {}
-        struct['dim'] = self.masterData.dim
+        struct['dim'] = self.masterData.data.ndim
         struct['data'] = self.masterData.data
         struct['freq'] = self.masterData.freq
         struct['sw'] = self.masterData.sw
@@ -1831,7 +1831,7 @@ class Main1DWindow(QtGui.QWidget):
         scipy.io.savemat(name, matlabStruct)
 
     def SaveSimpsonFile(self):
-        if self.masterData.dim > 2:
+        if self.masterData.data.ndim > 2:
             self.father.dispMsg('Saving to Simpson format only allowed for 1D and 2D data!')
             return
         WorkspaceName = self.father.workspaceNames[self.father.workspaceNum]  # Set name of file to be saved to workspace name to start
@@ -1849,7 +1849,7 @@ class Main1DWindow(QtGui.QWidget):
         self.father.LastLocation = os.path.dirname(name)  # Save used path
         with open(name, 'w') as f:
             f.write('SIMP\n')
-            if self.masterData.dim is 2:
+            if self.masterData.data.ndim is 2:
                 f.write('NP=' + str(self.masterData.data.shape[1]) + '\n')
                 f.write('NI=' + str(self.masterData.data.shape[0]) + '\n')
                 f.write('SW=' + str(self.masterData.sw[1]) + '\n')
@@ -1862,10 +1862,10 @@ class Main1DWindow(QtGui.QWidget):
             else:
                 f.write('TYPE=FID' + '\n')
             f.write('DATA' + '\n')
-            if self.masterData.dim is 1:
+            if self.masterData.data.ndim is 1:
                 for Line in self.masterData.data:
                     f.write(str(Line.real) + ' ' + str(Line.imag) + '\n')
-            if self.masterData.dim is 2:
+            if self.masterData.data.ndim is 2:
                 Points = self.masterData.data.shape
                 for iii in range(0, Points[0]):
                     for jjj in range(0, Points[1]):
@@ -1873,7 +1873,7 @@ class Main1DWindow(QtGui.QWidget):
             f.write('END')
 
     def saveASCIIFile(self):
-        if self.masterData.dim > 2:
+        if self.masterData.data.ndim > 2:
             self.father.dispMsg('Saving to ASCII format only allowed for 1D and 2D data!')
             return
         WorkspaceName = self.father.workspaceNames[self.father.workspaceNum]  # Set name of file to be saved to workspace name to start
@@ -1883,7 +1883,7 @@ class Main1DWindow(QtGui.QWidget):
 
         self.father.LastLocation = os.path.dirname(name)  # Save used path
         axis = np.array([self.masterData.xaxArray[-1]]).transpose()
-        if self.masterData.dim == 1:  # create nx1 matrix if it is a 1d data set
+        if self.masterData.data.ndim == 1:  # create nx1 matrix if it is a 1d data set
             data = np.array([self.masterData.data]).transpose()
         else:
             data = self.masterData.data.transpose()
@@ -3099,7 +3099,7 @@ class ApodWindow(QtGui.QWidget):
         self.shiftEntry.returnPressed.connect(self.apodPreview)
         grid.addWidget(self.shiftEntry, 11, 1)
 
-        if self.father.current.data.dim > 1:
+        if self.father.current.data.data.ndim > 1:
             grid.addWidget(wc.QLabel("Shifting:"), 12, 0, 1, 3)
             self.shiftingEntry = QtGui.QLineEdit()
             self.shiftingEntry.setAlignment(QtCore.Qt.AlignHCenter)
@@ -3107,7 +3107,7 @@ class ApodWindow(QtGui.QWidget):
             self.shiftingEntry.returnPressed.connect(self.apodPreview)
             grid.addWidget(self.shiftingEntry, 13, 1)
             self.shiftingAxes = QtGui.QComboBox()
-            self.shiftingValues = list(map(str, np.delete(range(1, self.father.current.data.dim + 1), self.father.current.axes)))
+            self.shiftingValues = list(map(str, np.delete(range(1, self.father.current.data.data.ndim + 1), self.father.current.axes)))
             self.shiftingAxes.addItems(self.shiftingValues)
             self.shiftingAxes.currentIndexChanged.connect(self.apodPreview)
             grid.addWidget(self.shiftingAxes, 14, 1)
@@ -3180,7 +3180,7 @@ class ApodWindow(QtGui.QWidget):
         if shift is None:
             self.father.father.dispMsg('Shift value is not valid!')
         self.shiftEntry.setText('%.4g' % shift)
-        if self.father.current.data.dim > 1:
+        if self.father.current.data.data.ndim > 1:
             shifting = safeEval(self.shiftingEntry.text())
             if shifting is None:
                 self.father.father.dispMsg('Shifting value is not valid!')
@@ -3237,7 +3237,7 @@ class ApodWindow(QtGui.QWidget):
         if shift is None:
             self.father.father.dispMsg('Shift value is not valid!')
             return
-        if self.father.current.data.dim > 1:
+        if self.father.current.data.data.ndim > 1:
             shifting = safeEval(self.shiftingEntry.text())
             if shifting is None:
                 self.father.father.dispMsg('Shifting value is not valid!')
@@ -4520,7 +4520,7 @@ class ConcatenateWindow(QtGui.QWidget):
         layout.addLayout(grid, 0, 0, 1, 2)
         grid.addWidget(wc.QLabel("Concatenation axes:"), 0, 0)
         self.axesEntry = QtGui.QComboBox()
-        self.axesEntry.addItems(np.array(np.arange(self.father.current.data.dim - 1) + 1, dtype=str))
+        self.axesEntry.addItems(np.array(np.arange(self.father.current.data.data.ndim - 1) + 1, dtype=str))
         grid.addWidget(self.axesEntry, 1, 0)
         cancelButton = QtGui.QPushButton("&Cancel")
         cancelButton.clicked.connect(self.closeEvent)
@@ -5366,7 +5366,7 @@ class ShearingWindow(QtGui.QWidget):
         layout = QtGui.QGridLayout(self)
         grid = QtGui.QGridLayout()
         layout.addLayout(grid, 0, 0, 1, 2)
-        options = list(map(str, range(1, self.father.masterData.dim + 1)))
+        options = list(map(str, range(1, self.father.masterData.data.ndim + 1)))
         grid.addWidget(wc.QLabel("Shearing constant:"), 0, 0)
         self.shearEntry = QtGui.QLineEdit()
         self.shearEntry.setAlignment(QtCore.Qt.AlignHCenter)
@@ -5376,12 +5376,12 @@ class ShearingWindow(QtGui.QWidget):
         grid.addWidget(wc.QLabel("Shearing direction:"), 2, 0)
         self.dirEntry = QtGui.QComboBox()
         self.dirEntry.addItems(options)
-        self.dirEntry.setCurrentIndex(self.father.masterData.dim - 2)
+        self.dirEntry.setCurrentIndex(self.father.masterData.data.ndim - 2)
         grid.addWidget(self.dirEntry, 3, 0)
         grid.addWidget(wc.QLabel("Shearing axis:"), 4, 0)
         self.axEntry = QtGui.QComboBox()
         self.axEntry.addItems(options)
-        self.axEntry.setCurrentIndex(self.father.masterData.dim - 1)
+        self.axEntry.setCurrentIndex(self.father.masterData.data.ndim - 1)
         grid.addWidget(self.axEntry, 5, 0)
         cancelButton = QtGui.QPushButton("&Cancel")
         cancelButton.clicked.connect(self.closeEvent)
