@@ -903,7 +903,8 @@ class MainProgram(QtGui.QMainWindow):
                     temp_dir = tempfile.mkdtemp()
                     zipfile.ZipFile(filePath).extractall(temp_dir)
                     for i in os.listdir(temp_dir):
-                        if self.autoLoad(os.path.join(temp_dir, i)):
+                        self.autoLoad(os.path.join(temp_dir, i))
+                        if masterData:
                             break
                 finally:
                     shutil.rmtree(temp_dir)
@@ -955,22 +956,13 @@ class MainProgram(QtGui.QMainWindow):
                 self.loading(3, filePath)
                 return returnVal
 
-    def dataFromFit(self, data, freq, sw, spec, wholeEcho, ref, xaxArray, axes):
+    def dataFromFit(self, data, filePath, freq, sw, spec, wholeEcho, ref, xaxArray, axes):
         name = self.askName()
         if name is None:
             return
-        reloadFunc = lambda self: self.dataFromFit(data,
-                                                   freq,
-                                                   sw,
-                                                   spec,
-                                                   wholeEcho,
-                                                   ref,
-                                                   xaxArray,
-                                                   msgHandler=lambda msg: self.dispMsg(msg),
-                                                   history=['Data obtained from fit'])
         masterData = sc.Spectrum(name,
                                  data,
-                                 reloadFunc,
+                                 filePath,
                                  freq,
                                  sw,
                                  spec,
@@ -985,17 +977,20 @@ class MainProgram(QtGui.QMainWindow):
         self.workspaceNames.append(name)
         self.changeMainWindow(name)
 
-    def loading(self, num, filePath):
-        name = os.path.splitext(os.path.basename(filePath))[0]
-        if self.defaultAskName:
-            name = self.askName(filePath, name)
-            if name is None:
-                return
+    def loading(self, num, filePath, returnBool=False):
+        if returnBool:
+            name = None
         else:
-            count = 0
-            while name in self.workspaceNames:
-                name = 'spectrum' + str(count)
-                count += 1
+            name = os.path.splitext(os.path.basename(filePath))[0]
+            if self.defaultAskName:
+                name = self.askName(filePath, name)
+                if name is None:
+                    return
+            else:
+                count = 0
+                while name in self.workspaceNames:
+                    name = 'spectrum' + str(count)
+                    count += 1
         if num == 0:
             masterData = self.LoadVarianFile(filePath, name)
         elif num == 1:
@@ -1014,11 +1009,14 @@ class MainProgram(QtGui.QMainWindow):
             masterData = self.LoadBrukerSpectrum(filePath, name)
         elif num == 8:
             masterData = self.LoadPipe(filePath, name)
-        if masterData is not None:
-            self.workspaces.append(Main1DWindow(self, masterData))
-            self.tabs.addTab(self.workspaces[-1], name)
-            self.workspaceNames.append(name)
-            self.changeMainWindow(name)
+        if returnBool:
+            return masterData
+        else:
+            if masterData is not None:
+                self.workspaces.append(Main1DWindow(self, masterData))
+                self.tabs.addTab(self.workspaces[-1], name)
+                self.workspaceNames.append(name)
+                self.changeMainWindow(name)
 
     def LoadVarianFile(self, filePath, name=''):
         from struct import unpack
@@ -1097,9 +1095,9 @@ class MainProgram(QtGui.QMainWindow):
             fid = fid[0][:]
             if spec:  # flip if spectrum
                 fid = np.flipud(fid)
-            masterData = sc.Spectrum(name, fid, lambda self: self.LoadVarianFile(filePath), [freq], [sw], [bool(int(spec))], msgHandler=lambda msg: self.dispMsg(msg))
+            masterData = sc.Spectrum(name, fid, (0, filePath), [freq], [sw], [bool(int(spec))], msgHandler=lambda msg: self.dispMsg(msg))
         else:
-            masterData = sc.Spectrum(name, fid, lambda self: self.LoadVarianFile(filePath), [freq1, freq], [sw1, sw], [bool(int(spec))] * 2, msgHandler=lambda msg: self.dispMsg(msg))
+            masterData = sc.Spectrum(name, fid, (0, filePath), [freq1, freq], [sw1, sw], [bool(int(spec))] * 2, msgHandler=lambda msg: self.dispMsg(msg))
         masterData.addHistory("Varian data loaded from " + filePath)
         return masterData
 
@@ -1122,7 +1120,7 @@ class MainProgram(QtGui.QMainWindow):
         if spec == 1:
             data = np.flipud(data)
 
-        masterData = sc.Spectrum(name, data, lambda self: self.LoadPipe(filePath), [freq], [sw], [spec], ref=[ref], msgHandler=lambda msg: self.dispMsg(msg))
+        masterData = sc.Spectrum(name, data, (8, filePath), [freq], [sw], [spec], ref=[ref], msgHandler=lambda msg: self.dispMsg(msg))
         masterData.addHistory("NMR pipe data loaded from " + filePath)
         return masterData
 
@@ -1141,7 +1139,7 @@ class MainProgram(QtGui.QMainWindow):
             xaxA.append(np.array(i))
         masterData = sc.Spectrum(name,
                                  data,
-                                 lambda self: self.loadJSONFile(filePath),
+                                 (5, filePath),
                                  list(struct['freq']),
                                  list(struct['sw']),
                                  list(struct['spec']),
@@ -1181,7 +1179,7 @@ class MainProgram(QtGui.QMainWindow):
                 history = None
             masterData = sc.Spectrum(name,
                                      data,
-                                     lambda self: self.loadMatlabFile(filePath),
+                                     (6, filePath),
                                      list(mat['freq'][0, 0][0]),
                                      list(mat['sw'][0, 0][0]),
                                      list(mat['spec'][0, 0][0]),
@@ -1221,7 +1219,7 @@ class MainProgram(QtGui.QMainWindow):
                 history = None
             masterData = sc.Spectrum(name,
                                      data,
-                                     lambda self: self.loadMatlabFile(filePath),
+                                     (6, filePath),
                                      list(np.array(mat['freq'])[:, 0]),
                                      list(np.array(mat['sw'])[:, 0]),
                                      list(np.array(mat['spec'])[:, 0]),
@@ -1271,10 +1269,10 @@ class MainProgram(QtGui.QMainWindow):
         ComplexData = np.array(RawInt[0:len(RawInt):2]) + 1j * np.array(RawInt[1:len(RawInt):2])
         spec = [False]
         if sizeTD1 is 1:
-            masterData = sc.Spectrum(name, ComplexData, lambda self: self.LoadBrukerTopspin(filePath), [freq2], [SW2], spec, msgHandler=lambda msg: self.dispMsg(msg))
+            masterData = sc.Spectrum(name, ComplexData, (1, filePath), [freq2], [SW2], spec, msgHandler=lambda msg: self.dispMsg(msg))
         else:
             data = ComplexData.reshape(sizeTD1, sizeTD2 / 2)
-            masterData = sc.Spectrum(name, data, lambda self: self.LoadBrukerTopspin(filePath), [freq1, freq2], [SW1, SW2], spec * 2, msgHandler=lambda msg: self.dispMsg(msg))
+            masterData = sc.Spectrum(name, data, (1, filePath), [freq1, freq2], [SW1, SW2], spec * 2, msgHandler=lambda msg: self.dispMsg(msg))
         masterData.addHistory("Bruker data loaded from " + filePath)
         return masterData
 
@@ -1343,10 +1341,10 @@ class MainProgram(QtGui.QMainWindow):
         Data = np.flipud(RawReal) - 1j * np.flipud(RawImag)
         spec = [True]
         if sizeTD1 is 1:
-            masterData = sc.Spectrum(name, Data, lambda self: self.LoadBrukerSpectrum(filePath), [freq2], [SW2], spec, msgHandler=lambda msg: self.dispMsg(msg))
+            masterData = sc.Spectrum(name, Data, (7, filePath), [freq2], [SW2], spec, msgHandler=lambda msg: self.dispMsg(msg))
         else:
             Data = Data.reshape(sizeTD1, sizeTD2)
-            masterData = sc.Spectrum(name, Data, lambda self: self.LoadBrukerSpectrum(filePath), [freq1, freq2], [SW1, SW2], spec * 2, msgHandler=lambda msg: self.dispMsg(msg))
+            masterData = sc.Spectrum(name, Data, (7, filePath), [freq1, freq2], [SW1, SW2], spec * 2, msgHandler=lambda msg: self.dispMsg(msg))
         masterData.addHistory("Bruker spectrum data loaded from " + filePath)
         return masterData
 
@@ -1382,10 +1380,10 @@ class MainProgram(QtGui.QMainWindow):
         spec = [False]
         if sizeTD1 is 1:
             data = data[0][:]
-            masterData = sc.Spectrum(name, data, lambda self: self.LoadChemFile(filePath), [freq * 1e6], [sw], spec, msgHandler=lambda msg: self.dispMsg(msg))
+            masterData = sc.Spectrum(name, data, (2, filePath), [freq * 1e6], [sw], spec, msgHandler=lambda msg: self.dispMsg(msg))
         else:
             data = data.reshape((sizeTD1, sizeTD2))
-            masterData = sc.Spectrum(name, data, lambda self: self.LoadChemFile(filePath), [freq * 1e6] * 2, [sw1, sw], spec * 2, msgHandler=lambda msg: self.dispMsg(msg))
+            masterData = sc.Spectrum(name, data, (2, filePath), [freq * 1e6] * 2, [sw1, sw], spec * 2, msgHandler=lambda msg: self.dispMsg(msg))
         masterData.addHistory("Chemagnetics data loaded from " + filePath)
         return masterData
 
@@ -1411,14 +1409,14 @@ class MainProgram(QtGui.QMainWindow):
             Data = raw[-2 * sizeTD2 * sizeTD1::]
             ComplexData = Data[0:Data.shape[0]:2] - 1j * Data[1:Data.shape[0]:2]
             ComplexData = ComplexData.reshape((sizeTD1, sizeTD2))
-            masterData = sc.Spectrum(name, ComplexData, lambda self: self.LoadMagritek(filePath), [freq * 1e6] * 2, [sw, sw1], [False] * 2, msgHandler=lambda msg: self.dispMsg(msg))
+            masterData = sc.Spectrum(name, ComplexData, (3, filePath), [freq * 1e6] * 2, [sw, sw1], [False] * 2, msgHandler=lambda msg: self.dispMsg(msg))
         elif len(Files1D) != 0:
             File = 'data.1d'
             with open(Dir + os.path.sep + File, 'rb') as f:
                 raw = np.fromfile(f, np.float32)
             Data = raw[-2 * sizeTD2::]
             ComplexData = Data[0:Data.shape[0]:2] - 1j * Data[1:Data.shape[0]:2]
-            masterData = sc.Spectrum(name, ComplexData, lambda self: self.LoadMagritek(filePath), [freq * 1e6], [sw], [False], msgHandler=lambda msg: self.dispMsg(msg))
+            masterData = sc.Spectrum(name, ComplexData, (3, filePath), [freq * 1e6], [sw], [False], msgHandler=lambda msg: self.dispMsg(msg))
         masterData.addHistory("Magritek data loaded from " + filePath)
         return masterData
 
@@ -1489,9 +1487,9 @@ class MainProgram(QtGui.QMainWindow):
         elif 'SPE' in TYPE:
             spec = [True]
         if NI is 1:
-            masterData = sc.Spectrum(name, data, lambda self: self.LoadSimpsonFile(filePath), [0], [SW], spec, msgHandler=lambda msg: self.dispMsg(msg))
+            masterData = sc.Spectrum(name, data, (4, filePath), [0], [SW], spec, msgHandler=lambda msg: self.dispMsg(msg))
         else:
-            masterData = sc.Spectrum(name, data, lambda self: self.LoadSimpsonFile(filePath), [0, 0], [SW1, SW], spec * 2, msgHandler=lambda msg: self.dispMsg(msg))
+            masterData = sc.Spectrum(name, data, (4, filePath), [0, 0], [SW1, SW], spec * 2, msgHandler=lambda msg: self.dispMsg(msg))
         masterData.addHistory("SIMPSON data loaded from " + filePath)
         return masterData
 
@@ -1683,7 +1681,8 @@ class Main1DWindow(QtGui.QWidget):
         self.redoList = []
         for iter1 in macro:
             if iter1[0] == 'reload':
-                self.undoList.append(self.masterData.reload(self))
+                loadData = self.father.loading(self.masterData.filePath[0], self.masterData.filePath[1], True) 
+                self.undoList.append(self.masterData.restoreData(loadData, None))
             elif iter1[0] == 'real':
                 self.undoList.append(self.masterData.real())
             elif iter1[0] == 'imag':
@@ -1898,7 +1897,8 @@ class Main1DWindow(QtGui.QWidget):
 
     def reloadLast(self):
         self.redoList = []
-        self.undoList.append(self.masterData.reload(self.father))
+        loadData = self.father.loading(self.masterData.filePath[0], self.masterData.filePath[1], True) 
+        self.undoList.append(self.masterData.restoreData(loadData, None))
         self.current.upd()
         self.current.plotReset()
         self.current.showFid()

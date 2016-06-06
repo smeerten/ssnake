@@ -66,6 +66,7 @@ class FittingWindow(QtGui.QWidget):
         masterData = self.get_masterData()
         if store:
             self.mainProgram.dataFromFit(data,
+                                         masterData.filePath,
                                          [masterData.freq[axes], masterData.freq[axes]],
                                          [masterData.sw[axes], masterData.sw[axes]],
                                          [False, masterData.spec[axes]],
@@ -75,6 +76,7 @@ class FittingWindow(QtGui.QWidget):
                                          axes)
         else:
             self.mainProgram.dataFromFit(data,
+                                         copy.deepcopy(masterData.filePath),
                                          copy.deepcopy(masterData.freq),
                                          copy.deepcopy(masterData.sw),
                                          copy.deepcopy(masterData.spec),

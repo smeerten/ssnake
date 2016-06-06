@@ -38,10 +38,10 @@ COLORMAPLIST = ['seismic', 'BrBG', 'bwr', 'coolwarm', 'PiYG', 'PRGn', 'PuOr',
 
 class Spectrum:
 
-    def __init__(self, name, data, loadFunc, freq, sw, spec=None, wholeEcho=None, ref=None, xaxArray=None, history=None, msgHandler=None):
+    def __init__(self, name, data, filePath, freq, sw, spec=None, wholeEcho=None, ref=None, xaxArray=None, history=None, msgHandler=None):
         self.name = name
         self.data = np.array(data, dtype=complex)  # data of dimension dim
-        self.loadFunc = loadFunc
+        self.filePath = filePath
         self.freq = np.array(freq)  # array of center frequency (length is dim, MHz)
         self.sw = sw  # array of sweepwidths
         if spec is None:
@@ -94,12 +94,6 @@ class Spectrum:
             self.dispMsg('Not a valid axes')
             return None
         return axes
-
-    def reload(self, mainProgram):
-        copyData = copy.deepcopy(self)
-        returnValue = lambda self: self.restoreData(copyData, lambda self: self.reload(mainProgram))
-        self.restoreData(self.loadFunc(mainProgram), None)
-        return returnValue
 
     def resetXax(self, axes=None):
         if axes is not None:
@@ -502,7 +496,7 @@ class Spectrum:
                 tmpdata = np.array([tmpdata[0]])
                 newSpec = Spectrum(self.name,
                                    tmpdata,
-                                   self.loadFunc,
+                                   self.filePath,
                                    copy.deepcopy(self.freq),
                                    copy.deepcopy(self.sw),
                                    copy.deepcopy(self.spec),
@@ -517,7 +511,7 @@ class Spectrum:
                 del tmpXax[axes]
                 newSpec = Spectrum(self.name,
                                    tmpdata[0],
-                                   self.loadFunc,
+                                   self.filePath,
                                    copy.deepcopy(np.delete(self.freq, axes)),
                                    copy.deepcopy(np.delete(self.sw, axes)),
                                    copy.deepcopy(np.delete(self.spec, axes)),
@@ -530,7 +524,7 @@ class Spectrum:
             tmpdata = np.concatenate(tmpdata, axis=axes)
             newSpec = Spectrum(self.name,
                                tmpdata,
-                               self.loadFunc,
+                               self.filePath,
                                copy.deepcopy(self.freq),
                                copy.deepcopy(self.sw),
                                copy.deepcopy(self.spec),
@@ -599,7 +593,7 @@ class Spectrum:
             tmpfreq[axes] = tmpfreq[axes] - newFxax + oldFxax
         newSpec = Spectrum(self.name,
                            tmpdata,
-                           self.loadFunc,
+                           self.filePath,
                            tmpfreq,
                            tmpsw,
                            copy.deepcopy(self.spec),
@@ -1207,7 +1201,7 @@ class Spectrum:
             returnValue = lambda self: self.restoreData(copyData2, None)
         self.data = copyData.data
         self.freq = copyData.freq  # array of center frequency (length is dim, MHz)
-        self.loadFunc = copyData.loadFunc
+        self.filePath = copyData.filePath
         self.sw = copyData.sw  # array of sweepwidths
         self.spec = copyData.spec
         self.wholeEcho = copyData.wholeEcho
