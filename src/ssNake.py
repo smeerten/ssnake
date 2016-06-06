@@ -94,10 +94,7 @@ class MainProgram(QtGui.QMainWindow):
         QtGui.QShortcut(QtGui.QKeySequence.Copy, self).activated.connect(self.handleCopy)
 
     def handlePaste(self):
-        clipboard_text = QtGui.QApplication.instance().clipboard().text()
-        for name in clipboard_text.splitlines():
-            if self.autoLoad(name) is not None:
-                self.LastLocation = os.path.dirname(name)
+        self.dropEvent(QtGui.QApplication.instance().clipboard())
 
     def handleCopy(self):
         if self.mainWindow is None:
