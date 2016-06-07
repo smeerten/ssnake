@@ -231,7 +231,8 @@ class MainProgram(QtGui.QMainWindow):
         self.redoAction = self.editmenu.addAction(QtGui.QIcon(IconDirectory + 'redo.png'), "&Redo", self.redo, QtGui.QKeySequence.Redo)
         self.redoAction.setShortcutContext(QtCore.Qt.WidgetShortcut)
         self.editmenu.addAction(QtGui.QIcon(IconDirectory + 'reload.png'), "Re&load", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.reloadLast()), QtGui.QKeySequence.Refresh)
-
+        self.editmenu.addAction("&Monitor", lambda: self.mainWindowCheck(lambda mainWindow: MonitorWindow(mainWindow)))
+        
         # the tool drop down menu
         self.toolMenu = QtGui.QMenu("&Tools", self)
         self.menubar.addMenu(self.toolMenu)
@@ -1595,6 +1596,8 @@ class Main1DWindow(QtGui.QWidget):
         self.redoList = []
         self.currentMacro = None
         self.redoMacro = []
+        self.monitor = None # Monitor of files
+        self.monitorMacros = []
         self.father = father
         self.mainProgram = self.father  # remove all references to mainprogram to father
         self.masterData = masterData
@@ -1680,7 +1683,7 @@ class Main1DWindow(QtGui.QWidget):
     def menuCheck(self):
         self.father.menuCheck()
 
-    def runMacro(self, macro):
+    def runMacro(self, macro, display=True):
         self.redoList = []
         for iter1 in macro:
             if iter1[0] == 'reload':
@@ -1778,11 +1781,12 @@ class Main1DWindow(QtGui.QWidget):
                 self.undoList.append(self.masterData.hilbert(*iter1[1]))
             else:
                 self.father.dispMsg('unknown macro command: ' + iter1[0])
-        self.current.upd()  # get the first slice of data
-        self.current.plotReset()  # reset the axes limits
-        self.current.showFid()  # plot the data
-        self.updAllFrames()
-        self.menuCheck()
+        if display:
+            self.current.upd()  # get the first slice of data
+            self.current.plotReset()  # reset the axes limits
+            self.current.showFid()  # plot the data
+            self.updAllFrames()
+            self.menuCheck()
 
     def addMacro(self, macroStep):
         if self.currentMacro is not None:
@@ -1909,6 +1913,30 @@ class Main1DWindow(QtGui.QWidget):
         self.addMacro(['reload'])
         self.menuCheck()
 
+    def monitorLoad(self, *args):
+        self.redoList = []
+        self.undoList = []
+        loadData = self.father.loading(self.masterData.filePath[0], self.masterData.filePath[1], True)
+        self.masterData.restoreData(loadData, None)
+        for name in self.monitorMacros:
+            self.runMacro(self.father.macros[name], display=False)
+        self.current.upd() 
+        #self.current.plotReset()  
+        self.current.showFid()  
+        self.updAllFrames()
+        self.menuCheck()
+
+    def startMonitor(self, macroNames):
+        self.monitorMacros = macroNames
+        self.monitor = QtCore.QFileSystemWatcher([self.masterData.filePath[1]], self)
+        self.monitor.fileChanged.connect(self.monitorLoad)
+
+    def stopMonitor(self):
+        self.monitorMacros = []
+        if self.monitor is not None:
+            self.monitor.removePath(self.masterData.filePath[1])
+        self.monitor = None
+        
     def real(self):
         self.redoList = []
         self.undoList.append(self.masterData.real())
@@ -5765,6 +5793,66 @@ class CombineWorkspaceWindow(QtGui.QWidget):
         self.father.menuEnable()
         self.deleteLater()
 
+##########################################################################################
+
+
+class MonitorWindow(QtGui.QWidget):
+
+    def __init__(self, parent):
+        QtGui.QWidget.__init__(self, parent)
+        self.setWindowFlags(QtCore.Qt.Window | QtCore.Qt.Tool)
+        self.father = parent
+        self.setWindowTitle("Monitor")
+        layout = QtGui.QGridLayout(self)
+        grid = QtGui.QGridLayout()
+        fileName = self.father.masterData.filePath[1]
+        if len(fileName) > 58:
+            fileName = fileName[:55] + '...'
+        fileLabel = wc.QLabel("File: " + fileName)
+        fileLabel.setToolTip(self.father.masterData.filePath[1])
+        layout.addWidget(fileLabel, 0, 0, 1, 3)
+        layout.addLayout(grid, 1, 0, 1, 3)
+        grid.addWidget(wc.QLabel("Macros:"), 0, 0)
+        grid.addWidget(wc.QLabel("Apply after loading:"), 0, 1)
+        self.listA = OrigListWidget(self)
+        for i in self.father.father.macros.keys():
+            QtGui.QListWidgetItem(i, self.listA).setToolTip(i)
+        self.listB = DestListWidget(self)
+        for i in self.father.monitorMacros:
+            QtGui.QListWidgetItem(i, self.listB).setToolTip(i)
+        grid.addWidget(self.listA, 1, 0)
+        grid.addWidget(self.listB, 1, 1)
+        cancelButton = QtGui.QPushButton("&Close")
+        cancelButton.clicked.connect(self.closeEvent)
+        layout.addWidget(cancelButton, 2, 0)
+        watchButton = QtGui.QPushButton("&Watch")
+        watchButton.clicked.connect(self.applyAndClose)
+        layout.addWidget(watchButton, 2, 1)
+        unwatchButton = QtGui.QPushButton("&Unwatch")
+        unwatchButton.clicked.connect(self.stopAndClose)
+        layout.addWidget(unwatchButton, 2, 2)
+        layout.setColumnStretch(3, 1)
+        self.show()
+        self.setFixedSize(self.size())
+        self.father.menuDisable()
+        self.setGeometry(self.frameSize().width() - self.geometry().width(), self.frameSize().height() - self.geometry().height(), 0, 0)
+
+    def applyAndClose(self, *args):
+        self.father.stopMonitor()
+        items = []
+        for index in range(self.listB.count()):
+            items.append(self.listB.item(index).text())
+        self.father.startMonitor(items)
+        self.closeEvent()
+        
+    def stopAndClose(self, *args):
+        self.father.stopMonitor()
+        self.closeEvent()
+    
+    def closeEvent(self, *args):
+        self.father.menuEnable()
+        self.deleteLater()
+        
 ##############################################################################
 
 
