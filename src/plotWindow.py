@@ -146,19 +146,20 @@ class MainPlotWindow(QtGui.QWidget):
         self.ytickFontSizeEntry.returnPressed.connect(self.updatePlot)
         self.optionFrame.addWidget(self.ytickFontSizeEntry, 39, 0)
         self.legend = self.ax.legend()
-        self.legend.draggable(True)
-        self.legendPos = 'best'
-        self.legendTextList = []
-        for line in self.legend.get_texts():
-            self.legendTextList.append(line.get_text())
+        if self.legend is not None:
+            self.legend.draggable(True)
+            self.legendPos = 'best'
+            self.legendTextList = []
+            for line in self.legend.get_texts():
+                self.legendTextList.append(line.get_text())
 
-        self.legend.set_visible(False)
-        self.legendCheck = QtGui.QCheckBox('Legend')
-        self.legendCheck.stateChanged.connect(self.updateLegend)
-        self.optionFrame.addWidget(self.legendCheck, 40, 0)
-        legendButton = QtGui.QPushButton('Legend settings')
-        legendButton.clicked.connect(lambda: LegendWindow(self))
-        self.optionFrame.addWidget(legendButton, 41, 0)
+            self.legend.set_visible(False)
+            self.legendCheck = QtGui.QCheckBox('Legend')
+            self.legendCheck.stateChanged.connect(self.updateLegend)
+            self.optionFrame.addWidget(self.legendCheck, 40, 0)
+            legendButton = QtGui.QPushButton('Legend settings')
+            legendButton.clicked.connect(lambda: LegendWindow(self))
+            self.optionFrame.addWidget(legendButton, 41, 0)
 
         execFileButton = QtGui.QPushButton('Execute file')
         execFileButton.clicked.connect(self.exFile)
