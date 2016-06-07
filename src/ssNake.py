@@ -6195,28 +6195,44 @@ class shiftConversionWindow(QtGui.QWidget):
 
     def shiftCalc(self, Type):
         if Type == 0:  # If from standard
-            delta11 = float(self.D11.text())
-            delta22 = float(self.D22.text())
-            delta33 = float(self.D33.text())
+            try:
+                delta11 = float(safeEval(self.D11.text()))
+                delta22 = float(safeEval(self.D22.text()))
+                delta33 = float(safeEval(self.D33.text()))
+            except:
+                self.father.dispMsg("Invalid input in Standard Convention")
+                return
 
             deltaArray = np.array([delta11, delta22, delta33])
 
         if Type == 1:  # If from xyz
-            delta11 = float(self.dxx.text())  # Treat xyz as 123, as it reorders them anyway
-            delta22 = float(self.dyy.text())
-            delta33 = float(self.dzz.text())
+            try:
+                delta11 = float(safeEval(self.dxx.text()))  # Treat xyz as 123, as it reorders them anyway
+                delta22 = float(safeEval(self.dyy.text()))
+                delta33 = float(safeEval(self.dzz.text()))
+            except:
+                self.father.dispMsg("Invalid input in xyz Convention")
+                return
 
         if Type == 2:  # From haeberlen
-            eta = float(self.eta.text())
-            delta = float(self.daniso.text())
-            iso = float(self.diso.text())
+            try:
+                eta = float(safeEval(self.eta.text()))
+                delta = float(safeEval(self.daniso.text()))
+                iso = float(safeEval(self.diso.text()))
+            except:
+                self.father.dispMsg("Invalid input in Haeberlen Convention")
+                return                
             delta11 = delta + iso  # Treat xyz as 123, as it reorders them anyway
             delta22 = (eta * delta + iso * 3 - delta11) / 2.0
             delta33 = iso * 3 - delta11 - delta22
-        if Type == 3:  # From hertzeld-berger
-            iso = float(self.hbdiso.text())
-            span = float(self.hbdaniso.text())
-            skew = float(self.hbskew.text())
+        if Type == 3:  # From Hertzfeld-Berger
+            try:
+                iso = float(safeEval(self.hbdiso.text()))
+                span = float(safeEval(self.hbdaniso.text()))
+                skew = float(safeEval(self.hbskew.text()))
+            except:
+                self.father.dispMsg("Invalid input in Hertzfeld-Berger Convention")
+                return    
             delta22 = iso + skew * span / 3.0
             delta33 = (3 * iso - delta22 - span) / 2.0
             delta11 = 3 * iso - delta22 - delta33
