@@ -350,7 +350,7 @@ class MainProgram(QtGui.QMainWindow):
         self.helpMenu = QtGui.QMenu("&Help", self)
         self.menubar.addMenu(self.helpMenu)
         self.helpMenu.addAction("&Update", self.updateMenu)
-        self.helpMenu.addAction("&Chemical shift conversion tool", lambda: shiftConversionWindow(self))
+        self.helpMenu.addAction("&Chemical shift conversion tool", self.createShiftConversionWindow)
         self.helpMenu.addAction("&About", self.about)
 
     def mainWindowCheck(self, transfer):
@@ -1561,6 +1561,9 @@ class MainProgram(QtGui.QMainWindow):
 
     def updateMenu(self):
         UpdateWindow(self)
+        
+    def createShiftConversionWindow(self):
+        shiftConversionWindow(self)
 
     def about(self):
         message = "ssNake " + VERSION
@@ -6049,7 +6052,6 @@ class shiftConversionWindow(QtGui.QWidget):
         QtGui.QWidget.__init__(self, parent)
         self.setWindowFlags(QtCore.Qt.Window | QtCore.Qt.Tool)
         self.father = parent
-        QtGui.QWidget.__init__(self)
 
         self.setWindowTitle("Chemical Shift Conversions")
 
@@ -6182,18 +6184,13 @@ class shiftConversionWindow(QtGui.QWidget):
         grid.addWidget(QtGui.QLabel(""), 11, 0)
         resetbutton = QtGui.QPushButton("Reset")
         grid.addWidget(resetbutton, 12, 0)
-        resetbutton.clicked.connect(self.reset)
+        resetbutton.clicked.connect(self.valueReset)
 
         closebutton = QtGui.QPushButton("Close")
         grid.addWidget(closebutton, 12, 3)
-        closebutton.clicked.connect(self.closecommand)
+        closebutton.clicked.connect(self.closeEvent)
 
-        mainbox = QtGui.QWidget()
-        vbox = QtGui.QVBoxLayout()
-        vbox.addWidget(mainbox)
-        mainbox.setLayout(grid)
-
-        self.setLayout(vbox)
+        self.setLayout(grid)
         self.show()
 
     def shiftCalc(self, Type):
@@ -6264,7 +6261,7 @@ class shiftConversionWindow(QtGui.QWidget):
         self.hbdiso.setText('%#.4g' % iso)
         self.hbdaniso.setText('%#.4g' % span)
 
-    def reset(self):  # Resets all the boxes to 0
+    def valueReset(self):  # Resets all the boxes to 0
         self.D11.setText('0')
         self.D22.setText('0')
         self.D33.setText('0')
@@ -6281,7 +6278,7 @@ class shiftConversionWindow(QtGui.QWidget):
         self.hbdiso.setText('0')
         self.hbdaniso.setText('0')
 
-    def closecommand(self):
+    def closeEvent(self):
         self.deleteLater()
 
 
