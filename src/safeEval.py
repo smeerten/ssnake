@@ -17,12 +17,12 @@
 # You should have received a copy of the GNU General Public License
 # along with ssNake. If not, see <http://www.gnu.org/licenses/>.
 
-import math
+import numpy as np
 import re
 
 
 def safeEval(inp, length=None):
-    env = vars(math).copy()
+    env = vars(np).copy()
     env["locals"] = None
     env["globals"] = None
     env["__name__"] = None

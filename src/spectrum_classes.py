@@ -27,7 +27,6 @@ from safeEval import safeEval
 from nus import ffm, clean
 import multiprocessing
 from matplotlib.pyplot import get_cmap
-import math
 
 COLORMAPLIST = ['seismic', 'BrBG', 'bwr', 'coolwarm', 'PiYG', 'PRGn', 'PuOr',
                 'RdBu', 'RdGy', 'RdYlBu', 'RdYlGn', 'Spectral', 'rainbow', 'jet']
@@ -878,7 +877,7 @@ class Spectrum:
         else:
             Y = data[-nAnalyse:]
         N = len(Y)						# # of complex data points in FID
-        L = math.floor(N * 3 / 4)						# linear prediction order L = 3/4*N
+        L = np.floor(N * 3 / 4)						# linear prediction order L = 3/4*N
         A = scipy.linalg.hankel(np.conj(Y[1:N - L + 1]), np.conj(Y[N - L:N]))  # backward prediction data matrix
         h = np.conj(Y[0:N - L])					# backward prediction data vector
         U, S, Vh = np.linalg.svd(A, full_matrices=1)                       # singular value decomposition
@@ -971,7 +970,7 @@ class Spectrum:
 #        M = 1 #Number of frequencies
 #        y = self.data[axes][0:100]
 #        N = y.shape[0]						# # of complex data points in FID
-#        L = math.floor(N*3/4)						# linear prediction order L = 3/4*N
+#        L = np.floor(N*3/4)						# linear prediction order L = 3/4*N
 #        A = scipy.linalg.hankel(np.conj(y[1:N-L+1]), np.conj(y[N-L:N]))	# backward prediction data matrix
 #        h = np.conj(y[0:N-L])					# backward prediction data vector
 #        U, S, V = np.linalg.svd(A)					# singular value decomposition

@@ -29,7 +29,6 @@ import sys
 import os
 import re
 import copy
-import math
 import spectrum_classes as sc
 import fitting as fit
 from safeEval import safeEval
@@ -1117,7 +1116,7 @@ class MainProgram(QtGui.QMainWindow):
             sw = header[100]
             reference = header[101]  # frequency of last point in Hz
 
-        sidefreq = -math.floor(NumberofPoints / 2) / NumberofPoints * sw  # freqeuency of last point on axis
+        sidefreq = -np.floor(NumberofPoints / 2) / NumberofPoints * sw  # freqeuency of last point on axis
         ref = sidefreq + freq - reference
         if spec == 1:
             data = np.flipud(data)
@@ -1478,9 +1477,9 @@ class MainProgram(QtGui.QMainWindow):
                 e = exponent - 0x7f
                 m = np.abs(mantissa) / np.float64(1 << 23)
                 if negative:
-                    data[i] = -math.ldexp(m, e)
+                    data[i] = -np.ldexp(m, e)
                 else:
-                    data[i] = math.ldexp(m, e)
+                    data[i] = np.ldexp(m, e)
             data = data.view('complex64')
         if NI != 1:  # 2D data, reshape to NI, NP
             data = data.reshape(int(NI), -1)
