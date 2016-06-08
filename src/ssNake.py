@@ -1913,7 +1913,10 @@ class Main1DWindow(QtGui.QWidget):
         self.addMacro(['reload'])
         self.menuCheck()
 
-    def monitorLoad(self, *args):
+    def monitorLoad(self, filePath):
+        if not os.path.exists(filePath):
+            self.stopMonitor()
+            return
         self.redoList = []
         self.undoList = []
         loadData = self.father.loading(self.masterData.filePath[0], self.masterData.filePath[1], True)
@@ -1925,11 +1928,15 @@ class Main1DWindow(QtGui.QWidget):
         self.current.showFid()  
         self.updAllFrames()
         self.menuCheck()
+        if filePath in self.monitor.files() or filePath in self.monitor.directories():
+            return
+        self.monitor.addPath(filePath)
 
     def startMonitor(self, macroNames):
         self.monitorMacros = macroNames
         self.monitor = QtCore.QFileSystemWatcher([self.masterData.filePath[1]], self)
         self.monitor.fileChanged.connect(self.monitorLoad)
+        self.monitor.directoryChanged.connect(self.monitorLoad)
 
     def stopMonitor(self):
         self.monitorMacros = []
@@ -2471,6 +2478,7 @@ class SideFrame(QtGui.QScrollArea):
                     axes = self.father.current.axes2
             self.buttons2Group.button(axes2).toggle()
         self.getSlice(None, axes, True)
+        self.upd()
 
     def getSlice(self, event, entryNum, button=False):
         if button:
