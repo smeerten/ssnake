@@ -29,6 +29,7 @@ import sys
 import os
 import re
 import copy
+import math
 import spectrum_classes as sc
 import fitting as fit
 from safeEval import safeEval
