@@ -1452,34 +1452,32 @@ class MainProgram(QtGui.QMainWindow):
             # By: Jonathan J. Helmus (jjhelmus@gmail.com)
             # Version: 0.1 (2012-04-13)
             # License: GPL
-            chardata = ''
-            for line in Lines[DataStart + 1:DataEnd]:
-                chardata += line
+            chardata = ''.join(Lines[DataStart + 1:DataEnd])
             nquads, mod = divmod(len(chardata), 4)
             assert mod == 0     # character should be in blocks of 4
-            Bytes = []
-            for i in range(nquads):
-                chars = chardata[i * 4:(i + 1) * 4]
-                BASE = 33
-                FIRST = lambda f, x: ((x) & ~(~0 << f))
-                LAST = lambda f, x: ((x) & (~0 << (8 - f)))
-                c0, c1, c2, c3 = [ord(c) - BASE for c in chars]
-                Bytes += [FIRST(6, c0) | LAST(2, c1 << 2), FIRST(4, c1) | LAST(4, c2 << 2), FIRST(2, c2) | LAST(6, c3 << 2)]
+            BASE = 33
+            charst =  np.fromstring(chardata, dtype=np.uint8)
+            charst = charst.reshape(nquads,4) - BASE
+            FIRST = lambda f, x: ((x) & ~(~0 << f))
+            LAST = lambda f, x: ((x) & (~0 << (8 - f)))
+            
+            first = FIRST(6, charst[:,0]) | LAST(2, charst[:,1] << 2)
+            second  = FIRST(4, charst[:,1]) | LAST(4, charst[:,2] << 2)
+            third = FIRST(2, charst[:,2]) | LAST(6, charst[:,3] << 2)
+            
+            Bytes = np.ravel(np.transpose(np.array([first,second,third]))).astype('int64')
+            
             # convert every 4 'bytes' to a float
             num_points, num_pad = divmod(len(Bytes), 4)
-            data = np.empty((num_points, ), dtype='float32')
-            for i in range(num_points):
-                BytesTemp = Bytes[i * 4: (i + 1) * 4]
-                b0, b1, b2, b3 = BytesTemp
-                mantissa = ((b2 % 128) << 16) + (b1 << 8) + b0
-                exponent = (b3 % 128) * 2 + (b2 >= 128) * 1
-                negative = b3 >= 128
-                e = exponent - 0x7f
-                m = np.abs(mantissa) / np.float64(1 << 23)
-                if negative:
-                    data[i] = -np.ldexp(m, e)
-                else:
-                    data[i] = np.ldexp(m, e)
+            Bytes = np.array(Bytes)
+            Bytes=Bytes[:-num_pad]
+            Bytes=Bytes.reshape(num_points,4)
+            mantissa = ((Bytes[:,2] % 128) << 16) + (Bytes[:,1] << 8) + Bytes[:,0]
+            exponent = (Bytes[:,3] % 128) * 2 + (Bytes[:,2] >= 128) * 1
+            negative = Bytes[:,3] >= 128
+            e = exponent - 127
+            m = np.abs(mantissa) / np.float64(1 << 23)
+            data = np.float32((-1)**negative*np.ldexp(m,e))
             data = data.view('complex64')
         if NI != 1:  # 2D data, reshape to NI, NP
             data = data.reshape(int(NI), -1)
