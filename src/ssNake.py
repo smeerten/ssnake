@@ -1072,7 +1072,7 @@ class MainProgram(QtGui.QMainWindow):
             fidfloat = int(bin(status)[-4])
             
             if not fid32 and fidfloat: #only for `newest' format, use fast routine
-                totalpoints = (ntraces * npoints +nbheaders * 7)*nblocks
+                totalpoints = (ntraces * npoints +nbheaders**2 * 7)*nblocks
                 raw = np.fromfile(f, np.float32, totalpoints)
                 a=raw.newbyteorder('>f')
                 a=a.reshape(nblocks,int(totalpoints/nblocks))
