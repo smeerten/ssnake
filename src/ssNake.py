@@ -1070,27 +1070,38 @@ class MainProgram(QtGui.QMainWindow):
             a = []
             fid32 = int(bin(status)[-3])
             fidfloat = int(bin(status)[-4])
-            for iter1 in range(0, nblocks):
-                b = []
-                for iter2 in range(0, nbheaders):
-                    raw = np.fromfile(f, np.int16, nbheaders * 14)
-                if not fid32 and not fidfloat:
-                    raw = np.fromfile(f, np.int16, ntraces * npoints)
-                    for iter3 in raw:
-                        b.append(unpack('>h', iter3)[0])
-                elif fid32 and not fidfloat:
-                    raw = np.fromfile(f, np.int32, ntraces * npoints)
-                    for iter3 in raw:
-                        b.append(unpack('>l', iter3)[0])
-                else:
-                    raw = np.fromfile(f, np.float32, ntraces * npoints)
-                    for iter3 in raw:
-                        b.append(unpack('>f', iter3)[0])
-                b = np.array(b)
-                if(len(b) != ntraces * npoints):
-                    b.append(np.zeros(ntraces * npoints - len(b)))
-                a.append(b)
-        a = np.complex128(a)
+            
+            if not fid32 and fidfloat: #only for `newest' format, use fast routine
+                totalpoints = (ntraces * npoints +nbheaders * 7)*nblocks
+                raw = np.fromfile(f, np.float32, totalpoints)
+                a=raw.newbyteorder('>f')
+                a=a.reshape(nblocks,int(totalpoints/nblocks))
+                a=a[:,7::]
+                
+            else: #use slow, but robust routine
+                for iter1 in range(0, nblocks):
+                    b = []
+                    for iter2 in range(0, nbheaders):
+                        raw = np.fromfile(f, np.int16, nbheaders * 14)
+                    if not fid32 and not fidfloat:
+                        raw = np.fromfile(f, np.int16, ntraces * npoints)
+                        for iter3 in raw:
+                            b.append(unpack('>h', iter3)[0])
+                    elif fid32 and not fidfloat:
+                        raw = np.fromfile(f, np.int32, ntraces * npoints)
+                        for iter3 in raw:
+                            b.append(unpack('>l', iter3)[0])
+                    else:
+                        raw = np.fromfile(f, np.float32, ntraces * npoints)
+                        for iter3 in raw:
+                            b.append(unpack('>f', iter3)[0])
+                    b = np.array(b)
+                    if(len(b) != ntraces * npoints):
+                        b.append(np.zeros(ntraces * npoints - len(b)))
+                    a.append(b)
+                a = np.complex128(a)
+                
+                
         fid = a[:, ::2] - 1j * a[:, 1::2]
         if SizeTD1 is 1:
             fid = fid[0][:]
