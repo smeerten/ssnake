@@ -1077,6 +1077,12 @@ class MainProgram(QtGui.QMainWindow):
                 a=raw.newbyteorder('>f')
                 a=a.reshape(nblocks,int(totalpoints/nblocks))
                 a=a[:,7::]
+            elif fid32 and not fidfloat: #for VNMRJ 2 data
+                totalpoints = (ntraces * npoints +nbheaders**2 * 7)*nblocks
+                raw = np.fromfile(f, np.int32, totalpoints)
+                a=raw.newbyteorder('>l')
+                a=a.reshape(nblocks,int(totalpoints/nblocks))
+                a=a[:,7::]
                 
             else: #use slow, but robust routine
                 for iter1 in range(0, nblocks):
