@@ -1021,7 +1021,10 @@ class MainProgram(QtGui.QMainWindow):
 
     def LoadVarianFile(self, filePath, name=''):
         from struct import unpack
-        Dir = filePath
+        if os.path.isfile(filePath):
+            Dir = os.path.dirname(filePath)
+        else:
+            Dir = filePath
         freq = 300e6
         sw = 50e3
         sw1 = 50e3
@@ -1049,8 +1052,13 @@ class MainProgram(QtGui.QMainWindow):
 
         if os.path.exists(Dir + os.path.sep + 'fid'):
             datafile = Dir + os.path.sep + 'fid'
+            filePath = datafile
         elif os.path.exists(Dir + os.path.sep + 'data'):
             datafile = Dir + os.path.sep + 'data'
+            filePath = datafile
+        else:
+            self.dispMsg('No valid data file found')
+            return None
         with open(datafile, "rb") as f:
             raw = np.fromfile(f, np.int32, 6)
             nblocks = unpack('>l', raw[0])[0]
@@ -1071,20 +1079,20 @@ class MainProgram(QtGui.QMainWindow):
             fid32 = int(bin(status)[-3])
             fidfloat = int(bin(status)[-4])
             
-            if not fid32 and fidfloat: #only for `newest' format, use fast routine
-                totalpoints = (ntraces * npoints +nbheaders**2 * 7)*nblocks
+            if not fid32 and fidfloat:  # only for `newest' format, use fast routine
+                totalpoints = (ntraces * npoints + nbheaders**2 * 7)*nblocks
                 raw = np.fromfile(f, np.float32, totalpoints)
-                a=raw.newbyteorder('>f')
-                a=a.reshape(nblocks,int(totalpoints/nblocks))
-                a=a[:,7::]
-            elif fid32 and not fidfloat: #for VNMRJ 2 data
-                totalpoints = (ntraces * npoints +nbheaders**2 * 7)*nblocks
+                a = raw.newbyteorder('>f')
+                a = a.reshape(nblocks, int(totalpoints / nblocks))
+                a = a[:, 7::]
+            elif fid32 and not fidfloat:  # for VNMRJ 2 data
+                totalpoints = (ntraces * npoints + nbheaders**2 * 7)*nblocks
                 raw = np.fromfile(f, np.int32, totalpoints)
-                a=raw.newbyteorder('>l')
-                a=a.reshape(nblocks,int(totalpoints/nblocks))
-                a=a[:,7::]
+                a = raw.newbyteorder('>l')
+                a = a.reshape(nblocks, int(totalpoints / nblocks))
+                a = a[:, 7::]
                 
-            else: #use slow, but robust routine
+            else:  # use slow, but robust routine
                 for iter1 in range(0, nblocks):
                     b = []
                     for iter2 in range(0, nbheaders):
@@ -1106,7 +1114,6 @@ class MainProgram(QtGui.QMainWindow):
                         b.append(np.zeros(ntraces * npoints - len(b)))
                     a.append(b)
                 a = np.complex128(a)
-                
                 
         fid = a[:, ::2] - 1j * a[:, 1::2]
         if SizeTD1 is 1:
@@ -1250,7 +1257,10 @@ class MainProgram(QtGui.QMainWindow):
             return masterData
 
     def LoadBrukerTopspin(self, filePath, name=''):
-        Dir = filePath
+        if os.path.isfile(filePath):
+            Dir = os.path.dirname(filePath)
+        else:
+            Dir = filePath
         if os.path.exists(Dir + os.path.sep + 'acqus'):
             with open(Dir + os.path.sep + 'acqus', 'r') as f:
                 data = f.read().split('\n')
@@ -1275,9 +1285,11 @@ class MainProgram(QtGui.QMainWindow):
                 if data2[s].startswith('##$SW_h='):
                     SW1 = float(data2[s][8:])
         if os.path.exists(Dir + os.path.sep + 'fid'):
+            filePath = Dir + os.path.sep + 'fid'
             with open(Dir + os.path.sep + 'fid', "rb") as f:
                 raw = np.fromfile(f, np.int32, sizeTD1 * sizeTD2)
         elif os.path.exists(Dir + os.path.sep + 'ser'):
+            filePath = Dir + os.path.sep + 'ser'
             with open(Dir + os.path.sep + 'ser', "rb") as f:
                 raw = np.fromfile(f, np.int32, sizeTD1 * sizeTD2)
         if ByteOrder:
@@ -1295,7 +1307,10 @@ class MainProgram(QtGui.QMainWindow):
         return masterData
 
     def LoadBrukerSpectrum(self, filePath, name=''):
-        Dir = filePath
+        if os.path.isfile(filePath):
+            Dir = os.path.dirname(filePath)
+        else:
+            Dir = filePath
         if os.path.exists(Dir + os.path.sep + 'procs'):  # Get D2 parameters
             with open(Dir + os.path.sep + 'procs', 'r') as f:
                 data = f.read().split('\n')
@@ -1334,6 +1349,7 @@ class MainProgram(QtGui.QMainWindow):
                 if data[s].startswith('##$SFO1='):
                     freq1 = float(data[s][8:]) * 1e6
         if os.path.exists(Dir + os.path.sep + '1r'):  # Get D2 data
+            filePath = Dir + os.path.sep + '1r'
             with open(Dir + os.path.sep + '1r', "rb") as f:
                 RawReal = np.fromfile(f, np.int32, sizeTD1 * sizeTD2)
             RawImag = np.zeros([sizeTD1 * sizeTD2])
@@ -1341,6 +1357,7 @@ class MainProgram(QtGui.QMainWindow):
                 with open(Dir + os.path.sep + '1i', "rb") as f:
                     RawImag = np.fromfile(f, np.int32, sizeTD1 * sizeTD2)
         elif os.path.exists(Dir + os.path.sep + '2rr'):  # Get D1 data
+            filePath = Dir + os.path.sep + '2rr'
             with open(Dir + os.path.sep + '2rr', "rb") as f:
                 RawReal = np.fromfile(f, np.int32, sizeTD1 * sizeTD2)
             RawImag = np.zeros([sizeTD1 * sizeTD2])
@@ -1367,7 +1384,10 @@ class MainProgram(QtGui.QMainWindow):
         return masterData
 
     def LoadChemFile(self, filePath, name=''):
-        Dir = filePath
+        if os.path.isfile(filePath):
+            Dir = os.path.dirname(filePath)
+        else:
+            Dir = filePath
         sizeTD1 = 1
         sw1 = 50e3
         H = dict(line.strip().split('=') for line in open(Dir + os.path.sep + 'acq', 'r'))
@@ -1392,6 +1412,7 @@ class MainProgram(QtGui.QMainWindow):
         with open(Dir + os.path.sep + 'data', 'rb') as f:
             raw = np.fromfile(f, np.int32)
             b = np.complex128(raw.byteswap())
+        filePath = Dir + os.path.sep + 'data'
         fid = b[:len(b) / 2] + 1j * b[len(b) / 2:]
         fid = np.reshape(fid, (sizeTD1, sizeTD2))
         data = np.array(fid)
@@ -1407,7 +1428,10 @@ class MainProgram(QtGui.QMainWindow):
 
     def LoadMagritek(self, filePath, name=''):
         # Magritek load script based on some Matlab files by Ole Brauckman
-        Dir = filePath
+        if os.path.isfile(filePath):
+            Dir = os.path.dirname(filePath)
+        else:
+            Dir = filePath
         DirFiles = os.listdir(Dir)
         Files2D = [x for x in DirFiles if '.2d' in x]
         Files1D = [x for x in DirFiles if '.1d' in x]
