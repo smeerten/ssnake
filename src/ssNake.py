@@ -1323,6 +1323,9 @@ class MainProgram(QtGui.QMainWindow):
                     ByteOrder = int(data[s][11:])
                 if data[s].startswith('##$SW_p='):
                     SW2 = float(data[s][8:])
+                if data[s].startswith('##$SF='):
+                    Ref2 = float(data[s][6:])*1e6 
+                    
         freq2 = 0
         if os.path.exists(Dir + os.path.sep + '..' + os.path.sep + '..' + os.path.sep + 'acqus'):  # Get D2 parameters from fid directory, if available
             with open(Dir + os.path.sep + '..' + os.path.sep + '..' + os.path.sep + 'acqus', 'r') as f:
@@ -1341,6 +1344,8 @@ class MainProgram(QtGui.QMainWindow):
 #                    blockingD1 = int(data[s][8:])
                 if data2[s].startswith('##$SW_p='):
                     SW1 = float(data2[s][8:])
+                if data2[s].startswith('##$SF='):
+                    Ref1 = float(data2[s][6:])*1e6
         freq1 = 0
         if os.path.exists(Dir + os.path.sep + '..' + os.path.sep + '..' + os.path.sep + 'acqu2s'):  # Get D1 parameters from fid directory, if available
             with open(Dir + os.path.sep + '..' + os.path.sep + '..' + os.path.sep + 'acqu2s', 'r') as f:
@@ -1376,10 +1381,10 @@ class MainProgram(QtGui.QMainWindow):
         Data = np.flipud(RawReal) - 1j * np.flipud(RawImag)
         spec = [True]
         if sizeTD1 is 1:
-            masterData = sc.Spectrum(name, Data, (7, filePath), [freq2], [SW2], spec, msgHandler=lambda msg: self.dispMsg(msg))
+            masterData = sc.Spectrum(name, Data, (7, filePath), [freq2], [SW2], spec,ref=[Ref2], msgHandler=lambda msg: self.dispMsg(msg))
         else:
             Data = Data.reshape(sizeTD1, sizeTD2)
-            masterData = sc.Spectrum(name, Data, (7, filePath), [freq1, freq2], [SW1, SW2], spec * 2, msgHandler=lambda msg: self.dispMsg(msg))
+            masterData = sc.Spectrum(name, Data, (7, filePath), [freq1, freq2], [SW1, SW2], spec * 2,ref=[Ref1,Ref2], msgHandler=lambda msg: self.dispMsg(msg))
         masterData.addHistory("Bruker spectrum data loaded from " + filePath)
         return masterData
 
