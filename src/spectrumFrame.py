@@ -21,7 +21,7 @@ import numpy as np
 import matplotlib.gridspec as gridspec
 from PyQt4 import QtGui, QtCore
 import spectrum_classes
-
+import warnings
 #########################################################################################################
 # the class from which the 1d data is displayed, the operations which only edit the content of this class are for previewing
 
@@ -35,9 +35,28 @@ class Plot1DFrame:
         self.fig.clf()
         if isinstance(self, spectrum_classes.CurrentContour):
             gs = gridspec.GridSpec(2, 2, width_ratios=[self.root.father.defaultWidthRatio, 1], height_ratios=[1, self.root.father.defaultHeightRatio])
+
             self.ax = self.fig.add_subplot(gs[2])
+            
             self.x_ax = self.fig.add_subplot(gs[0], sharex=self.ax)
+            self.x_ax.axes.get_xaxis().set_visible(False)
+            self.x_ax.axes.get_yaxis().set_visible(False)
+            self.x_ax.spines['top'].set_visible(False)
+            self.x_ax.spines['bottom'].set_visible(False)
+            self.x_ax.spines['left'].set_visible(False)
+            self.x_ax.spines['right'].set_visible(False)
+            self.x_ax.patch.set_facecolor('none')            
+
             self.y_ax = self.fig.add_subplot(gs[3], sharey=self.ax)
+            self.y_ax.axes.get_xaxis().set_visible(False)
+            self.y_ax.axes.get_yaxis().set_visible(False)
+            self.y_ax.spines['top'].set_visible(False)
+            self.y_ax.spines['bottom'].set_visible(False)
+            self.y_ax.spines['left'].set_visible(False)
+            self.y_ax.spines['right'].set_visible(False)
+            self.y_ax.patch.set_facecolor('none')              
+
+            
         elif isinstance(self, spectrum_classes.CurrentSkewed):
             self.ax = self.fig.add_subplot(1, 1, 1, projection='3d')
             self.ax.disable_mouse_rotation()
