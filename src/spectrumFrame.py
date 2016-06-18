@@ -37,23 +37,25 @@ class Plot1DFrame:
             gs = gridspec.GridSpec(2, 2, width_ratios=[self.root.father.defaultWidthRatio, 1], height_ratios=[1, self.root.father.defaultHeightRatio])
 
             self.ax = self.fig.add_subplot(gs[2])
-            
+#            self.x_ax = self.fig.add_subplot(gs[0], sharex=self.ax,axisbg='#bfbfbf')
+#            self.y_ax = self.fig.add_subplot(gs[3], sharey=self.ax,axisbg='#bfbfbf')
             self.x_ax = self.fig.add_subplot(gs[0], sharex=self.ax)
+            self.y_ax = self.fig.add_subplot(gs[3], sharey=self.ax)
+            self.fig.subplots_adjust(hspace=0)
+            self.fig.subplots_adjust(wspace=0.01)
+            
             self.x_ax.axes.get_xaxis().set_visible(False)
             self.x_ax.axes.get_yaxis().set_visible(False)
-            self.x_ax.spines['top'].set_visible(False)
-            self.x_ax.spines['bottom'].set_visible(False)
-            self.x_ax.spines['left'].set_visible(False)
-            self.x_ax.spines['right'].set_visible(False)
+            spines= ['top','bottom','left','right']
+            for spine in spines:
+                self.x_ax.spines[spine].set_visible(False)
+                self.y_ax.spines[spine].set_visible(False)
             self.x_ax.patch.set_facecolor('none')            
 
-            self.y_ax = self.fig.add_subplot(gs[3], sharey=self.ax)
+            
             self.y_ax.axes.get_xaxis().set_visible(False)
             self.y_ax.axes.get_yaxis().set_visible(False)
-            self.y_ax.spines['top'].set_visible(False)
-            self.y_ax.spines['bottom'].set_visible(False)
-            self.y_ax.spines['left'].set_visible(False)
-            self.y_ax.spines['right'].set_visible(False)
+
             self.y_ax.patch.set_facecolor('none')              
 
             
