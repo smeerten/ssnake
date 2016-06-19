@@ -844,11 +844,15 @@ class RelaxParamFrame(QtGui.QWidget):
         fitAllButton.clicked.connect(self.fitAll)
         self.frame1.addWidget(fitAllButton, 2, 0)
         copyResultButton = QtGui.QPushButton("Copy result")
-        copyResultButton.clicked.connect(lambda: self.sim(True))
+        copyResultButton.clicked.connect(lambda: self.sim('copy'))
         self.frame1.addWidget(copyResultButton, 3, 0)
+        saveResultButton = QtGui.QPushButton("Save to text")
+        saveResultButton.clicked.connect(lambda: self.sim('save'))
+        self.frame1.addWidget(saveResultButton, 4, 0)
+        
         cancelButton = QtGui.QPushButton("&Cancel")
         cancelButton.clicked.connect(self.closeWindow)
-        self.frame1.addWidget(cancelButton, 4, 0)
+        self.frame1.addWidget(cancelButton, 5, 0)
         self.frame1.setColumnStretch(10, 1)
         self.frame1.setAlignment(QtCore.Qt.AlignTop)
         self.frame2.addWidget(QLabel("Amplitude:"), 0, 0, 1, 2)
@@ -1200,11 +1204,45 @@ class RelaxParamFrame(QtGui.QWidget):
             if outCoeff[i] is None or outT1[i] is None:
                 self.rootwindow.mainProgram.dispMsg("One of the inputs is not valid")
                 return
-        if store:
+        if store == 'copy':
             self.copyResult(outAmp, outConst, outCoeff, outT1)
+        elif store == 'save':
+            self.saveResult(outAmp, outConst, outCoeff, outT1)
         else:
             self.disp(outAmp, outConst, outCoeff, outT1)
 
+    def saveResult(self, outAmp, outConst, outCoeff, outT1):
+        outCurve = np.zeros((len(outCoeff) + 2, len(self.parent.xax)))
+        tmp = np.zeros(len(self.parent.xax))
+        for i in range(len(outCoeff)):
+            outCurve[i] = outAmp * (outConst + outCoeff[i] * np.exp(-self.parent.xax / outT1[i]))
+            tmp += outCurve[i]
+        outCurve[len(outCoeff)] = tmp - (len(outCoeff) - 1) * outAmp * outConst
+        outCurve[len(outCoeff) + 1] = self.parent.data1D
+
+        filename = QtGui.QFileDialog.getSaveFileName(self, 'Save File')
+        with open(filename,'w') as f:
+            f.write('ssNake relaxation fit results\n')
+            f.write('Number of sites = '+str(len(outCoeff))+'\n')
+            f.write('Amplitude = ' + str(outAmp) + '\n')
+            f.write('Constant = ' + str(outConst) + '\n')
+            f.write('Coefficient = ')
+            for site in outCoeff:
+                f.write(str(site)+' , ')
+            else:
+                f.write('\n')
+            f.write('T[s] = ')
+            for site in outT1:
+                f.write(str(site)+' , ')
+            else:
+                f.write('\n')
+            f.write('DATA\n')
+
+        data = np.append(np.array([self.parent.xax]),outCurve,0)
+        f=open(filename,'ba')
+        np.savetxt(f, data.transpose())
+        f.close()
+        
     def copyResult(self, outAmp, outConst, outCoeff, outT1):
         outCurve = np.zeros((len(outCoeff) + 2, len(self.parent.xax)))
         tmp = np.zeros(len(self.parent.xax))
