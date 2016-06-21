@@ -3560,17 +3560,28 @@ class CurrentContour(Current1D):
             self.ax.contour(X, Y, tmpdata, cmap=get_cmap(self.colorMap), levels=-contourLevels[::-1], vmax=vmax, vmin=vmin, linewidths=self.linewidth, linestyles='solid')
         self.line_ydata = tmpdata[0]
         if self.projType1 == 0:
-            self.x_ax.plot(x, np.sum(tmpdata, axis=0), color=self.color, linewidth=self.linewidth)
+            xprojdata=np.sum(tmpdata, axis=0)
+            self.x_ax.plot(x, xprojdata, color=self.color, linewidth=self.linewidth)
         elif self.projType1 == 1:
-            self.x_ax.plot(x, np.max(tmpdata, axis=0), color=self.color, linewidth=self.linewidth)
+            xprojdata = np.max(tmpdata, axis=0)
+            self.x_ax.plot(x,xprojdata , color=self.color, linewidth=self.linewidth)
         elif self.projType1 == 2:
-            self.x_ax.plot(x, np.min(tmpdata, axis=0), color=self.color, linewidth=self.linewidth)
+            xprojdata =  np.min(tmpdata, axis=0)
+            self.x_ax.plot(x,xprojdata, color=self.color, linewidth=self.linewidth)
+        
+        xmin, xmax =  np.min(xprojdata),np.max(xprojdata)
+        self.x_ax.set_ylim([xmin-0.15*(xmax-xmin), xmax]) #Set projection limits, and force 15% whitespace below plot
         if self.projType2 == 0:
-            self.y_ax.plot(np.sum(tmpdata, axis=1), y, color=self.color, linewidth=self.linewidth)
+            yprojdata=np.sum(tmpdata, axis=1)
+            self.y_ax.plot(yprojdata, y, color=self.color, linewidth=self.linewidth)
         elif self.projType2 == 1:
-            self.y_ax.plot(np.max(tmpdata, axis=1), y, color=self.color, linewidth=self.linewidth)
+            yprojdata=np.max(tmpdata, axis=1)
+            self.y_ax.plot(yprojdata, y, color=self.color, linewidth=self.linewidth)
         elif self.projType2 == 2:
-            self.y_ax.plot(np.min(tmpdata, axis=1), y, color=self.color, linewidth=self.linewidth, )
+            yprojdata=np.min(tmpdata, axis=1)
+            self.y_ax.plot(yprojdata, y, color=self.color, linewidth=self.linewidth, )         
+        ymin, ymax =  np.min(yprojdata),np.max(yprojdata)
+        self.y_ax.set_ylim([ymin-0.15*(ymax-ymin), ymax]) #Set projection limits, and force 15% whitespace below plot
         if self.spec == 0:
             if self.axType == 0:
                 self.ax.set_xlabel('Time [s]')
