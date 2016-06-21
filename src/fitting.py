@@ -1207,41 +1207,43 @@ class RelaxParamFrame(QtGui.QWidget):
         if store == 'copy':
             self.copyResult(outAmp, outConst, outCoeff, outT1)
         elif store == 'save':
-            self.saveResult(outAmp, outConst, outCoeff, outT1)
+            variablearray  = [['Number of sites',[len(outCoeff)]]
+            ,['Amplitude',[outAmp]],['Constant',[outConst]],['Coefficient',outCoeff]
+            ,['T[s]',outT1]]
+            title = 'ssNake relaxation fit results'
+            
+            outCurve = np.zeros((len(outCoeff) + 2, len(self.parent.xax)))
+            tmp = np.zeros(len(self.parent.xax))
+            for i in range(len(outCoeff)):
+                outCurve[i] = outAmp * (outConst + outCoeff[i] * np.exp(-self.parent.xax / outT1[i]))
+                tmp += outCurve[i]
+            outCurve[len(outCoeff)] = tmp - (len(outCoeff) - 1) * outAmp * outConst
+            outCurve[len(outCoeff) + 1] = self.parent.data1D
+            dataArray = np.transpose(np.append(np.array([self.parent.xax]),outCurve,0))
+            self.saveResult(title,variablearray,dataArray)
         else:
             self.disp(outAmp, outConst, outCoeff, outT1)
 
-    def saveResult(self, outAmp, outConst, outCoeff, outT1):
-        outCurve = np.zeros((len(outCoeff) + 2, len(self.parent.xax)))
-        tmp = np.zeros(len(self.parent.xax))
-        for i in range(len(outCoeff)):
-            outCurve[i] = outAmp * (outConst + outCoeff[i] * np.exp(-self.parent.xax / outT1[i]))
-            tmp += outCurve[i]
-        outCurve[len(outCoeff)] = tmp - (len(outCoeff) - 1) * outAmp * outConst
-        outCurve[len(outCoeff) + 1] = self.parent.data1D
-
+    def saveResult(self, title,variablearray,dataArray):
+        #A function which saves fit results as an ascii:
+        #title: string for the first line of the file
+        #variablearray: array of arrays with all the variables to be printed. 
+        #First entry should be name of variable, second an array with the value(s)
+        #dataArray should be an array with the raw y data of the fit and the experiment (with as a first column the x-axis)
         filename = QtGui.QFileDialog.getSaveFileName(self, 'Save File')
         with open(filename,'w') as f:
-            f.write('ssNake relaxation fit results\n')
-            f.write('Number of sites = '+str(len(outCoeff))+'\n')
-            f.write('Amplitude = ' + str(outAmp) + '\n')
-            f.write('Constant = ' + str(outConst) + '\n')
-            f.write('Coefficient = ')
-            for site in outCoeff:
-                f.write(str(site)+' , ')
-            else:
-                f.write('\n')
-            f.write('T[s] = ')
-            for site in outT1:
-                f.write(str(site)+' , ')
-            else:
-                f.write('\n')
+            f.write(title+'\n')
+            for var in variablearray:
+                tmp = var[0]+' = '
+                for site in var[1]:
+                    tmp+=str(site)+' , '
+                tmp=tmp[:-3]+'\n'
+                f.write(tmp)
             f.write('DATA\n')
-
-        data = np.append(np.array([self.parent.xax]),outCurve,0)
         f=open(filename,'ba')
-        np.savetxt(f, data.transpose())
+        np.savetxt(f, dataArray)
         f.close()
+
         
     def copyResult(self, outAmp, outConst, outCoeff, outT1):
         outCurve = np.zeros((len(outCoeff) + 2, len(self.parent.xax)))
