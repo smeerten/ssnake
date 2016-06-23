@@ -2444,6 +2444,23 @@ class SideFrame(QtGui.QScrollArea):
                 button = QtGui.QPushButton("x", self)
                 button.clicked.connect(lambda arg, num=i: self.delMultiSpec(num))
                 frame.addWidget(button, 1, 1)
+                self.OOM = self.father.current.getOOM()  # Order of Magnitude
+                frame.addWidget(wc.QLabel("Scale", self), 2, 0)
+                frame.addWidget(wc.QLabel("Offset (X1e" + str(self.OOM) + ")", self), 2, 1)
+                scaleEntry = QtGui.QDoubleSpinBox()
+                scaleEntry.setMaximum(1e3)
+                scaleEntry.setMinimum(-1e3)
+                scaleEntry.setSingleStep(0.1)
+                scaleEntry.setValue(self.father.current.extraScale[i])
+                scaleEntry.valueChanged.connect(lambda arg, num=i: self.setScale(arg, num))
+                frame.addWidget(scaleEntry, 3, 0)
+                offsetEntry = QtGui.QDoubleSpinBox()
+                offsetEntry.setMaximum(1e3)
+                offsetEntry.setMinimum(-1e3)
+                offsetEntry.setSingleStep(0.1)
+                offsetEntry.setValue(self.father.current.extraOffset[i]/(10**self.OOM))
+                offsetEntry.valueChanged.connect(lambda arg, num=i: self.setOffset(arg, num))
+                frame.addWidget(offsetEntry, 3, 1)
                 entries = []
                 self.extraEntries.append(entries)
                 buttons1 = []
@@ -2454,10 +2471,10 @@ class SideFrame(QtGui.QScrollArea):
                     for num in range(current.extraData[i].data.ndim):
                         buttons1.append(QtGui.QRadioButton(''))
                         self.extraButtons1Group[i].addButton(buttons1[num], num)
-                        frame.addWidget(buttons1[num], num * 2 + 3, 0)
-                        frame.addWidget(wc.QLabel("D" + str(num + 1), self), num * 2 + 2, 1)
+                        frame.addWidget(buttons1[num], num * 2 + 5, 0)
+                        frame.addWidget(wc.QLabel("D" + str(num + 1), self), num * 2 + 4, 1)
                         entries.append(wc.SliceSpinBox(self, 0, current.extraData[i].data.shape[num] - 1))
-                        frame.addWidget(entries[num], num * 2 + 3, 1)
+                        frame.addWidget(entries[num], num * 2 + 5, 1)
                         if num < current.extraAxes[i]:
                             entries[num].setValue(current.extraLoc[i][num])
                         elif num == current.extraAxes[i]:
@@ -2465,7 +2482,6 @@ class SideFrame(QtGui.QScrollArea):
                         else:
                             entries[num].setValue(current.extraLoc[i][num - 1])
                         entries[num].valueChanged.connect(lambda event=None, num=num, i=i: self.getExtraSlice(event, num, i))
-
                     self.extraButtons1Group[i].button(current.extraAxes[i]).toggle()
                 iter1 += 1
             addButton = QtGui.QPushButton("Add spectrum", self)
@@ -2586,6 +2602,12 @@ class SideFrame(QtGui.QScrollArea):
         if not button:
             self.father.current.showFid()
         # self.upd()
+
+    def setScale(self, scale, num):
+        self.father.current.setExtraScale(num, scale)
+
+    def setOffset(self, offset, num):
+        self.father.current.setExtraOffset(num, offset*10**self.OOM)
 
     def checkChanged(self):
         for i in range(len(self.father.current.extraData)):

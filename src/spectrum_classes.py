@@ -2164,6 +2164,13 @@ class Current1D(Plot1DFrame):
     def setContourConst(self, constant):
         self.contourConst = constant
 
+    def getOOM(self):
+        absVal = np.amax(np.abs(self.data.data))
+        if absVal == 0.0:
+            return 1
+        else:
+            return int(np.floor(np.log10(absVal)))
+
     def showFid(self, tmpdata=None, extraX=None, extraY=None, extraColor=None, old=False, output=None):  # display the 1D data
         self.peakPickReset()
         if tmpdata is None:
@@ -2416,6 +2423,14 @@ class CurrentMulti(Current1D):
             self.extraAxes = duplicateCurrent.extraAxes
         else:
             self.extraAxes = []
+        if hasattr(duplicateCurrent, 'extraScale'):
+            self.extraScale = duplicateCurrent.extraScale
+        else:
+            self.extraScale = []
+        if hasattr(duplicateCurrent, 'extraOffset'):
+            self.extraOffset = duplicateCurrent.extraOffset
+        else:
+            self.extraOffset = []
         Current1D.__init__(self, root, fig, canvas, data, duplicateCurrent)
 
     def setExtraSlice(self, extraNum, axes, locList):  # change the slice
@@ -2432,6 +2447,8 @@ class CurrentMulti(Current1D):
         self.extraLoc.append([0] * (len(self.extraData[-1].data.shape) - 1))
         self.extraColor.append((0, 0, 0, 1))  # find a good color system
         self.extraAxes.append(len(data.data.shape) - 1)
+        self.extraScale.append(1.0)
+        self.extraOffset.append(0.0)
         self.showFid()
 
     def delExtraData(self, num):
@@ -2440,6 +2457,8 @@ class CurrentMulti(Current1D):
         del self.extraColor[num]
         del self.extraName[num]
         del self.extraAxes[num]
+        del self.extraScale[num]
+        del self.extraOffset[num]
         self.showFid()
 
     def setExtraColor(self, num, color):
@@ -2452,6 +2471,14 @@ class CurrentMulti(Current1D):
     def resetLocList(self):
         self.locList = [0] * (len(self.data.data.shape) - 1)
         self.resetExtraLocList()
+
+    def setExtraScale(self, num, scale):
+        self.extraScale[num] = scale
+        self.showFid()
+
+    def setExtraOffset(self, num, offset):
+        self.extraOffset[num] = offset
+        self.showFid()
 
     def resetExtraLocList(self, num=None):
         if num is None:
@@ -2473,7 +2500,7 @@ class CurrentMulti(Current1D):
             except:
                 self.resetExtraLocList(i)
                 updateVar = data.getSlice(self.extraAxes[i], self.extraLoc[i])
-            data1D = updateVar[0]
+            data1D = updateVar[0] * self.extraScale[i] + self.extraOffset[i]
             spec = updateVar[3]
             xax = updateVar[5]
             ref = updateVar[6]
