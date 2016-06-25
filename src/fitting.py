@@ -2234,11 +2234,14 @@ class PeakDeconvParamFrame(QtGui.QWidget):
         fitAllButton.clicked.connect(self.fitAll)
         self.frame1.addWidget(fitAllButton, 2, 0)
         copyResultButton = QtGui.QPushButton("Copy result")
-        copyResultButton.clicked.connect(lambda: self.sim(True))
+        copyResultButton.clicked.connect(lambda: self.sim('copy'))
         self.frame1.addWidget(copyResultButton, 3, 0)
+        saveResultButton = QtGui.QPushButton("save to text")
+        saveResultButton.clicked.connect(lambda: self.sim('save'))
+        self.frame1.addWidget(saveResultButton, 4, 0)
         cancelButton = QtGui.QPushButton("&Cancel")
         cancelButton.clicked.connect(self.closeWindow)
-        self.frame1.addWidget(cancelButton, 4, 0)
+        self.frame1.addWidget(cancelButton, 5, 0)
         resetButton = QtGui.QPushButton("Reset")
         resetButton.clicked.connect(self.reset)
         self.frame1.addWidget(resetButton, 0, 1)
@@ -2735,10 +2738,20 @@ class PeakDeconvParamFrame(QtGui.QWidget):
             y = outAmp[i] * np.real(np.fft.fftshift(np.fft.fft(timeSignal)))
             outCurvePart.append(outCurveBase + y)
             outCurve += y
-        if store:
+        if store == 'copy':
             outCurvePart.append(outCurve)
             outCurvePart.append(self.parent.data1D)
             self.rootwindow.createNewData(np.array(outCurvePart), self.parent.current.axes, True)
+        elif store == 'save':
+            variablearray  = [['Number of sites',[len(outAmp)]]
+            ,['Background',[outBgrnd]],['Slope',[outSlope]],['Amplitude',outAmp]
+            ,['Position',outPos],['Lorentzian width (Hz)',outWidth],['Gaussian width (Hz)',outGauss]]
+            title = 'ssNake peak deconvolution fit results'
+            
+            outCurvePart.append(outCurve)
+            outCurvePart.append(self.parent.data1D)
+            dataArray = np.transpose(np.append(np.array([self.parent.xax]),np.array(outCurvePart),0))
+            saveResult(title,variablearray,dataArray)
         else:
             self.parent.showPlot(tmpx, outCurve, x, outCurvePart)
 
