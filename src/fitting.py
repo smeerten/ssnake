@@ -4609,7 +4609,8 @@ class Quad1DeconvFrame(Plot1DFrame):
 class Quad1DeconvParamFrame(QtGui.QWidget):
 
     Ioptions = ['1', '3/2', '2', '5/2', '3', '7/2', '4', '9/2']
-
+    savetitle = 'ssNake first order quadrupole static fit results'
+    
     def __init__(self, parent, rootwindow):
         QtGui.QWidget.__init__(self, rootwindow)
         self.parent = parent
@@ -5284,7 +5285,7 @@ class Quad1DeconvParamFrame(QtGui.QWidget):
             variablearray  = [['Number of sites',[len(outAmp)]],['Cheng',[self.cheng]],['I',[outI]]
             ,['Background',[outBgrnd]],['Slope',[outSlope]],['Amplitude',outAmp]
             ,['Position',outPos],['Cq (MHz)',outCq],['Eta',outEta],['Lorentzian width (Hz)',outWidth],['Gaussian width (Hz)',outGauss]]
-            title = 'ssNake first order quadrupole static fit results'
+            title = self.savetitle
             
             outCurvePart.append(outCurve)
             outCurvePart.append(self.parent.data1D)
@@ -5317,7 +5318,7 @@ class Quad2DeconvWindow(FittingWindow):
 class Quad2StaticDeconvParamFrame(Quad1DeconvParamFrame):
 
     Ioptions = ['3/2', '5/2', '7/2', '9/2']
-
+    savetitle = 'ssNake second order quadrupole static fit results'
     def __init__(self, parent, rootwindow):
         Quad1DeconvParamFrame.__init__(self, parent, rootwindow)
 
@@ -5354,6 +5355,7 @@ class Quad2StaticDeconvParamFrame(Quad1DeconvParamFrame):
 
 class Quad2MASDeconvParamFrame(Quad2StaticDeconvParamFrame):
     Ioptions = ['3/2', '5/2', '7/2', '9/2']
+    savetitle = 'ssNake second order quadrupole MAS fit results'
 
     def __init__(self, parent, rootwindow):
         Quad2StaticDeconvParamFrame.__init__(self, parent, rootwindow)
@@ -5387,7 +5389,9 @@ class Quad2CzjzekWindow(FittingWindow):
 class Quad2StaticCzjzekParamFrame(QtGui.QWidget):
 
     Ioptions = ['3/2', '5/2', '7/2', '9/2']
-
+    savetitle = 'ssNake Czjzek static fit results'
+    
+    
     def __init__(self, parent, rootwindow):
         import scipy.ndimage
         QtGui.QWidget.__init__(self, rootwindow)
@@ -5424,11 +5428,14 @@ class Quad2StaticCzjzekParamFrame(QtGui.QWidget):
         fitAllButton.clicked.connect(self.fitAll)
         self.frame1.addWidget(fitAllButton, 2, 0)
         copyResultButton = QtGui.QPushButton("Copy result")
-        copyResultButton.clicked.connect(lambda: self.sim(True))
+        copyResultButton.clicked.connect(lambda: self.sim('copy'))
         self.frame1.addWidget(copyResultButton, 3, 0)
+        saveResultButton = QtGui.QPushButton("Save to text")
+        saveResultButton.clicked.connect(lambda: self.sim('save'))
+        self.frame1.addWidget(saveResultButton, 4, 0)      
         cancelButton = QtGui.QPushButton("&Cancel")
         cancelButton.clicked.connect(self.closeWindow)
-        self.frame1.addWidget(cancelButton, 4, 0)
+        self.frame1.addWidget(cancelButton, 5, 0)
         self.frame1.setColumnStretch(10, 1)
         self.frame1.setAlignment(QtCore.Qt.AlignTop)
         self.optframe.addWidget(QLabel("Cheng:"), 0, 0)
@@ -6093,10 +6100,26 @@ class Quad2StaticCzjzekParamFrame(QtGui.QWidget):
             y = outAmp[i] * self.tensorFunc(outSigma[i], outD[i], outPos[i], outWidth[i], outGauss[i], self.wq, self.eta, self.lib, self.parent.current.freq, self.parent.current.sw, self.axAdd)
             outCurvePart.append(outCurveBase + y)
             outCurve += y
-        if store:
+            
+        if store == 'copy':
             outCurvePart.append(outCurve)
             outCurvePart.append(self.parent.data1D)
             self.rootwindow.createNewData(np.array(outCurvePart), self.parent.current.axes, True)
+        elif store == 'save':
+            
+            
+                        
+            
+            variablearray  = [['Number of sites',[len(outAmp)]],['Cheng',[self.cheng]]
+            ,['Eta grid density',[int(self.etaGridEntry.text())]],['Wq grid density',[int(self.wqGridEntry.text())]],['I',[self.checkI(self.IEntry.currentIndex())]]
+            ,['Background',[outBgrnd]],['Slope',[outSlope]],['Amplitude',outAmp]
+            ,['Position',outPos],['Sigma',outSigma],['D',outD],['Lorentzian width (Hz)',outWidth],['Gaussian width (Hz)',outGauss]]
+            title = self.savetitle
+            
+            outCurvePart.append(outCurve)
+            outCurvePart.append(self.parent.data1D)
+            dataArray = np.transpose(np.append(np.array([self.parent.xax]),np.array(outCurvePart),0))
+            saveResult(title,variablearray,dataArray)
         else:
             self.parent.showPlot(tmpx, outCurve, x, outCurvePart)
         self.parent.showPlot(tmpx, outCurve, x, outCurvePart)
@@ -6107,7 +6130,7 @@ class Quad2StaticCzjzekParamFrame(QtGui.QWidget):
 class Quad2MASCzjzekParamFrame(Quad2StaticCzjzekParamFrame):
 
     Ioptions = ['3/2', '5/2', '7/2', '9/2']
-
+    savetitle = 'ssNake Czjzek MAS fit results'
     def __init__(self, parent, rootwindow):
         Quad2StaticCzjzekParamFrame.__init__(self, parent, rootwindow)
 
