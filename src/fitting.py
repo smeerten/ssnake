@@ -2927,11 +2927,14 @@ class TensorDeconvParamFrame(QtGui.QWidget):
         fitAllButton.clicked.connect(self.fitAll)
         self.frame1.addWidget(fitAllButton, 2, 0)
         copyResultButton = QtGui.QPushButton("Copy result")
-        copyResultButton.clicked.connect(lambda: self.sim(True))
+        copyResultButton.clicked.connect(lambda: self.sim('copy'))
         self.frame1.addWidget(copyResultButton, 3, 0)
+        saveResultButton = QtGui.QPushButton("Save to text")
+        saveResultButton.clicked.connect(lambda: self.sim('save'))
+        self.frame1.addWidget(saveResultButton, 4, 0)
         cancelButton = QtGui.QPushButton("&Cancel")
         cancelButton.clicked.connect(self.closeWindow)
-        self.frame1.addWidget(cancelButton, 4, 0)
+        self.frame1.addWidget(cancelButton, 5, 0)
         resetButton = QtGui.QPushButton("Reset")
         resetButton.clicked.connect(self.reset)
         self.frame1.addWidget(resetButton, 0, 1)
@@ -3567,12 +3570,25 @@ class TensorDeconvParamFrame(QtGui.QWidget):
             y = outAmp[i] * self.tensorFunc(tmpx, outt11[i], outt22[i], outt33[i], outWidth[i], outGauss[i], multt, self.parent.current.sw, weight, self.axAdd)
             outCurvePart.append(outCurveBase + y)
             outCurve += y
-        if store:
+            
+            
+        if store == 'copy':
             outCurvePart.append(outCurve)
             outCurvePart.append(self.parent.data1D)
             self.rootwindow.createNewData(np.array(outCurvePart), self.parent.current.axes, True)
+        elif store == 'save':
+            variablearray  = [['Number of sites',[len(outAmp)]],['Cheng',[self.cheng]]
+            ,['Background',[outBgrnd]],['Slope',[outSlope]],['Amplitude',outAmp]
+            ,['T11',outt11],['T22',outt22],['T33',outt33],['Lorentzian width (Hz)',outWidth],['Gaussian width (Hz)',outGauss]]
+            title = 'ssNake CSA static fit results'
+            
+            outCurvePart.append(outCurve)
+            outCurvePart.append(self.parent.data1D)
+            dataArray = np.transpose(np.append(np.array([self.parent.xax]),np.array(outCurvePart),0))
+            saveResult(title,variablearray,dataArray)
         else:
             self.parent.showPlot(tmpx, outCurve, x, outCurvePart)
+           
 
 ##############################################################################
 
@@ -4629,11 +4645,14 @@ class Quad1DeconvParamFrame(QtGui.QWidget):
         fitAllButton.clicked.connect(self.fitAll)
         self.frame1.addWidget(fitAllButton, 2, 0)
         copyResultButton = QtGui.QPushButton("Copy result")
-        copyResultButton.clicked.connect(lambda: self.sim(True))
+        copyResultButton.clicked.connect(lambda: self.sim('copy'))
         self.frame1.addWidget(copyResultButton, 3, 0)
+        saveResultButton = QtGui.QPushButton("Save to text")
+        saveResultButton.clicked.connect(lambda: self.sim('save'))
+        self.frame1.addWidget(saveResultButton, 4, 0)
         cancelButton = QtGui.QPushButton("&Cancel")
         cancelButton.clicked.connect(self.closeWindow)
-        self.frame1.addWidget(cancelButton, 4, 0)
+        self.frame1.addWidget(cancelButton, 5, 0)
         self.frame1.setColumnStretch(10, 1)
         self.frame1.setAlignment(QtCore.Qt.AlignTop)
         self.optframe.addWidget(QLabel("Cheng:"), 0, 0)
@@ -5257,12 +5276,24 @@ class Quad1DeconvParamFrame(QtGui.QWidget):
             y = outAmp[i] * self.tensorFunc(tmpx, outI, outPos[i], outCq[i], outEta[i], outWidth[i], outGauss[i], angleStuff, self.parent.current.freq, self.parent.current.sw, weight, self.axAdd)
             outCurvePart.append(outCurveBase + y)
             outCurve += y
-        if store:
+        if store == 'copy':
             outCurvePart.append(outCurve)
             outCurvePart.append(self.parent.data1D)
             self.rootwindow.createNewData(np.array(outCurvePart), self.parent.current.axes, True)
+        elif store == 'save':
+            variablearray  = [['Number of sites',[len(outAmp)]],['Cheng',[self.cheng]],['I',[outI]]
+            ,['Background',[outBgrnd]],['Slope',[outSlope]],['Amplitude',outAmp]
+            ,['Position',outPos],['Cq (MHz)',outCq],['Eta',outEta],['Lorentzian width (Hz)',outWidth],['Gaussian width (Hz)',outGauss]]
+            title = 'ssNake first order quadrupole static fit results'
+            
+            outCurvePart.append(outCurve)
+            outCurvePart.append(self.parent.data1D)
+            dataArray = np.transpose(np.append(np.array([self.parent.xax]),np.array(outCurvePart),0))
+            saveResult(title,variablearray,dataArray)
         else:
             self.parent.showPlot(tmpx, outCurve, x, outCurvePart)
+            
+
 
 ##############################################################################
 
