@@ -36,6 +36,7 @@ import widgetClasses as wc
 from updateWindow import UpdateWindow
 from plotWindow import MainPlotWindow
 from euro import euro
+import scipy.constants as SC
 
 
 matplotlib.rc('font', family='DejaVu Sans')
@@ -352,6 +353,8 @@ class MainProgram(QtGui.QMainWindow):
         self.menubar.addMenu(self.helpMenu)
         self.helpMenu.addAction("&Update", self.updateMenu)
         self.helpMenu.addAction("&Chemical shift conversion tool", self.createShiftConversionWindow)
+        self.helpMenu.addAction("&Quadrupole coupling conversion tool", self.createQuadConversionWindow)
+        
         self.helpMenu.addAction("&About", self.about)
 
     def mainWindowCheck(self, transfer):
@@ -1609,7 +1612,10 @@ class MainProgram(QtGui.QMainWindow):
         
     def createShiftConversionWindow(self):
         shiftConversionWindow(self)
-
+        
+    def createQuadConversionWindow(self):
+        quadConversionWindow(self)
+        
     def about(self):
         message = "ssNake " + VERSION
         QtGui.QMessageBox.about(self, 'About', message)
@@ -6458,6 +6464,223 @@ class shiftConversionWindow(QtGui.QWidget):
 
     def closeEvent(self):
         self.deleteLater()
+
+class quadConversionWindow(QtGui.QWidget):
+    
+    Ioptions = ['1', '3/2', '2', '5/2', '3', '7/2', '4', '9/2','5']
+    Ivalues = [1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 4.0, 4.5,5.0]
+   
+    def __init__(self, parent):
+        QtGui.QWidget.__init__(self, parent)
+        self.setWindowFlags(QtCore.Qt.Window | QtCore.Qt.Tool)
+        self.father = parent
+
+        self.setWindowTitle("Quadrupolar Coupling Conversions")
+
+        grid = QtGui.QGridLayout()
+        grid.setColumnStretch(10, 1)
+        grid.setRowStretch(14, 1)
+
+
+        Itext = QtGui.QLabel("I:")
+        Itext.setAlignment(QtCore.Qt.AlignHCenter)
+        grid.addWidget(Itext, 0, 0)
+        self.IEntry = QtGui.QComboBox()
+        self.IEntry.addItems(self.Ioptions)
+        self.IEntry.setCurrentIndex(0)
+        grid.addWidget(self.IEntry, 1, 0)
+        etalabel = QtGui.QLabel(u'\u03b7')
+        etalabel.setAlignment(QtCore.Qt.AlignHCenter)
+        grid.addWidget(etalabel, 0, 1)
+        self.Eta = QtGui.QLineEdit()
+        self.Eta.setText("0")
+        self.Eta.setAlignment(QtCore.Qt.AlignHCenter)
+        grid.addWidget(self.Eta, 1, 1)
+        
+        momentlabel = QtGui.QLabel('Q (fm<sup>2</sup>)')
+        momentlabel.setAlignment(QtCore.Qt.AlignHCenter)
+        grid.addWidget(momentlabel, 0, 2)
+        self.Moment = QtGui.QLineEdit()
+        self.Moment.setText("ND")
+        self.Moment.setAlignment(QtCore.Qt.AlignHCenter)
+        grid.addWidget(self.Moment, 1, 2)
+        
+        
+        grid.addWidget(QtGui.QLabel(""),2, 0)
+        
+        CqConv = QtGui.QLabel("C<sub>Q</sub> Convention:")
+        CqConv.setAlignment(QtCore.Qt.AlignHCenter)
+        grid.addWidget(CqConv, 3, 0)
+        Cqlabel = QtGui.QLabel(u'C' + u'<sub>Q</sub>/2\u03c0 (MHz)')
+        Cqlabel.setAlignment(QtCore.Qt.AlignHCenter)
+        grid.addWidget(Cqlabel, 3, 1)
+       
+        CqGO = QtGui.QPushButton("Go")
+        grid.addWidget(CqGO, 4, 0)
+        CqGO.clicked.connect(lambda: self.quadCalc(0))
+        self.Cq = QtGui.QLineEdit()
+        self.Cq.setText("0")
+        self.Cq.setAlignment(QtCore.Qt.AlignHCenter)
+        grid.addWidget(self.Cq, 4, 1)
+
+      
+        grid.addWidget(QtGui.QLabel(""),5, 0)
+      
+        WqConv = QtGui.QLabel(u"\u03c9<sub>Q</sub> Convention:")
+        WqConv.setAlignment(QtCore.Qt.AlignHCenter)
+        grid.addWidget(WqConv, 6, 0)
+        Wqlabel = QtGui.QLabel(u'\u03c9' + u'<sub>Q</sub>/2\u03c0 (MHz)')
+        Wqlabel.setAlignment(QtCore.Qt.AlignHCenter)
+        grid.addWidget(Wqlabel, 6, 1)
+        WqGO = QtGui.QPushButton("Go")
+        grid.addWidget(WqGO, 7, 0)
+        WqGO.clicked.connect(lambda: self.quadCalc(1))
+        self.Wq = QtGui.QLineEdit()
+        self.Wq.setText("0")
+        self.Wq.setAlignment(QtCore.Qt.AlignHCenter)
+        grid.addWidget(self.Wq, 7, 1)
+        
+        grid.addWidget(QtGui.QLabel(""),8, 0)
+        
+        VConv = QtGui.QLabel("Field gradients:")
+        VConv.setAlignment(QtCore.Qt.AlignHCenter)
+        grid.addWidget(VConv, 9, 0)
+        Vxxlabel = QtGui.QLabel('V<sub>xx</sub> (V/m<sup>2</sup>)')
+        Vxxlabel.setAlignment(QtCore.Qt.AlignHCenter)
+        grid.addWidget(Vxxlabel, 9, 1)
+        VGO = QtGui.QPushButton("Go")
+        grid.addWidget(VGO, 10, 0)
+        VGO.clicked.connect(lambda: self.quadCalc(2))
+        self.Vxx = QtGui.QLineEdit()
+        self.Vxx.setText("ND")
+        self.Vxx.setAlignment(QtCore.Qt.AlignHCenter)
+        grid.addWidget(self.Vxx, 10, 1)
+        
+        Vyylabel = QtGui.QLabel('V<sub>yy</sub> (V/m<sup>2</sup>)')
+        Vyylabel.setAlignment(QtCore.Qt.AlignHCenter)
+        grid.addWidget(Vyylabel, 9, 2)
+        self.Vyy = QtGui.QLineEdit()
+        self.Vyy.setText("ND")
+        self.Vyy.setAlignment(QtCore.Qt.AlignHCenter)
+        grid.addWidget(self.Vyy, 10, 2)
+        
+        Vzzlabel = QtGui.QLabel('V<sub>zz</sub> (V/m<sup>2</sup>)')
+        Vzzlabel.setAlignment(QtCore.Qt.AlignHCenter)
+        grid.addWidget(Vzzlabel, 9, 3)
+        self.Vzz = QtGui.QLineEdit()
+        self.Vzz.setText("ND")
+        self.Vzz.setAlignment(QtCore.Qt.AlignHCenter)
+        grid.addWidget(self.Vzz, 10, 3)
+        
+        
+       # Reset
+        grid.addWidget(QtGui.QLabel(""), 11, 0)
+        resetbutton = QtGui.QPushButton("Reset")
+        grid.addWidget(resetbutton, 12, 0)
+        resetbutton.clicked.connect(self.valueReset)
+
+        closebutton = QtGui.QPushButton("Close")
+        grid.addWidget(closebutton, 12, 3)
+        closebutton.clicked.connect(self.closeEvent)
+        
+        self.setLayout(grid)
+        self.show()
+
+    def quadCalc(self, Type):
+        I = self.Ivalues[self.IEntry.currentIndex()]
+        if Type == 0: #Cq as input
+            #Czz is equal to Cq, via same definition (scale) Cxx and Cyy can be found
+            try:
+                Czz = float(safeEval(self.Cq.text())) 
+                
+                Eta = float(safeEval(self.Eta.text())) 
+                Cxx = Czz*(Eta-1)/2
+                Cyy = -Cxx-Czz
+            except:
+                self.father.dispMsg("Invalid input in Cq definition")
+                return 
+            
+
+        if Type == 1:
+            try:
+                Vmax = float(safeEval(self.Wq.text())) 
+                
+                Eta = float(safeEval(self.Eta.text())) 
+                Czz = Vmax*(2.0*I*(2*I-1))/3.0
+                Cxx = Czz*(Eta-1)/2
+                Cyy = -Cxx-Czz
+            except:
+                self.father.dispMsg("Invalid input in Wq definition")
+                return 
+                
+        if Type ==2:
+             try:
+                Vxx = float(safeEval(self.Vxx.text())) 
+                Vyy = float(safeEval(self.Vyy.text())) 
+                Vzz = float(safeEval(self.Vzz.text())) 
+                Q = float(safeEval(self.Moment.text()))*1e-30 #get moment and convert from fm^2
+                
+                #Force traceless
+                if not np.isclose(Vxx+Vyy+Vzz,0.0):
+                    Diff = (Vxx+Vyy+Vzz)/3.0
+                    Vxx = Vxx - Diff
+                    Vyy = Vyy - Diff
+                    Vzz = Vzz - Diff
+                    
+                Scaling = SC.elementary_charge*Q/SC.Planck 
+                Czz = Vzz * Scaling/1e6 #scale for Cq definition in MHz
+                Cxx = Vxx * Scaling/1e6
+                Cyy = Vyy * Scaling/1e6
+             except:
+                self.father.dispMsg("Invalid input in field gradients")
+                return 
+            
+        #sort    
+        CArray = np.array([Cxx, Cyy, Czz])
+        Cindex = np.argsort(np.abs(CArray))
+        Csort = CArray[Cindex]
+        if Csort[2]<0: #If Czz negative due to weird input, make it positive
+            Csort=-Csort
+        CqNew = Csort[2]
+        if CqNew == 0.0:
+            self.Eta.setText('ND')
+        else:
+            EtaNew = np.abs((Csort[0]-Csort[1])/Csort[2]) #Abs to avoid -0.0 rounding error
+            self.Eta.setText('%#.4g' % EtaNew)
+        WqNew = CqNew*3.0/(2.0*I*(2*I-1))
+        self.Cq.setText('%#.4g' % CqNew)
+        self.Wq.setText('%#.4g' % WqNew)
+        try:
+            Q = float(safeEval(self.Moment.text()))*1e-30 #get moment and convert from fm^2
+            Scaling = SC.elementary_charge*Q/SC.Planck 
+            Vxx = Csort[0]/Scaling * 1e6
+            Vyy = Csort[1]/Scaling * 1e6
+            Vzz = Csort[2]/Scaling * 1e6
+            self.Vxx.setText('%#.4g' % Vxx)
+            self.Vyy.setText('%#.4g' % Vyy)
+            self.Vzz.setText('%#.4g' % Vzz)
+        except:
+            self.Moment.setText('ND')
+            self.Vxx.setText('ND')
+            self.Vyy.setText('ND')
+            self.Vzz.setText('ND')
+        
+
+
+    def valueReset(self):  # Resets all the boxes to 0
+        self.Cq.setText('0')
+        self.Eta.setText('0')
+        self.Wq.setText('0')
+        self.Moment.setText('ND')
+        self.Vxx.setText('ND')
+        self.Vyy.setText('ND')
+        self.Vzz.setText('ND')
+       
+
+    def closeEvent(self):
+        self.deleteLater()
+
+
 
 
 root = QtGui.QApplication(sys.argv)
