@@ -550,6 +550,25 @@ For a given cheng number (i.e. number of powder orientations), the $A$, $B$ and 
 
 
 
+\section{Help}
+\subsection{Chemical shift conversion tool}
+In NMR literature there are several definitions in use for describing the chemical shift tensor. This tool provides an easy way to inter convert them. The definitions are based on the very useful website of Klaus Eichele (\url{http://anorganik.uni-tuebingen.de/klaus/nmr/index.php?p=conventions/csa/csa}). In the most useful conventions, the three tensor values $\delta_\text{xx}$, $\delta_\text{yy}$ and $\delta_\text{zz}$ are rewritten to an average value, a width and an asymmetry. Below follow the definitions of the different conventions.
+
+The primary convention is called the `Standard Convention'. This convention just gives the three principal components of the tensor, without any restructuring, called $\delta_\text{11}$, $\delta_\text{22}$ and $\delta_\text{33}$. They are ordered in such a way that: $\delta_\text{11} \geq \delta_\text{22} \geq \delta_\text{33}$.
+
+The second convention we call the `xyz Convention'. This is essentially the same as the Standard Convention, only the ordering is different. We now have $\delta_\text{xx}$, $\delta_\text{yy}$ and $\delta_\text{zz}$. With $|\delta_\text{zz}-\delta_\text{iso}| \geq |\delta_\text{xx}-\delta_\text{iso}| \geq |\delta_\text{yy}-\delta_\text{iso}|$. With $\delta_\text{iso}$ the isotropic value, defined as the average of the three principal components. In this definition, $\delta_\text{zz}$ is the value furthest away from the isotropic value, $\delta_\text{yy}$ the closest, and $\delta_\text{xx}$ the remaining value.
+
+The third definition is the Haeberlen definition (or Haeberlen-Mehring-Spiess). Here, the principal components are ordered as in the xyz convention, only now they are redefined into a width, asymmetry and isotropic value. With $\delta_\text{iso} = (\delta_\text{xx} +\delta_\text{yy} +\delta_\text{zz})/3$, $\delta_\text{aniso} = \delta_\text{zz} -\delta_\text{iso}$ and $\eta = (\delta_\text{yy}-\delta_\text{xx})/\delta_\text{aniso}$. This way, the asymmetry parameter $\eta$ always lies between 0 and 1. Not that due to the ordering of the principal components, the sign of the anisotropy (i.e. the width) is ill defined for $\eta=1$.
+
+The final definition is the Herzfeld-Berger definition. This convention uses the Standard Convention as a basis, and then defines the isotropic value as $\delta_\text{iso} = (\delta_\text{11} + \delta_\text{22} + \delta_\text{33})/3$, the span as $\Omega = \delta_\text{11} - \delta_\text{33}$ and the skew as $\kappa = 3(\delta_\text{22}-\delta_\text{iso})/\Omega$. This way, the span is always positive, while the skew lies between -1 and 1.
+
+
+
+\subsubsection*{Use of the tool}
+Using the chemical shift conversion tool is quite easy. You can fill in all the necessary values for one convention, and push the `Go' button next to it to convert it to all the other definitions. Note that ssNake also checks the definitions. So if you mess up the order of the Standard Convention, for example, it will be put in the correct order. The same is done for values that are outside the defined limits (e.g. $\eta$ and $\kappa$). Pushing `Reset' will reset all the values to 0.
+
+
+
 \bibliographystyle{BibStyle}
 \bibliography{ReferenceManual}
 
