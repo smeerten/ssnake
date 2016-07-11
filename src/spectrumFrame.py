@@ -35,7 +35,6 @@ class Plot1DFrame:
         self.fig.clf()
         if isinstance(self, spectrum_classes.CurrentContour):
             gs = gridspec.GridSpec(2, 2, width_ratios=[self.root.father.defaultWidthRatio, 1], height_ratios=[1, self.root.father.defaultHeightRatio])
-
             self.ax = self.fig.add_subplot(gs[2])
 #            self.x_ax = self.fig.add_subplot(gs[0], sharex=self.ax,axisbg='#bfbfbf')
 #            self.y_ax = self.fig.add_subplot(gs[3], sharey=self.ax,axisbg='#bfbfbf')
@@ -43,16 +42,10 @@ class Plot1DFrame:
             self.y_ax = self.fig.add_subplot(gs[3], sharey=self.ax,axisbg='none',frameon=False)
             self.fig.subplots_adjust(hspace=0)
             self.fig.subplots_adjust(wspace=0)
-            
             self.x_ax.axes.get_xaxis().set_visible(False)
             self.x_ax.axes.get_yaxis().set_visible(False)
-     
             self.y_ax.axes.get_xaxis().set_visible(False)
-            self.y_ax.axes.get_yaxis().set_visible(False)
-
-         
-
-            
+            self.y_ax.axes.get_yaxis().set_visible(False)            
         elif isinstance(self, spectrum_classes.CurrentSkewed):
             self.ax = self.fig.add_subplot(1, 1, 1, projection='3d')
             self.ax.disable_mouse_rotation()
