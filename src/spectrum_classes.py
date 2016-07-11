@@ -31,7 +31,7 @@ import matplotlib
 
 COLORMAPLIST = ['seismic', 'BrBG', 'bwr', 'coolwarm', 'PiYG', 'PRGn', 'PuOr',
                 'RdBu', 'RdGy', 'RdYlBu', 'RdYlGn', 'Spectral', 'rainbow', 'jet']
-COLORCYCLE = matplotlib.rcParams['axes.prop_cycle'].by_key()
+COLORCYCLE = list(matplotlib.rcParams['axes.prop_cycle'])#matplotlib.rcParams['axes.prop_cycle'].by_key()
 COLORCONVERTER = matplotlib.colors.ColorConverter()
 
 
@@ -2449,7 +2449,7 @@ class CurrentMulti(Current1D):
         self.extraName.append(name)
         self.extraData.append(data)
         self.extraLoc.append([0] * (len(self.extraData[-1].data.shape) - 1))
-        self.extraColor.append(COLORCONVERTER.to_rgb(COLORCYCLE['color'][np.mod(len(self.extraData), len(COLORCYCLE['color']))]))  # find a good color system
+        self.extraColor.append(COLORCONVERTER.to_rgb(COLORCYCLE[np.mod(len(self.extraData), len(COLORCYCLE))]['color']))  # find a good color system
         self.extraAxes.append(len(data.data.shape) - 1)
         self.extraScale.append(1.0)
         self.extraOffset.append(0.0)
