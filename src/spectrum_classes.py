@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+    #!/usr/bin/env python
 
 # Copyright 2016 Bas van Meerten and Wouter Franssen
 
@@ -31,7 +31,7 @@ import matplotlib
 
 COLORMAPLIST = ['seismic', 'BrBG', 'bwr', 'coolwarm', 'PiYG', 'PRGn', 'PuOr',
                 'RdBu', 'RdGy', 'RdYlBu', 'RdYlGn', 'Spectral', 'rainbow', 'jet']
-COLORCYCLE = list(matplotlib.rcParams['axes.prop_cycle'])#matplotlib.rcParams['axes.prop_cycle'].by_key()
+COLORCYCLE = list(matplotlib.rcParams['axes.prop_cycle'])
 COLORCONVERTER = matplotlib.colors.ColorConverter()
 
 
@@ -2490,6 +2490,65 @@ class CurrentMulti(Current1D):
                 self.extraLoc[i] = [0] * (len(self.extraData[i].data.shape) - 1)
         else:
             self.extraLoc[num] = [0] * (len(self.extraData[num].data.shape) - 1)
+
+    def plotReset(self, xReset=True, yReset=True):  # set the plot limits to min and max values
+        if self.plotType == 0:
+            miny = np.amin(np.real(self.data1D))
+            maxy = np.amax(np.real(self.data1D))
+        elif self.plotType == 1:
+            miny = np.amin(np.imag(self.data1D))
+            maxy = np.amax(np.imag(self.data1D))
+        elif self.plotType == 2:
+            miny = np.amin((np.amin(np.real(self.data1D)), np.amin(np.imag(self.data1D))))
+            maxy = np.amax((np.amax(np.real(self.data1D)), np.amax(np.imag(self.data1D))))
+        elif self.plotType == 3:
+            miny = np.amin(np.abs(self.data1D))
+            maxy = np.amax(np.abs(self.data1D))
+        else:
+            miny = -1
+            maxy = 1
+        for i in range(len(self.extraData)):
+            data = self.extraData[i]
+            try:
+                if data.data.ndim <= self.extraAxes[i]:
+                    self.extraAxes[i] = len(data.data.shape) - 1
+                    self.resetExtraLocList(i)
+                updateVar = data.getSlice(self.extraAxes[i], self.extraLoc[i])
+            except:
+                self.resetExtraLocList(i)
+                updateVar = data.getSlice(self.extraAxes[i], self.extraLoc[i])
+            data1D = updateVar[0] * self.extraScale[i] + self.extraOffset[i]
+            if self.plotType == 0:
+                miny = min(np.amin(np.real(data1D)), miny)
+                maxy = max(np.amax(np.real(data1D)), maxy)
+            elif self.plotType == 1:
+                miny = min(np.amin(np.imag(data1D)), miny)
+                maxy = max(np.amax(np.imag(data1D)), maxy)
+            elif self.plotType == 2:
+                miny = min(np.amin((np.amin(np.real(data1D)), np.amin(np.imag(data1D)))), miny)
+                maxy = max(np.amax((np.amax(np.real(data1D)), np.amax(np.imag(data1D)))), maxy)
+            elif self.plotType == 3:
+                miny = min(np.amin(np.abs(data1D)), miny)
+                maxy = max(np.amax(np.abs(data1D)), maxy)
+        differ = 0.05 * (maxy - miny)  # amount to add to show all datapoints (10%)
+        if yReset:
+            self.yminlim = miny - differ
+            self.ymaxlim = maxy + differ
+        if self.spec == 1:
+            if self.ppm:
+                axMult = 1e6 / self.ref
+            else:
+                axMult = 1.0 / (1000.0**self.axType)
+        elif self.spec == 0:
+            axMult = 1000.0**self.axType
+        if xReset:
+            self.xminlim = min(self.xax * axMult)
+            self.xmaxlim = max(self.xax * axMult)
+        if self.spec > 0:
+            self.ax.set_xlim(self.xmaxlim, self.xminlim)
+        else:
+            self.ax.set_xlim(self.xminlim, self.xmaxlim)
+        self.ax.set_ylim(self.yminlim, self.ymaxlim)
 
     def showFid(self, tmpdata=None, extraX=None, extraY=None, extraColor=None, old=False, output=None):  # display the 1D data
         self.peakPickReset()
