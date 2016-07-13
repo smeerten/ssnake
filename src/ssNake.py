@@ -6467,8 +6467,8 @@ class shiftConversionWindow(QtGui.QWidget):
 
 class quadConversionWindow(QtGui.QWidget):
     
-    Ioptions = ['1', '3/2', '2', '5/2', '3', '7/2', '4', '9/2','5']
-    Ivalues = [1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 4.0, 4.5,5.0]
+    Ioptions = ['1', '3/2', '2', '5/2', '3', '7/2', '4', '9/2','5','6','7']
+    Ivalues = [1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 4.0, 4.5,5.0,6.0,7.0]
    
     def __init__(self, parent):
         QtGui.QWidget.__init__(self, parent)
