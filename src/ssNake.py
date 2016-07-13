@@ -2634,7 +2634,7 @@ class SideFrame(QtGui.QScrollArea):
     def addMultiSpec(self, *args):
         text = QtGui.QInputDialog.getItem(self, "Select spectrum to show", "Spectrum name:", self.father.father.workspaceNames, 0, False)
         if text[1]:
-            self.father.current.addExtraData(self.father.father.workspaces[self.father.father.workspaceNames.index(text[0])].masterData, str(text[0]))
+            self.father.current.addExtraData(self.father.father.workspaces[self.father.father.workspaceNames.index(text[0])].get_masterData(), str(text[0]))
             self.upd()
 
     def delMultiSpec(self, num):
