@@ -2507,6 +2507,15 @@ class CurrentMulti(Current1D):
         else:
             miny = -1
             maxy = 1
+        if self.spec == 1:
+            if self.ppm:
+                axMult = 1e6 / self.ref
+            else:
+                axMult = 1.0 / (1000.0**self.axType)
+        elif self.spec == 0:
+            axMult = 1000.0**self.axType
+        minx = min(self.xax * axMult)
+        maxx = max(self.xax * axMult)
         for i in range(len(self.extraData)):
             data = self.extraData[i]
             try:
@@ -2518,6 +2527,20 @@ class CurrentMulti(Current1D):
                 self.resetExtraLocList(i)
                 updateVar = data.getSlice(self.extraAxes[i], self.extraLoc[i])
             data1D = updateVar[0] * self.extraScale[i] + self.extraOffset[i]
+            spec = updateVar[3]
+            xax = updateVar[5]
+            ref = updateVar[6]
+            if ref is None:
+                ref = data.freq[self.extraAxes[i]]
+            if spec == 1:
+                if self.ppm:
+                    axMult = 1e6 / ref
+                else:
+                    axMult = 1.0 / (1000.0**self.axType)
+            elif spec == 0:
+                axMult = 1000.0**self.axType
+            maxx = max(max(xax * axMult), maxx)
+            minx = min(min(xax * axMult), minx)
             if self.plotType == 0:
                 miny = min(np.amin(np.real(data1D)), miny)
                 maxy = max(np.amax(np.real(data1D)), maxy)
@@ -2534,16 +2557,9 @@ class CurrentMulti(Current1D):
         if yReset:
             self.yminlim = miny - differ
             self.ymaxlim = maxy + differ
-        if self.spec == 1:
-            if self.ppm:
-                axMult = 1e6 / self.ref
-            else:
-                axMult = 1.0 / (1000.0**self.axType)
-        elif self.spec == 0:
-            axMult = 1000.0**self.axType
         if xReset:
-            self.xminlim = min(self.xax * axMult)
-            self.xmaxlim = max(self.xax * axMult)
+            self.xminlim = minx
+            self.xmaxlim = maxx
         if self.spec > 0:
             self.ax.set_xlim(self.xmaxlim, self.xminlim)
         else:
