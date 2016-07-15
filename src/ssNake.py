@@ -380,8 +380,8 @@ class MainProgram(QtGui.QMainWindow):
                 try:
                     temp_dir = tempfile.mkdtemp()
                     zipfile.ZipFile(path).extractall(temp_dir)
-                    for i in os.listdir(temp_dir):
-                        if self.autoLoad(os.path.join(temp_dir, i)):
+                    for i in os.listdir(temp_dir): #Send the original path too,  for the workspace name
+                        if self.autoLoad(os.path.join(temp_dir, i),realpath=path):
                             break
                 finally:
                     shutil.rmtree(temp_dir)
@@ -907,15 +907,15 @@ class MainProgram(QtGui.QMainWindow):
                     temp_dir = tempfile.mkdtemp()
                     zipfile.ZipFile(filePath).extractall(temp_dir)
                     for i in os.listdir(temp_dir):
-                        self.autoLoad(os.path.join(temp_dir, i))
-                        if masterData:
-                            break
+                        self.autoLoad(os.path.join(temp_dir, i),realpath=filePath)
+#                        if masterData:
+#                            break
                 finally:
                     shutil.rmtree(temp_dir)
             else:
                 self.autoLoad(filePath)
 
-    def autoLoad(self, filePath):
+    def autoLoad(self, filePath,realpath=False):
         returnVal = 0
         if os.path.isfile(filePath):
             filename = os.path.basename(filePath)
@@ -957,7 +957,7 @@ class MainProgram(QtGui.QMainWindow):
             files2D = [x for x in dirFiles if '.2d' in x]
             files1D = [x for x in dirFiles if '.1d' in x]
             if len(files2D) != 0 or len(files1D) != 0:
-                self.loading(3, filePath)
+                self.loading(3, filePath,realpath=realpath)
                 return returnVal
 
     def dataFromFit(self, data, filePath, freq, sw, spec, wholeEcho, ref, xaxArray, axes):
@@ -981,11 +981,14 @@ class MainProgram(QtGui.QMainWindow):
         self.workspaceNames.append(name)
         self.changeMainWindow(name)
 
-    def loading(self, num, filePath, returnBool=False):
+    def loading(self, num, filePath, returnBool=False,realpath=False):
         if returnBool:
             name = None
         else:
-            name = os.path.splitext(os.path.basename(filePath))[0]
+            if realpath: #If there is a temp file, use the real path for name
+                name = os.path.splitext(os.path.basename(realpath))[0]
+            else:
+                name = os.path.splitext(os.path.basename(filePath))[0]
             if self.defaultAskName:
                 name = self.askName(filePath, name)
                 if name is None:
@@ -1002,7 +1005,7 @@ class MainProgram(QtGui.QMainWindow):
         elif num == 2:
             masterData = self.LoadChemFile(filePath, name)
         elif num == 3:
-            masterData = self.LoadMagritek(filePath, name)
+            masterData = self.LoadMagritek(filePath, name,realpath)
         elif num == 4:
             masterData = self.LoadSimpsonFile(filePath, name)
         elif num == 5:
@@ -1434,12 +1437,17 @@ class MainProgram(QtGui.QMainWindow):
         masterData.addHistory("Chemagnetics data loaded from " + filePath)
         return masterData
 
-    def LoadMagritek(self, filePath, name=''):
+    def LoadMagritek(self, filePath, name='',realPath=''):
         # Magritek load script based on some Matlab files by Ole Brauckman
         if os.path.isfile(filePath):
             Dir = os.path.dirname(filePath)
         else:
             Dir = filePath
+            
+        if realPath:
+            rememberPath = realPath
+        else:
+            rememberPath = filePath
         DirFiles = os.listdir(Dir)
         Files2D = [x for x in DirFiles if '.2d' in x]
         Files1D = [x for x in DirFiles if '.1d' in x]
@@ -1463,15 +1471,15 @@ class MainProgram(QtGui.QMainWindow):
             Data = raw[-2 * sizeTD2 * sizeTD1::]
             ComplexData = Data[0:Data.shape[0]:2] - 1j * Data[1:Data.shape[0]:2]
             ComplexData = ComplexData.reshape((sizeTD1, sizeTD2))
-            masterData = sc.Spectrum(name, ComplexData, (3, filePath), [freq] * 2, [sw1,sw], [False] * 2,ref=[None,ref], msgHandler=lambda msg: self.dispMsg(msg))
+            masterData = sc.Spectrum(name, ComplexData, (3, rememberPath), [freq] * 2, [sw1,sw], [False] * 2,ref=[None,ref], msgHandler=lambda msg: self.dispMsg(msg))
         elif len(Files1D) != 0:
             File = 'data.1d'
             with open(Dir + os.path.sep + File, 'rb') as f:
                 raw = np.fromfile(f, np.float32)
             Data = raw[-2 * sizeTD2::]
             ComplexData = Data[0:Data.shape[0]:2] - 1j * Data[1:Data.shape[0]:2]
-            masterData = sc.Spectrum(name, ComplexData, (3, filePath), [freq], [sw], [False],ref=[ref], msgHandler=lambda msg: self.dispMsg(msg))
-        masterData.addHistory("Magritek data loaded from " + filePath)
+            masterData = sc.Spectrum(name, ComplexData, (3, rememberPath), [freq], [sw], [False],ref=[ref], msgHandler=lambda msg: self.dispMsg(msg))
+        masterData.addHistory("Magritek data loaded from " + rememberPath)
         return masterData
 
     def LoadSimpsonFile(self, filePath, name=''):
@@ -1958,7 +1966,16 @@ class Main1DWindow(QtGui.QWidget):
 
     def reloadLast(self):
         self.redoList = []
-        loadData = self.father.loading(self.masterData.filePath[0], self.masterData.filePath[1], True) 
+        path = self.masterData.filePath[1]
+        if path.endswith('.zip'):
+            import tempfile
+            import shutil
+            import zipfile
+            temp_dir = tempfile.mkdtemp()
+            zipfile.ZipFile(path).extractall(temp_dir)
+            loadData = self.father.loading(self.masterData.filePath[0], temp_dir, True,realpath=path) 
+        else:
+            loadData = self.father.loading(self.masterData.filePath[0], self.masterData.filePath[1], True) 
         self.undoList.append(self.masterData.restoreData(loadData, None))
         self.current.upd()
         self.current.plotReset()
