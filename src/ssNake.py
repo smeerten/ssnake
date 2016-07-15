@@ -1446,7 +1446,11 @@ class MainProgram(QtGui.QMainWindow):
         H = dict(line.strip().split('=') for line in open(Dir + os.path.sep + 'acqu.par', 'r'))
         sw = float(H['bandwidth                 ']) * 1000
         sizeTD2 = int(H['nrPnts                    '])
-        freq = float(H['b1Freq                    '])
+        freq = float(H['b1Freq                    '])*1e6
+        lastfreq = float(H['lowestFrequency           '])
+        
+        sidefreq = -np.floor(sizeTD2 / 2) / sizeTD2 * sw  # freqeuency of last point on axis
+        ref = sidefreq + freq - lastfreq
         if len(Files2D) == 1:
             File = Files2D[0]
             sizeTD1 = int(H['nrSteps                   '])
@@ -1459,14 +1463,14 @@ class MainProgram(QtGui.QMainWindow):
             Data = raw[-2 * sizeTD2 * sizeTD1::]
             ComplexData = Data[0:Data.shape[0]:2] - 1j * Data[1:Data.shape[0]:2]
             ComplexData = ComplexData.reshape((sizeTD1, sizeTD2))
-            masterData = sc.Spectrum(name, ComplexData, (3, filePath), [freq * 1e6] * 2, [sw, sw1], [False] * 2, msgHandler=lambda msg: self.dispMsg(msg))
+            masterData = sc.Spectrum(name, ComplexData, (3, filePath), [freq] * 2, [sw1,sw], [False] * 2,ref=[None,ref], msgHandler=lambda msg: self.dispMsg(msg))
         elif len(Files1D) != 0:
             File = 'data.1d'
             with open(Dir + os.path.sep + File, 'rb') as f:
                 raw = np.fromfile(f, np.float32)
             Data = raw[-2 * sizeTD2::]
             ComplexData = Data[0:Data.shape[0]:2] - 1j * Data[1:Data.shape[0]:2]
-            masterData = sc.Spectrum(name, ComplexData, (3, filePath), [freq * 1e6], [sw], [False], msgHandler=lambda msg: self.dispMsg(msg))
+            masterData = sc.Spectrum(name, ComplexData, (3, filePath), [freq], [sw], [False],ref=[ref], msgHandler=lambda msg: self.dispMsg(msg))
         masterData.addHistory("Magritek data loaded from " + filePath)
         return masterData
 
