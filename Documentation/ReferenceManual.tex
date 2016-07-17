@@ -567,6 +567,30 @@ The final definition is the Herzfeld-Berger definition. This convention uses the
 \subsubsection*{Use of the tool}
 Using the chemical shift conversion tool is quite easy. You can fill in all the necessary values for one convention, and push the `Go' button next to it to convert it to all the other definitions. Note that ssNake also checks the definitions. So if you mess up the order of the Standard Convention, for example, it will be put in the correct order. The same is done for values that are outside the defined limits (e.g. $\eta$ and $\kappa$). Pushing `Reset' will reset all the values to 0.
 
+\subsection{Quadrupole coupling conversion tool}
+Nuclei with a spin quantum number greater than 1/2 have an asymmetric charge distribution. This leads to a quadrupolar moment, and thus to a coupling between the nucleus and the electronic field gradient at the nuclear site. Just as for chemical shift, there are multiple convention in use to describe the resulting quadrupolar tensor. Apart from being a symmetric tensor, Laplace relation states that the sum of the field gradients in all direction should be zero (otherwise the nuclei would experience a net force). Due to this, there is no isotropic term, and the quadrupolar coupling can be described by two numbers: the strength and the asymmetry. Of these there are two conventions in use: C$_\text{Q}$ and $\omegaup_\text{Q}$. When the field gradients in the three independent directions are $V_\text{xx}$, $V_\text{yy}$ and $V_\text{xx}$ (with $|V_\text{zz}| \geq |V_\text{yy}| \geq |V_\text{xx}|$), C$_\text{Q}$ is defined as:
+\begin{equation}
+C_\text{Q} = \dfrac{eV_\text{zz}Q}{\hbar} = \dfrac{e^2qQ}{\hbar}
+\end{equation}
+or the more commonly used C$_\text{Q}/2\piup$ (which has Hz as unit):
+\begin{equation}
+C_\text{Q}/2\piup = \dfrac{eV_\text{zz}Q}{h} = \dfrac{e^2qQ}{h} \quad .
+\end{equation}
+With $e$ the elementary charge, $Q$ the quadrupole moment (in m$^2$), $h$ the Planck constant (and $\hbar$ the reduced Planck constant). Alternatively, a value that is scaled with the spin quantum number $I$ is used:
+\begin{equation}
+\omegaup_\text{Q}/2\piup = \dfrac{3e^2qQ}{2I(2I+1)h} = \dfrac{3}{2I(2I+1)} C_\text{Q}/2\piup	\quad .
+\end{equation}
+For both definitions, the asymmetry is defined as:
+\begin{equation}
+\eta = \dfrac{V_\text{xx} -V_\text{yy}}{V_\text{zz}}
+\end{equation}
+which, due to the ordering of the fields gradient components, is always between 1 and 0.
+
+Generally, only the $C_\text{Q}$ and $\omegaup_\text{Q}$ definitions are used, and the field gradients themselves are not shown. However, if the quadrupolar coupling for a nucleus in a material is known, the field gradients can be calculated by using the known quadrupolar moment of the nucleus. This way, the quadrupole coupling for another isotope at the same site in the material can be calculated by reversing the equation with a new moment and spin quantum number.
+
+\subsubsection*{Use of the tool}
+Using the quadrupole conversion tool is quite easy. You can fill in all the necessary values for one convention, and push the `Go' button next to it to convert it to all the other definitions. Note that ssNake also checks the definitions. So if you have an asymmetry below 0, it will reorder the field gradients in such a way it lies between 1 and 0 again. To calculate the field gradients from the quadrupole coupling constant (or the other way around), the quadrupolar moment should be given (which starts at `ND", being `not defined'). When starting from the field gradients, ssNake checks if they sum to 0 (which they should). If not, the difference is subtracted from the three values, to make sure it is. Note that only the absolute quadrupolar coupling is found in NMR, so pay no heed to the absolute sign of the field gradients.
+
 
 
 \bibliographystyle{BibStyle}
