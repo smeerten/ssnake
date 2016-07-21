@@ -136,6 +136,7 @@ class FittingWindow(QtGui.QWidget):
 
 ##############################################################################
 
+
 def saveResult(title,variablearray,dataArray):
     #A function which saves fit results as an ascii:
     #title: string for the first line of the file
@@ -870,8 +871,7 @@ class RelaxParamFrame(QtGui.QWidget):
         self.frame1.addWidget(copyResultButton, 3, 0)
         saveResultButton = QtGui.QPushButton("Save to text")
         saveResultButton.clicked.connect(lambda: self.sim('save'))
-        self.frame1.addWidget(saveResultButton, 4, 0)
-        
+        self.frame1.addWidget(saveResultButton, 4, 0)        
         cancelButton = QtGui.QPushButton("&Cancel")
         cancelButton.clicked.connect(self.closeWindow)
         self.frame1.addWidget(cancelButton, 5, 0)
@@ -955,41 +955,6 @@ class RelaxParamFrame(QtGui.QWidget):
                 self.t1Ticks[i].hide()
                 self.t1Entries[i].hide()
 
-    def fitFunc(self, param, args):
-        x = param[0]
-        param = np.delete(param, [0])
-        numExp = args[0]
-        struc = args[1]
-        argu = args[2]
-        testFunc = np.zeros(len(x))
-        if struc[0]:
-            amplitude = param[0]
-            param = np.delete(param, [0])
-        else:
-            amplitude = argu[0]
-            argu = np.delete(argu, [0])
-        if struc[1]:
-            constant = param[0]
-            param = np.delete(param, [0])
-        else:
-            constant = argu[0]
-            argu = np.delete(argu, [0])
-        for i in range(1, numExp + 1):
-            if struc[2 * i]:
-                coeff = param[0]
-                param = np.delete(param, [0])
-            else:
-                coeff = argu[0]
-                argu = np.delete(argu, [0])
-            if struc[2 * i + 1]:
-                T1 = param[0]
-                param = np.delete(param, [0])
-            else:
-                T1 = argu[0]
-                argu = np.delete(argu, [0])
-            testFunc += coeff * np.exp(-1.0 * x / T1)
-        return amplitude * (constant + testFunc)
-
     def checkInputs(self):
         numExp = self.numExp.currentIndex() + 1
         inp = safeEval(self.ampEntry.text())
@@ -1010,13 +975,6 @@ class RelaxParamFrame(QtGui.QWidget):
                 return False
             self.t1Entries[i].setText('%#.3g' % inp)
         return True
-
-    def mpFit(self, xax, data1D, guess, args, queue):
-        try:
-            fitVal = scipy.optimize.curve_fit(lambda *param: self.fitFunc(param, args), xax, data1D, guess)
-        except:
-            fitVal = None
-        queue.put(fitVal)
 
     def fit(self, *args):
         if not self.checkInputs():
@@ -1059,7 +1017,7 @@ class RelaxParamFrame(QtGui.QWidget):
                 struc.append(False)
         args = (numExp, struc, argu)
         self.queue = multiprocessing.Queue()
-        self.process1 = multiprocessing.Process(target=self.mpFit, args=(self.parent.xax, self.parent.data1D, guess, args, self.queue))
+        self.process1 = multiprocessing.Process(target=relaxationmpFit, args=(self.parent.xax, self.parent.data1D, guess, args, self.queue))
         self.process1.start()
         self.running = True
         self.stopButton.show()
@@ -1108,15 +1066,6 @@ class RelaxParamFrame(QtGui.QWidget):
 
     def fitAll(self, *args):
         FitAllSelectionWindow(self, ["Amplitude", "Constant", "Coefficient", "T"])
-
-    def mpAllFit(self, xax, data, guess, args, queue):
-        fitVal = []
-        for j in data:
-            try:
-                fitVal.append(scipy.optimize.curve_fit(lambda *param: self.fitFunc(param, args), xax, np.real(j), guess))
-            except:
-                fitVal.append([[0] * 10])
-        queue.put(fitVal)
 
     def fitAllFunc(self, outputs):
         if not self.checkInputs():
@@ -1169,7 +1118,7 @@ class RelaxParamFrame(QtGui.QWidget):
         counter2 = 0
         fitData = rolledData.reshape(dataShape[axes], np.product(dataShape2)).T
         self.queue = multiprocessing.Queue()
-        self.process1 = multiprocessing.Process(target=self.mpAllFit, args=(self.parent.xax, fitData, guess, args, self.queue))
+        self.process1 = multiprocessing.Process(target=relaxationmpAllFit, args=(self.parent.xax, fitData, guess, args, self.queue))
         self.process1.start()
         self.running = True
         self.stopButton.show()
@@ -1232,8 +1181,7 @@ class RelaxParamFrame(QtGui.QWidget):
             variablearray  = [['Number of sites',[len(outCoeff)]]
             ,['Amplitude',[outAmp]],['Constant',[outConst]],['Coefficient',outCoeff]
             ,['T[s]',outT1]]
-            title = 'ssNake relaxation fit results'
-            
+            title = 'ssNake relaxation fit results'            
             outCurve = np.zeros((len(outCoeff) + 2, len(self.parent.xax)))
             tmp = np.zeros(len(self.parent.xax))
             for i in range(len(outCoeff)):
@@ -1246,9 +1194,6 @@ class RelaxParamFrame(QtGui.QWidget):
         else:
             self.disp(outAmp, outConst, outCoeff, outT1)
 
-
-
-        
     def copyResult(self, outAmp, outConst, outCoeff, outT1):
         outCurve = np.zeros((len(outCoeff) + 2, len(self.parent.xax)))
         tmp = np.zeros(len(self.parent.xax))
@@ -1269,6 +1214,60 @@ class RelaxParamFrame(QtGui.QWidget):
         for i in range(len(outCoeff)):
             outCurve += outCoeff[i] * np.exp(-x / outT1[i])
         self.parent.showPlot(x, outAmp * (outConst + outCurve))
+
+#############################################################################
+
+def relaxationmpFit(xax, data1D, guess, args, queue):
+    try:
+        fitVal = scipy.optimize.curve_fit(lambda *param: relaxationfitFunc(param, args), xax, data1D, guess)
+    except:
+        fitVal = None
+    queue.put(fitVal)
+
+def relaxationmpAllFit(xax, data, guess, args, queue):
+    fitVal = []
+    for j in data:
+        try:
+            fitVal.append(scipy.optimize.curve_fit(lambda *param: relaxationfitFunc(param, args), xax, np.real(j), guess))
+        except:
+            fitVal.append([[0] * 10])
+    queue.put(fitVal)
+
+def relaxationfitFunc(param, args):
+    x = param[0]
+    param = np.delete(param, [0])
+    numExp = args[0]
+    struc = args[1]
+    argu = args[2]
+    testFunc = np.zeros(len(x))
+    if struc[0]:
+        amplitude = param[0]
+        param = np.delete(param, [0])
+    else:
+        amplitude = argu[0]
+        argu = np.delete(argu, [0])
+    if struc[1]:
+        constant = param[0]
+        param = np.delete(param, [0])
+    else:
+        constant = argu[0]
+        argu = np.delete(argu, [0])
+    for i in range(1, numExp + 1):
+        if struc[2 * i]:
+            coeff = param[0]
+            param = np.delete(param, [0])
+        else:
+            coeff = argu[0]
+            argu = np.delete(argu, [0])
+        if struc[2 * i + 1]:
+            T1 = param[0]
+            param = np.delete(param, [0])
+        else:
+            T1 = argu[0]
+            argu = np.delete(argu, [0])
+        testFunc += coeff * np.exp(-1.0 * x / T1)
+    return amplitude * (constant + testFunc)
+        
 ##############################################################################
 
 
@@ -1701,44 +1700,6 @@ class DiffusionParamFrame(QtGui.QWidget):
                 self.dTicks[i].hide()
                 self.dEntries[i].hide()
 
-    def fitFunc(self, param, args):
-        x = param[0]
-        param = np.delete(param, [0])
-        numExp = args[0]
-        struc = args[1]
-        argu = args[2]
-        gamma = args[3]
-        delta = args[4]
-        triangle = args[5]
-        testFunc = np.zeros(len(x))
-        if struc[0]:
-            amplitude = param[0]
-            param = np.delete(param, [0])
-        else:
-            amplitude = argu[0]
-            argu = np.delete(argu, [0])
-        if struc[1]:
-            constant = param[0]
-            param = np.delete(param, [0])
-        else:
-            constant = argu[0]
-            argu = np.delete(argu, [0])
-        for i in range(1, numExp + 1):
-            if struc[2 * i]:
-                coeff = param[0]
-                param = np.delete(param, [0])
-            else:
-                coeff = argu[0]
-                argu = np.delete(argu, [0])
-            if struc[2 * i + 1]:
-                D = param[0]
-                param = np.delete(param, [0])
-            else:
-                D = argu[0]
-                argu = np.delete(argu, [0])
-            testFunc += coeff * np.exp(-(gamma * delta * x)**2 * D * (triangle - delta / 3.0))
-        return amplitude * (constant + testFunc)
-
     def checkInputs(self):
         numExp = self.numExp.currentIndex() + 1
         inp = safeEval(self.gammaEntry.text())
@@ -1771,13 +1732,6 @@ class DiffusionParamFrame(QtGui.QWidget):
                 return False
             self.dEntries[i].setText('%#.3g' % inp)
         return True
-
-    def mpFit(self, xax, data1D, guess, args, queue):
-        try:
-            fitVal = scipy.optimize.curve_fit(lambda *param: self.fitFunc(param, args), xax, data1D, guess)
-        except:
-            fitVal = None
-        queue.put(fitVal)
 
     def fit(self, *args):
         if not self.checkInputs():
@@ -1823,7 +1777,7 @@ class DiffusionParamFrame(QtGui.QWidget):
                 struc.append(False)
         args = (numExp, struc, argu, gamma, delta, triangle)
         self.queue = multiprocessing.Queue()
-        self.process1 = multiprocessing.Process(target=self.mpFit, args=(self.parent.xax, self.parent.data1D, guess, args, self.queue))
+        self.process1 = multiprocessing.Process(target=diffusionmpFit, args=(self.parent.xax, self.parent.data1D, guess, args, self.queue))
         self.process1.start()
         self.running = True
         self.stopButton.show()
@@ -1872,15 +1826,6 @@ class DiffusionParamFrame(QtGui.QWidget):
 
     def fitAll(self, *args):
         FitAllSelectionWindow(self, ["Amplitude", "Constant", "Coefficient", "D"])
-
-    def mpAllFit(self, xax, data, guess, args, queue):
-        fitVal = []
-        for j in data:
-            try:
-                fitVal.append(scipy.optimize.curve_fit(lambda *param: self.fitFunc(param, args), xax, np.real(j), guess))
-            except:
-                fitVal.append([[0] * 10])
-        queue.put(fitVal)
 
     def fitAllFunc(self, outputs):
         if not self.checkInputs():
@@ -1936,7 +1881,7 @@ class DiffusionParamFrame(QtGui.QWidget):
         counter2 = 0
         fitData = rolledData.reshape(dataShape[axes], np.product(dataShape2)).T
         self.queue = multiprocessing.Queue()
-        self.process1 = multiprocessing.Process(target=self.mpAllFit, args=(self.parent.xax, fitData, guess, args, self.queue))
+        self.process1 = multiprocessing.Process(target=diffusionmpAllFit, args=(self.parent.xax, fitData, guess, args, self.queue))
         self.process1.start()
         self.running = True
         self.stopButton.show()
@@ -2037,6 +1982,63 @@ class DiffusionParamFrame(QtGui.QWidget):
         for i in range(len(outCoeff)):
             outCurve += outCoeff[i] * np.exp(-(gamma * delta * x)**2 * outD[i] * (triangle - delta / 3.0))
         self.parent.showPlot(x, outAmp * (outConst + outCurve))
+
+##############################################################################
+
+
+def diffusionmpFit(xax, data1D, guess, args, queue):
+    try:
+        fitVal = scipy.optimize.curve_fit(lambda *param: diffusionfitFunc(param, args), xax, data1D, guess)
+    except:
+        fitVal = None
+    queue.put(fitVal)
+
+def diffusionmpAllFit(xax, data, guess, args, queue):
+    fitVal = []
+    for j in data:
+        try:
+            fitVal.append(scipy.optimize.curve_fit(lambda *param: diffusionfitFunc(param, args), xax, np.real(j), guess))
+        except:
+            fitVal.append([[0] * 10])
+    queue.put(fitVal)
+
+def fitFunc(param, args):
+    x = param[0]
+    param = np.delete(param, [0])
+    numExp = args[0]
+    struc = args[1]
+    argu = args[2]
+    gamma = args[3]
+    delta = args[4]
+    triangle = args[5]
+    testFunc = np.zeros(len(x))
+    if struc[0]:
+        amplitude = param[0]
+        param = np.delete(param, [0])
+    else:
+        amplitude = argu[0]
+        argu = np.delete(argu, [0])
+    if struc[1]:
+        constant = param[0]
+        param = np.delete(param, [0])
+    else:
+        constant = argu[0]
+        argu = np.delete(argu, [0])
+    for i in range(1, numExp + 1):
+        if struc[2 * i]:
+            coeff = param[0]
+            param = np.delete(param, [0])
+        else:
+            coeff = argu[0]
+            argu = np.delete(argu, [0])
+        if struc[2 * i + 1]:
+            D = param[0]
+            param = np.delete(param, [0])
+        else:
+            D = argu[0]
+            argu = np.delete(argu, [0])
+        testFunc += coeff * np.exp(-(gamma * delta * x)**2 * D * (triangle - delta / 3.0))
+    return amplitude * (constant + testFunc)
 
 ##############################################################################
 
@@ -2368,60 +2370,6 @@ class PeakDeconvParamFrame(QtGui.QWidget):
     def togglePick(self):
         self.parent.togglePick(self.pickTick.isChecked())
 
-    def fitFunc(self, param, args):
-        x = param[0]
-        param = np.delete(param, [0])
-        numExp = args[0]
-        struc = args[1]
-        argu = args[2]
-        sw = args[3]
-        axAdd = args[4]
-        axMult = args[5]
-        testFunc = np.zeros(len(x))
-        if struc[0]:
-            bgrnd = param[0]
-            param = np.delete(param, [0])
-        else:
-            bgrnd = argu[0]
-            argu = np.delete(argu, [0])
-        if struc[1]:
-            slope = param[0]
-            param = np.delete(param, [0])
-        else:
-            slope = argu[0]
-            argu = np.delete(argu, [0])
-        for i in range(numExp):
-            if struc[4 * i + 2]:
-                pos = param[0]
-                param = np.delete(param, [0])
-            else:
-                pos = argu[0]
-                argu = np.delete(argu, [0])
-            if struc[4 * i + 3]:
-                amp = param[0]
-                param = np.delete(param, [0])
-            else:
-                amp = argu[0]
-                argu = np.delete(argu, [0])
-            if struc[4 * i + 4]:
-                width = abs(param[0])
-                param = np.delete(param, [0])
-            else:
-                width = argu[0]
-                argu = np.delete(argu, [0])
-            if struc[4 * i + 5]:
-                gauss = abs(param[0])
-                param = np.delete(param, [0])
-            else:
-                gauss = argu[0]
-                argu = np.delete(argu, [0])
-            t = np.arange(len(x)) / sw
-            timeSignal = np.exp(1j * 2 * np.pi * t * (pos / axMult - axAdd)) * np.exp(-np.pi * width * t) * np.exp(-((np.pi * gauss * t)**2) / (4 * np.log(2))) * 2 / sw
-            timeSignal[0] = timeSignal[0] * 0.5
-            testFunc += amp * np.real(np.fft.fftshift(np.fft.fft(timeSignal)))
-        testFunc += bgrnd + slope * x
-        return testFunc
-
     def checkInputs(self):
         numExp = self.numExp.currentIndex() + 1
         inp = safeEval(self.bgrndEntry.text())
@@ -2450,13 +2398,6 @@ class PeakDeconvParamFrame(QtGui.QWidget):
                 return False
             self.gaussEntries[i].setText('%#.3g' % inp)
         return True
-
-    def mpFit(self, xax, data1D, guess, args, queue):
-        try:
-            fitVal = scipy.optimize.curve_fit(lambda *param: self.fitFunc(param, args), xax, data1D, guess)
-        except:
-            fitVal = None
-        queue.put(fitVal)
 
     def fit(self, *args):
         if not self.checkInputs():
@@ -2515,7 +2456,7 @@ class PeakDeconvParamFrame(QtGui.QWidget):
                 struc.append(False)
         args = (numExp, struc, argu, self.parent.current.sw, self.axAdd, self.axMult)
         self.queue = multiprocessing.Queue()
-        self.process1 = multiprocessing.Process(target=self.mpFit, args=(self.parent.xax, self.parent.data1D, guess, args, self.queue))
+        self.process1 = multiprocessing.Process(target=peakDeconvmpFit, args=(self.parent.xax, self.parent.data1D, guess, args, self.queue))
         self.process1.start()
         self.running = True
         self.stopButton.show()
@@ -2572,15 +2513,6 @@ class PeakDeconvParamFrame(QtGui.QWidget):
 
     def fitAll(self, *args):
         FitAllSelectionWindow(self, ["Background", "Slope", "Position", "Integral", "Lorentz", "Gauss"])
-
-    def mpAllFit(self, xax, data, guess, args, queue):
-        fitVal = []
-        for j in data:
-            try:
-                fitVal.append(scipy.optimize.curve_fit(lambda *param: self.fitFunc(param, args), xax, np.real(j), guess))
-            except:
-                fitVal.append([[0] * 10])
-        queue.put(fitVal)
 
     def fitAllFunc(self, outputs):
         if not self.checkInputs():
@@ -2649,7 +2581,7 @@ class PeakDeconvParamFrame(QtGui.QWidget):
         counter2 = 0
         fitData = rolledData.reshape(dataShape[axes], np.product(dataShape2)).T
         self.queue = multiprocessing.Queue()
-        self.process1 = multiprocessing.Process(target=self.mpAllFit, args=(self.parent.xax, fitData, guess, args, self.queue))
+        self.process1 = multiprocessing.Process(target=peakDeconvmpAllFit, args=(self.parent.xax, fitData, guess, args, self.queue))
         self.process1.start()
         self.running = True
         self.stopButton.show()
@@ -2754,6 +2686,79 @@ class PeakDeconvParamFrame(QtGui.QWidget):
             saveResult(title,variablearray,dataArray)
         else:
             self.parent.showPlot(tmpx, outCurve, x, outCurvePart)
+
+##############################################################################
+
+
+def peakDeconvmpFit(xax, data1D, guess, args, queue):
+    try:
+        fitVal = scipy.optimize.curve_fit(lambda *param: peakDeconvfitFunc(param, args), xax, data1D, guess)
+    except:
+        fitVal = None
+    queue.put(fitVal)
+
+def peakDeconvmpAllFit(xax, data, guess, args, queue):
+    fitVal = []
+    for j in data:
+        try:
+            fitVal.append(scipy.optimize.curve_fit(lambda *param: fitFunc(param, args), xax, np.real(j), guess))
+        except:
+            fitVal.append([[0] * 10])
+    queue.put(fitVal)
+
+def peakDeconvfitFunc(param, args):
+    x = param[0]
+    param = np.delete(param, [0])
+    numExp = args[0]
+    struc = args[1]
+    argu = args[2]
+    sw = args[3]
+    axAdd = args[4]
+    axMult = args[5]
+    testFunc = np.zeros(len(x))
+    if struc[0]:
+        bgrnd = param[0]
+        param = np.delete(param, [0])
+    else:
+        bgrnd = argu[0]
+        argu = np.delete(argu, [0])
+    if struc[1]:
+        slope = param[0]
+        param = np.delete(param, [0])
+    else:
+        slope = argu[0]
+        argu = np.delete(argu, [0])
+    for i in range(numExp):
+        if struc[4 * i + 2]:
+            pos = param[0]
+            param = np.delete(param, [0])
+        else:
+            pos = argu[0]
+            argu = np.delete(argu, [0])
+        if struc[4 * i + 3]:
+            amp = param[0]
+            param = np.delete(param, [0])
+        else:
+            amp = argu[0]
+            argu = np.delete(argu, [0])
+        if struc[4 * i + 4]:
+            width = abs(param[0])
+            param = np.delete(param, [0])
+        else:
+            width = argu[0]
+            argu = np.delete(argu, [0])
+        if struc[4 * i + 5]:
+            gauss = abs(param[0])
+            param = np.delete(param, [0])
+        else:
+            gauss = argu[0]
+            argu = np.delete(argu, [0])
+        t = np.arange(len(x)) / sw
+        timeSignal = np.exp(1j * 2 * np.pi * t * (pos / axMult - axAdd)) * np.exp(-np.pi * width * t) * np.exp(-((np.pi * gauss * t)**2) / (4 * np.log(2))) * 2 / sw
+        timeSignal[0] = timeSignal[0] * 0.5
+        testFunc += amp * np.real(np.fft.fftshift(np.fft.fft(timeSignal)))
+    testFunc += bgrnd + slope * x
+    return testFunc
 
 ##############################################################################
 
@@ -3109,80 +3114,6 @@ class TensorDeconvParamFrame(QtGui.QWidget):
                 self.gaussTicks[i].hide()
                 self.gaussEntries[i].hide()
 
-    def tensorFunc(self, x, t11, t22, t33, lor, gauss, multt, sw, weight, axAdd):
-        t11 = t11 * multt[0]
-        t22 = t22 * multt[1]
-        t33 = t33 * multt[2]
-        v = t11 + t22 + t33 - axAdd
-        length = len(x)
-        t = np.arange(length) / sw
-        final = np.zeros(length)
-        mult = v / sw * length
-        x1 = np.array(np.round(mult) + np.floor(length / 2.0), dtype=int)
-        weight = weight[np.logical_and(x1 >= 0, x1 < length)]
-        x1 = x1[np.logical_and(x1 >= 0, x1 < length)]
-        final = np.bincount(x1, weight, length)
-        apod = np.exp(-np.pi * lor * t) * np.exp(-((np.pi * gauss * t)**2) / (4 * np.log(2)))
-        apod[-1:-(len(apod) / 2 + 1):-1] = apod[:len(apod) / 2]
-        I = np.real(np.fft.fft(np.fft.ifft(final) * apod))
-        I = I / sw * len(I)
-        return I
-
-    def fitFunc(self, param, numExp, struc, argu, sw, axAdd, multt, weight, x, y):
-        testFunc = np.zeros(len(x))
-        if struc[0]:
-            bgrnd = param[0]
-            param = np.delete(param, [0])
-        else:
-            bgrnd = argu[0]
-            argu = np.delete(argu, [0])
-        if struc[1]:
-            slope = param[0]
-            param = np.delete(param, [0])
-        else:
-            slope = argu[0]
-            argu = np.delete(argu, [0])
-        for i in range(numExp):
-            if struc[6 * i + 2]:
-                t11 = param[0]
-                param = np.delete(param, [0])
-            else:
-                t11 = argu[0]
-                argu = np.delete(argu, [0])
-            if struc[6 * i + 3]:
-                t22 = param[0]
-                param = np.delete(param, [0])
-            else:
-                t22 = argu[0]
-                argu = np.delete(argu, [0])
-            if struc[6 * i + 4]:
-                t33 = param[0]
-                param = np.delete(param, [0])
-            else:
-                t33 = argu[0]
-                argu = np.delete(argu, [0])
-            if struc[6 * i + 5]:
-                amp = param[0]
-                param = np.delete(param, [0])
-            else:
-                amp = argu[0]
-                argu = np.delete(argu, [0])
-            if struc[6 * i + 6]:
-                width = abs(param[0])
-                param = np.delete(param, [0])
-            else:
-                width = argu[0]
-                argu = np.delete(argu, [0])
-            if struc[6 * i + 7]:
-                gauss = abs(param[0])
-                param = np.delete(param, [0])
-            else:
-                gauss = argu[0]
-                argu = np.delete(argu, [0])
-            testFunc += amp * self.tensorFunc(x, t11, t22, t33, width, gauss, multt, sw, weight, axAdd)
-        testFunc += bgrnd + slope * x
-        return np.sum((np.real(testFunc) - y)**2)
-
     def checkInputs(self):
         numExp = self.numExp.currentIndex() + 1
         inp = safeEval(self.bgrndEntry.text())
@@ -3219,16 +3150,6 @@ class TensorDeconvParamFrame(QtGui.QWidget):
                 return False
             self.gaussEntries[i].setText('%#.3g' % inp)
         return True
-
-    def mpFit(self, xax, data1D, guess, args, queue, cheng):
-        phi, theta, weight = zcw_angles(cheng, symm=2)
-        multt = [np.sin(theta)**2 * np.cos(phi)**2, np.sin(theta)**2 * np.sin(phi)**2, np.cos(theta)**2]
-        arg = args + (multt, weight, xax, data1D)
-        try:
-            fitVal = scipy.optimize.fmin(self.fitFunc, guess, args=arg, disp=False)
-        except:
-            fitVal = None
-        queue.put(fitVal)
 
     def fit(self, *args):
         self.setCheng()
@@ -3304,7 +3225,7 @@ class TensorDeconvParamFrame(QtGui.QWidget):
                 struc.append(False)
         args = (numExp, struc, argu, self.parent.current.sw, self.axAdd)
         self.queue = multiprocessing.Queue()
-        self.process1 = multiprocessing.Process(target=self.mpFit, args=(self.parent.xax, np.real(self.parent.data1D), guess, args, self.queue, self.cheng))
+        self.process1 = multiprocessing.Process(target=tensorDeconvmpFit, args=(self.parent.xax, np.real(self.parent.data1D), guess, args, self.queue, self.cheng))
         self.process1.start()
         self.running = True
         self.stopButton.show()
@@ -3369,18 +3290,6 @@ class TensorDeconvParamFrame(QtGui.QWidget):
 
     def fitAll(self, *args):
         FitAllSelectionWindow(self, ["Background", "Slope", "T11", "T22", "T33", "Integral", "Lorentz", "Gauss"])
-
-    def mpAllFit(self, xax, data, guess, args, queue, cheng):
-        phi, theta, weight = zcw_angles(cheng, symm=2)
-        multt = [np.sin(theta)**2 * np.cos(phi)**2, np.sin(theta)**2 * np.sin(phi)**2, np.cos(theta)**2]
-        fitVal = []
-        for j in data:
-            arg = args + (multt, weight, xax, j)
-            try:
-                fitVal.append(scipy.optimize.fmin(self.fitFunc, guess, args=arg, disp=False))
-            except:
-                fitVal.append([[0] * 10])
-        queue.put(fitVal)
 
     def fitAllFunc(self, outputs):
         self.setCheng()
@@ -3466,7 +3375,7 @@ class TensorDeconvParamFrame(QtGui.QWidget):
         counter2 = 0
         fitData = rolledData.reshape(dataShape[axes], np.product(dataShape2)).T
         self.queue = multiprocessing.Queue()
-        self.process1 = multiprocessing.Process(target=self.mpAllFit, args=(self.parent.xax, np.real(fitData), guess, args, self.queue, self.cheng))
+        self.process1 = multiprocessing.Process(target=tensorDeconvmpAllFit, args=(self.parent.xax, np.real(fitData), guess, args, self.queue, self.cheng))
         self.process1.start()
         self.running = True
         self.stopButton.show()
@@ -3567,11 +3476,9 @@ class TensorDeconvParamFrame(QtGui.QWidget):
         x = []
         for i in range(len(outt11)):
             x.append(tmpx)
-            y = outAmp[i] * self.tensorFunc(tmpx, outt11[i], outt22[i], outt33[i], outWidth[i], outGauss[i], multt, self.parent.current.sw, weight, self.axAdd)
+            y = outAmp[i] * tensorDeconvtensorFunc(tmpx, outt11[i], outt22[i], outt33[i], outWidth[i], outGauss[i], multt, self.parent.current.sw, weight, self.axAdd)
             outCurvePart.append(outCurveBase + y)
             outCurve += y
-            
-            
         if store == 'copy':
             outCurvePart.append(outCurve)
             outCurvePart.append(self.parent.data1D)
@@ -3581,14 +3488,111 @@ class TensorDeconvParamFrame(QtGui.QWidget):
             ,['Background',[outBgrnd]],['Slope',[outSlope]],['Amplitude',outAmp]
             ,['T11',outt11],['T22',outt22],['T33',outt33],['Lorentzian width (Hz)',outWidth],['Gaussian width (Hz)',outGauss]]
             title = 'ssNake CSA static fit results'
-            
             outCurvePart.append(outCurve)
             outCurvePart.append(self.parent.data1D)
             dataArray = np.transpose(np.append(np.array([self.parent.xax]),np.array(outCurvePart),0))
             saveResult(title,variablearray,dataArray)
         else:
             self.parent.showPlot(tmpx, outCurve, x, outCurvePart)
-           
+
+##############################################################################
+
+
+def tensorDeconvmpFit(xax, data1D, guess, args, queue, cheng):
+    phi, theta, weight = zcw_angles(cheng, symm=2)
+    multt = [np.sin(theta)**2 * np.cos(phi)**2, np.sin(theta)**2 * np.sin(phi)**2, np.cos(theta)**2]
+    arg = args + (multt, weight, xax, data1D)
+    try:
+        fitVal = scipy.optimize.fmin(tensorDeconvfitFunc, guess, args=arg, disp=False)
+    except:
+        fitVal = None
+    queue.put(fitVal)
+
+def tensorDeconvmpAllFit(xax, data, guess, args, queue, cheng):
+    phi, theta, weight = zcw_angles(cheng, symm=2)
+    multt = [np.sin(theta)**2 * np.cos(phi)**2, np.sin(theta)**2 * np.sin(phi)**2, np.cos(theta)**2]
+    fitVal = []
+    for j in data:
+        arg = args + (multt, weight, xax, j)
+        try:
+            fitVal.append(scipy.optimize.fmin(tensorDeconvfitFunc, guess, args=arg, disp=False))
+        except:
+            fitVal.append([[0] * 10])
+    queue.put(fitVal)
+
+def tensorDeconvfitFunc(param, numExp, struc, argu, sw, axAdd, multt, weight, x, y):
+    testFunc = np.zeros(len(x))
+    if struc[0]:
+        bgrnd = param[0]
+        param = np.delete(param, [0])
+    else:
+        bgrnd = argu[0]
+        argu = np.delete(argu, [0])
+    if struc[1]:
+        slope = param[0]
+        param = np.delete(param, [0])
+    else:
+        slope = argu[0]
+        argu = np.delete(argu, [0])
+    for i in range(numExp):
+        if struc[6 * i + 2]:
+            t11 = param[0]
+            param = np.delete(param, [0])
+        else:
+            t11 = argu[0]
+            argu = np.delete(argu, [0])
+        if struc[6 * i + 3]:
+            t22 = param[0]
+            param = np.delete(param, [0])
+        else:
+            t22 = argu[0]
+            argu = np.delete(argu, [0])
+        if struc[6 * i + 4]:
+            t33 = param[0]
+            param = np.delete(param, [0])
+        else:
+            t33 = argu[0]
+            argu = np.delete(argu, [0])
+        if struc[6 * i + 5]:
+            amp = param[0]
+            param = np.delete(param, [0])
+        else:
+            amp = argu[0]
+            argu = np.delete(argu, [0])
+        if struc[6 * i + 6]:
+            width = abs(param[0])
+            param = np.delete(param, [0])
+        else:
+            width = argu[0]
+            argu = np.delete(argu, [0])
+        if struc[6 * i + 7]:
+            gauss = abs(param[0])
+            param = np.delete(param, [0])
+        else:
+            gauss = argu[0]
+            argu = np.delete(argu, [0])
+        testFunc += amp * tensorDeconvtensorFunc(x, t11, t22, t33, width, gauss, multt, sw, weight, axAdd)
+    testFunc += bgrnd + slope * x
+    return np.sum((np.real(testFunc) - y)**2)
+
+def tensorDeconvtensorFunc(x, t11, t22, t33, lor, gauss, multt, sw, weight, axAdd):
+    t11 = t11 * multt[0]
+    t22 = t22 * multt[1]
+    t33 = t33 * multt[2]
+    v = t11 + t22 + t33 - axAdd
+    length = len(x)
+    t = np.arange(length) / sw
+    final = np.zeros(length)
+    mult = v / sw * length
+    x1 = np.array(np.round(mult) + np.floor(length / 2.0), dtype=int)
+    weight = weight[np.logical_and(x1 >= 0, x1 < length)]
+    x1 = x1[np.logical_and(x1 >= 0, x1 < length)]
+    final = np.bincount(x1, weight, length)
+    apod = np.exp(-np.pi * lor * t) * np.exp(-((np.pi * gauss * t)**2) / (4 * np.log(2)))
+    apod[-1:-(len(apod) / 2 + 1):-1] = apod[:len(apod) / 2]
+    I = np.real(np.fft.fft(np.fft.ifft(final) * apod))
+    I = I / sw * len(I)
+    return I
 
 ##############################################################################
 
@@ -3853,63 +3857,6 @@ class HerzfeldBergerParamFrame(QtGui.QWidget):
             self.cheng = int(inp)
         self.chengEntry.setText(str(self.cheng))
 
-    def hbFunc(self, omega0, delta, eta, NSTEPS, tresolution, angleStuff, weight):
-        omegars = omega0 * delta * (angleStuff[0] + angleStuff[1] + eta * (angleStuff[2] + angleStuff[3] + angleStuff[4] + angleStuff[5]))
-        # omegars =  omega0*delta*(self.C1  + self.C2 +  eta*(self.C1eta + self.C2eta + self.S1 + self.S2 ))
-        # QTrs = np.exp(-1j*np.cumsum(omegars, axis=1)*self.tresolution)
-        nsteps = angleStuff[0].shape[1]
-        QTrs = np.concatenate([np.ones([angleStuff[0].shape[0], 1]), np.exp(-1j * np.cumsum(omegars, axis=1) * tresolution)[:, :-1]], 1)
-        for j in range(1, nsteps):
-            QTrs[:, j] = np.exp(-1j * np.sum(omegars[:, 0:j] * tresolution, 1))
-        rhoT0sr = np.conj(QTrs)
-        # calculate the gamma-averaged FID over 1 rotor period for all crystallites
-        favrs = np.zeros(NSTEPS, dtype=complex)
-        for j in range(NSTEPS):
-            favrs[j] += np.sum(weight * np.sum(rhoT0sr * np.roll(QTrs, -j, axis=1), 1) / NSTEPS**2)
-        # calculate the sideband intensities by doing an FT and pick the ones that are needed further
-        sidebands = np.real(np.fft.fft(favrs))
-        return sidebands
-
-    def fitFunc(self, param, struc, argu, omega0, NSTEPS, tresolution, angleStuff, weight, x, y):
-        if struc[0]:
-            delta = param[0]
-            param = np.delete(param, [0])
-        else:
-            delta = argu[0]
-            argu = np.delete(argu, [0])
-        if struc[1]:
-            eta = param[0]
-            param = np.delete(param, [0])
-        else:
-            eta = argu[0]
-            argu = np.delete(argu, [0])
-        testFunc = self.hbFunc(omega0, delta, eta, NSTEPS, tresolution, angleStuff, weight)
-        testFunc = testFunc[x] / np.sum(testFunc[x]) * np.real(np.sum(y))
-        return np.sum((testFunc - y)**2)
-
-    def mpFit(self, sidebandList, integralList, guess, args, queue, NSTEPS, omegar, cheng):
-        theta, phi, weight = zcw_angles(cheng, symm=2)
-        sinPhi = np.sin(phi)
-        cosPhi = np.cos(phi)
-        sin2Theta = np.sin(2 * theta)
-        cos2Theta = np.cos(2 * theta)
-        tresolution = 2 * np.pi / omegar / NSTEPS
-        t = np.linspace(0, tresolution * (NSTEPS - 1), NSTEPS)
-        cosOmegarT = np.cos(omegar * t)
-        cos2OmegarT = np.cos(2 * omegar * t)
-        angleStuff = [np.array([np.sqrt(2) / 3 * sinPhi * cosPhi * 3]).transpose() * cosOmegarT,
-                      np.array([-1.0 / 3 * 3 / 2 * sinPhi**2]).transpose() * cos2OmegarT,
-                      np.transpose([cos2Theta / 3.0]) * (np.array([np.sqrt(2) / 3 * sinPhi * cosPhi * 3]).transpose() * cosOmegarT),
-                      np.array([1.0 / 3 / 2 * (1 + cosPhi**2) * cos2Theta]).transpose() * cos2OmegarT,
-                      np.array([np.sqrt(2) / 3 * sinPhi * sin2Theta]).transpose() * np.sin(omegar * t),
-                      np.array([cosPhi * sin2Theta / 3]).transpose() * np.sin(2 * omegar * t)]
-        arg = args + (NSTEPS, tresolution, angleStuff, weight, sidebandList, integralList)
-        try:
-            fitVal = scipy.optimize.fmin(self.fitFunc, guess, args=arg, disp=False)
-        except:
-            fitVal = None
-        queue.put(fitVal)
-
     def checkInputs(self):
         inp = safeEval(self.deltaEntry.text())
         if inp is None:
@@ -3958,7 +3905,7 @@ class HerzfeldBergerParamFrame(QtGui.QWidget):
             struc.append(False)
         args = (struc, argu, self.parent.current.freq * np.pi * 2)
         self.queue = multiprocessing.Queue()
-        self.process1 = multiprocessing.Process(target=self.mpFit, args=(self.sidebandList, np.real(self.integralList), guess, args, self.queue, self.NSTEPS, omegar, self.cheng))
+        self.process1 = multiprocessing.Process(target=hbmpFit, args=(self.sidebandList, np.real(self.integralList), guess, args, self.queue, self.NSTEPS, omegar, self.cheng))
         self.process1.start()
         self.running = True
         self.stopButton.show()
@@ -4025,11 +3972,69 @@ class HerzfeldBergerParamFrame(QtGui.QWidget):
                       np.array([1.0 / 3 / 2 * (1 + cosPhi**2) * cos2Theta]).transpose() * cos2OmegarT,
                       np.array([np.sqrt(2) / 3 * sinPhi * sin2Theta]).transpose() * np.sin(omegar * t),
                       np.array([cosPhi * sin2Theta / 3]).transpose() * np.sin(2 * omegar * t)]
-        testFunc = self.hbFunc(self.parent.current.freq * np.pi * 2, outDelta, outEta, NSTEPS, tresolution, angleStuff, weight)
+        testFunc = hbFunc(self.parent.current.freq * np.pi * 2, outDelta, outEta, NSTEPS, tresolution, angleStuff, weight)
         results = testFunc[self.sidebandList]
         results /= np.sum(results)
         for i in range(len(self.resultLabels)):
             self.resultLabels[i].setText('%#.5g' % (results[i] * np.sum(self.integralList)))
+
+##############################################################################
+
+
+def hbmpFit(sidebandList, integralList, guess, args, queue, NSTEPS, omegar, cheng):
+    theta, phi, weight = zcw_angles(cheng, symm=2)
+    sinPhi = np.sin(phi)
+    cosPhi = np.cos(phi)
+    sin2Theta = np.sin(2 * theta)
+    cos2Theta = np.cos(2 * theta)
+    tresolution = 2 * np.pi / omegar / NSTEPS
+    t = np.linspace(0, tresolution * (NSTEPS - 1), NSTEPS)
+    cosOmegarT = np.cos(omegar * t)
+    cos2OmegarT = np.cos(2 * omegar * t)
+    angleStuff = [np.array([np.sqrt(2) / 3 * sinPhi * cosPhi * 3]).transpose() * cosOmegarT,
+                  np.array([-1.0 / 3 * 3 / 2 * sinPhi**2]).transpose() * cos2OmegarT,
+                  np.transpose([cos2Theta / 3.0]) * (np.array([np.sqrt(2) / 3 * sinPhi * cosPhi * 3]).transpose() * cosOmegarT),
+                  np.array([1.0 / 3 / 2 * (1 + cosPhi**2) * cos2Theta]).transpose() * cos2OmegarT,
+                  np.array([np.sqrt(2) / 3 * sinPhi * sin2Theta]).transpose() * np.sin(omegar * t),
+                  np.array([cosPhi * sin2Theta / 3]).transpose() * np.sin(2 * omegar * t)]
+    arg = args + (NSTEPS, tresolution, angleStuff, weight, sidebandList, integralList)
+    try:
+        fitVal = scipy.optimize.fmin(hbfitFunc, guess, args=arg, disp=False)
+    except:
+        fitVal = None
+    queue.put(fitVal)
+
+def hbfitFunc(param, struc, argu, omega0, NSTEPS, tresolution, angleStuff, weight, x, y):
+    if struc[0]:
+        delta = param[0]
+        param = np.delete(param, [0])
+    else:
+        delta = argu[0]
+        argu = np.delete(argu, [0])
+    if struc[1]:
+        eta = param[0]
+        param = np.delete(param, [0])
+    else:
+        eta = argu[0]
+        argu = np.delete(argu, [0])
+    testFunc = hbFunc(omega0, delta, eta, NSTEPS, tresolution, angleStuff, weight)
+    testFunc = testFunc[x] / np.sum(testFunc[x]) * np.real(np.sum(y))
+    return np.sum((testFunc - y)**2)
+
+def hbFunc(omega0, delta, eta, NSTEPS, tresolution, angleStuff, weight):
+    omegars = omega0 * delta * (angleStuff[0] + angleStuff[1] + eta * (angleStuff[2] + angleStuff[3] + angleStuff[4] + angleStuff[5]))
+    nsteps = angleStuff[0].shape[1]
+    QTrs = np.concatenate([np.ones([angleStuff[0].shape[0], 1]), np.exp(-1j * np.cumsum(omegars, axis=1) * tresolution)[:, :-1]], 1)
+    for j in range(1, nsteps):
+        QTrs[:, j] = np.exp(-1j * np.sum(omegars[:, 0:j] * tresolution, 1))
+    rhoT0sr = np.conj(QTrs)
+    # calculate the gamma-averaged FID over 1 rotor period for all crystallites
+    favrs = np.zeros(NSTEPS, dtype=complex)
+    for j in range(NSTEPS):
+        favrs[j] += np.sum(weight * np.sum(rhoT0sr * np.roll(QTrs, -j, axis=1), 1) / NSTEPS**2)
+    # calculate the sideband intensities by doing an FT and pick the ones that are needed further
+    sidebands = np.real(np.fft.fft(favrs))
+    return sidebands
 
 ##############################################################################
 
@@ -4301,73 +4306,6 @@ class Quad1MASDeconvParamFrame(QtGui.QWidget):
             self.cheng = int(inp)
         self.chengEntry.setText(str(self.cheng))
 
-    def hbFunc(self, omega0, Cq, eta, I, NSTEPS, tresolution, angleStuff, weight):
-        m = np.arange(-I, 0)  # Only half the transitions have to be caclulated, as the others are mirror images (sidebands inversed)
-        eff = I**2 + I - m * (m + 1)  # The detection efficiencies of the top half transitions
-        splitting = np.arange(I - 0.5, -0.1, -1)  # The quadrupolar couplings of the top half transitions
-        nsteps = angleStuff[0].shape[1]
-        sidebands = np.zeros(nsteps)
-        for transition in range(len(eff)):  # For all transitions
-            if splitting[transition] != 0:  # If quad coupling not zero: calculate sideban pattern
-                delta = splitting[transition] * 2 * np.pi * 3 / (2 * I * (2 * I - 1)) * Cq * 1e6  # Calc delta based on Cq [MHz] and spin qunatum
-                omegars = delta * (angleStuff[0] + angleStuff[1] + eta * (angleStuff[2] + angleStuff[3] + angleStuff[4] + angleStuff[5]))
-                # QTrs = np.exp(-1j*np.cumsum(omegars, axis=1)*self.tresolution)
-
-                QTrs = np.concatenate([np.ones([angleStuff[0].shape[0], 1]), np.exp(-1j * np.cumsum(omegars, axis=1) * tresolution)[:, :-1]], 1)
-                for j in range(1, nsteps):
-                    QTrs[:, j] = np.exp(-1j * np.sum(omegars[:, 0:j] * tresolution, 1))
-                rhoT0sr = np.conj(QTrs)
-                # calculate the gamma-averaged FID over 1 rotor period for all crystallites
-                favrs = np.zeros(NSTEPS, dtype=complex)
-                for j in range(NSTEPS):
-                    favrs[j] += np.sum(weight * np.sum(rhoT0sr * np.roll(QTrs, -j, axis=1), 1) / NSTEPS**2)
-                # calculate the sideband intensities by doing an FT and pick the ones that are needed further
-                partbands = np.real(np.fft.fft(favrs))
-                sidebands = sidebands + eff[transition] * (partbands + np.roll(np.flipud(partbands), 1))
-            else:  # If zero: add all the intensity to the centreband
-                sidebands[0] = sidebands[0] + eff[transition]
-        return sidebands
-
-    def fitFunc(self, param, struc, argu, omega0, I, NSTEPS, tresolution, angleStuff, weight, x, y):
-        if struc[0]:
-            delta = param[0]
-            param = np.delete(param, [0])
-        else:
-            delta = argu[0]
-            argu = np.delete(argu, [0])
-        if struc[1]:
-            eta = param[0]
-            param = np.delete(param, [0])
-        else:
-            eta = argu[0]
-            argu = np.delete(argu, [0])
-        testFunc = self.hbFunc(omega0, delta, eta, I, NSTEPS, tresolution, angleStuff, weight)
-        testFunc = testFunc[np.array(x)] / np.sum(testFunc[x]) * np.sum(y)
-        return np.sum((testFunc - y)**2)
-
-    def mpFit(self, sidebandList, integralList, guess, args, queue, I, NSTEPS, omegar, cheng):
-        theta, phi, weight = zcw_angles(cheng, symm=2)
-        sinPhi = np.sin(phi)
-        cosPhi = np.cos(phi)
-        sin2Theta = np.sin(2 * theta)
-        cos2Theta = np.cos(2 * theta)
-        tresolution = 2 * np.pi / omegar / NSTEPS
-        t = np.linspace(0, tresolution * (NSTEPS - 1), NSTEPS)
-        cosOmegarT = np.cos(omegar * t)
-        cos2OmegarT = np.cos(2 * omegar * t)
-        angleStuff = [np.array([np.sqrt(2) / 3 * sinPhi * cosPhi * 3]).transpose() * cosOmegarT,
-                      np.array([-1.0 / 3 * 3 / 2 * sinPhi**2]).transpose() * cos2OmegarT,
-                      np.transpose([cos2Theta / 3.0]) * (np.array([np.sqrt(2) / 3 * sinPhi * cosPhi * 3]).transpose() * cosOmegarT),
-                      np.array([1.0 / 3 / 2 * (1 + cosPhi**2) * cos2Theta]).transpose() * cos2OmegarT,
-                      np.array([np.sqrt(2) / 3 * sinPhi * sin2Theta]).transpose() * np.sin(omegar * t),
-                      np.array([cosPhi * sin2Theta / 3]).transpose() * np.sin(2 * omegar * t)]
-        arg = args + (I, NSTEPS, tresolution, angleStuff, weight, sidebandList, integralList)
-        try:
-            fitVal = scipy.optimize.fmin(self.fitFunc, guess, args=arg, disp=False)
-        except:
-            fitVal = None
-        queue.put(fitVal)
-
     def checkInputs(self):
         inp = safeEval(self.deltaEntry.text())
         if inp is None:
@@ -4417,7 +4355,7 @@ class Quad1MASDeconvParamFrame(QtGui.QWidget):
         I = self.Ivalues[self.IEntry.currentIndex()]
         args = (struc, argu, self.parent.current.freq * np.pi * 2)
         self.queue = multiprocessing.Queue()
-        self.process1 = multiprocessing.Process(target=self.mpFit, args=(self.sidebandList, np.real(self.integralList), guess, args, self.queue, I, self.NSTEPS, omegar, self.cheng))
+        self.process1 = multiprocessing.Process(target=quad1MASmpFit, args=(self.sidebandList, np.real(self.integralList), guess, args, self.queue, I, self.NSTEPS, omegar, self.cheng))
         self.process1.start()
         self.running = True
         self.stopButton.show()
@@ -4485,11 +4423,79 @@ class Quad1MASDeconvParamFrame(QtGui.QWidget):
                       np.array([1.0 / 3 / 2 * (1 + cosPhi**2) * cos2Theta]).transpose() * cos2OmegarT,
                       np.array([np.sqrt(2) / 3 * sinPhi * sin2Theta]).transpose() * np.sin(omegar * t),
                       np.array([cosPhi * sin2Theta / 3]).transpose() * np.sin(2 * omegar * t)]
-        testFunc = self.hbFunc(self.parent.current.freq * np.pi * 2, outDelta, outEta, I, NSTEPS, tresolution, angleStuff, weight)
+        testFunc = quad1MAShbFunc(self.parent.current.freq * np.pi * 2, outDelta, outEta, I, NSTEPS, tresolution, angleStuff, weight)
         results = testFunc[np.array(self.sidebandList)]
         results /= np.sum(results)
         for i in range(len(self.resultLabels)):
             self.resultLabels[i].setText('%#.5g' % (results[i] * np.sum(self.integralList)))
+
+##############################################################################
+
+
+def quad1MASmpFit(sidebandList, integralList, guess, args, queue, I, NSTEPS, omegar, cheng):
+    theta, phi, weight = zcw_angles(cheng, symm=2)
+    sinPhi = np.sin(phi)
+    cosPhi = np.cos(phi)
+    sin2Theta = np.sin(2 * theta)
+    cos2Theta = np.cos(2 * theta)
+    tresolution = 2 * np.pi / omegar / NSTEPS
+    t = np.linspace(0, tresolution * (NSTEPS - 1), NSTEPS)
+    cosOmegarT = np.cos(omegar * t)
+    cos2OmegarT = np.cos(2 * omegar * t)
+    angleStuff = [np.array([np.sqrt(2) / 3 * sinPhi * cosPhi * 3]).transpose() * cosOmegarT,
+                  np.array([-1.0 / 3 * 3 / 2 * sinPhi**2]).transpose() * cos2OmegarT,
+                  np.transpose([cos2Theta / 3.0]) * (np.array([np.sqrt(2) / 3 * sinPhi * cosPhi * 3]).transpose() * cosOmegarT),
+                  np.array([1.0 / 3 / 2 * (1 + cosPhi**2) * cos2Theta]).transpose() * cos2OmegarT,
+                  np.array([np.sqrt(2) / 3 * sinPhi * sin2Theta]).transpose() * np.sin(omegar * t),
+                  np.array([cosPhi * sin2Theta / 3]).transpose() * np.sin(2 * omegar * t)]
+    arg = args + (I, NSTEPS, tresolution, angleStuff, weight, sidebandList, integralList)
+    try:
+        fitVal = scipy.optimize.fmin(quad1MASfitFunc, guess, args=arg, disp=False)
+    except:
+        fitVal = None
+    queue.put(fitVal)
+
+def quad1MASfitFunc(param, struc, argu, omega0, I, NSTEPS, tresolution, angleStuff, weight, x, y):
+    if struc[0]:
+        delta = param[0]
+        param = np.delete(param, [0])
+    else:
+        delta = argu[0]
+        argu = np.delete(argu, [0])
+    if struc[1]:
+        eta = param[0]
+        param = np.delete(param, [0])
+    else:
+        eta = argu[0]
+        argu = np.delete(argu, [0])
+    testFunc = quad1MAShbFunc(omega0, delta, eta, I, NSTEPS, tresolution, angleStuff, weight)
+    testFunc = testFunc[np.array(x)] / np.sum(testFunc[x]) * np.sum(y)
+    return np.sum((testFunc - y)**2)
+
+def quad1MAShbFunc(omega0, Cq, eta, I, NSTEPS, tresolution, angleStuff, weight):
+    m = np.arange(-I, 0)  # Only half the transitions have to be caclulated, as the others are mirror images (sidebands inversed)
+    eff = I**2 + I - m * (m + 1)  # The detection efficiencies of the top half transitions
+    splitting = np.arange(I - 0.5, -0.1, -1)  # The quadrupolar couplings of the top half transitions
+    nsteps = angleStuff[0].shape[1]
+    sidebands = np.zeros(nsteps)
+    for transition in range(len(eff)):  # For all transitions
+        if splitting[transition] != 0:  # If quad coupling not zero: calculate sideban pattern
+            delta = splitting[transition] * 2 * np.pi * 3 / (2 * I * (2 * I - 1)) * Cq * 1e6  # Calc delta based on Cq [MHz] and spin qunatum
+            omegars = delta * (angleStuff[0] + angleStuff[1] + eta * (angleStuff[2] + angleStuff[3] + angleStuff[4] + angleStuff[5]))
+            QTrs = np.concatenate([np.ones([angleStuff[0].shape[0], 1]), np.exp(-1j * np.cumsum(omegars, axis=1) * tresolution)[:, :-1]], 1)
+            for j in range(1, nsteps):
+                QTrs[:, j] = np.exp(-1j * np.sum(omegars[:, 0:j] * tresolution, 1))
+            rhoT0sr = np.conj(QTrs)
+            # calculate the gamma-averaged FID over 1 rotor period for all crystallites
+            favrs = np.zeros(NSTEPS, dtype=complex)
+            for j in range(NSTEPS):
+                favrs[j] += np.sum(weight * np.sum(rhoT0sr * np.roll(QTrs, -j, axis=1), 1) / NSTEPS**2)
+            # calculate the sideband intensities by doing an FT and pick the ones that are needed further
+            partbands = np.real(np.fft.fft(favrs))
+            sidebands = sidebands + eff[transition] * (partbands + np.roll(np.flipud(partbands), 1))
+        else:  # If zero: add all the intensity to the centreband
+            sidebands[0] = sidebands[0] + eff[transition]
+    return sidebands
 
 ##############################################################################
 
@@ -4616,6 +4622,8 @@ class Quad1DeconvParamFrame(QtGui.QWidget):
         self.parent = parent
         self.rootwindow = rootwindow
         self.cheng = 15
+        self.setAngleStuff = quad1DeconvsetAngleStuff
+        self.tensorFunc = quad1DeconvtensorFunc
         grid = QtGui.QGridLayout(self)
         self.setLayout(grid)
         if self.parent.current.spec == 1:
@@ -4810,89 +4818,6 @@ class Quad1DeconvParamFrame(QtGui.QWidget):
                 self.gaussTicks[i].hide()
                 self.gaussEntries[i].hide()
 
-    def tensorFunc(self, x, I, pos, cq, eta, width, gauss, angleStuff, freq, sw, weight, axAdd):
-        m = np.arange(-I, I)
-        v = []
-        weights = []
-        pos = pos - axAdd
-        for i in m:
-            tmp = (cq / (4 * I * (2 * I - 1)) * (I * (I + 1) - 3 * (i + 1)**2)) - (cq / (4 * I * (2 * I - 1)) * (I * (I + 1) - 3 * (i)**2))
-            v = np.append(v, tmp * (angleStuff[0] - eta * angleStuff[1]) + pos)
-            weights = np.append(weights, weight)
-        length = len(x)
-        t = np.arange(length) / sw
-        final = np.zeros(length)
-        mult = v / sw * length
-        x1 = np.array(np.round(mult) + np.floor(length / 2), dtype=int)
-        weights = weights[np.logical_and(x1 >= 0, x1 < length)]
-        x1 = x1[np.logical_and(x1 >= 0, x1 < length)]
-        final = np.bincount(x1, weights, length)
-        apod = np.exp(-np.pi * width * t) * np.exp(-((np.pi * gauss * t)**2) / (4 * np.log(2)))
-        apod[-1:-(len(apod) / 2 + 1):-1] = apod[:len(apod) / 2]
-        inten = np.real(np.fft.fft(np.fft.ifft(final) * apod))
-        inten = inten / sw * len(inten)
-        return inten
-
-    def fitFunc(self, param, numExp, struc, argu, I, freq, sw, axAdd, angleStuff, weight, x, y):
-        testFunc = np.zeros(len(x))
-        if struc[0]:
-            bgrnd = param[0]
-            param = np.delete(param, [0])
-        else:
-            bgrnd = argu[0]
-            argu = np.delete(argu, [0])
-        if struc[1]:
-            slope = param[0]
-            param = np.delete(param, [0])
-        else:
-            slope = argu[0]
-            argu = np.delete(argu, [0])
-        for i in range(numExp):
-            if struc[6 * i + 2]:
-                pos = param[0]
-                param = np.delete(param, [0])
-            else:
-                pos = argu[0]
-                argu = np.delete(argu, [0])
-            if struc[6 * i + 3]:
-                cq = param[0]
-                param = np.delete(param, [0])
-            else:
-                cq = argu[0]
-                argu = np.delete(argu, [0])
-            if struc[6 * i + 4]:
-                eta = param[0]
-                param = np.delete(param, [0])
-            else:
-                eta = argu[0]
-                argu = np.delete(argu, [0])
-            if struc[6 * i + 5]:
-                amp = param[0]
-                param = np.delete(param, [0])
-            else:
-                amp = argu[0]
-                argu = np.delete(argu, [0])
-            if struc[6 * i + 6]:
-                width = abs(param[0])
-                param = np.delete(param, [0])
-            else:
-                width = argu[0]
-                argu = np.delete(argu, [0])
-            if struc[6 * i + 7]:
-                gauss = abs(param[0])
-                param = np.delete(param, [0])
-            else:
-                gauss = argu[0]
-                argu = np.delete(argu, [0])
-            testFunc += amp * self.tensorFunc(x, I, pos, cq, eta, width, gauss, angleStuff, freq, sw, weight, axAdd)
-        testFunc += bgrnd + slope * x
-        return np.sum((np.real(testFunc) - y)**2)
-
-    def setAngleStuff(self, cheng):
-        phi, theta, weight = zcw_angles(cheng, symm=2)
-        angleStuff = [0.5 * (3 * np.cos(theta)**2 - 1), 0.5 * np.cos(2 * phi) * (np.sin(theta)**2)]
-        return weight, angleStuff
-
     def checkInputs(self):
         numExp = self.numExp.currentIndex() + 1
         inp = safeEval(self.bgrndEntry.text())
@@ -4929,15 +4854,6 @@ class Quad1DeconvParamFrame(QtGui.QWidget):
                 return False
             self.gaussEntries[i].setText('%#.3g' % inp)
         return True
-
-    def mpFit(self, xax, data1D, guess, args, queue, cheng):
-        weight, angleStuff = self.setAngleStuff(cheng)
-        arg = args + (angleStuff, weight, xax, data1D)
-        try:
-            fitVal = scipy.optimize.fmin(self.fitFunc, guess, args=arg, disp=False)
-        except:
-            fitVal = None
-        queue.put(fitVal)
 
     def fit(self, *args):
         self.setCheng()
@@ -5014,7 +4930,7 @@ class Quad1DeconvParamFrame(QtGui.QWidget):
                 struc.append(False)
         args = (numExp, struc, argu, I, self.parent.current.freq, self.parent.current.sw, self.axAdd)
         self.queue = multiprocessing.Queue()
-        self.process1 = multiprocessing.Process(target=self.mpFit, args=(self.parent.xax, np.real(self.parent.data1D), guess, args, self.queue, self.cheng))
+        self.process1 = multiprocessing.Process(target=quad1DeconvmpFit, args=(self.parent.xax, np.real(self.parent.data1D), guess, args, self.queue, self.cheng, self.setAngleStuff, self.tensorFunc))
         self.process1.start()
         self.running = True
         self.stopButton.show()
@@ -5079,17 +4995,6 @@ class Quad1DeconvParamFrame(QtGui.QWidget):
 
     def fitAll(self, *args):
         FitAllSelectionWindow(self, ["Background", "Slope", "Position", "Cq", u"\u03b7", "Integral", "Lorentz", "Gauss"])
-
-    def mpAllFit(self, xax, data, guess, args, queue, cheng):
-        weight, angleStuff = self.setAngleStuff(cheng)
-        fitVal = []
-        for j in data:
-            arg = args + (angleStuff, weight, xax, j)
-            try:
-                fitVal.append(scipy.optimize.fmin(self.fitFunc, guess, args=arg, disp=False))
-            except:
-                fitVal.append([[0] * 10])
-        queue.put(fitVal)
 
     def fitAllFunc(self, outputs):
         self.setCheng()
@@ -5176,7 +5081,7 @@ class Quad1DeconvParamFrame(QtGui.QWidget):
         counter2 = 0
         fitData = rolledData.reshape(dataShape[axes], np.product(dataShape2)).T
         self.queue = multiprocessing.Queue()
-        self.process1 = multiprocessing.Process(target=self.mpAllFit, args=(self.parent.xax, np.real(fitData), guess, args, self.queue, self.cheng))
+        self.process1 = multiprocessing.Process(target=quad1DeconvmpAllFit, args=(self.parent.xax, np.real(fitData), guess, args, self.queue, self.cheng, self.setAngleStuff, self.tensorFunc))
         self.process1.start()
         self.running = True
         self.stopButton.show()
@@ -5286,15 +5191,118 @@ class Quad1DeconvParamFrame(QtGui.QWidget):
             ,['Background',[outBgrnd]],['Slope',[outSlope]],['Amplitude',outAmp]
             ,['Position',outPos],['Cq (MHz)',outCq],['Eta',outEta],['Lorentzian width (Hz)',outWidth],['Gaussian width (Hz)',outGauss]]
             title = self.savetitle
-            
             outCurvePart.append(outCurve)
             outCurvePart.append(self.parent.data1D)
             dataArray = np.transpose(np.append(np.array([self.parent.xax]),np.array(outCurvePart),0))
             saveResult(title,variablearray,dataArray)
         else:
             self.parent.showPlot(tmpx, outCurve, x, outCurvePart)
-            
 
+##############################################################################
+
+
+def quad1DeconvmpFit(xax, data1D, guess, args, queue, cheng, setAngleStuff, tensorFunc):
+    weight, angleStuff = setAngleStuff(cheng)
+    arg = args + (angleStuff, weight, xax, data1D, tensorFunc)
+    try:
+        fitVal = scipy.optimize.fmin(quad1DeconvfitFunc, guess, args=arg, disp=False)
+    except:
+        fitVal = None
+    queue.put(fitVal)
+
+def quad1DeconvmpAllFit(xax, data, guess, args, queue, cheng, setAngleStuff, tensorFunc):
+    weight, angleStuff = setAngleStuff(cheng)
+    fitVal = []
+    for j in data:
+        arg = args + (angleStuff, weight, xax, j, tensorFunc)
+        try:
+            fitVal.append(scipy.optimize.fmin(quad1DeconvfitFunc, guess, args=arg, disp=False))
+        except:
+            fitVal.append([[0] * 10])
+    queue.put(fitVal)
+
+def quad1DeconvfitFunc(param, numExp, struc, argu, I, freq, sw, axAdd, angleStuff, weight, x, y, tensorFunc):
+    testFunc = np.zeros(len(x))
+    if struc[0]:
+        bgrnd = param[0]
+        param = np.delete(param, [0])
+    else:
+        bgrnd = argu[0]
+        argu = np.delete(argu, [0])
+    if struc[1]:
+        slope = param[0]
+        param = np.delete(param, [0])
+    else:
+        slope = argu[0]
+        argu = np.delete(argu, [0])
+    for i in range(numExp):
+        if struc[6 * i + 2]:
+            pos = param[0]
+            param = np.delete(param, [0])
+        else:
+            pos = argu[0]
+            argu = np.delete(argu, [0])
+        if struc[6 * i + 3]:
+            cq = param[0]
+            param = np.delete(param, [0])
+        else:
+            cq = argu[0]
+            argu = np.delete(argu, [0])
+        if struc[6 * i + 4]:
+            eta = param[0]
+            param = np.delete(param, [0])
+        else:
+            eta = argu[0]
+            argu = np.delete(argu, [0])
+        if struc[6 * i + 5]:
+            amp = param[0]
+            param = np.delete(param, [0])
+        else:
+            amp = argu[0]
+            argu = np.delete(argu, [0])
+        if struc[6 * i + 6]:
+            width = abs(param[0])
+            param = np.delete(param, [0])
+        else:
+            width = argu[0]
+            argu = np.delete(argu, [0])
+        if struc[6 * i + 7]:
+            gauss = abs(param[0])
+            param = np.delete(param, [0])
+        else:
+            gauss = argu[0]
+            argu = np.delete(argu, [0])
+        testFunc += amp * tensorFunc(x, I, pos, cq, eta, width, gauss, angleStuff, freq, sw, weight, axAdd)
+    testFunc += bgrnd + slope * x
+    return np.sum((np.real(testFunc) - y)**2)
+
+def quad1DeconvtensorFunc(x, I, pos, cq, eta, width, gauss, angleStuff, freq, sw, weight, axAdd):
+    m = np.arange(-I, I)
+    v = []
+    weights = []
+    pos = pos - axAdd
+    for i in m:
+        tmp = (cq / (4 * I * (2 * I - 1)) * (I * (I + 1) - 3 * (i + 1)**2)) - (cq / (4 * I * (2 * I - 1)) * (I * (I + 1) - 3 * (i)**2))
+        v = np.append(v, tmp * (angleStuff[0] - eta * angleStuff[1]) + pos)
+        weights = np.append(weights, weight)
+    length = len(x)
+    t = np.arange(length) / sw
+    final = np.zeros(length)
+    mult = v / sw * length
+    x1 = np.array(np.round(mult) + np.floor(length / 2), dtype=int)
+    weights = weights[np.logical_and(x1 >= 0, x1 < length)]
+    x1 = x1[np.logical_and(x1 >= 0, x1 < length)]
+    final = np.bincount(x1, weights, length)
+    apod = np.exp(-np.pi * width * t) * np.exp(-((np.pi * gauss * t)**2) / (4 * np.log(2)))
+    apod[-1:-(len(apod) / 2 + 1):-1] = apod[:len(apod) / 2]
+    inten = np.real(np.fft.fft(np.fft.ifft(final) * apod))
+    inten = inten / sw * len(inten)
+    return inten
+
+def quad1DeconvsetAngleStuff(cheng):
+    phi, theta, weight = zcw_angles(cheng, symm=2)
+    angleStuff = [0.5 * (3 * np.cos(theta)**2 - 1), 0.5 * np.cos(2 * phi) * (np.sin(theta)**2)]
+    return weight, angleStuff
 
 ##############################################################################
 
@@ -5321,34 +5329,11 @@ class Quad2StaticDeconvParamFrame(Quad1DeconvParamFrame):
     savetitle = 'ssNake second order quadrupole static fit results'
     def __init__(self, parent, rootwindow):
         Quad1DeconvParamFrame.__init__(self, parent, rootwindow)
+        self.setAngleStuff = quad2StaticsetAngleStuff
+        self.tensorFunc = quad2tensorFunc
 
     def checkI(self, I):
         return I * 1.0 + 1.5
-
-    def setAngleStuff(self, cheng):
-        phi, theta, weight = zcw_angles(cheng, symm=2)
-        angleStuff = [-27 / 8.0 * np.cos(theta)**4 + 15 / 4.0 * np.cos(theta)**2 - 3 / 8.0,
-                      (-9 / 4.0 * np.cos(theta)**4 + 2 * np.cos(theta)**2 + 1 / 4.0) * np.cos(2 * phi),
-                      -1 / 2.0 * np.cos(theta)**2 + 1 / 3.0 + (-3 / 8.0 * np.cos(theta)**4 + 3 / 4.0 * np.cos(theta)**2 - 3 / 8.0) * np.cos(2 * phi)**2]
-        return weight, angleStuff
-
-    def tensorFunc(self, x, I, pos, cq, eta, width, gauss, angleStuff, freq, sw, weight, axAdd):
-        pos = pos - axAdd
-        # v = -cq**2/(6.0*freq)*(I*(I+1)-3/4.0)*(angleStuff[0]+self.angleStuff[1]*eta+angleStuff[2]*eta**2)+pos
-        v = -1 / (6 * freq) * (3 * cq / (2 * I * (2 * I - 1)))**2 * (I * (I + 1) - 3.0 / 4) * (angleStuff[0] + angleStuff[1] * eta + angleStuff[2] * eta**2) + pos
-        length = len(x)
-        t = np.arange(length) / sw
-        final = np.zeros(length)
-        mult = v / sw * length
-        x1 = np.array(np.round(mult) + np.floor(length / 2), dtype=int)
-        weights = weight[np.logical_and(x1 >= 0, x1 < length)]
-        x1 = x1[np.logical_and(x1 >= 0, x1 < length)]
-        final = np.bincount(x1, weights, length)
-        apod = np.exp(-np.pi * width * t) * np.exp(-((np.pi * gauss * t)**2) / (4 * np.log(2)))
-        apod[-1:-(len(apod) / 2 + 1):-1] = apod[:len(apod) / 2]
-        inten = np.real(np.fft.fft(np.fft.ifft(final) * apod))
-        inten = inten / sw / len(inten)
-        return inten
 
 #################################################################################
 
@@ -5359,13 +5344,41 @@ class Quad2MASDeconvParamFrame(Quad2StaticDeconvParamFrame):
 
     def __init__(self, parent, rootwindow):
         Quad2StaticDeconvParamFrame.__init__(self, parent, rootwindow)
+        self.setAngleStuff = quad2MASsetAngleStuff
+        self.tensorFunc = quad2tensorFunc
 
-    def setAngleStuff(self, cheng):
-        phi, theta, weight = zcw_angles(cheng, symm=2)
-        angleStuff = [21 / 16.0 * np.cos(theta)**4 - 9 / 8.0 * np.cos(theta)**2 + 5 / 16.0,
-                      (-7 / 8.0 * np.cos(theta)**4 + np.cos(theta)**2 - 1 / 8.0) * np.cos(2 * phi),
-                      1 / 12.0 * np.cos(theta)**2 + (+7 / 48.0 * np.cos(theta)**4 - 7 / 24.0 * np.cos(theta)**2 + 7 / 48.0) * np.cos(2 * phi)**2]
-        return weight, angleStuff
+##############################################################################
+
+def quad2tensorFunc(x, I, pos, cq, eta, width, gauss, angleStuff, freq, sw, weight, axAdd):
+    pos = pos - axAdd
+    v = -1 / (6 * freq) * (3 * cq / (2 * I * (2 * I - 1)))**2 * (I * (I + 1) - 3.0 / 4) * (angleStuff[0] + angleStuff[1] * eta + angleStuff[2] * eta**2) + pos
+    length = len(x)
+    t = np.arange(length) / sw
+    final = np.zeros(length)
+    mult = v / sw * length
+    x1 = np.array(np.round(mult) + np.floor(length / 2), dtype=int)
+    weights = weight[np.logical_and(x1 >= 0, x1 < length)]
+    x1 = x1[np.logical_and(x1 >= 0, x1 < length)]
+    final = np.bincount(x1, weights, length)
+    apod = np.exp(-np.pi * width * t) * np.exp(-((np.pi * gauss * t)**2) / (4 * np.log(2)))
+    apod[-1:-(len(apod) / 2 + 1):-1] = apod[:len(apod) / 2]
+    inten = np.real(np.fft.fft(np.fft.ifft(final) * apod))
+    inten = inten / sw / len(inten)
+    return inten
+
+def quad2StaticsetAngleStuff(cheng):
+    phi, theta, weight = zcw_angles(cheng, symm=2)
+    angleStuff = [-27 / 8.0 * np.cos(theta)**4 + 15 / 4.0 * np.cos(theta)**2 - 3 / 8.0,
+                  (-9 / 4.0 * np.cos(theta)**4 + 2 * np.cos(theta)**2 + 1 / 4.0) * np.cos(2 * phi),
+                  -1 / 2.0 * np.cos(theta)**2 + 1 / 3.0 + (-3 / 8.0 * np.cos(theta)**4 + 3 / 4.0 * np.cos(theta)**2 - 3 / 8.0) * np.cos(2 * phi)**2]
+    return weight, angleStuff
+
+def quad2MASsetAngleStuff(cheng):
+    phi, theta, weight = zcw_angles(cheng, symm=2)
+    angleStuff = [21 / 16.0 * np.cos(theta)**4 - 9 / 8.0 * np.cos(theta)**2 + 5 / 16.0,
+                  (-7 / 8.0 * np.cos(theta)**4 + np.cos(theta)**2 - 1 / 8.0) * np.cos(2 * phi),
+                  1 / 12.0 * np.cos(theta)**2 + (+7 / 48.0 * np.cos(theta)**4 - 7 / 24.0 * np.cos(theta)**2 + 7 / 48.0) * np.cos(2 * phi)**2]
+    return weight, angleStuff
 
 ##############################################################################
 
@@ -5612,26 +5625,11 @@ class Quad2StaticCzjzekParamFrame(QtGui.QWidget):
         wq_return, eta_return = np.meshgrid(np.linspace(0, maxWq, numWq), np.linspace(0, 1, numEta))
         wq = wq_return[..., None]
         eta = eta_return[..., None]
-       # v = -wq**2/(6.0*freq)*(I*(I+1)-3/4.0)*(angleStuff[0]+angleStuff[1]*eta+angleStuff[2]*eta**2)
         v = -1 / (6.0 * freq) * wq**2 * (I * (I + 1) - 3.0 / 4) * (angleStuff[0] + angleStuff[1] * eta + angleStuff[2] * eta**2)
         mult = v / sw * length
         x1 = np.array(np.round(mult) + np.floor(length / 2), dtype=int)
         lib = np.apply_along_axis(self.bincounting, 2, x1, weight, length)
         return lib, wq_return, eta_return
-
-    def tensorFunc(self, sigma, d, pos, width, gauss, wq, eta, lib, freq, sw, axAdd):
-        pos = pos - axAdd
-        wq = wq
-        eta = eta
-        czjzek = wq**(d - 1) * eta / (np.sqrt(2 * np.pi) * sigma**d) * (1 - eta**2 / 9.0) * np.exp(-wq**2 / (2.0 * sigma**2) * (1 + eta**2 / 3.0))
-        czjzek = czjzek / np.sum(czjzek)
-        fid = np.sum(lib * czjzek[..., None], axis=(0, 1))
-        t = np.arange(len(fid)) / sw
-        apod = np.exp(-np.pi * width * t) * np.exp(-((np.pi * gauss * t)**2) / (4 * np.log(2)))
-        apod[-1:-(len(apod) / 2 + 1):-1] = apod[:len(apod) / 2]
-        spectrum = scipy.ndimage.interpolation.shift(np.real(np.fft.fft(fid * apod)), len(fid) * pos / sw)
-        spectrum = spectrum / sw * len(spectrum)
-        return spectrum
 
     def checkInputs(self):
         numExp = self.numExp.currentIndex() + 1
@@ -5674,71 +5672,12 @@ class Quad2StaticCzjzekParamFrame(QtGui.QWidget):
             self.gaussEntries[i].setText('%#.3g' % inp)
         return True
 
-    def fitFunc(self, param, numExp, struc, argu, freq, sw, axAdd, wq, eta, lib, x, y):
-        testFunc = np.zeros(len(x))
-        if struc[0]:
-            bgrnd = param[0]
-            param = np.delete(param, [0])
-        else:
-            bgrnd = argu[0]
-            argu = np.delete(argu, [0])
-        if struc[1]:
-            slope = param[0]
-            param = np.delete(param, [0])
-        else:
-            slope = argu[0]
-            argu = np.delete(argu, [0])
-        for i in range(numExp):
-            d = argu[0]
-            argu = np.delete(argu, [0])
-            if struc[5 * i + 2]:
-                pos = param[0]
-                param = np.delete(param, [0])
-            else:
-                pos = argu[0]
-                argu = np.delete(argu, [0])
-            if struc[5 * i + 3]:
-                sigma = param[0]
-                param = np.delete(param, [0])
-            else:
-                sigma = argu[0]
-                argu = np.delete(argu, [0])
-            if struc[5 * i + 4]:
-                amp = param[0]
-                param = np.delete(param, [0])
-            else:
-                amp = argu[0]
-                argu = np.delete(argu, [0])
-            if struc[5 * i + 5]:
-                width = abs(param[0])
-                param = np.delete(param, [0])
-            else:
-                width = argu[0]
-                argu = np.delete(argu, [0])
-            if struc[5 * i + 6]:
-                gauss = abs(param[0])
-                param = np.delete(param, [0])
-            else:
-                gauss = argu[0]
-                argu = np.delete(argu, [0])
-            testFunc += amp * self.tensorFunc(sigma, d, pos, width, gauss, wq, eta, lib, freq, sw, axAdd)
-        testFunc += bgrnd + slope * x
-        return np.sum((np.real(testFunc) - y)**2)
-
     def setAngleStuff(self, cheng):
         phi, theta, weight = zcw_angles(cheng, symm=2)
         angleStuff = [-27 / 8.0 * np.cos(theta)**4 + 15 / 4.0 * np.cos(theta)**2 - 3 / 8.0,
                       (-9 / 4.0 * np.cos(theta)**4 + 2 * np.cos(theta)**2 + 1 / 4.0) * np.cos(2 * phi),
                       -1 / 2.0 * np.cos(theta)**2 + 1 / 3.0 + (-3 / 8.0 * np.cos(theta)**4 + 3 / 4.0 * np.cos(theta)**2 - 3 / 8.0) * np.cos(2 * phi)**2]
         return weight, angleStuff
-
-    def mpFit(self, xax, data1D, guess, args, queue, I, lib, wq, eta):
-        arg = args + (wq, eta, lib, xax, data1D)
-        try:
-            fitVal = scipy.optimize.fmin(self.fitFunc, guess, args=arg, disp=False)
-        except:
-            fitVal = None
-        queue.put(fitVal)
 
     def fit(self, *args):
         self.setCheng()
@@ -5828,7 +5767,7 @@ class Quad2StaticCzjzekParamFrame(QtGui.QWidget):
         weight, angleStuff = self.setAngleStuff(self.cheng)
         self.lib, self.wq, self.eta = self.genLib(len(self.parent.xax), I, maxWq * 4.0, numWq, numEta, angleStuff, self.parent.current.freq, self.parent.current.sw, weight, self.axAdd)
         self.queue = multiprocessing.Queue()
-        self.process1 = multiprocessing.Process(target=self.mpFit, args=(self.parent.xax, np.real(self.parent.data1D), guess, args, self.queue, I, self.lib, self.wq, self.eta))
+        self.process1 = multiprocessing.Process(target=quad2CzjzekmpFit, args=(self.parent.xax, np.real(self.parent.data1D), guess, args, self.queue, I, self.lib, self.wq, self.eta))
         self.process1.start()
         self.running = True
         self.stopButton.show()
@@ -5889,16 +5828,6 @@ class Quad2StaticCzjzekParamFrame(QtGui.QWidget):
 
     def fitAll(self, *args):
         FitAllSelectionWindow(self, ["Background", "Slope", "Position", u"\u03c3", "Integral", "Lorentz", "Gauss"])
-
-    def mpAllFit(self, xax, data, guess, args, queue, I, lib, wq, eta):
-        fitVal = []
-        for j in data:
-            arg = args + (wq, eta, lib, xax, j)
-            try:
-                fitVal.append(scipy.optimize.fmin(self.fitFunc, guess, args=arg, disp=False))
-            except:
-                fitVal.append([[0] * 10])
-        queue.put(fitVal)
 
     def fitAllFunc(self, outputs):
         self.setCheng()
@@ -5998,7 +5927,7 @@ class Quad2StaticCzjzekParamFrame(QtGui.QWidget):
         counter2 = 0
         fitData = rolledData.reshape(dataShape[axes], np.product(dataShape2)).T
         self.queue = multiprocessing.Queue()
-        self.process1 = multiprocessing.Process(target=self.mpAllFit, args=(self.parent.xax, np.real(fitData), guess, args, self.queue, I, self.lib, self.wq, self.eta))
+        self.process1 = multiprocessing.Process(target=quad2CzjzekmpAllFit, args=(self.parent.xax, np.real(fitData), guess, args, self.queue, I, self.lib, self.wq, self.eta))
         self.process1.start()
         self.running = True
         self.stopButton.show()
@@ -6097,25 +6026,19 @@ class Quad2StaticCzjzekParamFrame(QtGui.QWidget):
         x = []
         for i in range(len(outPos)):
             x.append(tmpx)
-            y = outAmp[i] * self.tensorFunc(outSigma[i], outD[i], outPos[i], outWidth[i], outGauss[i], self.wq, self.eta, self.lib, self.parent.current.freq, self.parent.current.sw, self.axAdd)
+            y = outAmp[i] * quad2CzjzektensorFunc(outSigma[i], outD[i], outPos[i], outWidth[i], outGauss[i], self.wq, self.eta, self.lib, self.parent.current.freq, self.parent.current.sw, self.axAdd)
             outCurvePart.append(outCurveBase + y)
             outCurve += y
-            
         if store == 'copy':
             outCurvePart.append(outCurve)
             outCurvePart.append(self.parent.data1D)
             self.rootwindow.createNewData(np.array(outCurvePart), self.parent.current.axes, True)
         elif store == 'save':
-            
-            
-                        
-            
             variablearray  = [['Number of sites',[len(outAmp)]],['Cheng',[self.cheng]]
             ,['Eta grid density',[int(self.etaGridEntry.text())]],['Wq grid density',[int(self.wqGridEntry.text())]],['I',[self.checkI(self.IEntry.currentIndex())]]
             ,['Background',[outBgrnd]],['Slope',[outSlope]],['Amplitude',outAmp]
             ,['Position',outPos],['Sigma',outSigma],['D',outD],['Lorentzian width (Hz)',outWidth],['Gaussian width (Hz)',outGauss]]
             title = self.savetitle
-            
             outCurvePart.append(outCurve)
             outCurvePart.append(self.parent.data1D)
             dataArray = np.transpose(np.append(np.array([self.parent.xax]),np.array(outCurvePart),0))
@@ -6123,6 +6046,92 @@ class Quad2StaticCzjzekParamFrame(QtGui.QWidget):
         else:
             self.parent.showPlot(tmpx, outCurve, x, outCurvePart)
         self.parent.showPlot(tmpx, outCurve, x, outCurvePart)
+
+#################################################################################
+
+
+def quad2CzjzekmpFit(xax, data1D, guess, args, queue, I, lib, wq, eta):
+    arg = args + (wq, eta, lib, xax, data1D)
+#    try:
+    fitVal = scipy.optimize.fmin(quad2CzjzekfitFunc, guess, args=arg, disp=False)
+ #   except:
+  #      fitVal = None
+    queue.put(fitVal)
+
+def quad2CzjzekmpAllFit(xax, data, guess, args, queue, I, lib, wq, eta):
+    fitVal = []
+    for j in data:
+        arg = args + (wq, eta, lib, xax, j)
+        try:
+            fitVal.append(scipy.optimize.fmin(quad2CzjzekfitFunc, guess, args=arg, disp=False))
+        except:
+            fitVal.append([[0] * 10])
+    queue.put(fitVal)
+
+def quad2CzjzekfitFunc(param, numExp, struc, argu, freq, sw, axAdd, wq, eta, lib, x, y):
+    testFunc = np.zeros(len(x))
+    if struc[0]:
+        bgrnd = param[0]
+        param = np.delete(param, [0])
+    else:
+        bgrnd = argu[0]
+        argu = np.delete(argu, [0])
+    if struc[1]:
+        slope = param[0]
+        param = np.delete(param, [0])
+    else:
+        slope = argu[0]
+        argu = np.delete(argu, [0])
+    for i in range(numExp):
+        d = argu[0]
+        argu = np.delete(argu, [0])
+        if struc[5 * i + 2]:
+            pos = param[0]
+            param = np.delete(param, [0])
+        else:
+            pos = argu[0]
+            argu = np.delete(argu, [0])
+        if struc[5 * i + 3]:
+            sigma = param[0]
+            param = np.delete(param, [0])
+        else:
+            sigma = argu[0]
+            argu = np.delete(argu, [0])
+        if struc[5 * i + 4]:
+            amp = param[0]
+            param = np.delete(param, [0])
+        else:
+            amp = argu[0]
+            argu = np.delete(argu, [0])
+        if struc[5 * i + 5]:
+            width = abs(param[0])
+            param = np.delete(param, [0])
+        else:
+            width = argu[0]
+            argu = np.delete(argu, [0])
+        if struc[5 * i + 6]:
+            gauss = abs(param[0])
+            param = np.delete(param, [0])
+        else:
+            gauss = argu[0]
+            argu = np.delete(argu, [0])
+        testFunc += amp * quad2CzjzektensorFunc(sigma, d, pos, width, gauss, wq, eta, lib, freq, sw, axAdd)
+    testFunc += bgrnd + slope * x
+    return np.sum((np.real(testFunc) - y)**2)
+    
+def quad2CzjzektensorFunc(sigma, d, pos, width, gauss, wq, eta, lib, freq, sw, axAdd):
+    pos = pos - axAdd
+    wq = wq
+    eta = eta
+    czjzek = wq**(d - 1) * eta / (np.sqrt(2 * np.pi) * sigma**d) * (1 - eta**2 / 9.0) * np.exp(-wq**2 / (2.0 * sigma**2) * (1 + eta**2 / 3.0))
+    czjzek = czjzek / np.sum(czjzek)
+    fid = np.sum(lib * czjzek[..., None], axis=(0, 1))
+    t = np.arange(len(fid)) / sw
+    apod = np.exp(-np.pi * width * t) * np.exp(-((np.pi * gauss * t)**2) / (4 * np.log(2)))
+    apod[-1:-(len(apod) / 2 + 1):-1] = apod[:len(apod) / 2]
+    spectrum = scipy.ndimage.interpolation.shift(np.real(np.fft.fft(fid * apod)), len(fid) * pos / sw)
+    spectrum = spectrum / sw * len(spectrum)
+    return spectrum
 
 #################################################################################
 
