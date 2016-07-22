@@ -6391,9 +6391,7 @@ class shiftConversionWindow(QtGui.QWidget):
             except:
                 self.father.dispMsg("Invalid input in Standard Convention")
                 return
-
             deltaArray = np.array([delta11, delta22, delta33])
-
         if Type == 1:  # If from xyz
             try:
                 delta11 = float(safeEval(self.dxx.text()))  # Treat xyz as 123, as it reorders them anyway
@@ -6402,7 +6400,6 @@ class shiftConversionWindow(QtGui.QWidget):
             except:
                 self.father.dispMsg("Invalid input in xyz Convention")
                 return
-
         if Type == 2:  # From haeberlen
             try:
                 eta = float(safeEval(self.eta.text()))
@@ -6462,7 +6459,6 @@ class shiftConversionWindow(QtGui.QWidget):
             self.hbskew.setText('%#.4g' % skew)
         else:
             self.hbskew.setText('ND')
-
         self.hbdiso.setText('%#.4g' % iso)
         self.hbdaniso.setText('%#.4g' % span)
 
@@ -6470,21 +6466,19 @@ class shiftConversionWindow(QtGui.QWidget):
         self.D11.setText('0')
         self.D22.setText('0')
         self.D33.setText('0')
-
         self.dxx.setText('0')
         self.dyy.setText('0')
         self.dzz.setText('0')
-
         self.eta.setText('0')
         self.diso.setText('0')
         self.daniso.setText('0')
-
         self.hbskew.setText('0')
         self.hbdiso.setText('0')
         self.hbdaniso.setText('0')
 
     def closeEvent(self):
         self.deleteLater()
+
 
 class quadConversionWindow(QtGui.QWidget):
     
@@ -6495,14 +6489,10 @@ class quadConversionWindow(QtGui.QWidget):
         QtGui.QWidget.__init__(self, parent)
         self.setWindowFlags(QtCore.Qt.Window | QtCore.Qt.Tool)
         self.father = parent
-
         self.setWindowTitle("Quadrupolar Coupling Conversions")
-
         grid = QtGui.QGridLayout()
         grid.setColumnStretch(10, 1)
         grid.setRowStretch(14, 1)
-
-
         Itext = QtGui.QLabel("I:")
         Itext.setAlignment(QtCore.Qt.AlignHCenter)
         grid.addWidget(Itext, 0, 0)
@@ -6517,7 +6507,6 @@ class quadConversionWindow(QtGui.QWidget):
         self.Eta.setText("0")
         self.Eta.setAlignment(QtCore.Qt.AlignHCenter)
         grid.addWidget(self.Eta, 1, 1)
-        
         momentlabel = QtGui.QLabel('Q (fm<sup>2</sup>)')
         momentlabel.setAlignment(QtCore.Qt.AlignHCenter)
         grid.addWidget(momentlabel, 0, 2)
@@ -6525,17 +6514,13 @@ class quadConversionWindow(QtGui.QWidget):
         self.Moment.setText("ND")
         self.Moment.setAlignment(QtCore.Qt.AlignHCenter)
         grid.addWidget(self.Moment, 1, 2)
-        
-        
         grid.addWidget(QtGui.QLabel(""),2, 0)
-        
         CqConv = QtGui.QLabel("C<sub>Q</sub> Convention:")
         CqConv.setAlignment(QtCore.Qt.AlignHCenter)
         grid.addWidget(CqConv, 3, 0)
         Cqlabel = QtGui.QLabel(u'C' + u'<sub>Q</sub>/2\u03c0 (MHz)')
         Cqlabel.setAlignment(QtCore.Qt.AlignHCenter)
         grid.addWidget(Cqlabel, 3, 1)
-       
         CqGO = QtGui.QPushButton("Go")
         grid.addWidget(CqGO, 4, 0)
         CqGO.clicked.connect(lambda: self.quadCalc(0))
@@ -6543,10 +6528,7 @@ class quadConversionWindow(QtGui.QWidget):
         self.Cq.setText("0")
         self.Cq.setAlignment(QtCore.Qt.AlignHCenter)
         grid.addWidget(self.Cq, 4, 1)
-
-      
         grid.addWidget(QtGui.QLabel(""),5, 0)
-      
         WqConv = QtGui.QLabel(u"\u03c9<sub>Q</sub> Convention:")
         WqConv.setAlignment(QtCore.Qt.AlignHCenter)
         grid.addWidget(WqConv, 6, 0)
@@ -6559,10 +6541,8 @@ class quadConversionWindow(QtGui.QWidget):
         self.Wq = QtGui.QLineEdit()
         self.Wq.setText("0")
         self.Wq.setAlignment(QtCore.Qt.AlignHCenter)
-        grid.addWidget(self.Wq, 7, 1)
-        
-        grid.addWidget(QtGui.QLabel(""),8, 0)
-        
+        grid.addWidget(self.Wq, 7, 1)        
+        grid.addWidget(QtGui.QLabel(""),8, 0)        
         VConv = QtGui.QLabel("Field gradients:")
         VConv.setAlignment(QtCore.Qt.AlignHCenter)
         grid.addWidget(VConv, 9, 0)
@@ -6575,16 +6555,14 @@ class quadConversionWindow(QtGui.QWidget):
         self.Vxx = QtGui.QLineEdit()
         self.Vxx.setText("ND")
         self.Vxx.setAlignment(QtCore.Qt.AlignHCenter)
-        grid.addWidget(self.Vxx, 10, 1)
-        
+        grid.addWidget(self.Vxx, 10, 1)        
         Vyylabel = QtGui.QLabel('V<sub>yy</sub> (V/m<sup>2</sup>)')
         Vyylabel.setAlignment(QtCore.Qt.AlignHCenter)
         grid.addWidget(Vyylabel, 9, 2)
         self.Vyy = QtGui.QLineEdit()
         self.Vyy.setText("ND")
         self.Vyy.setAlignment(QtCore.Qt.AlignHCenter)
-        grid.addWidget(self.Vyy, 10, 2)
-        
+        grid.addWidget(self.Vyy, 10, 2)        
         Vzzlabel = QtGui.QLabel('V<sub>zz</sub> (V/m<sup>2</sup>)')
         Vzzlabel.setAlignment(QtCore.Qt.AlignHCenter)
         grid.addWidget(Vzzlabel, 9, 3)
@@ -6592,18 +6570,15 @@ class quadConversionWindow(QtGui.QWidget):
         self.Vzz.setText("ND")
         self.Vzz.setAlignment(QtCore.Qt.AlignHCenter)
         grid.addWidget(self.Vzz, 10, 3)
-        
-        
-       # Reset
+
+        # Reset
         grid.addWidget(QtGui.QLabel(""), 11, 0)
         resetbutton = QtGui.QPushButton("Reset")
         grid.addWidget(resetbutton, 12, 0)
         resetbutton.clicked.connect(self.valueReset)
-
         closebutton = QtGui.QPushButton("Close")
         grid.addWidget(closebutton, 12, 3)
-        closebutton.clicked.connect(self.closeEvent)
-        
+        closebutton.clicked.connect(self.closeEvent)        
         self.setLayout(grid)
         self.show()
 
@@ -6620,42 +6595,35 @@ class quadConversionWindow(QtGui.QWidget):
             except:
                 self.father.dispMsg("Invalid input in Cq definition")
                 return 
-            
-
         if Type == 1:
             try:
-                Vmax = float(safeEval(self.Wq.text())) 
-                
+                Vmax = float(safeEval(self.Wq.text()))                 
                 Eta = float(safeEval(self.Eta.text())) 
                 Czz = Vmax*(2.0*I*(2*I-1))/3.0
                 Cxx = Czz*(Eta-1)/2
                 Cyy = -Cxx-Czz
             except:
                 self.father.dispMsg("Invalid input in Wq definition")
-                return 
-                
+                return                 
         if Type ==2:
              try:
                 Vxx = float(safeEval(self.Vxx.text())) 
                 Vyy = float(safeEval(self.Vyy.text())) 
                 Vzz = float(safeEval(self.Vzz.text())) 
-                Q = float(safeEval(self.Moment.text()))*1e-30 #get moment and convert from fm^2
-                
+                Q = float(safeEval(self.Moment.text()))*1e-30 #get moment and convert from fm^2                
                 #Force traceless
                 if not np.isclose(Vxx+Vyy+Vzz,0.0):
                     Diff = (Vxx+Vyy+Vzz)/3.0
                     Vxx = Vxx - Diff
                     Vyy = Vyy - Diff
-                    Vzz = Vzz - Diff
-                    
+                    Vzz = Vzz - Diff                    
                 Scaling = SC.elementary_charge*Q/SC.Planck 
                 Czz = Vzz * Scaling/1e6 #scale for Cq definition in MHz
                 Cxx = Vxx * Scaling/1e6
                 Cyy = Vyy * Scaling/1e6
              except:
                 self.father.dispMsg("Invalid input in field gradients")
-                return 
-            
+                return             
         #sort    
         CArray = np.array([Cxx, Cyy, Czz])
         Cindex = np.argsort(np.abs(CArray))
@@ -6685,8 +6653,6 @@ class quadConversionWindow(QtGui.QWidget):
             self.Vxx.setText('ND')
             self.Vyy.setText('ND')
             self.Vzz.setText('ND')
-        
-
 
     def valueReset(self):  # Resets all the boxes to 0
         self.Cq.setText('0')
@@ -6696,17 +6662,15 @@ class quadConversionWindow(QtGui.QWidget):
         self.Vxx.setText('ND')
         self.Vyy.setText('ND')
         self.Vzz.setText('ND')
-       
 
     def closeEvent(self):
         self.deleteLater()
 
 
-
-
-root = QtGui.QApplication(sys.argv)
-root.setWindowIcon(QtGui.QIcon(os.path.dirname(os.path.realpath(__file__)) + '/logo.gif'))
-mainProgram = MainProgram(root)
-mainProgram.setWindowTitle("ssNake - " + VERSION)
-mainProgram.show()
-sys.exit(root.exec_())
+if __name__ == '__main__':
+    root = QtGui.QApplication(sys.argv)
+    root.setWindowIcon(QtGui.QIcon(os.path.dirname(os.path.realpath(__file__)) + '/logo.gif'))
+    mainProgram = MainProgram(root)
+    mainProgram.setWindowTitle("ssNake - " + VERSION)
+    mainProgram.show()
+    sys.exit(root.exec_())
