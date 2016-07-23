@@ -232,7 +232,7 @@ class MainProgram(QtGui.QMainWindow):
         self.redoAction = self.editmenu.addAction(QtGui.QIcon(IconDirectory + 'redo.png'), "&Redo", self.redo, QtGui.QKeySequence.Redo)
         self.redoAction.setShortcutContext(QtCore.Qt.WidgetShortcut)
         self.editmenu.addAction(QtGui.QIcon(IconDirectory + 'reload.png'), "Re&load", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.reloadLast()), QtGui.QKeySequence.Refresh)
-        self.editmenu.addAction("&Monitor", lambda: self.mainWindowCheck(lambda mainWindow: MonitorWindow(mainWindow)))
+        self.editmenu.addAction(QtGui.QIcon(IconDirectory + 'monitor.png'),"&Monitor", lambda: self.mainWindowCheck(lambda mainWindow: MonitorWindow(mainWindow)))
         
         # the tool drop down menu
         self.toolMenu = QtGui.QMenu("&Tools", self)
