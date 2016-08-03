@@ -265,10 +265,10 @@ class IntegralsFrame(Plot1DFrame):
         a.get_xaxis().get_major_formatter().set_powerlimits((-4, 4))
         a.get_yaxis().get_major_formatter().set_powerlimits((-4, 4))
         if self.spec > 0:
-            a.set_xlim(self.xmaxlim, self.xminlim)
+            a.set_xlim(self.current.xmaxlim, self.current.xminlim)
         else:
-            a.set_xlim(self.xminlim, self.xmaxlim)
-        a.set_ylim(self.yminlim, self.ymaxlim)
+            a.set_xlim(self.current.xminlim, self.current.xmaxlim)
+        a.set_ylim(self.current.yminlim, self.current.ymaxlim)
         self.canvas.draw()
 
     def togglePick(self, var):
@@ -2148,10 +2148,10 @@ class PeakDeconvFrame(Plot1DFrame):
         a.get_xaxis().get_major_formatter().set_powerlimits((-4, 4))
         a.get_yaxis().get_major_formatter().set_powerlimits((-4, 4))
         if self.spec > 0:
-            a.set_xlim(self.xmaxlim, self.xminlim)
+            a.set_xlim(self.current.xmaxlim, self.current.xminlim)
         else:
-            a.set_xlim(self.xminlim, self.xmaxlim)
-        a.set_ylim(self.yminlim, self.ymaxlim)
+            a.set_xlim(self.current.xminlim, self.current.xmaxlim)
+        a.set_ylim(self.current.yminlim, self.current.ymaxlim)
         self.canvas.draw()
 
     def togglePick(self, var):
@@ -2859,10 +2859,10 @@ class TensorDeconvFrame(Plot1DFrame):
         self.ax.get_xaxis().get_major_formatter().set_powerlimits((-4, 4))
         self.ax.get_yaxis().get_major_formatter().set_powerlimits((-4, 4))
         if self.spec > 0:
-            self.ax.set_xlim(self.xmaxlim, self.xminlim)
+            self.ax.set_xlim(self.current.xmaxlim, self.current.xminlim)
         else:
-            self.ax.set_xlim(self.xminlim, self.xmaxlim)
-        self.ax.set_ylim(self.yminlim, self.ymaxlim)
+            self.ax.set_xlim(self.current.xminlim, self.current.xmaxlim)
+        self.ax.set_ylim(self.current.yminlim, self.current.ymaxlim)
         self.canvas.draw()
 
     def togglePick(self, var):
@@ -3690,11 +3690,12 @@ class HerzfeldBergerFrame(Plot1DFrame):
             self.ax.set_xlabel('')
         self.ax.get_xaxis().get_major_formatter().set_powerlimits((-4, 4))
         self.ax.get_yaxis().get_major_formatter().set_powerlimits((-4, 4))
+        
         if self.spec > 0:
-            self.ax.set_xlim(self.xmaxlim, self.xminlim)
+            self.ax.set_xlim(self.current.xmaxlim, self.current.xminlim)
         else:
-            self.ax.set_xlim(self.xminlim, self.xmaxlim)
-        self.ax.set_ylim(self.yminlim, self.ymaxlim)
+            self.ax.set_xlim(self.current.xminlim, self.current.xmaxlim)
+        self.ax.set_ylim(self.current.yminlim, self.current.ymaxlim)
         self.canvas.draw()
 
     def togglePick(self, var):
@@ -4133,10 +4134,10 @@ class Quad1MASDeconvFrame(Plot1DFrame):
         self.ax.get_xaxis().get_major_formatter().set_powerlimits((-4, 4))
         self.ax.get_yaxis().get_major_formatter().set_powerlimits((-4, 4))
         if self.spec > 0:
-            self.ax.set_xlim(self.xmaxlim, self.xminlim)
+            self.ax.set_xlim(self.current.xmaxlim, self.current.xminlim)
         else:
-            self.ax.set_xlim(self.xminlim, self.xmaxlim)
-        self.ax.set_ylim(self.yminlim, self.ymaxlim)
+            self.ax.set_xlim(self.current.xminlim, self.current.xmaxlim)
+        self.ax.set_ylim(self.current.yminlim, self.current.ymaxlim)
         self.canvas.draw()
 
     def togglePick(self, var):
@@ -4603,10 +4604,10 @@ class Quad1DeconvFrame(Plot1DFrame):
         self.ax.get_xaxis().get_major_formatter().set_powerlimits((-4, 4))
         self.ax.get_yaxis().get_major_formatter().set_powerlimits((-4, 4))
         if self.spec > 0:
-            self.ax.set_xlim(self.xmaxlim, self.xminlim)
+            self.ax.set_xlim(self.current.xmaxlim, self.current.xminlim)
         else:
-            self.ax.set_xlim(self.xminlim, self.xmaxlim)
-        self.ax.set_ylim(self.yminlim, self.ymaxlim)
+            self.ax.set_xlim(self.current.xminlim, self.current.xmaxlim)
+        self.ax.set_ylim(self.current.yminlim, self.current.ymaxlim)
         self.canvas.draw()
 
 #################################################################################
