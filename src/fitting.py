@@ -184,7 +184,11 @@ class IntegralsFrame(Plot1DFrame):
         self.rootwindow = rootwindow
         self.pickNum = 0
         self.pickWidth = False
-        self.plotReset()
+        #Set plot limits as in parent
+        self.xminlim = self.current.xminlim
+        self.xmaxlim = self.current.xmaxlim
+        self.yminlim = self.current.yminlim
+        self.ymaxlim = self.current.ymaxlim
         self.showPlot()
 
     def plotReset(self):
@@ -265,10 +269,10 @@ class IntegralsFrame(Plot1DFrame):
         a.get_xaxis().get_major_formatter().set_powerlimits((-4, 4))
         a.get_yaxis().get_major_formatter().set_powerlimits((-4, 4))
         if self.spec > 0:
-            a.set_xlim(self.current.xmaxlim, self.current.xminlim)
+            a.set_xlim(self.xmaxlim, self.xminlim)
         else:
-            a.set_xlim(self.current.xminlim, self.current.xmaxlim)
-        a.set_ylim(self.current.yminlim, self.current.ymaxlim)
+            a.set_xlim(self.xminlim, self.xmaxlim)
+        a.set_ylim(self.yminlim, self.ymaxlim)
         self.canvas.draw()
 
     def togglePick(self, var):
@@ -2067,7 +2071,11 @@ class PeakDeconvFrame(Plot1DFrame):
         self.rootwindow = rootwindow
         self.pickNum = 0
         self.pickWidth = False
-        self.plotReset()
+        #Set limits as in parant
+        self.xminlim = self.current.xminlim
+        self.xmaxlim = self.current.xmaxlim
+        self.yminlim = self.current.yminlim
+        self.ymaxlim = self.current.ymaxlim
         self.showPlot()
 
     def plotReset(self):
@@ -2097,8 +2105,8 @@ class PeakDeconvFrame(Plot1DFrame):
                 axMult = 1.0 / (1000.0**self.current.axType)
         elif self.spec == 0:
             axMult = 1000.0**self.current.axType
-        self.xminlim = min(self.xax * axMult)
-        self.xmaxlim = max(self.xax * axMult)
+            self.xminlim = min(self.xax * axMult)
+            self.xmaxlim = max(self.xax * axMult)
         if self.spec > 0:
             a.set_xlim(self.xmaxlim, self.xminlim)
         else:
@@ -2148,10 +2156,10 @@ class PeakDeconvFrame(Plot1DFrame):
         a.get_xaxis().get_major_formatter().set_powerlimits((-4, 4))
         a.get_yaxis().get_major_formatter().set_powerlimits((-4, 4))
         if self.spec > 0:
-            a.set_xlim(self.current.xmaxlim, self.current.xminlim)
+            a.set_xlim(self.xmaxlim, self.xminlim)
         else:
-            a.set_xlim(self.current.xminlim, self.current.xmaxlim)
-        a.set_ylim(self.current.yminlim, self.current.ymaxlim)
+            a.set_xlim(self.xminlim, self.xmaxlim)
+        a.set_ylim(self.yminlim, self.ymaxlim)
         self.canvas.draw()
 
     def togglePick(self, var):
@@ -2238,7 +2246,7 @@ class PeakDeconvParamFrame(QtGui.QWidget):
         copyResultButton = QtGui.QPushButton("Copy result")
         copyResultButton.clicked.connect(lambda: self.sim('copy'))
         self.frame1.addWidget(copyResultButton, 3, 0)
-        saveResultButton = QtGui.QPushButton("save to text")
+        saveResultButton = QtGui.QPushButton("Save to text")
         saveResultButton.clicked.connect(lambda: self.sim('save'))
         self.frame1.addWidget(saveResultButton, 4, 0)
         cancelButton = QtGui.QPushButton("&Cancel")
@@ -2794,7 +2802,11 @@ class TensorDeconvFrame(Plot1DFrame):
         self.rootwindow = rootwindow
         self.pickNum = 0
         self.pickNum2 = 0
-        self.plotReset()
+        #Set limits as in parent plot
+        self.xminlim = self.current.xminlim
+        self.xmaxlim = self.current.xmaxlim
+        self.yminlim = self.current.yminlim
+        self.ymaxlim = self.current.ymaxlim
         self.showPlot()
 
     def plotReset(self):  # set the plot limits to min and max values
@@ -2859,10 +2871,10 @@ class TensorDeconvFrame(Plot1DFrame):
         self.ax.get_xaxis().get_major_formatter().set_powerlimits((-4, 4))
         self.ax.get_yaxis().get_major_formatter().set_powerlimits((-4, 4))
         if self.spec > 0:
-            self.ax.set_xlim(self.current.xmaxlim, self.current.xminlim)
+            self.ax.set_xlim(self.xmaxlim, self.xminlim)
         else:
-            self.ax.set_xlim(self.current.xminlim, self.current.xmaxlim)
-        self.ax.set_ylim(self.current.yminlim, self.current.ymaxlim)
+            self.ax.set_xlim(self.xminlim, self.xmaxlim)
+        self.ax.set_ylim(self.yminlim, self.ymaxlim)
         self.canvas.draw()
 
     def togglePick(self, var):
@@ -3626,7 +3638,11 @@ class HerzfeldBergerFrame(Plot1DFrame):
         self.xax = self.current.xax * axMult
         self.plotType = 0
         self.rootwindow = rootwindow
-        self.plotReset()
+        #Set plot limits as in the parent window
+        self.yminlim = self.current.yminlim
+        self.ymaxlim = self.current.ymaxlim
+        self.xminlim = self.current.xminlim
+        self.xmaxlim = self.current.xmaxlim
         self.showPlot()
 
     def plotReset(self):  # set the plot limits to min and max values
@@ -3692,10 +3708,10 @@ class HerzfeldBergerFrame(Plot1DFrame):
         self.ax.get_yaxis().get_major_formatter().set_powerlimits((-4, 4))
         
         if self.spec > 0:
-            self.ax.set_xlim(self.current.xmaxlim, self.current.xminlim)
+            self.ax.set_xlim(self.xmaxlim, self.xminlim)
         else:
-            self.ax.set_xlim(self.current.xminlim, self.current.xmaxlim)
-        self.ax.set_ylim(self.current.yminlim, self.current.ymaxlim)
+            self.ax.set_xlim(self.xminlim, self.xmaxlim)
+        self.ax.set_ylim(self.yminlim, self.ymaxlim)
         self.canvas.draw()
 
     def togglePick(self, var):
@@ -4069,7 +4085,11 @@ class Quad1MASDeconvFrame(Plot1DFrame):
         self.xax = self.current.xax * axMult
         self.plotType = 0
         self.rootwindow = rootwindow
-        self.plotReset()
+        #Set limits as in parent plot
+        self.xmaxlim=self.current.xmaxlim
+        self.xminlim=self.current.xminlim
+        self.ymaxlim=self.current.ymaxlim
+        self.yminlim=self.current.yminlim       
         self.showPlot()
 
     def plotReset(self):  # set the plot limits to min and max values
@@ -4134,10 +4154,10 @@ class Quad1MASDeconvFrame(Plot1DFrame):
         self.ax.get_xaxis().get_major_formatter().set_powerlimits((-4, 4))
         self.ax.get_yaxis().get_major_formatter().set_powerlimits((-4, 4))
         if self.spec > 0:
-            self.ax.set_xlim(self.current.xmaxlim, self.current.xminlim)
+            self.ax.set_xlim(self.xmaxlim, self.xminlim)
         else:
-            self.ax.set_xlim(self.current.xminlim, self.current.xmaxlim)
-        self.ax.set_ylim(self.current.yminlim, self.current.ymaxlim)
+            self.ax.set_xlim(self.xminlim, self.xmaxlim)
+        self.ax.set_ylim(self.yminlim, self.ymaxlim)
         self.canvas.draw()
 
     def togglePick(self, var):
@@ -4525,7 +4545,11 @@ class Quad1DeconvFrame(Plot1DFrame):
         self.rootwindow = rootwindow
         self.pickNum = 0
         self.pickNum2 = 0
-        self.plotReset()
+        #Set limits as in parent plot
+        self.xmaxlim=self.current.xmaxlim
+        self.xminlim=self.current.xminlim
+        self.ymaxlim=self.current.ymaxlim
+        self.yminlim=self.current.yminlim   
         self.showPlot()
 
     def plotReset(self):  # set the plot limits to min and max values
@@ -4604,10 +4628,10 @@ class Quad1DeconvFrame(Plot1DFrame):
         self.ax.get_xaxis().get_major_formatter().set_powerlimits((-4, 4))
         self.ax.get_yaxis().get_major_formatter().set_powerlimits((-4, 4))
         if self.spec > 0:
-            self.ax.set_xlim(self.current.xmaxlim, self.current.xminlim)
+            self.ax.set_xlim(self.xmaxlim, self.xminlim)
         else:
-            self.ax.set_xlim(self.current.xminlim, self.current.xmaxlim)
-        self.ax.set_ylim(self.current.yminlim, self.current.ymaxlim)
+            self.ax.set_xlim(self.xminlim, self.xmaxlim)
+        self.ax.set_ylim(self.yminlim, self.ymaxlim)
         self.canvas.draw()
 
 #################################################################################
