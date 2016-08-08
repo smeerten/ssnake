@@ -189,9 +189,11 @@ class IntegralsFrame(Plot1DFrame):
         self.xmaxlim = self.current.xmaxlim
         self.yminlim = self.current.yminlim
         self.ymaxlim = self.current.ymaxlim
+        if isinstance(self.current, spectrum_classes.CurrentContour):
+            self.plotReset(False, True)
         self.showPlot()
 
-    def plotReset(self):
+    def plotReset(self, xReset=True, yReset=True):
         a = self.fig.gca()
         if self.plotType == 0:
             miny = min(np.real(self.data1D))
@@ -209,8 +211,9 @@ class IntegralsFrame(Plot1DFrame):
             miny = -1
             maxy = 1
         differ = 0.05 * (maxy - miny)
-        self.yminlim = miny - differ
-        self.ymaxlim = maxy + differ
+        if yReset:
+            self.yminlim = miny - differ
+            self.ymaxlim = maxy + differ
         if self.spec == 1:
             if self.current.ppm:
                 axMult = 1e6 / self.current.ref
@@ -218,8 +221,9 @@ class IntegralsFrame(Plot1DFrame):
                 axMult = 1.0 / (1000.0**self.current.axType)
         elif self.spec == 0:
             axMult = 1000.0**self.current.axType
-        self.xminlim = min(self.xax * axMult)
-        self.xmaxlim = max(self.xax * axMult)
+        if xReset:
+            self.xminlim = min(self.xax * axMult)
+            self.xmaxlim = max(self.xax * axMult)
         if self.spec > 0:
             a.set_xlim(self.xmaxlim, self.xminlim)
         else:
@@ -350,17 +354,17 @@ class IntegralsParamFrame(QtGui.QWidget):
         self.entryCount = 1
         self.first = True
         if self.parent.current.plotType == 0:
-            self.maxy = max(np.real(self.parent.current.data1D))
-            self.diffy = self.maxy - min(np.real(self.parent.current.data1D))
+            self.maxy = np.amax(np.real(self.parent.current.data1D))
+            self.diffy = self.maxy - np.amin(np.real(self.parent.current.data1D))
         elif self.parent.current.plotType == 1:
-            self.maxy = max(np.imag(self.parent.current.data1D))
-            self.diffy = self.maxy - min(np.imag(self.parent.current.data1D))
+            self.maxy = np.amax(np.imag(self.parent.current.data1D))
+            self.diffy = self.maxy - np.amin(np.imag(self.parent.current.data1D))
         elif self.parent.current.plotType == 2:
-            self.maxy = max(np.real(self.parent.current.data1D))
-            self.diffy = self.maxy - min(np.real(self.parent.current.data1D))
+            self.maxy = np.amax(np.real(self.parent.current.data1D))
+            self.diffy = self.maxy - np.amin(np.real(self.parent.current.data1D))
         elif self.parent.current.plotType == 3:
-            self.maxy = max(np.abs(self.parent.current.data1D))
-            self.diffy = self.maxy - min(np.abs(self.parent.current.data1D))
+            self.maxy = np.amax(np.abs(self.parent.current.data1D))
+            self.diffy = self.maxy - np.amin(np.abs(self.parent.current.data1D))
         self.minEntries.append(QtGui.QLineEdit())
         self.minEntries[0].setAlignment(QtCore.Qt.AlignHCenter)
         self.minEntries[0].editingFinished.connect(lambda self=self: self.setVal(self.minEntries[0], True))
@@ -527,14 +531,14 @@ class IntegralsParamFrame(QtGui.QWidget):
         for i in range(self.integralIter):
             tmpx = self.parent.current.xax[(self.minValues[i] < self.xax) & (self.maxValues[i] > self.xax)]
             if self.parent.current.plotType == 0:
-                tmpy = np.real(self.parent.current.data1D[(self.minValues[i] < self.xax) & (self.maxValues[i] > self.xax)])
+                tmpy = np.real(self.parent.data1D[(self.minValues[i] < self.xax) & (self.maxValues[i] > self.xax)])
             elif self.parent.current.plotType == 1:
-                tmpy = np.imag(self.parent.current.data1D[(self.minValues[i] < self.xax) & (self.maxValues[i] > self.xax)])
+                tmpy = np.imag(self.parent.data1D[(self.minValues[i] < self.xax) & (self.maxValues[i] > self.xax)])
             elif self.parent.current.plotType == 2:
-                tmpy = np.real(self.parent.current.data1D[(self.minValues[i] < self.xax) & (self.maxValues[i] > self.xax)])
+                tmpy = np.real(self.parent.data1D[(self.minValues[i] < self.xax) & (self.maxValues[i] > self.xax)])
             elif self.parent.current.plotType == 3:
-                tmpy = np.abs(self.parent.current.data1D[(self.minValues[i] < self.xax) & (self.maxValues[i] > self.xax)])
-            self.intValues[i] = np.sum(tmpy) * self.parent.current.sw / float(self.parent.current.data1D.shape[-1])
+                tmpy = np.abs(self.parent.data1D[(self.minValues[i] < self.xax) & (self.maxValues[i] > self.xax)])
+            self.intValues[i] = np.sum(tmpy) * self.parent.current.sw / float(len(self.parent.data1D))
             if self.parent.spec == 1:
                 x = np.append(x, tmpx[::-1])
                 y = np.append(y, np.cumsum(tmpy[::-1]))
@@ -579,7 +583,7 @@ class RelaxFrame(Plot1DFrame):
         self.plotReset()
         self.showPlot()
 
-    def plotReset(self):
+    def plotReset(self, xReset=True, yReset=True):
         if self.plotType == 0:
             miny = min(np.real(self.data1D))
             maxy = max(np.real(self.data1D))
@@ -596,8 +600,9 @@ class RelaxFrame(Plot1DFrame):
             miny = -1
             maxy = 1
         differ = 0.05 * (maxy - miny)
-        self.yminlim = miny - differ
-        self.ymaxlim = maxy + differ
+        if yReset:
+            self.yminlim = miny - differ
+            self.ymaxlim = maxy + differ
         if self.spec == 1:
             if self.ppm:
                 axMult = 1e6 / self.ref
@@ -605,8 +610,9 @@ class RelaxFrame(Plot1DFrame):
                 axMult = 1.0 / (1000.0**self.axType)
         elif self.spec == 0:
             axMult = 1000.0**self.axType
-        self.xminlim = min(self.xax * axMult)
-        self.xmaxlim = max(self.xax * axMult)
+        if xReset:
+            self.xminlim = min(self.xax * axMult)
+            self.xmaxlim = max(self.xax * axMult)
         self.ax.set_xlim(self.xminlim, self.xmaxlim)
         self.ax.set_ylim(self.yminlim, self.ymaxlim)
 
@@ -1304,7 +1310,7 @@ class DiffusionFrame(Plot1DFrame):
         self.plotReset()
         self.showPlot()
 
-    def plotReset(self):
+    def plotReset(self, xReset=True, yReset=True):
         if self.plotType == 0:
             miny = min(np.real(self.data1D))
             maxy = max(np.real(self.data1D))
@@ -1321,8 +1327,9 @@ class DiffusionFrame(Plot1DFrame):
             miny = -1
             maxy = 1
         differ = 0.05 * (maxy - miny)
-        self.yminlim = miny - differ
-        self.ymaxlim = maxy + differ
+        if yReset:
+            self.yminlim = miny - differ
+            self.ymaxlim = maxy + differ
         if self.spec == 1:
             if self.ppm:
                 axMult = 1e6 / self.ref
@@ -1330,8 +1337,9 @@ class DiffusionFrame(Plot1DFrame):
                 axMult = 1.0 / (1000.0**self.axType)
         elif self.spec == 0:
             axMult = 1000.0**self.axType
-        self.xminlim = min(self.xax * axMult)
-        self.xmaxlim = max(self.xax * axMult)
+        if xReset:
+            self.xminlim = min(self.xax * axMult)
+            self.xmaxlim = max(self.xax * axMult)
         self.ax.set_xlim(self.xminlim, self.xmaxlim)
         self.ax.set_ylim(self.yminlim, self.ymaxlim)
 
@@ -2076,9 +2084,11 @@ class PeakDeconvFrame(Plot1DFrame):
         self.xmaxlim = self.current.xmaxlim
         self.yminlim = self.current.yminlim
         self.ymaxlim = self.current.ymaxlim
+        if isinstance(self.current, spectrum_classes.CurrentContour):
+            self.plotReset(False, True)
         self.showPlot()
 
-    def plotReset(self):
+    def plotReset(self, xReset=True, yReset=True):
         a = self.fig.gca()
         if self.plotType == 0:
             miny = min(np.real(self.data1D))
@@ -2096,8 +2106,9 @@ class PeakDeconvFrame(Plot1DFrame):
             miny = -1
             maxy = 1
         differ = 0.05 * (maxy - miny)
-        self.yminlim = miny - differ
-        self.ymaxlim = maxy + differ
+        if yReset:
+            self.yminlim = miny - differ
+            self.ymaxlim = maxy + differ
         if self.spec == 1:
             if self.current.ppm:
                 axMult = 1e6 / self.current.ref
@@ -2105,6 +2116,7 @@ class PeakDeconvFrame(Plot1DFrame):
                 axMult = 1.0 / (1000.0**self.current.axType)
         elif self.spec == 0:
             axMult = 1000.0**self.current.axType
+        if xReset:
             self.xminlim = min(self.xax * axMult)
             self.xmaxlim = max(self.xax * axMult)
         if self.spec > 0:
@@ -2807,9 +2819,11 @@ class TensorDeconvFrame(Plot1DFrame):
         self.xmaxlim = self.current.xmaxlim
         self.yminlim = self.current.yminlim
         self.ymaxlim = self.current.ymaxlim
+        if isinstance(self.current, spectrum_classes.CurrentContour):
+            self.plotReset(False, True)
         self.showPlot()
 
-    def plotReset(self):  # set the plot limits to min and max values
+    def plotReset(self, xReset=True, yReset=True):  # set the plot limits to min and max values
         if self.plotType == 0:
             miny = min(np.real(self.data1D))
             maxy = max(np.real(self.data1D))
@@ -2826,10 +2840,12 @@ class TensorDeconvFrame(Plot1DFrame):
             miny = -1
             maxy = 1
         differ = 0.05 * (maxy - miny)  # amount to add to show all datapoints (10%)
-        self.yminlim = miny - differ
-        self.ymaxlim = maxy + differ
-        self.xminlim = min(self.xax)
-        self.xmaxlim = max(self.xax)
+        if yReset:
+            self.yminlim = miny - differ
+            self.ymaxlim = maxy + differ
+        if xReset:
+            self.xminlim = min(self.xax)
+            self.xmaxlim = max(self.xax)
         if self.spec > 0:
             self.ax.set_xlim(self.xmaxlim, self.xminlim)
         else:
@@ -3643,9 +3659,11 @@ class HerzfeldBergerFrame(Plot1DFrame):
         self.ymaxlim = self.current.ymaxlim
         self.xminlim = self.current.xminlim
         self.xmaxlim = self.current.xmaxlim
+        if isinstance(self.current, spectrum_classes.CurrentContour):
+            self.plotReset(False, True)
         self.showPlot()
 
-    def plotReset(self):  # set the plot limits to min and max values
+    def plotReset(self, xReset=True, yReset=True):  # set the plot limits to min and max values
         if self.plotType == 0:
             miny = min(np.real(self.data1D))
             maxy = max(np.real(self.data1D))
@@ -3662,10 +3680,12 @@ class HerzfeldBergerFrame(Plot1DFrame):
             miny = -1
             maxy = 1
         differ = 0.05 * (maxy - miny)  # amount to add to show all datapoints (10%)
-        self.yminlim = miny - differ
-        self.ymaxlim = maxy + differ
-        self.xminlim = min(self.xax)
-        self.xmaxlim = max(self.xax)
+        if yReset:
+            self.yminlim = miny - differ
+            self.ymaxlim = maxy + differ
+        if xReset:
+            self.xminlim = min(self.xax)
+            self.xmaxlim = max(self.xax)
         if self.spec > 0:
             self.ax.set_xlim(self.xmaxlim, self.xminlim)
         else:
@@ -4090,9 +4110,11 @@ class Quad1MASDeconvFrame(Plot1DFrame):
         self.xminlim=self.current.xminlim
         self.ymaxlim=self.current.ymaxlim
         self.yminlim=self.current.yminlim       
+        if isinstance(self.current, spectrum_classes.CurrentContour):
+            self.plotReset(False, True)
         self.showPlot()
 
-    def plotReset(self):  # set the plot limits to min and max values
+    def plotReset(self, xReset=True, yReset=True):  # set the plot limits to min and max values
         if self.plotType == 0:
             miny = min(np.real(self.data1D))
             maxy = max(np.real(self.data1D))
@@ -4109,10 +4131,12 @@ class Quad1MASDeconvFrame(Plot1DFrame):
             miny = -1
             maxy = 1
         differ = 0.05 * (maxy - miny)  # amount to add to show all datapoints (10%)
-        self.yminlim = miny - differ
-        self.ymaxlim = maxy + differ
-        self.xminlim = min(self.xax)
-        self.xmaxlim = max(self.xax)
+        if yReset:
+            self.yminlim = miny - differ
+            self.ymaxlim = maxy + differ
+        if xReset:
+            self.xminlim = min(self.xax)
+            self.xmaxlim = max(self.xax)
         if self.spec > 0:
             self.ax.set_xlim(self.xmaxlim, self.xminlim)
         else:
@@ -4550,9 +4574,11 @@ class Quad1DeconvFrame(Plot1DFrame):
         self.xminlim=self.current.xminlim
         self.ymaxlim=self.current.ymaxlim
         self.yminlim=self.current.yminlim   
+        if isinstance(self.current, spectrum_classes.CurrentContour):
+            self.plotReset(False, True)
         self.showPlot()
 
-    def plotReset(self):  # set the plot limits to min and max values
+    def plotReset(self, xReset=True, yReset=True):  # set the plot limits to min and max values
         if self.plotType == 0:
             miny = min(np.real(self.data1D))
             maxy = max(np.real(self.data1D))
@@ -4569,8 +4595,9 @@ class Quad1DeconvFrame(Plot1DFrame):
             miny = -1
             maxy = 1
         differ = 0.05 * (maxy - miny)  # amount to add to show all datapoints (10%)
-        self.yminlim = miny - differ
-        self.ymaxlim = maxy + differ
+        if yReset:
+            self.yminlim = miny - differ
+            self.ymaxlim = maxy + differ
         if self.spec == 1:
             if self.current.ppm:
                 axMult = 1e6 / self.current.ref
@@ -4578,8 +4605,9 @@ class Quad1DeconvFrame(Plot1DFrame):
                 axMult = 1.0 / (1000.0**self.current.axType)
         elif self.spec == 0:
             axMult = 1000.0**self.current.axType
-        self.xminlim = min(self.xax * axMult)
-        self.xmaxlim = max(self.xax * axMult)
+        if xReset:
+            self.xminlim = min(self.xax * axMult)
+            self.xmaxlim = max(self.xax * axMult)
         if self.spec > 0:
             self.ax.set_xlim(self.xmaxlim, self.xminlim)
         else:
