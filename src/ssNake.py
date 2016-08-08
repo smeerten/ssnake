@@ -907,9 +907,8 @@ class MainProgram(QtGui.QMainWindow):
                     temp_dir = tempfile.mkdtemp()
                     zipfile.ZipFile(filePath).extractall(temp_dir)
                     for i in os.listdir(temp_dir):
-                        self.autoLoad(os.path.join(temp_dir, i),realpath=filePath)
-#                        if masterData:
-#                            break
+                        if self.autoLoad(os.path.join(temp_dir, i),realpath=filePath):
+                            break
                 finally:
                     shutil.rmtree(temp_dir)
             else:
@@ -990,7 +989,10 @@ class MainProgram(QtGui.QMainWindow):
             else:
                 name = os.path.splitext(os.path.basename(filePath))[0]
             if self.defaultAskName:
-                name = self.askName(filePath, name)
+                if realpath: #If there is a temperary directory
+                    name = self.askName(realpath, name)
+                else:
+                    name = self.askName(filePath, name)
                 if name is None:
                     return
             else:
