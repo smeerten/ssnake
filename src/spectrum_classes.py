@@ -2526,7 +2526,7 @@ class CurrentMulti(Current1D):
             except:
                 self.resetExtraLocList(i)
                 updateVar = data.getSlice(self.extraAxes[i], self.extraLoc[i])
-            data1D = updateVar[0] * self.extraScale[i] + self.extraOffset[i]
+            data1D = updateVar[0] 
             spec = updateVar[3]
             xax = updateVar[5]
             ref = updateVar[6]
@@ -2542,17 +2542,17 @@ class CurrentMulti(Current1D):
             maxx = max(max(xax * axMult), maxx)
             minx = min(min(xax * axMult), minx)
             if self.plotType == 0:
-                miny = min(np.amin(np.real(data1D)), miny)
-                maxy = max(np.amax(np.real(data1D)), maxy)
+                miny = min(np.amin(np.real(data1D) * self.extraScale[i] + self.extraOffset[i]), miny)
+                maxy = max(np.amax(np.real(data1D) * self.extraScale[i] + self.extraOffset[i]), maxy)
             elif self.plotType == 1:
-                miny = min(np.amin(np.imag(data1D)), miny)
-                maxy = max(np.amax(np.imag(data1D)), maxy)
+                miny = min(np.amin(np.imag(data1D) * self.extraScale[i] + self.extraOffset[i]), miny)
+                maxy = max(np.amax(np.imag(data1D) * self.extraScale[i] + self.extraOffset[i]), maxy)
             elif self.plotType == 2:
-                miny = min(np.amin((np.amin(np.real(data1D)), np.amin(np.imag(data1D)))), miny)
-                maxy = max(np.amax((np.amax(np.real(data1D)), np.amax(np.imag(data1D)))), maxy)
+                miny = min(np.amin((np.amin(np.real(data1D) * self.extraScale[i] + self.extraOffset[i]), np.amin(np.imag(data1D) * self.extraScale[i] + self.extraOffset[i]))), miny)
+                maxy = max(np.amax((np.amax(np.real(data1D) * self.extraScale[i] + self.extraOffset[i]), np.amax(np.imag(data1D) * self.extraScale[i] + self.extraOffset[i]))), maxy)
             elif self.plotType == 3:
-                miny = min(np.amin(np.abs(data1D)), miny)
-                maxy = max(np.amax(np.abs(data1D)), maxy)
+                miny = min(np.amin(np.abs(data1D) * self.extraScale[i] + self.extraOffset[i]), miny)
+                maxy = max(np.amax(np.abs(data1D) * self.extraScale[i] + self.extraOffset[i]), maxy)
         differ = 0.05 * (maxy - miny)  # amount to add to show all datapoints (10%)
         if yReset:
             self.yminlim = miny - differ
@@ -2579,7 +2579,7 @@ class CurrentMulti(Current1D):
             except:
                 self.resetExtraLocList(i)
                 updateVar = data.getSlice(self.extraAxes[i], self.extraLoc[i])
-            data1D = updateVar[0] * self.extraScale[i] + self.extraOffset[i]
+            data1D = updateVar[0]
             spec = updateVar[3]
             xax = updateVar[5]
             ref = updateVar[6]
@@ -2595,24 +2595,24 @@ class CurrentMulti(Current1D):
             line_xdata = xax * axMult
             if (self.plotType == 0):
                 if len(data1D) == 1:
-                    self.ax.scatter(line_xdata, np.real(data1D), c=self.extraColor[i], label=data.name)
+                    self.ax.scatter(line_xdata, np.real(data1D) * self.extraScale[i] + self.extraOffset[i], c=self.extraColor[i], label=data.name)
                 else:
-                    self.ax.plot(line_xdata, np.real(data1D), c=self.extraColor[i], linewidth=self.linewidth, label=data.name)
+                    self.ax.plot(line_xdata, np.real(data1D) * self.extraScale[i] + self.extraOffset[i], c=self.extraColor[i], linewidth=self.linewidth, label=data.name)
             elif(self.plotType == 1):
                 if len(data1D) == 1:
-                    self.ax.scatter(line_xdata, np.imag(data1D), c=self.extraColor[i], label=data.name)
+                    self.ax.scatter(line_xdata, np.imag(data1D) * self.extraScale[i] + self.extraOffset[i], c=self.extraColor[i], label=data.name)
                 else:
-                    self.ax.plot(line_xdata, np.imag(data1D), c=self.extraColor[i], linewidth=self.linewidth, label=data.name)
+                    self.ax.plot(line_xdata, np.imag(data1D) * self.extraScale[i] + self.extraOffset[i], c=self.extraColor[i], linewidth=self.linewidth, label=data.name)
             elif(self.plotType == 2):
                 if len(data1D) == 1:
-                    self.ax.scatter(line_xdata, np.real(data1D), c=self.extraColor[i], label=data.name)
+                    self.ax.scatter(line_xdata, np.real(data1D) * self.extraScale[i] + self.extraOffset[i], c=self.extraColor[i], label=data.name)
                 else:
-                    self.ax.plot(line_xdata, np.real(data1D), c=self.extraColor[i], linewidth=self.linewidth, label=data.name)
+                    self.ax.plot(line_xdata, np.real(data1D) * self.extraScale[i] + self.extraOffset[i], c=self.extraColor[i], linewidth=self.linewidth, label=data.name)
             elif(self.plotType == 3):
                 if len(data1D) == 1:
-                    self.ax.scatter(line_xdata, np.abs(data1D), c=self.extraColor[i], label=data.name)
+                    self.ax.scatter(line_xdata, np.abs(data1D) * self.extraScale[i] + self.extraOffset[i], c=self.extraColor[i], label=data.name)
                 else:
-                    self.ax.plot(line_xdata, np.abs(data1D), c=self.extraColor[i], linewidth=self.linewidth, label=data.name)
+                    self.ax.plot(line_xdata, np.abs(data1D) * self.extraScale[i] + self.extraOffset[i], c=self.extraColor[i], linewidth=self.linewidth, label=data.name)
         if tmpdata is None:
             tmpdata = self.data1D
         if self.spec == 1:

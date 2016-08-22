@@ -137,23 +137,23 @@ class FittingWindow(QtGui.QWidget):
 ##############################################################################
 
 
-def saveResult(title,variablearray,dataArray):
+def saveResult(title, variablearray, dataArray):
     #A function which saves fit results as an ascii:
     #title: string for the first line of the file
     #variablearray: array of arrays with all the variables to be printed. 
     #First entry should be name of variable, second an array with the value(s)
     #dataArray should be an array with the raw y data of the fit and the experiment (with as a first column the x-axis)
     filename = QtGui.QFileDialog.getSaveFileName(caption='Save File')
-    with open(filename,'w') as f:
-        f.write(title+'\n')
+    with open(filename, 'w') as f:
+        f.write(title + '\n')
         for var in variablearray:
-            tmp = var[0]+' = '
+            tmp = var[0] + ' = '
             for site in var[1]:
-                tmp+=str(site)+' , '
-            tmp=tmp[:-3]+'\n'
+                tmp += str(site) + ' , '
+            tmp = tmp[:-3] + '\n'
             f.write(tmp)
         f.write('DATA\n')
-    f=open(filename,'ba')
+    f = open(filename, 'ba')
     np.savetxt(f, dataArray)
     f.close()
     
