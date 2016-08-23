@@ -2,37 +2,41 @@
 
 # Copyright 2016 Bas van Meerten and Wouter Franssen
 
-#This file is part of ssNake.
+# This file is part of ssNake.
 #
-#ssNake is free software: you can redistribute it and/or modify
-#it under the terms of the GNU General Public License as published by
-#the Free Software Foundation, either version 3 of the License, or
-#(at your option) any later version.
+# ssNake is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
 #
-#ssNake is distributed in the hope that it will be useful,
-#but WITHOUT ANY WARRANTY; without even the implied warranty of
-#MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-#GNU General Public License for more details.
+# ssNake is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
 #
-#You should have received a copy of the GNU General Public License
-#along with ssNake. If not, see <http://www.gnu.org/licenses/>.
+# You should have received a copy of the GNU General Public License
+# along with ssNake. If not, see <http://www.gnu.org/licenses/>.
 
 from PyQt4 import QtGui, QtCore
-from safeEval import *
+from safeEval import safeEval
+
 
 class SsnakeTabs(QtGui.QTabWidget):
-    #A tab widget were tabs can be closed with the middle mouse button
+    # A tab widget were tabs can be closed with the middle mouse button
+
     def mousePressEvent(self, event):
         if event.button() == QtCore.Qt.MidButton:
             index = self.tabBar().tabAt(event.pos())
             if index >= 0:
                 self.tabCloseRequested.emit(index)
-      
+
+
 class MyEventFilter(QtCore.QObject):
+
     def __init__(self, root, *args):
         QtCore.QObject.__init__(self, *args)
         self.root = root
-    
+
     def eventFilter(self, receiver, event):
         if event.type() == QtCore.QEvent.KeyPress:
             if event.key() == QtCore.Qt.Key_Z:
@@ -43,8 +47,10 @@ class MyEventFilter(QtCore.QObject):
                     self.root.undo()
                     return True
         return False
-     
-class SliceValidator(QtGui.QValidator):    
+
+
+class SliceValidator(QtGui.QValidator):
+
     def validate(self, string, position):
         string = str(string)
         try:
@@ -53,7 +59,9 @@ class SliceValidator(QtGui.QValidator):
         except:
             return (QtGui.QValidator.Intermediate, string, position)
 
+
 class SliceSpinBox(QtGui.QSpinBox):
+
     def __init__(self, parent, minimum, maximum, *args, **kwargs):
         self.validator = SliceValidator()
         QtGui.QDoubleSpinBox.__init__(self, parent, *args, **kwargs)
@@ -70,7 +78,7 @@ class SliceSpinBox(QtGui.QSpinBox):
     def valueFromText(self, text):
         inp = int(safeEval(str(text)))
         if inp < 0:
-            inp = inp + self.maximum() +1
+            inp = inp + self.maximum() + 1
         return inp
 
     def textFromValue(self, value):
@@ -79,8 +87,9 @@ class SliceSpinBox(QtGui.QSpinBox):
             inp = inp + self.maximum() + 1
         return str(inp)
 
+
 class QLabel(QtGui.QLabel):
+
     def __init__(self, parent, *args, **kwargs):
         QtGui.QLabel.__init__(self, parent, *args, **kwargs)
         self.setAlignment(QtCore.Qt.AlignCenter)
-

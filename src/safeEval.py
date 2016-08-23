@@ -2,28 +2,27 @@
 
 # Copyright 2016 Bas van Meerten and Wouter Franssen
 
-#This file is part of ssNake.
+# This file is part of ssNake.
 #
-#ssNake is free software: you can redistribute it and/or modify
-#it under the terms of the GNU General Public License as published by
-#the Free Software Foundation, either version 3 of the License, or
-#(at your option) any later version.
+# ssNake is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
 #
-#ssNake is distributed in the hope that it will be useful,
-#but WITHOUT ANY WARRANTY; without even the implied warranty of
-#MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-#GNU General Public License for more details.
+# ssNake is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
 #
-#You should have received a copy of the GNU General Public License
-#along with ssNake. If not, see <http://www.gnu.org/licenses/>.
+# You should have received a copy of the GNU General Public License
+# along with ssNake. If not, see <http://www.gnu.org/licenses/>.
 
-import math
-import re
 import numpy as np
-from euro import euro
+import re
+
 
 def safeEval(inp, length=None):
-    env = vars(math).copy()
+    env = vars(np).copy()
     env["locals"] = None
     env["globals"] = None
     env["__name__"] = None

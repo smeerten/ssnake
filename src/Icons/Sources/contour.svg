@@ -7,7 +7,6 @@
    xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
    xmlns:svg="http://www.w3.org/2000/svg"
    xmlns="http://www.w3.org/2000/svg"
-   xmlns:xlink="http://www.w3.org/1999/xlink"
    xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
    xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
    width="10mm"
@@ -16,24 +15,12 @@
    id="svg2"
    version="1.1"
    inkscape:version="0.91 r13725"
-   inkscape:export-filename="/media/HDD/ssnake/ssnake/src/Icons/record.png"
+   inkscape:export-filename="/media/HDD/ssnake/ssnake/src/Icons/contour.png"
    inkscape:export-xdpi="162.56"
    inkscape:export-ydpi="162.56"
-   sodipodi:docname="record.svg">
+   sodipodi:docname="contour.svg">
   <defs
      id="defs4">
-    <linearGradient
-       inkscape:collect="always"
-       id="linearGradient4180">
-      <stop
-         style="stop-color:#ff0000;stop-opacity:1;"
-         offset="0"
-         id="stop4182" />
-      <stop
-         style="stop-color:#ff0000;stop-opacity:0;"
-         offset="1"
-         id="stop4184" />
-    </linearGradient>
     <style
        id="style4260"
        type="text/css">
@@ -216,17 +203,6 @@
            style="stroke:none;" />
       </symbol>
     </g>
-    <radialGradient
-       inkscape:collect="always"
-       xlink:href="#linearGradient4180"
-       id="radialGradient4186"
-       cx="17.716534"
-       cy="1034.6456"
-       fx="17.716534"
-       fy="1034.6456"
-       r="13.287401"
-       gradientUnits="userSpaceOnUse"
-       gradientTransform="matrix(3.7806189,-2.445715e-8,0,3.6009884,-49.262926,-2691.1012)" />
   </defs>
   <sodipodi:namedview
      id="base"
@@ -235,9 +211,9 @@
      borderopacity="1.0"
      inkscape:pageopacity="0.0"
      inkscape:pageshadow="2"
-     inkscape:zoom="0.7"
-     inkscape:cx="-185.99562"
-     inkscape:cy="132.24809"
+     inkscape:zoom="5.6"
+     inkscape:cx="26.072507"
+     inkscape:cy="20.035515"
      inkscape:document-units="px"
      inkscape:current-layer="layer1"
      showgrid="false"
@@ -271,10 +247,16 @@
        x="-1.3516643e-07"
        y="1016.9291" />
     <circle
-       style="opacity:0.99999999;fill:url(#radialGradient4186);fill-opacity:1;fill-rule:nonzero;stroke:#ad0000;stroke-width:3.5;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
-       id="path4181"
-       cx="17.716534"
+       style="opacity:1;fill:none;fill-opacity:1;fill-rule:nonzero;stroke:#e97b00;stroke-width:4;stroke-linecap:butt;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1"
+       id="path4185"
+       cx="17.716536"
        cy="1034.6456"
-       r="12.441401" />
+       r="15.716536" />
+    <circle
+       r="7.8405461"
+       cy="1034.6456"
+       cx="17.716536"
+       id="circle4189"
+       style="opacity:1;fill:none;fill-opacity:1;fill-rule:nonzero;stroke:#0050ba;stroke-width:3.99999976;stroke-linecap:butt;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1" />
   </g>
 </svg>
