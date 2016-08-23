@@ -44,7 +44,7 @@ np.set_printoptions(threshold=np.nan)
 
 pi = np.pi
 
-VERSION = 'v0.5'
+VERSION = 'v0.6b'
 
 
 class MainProgram(QtGui.QMainWindow):
