@@ -830,17 +830,8 @@ class RelaxFrame(Plot1DFrame):
     def setLog(self, logx, logy):
         self.logx = logx
         self.logy = logy
-        if self.logx == 0:
-            self.ax.set_xscale('linear')
-        else:
-            self.ax.set_xscale('log')
-        if self.logy == 0:
-            self.ax.set_yscale('linear')
-        else:
-            self.ax.set_yscale('log')
         self.ax.set_xlim(self.xminlim, self.xmaxlim)
         self.ax.set_ylim(self.yminlim, self.ymaxlim)
-        self.canvas.draw()
 
 #################################################################################
 
@@ -950,6 +941,7 @@ class RelaxParamFrame(QtGui.QWidget):
 
     def setLog(self, *args):
         self.parent.setLog(self.xlog.isChecked(), self.ylog.isChecked())
+        self.sim()
 
     def changeNum(self, *args):
         val = self.numExp.currentIndex() + 1
@@ -1557,17 +1549,8 @@ class DiffusionFrame(Plot1DFrame):
     def setLog(self, logx, logy):
         self.logx = logx
         self.logy = logy
-        if self.logx == 0:
-            self.ax.set_xscale('linear')
-        else:
-            self.ax.set_xscale('log')
-        if self.logy == 0:
-            self.ax.set_yscale('linear')
-        else:
-            self.ax.set_yscale('log')
         self.ax.set_xlim(self.xminlim, self.xmaxlim)
         self.ax.set_ylim(self.yminlim, self.ymaxlim)
-        self.canvas.draw()
 
 #################################################################################
 
@@ -1697,7 +1680,8 @@ class DiffusionParamFrame(QtGui.QWidget):
 
     def setLog(self, *args):
         self.parent.setLog(self.xlog.isChecked(), self.ylog.isChecked())
-
+        self.sim()
+        
     def changeNum(self, *args):
         val = self.numExp.currentIndex() + 1
         for i in range(4):
@@ -1961,7 +1945,6 @@ class DiffusionParamFrame(QtGui.QWidget):
             ,['Amplitude',[outAmp]],['Constant',[outConst]],['Coefficient',outCoeff]
             ,['D [m^2/s]',outD]]
             title = 'ssNake diffusion fit results'
-            
             outCurve = np.zeros((len(outCoeff) + 2, len(self.parent.xax)))
             tmp = np.zeros(len(self.parent.xax))
             for i in range(len(outCoeff)):
