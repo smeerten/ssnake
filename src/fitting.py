@@ -29,6 +29,7 @@ from safeEval import safeEval
 from spectrumFrame import Plot1DFrame
 from zcw import zcw_angles
 from widgetClasses import QLabel
+import widgetClasses as wc
 
 import time
 
@@ -136,6 +137,115 @@ class FittingWindow(QtGui.QWidget):
 
 ##############################################################################
 
+class FittingWindowTabs(QtGui.QWidget):
+    # Inherited by the fitting windows
+
+    def __init__(self, mainProgram, oldMainWindow):
+        QtGui.QWidget.__init__(self, mainProgram)
+        self.mainProgram = mainProgram
+        self.oldMainWindow = oldMainWindow
+        self.fig = Figure()
+        self.canvas = FigureCanvas(self.fig)
+        grid = QtGui.QGridLayout()
+        grid.addWidget(self.canvas, 0, 0)
+        self.setup()
+        self.fig.suptitle(self.oldMainWindow.masterData.name)
+        grid.addWidget(self.paramframe, 1, 0)
+
+        self.grid = grid
+        self.tabs = wc.SsnakeTabs(self)
+        self.allowChange = True
+#        self.tabs.currentChanged.connect(self.changeMainWindow)
+#        self.tabs.tabCloseRequested.connect(self.destroyWorkspace)
+         
+        grid2 = QtGui.QGridLayout(self)
+        grid2.addWidget(self.tabs, 0, 0)
+        grid2.setColumnStretch(0, 1)
+        grid2.setRowStretch(0, 1)
+        self.standard=QtGui.QWidget()
+        self.standard.setLayout(self.grid)
+        self.tabs.addTab(self.standard, 'Standard') 
+        self.canvas.mpl_connect('button_press_event', self.buttonPress)
+        self.canvas.mpl_connect('button_release_event', self.buttonRelease)
+        self.canvas.mpl_connect('motion_notify_event', self.pan)
+        self.canvas.mpl_connect('scroll_event', self.scroll)
+
+    def setup(self):
+        pass
+
+    def createNewData(self, data, axes, store=False):
+        masterData = self.get_masterData()
+        if store:
+            self.mainProgram.dataFromFit(data,
+                                         masterData.filePath,
+                                         [masterData.freq[axes], masterData.freq[axes]],
+                                         [masterData.sw[axes], masterData.sw[axes]],
+                                         [False, masterData.spec[axes]],
+                                         [False, masterData.wholeEcho[axes]],
+                                         [None, masterData.ref[axes]],
+                                         [np.arange(len(data)), masterData.xaxArray[axes]],
+                                         axes)
+        else:
+            self.mainProgram.dataFromFit(data,
+                                         copy.deepcopy(masterData.filePath),
+                                         copy.deepcopy(masterData.freq),
+                                         copy.deepcopy(masterData.sw),
+                                         copy.deepcopy(masterData.spec),
+                                         copy.deepcopy(masterData.wholeEcho),
+                                         copy.deepcopy(masterData.ref),
+                                         copy.deepcopy(masterData.xaxArray),
+                                         axes)
+
+    def rename(self, name):
+        self.fig.suptitle(name)
+        self.canvas.draw()
+        self.oldMainWindow.rename(name)
+
+    def buttonPress(self, event):
+        self.current.buttonPress(event)
+
+    def buttonRelease(self, event):
+        self.current.buttonRelease(event)
+
+    def pan(self, event):
+        self.current.pan(event)
+
+    def scroll(self, event):
+        self.current.scroll(event)
+
+    def get_mainWindow(self):
+        return self.oldMainWindow
+
+    def get_masterData(self):
+        return self.oldMainWindow.get_masterData()
+
+    def get_current(self):
+        return self.oldMainWindow.get_current()
+
+    def kill(self):
+        for i in reversed(range(self.grid.count())):
+            self.grid.itemAt(i).widget().deleteLater()
+        self.grid.deleteLater()
+        self.current.kill()
+        self.oldMainWindow.kill()
+        del self.current
+        del self.paramframe
+        del self.fig
+        del self.canvas
+        self.deleteLater()
+
+    def cancel(self):
+        for i in reversed(range(self.grid.count())):
+            self.grid.itemAt(i).widget().deleteLater()
+        self.grid.deleteLater()
+        del self.current
+        del self.paramframe
+        del self.canvas
+        del self.fig
+        self.mainProgram.closeFitWindow(self.oldMainWindow)
+        self.deleteLater()
+
+##############################################################################
 
 def saveResult(title, variablearray, dataArray):
     #A function which saves fit results as an ascii:
@@ -2766,10 +2876,10 @@ def peakDeconvfitFunc(param, args):
 ##############################################################################
 
 
-class TensorDeconvWindow(FittingWindow):
+class TensorDeconvWindow(FittingWindowTabs):
 
     def __init__(self, mainProgram, oldMainWindow):
-        FittingWindow.__init__(self, mainProgram, oldMainWindow)
+        FittingWindowTabs.__init__(self, mainProgram, oldMainWindow)
 
     def setup(self):
         self.current = TensorDeconvFrame(self, self.fig, self.canvas, self.oldMainWindow.current)
