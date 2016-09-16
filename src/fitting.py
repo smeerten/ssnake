@@ -3710,7 +3710,7 @@ def tensorDeconvtensorFunc(x, t11, t22, t33, lor, gauss, multt, sw, weight, axAd
     x1 = x1[np.logical_and(x1 >= 0, x1 < length)]
     final = np.bincount(x1, weight, length)
     apod = np.exp(-np.pi * lor * t) * np.exp(-((np.pi * gauss * t)**2) / (4 * np.log(2)))
-    apod[-1:-(len(apod) / 2 + 1):-1] = apod[:len(apod) / 2]
+    apod[-1:int(-(len(apod) / 2 + 1)):-1] = apod[:len(apod) / 2]
     I = np.real(np.fft.fft(np.fft.ifft(final) * apod))
     I = I / sw * len(I)
     return I
