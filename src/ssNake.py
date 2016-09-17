@@ -3090,6 +3090,14 @@ class PhaseWindow(QtGui.QWidget):
         self.inputFirstOrder()
 
     def stepPhase(self, phase0, phase1):
+        if QtGui.qApp.keyboardModifiers() & QtCore.Qt.ControlModifier:
+            multiplier = 10
+        elif QtGui.qApp.keyboardModifiers() & QtCore.Qt.ShiftModifier:
+            multiplier = 100
+        else:
+            multiplier = 1
+        phase0 = multiplier * phase0
+        phase1 = multiplier * phase1
         inp = safeEval(self.zeroEntry.text()) + phase0 * self.PHASE0STEP
         self.zeroVal = np.mod(inp + 180, 360) - 180
         value = safeEval(self.firstEntry.text()) + phase1 * self.PHASE1STEP
@@ -3326,8 +3334,14 @@ class ApodWindow(QtGui.QWidget):
         self.father.current.apodPreview(lor, gauss, cos2, hamming, shift, shifting, shiftingAxes)
 
     def stepLB(self, lorincr, gaussincr):
-        self.entries[0].setText('%.4g' % (float(self.entries[0].text()) + lorincr * self.lorstep))
-        self.entries[1].setText('%.4g' % (float(self.entries[1].text()) + gaussincr * self.gaussstep))
+        if QtGui.qApp.keyboardModifiers() & QtCore.Qt.ControlModifier:
+            multiplier = 10
+        elif QtGui.qApp.keyboardModifiers() & QtCore.Qt.ShiftModifier:
+            multiplier = 100
+        else:
+            multiplier = 1
+        self.entries[0].setText('%.4g' % (float(self.entries[0].text()) + multiplier*lorincr * self.lorstep))
+        self.entries[1].setText('%.4g' % (float(self.entries[1].text()) + multiplier*gaussincr * self.gaussstep))
         if (lorincr != 0) and (not self.ticks[0].isChecked()):
             self.ticks[0].setChecked(1)
         if (gaussincr != 0) and (not self.ticks[1].isChecked()):
@@ -3664,7 +3678,13 @@ class ShiftDataWindow(QtGui.QWidget):
         inp = safeEval(self.shiftEntry.text())
         if inp is not None:
             self.shiftVal = int(round(inp))
-        self.shiftVal = self.shiftVal + 1
+        if QtGui.qApp.keyboardModifiers() & QtCore.Qt.ControlModifier:
+            shift = +10
+        elif QtGui.qApp.keyboardModifiers() & QtCore.Qt.ShiftModifier:
+            shift = +100
+        else:
+            shift = +1
+        self.shiftVal = self.shiftVal + shift
         self.shiftEntry.setText(str(self.shiftVal))
         self.shiftPreview()
 
@@ -3672,7 +3692,13 @@ class ShiftDataWindow(QtGui.QWidget):
         inp = safeEval(self.shiftEntry.text())
         if inp is not None:
             self.shiftVal = int(round(inp))
-        self.shiftVal = self.shiftVal - 1
+        if QtGui.qApp.keyboardModifiers() & QtCore.Qt.ControlModifier:
+            shift = -10
+        elif QtGui.qApp.keyboardModifiers() & QtCore.Qt.ShiftModifier:
+            shift = -100
+        else:
+            shift = -1
+        self.shiftVal = self.shiftVal + shift
         self.shiftEntry.setText(str(self.shiftVal))
         self.shiftPreview()
 
