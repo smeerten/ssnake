@@ -4303,7 +4303,7 @@ class Quad1MASDeconvParamFrame(QtGui.QWidget):
         self.parent = parent
         self.rootwindow = rootwindow
         self.cheng = 12
-        self.NSTEPS = 30
+        self.nsteps = 30
         grid = QtGui.QGridLayout(self)
         self.setLayout(grid)
         if self.parent.current.spec == 1:
@@ -4362,6 +4362,11 @@ class Quad1MASDeconvParamFrame(QtGui.QWidget):
         self.spinEntry.setAlignment(QtCore.Qt.AlignHCenter)
         self.spinEntry.setText("30.0")
         self.optframe.addWidget(self.spinEntry, 5, 0)
+        self.optframe.addWidget(QLabel("# steps:"), 6, 0)
+        self.stepsEntry = QtGui.QLineEdit()
+        self.stepsEntry.setAlignment(QtCore.Qt.AlignHCenter)
+        self.stepsEntry.setText(str(self.nsteps))
+        self.optframe.addWidget(self.stepsEntry, 7, 0)
         self.frame3.addWidget(QLabel(u"Cq [MHz]:"), 1, 0, 1, 2)
         self.frame3.addWidget(QLabel(u"\u03B7:"), 1, 2, 1, 2)
         self.frame3.setColumnStretch(20, 1)
@@ -4443,6 +4448,16 @@ class Quad1MASDeconvParamFrame(QtGui.QWidget):
         else:
             self.cheng = int(inp)
         self.chengEntry.setText(str(self.cheng))
+        
+    def setSteps(self, *args):
+        inp = safeEval(self.stepsEntry.text())
+        if inp is None:
+            self.nsteps = 15
+        else:
+            self.nsteps = int(inp)
+        self.stepsEntry.setText(str(self.nsteps))   
+        
+    
 
     def checkInputs(self):
         inp = safeEval(self.deltaEntry.text())
@@ -4469,6 +4484,7 @@ class Quad1MASDeconvParamFrame(QtGui.QWidget):
             self.rootwindow.mainProgram.dispMsg("Not enough integrals selected")
             return
         self.setCheng()
+        self.setSteps()
         if not self.checkInputs():
             self.rootwindow.mainProgram.dispMsg("One of the inputs is not valid")
             return
@@ -4493,7 +4509,7 @@ class Quad1MASDeconvParamFrame(QtGui.QWidget):
         I = self.Ivalues[self.IEntry.currentIndex()]
         args = (struc, argu, self.parent.current.freq * np.pi * 2)
         self.queue = multiprocessing.Queue()
-        self.process1 = multiprocessing.Process(target=quad1MASmpFit, args=(self.sidebandList, np.real(self.integralList), guess, args, self.queue, I, self.NSTEPS, omegar, self.cheng))
+        self.process1 = multiprocessing.Process(target=quad1MASmpFit, args=(self.sidebandList, np.real(self.integralList), guess, args, self.queue, I, self.nsteps, omegar, self.cheng))
         self.process1.start()
         self.running = True
         self.stopButton.show()
@@ -4518,7 +4534,7 @@ class Quad1MASDeconvParamFrame(QtGui.QWidget):
             self.etaEntry.setText('%.3g' % fitVal[counter])
             outEta = fitVal[counter]
             counter += 1
-        self.disp(outDelta, outEta, I, self.NSTEPS, omegar, self.cheng)
+        self.disp(outDelta, outEta, I, self.nsteps, omegar, self.cheng)
 
     def stopMP(self, *args):
         if self.queue is not None:
@@ -4536,6 +4552,7 @@ class Quad1MASDeconvParamFrame(QtGui.QWidget):
             self.rootwindow.mainProgram.dispMsg("Not enough integrals selected")
             return
         self.setCheng()
+        self.setSteps()
         if not self.checkInputs():
             self.rootwindow.mainProgram.dispMsg("One of the inputs is not valid")
             return
@@ -4543,16 +4560,17 @@ class Quad1MASDeconvParamFrame(QtGui.QWidget):
         omegar = float(self.spinEntry.text()) * 1e3 * np.pi * 2
         outDelta = float(self.deltaEntry.text())
         outEta = float(self.etaEntry.text())
-        self.disp(outDelta, outEta, I, self.NSTEPS, omegar, self.cheng)
+        
+        self.disp(outDelta, outEta, I, self.nsteps, omegar, self.cheng)
 
-    def disp(self, outDelta, outEta, I, NSTEPS, omegar, cheng):
+    def disp(self, outDelta, outEta, I, nsteps, omegar, cheng):
         theta, phi, weight = zcw_angles(cheng, symm=2)
         sinPhi = np.sin(phi)
         cosPhi = np.cos(phi)
         sin2Theta = np.sin(2 * theta)
         cos2Theta = np.cos(2 * theta)
-        tresolution = 2 * np.pi / omegar / NSTEPS
-        t = np.linspace(0, tresolution * (NSTEPS - 1), NSTEPS)
+        tresolution = 2 * np.pi / omegar / nsteps
+        t = np.linspace(0, tresolution * (nsteps - 1), nsteps)
         cosOmegarT = np.cos(omegar * t)
         cos2OmegarT = np.cos(2 * omegar * t)
         angleStuff = [np.array([np.sqrt(2) / 3 * sinPhi * cosPhi * 3]).transpose() * cosOmegarT,
@@ -4561,7 +4579,7 @@ class Quad1MASDeconvParamFrame(QtGui.QWidget):
                       np.array([1.0 / 3 / 2 * (1 + cosPhi**2) * cos2Theta]).transpose() * cos2OmegarT,
                       np.array([np.sqrt(2) / 3 * sinPhi * sin2Theta]).transpose() * np.sin(omegar * t),
                       np.array([cosPhi * sin2Theta / 3]).transpose() * np.sin(2 * omegar * t)]
-        testFunc = quad1MAShbFunc(self.parent.current.freq * np.pi * 2, outDelta, outEta, I, NSTEPS, tresolution, angleStuff, weight)
+        testFunc = quad1MAShbFunc(self.parent.current.freq * np.pi * 2, outDelta, outEta, I, nsteps, tresolution, angleStuff, weight)
         results = testFunc[np.array(self.sidebandList)]
         results /= np.sum(results)
         for i in range(len(self.resultLabels)):
@@ -4570,14 +4588,14 @@ class Quad1MASDeconvParamFrame(QtGui.QWidget):
 ##############################################################################
 
 
-def quad1MASmpFit(sidebandList, integralList, guess, args, queue, I, NSTEPS, omegar, cheng):
+def quad1MASmpFit(sidebandList, integralList, guess, args, queue, I, nsteps, omegar, cheng):
     theta, phi, weight = zcw_angles(cheng, symm=2)
     sinPhi = np.sin(phi)
     cosPhi = np.cos(phi)
     sin2Theta = np.sin(2 * theta)
     cos2Theta = np.cos(2 * theta)
-    tresolution = 2 * np.pi / omegar / NSTEPS
-    t = np.linspace(0, tresolution * (NSTEPS - 1), NSTEPS)
+    tresolution = 2 * np.pi / omegar / nsteps
+    t = np.linspace(0, tresolution * (nsteps - 1), nsteps)
     cosOmegarT = np.cos(omegar * t)
     cos2OmegarT = np.cos(2 * omegar * t)
     angleStuff = [np.array([np.sqrt(2) / 3 * sinPhi * cosPhi * 3]).transpose() * cosOmegarT,
@@ -4586,14 +4604,14 @@ def quad1MASmpFit(sidebandList, integralList, guess, args, queue, I, NSTEPS, ome
                   np.array([1.0 / 3 / 2 * (1 + cosPhi**2) * cos2Theta]).transpose() * cos2OmegarT,
                   np.array([np.sqrt(2) / 3 * sinPhi * sin2Theta]).transpose() * np.sin(omegar * t),
                   np.array([cosPhi * sin2Theta / 3]).transpose() * np.sin(2 * omegar * t)]
-    arg = args + (I, NSTEPS, tresolution, angleStuff, weight, sidebandList, integralList)
+    arg = args + (I, nsteps, tresolution, angleStuff, weight, sidebandList, integralList)
     try:
         fitVal = scipy.optimize.fmin(quad1MASfitFunc, guess, args=arg, disp=False)
     except:
         fitVal = None
     queue.put(fitVal)
 
-def quad1MASfitFunc(param, struc, argu, omega0, I, NSTEPS, tresolution, angleStuff, weight, x, y):
+def quad1MASfitFunc(param, struc, argu, omega0, I, nsteps, tresolution, angleStuff, weight, x, y):
     if struc[0]:
         delta = param[0]
         param = np.delete(param, [0])
@@ -4606,11 +4624,11 @@ def quad1MASfitFunc(param, struc, argu, omega0, I, NSTEPS, tresolution, angleStu
     else:
         eta = argu[0]
         argu = np.delete(argu, [0])
-    testFunc = quad1MAShbFunc(omega0, delta, eta, I, NSTEPS, tresolution, angleStuff, weight)
+    testFunc = quad1MAShbFunc(omega0, delta, eta, I, nsteps, tresolution, angleStuff, weight)
     testFunc = testFunc[np.array(x)] / np.sum(testFunc[x]) * np.sum(y)
     return np.sum((testFunc - y)**2)
 
-def quad1MAShbFunc(omega0, Cq, eta, I, NSTEPS, tresolution, angleStuff, weight):
+def quad1MAShbFunc(omega0, Cq, eta, I, nsteps, tresolution, angleStuff, weight):
     m = np.arange(-I, 0)  # Only half the transitions have to be caclulated, as the others are mirror images (sidebands inversed)
     eff = I**2 + I - m * (m + 1)  # The detection efficiencies of the top half transitions
     splitting = np.arange(I - 0.5, -0.1, -1)  # The quadrupolar couplings of the top half transitions
@@ -4625,9 +4643,9 @@ def quad1MAShbFunc(omega0, Cq, eta, I, NSTEPS, tresolution, angleStuff, weight):
                 QTrs[:, j] = np.exp(-1j * np.sum(omegars[:, 0:j] * tresolution, 1))
             rhoT0sr = np.conj(QTrs)
             # calculate the gamma-averaged FID over 1 rotor period for all crystallites
-            favrs = np.zeros(NSTEPS, dtype=complex)
-            for j in range(NSTEPS):
-                favrs[j] += np.sum(weight * np.sum(rhoT0sr * np.roll(QTrs, -j, axis=1), 1) / NSTEPS**2)
+            favrs = np.zeros(nsteps, dtype=complex)
+            for j in range(nsteps):
+                favrs[j] += np.sum(weight * np.sum(rhoT0sr * np.roll(QTrs, -j, axis=1), 1) / nsteps**2)
             # calculate the sideband intensities by doing an FT and pick the ones that are needed further
             partbands = np.real(np.fft.fft(favrs))
             sidebands = sidebands + eff[transition] * (partbands + np.roll(np.flipud(partbands), 1))
