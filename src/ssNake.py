@@ -41,6 +41,7 @@ import scipy.constants as SC
 
 matplotlib.rc('font', family='DejaVu Sans')
 np.set_printoptions(threshold=np.nan)
+QtCore.QLocale.setDefault(QtCore.QLocale('en_US'))
 
 pi = np.pi
 
