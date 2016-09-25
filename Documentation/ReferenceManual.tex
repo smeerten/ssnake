@@ -562,7 +562,24 @@ R = \frac{1}{M} \sum_i y_i \cdot x_i  \quad,
 with $M = \sum y_i$ and $y_i$ the y-value corresponding to x-value $x_i$.
 
 \subsection{Second order quadrupole static}
-This fitting routine can be used to fit a static powder lineshape that is caused by the second order quadrupolar effect. A simplex method is used to find the (local) optimal solution. It is therefore necessary to make sure the initial parameters are somewhat close to the final fit, especially for fits with multiple sites.
+This fitting routine can be used to fit a static powder lineshape that is caused by the second order quadrupolar effect. Only the central transition is considered. A simplex method is used to find the (local) optimal solution. It is therefore necessary to make sure the initial parameters are somewhat close to the final fit, especially for fits with multiple sites. General values that need to be set are:
+\begin{itemize}
+\item The Cheng number (number of powder averages)
+\item The spin quantum number $I$ (only half-integer > 1/2)
+\item The background (constant value added to all data points)
+\item The slope (linear factor added to all data points, is zero at $x=0$ and uses the $x$-values in Hz).
+\end{itemize}
+And for each site:
+\begin{itemize}
+\item Position: centre of the lineshape. This value is added to all $x$-values from the simulation. Scale is in Hz.
+\item $C_\text{Q}$: quadrupolar coupling constant in MHz.
+\item $\eta$: the asymmetry parameter
+\item Integral: total integral of the lineshape
+\item Lorentz: amount of Lorentzian linebroading in Hz
+\item Gauss: amount of Gaussian linebroading in Hz.
+\end{itemize}
+A maximum of 10 sites can be fitted simultaneously.
+
 
 \subsubsection*{Formulae}
 The second order quadrupole static relies on some relatively standard formulae: those of the second order quadrupolar coupling. This equation can be split up in two parts: an angle independent factor, and the angular factors. This latter part is then split in three parts depending on the influence of the asymmetry parameter $\eta$. In short:
@@ -570,13 +587,13 @@ The second order quadrupole static relies on some relatively standard formulae: 
 \begin{equation}
 \nu = -\dfrac{3{C_\text{Q}}^2}{6\nu_0(2I(2I-1))^2}(I(I+1)-3/4)(A+B\cdot\eta+C\cdot\eta^2)
 \end{equation}
-With:
+With the angular factors:
 \begin{align}
 A &= -\dfrac{27}{8}\cos(\theta)^4+\dfrac{15}{4}\cos(\theta)^2-\dfrac{3}{8} \\
 B &= \left(-\dfrac{9}{4}\cos(\theta)^4+2\cos(\theta)^2+\dfrac{1}{4}\right)\cos(2\phi) \\
 C &=-\dfrac{1}{2}\cos(\theta)^2+\dfrac{1}{3}+\left(-\dfrac{3}{8}\cos(\theta)^4+\dfrac{3}{4}\cos(\theta)^2-\dfrac{3}{8}\right)\cos(2\phi)^2
 \end{align}
-For a given cheng number (i.e. number of powder orientations), the $A$, $B$ and $C$ parameters are contant, and only have to be calculated once for the fitting procedure.
+and the regular definitions for the quadrupolar coupling constant $C_\text{Q}$ (in Hz) and asymmetry parameter $\eta$. For a given cheng number (i.e. number of powder orientations), the $A$, $B$ and $C$ parameters are constant, and only have to be calculated once for the fitting procedure.
 
 
 %A = -27/8.0*np.cos(theta)**4+15/4.0*np.cos(theta)**2-3/8.0
