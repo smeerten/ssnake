@@ -517,6 +517,31 @@ ssNake supports fitting procedures for several idealized lineshapes commonly enc
 
 Simulation of powder spectra is done by getting intensities and frequencies of all the crystallite angles contained in a crystal file. These crystal files (which are not files in our case, but merely matrices) are made on the fly by ssNake depending on the `Cheng' number supplied by the user from the fitting window. Higher values of this number lead to more powder orientations and more accurate results. Note that the number of angles increases exponentially with the Cheng number, which can lead to very slow fits. The resulting frequency/intensity pairs will be add to a vector of the current intensities. Nearly always, the found frequency is not a value of the x-axis, in which case it is shifted to the nearest point that is. This introduces a small error in the simulation, but if the digital resolution is good enough to show the pattern nicely, this error will be very small. Also note that values that are not within the limits of the x-axis are discarded, no aliasing is performed.
 
+\subsection*{ZCW crystal files}
+As explained in the previous section, simulation of powder patterns requires averaging over a sphere. In practice, only a finite amount of angles (the polar angles $\theta$ and $\phi$) is selected and saved in the crystal file. There is no perfect way to do this, and therefore there exist multiple methods to do this. We use the ZCW method (named after Zaremba, Conroy, and Wolfsberg \cite{zaremba1966good,conroy1967molecular,cheng1973investigations}), being both fast and accurate. The required input is a single number: the `Cheng' number. This number specifies the amount of crystal orientations via the Fibonacci series, with Cheng(0) being `1', Cheng(1) `2' and subsequent values the sum of the two previous:
+\begin{equation}
+F_M = F_{M-1} + F_{M-2}	\quad .
+\end{equation} 
+From this, a list $js$ is made, going from 0 to 1 (not including) with the number of steps equal to the Fibonacci number. Phi is equal to:
+\begin{equation}
+\phi = \dfrac{2  \piup}{c_2} \cdot \text{mod}(F_{M-1} \cdot js, 1)
+\end{equation} 
+with $c_2$ a scaling factor (see below) and $F_{M-1}$ the value of the Fibonacci series for $\text{Cheng} - 1$. In practice this means that (due to the `mod'), the list makes $F_{M-1}$ passes through the region 0:$2  \piup/c_2$, with slightly different values for every pass. Theta is equal to:
+\begin{equation}
+\theta = \text{acos}(c_0 (c_1 \cdot js - 1)) \quad .
+\end{equation}
+In the above, the $c$ parameters define the limits over which the angles are calculated. ssNake provides three options for this: a full sphere, a hemisphere (the upper half) and an octant (a quarter of the upper half). In the simulations that ssNake performs, the symmetry of the NMR interactions is high, and only the octant needs to be sampled. The $c$ values are:
+\begin{equation}
+\mathbf{c} = \left\{
+  \begin{array}{ll}
+    (1, 2, 1) & \text{full sphere}\\
+    (-1, 1, 1) &\text{hemisphere}\\
+    (-1, 1, 4) &\text{octant}\\
+  \end{array}
+\right. \quad .
+\end{equation}
+The source code of this can be found in \texttt{zcw.py}. For more information on powder averaging see the paper by Mattias Ed\'{e}n \cite{eden2003computer}.
+
 
 
 \subsection{S/N}
