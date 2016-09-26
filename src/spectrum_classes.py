@@ -162,7 +162,7 @@ class Spectrum:
         except ValueError as error:
             self.dispMsg(str(error))
             return None
-        self.addHistory("Added to data[" + str(select) + "]: " + str(data).replace('\n', ''))
+        self.addHistory("Added to data[" + str(select) + "]")
         return lambda self: self.subtract(data, select=select)
 
     def subtract(self, data, dataImag=0, select=slice(None)):
@@ -174,7 +174,7 @@ class Spectrum:
         except ValueError as error:
             self.dispMsg(str(error))
             return None
-        self.addHistory("Subtracted from data[" + str(select) + "]: " + str(data).replace('\n', ''))
+        self.addHistory("Subtracted from data[" + str(select) + "]")
         return lambda self: self.add(data, select=select)
 
     def multiply(self, mult, axes, multImag=0, select=slice(None)):
