@@ -3069,6 +3069,13 @@ class TensorDeconvParamFrame(QtGui.QWidget):
         self.frame1.addWidget(self.pickTick, 1, 1)
         self.frame1.setColumnStretch(10, 1)
         self.frame1.setAlignment(QtCore.Qt.AlignTop)
+        self.shiftDef = QtGui.QComboBox()
+        self.shiftDef.addItems(['123', 'Iso-Delta-Eta'])
+        self.frame1.addWidget(self.shiftDef, 2, 1)   
+        
+        
+        
+        
         self.optframe.addWidget(QLabel("Cheng:"), 0, 0)
         self.chengEntry = QtGui.QLineEdit()
         self.chengEntry.setAlignment(QtCore.Qt.AlignHCenter)
@@ -3346,7 +3353,7 @@ class TensorDeconvParamFrame(QtGui.QWidget):
                 struc.append(False)
         args = (numExp, struc, argu, self.parent.current.sw, self.axAdd)
         self.queue = multiprocessing.Queue()
-        self.process1 = multiprocessing.Process(target=tensorDeconvmpFit, args=(self.parent.xax, np.real(self.parent.data1D), guess, args, self.queue, self.cheng))
+        self.process1 = multiprocessing.Process(target=tensorDeconvmpFit, args=(self.parent.xax, np.real(self.parent.data1D), guess, args, self.queue, self.cheng,self.shiftDef.currentIndex()))
         self.process1.start()
         self.running = True
         self.stopButton.show()
@@ -3396,7 +3403,7 @@ class TensorDeconvParamFrame(QtGui.QWidget):
                 self.gaussEntries[i].setText('%.3g' % abs(fitVal[counter]))
                 outGauss[i] = abs(fitVal[counter])
                 counter += 1
-        self.disp(outBgrnd, outSlope, outt11, outt22, outt33, outAmp, outWidth, outGauss)
+        self.disp(outBgrnd, outSlope, outt11, outt22, outt33, outAmp, outWidth, outGauss,False,self.shiftDef.currentIndex())
 
     def stopMP(self, *args):
         if self.queue is not None:
@@ -3496,7 +3503,7 @@ class TensorDeconvParamFrame(QtGui.QWidget):
         counter2 = 0
         fitData = rolledData.reshape(dataShape[axes], np.product(dataShape2)).T
         self.queue = multiprocessing.Queue()
-        self.process1 = multiprocessing.Process(target=tensorDeconvmpAllFit, args=(self.parent.xax, np.real(fitData), guess, args, self.queue, self.cheng))
+        self.process1 = multiprocessing.Process(target=tensorDeconvmpAllFit, args=(self.parent.xax, np.real(fitData), guess, args, self.queue, self.cheng,self.shiftDef.currentIndex()))
         self.process1.start()
         self.running = True
         self.stopButton.show()
@@ -3585,9 +3592,9 @@ class TensorDeconvParamFrame(QtGui.QWidget):
             if not np.isfinite([t11[i], t22[i], t33[i], amp[i], width[i], gauss[i]]).all():
                 self.rootwindow.mainProgram.dispMsg("One of the inputs is not valid")
                 return
-        self.disp(bgrnd, slope, t11, t22, t33, amp, width, gauss, store)
+        self.disp(bgrnd, slope, t11, t22, t33, amp, width, gauss, store,self.shiftDef.currentIndex())
 
-    def disp(self, outBgrnd, outSlope, outt11, outt22, outt33, outAmp, outWidth, outGauss, store=False):
+    def disp(self, outBgrnd, outSlope, outt11, outt22, outt33, outAmp, outWidth, outGauss, store=False,Convention=0):
         phi, theta, weight = zcw_angles(self.cheng, symm=2)
         multt = [np.sin(theta)**2 * np.cos(phi)**2, np.sin(theta)**2 * np.sin(phi)**2, np.cos(theta)**2]
         tmpx = self.parent.xax
@@ -3597,7 +3604,7 @@ class TensorDeconvParamFrame(QtGui.QWidget):
         x = []
         for i in range(len(outt11)):
             x.append(tmpx)
-            y = outAmp[i] * tensorDeconvtensorFunc(tmpx, outt11[i], outt22[i], outt33[i], outWidth[i], outGauss[i], multt, self.parent.current.sw, weight, self.axAdd)
+            y = outAmp[i] * tensorDeconvtensorFunc(tmpx, outt11[i], outt22[i], outt33[i], outWidth[i], outGauss[i], multt, self.parent.current.sw, weight, self.axAdd,Convention)
             outCurvePart.append(outCurveBase + y)
             outCurve += y
         if store == 'copy':
@@ -3619,29 +3626,29 @@ class TensorDeconvParamFrame(QtGui.QWidget):
 ##############################################################################
 
 
-def tensorDeconvmpFit(xax, data1D, guess, args, queue, cheng):
+def tensorDeconvmpFit(xax, data1D, guess, args, queue, cheng,Convention=0):
     phi, theta, weight = zcw_angles(cheng, symm=2)
     multt = [np.sin(theta)**2 * np.cos(phi)**2, np.sin(theta)**2 * np.sin(phi)**2, np.cos(theta)**2]
-    arg = args + (multt, weight, xax, data1D)
+    arg = args + (multt, weight, xax, data1D,Convention)
     try:
         fitVal = scipy.optimize.fmin(tensorDeconvfitFunc, guess, args=arg, disp=False)
     except:
         fitVal = None
     queue.put(fitVal)
 
-def tensorDeconvmpAllFit(xax, data, guess, args, queue, cheng):
+def tensorDeconvmpAllFit(xax, data, guess, args, queue, cheng,convention):
     phi, theta, weight = zcw_angles(cheng, symm=2)
     multt = [np.sin(theta)**2 * np.cos(phi)**2, np.sin(theta)**2 * np.sin(phi)**2, np.cos(theta)**2]
     fitVal = []
     for j in data:
-        arg = args + (multt, weight, xax, j)
+        arg = args + (multt, weight, xax, j,convention)
         try:
             fitVal.append(scipy.optimize.fmin(tensorDeconvfitFunc, guess, args=arg, disp=False))
         except:
             fitVal.append([[0] * 10])
     queue.put(fitVal)
 
-def tensorDeconvfitFunc(param, numExp, struc, argu, sw, axAdd, multt, weight, x, y):
+def tensorDeconvfitFunc(param, numExp, struc, argu, sw, axAdd, multt, weight, x, y,convention=0):
     testFunc = np.zeros(len(x))
     if struc[0]:
         bgrnd = param[0]
@@ -3692,11 +3699,23 @@ def tensorDeconvfitFunc(param, numExp, struc, argu, sw, axAdd, multt, weight, x,
         else:
             gauss = argu[0]
             argu = np.delete(argu, [0])
-        testFunc += amp * tensorDeconvtensorFunc(x, t11, t22, t33, width, gauss, multt, sw, weight, axAdd)
+            
+
+        
+        testFunc += amp * tensorDeconvtensorFunc(x, t11, t22, t33, width, gauss, multt, sw, weight, axAdd,convention)
     testFunc += bgrnd + slope * x
     return np.sum((np.real(testFunc) - y)**2)
 
-def tensorDeconvtensorFunc(x, t11, t22, t33, lor, gauss, multt, sw, weight, axAdd):
+def tensorDeconvtensorFunc(x, t11, t22, t33, lor, gauss, multt, sw, weight, axAdd,convention=0):
+    if convention ==1:
+        delta11 = t22 + t11  # Treat xyz as 123, as it reorders them anyway
+        delta22 = (t33 * t22 + t11 * 3 - delta11) / 2.0
+        delta33 = t11 * 3 - delta11 - delta22
+        deltaArray = np.array([delta11, delta22, delta33])
+        deltaSorted = np.sort(deltaArray)
+        t11 = deltaSorted[2]
+        t22 = deltaSorted[1]
+        t33 = deltaSorted[0]    
     t11 = t11 * multt[0]
     t22 = t22 * multt[1]
     t33 = t33 * multt[2]
@@ -4606,7 +4625,7 @@ def quad1MASmpFit(sidebandList, integralList, guess, args, queue, I, nsteps, ome
                   np.array([cosPhi * sin2Theta / 3]).transpose() * np.sin(2 * omegar * t)]
     arg = args + (I, nsteps, tresolution, angleStuff, weight, sidebandList, integralList)
     try:
-        fitVal = scipy.optimize.fmin(quad1MASfitFunc, guess, args=arg, disp=False)
+        fitVal = scipy.optimize.fmin(quad1MASfitFunc, guess, args=arg, disp=True)
     except:
         fitVal = None
     queue.put(fitVal)
@@ -5369,7 +5388,7 @@ def quad1DeconvmpFit(xax, data1D, guess, args, queue, cheng, setAngleStuff, tens
     weight, angleStuff = setAngleStuff(cheng)
     arg = args + (angleStuff, weight, xax, data1D, tensorFunc)
     try:
-        fitVal = scipy.optimize.fmin(quad1DeconvfitFunc, guess, args=arg, disp=False)
+        fitVal = scipy.optimize.fmin(quad1DeconvfitFunc, guess, args=arg, disp=True)
     except:
         fitVal = None
     queue.put(fitVal)
