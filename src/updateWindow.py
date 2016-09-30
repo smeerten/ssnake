@@ -69,10 +69,8 @@ class UpdateWindow(QtGui.QWidget):
         layout.addWidget(okButton, 2, 1)
         layout.setColumnStretch(1, 1)
         self.show()
-        self.father.menuDisable()
 
     def closeEvent(self, *args):
-        self.father.menuEnable()
         self.deleteLater()
 
     def applyAndClose(self, *args):
@@ -80,7 +78,6 @@ class UpdateWindow(QtGui.QWidget):
         message = "Update is going to replace all files in " + str(ssnake_location) + "\n ssNake needs to be restarted for the changes to take effect.\n Are you sure?"
         reply = QtGui.QMessageBox.question(self, 'Update', message, QtGui.QMessageBox.Yes, QtGui.QMessageBox.No)
         if reply == QtGui.QMessageBox.Yes:
-            self.father.menuEnable()
             self.deleteLater()
             progress = QtGui.QProgressDialog("Downloading...", "Cancel", 0, 3)
             progress.show()
