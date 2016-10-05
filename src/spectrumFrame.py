@@ -19,7 +19,11 @@
 
 import numpy as np
 import matplotlib.gridspec as gridspec
-from PyQt4 import QtGui, QtCore
+try:
+    from PyQt4 import QtGui, QtCore
+    from PyQt4 import QtGui as QtWidgets    
+except ImportError:
+    from PyQt5 import QtGui, QtCore, QtWidgets
 import spectrum_classes
 import warnings
 #########################################################################################################
@@ -94,7 +98,7 @@ class Plot1DFrame:
         self.peakPickFunc = None
 
     def scroll(self, event):
-        modifiers = QtGui.QApplication.keyboardModifiers()
+        modifiers = QtWidgets.QApplication.keyboardModifiers()
         if modifiers == QtCore.Qt.ShiftModifier:
             self.altScroll(event)
         else:
@@ -138,7 +142,7 @@ class Plot1DFrame:
                 self.zoomX1 = event.xdata
                 self.zoomY1 = event.ydata
         elif (event.button == 3) and event.dblclick:
-            modifiers = QtGui.QApplication.keyboardModifiers()
+            modifiers = QtWidgets.QApplication.keyboardModifiers()
             if modifiers == QtCore.Qt.ShiftModifier:
                 self.altReset()
             else:

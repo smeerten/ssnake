@@ -17,7 +17,11 @@
 # You should have received a copy of the GNU General Public License
 # along with ssNake. If not, see <http://www.gnu.org/licenses/>.
 
-from PyQt4 import QtGui, QtCore
+try:
+    from PyQt4 import QtGui, QtCore
+    from PyQt4 import QtGui as QtWidgets
+except ImportError:
+    from PyQt5 import QtGui, QtCore, QtWidgets
 import os
 import sys
 import json
@@ -30,10 +34,10 @@ else:
     from urllib import urlopen, urlretrieve
 
 
-class UpdateWindow(QtGui.QWidget):
+class UpdateWindow(QtWidgets.QWidget):
 
     def __init__(self, parent):
-        QtGui.QWidget.__init__(self, parent)
+        QtWidgets.QWidget.__init__(self, parent)
         self.setWindowFlags(QtCore.Qt.Window | QtCore.Qt.Tool)
         self.father = parent
         try:
@@ -52,19 +56,19 @@ class UpdateWindow(QtGui.QWidget):
             self.father.dispMsg("Could not connect to the server")
             return
         self.setWindowTitle("Update ssNake")
-        layout = QtGui.QGridLayout(self)
-        grid = QtGui.QGridLayout()
+        layout = QtWidgets.QGridLayout(self)
+        grid = QtWidgets.QGridLayout()
         layout.addLayout(grid, 0, 0, 1, 2)
-        grid.addWidget(QtGui.QLabel("Update to version:"), 0, 0)
-        self.versionDrop = QtGui.QComboBox(parent=self)
+        grid.addWidget(QtWidgets.QLabel("Update to version:"), 0, 0)
+        self.versionDrop = QtWidgets.QComboBox(parent=self)
         self.versionDrop.addItems(self.nameList)
         self.versionDrop.setCurrentIndex(1)
         grid.addWidget(self.versionDrop, 1, 0)
-        grid.addWidget(QtGui.QLabel("Current version: " + self.father.VERSION), 2, 0)
-        cancelButton = QtGui.QPushButton("&Cancel")
+        grid.addWidget(QtWidgets.QLabel("Current version: " + self.father.VERSION), 2, 0)
+        cancelButton = QtWidgets.QPushButton("&Cancel")
         cancelButton.clicked.connect(self.closeEvent)
         layout.addWidget(cancelButton, 2, 0)
-        okButton = QtGui.QPushButton("&Ok")
+        okButton = QtWidgets.QPushButton("&Ok")
         okButton.clicked.connect(self.applyAndClose)
         layout.addWidget(okButton, 2, 1)
         layout.setColumnStretch(1, 1)
@@ -76,10 +80,10 @@ class UpdateWindow(QtGui.QWidget):
     def applyAndClose(self, *args):
         ssnake_location = os.path.dirname(os.path.dirname(__file__))
         message = "Update is going to replace all files in " + str(ssnake_location) + "\n ssNake needs to be restarted for the changes to take effect.\n Are you sure?"
-        reply = QtGui.QMessageBox.question(self, 'Update', message, QtGui.QMessageBox.Yes, QtGui.QMessageBox.No)
-        if reply == QtGui.QMessageBox.Yes:
+        reply = QtWidgets.QMessageBox.question(self, 'Update', message, QtWidgets.QMessageBox.Yes, QtWidgets.QMessageBox.No)
+        if reply == QtWidgets.QMessageBox.Yes:
             self.deleteLater()
-            progress = QtGui.QProgressDialog("Downloading...", "Cancel", 0, 3)
+            progress = QtWidgets.QProgressDialog("Downloading...", "Cancel", 0, 3)
             progress.show()
             tempDir = tempfile.mkdtemp()
             filehandle, _ = urlretrieve(self.urlList[self.versionDrop.currentIndex()])

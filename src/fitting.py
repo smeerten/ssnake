@@ -18,9 +18,14 @@
 # along with ssNake. If not, see <http://www.gnu.org/licenses/>.
 
 import numpy as np
-from PyQt4 import QtGui, QtCore
+try:
+    from PyQt4 import QtGui, QtCore
+    from PyQt4 import QtGui as QtWidgets
+    from matplotlib.backends.backend_qt4agg import FigureCanvasQTAgg as FigureCanvas
+except ImportError:
+    from PyQt5 import QtGui, QtCore, QtWidgets
+    from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.figure import Figure
-from matplotlib.backends.backend_qt4agg import FigureCanvasQTAgg as FigureCanvas
 import scipy.optimize
 import multiprocessing
 import copy
@@ -38,16 +43,16 @@ pi = np.pi
 ##############################################################################
 
 
-class FittingWindow(QtGui.QWidget):
+class FittingWindow(QtWidgets.QWidget):
     # Inherited by the fitting windows
 
     def __init__(self, mainProgram, oldMainWindow):
-        QtGui.QWidget.__init__(self, mainProgram)
+        QtWidgets.QWidget.__init__(self, mainProgram)
         self.mainProgram = mainProgram
         self.oldMainWindow = oldMainWindow
         self.fig = Figure()
         self.canvas = FigureCanvas(self.fig)
-        grid = QtGui.QGridLayout(self)
+        grid = QtWidgets.QGridLayout(self)
         grid.addWidget(self.canvas, 0, 0)
         self.setup()
         self.fig.suptitle(self.oldMainWindow.masterData.name)
@@ -137,16 +142,16 @@ class FittingWindow(QtGui.QWidget):
 
 ##############################################################################
 
-class FittingWindowTabs(QtGui.QWidget):
+class FittingWindowTabs(QtWidgets.QWidget):
     # Inherited by the fitting windows
 
     def __init__(self, mainProgram, oldMainWindow):
-        QtGui.QWidget.__init__(self, mainProgram)
+        QtWidgets.QWidget.__init__(self, mainProgram)
         self.mainProgram = mainProgram
         self.oldMainWindow = oldMainWindow
         self.fig = Figure()
         self.canvas = FigureCanvas(self.fig)
-        grid = QtGui.QGridLayout()
+        grid = QtWidgets.QGridLayout()
         grid.addWidget(self.canvas, 0, 0)
         self.setup()
         self.fig.suptitle(self.oldMainWindow.masterData.name)
@@ -158,11 +163,11 @@ class FittingWindowTabs(QtGui.QWidget):
 #        self.tabs.currentChanged.connect(self.changeMainWindow)
 #        self.tabs.tabCloseRequested.connect(self.destroyWorkspace)
          
-        grid2 = QtGui.QGridLayout(self)
+        grid2 = QtWidgets.QGridLayout(self)
         grid2.addWidget(self.tabs, 0, 0)
         grid2.setColumnStretch(0, 1)
         grid2.setRowStretch(0, 1)
-        self.standard=QtGui.QWidget()
+        self.standard=QtWidgets.QWidget()
         self.standard.setLayout(self.grid)
         self.tabs.addTab(self.standard, 'Standard') 
         self.canvas.mpl_connect('button_press_event', self.buttonPress)
@@ -253,7 +258,9 @@ def saveResult(title, variablearray, dataArray):
     #variablearray: array of arrays with all the variables to be printed. 
     #First entry should be name of variable, second an array with the value(s)
     #dataArray should be an array with the raw y data of the fit and the experiment (with as a first column the x-axis)
-    filename = QtGui.QFileDialog.getSaveFileName(caption='Save File')
+    filename = QtWidgets.QFileDialog.getSaveFileName(caption='Save File')
+    if type(filename) is tuple:
+        filename = filename[0]        
     with open(filename, 'w') as f:
         f.write(title + '\n')
         for var in variablearray:
@@ -406,33 +413,33 @@ class IntegralsFrame(Plot1DFrame):
 #################################################################################
 
 
-class IntegralsParamFrame(QtGui.QWidget):
+class IntegralsParamFrame(QtWidgets.QWidget):
 
     def __init__(self, parent, rootwindow):
-        QtGui.QWidget.__init__(self, rootwindow)
+        QtWidgets.QWidget.__init__(self, rootwindow)
         self.parent = parent
         self.rootwindow = rootwindow
-        grid = QtGui.QGridLayout(self)
+        grid = QtWidgets.QGridLayout(self)
         self.setLayout(grid)
-        self.frame1 = QtGui.QGridLayout()
-        self.frame2 = QtGui.QGridLayout()
-        self.frame3 = QtGui.QGridLayout()
+        self.frame1 = QtWidgets.QGridLayout()
+        self.frame2 = QtWidgets.QGridLayout()
+        self.frame3 = QtWidgets.QGridLayout()
         grid.addLayout(self.frame1, 0, 0)
         grid.addLayout(self.frame2, 0, 1)
         grid.addLayout(self.frame3, 0, 2)
-        fitButton = QtGui.QPushButton("Fit")
+        fitButton = QtWidgets.QPushButton("Fit")
         fitButton.clicked.connect(self.fit)
         self.frame1.addWidget(fitButton, 0, 0)
-        cancelButton = QtGui.QPushButton("&Cancel")
+        cancelButton = QtWidgets.QPushButton("&Cancel")
         cancelButton.clicked.connect(rootwindow.cancel)
         self.frame1.addWidget(cancelButton, 1, 0)
-        resetButton = QtGui.QPushButton("Reset")
+        resetButton = QtWidgets.QPushButton("Reset")
         resetButton.clicked.connect(self.reset)
         self.frame1.addWidget(resetButton, 0, 1)
-        self.pickTick = QtGui.QCheckBox("Pick")
+        self.pickTick = QtWidgets.QCheckBox("Pick")
         self.pickTick.stateChanged.connect(self.togglePick)
         self.frame1.addWidget(self.pickTick, 1, 1)
-        self.absIntTick = QtGui.QCheckBox("Relative integrals")
+        self.absIntTick = QtWidgets.QCheckBox("Relative integrals")
         self.absIntTick.setChecked(True)
         self.absIntTick.stateChanged.connect(self.fit)
         self.frame1.addWidget(self.absIntTick, 2, 0, 1, 2)
@@ -475,22 +482,22 @@ class IntegralsParamFrame(QtGui.QWidget):
         elif self.parent.current.plotType == 3:
             self.maxy = np.amax(np.abs(self.parent.current.data1D))
             self.diffy = self.maxy - np.amin(np.abs(self.parent.current.data1D))
-        self.minEntries.append(QtGui.QLineEdit())
+        self.minEntries.append(QtWidgets.QLineEdit())
         self.minEntries[0].setAlignment(QtCore.Qt.AlignHCenter)
         self.minEntries[0].editingFinished.connect(lambda self=self: self.setVal(self.minEntries[0], True))
         self.frame3.addWidget(self.minEntries[0], 2, 0)
-        self.maxEntries.append(QtGui.QLineEdit())
+        self.maxEntries.append(QtWidgets.QLineEdit())
         self.maxEntries[0].setAlignment(QtCore.Qt.AlignHCenter)
         self.maxEntries[0].editingFinished.connect(lambda self=self: self.setVal(self.maxEntries[0], False))
         self.frame3.addWidget(self.maxEntries[0], 2, 1)
-        self.intEntries.append(QtGui.QLineEdit())
+        self.intEntries.append(QtWidgets.QLineEdit())
         self.intEntries[0].setAlignment(QtCore.Qt.AlignHCenter)
         self.intEntries[0].editingFinished.connect(lambda self=self: self.setRef(self.intEntries[0]))
         self.frame3.addWidget(self.intEntries[0], 2, 2)
-        self.deleteButtons.append(QtGui.QPushButton("X"))
+        self.deleteButtons.append(QtWidgets.QPushButton("X"))
         self.deleteButtons[0].clicked.connect(lambda extra, self=self: self.deleteEntry(self.deleteButtons[0]))
         self.frame3.addWidget(self.deleteButtons[0], 2, 3)
-        self.minEntries.append(QtGui.QLineEdit())
+        self.minEntries.append(QtWidgets.QLineEdit())
         self.reset()
         grid.setColumnStretch(10, 1)
         grid.setAlignment(QtCore.Qt.AlignLeft)
@@ -518,19 +525,19 @@ class IntegralsParamFrame(QtGui.QWidget):
             self.minEntries[self.integralIter].setText("%#.3g" % min(value, tmp))
             self.maxEntries[self.integralIter].setText("%#.3g" % max(value, tmp))
             self.integralIter += 1
-            self.minEntries.append(QtGui.QLineEdit())
+            self.minEntries.append(QtWidgets.QLineEdit())
             self.minEntries[self.integralIter].setAlignment(QtCore.Qt.AlignHCenter)
             self.minEntries[self.integralIter].editingFinished.connect(lambda self=self, tmp=self.minEntries[self.integralIter]: self.setVal(tmp, True))
             self.frame3.addWidget(self.minEntries[self.integralIter], 2 + self.entryCount, 0)
-            self.maxEntries.append(QtGui.QLineEdit())
+            self.maxEntries.append(QtWidgets.QLineEdit())
             self.maxEntries[self.integralIter].setAlignment(QtCore.Qt.AlignHCenter)
             self.maxEntries[self.integralIter].editingFinished.connect(lambda self=self, tmp=self.maxEntries[self.integralIter]: self.setVal(tmp, False))
             self.frame3.addWidget(self.maxEntries[self.integralIter], 2 + self.entryCount, 1)
-            self.intEntries.append(QtGui.QLineEdit())
+            self.intEntries.append(QtWidgets.QLineEdit())
             self.intEntries[self.integralIter].setAlignment(QtCore.Qt.AlignHCenter)
             self.intEntries[self.integralIter].editingFinished.connect(lambda self=self, tmp=self.intEntries[self.integralIter]: self.setRef(tmp))
             self.frame3.addWidget(self.intEntries[self.integralIter], 2 + self.entryCount, 2)
-            self.deleteButtons.append(QtGui.QPushButton("X"))
+            self.deleteButtons.append(QtWidgets.QPushButton("X"))
             self.deleteButtons[self.integralIter].clicked.connect(lambda extra, self=self, tmp=self.deleteButtons[self.integralIter]: self.deleteEntry(tmp))
             self.frame3.addWidget(self.deleteButtons[self.integralIter], 2 + self.entryCount, 3)
             self.entryCount += 1
@@ -592,19 +599,19 @@ class IntegralsParamFrame(QtGui.QWidget):
             self.minValues = np.append(self.minValues, min(self.xax))
             self.maxValues = np.append(self.maxValues, max(self.xax))
             self.intValues = np.append(self.intValues, 1)
-            self.minEntries.append(QtGui.QLineEdit())
+            self.minEntries.append(QtWidgets.QLineEdit())
             self.minEntries[self.integralIter].setAlignment(QtCore.Qt.AlignHCenter)
             self.minEntries[self.integralIter].editingFinished.connect(lambda self=self, tmp=self.minEntries[self.integralIter]: self.setVal(tmp, True))
             self.frame3.addWidget(self.minEntries[self.integralIter], 2 + self.entryCount, 0)
-            self.maxEntries.append(QtGui.QLineEdit())
+            self.maxEntries.append(QtWidgets.QLineEdit())
             self.maxEntries[self.integralIter].setAlignment(QtCore.Qt.AlignHCenter)
             self.maxEntries[self.integralIter].editingFinished.connect(lambda self=self, tmp=self.maxEntries[self.integralIter]: self.setVal(tmp, False))
             self.frame3.addWidget(self.maxEntries[self.integralIter], 2 + self.entryCount, 1)
-            self.intEntries.append(QtGui.QLineEdit())
+            self.intEntries.append(QtWidgets.QLineEdit())
             self.intEntries[self.integralIter].setAlignment(QtCore.Qt.AlignHCenter)
             self.intEntries[self.integralIter].editingFinished.connect(lambda self=self, tmp=self.intEntries[self.integralIter]: self.setRef(tmp))
             self.frame3.addWidget(self.intEntries[self.integralIter], 2 + self.entryCount, 2)
-            self.deleteButtons.append(QtGui.QPushButton("X"))
+            self.deleteButtons.append(QtWidgets.QPushButton("X"))
             self.deleteButtons[self.integralIter].clicked.connect(lambda extra, self=self, tmp=self.deleteButtons[self.integralIter]: self.deleteEntry(tmp))
             self.frame3.addWidget(self.deleteButtons[self.integralIter], 2 + self.entryCount, 3)
             self.entryCount += 1
@@ -946,65 +953,65 @@ class RelaxFrame(Plot1DFrame):
 #################################################################################
 
 
-class RelaxParamFrame(QtGui.QWidget):
+class RelaxParamFrame(QtWidgets.QWidget):
 
     def __init__(self, parent, rootwindow):
-        QtGui.QWidget.__init__(self, rootwindow)
+        QtWidgets.QWidget.__init__(self, rootwindow)
         self.parent = parent
         self.rootwindow = rootwindow
-        grid = QtGui.QGridLayout(self)
+        grid = QtWidgets.QGridLayout(self)
         self.setLayout(grid)
-        self.frame1 = QtGui.QGridLayout()
-        self.optframe = QtGui.QGridLayout()
-        self.frame2 = QtGui.QGridLayout()
-        self.frame3 = QtGui.QGridLayout()
+        self.frame1 = QtWidgets.QGridLayout()
+        self.optframe = QtWidgets.QGridLayout()
+        self.frame2 = QtWidgets.QGridLayout()
+        self.frame3 = QtWidgets.QGridLayout()
         grid.addLayout(self.frame1, 0, 0)
         grid.addLayout(self.optframe, 0, 1)
         grid.addLayout(self.frame2, 0, 2)
         grid.addLayout(self.frame3, 0, 3)
-        simButton = QtGui.QPushButton("Sim")
+        simButton = QtWidgets.QPushButton("Sim")
         simButton.clicked.connect(self.sim)
         self.frame1.addWidget(simButton, 0, 0)
-        fitButton = QtGui.QPushButton("Fit")
+        fitButton = QtWidgets.QPushButton("Fit")
         fitButton.clicked.connect(self.fit)
         self.frame1.addWidget(fitButton, 1, 0)
-        self.stopButton = QtGui.QPushButton("Stop")
+        self.stopButton = QtWidgets.QPushButton("Stop")
         self.stopButton.clicked.connect(self.stopMP)
         self.frame1.addWidget(self.stopButton, 1, 0)
         self.stopButton.hide()
         self.process1 = None
         self.queue = None
-        fitAllButton = QtGui.QPushButton("Fit all")
+        fitAllButton = QtWidgets.QPushButton("Fit all")
         fitAllButton.clicked.connect(self.fitAll)
         self.frame1.addWidget(fitAllButton, 2, 0)
-        copyResultButton = QtGui.QPushButton("Copy result")
+        copyResultButton = QtWidgets.QPushButton("Copy result")
         copyResultButton.clicked.connect(lambda: self.sim('copy'))
         self.frame1.addWidget(copyResultButton, 3, 0)
-        saveResultButton = QtGui.QPushButton("Save to text")
+        saveResultButton = QtWidgets.QPushButton("Save to text")
         saveResultButton.clicked.connect(lambda: self.sim('save'))
         self.frame1.addWidget(saveResultButton, 4, 0)        
-        cancelButton = QtGui.QPushButton("&Cancel")
+        cancelButton = QtWidgets.QPushButton("&Cancel")
         cancelButton.clicked.connect(self.closeWindow)
         self.frame1.addWidget(cancelButton, 5, 0)
         self.frame1.setColumnStretch(10, 1)
         self.frame1.setAlignment(QtCore.Qt.AlignTop)
         self.frame2.addWidget(QLabel("Amplitude:"), 0, 0, 1, 2)
-        self.ampTick = QtGui.QCheckBox('')
+        self.ampTick = QtWidgets.QCheckBox('')
         self.frame2.addWidget(self.ampTick, 1, 0)
-        self.ampEntry = QtGui.QLineEdit()
+        self.ampEntry = QtWidgets.QLineEdit()
         self.ampEntry.setAlignment(QtCore.Qt.AlignHCenter)
         self.ampEntry.setText("%#.3g" % np.amax(self.parent.data1D))
         self.frame2.addWidget(self.ampEntry, 1, 1)
         self.frame2.addWidget(QLabel("Constant:"), 2, 0, 1, 2)
-        self.constTick = QtGui.QCheckBox('')
+        self.constTick = QtWidgets.QCheckBox('')
         self.frame2.addWidget(self.constTick, 3, 0)
-        self.constEntry = QtGui.QLineEdit()
+        self.constEntry = QtWidgets.QLineEdit()
         self.constEntry.setAlignment(QtCore.Qt.AlignHCenter)
         self.constEntry.setText("1.0")
         self.frame2.addWidget(self.constEntry, 3, 1)
         self.frame2.setColumnStretch(10, 1)
         self.frame2.setAlignment(QtCore.Qt.AlignTop)
-        self.numExp = QtGui.QComboBox()
+        self.numExp = QtWidgets.QComboBox()
         self.numExp.addItems(['1', '2', '3', '4'])
         self.numExp.currentIndexChanged.connect(self.changeNum)
         self.frame3.addWidget(self.numExp, 0, 0, 1, 2)
@@ -1012,10 +1019,10 @@ class RelaxParamFrame(QtGui.QWidget):
         self.frame3.addWidget(QLabel("T [s]:"), 1, 2, 1, 2)
         self.frame3.setColumnStretch(10, 1)
         self.frame3.setAlignment(QtCore.Qt.AlignTop)
-        self.xlog = QtGui.QCheckBox('x-log')
+        self.xlog = QtWidgets.QCheckBox('x-log')
         self.xlog.stateChanged.connect(self.setLog)
         self.optframe.addWidget(self.xlog, 0, 0, QtCore.Qt.AlignTop)
-        self.ylog = QtGui.QCheckBox('y-log')
+        self.ylog = QtWidgets.QCheckBox('y-log')
         self.ylog.stateChanged.connect(self.setLog)
         self.optframe.addWidget(self.ylog, 1, 0, QtCore.Qt.AlignTop)
         self.optframe.setColumnStretch(10, 1)
@@ -1027,15 +1034,15 @@ class RelaxParamFrame(QtGui.QWidget):
         self.t1Ticks = []
         self.t1Entries = []
         for i in range(4):
-            self.coeffTicks.append(QtGui.QCheckBox(''))
+            self.coeffTicks.append(QtWidgets.QCheckBox(''))
             self.frame3.addWidget(self.coeffTicks[i], i + 2, 0)
-            self.coeffEntries.append(QtGui.QLineEdit())
+            self.coeffEntries.append(QtWidgets.QLineEdit())
             self.coeffEntries[i].setText("-1.0")
             self.coeffEntries[i].setAlignment(QtCore.Qt.AlignHCenter)
             self.frame3.addWidget(self.coeffEntries[i], i + 2, 1)
-            self.t1Ticks.append(QtGui.QCheckBox(''))
+            self.t1Ticks.append(QtWidgets.QCheckBox(''))
             self.frame3.addWidget(self.t1Ticks[i], i + 2, 2)
-            self.t1Entries.append(QtGui.QLineEdit())
+            self.t1Entries.append(QtWidgets.QLineEdit())
             self.t1Entries[i].setText("1.0")
             self.t1Entries[i].setAlignment(QtCore.Qt.AlignHCenter)
             self.frame3.addWidget(self.t1Entries[i], i + 2, 3)
@@ -1136,7 +1143,7 @@ class RelaxParamFrame(QtGui.QWidget):
         while self.running:
             if not self.queue.empty():
                 self.running = False
-            QtGui.qApp.processEvents()
+            QtWidgets.qApp.processEvents()
             time.sleep(0.1)
         if self.queue is None:
             return
@@ -1237,7 +1244,7 @@ class RelaxParamFrame(QtGui.QWidget):
         while self.running:
             if not self.queue.empty():
                 self.running = False
-            QtGui.qApp.processEvents()
+            QtWidgets.qApp.processEvents()
             time.sleep(0.1)
         if self.queue is None:
             return
@@ -1665,85 +1672,85 @@ class DiffusionFrame(Plot1DFrame):
 #################################################################################
 
 
-class DiffusionParamFrame(QtGui.QWidget):
+class DiffusionParamFrame(QtWidgets.QWidget):
 
     def __init__(self, parent, rootwindow):
-        QtGui.QWidget.__init__(self, rootwindow)
+        QtWidgets.QWidget.__init__(self, rootwindow)
         self.parent = parent
         self.rootwindow = rootwindow
-        grid = QtGui.QGridLayout(self)
+        grid = QtWidgets.QGridLayout(self)
         self.setLayout(grid)
-        self.frame1 = QtGui.QGridLayout()
-        self.optframe = QtGui.QGridLayout()
-        self.frame2 = QtGui.QGridLayout()
-        self.frame3 = QtGui.QGridLayout()
-        self.frame4 = QtGui.QGridLayout()
+        self.frame1 = QtWidgets.QGridLayout()
+        self.optframe = QtWidgets.QGridLayout()
+        self.frame2 = QtWidgets.QGridLayout()
+        self.frame3 = QtWidgets.QGridLayout()
+        self.frame4 = QtWidgets.QGridLayout()
         grid.addLayout(self.frame1, 0, 0)
         grid.addLayout(self.optframe, 0, 1)
         grid.addLayout(self.frame2, 0, 2)
         grid.addLayout(self.frame3, 0, 3)
         grid.addLayout(self.frame4, 0, 4)
-        simButton = QtGui.QPushButton("Sim")
+        simButton = QtWidgets.QPushButton("Sim")
         simButton.clicked.connect(self.sim)
         self.frame1.addWidget(simButton, 0, 0)
-        fitButton = QtGui.QPushButton("Fit")
+        fitButton = QtWidgets.QPushButton("Fit")
         fitButton.clicked.connect(self.fit)
         self.frame1.addWidget(fitButton, 1, 0)
-        self.stopButton = QtGui.QPushButton("Stop")
+        self.stopButton = QtWidgets.QPushButton("Stop")
         self.stopButton.clicked.connect(self.stopMP)
         self.frame1.addWidget(self.stopButton, 1, 0)
         self.stopButton.hide()
         self.process1 = None
         self.queue = None
-        fitAllButton = QtGui.QPushButton("Fit all")
+        fitAllButton = QtWidgets.QPushButton("Fit all")
         fitAllButton.clicked.connect(self.fitAll)
         self.frame1.addWidget(fitAllButton, 2, 0)
-        copyResultButton = QtGui.QPushButton("Copy result")
+        copyResultButton = QtWidgets.QPushButton("Copy result")
         copyResultButton.clicked.connect(lambda: self.sim('copy'))
         self.frame1.addWidget(copyResultButton, 3, 0)
-        saveResultButton = QtGui.QPushButton("Save as text")
+        saveResultButton = QtWidgets.QPushButton("Save as text")
         saveResultButton.clicked.connect(lambda: self.sim('save'))
         self.frame1.addWidget(saveResultButton, 4, 0)
-        cancelButton = QtGui.QPushButton("&Cancel")
+        cancelButton = QtWidgets.QPushButton("&Cancel")
         cancelButton.clicked.connect(self.closeWindow)
         self.frame1.addWidget(cancelButton, 5, 0)
         self.frame1.setColumnStretch(10, 1)
         self.frame1.setAlignment(QtCore.Qt.AlignTop)
         self.frame2.addWidget(QLabel(u"\u03b3 [MHz/T]:"), 0, 0)
-        self.gammaEntry = QtGui.QLineEdit()
+        self.gammaEntry = QtWidgets.QLineEdit()
         self.gammaEntry.setAlignment(QtCore.Qt.AlignHCenter)
         self.gammaEntry.setText("42.576")
         self.frame2.addWidget(self.gammaEntry, 1, 0)
         self.frame2.addWidget(QLabel(u"\u03b4 [s]:"), 2, 0)
-        self.deltaEntry = QtGui.QLineEdit()
+        self.deltaEntry = QtWidgets.QLineEdit()
         self.deltaEntry.setAlignment(QtCore.Qt.AlignHCenter)
         self.deltaEntry.setText("1.0")
         self.frame2.addWidget(self.deltaEntry, 3, 0)
         self.frame2.addWidget(QLabel(u"\u0394 [s]:"), 4, 0)
-        self.triangleEntry = QtGui.QLineEdit()
+        self.triangleEntry = QtWidgets.QLineEdit()
         self.triangleEntry.setAlignment(QtCore.Qt.AlignHCenter)
         self.triangleEntry.setText("1.0")
         self.frame2.addWidget(self.triangleEntry, 5, 0)
         self.frame2.setColumnStretch(10, 1)
         self.frame2.setAlignment(QtCore.Qt.AlignTop)
         self.frame3.addWidget(QLabel("Amplitude:"), 0, 0, 1, 2)
-        self.ampTick = QtGui.QCheckBox('')
+        self.ampTick = QtWidgets.QCheckBox('')
         self.frame3.addWidget(self.ampTick, 1, 0)
-        self.ampEntry = QtGui.QLineEdit()
+        self.ampEntry = QtWidgets.QLineEdit()
         self.ampEntry.setAlignment(QtCore.Qt.AlignHCenter)
         self.ampEntry.setText("%#.3g" % np.amax(self.parent.data1D))
         self.frame3.addWidget(self.ampEntry, 1, 1)
         self.frame3.addWidget(QLabel("Constant:"), 2, 0, 1, 2)
-        self.constTick = QtGui.QCheckBox('')
+        self.constTick = QtWidgets.QCheckBox('')
         self.constTick.setChecked(True)
         self.frame3.addWidget(self.constTick, 3, 0)
-        self.constEntry = QtGui.QLineEdit()
+        self.constEntry = QtWidgets.QLineEdit()
         self.constEntry.setAlignment(QtCore.Qt.AlignHCenter)
         self.constEntry.setText("0.0")
         self.frame3.addWidget(self.constEntry, 3, 1)
         self.frame3.setColumnStretch(10, 1)
         self.frame3.setAlignment(QtCore.Qt.AlignTop)
-        self.numExp = QtGui.QComboBox()
+        self.numExp = QtWidgets.QComboBox()
         self.numExp.addItems(['1', '2', '3', '4'])
         self.numExp.currentIndexChanged.connect(self.changeNum)
         self.frame4.addWidget(self.numExp, 0, 0, 1, 2)
@@ -1751,10 +1758,10 @@ class DiffusionParamFrame(QtGui.QWidget):
         self.frame4.addWidget(QLabel("D [m^2/s]:"), 1, 2, 1, 2)
         self.frame4.setColumnStretch(20, 1)
         self.frame4.setAlignment(QtCore.Qt.AlignTop)
-        self.xlog = QtGui.QCheckBox('x-log')
+        self.xlog = QtWidgets.QCheckBox('x-log')
         self.xlog.stateChanged.connect(self.setLog)
         self.optframe.addWidget(self.xlog, 0, 0)
-        self.ylog = QtGui.QCheckBox('y-log')
+        self.ylog = QtWidgets.QCheckBox('y-log')
         self.ylog.stateChanged.connect(self.setLog)
         self.optframe.addWidget(self.ylog, 1, 0)
         self.optframe.setColumnStretch(10, 1)
@@ -1766,15 +1773,15 @@ class DiffusionParamFrame(QtGui.QWidget):
         self.dEntries = []
         self.dTicks = []
         for i in range(4):
-            self.coeffTicks.append(QtGui.QCheckBox(''))
+            self.coeffTicks.append(QtWidgets.QCheckBox(''))
             self.frame4.addWidget(self.coeffTicks[i], i + 2, 0)
-            self.coeffEntries.append(QtGui.QLineEdit())
+            self.coeffEntries.append(QtWidgets.QLineEdit())
             self.coeffEntries[i].setText("1.0")
             self.coeffEntries[i].setAlignment(QtCore.Qt.AlignHCenter)
             self.frame4.addWidget(self.coeffEntries[i], i + 2, 1)
-            self.dTicks.append(QtGui.QCheckBox(''))
+            self.dTicks.append(QtWidgets.QCheckBox(''))
             self.frame4.addWidget(self.dTicks[i], i + 2, 2)
-            self.dEntries.append(QtGui.QLineEdit())
+            self.dEntries.append(QtWidgets.QLineEdit())
             self.dEntries[i].setText("1.0e-9")
             self.dEntries[i].setAlignment(QtCore.Qt.AlignHCenter)
             self.frame4.addWidget(self.dEntries[i], i + 2, 3)
@@ -1890,7 +1897,7 @@ class DiffusionParamFrame(QtGui.QWidget):
         while self.running:
             if not self.queue.empty():
                 self.running = False
-            QtGui.qApp.processEvents()
+            QtWidgets.qApp.processEvents()
             time.sleep(0.1)
         if self.queue is None:
             return
@@ -1994,7 +2001,7 @@ class DiffusionParamFrame(QtGui.QWidget):
         while self.running:
             if not self.queue.empty():
                 self.running = False
-            QtGui.qApp.processEvents()
+            QtWidgets.qApp.processEvents()
             time.sleep(0.1)
         if self.queue is None:
             return
@@ -2310,13 +2317,13 @@ class PeakDeconvFrame(Plot1DFrame):
 #################################################################################
 
 
-class PeakDeconvParamFrame(QtGui.QWidget):
+class PeakDeconvParamFrame(QtWidgets.QWidget):
 
     def __init__(self, parent, rootwindow):
-        QtGui.QWidget.__init__(self, rootwindow)
+        QtWidgets.QWidget.__init__(self, rootwindow)
         self.parent = parent
         self.rootwindow = rootwindow
-        grid = QtGui.QGridLayout(self)
+        grid = QtWidgets.QGridLayout(self)
         self.setLayout(grid)
         if self.parent.current.spec == 1:
             self.axAdd = self.parent.current.freq - self.parent.current.ref
@@ -2327,61 +2334,61 @@ class PeakDeconvParamFrame(QtGui.QWidget):
         elif self.parent.current.spec == 0:
             self.axMult = 1000.0**self.parent.current.axType
             self.axAdd = 0
-        self.frame1 = QtGui.QGridLayout()
-        self.frame2 = QtGui.QGridLayout()
-        self.frame3 = QtGui.QGridLayout()
+        self.frame1 = QtWidgets.QGridLayout()
+        self.frame2 = QtWidgets.QGridLayout()
+        self.frame3 = QtWidgets.QGridLayout()
         grid.addLayout(self.frame1, 0, 0)
         grid.addLayout(self.frame2, 0, 1)
         grid.addLayout(self.frame3, 0, 2)
-        simButton = QtGui.QPushButton("Sim")
+        simButton = QtWidgets.QPushButton("Sim")
         simButton.clicked.connect(self.sim)
         self.frame1.addWidget(simButton, 0, 0)
-        fitButton = QtGui.QPushButton("Fit")
+        fitButton = QtWidgets.QPushButton("Fit")
         fitButton.clicked.connect(self.fit)
         self.frame1.addWidget(fitButton, 1, 0)
-        self.stopButton = QtGui.QPushButton("Stop")
+        self.stopButton = QtWidgets.QPushButton("Stop")
         self.stopButton.clicked.connect(self.stopMP)
         self.frame1.addWidget(self.stopButton, 1, 0)
         self.stopButton.hide()
         self.process1 = None
         self.queue = None
-        fitAllButton = QtGui.QPushButton("Fit all")
+        fitAllButton = QtWidgets.QPushButton("Fit all")
         fitAllButton.clicked.connect(self.fitAll)
         self.frame1.addWidget(fitAllButton, 2, 0)
-        copyResultButton = QtGui.QPushButton("Copy result")
+        copyResultButton = QtWidgets.QPushButton("Copy result")
         copyResultButton.clicked.connect(lambda: self.sim('copy'))
         self.frame1.addWidget(copyResultButton, 3, 0)
-        saveResultButton = QtGui.QPushButton("Save to text")
+        saveResultButton = QtWidgets.QPushButton("Save to text")
         saveResultButton.clicked.connect(lambda: self.sim('save'))
         self.frame1.addWidget(saveResultButton, 4, 0)
-        cancelButton = QtGui.QPushButton("&Cancel")
+        cancelButton = QtWidgets.QPushButton("&Cancel")
         cancelButton.clicked.connect(self.closeWindow)
         self.frame1.addWidget(cancelButton, 5, 0)
-        resetButton = QtGui.QPushButton("Reset")
+        resetButton = QtWidgets.QPushButton("Reset")
         resetButton.clicked.connect(self.reset)
         self.frame1.addWidget(resetButton, 0, 1)
-        self.pickTick = QtGui.QCheckBox("Pick")
+        self.pickTick = QtWidgets.QCheckBox("Pick")
         self.pickTick.stateChanged.connect(self.togglePick)
         self.frame1.addWidget(self.pickTick, 1, 1)
         self.frame1.setColumnStretch(10, 1)
         self.frame1.setAlignment(QtCore.Qt.AlignTop)
         self.frame2.addWidget(QLabel("Bgrnd:"), 0, 0, 1, 2)
-        self.bgrndTick = QtGui.QCheckBox('')
+        self.bgrndTick = QtWidgets.QCheckBox('')
         self.frame2.addWidget(self.bgrndTick, 1, 0)
-        self.bgrndEntry = QtGui.QLineEdit()
+        self.bgrndEntry = QtWidgets.QLineEdit()
         self.bgrndEntry.setAlignment(QtCore.Qt.AlignHCenter)
         self.bgrndEntry.setText("0.0")
         self.frame2.addWidget(self.bgrndEntry, 1, 1)
         self.frame2.addWidget(QLabel("Slope:"), 2, 0, 1, 2)
-        self.slopeTick = QtGui.QCheckBox('')
+        self.slopeTick = QtWidgets.QCheckBox('')
         self.frame2.addWidget(self.slopeTick, 3, 0)
-        self.slopeEntry = QtGui.QLineEdit()
+        self.slopeEntry = QtWidgets.QLineEdit()
         self.slopeEntry.setAlignment(QtCore.Qt.AlignHCenter)
         self.slopeEntry.setText("0.0")
         self.frame2.addWidget(self.slopeEntry, 3, 1)
         self.frame2.setColumnStretch(10, 1)
         self.frame2.setAlignment(QtCore.Qt.AlignTop)
-        self.numExp = QtGui.QComboBox()
+        self.numExp = QtWidgets.QComboBox()
         self.numExp.addItems(['1', '2', '3', '4', '5', '6', '7', '8', '9', '10'])
         self.numExp.currentIndexChanged.connect(self.changeNum)
         self.frame3.addWidget(self.numExp, 0, 0, 1, 2)
@@ -2400,24 +2407,24 @@ class PeakDeconvParamFrame(QtGui.QWidget):
         self.gaussTicks = []
         self.gaussEntries = []
         for i in range(10):
-            self.posTicks.append(QtGui.QCheckBox(''))
+            self.posTicks.append(QtWidgets.QCheckBox(''))
             self.frame3.addWidget(self.posTicks[i], i + 2, 0)
-            self.posEntries.append(QtGui.QLineEdit())
+            self.posEntries.append(QtWidgets.QLineEdit())
             self.posEntries[i].setAlignment(QtCore.Qt.AlignHCenter)
             self.frame3.addWidget(self.posEntries[i], i + 2, 1)
-            self.ampTicks.append(QtGui.QCheckBox(''))
+            self.ampTicks.append(QtWidgets.QCheckBox(''))
             self.frame3.addWidget(self.ampTicks[i], i + 2, 2)
-            self.ampEntries.append(QtGui.QLineEdit())
+            self.ampEntries.append(QtWidgets.QLineEdit())
             self.ampEntries[i].setAlignment(QtCore.Qt.AlignHCenter)
             self.frame3.addWidget(self.ampEntries[i], i + 2, 3)
-            self.lorTicks.append(QtGui.QCheckBox(''))
+            self.lorTicks.append(QtWidgets.QCheckBox(''))
             self.frame3.addWidget(self.lorTicks[i], i + 2, 4)
-            self.lorEntries.append(QtGui.QLineEdit())
+            self.lorEntries.append(QtWidgets.QLineEdit())
             self.lorEntries[i].setAlignment(QtCore.Qt.AlignHCenter)
             self.frame3.addWidget(self.lorEntries[i], i + 2, 5)
-            self.gaussTicks.append(QtGui.QCheckBox(''))
+            self.gaussTicks.append(QtWidgets.QCheckBox(''))
             self.frame3.addWidget(self.gaussTicks[i], i + 2, 6)
-            self.gaussEntries.append(QtGui.QLineEdit())
+            self.gaussEntries.append(QtWidgets.QLineEdit())
             self.gaussEntries[i].setAlignment(QtCore.Qt.AlignHCenter)
             self.frame3.addWidget(self.gaussEntries[i], i + 2, 7)
         self.reset()
@@ -2576,7 +2583,7 @@ class PeakDeconvParamFrame(QtGui.QWidget):
         while self.running:
             if not self.queue.empty():
                 self.running = False
-            QtGui.qApp.processEvents()
+            QtWidgets.qApp.processEvents()
             time.sleep(0.1)
         if self.queue is None:
             return
@@ -2701,7 +2708,7 @@ class PeakDeconvParamFrame(QtGui.QWidget):
         while self.running:
             if not self.queue.empty():
                 self.running = False
-            QtGui.qApp.processEvents()
+            QtWidgets.qApp.processEvents()
             time.sleep(0.1)
         if self.queue is None:
             return
@@ -3016,60 +3023,60 @@ class TensorDeconvFrame(Plot1DFrame):
 #################################################################################
 
 
-class TensorDeconvParamFrame(QtGui.QWidget):
+class TensorDeconvParamFrame(QtWidgets.QWidget):
 
     def __init__(self, parent, rootwindow):
-        QtGui.QWidget.__init__(self, rootwindow)
+        QtWidgets.QWidget.__init__(self, rootwindow)
         self.parent = parent
         self.rootwindow = rootwindow
         self.cheng = 15
-        grid = QtGui.QGridLayout(self)
+        grid = QtWidgets.QGridLayout(self)
         self.setLayout(grid)
         if self.parent.current.spec == 1:
             self.axAdd = self.parent.current.freq - self.parent.current.ref
         elif self.parent.current.spec == 0:
             self.axAdd = 0
-        self.frame1 = QtGui.QGridLayout()
-        self.optframe = QtGui.QGridLayout()
-        self.frame2 = QtGui.QGridLayout()
-        self.frame3 = QtGui.QGridLayout()
+        self.frame1 = QtWidgets.QGridLayout()
+        self.optframe = QtWidgets.QGridLayout()
+        self.frame2 = QtWidgets.QGridLayout()
+        self.frame3 = QtWidgets.QGridLayout()
         grid.addLayout(self.frame1, 0, 0)
         grid.addLayout(self.optframe, 0, 1)
         grid.addLayout(self.frame2, 0, 2)
         grid.addLayout(self.frame3, 0, 3)
-        simButton = QtGui.QPushButton("Sim")
+        simButton = QtWidgets.QPushButton("Sim")
         simButton.clicked.connect(self.sim)
         self.frame1.addWidget(simButton, 0, 0)
-        fitButton = QtGui.QPushButton("Fit")
+        fitButton = QtWidgets.QPushButton("Fit")
         fitButton.clicked.connect(self.fit)
         self.frame1.addWidget(fitButton, 1, 0)
-        self.stopButton = QtGui.QPushButton("Stop")
+        self.stopButton = QtWidgets.QPushButton("Stop")
         self.stopButton.clicked.connect(self.stopMP)
         self.frame1.addWidget(self.stopButton, 1, 0)
         self.stopButton.hide()
         self.process1 = None
         self.queue = None
-        fitAllButton = QtGui.QPushButton("Fit all")
+        fitAllButton = QtWidgets.QPushButton("Fit all")
         fitAllButton.clicked.connect(self.fitAll)
         self.frame1.addWidget(fitAllButton, 2, 0)
-        copyResultButton = QtGui.QPushButton("Copy result")
+        copyResultButton = QtWidgets.QPushButton("Copy result")
         copyResultButton.clicked.connect(lambda: self.sim('copy'))
         self.frame1.addWidget(copyResultButton, 3, 0)
-        saveResultButton = QtGui.QPushButton("Save to text")
+        saveResultButton = QtWidgets.QPushButton("Save to text")
         saveResultButton.clicked.connect(lambda: self.sim('save'))
         self.frame1.addWidget(saveResultButton, 4, 0)
-        cancelButton = QtGui.QPushButton("&Cancel")
+        cancelButton = QtWidgets.QPushButton("&Cancel")
         cancelButton.clicked.connect(self.closeWindow)
         self.frame1.addWidget(cancelButton, 5, 0)
-        resetButton = QtGui.QPushButton("Reset")
+        resetButton = QtWidgets.QPushButton("Reset")
         resetButton.clicked.connect(self.reset)
         self.frame1.addWidget(resetButton, 0, 1)
-        self.pickTick = QtGui.QCheckBox("Pick")
+        self.pickTick = QtWidgets.QCheckBox("Pick")
         self.pickTick.stateChanged.connect(self.togglePick)
         self.frame1.addWidget(self.pickTick, 1, 1)
         self.frame1.setColumnStretch(10, 1)
         self.frame1.setAlignment(QtCore.Qt.AlignTop)
-        self.shiftDef = QtGui.QComboBox()
+        self.shiftDef = QtWidgets.QComboBox()
         self.shiftDef.addItems(['123', 'Iso-Delta-Eta'])
         self.frame1.addWidget(self.shiftDef, 2, 1)   
         
@@ -3077,29 +3084,29 @@ class TensorDeconvParamFrame(QtGui.QWidget):
         
         
         self.optframe.addWidget(QLabel("Cheng:"), 0, 0)
-        self.chengEntry = QtGui.QLineEdit()
+        self.chengEntry = QtWidgets.QLineEdit()
         self.chengEntry.setAlignment(QtCore.Qt.AlignHCenter)
         self.chengEntry.setText(str(self.cheng))
         self.optframe.addWidget(self.chengEntry, 1, 0)
         self.optframe.setColumnStretch(10, 1)
         self.optframe.setAlignment(QtCore.Qt.AlignTop)
         self.frame2.addWidget(QLabel("Bgrnd:"), 0, 0, 1, 2)
-        self.bgrndTick = QtGui.QCheckBox('')
+        self.bgrndTick = QtWidgets.QCheckBox('')
         self.frame2.addWidget(self.bgrndTick, 1, 0)
-        self.bgrndEntry = QtGui.QLineEdit()
+        self.bgrndEntry = QtWidgets.QLineEdit()
         self.bgrndEntry.setAlignment(QtCore.Qt.AlignHCenter)
         self.bgrndEntry.setText("0.0")
         self.frame2.addWidget(self.bgrndEntry, 1, 1)
         self.frame2.addWidget(QLabel("Slope:"), 2, 0, 1, 2)
-        self.slopeTick = QtGui.QCheckBox('')
+        self.slopeTick = QtWidgets.QCheckBox('')
         self.frame2.addWidget(self.slopeTick, 3, 0)
-        self.slopeEntry = QtGui.QLineEdit()
+        self.slopeEntry = QtWidgets.QLineEdit()
         self.slopeEntry.setAlignment(QtCore.Qt.AlignHCenter)
         self.slopeEntry.setText("0.0")
         self.frame2.addWidget(self.slopeEntry, 3, 1)
         self.frame2.setColumnStretch(10, 1)
         self.frame2.setAlignment(QtCore.Qt.AlignTop)
-        self.numExp = QtGui.QComboBox()
+        self.numExp = QtWidgets.QComboBox()
         self.numExp.addItems(['1', '2', '3', '4', '5', '6', '7', '8', '9', '10'])
         self.numExp.currentIndexChanged.connect(self.changeNum)
         self.frame3.addWidget(self.numExp, 0, 0, 1, 2)
@@ -3124,34 +3131,34 @@ class TensorDeconvParamFrame(QtGui.QWidget):
         self.gaussEntries = []
         self.gaussTicks = []
         for i in range(10):
-            self.t11Ticks.append(QtGui.QCheckBox(''))
+            self.t11Ticks.append(QtWidgets.QCheckBox(''))
             self.frame3.addWidget(self.t11Ticks[i], i + 2, 0)
-            self.t11Entries.append(QtGui.QLineEdit())
+            self.t11Entries.append(QtWidgets.QLineEdit())
             self.t11Entries[i].setAlignment(QtCore.Qt.AlignHCenter)
             self.frame3.addWidget(self.t11Entries[i], i + 2, 1)
-            self.t22Ticks.append(QtGui.QCheckBox(''))
+            self.t22Ticks.append(QtWidgets.QCheckBox(''))
             self.frame3.addWidget(self.t22Ticks[i], i + 2, 2)
-            self.t22Entries.append(QtGui.QLineEdit())
+            self.t22Entries.append(QtWidgets.QLineEdit())
             self.t22Entries[i].setAlignment(QtCore.Qt.AlignHCenter)
             self.frame3.addWidget(self.t22Entries[i], i + 2, 3)
-            self.t33Ticks.append(QtGui.QCheckBox(''))
+            self.t33Ticks.append(QtWidgets.QCheckBox(''))
             self.frame3.addWidget(self.t33Ticks[i], i + 2, 4)
-            self.t33Entries.append(QtGui.QLineEdit())
+            self.t33Entries.append(QtWidgets.QLineEdit())
             self.t33Entries[i].setAlignment(QtCore.Qt.AlignHCenter)
             self.frame3.addWidget(self.t33Entries[i], i + 2, 5)
-            self.ampTicks.append(QtGui.QCheckBox(''))
+            self.ampTicks.append(QtWidgets.QCheckBox(''))
             self.frame3.addWidget(self.ampTicks[i], i + 2, 6)
-            self.ampEntries.append(QtGui.QLineEdit())
+            self.ampEntries.append(QtWidgets.QLineEdit())
             self.ampEntries[i].setAlignment(QtCore.Qt.AlignHCenter)
             self.frame3.addWidget(self.ampEntries[i], i + 2, 7)
-            self.lorTicks.append(QtGui.QCheckBox(''))
+            self.lorTicks.append(QtWidgets.QCheckBox(''))
             self.frame3.addWidget(self.lorTicks[i], i + 2, 8)
-            self.lorEntries.append(QtGui.QLineEdit())
+            self.lorEntries.append(QtWidgets.QLineEdit())
             self.lorEntries[i].setAlignment(QtCore.Qt.AlignHCenter)
             self.frame3.addWidget(self.lorEntries[i], i + 2, 9)
-            self.gaussTicks.append(QtGui.QCheckBox(''))
+            self.gaussTicks.append(QtWidgets.QCheckBox(''))
             self.frame3.addWidget(self.gaussTicks[i], i + 2, 10)
-            self.gaussEntries.append(QtGui.QLineEdit())
+            self.gaussEntries.append(QtWidgets.QLineEdit())
             self.gaussEntries[i].setAlignment(QtCore.Qt.AlignHCenter)
             self.frame3.addWidget(self.gaussEntries[i], i + 2, 11)
         self.reset()
@@ -3360,7 +3367,7 @@ class TensorDeconvParamFrame(QtGui.QWidget):
         while self.running:
             if not self.queue.empty():
                 self.running = False
-            QtGui.qApp.processEvents()
+            QtWidgets.qApp.processEvents()
             time.sleep(0.1)
         if self.queue is None:
             return
@@ -3510,7 +3517,7 @@ class TensorDeconvParamFrame(QtGui.QWidget):
         while self.running:
             if not self.queue.empty():
                 self.running = False
-            QtGui.qApp.processEvents()
+            QtWidgets.qApp.processEvents()
             time.sleep(0.1)
         if self.queue is None:
             return
@@ -3863,62 +3870,62 @@ class HerzfeldBergerFrame(Plot1DFrame):
 #################################################################################
 
 
-class HerzfeldBergerParamFrame(QtGui.QWidget):
+class HerzfeldBergerParamFrame(QtWidgets.QWidget):
 
     def __init__(self, parent, rootwindow):
-        QtGui.QWidget.__init__(self, rootwindow)
+        QtWidgets.QWidget.__init__(self, rootwindow)
         self.parent = parent
         self.rootwindow = rootwindow
         self.cheng = 15
         self.NSTEPS = 30
-        grid = QtGui.QGridLayout(self)
+        grid = QtWidgets.QGridLayout(self)
         self.setLayout(grid)
         if self.parent.current.spec == 1:
             self.axAdd = self.parent.current.freq - self.parent.current.ref
         elif self.parent.current.spec == 0:
             self.axAdd = 0
-        self.frame1 = QtGui.QGridLayout()
-        self.optframe = QtGui.QGridLayout()
-        self.frame2 = QtGui.QGridLayout()
-        self.frame3 = QtGui.QGridLayout()
-        self.frame4 = QtGui.QGridLayout()
+        self.frame1 = QtWidgets.QGridLayout()
+        self.optframe = QtWidgets.QGridLayout()
+        self.frame2 = QtWidgets.QGridLayout()
+        self.frame3 = QtWidgets.QGridLayout()
+        self.frame4 = QtWidgets.QGridLayout()
         grid.addLayout(self.frame1, 0, 0, 2, 1)
         grid.addLayout(self.optframe, 0, 1, 2, 1)
         grid.addLayout(self.frame2, 0, 2)
         grid.addLayout(self.frame3, 0, 3)
         grid.addLayout(self.frame4, 1, 3)
-        simButton = QtGui.QPushButton("Sim")
+        simButton = QtWidgets.QPushButton("Sim")
         simButton.clicked.connect(self.sim)
         self.frame1.addWidget(simButton, 0, 0)
-        fitButton = QtGui.QPushButton("Fit")
+        fitButton = QtWidgets.QPushButton("Fit")
         fitButton.clicked.connect(self.fit)
         self.frame1.addWidget(fitButton, 1, 0)
-        self.stopButton = QtGui.QPushButton("Stop")
+        self.stopButton = QtWidgets.QPushButton("Stop")
         self.stopButton.clicked.connect(self.stopMP)
         self.frame1.addWidget(self.stopButton, 1, 0)
         self.stopButton.hide()
         self.process1 = None
         self.queue = None
-        cancelButton = QtGui.QPushButton("&Cancel")
+        cancelButton = QtWidgets.QPushButton("&Cancel")
         cancelButton.clicked.connect(self.closeWindow)
         self.frame1.addWidget(cancelButton, 3, 0)
-        resetButton = QtGui.QPushButton("Reset")
+        resetButton = QtWidgets.QPushButton("Reset")
         resetButton.clicked.connect(self.reset)
         self.frame1.addWidget(resetButton, 0, 1)
-        self.pickTick = QtGui.QCheckBox("Pick")
+        self.pickTick = QtWidgets.QCheckBox("Pick")
         self.pickTick.stateChanged.connect(self.togglePick)
         self.frame1.addWidget(self.pickTick, 1, 1)
         self.frame1.setColumnStretch(10, 1)
         self.frame1.setAlignment(QtCore.Qt.AlignTop)
         self.optframe.addWidget(QLabel("Cheng:"), 0, 0)
-        self.chengEntry = QtGui.QLineEdit()
+        self.chengEntry = QtWidgets.QLineEdit()
         self.chengEntry.setAlignment(QtCore.Qt.AlignHCenter)
         self.chengEntry.setText(str(self.cheng))
         self.optframe.addWidget(self.chengEntry, 1, 0)
         self.optframe.setColumnStretch(10, 1)
         self.optframe.setAlignment(QtCore.Qt.AlignTop)
         self.optframe.addWidget(QLabel("Spinning speed [kHz]:"), 2, 0)
-        self.spinEntry = QtGui.QLineEdit()
+        self.spinEntry = QtWidgets.QLineEdit()
         self.spinEntry.setAlignment(QtCore.Qt.AlignHCenter)
         self.spinEntry.setText("30.0")
         self.optframe.addWidget(self.spinEntry, 3, 0)
@@ -3928,17 +3935,17 @@ class HerzfeldBergerParamFrame(QtGui.QWidget):
         self.frame3.addWidget(QLabel(u"\u03B7:"), 1, 2, 1, 2)
         self.frame3.setColumnStretch(20, 1)
         self.frame3.setAlignment(QtCore.Qt.AlignTop)
-        self.deltaEntry = QtGui.QLineEdit()
+        self.deltaEntry = QtWidgets.QLineEdit()
         self.deltaEntry.setAlignment(QtCore.Qt.AlignHCenter)
         self.deltaEntry.setText("10.0")
         self.frame3.addWidget(self.deltaEntry, 2, 1)
-        self.deltaTick = QtGui.QCheckBox('')
+        self.deltaTick = QtWidgets.QCheckBox('')
         self.frame3.addWidget(self.deltaTick, 2, 0)
-        self.etaEntry = QtGui.QLineEdit()
+        self.etaEntry = QtWidgets.QLineEdit()
         self.etaEntry.setAlignment(QtCore.Qt.AlignHCenter)
         self.etaEntry.setText("0.00")
         self.frame3.addWidget(self.etaEntry, 2, 3)
-        self.etaTick = QtGui.QCheckBox('')
+        self.etaTick = QtWidgets.QCheckBox('')
         self.frame3.addWidget(self.etaTick, 2, 2)
         self.frame4.addWidget(QLabel("Sideband:"), 0, 0)
         self.frame4.addWidget(QLabel("Integral:"), 1, 0)
@@ -3985,14 +3992,14 @@ class HerzfeldBergerParamFrame(QtGui.QWidget):
             self.sidebandList.append((-1)**n * n // 2)
             self.integralList.append(np.sum(self.parent.data1D[min(self.tmpPos, value):max(self.tmpPos, value)]) * self.parent.current.sw / float(self.parent.data1D.shape[-1]))
             self.tmpPos = None
-            self.sidebandEntries.append(QtGui.QSpinBox(self, ))
+            self.sidebandEntries.append(QtWidgets.QSpinBox(self, ))
             self.sidebandEntries[-1].setMinimum(-99)
             self.sidebandEntries[-1].setValue(self.sidebandList[-1])
             self.frame4.addWidget(self.sidebandEntries[-1], 0, len(self.sidebandEntries))
-            self.integralEntries.append(QtGui.QLineEdit())
+            self.integralEntries.append(QtWidgets.QLineEdit())
             self.integralEntries[-1].setText('%#.5g' % self.integralList[-1])
             self.frame4.addWidget(self.integralEntries[-1], 1, len(self.sidebandEntries))
-            self.resultLabels.append(QtGui.QLabel())
+            self.resultLabels.append(QtWidgets.QLabel())
             self.frame4.addWidget(self.resultLabels[-1], 2, len(self.sidebandEntries))
 
     def togglePick(self):
@@ -4061,7 +4068,7 @@ class HerzfeldBergerParamFrame(QtGui.QWidget):
         while self.running:
             if not self.queue.empty():
                 self.running = False
-            QtGui.qApp.processEvents()
+            QtWidgets.qApp.processEvents()
             time.sleep(0.1)
         if self.queue is None:
             return
@@ -4313,76 +4320,76 @@ class Quad1MASDeconvFrame(Plot1DFrame):
 #################################################################################
 
 
-class Quad1MASDeconvParamFrame(QtGui.QWidget):
+class Quad1MASDeconvParamFrame(QtWidgets.QWidget):
     Ioptions = ['1', '3/2', '2', '5/2', '3', '7/2', '4', '9/2']
     Ivalues = [1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 4.0, 4.5]
 
     def __init__(self, parent, rootwindow):
-        QtGui.QWidget.__init__(self, rootwindow)
+        QtWidgets.QWidget.__init__(self, rootwindow)
         self.parent = parent
         self.rootwindow = rootwindow
         self.cheng = 12
         self.nsteps = 30
-        grid = QtGui.QGridLayout(self)
+        grid = QtWidgets.QGridLayout(self)
         self.setLayout(grid)
         if self.parent.current.spec == 1:
             self.axAdd = self.parent.current.freq - self.parent.current.ref
         elif self.parent.current.spec == 0:
             self.axAdd = 0
-        self.frame1 = QtGui.QGridLayout()
-        self.optframe = QtGui.QGridLayout()
-        self.frame2 = QtGui.QGridLayout()
-        self.frame3 = QtGui.QGridLayout()
-        self.frame4 = QtGui.QGridLayout()
+        self.frame1 = QtWidgets.QGridLayout()
+        self.optframe = QtWidgets.QGridLayout()
+        self.frame2 = QtWidgets.QGridLayout()
+        self.frame3 = QtWidgets.QGridLayout()
+        self.frame4 = QtWidgets.QGridLayout()
         grid.addLayout(self.frame1, 0, 0, 2, 1)
         grid.addLayout(self.optframe, 0, 1, 2, 1)
         grid.addLayout(self.frame2, 0, 2)
         grid.addLayout(self.frame3, 0, 3)
         grid.addLayout(self.frame4, 1, 3)
-        simButton = QtGui.QPushButton("Sim")
+        simButton = QtWidgets.QPushButton("Sim")
         simButton.clicked.connect(self.sim)
         self.frame1.addWidget(simButton, 0, 0)
-        fitButton = QtGui.QPushButton("Fit")
+        fitButton = QtWidgets.QPushButton("Fit")
         fitButton.clicked.connect(self.fit)
         self.frame1.addWidget(fitButton, 1, 0)
-        self.stopButton = QtGui.QPushButton("Stop")
+        self.stopButton = QtWidgets.QPushButton("Stop")
         self.stopButton.clicked.connect(self.stopMP)
         self.frame1.addWidget(self.stopButton, 1, 0)
         self.stopButton.hide()
         self.process1 = None
         self.queue = None
-        cancelButton = QtGui.QPushButton("&Cancel")
+        cancelButton = QtWidgets.QPushButton("&Cancel")
         cancelButton.clicked.connect(self.closeWindow)
         self.frame1.addWidget(cancelButton, 3, 0)
-        resetButton = QtGui.QPushButton("Reset")
+        resetButton = QtWidgets.QPushButton("Reset")
         resetButton.clicked.connect(self.reset)
         self.frame1.addWidget(resetButton, 0, 1)
-        self.pickTick = QtGui.QCheckBox("Pick")
+        self.pickTick = QtWidgets.QCheckBox("Pick")
         self.pickTick.stateChanged.connect(self.togglePick)
         self.frame1.addWidget(self.pickTick, 1, 1)
         self.frame1.setColumnStretch(10, 1)
         self.frame1.setAlignment(QtCore.Qt.AlignTop)
         self.frame1.addWidget(QLabel("I:"), 2, 1)
-        self.IEntry = QtGui.QComboBox()
+        self.IEntry = QtWidgets.QComboBox()
         self.IEntry.addItems(self.Ioptions)
         self.IEntry.setCurrentIndex(0)
         self.frame1.addWidget(self.IEntry, 3, 1)
         self.frame1.setColumnStretch(10, 1)
         self.frame1.setAlignment(QtCore.Qt.AlignTop)
         self.optframe.addWidget(QLabel("Cheng:"), 2, 0)
-        self.chengEntry = QtGui.QLineEdit()
+        self.chengEntry = QtWidgets.QLineEdit()
         self.chengEntry.setAlignment(QtCore.Qt.AlignHCenter)
         self.chengEntry.setText(str(self.cheng))
         self.optframe.addWidget(self.chengEntry, 3, 0)
         self.optframe.setColumnStretch(10, 1)
         self.optframe.setAlignment(QtCore.Qt.AlignTop)
         self.optframe.addWidget(QLabel("Spinning speed [kHz]:"), 4, 0)
-        self.spinEntry = QtGui.QLineEdit()
+        self.spinEntry = QtWidgets.QLineEdit()
         self.spinEntry.setAlignment(QtCore.Qt.AlignHCenter)
         self.spinEntry.setText("30.0")
         self.optframe.addWidget(self.spinEntry, 5, 0)
         self.optframe.addWidget(QLabel("# steps:"), 6, 0)
-        self.stepsEntry = QtGui.QLineEdit()
+        self.stepsEntry = QtWidgets.QLineEdit()
         self.stepsEntry.setAlignment(QtCore.Qt.AlignHCenter)
         self.stepsEntry.setText(str(self.nsteps))
         self.optframe.addWidget(self.stepsEntry, 7, 0)
@@ -4390,17 +4397,17 @@ class Quad1MASDeconvParamFrame(QtGui.QWidget):
         self.frame3.addWidget(QLabel(u"\u03B7:"), 1, 2, 1, 2)
         self.frame3.setColumnStretch(20, 1)
         self.frame3.setAlignment(QtCore.Qt.AlignTop)
-        self.deltaEntry = QtGui.QLineEdit()
+        self.deltaEntry = QtWidgets.QLineEdit()
         self.deltaEntry.setAlignment(QtCore.Qt.AlignHCenter)
         self.deltaEntry.setText("1.0")
         self.frame3.addWidget(self.deltaEntry, 2, 1)
-        self.deltaTick = QtGui.QCheckBox('')
+        self.deltaTick = QtWidgets.QCheckBox('')
         self.frame3.addWidget(self.deltaTick, 2, 0)
-        self.etaEntry = QtGui.QLineEdit()
+        self.etaEntry = QtWidgets.QLineEdit()
         self.etaEntry.setAlignment(QtCore.Qt.AlignHCenter)
         self.etaEntry.setText("0.00")
         self.frame3.addWidget(self.etaEntry, 2, 3)
-        self.etaTick = QtGui.QCheckBox('')
+        self.etaTick = QtWidgets.QCheckBox('')
         self.frame3.addWidget(self.etaTick, 2, 2)
         self.frame4.addWidget(QLabel("Sideband:"), 0, 0)
         self.frame4.addWidget(QLabel("Integral:"), 1, 0)
@@ -4447,14 +4454,14 @@ class Quad1MASDeconvParamFrame(QtGui.QWidget):
             self.sidebandList.append((-1)**n * n // 2)
             self.integralList.append(np.sum(self.parent.data1D[min(self.tmpPos, value):max(self.tmpPos, value)]) * self.parent.current.sw / float(self.parent.data1D.shape[-1]))
             self.tmpPos = None
-            self.sidebandEntries.append(QtGui.QSpinBox(self, ))
+            self.sidebandEntries.append(QtWidgets.QSpinBox(self, ))
             self.sidebandEntries[-1].setMinimum(-99)
             self.sidebandEntries[-1].setValue(self.sidebandList[-1])
             self.frame4.addWidget(self.sidebandEntries[-1], 0, len(self.sidebandEntries))
-            self.integralEntries.append(QtGui.QLineEdit())
+            self.integralEntries.append(QtWidgets.QLineEdit())
             self.integralEntries[-1].setText('%#.5g' % self.integralList[-1])
             self.frame4.addWidget(self.integralEntries[-1], 1, len(self.sidebandEntries))
-            self.resultLabels.append(QtGui.QLabel())
+            self.resultLabels.append(QtWidgets.QLabel())
             self.frame4.addWidget(self.resultLabels[-1], 2, len(self.sidebandEntries))
 
     def togglePick(self):
@@ -4535,7 +4542,7 @@ class Quad1MASDeconvParamFrame(QtGui.QWidget):
         while self.running:
             if not self.queue.empty():
                 self.running = False
-            QtGui.qApp.processEvents()
+            QtWidgets.qApp.processEvents()
             time.sleep(0.1)
         if self.queue is None:
             return
@@ -4795,89 +4802,89 @@ class Quad1DeconvFrame(Plot1DFrame):
 #################################################################################
 
 
-class Quad1DeconvParamFrame(QtGui.QWidget):
+class Quad1DeconvParamFrame(QtWidgets.QWidget):
 
     Ioptions = ['1', '3/2', '2', '5/2', '3', '7/2', '4', '9/2']
     savetitle = 'ssNake first order quadrupole static fit results'
     
     def __init__(self, parent, rootwindow):
-        QtGui.QWidget.__init__(self, rootwindow)
+        QtWidgets.QWidget.__init__(self, rootwindow)
         self.parent = parent
         self.rootwindow = rootwindow
         self.cheng = 15
         self.setAngleStuff = quad1DeconvsetAngleStuff
         self.tensorFunc = quad1DeconvtensorFunc
-        grid = QtGui.QGridLayout(self)
+        grid = QtWidgets.QGridLayout(self)
         self.setLayout(grid)
         if self.parent.current.spec == 1:
             self.axAdd = self.parent.current.freq - self.parent.current.ref
         elif self.parent.current.spec == 0:
             self.axAdd = 0
-        self.frame1 = QtGui.QGridLayout()
-        self.optframe = QtGui.QGridLayout()
-        self.frame2 = QtGui.QGridLayout()
-        self.frame3 = QtGui.QGridLayout()
+        self.frame1 = QtWidgets.QGridLayout()
+        self.optframe = QtWidgets.QGridLayout()
+        self.frame2 = QtWidgets.QGridLayout()
+        self.frame3 = QtWidgets.QGridLayout()
         grid.addLayout(self.frame1, 0, 0)
         grid.addLayout(self.optframe, 0, 1)
         grid.addLayout(self.frame2, 0, 2)
         grid.addLayout(self.frame3, 0, 3)
-        simButton = QtGui.QPushButton("Sim")
+        simButton = QtWidgets.QPushButton("Sim")
         simButton.clicked.connect(self.sim)
         self.frame1.addWidget(simButton, 0, 0)
-        fitButton = QtGui.QPushButton("Fit")
+        fitButton = QtWidgets.QPushButton("Fit")
         fitButton.clicked.connect(self.fit)
         self.frame1.addWidget(fitButton, 1, 0)
-        self.stopButton = QtGui.QPushButton("Stop")
+        self.stopButton = QtWidgets.QPushButton("Stop")
         self.stopButton.clicked.connect(self.stopMP)
         self.frame1.addWidget(self.stopButton, 1, 0)
         self.stopButton.hide()
         self.process1 = None
         self.queue = None
-        fitAllButton = QtGui.QPushButton("Fit all")
+        fitAllButton = QtWidgets.QPushButton("Fit all")
         fitAllButton.clicked.connect(self.fitAll)
         self.frame1.addWidget(fitAllButton, 2, 0)
-        copyResultButton = QtGui.QPushButton("Copy result")
+        copyResultButton = QtWidgets.QPushButton("Copy result")
         copyResultButton.clicked.connect(lambda: self.sim('copy'))
         self.frame1.addWidget(copyResultButton, 3, 0)
-        saveResultButton = QtGui.QPushButton("Save to text")
+        saveResultButton = QtWidgets.QPushButton("Save to text")
         saveResultButton.clicked.connect(lambda: self.sim('save'))
         self.frame1.addWidget(saveResultButton, 4, 0)
-        cancelButton = QtGui.QPushButton("&Cancel")
+        cancelButton = QtWidgets.QPushButton("&Cancel")
         cancelButton.clicked.connect(self.closeWindow)
         self.frame1.addWidget(cancelButton, 5, 0)
         self.frame1.setColumnStretch(10, 1)
         self.frame1.setAlignment(QtCore.Qt.AlignTop)
         self.optframe.addWidget(QLabel("Cheng:"), 0, 0)
-        self.chengEntry = QtGui.QLineEdit()
+        self.chengEntry = QtWidgets.QLineEdit()
         self.chengEntry.setAlignment(QtCore.Qt.AlignHCenter)
         self.chengEntry.setText(str(self.cheng))
         self.optframe.addWidget(self.chengEntry, 1, 0)
         self.optframe.addWidget(QLabel("I:"), 0, 1)
-        self.IEntry = QtGui.QComboBox()
+        self.IEntry = QtWidgets.QComboBox()
         self.IEntry.addItems(self.Ioptions)
         self.IEntry.setCurrentIndex(1)
         self.optframe.addWidget(self.IEntry, 1, 1)
         self.optframe.setColumnStretch(10, 1)
         self.optframe.setAlignment(QtCore.Qt.AlignTop)
         self.frame2.addWidget(QLabel("Bgrnd:"), 0, 0, 1, 2)
-        self.bgrndTick = QtGui.QCheckBox('')
+        self.bgrndTick = QtWidgets.QCheckBox('')
         self.bgrndTick.setChecked(True)
         self.frame2.addWidget(self.bgrndTick, 1, 0)
-        self.bgrndEntry = QtGui.QLineEdit()
+        self.bgrndEntry = QtWidgets.QLineEdit()
         self.bgrndEntry.setAlignment(QtCore.Qt.AlignHCenter)
         self.bgrndEntry.setText("0.0")
         self.frame2.addWidget(self.bgrndEntry, 1, 1)
         self.frame2.addWidget(QLabel("Slope:"), 2, 0, 1, 2)
-        self.slopeTick = QtGui.QCheckBox('')
+        self.slopeTick = QtWidgets.QCheckBox('')
         self.slopeTick.setChecked(True)
         self.frame2.addWidget(self.slopeTick, 3, 0)
-        self.slopeEntry = QtGui.QLineEdit()
+        self.slopeEntry = QtWidgets.QLineEdit()
         self.slopeEntry.setAlignment(QtCore.Qt.AlignHCenter)
         self.slopeEntry.setText("0.0")
         self.frame2.addWidget(self.slopeEntry, 3, 1)
         self.frame2.setColumnStretch(10, 1)
         self.frame2.setAlignment(QtCore.Qt.AlignTop)
-        self.numExp = QtGui.QComboBox()
+        self.numExp = QtWidgets.QComboBox()
         self.numExp.addItems(['1', '2', '3', '4', '5', '6', '7', '8', '9', '10'])
         self.numExp.currentIndexChanged.connect(self.changeNum)
         self.frame3.addWidget(self.numExp, 0, 0, 1, 2)
@@ -4902,41 +4909,41 @@ class Quad1DeconvParamFrame(QtGui.QWidget):
         self.gaussEntries = []
         self.gaussTicks = []
         for i in range(10):
-            self.posTicks.append(QtGui.QCheckBox(''))
+            self.posTicks.append(QtWidgets.QCheckBox(''))
             self.frame3.addWidget(self.posTicks[i], i + 2, 0)
-            self.posEntries.append(QtGui.QLineEdit())
+            self.posEntries.append(QtWidgets.QLineEdit())
             self.posEntries[i].setAlignment(QtCore.Qt.AlignHCenter)
             self.posEntries[i].setText("0.0")
             self.frame3.addWidget(self.posEntries[i], i + 2, 1)
-            self.cqTicks.append(QtGui.QCheckBox(''))
+            self.cqTicks.append(QtWidgets.QCheckBox(''))
             self.frame3.addWidget(self.cqTicks[i], i + 2, 2)
-            self.cqEntries.append(QtGui.QLineEdit())
+            self.cqEntries.append(QtWidgets.QLineEdit())
             self.cqEntries[i].setAlignment(QtCore.Qt.AlignHCenter)
             self.cqEntries[i].setText("0.0")
             self.frame3.addWidget(self.cqEntries[i], i + 2, 3)
-            self.etaTicks.append(QtGui.QCheckBox(''))
+            self.etaTicks.append(QtWidgets.QCheckBox(''))
             self.frame3.addWidget(self.etaTicks[i], i + 2, 4)
-            self.etaEntries.append(QtGui.QLineEdit())
+            self.etaEntries.append(QtWidgets.QLineEdit())
             self.etaEntries[i].setAlignment(QtCore.Qt.AlignHCenter)
             self.etaEntries[i].setText("0.0")
             self.frame3.addWidget(self.etaEntries[i], i + 2, 5)
-            self.ampTicks.append(QtGui.QCheckBox(''))
+            self.ampTicks.append(QtWidgets.QCheckBox(''))
             self.frame3.addWidget(self.ampTicks[i], i + 2, 6)
-            self.ampEntries.append(QtGui.QLineEdit())
+            self.ampEntries.append(QtWidgets.QLineEdit())
             self.ampEntries[i].setAlignment(QtCore.Qt.AlignHCenter)
             self.ampEntries[i].setText("1.0")
             self.frame3.addWidget(self.ampEntries[i], i + 2, 7)
-            self.lorTicks.append(QtGui.QCheckBox(''))
+            self.lorTicks.append(QtWidgets.QCheckBox(''))
             self.lorTicks[i].setChecked(True)
             self.frame3.addWidget(self.lorTicks[i], i + 2, 8)
-            self.lorEntries.append(QtGui.QLineEdit())
+            self.lorEntries.append(QtWidgets.QLineEdit())
             self.lorEntries[i].setAlignment(QtCore.Qt.AlignHCenter)
             self.lorEntries[i].setText("10.0")
             self.frame3.addWidget(self.lorEntries[i], i + 2, 9)
-            self.gaussTicks.append(QtGui.QCheckBox(''))
+            self.gaussTicks.append(QtWidgets.QCheckBox(''))
             self.gaussTicks[i].setChecked(True)
             self.frame3.addWidget(self.gaussTicks[i], i + 2, 10)
-            self.gaussEntries.append(QtGui.QLineEdit())
+            self.gaussEntries.append(QtWidgets.QLineEdit())
             self.gaussEntries[i].setAlignment(QtCore.Qt.AlignHCenter)
             self.gaussEntries[i].setText("0.0")
             self.frame3.addWidget(self.gaussEntries[i], i + 2, 11)
@@ -5120,7 +5127,7 @@ class Quad1DeconvParamFrame(QtGui.QWidget):
         while self.running:
             if not self.queue.empty():
                 self.running = False
-            QtGui.qApp.processEvents()
+            QtWidgets.qApp.processEvents()
             time.sleep(0.1)
         if self.queue is None:
             return
@@ -5271,7 +5278,7 @@ class Quad1DeconvParamFrame(QtGui.QWidget):
         while self.running:
             if not self.queue.empty():
                 self.running = False
-            QtGui.qApp.processEvents()
+            QtWidgets.qApp.processEvents()
             time.sleep(0.1)
         if self.queue is None:
             return
@@ -5582,7 +5589,7 @@ class Quad2CzjzekWindow(FittingWindow):
 #################################################################################
 
 
-class Quad2StaticCzjzekParamFrame(QtGui.QWidget):
+class Quad2StaticCzjzekParamFrame(QtWidgets.QWidget):
 
     Ioptions = ['3/2', '5/2', '7/2', '9/2']
     savetitle = 'ssNake Czjzek static fit results'
@@ -5590,68 +5597,68 @@ class Quad2StaticCzjzekParamFrame(QtGui.QWidget):
     
     def __init__(self, parent, rootwindow):
         import scipy.ndimage
-        QtGui.QWidget.__init__(self, rootwindow)
+        QtWidgets.QWidget.__init__(self, rootwindow)
         self.parent = parent
         self.rootwindow = rootwindow
         self.cheng = 15
-        grid = QtGui.QGridLayout(self)
+        grid = QtWidgets.QGridLayout(self)
         self.setLayout(grid)
         if self.parent.current.spec == 1:
             self.axAdd = self.parent.current.freq - self.parent.current.ref
         elif self.parent.current.spec == 0:
             self.axAdd = 0
-        self.frame1 = QtGui.QGridLayout()
-        self.optframe = QtGui.QGridLayout()
-        self.frame2 = QtGui.QGridLayout()
-        self.frame3 = QtGui.QGridLayout()
+        self.frame1 = QtWidgets.QGridLayout()
+        self.optframe = QtWidgets.QGridLayout()
+        self.frame2 = QtWidgets.QGridLayout()
+        self.frame3 = QtWidgets.QGridLayout()
         grid.addLayout(self.frame1, 0, 0)
         grid.addLayout(self.optframe, 0, 1)
         grid.addLayout(self.frame2, 0, 2)
         grid.addLayout(self.frame3, 0, 3)
-        simButton = QtGui.QPushButton("Sim")
+        simButton = QtWidgets.QPushButton("Sim")
         simButton.clicked.connect(self.sim)
         self.frame1.addWidget(simButton, 0, 0)
-        fitButton = QtGui.QPushButton("Fit")
+        fitButton = QtWidgets.QPushButton("Fit")
         fitButton.clicked.connect(self.fit)
         self.frame1.addWidget(fitButton, 1, 0)
-        self.stopButton = QtGui.QPushButton("Stop")
+        self.stopButton = QtWidgets.QPushButton("Stop")
         self.stopButton.clicked.connect(self.stopMP)
         self.frame1.addWidget(self.stopButton, 1, 0)
         self.stopButton.hide()
         self.process1 = None
         self.queue = None
-        fitAllButton = QtGui.QPushButton("Fit all")
+        fitAllButton = QtWidgets.QPushButton("Fit all")
         fitAllButton.clicked.connect(self.fitAll)
         self.frame1.addWidget(fitAllButton, 2, 0)
-        copyResultButton = QtGui.QPushButton("Copy result")
+        copyResultButton = QtWidgets.QPushButton("Copy result")
         copyResultButton.clicked.connect(lambda: self.sim('copy'))
         self.frame1.addWidget(copyResultButton, 3, 0)
-        saveResultButton = QtGui.QPushButton("Save to text")
+        saveResultButton = QtWidgets.QPushButton("Save to text")
         saveResultButton.clicked.connect(lambda: self.sim('save'))
         self.frame1.addWidget(saveResultButton, 4, 0)      
-        cancelButton = QtGui.QPushButton("&Cancel")
+        cancelButton = QtWidgets.QPushButton("&Cancel")
         cancelButton.clicked.connect(self.closeWindow)
         self.frame1.addWidget(cancelButton, 5, 0)
         self.frame1.setColumnStretch(10, 1)
         self.frame1.setAlignment(QtCore.Qt.AlignTop)
         self.optframe.addWidget(QLabel("Cheng:"), 0, 0)
-        self.chengEntry = QtGui.QLineEdit()
+        self.chengEntry = QtWidgets.QLineEdit()
         self.chengEntry.setAlignment(QtCore.Qt.AlignHCenter)
         self.chengEntry.setText(str(self.cheng))
         self.optframe.addWidget(self.chengEntry, 1, 0)
         self.optframe.addWidget(QLabel("I:"), 0, 1)
-        self.IEntry = QtGui.QComboBox()
+        self.IEntry = QtWidgets.QComboBox()
         self.IEntry.addItems(self.Ioptions)
         self.IEntry.setCurrentIndex(1)
         self.optframe.addWidget(self.IEntry, 1, 1)
         self.optframe.addWidget(QLabel("Wq grid size:"), 2, 0)
-        self.wqGridEntry = QtGui.QLineEdit()
+        self.wqGridEntry = QtWidgets.QLineEdit()
         self.wqGridEntry.setAlignment(QtCore.Qt.AlignHCenter)
         self.wqGridEntry.setText("50")
         self.wqGridEntry.returnPressed.connect(self.setGrid)
         self.optframe.addWidget(self.wqGridEntry, 3, 0)
         self.optframe.addWidget(QLabel(u"\u03b7 grid size:"), 4, 0)
-        self.etaGridEntry = QtGui.QLineEdit()
+        self.etaGridEntry = QtWidgets.QLineEdit()
         self.etaGridEntry.setAlignment(QtCore.Qt.AlignHCenter)
         self.etaGridEntry.setText("10")
         self.etaGridEntry.returnPressed.connect(self.setGrid)
@@ -5659,24 +5666,24 @@ class Quad2StaticCzjzekParamFrame(QtGui.QWidget):
         self.optframe.setColumnStretch(10, 1)
         self.optframe.setAlignment(QtCore.Qt.AlignTop)
         self.frame2.addWidget(QLabel("Bgrnd:"), 0, 0, 1, 2)
-        self.bgrndTick = QtGui.QCheckBox('')
+        self.bgrndTick = QtWidgets.QCheckBox('')
         self.bgrndTick.setChecked(True)
         self.frame2.addWidget(self.bgrndTick, 1, 0)
-        self.bgrndEntry = QtGui.QLineEdit()
+        self.bgrndEntry = QtWidgets.QLineEdit()
         self.bgrndEntry.setAlignment(QtCore.Qt.AlignHCenter)
         self.bgrndEntry.setText("0.0")
         self.frame2.addWidget(self.bgrndEntry, 1, 1)
         self.frame2.addWidget(QLabel("Slope:"), 2, 0, 1, 2)
-        self.slopeTick = QtGui.QCheckBox('')
+        self.slopeTick = QtWidgets.QCheckBox('')
         self.slopeTick.setChecked(True)
         self.frame2.addWidget(self.slopeTick, 3, 0)
-        self.slopeEntry = QtGui.QLineEdit()
+        self.slopeEntry = QtWidgets.QLineEdit()
         self.slopeEntry.setAlignment(QtCore.Qt.AlignHCenter)
         self.slopeEntry.setText("0.0")
         self.frame2.addWidget(self.slopeEntry, 3, 1)
         self.frame2.setColumnStretch(10, 1)
         self.frame2.setAlignment(QtCore.Qt.AlignTop)
-        self.numExp = QtGui.QComboBox()
+        self.numExp = QtWidgets.QComboBox()
         self.numExp.addItems(['1', '2', '3', '4', '5', '6', '7', '8', '9', '10'])
         self.numExp.currentIndexChanged.connect(self.changeNum)
         self.frame3.addWidget(self.numExp, 0, 0)
@@ -5700,34 +5707,34 @@ class Quad2StaticCzjzekParamFrame(QtGui.QWidget):
         self.gaussEntries = []
         self.gaussTicks = []
         for i in range(10):
-            self.dEntries.append(QtGui.QLineEdit())
+            self.dEntries.append(QtWidgets.QLineEdit())
             self.dEntries[i].setText("5")
             self.frame3.addWidget(self.dEntries[i], i + 2, 0)
-            self.posTicks.append(QtGui.QCheckBox(''))
+            self.posTicks.append(QtWidgets.QCheckBox(''))
             self.frame3.addWidget(self.posTicks[i], i + 2, 1)
-            self.posEntries.append(QtGui.QLineEdit())
+            self.posEntries.append(QtWidgets.QLineEdit())
             self.posEntries[i].setText("0.0")
             self.frame3.addWidget(self.posEntries[i], i + 2, 2)
-            self.sigmaTicks.append(QtGui.QCheckBox(''))
+            self.sigmaTicks.append(QtWidgets.QCheckBox(''))
             self.frame3.addWidget(self.sigmaTicks[i], i + 2, 3)
-            self.sigmaEntries.append(QtGui.QLineEdit())
+            self.sigmaEntries.append(QtWidgets.QLineEdit())
             self.sigmaEntries[i].setText("1.0")
             self.frame3.addWidget(self.sigmaEntries[i], i + 2, 4)
-            self.ampTicks.append(QtGui.QCheckBox(''))
+            self.ampTicks.append(QtWidgets.QCheckBox(''))
             self.frame3.addWidget(self.ampTicks[i], i + 2, 5)
-            self.ampEntries.append(QtGui.QLineEdit())
+            self.ampEntries.append(QtWidgets.QLineEdit())
             self.ampEntries[i].setText("1.0")
             self.frame3.addWidget(self.ampEntries[i], i + 2, 6)
-            self.lorTicks.append(QtGui.QCheckBox(''))
+            self.lorTicks.append(QtWidgets.QCheckBox(''))
             self.lorTicks[i].setChecked(True)
             self.frame3.addWidget(self.lorTicks[i], i + 2, 7)
-            self.lorEntries.append(QtGui.QLineEdit())
+            self.lorEntries.append(QtWidgets.QLineEdit())
             self.lorEntries[i].setText("10.0")
             self.frame3.addWidget(self.lorEntries[i], i + 2, 8)
-            self.gaussTicks.append(QtGui.QCheckBox(''))
+            self.gaussTicks.append(QtWidgets.QCheckBox(''))
             self.gaussTicks[i].setChecked(True)
             self.frame3.addWidget(self.gaussTicks[i], i + 2, 9)
-            self.gaussEntries.append(QtGui.QLineEdit())
+            self.gaussEntries.append(QtWidgets.QLineEdit())
             self.gaussEntries[i].setText("0.0")
             self.frame3.addWidget(self.gaussEntries[i], i + 2, 10)
             if i > 0:
@@ -5957,7 +5964,7 @@ class Quad2StaticCzjzekParamFrame(QtGui.QWidget):
         while self.running:
             if not self.queue.empty():
                 self.running = False
-            QtGui.qApp.processEvents()
+            QtWidgets.qApp.processEvents()
             time.sleep(0.1)
         if self.queue is None:
             return
@@ -6117,7 +6124,7 @@ class Quad2StaticCzjzekParamFrame(QtGui.QWidget):
         while self.running:
             if not self.queue.empty():
                 self.running = False
-            QtGui.qApp.processEvents()
+            QtWidgets.qApp.processEvents()
             time.sleep(0.1)
         if self.queue is None:
             return
@@ -6336,26 +6343,26 @@ class Quad2MASCzjzekParamFrame(Quad2StaticCzjzekParamFrame):
 ######################################################################
 
 
-class FitAllSelectionWindow(QtGui.QWidget):
+class FitAllSelectionWindow(QtWidgets.QWidget):
 
     def __init__(self, parent, fitNames):
-        QtGui.QWidget.__init__(self, parent)
+        QtWidgets.QWidget.__init__(self, parent)
         self.setWindowFlags(QtCore.Qt.Window | QtCore.Qt.Tool)
         self.father = parent
         self.setWindowTitle("Select output")
-        layout = QtGui.QGridLayout(self)
-        grid = QtGui.QGridLayout()
+        layout = QtWidgets.QGridLayout(self)
+        grid = QtWidgets.QGridLayout()
         layout.addLayout(grid, 0, 0, 1, 2)
 
         self.ticks = []
         for i in range(len(fitNames)):
-            self.ticks.append(QtGui.QCheckBox(fitNames[i]))
+            self.ticks.append(QtWidgets.QCheckBox(fitNames[i]))
             grid.addWidget(self.ticks[i], i, 0)
 
-        cancelButton = QtGui.QPushButton("&Cancel")
+        cancelButton = QtWidgets.QPushButton("&Cancel")
         cancelButton.clicked.connect(self.closeEvent)
         layout.addWidget(cancelButton, 1, 0)
-        okButton = QtGui.QPushButton("&Ok")
+        okButton = QtWidgets.QPushButton("&Ok")
         okButton.clicked.connect(self.fit)
         layout.addWidget(okButton, 1, 1)
         self.show()

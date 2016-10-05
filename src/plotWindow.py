@@ -17,8 +17,13 @@
 # You should have received a copy of the GNU General Public License
 # along with ssNake. If not, see <http://www.gnu.org/licenses/>.
 
-from PyQt4 import QtGui, QtCore
-from matplotlib.backends.backend_qt4agg import FigureCanvasQTAgg as FigureCanvas
+try:
+    from PyQt4 import QtGui, QtCore
+    from PyQt4 import QtGui as QtWidgets
+    from matplotlib.backends.backend_qt4agg import FigureCanvasQTAgg as FigureCanvas
+except ImportError:
+    from PyQt5 import QtGui, QtCore, QtWidgets
+    from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from widgetClasses import QLabel
 from safeEval import safeEval
 import numpy as np
@@ -28,42 +33,42 @@ import copy
 #####################################################################################
 
 
-class MainPlotWindow(QtGui.QWidget):
+class MainPlotWindow(QtWidgets.QWidget):
 
     def __init__(self, father, oldMainWindow):
-        QtGui.QWidget.__init__(self, father)
+        QtWidgets.QWidget.__init__(self, father)
         self.father = father
         self.oldMainWindow = oldMainWindow
         self.fig = oldMainWindow.current.fig
         self.canvas = FigureCanvas(self.fig)
         self.ax = oldMainWindow.current.ax
-        grid = QtGui.QGridLayout(self)
-        scroll2 = QtGui.QScrollArea()
+        grid = QtWidgets.QGridLayout(self)
+        scroll2 = QtWidgets.QScrollArea()
         grid.addWidget(scroll2, 0, 0)
         scroll2.setWidget(self.canvas)
-        self.frame1 = QtGui.QGridLayout()
+        self.frame1 = QtWidgets.QGridLayout()
         grid.addLayout(self.frame1, 0, 1)
-        scroll = QtGui.QScrollArea()
+        scroll = QtWidgets.QScrollArea()
         self.frame1.addWidget(scroll, 0, 0)
         scroll.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
-        content = QtGui.QWidget()
-        self.optionFrame = QtGui.QGridLayout(content)
+        content = QtWidgets.QWidget()
+        self.optionFrame = QtWidgets.QGridLayout(content)
         self.optionFrame.addWidget(QLabel("Title:"), 0, 0)
-        self.titleEntry = QtGui.QLineEdit()
+        self.titleEntry = QtWidgets.QLineEdit()
         self.titleEntry.setAlignment(QtCore.Qt.AlignHCenter)
         self.titleBackup = oldMainWindow.get_masterData().name
         self.titleEntry.setText(self.titleBackup)
         self.titleEntry.returnPressed.connect(self.updatePlot)
         self.optionFrame.addWidget(self.titleEntry, 1, 0)
         self.optionFrame.addWidget(QLabel("x-label:"), 2, 0)
-        self.xlabelEntry = QtGui.QLineEdit()
+        self.xlabelEntry = QtWidgets.QLineEdit()
         self.xlabelEntry.setAlignment(QtCore.Qt.AlignHCenter)
         self.xlabelBackup = self.ax.get_xlabel()
         self.xlabelEntry.setText(self.xlabelBackup)
         self.xlabelEntry.returnPressed.connect(self.updatePlot)
         self.optionFrame.addWidget(self.xlabelEntry, 3, 0)
         self.optionFrame.addWidget(QLabel("y-label:"), 4, 0)
-        self.ylabelEntry = QtGui.QLineEdit()
+        self.ylabelEntry = QtWidgets.QLineEdit()
         self.ylabelEntry.setAlignment(QtCore.Qt.AlignHCenter)
         self.ylabelBackup = self.ax.get_ylabel()
         self.ylabelEntry.setText(self.ylabelBackup)
@@ -71,26 +76,26 @@ class MainPlotWindow(QtGui.QWidget):
         self.optionFrame.addWidget(self.ylabelEntry, 5, 0)
         self.xlimBackup = self.ax.get_xlim()
         self.optionFrame.addWidget(QLabel("x-limit left:"), 6, 0)
-        self.xlimLeftEntry = QtGui.QLineEdit()
+        self.xlimLeftEntry = QtWidgets.QLineEdit()
         self.xlimLeftEntry.setAlignment(QtCore.Qt.AlignHCenter)
         self.xlimLeftEntry.setText(str(self.xlimBackup[0]))
         self.xlimLeftEntry.returnPressed.connect(self.updatePlot)
         self.optionFrame.addWidget(self.xlimLeftEntry, 7, 0)
         self.optionFrame.addWidget(QLabel("x-limit right:"), 8, 0)
-        self.xlimRightEntry = QtGui.QLineEdit()
+        self.xlimRightEntry = QtWidgets.QLineEdit()
         self.xlimRightEntry.setAlignment(QtCore.Qt.AlignHCenter)
         self.xlimRightEntry.setText(str(self.xlimBackup[1]))
         self.xlimRightEntry.returnPressed.connect(self.updatePlot)
         self.optionFrame.addWidget(self.xlimRightEntry, 9, 0)
         self.ylimBackup = self.ax.get_ylim()
         self.optionFrame.addWidget(QLabel("y-limit down:"), 10, 0)
-        self.ylimLeftEntry = QtGui.QLineEdit()
+        self.ylimLeftEntry = QtWidgets.QLineEdit()
         self.ylimLeftEntry.setAlignment(QtCore.Qt.AlignHCenter)
         self.ylimLeftEntry.setText(str(self.ylimBackup[0]))
         self.ylimLeftEntry.returnPressed.connect(self.updatePlot)
         self.optionFrame.addWidget(self.ylimLeftEntry, 11, 0)
         self.optionFrame.addWidget(QLabel("y-limit up:"), 12, 0)
-        self.ylimRightEntry = QtGui.QLineEdit()
+        self.ylimRightEntry = QtWidgets.QLineEdit()
         self.ylimRightEntry.setAlignment(QtCore.Qt.AlignHCenter)
         self.ylimRightEntry.setText(str(self.ylimBackup[1]))
         self.ylimRightEntry.returnPressed.connect(self.updatePlot)
@@ -99,48 +104,48 @@ class MainPlotWindow(QtGui.QWidget):
         self.widthBackup = self.widthBackup * 2.54
         self.heightBackup = self.heightBackup * 2.54
         self.optionFrame.addWidget(QLabel("Width [cm]:"), 26, 0)
-        self.widthEntry = QtGui.QLineEdit()
+        self.widthEntry = QtWidgets.QLineEdit()
         self.widthEntry.setAlignment(QtCore.Qt.AlignHCenter)
         self.widthEntry.setText(str(self.widthBackup))
         self.widthEntry.returnPressed.connect(self.updatePlot)
         self.optionFrame.addWidget(self.widthEntry, 27, 0)
         self.optionFrame.addWidget(QLabel("Height [cm]:"), 28, 0)
-        self.heightEntry = QtGui.QLineEdit()
+        self.heightEntry = QtWidgets.QLineEdit()
         self.heightEntry.setAlignment(QtCore.Qt.AlignHCenter)
         self.heightEntry.setText(str(self.heightBackup))
         self.heightEntry.returnPressed.connect(self.updatePlot)
         self.optionFrame.addWidget(self.heightEntry, 29, 0)
         self.titleFontSizeBackup = 12
         self.optionFrame.addWidget(QLabel("Title font size:"), 30, 0)
-        self.titleFontSizeEntry = QtGui.QLineEdit()
+        self.titleFontSizeEntry = QtWidgets.QLineEdit()
         self.titleFontSizeEntry.setAlignment(QtCore.Qt.AlignHCenter)
         self.titleFontSizeEntry.setText(str(self.titleFontSizeBackup))
         self.titleFontSizeEntry.returnPressed.connect(self.updatePlot)
         self.optionFrame.addWidget(self.titleFontSizeEntry, 31, 0)
         self.xlabelFontSizeBackup = 12
         self.optionFrame.addWidget(QLabel("X-label font size:"), 32, 0)
-        self.xlabelFontSizeEntry = QtGui.QLineEdit()
+        self.xlabelFontSizeEntry = QtWidgets.QLineEdit()
         self.xlabelFontSizeEntry.setAlignment(QtCore.Qt.AlignHCenter)
         self.xlabelFontSizeEntry.setText(str(self.xlabelFontSizeBackup))
         self.xlabelFontSizeEntry.returnPressed.connect(self.updatePlot)
         self.optionFrame.addWidget(self.xlabelFontSizeEntry, 33, 0)
         self.ylabelFontSizeBackup = 12
         self.optionFrame.addWidget(QLabel("Y-label font size:"), 34, 0)
-        self.ylabelFontSizeEntry = QtGui.QLineEdit()
+        self.ylabelFontSizeEntry = QtWidgets.QLineEdit()
         self.ylabelFontSizeEntry.setAlignment(QtCore.Qt.AlignHCenter)
         self.ylabelFontSizeEntry.setText(str(self.ylabelFontSizeBackup))
         self.ylabelFontSizeEntry.returnPressed.connect(self.updatePlot)
         self.optionFrame.addWidget(self.ylabelFontSizeEntry, 35, 0)
         self.xtickFontSizeBackup = 12
         self.optionFrame.addWidget(QLabel("X-ticks font size:"), 36, 0)
-        self.xtickFontSizeEntry = QtGui.QLineEdit()
+        self.xtickFontSizeEntry = QtWidgets.QLineEdit()
         self.xtickFontSizeEntry.setAlignment(QtCore.Qt.AlignHCenter)
         self.xtickFontSizeEntry.setText(str(self.xtickFontSizeBackup))
         self.xtickFontSizeEntry.returnPressed.connect(self.updatePlot)
         self.optionFrame.addWidget(self.xtickFontSizeEntry, 37, 0)
         self.ytickFontSizeBackup = 12
         self.optionFrame.addWidget(QLabel("Y-ticks font size:"), 38, 0)
-        self.ytickFontSizeEntry = QtGui.QLineEdit()
+        self.ytickFontSizeEntry = QtWidgets.QLineEdit()
         self.ytickFontSizeEntry.setAlignment(QtCore.Qt.AlignHCenter)
         self.ytickFontSizeEntry.setText(str(self.ytickFontSizeBackup))
         self.ytickFontSizeEntry.returnPressed.connect(self.updatePlot)
@@ -154,28 +159,28 @@ class MainPlotWindow(QtGui.QWidget):
                 self.legendTextList.append(line.get_text())
 
             self.legend.set_visible(False)
-            self.legendCheck = QtGui.QCheckBox('Legend')
+            self.legendCheck = QtWidgets.QCheckBox('Legend')
             self.legendCheck.stateChanged.connect(self.updateLegend)
             self.optionFrame.addWidget(self.legendCheck, 40, 0)
-            legendButton = QtGui.QPushButton('Legend settings')
+            legendButton = QtWidgets.QPushButton('Legend settings')
             legendButton.clicked.connect(lambda: LegendWindow(self))
             self.optionFrame.addWidget(legendButton, 41, 0)
 
-        execFileButton = QtGui.QPushButton('Execute file')
+        execFileButton = QtWidgets.QPushButton('Execute file')
         execFileButton.clicked.connect(self.exFile)
         self.optionFrame.addWidget(execFileButton, 42, 0)
 
-        self.inFrame = QtGui.QGridLayout()
+        self.inFrame = QtWidgets.QGridLayout()
         self.frame1.addLayout(self.inFrame, 1, 0)
         self.inFrame.addWidget(QLabel("File type:"), 0, 0, 1, 2)
-        self.filetypeEntry = QtGui.QComboBox()
+        self.filetypeEntry = QtWidgets.QComboBox()
         self.fileOptions = ['svg', 'png', 'eps', 'jpg', 'pdf']
         self.filetypeEntry.addItems(self.fileOptions)
         self.inFrame.addWidget(self.filetypeEntry, 1, 0, 1, 2)
-        cancelButton = QtGui.QPushButton("&Cancel")
+        cancelButton = QtWidgets.QPushButton("&Cancel")
         cancelButton.clicked.connect(self.cancel)
         self.inFrame.addWidget(cancelButton, 2, 0)
-        okButton = QtGui.QPushButton("&Save")
+        okButton = QtWidgets.QPushButton("&Save")
         okButton.clicked.connect(self.save)
         self.inFrame.addWidget(okButton, 2, 1)
         grid.setColumnStretch(0, 1)
@@ -213,9 +218,11 @@ class MainPlotWindow(QtGui.QWidget):
 
     def exFile(self):
         warning_msg = "This is an advanced feature. Do not execute files you haven't inspected yourself. Are you sure you want to continue?"
-        reply = QtGui.QMessageBox.question(self, 'Warning', warning_msg, QtGui.QMessageBox.Yes, QtGui.QMessageBox.No)
-        if reply == QtGui.QMessageBox.Yes:
-            filename = QtGui.QFileDialog.getOpenFileName(self, 'Execute File', self.father.LastLocation)
+        reply = QtWidgets.QMessageBox.question(self, 'Warning', warning_msg, QtWidgets.QMessageBox.Yes, QtWidgets.QMessageBox.No)
+        if reply == QtWidgets.QMessageBox.Yes:
+            filename = QtWidgets.QFileDialog.getOpenFileName(self, 'Execute File', self.father.LastLocation)
+            if type(filename) is tuple:
+                filename = filename[0]        
             fig = self.fig
             ax = self.ax
             if filename:
@@ -247,7 +254,9 @@ class MainPlotWindow(QtGui.QWidget):
         self.updatePlot()
         self.fig.set_size_inches((int(safeEval(self.widthEntry.text())) / 2.54, int(safeEval(self.heightEntry.text())) / 2.54))
         WorkspaceName = self.father.workspaceNames[self.father.workspaceNum]  # Set name of file to be saved to workspace name to start
-        f = QtGui.QFileDialog.getSaveFileName(self, 'Save File', self.father.LastLocation + os.path.sep + WorkspaceName + '.' + self.fileOptions[self.filetypeEntry.currentIndex()])
+        f = QtWidgets.QFileDialog.getSaveFileName(self, 'Save File', self.father.LastLocation + os.path.sep + WorkspaceName + '.' + self.fileOptions[self.filetypeEntry.currentIndex()])
+        if type(f) is tuple:
+            f = f[0]        
         if f:
             self.father.LastLocation = os.path.dirname(f)
             self.fig.savefig(f)
@@ -275,42 +284,42 @@ class MainPlotWindow(QtGui.QWidget):
 #####################################################################################################################
 
 
-class LegendWindow(QtGui.QWidget):
+class LegendWindow(QtWidgets.QWidget):
 
     def __init__(self, parent):
-        QtGui.QWidget.__init__(self, parent)
+        QtWidgets.QWidget.__init__(self, parent)
         self.setWindowFlags(QtCore.Qt.Window | QtCore.Qt.Tool)
         self.father = parent
         self.setWindowTitle("Legend")
-        layout = QtGui.QGridLayout(self)
-        grid = QtGui.QGridLayout()
+        layout = QtWidgets.QGridLayout(self)
+        grid = QtWidgets.QGridLayout()
         layout.addLayout(grid, 0, 0, 1, 2)
         grid.addWidget(QLabel("Legend position:"), 0, 0)
         self.posVal = self.father.legendPos
-        self.posEntry = QtGui.QLineEdit()
+        self.posEntry = QtWidgets.QLineEdit()
         self.posEntry.setAlignment(QtCore.Qt.AlignHCenter)
         self.posEntry.setText(self.posVal)
         self.posEntry.returnPressed.connect(self.preview)
         grid.addWidget(self.posEntry, 1, 0)
         grid.addWidget(QLabel("Legend:"), 2, 0)
         self.father.legendCheck.setChecked(True)
-        self.spinBox = QtGui.QSpinBox()
+        self.spinBox = QtWidgets.QSpinBox()
         self.spinBox.setMaximum(len(self.father.legendTextList) - 1)
         self.spinBox.valueChanged.connect(self.changeEdit)
         grid.addWidget(self.spinBox, 3, 0)
         self.legendEditList = []
         for i in range(len(self.father.legendTextList)):
-            self.legendEditList.append(QtGui.QLineEdit())
+            self.legendEditList.append(QtWidgets.QLineEdit())
             self.legendEditList[i].setAlignment(QtCore.Qt.AlignHCenter)
             self.legendEditList[i].setText(self.father.legendTextList[i])
             self.legendEditList[i].returnPressed.connect(self.preview)
             grid.addWidget(self.legendEditList[i], 4, 0)
             self.legendEditList[i].setVisible(False)
         self.legendEditList[0].setVisible(True)
-        cancelButton = QtGui.QPushButton("&Cancel")
+        cancelButton = QtWidgets.QPushButton("&Cancel")
         cancelButton.clicked.connect(self.closeEvent)
         layout.addWidget(cancelButton, 1, 0)
-        okButton = QtGui.QPushButton("&Ok")
+        okButton = QtWidgets.QPushButton("&Ok")
         okButton.clicked.connect(self.applyAndClose)
         layout.addWidget(okButton, 1, 1)
         self.show()
