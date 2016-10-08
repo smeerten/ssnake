@@ -359,11 +359,11 @@ class MainProgram(QtWidgets.QMainWindow):
         # the help drop down menu
         self.helpMenu = QtWidgets.QMenu("&Help", self)
         self.menubar.addMenu(self.helpMenu)
-        self.helpMenu.addAction("&Update", self.updateMenu)
-        self.helpMenu.addAction("&Chemical shift conversion tool", self.createShiftConversionWindow)
+        self.helpMenu.addAction(QtGui.QIcon(IconDirectory + 'update.png'),"&Update", self.updateMenu)
+        self.helpMenu.addAction(QtGui.QIcon(IconDirectory + 'shifttool.png'),"&Chemical shift conversion tool", self.createShiftConversionWindow)
         self.helpMenu.addAction("&Quadrupole coupling conversion tool", self.createQuadConversionWindow)
         
-        self.helpMenu.addAction("&About", self.about)
+        self.helpMenu.addAction(QtGui.QIcon(IconDirectory + 'about.png'),"&About", self.about)
 
     def mainWindowCheck(self, transfer):
         # checks if mainWindow exist to execute the function
