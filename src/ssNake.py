@@ -319,7 +319,7 @@ class MainProgram(QtWidgets.QMainWindow):
         # the combine drop down menu
         self.combineMenu = QtWidgets.QMenu("Com&bine", self)
         self.menubar.addMenu(self.combineMenu)
-        self.combineMenu.addAction("&Insert from workspace", lambda: self.mainWindowCheck(lambda mainWindow: InsertWindow(mainWindow)))
+        self.combineMenu.addAction(QtGui.QIcon(IconDirectory + 'insert.png'),"&Insert from workspace", lambda: self.mainWindowCheck(lambda mainWindow: InsertWindow(mainWindow)))
         self.combineMenu.addAction(QtGui.QIcon(IconDirectory + 'add.png'), "&Add", lambda: self.mainWindowCheck(lambda mainWindow: AddWindow(mainWindow)))
         self.combineMenu.addAction(QtGui.QIcon(IconDirectory + 'subtract.png'), "&Subtract", lambda: self.mainWindowCheck(lambda mainWindow: SubtractWindow(mainWindow)))
 
@@ -328,11 +328,11 @@ class MainProgram(QtWidgets.QMainWindow):
         self.menubar.addMenu(self.plotMenu)
         self.plotMenu.addAction(QtGui.QIcon(IconDirectory + '1dplot.png'), "&1D plot", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.plot1D()))
         self.plotMenu.addAction(QtGui.QIcon(IconDirectory + 'scatterplot.png'), "&Scatter plot", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.plotScatter()))
-        self.multiDActions.append(self.plotMenu.addAction("S&tack plot", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.plotStack())))
-        self.multiDActions.append(self.plotMenu.addAction("&Array plot", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.plotArray())))
+        self.multiDActions.append(self.plotMenu.addAction(QtGui.QIcon(IconDirectory + 'stack.png'),"S&tack plot", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.plotStack())))
+        self.multiDActions.append(self.plotMenu.addAction(QtGui.QIcon(IconDirectory + 'array.png'),"&Array plot", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.plotArray())))
         self.multiDActions.append(self.plotMenu.addAction(QtGui.QIcon(IconDirectory + 'contour.png'), "&Contour plot", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.plotContour())))
-        self.multiDActions.append(self.plotMenu.addAction("S&kewed plot", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.plotSkewed())))
-        self.plotMenu.addAction("&Multi plot", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.plotMulti()))
+        self.multiDActions.append(self.plotMenu.addAction(QtGui.QIcon(IconDirectory + 'skewed.png'),"S&kewed plot", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.plotSkewed())))
+        self.plotMenu.addAction(QtGui.QIcon(IconDirectory + 'multi.png'),"&Multi plot", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.plotMulti()))
 
         self.referencelistmenu = QtWidgets.QMenu('&Reference', self)
         self.plotMenu.addMenu(self.referencelistmenu)
@@ -348,8 +348,8 @@ class MainProgram(QtWidgets.QMainWindow):
         self.referencelistmenu.addMenu(self.referencesavemenu)
         self.referencelistmenu.addAction(QtGui.QIcon(IconDirectory + 'open.png'), "&Load", self.referenceLoad)
 
-        self.plotMenu.addAction("&User x-axis", lambda: self.mainWindowCheck(lambda mainWindow: XaxWindow(mainWindow)))
-        self.plotMenu.addAction("&Plot settings", lambda: self.mainWindowCheck(lambda mainWindow: PlotSettingsWindow(mainWindow)))
+        self.plotMenu.addAction(QtGui.QIcon(IconDirectory + 'xaxis.png'),"&User x-axis", lambda: self.mainWindowCheck(lambda mainWindow: XaxWindow(mainWindow)))
+        self.plotMenu.addAction(QtGui.QIcon(IconDirectory + 'preferences.png'),"&Plot settings", lambda: self.mainWindowCheck(lambda mainWindow: PlotSettingsWindow(mainWindow)))
 
         # the history drop down menu
         self.historyMenu = QtWidgets.QMenu("&History", self)
@@ -361,7 +361,7 @@ class MainProgram(QtWidgets.QMainWindow):
         self.menubar.addMenu(self.helpMenu)
         self.helpMenu.addAction(QtGui.QIcon(IconDirectory + 'update.png'),"&Update", self.updateMenu)
         self.helpMenu.addAction(QtGui.QIcon(IconDirectory + 'shifttool.png'),"&Chemical shift conversion tool", self.createShiftConversionWindow)
-        self.helpMenu.addAction("&Quadrupole coupling conversion tool", self.createQuadConversionWindow)
+        self.helpMenu.addAction(QtGui.QIcon(IconDirectory + 'quadconversion.png'),"&Quadrupole coupling conversion tool", self.createQuadConversionWindow)
         
         self.helpMenu.addAction(QtGui.QIcon(IconDirectory + 'about.png'),"&About", self.about)
 
