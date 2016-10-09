@@ -336,8 +336,8 @@ class MainProgram(QtWidgets.QMainWindow):
 
         self.referencelistmenu = QtWidgets.QMenu('&Reference', self)
         self.plotMenu.addMenu(self.referencelistmenu)
-        self.referencelistmenu.addAction("&Set reference", lambda: self.mainWindowCheck(lambda mainWindow: RefWindow(mainWindow)))
-        self.referencelistmenu.addAction("&Clear current reference", self.referenceClear)
+        self.referencelistmenu.addAction(QtGui.QIcon(IconDirectory + 'setreference.png'),"&Set reference", lambda: self.mainWindowCheck(lambda mainWindow: RefWindow(mainWindow)))
+        self.referencelistmenu.addAction(QtGui.QIcon(IconDirectory + 'delete.png'),"&Clear current reference", self.referenceClear)
         self.referencerunmenu = QtWidgets.QMenu('&Run', self)
         self.referencelistmenu.addMenu(self.referencerunmenu)
         self.referencedeletemenu = QtWidgets.QMenu('&Delete', self)
