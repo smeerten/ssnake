@@ -19,21 +19,39 @@
 
 
 import sip
+import sys
+import os
 sip.setapi('QString', 2)
-import matplotlib
 try:
     from PyQt4 import QtGui, QtCore
     from PyQt4 import QtGui as QtWidgets
-    matplotlib.use('Qt4Agg')
-    from matplotlib.backends.backend_qt4agg import FigureCanvasQTAgg as FigureCanvas
+    QT = 4
 except ImportError:
     from PyQt5 import QtGui, QtCore, QtWidgets
+    QT = 5
+
+
+#Create splash window
+if __name__ == '__main__':
+    root = QtWidgets.QApplication(sys.argv)
+    root.setWindowIcon(QtGui.QIcon(os.path.dirname(os.path.realpath(__file__)) + '/logo.gif'))
+    splash_pix = QtGui.QPixmap(os.path.dirname(os.path.realpath(__file__)) + '/logo.gif')
+    splash = QtWidgets.QSplashScreen(splash_pix, QtCore.Qt.WindowStaysOnTopHint)
+    splash.setMask(splash_pix.mask())
+    splash.show()
+    splash.showMessage('Starting...')
+    root.processEvents()
+    
+import matplotlib  
+if QT ==4:
+    matplotlib.use('Qt4Agg')
+    from matplotlib.backends.backend_qt4agg import FigureCanvasQTAgg as FigureCanvas
+else:
     matplotlib.use('Qt5Agg')
     from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
+
 from matplotlib.figure import Figure
 import numpy as np
-import sys
-import os
 import re
 import copy
 import spectrum_classes as sc
@@ -6728,9 +6746,8 @@ class quadConversionWindow(QtWidgets.QWidget):
 
 
 if __name__ == '__main__':
-    root = QtWidgets.QApplication(sys.argv)
-    root.setWindowIcon(QtGui.QIcon(os.path.dirname(os.path.realpath(__file__)) + '/logo.gif'))
     mainProgram = MainProgram(root)
     mainProgram.setWindowTitle("ssNake - " + VERSION)
     mainProgram.show()
+    splash.finish(mainProgram)
     sys.exit(root.exec_())
