@@ -21,6 +21,7 @@
 import sip
 import sys
 import os
+import time
 sip.setapi('QString', 2)
 try:
     from PyQt4 import QtGui, QtCore
@@ -38,30 +39,52 @@ if __name__ == '__main__':
     splash_pix = QtGui.QPixmap(os.path.dirname(os.path.realpath(__file__)) + '/logo.gif')
     splash = QtWidgets.QSplashScreen(splash_pix, QtCore.Qt.WindowStaysOnTopHint)
     splash.setMask(splash_pix.mask())
+    progressBar = QtWidgets.QProgressBar(splash)
+    progressBar.setGeometry(2.5*splash.width()/10, 0.89*splash.height(),5*splash.width()/10, splash.height()/20)
     splash.show()
-    splash.showMessage('Starting...')
-    root.processEvents()
-    
+
+
+splashSteps=14.0/100
+splashStep = 0.0
+def splashProgressStep(splashStep): #A function to easily increase the progressbar value
+    splashStep=splashStep+1
+    progressBar.setValue(splashStep // splashSteps + (splashStep % splashSteps > 0)) #Rounds up without math or numpy module
+    root.processEvents()   
+    return splashStep
+  
 import matplotlib  
+splashStep = splashProgressStep(splashStep)
 if QT ==4:
     matplotlib.use('Qt4Agg')
     from matplotlib.backends.backend_qt4agg import FigureCanvasQTAgg as FigureCanvas
 else:
     matplotlib.use('Qt5Agg')
     from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
-
+splashStep = splashProgressStep(splashStep)
 from matplotlib.figure import Figure
+splashStep = splashProgressStep(splashStep)
 import numpy as np
+splashStep = splashProgressStep(splashStep)
 import re
+splashStep = splashProgressStep(splashStep)
 import copy
+splashStep = splashProgressStep(splashStep)
 import spectrum_classes as sc
+splashStep = splashProgressStep(splashStep)
 import fitting as fit
+splashStep = splashProgressStep(splashStep)
 from safeEval import safeEval
+splashStep = splashProgressStep(splashStep)
 import widgetClasses as wc
+splashStep = splashProgressStep(splashStep)
 from updateWindow import UpdateWindow
+splashStep = splashProgressStep(splashStep)
 from plotWindow import MainPlotWindow
+splashStep = splashProgressStep(splashStep)
 from euro import euro
+splashStep = splashProgressStep(splashStep)
 import scipy.constants as SC
+splashStep = splashProgressStep(splashStep)
 
 
 matplotlib.rc('font', family='DejaVu Sans')
