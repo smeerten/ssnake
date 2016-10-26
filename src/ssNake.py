@@ -4314,7 +4314,7 @@ class avgWindow(regionWindow):
             if self.father.father.newWorkspace(self.father.current.average(minimum, maximum, newSpec)) is None:
                 return None
         else:
-            returnValue = self.father.current.avgMatrix(minimum, maximum, newSpec)
+            returnValue = self.father.current.average(minimum, maximum, newSpec)
             if returnValue is None:
                 return None
             self.father.redoList = []
