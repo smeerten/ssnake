@@ -41,7 +41,65 @@ import time
 pi = np.pi
 
 ##############################################################################
+def shiftConversion(Values,Type):
+    #Calculates the chemical shift tensor based on:
+    #Values: a list with three numbers
+    #Type: an integer defining the input shift convention
+    #Returns a list of list with all calculated values
 
+    if Type == 0:  # If from standard
+        deltaArray = Values
+    if Type == 1:  # If from xyz
+        deltaArray = Values  # Treat xyz as 123, as it reorders them anyway
+    if Type == 2:  # From haeberlen
+        iso = Values[0]
+        delta = Values[1]
+        eta = Values[2]
+        delta11 = delta + iso  # Treat xyz as 123, as it reorders them anyway
+        delta22 = (eta * delta + iso * 3 - delta11) / 2.0
+        delta33 = iso * 3 - delta11 - delta22
+        deltaArray = [delta11,delta22,delta33]
+    if Type == 3:  # From Hertzfeld-Berger
+        iso = Values[0]
+        span = Values[1]
+        skew = Values[2]
+        delta22 = iso + skew * span / 3.0
+        delta33 = (3 * iso - delta22 - span) / 2.0
+        delta11 = 3 * iso - delta22 - delta33
+        deltaArray = [delta11,delta22,delta33]
+
+
+    Results =[] #List of list with the different definitions
+    # Force right order
+    deltaSorted = np.sort(deltaArray)
+    D11 = deltaSorted[2]
+    D22 = deltaSorted[1]
+    D33 = deltaSorted[0]
+    Results.append([D11,D22,D33])
+    # Convert to haeberlen convention and xxyyzz
+    iso = (D11 + D22 + D33) / 3.0
+    xyzIndex = np.argsort(np.abs(deltaArray - iso))
+    zz = deltaArray[xyzIndex[2]]
+    yy = deltaArray[xyzIndex[0]]
+    xx = deltaArray[xyzIndex[1]]
+    Results.append([xx,yy,zz])
+    
+    aniso = zz - iso
+    if aniso != 0.0:  # Only is not zero
+        eta = (yy - xx) / aniso
+    else:
+        eta = 'ND'
+    Results.append([iso,aniso,eta])    
+
+    # Convert to Herzfeld-Berger Convention
+    span = D11 - D33
+    if span != 0.0:  # Only if not zero
+        skew = 3.0 * (D22 - iso) / span
+    else:
+        skew = 'ND'
+    Results.append([iso,span,skew])
+    return Results
+    
 
 class FittingWindow(QtWidgets.QWidget):
     # Inherited by the fitting windows
@@ -3076,13 +3134,14 @@ class TensorDeconvParamFrame(QtWidgets.QWidget):
         self.frame1.addWidget(self.pickTick, 1, 1)
         self.frame1.setColumnStretch(10, 1)
         self.frame1.setAlignment(QtCore.Qt.AlignTop)
+        self.frame1.addWidget(QLabel("Def:"), 2, 1) 
         self.shiftDef = QtWidgets.QComboBox()
-        self.shiftDef.addItems(['123', 'Iso-Delta-Eta'])
-        self.frame1.addWidget(self.shiftDef, 2, 1)   
-        
-        
-        
-        
+        self.shiftDef.addItems([u'\u03b411 - \u03b422 - \u03b433'
+                                , u'\u03b4xx - \u03b4yy - \u03b4zz'
+                                ,u'\u03b4iso - \u03b4aniso - \u03b7'
+                                ,u'\u03b4iso - \u03a9 - \u03b7'])
+        self.shiftDef.currentIndexChanged.connect(self.changeShiftDef)
+        self.frame1.addWidget(self.shiftDef, 3, 1)   
         self.optframe.addWidget(QLabel("Cheng:"), 0, 0)
         self.chengEntry = QtWidgets.QLineEdit()
         self.chengEntry.setAlignment(QtCore.Qt.AlignHCenter)
@@ -3110,9 +3169,42 @@ class TensorDeconvParamFrame(QtWidgets.QWidget):
         self.numExp.addItems(['1', '2', '3', '4', '5', '6', '7', '8', '9', '10'])
         self.numExp.currentIndexChanged.connect(self.changeNum)
         self.frame3.addWidget(self.numExp, 0, 0, 1, 2)
-        self.frame3.addWidget(QLabel("T11:"), 1, 0, 1, 2)
-        self.frame3.addWidget(QLabel("T22:"), 1, 2, 1, 2)
-        self.frame3.addWidget(QLabel("T33:"), 1, 4, 1, 2)
+        #Labels
+        self.label11 = QLabel(u'\u03b4' + '<sub>11</sub>:')
+        self.label22 = QLabel(u'\u03b4' + '<sub>22</sub>:')
+        self.label33 = QLabel(u'\u03b4' + '<sub>33</sub>:')
+        self.frame3.addWidget(self.label11, 1, 0, 1, 2)
+        self.frame3.addWidget(self.label22, 1, 2, 1, 2)
+        self.frame3.addWidget(self.label33, 1, 4, 1, 2)
+        self.labelxx = QLabel(u'\u03b4' + '<sub>xx</sub>:')
+        self.labelyy = QLabel(u'\u03b4' + '<sub>yy</sub>:')
+        self.labelzz = QLabel(u'\u03b4' + '<sub>zz</sub>:')
+        self.labelxx.hide()
+        self.labelyy.hide()
+        self.labelzz.hide()
+        self.frame3.addWidget(self.labelxx, 1, 0, 1, 2)
+        self.frame3.addWidget(self.labelyy, 1, 2, 1, 2)
+        self.frame3.addWidget(self.labelzz, 1, 4, 1, 2)
+        self.labeliso = QLabel(u'\u03b4' + '<sub>iso</sub>:')
+        self.labelaniso = QLabel(u'\u03b4' + '<sub>aniso</sub>:')
+        self.labeleta = QLabel(u'\u03b7:')
+        self.labeliso.hide()
+        self.labelaniso.hide()
+        self.labeleta.hide()
+        self.frame3.addWidget(self.labeliso, 1, 0, 1, 2)
+        self.frame3.addWidget(self.labelaniso, 1, 2, 1, 2)
+        self.frame3.addWidget(self.labeleta, 1, 4, 1, 2)
+        self.labeliso2 = QLabel(u'\u03b4' + '<sub>iso</sub>:')
+        self.labelspan = QLabel(u'\u03a9:')
+        self.labelskew = QLabel(u'\u03ba:')
+        self.labeliso2.hide()
+        self.labelspan.hide()
+        self.labelskew.hide()
+        self.frame3.addWidget(self.labeliso2, 1, 0, 1, 2)
+        self.frame3.addWidget(self.labelspan, 1, 2, 1, 2)
+        self.frame3.addWidget(self.labelskew, 1, 4, 1, 2)
+        
+        
         self.frame3.addWidget(QLabel("Integral:"), 1, 6, 1, 2)
         self.frame3.addWidget(QLabel("Lorentz [Hz]:"), 1, 8, 1, 2)
         self.frame3.addWidget(QLabel("Gauss [Hz]:"), 1, 10, 1, 2)
@@ -3248,7 +3340,64 @@ class TensorDeconvParamFrame(QtWidgets.QWidget):
                 self.lorEntries[i].hide()
                 self.gaussTicks[i].hide()
                 self.gaussEntries[i].hide()
-
+                
+    def changeShiftDef(self):
+        Type = self.shiftDef.currentIndex()
+        if Type == 0:
+            self.label11.show()
+            self.label22.show()
+            self.label33.show()
+            self.labelxx.hide()
+            self.labelyy.hide()
+            self.labelzz.hide()
+            self.labeliso.hide()
+            self.labelaniso.hide()
+            self.labeleta.hide()
+            self.labeliso2.hide()
+            self.labelspan.hide()
+            self.labelskew.hide()
+        elif Type == 1:
+            self.label11.hide()
+            self.label22.hide()
+            self.label33.hide()
+            self.labelxx.show()
+            self.labelyy.show()
+            self.labelzz.show()
+            self.labeliso.hide()
+            self.labelaniso.hide()
+            self.labeleta.hide()
+            self.labeliso2.hide()
+            self.labelspan.hide()
+            self.labelskew.hide()
+        elif Type == 2:
+            self.label11.hide()
+            self.label22.hide()
+            self.label33.hide()
+            self.labelxx.hide()
+            self.labelyy.hide()
+            self.labelzz.hide()
+            self.labeliso.show()
+            self.labelaniso.show()
+            self.labeleta.show()
+            self.labeliso2.hide()
+            self.labelspan.hide()
+            self.labelskew.hide()
+        elif Type == 3:
+            self.label11.hide()
+            self.label22.hide()
+            self.label33.hide()
+            self.labelxx.hide()
+            self.labelyy.hide()
+            self.labelzz.hide()
+            self.labeliso.hide()
+            self.labelaniso.hide()
+            self.labeleta.hide()
+            self.labeliso2.show()
+            self.labelspan.show()
+            self.labelskew.show()
+            
+            
+        
     def checkInputs(self):
         numExp = self.numExp.currentIndex() + 1
         inp = safeEval(self.bgrndEntry.text())
@@ -3714,18 +3863,10 @@ def tensorDeconvfitFunc(param, numExp, struc, argu, sw, axAdd, multt, weight, x,
     return np.sum((np.real(testFunc) - y)**2)
 
 def tensorDeconvtensorFunc(x, t11, t22, t33, lor, gauss, multt, sw, weight, axAdd,convention=0):
-    if convention ==1:
-        delta11 = t22 + t11  # Treat xyz as 123, as it reorders them anyway
-        delta22 = (t33 * t22 + t11 * 3 - delta11) / 2.0
-        delta33 = t11 * 3 - delta11 - delta22
-        deltaArray = np.array([delta11, delta22, delta33])
-        deltaSorted = np.sort(deltaArray)
-        t11 = deltaSorted[2]
-        t22 = deltaSorted[1]
-        t33 = deltaSorted[0]    
-    t11 = t11 * multt[0]
-    t22 = t22 * multt[1]
-    t33 = t33 * multt[2]
+    Tensors = shiftConversion([t11,t22,t33],convention)
+    t11 = Tensors[0][0] * multt[0]
+    t22 = Tensors[0][1] * multt[1]
+    t33 = Tensors[0][2] * multt[2]
     v = t11 + t22 + t33 - axAdd
     length = len(x)
     t = np.arange(length) / sw

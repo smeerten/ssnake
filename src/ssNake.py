@@ -6493,7 +6493,6 @@ class shiftConversionWindow(QtWidgets.QWidget):
             except:
                 self.father.dispMsg("Invalid input in Standard Convention")
                 return
-            deltaArray = np.array([delta11, delta22, delta33])
         if Type == 1:  # If from xyz
             try:
                 delta11 = float(safeEval(self.dxx.text()))  # Treat xyz as 123, as it reorders them anyway
@@ -6522,7 +6521,7 @@ class shiftConversionWindow(QtWidgets.QWidget):
                 self.father.dispMsg("Invalid input in Hertzfeld-Berger Convention")
                 return    
 
-        Results = shiftConversion(Values,Type) #Do the actual conversion
+        Results = fit.shiftConversion(Values,Type) #Do the actual conversion
 
         #Standard convention
         self.D11.setText('%#.4g' % Results[0][0])
@@ -6569,66 +6568,6 @@ class shiftConversionWindow(QtWidgets.QWidget):
     def closeEvent(self):
         self.deleteLater()
 
-def shiftConversion(Values,Type):
-    #Calculates the chemical shift tensor based on:
-    #Values: a list with three numbers
-    #Type: an integer defining the input shift convention
-    #Returns a list of list with all calculated values
-
-    if Type == 0:  # If from standard
-        deltaArray = Values
-    if Type == 1:  # If from xyz
-        deltaArray = Values  # Treat xyz as 123, as it reorders them anyway
-    if Type == 2:  # From haeberlen
-        iso = Values[0]
-        delta = Values[1]
-        eta = Values[2]
-        delta11 = delta + iso  # Treat xyz as 123, as it reorders them anyway
-        delta22 = (eta * delta + iso * 3 - delta11) / 2.0
-        delta33 = iso * 3 - delta11 - delta22
-        deltaArray = [delta11,delta22,delta33]
-    if Type == 3:  # From Hertzfeld-Berger
-        iso = Values[0]
-        span = Values[1]
-        skew = Values[2]
-        delta22 = iso + skew * span / 3.0
-        delta33 = (3 * iso - delta22 - span) / 2.0
-        delta11 = 3 * iso - delta22 - delta33
-        deltaArray = [delta11,delta22,delta33]
-
-
-    Results =[] #List of list with the different definitions
-    # Force right order
-    deltaSorted = np.sort(deltaArray)
-    D11 = deltaSorted[2]
-    D22 = deltaSorted[1]
-    D33 = deltaSorted[0]
-    Results.append([D11,D22,D33])
-    # Convert to haeberlen convention and xxyyzz
-    iso = (D11 + D22 + D33) / 3.0
-    xyzIndex = np.argsort(np.abs(deltaArray - iso))
-    zz = deltaArray[xyzIndex[2]]
-    yy = deltaArray[xyzIndex[0]]
-    xx = deltaArray[xyzIndex[1]]
-    Results.append([xx,yy,zz])
-    
-    aniso = zz - iso
-    if aniso != 0.0:  # Only is not zero
-        eta = (yy - xx) / aniso
-    else:
-        eta = 'ND'
-    Results.append([iso,aniso,eta])    
-
-    # Convert to Herzfeld-Berger Convention
-    span = D11 - D33
-    if span != 0.0:  # Only if not zero
-        skew = 3.0 * (D22 - iso) / span
-    else:
-        skew = 'ND'
-    Results.append([iso,span,skew])
-    return Results
-
-    
 class quadConversionWindow(QtWidgets.QWidget):
     
     Ioptions = ['1', '3/2', '2', '5/2', '3', '7/2', '4', '9/2','5','6','7']
