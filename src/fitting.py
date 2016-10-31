@@ -216,7 +216,8 @@ class FittingWindowTabs(QtWidgets.QWidget):
         grid.addWidget(self.paramframe, 1, 0)
 
         self.grid = grid
-        self.tabs = wc.SsnakeTabs(self)
+        self.tabs = QtWidgets.QTabWidget(self)
+        self.tabs.setTabPosition(2)
         self.allowChange = True
 #        self.tabs.currentChanged.connect(self.changeMainWindow)
 #        self.tabs.tabCloseRequested.connect(self.destroyWorkspace)
@@ -227,7 +228,7 @@ class FittingWindowTabs(QtWidgets.QWidget):
         grid2.setRowStretch(0, 1)
         self.standard=QtWidgets.QWidget()
         self.standard.setLayout(self.grid)
-        self.tabs.addTab(self.standard, 'Standard') 
+        self.tabs.addTab(self.standard, 'Spectrum') 
         self.canvas.mpl_connect('button_press_event', self.buttonPress)
         self.canvas.mpl_connect('button_release_event', self.buttonRelease)
         self.canvas.mpl_connect('motion_notify_event', self.pan)
@@ -3135,6 +3136,7 @@ class TensorDeconvParamFrame(QtWidgets.QWidget):
         self.frame1.setColumnStretch(10, 1)
         self.frame1.setAlignment(QtCore.Qt.AlignTop)
         self.frame1.addWidget(QLabel("Def:"), 2, 1) 
+        self.shiftDefType = 0 #variable to remember the selected tensor type
         self.shiftDef = QtWidgets.QComboBox()
         self.shiftDef.addItems([u'\u03b411 - \u03b422 - \u03b433'
                                 , u'\u03b4xx - \u03b4yy - \u03b4zz'
@@ -3342,8 +3344,9 @@ class TensorDeconvParamFrame(QtWidgets.QWidget):
                 self.gaussEntries[i].hide()
                 
     def changeShiftDef(self):
-        Type = self.shiftDef.currentIndex()
-        if Type == 0:
+        NewType = self.shiftDef.currentIndex()
+        OldType = self.shiftDefType 
+        if NewType == 0:
             self.label11.show()
             self.label22.show()
             self.label33.show()
@@ -3356,7 +3359,7 @@ class TensorDeconvParamFrame(QtWidgets.QWidget):
             self.labeliso2.hide()
             self.labelspan.hide()
             self.labelskew.hide()
-        elif Type == 1:
+        elif NewType == 1:
             self.label11.hide()
             self.label22.hide()
             self.label33.hide()
@@ -3369,7 +3372,7 @@ class TensorDeconvParamFrame(QtWidgets.QWidget):
             self.labeliso2.hide()
             self.labelspan.hide()
             self.labelskew.hide()
-        elif Type == 2:
+        elif NewType == 2:
             self.label11.hide()
             self.label22.hide()
             self.label33.hide()
@@ -3382,7 +3385,7 @@ class TensorDeconvParamFrame(QtWidgets.QWidget):
             self.labeliso2.hide()
             self.labelspan.hide()
             self.labelskew.hide()
-        elif Type == 3:
+        elif NewType == 3:
             self.label11.hide()
             self.label22.hide()
             self.label33.hide()
@@ -3396,6 +3399,23 @@ class TensorDeconvParamFrame(QtWidgets.QWidget):
             self.labelspan.show()
             self.labelskew.show()
             
+            
+        val = self.numExp.currentIndex() + 1
+        for i in range(10): #Convert input
+            if i < val:
+                T11 = safeEval(self.t11Entries[i].text())
+                T22 = safeEval(self.t22Entries[i].text())
+                T33 = safeEval(self.t33Entries[i].text())
+                if not T11 or not T22 or not T33: #error, no conversion
+                    pass
+                else:
+                    Tensors = shiftConversion([T11,T22,T33],OldType)
+                    self.t11Entries[i].setText('%#.3g' % Tensors[NewType][0])
+                    self.t22Entries[i].setText('%#.3g' % Tensors[NewType][1])
+                    self.t33Entries[i].setText('%#.3g' % Tensors[NewType][2])
+                
+                
+        self.shiftDefType = NewType
             
         
     def checkInputs(self):
@@ -3509,7 +3529,7 @@ class TensorDeconvParamFrame(QtWidgets.QWidget):
                 struc.append(False)
         args = (numExp, struc, argu, self.parent.current.sw, self.axAdd)
         self.queue = multiprocessing.Queue()
-        self.process1 = multiprocessing.Process(target=tensorDeconvmpFit, args=(self.parent.xax, np.real(self.parent.data1D), guess, args, self.queue, self.cheng,self.shiftDef.currentIndex()))
+        self.process1 = multiprocessing.Process(target=tensorDeconvmpFit, args=(self.parent.xax, np.real(self.parent.data1D), guess, args, self.queue, self.cheng,self.shiftDefType))
         self.process1.start()
         self.running = True
         self.stopButton.show()
@@ -3559,7 +3579,7 @@ class TensorDeconvParamFrame(QtWidgets.QWidget):
                 self.gaussEntries[i].setText('%.3g' % abs(fitVal[counter]))
                 outGauss[i] = abs(fitVal[counter])
                 counter += 1
-        self.disp(outBgrnd, outSlope, outt11, outt22, outt33, outAmp, outWidth, outGauss,False,self.shiftDef.currentIndex())
+        self.disp(outBgrnd, outSlope, outt11, outt22, outt33, outAmp, outWidth, outGauss,False,self.shiftDefType)
 
     def stopMP(self, *args):
         if self.queue is not None:
@@ -3659,7 +3679,7 @@ class TensorDeconvParamFrame(QtWidgets.QWidget):
         counter2 = 0
         fitData = rolledData.reshape(dataShape[axes], np.product(dataShape2)).T
         self.queue = multiprocessing.Queue()
-        self.process1 = multiprocessing.Process(target=tensorDeconvmpAllFit, args=(self.parent.xax, np.real(fitData), guess, args, self.queue, self.cheng,self.shiftDef.currentIndex()))
+        self.process1 = multiprocessing.Process(target=tensorDeconvmpAllFit, args=(self.parent.xax, np.real(fitData), guess, args, self.queue, self.cheng,self.shiftDefType))
         self.process1.start()
         self.running = True
         self.stopButton.show()
@@ -3748,7 +3768,7 @@ class TensorDeconvParamFrame(QtWidgets.QWidget):
             if not np.isfinite([t11[i], t22[i], t33[i], amp[i], width[i], gauss[i]]).all():
                 self.rootwindow.mainProgram.dispMsg("One of the inputs is not valid")
                 return
-        self.disp(bgrnd, slope, t11, t22, t33, amp, width, gauss, store,self.shiftDef.currentIndex())
+        self.disp(bgrnd, slope, t11, t22, t33, amp, width, gauss, store,self.shiftDefType)
 
     def disp(self, outBgrnd, outSlope, outt11, outt22, outt33, outAmp, outWidth, outGauss, store=False,Convention=0):
         phi, theta, weight = zcw_angles(self.cheng, symm=2)
