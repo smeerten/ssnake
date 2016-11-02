@@ -990,6 +990,9 @@ class MainProgram(QtWidgets.QMainWindow):
             elif filename.endswith('.mat') or filename.endswith('.MAT'):
                 self.loading(6, filePath)
                 return returnVal
+            elif filename.endswith('.jdf'):#JEOL delta format
+                self.loading(9, filePath)
+                return returnVal
             filePath = os.path.dirname(filePath)
             returnVal = 1
         direc = filePath
@@ -1076,6 +1079,8 @@ class MainProgram(QtWidgets.QMainWindow):
             masterData = self.LoadBrukerSpectrum(filePath, name)
         elif num == 8:
             masterData = self.LoadPipe(filePath, name)
+        elif num == 9:
+            masterData = self.LoadJEOLDelta(filePath, name)
         if returnBool:
             return masterData
         else:
@@ -1214,6 +1219,82 @@ class MainProgram(QtWidgets.QMainWindow):
         masterData = sc.Spectrum(name, data, (8, filePath), [freq], [sw], [spec], ref=[ref], msgHandler=lambda msg: self.dispMsg(msg))
         masterData.addHistory("NMR pipe data loaded from " + filePath)
         return masterData
+
+    def LoadJEOLDelta(self, filePath, name=''):
+        from struct import unpack
+        with open(filePath, "rb") as f:
+            file_identifier = f.read(8)
+            endian = unpack('>B',f.read(1))[0]
+            f.read(3) #placeholder to get rid of unused data
+            data_dimension_number = unpack('>B',f.read(1))[0]
+            data_dimension_exist = unpack('>B',f.read(1))[0]
+            data_type = unpack('>B',f.read(1))[0]
+            f.read(1) #placeholder to get rid of unused data
+            translate = np.fromfile(f, '>B', 8)
+            data_axis_type = np.fromfile(f, '>B', 8)
+            data_units = np.fromfile(f, '>B', 16).reshape(8,2)#Reshape for later unit extraction
+            title = f.read(76)
+            f.read(52)
+            #176
+            data_points = np.fromfile(f, '>I', 8)
+            data_offset_start = np.fromfile(f, '>I', 8)
+            data_offset_stop = np.fromfile(f, '>I', 8)
+            data_axis_start = np.fromfile(f, '>d', 8)
+            data_axis_stop = np.fromfile(f, '>d', 8)
+            #400
+            f.read(664)
+            base_freq = np.fromfile(f, '>d', 8)
+            #1128
+            zero_point = np.fromfile(f, '>d', 8)
+            reversed = np.fromfile(f, '>B', 8)
+            #1200
+            f.read(12)
+            param_start = np.fromfile(f, '>I', 1)[0]
+            param_length = np.fromfile(f, '>I', 1)[0]
+            #1220
+            f.read(64)
+            data_start = np.fromfile(f, '>I', 1)[0]
+            data_length = np.fromfile(f, '>Q', 1)[0]
+            #1296
+            f.read(data_start-1296) #skip to data_start
+            #start reading the data
+            if endian:
+                dataendian = '<d'
+            else:
+                dataendian = '>d'
+            if data_dimension_number == 1:
+                if data_axis_type[0] == 1: #if real
+                    data = np.fromfile(f, dataendian, data_points[0])
+                elif data_axis_type[0] == 3: #if complex
+                    data = np.fromfile(f, dataendian, data_points[0]) + 1j*np.fromfile(f, dataendian, data_points[0])
+            else:
+                pass
+	#unitExp = data_units[0][0] &15#unit_exp: if (unitExp > 7) >unitExp -= 16;
+	#scaleType = (data_units[0][1]>>4) &15 #scaleType: if (scaleType > 7) scaleType -= 16;
+        axisType = data_units[0][1] #Sec = 28, Hz = 13, PPM = 26
+        
+        if axisType == 28: #Sec
+            dw = (data_axis_stop[0]-data_axis_start[0])/(data_points[0]-2)#minus two to give same axis as spectrum???
+            sw = 1.0/(dw)
+            spec = False
+            sidefreq = -np.floor(data_points[0] / 2) / data_points[0] * sw  # frequency of last point on axis
+            ref = base_freq[0]*1e6
+        if axisType == 13: #Hz
+            sw = np.abs(data_axis_start[0]-data_axis_stop[0])
+            spec = True
+            data = np.flipud(data)
+            sidefreq = -np.floor(data_points[0] / 2) / data_points[0] * sw  # frequency of last point on axis
+            ref = sidefreq + base_freq[0]*1e6 - data_axis_stop[0]
+        if axisType == 26: #ppm
+            sw = np.abs(data_axis_start[0]-data_axis_stop[0])*base_freq[0]
+            spec = True
+            data = np.flipud(data)
+            sidefreq = -np.floor(data_points[0] / 2) / data_points[0] * sw  # frequency of last point on axis
+            ref = sidefreq + base_freq[0]*1e6 - data_axis_stop[0]*base_freq[0]
+        masterData = sc.Spectrum(name, data, (9, filePath), [base_freq[0]*1e6], [sw], [spec],ref=[ref], msgHandler=lambda msg: self.dispMsg(msg))
+        masterData.addHistory("JEOL delta data loaded from " + filePath)
+        return masterData
+
 
     def loadJSONFile(self, filePath, name=''):
         import json
