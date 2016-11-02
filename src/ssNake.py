@@ -1268,7 +1268,8 @@ class MainProgram(QtWidgets.QMainWindow):
                 elif data_axis_type[0] == 3: #if complex
                     data = np.fromfile(f, dataendian, data_points[0]) + 1j*np.fromfile(f, dataendian, data_points[0])
             else:
-                pass
+                    self.dispMsg('No valid data file found')
+                    return None
 	#unitExp = data_units[0][0] &15#unit_exp: if (unitExp > 7) >unitExp -= 16;
 	#scaleType = (data_units[0][1]>>4) &15 #scaleType: if (scaleType > 7) scaleType -= 16;
         axisType = data_units[0][1] #Sec = 28, Hz = 13, PPM = 26

@@ -125,12 +125,13 @@ Name & Specification \\
 Varian/Agilent & VnmrJ 2 and newer. fid and data (spectrum)\\
 Bruker & Topspin and XWinNMR (fid \& ser,1r/i \& 2rr/ii) \\
 \rowcolor{gray!30!white}
+JEOL Delta & 1D only at the moment \\
 Chemagnetics & ??? \\
+\rowcolor{gray!30!white}
 Magritek & Both 1D and 2D data \\
-\rowcolor{gray!30!white}
 Simpson & 1D and 2D, -ascii and -binary \\
-JSON & ssNake JSON file (ascii)\\
 \rowcolor{gray!30!white}
+JSON & ssNake JSON file (ascii)\\
 Matlab & ssNake .mat file (binary)\\
 \bottomrule
 \end{tabular}
@@ -149,6 +150,9 @@ The Bruker load first checks for the \textit{acqus} and \textit{acqu2s} files an
 Bruker processed spectra can be loaded from \textit{1r} and \textit{1i} files for 1D data, \textit{2rr} and \textit{2ii} for 2D data, and \textit{2rr} and \textit{2ir} for hypercomplex data. It additionally takes parameters from \textit{procs} or \textit{proc2s} files in that directory. Moreover, the spectral frequency is extracted from the \textit{acqus} and/or \textit{acqu2s} files located \textit{two directories up}.
 
  
+\subsubsection*{JEOL Delta}
+JEOL Delta data is contained in a single .jdf file. Currently only 1D data is (experimentally) supported. This is simply because we have no access to a JEOL spectrometer for testing purposes. Please send us test files is you have any.
+
 \subsubsection*{Chemagnetics}
 Loading Chemagnetics data requires a \textit{acq} (and \textit{acq\_2} for 2D) and \textit{data} file. From the former, the number of points in both dimensions is extracted, the spectral widths and the spectral frequency. All the data points are then extracted form the \textit{data} file, and reshaped to a 2D array when necessary.
 
@@ -166,7 +170,7 @@ Loads a Matlab file that is saved with ssNake. File must have the \textit{.mat} 
 
 
 \subsubsection*{Unsupported file formats}
-Currently, we support all the data formats that we have access to. While we have some code lying around for loading JEOL data, for example, we cannot include this if we cannot test it. If you want your favourite data format to be support by ssNake, please send us a request along with some sample data (1D and 2D).
+Currently, we support all the data formats that we have access to. If you want your favourite data format to be support by ssNake, please send us a request along with some sample data (1D and 2D).
 
 \subsection{Open}
 When using ssNake's load function, ssNake analyses the selected file name and the names of other files in the directory to figure out the format you want to load. ssNake only needs to check for files that are actually needed for loading the data, so removing useless files from the format does not pose a problem. Below, the checks used by ssNake in this function can be found for each format.
@@ -177,23 +181,26 @@ When using ssNake's load function, ssNake analyses the selected file name and th
 Name & Folder contains files & File extension\\
 \midrule
 \rowcolor{gray!30!white}
-Varian/Agilent fid &  procpar and fid & \\
-Varian/Agilent spectrum&  data and procpar or ../procpar & \\
+Varian/Agilent fid &  \texttt{procpar} and \texttt{fid} & \\
+Varian/Agilent spectrum&  \texttt{data} and \texttt{procpar} or \texttt{../procpar} & \\
 \rowcolor{gray!30!white}
-Bruker fid &  acqus (and acqu2s for 2D)  &\\
+Bruker fid &  \texttt{acqus} (and \texttt{acqu2s} for 2D)  &\\
 \rowcolor{gray!30!white}
-&and fid or ser&\\
-Bruker spectrum & (1r/1i) or (2rr and 2ii/2ir) &\\
-  & with procs/proc2s  &\\
- &and ../../acqus and ../../acqu2s & \\
+&and \texttt{fid} or \texttt{ser}&\\
+Bruker spectrum & (\texttt{1r}/\texttt{1i}) or (\texttt{2rr} and \texttt{2ii}/\texttt{2ir}) &\\
+  & with \texttt{procs}/\texttt{proc2s}  &\\
+ &and \texttt{../../acqus} and \texttt{../../acqu2s} & \\
 \rowcolor{gray!30!white}
-Chemagnetics &  acq (and acq\_2 for 2D) and data &\\
-Magritek &  acqu.par and *.1d or *.2d&\\
+Chemagnetics &  \texttt{acq} (and \texttt{acq\_2} for 2D) and \texttt{data} &\\
+Magritek &  \texttt{acqu.par} and \texttt{*.1d} or \texttt{*.2d}&\\
 \rowcolor{gray!30!white}
-Simpson &  & .fid or .spe \\
-JSON & & .json or .JSON\\
+JEOL Delta & & \texttt{.jdf}\\
+NMRpipe & & \texttt{.fid} and first byte is 0\\
 \rowcolor{gray!30!white}
-Matlab & & .mat or .MAT\\
+Simpson &  & \texttt{.fid} or \texttt{.spe} \\
+JSON & & \texttt{.json} or \texttt{.JSON}\\
+\rowcolor{gray!30!white}
+Matlab & & \texttt{.mat} or \texttt{.MAT}\\
 \bottomrule
 \end{tabular}
 \end{center}
@@ -643,7 +650,8 @@ Generally, only the $C_\text{Q}$ and $\omegaup_\text{Q}$ definitions are used, a
 \subsubsection*{Use of the tool}
 Using the quadrupole conversion tool is quite easy. You can fill in all the necessary values for one convention, and push the `Go' button next to it to convert it to all the other definitions. Note that ssNake also checks the definitions. So if you have an asymmetry below 0, it will reorder the field gradients in such a way it lies between 1 and 0 again. To calculate the field gradients from the quadrupole coupling constant (or the other way around), the quadrupolar moment should be given (which starts at `ND", being `not defined'). When starting from the field gradients, ssNake checks if they sum to 0 (which they should). If not, the difference is subtracted from the three values, to make sure it is. Note that only the absolute quadrupolar coupling is found in NMR, so pay no heed to the absolute sign of the field gradients.
 
-
+\section{Contact}
+To contact the \texttt{ssNake} team write to Bas van Meerten (\texttt{b.vanmeerten@science.ru.nl}) or Wouter Franssen (\texttt{w.franssen@science.ru.nl}).
 
 \bibliographystyle{BibStyle}
 \bibliography{ReferenceManual}
