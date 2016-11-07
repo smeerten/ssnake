@@ -1120,6 +1120,11 @@ class MainProgram(QtWidgets.QMainWindow):
                     sw1 = float(data[s + 1].split()[1])
                 elif data[s].startswith('dfrq '):
                     freq1 = float(data[s + 1].split()[1]) * 1e6
+                elif data[s].startswith('reffrq '):
+                    reffreq = float(data[s + 1].split()[1]) * 1e6
+                elif data[s].startswith('reffrq1 '):
+                    reffreq1 = float(data[s + 1].split()[1]) * 1e6
+                
 
         if os.path.exists(Dir + os.path.sep + 'fid'):
             datafile = Dir + os.path.sep + 'fid'
@@ -1191,9 +1196,9 @@ class MainProgram(QtWidgets.QMainWindow):
             fid = fid[0][:]
             if spec:  # flip if spectrum
                 fid = np.flipud(fid)
-            masterData = sc.Spectrum(name, fid, (0, filePath), [freq], [sw], [bool(int(spec))], msgHandler=lambda msg: self.dispMsg(msg))
+            masterData = sc.Spectrum(name, fid, (0, filePath), [freq], [sw], [bool(int(spec))],ref = [reffreq], msgHandler=lambda msg: self.dispMsg(msg))
         else:
-            masterData = sc.Spectrum(name, fid, (0, filePath), [freq1, freq], [sw1, sw], [bool(int(spec))] * 2, msgHandler=lambda msg: self.dispMsg(msg))
+            masterData = sc.Spectrum(name, fid, (0, filePath), [freq1, freq], [sw1, sw], [bool(int(spec))] * 2,ref = [reffreq1,reffreq], msgHandler=lambda msg: self.dispMsg(msg))
         masterData.addHistory("Varian data loaded from " + filePath)
         return masterData
 
