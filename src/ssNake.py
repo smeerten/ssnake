@@ -1440,11 +1440,11 @@ class MainProgram(QtWidgets.QMainWindow):
         if os.path.exists(Dir + os.path.sep + 'fid'):
             filePath = Dir + os.path.sep + 'fid'
             with open(Dir + os.path.sep + 'fid', "rb") as f:
-                raw = np.fromfile(f, np.int32, sizeTD1 * sizeTD2)
+                raw = np.fromfile(f, np.int32, sizeTD1* sizeTD2)
         elif os.path.exists(Dir + os.path.sep + 'ser'):
             filePath = Dir + os.path.sep + 'ser'
             with open(Dir + os.path.sep + 'ser', "rb") as f:
-                raw = np.fromfile(f, np.int32, sizeTD1 * sizeTD2)
+                raw = np.fromfile(f, np.int32, sizeTD1 * int(np.ceil(sizeTD2 / 256))*256) #Always load full 1024 byte blocks (256 data points)
         if ByteOrder:
             RawInt = raw.newbyteorder('b')
         else:
@@ -1454,8 +1454,9 @@ class MainProgram(QtWidgets.QMainWindow):
         if sizeTD1 is 1:
             masterData = sc.Spectrum(name, ComplexData, (1, filePath), [freq2], [SW2], spec, msgHandler=lambda msg: self.dispMsg(msg))
         else:
-            data = ComplexData.reshape(sizeTD1, sizeTD2 / 2)
-            masterData = sc.Spectrum(name, data, (1, filePath), [freq1, freq2], [SW1, SW2], spec * 2, msgHandler=lambda msg: self.dispMsg(msg))
+            ComplexData = ComplexData.reshape(sizeTD1, int(np.ceil(sizeTD2 / 256) * 256 / 2))
+            ComplexData = ComplexData[:,0:int(sizeTD2/2)] #Cut off placeholder data
+            masterData = sc.Spectrum(name, ComplexData, (1, filePath), [freq1, freq2], [SW1, SW2], spec * 2, msgHandler=lambda msg: self.dispMsg(msg))
         masterData.addHistory("Bruker data loaded from " + filePath)
         return masterData
 
