@@ -3687,7 +3687,7 @@ class CurrentContour(Current1D):
             yprojdata=np.min(tmpdata, axis=1)
             self.y_ax.plot(yprojdata, y, color=self.color, linewidth=self.linewidth, )         
         ymin, ymax =  np.min(yprojdata),np.max(yprojdata)
-        self.y_ax.set_ylim([ymin-0.15*(ymax-ymin), ymax]) #Set projection limits, and force 15% whitespace below plot
+        self.y_ax.set_xlim([ymin-0.15*(ymax-ymin), ymax]) #Set projection limits, and force 15% whitespace below plot
         if self.spec == 0:
             if self.axType == 0:
                 self.ax.set_xlabel('Time [s]')
