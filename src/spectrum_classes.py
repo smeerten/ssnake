@@ -3676,7 +3676,7 @@ class CurrentContour(Current1D):
             self.x_ax.plot(x,xprojdata, color=self.color, linewidth=self.linewidth)
         
         xmin, xmax =  np.min(xprojdata),np.max(xprojdata)
-        self.x_ax.set_ylim([xmin-0.15*(xmax-xmin), xmax]) #Set projection limits, and force 15% whitespace below plot
+        self.x_ax.set_ylim([xmin-0.15*(xmax-xmin), xmax+0.05*(xmax-xmin)]) #Set projection limits, and force 15% whitespace below plot
         if self.projType2 == 0:
             yprojdata=np.sum(tmpdata, axis=1)
             self.y_ax.plot(yprojdata, y, color=self.color, linewidth=self.linewidth)
@@ -3687,7 +3687,7 @@ class CurrentContour(Current1D):
             yprojdata=np.min(tmpdata, axis=1)
             self.y_ax.plot(yprojdata, y, color=self.color, linewidth=self.linewidth, )         
         ymin, ymax =  np.min(yprojdata),np.max(yprojdata)
-        self.y_ax.set_xlim([ymin-0.15*(ymax-ymin), ymax]) #Set projection limits, and force 15% whitespace below plot
+        self.y_ax.set_xlim([ymin-0.15*(ymax-ymin), ymax+0.05*(ymax-ymin)]) #Set projection limits, and force 15% whitespace below plot
         if self.spec == 0:
             if self.axType == 0:
                 self.ax.set_xlabel('Time [s]')
@@ -3750,6 +3750,65 @@ class CurrentContour(Current1D):
         self.ax.yaxis.grid(self.grids[1])
         self.canvas.draw()
 
+    def showProj(self, tmpdata=None):  
+        xLimOld = self.x_ax.get_xlim()
+        yLimOld = self.y_ax.get_ylim()
+        self.x_ax.cla()
+        self.y_ax.cla()
+        if tmpdata is None:
+            tmpdata = self.data1D
+        if (self.plotType == 0):
+            tmpdata = np.real(tmpdata)
+        elif(self.plotType == 1):
+            tmpdata = np.imag(tmpdata)
+        elif(self.plotType == 2):
+            tmpdata = np.real(tmpdata)
+        elif(self.plotType == 3):
+            tmpdata = np.abs(tmpdata)
+            
+        if self.spec == 1:
+            if self.ppm:
+                axMult = 1e6 / self.ref
+            else:
+                axMult = 1.0 / (1000.0**self.axType)
+        elif self.spec == 0:
+            axMult = 1000.0**self.axType
+        if self.spec2 == 1:
+            if self.ppm2:
+                axMult2 = 1e6 / self.ref2
+            else:
+                axMult2 = 1.0 / (1000.0**self.axType2)
+        elif self.spec2 == 0:
+            axMult2 = 1000.0**self.axType2
+        x = self.xax * axMult
+        y = self.xax2 * axMult2
+        if self.projType1 == 0:
+            xprojdata=np.sum(tmpdata, axis=0)
+            self.x_ax.plot(x, xprojdata, color=self.color, linewidth=self.linewidth)
+        elif self.projType1 == 1:
+            xprojdata = np.max(tmpdata, axis=0)
+            self.x_ax.plot(x,xprojdata , color=self.color, linewidth=self.linewidth)
+        elif self.projType1 == 2:
+            xprojdata =  np.min(tmpdata, axis=0)
+            self.x_ax.plot(x,xprojdata, color=self.color, linewidth=self.linewidth)
+        
+        xmin, xmax =  np.min(xprojdata),np.max(xprojdata)
+        self.x_ax.set_ylim([xmin-0.15*(xmax-xmin), xmax+0.05*(xmax-xmin)]) #Set projection limits, and force 15% whitespace below plot
+        self.x_ax.set_xlim(xLimOld)
+        if self.projType2 == 0:
+            yprojdata=np.sum(tmpdata, axis=1)
+            self.y_ax.plot(yprojdata, y, color=self.color, linewidth=self.linewidth)
+        elif self.projType2 == 1:
+            yprojdata=np.max(tmpdata, axis=1)
+            self.y_ax.plot(yprojdata, y, color=self.color, linewidth=self.linewidth)
+        elif self.projType2 == 2:
+            yprojdata=np.min(tmpdata, axis=1)
+            self.y_ax.plot(yprojdata, y, color=self.color, linewidth=self.linewidth, )         
+        ymin, ymax =  np.min(yprojdata),np.max(yprojdata)
+        self.y_ax.set_xlim([ymin-0.15*(ymax-ymin), ymax+0.05*(ymax-ymin)]) #Set projection limits, and force 15% whitespace below plot
+        self.y_ax.set_ylim(yLimOld)
+        self.canvas.draw()
+    
     def plotReset(self, xReset=True, yReset=True):  # set the plot limits to min and max values
         if self.spec == 1:
             if self.ppm:

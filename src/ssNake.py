@@ -163,7 +163,7 @@ class MainProgram(QtWidgets.QMainWindow):
         self.defaultColorMap = 'seismic'
         self.defaultWidthRatio = 3.0
         self.defaultHeightRatio = 3.0
-        self.defaultContourConst = False
+        self.defaultContourConst = True
         self.defaultPosColor = '#FF0000'
         self.defaultNegColor = '#0000FF'
 
@@ -2974,7 +2974,7 @@ class BottomFrame(QtWidgets.QWidget):
 
     def changeProj(self, pType, direc):
         self.father.current.setProjType(pType, direc)
-        self.father.current.showFid()
+        self.father.current.showProj()
 
 ##################################################################
 
