@@ -3750,13 +3750,14 @@ class CurrentContour(Current1D):
         self.ax.yaxis.grid(self.grids[1])
         self.canvas.draw()
 
-    def showProj(self, tmpdata=None):  
+    def showProj(self):  
         xLimOld = self.x_ax.get_xlim()
+        x = self.x_ax.lines[0].get_xdata() #Get plot data from plot
         yLimOld = self.y_ax.get_ylim()
+        y = self.y_ax.lines[0].get_ydata() #Get plot data from plot
         self.x_ax.cla()
         self.y_ax.cla()
-        if tmpdata is None:
-            tmpdata = self.data1D
+        tmpdata = self.data1D
         if (self.plotType == 0):
             tmpdata = np.real(tmpdata)
         elif(self.plotType == 1):
@@ -3766,22 +3767,6 @@ class CurrentContour(Current1D):
         elif(self.plotType == 3):
             tmpdata = np.abs(tmpdata)
             
-        if self.spec == 1:
-            if self.ppm:
-                axMult = 1e6 / self.ref
-            else:
-                axMult = 1.0 / (1000.0**self.axType)
-        elif self.spec == 0:
-            axMult = 1000.0**self.axType
-        if self.spec2 == 1:
-            if self.ppm2:
-                axMult2 = 1e6 / self.ref2
-            else:
-                axMult2 = 1.0 / (1000.0**self.axType2)
-        elif self.spec2 == 0:
-            axMult2 = 1000.0**self.axType2
-        x = self.xax * axMult
-        y = self.xax2 * axMult2
         if self.projType1 == 0:
             xprojdata=np.sum(tmpdata, axis=0)
             self.x_ax.plot(x, xprojdata, color=self.color, linewidth=self.linewidth)
@@ -3807,6 +3792,7 @@ class CurrentContour(Current1D):
         ymin, ymax =  np.min(yprojdata),np.max(yprojdata)
         self.y_ax.set_xlim([ymin-0.15*(ymax-ymin), ymax+0.05*(ymax-ymin)]) #Set projection limits, and force 15% whitespace below plot
         self.y_ax.set_ylim(yLimOld)
+        
         self.canvas.draw()
     
     def plotReset(self, xReset=True, yReset=True):  # set the plot limits to min and max values
