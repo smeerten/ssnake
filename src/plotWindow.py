@@ -152,6 +152,7 @@ class MainPlotWindow(QtWidgets.QWidget):
         self.optionFrame.addWidget(self.ytickFontSizeEntry, 39, 0)
         self.legend = self.ax.legend()
         if self.legend is not None:
+            self.legendOrder = list(np.arange(0,len(self.legend.get_texts())))
             self.legend.draggable(True)
             self.legendPos = 'best'
             self.legendTextList = []
@@ -195,7 +196,9 @@ class MainPlotWindow(QtWidgets.QWidget):
 
     def updateLegend(self, *args):
         if self.legendCheck.isChecked():
-            self.legend = self.ax.legend(self.legendTextList, loc=self.legendPos)
+            orderedLines = [self.ax.lines[x] for x in self.legendOrder]
+            orderedLegendText = [self.legendTextList[x] for x in self.legendOrder] 
+            self.legend = self.ax.legend(orderedLines,orderedLegendText, loc=self.legendPos)
             self.legend.draggable(True)
         else:
             if self.legend is not None:
@@ -301,19 +304,26 @@ class LegendWindow(QtWidgets.QWidget):
         self.posEntry.setText(self.posVal)
         self.posEntry.returnPressed.connect(self.preview)
         grid.addWidget(self.posEntry, 1, 0)
-        grid.addWidget(QLabel("Legend:"), 2, 0)
+        grid.addWidget(QLabel("Legend order:"), 2, 0)
+        self.orderVal = self.father.legendOrder
+        self.orderEntry = QtWidgets.QLineEdit()
+        self.orderEntry.setAlignment(QtCore.Qt.AlignHCenter)
+        self.orderEntry.setText(str(self.orderVal))
+        self.orderEntry.returnPressed.connect(self.preview)
+        grid.addWidget(self.orderEntry, 3, 0)
+        grid.addWidget(QLabel("Legend:"), 4, 0)
         self.father.legendCheck.setChecked(True)
         self.spinBox = QtWidgets.QSpinBox()
         self.spinBox.setMaximum(len(self.father.legendTextList) - 1)
         self.spinBox.valueChanged.connect(self.changeEdit)
-        grid.addWidget(self.spinBox, 3, 0)
+        grid.addWidget(self.spinBox, 5, 0)
         self.legendEditList = []
         for i in range(len(self.father.legendTextList)):
             self.legendEditList.append(QtWidgets.QLineEdit())
             self.legendEditList[i].setAlignment(QtCore.Qt.AlignHCenter)
             self.legendEditList[i].setText(self.father.legendTextList[i])
             self.legendEditList[i].returnPressed.connect(self.preview)
-            grid.addWidget(self.legendEditList[i], 4, 0)
+            grid.addWidget(self.legendEditList[i], 6, 0)
             self.legendEditList[i].setVisible(False)
         self.legendEditList[0].setVisible(True)
         cancelButton = QtWidgets.QPushButton("&Cancel")
@@ -333,6 +343,7 @@ class LegendWindow(QtWidgets.QWidget):
 
     def preview(self, *args):
         tmp = copy.deepcopy(self.father.legendTextList)
+        order = eval(self.orderEntry.text())
         for i in range(len(self.legendEditList)):
             tmp[i] = self.legendEditList[i].text()
         env = vars(np).copy()
@@ -340,7 +351,9 @@ class LegendWindow(QtWidgets.QWidget):
             inp = eval(self.posEntry.text(), env)
         except:
             inp = self.posEntry.text()
-        self.father.ax.legend(tmp, loc=inp)
+        orderedLines = [self.father.ax.lines[x] for x in order]
+        orderedLegendText = [tmp[x] for x in order] 
+        self.father.ax.legend(orderedLines,orderedLegendText, loc=inp)
         self.father.legend.draggable(True)
         self.father.canvas.draw()
 
@@ -351,6 +364,7 @@ class LegendWindow(QtWidgets.QWidget):
     def applyAndClose(self):
         for i in range(len(self.legendEditList)):
             self.father.legendTextList[i] = self.legendEditList[i].text()
+        self.father.legendOrder = eval(self.orderEntry.text())
         env = vars(np).copy()
         try:
             inp = eval(self.posEntry.text(), env)
