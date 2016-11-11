@@ -43,14 +43,16 @@ if __name__ == '__main__':
     progressBar.setGeometry(2.5*splash.width()/10, 0.89*splash.height(),5*splash.width()/10, splash.height()/20)
     splash.show()
 
-
+    
 splashSteps=14.0/100
 splashStep = 0.0
 def splashProgressStep(splashStep): #A function to easily increase the progressbar value
-    splashStep=splashStep+1
-    progressBar.setValue(splashStep // splashSteps + (splashStep % splashSteps > 0)) #Rounds up without math or numpy module
-    root.processEvents()   
+    if __name__ == '__main__':
+        splashStep=splashStep+1
+        progressBar.setValue(splashStep // splashSteps + (splashStep % splashSteps > 0)) #Rounds up without math or numpy module
+        root.processEvents()   
     return splashStep
+
   
 import matplotlib  
 splashStep = splashProgressStep(splashStep)
