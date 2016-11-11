@@ -5754,10 +5754,9 @@ class Quad2StaticCzjzekParamFrame(QtWidgets.QWidget):
 
     Ioptions = ['3/2', '5/2', '7/2', '9/2']
     savetitle = 'ssNake Czjzek static fit results'
-    
+    import scipy.ndimage
     
     def __init__(self, parent, rootwindow):
-        import scipy.ndimage
         QtWidgets.QWidget.__init__(self, rootwindow)
         self.parent = parent
         self.rootwindow = rootwindow
@@ -6479,7 +6478,7 @@ def quad2CzjzektensorFunc(sigma, d, pos, width, gauss, wq, eta, lib, freq, sw, a
     fid = np.sum(lib * czjzek[..., None], axis=(0, 1))
     t = np.arange(len(fid)) / sw
     apod = np.exp(-np.pi * width * t) * np.exp(-((np.pi * gauss * t)**2) / (4 * np.log(2)))
-    apod[-1:-(len(apod) / 2 + 1):-1] = apod[:len(apod) / 2]
+    apod[-1:int(-(len(apod) / 2 + 1)):-1] = apod[:int(len(apod) / 2)]
     spectrum = scipy.ndimage.interpolation.shift(np.real(np.fft.fft(fid * apod)), len(fid) * pos / sw)
     spectrum = spectrum / sw * len(spectrum)
     return spectrum
