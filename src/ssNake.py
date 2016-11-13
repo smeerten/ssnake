@@ -1304,26 +1304,26 @@ class MainProgram(QtWidgets.QMainWindow):
                 scale = (axisScale >> 4) & 15
                 if scale > 7:
                     scale = scale -16
-                dw = (data_axis_stop[0]-data_axis_start[0])/(data_points[0]-2)*10**(-scale*3)#minus two to give same axis as spectrum???
+                dw = (data_axis_stop[axisNum]-data_axis_start[axisNum])/(data_offset_stop[axisNum]+1 -1)*10**(-scale*3)#minus one to give same axis as spectrum???
                 #scale for SI prefix
                 sw.append(1.0 / dw)
                 spec.append(False)
-                sidefreq = -np.floor(data_points[0] / 2) / data_points[0] * sw[-1]  # frequency of last point on axis
-                ref.append(base_freq[0]*1e6)
+                sidefreq = -np.floor((data_offset_stop[axisNum]+1) / 2) / data_offset_stop[axisNum]+1 * sw[-1]  # frequency of last point on axis
+                ref.append(base_freq[axisNum]*1e6)
             if axisType == 13: #Hz
-                sw.append(np.abs(data_axis_start[0]-data_axis_stop[0]))
+                sw.append(np.abs(data_axis_start[axisNum]-data_axis_stop[0]))
                 spec.append(True)
                 if data_dimension_number == 1:
                     data = np.flipud(data)
-                sidefreq = -np.floor(data_points[0] / 2) / data_points[0] * sw[-1]  # frequency of last point on axis
-                ref.append(sidefreq + base_freq[0]*1e6 - data_axis_stop[0])
+                sidefreq = -np.floor(data_points[axisNum] / 2) / (data_offset_stop[axisNum]+1) * sw[-1]  # frequency of last point on axis
+                ref.append(sidefreq + base_freq[axisNum]*1e6 - data_axis_stop[axisNum])
             if axisType == 26: #ppm
-                sw.append(np.abs(data_axis_start[0]-data_axis_stop[0])*base_freq[0])
+                sw.append(np.abs(data_axis_start[axisNum]-data_axis_stop[axisNum])*base_freq[axisNum])
                 spec.append(True)
                 if data_dimension_number == 1:
                     data = np.flipud(data)
-                sidefreq = -np.floor(data_points[0] / 2) / data_points[0] * sw[-1]  # frequency of last point on axis
-                ref.append(sidefreq + base_freq[0]*1e6 - data_axis_stop[0]*base_freq[0])
+                sidefreq = -np.floor((data_offset_stop[axisNum]+1) / 2) / (data_offset_stop[axisNum]+1) * sw[-1]  # frequency of last point on axis
+                ref.append(sidefreq + base_freq[axisNum]*1e6 - data_axis_stop[axisNum]*base_freq[axisNum])
         masterData = sc.Spectrum(name, data, (9, filePath), freq, sw, spec,ref=ref, msgHandler=lambda msg: self.dispMsg(msg))
         masterData.addHistory("JEOL delta data loaded from " + filePath)
         return masterData
