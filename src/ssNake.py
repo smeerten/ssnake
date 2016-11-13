@@ -1253,7 +1253,7 @@ class MainProgram(QtWidgets.QMainWindow):
             base_freq = np.fromfile(f, '>d', 8)
             #1128
             zero_point = np.fromfile(f, '>d', 8)
-            reversed = np.fromfile(f, '>B', 8)
+            reverse = np.fromfile(f, '>B', 8)
             #1200
             f.read(12)
             param_start = np.fromfile(f, '>I', 1)[0]
@@ -1273,33 +1273,58 @@ class MainProgram(QtWidgets.QMainWindow):
                 if data_axis_type[0] == 1: #if real
                     data = np.fromfile(f, dataendian, data_points[0])
                 elif data_axis_type[0] == 3: #if complex
-                    data = np.fromfile(f, dataendian, data_points[0]) + 1j*np.fromfile(f, dataendian, data_points[0])
+                    data = np.fromfile(f, dataendian, data_points[0]) - 1j*np.fromfile(f, dataendian, data_points[0])
+                    data = data[0:data_offset_stop[0]+1]
+            elif data_dimension_number == 2:
+                if data_axis_type[0] == 4: #if real-complex (no hypercomplex)
+                    pointsD2 = int(np.ceil(data_points[0]/4.0)*4.0)
+                    pointsD1 = int(np.ceil(data_points[1]/4.0)*4)
+                    datalength = pointsD2 * pointsD1
+                    datareal = np.fromfile(f, dataendian, datalength)
+                    dataimag = np.fromfile(f, dataendian, datalength)
+                    data = datareal - 1j*dataimag
+                    data = np.reshape(data,[pointsD1/4,datalength/pointsD1/4,4,4])
+                    data = np.concatenate(np.concatenate(data,1),1)
+                    data = data[0:data_offset_stop[1]+1,0:data_offset_stop[0]+1] #cut back to real size
+
             else:
                     self.dispMsg('No valid data file found')
                     return None
 	#unitExp = data_units[0][0] &15#unit_exp: if (unitExp > 7) >unitExp -= 16;
 	#scaleType = (data_units[0][1]>>4) &15 #scaleType: if (scaleType > 7) scaleType -= 16;
-        axisType = data_units[0][1] #Sec = 28, Hz = 13, PPM = 26
-        
-        if axisType == 28: #Sec
-            dw = (data_axis_stop[0]-data_axis_start[0])/(data_points[0]-2)#minus two to give same axis as spectrum???
-            sw = 1.0/(dw)
-            spec = False
-            sidefreq = -np.floor(data_points[0] / 2) / data_points[0] * sw  # frequency of last point on axis
-            ref = base_freq[0]*1e6
-        if axisType == 13: #Hz
-            sw = np.abs(data_axis_start[0]-data_axis_stop[0])
-            spec = True
-            data = np.flipud(data)
-            sidefreq = -np.floor(data_points[0] / 2) / data_points[0] * sw  # frequency of last point on axis
-            ref = sidefreq + base_freq[0]*1e6 - data_axis_stop[0]
-        if axisType == 26: #ppm
-            sw = np.abs(data_axis_start[0]-data_axis_stop[0])*base_freq[0]
-            spec = True
-            data = np.flipud(data)
-            sidefreq = -np.floor(data_points[0] / 2) / data_points[0] * sw  # frequency of last point on axis
-            ref = sidefreq + base_freq[0]*1e6 - data_axis_stop[0]*base_freq[0]
-        masterData = sc.Spectrum(name, data, (9, filePath), [base_freq[0]*1e6], [sw], [spec],ref=[ref], msgHandler=lambda msg: self.dispMsg(msg))
+        sw = []
+        spec = []
+        ref = []
+        freq = []
+        for axisNum in reversed(range(data_dimension_number)):
+            freq.append(base_freq[0]*1e6)
+            axisType = data_units[axisNum][1] #Sec = 28, Hz = 13, PPM = 26
+            axisScale = data_units[axisNum][0]
+            if axisType == 28: #Sec
+                scale = (axisScale >> 4) & 15
+                if scale > 7:
+                    scale = scale -16
+                dw = (data_axis_stop[0]-data_axis_start[0])/(data_points[0]-2)*10**(-scale*3)#minus two to give same axis as spectrum???
+                #scale for SI prefix
+                sw.append(1.0 / dw)
+                spec.append(False)
+                sidefreq = -np.floor(data_points[0] / 2) / data_points[0] * sw[-1]  # frequency of last point on axis
+                ref.append(base_freq[0]*1e6)
+            if axisType == 13: #Hz
+                sw.append(np.abs(data_axis_start[0]-data_axis_stop[0]))
+                spec.append(True)
+                if data_dimension_number == 1:
+                    data = np.flipud(data)
+                sidefreq = -np.floor(data_points[0] / 2) / data_points[0] * sw[-1]  # frequency of last point on axis
+                ref.append(sidefreq + base_freq[0]*1e6 - data_axis_stop[0])
+            if axisType == 26: #ppm
+                sw.append(np.abs(data_axis_start[0]-data_axis_stop[0])*base_freq[0])
+                spec.append(True)
+                if data_dimension_number == 1:
+                    data = np.flipud(data)
+                sidefreq = -np.floor(data_points[0] / 2) / data_points[0] * sw[-1]  # frequency of last point on axis
+                ref.append(sidefreq + base_freq[0]*1e6 - data_axis_stop[0]*base_freq[0])
+        masterData = sc.Spectrum(name, data, (9, filePath), freq, sw, spec,ref=ref, msgHandler=lambda msg: self.dispMsg(msg))
         masterData.addHistory("JEOL delta data loaded from " + filePath)
         return masterData
 
