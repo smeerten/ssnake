@@ -1277,16 +1277,42 @@ class MainProgram(QtWidgets.QMainWindow):
                     data = data[0:data_offset_stop[0]+1]
             elif data_dimension_number == 2:
                 if data_axis_type[0] == 4: #if real-complex (no hypercomplex)
-                    pointsD2 = int(np.ceil(data_points[0]/4.0)*4.0)
-                    pointsD1 = int(np.ceil(data_points[1]/4.0)*4)
+                    Step = 4 #Step size of block
+                    pointsD2 = data_points[0]
+                    pointsD1 = data_points[1]
                     datalength = pointsD2 * pointsD1
                     datareal = np.fromfile(f, dataendian, datalength)
                     dataimag = np.fromfile(f, dataendian, datalength)
                     data = datareal - 1j*dataimag
-                    data = np.reshape(data,[pointsD1/4,datalength/pointsD1/4,4,4])
+                    data = np.reshape(data,[pointsD1/Step,datalength/pointsD1/Step,Step,Step])
                     data = np.concatenate(np.concatenate(data,1),1)
                     data = data[0:data_offset_stop[1]+1,0:data_offset_stop[0]+1] #cut back to real size
-
+                if data_axis_type[0] == 3: #if complex (i.e. hypercomplex)
+                    Step = 32 #Step size of block
+                    pointsD2 = data_points[0]
+                    pointsD1 = data_points[1]
+                    datalength = pointsD2 * pointsD1
+                    datareal1 = np.fromfile(f, dataendian, datalength)
+                    dataimag1 = np.fromfile(f, dataendian, datalength)
+                    datareal2 = np.fromfile(f, dataendian, datalength)
+                    dataimag2 = np.fromfile(f, dataendian, datalength)
+                    data1 = datareal1 - 1j*dataimag1
+                    data1 = np.reshape(data1,[pointsD1/Step,datalength/pointsD1/Step,Step,Step])
+                    data1 = np.concatenate(np.concatenate(data1,1),1)
+                    data2 = datareal2 - 1j*dataimag2
+                    data2 = np.reshape(data2,[pointsD1/Step,datalength/pointsD1/Step,Step,Step])
+                    data2 = np.concatenate(np.concatenate(data2,1),1)
+                    data = np.zeros([data2.shape[0]*2,data2.shape[1]],dtype=complex)
+                    if reverse[0] == 0:
+                        data[::2,:] = data1 #Interleave both types in D1
+                        data[1::2,:] = data2
+                    else:
+                        print('reverse')
+                        data[::2,:] = data2 #Interleave both types in D1
+                        data[1::2,:] = data1           
+                    data = data[0:(data_offset_stop[1] + 1)*2,0:data_offset_stop[0]+1] #Cut back to real size
+                    if reverse[1] == 1:
+                        data = np.conjugate(data)
             else:
                     self.dispMsg('No valid data file found')
                     return None
