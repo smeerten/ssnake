@@ -1307,7 +1307,6 @@ class MainProgram(QtWidgets.QMainWindow):
                         data[::2,:] = data1 #Interleave both types in D1
                         data[1::2,:] = data2
                     else:
-                        print('reverse')
                         data[::2,:] = data2 #Interleave both types in D1
                         data[1::2,:] = data1           
                     data = data[0:(data_offset_stop[1] + 1)*2,0:data_offset_stop[0]+1] #Cut back to real size
