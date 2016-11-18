@@ -27,6 +27,7 @@ except ImportError:
     from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.figure import Figure
 import scipy.optimize
+import scipy.ndimage
 import multiprocessing
 import copy
 import spectrum_classes
@@ -5754,7 +5755,6 @@ class Quad2StaticCzjzekParamFrame(QtWidgets.QWidget):
 
     Ioptions = ['3/2', '5/2', '7/2', '9/2']
     savetitle = 'ssNake Czjzek static fit results'
-    import scipy.ndimage
     
     def __init__(self, parent, rootwindow):
         QtWidgets.QWidget.__init__(self, rootwindow)
