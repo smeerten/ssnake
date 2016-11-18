@@ -152,7 +152,12 @@ class MainPlotWindow(QtWidgets.QWidget):
         self.optionFrame.addWidget(self.ytickFontSizeEntry, 39, 0)
         self.legend = self.ax.legend()
         if self.legend is not None:
-            self.legendOrder = list(np.arange(0,len(self.legend.get_texts())))
+            try: #If from multiplot
+                order = list(self.oldMainWindow.current.extraOffset)
+                order.append(0)
+                self.legendOrder = list(np.argsort(order))[::-1]
+            except:
+                self.legendOrder = list(np.arange(0,len(self.legend.get_texts())))
             self.legend.draggable(True)
             self.legendPos = 'best'
             self.legendTextList = []
