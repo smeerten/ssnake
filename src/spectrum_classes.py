@@ -1813,7 +1813,7 @@ class Current1D(Plot1DFrame):
         if newSpec:
             return self.data.matrixManipNew(pos1, pos2, self.axes, 0)
         else:
-            self.root.addMacro(['integrate', (list(pos1), list(pos2), self.axes - self.data.data.ndim, )])
+            self.root.addMacro(['integrate', (pos1.tolist(), pos2.tolist(), self.axes - self.data.data.ndim, )])
             returnValue = self.data.matrixManip(pos1, pos2, self.axes, 0)
             if self.upd():
                 self.plotReset()
@@ -1824,7 +1824,7 @@ class Current1D(Plot1DFrame):
         if newSpec:
             return self.data.matrixManipNew(pos1, pos2, self.axes, 5)
         else:
-            self.root.addMacro(['sum', (list(pos1), list(pos2), self.axes - self.data.data.ndim, )])
+            self.root.addMacro(['sum', (pos1.tolist(), pos2.tolist(), self.axes - self.data.data.ndim, )])
             returnValue = self.data.matrixManip(pos1, pos2, self.axes, 5)
             if self.upd():
                 self.plotReset()
@@ -1835,7 +1835,7 @@ class Current1D(Plot1DFrame):
         if newSpec:
             return self.data.matrixManipNew(pos1, pos2, self.axes, 1)
         else:
-            self.root.addMacro(['max', (list(pos1), list(pos2), self.axes - self.data.data.ndim, )])
+            self.root.addMacro(['max', (pos1.tolist(), pos2.tolist(), self.axes - self.data.data.ndim, )])
             returnValue = self.data.matrixManip(pos1, pos2, self.axes, 1)
             if self.upd():
                 self.plotReset()
@@ -1846,7 +1846,7 @@ class Current1D(Plot1DFrame):
         if newSpec:
             return self.data.matrixManipNew(pos1, pos2, self.axes, 2)
         else:
-            self.root.addMacro(['min', (list(pos1), list(pos2), self.axes - self.data.data.ndim, )])
+            self.root.addMacro(['min', (pos1.tolist(), pos2.tolist(), self.axes - self.data.data.ndim, )])
             returnValue = self.data.matrixManip(pos1, pos2, self.axes, 2)
             if self.upd():
                 self.plotReset()
@@ -1857,7 +1857,7 @@ class Current1D(Plot1DFrame):
         if newSpec:
             return self.data.matrixManipNew(pos1, pos2, self.axes, 3)
         else:
-            self.root.addMacro(['argmax', (list(pos1), list(pos2), self.axes - self.data.data.ndim, )])
+            self.root.addMacro(['argmax', (pos1.tolist(), pos2.tolist(), self.axes - self.data.data.ndim, )])
             returnValue = self.data.matrixManip(pos1, pos2, self.axes, 3)
             if self.upd():
                 self.plotReset()
@@ -1868,7 +1868,7 @@ class Current1D(Plot1DFrame):
         if newSpec:
             return self.data.matrixManipNew(pos1, pos2, self.axes, 4)
         else:
-            self.root.addMacro(['argmin', (list(pos1), list(pos2), self.axes - self.data.data.ndim, )])
+            self.root.addMacro(['argmin', (pos1.tolist(), pos2.tolist(), self.axes - self.data.data.ndim, )])
             returnValue = self.data.matrixManip(pos1, pos2, self.axes, 4)
             if self.upd():
                 self.plotReset()
@@ -1879,7 +1879,7 @@ class Current1D(Plot1DFrame):
         if newSpec:
             return self.data.matrixManipNew(pos1, pos2, self.axes, 6)
         else:
-            self.root.addMacro(['average', (list(pos1), list(pos2), self.axes - self.data.data.ndim, )])
+            self.root.addMacro(['average', (pos1.tolist(), pos2.tolist(), self.axes - self.data.data.ndim, )])
             returnValue = self.data.matrixManip(pos1, pos2, self.axes, 6)
             if self.upd():
                 self.plotReset()

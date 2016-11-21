@@ -4306,7 +4306,7 @@ class regionWindow(QtWidgets.QWidget):
 
     def applyAndClose(self):
         if self.partIter == 0:
-            if self.apply([0], [self.father.current.data1D.shape[-1]], self.newSpec.isChecked()) is None:
+            if self.apply(np.array([0]), np.array([self.father.current.data1D.shape[-1]]), self.newSpec.isChecked()) is None:
                 return
         else:
             if self.apply(self.startVal[:self.partIter], self.endVal[:self.partIter], self.newSpec.isChecked()) is None:
