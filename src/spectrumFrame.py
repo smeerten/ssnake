@@ -105,7 +105,10 @@ class Plot1DFrame:
             if self.rightMouse:
                 middle = (self.xmaxlim + self.xminlim) / 2.0
                 width = self.xmaxlim - self.xminlim
-                width = width * 0.9**event.step
+                if modifiers == QtCore.Qt.ControlModifier:
+                    width = width * 0.6**event.step
+                else:
+                    width = width * 0.9**event.step
                 self.xmaxlim = middle + width / 2.0
                 self.xminlim = middle - width / 2.0
                 if self.spec > 0 and not isinstance(self, spectrum_classes.CurrentArrayed):
@@ -115,7 +118,10 @@ class Plot1DFrame:
             else:
                 middle = (self.ymaxlim + self.yminlim) / 2.0
                 width = self.ymaxlim - self.yminlim
-                width = width * 0.9**event.step
+                if modifiers == QtCore.Qt.ControlModifier:
+                    width = width * 0.6**event.step
+                else:
+                    width = width * 0.9**event.step
                 self.ymaxlim = middle + width / 2.0
                 self.yminlim = middle - width / 2.0
                 if self.spec2 > 0 and isinstance(self, spectrum_classes.CurrentContour):
