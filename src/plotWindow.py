@@ -267,7 +267,7 @@ class MainPlotWindow(QtWidgets.QWidget):
             f = f[0]        
         if f:
             self.father.LastLocation = os.path.dirname(f)
-            self.fig.savefig(f)
+            self.fig.savefig(f, format=self.fileOptions[self.filetypeEntry.currentIndex()])
             self.cancel()
 
     def cancel(self):
