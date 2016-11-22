@@ -217,6 +217,7 @@ class Plot1DFrame:
         self.canvas.draw_idle()
 
     def pan(self, event):
+        modifiers = QtWidgets.QApplication.keyboardModifiers()
         if self.rightMouse and self.panX is not None and self.panY is not None:
             if isinstance(self, spectrum_classes.CurrentSkewed):
                 a = self.ax.format_coord(event.xdata, event.ydata)
@@ -227,11 +228,18 @@ class Plot1DFrame:
                 point = inv.transform((event.x, event.y))
                 diffx = point[0] - self.panX
                 diffy = point[1] - self.panY
-
-            self.xmaxlim = self.xmaxlim - diffx
-            self.xminlim = self.xminlim - diffx
-            self.ymaxlim = self.ymaxlim - diffy
-            self.yminlim = self.yminlim - diffy
+            
+            if modifiers == QtCore.Qt.ControlModifier:
+                self.xmaxlim = self.xmaxlim - diffx
+                self.xminlim = self.xminlim - diffx
+            elif modifiers == QtCore.Qt.ShiftModifier:
+                self.ymaxlim = self.ymaxlim - diffy
+                self.yminlim = self.yminlim - diffy
+            else:
+                self.xmaxlim = self.xmaxlim - diffx
+                self.xminlim = self.xminlim - diffx
+                self.ymaxlim = self.ymaxlim - diffy
+                self.yminlim = self.yminlim - diffy
             if self.spec > 0 and not isinstance(self, spectrum_classes.CurrentArrayed):
                 self.ax.set_xlim(self.xmaxlim, self.xminlim)
             else:
