@@ -115,41 +115,47 @@ class MainPlotWindow(QtWidgets.QWidget):
         self.heightEntry.setText(str(self.heightBackup))
         self.heightEntry.returnPressed.connect(self.updatePlot)
         self.optionFrame.addWidget(self.heightEntry, 29, 0)
+        self.optionFrame.addWidget(QLabel("dpi:"), 30, 0)
+        self.dpiEntry = QtWidgets.QLineEdit()
+        self.dpiEntry.setAlignment(QtCore.Qt.AlignHCenter)
+        self.dpiEntry.setText(str(self.fig.dpi))
+        self.dpiEntry.returnPressed.connect(self.updatePlot)
+        self.optionFrame.addWidget(self.dpiEntry, 31, 0)
         self.titleFontSizeBackup = 12
-        self.optionFrame.addWidget(QLabel("Title font size:"), 30, 0)
+        self.optionFrame.addWidget(QLabel("Title font size:"), 32, 0)
         self.titleFontSizeEntry = QtWidgets.QLineEdit()
         self.titleFontSizeEntry.setAlignment(QtCore.Qt.AlignHCenter)
         self.titleFontSizeEntry.setText(str(self.titleFontSizeBackup))
         self.titleFontSizeEntry.returnPressed.connect(self.updatePlot)
-        self.optionFrame.addWidget(self.titleFontSizeEntry, 31, 0)
+        self.optionFrame.addWidget(self.titleFontSizeEntry, 33, 0)
         self.xlabelFontSizeBackup = 12
-        self.optionFrame.addWidget(QLabel("X-label font size:"), 32, 0)
+        self.optionFrame.addWidget(QLabel("X-label font size:"), 34, 0)
         self.xlabelFontSizeEntry = QtWidgets.QLineEdit()
         self.xlabelFontSizeEntry.setAlignment(QtCore.Qt.AlignHCenter)
         self.xlabelFontSizeEntry.setText(str(self.xlabelFontSizeBackup))
         self.xlabelFontSizeEntry.returnPressed.connect(self.updatePlot)
-        self.optionFrame.addWidget(self.xlabelFontSizeEntry, 33, 0)
+        self.optionFrame.addWidget(self.xlabelFontSizeEntry, 35, 0)
         self.ylabelFontSizeBackup = 12
-        self.optionFrame.addWidget(QLabel("Y-label font size:"), 34, 0)
+        self.optionFrame.addWidget(QLabel("Y-label font size:"), 36, 0)
         self.ylabelFontSizeEntry = QtWidgets.QLineEdit()
         self.ylabelFontSizeEntry.setAlignment(QtCore.Qt.AlignHCenter)
         self.ylabelFontSizeEntry.setText(str(self.ylabelFontSizeBackup))
         self.ylabelFontSizeEntry.returnPressed.connect(self.updatePlot)
-        self.optionFrame.addWidget(self.ylabelFontSizeEntry, 35, 0)
+        self.optionFrame.addWidget(self.ylabelFontSizeEntry, 37, 0)
         self.xtickFontSizeBackup = 12
-        self.optionFrame.addWidget(QLabel("X-ticks font size:"), 36, 0)
+        self.optionFrame.addWidget(QLabel("X-ticks font size:"), 38, 0)
         self.xtickFontSizeEntry = QtWidgets.QLineEdit()
         self.xtickFontSizeEntry.setAlignment(QtCore.Qt.AlignHCenter)
         self.xtickFontSizeEntry.setText(str(self.xtickFontSizeBackup))
         self.xtickFontSizeEntry.returnPressed.connect(self.updatePlot)
-        self.optionFrame.addWidget(self.xtickFontSizeEntry, 37, 0)
+        self.optionFrame.addWidget(self.xtickFontSizeEntry, 39, 0)
         self.ytickFontSizeBackup = 12
-        self.optionFrame.addWidget(QLabel("Y-ticks font size:"), 38, 0)
+        self.optionFrame.addWidget(QLabel("Y-ticks font size:"), 40, 0)
         self.ytickFontSizeEntry = QtWidgets.QLineEdit()
         self.ytickFontSizeEntry.setAlignment(QtCore.Qt.AlignHCenter)
         self.ytickFontSizeEntry.setText(str(self.ytickFontSizeBackup))
         self.ytickFontSizeEntry.returnPressed.connect(self.updatePlot)
-        self.optionFrame.addWidget(self.ytickFontSizeEntry, 39, 0)
+        self.optionFrame.addWidget(self.ytickFontSizeEntry, 41, 0)
         self.legend = self.ax.legend()
         if self.legend is not None:
             try: #If from multiplot
@@ -167,14 +173,14 @@ class MainPlotWindow(QtWidgets.QWidget):
             self.legend.set_visible(False)
             self.legendCheck = QtWidgets.QCheckBox('Legend')
             self.legendCheck.stateChanged.connect(self.updateLegend)
-            self.optionFrame.addWidget(self.legendCheck, 40, 0)
+            self.optionFrame.addWidget(self.legendCheck, 42, 0)
             legendButton = QtWidgets.QPushButton('Legend settings')
             legendButton.clicked.connect(lambda: LegendWindow(self))
-            self.optionFrame.addWidget(legendButton, 41, 0)
+            self.optionFrame.addWidget(legendButton, 43, 0)
 
         execFileButton = QtWidgets.QPushButton('Execute file')
         execFileButton.clicked.connect(self.exFile)
-        self.optionFrame.addWidget(execFileButton, 42, 0)
+        self.optionFrame.addWidget(execFileButton, 44, 0)
 
         self.inFrame = QtWidgets.QGridLayout()
         self.frame1.addLayout(self.inFrame, 1, 0)
@@ -267,7 +273,10 @@ class MainPlotWindow(QtWidgets.QWidget):
             f = f[0]        
         if f:
             self.father.LastLocation = os.path.dirname(f)
-            self.fig.savefig(f, format=self.fileOptions[self.filetypeEntry.currentIndex()])
+            dpi = safeEval(self.dpiEntry.text())
+            if dpi is None:
+                dpi = self.fig.dpi
+            self.fig.savefig(f, format=self.fileOptions[self.filetypeEntry.currentIndex()], dpi=dpi)
             self.cancel()
 
     def cancel(self):
