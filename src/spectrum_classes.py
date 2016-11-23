@@ -3351,28 +3351,19 @@ class CurrentArrayed(Current1D):
                 self.line_ydata = np.append(self.line_ydata, np.real(tmpdata[num][xaxZlims])[direc])
                 self.ax.plot((num * self.spacing + self.xax[xaxZlims]) * axMult, np.real(tmpdata[num][xaxZlims])[direc], c=self.color, linewidth=self.linewidth, label=self.data.name)
         if self.spec == 0:
-            if self.axType == 0:
-                self.ax.set_xlabel('Time [s]')
-            elif self.axType == 1:
-                self.ax.set_xlabel('Time [ms]')
-            elif self.axType == 2:
-                self.ax.set_xlabel(u'Time [\u03BCs]')
-            else:
-                self.ax.set_xlabel('User defined')
+            self.ax.set_xlabel('Time')
         elif self.spec == 1:
-            if self.ppm:
-                self.ax.set_xlabel('Frequency [ppm]')
-            else:
-                if self.axType == 0:
-                    self.ax.set_xlabel('Frequency [Hz]')
-                elif self.axType == 1:
-                    self.ax.set_xlabel('Frequency [kHz]')
-                elif self.axType == 2:
-                    self.ax.set_xlabel('Frequency [MHz]')
-                else:
-                    self.ax.set_xlabel('User defined')
+            self.ax.set_xlabel('Frequency')
         else:
             self.ax.set_xlabel('')
+        self.ax.set_xticks([])
+        self.ax.tick_params(axis='x',
+                            which='both',
+                            bottom='off',
+                            top='off',
+                            labelbottom='off')
+    
+
         self.ax.set_xlim(self.xminlim, self.xmaxlim)
         self.ax.set_ylim(self.yminlim, self.ymaxlim)
         self.ax.get_xaxis().get_major_formatter().set_powerlimits((-4, 4))
