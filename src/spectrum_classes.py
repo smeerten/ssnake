@@ -1649,6 +1649,8 @@ class Current1D(Plot1DFrame):
     def changeSpec(self, val):  # change from time to freq domain of the actual data
         returnValue = self.data.changeSpec(val, self.axes)
         self.upd()
+        if isinstance(self, CurrentArrayed):
+            self.resetSpacing()
         self.plotReset()
         self.showFid()
         self.root.addMacro(['spec', (val, self.axes - self.data.data.ndim)])
