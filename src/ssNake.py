@@ -155,8 +155,8 @@ class MainProgram(QtWidgets.QMainWindow):
         QtWidgets.QApplication.clipboard().setPixmap(pixmap)
         
     def resetDefaults(self):
-        self.defaultWidth = 0
-        self.defaultHeight = 0
+        self.defaultWidth = 1
+        self.defaultHeight = 1
         self.defaultMaximized = False
         self.defaultAskName = True
         self.defaultLinewidth = 1.0
@@ -6361,11 +6361,13 @@ class PreferenceWindow(QtWidgets.QWidget):
         grid1.addWidget(wc.QLabel("Width:"), 1, 0)
         self.widthSpinBox = QtWidgets.QSpinBox()
         self.widthSpinBox.setMaximum(100000)
+        self.widthSpinBox.setMinimum(1)
         self.widthSpinBox.setValue(self.father.defaultWidth)
         grid1.addWidget(self.widthSpinBox, 1, 1)
         grid1.addWidget(wc.QLabel("Height:"), 2, 0)
         self.heightSpinBox = QtWidgets.QSpinBox()
         self.heightSpinBox.setMaximum(100000)
+        self.heightSpinBox.setMinimum(1)
         self.heightSpinBox.setValue(self.father.defaultHeight)
         grid1.addWidget(self.heightSpinBox, 2, 1)
         self.maximizedCheck = QtWidgets.QCheckBox("Open maximized")
