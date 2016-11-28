@@ -21,7 +21,6 @@
 import sip
 import sys
 import os
-import time
 sip.setapi('QString', 2)
 try:
     from PyQt4 import QtGui, QtCore
