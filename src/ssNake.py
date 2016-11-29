@@ -2976,7 +2976,10 @@ class BottomFrame(QtWidgets.QWidget):
             self.axisDropTime.hide()
             self.axisDropFreq.show()
             self.ax2Label.hide()
-            self.axisDropFreq.setCurrentIndex(self.father.current.axType)
+            if self.father.current.ppm:
+                self.axisDropFreq.setCurrentIndex(3)
+            else:
+                self.axisDropFreq.setCurrentIndex(self.father.current.axType)
         if isinstance(self.father.current, sc.CurrentContour):
             self.ax2Label.show()
             self.proj1Label.show()
