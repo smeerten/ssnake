@@ -5933,8 +5933,16 @@ class RefWindow(QtWidgets.QWidget):
         self.setWindowTitle("Reference")
 
         # Secondary reference definitions
-        self.secRefNames = ["User Defined", "1H: Adamantane (centre)", "13C: Adamantane (left)", "13C: Adamantane (right)"]
-        self.secRefValues = ["0.0", "1.85", "38.520", "29.472"]
+        with open("References.txt") as refFile:
+            refList = [line.strip().split('\t') for line in refFile]
+        secRefNames = ["User Defined"]
+        secRefValues = ["0.0"] 
+        for entry in refList:
+            secRefNames.append(entry[0])  
+            secRefValues.append(entry[1])   
+             
+        self.secRefNames = secRefNames
+        self.secRefValues = secRefValues
         layout = QtWidgets.QGridLayout(self)
         grid = QtWidgets.QGridLayout()
         layout.addLayout(grid, 0, 0, 1, 2)
