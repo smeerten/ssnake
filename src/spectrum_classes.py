@@ -1491,10 +1491,27 @@ class Current1D(Plot1DFrame):
         return returnValue
 
     def setRef(self, ref):  # set the frequency of the actual data
+        oldref = self.ref
+        if oldref == None:
+            oldref = self.freq
         returnValue = self.data.setRef(ref, self.axes)
+        if ref == None:
+            ref = self.freq
+        val = self.axType 
+        if self.spec == 1:
+            if self.ppm:
+                self.xminlim = (self.xminlim * oldref * 10**-6 + oldref - ref)/(ref * 10**-6)
+                self.xmaxlim = (self.xmaxlim * oldref * 10**-6 + oldref - ref)/(ref * 10**-6)
+            else:
+                self.xminlim = self.xminlim + (oldref - ref)/10**(val*3) #set new limits, and scale for axis type
+                self.xmaxlim = self.xmaxlim + (oldref - ref)/10**(val*3)
+        
         self.upd()
-        self.plotReset()
+#        self.plotReset()        
         self.showFid()
+        
+        
+#        self.setAxType(0)
         self.root.addMacro(['ref', (ref, self.axes - self.data.data.ndim)])
         return returnValue
 
