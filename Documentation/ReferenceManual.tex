@@ -106,6 +106,37 @@ ssNake had been programmed to run on both the python 2.x and 3.x branch. We deve
 We have run into issue while using older versions of numpy. It seems that version 1.7.0 is the oldest that we support (some new commands have been introduced in this version, that ssNake makes use of). Development took place on version 1.8.2.
 
 
+\section{Main window}
+\subsection{Zoom and pan controls}
+There are several ways to control the display of the current spectrum or FID in the main window. Below, a list of these is given:
+
+\begin{itemize}
+\item Dragging a box while holding the left mouse button creates a zoombox, and will zoom to that region
+\item Dragging while holding the right mouse button drags (i.e.\ pans) the spectrum. Doing this while holding the Control button pans only the x-axis, holding Shift pans only the y-axis.
+\item Double clicking with the right mouse button resets the view to fit the whole plot (both x and y)
+\item Scrolling with the mouse wheel zooms the y-axis. Doing this while also holding the right mouse button zooms the x-axis.
+\item \textit{Special}: Scrolling while holding shift changes the spacing between the different plots in the Array, Stack or Skew plot.
+\end{itemize}
+
+Having an input window open (e.g. the phasing window, see below) does not prevent the use of these zoom controls. However, some some tools require left clinking in the spectrum to select a data point. In these cases, the zoom-box (dragging while holding the left mouse button) is disabled.
+
+\subsection{Bottom Frame}
+The bottom frame is the frame below the current data display. It consist of two parts: one with data parameters (and started by the `Fourier' button), and the `Get Position' frame. The features of these frames are explained below.
+
+\subsubsection*{Data parameters}
+The data parameter frame features the following elements:
+\begin{itemize}
+\item The Fourier button: performs a forward or inverse fft depending on Time/Frequency toggle. If the current setting is Time, it does a forward transform (with the relevant fft shift), if it is Frequency it does an inverse transform.
+\item Time/Frequency toggle: displays whether the current data is an FID (Time) or Spectrum (Frequency). It is usually not necessary to manually change this, as this is done automatically. However, you can trick ssNake by making it think the current data is of the other type. This will give unpredicted results, and is not advised (do at your peril).
+\end{itemize}
+
+
+
+
+\subsubsection*{Get Position Frame}
+
+
+
 
 \section{File}
 Using the ssNake load tools is quite easy. Go to File $\rightarrow$ Open. Navigating and double clicking on the desired file then loads the data. Many formats supported by ssNake (like Bruker and Varian) have their data in a folder, in which several files with a fixed name are present. For these formats, loading any of the files in this directory is accepted (ssNake searches for the expected files in the selected directory). Loading large data files might take some time, depending on your computer hardware.
@@ -220,7 +251,7 @@ The MATLAB binary format is a open source format in which many different types o
 
 
 \subsection{Export data}
-Using ssNAke you can also export your data. Exporting never saves all the info our own formats do, so there will be loss of information. It is suggested you only use these formats for exchanging data to another program, but not for archiving.
+Using ssNake you can also export your data. Exporting never saves all the info our own formats do, so there will be loss of information. It is suggested you only use these formats for exchanging data to another program, but not for archiving.
 
 
 \subsubsection*{Simpson}
