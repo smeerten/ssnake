@@ -592,7 +592,7 @@ A maximum of 10 sites can be fitted simultaneously.
 The second order quadrupole static relies on some relatively standard formulae: those of the second order quadrupolar coupling. This equation can be split up in two parts: an angle independent factor, and the angular factors. This latter part is then split in three parts depending on the influence of the asymmetry parameter $\eta$. In short:
 
 \begin{equation}
-\nu = -\dfrac{3{C_\text{Q}}^2}{6\nu_0(2I(2I-1))^2}(I(I+1)-3/4)(A+B\cdot\eta+C\cdot\eta^2)
+\nu = -\dfrac{3{(C_\text{Q}/2\pi)}^2}{6\nu_0(2I(2I-1))^2}(I(I+1)-3/4)(A+B\cdot\eta+C\cdot\eta^2)
 \end{equation}
 With the angular factors:
 \begin{align}
@@ -607,6 +607,19 @@ and the regular definitions for the quadrupolar coupling constant $C_\text{Q}$ (
 %B = (-9/4.0*np.cos(theta)**4+2*np.cos(theta)**2+1/4.0)*np.cos(2*phi)
 %C = -1/2.0*np.cos(theta)**2+1/3.0+(-3/8.0*np.cos(theta)**4+3/4.0*np.cos(theta)**2-3/8.0)*np.cos(2*phi)**2
 
+\subsection{Second order quadrupole MAS}
+This fitting routine works the same as \texttt{Second order quadrupole static}, but now for a case with magic angle spinning (MAS) at `infinite' rate. The general workings are the same, only the equations differ.
+
+\subsubsection*{Formulae}
+\begin{equation}
+\nu = -\dfrac{3{(C_\text{Q}/2\pi)}^2}{6\nu_0(2I(2I-1))^2}(I(I+1)-3/4)(A+B\cdot\eta+C\cdot\eta^2)
+\end{equation}
+With the angular factors:
+\begin{align}
+A &=  \dfrac{21}{16} \cos(\theta)^4 - \dfrac{9}{8} \cos(\theta)^2 + \dfrac{5}{16}\\
+B &=  \left(-\dfrac{7}{8} \cos(\theta)^4 + \cos(\theta)^2 - \dfrac{1}{8}\right) \cos(2 \phi)\\
+C &=  \dfrac{1}{12} \cos(\theta)^2 + \left( \dfrac{7}{48} \cos(\theta)^4 - \dfrac{7}{24} \cos(\theta)^2 + \dfrac{7}{48} \right) \cos(2 \phi)^2
+\end{align}
 
 
 \section{Help}
