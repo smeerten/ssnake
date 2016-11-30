@@ -1,0 +1,9 @@
+1H: Solid Adamantane (centre)	1.85
+13C: Solid Adamantane (left)	38.520
+13C: Solid Adamantane (right)	29.472
+13C: Solid Glycine (left)	176.46
+13C: Solid Glycine (right)	43.67
+14N: Solid NH4Cl	-342.4
+15N: Solid NH4Cl	-341.15
+15N: Solid Glycine	-347.58
+207Pb: Solid Pb(NO3)2 (iso)	-3473
