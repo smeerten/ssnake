@@ -24,6 +24,7 @@ try:
 except ImportError:
     from PyQt5 import QtGui, QtCore, QtWidgets
     from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
+import matplotlib
 from widgetClasses import QLabel
 from safeEval import safeEval
 import numpy as np
@@ -41,6 +42,7 @@ class MainPlotWindow(QtWidgets.QWidget):
         self.oldMainWindow = oldMainWindow
         self.fig = oldMainWindow.current.fig
         self.canvas = FigureCanvas(self.fig)
+        self.canvas.mpl_connect('pick_event', self.pickHandler)
         self.ax = oldMainWindow.current.ax
         grid = QtWidgets.QGridLayout(self)
         scroll2 = QtWidgets.QScrollArea()
@@ -230,6 +232,11 @@ class MainPlotWindow(QtWidgets.QWidget):
         self.canvas.draw()
         self.canvas.adjustSize()
 
+    def pickHandler(self, pickEvent):
+        if pickEvent.mouseevent.dblclick and (pickEvent.mouseevent.button == 1):
+            if isinstance(pickEvent.artist, matplotlib.lines.Line2D):
+                EditLineWindow(self, pickEvent.artist, self.canvas)
+        
     def exFile(self):
         warning_msg = "This is an advanced feature. Do not execute files you haven't inspected yourself. Are you sure you want to continue?"
         reply = QtWidgets.QMessageBox.question(self, 'Warning', warning_msg, QtWidgets.QMessageBox.Yes, QtWidgets.QMessageBox.No)
@@ -385,4 +392,76 @@ class LegendWindow(QtWidgets.QWidget):
         except:
             inp = self.posEntry.text()
         self.father.legendPos = inp
+        self.closeEvent()
+
+
+#####################################################################################################################
+
+
+class EditLineWindow(QtWidgets.QWidget):
+
+    def __init__(self, parent, line, canvas):
+        QtWidgets.QWidget.__init__(self, parent)
+        self.setWindowFlags(QtCore.Qt.Window | QtCore.Qt.Tool)
+        self.father = parent
+        self.line = line
+        self.canvas = canvas
+        self.setWindowTitle("Line")
+        layout = QtWidgets.QGridLayout(self)
+        grid = QtWidgets.QGridLayout()
+        layout.addLayout(grid, 0, 0, 1, 2)
+        grid.addWidget(QLabel("Line:"), 0, 0)
+        self.backupColor = self.line.get_color()
+        colorbutton = QtWidgets.QPushButton("Color", self)
+        colorbutton.clicked.connect(self.setColor)
+        grid.addWidget(colorbutton, 1, 0)
+        grid.addWidget(QLabel("Linewidth:"), 2, 0)
+        self.backupLineWidth = self.line.get_linewidth()
+        self.lwSpinBox = QtWidgets.QDoubleSpinBox()
+        self.lwSpinBox.setSingleStep(0.1)
+        self.lwSpinBox.setValue(self.backupLineWidth)
+        self.lwSpinBox.valueChanged.connect(self.setLineWidth)
+        grid.addWidget(self.lwSpinBox, 3, 0)
+        grid.addWidget(QLabel("Linestyle:"), 4, 0)
+        self.LINESTYLES = ['solid', 'dashed', 'dashdot', 'dotted']
+        self.backupLineStyle = self.line.get_linestyle()
+        self.lineDrop = QtWidgets.QComboBox()
+        self.lineDrop.addItems(self.LINESTYLES)
+        self.lineDrop.activated.connect(self.setLineStyle)
+        grid.addWidget(self.lineDrop, 5, 0)
+
+        cancelButton = QtWidgets.QPushButton("&Cancel")
+        cancelButton.clicked.connect(self.cancelAndClose)
+        layout.addWidget(cancelButton, 1, 0)
+        okButton = QtWidgets.QPushButton("&Ok")
+        okButton.clicked.connect(self.applyAndClose)
+        layout.addWidget(okButton, 1, 1)
+        self.show()
+
+    def setColor(self, *args):
+        color = QtWidgets.QColorDialog.getColor()
+        if not color.isValid():
+            return
+        self.line.set_color(color.getRgbF())
+        self.canvas.draw()
+
+    def setLineWidth(self, val):
+        self.line.set_linewidth(val)
+        self.canvas.draw()
+
+    def setLineStyle(self, val):
+        self.line.set_linestyle(self.LINESTYLES[val])
+        self.canvas.draw()
+        
+    def closeEvent(self, *args):
+        self.deleteLater()
+        self.father.updateLegend()
+
+    def applyAndClose(self):
+        self.closeEvent()
+
+    def cancelAndClose(self):
+        self.line.set_color(self.backupColor)
+        self.line.set_linewidth(self.backupLineWidth)
+        self.line.set_linestyle(self.backupLineStyle)
         self.closeEvent()
