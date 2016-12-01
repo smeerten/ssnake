@@ -419,11 +419,11 @@ class IntegralsFrame(Plot1DFrame):
             axMult = 1000.0**self.current.axType
         self.line_xdata = self.xax * axMult
         self.line_ydata = self.data1D
-        a.plot(self.xax * axMult, self.data1D, c=self.current.color, linewidth=self.current.linewidth, label=self.current.data.name)
+        a.plot(self.xax * axMult, self.data1D, c=self.current.color, linewidth=self.current.linewidth, label=self.current.data.name, picker=True)
         if tmpAx is not None:
-            a.plot(tmpAx * axMult, tmpdata, c='g')
+            a.plot(tmpAx * axMult, tmpdata, c='g', picker=True)
         for i in range(len(tmpAx2)):
-            a.plot(tmpAx2[i] * axMult, tmpdata2[i])
+            a.plot(tmpAx2[i] * axMult, tmpdata2[i], picker=True)
         if self.spec == 0:
             if self.current.axType == 0:
                 a.set_xlabel('Time [s]')
@@ -803,8 +803,8 @@ class RelaxFrame(Plot1DFrame):
         elif self.spec == 0:
             axMult = 1000.0**self.axType
         if tmpAx is not None:
-            self.ax.plot(tmpAx * axMult, tmpdata, c=self.current.color, linewidth=self.current.linewidth, label=self.current.data.name)
-        self.ax.scatter(self.xax * axMult, self.data1D, c=self.current.color, linewidth=self.current.linewidth, label=self.current.data.name)
+            self.ax.plot(tmpAx * axMult, tmpdata, c=self.current.color, linewidth=self.current.linewidth, label=self.current.data.name, picker=True)
+        self.ax.plot(self.xax * axMult, self.data1D, marker='o', linestyle='none', c=self.current.color, linewidth=self.current.linewidth, label=self.current.data.name, picker=True)
         if self.logx == 0:
             self.ax.set_xscale('linear')
         else:
@@ -1522,8 +1522,8 @@ class DiffusionFrame(Plot1DFrame):
         elif self.spec == 0:
             axMult = 1000.0**self.axType
         if tmpAx is not None:
-            self.ax.plot(tmpAx * axMult, tmpdata, c=self.current.color, linewidth=self.current.linewidth, label=self.current.data.name)
-        self.ax.scatter(self.xax * axMult, self.data1D, c=self.current.color, linewidth=self.current.linewidth, label=self.current.data.name)
+            self.ax.plot(tmpAx * axMult, tmpdata, c=self.current.color, linewidth=self.current.linewidth, label=self.current.data.name, picker=True)
+        self.ax.plot(self.xax * axMult, self.data1D, marker='o', linestyle='none', c=self.current.color, linewidth=self.current.linewidth, label=self.current.data.name, picker=True)
         if self.logx == 0:
             self.ax.set_xscale('linear')
         else:
@@ -2297,11 +2297,11 @@ class PeakDeconvFrame(Plot1DFrame):
             axMult = 1000.0**self.current.axType
         self.line_xdata = self.xax * axMult
         self.line_ydata = self.data1D
-        a.plot(self.xax * axMult, self.data1D, c=self.current.color, linewidth=self.current.linewidth, label=self.current.data.name)
+        a.plot(self.xax * axMult, self.data1D, c=self.current.color, linewidth=self.current.linewidth, label=self.current.data.name, picker=True)
         if tmpAx is not None:
-            a.plot(tmpAx * axMult, tmpdata)
+            a.plot(tmpAx * axMult, tmpdata, picker=True)
         for i in range(len(tmpAx2)):
-            a.plot(tmpAx2[i] * axMult, tmpdata2[i])
+            a.plot(tmpAx2[i] * axMult, tmpdata2[i], picker=True)
         if self.spec == 0:
             if self.current.axType == 0:
                 a.set_xlabel('Time [s]')
@@ -3016,11 +3016,11 @@ class TensorDeconvFrame(Plot1DFrame):
         self.ax.cla()
         self.line_xdata = self.xax
         self.line_ydata = self.data1D
-        self.ax.plot(self.xax, self.data1D, c=self.current.color, linewidth=self.current.linewidth, label=self.current.data.name)
+        self.ax.plot(self.xax, self.data1D, c=self.current.color, linewidth=self.current.linewidth, label=self.current.data.name, picker=True)
         if tmpAx is not None:
-            self.ax.plot(tmpAx, tmpdata)
+            self.ax.plot(tmpAx, tmpdata, picker=True)
         for i in range(len(tmpAx2)):
-            self.ax.plot(tmpAx2[i], tmpdata2[i])
+            self.ax.plot(tmpAx2[i], tmpdata2[i], picker=True)
         if self.spec == 0:
             if self.current.axType == 0:
                 self.ax.set_xlabel('Time [s]')
@@ -3977,11 +3977,11 @@ class HerzfeldBergerFrame(Plot1DFrame):
         self.ax.cla()
         self.line_xdata = self.xax
         self.line_ydata = self.data1D
-        self.ax.plot(self.xax, self.data1D, c=self.current.color, linewidth=self.current.linewidth, label=self.current.data.name)
+        self.ax.plot(self.xax, self.data1D, c=self.current.color, linewidth=self.current.linewidth, label=self.current.data.name, picker=True)
         if tmpAx is not None:
-            self.ax.plot(tmpAx, tmpdata)
+            self.ax.plot(tmpAx, tmpdata, picker=True)
         for i in range(len(tmpAx2)):
-            self.ax.plot(tmpAx2[i], tmpdata2[i])
+            self.ax.plot(tmpAx2[i], tmpdata2[i], picker=True)
         if self.spec == 0:
             if self.current.axType == 0:
                 self.ax.set_xlabel('Time [s]')
@@ -4428,11 +4428,11 @@ class Quad1MASDeconvFrame(Plot1DFrame):
         self.ax.cla()
         self.line_xdata = self.xax
         self.line_ydata = self.data1D
-        self.ax.plot(self.xax, self.data1D, c=self.current.color, linewidth=self.current.linewidth, label=self.current.data.name)
+        self.ax.plot(self.xax, self.data1D, c=self.current.color, linewidth=self.current.linewidth, label=self.current.data.name, picker=True)
         if tmpAx is not None:
-            self.ax.plot(tmpAx, tmpdata)
+            self.ax.plot(tmpAx, tmpdata, picker=True)
         for i in range(len(tmpAx2)):
-            self.ax.plot(tmpAx2[i], tmpdata2[i])
+            self.ax.plot(tmpAx2[i], tmpdata2[i], picker=True)
         if self.spec == 0:
             if self.current.axType == 0:
                 self.ax.set_xlabel('Time [s]')
@@ -4924,11 +4924,11 @@ class Quad1DeconvFrame(Plot1DFrame):
             axMult = 1000.0**self.current.axType
         self.line_xdata = self.xax * axMult
         self.line_ydata = self.data1D
-        self.ax.plot(self.xax * axMult, self.data1D, c=self.current.color, linewidth=self.current.linewidth, label=self.current.data.name)
+        self.ax.plot(self.xax * axMult, self.data1D, c=self.current.color, linewidth=self.current.linewidth, label=self.current.data.name, picker=True)
         if tmpAx is not None:
-            self.ax.plot(tmpAx * axMult, tmpdata)
+            self.ax.plot(tmpAx * axMult, tmpdata, picker=True)
         for i in range(len(tmpAx2)):
-            self.ax.plot(tmpAx2[i] * axMult, tmpdata2[i])
+            self.ax.plot(tmpAx2[i] * axMult, tmpdata2[i], picker=True)
         if self.spec == 0:
             if self.current.axType == 0:
                 self.ax.set_xlabel('Time [s]')

@@ -2210,54 +2210,54 @@ class Current1D(Plot1DFrame):
         if old:
             if (self.plotType == 0):
                 if self.single:
-                    self.ax.scatter(self.line_xdata, np.real(self.data1D), c='k', alpha=0.2, label=self.data.name + '_old', picker=True)
+                    self.ax.plot(self.line_xdata, np.real(self.data1D), marker='o', linestyle='none', c='k', alpha=0.2, label=self.data.name + '_old', picker=True)
                 else:
                     self.ax.plot(self.line_xdata, np.real(self.data1D), c='k', alpha=0.2, linewidth=self.linewidth, label=self.data.name + '_old', picker=True)
             elif(self.plotType == 1):
                 if self.single:
-                    self.ax.scatter(self.line_xdata, np.imag(self.data1D), c='k', alpha=0.2, label=self.data.name + '_old', picker=True)
+                    self.ax.plot(self.line_xdata, np.imag(self.data1D), marker='o', linestyle='none', c='k', alpha=0.2, label=self.data.name + '_old', picker=True)
                 else:
                     self.ax.plot(self.line_xdata, np.imag(self.data1D), c='k', alpha=0.2, linewidth=self.linewidth, label=self.data.name + '_old', picker=True)
             elif(self.plotType == 2):
                 if self.single:
-                    self.ax.scatter(self.line_xdata, np.real(self.data1D), c='k', alpha=0.2, label=self.data.name + '_old', picker=True)
+                    self.ax.plot(self.line_xdata, np.real(self.data1D), marker='o', linestyle='none', c='k', alpha=0.2, label=self.data.name + '_old', picker=True)
                 else:
                     self.ax.plot(self.line_xdata, np.real(self.data1D), c='k', alpha=0.2, linewidth=self.linewidth, label=self.data.name + '_old', picker=True)
             elif(self.plotType == 3):
                 if self.single:
-                    self.ax.scatter(self.line_xdata, np.abs(self.data1D), c='k', alpha=0.2, label=self.data.name + '_old', picker=True)
+                    self.ax.plot(self.line_xdata, np.abs(self.data1D), marker='o', linestyle='none', c='k', alpha=0.2, label=self.data.name + '_old', picker=True)
                 else:
                     self.ax.plot(self.line_xdata, np.abs(self.data1D), c='k', alpha=0.2, linewidth=self.linewidth, label=self.data.name + '_old', picker=True)
         if (extraX is not None):
             for num in range(len(extraX)):
                 if self.single:
-                    self.ax.scatter(extraX[num] * axMult, extraY[num], c=extraColor[num], picker=True)
+                    self.ax.plot(extraX[num] * axMult, extraY[num], marker='o', linestyle='none', c=extraColor[num], picker=True)
                 else:
                     self.ax.plot(extraX[num] * axMult, extraY[num], c=extraColor[num], linewidth=self.linewidth, picker=True)
         if (self.plotType == 0):
             self.line_ydata = np.real(tmpdata)
             if self.single:
-                self.ax.scatter(self.line_xdata, np.real(tmpdata), c=self.color, label=self.data.name, picker=True)
+                self.ax.plot(self.line_xdata, np.real(tmpdata), marker='o', linestyle='none', c=self.color, label=self.data.name, picker=True)
             else:
                 self.ax.plot(self.line_xdata, np.real(tmpdata), c=self.color, linewidth=self.linewidth, label=self.data.name, picker=True)
         elif(self.plotType == 1):
             self.line_ydata = np.imag(tmpdata)
             if self.single:
-                self.ax.scatter(self.line_xdata, np.imag(tmpdata), c=self.color, label=self.data.name, picker=True)
+                self.ax.plot(self.line_xdata, np.imag(tmpdata), marker='o', linestyle='none', c=self.color, label=self.data.name, picker=True)
             else:
                 self.ax.plot(self.line_xdata, np.imag(tmpdata), c=self.color, linewidth=self.linewidth, label=self.data.name, picker=True)
         elif(self.plotType == 2):
             self.line_ydata = np.real(tmpdata)
             if self.single:
-                self.ax.scatter(self.line_xdata, np.imag(tmpdata), c='r', label=self.data.name + '_imag', picker=True)
-                self.ax.scatter(self.line_xdata, np.real(tmpdata), c=self.color, label=self.data.name, picker=True)
+                self.ax.plot(self.line_xdata, np.imag(tmpdata), marker='o', linestyle='none', c='r', label=self.data.name + '_imag', picker=True)
+                self.ax.plot(self.line_xdata, np.real(tmpdata), marker='o', linestyle='none', c=self.color, label=self.data.name, picker=True)
             else:
                 self.ax.plot(self.line_xdata, np.imag(tmpdata), c='r', linewidth=self.linewidth, label=self.data.name + '_imag', picker=True)
                 self.ax.plot(self.line_xdata, np.real(tmpdata), c=self.color, linewidth=self.linewidth, label=self.data.name, picker=True)
         elif(self.plotType == 3):
             self.line_ydata = np.abs(tmpdata)
             if self.single:
-                self.ax.scatter(self.line_xdata, np.abs(tmpdata), c=self.color, label=self.data.name, picker=True)
+                self.ax.plot(self.line_xdata, np.abs(tmpdata), marker='o', linestyle='none', c=self.color, label=self.data.name, picker=True)
             else:
                 self.ax.plot(self.line_xdata, np.abs(tmpdata), c=self.color, linewidth=self.linewidth, label=self.data.name, picker=True)
         if self.spec == 0:
@@ -2357,29 +2357,29 @@ class CurrentScatter(Current1D):
         self.line_xdata = self.xax * axMult
         if old:
             if (self.plotType == 0):
-                self.ax.scatter(self.line_xdata, np.real(self.data1D), c='k', alpha=0.2, label=self.data.name + '_old')
+                self.ax.plot(self.line_xdata, np.real(self.data1D), marker='o', linestyle='none', c='k', alpha=0.2, label=self.data.name + '_old', picker=True)
             elif(self.plotType == 1):
-                self.ax.scatter(self.line_xdata, np.imag(self.data1D), c='k', alpha=0.2, label=self.data.name + '_old')
+                self.ax.plot(self.line_xdata, np.imag(self.data1D), marker='o', linestyle='none', c='k', alpha=0.2, label=self.data.name + '_old', picker=True)
             elif(self.plotType == 2):
-                self.ax.scatter(self.line_xdata, np.real(self.data1D), c='k', alpha=0.2, label=self.data.name + '_old')
+                self.ax.plot(self.line_xdata, np.real(self.data1D), marker='o', linestyle='none', c='k', alpha=0.2, label=self.data.name + '_old', picker=True)
             elif(self.plotType == 3):
-                self.ax.scatter(self.line_xdata, np.abs(self.data1D), c='k', alpha=0.2, label=self.data.name + '_old')
+                self.ax.plot(self.line_xdata, np.abs(self.data1D), marker='o', linestyle='none', c='k', alpha=0.2, label=self.data.name + '_old', picker=True)
         if (extraX is not None):
             for num in range(len(extraX)):
-                self.ax.scatter(extraX[num] * axMult, extraY[num], c=extraColor[num])
+                self.ax.plot(extraX[num] * axMult, extraY[num], marker='o', linestyle='none', c=extraColor[num])
         if (self.plotType == 0):
             self.line_ydata = np.real(tmpdata)
-            self.ax.scatter(self.line_xdata, np.real(tmpdata), c=self.color, label=self.data.name)
+            self.ax.plot(self.line_xdata, np.real(tmpdata), marker='o', linestyle='none', c=self.color, label=self.data.name, picker=True)
         elif(self.plotType == 1):
             self.line_ydata = np.imag(tmpdata)
-            self.ax.scatter(self.line_xdata, np.imag(tmpdata), c=self.color, label=self.data.name)
+            self.ax.plot(self.line_xdata, np.imag(tmpdata), marker='o', linestyle='none', c=self.color, label=self.data.name, picker=True)
         elif(self.plotType == 2):
             self.line_ydata = np.real(tmpdata)
-            self.ax.scatter(self.line_xdata, np.imag(tmpdata), c='r', label=self.data.name + '_imag')
-            self.ax.scatter(self.line_xdata, np.real(tmpdata), c=self.color, label=self.data.name)
+            self.ax.plot(self.line_xdata, np.imag(tmpdata), marker='o', linestyle='none', c='r', label=self.data.name + '_imag', picker=True)
+            self.ax.plot(self.line_xdata, np.real(tmpdata), marker='o', linestyle='none', c=self.color, label=self.data.name, picker=True)
         elif(self.plotType == 3):
             self.line_ydata = np.abs(tmpdata)
-            self.ax.scatter(self.line_xdata, np.abs(tmpdata), c=self.color, label=self.data.name)
+            self.ax.plot(self.line_xdata, np.abs(tmpdata), marker='o', linestyle='none', c=self.color, label=self.data.name, picker=True)
         if self.spec == 0:
             if self.axType == 0:
                 self.ax.set_xlabel('Time [s]')
@@ -2614,22 +2614,22 @@ class CurrentMulti(Current1D):
             line_xdata = xax * axMult
             if (self.plotType == 0):
                 if len(data1D) == 1:
-                    self.ax.scatter(line_xdata, np.real(data1D) * self.extraScale[i] + self.extraOffset[i], c=self.extraColor[i], label=data.name, picker=True)
+                    self.ax.plot(line_xdata, np.real(data1D) * self.extraScale[i] + self.extraOffset[i], marker='o', linestyle='none', c=self.extraColor[i], label=data.name, picker=True)
                 else:
                     self.ax.plot(line_xdata, np.real(data1D) * self.extraScale[i] + self.extraOffset[i], c=self.extraColor[i], linewidth=self.linewidth, label=data.name, picker=True)
             elif(self.plotType == 1):
                 if len(data1D) == 1:
-                    self.ax.scatter(line_xdata, np.imag(data1D) * self.extraScale[i] + self.extraOffset[i], c=self.extraColor[i], label=data.name, picker=True)
+                    self.ax.plot(line_xdata, np.imag(data1D) * self.extraScale[i] + self.extraOffset[i], marker='o', linestyle='none', c=self.extraColor[i], label=data.name, picker=True)
                 else:
                     self.ax.plot(line_xdata, np.imag(data1D) * self.extraScale[i] + self.extraOffset[i], c=self.extraColor[i], linewidth=self.linewidth, label=data.name, picker=True)
             elif(self.plotType == 2):
                 if len(data1D) == 1:
-                    self.ax.scatter(line_xdata, np.real(data1D) * self.extraScale[i] + self.extraOffset[i], c=self.extraColor[i], label=data.name, picker=True)
+                    self.ax.plot(line_xdata, np.real(data1D) * self.extraScale[i] + self.extraOffset[i], marker='o', linestyle='none', c=self.extraColor[i], label=data.name, picker=True)
                 else:
                     self.ax.plot(line_xdata, np.real(data1D) * self.extraScale[i] + self.extraOffset[i], c=self.extraColor[i], linewidth=self.linewidth, label=data.name, picker=True)
             elif(self.plotType == 3):
                 if len(data1D) == 1:
-                    self.ax.scatter(line_xdata, np.abs(data1D) * self.extraScale[i] + self.extraOffset[i], c=self.extraColor[i], label=data.name, picker=True)
+                    self.ax.plot(line_xdata, np.abs(data1D) * self.extraScale[i] + self.extraOffset[i], marker='o', linestyle='none', c=self.extraColor[i], label=data.name, picker=True)
                 else:
                     self.ax.plot(line_xdata, np.abs(data1D) * self.extraScale[i] + self.extraOffset[i], c=self.extraColor[i], linewidth=self.linewidth, label=data.name, picker=True)
         if tmpdata is None:
@@ -2645,54 +2645,54 @@ class CurrentMulti(Current1D):
         if old:
             if (self.plotType == 0):
                 if self.single:
-                    self.ax.scatter(self.line_xdata, np.real(self.data1D), c='k', alpha=0.2, label=self.data.name + '_old', picker=True)
+                    self.ax.plot(self.line_xdata, np.real(self.data1D), marker='o', linestyle='none', c='k', alpha=0.2, label=self.data.name + '_old', picker=True)
                 else:
                     self.ax.plot(self.line_xdata, np.real(self.data1D), c='k', alpha=0.2, linewidth=self.linewidth, label=self.data.name + '_old', picker=True)
             elif(self.plotType == 1):
                 if self.single:
-                    self.ax.scatter(self.line_xdata, np.imag(self.data1D), c='k', alpha=0.2, label=self.data.name + '_old', picker=True)
+                    self.ax.plot(self.line_xdata, np.imag(self.data1D), marker='o', linestyle='none', c='k', alpha=0.2, label=self.data.name + '_old', picker=True)
                 else:
                     self.ax.plot(self.line_xdata, np.imag(self.data1D), c='k', alpha=0.2, linewidth=self.linewidth, label=self.data.name + '_old', picker=True)
             elif(self.plotType == 2):
                 if self.single:
-                    self.ax.scatter(self.line_xdata, np.real(self.data1D), c='k', alpha=0.2, label=self.data.name + '_old', picker=True)
+                    self.ax.plot(self.line_xdata, np.real(self.data1D), marker='o', linestyle='none', c='k', alpha=0.2, label=self.data.name + '_old', picker=True)
                 else:
                     self.ax.plot(self.line_xdata, np.real(self.data1D), c='k', alpha=0.2, linewidth=self.linewidth, label=self.data.name + '_old', picker=True)
             elif(self.plotType == 3):
                 if self.single:
-                    self.ax.scatter(self.line_xdata, np.abs(self.data1D), c='k', alpha=0.2, label=self.data.name + '_old', picker=True)
+                    self.ax.plot(self.line_xdata, np.abs(self.data1D), marker='o', linestyle='none', c='k', alpha=0.2, label=self.data.name + '_old', picker=True)
                 else:
                     self.ax.plot(self.line_xdata, np.abs(self.data1D), c='k', alpha=0.2, linewidth=self.linewidth, label=self.data.name + '_old', picker=True)
         if (extraX is not None):
             for num in range(len(extraX)):
                 if self.single:
-                    self.ax.scatter(extraX[num] * axMult, extraY[num], c=extraColor[num], picker=True)
+                    self.ax.plot(extraX[num] * axMult, extraY[num], marker='o', linestyle='none', c=extraColor[num], picker=True)
                 else:
                     self.ax.plot(extraX[num] * axMult, extraY[num], linewidth=self.linewidth, c=extraColor[num], picker=True)
         if (self.plotType == 0):
             self.line_ydata = np.real(tmpdata)
             if self.single:
-                self.ax.scatter(self.line_xdata, np.real(tmpdata), c=self.color, label=self.data.name, picker=True)
+                self.ax.plot(self.line_xdata, np.real(tmpdata), marker='o', linestyle='none', c=self.color, label=self.data.name, picker=True)
             else:
                 self.ax.plot(self.line_xdata, np.real(tmpdata), c=self.color, linewidth=self.linewidth, label=self.data.name, picker=True)
         elif(self.plotType == 1):
             self.line_ydata = np.imag(tmpdata)
             if self.single:
-                self.ax.scatter(self.line_xdata, np.imag(tmpdata), c=self.color, label=self.data.name, picker=True)
+                self.ax.plot(self.line_xdata, np.imag(tmpdata), marker='o', linestyle='none', c=self.color, label=self.data.name, picker=True)
             else:
                 self.ax.plot(self.line_xdata, np.imag(tmpdata), c=self.color, linewidth=self.linewidth, label=self.data.name, picker=True)
         elif(self.plotType == 2):
             self.line_ydata = np.real(tmpdata)
             if self.single:
-                self.ax.scatter(self.line_xdata, np.imag(tmpdata), c='r', label=self.data.name + '_imag', picker=True)
-                self.ax.scatter(self.line_xdata, np.real(tmpdata), c=self.color, label=self.data.name, picker=True)
+                self.ax.plot(self.line_xdata, np.imag(tmpdata), marker='o', linestyle='none', c='r', label=self.data.name + '_imag', picker=True)
+                self.ax.plot(self.line_xdata, np.real(tmpdata), marker='o', linestyle='none', c=self.color, label=self.data.name, picker=True)
             else:
                 self.ax.plot(self.line_xdata, np.imag(tmpdata), c='r', linewidth=self.linewidth, label=self.data.name + '_imag', picker=True)
                 self.ax.plot(self.line_xdata, np.real(tmpdata), c=self.color, linewidth=self.linewidth, label=self.data.name, picker=True)
         elif(self.plotType == 3):
             self.line_ydata = np.abs(tmpdata)
             if self.single:
-                self.ax.scatter(self.line_xdata, np.abs(tmpdata), c=self.color, label=self.data.name, picker=True)
+                self.ax.plot(self.line_xdata, np.abs(tmpdata), marker='o', linestyle='none', c=self.color, label=self.data.name, picker=True)
             else:
                 self.ax.plot(self.line_xdata, np.abs(tmpdata), c=self.color, linewidth=self.linewidth, label=self.data.name, picker=True)
         if self.spec == 0:
@@ -2970,31 +2970,31 @@ class CurrentStacked(Current1D):
             if (self.plotType == 0):
                 for num in range(len(self.data1D)):
                     if self.single:
-                        self.ax.scatter(self.line_xdata, num * self.spacing + np.real(self.data1D[num]), c='k', alpha=0.2, label=self.data.name + '_old', picker=True)
+                        self.ax.plot(self.line_xdata, num * self.spacing + np.real(self.data1D[num]), marker='o', linestyle='none', c='k', alpha=0.2, label=self.data.name + '_old', picker=True)
                     else:
                         self.ax.plot(self.line_xdata, num * self.spacing + np.real(self.data1D[num]), c='k', alpha=0.2, linewidth=self.linewidth, label=self.data.name + '_old', picker=True)
             elif(self.plotType == 1):
                 for num in range(len(self.data1D)):
                     if self.single:
-                        self.ax.scatter(self.line_xdata, num * self.spacing + np.imag(self.data1D[num]), c='k', alpha=0.2, label=self.data.name + '_old', picker=True)
+                        self.ax.plot(self.line_xdata, num * self.spacing + np.imag(self.data1D[num]), marker='o', linestyle='none', c='k', alpha=0.2, label=self.data.name + '_old', picker=True)
                     else:
                         self.ax.plot(self.line_xdata, num * self.spacing + np.imag(self.data1D[num]), c='k', alpha=0.2, linewidth=self.linewidth, label=self.data.name + '_old', picker=True)
             elif(self.plotType == 2):
                 for num in range(len(self.data1D)):
                     if self.single:
-                        self.ax.scatter(self.line_xdata, num * self.spacing + np.real(self.data1D[num]), c='k', alpha=0.2, label=self.data.name + '_old', picker=True)
+                        self.ax.plot(self.line_xdata, num * self.spacing + np.real(self.data1D[num]), marker='o', linestyle='none', c='k', alpha=0.2, label=self.data.name + '_old', picker=True)
                     else:
                         self.ax.plot(self.line_xdata, num * self.spacing + np.real(self.data1D[num]), c='k', alpha=0.2, linewidth=self.linewidth, label=self.data.name + '_old', picker=True)
             elif(self.plotType == 3):
                 for num in range(len(self.data1D)):
                     if self.single:
-                        self.ax.scatter(self.line_xdata, num * self.spacing + np.abs(self.data1D[num]), c='k', alpha=0.2, label=self.data.name + '_old', picker=True)
+                        self.ax.plot(self.line_xdata, num * self.spacing + np.abs(self.data1D[num]), marker='o', linestyle='none', c='k', alpha=0.2, label=self.data.name + '_old', picker=True)
                     else:
                         self.ax.plot(self.line_xdata, num * self.spacing + np.abs(self.data1D[num]), c='k', alpha=0.2, linewidth=self.linewidth, label=self.data.name + '_old', picker=True)
         if (extraX is not None):
             for num in range(len(extraY)):
                 if self.single:
-                    self.ax.scatter(extraX[0] * axMult, num * self.spacing + extraY[num], c=extraColor[0], picker=True)
+                    self.ax.plot(extraX[0] * axMult, num * self.spacing + extraY[num], marker='o', linestyle='none', c=extraColor[0], picker=True)
                 else:
                     self.ax.plot(extraX[0] * axMult, num * self.spacing + extraY[num], linewidth=self.linewidth, c=extraColor[0], picker=True)
         if (self.plotType == 0):
@@ -3007,8 +3007,8 @@ class CurrentStacked(Current1D):
         if self.single:
             for num in range(len(tmpdata)):
                 if (self.plotType == 2):
-                    self.ax.scatter(self.line_xdata, num * self.spacing + np.imag(tmpdata[num]), c='r', label=self.data.name + '_imag', picker=True)
-                self.ax.scatter(self.line_xdata, num * self.spacing + np.real(tmpdata[num]), c=self.color, label=self.data.name, picker=True)
+                    self.ax.plot(self.line_xdata, num * self.spacing + np.imag(tmpdata[num]), marker='o', linestyle='none', c='r', label=self.data.name + '_imag', picker=True)
+                self.ax.plot(self.line_xdata, num * self.spacing + np.real(tmpdata[num]), marker='o', linestyle='none', c=self.color, label=self.data.name, picker=True)
         else:
             for num in range(len(tmpdata)):
                 if (self.plotType == 2):
@@ -3337,14 +3337,14 @@ class CurrentArrayed(Current1D):
                 oldData = np.abs(self.data1D)
             for num in range(len(self.data1D)):
                 if self.single:
-                    self.ax.scatter((num * self.spacing + self.xax[xaxZlims]) * axMult, oldData[num][xaxZlims][direc], c='k', alpha=0.2, label=self.data.name + '_old', picker=True)
+                    self.ax.plot((num * self.spacing + self.xax[xaxZlims]) * axMult, oldData[num][xaxZlims][direc], marker='o', linestyle='none', c='k', alpha=0.2, label=self.data.name + '_old', picker=True)
                 else:
                     self.ax.plot((num * self.spacing + self.xax[xaxZlims]) * axMult, oldData[num][xaxZlims][direc], c='k', alpha=0.2, linewidth=self.linewidth, label=self.data.name + '_old', picker=True)
         if (extraX is not None):
             extraZlims = (extraX[0] > self.zminlim) & (extraX[0] < self.zmaxlim)
             for num in range(len(extraY)):
                 if self.single:
-                    self.ax.scatter((num * self.spacing + extraX[0][extraZlims]) * axMult, extraY[num][extraZlims][direc], c=extraColor[0], picker=True)
+                    self.ax.plot((num * self.spacing + extraX[0][extraZlims]) * axMult, extraY[num][extraZlims][direc], marker='o', linestyle='none', c=extraColor[0], picker=True)
                 else:
                     self.ax.plot((num * self.spacing + extraX[0][extraZlims]) * axMult, extraY[num][extraZlims][direc], linewidth=self.linewidth, c=extraColor[0], picker=True)
         if (self.plotType == 0):
@@ -3358,10 +3358,10 @@ class CurrentArrayed(Current1D):
         if self.single:
             for num in range(len(tmpdata)):
                 if (self.plotType == 2):
-                    self.ax.scatter((num * self.spacing + self.xax[xaxZlims]) * axMult, np.imag(tmpdata[num][xaxZlims])[direc], c='r', label=self.data.name + '_imag', picker=True)
+                    self.ax.plot((num * self.spacing + self.xax[xaxZlims]) * axMult, np.imag(tmpdata[num][xaxZlims])[direc], marker='o', linestyle='none', c='r', label=self.data.name + '_imag', picker=True)
                 self.line_xdata = np.append(self.line_xdata, (num * self.spacing + self.xax[xaxZlims]) * axMult)
                 self.line_ydata = np.append(self.line_ydata, np.real(tmpdata[num][xaxZlims])[direc])
-                self.ax.scatter((num * self.spacing + self.xax[xaxZlims]) * axMult, np.real(tmpdata[num][xaxZlims])[direc], c=self.color, label=self.data.name, picker=True)
+                self.ax.plot((num * self.spacing + self.xax[xaxZlims]) * axMult, np.real(tmpdata[num][xaxZlims])[direc], marker='o', linestyle='none', c=self.color, label=self.data.name, picker=True)
         else:
             for num in range(len(tmpdata)):
                 if (self.plotType == 2):

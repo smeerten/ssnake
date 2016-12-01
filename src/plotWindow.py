@@ -235,7 +235,7 @@ class MainPlotWindow(QtWidgets.QWidget):
     def pickHandler(self, pickEvent):
         if pickEvent.mouseevent.dblclick and (pickEvent.mouseevent.button == 1):
             if isinstance(pickEvent.artist, matplotlib.lines.Line2D):
-                EditLineWindow(self, pickEvent.artist, self.canvas)
+                EditLineWindow(self, pickEvent.artist)
         
     def exFile(self):
         warning_msg = "This is an advanced feature. Do not execute files you haven't inspected yourself. Are you sure you want to continue?"
@@ -400,49 +400,108 @@ class LegendWindow(QtWidgets.QWidget):
 
 class EditLineWindow(QtWidgets.QWidget):
 
-    def __init__(self, parent, line, canvas):
+    def __init__(self, parent, line=None):
         QtWidgets.QWidget.__init__(self, parent)
         self.setWindowFlags(QtCore.Qt.Window | QtCore.Qt.Tool)
         self.father = parent
-        self.line = line
-        self.canvas = canvas
+        self.canvas = self.father.canvas
+        self.ax = self.father.ax
+        self.lineList = self.ax.lines
+        if line is None:
+            self.line = line[0]
+        else:
+            self.line = line
         self.setWindowTitle("Line")
         layout = QtWidgets.QGridLayout(self)
         grid = QtWidgets.QGridLayout()
-        layout.addLayout(grid, 0, 0, 1, 2)
-        grid.addWidget(QLabel("Line:"), 0, 0)
-        self.backupColor = self.line.get_color()
+        layout.addLayout(grid, 0, 0, 1, 2)        
+        grid.addWidget(QLabel("Index:"), 0, 0)
+        self.indexSpinBox = QtWidgets.QSpinBox()
+        self.indexSpinBox.setMaximum(len(self.lineList)-1)
+        self.indexSpinBox.valueChanged.connect(self.setIndex)
+        self.indexSpinBox.setValue(self.lineList.index(self.line))
+        grid.addWidget(self.indexSpinBox, 1, 0)
+        grid.addWidget(QLabel("Line:"), 2, 0)
         colorbutton = QtWidgets.QPushButton("Color", self)
         colorbutton.clicked.connect(self.setColor)
-        grid.addWidget(colorbutton, 1, 0)
-        grid.addWidget(QLabel("Linewidth:"), 2, 0)
-        self.backupLineWidth = self.line.get_linewidth()
+        grid.addWidget(colorbutton, 3, 0)
+        grid.addWidget(QLabel("Linewidth:"), 4, 0)
         self.lwSpinBox = QtWidgets.QDoubleSpinBox()
         self.lwSpinBox.setSingleStep(0.1)
-        self.lwSpinBox.setValue(self.backupLineWidth)
         self.lwSpinBox.valueChanged.connect(self.setLineWidth)
-        grid.addWidget(self.lwSpinBox, 3, 0)
-        grid.addWidget(QLabel("Linestyle:"), 4, 0)
-        self.LINESTYLES = ['solid', 'dashed', 'dashdot', 'dotted']
-        self.backupLineStyle = self.line.get_linestyle()
+        grid.addWidget(self.lwSpinBox, 5, 0)
+        grid.addWidget(QLabel("Linestyle:"), 6, 0)
+        self.LINESTYLES = ['-', '--', '-.', ':', 'None']
+        self.LINENAMES = ['solid', 'dashed', 'dashdot', 'dotted', 'none']
         self.lineDrop = QtWidgets.QComboBox()
-        self.lineDrop.addItems(self.LINESTYLES)
+        self.lineDrop.addItems(self.LINENAMES)
         self.lineDrop.activated.connect(self.setLineStyle)
-        grid.addWidget(self.lineDrop, 5, 0)
+        grid.addWidget(self.lineDrop, 7, 0)
+        grid.addWidget(QLabel("Marker:"), 8, 0)
+        self.MARKERSTYLES = ['o', 'v', '^', '<', '>', '1', '2', '3', '4', '8', 's', 'p', '*', 'h', '+', 'x', 'd', 'None']
+        self.MARKERNAMES = ['circle', 'triangle down', 'triangle up', 'triangle left', 'triangle right', 'tri up', 'tri down', 'tri left', 'tri right', 'octagon', 'square', 'pentagon', 'star', 'hexagon', 'plus', 'x', 'diamond', 'none']
+        self.markerDrop = QtWidgets.QComboBox()
+        self.markerDrop.addItems(self.MARKERNAMES)
+        self.markerDrop.activated.connect(self.setMarker)
+        grid.addWidget(self.markerDrop, 9, 0)
+        colorbutton = QtWidgets.QPushButton("Facecolor", self)
+        colorbutton.clicked.connect(self.setFaceColor)
+        grid.addWidget(colorbutton, 10, 0)
+        colorbutton = QtWidgets.QPushButton("Edgecolor", self)
+        colorbutton.clicked.connect(self.setEdgeColor)
+        grid.addWidget(colorbutton, 11, 0)
+        grid.addWidget(QLabel("Markersize:"), 12, 0)
+        self.msSpinBox = QtWidgets.QDoubleSpinBox()
+        self.msSpinBox.setSingleStep(0.1)
+        self.msSpinBox.valueChanged.connect(self.setMarkerSize)
+        grid.addWidget(self.msSpinBox, 13, 0)
 
-        cancelButton = QtWidgets.QPushButton("&Cancel")
+        cancelButton = QtWidgets.QPushButton("&Close")
         cancelButton.clicked.connect(self.cancelAndClose)
         layout.addWidget(cancelButton, 1, 0)
-        okButton = QtWidgets.QPushButton("&Ok")
-        okButton.clicked.connect(self.applyAndClose)
+        okButton = QtWidgets.QPushButton("&Apply")
+        okButton.clicked.connect(self.apply)
         layout.addWidget(okButton, 1, 1)
+        self.setup()
         self.show()
 
+    def setup(self):
+        self.backupColor = self.line.get_color()
+        self.backupLineWidth = self.line.get_linewidth()
+        self.lwSpinBox.setValue(self.backupLineWidth)
+        self.backupLineStyle = self.line.get_linestyle()
+        self.lineDrop.setCurrentIndex(self.LINESTYLES.index(self.backupLineStyle))
+        self.backupMarker = self.line.get_marker()
+        self.markerDrop.setCurrentIndex(self.MARKERSTYLES.index(self.backupMarker))
+        self.backupFaceColor = self.line.get_markerfacecolor()
+        self.backupEdgeColor = self.line.get_markeredgecolor()
+        self.backupMarkerSize = self.line.get_markersize()
+        self.msSpinBox.setValue(self.backupMarkerSize)
+
+    def setIndex(self, val):
+        self.reset()
+        self.line = self.lineList[val]
+        self.setup()
+        
     def setColor(self, *args):
         color = QtWidgets.QColorDialog.getColor()
         if not color.isValid():
             return
         self.line.set_color(color.getRgbF())
+        self.canvas.draw()
+
+    def setEdgeColor(self, *args):
+        color = QtWidgets.QColorDialog.getColor()
+        if not color.isValid():
+            return
+        self.line.set_markeredgecolor(color.getRgbF())
+        self.canvas.draw()
+
+    def setFaceColor(self, *args):
+        color = QtWidgets.QColorDialog.getColor()
+        if not color.isValid():
+            return
+        self.line.set_markerfacecolor(color.getRgbF())
         self.canvas.draw()
 
     def setLineWidth(self, val):
@@ -452,16 +511,32 @@ class EditLineWindow(QtWidgets.QWidget):
     def setLineStyle(self, val):
         self.line.set_linestyle(self.LINESTYLES[val])
         self.canvas.draw()
+
+    def setMarker(self, val):
+        self.line.set_marker(self.MARKERSTYLES[val])
+        self.canvas.draw()
+
+    def setMarkerSize(self, val):
+        self.line.set_markersize(val)
+        self.canvas.draw()
+
+    def reset(self):
+        self.line.set_color(self.backupColor)
+        self.line.set_linewidth(self.backupLineWidth)
+        self.line.set_linestyle(self.backupLineStyle)
+        self.line.set_marker(self.backupMarker)
+        self.line.set_markeredgecolor(self.backupEdgeColor)
+        self.line.set_markerfacecolor(self.backupFaceColor)
+        self.line.set_markersize(self.backupMarkerSize)
+        self.canvas.draw()
         
     def closeEvent(self, *args):
         self.deleteLater()
         self.father.updateLegend()
 
-    def applyAndClose(self):
-        self.closeEvent()
+    def apply(self):
+        self.setup()
 
     def cancelAndClose(self):
-        self.line.set_color(self.backupColor)
-        self.line.set_linewidth(self.backupLineWidth)
-        self.line.set_linestyle(self.backupLineStyle)
+        self.reset()
         self.closeEvent()
