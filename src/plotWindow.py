@@ -25,6 +25,7 @@ except ImportError:
     from PyQt5 import QtGui, QtCore, QtWidgets
     from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 import matplotlib
+from matplotlib.colors import colorConverter
 from widgetClasses import QLabel
 from safeEval import safeEval
 import numpy as np
@@ -466,15 +467,15 @@ class EditLineWindow(QtWidgets.QWidget):
         self.show()
 
     def setup(self):
-        self.backupColor = self.line.get_color()
+        self.backupColor = colorConverter.to_rgba(self.line.get_color())
         self.backupLineWidth = self.line.get_linewidth()
         self.lwSpinBox.setValue(self.backupLineWidth)
         self.backupLineStyle = self.line.get_linestyle()
         self.lineDrop.setCurrentIndex(self.LINESTYLES.index(self.backupLineStyle))
         self.backupMarker = self.line.get_marker()
         self.markerDrop.setCurrentIndex(self.MARKERSTYLES.index(self.backupMarker))
-        self.backupFaceColor = self.line.get_markerfacecolor()
-        self.backupEdgeColor = self.line.get_markeredgecolor()
+        self.backupFaceColor = colorConverter.to_rgba(self.line.get_markerfacecolor())
+        self.backupEdgeColor = colorConverter.to_rgba(self.line.get_markeredgecolor())
         self.backupMarkerSize = self.line.get_markersize()
         self.msSpinBox.setValue(self.backupMarkerSize)
 
@@ -484,21 +485,27 @@ class EditLineWindow(QtWidgets.QWidget):
         self.setup()
         
     def setColor(self, *args):
-        color = QtWidgets.QColorDialog.getColor()
+        color = QtWidgets.QColor()
+        color.setRgbF(*self.backupColor)
+        color = QtWidgets.QColorDialog.getColor(color, self, 'Color', QtWidgets.QColorDialog.ColorDialogOption(1))
         if not color.isValid():
             return
         self.line.set_color(color.getRgbF())
         self.canvas.draw()
 
     def setEdgeColor(self, *args):
-        color = QtWidgets.QColorDialog.getColor()
+        color = QtWidgets.QColor()
+        color.setRgbF(*self.backupEdgeColor)
+        color = QtWidgets.QColorDialog.getColor(color, self, 'Edgecolor', QtWidgets.QColorDialog.ColorDialogOption(1))
         if not color.isValid():
             return
         self.line.set_markeredgecolor(color.getRgbF())
         self.canvas.draw()
 
     def setFaceColor(self, *args):
-        color = QtWidgets.QColorDialog.getColor()
+        color = QtWidgets.QColor()
+        color.setRgbF(*self.backupFaceColor)
+        color = QtWidgets.QColorDialog.getColor(color, self, 'Facecolor', QtWidgets.QColorDialog.ColorDialogOption(1))
         if not color.isValid():
             return
         self.line.set_markerfacecolor(color.getRgbF())
