@@ -5933,7 +5933,8 @@ class RefWindow(QtWidgets.QWidget):
         self.setWindowTitle("Reference")
 
         # Secondary reference definitions
-        with open("References.txt") as refFile:
+        file = os.path.dirname(os.path.realpath(__file__)) + os.path.sep + "References.txt"
+        with open(file) as refFile:
             refList = [line.strip().split('\t') for line in refFile]
         secRefNames = ["User Defined"]
         secRefValues = ["0.0"] 
