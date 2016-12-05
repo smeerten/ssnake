@@ -3481,7 +3481,11 @@ class ApodWindow(QtWidgets.QWidget):
             self.entries[num].setEnabled(True)
         else:
             self.entries[num].setEnabled(False)
-        self.apodPreview()
+        if num == 0 or num == 1: #for lorentzian and gaussian
+            if safeEval(self.entries[num].text()) != 0.0: #only update if value was not zero
+               self.apodPreview()
+        else:
+            self.apodPreview()
 
     def setLor(self, value, *args):
         if self.available:
