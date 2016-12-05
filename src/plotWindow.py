@@ -285,6 +285,12 @@ class MainPlotWindow(QtWidgets.QWidget):
             if dpi is None:
                 dpi = self.fig.dpi
             self.fig.savefig(f, format=self.fileOptions[self.filetypeEntry.currentIndex()], dpi=dpi)
+            if self.fileOptions[self.filetypeEntry.currentIndex()] == 'svg':
+                with open(f) as fd: #workarround for stroke miter limit
+                    s = fd.read()
+                with open(f, 'w') as fd:
+                    fd.write(s.replace('stroke-miterlimit:100000;', ''))
+            
             self.cancel()
 
     def cancel(self):
