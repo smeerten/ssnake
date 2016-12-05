@@ -266,7 +266,9 @@ class MainPlotWindow(QtWidgets.QWidget):
 
     def kill(self):
         for i in reversed(range(self.grid.count())):
-            self.grid.itemAt(i).widget().deleteLater()
+            item = self.grid.itemAt(i).widget()
+            if item is not None:
+                item.deleteLater()
         self.grid.deleteLater()
         self.oldMainWindow.kill()
         del self.fig
