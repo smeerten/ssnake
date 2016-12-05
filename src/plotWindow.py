@@ -25,6 +25,7 @@ except ImportError:
     from PyQt5 import QtGui, QtCore, QtWidgets
     from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 import matplotlib
+matplotlib.rc('svg', fonttype='none')
 from matplotlib.colors import colorConverter
 from widgetClasses import QLabel
 from safeEval import safeEval
