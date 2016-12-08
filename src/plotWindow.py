@@ -162,11 +162,13 @@ class MainPlotWindow(QtWidgets.QWidget):
         self.optionFrame.addWidget(self.ytickFontSizeEntry, 41, 0)
         self.legend = self.ax.legend()
         if self.legend is not None:
-            try: #If from multiplot
+            if self.oldMainWindow.current.__class__.__name__ == 'CurrentMulti': #If from multiplot
                 order = list(self.oldMainWindow.current.extraOffset)
                 order.append(0)
                 self.legendOrder = list(np.argsort(order))[::-1]
-            except:
+            elif self.oldMainWindow.current.__class__.__name__ == 'CurrentStacked' or self.oldMainWindow.current.__class__.__name__ == 'CurrentSkewed':
+                    self.legendOrder = list(np.arange(0,len(self.legend.get_texts())))[::-1]
+            else:
                 self.legendOrder = list(np.arange(0,len(self.legend.get_texts())))
             self.legend.draggable(True)
             self.legendPos = 'best'
@@ -428,8 +430,8 @@ class EditLineWindow(QtWidgets.QWidget):
         grid.addWidget(QLabel("Index:"), 0, 0)
         self.indexSpinBox = QtWidgets.QSpinBox()
         self.indexSpinBox.setMaximum(len(self.lineList)-1)
-        self.indexSpinBox.valueChanged.connect(self.setIndex)
         self.indexSpinBox.setValue(self.lineList.index(self.line))
+        self.indexSpinBox.valueChanged.connect(self.setIndex)
         grid.addWidget(self.indexSpinBox, 1, 0)
         grid.addWidget(QLabel("Line:"), 2, 0)
         colorbutton = QtWidgets.QPushButton("Color", self)
