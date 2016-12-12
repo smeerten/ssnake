@@ -1662,15 +1662,23 @@ class MainProgram(QtWidgets.QMainWindow):
             File = Files2D[0]
             sizeTD1 = int(H['nrSteps                   '])
             if 'bandwidth2                ' in H:
-                sw1 = float(H['bandwidth2                '])
+                sw1 = float(H['bandwidth2                ']) *1000
             else:
                 sw1 = 50e3
+            if  'lowestFrequency2          ' in H:   
+                lastfreq1 = float(H['lowestFrequency2          '])
+            
+                sidefreq1 = -np.floor(sizeTD1 / 2) / sizeTD1 * sw1  # freqeuency of last point on axis
+                ref1 = sidefreq1 + freq - lastfreq1
+            else:
+                ref1 = None
+            
             with open(Dir + os.path.sep + File, 'rb') as f:
                 raw = np.fromfile(f, np.float32)
             Data = raw[-2 * sizeTD2 * sizeTD1::]
             ComplexData = Data[0:Data.shape[0]:2] - 1j * Data[1:Data.shape[0]:2]
             ComplexData = ComplexData.reshape((sizeTD1, sizeTD2))
-            masterData = sc.Spectrum(name, ComplexData, (3, rememberPath), [freq] * 2, [sw1,sw], [False] * 2,ref=[None,ref], msgHandler=lambda msg: self.dispMsg(msg))
+            masterData = sc.Spectrum(name, ComplexData, (3, rememberPath), [freq] * 2, [sw1,sw], [False] * 2,ref=[ref1,ref], msgHandler=lambda msg: self.dispMsg(msg))
         elif len(Files1D) != 0:
             File = 'data.1d'
             with open(Dir + os.path.sep + File, 'rb') as f:
