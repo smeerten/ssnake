@@ -3668,12 +3668,28 @@ class CurrentContour(Current1D):
         contourLevels = np.linspace(self.minLevels * differ, self.maxLevels * differ, self.numLevels)
         vmax = max(np.abs(self.minLevels * differ), np.abs(self.maxLevels * differ))
         vmin = -vmax
+        
+        #Cut part of spectrum with contours
+        area = np.abs(tmpdata) > self.minLevels * differ
+        Yarea = np.where(np.sum(area,1))
+        Size= tmpdata.shape
+        Ymin = np.max([np.min(Yarea) - 2,0]) #get min, and prevent negative index
+        Ymax = np.min([np.max(Yarea) + 2,Size[0]])#get max, and prevent index overflow
+        Xarea = np.where(np.sum(area,0))
+        
+        Xmin = np.max([np.min(Xarea) - 2,0]  )
+        Xmax = np.min([np.max(Xarea) + 2,Size[1]])
+        
+        Y = Y[Ymin:Ymax+1,Xmin:Xmax+1]
+        X = X[Ymin:Ymax+1,Xmin:Xmax+1]
+        tmpCountourZ = tmpdata[Ymin:Ymax+1,Xmin:Xmax+1]
+        
         if self.contourConst:
-            self.ax.contour(X, Y, tmpdata, colors=self.contourColors[0], levels=contourLevels, vmax=vmax, vmin=vmin, linewidths=self.linewidth, label=self.data.name, linestyles='solid')
-            self.ax.contour(X, Y, tmpdata, colors=self.contourColors[1], levels=-contourLevels[::-1], vmax=vmax, vmin=vmin, linewidths=self.linewidth, linestyles='solid')
+            self.ax.contour(X, Y, tmpCountourZ, colors=self.contourColors[0], levels=contourLevels, vmax=vmax, vmin=vmin, linewidths=self.linewidth, label=self.data.name, linestyles='solid')
+            self.ax.contour(X, Y, tmpCountourZ, colors=self.contourColors[1], levels=-contourLevels[::-1], vmax=vmax, vmin=vmin, linewidths=self.linewidth, linestyles='solid')
         else:
-            self.ax.contour(X, Y, tmpdata, cmap=get_cmap(self.colorMap), levels=contourLevels, vmax=vmax, vmin=vmin, linewidths=self.linewidth, label=self.data.name, linestyles='solid')
-            self.ax.contour(X, Y, tmpdata, cmap=get_cmap(self.colorMap), levels=-contourLevels[::-1], vmax=vmax, vmin=vmin, linewidths=self.linewidth, linestyles='solid')
+            self.ax.contour(X, Y, tmpCountourZ, cmap=get_cmap(self.colorMap), levels=contourLevels, vmax=vmax, vmin=vmin, linewidths=self.linewidth, label=self.data.name, linestyles='solid')
+            self.ax.contour(X, Y, tmpCountourZ, cmap=get_cmap(self.colorMap), levels=-contourLevels[::-1], vmax=vmax, vmin=vmin, linewidths=self.linewidth, linestyles='solid')
         self.line_ydata = tmpdata[0]
         if self.projType1 == 0:
             xprojdata=np.sum(tmpdata, axis=0)
