@@ -1126,7 +1126,10 @@ class MainProgram(QtWidgets.QMainWindow):
                 elif data[s].startswith('reffrq1 '):
                     reffreq1 = float(data[s + 1].split()[1]) * 1e6
                 elif data[s].startswith('phfid '):
-                    phfid = float(data[s + 1].split()[1])  
+                    if int(data[s].split()[-2]): #if on
+                        phfid = float(data[s + 1].split()[1]) 
+                    else:
+                        phfid = 0
                 elif data[s].startswith('rp '):
                     rp = float(data[s + 1].split()[1])  
                     
