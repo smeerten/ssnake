@@ -3669,27 +3669,31 @@ class CurrentContour(Current1D):
         vmax = max(np.abs(self.minLevels * differ), np.abs(self.maxLevels * differ))
         vmin = -vmax
         
-        #Cut part of spectrum with contours
-        area = np.abs(tmpdata) > self.minLevels * differ
-        Yarea = np.where(np.sum(area,1))
-        Size= tmpdata.shape
-        Ymin = np.max([np.min(Yarea) - 2,0]) #get min, and prevent negative index
-        Ymax = np.min([np.max(Yarea) + 2,Size[0]])#get max, and prevent index overflow
-        Xarea = np.where(np.sum(area,0))
+        #Trim matrix of unused rows/columns for more efficient contour plotting
+        PlotPositive = False
+        YposMax = np.where( np.convolve(np.max(tmpdata,1) > contourLevels[0],[True,True,True],'same'))[0]
+        if YposMax.size > 0: #if number of positive contours is non-zero
+            XposMax = np.where(np.convolve(np.max(tmpdata,0) > contourLevels[0],[True,True,True],'same'))[0]
+            PlotPositive = True
         
-        Xmin = np.max([np.min(Xarea) - 2,0]  )
-        Xmax = np.min([np.max(Xarea) + 2,Size[1]])
-        
-        Y = Y[Ymin:Ymax+1,Xmin:Xmax+1]
-        X = X[Ymin:Ymax+1,Xmin:Xmax+1]
-        tmpCountourZ = tmpdata[Ymin:Ymax+1,Xmin:Xmax+1]
+        PlotNegative = False
+        if not self.plotType == 3: #for Absolute plot no negative
+            YposMin = np.where( np.convolve(np.min(tmpdata,1) < -contourLevels[0],[True,True,True],'same'))[0]
+            if YposMin.size > 0:#if number of negative contours is non-zero
+                XposMin = np.where(np.convolve(np.min(tmpdata,0) < -contourLevels[0],[True,True,True],'same'))[0]
+                PlotNegative = True
         
         if self.contourConst:
-            self.ax.contour(X, Y, tmpCountourZ, colors=self.contourColors[0], levels=contourLevels, vmax=vmax, vmin=vmin, linewidths=self.linewidth, label=self.data.name, linestyles='solid')
-            self.ax.contour(X, Y, tmpCountourZ, colors=self.contourColors[1], levels=-contourLevels[::-1], vmax=vmax, vmin=vmin, linewidths=self.linewidth, linestyles='solid')
+            if PlotPositive:
+                self.ax.contour(X[YposMax[:,None],XposMax],Y[YposMax[:,None],XposMax],tmpdata[YposMax[:,None],XposMax], colors=self.contourColors[0], levels=contourLevels, vmax=vmax, vmin=vmin, linewidths=self.linewidth, label=self.data.name, linestyles='solid')
+            if PlotNegative:
+                self.ax.contour(X[YposMin[:,None],XposMin],Y[YposMin[:,None],XposMin],tmpdata[YposMin[:,None],XposMin], colors=self.contourColors[1], levels=-contourLevels[::-1], vmax=vmax, vmin=vmin, linewidths=self.linewidth, linestyles='solid')
         else:
-            self.ax.contour(X, Y, tmpCountourZ, cmap=get_cmap(self.colorMap), levels=contourLevels, vmax=vmax, vmin=vmin, linewidths=self.linewidth, label=self.data.name, linestyles='solid')
-            self.ax.contour(X, Y, tmpCountourZ, cmap=get_cmap(self.colorMap), levels=-contourLevels[::-1], vmax=vmax, vmin=vmin, linewidths=self.linewidth, linestyles='solid')
+            if PlotPositive:
+                self.ax.contour(X[YposMax[:,None],XposMax],Y[YposMax[:,None],XposMax],tmpdata[YposMax[:,None],XposMax], cmap=get_cmap(self.colorMap), levels=contourLevels, vmax=vmax, vmin=vmin, linewidths=self.linewidth, label=self.data.name, linestyles='solid')
+            if PlotNegative:    
+                self.ax.contour(X[YposMin[:,None],XposMin],Y[YposMin[:,None],XposMin],tmpdata[YposMin[:,None],XposMin], cmap=get_cmap(self.colorMap), levels=-contourLevels[::-1], vmax=vmax, vmin=vmin, linewidths=self.linewidth, linestyles='solid')
+            
         self.line_ydata = tmpdata[0]
         if self.projType1 == 0:
             xprojdata=np.sum(tmpdata, axis=0)
