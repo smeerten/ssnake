@@ -1125,6 +1125,11 @@ class MainProgram(QtWidgets.QMainWindow):
                     reffreq = float(data[s + 1].split()[1]) * 1e6
                 elif data[s].startswith('reffrq1 '):
                     reffreq1 = float(data[s + 1].split()[1]) * 1e6
+                elif data[s].startswith('phfid '):
+                    phfid = float(data[s + 1].split()[1])  
+                elif data[s].startswith('rp '):
+                    rp = float(data[s + 1].split()[1])  
+                    
                 
 
         if os.path.exists(Dir + os.path.sep + 'fid'):
@@ -1193,6 +1198,8 @@ class MainProgram(QtWidgets.QMainWindow):
                 a = np.complex128(a)
                 
         fid = a[:, ::2] - 1j * a[:, 1::2]
+        
+        fid = fid * np.exp((rp + phfid) / 180 * np.pi * 1j) #apply zero order phase
         if SizeTD1 is 1:
             fid = fid[0][:]
             if spec:  # flip if spectrum
