@@ -3464,7 +3464,7 @@ class CurrentContour(Current1D):
         else:
             self.maxLevels = 1.0
         if hasattr(duplicateCurrent, 'contourType'):
-            self.contourType = duplicateCurrent.maxLevels
+            self.contourType = duplicateCurrent.contourType
         else:
             self.contourType = 0
         if hasattr(duplicateCurrent, 'projType1'):
@@ -3476,7 +3476,27 @@ class CurrentContour(Current1D):
         else:
             self.projType2 = 0
         Current1D.__init__(self, root, fig, canvas, data, duplicateCurrent)
-
+    
+    
+    def altScroll(self, event): #Shift scroll scrolls contour limits
+        if event.step >  0:
+            minLevels = self.minLevels * 1.1**event.step
+            maxLevels = self.maxLevels * 1.15**event.step
+        else:
+            minLevels = self.minLevels * 1.1**event.step
+            maxLevels = self.maxLevels * 1.05**event.step
+        if minLevels > 1:
+            minLevels = 1
+        if maxLevels > 1:
+            maxLevels = 1
+        self.minLevels = minLevels
+        self.maxLevels = maxLevels
+        self.root.sideframe.minLEntry.setText(str(self.minLevels*100))
+        self.root.sideframe.maxLEntry.setText(str(self.maxLevels*100))
+        self.showFid()
+        
+        
+        
     def copyCurrent(self, root, fig, canvas, data):
         return CurrentContour(root, fig, canvas, data, self)
 

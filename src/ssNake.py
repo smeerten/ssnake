@@ -1392,7 +1392,6 @@ class MainProgram(QtWidgets.QMainWindow):
 
     def loadMatlabFile(self, filePath, name=''):
         import scipy.io
-        import h5py  # For .mat v 7.3 support
         with open(filePath, 'rb') as inputfile:  # read first several bytes the check .mat version
             teststring = inputfile.read(13)
         version = float(teststring.decode("utf-8")[7:10])  # extract version from the binary array
@@ -1430,6 +1429,7 @@ class MainProgram(QtWidgets.QMainWindow):
             masterData.addHistory("Matlab data loaded from " + filePath)
             return masterData
         else:  # If the version is 7.3, use HDF5 type loading
+            import h5py  # For .mat v 7.3 support
             f = h5py.File(filePath, 'r')
             Groups = []
             for name in f:
@@ -2779,9 +2779,11 @@ class SideFrame(QtWidgets.QScrollArea):
     def setContour(self, *args):
         var1 = int(round(safeEval(self.numLEntry.text())))
         self.numLEntry.setText(str(var1))
-        var2 = float(safeEval(self.maxLEntry.text()))
+        var2 = abs(float(safeEval(self.maxLEntry.text())))
+        var3 = abs(float(safeEval(self.minLEntry.text())))
+        if var3 > var2: #if wrong order, interchange
+            var2, var3 = (var3 , var2)
         self.maxLEntry.setText('%.1f' % var2)
-        var3 = float(safeEval(self.minLEntry.text()))
         self.minLEntry.setText('%.1f' % var3)
         var4 = self.contourTypeEntry.currentIndex()
         self.father.current.setLevels(var1, var2 / 100.0, var3 / 100.0, var4)
