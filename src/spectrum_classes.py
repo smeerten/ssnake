@@ -3463,6 +3463,10 @@ class CurrentContour(Current1D):
             self.maxLevels = duplicateCurrent.maxLevels
         else:
             self.maxLevels = 1.0
+        if hasattr(duplicateCurrent, 'contourType'):
+            self.contourType = duplicateCurrent.maxLevels
+        else:
+            self.contourType = 0
         if hasattr(duplicateCurrent, 'projType1'):
             self.projType1 = duplicateCurrent.projType1
         else:
@@ -3522,10 +3526,11 @@ class CurrentContour(Current1D):
             self.plotReset()
         self.showFid()
 
-    def setLevels(self, numLevels, maxLevels, minLevels):
+    def setLevels(self, numLevels, maxLevels, minLevels,contourType):
         self.numLevels = numLevels
         self.maxLevels = maxLevels
         self.minLevels = minLevels
+        self.contourType = contourType
         self.showFid()
 
     def resetLocList(self):
@@ -3665,7 +3670,11 @@ class CurrentContour(Current1D):
         elif(self.plotType == 3):
             tmpdata = np.abs(tmpdata)
         differ = np.amax(np.abs(tmpdata))
-        contourLevels = np.linspace(self.minLevels * differ, self.maxLevels * differ, self.numLevels)
+        if self.contourType == 0: #if linear
+            contourLevels = np.linspace(self.minLevels * differ, self.maxLevels * differ, self.numLevels)
+        elif self.contourType == 1: #if logarithmic
+            contourLevels = np.exp(np.arange(self.numLevels))-1
+            contourLevels = contourLevels/contourLevels[-1]*(self.maxLevels * differ - self.minLevels * differ) + self.minLevels * differ
         vmax = max(np.abs(self.minLevels * differ), np.abs(self.maxLevels * differ))
         vmin = -vmax
         
