@@ -3480,11 +3480,11 @@ class CurrentContour(Current1D):
     
     def altScroll(self, event): #Shift scroll scrolls contour limits
         if event.step >  0:
-            minLevels = self.minLevels * 1.1**event.step
-            maxLevels = self.maxLevels * 1.15**event.step
+            minLevels = self.minLevels / 1.1
+            maxLevels = self.maxLevels / 1.05
         else:
-            minLevels = self.minLevels * 1.1**event.step
-            maxLevels = self.maxLevels * 1.05**event.step
+            minLevels = self.minLevels * 1.1
+            maxLevels = self.maxLevels * 1.15
         if minLevels > 1:
             minLevels = 1
         if maxLevels > 1:
