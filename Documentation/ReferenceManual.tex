@@ -115,7 +115,7 @@ There are several ways to control the display of the current spectrum or FID in 
 \item Dragging while holding the right mouse button drags (i.e.\ pans) the spectrum. Doing this while holding the Control button pans only the x-axis, holding Shift pans only the y-axis.
 \item Double clicking with the right mouse button resets the view to fit the whole plot (both x and y)
 \item Scrolling with the mouse wheel zooms the y-axis. Doing this while also holding the right mouse button zooms the x-axis. The standard setting is `fine'. You can zoom with more coarse steps by holding Control.
-\item \textit{Special}: Scrolling while holding shift changes the spacing between the different plots in the Array, Stack or Skew plot.
+\item \textit{Special}: Scrolling while holding shift changes the spacing between the different plots in the Array, Stack or Skew plot. In the Contour plot, the contour levels are zoomed.
 \end{itemize}
 
 Having an input window open (e.g. the phasing window, see below) does not prevent the use of these zoom controls. However, some some tools require left clinking in the spectrum to select a data point. In these cases, the zoom-box (dragging while holding the left mouse button) is disabled.
@@ -128,12 +128,17 @@ The data parameter frame features the following elements:
 \begin{itemize}
 \item The Fourier button: performs a forward or inverse fft depending on Time/Frequency toggle. If the current setting is Time, it does a forward transform (with the relevant fft shift), if it is Frequency it does an inverse transform.
 \item Time/Frequency toggle: displays whether the current data is an FID (Time) or Spectrum (Frequency). It is usually not necessary to manually change this, as this is done automatically. However, you can trick ssNake by making it think the current data is of the other type. This will give unpredicted results, and is not advised (do at your peril).
+\item Whole echo: specifies if a whole echo transform should be done. This is set by using the swap echo tool from the Tools menu (see below). When enabled, several tools respond differently (e.g. Apodizing and Set Size).
+\item Freq [MHz]: The centre frequency of the current spectrum dimension in MHz. Note that this value can be different from the Refrence frequency, which specifies the zero frequency of the spectrum.
+\item Sweepwidth [kHz]: The spectral width of the current spectrum dimension in kHz. 
+\item Plot: A dropdown menu specifying how the data should be plot. It has four options: Real, Imag, Both and Abs. Real: plots only the real part of the complex data. Imag: plots only the imaginary part. Both: plots both the real and imaginary part of the data in different colours. Abs: plots the absolute value of the data. Note that this only toggles the \textit{view} of the current data. Changing the data itself can be done via the Tools menu.
+\item Axis: Dropdown menu the change the unit of the current x-axis. For a time axis, s, ms and $\muup$ are supported. For the frequency axis: Hz, kHz, MHz and ppm.
+\item \textit{Special}: Axis2: changes the unit of the y-axis in a 2D contour plot.
+\item \textit{Special}: Proj top/right: changes the type of the projections in a 2D contour plot. The options are: sum, max and min, giving the sum of the data along that dimension, or the maximum and minimum of each trace.
 \end{itemize}
 
-
-
-
 \subsubsection*{Get Position Frame}
+The Get Position frame is the frame in which the properties of a specific data point can be viewed. Pushing the `Get Position'  button and then left clicking on a specific point in the spectrum or FID prints this data. The `Get Position frame' then displays the number of the data point you clicked on (note that in a spectrum the data goes from right to left!), the x and amplitude (y) value of this data point and the difference with your last pick. In a Contour plot, the amplitude actually codes for the z value, and there now is a separate y value box (and corresponding y difference) as well as the index of the point along the y dimension.
 
 
 
