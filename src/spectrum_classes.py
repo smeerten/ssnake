@@ -1451,7 +1451,7 @@ class Current1D(Plot1DFrame):
             alpha = 0.53836  # constant for hamming window
             x = x * (alpha + (1 - alpha) * np.cos(hamming * (-0.5 * shift * np.pi * self.sw / length + np.linspace(0, np.pi, length))))
         if self.wholeEcho:
-            x[-1:-(len(x) / 2 + 1):-1] = x[:len(x) / 2]
+            x[-1:-(int(len(x) / 2 + 1)):-1] = x[:int(len(x) / 2)]
         self.ax.cla()
         y = self.data1D
         if self.spec == 1:
@@ -3493,7 +3493,7 @@ class CurrentContour(Current1D):
         self.maxLevels = maxLevels
         self.root.sideframe.minLEntry.setText(str(self.minLevels*100))
         self.root.sideframe.maxLEntry.setText(str(self.maxLevels*100))
-        self.showFid()
+        self.plotContour(updateOnly = True)
         
         
         
@@ -3681,6 +3681,7 @@ class CurrentContour(Current1D):
         self.line_xdata = x
         y = self.xax2 * axMult2
         X, Y = np.meshgrid(x, y)
+        
         if (self.plotType == 0):
             tmpdata = np.real(tmpdata)
         elif(self.plotType == 1):
@@ -3689,40 +3690,9 @@ class CurrentContour(Current1D):
             tmpdata = np.real(tmpdata)
         elif(self.plotType == 3):
             tmpdata = np.abs(tmpdata)
-        differ = np.amax(np.abs(tmpdata))
-        if self.contourType == 0: #if linear
-            contourLevels = np.linspace(self.minLevels * differ, self.maxLevels * differ, self.numLevels)
-        elif self.contourType == 1: #if logarithmic
-            contourLevels = np.exp(np.arange(self.numLevels))-1
-            contourLevels = contourLevels/contourLevels[-1]*(self.maxLevels * differ - self.minLevels * differ) + self.minLevels * differ
-        vmax = max(np.abs(self.minLevels * differ), np.abs(self.maxLevels * differ))
-        vmin = -vmax
-        
-        #Trim matrix of unused rows/columns for more efficient contour plotting
-        PlotPositive = False
-        YposMax = np.where( np.convolve(np.max(tmpdata,1) > contourLevels[0],[True,True,True],'same'))[0]
-        if YposMax.size > 0: #if number of positive contours is non-zero
-            XposMax = np.where(np.convolve(np.max(tmpdata,0) > contourLevels[0],[True,True,True],'same'))[0]
-            PlotPositive = True
-        
-        PlotNegative = False
-        if not self.plotType == 3: #for Absolute plot no negative
-            YposMin = np.where( np.convolve(np.min(tmpdata,1) < -contourLevels[0],[True,True,True],'same'))[0]
-            if YposMin.size > 0:#if number of negative contours is non-zero
-                XposMin = np.where(np.convolve(np.min(tmpdata,0) < -contourLevels[0],[True,True,True],'same'))[0]
-                PlotNegative = True
-        
-        if self.contourConst:
-            if PlotPositive:
-                self.ax.contour(X[YposMax[:,None],XposMax],Y[YposMax[:,None],XposMax],tmpdata[YposMax[:,None],XposMax], colors=self.contourColors[0], levels=contourLevels, vmax=vmax, vmin=vmin, linewidths=self.linewidth, label=self.data.name, linestyles='solid')
-            if PlotNegative:
-                self.ax.contour(X[YposMin[:,None],XposMin],Y[YposMin[:,None],XposMin],tmpdata[YposMin[:,None],XposMin], colors=self.contourColors[1], levels=-contourLevels[::-1], vmax=vmax, vmin=vmin, linewidths=self.linewidth, linestyles='solid')
-        else:
-            if PlotPositive:
-                self.ax.contour(X[YposMax[:,None],XposMax],Y[YposMax[:,None],XposMax],tmpdata[YposMax[:,None],XposMax], cmap=get_cmap(self.colorMap), levels=contourLevels, vmax=vmax, vmin=vmin, linewidths=self.linewidth, label=self.data.name, linestyles='solid')
-            if PlotNegative:    
-                self.ax.contour(X[YposMin[:,None],XposMin],Y[YposMin[:,None],XposMin],tmpdata[YposMin[:,None],XposMin], cmap=get_cmap(self.colorMap), levels=-contourLevels[::-1], vmax=vmax, vmin=vmin, linewidths=self.linewidth, linestyles='solid')
             
+        self.plotContour(X=X,Y=Y,tmpdata=tmpdata)
+        
         self.line_ydata = tmpdata[0]
         if self.projType1 == 0:
             xprojdata=np.sum(tmpdata, axis=0)
@@ -3808,7 +3778,78 @@ class CurrentContour(Current1D):
         self.ax.xaxis.grid(self.grids[0])
         self.ax.yaxis.grid(self.grids[1])
         self.canvas.draw()
+        
+    def plotContour(self,X=False,Y=False,tmpdata=False,updateOnly = False): #Plots the contour plot
+        if updateOnly: #Set some extra stuff if only the contour plot needs updating
+            tmpdata = self.data1D
+            del self.ax.collections[:] #Clear all plot collections
+            #==calc axes =========
+            if self.spec == 1:
+                if self.ppm:
+                    axMult = 1e6 / self.ref
+                else:
+                    axMult = 1.0 / (1000.0**self.axType)
+            elif self.spec == 0:
+                axMult = 1000.0**self.axType
+            if self.spec2 == 1:
+                if self.ppm2:
+                    axMult2 = 1e6 / self.ref2
+                else:
+                    axMult2 = 1.0 / (1000.0**self.axType2)
+            elif self.spec2 == 0:
+                axMult2 = 1000.0**self.axType2
+            x = self.xax * axMult
+            self.line_xdata = x
+            y = self.xax2 * axMult2
+            X, Y = np.meshgrid(x, y)
+            if (self.plotType == 0):
+                tmpdata = np.real(tmpdata)
+            elif(self.plotType == 1):
+                tmpdata = np.imag(tmpdata)
+            elif(self.plotType == 2):
+                tmpdata = np.real(tmpdata)
+            elif(self.plotType == 3):
+                tmpdata = np.abs(tmpdata)
 
+        differ = np.amax(np.abs(tmpdata))
+        if self.contourType == 0: #if linear
+            contourLevels = np.linspace(self.minLevels * differ, self.maxLevels * differ, self.numLevels)
+        elif self.contourType == 1: #if logarithmic
+            contourLevels = np.exp(np.arange(self.numLevels))-1
+            contourLevels = contourLevels/contourLevels[-1]*(self.maxLevels * differ - self.minLevels * differ) + self.minLevels * differ
+        vmax = max(np.abs(self.minLevels * differ), np.abs(self.maxLevels * differ))
+        vmin = -vmax
+        
+        #Trim matrix of unused rows/columns for more efficient contour plotting
+        PlotPositive = False
+        YposMax = np.where( np.convolve(np.max(tmpdata,1) > contourLevels[0],[True,True,True],'same'))[0]
+        if YposMax.size > 0: #if number of positive contours is non-zero
+            XposMax = np.where(np.convolve(np.max(tmpdata,0) > contourLevels[0],[True,True,True],'same'))[0]
+            PlotPositive = True
+        
+        PlotNegative = False
+        if not self.plotType == 3: #for Absolute plot no negative
+            YposMin = np.where( np.convolve(np.min(tmpdata,1) < -contourLevels[0],[True,True,True],'same'))[0]
+            if YposMin.size > 0:#if number of negative contours is non-zero
+                XposMin = np.where(np.convolve(np.min(tmpdata,0) < -contourLevels[0],[True,True,True],'same'))[0]
+                PlotNegative = True
+        
+        if self.contourConst:
+            if PlotPositive:
+                self.ax.contour(X[YposMax[:,None],XposMax],Y[YposMax[:,None],XposMax],tmpdata[YposMax[:,None],XposMax], colors=self.contourColors[0], levels=contourLevels, vmax=vmax, vmin=vmin, linewidths=self.linewidth, label=self.data.name, linestyles='solid')
+            if PlotNegative:
+                self.ax.contour(X[YposMin[:,None],XposMin],Y[YposMin[:,None],XposMin],tmpdata[YposMin[:,None],XposMin], colors=self.contourColors[1], levels=-contourLevels[::-1], vmax=vmax, vmin=vmin, linewidths=self.linewidth, linestyles='solid')
+        else:
+            if PlotPositive:
+                self.ax.contour(X[YposMax[:,None],XposMax],Y[YposMax[:,None],XposMax],tmpdata[YposMax[:,None],XposMax], cmap=get_cmap(self.colorMap), levels=contourLevels, vmax=vmax, vmin=vmin, linewidths=self.linewidth, label=self.data.name, linestyles='solid')
+            if PlotNegative:    
+                self.ax.contour(X[YposMin[:,None],XposMin],Y[YposMin[:,None],XposMin],tmpdata[YposMin[:,None],XposMin], cmap=get_cmap(self.colorMap), levels=-contourLevels[::-1], vmax=vmax, vmin=vmin, linewidths=self.linewidth, linestyles='solid')
+            
+        if updateOnly:
+            self.canvas.draw()
+        
+        
+        
     def showProj(self):  
         xLimOld = self.x_ax.get_xlim()
         x = self.x_ax.lines[0].get_xdata() #Get plot data from plot
