@@ -3812,37 +3812,44 @@ class CurrentContour(Current1D):
                 XposMin = np.where(np.convolve(np.min(self.tmpdata,0) < -contourLevels[0],[True,True,True],'same'))[0]
                 PlotNegative = True
         
-        def contourTrace(level):
+        def contourTrace(level,color):
             level = c.trace(level)
             segs = level[:len(level)//2]
             col = mcoll.LineCollection(segs)
             col.set_label(self.data.name)
             col.set_linewidth(self.linewidth)
             col.set_linestyle('solid')
-            col.set_color(ContourColour)
+            col.set_color(color)
             return col
 
         if self.contourConst:
             collections=[]
             if PlotPositive:
                 c = cntr.Cntr(self.X[YposMax[:,None],XposMax],self.Y[YposMax[:,None],XposMax],self.tmpdata[YposMax[:,None],XposMax])
-                ContourColour = self.contourColors[0]
                 for level in contourLevels:
-                    collections.append(contourTrace(level))
+                    collections.append(contourTrace(level,self.contourColors[0]))
             if PlotNegative:
                 c = cntr.Cntr(self.X[YposMin[:,None],XposMin],self.Y[YposMin[:,None],XposMin],self.tmpdata[YposMin[:,None],XposMin])
-                ContourColour = self.contourColors[1]
                 for level in -contourLevels[::-1]:
-                    collections.append(contourTrace(level))   
+                    collections.append(contourTrace(level,self.contourColors[1]))   
             for col in collections: #plot all
                 self.ax.add_collection(col)
 
         else:
+            colorMap = get_cmap(self.colorMap)
+            collections=[]
             if PlotPositive:
-                self.ax.contour(self.X[YposMax[:,None],XposMax],self.Y[YposMax[:,None],XposMax],self.tmpdata[YposMax[:,None],XposMax], cmap=get_cmap(self.colorMap), levels=contourLevels, vmax=vmax, vmin=vmin, linewidths=self.linewidth, label=self.data.name, linestyles='solid')
-            if PlotNegative:    
-                self.ax.contour(self.X[YposMin[:,None],XposMin],self.Y[YposMin[:,None],XposMin],self.tmpdata[YposMin[:,None],XposMin], cmap=get_cmap(self.colorMap), levels=-contourLevels[::-1], vmax=vmax, vmin=vmin, linewidths=self.linewidth, linestyles='solid')
-
+                c = cntr.Cntr(self.X[YposMax[:,None],XposMax],self.Y[YposMax[:,None],XposMax],self.tmpdata[YposMax[:,None],XposMax])
+                for level in contourLevels:
+                    clevel = colorMap((level - vmin)/(vmax - vmin))
+                    collections.append(contourTrace(level,clevel))
+            if PlotNegative:
+                c = cntr.Cntr(self.X[YposMin[:,None],XposMin],self.Y[YposMin[:,None],XposMin],self.tmpdata[YposMin[:,None],XposMin])
+                for level in -contourLevels[::-1]:
+                    clevel = colorMap((level - vmin)/(vmax - vmin))
+                    collections.append(contourTrace(level,clevel))   
+            for col in collections: #plot all
+                self.ax.add_collection(col)
         if updateOnly:
             self.canvas.draw()
 
