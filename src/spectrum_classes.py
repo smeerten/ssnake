@@ -28,6 +28,8 @@ from nus import ffm, clean
 import multiprocessing
 from matplotlib.pyplot import get_cmap
 import matplotlib
+import matplotlib._cntr as cntr
+import matplotlib.collections as mcoll
 
 COLORMAPLIST = ['seismic', 'BrBG', 'bwr', 'coolwarm', 'PiYG', 'PRGn', 'PuOr',
                 'RdBu', 'RdGy', 'RdYlBu', 'RdYlGn', 'Spectral', 'rainbow', 'jet']
@@ -3836,9 +3838,39 @@ class CurrentContour(Current1D):
         
         if self.contourConst:
             if PlotPositive:
-                self.ax.contour(X[YposMax[:,None],XposMax],Y[YposMax[:,None],XposMax],tmpdata[YposMax[:,None],XposMax], colors=self.contourColors[0], levels=contourLevels, vmax=vmax, vmin=vmin, linewidths=self.linewidth, label=self.data.name, linestyles='solid')
+                c = cntr.Cntr(X[YposMax[:,None],XposMax],Y[YposMax[:,None],XposMax],tmpdata[YposMax[:,None],XposMax])
+                nlist=[]
+                for level in contourLevels:
+                    nlist.append(c.trace(level))
+                for level in nlist:
+                    segs = level[:len(level)//2]
+                    col = mcoll.LineCollection(segs)
+                    col.set_label(self.data.name)
+                    col.set_color(self.contourColors[0])
+                    col.set_linewidth(self.linewidth)
+                    col.set_linestyle('solid')
+                    self.ax.add_collection(col)
+            
             if PlotNegative:
-                self.ax.contour(X[YposMin[:,None],XposMin],Y[YposMin[:,None],XposMin],tmpdata[YposMin[:,None],XposMin], colors=self.contourColors[1], levels=-contourLevels[::-1], vmax=vmax, vmin=vmin, linewidths=self.linewidth, linestyles='solid')
+                c = cntr.Cntr(X[YposMin[:,None],XposMin],Y[YposMin[:,None],XposMin],tmpdata[YposMin[:,None],XposMin])
+                nlist=[]
+                for level in -contourLevels[::-1]:
+                    nlist.append(c.trace(level))
+                for level in nlist:
+                    segs = level[:len(level)//2]
+                    col = mcoll.LineCollection(segs)
+                    col.set_label(self.data.name)
+                    col.set_color(self.contourColors[1])
+                    col.set_linewidth(self.linewidth)
+                    col.set_linestyle('solid')
+                    self.ax.add_collection(col)
+            
+            
+            
+#            if PlotPositive:
+#                self.ax.contour(X[YposMax[:,None],XposMax],Y[YposMax[:,None],XposMax],tmpdata[YposMax[:,None],XposMax], colors=self.contourColors[0], levels=contourLevels, vmax=vmax, vmin=vmin, linewidths=self.linewidth, label=self.data.name, linestyles='solid')
+#            if PlotNegative:
+#                self.ax.contour(X[YposMin[:,None],XposMin],Y[YposMin[:,None],XposMin],tmpdata[YposMin[:,None],XposMin], colors=self.contourColors[1], levels=-contourLevels[::-1], vmax=vmax, vmin=vmin, linewidths=self.linewidth, linestyles='solid')
         else:
             if PlotPositive:
                 self.ax.contour(X[YposMax[:,None],XposMax],Y[YposMax[:,None],XposMax],tmpdata[YposMax[:,None],XposMax], cmap=get_cmap(self.colorMap), levels=contourLevels, vmax=vmax, vmin=vmin, linewidths=self.linewidth, label=self.data.name, linestyles='solid')
