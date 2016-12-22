@@ -220,16 +220,24 @@ class FittingWindowTabs(QtWidgets.QWidget):
         self.tabs = QtWidgets.QTabWidget(self)
         self.tabs.setTabPosition(2)
         self.allowChange = True
-#        self.tabs.currentChanged.connect(self.changeMainWindow)
-#        self.tabs.tabCloseRequested.connect(self.destroyWorkspace)
          
-        grid2 = QtWidgets.QGridLayout(self)
-        grid2.addWidget(self.tabs, 0, 0)
-        grid2.setColumnStretch(0, 1)
-        grid2.setRowStretch(0, 1)
         self.standard=QtWidgets.QWidget()
         self.standard.setLayout(self.grid)
         self.tabs.addTab(self.standard, 'Spectrum') 
+
+        
+        grid2 = QtWidgets.QGridLayout()
+        grid2.addWidget(self.fitparsframe, 0, 0)
+        self.grid2=grid2
+        self.fitpars = QtWidgets.QWidget()
+        self.fitpars.setLayout(self.grid2)
+        self.tabs.addTab(self.fitpars, 'Fit pars') 
+        
+        grid3 =  QtWidgets.QGridLayout(self)
+        grid3.addWidget(self.tabs,0,0)
+        grid3.setColumnStretch(0, 1)
+        grid3.setRowStretch(0, 1)
+
         self.canvas.mpl_connect('button_press_event', self.buttonPress)
         self.canvas.mpl_connect('button_release_event', self.buttonRelease)
         self.canvas.mpl_connect('motion_notify_event', self.pan)
@@ -2950,10 +2958,30 @@ class TensorDeconvWindow(FittingWindowTabs):
 
     def setup(self):
         self.current = TensorDeconvFrame(self, self.fig, self.canvas, self.oldMainWindow.current)
-        self.paramframe = TensorDeconvParamFrame(self.current, self)
+        self.fitparsframe = TensorFitParFrame(self.current,self)
+        self.paramframe = TensorDeconvParamFrame(self.current,self.fitparsframe, self)
+        
 
 #################################################################################
+class TensorFitParFrame(QtWidgets.QWidget):
 
+    def __init__(self, parent, rootwindow):
+        QtWidgets.QWidget.__init__(self, rootwindow)
+        self.parent = parent
+        self.rootwindow = rootwindow
+        grid = QtWidgets.QGridLayout(self)
+        self.setLayout(grid)
+        self.frame1 = QtWidgets.QGridLayout()
+        grid.addLayout(self.frame1, 0, 0)
+        
+        self.frame1.addWidget(QtWidgets.QLabel('Max iterations'), 0, 0)
+        self.maxiterinput = QtWidgets.QLineEdit()
+        self.maxiterinput.setText("150")
+        self.frame1.addWidget(self.maxiterinput, 1, 0)
+
+        grid.setColumnStretch(10, 1)
+        grid.setAlignment(QtCore.Qt.AlignLeft)
+#####################################################################################
 
 class TensorDeconvFrame(Plot1DFrame):
 
@@ -3085,10 +3113,11 @@ class TensorDeconvFrame(Plot1DFrame):
 
 class TensorDeconvParamFrame(QtWidgets.QWidget):
 
-    def __init__(self, parent, rootwindow):
+    def __init__(self, parent,fitparsframe, rootwindow):
         QtWidgets.QWidget.__init__(self, rootwindow)
         self.parent = parent
         self.rootwindow = rootwindow
+        self.fitparsframe = fitparsframe
         self.cheng = 15
         grid = QtWidgets.QGridLayout(self)
         self.setLayout(grid)
@@ -3458,6 +3487,10 @@ class TensorDeconvParamFrame(QtWidgets.QWidget):
 
     def fit(self, *args):
         self.setCheng()
+        try:
+            self.maxiter = safeEval(self.fitparsframe.maxiterinput.text())
+        except:
+            self.maxiter = None
         if not self.checkInputs():
             self.rootwindow.mainProgram.dispMsg("One of the inputs is not valid")
             return
@@ -3530,7 +3563,7 @@ class TensorDeconvParamFrame(QtWidgets.QWidget):
                 struc.append(False)
         args = (numExp, struc, argu, self.parent.current.sw, self.axAdd)
         self.queue = multiprocessing.Queue()
-        self.process1 = multiprocessing.Process(target=tensorDeconvmpFit, args=(self.parent.xax, np.real(self.parent.data1D), guess, args, self.queue, self.cheng,self.shiftDefType))
+        self.process1 = multiprocessing.Process(target=tensorDeconvmpFit, args=(self.parent.xax, np.real(self.parent.data1D), guess, args, self.queue, self.cheng,self.maxiter,self.shiftDefType))
         self.process1.start()
         self.running = True
         self.stopButton.show()
@@ -3803,12 +3836,13 @@ class TensorDeconvParamFrame(QtWidgets.QWidget):
 ##############################################################################
 
 
-def tensorDeconvmpFit(xax, data1D, guess, args, queue, cheng,Convention=0):
+def tensorDeconvmpFit(xax, data1D, guess, args, queue, cheng,maxiter,Convention=0):
     phi, theta, weight = zcw_angles(cheng, symm=2)
     multt = [np.sin(theta)**2 * np.cos(phi)**2, np.sin(theta)**2 * np.sin(phi)**2, np.cos(theta)**2]
     arg = args + (multt, weight, xax, data1D,Convention)
     try:
-        fitVal = scipy.optimize.fmin(tensorDeconvfitFunc, guess, args=arg, disp=False)
+        fitOutput = scipy.optimize.fmin(tensorDeconvfitFunc, guess, args=arg, disp=False,full_output=True,maxiter=maxiter)
+        fitVal = fitOutput[0]
     except:
         fitVal = None
     queue.put(fitVal)
@@ -6559,3 +6593,4 @@ class FitAllSelectionWindow(QtWidgets.QWidget):
 
     def closeEvent(self, *args):
         self.deleteLater()
+
