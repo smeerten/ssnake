@@ -3469,6 +3469,10 @@ class CurrentContour(Current1D):
             self.contourType = duplicateCurrent.contourType
         else:
             self.contourType = 0
+        if hasattr(duplicateCurrent, 'multiValue'):
+            self.multiValue = duplicateCurrent.multiValue
+        else:
+            self.multiValue = 2
         if hasattr(duplicateCurrent, 'projType1'):
             self.projType1 = duplicateCurrent.projType1
         else:
@@ -3481,18 +3485,12 @@ class CurrentContour(Current1D):
     
     
     def altScroll(self, event): #Shift scroll scrolls contour limits
-        if event.step >  0:
-            minLevels = self.minLevels / 1.1
-            maxLevels = self.maxLevels / 1.05
-        else:
-            minLevels = self.minLevels * 1.1
-            maxLevels = self.maxLevels * 1.15
+        minLevels = self.minLevels / 1.1**event.step
         if minLevels > 1:
             minLevels = 1
-        if maxLevels > 1:
-            maxLevels = 1
+        if  self.maxLevels > 1:
+             self.maxLevels = 1
         self.minLevels = minLevels
-        self.maxLevels = maxLevels
         self.root.sideframe.minLEntry.setText(str(self.minLevels*100))
         self.root.sideframe.maxLEntry.setText(str(self.maxLevels*100))
         self.plotContour(updateOnly = True)
@@ -3549,11 +3547,12 @@ class CurrentContour(Current1D):
             self.plotReset()
         self.showFid()
 
-    def setLevels(self, numLevels, maxLevels, minLevels,contourType):
+    def setLevels(self, numLevels, maxLevels, minLevels,contourType,multiValue):
         self.numLevels = numLevels
         self.maxLevels = maxLevels
         self.minLevels = minLevels
         self.contourType = contourType
+        self.multiValue = multiValue
         self.showFid()
 
     def resetLocList(self):
@@ -3792,12 +3791,11 @@ class CurrentContour(Current1D):
             
         if self.contourType == 0: #if linear
             contourLevels = np.linspace(self.minLevels * self.differ, self.maxLevels * self.differ, self.numLevels)
-        elif self.contourType == 1: #if logarithmic
-            contourLevels = np.exp(np.arange(self.numLevels))-1
-            contourLevels = contourLevels/contourLevels[-1]*(self.maxLevels * self.differ - self.minLevels * self.differ) + self.minLevels * self.differ
-        vmax = max(np.abs(self.minLevels * self.differ), np.abs(self.maxLevels * self.differ))
-        vmin = -vmax
-        
+        elif self.contourType == 1: #if Multiplier
+            contourLevels = [self.minLevels * self.differ]
+            while contourLevels[-1] < self.maxLevels * self.differ and len(contourLevels) < self.numLevels:
+                contourLevels.append(contourLevels[-1] * self.multiValue)
+            contourLevels = np.array(contourLevels)
         #Trim matrix of unused rows/columns for more efficient contour plotting
         PlotPositive = False
         YposMax = np.where( np.convolve(np.max(self.tmpdata,1) > contourLevels[0],[True,True,True],'same'))[0]
@@ -3836,6 +3834,8 @@ class CurrentContour(Current1D):
                 self.ax.add_collection(col)
 
         else:
+            vmax = max(np.abs(self.minLevels * self.differ), np.abs(self.maxLevels * self.differ))
+            vmin = -vmax
             colorMap = get_cmap(self.colorMap)
             collections=[]
             if PlotPositive:
