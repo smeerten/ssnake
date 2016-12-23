@@ -2974,11 +2974,26 @@ class TensorFitParFrame(QtWidgets.QWidget):
         self.frame1 = QtWidgets.QGridLayout()
         grid.addLayout(self.frame1, 0, 0)
         
-        self.frame1.addWidget(QtWidgets.QLabel('Max iterations'), 0, 0)
+        self.frame1.addWidget(QtWidgets.QLabel('Max iterations:'), 0, 0)
         self.maxiterinput = QtWidgets.QLineEdit()
         self.maxiterinput.setText("150")
         self.frame1.addWidget(self.maxiterinput, 1, 0)
+        
+        self.frame1.addWidget(QtWidgets.QLabel('Max function calls:'), 2, 0)
+        self.maxfunctioncallinput = QtWidgets.QLineEdit()
+        self.maxfunctioncallinput.setText("300")
+        self.frame1.addWidget(self.maxfunctioncallinput, 3, 0)
 
+
+        self.frame1.addWidget(QtWidgets.QLabel('x tolerance:'), 4, 0)
+        self.xtolinput = QtWidgets.QLineEdit()
+        self.xtolinput.setText("1.0e-4")
+        self.frame1.addWidget(self.xtolinput, 5, 0)
+        
+        self.frame1.addWidget(QtWidgets.QLabel('f tolerance:'), 6, 0)
+        self.ftolinput = QtWidgets.QLineEdit()
+        self.ftolinput.setText("1.0e-4")
+        self.frame1.addWidget(self.ftolinput, 7, 0)
         grid.setColumnStretch(10, 1)
         grid.setAlignment(QtCore.Qt.AlignLeft)
 #####################################################################################
@@ -3488,9 +3503,22 @@ class TensorDeconvParamFrame(QtWidgets.QWidget):
     def fit(self, *args):
         self.setCheng()
         try:
-            self.maxiter = safeEval(self.fitparsframe.maxiterinput.text())
+            self.maxiter = abs(int(safeEval(self.fitparsframe.maxiterinput.text())))
         except:
             self.maxiter = None
+        try:
+            self.maxfunctioncall = abs(int(safeEval(self.fitparsframe.maxfunctioncallinput.text())))
+        except:
+            self.maxfunctioncall = None
+        try:
+            self.xtol = abs(safeEval(self.fitparsframe.xtolinput.text()))
+        except:
+           self.xtol = 1.0e-4 
+        try:
+           self.ftol = abs(safeEval(self.fitparsframe.ftolinput.text()))
+        except:
+           self.ftol = 1.0e-4 
+                
         if not self.checkInputs():
             self.rootwindow.mainProgram.dispMsg("One of the inputs is not valid")
             return
@@ -3563,7 +3591,9 @@ class TensorDeconvParamFrame(QtWidgets.QWidget):
                 struc.append(False)
         args = (numExp, struc, argu, self.parent.current.sw, self.axAdd)
         self.queue = multiprocessing.Queue()
-        self.process1 = multiprocessing.Process(target=tensorDeconvmpFit, args=(self.parent.xax, np.real(self.parent.data1D), guess, args, self.queue, self.cheng,self.maxiter,self.shiftDefType))
+        self.process1 = multiprocessing.Process(target=tensorDeconvmpFit, args=(self.parent.xax, np.real(self.parent.data1D),
+                                                                                guess, args, self.queue, self.cheng,self.maxiter,
+                                                                                self.maxfunctioncall,self.xtol,self.ftol,self.shiftDefType))
         self.process1.start()
         self.running = True
         self.stopButton.show()
@@ -3836,12 +3866,12 @@ class TensorDeconvParamFrame(QtWidgets.QWidget):
 ##############################################################################
 
 
-def tensorDeconvmpFit(xax, data1D, guess, args, queue, cheng,maxiter,Convention=0):
+def tensorDeconvmpFit(xax, data1D, guess, args, queue, cheng,maxiter=None,maxfunctioncall = None,xtol = 1e-4,ftol = 1e-4,Convention=0):
     phi, theta, weight = zcw_angles(cheng, symm=2)
     multt = [np.sin(theta)**2 * np.cos(phi)**2, np.sin(theta)**2 * np.sin(phi)**2, np.cos(theta)**2]
     arg = args + (multt, weight, xax, data1D,Convention)
     try:
-        fitOutput = scipy.optimize.fmin(tensorDeconvfitFunc, guess, args=arg, disp=False,full_output=True,maxiter=maxiter)
+        fitOutput = scipy.optimize.fmin(tensorDeconvfitFunc, guess, args=arg, disp=False,full_output=True,maxiter=maxiter,maxfun = maxfunctioncall,xtol = xtol,ftol = ftol)
         fitVal = fitOutput[0]
     except:
         fitVal = None
