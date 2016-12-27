@@ -2994,6 +2994,23 @@ class TensorFitParFrame(QtWidgets.QWidget):
         self.ftolinput = QtWidgets.QLineEdit()
         self.ftolinput.setText("1.0e-4")
         self.frame1.addWidget(self.ftolinput, 7, 0)
+        
+        
+        self.frame1.addWidget(QtWidgets.QLabel('Used iterations:'), 0, 1)
+        self.usedIter = QtWidgets.QLabel('-')
+        self.usedIter.setAlignment(QtCore.Qt.AlignHCenter)
+        self.frame1.addWidget(self.usedIter, 1, 1)
+        
+        self.frame1.addWidget(QtWidgets.QLabel('Used calls:'), 2, 1)
+        self.usedFunctionEval = QtWidgets.QLabel('-')
+        self.usedFunctionEval.setAlignment(QtCore.Qt.AlignHCenter)
+        self.frame1.addWidget(self.usedFunctionEval, 3, 1)
+
+        self.frame1.addWidget(QtWidgets.QLabel('Function value:'), 4, 1)
+        self.fitFunctionValue = QtWidgets.QLabel('-')
+        self.fitFunctionValue.setAlignment(QtCore.Qt.AlignHCenter)
+        self.frame1.addWidget(self.fitFunctionValue, 5, 1)
+        
         grid.setColumnStretch(10, 1)
         grid.setAlignment(QtCore.Qt.AlignLeft)
 #####################################################################################
@@ -3604,7 +3621,30 @@ class TensorDeconvParamFrame(QtWidgets.QWidget):
             time.sleep(0.1)
         if self.queue is None:
             return
-        fitVal = self.queue.get(timeout=2)
+        fitPars = self.queue.get(timeout=2)
+        
+        #Set extra fit results window
+        self.fitparsframe.usedIter.setText(str(fitPars[2]))
+        self.fitparsframe.usedFunctionEval.setText(str(fitPars[3]))
+        self.fitparsframe.fitFunctionValue.setText('%.3g' % fitPars[1])
+        
+        redPalette = QtGui.QPalette()
+        redPalette.setColor(QtGui.QPalette.Foreground,QtCore.Qt.red)
+        blackPalette = QtGui.QPalette()
+        blackPalette.setColor(QtGui.QPalette.Foreground,QtCore.Qt.black)
+        
+        if fitPars[4] == 1: #set limiting parameter colours
+            self.fitparsframe.usedIter.setPalette(blackPalette)
+            self.fitparsframe.usedFunctionEval.setPalette(redPalette)
+        elif fitPars[4] == 2:
+            self.fitparsframe.usedIter.setPalette(redPalette)
+            self.fitparsframe.usedFunctionEval.setPalette(blackPalette)
+        else:
+            self.fitparsframe.usedIter.setPalette(blackPalette)
+            self.fitparsframe.usedFunctionEval.setPalette(blackPalette)     
+            
+            
+        fitVal = fitPars[0]
         self.stopMP()
         if fitVal is None:
             self.rootwindow.mainProgram.dispMsg('Optimal parameters not found')
@@ -3871,8 +3911,7 @@ def tensorDeconvmpFit(xax, data1D, guess, args, queue, cheng,maxiter=None,maxfun
     multt = [np.sin(theta)**2 * np.cos(phi)**2, np.sin(theta)**2 * np.sin(phi)**2, np.cos(theta)**2]
     arg = args + (multt, weight, xax, data1D,Convention)
     try:
-        fitOutput = scipy.optimize.fmin(tensorDeconvfitFunc, guess, args=arg, disp=False,full_output=True,maxiter=maxiter,maxfun = maxfunctioncall,xtol = xtol,ftol = ftol)
-        fitVal = fitOutput[0]
+        fitVal = scipy.optimize.fmin(tensorDeconvfitFunc, guess, args=arg, disp=False,full_output=True,maxiter=maxiter,maxfun = maxfunctioncall,xtol = xtol,ftol = ftol)
     except:
         fitVal = None
     queue.put(fitVal)
