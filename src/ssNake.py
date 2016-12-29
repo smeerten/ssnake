@@ -404,6 +404,7 @@ class MainProgram(QtWidgets.QMainWindow):
         self.helpMenu.addAction(QtGui.QIcon(IconDirectory + 'update.png'),"&Update", self.updateMenu)
         self.helpMenu.addAction(QtGui.QIcon(IconDirectory + 'shifttool.png'),"&Chemical shift conversion tool", self.createShiftConversionWindow)
         self.helpMenu.addAction(QtGui.QIcon(IconDirectory + 'quadconversion.png'),"&Quadrupole coupling conversion tool", self.createQuadConversionWindow)
+        self.helpMenu.addAction("&NMR table", self.nmrTable)
         
         self.helpMenu.addAction(QtGui.QIcon(IconDirectory + 'about.png'),"&About", self.about)
 
@@ -1844,6 +1845,10 @@ class MainProgram(QtWidgets.QMainWindow):
         
     def createQuadConversionWindow(self):
         quadConversionWindow(self)
+
+    def nmrTable(self):
+        import subprocess
+        subprocess.Popen([sys.executable, 'nmrTable.py'])
         
     def about(self):
         message = "ssNake " + VERSION
