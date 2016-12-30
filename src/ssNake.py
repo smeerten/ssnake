@@ -1848,7 +1848,7 @@ class MainProgram(QtWidgets.QMainWindow):
 
     def nmrTable(self):
         import subprocess
-        subprocess.Popen([sys.executable, 'nmrTable.py'])
+        subprocess.Popen([sys.executable, os.path.dirname(os.path.realpath(__file__)) + '/nmrTable.py'])
         
     def about(self):
         message = "ssNake " + VERSION
