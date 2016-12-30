@@ -97,3 +97,16 @@ class QLabel(QtWidgets.QLabel):
     def __init__(self, parent, *args, **kwargs):
         QtWidgets.QLabel.__init__(self, parent, *args, **kwargs)
         self.setAlignment(QtCore.Qt.AlignCenter)
+
+
+class specialProgressBar(QtGui.QProgressBar):
+    def __init__(self):
+        QtGui.QProgressBar.__init__(self)
+        self.setAlignment(QtCore.Qt.AlignCenter)
+        self._text = 'Inactive'
+
+    def setText(self, text):
+        self._text = text
+
+    def text(self):
+        return self._text

@@ -3182,12 +3182,15 @@ class TensorDeconvParamFrame(QtWidgets.QWidget):
         resetButton = QtWidgets.QPushButton("Reset")
         resetButton.clicked.connect(self.reset)
         self.frame1.addWidget(resetButton, 0, 1)
+        self.progressBar = wc.specialProgressBar()
+        self.progressBar.setValue(0)
+        self.frame1.addWidget(self.progressBar, 1,1)
         self.pickTick = QtWidgets.QCheckBox("Pick")
         self.pickTick.stateChanged.connect(self.togglePick)
-        self.frame1.addWidget(self.pickTick, 1, 1)
+        self.frame1.addWidget(self.pickTick, 2, 1)
         self.frame1.setColumnStretch(10, 1)
         self.frame1.setAlignment(QtCore.Qt.AlignTop)
-        self.frame1.addWidget(QLabel("Def:"), 2, 1) 
+        self.frame1.addWidget(QLabel("Def:"), 3, 1) 
         self.shiftDefType = 0 #variable to remember the selected tensor type
         self.shiftDef = QtWidgets.QComboBox()
         self.shiftDef.addItems([u'\u03b411 - \u03b422 - \u03b433'
@@ -3195,7 +3198,7 @@ class TensorDeconvParamFrame(QtWidgets.QWidget):
                                 ,u'\u03b4iso - \u03b4aniso - \u03b7'
                                 ,u'\u03b4iso - \u03a9 - \u03b7'])
         self.shiftDef.currentIndexChanged.connect(self.changeShiftDef)
-        self.frame1.addWidget(self.shiftDef, 3, 1)   
+        self.frame1.addWidget(self.shiftDef, 4, 1)   
         self.optframe.addWidget(QLabel("Cheng:"), 0, 0)
         self.chengEntry = QtWidgets.QLineEdit()
         self.chengEntry.setAlignment(QtCore.Qt.AlignHCenter)
@@ -3505,26 +3508,46 @@ class TensorDeconvParamFrame(QtWidgets.QWidget):
             if inp is None:
                 return False
             self.gaussEntries[i].setText('%#.3g' % inp)
-        return True
-
-    def fit(self, *args):
-        self.setCheng()
+            
         try:
             self.maxiter = abs(int(safeEval(self.fitparsframe.maxiterinput.text())))
         except:
-            self.maxiter = None
+            return False
         try:
             self.xtol = abs(safeEval(self.fitparsframe.xtolinput.text()))
         except:
-           self.xtol = 1.0e-4 
+           return False
         try:
            self.ftol = abs(safeEval(self.fitparsframe.ftolinput.text()))
         except:
-           self.ftol = 1.0e-4 
-                
+           return False
+        return True
+        
+        
+    def fitCallback(self,xk):
+        #Controls the progressBar during the fitting
+        currentValue = self.progressBar.value() + 1 
+        self.progressBar.setValue(currentValue )
+        self.progressBar.setText(str(currentValue) + '/' + str(self.maxiter))
+   
+        
+    def fitResuls(self,res):
+        self.fitPars = res
+        self.finished = True   
+        
+        
+    def fit(self, *args):
+        self.setCheng()
+
         if not self.checkInputs():
             self.rootwindow.mainProgram.dispMsg("One of the inputs is not valid")
             return
+            
+        self.progressBar.setMaximum(self.maxiter)
+        self.progressBar.setMinimum(0)
+        self.progressBar.setValue(0)
+        self.progressBar.setText('0/'+str(self.maxiter))
+        
         struc = []
         guess = []
         argu = []
@@ -3593,37 +3616,37 @@ class TensorDeconvParamFrame(QtWidgets.QWidget):
                 argu.append(outGauss[i])
                 struc.append(False)
         args = (numExp, struc, argu, self.parent.current.sw, self.axAdd)
-        self.queue = multiprocessing.Queue()
-        self.process1 = multiprocessing.Process(target=tensorDeconvmpFit, args=(self.parent.xax, np.real(self.parent.data1D),
-                                                                                guess, args, self.queue, self.cheng,self.maxiter,
-                                                                               self.xtol,self.ftol,self.shiftDefType))
-        self.process1.start()
-        self.running = True
-        self.stopButton.show()
-        while self.running:
-            if not self.queue.empty():
-                self.running = False
+         
+        fitThreadTest = tensorFitThread(self.parent.xax, np.real(self.parent.data1D),
+                                  guess, args, self.queue, self.cheng,self.maxiter,
+                                  self.xtol,self.ftol,self.shiftDefType)
+                                  
+        fitThreadTest.callbackDisp.connect(self.fitCallback)   
+        fitThreadTest.outputResults.connect(self.fitResuls)
+        self.finished = False
+        fitThreadTest.start()
+        while not self.finished:
             QtWidgets.qApp.processEvents()
             time.sleep(0.1)
-        if self.queue is None:
-            return
-        fitPars = self.queue.get(timeout=2)
-        
+                        
+
+        self.progressBar.setText('Finished')
+        self.progressBar.setValue(self.maxiter)
         #Set extra fit results window
-        self.fitparsframe.usedIter.setText(str(fitPars[2]))
-        self.fitparsframe.fitFunctionValue.setText('%.3g' % fitPars[1])
+        self.fitparsframe.usedIter.setText(str(self.fitPars[2]))
+        self.fitparsframe.fitFunctionValue.setText('%.3g' % self.fitPars[1])
         
         redPalette = QtGui.QPalette()
         redPalette.setColor(QtGui.QPalette.Foreground,QtCore.Qt.red)
         blackPalette = QtGui.QPalette()
         blackPalette.setColor(QtGui.QPalette.Foreground,QtCore.Qt.black)
         
-        if fitPars[4] == 2:#set limiting parameter colours
+        if self.fitPars[4] == 2:
             self.fitparsframe.usedIter.setPalette(redPalette)
         else:
             self.fitparsframe.usedIter.setPalette(blackPalette)
 
-        fitVal = fitPars[0]
+        fitVal = self.fitPars[0]
         self.stopMP()
         if fitVal is None:
             self.rootwindow.mainProgram.dispMsg('Optimal parameters not found')
@@ -3884,7 +3907,25 @@ class TensorDeconvParamFrame(QtWidgets.QWidget):
 
 ##############################################################################
 
-
+class tensorFitThread(QtCore.QThread):
+    callbackDisp = QtCore.pyqtSignal(object)
+    outputResults = QtCore.pyqtSignal(object)
+    
+    def __init__(self, xax, data1D, guess, args, queue, cheng,maxiter=None,xtol = 1e-4,ftol = 1e-4,Convention=0):
+        QtCore.QThread.__init__(self)
+        self.guess = guess
+        self.maxiter = maxiter
+        self.xtol = xtol
+        self.ftol = ftol
+        phi, theta, weight = zcw_angles(cheng, symm=2)
+        multt = [np.sin(theta)**2 * np.cos(phi)**2, np.sin(theta)**2 * np.sin(phi)**2, np.cos(theta)**2]
+        self.arg = args + (multt, weight, xax, data1D,Convention)
+        
+    def run(self):
+        fitVal = scipy.optimize.fmin(tensorDeconvfitFunc, self.guess, args=self.arg, disp=False,full_output=True,maxiter=self.maxiter,maxfun = None,xtol = self.xtol,ftol = self.ftol,callback = self.callbackDisp.emit)
+        self.outputResults.emit(fitVal)
+        
+        
 def tensorDeconvmpFit(xax, data1D, guess, args, queue, cheng,maxiter=None,xtol = 1e-4,ftol = 1e-4,Convention=0):
     phi, theta, weight = zcw_angles(cheng, symm=2)
     multt = [np.sin(theta)**2 * np.cos(phi)**2, np.sin(theta)**2 * np.sin(phi)**2, np.cos(theta)**2]
