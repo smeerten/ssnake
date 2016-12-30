@@ -2979,21 +2979,16 @@ class TensorFitParFrame(QtWidgets.QWidget):
         self.maxiterinput.setText("150")
         self.frame1.addWidget(self.maxiterinput, 1, 0)
         
-        self.frame1.addWidget(QtWidgets.QLabel('Max function calls:'), 2, 0)
-        self.maxfunctioncallinput = QtWidgets.QLineEdit()
-        self.maxfunctioncallinput.setText("300")
-        self.frame1.addWidget(self.maxfunctioncallinput, 3, 0)
 
-
-        self.frame1.addWidget(QtWidgets.QLabel('x tolerance:'), 4, 0)
+        self.frame1.addWidget(QtWidgets.QLabel('x tolerance:'), 2, 0)
         self.xtolinput = QtWidgets.QLineEdit()
         self.xtolinput.setText("1.0e-4")
-        self.frame1.addWidget(self.xtolinput, 5, 0)
+        self.frame1.addWidget(self.xtolinput, 3, 0)
         
-        self.frame1.addWidget(QtWidgets.QLabel('f tolerance:'), 6, 0)
+        self.frame1.addWidget(QtWidgets.QLabel('f tolerance:'), 4, 0)
         self.ftolinput = QtWidgets.QLineEdit()
         self.ftolinput.setText("1.0e-4")
-        self.frame1.addWidget(self.ftolinput, 7, 0)
+        self.frame1.addWidget(self.ftolinput, 5, 0)
         
         
         self.frame1.addWidget(QtWidgets.QLabel('Used iterations:'), 0, 1)
@@ -3001,15 +2996,10 @@ class TensorFitParFrame(QtWidgets.QWidget):
         self.usedIter.setAlignment(QtCore.Qt.AlignHCenter)
         self.frame1.addWidget(self.usedIter, 1, 1)
         
-        self.frame1.addWidget(QtWidgets.QLabel('Used calls:'), 2, 1)
-        self.usedFunctionEval = QtWidgets.QLabel('-')
-        self.usedFunctionEval.setAlignment(QtCore.Qt.AlignHCenter)
-        self.frame1.addWidget(self.usedFunctionEval, 3, 1)
-
-        self.frame1.addWidget(QtWidgets.QLabel('Function value:'), 4, 1)
+        self.frame1.addWidget(QtWidgets.QLabel('Function value:'),2, 1)
         self.fitFunctionValue = QtWidgets.QLabel('-')
         self.fitFunctionValue.setAlignment(QtCore.Qt.AlignHCenter)
-        self.frame1.addWidget(self.fitFunctionValue, 5, 1)
+        self.frame1.addWidget(self.fitFunctionValue, 3, 1)
         
         grid.setColumnStretch(10, 1)
         grid.setAlignment(QtCore.Qt.AlignLeft)
@@ -3524,10 +3514,6 @@ class TensorDeconvParamFrame(QtWidgets.QWidget):
         except:
             self.maxiter = None
         try:
-            self.maxfunctioncall = abs(int(safeEval(self.fitparsframe.maxfunctioncallinput.text())))
-        except:
-            self.maxfunctioncall = None
-        try:
             self.xtol = abs(safeEval(self.fitparsframe.xtolinput.text()))
         except:
            self.xtol = 1.0e-4 
@@ -3610,7 +3596,7 @@ class TensorDeconvParamFrame(QtWidgets.QWidget):
         self.queue = multiprocessing.Queue()
         self.process1 = multiprocessing.Process(target=tensorDeconvmpFit, args=(self.parent.xax, np.real(self.parent.data1D),
                                                                                 guess, args, self.queue, self.cheng,self.maxiter,
-                                                                                self.maxfunctioncall,self.xtol,self.ftol,self.shiftDefType))
+                                                                               self.xtol,self.ftol,self.shiftDefType))
         self.process1.start()
         self.running = True
         self.stopButton.show()
@@ -3625,7 +3611,6 @@ class TensorDeconvParamFrame(QtWidgets.QWidget):
         
         #Set extra fit results window
         self.fitparsframe.usedIter.setText(str(fitPars[2]))
-        self.fitparsframe.usedFunctionEval.setText(str(fitPars[3]))
         self.fitparsframe.fitFunctionValue.setText('%.3g' % fitPars[1])
         
         redPalette = QtGui.QPalette()
@@ -3633,17 +3618,11 @@ class TensorDeconvParamFrame(QtWidgets.QWidget):
         blackPalette = QtGui.QPalette()
         blackPalette.setColor(QtGui.QPalette.Foreground,QtCore.Qt.black)
         
-        if fitPars[4] == 1: #set limiting parameter colours
-            self.fitparsframe.usedIter.setPalette(blackPalette)
-            self.fitparsframe.usedFunctionEval.setPalette(redPalette)
-        elif fitPars[4] == 2:
+        if fitPars[4] == 2:#set limiting parameter colours
             self.fitparsframe.usedIter.setPalette(redPalette)
-            self.fitparsframe.usedFunctionEval.setPalette(blackPalette)
         else:
             self.fitparsframe.usedIter.setPalette(blackPalette)
-            self.fitparsframe.usedFunctionEval.setPalette(blackPalette)     
-            
-            
+
         fitVal = fitPars[0]
         self.stopMP()
         if fitVal is None:
@@ -3906,12 +3885,12 @@ class TensorDeconvParamFrame(QtWidgets.QWidget):
 ##############################################################################
 
 
-def tensorDeconvmpFit(xax, data1D, guess, args, queue, cheng,maxiter=None,maxfunctioncall = None,xtol = 1e-4,ftol = 1e-4,Convention=0):
+def tensorDeconvmpFit(xax, data1D, guess, args, queue, cheng,maxiter=None,xtol = 1e-4,ftol = 1e-4,Convention=0):
     phi, theta, weight = zcw_angles(cheng, symm=2)
     multt = [np.sin(theta)**2 * np.cos(phi)**2, np.sin(theta)**2 * np.sin(phi)**2, np.cos(theta)**2]
     arg = args + (multt, weight, xax, data1D,Convention)
     try:
-        fitVal = scipy.optimize.fmin(tensorDeconvfitFunc, guess, args=arg, disp=False,full_output=True,maxiter=maxiter,maxfun = maxfunctioncall,xtol = xtol,ftol = ftol)
+        fitVal = scipy.optimize.fmin(tensorDeconvfitFunc, guess, args=arg, disp=False,full_output=True,maxiter=maxiter,maxfun = None,xtol = xtol,ftol = ftol)
     except:
         fitVal = None
     queue.put(fitVal)
