@@ -3526,11 +3526,22 @@ class TensorDeconvParamFrame(QtWidgets.QWidget):
         
     def fitCallback(self,xk):
         #Controls the progressBar during the fitting
+        if self.killing:
+            self.running = False
+#            time.sleep(0.2)
+            if self.fitThread.isRunning():
+                self.fitThread.stop()
+                self.fitThread.wait()
+            self.progressBar.setText('Stopped')
+            self.progressBar.setValue(self.maxiter)
+            self.stopButton.hide()
+            self.killing = False
+            return
+            
         if self.running:
             currentValue = self.progressBar.value() + 1 
             self.progressBar.setValue(currentValue )
             self.progressBar.setText(str(currentValue) + '/' + str(self.maxiter))
-   
         
     def fitResuls(self,res):
         self.fitPars = res
@@ -3626,13 +3637,15 @@ class TensorDeconvParamFrame(QtWidgets.QWidget):
         self.fitThread.setTerminationEnabled()
         self.running = True
         self.fitPars = False
-        self.stopButton.show()
+        self.killing = False
         self.fitThread.start()
         
-        while self.running:
+        self.stopButton.show()
+        while self.running and not self.killing:
             QtWidgets.qApp.processEvents()
             time.sleep(0.1)
-        
+        time.sleep(0.2)
+        QtWidgets.qApp.processEvents()
         if self.fitPars == False:
             return
                 
@@ -3693,13 +3706,8 @@ class TensorDeconvParamFrame(QtWidgets.QWidget):
         self.disp(outBgrnd, outSlope, outt11, outt22, outt33, outAmp, outWidth, outGauss,False,self.shiftDefType)
 
     def stopThread(self, *args):
-        if self.fitThread.isRunning():
-            self.fitThread.stop()
-            self.fitThread.wait()
-        self.progressBar.setText('Stopped')
-        self.progressBar.setValue(self.maxiter)
-        self.stopButton.hide()
-        self.running = False
+        self.killing = True
+
         
     def stopMP(self, *args):
         if self.queue is not None:
