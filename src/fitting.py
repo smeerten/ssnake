@@ -3162,7 +3162,7 @@ class TensorDeconvParamFrame(QtWidgets.QWidget):
         fitButton.clicked.connect(self.fit)
         self.frame1.addWidget(fitButton, 1, 0)
         self.stopButton = QtWidgets.QPushButton("Stop")
-        self.stopButton.clicked.connect(self.stopMP)
+        self.stopButton.clicked.connect(self.stopThread)
         self.frame1.addWidget(self.stopButton, 1, 0)
         self.stopButton.hide()
         self.process1 = None
@@ -3526,15 +3526,15 @@ class TensorDeconvParamFrame(QtWidgets.QWidget):
         
     def fitCallback(self,xk):
         #Controls the progressBar during the fitting
-        currentValue = self.progressBar.value() + 1 
-        self.progressBar.setValue(currentValue )
-        self.progressBar.setText(str(currentValue) + '/' + str(self.maxiter))
+        if self.running:
+            currentValue = self.progressBar.value() + 1 
+            self.progressBar.setValue(currentValue )
+            self.progressBar.setText(str(currentValue) + '/' + str(self.maxiter))
    
         
     def fitResuls(self,res):
         self.fitPars = res
-        self.finished = True   
-        
+        self.running = False   
         
     def fit(self, *args):
         self.setCheng()
@@ -3617,19 +3617,26 @@ class TensorDeconvParamFrame(QtWidgets.QWidget):
                 struc.append(False)
         args = (numExp, struc, argu, self.parent.current.sw, self.axAdd)
          
-        fitThreadTest = tensorFitThread(self.parent.xax, np.real(self.parent.data1D),
+        self.fitThread = tensorFitThread(self.parent.xax, np.real(self.parent.data1D),
                                   guess, args, self.queue, self.cheng,self.maxiter,
                                   self.xtol,self.ftol,self.shiftDefType)
                                   
-        fitThreadTest.callbackDisp.connect(self.fitCallback)   
-        fitThreadTest.outputResults.connect(self.fitResuls)
-        self.finished = False
-        fitThreadTest.start()
-        while not self.finished:
+        self.fitThread.callbackDisp.connect(self.fitCallback)   
+        self.fitThread.outputResults.connect(self.fitResuls)
+        self.fitThread.setTerminationEnabled()
+        self.running = True
+        self.fitPars = False
+        self.stopButton.show()
+        self.fitThread.start()
+        
+        while self.running:
             QtWidgets.qApp.processEvents()
             time.sleep(0.1)
-                        
-
+        
+        if self.fitPars == False:
+            return
+                
+        self.stopButton.hide()
         self.progressBar.setText('Finished')
         self.progressBar.setValue(self.maxiter)
         #Set extra fit results window
@@ -3647,10 +3654,8 @@ class TensorDeconvParamFrame(QtWidgets.QWidget):
             self.fitparsframe.usedIter.setPalette(blackPalette)
 
         fitVal = self.fitPars[0]
-        self.stopMP()
-        if fitVal is None:
-            self.rootwindow.mainProgram.dispMsg('Optimal parameters not found')
-            return
+
+
         counter = 0
         if struc[0]:
             self.bgrndEntry.setText('%.3g' % fitVal[counter])
@@ -3687,6 +3692,15 @@ class TensorDeconvParamFrame(QtWidgets.QWidget):
                 counter += 1
         self.disp(outBgrnd, outSlope, outt11, outt22, outt33, outAmp, outWidth, outGauss,False,self.shiftDefType)
 
+    def stopThread(self, *args):
+        if self.fitThread.isRunning():
+            self.fitThread.stop()
+            self.fitThread.wait()
+        self.progressBar.setText('Stopped')
+        self.progressBar.setValue(self.maxiter)
+        self.stopButton.hide()
+        self.running = False
+        
     def stopMP(self, *args):
         if self.queue is not None:
             self.process1.terminate()
@@ -3697,7 +3711,7 @@ class TensorDeconvParamFrame(QtWidgets.QWidget):
         self.process1 = None
         self.running = False
         self.stopButton.hide()
-
+        
     def fitAll(self, *args):
         FitAllSelectionWindow(self, ["Background", "Slope", "T11", "T22", "T33", "Integral", "Lorentz", "Gauss"])
 
@@ -3924,6 +3938,10 @@ class tensorFitThread(QtCore.QThread):
     def run(self):
         fitVal = scipy.optimize.fmin(tensorDeconvfitFunc, self.guess, args=self.arg, disp=False,full_output=True,maxiter=self.maxiter,maxfun = None,xtol = self.xtol,ftol = self.ftol,callback = self.callbackDisp.emit)
         self.outputResults.emit(fitVal)
+        
+    def stop(self):
+        self.terminate()
+
         
         
 def tensorDeconvmpFit(xax, data1D, guess, args, queue, cheng,maxiter=None,xtol = 1e-4,ftol = 1e-4,Convention=0):
