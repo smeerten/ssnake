@@ -40,6 +40,7 @@ import widgetClasses as wc
 import time
 
 pi = np.pi
+stopDict = {} #Global dictionary with stopping commands for fits
 
 ##############################################################################
 def shiftConversion(Values,Type):
@@ -3526,22 +3527,9 @@ class TensorDeconvParamFrame(QtWidgets.QWidget):
         
     def fitCallback(self,xk):
         #Controls the progressBar during the fitting
-        if self.killing:
-            self.running = False
-#            time.sleep(0.2)
-            if self.fitThread.isRunning():
-                self.fitThread.stop()
-                self.fitThread.wait()
-            self.progressBar.setText('Stopped')
-            self.progressBar.setValue(self.maxiter)
-            self.stopButton.hide()
-            self.killing = False
-            return
-            
-        if self.running:
-            currentValue = self.progressBar.value() + 1 
-            self.progressBar.setValue(currentValue )
-            self.progressBar.setText(str(currentValue) + '/' + str(self.maxiter))
+        currentValue = self.progressBar.value() + 1 
+        self.progressBar.setValue(currentValue )
+        self.progressBar.setText(str(currentValue) + '/' + str(self.maxiter))
         
     def fitResuls(self,res):
         self.fitPars = res
@@ -3628,28 +3616,49 @@ class TensorDeconvParamFrame(QtWidgets.QWidget):
                 struc.append(False)
         args = (numExp, struc, argu, self.parent.current.sw, self.axAdd)
          
+        #Initiallize the global stopping dictionary 
+        global stopDict
+        self.stopIndex = 0
+        found = False
+        while found == False:
+            if str(self.stopIndex) in stopDict.keys():
+                self.stopIndex += 1
+            else:
+               stopDict[str(self.stopIndex)] = False
+               found = True
+               
+               
+               
         self.fitThread = tensorFitThread(self.parent.xax, np.real(self.parent.data1D),
                                   guess, args, self.queue, self.cheng,self.maxiter,
-                                  self.xtol,self.ftol,self.shiftDefType)
+                                  self.xtol,self.ftol,self.shiftDefType,self.stopIndex)
                                   
         self.fitThread.callbackDisp.connect(self.fitCallback)   
         self.fitThread.outputResults.connect(self.fitResuls)
         self.fitThread.setTerminationEnabled()
         self.running = True
         self.fitPars = False
-        self.killing = False
+        
+        
+
         self.fitThread.start()
         
         self.stopButton.show()
-        while self.running and not self.killing:
+        while self.running:
             QtWidgets.qApp.processEvents()
             time.sleep(0.1)
-        time.sleep(0.2)
-        QtWidgets.qApp.processEvents()
+            
+            
+        self.stopButton.hide()
+        if stopDict[str(self.stopIndex)]: #If stopped
+            self.progressBar.setText('Stopped')
+            self.progressBar.setValue(self.maxiter)
+        
+        
+        del stopDict[str(self.stopIndex)] #delete the index from the global var
         if self.fitPars == False:
             return
                 
-        self.stopButton.hide()
         self.progressBar.setText('Finished')
         self.progressBar.setValue(self.maxiter)
         #Set extra fit results window
@@ -3667,7 +3676,6 @@ class TensorDeconvParamFrame(QtWidgets.QWidget):
             self.fitparsframe.usedIter.setPalette(blackPalette)
 
         fitVal = self.fitPars[0]
-
 
         counter = 0
         if struc[0]:
@@ -3706,8 +3714,8 @@ class TensorDeconvParamFrame(QtWidgets.QWidget):
         self.disp(outBgrnd, outSlope, outt11, outt22, outt33, outAmp, outWidth, outGauss,False,self.shiftDefType)
 
     def stopThread(self, *args):
-        self.killing = True
-
+        global stopDict
+        stopDict[str(self.stopIndex)] = True
         
     def stopMP(self, *args):
         if self.queue is not None:
@@ -3933,7 +3941,7 @@ class tensorFitThread(QtCore.QThread):
     callbackDisp = QtCore.pyqtSignal(object)
     outputResults = QtCore.pyqtSignal(object)
     
-    def __init__(self, xax, data1D, guess, args, queue, cheng,maxiter=None,xtol = 1e-4,ftol = 1e-4,Convention=0):
+    def __init__(self, xax, data1D, guess, args, queue, cheng,maxiter=None,xtol = 1e-4,ftol = 1e-4,Convention=0,stopIndex = False):
         QtCore.QThread.__init__(self)
         self.guess = guess
         self.maxiter = maxiter
@@ -3941,16 +3949,14 @@ class tensorFitThread(QtCore.QThread):
         self.ftol = ftol
         phi, theta, weight = zcw_angles(cheng, symm=2)
         multt = [np.sin(theta)**2 * np.cos(phi)**2, np.sin(theta)**2 * np.sin(phi)**2, np.cos(theta)**2]
-        self.arg = args + (multt, weight, xax, data1D,Convention)
+        self.arg = args + (multt, weight, xax, data1D,Convention,stopIndex)
         
     def run(self):
-        fitVal = scipy.optimize.fmin(tensorDeconvfitFunc, self.guess, args=self.arg, disp=False,full_output=True,maxiter=self.maxiter,maxfun = None,xtol = self.xtol,ftol = self.ftol,callback = self.callbackDisp.emit)
+        try:
+            fitVal = scipy.optimize.fmin(tensorDeconvfitFunc, self.guess, args=self.arg, disp=False,full_output=True,maxiter=self.maxiter,maxfun = None,xtol = self.xtol,ftol = self.ftol,callback = self.callbackDisp.emit)
+        except:
+            fitVal = False
         self.outputResults.emit(fitVal)
-        
-    def stop(self):
-        self.terminate()
-
-        
         
 def tensorDeconvmpFit(xax, data1D, guess, args, queue, cheng,maxiter=None,xtol = 1e-4,ftol = 1e-4,Convention=0):
     phi, theta, weight = zcw_angles(cheng, symm=2)
@@ -3974,7 +3980,7 @@ def tensorDeconvmpAllFit(xax, data, guess, args, queue, cheng,convention):
             fitVal.append([[0] * 10])
     queue.put(fitVal)
 
-def tensorDeconvfitFunc(param, numExp, struc, argu, sw, axAdd, multt, weight, x, y,convention=0):
+def tensorDeconvfitFunc(param, numExp, struc, argu, sw, axAdd, multt, weight, x, y,convention=0,stopIndex = False):
     testFunc = np.zeros(len(x))
     if struc[0]:
         bgrnd = param[0]
@@ -3989,6 +3995,10 @@ def tensorDeconvfitFunc(param, numExp, struc, argu, sw, axAdd, multt, weight, x,
         slope = argu[0]
         argu = np.delete(argu, [0])
     for i in range(numExp):
+        if str(stopIndex) in stopDict.keys(): #stop if set
+            if stopDict[str(stopIndex)]:
+                raise ValueError('Fitting stopped') 
+            
         if struc[6 * i + 2]:
             t11 = param[0]
             param = np.delete(param, [0])
