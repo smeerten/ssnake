@@ -3317,6 +3317,7 @@ class TensorDeconvParamFrame(QtWidgets.QWidget):
 
     def closeWindow(self, *args):
         self.stopMP()
+        self.stopThread()
         self.rootwindow.cancel()
 
     def reset(self):
@@ -3715,7 +3716,8 @@ class TensorDeconvParamFrame(QtWidgets.QWidget):
 
     def stopThread(self, *args):
         global stopDict
-        stopDict[str(self.stopIndex)] = True
+        if str(self.stopIndex) in stopDict.keys():
+            stopDict[str(self.stopIndex)] = True
         
     def stopMP(self, *args):
         if self.queue is not None:

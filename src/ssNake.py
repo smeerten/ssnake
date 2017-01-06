@@ -1861,6 +1861,10 @@ class MainProgram(QtWidgets.QMainWindow):
         quit_msg = "Are you sure you want to close ssNake?"
         reply = QtWidgets.QMessageBox.question(self, 'Close', quit_msg, QtWidgets.QMessageBox.Yes, QtWidgets.QMessageBox.No)
         if reply == QtWidgets.QMessageBox.Yes:
+            for item in fit.stopDict.keys(): #Send stop commands to all threads
+                fit.stopDict[item] = True
+            
+            
             event.accept()
         else:
             event.ignore()
@@ -6964,3 +6968,4 @@ if __name__ == '__main__':
     mainProgram.show()
     splash.finish(mainProgram)
     sys.exit(root.exec_())
+    
