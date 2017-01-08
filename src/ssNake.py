@@ -346,8 +346,8 @@ class MainProgram(QtWidgets.QMainWindow):
         self.fittingMenu.addAction(QtGui.QIcon(IconDirectory + 'fwhm.png'),"&FWHM", lambda: self.mainWindowCheck(lambda mainWindow: FWHMWindow(mainWindow)))
         self.fittingMenu.addAction(QtGui.QIcon(IconDirectory + 'mass.png'),"Centre of Mass", lambda: self.mainWindowCheck(lambda mainWindow: COMWindow(mainWindow)))
         self.fittingMenu.addAction(QtGui.QIcon(IconDirectory + 'int.png'),"&Integrals", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.createIntegralsWindow()))
-        self.fittingMenu.addAction("&Relaxation Curve", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.createRelaxWindow()))
-        self.fittingMenu.addAction("&Diffusion Curve", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.createDiffusionWindow()))
+        self.fittingMenu.addAction(QtGui.QIcon(IconDirectory + 'relaxation.png'),"&Relaxation Curve", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.createRelaxWindow()))
+        self.fittingMenu.addAction(QtGui.QIcon(IconDirectory + 'diffusion.png'),"&Diffusion Curve", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.createDiffusionWindow()))
         self.fittingMenu.addAction("&Peak Deconvolution", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.createPeakDeconvWindow()))
         self.fittingMenu.addAction("&CSA static", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.createTensorDeconvWindow()))
         self.fittingMenu.addAction("CSA MAS", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.createHerzfeldBergerWindow()))
@@ -404,7 +404,7 @@ class MainProgram(QtWidgets.QMainWindow):
         self.helpMenu.addAction(QtGui.QIcon(IconDirectory + 'update.png'),"&Update", self.updateMenu)
         self.helpMenu.addAction(QtGui.QIcon(IconDirectory + 'shifttool.png'),"&Chemical shift conversion tool", self.createShiftConversionWindow)
         self.helpMenu.addAction(QtGui.QIcon(IconDirectory + 'quadconversion.png'),"&Quadrupole coupling conversion tool", self.createQuadConversionWindow)
-        self.helpMenu.addAction("&NMR table", self.nmrTable)
+        self.helpMenu.addAction(QtGui.QIcon(IconDirectory + 'table.png'),"&NMR table", self.nmrTable)
         
         self.helpMenu.addAction(QtGui.QIcon(IconDirectory + 'about.png'),"&About", self.about)
 
