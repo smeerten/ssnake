@@ -3426,6 +3426,8 @@ class TensorDeconvParamFrame(QtWidgets.QWidget):
             self.labeliso2.hide()
             self.labelspan.hide()
             self.labelskew.hide()
+            self.pickTick.setChecked(True)
+            self.pickTick.show()
         elif NewType == 1:
             self.label11.hide()
             self.label22.hide()
@@ -3439,6 +3441,8 @@ class TensorDeconvParamFrame(QtWidgets.QWidget):
             self.labeliso2.hide()
             self.labelspan.hide()
             self.labelskew.hide()
+            self.pickTick.setChecked(True)
+            self.pickTick.show()
         elif NewType == 2:
             self.label11.hide()
             self.label22.hide()
@@ -3452,6 +3456,8 @@ class TensorDeconvParamFrame(QtWidgets.QWidget):
             self.labeliso2.hide()
             self.labelspan.hide()
             self.labelskew.hide()
+            self.pickTick.setChecked(False)
+            self.pickTick.hide()
         elif NewType == 3:
             self.label11.hide()
             self.label22.hide()
@@ -3465,6 +3471,8 @@ class TensorDeconvParamFrame(QtWidgets.QWidget):
             self.labeliso2.show()
             self.labelspan.show()
             self.labelskew.show()
+            self.pickTick.setChecked(False)
+            self.pickTick.hide()
             
             
         val = self.numExp.currentIndex() + 1
