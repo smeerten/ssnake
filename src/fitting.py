@@ -3142,6 +3142,16 @@ class TensorDeconvParamFrame(QtWidgets.QWidget):
         self.rootwindow = rootwindow
         self.fitparsframe = fitparsframe
         self.cheng = 15
+        
+        self.stopIndex = 0 #Calc stopIndex to be able to stop fitting
+        found = False
+        while found == False:
+            if str(self.stopIndex) in stopDict.keys():
+                self.stopIndex += 1
+            else:
+               found = True
+               
+               
         grid = QtWidgets.QGridLayout(self)
         self.setLayout(grid)
         if self.parent.current.spec == 1:
@@ -3619,14 +3629,7 @@ class TensorDeconvParamFrame(QtWidgets.QWidget):
          
         #Initiallize the global stopping dictionary 
         global stopDict
-        self.stopIndex = 0
-        found = False
-        while found == False:
-            if str(self.stopIndex) in stopDict.keys():
-                self.stopIndex += 1
-            else:
-               stopDict[str(self.stopIndex)] = False
-               found = True
+        stopDict[str(self.stopIndex)] = False
                
                
                
@@ -4059,7 +4062,7 @@ def tensorDeconvtensorFunc(x, t11, t22, t33, lor, gauss, multt, sw, weight, axAd
     x1 = x1[np.logical_and(x1 >= 0, x1 < length)]
     final = np.bincount(x1, weight, length)
     apod = np.exp(-np.pi * lor * t) * np.exp(-((np.pi * gauss * t)**2) / (4 * np.log(2)))
-    apod[-1:int(-(len(apod) / 2 + 1)):-1] = apod[:len(apod) / 2]
+    apod[-1:int(-(len(apod) / 2 + 1)):-1] = apod[:int(len(apod) / 2)]
     I = np.real(np.fft.fft(np.fft.ifft(final) * apod))
     I = I / sw * len(I)
     return I
