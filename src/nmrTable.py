@@ -475,6 +475,7 @@ class PtQLineEdit(QtWidgets.QLineEdit):
 
 def main():
     app = QtWidgets.QApplication(sys.argv)
+    app.setWindowIcon(QtGui.QIcon(os.path.dirname(os.path.realpath(__file__)) + '/logo.gif'))
     ex = PeriodicTable()
     sys.exit(app.exec_())
 
