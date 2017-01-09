@@ -3468,18 +3468,27 @@ class TensorDeconvParamFrame(QtWidgets.QWidget):
             
             
         val = self.numExp.currentIndex() + 1
+        tensorList = []
         for i in range(10): #Convert input
             if i < val:
                 T11 = safeEval(self.t11Entries[i].text())
                 T22 = safeEval(self.t22Entries[i].text())
                 T33 = safeEval(self.t33Entries[i].text())
-                if not T11 or not T22 or not T33: #error, no conversion
-                    pass
-                else:
-                    Tensors = shiftConversion([T11,T22,T33],OldType)
-                    self.t11Entries[i].setText('%#.3g' % Tensors[NewType][0])
-                    self.t22Entries[i].setText('%#.3g' % Tensors[NewType][1])
-                    self.t33Entries[i].setText('%#.3g' % Tensors[NewType][2])
+                startTensor = [T11,T22,T33]
+                if None in startTensor:
+                    self.shiftDef.setCurrentIndex(OldType) #error, reset to old view
+                    self.rootwindow.mainProgram.dispMsg("One of the inputs is not valid")
+                    return
+                Tensors = shiftConversion(startTensor,OldType)
+                for element in range(3): #Check for `ND' s
+                    if type(Tensors[NewType][element]) == str:
+                        Tensors[NewType][element] = 0
+                tensorList.append(Tensors)   
+        for i in range(10): #Print output if not stopped before
+            if i < val:        
+                self.t11Entries[i].setText('%#.3g' % tensorList[i][NewType][0])
+                self.t22Entries[i].setText('%#.3g' % tensorList[i][NewType][1])
+                self.t33Entries[i].setText('%#.3g' % tensorList[i][NewType][2])
                 
                 
         self.shiftDefType = NewType
