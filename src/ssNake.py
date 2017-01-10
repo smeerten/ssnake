@@ -355,7 +355,7 @@ class MainProgram(QtWidgets.QMainWindow):
         self.fittingMenu.addAction(QtGui.QIcon(IconDirectory + 'firstquadMAS.png'),"First order &quadrupole MAS", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.createQuad1MASDeconvWindow()))
         self.fittingMenu.addAction(QtGui.QIcon(IconDirectory + 'secondquadstatic.png'),"S&econd order quadrupole static", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.createQuad2StaticDeconvWindow()))
         self.fittingMenu.addAction(QtGui.QIcon(IconDirectory + 'secondquadMAS.png'),"Se&cond order quadrupole MAS", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.createQuad2MASDeconvWindow()))
-        self.fittingMenu.addAction("Czjzek s&tatic", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.createQuad2StaticCzjzekWindow()))
+        self.fittingMenu.addAction(QtGui.QIcon(IconDirectory + 'czjzekstatic.png'),"Czjzek s&tatic", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.createQuad2StaticCzjzekWindow()))
         self.fittingMenu.addAction("Czjzek &MAS", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.createQuad2MASCzjzekWindow()))
 
         # the combine drop down menu
