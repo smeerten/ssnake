@@ -3029,12 +3029,12 @@ class TensorDeconvFrame(Plot1DFrame):
         self.spec = self.current.spec
         if self.spec == 1:
             if self.current.ppm:
-                axMult = 1e6 / self.current.ref
+                self.axMult = 1e6 / self.current.ref
             else:
-                axMult = 1.0 / (1000.0**self.current.axType)
+                self.axMult = 1.0 / (1000.0**self.current.axType)
         elif self.spec == 0:
-            axMult = 1000.0**self.current.axType
-        self.xax = self.current.xax * axMult
+            self.axMult = 1000.0**self.current.axType
+        self.xax = self.current.xax * self.axMult
         self.plotType = 0
         self.rootwindow = rootwindow
         self.pickNum = 0
@@ -3128,19 +3128,18 @@ class TensorDeconvFrame(Plot1DFrame):
             self.peakPick = False
 
     def pickDeconv(self, pos):
-#        printDigits = self.fitparsframe.printDigits.value()
         printStr = "%#." + str(self.printDigits) + "g"
         if self.pickNum2 == 0:
             if self.pickNum < 10:
                 self.rootwindow.paramframe.numExp.setCurrentIndex(self.pickNum)
                 self.rootwindow.paramframe.changeNum()
-            self.rootwindow.paramframe.t11Entries[self.pickNum].setText(printStr % self.current.xax[pos[0]])
+            self.rootwindow.paramframe.t11Entries[self.pickNum].setText(printStr % self.xax[pos[0]])
             self.pickNum2 = 1
         elif self.pickNum2 == 1:
-            self.rootwindow.paramframe.t22Entries[self.pickNum].setText(printStr % self.current.xax[pos[0]])
+            self.rootwindow.paramframe.t22Entries[self.pickNum].setText(printStr % self.xax[pos[0]])
             self.pickNum2 = 2
         elif self.pickNum2 == 2:
-            self.rootwindow.paramframe.t33Entries[self.pickNum].setText(printStr % self.current.xax[pos[0]])
+            self.rootwindow.paramframe.t33Entries[self.pickNum].setText(printStr % self.xax[pos[0]])
             self.pickNum2 = 0
             self.pickNum += 1
         if self.pickNum < 10:
@@ -3217,7 +3216,7 @@ class TensorDeconvParamFrame(QtWidgets.QWidget):
         self.frame1.addWidget(self.pickTick, 2, 1)
         self.frame1.setColumnStretch(10, 1)
         self.frame1.setAlignment(QtCore.Qt.AlignTop)
-        self.frame1.addWidget(QLabel("Def:"), 3, 1) 
+        self.frame1.addWidget(QLabel("Definition:"), 3, 1) 
         self.shiftDefType = 0 #variable to remember the selected tensor type
         self.shiftDef = QtWidgets.QComboBox()
         self.shiftDef.addItems([u'\u03b411 - \u03b422 - \u03b433'
@@ -3671,7 +3670,7 @@ class TensorDeconvParamFrame(QtWidgets.QWidget):
                
         self.fitThread = tensorFitThread(self.parent.xax, np.real(self.parent.data1D),
                                   guess, args, self.queue, self.cheng,self.maxiter,
-                                  self.xtol,self.ftol,self.shiftDefType,self.stopIndex)
+                                  self.xtol,self.ftol,self.shiftDefType,self.parent.axMult,self.stopIndex)
                                   
         self.fitThread.callbackDisp.connect(self.fitCallback)   
         self.fitThread.outputResults.connect(self.fitResuls)
@@ -3958,7 +3957,7 @@ class TensorDeconvParamFrame(QtWidgets.QWidget):
         x = []
         for i in range(len(outt11)):
             x.append(tmpx)
-            y = outAmp[i] * tensorDeconvtensorFunc(tmpx, outt11[i], outt22[i], outt33[i], outWidth[i], outGauss[i], multt, self.parent.current.sw, weight, self.axAdd,Convention)
+            y = outAmp[i] * tensorDeconvtensorFunc(tmpx, outt11[i] , outt22[i], outt33[i], outWidth[i], outGauss[i], multt, self.parent.current.sw, weight, self.axAdd,Convention,self.parent.axMult)
             outCurvePart.append(outCurveBase + y)
             outCurve += y
         if store == 'copy':
@@ -3983,7 +3982,7 @@ class tensorFitThread(QtCore.QThread):
     callbackDisp = QtCore.pyqtSignal(object)
     outputResults = QtCore.pyqtSignal(object)
     
-    def __init__(self, xax, data1D, guess, args, queue, cheng,maxiter=None,xtol = 1e-4,ftol = 1e-4,Convention=0,stopIndex = False):
+    def __init__(self, xax, data1D, guess, args, queue, cheng,maxiter=None,xtol = 1e-4,ftol = 1e-4,Convention=0,axMult = 1,stopIndex = False):
         QtCore.QThread.__init__(self)
         self.guess = guess
         self.maxiter = maxiter
@@ -3991,7 +3990,7 @@ class tensorFitThread(QtCore.QThread):
         self.ftol = ftol
         phi, theta, weight = zcw_angles(cheng, symm=2)
         multt = [np.sin(theta)**2 * np.cos(phi)**2, np.sin(theta)**2 * np.sin(phi)**2, np.cos(theta)**2]
-        self.arg = args + (multt, weight, xax, data1D,Convention,stopIndex)
+        self.arg = args + (multt, weight, xax, data1D,Convention,axMult,stopIndex)
         
     def run(self):
         try:
@@ -4000,15 +3999,15 @@ class tensorFitThread(QtCore.QThread):
             fitVal = False
         self.outputResults.emit(fitVal)
         
-def tensorDeconvmpFit(xax, data1D, guess, args, queue, cheng,maxiter=None,xtol = 1e-4,ftol = 1e-4,Convention=0):
-    phi, theta, weight = zcw_angles(cheng, symm=2)
-    multt = [np.sin(theta)**2 * np.cos(phi)**2, np.sin(theta)**2 * np.sin(phi)**2, np.cos(theta)**2]
-    arg = args + (multt, weight, xax, data1D,Convention)
-    try:
-        fitVal = scipy.optimize.fmin(tensorDeconvfitFunc, guess, args=arg, disp=False,full_output=True,maxiter=maxiter,maxfun = None,xtol = xtol,ftol = ftol)
-    except:
-        fitVal = None
-    queue.put(fitVal)
+#def tensorDeconvmpFit(xax, data1D, guess, args, queue, cheng,maxiter=None,xtol = 1e-4,ftol = 1e-4,Convention=0):
+#    phi, theta, weight = zcw_angles(cheng, symm=2)
+#    multt = [np.sin(theta)**2 * np.cos(phi)**2, np.sin(theta)**2 * np.sin(phi)**2, np.cos(theta)**2]
+#    arg = args + (multt, weight, xax, data1D,Convention)
+#    try:
+#        fitVal = scipy.optimize.fmin(tensorDeconvfitFunc, guess, args=arg, disp=False,full_output=True,maxiter=maxiter,maxfun = None,xtol = xtol,ftol = ftol)
+#    except:
+#        fitVal = None
+#    queue.put(fitVal)
 
 def tensorDeconvmpAllFit(xax, data, guess, args, queue, cheng,convention):
     phi, theta, weight = zcw_angles(cheng, symm=2)
@@ -4022,7 +4021,7 @@ def tensorDeconvmpAllFit(xax, data, guess, args, queue, cheng,convention):
             fitVal.append([[0] * 10])
     queue.put(fitVal)
 
-def tensorDeconvfitFunc(param, numExp, struc, argu, sw, axAdd, multt, weight, x, y,convention=0,stopIndex = False):
+def tensorDeconvfitFunc(param, numExp, struc, argu, sw, axAdd, multt, weight, x, y,convention=0,axMult = 1,stopIndex = False):
     testFunc = np.zeros(len(x))
     if struc[0]:
         bgrnd = param[0]
@@ -4080,12 +4079,15 @@ def tensorDeconvfitFunc(param, numExp, struc, argu, sw, axAdd, multt, weight, x,
             
 
         
-        testFunc += amp * tensorDeconvtensorFunc(x, t11, t22, t33, width, gauss, multt, sw, weight, axAdd,convention)
+        testFunc += amp * tensorDeconvtensorFunc(x, t11, t22, t33, width, gauss, multt, sw, weight, axAdd,convention,axMult)
     testFunc += bgrnd + slope * x
     return np.sum((np.real(testFunc) - y)**2)
 
-def tensorDeconvtensorFunc(x, t11, t22, t33, lor, gauss, multt, sw, weight, axAdd,convention=0):
-    Tensors = shiftConversion([t11,t22,t33],convention)
+def tensorDeconvtensorFunc(x, t11, t22, t33, lor, gauss, multt, sw, weight, axAdd,convention=0,axMult=1):
+    if convention == 0 or convention == 1:
+        Tensors = shiftConversion([t11 / axMult,t22 / axMult,t33 / axMult],convention)
+    else:
+        Tensors = shiftConversion([t11 / axMult,t22 / axMult,t33],convention)
     t11 = Tensors[0][0] * multt[0]
     t22 = Tensors[0][1] * multt[1]
     t33 = Tensors[0][2] * multt[2]
