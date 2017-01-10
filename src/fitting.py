@@ -3002,8 +3002,22 @@ class TensorFitParFrame(QtWidgets.QWidget):
         self.fitFunctionValue.setAlignment(QtCore.Qt.AlignHCenter)
         self.frame1.addWidget(self.fitFunctionValue, 3, 1)
         
+        self.frame1.addWidget(QtWidgets.QLabel('# print digits:'),4, 1)
+        self.printDigits = QtWidgets.QSpinBox()
+        self.printDigits.setMinimum(1)
+        self.printDigits.setValue(4)
+        self.updatePrintDigits(4)
+        self.printDigits.valueChanged.connect(self.updatePrintDigits)
+        self.frame1.addWidget(self.printDigits, 5, 1)
+        
+        
         grid.setColumnStretch(10, 1)
         grid.setAlignment(QtCore.Qt.AlignLeft)
+        
+    def updatePrintDigits(self,digits):
+        self.parent.printDigits = digits
+        
+        
 #####################################################################################
 
 class TensorDeconvFrame(Plot1DFrame):
@@ -3114,17 +3128,19 @@ class TensorDeconvFrame(Plot1DFrame):
             self.peakPick = False
 
     def pickDeconv(self, pos):
+#        printDigits = self.fitparsframe.printDigits.value()
+        printStr = "%#." + str(self.printDigits) + "g"
         if self.pickNum2 == 0:
             if self.pickNum < 10:
                 self.rootwindow.paramframe.numExp.setCurrentIndex(self.pickNum)
                 self.rootwindow.paramframe.changeNum()
-            self.rootwindow.paramframe.t11Entries[self.pickNum].setText("%.3g" % self.current.xax[pos[0]])
+            self.rootwindow.paramframe.t11Entries[self.pickNum].setText(printStr % self.current.xax[pos[0]])
             self.pickNum2 = 1
         elif self.pickNum2 == 1:
-            self.rootwindow.paramframe.t22Entries[self.pickNum].setText("%.3g" % self.current.xax[pos[0]])
+            self.rootwindow.paramframe.t22Entries[self.pickNum].setText(printStr % self.current.xax[pos[0]])
             self.pickNum2 = 2
         elif self.pickNum2 == 2:
-            self.rootwindow.paramframe.t33Entries[self.pickNum].setText("%.3g" % self.current.xax[pos[0]])
+            self.rootwindow.paramframe.t33Entries[self.pickNum].setText(printStr % self.current.xax[pos[0]])
             self.pickNum2 = 0
             self.pickNum += 1
         if self.pickNum < 10:
@@ -3492,11 +3508,13 @@ class TensorDeconvParamFrame(QtWidgets.QWidget):
                     if type(Tensors[NewType][element]) == str:
                         Tensors[NewType][element] = 0
                 tensorList.append(Tensors)   
+        
+        printStr = '%#.' + str(self.parent.printDigits) + 'g'
         for i in range(10): #Print output if not stopped before
             if i < val:        
-                self.t11Entries[i].setText('%#.3g' % tensorList[i][NewType][0])
-                self.t22Entries[i].setText('%#.3g' % tensorList[i][NewType][1])
-                self.t33Entries[i].setText('%#.3g' % tensorList[i][NewType][2])
+                self.t11Entries[i].setText(printStr % tensorList[i][NewType][0])
+                self.t22Entries[i].setText(printStr % tensorList[i][NewType][1])
+                self.t33Entries[i].setText(printStr % tensorList[i][NewType][2])
                 
                 
         self.shiftDefType = NewType
@@ -3504,39 +3522,40 @@ class TensorDeconvParamFrame(QtWidgets.QWidget):
         
     def checkInputs(self):
         numExp = self.numExp.currentIndex() + 1
+        printStr = '%#.' + str(self.parent.printDigits) + 'g'
         inp = safeEval(self.bgrndEntry.text())
         if inp is None:
             return False
-        self.bgrndEntry.setText('%#.3g' % inp)
+        self.bgrndEntry.setText(printStr % inp)
         inp = safeEval(self.slopeEntry.text())
         if inp is None:
             return False
-        self.slopeEntry.setText('%#.3g' % inp)
+        self.slopeEntry.setText(printStr % inp)
         for i in range(numExp):
             inp = safeEval(self.t11Entries[i].text())
             if inp is None:
                 return False
-            self.t11Entries[i].setText('%#.3g' % inp)
+            self.t11Entries[i].setText(printStr % inp)
             inp = safeEval(self.t22Entries[i].text())
             if inp is None:
                 return False
-            self.t22Entries[i].setText('%#.3g' % inp)
+            self.t22Entries[i].setText(printStr % inp)
             inp = safeEval(self.t33Entries[i].text())
             if inp is None:
                 return False
-            self.t33Entries[i].setText('%#.3g' % inp)
+            self.t33Entries[i].setText(printStr % inp)
             inp = safeEval(self.ampEntries[i].text())
             if inp is None:
                 return False
-            self.ampEntries[i].setText('%#.3g' % inp)
+            self.ampEntries[i].setText(printStr % inp)
             inp = safeEval(self.lorEntries[i].text())
             if inp is None:
                 return False
-            self.lorEntries[i].setText('%#.3g' % inp)
+            self.lorEntries[i].setText(printStr % inp)
             inp = safeEval(self.gaussEntries[i].text())
             if inp is None:
                 return False
-            self.gaussEntries[i].setText('%#.3g' % inp)
+            self.gaussEntries[i].setText(printStr % inp)
             
         try:
             self.maxiter = abs(int(safeEval(self.fitparsframe.maxiterinput.text())))
@@ -3683,8 +3702,9 @@ class TensorDeconvParamFrame(QtWidgets.QWidget):
         self.progressBar.setText('Finished')
         self.progressBar.setValue(self.maxiter)
         #Set extra fit results window
+        printStr = '%#.' + str(self.parent.printDigits) + 'g'
         self.fitparsframe.usedIter.setText(str(self.fitPars[2]))
-        self.fitparsframe.fitFunctionValue.setText('%.3g' % self.fitPars[1])
+        self.fitparsframe.fitFunctionValue.setText(printStr % self.fitPars[1])
         
         redPalette = QtGui.QPalette()
         redPalette.setColor(QtGui.QPalette.Foreground,QtCore.Qt.red)
@@ -3700,36 +3720,36 @@ class TensorDeconvParamFrame(QtWidgets.QWidget):
 
         counter = 0
         if struc[0]:
-            self.bgrndEntry.setText('%.3g' % fitVal[counter])
+            self.bgrndEntry.setText(printStr % fitVal[counter])
             outBgrnd = fitVal[counter]
             counter += 1
         if struc[1]:
-            self.slopeEntry.setText('%.3g' % fitVal[counter])
+            self.slopeEntry.setText(printStr % fitVal[counter])
             outSlope = fitVal[counter]
             counter += 1
         for i in range(numExp):
             if struc[6 * i + 2]:
-                self.t11Entries[i].setText('%.3g' % fitVal[counter])
+                self.t11Entries[i].setText(printStr % fitVal[counter])
                 outt11[i] = fitVal[counter]
                 counter += 1
             if struc[6 * i + 3]:
-                self.t22Entries[i].setText('%.3g' % fitVal[counter])
+                self.t22Entries[i].setText(printStr % fitVal[counter])
                 outt22[i] = fitVal[counter]
                 counter += 1
             if struc[6 * i + 4]:
-                self.t33Entries[i].setText('%.3g' % fitVal[counter])
+                self.t33Entries[i].setText(printStr % fitVal[counter])
                 outt33[i] = fitVal[counter]
                 counter += 1
             if struc[6 * i + 5]:
-                self.ampEntries[i].setText('%.3g' % fitVal[counter])
+                self.ampEntries[i].setText(printStr % fitVal[counter])
                 outAmp[i] = fitVal[counter]
                 counter += 1
             if struc[6 * i + 6]:
-                self.lorEntries[i].setText('%.3g' % abs(fitVal[counter]))
+                self.lorEntries[i].setText(printStr % abs(fitVal[counter]))
                 outWidth[i] = abs(fitVal[counter])
                 counter += 1
             if struc[6 * i + 7]:
-                self.gaussEntries[i].setText('%.3g' % abs(fitVal[counter]))
+                self.gaussEntries[i].setText(printStr % abs(fitVal[counter]))
                 outGauss[i] = abs(fitVal[counter])
                 counter += 1
         self.disp(outBgrnd, outSlope, outt11, outt22, outt33, outAmp, outWidth, outGauss,False,self.shiftDefType)
