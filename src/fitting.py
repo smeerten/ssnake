@@ -339,7 +339,7 @@ def saveResult(title, variablearray, dataArray):
             tmp = tmp[:-3] + '\n'
             f.write(tmp)
         f.write('DATA\n')
-    f = open(filename, 'ba')
+    f = open(filename, 'a')
     np.savetxt(f, dataArray)
     f.close()
     
@@ -3027,12 +3027,18 @@ class TensorDeconvFrame(Plot1DFrame):
         self.data1D = current.getDisplayedData()
         self.current = current
         self.spec = self.current.spec
+        self.axUnit = ''
         if self.spec == 1:
             if self.current.ppm:
+                self.axUnit = 'ppm'
                 self.axMult = 1e6 / self.current.ref
             else:
+                axUnits = ['Hz','kHz','MHz']
+                self.axUnit = axUnits[self.current.axType]
                 self.axMult = 1.0 / (1000.0**self.current.axType)
         elif self.spec == 0:
+            axUnits = ['s','ms', u"\u03bcs"]
+            self.axUnit = axUnits[self.current.axType]
             self.axMult = 1000.0**self.current.axType
         self.xax = self.current.xax * self.axMult
         self.plotType = 0
@@ -3253,23 +3259,23 @@ class TensorDeconvParamFrame(QtWidgets.QWidget):
         self.numExp.currentIndexChanged.connect(self.changeNum)
         self.frame3.addWidget(self.numExp, 0, 0, 1, 2)
         #Labels
-        self.label11 = QLabel(u'\u03b4' + '<sub>11</sub>:')
-        self.label22 = QLabel(u'\u03b4' + '<sub>22</sub>:')
-        self.label33 = QLabel(u'\u03b4' + '<sub>33</sub>:')
+        self.label11 = QLabel(u'\u03b4' + '<sub>11</sub> [' + self.parent.axUnit + '] :')
+        self.label22 = QLabel(u'\u03b4' + '<sub>22</sub> [' + self.parent.axUnit + '] :')
+        self.label33 = QLabel(u'\u03b4' + '<sub>33</sub> [' + self.parent.axUnit + '] :')
         self.frame3.addWidget(self.label11, 1, 0, 1, 2)
         self.frame3.addWidget(self.label22, 1, 2, 1, 2)
         self.frame3.addWidget(self.label33, 1, 4, 1, 2)
-        self.labelxx = QLabel(u'\u03b4' + '<sub>xx</sub>:')
-        self.labelyy = QLabel(u'\u03b4' + '<sub>yy</sub>:')
-        self.labelzz = QLabel(u'\u03b4' + '<sub>zz</sub>:')
+        self.labelxx = QLabel(u'\u03b4' + '<sub>xx</sub> [' + self.parent.axUnit + '] :')
+        self.labelyy = QLabel(u'\u03b4' + '<sub>yy</sub> [' + self.parent.axUnit + '] :')
+        self.labelzz = QLabel(u'\u03b4' + '<sub>zz</sub> [' + self.parent.axUnit + '] :')
         self.labelxx.hide()
         self.labelyy.hide()
         self.labelzz.hide()
         self.frame3.addWidget(self.labelxx, 1, 0, 1, 2)
         self.frame3.addWidget(self.labelyy, 1, 2, 1, 2)
         self.frame3.addWidget(self.labelzz, 1, 4, 1, 2)
-        self.labeliso = QLabel(u'\u03b4' + '<sub>iso</sub>:')
-        self.labelaniso = QLabel(u'\u03b4' + '<sub>aniso</sub>:')
+        self.labeliso = QLabel(u'\u03b4' + '<sub>iso</sub> [' + self.parent.axUnit + '] :')
+        self.labelaniso = QLabel(u'\u03b4' + '<sub>aniso</sub> [' + self.parent.axUnit  +'] :')
         self.labeleta = QLabel(u'\u03b7:')
         self.labeliso.hide()
         self.labelaniso.hide()
@@ -3277,8 +3283,8 @@ class TensorDeconvParamFrame(QtWidgets.QWidget):
         self.frame3.addWidget(self.labeliso, 1, 0, 1, 2)
         self.frame3.addWidget(self.labelaniso, 1, 2, 1, 2)
         self.frame3.addWidget(self.labeleta, 1, 4, 1, 2)
-        self.labeliso2 = QLabel(u'\u03b4' + '<sub>iso</sub>:')
-        self.labelspan = QLabel(u'\u03a9:')
+        self.labeliso2 = QLabel(u'\u03b4' + '<sub>iso</sub> [' + self.parent.axUnit  +'] :')
+        self.labelspan = QLabel(u'\u03a9 [' + self.parent.axUnit  +'] :')
         self.labelskew = QLabel(u'\u03ba:')
         self.labeliso2.hide()
         self.labelspan.hide()
@@ -3770,7 +3776,13 @@ class TensorDeconvParamFrame(QtWidgets.QWidget):
         self.stopButton.hide()
         
     def fitAll(self, *args):
-        FitAllSelectionWindow(self, ["Background", "Slope", "T11", "T22", "T33", "Integral", "Lorentz", "Gauss"])
+        Type = self.shiftDef.currentIndex()
+        shiftString = [[u'\u03b4' + '11',u'\u03b4' + '22',u'\u03b4' + '33'],
+                       [u'\u03b4' + 'xx',u'\u03b4' + 'yy',u'\u03b4' + 'zz'],
+                       [u'\u03b4' + 'iso',u'\u03b4' + 'aniso',u'\u03b7'],
+                       [u'\u03b4' + 'iso',u'\u03a9',u'\u03ba']]
+
+        FitAllSelectionWindow(self, ["Background", "Slope", shiftString[Type][0], shiftString[Type][1], shiftString[Type][2], "Integral", "Lorentz", "Gauss"])
 
     def fitAllFunc(self, outputs):
         self.setCheng()
@@ -3965,9 +3977,17 @@ class TensorDeconvParamFrame(QtWidgets.QWidget):
             outCurvePart.append(self.parent.data1D)
             self.rootwindow.createNewData(np.array(outCurvePart), self.parent.current.axes, True)
         elif store == 'save':
+            if self.parent.axUnit == u'\u03bcs': #Protect form microsecond error
+                unit = ' [us]'
+            else:
+               unit = ' [' + self.parent.axUnit + ']'
+            
+            Type = self.shiftDef.currentIndex()
+            shiftString = [['D11' + unit,'D22' + unit,'D33' + unit],['Dxx' + unit,'Dyy' + unit,'Dzz' + unit],['Iso' + unit,'Aniso' + unit,'Eta'],['Iso' + unit,'Span' + unit,'Skew']]
+
             variablearray  = [['Number of sites',[len(outAmp)]],['Cheng',[self.cheng]]
             ,['Background',[outBgrnd]],['Slope',[outSlope]],['Amplitude',outAmp]
-            ,['T11',outt11],['T22',outt22],['T33',outt33],['Lorentzian width (Hz)',outWidth],['Gaussian width (Hz)',outGauss]]
+            ,[shiftString[Type][0],outt11],[shiftString[Type][1],outt22],[shiftString[Type][2],outt33],['Lorentzian width (Hz)',outWidth],['Gaussian width (Hz)',outGauss]]
             title = 'ssNake CSA static fit results'
             outCurvePart.append(outCurve)
             outCurvePart.append(self.parent.data1D)
