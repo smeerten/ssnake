@@ -1164,20 +1164,32 @@ class MainProgram(QtWidgets.QMainWindow):
             a = []
             fid32 = int(bin(status)[-3])
             fidfloat = int(bin(status)[-4])
-            
+            hypercomplex = bool(bin(status)[-5])
+            flipped = bool(bin(status)[-10])
+
             if not fid32 and fidfloat:  # only for `newest' format, use fast routine
+            
                 totalpoints = (ntraces * npoints + nbheaders**2 * 7)*nblocks
                 raw = np.fromfile(f, np.float32, totalpoints)
                 a = raw.newbyteorder('>f')
-                a = a.reshape(nblocks, int(totalpoints / nblocks))
-                a = a[:, 7::]
+                print(bin(status)[-10])
+                if not spec or (spec and not hypercomplex):
+                    a = a.reshape(nblocks, int(totalpoints / nblocks))
+                    a = a[:, 7::]
+                    fid = a[:, ::2] - 1j * a[:, 1::2]
+                else:
+                    fid = a[nbheaders*7::4] - 1j * a[nbheaders*7+1::4]
+                    fid = fid.reshape(int(SizeTD1/4),SizeTD2)
+                    if flipped:
+                        fid = np.fliplr(fid)
+ 
             elif fid32 and not fidfloat:  # for VNMRJ 2 data
                 totalpoints = (ntraces * npoints + nbheaders**2 * 7)*nblocks
                 raw = np.fromfile(f, np.int32, totalpoints)
                 a = raw.newbyteorder('>l')
                 a = a.reshape(nblocks, int(totalpoints / nblocks))
                 a = a[:, 7::]
-                
+                fid = a[:, ::2] - 1j * a[:, 1::2]
             else:  # use slow, but robust routine
                 for iter1 in range(0, nblocks):
                     b = []
@@ -1200,8 +1212,8 @@ class MainProgram(QtWidgets.QMainWindow):
                         b.append(np.zeros(ntraces * npoints - len(b)))
                     a.append(b)
                 a = np.complex128(a)
-                
-        fid = a[:, ::2] - 1j * a[:, 1::2]
+                fid = a[:, ::2] - 1j * a[:, 1::2]
+        
         
         fid = fid * np.exp((rp + phfid) / 180 * np.pi * 1j) #apply zero order phase
         if SizeTD1 is 1:
