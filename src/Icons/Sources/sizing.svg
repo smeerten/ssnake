@@ -14,9 +14,9 @@
    version="1.1"
    id="svg2"
    inkscape:version="0.91 r13725"
-   sodipodi:docname="int.svg">
+   sodipodi:docname="sizing.svg">
   <metadata
-     id="metadata33">
+     id="metadata38">
     <rdf:RDF>
       <cc:Work
          rdf:about="">
@@ -38,12 +38,12 @@
      inkscape:pageshadow="2"
      inkscape:window-width="1440"
      inkscape:window-height="851"
-     id="namedview31"
+     id="namedview36"
      showgrid="false"
      units="mm"
-     inkscape:zoom="3.5881171"
-     inkscape:cx="82.177359"
-     inkscape:cy="44.25302"
+     inkscape:zoom="5.0743639"
+     inkscape:cx="58.10055"
+     inkscape:cy="23.04918"
      inkscape:window-x="0"
      inkscape:window-y="0"
      inkscape:window-maximized="1"
@@ -88,32 +88,48 @@
          style="overflow:visible">
         <path
            style="stroke:none"
-           d="m 5.71875,-0.9375 c -2.75,0 -2.75,3.9375 -2.75,7.296875 0,2.765625 0,6.53125 -0.921875,6.53125 l -0.640625,-0.625 c -0.09375,-0.0625 -0.1875,-0.09375 -0.28125,-0.09375 -0.28125,0 -0.53125,0.234375 -0.53125,0.5625 0,0.515625 0.40625,0.9375 0.90625,0.9375 2.75,0 2.75,-3.9375 2.75,-7.3125 0,-2.75 0,-6.515625 0.90625,-6.515625 l 0.671875,0.625 C 5.90625,0.53125 6,0.5625 6.09375,0.5625 6.375,0.5625 6.640625,0.328125 6.640625,0 c 0,-0.515625 -0.40625,-0.9375 -0.921875,-0.9375 z m 0,0"
+           d="M 3.359375,-3.859375 C 2.21875,-4.265625 1.671875,-4.75 1.671875,-5.4375 c 0,-0.6875 0.53125,-1.234375 1.265625,-1.234375 0.765625,0 1.265625,0.53125 1.265625,1.359375 0,0.5625 -0.296875,1.09375 -0.84375,1.453125 z m 0.4375,0.1875 C 4.578125,-4.078125 5,-4.71875 5,-5.40625 5,-6.421875 4.21875,-7.171875 2.96875,-7.171875 c -1.296875,0 -2.171875,0.78125 -2.171875,1.890625 0,0.765625 0.375,1.3125 1.09375,1.625 -0.953125,0.359375 -1.4375,0.96875 -1.4375,1.796875 0,1.1875 0.921875,2.03125 2.421875,2.03125 1.453125,0 2.421875,-0.9375 2.421875,-2.046875 0,-0.8125 -0.515625,-1.453125 -1.5,-1.796875 z m -1.5,0.234375 c 1.40625,0.515625 2.09375,0.84375 2.09375,1.671875 0,0.828125 -0.578125,1.390625 -1.484375,1.390625 -1,0 -1.640625,-0.625 -1.640625,-1.546875 0,-0.6875 0.3125,-1.140625 1.03125,-1.515625 z m 0,0"
            id="path18"
+           inkscape:connector-curvature="0" />
+      </symbol>
+      <symbol
+         overflow="visible"
+         id="glyph1-2"
+         style="overflow:visible">
+        <path
+           style="stroke:none"
+           d="m 0.265625,0 2.28125,0 0,-0.375 L 2.0625,-0.421875 1.875,-0.59375 l 0,-1.78125 0.609375,0 1.40625,2.03125 0,0.34375 1.640625,0 0,-0.390625 -0.671875,-0.0625 -1.84375,-2.59375 1.4375,-1.515625 0.671875,-0.078125 0,-0.390625 -2,0 0,0.390625 0.46875,0.03125 0.078125,0.15625 -1.59375,1.78125 -0.203125,0 0,-5.03125 -0.40625,0 -1.265625,0.375 0,0.328125 L 1,-7 1,-0.59375 0.828125,-0.421875 0.265625,-0.375 Z m 0,0"
+           id="path21"
            inkscape:connector-curvature="0" />
       </symbol>
     </g>
   </defs>
   <rect
-     style="opacity:1;fill:#ffffff;fill-opacity:1;fill-rule:nonzero;stroke:none;stroke-width:1;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1"
-     id="rect4192"
-     width="28.34646"
-     height="28.34646"
-     x="-4.7308242e-07"
      y="-1.9989614e-06"
-     inkscape:export-filename="/media/HDD/ssnake/ssnake/src/Icons/int.png"
+     x="-4.7308239e-07"
+     height="28.34646"
+     width="28.34646"
+     id="rect4192"
+     style="opacity:1;fill:#ffffff;fill-opacity:1;fill-rule:nonzero;stroke:none;stroke-width:1;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1"
+     inkscape:export-filename="/media/HDD/ssnake/ssnake/src/Icons/sizing.png"
      inkscape:export-xdpi="162"
      inkscape:export-ydpi="162" />
-  <g
-     id="g27"
-     style="fill:#000000;fill-opacity:1"
-     transform="matrix(1.9402924,0,0,1.9402924,-254.32868,-247.61137)">
-    <use
-       height="100%"
-       width="100%"
-       id="use29"
-       y="128.55299"
-       x="134.765"
-       xlink:href="#glyph1-1" />
-  </g>
+  <use
+     style="fill:#003bd4;fill-opacity:1"
+     xlink:href="#glyph1-1"
+     x="134.765"
+     y="137.754"
+     id="use32"
+     width="100%"
+     height="100%"
+     transform="matrix(2.6003538,0,0,2.6003538,-351.61496,-334.24395)" />
+  <use
+     style="fill:#af410b;fill-opacity:1"
+     xlink:href="#glyph1-2"
+     x="140.58788"
+     y="137.754"
+     id="use34"
+     width="100%"
+     height="100%"
+     transform="matrix(2.6003538,0,0,2.6003538,-351.61496,-334.24395)" />
 </svg>
