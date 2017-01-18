@@ -117,6 +117,7 @@ class MainProgram(QtWidgets.QMainWindow):
         self.LastLocation = ''
         self.initMenu()
         self.menuCheck()
+        self.initToolbar()
         self.main_widget = QtWidgets.QWidget(self)
         self.mainFrame = QtWidgets.QGridLayout(self.main_widget)
         self.logo = QtWidgets.QLabel(self)
@@ -227,7 +228,26 @@ class MainProgram(QtWidgets.QMainWindow):
 
     def dispMsg(self, msg):
         self.statusBar.showMessage(msg, 10000)
-
+    
+    
+    def initToolbar(self):
+        IconDirectory = os.path.dirname(os.path.realpath(__file__)) + os.path.sep + 'Icons' + os.path.sep
+        self.toolbar = self.addToolBar('Toolbar')
+        self.toolbar.setMovable(False)
+        
+        self.openAction = QtGui.QAction(QtGui.QIcon(IconDirectory + 'open.png'),'Open file', self)
+        self.openAction.triggered.connect(self.loadFromMenu)
+        self.toolbar.addAction(self.openAction)
+        
+        
+        self.sizingAction = QtGui.QAction(QtGui.QIcon(IconDirectory + 'sizing.png'),'Set size', self)
+        self.sizingAction.triggered.connect(lambda: self.mainWindowCheck(lambda mainWindow: SizeWindow(mainWindow)))
+        self.toolbar.addAction(self.sizingAction)
+        
+    
+        
+        
+        
     def initMenu(self):
         IconDirectory = os.path.dirname(os.path.realpath(__file__)) + os.path.sep + 'Icons' + os.path.sep
         self.menubar = self.menuBar()
