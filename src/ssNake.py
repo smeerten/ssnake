@@ -2058,7 +2058,7 @@ class Main1DWindow(QtWidgets.QWidget):
             elif iter1[0] == 'insert':
                 self.undoList.append(self.masterData.insert(*iter1[1]))
             elif iter1[0] == 'delete':
-                self.undoList.append(self.masterData.delete(*iter1[1]))
+                self.undoList.append(self.masterData.remove(*iter1[1]))
             elif iter1[0] == 'add':
                 self.undoList.append(self.masterData.add(*iter1[1]))
             elif iter1[0] == 'subtract':
