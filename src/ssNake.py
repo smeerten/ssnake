@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-# Copyright 2016 Bas van Meerten and Wouter Franssen
+# Copyright 2016 - 2017 Bas van Meerten and Wouter Franssen
 
 # This file is part of ssNake.
 #
@@ -336,8 +336,10 @@ class MainProgram(QtWidgets.QMainWindow):
         self.fftMenu.addAction("Fft&shift", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.fftshift()))
         self.fftMenu.addAction("&Inv fftshift", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.invFftshift()))
         self.fftMenu.addAction("&Hilbert Transform", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.hilbert()))
-        self.fftMenu.addAction("FF&M", lambda: self.mainWindowCheck(lambda mainWindow: FFMWindow(mainWindow)))
-        self.fftMenu.addAction("&CLEAN", lambda: self.mainWindowCheck(lambda mainWindow: CLEANWindow(mainWindow)))
+        self.nusMenu = QtWidgets.QMenu("&NUS", self)
+        self.fftMenu.addMenu(self.nusMenu)
+        self.nusMenu.addAction("&FFM", lambda: self.mainWindowCheck(lambda mainWindow: FFMWindow(mainWindow)))
+        self.nusMenu.addAction("&CLEAN", lambda: self.mainWindowCheck(lambda mainWindow: CLEANWindow(mainWindow)))
 
         # the fitting drop down menu
         self.fittingMenu = QtWidgets.QMenu("F&itting", self)
