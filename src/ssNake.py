@@ -363,7 +363,7 @@ class MainProgram(QtWidgets.QMainWindow):
         # the combine drop down menu
         self.combineMenu = QtWidgets.QMenu("Com&bine", self)
         self.menubar.addMenu(self.combineMenu)
-        self.combineMenu.addAction(QtGui.QIcon(IconDirectory + 'insert.png'),"&Insert From wWrkspace", lambda: self.mainWindowCheck(lambda mainWindow: InsertWindow(mainWindow)))
+        self.combineMenu.addAction(QtGui.QIcon(IconDirectory + 'insert.png'),"&Insert From Workspace", lambda: self.mainWindowCheck(lambda mainWindow: InsertWindow(mainWindow)))
         self.combineMenu.addAction(QtGui.QIcon(IconDirectory + 'add.png'), "&Add", lambda: self.mainWindowCheck(lambda mainWindow: AddWindow(mainWindow)))
         self.combineMenu.addAction(QtGui.QIcon(IconDirectory + 'subtract.png'), "&Subtract", lambda: self.mainWindowCheck(lambda mainWindow: SubtractWindow(mainWindow)))
 
