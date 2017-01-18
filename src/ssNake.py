@@ -399,7 +399,9 @@ class MainProgram(QtWidgets.QMainWindow):
         self.historyMenu = QtWidgets.QMenu("&History", self)
         self.menubar.addMenu(self.historyMenu)
         self.historyMenu.addAction(QtGui.QIcon(IconDirectory + 'history.png'), "&History", lambda: self.mainWindowCheck(lambda mainWindow: HistoryWindow(mainWindow)))
-
+        self.historyMenu.addAction(QtGui.QIcon(IconDirectory + 'delete.png'),"&Clear Undo/Redo List", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.clearUndo()))
+        
+        
         # the help drop down menu
         self.helpMenu = QtWidgets.QMenu("&Help", self)
         self.menubar.addMenu(self.helpMenu)
@@ -2541,6 +2543,12 @@ class Main1DWindow(QtWidgets.QWidget):
             self.menuCheck()
         else:
             self.father.dispMsg("no redo information")
+            
+    def clearUndo(self):
+        self.undoList = []
+        self.redoList = []
+        self.menuCheck()
+        
 
 ########################################################################################
 
