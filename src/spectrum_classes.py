@@ -429,7 +429,8 @@ class Spectrum:
             else:
                 self.data = tmpdata[0]
                 self.freq = np.delete(self.freq, axes)
-                self.ref = np.delete(self.ref, axes)
+#                self.ref = np.delete(self.ref, axes)
+                del self.ref[axes]
                 self.sw = np.delete(self.sw, axes)
                 self.spec = np.delete(self.spec, axes)
                 self.wholeEcho = np.delete(self.wholeEcho, axes)
@@ -812,6 +813,7 @@ class Spectrum:
             return None
         oldRef = self.ref[axes]
         if ref is None:
+            self.ref = self.ref
             self.ref[axes] = None
             self.addHistory("Reference frequency set to 'None' for dimension " + str(axes + 1))
         else:

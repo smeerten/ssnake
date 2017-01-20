@@ -1196,7 +1196,7 @@ class MainProgram(QtWidgets.QMainWindow):
                 totalpoints = (ntraces * npoints + nbheaders**2 * 7)*nblocks
                 raw = np.fromfile(f, np.float32, totalpoints)
                 a = raw.newbyteorder('>f')
-                print(bin(status)[-10])
+#                print(bin(status)[-10])
                 if not spec or (spec and not hypercomplex):
                     a = a.reshape(nblocks, int(totalpoints / nblocks))
                     a = a[:, 7::]
