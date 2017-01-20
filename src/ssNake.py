@@ -117,7 +117,7 @@ class MainProgram(QtWidgets.QMainWindow):
         self.LastLocation = ''
         self.initMenu()
         self.menuCheck()
-        self.initToolbar()
+#        self.initToolbar()
         self.main_widget = QtWidgets.QWidget(self)
         self.mainFrame = QtWidgets.QGridLayout(self.main_widget)
         self.logo = QtWidgets.QLabel(self)
@@ -231,19 +231,35 @@ class MainProgram(QtWidgets.QMainWindow):
     
     
     def initToolbar(self):
-        IconDirectory = os.path.dirname(os.path.realpath(__file__)) + os.path.sep + 'Icons' + os.path.sep
         self.toolbar = self.addToolBar('Toolbar')
         self.toolbar.setMovable(False)
+        self.toolbar.setIconSize(QtCore.QSize(25,25))
         
-        self.openAction = QtGui.QAction(QtGui.QIcon(IconDirectory + 'open.png'),'Open file', self)
-        self.openAction.triggered.connect(self.loadFromMenu)
-        self.toolbar.addAction(self.openAction)
+
         
+        self.toobarActionList = [self.openAct,self.saveAct,self.saveMatAct,self.savefigAct,
+                                 self.saveSimpsonAct,self.saveASCIIAct,self.saveASCIIAct,self.preferencesAct,
+                                 self.quitAct,self.newAct,self.closeAct,self.renameWorkspaceAct,self.forwardAct,
+                                 self.backAct,self.combineWorkspaceAct,self.macrostartAct,self.macrostopAct,
+                                 self.macroLoadAct,self.undoAction,self.redoAction,self.reloadAct,self.monitorAct,
+                                 self.realAct,self.imagAct,self.absAct,self.apodizeAct,self.phaseAct,
+                                 self.swapEchoAct,self.corOffsetAct,self.baselineAct,self.subAvgAct,self.refDeconvAct,
+                                 self.statesAct,self.statesTPPIAct,self.echoantiAct,self.brukDigitalAct,
+                                 self.lpsvdAct]
+
+
+#        
+#        self.emptyAction = QtGui.QAction('', self)
+#        self.emptyAction.setEnabled(False)
+#        self.toolbar.addAction(self.emptyAction)
+#        
+#        self.seperatorAction = QtGui.QAction(self)
+#        self.seperatorAction.setSeparator(True)
+#        self.toolbar.addAction(self.seperatorAction)
         
-        self.sizingAction = QtGui.QAction(QtGui.QIcon(IconDirectory + 'sizing.png'),'Set size', self)
-        self.sizingAction.triggered.connect(lambda: self.mainWindowCheck(lambda mainWindow: SizeWindow(mainWindow)))
-        self.toolbar.addAction(self.sizingAction)
-        
+       
+        for entry in self.toobarActionList:
+                    self.toolbar.addAction(entry)
     
         
         
@@ -254,35 +270,51 @@ class MainProgram(QtWidgets.QMainWindow):
         self.filemenu = QtWidgets.QMenu('&File', self)
         self.menubar.addMenu(self.filemenu)
         self.openAct = self.filemenu.addAction(QtGui.QIcon(IconDirectory + 'open.png'), '&Open', self.loadFromMenu, QtGui.QKeySequence.Open)
+        self.openAct.setToolTip('Open a File')
         self.savemenu = QtWidgets.QMenu('&Save', self)
         self.filemenu.addMenu(self.savemenu)
         self.saveAct = self.savemenu.addAction(QtGui.QIcon(IconDirectory + 'JSON.png'), 'JSON', self.saveJSONFile, QtGui.QKeySequence.Save)
-        self.savemenu.addAction(QtGui.QIcon(IconDirectory + 'Matlab.png'), 'MATLAB', self.saveMatlabFile)
+        self.saveAct.setToolTip('Save as JSON File')
+        self.saveMatAct = self.savemenu.addAction(QtGui.QIcon(IconDirectory + 'Matlab.png'), 'MATLAB', self.saveMatlabFile)
+        self.saveMatAct.setToolTip('Save as MATLAB File')
         self.exportmenu = QtWidgets.QMenu('&Export', self)
         self.filemenu.addMenu(self.exportmenu)
         self.savefigAct = self.exportmenu.addAction(QtGui.QIcon(IconDirectory + 'figure.png'), 'Figure', self.saveFigure, QtGui.QKeySequence.Print)
-        self.exportmenu.addAction(QtGui.QIcon(IconDirectory + 'simpson.png'), 'Simpson', self.saveSimpsonFile)
-        self.exportmenu.addAction(QtGui.QIcon(IconDirectory + 'ssnake.png'), 'ASCII (1D/2D)', self.saveASCIIFile)
-        self.filemenu.addAction(QtGui.QIcon(IconDirectory + 'preferences.png'), '&Preferences', lambda: PreferenceWindow(self))
-        self.filemenu.addAction(QtGui.QIcon(IconDirectory + 'quit.png'), '&Quit', self.fileQuit, QtGui.QKeySequence.Quit)
+        self.savefigAct.setToolTip('Export as Figure')
+        self.saveSimpsonAct = self.exportmenu.addAction(QtGui.QIcon(IconDirectory + 'simpson.png'), 'Simpson', self.saveSimpsonFile)
+        self.saveSimpsonAct.setToolTip('Export as Simpson File')
+        self.saveASCIIAct = self.exportmenu.addAction(QtGui.QIcon(IconDirectory + 'ssnake.png'), 'ASCII (1D/2D)', self.saveASCIIFile)
+        self.saveASCIIAct.setToolTip('Save as ASCII Text File')        
+        self.preferencesAct = self.filemenu.addAction(QtGui.QIcon(IconDirectory + 'preferences.png'), '&Preferences', lambda: PreferenceWindow(self))
+        self.preferencesAct.setToolTip('Open Preferences Window')
+        self.quitAct = self.filemenu.addAction(QtGui.QIcon(IconDirectory + 'quit.png'), '&Quit', self.fileQuit, QtGui.QKeySequence.Quit)
+        self.quitAct.setToolTip('Close ssNake')
 
         # Workspaces menu
         self.workspacemenu = QtWidgets.QMenu('&Workspaces', self)
         self.menubar.addMenu(self.workspacemenu)
         self.newAct = self.workspacemenu.addAction(QtGui.QIcon(IconDirectory + 'duplicate.png'), 'D&uplicate', self.duplicateWorkspace, QtGui.QKeySequence.New)
+        self.newAct.setToolTip('Duplicate Workspace')
         self.closeAct = self.workspacemenu.addAction(QtGui.QIcon(IconDirectory + 'delete.png'), '&Delete', self.destroyWorkspace, QtGui.QKeySequence.Close)
-        self.workspacemenu.addAction(QtGui.QIcon(IconDirectory + 'rename.png'), '&Rename', self.renameWorkspace, QtCore.Qt.Key_F2)
+        self.closeAct.setToolTip('Delete Workspace')
+        self.renameWorkspaceAct = self.workspacemenu.addAction(QtGui.QIcon(IconDirectory + 'rename.png'), '&Rename', self.renameWorkspace, QtCore.Qt.Key_F2)
+        self.renameWorkspaceAct.setToolTip('Rename Workspace')
         self.activemenu = QtWidgets.QMenu('&Active', self)
         self.workspacemenu.addMenu(self.activemenu)
         self.forwardAct = self.workspacemenu.addAction(QtGui.QIcon(IconDirectory + 'next.png'), '&Next', lambda: self.stepWorkspace(1), QtGui.QKeySequence.Forward)
+        self.forwardAct.setToolTip('Next Workspace')
         self.backAct = self.workspacemenu.addAction(QtGui.QIcon(IconDirectory + 'previous.png'), '&Previous', lambda: self.stepWorkspace(-1), QtGui.QKeySequence.Back)
-        self.workspacemenu.addAction(QtGui.QIcon(IconDirectory + 'combine.png'), '&Combine', self.createCombineWorkspaceWindow)
+        self.backAct.setToolTip('Previous Workspace')
+        self.combineWorkspaceAct = self.workspacemenu.addAction(QtGui.QIcon(IconDirectory + 'combine.png'), '&Combine', self.createCombineWorkspaceWindow)
+        self.combineWorkspaceAct.setToolTip('Combine Workspaces')
 
         # Macro menu
         self.macromenu = QtWidgets.QMenu('&Macros', self)
         self.menubar.addMenu(self.macromenu)
         self.macrostartAct = self.macromenu.addAction(QtGui.QIcon(IconDirectory + 'record.png'), 'St&art Recording', self.macroCreate)
+        self.macrostartAct.setToolTip('Start Recording Macro')
         self.macrostopAct = self.macromenu.addAction(QtGui.QIcon(IconDirectory + 'stop.png'), 'St&op Recording', self.stopMacro)
+        self.macrostopAct.setToolTip('Stop Recording Macro')
         self.macrolistmenu = QtWidgets.QMenu('&Run', self)
         self.macromenu.addMenu(self.macrolistmenu)
         self.macrorenamemenu = QtWidgets.QMenu('Re&name', self)
@@ -291,7 +323,8 @@ class MainProgram(QtWidgets.QMainWindow):
         self.macromenu.addMenu(self.macrodeletemenu)
         self.macrosavemenu = QtWidgets.QMenu('&Save', self)
         self.macromenu.addMenu(self.macrosavemenu)
-        self.macromenu.addAction(QtGui.QIcon(IconDirectory + 'open.png'), '&Load', self.loadMacro)
+        self.macroLoadAct = self.macromenu.addAction(QtGui.QIcon(IconDirectory + 'open.png'), '&Load', self.loadMacro)
+        self.macroLoadAct.setToolTip('Load Macro')
 
         self.multiDActions = []
         # the edit drop down menu
@@ -299,29 +332,48 @@ class MainProgram(QtWidgets.QMainWindow):
         self.menubar.addMenu(self.editmenu)
         self.undoAction = self.editmenu.addAction(QtGui.QIcon(IconDirectory + 'undo.png'), "&Undo", self.undo, QtGui.QKeySequence.Undo)
         self.undoAction.setShortcutContext(QtCore.Qt.WidgetShortcut)
+        self.undoAction.setToolTip('Undo')
         self.redoAction = self.editmenu.addAction(QtGui.QIcon(IconDirectory + 'redo.png'), "&Redo", self.redo, QtGui.QKeySequence.Redo)
         self.redoAction.setShortcutContext(QtCore.Qt.WidgetShortcut)
-        self.editmenu.addAction(QtGui.QIcon(IconDirectory + 'reload.png'), "Re&load", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.reloadLast()), QtGui.QKeySequence.Refresh)
-        self.editmenu.addAction(QtGui.QIcon(IconDirectory + 'monitor.png'),"&Monitor", lambda: self.mainWindowCheck(lambda mainWindow: MonitorWindow(mainWindow)))
+        self.redoAction.setToolTip('Redo')
+        self.reloadAct = self.editmenu.addAction(QtGui.QIcon(IconDirectory + 'reload.png'), "Re&load", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.reloadLast()), QtGui.QKeySequence.Refresh)
+        self.reloadAct.setToolTip('Reload Current Data')
+        self.monitorAct = self.editmenu.addAction(QtGui.QIcon(IconDirectory + 'monitor.png'),"&Monitor", lambda: self.mainWindowCheck(lambda mainWindow: MonitorWindow(mainWindow)))
+        self.monitorAct.setToolTip('Monitor Current Data')
         
         # the tool drop down menu
         self.toolMenu = QtWidgets.QMenu("&Tools", self)
         self.menubar.addMenu(self.toolMenu)
-        self.toolMenu.addAction(QtGui.QIcon(IconDirectory + 'real.png'), "&Real", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.real()))
-        self.toolMenu.addAction(QtGui.QIcon(IconDirectory + 'imag.png'), "&Imag", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.imag()))
-        self.toolMenu.addAction(QtGui.QIcon(IconDirectory + 'abs.png'), "&Abs", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.abs()))
-        self.toolMenu.addAction(QtGui.QIcon(IconDirectory + 'apodize.png'),"Apo&dize", lambda: self.mainWindowCheck(lambda mainWindow: ApodWindow(mainWindow)))
-        self.toolMenu.addAction(QtGui.QIcon(IconDirectory + 'phase.png'), "&Phasing", lambda: self.mainWindowCheck(lambda mainWindow: PhaseWindow(mainWindow)))
-        self.toolMenu.addAction(QtGui.QIcon(IconDirectory + 'fliplr.png'), "Swap &Echo", lambda: self.mainWindowCheck(lambda mainWindow: SwapEchoWindow(mainWindow)))
-        self.toolMenu.addAction("&Offset Correction", lambda: self.mainWindowCheck(lambda mainWindow: DCWindow(mainWindow)))
-        self.toolMenu.addAction("&Baseline Correction", lambda: self.mainWindowCheck(lambda mainWindow: BaselineWindow(mainWindow)))
-        self.toolMenu.addAction("S&ubtract Averages", lambda: self.mainWindowCheck(lambda mainWindow: SubtractAvgWindow(mainWindow)))
-        self.toolMenu.addAction("Re&ference Deconvolution", lambda: self.mainWindowCheck(lambda mainWindow: FiddleWindow(mainWindow)))
-        self.toolMenu.addAction("&States", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.states()))
-        self.toolMenu.addAction("States-&TPPI", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.statesTPPI()))
-        self.toolMenu.addAction("Ec&ho-antiecho", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.echoAntiEcho()))
-        self.toolMenu.addAction("&Correct Bruker Digital Filter", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.BrukerDigital()))
-        self.toolMenu.addAction("&LPSVD", lambda: self.mainWindowCheck(lambda mainWindow: LPSVDWindow(mainWindow)))
+        self.realAct = self.toolMenu.addAction(QtGui.QIcon(IconDirectory + 'real.png'), "&Real", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.real()))
+        self.realAct.setToolTip('Take Real Part of Data')
+        self.imagAct = self.toolMenu.addAction(QtGui.QIcon(IconDirectory + 'imag.png'), "&Imag", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.imag()))
+        self.imagAct.setToolTip('Take Imaginary Part of Data')
+        self.absAct = self.toolMenu.addAction(QtGui.QIcon(IconDirectory + 'abs.png'), "&Abs", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.abs()))
+        self.absAct.setToolTip('Take Absolute of Data')
+        self.apodizeAct = self.toolMenu.addAction(QtGui.QIcon(IconDirectory + 'apodize.png'),"Apo&dize", lambda: self.mainWindowCheck(lambda mainWindow: ApodWindow(mainWindow)))
+        self.apodizeAct.setToolTip('Open Apodize Window')
+        self.phaseAct = self.toolMenu.addAction(QtGui.QIcon(IconDirectory + 'phase.png'), "&Phasing", lambda: self.mainWindowCheck(lambda mainWindow: PhaseWindow(mainWindow)))
+        self.phaseAct.setToolTip('Open Phasing Window')
+        self.swapEchoAct = self.toolMenu.addAction(QtGui.QIcon(IconDirectory + 'fliplr.png'), "Swap &Echo", lambda: self.mainWindowCheck(lambda mainWindow: SwapEchoWindow(mainWindow)))
+        self.swapEchoAct.setToolTip('Swap Echo')
+        self.corOffsetAct = self.toolMenu.addAction("&Offset Correction", lambda: self.mainWindowCheck(lambda mainWindow: DCWindow(mainWindow)))
+        self.corOffsetAct.setToolTip('Offset Correction')
+        self.baselineAct = self.toolMenu.addAction("&Baseline Correction", lambda: self.mainWindowCheck(lambda mainWindow: BaselineWindow(mainWindow)))
+        self.baselineAct.setToolTip('Baseline Correction')
+        self.subAvgAct = self.toolMenu.addAction("S&ubtract Averages", lambda: self.mainWindowCheck(lambda mainWindow: SubtractAvgWindow(mainWindow)))
+        self.subAvgAct.setToolTip('Subtract Averages')
+        self.refDeconvAct = self.toolMenu.addAction("Re&ference Deconvolution", lambda: self.mainWindowCheck(lambda mainWindow: FiddleWindow(mainWindow)))
+        self.refDeconvAct.setToolTip('Reference Deconvolution')
+        self.statesAct = self.toolMenu.addAction("&States", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.states()))
+        self.statesAct.setToolTip('States Hypercomplex Data Processing')
+        self.statesTPPIAct = self.toolMenu.addAction("States-&TPPI", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.statesTPPI()))
+        self.statesTPPIAct.setToolTip('States-TPPI Hypercomplex Data Processing')
+        self.echoantiAct = self.toolMenu.addAction("Ec&ho-antiecho", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.echoAntiEcho()))
+        self.echoantiAct.setToolTip('Ec&ho-antiecho Hypercomplex Data Processing')
+        self.brukDigitalAct = self.toolMenu.addAction("&Correct Bruker Digital Filter", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.BrukerDigital()))
+        self.brukDigitalAct.setToolTip("Correct Bruker Digital Filter")
+        self.lpsvdAct = self.toolMenu.addAction("&LPSVD", lambda: self.mainWindowCheck(lambda mainWindow: LPSVDWindow(mainWindow)))
+        self.lpsvdAct.setToolTip('LPSVD linear prediction')
 
         # the matrix drop down menu
         self.matrixMenu = QtWidgets.QMenu("M&atrix", self)
