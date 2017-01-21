@@ -233,7 +233,7 @@ class MainProgram(QtWidgets.QMainWindow):
     def initToolbar(self):
         self.toolbar = self.addToolBar('Toolbar')
         self.toolbar.setMovable(False)
-        self.toolbar.setIconSize(QtCore.QSize(25,25))
+        self.toolbar.setIconSize(QtCore.QSize(22,22))
         
 
         
@@ -245,10 +245,11 @@ class MainProgram(QtWidgets.QMainWindow):
                                  self.realAct,self.imagAct,self.absAct,self.apodizeAct,self.phaseAct,
                                  self.swapEchoAct,self.corOffsetAct,self.baselineAct,self.subAvgAct,self.refDeconvAct,
                                  self.statesAct,self.statesTPPIAct,self.echoantiAct,self.brukDigitalAct,
-                                 self.lpsvdAct]
+                                 self.lpsvdAct,self.sizingAct,self.shiftAct,self.intRegionAct,
+                                 self.sumRegionAct,self.maxRegionAct,self.minRegionAct,self.maxposRegionAct,
+                                 self.minposRegionAct,self.averageRegionAct]
 
-
-#        
+       
 #        self.emptyAction = QtGui.QAction('', self)
 #        self.emptyAction.setEnabled(False)
 #        self.toolbar.addAction(self.emptyAction)
@@ -378,17 +379,26 @@ class MainProgram(QtWidgets.QMainWindow):
         # the matrix drop down menu
         self.matrixMenu = QtWidgets.QMenu("M&atrix", self)
         self.menubar.addMenu(self.matrixMenu)
-        self.matrixMenu.addAction(QtGui.QIcon(IconDirectory + 'sizing.png'),"&Sizing", lambda: self.mainWindowCheck(lambda mainWindow: SizeWindow(mainWindow)))
-        self.matrixMenu.addAction(QtGui.QIcon(IconDirectory + 'shift.png'), "S&hift Data", lambda: self.mainWindowCheck(lambda mainWindow: ShiftDataWindow(mainWindow)))
+        self.sizingAct = self.matrixMenu.addAction(QtGui.QIcon(IconDirectory + 'sizing.png'),"&Sizing", lambda: self.mainWindowCheck(lambda mainWindow: SizeWindow(mainWindow)))
+        self.sizingAct.setToolTip('Set Size')
+        self.shiftAct = self.matrixMenu.addAction(QtGui.QIcon(IconDirectory + 'shift.png'), "S&hift Data", lambda: self.mainWindowCheck(lambda mainWindow: ShiftDataWindow(mainWindow)))
+        self.shiftAct.setToolTip('Shift Data')
         self.regionMenu = QtWidgets.QMenu("Region", self)
         self.matrixMenu.addMenu(self.regionMenu)
-        self.regionMenu.addAction(QtGui.QIcon(IconDirectory + 'int.png'), "&Integrate", lambda: self.mainWindowCheck(lambda mainWindow: integrateWindow(mainWindow)))
-        self.regionMenu.addAction(QtGui.QIcon(IconDirectory + 'sum.png'), "S&um", lambda: self.mainWindowCheck(lambda mainWindow: sumWindow(mainWindow)))
-        self.regionMenu.addAction(QtGui.QIcon(IconDirectory + 'max.png'), "&Max", lambda: self.mainWindowCheck(lambda mainWindow: maxWindow(mainWindow)))
-        self.regionMenu.addAction(QtGui.QIcon(IconDirectory + 'min.png'), "M&in", lambda: self.mainWindowCheck(lambda mainWindow: minWindow(mainWindow)))
-        self.regionMenu.addAction("Ma&x position", lambda: self.mainWindowCheck(lambda mainWindow: argmaxWindow(mainWindow)))
-        self.regionMenu.addAction("Mi&n position", lambda: self.mainWindowCheck(lambda mainWindow: argminWindow(mainWindow)))
-        self.regionMenu.addAction(QtGui.QIcon(IconDirectory + 'average.png'), "&Average", lambda: self.mainWindowCheck(lambda mainWindow: avgWindow(mainWindow)))
+        self.intRegionAct = self.regionMenu.addAction(QtGui.QIcon(IconDirectory + 'int.png'), "&Integrate", lambda: self.mainWindowCheck(lambda mainWindow: integrateWindow(mainWindow)))
+        self.intRegionAct.setToolTip('Integrate Region')
+        self.sumRegionAct = self.regionMenu.addAction(QtGui.QIcon(IconDirectory + 'sum.png'), "S&um", lambda: self.mainWindowCheck(lambda mainWindow: sumWindow(mainWindow)))
+        self.sumRegionAct.setToolTip('Sum Region')
+        self.maxRegionAct = self.regionMenu.addAction(QtGui.QIcon(IconDirectory + 'max.png'), "&Max", lambda: self.mainWindowCheck(lambda mainWindow: maxWindow(mainWindow)))
+        self.maxRegionAct.setToolTip('Maximum of Region')
+        self.minRegionAct = self.regionMenu.addAction(QtGui.QIcon(IconDirectory + 'min.png'), "M&in", lambda: self.mainWindowCheck(lambda mainWindow: minWindow(mainWindow)))
+        self.minRegionAct.setToolTip('Minimum of Region')
+        self.maxposRegionAct = self.regionMenu.addAction("Ma&x position", lambda: self.mainWindowCheck(lambda mainWindow: argmaxWindow(mainWindow)))
+        self.maxposRegionAct.setToolTip('Position of Maximum of Region')
+        self.minposRegionAct = self.regionMenu.addAction("Mi&n position", lambda: self.mainWindowCheck(lambda mainWindow: argminWindow(mainWindow)))
+        self.minposRegionAct.setToolTip('Position of Minimum of Region')
+        self.averageRegionAct = self.regionMenu.addAction(QtGui.QIcon(IconDirectory + 'average.png'), "&Average", lambda: self.mainWindowCheck(lambda mainWindow: avgWindow(mainWindow)))
+        self.averageRegionAct.setToolTip('Average of Region')
         self.matrixMenu.addAction(QtGui.QIcon(IconDirectory + 'diff.png'), "&Diff", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.diff()))
         self.matrixMenu.addAction(QtGui.QIcon(IconDirectory + 'cumsum.png'), "&Cumsum", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.cumsum()))
         self.matrixMenu.addAction(QtGui.QIcon(IconDirectory + 'extractpart.png'),"&Extract part", lambda: self.mainWindowCheck(lambda mainWindow: extractRegionWindow(mainWindow)))
