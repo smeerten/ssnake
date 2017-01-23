@@ -2244,6 +2244,7 @@ class PeakDeconvFrame(Plot1DFrame):
         self.current = current
         self.spec = self.current.spec
         self.xax = self.current.xax
+        self.FITNUM = 10 # Maximum number of fits
         self.plotType = 0
         self.rootwindow = rootwindow
         self.pickNum = 0
@@ -2368,18 +2369,18 @@ class PeakDeconvFrame(Plot1DFrame):
             self.pickWidth = False
         else:
             self.rootwindow.paramframe.posEntries[self.pickNum].setText("%#.3g" % pos[1])
-            left = pos[0] - 10
+            left = pos[0] - self.FITNUM
             if left < 0:
                 left = 0
-            right = pos[0] + 10
+            right = pos[0] + self.FITNUM
             if right >= len(self.data1D):
                 right = len(self.data1D) - 1
             self.rootwindow.paramframe.ampEntries[self.pickNum].setText("%#.3g" % (pos[2] * np.pi * 0.5))
-            if self.pickNum < 10:
+            if self.pickNum < self.FITNUM:
                 self.rootwindow.paramframe.numExp.setCurrentIndex(self.pickNum)
                 self.rootwindow.paramframe.changeNum()
             self.pickWidth = True
-        if self.pickNum < 10:
+        if self.pickNum < self.FITNUM:
             self.peakPickFunc = lambda pos, self=self: self.pickDeconv(pos)
             self.peakPick = True
 
@@ -2391,6 +2392,7 @@ class PeakDeconvParamFrame(QtWidgets.QWidget):
     def __init__(self, parent, rootwindow):
         QtWidgets.QWidget.__init__(self, rootwindow)
         self.parent = parent
+        self.FITNUM = self.parent.FITNUM
         self.rootwindow = rootwindow
         grid = QtWidgets.QGridLayout(self)
         self.setLayout(grid)
@@ -2405,10 +2407,13 @@ class PeakDeconvParamFrame(QtWidgets.QWidget):
             self.axAdd = 0
         self.frame1 = QtWidgets.QGridLayout()
         self.frame2 = QtWidgets.QGridLayout()
-        self.frame3 = QtWidgets.QGridLayout()
+        self.frame3Scroll = QtWidgets.QScrollArea()
         grid.addLayout(self.frame1, 0, 0)
         grid.addLayout(self.frame2, 0, 1)
-        grid.addLayout(self.frame3, 0, 2)
+        grid.addWidget(self.frame3Scroll, 0, 2)
+        content = QtWidgets.QWidget()
+        self.frame3 = QtWidgets.QGridLayout(content)
+        #grid.addLayout(self.frame3, 0, 2)
         simButton = QtWidgets.QPushButton("Sim")
         simButton.clicked.connect(self.sim)
         self.frame1.addWidget(simButton, 0, 0)
@@ -2439,7 +2444,7 @@ class PeakDeconvParamFrame(QtWidgets.QWidget):
         self.pickTick = QtWidgets.QCheckBox("Pick")
         self.pickTick.stateChanged.connect(self.togglePick)
         self.frame1.addWidget(self.pickTick, 1, 1)
-        self.frame1.setColumnStretch(10, 1)
+        self.frame1.setColumnStretch(self.FITNUM, 1)
         self.frame1.setAlignment(QtCore.Qt.AlignTop)
         self.frame2.addWidget(QLabel("Bgrnd:"), 0, 0, 1, 2)
         self.bgrndTick = QtWidgets.QCheckBox('')
@@ -2455,10 +2460,10 @@ class PeakDeconvParamFrame(QtWidgets.QWidget):
         self.slopeEntry.setAlignment(QtCore.Qt.AlignHCenter)
         self.slopeEntry.setText("0.0")
         self.frame2.addWidget(self.slopeEntry, 3, 1)
-        self.frame2.setColumnStretch(10, 1)
+        self.frame2.setColumnStretch(self.FITNUM, 1)
         self.frame2.setAlignment(QtCore.Qt.AlignTop)
         self.numExp = QtWidgets.QComboBox()
-        self.numExp.addItems(['1', '2', '3', '4', '5', '6', '7', '8', '9', '10'])
+        self.numExp.addItems([str(x+1) for x in range(self.FITNUM)])
         self.numExp.currentIndexChanged.connect(self.changeNum)
         self.frame3.addWidget(self.numExp, 0, 0, 1, 2)
         self.frame3.addWidget(QLabel("Position:"), 1, 0, 1, 2)
@@ -2475,7 +2480,7 @@ class PeakDeconvParamFrame(QtWidgets.QWidget):
         self.lorEntries = []
         self.gaussTicks = []
         self.gaussEntries = []
-        for i in range(10):
+        for i in range(self.FITNUM):
             self.posTicks.append(QtWidgets.QCheckBox(''))
             self.frame3.addWidget(self.posTicks[i], i + 2, 0)
             self.posEntries.append(QtWidgets.QLineEdit())
@@ -2496,8 +2501,11 @@ class PeakDeconvParamFrame(QtWidgets.QWidget):
             self.gaussEntries.append(QtWidgets.QLineEdit())
             self.gaussEntries[i].setAlignment(QtCore.Qt.AlignHCenter)
             self.frame3.addWidget(self.gaussEntries[i], i + 2, 7)
+        self.frame3Scroll.setMinimumWidth(content.sizeHint().width() + self.frame3Scroll.verticalScrollBar().sizeHint().width())
+        self.frame3Scroll.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
+        self.frame3Scroll.setWidget(content)
         self.reset()
-        grid.setColumnStretch(10, 1)
+        grid.setColumnStretch(self.FITNUM, 1)
         grid.setAlignment(QtCore.Qt.AlignLeft)
 
     def closeWindow(self, *args):
@@ -2512,7 +2520,7 @@ class PeakDeconvParamFrame(QtWidgets.QWidget):
         self.slopeTick.setChecked(True)
         self.numExp.setCurrentIndex(0)
         self.pickTick.setChecked(True)
-        for i in range(10):
+        for i in range(self.FITNUM):
             self.posEntries[i].setText("0.0")
             self.posTicks[i].setChecked(False)
             self.ampEntries[i].setText("1.0")
@@ -2536,7 +2544,7 @@ class PeakDeconvParamFrame(QtWidgets.QWidget):
 
     def changeNum(self, *args):
         val = self.numExp.currentIndex() + 1
-        for i in range(10):
+        for i in range(self.FITNUM):
             if i < val:
                 self.posTicks[i].show()
                 self.posEntries[i].show()
