@@ -247,9 +247,12 @@ class MainProgram(QtWidgets.QMainWindow):
                                  self.statesAct,self.statesTPPIAct,self.echoantiAct,self.brukDigitalAct,
                                  self.lpsvdAct,self.sizingAct,self.shiftAct,self.intRegionAct,
                                  self.sumRegionAct,self.maxRegionAct,self.minRegionAct,self.maxposRegionAct,
-                                 self.minposRegionAct,self.averageRegionAct]
+                                 self.minposRegionAct,self.averageRegionAct,self.diffAct,self.cumsumAct,
+                                 self.extractpartAct,self.fliplrAct, self.matrixdelAct,self.splitAct,
+                                 self.multiplyAct,self.reorderAct,self.concatAct,self.shearAct]
 
-       
+
+        
 #        self.emptyAction = QtGui.QAction('', self)
 #        self.emptyAction.setEnabled(False)
 #        self.toolbar.addAction(self.emptyAction)
@@ -399,16 +402,29 @@ class MainProgram(QtWidgets.QMainWindow):
         self.minposRegionAct.setToolTip('Position of Minimum of Region')
         self.averageRegionAct = self.regionMenu.addAction(QtGui.QIcon(IconDirectory + 'average.png'), "&Average", lambda: self.mainWindowCheck(lambda mainWindow: avgWindow(mainWindow)))
         self.averageRegionAct.setToolTip('Average of Region')
-        self.matrixMenu.addAction(QtGui.QIcon(IconDirectory + 'diff.png'), "&Diff", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.diff()))
-        self.matrixMenu.addAction(QtGui.QIcon(IconDirectory + 'cumsum.png'), "&Cumsum", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.cumsum()))
-        self.matrixMenu.addAction(QtGui.QIcon(IconDirectory + 'extractpart.png'),"&Extract part", lambda: self.mainWindowCheck(lambda mainWindow: extractRegionWindow(mainWindow)))
-        self.matrixMenu.addAction(QtGui.QIcon(IconDirectory + 'fliplr.png'), "&Flip L/R", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.flipLR()))
-        self.matrixMenu.addAction(QtGui.QIcon(IconDirectory + 'matrixdelete.png'), "De&lete", lambda: self.mainWindowCheck(lambda mainWindow: DeleteWindow(mainWindow)))
-        self.matrixMenu.addAction(QtGui.QIcon(IconDirectory + 'split.png'),"S&plit", lambda: self.mainWindowCheck(lambda mainWindow: SplitWindow(mainWindow)))
-        self.matrixMenu.addAction(QtGui.QIcon(IconDirectory + 'multiply.png'), "Mul&tiply", lambda: self.mainWindowCheck(lambda mainWindow: MultiplyWindow(mainWindow)))
-        self.matrixMenu.addAction(QtGui.QIcon(IconDirectory + 'reorder.png'), "&Reorder", lambda: self.mainWindowCheck(lambda mainWindow: ReorderWindow(mainWindow)))
-        self.multiDActions.append(self.matrixMenu.addAction("C&oncatenate", lambda: self.mainWindowCheck(lambda mainWindow: ConcatenateWindow(mainWindow))))
-        self.multiDActions.append(self.matrixMenu.addAction("Shearin&g", lambda: self.mainWindowCheck(lambda mainWindow: ShearingWindow(mainWindow))))
+        self.diffAct = self.matrixMenu.addAction(QtGui.QIcon(IconDirectory + 'diff.png'), "&Diff", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.diff()))
+        self.diffAct.setToolTip('Difference')
+        self.cumsumAct = self.matrixMenu.addAction(QtGui.QIcon(IconDirectory + 'cumsum.png'), "&Cumsum", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.cumsum()))
+        self.cumsumAct.setToolTip('Cumulative sum')
+        self.extractpartAct = self.matrixMenu.addAction(QtGui.QIcon(IconDirectory + 'extractpart.png'),"&Extract part", lambda: self.mainWindowCheck(lambda mainWindow: extractRegionWindow(mainWindow)))
+        self.extractpartAct.setToolTip('Extract part')
+        self.fliplrAct = self.matrixMenu.addAction(QtGui.QIcon(IconDirectory + 'fliplr.png'), "&Flip L/R", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.flipLR()))
+        self.fliplrAct.setToolTip('Flip L/R')
+        self.matrixdelAct = self.matrixMenu.addAction(QtGui.QIcon(IconDirectory + 'matrixdelete.png'), "De&lete", lambda: self.mainWindowCheck(lambda mainWindow: DeleteWindow(mainWindow)))
+        self.matrixdelAct.setToolTip('Delete Points')
+        self.splitAct = self.matrixMenu.addAction(QtGui.QIcon(IconDirectory + 'split.png'),"S&plit", lambda: self.mainWindowCheck(lambda mainWindow: SplitWindow(mainWindow)))
+        self.splitAct.setToolTip('Split')
+        self.multiplyAct = self.matrixMenu.addAction(QtGui.QIcon(IconDirectory + 'multiply.png'), "Mul&tiply", lambda: self.mainWindowCheck(lambda mainWindow: MultiplyWindow(mainWindow)))
+        self.multiplyAct.setToolTip('Multiply')
+        self.reorderAct = self.matrixMenu.addAction(QtGui.QIcon(IconDirectory + 'reorder.png'), "&Reorder", lambda: self.mainWindowCheck(lambda mainWindow: ReorderWindow(mainWindow)))
+        self.reorderAct.setToolTip('Reorder')
+        self.concatAct = self.matrixMenu.addAction("C&oncatenate", lambda: self.mainWindowCheck(lambda mainWindow: ConcatenateWindow(mainWindow)))
+        self.concatAct.setToolTip('Concatenate')
+        self.multiDActions.append(self.concatAct)
+        self.shearAct = self.matrixMenu.addAction("Shearin&g", lambda: self.mainWindowCheck(lambda mainWindow: ShearingWindow(mainWindow)))
+        self.shearAct.setToolTip('Shearing')
+        self.multiDActions.append(self.shearAct)
+
 
         # the fft drop down menu
         self.fftMenu = QtWidgets.QMenu("T&ransforms", self)
