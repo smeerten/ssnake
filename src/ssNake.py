@@ -117,7 +117,7 @@ class MainProgram(QtWidgets.QMainWindow):
         self.LastLocation = ''
         self.initMenu()
         self.menuCheck()
-        self.initToolbar()
+#        self.initToolbar()
         self.main_widget = QtWidgets.QWidget(self)
         self.mainFrame = QtWidgets.QGridLayout(self.main_widget)
         self.logo = QtWidgets.QLabel(self)
