@@ -3135,6 +3135,7 @@ class BottomFrame(QtWidgets.QWidget):
         self.proj2Label.hide()
         self.projDrop1.hide()
         self.projDrop2.hide()
+        self.axisDropFreq.model().item(3).setEnabled(True)
         if self.father.current.spec == 0:
             self.specGroup.button(0).toggle()
             self.axisDropFreq.hide()
@@ -3145,6 +3146,8 @@ class BottomFrame(QtWidgets.QWidget):
             self.specGroup.button(1).toggle()
             self.axisDropTime.hide()
             self.axisDropFreq.show()
+            if self.father.current.freq == 0.0:
+                self.axisDropFreq.model().item(3).setEnabled(False)
             self.ax2Label.hide()
             if self.father.current.ppm:
                 self.axisDropFreq.setCurrentIndex(3)
@@ -3156,11 +3159,14 @@ class BottomFrame(QtWidgets.QWidget):
             self.proj2Label.show()
             self.projDrop1.show()
             self.projDrop2.show()
+            self.axisDropFreq2.model().item(3).setEnabled(True)
             if self.father.current.spec2 == 0:
                 self.axisDropTime2.show()
                 self.axisDropTime2.setCurrentIndex(self.father.current.axType2)
             elif self.father.current.spec2 == 1:
                 self.axisDropFreq2.show()
+                if self.father.current.freq2 == 0.0:
+                    self.axisDropFreq2.model().item(3).setEnabled(False)
                 self.axisDropFreq2.setCurrentIndex(self.father.current.axType2)
         if self.father.current.wholeEcho:
             self.wholeEcho.setCheckState(QtCore.Qt.Checked)
