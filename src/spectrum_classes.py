@@ -2304,7 +2304,11 @@ class Current1D(Plot1DFrame):
             self.ymaxlim = maxy + differ
         if self.spec == 1:
             if self.ppm:
-                axMult = 1e6 / self.ref
+                if self.ref == 0.0:
+                    self.ppm = False
+                    axMult = 1.0 / (1000.0**self.axType)
+                else:
+                    axMult = 1e6 / self.ref
             else:
                 axMult = 1.0 / (1000.0**self.axType)
         elif self.spec == 0:
@@ -2514,7 +2518,11 @@ class CurrentMulti(Current1D):
             maxy = 1
         if self.spec == 1:
             if self.ppm:
-                axMult = 1e6 / self.ref
+                if self.ref == 0.0:
+                    self.ppm = False
+                    axMult = 1.0 / (1000.0**self.axType)
+                else:
+                    axMult = 1e6 / self.ref
             else:
                 axMult = 1.0 / (1000.0**self.axType)
         elif self.spec == 0:
@@ -3058,7 +3066,11 @@ class CurrentStacked(Current1D):
             self.ymaxlim = maxy + differ
         if self.spec == 1:
             if self.ppm:
-                axMult = 1e6 / self.ref
+                if self.ref == 0.0:
+                    self.ppm = False
+                    axMult = 1.0 / (1000.0**self.axType)
+                else:
+                    axMult = 1e6 / self.ref
             else:
                 axMult = 1.0 / (1000.0**self.axType)
         elif self.spec == 0:
@@ -3401,7 +3413,11 @@ class CurrentArrayed(Current1D):
             xaxZlims = (self.xax > self.zminlim) & (self.xax < self.zmaxlim)
             if self.spec == 1:
                 if self.ppm:
-                    axMult = 1e6 / self.ref
+                    if self.ref == 0.0:
+                        self.ppm = False
+                        axMult = 1.0 / (1000.0**self.axType)
+                    else:
+                        axMult = 1e6 / self.ref
                 else:
                     axMult = 1.0 / (1000.0**self.axType)
             elif self.spec == 0:
@@ -3478,9 +3494,6 @@ class CurrentContour(Current1D):
         self.root.sideframe.minLEntry.setText(str(self.minLevels*100))
         self.root.sideframe.maxLEntry.setText(str(self.maxLevels*100))
         self.plotContour(updateOnly = True)
-
-        
-        
         
     def copyCurrent(self, root, fig, canvas, data):
         return CurrentContour(root, fig, canvas, data, self)
@@ -3888,7 +3901,11 @@ class CurrentContour(Current1D):
     def plotReset(self, xReset=True, yReset=True):  # set the plot limits to min and max values
         if self.spec == 1:
             if self.ppm:
-                axMult = 1e6 / self.ref
+                if self.ref == 0.0:
+                    self.ppm = False
+                    axMult = 1.0 / (1000.0**self.axType)
+                else:
+                    axMult = 1e6 / self.ref
             else:
                 axMult = 1.0 / (1000.0**self.axType)
         elif self.spec == 0:
@@ -3898,7 +3915,11 @@ class CurrentContour(Current1D):
             self.xmaxlim = max(self.xax * axMult)
         if self.spec2 == 1:
             if self.ppm2:
-                axMult2 = 1e6 / self.ref2
+                if self.ref2 == 0.0:
+                    self.ppm2 = False
+                    axMult2 = 1.0 / (1000.0**self.axType2)
+                else:
+                    axMult2 = 1e6 / self.ref2
             else:
                 axMult2 = 1.0 / (1000.0**self.axType2)
         elif self.spec2 == 0:
@@ -4315,7 +4336,11 @@ class CurrentSkewed(Current1D):
     def plotReset(self, xReset=True, yReset=True):  # set the plot limits to min and max values
         if self.spec == 1:
             if self.ppm:
-                axMult = 1e6 / self.ref
+                if self.ref == 0.0:
+                    self.ppm = False
+                    axMult = 1.0 / (1000.0**self.axType)
+                else:
+                    axMult = 1e6 / self.ref
             else:
                 axMult = 1.0 / (1000.0**self.axType)
         elif self.spec == 0:
@@ -4325,7 +4350,11 @@ class CurrentSkewed(Current1D):
             self.xmaxlim = max(self.xax * axMult)
         if self.spec2 == 1:
             if self.ppm2:
-                axMult2 = 1e6 / self.ref2
+                if self.ref2 == 0.0:
+                    self.ppm2 = False
+                    axMult2 = 1.0 / (1000.0**self.axType2)
+                else:
+                    axMult2 = 1e6 / self.ref2
             else:
                 axMult2 = 1.0 / (1000.0**self.axType2)
         elif self.spec2 == 0:
