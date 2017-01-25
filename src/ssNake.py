@@ -117,7 +117,7 @@ class MainProgram(QtWidgets.QMainWindow):
         self.LastLocation = ''
         self.initMenu()
         self.menuCheck()
-#        self.initToolbar()
+        self.initToolbar()
         self.main_widget = QtWidgets.QWidget(self)
         self.mainFrame = QtWidgets.QGridLayout(self.main_widget)
         self.logo = QtWidgets.QLabel(self)
@@ -249,10 +249,10 @@ class MainProgram(QtWidgets.QMainWindow):
                                  self.sumRegionAct,self.maxRegionAct,self.minRegionAct,self.maxposRegionAct,
                                  self.minposRegionAct,self.averageRegionAct,self.diffAct,self.cumsumAct,
                                  self.extractpartAct,self.fliplrAct, self.matrixdelAct,self.splitAct,
-                                 self.multiplyAct,self.reorderAct,self.concatAct,self.shearAct]
+                                 self.multiplyAct,self.reorderAct,self.concatAct,self.shearAct,
+                                 self.fourierAct,self.realFourierAct,self.fftshiftAct,self.invfftshiftAct,
+                                 self.hilbertAct,self.ffmAct,self.cleanAct]
 
-
-        
 #        self.emptyAction = QtGui.QAction('', self)
 #        self.emptyAction.setEnabled(False)
 #        self.toolbar.addAction(self.emptyAction)
@@ -429,15 +429,22 @@ class MainProgram(QtWidgets.QMainWindow):
         # the fft drop down menu
         self.fftMenu = QtWidgets.QMenu("T&ransforms", self)
         self.menubar.addMenu(self.fftMenu)
-        self.fftMenu.addAction("&Fourier Transform", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.fourier()), QtCore.Qt.CTRL + QtCore.Qt.Key_F)
-        self.fftMenu.addAction("&Real Fourier Transform", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.realFourier()))
-        self.fftMenu.addAction("Fft&shift", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.fftshift()))
-        self.fftMenu.addAction("&Inv fftshift", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.invFftshift()))
-        self.fftMenu.addAction("&Hilbert Transform", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.hilbert()))
+        self.fourierAct = self.fftMenu.addAction("&Fourier Transform", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.fourier()), QtCore.Qt.CTRL + QtCore.Qt.Key_F)
+        self.fourierAct.setToolTip('Fourier Transform')
+        self.realFourierAct = self.fftMenu.addAction("&Real Fourier Transform", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.realFourier()))
+        self.realFourierAct.setToolTip('Real Fourier Transform')
+        self.fftshiftAct = self.fftMenu.addAction("Fft&shift", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.fftshift()))
+        self.fftshiftAct.setToolTip('Fftshift')
+        self.invfftshiftAct = self.fftMenu.addAction("&Inv fftshift", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.invFftshift()))
+        self.invfftshiftAct.setToolTip('Inverse fftshift')
+        self.hilbertAct = self.fftMenu.addAction("&Hilbert Transform", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.hilbert()))
+        self.hilbertAct.setToolTip('Hilbert Transform') 
         self.nusMenu = QtWidgets.QMenu("&NUS", self)
         self.fftMenu.addMenu(self.nusMenu)
-        self.nusMenu.addAction("&FFM", lambda: self.mainWindowCheck(lambda mainWindow: FFMWindow(mainWindow)))
-        self.nusMenu.addAction("&CLEAN", lambda: self.mainWindowCheck(lambda mainWindow: CLEANWindow(mainWindow)))
+        self.ffmAct = self.nusMenu.addAction("&FFM", lambda: self.mainWindowCheck(lambda mainWindow: FFMWindow(mainWindow)))
+        self.ffmAct.setToolTip('FFM') 
+        self.cleanAct = self.nusMenu.addAction("&CLEAN", lambda: self.mainWindowCheck(lambda mainWindow: CLEANWindow(mainWindow)))
+        self.cleanAct.setToolTip('CLEAN') 
 
         # the fitting drop down menu
         self.fittingMenu = QtWidgets.QMenu("F&itting", self)
