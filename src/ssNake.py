@@ -111,8 +111,8 @@ class MainProgram(QtWidgets.QMainWindow):
         self.workspaceNum = 0
         self.macros = {}
         self.macroActions = {}
-        self.referenceName = []  # List with saved refrence names
-        self.referenceValue = []  # List with saved refrence values
+        self.referenceName = []  # List with saved reference names
+        self.referenceValue = []  # List with saved reference values
         self.referenceActions = {}
         self.LastLocation = ''
         self.initMenu()
@@ -251,8 +251,15 @@ class MainProgram(QtWidgets.QMainWindow):
                                  self.extractpartAct,self.fliplrAct, self.matrixdelAct,self.splitAct,
                                  self.multiplyAct,self.reorderAct,self.concatAct,self.shearAct,
                                  self.fourierAct,self.realFourierAct,self.fftshiftAct,self.invfftshiftAct,
-                                 self.hilbertAct,self.ffmAct,self.cleanAct]
+                                 self.hilbertAct,self.ffmAct,self.cleanAct,self.snrAct,self.fwhmAct,
+                                 self.massAct,self.intfitAct,self.relaxAct,self.diffusionAct,self.lorentzfitAct,
+                                 self.csastaticAct,self.csamasAct,self.firstquadstatAct,self.firstquadmasAct,
+                                 self.secondquadstatAct,self.secondquadmasAct,self.czjzekstatAct,self.czjzekmasAct,
+                                 self.insertdatAct,self.adddatAct,self.subdatAct,self.onedplotAct,self.scatterplotAct,
+                                 self.stackplotAct,self.arrayplotAct,self.contourplotAct,self.skewplotAct,self.multiplotAct]
+                                 
 
+      
 #        self.emptyAction = QtGui.QAction('', self)
 #        self.emptyAction.setEnabled(False)
 #        self.toolbar.addAction(self.emptyAction)
@@ -449,39 +456,68 @@ class MainProgram(QtWidgets.QMainWindow):
         # the fitting drop down menu
         self.fittingMenu = QtWidgets.QMenu("F&itting", self)
         self.menubar.addMenu(self.fittingMenu)
-        self.fittingMenu.addAction(QtGui.QIcon(IconDirectory + 'snr.png'),"&S/N", lambda: self.mainWindowCheck(lambda mainWindow: SNWindow(mainWindow)))
-        self.fittingMenu.addAction(QtGui.QIcon(IconDirectory + 'fwhm.png'),"&FWHM", lambda: self.mainWindowCheck(lambda mainWindow: FWHMWindow(mainWindow)))
-        self.fittingMenu.addAction(QtGui.QIcon(IconDirectory + 'mass.png'),"Centre of Mass", lambda: self.mainWindowCheck(lambda mainWindow: COMWindow(mainWindow)))
-        self.fittingMenu.addAction(QtGui.QIcon(IconDirectory + 'int.png'),"&Integrals", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.createIntegralsWindow()))
-        self.fittingMenu.addAction(QtGui.QIcon(IconDirectory + 'relaxation.png'),"&Relaxation Curve", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.createRelaxWindow()))
-        self.fittingMenu.addAction(QtGui.QIcon(IconDirectory + 'diffusion.png'),"&Diffusion Curve", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.createDiffusionWindow()))
-        self.fittingMenu.addAction(QtGui.QIcon(IconDirectory + 'lorentz.png'),"&Lorentzian/Gaussian", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.createPeakDeconvWindow()))
-        self.fittingMenu.addAction(QtGui.QIcon(IconDirectory + 'csastatic.png'),"&CSA Static", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.createTensorDeconvWindow()))
-        self.fittingMenu.addAction(QtGui.QIcon(IconDirectory + 'csaMAS.png'),"CSA MAS", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.createHerzfeldBergerWindow()))
-        self.fittingMenu.addAction(QtGui.QIcon(IconDirectory + 'firstquadstatic.png'),"First Order &Quadrupole Static", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.createQuad1DeconvWindow()))
-        self.fittingMenu.addAction(QtGui.QIcon(IconDirectory + 'firstquadMAS.png'),"First Order &Quadrupole MAS", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.createQuad1MASDeconvWindow()))
-        self.fittingMenu.addAction(QtGui.QIcon(IconDirectory + 'secondquadstatic.png'),"S&econd Order Quadrupole Static", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.createQuad2StaticDeconvWindow()))
-        self.fittingMenu.addAction(QtGui.QIcon(IconDirectory + 'secondquadMAS.png'),"Se&cond Order Quadrupole MAS", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.createQuad2MASDeconvWindow()))
-        self.fittingMenu.addAction(QtGui.QIcon(IconDirectory + 'czjzekstatic.png'),"Czjzek S&tatic", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.createQuad2StaticCzjzekWindow()))
-        self.fittingMenu.addAction(QtGui.QIcon(IconDirectory + 'czjzekMAS.png'),"Czjzek &MAS", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.createQuad2MASCzjzekWindow()))
+        self.snrAct = self.fittingMenu.addAction(QtGui.QIcon(IconDirectory + 'snr.png'),"&S/N", lambda: self.mainWindowCheck(lambda mainWindow: SNWindow(mainWindow)))
+        self.snrAct.setToolTip('Signal-to-Noise Ratio')
+        self.fwhmAct = self.fittingMenu.addAction(QtGui.QIcon(IconDirectory + 'fwhm.png'),"&FWHM", lambda: self.mainWindowCheck(lambda mainWindow: FWHMWindow(mainWindow)))
+        self.fwhmAct.setToolTip('Full Width at Half Maximum')
+        self.massAct = self.fittingMenu.addAction(QtGui.QIcon(IconDirectory + 'mass.png'),"Centre of Mass", lambda: self.mainWindowCheck(lambda mainWindow: COMWindow(mainWindow)))
+        self.massAct.setToolTip('Centre of Mass')
+        self.intfitAct = self.fittingMenu.addAction(QtGui.QIcon(IconDirectory + 'int.png'),"&Integrals", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.createIntegralsWindow()))
+        self.intfitAct.setToolTip('Get Integrals')
+        self.relaxAct = self.fittingMenu.addAction(QtGui.QIcon(IconDirectory + 'relaxation.png'),"&Relaxation Curve", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.createRelaxWindow()))
+        self.relaxAct.setToolTip('Fit Relaxation Curve')
+        self.diffusionAct = self.fittingMenu.addAction(QtGui.QIcon(IconDirectory + 'diffusion.png'),"&Diffusion Curve", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.createDiffusionWindow()))
+        self.diffusionAct.setToolTip('Fit Diffusion Curve')
+        self.lorentzfitAct = self.fittingMenu.addAction(QtGui.QIcon(IconDirectory + 'lorentz.png'),"&Lorentzian/Gaussian", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.createPeakDeconvWindow()))
+        self.lorentzfitAct.setToolTip('Fit Lorentzian/Gaussian')
+        self.csastaticAct = self.fittingMenu.addAction(QtGui.QIcon(IconDirectory + 'csastatic.png'),"&CSA Static", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.createTensorDeconvWindow()))
+        self.csastaticAct.setToolTip('Fit CSA Static')
+        self.csamasAct = self.fittingMenu.addAction(QtGui.QIcon(IconDirectory + 'csaMAS.png'),"CSA MAS", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.createHerzfeldBergerWindow()))
+        self.csamasAct.setToolTip('Fit CSA MAS')
+        self.firstquadstatAct = self.fittingMenu.addAction(QtGui.QIcon(IconDirectory + 'firstquadstatic.png'),"First Order &Quadrupole Static", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.createQuad1DeconvWindow()))
+        self.firstquadstatAct.setToolTip('Fit First Order Quadrupole Static')
+        self.firstquadmasAct = self.fittingMenu.addAction(QtGui.QIcon(IconDirectory + 'firstquadMAS.png'),"First Order &Quadrupole MAS", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.createQuad1MASDeconvWindow()))
+        self.firstquadmasAct.setToolTip('Fit First Order Quadrupole MAS')
+        self.secondquadstatAct = self.fittingMenu.addAction(QtGui.QIcon(IconDirectory + 'secondquadstatic.png'),"S&econd Order Quadrupole Static", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.createQuad2StaticDeconvWindow()))
+        self.secondquadstatAct.setToolTip('Fit Second Order Quadrupole Static')
+        self.secondquadmasAct = self.fittingMenu.addAction(QtGui.QIcon(IconDirectory + 'secondquadMAS.png'),"Se&cond Order Quadrupole MAS", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.createQuad2MASDeconvWindow()))
+        self.secondquadmasAct.setToolTip('Fit Second Order Quadrupole MAS')
+        self.czjzekstatAct = self.fittingMenu.addAction(QtGui.QIcon(IconDirectory + 'czjzekstatic.png'),"Czjzek S&tatic", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.createQuad2StaticCzjzekWindow()))
+        self.czjzekstatAct.setToolTip('Fit Static Czjzek Pattern')
+        self.czjzekmasAct = self.fittingMenu.addAction(QtGui.QIcon(IconDirectory + 'czjzekMAS.png'),"Czjzek &MAS", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.createQuad2MASCzjzekWindow()))
+        self.czjzekmasAct.setToolTip('Fit MAS Czjzek Pattern')
 
         # the combine drop down menu
         self.combineMenu = QtWidgets.QMenu("Com&bine", self)
         self.menubar.addMenu(self.combineMenu)
-        self.combineMenu.addAction(QtGui.QIcon(IconDirectory + 'insert.png'),"&Insert From Workspace", lambda: self.mainWindowCheck(lambda mainWindow: InsertWindow(mainWindow)))
-        self.combineMenu.addAction(QtGui.QIcon(IconDirectory + 'add.png'), "&Add", lambda: self.mainWindowCheck(lambda mainWindow: AddWindow(mainWindow)))
-        self.combineMenu.addAction(QtGui.QIcon(IconDirectory + 'subtract.png'), "&Subtract", lambda: self.mainWindowCheck(lambda mainWindow: SubtractWindow(mainWindow)))
+        self.insertdatAct = self.combineMenu.addAction(QtGui.QIcon(IconDirectory + 'insert.png'),"&Insert From Workspace", lambda: self.mainWindowCheck(lambda mainWindow: InsertWindow(mainWindow)))
+        self.insertdatAct.setToolTip('Insert From Workspace')
+        self.adddatAct = self.combineMenu.addAction(QtGui.QIcon(IconDirectory + 'add.png'), "&Add", lambda: self.mainWindowCheck(lambda mainWindow: AddWindow(mainWindow)))
+        self.adddatAct.setToolTip('Add Data From Workspace')
+        self.subdatAct = self.combineMenu.addAction(QtGui.QIcon(IconDirectory + 'subtract.png'), "&Subtract", lambda: self.mainWindowCheck(lambda mainWindow: SubtractWindow(mainWindow)))
+        self.subdatAct.setToolTip('Subtract Data From Workspace')
 
         # the plot drop down menu
         self.plotMenu = QtWidgets.QMenu("&Plot", self)
         self.menubar.addMenu(self.plotMenu)
-        self.plotMenu.addAction(QtGui.QIcon(IconDirectory + '1dplot.png'), "&1D Plot", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.plot1D()))
-        self.plotMenu.addAction(QtGui.QIcon(IconDirectory + 'scatterplot.png'), "&Scatter Plot", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.plotScatter()))
-        self.multiDActions.append(self.plotMenu.addAction(QtGui.QIcon(IconDirectory + 'stack.png'),"S&tack Plot", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.plotStack())))
-        self.multiDActions.append(self.plotMenu.addAction(QtGui.QIcon(IconDirectory + 'array.png'),"&Array Plot", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.plotArray())))
-        self.multiDActions.append(self.plotMenu.addAction(QtGui.QIcon(IconDirectory + 'contour.png'), "&Contour Plot", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.plotContour())))
-        self.multiDActions.append(self.plotMenu.addAction(QtGui.QIcon(IconDirectory + 'skewed.png'),"S&kewed Plot", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.plotSkewed())))
-        self.plotMenu.addAction(QtGui.QIcon(IconDirectory + 'multi.png'),"&Multi Plot", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.plotMulti()))
+        self.onedplotAct = self.plotMenu.addAction(QtGui.QIcon(IconDirectory + '1dplot.png'), "&1D Plot", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.plot1D()))
+        self.onedplotAct.setToolTip('1D plot')
+        self.scatterplotAct = self.plotMenu.addAction(QtGui.QIcon(IconDirectory + 'scatterplot.png'), "&Scatter Plot", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.plotScatter()))
+        self.scatterplotAct.setToolTip('Scatter Plot')
+        self.stackplotAct = self.plotMenu.addAction(QtGui.QIcon(IconDirectory + 'stack.png'),"S&tack Plot", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.plotStack()))
+        self.stackplotAct.setToolTip('Stack Plot')        
+        self.multiDActions.append(self.stackplotAct)
+        self.arrayplotAct = self.plotMenu.addAction(QtGui.QIcon(IconDirectory + 'array.png'),"&Array Plot", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.plotArray()))
+        self.arrayplotAct.setToolTip('Array Plot')        
+        self.multiDActions.append(self.arrayplotAct)
+        self.contourplotAct = self.plotMenu.addAction(QtGui.QIcon(IconDirectory + 'contour.png'), "&Contour Plot", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.plotContour()))      
+        self.contourplotAct.setToolTip('Contour Plot')
+        self.multiDActions.append(self.contourplotAct)
+        self.skewplotAct = self.plotMenu.addAction(QtGui.QIcon(IconDirectory + 'skewed.png'),"S&kewed Plot", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.plotSkewed()))
+        self.skewplotAct.setToolTip('Skew Plot')
+        self.multiDActions.append(self.skewplotAct)
+        self.multiplotAct = self.plotMenu.addAction(QtGui.QIcon(IconDirectory + 'multi.png'),"&Multi Plot", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.plotMulti()))
+        self.multiplotAct.setToolTip('Multi Plot')
 
         self.referencelistmenu = QtWidgets.QMenu('&Reference', self)
         self.plotMenu.addMenu(self.referencelistmenu)
