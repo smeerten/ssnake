@@ -235,38 +235,42 @@ class MainProgram(QtWidgets.QMainWindow):
         self.toolbar.setMovable(False)
         self.toolbar.setIconSize(QtCore.QSize(22,22))
         
-
+        self.emptyAction = QtGui.QAction('', self)
         
-        self.toobarActionList = [self.openAct,self.saveAct,self.saveMatAct,self.savefigAct,
-                                 self.saveSimpsonAct,self.saveASCIIAct,self.saveASCIIAct,self.preferencesAct,
-                                 self.quitAct,self.newAct,self.closeAct,self.renameWorkspaceAct,self.forwardAct,
-                                 self.backAct,self.combineWorkspaceAct,self.macrostartAct,self.macrostopAct,
-                                 self.macroLoadAct,self.undoAction,self.redoAction,self.reloadAct,self.monitorAct,
-                                 self.realAct,self.imagAct,self.absAct,self.apodizeAct,self.phaseAct,
-                                 self.swapEchoAct,self.corOffsetAct,self.baselineAct,self.subAvgAct,self.refDeconvAct,
-                                 self.statesAct,self.statesTPPIAct,self.echoantiAct,self.brukDigitalAct,
-                                 self.lpsvdAct,self.sizingAct,self.shiftAct,self.intRegionAct,
-                                 self.sumRegionAct,self.maxRegionAct,self.minRegionAct,self.maxposRegionAct,
-                                 self.minposRegionAct,self.averageRegionAct,self.diffAct,self.cumsumAct,
-                                 self.extractpartAct,self.fliplrAct, self.matrixdelAct,self.splitAct,
-                                 self.multiplyAct,self.reorderAct,self.concatAct,self.shearAct,
-                                 self.fourierAct,self.realFourierAct,self.fftshiftAct,self.invfftshiftAct,
-                                 self.hilbertAct,self.ffmAct,self.cleanAct,self.snrAct,self.fwhmAct,
-                                 self.massAct,self.intfitAct,self.relaxAct,self.diffusionAct,self.lorentzfitAct,
-                                 self.csastaticAct,self.csamasAct,self.firstquadstatAct,self.firstquadmasAct,
-                                 self.secondquadstatAct,self.secondquadmasAct,self.czjzekstatAct,self.czjzekmasAct,
-                                 self.insertdatAct,self.adddatAct,self.subdatAct,self.onedplotAct,self.scatterplotAct,
-                                 self.stackplotAct,self.arrayplotAct,self.contourplotAct,self.skewplotAct,self.multiplotAct,
-                                 self.setrefAct, self.delrefAct,self.loadrefAct,self.userxAct,self.plotprefAct]
+        self.seperatorAction = QtGui.QAction(self)
+        self.seperatorAction.setSeparator(True)
+        self.seperatorAction2 = QtGui.QAction(self)
+        self.seperatorAction2.setSeparator(True)
+        
+#        self.toobarActionList = [self.openAct,self.saveAct,self.saveMatAct,self.savefigAct,
+#                                 self.saveSimpsonAct,self.saveASCIIAct,self.saveASCIIAct,self.preferencesAct,
+#                                 self.quitAct,self.newAct,self.closeAct,self.renameWorkspaceAct,self.forwardAct,
+#                                 self.backAct,self.combineWorkspaceAct,self.macrostartAct,self.macrostopAct,
+#                                 self.macroLoadAct,self.undoAction,self.redoAction,self.reloadAct,self.monitorAct,
+#                                 self.realAct,self.imagAct,self.absAct,self.apodizeAct,self.phaseAct,
+#                                 self.swapEchoAct,self.corOffsetAct,self.baselineAct,self.subAvgAct,self.refDeconvAct,
+#                                 self.statesAct,self.statesTPPIAct,self.echoantiAct,self.brukDigitalAct,
+#                                 self.lpsvdAct,self.sizingAct,self.shiftAct,self.intRegionAct,
+#                                 self.sumRegionAct,self.maxRegionAct,self.minRegionAct,self.maxposRegionAct,
+#                                 self.minposRegionAct,self.averageRegionAct,self.diffAct,self.cumsumAct,
+#                                 self.extractpartAct,self.fliplrAct, self.matrixdelAct,self.splitAct,
+#                                 self.multiplyAct,self.reorderAct,self.concatAct,self.shearAct,
+#                                 self.fourierAct,self.realFourierAct,self.fftshiftAct,self.invfftshiftAct,
+#                                 self.hilbertAct,self.ffmAct,self.cleanAct,self.snrAct,self.fwhmAct,
+#                                 self.massAct,self.intfitAct,self.relaxAct,self.diffusionAct,self.lorentzfitAct,
+#                                 self.csastaticAct,self.csamasAct,self.firstquadstatAct,self.firstquadmasAct,
+#                                 self.secondquadstatAct,self.secondquadmasAct,self.czjzekstatAct,self.czjzekmasAct,
+#                                 self.insertdatAct,self.adddatAct,self.subdatAct,self.onedplotAct,self.scatterplotAct,
+#                                 self.stackplotAct,self.arrayplotAct,self.contourplotAct,self.skewplotAct,self.multiplotAct,
+#                                 self.setrefAct, self.delrefAct,self.loadrefAct,self.userxAct,self.plotprefAct,self.historyAct,
+#                                 self.clearundoAct,self.updateAct,self.shiftconvAct,self.quadconvAct,self.nmrtableAct,
+#                                 self.aboutAct]
        
       
-#        self.emptyAction = QtGui.QAction('', self)
-#        self.emptyAction.setEnabled(False)
-#        self.toolbar.addAction(self.emptyAction)
-#        
-#        self.seperatorAction = QtGui.QAction(self)
-#        self.seperatorAction.setSeparator(True)
-#        self.toolbar.addAction(self.seperatorAction)
+        self.toobarActionList = [self.openAct,self.saveMatAct,self.savefigAct,self.seperatorAction,
+                                 self.newAct,self.closeAct,self.seperatorAction2,self.undoAction,
+                                 self.redoAction,self.reloadAct]
+
         
        
         for entry in self.toobarActionList:
@@ -544,20 +548,29 @@ class MainProgram(QtWidgets.QMainWindow):
         # the history drop down menu
         self.historyMenu = QtWidgets.QMenu("&History", self)
         self.menubar.addMenu(self.historyMenu)
-        self.historyMenu.addAction(QtGui.QIcon(IconDirectory + 'history.png'), "&History", lambda: self.mainWindowCheck(lambda mainWindow: HistoryWindow(mainWindow)))
-        self.historyMenu.addAction(QtGui.QIcon(IconDirectory + 'delete.png'),"&Clear Undo/Redo List", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.clearUndo()))
+        self.historyAct = self.historyMenu.addAction(QtGui.QIcon(IconDirectory + 'history.png'), "&History", lambda: self.mainWindowCheck(lambda mainWindow: HistoryWindow(mainWindow)))
+        self.historyAct.setToolTip('Show Processing History')
+        self.clearundoAct = self.historyMenu.addAction(QtGui.QIcon(IconDirectory + 'delete.png'),"&Clear Undo/Redo List", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.clearUndo()))
+        self.clearundoAct.setToolTip('Clear Undo/Redo List')
         
         
         # the help drop down menu
         self.helpMenu = QtWidgets.QMenu("&Help", self)
         self.menubar.addMenu(self.helpMenu)
-        self.helpMenu.addAction(QtGui.QIcon(IconDirectory + 'update.png'),"&Update", self.updateMenu)
-        self.helpMenu.addAction(QtGui.QIcon(IconDirectory + 'shifttool.png'),"&Chemical Shift Conversion Tool", self.createShiftConversionWindow)
-        self.helpMenu.addAction(QtGui.QIcon(IconDirectory + 'quadconversion.png'),"&Quadrupole Coupling Conversion Tool", self.createQuadConversionWindow)
-        self.helpMenu.addAction(QtGui.QIcon(IconDirectory + 'table.png'),"&NMR Table", self.nmrTable)
+        self.updateAct = self.helpMenu.addAction(QtGui.QIcon(IconDirectory + 'update.png'),"&Update", self.updateMenu)
+        self.updateAct.setToolTip('Update ssNake')
+        self.shiftconvAct = self.helpMenu.addAction(QtGui.QIcon(IconDirectory + 'shifttool.png'),"&Chemical Shift Conversion Tool", self.createShiftConversionWindow)
+        self.shiftconvAct.setToolTip('Chemical Shift Conversion Tool')
+        self.quadconvAct = self.helpMenu.addAction(QtGui.QIcon(IconDirectory + 'quadconversion.png'),"&Quadrupole Coupling Conversion Tool", self.createQuadConversionWindow)
+        self.quadconvAct.setToolTip('Quadrupole Coupling Conversion Tool')
+        self.nmrtableAct = self.helpMenu.addAction(QtGui.QIcon(IconDirectory + 'table.png'),"&NMR Table", self.nmrTable)
+        self.nmrtableAct.setToolTip('NMR Periodic Table') 
         
-        self.helpMenu.addAction(QtGui.QIcon(IconDirectory + 'about.png'),"&About", self.about)
+        self.aboutAct = self.helpMenu.addAction(QtGui.QIcon(IconDirectory + 'about.png'),"&About", self.about)
+        self.aboutAct.setToolTip('About Menu') 
 
+
+    
     def mainWindowCheck(self, transfer):
         # checks if mainWindow exist to execute the function
         if self.mainWindow is not None:
