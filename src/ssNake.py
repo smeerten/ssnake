@@ -256,9 +256,9 @@ class MainProgram(QtWidgets.QMainWindow):
                                  self.csastaticAct,self.csamasAct,self.firstquadstatAct,self.firstquadmasAct,
                                  self.secondquadstatAct,self.secondquadmasAct,self.czjzekstatAct,self.czjzekmasAct,
                                  self.insertdatAct,self.adddatAct,self.subdatAct,self.onedplotAct,self.scatterplotAct,
-                                 self.stackplotAct,self.arrayplotAct,self.contourplotAct,self.skewplotAct,self.multiplotAct]
-                                 
-
+                                 self.stackplotAct,self.arrayplotAct,self.contourplotAct,self.skewplotAct,self.multiplotAct,
+                                 self.setrefAct, self.delrefAct,self.loadrefAct,self.userxAct,self.plotprefAct]
+       
       
 #        self.emptyAction = QtGui.QAction('', self)
 #        self.emptyAction.setEnabled(False)
@@ -521,8 +521,10 @@ class MainProgram(QtWidgets.QMainWindow):
 
         self.referencelistmenu = QtWidgets.QMenu('&Reference', self)
         self.plotMenu.addMenu(self.referencelistmenu)
-        self.referencelistmenu.addAction(QtGui.QIcon(IconDirectory + 'setreference.png'),"&Set Reference", lambda: self.mainWindowCheck(lambda mainWindow: RefWindow(mainWindow)))
-        self.referencelistmenu.addAction(QtGui.QIcon(IconDirectory + 'delete.png'),"&Clear Current Reference", self.referenceClear)
+        self.setrefAct = self.referencelistmenu.addAction(QtGui.QIcon(IconDirectory + 'setreference.png'),"&Set Reference", lambda: self.mainWindowCheck(lambda mainWindow: RefWindow(mainWindow)))
+        self.setrefAct.setToolTip('Set Reference')
+        self.delrefAct = self.referencelistmenu.addAction(QtGui.QIcon(IconDirectory + 'delete.png'),"&Clear Current Reference", self.referenceClear)
+        self.delrefAct.setToolTip('Clear Current Reference')
         self.referencerunmenu = QtWidgets.QMenu('&Run', self)
         self.referencelistmenu.addMenu(self.referencerunmenu)
         self.referencedeletemenu = QtWidgets.QMenu('&Delete', self)
@@ -531,10 +533,13 @@ class MainProgram(QtWidgets.QMainWindow):
         self.referencelistmenu.addMenu(self.referencerenamemenu)
         self.referencesavemenu = QtWidgets.QMenu('&Save', self)
         self.referencelistmenu.addMenu(self.referencesavemenu)
-        self.referencelistmenu.addAction(QtGui.QIcon(IconDirectory + 'open.png'), "&Load", self.referenceLoad)
+        self.loadrefAct = self.referencelistmenu.addAction(QtGui.QIcon(IconDirectory + 'open.png'), "&Load", self.referenceLoad)
+        self.loadrefAct.setToolTip('Load Reference')
 
-        self.plotMenu.addAction(QtGui.QIcon(IconDirectory + 'xaxis.png'),"&User X-axis", lambda: self.mainWindowCheck(lambda mainWindow: XaxWindow(mainWindow)))
-        self.plotMenu.addAction(QtGui.QIcon(IconDirectory + 'preferences.png'),"&Plot Settings", lambda: self.mainWindowCheck(lambda mainWindow: PlotSettingsWindow(mainWindow)))
+        self.userxAct = self.plotMenu.addAction(QtGui.QIcon(IconDirectory + 'xaxis.png'),"&User X-axis", lambda: self.mainWindowCheck(lambda mainWindow: XaxWindow(mainWindow)))
+        self.userxAct.setToolTip('User X-axis')
+        self.plotprefAct = self.plotMenu.addAction(QtGui.QIcon(IconDirectory + 'preferences.png'),"&Plot Settings", lambda: self.mainWindowCheck(lambda mainWindow: PlotSettingsWindow(mainWindow)))
+        self.plotprefAct.setToolTip('Plot Settings')
 
         # the history drop down menu
         self.historyMenu = QtWidgets.QMenu("&History", self)
