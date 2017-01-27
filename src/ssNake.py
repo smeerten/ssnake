@@ -1677,6 +1677,7 @@ class MainProgram(QtWidgets.QMainWindow):
         if os.path.exists(Dir + os.path.sep + 'acqu2s'):
             with open(Dir + os.path.sep + 'acqu2s', 'r') as f:
                 data2 = f.read().split('\n')
+            SW1 = 10e3 #pre initialize
             for s in range(0, len(data2)):
                 if data2[s].startswith('##$TD='):
                     sizeTD1 = int(data2[s][6:])
