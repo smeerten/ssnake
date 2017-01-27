@@ -246,7 +246,7 @@ class Spectrum:
         self.sw = np.insert(self.sw, 0, self.sw[axes])
         self.spec = np.insert(self.spec, 0, self.spec[axes])
         self.wholeEcho = np.insert(self.wholeEcho, 0, self.wholeEcho[axes])
-        self.ref = np.insert(self.ref, 0, self.ref[axes])
+        self.ref.insert(0,self.ref[axes])
         self.xaxArray.insert(0, [])
         self.resetXax(0)
         self.resetXax(axes + 1)
