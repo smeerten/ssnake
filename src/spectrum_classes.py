@@ -322,7 +322,7 @@ class Spectrum:
             return None
         slicing1 = (slice(None), ) * axes + (slice(None, None, 2), ) + (slice(None), ) * (self.data.ndim - 1 - axes)
         slicing2 = (slice(None), ) * axes + (slice(1, None, 2), ) + (slice(None), ) * (self.data.ndim - 1 - axes)
-        tmpdata = np.real(self.data[slicing1] + self.data[slicing2]) - 1j * np.real(self.data[slicing1] - self.data[slicing2])
+        tmpdata = np.real(self.data[slicing1] + self.data[slicing2]) - 1j * np.imag(self.data[slicing1] - self.data[slicing2])
         self.data = tmpdata
         self.resetXax(axes)
         self.addHistory("Echo-antiecho conversion on dimension " + str(axes + 1))
