@@ -117,7 +117,7 @@ class MainProgram(QtWidgets.QMainWindow):
         self.LastLocation = ''
         self.initMenu()
         self.menuCheck()
-#        self.initToolbar()
+        self.initToolbar()
         self.main_widget = QtWidgets.QWidget(self)
         self.mainFrame = QtWidgets.QGridLayout(self.main_widget)
         self.logo = QtWidgets.QLabel(self)
@@ -236,11 +236,17 @@ class MainProgram(QtWidgets.QMainWindow):
         self.toolbar.setIconSize(QtCore.QSize(22,22))
         
         self.emptyAction = QtGui.QAction('', self)
+        numsep = 8
+        self.seperatorAction = []
+        for sep in range(numsep):
+            self.seperatorAction.append(QtGui.QAction(self))
+            self.seperatorAction[-1].setSeparator(True)
         
-        self.seperatorAction = QtGui.QAction(self)
-        self.seperatorAction.setSeparator(True)
-        self.seperatorAction2 = QtGui.QAction(self)
-        self.seperatorAction2.setSeparator(True)
+#        for item in self.seperatorAction:
+#            item.setSeparator(True)
+#        self.seperatorAction.setSeparator(True)
+#        self.seperatorAction2 = QtGui.QAction(self)
+#        self.seperatorAction2.setSeparator(True)
         
 #        self.toobarActionList = [self.openAct,self.saveAct,self.saveMatAct,self.savefigAct,
 #                                 self.saveSimpsonAct,self.saveASCIIAct,self.saveASCIIAct,self.preferencesAct,
@@ -267,9 +273,13 @@ class MainProgram(QtWidgets.QMainWindow):
 #                                 self.aboutAct]
        
       
-        self.toobarActionList = [self.openAct,self.saveMatAct,self.savefigAct,self.seperatorAction,
-                                 self.newAct,self.closeAct,self.seperatorAction2,self.undoAction,
-                                 self.redoAction,self.reloadAct]
+        self.toobarActionList = [self.openAct,self.saveMatAct,self.savefigAct,self.seperatorAction[0],
+                                 self.newAct,self.closeAct,self.seperatorAction[1],self.undoAction,
+                                 self.redoAction,self.reloadAct,self.seperatorAction[2],self.apodizeAct,self.phaseAct,
+                                 self.seperatorAction[3],self.sizingAct,self.shiftAct,self.multiplyAct,self.seperatorAction[4],
+                                 self.snrAct,self.fwhmAct,self.intfitAct,self.relaxAct,self.lorentzfitAct,self.seperatorAction[5],
+                                 self.onedplotAct,self.scatterplotAct,self.stackplotAct,self.arrayplotAct,self.contourplotAct,self.seperatorAction[6],
+                                 self.clearundoAct,self.seperatorAction[7],self.nmrtableAct]
 
         
        
