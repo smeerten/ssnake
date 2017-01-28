@@ -117,7 +117,6 @@ class MainProgram(QtWidgets.QMainWindow):
         self.LastLocation = ''
         self.initMenu()
         self.menuCheck()
-        self.initToolbar()
         self.main_widget = QtWidgets.QWidget(self)
         self.mainFrame = QtWidgets.QGridLayout(self.main_widget)
         self.logo = QtWidgets.QLabel(self)
@@ -139,6 +138,7 @@ class MainProgram(QtWidgets.QMainWindow):
         self.eventFilter = wc.MyEventFilter(self)
         self.root.installEventFilter(self.eventFilter)
         self.loadDefaults()
+        self.initToolbar()
         self.resize(self.defaultWidth, self.defaultHeight)
         if self.defaultMaximized:
             self.showMaximized()
@@ -159,6 +159,7 @@ class MainProgram(QtWidgets.QMainWindow):
         self.defaultHeight = 1
         self.defaultMaximized = False
         self.defaultAskName = True
+        self.defaultToolBar = True
         self.defaultLinewidth = 1.0
         self.defaultColor = '#0000FF'
         self.defaultGrids = [False, False]
@@ -197,6 +198,7 @@ class MainProgram(QtWidgets.QMainWindow):
         except TypeError:
             self.dispMsg("Incorrect value in the config file for the height")
         self.defaultAskName = settings.value("ask_name", self.defaultAskName, bool)
+        self.defaultToolBar = settings.value("toolbar", self.defaultToolBar, bool)
         try:
             self.defaultWidthRatio = settings.value("contour/width_ratio", self.defaultWidthRatio, float)
         except TypeError:
@@ -219,6 +221,7 @@ class MainProgram(QtWidgets.QMainWindow):
         settings.setValue("width", self.defaultWidth)
         settings.setValue("height", self.defaultHeight)
         settings.setValue("ask_name", self.defaultAskName)
+        settings.setValue("toolbar", self.defaultToolBar)
         settings.setValue("contour/colormap", self.defaultColorMap)
         settings.setValue("contour/constantcolors", self.defaultContourConst)
         settings.setValue("contour/poscolor", self.defaultPosColor)
@@ -231,60 +234,61 @@ class MainProgram(QtWidgets.QMainWindow):
     
     
     def initToolbar(self):
-        self.toolbar = self.addToolBar('Toolbar')
-        self.toolbar.setMovable(False)
-        self.toolbar.setIconSize(QtCore.QSize(22,22))
-        
-        self.emptyAction = QtGui.QAction('', self)
-        numsep = 8
-        self.seperatorAction = []
-        for sep in range(numsep):
-            self.seperatorAction.append(QtGui.QAction(self))
-            self.seperatorAction[-1].setSeparator(True)
-        
-#        for item in self.seperatorAction:
-#            item.setSeparator(True)
-#        self.seperatorAction.setSeparator(True)
-#        self.seperatorAction2 = QtGui.QAction(self)
-#        self.seperatorAction2.setSeparator(True)
-        
-#        self.toobarActionList = [self.openAct,self.saveAct,self.saveMatAct,self.savefigAct,
-#                                 self.saveSimpsonAct,self.saveASCIIAct,self.saveASCIIAct,self.preferencesAct,
-#                                 self.quitAct,self.newAct,self.closeAct,self.renameWorkspaceAct,self.forwardAct,
-#                                 self.backAct,self.combineWorkspaceAct,self.macrostartAct,self.macrostopAct,
-#                                 self.macroLoadAct,self.undoAction,self.redoAction,self.reloadAct,self.monitorAct,
-#                                 self.realAct,self.imagAct,self.absAct,self.apodizeAct,self.phaseAct,
-#                                 self.swapEchoAct,self.corOffsetAct,self.baselineAct,self.subAvgAct,self.refDeconvAct,
-#                                 self.statesAct,self.statesTPPIAct,self.echoantiAct,self.brukDigitalAct,
-#                                 self.lpsvdAct,self.sizingAct,self.shiftAct,self.intRegionAct,
-#                                 self.sumRegionAct,self.maxRegionAct,self.minRegionAct,self.maxposRegionAct,
-#                                 self.minposRegionAct,self.averageRegionAct,self.diffAct,self.cumsumAct,
-#                                 self.extractpartAct,self.fliplrAct, self.matrixdelAct,self.splitAct,
-#                                 self.multiplyAct,self.reorderAct,self.concatAct,self.shearAct,
-#                                 self.fourierAct,self.realFourierAct,self.fftshiftAct,self.invfftshiftAct,
-#                                 self.hilbertAct,self.ffmAct,self.cleanAct,self.snrAct,self.fwhmAct,
-#                                 self.massAct,self.intfitAct,self.relaxAct,self.diffusionAct,self.lorentzfitAct,
-#                                 self.csastaticAct,self.csamasAct,self.firstquadstatAct,self.firstquadmasAct,
-#                                 self.secondquadstatAct,self.secondquadmasAct,self.czjzekstatAct,self.czjzekmasAct,
-#                                 self.insertdatAct,self.adddatAct,self.subdatAct,self.onedplotAct,self.scatterplotAct,
-#                                 self.stackplotAct,self.arrayplotAct,self.contourplotAct,self.skewplotAct,self.multiplotAct,
-#                                 self.setrefAct, self.delrefAct,self.loadrefAct,self.userxAct,self.plotprefAct,self.historyAct,
-#                                 self.clearundoAct,self.updateAct,self.shiftconvAct,self.quadconvAct,self.nmrtableAct,
-#                                 self.aboutAct]
-       
-      
-        self.toobarActionList = [self.openAct,self.saveMatAct,self.savefigAct,self.seperatorAction[0],
-                                 self.newAct,self.closeAct,self.seperatorAction[1],self.undoAction,
-                                 self.redoAction,self.reloadAct,self.seperatorAction[2],self.apodizeAct,self.phaseAct,
-                                 self.seperatorAction[3],self.sizingAct,self.shiftAct,self.multiplyAct,self.seperatorAction[4],
-                                 self.snrAct,self.fwhmAct,self.intfitAct,self.relaxAct,self.lorentzfitAct,self.seperatorAction[5],
-                                 self.onedplotAct,self.scatterplotAct,self.stackplotAct,self.arrayplotAct,self.contourplotAct,self.seperatorAction[6],
-                                 self.clearundoAct,self.seperatorAction[7],self.nmrtableAct]
-
-        
-       
-        for entry in self.toobarActionList:
-                    self.toolbar.addAction(entry)
+        if self.defaultToolBar:
+            self.toolbar = self.addToolBar('Toolbar')
+            self.toolbar.setMovable(False)
+            self.toolbar.setIconSize(QtCore.QSize(22,22))
+            
+            self.emptyAction = QtGui.QAction('', self)
+            numsep = 8
+            self.seperatorAction = []
+            for sep in range(numsep):
+                self.seperatorAction.append(QtGui.QAction(self))
+                self.seperatorAction[-1].setSeparator(True)
+            
+    #        for item in self.seperatorAction:
+    #            item.setSeparator(True)
+    #        self.seperatorAction.setSeparator(True)
+    #        self.seperatorAction2 = QtGui.QAction(self)
+    #        self.seperatorAction2.setSeparator(True)
+            
+    #        self.toobarActionList = [self.openAct,self.saveAct,self.saveMatAct,self.savefigAct,
+    #                                 self.saveSimpsonAct,self.saveASCIIAct,self.saveASCIIAct,self.preferencesAct,
+    #                                 self.quitAct,self.newAct,self.closeAct,self.renameWorkspaceAct,self.forwardAct,
+    #                                 self.backAct,self.combineWorkspaceAct,self.macrostartAct,self.macrostopAct,
+    #                                 self.macroLoadAct,self.undoAction,self.redoAction,self.reloadAct,self.monitorAct,
+    #                                 self.realAct,self.imagAct,self.absAct,self.apodizeAct,self.phaseAct,
+    #                                 self.swapEchoAct,self.corOffsetAct,self.baselineAct,self.subAvgAct,self.refDeconvAct,
+    #                                 self.statesAct,self.statesTPPIAct,self.echoantiAct,self.brukDigitalAct,
+    #                                 self.lpsvdAct,self.sizingAct,self.shiftAct,self.intRegionAct,
+    #                                 self.sumRegionAct,self.maxRegionAct,self.minRegionAct,self.maxposRegionAct,
+    #                                 self.minposRegionAct,self.averageRegionAct,self.diffAct,self.cumsumAct,
+    #                                 self.extractpartAct,self.fliplrAct, self.matrixdelAct,self.splitAct,
+    #                                 self.multiplyAct,self.reorderAct,self.concatAct,self.shearAct,
+    #                                 self.fourierAct,self.realFourierAct,self.fftshiftAct,self.invfftshiftAct,
+    #                                 self.hilbertAct,self.ffmAct,self.cleanAct,self.snrAct,self.fwhmAct,
+    #                                 self.massAct,self.intfitAct,self.relaxAct,self.diffusionAct,self.lorentzfitAct,
+    #                                 self.csastaticAct,self.csamasAct,self.firstquadstatAct,self.firstquadmasAct,
+    #                                 self.secondquadstatAct,self.secondquadmasAct,self.czjzekstatAct,self.czjzekmasAct,
+    #                                 self.insertdatAct,self.adddatAct,self.subdatAct,self.onedplotAct,self.scatterplotAct,
+    #                                 self.stackplotAct,self.arrayplotAct,self.contourplotAct,self.skewplotAct,self.multiplotAct,
+    #                                 self.setrefAct, self.delrefAct,self.loadrefAct,self.userxAct,self.plotprefAct,self.historyAct,
+    #                                 self.clearundoAct,self.updateAct,self.shiftconvAct,self.quadconvAct,self.nmrtableAct,
+    #                                 self.aboutAct]
+           
+          
+            self.toobarActionList = [self.openAct,self.saveMatAct,self.savefigAct,self.seperatorAction[0],
+                                     self.newAct,self.closeAct,self.seperatorAction[1],self.undoAction,
+                                     self.redoAction,self.reloadAct,self.seperatorAction[2],self.apodizeAct,self.phaseAct,
+                                     self.seperatorAction[3],self.sizingAct,self.shiftAct,self.multiplyAct,self.seperatorAction[4],
+                                     self.snrAct,self.fwhmAct,self.intfitAct,self.relaxAct,self.lorentzfitAct,self.seperatorAction[5],
+                                     self.onedplotAct,self.scatterplotAct,self.stackplotAct,self.arrayplotAct,self.contourplotAct,self.seperatorAction[6],
+                                     self.clearundoAct,self.seperatorAction[7],self.nmrtableAct]
+    
+            
+           
+            for entry in self.toobarActionList:
+                        self.toolbar.addAction(entry)
     
         
         
@@ -314,7 +318,10 @@ class MainProgram(QtWidgets.QMainWindow):
         self.preferencesAct.setToolTip('Open Preferences Window')
         self.quitAct = self.filemenu.addAction(QtGui.QIcon(IconDirectory + 'quit.png'), '&Quit', self.fileQuit, QtGui.QKeySequence.Quit)
         self.quitAct.setToolTip('Close ssNake')
-
+        
+        self.saveActList = [self.saveAct,self.saveMatAct]
+        self.exportActList = [self.savefigAct,self.saveSimpsonAct,self.saveASCIIAct]        
+        
         # Workspaces menu
         self.workspacemenu = QtWidgets.QMenu('&Workspaces', self)
         self.menubar.addMenu(self.workspacemenu)
@@ -333,6 +340,8 @@ class MainProgram(QtWidgets.QMainWindow):
         self.combineWorkspaceAct = self.workspacemenu.addAction(QtGui.QIcon(IconDirectory + 'combine.png'), '&Combine', self.createCombineWorkspaceWindow)
         self.combineWorkspaceAct.setToolTip('Combine Workspaces')
 
+        self.workspaceActList = [self.newAct,self.closeAct,self.renameWorkspaceAct,self.forwardAct,
+                                 self.backAct,self.combineWorkspaceAct]
         # Macro menu
         self.macromenu = QtWidgets.QMenu('&Macros', self)
         self.menubar.addMenu(self.macromenu)
@@ -628,6 +637,9 @@ class MainProgram(QtWidgets.QMainWindow):
             self.combineMenu.menuAction().setVisible(False)
             self.plotMenu.menuAction().setVisible(False)
             self.historyMenu.menuAction().setVisible(False)
+            for act in self.saveActList + self.exportActList + self.workspaceActList:
+                act.setEnabled(False)
+ 
         else:
             self.editmenu.menuAction().setVisible(True)
             self.toolMenu.menuAction().setVisible(True)
@@ -666,13 +678,18 @@ class MainProgram(QtWidgets.QMainWindow):
                 self.savemenu.menuAction().setEnabled(True)
                 self.exportmenu.menuAction().setEnabled(True)
                 self.workspacemenu.menuAction().setEnabled(True)
+                for act in self.saveActList + self.exportActList + self.workspaceActList:
+                    act.setEnabled(True)
             elif isinstance(self.mainWindow, MainPlotWindow):
                 self.menuDisable(True)
                 self.savemenu.menuAction().setEnabled(True)
                 self.exportmenu.menuAction().setEnabled(True)
+                for act in self.saveActList + self.exportActList + self.workspaceActList:
+                    act.setEnabled(True)
                 self.savefigAct.setEnabled(False)
                 self.workspacemenu.menuAction().setEnabled(True)
                 self.macromenu.menuAction().setEnabled(False)
+
             else:
                 self.menuDisable(True)
                 self.savemenu.menuAction().setEnabled(True)
@@ -680,6 +697,8 @@ class MainProgram(QtWidgets.QMainWindow):
                 self.savefigAct.setEnabled(True)
                 self.workspacemenu.menuAction().setEnabled(True)
                 self.macromenu.menuAction().setEnabled(False)
+                for act in self.saveActList + self.exportActList + self.workspaceActList:
+                    act.setEnabled(True)
 
     def menuEnable(self, internalWindow=False):
         self.macromenu.menuAction().setEnabled(True)
@@ -6639,6 +6658,9 @@ class PreferenceWindow(QtWidgets.QWidget):
         self.askNameCheck = QtWidgets.QCheckBox("Ask workspace name when loading")
         self.askNameCheck.setChecked(self.father.defaultAskName)
         grid1.addWidget(self.askNameCheck, 4, 0, 1, 2)
+        self.toolbarCheck = QtWidgets.QCheckBox("Show Shortcut Toolbar")
+        self.toolbarCheck.setChecked(self.father.defaultToolBar)
+        grid1.addWidget(self.toolbarCheck, 5, 0, 1, 2)
 
         grid2.addWidget(QtWidgets.QLabel("Linewidth:"), 1, 0)
         self.lwSpinBox = QtWidgets.QDoubleSpinBox()
@@ -6717,6 +6739,7 @@ class PreferenceWindow(QtWidgets.QWidget):
         self.father.defaultHeight = self.heightSpinBox.value()
         self.father.defaultMaximized = self.maximizedCheck.isChecked()
         self.father.defaultAskName = self.askNameCheck.isChecked()
+        self.father.defaultToolBar = self.toolbarCheck.isChecked()
         self.father.defaultLinewidth = self.lwSpinBox.value()
         self.father.defaultColor = self.color
         self.father.defaultGrids[0] = self.xgridCheck.isChecked()
