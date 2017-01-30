@@ -359,6 +359,8 @@ class MainProgram(QtWidgets.QMainWindow):
         self.macromenu.addMenu(self.macrosavemenu)
         self.macroLoadAct = self.macromenu.addAction(QtGui.QIcon(IconDirectory + 'open.png'), '&Load', self.loadMacro)
         self.macroLoadAct.setToolTip('Load Macro')
+        
+        self.macroActList = [self.macrostartAct,self.macrostopAct,self.macroLoadAct]
 
         self.multiDActions = []
         # the edit drop down menu
@@ -374,6 +376,8 @@ class MainProgram(QtWidgets.QMainWindow):
         self.reloadAct.setToolTip('Reload Current Data')
         self.monitorAct = self.editmenu.addAction(QtGui.QIcon(IconDirectory + 'monitor.png'),"&Monitor", lambda: self.mainWindowCheck(lambda mainWindow: MonitorWindow(mainWindow)))
         self.monitorAct.setToolTip('Monitor Current Data')
+        self.editActList = [self.undoAction,self.redoAction,self.reloadAct,self.monitorAct]        
+        
         
         # the tool drop down menu
         self.toolMenu = QtWidgets.QMenu("&Tools", self)
@@ -637,7 +641,7 @@ class MainProgram(QtWidgets.QMainWindow):
             self.combineMenu.menuAction().setVisible(False)
             self.plotMenu.menuAction().setVisible(False)
             self.historyMenu.menuAction().setVisible(False)
-            for act in self.saveActList + self.exportActList + self.workspaceActList:
+            for act in self.saveActList + self.exportActList + self.workspaceActList + self.macroActList + self.editActList:
                 act.setEnabled(False)
  
         else:
@@ -649,6 +653,8 @@ class MainProgram(QtWidgets.QMainWindow):
             self.combineMenu.menuAction().setVisible(True)
             self.plotMenu.menuAction().setVisible(True)
             self.historyMenu.menuAction().setVisible(True)
+            for act in self.editActList:
+                act.setEnabled(True)
             if isinstance(self.mainWindow, Main1DWindow):
                 self.menuEnable()
                 if (len(self.mainWindow.masterData.data.shape) < 2):
@@ -678,7 +684,7 @@ class MainProgram(QtWidgets.QMainWindow):
                 self.savemenu.menuAction().setEnabled(True)
                 self.exportmenu.menuAction().setEnabled(True)
                 self.workspacemenu.menuAction().setEnabled(True)
-                for act in self.saveActList + self.exportActList + self.workspaceActList:
+                for act in self.saveActList + self.exportActList + self.workspaceActList + self.macroActList:
                     act.setEnabled(True)
             elif isinstance(self.mainWindow, MainPlotWindow):
                 self.menuDisable(True)
@@ -689,7 +695,8 @@ class MainProgram(QtWidgets.QMainWindow):
                 self.savefigAct.setEnabled(False)
                 self.workspacemenu.menuAction().setEnabled(True)
                 self.macromenu.menuAction().setEnabled(False)
-
+                for act in self.macroActList + self.editActList:
+                    act.setEnabled(False)
             else:
                 self.menuDisable(True)
                 self.savemenu.menuAction().setEnabled(True)
@@ -699,6 +706,8 @@ class MainProgram(QtWidgets.QMainWindow):
                 self.macromenu.menuAction().setEnabled(False)
                 for act in self.saveActList + self.exportActList + self.workspaceActList:
                     act.setEnabled(True)
+                for act in self.macroActList + self.editActList:
+                    act.setEnabled(False)
 
     def menuEnable(self, internalWindow=False):
         self.macromenu.menuAction().setEnabled(True)
