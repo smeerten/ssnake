@@ -413,6 +413,13 @@ class MainProgram(QtWidgets.QMainWindow):
         self.lpsvdAct = self.toolMenu.addAction("&LPSVD", lambda: self.mainWindowCheck(lambda mainWindow: LPSVDWindow(mainWindow)))
         self.lpsvdAct.setToolTip('LPSVD linear prediction')
 
+        self.toolsActList = [self.realAct,self.imagAct,self.absAct,self.apodizeAct,self.phaseAct,self.swapEchoAct,
+                             self.corOffsetAct,self.baselineAct,self.subAvgAct,self.refDeconvAct,self.statesAct,
+                             self.statesTPPIAct,self.echoantiAct,self.brukDigitalAct,self.lpsvdAct]
+        
+        
+        
+        
         # the matrix drop down menu
         self.matrixMenu = QtWidgets.QMenu("M&atrix", self)
         self.menubar.addMenu(self.matrixMenu)
@@ -458,6 +465,9 @@ class MainProgram(QtWidgets.QMainWindow):
         self.shearAct = self.matrixMenu.addAction("Shearin&g", lambda: self.mainWindowCheck(lambda mainWindow: ShearingWindow(mainWindow)))
         self.shearAct.setToolTip('Shearing')
         self.multiDActions.append(self.shearAct)
+        
+        #self.matrixActList = [self.sizingAct,self.shiftAct,self.intRegionAct,self.sumRegionAct,self.maxRegionAct,
+#                              self.minRegionAct,self.maxposRegionAct,self.minposRegionAct,self.averageRegionAct]
 
 
         # the fft drop down menu
@@ -641,7 +651,7 @@ class MainProgram(QtWidgets.QMainWindow):
             self.combineMenu.menuAction().setVisible(False)
             self.plotMenu.menuAction().setVisible(False)
             self.historyMenu.menuAction().setVisible(False)
-            for act in self.saveActList + self.exportActList + self.workspaceActList + self.macroActList + self.editActList:
+            for act in self.saveActList + self.exportActList + self.workspaceActList + self.macroActList + self.editActList + self.toolsActList:
                 act.setEnabled(False)
  
         else:
@@ -653,7 +663,7 @@ class MainProgram(QtWidgets.QMainWindow):
             self.combineMenu.menuAction().setVisible(True)
             self.plotMenu.menuAction().setVisible(True)
             self.historyMenu.menuAction().setVisible(True)
-            for act in self.editActList:
+            for act in self.editActList + self.toolsActList:
                 act.setEnabled(True)
             if isinstance(self.mainWindow, Main1DWindow):
                 self.menuEnable()
@@ -675,6 +685,8 @@ class MainProgram(QtWidgets.QMainWindow):
                 self.exportmenu.menuAction().setEnabled(True)
                 self.savefigAct.setEnabled(True)
                 self.macromenu.menuAction().setEnabled(True)
+                for act in self.saveActList + self.exportActList + self.workspaceActList + self.macroActList:
+                    act.setEnabled(True)
                 if self.mainWindow.currentMacro is None:
                     self.macrostopAct.setEnabled(False)
                     self.macrostartAct.setEnabled(True)
@@ -684,8 +696,7 @@ class MainProgram(QtWidgets.QMainWindow):
                 self.savemenu.menuAction().setEnabled(True)
                 self.exportmenu.menuAction().setEnabled(True)
                 self.workspacemenu.menuAction().setEnabled(True)
-                for act in self.saveActList + self.exportActList + self.workspaceActList + self.macroActList:
-                    act.setEnabled(True)
+
             elif isinstance(self.mainWindow, MainPlotWindow):
                 self.menuDisable(True)
                 self.savemenu.menuAction().setEnabled(True)
@@ -695,7 +706,7 @@ class MainProgram(QtWidgets.QMainWindow):
                 self.savefigAct.setEnabled(False)
                 self.workspacemenu.menuAction().setEnabled(True)
                 self.macromenu.menuAction().setEnabled(False)
-                for act in self.macroActList + self.editActList:
+                for act in self.macroActList + self.editActList + self.toolsActList:
                     act.setEnabled(False)
             else:
                 self.menuDisable(True)
@@ -706,7 +717,7 @@ class MainProgram(QtWidgets.QMainWindow):
                 self.macromenu.menuAction().setEnabled(False)
                 for act in self.saveActList + self.exportActList + self.workspaceActList:
                     act.setEnabled(True)
-                for act in self.macroActList + self.editActList:
+                for act in self.macroActList + self.editActList + self.toolsActList:
                     act.setEnabled(False)
 
     def menuEnable(self, internalWindow=False):
