@@ -282,7 +282,7 @@ class MainProgram(QtWidgets.QMainWindow):
                                      self.redoAction,self.reloadAct,self.seperatorAction[2],self.apodizeAct,self.phaseAct,
                                      self.seperatorAction[3],self.sizingAct,self.shiftAct,self.multiplyAct,self.seperatorAction[4],
                                      self.snrAct,self.fwhmAct,self.intfitAct,self.relaxAct,self.lorentzfitAct,self.seperatorAction[5],
-                                     self.onedplotAct,self.scatterplotAct,self.stackplotAct,self.arrayplotAct,self.contourplotAct,self.seperatorAction[6],
+                                     self.onedplotAct,self.stackplotAct,self.arrayplotAct,self.contourplotAct,self.multiplotAct,self.seperatorAction[6],
                                      self.clearundoAct,self.seperatorAction[7],self.nmrtableAct]
     
             
@@ -470,8 +470,10 @@ class MainProgram(QtWidgets.QMainWindow):
         self.shearAct.setToolTip('Shearing')
         self.multiDActions.append(self.shearAct)
         
-        #self.matrixActList = [self.sizingAct,self.shiftAct,self.intRegionAct,self.sumRegionAct,self.maxRegionAct,
-#                              self.minRegionAct,self.maxposRegionAct,self.minposRegionAct,self.averageRegionAct]
+        self.matrixActList = [self.sizingAct,self.shiftAct,self.intRegionAct,self.sumRegionAct,self.maxRegionAct,
+                              self.minRegionAct,self.maxposRegionAct,self.minposRegionAct,self.averageRegionAct,
+                              self.diffAct,self.cumsumAct,self.extractpartAct,self.fliplrAct,self.matrixdelAct,
+                              self.splitAct,self.multiplyAct,self.reorderAct,self.concatAct,self.shearAct]
 
 
         # the fft drop down menu
@@ -493,6 +495,9 @@ class MainProgram(QtWidgets.QMainWindow):
         self.ffmAct.setToolTip('FFM') 
         self.cleanAct = self.nusMenu.addAction("&CLEAN", lambda: self.mainWindowCheck(lambda mainWindow: CLEANWindow(mainWindow)))
         self.cleanAct.setToolTip('CLEAN') 
+        
+        self.fftActList = [self.fourierAct,self.realFourierAct,self.fftshiftAct,self.invfftshiftAct,
+                           self.hilbertAct,self.ffmAct,self.cleanAct]
 
         # the fitting drop down menu
         self.fittingMenu = QtWidgets.QMenu("F&itting", self)
@@ -527,7 +532,11 @@ class MainProgram(QtWidgets.QMainWindow):
         self.czjzekstatAct.setToolTip('Fit Static Czjzek Pattern')
         self.czjzekmasAct = self.fittingMenu.addAction(QtGui.QIcon(IconDirectory + 'czjzekMAS.png'),"Czjzek &MAS", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.createQuad2MASCzjzekWindow()))
         self.czjzekmasAct.setToolTip('Fit MAS Czjzek Pattern')
-
+        
+        self.fittingActList = [self.snrAct,self.fwhmAct,self.massAct,self.intfitAct,self.relaxAct,
+                               self.diffusionAct,self.lorentzfitAct,self.csastaticAct,self.csamasAct,
+                               self.firstquadstatAct,self.firstquadmasAct,self.secondquadstatAct,
+                               self.secondquadmasAct,self.czjzekstatAct,self.czjzekmasAct]
         # the combine drop down menu
         self.combineMenu = QtWidgets.QMenu("Com&bine", self)
         self.menubar.addMenu(self.combineMenu)
@@ -581,7 +590,11 @@ class MainProgram(QtWidgets.QMainWindow):
         self.userxAct.setToolTip('User X-axis')
         self.plotprefAct = self.plotMenu.addAction(QtGui.QIcon(IconDirectory + 'preferences.png'),"&Plot Settings", lambda: self.mainWindowCheck(lambda mainWindow: PlotSettingsWindow(mainWindow)))
         self.plotprefAct.setToolTip('Plot Settings')
-
+        
+        self.plotActList = [self.onedplotAct,self.scatterplotAct,self.stackplotAct,self.arrayplotAct,
+                            self.contourplotAct,self.skewplotAct,self.multiplotAct,self.setrefAct,
+                            self.delrefAct,self.loadrefAct,self.userxAct,self.plotprefAct]
+        
         # the history drop down menu
         self.historyMenu = QtWidgets.QMenu("&History", self)
         self.menubar.addMenu(self.historyMenu)
@@ -590,6 +603,7 @@ class MainProgram(QtWidgets.QMainWindow):
         self.clearundoAct = self.historyMenu.addAction(QtGui.QIcon(IconDirectory + 'delete.png'),"&Clear Undo/Redo List", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.clearUndo()))
         self.clearundoAct.setToolTip('Clear Undo/Redo List')
         
+        self.historyActList = [self.historyAct,self.clearundoAct]
         
         # the help drop down menu
         self.helpMenu = QtWidgets.QMenu("&Help", self)
@@ -606,7 +620,7 @@ class MainProgram(QtWidgets.QMainWindow):
         self.aboutAct = self.helpMenu.addAction(QtGui.QIcon(IconDirectory + 'about.png'),"&About", self.about)
         self.aboutAct.setToolTip('About Menu') 
 
-
+        self.helpActList = [self.updateAct,self.shiftconvAct,self.quadconvAct,self.nmrtableAct,self.aboutAct]
     
     def mainWindowCheck(self, transfer):
         # checks if mainWindow exist to execute the function
@@ -647,27 +661,27 @@ class MainProgram(QtWidgets.QMainWindow):
             self.exportmenu.menuAction().setEnabled(False)
             self.workspacemenu.menuAction().setEnabled(False)
             self.macromenu.menuAction().setEnabled(False)
-            self.editmenu.menuAction().setVisible(False)
-            self.toolMenu.menuAction().setVisible(False)
-            self.matrixMenu.menuAction().setVisible(False)
-            self.fftMenu.menuAction().setVisible(False)
-            self.fittingMenu.menuAction().setVisible(False)
-            self.combineMenu.menuAction().setVisible(False)
-            self.plotMenu.menuAction().setVisible(False)
-            self.historyMenu.menuAction().setVisible(False)
-            for act in self.saveActList + self.exportActList + self.workspaceActList + self.macroActList + self.editActList + self.toolsActList:
+            self.editmenu.menuAction().setEnabled(False)
+            self.toolMenu.menuAction().setEnabled(False)
+            self.matrixMenu.menuAction().setEnabled(False)
+            self.fftMenu.menuAction().setEnabled(False)
+            self.fittingMenu.menuAction().setEnabled(False)
+            self.combineMenu.menuAction().setEnabled(False)
+            self.plotMenu.menuAction().setEnabled(False)
+            self.historyMenu.menuAction().setEnabled(False)
+            for act in self.saveActList + self.exportActList + self.workspaceActList + self.macroActList + self.editActList + self.toolsActList + self.matrixActList + self.fftActList + self.fittingActList + self.plotActList + self.historyActList:
                 act.setEnabled(False)
  
         else:
-            self.editmenu.menuAction().setVisible(True)
-            self.toolMenu.menuAction().setVisible(True)
-            self.matrixMenu.menuAction().setVisible(True)
-            self.fftMenu.menuAction().setVisible(True)
-            self.fittingMenu.menuAction().setVisible(True)
-            self.combineMenu.menuAction().setVisible(True)
-            self.plotMenu.menuAction().setVisible(True)
-            self.historyMenu.menuAction().setVisible(True)
-            for act in self.editActList + self.toolsActList:
+            self.editmenu.menuAction().setEnabled(True)
+            self.toolMenu.menuAction().setEnabled(True)
+            self.matrixMenu.menuAction().setEnabled(True)
+            self.fftMenu.menuAction().setEnabled(True)
+            self.fittingMenu.menuAction().setEnabled(True)
+            self.combineMenu.menuAction().setEnabled(True)
+            self.plotMenu.menuAction().setEnabled(True)
+            self.historyMenu.menuAction().setEnabled(True)
+            for act in self.editActList + self.toolsActList + self.matrixActList + self.fftActList + self.fittingActList + self.plotActList + self.historyActList:
                 act.setEnabled(True)
             if isinstance(self.mainWindow, Main1DWindow):
                 self.menuEnable()
@@ -710,7 +724,7 @@ class MainProgram(QtWidgets.QMainWindow):
                 self.savefigAct.setEnabled(False)
                 self.workspacemenu.menuAction().setEnabled(True)
                 self.macromenu.menuAction().setEnabled(False)
-                for act in self.macroActList + self.editActList + self.toolsActList:
+                for act in self.macroActList + self.editActList + self.toolsActList + self.matrixActList + self.fftActList + self.fittingActList + self.plotActList + self.historyActList:
                     act.setEnabled(False)
             else:
                 self.menuDisable(True)
@@ -721,7 +735,7 @@ class MainProgram(QtWidgets.QMainWindow):
                 self.macromenu.menuAction().setEnabled(False)
                 for act in self.saveActList + self.exportActList + self.workspaceActList:
                     act.setEnabled(True)
-                for act in self.macroActList + self.editActList + self.toolsActList:
+                for act in self.macroActList + self.editActList + self.toolsActList + self.matrixActList + self.fftActList + self.fittingActList + self.plotActList + self.historyActList:
                     act.setEnabled(False)
 
     def menuEnable(self, internalWindow=False):
