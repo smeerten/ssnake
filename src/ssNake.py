@@ -392,6 +392,10 @@ class MainProgram(QtWidgets.QMainWindow):
         self.apodizeAct.setToolTip('Open Apodize Window')
         self.phaseAct = self.toolMenu.addAction(QtGui.QIcon(IconDirectory + 'phase.png'), "&Phasing", lambda: self.mainWindowCheck(lambda mainWindow: PhaseWindow(mainWindow)))
         self.phaseAct.setToolTip('Open Phasing Window')
+        self.autoPhaseAct0 = self.toolMenu.addAction("Autophase 0", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.directAutoPhase(0)))
+        self.autoPhaseAct0.setToolTip('Autophase 0 order')
+        self.autoPhaseAct1 = self.toolMenu.addAction("Autophase 0+1", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.directAutoPhase(1)))
+        self.autoPhaseAct1.setToolTip('Autophase 0 and 1 order')
         self.swapEchoAct = self.toolMenu.addAction(QtGui.QIcon(IconDirectory + 'fliplr.png'), "Swap &Echo", lambda: self.mainWindowCheck(lambda mainWindow: SwapEchoWindow(mainWindow)))
         self.swapEchoAct.setToolTip('Swap Echo')
         self.corOffsetAct = self.toolMenu.addAction("&Offset Correction", lambda: self.mainWindowCheck(lambda mainWindow: DCWindow(mainWindow)))
@@ -413,8 +417,8 @@ class MainProgram(QtWidgets.QMainWindow):
         self.lpsvdAct = self.toolMenu.addAction("&LPSVD", lambda: self.mainWindowCheck(lambda mainWindow: LPSVDWindow(mainWindow)))
         self.lpsvdAct.setToolTip('LPSVD linear prediction')
 
-        self.toolsActList = [self.realAct,self.imagAct,self.absAct,self.apodizeAct,self.phaseAct,self.swapEchoAct,
-                             self.corOffsetAct,self.baselineAct,self.subAvgAct,self.refDeconvAct,self.statesAct,
+        self.toolsActList = [self.realAct,self.imagAct,self.absAct,self.apodizeAct,self.phaseAct,self.autoPhaseAct0,self.autoPhaseAct1,
+                             self.swapEchoAct,self.corOffsetAct,self.baselineAct,self.subAvgAct,self.refDeconvAct,self.statesAct,
                              self.statesTPPIAct,self.echoantiAct,self.brukDigitalAct,self.lpsvdAct]
         
         
@@ -2210,6 +2214,8 @@ class Main1DWindow(QtWidgets.QWidget):
                 self.undoList.append(self.masterData.abs())
             elif iter1[0] == 'phase':
                 self.undoList.append(self.masterData.setPhase(*iter1[1]))
+            elif iter1[0] == 'autoPhase':
+                self.undoList.append(self.masterData.autoPhase(*iter1[1]))
             elif iter1[0] == 'fourier':
                 self.undoList.append(self.masterData.fourier(*iter1[1]))
             elif iter1[0] == 'realFourier':
@@ -2564,6 +2570,11 @@ class Main1DWindow(QtWidgets.QWidget):
     def flipLR(self):
         self.redoList = []
         self.undoList.append(self.current.flipLR())
+        self.menuCheck()
+
+    def directAutoPhase(self, phaseNum):
+        self.redoList = []
+        self.undoList.append(self.current.directAutoPhase(phaseNum))
         self.menuCheck()
 
     def BrukerDigital(self):

@@ -36,6 +36,34 @@ COLORMAPLIST = ['seismic', 'BrBG', 'bwr', 'coolwarm', 'PiYG', 'PRGn', 'PuOr',
 COLORCYCLE = list(matplotlib.rcParams['axes.prop_cycle'])
 COLORCONVERTER = matplotlib.colors.ColorConverter()
 
+#########################################################################
+# The function for automatic phasing
+
+
+def ACMEentropy(phaseIn, data, sw, spec, phaseAll=True):
+    phase0 = phaseIn[0]
+    if phaseAll:
+        phase1 = phaseIn[1]
+    else:
+        phase1 = 0.0
+    L = len(data)
+    x = np.fft.fftshift(np.fft.fftfreq(L, 1.0 / sw)) / sw
+    if spec > 0:
+        s0 = data * np.exp(1j * (phase0 + phase1 * x))
+    else:
+        s0 = np.fft.fftshift(np.fft.fft(data)) * np.exp(1j * (phase0 + phase1 * x))
+    s2 = np.real(s0)
+    ds1 = np.abs((s2[3:L] - s2[1:L - 2]) / 2.0)
+    p1 = ds1 / sum(ds1)
+    p1[np.where(p1 == 0)] = 1
+    h1 = -p1 * np.log(p1)
+    H1 = sum(h1)
+    Pfun = 0.0
+    as1 = s2 - np.abs(s2)
+    sumas = sum(as1)
+    if (np.real(sumas) < 0):
+        Pfun = Pfun + sum(as1**2) / 4 / L**2
+    return H1 + 1000 * Pfun
 
 #########################################################################
 # the generic data class
@@ -688,6 +716,40 @@ class Spectrum:
         self.addHistory("Hilbert transform on dimension " + str(axes + 1))
         return returnValue
 
+    def autoPhase(self, phaseNum, axes, locList):
+        axes = self.checkAxes(axes)
+        if axes is None:
+            return None
+        if len(locList) != self.data.ndim-1:
+            self.dispMsg("Data does not have the correct number of dimensions")
+            return None
+        if np.any(locList >= np.delete(self.data.shape, axes)) or np.any(locList < 0):
+            self.dispMsg("The location array contains invalid indices")
+            return None
+        tmp = self.data[tuple(locList[:axes]) + (slice(None), ) + tuple(locList[axes:])]
+        if phaseNum == 0:
+            phases = scipy.optimize.minimize(ACMEentropy, [0], (tmp, self.sw[axes], self.spec[axes], False), method='Powell')
+            phase0 = phases['x']
+            phase1 = 0.0
+        elif phaseNum == 1:
+            phases = scipy.optimize.minimize(ACMEentropy, [0, 0], (tmp, self.sw[axes], self.spec[axes]), method='Powell')
+            phase0 = phases['x'][0]
+            phase1 = phases['x'][1]
+        if self.ref[axes] is None:
+            offset = 0
+        else:
+            offset = self.freq[axes] - self.ref[axes]
+        vector = np.exp(np.fft.fftshift(np.fft.fftfreq(self.data.shape[axes], 1.0 / self.sw[axes]) + offset) / self.sw[axes] * phase1 * 1j)
+        if self.spec[axes] == 0:
+            self.fourier(axes, tmp=True)
+        self.data = self.data * np.exp(phase0 * 1j)
+        self.data = np.apply_along_axis(np.multiply, axes, self.data, vector)
+        if self.spec[axes] == 0:
+            self.fourier(axes, tmp=True, inv=True)
+        Message = "Autophase: phase0 = " + str(phase0 * 180 / np.pi) + " and phase1 = " + str(phase1 * 180 / np.pi) + " for dimension " + str(axes + 1)
+        self.addHistory(Message)
+        return lambda self: self.setPhase(-phase0, -phase1, axes)
+    
     def setPhase(self, phase0, phase1, axes, select=slice(None)):
         if isinstance(select, string_types):
             select = safeEval(select)
@@ -705,7 +767,6 @@ class Spectrum:
         self.data[select] = np.apply_along_axis(np.multiply, axes, self.data, vector)[select]
         if self.spec[axes] == 0:
             self.fourier(axes, tmp=True, inv=True)
-
         Message = "Phasing: phase0 = " + str(phase0 * 180 / np.pi) + " and phase1 = " + str(phase1 * 180 / np.pi) + " for dimension " + str(axes + 1)
         if select != slice(None, None, None):
             Message = Message + " of data[" + str(select) + "]"
@@ -820,7 +881,6 @@ class Spectrum:
             self.ref[axes] = float(ref)
             self.addHistory("Reference frequency set to " + str(ref * 1e-6) + " MHz for dimension " + str(axes + 1))
         self.resetXax(axes)
-
         return lambda self: self.setRef(oldRef, axes)
 
     def setWholeEcho(self, val, axes):
@@ -843,8 +903,7 @@ class Spectrum:
             slicing1 = (slice(None), ) * axes + (slice(None, pos), ) + (slice(None), ) * (self.data.ndim - 1 - axes)
             slicing2 = (slice(None), ) * axes + (slice(pos, None), ) + (slice(None), ) * (self.data.ndim - 1 - axes)
             self.data = np.concatenate((np.pad(self.data[slicing1], [(0, 0)] * axes + [(0, size - self.data.shape[axes])] + [(0, 0)] * (self.data.ndim - axes - 1), 'constant', constant_values=0),
-                                        self.data[slicing2]),
-                                       axes)
+                                        self.data[slicing2]), axes)
         else:
             difference = self.data.shape[axes] - size
             removeBegin = int(np.floor(difference / 2))
@@ -2057,45 +2116,37 @@ class Current1D(Plot1DFrame):
         self.root.addMacro(['clean', (posList, typeVal, self.axes - self.data.data.ndim, gamma, threshold, maxIter)])
         return returnValue
 
-    def ACMEentropy(self, phaseIn, phaseAll=True):
+    def autoPhase(self, phaseNum):
+        self.upd()
         if len(self.data1D.shape) > 1:
             tmp = self.data1D[0]
         else:
             tmp = self.data1D
-        phase0 = phaseIn[0]
-        if phaseAll:
-            phase1 = phaseIn[1]
-        else:
-            phase1 = 0.0
-        L = len(tmp)
-        if self.spec > 0:
-            x = np.fft.fftshift(np.fft.fftfreq(L, 1.0 / self.sw)) / self.sw
-            s0 = tmp * np.exp(1j * (phase0 + phase1 * x))
-        else:
-            s0 = np.fft.fftshift(np.fft.fft(tmp)) * np.exp(1j * (phase0 + phase1 * x))
-        s2 = np.real(s0)
-        ds1 = np.abs((s2[3:L] - s2[1:L - 2]) / 2.0)
-        p1 = ds1 / sum(ds1)
-        p1[np.where(p1 == 0)] = 1
-        h1 = -p1 * np.log(p1)
-        H1 = sum(h1)
-        Pfun = 0.0
-        as1 = s2 - np.abs(s2)
-        sumas = sum(as1)
-        if (np.real(sumas) < 0):
-            Pfun = Pfun + sum(as1**2) / 4 / L**2
-        return H1 + 1000 * Pfun
-
-    def autoPhase(self, phaseNum):
-        self.upd()
         if phaseNum == 0:
-            phases = scipy.optimize.minimize(self.ACMEentropy, [0], (False, ), method='Powell')
+            phases = scipy.optimize.minimize(ACMEentropy, [0], (tmp, self.sw, self.spec, False), method='Powell')
             phases = [phases['x']]
         elif phaseNum == 1:
-            phases = scipy.optimize.minimize(self.ACMEentropy, [0, 0], method='Powell')
+            phases = scipy.optimize.minimize(ACMEentropy, [0, 0], (tmp, self.sw, self.spec), method='Powell')
             phases = phases['x']
         return phases
 
+    def directAutoPhase(self, phaseNum):
+        tmpLocList = self.locList
+        if len(self.data1D.shape) > 1:
+            if hasattr(self, 'stackBegin'):
+                val = self.stackBegin
+            else:
+                val = 0
+            if self.axes > self.axes2:
+                tmpLocList = np.insert(tmpLocList, self.axes2, val)
+            else:
+                tmpLocList = np.insert(tmpLocList, self.axes2-1, val)
+        returnValue = self.data.autoPhase(phaseNum, self.axes, tmpLocList)
+        self.upd()
+        self.showFid()
+        self.root.addMacro(['autoPhase', (phaseNum, self.axes - self.data.data.ndim, tmpLocList)])
+        return returnValue
+    
     def setXaxPreview(self, xax):
         self.xax = xax
         self.plotReset()
