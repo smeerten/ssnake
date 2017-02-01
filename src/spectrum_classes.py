@@ -1282,7 +1282,7 @@ class Current1D(Plot1DFrame):
             self.axes = len(self.data.data.shape) - 1
             self.resetLocList()
             self.plotType = 0
-            self.axType = 1
+            self.axType = self.root.father.defaultUnits
             self.color = self.root.father.defaultColor                  # color of the main line
             self.linewidth = self.root.father.defaultLinewidth
             self.grids = self.root.father.defaultGrids                  # display x and y grid
@@ -3499,7 +3499,7 @@ class CurrentContour(Current1D):
         if hasattr(duplicateCurrent, 'axType2'):
             self.axType2 = duplicateCurrent.axType2
         else:
-            self.axType2 = 1
+            self.axType2 = root.father.defaultUnits
         if hasattr(duplicateCurrent, 'ppm2'):
             self.ppm2 = duplicateCurrent.ppm2
         else:
@@ -4094,7 +4094,7 @@ class CurrentSkewed(Current1D):
         if hasattr(duplicateCurrent, 'axType2'):
             self.axType2 = duplicateCurrent.axType2
         else:
-            self.axType2 = 1
+            self.axType2 = root.father.defaultUnits
         if hasattr(duplicateCurrent, 'ppm2'):
             self.ppm2 = duplicateCurrent.ppm2
         else:

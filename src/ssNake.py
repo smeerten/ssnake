@@ -155,6 +155,7 @@ class MainProgram(QtWidgets.QMainWindow):
         QtWidgets.QApplication.clipboard().setPixmap(pixmap)
         
     def resetDefaults(self):
+        self.defaultUnits = 1
         self.defaultWidth = 1
         self.defaultHeight = 1
         self.defaultMaximized = False
@@ -176,6 +177,10 @@ class MainProgram(QtWidgets.QMainWindow):
         QtCore.QCoreApplication.setOrganizationName("ssNake")
         QtCore.QCoreApplication.setApplicationName("ssNake")
         settings = QtCore.QSettings()
+        try:
+            self.defaultUnits = settings.value("plot/units", self.defaultLinewidth, int)
+        except TypeError:
+            self.dispMsg("Incorrect value in the config file for the units")
         self.defaultColor = settings.value("plot/color", self.defaultColor, str)
         try:
             self.defaultLinewidth = settings.value("plot/linewidth", self.defaultLinewidth, float)
@@ -213,6 +218,7 @@ class MainProgram(QtWidgets.QMainWindow):
         QtCore.QCoreApplication.setOrganizationName("ssNake")
         QtCore.QCoreApplication.setApplicationName("ssNake")
         settings = QtCore.QSettings()
+        settings.setValue("plot/units", self.defaultUnits)
         settings.setValue("plot/color", self.defaultColor)
         settings.setValue("plot/linewidth", self.defaultLinewidth)
         settings.setValue("plot/xgrid", self.defaultGrids[0])
@@ -6728,6 +6734,18 @@ class PreferenceWindow(QtWidgets.QWidget):
         self.ygridCheck = QtWidgets.QCheckBox("y-grid")
         self.ygridCheck.setChecked(self.father.defaultGrids[1])
         grid2.addWidget(self.ygridCheck, 4, 0, 1, 2)
+        grid2.addWidget(QtWidgets.QLabel("Units:"), 5, 0)
+        self.unitGroup=QtWidgets.QButtonGroup()
+        button=QtGui.QRadioButton("s/Hz")
+        self.unitGroup.addButton(button, 0)
+        grid2.addWidget(button, 5, 1)
+        button=QtGui.QRadioButton("ms/kHz")
+        self.unitGroup.addButton(button, 1)
+        grid2.addWidget(button, 6, 1)
+        button=QtGui.QRadioButton(u"\u03bcs/MHz")
+        self.unitGroup.addButton(button, 2)
+        grid2.addWidget(button, 7, 1)
+        self.unitGroup.button(self.father.defaultUnits).setChecked(True)
 
         grid3.addWidget(QtWidgets.QLabel("Colormap:"), 0, 0)
         self.cmEntry = QtWidgets.QComboBox(self)
@@ -6786,6 +6804,7 @@ class PreferenceWindow(QtWidgets.QWidget):
             self.negColor = tmp.name()
 
     def applyAndClose(self, *args):
+        self.father.defaultUnits = self.unitGroup.checkedId()
         self.father.defaultWidth = self.widthSpinBox.value()
         self.father.defaultHeight = self.heightSpinBox.value()
         self.father.defaultMaximized = self.maximizedCheck.isChecked()
