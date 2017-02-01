@@ -1343,15 +1343,17 @@ class MainProgram(QtWidgets.QMainWindow):
         if file is not None:
             with open(file, 'r') as f:
                 data = f.read().split('\n')
+            
+            indirectRef = ''
             for s in range(0, len(data)):
                 if data[s].startswith('sfrq '):
                     freq = float(data[s + 1].split()[1]) * 1e6
+                elif data[s].startswith('refsource1 '):
+                    indirectRef = data[s + 1].split()[1][1:-1]
                 elif data[s].startswith('sw '):
                     sw = float(data[s + 1].split()[1])
                 elif data[s].startswith('sw1 '):
                     sw1 = float(data[s + 1].split()[1])
-                elif data[s].startswith('dfrq '):
-                    freq1 = float(data[s + 1].split()[1]) * 1e6
                 elif data[s].startswith('reffrq '):
                     reffreq = float(data[s + 1].split()[1]) * 1e6
                 elif data[s].startswith('reffrq1 '):
@@ -1363,6 +1365,10 @@ class MainProgram(QtWidgets.QMainWindow):
                         phfid = 0
                 elif data[s].startswith('rp '):
                     rp = float(data[s + 1].split()[1])  
+            if indirectRef:
+                for s in range(0, len(data)): #Extra loop to get freq in indirect dimension
+                    if data[s].startswith(indirectRef + " "):
+                        freq1 = float(data[s + 1].split()[1]) * 1e6
                     
                 
 
