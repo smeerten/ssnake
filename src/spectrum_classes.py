@@ -86,7 +86,7 @@ class Spectrum:
         else:
             self.wholeEcho = wholeEcho  # boolean array of length dim where True indicates a full Echo
         if ref is None:
-            self.ref = self.data.ndim * [None]
+            self.ref = np.array(self.data.ndim * [None])
         else:
             self.ref = ref
         if xaxArray is None:
@@ -274,7 +274,7 @@ class Spectrum:
         self.sw = np.insert(self.sw, 0, self.sw[axes])
         self.spec = np.insert(self.spec, 0, self.spec[axes])
         self.wholeEcho = np.insert(self.wholeEcho, 0, self.wholeEcho[axes])
-        self.ref.insert(0,self.ref[axes])
+        self.ref = np.insert(self.ref, 0, self.ref[axes])
         self.xaxArray.insert(0, [])
         self.resetXax(0)
         self.resetXax(axes + 1)
@@ -457,8 +457,8 @@ class Spectrum:
             else:
                 self.data = tmpdata[0]
                 self.freq = np.delete(self.freq, axes)
-#                self.ref = np.delete(self.ref, axes)
-                del self.ref[axes]
+                self.ref = np.delete(self.ref, axes)
+#                del self.ref[axes]
                 self.sw = np.delete(self.sw, axes)
                 self.spec = np.delete(self.spec, axes)
                 self.wholeEcho = np.delete(self.wholeEcho, axes)
