@@ -723,7 +723,7 @@ class Spectrum:
         if len(locList) != self.data.ndim-1:
             self.dispMsg("Data does not have the correct number of dimensions")
             return None
-        if np.any(locList >= np.delete(self.data.shape, axes)) or np.any(locList < 0):
+        if np.any(locList >= np.delete(self.data.shape, axes)) or np.any(np.array(locList) < 0):
             self.dispMsg("The location array contains invalid indices")
             return None
         tmp = self.data[tuple(locList[:axes]) + (slice(None), ) + tuple(locList[axes:])]

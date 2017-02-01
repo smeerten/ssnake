@@ -239,17 +239,17 @@ class MainProgram(QtWidgets.QMainWindow):
             self.toolbar.setMovable(False)
             self.toolbar.setIconSize(QtCore.QSize(22,22))
             
-            self.emptyAction = QtGui.QAction('', self)
+            self.emptyAction = QtWidgets.QAction('', self)
             numsep = 8
             self.seperatorAction = []
             for sep in range(numsep):
-                self.seperatorAction.append(QtGui.QAction(self))
+                self.seperatorAction.append(QtWidgets.QAction(self))
                 self.seperatorAction[-1].setSeparator(True)
             
     #        for item in self.seperatorAction:
     #            item.setSeparator(True)
     #        self.seperatorAction.setSeparator(True)
-    #        self.seperatorAction2 = QtGui.QAction(self)
+    #        self.seperatorAction2 = QtWidgets.QAction(self)
     #        self.seperatorAction2.setSeparator(True)
             
     #        self.toobarActionList = [self.openAct,self.saveAct,self.saveMatAct,self.savefigAct,
