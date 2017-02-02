@@ -156,6 +156,7 @@ class MainProgram(QtWidgets.QMainWindow):
         
     def resetDefaults(self):
         self.defaultUnits = 1
+        self.defaultPPM = False
         self.defaultWidth = 1
         self.defaultHeight = 1
         self.defaultMaximized = False
@@ -178,9 +179,10 @@ class MainProgram(QtWidgets.QMainWindow):
         QtCore.QCoreApplication.setApplicationName("ssNake")
         settings = QtCore.QSettings()
         try:
-            self.defaultUnits = settings.value("plot/units", self.defaultLinewidth, int)
+            self.defaultUnits = settings.value("plot/units", self.defaultUnits, int)
         except TypeError:
             self.dispMsg("Incorrect value in the config file for the units")
+        self.defaultPPM = settings.value("plot/ppm", self.defaultPPM, bool)
         self.defaultColor = settings.value("plot/color", self.defaultColor, str)
         try:
             self.defaultLinewidth = settings.value("plot/linewidth", self.defaultLinewidth, float)
@@ -219,6 +221,7 @@ class MainProgram(QtWidgets.QMainWindow):
         QtCore.QCoreApplication.setApplicationName("ssNake")
         settings = QtCore.QSettings()
         settings.setValue("plot/units", self.defaultUnits)
+        settings.setValue("plot/ppm", self.defaultPPM)
         settings.setValue("plot/color", self.defaultColor)
         settings.setValue("plot/linewidth", self.defaultLinewidth)
         settings.setValue("plot/xgrid", self.defaultGrids[0])
@@ -6746,6 +6749,9 @@ class PreferenceWindow(QtWidgets.QWidget):
         self.unitGroup.addButton(button, 2)
         grid2.addWidget(button, 7, 1)
         self.unitGroup.button(self.father.defaultUnits).setChecked(True)
+        self.ppmCheck = QtWidgets.QCheckBox("ppm")
+        self.ppmCheck.setChecked(self.father.defaultPPM)
+        grid2.addWidget(self.ppmCheck, 8, 1)
 
         grid3.addWidget(QtWidgets.QLabel("Colormap:"), 0, 0)
         self.cmEntry = QtWidgets.QComboBox(self)
@@ -6805,6 +6811,7 @@ class PreferenceWindow(QtWidgets.QWidget):
 
     def applyAndClose(self, *args):
         self.father.defaultUnits = self.unitGroup.checkedId()
+        self.father.defaultPPM = self.ppmCheck.isChecked()
         self.father.defaultWidth = self.widthSpinBox.value()
         self.father.defaultHeight = self.heightSpinBox.value()
         self.father.defaultMaximized = self.maximizedCheck.isChecked()

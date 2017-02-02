@@ -1277,7 +1277,7 @@ class Current1D(Plot1DFrame):
         self.wholeEcho = None
         self.ref = None  # reference frequency
         if duplicateCurrent is None:
-            self.ppm = False             # display frequency as ppm
+            self.ppm = self.root.father.defaultPPM             # display frequency as ppm
             self.axes = len(self.data.data.shape) - 1
             self.resetLocList()
             self.plotType = 0
