@@ -88,7 +88,7 @@ class Spectrum:
         if ref is None:
             self.ref = np.array(self.data.ndim * [None])
         else:
-            self.ref = ref
+            self.ref = np.array(ref,dtype=object)
         if xaxArray is None:
             self.xaxArray = [[] for i in range(self.data.ndim)]
             self.resetXax()
@@ -874,7 +874,6 @@ class Spectrum:
             return None
         oldRef = self.ref[axes]
         if ref is None:
-            self.ref = self.ref
             self.ref[axes] = None
             self.addHistory("Reference frequency set to 'None' for dimension " + str(axes + 1))
         else:
