@@ -1187,7 +1187,8 @@ class Spectrum:
         pool.close()
         pool.join()
         self.data = np.fft.ifft(np.rollaxis(np.array(fit.get()).reshape(tmpShape), -1, axes), axis=axes)
-        self.addHistory("CLEAN reconstruction of dimension " + str(axes + 1) + " at positions " + str(pos))
+        self.addHistory("CLEAN reconstruction (gamma = " + str(gamma) + " , threshold = " + str(threshold) + " , maxIter = " + str(maxIter) + ") " + 
+        "of dimension " + str(axes + 1) + " at positions " + str(pos))
         return returnValue
 
     def getSlice(self, axes, locList):
