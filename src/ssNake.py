@@ -275,7 +275,7 @@ class MainProgram(QtWidgets.QMainWindow):
     #                                 self.extractpartAct,self.fliplrAct, self.matrixdelAct,self.splitAct,
     #                                 self.multiplyAct,self.reorderAct,self.concatAct,self.shearAct,
     #                                 self.fourierAct,self.realFourierAct,self.fftshiftAct,self.invfftshiftAct,
-    #                                 self.hilbertAct,self.ffmAct,self.cleanAct,self.snrAct,self.fwhmAct,
+    #                                 self.hilbertAct,self.ffmAct,self.cleanAct,istAct,self.snrAct,self.fwhmAct,
     #                                 self.massAct,self.intfitAct,self.relaxAct,self.diffusionAct,self.lorentzfitAct,
     #                                 self.csastaticAct,self.csamasAct,self.firstquadstatAct,self.firstquadmasAct,
     #                                 self.secondquadstatAct,self.secondquadmasAct,self.czjzekstatAct,self.czjzekmasAct,
@@ -292,7 +292,7 @@ class MainProgram(QtWidgets.QMainWindow):
                                      self.seperatorAction[3],self.sizingAct,self.shiftAct,self.multiplyAct,self.seperatorAction[4],
                                      self.snrAct,self.fwhmAct,self.intfitAct,self.relaxAct,self.lorentzfitAct,self.seperatorAction[5],
                                      self.onedplotAct,self.stackplotAct,self.arrayplotAct,self.contourplotAct,self.multiplotAct,self.seperatorAction[6],
-                                     self.clearundoAct,self.seperatorAction[7],self.nmrtableAct]
+                                     self.historyAct,self.clearundoAct,self.seperatorAction[7],self.nmrtableAct]
     
             
            
@@ -504,9 +504,12 @@ class MainProgram(QtWidgets.QMainWindow):
         self.ffmAct.setToolTip('FFM') 
         self.cleanAct = self.nusMenu.addAction("&CLEAN", lambda: self.mainWindowCheck(lambda mainWindow: CLEANWindow(mainWindow)))
         self.cleanAct.setToolTip('CLEAN') 
+        self.istAct = self.nusMenu.addAction("&IST", lambda: self.mainWindowCheck(lambda mainWindow: ISTWindow(mainWindow)))
+        self.istAct.setToolTip('IST') 
+        
         
         self.fftActList = [self.fourierAct,self.realFourierAct,self.fftshiftAct,self.invfftshiftAct,
-                           self.hilbertAct,self.ffmAct,self.cleanAct]
+                           self.hilbertAct,self.ffmAct,self.cleanAct,self.istAct]
 
         # the fitting drop down menu
         self.fittingMenu = QtWidgets.QMenu("F&itting", self)
@@ -6061,6 +6064,104 @@ class CLEANWindow(QtWidgets.QWidget):
 
 ################################################################
 
+class ISTWindow(QtWidgets.QWidget):
+
+    def __init__(self, parent):
+        QtWidgets.QWidget.__init__(self, parent)
+        self.setWindowFlags(QtCore.Qt.Window | QtCore.Qt.Tool)
+        self.father = parent
+        self.setWindowTitle("IST")
+        layout = QtWidgets.QGridLayout(self)
+        grid = QtWidgets.QGridLayout()
+        layout.addLayout(grid, 0, 0, 1, 2)
+        grid.addWidget(wc.QLabel("Positions of the spectra:"), 0, 0)
+        self.valEntry = QtWidgets.QLineEdit()
+        self.valEntry.setAlignment(QtCore.Qt.AlignHCenter)
+        self.valEntry.returnPressed.connect(self.preview)
+        grid.addWidget(self.valEntry, 1, 0)
+        fileButton = QtWidgets.QPushButton("&Browse")
+        fileButton.clicked.connect(self.getPosFromFile)
+        grid.addWidget(fileButton, 2, 0)
+        grid.addWidget(wc.QLabel("Type of the position list:"), 3, 0)
+        self.typeDrop = QtWidgets.QComboBox(parent=self)
+        self.typeDrop.addItems(["Complex", "States/States-TPPI", "TPPI"])
+        grid.addWidget(self.typeDrop, 4, 0)
+        grid.addWidget(wc.QLabel("Threshold:"), 5, 0)
+        self.thresholdEntry = QtWidgets.QLineEdit()
+        self.thresholdEntry.setAlignment(QtCore.Qt.AlignHCenter)
+        self.thresholdEntry.setText("0.9")
+        grid.addWidget(self.thresholdEntry, 6, 0)
+        grid.addWidget(wc.QLabel("Max. iterations:"), 7, 0)
+        self.maxIterEntry = QtWidgets.QLineEdit()
+        self.maxIterEntry.setAlignment(QtCore.Qt.AlignHCenter)
+        self.maxIterEntry.setText("100")
+        grid.addWidget(self.maxIterEntry, 8, 0)
+        
+        grid.addWidget(wc.QLabel("Stop when residual below (% of ND max):"), 9, 0)
+        self.tracelimitEntry = QtWidgets.QLineEdit()
+        self.tracelimitEntry.setAlignment(QtCore.Qt.AlignHCenter)
+        self.tracelimitEntry.setText("2.0")
+        grid.addWidget(self.tracelimitEntry, 10, 0)
+        cancelButton = QtWidgets.QPushButton("&Cancel")
+        cancelButton.clicked.connect(self.closeEvent)
+        layout.addWidget(cancelButton, 2, 0)
+        okButton = QtWidgets.QPushButton("&Ok")
+        okButton.clicked.connect(self.applyAndClose)
+        layout.addWidget(okButton, 2, 1)
+        self.show()
+        self.setFixedSize(self.size())
+        self.father.menuDisable()
+        self.setGeometry(self.frameSize().width() - self.geometry().width(), self.frameSize().height() - self.geometry().height(), 0, 0)
+
+    def preview(self, *args):
+        pass
+
+    def getPosFromFile(self):
+        filename = QtWidgets.QFileDialog.getOpenFileName(self, 'Open File', self.father.father.LastLocation)
+        if type(filename) is tuple:
+            filename = filename[0]        
+        if filename:  # if not cancelled
+            self.father.father.LastLocation = os.path.dirname(filename)  # Save used path
+        if len(filename) == 0:
+            return
+        self.valEntry.setText(repr(np.loadtxt(filename, dtype=int)))
+
+    def closeEvent(self, *args):
+        self.father.menuEnable()
+        self.deleteLater()
+
+    def applyAndClose(self):
+        env = vars(np).copy()
+        env['length'] = int(self.father.current.data1D.shape[-1])  # so length can be used to in equations
+        env['euro'] = lambda fVal, num=int(self.father.current.data1D.shape[-1]): euro(fVal, num)
+        val = eval(self.valEntry.text(), env)                # find a better solution, also add catch for exceptions
+        if not isinstance(val, (list, np.ndarray)):
+            self.father.father.dispMsg("Input is not a list or array")
+            return
+        val = np.array(val, dtype=int)
+        tracelimit = safeEval(self.tracelimitEntry.text()) / 100.0
+        if tracelimit is None:
+            self.father.dispMsg("One of the inputs is not valid")
+            return
+        threshold = safeEval(self.thresholdEntry.text())
+        if threshold is None:
+            self.father.dispMsg("One of the inputs is not valid")
+            return
+        maxIter = safeEval(self.maxIterEntry.text())
+        if maxIter is None:
+            self.father.dispMsg("One of the inputs is not valid")
+            return
+        maxIter = int(maxIter)
+        self.father.redoList = []
+        self.father.undoList.append(self.father.current.ist(val, self.typeDrop.currentIndex(), threshold, maxIter,tracelimit))
+        self.father.updAllFrames()
+        self.father.menuEnable()
+        self.deleteLater()
+        
+        
+        
+        
+################################################################
 
 class ShearingWindow(QtWidgets.QWidget):
 

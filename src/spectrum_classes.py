@@ -24,7 +24,7 @@ from mpl_toolkits.mplot3d import proj3d
 from six import string_types
 from spectrumFrame import Plot1DFrame
 from safeEval import safeEval
-from nus import ffm, clean
+from nus import ffm, clean, ist
 import multiprocessing
 from matplotlib.pyplot import get_cmap
 import matplotlib
@@ -1190,6 +1190,36 @@ class Spectrum:
         self.addHistory("CLEAN reconstruction (gamma = " + str(gamma) + " , threshold = " + str(threshold) + " , maxIter = " + str(maxIter) + ") " + 
         "of dimension " + str(axes + 1) + " at positions " + str(pos))
         return returnValue
+        
+    def ist(self,pos, typeVal, axes, threshold, maxIter,tracelimit)  :
+        axes = self.checkAxes(axes)
+        if axes is None:
+            return None
+        copyData = copy.deepcopy(self)
+        returnValue = lambda self: self.restoreData(copyData, None)
+        # pos contains the values of fixed points which not to be translated to missing points
+        posList = np.delete(range(self.data.shape[axes]), pos)
+        if typeVal == 1:  # type is States or States-TPPI, the positions need to be divided by 2
+            posList = np.array(np.floor(posList / 2), dtype=int)
+        elif typeVal == 2:  # type is TPPI, for now handle the same as Complex
+            pass
+        NDmax = np.max(np.max(np.abs(np.real(np.fft.fft(self.data,axis=axes))))) #Get max of ND matrix
+        
+        tmpData = np.rollaxis(self.data, axes, self.data.ndim)
+        tmpShape = tmpData.shape
+        tmpData = tmpData.reshape((int(tmpData.size / tmpShape[-1]), tmpShape[-1]))
+        
+        pool = multiprocessing.Pool(multiprocessing.cpu_count())
+        fit = pool.map_async(ist, [(i, posList, threshold, maxIter, tracelimit,NDmax ) for i in tmpData])
+        pool.close()
+        pool.join()
+        self.data = np.rollaxis(np.array(fit.get()).reshape(tmpShape), -1, axes)
+        
+        self.addHistory("IST reconstruction (threshold = " + str(threshold) + " , maxIter = " + str(maxIter) + " , tracelimit = " + str(tracelimit*100) + ") " + 
+        "of dimension " + str(axes + 1) + " at positions " + str(pos))
+        return returnValue
+
+    
 
     def getSlice(self, axes, locList):
         axes = self.checkAxes(axes)
@@ -2114,6 +2144,13 @@ class Current1D(Plot1DFrame):
         self.upd()
         self.showFid()
         self.root.addMacro(['clean', (posList, typeVal, self.axes - self.data.data.ndim, gamma, threshold, maxIter)])
+        return returnValue
+        
+    def ist(self, posList, typeVal, threshold, maxIter, tracelimit):
+        returnValue = self.data.ist(posList, typeVal, self.axes, threshold, maxIter,tracelimit)
+        self.upd()
+        self.showFid()
+#        self.root.addMacro(['clean', (posList, typeVal, self.axes - self.data.data.ndim, gamma, threshold, maxIter)])
         return returnValue
 
     def autoPhase(self, phaseNum):
