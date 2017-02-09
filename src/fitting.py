@@ -2898,7 +2898,7 @@ def peakDeconvmpAllFit(xax, data, guess, args, queue):
     fitVal = []
     for j in data:
         try:
-            fitVal.append(scipy.optimize.curve_fit(lambda *param: fitFunc(param, args), xax, np.real(j), guess))
+            fitVal.append(scipy.optimize.curve_fit(lambda *param: peakDeconvfitFunc(param, args), xax, np.real(j), guess))
         except:
             fitVal.append([[0] * 10])
     queue.put(fitVal)
