@@ -788,7 +788,7 @@ class Spectrum:
         t = np.arange(0, axLen) / self.sw[axes]
         if shifting != 0.0:
             for j in range(self.data.shape[shiftingAxes]):
-                shift1 = shift + shifting * j * self.data.shape[shiftingAxes] / self.sw[shiftingAxes]
+                shift1 = shift + shifting * j / self.sw[shiftingAxes]
                 t2 = t - shift1
                 x = np.ones(axLen)
                 if lor is not None:
@@ -1509,9 +1509,10 @@ class Current1D(Plot1DFrame):
                 self.dispMsg('shiftingAxes cannot be equal to axes')
                 return
             elif shiftingAxes < self.axes:
-                shift += shifting * self.locList[shiftingAxes] * self.data.data.shape[shiftingAxes] / self.data.sw[shiftingAxes]
+#                shift1 = shift + shifting * j *  / self.sw[shiftingAxes]
+                shift += shifting * self.locList[shiftingAxes] / self.data.sw[shiftingAxes]
             else:
-                shift += shifting * self.locList[shiftingAxes - 1] * self.data.data.shape[shiftingAxes] / self.data.sw[shiftingAxes]
+                shift += shifting * self.locList[shiftingAxes - 1] / self.data.sw[shiftingAxes]
         length = len(self.data1D)
         t = np.arange(0, length) / (self.sw)
         t2 = t - shift
@@ -2930,7 +2931,7 @@ class CurrentStacked(Current1D):
                 ar = np.arange(self.data.data.shape[self.axes2])[slice(self.stackBegin, self.stackEnd, self.stackStep)]
                 x = np.ones((len(ar), len(self.data1D[0])))
                 for i in range(len(ar)):
-                    shift1 = shift + shifting * ar[i] * self.data.data.shape[shiftingAxes] / self.data.sw[shiftingAxes]
+                    shift1 = shift + shifting * ar[i] / self.data.sw[shiftingAxes]
                     t2 = t - shift1
                     x2 = np.ones(len(self.data1D[0]))
                     if lor is not None:
@@ -3302,7 +3303,7 @@ class CurrentArrayed(Current1D):
                 ar = np.arange(self.data.data.shape[self.axes2])[slice(self.stackBegin, self.stackEnd, self.stackStep)]
                 x = np.ones((len(ar), len(self.data1D[0])))
                 for i in range(len(ar)):
-                    shift1 = shift + shifting * ar[i] * self.data.data.shape[shiftingAxes] / self.data.sw[shiftingAxes]
+                    shift1 = shift + shifting * ar[i] / self.data.sw[shiftingAxes]
                     t2 = t - shift1
                     x2 = np.ones(len(self.data1D[0]))
                     if lor is not None:
@@ -3682,7 +3683,7 @@ class CurrentContour(Current1D):
                 ar = np.arange(self.data.data.shape[self.axes2])
                 x = np.ones((len(ar), len(self.data1D[0])))
                 for i in range(len(ar)):
-                    shift1 = shift + shifting * ar[i] * self.data.data.shape[shiftingAxes] / self.data.sw[shiftingAxes]
+                    shift1 = shift + shifting * ar[i] / self.data.sw[shiftingAxes]
                     t2 = t - shift1
                     x2 = np.ones(len(self.data1D[0]))
                     if lor is not None:
@@ -4227,7 +4228,7 @@ class CurrentSkewed(Current1D):
                 ar = np.arange(self.data.data.shape[self.axes2])[slice(self.stackBegin, self.stackEnd, self.stackStep)]
                 x = np.ones((len(ar), len(self.data1D[0])))
                 for i in range(len(ar)):
-                    shift1 = shift + shifting * ar[i] * self.data.data.shape[shiftingAxes] / self.data.sw[shiftingAxes]
+                    shift1 = shift + shifting * ar[i] / self.data.sw[shiftingAxes]
                     t2 = t - shift1
                     x2 = np.ones(len(self.data1D[0]))
                     if lor is not None:
