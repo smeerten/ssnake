@@ -3565,11 +3565,11 @@ class CurrentContour(Current1D):
         if hasattr(duplicateCurrent, 'projType1'):
             self.projType1 = duplicateCurrent.projType1
         else:
-            self.projType1 = 0
+            self.projType1 =  root.bottomframe.projDrop1.currentIndex()
         if hasattr(duplicateCurrent, 'projType2'):
             self.projType2 = duplicateCurrent.projType2
         else:
-            self.projType2 = 0
+            self.projType2 = root.bottomframe.projDrop2.currentIndex()
         Current1D.__init__(self, root, fig, canvas, data, duplicateCurrent)
     
     
