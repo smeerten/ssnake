@@ -6175,21 +6175,27 @@ class ShearingWindow(QtWidgets.QWidget):
         layout.addLayout(grid, 0, 0, 1, 2)
         options = list(map(str, range(1, self.father.masterData.data.ndim + 1)))
         grid.addWidget(wc.QLabel("Shearing constant:"), 0, 0)
+        self.shearDropdown = QtWidgets.QComboBox()
+        self.shearDropdown.addItems(['User Defined','Spin 3/2, -3Q','Spin 5/2, 3Q','Spin 5/2, -5Q','Spin 7/2, 3Q',
+                                     'Spin 7/2, 5Q','Spin 7/2, -7Q','Spin 9/2, 3Q','Spin 9/2, 5Q','Spin 9/2, 7Q','Spin 9/2, -9Q'])
+        self.shearDropdown.activated.connect(self.dropdownChanged)
+        self.shearList = [0,9.0/7.0,19.0/12.0,25.0/12.0,101.0/45.0,11.0/9.0,161.0/45.0,91.0/36.0,95.0/36.0,7.0/18.0,31.0/6.0]
+        grid.addWidget(self.shearDropdown, 1, 0)
         self.shearEntry = QtWidgets.QLineEdit()
         self.shearEntry.setAlignment(QtCore.Qt.AlignHCenter)
         self.shearEntry.setText("0.0")
         self.shearEntry.returnPressed.connect(self.shearPreview)
-        grid.addWidget(self.shearEntry, 1, 0)
-        grid.addWidget(wc.QLabel("Shearing direction:"), 2, 0)
+        grid.addWidget(self.shearEntry, 3, 0)
+        grid.addWidget(wc.QLabel("Shearing direction:"), 4, 0)
         self.dirEntry = QtWidgets.QComboBox()
         self.dirEntry.addItems(options)
         self.dirEntry.setCurrentIndex(self.father.masterData.data.ndim - 2)
-        grid.addWidget(self.dirEntry, 3, 0)
-        grid.addWidget(wc.QLabel("Shearing axis:"), 4, 0)
+        grid.addWidget(self.dirEntry, 5, 0)
+        grid.addWidget(wc.QLabel("Shearing axis:"), 6, 0)
         self.axEntry = QtWidgets.QComboBox()
         self.axEntry.addItems(options)
         self.axEntry.setCurrentIndex(self.father.masterData.data.ndim - 1)
-        grid.addWidget(self.axEntry, 5, 0)
+        grid.addWidget(self.axEntry,7, 0)
         cancelButton = QtWidgets.QPushButton("&Cancel")
         cancelButton.clicked.connect(self.closeEvent)
         layout.addWidget(cancelButton, 2, 0)
@@ -6201,6 +6207,12 @@ class ShearingWindow(QtWidgets.QWidget):
         self.father.menuDisable()
         self.setGeometry(self.frameSize().width() - self.geometry().width(), self.frameSize().height() - self.geometry().height(), 0, 0)
 
+
+    def dropdownChanged(self):
+        index =  self.shearDropdown.currentIndex()
+        self.shearEntry.setText("%.9f" % self.shearList[index])
+        
+        
     def shearPreview(self, *args):
         shear = safeEval(self.shearEntry.text())
         if shear is not None:
