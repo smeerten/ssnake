@@ -3882,18 +3882,31 @@ class CurrentContour(Current1D):
             while contourLevels[-1] < self.maxLevels * self.differ and len(contourLevels) < self.numLevels:
                 contourLevels.append(contourLevels[-1] * self.multiValue)
             contourLevels = np.array(contourLevels)
+            
         #Trim matrix of unused rows/columns for more efficient contour plotting
         PlotPositive = False
-        YposMax = np.where( np.convolve(np.max(self.tmpdata,1) > contourLevels[0],[True,True,True],'same'))[0]
+        if self.tmpdata.shape[0] > 2: #if size 2 or lower, convolve fails, just take whole data then
+            YposMax = np.where( np.convolve(np.max(self.tmpdata,1) > contourLevels[0],[True,True,True],'same'))[0]
+        else:
+            YposMax = np.arange(self.tmpdata.shape[0])
         if YposMax.size > 0: #if number of positive contours is non-zero
-            XposMax = np.where(np.convolve(np.max(self.tmpdata,0) > contourLevels[0],[True,True,True],'same'))[0]
+            if self.tmpdata.shape[1] > 2:
+                XposMax = np.where(np.convolve(np.max(self.tmpdata,0) > contourLevels[0],[True,True,True],'same'))[0]
+            else:
+                XposMax = np.arange(self.tmpdata.shape[1])
             PlotPositive = True
         
         PlotNegative = False
         if not self.plotType == 3: #for Absolute plot no negative
-            YposMin = np.where( np.convolve(np.min(self.tmpdata,1) < -contourLevels[0],[True,True,True],'same'))[0]
+            if self.tmpdata.shape[0] > 2:
+                YposMin = np.where( np.convolve(np.min(self.tmpdata,1) < -contourLevels[0],[True,True,True],'same'))[0]
+            else:
+                YposMin = np.arange(self.tmpdata.shape[0])    
             if YposMin.size > 0:#if number of negative contours is non-zero
-                XposMin = np.where(np.convolve(np.min(self.tmpdata,0) < -contourLevels[0],[True,True,True],'same'))[0]
+                if self.tmpdata.shape[1] > 2:
+                    XposMin = np.where(np.convolve(np.min(self.tmpdata,0) < -contourLevels[0],[True,True,True],'same'))[0]
+                else:
+                    XposMin = np.arange(self.tmpdata.shape[1])
                 PlotNegative = True
         
         def contourTrace(level,color):
