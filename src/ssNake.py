@@ -1922,28 +1922,40 @@ class MainProgram(QtWidgets.QMainWindow):
         DirFiles = os.listdir(Dir)
         Files2D = [x for x in DirFiles if '.2d' in x]
         Files1D = [x for x in DirFiles if '.1d' in x]
+        
+        #initialize 2D values to some dummy value
+        sizeTD1 = 0
+        sw1 = 50e3
+        lastfreq1 = None
+        ref1 = None
+        
+        #Start pars extraction
         H = dict(line.strip().split('=') for line in open(Dir + os.path.sep + 'acqu.par', 'r'))
-        sw = float(H['bandwidth                 ']) * 1000
-        sizeTD2 = int(H['nrPnts                    '])
-        freq = float(H['b1Freq                    '])*1e6
-        lastfreq = float(H['lowestFrequency           '])
+        for key in H.keys():
+            if key.startswith("bandwidth "):
+                sw = float(H[key]) * 1000
+            elif key.startswith("nrPnts "):
+                sizeTD2 = int(H[key])
+            elif key.startswith("b1Freq "):
+                freq = float(H[key])*1e6
+            elif key.startswith("lowestFrequency "):
+                lastfreq = float(H[key])
+            elif key.startswith("nrSteps "):   
+                sizeTD1 = int(H[key])
+            elif key.startswith("bandwidth2 "):
+                sw1 = float(H[key]) *1000
+            elif key.startswith("lowestFrequency2 "):
+                lastfreq1 = float(H[key])
         
         sidefreq = -np.floor(sizeTD2 / 2) / sizeTD2 * sw  # freqeuency of last point on axis
         ref = sidefreq + freq - lastfreq
         if len(Files2D) == 1:
             File = Files2D[0]
-            sizeTD1 = int(H['nrSteps                   '])
-            if 'bandwidth2                ' in H:
-                sw1 = float(H['bandwidth2                ']) *1000
-            else:
-                sw1 = 50e3
-            if  'lowestFrequency2          ' in H:   
-                lastfreq1 = float(H['lowestFrequency2          '])
             
+            if lastfreq1 != None:   
                 sidefreq1 = -np.floor(sizeTD1 / 2) / sizeTD1 * sw1  # freqeuency of last point on axis
                 ref1 = sidefreq1 + freq - lastfreq1
-            else:
-                ref1 = None
+
             
             with open(Dir + os.path.sep + File, 'rb') as f:
                 raw = np.fromfile(f, np.float32)
@@ -6852,13 +6864,13 @@ class PreferenceWindow(QtWidgets.QWidget):
         grid2.addWidget(self.ygridCheck, 4, 0, 1, 2)
         grid2.addWidget(QtWidgets.QLabel("Units:"), 5, 0)
         self.unitGroup=QtWidgets.QButtonGroup()
-        button=QtGui.QRadioButton("s/Hz")
+        button=QtWidgets.QRadioButton("s/Hz")
         self.unitGroup.addButton(button, 0)
         grid2.addWidget(button, 5, 1)
-        button=QtGui.QRadioButton("ms/kHz")
+        button=QtWidgets.QRadioButton("ms/kHz")
         self.unitGroup.addButton(button, 1)
         grid2.addWidget(button, 6, 1)
-        button=QtGui.QRadioButton(u"\u03bcs/MHz")
+        button=QtWidgets.QRadioButton(u"\u03bcs/MHz")
         self.unitGroup.addButton(button, 2)
         grid2.addWidget(button, 7, 1)
         self.unitGroup.button(self.father.defaultUnits).setChecked(True)
