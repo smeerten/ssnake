@@ -248,56 +248,89 @@ class MainProgram(QtWidgets.QMainWindow):
             self.toolbar.setMovable(False)
             self.toolbar.setIconSize(QtCore.QSize(22,22))
             
-            self.emptyAction = QtWidgets.QAction('', self)
-            numsep = 8
             self.seperatorAction = []
-            for sep in range(numsep):
-                self.seperatorAction.append(QtWidgets.QAction(self))
-                self.seperatorAction[-1].setSeparator(True)
+
             
-    #        for item in self.seperatorAction:
-    #            item.setSeparator(True)
-    #        self.seperatorAction.setSeparator(True)
-    #        self.seperatorAction2 = QtWidgets.QAction(self)
-    #        self.seperatorAction2.setSeparator(True)
+#            self.toobarActionList = [self.openAct,self.saveAct,self.saveMatAct,self.savefigAct,
+#                                     self.saveSimpsonAct,self.saveASCIIAct,self.saveASCIIAct,self.preferencesAct,
+#                                     self.quitAct,self.newAct,self.closeAct,self.renameWorkspaceAct,self.forwardAct,
+#                                     self.backAct,self.combineWorkspaceAct,self.macrostartAct,self.macrostopAct,
+#                                     self.macroLoadAct,self.undoAction,self.redoAction,self.reloadAct,self.monitorAct,
+#                                     self.realAct,self.imagAct,self.absAct,self.apodizeAct,self.phaseAct,
+#                                     self.swapEchoAct,self.corOffsetAct,self.baselineAct,self.subAvgAct,self.refDeconvAct,
+#                                     self.statesAct,self.statesTPPIAct,self.echoantiAct,self.brukDigitalAct,
+#                                     self.lpsvdAct,self.sizingAct,self.shiftAct,self.intRegionAct,
+#                                     self.sumRegionAct,self.maxRegionAct,self.minRegionAct,self.maxposRegionAct,
+#                                     self.minposRegionAct,self.averageRegionAct,self.diffAct,self.cumsumAct,
+#                                     self.extractpartAct,self.fliplrAct, self.matrixdelAct,self.splitAct,
+#                                     self.multiplyAct,self.reorderAct,self.concatAct,self.shearAct,
+#                                     self.fourierAct,self.realFourierAct,self.fftshiftAct,self.invfftshiftAct,
+#                                     self.hilbertAct,self.ffmAct,self.cleanAct,istAct,self.snrAct,self.fwhmAct,
+#                                     self.massAct,self.intfitAct,self.relaxAct,self.diffusionAct,self.lorentzfitAct,
+#                                     self.csastaticAct,self.csamasAct,self.firstquadstatAct,self.firstquadmasAct,
+#                                     self.secondquadstatAct,self.secondquadmasAct,self.czjzekstatAct,self.czjzekmasAct,
+#                                     self.insertdatAct,self.adddatAct,self.subdatAct,self.onedplotAct,self.scatterplotAct,
+#                                     self.stackplotAct,self.arrayplotAct,self.contourplotAct,self.skewplotAct,self.multiplotAct,
+#                                     self.setrefAct, self.delrefAct,self.loadrefAct,self.userxAct,self.plotprefAct,self.historyAct,
+#                                     self.clearundoAct,self.updateAct,self.shiftconvAct,self.quadconvAct,self.nmrtableAct,
+#                                     self.aboutAct]
             
-    #        self.toobarActionList = [self.openAct,self.saveAct,self.saveMatAct,self.savefigAct,
-    #                                 self.saveSimpsonAct,self.saveASCIIAct,self.saveASCIIAct,self.preferencesAct,
-    #                                 self.quitAct,self.newAct,self.closeAct,self.renameWorkspaceAct,self.forwardAct,
-    #                                 self.backAct,self.combineWorkspaceAct,self.macrostartAct,self.macrostopAct,
-    #                                 self.macroLoadAct,self.undoAction,self.redoAction,self.reloadAct,self.monitorAct,
-    #                                 self.realAct,self.imagAct,self.absAct,self.apodizeAct,self.phaseAct,
-    #                                 self.swapEchoAct,self.corOffsetAct,self.baselineAct,self.subAvgAct,self.refDeconvAct,
-    #                                 self.statesAct,self.statesTPPIAct,self.echoantiAct,self.brukDigitalAct,
-    #                                 self.lpsvdAct,self.sizingAct,self.shiftAct,self.intRegionAct,
-    #                                 self.sumRegionAct,self.maxRegionAct,self.minRegionAct,self.maxposRegionAct,
-    #                                 self.minposRegionAct,self.averageRegionAct,self.diffAct,self.cumsumAct,
-    #                                 self.extractpartAct,self.fliplrAct, self.matrixdelAct,self.splitAct,
-    #                                 self.multiplyAct,self.reorderAct,self.concatAct,self.shearAct,
-    #                                 self.fourierAct,self.realFourierAct,self.fftshiftAct,self.invfftshiftAct,
-    #                                 self.hilbertAct,self.ffmAct,self.cleanAct,istAct,self.snrAct,self.fwhmAct,
-    #                                 self.massAct,self.intfitAct,self.relaxAct,self.diffusionAct,self.lorentzfitAct,
-    #                                 self.csastaticAct,self.csamasAct,self.firstquadstatAct,self.firstquadmasAct,
-    #                                 self.secondquadstatAct,self.secondquadmasAct,self.czjzekstatAct,self.czjzekmasAct,
-    #                                 self.insertdatAct,self.adddatAct,self.subdatAct,self.onedplotAct,self.scatterplotAct,
-    #                                 self.stackplotAct,self.arrayplotAct,self.contourplotAct,self.skewplotAct,self.multiplotAct,
-    #                                 self.setrefAct, self.delrefAct,self.loadrefAct,self.userxAct,self.plotprefAct,self.historyAct,
-    #                                 self.clearundoAct,self.updateAct,self.shiftconvAct,self.quadconvAct,self.nmrtableAct,
-    #                                 self.aboutAct]
+            
+#            self.toobarActionList = [self.intRegionAct,
+#                                     self.sumRegionAct,self.maxRegionAct,self.minRegionAct,self.maxposRegionAct,
+#                                     self.minposRegionAct,self.averageRegionAct,self.diffAct,self.cumsumAct,
+#                                     self.extractpartAct,self.fliplrAct, self.matrixdelAct,self.splitAct,
+#                                     self.multiplyAct,self.reorderAct,self.concatAct,self.shearAct,
+#                                     self.fourierAct,self.realFourierAct,self.fftshiftAct,self.invfftshiftAct,
+#                                     self.hilbertAct,self.ffmAct,self.cleanAct,istAct,self.snrAct,self.fwhmAct,
+#                                     self.massAct,self.intfitAct,self.relaxAct,self.diffusionAct,self.lorentzfitAct,
+#                                     self.csastaticAct,self.csamasAct,self.firstquadstatAct,self.firstquadmasAct,
+#                                     self.secondquadstatAct,self.secondquadmasAct,self.czjzekstatAct,self.czjzekmasAct,
+#                                     self.insertdatAct,self.adddatAct,self.subdatAct,self.scatterplotAct,
+#                                     self.skewplotAct,
+#                                     self.setrefAct, self.delrefAct,self.loadrefAct,self.userxAct,self.plotprefAct,self.updateAct,self.shiftconvAct,self.quadconvAct,self.nmrtableAct,
+#                                     self.aboutAct]
            
-          
-            self.toobarActionList = [self.openAct,self.saveMatAct,self.savefigAct,self.seperatorAction[0],
-                                     self.newAct,self.closeAct,self.seperatorAction[1],self.undoAction,
-                                     self.redoAction,self.reloadAct,self.seperatorAction[2],self.apodizeAct,self.phaseAct,
-                                     self.seperatorAction[3],self.sizingAct,self.shiftAct,self.multiplyAct,self.seperatorAction[4],
-                                     self.snrAct,self.fwhmAct,self.intfitAct,self.relaxAct,self.lorentzfitAct,self.seperatorAction[5],
-                                     self.onedplotAct,self.stackplotAct,self.arrayplotAct,self.contourplotAct,self.multiplotAct,self.seperatorAction[6],
-                                     self.historyAct,self.clearundoAct,self.seperatorAction[7],self.nmrtableAct]
-    
-            
-           
-            for entry in self.toobarActionList:
-                        self.toolbar.addAction(entry)
+            self.allActionsList = [['File --> Open',self.openAct],['File --> Save --> JSON',self.saveAct],['File -- > Save --> Matlab',self.saveMatAct],
+                                   ['File --> Export --> Figure',self.savefigAct],['File --> Export --> Simpson',self.saveSimpsonAct],['File --> Export --> ASCII (1D/2D)',self.saveASCIIAct],
+                                    ['File --> Preferences',self.preferencesAct],['File --> Quit',self.quitAct],
+                                    ['Workspaces --> Duplicate',self.newAct],['Workspaces --> Delete',self.closeAct],['Workspaces --> Rename',self.renameWorkspaceAct],
+                                    ['Workspaces --> Next',self.forwardAct],['Workspaces --> Previous',self.backAct],['Workspaces --> Combine',self.combineWorkspaceAct],
+                                    ['Macro --> Start Recording',self.macrostartAct],['Macro --> Stop Recording',self.macrostopAct],['Macro --> Load',self.macroLoadAct],
+                                    ['Edit --> Undo',self.undoAction],['Edit --> Redo',self.redoAction],['Edit --> Reload',self.reloadAct],['Edit --> Monitor',self.monitorAct],
+                                    ['Tools --> Real',self.realAct],['Tools --> Imag',self.imagAct],['Tools --> Abs',self.absAct],['Tools --> Apodize',self.apodizeAct],
+                                    ['Tools --> Phase',self.phaseAct],['Tools --> Swap Echo',self.swapEchoAct],['Tools --> Offset Correction',self.corOffsetAct],
+                                    ['Tools --> Baseline Correction',self.baselineAct],['Tools --> Subtract Averages',self.subAvgAct],['Tools --> Reference Deconvolution',self.refDeconvAct],
+                                    ['Tools --> States',self.statesAct],['Tools --> TPPI',self.statesTPPIAct],['Tools --> Echo-antiecho',self.echoantiAct],['Tools --> Correct Bruker Digital Filter',self.brukDigitalAct],
+                                    ['Tools --> LPSVD',self.lpsvdAct],
+                                    ['Matrix --> Sizing',self.sizingAct],
+                                    ['Matrix --> Shift Data',self.shiftAct],['Matrix --> Multiply',self.multiplyAct],['Fitting --> S/N',self.snrAct],
+                                    ['Fitting --> FWHM',self.fwhmAct],['Fitting --> Integrals',self.intfitAct],['Fitting --> Relaxation Curve',self.relaxAct],
+                                    ['Fitting --> Lorentzian/Gaussian',self.lorentzfitAct],['Plot --> 1D Plot',self.onedplotAct],['Plot --> Stack Plot',self.stackplotAct],
+                                    ['Plot --> Array Plot',self.arrayplotAct],['Plot --> Contour Plot',self.contourplotAct],['Plot --> Multi Plot',self.multiplotAct],
+                                    ['History --> History',self.historyAct],['History --> Clear Undo/Redo List',self.clearundoAct],['Help --> NMR Table',self.nmrtableAct]]
+                              
+                                    
+            self.toobarActionList = ['File --> Open','File -- > Save --> Matlab','File --> Export --> Figure','Seperator',
+                                     'Workspaces --> Duplicate','Workspaces --> Delete','Seperator','Edit --> Undo','Edit --> Redo',
+                                     'Edit --> Reload','Seperator','Tools --> Apodize','Tools --> Phase','Seperator',
+                                     'Matrix --> Sizing','Matrix --> Shift Data','Matrix --> Multiply','Seperator','Fitting --> S/N','Fitting --> FWHM',
+                                     'Fitting --> Integrals','Fitting --> Relaxation Curve','Fitting --> Lorentzian/Gaussian','Seperator',
+                                     'Plot --> 1D Plot','Plot --> Stack Plot','Plot --> Array Plot','Plot --> Contour Plot',
+                                     'Plot --> Multi Plot','Seperator','History --> History','History --> Clear Undo/Redo List',
+                                     'Seperator','Help --> NMR Table']    
+                                     
+            for element in self.toobarActionList:
+                if element == 'Seperator':
+                        self.seperatorAction.append(QtWidgets.QAction(self))
+                        self.seperatorAction[-1].setSeparator(True)
+                        self.toolbar.addAction(self.seperatorAction[-1])
+                else:
+                    for action in self.allActionsList:
+                        if element == action[0]:
+                            self.toolbar.addAction(action[1])
+                                     
+
     
         
         
