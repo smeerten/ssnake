@@ -587,11 +587,15 @@ class MainProgram(QtWidgets.QMainWindow):
         self.menubar.addMenu(self.combineMenu)
         self.insertdatAct = self.combineMenu.addAction(QtGui.QIcon(IconDirectory + 'insert.png'),"&Insert From Workspace", lambda: self.mainWindowCheck(lambda mainWindow: InsertWindow(mainWindow)))
         self.insertdatAct.setToolTip('Insert From Workspace')
-        self.adddatAct = self.combineMenu.addAction(QtGui.QIcon(IconDirectory + 'add.png'), "&Add", lambda: self.mainWindowCheck(lambda mainWindow: AddWindow(mainWindow)))
+        self.adddatAct = self.combineMenu.addAction(QtGui.QIcon(IconDirectory + 'add.png'), "&Add", lambda: self.mainWindowCheck(lambda mainWindow: CombineWindow(mainWindow, 0)))
         self.adddatAct.setToolTip('Add Data From Workspace')
-        self.subdatAct = self.combineMenu.addAction(QtGui.QIcon(IconDirectory + 'subtract.png'), "&Subtract", lambda: self.mainWindowCheck(lambda mainWindow: SubtractWindow(mainWindow)))
+        self.subdatAct = self.combineMenu.addAction(QtGui.QIcon(IconDirectory + 'subtract.png'), "&Subtract", lambda: self.mainWindowCheck(lambda mainWindow: CombineWindow(mainWindow, 1)))
         self.subdatAct.setToolTip('Subtract Data From Workspace')
-
+        self.multdatAct = self.combineMenu.addAction("&Multiply", lambda: self.mainWindowCheck(lambda mainWindow: CombineWindow(mainWindow, 2)))
+        self.multdatAct.setToolTip('Multiply Data From Workspace')
+        self.divdatAct = self.combineMenu.addAction("&Divide", lambda: self.mainWindowCheck(lambda mainWindow: CombineWindow(mainWindow, 3)))
+        self.divdatAct.setToolTip('Divide Data From Workspace')
+        
         # the plot drop down menu
         self.plotMenu = QtWidgets.QMenu("&Plot", self)
         self.menubar.addMenu(self.plotMenu)
@@ -2355,6 +2359,10 @@ class Main1DWindow(QtWidgets.QWidget):
                 self.undoList.append(self.masterData.add(*iter1[1]))
             elif iter1[0] == 'subtract':
                 self.undoList.append(self.masterData.subtract(*iter1[1]))
+            elif iter1[0] == 'multiplySpec':
+                self.undoList.append(self.masterData.multiplySpec(*iter1[1]))
+            elif iter1[0] == 'divideSpec':
+                self.undoList.append(self.masterData.divideSpec(*iter1[1]))
             elif iter1[0] == 'multiply':
                 self.undoList.append(self.masterData.multiply(*iter1[1]))
             elif iter1[0] == 'subtractAvg':
@@ -5364,17 +5372,28 @@ class InsertWindow(QtWidgets.QWidget):
 ##############################################################
 
 
-class AddWindow(QtWidgets.QWidget):
+class CombineWindow(QtWidgets.QWidget):
 
-    def __init__(self, parent):
+    def __init__(self, parent, combType):
         QtWidgets.QWidget.__init__(self, parent)
         self.setWindowFlags(QtCore.Qt.Window | QtCore.Qt.Tool)
         self.father = parent
-        self.setWindowTitle("Add")
+        self.combType = combType # 0 = add, 1 = subtract, 2 = multiply, 3 = divide
         layout = QtWidgets.QGridLayout(self)
         grid = QtWidgets.QGridLayout()
         layout.addLayout(grid, 0, 0, 1, 2)
-        grid.addWidget(wc.QLabel("Workspace to add:"), 0, 0)
+        if self.combType is 0:
+            self.setWindowTitle("Add")        
+            grid.addWidget(wc.QLabel("Workspace to add:"), 0, 0)
+        elif self.combType is 1:
+            self.setWindowTitle("Subtract")        
+            grid.addWidget(wc.QLabel("Workspace to subtract:"), 0, 0)
+        elif self.combType is 2:
+            self.setWindowTitle("Multiply")        
+            grid.addWidget(wc.QLabel("Workspace to multiply:"), 0, 0)
+        elif self.combType is 3:
+            self.setWindowTitle("Divide")        
+            grid.addWidget(wc.QLabel("Workspace to divide:"), 0, 0)
         self.wsEntry = QtWidgets.QComboBox()
         self.wsEntry.addItems(self.father.father.workspaceNames)
         grid.addWidget(self.wsEntry, 1, 0)
@@ -5393,52 +5412,14 @@ class AddWindow(QtWidgets.QWidget):
 
     def applyAndClose(self):
         ws = self.wsEntry.currentIndex()
-        returnValue = self.father.current.add(self.father.father.workspaces[ws].masterData.data, self.singleSlice.isChecked())
-        if returnValue is None:
-            return
-        self.father.redoList = []
-        self.father.undoList.append(returnValue)
-        self.father.menuEnable()
-        self.father.sideframe.upd()
-        self.deleteLater()
-
-    def closeEvent(self, *args):
-        self.father.menuEnable()
-        self.deleteLater()
-
-##############################################################
-
-
-class SubtractWindow(QtWidgets.QWidget):
-
-    def __init__(self, parent):
-        QtWidgets.QWidget.__init__(self, parent)
-        self.setWindowFlags(QtCore.Qt.Window | QtCore.Qt.Tool)
-        self.father = parent
-        self.setWindowTitle("Subtract")
-        layout = QtWidgets.QGridLayout(self)
-        grid = QtWidgets.QGridLayout()
-        layout.addLayout(grid, 0, 0, 1, 2)
-        grid.addWidget(wc.QLabel("Workspace to subtract:"), 0, 0)
-        self.wsEntry = QtWidgets.QComboBox()
-        self.wsEntry.addItems(self.father.father.workspaceNames)
-        grid.addWidget(self.wsEntry, 1, 0)
-        self.singleSlice = QtWidgets.QCheckBox("Single slice")
-        layout.addWidget(self.singleSlice, 1, 0, 1, 2)
-        cancelButton = QtWidgets.QPushButton("&Cancel")
-        cancelButton.clicked.connect(self.closeEvent)
-        layout.addWidget(cancelButton, 2, 0)
-        okButton = QtWidgets.QPushButton("&Ok")
-        okButton.clicked.connect(self.applyAndClose)
-        layout.addWidget(okButton, 2, 1)
-        self.show()
-        self.setFixedSize(self.size())
-        self.father.menuDisable()
-        self.setGeometry(self.frameSize().width() - self.geometry().width(), self.frameSize().height() - self.geometry().height(), 0, 0)
-
-    def applyAndClose(self):
-        ws = self.wsEntry.currentIndex()
-        returnValue = self.father.current.subtract(self.father.father.workspaces[ws].masterData.data, self.singleSlice.isChecked())
+        if self.combType is 0:
+            returnValue = self.father.current.add(self.father.father.workspaces[ws].masterData.data, self.singleSlice.isChecked())
+        elif self.combType is 1:
+            returnValue = self.father.current.subtract(self.father.father.workspaces[ws].masterData.data, self.singleSlice.isChecked())
+        elif self.combType is 2:
+            returnValue = self.father.current.multiplySpec(self.father.father.workspaces[ws].masterData.data, self.singleSlice.isChecked())
+        elif self.combType is 3:
+            returnValue = self.father.current.divideSpec(self.father.father.workspaces[ws].masterData.data, self.singleSlice.isChecked())
         if returnValue is None:
             return
         self.father.redoList = []

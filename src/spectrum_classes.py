@@ -206,7 +206,31 @@ class Spectrum:
             return None
         self.addHistory("Subtracted from data[" + str(select) + "]")
         return lambda self: self.add(data, select=select)
+    
+    def multiplySpec(self, data, dataImag=0, select=slice(None)):
+        if isinstance(select, string_types):
+            select = safeEval(select)
+        try:
+            data = np.array(data) + 1j * np.array(dataImag)
+            self.data[select] = self.data[select] * data
+        except ValueError as error:
+            self.dispMsg(str(error))
+            return None
+        self.addHistory("Multiplied with data[" + str(select) + "]")
+        return lambda self: self.divideSpec(data, select=select)
 
+    def divideSpec(self, data, dataImag=0, select=slice(None)):
+        if isinstance(select, string_types):
+            select = safeEval(select)
+        try:
+            data = np.array(data) + 1j * np.array(dataImag)
+            self.data[select] = self.data[select] / data
+        except ValueError as error:
+            self.dispMsg(str(error))
+            return None
+        self.addHistory("Divided by data[" + str(select) + "]")
+        return lambda self: self.MultiplySpec(data, select=select)
+    
     def multiply(self, mult, axes, multImag=0, select=slice(None)):
         if isinstance(select, string_types):
             select = safeEval(select)
@@ -223,7 +247,7 @@ class Spectrum:
             return None
         self.addHistory("Multiplied dimension " + str(axes + 1) + " of data[" + str(select) + "]: " + str(mult).replace('\n', ''))
         return returnValue
-
+    
     def baselineCorrection(self, baseline, axes, baselineImag=0, select=slice(None)):
         if isinstance(select, string_types):
             select = safeEval(select)
@@ -2061,7 +2085,29 @@ class Current1D(Plot1DFrame):
         self.showFid()
         self.root.addMacro(['subtract', (np.real(data).tolist(), np.imag(data).tolist(), str(selectSlice))])
         return returnValue
+    
+    def multiplySpec(self, data, select=False):
+        if select:
+            selectSlice = self.getSelect()
+        else:
+            selectSlice = slice(None)
+        returnValue = self.data.multiplySpec(data, select=selectSlice)
+        self.upd()
+        self.showFid()
+        self.root.addMacro(['multiplySpec', (np.real(data).tolist(), np.imag(data).tolist(), str(selectSlice))])
+        return returnValue
 
+    def divideSpec(self, data, select=False):
+        if select:
+            selectSlice = self.getSelect()
+        else:
+            selectSlice = slice(None)
+        returnValue = self.data.divideSpec(data, select=selectSlice)
+        self.upd()
+        self.showFid()
+        self.root.addMacro(['divideSpec', (np.real(data).tolist(), np.imag(data).tolist(), str(selectSlice))])
+        return returnValue
+    
     def multiply(self, data, select=False):
         if select:
             selectSlice = self.getSelect()
@@ -2072,7 +2118,7 @@ class Current1D(Plot1DFrame):
         self.showFid()
         self.root.addMacro(['multiply', (np.real(data).tolist(), self.axes - self.data.data.ndim, np.imag(data).tolist(), str(selectSlice))])
         return returnValue
-
+    
     def multiplyPreview(self, data):
         self.upd()
         self.data1D = self.data1D * data
