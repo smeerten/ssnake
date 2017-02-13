@@ -591,9 +591,9 @@ class MainProgram(QtWidgets.QMainWindow):
         self.adddatAct.setToolTip('Add Data From Workspace')
         self.subdatAct = self.combineMenu.addAction(QtGui.QIcon(IconDirectory + 'subtract.png'), "&Subtract", lambda: self.mainWindowCheck(lambda mainWindow: CombineWindow(mainWindow, 1)))
         self.subdatAct.setToolTip('Subtract Data From Workspace')
-        self.multdatAct = self.combineMenu.addAction("&Multiply", lambda: self.mainWindowCheck(lambda mainWindow: CombineWindow(mainWindow, 2)))
+        self.multdatAct = self.combineMenu.addAction(QtGui.QIcon(IconDirectory + 'multiplyWorkspace.png'),"&Multiply", lambda: self.mainWindowCheck(lambda mainWindow: CombineWindow(mainWindow, 2)))
         self.multdatAct.setToolTip('Multiply Data From Workspace')
-        self.divdatAct = self.combineMenu.addAction("&Divide", lambda: self.mainWindowCheck(lambda mainWindow: CombineWindow(mainWindow, 3)))
+        self.divdatAct = self.combineMenu.addAction(QtGui.QIcon(IconDirectory + 'divideWorkspace.png'),"&Divide", lambda: self.mainWindowCheck(lambda mainWindow: CombineWindow(mainWindow, 3)))
         self.divdatAct.setToolTip('Divide Data From Workspace')
         
         # the plot drop down menu
