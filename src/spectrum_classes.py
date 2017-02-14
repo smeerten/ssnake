@@ -229,7 +229,7 @@ class Spectrum:
             self.dispMsg(str(error))
             return None
         self.addHistory("Divided by data[" + str(select) + "]")
-        return lambda self: self.MultiplySpec(data, select=select)
+        return lambda self: self.multiplySpec(data, select=select)
     
     def multiply(self, mult, axes, multImag=0, select=slice(None)):
         if isinstance(select, string_types):
