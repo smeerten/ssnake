@@ -5620,29 +5620,24 @@ class FWHMWindow(QtWidgets.QWidget):
         self.maxEntry.setText(str(parent.current.data1D.shape[-1]))
         self.maxEntry.returnPressed.connect(self.checkValues)
         grid.addWidget(self.maxEntry, 3, 0)
+        grid.addWidget(wc.QLabel("Units:"), 4, 0)
+        unitSelect = self.father.current.axType
         if self.father.current.spec == 1:
+            unitList = ['Hz', 'kHz', 'MHz', 'ppm']
             if self.father.current.ppm:
-                grid.addWidget(wc.QLabel("FWHM [ppm]:"), 4, 0)
-            else:
-                if self.father.current.axType == 0:
-                    grid.addWidget(wc.QLabel("FWHM [Hz]:"), 4, 0)
-                elif self.father.current.axType == 1:
-                    grid.addWidget(wc.QLabel("FWHM [kHz]:"), 4, 0)
-                elif self.father.current.axType == 2:
-                    grid.addWidget(wc.QLabel("FWHM [MHz]:"), 4, 0)
-                elif self.father.current.axType == 3:
-                    grid.addWidget(wc.QLabel("FWHM [ppm]:"), 4, 0)
+                unitSelect = 3
         else:
-            if self.father.current.axType == 0:
-                grid.addWidget(wc.QLabel("FWHM [s]:"), 4, 0)
-            elif self.father.current.axType == 1:
-                grid.addWidget(wc.QLabel("FWHM [ms]:"), 4, 0)
-            elif self.father.current.axType == 2:
-                grid.addWidget(wc.QLabel(u"FWHM [\u03bcs]:"), 4, 0)
+            unitList = ['s', 'ms', u'\u03BCs']
+        self.unitDrop = QtWidgets.QComboBox()
+        self.unitDrop.addItems(unitList)
+        self.unitDrop.setCurrentIndex(unitSelect)
+        self.unitDrop.currentIndexChanged.connect(self.checkValues)
+        grid.addWidget(self.unitDrop, 5, 0)
+        grid.addWidget(wc.QLabel(u"FWHM:"), 6, 0)
         self.fwhmEntry = QtWidgets.QLineEdit()
         self.fwhmEntry.setAlignment(QtCore.Qt.AlignHCenter)
         self.fwhmEntry.setText('0.0')
-        grid.addWidget(self.fwhmEntry, 5, 0)
+        grid.addWidget(self.fwhmEntry, 7, 0)
         cancelButton = QtWidgets.QPushButton("&Cancel")
         cancelButton.clicked.connect(self.closeEvent)
         layout.addWidget(cancelButton, 2, 0)
@@ -5711,7 +5706,7 @@ class FWHMWindow(QtWidgets.QWidget):
         elif maximum > dataLength:
             maximum = dataLength
         self.maxEntry.setText(str(maximum))
-        self.fwhmEntry.setText(str(self.father.current.fwhm(minimum, maximum)))
+        self.fwhmEntry.setText(str(self.father.current.fwhm(minimum, maximum, self.unitDrop.currentIndex())))
 
     def closeEvent(self, *args):
         self.father.current.peakPickReset()
