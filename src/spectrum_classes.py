@@ -325,7 +325,13 @@ class Spectrum:
         self.data = np.abs(self.data)
         self.addHistory("Absolute")
         return returnValue
-
+    
+    def conj(self):
+        copyData = copy.deepcopy(self)
+        self.data = np.conj(self.data)
+        self.addHistory("Complex conjugate")
+        return lambda self: self.conj()
+    
     def states(self, axes):
         axes = self.checkAxes(axes)
         if axes is None:

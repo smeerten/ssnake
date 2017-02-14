@@ -298,7 +298,7 @@ class MainProgram(QtWidgets.QMainWindow):
                                     ['Workspaces --> Next',self.forwardAct],['Workspaces --> Previous',self.backAct],['Workspaces --> Combine',self.combineWorkspaceAct],
                                     ['Macro --> Start Recording',self.macrostartAct],['Macro --> Stop Recording',self.macrostopAct],['Macro --> Load',self.macroLoadAct],
                                     ['Edit --> Undo',self.undoAction],['Edit --> Redo',self.redoAction],['Edit --> Reload',self.reloadAct],['Edit --> Monitor',self.monitorAct],
-                                    ['Tools --> Real',self.realAct],['Tools --> Imag',self.imagAct],['Tools --> Abs',self.absAct],['Tools --> Apodize',self.apodizeAct],
+                                    ['Tools --> Real',self.realAct],['Tools --> Imag',self.imagAct],['Tools --> Abs',self.absAct],['Tools --> Complex Conjugate',self.conjAct],['Tools --> Apodize',self.apodizeAct],
                                     ['Tools --> Phase',self.phaseAct],['Tools --> Swap Echo',self.swapEchoAct],['Tools --> Offset Correction',self.corOffsetAct],
                                     ['Tools --> Baseline Correction',self.baselineAct],['Tools --> Subtract Averages',self.subAvgAct],['Tools --> Reference Deconvolution',self.refDeconvAct],
                                     ['Tools --> States',self.statesAct],['Tools --> TPPI',self.statesTPPIAct],['Tools --> Echo-antiecho',self.echoantiAct],['Tools --> Correct Bruker Digital Filter',self.brukDigitalAct],
@@ -430,6 +430,8 @@ class MainProgram(QtWidgets.QMainWindow):
         self.imagAct.setToolTip('Take Imaginary Part of Data')
         self.absAct = self.toolMenu.addAction(QtGui.QIcon(IconDirectory + 'abs.png'), "&Abs", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.abs()))
         self.absAct.setToolTip('Take Absolute of Data')
+        self.conjAct = self.toolMenu.addAction("&Complex Conjugate", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.conj()))
+        self.conjAct.setToolTip('Take Complex Conjugate of Data')
         self.apodizeAct = self.toolMenu.addAction(QtGui.QIcon(IconDirectory + 'apodize.png'),"Apo&dize", lambda: self.mainWindowCheck(lambda mainWindow: ApodWindow(mainWindow)))
         self.apodizeAct.setToolTip('Open Apodize Window')
         self.phaseAct = self.toolMenu.addAction(QtGui.QIcon(IconDirectory + 'phase.png'), "&Phasing", lambda: self.mainWindowCheck(lambda mainWindow: PhaseWindow(mainWindow)))
@@ -2293,6 +2295,8 @@ class Main1DWindow(QtWidgets.QWidget):
                 self.undoList.append(self.masterData.imag())
             elif iter1[0] == 'abs':
                 self.undoList.append(self.masterData.abs())
+            elif iter1[0] == 'conj':
+                self.undoList.append(self.masterData.conj())
             elif iter1[0] == 'phase':
                 self.undoList.append(self.masterData.setPhase(*iter1[1]))
             elif iter1[0] == 'autoPhase':
@@ -2586,6 +2590,14 @@ class Main1DWindow(QtWidgets.QWidget):
         self.current.upd()
         self.current.showFid()
         self.addMacro(['abs'])
+        self.menuCheck()
+        
+    def conj(self):
+        self.redoList = []
+        self.undoList.append(self.masterData.conj())
+        self.current.upd()
+        self.current.showFid()
+        self.addMacro(['conj'])
         self.menuCheck()
 
     def fourier(self):
