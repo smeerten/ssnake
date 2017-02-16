@@ -288,8 +288,8 @@ class MainProgram(QtWidgets.QMainWindow):
 #                                     self.aboutAct]
             
             
-#            self.toobarActionList = [self.massAct,self.diffusionAct,
-#                                     self.csastaticAct,self.csamasAct,self.firstquadstatAct,self.firstquadmasAct,
+#            self.toobarActionList = [,,
+#                                     ,,self.firstquadstatAct,self.firstquadmasAct,
 #                                     self.secondquadstatAct,self.secondquadmasAct,self.czjzekstatAct,self.czjzekmasAct,
 #                                     self.insertdatAct,self.adddatAct,self.subdatAct,self.scatterplotAct,
 #                                     self.skewplotAct,
@@ -317,9 +317,10 @@ class MainProgram(QtWidgets.QMainWindow):
                                     ['Transforms --> Fourier Transform',self.fourierAct],['Transforms --> Real Fourier Transform',self.realFourierAct],['Transforms --> Fftshift',self.fftshiftAct],
                                     ['Transforms --> Inv fftshift',self.invfftshiftAct],['Transforms --> Hilbert Transform',self.hilbertAct],['Transforms --> NUS --> FFM',self.ffmAct],
                                     ['Transforms --> NUS --> CLEAN',self.cleanAct],['Transforms --> NUS --> IST',self.istAct],
-                                    ['Fitting --> S/N',self.snrAct],
-                                    ['Fitting --> FWHM',self.fwhmAct],['Fitting --> Integrals',self.intfitAct],['Fitting --> Relaxation Curve',self.relaxAct],
-                                    ['Fitting --> Lorentzian/Gaussian',self.lorentzfitAct],['Plot --> 1D Plot',self.onedplotAct],['Plot --> Stack Plot',self.stackplotAct],
+                                    ['Fitting --> S/N',self.snrAct],['Fitting --> FWHM',self.fwhmAct],['Fitting --> Centre of Mass',self.massAct],
+                                    ['Fitting --> Integrals',self.intfitAct],['Fitting --> Relaxation Curve',self.relaxAct],['Fitting --> Diffusion Curve',self.diffusionAct],
+                                    ['Fitting --> Lorentzian/Gaussian',self.lorentzfitAct],['Fitting --> CSA Static',self.csastaticAct],['Fitting --> CSA MAS',self.csamasAct],
+                                    ['Plot --> 1D Plot',self.onedplotAct],['Plot --> Stack Plot',self.stackplotAct],
                                     ['Plot --> Array Plot',self.arrayplotAct],['Plot --> Contour Plot',self.contourplotAct],['Plot --> Multi Plot',self.multiplotAct],
                                     ['History --> History',self.historyAct],['History --> Clear Undo/Redo List',self.clearundoAct],['Help --> NMR Table',self.nmrtableAct]]
                               
