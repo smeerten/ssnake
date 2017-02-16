@@ -288,9 +288,7 @@ class MainProgram(QtWidgets.QMainWindow):
 #                                     self.aboutAct]
             
             
-#            self.toobarActionList = [self.fourierAct,self.realFourierAct,self.fftshiftAct,self.invfftshiftAct,
-#                                     self.hilbertAct,self.ffmAct,self.cleanAct,istAct,self.snrAct,self.fwhmAct,
-#                                     self.massAct,self.intfitAct,self.relaxAct,self.diffusionAct,self.lorentzfitAct,
+#            self.toobarActionList = [self.massAct,self.diffusionAct,
 #                                     self.csastaticAct,self.csamasAct,self.firstquadstatAct,self.firstquadmasAct,
 #                                     self.secondquadstatAct,self.secondquadmasAct,self.czjzekstatAct,self.czjzekmasAct,
 #                                     self.insertdatAct,self.adddatAct,self.subdatAct,self.scatterplotAct,
@@ -316,6 +314,9 @@ class MainProgram(QtWidgets.QMainWindow):
                                     ['Matrix --> Diff',self.diffAct],['Matrix --> Cumsum',self.cumsumAct],['Matrix --> Extract Part',self.extractpartAct],['Matrix --> Flip L/R',self.fliplrAct],
                                     ['Matrix --> Delete',self.matrixdelAct],['Matrix --> Split',self.splitAct],['Matrix --> Multiply',self.multiplyAct],['Matrix --> Reorder',self.reorderAct],
                                     ['Matrix --> Concatenate',self.concatAct],['Matrix --> Shearing',self.shearAct],
+                                    ['Transforms --> Fourier Transform',self.fourierAct],['Transforms --> Real Fourier Transform',self.realFourierAct],['Transforms --> Fftshift',self.fftshiftAct],
+                                    ['Transforms --> Inv fftshift',self.invfftshiftAct],['Transforms --> Hilbert Transform',self.hilbertAct],['Transforms --> NUS --> FFM',self.ffmAct],
+                                    ['Transforms --> NUS --> CLEAN',self.cleanAct],['Transforms --> NUS --> IST',self.istAct],
                                     ['Fitting --> S/N',self.snrAct],
                                     ['Fitting --> FWHM',self.fwhmAct],['Fitting --> Integrals',self.intfitAct],['Fitting --> Relaxation Curve',self.relaxAct],
                                     ['Fitting --> Lorentzian/Gaussian',self.lorentzfitAct],['Plot --> 1D Plot',self.onedplotAct],['Plot --> Stack Plot',self.stackplotAct],
