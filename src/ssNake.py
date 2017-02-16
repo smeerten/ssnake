@@ -435,7 +435,7 @@ class MainProgram(QtWidgets.QMainWindow):
         self.imagAct.setToolTip('Take Imaginary Part of Data')
         self.absAct = self.toolMenu.addAction(QtGui.QIcon(IconDirectory + 'abs.png'), "&Abs", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.abs()))
         self.absAct.setToolTip('Take Absolute of Data')
-        self.conjAct = self.toolMenu.addAction("&Complex Conjugate", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.conj()))
+        self.conjAct = self.toolMenu.addAction(QtGui.QIcon(IconDirectory + 'complexconj.png'),"&Complex Conjugate", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.conj()))
         self.conjAct.setToolTip('Take Complex Conjugate of Data')
         self.apodizeAct = self.toolMenu.addAction(QtGui.QIcon(IconDirectory + 'apodize.png'),"Apo&dize", lambda: self.mainWindowCheck(lambda mainWindow: ApodWindow(mainWindow)))
         self.apodizeAct.setToolTip('Open Apodize Window')
@@ -461,7 +461,7 @@ class MainProgram(QtWidgets.QMainWindow):
         self.statesTPPIAct.setToolTip('States-TPPI Hypercomplex Data Processing')
         self.echoantiAct = self.toolMenu.addAction("Ec&ho-antiecho", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.echoAntiEcho()))
         self.echoantiAct.setToolTip('Ec&ho-antiecho Hypercomplex Data Processing')
-        self.brukDigitalAct = self.toolMenu.addAction("&Correct Bruker Digital Filter", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.BrukerDigital()))
+        self.brukDigitalAct = self.toolMenu.addAction(QtGui.QIcon(IconDirectory + 'bruker.png'),"&Correct Bruker Digital Filter", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.BrukerDigital()))
         self.brukDigitalAct.setToolTip("Correct Bruker Digital Filter")
         self.lpsvdAct = self.toolMenu.addAction("&LPSVD", lambda: self.mainWindowCheck(lambda mainWindow: LPSVDWindow(mainWindow)))
         self.lpsvdAct.setToolTip('LPSVD linear prediction')
@@ -2682,10 +2682,11 @@ class Main1DWindow(QtWidgets.QWidget):
         self.menuCheck()
 
     def BrukerDigital(self):
-        FilePath = QtWidgets.QFileDialog.getOpenFileName(self, 'Open File', self.father.LastLocation)
-        if type(FilePath) is tuple:
-            FilePath = FilePath[0]
-        self.father.LastLocation = os.path.dirname(FilePath)  # Save used path
+#        FilePath = QtWidgets.QFileDialog.getOpenFileName(self, 'Open File', self.father.LastLocation)
+#        if type(FilePath) is tuple:
+#            FilePath = FilePath[0]
+#        self.father.LastLocation = os.path.dirname(FilePath)  # Save used path
+        FilePath = self.masterData.filePath[1]
         if FilePath is '':
             return
         Dir = os.path.dirname(FilePath)
