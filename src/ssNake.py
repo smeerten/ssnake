@@ -288,12 +288,7 @@ class MainProgram(QtWidgets.QMainWindow):
 #                                     self.aboutAct]
             
             
-#            self.toobarActionList = [self.intRegionAct,
-#                                     self.sumRegionAct,self.maxRegionAct,self.minRegionAct,self.maxposRegionAct,
-#                                     self.minposRegionAct,self.averageRegionAct,self.diffAct,self.cumsumAct,
-#                                     self.extractpartAct,self.fliplrAct, self.matrixdelAct,self.splitAct,
-#                                     self.multiplyAct,self.reorderAct,self.concatAct,self.shearAct,
-#                                     self.fourierAct,self.realFourierAct,self.fftshiftAct,self.invfftshiftAct,
+#            self.toobarActionList = [self.fourierAct,self.realFourierAct,self.fftshiftAct,self.invfftshiftAct,
 #                                     self.hilbertAct,self.ffmAct,self.cleanAct,istAct,self.snrAct,self.fwhmAct,
 #                                     self.massAct,self.intfitAct,self.relaxAct,self.diffusionAct,self.lorentzfitAct,
 #                                     self.csastaticAct,self.csamasAct,self.firstquadstatAct,self.firstquadmasAct,
@@ -315,22 +310,18 @@ class MainProgram(QtWidgets.QMainWindow):
                                     ['Tools --> Baseline Correction',self.baselineAct],['Tools --> Subtract Averages',self.subAvgAct],['Tools --> Reference Deconvolution',self.refDeconvAct],
                                     ['Tools --> States',self.statesAct],['Tools --> TPPI',self.statesTPPIAct],['Tools --> Echo-antiecho',self.echoantiAct],['Tools --> Correct Bruker Digital Filter',self.brukDigitalAct],
                                     ['Tools --> LPSVD',self.lpsvdAct],
-                                    ['Matrix --> Sizing',self.sizingAct],
-                                    ['Matrix --> Shift Data',self.shiftAct],['Matrix --> Multiply',self.multiplyAct],['Fitting --> S/N',self.snrAct],
+                                    ['Matrix --> Sizing',self.sizingAct],['Matrix --> Shift Data',self.shiftAct],['Matrix --> Multiply',self.multiplyAct],['Matrix --> Region --> Integrate',self.intRegionAct],
+                                    ['Matrix --> Region --> Sum',self.sumRegionAct],['Matrix --> Region --> Max',self.maxRegionAct],['Matrix --> Region --> Min',self.minRegionAct],
+                                    ['Matrix --> Region --> Max Position',self.maxposRegionAct],['Matrix --> Region --> Min Position',self.minposRegionAct],['Matrix --> Region --> Average',self.averageRegionAct],
+                                    ['Matrix --> Diff',self.diffAct],['Matrix --> Cumsum',self.cumsumAct],['Matrix --> Extract Part',self.extractpartAct],['Matrix --> Flip L/R',self.fliplrAct],
+                                    ['Matrix --> Delete',self.matrixdelAct],['Matrix --> Split',self.splitAct],['Matrix --> Multiply',self.multiplyAct],['Matrix --> Reorder',self.reorderAct],
+                                    ['Matrix --> Concatenate',self.concatAct],['Matrix --> Shearing',self.shearAct],
+                                    ['Fitting --> S/N',self.snrAct],
                                     ['Fitting --> FWHM',self.fwhmAct],['Fitting --> Integrals',self.intfitAct],['Fitting --> Relaxation Curve',self.relaxAct],
                                     ['Fitting --> Lorentzian/Gaussian',self.lorentzfitAct],['Plot --> 1D Plot',self.onedplotAct],['Plot --> Stack Plot',self.stackplotAct],
                                     ['Plot --> Array Plot',self.arrayplotAct],['Plot --> Contour Plot',self.contourplotAct],['Plot --> Multi Plot',self.multiplotAct],
                                     ['History --> History',self.historyAct],['History --> Clear Undo/Redo List',self.clearundoAct],['Help --> NMR Table',self.nmrtableAct]]
                               
-                                    
-#            self.toobarActionList = ['File --> Open','File -- > Save --> Matlab','File --> Export --> Figure','Seperator',
-#                                     'Workspaces --> Duplicate','Workspaces --> Delete','Seperator','Edit --> Undo','Edit --> Redo',
-#                                     'Edit --> Reload','Seperator','Tools --> Apodize','Tools --> Phase','Seperator',
-#                                     'Matrix --> Sizing','Matrix --> Shift Data','Matrix --> Multiply','Seperator','Fitting --> S/N','Fitting --> FWHM',
-#                                     'Fitting --> Integrals','Fitting --> Relaxation Curve','Fitting --> Lorentzian/Gaussian','Seperator',
-#                                     'Plot --> 1D Plot','Plot --> Stack Plot','Plot --> Array Plot','Plot --> Contour Plot',
-#                                     'Plot --> Multi Plot','Seperator','History --> History','History --> Clear Undo/Redo List',
-#                                     'Seperator','Help --> NMR Table']    
                                      
             for element in self.defaultToolbarActionList:
                 if element == 'Seperator':
