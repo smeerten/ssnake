@@ -288,14 +288,10 @@ class MainProgram(QtWidgets.QMainWindow):
 #                                     self.aboutAct]
             
             
-#            self.toobarActionList = [,,
-#                                     ,,self.firstquadstatAct,self.firstquadmasAct,
-#                                     self.secondquadstatAct,self.secondquadmasAct,self.czjzekstatAct,self.czjzekmasAct,
-#                                     self.insertdatAct,self.adddatAct,self.subdatAct,self.scatterplotAct,
-#                                     self.skewplotAct,
-#                                     self.setrefAct, self.delrefAct,self.loadrefAct,self.userxAct,self.plotprefAct,self.updateAct,self.shiftconvAct,self.quadconvAct,self.nmrtableAct,
-#                                     self.aboutAct]
-           
+#            self.toobarActionList = [
+#                                     ]
+
+        
             self.allActionsList = [['Seperator',None],['File --> Open',self.openAct],['File --> Save --> JSON',self.saveAct],['File -- > Save --> Matlab',self.saveMatAct],
                                    ['File --> Export --> Figure',self.savefigAct],['File --> Export --> Simpson',self.saveSimpsonAct],['File --> Export --> ASCII (1D/2D)',self.saveASCIIAct],
                                     ['File --> Preferences',self.preferencesAct],['File --> Quit',self.quitAct],
@@ -320,9 +316,17 @@ class MainProgram(QtWidgets.QMainWindow):
                                     ['Fitting --> S/N',self.snrAct],['Fitting --> FWHM',self.fwhmAct],['Fitting --> Centre of Mass',self.massAct],
                                     ['Fitting --> Integrals',self.intfitAct],['Fitting --> Relaxation Curve',self.relaxAct],['Fitting --> Diffusion Curve',self.diffusionAct],
                                     ['Fitting --> Lorentzian/Gaussian',self.lorentzfitAct],['Fitting --> CSA Static',self.csastaticAct],['Fitting --> CSA MAS',self.csamasAct],
-                                    ['Plot --> 1D Plot',self.onedplotAct],['Plot --> Stack Plot',self.stackplotAct],
-                                    ['Plot --> Array Plot',self.arrayplotAct],['Plot --> Contour Plot',self.contourplotAct],['Plot --> Multi Plot',self.multiplotAct],
-                                    ['History --> History',self.historyAct],['History --> Clear Undo/Redo List',self.clearundoAct],['Help --> NMR Table',self.nmrtableAct]]
+                                    ['Fitting --> First Order Quadrupole Static',self.firstquadstatAct],['Fitting --> First Order Quadrupole MAS',self.firstquadmasAct],['Fitting --> Second Order Quadrupole Static',self.secondquadstatAct],
+                                    ['Fitting --> Second Order Quadrupole MAS',self.secondquadmasAct],['Fitting --> Czjzek Static',self.czjzekstatAct],['Fitting --> Czjzek MAS',self.czjzekmasAct],
+                                    ['Combine --> Insert From Workspace',self.insertdatAct],['Combine --> Add',self.adddatAct],['Combine --> Subtract',self.subdatAct],['Combine --> Multiply',self.multdatAct],
+                                    ['Combine --> Divide',self.divdatAct],
+                                    ['Plot --> 1D Plot',self.onedplotAct],['Plot --> Scatter',self.scatterplotAct],['Plot --> Stack Plot',self.stackplotAct],
+                                    ['Plot --> Array Plot',self.arrayplotAct],['Plot --> Contour Plot',self.contourplotAct],['Plot --> Skewed Plot',self.skewplotAct],['Plot --> Multi Plot',self.multiplotAct],
+                                    ['Plot --> Set Reference',self.setrefAct],['Plot --> Clear Current Reference',self.delrefAct],['Plot --> Load Reference',self.loadrefAct],['Plot --> User X-axis',self.userxAct],
+                                    ['Plot --> Plot Settings',self.plotprefAct],
+                                    ['History --> History',self.historyAct],['History --> Clear Undo/Redo List',self.clearundoAct],
+                                    ['Help --> Update',self.updateAct],['Help --> Chemical Shift Conversion Tool',self.shiftconvAct],['Help --> Quadrupole Coupling Conversion Tool',self.quadconvAct],['Help --> NMR Table',self.nmrtableAct],
+                                    ['Help --> About',self.aboutAct]]
                               
                                      
             for element in self.defaultToolbarActionList:
@@ -599,6 +603,8 @@ class MainProgram(QtWidgets.QMainWindow):
         self.divdatAct = self.combineMenu.addAction(QtGui.QIcon(IconDirectory + 'divideWorkspace.png'),"&Divide", lambda: self.mainWindowCheck(lambda mainWindow: CombineWindow(mainWindow, 3)))
         self.divdatAct.setToolTip('Divide Data From Workspace')
         
+        self.combineActList = [self.insertdatAct,self.adddatAct,self.subdatAct,self.multdatAct,self.divdatAct]
+        
         # the plot drop down menu
         self.plotMenu = QtWidgets.QMenu("&Plot", self)
         self.menubar.addMenu(self.plotMenu)
@@ -721,7 +727,7 @@ class MainProgram(QtWidgets.QMainWindow):
             self.combineMenu.menuAction().setEnabled(False)
             self.plotMenu.menuAction().setEnabled(False)
             self.historyMenu.menuAction().setEnabled(False)
-            for act in self.saveActList + self.exportActList + self.workspaceActList + self.macroActList + self.editActList + self.toolsActList + self.matrixActList + self.fftActList + self.fittingActList + self.plotActList + self.historyActList:
+            for act in self.saveActList + self.exportActList + self.workspaceActList + self.macroActList + self.editActList + self.toolsActList + self.matrixActList + self.fftActList + self.fittingActList + self.plotActList + self.combineActList + self.historyActList:
                 act.setEnabled(False)
  
         else:
@@ -733,7 +739,7 @@ class MainProgram(QtWidgets.QMainWindow):
             self.combineMenu.menuAction().setEnabled(True)
             self.plotMenu.menuAction().setEnabled(True)
             self.historyMenu.menuAction().setEnabled(True)
-            for act in self.editActList + self.toolsActList + self.matrixActList + self.fftActList + self.fittingActList + self.plotActList + self.historyActList:
+            for act in self.editActList + self.toolsActList + self.matrixActList + self.fftActList + self.fittingActList + self.plotActList + self.historyActList + self.combineActList:
                 act.setEnabled(True)
             if isinstance(self.mainWindow, Main1DWindow):
                 self.menuEnable()
@@ -776,7 +782,7 @@ class MainProgram(QtWidgets.QMainWindow):
                 self.savefigAct.setEnabled(False)
                 self.workspacemenu.menuAction().setEnabled(True)
                 self.macromenu.menuAction().setEnabled(False)
-                for act in self.macroActList + self.editActList + self.toolsActList + self.matrixActList + self.fftActList + self.fittingActList + self.plotActList + self.historyActList:
+                for act in self.macroActList + self.editActList + self.toolsActList + self.matrixActList + self.fftActList + self.fittingActList + self.plotActList + self.combineActList + self.historyActList:
                     act.setEnabled(False)
             else:
                 self.menuDisable(True)
@@ -787,7 +793,7 @@ class MainProgram(QtWidgets.QMainWindow):
                 self.macromenu.menuAction().setEnabled(False)
                 for act in self.saveActList + self.exportActList + self.workspaceActList:
                     act.setEnabled(True)
-                for act in self.macroActList + self.editActList + self.toolsActList + self.matrixActList + self.fftActList + self.fittingActList + self.plotActList + self.historyActList:
+                for act in self.macroActList + self.editActList + self.toolsActList + self.matrixActList + self.fftActList + self.fittingActList + self.plotActList + self.combineActList + self.historyActList:
                     act.setEnabled(False)
 
     def menuEnable(self, internalWindow=False):
