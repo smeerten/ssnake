@@ -171,6 +171,14 @@ class MainProgram(QtWidgets.QMainWindow):
         self.defaultContourConst = True
         self.defaultPosColor = '#FF0000'
         self.defaultNegColor = '#0000FF'
+        self.defaultToolbarActionList = ['File --> Open','File -- > Save --> Matlab','File --> Export --> Figure','Seperator',
+                                     'Workspaces --> Duplicate','Workspaces --> Delete','Seperator','Edit --> Undo','Edit --> Redo',
+                                     'Edit --> Reload','Seperator','Tools --> Apodize','Tools --> Phase','Seperator',
+                                     'Matrix --> Sizing','Matrix --> Shift Data','Matrix --> Multiply','Seperator','Fitting --> S/N','Fitting --> FWHM',
+                                     'Fitting --> Integrals','Fitting --> Relaxation Curve','Fitting --> Lorentzian/Gaussian','Seperator',
+                                     'Plot --> 1D Plot','Plot --> Stack Plot','Plot --> Array Plot','Plot --> Contour Plot',
+                                     'Plot --> Multi Plot','Seperator','History --> History','History --> Clear Undo/Redo List',
+                                     'Seperator','Help --> NMR Table'] 
 
     def loadDefaults(self):
         self.resetDefaults()
@@ -183,6 +191,8 @@ class MainProgram(QtWidgets.QMainWindow):
         except TypeError:
             self.dispMsg("Incorrect value in the config file for the units")
         self.defaultPPM = settings.value("plot/ppm", self.defaultPPM, bool)
+        self.defaultToolbarActionList = settings.value("toolbarList", self.defaultToolbarActionList, str)
+
         self.defaultColor = settings.value("plot/color", self.defaultColor, str)
         try:
             self.defaultLinewidth = settings.value("plot/linewidth", self.defaultLinewidth, float)
@@ -222,6 +232,7 @@ class MainProgram(QtWidgets.QMainWindow):
         settings = QtCore.QSettings()
         settings.setValue("plot/units", self.defaultUnits)
         settings.setValue("plot/ppm", self.defaultPPM)
+        settings.setValue('toolbarList', self.defaultToolbarActionList)
         settings.setValue("plot/color", self.defaultColor)
         settings.setValue("plot/linewidth", self.defaultLinewidth)
         settings.setValue("plot/xgrid", self.defaultGrids[0])
@@ -237,6 +248,7 @@ class MainProgram(QtWidgets.QMainWindow):
         settings.setValue("contour/negcolor", self.defaultNegColor)
         settings.setValue("contour/width_ratio", self.defaultWidthRatio)
         settings.setValue("contour/height_ratio", self.defaultHeightRatio)
+        
 
     def dispMsg(self, msg):
         self.statusBar.showMessage(msg, 10000)
@@ -291,7 +303,7 @@ class MainProgram(QtWidgets.QMainWindow):
 #                                     self.setrefAct, self.delrefAct,self.loadrefAct,self.userxAct,self.plotprefAct,self.updateAct,self.shiftconvAct,self.quadconvAct,self.nmrtableAct,
 #                                     self.aboutAct]
            
-            self.allActionsList = [['File --> Open',self.openAct],['File --> Save --> JSON',self.saveAct],['File -- > Save --> Matlab',self.saveMatAct],
+            self.allActionsList = [['Seperator',None],['File --> Open',self.openAct],['File --> Save --> JSON',self.saveAct],['File -- > Save --> Matlab',self.saveMatAct],
                                    ['File --> Export --> Figure',self.savefigAct],['File --> Export --> Simpson',self.saveSimpsonAct],['File --> Export --> ASCII (1D/2D)',self.saveASCIIAct],
                                     ['File --> Preferences',self.preferencesAct],['File --> Quit',self.quitAct],
                                     ['Workspaces --> Duplicate',self.newAct],['Workspaces --> Delete',self.closeAct],['Workspaces --> Rename',self.renameWorkspaceAct],
@@ -311,16 +323,16 @@ class MainProgram(QtWidgets.QMainWindow):
                                     ['History --> History',self.historyAct],['History --> Clear Undo/Redo List',self.clearundoAct],['Help --> NMR Table',self.nmrtableAct]]
                               
                                     
-            self.toobarActionList = ['File --> Open','File -- > Save --> Matlab','File --> Export --> Figure','Seperator',
-                                     'Workspaces --> Duplicate','Workspaces --> Delete','Seperator','Edit --> Undo','Edit --> Redo',
-                                     'Edit --> Reload','Seperator','Tools --> Apodize','Tools --> Phase','Seperator',
-                                     'Matrix --> Sizing','Matrix --> Shift Data','Matrix --> Multiply','Seperator','Fitting --> S/N','Fitting --> FWHM',
-                                     'Fitting --> Integrals','Fitting --> Relaxation Curve','Fitting --> Lorentzian/Gaussian','Seperator',
-                                     'Plot --> 1D Plot','Plot --> Stack Plot','Plot --> Array Plot','Plot --> Contour Plot',
-                                     'Plot --> Multi Plot','Seperator','History --> History','History --> Clear Undo/Redo List',
-                                     'Seperator','Help --> NMR Table']    
+#            self.toobarActionList = ['File --> Open','File -- > Save --> Matlab','File --> Export --> Figure','Seperator',
+#                                     'Workspaces --> Duplicate','Workspaces --> Delete','Seperator','Edit --> Undo','Edit --> Redo',
+#                                     'Edit --> Reload','Seperator','Tools --> Apodize','Tools --> Phase','Seperator',
+#                                     'Matrix --> Sizing','Matrix --> Shift Data','Matrix --> Multiply','Seperator','Fitting --> S/N','Fitting --> FWHM',
+#                                     'Fitting --> Integrals','Fitting --> Relaxation Curve','Fitting --> Lorentzian/Gaussian','Seperator',
+#                                     'Plot --> 1D Plot','Plot --> Stack Plot','Plot --> Array Plot','Plot --> Contour Plot',
+#                                     'Plot --> Multi Plot','Seperator','History --> History','History --> Clear Undo/Redo List',
+#                                     'Seperator','Help --> NMR Table']    
                                      
-            for element in self.toobarActionList:
+            for element in self.defaultToolbarActionList:
                 if element == 'Seperator':
                         self.seperatorAction.append(QtWidgets.QAction(self))
                         self.seperatorAction[-1].setSeparator(True)
@@ -330,11 +342,7 @@ class MainProgram(QtWidgets.QMainWindow):
                         if element == action[0]:
                             self.toolbar.addAction(action[1])
                                      
-
     
-        
-        
-        
     def initMenu(self):
         IconDirectory = os.path.dirname(os.path.realpath(__file__)) + os.path.sep + 'Icons' + os.path.sep
         self.menubar = self.menuBar()
@@ -6867,6 +6875,10 @@ class PreferenceWindow(QtWidgets.QWidget):
         self.toolbarCheck = QtWidgets.QCheckBox("Show Shortcut Toolbar")
         self.toolbarCheck.setChecked(self.father.defaultToolBar)
         grid1.addWidget(self.toolbarCheck, 5, 0, 1, 2)
+        editToolbarButton = QtWidgets.QPushButton("Edit Toolbar")
+        editToolbarButton.clicked.connect(lambda: ToolbarWindow(self))
+        grid1.addWidget(editToolbarButton, 6,0,1,2)
+        self.currentToolbar = self.father.defaultToolbarActionList
 
         grid2.addWidget(QtWidgets.QLabel("Linewidth:"), 1, 0)
         self.lwSpinBox = QtWidgets.QDoubleSpinBox()
@@ -6963,6 +6975,7 @@ class PreferenceWindow(QtWidgets.QWidget):
         self.father.defaultMaximized = self.maximizedCheck.isChecked()
         self.father.defaultAskName = self.askNameCheck.isChecked()
         self.father.defaultToolBar = self.toolbarCheck.isChecked()
+        self.father.defaultToolbarActionList  = self.currentToolbar
         self.father.defaultLinewidth = self.lwSpinBox.value()
         self.father.defaultColor = self.color
         self.father.defaultGrids[0] = self.xgridCheck.isChecked()
@@ -6983,6 +6996,58 @@ class PreferenceWindow(QtWidgets.QWidget):
 
     def closeEvent(self, *args):
         self.deleteLater()
+
+##############################################################################
+
+class ToolbarWindow(QtWidgets.QWidget):
+
+    def __init__(self,parent):
+        QtWidgets.QWidget.__init__(self,parent)
+        self.setWindowFlags(QtCore.Qt.Window | QtCore.Qt.Tool)
+        self.father = parent
+        self.setWindowTitle("Change Toolbar")
+        layout = QtWidgets.QGridLayout(self)
+        grid = QtWidgets.QGridLayout()
+#        fileName = self.father.masterData.filePath[1]
+#        if len(fileName) > 58:
+#            fileName = fileName[:55] + '...'
+#        fileLabel = wc.QLabel("File: " + fileName)
+#        fileLabel.setToolTip(self.father.masterData.filePath[1])
+#        layout.addWidget(fileLabel, 0, 0, 1, 3)
+        layout.addLayout(grid, 1, 0, 1, 3)
+        grid.addWidget(wc.QLabel("Actions:"), 0, 0)
+        grid.addWidget(wc.QLabel("Toolbar Actions:"), 0, 1)
+        self.listA = OrigListWidget(self)
+        for i in self.father.father.allActionsList:
+            QtWidgets.QListWidgetItem(i[0], self.listA).setToolTip(i[0])
+        self.listB = DestListWidget(self)
+        for i in self.father.father.defaultToolbarActionList:
+            QtWidgets.QListWidgetItem(i, self.listB).setToolTip(i)
+        grid.addWidget(self.listA, 1, 0)
+        grid.addWidget(self.listB, 1, 1)
+        cancelButton = QtWidgets.QPushButton("&Cancel")
+        cancelButton.clicked.connect(self.closeEvent)
+        layout.addWidget(cancelButton, 2, 0)
+        watchButton = QtWidgets.QPushButton("&Apply")
+        watchButton.clicked.connect(self.applyAndClose)
+        layout.addWidget(watchButton, 2, 1)
+        layout.setColumnStretch(3, 1)
+        self.show()
+        self.setFixedSize(self.size())
+        self.setGeometry(self.frameSize().width() - self.geometry().width(), self.frameSize().height() - self.geometry().height(), 0, 0)
+
+    def applyAndClose(self, *args):
+#        self.father.stopMonitor()
+        items = []
+        for index in range(self.listB.count()):
+            items.append(self.listB.item(index).text())
+        self.father.currentToolbar = items
+        self.closeEvent()
+        
+    def closeEvent(self, *args):
+#        self.father.father.menuEnable()
+        self.deleteLater()
+        
 
 ##############################################################################
 
