@@ -2691,8 +2691,16 @@ class Main1DWindow(QtWidgets.QWidget):
             return
         Dir = os.path.dirname(FilePath)
         if not os.path.exists(Dir + os.path.sep + 'acqus'):
-            self.father.dispMsg("acqus file does not exist")
-            return
+            self.father.dispMsg("acqus file does not exist, specify load path")
+            FilePath = QtWidgets.QFileDialog.getOpenFileName(self, 'Open File', self.father.LastLocation)
+            self.father.LastLocation = os.path.dirname(FilePath)  # Save used path
+            Dir = os.path.dirname(FilePath)
+            if type(FilePath) is tuple:
+                FilePath = FilePath[0]
+            if not os.path.exists(Dir + os.path.sep + 'acqus'):  
+                self.father.dispMsg("acqus file does not exist")
+                return
+                
         with open(Dir + os.path.sep + 'acqus', 'r') as f:
             data = f.read().split('\n')
         FilterCorrection = -1.0
