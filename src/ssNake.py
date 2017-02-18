@@ -1283,6 +1283,9 @@ class MainProgram(QtWidgets.QMainWindow):
             elif filename.endswith('.jdf'):#JEOL delta format
                 self.loading(9, filePath)
                 return returnVal
+            elif filename.endswith('.dx') or filename.endswith('.jdx'):#JCAMP format
+                self.loading(10, filePath)
+                return returnVal
             filePath = os.path.dirname(filePath)
             returnVal = 1
         direc = filePath
@@ -1371,6 +1374,8 @@ class MainProgram(QtWidgets.QMainWindow):
             masterData = self.LoadPipe(filePath, name)
         elif num == 9:
             masterData = self.LoadJEOLDelta(filePath, name)
+        elif num == 10:
+            masterData = self.LoadJCAMP(filePath, name)   
         if returnBool:
             return masterData
         else:
@@ -2089,7 +2094,144 @@ class MainProgram(QtWidgets.QMainWindow):
             masterData = sc.Spectrum(name, data, (4, filePath), [0, 0], [SW1, SW], spec * 2, msgHandler=lambda msg: self.dispMsg(msg))
         masterData.addHistory("SIMPSON data loaded from " + filePath)
         return masterData
+    
+    
+    def convertDIFDUB(self,dat):
+        def checkWrite(dup,currentNum,step,numberList):
+            if dup != '':
+                for dupli in range(int(dup)):
+                    numberList.append(numberList[-1] + int(step))
+                dup = ''
+                step = ''
+            elif currentNum != '': #Write if available
+                numberList.append(int(currentNum)) #write old num
+                currentNum = ''
+            elif step != '':
+                numberList.append(numberList[-1] + int(step))
+                step = ''
+                
+            return dup,currentNum,step,numberList
+            
+            
+        SQZ = {'@': 0, 'A': 1, 'B': 2,'C': 3,'D': 4,'E': 5,'F': 6,'G': 7,'H': 8,'I': 9,
+               'a': -1,'b': -2,'c': -3,'d': -4,'e': -5,'f': -6,'g': -7,'h': -8,'i': -9}
+        DIF = {'%': 0,'J': 1,'K': 2,'L': 3,'M': 4,'N': 5,'O': 6,'P': 7,'Q': 8,'R': 9,
+               'j': -1,'k': -2,'l': -3,'m': -4,'n': -5,'o': -6,'p': -7,'q': -8,'r': -9}
+        DUP = {'S': 1,'T': 2,'U': 3,'V': 4,'W': 5,'X': 6,'Y': 7,'Z': 8,'s': 9}
+        
+        
+        currentNum = ''
+        step = ''
+        dup = ''
+        numberList = []
+        
+        last = False
+        for char in dat:
+            if char in '0123456789':
+                    if dup != "":
+                        dup = dup + char
+                    elif currentNum != '':
+                        currentNum = currentNum + char
+                    elif step != '':
+                        step = step + char
+                    else:
+                        continue
+        
+            elif char in SQZ.keys():
+                dup,currentNum,step,numberList = checkWrite(dup,currentNum,step,numberList)
+                
+                currentNum = currentNum + str(SQZ[char])
+                
+            elif char in DIF.keys():
+                dup,currentNum,step,numberList = checkWrite(dup,currentNum,step,numberList)
+                    
+                step = step + str(DIF[char])     
+            elif char in DUP.keys():
+                dup = dup + str(DUP[char]) #For now, assume no SQZ defore DUP
+            elif char == ' ':
+                last = True
+                break
+        
+        dup,currentNum,step,numberList = checkWrite(dup,currentNum,step,numberList)
+        if last:
+           return np.array(numberList)
+        else:
+            return np.array(numberList)[:-1] 
+        
+        
+    def LoadJCAMP(self, filePath, name=''):
+        with open(filePath, 'r') as f:
+            data = f.read().split('\n')
 
+
+        realDataPos = []   
+        imagDataPos = []
+        currentPos = 0    
+        for line in data:
+            if '#.OBSERVE FREQUENCY' in line:
+                freq = float(line[line.index('=')+1:]) * 1e6
+            elif '#VAR_NAME' in line:
+                axisName = line[line.index('=')+1:]
+                axisName = re.sub(',[\t ][\t ]*',' ', axisName)
+                axisName = re.sub('[\t\r]*','', axisName)
+                axisName = axisName.split()[0]
+                if axisName == 'TIME':
+                    spec = False
+            elif '#VAR_DIM' in line:
+                nPoints = line[line.index('=')+1:]
+                nPoints = re.sub(',[\t ][\t ]*',' ', nPoints)
+                nPoints = re.sub('[\t\r]*','', nPoints)
+                nPoints = int(nPoints.split()[0])
+            elif '#UNITS' in line:
+                units = line[line.index('=')+1:]
+                units = re.sub(',[\t ][\t ]*',' ', units)
+                units = re.sub('[\t\r]*','', units)
+                units = units.split()[0]
+            elif '#FIRST' in line:
+                first = line[line.index('=')+1:]
+                first = re.sub(',[\t ][\t ]*',' ', first)
+                first = re.sub('[\t\r]*','', first)
+                first = float(first.split()[0].replace(',', '.'))
+            elif '#LAST' in line:
+                last = line[line.index('=')+1:]
+                last = re.sub(',[\t ][\t ]*',' ', last)
+                last = re.sub('[\t\r]*','', last)
+                last = float(last.split()[0].replace(',', '.'))
+            elif '#FACTOR' in line:
+                factor = line[line.index('=')+1:]
+                factor = re.sub(',[\t ][\t ]*',' ', factor)
+                factor = re.sub('[\t\r]*','', factor)
+                factor = factor.split()
+                for elem in range(len(factor)):
+                    factor[elem] = float(factor[elem].replace(',', '.'))
+            elif '(X++(R..R))' in line:
+               realDataPos.append(currentPos + 1)
+            elif '#PAGE=' in line and len(realDataPos) == 1:
+                realDataPos.append(currentPos - 1)
+            elif '(X++(I..I))' in line:
+                imagDataPos.append(currentPos + 1)
+            elif '#END NTUPLES=' in line and len(imagDataPos) == 1:
+                imagDataPos.append(currentPos - 1)   
+            currentPos += 1
+
+        #Convert the data
+        realDat = np.array([])
+        for line in data[realDataPos[0]:realDataPos[1]+1]:
+            realDat = np.append(realDat,self.convertDIFDUB(line))
+        realDat = realDat * factor[1]
+            
+        imagDat = np.array([])    
+        for line in data[imagDataPos[0]:imagDataPos[1]+1]:
+            imagDat = np.append(imagDat,self.convertDIFDUB(line))
+        imagDat = imagDat * factor[2]  
+        
+        if not spec:
+            sw = 1.0/((last - first)/(nPoints-1))
+        fullData = realDat - 1j *  imagDat   
+        masterData = sc.Spectrum(name, fullData, (10, filePath), [freq], [sw], [spec], msgHandler=lambda msg: self.dispMsg(msg))
+        masterData.addHistory("JCAMP data loaded from " + filePath)
+        return masterData
+        
     def saveSimpsonFile(self):
         self.mainWindow.get_mainWindow().SaveSimpsonFile()
 
