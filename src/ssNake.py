@@ -1283,7 +1283,7 @@ class MainProgram(QtWidgets.QMainWindow):
             elif filename.endswith('.jdf'):#JEOL delta format
                 self.loading(9, filePath)
                 return returnVal
-            elif filename.endswith('.dx') or filename.endswith('.jdx'):#JCAMP format
+            elif filename.endswith('.dx') or filename.endswith('.jdx') or filename.endswith('.jcamp'):#JCAMP format
                 self.loading(10, filePath)
                 return returnVal
             filePath = os.path.dirname(filePath)
@@ -2182,6 +2182,11 @@ class MainProgram(QtWidgets.QMainWindow):
                 nPoints = re.sub(',[\t ][\t ]*',' ', nPoints)
                 nPoints = re.sub('[\t\r]*','', nPoints)
                 nPoints = int(nPoints.split()[0])
+            elif '#VAR_FORM' in line:
+                varForm = line[line.index('=')+1:]
+                varForm = re.sub(',[\t ][\t ]*',' ', varForm)
+                varForm = re.sub('[\t\r]*','', varForm)
+                varForm = varForm.split()
             elif '#UNITS' in line:
                 units = line[line.index('=')+1:]
                 units = re.sub(',[\t ][\t ]*',' ', units)
@@ -2216,13 +2221,21 @@ class MainProgram(QtWidgets.QMainWindow):
 
         #Convert the data
         realDat = np.array([])
-        for line in data[realDataPos[0]:realDataPos[1]+1]:
-            realDat = np.append(realDat,self.convertDIFDUB(line))
+        if varForm[1] == 'ASDF': #If DIFDUB form
+            for line in data[realDataPos[0]:realDataPos[1]+1]:
+                realDat = np.append(realDat,self.convertDIFDUB(line))
+        elif varForm[1] == 'AFFN': #If regular list form
+            for line in data[realDataPos[0]:realDataPos[1]+1]:
+                realDat = np.append(realDat,np.fromstring(line,sep=' ')[1:])
         realDat = realDat * factor[1]
             
-        imagDat = np.array([])    
-        for line in data[imagDataPos[0]:imagDataPos[1]+1]:
-            imagDat = np.append(imagDat,self.convertDIFDUB(line))
+        imagDat = np.array([])  
+        if varForm[2] == 'ASDF':
+            for line in data[imagDataPos[0]:imagDataPos[1]+1]:
+                imagDat = np.append(imagDat,self.convertDIFDUB(line))
+        elif varForm[1] == 'AFFN':
+            for line in data[imagDataPos[0]:imagDataPos[1]+1]:
+                imagDat = np.append(imagDat,np.fromstring(line,sep=' ')[1:])       
         imagDat = imagDat * factor[2]  
         
         if not spec:
