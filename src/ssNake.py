@@ -1924,8 +1924,8 @@ class MainProgram(QtWidgets.QMainWindow):
         sizeTD1 = 1
         sw1 = 50e3
         H = dict(line.strip().split('=') for line in open(Dir + os.path.sep + 'acq', 'r'))
-        sizeTD2 = int(H['al'])
-        freq = float(H['sf' + H['ch1']])
+        sizeTD2 = int(float(H['al']))
+        freq = float(H['sf' + str(int(float(H['ch1'])))])
         sw = 1 / float(H['dw'][:-1])
         if any('array_num_values_' in s for s in H.keys()):
             if 'use_array=1' in open(Dir + '/acq_2').read():
