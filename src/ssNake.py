@@ -2166,82 +2166,107 @@ class MainProgram(QtWidgets.QMainWindow):
 
         realDataPos = []   
         imagDataPos = []
+        spectDataPos = []
         currentPos = 0    
         for line in data:
-            if '#.OBSERVE FREQUENCY' in line:
+            testline = re.sub('[\t ]*','', line)
+
+            if '#.OBSERVEFREQUENCY=' in testline:
                 freq = float(line[line.index('=')+1:]) * 1e6
-            elif '#VAR_NAME' in line:
-                axisName = line[line.index('=')+1:]
-                axisName = re.sub(',[\t ][\t ]*',' ', axisName)
-                axisName = re.sub('[\t\r]*','', axisName)
-                axisName = axisName.split()[0]
-                if axisName == 'TIME':
-                    spec = False
-            elif '#VAR_DIM' in line:
+            elif '##DATATYPE=' in testline:   
+                dataType = line[line.index('=')+1:]
+            elif '#VAR_DIM=' in testline:
                 nPoints = line[line.index('=')+1:]
                 nPoints = re.sub(',[\t ][\t ]*',' ', nPoints)
                 nPoints = re.sub('[\t\r]*','', nPoints)
                 nPoints = int(nPoints.split()[0])
-            elif '#VAR_FORM' in line:
+            elif '#VAR_FORM=' in testline:
                 varForm = line[line.index('=')+1:]
                 varForm = re.sub(',[\t ][\t ]*',' ', varForm)
                 varForm = re.sub('[\t\r]*','', varForm)
                 varForm = varForm.split()
-            elif '#UNITS' in line:
+            elif '#UNITS=' in testline:
                 units = line[line.index('=')+1:]
                 units = re.sub(',[\t ][\t ]*',' ', units)
                 units = re.sub('[\t\r]*','', units)
                 units = units.split()[0]
-            elif '#FIRST' in line:
+            elif '#FIRST=' in testline:
                 first = line[line.index('=')+1:]
                 first = re.sub(',[\t ][\t ]*',' ', first)
                 first = re.sub('[\t\r]*','', first)
                 first = float(first.split()[0].replace(',', '.'))
-            elif '#LAST' in line:
+            elif '#LAST=' in testline:
                 last = line[line.index('=')+1:]
                 last = re.sub(',[\t ][\t ]*',' ', last)
                 last = re.sub('[\t\r]*','', last)
                 last = float(last.split()[0].replace(',', '.'))
-            elif '#FACTOR' in line:
+            elif '#FACTOR=' in testline:
                 factor = line[line.index('=')+1:]
                 factor = re.sub(',[\t ][\t ]*',' ', factor)
                 factor = re.sub('[\t\r]*','', factor)
                 factor = factor.split()
                 for elem in range(len(factor)):
                     factor[elem] = float(factor[elem].replace(',', '.'))
-            elif '(X++(R..R))' in line:
-               realDataPos.append(currentPos + 1)
-            elif '#PAGE=' in line and len(realDataPos) == 1:
+            elif '(X++(R..R))' in testline:
+                realDataPos.append(currentPos + 1)
+            elif '#PAGE=' in testline and len(realDataPos) == 1:
                 realDataPos.append(currentPos - 1)
-            elif '(X++(I..I))' in line:
+            elif '(X++(I..I))' in testline:
                 imagDataPos.append(currentPos + 1)
-            elif '#END NTUPLES=' in line and len(imagDataPos) == 1:
-                imagDataPos.append(currentPos - 1)   
+            elif '#ENDNTUPLES=' in testline and len(imagDataPos) == 1:
+                imagDataPos.append(currentPos - 1)  
+            #Spectrum specific
+            elif   '(X++(Y..Y))' in testline:  
+                spectDataPos.append(currentPos + 1)   
+            elif   '##END' in testline and len(spectDataPos) == 1:  
+                spectDataPos.append(currentPos - 1) 
+            elif   '##XUNITS=' in testline: 
+                Xunit = line[line.index('=')+1:]
+                Xunit = re.sub('[ \t]*','', Xunit)
+            elif '##FIRSTX=' in testline:
+                FirstX = float(line[line.index('=')+1:])
+            elif '##LASTX=' in testline:
+                LastX = float(line[line.index('=')+1:])
+            elif '##YFACTOR=' in testline:
+                YFactor= float(line[line.index('=')+1:])
+            elif '##NPOINTS=' in testline:
+                NPoints= int(line[line.index('=')+1:])    
             currentPos += 1
 
         #Convert the data
-        realDat = np.array([])
-        if varForm[1] == 'ASDF': #If DIFDUB form
-            for line in data[realDataPos[0]:realDataPos[1]+1]:
-                realDat = np.append(realDat,self.convertDIFDUB(line))
-        elif varForm[1] == 'AFFN': #If regular list form
-            for line in data[realDataPos[0]:realDataPos[1]+1]:
-                realDat = np.append(realDat,np.fromstring(line,sep=' ')[1:])
-        realDat = realDat * factor[1]
-            
-        imagDat = np.array([])  
-        if varForm[2] == 'ASDF':
-            for line in data[imagDataPos[0]:imagDataPos[1]+1]:
-                imagDat = np.append(imagDat,self.convertDIFDUB(line))
-        elif varForm[1] == 'AFFN':
-            for line in data[imagDataPos[0]:imagDataPos[1]+1]:
-                imagDat = np.append(imagDat,np.fromstring(line,sep=' ')[1:])       
-        imagDat = imagDat * factor[2]  
-        
-        if not spec:
+        if 'NMR FID' in dataType:
+            realDat = np.array([])
+            if varForm[1] == 'ASDF': #If DIFDUB form
+                for line in data[realDataPos[0]:realDataPos[1]+1]:
+                    realDat = np.append(realDat,self.convertDIFDUB(line))
+            elif varForm[1] == 'AFFN': #If regular list form
+                for line in data[realDataPos[0]:realDataPos[1]+1]:
+                    realDat = np.append(realDat,np.fromstring(line,sep=' ')[1:])
+            realDat = realDat * factor[1]
+                
+            imagDat = np.array([])  
+            if varForm[2] == 'ASDF':
+                for line in data[imagDataPos[0]:imagDataPos[1]+1]:
+                    imagDat = np.append(imagDat,self.convertDIFDUB(line))
+            elif varForm[1] == 'AFFN':
+                for line in data[imagDataPos[0]:imagDataPos[1]+1]:
+                    imagDat = np.append(imagDat,np.fromstring(line,sep=' ')[1:])       
+            imagDat = imagDat * factor[2]  
+            fullData = realDat - 1j *  imagDat
             sw = 1.0/((last - first)/(nPoints-1))
-        fullData = realDat - 1j *  imagDat   
-        masterData = sc.Spectrum(name, fullData, (10, filePath), [freq], [sw], [spec], msgHandler=lambda msg: self.dispMsg(msg))
+            masterData = sc.Spectrum(name, fullData, (10, filePath), [freq], [sw], [False], msgHandler=lambda msg: self.dispMsg(msg))
+        elif 'NMRSPECTRUM' in dataType:
+            spectDat = np.array([])
+            for line in data[spectDataPos[0]:spectDataPos[1]+1]:
+                spectDat = np.append(spectDat,self.convertDIFDUB(line))
+            spectDat = np.flipud(spectDat) * YFactor
+            if Xunit == 'HZ':
+                sw = abs(FirstX - LastX) 
+                sw = sw + sw / NPoints
+            elif Xunit == 'PPM':
+                sw = abs(FirstX - LastX) * freq
+                sw = sw + sw / NPoints
+            masterData = sc.Spectrum(name, spectDat, (10, filePath), [freq], [sw], [True], ref = [None] , msgHandler=lambda msg: self.dispMsg(msg))
         masterData.addHistory("JCAMP data loaded from " + filePath)
         return masterData
         
