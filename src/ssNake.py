@@ -1946,7 +1946,7 @@ class MainProgram(QtWidgets.QMainWindow):
             raw = np.fromfile(f, np.int32)
             b = np.complex128(raw.byteswap())
         filePath = Dir + os.path.sep + 'data'
-        fid = b[:len(b) / 2] + 1j * b[len(b) / 2:]
+        fid = b[:int(len(b) / 2)] + 1j * b[int(len(b) / 2):]
         fid = np.reshape(fid, (sizeTD1, sizeTD2))
         data = np.array(fid)
         spec = [False]
