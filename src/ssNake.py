@@ -6532,7 +6532,16 @@ class XaxWindow(QtWidgets.QWidget):
         env = vars(np).copy()
         env['length'] = int(self.father.current.data1D.shape[-1])  # so length can be used to in equations
         env['euro'] = lambda fVal, num=int(self.father.current.data1D.shape[-1]): euro(fVal, num)
-        val = eval(self.valEntry.text(), env)                # find a better solution, also add catch for exceptions
+        try:
+            val = np.array(eval(self.valEntry.text(), env))                # find a better solution, also add catch for exceptions
+        except:
+            try:
+                val = np.fromstring(self.valEntry.text(),sep=' ')
+                val2 = np.fromstring(self.valEntry.text(),sep=',')
+                if len(val2) > len(val):
+                    val = val2
+            except:
+                val = None
         if not isinstance(val, (list, np.ndarray)):
             self.father.father.dispMsg("Input is not a list or array")
             return
@@ -6554,7 +6563,16 @@ class XaxWindow(QtWidgets.QWidget):
         env = vars(np).copy()
         env['length'] = int(self.father.current.data1D.shape[-1])  # so length can be used to in equations
         env['euro'] = lambda fVal, num=int(self.father.current.data1D.shape[-1]): euro(fVal, num)
-        val = eval(self.valEntry.text(), env)                # find a better solution, also add catch for exceptions
+        try:
+            val = np.array(eval(self.valEntry.text(), env))                # find a better solution, also add catch for exceptions
+        except:
+            try:
+                val = np.fromstring(self.valEntry.text(),sep=' ')
+                val2 = np.fromstring(self.valEntry.text(),sep=',')
+                if len(val2) > len(val):
+                    val = val2
+            except:
+                val = None
         if not isinstance(val, (list, np.ndarray)):
             self.father.father.dispMsg("Input is not a list or array")
             return
