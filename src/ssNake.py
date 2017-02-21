@@ -251,7 +251,11 @@ class MainProgram(QtWidgets.QMainWindow):
         settings.setValue("contour/height_ratio", self.defaultHeightRatio)
         
 
-    def dispMsg(self, msg):
+    def dispMsg(self, msg, colour = 'black'):
+        if colour == 'red':
+            self.statusBar.setStyleSheet("QStatusBar{padding-left:8px;color:red;}")
+        else:
+            self.statusBar.setStyleSheet("QStatusBar{padding-left:8px;color:black;}")
         self.statusBar.showMessage(msg, 10000)
     
     
@@ -2106,7 +2110,7 @@ class MainProgram(QtWidgets.QMainWindow):
             masterData.msgHandler = lambda msg: self.dispMsg(msg)
             masterData.addHistory("JCAMP data loaded from " + filePath)
         except:
-            self.dispMsg("Error on loading JCAMP data")
+            self.dispMsg("Error on loading JCAMP data",'red')
             return
         return masterData
         
