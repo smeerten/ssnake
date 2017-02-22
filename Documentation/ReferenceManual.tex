@@ -174,7 +174,9 @@ Chemagnetics & ??? \\
 Magritek & Both 1D and 2D data \\
 Simpson & 1D and 2D, -ascii and -binary \\
 \rowcolor{gray!30!white}
+JCAMP & 1D JCAMP-DX file\\
 JSON & ssNake JSON file (ascii)\\
+\rowcolor{gray!30!white}
 Matlab & ssNake .mat file (binary)\\
 \bottomrule
 \end{tabular}
@@ -204,6 +206,9 @@ Magritek requires two or three files: \textit{acqu.par} for the spactral variabl
 
 \subsubsection*{Simpson}
 Simpson data files are plain text files, \textit{.fid} or \textit{.spe} as file extension. From the file, the number of points in both dimensions is extracted, and the spectral widths. The spectral frequency is \textit{not} included in the Simpson format, and is put at 0. Simpson files cannot contain a mixture of time and frequency data (both dimensions must be the same type). Simpson binary data is also supported, but not raw binary.
+
+\subsubsection*{JCAMP}
+JCAMP (or JCAMP-DX) is a general format for storing spectroscopic data. Although it can be applied to NMR data, it is not convenient, especially for 2D data. ssNake therefore only supports 1D fid and spectrum data at the moment. As the JCAMP format support a wide variety of data formats, it depends on the specific file if it loads in ssNake without errors. When encountering errors, do not hesitate to contact us.
 
 \subsubsection*{JSON}
 Loads a JSON file that is saved with ssNake. File must have the \textit{.json} or \textit{.JSON} extension.
@@ -241,8 +246,9 @@ JEOL Delta & & \texttt{.jdf}\\
 NMRpipe & & \texttt{.fid} and first byte is 0\\
 \rowcolor{gray!30!white}
 Simpson &  & \texttt{.fid} or \texttt{.spe} \\
-JSON & & \texttt{.json} or \texttt{.JSON}\\
+JCAMP & & \texttt{.jcamp} or \texttt{.dx} or \texttt{.jdx}\\
 \rowcolor{gray!30!white}
+JSON & & \texttt{.json} or \texttt{.JSON}\\
 Matlab & & \texttt{.mat} or \texttt{.MAT}\\
 \bottomrule
 \end{tabular}
