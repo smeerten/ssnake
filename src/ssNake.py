@@ -680,7 +680,7 @@ class MainProgram(QtWidgets.QMainWindow):
         self.nmrtableAct = self.helpMenu.addAction(QtGui.QIcon(IconDirectory + 'table.png'),"&NMR Table", self.nmrTable)
         self.nmrtableAct.setToolTip('NMR Periodic Table') 
         
-        self.aboutAct = self.helpMenu.addAction(QtGui.QIcon(IconDirectory + 'about.png'),"&About", self.about)
+        self.aboutAct = self.helpMenu.addAction(QtGui.QIcon(IconDirectory + 'about.png'),"&About", lambda: aboutWindow(self))
         self.aboutAct.setToolTip('About Menu') 
 
         self.helpActList = [self.updateAct,self.shiftconvAct,self.quadconvAct,self.nmrtableAct,self.aboutAct]
@@ -2193,10 +2193,6 @@ class MainProgram(QtWidgets.QMainWindow):
         import subprocess
         subprocess.Popen([sys.executable, os.path.dirname(os.path.realpath(__file__)) + '/nmrTable.py'])
         
-    def about(self):
-        message = "ssNake " + VERSION
-        QtWidgets.QMessageBox.about(self, 'About', message)
-
     def fileQuit(self):
         self.close()
 
@@ -7100,6 +7096,66 @@ class ToolbarWindow(QtWidgets.QWidget):
         
 
 ##############################################################################
+
+class aboutWindow(QtWidgets.QWidget):
+
+    def __init__(self, parent):
+        QtWidgets.QWidget.__init__(self, parent)
+        self.setWindowFlags(QtCore.Qt.Window | QtCore.Qt.Tool)
+        self.father = parent
+
+        self.setWindowTitle("About ssNake")
+
+        grid = QtWidgets.QGridLayout()
+#        grid.setColumnStretch(10, 1)
+#        grid.setRowStretch(14, 1)
+
+        self.logo = QtWidgets.QLabel(self)
+        self.logo.setPixmap(QtGui.QPixmap(os.path.dirname(os.path.realpath(__file__)) + "/logo.gif"))
+        
+        self.tabs = QtWidgets.QTabWidget(self)
+        self.text = QtWidgets.QTextEdit(self)
+        self.text.setReadOnly(True)
+        
+        self.license = QtWidgets.QTextEdit(self)
+        self.license.setReadOnly(True)
+        self.license.setText()
+        
+        pythonVersion = sys.version
+        pythonVersion = pythonVersion[:pythonVersion.index(' ')]
+        try:
+            from PyQt4.Qt import PYQT_VERSION_STR
+            from PyQt4.QtCore import QT_VERSION_STR
+        except:
+            from PyQt5.Qt import PYQT_VERSION_STR
+            from PyQt5.QtCore import QT_VERSION_STR
+            
+        from scipy import __version__ as scipyVersion    
+        
+        self.text.setText('<p><b>ssNake ' + VERSION + '</b></p>' + 
+        '<p>Copyright (&copy;) 2016&ndash;2017 Bas van Meerten & Wouter Franssen</p>' +
+        '<b>Library versions</b>:<br>Python ' + pythonVersion + '<br>numpy ' + np.__version__ +
+        '<br>SciPy ' + scipyVersion +  
+        '<br>matplotlib ' + matplotlib.__version__ + 
+        '<br>PyQt ' + PYQT_VERSION_STR + 
+        '<br>Qt ' + QT_VERSION_STR )
+        
+        self.tabs.addTab(self.text, 'Version') 
+        self.tabs.addTab(self.license, 'License') 
+        grid.addWidget(self.logo, 0, 0)
+        grid.addWidget(self.tabs, 1, 0)
+        closebutton = QtWidgets.QPushButton("Close")
+        grid.addWidget(closebutton, 12, 0)
+        closebutton.clicked.connect(self.closeEvent)
+
+        self.setLayout(grid)
+        self.show()
+
+    def closeEvent(self):
+        self.deleteLater()
+
+##############################################################################
+
 
 
 class shiftConversionWindow(QtWidgets.QWidget):
