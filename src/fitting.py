@@ -2981,45 +2981,46 @@ class TensorFitParFrame(QtWidgets.QWidget):
         grid = QtWidgets.QGridLayout(self)
         self.setLayout(grid)
         self.frame1 = QtWidgets.QGridLayout()
-        grid.addLayout(self.frame1, 0, 0)
+        grid.addLayout(self.frame1, 1, 0)
         
-        self.frame1.addWidget(QtWidgets.QLabel('Max iterations:'), 0, 0)
+        self.frame1.addWidget(QtWidgets.QLabel('Max iterations:'), 1, 0)
         self.maxiterinput = QtWidgets.QLineEdit()
         self.maxiterinput.setText("150")
-        self.frame1.addWidget(self.maxiterinput, 1, 0)
+        self.frame1.addWidget(self.maxiterinput, 2, 0)
         
 
-        self.frame1.addWidget(QtWidgets.QLabel('x tolerance:'), 2, 0)
+        self.frame1.addWidget(QtWidgets.QLabel('x tolerance:'), 3, 0)
         self.xtolinput = QtWidgets.QLineEdit()
         self.xtolinput.setText("1.0e-4")
-        self.frame1.addWidget(self.xtolinput, 3, 0)
+        self.frame1.addWidget(self.xtolinput, 4, 0)
         
-        self.frame1.addWidget(QtWidgets.QLabel('f tolerance:'), 4, 0)
+        self.frame1.addWidget(QtWidgets.QLabel('f tolerance:'), 5, 0)
         self.ftolinput = QtWidgets.QLineEdit()
         self.ftolinput.setText("1.0e-4")
-        self.frame1.addWidget(self.ftolinput, 5, 0)
+        self.frame1.addWidget(self.ftolinput, 6, 0)
         
         
-        self.frame1.addWidget(QtWidgets.QLabel('Used iterations:'), 0, 1)
+        self.frame1.addWidget(QtWidgets.QLabel('Used iterations:'), 1, 1)
         self.usedIter = QtWidgets.QLabel('-')
         self.usedIter.setAlignment(QtCore.Qt.AlignHCenter)
-        self.frame1.addWidget(self.usedIter, 1, 1)
+        self.frame1.addWidget(self.usedIter, 2, 1)
         
-        self.frame1.addWidget(QtWidgets.QLabel('Function value:'),2, 1)
+        self.frame1.addWidget(QtWidgets.QLabel('Function value:'),3, 1)
         self.fitFunctionValue = QtWidgets.QLabel('-')
         self.fitFunctionValue.setAlignment(QtCore.Qt.AlignHCenter)
-        self.frame1.addWidget(self.fitFunctionValue, 3, 1)
+        self.frame1.addWidget(self.fitFunctionValue, 4, 1)
         
-        self.frame1.addWidget(QtWidgets.QLabel('# print digits:'),4, 1)
+        self.frame1.addWidget(QtWidgets.QLabel('# print digits:'),5, 1)
         self.printDigits = QtWidgets.QSpinBox()
         self.printDigits.setMinimum(1)
         self.printDigits.setValue(4)
         self.updatePrintDigits(4)
         self.printDigits.valueChanged.connect(self.updatePrintDigits)
-        self.frame1.addWidget(self.printDigits, 5, 1)
+        self.frame1.addWidget(self.printDigits, 6, 1)
         
         
         grid.setColumnStretch(10, 1)
+        grid.setRowStretch(0, 1)
         grid.setAlignment(QtCore.Qt.AlignLeft)
         
     def updatePrintDigits(self,digits):
