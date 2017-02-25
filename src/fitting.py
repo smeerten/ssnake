@@ -42,6 +42,14 @@ import time
 pi = np.pi
 stopDict = {} #Global dictionary with stopping commands for fits
 
+
+def isfloat(value):
+  try:
+    float(value)
+    return True
+  except ValueError:
+    return False
+
 ##############################################################################
 def shiftConversion(Values,Type):
     #Calculates the chemical shift tensor based on:
@@ -2362,20 +2370,20 @@ class PeakDeconvFrame(Plot1DFrame):
                     axMult = 1.0 / (1000.0**self.current.axType)
             elif self.current.spec == 0:
                 axMult = 1000.0**self.current.axType
-            width = (2 * abs(float(self.rootwindow.paramframe.posEntries[self.pickNum].text()) - pos[1])) / axMult
-            self.rootwindow.paramframe.ampEntries[self.pickNum].setText("%#.3g" % (float(self.rootwindow.paramframe.ampEntries[self.pickNum].text()) * width))
-            self.rootwindow.paramframe.lorEntries[self.pickNum].setText("%#.3g" % abs(width))
+            width = (2 * abs(float(self.rootwindow.paramframe.entries['pos'][self.pickNum].text()) - pos[1])) / axMult
+            self.rootwindow.paramframe.entries['amp'][self.pickNum].setText("%#.3g" % (float(self.rootwindow.paramframe.entries['amp'][self.pickNum].text()) * width))
+            self.rootwindow.paramframe.entries['lor'][self.pickNum].setText("%#.3g" % abs(width))
             self.pickNum += 1
             self.pickWidth = False
         else:
-            self.rootwindow.paramframe.posEntries[self.pickNum].setText("%#.3g" % pos[1])
+            self.rootwindow.paramframe.entries['pos'][self.pickNum].setText("%#.3g" % pos[1])
             left = pos[0] - self.FITNUM
             if left < 0:
                 left = 0
             right = pos[0] + self.FITNUM
             if right >= len(self.data1D):
                 right = len(self.data1D) - 1
-            self.rootwindow.paramframe.ampEntries[self.pickNum].setText("%#.3g" % (pos[2] * np.pi * 0.5))
+            self.rootwindow.paramframe.entries['amp'][self.pickNum].setText("%#.3g" % (pos[2] * np.pi * 0.5))
             if self.pickNum < self.FITNUM:
                 self.rootwindow.paramframe.numExp.setCurrentIndex(self.pickNum)
                 self.rootwindow.paramframe.changeNum()
@@ -2446,20 +2454,22 @@ class PeakDeconvParamFrame(QtWidgets.QWidget):
         self.frame1.addWidget(self.pickTick, 1, 1)
         self.frame1.setColumnStretch(self.FITNUM, 1)
         self.frame1.setAlignment(QtCore.Qt.AlignTop)
+        self.ticks = {'bgrnd':[], 'slope':[], 'pos':[], 'amp':[], 'lor':[], 'gauss':[]}
+        self.entries = {'bgrnd':[], 'slope':[], 'pos':[], 'amp':[], 'lor':[], 'gauss':[]}
         self.frame2.addWidget(QLabel("Bgrnd:"), 0, 0, 1, 2)
-        self.bgrndTick = QtWidgets.QCheckBox('')
-        self.frame2.addWidget(self.bgrndTick, 1, 0)
-        self.bgrndEntry = QtWidgets.QLineEdit()
-        self.bgrndEntry.setAlignment(QtCore.Qt.AlignHCenter)
-        self.bgrndEntry.setText("0.0")
-        self.frame2.addWidget(self.bgrndEntry, 1, 1)
+        self.ticks['bgrnd'].append(QtWidgets.QCheckBox(''))
+        self.frame2.addWidget(self.ticks['bgrnd'][0], 1, 0)
+        self.entries['bgrnd'].append(QtWidgets.QLineEdit())
+        self.entries['bgrnd'][0].setAlignment(QtCore.Qt.AlignHCenter)
+        self.entries['bgrnd'][0].setText("0.0")
+        self.frame2.addWidget(self.entries['bgrnd'][0], 1, 1)
         self.frame2.addWidget(QLabel("Slope:"), 2, 0, 1, 2)
-        self.slopeTick = QtWidgets.QCheckBox('')
-        self.frame2.addWidget(self.slopeTick, 3, 0)
-        self.slopeEntry = QtWidgets.QLineEdit()
-        self.slopeEntry.setAlignment(QtCore.Qt.AlignHCenter)
-        self.slopeEntry.setText("0.0")
-        self.frame2.addWidget(self.slopeEntry, 3, 1)
+        self.ticks['slope'].append(QtWidgets.QCheckBox(''))
+        self.frame2.addWidget(self.ticks['slope'][0], 3, 0)
+        self.entries['slope'].append(QtWidgets.QLineEdit())
+        self.entries['slope'][0].setAlignment(QtCore.Qt.AlignHCenter)
+        self.entries['slope'][0].setText("0.0")
+        self.frame2.addWidget(self.entries['slope'][0], 3, 1)
         self.frame2.setColumnStretch(self.FITNUM, 1)
         self.frame2.setAlignment(QtCore.Qt.AlignTop)
         self.numExp = QtWidgets.QComboBox()
@@ -2472,35 +2482,14 @@ class PeakDeconvParamFrame(QtWidgets.QWidget):
         self.frame3.addWidget(QLabel("Gauss [Hz]:"), 1, 6, 1, 2)
         self.frame3.setColumnStretch(20, 1)
         self.frame3.setAlignment(QtCore.Qt.AlignTop)
-        self.posTicks = []
-        self.posEntries = []
-        self.ampTicks = []
-        self.ampEntries = []
-        self.lorTicks = []
-        self.lorEntries = []
-        self.gaussTicks = []
-        self.gaussEntries = []
+        names = ['pos', 'amp', 'lor', 'gauss']
         for i in range(self.FITNUM):
-            self.posTicks.append(QtWidgets.QCheckBox(''))
-            self.frame3.addWidget(self.posTicks[i], i + 2, 0)
-            self.posEntries.append(QtWidgets.QLineEdit())
-            self.posEntries[i].setAlignment(QtCore.Qt.AlignHCenter)
-            self.frame3.addWidget(self.posEntries[i], i + 2, 1)
-            self.ampTicks.append(QtWidgets.QCheckBox(''))
-            self.frame3.addWidget(self.ampTicks[i], i + 2, 2)
-            self.ampEntries.append(QtWidgets.QLineEdit())
-            self.ampEntries[i].setAlignment(QtCore.Qt.AlignHCenter)
-            self.frame3.addWidget(self.ampEntries[i], i + 2, 3)
-            self.lorTicks.append(QtWidgets.QCheckBox(''))
-            self.frame3.addWidget(self.lorTicks[i], i + 2, 4)
-            self.lorEntries.append(QtWidgets.QLineEdit())
-            self.lorEntries[i].setAlignment(QtCore.Qt.AlignHCenter)
-            self.frame3.addWidget(self.lorEntries[i], i + 2, 5)
-            self.gaussTicks.append(QtWidgets.QCheckBox(''))
-            self.frame3.addWidget(self.gaussTicks[i], i + 2, 6)
-            self.gaussEntries.append(QtWidgets.QLineEdit())
-            self.gaussEntries[i].setAlignment(QtCore.Qt.AlignHCenter)
-            self.frame3.addWidget(self.gaussEntries[i], i + 2, 7)
+            for j in range(len(names)):
+                self.ticks[names[j]].append(QtWidgets.QCheckBox(''))
+                self.frame3.addWidget(self.ticks[names[j]][i], i + 2, 2*j)
+                self.entries[names[j]].append(QtWidgets.QLineEdit())
+                self.entries[names[j]][i].setAlignment(QtCore.Qt.AlignHCenter)
+                self.frame3.addWidget(self.entries[names[j]][i], i + 2, 2*j+1)
         self.frame3Scroll.setMinimumWidth(content.sizeHint().width() + self.frame3Scroll.verticalScrollBar().sizeHint().width())
         self.frame3Scroll.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
         self.frame3Scroll.setWidget(content)
@@ -2514,30 +2503,19 @@ class PeakDeconvParamFrame(QtWidgets.QWidget):
 
     def reset(self):
         self.parent.pickNum = 0
-        self.bgrndEntry.setText("0.0")
-        self.bgrndTick.setChecked(True)
-        self.slopeEntry.setText("0.0")
-        self.slopeTick.setChecked(True)
+        for name in ['bgrnd', 'slope']:
+            self.entries[name][0].setText("0.0")
+            self.ticks[name][0].setChecked(True)
         self.numExp.setCurrentIndex(0)
         self.pickTick.setChecked(True)
+        defaults = {'pos':("0.0",False), 'amp':("1.0",False), 'lor':("1.0",False), 'gauss':("0.0",True)}
         for i in range(self.FITNUM):
-            self.posEntries[i].setText("0.0")
-            self.posTicks[i].setChecked(False)
-            self.ampEntries[i].setText("1.0")
-            self.ampTicks[i].setChecked(False)
-            self.lorEntries[i].setText("1.0")
-            self.lorTicks[i].setChecked(False)
-            self.gaussEntries[i].setText("0.0")
-            self.gaussTicks[i].setChecked(True)
-            if i > 0:
-                self.posTicks[i].hide()
-                self.posEntries[i].hide()
-                self.ampTicks[i].hide()
-                self.ampEntries[i].hide()
-                self.lorTicks[i].hide()
-                self.lorEntries[i].hide()
-                self.gaussTicks[i].hide()
-                self.gaussEntries[i].hide()
+            for name in defaults.keys():
+                self.entries[name][i].setText(defaults[name][0])
+                self.ticks[name][i].setChecked(defaults[name][1])
+                if i > 0:
+                    self.ticks[name][i].hide()
+                    self.entries[name][i].hide()
         self.togglePick()
         self.parent.pickWidth = False
         self.parent.showPlot()
@@ -2545,112 +2523,70 @@ class PeakDeconvParamFrame(QtWidgets.QWidget):
     def changeNum(self, *args):
         val = self.numExp.currentIndex() + 1
         for i in range(self.FITNUM):
-            if i < val:
-                self.posTicks[i].show()
-                self.posEntries[i].show()
-                self.ampTicks[i].show()
-                self.ampEntries[i].show()
-                self.lorTicks[i].show()
-                self.lorEntries[i].show()
-                self.gaussTicks[i].show()
-                self.gaussEntries[i].show()
-            else:
-                self.posTicks[i].hide()
-                self.posEntries[i].hide()
-                self.ampTicks[i].hide()
-                self.ampEntries[i].hide()
-                self.lorTicks[i].hide()
-                self.lorEntries[i].hide()
-                self.gaussTicks[i].hide()
-                self.gaussEntries[i].hide()
+            for name in ['pos', 'amp', 'lor', 'gauss']:
+                if i < val:
+                    self.ticks[name][i].show()
+                    self.entries[name][i].show()
+                else:
+                    self.ticks[name][i].hide()
+                    self.entries[name][i].hide()
 
     def togglePick(self):
         self.parent.togglePick(self.pickTick.isChecked())
 
     def checkInputs(self):
         numExp = self.numExp.currentIndex() + 1
-        inp = safeEval(self.bgrndEntry.text())
-        if inp is None:
-            return False
-        self.bgrndEntry.setText('%#.3g' % inp)
-        inp = safeEval(self.slopeEntry.text())
-        if inp is None:
-            return False
-        self.slopeEntry.setText('%#.3g' % inp)
+        for name in ['bgrnd', 'slope']:
+            inp = safeEval(self.entries[name][0].text())
+            if inp is None:
+                return False
+            elif isinstance(inp, float):
+                self.entries[name][0].setText('%#.3g' % inp)
+            else:
+                self.entries[name][0].setText(str(inp))
         for i in range(numExp):
-            inp = safeEval(self.posEntries[i].text())
-            if inp is None:
-                return False
-            self.posEntries[i].setText('%#.3g' % inp)
-            inp = safeEval(self.ampEntries[i].text())
-            if inp is None:
-                return False
-            self.ampEntries[i].setText('%#.3g' % inp)
-            inp = safeEval(self.lorEntries[i].text())
-            if inp is None:
-                return False
-            self.lorEntries[i].setText('%#.3g' % inp)
-            inp = safeEval(self.gaussEntries[i].text())
-            if inp is None:
-                return False
-            self.gaussEntries[i].setText('%#.3g' % inp)
+            for name in ['pos', 'amp', 'lor', 'gauss']:
+                inp = safeEval(self.entries[name][i].text())
+                if inp is None:
+                    return False
+                elif isinstance(inp, float):
+                    self.entries[name][i].setText('%#.3g' % inp)
+                else:
+                    self.entries[name][i].setText(str(inp))
         return True
-
+    
     def fit(self, *args):
         if not self.checkInputs():
             self.rootwindow.mainProgram.dispMsg("One of the inputs is not valid")
             return
-        struc = []
+        struc = {'bgrnd':[], 'slope':[], 'pos':[], 'amp':[], 'lor':[], 'gauss':[]}
         guess = []
         argu = []
         numExp = self.numExp.currentIndex() + 1
-        outPos = np.zeros(numExp)
-        outAmp = np.zeros(numExp)
-        outWidth = np.zeros(numExp)
-        outGauss = np.zeros(numExp)
-        if not self.bgrndTick.isChecked():
-            guess.append(float(self.bgrndEntry.text()))
-            struc.append(True)
-        else:
-            outBgrnd = float(self.bgrndEntry.text())
-            argu.append(outBgrnd)
-            struc.append(False)
-        if not self.slopeTick.isChecked():
-            guess.append(float(self.slopeEntry.text()))
-            struc.append(True)
-        else:
-            outSlope = float(self.slopeEntry.text())
-            argu.append(outSlope)
-            struc.append(False)
+        out = {'bgrnd': [0.0], 'slope':[0.0], 'pos':np.zeros(numExp), 'amp':np.zeros(numExp), 'lor':np.zeros(numExp), 'gauss':np.zeros(numExp)}
+        for name in ['bgrnd', 'slope']:
+            if isfloat(self.entries[name][0].text()):
+                if not self.ticks[name][0].isChecked():
+                    guess.append(float(self.entries[name][0].text()))
+                    struc[name].append((1, len(guess)-1))
+                else:
+                    out[name][0] = float(self.entries[name][0].text())
+                    argu.append(out[name][0])
+                    struc[name].append((0, len(argu)-1))
+            else:
+                struc[name].append((2, safeEval(self.entries[name][0].text())))
         for i in range(numExp):
-            if not self.posTicks[i].isChecked():
-                guess.append(float(self.posEntries[i].text()))
-                struc.append(True)
-            else:
-                outPos[i] = float(self.posEntries[i].text())
-                argu.append(outPos[i])
-                struc.append(False)
-            if not self.ampTicks[i].isChecked():
-                guess.append(float(self.ampEntries[i].text()))
-                struc.append(True)
-            else:
-                outAmp[i] = float(self.ampEntries[i].text())
-                argu.append(outAmp[i])
-                struc.append(False)
-            if not self.lorTicks[i].isChecked():
-                guess.append(abs(float(self.lorEntries[i].text())))
-                struc.append(True)
-            else:
-                outWidth[i] = abs(float(self.lorEntries[i].text()))
-                argu.append(outWidth[i])
-                struc.append(False)
-            if not self.gaussTicks[i].isChecked():
-                guess.append(abs(float(self.gaussEntries[i].text())))
-                struc.append(True)
-            else:
-                outGauss[i] = abs(float(self.gaussEntries[i].text()))
-                argu.append(outGauss[i])
-                struc.append(False)
+            for name in ['pos', 'amp', 'lor', 'gauss']:
+                if isfloat(self.entries[name][i].text()):
+                    if not self.ticks[name][i].isChecked():
+                        guess.append(float(self.entries[name][i].text()))
+                        struc[name].append((1, len(guess)-1))
+                    else:
+                        out[name][i] = float(self.entries[name][i].text())
+                        argu.append(out[name][i])
+                        struc[name].append((0, len(argu)-1))
+                else:
+                    struc[name].append((2, safeEval(self.entries[name][i].text())))
         args = (numExp, struc, argu, self.parent.current.sw, self.axAdd, self.axMult)
         self.queue = multiprocessing.Queue()
         self.process1 = multiprocessing.Process(target=peakDeconvmpFit, args=(self.parent.xax, self.parent.data1D, guess, args, self.queue))
@@ -2669,34 +2605,28 @@ class PeakDeconvParamFrame(QtWidgets.QWidget):
         if fitVal is None:
             self.rootwindow.mainProgram.dispMsg('Optimal parameters not found')
             return
-        counter = 0
-        if struc[0]:
-            self.bgrndEntry.setText('%#.3g' % fitVal[0][counter])
-            outBgrnd = fitVal[0][counter]
-            counter += 1
-        if struc[1]:
-            self.slopeEntry.setText('%#.3g' % fitVal[0][counter])
-            outSlope = fitVal[0][counter]
-            counter += 1
+        for name in ['bgrnd', 'slope']:
+            if struc[name][0][0] == 1:
+                out[name][0] = fitVal[0][struc[name][0][1]]
+                self.entries[name][0].setText('%#.3g' % out[name][0])
         for i in range(numExp):
-            if struc[4 * i + 2]:
-                self.posEntries[i].setText('%#.3g' % fitVal[0][counter])
-                outPos[i] = fitVal[0][counter]
-                counter += 1
-            if struc[4 * i + 3]:
-                self.ampEntries[i].setText('%#.3g' % fitVal[0][counter])
-                outAmp[i] = fitVal[0][counter]
-                counter += 1
-            if struc[4 * i + 4]:
-                self.lorEntries[i].setText('%#.3g' % abs(fitVal[0][counter]))
-                outWidth[i] = abs(fitVal[0][counter])
-                counter += 1
-            if struc[4 * i + 5]:
-                self.gaussEntries[i].setText('%#.3g' % abs(fitVal[0][counter]))
-                outGauss[i] = abs(fitVal[0][counter])
-                counter += 1
-        self.disp(outBgrnd, outSlope, outAmp, outPos, outWidth, outGauss)
-
+            for name in ['pos', 'amp', 'lor', 'gauss']:
+                if struc[name][i][0] == 1:
+                    out[name][i] = fitVal[0][struc[name][i][1]]
+                    self.entries[name][i].setText('%#.3g' % out[name][i])
+        for name in ['bgrnd', 'slope']:
+            if struc[name][0][0] == 2:
+                out[name][0] = abs(fitVal[0][struc[struc[name][0][1][0]][struc[name][0][1][1]][1]])
+        for i in range(numExp):
+            for name in ['pos', 'amp', 'lor', 'gauss']:
+                if struc[name][i][0] == 2:
+                    altStruc = struc[name][i][1]
+                    if struc[altStruc[0]][altStruc[1]][0] == 1:
+                        out[name][i] = abs(fitVal[0][struc[altStruc[0]][altStruc[1]][1]])
+                    else:
+                        out[name][i] = out[altStruc[0]][altStruc[1]]
+        self.disp(out['bgrnd'][0], out['slope'][0], out['amp'], out['pos'], out['lor'], out['gauss'])
+        
     def stopMP(self, *args):
         if self.queue is not None:
             self.process1.terminate()
@@ -2715,57 +2645,34 @@ class PeakDeconvParamFrame(QtWidgets.QWidget):
         if not self.checkInputs():
             self.rootwindow.mainProgram.dispMsg("One of the inputs is not valid")
             return
-        struc = []
+        struc = {'bgrnd':[], 'slope':[], 'pos':[], 'amp':[], 'lor':[], 'gauss':[]}
         guess = []
         argu = []
         numExp = self.numExp.currentIndex() + 1
-        outPos = np.zeros(numExp)
-        outAmp = np.zeros(numExp)
-        outWidth = np.zeros(numExp)
-        outGauss = np.zeros(numExp)
-        if not self.bgrndTick.isChecked():
-            guess.append(float(self.bgrndEntry.text()))
-            struc.append(True)
-        else:
-            outBgrnd = float(self.bgrndEntry.text())
-            argu.append(outBgrnd)
-            struc.append(False)
-        if not self.slopeTick.isChecked():
-            guess.append(float(self.slopeEntry.text()))
-            struc.append(True)
-        else:
-            outSlope = float(self.slopeEntry.text())
-            argu.append(outSlope)
-            struc.append(False)
+        out = {'bgrnd': [0.0], 'slope':[0.0], 'pos':np.zeros(numExp), 'amp':np.zeros(numExp), 'lor':np.zeros(numExp), 'gauss':np.zeros(numExp)}
+        for name in ['bgrnd', 'slope']:
+            if isfloat(self.entries[name][0].text()):
+                if not self.ticks[name][0].isChecked():
+                    guess.append(float(self.entries[name][0].text()))
+                    struc[name].append((1, len(guess)-1))
+                else:
+                    out[name][0] = float(self.entries[name][0].text())
+                    argu.append(out[name][0])
+                    struc[name].append((0, len(argu)-1))
+            else:
+                struc[name].append((2, safeEval(self.entries[name][0].text())))
         for i in range(numExp):
-            if not self.posTicks[i].isChecked():
-                guess.append(float(self.posEntries[i].text()))
-                struc.append(True)
-            else:
-                outPos[i] = float(self.posEntries[i].text())
-                argu.append(outPos[i])
-                struc.append(False)
-            if not self.ampTicks[i].isChecked():
-                guess.append(float(self.ampEntries[i].text()))
-                struc.append(True)
-            else:
-                outAmp[i] = float(self.ampEntries[i].text())
-                argu.append(outAmp[i])
-                struc.append(False)
-            if not self.lorTicks[i].isChecked():
-                guess.append(abs(float(self.lorEntries[i].text())))
-                struc.append(True)
-            else:
-                outWidth[i] = abs(float(self.lorEntries[i].text()))
-                argu.append(outWidth[i])
-                struc.append(False)
-            if not self.gaussTicks[i].isChecked():
-                guess.append(abs(float(self.gaussEntries[i].text())))
-                struc.append(True)
-            else:
-                outGauss[i] = abs(float(self.gaussEntries[i].text()))
-                argu.append(outGauss[i])
-                struc.append(False)
+            for name in ['pos', 'amp', 'lor', 'gauss']:
+                if isfloat(self.entries[name][i].text()):
+                    if not self.ticks[name][i].isChecked():
+                        guess.append(float(self.entries[name][i].text()))
+                        struc[name].append((1, len(guess)-1))
+                    else:
+                        out[name][i] = float(self.entries[name][i].text())
+                        argu.append(out[name][i])
+                        struc[name].append((0, len(argu)-1))
+                else:
+                    struc[name].append((2, safeEval(self.entries[name][i].text())))
         args = (numExp, struc, argu, self.parent.current.sw, self.axAdd, self.axMult)
         fullData = self.parent.current.data.data
         axes = self.parent.current.axes
@@ -2792,39 +2699,39 @@ class PeakDeconvParamFrame(QtWidgets.QWidget):
         returnVal = self.queue.get(timeout=2)
         self.stopMP()
         for fitVal in returnVal:
-            counter = 0
-            if struc[0]:
-                outBgrnd = fitVal[0][counter]
-                counter += 1
-            if struc[1]:
-                outSlope = fitVal[0][counter]
-                counter += 1
+            for name in ['bgrnd', 'slope']:
+                if struc[name][0][0] == 1:
+                    out[name][0] = fitVal[0][struc[name][0][1]]
+                    self.entries[name][0].setText('%#.3g' % out[name][0])
             for i in range(numExp):
-                if struc[4 * i + 2]:
-                    outPos[i] = fitVal[0][counter]
-                    counter += 1
-                if struc[4 * i + 3]:
-                    outAmp[i] = fitVal[0][counter]
-                    counter += 1
-                if struc[4 * i + 4]:
-                    outWidth[i] = abs(fitVal[0][counter])
-                    counter += 1
-                if struc[4 * i + 5]:
-                    outGauss[i] = abs(fitVal[0][counter])
-                    counter += 1
+                for name in ['pos', 'amp', 'lor', 'gauss']:
+                    if struc[name][i][0] == 1:
+                        out[name][i] = fitVal[0][struc[name][i][1]]
+                        self.entries[name][i].setText('%#.3g' % out[name][i])
+            for name in ['bgrnd', 'slope']:
+                if struc[name][0][0] == 2:
+                    out[name][0] = abs(fitVal[0][struc[struc[name][0][1][0]][struc[name][0][1][1]][1]])
+            for i in range(numExp):
+                for name in ['pos', 'amp', 'lor', 'gauss']:
+                    if struc[name][i][0] == 2:
+                        altStruc = struc[name][i][1]
+                        if struc[altStruc[0]][altStruc[1]][0] == 1:
+                            out[name][i] = abs(fitVal[0][struc[altStruc[0]][altStruc[1]][1]])
+                        else:
+                            out[name][i] = out[altStruc[0]][altStruc[1]]
             outputArray = []
             if outputs[0]:
-                outputArray = np.concatenate((outputArray, [outBgrnd]))
+                outputArray = np.concatenate((outputArray, out['bgrnd']))
             if outputs[1]:
-                outputArray = np.concatenate((outputArray, [outSlope]))
+                outputArray = np.concatenate((outputArray, out['slope']))
             if outputs[2]:
-                outputArray = np.concatenate((outputArray, outPos))
+                outputArray = np.concatenate((outputArray, out['pos']))
             if outputs[3]:
-                outputArray = np.concatenate((outputArray, outAmp))
+                outputArray = np.concatenate((outputArray, out['amp']))
             if outputs[4]:
-                outputArray = np.concatenate((outputArray, outWidth))
+                outputArray = np.concatenate((outputArray, out['lor']))
             if outputs[5]:
-                outputArray = np.concatenate((outputArray, outGauss))
+                outputArray = np.concatenate((outputArray, out['gauss']))
             outputData[counter2] = outputArray
             counter2 += 1
         newShape = np.concatenate((np.array(dataShape2), [numOutputs]))
@@ -2832,26 +2739,35 @@ class PeakDeconvParamFrame(QtWidgets.QWidget):
 
     def sim(self, store=False):
         numExp = self.numExp.currentIndex() + 1
-        outPos = np.zeros(numExp)
-        outAmp = np.zeros(numExp)
-        outWidth = np.zeros(numExp)
-        outGauss = np.zeros(numExp)
-        outBgrnd = safeEval(self.bgrndEntry.text())
-        outSlope = safeEval(self.slopeEntry.text())
-        if outBgrnd is None or outSlope is None:
-            self.rootwindow.mainProgram.dispMsg("One of the inputs is not valid")
-            return
-        for i in range(numExp):
-            outPos[i] = safeEval(self.posEntries[i].text())
-            outAmp[i] = safeEval(self.ampEntries[i].text())
-            outWidth[i] = abs(safeEval(self.lorEntries[i].text()))
-            outGauss[i] = abs(safeEval(self.gaussEntries[i].text()))
-            if not np.isfinite([outPos[i], outAmp[i], outWidth[i], outGauss[i]]).all():
+        out = {'bgrnd': [0.0], 'slope':[0.0], 'pos':np.zeros(numExp), 'amp':np.zeros(numExp), 'lor':np.zeros(numExp), 'gauss':np.zeros(numExp)}
+        for name in ['bgrnd', 'slope']:
+            inp = safeEval(self.entries[name][0].text())
+            if inp is None:
                 self.rootwindow.mainProgram.dispMsg("One of the inputs is not valid")
                 return
-            self.lorEntries[i].setText('%#.3g' % outWidth[i])
-            self.gaussEntries[i].setText('%#.3g' % outGauss[i])
-        self.disp(outBgrnd, outSlope, outAmp, outPos, outWidth, outGauss, store)
+            if isinstance(inp, (float, int)):
+                out[name][0] = inp
+        for i in range(numExp):
+            for name in ['pos', 'amp', 'lor', 'gauss']:
+                inp = safeEval(self.entries[name][i].text())
+                if isinstance(inp, (float, int)):
+                    out[name][i] = inp
+                    
+        for name in ['bgrnd', 'slope']:
+            inp = safeEval(self.entries[name][0].text())
+            if isinstance(inp, tuple):
+                out[name][0] = out[inp[0]][inp[1]]
+        for i in range(numExp):
+            for name in ['pos', 'amp', 'lor', 'gauss']:
+                inp = safeEval(self.entries[name][i].text())
+                if isinstance(inp, tuple):
+                    out[name][i] = out[inp[0]][inp[1]]
+                if not np.isfinite(out[name][i]):
+                    self.rootwindow.mainProgram.dispMsg("One of the inputs is not valid")
+                    return
+            out['lor'][i] = abs(out['lor'][i])
+            out['gauss'][i] = abs(out['gauss'][i])
+        self.disp(out['bgrnd'][0], out['slope'][0], out['amp'], out['pos'], out['lor'], out['gauss'], store)
 
     def disp(self, outBgrnd, outSlope, outAmp, outPos, outWidth, outGauss, store=False):
         tmpx = self.parent.xax
@@ -2913,48 +2829,29 @@ def peakDeconvfitFunc(param, args):
     axAdd = args[4]
     axMult = args[5]
     testFunc = np.zeros(len(x))
-    if struc[0]:
-        bgrnd = param[0]
-        param = np.delete(param, [0])
-    else:
-        bgrnd = argu[0]
-        argu = np.delete(argu, [0])
-    if struc[1]:
-        slope = param[0]
-        param = np.delete(param, [0])
-    else:
-        slope = argu[0]
-        argu = np.delete(argu, [0])
+    parameters = {'bgrnd':0.0, 'slope':0.0, 'pos':0.0, 'amp':0.0, 'lor':0.0, 'gauss':0.0}
+    for name in ['bgrnd', 'slope']:
+        if struc[name][0][0] == 1:
+            parameters[name] = param[struc[name][0][1]]
+        elif struc[name][0][0] == 0:
+            parameters[name] = argu[struc[name][0][1]]
     for i in range(numExp):
-        if struc[4 * i + 2]:
-            pos = param[0]
-            param = np.delete(param, [0])
-        else:
-            pos = argu[0]
-            argu = np.delete(argu, [0])
-        if struc[4 * i + 3]:
-            amp = param[0]
-            param = np.delete(param, [0])
-        else:
-            amp = argu[0]
-            argu = np.delete(argu, [0])
-        if struc[4 * i + 4]:
-            width = abs(param[0])
-            param = np.delete(param, [0])
-        else:
-            width = argu[0]
-            argu = np.delete(argu, [0])
-        if struc[4 * i + 5]:
-            gauss = abs(param[0])
-            param = np.delete(param, [0])
-        else:
-            gauss = argu[0]
-            argu = np.delete(argu, [0])
+        for name in ['pos', 'amp', 'lor', 'gauss']:
+            if struc[name][i][0] == 1:
+                parameters[name] = param[struc[name][i][1]]
+            elif struc[name][i][0] == 0:
+                parameters[name] = argu[struc[name][i][1]]
+            else:
+                altStruc = struc[name][i][1]
+                if struc[altStruc[0]][altStruc[1]][0] == 1:
+                    parameters[name] = param[struc[altStruc[0]][altStruc[1]][1]]
+                elif struc[altStruc[0]][altStruc[1]][0] == 0:
+                    parameters[name] = argu[struc[altStruc[0]][altStruc[1]][1]]
         t = np.arange(len(x)) / sw
-        timeSignal = np.exp(1j * 2 * np.pi * t * (pos / axMult - axAdd)) * np.exp(-np.pi * width * t) * np.exp(-((np.pi * gauss * t)**2) / (4 * np.log(2))) * 2 / sw
+        timeSignal = np.exp(1j * 2 * np.pi * t * (parameters['pos'] / axMult - axAdd)) * np.exp(-np.pi * parameters['lor'] * t) * np.exp(-((np.pi * parameters['gauss'] * t)**2) / (4 * np.log(2))) * 2 / sw
         timeSignal[0] = timeSignal[0] * 0.5
-        testFunc += amp * np.real(np.fft.fftshift(np.fft.fft(timeSignal)))
-    testFunc += bgrnd + slope * x
+        testFunc += parameters['amp'] * np.real(np.fft.fftshift(np.fft.fft(timeSignal)))
+    testFunc += parameters['bgrnd'] + parameters['slope'] * x
     return testFunc
 
 ##############################################################################
