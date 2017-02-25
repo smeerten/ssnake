@@ -7119,7 +7119,12 @@ class aboutWindow(QtWidgets.QWidget):
         
         self.license = QtWidgets.QTextEdit(self)
         self.license.setReadOnly(True)
-        self.license.setText()
+        licenseText = ''
+        with open(os.path.dirname(os.path.realpath(__file__)) + os.path.sep + 'licenseHtml.txt') as f:
+            licenseTextTemp = f.read().split('\n')
+        for line in licenseTextTemp:
+            licenseText = licenseText + line + ' '
+        self.license.setHtml(licenseText)
         
         pythonVersion = sys.version
         pythonVersion = pythonVersion[:pythonVersion.index(' ')]
@@ -7142,10 +7147,10 @@ class aboutWindow(QtWidgets.QWidget):
         
         self.tabs.addTab(self.text, 'Version') 
         self.tabs.addTab(self.license, 'License') 
-        grid.addWidget(self.logo, 0, 0)
-        grid.addWidget(self.tabs, 1, 0)
+        grid.addWidget(self.logo, 0, 0, 1, 3, QtCore.Qt.AlignHCenter)
+        grid.addWidget(self.tabs, 1, 0, 1, 3)
         closebutton = QtWidgets.QPushButton("Close")
-        grid.addWidget(closebutton, 12, 0)
+        grid.addWidget(closebutton, 12, 1, 1, 1)
         closebutton.clicked.connect(self.closeEvent)
 
         self.setLayout(grid)
