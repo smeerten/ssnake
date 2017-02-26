@@ -7145,8 +7145,14 @@ class aboutWindow(QtWidgets.QWidget):
         '<br>PyQt ' + PYQT_VERSION_STR + 
         '<br>Qt ' + QT_VERSION_STR )
         
+        self.thanks = QtWidgets.QTextEdit(self)
+        self.thanks.setReadOnly(True)
+        self.thanks.setHtml('Koen Tijssen')
+        
         self.tabs.addTab(self.text, 'Version') 
+        self.tabs.addTab(self.thanks, 'Thanks') 
         self.tabs.addTab(self.license, 'License') 
+        
         grid.addWidget(self.logo, 0, 0, 1, 3, QtCore.Qt.AlignHCenter)
         grid.addWidget(self.tabs, 1, 0, 1, 3)
         closebutton = QtWidgets.QPushButton("Close")
@@ -7154,6 +7160,7 @@ class aboutWindow(QtWidgets.QWidget):
         closebutton.clicked.connect(self.closeEvent)
 
         self.setLayout(grid)
+        self.resize(550, 700)
         self.show()
 
     def closeEvent(self):
