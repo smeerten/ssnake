@@ -1291,6 +1291,7 @@ class MainProgram(QtWidgets.QMainWindow):
             elif filename.endswith('.dx') or filename.endswith('.jdx') or filename.endswith('.jcamp'):#JCAMP format
                 self.loading(10, filePath)
                 return returnVal
+            fileName = filePath
             filePath = os.path.dirname(filePath)
             returnVal = 1
         direc = filePath
@@ -1317,6 +1318,8 @@ class MainProgram(QtWidgets.QMainWindow):
             if len(files2D) != 0 or len(files1D) != 0:
                 self.loading(3, filePath,realpath=realpath)
                 return returnVal
+        else: #If not recognised, load as ascii
+            self.loading(11, fileName)
 
     def dataFromFit(self, data, filePath, freq, sw, spec, wholeEcho, ref, xaxArray, axes):
         name = self.askName()
@@ -1381,6 +1384,8 @@ class MainProgram(QtWidgets.QMainWindow):
             masterData = self.LoadJEOLDelta(filePath, name)
         elif num == 10:
             masterData = self.LoadJCAMP(filePath, name)   
+        elif num == 11:
+            masterData = self.LoadAscii(filePath, name) 
         if returnBool:
             return masterData
         else:
@@ -1495,6 +1500,20 @@ class MainProgram(QtWidgets.QMainWindow):
             return
         return masterData
         
+    def LoadAscii(self, filePath, name=''):
+        dialog = AsciiLoadWindow()
+        if dialog.exec_():
+            if dialog.closed:
+                return
+            else:
+                try:
+                    masterData = LF.LoadAscii(filePath, name, dialog.dataDimension, dialog.dataSpec, dialog.dataOrder)
+                    masterData.msgHandler = lambda msg: self.dispMsg(msg)
+                except:
+                    self.dispMsg("Error on loading ASCII data",'red')
+                return masterData
+            
+       
     def saveSimpsonFile(self):
         self.mainWindow.get_mainWindow().SaveSimpsonFile()
 
@@ -2967,6 +2986,34 @@ class TextFrame(QtWidgets.QScrollArea):
         else:
             self.father.current.peakPick = True
 
+#################################################################################
+class AsciiLoadWindow(QtGui.QDialog):
+
+    def __init__(self):
+        QtWidgets.QWidget.__init__(self)
+        self.setWindowFlags(QtCore.Qt.Window | QtCore.Qt.Tool)
+        self.dataDimension = 1
+        self.dataSpec = False
+        self.dataOrder = 'XRI'
+        self.closed = False
+        grid = QtWidgets.QGridLayout(self)
+        cancelButton = QtWidgets.QPushButton("&Cancel")
+        cancelButton.clicked.connect(self.closeEvent)
+        grid.addWidget(cancelButton, 1, 0)
+        okButton = QtWidgets.QPushButton("&Ok")
+        okButton.clicked.connect(self.applyAndClose)
+        grid.addWidget(okButton, 1, 1)
+        
+        self.show()
+
+    def closeEvent(self, *args):
+        self.closed = True
+        self.accept()
+        self.deleteLater()
+
+    def applyAndClose(self):
+        self.accept()
+        self.deleteLater()
 #################################################################################
 
 
