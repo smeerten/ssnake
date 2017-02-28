@@ -6575,7 +6575,7 @@ class aboutWindow(QtWidgets.QWidget):
         
         self.thanks = QtWidgets.QTextEdit(self)
         self.thanks.setReadOnly(True)
-        self.thanks.setHtml('Koen Tijssen')
+        self.thanks.setHtml('<p><b>The ssNake team wishes to thank:</b></p>Koen Tijssen<br>Ole Brauckmann')
         
         self.tabs.addTab(self.text, 'Version') 
         self.tabs.addTab(self.thanks, 'Thanks') 
