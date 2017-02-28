@@ -910,12 +910,13 @@ def loadJCAMP(filePath,name):
 
 def LoadAscii(filePath, name, dataDimension, dataSpec, dataOrder):
     freq = 0.0
-    if dataOrder == 'XRI':
-        matrix = np.genfromtxt(filePath,dtype=None)
-        data = matrix[:,1] + 1j * matrix[:,2]
-        if dataSpec == False:
-            sw = 1.0 / (matrix[1,0] - matrix[0,0])
-        masterData = sc.Spectrum(name, data, (11, filePath), [freq], [sw], [dataSpec], ref = [None])
+    if dataDimension == 1:
+        if dataOrder == 'XRI':
+            matrix = np.genfromtxt(filePath,dtype=None)
+            data = matrix[:,1] + 1j * matrix[:,2]
+            if dataSpec == False:
+                sw = 1.0 / (matrix[1,0] - matrix[0,0])
+            masterData = sc.Spectrum(name, data, (11, filePath), [freq], [sw], [dataSpec], ref = [None])
     masterData.addHistory("ASCII data loaded from " + filePath)    
     return masterData
         

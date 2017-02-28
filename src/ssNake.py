@@ -2989,7 +2989,7 @@ class TextFrame(QtWidgets.QScrollArea):
 
 #################################################################################
 class AsciiLoadWindow(QtWidgets.QDialog):
-
+    dataOrders = ['XRI','XR','RI','XI']
     def __init__(self):
         QtWidgets.QWidget.__init__(self)
         self.setWindowFlags(QtCore.Qt.Window | QtCore.Qt.Tool)
@@ -2997,13 +2997,38 @@ class AsciiLoadWindow(QtWidgets.QDialog):
         self.dataSpec = False
         self.dataOrder = 'XRI'
         self.closed = False
+        self.setWindowTitle("Load ASCII")
         grid = QtWidgets.QGridLayout(self)
+        
+        grid.addWidget(wc.QLabel("# Dimensions:"), 1, 0)
+        self.numDims = QtWidgets.QSpinBox()
+        self.numDims.setMinimum(1)
+        self.numDims.setValue(1)
+        self.numDims.setMaximum(2)
+        grid.addWidget(self.numDims, 2, 0)
+        
+        grid.addWidget(wc.QLabel("Data Type:"), 3, 0)
+        
+        self.specGroup = QtWidgets.QButtonGroup(self)
+        self.timeButton = QtWidgets.QRadioButton('Time', parent=self)
+        self.timeButton.toggle()
+        self.specGroup.addButton(self.timeButton, 0)
+        grid.addWidget(self.timeButton, 4, 0)
+        self.freqButton = QtWidgets.QRadioButton('Frequency', parent=self)
+        self.specGroup.addButton(self.freqButton, 1)
+        grid.addWidget(self.freqButton, 4, 1)
+        
+        grid.addWidget(wc.QLabel("Data Order:"), 5, 0)
+        self.datOrderBox = QtWidgets.QComboBox()
+        self.datOrderBox.addItems(self.dataOrders)
+        grid.addWidget(self.datOrderBox, 6, 0)
+        
         cancelButton = QtWidgets.QPushButton("&Cancel")
         cancelButton.clicked.connect(self.closeEvent)
-        grid.addWidget(cancelButton, 1, 0)
+        grid.addWidget(cancelButton, 7, 0)
         okButton = QtWidgets.QPushButton("&Ok")
         okButton.clicked.connect(self.applyAndClose)
-        grid.addWidget(okButton, 1, 1)
+        grid.addWidget(okButton, 7, 1)
         
         self.show()
 
@@ -3013,6 +3038,12 @@ class AsciiLoadWindow(QtWidgets.QDialog):
         self.deleteLater()
 
     def applyAndClose(self):
+        self.dataDimension = self.numDims.value()
+        if self.timeButton.isChecked():
+           self.dataSpec = False
+        else:
+           self.dataSpec = True
+        self.dataOrder = self.dataOrders[ self.datOrderBox.currentIndex() ]
         self.accept()
         self.deleteLater()
 #################################################################################
