@@ -2987,7 +2987,7 @@ class TextFrame(QtWidgets.QScrollArea):
             self.father.current.peakPick = True
 
 #################################################################################
-class AsciiLoadWindow(QtGui.QDialog):
+class AsciiLoadWindow(QtWidgets.QDialog):
 
     def __init__(self):
         QtWidgets.QWidget.__init__(self)
