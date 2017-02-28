@@ -902,10 +902,11 @@ class MainProgram(QtWidgets.QMainWindow):
         self.macros[givenName] = []
         self.mainWindow.redoMacro = []
         self.mainWindow.currentMacro = givenName
-        action1 = self.macrolistmenu.addAction(givenName, lambda name=givenName: self.runMacro(name))
+        IconDirectory = os.path.dirname(os.path.realpath(__file__)) + os.path.sep + 'Icons' + os.path.sep
+        action1 = self.macrolistmenu.addAction(QtGui.QIcon(IconDirectory + 'run.png'),givenName, lambda name=givenName: self.runMacro(name))
         action2 = self.macrosavemenu.addAction(givenName, lambda name=givenName: self.saveMacro(name))
-        action3 = self.macrodeletemenu.addAction(givenName, lambda name=givenName: self.deleteMacro(name))
-        action4 = self.macrorenamemenu.addAction(givenName, lambda name=givenName: self.renameMacro(name))
+        action3 = self.macrodeletemenu.addAction(QtGui.QIcon(IconDirectory + 'delete.png'),givenName, lambda name=givenName: self.deleteMacro(name))
+        action4 = self.macrorenamemenu.addAction(QtGui.QIcon(IconDirectory + 'rename.png'),givenName, lambda name=givenName: self.renameMacro(name))
         self.macroActions[givenName] = [action1, action2, action3, action4]
         self.menuCheck()
 
