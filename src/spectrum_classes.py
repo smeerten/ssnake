@@ -3644,7 +3644,9 @@ class CurrentContour(Current1D):
         if  self.maxLevels > 1:
              self.maxLevels = 1
         self.minLevels = minLevels
-        self.root.sideframe.minLEntry.setText(str(self.minLevels*100))
+#        self.root.sideframe.minLEntry.setText(str(round(self.minLevels*100,6)))
+        self.root.sideframe.minLEntry.setText(format(self.minLevels*100,'.7g'))
+        
         self.root.sideframe.maxLEntry.setText(str(self.maxLevels*100))
         self.plotContour(updateOnly = True)
         

@@ -2459,7 +2459,7 @@ class SideFrame(QtWidgets.QScrollArea):
                 self.frame2.addWidget(self.multiValueLabel, 5, 0)
                 self.multiValueLabel.hide()
                 self.multiValue = QtWidgets.QLineEdit(self)
-                self.multiValue.setText(str(2.0))
+                self.multiValue.setText(str(1.5))
                 self.multiValue.returnPressed.connect(self.setContour)
                 self.frame2.addWidget(self.multiValue, 6, 0)
                 self.multiValue.hide()
@@ -2580,8 +2580,8 @@ class SideFrame(QtWidgets.QScrollArea):
         var3 = abs(float(safeEval(self.minLEntry.text())))
         if var3 > var2: #if wrong order, interchange
             var2, var3 = (var3 , var2)
-        self.maxLEntry.setText('%.1f' % var2)
-        self.minLEntry.setText('%.1f' % var3)
+        self.maxLEntry.setText(str(var2))
+        self.minLEntry.setText(str(var3))
         var4 = self.contourTypeEntry.currentIndex()
         if var4 == 0:
             self.multiValue.hide()
