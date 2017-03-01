@@ -1015,9 +1015,10 @@ class MainProgram(QtWidgets.QMainWindow):
     def referenceAdd(self, reffreq, name):
         self.referenceName.append(name)
         self.referenceValue.append(reffreq)  # List with saved refrence values
-        action1 = self.referencerunmenu.addAction(name, lambda name=name: self.referenceRun(name))
-        action2 = self.referencedeletemenu.addAction(name, lambda name=name: self.referenceRemove(name))
-        action3 = self.referencerenamemenu.addAction(name, lambda name=name: self.referenceRename(name))
+        IconDirectory = os.path.dirname(os.path.realpath(__file__)) + os.path.sep + 'Icons' + os.path.sep
+        action1 = self.referencerunmenu.addAction(QtGui.QIcon(IconDirectory + 'run.png'),name, lambda name=name: self.referenceRun(name))
+        action2 = self.referencedeletemenu.addAction(QtGui.QIcon(IconDirectory + 'delete.png'),name, lambda name=name: self.referenceRemove(name))
+        action3 = self.referencerenamemenu.addAction(QtGui.QIcon(IconDirectory + 'rename.png'),name, lambda name=name: self.referenceRename(name))
         action4 = self.referencesavemenu.addAction(name, lambda name=name: self.referenceSave(name))
         self.referenceActions[name] = [action1, action2, action3, action4]
         self.menuCheck()
@@ -1057,13 +1058,14 @@ class MainProgram(QtWidgets.QMainWindow):
         self.referencedeletemenu.removeAction(oldActions[1])
         self.referencerenamemenu.removeAction(oldActions[2])
         self.referencesavemenu.removeAction(oldActions[3])
-#        self.macrorenamemenu.removeAction(oldActions[3])
-        action1 = self.referencerunmenu.addAction(givenName, lambda name=givenName: self.referenceRun(name))
-        action2 = self.referencedeletemenu.addAction(givenName, lambda name=givenName: self.referenceRemove(name))
-        action3 = self.referencerenamemenu.addAction(givenName, lambda name=givenName: self.referenceRename(name))
+
+        IconDirectory = os.path.dirname(os.path.realpath(__file__)) + os.path.sep + 'Icons' + os.path.sep
+        action1 = self.referencerunmenu.addAction(QtGui.QIcon(IconDirectory + 'run.png'),givenName, lambda name=givenName: self.referenceRun(name))
+        action2 = self.referencedeletemenu.addAction(QtGui.QIcon(IconDirectory + 'delete.png'),givenName, lambda name=givenName: self.referenceRemove(name))
+        action3 = self.referencerenamemenu.addAction(QtGui.QIcon(IconDirectory + 'rename.png'),givenName, lambda name=givenName: self.referenceRename(name))
         action4 = self.referencesavemenu.addAction(givenName, lambda name=givenName: self.referenceSave(name))
 
-#        action4 = self.macrorenamemenu.addAction(givenName, lambda name=givenName: self.renameMacro(name))
+
         self.referenceActions[givenName] = [action1, action2, action3, action4]
         self.menuCheck()
 
@@ -1109,11 +1111,11 @@ class MainProgram(QtWidgets.QMainWindow):
             except:
                 self.dispMsg("Failed loading '" + filename + "' as reference.")
                 return
-
+        IconDirectory = os.path.dirname(os.path.realpath(__file__)) + os.path.sep + 'Icons' + os.path.sep
         self.referenceValue.append(freq)
-        action1 = self.referencerunmenu.addAction(givenName, lambda name=givenName: self.referenceRun(name))
-        action2 = self.referencedeletemenu.addAction(givenName, lambda name=givenName: self.referenceRemove(name))
-        action3 = self.referencerenamemenu.addAction(givenName, lambda name=givenName: self.referenceRename(name))
+        action1 = self.referencerunmenu.addAction(QtGui.QIcon(IconDirectory + 'run.png'),givenName, lambda name=givenName: self.referenceRun(name))
+        action2 = self.referencedeletemenu.addAction(QtGui.QIcon(IconDirectory + 'delete.png'),givenName, lambda name=givenName: self.referenceRemove(name))
+        action3 = self.referencerenamemenu.addAction(QtGui.QIcon(IconDirectory + 'rename.png'),givenName, lambda name=givenName: self.referenceRename(name))
         action4 = self.referencesavemenu.addAction(givenName, lambda name=givenName: self.referenceSave(name))
         self.referenceActions[givenName] = [action1, action2, action3, action4]
         self.menuCheck()
