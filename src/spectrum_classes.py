@@ -654,7 +654,7 @@ class Spectrum:
             newFxax = np.fft.fftshift(np.fft.fftfreq(tmpdata.shape[axes], 1.0 / tmpsw[axes]))[0]
             if tmpref[axes] is None:
                 tmpref[axes] = tmpfreq[axes]
-            tmpfreq[axes] = tmpfreq[axes] - newFxax + oldFxax
+            tmpfreq[axes] = tmpref[axes] - newFxax + oldFxax   
         newSpec = Spectrum(self.name,
                            tmpdata,
                            self.filePath,
