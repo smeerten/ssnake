@@ -908,15 +908,39 @@ def loadJCAMP(filePath,name):
     return masterData
 
 
-def LoadAscii(filePath, name, dataDimension, dataSpec, dataOrder):
+def LoadAscii(filePath, name, dataDimension, dataSpec, dataOrder, delimitor):
+    
     freq = 0.0
+    delimChar = ''
+    if delimitor == 'Tab':
+        delimChar = '\t'
+    elif delimitor == 'Space':
+        delimChar = ' '
+    elif delimitor == 'Comma':
+        delimChar = ','
+    else:
+        return
+    
+    matrix = np.genfromtxt(filePath,dtype=None, delimiter = delimChar)
     if dataDimension == 1:
         if dataOrder == 'XRI':
-            matrix = np.genfromtxt(filePath,dtype=None)
             data = matrix[:,1] + 1j * matrix[:,2]
             if dataSpec == False:
                 sw = 1.0 / (matrix[1,0] - matrix[0,0])
+            else:
+                sw = abs(matrix[0,0] - matrix[-1,0])/(matrix.shape[0] - 1) * matrix.shape[0]
             masterData = sc.Spectrum(name, data, (11, filePath), [freq], [sw], [dataSpec], ref = [None])
+    elif dataDimension == 2:
+        if dataOrder == 'XRI':
+            data = np.transpose(matrix[:,1::2] + 1j * matrix[:,2::2])
+            if dataSpec == False:
+                sw = 1.0 / (matrix[1,0] - matrix[0,0])
+            else:
+                sw = abs(matrix[0,0] - matrix[-1,0])/(matrix.shape[0] - 1) * matrix.shape[0]
+            masterData = sc.Spectrum(name, data, (11, filePath), [freq,freq], [1,sw], [False,dataSpec], ref = [None,None])
+    else:
+        return
+            
     masterData.addHistory("ASCII data loaded from " + filePath)    
     return masterData
         

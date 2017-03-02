@@ -1512,11 +1512,13 @@ class MainProgram(QtWidgets.QMainWindow):
                 return
             else:
                 try:
-                    masterData = LF.LoadAscii(filePath, name, dialog.dataDimension, dialog.dataSpec, dialog.dataOrder)
+                    masterData = LF.LoadAscii(filePath, name, dialog.dataDimension, dialog.dataSpec, dialog.dataOrder, dialog.delim)
                     masterData.msgHandler = lambda msg: self.dispMsg(msg)
+                    return masterData
                 except:
                     self.dispMsg("Error on loading ASCII data",'red')
-                return masterData
+                    return
+                
             
        
     def saveSimpsonFile(self):
@@ -2994,12 +2996,14 @@ class TextFrame(QtWidgets.QScrollArea):
 #################################################################################
 class AsciiLoadWindow(QtWidgets.QDialog):
     dataOrders = ['XRI','XR','RI','XI']
+    delimitors = ['Tab','Space','Comma']
     def __init__(self):
         QtWidgets.QWidget.__init__(self)
         self.setWindowFlags(QtCore.Qt.Window | QtCore.Qt.Tool)
         self.dataDimension = 1
         self.dataSpec = False
         self.dataOrder = 'XRI'
+        self.delim = 'Tab'
         self.closed = False
         self.setWindowTitle("Load ASCII")
         grid = QtWidgets.QGridLayout(self)
@@ -3009,7 +3013,7 @@ class AsciiLoadWindow(QtWidgets.QDialog):
         self.numDims.setMinimum(1)
         self.numDims.setValue(1)
         self.numDims.setMaximum(2)
-        grid.addWidget(self.numDims, 2, 0)
+        grid.addWidget(self.numDims, 2, 0, 1, 2)
         
         grid.addWidget(wc.QLabel("Data Type:"), 3, 0)
         
@@ -3025,14 +3029,19 @@ class AsciiLoadWindow(QtWidgets.QDialog):
         grid.addWidget(wc.QLabel("Data Order:"), 5, 0)
         self.datOrderBox = QtWidgets.QComboBox()
         self.datOrderBox.addItems(self.dataOrders)
-        grid.addWidget(self.datOrderBox, 6, 0)
+        grid.addWidget(self.datOrderBox, 6, 0, 1, 2)
+        
+        grid.addWidget(wc.QLabel("Data Delimiter:"), 7, 0)
+        self.datDelimBox = QtWidgets.QComboBox()
+        self.datDelimBox.addItems(self.delimitors)
+        grid.addWidget(self.datDelimBox, 8, 0, 1, 2)
         
         cancelButton = QtWidgets.QPushButton("&Cancel")
         cancelButton.clicked.connect(self.closeEvent)
-        grid.addWidget(cancelButton, 7, 0)
+        grid.addWidget(cancelButton, 13, 0)
         okButton = QtWidgets.QPushButton("&Ok")
         okButton.clicked.connect(self.applyAndClose)
-        grid.addWidget(okButton, 7, 1)
+        grid.addWidget(okButton, 13, 1)
         
         self.show()
 
@@ -3048,6 +3057,7 @@ class AsciiLoadWindow(QtWidgets.QDialog):
         else:
            self.dataSpec = True
         self.dataOrder = self.dataOrders[ self.datOrderBox.currentIndex() ]
+        self.delim = self.delimitors[ self.datDelimBox.currentIndex() ]
         self.accept()
         self.deleteLater()
 #################################################################################
