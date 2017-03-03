@@ -116,14 +116,22 @@ class Plot1DFrame:
                 else:
                     self.ax.set_xlim(self.xminlim, self.xmaxlim)
             else:
-                middle = (self.ymaxlim + self.yminlim) / 2.0
-                width = self.ymaxlim - self.yminlim
-                if modifiers == QtCore.Qt.ControlModifier:
-                    width = width * 0.6**event.step
+                if isinstance(self, (spectrum_classes.CurrentContour, spectrum_classes.CurrentStacked)):
+                    middle = (self.ymaxlim + self.yminlim) / 2.0
+                    width = self.ymaxlim - self.yminlim
+                    if modifiers == QtCore.Qt.ControlModifier:
+                        width = width * 0.6**event.step
+                    else:
+                        width = width * 0.9**event.step
+                    self.ymaxlim = middle + width / 2.0
+                    self.yminlim = middle - width / 2.0
                 else:
-                    width = width * 0.9**event.step
-                self.ymaxlim = middle + width / 2.0
-                self.yminlim = middle - width / 2.0
+                    if modifiers == QtCore.Qt.ControlModifier:
+                        self.ymaxlim *= 0.6**event.step
+                        self.yminlim *= 0.6**event.step
+                    else:
+                        self.ymaxlim *= 0.9**event.step
+                        self.yminlim *= 0.9**event.step
                 if self.spec2 > 0 and isinstance(self, spectrum_classes.CurrentContour):
                     self.ax.set_ylim(self.ymaxlim, self.yminlim)
                 else:
