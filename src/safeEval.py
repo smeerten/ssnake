@@ -31,7 +31,7 @@ def safeEval(inp, length=None, keywords=[]):
     env["slice"] = slice
     if length is not None:
         env["length"] = length
-    inp = re.sub('([0-9]+)[k,K]', '\g<1>*1024', str(inp))
+    inp = re.sub('([0-9]+)[kK]', '\g<1>*1024', str(inp))
     for i in keywords:
         if i in inp:
             return inp

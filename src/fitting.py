@@ -50,6 +50,13 @@ def isfloat(value):
   except ValueError:
     return False
 
+def checkLinkTuple(inp):
+    if len(inp) == 2:
+        inp += (1, 0)
+    elif len(inp) == 3:
+        inp += (0,)
+    return inp
+
 ##############################################################################
 def shiftConversion(Values,Type):
     #Calculates the chemical shift tensor based on:
@@ -2574,7 +2581,7 @@ class PeakDeconvParamFrame(QtWidgets.QWidget):
                     argu.append(out[name][0])
                     struc[name].append((0, len(argu)-1))
             else:
-                struc[name].append((2, safeEval(self.entries[name][0].text())))
+                struc[name].append((2, checkLinkTuple(safeEval(self.entries[name][0].text()))))
         for i in range(numExp):
             for name in ['pos', 'amp', 'lor', 'gauss']:
                 if isfloat(self.entries[name][i].text()):
@@ -2586,7 +2593,7 @@ class PeakDeconvParamFrame(QtWidgets.QWidget):
                         argu.append(out[name][i])
                         struc[name].append((0, len(argu)-1))
                 else:
-                    struc[name].append((2, safeEval(self.entries[name][i].text())))
+                    struc[name].append((2, checkLinkTuple(safeEval(self.entries[name][i].text()))))
         args = (numExp, struc, argu, self.parent.current.sw, self.axAdd, self.axMult)
         self.queue = multiprocessing.Queue()
         self.process1 = multiprocessing.Process(target=peakDeconvmpFit, args=(self.parent.xax, self.parent.data1D, guess, args, self.queue))
@@ -2660,7 +2667,7 @@ class PeakDeconvParamFrame(QtWidgets.QWidget):
                     argu.append(out[name][0])
                     struc[name].append((0, len(argu)-1))
             else:
-                struc[name].append((2, safeEval(self.entries[name][0].text())))
+                struc[name].append((2, checkLinkTuple(safeEval(self.entries[name][0].text()))))
         for i in range(numExp):
             for name in ['pos', 'amp', 'lor', 'gauss']:
                 if isfloat(self.entries[name][i].text()):
@@ -2672,7 +2679,7 @@ class PeakDeconvParamFrame(QtWidgets.QWidget):
                         argu.append(out[name][i])
                         struc[name].append((0, len(argu)-1))
                 else:
-                    struc[name].append((2, safeEval(self.entries[name][i].text())))
+                    struc[name].append((2, checkLinkTuple(safeEval(self.entries[name][i].text()))))
         args = (numExp, struc, argu, self.parent.current.sw, self.axAdd, self.axMult)
         fullData = self.parent.current.data.data
         axes = self.parent.current.axes
@@ -2752,16 +2759,17 @@ class PeakDeconvParamFrame(QtWidgets.QWidget):
                 inp = safeEval(self.entries[name][i].text())
                 if isinstance(inp, (float, int)):
                     out[name][i] = inp
-                    
         for name in ['bgrnd', 'slope']:
             inp = safeEval(self.entries[name][0].text())
             if isinstance(inp, tuple):
-                out[name][0] = out[inp[0]][inp[1]]
+                inp = checkLinkTuple(inp)
+                out[name][0] = inp[2]*out[inp[0]][inp[1]] + inp[3]
         for i in range(numExp):
             for name in ['pos', 'amp', 'lor', 'gauss']:
                 inp = safeEval(self.entries[name][i].text())
                 if isinstance(inp, tuple):
-                    out[name][i] = out[inp[0]][inp[1]]
+                    inp = checkLinkTuple(inp)
+                    out[name][i] = inp[2]*out[inp[0]][inp[1]] + inp[3]
                 if not np.isfinite(out[name][i]):
                     self.rootwindow.mainProgram.dispMsg("One of the inputs is not valid")
                     return
@@ -2835,6 +2843,12 @@ def peakDeconvfitFunc(param, args):
             parameters[name] = param[struc[name][0][1]]
         elif struc[name][0][0] == 0:
             parameters[name] = argu[struc[name][0][1]]
+        else:
+            altStruc = struc[name][0][1]
+            if struc[altStruc[0]][altStruc[1]][0] == 1:
+                parameters[name] = altStruc[2] * param[struc[altStruc[0]][altStruc[1]][1]] + altStruc[3]
+            elif struc[altStruc[0]][altStruc[1]][0] == 0:
+                parameters[name] = altStruc[2] * argu[struc[altStruc[0]][altStruc[1]][1]] + altStruc[3]
     for i in range(numExp):
         for name in ['pos', 'amp', 'lor', 'gauss']:
             if struc[name][i][0] == 1:
@@ -2844,9 +2858,9 @@ def peakDeconvfitFunc(param, args):
             else:
                 altStruc = struc[name][i][1]
                 if struc[altStruc[0]][altStruc[1]][0] == 1:
-                    parameters[name] = param[struc[altStruc[0]][altStruc[1]][1]]
+                    parameters[name] = altStruc[2] * param[struc[altStruc[0]][altStruc[1]][1]] + altStruc[3]
                 elif struc[altStruc[0]][altStruc[1]][0] == 0:
-                    parameters[name] = argu[struc[altStruc[0]][altStruc[1]][1]]
+                    parameters[name] = altStruc[2] * argu[struc[altStruc[0]][altStruc[1]][1]] + altStruc[3]
         t = np.arange(len(x)) / sw
         timeSignal = np.exp(1j * 2 * np.pi * t * (parameters['pos'] / axMult - axAdd)) * np.exp(-np.pi * parameters['lor'] * t) * np.exp(-((np.pi * parameters['gauss'] * t)**2) / (4 * np.log(2))) * 2 / sw
         timeSignal[0] = timeSignal[0] * 0.5
