@@ -1506,13 +1506,13 @@ class MainProgram(QtWidgets.QMainWindow):
         return masterData
         
     def LoadAscii(self, filePath, name=''):
-        dialog = AsciiLoadWindow()
+        dialog = AsciiLoadWindow(self, filePath)
         if dialog.exec_():
             if dialog.closed:
                 return
             else:
                 try:
-                    masterData = LF.LoadAscii(filePath, name, dialog.dataDimension, dialog.dataSpec, dialog.dataOrder, dialog.delim)
+                    masterData = LF.LoadAscii(filePath, name, dialog.dataDimension, dialog.dataSpec, dialog.dataOrder, dialog.delim, dialog.sw)
                     masterData.msgHandler = lambda msg: self.dispMsg(msg)
                     return masterData
                 except:
@@ -2994,28 +2994,32 @@ class TextFrame(QtWidgets.QScrollArea):
             self.father.current.peakPick = True
 
 #################################################################################
+
+
 class AsciiLoadWindow(QtWidgets.QDialog):
-    dataOrders = ['XRI','XR','RI','XI']
-    delimitors = ['Tab','Space','Comma']
-    def __init__(self):
-        QtWidgets.QWidget.__init__(self)
+    dataOrders = ['XRI','XR','XI','RI']
+    delimiters = ['Tab','Space','Comma']
+    def __init__(self, parent, file):
+        QtWidgets.QWidget.__init__(self, parent)
         self.setWindowFlags(QtCore.Qt.Window | QtCore.Qt.Tool)
+        self.father = parent
         self.dataDimension = 1
         self.dataSpec = False
         self.dataOrder = 'XRI'
+        self.sw = 0.0
         self.delim = 'Tab'
         self.closed = False
         self.setWindowTitle("Load ASCII")
         grid = QtWidgets.QGridLayout(self)
         
-        grid.addWidget(wc.QLabel("# Dimensions:"), 1, 0)
+        grid.addWidget(QtWidgets.QLabel("# Dimensions:"), 1, 0)
         self.numDims = QtWidgets.QSpinBox()
         self.numDims.setMinimum(1)
         self.numDims.setValue(1)
         self.numDims.setMaximum(2)
         grid.addWidget(self.numDims, 2, 0, 1, 2)
         
-        grid.addWidget(wc.QLabel("Data Type:"), 3, 0)
+        grid.addWidget(QtWidgets.QLabel("Data Type:"), 3, 0)
         
         self.specGroup = QtWidgets.QButtonGroup(self)
         self.timeButton = QtWidgets.QRadioButton('Time', parent=self)
@@ -3026,15 +3030,26 @@ class AsciiLoadWindow(QtWidgets.QDialog):
         self.specGroup.addButton(self.freqButton, 1)
         grid.addWidget(self.freqButton, 4, 1)
         
-        grid.addWidget(wc.QLabel("Data Order:"), 5, 0)
+        grid.addWidget(QtWidgets.QLabel("Data Order:"), 5, 0)
         self.datOrderBox = QtWidgets.QComboBox()
         self.datOrderBox.addItems(self.dataOrders)
         grid.addWidget(self.datOrderBox, 6, 0, 1, 2)
         
-        grid.addWidget(wc.QLabel("Data Delimiter:"), 7, 0)
+        self.swLabel = wc.QLabel("Spectral Width [kHz]:")
+        self.swLabel.setAlignment(QtCore.Qt.AlignLeft)
+        grid.addWidget(self.swLabel, 7, 0, 1, 2)
+        self.swEntry = QtWidgets.QLineEdit()
+        self.swEntry.setAlignment(QtCore.Qt.AlignHCenter)
+        self.swEntry.setText("0.0")
+        grid.addWidget(self.swEntry, 8, 0, 1, 2)
+        self.swLabel.hide()
+        self.swEntry.hide()
+        self.datOrderBox.currentIndexChanged.connect(self.checkDatOrder)
+        
+        grid.addWidget(QtWidgets.QLabel("Data Delimiter:"), 9, 0)
         self.datDelimBox = QtWidgets.QComboBox()
-        self.datDelimBox.addItems(self.delimitors)
-        grid.addWidget(self.datDelimBox, 8, 0, 1, 2)
+        self.datDelimBox.addItems(self.delimiters)
+        grid.addWidget(self.datDelimBox, 10, 0, 1, 2)
         
         cancelButton = QtWidgets.QPushButton("&Cancel")
         cancelButton.clicked.connect(self.closeEvent)
@@ -3044,20 +3059,59 @@ class AsciiLoadWindow(QtWidgets.QDialog):
         grid.addWidget(okButton, 13, 1)
         
         self.show()
+        self.setFixedSize(self.size())
+        self.checkType(file)
+        
+    def checkDatOrder(self):
+        tmp = self.dataOrders[ self.datOrderBox.currentIndex() ]
+        if tmp == 'RI':
+            self.swLabel.show()
+            self.swEntry.show()
+        else:
+            self.swLabel.hide()
+            self.swEntry.hide()
+        
+    def checkType(self, file):
+        try:
+            with open(file, 'r') as f:
+                line = f.readline()
+            if line.count(',') > 0:
+                sep = 'Comma'
+            elif line.count('\t') > 0:
+                sep = 'Tab'
+            else:
+                sep = 'Space'
+            self.datDelimBox.setCurrentIndex(self.delimiters.index(sep)) 
+            sepList = ['\t',' ',',']           
+            data = np.fromstring(line, sep = sepList[self.delimiters.index(sep)])
+            if len(data) > 3:
+               self.numDims.setValue(2) 
+#            if len(data) % 2 == 0: #if odd size
+#                self.datOrderBox.setCurrentIndex(1)
+        except:
+            return
 
+    
     def closeEvent(self, *args):
         self.closed = True
         self.accept()
         self.deleteLater()
 
     def applyAndClose(self):
+        self.dataOrder = self.dataOrders[ self.datOrderBox.currentIndex() ]
+        self.delim = self.delimiters[ self.datDelimBox.currentIndex() ]
+        if self.dataOrder == 'RI':
+            self.sw = safeEval(self.swEntry.text())
+            if self.sw == 0 or self.sw == None:
+                self.father.dispMsg('Spectral Width input is not valid')
+                return
+            
         self.dataDimension = self.numDims.value()
         if self.timeButton.isChecked():
            self.dataSpec = False
         else:
            self.dataSpec = True
-        self.dataOrder = self.dataOrders[ self.datOrderBox.currentIndex() ]
-        self.delim = self.delimitors[ self.datDelimBox.currentIndex() ]
+
         self.accept()
         self.deleteLater()
 #################################################################################
