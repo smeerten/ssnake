@@ -1110,7 +1110,7 @@ class MainProgram(QtWidgets.QMainWindow):
 
             except:
                 self.dispMsg("Failed loading '" + filename + "' as reference.")
-                return
+                raise
         IconDirectory = os.path.dirname(os.path.realpath(__file__)) + os.path.sep + 'Icons' + os.path.sep
         self.referenceValue.append(freq)
         action1 = self.referencerunmenu.addAction(QtGui.QIcon(IconDirectory + 'run.png'),givenName, lambda name=givenName: self.referenceRun(name))
@@ -1406,7 +1406,7 @@ class MainProgram(QtWidgets.QMainWindow):
             masterData.msgHandler = lambda msg: self.dispMsg(msg)
         except:
             self.dispMsg("Error on loading Varian data",'red')
-            return
+            raise
         return masterData
 
     def LoadPipe(self, filePath, name=''):
@@ -1415,7 +1415,7 @@ class MainProgram(QtWidgets.QMainWindow):
             masterData.msgHandler = lambda msg: self.dispMsg(msg)
         except:
             self.dispMsg("Error on loading NMRpipe data",'red')
-            return
+            raise
         return masterData
 
     def LoadJEOLDelta(self, filePath, name=''):
@@ -1423,7 +1423,7 @@ class MainProgram(QtWidgets.QMainWindow):
             masterData = LF.LoadJEOLDelta(filePath,name)
         except:
             self.dispMsg("Error on loading JEOL Delta data",'red')
-            return
+            raise
         if masterData ==  'ND error':
             self.dispMsg("Error: JEOL Delta data of this type is not supported",'red')
             return
@@ -1437,7 +1437,7 @@ class MainProgram(QtWidgets.QMainWindow):
             masterData.msgHandler = lambda msg: self.dispMsg(msg)
         except:
             self.dispMsg("Error on loading JSON data",'red')
-            return
+            raise
         return masterData
 
     def loadMatlabFile(self, filePath, name=''):
@@ -1446,7 +1446,7 @@ class MainProgram(QtWidgets.QMainWindow):
             masterData.msgHandler = lambda msg: self.dispMsg(msg)
         except:
             self.dispMsg("Error on loading MATLAB data",'red')
-            return
+            raise
         return masterData
 
     def LoadBrukerTopspin(self, filePath, name=''):
@@ -1455,7 +1455,7 @@ class MainProgram(QtWidgets.QMainWindow):
             masterData.msgHandler = lambda msg: self.dispMsg(msg)
         except:
             self.dispMsg("Error on loading Bruker data",'red')
-            return
+            raise
         return masterData
         
         
@@ -1465,7 +1465,7 @@ class MainProgram(QtWidgets.QMainWindow):
             masterData.msgHandler = lambda msg: self.dispMsg(msg)
         except:
             self.dispMsg("Error on loading Bruker Spectrum data",'red')
-            return
+            raise
         return masterData     
 
     def LoadChemFile(self, filePath, name=''):
@@ -1474,7 +1474,7 @@ class MainProgram(QtWidgets.QMainWindow):
             masterData.msgHandler = lambda msg: self.dispMsg(msg)
         except:
             self.dispMsg("Error on loading Chemagnetic data",'red')
-            return
+            raise
         return masterData   
 
     def LoadMagritek(self, filePath, name='',realPath=''):
@@ -1483,7 +1483,7 @@ class MainProgram(QtWidgets.QMainWindow):
             masterData.msgHandler = lambda msg: self.dispMsg(msg)
         except:
             self.dispMsg("Error on loading Magritek data",'red')
-            return
+            raise
         return masterData  
 
     def LoadSimpsonFile(self, filePath, name=''):
@@ -1492,7 +1492,7 @@ class MainProgram(QtWidgets.QMainWindow):
             masterData.msgHandler = lambda msg: self.dispMsg(msg)
         except:
             self.dispMsg("Error on loading SIMPSON data",'red')
-            return
+            raise
         return masterData  
     
     def LoadJCAMP(self, filePath, name=''):
@@ -1502,7 +1502,7 @@ class MainProgram(QtWidgets.QMainWindow):
             masterData.addHistory("JCAMP data loaded from " + filePath)
         except:
             self.dispMsg("Error on loading JCAMP data",'red')
-            return
+            raise
         return masterData
         
     def LoadAscii(self, filePath, name=''):
@@ -1517,9 +1517,7 @@ class MainProgram(QtWidgets.QMainWindow):
                     return masterData
                 except:
                     self.dispMsg("Error on loading ASCII data",'red')
-                    return
-                
-            
+                    raise
        
     def saveSimpsonFile(self):
         self.mainWindow.get_mainWindow().SaveSimpsonFile()
@@ -1972,6 +1970,7 @@ class Main1DWindow(QtWidgets.QWidget):
         self.menuCheck()
 
     def monitorLoad(self, filePath):
+        self.monitor.blockSignals(True)
         if not os.path.exists(filePath):
             self.stopMonitor()
             return
@@ -1986,6 +1985,7 @@ class Main1DWindow(QtWidgets.QWidget):
         self.current.showFid()  
         self.updAllFrames()
         self.menuCheck()
+        QtCore.QTimer.singleShot(500, lambda: self.monitor.blockSignals(False))
         if filePath in self.monitor.files() or filePath in self.monitor.directories():
             return
         self.monitor.addPath(filePath)
@@ -3089,7 +3089,7 @@ class AsciiLoadWindow(QtWidgets.QDialog):
 #            if len(data) % 2 == 0: #if odd size
 #                self.datOrderBox.setCurrentIndex(1)
         except:
-            return
+            raise
 
     
     def closeEvent(self, *args):
@@ -6854,7 +6854,7 @@ class shiftConversionWindow(QtWidgets.QWidget):
                 Values = [delta11,delta22,delta33]
             except:
                 self.father.dispMsg("Invalid input in Standard Convention")
-                return
+                raise
         if Type == 1:  # If from xyz
             try:
                 delta11 = float(safeEval(self.dxx.text()))  # Treat xyz as 123, as it reorders them anyway
@@ -6863,7 +6863,7 @@ class shiftConversionWindow(QtWidgets.QWidget):
                 Values = [delta11,delta22,delta33]
             except:
                 self.father.dispMsg("Invalid input in xyz Convention")
-                return
+                raise
         if Type == 2:  # From haeberlen
             try:
                 eta = float(safeEval(self.eta.text()))
@@ -6872,7 +6872,7 @@ class shiftConversionWindow(QtWidgets.QWidget):
                 Values = [iso,delta,eta]
             except:
                 self.father.dispMsg("Invalid input in Haeberlen Convention")
-                return                
+                raise                
         if Type == 3:  # From Hertzfeld-Berger
             try:
                 iso = float(safeEval(self.hbdiso.text()))
@@ -6881,7 +6881,7 @@ class shiftConversionWindow(QtWidgets.QWidget):
                 Values = [iso,span,skew]
             except:
                 self.father.dispMsg("Invalid input in Hertzfeld-Berger Convention")
-                return    
+                raise    
 
         Results = fit.shiftConversion(Values,Type) #Do the actual conversion
 
@@ -7044,7 +7044,7 @@ class quadConversionWindow(QtWidgets.QWidget):
                 Cyy = -Cxx-Czz
             except:
                 self.father.dispMsg("Invalid input in Cq definition")
-                return 
+                raise 
         if Type == 1:
             try:
                 Vmax = float(safeEval(self.Wq.text()))                 
@@ -7054,7 +7054,7 @@ class quadConversionWindow(QtWidgets.QWidget):
                 Cyy = -Cxx-Czz
             except:
                 self.father.dispMsg("Invalid input in Wq definition")
-                return                 
+                raise                 
         if Type ==2:
              try:
                 Vxx = float(safeEval(self.Vxx.text())) 
@@ -7073,7 +7073,7 @@ class quadConversionWindow(QtWidgets.QWidget):
                 Cyy = Vyy * Scaling/1e6
              except:
                 self.father.dispMsg("Invalid input in field gradients")
-                return             
+                raise             
         #sort    
         CArray = np.array([Cxx, Cyy, Czz])
         Cindex = np.argsort(np.abs(CArray))
