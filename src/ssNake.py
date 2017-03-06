@@ -166,6 +166,7 @@ class MainProgram(QtWidgets.QMainWindow):
         self.defaultLinewidth = 1.0
         self.defaultColor = '#0000FF'
         self.defaultGrids = [False, False]
+        self.defaultZeroScroll = True
         self.defaultColorMap = 'seismic'
         self.defaultWidthRatio = 3.0
         self.defaultHeightRatio = 3.0
@@ -200,6 +201,7 @@ class MainProgram(QtWidgets.QMainWindow):
         except TypeError:
             self.dispMsg("Incorrect value in the config file for the plot/linewidth")
         self.defaultGrids = [settings.value("plot/xgrid", self.defaultGrids[0], bool), settings.value("plot/ygrid", self.defaultGrids[1], bool)]
+        self.defaultZeroScroll = settings.value("plot/zeroscroll", self.defaultZeroScroll, bool)
         self.defaultColorMap = settings.value("contour/colormap", self.defaultColorMap, str)
         self.defaultContourConst = settings.value("contour/constantcolors", self.defaultContourConst, bool)
         self.defaultPosColor = settings.value("contour/poscolor", self.defaultPosColor, str)
@@ -238,6 +240,7 @@ class MainProgram(QtWidgets.QMainWindow):
         settings.setValue("plot/linewidth", self.defaultLinewidth)
         settings.setValue("plot/xgrid", self.defaultGrids[0])
         settings.setValue("plot/ygrid", self.defaultGrids[1])
+        settings.setValue("plot/zeroscroll", self.defaultZeroScroll)
         settings.setValue("maximized", self.defaultMaximized)
         settings.setValue("width", self.defaultWidth)
         settings.setValue("height", self.defaultHeight)
@@ -6484,6 +6487,9 @@ class PreferenceWindow(QtWidgets.QWidget):
         self.ppmCheck = QtWidgets.QCheckBox("ppm")
         self.ppmCheck.setChecked(self.father.defaultPPM)
         grid2.addWidget(self.ppmCheck, 8, 1)
+        self.zeroScrollCheck = QtWidgets.QCheckBox("Scroll y-axis from zero")
+        self.zeroScrollCheck.setChecked(self.father.defaultZeroScroll)
+        grid2.addWidget(self.zeroScrollCheck, 9, 0, 1, 2)
 
         grid3.addWidget(QtWidgets.QLabel("Colormap:"), 0, 0)
         self.cmEntry = QtWidgets.QComboBox(self)
@@ -6554,6 +6560,7 @@ class PreferenceWindow(QtWidgets.QWidget):
         self.father.defaultColor = self.color
         self.father.defaultGrids[0] = self.xgridCheck.isChecked()
         self.father.defaultGrids[1] = self.ygridCheck.isChecked()
+        self.father.defaultZeroScroll = self.zeroScrollCheck.isChecked()
         self.father.defaultColorMap = self.cmEntry.currentText()
         self.father.defaultContourConst = self.constColorCheck.isChecked()
         self.father.defaultPosColor = self.posColor
