@@ -116,7 +116,11 @@ class Plot1DFrame:
                 else:
                     self.ax.set_xlim(self.xminlim, self.xmaxlim)
             else:
-                if isinstance(self, (spectrum_classes.CurrentContour, spectrum_classes.CurrentStacked)) or not self.root.father.defaultZeroScroll:
+                if getattr(self, '__module__', None) == spectrum_classes.__name__:
+                    noZeroScroll = isinstance(self, (spectrum_classes.CurrentContour, spectrum_classes.CurrentStacked)) or not self.root.father.defaultZeroScroll
+                else:
+                    noZeroScroll = not self.rootwindow.mainProgram.defaultZeroScroll
+                if noZeroScroll:
                     middle = (self.ymaxlim + self.yminlim) / 2.0
                     width = self.ymaxlim - self.yminlim
                     if modifiers == QtCore.Qt.ControlModifier:
