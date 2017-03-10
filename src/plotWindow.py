@@ -195,7 +195,7 @@ class MainPlotWindow(QtWidgets.QWidget):
         self.fileOptions = ['svg', 'png', 'eps', 'jpg', 'pdf']
         self.filetypeEntry.addItems(self.fileOptions)
         self.inFrame.addWidget(self.filetypeEntry, 1, 0, 1, 2)
-        cancelButton = QtWidgets.QPushButton("&Cancel")
+        cancelButton = QtWidgets.QPushButton("&Close")
         cancelButton.clicked.connect(self.cancel)
         self.inFrame.addWidget(cancelButton, 2, 0)
         okButton = QtWidgets.QPushButton("&Save")
@@ -281,7 +281,7 @@ class MainPlotWindow(QtWidgets.QWidget):
         self.updatePlot()
         self.fig.set_size_inches((int(safeEval(self.widthEntry.text())) / 2.54, int(safeEval(self.heightEntry.text())) / 2.54))
         WorkspaceName = self.father.workspaceNames[self.father.workspaceNum]  # Set name of file to be saved to workspace name to start
-        f = QtWidgets.QFileDialog.getSaveFileName(self, 'Save File', self.father.LastLocation + os.path.sep + WorkspaceName + '.' + self.fileOptions[self.filetypeEntry.currentIndex()])
+        f = QtWidgets.QFileDialog.getSaveFileName(self, 'Save File', self.father.LastLocation + os.path.sep + WorkspaceName + '.' + self.fileOptions[self.filetypeEntry.currentIndex()],filter = '(*.' + self.fileOptions[self.filetypeEntry.currentIndex()] + ')')
         if type(f) is tuple:
             f = f[0]        
         if f:
@@ -296,7 +296,6 @@ class MainPlotWindow(QtWidgets.QWidget):
                 with open(f, 'w') as fd:
                     fd.write(s.replace('stroke-miterlimit:100000;', ''))
             
-            self.cancel()
 
     def cancel(self):
         self.fig.suptitle(self.titleBackup, fontsize=self.titleFontSizeBackup)
