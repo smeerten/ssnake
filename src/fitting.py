@@ -4528,6 +4528,7 @@ class Quad1MASDeconvFrame(Plot1DFrame):
             axMult = 1000.0**self.current.axType
         self.xax = self.current.xax * axMult
         self.plotType = 0
+        self.removeList = []
         self.rootwindow = rootwindow
         #Set limits as in parent plot
         self.xmaxlim=self.current.xmaxlim
@@ -4616,9 +4617,26 @@ class Quad1MASDeconvFrame(Plot1DFrame):
         else:
             self.peakPickFunc = None
             self.peakPick = False
-
+            
+    def previewRemoveList(self, removeList):
+        self.resetPreviewRemoveList()
+        for i in range(int(np.floor(len(removeList) / 2.0))):
+            self.removeListLines.append(self.ax.axvspan(self.xax[removeList[2 * i]] , self.xax[removeList[2 * i + 1]] , color='r'))
+        if len(removeList) % 2:
+            self.removeListLines.append(self.ax.axvline(self.xax[removeList[-1]], c='r', linestyle='--'))
+        self.canvas.draw()
+        
+    def resetPreviewRemoveList(self):
+        if hasattr(self, 'removeListLines'):
+            for i in self.removeListLines:
+                i.remove()
+            del self.removeListLines   
+        self.removeListLines = []
+        
     def pickDeconv(self, pos):
         self.rootwindow.paramframe.addValue(pos[0])
+        self.removeList.append(pos[0])
+        self.previewRemoveList(self.removeList)
         self.peakPickFunc = lambda pos, self=self: self.pickDeconv(pos)
         self.peakPick = True
 
@@ -4749,6 +4767,8 @@ class Quad1MASDeconvParamFrame(QtWidgets.QWidget):
         self.resultLabels = []
         self.pickTick.setChecked(True)
         self.togglePick()
+        self.rootwindow.current.resetPreviewRemoveList()
+        self.rootwindow.current.removeList = []
         self.parent.showPlot()
 
     def addValue(self, value):
