@@ -5026,6 +5026,18 @@ class Quad1DeconvFrame(Plot1DFrame):
         self.data1D = current.getDisplayedData()
         self.current = current
         self.spec = self.current.spec
+        if self.spec == 1:
+            if self.current.ppm:
+                self.axUnit = 'ppm'
+                self.axMult = 1e6 / self.current.ref
+            else:
+                axUnits = ['Hz','kHz','MHz']
+                self.axUnit = axUnits[self.current.axType]
+                self.axMult = 1.0 / (1000.0**self.current.axType)
+        elif self.spec == 0:
+            axUnits = ['s','ms', u"\u03bcs"]
+            self.axUnit = axUnits[self.current.axType]
+            self.axMult = 1000.0**self.current.axType
         self.xax = self.current.xax
         self.plotType = 0
         self.rootwindow = rootwindow
@@ -5445,7 +5457,7 @@ class Quad1DeconvParamFrame(QtWidgets.QWidget):
                 struc.append(False)
         args = (numExp, struc, argu, I, self.parent.current.freq, self.parent.current.sw, self.axAdd)
         self.queue = multiprocessing.Queue()
-        self.process1 = multiprocessing.Process(target=quad1DeconvmpFit, args=(self.parent.xax, np.real(self.parent.data1D), guess, args, self.queue, self.cheng, self.setAngleStuff, self.tensorFunc))
+        self.process1 = multiprocessing.Process(target=quad1DeconvmpFit, args=(self.parent.xax, np.real(self.parent.data1D), guess, args, self.queue, self.cheng, self.setAngleStuff, self.tensorFunc, self.parent.axMult))
         self.process1.start()
         self.running = True
         self.stopButton.show()
@@ -5694,7 +5706,7 @@ class Quad1DeconvParamFrame(QtWidgets.QWidget):
         weight, angleStuff = self.setAngleStuff(self.cheng)
         for i in range(len(outPos)):
             x.append(tmpx)
-            y = outAmp[i] * self.tensorFunc(tmpx, outI, outPos[i], outCq[i], outEta[i], outWidth[i], outGauss[i], angleStuff, self.parent.current.freq, self.parent.current.sw, weight, self.axAdd)
+            y = outAmp[i] * self.tensorFunc(tmpx, outI, outPos[i], outCq[i], outEta[i], outWidth[i], outGauss[i], angleStuff, self.parent.current.freq, self.parent.current.sw, weight, self.axAdd, self.parent.axMult)
             outCurvePart.append(outCurveBase + y)
             outCurve += y
         if store == 'copy':
@@ -5716,9 +5728,9 @@ class Quad1DeconvParamFrame(QtWidgets.QWidget):
 ##############################################################################
 
 
-def quad1DeconvmpFit(xax, data1D, guess, args, queue, cheng, setAngleStuff, tensorFunc):
+def quad1DeconvmpFit(xax, data1D, guess, args, queue, cheng, setAngleStuff, tensorFunc, axMult = 1):
     weight, angleStuff = setAngleStuff(cheng)
-    arg = args + (angleStuff, weight, xax, data1D, tensorFunc)
+    arg = args + (angleStuff, weight, xax, data1D, tensorFunc, axMult)
     try:
         fitVal = scipy.optimize.fmin(quad1DeconvfitFunc, guess, args=arg, disp=True)
     except:
@@ -5736,7 +5748,7 @@ def quad1DeconvmpAllFit(xax, data, guess, args, queue, cheng, setAngleStuff, ten
             fitVal.append([[0] * 10])
     queue.put(fitVal)
 
-def quad1DeconvfitFunc(param, numExp, struc, argu, I, freq, sw, axAdd, angleStuff, weight, x, y, tensorFunc):
+def quad1DeconvfitFunc(param, numExp, struc, argu, I, freq, sw, axAdd, angleStuff, weight, x, y, tensorFunc, axMult = 1):
     testFunc = np.zeros(len(x))
     if struc[0]:
         bgrnd = param[0]
@@ -5787,15 +5799,15 @@ def quad1DeconvfitFunc(param, numExp, struc, argu, I, freq, sw, axAdd, angleStuf
         else:
             gauss = argu[0]
             argu = np.delete(argu, [0])
-        testFunc += amp * tensorFunc(x, I, pos, cq, eta, width, gauss, angleStuff, freq, sw, weight, axAdd)
+        testFunc += amp * tensorFunc(x, I, pos, cq, eta, width, gauss, angleStuff, freq, sw, weight, axAdd, axMult)
     testFunc += bgrnd + slope * x
     return np.sum((np.real(testFunc) - y)**2)
 
-def quad1DeconvtensorFunc(x, I, pos, cq, eta, width, gauss, angleStuff, freq, sw, weight, axAdd):
+def quad1DeconvtensorFunc(x, I, pos, cq, eta, width, gauss, angleStuff, freq, sw, weight, axAdd, axMult = 1):
     m = np.arange(-I, I)
     v = []
     weights = []
-    pos = pos - axAdd
+    pos = (pos / axMult)- axAdd
     for i in m:
         tmp = (cq / (4 * I * (2 * I - 1)) * (I * (I + 1) - 3 * (i + 1)**2)) - (cq / (4 * I * (2 * I - 1)) * (I * (I + 1) - 3 * (i)**2))
         v = np.append(v, tmp * (angleStuff[0] - eta * angleStuff[1]) + pos)
@@ -5809,7 +5821,7 @@ def quad1DeconvtensorFunc(x, I, pos, cq, eta, width, gauss, angleStuff, freq, sw
     x1 = x1[np.logical_and(x1 >= 0, x1 < length)]
     final = np.bincount(x1, weights, length)
     apod = np.exp(-np.pi * width * t) * np.exp(-((np.pi * gauss * t)**2) / (4 * np.log(2)))
-    apod[-1:-(len(apod) / 2 + 1):-1] = apod[:len(apod) / 2]
+    apod[-1:-int(len(apod) / 2 + 1):-1] = apod[:int(len(apod) / 2)]
     inten = np.real(np.fft.fft(np.fft.ifft(final) * apod))
     inten = inten / sw * len(inten)
     return inten
@@ -5864,8 +5876,8 @@ class Quad2MASDeconvParamFrame(Quad2StaticDeconvParamFrame):
 
 ##############################################################################
 
-def quad2tensorFunc(x, I, pos, cq, eta, width, gauss, angleStuff, freq, sw, weight, axAdd):
-    pos = pos - axAdd
+def quad2tensorFunc(x, I, pos, cq, eta, width, gauss, angleStuff, freq, sw, weight, axAdd, axMult = 1):
+    pos = (pos / axMult)- axAdd
     v = -1 / (6 * freq) * (3 * cq / (2 * I * (2 * I - 1)))**2 * (I * (I + 1) - 3.0 / 4) * (angleStuff[0] + angleStuff[1] * eta + angleStuff[2] * eta**2) + pos
     length = len(x)
     t = np.arange(length) / sw
