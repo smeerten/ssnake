@@ -5225,7 +5225,7 @@ class Quad1DeconvParamFrame(QtWidgets.QWidget):
         self.numExp.addItems(['1', '2', '3', '4', '5', '6', '7', '8', '9', '10'])
         self.numExp.currentIndexChanged.connect(self.changeNum)
         self.frame3.addWidget(self.numExp, 0, 0, 1, 2)
-        self.frame3.addWidget(QLabel("Pos:"), 1, 0, 1, 2)
+        self.frame3.addWidget(QLabel("Pos [" + self.parent.axUnit + "]:"), 1, 0, 1, 2)
         self.frame3.addWidget(QLabel(u"C<sub>Q</sub> [MHz]:"), 1, 2, 1, 2)
         self.frame3.addWidget(QLabel(u"\u03b7:"), 1, 4, 1, 2)
         self.frame3.addWidget(QLabel("integral:"), 1, 6, 1, 2)
