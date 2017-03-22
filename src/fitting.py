@@ -3788,7 +3788,7 @@ class TensorDeconvParamFrame(QtWidgets.QWidget):
         counter2 = 0
         fitData = rolledData.reshape(dataShape[axes], np.product(dataShape2)).T
         self.queue = multiprocessing.Queue()
-        self.process1 = multiprocessing.Process(target=tensorDeconvmpAllFit, args=(self.parent.xax, np.real(fitData), guess, args, self.queue, self.cheng,self.shiftDefType))
+        self.process1 = multiprocessing.Process(target=tensorDeconvmpAllFit, args=(self.parent.xax, np.real(fitData), guess, args, self.queue, self.cheng,self.shiftDefType, self.parent.axMult))
         self.process1.start()
         self.running = True
         self.stopButton.show()
@@ -3949,12 +3949,12 @@ class tensorFitThread(QtCore.QThread):
 #        fitVal = None
 #    queue.put(fitVal)
 
-def tensorDeconvmpAllFit(xax, data, guess, args, queue, cheng,convention):
+def tensorDeconvmpAllFit(xax, data, guess, args, queue, cheng,convention,aXmult):
     phi, theta, weight = zcw_angles(cheng, symm=2)
     multt = [np.sin(theta)**2 * np.cos(phi)**2, np.sin(theta)**2 * np.sin(phi)**2, np.cos(theta)**2]
     fitVal = []
     for j in data:
-        arg = args + (multt, weight, xax, j,convention)
+        arg = args + (multt, weight, xax, j,convention, aXmult)
         try:
             fitVal.append(scipy.optimize.fmin(tensorDeconvfitFunc, guess, args=arg, disp=False))
         except:
