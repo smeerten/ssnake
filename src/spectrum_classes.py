@@ -2597,6 +2597,11 @@ class CurrentMulti(Current1D):
             self.extraOffset = duplicateCurrent.extraOffset
         else:
             self.extraOffset = []
+        if hasattr(duplicateCurrent, 'extraShift'):
+            self.extraShift = duplicateCurrent.extraShift
+        else:
+            self.extraShift = []    
+            
         Current1D.__init__(self, root, fig, canvas, data, duplicateCurrent)
 
     def setExtraSlice(self, extraNum, axes, locList):  # change the slice
@@ -2615,6 +2620,7 @@ class CurrentMulti(Current1D):
         self.extraAxes.append(len(data.data.shape) - 1)
         self.extraScale.append(1.0)
         self.extraOffset.append(0.0)
+        self.extraShift.append(0.0)
         self.showFid()
 
     def delExtraData(self, num):
@@ -2625,6 +2631,7 @@ class CurrentMulti(Current1D):
         del self.extraAxes[num]
         del self.extraScale[num]
         del self.extraOffset[num]
+        del self.extraShift[num]
         self.showFid()
 
     def setExtraColor(self, num, color):
@@ -2645,7 +2652,12 @@ class CurrentMulti(Current1D):
     def setExtraOffset(self, num, offset):
         self.extraOffset[num] = offset
         self.showFid()
-
+        
+        
+    def setExtraShift(self, num, shift):
+        self.extraShift[num] = shift
+        self.showFid()
+        
     def resetExtraLocList(self, num=None):
         if num is None:
             for i in range(len(self.extraLoc)):
@@ -2761,24 +2773,24 @@ class CurrentMulti(Current1D):
             line_xdata = xax * axMult
             if (self.plotType == 0):
                 if len(data1D) == 1:
-                    self.ax.plot(line_xdata, np.real(data1D) * self.extraScale[i] + self.extraOffset[i], marker='o', linestyle='none', c=self.extraColor[i], label=data.name, picker=True)
+                    self.ax.plot(line_xdata + self.extraShift[i], np.real(data1D) * self.extraScale[i] + self.extraOffset[i], marker='o', linestyle='none', c=self.extraColor[i], label=data.name, picker=True)
                 else:
-                    self.ax.plot(line_xdata, np.real(data1D) * self.extraScale[i] + self.extraOffset[i], c=self.extraColor[i], linewidth=self.linewidth, label=data.name, picker=True)
+                    self.ax.plot(line_xdata + self.extraShift[i], np.real(data1D) * self.extraScale[i] + self.extraOffset[i], c=self.extraColor[i], linewidth=self.linewidth, label=data.name, picker=True)
             elif(self.plotType == 1):
                 if len(data1D) == 1:
-                    self.ax.plot(line_xdata, np.imag(data1D) * self.extraScale[i] + self.extraOffset[i], marker='o', linestyle='none', c=self.extraColor[i], label=data.name, picker=True)
+                    self.ax.plot(line_xdata + self.extraShift[i], np.imag(data1D) * self.extraScale[i] + self.extraOffset[i], marker='o', linestyle='none', c=self.extraColor[i], label=data.name, picker=True)
                 else:
-                    self.ax.plot(line_xdata, np.imag(data1D) * self.extraScale[i] + self.extraOffset[i], c=self.extraColor[i], linewidth=self.linewidth, label=data.name, picker=True)
+                    self.ax.plot(line_xdata + self.extraShift[i], np.imag(data1D) * self.extraScale[i] + self.extraOffset[i], c=self.extraColor[i], linewidth=self.linewidth, label=data.name, picker=True)
             elif(self.plotType == 2):
                 if len(data1D) == 1:
-                    self.ax.plot(line_xdata, np.real(data1D) * self.extraScale[i] + self.extraOffset[i], marker='o', linestyle='none', c=self.extraColor[i], label=data.name, picker=True)
+                    self.ax.plot(line_xdata + self.extraShift[i], np.real(data1D) * self.extraScale[i] + self.extraOffset[i], marker='o', linestyle='none', c=self.extraColor[i], label=data.name, picker=True)
                 else:
-                    self.ax.plot(line_xdata, np.real(data1D) * self.extraScale[i] + self.extraOffset[i], c=self.extraColor[i], linewidth=self.linewidth, label=data.name, picker=True)
+                    self.ax.plot(line_xdata + self.extraShift[i], np.real(data1D) * self.extraScale[i] + self.extraOffset[i], c=self.extraColor[i], linewidth=self.linewidth, label=data.name, picker=True)
             elif(self.plotType == 3):
                 if len(data1D) == 1:
-                    self.ax.plot(line_xdata, np.abs(data1D) * self.extraScale[i] + self.extraOffset[i], marker='o', linestyle='none', c=self.extraColor[i], label=data.name, picker=True)
+                    self.ax.plot(line_xdata + self.extraShift[i], np.abs(data1D) * self.extraScale[i] + self.extraOffset[i], marker='o', linestyle='none', c=self.extraColor[i], label=data.name, picker=True)
                 else:
-                    self.ax.plot(line_xdata, np.abs(data1D) * self.extraScale[i] + self.extraOffset[i], c=self.extraColor[i], linewidth=self.linewidth, label=data.name, picker=True)
+                    self.ax.plot(line_xdata + self.extraShift[i], np.abs(data1D) * self.extraScale[i] + self.extraOffset[i], c=self.extraColor[i], linewidth=self.linewidth, label=data.name, picker=True)
         if tmpdata is None:
             tmpdata = self.data1D
         if self.spec == 1:

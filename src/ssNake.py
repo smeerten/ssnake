@@ -2506,7 +2506,8 @@ class SideFrame(QtWidgets.QScrollArea):
                 frame.addWidget(button, 1, 1)
                 self.OOM = self.father.current.getOOM()  # Order of Magnitude
                 frame.addWidget(wc.QLabel("Scale", self), 2, 0)
-                frame.addWidget(wc.QLabel("Offset (X1e" + str(self.OOM) + ")", self), 2, 1)
+                frame.addWidget(wc.QLabel(u"Offset (\u00D71e" + str(self.OOM) + ")", self), 2, 1)
+                frame.addWidget(wc.QLabel("Shift", self), 2, 2)
                 scaleEntry = QtWidgets.QDoubleSpinBox()
                 scaleEntry.setMaximum(1e3)
                 scaleEntry.setMinimum(-1e3)
@@ -2521,6 +2522,16 @@ class SideFrame(QtWidgets.QScrollArea):
                 offsetEntry.setValue(self.father.current.extraOffset[i]/(10**self.OOM))
                 offsetEntry.valueChanged.connect(lambda arg, num=i: self.setOffset(arg, num))
                 frame.addWidget(offsetEntry, 3, 1)
+                
+                shiftEntry = QtWidgets.QDoubleSpinBox()
+                shiftEntry.setMaximum(1e3)
+                shiftEntry.setMinimum(-1e3)
+                shiftEntry.setSingleStep(0.1)
+                shiftEntry.setValue(self.father.current.extraShift[i])
+                shiftEntry.valueChanged.connect(lambda arg, num=i: self.setShift(arg, num))
+                frame.addWidget(shiftEntry, 3, 2)
+                
+                
                 entries = []
                 self.extraEntries.append(entries)
                 buttons1 = []
@@ -2678,6 +2689,10 @@ class SideFrame(QtWidgets.QScrollArea):
 
     def setOffset(self, offset, num):
         self.father.current.setExtraOffset(num, offset*10**self.OOM)
+       
+    def setShift(self, shift, num):
+        self.father.current.setExtraShift(num, shift)    
+    
 
     def checkChanged(self):
         for i in range(len(self.father.current.extraData)):
