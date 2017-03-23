@@ -342,7 +342,7 @@ def saveResult(title, variablearray, dataArray):
     #variablearray: array of arrays with all the variables to be printed. 
     #First entry should be name of variable, second an array with the value(s)
     #dataArray should be an array with the raw y data of the fit and the experiment (with as a first column the x-axis)
-    filename = QtWidgets.QFileDialog.getSaveFileName(caption='Save File')
+    filename = QtWidgets.QFileDialog.getSaveFileName(caption = 'Save File', directory = 'FitResult.txt',filter = '(*.txt)')
     if type(filename) is tuple:
         filename = filename[0]        
     with open(filename, 'w') as f:
@@ -354,7 +354,7 @@ def saveResult(title, variablearray, dataArray):
             tmp = tmp[:-3] + '\n'
             f.write(tmp)
         f.write('DATA\n')
-    f = open(filename, 'a')
+    f = open(filename, 'ab')
     np.savetxt(f, dataArray)
     f.close()
     
