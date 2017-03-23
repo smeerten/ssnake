@@ -308,7 +308,7 @@ class MainProgram(QtWidgets.QMainWindow):
                                     ['Macro --> Start Recording',self.macrostartAct],['Macro --> Stop Recording',self.macrostopAct],['Macro --> Load',self.macroLoadAct],
                                     ['Edit --> Undo',self.undoAction],['Edit --> Redo',self.redoAction],['Edit --> Reload',self.reloadAct],['Edit --> Monitor',self.monitorAct],
                                     ['Tools --> Real',self.realAct],['Tools --> Imag',self.imagAct],['Tools --> Abs',self.absAct],['Tools --> Complex Conjugate',self.conjAct],['Tools --> Apodize',self.apodizeAct],
-                                    ['Tools --> Phase',self.phaseAct],['Tools --> Swap Echo',self.swapEchoAct],['Tools --> Offset Correction',self.corOffsetAct],
+                                    ['Tools --> Phase',self.phaseAct],['Tools --> Autophase 0',self.autoPhaseAct0],['Tools --> Autophase 0+1',self.autoPhaseAct1],['Tools --> Swap Echo',self.swapEchoAct],['Tools --> Offset Correction',self.corOffsetAct],
                                     ['Tools --> Baseline Correction',self.baselineAct],['Tools --> Subtract Averages',self.subAvgAct],['Tools --> Reference Deconvolution',self.refDeconvAct],
                                     ['Tools --> States',self.statesAct],['Tools --> TPPI',self.statesTPPIAct],['Tools --> Echo-antiecho',self.echoantiAct],['Tools --> Correct Bruker Digital Filter',self.brukDigitalAct],
                                     ['Tools --> LPSVD',self.lpsvdAct],
@@ -449,9 +449,9 @@ class MainProgram(QtWidgets.QMainWindow):
         self.apodizeAct.setToolTip('Open Apodize Window')
         self.phaseAct = self.toolMenu.addAction(QtGui.QIcon(IconDirectory + 'phase.png'), "&Phasing", lambda: self.mainWindowCheck(lambda mainWindow: PhaseWindow(mainWindow)))
         self.phaseAct.setToolTip('Open Phasing Window')
-        self.autoPhaseAct0 = self.toolMenu.addAction("Autophase 0", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.directAutoPhase(0)))
+        self.autoPhaseAct0 = self.toolMenu.addAction(QtGui.QIcon(IconDirectory + 'autophase0.png'),"Autophase 0", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.directAutoPhase(0)))
         self.autoPhaseAct0.setToolTip('Autophase 0 order')
-        self.autoPhaseAct1 = self.toolMenu.addAction("Autophase 0+1", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.directAutoPhase(1)))
+        self.autoPhaseAct1 = self.toolMenu.addAction(QtGui.QIcon(IconDirectory + 'autophase1.png'),"Autophase 0+1", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.directAutoPhase(1)))
         self.autoPhaseAct1.setToolTip('Autophase 0 and 1 order')
         self.swapEchoAct = self.toolMenu.addAction(QtGui.QIcon(IconDirectory + 'fliplr.png'), "Swap &Echo", lambda: self.mainWindowCheck(lambda mainWindow: SwapEchoWindow(mainWindow)))
         self.swapEchoAct.setToolTip('Swap Echo')
