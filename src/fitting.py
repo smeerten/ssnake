@@ -2414,10 +2414,15 @@ class PeakDeconvParamFrame(QtWidgets.QWidget):
         if self.parent.current.spec == 1:
             self.axAdd = self.parent.current.freq - self.parent.current.ref
             if self.parent.current.ppm:
+                self.axUnit = 'ppm'
                 self.axMult = 1e6 / self.parent.current.ref
             else:
                 self.axMult = 1.0 / (1000.0**self.parent.current.axType)
+                axUnits = ['Hz','kHz','MHz']
+                self.axUnit = axUnits[self.parent.current.axType]
         elif self.parent.current.spec == 0:
+            axUnits = ['s','ms', u"\u03bcs"]
+            self.axUnit = axUnits[self.parent.current.axType]
             self.axMult = 1000.0**self.parent.current.axType
             self.axAdd = 0
         self.frame1 = QtWidgets.QGridLayout()
@@ -2483,7 +2488,7 @@ class PeakDeconvParamFrame(QtWidgets.QWidget):
         self.numExp.addItems([str(x+1) for x in range(self.FITNUM)])
         self.numExp.currentIndexChanged.connect(self.changeNum)
         self.frame3.addWidget(self.numExp, 0, 0, 1, 2)
-        self.frame3.addWidget(QLabel("Position:"), 1, 0, 1, 2)
+        self.frame3.addWidget(QLabel("Position [" + self.axUnit + "]:"), 1, 0, 1, 2)
         self.frame3.addWidget(QLabel("Integral:"), 1, 2, 1, 2)
         self.frame3.addWidget(QLabel("Lorentz [Hz]:"), 1, 4, 1, 2)
         self.frame3.addWidget(QLabel("Gauss [Hz]:"), 1, 6, 1, 2)
@@ -2798,7 +2803,7 @@ class PeakDeconvParamFrame(QtWidgets.QWidget):
         elif store == 'save':
             variablearray  = [['Number of sites',[len(outAmp)]]
             ,['Background',[outBgrnd]],['Slope',[outSlope]],['Amplitude',outAmp]
-            ,['Position',outPos],['Lorentzian width (Hz)',outWidth],['Gaussian width (Hz)',outGauss]]
+            ,['Position [' + self.axUnit + ']',outPos],['Lorentzian width [Hz]',outWidth],['Gaussian width [Hz]',outGauss]]
             title = 'ssNake peak deconvolution fit results'
             
             outCurvePart.append(outCurve)
@@ -3907,7 +3912,7 @@ class TensorDeconvParamFrame(QtWidgets.QWidget):
 
             variablearray  = [['Number of sites',[len(outAmp)]],['Cheng',[self.cheng]]
             ,['Background',[outBgrnd]],['Slope',[outSlope]],['Amplitude',outAmp]
-            ,[shiftString[Type][0],outt11],[shiftString[Type][1],outt22],[shiftString[Type][2],outt33],['Lorentzian width (Hz)',outWidth],['Gaussian width (Hz)',outGauss]]
+            ,[shiftString[Type][0],outt11],[shiftString[Type][1],outt22],[shiftString[Type][2],outt33],['Lorentzian width [Hz]',outWidth],['Gaussian width [Hz]',outGauss]]
             title = 'ssNake CSA static fit results'
             outCurvePart.append(outCurve)
             outCurvePart.append(self.parent.data1D)
@@ -5716,7 +5721,7 @@ class Quad1DeconvParamFrame(QtWidgets.QWidget):
         elif store == 'save':
             variablearray  = [['Number of sites',[len(outAmp)]],['Cheng',[self.cheng]],['I',[outI]]
             ,['Background',[outBgrnd]],['Slope',[outSlope]],['Amplitude',outAmp]
-            ,['Position',outPos],['Cq (MHz)',outCq],['Eta',outEta],['Lorentzian width (Hz)',outWidth],['Gaussian width (Hz)',outGauss]]
+            ,['Position [' +self.parent.axUnit + ']' ,outPos],['Cq [MHz]',outCq],['Eta',outEta],['Lorentzian width [Hz]',outWidth],['Gaussian width [Hz]',outGauss]]
             title = self.savetitle
             outCurvePart.append(outCurve)
             outCurvePart.append(self.parent.data1D)
@@ -6579,7 +6584,7 @@ class Quad2StaticCzjzekParamFrame(QtWidgets.QWidget):
             variablearray  = [['Number of sites',[len(outAmp)]],['Cheng',[self.cheng]]
             ,['Eta grid density',[int(self.etaGridEntry.text())]],['Wq grid density',[int(self.wqGridEntry.text())]],['I',[self.checkI(self.IEntry.currentIndex())]]
             ,['Background',[outBgrnd]],['Slope',[outSlope]],['Amplitude',outAmp]
-            ,['Position',outPos],['Sigma',outSigma],['D',outD],['Lorentzian width (Hz)',outWidth],['Gaussian width (Hz)',outGauss]]
+            ,['Position [' + self.parent.axUnit + ']',outPos],['Sigma [MHz]',outSigma],['D',outD],['Lorentzian width [Hz]',outWidth],['Gaussian width [Hz]',outGauss]]
             title = self.savetitle
             outCurvePart.append(outCurve)
             outCurvePart.append(self.parent.data1D)
