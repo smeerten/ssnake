@@ -5608,7 +5608,7 @@ class Quad1DeconvParamFrame(QtWidgets.QWidget):
         counter2 = 0
         fitData = rolledData.reshape(dataShape[axes], np.product(dataShape2)).T
         self.queue = multiprocessing.Queue()
-        self.process1 = multiprocessing.Process(target=quad1DeconvmpAllFit, args=(self.parent.xax, np.real(fitData), guess, args, self.queue, self.cheng, self.setAngleStuff, self.tensorFunc))
+        self.process1 = multiprocessing.Process(target=quad1DeconvmpAllFit, args=(self.parent.xax, np.real(fitData), guess, args, self.queue, self.cheng, self.setAngleStuff, self.tensorFunc, self.parent.axMult))
         self.process1.start()
         self.running = True
         self.stopButton.show()
@@ -5737,11 +5737,11 @@ def quad1DeconvmpFit(xax, data1D, guess, args, queue, cheng, setAngleStuff, tens
         fitVal = None
     queue.put(fitVal)
 
-def quad1DeconvmpAllFit(xax, data, guess, args, queue, cheng, setAngleStuff, tensorFunc):
+def quad1DeconvmpAllFit(xax, data, guess, args, queue, cheng, setAngleStuff, tensorFunc, axMult = 1):
     weight, angleStuff = setAngleStuff(cheng)
     fitVal = []
     for j in data:
-        arg = args + (angleStuff, weight, xax, j, tensorFunc)
+        arg = args + (angleStuff, weight, xax, j, tensorFunc, axMult)
         try:
             fitVal.append(scipy.optimize.fmin(quad1DeconvfitFunc, guess, args=arg, disp=False))
         except:
@@ -6033,7 +6033,7 @@ class Quad2StaticCzjzekParamFrame(QtWidgets.QWidget):
         self.numExp.currentIndexChanged.connect(self.changeNum)
         self.frame3.addWidget(self.numExp, 0, 0)
         self.frame3.addWidget(QLabel("d:"), 1, 0)
-        self.frame3.addWidget(QLabel("Pos:"), 1, 1, 1, 2)
+        self.frame3.addWidget(QLabel("Pos [" + self.parent.axUnit + "]:"), 1, 1, 1, 2)
         self.frame3.addWidget(QLabel(u"\u03c3 [MHz]:"), 1, 3, 1, 2)
         self.frame3.addWidget(QLabel("Integral:"), 1, 5, 1, 2)
         self.frame3.addWidget(QLabel("Lorentz [Hz]:"), 1, 7, 1, 2)
@@ -6307,7 +6307,7 @@ class Quad2StaticCzjzekParamFrame(QtWidgets.QWidget):
         weight, angleStuff = self.setAngleStuff(self.cheng)
         self.lib, self.wq, self.eta = self.genLib(len(self.parent.xax), I, maxSigma * wqMax, numWq, numEta, angleStuff, self.parent.current.freq, self.parent.current.sw, weight, self.axAdd)
         self.queue = multiprocessing.Queue()
-        self.process1 = multiprocessing.Process(target=quad2CzjzekmpFit, args=(self.parent.xax, np.real(self.parent.data1D), guess, args, self.queue, I, self.lib, self.wq, self.eta))
+        self.process1 = multiprocessing.Process(target=quad2CzjzekmpFit, args=(self.parent.xax, np.real(self.parent.data1D), guess, args, self.queue, I, self.lib, self.wq, self.eta, self.parent.axMult))
         self.process1.start()
         self.running = True
         self.stopButton.show()
@@ -6468,7 +6468,7 @@ class Quad2StaticCzjzekParamFrame(QtWidgets.QWidget):
         counter2 = 0
         fitData = rolledData.reshape(dataShape[axes], np.product(dataShape2)).T
         self.queue = multiprocessing.Queue()
-        self.process1 = multiprocessing.Process(target=quad2CzjzekmpAllFit, args=(self.parent.xax, np.real(fitData), guess, args, self.queue, I, self.lib, self.wq, self.eta))
+        self.process1 = multiprocessing.Process(target=quad2CzjzekmpAllFit, args=(self.parent.xax, np.real(fitData), guess, args, self.queue, I, self.lib, self.wq, self.eta, self.parent.axMult))
         self.process1.start()
         self.running = True
         self.stopButton.show()
@@ -6568,7 +6568,7 @@ class Quad2StaticCzjzekParamFrame(QtWidgets.QWidget):
         x = []
         for i in range(len(outPos)):
             x.append(tmpx)
-            y = outAmp[i] * quad2CzjzektensorFunc(outSigma[i], outD[i], outPos[i], outWidth[i], outGauss[i], self.wq, self.eta, self.lib, self.parent.current.freq, self.parent.current.sw, self.axAdd)
+            y = outAmp[i] * quad2CzjzektensorFunc(outSigma[i], outD[i], outPos[i], outWidth[i], outGauss[i], self.wq, self.eta, self.lib, self.parent.current.freq, self.parent.current.sw, self.axAdd, self.parent.axMult)
             outCurvePart.append(outCurveBase + y)
             outCurve += y
         if store == 'copy':
@@ -6592,25 +6592,25 @@ class Quad2StaticCzjzekParamFrame(QtWidgets.QWidget):
 #################################################################################
 
 
-def quad2CzjzekmpFit(xax, data1D, guess, args, queue, I, lib, wq, eta):
-    arg = args + (wq, eta, lib, xax, data1D)
+def quad2CzjzekmpFit(xax, data1D, guess, args, queue, I, lib, wq, eta, axMult = 1):
+    arg = args + (wq, eta, lib, xax, data1D, axMult)
 #    try:
     fitVal = scipy.optimize.fmin(quad2CzjzekfitFunc, guess, args=arg, disp=False)
  #   except:
   #      fitVal = None
     queue.put(fitVal)
 
-def quad2CzjzekmpAllFit(xax, data, guess, args, queue, I, lib, wq, eta):
+def quad2CzjzekmpAllFit(xax, data, guess, args, queue, I, lib, wq, eta, axMult = 1):
     fitVal = []
     for j in data:
-        arg = args + (wq, eta, lib, xax, j)
+        arg = args + (wq, eta, lib, xax, j, axMult)
         try:
             fitVal.append(scipy.optimize.fmin(quad2CzjzekfitFunc, guess, args=arg, disp=False))
         except:
             fitVal.append([[0] * 10])
     queue.put(fitVal)
 
-def quad2CzjzekfitFunc(param, numExp, struc, argu, freq, sw, axAdd, wq, eta, lib, x, y):
+def quad2CzjzekfitFunc(param, numExp, struc, argu, freq, sw, axAdd, wq, eta, lib, x, y, axMult = 1):
     testFunc = np.zeros(len(x))
     if struc[0]:
         bgrnd = param[0]
@@ -6657,12 +6657,12 @@ def quad2CzjzekfitFunc(param, numExp, struc, argu, freq, sw, axAdd, wq, eta, lib
         else:
             gauss = argu[0]
             argu = np.delete(argu, [0])
-        testFunc += amp * quad2CzjzektensorFunc(sigma, d, pos, width, gauss, wq, eta, lib, freq, sw, axAdd)
+        testFunc += amp * quad2CzjzektensorFunc(sigma, d, pos, width, gauss, wq, eta, lib, freq, sw, axAdd, axMult)
     testFunc += bgrnd + slope * x
     return np.sum((np.real(testFunc) - y)**2)
     
-def quad2CzjzektensorFunc(sigma, d, pos, width, gauss, wq, eta, lib, freq, sw, axAdd):
-    pos = pos - axAdd
+def quad2CzjzektensorFunc(sigma, d, pos, width, gauss, wq, eta, lib, freq, sw, axAdd, axMult = 1):
+    pos = (pos / axMult) - axAdd
     wq = wq
     eta = eta
     if sigma == 0.0: #protect against devide by zero
