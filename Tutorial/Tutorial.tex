@@ -120,7 +120,7 @@ Now you have python installed. To install ssNake, copy the ssNake directory to y
 Installing ssNake on Linux requires installing the required packages. How to do this depends on the Linux distribution you are using. On Ubuntu, you should do the following:
 \begin{itemize}
 \item Open a terminal
-\item Copy the following command : `sudo apt-get install python-matplotlib python-scipy python-numpy'
+\item Copy the following command : `sudo apt-get install python python-numpy python-matplotlib python-scipy python-qt4 python-h5py'
 \item Follow the instructions
 \end{itemize}
 This should install the packages. ssNake can then be run by navigating to the ssNake directory in a terminal and running `python ssNake.py' from there.
@@ -160,7 +160,7 @@ One commonly used value on the `goodness' of a spectrum is the signal-to-noise r
 
 
 \begin{tcolorbox}[breakable,colback=green!5,colframe=MyGreenD,title=\large ssNake workspaces,boxrule=2mm,colback=MyGreenD!30!white]
-Every time you load new data into ssNake, you are prompted to supply a name. The reason for this is that ssNake supports workspaces, i.e. multiple loaded data files at the same time. You can go to a different workspace (if any) by clicking on itsa respective tab in the top of the ssNake window. Alternatively, use Workspaces $\rightarrow$ Active, and select the name of the desired workspace to go to. Via the same menu you can delete the current workspace, or make a duplicate copy. Some of this can also be done using shortcuts:
+Every time you load new data into ssNake, you are prompted to supply a name. The reason for this is that ssNake supports workspaces, i.e. multiple loaded data files at the same time. You can go to a different workspace (if any) by clicking on its respective tab in the top of the ssNake window. Alternatively, use Workspaces $\rightarrow$ Active, and select the name of the desired workspace to go to. Via the same menu you can delete the current workspace, or make a duplicate copy. Some of this can also be done using shortcuts:
 \begin{itemize}
 \item Next workspace: alt-rightarrow
 \item Previous workspace: alt-leftarrow
@@ -189,12 +189,12 @@ Now, we have to apply some linebroading. But let us use a nice trick. Go to Plot
 
 \subsection{The actual fitting}
 Now we have `massaged' our data properly, and it is time for the actual T$_1$ fitting. For this we have to make a plot of the intensity of the peak over time. First, get the position of the line
-by using the `Get Position' button in the lower left of the screen. Moving the mouse over the spectrum shows a vertical dash. Put your mouse over the highest point of the peak and left-click. Remember that you can still use the scrollwheel (with and without holding the right mouse button) to zoom, to make your pick more precise. The result of our pick will be shown on the bottom line of the screen. `Position' is the value we need, but it also gives the x and y values, and the difference compared to the previous pick in this spectrum.
+by using the `Get Position' button in the lower left of the screen. Moving the mouse over the spectrum shows a vertical dash. Put your mouse over the highest point of the peak and left-click. Remember that you can still use the scrollwheel (with and without holding the right mouse button) to zoom, to make your pick more precise. The result of our pick will be shown on the bottom line of the screen. `x-Position' is the value we need, but it also gives the x and y values, and the difference compared to the previous pick in this spectrum.
 
 To get the view we need, we have to type (or copy) this `Position' value to the D2 field, and press `enter'. This will automatically change the view to D1 (see the radio button change), and show the intensity of the peak in time:\\
 \includegraphics[width=\linewidth]{Images/T1.png}
 
-However, the  current plot is not correct! The data has been measured with an increasing recovery delay, but not a linear one! We must therefore change the current axis to the one we have actually used during the measurement. These spectra have been measured using the `euro' series, as it is effective and easy to remember. If the first delay is, say 1 second, then the euro series of 6 steps is: 1, 2, 5, 10, 20, 50. So the same as the steps in the euro coins. So 1, 2, 5, and then the same times 10, 100, etc. The current spectra have been measured with a euro series starting from 1 ms. First, set the current axis to seconds using the menu in the lower part of the screen. Now we can set the user axis via Plot $\rightarrow$ User x-axis. Here, we must supply a series of numbers equal to the delays we used in the saturation recovery experiment. We have 12 traces (starting with 0.001 s), so the input should be : [0.001,0.002,0.005,0.01,0.02,0.05,0.1,0.2,0.5,1,2,5] . It is quite nasty to type this in every time we do this experiment. ssNake therefore supports the euro series directly. So instead of the mess above, type: euro(0.001) . ssNake knows how many spectra there are, so only the first number in the euro series has to be supplied by the user. Applying should give something like this:\\
+However, the  current plot is not correct! The data has been measured with an increasing recovery delay, but not a linear one! We must therefore change the current axis to the one we have actually used during the measurement. These spectra have been measured using the `euro' series, as it is effective and easy to remember. If the first delay is, say 1 second, then the euro series of 6 steps is: 1, 2, 5, 10, 20, 50. So the same as the steps in the euro coins. So 1, 2, 5, and then the same times 10, 100, etc. The current spectra have been measured with a euro series starting from 1 ms. We can set the user axis via Plot $\rightarrow$ User x-axis. Here, we must supply a series of numbers equal to the delays we used in the saturation recovery experiment. We have 12 traces (starting with 0.001 s), so the input should be : [0.001,0.002,0.005,0.01,0.02,0.05,0.1,0.2,0.5,1,2,5] . It is quite nasty to type this in every time we do this experiment. ssNake therefore supports the euro series directly. So instead of the mess above, type: euro(0.001). ssNake knows how many spectra there are, so only the first number in the euro series has to be supplied by the user. Applying should give something like this:\\
 \includegraphics[width=\linewidth]{Images/T1correctAxis.png}
 
 

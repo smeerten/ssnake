@@ -45,7 +45,7 @@
      showgrid="false"
      units="mm"
      inkscape:zoom="5.074364"
-     inkscape:cx="-34.528772"
+     inkscape:cx="-82.613616"
      inkscape:cy="-7.3499071"
      inkscape:window-x="0"
      inkscape:window-y="0"
@@ -135,28 +135,32 @@
      x="-4.7308239e-07"
      y="-1.9989614e-06" />
   <g
-     id="g36"
-     style="fill:#e97b00;fill-opacity:1"
-     transform="matrix(2.3624666,0,0,2.3624666,-301.40072,-297.09276)">
-    <use
-       height="100%"
-       width="100%"
-       id="use38"
-       y="137.754"
-       x="134.765"
-       xlink:href="#glyph1-1"
-       style="fill:#e97b00;fill-opacity:1" />
-  </g>
-  <g
-     id="g44"
-     style="fill:#000000;fill-opacity:1"
-     transform="matrix(3.4128014,0,0,3.4128014,-522.81216,-442.80919)">
-    <use
-       height="100%"
-       width="100%"
-       id="use46"
-       y="137.754"
-       x="152.254"
-       xlink:href="#glyph2-1" />
+     id="g4152"
+     transform="matrix(0.92307691,0,0,0.92307691,1.090249,0.76317322)">
+    <g
+       transform="matrix(2.3624666,0,0,2.3624666,-301.40072,-297.09276)"
+       style="fill:#e97b00;fill-opacity:1"
+       id="g36">
+      <use
+         style="fill:#e97b00;fill-opacity:1"
+         xlink:href="#glyph1-1"
+         x="134.765"
+         y="137.754"
+         id="use38"
+         width="100%"
+         height="100%" />
+    </g>
+    <g
+       transform="matrix(3.4128014,0,0,3.4128014,-522.81216,-442.80919)"
+       style="fill:#000000;fill-opacity:1"
+       id="g44">
+      <use
+         xlink:href="#glyph2-1"
+         x="152.254"
+         y="137.754"
+         id="use46"
+         width="100%"
+         height="100%" />
+    </g>
   </g>
 </svg>
