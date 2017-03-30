@@ -6215,9 +6215,12 @@ class CombineWorkspaceWindow(QtWidgets.QWidget):
         items = []
         for index in range(self.listB.count()):
             items.append(self.listB.item(index).text())
-        if self.father.combineWorkspace(items):
-            self.father.menuEnable()
-            self.deleteLater()
+        if len(items) == 0:
+            self.father.dispMsg("Please select at least one workspace to combine")
+        else:
+            if self.father.combineWorkspace(items):
+                self.father.menuEnable()
+                self.deleteLater()
 
     def closeEvent(self, *args):
         self.father.menuEnable()
