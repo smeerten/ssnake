@@ -376,7 +376,8 @@ class MainProgram(QtWidgets.QMainWindow):
         
         self.saveActList = [self.saveAct,self.saveMatAct]
         self.exportActList = [self.savefigAct,self.saveSimpsonAct,self.saveASCIIAct]        
-        
+        self.fileActList = [self.openAct,self.saveAct,self.saveMatAct,self.savefigAct,
+                            self.saveSimpsonAct,self.saveASCIIAct,self.preferencesAct,self.quitAct]
         # Workspaces menu
         self.workspacemenu = QtWidgets.QMenu('&Workspaces', self)
         self.menubar.addMenu(self.workspacemenu)
@@ -769,8 +770,6 @@ class MainProgram(QtWidgets.QMainWindow):
                 self.exportmenu.menuAction().setEnabled(True)
                 self.savefigAct.setEnabled(True)
                 self.macromenu.menuAction().setEnabled(True)
-                for act in self.saveActList + self.exportActList + self.workspaceActList + self.macroActList:
-                    act.setEnabled(True)
                 if self.mainWindow.currentMacro is None:
                     self.macrostopAct.setEnabled(False)
                     self.macrostartAct.setEnabled(True)
@@ -790,8 +789,6 @@ class MainProgram(QtWidgets.QMainWindow):
                 self.savefigAct.setEnabled(False)
                 self.workspacemenu.menuAction().setEnabled(True)
                 self.macromenu.menuAction().setEnabled(False)
-                for act in self.macroActList + self.editActList + self.toolsActList + self.matrixActList + self.fftActList + self.fittingActList + self.plotActList + self.combineActList + self.historyActList:
-                    act.setEnabled(False)
             else:
                 self.menuDisable(True)
                 self.savemenu.menuAction().setEnabled(True)
@@ -801,8 +798,6 @@ class MainProgram(QtWidgets.QMainWindow):
                 self.macromenu.menuAction().setEnabled(False)
                 for act in self.saveActList + self.exportActList + self.workspaceActList:
                     act.setEnabled(True)
-                for act in self.macroActList + self.editActList + self.toolsActList + self.matrixActList + self.fftActList + self.fittingActList + self.plotActList + self.combineActList + self.historyActList:
-                    act.setEnabled(False)
 
     def menuEnable(self, internalWindow=False):
         self.macromenu.menuAction().setEnabled(True)
@@ -814,16 +809,17 @@ class MainProgram(QtWidgets.QMainWindow):
         self.combineMenu.menuAction().setEnabled(True)
         self.plotMenu.menuAction().setEnabled(True)
         self.historyMenu.menuAction().setEnabled(True)
+        
+        #Actions:
+        for act in self.macroActList + self.editActList + self.toolsActList + self.matrixActList + self.fftActList + self.fittingActList + self.plotActList + self.combineActList + self.historyActList:
+            act.setEnabled(True)
+        
+        
         if not internalWindow:
             self.filemenu.menuAction().setEnabled(True)
             self.workspacemenu.menuAction().setEnabled(True)
-            self.openAct.setEnabled(True)
-            self.savefigAct.setEnabled(True)
-            self.saveAct.setEnabled(True)
-            self.newAct.setEnabled(True)
-            self.closeAct.setEnabled(True)
-            self.forwardAct.setEnabled(True)
-            self.backAct.setEnabled(True)
+            for act in self.fileActList + self.workspaceActList:
+                act.setEnabled(True)
             for i in range(self.tabs.count()):
                 self.tabs.setTabEnabled(i, True)
         self.undoAction.setEnabled(True)
@@ -839,16 +835,16 @@ class MainProgram(QtWidgets.QMainWindow):
         self.combineMenu.menuAction().setEnabled(False)
         self.plotMenu.menuAction().setEnabled(False)
         self.historyMenu.menuAction().setEnabled(False)
+        #Actions:
+        for act in self.macroActList + self.editActList + self.toolsActList + self.matrixActList + self.fftActList + self.fittingActList + self.plotActList + self.combineActList + self.historyActList:
+            act.setEnabled(False)
+            
+            
         if not internalWindow:
             self.filemenu.menuAction().setEnabled(False)
             self.workspacemenu.menuAction().setEnabled(False)
-            self.openAct.setEnabled(False)
-            self.savefigAct.setEnabled(False)
-            self.saveAct.setEnabled(False)
-            self.newAct.setEnabled(False)
-            self.closeAct.setEnabled(False)
-            self.forwardAct.setEnabled(False)
-            self.backAct.setEnabled(False)
+            for act in self.fileActList + self.workspaceActList:
+                act.setEnabled(False)
             for i in range(self.tabs.count()):
                 if i != self.workspaceNum:
                     self.tabs.setTabEnabled(i, False)
@@ -3015,7 +3011,7 @@ class TextFrame(QtWidgets.QScrollArea):
 
 
 class AsciiLoadWindow(QtWidgets.QDialog):
-    dataOrders = ['XRI','XR','XI','RI']
+    dataOrders = ['XRI','XR','XI','RI','R']
     delimiters = ['Tab','Space','Comma']
     def __init__(self, parent, file):
         QtWidgets.QWidget.__init__(self, parent)
@@ -3082,7 +3078,7 @@ class AsciiLoadWindow(QtWidgets.QDialog):
         
     def checkDatOrder(self):
         tmp = self.dataOrders[ self.datOrderBox.currentIndex() ]
-        if tmp == 'RI':
+        if tmp == 'RI' or tmp == 'R':
             self.swLabel.show()
             self.swEntry.show()
         else:
@@ -3118,7 +3114,7 @@ class AsciiLoadWindow(QtWidgets.QDialog):
     def applyAndClose(self):
         self.dataOrder = self.dataOrders[ self.datOrderBox.currentIndex() ]
         self.delim = self.delimiters[ self.datDelimBox.currentIndex() ]
-        if self.dataOrder == 'RI':
+        if self.dataOrder == 'RI' or self.dataOrder == 'R':
             self.sw = safeEval(self.swEntry.text())
             if self.sw == 0 or self.sw == None:
                 self.father.dispMsg('Spectral Width input is not valid')

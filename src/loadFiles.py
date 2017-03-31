@@ -939,6 +939,8 @@ def LoadAscii(filePath, name, dataDimension, dataSpec, dataOrder, delimitor, swI
             data = 1j * matrix[:,1]
         elif dataOrder == 'RI':
             data = matrix[:,0] + 1j * matrix[:,1]
+        elif dataOrder == 'R':
+            data = matrix
         masterData = sc.Spectrum(name, data, (11, filePath), [freq], [sw], [dataSpec], ref = [None])
     elif dataDimension == 2:
         if dataOrder == 'XRI':
@@ -949,6 +951,8 @@ def LoadAscii(filePath, name, dataDimension, dataSpec, dataOrder, delimitor, swI
            data = 1j * np.transpose(matrix[:,1:]) 
         elif dataOrder == 'RI':  
             data = np.transpose(matrix[:,0::2] + 1j * matrix[:,1::2])
+        elif dataOrder == 'RI':  
+            data = np.transpose(matrix)
         masterData = sc.Spectrum(name, data, (11, filePath), [freq,freq], [1,sw], [False,dataSpec], ref = [None,None])
     else:
         return
