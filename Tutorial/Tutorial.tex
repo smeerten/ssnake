@@ -1,4 +1,4 @@
-% Copyright 2016 Bas van Meerten and Wouter Franssen
+% Copyright 2016 - 2017 Bas van Meerten and Wouter Franssen
 %
 %This file is part of ssNake.
 %
@@ -114,13 +114,13 @@ For Windows there are several python distributions around, some of these have al
 \item Install Anaconda
 \item Reboot your pc or logout/login.
 \end{itemize}
-Now you have python installed. To install ssNake, copy the ssNake directory to your favourite location (C:\textbackslash{}Program Files\textbackslash{}, for example). ssNake can then be started by double clicking on the `WindowsRun.bat' file. Alternatively, you can execute the `WindowsInstall.vbs' file from within the ssNake directory. This .vbs script creates shortcuts on your desktop and in the startmenu, which you can use to run ssNake. 
+Now you have python installed. To install ssNake, copy the ssNake directory to your favourite location (C:\textbackslash{}Program Files\textbackslash{}, for example). ssNake can then be started by double clicking on the `WindowsRun.bat' file. Alternatively, you can execute the `WindowsInstall.vbs' file from within the ssNake directory. This .vbs script creates shortcuts on your desktop and in the startmenu, which you can use to run ssNake. Note that when running ssNake for the first time it might take some time to start (some files need to be compiled).
 
 \subsection{Installing on Linux}
 Installing ssNake on Linux requires installing the required packages. How to do this depends on the Linux distribution you are using. On Ubuntu, you should do the following:
 \begin{itemize}
 \item Open a terminal
-\item Copy the following command : `sudo apt-get install python-matplotlib python-scipy python-numpy'
+\item Copy the following command : `sudo apt-get install python python-numpy python-matplotlib python-scipy python-qt4 python-h5py'
 \item Follow the instructions
 \end{itemize}
 This should install the packages. ssNake can then be run by navigating to the ssNake directory in a terminal and running `python ssNake.py' from there.
@@ -130,7 +130,7 @@ This should install the packages. ssNake can then be run by navigating to the ss
 As a starter, we shall load a 1D spectrum, and start to process this. The data file `1D.json' should be delivered with this document so you can follow all the steps yourself. Firstly, start ssNake by double clicking on the ssNake icon on your desktop (or use another method as described in the installation procedures). This should show something like this (the graphical appearance can be different depending on your operating system):\\
 \includegraphics[width=\linewidth]{Images/StartScreen.png}
 
-Now, navigate to the menu on the top of the ssNake screen and choose File $\rightarrow$ Open. This will open a navigation window. Use this window to go to the `1D.json' file that was delivered with this manual and double-click on it to open. ssNake now prompts for a name. This is the name of the data within the ssNake workspace. If you have multiple data files loaded you can switch between them. For now, give it a nice name so you later now what it is. Say: `1DTest', or something like that. This should give you the following Figure:\\
+Now, navigate to the menu on the top of the ssNake screen and choose File $\rightarrow$ Open. This will open a navigation window. Use this window to go to the `1D.json' file that was delivered with this manual and double-click on it to open. ssNake now prompts for a name. This is the name of the data within the ssNake workspace. If you have multiple data files loaded you can switch between them. For now, give it a nice name so you later know which data it is. Say: `1DTest', or something like that. This should give you the following Figure:\\
 \includegraphics[width=\linewidth]{Images/1Dfid.png}
 
 
@@ -160,7 +160,7 @@ One commonly used value on the `goodness' of a spectrum is the signal-to-noise r
 
 
 \begin{tcolorbox}[breakable,colback=green!5,colframe=MyGreenD,title=\large ssNake workspaces,boxrule=2mm,colback=MyGreenD!30!white]
-Every time you load new data into ssNake, you are prompted to supply a name. The reason for this is that ssNake supports workspaces, i.e. multiple loaded data files at the same time. You can go to a different workspace (if any) by clicking on itsa respective tab in the top of the ssNake window. Alternatively, use Workspaces $\rightarrow$ Active, and select the name of the desired workspace to go to. Via the same menu you can delete the current workspace, or make a duplicate copy. Some of this can also be done using shortcuts:
+Every time you load new data into ssNake, you are prompted to supply a name. The reason for this is that ssNake supports workspaces, i.e. multiple loaded data files at the same time. You can go to a different workspace (if any) by clicking on its respective tab in the top of the ssNake window. Alternatively, use Workspaces $\rightarrow$ Active, and select the name of the desired workspace to go to. Via the same menu you can delete the current workspace, or make a duplicate copy. Some of this can also be done using shortcuts:
 \begin{itemize}
 \item Next workspace: alt-rightarrow
 \item Previous workspace: alt-leftarrow
@@ -181,7 +181,7 @@ ssNake can also be used for fitting exponential decays such as T$_1$ and T$_2$. 
 
 You now have loaded a 2D data set. You can see this by looking at the right side of the screen, which now shows a dimension selector with two dimensions. By pushing the radiobutton you can show the signal in another dimension. To view the FIDs measured with different recovery times (as is done in a T$_1$ experiment), click on the \^{} button close to the D1 text. This will cycle through the list of measurements, and will eventually show some signal. Alternatively, it is possible to show them all by going to Plot $\rightarrow$ Stack plot. Push Plot $\rightarrow$ 1D plot, to go back to the original view.
 
-The FID we now see does not have that many points. As the number of points in the FID is equal to the number of points in the spectrum (after we push Fourier), we must increase the number of points to improve the digital resolution of the spectrum. Go to Tool $\rightarrow$ Set size, and fill in `8k' at the `Size' box (ignore the `Offset' box for the time being) and press apply. This will set the number of points to 8192 (one `k' is 1024 points). The new datapoints are zeroes, and are put at the end by default. The signal is now `zerofilled'. The signal is still somewhat noisy, but it is easier to correct this in the frequency domain. Press `Fourier' to go there.
+The FID we now see does not have that many points. As the number of points in the FID is equal to the number of points in the spectrum (after we push Fourier), we must increase the number of points to improve the digital resolution of the spectrum. Go to Matrix $\rightarrow$ Sizing, and fill in `8k' at the `Size' box (ignore the `Offset' box for the time being) and press apply. This will set the number of points to 8192 (one `k' is 1024 points). The new datapoints are zeroes, and are put at the end by default. The signal is now `zerofilled'. The signal is still somewhat noisy, but it is easier to correct this in the frequency domain. Press `Fourier' to go there.
 
 Now we have the spectrum. Due to the nature of the saturation recovery experiment that was performed, the first spectra have hardly any signal. To phase the signal properly, go to the last spectrum via multiple pushes on the up button next to D1. Alternatively, you can go there by typing `$-1$' in the field there and push enter. ssNake uses the regular python definitions for array indexing, meaning that 0 is the first spectrum, and $-1$ is the spectrum before that, which python sees as the last. We can now phase the last spectrum properly (and the phasing will be set for the others too after we push `apply').
 
@@ -189,12 +189,12 @@ Now, we have to apply some linebroading. But let us use a nice trick. Go to Plot
 
 \subsection{The actual fitting}
 Now we have `massaged' our data properly, and it is time for the actual T$_1$ fitting. For this we have to make a plot of the intensity of the peak over time. First, get the position of the line
-by using the `Get Position' button in the lower left of the screen. Moving the mouse over the spectrum shows a vertical dash. Put your mouse over the highest point of the peak and left-click. Remember that you can still use the scrollwheel (with and without holding the right mouse button) to zoom, to make your pick more precise. The result of our pick will be shown on the bottom line of the screen. `Position' is the value we need, but it also gives the x and y values, and the difference compared to the previous pick in this spectrum.
+by using the `Get Position' button in the lower left of the screen. Moving the mouse over the spectrum shows a vertical dash. Put your mouse over the highest point of the peak and left-click. Remember that you can still use the scrollwheel (with and without holding the right mouse button) to zoom, to make your pick more precise. The result of our pick will be shown on the bottom line of the screen. `x-Position' is the value we need, but it also gives the x and y values, and the difference compared to the previous pick in this spectrum.
 
 To get the view we need, we have to type (or copy) this `Position' value to the D2 field, and press `enter'. This will automatically change the view to D1 (see the radio button change), and show the intensity of the peak in time:\\
 \includegraphics[width=\linewidth]{Images/T1.png}
 
-However, the  current plot is not correct! The data has been measured with an increasing recovery delay, but not a linear one! We must therefore change the current axis to the one we have actually used during the measurement. These spectra have been measured using the `euro' series, as it is effective and easy to remember. If the first delay is, say 1 second, then the euro series of 6 steps is: 1, 2, 5, 10, 20, 50. So the same as the steps in the euro coins. So 1, 2, 5, and then the same times 10, 100, etc. The current spectra have been measured with a euro series starting from 1 ms. First, set the current axis to seconds using the menu in the lower part of the screen. Now we can set the user axis via Plot $\rightarrow$ User x-axis. Here, we must supply a series of numbers equal to the delays we used in the saturation recovery experiment. We have 12 traces (starting with 0.001 s), so the input should be : [0.001,0.002,0.005,0.01,0.02,0.05,0.1,0.2,0.5,1,2,5] . It is quite nasty to type this in every time we do this experiment. ssNake therefore supports the euro series directly. So instead of the mess above, type: euro(0.001) . ssNake knows how many spectra there are, so only the first number in the euro series has to be supplied by the user. Applying should give something like this:\\
+However, the  current plot is not correct! The data has been measured with an increasing recovery delay, but not a linear one! We must therefore change the current axis to the one we have actually used during the measurement. These spectra have been measured using the `euro' series, as it is effective and easy to remember. If the first delay is, say 1 second, then the euro series of 6 steps is: 1, 2, 5, 10, 20, 50. So the same as the steps in the euro coins. So 1, 2, 5, and then the same times 10, 100, etc. The current spectra have been measured with a euro series starting from 1 ms. We can set the user axis via Plot $\rightarrow$ User x-axis. Here, we must supply a series of numbers equal to the delays we used in the saturation recovery experiment. We have 12 traces (starting with 0.001 s), so the input should be : [0.001,0.002,0.005,0.01,0.02,0.05,0.1,0.2,0.5,1,2,5] . It is quite nasty to type this in every time we do this experiment. ssNake therefore supports the euro series directly. So instead of the mess above, type: euro(0.001). ssNake knows how many spectra there are, so only the first number in the euro series has to be supplied by the user. Applying should give something like this:\\
 \includegraphics[width=\linewidth]{Images/T1correctAxis.png}
 
 

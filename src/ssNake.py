@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-# Copyright 2016 Bas van Meerten and Wouter Franssen
+# Copyright 2016 - 2017 Bas van Meerten and Wouter Franssen
 
 # This file is part of ssNake.
 #
@@ -17,40 +17,91 @@
 # You should have received a copy of the GNU General Public License
 # along with ssNake. If not, see <http://www.gnu.org/licenses/>.
 
+
 import sip
-sip.setapi('QString', 2)
-import matplotlib
-matplotlib.use('Qt4Agg')
-from PyQt4 import QtGui, QtCore
-from matplotlib.backends.backend_qt4agg import FigureCanvasQTAgg as FigureCanvas
-from matplotlib.figure import Figure
-import numpy as np
 import sys
 import os
-import re
-import copy
-import spectrum_classes as sc
-import fitting as fit
-from safeEval import safeEval
-import widgetClasses as wc
-from updateWindow import UpdateWindow
-from plotWindow import MainPlotWindow
-from euro import euro
-import scipy.constants as SC
+sip.setapi('QString', 2)
+try:
+    from PyQt4 import QtGui, QtCore
+    from PyQt4 import QtGui as QtWidgets
+    QT = 4
+except ImportError:
+    from PyQt5 import QtGui, QtCore, QtWidgets
+    QT = 5
 
+
+#Create splash window
+if __name__ == '__main__':
+    root = QtWidgets.QApplication(sys.argv)
+    root.setWindowIcon(QtGui.QIcon(os.path.dirname(os.path.realpath(__file__)) + '/logo.gif'))
+    splash_pix = QtGui.QPixmap(os.path.dirname(os.path.realpath(__file__)) + '/logo.gif')
+    splash = QtWidgets.QSplashScreen(splash_pix, QtCore.Qt.WindowStaysOnTopHint)
+    splash.setMask(splash_pix.mask())
+    progressBar = QtWidgets.QProgressBar(splash)
+    progressBar.setGeometry(2.5*splash.width()/10, 0.89*splash.height(),5*splash.width()/10, splash.height()/20)
+    splash.show()
+
+    
+splashSteps=15.0/100
+splashStep = 0.0
+def splashProgressStep(splashStep): #A function to easily increase the progressbar value
+    if __name__ == '__main__':
+        splashStep=splashStep+1
+        progressBar.setValue(splashStep // splashSteps + (splashStep % splashSteps > 0)) #Rounds up without math or numpy module
+        root.processEvents()   
+    return splashStep
+
+  
+import matplotlib  
+splashStep = splashProgressStep(splashStep)
+if QT ==4:
+    matplotlib.use('Qt4Agg')
+    from matplotlib.backends.backend_qt4agg import FigureCanvasQTAgg as FigureCanvas
+else:
+    matplotlib.use('Qt5Agg')
+    from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
+splashStep = splashProgressStep(splashStep)
+from matplotlib.figure import Figure
+splashStep = splashProgressStep(splashStep)
+import numpy as np
+splashStep = splashProgressStep(splashStep)
+import re
+splashStep = splashProgressStep(splashStep)
+import copy
+splashStep = splashProgressStep(splashStep)
+import spectrum_classes as sc
+splashStep = splashProgressStep(splashStep)
+import fitting as fit
+splashStep = splashProgressStep(splashStep)
+from safeEval import safeEval
+splashStep = splashProgressStep(splashStep)
+import widgetClasses as wc
+splashStep = splashProgressStep(splashStep)
+from updateWindow import UpdateWindow
+splashStep = splashProgressStep(splashStep)
+from plotWindow import MainPlotWindow
+splashStep = splashProgressStep(splashStep)
+from euro import euro
+splashStep = splashProgressStep(splashStep)
+import scipy.constants as SC
+splashStep = splashProgressStep(splashStep)
+import loadFiles as LF
+splashStep = splashProgressStep(splashStep)
 
 matplotlib.rc('font', family='DejaVu Sans')
 np.set_printoptions(threshold=np.nan)
+QtCore.QLocale.setDefault(QtCore.QLocale('en_US'))
 
 pi = np.pi
 
-VERSION = 'v0.5'
+VERSION = 'v0.6'
 
 
-class MainProgram(QtGui.QMainWindow):
+class MainProgram(QtWidgets.QMainWindow):
 
     def __init__(self, root):
-        QtGui.QMainWindow.__init__(self)
+        QtWidgets.QMainWindow.__init__(self)
         self.root = root
         self.VERSION = VERSION
         self.setAttribute(QtCore.Qt.WA_DeleteOnClose)
@@ -61,15 +112,15 @@ class MainProgram(QtGui.QMainWindow):
         self.workspaceNum = 0
         self.macros = {}
         self.macroActions = {}
-        self.referenceName = []  # List with saved refrence names
-        self.referenceValue = []  # List with saved refrence values
+        self.referenceName = []  # List with saved reference names
+        self.referenceValue = []  # List with saved reference values
         self.referenceActions = {}
         self.LastLocation = ''
         self.initMenu()
         self.menuCheck()
-        self.main_widget = QtGui.QWidget(self)
-        self.mainFrame = QtGui.QGridLayout(self.main_widget)
-        self.logo = QtGui.QLabel(self)
+        self.main_widget = QtWidgets.QWidget(self)
+        self.mainFrame = QtWidgets.QGridLayout(self.main_widget)
+        self.logo = QtWidgets.QLabel(self)
         self.logo.setPixmap(QtGui.QPixmap(os.path.dirname(os.path.realpath(__file__)) + "/logo.gif"))
         self.mainFrame.addWidget(self.logo, 0, 0, QtCore.Qt.AlignCenter)
         self.tabs = wc.SsnakeTabs(self)
@@ -80,7 +131,7 @@ class MainProgram(QtGui.QMainWindow):
         self.tabs.currentChanged.connect(self.changeMainWindow)
         self.tabs.tabCloseRequested.connect(self.destroyWorkspace)
         self.mainFrame.addWidget(self.tabs, 0, 0)
-        self.statusBar = QtGui.QStatusBar(self)
+        self.statusBar = QtWidgets.QStatusBar(self)
         self.setStatusBar(self.statusBar)
         self.tabs.hide()
         self.main_widget.setFocus()
@@ -88,35 +139,48 @@ class MainProgram(QtGui.QMainWindow):
         self.eventFilter = wc.MyEventFilter(self)
         self.root.installEventFilter(self.eventFilter)
         self.loadDefaults()
+        self.initToolbar()
         self.resize(self.defaultWidth, self.defaultHeight)
         if self.defaultMaximized:
             self.showMaximized()
-        QtGui.QShortcut(QtGui.QKeySequence.Paste, self).activated.connect(self.handlePaste)
-        QtGui.QShortcut(QtGui.QKeySequence.Copy, self).activated.connect(self.handleCopy)
+        QtWidgets.QShortcut(QtGui.QKeySequence.Paste, self).activated.connect(self.handlePaste)
+        QtWidgets.QShortcut(QtGui.QKeySequence.Copy, self).activated.connect(self.handleCopy)
 
     def handlePaste(self):
-        self.dropEvent(QtGui.QApplication.instance().clipboard())
+        self.dropEvent(QtWidgets.QApplication.instance().clipboard())
 
     def handleCopy(self):
         if self.mainWindow is None:
             return
         pixmap = QtGui.QPixmap.grabWidget(self.mainWindow.canvas)
-        QtGui.QApplication.clipboard().setPixmap(pixmap)
+        QtWidgets.QApplication.clipboard().setPixmap(pixmap)
         
     def resetDefaults(self):
-        self.defaultWidth = 0
-        self.defaultHeight = 0
+        self.defaultUnits = 1
+        self.defaultPPM = False
+        self.defaultWidth = 1
+        self.defaultHeight = 1
         self.defaultMaximized = False
         self.defaultAskName = True
+        self.defaultToolBar = True
         self.defaultLinewidth = 1.0
         self.defaultColor = '#0000FF'
         self.defaultGrids = [False, False]
+        self.defaultZeroScroll = True
         self.defaultColorMap = 'seismic'
         self.defaultWidthRatio = 3.0
         self.defaultHeightRatio = 3.0
-        self.defaultContourConst = False
+        self.defaultContourConst = True
         self.defaultPosColor = '#FF0000'
         self.defaultNegColor = '#0000FF'
+        self.defaultToolbarActionList = ['File --> Open','File -- > Save --> Matlab','File --> Export --> Figure','Seperator',
+                                     'Workspaces --> Duplicate','Workspaces --> Delete','Seperator','Edit --> Undo','Edit --> Redo',
+                                     'Edit --> Reload','Seperator','Tools --> Apodize','Tools --> Phase','Seperator',
+                                     'Matrix --> Sizing','Matrix --> Shift Data','Matrix --> Multiply','Seperator','Fitting --> S/N','Fitting --> FWHM',
+                                     'Fitting --> Integrals','Fitting --> Relaxation Curve','Fitting --> Lorentzian/Gaussian','Seperator',
+                                     'Plot --> 1D Plot','Plot --> Stack Plot','Plot --> Array Plot','Plot --> Contour Plot',
+                                     'Plot --> Multi Plot','Seperator','History --> History','History --> Clear Undo/Redo List',
+                                     'Seperator','Help --> NMR Table'] 
 
     def loadDefaults(self):
         self.resetDefaults()
@@ -124,12 +188,20 @@ class MainProgram(QtGui.QMainWindow):
         QtCore.QCoreApplication.setOrganizationName("ssNake")
         QtCore.QCoreApplication.setApplicationName("ssNake")
         settings = QtCore.QSettings()
+        try:
+            self.defaultUnits = settings.value("plot/units", self.defaultUnits, int)
+        except TypeError:
+            self.dispMsg("Incorrect value in the config file for the units")
+        self.defaultPPM = settings.value("plot/ppm", self.defaultPPM, bool)
+        self.defaultToolbarActionList = settings.value("toolbarList", self.defaultToolbarActionList, str)
+
         self.defaultColor = settings.value("plot/color", self.defaultColor, str)
         try:
             self.defaultLinewidth = settings.value("plot/linewidth", self.defaultLinewidth, float)
         except TypeError:
             self.dispMsg("Incorrect value in the config file for the plot/linewidth")
         self.defaultGrids = [settings.value("plot/xgrid", self.defaultGrids[0], bool), settings.value("plot/ygrid", self.defaultGrids[1], bool)]
+        self.defaultZeroScroll = settings.value("plot/zeroscroll", self.defaultZeroScroll, bool)
         self.defaultColorMap = settings.value("contour/colormap", self.defaultColorMap, str)
         self.defaultContourConst = settings.value("contour/constantcolors", self.defaultContourConst, bool)
         self.defaultPosColor = settings.value("contour/poscolor", self.defaultPosColor, str)
@@ -146,6 +218,7 @@ class MainProgram(QtGui.QMainWindow):
         except TypeError:
             self.dispMsg("Incorrect value in the config file for the height")
         self.defaultAskName = settings.value("ask_name", self.defaultAskName, bool)
+        self.defaultToolBar = settings.value("toolbar", self.defaultToolBar, bool)
         try:
             self.defaultWidthRatio = settings.value("contour/width_ratio", self.defaultWidthRatio, float)
         except TypeError:
@@ -160,203 +233,462 @@ class MainProgram(QtGui.QMainWindow):
         QtCore.QCoreApplication.setOrganizationName("ssNake")
         QtCore.QCoreApplication.setApplicationName("ssNake")
         settings = QtCore.QSettings()
+        settings.setValue("plot/units", self.defaultUnits)
+        settings.setValue("plot/ppm", self.defaultPPM)
+        settings.setValue('toolbarList', self.defaultToolbarActionList)
         settings.setValue("plot/color", self.defaultColor)
         settings.setValue("plot/linewidth", self.defaultLinewidth)
         settings.setValue("plot/xgrid", self.defaultGrids[0])
         settings.setValue("plot/ygrid", self.defaultGrids[1])
+        settings.setValue("plot/zeroscroll", self.defaultZeroScroll)
         settings.setValue("maximized", self.defaultMaximized)
         settings.setValue("width", self.defaultWidth)
         settings.setValue("height", self.defaultHeight)
         settings.setValue("ask_name", self.defaultAskName)
+        settings.setValue("toolbar", self.defaultToolBar)
         settings.setValue("contour/colormap", self.defaultColorMap)
         settings.setValue("contour/constantcolors", self.defaultContourConst)
         settings.setValue("contour/poscolor", self.defaultPosColor)
         settings.setValue("contour/negcolor", self.defaultNegColor)
         settings.setValue("contour/width_ratio", self.defaultWidthRatio)
         settings.setValue("contour/height_ratio", self.defaultHeightRatio)
+        
 
-    def dispMsg(self, msg):
+    def dispMsg(self, msg, colour = 'black'):
+        if colour == 'red':
+            self.statusBar.setStyleSheet("QStatusBar{padding-left:8px;color:red;}")
+        else:
+            self.statusBar.setStyleSheet("QStatusBar{padding-left:8px;color:black;}")
         self.statusBar.showMessage(msg, 10000)
+    
+    
+    def initToolbar(self):
+        if self.defaultToolBar:
+            self.toolbar = self.addToolBar('Toolbar')
+            self.toolbar.setMovable(False)
+            self.toolbar.setIconSize(QtCore.QSize(22,22))
+            
+            self.seperatorAction = []
 
+            
+#            self.toobarActionList = [self.openAct,self.saveAct,self.saveMatAct,self.savefigAct,
+#                                     self.saveSimpsonAct,self.saveASCIIAct,self.saveASCIIAct,self.preferencesAct,
+#                                     self.quitAct,self.newAct,self.closeAct,self.renameWorkspaceAct,self.forwardAct,
+#                                     self.backAct,self.combineWorkspaceAct,self.macrostartAct,self.macrostopAct,
+#                                     self.macroLoadAct,self.undoAction,self.redoAction,self.reloadAct,self.monitorAct,
+#                                     self.realAct,self.imagAct,self.absAct,self.apodizeAct,self.phaseAct,
+#                                     self.swapEchoAct,self.corOffsetAct,self.baselineAct,self.subAvgAct,self.refDeconvAct,
+#                                     self.statesAct,self.statesTPPIAct,self.echoantiAct,self.brukDigitalAct,
+#                                     self.lpsvdAct,self.sizingAct,self.shiftAct,self.intRegionAct,
+#                                     self.sumRegionAct,self.maxRegionAct,self.minRegionAct,self.maxposRegionAct,
+#                                     self.minposRegionAct,self.averageRegionAct,self.diffAct,self.cumsumAct,
+#                                     self.extractpartAct,self.fliplrAct, self.matrixdelAct,self.splitAct,
+#                                     self.multiplyAct,self.reorderAct,self.concatAct,self.shearAct,
+#                                     self.fourierAct,self.realFourierAct,self.fftshiftAct,self.invfftshiftAct,
+#                                     self.hilbertAct,self.ffmAct,self.cleanAct,istAct,self.snrAct,self.fwhmAct,
+#                                     self.massAct,self.intfitAct,self.relaxAct,self.diffusionAct,self.lorentzfitAct,
+#                                     self.csastaticAct,self.csamasAct,self.firstquadstatAct,self.firstquadmasAct,
+#                                     self.secondquadstatAct,self.secondquadmasAct,self.czjzekstatAct,self.czjzekmasAct,
+#                                     self.insertdatAct,self.adddatAct,self.subdatAct,self.onedplotAct,self.scatterplotAct,
+#                                     self.stackplotAct,self.arrayplotAct,self.contourplotAct,self.skewplotAct,self.multiplotAct,
+#                                     self.setrefAct, self.delrefAct,self.loadrefAct,self.userxAct,self.plotprefAct,self.historyAct,
+#                                     self.clearundoAct,self.updateAct,self.shiftconvAct,self.quadconvAct,self.nmrtableAct,
+#                                     self.aboutAct]
+            
+            
+#            self.toobarActionList = [
+#                                     ]
+
+        
+            self.allActionsList = [['Seperator',None],['File --> Open',self.openAct],['File --> Save --> JSON',self.saveAct],['File -- > Save --> Matlab',self.saveMatAct],
+                                   ['File --> Export --> Figure',self.savefigAct],['File --> Export --> Simpson',self.saveSimpsonAct],['File --> Export --> ASCII (1D/2D)',self.saveASCIIAct],
+                                    ['File --> Preferences',self.preferencesAct],['File --> Quit',self.quitAct],
+                                    ['Workspaces --> Duplicate',self.newAct],['Workspaces --> Delete',self.closeAct],['Workspaces --> Rename',self.renameWorkspaceAct],
+                                    ['Workspaces --> Next',self.forwardAct],['Workspaces --> Previous',self.backAct],['Workspaces --> Combine',self.combineWorkspaceAct],
+                                    ['Macro --> Start Recording',self.macrostartAct],['Macro --> Stop Recording',self.macrostopAct],['Macro --> Load',self.macroLoadAct],
+                                    ['Edit --> Undo',self.undoAction],['Edit --> Redo',self.redoAction],['Edit --> Reload',self.reloadAct],['Edit --> Monitor',self.monitorAct],
+                                    ['Tools --> Real',self.realAct],['Tools --> Imag',self.imagAct],['Tools --> Abs',self.absAct],['Tools --> Complex Conjugate',self.conjAct],['Tools --> Apodize',self.apodizeAct],
+                                    ['Tools --> Phase',self.phaseAct],['Tools --> Autophase 0',self.autoPhaseAct0],['Tools --> Autophase 0+1',self.autoPhaseAct1],['Tools --> Swap Echo',self.swapEchoAct],['Tools --> Offset Correction',self.corOffsetAct],
+                                    ['Tools --> Baseline Correction',self.baselineAct],['Tools --> Subtract Averages',self.subAvgAct],['Tools --> Reference Deconvolution',self.refDeconvAct],
+                                    ['Tools --> States',self.statesAct],['Tools --> TPPI',self.statesTPPIAct],['Tools --> Echo-antiecho',self.echoantiAct],['Tools --> Correct Bruker Digital Filter',self.brukDigitalAct],
+                                    ['Tools --> LPSVD',self.lpsvdAct],
+                                    ['Matrix --> Sizing',self.sizingAct],['Matrix --> Shift Data',self.shiftAct],['Matrix --> Multiply',self.multiplyAct],['Matrix --> Region --> Integrate',self.intRegionAct],
+                                    ['Matrix --> Region --> Sum',self.sumRegionAct],['Matrix --> Region --> Max',self.maxRegionAct],['Matrix --> Region --> Min',self.minRegionAct],
+                                    ['Matrix --> Region --> Max Position',self.maxposRegionAct],['Matrix --> Region --> Min Position',self.minposRegionAct],['Matrix --> Region --> Average',self.averageRegionAct],
+                                    ['Matrix --> Diff',self.diffAct],['Matrix --> Cumsum',self.cumsumAct],['Matrix --> Extract Part',self.extractpartAct],['Matrix --> Flip L/R',self.fliplrAct],
+                                    ['Matrix --> Delete',self.matrixdelAct],['Matrix --> Split',self.splitAct],['Matrix --> Multiply',self.multiplyAct],['Matrix --> Reorder',self.reorderAct],
+                                    ['Matrix --> Concatenate',self.concatAct],['Matrix --> Shearing',self.shearAct],
+                                    ['Transforms --> Fourier Transform',self.fourierAct],['Transforms --> Real Fourier Transform',self.realFourierAct],['Transforms --> Fftshift',self.fftshiftAct],
+                                    ['Transforms --> Inv fftshift',self.invfftshiftAct],['Transforms --> Hilbert Transform',self.hilbertAct],['Transforms --> NUS --> FFM',self.ffmAct],
+                                    ['Transforms --> NUS --> CLEAN',self.cleanAct],['Transforms --> NUS --> IST',self.istAct],
+                                    ['Fitting --> S/N',self.snrAct],['Fitting --> FWHM',self.fwhmAct],['Fitting --> Centre of Mass',self.massAct],
+                                    ['Fitting --> Integrals',self.intfitAct],['Fitting --> Relaxation Curve',self.relaxAct],['Fitting --> Diffusion Curve',self.diffusionAct],
+                                    ['Fitting --> Lorentzian/Gaussian',self.lorentzfitAct],['Fitting --> CSA Static',self.csastaticAct],['Fitting --> CSA MAS',self.csamasAct],
+                                    ['Fitting --> First Order Quadrupole Static',self.firstquadstatAct],['Fitting --> First Order Quadrupole MAS',self.firstquadmasAct],['Fitting --> Second Order Quadrupole Static',self.secondquadstatAct],
+                                    ['Fitting --> Second Order Quadrupole MAS',self.secondquadmasAct],['Fitting --> Czjzek Static',self.czjzekstatAct],['Fitting --> Czjzek MAS',self.czjzekmasAct],
+                                    ['Combine --> Insert From Workspace',self.insertdatAct],['Combine --> Add',self.adddatAct],['Combine --> Subtract',self.subdatAct],['Combine --> Multiply',self.multdatAct],
+                                    ['Combine --> Divide',self.divdatAct],
+                                    ['Plot --> 1D Plot',self.onedplotAct],['Plot --> Scatter',self.scatterplotAct],['Plot --> Stack Plot',self.stackplotAct],
+                                    ['Plot --> Array Plot',self.arrayplotAct],['Plot --> Contour Plot',self.contourplotAct],['Plot --> Skewed Plot',self.skewplotAct],['Plot --> Multi Plot',self.multiplotAct],
+                                    ['Plot --> Set Reference',self.setrefAct],['Plot --> Clear Current Reference',self.delrefAct],['Plot --> Load Reference',self.loadrefAct],['Plot --> User X-axis',self.userxAct],
+                                    ['Plot --> Plot Settings',self.plotprefAct],
+                                    ['History --> History',self.historyAct],['History --> Clear Undo/Redo List',self.clearundoAct],
+                                    ['Help --> Update',self.updateAct],['Help --> Chemical Shift Conversion Tool',self.shiftconvAct],['Help --> Quadrupole Coupling Conversion Tool',self.quadconvAct],['Help --> NMR Table',self.nmrtableAct],
+                                    ['Help --> About',self.aboutAct]]
+                              
+                                     
+            for element in self.defaultToolbarActionList:
+                if element == 'Seperator':
+                        self.seperatorAction.append(QtWidgets.QAction(self))
+                        self.seperatorAction[-1].setSeparator(True)
+                        self.toolbar.addAction(self.seperatorAction[-1])
+                else:
+                    for action in self.allActionsList:
+                        if element == action[0]:
+                            self.toolbar.addAction(action[1])
+                                     
+    
     def initMenu(self):
         IconDirectory = os.path.dirname(os.path.realpath(__file__)) + os.path.sep + 'Icons' + os.path.sep
         self.menubar = self.menuBar()
-        self.filemenu = QtGui.QMenu('&File', self)
+        self.filemenu = QtWidgets.QMenu('&File', self)
         self.menubar.addMenu(self.filemenu)
         self.openAct = self.filemenu.addAction(QtGui.QIcon(IconDirectory + 'open.png'), '&Open', self.loadFromMenu, QtGui.QKeySequence.Open)
-        self.savemenu = QtGui.QMenu('&Save', self)
+        self.openAct.setToolTip('Open a File')
+        self.savemenu = QtWidgets.QMenu('&Save', self)
         self.filemenu.addMenu(self.savemenu)
         self.saveAct = self.savemenu.addAction(QtGui.QIcon(IconDirectory + 'JSON.png'), 'JSON', self.saveJSONFile, QtGui.QKeySequence.Save)
-        self.savemenu.addAction(QtGui.QIcon(IconDirectory + 'Matlab.png'), 'MATLAB', self.saveMatlabFile)
-        self.exportmenu = QtGui.QMenu('&Export', self)
+        self.saveAct.setToolTip('Save as JSON File')
+        self.saveMatAct = self.savemenu.addAction(QtGui.QIcon(IconDirectory + 'Matlab.png'), 'MATLAB', self.saveMatlabFile)
+        self.saveMatAct.setToolTip('Save as MATLAB File')
+        self.exportmenu = QtWidgets.QMenu('&Export', self)
         self.filemenu.addMenu(self.exportmenu)
         self.savefigAct = self.exportmenu.addAction(QtGui.QIcon(IconDirectory + 'figure.png'), 'Figure', self.saveFigure, QtGui.QKeySequence.Print)
-        self.exportmenu.addAction(QtGui.QIcon(IconDirectory + 'simpson.png'), 'Simpson', self.saveSimpsonFile)
-        self.exportmenu.addAction(QtGui.QIcon(IconDirectory + 'ssnake.png'), 'ASCII (1D/2D)', self.saveASCIIFile)
-        self.filemenu.addAction(QtGui.QIcon(IconDirectory + 'preferences.png'), '&Preferences', lambda: PreferenceWindow(self))
-        self.filemenu.addAction(QtGui.QIcon(IconDirectory + 'quit.png'), '&Quit', self.fileQuit, QtGui.QKeySequence.Quit)
-
+        self.savefigAct.setToolTip('Export as Figure')
+        self.saveSimpsonAct = self.exportmenu.addAction(QtGui.QIcon(IconDirectory + 'simpson.png'), 'Simpson', self.saveSimpsonFile)
+        self.saveSimpsonAct.setToolTip('Export as Simpson File')
+        self.saveASCIIAct = self.exportmenu.addAction(QtGui.QIcon(IconDirectory + 'ssnake.png'), 'ASCII (1D/2D)', self.saveASCIIFile)
+        self.saveASCIIAct.setToolTip('Save as ASCII Text File')        
+        self.preferencesAct = self.filemenu.addAction(QtGui.QIcon(IconDirectory + 'preferences.png'), '&Preferences', lambda: PreferenceWindow(self))
+        self.preferencesAct.setToolTip('Open Preferences Window')
+        self.quitAct = self.filemenu.addAction(QtGui.QIcon(IconDirectory + 'quit.png'), '&Quit', self.fileQuit, QtGui.QKeySequence.Quit)
+        self.quitAct.setToolTip('Close ssNake')
+        
+        self.saveActList = [self.saveAct,self.saveMatAct]
+        self.exportActList = [self.savefigAct,self.saveSimpsonAct,self.saveASCIIAct]        
+        self.fileActList = [self.openAct,self.saveAct,self.saveMatAct,self.savefigAct,
+                            self.saveSimpsonAct,self.saveASCIIAct,self.preferencesAct,self.quitAct]
         # Workspaces menu
-        self.workspacemenu = QtGui.QMenu('&Workspaces', self)
+        self.workspacemenu = QtWidgets.QMenu('&Workspaces', self)
         self.menubar.addMenu(self.workspacemenu)
         self.newAct = self.workspacemenu.addAction(QtGui.QIcon(IconDirectory + 'duplicate.png'), 'D&uplicate', self.duplicateWorkspace, QtGui.QKeySequence.New)
+        self.newAct.setToolTip('Duplicate Workspace')
         self.closeAct = self.workspacemenu.addAction(QtGui.QIcon(IconDirectory + 'delete.png'), '&Delete', self.destroyWorkspace, QtGui.QKeySequence.Close)
-        self.workspacemenu.addAction(QtGui.QIcon(IconDirectory + 'rename.png'), '&Rename', self.renameWorkspace, QtCore.Qt.Key_F2)
-        self.activemenu = QtGui.QMenu('&Active', self)
+        self.closeAct.setToolTip('Delete Workspace')
+        self.renameWorkspaceAct = self.workspacemenu.addAction(QtGui.QIcon(IconDirectory + 'rename.png'), '&Rename', self.renameWorkspace, QtCore.Qt.Key_F2)
+        self.renameWorkspaceAct.setToolTip('Rename Workspace')
+        self.activemenu = QtWidgets.QMenu('&Active', self)
         self.workspacemenu.addMenu(self.activemenu)
         self.forwardAct = self.workspacemenu.addAction(QtGui.QIcon(IconDirectory + 'next.png'), '&Next', lambda: self.stepWorkspace(1), QtGui.QKeySequence.Forward)
+        self.forwardAct.setToolTip('Next Workspace')
         self.backAct = self.workspacemenu.addAction(QtGui.QIcon(IconDirectory + 'previous.png'), '&Previous', lambda: self.stepWorkspace(-1), QtGui.QKeySequence.Back)
-        self.workspacemenu.addAction(QtGui.QIcon(IconDirectory + 'combine.png'), '&Combine', self.createCombineWorkspaceWindow)
+        self.backAct.setToolTip('Previous Workspace')
+        self.combineWorkspaceAct = self.workspacemenu.addAction(QtGui.QIcon(IconDirectory + 'combine.png'), '&Combine', self.createCombineWorkspaceWindow)
+        self.combineWorkspaceAct.setToolTip('Combine Workspaces')
 
+        self.workspaceActList = [self.newAct,self.closeAct,self.renameWorkspaceAct,self.forwardAct,
+                                 self.backAct,self.combineWorkspaceAct]
         # Macro menu
-        self.macromenu = QtGui.QMenu('&Macros', self)
+        self.macromenu = QtWidgets.QMenu('&Macros', self)
         self.menubar.addMenu(self.macromenu)
-        self.macrostartAct = self.macromenu.addAction(QtGui.QIcon(IconDirectory + 'record.png'), 'St&art recording', self.macroCreate)
-        self.macrostopAct = self.macromenu.addAction(QtGui.QIcon(IconDirectory + 'stop.png'), 'St&op recording', self.stopMacro)
-        self.macrolistmenu = QtGui.QMenu('&Run', self)
+        self.macrostartAct = self.macromenu.addAction(QtGui.QIcon(IconDirectory + 'record.png'), 'St&art Recording', self.macroCreate)
+        self.macrostartAct.setToolTip('Start Recording Macro')
+        self.macrostopAct = self.macromenu.addAction(QtGui.QIcon(IconDirectory + 'stop.png'), 'St&op Recording', self.stopMacro)
+        self.macrostopAct.setToolTip('Stop Recording Macro')
+        self.macrolistmenu = QtWidgets.QMenu('&Run', self)
         self.macromenu.addMenu(self.macrolistmenu)
-        self.macrorenamemenu = QtGui.QMenu('Re&name', self)
+        self.macrorenamemenu = QtWidgets.QMenu('Re&name', self)
         self.macromenu.addMenu(self.macrorenamemenu)
-        self.macrodeletemenu = QtGui.QMenu('&Delete', self)
+        self.macrodeletemenu = QtWidgets.QMenu('&Delete', self)
         self.macromenu.addMenu(self.macrodeletemenu)
-        self.macrosavemenu = QtGui.QMenu('&Save', self)
+        self.macrosavemenu = QtWidgets.QMenu('&Save', self)
         self.macromenu.addMenu(self.macrosavemenu)
-        self.macromenu.addAction(QtGui.QIcon(IconDirectory + 'open.png'), '&Load', self.loadMacro)
+        self.macroLoadAct = self.macromenu.addAction(QtGui.QIcon(IconDirectory + 'open.png'), '&Load', self.loadMacro)
+        self.macroLoadAct.setToolTip('Load Macro')
+        
+        self.macroActList = [self.macrostartAct,self.macrostopAct,self.macroLoadAct]
 
         self.multiDActions = []
         # the edit drop down menu
-        self.editmenu = QtGui.QMenu("&Edit", self)
+        self.editmenu = QtWidgets.QMenu("&Edit", self)
         self.menubar.addMenu(self.editmenu)
         self.undoAction = self.editmenu.addAction(QtGui.QIcon(IconDirectory + 'undo.png'), "&Undo", self.undo, QtGui.QKeySequence.Undo)
         self.undoAction.setShortcutContext(QtCore.Qt.WidgetShortcut)
+        self.undoAction.setToolTip('Undo')
         self.redoAction = self.editmenu.addAction(QtGui.QIcon(IconDirectory + 'redo.png'), "&Redo", self.redo, QtGui.QKeySequence.Redo)
         self.redoAction.setShortcutContext(QtCore.Qt.WidgetShortcut)
-        self.editmenu.addAction(QtGui.QIcon(IconDirectory + 'reload.png'), "Re&load", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.reloadLast()), QtGui.QKeySequence.Refresh)
-        self.editmenu.addAction(QtGui.QIcon(IconDirectory + 'monitor.png'),"&Monitor", lambda: self.mainWindowCheck(lambda mainWindow: MonitorWindow(mainWindow)))
+        self.redoAction.setToolTip('Redo')
+        self.reloadAct = self.editmenu.addAction(QtGui.QIcon(IconDirectory + 'reload.png'), "Re&load", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.reloadLast()), QtGui.QKeySequence.Refresh)
+        self.reloadAct.setToolTip('Reload Current Data')
+        self.monitorAct = self.editmenu.addAction(QtGui.QIcon(IconDirectory + 'monitor.png'),"&Monitor", lambda: self.mainWindowCheck(lambda mainWindow: MonitorWindow(mainWindow)))
+        self.monitorAct.setToolTip('Monitor Current Data')
+        self.editActList = [self.undoAction,self.redoAction,self.reloadAct,self.monitorAct]        
+        
         
         # the tool drop down menu
-        self.toolMenu = QtGui.QMenu("&Tools", self)
+        self.toolMenu = QtWidgets.QMenu("&Tools", self)
         self.menubar.addMenu(self.toolMenu)
-        self.toolMenu.addAction(QtGui.QIcon(IconDirectory + 'real.png'), "&Real", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.real()))
-        self.toolMenu.addAction(QtGui.QIcon(IconDirectory + 'imag.png'), "&Imag", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.imag()))
-        self.toolMenu.addAction(QtGui.QIcon(IconDirectory + 'abs.png'), "&Abs", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.abs()))
-        self.toolMenu.addAction("Apo&dize", lambda: self.mainWindowCheck(lambda mainWindow: ApodWindow(mainWindow)))
-        self.toolMenu.addAction(QtGui.QIcon(IconDirectory + 'phase.png'), "&Phasing", lambda: self.mainWindowCheck(lambda mainWindow: PhaseWindow(mainWindow)))
-        self.toolMenu.addAction(QtGui.QIcon(IconDirectory + 'fliplr.png'), "Swap &Echo", lambda: self.mainWindowCheck(lambda mainWindow: SwapEchoWindow(mainWindow)))
-        self.toolMenu.addAction("&Offset correction", lambda: self.mainWindowCheck(lambda mainWindow: DCWindow(mainWindow)))
-        self.toolMenu.addAction("&Baseline correction", lambda: self.mainWindowCheck(lambda mainWindow: BaselineWindow(mainWindow)))
-        self.toolMenu.addAction("S&ubtract averages", lambda: self.mainWindowCheck(lambda mainWindow: SubtractAvgWindow(mainWindow)))
-        self.toolMenu.addAction("Re&ference deconvolution", lambda: self.mainWindowCheck(lambda mainWindow: FiddleWindow(mainWindow)))
-        self.toolMenu.addAction("&States", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.states()))
-        self.toolMenu.addAction("States-&TPPI", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.statesTPPI()))
-        self.toolMenu.addAction("Ec&ho-antiecho", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.echoAntiEcho()))
-        self.toolMenu.addAction("&Correct Bruker digital filter", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.BrukerDigital()))
-        self.toolMenu.addAction("&LPSVD", lambda: self.mainWindowCheck(lambda mainWindow: LPSVDWindow(mainWindow)))
+        self.realAct = self.toolMenu.addAction(QtGui.QIcon(IconDirectory + 'real.png'), "&Real", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.real()))
+        self.realAct.setToolTip('Take Real Part of Data')
+        self.imagAct = self.toolMenu.addAction(QtGui.QIcon(IconDirectory + 'imag.png'), "&Imag", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.imag()))
+        self.imagAct.setToolTip('Take Imaginary Part of Data')
+        self.absAct = self.toolMenu.addAction(QtGui.QIcon(IconDirectory + 'abs.png'), "&Abs", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.abs()))
+        self.absAct.setToolTip('Take Absolute of Data')
+        self.conjAct = self.toolMenu.addAction(QtGui.QIcon(IconDirectory + 'complexconj.png'),"&Complex Conjugate", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.conj()))
+        self.conjAct.setToolTip('Take Complex Conjugate of Data')
+        self.apodizeAct = self.toolMenu.addAction(QtGui.QIcon(IconDirectory + 'apodize.png'),"Apo&dize", lambda: self.mainWindowCheck(lambda mainWindow: ApodWindow(mainWindow)))
+        self.apodizeAct.setToolTip('Open Apodize Window')
+        self.phaseAct = self.toolMenu.addAction(QtGui.QIcon(IconDirectory + 'phase.png'), "&Phasing", lambda: self.mainWindowCheck(lambda mainWindow: PhaseWindow(mainWindow)))
+        self.phaseAct.setToolTip('Open Phasing Window')
+        self.autoPhaseAct0 = self.toolMenu.addAction(QtGui.QIcon(IconDirectory + 'autophase0.png'),"Autophase 0", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.directAutoPhase(0)))
+        self.autoPhaseAct0.setToolTip('Autophase 0 order')
+        self.autoPhaseAct1 = self.toolMenu.addAction(QtGui.QIcon(IconDirectory + 'autophase1.png'),"Autophase 0+1", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.directAutoPhase(1)))
+        self.autoPhaseAct1.setToolTip('Autophase 0 and 1 order')
+        self.swapEchoAct = self.toolMenu.addAction(QtGui.QIcon(IconDirectory + 'fliplr.png'), "Swap &Echo", lambda: self.mainWindowCheck(lambda mainWindow: SwapEchoWindow(mainWindow)))
+        self.swapEchoAct.setToolTip('Swap Echo')
+        self.corOffsetAct = self.toolMenu.addAction("&Offset Correction", lambda: self.mainWindowCheck(lambda mainWindow: DCWindow(mainWindow)))
+        self.corOffsetAct.setToolTip('Offset Correction')
+        self.baselineAct = self.toolMenu.addAction("&Baseline Correction", lambda: self.mainWindowCheck(lambda mainWindow: BaselineWindow(mainWindow)))
+        self.baselineAct.setToolTip('Baseline Correction')
+        self.subAvgAct = self.toolMenu.addAction("S&ubtract Averages", lambda: self.mainWindowCheck(lambda mainWindow: SubtractAvgWindow(mainWindow)))
+        self.subAvgAct.setToolTip('Subtract Averages')
+        self.refDeconvAct = self.toolMenu.addAction("Re&ference Deconvolution", lambda: self.mainWindowCheck(lambda mainWindow: FiddleWindow(mainWindow)))
+        self.refDeconvAct.setToolTip('Reference Deconvolution')
+        self.statesAct = self.toolMenu.addAction("&States", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.states()))
+        self.statesAct.setToolTip('States Hypercomplex Data Processing')
+        self.statesTPPIAct = self.toolMenu.addAction("States-&TPPI", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.statesTPPI()))
+        self.statesTPPIAct.setToolTip('States-TPPI Hypercomplex Data Processing')
+        self.echoantiAct = self.toolMenu.addAction("Ec&ho-antiecho", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.echoAntiEcho()))
+        self.echoantiAct.setToolTip('Ec&ho-antiecho Hypercomplex Data Processing')
+        self.brukDigitalAct = self.toolMenu.addAction(QtGui.QIcon(IconDirectory + 'bruker.png'),"&Correct Bruker Digital Filter", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.BrukerDigital()))
+        self.brukDigitalAct.setToolTip("Correct Bruker Digital Filter")
+        self.lpsvdAct = self.toolMenu.addAction("&LPSVD", lambda: self.mainWindowCheck(lambda mainWindow: LPSVDWindow(mainWindow)))
+        self.lpsvdAct.setToolTip('LPSVD linear prediction')
 
+        self.toolsActList = [self.realAct,self.imagAct,self.absAct,self.apodizeAct,self.phaseAct,self.autoPhaseAct0,self.autoPhaseAct1,
+                             self.swapEchoAct,self.corOffsetAct,self.baselineAct,self.subAvgAct,self.refDeconvAct,self.statesAct,
+                             self.statesTPPIAct,self.echoantiAct,self.brukDigitalAct,self.lpsvdAct]
+        
+        
+        
+        
         # the matrix drop down menu
-        self.matrixMenu = QtGui.QMenu("M&atrix", self)
+        self.matrixMenu = QtWidgets.QMenu("M&atrix", self)
         self.menubar.addMenu(self.matrixMenu)
-        self.matrixMenu.addAction("&Sizing", lambda: self.mainWindowCheck(lambda mainWindow: SizeWindow(mainWindow)))
-        self.matrixMenu.addAction(QtGui.QIcon(IconDirectory + 'shift.png'), "S&hift Data", lambda: self.mainWindowCheck(lambda mainWindow: ShiftDataWindow(mainWindow)))
-        self.regionMenu = QtGui.QMenu("Region", self)
+        self.sizingAct = self.matrixMenu.addAction(QtGui.QIcon(IconDirectory + 'sizing.png'),"&Sizing", lambda: self.mainWindowCheck(lambda mainWindow: SizeWindow(mainWindow)))
+        self.sizingAct.setToolTip('Set Size')
+        self.shiftAct = self.matrixMenu.addAction(QtGui.QIcon(IconDirectory + 'shift.png'), "S&hift Data", lambda: self.mainWindowCheck(lambda mainWindow: ShiftDataWindow(mainWindow)))
+        self.shiftAct.setToolTip('Shift Data')
+        self.regionMenu = QtWidgets.QMenu("Region", self)
         self.matrixMenu.addMenu(self.regionMenu)
-        self.regionMenu.addAction(QtGui.QIcon(IconDirectory + 'int.png'), "&Integrate", lambda: self.mainWindowCheck(lambda mainWindow: integrateWindow(mainWindow)))
-        self.regionMenu.addAction(QtGui.QIcon(IconDirectory + 'sum.png'), "S&um", lambda: self.mainWindowCheck(lambda mainWindow: sumWindow(mainWindow)))
-        self.regionMenu.addAction(QtGui.QIcon(IconDirectory + 'max.png'), "&Max", lambda: self.mainWindowCheck(lambda mainWindow: maxWindow(mainWindow)))
-        self.regionMenu.addAction(QtGui.QIcon(IconDirectory + 'min.png'), "M&in", lambda: self.mainWindowCheck(lambda mainWindow: minWindow(mainWindow)))
-        self.regionMenu.addAction("Ma&x position", lambda: self.mainWindowCheck(lambda mainWindow: argmaxWindow(mainWindow)))
-        self.regionMenu.addAction("Mi&n position", lambda: self.mainWindowCheck(lambda mainWindow: argminWindow(mainWindow)))
-        self.regionMenu.addAction(QtGui.QIcon(IconDirectory + 'average.png'), "&Average", lambda: self.mainWindowCheck(lambda mainWindow: avgWindow(mainWindow)))
-        self.matrixMenu.addAction(QtGui.QIcon(IconDirectory + 'diff.png'), "&Diff", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.diff()))
-        self.matrixMenu.addAction(QtGui.QIcon(IconDirectory + 'cumsum.png'), "&Cumsum", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.cumsum()))
-        self.matrixMenu.addAction("&Extract part", lambda: self.mainWindowCheck(lambda mainWindow: extractRegionWindow(mainWindow)))
-        self.matrixMenu.addAction(QtGui.QIcon(IconDirectory + 'fliplr.png'), "&Flip L/R", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.flipLR()))
-        self.matrixMenu.addAction(QtGui.QIcon(IconDirectory + 'matrixdelete.png'), "De&lete", lambda: self.mainWindowCheck(lambda mainWindow: DeleteWindow(mainWindow)))
-        self.matrixMenu.addAction("S&plit", lambda: self.mainWindowCheck(lambda mainWindow: SplitWindow(mainWindow)))
-        self.matrixMenu.addAction(QtGui.QIcon(IconDirectory + 'multiply.png'), "Mul&tiply", lambda: self.mainWindowCheck(lambda mainWindow: MultiplyWindow(mainWindow)))
-        self.matrixMenu.addAction(QtGui.QIcon(IconDirectory + 'reorder.png'), "&Reorder", lambda: self.mainWindowCheck(lambda mainWindow: ReorderWindow(mainWindow)))
-        self.multiDActions.append(self.matrixMenu.addAction("C&oncatenate", lambda: self.mainWindowCheck(lambda mainWindow: ConcatenateWindow(mainWindow))))
-        self.multiDActions.append(self.matrixMenu.addAction("Shearin&g", lambda: self.mainWindowCheck(lambda mainWindow: ShearingWindow(mainWindow))))
+        self.intRegionAct = self.regionMenu.addAction(QtGui.QIcon(IconDirectory + 'int.png'), "&Integrate", lambda: self.mainWindowCheck(lambda mainWindow: integrateWindow(mainWindow)))
+        self.intRegionAct.setToolTip('Integrate Region')
+        self.sumRegionAct = self.regionMenu.addAction(QtGui.QIcon(IconDirectory + 'sum.png'), "S&um", lambda: self.mainWindowCheck(lambda mainWindow: sumWindow(mainWindow)))
+        self.sumRegionAct.setToolTip('Sum Region')
+        self.maxRegionAct = self.regionMenu.addAction(QtGui.QIcon(IconDirectory + 'max.png'), "&Max", lambda: self.mainWindowCheck(lambda mainWindow: maxWindow(mainWindow)))
+        self.maxRegionAct.setToolTip('Maximum of Region')
+        self.minRegionAct = self.regionMenu.addAction(QtGui.QIcon(IconDirectory + 'min.png'), "M&in", lambda: self.mainWindowCheck(lambda mainWindow: minWindow(mainWindow)))
+        self.minRegionAct.setToolTip('Minimum of Region')
+        self.maxposRegionAct = self.regionMenu.addAction("Ma&x position", lambda: self.mainWindowCheck(lambda mainWindow: argmaxWindow(mainWindow)))
+        self.maxposRegionAct.setToolTip('Position of Maximum of Region')
+        self.minposRegionAct = self.regionMenu.addAction("Mi&n position", lambda: self.mainWindowCheck(lambda mainWindow: argminWindow(mainWindow)))
+        self.minposRegionAct.setToolTip('Position of Minimum of Region')
+        self.averageRegionAct = self.regionMenu.addAction(QtGui.QIcon(IconDirectory + 'average.png'), "&Average", lambda: self.mainWindowCheck(lambda mainWindow: avgWindow(mainWindow)))
+        self.averageRegionAct.setToolTip('Average of Region')
+        self.diffAct = self.matrixMenu.addAction(QtGui.QIcon(IconDirectory + 'diff.png'), "&Diff", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.diff()))
+        self.diffAct.setToolTip('Difference')
+        self.cumsumAct = self.matrixMenu.addAction(QtGui.QIcon(IconDirectory + 'cumsum.png'), "&Cumsum", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.cumsum()))
+        self.cumsumAct.setToolTip('Cumulative sum')
+        self.extractpartAct = self.matrixMenu.addAction(QtGui.QIcon(IconDirectory + 'extractpart.png'),"&Extract part", lambda: self.mainWindowCheck(lambda mainWindow: extractRegionWindow(mainWindow)))
+        self.extractpartAct.setToolTip('Extract part')
+        self.fliplrAct = self.matrixMenu.addAction(QtGui.QIcon(IconDirectory + 'fliplr.png'), "&Flip L/R", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.flipLR()))
+        self.fliplrAct.setToolTip('Flip L/R')
+        self.matrixdelAct = self.matrixMenu.addAction(QtGui.QIcon(IconDirectory + 'matrixdelete.png'), "De&lete", lambda: self.mainWindowCheck(lambda mainWindow: DeleteWindow(mainWindow)))
+        self.matrixdelAct.setToolTip('Delete Points')
+        self.splitAct = self.matrixMenu.addAction(QtGui.QIcon(IconDirectory + 'split.png'),"S&plit", lambda: self.mainWindowCheck(lambda mainWindow: SplitWindow(mainWindow)))
+        self.splitAct.setToolTip('Split')
+        self.multiplyAct = self.matrixMenu.addAction(QtGui.QIcon(IconDirectory + 'multiply.png'), "Mul&tiply", lambda: self.mainWindowCheck(lambda mainWindow: MultiplyWindow(mainWindow)))
+        self.multiplyAct.setToolTip('Multiply')
+        self.reorderAct = self.matrixMenu.addAction(QtGui.QIcon(IconDirectory + 'reorder.png'), "&Reorder", lambda: self.mainWindowCheck(lambda mainWindow: ReorderWindow(mainWindow)))
+        self.reorderAct.setToolTip('Reorder')
+        self.concatAct = self.matrixMenu.addAction("C&oncatenate", lambda: self.mainWindowCheck(lambda mainWindow: ConcatenateWindow(mainWindow)))
+        self.concatAct.setToolTip('Concatenate')
+        self.multiDActions.append(self.concatAct)
+        self.shearAct = self.matrixMenu.addAction("Shearin&g", lambda: self.mainWindowCheck(lambda mainWindow: ShearingWindow(mainWindow)))
+        self.shearAct.setToolTip('Shearing')
+        self.multiDActions.append(self.shearAct)
+        
+        self.matrixActList = [self.sizingAct,self.shiftAct,self.intRegionAct,self.sumRegionAct,self.maxRegionAct,
+                              self.minRegionAct,self.maxposRegionAct,self.minposRegionAct,self.averageRegionAct,
+                              self.diffAct,self.cumsumAct,self.extractpartAct,self.fliplrAct,self.matrixdelAct,
+                              self.splitAct,self.multiplyAct,self.reorderAct,self.concatAct,self.shearAct]
+
 
         # the fft drop down menu
-        self.fftMenu = QtGui.QMenu("T&ransforms", self)
+        self.fftMenu = QtWidgets.QMenu("T&ransforms", self)
         self.menubar.addMenu(self.fftMenu)
-        self.fftMenu.addAction("&Fourier transform", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.fourier()), QtCore.Qt.CTRL + QtCore.Qt.Key_F)
-        self.fftMenu.addAction("&Real Fourier transform", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.realFourier()))
-        self.fftMenu.addAction("Fft&shift", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.fftshift()))
-        self.fftMenu.addAction("&Inv fftshift", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.invFftshift()))
-        self.fftMenu.addAction("&Hilbert transform", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.hilbert()))
-        self.fftMenu.addAction("FF&M", lambda: self.mainWindowCheck(lambda mainWindow: FFMWindow(mainWindow)))
-        self.fftMenu.addAction("&CLEAN", lambda: self.mainWindowCheck(lambda mainWindow: CLEANWindow(mainWindow)))
+        self.fourierAct = self.fftMenu.addAction("&Fourier Transform", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.fourier()), QtCore.Qt.CTRL + QtCore.Qt.Key_F)
+        self.fourierAct.setToolTip('Fourier Transform')
+        self.realFourierAct = self.fftMenu.addAction("&Real Fourier Transform", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.realFourier()))
+        self.realFourierAct.setToolTip('Real Fourier Transform')
+        self.fftshiftAct = self.fftMenu.addAction("Fft&shift", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.fftshift()))
+        self.fftshiftAct.setToolTip('Fftshift')
+        self.invfftshiftAct = self.fftMenu.addAction("&Inv fftshift", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.invFftshift()))
+        self.invfftshiftAct.setToolTip('Inverse fftshift')
+        self.hilbertAct = self.fftMenu.addAction("&Hilbert Transform", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.hilbert()))
+        self.hilbertAct.setToolTip('Hilbert Transform') 
+        self.nusMenu = QtWidgets.QMenu("&NUS", self)
+        self.fftMenu.addMenu(self.nusMenu)
+        self.ffmAct = self.nusMenu.addAction("&FFM", lambda: self.mainWindowCheck(lambda mainWindow: FFMWindow(mainWindow)))
+        self.ffmAct.setToolTip('FFM') 
+        self.cleanAct = self.nusMenu.addAction("&CLEAN", lambda: self.mainWindowCheck(lambda mainWindow: CLEANWindow(mainWindow)))
+        self.cleanAct.setToolTip('CLEAN') 
+        self.istAct = self.nusMenu.addAction("&IST", lambda: self.mainWindowCheck(lambda mainWindow: ISTWindow(mainWindow)))
+        self.istAct.setToolTip('IST') 
+        
+        
+        self.fftActList = [self.fourierAct,self.realFourierAct,self.fftshiftAct,self.invfftshiftAct,
+                           self.hilbertAct,self.ffmAct,self.cleanAct,self.istAct]
 
         # the fitting drop down menu
-        self.fittingMenu = QtGui.QMenu("F&itting", self)
+        self.fittingMenu = QtWidgets.QMenu("F&itting", self)
         self.menubar.addMenu(self.fittingMenu)
-        self.fittingMenu.addAction("&S/N", lambda: self.mainWindowCheck(lambda mainWindow: SNWindow(mainWindow)))
-        self.fittingMenu.addAction("&FWHM", lambda: self.mainWindowCheck(lambda mainWindow: FWHMWindow(mainWindow)))
-        self.fittingMenu.addAction("Centre of Mass", lambda: self.mainWindowCheck(lambda mainWindow: COMWindow(mainWindow)))
-        self.fittingMenu.addAction("&Integrals", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.createIntegralsWindow()))
-        self.fittingMenu.addAction("&Relaxation Curve", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.createRelaxWindow()))
-        self.fittingMenu.addAction("&Diffusion Curve", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.createDiffusionWindow()))
-        self.fittingMenu.addAction("&Peak Deconvolution", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.createPeakDeconvWindow()))
-        self.fittingMenu.addAction("&CSA static", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.createTensorDeconvWindow()))
-        self.fittingMenu.addAction("CSA MAS", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.createHerzfeldBergerWindow()))
-        self.fittingMenu.addAction("First order &quadrupole", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.createQuad1DeconvWindow()))
-        self.fittingMenu.addAction("First order &quadrupole MAS", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.createQuad1MASDeconvWindow()))
-        self.fittingMenu.addAction("S&econd order quadrupole static", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.createQuad2StaticDeconvWindow()))
-        self.fittingMenu.addAction("Se&cond order quadrupole MAS", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.createQuad2MASDeconvWindow()))
-        self.fittingMenu.addAction("Czjzek s&tatic", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.createQuad2StaticCzjzekWindow()))
-        self.fittingMenu.addAction("Czjzek &MAS", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.createQuad2MASCzjzekWindow()))
-
-        # the combine drop down menu
-        self.combineMenu = QtGui.QMenu("Com&bine", self)
-        self.menubar.addMenu(self.combineMenu)
-        self.combineMenu.addAction("&Insert from workspace", lambda: self.mainWindowCheck(lambda mainWindow: InsertWindow(mainWindow)))
-        self.combineMenu.addAction(QtGui.QIcon(IconDirectory + 'add.png'), "&Add", lambda: self.mainWindowCheck(lambda mainWindow: AddWindow(mainWindow)))
-        self.combineMenu.addAction(QtGui.QIcon(IconDirectory + 'subtract.png'), "&Subtract", lambda: self.mainWindowCheck(lambda mainWindow: SubtractWindow(mainWindow)))
-
-        # the plot drop down menu
-        self.plotMenu = QtGui.QMenu("&Plot", self)
-        self.menubar.addMenu(self.plotMenu)
-        self.plotMenu.addAction(QtGui.QIcon(IconDirectory + '1dplot.png'), "&1D plot", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.plot1D()))
-        self.plotMenu.addAction(QtGui.QIcon(IconDirectory + 'scatterplot.png'), "&Scatter plot", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.plotScatter()))
-        self.multiDActions.append(self.plotMenu.addAction("S&tack plot", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.plotStack())))
-        self.multiDActions.append(self.plotMenu.addAction("&Array plot", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.plotArray())))
-        self.multiDActions.append(self.plotMenu.addAction(QtGui.QIcon(IconDirectory + 'contour.png'), "&Contour plot", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.plotContour())))
-        self.multiDActions.append(self.plotMenu.addAction("S&kewed plot", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.plotSkewed())))
-        self.plotMenu.addAction("&Multi plot", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.plotMulti()))
-
-        self.referencelistmenu = QtGui.QMenu('&Reference', self)
-        self.plotMenu.addMenu(self.referencelistmenu)
-        self.referencelistmenu.addAction("&Set reference", lambda: self.mainWindowCheck(lambda mainWindow: RefWindow(mainWindow)))
-        self.referencelistmenu.addAction("&Clear current reference", self.referenceClear)
-        self.referencerunmenu = QtGui.QMenu('&Run', self)
-        self.referencelistmenu.addMenu(self.referencerunmenu)
-        self.referencedeletemenu = QtGui.QMenu('&Delete', self)
-        self.referencelistmenu.addMenu(self.referencedeletemenu)
-        self.referencerenamemenu = QtGui.QMenu('Re&name', self)
-        self.referencelistmenu.addMenu(self.referencerenamemenu)
-        self.referencesavemenu = QtGui.QMenu('&Save', self)
-        self.referencelistmenu.addMenu(self.referencesavemenu)
-        self.referencelistmenu.addAction(QtGui.QIcon(IconDirectory + 'open.png'), "&Load", self.referenceLoad)
-
-        self.plotMenu.addAction("&User x-axis", lambda: self.mainWindowCheck(lambda mainWindow: XaxWindow(mainWindow)))
-        self.plotMenu.addAction("&Plot settings", lambda: self.mainWindowCheck(lambda mainWindow: PlotSettingsWindow(mainWindow)))
-
-        # the history drop down menu
-        self.historyMenu = QtGui.QMenu("&History", self)
-        self.menubar.addMenu(self.historyMenu)
-        self.historyMenu.addAction(QtGui.QIcon(IconDirectory + 'history.png'), "&History", lambda: self.mainWindowCheck(lambda mainWindow: HistoryWindow(mainWindow)))
-
-        # the help drop down menu
-        self.helpMenu = QtGui.QMenu("&Help", self)
-        self.menubar.addMenu(self.helpMenu)
-        self.helpMenu.addAction("&Update", self.updateMenu)
-        self.helpMenu.addAction("&Chemical shift conversion tool", self.createShiftConversionWindow)
-        self.helpMenu.addAction("&Quadrupole coupling conversion tool", self.createQuadConversionWindow)
+        self.snrAct = self.fittingMenu.addAction(QtGui.QIcon(IconDirectory + 'snr.png'),"&S/N", lambda: self.mainWindowCheck(lambda mainWindow: SNWindow(mainWindow)))
+        self.snrAct.setToolTip('Signal-to-Noise Ratio')
+        self.fwhmAct = self.fittingMenu.addAction(QtGui.QIcon(IconDirectory + 'fwhm.png'),"&FWHM", lambda: self.mainWindowCheck(lambda mainWindow: FWHMWindow(mainWindow)))
+        self.fwhmAct.setToolTip('Full Width at Half Maximum')
+        self.massAct = self.fittingMenu.addAction(QtGui.QIcon(IconDirectory + 'mass.png'),"Centre of Mass", lambda: self.mainWindowCheck(lambda mainWindow: COMWindow(mainWindow)))
+        self.massAct.setToolTip('Centre of Mass')
+        self.intfitAct = self.fittingMenu.addAction(QtGui.QIcon(IconDirectory + 'int.png'),"&Integrals", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.createIntegralsWindow()))
+        self.intfitAct.setToolTip('Get Integrals')
+        self.relaxAct = self.fittingMenu.addAction(QtGui.QIcon(IconDirectory + 'relaxation.png'),"&Relaxation Curve", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.createRelaxWindow()))
+        self.relaxAct.setToolTip('Fit Relaxation Curve')
+        self.diffusionAct = self.fittingMenu.addAction(QtGui.QIcon(IconDirectory + 'diffusion.png'),"&Diffusion Curve", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.createDiffusionWindow()))
+        self.diffusionAct.setToolTip('Fit Diffusion Curve')
+        self.lorentzfitAct = self.fittingMenu.addAction(QtGui.QIcon(IconDirectory + 'lorentz.png'),"&Lorentzian/Gaussian", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.createPeakDeconvWindow()))
+        self.lorentzfitAct.setToolTip('Fit Lorentzian/Gaussian')
+        self.csastaticAct = self.fittingMenu.addAction(QtGui.QIcon(IconDirectory + 'csastatic.png'),"&CSA Static", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.createTensorDeconvWindow()))
+        self.csastaticAct.setToolTip('Fit CSA Static')
+        self.csamasAct = self.fittingMenu.addAction(QtGui.QIcon(IconDirectory + 'csaMAS.png'),"CSA MAS", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.createHerzfeldBergerWindow()))
+        self.csamasAct.setToolTip('Fit CSA MAS')
+        self.firstquadstatAct = self.fittingMenu.addAction(QtGui.QIcon(IconDirectory + 'firstquadstatic.png'),"First Order &Quadrupole Static", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.createQuad1DeconvWindow()))
+        self.firstquadstatAct.setToolTip('Fit First Order Quadrupole Static')
+        self.firstquadmasAct = self.fittingMenu.addAction(QtGui.QIcon(IconDirectory + 'firstquadMAS.png'),"First Order &Quadrupole MAS", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.createQuad1MASDeconvWindow()))
+        self.firstquadmasAct.setToolTip('Fit First Order Quadrupole MAS')
+        self.secondquadstatAct = self.fittingMenu.addAction(QtGui.QIcon(IconDirectory + 'secondquadstatic.png'),"S&econd Order Quadrupole Static", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.createQuad2StaticDeconvWindow()))
+        self.secondquadstatAct.setToolTip('Fit Second Order Quadrupole Static')
+        self.secondquadmasAct = self.fittingMenu.addAction(QtGui.QIcon(IconDirectory + 'secondquadMAS.png'),"Se&cond Order Quadrupole MAS", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.createQuad2MASDeconvWindow()))
+        self.secondquadmasAct.setToolTip('Fit Second Order Quadrupole MAS')
+        self.czjzekstatAct = self.fittingMenu.addAction(QtGui.QIcon(IconDirectory + 'czjzekstatic.png'),"Czjzek S&tatic", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.createQuad2StaticCzjzekWindow()))
+        self.czjzekstatAct.setToolTip('Fit Static Czjzek Pattern')
+        self.czjzekmasAct = self.fittingMenu.addAction(QtGui.QIcon(IconDirectory + 'czjzekMAS.png'),"Czjzek &MAS", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.createQuad2MASCzjzekWindow()))
+        self.czjzekmasAct.setToolTip('Fit MAS Czjzek Pattern')
         
-        self.helpMenu.addAction("&About", self.about)
+        self.fittingActList = [self.snrAct,self.fwhmAct,self.massAct,self.intfitAct,self.relaxAct,
+                               self.diffusionAct,self.lorentzfitAct,self.csastaticAct,self.csamasAct,
+                               self.firstquadstatAct,self.firstquadmasAct,self.secondquadstatAct,
+                               self.secondquadmasAct,self.czjzekstatAct,self.czjzekmasAct]
+        # the combine drop down menu
+        self.combineMenu = QtWidgets.QMenu("Com&bine", self)
+        self.menubar.addMenu(self.combineMenu)
+        self.insertdatAct = self.combineMenu.addAction(QtGui.QIcon(IconDirectory + 'insert.png'),"&Insert From Workspace", lambda: self.mainWindowCheck(lambda mainWindow: InsertWindow(mainWindow)))
+        self.insertdatAct.setToolTip('Insert From Workspace')
+        self.adddatAct = self.combineMenu.addAction(QtGui.QIcon(IconDirectory + 'add.png'), "&Add", lambda: self.mainWindowCheck(lambda mainWindow: CombineWindow(mainWindow, 0)))
+        self.adddatAct.setToolTip('Add Data From Workspace')
+        self.subdatAct = self.combineMenu.addAction(QtGui.QIcon(IconDirectory + 'subtract.png'), "&Subtract", lambda: self.mainWindowCheck(lambda mainWindow: CombineWindow(mainWindow, 1)))
+        self.subdatAct.setToolTip('Subtract Data From Workspace')
+        self.multdatAct = self.combineMenu.addAction(QtGui.QIcon(IconDirectory + 'multiplyWorkspace.png'),"&Multiply", lambda: self.mainWindowCheck(lambda mainWindow: CombineWindow(mainWindow, 2)))
+        self.multdatAct.setToolTip('Multiply Data From Workspace')
+        self.divdatAct = self.combineMenu.addAction(QtGui.QIcon(IconDirectory + 'divideWorkspace.png'),"&Divide", lambda: self.mainWindowCheck(lambda mainWindow: CombineWindow(mainWindow, 3)))
+        self.divdatAct.setToolTip('Divide Data From Workspace')
+        
+        self.combineActList = [self.insertdatAct,self.adddatAct,self.subdatAct,self.multdatAct,self.divdatAct]
+        
+        # the plot drop down menu
+        self.plotMenu = QtWidgets.QMenu("&Plot", self)
+        self.menubar.addMenu(self.plotMenu)
+        self.onedplotAct = self.plotMenu.addAction(QtGui.QIcon(IconDirectory + '1dplot.png'), "&1D Plot", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.plot1D()))
+        self.onedplotAct.setToolTip('1D plot')
+        self.scatterplotAct = self.plotMenu.addAction(QtGui.QIcon(IconDirectory + 'scatterplot.png'), "&Scatter Plot", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.plotScatter()))
+        self.scatterplotAct.setToolTip('Scatter Plot')
+        self.stackplotAct = self.plotMenu.addAction(QtGui.QIcon(IconDirectory + 'stack.png'),"S&tack Plot", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.plotStack()))
+        self.stackplotAct.setToolTip('Stack Plot')        
+        self.multiDActions.append(self.stackplotAct)
+        self.arrayplotAct = self.plotMenu.addAction(QtGui.QIcon(IconDirectory + 'array.png'),"&Array Plot", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.plotArray()))
+        self.arrayplotAct.setToolTip('Array Plot')        
+        self.multiDActions.append(self.arrayplotAct)
+        self.contourplotAct = self.plotMenu.addAction(QtGui.QIcon(IconDirectory + 'contour.png'), "&Contour Plot", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.plotContour()))      
+        self.contourplotAct.setToolTip('Contour Plot')
+        self.multiDActions.append(self.contourplotAct)
+        self.skewplotAct = self.plotMenu.addAction(QtGui.QIcon(IconDirectory + 'skewed.png'),"S&kewed Plot", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.plotSkewed()))
+        self.skewplotAct.setToolTip('Skew Plot')
+        self.multiDActions.append(self.skewplotAct)
+        self.multiplotAct = self.plotMenu.addAction(QtGui.QIcon(IconDirectory + 'multi.png'),"&Multi Plot", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.plotMulti()))
+        self.multiplotAct.setToolTip('Multi Plot')
 
+        self.referencelistmenu = QtWidgets.QMenu('&Reference', self)
+        self.plotMenu.addMenu(self.referencelistmenu)
+        self.setrefAct = self.referencelistmenu.addAction(QtGui.QIcon(IconDirectory + 'setreference.png'),"&Set Reference", lambda: self.mainWindowCheck(lambda mainWindow: RefWindow(mainWindow)))
+        self.setrefAct.setToolTip('Set Reference')
+        self.delrefAct = self.referencelistmenu.addAction(QtGui.QIcon(IconDirectory + 'delete.png'),"&Clear Current Reference", self.referenceClear)
+        self.delrefAct.setToolTip('Clear Current Reference')
+        self.referencerunmenu = QtWidgets.QMenu('&Run', self)
+        self.referencelistmenu.addMenu(self.referencerunmenu)
+        self.referencedeletemenu = QtWidgets.QMenu('&Delete', self)
+        self.referencelistmenu.addMenu(self.referencedeletemenu)
+        self.referencerenamemenu = QtWidgets.QMenu('Re&name', self)
+        self.referencelistmenu.addMenu(self.referencerenamemenu)
+        self.referencesavemenu = QtWidgets.QMenu('&Save', self)
+        self.referencelistmenu.addMenu(self.referencesavemenu)
+        self.loadrefAct = self.referencelistmenu.addAction(QtGui.QIcon(IconDirectory + 'open.png'), "&Load", self.referenceLoad)
+        self.loadrefAct.setToolTip('Load Reference')
+
+        self.userxAct = self.plotMenu.addAction(QtGui.QIcon(IconDirectory + 'xaxis.png'),"&User X-axis", lambda: self.mainWindowCheck(lambda mainWindow: XaxWindow(mainWindow)))
+        self.userxAct.setToolTip('User X-axis')
+        self.plotprefAct = self.plotMenu.addAction(QtGui.QIcon(IconDirectory + 'preferences.png'),"&Plot Settings", lambda: self.mainWindowCheck(lambda mainWindow: PlotSettingsWindow(mainWindow)))
+        self.plotprefAct.setToolTip('Plot Settings')
+        
+        self.plotActList = [self.onedplotAct,self.scatterplotAct,self.stackplotAct,self.arrayplotAct,
+                            self.contourplotAct,self.skewplotAct,self.multiplotAct,self.setrefAct,
+                            self.delrefAct,self.loadrefAct,self.userxAct,self.plotprefAct]
+        
+        # the history drop down menu
+        self.historyMenu = QtWidgets.QMenu("&History", self)
+        self.menubar.addMenu(self.historyMenu)
+        self.historyAct = self.historyMenu.addAction(QtGui.QIcon(IconDirectory + 'history.png'), "&History", lambda: self.mainWindowCheck(lambda mainWindow: HistoryWindow(mainWindow)))
+        self.historyAct.setToolTip('Show Processing History')
+        self.clearundoAct = self.historyMenu.addAction(QtGui.QIcon(IconDirectory + 'delete.png'),"&Clear Undo/Redo List", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.clearUndo()))
+        self.clearundoAct.setToolTip('Clear Undo/Redo List')
+        
+        self.historyActList = [self.historyAct,self.clearundoAct]
+        
+        # the help drop down menu
+        self.helpMenu = QtWidgets.QMenu("&Help", self)
+        self.menubar.addMenu(self.helpMenu)
+        self.updateAct = self.helpMenu.addAction(QtGui.QIcon(IconDirectory + 'update.png'),"&Update", self.updateMenu)
+        self.updateAct.setToolTip('Update ssNake')
+        self.shiftconvAct = self.helpMenu.addAction(QtGui.QIcon(IconDirectory + 'shifttool.png'),"&Chemical Shift Conversion Tool", self.createShiftConversionWindow)
+        self.shiftconvAct.setToolTip('Chemical Shift Conversion Tool')
+        self.quadconvAct = self.helpMenu.addAction(QtGui.QIcon(IconDirectory + 'quadconversion.png'),"&Quadrupole Coupling Conversion Tool", self.createQuadConversionWindow)
+        self.quadconvAct.setToolTip('Quadrupole Coupling Conversion Tool')
+        self.nmrtableAct = self.helpMenu.addAction(QtGui.QIcon(IconDirectory + 'table.png'),"&NMR Table", self.nmrTable)
+        self.nmrtableAct.setToolTip('NMR Periodic Table') 
+        
+        self.aboutAct = self.helpMenu.addAction(QtGui.QIcon(IconDirectory + 'about.png'),"&About", lambda: aboutWindow(self))
+        self.aboutAct.setToolTip('About Menu') 
+
+        self.helpActList = [self.updateAct,self.shiftconvAct,self.quadconvAct,self.nmrtableAct,self.aboutAct]
+    
     def mainWindowCheck(self, transfer):
         # checks if mainWindow exist to execute the function
         if self.mainWindow is not None:
@@ -396,23 +728,28 @@ class MainProgram(QtGui.QMainWindow):
             self.exportmenu.menuAction().setEnabled(False)
             self.workspacemenu.menuAction().setEnabled(False)
             self.macromenu.menuAction().setEnabled(False)
-            self.editmenu.menuAction().setVisible(False)
-            self.toolMenu.menuAction().setVisible(False)
-            self.matrixMenu.menuAction().setVisible(False)
-            self.fftMenu.menuAction().setVisible(False)
-            self.fittingMenu.menuAction().setVisible(False)
-            self.combineMenu.menuAction().setVisible(False)
-            self.plotMenu.menuAction().setVisible(False)
-            self.historyMenu.menuAction().setVisible(False)
+            self.editmenu.menuAction().setEnabled(False)
+            self.toolMenu.menuAction().setEnabled(False)
+            self.matrixMenu.menuAction().setEnabled(False)
+            self.fftMenu.menuAction().setEnabled(False)
+            self.fittingMenu.menuAction().setEnabled(False)
+            self.combineMenu.menuAction().setEnabled(False)
+            self.plotMenu.menuAction().setEnabled(False)
+            self.historyMenu.menuAction().setEnabled(False)
+            for act in self.saveActList + self.exportActList + self.workspaceActList + self.macroActList + self.editActList + self.toolsActList + self.matrixActList + self.fftActList + self.fittingActList + self.plotActList + self.combineActList + self.historyActList:
+                act.setEnabled(False)
+ 
         else:
-            self.editmenu.menuAction().setVisible(True)
-            self.toolMenu.menuAction().setVisible(True)
-            self.matrixMenu.menuAction().setVisible(True)
-            self.fftMenu.menuAction().setVisible(True)
-            self.fittingMenu.menuAction().setVisible(True)
-            self.combineMenu.menuAction().setVisible(True)
-            self.plotMenu.menuAction().setVisible(True)
-            self.historyMenu.menuAction().setVisible(True)
+            self.editmenu.menuAction().setEnabled(True)
+            self.toolMenu.menuAction().setEnabled(True)
+            self.matrixMenu.menuAction().setEnabled(True)
+            self.fftMenu.menuAction().setEnabled(True)
+            self.fittingMenu.menuAction().setEnabled(True)
+            self.combineMenu.menuAction().setEnabled(True)
+            self.plotMenu.menuAction().setEnabled(True)
+            self.historyMenu.menuAction().setEnabled(True)
+            for act in self.editActList + self.toolsActList + self.matrixActList + self.fftActList + self.fittingActList + self.plotActList + self.historyActList + self.combineActList:
+                act.setEnabled(True)
             if isinstance(self.mainWindow, Main1DWindow):
                 self.menuEnable()
                 if (len(self.mainWindow.masterData.data.shape) < 2):
@@ -442,10 +779,13 @@ class MainProgram(QtGui.QMainWindow):
                 self.savemenu.menuAction().setEnabled(True)
                 self.exportmenu.menuAction().setEnabled(True)
                 self.workspacemenu.menuAction().setEnabled(True)
+
             elif isinstance(self.mainWindow, MainPlotWindow):
                 self.menuDisable(True)
                 self.savemenu.menuAction().setEnabled(True)
                 self.exportmenu.menuAction().setEnabled(True)
+                for act in self.saveActList + self.exportActList + self.workspaceActList:
+                    act.setEnabled(True)
                 self.savefigAct.setEnabled(False)
                 self.workspacemenu.menuAction().setEnabled(True)
                 self.macromenu.menuAction().setEnabled(False)
@@ -456,6 +796,8 @@ class MainProgram(QtGui.QMainWindow):
                 self.savefigAct.setEnabled(True)
                 self.workspacemenu.menuAction().setEnabled(True)
                 self.macromenu.menuAction().setEnabled(False)
+                for act in self.saveActList + self.exportActList + self.workspaceActList:
+                    act.setEnabled(True)
 
     def menuEnable(self, internalWindow=False):
         self.macromenu.menuAction().setEnabled(True)
@@ -467,16 +809,17 @@ class MainProgram(QtGui.QMainWindow):
         self.combineMenu.menuAction().setEnabled(True)
         self.plotMenu.menuAction().setEnabled(True)
         self.historyMenu.menuAction().setEnabled(True)
+        
+        #Actions:
+        for act in self.macroActList + self.editActList + self.toolsActList + self.matrixActList + self.fftActList + self.fittingActList + self.plotActList + self.combineActList + self.historyActList:
+            act.setEnabled(True)
+        
+        
         if not internalWindow:
             self.filemenu.menuAction().setEnabled(True)
             self.workspacemenu.menuAction().setEnabled(True)
-            self.openAct.setEnabled(True)
-            self.savefigAct.setEnabled(True)
-            self.saveAct.setEnabled(True)
-            self.newAct.setEnabled(True)
-            self.closeAct.setEnabled(True)
-            self.forwardAct.setEnabled(True)
-            self.backAct.setEnabled(True)
+            for act in self.fileActList + self.workspaceActList:
+                act.setEnabled(True)
             for i in range(self.tabs.count()):
                 self.tabs.setTabEnabled(i, True)
         self.undoAction.setEnabled(True)
@@ -492,16 +835,16 @@ class MainProgram(QtGui.QMainWindow):
         self.combineMenu.menuAction().setEnabled(False)
         self.plotMenu.menuAction().setEnabled(False)
         self.historyMenu.menuAction().setEnabled(False)
+        #Actions:
+        for act in self.macroActList + self.editActList + self.toolsActList + self.matrixActList + self.fftActList + self.fittingActList + self.plotActList + self.combineActList + self.historyActList:
+            act.setEnabled(False)
+            
+            
         if not internalWindow:
             self.filemenu.menuAction().setEnabled(False)
             self.workspacemenu.menuAction().setEnabled(False)
-            self.openAct.setEnabled(False)
-            self.savefigAct.setEnabled(False)
-            self.saveAct.setEnabled(False)
-            self.newAct.setEnabled(False)
-            self.closeAct.setEnabled(False)
-            self.forwardAct.setEnabled(False)
-            self.backAct.setEnabled(False)
+            for act in self.fileActList + self.workspaceActList:
+                act.setEnabled(False)
             for i in range(self.tabs.count()):
                 if i != self.workspaceNum:
                     self.tabs.setTabEnabled(i, False)
@@ -519,12 +862,12 @@ class MainProgram(QtGui.QMainWindow):
         while name in self.workspaceNames:
             count += 1
             name = 'spectrum' + str(count)
-        givenName, ok = QtGui.QInputDialog.getText(self, message, 'Name:', text=name)
+        givenName, ok = QtWidgets.QInputDialog.getText(self, message, 'Name:', text=name)
         if not ok:
             return
         while (givenName in self.workspaceNames) or givenName == '':
             self.dispMsg("Workspace name '" + givenName + "' already exists")
-            givenName, ok = QtGui.QInputDialog.getText(self, message, 'Name:', text=name)
+            givenName, ok = QtWidgets.QInputDialog.getText(self, message, 'Name:', text=name)
             if not ok:
                 return
         return givenName
@@ -547,21 +890,22 @@ class MainProgram(QtGui.QMainWindow):
         while name in self.macros.keys():
             count += 1
             name = 'macro' + str(count)
-        givenName, ok = QtGui.QInputDialog.getText(self, 'Macro name', 'Name:', text=name)
+        givenName, ok = QtWidgets.QInputDialog.getText(self, 'Macro name', 'Name:', text=name)
         if not ok:
             return
         while (givenName in self.macros.keys()) or givenName is '':
             self.dispMsg("Macro name '" + givenName + "' already exists")
-            givenName, ok = QtGui.QInputDialog.getText(self, 'Macro name', 'Name:', text=name)
+            givenName, ok = QtWidgets.QInputDialog.getText(self, 'Macro name', 'Name:', text=name)
             if not ok:
                 return
         self.macros[givenName] = []
         self.mainWindow.redoMacro = []
         self.mainWindow.currentMacro = givenName
-        action1 = self.macrolistmenu.addAction(givenName, lambda name=givenName: self.runMacro(name))
+        IconDirectory = os.path.dirname(os.path.realpath(__file__)) + os.path.sep + 'Icons' + os.path.sep
+        action1 = self.macrolistmenu.addAction(QtGui.QIcon(IconDirectory + 'run.png'),givenName, lambda name=givenName: self.runMacro(name))
         action2 = self.macrosavemenu.addAction(givenName, lambda name=givenName: self.saveMacro(name))
-        action3 = self.macrodeletemenu.addAction(givenName, lambda name=givenName: self.deleteMacro(name))
-        action4 = self.macrorenamemenu.addAction(givenName, lambda name=givenName: self.renameMacro(name))
+        action3 = self.macrodeletemenu.addAction(QtGui.QIcon(IconDirectory + 'delete.png'),givenName, lambda name=givenName: self.deleteMacro(name))
+        action4 = self.macrorenamemenu.addAction(QtGui.QIcon(IconDirectory + 'rename.png'),givenName, lambda name=givenName: self.renameMacro(name))
         self.macroActions[givenName] = [action1, action2, action3, action4]
         self.menuCheck()
 
@@ -573,12 +917,12 @@ class MainProgram(QtGui.QMainWindow):
         while name in self.macros.keys():
             count += 1
             name = 'macro' + str(count)
-        givenName, ok = QtGui.QInputDialog.getText(self, 'Macro name', 'Name:', text=name)
+        givenName, ok = QtWidgets.QInputDialog.getText(self, 'Macro name', 'Name:', text=name)
         while (givenName in self.macros.keys()) or givenName is '':
             if not ok:
                 return
             self.dispMsg("Macro name '" + givenName + "' already exists")
-            givenName, ok = QtGui.QInputDialog.getText(self, 'Macro name', 'Name:', text=name)
+            givenName, ok = QtWidgets.QInputDialog.getText(self, 'Macro name', 'Name:', text=name)
 
         self.macros[givenName] = self.macros.pop(oldName)
         if self.mainWindow.currentMacro == oldName:
@@ -588,10 +932,11 @@ class MainProgram(QtGui.QMainWindow):
         self.macrosavemenu.removeAction(oldActions[1])
         self.macrodeletemenu.removeAction(oldActions[2])
         self.macrorenamemenu.removeAction(oldActions[3])
-        action1 = self.macrolistmenu.addAction(givenName, lambda name=givenName: self.runMacro(name))
+        IconDirectory = os.path.dirname(os.path.realpath(__file__)) + os.path.sep + 'Icons' + os.path.sep
+        action1 = self.macrolistmenu.addAction(QtGui.QIcon(IconDirectory + 'run.png'),givenName, lambda name=givenName: self.runMacro(name))
         action2 = self.macrosavemenu.addAction(givenName, lambda name=givenName: self.saveMacro(name))
-        action3 = self.macrodeletemenu.addAction(givenName, lambda name=givenName: self.deleteMacro(name))
-        action4 = self.macrorenamemenu.addAction(givenName, lambda name=givenName: self.renameMacro(name))
+        action3 = self.macrodeletemenu.addAction(QtGui.QIcon(IconDirectory + 'delete.png'),givenName, lambda name=givenName: self.deleteMacro(name))
+        action4 = self.macrorenamemenu.addAction(QtGui.QIcon(IconDirectory + 'rename.png'),givenName, lambda name=givenName: self.renameMacro(name))
         self.macroActions[givenName] = [action1, action2, action3, action4]
         self.menuCheck()
 
@@ -613,7 +958,9 @@ class MainProgram(QtGui.QMainWindow):
 
     def saveMacro(self, name):
         import json
-        fileName = QtGui.QFileDialog.getSaveFileName(self, 'Save File', self.LastLocation + os.path.sep + name + '.json', 'JSON (*.json)')
+        fileName = QtWidgets.QFileDialog.getSaveFileName(self, 'Save File', self.LastLocation + os.path.sep + name + '.json', 'JSON (*.json)')
+        if type(fileName) is tuple:
+            fileName = fileName[0]
         if fileName:  # if not cancelled
             self.LastLocation = os.path.dirname(fileName)
         if not fileName:
@@ -635,7 +982,9 @@ class MainProgram(QtGui.QMainWindow):
 
     def loadMacro(self):
         import json
-        filename = QtGui.QFileDialog.getOpenFileName(self, 'Open File', self.LastLocation)
+        filename = QtWidgets.QFileDialog.getOpenFileName(self, 'Open File', self.LastLocation)
+        if type(filename) is tuple:
+            filename = filename[0]
         if filename:  # if not cancelled
             self.LastLocation = os.path.dirname(filename)  # Save used path
         if len(filename) == 0:
@@ -646,27 +995,29 @@ class MainProgram(QtGui.QMainWindow):
         while name in self.macros.keys():
             count += 1
             name = 'macro' + str(count)
-        givenName, ok = QtGui.QInputDialog.getText(self, 'Macro name', 'Name:', text=name)
+        givenName, ok = QtWidgets.QInputDialog.getText(self, 'Macro name', 'Name:', text=name)
         while (givenName in self.macros.keys()) or givenName is '':
             if not ok:
                 return
             self.dispMsg("Macro name '" + givenName + "' already exists")
-            givenName, ok = QtGui.QInputDialog.getText(self, 'Macro name', 'Name:', text=name)
+            givenName, ok = QtWidgets.QInputDialog.getText(self, 'Macro name', 'Name:', text=name)
         with open(filename, 'r') as f:
             self.macros[givenName] = json.load(f)
-        action1 = self.macrolistmenu.addAction(givenName, lambda name=givenName: self.runMacro(name))
+        IconDirectory = os.path.dirname(os.path.realpath(__file__)) + os.path.sep + 'Icons' + os.path.sep
+        action1 = self.macrolistmenu.addAction(QtGui.QIcon(IconDirectory + 'run.png'),givenName, lambda name=givenName: self.runMacro(name))
         action2 = self.macrosavemenu.addAction(givenName, lambda name=givenName: self.saveMacro(name))
-        action3 = self.macrodeletemenu.addAction(givenName, lambda name=givenName: self.deleteMacro(name))
-        action4 = self.macrorenamemenu.addAction(givenName, lambda name=givenName: self.renameMacro(name))
+        action3 = self.macrodeletemenu.addAction(QtGui.QIcon(IconDirectory + 'delete.png'),givenName, lambda name=givenName: self.deleteMacro(name))
+        action4 = self.macrorenamemenu.addAction(QtGui.QIcon(IconDirectory + 'rename.png'),givenName, lambda name=givenName: self.renameMacro(name))
         self.macroActions[givenName] = [action1, action2, action3, action4]
         self.menuCheck()
 
     def referenceAdd(self, reffreq, name):
         self.referenceName.append(name)
         self.referenceValue.append(reffreq)  # List with saved refrence values
-        action1 = self.referencerunmenu.addAction(name, lambda name=name: self.referenceRun(name))
-        action2 = self.referencedeletemenu.addAction(name, lambda name=name: self.referenceRemove(name))
-        action3 = self.referencerenamemenu.addAction(name, lambda name=name: self.referenceRename(name))
+        IconDirectory = os.path.dirname(os.path.realpath(__file__)) + os.path.sep + 'Icons' + os.path.sep
+        action1 = self.referencerunmenu.addAction(QtGui.QIcon(IconDirectory + 'run.png'),name, lambda name=name: self.referenceRun(name))
+        action2 = self.referencedeletemenu.addAction(QtGui.QIcon(IconDirectory + 'delete.png'),name, lambda name=name: self.referenceRemove(name))
+        action3 = self.referencerenamemenu.addAction(QtGui.QIcon(IconDirectory + 'rename.png'),name, lambda name=name: self.referenceRename(name))
         action4 = self.referencesavemenu.addAction(name, lambda name=name: self.referenceSave(name))
         self.referenceActions[name] = [action1, action2, action3, action4]
         self.menuCheck()
@@ -691,12 +1042,12 @@ class MainProgram(QtGui.QMainWindow):
     def referenceRename(self, oldName):
         if self.mainWindow is None:
             return
-        givenName, ok = QtGui.QInputDialog.getText(self, 'Reference name', 'Name:', text=oldName)
+        givenName, ok = QtWidgets.QInputDialog.getText(self, 'Reference name', 'Name:', text=oldName)
         if givenName == oldName or not ok:
             return
         while (givenName in self.referenceName) or givenName is '':
             self.dispMsg('Name exists')
-            givenName, ok = QtGui.QInputDialog.getText(self, 'Reference name', 'Name:', text=oldName)
+            givenName, ok = QtWidgets.QInputDialog.getText(self, 'Reference name', 'Name:', text=oldName)
             if not ok:
                 return
 
@@ -706,29 +1057,33 @@ class MainProgram(QtGui.QMainWindow):
         self.referencedeletemenu.removeAction(oldActions[1])
         self.referencerenamemenu.removeAction(oldActions[2])
         self.referencesavemenu.removeAction(oldActions[3])
-#        self.macrorenamemenu.removeAction(oldActions[3])
-        action1 = self.referencerunmenu.addAction(givenName, lambda name=givenName: self.referenceRun(name))
-        action2 = self.referencedeletemenu.addAction(givenName, lambda name=givenName: self.referenceRemove(name))
-        action3 = self.referencerenamemenu.addAction(givenName, lambda name=givenName: self.referenceRename(name))
+
+        IconDirectory = os.path.dirname(os.path.realpath(__file__)) + os.path.sep + 'Icons' + os.path.sep
+        action1 = self.referencerunmenu.addAction(QtGui.QIcon(IconDirectory + 'run.png'),givenName, lambda name=givenName: self.referenceRun(name))
+        action2 = self.referencedeletemenu.addAction(QtGui.QIcon(IconDirectory + 'delete.png'),givenName, lambda name=givenName: self.referenceRemove(name))
+        action3 = self.referencerenamemenu.addAction(QtGui.QIcon(IconDirectory + 'rename.png'),givenName, lambda name=givenName: self.referenceRename(name))
         action4 = self.referencesavemenu.addAction(givenName, lambda name=givenName: self.referenceSave(name))
 
-#        action4 = self.macrorenamemenu.addAction(givenName, lambda name=givenName: self.renameMacro(name))
+
         self.referenceActions[givenName] = [action1, action2, action3, action4]
         self.menuCheck()
 
     def referenceSave(self, name):
-        fileName = QtGui.QFileDialog.getSaveFileName(self, 'Save reference', self.LastLocation + os.path.sep + name + '.txt', 'txt (*.json)')
+        fileName = QtWidgets.QFileDialog.getSaveFileName(self, 'Save reference', self.LastLocation + os.path.sep + name + '.txt', 'txt (*.json)')
+        if type(fileName) is tuple:
+            fileName = fileName[0]
         if not fileName:
             return
         else:
             self.LastLocation = os.path.dirname(fileName)
-
         reffreq = self.referenceValue[self.referenceName.index(name)]
         with open(fileName, 'w') as f:
             f.write(str(reffreq))
 
     def referenceLoad(self):
-        filename = QtGui.QFileDialog.getOpenFileName(self, 'Open File', self.LastLocation)
+        filename = QtWidgets.QFileDialog.getOpenFileName(self, 'Open File', self.LastLocation)
+        if type(filename) is tuple:
+            filename = filename[0]
         if filename:  # if not cancelled
             self.LastLocation = os.path.dirname(filename)  # Save used path
         if len(filename) == 0:
@@ -739,13 +1094,13 @@ class MainProgram(QtGui.QMainWindow):
             count += 1
             name = 'ref' + str(count)
 
-        givenName, ok = QtGui.QInputDialog.getText(self, 'Reference name', 'Name:', text=name)
+        givenName, ok = QtWidgets.QInputDialog.getText(self, 'Reference name', 'Name:', text=name)
 
         while (givenName in self.macros.keys()) or givenName is '':
             if not ok:
                 return
             self.dispMsg('Name exists')
-            givenName, ok = QtGui.QInputDialog.getText(self, 'Macro name', 'Name:', text=name)
+            givenName, ok = QtWidgets.QInputDialog.getText(self, 'Macro name', 'Name:', text=name)
 
         with open(filename, 'r') as f:
             self.referenceName.append(givenName)
@@ -754,12 +1109,12 @@ class MainProgram(QtGui.QMainWindow):
 
             except:
                 self.dispMsg("Failed loading '" + filename + "' as reference.")
-                return
-
+                raise
+        IconDirectory = os.path.dirname(os.path.realpath(__file__)) + os.path.sep + 'Icons' + os.path.sep
         self.referenceValue.append(freq)
-        action1 = self.referencerunmenu.addAction(givenName, lambda name=givenName: self.referenceRun(name))
-        action2 = self.referencedeletemenu.addAction(givenName, lambda name=givenName: self.referenceRemove(name))
-        action3 = self.referencerenamemenu.addAction(givenName, lambda name=givenName: self.referenceRename(name))
+        action1 = self.referencerunmenu.addAction(QtGui.QIcon(IconDirectory + 'run.png'),givenName, lambda name=givenName: self.referenceRun(name))
+        action2 = self.referencedeletemenu.addAction(QtGui.QIcon(IconDirectory + 'delete.png'),givenName, lambda name=givenName: self.referenceRemove(name))
+        action3 = self.referencerenamemenu.addAction(QtGui.QIcon(IconDirectory + 'rename.png'),givenName, lambda name=givenName: self.referenceRename(name))
         action4 = self.referencesavemenu.addAction(givenName, lambda name=givenName: self.referenceSave(name))
         self.referenceActions[givenName] = [action1, action2, action3, action4]
         self.menuCheck()
@@ -893,7 +1248,9 @@ class MainProgram(QtGui.QMainWindow):
         return True
 
     def loadFromMenu(self):
-        fileList = QtGui.QFileDialog.getOpenFileNames(self, 'Open File', self.LastLocation)
+        fileList = QtWidgets.QFileDialog.getOpenFileNames(self, 'Open File', self.LastLocation)
+        if type(fileList) is tuple:
+            fileList = fileList[0]
         for filePath in fileList:
             if filePath:  # if not cancelled
                 self.LastLocation = os.path.dirname(filePath)  # Save used path
@@ -932,6 +1289,13 @@ class MainProgram(QtGui.QMainWindow):
             elif filename.endswith('.mat') or filename.endswith('.MAT'):
                 self.loading(6, filePath)
                 return returnVal
+            elif filename.endswith('.jdf'):#JEOL delta format
+                self.loading(9, filePath)
+                return returnVal
+            elif filename.endswith('.dx') or filename.endswith('.jdx') or filename.endswith('.jcamp'):#JCAMP format
+                self.loading(10, filePath)
+                return returnVal
+            fileName = filePath
             filePath = os.path.dirname(filePath)
             returnVal = 1
         direc = filePath
@@ -958,6 +1322,8 @@ class MainProgram(QtGui.QMainWindow):
             if len(files2D) != 0 or len(files1D) != 0:
                 self.loading(3, filePath,realpath=realpath)
                 return returnVal
+        else: #If not recognised, load as ascii
+            self.loading(11, fileName)
 
     def dataFromFit(self, data, filePath, freq, sw, spec, wholeEcho, ref, xaxArray, axes):
         name = self.askName()
@@ -1018,6 +1384,12 @@ class MainProgram(QtGui.QMainWindow):
             masterData = self.LoadBrukerSpectrum(filePath, name)
         elif num == 8:
             masterData = self.LoadPipe(filePath, name)
+        elif num == 9:
+            masterData = self.LoadJEOLDelta(filePath, name)
+        elif num == 10:
+            masterData = self.LoadJCAMP(filePath, name)   
+        elif num == 11:
+            masterData = self.LoadAscii(filePath, name) 
         if returnBool:
             return masterData
         else:
@@ -1028,533 +1400,124 @@ class MainProgram(QtGui.QMainWindow):
                 self.changeMainWindow(name)
 
     def LoadVarianFile(self, filePath, name=''):
-        from struct import unpack
-        if os.path.isfile(filePath):
-            Dir = os.path.dirname(filePath)
-        else:
-            Dir = filePath
-        freq = 300e6
-        sw = 50e3
-        sw1 = 50e3
-        freq1 = 0  # intialize second dimension freqency as 0
-
-        if os.path.exists(Dir + os.path.sep + 'procpar'):
-            file = Dir + os.path.sep + 'procpar'
-        elif os.path.exists(Dir + os.path.sep + '..' + os.path.sep + 'procpar'):
-            file = Dir + os.path.sep + '..' + os.path.sep + 'procpar'
-        else:
-            self.dispMsg(Dir + os.path.sep + 'procpar does not exits, used standard sw and freq')
-            file = None
-        if file is not None:
-            with open(file, 'r') as f:
-                data = f.read().split('\n')
-            for s in range(0, len(data)):
-                if data[s].startswith('sfrq '):
-                    freq = float(data[s + 1].split()[1]) * 1e6
-                elif data[s].startswith('sw '):
-                    sw = float(data[s + 1].split()[1])
-                elif data[s].startswith('sw1 '):
-                    sw1 = float(data[s + 1].split()[1])
-                elif data[s].startswith('dfrq '):
-                    freq1 = float(data[s + 1].split()[1]) * 1e6
-
-        if os.path.exists(Dir + os.path.sep + 'fid'):
-            datafile = Dir + os.path.sep + 'fid'
-            filePath = datafile
-        elif os.path.exists(Dir + os.path.sep + 'data'):
-            datafile = Dir + os.path.sep + 'data'
-            filePath = datafile
-        else:
-            self.dispMsg('No valid data file found')
-            return None
-        with open(datafile, "rb") as f:
-            raw = np.fromfile(f, np.int32, 6)
-            nblocks = unpack('>l', raw[0])[0]
-            ntraces = unpack('>l', raw[1])[0]
-            npoints = unpack('>l', raw[2])[0]
-            ebytes = unpack('>l', raw[3])[0]
-            tbytes = unpack('>l', raw[4])[0]
-            bbytes = unpack('>l', raw[5])[0]
-            raw = np.fromfile(f, np.int16, 2)
-            vers_id = unpack('>h', raw[0])[0]
-            status = unpack('>h', raw[1])[0]
-            spec = bool(int(bin(status)[-2]))
-            raw = np.fromfile(f, np.int32, 1)
-            nbheaders = unpack('>l', raw[0])[0]
-            SizeTD2 = npoints
-            SizeTD1 = nblocks * ntraces
-            a = []
-            fid32 = int(bin(status)[-3])
-            fidfloat = int(bin(status)[-4])
-            
-            if not fid32 and fidfloat:  # only for `newest' format, use fast routine
-                totalpoints = (ntraces * npoints + nbheaders**2 * 7)*nblocks
-                raw = np.fromfile(f, np.float32, totalpoints)
-                a = raw.newbyteorder('>f')
-                a = a.reshape(nblocks, int(totalpoints / nblocks))
-                a = a[:, 7::]
-            elif fid32 and not fidfloat:  # for VNMRJ 2 data
-                totalpoints = (ntraces * npoints + nbheaders**2 * 7)*nblocks
-                raw = np.fromfile(f, np.int32, totalpoints)
-                a = raw.newbyteorder('>l')
-                a = a.reshape(nblocks, int(totalpoints / nblocks))
-                a = a[:, 7::]
-                
-            else:  # use slow, but robust routine
-                for iter1 in range(0, nblocks):
-                    b = []
-                    for iter2 in range(0, nbheaders):
-                        raw = np.fromfile(f, np.int16, nbheaders * 14)
-                    if not fid32 and not fidfloat:
-                        raw = np.fromfile(f, np.int16, ntraces * npoints)
-                        for iter3 in raw:
-                            b.append(unpack('>h', iter3)[0])
-                    elif fid32 and not fidfloat:
-                        raw = np.fromfile(f, np.int32, ntraces * npoints)
-                        for iter3 in raw:
-                            b.append(unpack('>l', iter3)[0])
-                    else:
-                        raw = np.fromfile(f, np.float32, ntraces * npoints)
-                        for iter3 in raw:
-                            b.append(unpack('>f', iter3)[0])
-                    b = np.array(b)
-                    if(len(b) != ntraces * npoints):
-                        b.append(np.zeros(ntraces * npoints - len(b)))
-                    a.append(b)
-                a = np.complex128(a)
-                
-        fid = a[:, ::2] - 1j * a[:, 1::2]
-        if SizeTD1 is 1:
-            fid = fid[0][:]
-            if spec:  # flip if spectrum
-                fid = np.flipud(fid)
-            masterData = sc.Spectrum(name, fid, (0, filePath), [freq], [sw], [bool(int(spec))], msgHandler=lambda msg: self.dispMsg(msg))
-        else:
-            masterData = sc.Spectrum(name, fid, (0, filePath), [freq1, freq], [sw1, sw], [bool(int(spec))] * 2, msgHandler=lambda msg: self.dispMsg(msg))
-        masterData.addHistory("Varian data loaded from " + filePath)
+        try:
+            masterData = LF.LoadVarianFile(filePath,name)
+            masterData.msgHandler = lambda msg: self.dispMsg(msg)
+        except:
+            self.dispMsg("Error on loading Varian data",'red')
+            raise
         return masterData
 
     def LoadPipe(self, filePath, name=''):
-        with open(filePath, 'r') as f:
-            header = np.fromfile(f, np.float32, 512)
-
-            NumberofPoints = int(header[99])
-            data = np.fromfile(f, np.float32, NumberofPoints)
-            if int(header[106]) == 0:  # if complex
-                data = data + 1j * np.fromfile(f, np.float32, NumberofPoints)
-
-            spec = int(header[220])  # 1 if ft, 0 if time
-            freq = header[119] * 1e6
-            sw = header[100]
-            reference = header[101]  # frequency of last point in Hz
-
-        sidefreq = -np.floor(NumberofPoints / 2) / NumberofPoints * sw  # freqeuency of last point on axis
-        ref = sidefreq + freq - reference
-        if spec == 1:
-            data = np.flipud(data)
-
-        masterData = sc.Spectrum(name, data, (8, filePath), [freq], [sw], [spec], ref=[ref], msgHandler=lambda msg: self.dispMsg(msg))
-        masterData.addHistory("NMR pipe data loaded from " + filePath)
+        try:
+            masterData = LF.LoadPipe(filePath,name)
+            masterData.msgHandler = lambda msg: self.dispMsg(msg)
+        except:
+            self.dispMsg("Error on loading NMRpipe data",'red')
+            raise
         return masterData
 
+    def LoadJEOLDelta(self, filePath, name=''):
+        try:
+            masterData = LF.LoadJEOLDelta(filePath,name)
+        except:
+            self.dispMsg("Error on loading JEOL Delta data",'red')
+            raise
+        if masterData ==  'ND error':
+            self.dispMsg("Error: JEOL Delta data of this type is not supported",'red')
+            return
+        masterData.msgHandler = lambda msg: self.dispMsg(msg)
+        return masterData
+
+
     def loadJSONFile(self, filePath, name=''):
-        import json
-        with open(filePath, 'r') as inputfile:
-            struct = json.load(inputfile)
-        data = np.array(struct['dataReal']) + 1j * np.array(struct['dataImag'])
-        ref = np.where(np.isnan(struct['ref']), None, struct['ref'])
-        if 'history' in struct.keys():
-            history = struct['history']
-        else:
-            history = None
-        xaxA = []
-        for i in struct['xaxArray']:
-            xaxA.append(np.array(i))
-        masterData = sc.Spectrum(name,
-                                 data,
-                                 (5, filePath),
-                                 list(struct['freq']),
-                                 list(struct['sw']),
-                                 list(struct['spec']),
-                                 list(np.array(struct['wholeEcho'], dtype=bool)),
-                                 list(ref),
-                                 xaxA,
-                                 msgHandler=lambda msg: self.dispMsg(msg),
-                                 history=history)
-        masterData.addHistory("JSON data loaded from " + filePath)
+        try:
+            masterData = LF.loadJSONFile(filePath,name)
+            masterData.msgHandler = lambda msg: self.dispMsg(msg)
+        except:
+            self.dispMsg("Error on loading JSON data",'red')
+            raise
         return masterData
 
     def loadMatlabFile(self, filePath, name=''):
-        import scipy.io
-        import h5py  # For .mat v 7.3 support
-        with open(filePath, 'rb') as inputfile:  # read first several bytes the check .mat version
-            teststring = inputfile.read(13)
-        version = float(teststring.decode("utf-8")[7:10])  # extract version from the binary array
-        if version < 7.3:  # all versions below 7.3 are supported
-            matlabStruct = scipy.io.loadmat(filePath)
-            var = [k for k in matlabStruct.keys() if not k.startswith('__')][0]
-            mat = matlabStruct[var]
-            if mat['dim'] == 1:
-                data = mat['data'][0, 0][0]
-                xaxA = [k[0] for k in (mat['xaxArray'][0])]
-            else:
-                data = mat['data'][0, 0]
-                if all(x == data.shape[0] for x in data.shape):
-                    xaxA = [k for k in (mat['xaxArray'][0, 0])]
-                else:
-                    xaxA = [k[0] for k in (mat['xaxArray'][0, 0][0])]
-            # insert some checks for data type
-            ref = mat['ref'][0, 0][0]
-            ref = np.where(np.isnan(ref), None, ref)
-            if 'history' in mat.dtype.names:
-                history = list(np.array(mat['history'][0, 0], dtype=str))
-            else:
-                history = None
-            masterData = sc.Spectrum(name,
-                                     data,
-                                     (6, filePath),
-                                     list(mat['freq'][0, 0][0]),
-                                     list(mat['sw'][0, 0][0]),
-                                     list(mat['spec'][0, 0][0]),
-                                     list(np.array(mat['wholeEcho'][0, 0][0]) > 0),
-                                     list(ref),
-                                     xaxA,
-                                     msgHandler=lambda msg: self.dispMsg(msg),
-                                     history=history)
-            masterData.addHistory("Matlab data loaded from " + filePath)
-            return masterData
-        else:  # If the version is 7.3, use HDF5 type loading
-            f = h5py.File(filePath, 'r')
-            Groups = []
-            for name in f:
-                if name != '#refs#':
-                    Groups.append(name)
-            DataGroup = Groups[0]  # get the groupo name
-            mat = f[DataGroup]
-            if np.array(mat['dim'])[0][0] == 1:
-                xaxA = list([np.array(mat['xaxArray'])[:, 0]])
-                data = np.array(mat['data'])
-                data = (data['real'] + data['imag'] * 1j)[:, 0]  # split and use real and imag part
-            else:
-                data = np.transpose(np.array(mat['data']))
-                data = data['real'] + data['imag'] * 1j
-                if all(x == data.shape[0] for x in data.shape):
-                    xaxA = [np.array(mat[k]) for k in (mat['xaxArray'])]
-                else:
-                    xaxA = [np.array(mat[k[0]]) for k in (mat['xaxArray'])]
-            ref = np.array(mat['ref'])[:, 0]
-            ref = np.where(np.isnan(ref), None, ref)
-            if 'history' in mat.keys():
-                history = list()
-                history.append([item.astype(np.int8).tostring().decode("ascii") for item in np.array(mat['history']).transpose()])
-                history = history[0]
-            else:
-                history = None
-            masterData = sc.Spectrum(name,
-                                     data,
-                                     (6, filePath),
-                                     list(np.array(mat['freq'])[:, 0]),
-                                     list(np.array(mat['sw'])[:, 0]),
-                                     list(np.array(mat['spec'])[:, 0]),
-                                     list(np.array(mat['wholeEcho'])[:, 0] > 0),
-                                     list(ref),
-                                     xaxA,
-                                     msgHandler=lambda msg: self.dispMsg(msg),
-                                     history=history)
-            masterData.addHistory("Matlab data loaded from " + filePath)
-            return masterData
+        try:
+            masterData = LF.loadMatlabFile(filePath,name)
+            masterData.msgHandler = lambda msg: self.dispMsg(msg)
+        except:
+            self.dispMsg("Error on loading MATLAB data",'red')
+            raise
+        return masterData
 
     def LoadBrukerTopspin(self, filePath, name=''):
-        if os.path.isfile(filePath):
-            Dir = os.path.dirname(filePath)
-        else:
-            Dir = filePath
-        if os.path.exists(Dir + os.path.sep + 'acqus'):
-            with open(Dir + os.path.sep + 'acqus', 'r') as f:
-                data = f.read().split('\n')
-            for s in range(0, len(data)):
-                if data[s].startswith('##$TD='):
-                    sizeTD2 = int(data[s][6:])
-                if data[s].startswith('##$SFO1='):
-                    freq2 = float(data[s][8:]) * 1e6
-                if data[s].startswith('##$SW_h='):
-                    SW2 = float(data[s][8:])
-                if data[s].startswith('##$BYTORDA='):
-                    ByteOrder = int(data[s][11:])
-        sizeTD1 = 1
-        if os.path.exists(Dir + os.path.sep + 'acqu2s'):
-            with open(Dir + os.path.sep + 'acqu2s', 'r') as f:
-                data2 = f.read().split('\n')
-            for s in range(0, len(data2)):
-                if data2[s].startswith('##$TD='):
-                    sizeTD1 = int(data2[s][6:])
-                if data2[s].startswith('##$SFO1='):
-                    freq1 = float(data2[s][8:]) * 1e6
-                if data2[s].startswith('##$SW_h='):
-                    SW1 = float(data2[s][8:])
-        if os.path.exists(Dir + os.path.sep + 'fid'):
-            filePath = Dir + os.path.sep + 'fid'
-            with open(Dir + os.path.sep + 'fid', "rb") as f:
-                raw = np.fromfile(f, np.int32, sizeTD1 * sizeTD2)
-        elif os.path.exists(Dir + os.path.sep + 'ser'):
-            filePath = Dir + os.path.sep + 'ser'
-            with open(Dir + os.path.sep + 'ser', "rb") as f:
-                raw = np.fromfile(f, np.int32, sizeTD1 * sizeTD2)
-        if ByteOrder:
-            RawInt = raw.newbyteorder('b')
-        else:
-            RawInt = raw.newbyteorder('l')
-        ComplexData = np.array(RawInt[0:len(RawInt):2]) + 1j * np.array(RawInt[1:len(RawInt):2])
-        spec = [False]
-        if sizeTD1 is 1:
-            masterData = sc.Spectrum(name, ComplexData, (1, filePath), [freq2], [SW2], spec, msgHandler=lambda msg: self.dispMsg(msg))
-        else:
-            data = ComplexData.reshape(sizeTD1, sizeTD2 / 2)
-            masterData = sc.Spectrum(name, data, (1, filePath), [freq1, freq2], [SW1, SW2], spec * 2, msgHandler=lambda msg: self.dispMsg(msg))
-        masterData.addHistory("Bruker data loaded from " + filePath)
+        try:
+            masterData = LF.LoadBrukerTopspin(filePath,name)
+            masterData.msgHandler = lambda msg: self.dispMsg(msg)
+        except:
+            self.dispMsg("Error on loading Bruker data",'red')
+            raise
         return masterData
-
+        
+        
     def LoadBrukerSpectrum(self, filePath, name=''):
-        if os.path.isfile(filePath):
-            Dir = os.path.dirname(filePath)
-        else:
-            Dir = filePath
-        if os.path.exists(Dir + os.path.sep + 'procs'):  # Get D2 parameters
-            with open(Dir + os.path.sep + 'procs', 'r') as f:
-                data = f.read().split('\n')
-            for s in range(0, len(data)):
-                if data[s].startswith('##$SI='):
-                    sizeTD2 = int(re.findall("\#\#\$SI= (.*.)", data[s])[0])
-#                if data[s].startswith('##$XDIM='):
-#                    blockingD2 = int(data[s][8:])
-                if data[s].startswith('##$BYTORDP='):
-                    ByteOrder = int(data[s][11:])
-                if data[s].startswith('##$SW_p='):
-                    SW2 = float(data[s][8:])
-                if data[s].startswith('##$SF='):
-                    Ref2 = float(data[s][6:])*1e6 
-                    
-        freq2 = 0
-        if os.path.exists(Dir + os.path.sep + '..' + os.path.sep + '..' + os.path.sep + 'acqus'):  # Get D2 parameters from fid directory, if available
-            with open(Dir + os.path.sep + '..' + os.path.sep + '..' + os.path.sep + 'acqus', 'r') as f:
-                data = f.read().split('\n')
-            for s in range(0, len(data)):
-                if data[s].startswith('##$SFO1='):
-                    freq2 = float(data[s][8:]) * 1e6
-        sizeTD1 = 1
-        if os.path.exists(Dir + os.path.sep + 'proc2s'):  # Get D1 parameters
-            with open(Dir + os.path.sep + 'proc2s', 'r') as f:
-                data2 = f.read().split('\n')
-            for s in range(0, len(data2)):
-                if data2[s].startswith('##$SI='):
-                    sizeTD1 = int(data2[s][6:])
-#                if data2[s].startswith('##$XDIM='):
-#                    blockingD1 = int(data[s][8:])
-                if data2[s].startswith('##$SW_p='):
-                    SW1 = float(data2[s][8:])
-                if data2[s].startswith('##$SF='):
-                    Ref1 = float(data2[s][6:])*1e6
-        freq1 = 0
-        if os.path.exists(Dir + os.path.sep + '..' + os.path.sep + '..' + os.path.sep + 'acqu2s'):  # Get D1 parameters from fid directory, if available
-            with open(Dir + os.path.sep + '..' + os.path.sep + '..' + os.path.sep + 'acqu2s', 'r') as f:
-                data = f.read().split('\n')
-            for s in range(0, len(data)):
-                if data[s].startswith('##$SFO1='):
-                    freq1 = float(data[s][8:]) * 1e6
-        if os.path.exists(Dir + os.path.sep + '1r'):  # Get D2 data
-            filePath = Dir + os.path.sep + '1r'
-            with open(Dir + os.path.sep + '1r', "rb") as f:
-                RawReal = np.fromfile(f, np.int32, sizeTD1 * sizeTD2)
-            RawImag = np.zeros([sizeTD1 * sizeTD2])
-            if os.path.exists(Dir + os.path.sep + '1i'):
-                with open(Dir + os.path.sep + '1i', "rb") as f:
-                    RawImag = np.fromfile(f, np.int32, sizeTD1 * sizeTD2)
-        elif os.path.exists(Dir + os.path.sep + '2rr'):  # Get D1 data
-            filePath = Dir + os.path.sep + '2rr'
-            with open(Dir + os.path.sep + '2rr', "rb") as f:
-                RawReal = np.fromfile(f, np.int32, sizeTD1 * sizeTD2)
-            RawImag = np.zeros([sizeTD1 * sizeTD2])
-            if os.path.exists(Dir + os.path.sep + '2ir'):  # If hypercomplex
-                with open(Dir + os.path.sep + '2ir', "rb") as f:
-                    RawImag = np.fromfile(f, np.int32, sizeTD1 * sizeTD2)
-            elif os.path.exists(Dir + os.path.sep + '2ii'):
-                with open(Dir + os.path.sep + '2ii', "rb") as f:
-                    RawImag = np.fromfile(f, np.int32, sizeTD1 * sizeTD2)
-        if ByteOrder:
-            RawReal = RawReal.newbyteorder('b')
-            RawImag = RawImag.newbyteorder('b')
-        else:
-            RawReal = RawReal.newbyteorder('l')
-            RawImag = RawImag.newbyteorder('l')
-        Data = np.flipud(RawReal) - 1j * np.flipud(RawImag)
-        spec = [True]
-        if sizeTD1 is 1:
-            masterData = sc.Spectrum(name, Data, (7, filePath), [freq2], [SW2], spec,ref=[Ref2], msgHandler=lambda msg: self.dispMsg(msg))
-        else:
-            Data = Data.reshape(sizeTD1, sizeTD2)
-            masterData = sc.Spectrum(name, Data, (7, filePath), [freq1, freq2], [SW1, SW2], spec * 2,ref=[Ref1,Ref2], msgHandler=lambda msg: self.dispMsg(msg))
-        masterData.addHistory("Bruker spectrum data loaded from " + filePath)
-        return masterData
+        try:
+            masterData = LF.LoadBrukerSpectrum(filePath,name)
+            masterData.msgHandler = lambda msg: self.dispMsg(msg)
+        except:
+            self.dispMsg("Error on loading Bruker Spectrum data",'red')
+            raise
+        return masterData     
 
     def LoadChemFile(self, filePath, name=''):
-        if os.path.isfile(filePath):
-            Dir = os.path.dirname(filePath)
-        else:
-            Dir = filePath
-        sizeTD1 = 1
-        sw1 = 50e3
-        H = dict(line.strip().split('=') for line in open(Dir + os.path.sep + 'acq', 'r'))
-        sizeTD2 = int(H['al'])
-        freq = float(H['sf' + H['ch1']])
-        sw = 1 / float(H['dw'][:-1])
-        if any('array_num_values_' in s for s in H.keys()):
-            if 'use_array=1' in open(Dir + '/acq_2').read():
-                for s in H.keys():
-                    if ('array_num_values_' in s):
-                        sizeTD1 = sizeTD1 * int(H[s])
-            else:
-                if 'al2' in H:
-                    sizeTD1 = int(float(H['al2']))
-                    if 'dw2' in H:
-                        sw1 = 1 / float(H['dw2'][:-1])
-        else:
-            if 'al2' in H:
-                sizeTD1 = int(float(H['al2']))
-                if 'dw2' in H:
-                    sw1 = 1 / float(H['dw2'][:-1])
-        with open(Dir + os.path.sep + 'data', 'rb') as f:
-            raw = np.fromfile(f, np.int32)
-            b = np.complex128(raw.byteswap())
-        filePath = Dir + os.path.sep + 'data'
-        fid = b[:len(b) / 2] + 1j * b[len(b) / 2:]
-        fid = np.reshape(fid, (sizeTD1, sizeTD2))
-        data = np.array(fid)
-        spec = [False]
-        if sizeTD1 is 1:
-            data = data[0][:]
-            masterData = sc.Spectrum(name, data, (2, filePath), [freq * 1e6], [sw], spec, msgHandler=lambda msg: self.dispMsg(msg))
-        else:
-            data = data.reshape((sizeTD1, sizeTD2))
-            masterData = sc.Spectrum(name, data, (2, filePath), [freq * 1e6] * 2, [sw1, sw], spec * 2, msgHandler=lambda msg: self.dispMsg(msg))
-        masterData.addHistory("Chemagnetics data loaded from " + filePath)
-        return masterData
+        try:
+            masterData = LF.LoadChemFile(filePath,name)
+            masterData.msgHandler = lambda msg: self.dispMsg(msg)
+        except:
+            self.dispMsg("Error on loading Chemagnetic data",'red')
+            raise
+        return masterData   
 
     def LoadMagritek(self, filePath, name='',realPath=''):
-        # Magritek load script based on some Matlab files by Ole Brauckman
-        if os.path.isfile(filePath):
-            Dir = os.path.dirname(filePath)
-        else:
-            Dir = filePath
-            
-        if realPath:
-            rememberPath = realPath
-        else:
-            rememberPath = filePath
-        DirFiles = os.listdir(Dir)
-        Files2D = [x for x in DirFiles if '.2d' in x]
-        Files1D = [x for x in DirFiles if '.1d' in x]
-        H = dict(line.strip().split('=') for line in open(Dir + os.path.sep + 'acqu.par', 'r'))
-        sw = float(H['bandwidth                 ']) * 1000
-        sizeTD2 = int(H['nrPnts                    '])
-        freq = float(H['b1Freq                    '])*1e6
-        lastfreq = float(H['lowestFrequency           '])
-        
-        sidefreq = -np.floor(sizeTD2 / 2) / sizeTD2 * sw  # freqeuency of last point on axis
-        ref = sidefreq + freq - lastfreq
-        if len(Files2D) == 1:
-            File = Files2D[0]
-            sizeTD1 = int(H['nrSteps                   '])
-            if 'bandwidth2                ' in H:
-                sw1 = float(H['bandwidth2                '])
-            else:
-                sw1 = 50e3
-            with open(Dir + os.path.sep + File, 'rb') as f:
-                raw = np.fromfile(f, np.float32)
-            Data = raw[-2 * sizeTD2 * sizeTD1::]
-            ComplexData = Data[0:Data.shape[0]:2] - 1j * Data[1:Data.shape[0]:2]
-            ComplexData = ComplexData.reshape((sizeTD1, sizeTD2))
-            masterData = sc.Spectrum(name, ComplexData, (3, rememberPath), [freq] * 2, [sw1,sw], [False] * 2,ref=[None,ref], msgHandler=lambda msg: self.dispMsg(msg))
-        elif len(Files1D) != 0:
-            File = 'data.1d'
-            with open(Dir + os.path.sep + File, 'rb') as f:
-                raw = np.fromfile(f, np.float32)
-            Data = raw[-2 * sizeTD2::]
-            ComplexData = Data[0:Data.shape[0]:2] - 1j * Data[1:Data.shape[0]:2]
-            masterData = sc.Spectrum(name, ComplexData, (3, rememberPath), [freq], [sw], [False],ref=[ref], msgHandler=lambda msg: self.dispMsg(msg))
-        masterData.addHistory("Magritek data loaded from " + rememberPath)
-        return masterData
+        try:
+            masterData = LF.LoadMagritek(filePath,name)
+            masterData.msgHandler = lambda msg: self.dispMsg(msg)
+        except:
+            self.dispMsg("Error on loading Magritek data",'red')
+            raise
+        return masterData  
 
     def LoadSimpsonFile(self, filePath, name=''):
-        with open(filePath, 'r') as f:
-            Lines = f.read().split('\n')
-        NP, NI, SW, SW1, TYPE, FORMAT = 0, 1, 0, 0, '', 'Normal'
-        DataStart = Lines.index('DATA')
-        DataEnd = Lines.index('END')
-        for s in range(0, DataStart):
-            if Lines[s].startswith('NP='):
-                NP = int(re.sub('NP=', '', Lines[s]))
-            elif Lines[s].startswith('NI='):
-                NI = int(re.sub('NI=', '', Lines[s]))
-            elif Lines[s].startswith('SW='):
-                SW = float(re.sub('SW=', '', Lines[s]))
-            elif Lines[s].startswith('SW1='):
-                SW1 = float(re.sub('SW1=', '', Lines[s]))
-            elif Lines[s].startswith('TYPE='):
-                TYPE = re.sub('TYPE=', '', Lines[s])
-            elif Lines[s].startswith('FORMAT='):
-                FORMAT = re.sub('FORMAT=', '', Lines[s])
-        if 'Normal' in FORMAT:
-            length = DataEnd - DataStart - 1
-            data = np.zeros(length, dtype=complex)
-            for i in range(length):
-                temp = Lines[DataStart + 1 + i].split()
-                data[i] = float(temp[0]) + 1j * float(temp[1])
-        elif 'BINARY' in FORMAT:
-            # Binary code based on:
-            # pysimpson: Python module for reading SIMPSON files
-            # By: Jonathan J. Helmus (jjhelmus@gmail.com)
-            # Version: 0.1 (2012-04-13)
-            # License: GPL
-            chardata = ''.join(Lines[DataStart + 1:DataEnd])
-            nquads, mod = divmod(len(chardata), 4)
-            assert mod == 0     # character should be in blocks of 4
-            BASE = 33
-            charst =  np.fromstring(chardata, dtype=np.uint8)
-            charst = charst.reshape(nquads,4) - BASE
-            FIRST = lambda f, x: ((x) & ~(~0 << f))
-            LAST = lambda f, x: ((x) & (~0 << (8 - f)))
-            
-            first = FIRST(6, charst[:,0]) | LAST(2, charst[:,1] << 2)
-            second  = FIRST(4, charst[:,1]) | LAST(4, charst[:,2] << 2)
-            third = FIRST(2, charst[:,2]) | LAST(6, charst[:,3] << 2)
-            
-            Bytes = np.ravel(np.transpose(np.array([first,second,third]))).astype('int64')
-            
-            # convert every 4 'bytes' to a float
-            num_points, num_pad = divmod(len(Bytes), 4)
-            Bytes = np.array(Bytes)
-            Bytes=Bytes[:-num_pad]
-            Bytes=Bytes.reshape(num_points,4)
-            mantissa = ((Bytes[:,2] % 128) << 16) + (Bytes[:,1] << 8) + Bytes[:,0]
-            exponent = (Bytes[:,3] % 128) * 2 + (Bytes[:,2] >= 128) * 1
-            negative = Bytes[:,3] >= 128
-            e = exponent - 127
-            m = np.abs(mantissa) / np.float64(1 << 23)
-            data = np.float32((-1)**negative*np.ldexp(m,e))
-            data = data.view('complex64')
-        if NI != 1:  # 2D data, reshape to NI, NP
-            data = data.reshape(int(NI), -1)
-        if 'FID' in TYPE:
-            spec = [False]
-        elif 'SPE' in TYPE:
-            spec = [True]
-        if NI is 1:
-            masterData = sc.Spectrum(name, data, (4, filePath), [0], [SW], spec, msgHandler=lambda msg: self.dispMsg(msg))
-        else:
-            masterData = sc.Spectrum(name, data, (4, filePath), [0, 0], [SW1, SW], spec * 2, msgHandler=lambda msg: self.dispMsg(msg))
-        masterData.addHistory("SIMPSON data loaded from " + filePath)
+        try:
+            masterData = LF.LoadSimpsonFile(filePath,name)
+            masterData.msgHandler = lambda msg: self.dispMsg(msg)
+        except:
+            self.dispMsg("Error on loading SIMPSON data",'red')
+            raise
+        return masterData  
+    
+    def LoadJCAMP(self, filePath, name=''):
+        try:
+            masterData = LF.loadJCAMP(filePath,name)
+            masterData.msgHandler = lambda msg: self.dispMsg(msg)
+            masterData.addHistory("JCAMP data loaded from " + filePath)
+        except:
+            self.dispMsg("Error on loading JCAMP data",'red')
+            raise
         return masterData
-
+        
+    def LoadAscii(self, filePath, name=''):
+        dialog = AsciiLoadWindow(self, filePath)
+        if dialog.exec_():
+            if dialog.closed:
+                return
+            else:
+                try:
+                    masterData = LF.LoadAscii(filePath, name, dialog.dataDimension, dialog.dataSpec, dialog.dataOrder, dialog.delim, dialog.sw)
+                    masterData.msgHandler = lambda msg: self.dispMsg(msg)
+                    return masterData
+                except:
+                    self.dispMsg("Error on loading ASCII data",'red')
+                    raise
+       
     def saveSimpsonFile(self):
         self.mainWindow.get_mainWindow().SaveSimpsonFile()
 
@@ -1629,18 +1592,22 @@ class MainProgram(QtGui.QMainWindow):
         
     def createQuadConversionWindow(self):
         quadConversionWindow(self)
-        
-    def about(self):
-        message = "ssNake " + VERSION
-        QtGui.QMessageBox.about(self, 'About', message)
 
+    def nmrTable(self):
+        import subprocess
+        subprocess.Popen([sys.executable, os.path.dirname(os.path.realpath(__file__)) + '/nmrTable.py'])
+        
     def fileQuit(self):
         self.close()
 
     def closeEvent(self, event):
         quit_msg = "Are you sure you want to close ssNake?"
-        reply = QtGui.QMessageBox.question(self, 'Close', quit_msg, QtGui.QMessageBox.Yes, QtGui.QMessageBox.No)
-        if reply == QtGui.QMessageBox.Yes:
+        reply = QtWidgets.QMessageBox.question(self, 'Close', quit_msg, QtWidgets.QMessageBox.Yes, QtWidgets.QMessageBox.No)
+        if reply == QtWidgets.QMessageBox.Yes:
+            for item in fit.stopDict.keys(): #Send stop commands to all threads
+                fit.stopDict[item] = True
+            
+            
             event.accept()
         else:
             event.ignore()
@@ -1648,13 +1615,13 @@ class MainProgram(QtGui.QMainWindow):
 ######################################################################################################
 
 
-class Main1DWindow(QtGui.QWidget):
+class Main1DWindow(QtWidgets.QWidget):
 
     def __init__(self, father, masterData, duplicateCurrent=None):
-        QtGui.QWidget.__init__(self, father)
+        QtWidgets.QWidget.__init__(self, father)
         self.fig = Figure()
         self.canvas = FigureCanvas(self.fig)
-        grid = QtGui.QGridLayout(self)
+        grid = QtWidgets.QGridLayout(self)
         grid.addWidget(self.canvas, 0, 0)
         self.undoList = []
         self.redoList = []
@@ -1759,8 +1726,12 @@ class Main1DWindow(QtGui.QWidget):
                 self.undoList.append(self.masterData.imag())
             elif iter1[0] == 'abs':
                 self.undoList.append(self.masterData.abs())
+            elif iter1[0] == 'conj':
+                self.undoList.append(self.masterData.conj())
             elif iter1[0] == 'phase':
                 self.undoList.append(self.masterData.setPhase(*iter1[1]))
+            elif iter1[0] == 'autoPhase':
+                self.undoList.append(self.masterData.autoPhase(*iter1[1]))
             elif iter1[0] == 'fourier':
                 self.undoList.append(self.masterData.fourier(*iter1[1]))
             elif iter1[0] == 'realFourier':
@@ -1818,11 +1789,15 @@ class Main1DWindow(QtGui.QWidget):
             elif iter1[0] == 'insert':
                 self.undoList.append(self.masterData.insert(*iter1[1]))
             elif iter1[0] == 'delete':
-                self.undoList.append(self.masterData.delete(*iter1[1]))
+                self.undoList.append(self.masterData.remove(*iter1[1]))
             elif iter1[0] == 'add':
                 self.undoList.append(self.masterData.add(*iter1[1]))
             elif iter1[0] == 'subtract':
                 self.undoList.append(self.masterData.subtract(*iter1[1]))
+            elif iter1[0] == 'multiplySpec':
+                self.undoList.append(self.masterData.multiplySpec(*iter1[1]))
+            elif iter1[0] == 'divideSpec':
+                self.undoList.append(self.masterData.divideSpec(*iter1[1]))
             elif iter1[0] == 'multiply':
                 self.undoList.append(self.masterData.multiply(*iter1[1]))
             elif iter1[0] == 'subtractAvg':
@@ -1860,7 +1835,9 @@ class Main1DWindow(QtGui.QWidget):
     def saveJSONFile(self):
         import json
         WorkspaceName = self.father.workspaceNames[self.father.workspaceNum]  # Set name of file to be saved to workspace name to start
-        name = QtGui.QFileDialog.getSaveFileName(self, 'Save File', self.father.LastLocation + os.path.sep + WorkspaceName + '.json', 'JSON (*.json)')
+        name = QtWidgets.QFileDialog.getSaveFileName(self, 'Save File', self.father.LastLocation + os.path.sep + WorkspaceName + '.json', 'JSON (*.json)')
+        if type(name) is tuple:
+            name = name[0]        
         if not name:
             return
         self.father.LastLocation = os.path.dirname(name)  # Save used path
@@ -1883,7 +1860,9 @@ class Main1DWindow(QtGui.QWidget):
     def saveMatlabFile(self):
         import scipy.io
         WorkspaceName = self.father.workspaceNames[self.father.workspaceNum]  # Set name of file to be saved to workspace name to start
-        name = QtGui.QFileDialog.getSaveFileName(self, 'Save File', self.father.LastLocation + os.path.sep + WorkspaceName + '.mat', 'MATLAB file (*.mat)')
+        name = QtWidgets.QFileDialog.getSaveFileName(self, 'Save File', self.father.LastLocation + os.path.sep + WorkspaceName + '.mat', 'MATLAB file (*.mat)')
+        if type(name) is tuple:
+            name = name[0]        
         if not name:
             return
         self.father.LastLocation = os.path.dirname(name)  # Save used path
@@ -1906,11 +1885,15 @@ class Main1DWindow(QtGui.QWidget):
             return
         WorkspaceName = self.father.workspaceNames[self.father.workspaceNum]  # Set name of file to be saved to workspace name to start
         if sum(self.masterData.spec) / len(self.masterData.spec) == 1:
-            name = QtGui.QFileDialog.getSaveFileName(self, 'Save File', self.father.LastLocation + os.path.sep + WorkspaceName + '.spe', 'SIMPSON file (*.spe)')
+            name = QtWidgets.QFileDialog.getSaveFileName(self, 'Save File', self.father.LastLocation + os.path.sep + WorkspaceName + '.spe', 'SIMPSON file (*.spe)')
+            if type(name) is tuple:
+                name = name[0]       
             if not name:
                 return
         elif sum(self.masterData.spec) == 0:
-            name = QtGui.QFileDialog.getSaveFileName(self, 'Save File', self.father.LastLocation + os.path.sep + WorkspaceName + '.fid', 'SIMPSON file (*.fid)')
+            name = QtWidgets.QFileDialog.getSaveFileName(self, 'Save File', self.father.LastLocation + os.path.sep + WorkspaceName + '.fid', 'SIMPSON file (*.fid)')
+            if type(name) is tuple:
+                name = name[0]        
             if not name:
                 return
         else:
@@ -1947,22 +1930,21 @@ class Main1DWindow(QtGui.QWidget):
             self.father.dispMsg('Saving to ASCII format only allowed for 1D and 2D data!')
             return
         WorkspaceName = self.father.workspaceNames[self.father.workspaceNum]  # Set name of file to be saved to workspace name to start
-        name = QtGui.QFileDialog.getSaveFileName(self, 'Save File', self.father.LastLocation + os.path.sep + WorkspaceName + '.txt', 'ASCII file (*.txt)')
+        name = QtWidgets.QFileDialog.getSaveFileName(self, 'Save File', self.father.LastLocation + os.path.sep + WorkspaceName + '.txt', 'ASCII file (*.txt)')
+        if type(name) is tuple:
+            name = name[0]        
         if not name:
             return
-
         self.father.LastLocation = os.path.dirname(name)  # Save used path
         axis = np.array([self.masterData.xaxArray[-1]]).transpose()
         if self.masterData.data.ndim == 1:  # create nx1 matrix if it is a 1d data set
             data = np.array([self.masterData.data]).transpose()
         else:
             data = self.masterData.data.transpose()
-
         splitdata = np.zeros([data.shape[0], data.shape[1] * 2])
         for line in np.arange(data.shape[1]):
             splitdata[:, line * 2] = np.real(data[:, line])
             splitdata[:, line * 2 + 1] = np.imag(data[:, line])
-
         data = np.concatenate((axis, splitdata), axis=1)
         np.savetxt(name, data, delimiter='\t')
 
@@ -1987,6 +1969,7 @@ class Main1DWindow(QtGui.QWidget):
         self.menuCheck()
 
     def monitorLoad(self, filePath):
+        self.monitor.blockSignals(True)
         if not os.path.exists(filePath):
             self.stopMonitor()
             return
@@ -2001,6 +1984,7 @@ class Main1DWindow(QtGui.QWidget):
         self.current.showFid()  
         self.updAllFrames()
         self.menuCheck()
+        QtCore.QTimer.singleShot(500, lambda: self.monitor.blockSignals(False))
         if filePath in self.monitor.files() or filePath in self.monitor.directories():
             return
         self.monitor.addPath(filePath)
@@ -2039,6 +2023,14 @@ class Main1DWindow(QtGui.QWidget):
         self.current.upd()
         self.current.showFid()
         self.addMacro(['abs'])
+        self.menuCheck()
+        
+    def conj(self):
+        self.redoList = []
+        self.undoList.append(self.masterData.conj())
+        self.current.upd()
+        self.current.showFid()
+        self.addMacro(['conj'])
         self.menuCheck()
 
     def fourier(self):
@@ -2110,15 +2102,31 @@ class Main1DWindow(QtGui.QWidget):
         self.undoList.append(self.current.flipLR())
         self.menuCheck()
 
+    def directAutoPhase(self, phaseNum):
+        self.redoList = []
+        self.undoList.append(self.current.directAutoPhase(phaseNum))
+        self.menuCheck()
+
     def BrukerDigital(self):
-        FilePath = QtGui.QFileDialog.getOpenFileName(self, 'Open File', self.father.LastLocation)
-        self.father.LastLocation = os.path.dirname(FilePath)  # Save used path
+#        FilePath = QtWidgets.QFileDialog.getOpenFileName(self, 'Open File', self.father.LastLocation)
+#        if type(FilePath) is tuple:
+#            FilePath = FilePath[0]
+#        self.father.LastLocation = os.path.dirname(FilePath)  # Save used path
+        FilePath = self.masterData.filePath[1]
         if FilePath is '':
             return
         Dir = os.path.dirname(FilePath)
         if not os.path.exists(Dir + os.path.sep + 'acqus'):
-            self.father.dispMsg("acqus file does not exist")
-            return
+            self.father.dispMsg("acqus file does not exist, specify load path")
+            FilePath = QtWidgets.QFileDialog.getOpenFileName(self, 'Open File', self.father.LastLocation)
+            self.father.LastLocation = os.path.dirname(FilePath)  # Save used path
+            Dir = os.path.dirname(FilePath)
+            if type(FilePath) is tuple:
+                FilePath = FilePath[0]
+            if not os.path.exists(Dir + os.path.sep + 'acqus'):  
+                self.father.dispMsg("acqus file does not exist")
+                return
+                
         with open(Dir + os.path.sep + 'acqus', 'r') as f:
             data = f.read().split('\n')
         FilterCorrection = -1.0
@@ -2294,26 +2302,32 @@ class Main1DWindow(QtGui.QWidget):
             self.menuCheck()
         else:
             self.father.dispMsg("no redo information")
+            
+    def clearUndo(self):
+        self.undoList = []
+        self.redoList = []
+        self.menuCheck()
+        
 
 ########################################################################################
 
 
-class SideFrame(QtGui.QScrollArea):
+class SideFrame(QtWidgets.QScrollArea):
 
     def __init__(self, parent):
-        QtGui.QScrollArea.__init__(self, parent)
+        QtWidgets.QScrollArea.__init__(self, parent)
         self.father = parent
         self.entries = []
         self.plotIs2D = False
-        content = QtGui.QWidget()
-        grid = QtGui.QGridLayout(content)
-        grid.setSizeConstraint(QtGui.QLayout.SetFixedSize)
-        frame1Widget = QtGui.QWidget()
-        frame2Widget = QtGui.QWidget()
+        content = QtWidgets.QWidget()
+        grid = QtWidgets.QGridLayout(content)
+        grid.setSizeConstraint(QtWidgets.QLayout.SetFixedSize)
+        frame1Widget = QtWidgets.QWidget()
+        frame2Widget = QtWidgets.QWidget()
         grid.addWidget(frame1Widget, 0, 0)
         grid.addWidget(frame2Widget, 1, 0)
-        self.frame1 = QtGui.QGridLayout()
-        self.frame2 = QtGui.QGridLayout()
+        self.frame1 = QtWidgets.QGridLayout()
+        self.frame2 = QtWidgets.QGridLayout()
         frame1Widget.setLayout(self.frame1)
         frame2Widget.setLayout(self.frame2)
         self.frame1.setAlignment(QtCore.Qt.AlignTop)
@@ -2352,18 +2366,18 @@ class SideFrame(QtGui.QScrollArea):
             offset = 1
         self.entries = []
         self.buttons1 = []
-        self.buttons1Group = QtGui.QButtonGroup(self)
+        self.buttons1Group = QtWidgets.QButtonGroup(self)
         self.buttons1Group.buttonClicked.connect(lambda: self.setAxes(True))
         self.buttons2 = []
-        self.buttons2Group = QtGui.QButtonGroup(self)
+        self.buttons2Group = QtWidgets.QButtonGroup(self)
         self.buttons2Group.buttonClicked.connect(lambda: self.setAxes(False))
         if self.length > 1:
             for num in range(self.length):
-                self.buttons1.append(QtGui.QRadioButton(''))
+                self.buttons1.append(QtWidgets.QRadioButton(''))
                 self.buttons1Group.addButton(self.buttons1[num], num)
                 self.frame1.addWidget(self.buttons1[num], num * 2 + 1, 0)
                 if self.plotIs2D:
-                    self.buttons2.append(QtGui.QRadioButton(''))
+                    self.buttons2.append(QtWidgets.QRadioButton(''))
                     self.buttons2Group.addButton(self.buttons2[num], num)
                     self.frame1.addWidget(self.buttons2[num], num * 2 + 1, 1)
                 self.frame1.addWidget(wc.QLabel("D" + str(num + 1), self), num * 2, 1 + offset)
@@ -2416,37 +2430,50 @@ class SideFrame(QtGui.QScrollArea):
                 self.stepSpin.valueChanged.connect(self.setToFrom)
                 if isinstance(current, (sc.CurrentStacked, sc.CurrentArrayed)):
                     self.frame2.addWidget(wc.QLabel("Spacing", self), 7, 0)
-                    self.spacingEntry = QtGui.QLineEdit(self)
+                    self.spacingEntry = QtWidgets.QLineEdit(self)
                     self.spacingEntry.setText('%#.3g' % current.spacing)
                     self.spacingEntry.returnPressed.connect(self.setSpacing)
                     self.frame2.addWidget(self.spacingEntry, 8, 0)
                 elif isinstance(current, (sc.CurrentSkewed)):
                     self.frame2.addWidget(wc.QLabel("Skew", self), 7, 0)
-                    self.skewEntry = QtGui.QLineEdit(self)
+                    self.skewEntry = QtWidgets.QLineEdit(self)
                     self.skewEntry.setText('%.2f' % current.skewed)
                     self.skewEntry.returnPressed.connect(self.setSkew)
                     self.frame2.addWidget(self.skewEntry, 8, 0)
                     self.frame2.addWidget(wc.QLabel("Elevation", self), 9, 0)
-                    self.elevEntry = QtGui.QLineEdit(self)
+                    self.elevEntry = QtWidgets.QLineEdit(self)
                     self.elevEntry.setText('%.1f' % current.elevation)
                     self.elevEntry.returnPressed.connect(self.setSkew)
                     self.frame2.addWidget(self.elevEntry, 10, 0)
             if isinstance(current, (sc.CurrentContour)):
-                self.frame2.addWidget(wc.QLabel("Number of contours", self), 1, 0)
-                self.numLEntry = QtGui.QLineEdit(self)
+                self.frame2.addWidget(wc.QLabel("Number of contours:", self), 1, 0)
+                self.numLEntry = QtWidgets.QLineEdit(self)
                 self.numLEntry.setText(str(current.numLevels))
                 self.numLEntry.returnPressed.connect(self.setContour)
                 self.frame2.addWidget(self.numLEntry, 2, 0)
-                self.frame2.addWidget(wc.QLabel("Highest contour [%]", self), 3, 0)
-                self.maxLEntry = QtGui.QLineEdit(self)
+                self.contourTypeEntry = QtWidgets.QComboBox()
+                self.contourTypeEntry.addItems(['Linear','Multiplier'])
+                self.contourTypeEntry.currentIndexChanged.connect(self.setContour)
+                self.frame2.addWidget(wc.QLabel("Contour scale:", self), 3, 0)
+                self.frame2.addWidget(self.contourTypeEntry, 4, 0)
+                self.multiValueLabel = wc.QLabel("Multiplier value:", self)
+                self.frame2.addWidget(self.multiValueLabel, 5, 0)
+                self.multiValueLabel.hide()
+                self.multiValue = QtWidgets.QLineEdit(self)
+                self.multiValue.setText(str(1.5))
+                self.multiValue.returnPressed.connect(self.setContour)
+                self.frame2.addWidget(self.multiValue, 6, 0)
+                self.multiValue.hide()
+                self.frame2.addWidget(wc.QLabel("Highest contour [%]:", self), 7, 0)
+                self.maxLEntry = QtWidgets.QLineEdit(self)
                 self.maxLEntry.setText(str(current.maxLevels * 100.0))
                 self.maxLEntry.returnPressed.connect(self.setContour)
-                self.frame2.addWidget(self.maxLEntry, 4, 0)
-                self.frame2.addWidget(wc.QLabel("Lowest contour [%]", self), 5, 0)
-                self.minLEntry = QtGui.QLineEdit(self)
+                self.frame2.addWidget(self.maxLEntry, 8, 0)
+                self.frame2.addWidget(wc.QLabel("Lowest contour [%]:", self), 9, 0)
+                self.minLEntry = QtWidgets.QLineEdit(self)
                 self.minLEntry.setText(str(current.minLevels * 100.0))
                 self.minLEntry.returnPressed.connect(self.setContour)
-                self.frame2.addWidget(self.minLEntry, 6, 0)
+                self.frame2.addWidget(self.minLEntry, 10, 0)
             self.buttons1Group.button(current.axes).toggle()
             if self.plotIs2D:
                 self.buttons2Group.button(current.axes2).toggle()
@@ -2457,8 +2484,8 @@ class SideFrame(QtGui.QScrollArea):
             self.nameLabels = []
             iter1 = 0
             for i in range(len(current.extraData)):
-                frameWidget = QtGui.QWidget(self)
-                frame = QtGui.QGridLayout(frameWidget)
+                frameWidget = QtWidgets.QWidget(self)
+                frame = QtWidgets.QGridLayout(frameWidget)
                 self.frame2.addWidget(frameWidget, iter1, 0)
                 frameWidget.setLayout(frame)
                 name = current.extraName[i]
@@ -2467,38 +2494,49 @@ class SideFrame(QtGui.QScrollArea):
                 self.nameLabels.append(wc.QLabel(name, self))
                 frame.addWidget(self.nameLabels[i], 0, 0, 1, 2)
                 self.nameLabels[i].setStyleSheet("QLabel { color: rgb" + str(current.getExtraColor(i)) + ";}")
-                colorbutton = QtGui.QPushButton("Color", self)
+                colorbutton = QtWidgets.QPushButton("Color", self)
                 colorbutton.clicked.connect(lambda arg, num=i: self.setExtraColor(num))
                 frame.addWidget(colorbutton, 1, 0)
-                button = QtGui.QPushButton("x", self)
+                button = QtWidgets.QPushButton("x", self)
                 button.clicked.connect(lambda arg, num=i: self.delMultiSpec(num))
                 frame.addWidget(button, 1, 1)
                 self.OOM = self.father.current.getOOM()  # Order of Magnitude
                 frame.addWidget(wc.QLabel("Scale", self), 2, 0)
-                frame.addWidget(wc.QLabel("Offset (X1e" + str(self.OOM) + ")", self), 2, 1)
-                scaleEntry = QtGui.QDoubleSpinBox()
+                frame.addWidget(wc.QLabel(u"Offset (\u00D71e" + str(self.OOM) + ")", self), 2, 1)
+                frame.addWidget(wc.QLabel("Shift", self), 2, 2)
+                scaleEntry = QtWidgets.QDoubleSpinBox()
                 scaleEntry.setMaximum(1e3)
                 scaleEntry.setMinimum(-1e3)
                 scaleEntry.setSingleStep(0.1)
                 scaleEntry.setValue(self.father.current.extraScale[i])
                 scaleEntry.valueChanged.connect(lambda arg, num=i: self.setScale(arg, num))
                 frame.addWidget(scaleEntry, 3, 0)
-                offsetEntry = QtGui.QDoubleSpinBox()
+                offsetEntry = QtWidgets.QDoubleSpinBox()
                 offsetEntry.setMaximum(1e3)
                 offsetEntry.setMinimum(-1e3)
                 offsetEntry.setSingleStep(0.1)
                 offsetEntry.setValue(self.father.current.extraOffset[i]/(10**self.OOM))
                 offsetEntry.valueChanged.connect(lambda arg, num=i: self.setOffset(arg, num))
                 frame.addWidget(offsetEntry, 3, 1)
+                
+                shiftEntry = QtWidgets.QDoubleSpinBox()
+                shiftEntry.setMaximum(1e3)
+                shiftEntry.setMinimum(-1e3)
+                shiftEntry.setSingleStep(0.1)
+                shiftEntry.setValue(self.father.current.extraShift[i])
+                shiftEntry.valueChanged.connect(lambda arg, num=i: self.setShift(arg, num))
+                frame.addWidget(shiftEntry, 3, 2)
+                
+                
                 entries = []
                 self.extraEntries.append(entries)
                 buttons1 = []
                 self.extraButtons1.append(buttons1)
-                self.extraButtons1Group.append(QtGui.QButtonGroup(self))
+                self.extraButtons1Group.append(QtWidgets.QButtonGroup(self))
                 self.extraButtons1Group[i].buttonClicked.connect(lambda: self.setExtraAxes(True))
                 if current.extraData[i].data.ndim > 1:
                     for num in range(current.extraData[i].data.ndim):
-                        buttons1.append(QtGui.QRadioButton(''))
+                        buttons1.append(QtWidgets.QRadioButton(''))
                         self.extraButtons1Group[i].addButton(buttons1[num], num)
                         frame.addWidget(buttons1[num], num * 2 + 5, 0)
                         frame.addWidget(wc.QLabel("D" + str(num + 1), self), num * 2 + 4, 1)
@@ -2513,7 +2551,7 @@ class SideFrame(QtGui.QScrollArea):
                         entries[num].valueChanged.connect(lambda event=None, num=num, i=i: self.getExtraSlice(event, num, i))
                     self.extraButtons1Group[i].button(current.extraAxes[i]).toggle()
                 iter1 += 1
-            addButton = QtGui.QPushButton("Add spectrum", self)
+            addButton = QtWidgets.QPushButton("Add spectrum", self)
             addButton.clicked.connect(self.addMultiSpec)
             self.frame2.addWidget(addButton, iter1, 0, 1, 2)
         QtCore.QTimer.singleShot(100, self.resizeAll)
@@ -2550,11 +2588,21 @@ class SideFrame(QtGui.QScrollArea):
     def setContour(self, *args):
         var1 = int(round(safeEval(self.numLEntry.text())))
         self.numLEntry.setText(str(var1))
-        var2 = float(safeEval(self.maxLEntry.text()))
-        self.maxLEntry.setText('%.1f' % var2)
-        var3 = float(safeEval(self.minLEntry.text()))
-        self.minLEntry.setText('%.1f' % var3)
-        self.father.current.setLevels(var1, var2 / 100.0, var3 / 100.0)
+        var2 = abs(float(safeEval(self.maxLEntry.text())))
+        var3 = abs(float(safeEval(self.minLEntry.text())))
+        if var3 > var2: #if wrong order, interchange
+            var2, var3 = (var3 , var2)
+        self.maxLEntry.setText(str(var2))
+        self.minLEntry.setText(str(var3))
+        var4 = self.contourTypeEntry.currentIndex()
+        if var4 == 0:
+            self.multiValue.hide()
+            self.multiValueLabel.hide()
+        else:
+            self.multiValue.show()
+            self.multiValueLabel.show()
+        var5 = abs(float(safeEval(self.multiValue.text())))
+        self.father.current.setLevels(var1, var2 / 100.0, var3 / 100.0, var4, var5)
 
     def setAxes(self, first=True):
         axes = self.buttons1Group.checkedId()
@@ -2637,6 +2685,10 @@ class SideFrame(QtGui.QScrollArea):
 
     def setOffset(self, offset, num):
         self.father.current.setExtraOffset(num, offset*10**self.OOM)
+       
+    def setShift(self, shift, num):
+        self.father.current.setExtraShift(num, shift)    
+    
 
     def checkChanged(self):
         for i in range(len(self.father.current.extraData)):
@@ -2648,14 +2700,14 @@ class SideFrame(QtGui.QScrollArea):
             self.father.current.showFid()
 
     def setExtraColor(self, num):
-        color = QtGui.QColorDialog.getColor()
+        color = QtWidgets.QColorDialog.getColor()
         if not color.isValid():
             return
         self.father.current.setExtraColor(num, color.getRgbF())
         self.nameLabels[num].setStyleSheet("QLabel { color: rgb" + str(self.father.current.getExtraColor(num)) + ";}")
 
     def addMultiSpec(self, *args):
-        text = QtGui.QInputDialog.getItem(self, "Select spectrum to show", "Spectrum name:", self.father.father.workspaceNames, 0, False)
+        text = QtWidgets.QInputDialog.getItem(self, "Select spectrum to show", "Spectrum name:", self.father.father.workspaceNames, 0, False)
         if text[1]:
             self.father.current.addExtraData(self.father.father.workspaces[self.father.father.workspaceNames.index(text[0])].get_masterData(), str(text[0]))
             self.upd()
@@ -2667,70 +2719,70 @@ class SideFrame(QtGui.QScrollArea):
 ################################################################################
 
 
-class BottomFrame(QtGui.QWidget):
+class BottomFrame(QtWidgets.QWidget):
 
     def __init__(self, parent):
-        QtGui.QWidget.__init__(self, parent)
+        QtWidgets.QWidget.__init__(self, parent)
         self.father = parent
-        grid = QtGui.QGridLayout(self)
+        grid = QtWidgets.QGridLayout(self)
         self.setLayout(grid)
-        fourierButton = QtGui.QPushButton("Fourier", parent=self)
+        fourierButton = QtWidgets.QPushButton("Fourier", parent=self)
         fourierButton.clicked.connect(self.father.fourier)
         grid.addWidget(fourierButton, 0, 0, 2, 1)
-        self.specGroup = QtGui.QButtonGroup(self)
+        self.specGroup = QtWidgets.QButtonGroup(self)
         self.specGroup.buttonClicked.connect(self.changeSpec)
-        timeButton = QtGui.QRadioButton('Time', parent=self)
+        timeButton = QtWidgets.QRadioButton('Time', parent=self)
         self.specGroup.addButton(timeButton, 0)
         grid.addWidget(timeButton, 0, 1)
-        freqButton = QtGui.QRadioButton('Frequency', parent=self)
+        freqButton = QtWidgets.QRadioButton('Frequency', parent=self)
         self.specGroup.addButton(freqButton, 1)
         grid.addWidget(freqButton, 1, 1)
-        self.wholeEcho = QtGui.QCheckBox("Whole echo", parent=self)
+        self.wholeEcho = QtWidgets.QCheckBox("Whole echo", parent=self)
         self.wholeEcho.clicked.connect(self.setWholeEcho)
         grid.addWidget(self.wholeEcho, 0, 2, 2, 1)
         grid.addWidget(wc.QLabel("Freq [MHz]:", self), 0, 3)
-        self.freqEntry = QtGui.QLineEdit(parent=self)
+        self.freqEntry = QtWidgets.QLineEdit(parent=self)
         self.freqEntry.setAlignment(QtCore.Qt.AlignHCenter)
         self.freqEntry.returnPressed.connect(self.changeFreq)
         grid.addWidget(self.freqEntry, 1, 3)
         grid.addWidget(wc.QLabel("Sweepwidth [kHz]:", self), 0, 4)
-        self.swEntry = QtGui.QLineEdit(parent=self)
+        self.swEntry = QtWidgets.QLineEdit(parent=self)
         self.swEntry.setAlignment(QtCore.Qt.AlignHCenter)
         self.swEntry.returnPressed.connect(self.changeFreq)
         grid.addWidget(self.swEntry, 1, 4)
         grid.addWidget(wc.QLabel("Plot:", self), 0, 5)
-        self.plotDrop = QtGui.QComboBox(parent=self)
+        self.plotDrop = QtWidgets.QComboBox(parent=self)
         self.plotDrop.addItems(["Real", "Imag", "Both", "Abs"])
         self.plotDrop.activated.connect(self.changePlot)
         grid.addWidget(self.plotDrop, 1, 5)
         grid.addWidget(wc.QLabel("Axis:", self), 0, 6)
-        self.axisDropTime = QtGui.QComboBox(parent=self)
+        self.axisDropTime = QtWidgets.QComboBox(parent=self)
         self.axisDropTime.addItems(["s", "ms", u"\u03bcs"])
         self.axisDropTime.activated.connect(self.changeAxis)
         grid.addWidget(self.axisDropTime, 1, 6)
-        self.axisDropFreq = QtGui.QComboBox(parent=self)
+        self.axisDropFreq = QtWidgets.QComboBox(parent=self)
         self.axisDropFreq.addItems(["Hz", "kHz", "MHz", "ppm"])
         self.axisDropFreq.activated.connect(self.changeAxis)
         grid.addWidget(self.axisDropFreq, 1, 6)
         self.ax2Label = wc.QLabel("Axis2:", self)
         grid.addWidget(self.ax2Label, 0, 7)
-        self.axisDropTime2 = QtGui.QComboBox(parent=self)
+        self.axisDropTime2 = QtWidgets.QComboBox(parent=self)
         self.axisDropTime2.addItems(["s", "ms", u"\u03bcs"])
         self.axisDropTime2.activated.connect(self.changeAxis2)
         grid.addWidget(self.axisDropTime2, 1, 7)
-        self.axisDropFreq2 = QtGui.QComboBox(parent=self)
+        self.axisDropFreq2 = QtWidgets.QComboBox(parent=self)
         self.axisDropFreq2.addItems(["Hz", "kHz", "MHz", "ppm"])
         self.axisDropFreq2.activated.connect(self.changeAxis2)
         grid.addWidget(self.axisDropFreq2, 1, 7)
         self.proj1Label = wc.QLabel("Proj top:", self)
         grid.addWidget(self.proj1Label, 0, 8)
-        self.projDrop1 = QtGui.QComboBox(parent=self)
+        self.projDrop1 = QtWidgets.QComboBox(parent=self)
         self.projDrop1.addItems(["sum", "max", "min"])
         self.projDrop1.activated.connect(lambda val, self=self: self.changeProj(val, 1))
         grid.addWidget(self.projDrop1, 1, 8)
         self.proj2Label = wc.QLabel("Proj right:", self)
         grid.addWidget(self.proj2Label, 0, 9)
-        self.projDrop2 = QtGui.QComboBox(parent=self)
+        self.projDrop2 = QtWidgets.QComboBox(parent=self)
         self.projDrop2.addItems(["sum", "max", "min"])
         self.projDrop2.activated.connect(lambda val, self=self: self.changeProj(val, 2))
         grid.addWidget(self.projDrop2, 1, 9)
@@ -2759,6 +2811,7 @@ class BottomFrame(QtGui.QWidget):
         self.proj2Label.hide()
         self.projDrop1.hide()
         self.projDrop2.hide()
+        self.axisDropFreq.model().item(3).setEnabled(True)
         if self.father.current.spec == 0:
             self.specGroup.button(0).toggle()
             self.axisDropFreq.hide()
@@ -2769,19 +2822,27 @@ class BottomFrame(QtGui.QWidget):
             self.specGroup.button(1).toggle()
             self.axisDropTime.hide()
             self.axisDropFreq.show()
+            if self.father.current.freq == 0.0:
+                self.axisDropFreq.model().item(3).setEnabled(False)
             self.ax2Label.hide()
-            self.axisDropFreq.setCurrentIndex(self.father.current.axType)
+            if self.father.current.ppm:
+                self.axisDropFreq.setCurrentIndex(3)
+            else:
+                self.axisDropFreq.setCurrentIndex(self.father.current.axType)
         if isinstance(self.father.current, sc.CurrentContour):
             self.ax2Label.show()
             self.proj1Label.show()
             self.proj2Label.show()
             self.projDrop1.show()
             self.projDrop2.show()
+            self.axisDropFreq2.model().item(3).setEnabled(True)
             if self.father.current.spec2 == 0:
                 self.axisDropTime2.show()
                 self.axisDropTime2.setCurrentIndex(self.father.current.axType2)
             elif self.father.current.spec2 == 1:
                 self.axisDropFreq2.show()
+                if self.father.current.freq2 == 0.0:
+                    self.axisDropFreq2.model().item(3).setEnabled(False)
                 self.axisDropFreq2.setCurrentIndex(self.father.current.axType2)
         if self.father.current.wholeEcho:
             self.wholeEcho.setCheckState(QtCore.Qt.Checked)
@@ -2819,72 +2880,72 @@ class BottomFrame(QtGui.QWidget):
 
     def changeProj(self, pType, direc):
         self.father.current.setProjType(pType, direc)
-        self.father.current.showFid()
+        self.father.current.showProj()
 
 ##################################################################
 
 
-class TextFrame(QtGui.QScrollArea):
+class TextFrame(QtWidgets.QScrollArea):
 
     def __init__(self, parent):
-        QtGui.QScrollArea.__init__(self, parent)
+        QtWidgets.QScrollArea.__init__(self, parent)
         self.father = parent
         self.oldx = 0.0
         self.oldy = 0.0
         self.oldamp = 0.0
         widthScale = 0.6
-        content = QtGui.QWidget()
-        grid = QtGui.QGridLayout(content)
-        getButton = QtGui.QPushButton("&Get Position")
+        content = QtWidgets.QWidget()
+        grid = QtWidgets.QGridLayout(content)
+        getButton = QtWidgets.QPushButton("&Get Position")
         getButton.clicked.connect(self.getPosition)
         grid.addWidget(getButton, 0, 1)
         grid.addWidget(wc.QLabel("x-Position:"), 0, 2)
-        self.xpos = QtGui.QLineEdit()
+        self.xpos = QtWidgets.QLineEdit()
         self.xpos.setAlignment(QtCore.Qt.AlignHCenter)
         self.xpos.setFixedWidth(self.xpos.sizeHint().width() * widthScale)
         self.xpos.setText("0")
         grid.addWidget(self.xpos, 0, 3)
         self.yposlabel = wc.QLabel("y-Position:")
         grid.addWidget(self.yposlabel, 0, 4)
-        self.ypos = QtGui.QLineEdit()
+        self.ypos = QtWidgets.QLineEdit()
         self.ypos.setAlignment(QtCore.Qt.AlignHCenter)
         self.ypos.setFixedWidth(self.ypos.sizeHint().width() * widthScale)
         self.ypos.setText("0")
         grid.addWidget(self.ypos, 0, 5)
         grid.addWidget(wc.QLabel("x-Value:"), 0, 6)
-        self.xpoint = QtGui.QLineEdit()
+        self.xpoint = QtWidgets.QLineEdit()
         self.xpoint.setAlignment(QtCore.Qt.AlignHCenter)
         self.xpoint.setFixedWidth(self.xpoint.sizeHint().width() * widthScale)
         self.xpoint.setText("0.0")
         grid.addWidget(self.xpoint, 0, 7)
         self.ylabel = wc.QLabel("y-Value:")
         grid.addWidget(self.ylabel, 0, 8)
-        self.ypoint = QtGui.QLineEdit()
+        self.ypoint = QtWidgets.QLineEdit()
         self.ypoint.setAlignment(QtCore.Qt.AlignHCenter)
         self.ypoint.setFixedWidth(self.ypoint.sizeHint().width() * widthScale)
         self.ypoint.setText("0.0")
         grid.addWidget(self.ypoint, 0, 9)
         grid.addWidget(wc.QLabel("Amp:"), 0, 10)
-        self.amppoint = QtGui.QLineEdit()
+        self.amppoint = QtWidgets.QLineEdit()
         self.amppoint.setAlignment(QtCore.Qt.AlignHCenter)
         self.amppoint.setFixedWidth(self.amppoint.sizeHint().width() * widthScale)
         self.amppoint.setText("0.0")
         grid.addWidget(self.amppoint, 0, 11)
         grid.addWidget(wc.QLabel(u"\u0394x:"), 0, 12)
-        self.deltaxpoint = QtGui.QLineEdit()
+        self.deltaxpoint = QtWidgets.QLineEdit()
         self.deltaxpoint.setAlignment(QtCore.Qt.AlignHCenter)
         self.deltaxpoint.setFixedWidth(self.deltaxpoint.sizeHint().width() * widthScale)
         self.deltaxpoint.setText("0.0")
         grid.addWidget(self.deltaxpoint, 0, 13)
         self.deltaylabel = wc.QLabel(u"\u0394y:")
         grid.addWidget(self.deltaylabel, 0, 14)
-        self.deltaypoint = QtGui.QLineEdit()
+        self.deltaypoint = QtWidgets.QLineEdit()
         self.deltaypoint.setAlignment(QtCore.Qt.AlignHCenter)
         self.deltaypoint.setFixedWidth(self.deltaypoint.sizeHint().width() * widthScale)
         self.deltaypoint.setText("0.0")
         grid.addWidget(self.deltaypoint, 0, 15)
         grid.addWidget(wc.QLabel(u"\u0394amp:"), 0, 16)
-        self.deltaamppoint = QtGui.QLineEdit()
+        self.deltaamppoint = QtWidgets.QLineEdit()
         self.deltaamppoint.setAlignment(QtCore.Qt.AlignHCenter)
         self.deltaamppoint.setFixedWidth(self.deltaamppoint.sizeHint().width() * widthScale)
         self.deltaamppoint.setText("0.0")
@@ -2949,7 +3010,128 @@ class TextFrame(QtGui.QScrollArea):
 #################################################################################
 
 
-class PhaseWindow(QtGui.QWidget):
+class AsciiLoadWindow(QtWidgets.QDialog):
+    dataOrders = ['XRI','XR','XI','RI','R']
+    delimiters = ['Tab','Space','Comma']
+    def __init__(self, parent, file):
+        QtWidgets.QWidget.__init__(self, parent)
+        self.setWindowFlags(QtCore.Qt.Window | QtCore.Qt.Tool)
+        self.father = parent
+        self.dataDimension = 1
+        self.dataSpec = False
+        self.dataOrder = 'XRI'
+        self.sw = 0.0
+        self.delim = 'Tab'
+        self.closed = False
+        self.setWindowTitle("Load ASCII")
+        grid = QtWidgets.QGridLayout(self)
+        
+        grid.addWidget(QtWidgets.QLabel("# Dimensions:"), 1, 0)
+        self.numDims = QtWidgets.QSpinBox()
+        self.numDims.setMinimum(1)
+        self.numDims.setValue(1)
+        self.numDims.setMaximum(2)
+        grid.addWidget(self.numDims, 2, 0, 1, 2)
+        
+        grid.addWidget(QtWidgets.QLabel("Data Type:"), 3, 0)
+        
+        self.specGroup = QtWidgets.QButtonGroup(self)
+        self.timeButton = QtWidgets.QRadioButton('Time', parent=self)
+        self.timeButton.toggle()
+        self.specGroup.addButton(self.timeButton, 0)
+        grid.addWidget(self.timeButton, 4, 0)
+        self.freqButton = QtWidgets.QRadioButton('Frequency', parent=self)
+        self.specGroup.addButton(self.freqButton, 1)
+        grid.addWidget(self.freqButton, 4, 1)
+        
+        grid.addWidget(QtWidgets.QLabel("Data Order:"), 5, 0)
+        self.datOrderBox = QtWidgets.QComboBox()
+        self.datOrderBox.addItems(self.dataOrders)
+        grid.addWidget(self.datOrderBox, 6, 0, 1, 2)
+        
+        self.swLabel = wc.QLabel("Spectral Width [kHz]:")
+        self.swLabel.setAlignment(QtCore.Qt.AlignLeft)
+        grid.addWidget(self.swLabel, 7, 0, 1, 2)
+        self.swEntry = QtWidgets.QLineEdit()
+        self.swEntry.setAlignment(QtCore.Qt.AlignHCenter)
+        self.swEntry.setText("0.0")
+        grid.addWidget(self.swEntry, 8, 0, 1, 2)
+        self.swLabel.hide()
+        self.swEntry.hide()
+        self.datOrderBox.currentIndexChanged.connect(self.checkDatOrder)
+        
+        grid.addWidget(QtWidgets.QLabel("Data Delimiter:"), 9, 0)
+        self.datDelimBox = QtWidgets.QComboBox()
+        self.datDelimBox.addItems(self.delimiters)
+        grid.addWidget(self.datDelimBox, 10, 0, 1, 2)
+        
+        cancelButton = QtWidgets.QPushButton("&Cancel")
+        cancelButton.clicked.connect(self.closeEvent)
+        grid.addWidget(cancelButton, 13, 0)
+        okButton = QtWidgets.QPushButton("&Ok")
+        okButton.clicked.connect(self.applyAndClose)
+        grid.addWidget(okButton, 13, 1)
+        
+        self.show()
+        self.setFixedSize(self.size())
+        self.checkType(file)
+        
+    def checkDatOrder(self):
+        tmp = self.dataOrders[ self.datOrderBox.currentIndex() ]
+        if tmp == 'RI' or tmp == 'R':
+            self.swLabel.show()
+            self.swEntry.show()
+        else:
+            self.swLabel.hide()
+            self.swEntry.hide()
+        
+    def checkType(self, file):
+        try:
+            with open(file, 'r') as f:
+                line = f.readline()
+            if line.count(',') > 0:
+                sep = 'Comma'
+            elif line.count('\t') > 0:
+                sep = 'Tab'
+            else:
+                sep = 'Space'
+            self.datDelimBox.setCurrentIndex(self.delimiters.index(sep)) 
+            sepList = ['\t',' ',',']           
+            data = np.fromstring(line, sep = sepList[self.delimiters.index(sep)])
+            if len(data) > 3:
+               self.numDims.setValue(2) 
+#            if len(data) % 2 == 0: #if odd size
+#                self.datOrderBox.setCurrentIndex(1)
+        except:
+            raise
+
+    
+    def closeEvent(self, *args):
+        self.closed = True
+        self.accept()
+        self.deleteLater()
+
+    def applyAndClose(self):
+        self.dataOrder = self.dataOrders[ self.datOrderBox.currentIndex() ]
+        self.delim = self.delimiters[ self.datDelimBox.currentIndex() ]
+        if self.dataOrder == 'RI' or self.dataOrder == 'R':
+            self.sw = safeEval(self.swEntry.text())
+            if self.sw == 0 or self.sw == None:
+                self.father.dispMsg('Spectral Width input is not valid')
+                return
+            
+        self.dataDimension = self.numDims.value()
+        if self.timeButton.isChecked():
+           self.dataSpec = False
+        else:
+           self.dataSpec = True
+
+        self.accept()
+        self.deleteLater()
+#################################################################################
+
+
+class PhaseWindow(QtWidgets.QWidget):
 
     RESOLUTION = 10000.0
     P1LIMIT = 540.0
@@ -2957,7 +3139,7 @@ class PhaseWindow(QtGui.QWidget):
     PHASE1STEP = 1.0
 
     def __init__(self, parent):
-        QtGui.QWidget.__init__(self, parent.father)
+        QtWidgets.QWidget.__init__(self, parent.father)
         self.setWindowFlags(QtCore.Qt.Window | QtCore.Qt.Tool)
         self.father = parent
         self.zeroVal = 0.0
@@ -2965,68 +3147,68 @@ class PhaseWindow(QtGui.QWidget):
         self.refVal = 0.0
         self.available = True
         self.setWindowTitle("Phasing")
-        layout = QtGui.QGridLayout(self)
-        grid = QtGui.QGridLayout()
+        layout = QtWidgets.QGridLayout(self)
+        grid = QtWidgets.QGridLayout()
         layout.addLayout(grid, 0, 0, 1, 2)
         grid.addWidget(wc.QLabel("Zero order phasing:"), 0, 0, 1, 3)
-        autoZero = QtGui.QPushButton("Autophase 0th")
+        autoZero = QtWidgets.QPushButton("Autophase 0th")
         autoZero.clicked.connect(lambda: self.autophase(0))
         grid.addWidget(autoZero, 1, 1)
-        self.zeroEntry = QtGui.QLineEdit()
+        self.zeroEntry = QtWidgets.QLineEdit()
         self.zeroEntry.setAlignment(QtCore.Qt.AlignHCenter)
         self.zeroEntry.returnPressed.connect(self.inputZeroOrder)
         self.zeroEntry.setText("0.000")
         grid.addWidget(self.zeroEntry, 2, 1)
-        leftZero = QtGui.QPushButton("<")
+        leftZero = QtWidgets.QPushButton("<")
         leftZero.clicked.connect(lambda: self.stepPhase(-1, 0))
         leftZero.setAutoRepeat(True)
         grid.addWidget(leftZero, 2, 0)
-        rightZero = QtGui.QPushButton(">")
+        rightZero = QtWidgets.QPushButton(">")
         rightZero.clicked.connect(lambda: self.stepPhase(1, 0))
         rightZero.setAutoRepeat(True)
         grid.addWidget(rightZero, 2, 2)
-        self.zeroScale = QtGui.QSlider(QtCore.Qt.Horizontal)
+        self.zeroScale = QtWidgets.QSlider(QtCore.Qt.Horizontal)
         self.zeroScale.setRange(-self.RESOLUTION, self.RESOLUTION)
         self.zeroScale.valueChanged.connect(self.setZeroOrder)
         grid.addWidget(self.zeroScale, 3, 0, 1, 3)
         grid.addWidget(wc.QLabel("First order phasing:"), 4, 0, 1, 3)
-        autoFirst = QtGui.QPushButton("Autophase 0th+1st")
+        autoFirst = QtWidgets.QPushButton("Autophase 0th+1st")
         autoFirst.clicked.connect(lambda: self.autophase(1))
         grid.addWidget(autoFirst, 5, 1)
-        self.firstEntry = QtGui.QLineEdit()
+        self.firstEntry = QtWidgets.QLineEdit()
         self.firstEntry.setAlignment(QtCore.Qt.AlignHCenter)
         self.firstEntry.returnPressed.connect(self.inputFirstOrder)
         self.firstEntry.setText("0.000")
         grid.addWidget(self.firstEntry, 6, 1)
-        leftFirst = QtGui.QPushButton("<")
+        leftFirst = QtWidgets.QPushButton("<")
         leftFirst.clicked.connect(lambda: self.stepPhase(0, -1))
         leftFirst.setAutoRepeat(True)
         grid.addWidget(leftFirst, 6, 0)
-        rightFirst = QtGui.QPushButton(">")
+        rightFirst = QtWidgets.QPushButton(">")
         rightFirst.clicked.connect(lambda: self.stepPhase(0, 1))
         rightFirst.setAutoRepeat(True)
         grid.addWidget(rightFirst, 6, 2)
-        self.firstScale = QtGui.QSlider(QtCore.Qt.Horizontal)
+        self.firstScale = QtWidgets.QSlider(QtCore.Qt.Horizontal)
         self.firstScale.setRange(-self.RESOLUTION, self.RESOLUTION)
         self.firstScale.valueChanged.connect(self.setFirstOrder)
         grid.addWidget(self.firstScale, 7, 0, 1, 3)
         if self.father.current.spec > 0:
             grid.addWidget(wc.QLabel("Reference:"), 8, 0, 1, 3)
-            pickRef = QtGui.QPushButton("Pick reference")
+            pickRef = QtWidgets.QPushButton("Pick reference")
             pickRef.clicked.connect(self.pickRef)
             grid.addWidget(pickRef, 9, 1)
-            self.refEntry = QtGui.QLineEdit()
+            self.refEntry = QtWidgets.QLineEdit()
             self.refEntry.setAlignment(QtCore.Qt.AlignHCenter)
             self.refEntry.setText('%.3f' % self.refVal)
             self.refEntry.returnPressed.connect(self.inputRef)
             grid.addWidget(self.refEntry, 10, 1)
 
-        self.singleSlice = QtGui.QCheckBox("Single slice")
+        self.singleSlice = QtWidgets.QCheckBox("Single slice")
         grid.addWidget(self.singleSlice, 11, 0, 1, 3)
-        cancelButton = QtGui.QPushButton("&Cancel")
+        cancelButton = QtWidgets.QPushButton("&Cancel")
         cancelButton.clicked.connect(self.closeEvent)
         layout.addWidget(cancelButton, 1, 0)
-        okButton = QtGui.QPushButton("&Ok")
+        okButton = QtWidgets.QPushButton("&Ok")
         okButton.clicked.connect(self.applyAndClose)
         layout.addWidget(okButton, 1, 1)
         self.show()
@@ -3090,6 +3272,14 @@ class PhaseWindow(QtGui.QWidget):
         self.inputFirstOrder()
 
     def stepPhase(self, phase0, phase1):
+        if QtWidgets.qApp.keyboardModifiers() & QtCore.Qt.ControlModifier:
+            multiplier = 10
+        elif QtWidgets.qApp.keyboardModifiers() & QtCore.Qt.ShiftModifier:
+            multiplier = 100
+        else:
+            multiplier = 1
+        phase0 = multiplier * phase0
+        phase1 = multiplier * phase1
         inp = safeEval(self.zeroEntry.text()) + phase0 * self.PHASE0STEP
         self.zeroVal = np.mod(inp + 180, 360) - 180
         value = safeEval(self.firstEntry.text()) + phase1 * self.PHASE1STEP
@@ -3133,13 +3323,13 @@ class PhaseWindow(QtGui.QWidget):
 ################################################################
 
 
-class ApodWindow(QtGui.QWidget):
+class ApodWindow(QtWidgets.QWidget):
 
     RESOLUTION = 10000
 
     def __init__(self, parent):
         parent.menuDisable()
-        QtGui.QWidget.__init__(self, parent)
+        QtWidgets.QWidget.__init__(self, parent)
         self.setWindowFlags(QtCore.Qt.Window | QtCore.Qt.Tool)
         self.father = parent
         self.entries = []
@@ -3149,64 +3339,64 @@ class ApodWindow(QtGui.QWidget):
         self.gaussstep = 1.0
         self.available = True
         self.setWindowTitle("Apodize")
-        layout = QtGui.QGridLayout(self)
-        grid = QtGui.QGridLayout()
+        layout = QtWidgets.QGridLayout(self)
+        grid = QtWidgets.QGridLayout()
         layout.addLayout(grid, 0, 0, 1, 2)
-        lorTick = QtGui.QCheckBox("Lorentzian:")
+        lorTick = QtWidgets.QCheckBox("Lorentzian:")
         lorTick.toggled.connect(lambda: self.checkEval(0))
         grid.addWidget(lorTick, 0, 0, 1, 3)
         self.ticks.append(lorTick)
-        lorEntry = QtGui.QLineEdit()
+        lorEntry = QtWidgets.QLineEdit()
         lorEntry.setEnabled(False)
         lorEntry.setAlignment(QtCore.Qt.AlignHCenter)
         lorEntry.setText("0.00")
         lorEntry.returnPressed.connect(self.apodPreview)
         grid.addWidget(lorEntry, 1, 1)
         self.entries.append(lorEntry)
-        leftLor = QtGui.QPushButton("<")
+        leftLor = QtWidgets.QPushButton("<")
         leftLor.clicked.connect(lambda: self.stepLB(-0.5 * self.father.current.sw / (self.father.current.data1D.shape[-1]), 0))
         leftLor.setAutoRepeat(True)
         grid.addWidget(leftLor, 1, 0)
-        rightLor = QtGui.QPushButton(">")
+        rightLor = QtWidgets.QPushButton(">")
         rightLor.clicked.connect(lambda: self.stepLB(0.5 * self.father.current.sw / (self.father.current.data1D.shape[-1]), 0))
         rightLor.setAutoRepeat(True)
         grid.addWidget(rightLor, 1, 2)
-        self.lorScale = QtGui.QSlider(QtCore.Qt.Horizontal)
+        self.lorScale = QtWidgets.QSlider(QtCore.Qt.Horizontal)
         self.lorScale.setRange(0, self.RESOLUTION)
         self.lorScale.valueChanged.connect(self.setLor)
         grid.addWidget(self.lorScale, 2, 0, 1, 3)
         self.lorMax = 100.0 * self.father.current.sw / (self.father.current.data1D.shape[-1])
 
-        gaussTick = QtGui.QCheckBox("Gaussian:")
+        gaussTick = QtWidgets.QCheckBox("Gaussian:")
         gaussTick.toggled.connect(lambda: self.checkEval(1))
         grid.addWidget(gaussTick, 3, 0, 1, 3)
         self.ticks.append(gaussTick)
-        gaussEntry = QtGui.QLineEdit()
+        gaussEntry = QtWidgets.QLineEdit()
         gaussEntry.setEnabled(False)
         gaussEntry.setAlignment(QtCore.Qt.AlignHCenter)
         gaussEntry.setText("0.00")
         gaussEntry.returnPressed.connect(self.apodPreview)
         grid.addWidget(gaussEntry, 4, 1)
         self.entries.append(gaussEntry)
-        leftGauss = QtGui.QPushButton("<")
+        leftGauss = QtWidgets.QPushButton("<")
         leftGauss.clicked.connect(lambda: self.stepLB(0, -0.5 * self.father.current.sw / (self.father.current.data1D.shape[-1])))
         leftGauss.setAutoRepeat(True)
         grid.addWidget(leftGauss, 4, 0)
-        rightGauss = QtGui.QPushButton(">")
+        rightGauss = QtWidgets.QPushButton(">")
         rightGauss.clicked.connect(lambda: self.stepLB(0, 0.5 * self.father.current.sw / (self.father.current.data1D.shape[-1])))
         rightGauss.setAutoRepeat(True)
         grid.addWidget(rightGauss, 4, 2)
-        self.gaussScale = QtGui.QSlider(QtCore.Qt.Horizontal)
+        self.gaussScale = QtWidgets.QSlider(QtCore.Qt.Horizontal)
         self.gaussScale.setRange(0, self.RESOLUTION)
         self.gaussScale.valueChanged.connect(self.setGauss)
         grid.addWidget(self.gaussScale, 5, 0, 1, 3)
         self.gaussMax = 100.0 * self.father.current.sw / (self.father.current.data1D.shape[-1])
 
-        cos2Tick = QtGui.QCheckBox("Cos^2:")
+        cos2Tick = QtWidgets.QCheckBox("Cos^2:")
         cos2Tick.clicked.connect(lambda: self.checkEval(2))
         grid.addWidget(cos2Tick, 6, 0, 1, 3)
         self.ticks.append(cos2Tick)
-        cos2Entry = QtGui.QLineEdit()
+        cos2Entry = QtWidgets.QLineEdit()
         cos2Entry.setEnabled(False)
         cos2Entry.setAlignment(QtCore.Qt.AlignHCenter)
         cos2Entry.setText("1.00")
@@ -3214,11 +3404,11 @@ class ApodWindow(QtGui.QWidget):
         grid.addWidget(cos2Entry, 7, 1)
         self.entries.append(cos2Entry)
 
-        hammingTick = QtGui.QCheckBox("Hamming:")
+        hammingTick = QtWidgets.QCheckBox("Hamming:")
         hammingTick.clicked.connect(lambda: self.checkEval(3))
         grid.addWidget(hammingTick, 8, 0, 1, 3)
         self.ticks.append(hammingTick)
-        hammingEntry = QtGui.QLineEdit()
+        hammingEntry = QtWidgets.QLineEdit()
         hammingEntry.setEnabled(False)
         hammingEntry.setAlignment(QtCore.Qt.AlignHCenter)
         hammingEntry.setText("1.00")
@@ -3227,7 +3417,7 @@ class ApodWindow(QtGui.QWidget):
         self.entries.append(hammingEntry)
 
         grid.addWidget(wc.QLabel("Shift:"), 10, 0, 1, 3)
-        self.shiftEntry = QtGui.QLineEdit()
+        self.shiftEntry = QtWidgets.QLineEdit()
         self.shiftEntry.setAlignment(QtCore.Qt.AlignHCenter)
         self.shiftEntry.setText("0.00")
         self.shiftEntry.returnPressed.connect(self.apodPreview)
@@ -3235,23 +3425,23 @@ class ApodWindow(QtGui.QWidget):
 
         if self.father.current.data.data.ndim > 1:
             grid.addWidget(wc.QLabel("Shifting:"), 12, 0, 1, 3)
-            self.shiftingEntry = QtGui.QLineEdit()
+            self.shiftingEntry = QtWidgets.QLineEdit()
             self.shiftingEntry.setAlignment(QtCore.Qt.AlignHCenter)
             self.shiftingEntry.setText("0.00")
             self.shiftingEntry.returnPressed.connect(self.apodPreview)
             grid.addWidget(self.shiftingEntry, 13, 1)
-            self.shiftingAxes = QtGui.QComboBox()
+            self.shiftingAxes = QtWidgets.QComboBox()
             self.shiftingValues = list(map(str, np.delete(range(1, self.father.current.data.data.ndim + 1), self.father.current.axes)))
             self.shiftingAxes.addItems(self.shiftingValues)
             self.shiftingAxes.currentIndexChanged.connect(self.apodPreview)
             grid.addWidget(self.shiftingAxes, 14, 1)
 
-        self.singleSlice = QtGui.QCheckBox("Single slice")
+        self.singleSlice = QtWidgets.QCheckBox("Single slice")
         grid.addWidget(self.singleSlice, 15, 0, 1, 3)
-        cancelButton = QtGui.QPushButton("&Cancel")
+        cancelButton = QtWidgets.QPushButton("&Cancel")
         cancelButton.clicked.connect(self.closeEvent)
         layout.addWidget(cancelButton, 1, 0)
-        okButton = QtGui.QPushButton("&Ok")
+        okButton = QtWidgets.QPushButton("&Ok")
         okButton.clicked.connect(self.applyAndClose)
         layout.addWidget(okButton, 1, 1)
         self.show()
@@ -3264,7 +3454,11 @@ class ApodWindow(QtGui.QWidget):
             self.entries[num].setEnabled(True)
         else:
             self.entries[num].setEnabled(False)
-        self.apodPreview()
+        if num == 0 or num == 1: #for lorentzian and gaussian
+            if safeEval(self.entries[num].text()) != 0.0: #only update if value was not zero
+               self.apodPreview()
+        else:
+            self.apodPreview()
 
     def setLor(self, value, *args):
         if self.available:
@@ -3326,8 +3520,14 @@ class ApodWindow(QtGui.QWidget):
         self.father.current.apodPreview(lor, gauss, cos2, hamming, shift, shifting, shiftingAxes)
 
     def stepLB(self, lorincr, gaussincr):
-        self.entries[0].setText('%.4g' % (float(self.entries[0].text()) + lorincr * self.lorstep))
-        self.entries[1].setText('%.4g' % (float(self.entries[1].text()) + gaussincr * self.gaussstep))
+        if QtWidgets.qApp.keyboardModifiers() & QtCore.Qt.ControlModifier:
+            multiplier = 10
+        elif QtWidgets.qApp.keyboardModifiers() & QtCore.Qt.ShiftModifier:
+            multiplier = 100
+        else:
+            multiplier = 1
+        self.entries[0].setText('%.4g' % (float(self.entries[0].text()) + multiplier*lorincr * self.lorstep))
+        self.entries[1].setText('%.4g' % (float(self.entries[1].text()) + multiplier*gaussincr * self.gaussstep))
         if (lorincr != 0) and (not self.ticks[0].isChecked()):
             self.ticks[0].setChecked(1)
         if (gaussincr != 0) and (not self.ticks[1].isChecked()):
@@ -3387,20 +3587,20 @@ class ApodWindow(QtGui.QWidget):
 #######################################################################################
 
 
-class SizeWindow(QtGui.QWidget):
+class SizeWindow(QtWidgets.QWidget):
 
     def __init__(self, parent):
-        QtGui.QWidget.__init__(self, parent)
+        QtWidgets.QWidget.__init__(self, parent)
         self.setWindowFlags(QtCore.Qt.Window | QtCore.Qt.Tool)
         parent.menuDisable()
         self.father = parent
         self.setWindowTitle("Set size")
-        layout = QtGui.QGridLayout(self)
-        grid = QtGui.QGridLayout()
+        layout = QtWidgets.QGridLayout(self)
+        grid = QtWidgets.QGridLayout()
         layout.addLayout(grid, 0, 0, 1, 2)
         grid.addWidget(wc.QLabel("Size:"), 0, 0)
         self.sizeVal = parent.current.data1D.shape[-1]
-        self.sizeEntry = QtGui.QLineEdit()
+        self.sizeEntry = QtWidgets.QLineEdit()
         self.sizeEntry.setAlignment(QtCore.Qt.AlignHCenter)
         self.sizeEntry.setText(str(self.sizeVal))
         self.sizeEntry.returnPressed.connect(self.sizePreview)
@@ -3411,15 +3611,15 @@ class SizeWindow(QtGui.QWidget):
             self.posVal = int(np.floor(parent.current.data1D.shape[-1] / 2.0))
         else:
             self.posVal = parent.current.data1D.shape[-1]
-        self.posEntry = QtGui.QLineEdit()
+        self.posEntry = QtWidgets.QLineEdit()
         self.posEntry.setAlignment(QtCore.Qt.AlignHCenter)
         self.posEntry.setText(str(self.posVal))
         self.posEntry.returnPressed.connect(self.sizePreview)
         grid.addWidget(self.posEntry, 3, 0)
-        cancelButton = QtGui.QPushButton("&Cancel")
+        cancelButton = QtWidgets.QPushButton("&Cancel")
         cancelButton.clicked.connect(self.closeEvent)
         layout.addWidget(cancelButton, 1, 0)
-        okButton = QtGui.QPushButton("&Ok")
+        okButton = QtWidgets.QPushButton("&Ok")
         okButton.clicked.connect(self.applyAndClose)
         layout.addWidget(okButton, 1, 1)
         self.show()
@@ -3475,27 +3675,27 @@ class SizeWindow(QtGui.QWidget):
 ##########################################################################################
 
 
-class SwapEchoWindow(QtGui.QWidget):
+class SwapEchoWindow(QtWidgets.QWidget):
 
     def __init__(self, parent):
-        QtGui.QWidget.__init__(self, parent)
+        QtWidgets.QWidget.__init__(self, parent)
         self.setWindowFlags(QtCore.Qt.Window | QtCore.Qt.Tool)
         self.father = parent
         self.setWindowTitle("Swap echo")
-        layout = QtGui.QGridLayout(self)
-        grid = QtGui.QGridLayout()
+        layout = QtWidgets.QGridLayout(self)
+        grid = QtWidgets.QGridLayout()
         layout.addLayout(grid, 0, 0, 1, 2)
         grid.addWidget(wc.QLabel("Echo position:"), 0, 0)
         self.posVal = int(round(0.5 * len(parent.current.data1D)))
-        self.posEntry = QtGui.QLineEdit()
+        self.posEntry = QtWidgets.QLineEdit()
         self.posEntry.setAlignment(QtCore.Qt.AlignHCenter)
         self.posEntry.setText(str(self.posVal))
         self.posEntry.returnPressed.connect(self.swapEchoPreview)
         grid.addWidget(self.posEntry, 1, 0)
-        cancelButton = QtGui.QPushButton("&Cancel")
+        cancelButton = QtWidgets.QPushButton("&Cancel")
         cancelButton.clicked.connect(self.closeEvent)
         layout.addWidget(cancelButton, 1, 0)
-        okButton = QtGui.QPushButton("&Ok")
+        okButton = QtWidgets.QPushButton("&Ok")
         okButton.clicked.connect(self.applyAndClose)
         layout.addWidget(okButton, 1, 1)
         self.show()
@@ -3542,23 +3742,23 @@ class SwapEchoWindow(QtGui.QWidget):
 ###########################################################################
 
 
-class LPSVDWindow(QtGui.QWidget):
+class LPSVDWindow(QtWidgets.QWidget):
 
     def __init__(self, parent):
-        QtGui.QWidget.__init__(self, parent)
+        QtWidgets.QWidget.__init__(self, parent)
         self.setWindowFlags(QtCore.Qt.Window | QtCore.Qt.Tool)
         parent.menuDisable()
         self.father = parent
         self.setWindowTitle("LPSVD")
-        layout = QtGui.QGridLayout(self)
-        grid = QtGui.QGridLayout()
+        layout = QtWidgets.QGridLayout(self)
+        grid = QtWidgets.QGridLayout()
         layout.addLayout(grid, 0, 0, 1, 2)
         # grid.addWidget(wc.QLabel("# points for analysis:"), 2, 0)
-        self.specGroup = QtGui.QButtonGroup(self)
+        self.specGroup = QtWidgets.QButtonGroup(self)
         # self.specGroup.buttonClicked.connect(self.changeSpec)
-        backwardButton = QtGui.QRadioButton('Backward', parent=self)
+        backwardButton = QtWidgets.QRadioButton('Backward', parent=self)
         self.specGroup.addButton(backwardButton, 1)
-        forwardButton = QtGui.QRadioButton('Forward', parent=self)
+        forwardButton = QtWidgets.QRadioButton('Forward', parent=self)
         self.specGroup.addButton(forwardButton, 0)
         grid.addWidget(backwardButton, 1, 0)
         grid.addWidget(forwardButton, 2, 0)
@@ -3566,28 +3766,28 @@ class LPSVDWindow(QtGui.QWidget):
 
         grid.addWidget(wc.QLabel("# points for analysis:"), 3, 0)
         self.analPoints = 200
-        self.aPointsEntry = QtGui.QLineEdit()
+        self.aPointsEntry = QtWidgets.QLineEdit()
         self.aPointsEntry.setAlignment(QtCore.Qt.AlignHCenter)
         self.aPointsEntry.setText(str(self.analPoints))
         grid.addWidget(self.aPointsEntry, 4, 0)
         grid.addWidget(wc.QLabel("Number of frequencies:"), 5, 0)
         self.numberFreq = 1
-        self.nFreqEntry = QtGui.QLineEdit()
+        self.nFreqEntry = QtWidgets.QLineEdit()
         self.nFreqEntry.setAlignment(QtCore.Qt.AlignHCenter)
         self.nFreqEntry.setText(str(self.numberFreq))
         grid.addWidget(self.nFreqEntry, 6, 0)
 
         grid.addWidget(wc.QLabel("Number prediction points:"), 7, 0)
         self.predictPoints = 10
-        self.nPredictEntry = QtGui.QLineEdit()
+        self.nPredictEntry = QtWidgets.QLineEdit()
         self.nPredictEntry.setAlignment(QtCore.Qt.AlignHCenter)
         self.nPredictEntry.setText(str(self.predictPoints))
         grid.addWidget(self.nPredictEntry, 8, 0)
 
-        cancelButton = QtGui.QPushButton("&Cancel")
+        cancelButton = QtWidgets.QPushButton("&Cancel")
         cancelButton.clicked.connect(self.closeEvent)
         layout.addWidget(cancelButton, 1, 0)
-        okButton = QtGui.QPushButton("&Ok")
+        okButton = QtWidgets.QPushButton("&Ok")
         okButton.clicked.connect(self.applyAndClose)
         layout.addWidget(okButton, 1, 1)
         self.show()
@@ -3622,37 +3822,37 @@ class LPSVDWindow(QtGui.QWidget):
 ###########################################################################
 
 
-class ShiftDataWindow(QtGui.QWidget):
+class ShiftDataWindow(QtWidgets.QWidget):
 
     def __init__(self, parent):
-        QtGui.QWidget.__init__(self, parent)
+        QtWidgets.QWidget.__init__(self, parent)
         self.setWindowFlags(QtCore.Qt.Window | QtCore.Qt.Tool)
         self.father = parent
         self.setWindowTitle("Shifting data")
-        layout = QtGui.QGridLayout(self)
-        grid = QtGui.QGridLayout()
+        layout = QtWidgets.QGridLayout(self)
+        grid = QtWidgets.QGridLayout()
         layout.addLayout(grid, 0, 0, 1, 2)
         grid.addWidget(wc.QLabel("Data points to shift:"), 0, 0, 1, 3)
         self.shiftVal = 0
-        self.shiftEntry = QtGui.QLineEdit()
+        self.shiftEntry = QtWidgets.QLineEdit()
         self.shiftEntry.setAlignment(QtCore.Qt.AlignHCenter)
         self.shiftEntry.setText(str(self.shiftVal))
         self.shiftEntry.returnPressed.connect(self.shiftPreview)
         grid.addWidget(self.shiftEntry, 1, 1)
-        leftShift = QtGui.QPushButton("<")
+        leftShift = QtWidgets.QPushButton("<")
         leftShift.clicked.connect(self.stepDownShift)
         leftShift.setAutoRepeat(True)
         grid.addWidget(leftShift, 1, 0)
-        rightShift = QtGui.QPushButton(">")
+        rightShift = QtWidgets.QPushButton(">")
         rightShift.clicked.connect(self.stepUpShift)
         rightShift.setAutoRepeat(True)
         grid.addWidget(rightShift, 1, 2)
-        self.singleSlice = QtGui.QCheckBox("Single slice")
+        self.singleSlice = QtWidgets.QCheckBox("Single slice")
         layout.addWidget(self.singleSlice, 1, 0, 1, 2)
-        cancelButton = QtGui.QPushButton("&Cancel")
+        cancelButton = QtWidgets.QPushButton("&Cancel")
         cancelButton.clicked.connect(self.closeEvent)
         layout.addWidget(cancelButton, 2, 0)
-        okButton = QtGui.QPushButton("&Ok")
+        okButton = QtWidgets.QPushButton("&Ok")
         okButton.clicked.connect(self.applyAndClose)
         layout.addWidget(okButton, 2, 1)
         self.show()
@@ -3664,7 +3864,13 @@ class ShiftDataWindow(QtGui.QWidget):
         inp = safeEval(self.shiftEntry.text())
         if inp is not None:
             self.shiftVal = int(round(inp))
-        self.shiftVal = self.shiftVal + 1
+        if QtWidgets.qApp.keyboardModifiers() & QtCore.Qt.ControlModifier:
+            shift = +10
+        elif QtWidgets.qApp.keyboardModifiers() & QtCore.Qt.ShiftModifier:
+            shift = +100
+        else:
+            shift = +1
+        self.shiftVal = self.shiftVal + shift
         self.shiftEntry.setText(str(self.shiftVal))
         self.shiftPreview()
 
@@ -3672,7 +3878,13 @@ class ShiftDataWindow(QtGui.QWidget):
         inp = safeEval(self.shiftEntry.text())
         if inp is not None:
             self.shiftVal = int(round(inp))
-        self.shiftVal = self.shiftVal - 1
+        if QtWidgets.qApp.keyboardModifiers() & QtCore.Qt.ControlModifier:
+            shift = -10
+        elif QtWidgets.qApp.keyboardModifiers() & QtCore.Qt.ShiftModifier:
+            shift = -100
+        else:
+            shift = -1
+        self.shiftVal = self.shiftVal + shift
         self.shiftEntry.setText(str(self.shiftVal))
         self.shiftPreview()
 
@@ -3703,43 +3915,43 @@ class ShiftDataWindow(QtGui.QWidget):
 #############################################################
 
 
-class DCWindow(QtGui.QWidget):
+class DCWindow(QtWidgets.QWidget):
 
     def __init__(self, parent):
-        QtGui.QWidget.__init__(self, parent)
+        QtWidgets.QWidget.__init__(self, parent)
         self.setWindowFlags(QtCore.Qt.Window | QtCore.Qt.Tool)
         self.father = parent
         self.setWindowTitle("Offset correction")
-        layout = QtGui.QGridLayout(self)
-        grid = QtGui.QGridLayout()
+        layout = QtWidgets.QGridLayout(self)
+        grid = QtWidgets.QGridLayout()
         layout.addLayout(grid, 0, 0, 1, 2)
         self.startVal = int(round(0.8 * parent.current.data1D.shape[-1]))
         self.endVal = parent.current.data1D.shape[-1]
         grid.addWidget(wc.QLabel("Start point:"), 0, 0)
-        self.startEntry = QtGui.QLineEdit()
+        self.startEntry = QtWidgets.QLineEdit()
         self.startEntry.setAlignment(QtCore.Qt.AlignHCenter)
         self.startEntry.setText(str(self.startVal))
         self.startEntry.returnPressed.connect(self.offsetPreview)
         grid.addWidget(self.startEntry, 1, 0)
         grid.addWidget(wc.QLabel("End point:"), 2, 0)
-        self.endEntry = QtGui.QLineEdit()
+        self.endEntry = QtWidgets.QLineEdit()
         self.endEntry.setAlignment(QtCore.Qt.AlignHCenter)
         self.endEntry.setText(str(self.endVal))
         self.endEntry.returnPressed.connect(self.offsetPreview)
         grid.addWidget(self.endEntry, 3, 0)
         grid.addWidget(wc.QLabel("Offset:"), 4, 0)
-        self.offsetEntry = QtGui.QLineEdit()
+        self.offsetEntry = QtWidgets.QLineEdit()
         self.offsetEntry.setAlignment(QtCore.Qt.AlignHCenter)
         val = parent.current.getdcOffset(int(round(0.8 * parent.current.data1D.shape[-1])), parent.current.data1D.shape[-1])
         self.offsetEntry.setText('{:.2e}'.format(val))
         self.offsetEntry.returnPressed.connect(lambda: self.offsetPreview(True))
         grid.addWidget(self.offsetEntry, 5, 0)
-        self.singleSlice = QtGui.QCheckBox("Single slice")
+        self.singleSlice = QtWidgets.QCheckBox("Single slice")
         layout.addWidget(self.singleSlice, 1, 0, 1, 2)
-        cancelButton = QtGui.QPushButton("&Cancel")
+        cancelButton = QtWidgets.QPushButton("&Cancel")
         cancelButton.clicked.connect(self.closeEvent)
         layout.addWidget(cancelButton, 2, 0)
-        okButton = QtGui.QPushButton("&Ok")
+        okButton = QtWidgets.QPushButton("&Ok")
         okButton.clicked.connect(self.applyAndClose)
         layout.addWidget(okButton, 2, 1)
         self.show()
@@ -3828,36 +4040,36 @@ class DCWindow(QtGui.QWidget):
 #############################################################
 
 
-class BaselineWindow(QtGui.QWidget):
+class BaselineWindow(QtWidgets.QWidget):
 
     def __init__(self, parent):
-        QtGui.QWidget.__init__(self, parent)
+        QtWidgets.QWidget.__init__(self, parent)
         self.setWindowFlags(QtCore.Qt.Window | QtCore.Qt.Tool)
         self.father = parent
         self.setWindowTitle("Baseline correction")
-        layout = QtGui.QGridLayout(self)
-        grid = QtGui.QGridLayout()
+        layout = QtWidgets.QGridLayout(self)
+        grid = QtWidgets.QGridLayout()
         layout.addLayout(grid, 0, 0, 1, 2)
         grid.addWidget(wc.QLabel("Polynomial Degree:"), 0, 0, 1, 2)
         self.removeList = []
         self.degree = 3
-        self.degreeEntry = QtGui.QLineEdit()
+        self.degreeEntry = QtWidgets.QLineEdit()
         self.degreeEntry.setAlignment(QtCore.Qt.AlignHCenter)
         self.degreeEntry.setText(str(self.degree))
         self.degreeEntry.returnPressed.connect(self.setDegree)
         grid.addWidget(self.degreeEntry, 1, 0, 1, 2)
-        resetButton = QtGui.QPushButton("&Reset")
+        resetButton = QtWidgets.QPushButton("&Reset")
         resetButton.clicked.connect(self.reset)
         grid.addWidget(resetButton, 2, 0)
-        fitButton = QtGui.QPushButton("&Fit")
+        fitButton = QtWidgets.QPushButton("&Fit")
         fitButton.clicked.connect(self.preview)
         grid.addWidget(fitButton, 2, 1)
-        self.singleSlice = QtGui.QCheckBox("Single slice")
+        self.singleSlice = QtWidgets.QCheckBox("Single slice")
         layout.addWidget(self.singleSlice, 1, 0, 1, 2)
-        cancelButton = QtGui.QPushButton("&Cancel")
+        cancelButton = QtWidgets.QPushButton("&Cancel")
         cancelButton.clicked.connect(self.closeEvent)
         layout.addWidget(cancelButton, 2, 0)
-        okButton = QtGui.QPushButton("&Ok")
+        okButton = QtWidgets.QPushButton("&Ok")
         okButton.clicked.connect(self.applyAndClose)
         layout.addWidget(okButton, 2, 1)
         self.show()
@@ -3919,15 +4131,15 @@ class BaselineWindow(QtGui.QWidget):
 #############################################################
 
 
-class regionWindow(QtGui.QWidget):
+class regionWindow(QtWidgets.QWidget):
 
     def __init__(self, parent, name):
-        QtGui.QWidget.__init__(self, parent)
+        QtWidgets.QWidget.__init__(self, parent)
         self.setWindowFlags(QtCore.Qt.Window | QtCore.Qt.Tool)
         self.father = parent
         self.setWindowTitle(name)
-        layout = QtGui.QGridLayout(self)
-        self.grid = QtGui.QGridLayout()
+        layout = QtWidgets.QGridLayout(self)
+        self.grid = QtWidgets.QGridLayout()
         layout.addLayout(self.grid, 0, 0, 1, 2)
         self.startVal = [0]  # dummy variables
         self.endVal = [parent.current.data1D.shape[-1]]  # dummy variables
@@ -3939,25 +4151,25 @@ class regionWindow(QtGui.QWidget):
         self.partIter = 0
         self.entryCount = 1
         self.first = True
-        self.startEntry.append(QtGui.QLineEdit())
+        self.startEntry.append(QtWidgets.QLineEdit())
         self.startEntry[0].setAlignment(QtCore.Qt.AlignHCenter)
         self.startEntry[0].setText("")
         self.startEntry[0].editingFinished.connect(lambda self=self, tmp=self.startEntry[0]: self.setVal(tmp, True))
         self.grid.addWidget(self.startEntry[0], 1, 0)
-        self.endEntry.append(QtGui.QLineEdit())
+        self.endEntry.append(QtWidgets.QLineEdit())
         self.endEntry[0].setAlignment(QtCore.Qt.AlignHCenter)
         self.endEntry[0].setText("")
         self.endEntry[0].editingFinished.connect(lambda self=self, tmp=self.endEntry[0]: self.setVal(tmp, False))
         self.grid.addWidget(self.endEntry[0], 1, 1)
-        self.deleteButton.append(QtGui.QPushButton("X"))
+        self.deleteButton.append(QtWidgets.QPushButton("X"))
         self.deleteButton[0].clicked.connect(lambda extra, self=self: self.deleteEntry(self.deleteButton[0]))
         self.grid.addWidget(self.deleteButton[0], 1, 2)
-        self.newSpec = QtGui.QCheckBox("Result in new workspace")
+        self.newSpec = QtWidgets.QCheckBox("Result in new workspace")
         layout.addWidget(self.newSpec, 1, 0, 1, 2)
-        cancelButton = QtGui.QPushButton("&Cancel")
+        cancelButton = QtWidgets.QPushButton("&Cancel")
         cancelButton.clicked.connect(self.closeEvent)
         layout.addWidget(cancelButton, 2, 0)
-        okButton = QtGui.QPushButton("&Ok", self)
+        okButton = QtWidgets.QPushButton("&Ok", self)
         okButton.clicked.connect(self.applyAndClose)
         okButton.setFocus()
         layout.addWidget(okButton, 2, 1)
@@ -3983,15 +4195,15 @@ class regionWindow(QtGui.QWidget):
             self.startEntry[self.partIter].setText(str(self.startVal[self.partIter]))
             self.endEntry[self.partIter].setText(str(self.endVal[self.partIter]))
             self.partIter += 1
-            self.startEntry.append(QtGui.QLineEdit())
+            self.startEntry.append(QtWidgets.QLineEdit())
             self.startEntry[self.partIter].setAlignment(QtCore.Qt.AlignHCenter)
             self.startEntry[self.partIter].editingFinished.connect(lambda self=self, tmp=self.startEntry[self.partIter]: self.setVal(tmp, True))
             self.grid.addWidget(self.startEntry[self.partIter], 1 + self.entryCount, 0)
-            self.endEntry.append(QtGui.QLineEdit())
+            self.endEntry.append(QtWidgets.QLineEdit())
             self.endEntry[self.partIter].setAlignment(QtCore.Qt.AlignHCenter)
             self.endEntry[self.partIter].editingFinished.connect(lambda self=self, tmp=self.endEntry[self.partIter]: self.setVal(tmp, False))
             self.grid.addWidget(self.endEntry[self.partIter], 1 + self.entryCount, 1)
-            self.deleteButton.append(QtGui.QPushButton("X"))
+            self.deleteButton.append(QtWidgets.QPushButton("X"))
             self.deleteButton[self.partIter].clicked.connect(lambda extra, self=self, tmp=self.deleteButton[self.partIter]: self.deleteEntry(tmp))
             self.grid.addWidget(self.deleteButton[self.partIter], 1 + self.entryCount, 2)
             self.entryCount += 1
@@ -4046,15 +4258,15 @@ class regionWindow(QtGui.QWidget):
             self.partIter += 1
             self.startVal = np.append(self.startVal, 0)
             self.endVal = np.append(self.endVal, self.father.current.data1D.shape[-1])
-            self.startEntry.append(QtGui.QLineEdit())
+            self.startEntry.append(QtWidgets.QLineEdit())
             self.startEntry[self.partIter].setAlignment(QtCore.Qt.AlignHCenter)
             self.startEntry[self.partIter].editingFinished.connect(lambda self=self, tmp=self.startEntry[self.partIter]: self.setVal(tmp, True))
             self.grid.addWidget(self.startEntry[self.partIter], 1 + self.entryCount, 0)
-            self.endEntry.append(QtGui.QLineEdit())
+            self.endEntry.append(QtWidgets.QLineEdit())
             self.endEntry[self.partIter].setAlignment(QtCore.Qt.AlignHCenter)
             self.endEntry[self.partIter].editingFinished.connect(lambda self=self, tmp=self.endEntry[self.partIter]: self.setVal(tmp, False))
             self.grid.addWidget(self.endEntry[self.partIter], 1 + self.entryCount, 1)
-            self.deleteButton.append(QtGui.QPushButton("X"))
+            self.deleteButton.append(QtWidgets.QPushButton("X"))
             self.deleteButton[self.partIter].clicked.connect(lambda extra, self=self, tmp=self.deleteButton[self.partIter]: self.deleteEntry(tmp))
             self.grid.addWidget(self.deleteButton[self.partIter], 1 + self.entryCount, 2)
             self.entryCount += 1
@@ -4073,7 +4285,7 @@ class regionWindow(QtGui.QWidget):
 
     def applyAndClose(self):
         if self.partIter == 0:
-            if self.apply([0], [self.father.current.data1D.shape[-1]], self.newSpec.isChecked()) is None:
+            if self.apply(np.array([0]), np.array([self.father.current.data1D.shape[-1]]), self.newSpec.isChecked()) is None:
                 return
         else:
             if self.apply(self.startVal[:self.partIter], self.endVal[:self.partIter], self.newSpec.isChecked()) is None:
@@ -4221,7 +4433,7 @@ class avgWindow(regionWindow):
             if self.father.father.newWorkspace(self.father.current.average(minimum, maximum, newSpec)) is None:
                 return None
         else:
-            returnValue = self.father.current.avgMatrix(minimum, maximum, newSpec)
+            returnValue = self.father.current.average(minimum, maximum, newSpec)
             if returnValue is None:
                 return None
             self.father.redoList = []
@@ -4232,38 +4444,38 @@ class avgWindow(regionWindow):
 #############################################################
 
 
-class regionWindow2(QtGui.QWidget):
+class regionWindow2(QtWidgets.QWidget):
 
     def __init__(self, parent, name, newSpecOption):
-        QtGui.QWidget.__init__(self, parent)
+        QtWidgets.QWidget.__init__(self, parent)
         self.setWindowFlags(QtCore.Qt.Window | QtCore.Qt.Tool)
         self.father = parent
         self.setWindowTitle(name)
-        layout = QtGui.QGridLayout(self)
-        grid = QtGui.QGridLayout()
+        layout = QtWidgets.QGridLayout(self)
+        grid = QtWidgets.QGridLayout()
         layout.addLayout(grid, 0, 0, 1, 2)
         self.startVal = 0
         self.endVal = parent.current.data1D.shape[-1]
         grid.addWidget(wc.QLabel("Start point:"), 0, 0)
-        self.startEntry = QtGui.QLineEdit()
+        self.startEntry = QtWidgets.QLineEdit()
         self.startEntry.setAlignment(QtCore.Qt.AlignHCenter)
         self.startEntry.setText(str(self.startVal))
         self.startEntry.returnPressed.connect(self.checkValues)
         grid.addWidget(self.startEntry, 1, 0)
         grid.addWidget(wc.QLabel("End point:"), 2, 0)
-        self.endEntry = QtGui.QLineEdit()
+        self.endEntry = QtWidgets.QLineEdit()
         self.endEntry.setAlignment(QtCore.Qt.AlignHCenter)
         self.endEntry.setText(str(self.endVal))
         self.endEntry.returnPressed.connect(self.checkValues)
         grid.addWidget(self.endEntry, 3, 0)
-        self.newSpec = QtGui.QCheckBox("Result in new workspace")
+        self.newSpec = QtWidgets.QCheckBox("Result in new workspace")
         if not newSpecOption:
             self.newSpec.hide()
         layout.addWidget(self.newSpec, 1, 0, 1, 2)
-        cancelButton = QtGui.QPushButton("&Cancel")
+        cancelButton = QtWidgets.QPushButton("&Cancel")
         cancelButton.clicked.connect(self.closeEvent)
         layout.addWidget(cancelButton, 2, 0)
-        okButton = QtGui.QPushButton("&Ok")
+        okButton = QtWidgets.QPushButton("&Ok")
         okButton.clicked.connect(self.applyAndClose)
         layout.addWidget(okButton, 2, 1)
         self.show()
@@ -4398,40 +4610,40 @@ class SubtractAvgWindow(regionWindow2):
 #############################################################
 
 
-class FiddleWindow(QtGui.QWidget):
+class FiddleWindow(QtWidgets.QWidget):
 
     def __init__(self, parent):
-        QtGui.QWidget.__init__(self, parent)
+        QtWidgets.QWidget.__init__(self, parent)
         self.setWindowFlags(QtCore.Qt.Window | QtCore.Qt.Tool)
         self.father = parent
         self.setWindowTitle("Reference deconvolution")
-        layout = QtGui.QGridLayout(self)
-        grid = QtGui.QGridLayout()
+        layout = QtWidgets.QGridLayout(self)
+        grid = QtWidgets.QGridLayout()
         layout.addLayout(grid, 0, 0, 1, 2)
         self.startVal = 0
         self.endVal = parent.current.data1D.shape[-1]
         grid.addWidget(wc.QLabel("Start point:"), 0, 0)
-        self.startEntry = QtGui.QLineEdit()
+        self.startEntry = QtWidgets.QLineEdit()
         self.startEntry.setAlignment(QtCore.Qt.AlignHCenter)
         self.startEntry.setText(str(self.startVal))
         self.startEntry.returnPressed.connect(self.checkValues)
         grid.addWidget(self.startEntry, 1, 0)
         grid.addWidget(wc.QLabel("End point:"), 2, 0)
-        self.endEntry = QtGui.QLineEdit()
+        self.endEntry = QtWidgets.QLineEdit()
         self.endEntry.setAlignment(QtCore.Qt.AlignHCenter)
         self.endEntry.setText(str(self.endVal))
         self.endEntry.returnPressed.connect(self.checkValues)
         grid.addWidget(self.endEntry, 3, 0)
         grid.addWidget(wc.QLabel("Linebroadening [Hz]:"), 4, 0)
-        self.lbEntry = QtGui.QLineEdit()
+        self.lbEntry = QtWidgets.QLineEdit()
         self.lbEntry.setAlignment(QtCore.Qt.AlignHCenter)
         self.lbEntry.setText("1.0")
         self.lbEntry.returnPressed.connect(self.checkValues)
         grid.addWidget(self.lbEntry, 5, 0)
-        cancelButton = QtGui.QPushButton("&Cancel")
+        cancelButton = QtWidgets.QPushButton("&Cancel")
         cancelButton.clicked.connect(self.closeEvent)
         layout.addWidget(cancelButton, 2, 0)
-        okButton = QtGui.QPushButton("&Ok")
+        okButton = QtWidgets.QPushButton("&Ok")
         okButton.clicked.connect(self.applyAndClose)
         layout.addWidget(okButton, 2, 1)
         self.show()
@@ -4528,26 +4740,26 @@ class FiddleWindow(QtGui.QWidget):
 ##############################################################
 
 
-class DeleteWindow(QtGui.QWidget):
+class DeleteWindow(QtWidgets.QWidget):
 
     def __init__(self, parent):
-        QtGui.QWidget.__init__(self, parent)
+        QtWidgets.QWidget.__init__(self, parent)
         self.setWindowFlags(QtCore.Qt.Window | QtCore.Qt.Tool)
         self.father = parent
         self.setWindowTitle("Delete")
-        layout = QtGui.QGridLayout(self)
-        grid = QtGui.QGridLayout()
+        layout = QtWidgets.QGridLayout(self)
+        grid = QtWidgets.QGridLayout()
         layout.addLayout(grid, 0, 0, 1, 2)
         grid.addWidget(wc.QLabel("Indexes to delete:"), 0, 0)
-        self.delEntry = QtGui.QLineEdit()
+        self.delEntry = QtWidgets.QLineEdit()
         self.delEntry.setAlignment(QtCore.Qt.AlignHCenter)
         self.delEntry.setText(str('0'))
         self.delEntry.returnPressed.connect(self.preview)
         grid.addWidget(self.delEntry, 1, 0)
-        cancelButton = QtGui.QPushButton("&Cancel")
+        cancelButton = QtWidgets.QPushButton("&Cancel")
         cancelButton.clicked.connect(self.closeEvent)
         layout.addWidget(cancelButton, 2, 0)
-        okButton = QtGui.QPushButton("&Ok")
+        okButton = QtWidgets.QPushButton("&Ok")
         okButton.clicked.connect(self.applyAndClose)
         layout.addWidget(okButton, 2, 1)
         self.show()
@@ -4589,26 +4801,26 @@ class DeleteWindow(QtGui.QWidget):
 ##############################################################
 
 
-class SplitWindow(QtGui.QWidget):
+class SplitWindow(QtWidgets.QWidget):
 
     def __init__(self, parent):
-        QtGui.QWidget.__init__(self, parent)
+        QtWidgets.QWidget.__init__(self, parent)
         self.setWindowFlags(QtCore.Qt.Window | QtCore.Qt.Tool)
         self.father = parent
         self.setWindowTitle("Split")
-        layout = QtGui.QGridLayout(self)
-        grid = QtGui.QGridLayout()
+        layout = QtWidgets.QGridLayout(self)
+        grid = QtWidgets.QGridLayout()
         layout.addLayout(grid, 0, 0, 1, 2)
         grid.addWidget(wc.QLabel("Sections:"), 0, 0)
-        self.splitEntry = QtGui.QLineEdit()
+        self.splitEntry = QtWidgets.QLineEdit()
         self.splitEntry.setAlignment(QtCore.Qt.AlignHCenter)
         self.splitEntry.setText('1')
         self.splitEntry.returnPressed.connect(self.preview)
         grid.addWidget(self.splitEntry, 1, 0)
-        cancelButton = QtGui.QPushButton("&Cancel")
+        cancelButton = QtWidgets.QPushButton("&Cancel")
         cancelButton.clicked.connect(self.closeEvent)
         layout.addWidget(cancelButton, 2, 0)
-        okButton = QtGui.QPushButton("&Ok")
+        okButton = QtWidgets.QPushButton("&Ok")
         okButton.clicked.connect(self.applyAndClose)
         layout.addWidget(okButton, 2, 1)
         self.show()
@@ -4642,24 +4854,24 @@ class SplitWindow(QtGui.QWidget):
 ##############################################################
 
 
-class ConcatenateWindow(QtGui.QWidget):
+class ConcatenateWindow(QtWidgets.QWidget):
 
     def __init__(self, parent):
-        QtGui.QWidget.__init__(self, parent)
+        QtWidgets.QWidget.__init__(self, parent)
         self.setWindowFlags(QtCore.Qt.Window | QtCore.Qt.Tool)
         self.father = parent
         self.setWindowTitle("Concatenate")
-        layout = QtGui.QGridLayout(self)
-        grid = QtGui.QGridLayout()
+        layout = QtWidgets.QGridLayout(self)
+        grid = QtWidgets.QGridLayout()
         layout.addLayout(grid, 0, 0, 1, 2)
         grid.addWidget(wc.QLabel("Concatenation axes:"), 0, 0)
-        self.axesEntry = QtGui.QComboBox()
+        self.axesEntry = QtWidgets.QComboBox()
         self.axesEntry.addItems(np.array(np.arange(self.father.current.data.data.ndim - 1) + 1, dtype=str))
         grid.addWidget(self.axesEntry, 1, 0)
-        cancelButton = QtGui.QPushButton("&Cancel")
+        cancelButton = QtWidgets.QPushButton("&Cancel")
         cancelButton.clicked.connect(self.closeEvent)
         layout.addWidget(cancelButton, 2, 0)
-        okButton = QtGui.QPushButton("&Ok")
+        okButton = QtWidgets.QPushButton("&Ok")
         okButton.clicked.connect(self.applyAndClose)
         layout.addWidget(okButton, 2, 1)
         self.show()
@@ -4684,30 +4896,30 @@ class ConcatenateWindow(QtGui.QWidget):
 ##############################################################
 
 
-class InsertWindow(QtGui.QWidget):
+class InsertWindow(QtWidgets.QWidget):
 
     def __init__(self, parent):
-        QtGui.QWidget.__init__(self, parent)
+        QtWidgets.QWidget.__init__(self, parent)
         self.setWindowFlags(QtCore.Qt.Window | QtCore.Qt.Tool)
         self.father = parent
         self.setWindowTitle("Insert")
-        layout = QtGui.QGridLayout(self)
-        grid = QtGui.QGridLayout()
+        layout = QtWidgets.QGridLayout(self)
+        grid = QtWidgets.QGridLayout()
         layout.addLayout(grid, 0, 0, 1, 2)
         grid.addWidget(wc.QLabel("Start insert at index:"), 0, 0)
-        self.posEntry = QtGui.QLineEdit()
+        self.posEntry = QtWidgets.QLineEdit()
         self.posEntry.setAlignment(QtCore.Qt.AlignHCenter)
         self.posEntry.setText(str(self.father.current.data1D.shape[-1]))
         self.posEntry.returnPressed.connect(self.preview)
         grid.addWidget(self.posEntry, 1, 0)
         grid.addWidget(wc.QLabel("Workspace to insert:"), 2, 0)
-        self.wsEntry = QtGui.QComboBox()
+        self.wsEntry = QtWidgets.QComboBox()
         self.wsEntry.addItems(self.father.father.workspaceNames)
         grid.addWidget(self.wsEntry, 3, 0)
-        cancelButton = QtGui.QPushButton("&Cancel")
+        cancelButton = QtWidgets.QPushButton("&Cancel")
         cancelButton.clicked.connect(self.closeEvent)
         layout.addWidget(cancelButton, 2, 0)
-        okButton = QtGui.QPushButton("&Ok")
+        okButton = QtWidgets.QPushButton("&Ok")
         okButton.clicked.connect(self.applyAndClose)
         layout.addWidget(okButton, 2, 1)
         self.show()
@@ -4750,26 +4962,37 @@ class InsertWindow(QtGui.QWidget):
 ##############################################################
 
 
-class AddWindow(QtGui.QWidget):
+class CombineWindow(QtWidgets.QWidget):
 
-    def __init__(self, parent):
-        QtGui.QWidget.__init__(self, parent)
+    def __init__(self, parent, combType):
+        QtWidgets.QWidget.__init__(self, parent)
         self.setWindowFlags(QtCore.Qt.Window | QtCore.Qt.Tool)
         self.father = parent
-        self.setWindowTitle("Add")
-        layout = QtGui.QGridLayout(self)
-        grid = QtGui.QGridLayout()
+        self.combType = combType # 0 = add, 1 = subtract, 2 = multiply, 3 = divide
+        layout = QtWidgets.QGridLayout(self)
+        grid = QtWidgets.QGridLayout()
         layout.addLayout(grid, 0, 0, 1, 2)
-        grid.addWidget(wc.QLabel("Workspace to add:"), 0, 0)
-        self.wsEntry = QtGui.QComboBox()
+        if self.combType is 0:
+            self.setWindowTitle("Add")        
+            grid.addWidget(wc.QLabel("Workspace to add:"), 0, 0)
+        elif self.combType is 1:
+            self.setWindowTitle("Subtract")        
+            grid.addWidget(wc.QLabel("Workspace to subtract:"), 0, 0)
+        elif self.combType is 2:
+            self.setWindowTitle("Multiply")        
+            grid.addWidget(wc.QLabel("Workspace to multiply:"), 0, 0)
+        elif self.combType is 3:
+            self.setWindowTitle("Divide")        
+            grid.addWidget(wc.QLabel("Workspace to divide:"), 0, 0)
+        self.wsEntry = QtWidgets.QComboBox()
         self.wsEntry.addItems(self.father.father.workspaceNames)
         grid.addWidget(self.wsEntry, 1, 0)
-        self.singleSlice = QtGui.QCheckBox("Single slice")
+        self.singleSlice = QtWidgets.QCheckBox("Single slice")
         layout.addWidget(self.singleSlice, 1, 0, 1, 2)
-        cancelButton = QtGui.QPushButton("&Cancel")
+        cancelButton = QtWidgets.QPushButton("&Cancel")
         cancelButton.clicked.connect(self.closeEvent)
         layout.addWidget(cancelButton, 2, 0)
-        okButton = QtGui.QPushButton("&Ok")
+        okButton = QtWidgets.QPushButton("&Ok")
         okButton.clicked.connect(self.applyAndClose)
         layout.addWidget(okButton, 2, 1)
         self.show()
@@ -4779,7 +5002,14 @@ class AddWindow(QtGui.QWidget):
 
     def applyAndClose(self):
         ws = self.wsEntry.currentIndex()
-        returnValue = self.father.current.add(self.father.father.workspaces[ws].masterData.data, self.singleSlice.isChecked())
+        if self.combType is 0:
+            returnValue = self.father.current.add(self.father.father.workspaces[ws].masterData.data, self.singleSlice.isChecked())
+        elif self.combType is 1:
+            returnValue = self.father.current.subtract(self.father.father.workspaces[ws].masterData.data, self.singleSlice.isChecked())
+        elif self.combType is 2:
+            returnValue = self.father.current.multiplySpec(self.father.father.workspaces[ws].masterData.data, self.singleSlice.isChecked())
+        elif self.combType is 3:
+            returnValue = self.father.current.divideSpec(self.father.father.workspaces[ws].masterData.data, self.singleSlice.isChecked())
         if returnValue is None:
             return
         self.father.redoList = []
@@ -4795,94 +5025,49 @@ class AddWindow(QtGui.QWidget):
 ##############################################################
 
 
-class SubtractWindow(QtGui.QWidget):
+class SNWindow(QtWidgets.QWidget):
 
     def __init__(self, parent):
-        QtGui.QWidget.__init__(self, parent)
-        self.setWindowFlags(QtCore.Qt.Window | QtCore.Qt.Tool)
-        self.father = parent
-        self.setWindowTitle("Subtract")
-        layout = QtGui.QGridLayout(self)
-        grid = QtGui.QGridLayout()
-        layout.addLayout(grid, 0, 0, 1, 2)
-        grid.addWidget(wc.QLabel("Workspace to subtract:"), 0, 0)
-        self.wsEntry = QtGui.QComboBox()
-        self.wsEntry.addItems(self.father.father.workspaceNames)
-        grid.addWidget(self.wsEntry, 1, 0)
-        self.singleSlice = QtGui.QCheckBox("Single slice")
-        layout.addWidget(self.singleSlice, 1, 0, 1, 2)
-        cancelButton = QtGui.QPushButton("&Cancel")
-        cancelButton.clicked.connect(self.closeEvent)
-        layout.addWidget(cancelButton, 2, 0)
-        okButton = QtGui.QPushButton("&Ok")
-        okButton.clicked.connect(self.applyAndClose)
-        layout.addWidget(okButton, 2, 1)
-        self.show()
-        self.setFixedSize(self.size())
-        self.father.menuDisable()
-        self.setGeometry(self.frameSize().width() - self.geometry().width(), self.frameSize().height() - self.geometry().height(), 0, 0)
-
-    def applyAndClose(self):
-        ws = self.wsEntry.currentIndex()
-        returnValue = self.father.current.subtract(self.father.father.workspaces[ws].masterData.data, self.singleSlice.isChecked())
-        if returnValue is None:
-            return
-        self.father.redoList = []
-        self.father.undoList.append(returnValue)
-        self.father.menuEnable()
-        self.father.sideframe.upd()
-        self.deleteLater()
-
-    def closeEvent(self, *args):
-        self.father.menuEnable()
-        self.deleteLater()
-
-##############################################################
-
-
-class SNWindow(QtGui.QWidget):
-
-    def __init__(self, parent):
-        QtGui.QWidget.__init__(self, parent)
+        QtWidgets.QWidget.__init__(self, parent)
         self.setWindowFlags(QtCore.Qt.Window | QtCore.Qt.Tool)
         self.father = parent
         self.setWindowTitle("Signal to noise")
-        layout = QtGui.QGridLayout(self)
-        grid = QtGui.QGridLayout()
+        layout = QtWidgets.QGridLayout(self)
+        grid = QtWidgets.QGridLayout()
         layout.addLayout(grid, 0, 0, 1, 2)
         grid.addWidget(wc.QLabel("Start point noise:"), 0, 0)
-        self.minNoiseEntry = QtGui.QLineEdit()
+        self.minNoiseEntry = QtWidgets.QLineEdit()
         self.minNoiseEntry.setAlignment(QtCore.Qt.AlignHCenter)
         self.minNoiseEntry.setText("0")
         self.minNoiseEntry.returnPressed.connect(self.checkValues)
         grid.addWidget(self.minNoiseEntry, 1, 0)
         grid.addWidget(wc.QLabel("End point noise:"), 2, 0)
-        self.maxNoiseEntry = QtGui.QLineEdit()
+        self.maxNoiseEntry = QtWidgets.QLineEdit()
         self.maxNoiseEntry.setAlignment(QtCore.Qt.AlignHCenter)
         self.maxNoiseEntry.setText(str(parent.current.data1D.shape[-1]))
         self.maxNoiseEntry.returnPressed.connect(self.checkValues)
         grid.addWidget(self.maxNoiseEntry, 3, 0)
         grid.addWidget(wc.QLabel("Start point signal:"), 4, 0)
-        self.minEntry = QtGui.QLineEdit()
+        self.minEntry = QtWidgets.QLineEdit()
         self.minEntry.setAlignment(QtCore.Qt.AlignHCenter)
         self.minEntry.setText("0")
         self.minEntry.returnPressed.connect(self.checkValues)
         grid.addWidget(self.minEntry, 5, 0)
         grid.addWidget(wc.QLabel("End point signal:"), 6, 0)
-        self.maxEntry = QtGui.QLineEdit()
+        self.maxEntry = QtWidgets.QLineEdit()
         self.maxEntry.setAlignment(QtCore.Qt.AlignHCenter)
         self.maxEntry.setText(str(parent.current.data1D.shape[-1]))
         self.maxEntry.returnPressed.connect(self.checkValues)
         grid.addWidget(self.maxEntry, 7, 0)
         grid.addWidget(wc.QLabel("S/N:"), 8, 0)
-        self.snEntry = QtGui.QLineEdit()
+        self.snEntry = QtWidgets.QLineEdit()
         self.snEntry.setAlignment(QtCore.Qt.AlignHCenter)
         self.snEntry.setText('0.0')
         grid.addWidget(self.snEntry, 9, 0)
-        cancelButton = QtGui.QPushButton("&Cancel")
+        cancelButton = QtWidgets.QPushButton("&Cancel")
         cancelButton.clicked.connect(self.closeEvent)
         layout.addWidget(cancelButton, 2, 0)
-        okButton = QtGui.QPushButton("&Fit")
+        okButton = QtWidgets.QPushButton("&Fit")
         okButton.clicked.connect(self.apply)
         layout.addWidget(okButton, 2, 1)
         self.show()
@@ -5003,55 +5188,50 @@ class SNWindow(QtGui.QWidget):
 ##############################################################
 
 
-class FWHMWindow(QtGui.QWidget):
+class FWHMWindow(QtWidgets.QWidget):
 
     def __init__(self, parent):
-        QtGui.QWidget.__init__(self, parent)
+        QtWidgets.QWidget.__init__(self, parent)
         self.setWindowFlags(QtCore.Qt.Window | QtCore.Qt.Tool)
         self.father = parent
         self.setWindowTitle("FWHM")
-        layout = QtGui.QGridLayout(self)
-        grid = QtGui.QGridLayout()
+        layout = QtWidgets.QGridLayout(self)
+        grid = QtWidgets.QGridLayout()
         layout.addLayout(grid, 0, 0, 1, 2)
         grid.addWidget(wc.QLabel("Start point:"), 0, 0)
-        self.minEntry = QtGui.QLineEdit()
+        self.minEntry = QtWidgets.QLineEdit()
         self.minEntry.setAlignment(QtCore.Qt.AlignHCenter)
         self.minEntry.setText("0")
         self.minEntry.returnPressed.connect(self.checkValues)
         grid.addWidget(self.minEntry, 1, 0)
         grid.addWidget(wc.QLabel("End point:"), 2, 0)
-        self.maxEntry = QtGui.QLineEdit()
+        self.maxEntry = QtWidgets.QLineEdit()
         self.maxEntry.setAlignment(QtCore.Qt.AlignHCenter)
         self.maxEntry.setText(str(parent.current.data1D.shape[-1]))
         self.maxEntry.returnPressed.connect(self.checkValues)
         grid.addWidget(self.maxEntry, 3, 0)
+        grid.addWidget(wc.QLabel("Units:"), 4, 0)
+        unitSelect = self.father.current.axType
         if self.father.current.spec == 1:
+            unitList = ['Hz', 'kHz', 'MHz', 'ppm']
             if self.father.current.ppm:
-                grid.addWidget(wc.QLabel("FWHM [ppm]:"), 4, 0)
-            else:
-                if self.father.current.axType == 0:
-                    grid.addWidget(wc.QLabel("FWHM [Hz]:"), 4, 0)
-                elif self.father.current.axType == 1:
-                    grid.addWidget(wc.QLabel("FWHM [kHz]:"), 4, 0)
-                elif self.father.current.axType == 2:
-                    grid.addWidget(wc.QLabel("FWHM [MHz]:"), 4, 0)
-                elif self.father.current.axType == 3:
-                    grid.addWidget(wc.QLabel("FWHM [ppm]:"), 4, 0)
+                unitSelect = 3
         else:
-            if self.father.current.axType == 0:
-                grid.addWidget(wc.QLabel("FWHM [s]:"), 4, 0)
-            elif self.father.current.axType == 1:
-                grid.addWidget(wc.QLabel("FWHM [ms]:"), 4, 0)
-            elif self.father.current.axType == 2:
-                grid.addWidget(wc.QLabel(u"FWHM [\u03bcs]:"), 4, 0)
-        self.fwhmEntry = QtGui.QLineEdit()
+            unitList = ['s', 'ms', u'\u03BCs']
+        self.unitDrop = QtWidgets.QComboBox()
+        self.unitDrop.addItems(unitList)
+        self.unitDrop.setCurrentIndex(unitSelect)
+        self.unitDrop.currentIndexChanged.connect(self.checkValues)
+        grid.addWidget(self.unitDrop, 5, 0)
+        grid.addWidget(wc.QLabel(u"FWHM:"), 6, 0)
+        self.fwhmEntry = QtWidgets.QLineEdit()
         self.fwhmEntry.setAlignment(QtCore.Qt.AlignHCenter)
         self.fwhmEntry.setText('0.0')
-        grid.addWidget(self.fwhmEntry, 5, 0)
-        cancelButton = QtGui.QPushButton("&Cancel")
+        grid.addWidget(self.fwhmEntry, 7, 0)
+        cancelButton = QtWidgets.QPushButton("&Cancel")
         cancelButton.clicked.connect(self.closeEvent)
         layout.addWidget(cancelButton, 2, 0)
-        okButton = QtGui.QPushButton("&Fit")
+        okButton = QtWidgets.QPushButton("&Fit")
         okButton.clicked.connect(self.apply)
         layout.addWidget(okButton, 2, 1)
         self.show()
@@ -5116,7 +5296,7 @@ class FWHMWindow(QtGui.QWidget):
         elif maximum > dataLength:
             maximum = dataLength
         self.maxEntry.setText(str(maximum))
-        self.fwhmEntry.setText(str(self.father.current.fwhm(minimum, maximum)))
+        self.fwhmEntry.setText(str(self.father.current.fwhm(minimum, maximum, self.unitDrop.currentIndex())))
 
     def closeEvent(self, *args):
         self.father.current.peakPickReset()
@@ -5125,24 +5305,24 @@ class FWHMWindow(QtGui.QWidget):
 ##############################################################
 
 
-class COMWindow(QtGui.QWidget):  # Centre of Mass Window
+class COMWindow(QtWidgets.QWidget):  # Centre of Mass Window
 
     def __init__(self, parent):
-        QtGui.QWidget.__init__(self, parent)
+        QtWidgets.QWidget.__init__(self, parent)
         self.setWindowFlags(QtCore.Qt.Window | QtCore.Qt.Tool)
         self.father = parent
         self.setWindowTitle("Centre of Mass")
-        layout = QtGui.QGridLayout(self)
-        grid = QtGui.QGridLayout()
+        layout = QtWidgets.QGridLayout(self)
+        grid = QtWidgets.QGridLayout()
         layout.addLayout(grid, 0, 0, 1, 2)
         grid.addWidget(wc.QLabel("Start point:"), 0, 0)
-        self.minEntry = QtGui.QLineEdit()
+        self.minEntry = QtWidgets.QLineEdit()
         self.minEntry.setAlignment(QtCore.Qt.AlignHCenter)
         self.minEntry.setText("0")
         self.minEntry.returnPressed.connect(self.checkValues)
         grid.addWidget(self.minEntry, 1, 0)
         grid.addWidget(wc.QLabel("End point:"), 2, 0)
-        self.maxEntry = QtGui.QLineEdit()
+        self.maxEntry = QtWidgets.QLineEdit()
         self.maxEntry.setAlignment(QtCore.Qt.AlignHCenter)
         self.maxEntry.setText(str(parent.current.data1D.shape[-1]))
         self.maxEntry.returnPressed.connect(self.checkValues)
@@ -5166,14 +5346,14 @@ class COMWindow(QtGui.QWidget):  # Centre of Mass Window
                 grid.addWidget(wc.QLabel("Centre of Mass [ms]:"), 4, 0)
             elif self.father.current.axType == 2:
                 grid.addWidget(wc.QLabel(u"Centre of Mass [\u03bcs]:"), 4, 0)
-        self.comEntry = QtGui.QLineEdit()
+        self.comEntry = QtWidgets.QLineEdit()
         self.comEntry.setAlignment(QtCore.Qt.AlignHCenter)
         self.comEntry.setText('0.0')
         grid.addWidget(self.comEntry, 5, 0)
-        cancelButton = QtGui.QPushButton("&Cancel")
+        cancelButton = QtWidgets.QPushButton("&Cancel")
         cancelButton.clicked.connect(self.closeEvent)
         layout.addWidget(cancelButton, 2, 0)
-        okButton = QtGui.QPushButton("&Fit")
+        okButton = QtWidgets.QPushButton("&Fit")
         okButton.clicked.connect(self.apply)
         layout.addWidget(okButton, 2, 1)
         self.show()
@@ -5248,33 +5428,33 @@ class COMWindow(QtGui.QWidget):  # Centre of Mass Window
 ##########################################################################################
 
 
-class ReorderWindow(QtGui.QWidget):
+class ReorderWindow(QtWidgets.QWidget):
 
     def __init__(self, parent):
-        QtGui.QWidget.__init__(self, parent)
+        QtWidgets.QWidget.__init__(self, parent)
         self.setWindowFlags(QtCore.Qt.Window | QtCore.Qt.Tool)
         self.father = parent
         self.setWindowTitle("Reorder")
-        layout = QtGui.QGridLayout(self)
-        grid = QtGui.QGridLayout()
+        layout = QtWidgets.QGridLayout(self)
+        grid = QtWidgets.QGridLayout()
         layout.addLayout(grid, 0, 0, 1, 2)
         grid.addWidget(wc.QLabel("Positions of the spectra:"), 0, 0)
-        self.valEntry = QtGui.QLineEdit()
+        self.valEntry = QtWidgets.QLineEdit()
         self.valEntry.setAlignment(QtCore.Qt.AlignHCenter)
         self.valEntry.returnPressed.connect(self.preview)
         grid.addWidget(self.valEntry, 1, 0)
-        fileButton = QtGui.QPushButton("&Browse")
+        fileButton = QtWidgets.QPushButton("&Browse")
         fileButton.clicked.connect(self.getPosFromFile)
         grid.addWidget(fileButton, 2, 0)
         grid.addWidget(wc.QLabel("Length of dimension:"), 3, 0)
-        self.lengthEntry = QtGui.QLineEdit()
+        self.lengthEntry = QtWidgets.QLineEdit()
         self.lengthEntry.setAlignment(QtCore.Qt.AlignHCenter)
         self.lengthEntry.returnPressed.connect(self.preview)
         grid.addWidget(self.lengthEntry, 4, 0)
-        cancelButton = QtGui.QPushButton("&Cancel")
+        cancelButton = QtWidgets.QPushButton("&Cancel")
         cancelButton.clicked.connect(self.closeEvent)
         layout.addWidget(cancelButton, 2, 0)
-        okButton = QtGui.QPushButton("&Ok")
+        okButton = QtWidgets.QPushButton("&Ok")
         okButton.clicked.connect(self.applyAndClose)
         layout.addWidget(okButton, 2, 1)
         self.show()
@@ -5286,7 +5466,9 @@ class ReorderWindow(QtGui.QWidget):
         pass
 
     def getPosFromFile(self):
-        filename = QtGui.QFileDialog.getOpenFileName(self, 'Open File', self.father.father.LastLocation)
+        filename = QtWidgets.QFileDialog.getOpenFileName(self, 'Open File', self.father.father.LastLocation)
+        if type(filename) is tuple:
+            filename = filename[0]        
         if filename:  # if not cancelled
             self.father.father.LastLocation = os.path.dirname(filename)  # Save used path
         if len(filename) == 0:
@@ -5319,33 +5501,33 @@ class ReorderWindow(QtGui.QWidget):
 ##########################################################################################
 
 
-class FFMWindow(QtGui.QWidget):
+class FFMWindow(QtWidgets.QWidget):
 
     def __init__(self, parent):
-        QtGui.QWidget.__init__(self, parent)
+        QtWidgets.QWidget.__init__(self, parent)
         self.setWindowFlags(QtCore.Qt.Window | QtCore.Qt.Tool)
         self.father = parent
         self.setWindowTitle("FFM")
-        layout = QtGui.QGridLayout(self)
-        grid = QtGui.QGridLayout()
+        layout = QtWidgets.QGridLayout(self)
+        grid = QtWidgets.QGridLayout()
         layout.addLayout(grid, 0, 0, 1, 2)
         grid.addWidget(wc.QLabel("Positions of the spectra:"), 0, 0)
-        self.valEntry = QtGui.QLineEdit()
+        self.valEntry = QtWidgets.QLineEdit()
         self.valEntry.setAlignment(QtCore.Qt.AlignHCenter)
         self.valEntry.returnPressed.connect(self.preview)
         grid.addWidget(self.valEntry, 1, 0)
-        fileButton = QtGui.QPushButton("&Browse")
+        fileButton = QtWidgets.QPushButton("&Browse")
         fileButton.clicked.connect(self.getPosFromFile)
         grid.addWidget(fileButton, 2, 0)
         grid.addWidget(wc.QLabel("Type of the position list:"), 3, 0)
-        self.typeDrop = QtGui.QComboBox(parent=self)
+        self.typeDrop = QtWidgets.QComboBox(parent=self)
         self.typeDrop.addItems(["Complex", "States/States-TPPI", "TPPI"])
         grid.addWidget(self.typeDrop, 4, 0)
         grid.addWidget(wc.QLabel("Reconstruction may take a while"), 5, 0)
-        cancelButton = QtGui.QPushButton("&Cancel")
+        cancelButton = QtWidgets.QPushButton("&Cancel")
         cancelButton.clicked.connect(self.closeEvent)
         layout.addWidget(cancelButton, 2, 0)
-        okButton = QtGui.QPushButton("&Ok")
+        okButton = QtWidgets.QPushButton("&Ok")
         okButton.clicked.connect(self.applyAndClose)
         layout.addWidget(okButton, 2, 1)
         self.show()
@@ -5357,7 +5539,9 @@ class FFMWindow(QtGui.QWidget):
         pass
 
     def getPosFromFile(self):
-        filename = QtGui.QFileDialog.getOpenFileName(self, 'Open File', self.father.father.LastLocation)
+        filename = QtWidgets.QFileDialog.getOpenFileName(self, 'Open File', self.father.father.LastLocation)
+        if type(filename) is tuple:
+            filename = filename[0]        
         if filename:  # if not cancelled
             self.father.father.LastLocation = os.path.dirname(filename)  # Save used path
         if len(filename) == 0:
@@ -5386,52 +5570,52 @@ class FFMWindow(QtGui.QWidget):
 ##########################################################################################
 
 
-class CLEANWindow(QtGui.QWidget):
+class CLEANWindow(QtWidgets.QWidget):
 
     def __init__(self, parent):
-        QtGui.QWidget.__init__(self, parent)
+        QtWidgets.QWidget.__init__(self, parent)
         self.setWindowFlags(QtCore.Qt.Window | QtCore.Qt.Tool)
         self.father = parent
         self.setWindowTitle("CLEAN")
-        layout = QtGui.QGridLayout(self)
-        grid = QtGui.QGridLayout()
+        layout = QtWidgets.QGridLayout(self)
+        grid = QtWidgets.QGridLayout()
         layout.addLayout(grid, 0, 0, 1, 2)
         grid.addWidget(wc.QLabel("Positions of the spectra:"), 0, 0)
-        self.valEntry = QtGui.QLineEdit()
+        self.valEntry = QtWidgets.QLineEdit()
         self.valEntry.setAlignment(QtCore.Qt.AlignHCenter)
         self.valEntry.returnPressed.connect(self.preview)
         grid.addWidget(self.valEntry, 1, 0)
-        fileButton = QtGui.QPushButton("&Browse")
+        fileButton = QtWidgets.QPushButton("&Browse")
         fileButton.clicked.connect(self.getPosFromFile)
         grid.addWidget(fileButton, 2, 0)
         grid.addWidget(wc.QLabel("Type of the position list:"), 3, 0)
-        self.typeDrop = QtGui.QComboBox(parent=self)
+        self.typeDrop = QtWidgets.QComboBox(parent=self)
         self.typeDrop.addItems(["Complex", "States/States-TPPI", "TPPI"])
         grid.addWidget(self.typeDrop, 4, 0)
         grid.addWidget(wc.QLabel("Gamma:"), 5, 0)
-        self.gammaEntry = QtGui.QLineEdit()
+        self.gammaEntry = QtWidgets.QLineEdit()
         self.gammaEntry.setAlignment(QtCore.Qt.AlignHCenter)
         self.gammaEntry.setText("0.2")
         grid.addWidget(self.gammaEntry, 6, 0)
         grid.addWidget(wc.QLabel("Threshold:"), 7, 0)
-        self.thresholdEntry = QtGui.QLineEdit()
+        self.thresholdEntry = QtWidgets.QLineEdit()
         self.thresholdEntry.setAlignment(QtCore.Qt.AlignHCenter)
         self.thresholdEntry.setText("2.0")
         grid.addWidget(self.thresholdEntry, 8, 0)
         # grid.addWidget(wc.QLabel("Linewidth [Hz]:"), 9, 0)
-        # self.lbEntry = QtGui.QLineEdit()
+        # self.lbEntry = QtWidgets.QLineEdit()
         # self.lbEntry.setAlignment(QtCore.Qt.AlignHCenter)
         # self.lbEntry.setText("1.0")
         # grid.addWidget(self.lbEntry, 10, 0)
         grid.addWidget(wc.QLabel("Max. iterations:"), 11, 0)
-        self.maxIterEntry = QtGui.QLineEdit()
+        self.maxIterEntry = QtWidgets.QLineEdit()
         self.maxIterEntry.setAlignment(QtCore.Qt.AlignHCenter)
         self.maxIterEntry.setText("2000")
         grid.addWidget(self.maxIterEntry, 12, 0)
-        cancelButton = QtGui.QPushButton("&Cancel")
+        cancelButton = QtWidgets.QPushButton("&Cancel")
         cancelButton.clicked.connect(self.closeEvent)
         layout.addWidget(cancelButton, 2, 0)
-        okButton = QtGui.QPushButton("&Ok")
+        okButton = QtWidgets.QPushButton("&Ok")
         okButton.clicked.connect(self.applyAndClose)
         layout.addWidget(okButton, 2, 1)
         self.show()
@@ -5443,7 +5627,9 @@ class CLEANWindow(QtGui.QWidget):
         pass
 
     def getPosFromFile(self):
-        filename = QtGui.QFileDialog.getOpenFileName(self, 'Open File', self.father.father.LastLocation)
+        filename = QtWidgets.QFileDialog.getOpenFileName(self, 'Open File', self.father.father.LastLocation)
+        if type(filename) is tuple:
+            filename = filename[0]        
         if filename:  # if not cancelled
             self.father.father.LastLocation = os.path.dirname(filename)  # Save used path
         if len(filename) == 0:
@@ -5489,38 +5675,48 @@ class CLEANWindow(QtGui.QWidget):
 
 ################################################################
 
-
-class ShearingWindow(QtGui.QWidget):
+class ISTWindow(QtWidgets.QWidget):
 
     def __init__(self, parent):
-        QtGui.QWidget.__init__(self, parent)
+        QtWidgets.QWidget.__init__(self, parent)
         self.setWindowFlags(QtCore.Qt.Window | QtCore.Qt.Tool)
         self.father = parent
-        self.setWindowTitle("Shearing")
-        layout = QtGui.QGridLayout(self)
-        grid = QtGui.QGridLayout()
+        self.setWindowTitle("IST")
+        layout = QtWidgets.QGridLayout(self)
+        grid = QtWidgets.QGridLayout()
         layout.addLayout(grid, 0, 0, 1, 2)
-        options = list(map(str, range(1, self.father.masterData.data.ndim + 1)))
-        grid.addWidget(wc.QLabel("Shearing constant:"), 0, 0)
-        self.shearEntry = QtGui.QLineEdit()
-        self.shearEntry.setAlignment(QtCore.Qt.AlignHCenter)
-        self.shearEntry.setText("0.0")
-        self.shearEntry.returnPressed.connect(self.shearPreview)
-        grid.addWidget(self.shearEntry, 1, 0)
-        grid.addWidget(wc.QLabel("Shearing direction:"), 2, 0)
-        self.dirEntry = QtGui.QComboBox()
-        self.dirEntry.addItems(options)
-        self.dirEntry.setCurrentIndex(self.father.masterData.data.ndim - 2)
-        grid.addWidget(self.dirEntry, 3, 0)
-        grid.addWidget(wc.QLabel("Shearing axis:"), 4, 0)
-        self.axEntry = QtGui.QComboBox()
-        self.axEntry.addItems(options)
-        self.axEntry.setCurrentIndex(self.father.masterData.data.ndim - 1)
-        grid.addWidget(self.axEntry, 5, 0)
-        cancelButton = QtGui.QPushButton("&Cancel")
+        grid.addWidget(wc.QLabel("Positions of the spectra:"), 0, 0)
+        self.valEntry = QtWidgets.QLineEdit()
+        self.valEntry.setAlignment(QtCore.Qt.AlignHCenter)
+        self.valEntry.returnPressed.connect(self.preview)
+        grid.addWidget(self.valEntry, 1, 0)
+        fileButton = QtWidgets.QPushButton("&Browse")
+        fileButton.clicked.connect(self.getPosFromFile)
+        grid.addWidget(fileButton, 2, 0)
+        grid.addWidget(wc.QLabel("Type of the position list:"), 3, 0)
+        self.typeDrop = QtWidgets.QComboBox(parent=self)
+        self.typeDrop.addItems(["Complex", "States/States-TPPI", "TPPI"])
+        grid.addWidget(self.typeDrop, 4, 0)
+        grid.addWidget(wc.QLabel("Threshold:"), 5, 0)
+        self.thresholdEntry = QtWidgets.QLineEdit()
+        self.thresholdEntry.setAlignment(QtCore.Qt.AlignHCenter)
+        self.thresholdEntry.setText("0.9")
+        grid.addWidget(self.thresholdEntry, 6, 0)
+        grid.addWidget(wc.QLabel("Max. iterations:"), 7, 0)
+        self.maxIterEntry = QtWidgets.QLineEdit()
+        self.maxIterEntry.setAlignment(QtCore.Qt.AlignHCenter)
+        self.maxIterEntry.setText("100")
+        grid.addWidget(self.maxIterEntry, 8, 0)
+        
+        grid.addWidget(wc.QLabel("Stop when residual below (% of ND max):"), 9, 0)
+        self.tracelimitEntry = QtWidgets.QLineEdit()
+        self.tracelimitEntry.setAlignment(QtCore.Qt.AlignHCenter)
+        self.tracelimitEntry.setText("2.0")
+        grid.addWidget(self.tracelimitEntry, 10, 0)
+        cancelButton = QtWidgets.QPushButton("&Cancel")
         cancelButton.clicked.connect(self.closeEvent)
         layout.addWidget(cancelButton, 2, 0)
-        okButton = QtGui.QPushButton("&Ok")
+        okButton = QtWidgets.QPushButton("&Ok")
         okButton.clicked.connect(self.applyAndClose)
         layout.addWidget(okButton, 2, 1)
         self.show()
@@ -5528,6 +5724,106 @@ class ShearingWindow(QtGui.QWidget):
         self.father.menuDisable()
         self.setGeometry(self.frameSize().width() - self.geometry().width(), self.frameSize().height() - self.geometry().height(), 0, 0)
 
+    def preview(self, *args):
+        pass
+
+    def getPosFromFile(self):
+        filename = QtWidgets.QFileDialog.getOpenFileName(self, 'Open File', self.father.father.LastLocation)
+        if type(filename) is tuple:
+            filename = filename[0]        
+        if filename:  # if not cancelled
+            self.father.father.LastLocation = os.path.dirname(filename)  # Save used path
+        if len(filename) == 0:
+            return
+        self.valEntry.setText(repr(np.loadtxt(filename, dtype=int)))
+
+    def closeEvent(self, *args):
+        self.father.menuEnable()
+        self.deleteLater()
+
+    def applyAndClose(self):
+        env = vars(np).copy()
+        env['length'] = int(self.father.current.data1D.shape[-1])  # so length can be used to in equations
+        env['euro'] = lambda fVal, num=int(self.father.current.data1D.shape[-1]): euro(fVal, num)
+        val = eval(self.valEntry.text(), env)                # find a better solution, also add catch for exceptions
+        if not isinstance(val, (list, np.ndarray)):
+            self.father.father.dispMsg("Input is not a list or array")
+            return
+        val = np.array(val, dtype=int)
+        tracelimit = safeEval(self.tracelimitEntry.text()) / 100.0
+        if tracelimit is None:
+            self.father.dispMsg("One of the inputs is not valid")
+            return
+        threshold = safeEval(self.thresholdEntry.text())
+        if threshold is None:
+            self.father.dispMsg("One of the inputs is not valid")
+            return
+        maxIter = safeEval(self.maxIterEntry.text())
+        if maxIter is None:
+            self.father.dispMsg("One of the inputs is not valid")
+            return
+        maxIter = int(maxIter)
+        self.father.redoList = []
+        self.father.undoList.append(self.father.current.ist(val, self.typeDrop.currentIndex(), threshold, maxIter,tracelimit))
+        self.father.updAllFrames()
+        self.father.menuEnable()
+        self.deleteLater()
+        
+        
+        
+        
+################################################################
+
+class ShearingWindow(QtWidgets.QWidget):
+
+    def __init__(self, parent):
+        QtWidgets.QWidget.__init__(self, parent)
+        self.setWindowFlags(QtCore.Qt.Window | QtCore.Qt.Tool)
+        self.father = parent
+        self.setWindowTitle("Shearing")
+        layout = QtWidgets.QGridLayout(self)
+        grid = QtWidgets.QGridLayout()
+        layout.addLayout(grid, 0, 0, 1, 2)
+        options = list(map(str, range(1, self.father.masterData.data.ndim + 1)))
+        grid.addWidget(wc.QLabel("Shearing constant:"), 0, 0)
+        self.shearDropdown = QtWidgets.QComboBox()
+        self.shearDropdown.addItems(['User Defined','Spin 3/2, -3Q','Spin 5/2, 3Q','Spin 5/2, -5Q','Spin 7/2, 3Q',
+                                     'Spin 7/2, 5Q','Spin 7/2, -7Q','Spin 9/2, 3Q','Spin 9/2, 5Q','Spin 9/2, 7Q','Spin 9/2, -9Q'])
+        self.shearDropdown.activated.connect(self.dropdownChanged)
+        self.shearList = [0,9.0/7.0,19.0/12.0,25.0/12.0,101.0/45.0,11.0/9.0,161.0/45.0,91.0/36.0,95.0/36.0,7.0/18.0,31.0/6.0]
+        grid.addWidget(self.shearDropdown, 1, 0)
+        self.shearEntry = QtWidgets.QLineEdit()
+        self.shearEntry.setAlignment(QtCore.Qt.AlignHCenter)
+        self.shearEntry.setText("0.0")
+        self.shearEntry.returnPressed.connect(self.shearPreview)
+        grid.addWidget(self.shearEntry, 3, 0)
+        grid.addWidget(wc.QLabel("Shearing direction:"), 4, 0)
+        self.dirEntry = QtWidgets.QComboBox()
+        self.dirEntry.addItems(options)
+        self.dirEntry.setCurrentIndex(self.father.masterData.data.ndim - 2)
+        grid.addWidget(self.dirEntry, 5, 0)
+        grid.addWidget(wc.QLabel("Shearing axis:"), 6, 0)
+        self.axEntry = QtWidgets.QComboBox()
+        self.axEntry.addItems(options)
+        self.axEntry.setCurrentIndex(self.father.masterData.data.ndim - 1)
+        grid.addWidget(self.axEntry,7, 0)
+        cancelButton = QtWidgets.QPushButton("&Cancel")
+        cancelButton.clicked.connect(self.closeEvent)
+        layout.addWidget(cancelButton, 2, 0)
+        okButton = QtWidgets.QPushButton("&Ok")
+        okButton.clicked.connect(self.applyAndClose)
+        layout.addWidget(okButton, 2, 1)
+        self.show()
+        self.setFixedSize(self.size())
+        self.father.menuDisable()
+        self.setGeometry(self.frameSize().width() - self.geometry().width(), self.frameSize().height() - self.geometry().height(), 0, 0)
+
+
+    def dropdownChanged(self):
+        index =  self.shearDropdown.currentIndex()
+        self.shearEntry.setText("%.9f" % self.shearList[index])
+        
+        
     def shearPreview(self, *args):
         shear = safeEval(self.shearEntry.text())
         if shear is not None:
@@ -5556,27 +5852,27 @@ class ShearingWindow(QtGui.QWidget):
 ##########################################################################################
 
 
-class MultiplyWindow(QtGui.QWidget):
+class MultiplyWindow(QtWidgets.QWidget):
 
     def __init__(self, parent):
-        QtGui.QWidget.__init__(self, parent)
+        QtWidgets.QWidget.__init__(self, parent)
         self.setWindowFlags(QtCore.Qt.Window | QtCore.Qt.Tool)
         self.father = parent
         self.setWindowTitle("Multiply")
-        layout = QtGui.QGridLayout(self)
-        grid = QtGui.QGridLayout()
+        layout = QtWidgets.QGridLayout(self)
+        grid = QtWidgets.QGridLayout()
         layout.addLayout(grid, 0, 0, 1, 2)
         grid.addWidget(wc.QLabel("Values:"), 0, 0)
-        self.valEntry = QtGui.QLineEdit()
+        self.valEntry = QtWidgets.QLineEdit()
         self.valEntry.setAlignment(QtCore.Qt.AlignHCenter)
         self.valEntry.returnPressed.connect(self.preview)
         grid.addWidget(self.valEntry, 1, 0)
-        self.singleSlice = QtGui.QCheckBox("Single slice")
+        self.singleSlice = QtWidgets.QCheckBox("Single slice")
         layout.addWidget(self.singleSlice, 1, 0, 1, 2)
-        cancelButton = QtGui.QPushButton("&Cancel")
+        cancelButton = QtWidgets.QPushButton("&Cancel")
         cancelButton.clicked.connect(self.closeEvent)
         layout.addWidget(cancelButton, 2, 0)
-        okButton = QtGui.QPushButton("&Ok")
+        okButton = QtWidgets.QPushButton("&Ok")
         okButton.clicked.connect(self.applyAndClose)
         layout.addWidget(okButton, 2, 1)
         self.show()
@@ -5613,25 +5909,25 @@ class MultiplyWindow(QtGui.QWidget):
 ##########################################################################################
 
 
-class XaxWindow(QtGui.QWidget):
+class XaxWindow(QtWidgets.QWidget):
 
     def __init__(self, parent):
-        QtGui.QWidget.__init__(self, parent)
+        QtWidgets.QWidget.__init__(self, parent)
         self.setWindowFlags(QtCore.Qt.Window | QtCore.Qt.Tool)
         self.father = parent
         self.setWindowTitle("User defined x-axis")
-        layout = QtGui.QGridLayout(self)
-        grid = QtGui.QGridLayout()
+        layout = QtWidgets.QGridLayout(self)
+        grid = QtWidgets.QGridLayout()
         layout.addLayout(grid, 0, 0, 1, 2)
         grid.addWidget(wc.QLabel("Expression for x-axis values:"), 0, 0)
-        self.valEntry = QtGui.QLineEdit()
+        self.valEntry = QtWidgets.QLineEdit()
         self.valEntry.setAlignment(QtCore.Qt.AlignHCenter)
         self.valEntry.returnPressed.connect(self.xaxPreview)
         grid.addWidget(self.valEntry, 1, 0)
-        cancelButton = QtGui.QPushButton("&Cancel")
+        cancelButton = QtWidgets.QPushButton("&Cancel")
         cancelButton.clicked.connect(self.closeEvent)
         layout.addWidget(cancelButton, 2, 0)
-        okButton = QtGui.QPushButton("&Ok")
+        okButton = QtWidgets.QPushButton("&Ok")
         okButton.clicked.connect(self.applyAndClose)
         layout.addWidget(okButton, 2, 1)
         self.show()
@@ -5643,7 +5939,16 @@ class XaxWindow(QtGui.QWidget):
         env = vars(np).copy()
         env['length'] = int(self.father.current.data1D.shape[-1])  # so length can be used to in equations
         env['euro'] = lambda fVal, num=int(self.father.current.data1D.shape[-1]): euro(fVal, num)
-        val = eval(self.valEntry.text(), env)                # find a better solution, also add catch for exceptions
+        try:
+            val = np.array(eval(self.valEntry.text(), env))                # find a better solution, also add catch for exceptions
+        except:
+            try:
+                val = np.fromstring(self.valEntry.text(),sep=' ')
+                val2 = np.fromstring(self.valEntry.text(),sep=',')
+                if len(val2) > len(val):
+                    val = val2
+            except:
+                val = None
         if not isinstance(val, (list, np.ndarray)):
             self.father.father.dispMsg("Input is not a list or array")
             return
@@ -5665,7 +5970,16 @@ class XaxWindow(QtGui.QWidget):
         env = vars(np).copy()
         env['length'] = int(self.father.current.data1D.shape[-1])  # so length can be used to in equations
         env['euro'] = lambda fVal, num=int(self.father.current.data1D.shape[-1]): euro(fVal, num)
-        val = eval(self.valEntry.text(), env)                # find a better solution, also add catch for exceptions
+        try:
+            val = np.array(eval(self.valEntry.text(), env))                # find a better solution, also add catch for exceptions
+        except:
+            try:
+                val = np.fromstring(self.valEntry.text(),sep=' ')
+                val2 = np.fromstring(self.valEntry.text(),sep=',')
+                if len(val2) > len(val):
+                    val = val2
+            except:
+                val = None
         if not isinstance(val, (list, np.ndarray)):
             self.father.father.dispMsg("Input is not a list or array")
             return
@@ -5683,50 +5997,59 @@ class XaxWindow(QtGui.QWidget):
 ##########################################################################################
 
 
-class RefWindow(QtGui.QWidget):
+class RefWindow(QtWidgets.QWidget):
 
     def __init__(self, parent):
-        QtGui.QWidget.__init__(self, parent)
+        QtWidgets.QWidget.__init__(self, parent)
         self.setWindowFlags(QtCore.Qt.Window | QtCore.Qt.Tool)
         self.father = parent
         self.setWindowTitle("Reference")
 
         # Secondary reference definitions
-        self.secRefNames = ["User Defined", "1H: Adamantane (centre)", "13C: Adamantane (left)", "13C: Adamantane (right)"]
-        self.secRefValues = ["0.0", "1.85", "38.520", "29.472"]
-        layout = QtGui.QGridLayout(self)
-        grid = QtGui.QGridLayout()
+        file = os.path.dirname(os.path.realpath(__file__)) + os.path.sep + "References.txt"
+        with open(file) as refFile:
+            refList = [line.strip().split('\t') for line in refFile]
+        secRefNames = ["User Defined"]
+        secRefValues = ["0.0"] 
+        for entry in refList:
+            secRefNames.append(entry[0])  
+            secRefValues.append(entry[1])   
+             
+        self.secRefNames = secRefNames
+        self.secRefValues = secRefValues
+        layout = QtWidgets.QGridLayout(self)
+        grid = QtWidgets.QGridLayout()
         layout.addLayout(grid, 0, 0, 1, 2)
         if parent.current.spec == 0:
             self.father.father.dispMsg('Setting ppm is only available for frequency data')
             self.deleteLater()
             return
         grid.addWidget(wc.QLabel("Name:"), 0, 0)
-        self.refName = QtGui.QLineEdit()
+        self.refName = QtWidgets.QLineEdit()
         self.refName.setAlignment(QtCore.Qt.AlignHCenter)
         grid.addWidget(self.refName, 1, 0)
         grid.addWidget(wc.QLabel("Frequency [MHz]:"), 2, 0)
-        self.freqEntry = QtGui.QLineEdit()
+        self.freqEntry = QtWidgets.QLineEdit()
         self.freqEntry.setText("%.7f" % (self.father.current.ref * 1e-6))
         self.freqEntry.setAlignment(QtCore.Qt.AlignHCenter)
         self.freqEntry.returnPressed.connect(self.preview)
         grid.addWidget(self.freqEntry, 3, 0)
         grid.addWidget(wc.QLabel("Secondary Reference:"), 4, 0)
-        self.refSecond = QtGui.QComboBox(parent=self)
+        self.refSecond = QtWidgets.QComboBox(parent=self)
         self.refSecond.addItems(self.secRefNames)
         self.refSecond.activated.connect(self.fillSecondaryRef)
         grid.addWidget(self.refSecond, 5, 0)
 
         grid.addWidget(wc.QLabel("Reference [ppm]:"), 6, 0)
-        self.refEntry = QtGui.QLineEdit()
+        self.refEntry = QtWidgets.QLineEdit()
         self.refEntry.setText("0.0")
         self.refEntry.setAlignment(QtCore.Qt.AlignHCenter)
         self.refEntry.returnPressed.connect(self.preview)
         grid.addWidget(self.refEntry, 7, 0)
-        cancelButton = QtGui.QPushButton("&Cancel")
+        cancelButton = QtWidgets.QPushButton("&Cancel")
         cancelButton.clicked.connect(self.closeEvent)
         layout.addWidget(cancelButton, 2, 0)
-        okButton = QtGui.QPushButton("&Ok")
+        okButton = QtWidgets.QPushButton("&Ok")
         okButton.clicked.connect(self.applyAndClose)
         layout.addWidget(okButton, 2, 1)
         self.show()
@@ -5786,23 +6109,23 @@ class RefWindow(QtGui.QWidget):
 ##########################################################################################
 
 
-class HistoryWindow(QtGui.QWidget):
+class HistoryWindow(QtWidgets.QWidget):
 
     def __init__(self, parent):
-        QtGui.QWidget.__init__(self, parent)
+        QtWidgets.QWidget.__init__(self, parent)
         self.setWindowFlags(QtCore.Qt.Window | QtCore.Qt.Tool)
         self.father = parent
         self.setWindowTitle("Processing history")
-        layout = QtGui.QGridLayout(self)
-        grid = QtGui.QGridLayout()
+        layout = QtWidgets.QGridLayout(self)
+        grid = QtWidgets.QGridLayout()
         layout.addLayout(grid, 0, 0, 1, 2)
         # grid.addWidget(wc.QLabel("History:"), 0, 0)
-        self.valEntry = QtGui.QTextEdit()
+        self.valEntry = QtWidgets.QTextEdit()
         self.valEntry.setReadOnly(True)
-        self.valEntry.setLineWrapMode(QtGui.QTextEdit.NoWrap)
+        self.valEntry.setLineWrapMode(QtWidgets.QTextEdit.NoWrap)
         self.valEntry.setText(self.father.masterData.getHistory())
         grid.addWidget(self.valEntry, 1, 0)
-        cancelButton = QtGui.QPushButton("&Close")
+        cancelButton = QtWidgets.QPushButton("&Close")
         cancelButton.clicked.connect(self.closeEvent)
         layout.addWidget(cancelButton, 2, 0)
         layout.setColumnStretch(1, 1)
@@ -5816,12 +6139,12 @@ class HistoryWindow(QtGui.QWidget):
 #########################################################################################
 
 
-class OrigListWidget(QtGui.QListWidget):
+class OrigListWidget(QtWidgets.QListWidget):
 
     def __init__(self, type, parent=None):
         super(OrigListWidget, self).__init__(parent)
-        self.setDragDropMode(QtGui.QAbstractItemView.DragDrop)
-        self.setSelectionMode(QtGui.QAbstractItemView.ExtendedSelection)
+        self.setDragDropMode(QtWidgets.QAbstractItemView.DragDrop)
+        self.setSelectionMode(QtWidgets.QAbstractItemView.ExtendedSelection)
         self.setAcceptDrops(True)
 
     def dropEvent(self, event):
@@ -5830,12 +6153,12 @@ class OrigListWidget(QtGui.QListWidget):
 #########################################################################################
 
 
-class DestListWidget(QtGui.QListWidget):
+class DestListWidget(QtWidgets.QListWidget):
 
     def __init__(self, type, parent=None):
         super(DestListWidget, self).__init__(parent)
-        self.setDragDropMode(QtGui.QAbstractItemView.DragDrop)
-        self.setSelectionMode(QtGui.QAbstractItemView.ExtendedSelection)
+        self.setDragDropMode(QtWidgets.QAbstractItemView.DragDrop)
+        self.setSelectionMode(QtWidgets.QAbstractItemView.ExtendedSelection)
         self.setAcceptDrops(True)
 
     def dropEvent(self, event):
@@ -5854,28 +6177,28 @@ class DestListWidget(QtGui.QListWidget):
 ##########################################################################################
 
 
-class CombineWorkspaceWindow(QtGui.QWidget):
+class CombineWorkspaceWindow(QtWidgets.QWidget):
 
     def __init__(self, parent):
-        QtGui.QWidget.__init__(self, parent)
+        QtWidgets.QWidget.__init__(self, parent)
         self.setWindowFlags(QtCore.Qt.Window | QtCore.Qt.Tool)
         self.father = parent
         self.setWindowTitle("Combine workspaces")
-        layout = QtGui.QGridLayout(self)
-        grid = QtGui.QGridLayout()
+        layout = QtWidgets.QGridLayout(self)
+        grid = QtWidgets.QGridLayout()
         layout.addLayout(grid, 0, 0, 1, 3)
         grid.addWidget(wc.QLabel("Workspaces:"), 0, 0)
         grid.addWidget(wc.QLabel("Combined spectrum:"), 0, 1)
         self.listA = OrigListWidget(self)
         for i in self.father.workspaceNames:
-            QtGui.QListWidgetItem(i, self.listA).setToolTip(i)
+            QtWidgets.QListWidgetItem(i, self.listA).setToolTip(i)
         self.listB = DestListWidget(self)
         grid.addWidget(self.listA, 1, 0)
         grid.addWidget(self.listB, 1, 1)
-        cancelButton = QtGui.QPushButton("&Close")
+        cancelButton = QtWidgets.QPushButton("&Close")
         cancelButton.clicked.connect(self.closeEvent)
         layout.addWidget(cancelButton, 2, 0)
-        okButton = QtGui.QPushButton("&Ok")
+        okButton = QtWidgets.QPushButton("&Ok")
         okButton.clicked.connect(self.applyAndClose)
         layout.addWidget(okButton, 2, 1)
         layout.setColumnStretch(2, 1)
@@ -5888,9 +6211,12 @@ class CombineWorkspaceWindow(QtGui.QWidget):
         items = []
         for index in range(self.listB.count()):
             items.append(self.listB.item(index).text())
-        if self.father.combineWorkspace(items):
-            self.father.menuEnable()
-            self.deleteLater()
+        if len(items) == 0:
+            self.father.dispMsg("Please select at least one workspace to combine")
+        else:
+            if self.father.combineWorkspace(items):
+                self.father.menuEnable()
+                self.deleteLater()
 
     def closeEvent(self, *args):
         self.father.menuEnable()
@@ -5899,15 +6225,15 @@ class CombineWorkspaceWindow(QtGui.QWidget):
 ##########################################################################################
 
 
-class MonitorWindow(QtGui.QWidget):
+class MonitorWindow(QtWidgets.QWidget):
 
     def __init__(self, parent):
-        QtGui.QWidget.__init__(self, parent)
+        QtWidgets.QWidget.__init__(self, parent)
         self.setWindowFlags(QtCore.Qt.Window | QtCore.Qt.Tool)
         self.father = parent
         self.setWindowTitle("Monitor")
-        layout = QtGui.QGridLayout(self)
-        grid = QtGui.QGridLayout()
+        layout = QtWidgets.QGridLayout(self)
+        grid = QtWidgets.QGridLayout()
         fileName = self.father.masterData.filePath[1]
         if len(fileName) > 58:
             fileName = fileName[:55] + '...'
@@ -5919,19 +6245,19 @@ class MonitorWindow(QtGui.QWidget):
         grid.addWidget(wc.QLabel("Apply after loading:"), 0, 1)
         self.listA = OrigListWidget(self)
         for i in self.father.father.macros.keys():
-            QtGui.QListWidgetItem(i, self.listA).setToolTip(i)
+            QtWidgets.QListWidgetItem(i, self.listA).setToolTip(i)
         self.listB = DestListWidget(self)
         for i in self.father.monitorMacros:
-            QtGui.QListWidgetItem(i, self.listB).setToolTip(i)
+            QtWidgets.QListWidgetItem(i, self.listB).setToolTip(i)
         grid.addWidget(self.listA, 1, 0)
         grid.addWidget(self.listB, 1, 1)
-        cancelButton = QtGui.QPushButton("&Close")
+        cancelButton = QtWidgets.QPushButton("&Close")
         cancelButton.clicked.connect(self.closeEvent)
         layout.addWidget(cancelButton, 2, 0)
-        watchButton = QtGui.QPushButton("&Watch")
+        watchButton = QtWidgets.QPushButton("&Watch")
         watchButton.clicked.connect(self.applyAndClose)
         layout.addWidget(watchButton, 2, 1)
-        unwatchButton = QtGui.QPushButton("&Unwatch")
+        unwatchButton = QtWidgets.QPushButton("&Unwatch")
         unwatchButton.clicked.connect(self.stopAndClose)
         layout.addWidget(unwatchButton, 2, 2)
         layout.setColumnStretch(3, 1)
@@ -5959,22 +6285,22 @@ class MonitorWindow(QtGui.QWidget):
 ##############################################################################
 
 
-class PlotSettingsWindow(QtGui.QWidget):
+class PlotSettingsWindow(QtWidgets.QWidget):
 
     def __init__(self, parent):
-        QtGui.QWidget.__init__(self, parent)
+        QtWidgets.QWidget.__init__(self, parent)
         self.setWindowFlags(QtCore.Qt.Window | QtCore.Qt.Tool)
         self.father = parent
         self.setWindowTitle("Preferences")
-        tabWidget = QtGui.QTabWidget()
-        tab1 = QtGui.QWidget()
-        tab2 = QtGui.QWidget()
-        # tab3 = QtGui.QWidget()
+        tabWidget = QtWidgets.QTabWidget()
+        tab1 = QtWidgets.QWidget()
+        tab2 = QtWidgets.QWidget()
+        # tab3 = QtWidgets.QWidget()
         tabWidget.addTab(tab1, "Plot")
         tabWidget.addTab(tab2, "Contour")
-        grid1 = QtGui.QGridLayout()
-        grid2 = QtGui.QGridLayout()
-        # grid3 = QtGui.QGridLayout()
+        grid1 = QtWidgets.QGridLayout()
+        grid2 = QtWidgets.QGridLayout()
+        # grid3 = QtWidgets.QGridLayout()
         tab1.setLayout(grid1)
         tab2.setLayout(grid2)
         # tab3.setLayout(grid3)
@@ -5985,50 +6311,50 @@ class PlotSettingsWindow(QtGui.QWidget):
         # grid3.setColumnStretch(10, 1)
         # grid3.setRowStretch(10, 1)
 
-        grid1.addWidget(QtGui.QLabel("Linewidth:"), 1, 0)
-        self.lwSpinBox = QtGui.QDoubleSpinBox()
+        grid1.addWidget(QtWidgets.QLabel("Linewidth:"), 1, 0)
+        self.lwSpinBox = QtWidgets.QDoubleSpinBox()
         self.lwSpinBox.setSingleStep(0.1)
         self.lwSpinBox.setValue(self.father.current.linewidth)
         self.lwSpinBox.valueChanged.connect(self.preview)
         grid1.addWidget(self.lwSpinBox, 1, 1)
         self.color = self.father.current.color
-        lineColorButton = QtGui.QPushButton("Line color")
+        lineColorButton = QtWidgets.QPushButton("Line color")
         lineColorButton.clicked.connect(self.setColor)
         grid1.addWidget(lineColorButton, 2, 0)
-        self.xgridCheck = QtGui.QCheckBox("x-grid")
+        self.xgridCheck = QtWidgets.QCheckBox("x-grid")
         self.xgridCheck.setChecked(self.father.current.grids[0])
         self.xgridCheck.stateChanged.connect(self.preview)
         grid1.addWidget(self.xgridCheck, 3, 0, 1, 2)
-        self.ygridCheck = QtGui.QCheckBox("y-grid")
+        self.ygridCheck = QtWidgets.QCheckBox("y-grid")
         self.ygridCheck.setChecked(self.father.current.grids[1])
         grid1.addWidget(self.ygridCheck, 4, 0, 1, 2)
         self.ygridCheck.stateChanged.connect(self.preview)
 
-        grid2.addWidget(QtGui.QLabel("Colormap:"), 0, 0)
-        self.cmEntry = QtGui.QComboBox(self)
+        grid2.addWidget(QtWidgets.QLabel("Colormap:"), 0, 0)
+        self.cmEntry = QtWidgets.QComboBox(self)
         self.cmEntry.addItems(sc.COLORMAPLIST)
         self.cmEntry.setCurrentIndex(sc.COLORMAPLIST.index(self.father.current.colorMap))
         self.cmEntry.currentIndexChanged.connect(self.preview)
         grid2.addWidget(self.cmEntry, 0, 1)
-        self.constColorCheck = QtGui.QCheckBox("Constant colors")
+        self.constColorCheck = QtWidgets.QCheckBox("Constant colors")
         self.constColorCheck.setChecked(self.father.current.contourConst)
         grid2.addWidget(self.constColorCheck, 1, 0)
         self.constColorCheck.stateChanged.connect(self.preview)
         self.posColor = self.father.current.contourColors[0]
-        posColorButton = QtGui.QPushButton("Positive color")
+        posColorButton = QtWidgets.QPushButton("Positive color")
         posColorButton.clicked.connect(self.setPosColor)
         grid2.addWidget(posColorButton, 2, 0)
         self.negColor = self.father.current.contourColors[1]
-        negColorButton = QtGui.QPushButton("Negative color")
+        negColorButton = QtWidgets.QPushButton("Negative color")
         negColorButton.clicked.connect(self.setNegColor)
         grid2.addWidget(negColorButton, 3, 0)
 
-        layout = QtGui.QGridLayout(self)
+        layout = QtWidgets.QGridLayout(self)
         layout.addWidget(tabWidget, 0, 0, 1, 4)
-        cancelButton = QtGui.QPushButton("&Cancel")
+        cancelButton = QtWidgets.QPushButton("&Cancel")
         cancelButton.clicked.connect(self.closeEvent)
         layout.addWidget(cancelButton, 1, 0)
-        okButton = QtGui.QPushButton("&Ok")
+        okButton = QtWidgets.QPushButton("&Ok")
         okButton.clicked.connect(self.applyAndClose)
         layout.addWidget(okButton, 1, 1)
         self.show()
@@ -6056,19 +6382,19 @@ class PlotSettingsWindow(QtGui.QWidget):
         self.father.current.setContourColors(tmpContourColors)
 
     def setColor(self, *args):
-        tmp = QtGui.QColorDialog.getColor(QtGui.QColor(self.color))
+        tmp = QtWidgets.QColorDialog.getColor(QtWidgets.QColor(self.color))
         if tmp.isValid():
             self.color = tmp.name()
         self.preview()
 
     def setPosColor(self, *args):
-        tmp = QtGui.QColorDialog.getColor(QtGui.QColor(self.posColor))
+        tmp = QtWidgets.QColorDialog.getColor(QtWidgets.QColor(self.posColor))
         if tmp.isValid():
             self.posColor = tmp.name()
         self.preview()
 
     def setNegColor(self, *args):
-        tmp = QtGui.QColorDialog.getColor(QtGui.QColor(self.negColor))
+        tmp = QtWidgets.QColorDialog.getColor(QtWidgets.QColor(self.negColor))
         if tmp.isValid():
             self.negColor = tmp.name()
         self.preview()
@@ -6092,23 +6418,23 @@ class PlotSettingsWindow(QtGui.QWidget):
 ##############################################################################
 
 
-class PreferenceWindow(QtGui.QWidget):
+class PreferenceWindow(QtWidgets.QWidget):
 
     def __init__(self, parent):
-        QtGui.QWidget.__init__(self, parent)
+        QtWidgets.QWidget.__init__(self, parent)
         self.setWindowFlags(QtCore.Qt.Window | QtCore.Qt.Tool)
         self.father = parent
         self.setWindowTitle("Preferences")
-        tabWidget = QtGui.QTabWidget()
-        tab1 = QtGui.QWidget()
-        tab2 = QtGui.QWidget()
-        tab3 = QtGui.QWidget()
+        tabWidget = QtWidgets.QTabWidget()
+        tab1 = QtWidgets.QWidget()
+        tab2 = QtWidgets.QWidget()
+        tab3 = QtWidgets.QWidget()
         tabWidget.addTab(tab1, "Window")
         tabWidget.addTab(tab2, "Plot")
         tabWidget.addTab(tab3, "Contour")
-        grid1 = QtGui.QGridLayout()
-        grid2 = QtGui.QGridLayout()
-        grid3 = QtGui.QGridLayout()
+        grid1 = QtWidgets.QGridLayout()
+        grid2 = QtWidgets.QGridLayout()
+        grid3 = QtWidgets.QGridLayout()
         tab1.setLayout(grid1)
         tab2.setLayout(grid2)
         tab3.setLayout(grid3)
@@ -6120,103 +6446,135 @@ class PreferenceWindow(QtGui.QWidget):
         grid3.setRowStretch(10, 1)
         # grid1.addWidget(wc.QLabel("Window size:"), 0, 0, 1, 2)
         grid1.addWidget(wc.QLabel("Width:"), 1, 0)
-        self.widthSpinBox = QtGui.QSpinBox()
+        self.widthSpinBox = QtWidgets.QSpinBox()
         self.widthSpinBox.setMaximum(100000)
+        self.widthSpinBox.setMinimum(1)
         self.widthSpinBox.setValue(self.father.defaultWidth)
         grid1.addWidget(self.widthSpinBox, 1, 1)
         grid1.addWidget(wc.QLabel("Height:"), 2, 0)
-        self.heightSpinBox = QtGui.QSpinBox()
+        self.heightSpinBox = QtWidgets.QSpinBox()
         self.heightSpinBox.setMaximum(100000)
+        self.heightSpinBox.setMinimum(1)
         self.heightSpinBox.setValue(self.father.defaultHeight)
         grid1.addWidget(self.heightSpinBox, 2, 1)
-        self.maximizedCheck = QtGui.QCheckBox("Open maximized")
+        self.maximizedCheck = QtWidgets.QCheckBox("Open maximized")
         self.maximizedCheck.setChecked(self.father.defaultMaximized)
         grid1.addWidget(self.maximizedCheck, 3, 0, 1, 2)
-        self.askNameCheck = QtGui.QCheckBox("Ask workspace name when loading")
+        self.askNameCheck = QtWidgets.QCheckBox("Ask workspace name when loading")
         self.askNameCheck.setChecked(self.father.defaultAskName)
         grid1.addWidget(self.askNameCheck, 4, 0, 1, 2)
+        self.toolbarCheck = QtWidgets.QCheckBox("Show Shortcut Toolbar")
+        self.toolbarCheck.setChecked(self.father.defaultToolBar)
+        grid1.addWidget(self.toolbarCheck, 5, 0, 1, 2)
+        editToolbarButton = QtWidgets.QPushButton("Edit Toolbar")
+        editToolbarButton.clicked.connect(lambda: ToolbarWindow(self))
+        grid1.addWidget(editToolbarButton, 6,0,1,2)
+        self.currentToolbar = self.father.defaultToolbarActionList
 
-        grid2.addWidget(QtGui.QLabel("Linewidth:"), 1, 0)
-        self.lwSpinBox = QtGui.QDoubleSpinBox()
+        grid2.addWidget(QtWidgets.QLabel("Linewidth:"), 1, 0)
+        self.lwSpinBox = QtWidgets.QDoubleSpinBox()
         self.lwSpinBox.setSingleStep(0.1)
         self.lwSpinBox.setValue(self.father.defaultLinewidth)
         grid2.addWidget(self.lwSpinBox, 1, 1)
         self.color = self.father.defaultColor
-        lineColorButton = QtGui.QPushButton("Line color")
+        lineColorButton = QtWidgets.QPushButton("Line color")
         lineColorButton.clicked.connect(self.setColor)
         grid2.addWidget(lineColorButton, 2, 0)
-        self.xgridCheck = QtGui.QCheckBox("x-grid")
+        self.xgridCheck = QtWidgets.QCheckBox("x-grid")
         self.xgridCheck.setChecked(self.father.defaultGrids[0])
         grid2.addWidget(self.xgridCheck, 3, 0, 1, 2)
-        self.ygridCheck = QtGui.QCheckBox("y-grid")
+        self.ygridCheck = QtWidgets.QCheckBox("y-grid")
         self.ygridCheck.setChecked(self.father.defaultGrids[1])
         grid2.addWidget(self.ygridCheck, 4, 0, 1, 2)
+        grid2.addWidget(QtWidgets.QLabel("Units:"), 5, 0)
+        self.unitGroup=QtWidgets.QButtonGroup()
+        button=QtWidgets.QRadioButton("s/Hz")
+        self.unitGroup.addButton(button, 0)
+        grid2.addWidget(button, 5, 1)
+        button=QtWidgets.QRadioButton("ms/kHz")
+        self.unitGroup.addButton(button, 1)
+        grid2.addWidget(button, 6, 1)
+        button=QtWidgets.QRadioButton(u"\u03bcs/MHz")
+        self.unitGroup.addButton(button, 2)
+        grid2.addWidget(button, 7, 1)
+        self.unitGroup.button(self.father.defaultUnits).setChecked(True)
+        self.ppmCheck = QtWidgets.QCheckBox("ppm")
+        self.ppmCheck.setChecked(self.father.defaultPPM)
+        grid2.addWidget(self.ppmCheck, 8, 1)
+        self.zeroScrollCheck = QtWidgets.QCheckBox("Scroll y-axis from zero")
+        self.zeroScrollCheck.setChecked(self.father.defaultZeroScroll)
+        grid2.addWidget(self.zeroScrollCheck, 9, 0, 1, 2)
 
-        grid3.addWidget(QtGui.QLabel("Colormap:"), 0, 0)
-        self.cmEntry = QtGui.QComboBox(self)
+        grid3.addWidget(QtWidgets.QLabel("Colormap:"), 0, 0)
+        self.cmEntry = QtWidgets.QComboBox(self)
         self.cmEntry.addItems(sc.COLORMAPLIST)
         self.cmEntry.setCurrentIndex(sc.COLORMAPLIST.index(self.father.defaultColorMap))
         grid3.addWidget(self.cmEntry, 0, 1)
-        self.constColorCheck = QtGui.QCheckBox("Constant colors")
+        self.constColorCheck = QtWidgets.QCheckBox("Constant colors")
         self.constColorCheck.setChecked(self.father.defaultContourConst)
         grid3.addWidget(self.constColorCheck, 1, 0)
         self.posColor = self.father.defaultPosColor
-        posColorButton = QtGui.QPushButton("Positive color")
+        posColorButton = QtWidgets.QPushButton("Positive color")
         posColorButton.clicked.connect(self.setPosColor)
         grid3.addWidget(posColorButton, 2, 0)
         self.negColor = self.father.defaultNegColor
-        negColorButton = QtGui.QPushButton("Negative color")
+        negColorButton = QtWidgets.QPushButton("Negative color")
         negColorButton.clicked.connect(self.setNegColor)
         grid3.addWidget(negColorButton, 3, 0)
-        grid3.addWidget(QtGui.QLabel("Width ratio:"), 4, 0)
-        self.WRSpinBox = QtGui.QDoubleSpinBox()
+        grid3.addWidget(QtWidgets.QLabel("Width ratio:"), 4, 0)
+        self.WRSpinBox = QtWidgets.QDoubleSpinBox()
         self.WRSpinBox.setSingleStep(0.1)
         self.WRSpinBox.setValue(self.father.defaultWidthRatio)
         grid3.addWidget(self.WRSpinBox, 4, 1)
-        grid3.addWidget(QtGui.QLabel("Height ratio:"), 5, 0)
-        self.HRSpinBox = QtGui.QDoubleSpinBox()
+        grid3.addWidget(QtWidgets.QLabel("Height ratio:"), 5, 0)
+        self.HRSpinBox = QtWidgets.QDoubleSpinBox()
         self.HRSpinBox.setSingleStep(0.1)
         self.HRSpinBox.setValue(self.father.defaultHeightRatio)
         grid3.addWidget(self.HRSpinBox, 5, 1)
 
-        layout = QtGui.QGridLayout(self)
+        layout = QtWidgets.QGridLayout(self)
         layout.addWidget(tabWidget, 0, 0, 1, 4)
-        cancelButton = QtGui.QPushButton("&Cancel")
+        cancelButton = QtWidgets.QPushButton("&Cancel")
         cancelButton.clicked.connect(self.closeEvent)
         layout.addWidget(cancelButton, 1, 0)
-        okButton = QtGui.QPushButton("&Store")
+        okButton = QtWidgets.QPushButton("&Store")
         okButton.clicked.connect(self.applyAndClose)
         layout.addWidget(okButton, 1, 1)
-        resetButton = QtGui.QPushButton("&Reset")
+        resetButton = QtWidgets.QPushButton("&Reset")
         resetButton.clicked.connect(self.reset)
         layout.addWidget(resetButton, 1, 2)
         layout.setColumnStretch(3, 1)
         self.show()
 
     def setColor(self, *args):
-        tmp = QtGui.QColorDialog.getColor(QtGui.QColor(self.color))
+        tmp = QtWidgets.QColorDialog.getColor(QtWidgets.QColor(self.color))
         if tmp.isValid():
             self.color = tmp.name()
 
     def setPosColor(self, *args):
-        tmp = QtGui.QColorDialog.getColor(QtGui.QColor(self.posColor))
+        tmp = QtWidgets.QColorDialog.getColor(QtWidgets.QColor(self.posColor))
         if tmp.isValid():
             self.posColor = tmp.name()
 
     def setNegColor(self, *args):
-        tmp = QtGui.QColorDialog.getColor(QtGui.QColor(self.negColor))
+        tmp = QtWidgets.QColorDialog.getColor(QtWidgets.QColor(self.negColor))
         if tmp.isValid():
             self.negColor = tmp.name()
 
     def applyAndClose(self, *args):
+        self.father.defaultUnits = self.unitGroup.checkedId()
+        self.father.defaultPPM = self.ppmCheck.isChecked()
         self.father.defaultWidth = self.widthSpinBox.value()
         self.father.defaultHeight = self.heightSpinBox.value()
         self.father.defaultMaximized = self.maximizedCheck.isChecked()
         self.father.defaultAskName = self.askNameCheck.isChecked()
+        self.father.defaultToolBar = self.toolbarCheck.isChecked()
+        self.father.defaultToolbarActionList  = self.currentToolbar
         self.father.defaultLinewidth = self.lwSpinBox.value()
         self.father.defaultColor = self.color
         self.father.defaultGrids[0] = self.xgridCheck.isChecked()
         self.father.defaultGrids[1] = self.ygridCheck.isChecked()
+        self.father.defaultZeroScroll = self.zeroScrollCheck.isChecked()
         self.father.defaultColorMap = self.cmEntry.currentText()
         self.father.defaultContourConst = self.constColorCheck.isChecked()
         self.father.defaultPosColor = self.posColor
@@ -6236,148 +6594,272 @@ class PreferenceWindow(QtGui.QWidget):
 
 ##############################################################################
 
+class ToolbarWindow(QtWidgets.QWidget):
 
-class shiftConversionWindow(QtGui.QWidget):
+    def __init__(self,parent):
+        QtWidgets.QWidget.__init__(self,parent)
+        self.setWindowFlags(QtCore.Qt.Window | QtCore.Qt.Tool)
+        self.father = parent
+        self.setWindowTitle("Change Toolbar")
+        layout = QtWidgets.QGridLayout(self)
+        grid = QtWidgets.QGridLayout()
+#        fileName = self.father.masterData.filePath[1]
+#        if len(fileName) > 58:
+#            fileName = fileName[:55] + '...'
+#        fileLabel = wc.QLabel("File: " + fileName)
+#        fileLabel.setToolTip(self.father.masterData.filePath[1])
+#        layout.addWidget(fileLabel, 0, 0, 1, 3)
+        layout.addLayout(grid, 1, 0, 1, 3)
+        grid.addWidget(wc.QLabel("Actions:"), 0, 0)
+        grid.addWidget(wc.QLabel("Toolbar Actions:"), 0, 1)
+        self.listA = OrigListWidget(self)
+        for i in self.father.father.allActionsList:
+            QtWidgets.QListWidgetItem(i[0], self.listA).setToolTip(i[0])
+        self.listB = DestListWidget(self)
+        for i in self.father.father.defaultToolbarActionList:
+            QtWidgets.QListWidgetItem(i, self.listB).setToolTip(i)
+        grid.addWidget(self.listA, 1, 0)
+        grid.addWidget(self.listB, 1, 1)
+        cancelButton = QtWidgets.QPushButton("&Cancel")
+        cancelButton.clicked.connect(self.closeEvent)
+        layout.addWidget(cancelButton, 2, 0)
+        watchButton = QtWidgets.QPushButton("&Apply")
+        watchButton.clicked.connect(self.applyAndClose)
+        layout.addWidget(watchButton, 2, 1)
+        layout.setColumnStretch(3, 1)
+        self.show()
+        self.setFixedSize(self.size())
+        self.setGeometry(self.frameSize().width() - self.geometry().width(), self.frameSize().height() - self.geometry().height(), 0, 0)
+
+    def applyAndClose(self, *args):
+#        self.father.stopMonitor()
+        items = []
+        for index in range(self.listB.count()):
+            items.append(self.listB.item(index).text())
+        self.father.currentToolbar = items
+        self.closeEvent()
+        
+    def closeEvent(self, *args):
+#        self.father.father.menuEnable()
+        self.deleteLater()
+        
+
+##############################################################################
+
+class aboutWindow(QtWidgets.QWidget):
 
     def __init__(self, parent):
-        QtGui.QWidget.__init__(self, parent)
+        QtWidgets.QWidget.__init__(self, parent)
+        self.setWindowFlags(QtCore.Qt.Window | QtCore.Qt.Tool)
+        self.father = parent
+
+        self.setWindowTitle("About ssNake")
+
+        grid = QtWidgets.QGridLayout()
+#        grid.setColumnStretch(10, 1)
+#        grid.setRowStretch(14, 1)
+
+        self.logo = QtWidgets.QLabel(self)
+        self.logo.setPixmap(QtGui.QPixmap(os.path.dirname(os.path.realpath(__file__)) + "/logo.gif"))
+        
+        self.tabs = QtWidgets.QTabWidget(self)
+        self.text = QtWidgets.QTextEdit(self)
+        self.text.setReadOnly(True)
+        
+        self.license = QtWidgets.QTextEdit(self)
+        self.license.setReadOnly(True)
+        licenseText = ''
+        with open(os.path.dirname(os.path.realpath(__file__)) + os.path.sep + 'licenseHtml.txt') as f:
+            licenseTextTemp = f.read().split('\n')
+        for line in licenseTextTemp:
+            licenseText = licenseText + line + ' '
+        self.license.setHtml(licenseText)
+        
+        pythonVersion = sys.version
+        pythonVersion = pythonVersion[:pythonVersion.index(' ')]
+        try:
+            from PyQt4.Qt import PYQT_VERSION_STR
+            from PyQt4.QtCore import QT_VERSION_STR
+        except:
+            from PyQt5.Qt import PYQT_VERSION_STR
+            from PyQt5.QtCore import QT_VERSION_STR
+            
+        from scipy import __version__ as scipyVersion    
+        
+        self.text.setText('<p><b>ssNake ' + VERSION + '</b></p>' + 
+        '<p>Copyright (&copy;) 2016&ndash;2017 Bas van Meerten & Wouter Franssen</p>' +
+        '<b>Library versions</b>:<br>Python ' + pythonVersion + '<br>numpy ' + np.__version__ +
+        '<br>SciPy ' + scipyVersion +  
+        '<br>matplotlib ' + matplotlib.__version__ + 
+        '<br>PyQt ' + PYQT_VERSION_STR + 
+        '<br>Qt ' + QT_VERSION_STR )
+        
+        self.thanks = QtWidgets.QTextEdit(self)
+        self.thanks.setReadOnly(True)
+        self.thanks.setHtml('<p><b>The ssNake team wishes to thank:</b></p>Koen Tijssen<br>Ole Brauckmann')
+        
+        self.tabs.addTab(self.text, 'Version') 
+        self.tabs.addTab(self.thanks, 'Thanks') 
+        self.tabs.addTab(self.license, 'License') 
+        
+        grid.addWidget(self.logo, 0, 0, 1, 3, QtCore.Qt.AlignHCenter)
+        grid.addWidget(self.tabs, 1, 0, 1, 3)
+        closebutton = QtWidgets.QPushButton("Close")
+        grid.addWidget(closebutton, 12, 1, 1, 1)
+        closebutton.clicked.connect(self.closeEvent)
+
+        self.setLayout(grid)
+        self.resize(550, 700)
+        self.show()
+
+    def closeEvent(self):
+        self.deleteLater()
+
+##############################################################################
+
+
+
+class shiftConversionWindow(QtWidgets.QWidget):
+
+    def __init__(self, parent):
+        QtWidgets.QWidget.__init__(self, parent)
         self.setWindowFlags(QtCore.Qt.Window | QtCore.Qt.Tool)
         self.father = parent
 
         self.setWindowTitle("Chemical Shift Conversions")
 
-        grid = QtGui.QGridLayout()
+        grid = QtWidgets.QGridLayout()
         grid.setColumnStretch(10, 1)
         grid.setRowStretch(14, 1)
 
-        StConv = QtGui.QLabel("Standard Convention:")
+        StConv = QtWidgets.QLabel("Standard Convention:")
         StConv.setAlignment(QtCore.Qt.AlignHCenter)
         grid.addWidget(StConv, 0, 0)
-        D11label = QtGui.QLabel(u'\u03b4' + '<sub>11</sub> (ppm)')
+        D11label = QtWidgets.QLabel(u'\u03b4' + '<sub>11</sub> [ppm]')
         D11label.setAlignment(QtCore.Qt.AlignHCenter)
         grid.addWidget(D11label, 0, 1)
-        D22label = QtGui.QLabel(u'\u03b4' + '<sub>22</sub> (ppm)')
+        D22label = QtWidgets.QLabel(u'\u03b4' + '<sub>22</sub> [ppm]')
         D22label.setAlignment(QtCore.Qt.AlignHCenter)
         grid.addWidget(D22label, 0, 2)
-        D33label = QtGui.QLabel(u'\u03b4' + '<sub>33</sub> (ppm)')
+        D33label = QtWidgets.QLabel(u'\u03b4' + '<sub>33</sub> [ppm]')
         D33label.setAlignment(QtCore.Qt.AlignHCenter)
         grid.addWidget(D33label, 0, 3)
-        standardGO = QtGui.QPushButton("Go")
+        standardGO = QtWidgets.QPushButton("Go")
         grid.addWidget(standardGO, 1, 0)
         standardGO.clicked.connect(lambda: self.shiftCalc(0))
-        self.D11 = QtGui.QLineEdit()
+        self.D11 = QtWidgets.QLineEdit()
         self.D11.setText("0")
         self.D11.setAlignment(QtCore.Qt.AlignHCenter)
         grid.addWidget(self.D11, 1, 1)
-        self.D22 = QtGui.QLineEdit()
+        self.D22 = QtWidgets.QLineEdit()
         self.D22.setText("0")
         self.D22.setAlignment(QtCore.Qt.AlignHCenter)
         grid.addWidget(self.D22, 1, 2)
-        self.D33 = QtGui.QLineEdit()
+        self.D33 = QtWidgets.QLineEdit()
         self.D33.setText("0")
         self.D33.setAlignment(QtCore.Qt.AlignHCenter)
         grid.addWidget(self.D33, 1, 3)
 
         # xyz Convention
-        grid.addWidget(QtGui.QLabel(""), 2, 0)
-        StConv = QtGui.QLabel("xyz Convention:")
+        grid.addWidget(QtWidgets.QLabel(""), 2, 0)
+        StConv = QtWidgets.QLabel("xyz Convention:")
         StConv.setAlignment(QtCore.Qt.AlignHCenter)
         grid.addWidget(StConv, 3, 0)
-        dxxlabel = QtGui.QLabel(u'\u03b4' + '<sub>xx</sub> (ppm)')
+        dxxlabel = QtWidgets.QLabel(u'\u03b4' + '<sub>xx</sub> [ppm]')
         dxxlabel.setAlignment(QtCore.Qt.AlignHCenter)
         grid.addWidget(dxxlabel, 3, 1)
-        dyylabel = QtGui.QLabel(u'\u03b4' + '<sub>yy</sub> (ppm)')
+        dyylabel = QtWidgets.QLabel(u'\u03b4' + '<sub>yy</sub> [ppm]')
         dyylabel.setAlignment(QtCore.Qt.AlignHCenter)
         grid.addWidget(dyylabel, 3, 2)
-        dzzlabel = QtGui.QLabel(u'\u03b4' + '<sub>zz</sub> (ppm)')
+        dzzlabel = QtWidgets.QLabel(u'\u03b4' + '<sub>zz</sub> [ppm]')
         dzzlabel.setAlignment(QtCore.Qt.AlignHCenter)
         grid.addWidget(dzzlabel, 3, 3)
 
-        xyzGO = QtGui.QPushButton("Go")
+        xyzGO = QtWidgets.QPushButton("Go")
         grid.addWidget(xyzGO, 4, 0)
         xyzGO.clicked.connect(lambda: self.shiftCalc(1))
-        self.dxx = QtGui.QLineEdit()
+        self.dxx = QtWidgets.QLineEdit()
         self.dxx.setText("0")
         self.dxx.setAlignment(QtCore.Qt.AlignHCenter)
         grid.addWidget(self.dxx, 4, 1)
-        self.dyy = QtGui.QLineEdit()
+        self.dyy = QtWidgets.QLineEdit()
         self.dyy.setText("0")
         self.dyy.setAlignment(QtCore.Qt.AlignHCenter)
         grid.addWidget(self.dyy, 4, 2)
-        self.dzz = QtGui.QLineEdit()
+        self.dzz = QtWidgets.QLineEdit()
         self.dzz.setText("0")
         self.dzz.setAlignment(QtCore.Qt.AlignHCenter)
         grid.addWidget(self.dzz, 4, 3)
 
         # Haeberlen Convention
-        grid.addWidget(QtGui.QLabel(""), 5, 0)
-        StConv = QtGui.QLabel("Haeberlen Convention:")
+        grid.addWidget(QtWidgets.QLabel(""), 5, 0)
+        StConv = QtWidgets.QLabel("Haeberlen Convention:")
         StConv.setAlignment(QtCore.Qt.AlignHCenter)
         grid.addWidget(StConv, 6, 0)
-        disolabel = QtGui.QLabel(u'\u03b4' + '<sub>iso</sub> (ppm)')
+        disolabel = QtWidgets.QLabel(u'\u03b4' + '<sub>iso</sub> [ppm]')
         disolabel.setAlignment(QtCore.Qt.AlignHCenter)
         grid.addWidget(disolabel, 6, 1)
-        danisolabel = QtGui.QLabel(u'\u03b4' + '<sub>aniso</sub> (ppm)')
+        danisolabel = QtWidgets.QLabel(u'\u03b4' + '<sub>aniso</sub> [ppm]')
         danisolabel.setAlignment(QtCore.Qt.AlignHCenter)
         grid.addWidget(danisolabel, 6, 2)
-        etalabel = QtGui.QLabel(u'\u03b7')
+        etalabel = QtWidgets.QLabel(u'\u03b7')
         etalabel.setAlignment(QtCore.Qt.AlignHCenter)
         grid.addWidget(etalabel, 6, 3)
 
-        haeberGO = QtGui.QPushButton("Go")
+        haeberGO = QtWidgets.QPushButton("Go")
         grid.addWidget(haeberGO, 7, 0)
         haeberGO.clicked.connect(lambda: self.shiftCalc(2))
-        self.diso = QtGui.QLineEdit()
+        self.diso = QtWidgets.QLineEdit()
         self.diso.setText("0")
         self.diso.setAlignment(QtCore.Qt.AlignHCenter)
         grid.addWidget(self.diso, 7, 1)
-        self.daniso = QtGui.QLineEdit()
+        self.daniso = QtWidgets.QLineEdit()
         self.daniso.setText("0")
         self.daniso.setAlignment(QtCore.Qt.AlignHCenter)
         grid.addWidget(self.daniso, 7, 2)
-        self.eta = QtGui.QLineEdit()
+        self.eta = QtWidgets.QLineEdit()
         self.eta.setText("0")
         self.eta.setAlignment(QtCore.Qt.AlignHCenter)
         grid.addWidget(self.eta, 7, 3)
 
         # Hertzfeld berger
-        grid.addWidget(QtGui.QLabel(""), 8, 0)
-        HbConv = QtGui.QLabel("Hertzfeld-Berger Convention:")
+        grid.addWidget(QtWidgets.QLabel(""), 8, 0)
+        HbConv = QtWidgets.QLabel("Hertzfeld-Berger Convention:")
         HbConv.setAlignment(QtCore.Qt.AlignHCenter)
         grid.addWidget(HbConv, 9, 0)
-        hbdisolabel = QtGui.QLabel(u'\u03b4' + '<sub>iso</sub> (ppm)')
+        hbdisolabel = QtWidgets.QLabel(u'\u03b4' + '<sub>iso</sub> [ppm]')
         hbdisolabel.setAlignment(QtCore.Qt.AlignHCenter)
         grid.addWidget(hbdisolabel, 9, 1)
-        omegalabel = QtGui.QLabel(u'\u03a9 (ppm)')
+        omegalabel = QtWidgets.QLabel(u'\u03a9 [ppm]')
         omegalabel.setAlignment(QtCore.Qt.AlignHCenter)
         grid.addWidget(omegalabel, 9, 2)
-        skewlabel = QtGui.QLabel(u'\u03ba')
+        skewlabel = QtWidgets.QLabel(u'\u03ba')
         skewlabel.setAlignment(QtCore.Qt.AlignHCenter)
         grid.addWidget(skewlabel, 9, 3)
 
-        hbGO = QtGui.QPushButton("Go")
+        hbGO = QtWidgets.QPushButton("Go")
         grid.addWidget(hbGO, 10, 0)
         hbGO.clicked.connect(lambda: self.shiftCalc(3))
-        self.hbdiso = QtGui.QLineEdit()
+        self.hbdiso = QtWidgets.QLineEdit()
         self.hbdiso.setText("0")
         self.hbdiso.setAlignment(QtCore.Qt.AlignHCenter)
         grid.addWidget(self.hbdiso, 10, 1)
-        self.hbdaniso = QtGui.QLineEdit()
+        self.hbdaniso = QtWidgets.QLineEdit()
         self.hbdaniso.setText("0")
         self.hbdaniso.setAlignment(QtCore.Qt.AlignHCenter)
         grid.addWidget(self.hbdaniso, 10, 2)
-        self.hbskew = QtGui.QLineEdit()
+        self.hbskew = QtWidgets.QLineEdit()
         self.hbskew.setText("0")
         self.hbskew.setAlignment(QtCore.Qt.AlignHCenter)
         grid.addWidget(self.hbskew, 10, 3)
 
         # Reset
-        grid.addWidget(QtGui.QLabel(""), 11, 0)
-        resetbutton = QtGui.QPushButton("Reset")
+        grid.addWidget(QtWidgets.QLabel(""), 11, 0)
+        resetbutton = QtWidgets.QPushButton("Reset")
         grid.addWidget(resetbutton, 12, 0)
         resetbutton.clicked.connect(self.valueReset)
 
-        closebutton = QtGui.QPushButton("Close")
+        closebutton = QtWidgets.QPushButton("Close")
         grid.addWidget(closebutton, 12, 3)
         closebutton.clicked.connect(self.closeEvent)
 
@@ -6390,79 +6872,67 @@ class shiftConversionWindow(QtGui.QWidget):
                 delta11 = float(safeEval(self.D11.text()))
                 delta22 = float(safeEval(self.D22.text()))
                 delta33 = float(safeEval(self.D33.text()))
+                Values = [delta11,delta22,delta33]
             except:
                 self.father.dispMsg("Invalid input in Standard Convention")
-                return
-            deltaArray = np.array([delta11, delta22, delta33])
+                raise
         if Type == 1:  # If from xyz
             try:
                 delta11 = float(safeEval(self.dxx.text()))  # Treat xyz as 123, as it reorders them anyway
                 delta22 = float(safeEval(self.dyy.text()))
                 delta33 = float(safeEval(self.dzz.text()))
+                Values = [delta11,delta22,delta33]
             except:
                 self.father.dispMsg("Invalid input in xyz Convention")
-                return
+                raise
         if Type == 2:  # From haeberlen
             try:
                 eta = float(safeEval(self.eta.text()))
                 delta = float(safeEval(self.daniso.text()))
                 iso = float(safeEval(self.diso.text()))
+                Values = [iso,delta,eta]
             except:
                 self.father.dispMsg("Invalid input in Haeberlen Convention")
-                return                
-            delta11 = delta + iso  # Treat xyz as 123, as it reorders them anyway
-            delta22 = (eta * delta + iso * 3 - delta11) / 2.0
-            delta33 = iso * 3 - delta11 - delta22
+                raise                
         if Type == 3:  # From Hertzfeld-Berger
             try:
                 iso = float(safeEval(self.hbdiso.text()))
                 span = float(safeEval(self.hbdaniso.text()))
                 skew = float(safeEval(self.hbskew.text()))
+                Values = [iso,span,skew]
             except:
                 self.father.dispMsg("Invalid input in Hertzfeld-Berger Convention")
-                return    
-            delta22 = iso + skew * span / 3.0
-            delta33 = (3 * iso - delta22 - span) / 2.0
-            delta11 = 3 * iso - delta22 - delta33
+                raise    
 
-        # Force right order
-        deltaArray = np.array([delta11, delta22, delta33])
-        deltaSorted = np.sort(deltaArray)
-        D11 = deltaSorted[2]
-        D22 = deltaSorted[1]
-        D33 = deltaSorted[0]
-        self.D11.setText('%#.4g' % D11)
-        self.D22.setText('%#.4g' % D22)
-        self.D33.setText('%#.4g' % D33)
+        Results = fit.shiftConversion(Values,Type) #Do the actual conversion
+
+        #Standard convention
+        self.D11.setText('%#.4g' % Results[0][0])
+        self.D22.setText('%#.4g' % Results[0][1])
+        self.D33.setText('%#.4g' % Results[0][2])
 
         # Convert to haeberlen convention and xxyyzz
-        iso = (D11 + D22 + D33) / 3.0
-        xyzIndex = np.argsort(np.abs(deltaArray - iso))
-        zz = deltaArray[xyzIndex[2]]
-        yy = deltaArray[xyzIndex[0]]
-        xx = deltaArray[xyzIndex[1]]
-        self.dxx.setText('%#.4g' % xx)
-        self.dyy.setText('%#.4g' % yy)
-        self.dzz.setText('%#.4g' % zz)
+        self.dxx.setText('%#.4g' % Results[1][0])
+        self.dyy.setText('%#.4g' % Results[1][1])
+        self.dzz.setText('%#.4g' % Results[1][2])
 
-        aniso = zz - iso
-        if aniso != 0.0:  # Only is not zero
-            eta = (yy - xx) / aniso
-            self.eta.setText('%#.4g' % eta)
-        else:
+
+        #Haeberlen def
+        self.diso.setText('%#.4g' % Results[2][0])
+        self.daniso.setText('%#.4g' % Results[2][1])
+        try: #If a number
+            self.eta.setText('%#.4g' % Results[2][2])
+        except:
             self.eta.setText('ND')
-        self.diso.setText('%#.4g' % iso)
-        self.daniso.setText('%#.4g' % aniso)
 
         # Convert to Herzfeld-Berger Convention
-        span = D11 - D33
-        if span != 0.0:  # Only is not zero
-            skew = 3.0 * (D22 - iso) / span
-            self.hbskew.setText('%#.4g' % skew)
-        else:
+        self.hbdiso.setText('%#.4g' % Results[3][0])
+        self.hbdaniso.setText('%#.4g' % Results[3][1])
+        try:
+            self.hbskew.setText('%#.4g' % Results[3][2])
+        except:
             self.hbskew.setText('ND')
-        self.hbdiso.setText('%#.4g' % iso)
-        self.hbdaniso.setText('%#.4g' % span)
+
 
     def valueReset(self):  # Resets all the boxes to 0
         self.D11.setText('0')
@@ -6481,104 +6951,103 @@ class shiftConversionWindow(QtGui.QWidget):
     def closeEvent(self):
         self.deleteLater()
 
-
-class quadConversionWindow(QtGui.QWidget):
+class quadConversionWindow(QtWidgets.QWidget):
     
     Ioptions = ['1', '3/2', '2', '5/2', '3', '7/2', '4', '9/2','5','6','7']
     Ivalues = [1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 4.0, 4.5,5.0,6.0,7.0]
    
     def __init__(self, parent):
-        QtGui.QWidget.__init__(self, parent)
+        QtWidgets.QWidget.__init__(self, parent)
         self.setWindowFlags(QtCore.Qt.Window | QtCore.Qt.Tool)
         self.father = parent
         self.setWindowTitle("Quadrupolar Coupling Conversions")
-        grid = QtGui.QGridLayout()
+        grid = QtWidgets.QGridLayout()
         grid.setColumnStretch(10, 1)
         grid.setRowStretch(14, 1)
-        Itext = QtGui.QLabel("I:")
+        Itext = QtWidgets.QLabel("I:")
         Itext.setAlignment(QtCore.Qt.AlignHCenter)
         grid.addWidget(Itext, 0, 0)
-        self.IEntry = QtGui.QComboBox()
+        self.IEntry = QtWidgets.QComboBox()
         self.IEntry.addItems(self.Ioptions)
         self.IEntry.setCurrentIndex(0)
         grid.addWidget(self.IEntry, 1, 0)
-        etalabel = QtGui.QLabel(u'\u03b7')
+        etalabel = QtWidgets.QLabel(u'\u03b7')
         etalabel.setAlignment(QtCore.Qt.AlignHCenter)
         grid.addWidget(etalabel, 0, 1)
-        self.Eta = QtGui.QLineEdit()
+        self.Eta = QtWidgets.QLineEdit()
         self.Eta.setText("0")
         self.Eta.setAlignment(QtCore.Qt.AlignHCenter)
         grid.addWidget(self.Eta, 1, 1)
-        momentlabel = QtGui.QLabel('Q (fm<sup>2</sup>)')
+        momentlabel = QtWidgets.QLabel('Q [fm<sup>2</sup>]')
         momentlabel.setAlignment(QtCore.Qt.AlignHCenter)
         grid.addWidget(momentlabel, 0, 2)
-        self.Moment = QtGui.QLineEdit()
+        self.Moment = QtWidgets.QLineEdit()
         self.Moment.setText("ND")
         self.Moment.setAlignment(QtCore.Qt.AlignHCenter)
         grid.addWidget(self.Moment, 1, 2)
-        grid.addWidget(QtGui.QLabel(""),2, 0)
-        CqConv = QtGui.QLabel("C<sub>Q</sub> Convention:")
+        grid.addWidget(QtWidgets.QLabel(""),2, 0)
+        CqConv = QtWidgets.QLabel("C<sub>Q</sub> Convention:")
         CqConv.setAlignment(QtCore.Qt.AlignHCenter)
         grid.addWidget(CqConv, 3, 0)
-        Cqlabel = QtGui.QLabel(u'C' + u'<sub>Q</sub>/2\u03c0 (MHz)')
+        Cqlabel = QtWidgets.QLabel(u'C' + u'<sub>Q</sub>/2\u03c0 [MHz]')
         Cqlabel.setAlignment(QtCore.Qt.AlignHCenter)
         grid.addWidget(Cqlabel, 3, 1)
-        CqGO = QtGui.QPushButton("Go")
+        CqGO = QtWidgets.QPushButton("Go")
         grid.addWidget(CqGO, 4, 0)
         CqGO.clicked.connect(lambda: self.quadCalc(0))
-        self.Cq = QtGui.QLineEdit()
+        self.Cq = QtWidgets.QLineEdit()
         self.Cq.setText("0")
         self.Cq.setAlignment(QtCore.Qt.AlignHCenter)
         grid.addWidget(self.Cq, 4, 1)
-        grid.addWidget(QtGui.QLabel(""),5, 0)
-        WqConv = QtGui.QLabel(u"\u03c9<sub>Q</sub> Convention:")
+        grid.addWidget(QtWidgets.QLabel(""),5, 0)
+        WqConv = QtWidgets.QLabel(u"\u03c9<sub>Q</sub> Convention:")
         WqConv.setAlignment(QtCore.Qt.AlignHCenter)
         grid.addWidget(WqConv, 6, 0)
-        Wqlabel = QtGui.QLabel(u'\u03c9' + u'<sub>Q</sub>/2\u03c0 (MHz)')
+        Wqlabel = QtWidgets.QLabel(u'\u03c9' + u'<sub>Q</sub>/2\u03c0 [MHz]')
         Wqlabel.setAlignment(QtCore.Qt.AlignHCenter)
         grid.addWidget(Wqlabel, 6, 1)
-        WqGO = QtGui.QPushButton("Go")
+        WqGO = QtWidgets.QPushButton("Go")
         grid.addWidget(WqGO, 7, 0)
         WqGO.clicked.connect(lambda: self.quadCalc(1))
-        self.Wq = QtGui.QLineEdit()
+        self.Wq = QtWidgets.QLineEdit()
         self.Wq.setText("0")
         self.Wq.setAlignment(QtCore.Qt.AlignHCenter)
         grid.addWidget(self.Wq, 7, 1)        
-        grid.addWidget(QtGui.QLabel(""),8, 0)        
-        VConv = QtGui.QLabel("Field gradients:")
+        grid.addWidget(QtWidgets.QLabel(""),8, 0)        
+        VConv = QtWidgets.QLabel("Field gradients:")
         VConv.setAlignment(QtCore.Qt.AlignHCenter)
         grid.addWidget(VConv, 9, 0)
-        Vxxlabel = QtGui.QLabel('V<sub>xx</sub> (V/m<sup>2</sup>)')
+        Vxxlabel = QtWidgets.QLabel('V<sub>xx</sub> [V/m<sup>2</sup>]')
         Vxxlabel.setAlignment(QtCore.Qt.AlignHCenter)
         grid.addWidget(Vxxlabel, 9, 1)
-        VGO = QtGui.QPushButton("Go")
+        VGO = QtWidgets.QPushButton("Go")
         grid.addWidget(VGO, 10, 0)
         VGO.clicked.connect(lambda: self.quadCalc(2))
-        self.Vxx = QtGui.QLineEdit()
+        self.Vxx = QtWidgets.QLineEdit()
         self.Vxx.setText("ND")
         self.Vxx.setAlignment(QtCore.Qt.AlignHCenter)
         grid.addWidget(self.Vxx, 10, 1)        
-        Vyylabel = QtGui.QLabel('V<sub>yy</sub> (V/m<sup>2</sup>)')
+        Vyylabel = QtWidgets.QLabel('V<sub>yy</sub> [V/m<sup>2</sup>]')
         Vyylabel.setAlignment(QtCore.Qt.AlignHCenter)
         grid.addWidget(Vyylabel, 9, 2)
-        self.Vyy = QtGui.QLineEdit()
+        self.Vyy = QtWidgets.QLineEdit()
         self.Vyy.setText("ND")
         self.Vyy.setAlignment(QtCore.Qt.AlignHCenter)
         grid.addWidget(self.Vyy, 10, 2)        
-        Vzzlabel = QtGui.QLabel('V<sub>zz</sub> (V/m<sup>2</sup>)')
+        Vzzlabel = QtWidgets.QLabel('V<sub>zz</sub> [V/m<sup>2</sup>]')
         Vzzlabel.setAlignment(QtCore.Qt.AlignHCenter)
         grid.addWidget(Vzzlabel, 9, 3)
-        self.Vzz = QtGui.QLineEdit()
+        self.Vzz = QtWidgets.QLineEdit()
         self.Vzz.setText("ND")
         self.Vzz.setAlignment(QtCore.Qt.AlignHCenter)
         grid.addWidget(self.Vzz, 10, 3)
 
         # Reset
-        grid.addWidget(QtGui.QLabel(""), 11, 0)
-        resetbutton = QtGui.QPushButton("Reset")
+        grid.addWidget(QtWidgets.QLabel(""), 11, 0)
+        resetbutton = QtWidgets.QPushButton("Reset")
         grid.addWidget(resetbutton, 12, 0)
         resetbutton.clicked.connect(self.valueReset)
-        closebutton = QtGui.QPushButton("Close")
+        closebutton = QtWidgets.QPushButton("Close")
         grid.addWidget(closebutton, 12, 3)
         closebutton.clicked.connect(self.closeEvent)        
         self.setLayout(grid)
@@ -6596,7 +7065,7 @@ class quadConversionWindow(QtGui.QWidget):
                 Cyy = -Cxx-Czz
             except:
                 self.father.dispMsg("Invalid input in Cq definition")
-                return 
+                raise 
         if Type == 1:
             try:
                 Vmax = float(safeEval(self.Wq.text()))                 
@@ -6606,7 +7075,7 @@ class quadConversionWindow(QtGui.QWidget):
                 Cyy = -Cxx-Czz
             except:
                 self.father.dispMsg("Invalid input in Wq definition")
-                return                 
+                raise                 
         if Type ==2:
              try:
                 Vxx = float(safeEval(self.Vxx.text())) 
@@ -6625,7 +7094,7 @@ class quadConversionWindow(QtGui.QWidget):
                 Cyy = Vyy * Scaling/1e6
              except:
                 self.father.dispMsg("Invalid input in field gradients")
-                return             
+                raise             
         #sort    
         CArray = np.array([Cxx, Cyy, Czz])
         Cindex = np.argsort(np.abs(CArray))
@@ -6670,9 +7139,9 @@ class quadConversionWindow(QtGui.QWidget):
 
 
 if __name__ == '__main__':
-    root = QtGui.QApplication(sys.argv)
-    root.setWindowIcon(QtGui.QIcon(os.path.dirname(os.path.realpath(__file__)) + '/logo.gif'))
     mainProgram = MainProgram(root)
     mainProgram.setWindowTitle("ssNake - " + VERSION)
     mainProgram.show()
+    splash.finish(mainProgram)
     sys.exit(root.exec_())
+    

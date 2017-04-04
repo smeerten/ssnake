@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-# Copyright 2016 Bas van Meerten and Wouter Franssen
+# Copyright 2016 - 2017 Bas van Meerten and Wouter Franssen
 
 # This file is part of ssNake.
 #
@@ -17,11 +17,15 @@
 # You should have received a copy of the GNU General Public License
 # along with ssNake. If not, see <http://www.gnu.org/licenses/>.
 
-from PyQt4 import QtGui, QtCore
+try:
+    from PyQt4 import QtGui, QtCore
+    from PyQt4 import QtGui as QtWidgets
+except ImportError:
+    from PyQt5 import QtGui, QtCore, QtWidgets
 from safeEval import safeEval
 
 
-class SsnakeTabs(QtGui.QTabWidget):
+class SsnakeTabs(QtWidgets.QTabWidget):
     # A tab widget were tabs can be closed with the middle mouse button
 
     def mousePressEvent(self, event):
@@ -60,11 +64,11 @@ class SliceValidator(QtGui.QValidator):
             return (QtGui.QValidator.Intermediate, string, position)
 
 
-class SliceSpinBox(QtGui.QSpinBox):
+class SliceSpinBox(QtWidgets.QSpinBox):
 
     def __init__(self, parent, minimum, maximum, *args, **kwargs):
         self.validator = SliceValidator()
-        QtGui.QDoubleSpinBox.__init__(self, parent, *args, **kwargs)
+        QtWidgets.QDoubleSpinBox.__init__(self, parent, *args, **kwargs)
         self.setMinimum(minimum)
         self.setMaximum(maximum)
         self.setKeyboardTracking(False)
@@ -88,8 +92,21 @@ class SliceSpinBox(QtGui.QSpinBox):
         return str(inp)
 
 
-class QLabel(QtGui.QLabel):
+class QLabel(QtWidgets.QLabel):
 
     def __init__(self, parent, *args, **kwargs):
-        QtGui.QLabel.__init__(self, parent, *args, **kwargs)
+        QtWidgets.QLabel.__init__(self, parent, *args, **kwargs)
         self.setAlignment(QtCore.Qt.AlignCenter)
+
+
+class specialProgressBar(QtWidgets.QProgressBar):
+    def __init__(self):
+        QtWidgets.QProgressBar.__init__(self)
+        self.setAlignment(QtCore.Qt.AlignCenter)
+        self._text = 'Inactive'
+
+    def setText(self, text):
+        self._text = text
+
+    def text(self):
+        return self._text

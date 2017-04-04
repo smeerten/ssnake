@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-# Copyright 2016 Bas van Meerten and Wouter Franssen
+# Copyright 2016 - 2017 Bas van Meerten and Wouter Franssen
 
 # This file is part of ssNake.
 #
@@ -19,7 +19,7 @@
 
 import numpy as np
 import scipy.optimize
-
+import scipy.signal
 
 def ent_ffm(missingPoints, fid, posArray):
     fid[posArray] = missingPoints[:len(posArray)] + 1j * missingPoints[len(posArray):]
@@ -55,3 +55,41 @@ def clean(inp):
         residuals -= maxAmp * gamma * np.roll(mask, findMax)
     replica += residuals
     return replica
+    
+    
+def ist(inp): #Iterative soft thresholding
+    data = inp[0]
+    posList = inp[1] #data points that must be set to zero
+    threshold = inp[2] #level at which the data is cut
+    ittnum = inp[3]
+    tracelimit = inp[4] #stoping condition when maximum of residual is below tracelimit*2DMax
+    NDmax = inp[5] #max of ND data. Needed for stopping limit.
+    
+    result = np.zeros_like(data,dtype=complex)
+    data[0] = data[0]*0.5
+    
+    for itt in range(0,ittnum):
+        spectrum = np.real(np.fft.fft(data,axis=0))
+        signmatrix = np.sign(spectrum)
+        height = np.max(np.abs(spectrum))
+        if height < NDmax * tracelimit: # exit loop if lower limit is reached
+            break
+        tmpspectrum = np.abs(spectrum) - threshold*height
+        tmpspectrum[tmpspectrum < 0] = 0 #Zero all not used parts
+        tmpspectrum = signmatrix * tmpspectrum
+        result += tmpspectrum
+        spectrum -= tmpspectrum
+        spectrum = np.conj(scipy.signal.hilbert(spectrum, axis=0))
+        data = np.fft.ifft(spectrum,axis=0)
+        data[posList] = 0
+        
+    result = np.conj(scipy.signal.hilbert(np.real(result + spectrum), axis=0))
+    result = np.fft.ifft(result,axis=0)
+    result[0] = result[0]*2
+    return result
+    
+    
+    
+    
+    
+    

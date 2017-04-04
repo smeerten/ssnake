@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-# Copyright 2016 Bas van Meerten and Wouter Franssen
+# Copyright 2016 - 2017 Bas van Meerten and Wouter Franssen
 
 # This file is part of ssNake.
 #
@@ -19,7 +19,11 @@
 
 import numpy as np
 import matplotlib.gridspec as gridspec
-from PyQt4 import QtGui, QtCore
+try:
+    from PyQt4 import QtGui, QtCore
+    from PyQt4 import QtGui as QtWidgets    
+except ImportError:
+    from PyQt5 import QtGui, QtCore, QtWidgets
 import spectrum_classes
 import warnings
 #########################################################################################################
@@ -94,14 +98,17 @@ class Plot1DFrame:
         self.peakPickFunc = None
 
     def scroll(self, event):
-        modifiers = QtGui.QApplication.keyboardModifiers()
+        modifiers = QtWidgets.QApplication.keyboardModifiers()
         if modifiers == QtCore.Qt.ShiftModifier:
             self.altScroll(event)
         else:
             if self.rightMouse:
                 middle = (self.xmaxlim + self.xminlim) / 2.0
                 width = self.xmaxlim - self.xminlim
-                width = width * 0.9**event.step
+                if modifiers == QtCore.Qt.ControlModifier:
+                    width = width * 0.6**event.step
+                else:
+                    width = width * 0.9**event.step
                 self.xmaxlim = middle + width / 2.0
                 self.xminlim = middle - width / 2.0
                 if self.spec > 0 and not isinstance(self, spectrum_classes.CurrentArrayed):
@@ -109,11 +116,26 @@ class Plot1DFrame:
                 else:
                     self.ax.set_xlim(self.xminlim, self.xmaxlim)
             else:
-                middle = (self.ymaxlim + self.yminlim) / 2.0
-                width = self.ymaxlim - self.yminlim
-                width = width * 0.9**event.step
-                self.ymaxlim = middle + width / 2.0
-                self.yminlim = middle - width / 2.0
+                if getattr(self, '__module__', None) == spectrum_classes.__name__:
+                    noZeroScroll = isinstance(self, (spectrum_classes.CurrentContour, spectrum_classes.CurrentStacked)) or not self.root.father.defaultZeroScroll
+                else:
+                    noZeroScroll = not self.rootwindow.mainProgram.defaultZeroScroll
+                if noZeroScroll:
+                    middle = (self.ymaxlim + self.yminlim) / 2.0
+                    width = self.ymaxlim - self.yminlim
+                    if modifiers == QtCore.Qt.ControlModifier:
+                        width = width * 0.6**event.step
+                    else:
+                        width = width * 0.9**event.step
+                    self.ymaxlim = middle + width / 2.0
+                    self.yminlim = middle - width / 2.0
+                else:
+                    if modifiers == QtCore.Qt.ControlModifier:
+                        self.ymaxlim *= 0.6**event.step
+                        self.yminlim *= 0.6**event.step
+                    else:
+                        self.ymaxlim *= 0.9**event.step
+                        self.yminlim *= 0.9**event.step
                 if self.spec2 > 0 and isinstance(self, spectrum_classes.CurrentContour):
                     self.ax.set_ylim(self.ymaxlim, self.yminlim)
                 else:
@@ -138,7 +160,7 @@ class Plot1DFrame:
                 self.zoomX1 = event.xdata
                 self.zoomY1 = event.ydata
         elif (event.button == 3) and event.dblclick:
-            modifiers = QtGui.QApplication.keyboardModifiers()
+            modifiers = QtWidgets.QApplication.keyboardModifiers()
             if modifiers == QtCore.Qt.ShiftModifier:
                 self.altReset()
             else:
@@ -207,6 +229,7 @@ class Plot1DFrame:
         self.canvas.draw_idle()
 
     def pan(self, event):
+        modifiers = QtWidgets.QApplication.keyboardModifiers()
         if self.rightMouse and self.panX is not None and self.panY is not None:
             if isinstance(self, spectrum_classes.CurrentSkewed):
                 a = self.ax.format_coord(event.xdata, event.ydata)
@@ -217,11 +240,18 @@ class Plot1DFrame:
                 point = inv.transform((event.x, event.y))
                 diffx = point[0] - self.panX
                 diffy = point[1] - self.panY
-
-            self.xmaxlim = self.xmaxlim - diffx
-            self.xminlim = self.xminlim - diffx
-            self.ymaxlim = self.ymaxlim - diffy
-            self.yminlim = self.yminlim - diffy
+            
+            if modifiers == QtCore.Qt.ControlModifier:
+                self.xmaxlim = self.xmaxlim - diffx
+                self.xminlim = self.xminlim - diffx
+            elif modifiers == QtCore.Qt.ShiftModifier:
+                self.ymaxlim = self.ymaxlim - diffy
+                self.yminlim = self.yminlim - diffy
+            else:
+                self.xmaxlim = self.xmaxlim - diffx
+                self.xminlim = self.xminlim - diffx
+                self.ymaxlim = self.ymaxlim - diffy
+                self.yminlim = self.yminlim - diffy
             if self.spec > 0 and not isinstance(self, spectrum_classes.CurrentArrayed):
                 self.ax.set_xlim(self.xmaxlim, self.xminlim)
             else:

@@ -1,6 +1,6 @@
-    #!/usr/bin/env python
+#!/usr/bin/env python
 
-# Copyright 2016 Bas van Meerten and Wouter Franssen
+# Copyright 2016 - 2017 Bas van Meerten and Wouter Franssen
 
 # This file is part of ssNake.
 #
@@ -24,16 +24,46 @@ from mpl_toolkits.mplot3d import proj3d
 from six import string_types
 from spectrumFrame import Plot1DFrame
 from safeEval import safeEval
-from nus import ffm, clean
+from nus import ffm, clean, ist
 import multiprocessing
 from matplotlib.pyplot import get_cmap
 import matplotlib
+import matplotlib._cntr as cntr
+import matplotlib.collections as mcoll
 
 COLORMAPLIST = ['seismic', 'BrBG', 'bwr', 'coolwarm', 'PiYG', 'PRGn', 'PuOr',
                 'RdBu', 'RdGy', 'RdYlBu', 'RdYlGn', 'Spectral', 'rainbow', 'jet']
 COLORCYCLE = list(matplotlib.rcParams['axes.prop_cycle'])
 COLORCONVERTER = matplotlib.colors.ColorConverter()
 
+#########################################################################
+# The function for automatic phasing
+
+
+def ACMEentropy(phaseIn, data, sw, spec, phaseAll=True):
+    phase0 = phaseIn[0]
+    if phaseAll:
+        phase1 = phaseIn[1]
+    else:
+        phase1 = 0.0
+    L = len(data)
+    x = np.fft.fftshift(np.fft.fftfreq(L, 1.0 / sw)) / sw
+    if spec > 0:
+        s0 = data * np.exp(1j * (phase0 + phase1 * x))
+    else:
+        s0 = np.fft.fftshift(np.fft.fft(data)) * np.exp(1j * (phase0 + phase1 * x))
+    s2 = np.real(s0)
+    ds1 = np.abs((s2[3:L] - s2[1:L - 2]) / 2.0)
+    p1 = ds1 / sum(ds1)
+    p1[np.where(p1 == 0)] = 1
+    h1 = -p1 * np.log(p1)
+    H1 = sum(h1)
+    Pfun = 0.0
+    as1 = s2 - np.abs(s2)
+    sumas = sum(as1)
+    if (np.real(sumas) < 0):
+        Pfun = Pfun + sum(as1**2) / 4 / L**2
+    return H1 + 1000 * Pfun
 
 #########################################################################
 # the generic data class
@@ -56,9 +86,9 @@ class Spectrum:
         else:
             self.wholeEcho = wholeEcho  # boolean array of length dim where True indicates a full Echo
         if ref is None:
-            self.ref = self.data.ndim * [None]
+            self.ref = np.array(self.data.ndim * [None])
         else:
-            self.ref = ref
+            self.ref = np.array(ref,dtype=object)
         if xaxArray is None:
             self.xaxArray = [[] for i in range(self.data.ndim)]
             self.resetXax()
@@ -162,7 +192,7 @@ class Spectrum:
         except ValueError as error:
             self.dispMsg(str(error))
             return None
-        self.addHistory("Added to data[" + str(select) + "]: " + str(data).replace('\n', ''))
+        self.addHistory("Added to data[" + str(select) + "]")
         return lambda self: self.subtract(data, select=select)
 
     def subtract(self, data, dataImag=0, select=slice(None)):
@@ -174,9 +204,33 @@ class Spectrum:
         except ValueError as error:
             self.dispMsg(str(error))
             return None
-        self.addHistory("Subtracted from data[" + str(select) + "]: " + str(data).replace('\n', ''))
+        self.addHistory("Subtracted from data[" + str(select) + "]")
         return lambda self: self.add(data, select=select)
+    
+    def multiplySpec(self, data, dataImag=0, select=slice(None)):
+        if isinstance(select, string_types):
+            select = safeEval(select)
+        try:
+            data = np.array(data) + 1j * np.array(dataImag)
+            self.data[select] = self.data[select] * data
+        except ValueError as error:
+            self.dispMsg(str(error))
+            return None
+        self.addHistory("Multiplied with data[" + str(select) + "]")
+        return lambda self: self.divideSpec(data, select=select)
 
+    def divideSpec(self, data, dataImag=0, select=slice(None)):
+        if isinstance(select, string_types):
+            select = safeEval(select)
+        try:
+            data = np.array(data) + 1j * np.array(dataImag)
+            self.data[select] = self.data[select] / data
+        except ValueError as error:
+            self.dispMsg(str(error))
+            return None
+        self.addHistory("Divided by data[" + str(select) + "]")
+        return lambda self: self.multiplySpec(data, select=select)
+    
     def multiply(self, mult, axes, multImag=0, select=slice(None)):
         if isinstance(select, string_types):
             select = safeEval(select)
@@ -193,7 +247,7 @@ class Spectrum:
             return None
         self.addHistory("Multiplied dimension " + str(axes + 1) + " of data[" + str(select) + "]: " + str(mult).replace('\n', ''))
         return returnValue
-
+    
     def baselineCorrection(self, baseline, axes, baselineImag=0, select=slice(None)):
         if isinstance(select, string_types):
             select = safeEval(select)
@@ -271,7 +325,13 @@ class Spectrum:
         self.data = np.abs(self.data)
         self.addHistory("Absolute")
         return returnValue
-
+    
+    def conj(self):
+        copyData = copy.deepcopy(self)
+        self.data = np.conj(self.data)
+        self.addHistory("Complex conjugate")
+        return lambda self: self.conj()
+    
     def states(self, axes):
         axes = self.checkAxes(axes)
         if axes is None:
@@ -320,7 +380,7 @@ class Spectrum:
             return None
         slicing1 = (slice(None), ) * axes + (slice(None, None, 2), ) + (slice(None), ) * (self.data.ndim - 1 - axes)
         slicing2 = (slice(None), ) * axes + (slice(1, None, 2), ) + (slice(None), ) * (self.data.ndim - 1 - axes)
-        tmpdata = np.real(self.data[slicing1] + self.data[slicing2]) - 1j * np.real(self.data[slicing1] - self.data[slicing2])
+        tmpdata = np.real(self.data[slicing1] + self.data[slicing2]) - 1j * np.imag(self.data[slicing1] - self.data[slicing2])
         self.data = tmpdata
         self.resetXax(axes)
         self.addHistory("Echo-antiecho conversion on dimension " + str(axes + 1))
@@ -428,6 +488,7 @@ class Spectrum:
                 self.data = tmpdata[0]
                 self.freq = np.delete(self.freq, axes)
                 self.ref = np.delete(self.ref, axes)
+#                del self.ref[axes]
                 self.sw = np.delete(self.sw, axes)
                 self.spec = np.delete(self.spec, axes)
                 self.wholeEcho = np.delete(self.wholeEcho, axes)
@@ -593,7 +654,7 @@ class Spectrum:
             newFxax = np.fft.fftshift(np.fft.fftfreq(tmpdata.shape[axes], 1.0 / tmpsw[axes]))[0]
             if tmpref[axes] is None:
                 tmpref[axes] = tmpfreq[axes]
-            tmpfreq[axes] = tmpfreq[axes] - newFxax + oldFxax
+            tmpfreq[axes] = tmpref[axes] - newFxax + oldFxax   
         newSpec = Spectrum(self.name,
                            tmpdata,
                            self.filePath,
@@ -685,6 +746,40 @@ class Spectrum:
         self.addHistory("Hilbert transform on dimension " + str(axes + 1))
         return returnValue
 
+    def autoPhase(self, phaseNum, axes, locList):
+        axes = self.checkAxes(axes)
+        if axes is None:
+            return None
+        if len(locList) != self.data.ndim-1:
+            self.dispMsg("Data does not have the correct number of dimensions")
+            return None
+        if np.any(locList >= np.delete(self.data.shape, axes)) or np.any(np.array(locList) < 0):
+            self.dispMsg("The location array contains invalid indices")
+            return None
+        tmp = self.data[tuple(locList[:axes]) + (slice(None), ) + tuple(locList[axes:])]
+        if phaseNum == 0:
+            phases = scipy.optimize.minimize(ACMEentropy, [0], (tmp, self.sw[axes], self.spec[axes], False), method='Powell')
+            phase0 = phases['x']
+            phase1 = 0.0
+        elif phaseNum == 1:
+            phases = scipy.optimize.minimize(ACMEentropy, [0, 0], (tmp, self.sw[axes], self.spec[axes]), method='Powell')
+            phase0 = phases['x'][0]
+            phase1 = phases['x'][1]
+        if self.ref[axes] is None:
+            offset = 0
+        else:
+            offset = self.freq[axes] - self.ref[axes]
+        vector = np.exp(np.fft.fftshift(np.fft.fftfreq(self.data.shape[axes], 1.0 / self.sw[axes]) + offset) / self.sw[axes] * phase1 * 1j)
+        if self.spec[axes] == 0:
+            self.fourier(axes, tmp=True)
+        self.data = self.data * np.exp(phase0 * 1j)
+        self.data = np.apply_along_axis(np.multiply, axes, self.data, vector)
+        if self.spec[axes] == 0:
+            self.fourier(axes, tmp=True, inv=True)
+        Message = "Autophase: phase0 = " + str(phase0 * 180 / np.pi) + " and phase1 = " + str(phase1 * 180 / np.pi) + " for dimension " + str(axes + 1)
+        self.addHistory(Message)
+        return lambda self: self.setPhase(-phase0, -phase1, axes)
+    
     def setPhase(self, phase0, phase1, axes, select=slice(None)):
         if isinstance(select, string_types):
             select = safeEval(select)
@@ -702,7 +797,6 @@ class Spectrum:
         self.data[select] = np.apply_along_axis(np.multiply, axes, self.data, vector)[select]
         if self.spec[axes] == 0:
             self.fourier(axes, tmp=True, inv=True)
-
         Message = "Phasing: phase0 = " + str(phase0 * 180 / np.pi) + " and phase1 = " + str(phase1 * 180 / np.pi) + " for dimension " + str(axes + 1)
         if select != slice(None, None, None):
             Message = Message + " of data[" + str(select) + "]"
@@ -724,7 +818,7 @@ class Spectrum:
         t = np.arange(0, axLen) / self.sw[axes]
         if shifting != 0.0:
             for j in range(self.data.shape[shiftingAxes]):
-                shift1 = shift + shifting * j * self.data.shape[shiftingAxes] / self.sw[shiftingAxes]
+                shift1 = shift + shifting * j / self.sw[shiftingAxes]
                 t2 = t - shift1
                 x = np.ones(axLen)
                 if lor is not None:
@@ -816,7 +910,6 @@ class Spectrum:
             self.ref[axes] = float(ref)
             self.addHistory("Reference frequency set to " + str(ref * 1e-6) + " MHz for dimension " + str(axes + 1))
         self.resetXax(axes)
-
         return lambda self: self.setRef(oldRef, axes)
 
     def setWholeEcho(self, val, axes):
@@ -839,8 +932,7 @@ class Spectrum:
             slicing1 = (slice(None), ) * axes + (slice(None, pos), ) + (slice(None), ) * (self.data.ndim - 1 - axes)
             slicing2 = (slice(None), ) * axes + (slice(pos, None), ) + (slice(None), ) * (self.data.ndim - 1 - axes)
             self.data = np.concatenate((np.pad(self.data[slicing1], [(0, 0)] * axes + [(0, size - self.data.shape[axes])] + [(0, 0)] * (self.data.ndim - axes - 1), 'constant', constant_values=0),
-                                        self.data[slicing2]),
-                                       axes)
+                                        self.data[slicing2]), axes)
         else:
             difference = self.data.shape[axes] - size
             removeBegin = int(np.floor(difference / 2))
@@ -966,24 +1058,6 @@ class Spectrum:
             Message = Message + " of data[" + str(select) + "]"
         self.addHistory(Message)
         return returnValue
-#
-#    def LPSVD(self, axes):
-#        axes = self.checkAxes(axes)
-#        if axes == None:
-#            return None
-#        M = 1 #Number of frequencies
-#        y = self.data[axes][0:100]
-#        N = y.shape[0]						# # of complex data points in FID
-#        L = np.floor(N*3/4)						# linear prediction order L = 3/4*N
-#        A = scipy.linalg.hankel(np.conj(y[1:N-L+1]), np.conj(y[N-L:N]))	# backward prediction data matrix
-#        h = np.conj(y[0:N-L])					# backward prediction data vector
-#        U, S, V = np.linalg.svd(A)					# singular value decomposition
-#        S = np.diag(S)
-#        bias = np.mean(S[M:np.min([N-L-1, L])])	# bias compensation
-#        PolyCoef = np.dot(-V[:, 0:M], np.dot(np.diag(1/(S[0:M]-bias)), np.dot(np.transpose(U[:, 0:M]), h)))	# prediction polynomial coefficients
-#        s = np.conj(np.log(np.roots(np.append(PolyCoef[::-1], 1))))		# polynomial rooting
-#        s = s[np.where(np.real(s)<0)[0]]
-#        a = 1
 
     def fourier(self, axes, tmp=False, inv=False):
         axes = self.checkAxes(axes)
@@ -1143,8 +1217,39 @@ class Spectrum:
         pool.close()
         pool.join()
         self.data = np.fft.ifft(np.rollaxis(np.array(fit.get()).reshape(tmpShape), -1, axes), axis=axes)
-        self.addHistory("CLEAN reconstruction of dimension " + str(axes + 1) + " at positions " + str(pos))
+        self.addHistory("CLEAN reconstruction (gamma = " + str(gamma) + " , threshold = " + str(threshold) + " , maxIter = " + str(maxIter) + ") " + 
+        "of dimension " + str(axes + 1) + " at positions " + str(pos))
         return returnValue
+        
+    def ist(self,pos, typeVal, axes, threshold, maxIter,tracelimit)  :
+        axes = self.checkAxes(axes)
+        if axes is None:
+            return None
+        copyData = copy.deepcopy(self)
+        returnValue = lambda self: self.restoreData(copyData, None)
+        # pos contains the values of fixed points which not to be translated to missing points
+        posList = np.delete(range(self.data.shape[axes]), pos)
+        if typeVal == 1:  # type is States or States-TPPI, the positions need to be divided by 2
+            posList = np.array(np.floor(posList / 2), dtype=int)
+        elif typeVal == 2:  # type is TPPI, for now handle the same as Complex
+            pass
+        NDmax = np.max(np.max(np.abs(np.real(np.fft.fft(self.data,axis=axes))))) #Get max of ND matrix
+        
+        tmpData = np.rollaxis(self.data, axes, self.data.ndim)
+        tmpShape = tmpData.shape
+        tmpData = tmpData.reshape((int(tmpData.size / tmpShape[-1]), tmpShape[-1]))
+        
+        pool = multiprocessing.Pool(multiprocessing.cpu_count())
+        fit = pool.map_async(ist, [(i, posList, threshold, maxIter, tracelimit,NDmax ) for i in tmpData])
+        pool.close()
+        pool.join()
+        self.data = np.rollaxis(np.array(fit.get()).reshape(tmpShape), -1, axes)
+        
+        self.addHistory("IST reconstruction (threshold = " + str(threshold) + " , maxIter = " + str(maxIter) + " , tracelimit = " + str(tracelimit*100) + ") " + 
+        "of dimension " + str(axes + 1) + " at positions " + str(pos))
+        return returnValue
+
+    
 
     def getSlice(self, axes, locList):
         axes = self.checkAxes(axes)
@@ -1233,11 +1338,11 @@ class Current1D(Plot1DFrame):
         self.wholeEcho = None
         self.ref = None  # reference frequency
         if duplicateCurrent is None:
-            self.ppm = False             # display frequency as ppm
+            self.ppm = self.root.father.defaultPPM             # display frequency as ppm
             self.axes = len(self.data.data.shape) - 1
             self.resetLocList()
             self.plotType = 0
-            self.axType = 1
+            self.axType = self.root.father.defaultUnits
             self.color = self.root.father.defaultColor                  # color of the main line
             self.linewidth = self.root.father.defaultLinewidth
             self.grids = self.root.father.defaultGrids                  # display x and y grid
@@ -1434,9 +1539,10 @@ class Current1D(Plot1DFrame):
                 self.dispMsg('shiftingAxes cannot be equal to axes')
                 return
             elif shiftingAxes < self.axes:
-                shift += shifting * self.locList[shiftingAxes] * self.data.data.shape[shiftingAxes] / self.data.sw[shiftingAxes]
+#                shift1 = shift + shifting * j *  / self.sw[shiftingAxes]
+                shift += shifting * self.locList[shiftingAxes] / self.data.sw[shiftingAxes]
             else:
-                shift += shifting * self.locList[shiftingAxes - 1] * self.data.data.shape[shiftingAxes] / self.data.sw[shiftingAxes]
+                shift += shifting * self.locList[shiftingAxes - 1] / self.data.sw[shiftingAxes]
         length = len(self.data1D)
         t = np.arange(0, length) / (self.sw)
         t2 = t - shift
@@ -1451,7 +1557,7 @@ class Current1D(Plot1DFrame):
             alpha = 0.53836  # constant for hamming window
             x = x * (alpha + (1 - alpha) * np.cos(hamming * (-0.5 * shift * np.pi * self.sw / length + np.linspace(0, np.pi, length))))
         if self.wholeEcho:
-            x[-1:-(len(x) / 2 + 1):-1] = x[:len(x) / 2]
+            x[-1:-(int(len(x) / 2 + 1)):-1] = x[:int(len(x) / 2)]
         self.ax.cla()
         y = self.data1D
         if self.spec == 1:
@@ -1491,10 +1597,27 @@ class Current1D(Plot1DFrame):
         return returnValue
 
     def setRef(self, ref):  # set the frequency of the actual data
+        oldref = self.ref
+        if oldref == None:
+            oldref = self.freq
         returnValue = self.data.setRef(ref, self.axes)
+        if ref == None:
+            ref = self.freq
+        val = self.axType 
+        if self.spec == 1:
+            if self.ppm:
+                self.xminlim = (self.xminlim * oldref * 10**-6 + oldref - ref)/(ref * 10**-6)
+                self.xmaxlim = (self.xmaxlim * oldref * 10**-6 + oldref - ref)/(ref * 10**-6)
+            else:
+                self.xminlim = self.xminlim + (oldref - ref)/10**(val*3) #set new limits, and scale for axis type
+                self.xmaxlim = self.xmaxlim + (oldref - ref)/10**(val*3)
+        
         self.upd()
-        self.plotReset()
+#        self.plotReset()        
         self.showFid()
+        
+        
+#        self.setAxType(0)
         self.root.addMacro(['ref', (ref, self.axes - self.data.data.ndim)])
         return returnValue
 
@@ -1517,8 +1640,17 @@ class Current1D(Plot1DFrame):
             tmpData = np.abs(tmpData)
         return (np.amax(tmpData[minP:maxP]) / (np.std(tmpData[minN:maxN])))
 
-    def fwhm(self, minPeak, maxPeak):
+    def fwhm(self, minPeak, maxPeak, unitType=None):
         from scipy.interpolate import UnivariateSpline
+        if unitType is None:
+            axType = self.axType
+            ppm = self.ppm
+        else:
+            axType = unitType
+            if unitType == 3: # ppm
+                ppm = 1
+            else:
+                ppm = 0
         minP = min(minPeak, maxPeak)
         maxP = max(minPeak, maxPeak)
         if len(self.data1D.shape) > 1:
@@ -1535,12 +1667,15 @@ class Current1D(Plot1DFrame):
             tmpData = np.abs(tmpData)
         maxPos = np.argmax(tmpData[minP:maxP])
         if self.spec == 1:
-            if self.ppm:
-                axMult = 1e6 / self.ref
+            if ppm:
+                if self.ref is not None:
+                    axMult = 1e6 / self.ref
+                else:                    
+                    axMult = 1e6 / self.freq
             else:
-                axMult = 1.0 / (1000.0**self.axType)
+                axMult = 1.0 / (1000.0**axType)
         elif self.spec == 0:
-            axMult = 1000.0**self.axType
+            axMult = 1000.0**axType
         x = self.xax * axMult
         maxX = x[minP:maxP][maxPos]
         spline = UnivariateSpline(x, tmpData - tmpData[minP:maxP][maxPos] / 2.0, s=0)
@@ -1649,6 +1784,8 @@ class Current1D(Plot1DFrame):
     def changeSpec(self, val):  # change from time to freq domain of the actual data
         returnValue = self.data.changeSpec(val, self.axes)
         self.upd()
+        if isinstance(self, CurrentArrayed):
+            self.resetSpacing()
         self.plotReset()
         self.showFid()
         self.root.addMacro(['spec', (val, self.axes - self.data.data.ndim)])
@@ -1813,7 +1950,7 @@ class Current1D(Plot1DFrame):
         if newSpec:
             return self.data.matrixManipNew(pos1, pos2, self.axes, 0)
         else:
-            self.root.addMacro(['integrate', (list(pos1), list(pos2), self.axes - self.data.data.ndim, )])
+            self.root.addMacro(['integrate', (pos1.tolist(), pos2.tolist(), self.axes - self.data.data.ndim, )])
             returnValue = self.data.matrixManip(pos1, pos2, self.axes, 0)
             if self.upd():
                 self.plotReset()
@@ -1824,7 +1961,7 @@ class Current1D(Plot1DFrame):
         if newSpec:
             return self.data.matrixManipNew(pos1, pos2, self.axes, 5)
         else:
-            self.root.addMacro(['sum', (list(pos1), list(pos2), self.axes - self.data.data.ndim, )])
+            self.root.addMacro(['sum', (pos1.tolist(), pos2.tolist(), self.axes - self.data.data.ndim, )])
             returnValue = self.data.matrixManip(pos1, pos2, self.axes, 5)
             if self.upd():
                 self.plotReset()
@@ -1835,7 +1972,7 @@ class Current1D(Plot1DFrame):
         if newSpec:
             return self.data.matrixManipNew(pos1, pos2, self.axes, 1)
         else:
-            self.root.addMacro(['max', (list(pos1), list(pos2), self.axes - self.data.data.ndim, )])
+            self.root.addMacro(['max', (pos1.tolist(), pos2.tolist(), self.axes - self.data.data.ndim, )])
             returnValue = self.data.matrixManip(pos1, pos2, self.axes, 1)
             if self.upd():
                 self.plotReset()
@@ -1846,7 +1983,7 @@ class Current1D(Plot1DFrame):
         if newSpec:
             return self.data.matrixManipNew(pos1, pos2, self.axes, 2)
         else:
-            self.root.addMacro(['min', (list(pos1), list(pos2), self.axes - self.data.data.ndim, )])
+            self.root.addMacro(['min', (pos1.tolist(), pos2.tolist(), self.axes - self.data.data.ndim, )])
             returnValue = self.data.matrixManip(pos1, pos2, self.axes, 2)
             if self.upd():
                 self.plotReset()
@@ -1857,7 +1994,7 @@ class Current1D(Plot1DFrame):
         if newSpec:
             return self.data.matrixManipNew(pos1, pos2, self.axes, 3)
         else:
-            self.root.addMacro(['argmax', (list(pos1), list(pos2), self.axes - self.data.data.ndim, )])
+            self.root.addMacro(['argmax', (pos1.tolist(), pos2.tolist(), self.axes - self.data.data.ndim, )])
             returnValue = self.data.matrixManip(pos1, pos2, self.axes, 3)
             if self.upd():
                 self.plotReset()
@@ -1868,7 +2005,7 @@ class Current1D(Plot1DFrame):
         if newSpec:
             return self.data.matrixManipNew(pos1, pos2, self.axes, 4)
         else:
-            self.root.addMacro(['argmin', (list(pos1), list(pos2), self.axes - self.data.data.ndim, )])
+            self.root.addMacro(['argmin', (pos1.tolist(), pos2.tolist(), self.axes - self.data.data.ndim, )])
             returnValue = self.data.matrixManip(pos1, pos2, self.axes, 4)
             if self.upd():
                 self.plotReset()
@@ -1879,7 +2016,7 @@ class Current1D(Plot1DFrame):
         if newSpec:
             return self.data.matrixManipNew(pos1, pos2, self.axes, 6)
         else:
-            self.root.addMacro(['average', (list(pos1), list(pos2), self.axes - self.data.data.ndim, )])
+            self.root.addMacro(['average', (pos1.tolist(), pos2.tolist(), self.axes - self.data.data.ndim, )])
             returnValue = self.data.matrixManip(pos1, pos2, self.axes, 6)
             if self.upd():
                 self.plotReset()
@@ -1966,7 +2103,29 @@ class Current1D(Plot1DFrame):
         self.showFid()
         self.root.addMacro(['subtract', (np.real(data).tolist(), np.imag(data).tolist(), str(selectSlice))])
         return returnValue
+    
+    def multiplySpec(self, data, select=False):
+        if select:
+            selectSlice = self.getSelect()
+        else:
+            selectSlice = slice(None)
+        returnValue = self.data.multiplySpec(data, select=selectSlice)
+        self.upd()
+        self.showFid()
+        self.root.addMacro(['multiplySpec', (np.real(data).tolist(), np.imag(data).tolist(), str(selectSlice))])
+        return returnValue
 
+    def divideSpec(self, data, select=False):
+        if select:
+            selectSlice = self.getSelect()
+        else:
+            selectSlice = slice(None)
+        returnValue = self.data.divideSpec(data, select=selectSlice)
+        self.upd()
+        self.showFid()
+        self.root.addMacro(['divideSpec', (np.real(data).tolist(), np.imag(data).tolist(), str(selectSlice))])
+        return returnValue
+    
     def multiply(self, data, select=False):
         if select:
             selectSlice = self.getSelect()
@@ -1977,7 +2136,7 @@ class Current1D(Plot1DFrame):
         self.showFid()
         self.root.addMacro(['multiply', (np.real(data).tolist(), self.axes - self.data.data.ndim, np.imag(data).tolist(), str(selectSlice))])
         return returnValue
-
+    
     def multiplyPreview(self, data):
         self.upd()
         self.data1D = self.data1D * data
@@ -2051,46 +2210,45 @@ class Current1D(Plot1DFrame):
         self.showFid()
         self.root.addMacro(['clean', (posList, typeVal, self.axes - self.data.data.ndim, gamma, threshold, maxIter)])
         return returnValue
+        
+    def ist(self, posList, typeVal, threshold, maxIter, tracelimit):
+        returnValue = self.data.ist(posList, typeVal, self.axes, threshold, maxIter,tracelimit)
+        self.upd()
+        self.showFid()
+#        self.root.addMacro(['clean', (posList, typeVal, self.axes - self.data.data.ndim, gamma, threshold, maxIter)])
+        return returnValue
 
-    def ACMEentropy(self, phaseIn, phaseAll=True):
+    def autoPhase(self, phaseNum):
+        self.upd()
         if len(self.data1D.shape) > 1:
             tmp = self.data1D[0]
         else:
             tmp = self.data1D
-        phase0 = phaseIn[0]
-        if phaseAll:
-            phase1 = phaseIn[1]
-        else:
-            phase1 = 0.0
-        L = len(tmp)
-        if self.spec > 0:
-            x = np.fft.fftshift(np.fft.fftfreq(L, 1.0 / self.sw)) / self.sw
-            s0 = tmp * np.exp(1j * (phase0 + phase1 * x))
-        else:
-            s0 = np.fft.fftshift(np.fft.fft(tmp)) * np.exp(1j * (phase0 + phase1 * x))
-        s2 = np.real(s0)
-        ds1 = np.abs((s2[3:L] - s2[1:L - 2]) / 2.0)
-        p1 = ds1 / sum(ds1)
-        p1[np.where(p1 == 0)] = 1
-        h1 = -p1 * np.log(p1)
-        H1 = sum(h1)
-        Pfun = 0.0
-        as1 = s2 - np.abs(s2)
-        sumas = sum(as1)
-        if (np.real(sumas) < 0):
-            Pfun = Pfun + sum(as1**2) / 4 / L**2
-        return H1 + 1000 * Pfun
-
-    def autoPhase(self, phaseNum):
-        self.upd()
         if phaseNum == 0:
-            phases = scipy.optimize.minimize(self.ACMEentropy, [0], (False, ), method='Powell')
+            phases = scipy.optimize.minimize(ACMEentropy, [0], (tmp, self.sw, self.spec, False), method='Powell')
             phases = [phases['x']]
         elif phaseNum == 1:
-            phases = scipy.optimize.minimize(self.ACMEentropy, [0, 0], method='Powell')
+            phases = scipy.optimize.minimize(ACMEentropy, [0, 0], (tmp, self.sw, self.spec), method='Powell')
             phases = phases['x']
         return phases
 
+    def directAutoPhase(self, phaseNum):
+        tmpLocList = self.locList
+        if len(self.data1D.shape) > 1:
+            if hasattr(self, 'stackBegin'):
+                val = self.stackBegin
+            else:
+                val = 0
+            if self.axes > self.axes2:
+                tmpLocList = np.insert(tmpLocList, self.axes2, val)
+            else:
+                tmpLocList = np.insert(tmpLocList, self.axes2-1, val)
+        returnValue = self.data.autoPhase(phaseNum, self.axes, tmpLocList)
+        self.upd()
+        self.showFid()
+        self.root.addMacro(['autoPhase', (phaseNum, self.axes - self.data.data.ndim, tmpLocList)])
+        return returnValue
+    
     def setXaxPreview(self, xax):
         self.xax = xax
         self.plotReset()
@@ -2191,56 +2349,56 @@ class Current1D(Plot1DFrame):
         if old:
             if (self.plotType == 0):
                 if self.single:
-                    self.ax.scatter(self.line_xdata, np.real(self.data1D), c='k', alpha=0.2, label=self.data.name + '_old')
+                    self.ax.plot(self.line_xdata, np.real(self.data1D), marker='o', linestyle='none', c='k', alpha=0.2, label=self.data.name + '_old', picker=True)
                 else:
-                    self.ax.plot(self.line_xdata, np.real(self.data1D), c='k', alpha=0.2, linewidth=self.linewidth, label=self.data.name + '_old')
+                    self.ax.plot(self.line_xdata, np.real(self.data1D), c='k', alpha=0.2, linewidth=self.linewidth, label=self.data.name + '_old', picker=True)
             elif(self.plotType == 1):
                 if self.single:
-                    self.ax.scatter(self.line_xdata, np.imag(self.data1D), c='k', alpha=0.2, label=self.data.name + '_old')
+                    self.ax.plot(self.line_xdata, np.imag(self.data1D), marker='o', linestyle='none', c='k', alpha=0.2, label=self.data.name + '_old', picker=True)
                 else:
-                    self.ax.plot(self.line_xdata, np.imag(self.data1D), c='k', alpha=0.2, linewidth=self.linewidth, label=self.data.name + '_old')
+                    self.ax.plot(self.line_xdata, np.imag(self.data1D), c='k', alpha=0.2, linewidth=self.linewidth, label=self.data.name + '_old', picker=True)
             elif(self.plotType == 2):
                 if self.single:
-                    self.ax.scatter(self.line_xdata, np.real(self.data1D), c='k', alpha=0.2, label=self.data.name + '_old')
+                    self.ax.plot(self.line_xdata, np.real(self.data1D), marker='o', linestyle='none', c='k', alpha=0.2, label=self.data.name + '_old', picker=True)
                 else:
-                    self.ax.plot(self.line_xdata, np.real(self.data1D), c='k', alpha=0.2, linewidth=self.linewidth, label=self.data.name + '_old')
+                    self.ax.plot(self.line_xdata, np.real(self.data1D), c='k', alpha=0.2, linewidth=self.linewidth, label=self.data.name + '_old', picker=True)
             elif(self.plotType == 3):
                 if self.single:
-                    self.ax.scatter(self.line_xdata, np.abs(self.data1D), c='k', alpha=0.2, label=self.data.name + '_old')
+                    self.ax.plot(self.line_xdata, np.abs(self.data1D), marker='o', linestyle='none', c='k', alpha=0.2, label=self.data.name + '_old', picker=True)
                 else:
-                    self.ax.plot(self.line_xdata, np.abs(self.data1D), c='k', alpha=0.2, linewidth=self.linewidth, label=self.data.name + '_old')
+                    self.ax.plot(self.line_xdata, np.abs(self.data1D), c='k', alpha=0.2, linewidth=self.linewidth, label=self.data.name + '_old', picker=True)
         if (extraX is not None):
             for num in range(len(extraX)):
                 if self.single:
-                    self.ax.scatter(extraX[num] * axMult, extraY[num], c=extraColor[num])
+                    self.ax.plot(extraX[num] * axMult, extraY[num], marker='o', linestyle='none', c=extraColor[num], picker=True)
                 else:
-                    self.ax.plot(extraX[num] * axMult, extraY[num], c=extraColor[num], linewidth=self.linewidth)
+                    self.ax.plot(extraX[num] * axMult, extraY[num], c=extraColor[num], linewidth=self.linewidth, picker=True)
         if (self.plotType == 0):
             self.line_ydata = np.real(tmpdata)
             if self.single:
-                self.ax.scatter(self.line_xdata, np.real(tmpdata), c=self.color, label=self.data.name)
+                self.ax.plot(self.line_xdata, np.real(tmpdata), marker='o', linestyle='none', c=self.color, label=self.data.name, picker=True)
             else:
-                self.ax.plot(self.line_xdata, np.real(tmpdata), c=self.color, linewidth=self.linewidth, label=self.data.name)
+                self.ax.plot(self.line_xdata, np.real(tmpdata), c=self.color, linewidth=self.linewidth, label=self.data.name, picker=True)
         elif(self.plotType == 1):
             self.line_ydata = np.imag(tmpdata)
             if self.single:
-                self.ax.scatter(self.line_xdata, np.imag(tmpdata), c=self.color, label=self.data.name)
+                self.ax.plot(self.line_xdata, np.imag(tmpdata), marker='o', linestyle='none', c=self.color, label=self.data.name, picker=True)
             else:
-                self.ax.plot(self.line_xdata, np.imag(tmpdata), c=self.color, linewidth=self.linewidth, label=self.data.name)
+                self.ax.plot(self.line_xdata, np.imag(tmpdata), c=self.color, linewidth=self.linewidth, label=self.data.name, picker=True)
         elif(self.plotType == 2):
             self.line_ydata = np.real(tmpdata)
             if self.single:
-                self.ax.scatter(self.line_xdata, np.imag(tmpdata), c='r', label=self.data.name + '_imag')
-                self.ax.scatter(self.line_xdata, np.real(tmpdata), c=self.color, label=self.data.name)
+                self.ax.plot(self.line_xdata, np.imag(tmpdata), marker='o', linestyle='none', c='r', label=self.data.name + '_imag', picker=True)
+                self.ax.plot(self.line_xdata, np.real(tmpdata), marker='o', linestyle='none', c=self.color, label=self.data.name, picker=True)
             else:
-                self.ax.plot(self.line_xdata, np.imag(tmpdata), c='r', linewidth=self.linewidth, label=self.data.name + '_imag')
-                self.ax.plot(self.line_xdata, np.real(tmpdata), c=self.color, linewidth=self.linewidth, label=self.data.name)
+                self.ax.plot(self.line_xdata, np.imag(tmpdata), c='r', linewidth=self.linewidth, label=self.data.name + '_imag', picker=True)
+                self.ax.plot(self.line_xdata, np.real(tmpdata), c=self.color, linewidth=self.linewidth, label=self.data.name, picker=True)
         elif(self.plotType == 3):
             self.line_ydata = np.abs(tmpdata)
             if self.single:
-                self.ax.scatter(self.line_xdata, np.abs(tmpdata), c=self.color, label=self.data.name)
+                self.ax.plot(self.line_xdata, np.abs(tmpdata), marker='o', linestyle='none', c=self.color, label=self.data.name, picker=True)
             else:
-                self.ax.plot(self.line_xdata, np.abs(tmpdata), c=self.color, linewidth=self.linewidth, label=self.data.name)
+                self.ax.plot(self.line_xdata, np.abs(tmpdata), c=self.color, linewidth=self.linewidth, label=self.data.name, picker=True)
         if self.spec == 0:
             if self.axType == 0:
                 self.ax.set_xlabel('Time [s]')
@@ -2299,7 +2457,11 @@ class Current1D(Plot1DFrame):
             self.ymaxlim = maxy + differ
         if self.spec == 1:
             if self.ppm:
-                axMult = 1e6 / self.ref
+                if self.ref == 0.0:
+                    self.ppm = False
+                    axMult = 1.0 / (1000.0**self.axType)
+                else:
+                    axMult = 1e6 / self.ref
             else:
                 axMult = 1.0 / (1000.0**self.axType)
         elif self.spec == 0:
@@ -2338,29 +2500,29 @@ class CurrentScatter(Current1D):
         self.line_xdata = self.xax * axMult
         if old:
             if (self.plotType == 0):
-                self.ax.scatter(self.line_xdata, np.real(self.data1D), c='k', alpha=0.2, label=self.data.name + '_old')
+                self.ax.plot(self.line_xdata, np.real(self.data1D), marker='o', linestyle='none', c='k', alpha=0.2, label=self.data.name + '_old', picker=True)
             elif(self.plotType == 1):
-                self.ax.scatter(self.line_xdata, np.imag(self.data1D), c='k', alpha=0.2, label=self.data.name + '_old')
+                self.ax.plot(self.line_xdata, np.imag(self.data1D), marker='o', linestyle='none', c='k', alpha=0.2, label=self.data.name + '_old', picker=True)
             elif(self.plotType == 2):
-                self.ax.scatter(self.line_xdata, np.real(self.data1D), c='k', alpha=0.2, label=self.data.name + '_old')
+                self.ax.plot(self.line_xdata, np.real(self.data1D), marker='o', linestyle='none', c='k', alpha=0.2, label=self.data.name + '_old', picker=True)
             elif(self.plotType == 3):
-                self.ax.scatter(self.line_xdata, np.abs(self.data1D), c='k', alpha=0.2, label=self.data.name + '_old')
+                self.ax.plot(self.line_xdata, np.abs(self.data1D), marker='o', linestyle='none', c='k', alpha=0.2, label=self.data.name + '_old', picker=True)
         if (extraX is not None):
             for num in range(len(extraX)):
-                self.ax.scatter(extraX[num] * axMult, extraY[num], c=extraColor[num])
+                self.ax.plot(extraX[num] * axMult, extraY[num], marker='o', linestyle='none', c=extraColor[num])
         if (self.plotType == 0):
             self.line_ydata = np.real(tmpdata)
-            self.ax.scatter(self.line_xdata, np.real(tmpdata), c=self.color, label=self.data.name)
+            self.ax.plot(self.line_xdata, np.real(tmpdata), marker='o', linestyle='none', c=self.color, label=self.data.name, picker=True)
         elif(self.plotType == 1):
             self.line_ydata = np.imag(tmpdata)
-            self.ax.scatter(self.line_xdata, np.imag(tmpdata), c=self.color, label=self.data.name)
+            self.ax.plot(self.line_xdata, np.imag(tmpdata), marker='o', linestyle='none', c=self.color, label=self.data.name, picker=True)
         elif(self.plotType == 2):
             self.line_ydata = np.real(tmpdata)
-            self.ax.scatter(self.line_xdata, np.imag(tmpdata), c='r', label=self.data.name + '_imag')
-            self.ax.scatter(self.line_xdata, np.real(tmpdata), c=self.color, label=self.data.name)
+            self.ax.plot(self.line_xdata, np.imag(tmpdata), marker='o', linestyle='none', c='r', label=self.data.name + '_imag', picker=True)
+            self.ax.plot(self.line_xdata, np.real(tmpdata), marker='o', linestyle='none', c=self.color, label=self.data.name, picker=True)
         elif(self.plotType == 3):
             self.line_ydata = np.abs(tmpdata)
-            self.ax.scatter(self.line_xdata, np.abs(tmpdata), c=self.color, label=self.data.name)
+            self.ax.plot(self.line_xdata, np.abs(tmpdata), marker='o', linestyle='none', c=self.color, label=self.data.name, picker=True)
         if self.spec == 0:
             if self.axType == 0:
                 self.ax.set_xlabel('Time [s]')
@@ -2435,6 +2597,11 @@ class CurrentMulti(Current1D):
             self.extraOffset = duplicateCurrent.extraOffset
         else:
             self.extraOffset = []
+        if hasattr(duplicateCurrent, 'extraShift'):
+            self.extraShift = duplicateCurrent.extraShift
+        else:
+            self.extraShift = []    
+            
         Current1D.__init__(self, root, fig, canvas, data, duplicateCurrent)
 
     def setExtraSlice(self, extraNum, axes, locList):  # change the slice
@@ -2453,6 +2620,7 @@ class CurrentMulti(Current1D):
         self.extraAxes.append(len(data.data.shape) - 1)
         self.extraScale.append(1.0)
         self.extraOffset.append(0.0)
+        self.extraShift.append(0.0)
         self.showFid()
 
     def delExtraData(self, num):
@@ -2463,6 +2631,7 @@ class CurrentMulti(Current1D):
         del self.extraAxes[num]
         del self.extraScale[num]
         del self.extraOffset[num]
+        del self.extraShift[num]
         self.showFid()
 
     def setExtraColor(self, num, color):
@@ -2483,7 +2652,12 @@ class CurrentMulti(Current1D):
     def setExtraOffset(self, num, offset):
         self.extraOffset[num] = offset
         self.showFid()
-
+        
+        
+    def setExtraShift(self, num, shift):
+        self.extraShift[num] = shift
+        self.showFid()
+        
     def resetExtraLocList(self, num=None):
         if num is None:
             for i in range(len(self.extraLoc)):
@@ -2509,7 +2683,11 @@ class CurrentMulti(Current1D):
             maxy = 1
         if self.spec == 1:
             if self.ppm:
-                axMult = 1e6 / self.ref
+                if self.ref == 0.0:
+                    self.ppm = False
+                    axMult = 1.0 / (1000.0**self.axType)
+                else:
+                    axMult = 1e6 / self.ref
             else:
                 axMult = 1.0 / (1000.0**self.axType)
         elif self.spec == 0:
@@ -2595,24 +2773,24 @@ class CurrentMulti(Current1D):
             line_xdata = xax * axMult
             if (self.plotType == 0):
                 if len(data1D) == 1:
-                    self.ax.scatter(line_xdata, np.real(data1D) * self.extraScale[i] + self.extraOffset[i], c=self.extraColor[i], label=data.name)
+                    self.ax.plot(line_xdata + self.extraShift[i], np.real(data1D) * self.extraScale[i] + self.extraOffset[i], marker='o', linestyle='none', c=self.extraColor[i], label=data.name, picker=True)
                 else:
-                    self.ax.plot(line_xdata, np.real(data1D) * self.extraScale[i] + self.extraOffset[i], c=self.extraColor[i], linewidth=self.linewidth, label=data.name)
+                    self.ax.plot(line_xdata + self.extraShift[i], np.real(data1D) * self.extraScale[i] + self.extraOffset[i], c=self.extraColor[i], linewidth=self.linewidth, label=data.name, picker=True)
             elif(self.plotType == 1):
                 if len(data1D) == 1:
-                    self.ax.scatter(line_xdata, np.imag(data1D) * self.extraScale[i] + self.extraOffset[i], c=self.extraColor[i], label=data.name)
+                    self.ax.plot(line_xdata + self.extraShift[i], np.imag(data1D) * self.extraScale[i] + self.extraOffset[i], marker='o', linestyle='none', c=self.extraColor[i], label=data.name, picker=True)
                 else:
-                    self.ax.plot(line_xdata, np.imag(data1D) * self.extraScale[i] + self.extraOffset[i], c=self.extraColor[i], linewidth=self.linewidth, label=data.name)
+                    self.ax.plot(line_xdata + self.extraShift[i], np.imag(data1D) * self.extraScale[i] + self.extraOffset[i], c=self.extraColor[i], linewidth=self.linewidth, label=data.name, picker=True)
             elif(self.plotType == 2):
                 if len(data1D) == 1:
-                    self.ax.scatter(line_xdata, np.real(data1D) * self.extraScale[i] + self.extraOffset[i], c=self.extraColor[i], label=data.name)
+                    self.ax.plot(line_xdata + self.extraShift[i], np.real(data1D) * self.extraScale[i] + self.extraOffset[i], marker='o', linestyle='none', c=self.extraColor[i], label=data.name, picker=True)
                 else:
-                    self.ax.plot(line_xdata, np.real(data1D) * self.extraScale[i] + self.extraOffset[i], c=self.extraColor[i], linewidth=self.linewidth, label=data.name)
+                    self.ax.plot(line_xdata + self.extraShift[i], np.real(data1D) * self.extraScale[i] + self.extraOffset[i], c=self.extraColor[i], linewidth=self.linewidth, label=data.name, picker=True)
             elif(self.plotType == 3):
                 if len(data1D) == 1:
-                    self.ax.scatter(line_xdata, np.abs(data1D) * self.extraScale[i] + self.extraOffset[i], c=self.extraColor[i], label=data.name)
+                    self.ax.plot(line_xdata + self.extraShift[i], np.abs(data1D) * self.extraScale[i] + self.extraOffset[i], marker='o', linestyle='none', c=self.extraColor[i], label=data.name, picker=True)
                 else:
-                    self.ax.plot(line_xdata, np.abs(data1D) * self.extraScale[i] + self.extraOffset[i], c=self.extraColor[i], linewidth=self.linewidth, label=data.name)
+                    self.ax.plot(line_xdata + self.extraShift[i], np.abs(data1D) * self.extraScale[i] + self.extraOffset[i], c=self.extraColor[i], linewidth=self.linewidth, label=data.name, picker=True)
         if tmpdata is None:
             tmpdata = self.data1D
         if self.spec == 1:
@@ -2626,56 +2804,56 @@ class CurrentMulti(Current1D):
         if old:
             if (self.plotType == 0):
                 if self.single:
-                    self.ax.scatter(self.line_xdata, np.real(self.data1D), c='k', alpha=0.2, label=self.data.name + '_old')
+                    self.ax.plot(self.line_xdata, np.real(self.data1D), marker='o', linestyle='none', c='k', alpha=0.2, label=self.data.name + '_old', picker=True)
                 else:
-                    self.ax.plot(self.line_xdata, np.real(self.data1D), c='k', alpha=0.2, linewidth=self.linewidth, label=self.data.name + '_old')
+                    self.ax.plot(self.line_xdata, np.real(self.data1D), c='k', alpha=0.2, linewidth=self.linewidth, label=self.data.name + '_old', picker=True)
             elif(self.plotType == 1):
                 if self.single:
-                    self.ax.scatter(self.line_xdata, np.imag(self.data1D), c='k', alpha=0.2, label=self.data.name + '_old')
+                    self.ax.plot(self.line_xdata, np.imag(self.data1D), marker='o', linestyle='none', c='k', alpha=0.2, label=self.data.name + '_old', picker=True)
                 else:
-                    self.ax.plot(self.line_xdata, np.imag(self.data1D), c='k', alpha=0.2, linewidth=self.linewidth, label=self.data.name + '_old')
+                    self.ax.plot(self.line_xdata, np.imag(self.data1D), c='k', alpha=0.2, linewidth=self.linewidth, label=self.data.name + '_old', picker=True)
             elif(self.plotType == 2):
                 if self.single:
-                    self.ax.scatter(self.line_xdata, np.real(self.data1D), c='k', alpha=0.2, label=self.data.name + '_old')
+                    self.ax.plot(self.line_xdata, np.real(self.data1D), marker='o', linestyle='none', c='k', alpha=0.2, label=self.data.name + '_old', picker=True)
                 else:
-                    self.ax.plot(self.line_xdata, np.real(self.data1D), c='k', alpha=0.2, linewidth=self.linewidth, label=self.data.name + '_old')
+                    self.ax.plot(self.line_xdata, np.real(self.data1D), c='k', alpha=0.2, linewidth=self.linewidth, label=self.data.name + '_old', picker=True)
             elif(self.plotType == 3):
                 if self.single:
-                    self.ax.scatter(self.line_xdata, np.abs(self.data1D), c='k', alpha=0.2, label=self.data.name + '_old')
+                    self.ax.plot(self.line_xdata, np.abs(self.data1D), marker='o', linestyle='none', c='k', alpha=0.2, label=self.data.name + '_old', picker=True)
                 else:
-                    self.ax.plot(self.line_xdata, np.abs(self.data1D), c='k', alpha=0.2, linewidth=self.linewidth, label=self.data.name + '_old')
+                    self.ax.plot(self.line_xdata, np.abs(self.data1D), c='k', alpha=0.2, linewidth=self.linewidth, label=self.data.name + '_old', picker=True)
         if (extraX is not None):
             for num in range(len(extraX)):
                 if self.single:
-                    self.ax.scatter(extraX[num] * axMult, extraY[num], c=extraColor[num])
+                    self.ax.plot(extraX[num] * axMult, extraY[num], marker='o', linestyle='none', c=extraColor[num], picker=True)
                 else:
-                    self.ax.plot(extraX[num] * axMult, extraY[num], linewidth=self.linewidth, c=extraColor[num])
+                    self.ax.plot(extraX[num] * axMult, extraY[num], linewidth=self.linewidth, c=extraColor[num], picker=True)
         if (self.plotType == 0):
             self.line_ydata = np.real(tmpdata)
             if self.single:
-                self.ax.scatter(self.line_xdata, np.real(tmpdata), c=self.color, label=self.data.name)
+                self.ax.plot(self.line_xdata, np.real(tmpdata), marker='o', linestyle='none', c=self.color, label=self.data.name, picker=True)
             else:
-                self.ax.plot(self.line_xdata, np.real(tmpdata), c=self.color, linewidth=self.linewidth, label=self.data.name)
+                self.ax.plot(self.line_xdata, np.real(tmpdata), c=self.color, linewidth=self.linewidth, label=self.data.name, picker=True)
         elif(self.plotType == 1):
             self.line_ydata = np.imag(tmpdata)
             if self.single:
-                self.ax.scatter(self.line_xdata, np.imag(tmpdata), c=self.color, label=self.data.name)
+                self.ax.plot(self.line_xdata, np.imag(tmpdata), marker='o', linestyle='none', c=self.color, label=self.data.name, picker=True)
             else:
-                self.ax.plot(self.line_xdata, np.imag(tmpdata), c=self.color, linewidth=self.linewidth, label=self.data.name)
+                self.ax.plot(self.line_xdata, np.imag(tmpdata), c=self.color, linewidth=self.linewidth, label=self.data.name, picker=True)
         elif(self.plotType == 2):
             self.line_ydata = np.real(tmpdata)
             if self.single:
-                self.ax.scatter(self.line_xdata, np.imag(tmpdata), c='r', label=self.data.name + '_imag')
-                self.ax.scatter(self.line_xdata, np.real(tmpdata), c=self.color, label=self.data.name)
+                self.ax.plot(self.line_xdata, np.imag(tmpdata), marker='o', linestyle='none', c='r', label=self.data.name + '_imag', picker=True)
+                self.ax.plot(self.line_xdata, np.real(tmpdata), marker='o', linestyle='none', c=self.color, label=self.data.name, picker=True)
             else:
-                self.ax.plot(self.line_xdata, np.imag(tmpdata), c='r', linewidth=self.linewidth, label=self.data.name + '_imag')
-                self.ax.plot(self.line_xdata, np.real(tmpdata), c=self.color, linewidth=self.linewidth, label=self.data.name)
+                self.ax.plot(self.line_xdata, np.imag(tmpdata), c='r', linewidth=self.linewidth, label=self.data.name + '_imag', picker=True)
+                self.ax.plot(self.line_xdata, np.real(tmpdata), c=self.color, linewidth=self.linewidth, label=self.data.name, picker=True)
         elif(self.plotType == 3):
             self.line_ydata = np.abs(tmpdata)
             if self.single:
-                self.ax.scatter(self.line_xdata, np.abs(tmpdata), c=self.color, label=self.data.name)
+                self.ax.plot(self.line_xdata, np.abs(tmpdata), marker='o', linestyle='none', c=self.color, label=self.data.name, picker=True)
             else:
-                self.ax.plot(self.line_xdata, np.abs(tmpdata), c=self.color, linewidth=self.linewidth, label=self.data.name)
+                self.ax.plot(self.line_xdata, np.abs(tmpdata), c=self.color, linewidth=self.linewidth, label=self.data.name, picker=True)
         if self.spec == 0:
             if self.axType == 0:
                 self.ax.set_xlabel('Time [s]')
@@ -2829,7 +3007,7 @@ class CurrentStacked(Current1D):
                 ar = np.arange(self.data.data.shape[self.axes2])[slice(self.stackBegin, self.stackEnd, self.stackStep)]
                 x = np.ones((len(ar), len(self.data1D[0])))
                 for i in range(len(ar)):
-                    shift1 = shift + shifting * ar[i] * self.data.data.shape[shiftingAxes] / self.data.sw[shiftingAxes]
+                    shift1 = shift + shifting * ar[i] / self.data.sw[shiftingAxes]
                     t2 = t - shift1
                     x2 = np.ones(len(self.data1D[0]))
                     if lor is not None:
@@ -2951,33 +3129,33 @@ class CurrentStacked(Current1D):
             if (self.plotType == 0):
                 for num in range(len(self.data1D)):
                     if self.single:
-                        self.ax.scatter(self.line_xdata, num * self.spacing + np.real(self.data1D[num]), c='k', alpha=0.2, label=self.data.name + '_old')
+                        self.ax.plot(self.line_xdata, num * self.spacing + np.real(self.data1D[num]), marker='o', linestyle='none', c='k', alpha=0.2, label=self.data.name + '_old', picker=True)
                     else:
-                        self.ax.plot(self.line_xdata, num * self.spacing + np.real(self.data1D[num]), c='k', alpha=0.2, linewidth=self.linewidth, label=self.data.name + '_old')
+                        self.ax.plot(self.line_xdata, num * self.spacing + np.real(self.data1D[num]), c='k', alpha=0.2, linewidth=self.linewidth, label=self.data.name + '_old', picker=True)
             elif(self.plotType == 1):
                 for num in range(len(self.data1D)):
                     if self.single:
-                        self.ax.scatter(self.line_xdata, num * self.spacing + np.imag(self.data1D[num]), c='k', alpha=0.2, label=self.data.name + '_old')
+                        self.ax.plot(self.line_xdata, num * self.spacing + np.imag(self.data1D[num]), marker='o', linestyle='none', c='k', alpha=0.2, label=self.data.name + '_old', picker=True)
                     else:
-                        self.ax.plot(self.line_xdata, num * self.spacing + np.imag(self.data1D[num]), c='k', alpha=0.2, linewidth=self.linewidth, label=self.data.name + '_old')
+                        self.ax.plot(self.line_xdata, num * self.spacing + np.imag(self.data1D[num]), c='k', alpha=0.2, linewidth=self.linewidth, label=self.data.name + '_old', picker=True)
             elif(self.plotType == 2):
                 for num in range(len(self.data1D)):
                     if self.single:
-                        self.ax.scatter(self.line_xdata, num * self.spacing + np.real(self.data1D[num]), c='k', alpha=0.2, label=self.data.name + '_old')
+                        self.ax.plot(self.line_xdata, num * self.spacing + np.real(self.data1D[num]), marker='o', linestyle='none', c='k', alpha=0.2, label=self.data.name + '_old', picker=True)
                     else:
-                        self.ax.plot(self.line_xdata, num * self.spacing + np.real(self.data1D[num]), c='k', alpha=0.2, linewidth=self.linewidth, label=self.data.name + '_old')
+                        self.ax.plot(self.line_xdata, num * self.spacing + np.real(self.data1D[num]), c='k', alpha=0.2, linewidth=self.linewidth, label=self.data.name + '_old', picker=True)
             elif(self.plotType == 3):
                 for num in range(len(self.data1D)):
                     if self.single:
-                        self.ax.scatter(self.line_xdata, num * self.spacing + np.abs(self.data1D[num]), c='k', alpha=0.2, label=self.data.name + '_old')
+                        self.ax.plot(self.line_xdata, num * self.spacing + np.abs(self.data1D[num]), marker='o', linestyle='none', c='k', alpha=0.2, label=self.data.name + '_old', picker=True)
                     else:
-                        self.ax.plot(self.line_xdata, num * self.spacing + np.abs(self.data1D[num]), c='k', alpha=0.2, linewidth=self.linewidth, label=self.data.name + '_old')
+                        self.ax.plot(self.line_xdata, num * self.spacing + np.abs(self.data1D[num]), c='k', alpha=0.2, linewidth=self.linewidth, label=self.data.name + '_old', picker=True)
         if (extraX is not None):
             for num in range(len(extraY)):
                 if self.single:
-                    self.ax.scatter(extraX[0] * axMult, num * self.spacing + extraY[num], c=extraColor[0])
+                    self.ax.plot(extraX[0] * axMult, num * self.spacing + extraY[num], marker='o', linestyle='none', c=extraColor[0], picker=True)
                 else:
-                    self.ax.plot(extraX[0] * axMult, num * self.spacing + extraY[num], linewidth=self.linewidth, c=extraColor[0])
+                    self.ax.plot(extraX[0] * axMult, num * self.spacing + extraY[num], linewidth=self.linewidth, c=extraColor[0], picker=True)
         if (self.plotType == 0):
             tmpdata = np.real(tmpdata)
         elif (self.plotType == 1):
@@ -2988,13 +3166,13 @@ class CurrentStacked(Current1D):
         if self.single:
             for num in range(len(tmpdata)):
                 if (self.plotType == 2):
-                    self.ax.scatter(self.line_xdata, num * self.spacing + np.imag(tmpdata[num]), c='r', label=self.data.name + '_imag')
-                self.ax.scatter(self.line_xdata, num * self.spacing + np.real(tmpdata[num]), c=self.color, label=self.data.name)
+                    self.ax.plot(self.line_xdata, num * self.spacing + np.imag(tmpdata[num]), marker='o', linestyle='none', c='r', label=self.data.name + '_imag', picker=True)
+                self.ax.plot(self.line_xdata, num * self.spacing + np.real(tmpdata[num]), marker='o', linestyle='none', c=self.color, label=self.data.name, picker=True)
         else:
             for num in range(len(tmpdata)):
                 if (self.plotType == 2):
-                    self.ax.plot(self.line_xdata, num * self.spacing + np.imag(tmpdata[num]), c='r', linewidth=self.linewidth, label=self.data.name + '_imag')
-                self.ax.plot(self.line_xdata, num * self.spacing + np.real(tmpdata[num]), c=self.color, linewidth=self.linewidth, label=self.data.name)
+                    self.ax.plot(self.line_xdata, num * self.spacing + np.imag(tmpdata[num]), c='r', linewidth=self.linewidth, label=self.data.name + '_imag', picker=True)
+                self.ax.plot(self.line_xdata, num * self.spacing + np.real(tmpdata[num]), c=self.color, linewidth=self.linewidth, label=self.data.name, picker=True)
         if self.spec == 0:
             if self.axType == 0:
                 self.ax.set_xlabel('Time [s]')
@@ -3053,7 +3231,11 @@ class CurrentStacked(Current1D):
             self.ymaxlim = maxy + differ
         if self.spec == 1:
             if self.ppm:
-                axMult = 1e6 / self.ref
+                if self.ref == 0.0:
+                    self.ppm = False
+                    axMult = 1.0 / (1000.0**self.axType)
+                else:
+                    axMult = 1e6 / self.ref
             else:
                 axMult = 1.0 / (1000.0**self.axType)
         elif self.spec == 0:
@@ -3197,7 +3379,7 @@ class CurrentArrayed(Current1D):
                 ar = np.arange(self.data.data.shape[self.axes2])[slice(self.stackBegin, self.stackEnd, self.stackStep)]
                 x = np.ones((len(ar), len(self.data1D[0])))
                 for i in range(len(ar)):
-                    shift1 = shift + shifting * ar[i] * self.data.data.shape[shiftingAxes] / self.data.sw[shiftingAxes]
+                    shift1 = shift + shifting * ar[i] / self.data.sw[shiftingAxes]
                     t2 = t - shift1
                     x2 = np.ones(len(self.data1D[0]))
                     if lor is not None:
@@ -3318,16 +3500,16 @@ class CurrentArrayed(Current1D):
                 oldData = np.abs(self.data1D)
             for num in range(len(self.data1D)):
                 if self.single:
-                    self.ax.scatter((num * self.spacing + self.xax[xaxZlims]) * axMult, oldData[num][xaxZlims][direc], c='k', alpha=0.2, label=self.data.name + '_old')
+                    self.ax.plot((num * self.spacing + self.xax[xaxZlims]) * axMult, oldData[num][xaxZlims][direc], marker='o', linestyle='none', c='k', alpha=0.2, label=self.data.name + '_old', picker=True)
                 else:
-                    self.ax.plot((num * self.spacing + self.xax[xaxZlims]) * axMult, oldData[num][xaxZlims][direc], c='k', alpha=0.2, linewidth=self.linewidth, label=self.data.name + '_old')
+                    self.ax.plot((num * self.spacing + self.xax[xaxZlims]) * axMult, oldData[num][xaxZlims][direc], c='k', alpha=0.2, linewidth=self.linewidth, label=self.data.name + '_old', picker=True)
         if (extraX is not None):
             extraZlims = (extraX[0] > self.zminlim) & (extraX[0] < self.zmaxlim)
             for num in range(len(extraY)):
                 if self.single:
-                    self.ax.scatter((num * self.spacing + extraX[0][extraZlims]) * axMult, extraY[num][extraZlims][direc], c=extraColor[0])
+                    self.ax.plot((num * self.spacing + extraX[0][extraZlims]) * axMult, extraY[num][extraZlims][direc], marker='o', linestyle='none', c=extraColor[0], picker=True)
                 else:
-                    self.ax.plot((num * self.spacing + extraX[0][extraZlims]) * axMult, extraY[num][extraZlims][direc], linewidth=self.linewidth, c=extraColor[0])
+                    self.ax.plot((num * self.spacing + extraX[0][extraZlims]) * axMult, extraY[num][extraZlims][direc], linewidth=self.linewidth, c=extraColor[0], picker=True)
         if (self.plotType == 0):
             tmpdata = np.real(tmpdata)
         elif(self.plotType == 1):
@@ -3339,40 +3521,31 @@ class CurrentArrayed(Current1D):
         if self.single:
             for num in range(len(tmpdata)):
                 if (self.plotType == 2):
-                    self.ax.scatter((num * self.spacing + self.xax[xaxZlims]) * axMult, np.imag(tmpdata[num][xaxZlims])[direc], c='r', label=self.data.name + '_imag')
+                    self.ax.plot((num * self.spacing + self.xax[xaxZlims]) * axMult, np.imag(tmpdata[num][xaxZlims])[direc], marker='o', linestyle='none', c='r', label=self.data.name + '_imag', picker=True)
                 self.line_xdata = np.append(self.line_xdata, (num * self.spacing + self.xax[xaxZlims]) * axMult)
                 self.line_ydata = np.append(self.line_ydata, np.real(tmpdata[num][xaxZlims])[direc])
-                self.ax.scatter((num * self.spacing + self.xax[xaxZlims]) * axMult, np.real(tmpdata[num][xaxZlims])[direc], c=self.color, label=self.data.name)
+                self.ax.plot((num * self.spacing + self.xax[xaxZlims]) * axMult, np.real(tmpdata[num][xaxZlims])[direc], marker='o', linestyle='none', c=self.color, label=self.data.name, picker=True)
         else:
             for num in range(len(tmpdata)):
                 if (self.plotType == 2):
-                    self.ax.plot((num * self.spacing + self.xax[xaxZlims]) * axMult, np.imag(tmpdata[num])[direc], c='r', linewidth=self.linewidth, label=self.data.name + '_imag')
+                    self.ax.plot((num * self.spacing + self.xax[xaxZlims]) * axMult, np.imag(tmpdata[num])[direc], c='r', linewidth=self.linewidth, label=self.data.name + '_imag', picker=True)
                 self.line_xdata = np.append(self.line_xdata, (num * self.spacing + self.xax[xaxZlims]) * axMult)
                 self.line_ydata = np.append(self.line_ydata, np.real(tmpdata[num][xaxZlims])[direc])
-                self.ax.plot((num * self.spacing + self.xax[xaxZlims]) * axMult, np.real(tmpdata[num][xaxZlims])[direc], c=self.color, linewidth=self.linewidth, label=self.data.name)
+                self.ax.plot((num * self.spacing + self.xax[xaxZlims]) * axMult, np.real(tmpdata[num][xaxZlims])[direc], c=self.color, linewidth=self.linewidth, label=self.data.name, picker=True)
         if self.spec == 0:
-            if self.axType == 0:
-                self.ax.set_xlabel('Time [s]')
-            elif self.axType == 1:
-                self.ax.set_xlabel('Time [ms]')
-            elif self.axType == 2:
-                self.ax.set_xlabel(u'Time [\u03BCs]')
-            else:
-                self.ax.set_xlabel('User defined')
+            self.ax.set_xlabel('Time')
         elif self.spec == 1:
-            if self.ppm:
-                self.ax.set_xlabel('Frequency [ppm]')
-            else:
-                if self.axType == 0:
-                    self.ax.set_xlabel('Frequency [Hz]')
-                elif self.axType == 1:
-                    self.ax.set_xlabel('Frequency [kHz]')
-                elif self.axType == 2:
-                    self.ax.set_xlabel('Frequency [MHz]')
-                else:
-                    self.ax.set_xlabel('User defined')
+            self.ax.set_xlabel('Frequency')
         else:
             self.ax.set_xlabel('')
+        self.ax.set_xticks([])
+        self.ax.tick_params(axis='x',
+                            which='both',
+                            bottom='off',
+                            top='off',
+                            labelbottom='off')
+    
+
         self.ax.set_xlim(self.xminlim, self.xmaxlim)
         self.ax.set_ylim(self.yminlim, self.ymaxlim)
         self.ax.get_xaxis().get_major_formatter().set_powerlimits((-4, 4))
@@ -3405,7 +3578,11 @@ class CurrentArrayed(Current1D):
             xaxZlims = (self.xax > self.zminlim) & (self.xax < self.zmaxlim)
             if self.spec == 1:
                 if self.ppm:
-                    axMult = 1e6 / self.ref
+                    if self.ref == 0.0:
+                        self.ppm = False
+                        axMult = 1.0 / (1000.0**self.axType)
+                    else:
+                        axMult = 1e6 / self.ref
                 else:
                     axMult = 1.0 / (1000.0**self.axType)
             elif self.spec == 0:
@@ -3436,7 +3613,7 @@ class CurrentContour(Current1D):
         if hasattr(duplicateCurrent, 'axType2'):
             self.axType2 = duplicateCurrent.axType2
         else:
-            self.axType2 = 1
+            self.axType2 = root.father.defaultUnits
         if hasattr(duplicateCurrent, 'ppm2'):
             self.ppm2 = duplicateCurrent.ppm2
         else:
@@ -3453,16 +3630,38 @@ class CurrentContour(Current1D):
             self.maxLevels = duplicateCurrent.maxLevels
         else:
             self.maxLevels = 1.0
+        if hasattr(duplicateCurrent, 'contourType'):
+            self.contourType = duplicateCurrent.contourType
+        else:
+            self.contourType = 0
+        if hasattr(duplicateCurrent, 'multiValue'):
+            self.multiValue = duplicateCurrent.multiValue
+        else:
+            self.multiValue = 2
         if hasattr(duplicateCurrent, 'projType1'):
             self.projType1 = duplicateCurrent.projType1
         else:
-            self.projType1 = 0
+            self.projType1 =  root.bottomframe.projDrop1.currentIndex()
         if hasattr(duplicateCurrent, 'projType2'):
             self.projType2 = duplicateCurrent.projType2
         else:
-            self.projType2 = 0
+            self.projType2 = root.bottomframe.projDrop2.currentIndex()
         Current1D.__init__(self, root, fig, canvas, data, duplicateCurrent)
-
+    
+    
+    def altScroll(self, event): #Shift scroll scrolls contour limits
+        minLevels = self.minLevels / 1.1**event.step
+        if minLevels > 1:
+            minLevels = 1
+        if  self.maxLevels > 1:
+             self.maxLevels = 1
+        self.minLevels = minLevels
+#        self.root.sideframe.minLEntry.setText(str(round(self.minLevels*100,6)))
+        self.root.sideframe.minLEntry.setText(format(self.minLevels*100,'.7g'))
+        
+        self.root.sideframe.maxLEntry.setText(str(self.maxLevels*100))
+        self.plotContour(updateOnly = True)
+        
     def copyCurrent(self, root, fig, canvas, data):
         return CurrentContour(root, fig, canvas, data, self)
 
@@ -3512,10 +3711,12 @@ class CurrentContour(Current1D):
             self.plotReset()
         self.showFid()
 
-    def setLevels(self, numLevels, maxLevels, minLevels):
+    def setLevels(self, numLevels, maxLevels, minLevels,contourType,multiValue):
         self.numLevels = numLevels
         self.maxLevels = maxLevels
         self.minLevels = minLevels
+        self.contourType = contourType
+        self.multiValue = multiValue
         self.showFid()
 
     def resetLocList(self):
@@ -3560,7 +3761,7 @@ class CurrentContour(Current1D):
                 ar = np.arange(self.data.data.shape[self.axes2])
                 x = np.ones((len(ar), len(self.data1D[0])))
                 for i in range(len(ar)):
-                    shift1 = shift + shifting * ar[i] * self.data.data.shape[shiftingAxes] / self.data.sw[shiftingAxes]
+                    shift1 = shift + shifting * ar[i] / self.data.sw[shiftingAxes]
                     t2 = t - shift1
                     x2 = np.ones(len(self.data1D[0]))
                     if lor is not None:
@@ -3622,9 +3823,12 @@ class CurrentContour(Current1D):
         self.showFid(y)
 
     def showFid(self, tmpdata=None):  # display the 1D data
+        self.differ = None
         self.peakPickReset()
         if tmpdata is None:
-            tmpdata = self.data1D
+            self.tmpdata = self.data1D
+        else:
+            self.tmpdata = tmpdata
         self.ax.cla()
         self.x_ax.cla()
         self.y_ax.cla()
@@ -3645,49 +3849,43 @@ class CurrentContour(Current1D):
         x = self.xax * axMult
         self.line_xdata = x
         y = self.xax2 * axMult2
-        X, Y = np.meshgrid(x, y)
+        self.X, self.Y = np.meshgrid(x, y)
+        
         if (self.plotType == 0):
-            tmpdata = np.real(tmpdata)
+            self.tmpdata = np.real(self.tmpdata)
         elif(self.plotType == 1):
-            tmpdata = np.imag(tmpdata)
+            self.tmpdata = np.imag(self.tmpdata)
         elif(self.plotType == 2):
-            tmpdata = np.real(tmpdata)
+            self.tmpdata = np.real(self.tmpdata)
         elif(self.plotType == 3):
-            tmpdata = np.abs(tmpdata)
-        differ = np.amax(np.abs(tmpdata))
-        contourLevels = np.linspace(self.minLevels * differ, self.maxLevels * differ, self.numLevels)
-        vmax = max(np.abs(self.minLevels * differ), np.abs(self.maxLevels * differ))
-        vmin = -vmax
-        if self.contourConst:
-            self.ax.contour(X, Y, tmpdata, colors=self.contourColors[0], levels=contourLevels, vmax=vmax, vmin=vmin, linewidths=self.linewidth, label=self.data.name, linestyles='solid')
-            self.ax.contour(X, Y, tmpdata, colors=self.contourColors[1], levels=-contourLevels[::-1], vmax=vmax, vmin=vmin, linewidths=self.linewidth, linestyles='solid')
-        else:
-            self.ax.contour(X, Y, tmpdata, cmap=get_cmap(self.colorMap), levels=contourLevels, vmax=vmax, vmin=vmin, linewidths=self.linewidth, label=self.data.name, linestyles='solid')
-            self.ax.contour(X, Y, tmpdata, cmap=get_cmap(self.colorMap), levels=-contourLevels[::-1], vmax=vmax, vmin=vmin, linewidths=self.linewidth, linestyles='solid')
-        self.line_ydata = tmpdata[0]
+            self.tmpdata = np.abs(self.tmpdata)
+        self.differ = np.amax(np.abs(self.tmpdata))
+        self.plotContour(X=self.X,Y=self.Y)
+        
+        self.line_ydata = self.tmpdata[0]
         if self.projType1 == 0:
-            xprojdata=np.sum(tmpdata, axis=0)
-            self.x_ax.plot(x, xprojdata, color=self.color, linewidth=self.linewidth)
+            xprojdata=np.sum(self.tmpdata, axis=0)
+            self.x_ax.plot(x, xprojdata, color=self.color, linewidth=self.linewidth, picker=True)
         elif self.projType1 == 1:
-            xprojdata = np.max(tmpdata, axis=0)
-            self.x_ax.plot(x,xprojdata , color=self.color, linewidth=self.linewidth)
+            xprojdata = np.max(self.tmpdata, axis=0)
+            self.x_ax.plot(x,xprojdata , color=self.color, linewidth=self.linewidth, picker=True)
         elif self.projType1 == 2:
-            xprojdata =  np.min(tmpdata, axis=0)
-            self.x_ax.plot(x,xprojdata, color=self.color, linewidth=self.linewidth)
+            xprojdata =  np.min(self.tmpdata, axis=0)
+            self.x_ax.plot(x,xprojdata, color=self.color, linewidth=self.linewidth, picker=True)
         
         xmin, xmax =  np.min(xprojdata),np.max(xprojdata)
-        self.x_ax.set_ylim([xmin-0.15*(xmax-xmin), xmax]) #Set projection limits, and force 15% whitespace below plot
+        self.x_ax.set_ylim([xmin-0.15*(xmax-xmin), xmax+0.05*(xmax-xmin)]) #Set projection limits, and force 15% whitespace below plot
         if self.projType2 == 0:
-            yprojdata=np.sum(tmpdata, axis=1)
-            self.y_ax.plot(yprojdata, y, color=self.color, linewidth=self.linewidth)
+            yprojdata=np.sum(self.tmpdata, axis=1)
+            self.y_ax.plot(yprojdata, y, color=self.color, linewidth=self.linewidth, picker=True)
         elif self.projType2 == 1:
-            yprojdata=np.max(tmpdata, axis=1)
-            self.y_ax.plot(yprojdata, y, color=self.color, linewidth=self.linewidth)
+            yprojdata=np.max(self.tmpdata, axis=1)
+            self.y_ax.plot(yprojdata, y, color=self.color, linewidth=self.linewidth, picker=True)
         elif self.projType2 == 2:
-            yprojdata=np.min(tmpdata, axis=1)
-            self.y_ax.plot(yprojdata, y, color=self.color, linewidth=self.linewidth, )         
+            yprojdata=np.min(self.tmpdata, axis=1)
+            self.y_ax.plot(yprojdata, y, color=self.color, linewidth=self.linewidth, picker=True)         
         ymin, ymax =  np.min(yprojdata),np.max(yprojdata)
-        self.y_ax.set_ylim([ymin-0.15*(ymax-ymin), ymax]) #Set projection limits, and force 15% whitespace below plot
+        self.y_ax.set_xlim([ymin-0.15*(ymax-ymin), ymax+0.05*(ymax-ymin)]) #Set projection limits, and force 15% whitespace below plot
         if self.spec == 0:
             if self.axType == 0:
                 self.ax.set_xlabel('Time [s]')
@@ -3749,11 +3947,145 @@ class CurrentContour(Current1D):
         self.ax.xaxis.grid(self.grids[0])
         self.ax.yaxis.grid(self.grids[1])
         self.canvas.draw()
+        
+    def plotContour(self,X=False,Y=False,updateOnly = False): #Plots the contour plot
+        if updateOnly: #Set some extra stuff if only the contour plot needs updating
+            del self.ax.collections[:] #Clear all plot collections
+        
+            
+        if self.contourType == 0: #if linear
+            contourLevels = np.linspace(self.minLevels * self.differ, self.maxLevels * self.differ, self.numLevels)
+        elif self.contourType == 1: #if Multiplier
+            contourLevels = [self.minLevels * self.differ]
+            while contourLevels[-1] < self.maxLevels * self.differ and len(contourLevels) < self.numLevels:
+                contourLevels.append(contourLevels[-1] * self.multiValue)
+            contourLevels = np.array(contourLevels)
+            
+        #Trim matrix of unused rows/columns for more efficient contour plotting
+        PlotPositive = False
+        if self.tmpdata.shape[0] > 2: #if size 2 or lower, convolve fails, just take whole data then
+            YposMax = np.where( np.convolve(np.max(self.tmpdata,1) > contourLevels[0],[True,True,True],'same'))[0]
+        else:
+            YposMax = np.arange(self.tmpdata.shape[0])
+        if YposMax.size > 0: #if number of positive contours is non-zero
+            if self.tmpdata.shape[1] > 2:
+                XposMax = np.where(np.convolve(np.max(self.tmpdata,0) > contourLevels[0],[True,True,True],'same'))[0]
+            else:
+                XposMax = np.arange(self.tmpdata.shape[1])
+            PlotPositive = True
+        
+        PlotNegative = False
+        if not self.plotType == 3: #for Absolute plot no negative
+            if self.tmpdata.shape[0] > 2:
+                YposMin = np.where( np.convolve(np.min(self.tmpdata,1) < -contourLevels[0],[True,True,True],'same'))[0]
+            else:
+                YposMin = np.arange(self.tmpdata.shape[0])    
+            if YposMin.size > 0:#if number of negative contours is non-zero
+                if self.tmpdata.shape[1] > 2:
+                    XposMin = np.where(np.convolve(np.min(self.tmpdata,0) < -contourLevels[0],[True,True,True],'same'))[0]
+                else:
+                    XposMin = np.arange(self.tmpdata.shape[1])
+                PlotNegative = True
+        
+        def contourTrace(level,color):
+            level = c.trace(level)
+            segs = level[:len(level)//2]
+            col = mcoll.LineCollection(segs)
+            col.set_label(self.data.name)
+            col.set_linewidth(self.linewidth)
+            col.set_linestyle('solid')
+            col.set_color(color)
+            return col
 
+        if self.contourConst:
+            collections=[]
+            if PlotPositive:
+                c = cntr.Cntr(self.X[YposMax[:,None],XposMax],self.Y[YposMax[:,None],XposMax],self.tmpdata[YposMax[:,None],XposMax])
+                for level in contourLevels:
+                    collections.append(contourTrace(level,self.contourColors[0]))
+            if PlotNegative:
+                c = cntr.Cntr(self.X[YposMin[:,None],XposMin],self.Y[YposMin[:,None],XposMin],self.tmpdata[YposMin[:,None],XposMin])
+                for level in -contourLevels[::-1]:
+                    collections.append(contourTrace(level,self.contourColors[1]))   
+            for col in collections: #plot all
+                self.ax.add_collection(col)
+
+        else:
+            vmax = max(np.abs(self.minLevels * self.differ), np.abs(self.maxLevels * self.differ))
+            vmin = -vmax
+            colorMap = get_cmap(self.colorMap)
+            collections=[]
+            if PlotPositive:
+                c = cntr.Cntr(self.X[YposMax[:,None],XposMax],self.Y[YposMax[:,None],XposMax],self.tmpdata[YposMax[:,None],XposMax])
+                for level in contourLevels:
+                    clevel = colorMap((level - vmin)/(vmax - vmin))
+                    collections.append(contourTrace(level,clevel))
+            if PlotNegative:
+                c = cntr.Cntr(self.X[YposMin[:,None],XposMin],self.Y[YposMin[:,None],XposMin],self.tmpdata[YposMin[:,None],XposMin])
+                for level in -contourLevels[::-1]:
+                    clevel = colorMap((level - vmin)/(vmax - vmin))
+                    collections.append(contourTrace(level,clevel))   
+            for col in collections: #plot all
+                self.ax.add_collection(col)
+        if updateOnly:
+            self.canvas.draw()
+
+        
+        
+        
+    def showProj(self):  
+        xLimOld = self.x_ax.get_xlim()
+        x = self.x_ax.lines[0].get_xdata() #Get plot data from plot
+        yLimOld = self.y_ax.get_ylim()
+        y = self.y_ax.lines[0].get_ydata() #Get plot data from plot
+        self.x_ax.cla()
+        self.y_ax.cla()
+        tmpdata = self.data1D
+        if (self.plotType == 0):
+            tmpdata = np.real(tmpdata)
+        elif(self.plotType == 1):
+            tmpdata = np.imag(tmpdata)
+        elif(self.plotType == 2):
+            tmpdata = np.real(tmpdata)
+        elif(self.plotType == 3):
+            tmpdata = np.abs(tmpdata)
+            
+        if self.projType1 == 0:
+            xprojdata=np.sum(tmpdata, axis=0)
+            self.x_ax.plot(x, xprojdata, color=self.color, linewidth=self.linewidth, picker=True)
+        elif self.projType1 == 1:
+            xprojdata = np.max(tmpdata, axis=0)
+            self.x_ax.plot(x,xprojdata , color=self.color, linewidth=self.linewidth, picker=True)
+        elif self.projType1 == 2:
+            xprojdata =  np.min(tmpdata, axis=0)
+            self.x_ax.plot(x,xprojdata, color=self.color, linewidth=self.linewidth, picker=True)
+        
+        xmin, xmax =  np.min(xprojdata),np.max(xprojdata)
+        self.x_ax.set_ylim([xmin-0.15*(xmax-xmin), xmax+0.05*(xmax-xmin)]) #Set projection limits, and force 15% whitespace below plot
+        self.x_ax.set_xlim(xLimOld)
+        if self.projType2 == 0:
+            yprojdata=np.sum(tmpdata, axis=1)
+            self.y_ax.plot(yprojdata, y, color=self.color, linewidth=self.linewidth, picker=True)
+        elif self.projType2 == 1:
+            yprojdata=np.max(tmpdata, axis=1)
+            self.y_ax.plot(yprojdata, y, color=self.color, linewidth=self.linewidth, picker=True)
+        elif self.projType2 == 2:
+            yprojdata=np.min(tmpdata, axis=1)
+            self.y_ax.plot(yprojdata, y, color=self.color, linewidth=self.linewidth, picker=True)
+        ymin, ymax =  np.min(yprojdata),np.max(yprojdata)
+        self.y_ax.set_xlim([ymin-0.15*(ymax-ymin), ymax+0.05*(ymax-ymin)]) #Set projection limits, and force 15% whitespace below plot
+        self.y_ax.set_ylim(yLimOld)
+        
+        self.canvas.draw()
+    
     def plotReset(self, xReset=True, yReset=True):  # set the plot limits to min and max values
         if self.spec == 1:
             if self.ppm:
-                axMult = 1e6 / self.ref
+                if self.ref == 0.0:
+                    self.ppm = False
+                    axMult = 1.0 / (1000.0**self.axType)
+                else:
+                    axMult = 1e6 / self.ref
             else:
                 axMult = 1.0 / (1000.0**self.axType)
         elif self.spec == 0:
@@ -3763,7 +4095,11 @@ class CurrentContour(Current1D):
             self.xmaxlim = max(self.xax * axMult)
         if self.spec2 == 1:
             if self.ppm2:
-                axMult2 = 1e6 / self.ref2
+                if self.ref2 == 0.0:
+                    self.ppm2 = False
+                    axMult2 = 1.0 / (1000.0**self.axType2)
+                else:
+                    axMult2 = 1e6 / self.ref2
             else:
                 axMult2 = 1.0 / (1000.0**self.axType2)
         elif self.spec2 == 0:
@@ -3887,7 +4223,7 @@ class CurrentSkewed(Current1D):
         if hasattr(duplicateCurrent, 'axType2'):
             self.axType2 = duplicateCurrent.axType2
         else:
-            self.axType2 = 1
+            self.axType2 = root.father.defaultUnits
         if hasattr(duplicateCurrent, 'ppm2'):
             self.ppm2 = duplicateCurrent.ppm2
         else:
@@ -3983,7 +4319,7 @@ class CurrentSkewed(Current1D):
                 ar = np.arange(self.data.data.shape[self.axes2])[slice(self.stackBegin, self.stackEnd, self.stackStep)]
                 x = np.ones((len(ar), len(self.data1D[0])))
                 for i in range(len(ar)):
-                    shift1 = shift + shifting * ar[i] * self.data.data.shape[shiftingAxes] / self.data.sw[shiftingAxes]
+                    shift1 = shift + shifting * ar[i] / self.data.sw[shiftingAxes]
                     t2 = t - shift1
                     x2 = np.ones(len(self.data1D[0]))
                     if lor is not None:
@@ -4079,36 +4415,36 @@ class CurrentSkewed(Current1D):
         if old:
             if (self.plotType == 0):
                 for num in range(len(self.data1D)):
-                    self.ax.plot(x, y[num] * np.ones(len(x)), np.real(self.data1D[num]), c='k', alpha=0.2, linewidth=self.linewidth, label=self.data.name + '_old')
+                    self.ax.plot(x, y[num] * np.ones(len(x)), np.real(self.data1D[num]), c='k', alpha=0.2, linewidth=self.linewidth, label=self.data.name + '_old', picker=True)
             elif(self.plotType == 1):
                 for num in range(len(self.data1D)):
-                    self.ax.plot(x, y[num] * np.ones(len(x)), np.imag(self.data1D[num]), c='k', alpha=0.2, linewidth=self.linewidth, label=self.data.name + '_old')
+                    self.ax.plot(x, y[num] * np.ones(len(x)), np.imag(self.data1D[num]), c='k', alpha=0.2, linewidth=self.linewidth, label=self.data.name + '_old', picker=True)
             elif(self.plotType == 2):
                 for num in range(len(self.data1D)):
-                    self.ax.plot(x, y[num] * np.ones(len(x)), np.real(self.data1D[num]), c='k', alpha=0.2, linewidth=self.linewidth, label=self.data.name + '_old')
+                    self.ax.plot(x, y[num] * np.ones(len(x)), np.real(self.data1D[num]), c='k', alpha=0.2, linewidth=self.linewidth, label=self.data.name + '_old', picker=True)
             elif(self.plotType == 3):
                 for num in range(len(self.data1D)):
-                    self.ax.plot(x, y[num] * np.ones(len(x)), np.abs(self.data1D[num]), c='k', alpha=0.2, linewidth=self.linewidth, label=self.data.name + '_old')
+                    self.ax.plot(x, y[num] * np.ones(len(x)), np.abs(self.data1D[num]), c='k', alpha=0.2, linewidth=self.linewidth, label=self.data.name + '_old', picker=True)
         if (extraX is not None):
             for num in range(len(extraY)):
-                self.ax.plot(extraX[0] * axMult, y[num] * np.ones(len(extraX[0])), extraY[num], c=extraColor[0], linewidth=self.linewidth)
+                self.ax.plot(extraX[0] * axMult, y[num] * np.ones(len(extraX[0])), extraY[num], c=extraColor[0], linewidth=self.linewidth, picker=True)
         if (self.plotType == 0):
             self.line_ydata = np.real(tmpdata[0])
             for num in range(len(tmpdata)):
-                self.ax.plot(x, y[num] * np.ones(len(x)), np.real(tmpdata[num]), c=self.color, linewidth=self.linewidth, label=self.data.name)
+                self.ax.plot(x, y[num] * np.ones(len(x)), np.real(tmpdata[num]), c=self.color, linewidth=self.linewidth, label=self.data.name, picker=True)
         elif(self.plotType == 1):
             self.line_ydata = np.imag(tmpdata[0])
             for num in range(len(tmpdata)):
-                self.ax.plot(x, y[num] * np.ones(len(x)), np.imag(tmpdata[num]), c=self.color, linewidth=self.linewidth, label=self.data.name)
+                self.ax.plot(x, y[num] * np.ones(len(x)), np.imag(tmpdata[num]), c=self.color, linewidth=self.linewidth, label=self.data.name, picker=True)
         elif(self.plotType == 2):
             self.line_ydata = np.real(tmpdata[0])
             for num in range(len(tmpdata)):
-                self.ax.plot(x, y[num] * np.ones(len(x)), np.imag(tmpdata[num]), c='r', linewidth=self.linewidth, label=self.data.name + '_imag')
-                self.ax.plot(x, y[num] * np.ones(len(x)), np.real(tmpdata[num]), c=self.color, linewidth=self.linewidth, label=self.data.name)
+                self.ax.plot(x, y[num] * np.ones(len(x)), np.imag(tmpdata[num]), c='r', linewidth=self.linewidth, label=self.data.name + '_imag', picker=True)
+                self.ax.plot(x, y[num] * np.ones(len(x)), np.real(tmpdata[num]), c=self.color, linewidth=self.linewidth, label=self.data.name, picker=True)
         elif(self.plotType == 3):
             self.line_ydata = np.abs(tmpdata[0])
             for num in range(len(tmpdata)):
-                self.ax.plot(x, y[num] * np.ones(len(x)), np.abs(tmpdata[num]), c=self.color, linewidth=self.linewidth, label=self.data.name)
+                self.ax.plot(x, y[num] * np.ones(len(x)), np.abs(tmpdata[num]), c=self.color, linewidth=self.linewidth, label=self.data.name, picker=True)
         if self.spec == 0:
             if self.axType == 0:
                 self.ax.set_xlabel('Time [s]')
@@ -4180,7 +4516,11 @@ class CurrentSkewed(Current1D):
     def plotReset(self, xReset=True, yReset=True):  # set the plot limits to min and max values
         if self.spec == 1:
             if self.ppm:
-                axMult = 1e6 / self.ref
+                if self.ref == 0.0:
+                    self.ppm = False
+                    axMult = 1.0 / (1000.0**self.axType)
+                else:
+                    axMult = 1e6 / self.ref
             else:
                 axMult = 1.0 / (1000.0**self.axType)
         elif self.spec == 0:
@@ -4190,7 +4530,11 @@ class CurrentSkewed(Current1D):
             self.xmaxlim = max(self.xax * axMult)
         if self.spec2 == 1:
             if self.ppm2:
-                axMult2 = 1e6 / self.ref2
+                if self.ref2 == 0.0:
+                    self.ppm2 = False
+                    axMult2 = 1.0 / (1000.0**self.axType2)
+                else:
+                    axMult2 = 1e6 / self.ref2
             else:
                 axMult2 = 1.0 / (1000.0**self.axType2)
         elif self.spec2 == 0:
