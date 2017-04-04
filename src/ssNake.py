@@ -95,7 +95,7 @@ QtCore.QLocale.setDefault(QtCore.QLocale('en_US'))
 
 pi = np.pi
 
-VERSION = 'v0.6b'
+VERSION = 'v0.6'
 
 
 class MainProgram(QtWidgets.QMainWindow):
