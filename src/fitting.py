@@ -52,9 +52,9 @@ def isfloat(value):
 
 def checkLinkTuple(inp):
     if len(inp) == 2:
-        inp += (1, 0)
+        inp += (1, 0, 0)
     elif len(inp) == 3:
-        inp += (0,)
+        inp += (0, 0)
     return inp
 
 ##############################################################################
@@ -130,7 +130,7 @@ class FittingWindow(QtWidgets.QWidget):
         grid = QtWidgets.QGridLayout(self)
         grid.addWidget(self.canvas, 0, 0)
         self.setup()
-        self.fig.suptitle(self.oldMainWindow.masterData.name)
+        self.fig.suptitle(self.oldMainWindow.get_masterData().name)
         grid.addWidget(self.paramframe, 1, 0)
         grid.setColumnStretch(0, 1)
         grid.setRowStretch(0, 1)
@@ -2239,14 +2239,88 @@ def fitFunc(param, args):
 ##############################################################################
 
 
-class PeakDeconvWindow(FittingWindow):
+class PeakDeconvWindow(QtWidgets.QWidget):
 
     def __init__(self, mainProgram, oldMainWindow):
+        QtWidgets.QWidget.__init__(self, mainProgram)
+        self.mainProgram = mainProgram
+        self.oldMainWindow = oldMainWindow
+        self.subFitWindows = []
+        self.tabs = QtWidgets.QTabWidget(self)
+        self.tabs.setTabPosition(2)
+        self.mainFitWindow = PeakDeconvWindow2(mainProgram, oldMainWindow, self)
+        self.current = self.mainFitWindow.current
+        self.tabs.addTab(self.mainFitWindow, 'Spectrum') 
+        grid3 =  QtWidgets.QGridLayout(self)
+        grid3.addWidget(self.tabs,0,0)
+        grid3.setColumnStretch(0, 1)
+        grid3.setRowStretch(0, 1)
+
+    def addSpectrum(self):
+        text = QtWidgets.QInputDialog.getItem(self, "Select spectrum to add", "Spectrum name:", self.mainProgram.workspaceNames, 0, False)
+        if text[1]:
+            self.subFitWindows.append(PeakDeconvWindow2(self.mainProgram, self.mainProgram.workspaces[self.mainProgram.workspaceNames.index(text[0])], self, isMain=False))
+            self.tabs.addTab(self.subFitWindows[-1], str(text[0])) 
+
+    def fit(self):
+        xax, data1D, guess, args, out = self.mainFitWindow.paramframe.getFitParams()
+        xax = [xax]
+        out = [out]
+        nameList = ['Spectrum']
+        selectList = [slice(0, len(guess))]
+        for i in range(len(self.subFitWindows)):
+            xax_tmp, data1D_tmp, guess_tmp, args_tmp, out_tmp = self.subFitWindows[i].paramframe.getFitParams()
+            out.append(out_tmp)
+            xax.append(xax_tmp)
+            nameList.append('bla')
+            selectList.append(slice(len(guess), len(guess)+len(guess_tmp)))
+            data1D = np.append(data1D, data1D_tmp)
+            guess += guess_tmp
+            new_args = ()
+            for n in range(len(args)):
+                new_args += (args[n] + args_tmp[n],)
+            args = new_args # tuples are immutable
+        new_args = (nameList, selectList) + args
+        allFitVal = self.mainFitWindow.paramframe.fit(xax, data1D, guess, new_args)[0]
+        fitVal =[]
+        for length in selectList:
+            fitVal.append(allFitVal[length])
+        args_out = []
+        for n in range(len(args)):
+            args_out.append([args[n][0]])
+        self.mainFitWindow.paramframe.setResults(fitVal[0], args_out, out[0])
+        for i in (range(len(self.subFitWindows))):
+            args_out = []
+            for n in range(len(args)):
+                args_out.append([args[n][i+1]])
+            self.subFitWindows[i].paramframe.setResults(fitVal[i+1], args_out, out[i+1])
+            
+    def get_masterData(self):
+        return self.oldMainWindow.get_masterData()
+
+    def get_current(self):
+        return self.oldMainWindow.get_current()
+
+##############################################################################
+
+
+class PeakDeconvWindow2(FittingWindow):
+
+    def __init__(self, mainProgram, oldMainWindow, tabWindow, isMain=True):
+        self.isMain = isMain
         FittingWindow.__init__(self, mainProgram, oldMainWindow)
+        self.tabWindow = tabWindow
 
     def setup(self):
-        self.current = PeakDeconvFrame(self, self.fig, self.canvas, self.oldMainWindow.current)
-        self.paramframe = PeakDeconvParamFrame(self.current, self)
+        self.current = PeakDeconvFrame(self, self.fig, self.canvas, self.oldMainWindow.get_current())
+        self.paramframe = PeakDeconvParamFrame(self.current, self, isMain=self.isMain)
+
+    def fit(self):
+        self.tabWindow.fit()
+        
+    def addSpectrum(self):
+        self.tabWindow.addSpectrum()
+        
 
 #################################################################################
 
@@ -2404,11 +2478,12 @@ class PeakDeconvFrame(Plot1DFrame):
 
 class PeakDeconvParamFrame(QtWidgets.QWidget):
 
-    def __init__(self, parent, rootwindow):
+    def __init__(self, parent, rootwindow, isMain=True):
         QtWidgets.QWidget.__init__(self, rootwindow)
         self.parent = parent
         self.FITNUM = self.parent.FITNUM
         self.rootwindow = rootwindow
+        self.isMain = isMain # display fitting buttons
         grid = QtWidgets.QGridLayout(self)
         self.setLayout(grid)
         if self.parent.current.spec == 1:
@@ -2434,30 +2509,34 @@ class PeakDeconvParamFrame(QtWidgets.QWidget):
         content = QtWidgets.QWidget()
         self.frame3 = QtWidgets.QGridLayout(content)
         #grid.addLayout(self.frame3, 0, 2)
-        simButton = QtWidgets.QPushButton("Sim")
-        simButton.clicked.connect(self.sim)
-        self.frame1.addWidget(simButton, 0, 0)
-        fitButton = QtWidgets.QPushButton("Fit")
-        fitButton.clicked.connect(self.fit)
-        self.frame1.addWidget(fitButton, 1, 0)
-        self.stopButton = QtWidgets.QPushButton("Stop")
-        self.stopButton.clicked.connect(self.stopMP)
-        self.frame1.addWidget(self.stopButton, 1, 0)
-        self.stopButton.hide()
-        self.process1 = None
-        self.queue = None
-        fitAllButton = QtWidgets.QPushButton("Fit all")
-        fitAllButton.clicked.connect(self.fitAll)
-        self.frame1.addWidget(fitAllButton, 2, 0)
-        copyResultButton = QtWidgets.QPushButton("Copy result")
-        copyResultButton.clicked.connect(lambda: self.sim('copy'))
-        self.frame1.addWidget(copyResultButton, 3, 0)
-        saveResultButton = QtWidgets.QPushButton("Save to text")
-        saveResultButton.clicked.connect(lambda: self.sim('save'))
-        self.frame1.addWidget(saveResultButton, 4, 0)
-        cancelButton = QtWidgets.QPushButton("&Cancel")
-        cancelButton.clicked.connect(self.closeWindow)
-        self.frame1.addWidget(cancelButton, 5, 0)
+        if self.isMain:
+            simButton = QtWidgets.QPushButton("Sim")
+            simButton.clicked.connect(self.sim)
+            self.frame1.addWidget(simButton, 0, 0)
+            fitButton = QtWidgets.QPushButton("Fit")
+            fitButton.clicked.connect(self.rootwindow.fit)
+            self.frame1.addWidget(fitButton, 1, 0)
+            self.stopButton = QtWidgets.QPushButton("Stop")
+            self.stopButton.clicked.connect(self.stopMP)
+            self.frame1.addWidget(self.stopButton, 1, 0)
+            self.stopButton.hide()
+            self.process1 = None
+            self.queue = None
+            fitAllButton = QtWidgets.QPushButton("Fit all")
+            fitAllButton.clicked.connect(self.fitAll)
+            self.frame1.addWidget(fitAllButton, 2, 0)
+            copyResultButton = QtWidgets.QPushButton("Copy result")
+            copyResultButton.clicked.connect(lambda: self.sim('copy'))
+            self.frame1.addWidget(copyResultButton, 3, 0)
+            saveResultButton = QtWidgets.QPushButton("Save to text")
+            saveResultButton.clicked.connect(lambda: self.sim('save'))
+            self.frame1.addWidget(saveResultButton, 4, 0)
+            addSpecButton = QtWidgets.QPushButton("Add spectrum")
+            addSpecButton.clicked.connect(self.rootwindow.addSpectrum)
+            self.frame1.addWidget(addSpecButton, 5, 0)
+            cancelButton = QtWidgets.QPushButton("&Cancel")
+            cancelButton.clicked.connect(self.closeWindow)
+            self.frame1.addWidget(cancelButton, 6, 0)
         resetButton = QtWidgets.QPushButton("Reset")
         resetButton.clicked.connect(self.reset)
         self.frame1.addWidget(resetButton, 0, 1)
@@ -2566,8 +2645,8 @@ class PeakDeconvParamFrame(QtWidgets.QWidget):
                 else:
                     self.entries[name][i].setText(str(inp))
         return True
-    
-    def fit(self, *args):
+
+    def getFitParams(self):
         if not self.checkInputs():
             self.rootwindow.mainProgram.dispMsg("One of the inputs is not valid")
             return
@@ -2599,9 +2678,12 @@ class PeakDeconvParamFrame(QtWidgets.QWidget):
                         struc[name].append((0, len(argu)-1))
                 else:
                     struc[name].append((2, checkLinkTuple(safeEval(self.entries[name][i].text()))))
-        args = (numExp, struc, argu, self.parent.current.sw, self.axAdd, self.axMult)
+        args = ([numExp], [struc], [argu], [self.parent.current.sw], [self.axAdd], [self.axMult])
+        return (self.parent.xax, self.parent.data1D, guess, args, out)
+    
+    def fit(self, xax, data1D, guess, args):
         self.queue = multiprocessing.Queue()
-        self.process1 = multiprocessing.Process(target=peakDeconvmpFit, args=(self.parent.xax, self.parent.data1D, guess, args, self.queue))
+        self.process1 = multiprocessing.Process(target=peakDeconvmpFit, args=(xax, data1D, guess, args, self.queue))
         self.process1.start()
         self.running = True
         self.stopButton.show()
@@ -2617,24 +2699,29 @@ class PeakDeconvParamFrame(QtWidgets.QWidget):
         if fitVal is None:
             self.rootwindow.mainProgram.dispMsg('Optimal parameters not found')
             return
+        return fitVal
+
+    def setResults(self, fitVal, args, out):
+        numExp = args[0][0]
+        struc = args[1][0]
         for name in ['bgrnd', 'slope']:
             if struc[name][0][0] == 1:
-                out[name][0] = fitVal[0][struc[name][0][1]]
+                out[name][0] = fitVal[struc[name][0][1]]
                 self.entries[name][0].setText('%#.3g' % out[name][0])
         for i in range(numExp):
             for name in ['pos', 'amp', 'lor', 'gauss']:
                 if struc[name][i][0] == 1:
-                    out[name][i] = fitVal[0][struc[name][i][1]]
+                    out[name][i] = fitVal[struc[name][i][1]]
                     self.entries[name][i].setText('%#.3g' % out[name][i])
         for name in ['bgrnd', 'slope']:
             if struc[name][0][0] == 2:
-                out[name][0] = abs(fitVal[0][struc[struc[name][0][1][0]][struc[name][0][1][1]][1]])
+                out[name][0] = abs(fitVal[struc[struc[name][0][1][0]][struc[name][0][1][1]][1]])
         for i in range(numExp):
             for name in ['pos', 'amp', 'lor', 'gauss']:
                 if struc[name][i][0] == 2:
                     altStruc = struc[name][i][1]
                     if struc[altStruc[0]][altStruc[1]][0] == 1:
-                        out[name][i] = abs(fitVal[0][struc[altStruc[0]][altStruc[1]][1]])
+                        out[name][i] = abs(fitVal[struc[altStruc[0]][altStruc[1]][1]])
                     else:
                         out[name][i] = out[altStruc[0]][altStruc[1]]
         self.disp(out['bgrnd'][0], out['slope'][0], out['amp'], out['pos'], out['lor'], out['gauss'])
@@ -2722,15 +2809,16 @@ class PeakDeconvParamFrame(QtWidgets.QWidget):
                         self.entries[name][i].setText('%#.3g' % out[name][i])
             for name in ['bgrnd', 'slope']:
                 if struc[name][0][0] == 2:
-                    out[name][0] = abs(fitVal[0][struc[struc[name][0][1][0]][struc[name][0][1][1]][1]])
+                    altStruc = struc[name][0][1]
+                    out[name][0] = abs(altStruc[2] * fitVal[0][struc[altStruc[0]][altStruc[1]][1]] + altStruc[3])
             for i in range(numExp):
                 for name in ['pos', 'amp', 'lor', 'gauss']:
                     if struc[name][i][0] == 2:
                         altStruc = struc[name][i][1]
                         if struc[altStruc[0]][altStruc[1]][0] == 1:
-                            out[name][i] = abs(fitVal[0][struc[altStruc[0]][altStruc[1]][1]])
+                            out[name][i] = abs(altStruc[2] * fitVal[0][struc[altStruc[0]][altStruc[1]][1]] + altStruc[3])
                         else:
-                            out[name][i] = out[altStruc[0]][altStruc[1]]
+                            out[name][i] = altStruc[2] * out[altStruc[0]][altStruc[1]] + altStruc[3]
             outputArray = []
             if outputs[0]:
                 outputArray = np.concatenate((outputArray, out['bgrnd']))
@@ -2821,6 +2909,8 @@ def peakDeconvmpFit(xax, data1D, guess, args, queue):
         fitVal = scipy.optimize.curve_fit(lambda *param: peakDeconvfitFunc(param, args), xax, data1D, guess)
     except:
         fitVal = None
+
+        raise
     queue.put(fitVal)
 
 def peakDeconvmpAllFit(xax, data, guess, args, queue):
@@ -2832,46 +2922,58 @@ def peakDeconvmpAllFit(xax, data, guess, args, queue):
             fitVal.append([[0] * 10])
     queue.put(fitVal)
 
-def peakDeconvfitFunc(param, args):
-    x = param[0]
-    param = np.delete(param, [0])
-    numExp = args[0]
-    struc = args[1]
-    argu = args[2]
-    sw = args[3]
-    axAdd = args[4]
-    axMult = args[5]
-    testFunc = np.zeros(len(x))
-    parameters = {'bgrnd':0.0, 'slope':0.0, 'pos':0.0, 'amp':0.0, 'lor':0.0, 'gauss':0.0}
-    for name in ['bgrnd', 'slope']:
-        if struc[name][0][0] == 1:
-            parameters[name] = param[struc[name][0][1]]
-        elif struc[name][0][0] == 0:
-            parameters[name] = argu[struc[name][0][1]]
-        else:
-            altStruc = struc[name][0][1]
-            if struc[altStruc[0]][altStruc[1]][0] == 1:
-                parameters[name] = altStruc[2] * param[struc[altStruc[0]][altStruc[1]][1]] + altStruc[3]
-            elif struc[altStruc[0]][altStruc[1]][0] == 0:
-                parameters[name] = altStruc[2] * argu[struc[altStruc[0]][altStruc[1]][1]] + altStruc[3]
-    for i in range(numExp):
-        for name in ['pos', 'amp', 'lor', 'gauss']:
-            if struc[name][i][0] == 1:
-                parameters[name] = param[struc[name][i][1]]
-            elif struc[name][i][0] == 0:
-                parameters[name] = argu[struc[name][i][1]]
+def peakDeconvfitFunc(params, args):
+    allX = params[0]
+    params = np.delete(params, [0])
+    specName = args[0]
+    specSlices = args[1]
+    allParam = []
+    for length in specSlices:
+        allParam.append(params[length])
+    allStruc = args[3]
+    allArgu = args[4]
+    fullTestFunc = []
+    for n in range(len(allX)):
+        x=allX[n]
+        testFunc = np.zeros(len(x))
+        param = allParam[n]
+        numExp = args[2][n]
+        struc = args[3][n]
+        argu = args[4][n]
+        sw = args[5][n]
+        axAdd = args[6][n]
+        axMult = args[7][n]
+        parameters = {'bgrnd':0.0, 'slope':0.0, 'pos':0.0, 'amp':0.0, 'lor':0.0, 'gauss':0.0}
+        for name in ['bgrnd', 'slope']:
+            if struc[name][0][0] == 1:
+                parameters[name] = param[struc[name][0][1]]
+            elif struc[name][0][0] == 0:
+                parameters[name] = argu[struc[name][0][1]]
             else:
-                altStruc = struc[name][i][1]
+                altStruc = struc[name][0][1]
                 if struc[altStruc[0]][altStruc[1]][0] == 1:
-                    parameters[name] = altStruc[2] * param[struc[altStruc[0]][altStruc[1]][1]] + altStruc[3]
+                    parameters[name] = altStruc[2] * allParam[altStruc[4]][struc[altStruc[0]][altStruc[1]][1]] + altStruc[3]
                 elif struc[altStruc[0]][altStruc[1]][0] == 0:
-                    parameters[name] = altStruc[2] * argu[struc[altStruc[0]][altStruc[1]][1]] + altStruc[3]
-        t = np.arange(len(x)) / sw
-        timeSignal = np.exp(1j * 2 * np.pi * t * (parameters['pos'] / axMult - axAdd)) * np.exp(-np.pi * parameters['lor'] * t) * np.exp(-((np.pi * parameters['gauss'] * t)**2) / (4 * np.log(2))) * 2 / sw
-        timeSignal[0] = timeSignal[0] * 0.5
-        testFunc += parameters['amp'] * np.real(np.fft.fftshift(np.fft.fft(timeSignal)))
-    testFunc += parameters['bgrnd'] + parameters['slope'] * x
-    return testFunc
+                    parameters[name] = altStruc[2] * allArgu[altStruc[4]][struc[altStruc[0]][altStruc[1]][1]] + altStruc[3]
+        for i in range(numExp):
+            for name in ['pos', 'amp', 'lor', 'gauss']:
+                if struc[name][i][0] == 1:
+                    parameters[name] = param[struc[name][i][1]]
+                elif struc[name][i][0] == 0:
+                    parameters[name] = argu[struc[name][i][1]]
+                else:
+                    altStruc = struc[name][i][1]
+                    if struc[altStruc[0]][altStruc[1]][0] == 1:
+                        parameters[name] = altStruc[2] * allParam[altStruc[4]][struc[altStruc[0]][altStruc[1]][1]] + altStruc[3]
+                    elif struc[altStruc[0]][altStruc[1]][0] == 0:
+                        parameters[name] = altStruc[2] * allArgu[altStruc[4]][struc[altStruc[0]][altStruc[1]][1]] + altStruc[3]
+            t = np.arange(len(x)) / sw
+            timeSignal = np.exp(1j * 2 * np.pi * t * (parameters['pos'] / axMult - axAdd)) * np.exp(-np.pi * parameters['lor'] * t) * np.exp(-((np.pi * parameters['gauss'] * t)**2) / (4 * np.log(2))) * 2 / sw
+            timeSignal[0] = timeSignal[0] * 0.5
+            testFunc += parameters['amp'] * np.real(np.fft.fftshift(np.fft.fft(timeSignal)))
+        testFunc += parameters['bgrnd'] + parameters['slope'] * x
+        fullTestFunc = np.append(fullTestFunc, testFunc)
+    return fullTestFunc
 
 ##############################################################################
 
