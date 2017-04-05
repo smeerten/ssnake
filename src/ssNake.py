@@ -368,7 +368,9 @@ class MainProgram(QtWidgets.QMainWindow):
         self.saveSimpsonAct = self.exportmenu.addAction(QtGui.QIcon(IconDirectory + 'simpson.png'), 'Simpson', self.saveSimpsonFile)
         self.saveSimpsonAct.setToolTip('Export as Simpson File')
         self.saveASCIIAct = self.exportmenu.addAction(QtGui.QIcon(IconDirectory + 'ssnake.png'), 'ASCII (1D/2D)', self.saveASCIIFile)
-        self.saveASCIIAct.setToolTip('Save as ASCII Text File')        
+        self.saveASCIIAct.setToolTip('Save as ASCII Text File')
+        self.combineLoadAct = self.filemenu.addAction('&Combine Open', self.createCombineLoadWindow)
+        self.combineLoadAct.setToolTip('Open en combine multiple files')
         self.preferencesAct = self.filemenu.addAction(QtGui.QIcon(IconDirectory + 'preferences.png'), '&Preferences', lambda: PreferenceWindow(self))
         self.preferencesAct.setToolTip('Open Preferences Window')
         self.quitAct = self.filemenu.addAction(QtGui.QIcon(IconDirectory + 'quit.png'), '&Quit', self.fileQuit, QtGui.QKeySequence.Quit)
@@ -377,7 +379,7 @@ class MainProgram(QtWidgets.QMainWindow):
         self.saveActList = [self.saveAct,self.saveMatAct]
         self.exportActList = [self.savefigAct,self.saveSimpsonAct,self.saveASCIIAct]        
         self.fileActList = [self.openAct,self.saveAct,self.saveMatAct,self.savefigAct,
-                            self.saveSimpsonAct,self.saveASCIIAct,self.preferencesAct,self.quitAct]
+                            self.saveSimpsonAct,self.saveASCIIAct,self.combineLoadAct,self.preferencesAct,self.quitAct]
         # Workspaces menu
         self.workspacemenu = QtWidgets.QMenu('&Workspaces', self)
         self.menubar.addMenu(self.workspacemenu)
@@ -1225,6 +1227,9 @@ class MainProgram(QtWidgets.QMainWindow):
     def createCombineWorkspaceWindow(self):
         CombineWorkspaceWindow(self)
 
+    def createCombineLoadWindow(self):
+        CombineLoadWindow(self)
+
     def combineWorkspace(self, combineNames):
         wsname = self.askName()
         if wsname is None:
@@ -1264,14 +1269,14 @@ class MainProgram(QtWidgets.QMainWindow):
                     temp_dir = tempfile.mkdtemp()
                     zipfile.ZipFile(filePath).extractall(temp_dir)
                     for i in os.listdir(temp_dir):
-                        if self.autoLoad(os.path.join(temp_dir, i),realpath=filePath):
+                        if self.autoLoad(os.path.join(temp_dir, i), realpath=filePath):
                             break
                 finally:
                     shutil.rmtree(temp_dir)
             else:
                 self.autoLoad(filePath)
 
-    def autoLoad(self, filePath,realpath=False):
+    def fileTypeCheck(self, filePath):
         returnVal = 0
         if os.path.isfile(filePath):
             filename = os.path.basename(filePath)
@@ -1279,52 +1284,94 @@ class MainProgram(QtWidgets.QMainWindow):
                 with open(filePath, 'r') as f:
                     check = int(np.fromfile(f, np.float32, 1))
                 if check == 0:
-                    self.loading(8, filePath)  # Suspected NMRpipe format
+                    return (8, filePath, returnVal)  # Suspected NMRpipe format
                 else:  # SIMPSON
-                    self.loading(4, filePath)
-                return returnVal
+                    return (4, filePath, returnVal)
             elif filename.endswith('.json') or filename.endswith('.JSON'):
-                self.loading(5, filePath)
-                return returnVal
+                return (5, filePath, returnVal)
             elif filename.endswith('.mat') or filename.endswith('.MAT'):
-                self.loading(6, filePath)
-                return returnVal
+                return (6, filePath, returnVal)
             elif filename.endswith('.jdf'):#JEOL delta format
-                self.loading(9, filePath)
-                return returnVal
+                return (9, filePath, returnVal)
             elif filename.endswith('.dx') or filename.endswith('.jdx') or filename.endswith('.jcamp'):#JCAMP format
-                self.loading(10, filePath)
-                return returnVal
+                return (10, filePath, returnVal)
             fileName = filePath
             filePath = os.path.dirname(filePath)
             returnVal = 1
         direc = filePath
         if os.path.exists(direc + os.path.sep + 'procpar') and os.path.exists(direc + os.path.sep + 'fid'):
-            self.loading(0, filePath)
-            return returnVal
+            return (0, filePath, returnVal)
             # And for varian processed data
         if (os.path.exists(direc + os.path.sep + '..' + os.path.sep + 'procpar') or os.path.exists(direc + os.path.sep + 'procpar')) and os.path.exists(direc + os.path.sep + 'data'):
-            self.loading(0, filePath)
-            return returnVal
+            return (0, filePath, returnVal)
         elif os.path.exists(direc + os.path.sep + 'acqus') and (os.path.exists(direc + os.path.sep + 'fid') or os.path.exists(direc + os.path.sep + 'ser')):
-            self.loading(1, filePath)
-            return returnVal
+            return (1, filePath, returnVal)
         elif os.path.exists(direc + os.path.sep + 'procs') and (os.path.exists(direc + os.path.sep + '1r') or os.path.exists(direc + os.path.sep + '2rr')):
-            self.loading(7, filePath)
-            return returnVal
+            return (7, filePath, returnVal)
         elif os.path.exists(direc + os.path.sep + 'acq') and os.path.exists(direc + os.path.sep + 'data'):
-            self.loading(2, filePath)
-            return returnVal
+            return (2, filePath, returnVal)
         elif os.path.exists(direc + os.path.sep + 'acqu.par'):
             dirFiles = os.listdir(direc)
             files2D = [x for x in dirFiles if '.2d' in x]
             files1D = [x for x in dirFiles if '.1d' in x]
             if len(files2D) != 0 or len(files1D) != 0:
-                self.loading(3, filePath,realpath=realpath)
-                return returnVal
+                return (3, filePath, returnVal)
         else: #If not recognised, load as ascii
-            self.loading(11, fileName)
+            return (11, filePath, returnVal)
+                
+    def autoLoad(self, filePath, realpath=False):
+        val = self.fileTypeCheck(filePath)
+        self.loading(val[0], val[1], realpath=realpath)
+        return val[2]
 
+    def loadAndCombine(self, filePathList):
+        filePath = filePathList.pop(0)
+        combineMasterData = None
+        if filePath.endswith('.zip'):
+            import tempfile
+            import shutil
+            import zipfile
+            try:
+                temp_dir = tempfile.mkdtemp()
+                zipfile.ZipFile(filePath).extractall(temp_dir)
+                val = self.fileTypeCheck(os.path.join(temp_dir, os.listdir(temp_dir)[0]))
+                combineMasterData = self.loading(val[0], val[1], returnBool=True, realpath=filePath)
+            finally:
+                shutil.rmtree(temp_dir)
+        else:
+            val = self.fileTypeCheck(filePath)
+            combineMasterData = self.loading(val[0], val[1], returnBool=True)
+        if combineMasterData is None:
+            self.dispMsg("Data could not be loaded")
+            return False
+        shapeRequired = combineMasterData.data.shape
+        combineMasterData.split(1, -1)
+        for name in filePathList:
+            if filePath.endswith('.zip'):
+                import tempfile
+                import shutil
+                import zipfile
+                try:
+                    temp_dir = tempfile.mkdtemp()
+                    zipfile.ZipFile(filePath).extractall(temp_dir)
+                    val = self.fileTypeCheck(os.path.join(temp_dir, os.listdir(temp_dir)[0]))
+                    addData = self.loading(val[0], val[1], returnBool=True, realpath=filePath)
+                finally:
+                    shutil.rmtree(temp_dir)
+            else:
+                val = self.fileTypeCheck(filePath)
+                addData = self.loading(val[0], val[1], returnBool=True)
+            if addData.data.shape != shapeRequired:
+                self.dispMsg("Not all the data has the required shape")
+                return False
+            combineMasterData.insert(addData.data, combineMasterData.data.shape[0], 0)
+        wsname = self.askName()
+        self.workspaces.append(Main1DWindow(self, combineMasterData))
+        self.workspaces[-1].rename(wsname)
+        self.tabs.addTab(self.workspaces[-1], wsname)
+        self.workspaceNames.append(wsname)
+        self.changeMainWindow(wsname)
+    
     def dataFromFit(self, data, filePath, freq, sw, spec, wholeEcho, ref, xaxArray, axes):
         name = self.askName()
         if name is None:
@@ -1346,7 +1393,7 @@ class MainProgram(QtWidgets.QMainWindow):
         self.workspaceNames.append(name)
         self.changeMainWindow(name)
 
-    def loading(self, num, filePath, returnBool=False,realpath=False):
+    def loading(self, num, filePath, returnBool=False, realpath=False):
         if returnBool:
             name = None
         else:
@@ -6217,6 +6264,75 @@ class CombineWorkspaceWindow(QtWidgets.QWidget):
             if self.father.combineWorkspace(items):
                 self.father.menuEnable()
                 self.deleteLater()
+
+    def closeEvent(self, *args):
+        self.father.menuEnable()
+        self.deleteLater()
+
+##########################################################################################
+
+
+class CombineLoadWindow(QtWidgets.QWidget):
+
+    def __init__(self, parent):
+        QtWidgets.QWidget.__init__(self, parent)
+        self.setWindowFlags(QtCore.Qt.Window | QtCore.Qt.Tool)
+        self.setAcceptDrops(True)
+        self.father = parent
+        self.setWindowTitle("Open and Combine")
+        layout = QtWidgets.QGridLayout(self)
+        grid = QtWidgets.QGridLayout()
+        layout.addLayout(grid, 0, 0, 1, 3)
+        grid.addWidget(wc.QLabel("Combined spectrum:"), 0, 0)
+        self.specList = DestListWidget(self)
+        grid.addWidget(self.specList, 1, 0)
+        browseButton = QtWidgets.QPushButton("&Browse")
+        browseButton.clicked.connect(self.browse)
+        layout.addWidget(browseButton, 2, 0)
+        cancelButton = QtWidgets.QPushButton("&Close")
+        cancelButton.clicked.connect(self.closeEvent)
+        layout.addWidget(cancelButton, 2, 1)
+        okButton = QtWidgets.QPushButton("&Ok")
+        okButton.clicked.connect(self.applyAndClose)
+        layout.addWidget(okButton, 2, 2)
+        layout.setColumnStretch(2, 1)
+        self.show()
+        self.setFixedSize(self.size())
+        self.father.menuDisable()
+        self.setGeometry(self.frameSize().width() - self.geometry().width(), self.frameSize().height() - self.geometry().height(), 0, 0)
+
+    def dragEnterEvent(self, event):
+        if event.mimeData().hasUrls:
+            event.accept()
+        else:
+            event.ignore()
+
+    def dropEvent(self, event):
+        for url in event.mimeData().urls():
+            name = url.toLocalFile()
+            self.specList.addItem(name)
+
+    def browse(self):
+        fileList = QtWidgets.QFileDialog.getOpenFileNames(self, 'Open File', self.father.LastLocation)
+        if type(fileList) is tuple:
+            fileList = fileList[0]
+        for filePath in fileList:
+            if filePath:  # if not cancelled
+                self.father.LastLocation = os.path.dirname(filePath)  # Save used path
+            if len(filePath) == 0:
+                return
+            self.specList.addItem(filePath)
+
+    def applyAndClose(self, *args):
+        items = []
+        for index in range(self.specList.count()):
+            items.append(self.specList.item(index).text())
+        if len(items) == 0:
+            self.father.dispMsg("Please select at least one workspace to combine")
+        else:
+            self.father.loadAndCombine(items)
+            self.father.menuEnable()
+            self.deleteLater()
 
     def closeEvent(self, *args):
         self.father.menuEnable()
