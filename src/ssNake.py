@@ -1349,7 +1349,7 @@ class MainProgram(QtWidgets.QMainWindow):
             return False
         shapeRequired = combineMasterData.data.shape
         combineMasterData.split(1, -1)
-        for name in filePathList:
+        for filePath in filePathList:
             if filePath.endswith('.zip'):
                 import tempfile
                 import shutil
