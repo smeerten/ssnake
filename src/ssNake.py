@@ -1295,6 +1295,9 @@ class MainProgram(QtWidgets.QMainWindow):
                 return (9, filePath, returnVal)
             elif filename.endswith('.dx') or filename.endswith('.jdx') or filename.endswith('.jcamp'):#JCAMP format
                 return (10, filePath, returnVal)
+            elif filename.endswith('.sig'): #Bruker minispec    
+                return (12, filePath, returnVal)
+                
             fileName = filePath
             filePath = os.path.dirname(filePath)
             returnVal = 1
@@ -1437,6 +1440,8 @@ class MainProgram(QtWidgets.QMainWindow):
             masterData = self.LoadJCAMP(filePath, name)   
         elif num == 11:
             masterData = self.LoadAscii(filePath, name) 
+        elif num == 12:
+            masterData = self.LoadMinispec(filePath, name) 
         if returnBool:
             return masterData
         else:
@@ -1564,7 +1569,19 @@ class MainProgram(QtWidgets.QMainWindow):
                 except:
                     self.dispMsg("Error on loading ASCII data",'red')
                     raise
-       
+                    
+    def LoadMinispec(self, filePath, name=''):
+        try:
+            masterData = LF.LoadMinispec(filePath,name)
+
+            masterData.msgHandler = lambda msg: self.dispMsg(msg)
+            masterData.addHistory("Minispec data loaded from " + filePath)
+        except:
+            self.dispMsg("Error on loading Minispec data",'red')
+            raise
+        return masterData 
+        
+        
     def saveSimpsonFile(self):
         self.mainWindow.get_mainWindow().SaveSimpsonFile()
 

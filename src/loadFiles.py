@@ -813,7 +813,7 @@ def loadJCAMP(filePath,name):
         elif '##DATATYPE=' in testline:   
             dataType = line[line.index('=')+1:]
         elif '#VAR_DIM=' in testline:
-            nPoints = line[line.index('=')+1:]
+            masterData = sc.Spectrum(name, fullData, (10, filePath), [freq], [sw], [False])
             nPoints = re.sub(',[\t ][\t ]*',' ', nPoints)
             nPoints = re.sub('[\t\r]*','', nPoints)
             nPoints = int(nPoints.split()[0])
@@ -962,6 +962,25 @@ def LoadAscii(filePath, name, dataDimension, dataSpec, dataOrder, delimitor, swI
         
         
         
-        
-        
+def LoadMinispec(filePath,name):
+    with open(filePath, 'r') as f:
+        data = f.read().split('\n')    
+       
+    dataType = int(data[1][data[1].index('=')+1:])
+    dataLimits = np.fromstring(data[2][data[2].index('=')+1:],sep = ',')
+    dw = (dataLimits[1] - dataLimits[0]) / ( dataLimits[2] - 1)
+    if 'Time/ms' in data[3]:    
+        sw = 1.0/dw * 1000
+    elif 'Time/s' in data[3]: 
+        sw = 1.0/dw
+    totaldata = np.array([])
+    if dataType == 1: #real data?
+        for line in data[7:]:
+            if len(line) > 0:
+                totaldata = np.append(totaldata,float(line))
+    
+    
+    
+    masterData = sc.Spectrum(name, totaldata, (12, filePath), [0], [sw], [False])
+    return masterData       
         
