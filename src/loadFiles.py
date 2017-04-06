@@ -813,7 +813,7 @@ def loadJCAMP(filePath,name):
         elif '##DATATYPE=' in testline:   
             dataType = line[line.index('=')+1:]
         elif '#VAR_DIM=' in testline:
-            masterData = sc.Spectrum(name, fullData, (10, filePath), [freq], [sw], [False])
+            nPoints = line[line.index('=')+1:]
             nPoints = re.sub(',[\t ][\t ]*',' ', nPoints)
             nPoints = re.sub('[\t\r]*','', nPoints)
             nPoints = int(nPoints.split()[0])
