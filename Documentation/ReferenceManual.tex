@@ -100,7 +100,7 @@
 
 \section{Running ssNake}
 \subsection{Python versions}
-ssNake had been programmed to run on both the python 2.x and 3.x branch. We developed ssNake using python 2.7.9 and 3.4.3, but somewhat older version might also be sufficient. 
+ssNake has been programmed to run on both the python 2.x and 3.x branch. We developed ssNake using python 2.7.9 and 3.4.3, but somewhat older version might also be sufficient. 
 
 \subsection{Numpy versions}
 We have run into issue while using older versions of numpy. It seems that version 1.7.0 is the oldest that we support (some new commands have been introduced in this version, that ssNake makes use of). Development took place on version 1.8.2.
@@ -118,7 +118,7 @@ There are several ways to control the display of the current spectrum or FID in 
 \item \textit{Special}: Scrolling while holding shift changes the spacing between the different plots in the Array, Stack or Skew plot. In the Contour plot, the contour levels are zoomed.
 \end{itemize}
 
-Having an input window open (e.g. the phasing window, see below) does not prevent the use of these zoom controls. However, some tools require left clinking in the spectrum to select a data point. In these cases, the zoom-box (dragging while holding the left mouse button) is disabled.
+Having an input window open (e.g. the phasing window, see below) does not prevent the use of these zoom controls. However, some tools require left clicking in the spectrum to select a data point. In these cases, the zoom-box (dragging while holding the left mouse button) is disabled.
 
 \subsection{Bottom Frame}
 The bottom frame is the frame below the current data display. It consist of two parts: one with data parameters (and started by the `Fourier' button), and the `Get Position' frame. The features of these frames are explained below.
@@ -165,19 +165,20 @@ ssNake is able to extract NMR data from a number of formats from several vendors
 Name & Specification \\
 \midrule
 \rowcolor{gray!30!white}
-Varian/Agilent & VnmrJ 2 and newer. fid and data (spectrum)\\
-Bruker & Topspin and XWinNMR (fid \& ser,1r/i \& 2rr/ii) \\
+Varian/Agilent & VnmrJ 2 and newer. \texttt{fid} and \texttt{data} (spectrum)\\
+Bruker & Topspin and XWinNMR (\texttt{fid} \& \texttt{ser},\texttt{1r/i} \& \texttt{2rr/ii}) \\
 \rowcolor{gray!30!white}
+Bruker minispec  & \texttt{.sig} file\\
 JEOL Delta & 1D only at the moment \\
+\rowcolor{gray!30!white}
 Chemagnetics & ??? \\
-\rowcolor{gray!30!white}
 Magritek & Both 1D and 2D data \\
+\rowcolor{gray!30!white}
 Simpson & 1D and 2D, -ascii and -binary \\
-\rowcolor{gray!30!white}
 JCAMP & 1D JCAMP-DX file\\
-JSON & ssNake JSON file (ascii)\\
 \rowcolor{gray!30!white}
-Matlab & ssNake .mat file (binary)\\
+JSON & ssNake JSON file (ascii)\\
+Matlab & ssNake \texttt{.mat} file (binary)\\
 \bottomrule
 \end{tabular}
 \end{center}
@@ -194,9 +195,11 @@ The Bruker load first checks for the \textit{acqus} and \textit{acqu2s} files an
 
 Bruker processed spectra can be loaded from \textit{1r} and \textit{1i} files for 1D data, \textit{2rr} and \textit{2ii} for 2D data, and \textit{2rr} and \textit{2ir} for hypercomplex data. It additionally takes parameters from \textit{procs} or \textit{proc2s} files in that directory. Moreover, the spectral frequency is extracted from the \textit{acqus} and/or \textit{acqu2s} files located \textit{two directories up}.
 
+\subsubsection*{Bruker minispec}
+In some cases, the Bruker minispec also outputs a \texttt{.sig} data file. These can be loaded in ssNake, although it is experimental at the moment.
  
 \subsubsection*{JEOL Delta}
-JEOL Delta data is contained in a single .jdf file. Currently only 1D data is (experimentally) supported. This is simply because we have no access to a JEOL spectrometer for testing purposes. Please send us test files is you have any.
+JEOL Delta data is contained in a single \texttt{.jdf} file. Currently only 1D data is (experimentally) supported. This is simply because we have no access to a JEOL spectrometer for testing purposes. Please send us test files is you have any.
 
 \subsubsection*{Chemagnetics}
 Loading Chemagnetics data requires a \textit{acq} (and \textit{acq\_2} for 2D) and \textit{data} file. From the former, the number of points in both dimensions is extracted, the spectral widths and the spectral frequency. All the data points are then extracted form the \textit{data} file, and reshaped to a 2D array when necessary.
@@ -239,16 +242,18 @@ Bruker spectrum & (\texttt{1r}/\texttt{1i}) or (\texttt{2rr} and \texttt{2ii}/\t
   & with \texttt{procs}/\texttt{proc2s}  &\\
  &and \texttt{../../acqus} and \texttt{../../acqu2s} & \\
 \rowcolor{gray!30!white}
+Bruker minispec &  & \texttt{*.sig} \\
 Chemagnetics &  \texttt{acq} (and \texttt{acq\_2} for 2D) and \texttt{data} &\\
+\rowcolor{gray!30!white}
 Magritek &  \texttt{acqu.par} and \texttt{*.1d} or \texttt{*.2d}&\\
-\rowcolor{gray!30!white}
 JEOL Delta & & \texttt{.jdf}\\
+\rowcolor{gray!30!white}
 NMRpipe & & \texttt{.fid} and first byte is 0\\
-\rowcolor{gray!30!white}
 Simpson &  & \texttt{.fid} or \texttt{.spe} \\
-JCAMP & & \texttt{.jcamp} or \texttt{.dx} or \texttt{.jdx}\\
 \rowcolor{gray!30!white}
+JCAMP & & \texttt{.jcamp} or \texttt{.dx} or \texttt{.jdx}\\
 JSON & & \texttt{.json} or \texttt{.JSON}\\
+\rowcolor{gray!30!white}
 Matlab & & \texttt{.mat} or \texttt{.MAT}\\
 \bottomrule
 \end{tabular}
@@ -302,6 +307,17 @@ Renames the current workspace. Note that two workspaces cannot have the same nam
 \subsection{Active}
 Shows a list of all workspaces. The current workspaces can be changed by clicking on another workspace name.
 
+\subsection{Next}
+Makes the next workspace the active workspace.
+
+\subsection{Previous}
+Makes the previous workspace the active workspace.
+
+
+\subsection{Combine}
+Combines the data from several workspaces. This can be used, for example, to create a $2\times1024$ data file from two spectra with 1024 points (\textit{i.e.} combine several separate spectra into an array). Do note that only workspaces files with the same shape can be combined (\textit{i.e.} with the same number of data points). Also note that ssNake considers a 1D data file with $n$ points to be different than a 2D data file with only one trace ($n\times1$ data points). Using this tool opens a window in which, via dragging and dropping, a selection can be made from the current workspaces. Pressing OK asks for a name for the new workspace.
+
+
 \subsection{Keyboard shortcuts}
 ssNake features several keyboard shortcuts to work with the workspaces. Below is a list of all the combinations.
 \begin{center}
@@ -311,9 +327,11 @@ Combination & Effect \\
 \midrule
 \rowcolor{gray!30!white}
 Ctrl + w & Close current workspace\\
-Ctrl + d & Duplicate workspace\\
+Ctrl + n & Duplicate current workspace\\
 \rowcolor{gray!30!white}
+F2 & Rename  current workspace\\
 Ctrl + Page Up & Change current workspace to the one above in the list\\
+\rowcolor{gray!30!white}
 Ctrl + Page Down & Change current workspace to the one below in the list\\
 \bottomrule
 \end{tabular}
@@ -360,6 +378,10 @@ When Undo is used, the action that is undone is put in the redo list. Using Undo
 
 \subsection{Reload}
 This action reloads the data from the original source. All undo and redo information is retained., so you can undo back to before you reloaded the data. Note that the undo information can take quite some memory on your computer, especially for bigger data sets.
+
+\subsection{Monitor}
+The monitor function can be used to automatically reload the data when the source file is changed (for example when measuring on the spectrometer). One or more macro's can be selected to be applied every time the data is reloaded. The Monitor action opens a window, in which the macro's can be selected (via dragging and dropping). Pushing `Watch' then starts the monitoring, which can be stopped by returning to this window and pushing `Unwatch'. Note that ssNake takes a cool-down period of half a second after the macro's have been executed, to avoid a lock-up of the program in the case of heavy macro's and fast changing data.
+
 
 \section{Tools}
 This section explains all the options included in the Tools menu. 

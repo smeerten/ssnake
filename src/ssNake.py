@@ -310,7 +310,7 @@ class MainProgram(QtWidgets.QMainWindow):
                                     ['Tools --> Real',self.realAct],['Tools --> Imag',self.imagAct],['Tools --> Abs',self.absAct],['Tools --> Complex Conjugate',self.conjAct],['Tools --> Apodize',self.apodizeAct],
                                     ['Tools --> Phase',self.phaseAct],['Tools --> Autophase 0',self.autoPhaseAct0],['Tools --> Autophase 0+1',self.autoPhaseAct1],['Tools --> Swap Echo',self.swapEchoAct],['Tools --> Offset Correction',self.corOffsetAct],
                                     ['Tools --> Baseline Correction',self.baselineAct],['Tools --> Subtract Averages',self.subAvgAct],['Tools --> Reference Deconvolution',self.refDeconvAct],
-                                    ['Tools --> States',self.statesAct],['Tools --> TPPI',self.statesTPPIAct],['Tools --> Echo-antiecho',self.echoantiAct],['Tools --> Correct Bruker Digital Filter',self.brukDigitalAct],
+                                    ['Tools --> Correct Bruker Digital Filter',self.brukDigitalAct],['Tools --> Hypercomplex --> States',self.statesAct],['Tools --> Hypercomplex --> TPPI',self.statesTPPIAct],['Tools --> Hypercomplex --> Echo-antiecho',self.echoantiAct],
                                     ['Tools --> LPSVD',self.lpsvdAct],
                                     ['Matrix --> Sizing',self.sizingAct],['Matrix --> Shift Data',self.shiftAct],['Matrix --> Multiply',self.multiplyAct],['Matrix --> Region --> Integrate',self.intRegionAct],
                                     ['Matrix --> Region --> Sum',self.sumRegionAct],['Matrix --> Region --> Max',self.maxRegionAct],['Matrix --> Region --> Min',self.minRegionAct],
@@ -466,16 +466,20 @@ class MainProgram(QtWidgets.QMainWindow):
         self.subAvgAct.setToolTip('Subtract Averages')
         self.refDeconvAct = self.toolMenu.addAction("Re&ference Deconvolution", lambda: self.mainWindowCheck(lambda mainWindow: FiddleWindow(mainWindow)))
         self.refDeconvAct.setToolTip('Reference Deconvolution')
-        self.statesAct = self.toolMenu.addAction("&States", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.states()))
-        self.statesAct.setToolTip('States Hypercomplex Data Processing')
-        self.statesTPPIAct = self.toolMenu.addAction("States-&TPPI", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.statesTPPI()))
-        self.statesTPPIAct.setToolTip('States-TPPI Hypercomplex Data Processing')
-        self.echoantiAct = self.toolMenu.addAction("Ec&ho-antiecho", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.echoAntiEcho()))
-        self.echoantiAct.setToolTip('Ec&ho-antiecho Hypercomplex Data Processing')
         self.brukDigitalAct = self.toolMenu.addAction(QtGui.QIcon(IconDirectory + 'bruker.png'),"&Correct Bruker Digital Filter", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.BrukerDigital()))
         self.brukDigitalAct.setToolTip("Correct Bruker Digital Filter")
         self.lpsvdAct = self.toolMenu.addAction("&LPSVD", lambda: self.mainWindowCheck(lambda mainWindow: LPSVDWindow(mainWindow)))
         self.lpsvdAct.setToolTip('LPSVD linear prediction')
+        
+        self.hypercomplexMenu = QtWidgets.QMenu("Hypercomplex", self)
+        self.toolMenu.addMenu(self.hypercomplexMenu)
+        self.statesAct = self.hypercomplexMenu.addAction("&States", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.states()))
+        self.statesAct.setToolTip('States Hypercomplex Data Processing')
+        self.statesTPPIAct = self.hypercomplexMenu.addAction("States-&TPPI", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.statesTPPI()))
+        self.statesTPPIAct.setToolTip('States-TPPI Hypercomplex Data Processing')
+        self.echoantiAct = self.hypercomplexMenu.addAction("Ec&ho-antiecho", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.echoAntiEcho()))
+        self.echoantiAct.setToolTip('Ec&ho-antiecho Hypercomplex Data Processing')
+        
 
         self.toolsActList = [self.realAct,self.imagAct,self.absAct,self.apodizeAct,self.phaseAct,self.autoPhaseAct0,self.autoPhaseAct1,
                              self.swapEchoAct,self.corOffsetAct,self.baselineAct,self.subAvgAct,self.refDeconvAct,self.statesAct,
