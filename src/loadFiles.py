@@ -978,6 +978,11 @@ def LoadMinispec(filePath,name):
         for line in data[7:]:
             if len(line) > 0:
                 totaldata = np.append(totaldata,float(line))
+    if dataType == 2: #Complex data
+        for line in data[7:]:
+            if len(line) > 0:
+                temp = np.fromstring(line,sep = '\t')
+                totaldata = np.append(totaldata,temp[0] + 1j * temp[1])
     
     
     
