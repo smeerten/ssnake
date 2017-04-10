@@ -1349,6 +1349,8 @@ class Current1D(Plot1DFrame):
             self.colorMap = self.root.father.defaultColorMap            # colormap for contour like plots
             self.contourConst = self.root.father.defaultContourConst    # bool contour levels have constant color
             self.contourColors = [self.root.father.defaultPosColor, self.root.father.defaultNegColor]  # The colors of the constant color contours
+            self.diagonalBool = self.root.father.defaultDiagonalBool
+            self.diagonalMult = self.root.father.defaultDiagonalMult
             self.upd()                                                  # get the first slice of data
             self.fig.suptitle(self.data.name)
             self.startUp()
@@ -1379,6 +1381,8 @@ class Current1D(Plot1DFrame):
             self.grids = duplicateCurrent.grids
             self.contourConst = duplicateCurrent.contourConst
             self.contourColors = duplicateCurrent.contourColors
+            self.diagonalBool = duplicateCurrent.diagonalBool
+            self.diagonalMult = duplicateCurrent.diagonalMult
             self.xminlim = duplicateCurrent.xminlim
             self.xmaxlim = duplicateCurrent.xmaxlim
             self.yminlim = duplicateCurrent.yminlim
@@ -1456,6 +1460,13 @@ class Current1D(Plot1DFrame):
     def setGrids(self, grids):
         self.grids = grids
 
+    def setDiagonal(self, diagonalBool=None, diagonalMult=None):
+        if diagonalBool is not None:
+            self.diagonalBool = diagonalBool
+        if diagonalMult is not None:
+            self.diagonalMult = diagonalMult
+        self.showFid()
+        
     def setPhaseInter(self, phase0in, phase1in):  # interactive changing the phase without editing the actual data
         phase0 = float(phase0in)
         phase1 = float(phase1in)
@@ -3592,6 +3603,23 @@ class CurrentArrayed(Current1D):
         self.ax.set_xlim(self.xminlim, self.xmaxlim)
         self.ax.set_ylim(self.yminlim, self.ymaxlim)
 
+######################################################################################################
+
+def add_diagonal(axes, mult, *line_args, **line_kwargs):
+    identity, = axes.plot([], [], *line_args, **line_kwargs)
+    def callback(axes):
+        low_x, high_x = axes.get_xlim()
+        low_y, high_y = axes.get_ylim()
+        low_y = low_y/float(mult)
+        high_y = high_y/float(mult)        
+        low = max(low_x, low_y)
+        high = min(high_x, high_y)
+        identity.set_data([low, high], [low*mult, high*mult])
+    callback(axes)
+    axes.callbacks.connect('xlim_changed', callback)
+    axes.callbacks.connect('ylim_changed', callback)
+    return axes
+
 #########################################################################################################
 # the class from which the contour data is displayed, the operations which only edit the content of this class are for previewing
 
@@ -3832,6 +3860,8 @@ class CurrentContour(Current1D):
         self.ax.cla()
         self.x_ax.cla()
         self.y_ax.cla()
+        if self.diagonalBool:
+            add_diagonal(self.ax, self.diagonalMult, c='k', ls='--')
         if self.spec == 1:
             if self.ppm:
                 axMult = 1e6 / self.ref

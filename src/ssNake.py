@@ -166,6 +166,8 @@ class MainProgram(QtWidgets.QMainWindow):
         self.defaultLinewidth = 1.0
         self.defaultColor = '#0000FF'
         self.defaultGrids = [False, False]
+        self.defaultDiagonalBool = False
+        self.defaultDiagonalMult = 1
         self.defaultZeroScroll = True
         self.defaultColorMap = 'seismic'
         self.defaultWidthRatio = 3.0
@@ -208,6 +210,11 @@ class MainProgram(QtWidgets.QMainWindow):
         self.defaultNegColor = settings.value("contour/negcolor", self.defaultNegColor, str)
         if not str(self.defaultColorMap) in sc.COLORMAPLIST:
             self.dispMsg("Incorrect colormap in config file")
+        self.defaultDiagonalBool = settings.value("contour/diagonalbool", self.defaultDiagonalBool, bool)
+        try:
+            self.defaultDiagonalMult = settings.value("contour/diagonalmult", self.defaultDiagonalMult, float)
+        except TypeError:
+            self.dispMsg("Incorrect value in the config file for the diagonal multiplier")
         self.defaultMaximized = settings.value("maximized", self.defaultMaximized, bool)
         try:
             self.defaultWidth = settings.value("width", self.defaultWidth, int)
@@ -252,6 +259,8 @@ class MainProgram(QtWidgets.QMainWindow):
         settings.setValue("contour/negcolor", self.defaultNegColor)
         settings.setValue("contour/width_ratio", self.defaultWidthRatio)
         settings.setValue("contour/height_ratio", self.defaultHeightRatio)
+        settings.setValue("contour/diagonalbool", self.defaultDiagonalBool)
+        settings.setValue("contour/diagonalmult", self.defaultDiagonalMult)
         
 
     def dispMsg(self, msg, colour = 'black'):
@@ -2542,6 +2551,15 @@ class SideFrame(QtWidgets.QScrollArea):
                 self.minLEntry.setText(str(current.minLevels * 100.0))
                 self.minLEntry.returnPressed.connect(self.setContour)
                 self.frame2.addWidget(self.minLEntry, 10, 0)
+                self.diagonalCheck = QtWidgets.QCheckBox("Diagonal")
+                self.diagonalCheck.setChecked(current.diagonalBool)
+                self.diagonalCheck.stateChanged.connect(self.switchDiagonal)
+                self.frame2.addWidget(self.diagonalCheck, 11, 0)
+                self.frame2.addWidget(wc.QLabel("Diagonal multiplier:", self), 12, 0)
+                self.diagonalEntry = QtWidgets.QLineEdit(self)
+                self.diagonalEntry.setText(str(current.diagonalMult))
+                self.diagonalEntry.returnPressed.connect(self.setDiagonal)
+                self.frame2.addWidget(self.diagonalEntry, 13, 0)
             self.buttons1Group.button(current.axes).toggle()
             if self.plotIs2D:
                 self.buttons2Group.button(current.axes2).toggle()
@@ -2756,7 +2774,13 @@ class SideFrame(QtWidgets.QScrollArea):
        
     def setShift(self, shift, num):
         self.father.current.setExtraShift(num, shift)    
-    
+
+    def switchDiagonal(self, val):
+        self.father.current.setDiagonal(bool(val))
+
+    def setDiagonal(self):
+        inp = float(safeEval(self.diagonalEntry.text()))
+        self.father.current.setDiagonal(None, inp)
 
     def checkChanged(self):
         for i in range(len(self.father.current.extraData)):
