@@ -3610,10 +3610,14 @@ def add_diagonal(axes, mult, *line_args, **line_kwargs):
     def callback(axes):
         low_x, high_x = axes.get_xlim()
         low_y, high_y = axes.get_ylim()
-        low_y = low_y/float(mult)
-        high_y = high_y/float(mult)        
-        low = max(low_x, low_y)
-        high = min(high_x, high_y)
+        if mult == 0:
+            low = low_y
+            high = high_y
+        else:
+            low_y = low_y/float(mult)
+            high_y = high_y/float(mult)        
+            low = max(low_x, low_y)
+            high = min(high_x, high_y)
         identity.set_data([low, high], [low*mult, high*mult])
     callback(axes)
     axes.callbacks.connect('xlim_changed', callback)
