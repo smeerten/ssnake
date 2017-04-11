@@ -1333,7 +1333,7 @@ class MainProgram(QtWidgets.QMainWindow):
             if len(files2D) != 0 or len(files1D) != 0:
                 return (3, filePath, returnVal)
         else: #If not recognised, load as ascii
-            return (11, filePath, returnVal)
+            return (11, fileName, returnVal)
                 
     def autoLoad(self, filePath, realpath=False):
         val = self.fileTypeCheck(filePath)
