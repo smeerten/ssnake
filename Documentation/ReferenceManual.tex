@@ -148,7 +148,8 @@ For data that has more than 1 dimension, a dimension selector is shown in the Si
 
 For data with more dimensions, the idea is essentially the same. Note that ssNake always applies processing commands on the current view (the selected dimension). If two dimensions need to be selected (as in an array or contour plot), the leftmost radio button is the selected dimension for operations.
 
-
+\subsection{Message bar}
+The bottommost part of the ssNake window is the message bar. Any error messages will be printed here in red. Warnings about wrong inputs will be displayed in black. For both type of messages the same applies: they are shown for several seconds, and then disappear. If some tool is not responding, it is therefore wise to check the message bar for messages.
 
 \section{File}
 Using the ssNake load tools is quite easy. Go to File $\rightarrow$ Open. Navigating and double clicking on the desired file then loads the data. Many formats supported by ssNake (like Bruker and Varian) have their data in a folder, in which several files with a fixed name are present. For these formats, loading any of the files in this directory is accepted (ssNake searches for the expected files in the selected directory). Loading large data files might take some time, depending on your computer hardware.
@@ -268,7 +269,7 @@ In case you want to load multiple data and combine them into an $n$D array, \tex
 Naturally, ssNake can also be used to save data. When saving data, the current ND data is saved, along with the spectral widths, frequencies and if the axis is in time or frequency units. Also, ppm references are saved, along with the processing history. Undo information is \textit{not} saved.
 
 \subsubsection*{JSON}
-JSON (JavaScript Object Notation) is a ascii format (i.e. regular text) used to save data structures. Within ssNake this can be used to save the current data in a clear, human readable format. As JSON data is in ascii, it is not efficient in file size and in speed. If these are necessary then consider saving the data as a matlab binary.
+JSON (JavaScript Object Notation) is an ascii format (i.e. regular text) used to save data structures. Within ssNake this can be used to save the current data in a clear, human readable format. As JSON data is in ascii, it is not efficient in file size and in speed. If these are necessary then consider saving the data as a matlab binary.
 
 \subsubsection*{MATLAB}
 The MATLAB binary format is a open source format in which many different types of data can be saved. Also, it is the native format of MATLAB, which can be used for more special data manipulation, if necessary. As the format is binary, it is efficient in both speed and file size. The content of the file is the same as the JSON file.
@@ -279,16 +280,16 @@ Using ssNake you can also export your data. Exporting never saves all the info o
 
 
 \subsubsection*{Simpson}
-Simpson is a general NMR simulation program with its own data format. The format only supports 1D and 2D data, and only if the data in both dimensions is of the same type (i.e. both spectrum, or both time). Apart from that, Simpson is a ascii format, and therefore has the same speed restrictions as the JSON format. The parameters that are saved within the Simpson data are restricted (no offset frequency), so when loading it back into ssNake some information is lost. We therefore advise to use the Simpson format only for transferring data to another program.
+Simpson is a general NMR simulation program with its own data format. The format only supports 1D and 2D data, and only if the data in both dimensions is of the same type (i.e. both spectrum, or both time). Apart from that, Simpson is an ascii format, and therefore has the same speed restrictions as the JSON format. The parameters that are saved within the Simpson data are restricted (no offset frequency), so when loading it back into ssNake some information is lost. We therefore advise to use the Simpson format only for transferring data to another program.
 
 \subsubsection*{ASCII (1D/2D)}
 This option saves the current data to a bare ascii format (text file). The first column is the axis in units of Hz or seconds. The next columns are alternating real and imaginary for all traces in the 2D data. For 1D data, only a single set of real and imaginary data is printed. The axis of dimension 1 of the 2D data is not saved.
 
 \subsubsection*{Figure}
-The Figure option can be used to export any Figure plot within ssNake. The title, axis labels and size of the Figure can be changed. Be aware that choosing a to small height can cause the x-axis label to disappear. After all the titles have been set, pushing `Save' will save the Figure to a directory of your choice. The Figure can be saved in vector format (.eps, .pdf, .svg), in lossless pixel format (.png), and in lossy pixel format (.jpg). We advice to use vector formats to make high quality pictures.
+The Figure option can be used to export any Figure plot within ssNake. The title, axis labels and size of the Figure can be changed. Be aware that choosing a too small height can cause the x-axis label to disappear. After all the titles have been set, pushing `Save' will save the Figure to a directory of your choice. The Figure can be saved in vector format (.eps, .pdf, .svg), in lossless pixel format (.png), and in lossy pixel format (.jpg). We advice to use vector formats to make high quality pictures.
 
 \subsection{Quit}
-Closes the ssNake application.
+Closes the ssNake application. Quiting ssNake always asks for conformation, to prevent data loss.
 
 \section{Workspaces}
 Within ssNake you can have multiple data files opened. Each loaded file gets its own environment in which you can process the data. These are called workspaces. All ssNake workspaces are independent, meaning that the data from workspace 1 cannot be changed while viewing any other workspace. Going back to a workspace from another goes back to the same view as before:  nothing is discarded when switching between workspaces. Also: every workspace has its own undo/redo information. Some tools can transfer data from other workspaces to the current workspace. You can find more about these tools later on, in their respective sections.
@@ -296,7 +297,7 @@ Within ssNake you can have multiple data files opened. Each loaded file gets its
 When loading data, ssNake prompts for a name. This will become the name of the workspace in which the data is loaded. The title of the graph will be set to this name, and the name will be set in the list of opened workspaces in Workspaces $\rightarrow$ Active. You can also switch workspace using the tabs that are created for every workspace. Note that you cannot have multiple workspaces with the same name.
 
 \subsection{Duplicate}
-Makes a copy of the current workspace to another workspace, of which the name is asked. All the data and the current view is copied to this new workspace. No undo and redo data is transferred. Also, the current workspace is now the new, duplicated one.
+Makes a copy of the current workspace to a new workspace, of which the name is asked. All the data and the current view is copied to this new workspace. No undo and redo data is transferred. Also, the current workspace is now the new, duplicated one.
 
 \subsection{Delete}
 Deletes the current workspace and all references to it. The view is changed to the next workspace in the list. Be aware that there is no way to undo this!
@@ -369,7 +370,7 @@ SOME PART ABOUT RUNNING MACROS ON MORE OR LESS DIMENSIONS THEN THEY WERE CREATED
 
 \section{Edit}
 \subsection{Undo}
-In ssNake, every action that causes a change in the data can be undone. When such an action is performed, the undo list is increased with one entry, in which the information is stored as how to undo the performed action. Sometimes this involves the inverse operation (e.g. for fft/inverse fft), but for some actions the old data must be preserved and put back when an undo is requested. Duplicating data to another workspace does not copy the undo list.
+In ssNake, every action that causes a change in the data can be undone. When such an action is performed, the undo list is increased with one entry, in which the information is stored as how to undo the performed action. Sometimes this involves the inverse operation (e.g. for fft/inverse fft), but for some actions the old data must be preserved and put back when an undo is requested. Duplicating data to another workspace does not copy the undo list. The undo/redo data can be cleared using History $\rightarrow$ Clear Undo/Redo List.
 
 Undo cannot be used the undo the current view to the previous view as this is not an operation that changes the data.
 
@@ -377,7 +378,7 @@ Undo cannot be used the undo the current view to the previous view as this is no
 When Undo is used, the action that is undone is put in the redo list. Using Undo and then Redo therefore performs no net action. Every time a new action (i.e. something other then redo) is performed the redo list is cleared.
 
 \subsection{Reload}
-This action reloads the data from the original source. All undo and redo information is retained., so you can undo back to before you reloaded the data. Note that the undo information can take quite some memory on your computer, especially for bigger data sets.
+This action reloads the data from the original source. All undo and redo information is retained, so you can undo back to before you reloaded the data. Note that the undo information can take quite some memory on your computer, especially for bigger data sets. In case this gives problems: the undo/redo data can be cleared using History $\rightarrow$ Clear Undo/Redo List.
 
 \subsection{Monitor}
 The monitor function can be used to automatically reload the data when the source file is changed (for example when measuring on the spectrometer). One or more macro's can be selected to be applied every time the data is reloaded. The Monitor action opens a window, in which the macro's can be selected (via dragging and dropping). Pushing `Watch' then starts the monitoring, which can be stopped by returning to this window and pushing `Unwatch'. Note that ssNake takes a cool-down period of half a second after the macro's have been executed, to avoid a lock-up of the program in the case of heavy macro's and fast changing data.
@@ -425,6 +426,11 @@ Apart from manual phasing, ssNake also supports two types of autophasing: zero o
 
 Also, note that first order phase correction has no meaning in NMR when applied to the time domain. ssNake therefore always applies first order phasing in the \textit{frequency} domain. When first order phasing is applied when viewing the time domain signal, ssNake transforms to the spectral domain, does the phase correction, and transforms back. As Fourier transforms are quite fast, this provides no issues when viewing the effect of the phase correction.
 
+\subsection{Autophase 0}
+Perform a 0th order autophase on the current spectrum (and applies it on all traces). This is identical to doing this via the Phasing window, but requires less effort for the user.
+
+\subsection{Autophase 0+1}
+Perform a 1th order autophase on the current spectrum (and applies it on all traces). This is identical to doing this via the Phasing window, but requires less effort for the user.
 
 
 \subsection{Swap echo}
@@ -489,6 +495,23 @@ To automate this process, ssNake uses information from a handy text by W.\ M.\ W
 
 Using this tool opens a windows, in which you have to open (again) the current Bruker file. ssNake then finds the desired phase correction and applies it to all traces. 
 
+\subsection{LPSVD}
+Uses Linear Prediction (LP) via Single Value Decomposition (SVD) to back or forward predict a time signal.
+
+\subsubsection*{Background}
+Measuring an NMR signal right after a pulse is not possible, due to the ring-down time of the pulse, which would interfere with the measurement. Nearly all NMR experiments therefore have a short delay before data acquisition is started. However, in this time the magnetization already starts precessing, causing an offset dependent phase distortion in the spectrum. This can be corrected with a 1st order phase correction, but this can lead to a baseline distortion. An alternative way to compensate the problem of delayed acquisition is by using linear prediction. In this case, the missing data points are reconstructed from the ones that are measured. If done perfectly, the  signal is now perfectly phased, as if no delay was used. Via the same method, acquisition that is stopped before the data has died out can be lengthened by forward predicting based on the measured signal.
+
+Most LP methods require the user to supply the number of frequencies that are in the time signal, as this is difficult (impossible?) for the program to recognise.
+
+\subsubsection*{ssNake implementation}
+Currently, ssNake supports only LPSVD as a linear prediction algorithm. Using the tool pops up a windows were several things need to be set:
+\begin{itemize}
+\item Whether a forward or backward linear prediction needs to be performed. \footnote{Note that ssNake always calculates the LP coefficients via a forward LPSVD. This setting is therefore only for setting the direction in which data points need to be added.}
+\item The number of points used for the analysis of the LP. These are taken from the front (backwards prediction) or from the end (forward).
+\item The number of frequencies in the signal. Putting this too low leads to weird effects. Putting it too high will slow down the process.
+\item The number of points that need to be predicted.
+\end{itemize}
+Pushing OK starts the analysis. The linear prediction is performed independently for every trace. The time it takes can therefore be quite long. Note that increasing the number of points used for the analysis above 200 usually has only a negative effect on the calculation time.
 
 \section{Matrix}
 This section describes the ssNake matrix manipulation tools. NMR data is nothing more then a data matrix of a specific dimension. Using the matrix tools, you can change the size of a dimension, split the data into more dimension, integrate, multiply, mirror etc. In the following, the different supported matrix manipulations will be introduced.
@@ -507,7 +530,7 @@ Selecting `Matrix $\rightarrow$ Sizing' creates a sizing window. In here a singl
 
 If the supplied number is larger than the current size, zeroes are added at the right-hand side of the time signal. If the value is lower, points are removed from the right-hand side of the time signal. If the whole echo type is on, the zeroes are added in the centre of the time signal, or points are taken symmetrically from the centre, if the size is reduced. Alternatively, the position of the zero filling can be specified by left-clicking in the spectrum, or by manually filling in the desired offset value in the box `Offset'.
 
-When applied to the frequency domain, zero filling makes no real sense. Therefore, ssNake always applies it in the time domain. So when the size is chaed within a spectrum, it is transformed back to the time domain, the size is changed, and a forward Fourier transform gets the data back to the frequency domain.
+When applied to the frequency domain, zero filling makes no real sense. Therefore, ssNake always applies it in the time domain. So when the size is changed within a spectrum, it is transformed back to the time domain, the size is changed, and a forward Fourier transform gets the data back to the frequency domain.
 
 \subsection{Shift data}
 Shifts the data to the left or to the right, by removing data points on the left or on the right, and filling with zeroes on the other side. Negative shifts are left shifts, positive right shifts.
