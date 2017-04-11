@@ -5893,7 +5893,7 @@ def quad2tensorFunc(x, I, pos, cq, eta, width, gauss, angleStuff, freq, sw, weig
     x1 = x1[np.logical_and(x1 >= 0, x1 < length)]
     final = np.bincount(x1, weights, length)
     apod = np.exp(-np.pi * width * t) * np.exp(-((np.pi * gauss * t)**2) / (4 * np.log(2)))
-    apod[-1:-(len(apod) / 2 + 1):-1] = apod[:len(apod) / 2]
+    apod[-1:-(int(len(apod) / 2) + 1):-1] = apod[:int(len(apod) / 2)]
     inten = np.real(np.fft.fft(np.fft.ifft(final) * apod))
     inten = inten / sw / len(inten)
     return inten

@@ -831,7 +831,7 @@ class Spectrum:
                     alpha = 0.53836  # constant for hamming window
                     x = x * (alpha + (1 - alpha) * np.cos(hamming * (-0.5 * shift1 * np.pi * self.sw[axes] / axLen + np.linspace(0, np.pi, axLen))))
                 if self.wholeEcho[axes]:
-                    x[-1:-(len(x) / 2 + 1):-1] = x[:len(x) / 2]
+                    x[-1:-(int(len(x) / 2) + 1):-1] = x[:int(len(x) / 2)]
                 if self.spec[axes] > 0:
                     self.fourier(axes, tmp=True)
                 for i in range(self.data.shape[axes]):
@@ -855,7 +855,7 @@ class Spectrum:
                 alpha = 0.53836  # constant for hamming window
                 x = x * (alpha + (1 - alpha) * np.cos(hamming * (-0.5 * shift * np.pi * self.sw[axes] / axLen + np.linspace(0, np.pi, axLen))))
             if self.wholeEcho[axes]:
-                x[-1:-(len(x) / 2 + 1):-1] = x[:len(x) / 2]
+                x[-1:-(int(len(x) / 2) + 1):-1] = x[:int(len(x) / 2)]
             if self.spec[axes] > 0:
                 self.fourier(axes, tmp=True)
             self.data[select] = np.apply_along_axis(np.multiply, axes, self.data, x)[select]
@@ -3031,7 +3031,7 @@ class CurrentStacked(Current1D):
                         alpha = 0.53836  # constant for hamming window
                         x2 = x2 * (alpha + (1 - alpha) * np.cos(hamming * (-0.5 * shift1 * np.pi * self.sw / len(self.data1D[0]) + np.linspace(0, np.pi, len(self.data1D[0])))))
                     if self.wholeEcho:
-                        x2[-1:-(len(x2) / 2 + 1):-1] = x2[:len(x2) / 2]
+                        x2[-1:-(int(len(x2) / 2) + 1):-1] = x2[:int(len(x2) / 2)]
                     x[i] = x2
             else:
                 if (shiftingAxes < self.axes) and (shiftingAxes < self.axes2):
@@ -3052,7 +3052,7 @@ class CurrentStacked(Current1D):
                     alpha = 0.53836  # constant for hamming window
                     x = x * (alpha + (1 - alpha) * np.cos(hamming * (-0.5 * shift * np.pi * self.sw / len(self.data1D[0]) + np.linspace(0, np.pi, len(self.data1D[0])))))
                 if self.wholeEcho:
-                    x[-1:-(len(x) / 2 + 1):-1] = x[:len(x) / 2]
+                    x[-1:-(int(len(x) / 2) + 1):-1] = x[:int(len(x) / 2)]
                 x = np.repeat([x], len(self.data1D), axis=0)
         else:
             t2 = t - shift
@@ -3067,7 +3067,7 @@ class CurrentStacked(Current1D):
                 alpha = 0.53836  # constant for hamming window
                 x = x * (alpha + (1 - alpha) * np.cos(hamming * (-0.5 * shift * np.pi * self.sw / len(self.data1D[0]) + np.linspace(0, np.pi, len(self.data1D[0])))))
             if self.wholeEcho:
-                x[-1:-(len(x) / 2 + 1):-1] = x[:len(x) / 2]
+                x[-1:-(int(len(x) / 2) + 1):-1] = x[:int(len(x) / 2)]
             x = np.repeat([x], len(self.data1D), axis=0)
         y = self.data1D
         self.ax.cla()
@@ -3403,7 +3403,7 @@ class CurrentArrayed(Current1D):
                         alpha = 0.53836  # constant for hamming window
                         x2 = x2 * (alpha + (1 - alpha) * np.cos(hamming * (-0.5 * shift1 * np.pi * self.sw / len(self.data1D[0]) + np.linspace(0, np.pi, len(self.data1D[0])))))
                     if self.wholeEcho:
-                        x2[-1:-(len(x2) / 2 + 1):-1] = x2[:len(x2) / 2]
+                        x2[-1:-(int(len(x2) / 2) + 1):-1] = x2[:int(len(x2) / 2)]
                     x[i] = x2
             else:
                 if (shiftingAxes < self.axes) and (shiftingAxes < self.axes2):
@@ -3424,7 +3424,7 @@ class CurrentArrayed(Current1D):
                     alpha = 0.53836  # constant for hamming window
                     x = x * (alpha + (1 - alpha) * np.cos(hamming * (-0.5 * shift * np.pi * self.sw / len(self.data1D) + np.linspace(0, np.pi, len(self.data1D)))))
                 if self.wholeEcho:
-                    x[-1:-(len(x) / 2 + 1):-1] = x[:len(x) / 2]
+                    x[-1:-(int(len(x) / 2) + 1):-1] = x[:int(len(x) / 2)]
                 x = np.repeat([x], len(self.data1D), axis=0)
         else:
             t2 = t - shift
@@ -3439,7 +3439,7 @@ class CurrentArrayed(Current1D):
                 alpha = 0.53836  # constant for hamming window
                 x = x * (alpha + (1 - alpha) * np.cos(hamming * (-0.5 * shift * np.pi * self.sw / len(self.data1D) + np.linspace(0, np.pi, len(self.data1D)))))
             if self.wholeEcho:
-                x[-1:-(len(x) / 2 + 1):-1] = x[:len(x) / 2]
+                x[-1:-(int(len(x) / 2) + 1):-1] = x[:int(len(x) / 2)]
             x = np.repeat([x], len(self.data1D), axis=0)
         y = self.data1D
         self.ax.cla()
@@ -3806,7 +3806,7 @@ class CurrentContour(Current1D):
                         alpha = 0.53836  # constant for hamming window
                         x2 = x2 * (alpha + (1 - alpha) * np.cos(hamming * (-0.5 * shift1 * np.pi * self.sw / len(self.data1D[0]) + np.linspace(0, np.pi, len(self.data1D[0])))))
                     if self.wholeEcho:
-                        x2[-1:-(len(x2) / 2 + 1):-1] = x2[:len(x2) / 2]
+                        x2[-1:-(int(len(x2) / 2) + 1):-1] = x2[:int(len(x2) / 2)]
                     x[i] = x2
             else:
                 if (shiftingAxes < self.axes) and (shiftingAxes < self.axes2):
@@ -3827,7 +3827,7 @@ class CurrentContour(Current1D):
                     alpha = 0.53836  # constant for hamming window
                     x = x * (alpha + (1 - alpha) * np.cos(hamming * (-0.5 * shift * np.pi * self.sw / len(self.data1D[0]) + np.linspace(0, np.pi, len(self.data1D[0])))))
                 if self.wholeEcho:
-                    x[-1:-(len(x) / 2 + 1):-1] = x[:len(x) / 2]
+                    x[-1:-(int(len(x) / 2) + 1):-1] = x[:int(len(x) / 2)]
                 x = np.repeat([x], len(self.data1D), axis=0)
         else:
             t2 = t - shift
@@ -3842,7 +3842,7 @@ class CurrentContour(Current1D):
                 alpha = 0.53836  # constant for hamming window
                 x = x * (alpha + (1 - alpha) * np.cos(hamming * (-0.5 * shift * np.pi * self.sw / len(self.data1D[0]) + np.linspace(0, np.pi, len(self.data1D[0])))))
             if self.wholeEcho:
-                x[-1:-(len(x) / 2 + 1):-1] = x[:len(x) / 2]
+                x[-1:-(int(len(x) / 2) + 1):-1] = x[:int(len(x) / 2)]
             x = np.repeat([x], len(self.data1D), axis=0)
         y = self.data1D
         self.ax.cla()
@@ -4366,7 +4366,7 @@ class CurrentSkewed(Current1D):
                         alpha = 0.53836  # constant for hamming window
                         x2 = x2 * (alpha + (1 - alpha) * np.cos(hamming * (-0.5 * shift1 * np.pi * self.sw / len(self.data1D[0]) + np.linspace(0, np.pi, len(self.data1D[0])))))
                     if self.wholeEcho:
-                        x2[-1:-(len(x2) / 2 + 1):-1] = x2[:len(x2) / 2]
+                        x2[-1:-(int(len(x2) / 2) + 1):-1] = x2[:int(len(x2) / 2)]
                     x[i] = x2
             else:
                 if (shiftingAxes < self.axes) and (shiftingAxes < self.axes2):
@@ -4387,7 +4387,7 @@ class CurrentSkewed(Current1D):
                     alpha = 0.53836  # constant for hamming window
                     x = x * (alpha + (1 - alpha) * np.cos(hamming * (-0.5 * shift * np.pi * self.sw / len(self.data1D[0]) + np.linspace(0, np.pi, len(self.data1D[0])))))
                 if self.wholeEcho:
-                    x[-1:-(len(x) / 2 + 1):-1] = x[:len(x) / 2]
+                    x[-1:-(int(len(x)) / 2 + 1):-1] = x[:int(len(x) / 2)]
                 x = np.repeat([x], len(self.data1D), axis=0)
         else:
             t2 = t - shift
@@ -4402,7 +4402,7 @@ class CurrentSkewed(Current1D):
                 alpha = 0.53836  # constant for hamming window
                 x = x * (alpha + (1 - alpha) * np.cos(hamming * (-0.5 * shift * np.pi * self.sw / len(self.data1D[0]) + np.linspace(0, np.pi, len(self.data1D[0])))))
             if self.wholeEcho:
-                x[-1:-(len(x) / 2 + 1):-1] = x[:len(x) / 2]
+                x[-1:-(int(len(x) / 2) + 1):-1] = x[:int(len(x) / 2)]
             x = np.repeat([x], len(self.data1D), axis=0)
         y = self.data1D
         self.ax.cla()
