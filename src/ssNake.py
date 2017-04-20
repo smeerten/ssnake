@@ -465,7 +465,7 @@ class MainProgram(QtWidgets.QMainWindow):
         self.autoPhaseAct0.setToolTip('Autophase 0 order')
         self.autoPhaseAct1 = self.toolMenu.addAction(QtGui.QIcon(IconDirectory + 'autophase1.png'),"Autophase 0+1", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.directAutoPhase(1)))
         self.autoPhaseAct1.setToolTip('Autophase 0 and 1 order')
-        self.swapEchoAct = self.toolMenu.addAction(QtGui.QIcon(IconDirectory + 'fliplr.png'), "Swap &Echo", lambda: self.mainWindowCheck(lambda mainWindow: SwapEchoWindow(mainWindow)))
+        self.swapEchoAct = self.toolMenu.addAction(QtGui.QIcon(IconDirectory + 'swapecho.png'), "Swap &Echo", lambda: self.mainWindowCheck(lambda mainWindow: SwapEchoWindow(mainWindow)))
         self.swapEchoAct.setToolTip('Swap Echo')
         self.corOffsetAct = self.toolMenu.addAction(QtGui.QIcon(IconDirectory + 'offset.png'),"&Offset Correction", lambda: self.mainWindowCheck(lambda mainWindow: DCWindow(mainWindow)))
         self.corOffsetAct.setToolTip('Offset Correction')
