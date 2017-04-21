@@ -77,6 +77,15 @@ class Spectrum:
         self.filePath = filePath
         self.freq = np.array(freq)  # array of center frequency (length is dim, MHz)
         self.sw = sw  # array of sweepwidths
+        
+        #Contour settings
+        self.contourType = 0 #Linear contour by default
+        self.numLevels = 20
+        self.minLevels = 0.1
+        self.maxLevels = 1
+        
+        
+        #---------------
         if spec is None:
             self.spec = [0] * self.data.ndim
         else:
@@ -3653,19 +3662,19 @@ class CurrentContour(Current1D):
         if hasattr(duplicateCurrent, 'numLevels'):
             self.numLevels = duplicateCurrent.numLevels
         else:
-            self.numLevels = 20
+            self.numLevels = self.data.numLevels
         if hasattr(duplicateCurrent, 'minLevels'):
             self.minLevels = duplicateCurrent.minLevels
         else:
-            self.minLevels = 0.1
+            self.minLevels = self.data.minLevels
         if hasattr(duplicateCurrent, 'maxLevels'):
             self.maxLevels = duplicateCurrent.maxLevels
         else:
-            self.maxLevels = 1.0
+            self.maxLevels = self.data.maxLevels
         if hasattr(duplicateCurrent, 'contourType'):
             self.contourType = duplicateCurrent.contourType
         else:
-            self.contourType = 0
+            self.contourType = self.data.contourType
         if hasattr(duplicateCurrent, 'multiValue'):
             self.multiValue = duplicateCurrent.multiValue
         else:
@@ -3679,7 +3688,6 @@ class CurrentContour(Current1D):
         else:
             self.projType2 = root.bottomframe.projDrop2.currentIndex()
         Current1D.__init__(self, root, fig, canvas, data, duplicateCurrent)
-    
     
     def altScroll(self, event): #Shift scroll scrolls contour limits
         minLevels = self.minLevels / 1.1**event.step
@@ -3748,6 +3756,13 @@ class CurrentContour(Current1D):
         self.maxLevels = maxLevels
         self.minLevels = minLevels
         self.contourType = contourType
+        
+        self.data.contourType = contourType
+        self.data.numLevels = numLevels
+        self.data.minLevels = minLevels
+        self.data.maxLevels = maxLevels
+        
+        
         self.multiValue = multiValue
         self.showFid()
 
