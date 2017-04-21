@@ -83,7 +83,9 @@ class Spectrum:
         self.numLevels = 20
         self.minLevels = 0.1
         self.maxLevels = 1
-        
+        self.multiValue = 1.5
+        self.projTop = 0
+        self.projRight = 0
         
         #---------------
         if spec is None:
@@ -3678,15 +3680,15 @@ class CurrentContour(Current1D):
         if hasattr(duplicateCurrent, 'multiValue'):
             self.multiValue = duplicateCurrent.multiValue
         else:
-            self.multiValue = 2
-        if hasattr(duplicateCurrent, 'projType1'):
-            self.projType1 = duplicateCurrent.projType1
+            self.multiValue = self.data.multiValue
+        if hasattr(duplicateCurrent, 'projTop'):
+            self.projTop = duplicateCurrent.projTop
         else:
-            self.projType1 =  root.bottomframe.projDrop1.currentIndex()
-        if hasattr(duplicateCurrent, 'projType2'):
-            self.projType2 = duplicateCurrent.projType2
+            self.projTop = self.data.projTop
+        if hasattr(duplicateCurrent, 'projRight'):
+            self.projRight = duplicateCurrent.projRight
         else:
-            self.projType2 = root.bottomframe.projDrop2.currentIndex()
+            self.projRight = self.data.projRight
         Current1D.__init__(self, root, fig, canvas, data, duplicateCurrent)
     
     def altScroll(self, event): #Shift scroll scrolls contour limits
@@ -3756,14 +3758,15 @@ class CurrentContour(Current1D):
         self.maxLevels = maxLevels
         self.minLevels = minLevels
         self.contourType = contourType
+        self.multiValue = multiValue
         
+        # Remember the values
         self.data.contourType = contourType
         self.data.numLevels = numLevels
         self.data.minLevels = minLevels
         self.data.maxLevels = maxLevels
+        self.data.multiValue = multiValue
         
-        
-        self.multiValue = multiValue
         self.showFid()
 
     def resetLocList(self):
@@ -3795,9 +3798,12 @@ class CurrentContour(Current1D):
 
     def setProjType(self, val, direc):
         if direc == 1:
-            self.projType1 = val
+            self.projTop = val
+            self.data.projTop = val
         if direc == 2:
-            self.projType2 = val
+            self.projRight = val
+            self.data.projRight = val
+
 
     def apodPreview(self, lor=None, gauss=None, cos2=None, hamming=None, shift=0.0, shifting=0.0, shiftingAxes=None):  # display the 1D data including the apodization function
         t = np.arange(0, len(self.data1D[0])) / (self.sw)
@@ -3912,25 +3918,25 @@ class CurrentContour(Current1D):
         self.plotContour(X=self.X,Y=self.Y)
         
         self.line_ydata = self.tmpdata[0]
-        if self.projType1 == 0:
+        if self.projTop == 0:
             xprojdata=np.sum(self.tmpdata, axis=0)
             self.x_ax.plot(x, xprojdata, color=self.color, linewidth=self.linewidth, picker=True)
-        elif self.projType1 == 1:
+        elif self.projTop == 1:
             xprojdata = np.max(self.tmpdata, axis=0)
             self.x_ax.plot(x,xprojdata , color=self.color, linewidth=self.linewidth, picker=True)
-        elif self.projType1 == 2:
+        elif self.projTop == 2:
             xprojdata =  np.min(self.tmpdata, axis=0)
             self.x_ax.plot(x,xprojdata, color=self.color, linewidth=self.linewidth, picker=True)
         
         xmin, xmax =  np.min(xprojdata),np.max(xprojdata)
         self.x_ax.set_ylim([xmin-0.15*(xmax-xmin), xmax+0.05*(xmax-xmin)]) #Set projection limits, and force 15% whitespace below plot
-        if self.projType2 == 0:
+        if self.projRight == 0:
             yprojdata=np.sum(self.tmpdata, axis=1)
             self.y_ax.plot(yprojdata, y, color=self.color, linewidth=self.linewidth, picker=True)
-        elif self.projType2 == 1:
+        elif self.projRight == 1:
             yprojdata=np.max(self.tmpdata, axis=1)
             self.y_ax.plot(yprojdata, y, color=self.color, linewidth=self.linewidth, picker=True)
-        elif self.projType2 == 2:
+        elif self.projRight == 2:
             yprojdata=np.min(self.tmpdata, axis=1)
             self.y_ax.plot(yprojdata, y, color=self.color, linewidth=self.linewidth, picker=True)         
         ymin, ymax =  np.min(yprojdata),np.max(yprojdata)
@@ -4099,26 +4105,26 @@ class CurrentContour(Current1D):
         elif(self.plotType == 3):
             tmpdata = np.abs(tmpdata)
             
-        if self.projType1 == 0:
+        if self.projTop == 0:
             xprojdata=np.sum(tmpdata, axis=0)
             self.x_ax.plot(x, xprojdata, color=self.color, linewidth=self.linewidth, picker=True)
-        elif self.projType1 == 1:
+        elif self.projTop == 1:
             xprojdata = np.max(tmpdata, axis=0)
             self.x_ax.plot(x,xprojdata , color=self.color, linewidth=self.linewidth, picker=True)
-        elif self.projType1 == 2:
+        elif self.projTop == 2:
             xprojdata =  np.min(tmpdata, axis=0)
             self.x_ax.plot(x,xprojdata, color=self.color, linewidth=self.linewidth, picker=True)
         
         xmin, xmax =  np.min(xprojdata),np.max(xprojdata)
         self.x_ax.set_ylim([xmin-0.15*(xmax-xmin), xmax+0.05*(xmax-xmin)]) #Set projection limits, and force 15% whitespace below plot
         self.x_ax.set_xlim(xLimOld)
-        if self.projType2 == 0:
+        if self.projRight == 0:
             yprojdata=np.sum(tmpdata, axis=1)
             self.y_ax.plot(yprojdata, y, color=self.color, linewidth=self.linewidth, picker=True)
-        elif self.projType2 == 1:
+        elif self.projRight == 1:
             yprojdata=np.max(tmpdata, axis=1)
             self.y_ax.plot(yprojdata, y, color=self.color, linewidth=self.linewidth, picker=True)
-        elif self.projType2 == 2:
+        elif self.projRight == 2:
             yprojdata=np.min(tmpdata, axis=1)
             self.y_ax.plot(yprojdata, y, color=self.color, linewidth=self.linewidth, picker=True)
         ymin, ymax =  np.min(yprojdata),np.max(yprojdata)
