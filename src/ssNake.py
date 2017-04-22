@@ -2543,47 +2543,61 @@ class SideFrame(QtWidgets.QScrollArea):
                 if current.contourType != 1:
                     self.multiValueLabel.hide()
                     self.multiValue.hide()
-                self.frame2.addWidget(wc.QLabel("Contour limits [%]:", self), 7, 0, 1, 3)
+                    
+                #Contour limits    
+                self.contourLimitsGroup = QtWidgets.QGroupBox('Contour limits [%]:')
+                self.contourLimitsFrame = QtWidgets.QGridLayout()
                 self.maxLEntry = QtWidgets.QLineEdit(self)
                 self.maxLEntry.setMaximumWidth(120)
                 self.maxLEntry.setText(str(current.maxLevels * 100.0))
                 self.maxLEntry.returnPressed.connect(self.setContour)
-                self.frame2.addWidget(self.maxLEntry, 8, 1, 1, 2)
+                
+                self.contourLimitsFrame.addWidget(self.maxLEntry, 0, 1)
                 self.minLEntry = QtWidgets.QLineEdit(self)
                 self.minLEntry.setMaximumWidth(120)
                 self.minLEntry.setText(str(current.minLevels * 100.0))
                 self.minLEntry.returnPressed.connect(self.setContour)
-                self.frame2.addWidget(self.minLEntry, 9, 1,1,2)
+                self.contourLimitsFrame.addWidget(self.minLEntry, 1, 1)
                 self.maxLabel = QtWidgets.QLabel("Max:", self)
                 self.maxLabel.setAlignment(QtCore.Qt.AlignLeft)
                 self.maxLabel.setAlignment(QtCore.Qt.AlignVCenter)
                 self.minLabel = QtWidgets.QLabel("Min:", self)
                 self.minLabel.setAlignment(QtCore.Qt.AlignLeft)
                 self.minLabel.setAlignment(QtCore.Qt.AlignVCenter)
-                self.frame2.addWidget(self.maxLabel, 8, 0)
-                self.frame2.addWidget(self.minLabel, 9, 0)
+                self.contourLimitsFrame.addWidget(self.maxLabel, 0, 0)
+                self.contourLimitsFrame.addWidget(self.minLabel, 1, 0)
+                self.contourLimitsGroup.setLayout(self.contourLimitsFrame)
+                self.frame2.addWidget(self.contourLimitsGroup, 7, 0, 1, 3)
                 
                 
-                self.frame2.addWidget(wc.QLabel("Projections:", self), 11, 0, 1, 3)
+                #Projections
+                self.contourProjGroup = QtWidgets.QGroupBox('Projections:')
+                self.contourProjFrame = QtWidgets.QGridLayout()
                 self.projTopLabel = QtWidgets.QLabel("Top:", self)
                 self.projTopLabel.setAlignment(QtCore.Qt.AlignLeft)
                 self.projTopLabel.setAlignment(QtCore.Qt.AlignVCenter)
-                self.frame2.addWidget(self.projTopLabel, 12, 0, 1, 2)
+                self.contourProjFrame.addWidget(self.projTopLabel, 0, 0)
                 self.projDropTop = QtWidgets.QComboBox()
                 self.projDropTop.addItems(["sum", "max", "min"])
                 self.projDropTop.setCurrentIndex(current.projTop)
                 self.projDropTop.activated.connect(lambda val, self=self: self.changeProj(val, 1))
-                self.frame2.addWidget(self.projDropTop, 12, 2)
+                self.contourProjFrame.addWidget(self.projDropTop, 0, 1)
                 
                 self.projRightLabel = QtWidgets.QLabel("Right:", self)
                 self.projRightLabel.setAlignment(QtCore.Qt.AlignLeft)
                 self.projRightLabel.setAlignment(QtCore.Qt.AlignVCenter)
-                self.frame2.addWidget(self.projRightLabel, 13, 0, 1, 2)
+                self.contourProjFrame.addWidget(self.projRightLabel, 1, 0)
                 self.projDropRight = QtWidgets.QComboBox()
                 self.projDropRight.addItems(["sum", "max", "min"])
                 self.projDropRight.setCurrentIndex(current.projRight)
                 self.projDropRight.activated.connect(lambda val, self=self: self.changeProj(val, 2))
-                self.frame2.addWidget(self.projDropRight, 13, 2)
+                self.contourProjFrame.addWidget(self.projDropRight, 1, 1)
+                
+                self.contourProjGroup.setLayout(self.contourProjFrame)
+                self.frame2.addWidget(self.contourProjGroup, 8, 0, 1, 3)
+                
+                
+                
                 
                 self.diagonalCheck = QtWidgets.QCheckBox("Diagonal")
                 self.diagonalCheck.setChecked(current.diagonalBool)
