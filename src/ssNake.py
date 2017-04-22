@@ -482,11 +482,11 @@ class MainProgram(QtWidgets.QMainWindow):
         
         self.hypercomplexMenu = QtWidgets.QMenu("Hypercomplex", self)
         self.toolMenu.addMenu(self.hypercomplexMenu)
-        self.statesAct = self.hypercomplexMenu.addAction("&States", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.states()))
+        self.statesAct = self.hypercomplexMenu.addAction(QtGui.QIcon(IconDirectory + 'States.png'),"&States", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.states()))
         self.statesAct.setToolTip('States Hypercomplex Data Processing')
-        self.statesTPPIAct = self.hypercomplexMenu.addAction("States-&TPPI", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.statesTPPI()))
+        self.statesTPPIAct = self.hypercomplexMenu.addAction(QtGui.QIcon(IconDirectory + 'statestppi.png'),"States-&TPPI", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.statesTPPI()))
         self.statesTPPIAct.setToolTip('States-TPPI Hypercomplex Data Processing')
-        self.echoantiAct = self.hypercomplexMenu.addAction("Ec&ho-antiecho", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.echoAntiEcho()))
+        self.echoantiAct = self.hypercomplexMenu.addAction(QtGui.QIcon(IconDirectory + 'echoantiecho.png'),"Ec&ho-antiecho", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.echoAntiEcho()))
         self.echoantiAct.setToolTip('Ec&ho-antiecho Hypercomplex Data Processing')
         
 
@@ -552,9 +552,9 @@ class MainProgram(QtWidgets.QMainWindow):
         # the fft drop down menu
         self.fftMenu = QtWidgets.QMenu("T&ransforms", self)
         self.menubar.addMenu(self.fftMenu)
-        self.fourierAct = self.fftMenu.addAction("&Fourier Transform", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.fourier()), QtCore.Qt.CTRL + QtCore.Qt.Key_F)
+        self.fourierAct = self.fftMenu.addAction(QtGui.QIcon(IconDirectory + 'fourier.png'),"&Fourier Transform", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.fourier()), QtCore.Qt.CTRL + QtCore.Qt.Key_F)
         self.fourierAct.setToolTip('Fourier Transform')
-        self.realFourierAct = self.fftMenu.addAction("&Real Fourier Transform", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.realFourier()))
+        self.realFourierAct = self.fftMenu.addAction(QtGui.QIcon(IconDirectory + 'realfourier.png'),"&Real Fourier Transform", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.realFourier()))
         self.realFourierAct.setToolTip('Real Fourier Transform')
         self.fftshiftAct = self.fftMenu.addAction("Fft&shift", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.fftshift()))
         self.fftshiftAct.setToolTip('Fftshift')
