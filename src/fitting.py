@@ -2791,7 +2791,7 @@ class PeakDeconvParamFrame(QtWidgets.QWidget):
         t = np.arange(len(tmpx)) / self.parent.current.sw
         for i in range(len(outAmp)):
             x.append(tmpx)
-            timeSignal = np.exp(1j * 2 * np.pi * t * (outPos[i] / self.axMult - self.axAdd)) * np.exp(-np.pi * outWidth[i] * t) * np.exp(-((np.pi * outGauss[i] * t)**2) / (4 * np.log(2))) * 2 / self.parent.current.sw
+            timeSignal = np.exp(1j * 2 * np.pi * t * (outPos[i] / self.axMult - self.axAdd)) * np.exp(-np.pi * np.abs(outWidth[i]) * t) * np.exp(-((np.pi * np.abs(outGauss[i]) * t)**2) / (4 * np.log(2))) * 2 / self.parent.current.sw
             timeSignal[0] = timeSignal[0] * 0.5
             y = outAmp[i] * np.real(np.fft.fftshift(np.fft.fft(timeSignal)))
             outCurvePart.append(outCurveBase + y)
@@ -2867,7 +2867,7 @@ def peakDeconvfitFunc(param, args):
                 elif struc[altStruc[0]][altStruc[1]][0] == 0:
                     parameters[name] = altStruc[2] * argu[struc[altStruc[0]][altStruc[1]][1]] + altStruc[3]
         t = np.arange(len(x)) / sw
-        timeSignal = np.exp(1j * 2 * np.pi * t * (parameters['pos'] / axMult - axAdd)) * np.exp(-np.pi * parameters['lor'] * t) * np.exp(-((np.pi * parameters['gauss'] * t)**2) / (4 * np.log(2))) * 2 / sw
+        timeSignal = np.exp(1j * 2 * np.pi * t * (parameters['pos'] / axMult - axAdd)) * np.exp(-np.pi * np.abs(parameters['lor']) * t) * np.exp(-((np.pi * np.abs(parameters['gauss']) * t)**2) / (4 * np.log(2))) * 2 / sw
         timeSignal[0] = timeSignal[0] * 0.5
         testFunc += parameters['amp'] * np.real(np.fft.fftshift(np.fft.fft(timeSignal)))
     testFunc += parameters['bgrnd'] + parameters['slope'] * x
@@ -4045,7 +4045,7 @@ def tensorDeconvtensorFunc(x, t11, t22, t33, lor, gauss, multt, sw, weight, axAd
     weight = weight[np.logical_and(x1 >= 0, x1 < length)]
     x1 = x1[np.logical_and(x1 >= 0, x1 < length)]
     final = np.bincount(x1, weight, length)
-    apod = np.exp(-np.pi * lor * t) * np.exp(-((np.pi * gauss * t)**2) / (4 * np.log(2)))
+    apod = np.exp(-np.pi * np.abs(lor) * t) * np.exp(-((np.pi * np.abs(gauss) * t)**2) / (4 * np.log(2)))
     apod[-1:int(-(len(apod) / 2 + 1)):-1] = apod[:int(len(apod) / 2)]
     I = np.real(np.fft.fft(np.fft.ifft(final) * apod))
     I = I / sw * len(I)
@@ -5825,7 +5825,7 @@ def quad1DeconvtensorFunc(x, I, pos, cq, eta, width, gauss, angleStuff, freq, sw
     weights = weights[np.logical_and(x1 >= 0, x1 < length)]
     x1 = x1[np.logical_and(x1 >= 0, x1 < length)]
     final = np.bincount(x1, weights, length)
-    apod = np.exp(-np.pi * width * t) * np.exp(-((np.pi * gauss * t)**2) / (4 * np.log(2)))
+    apod = np.exp(-np.pi * np.abs(width) * t) * np.exp(-((np.pi * np.abs(gauss) * t)**2) / (4 * np.log(2)))
     apod[-1:-int(len(apod) / 2 + 1):-1] = apod[:int(len(apod) / 2)]
     inten = np.real(np.fft.fft(np.fft.ifft(final) * apod))
     inten = inten / sw * len(inten)
@@ -5892,7 +5892,7 @@ def quad2tensorFunc(x, I, pos, cq, eta, width, gauss, angleStuff, freq, sw, weig
     weights = weight[np.logical_and(x1 >= 0, x1 < length)]
     x1 = x1[np.logical_and(x1 >= 0, x1 < length)]
     final = np.bincount(x1, weights, length)
-    apod = np.exp(-np.pi * width * t) * np.exp(-((np.pi * gauss * t)**2) / (4 * np.log(2)))
+    apod = np.exp(-np.pi * np.abs(width) * t) * np.exp(-((np.pi * np.abs(gauss) * t)**2) / (4 * np.log(2)))
     apod[-1:-(int(len(apod) / 2) + 1):-1] = apod[:int(len(apod) / 2)]
     inten = np.real(np.fft.fft(np.fft.ifft(final) * apod))
     inten = inten / sw / len(inten)
@@ -6678,7 +6678,7 @@ def quad2CzjzektensorFunc(sigma, d, pos, width, gauss, wq, eta, lib, freq, sw, a
     czjzek = czjzek / np.sum(czjzek)
     fid = np.sum(lib * czjzek[..., None], axis=(0, 1))
     t = np.arange(len(fid)) / sw
-    apod = np.exp(-np.pi * width * t) * np.exp(-((np.pi * gauss * t)**2) / (4 * np.log(2)))
+    apod = np.exp(-np.pi * np.abs(width) * t) * np.exp(-((np.pi * np.abs(gauss) * t)**2) / (4 * np.log(2)))
     apod[-1:int(-(len(apod) / 2 + 1)):-1] = apod[:int(len(apod) / 2)]
     spectrum = scipy.ndimage.interpolation.shift(np.real(np.fft.fft(fid * apod)), len(fid) * pos / sw)
     spectrum = spectrum / sw * len(spectrum)
