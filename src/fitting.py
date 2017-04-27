@@ -2294,7 +2294,17 @@ class PeakDeconvWindow(QtWidgets.QWidget):
             for n in range(len(args)):
                 args_out.append([args[n][i+1]])
             self.subFitWindows[i].paramframe.setResults(fitVal[i+1], args_out, out[i+1])
-            
+
+    def disp(self):
+        params = [self.mainFitWindow.paramframe.getSimParams()]
+        for window in self.subFitWindows:
+            tmp_params = window.paramframe.getSimParams()
+            for i in range(len(params)):
+                params = np.append(params, [tmp_params], axis=0)
+        self.mainFitWindow.paramframe.disp(params, 0)
+        for i in range(len(self.subFitWindows)):
+            self.subFitWindows[i].paramframe.disp(params, i+1)
+
     def get_masterData(self):
         return self.oldMainWindow.get_masterData()
 
@@ -2317,6 +2327,9 @@ class PeakDeconvWindow2(FittingWindow):
 
     def fit(self):
         self.tabWindow.fit()
+
+    def sim(self):
+        self.tabWindow.disp()
         
     def addSpectrum(self):
         self.tabWindow.addSpectrum()
@@ -2511,7 +2524,7 @@ class PeakDeconvParamFrame(QtWidgets.QWidget):
         #grid.addLayout(self.frame3, 0, 2)
         if self.isMain:
             simButton = QtWidgets.QPushButton("Sim")
-            simButton.clicked.connect(self.sim)
+            simButton.clicked.connect(self.rootwindow.sim)
             self.frame1.addWidget(simButton, 0, 0)
             fitButton = QtWidgets.QPushButton("Fit")
             fitButton.clicked.connect(self.rootwindow.fit)
@@ -2724,7 +2737,7 @@ class PeakDeconvParamFrame(QtWidgets.QWidget):
                         out[name][i] = abs(fitVal[struc[altStruc[0]][altStruc[1]][1]])
                     else:
                         out[name][i] = out[altStruc[0]][altStruc[1]]
-        self.disp(out['bgrnd'][0], out['slope'][0], out['amp'], out['pos'], out['lor'], out['gauss'])
+        self.rootwindow.sim()
         
     def stopMP(self, *args):
         if self.queue is not None:
@@ -2837,40 +2850,39 @@ class PeakDeconvParamFrame(QtWidgets.QWidget):
         newShape = np.concatenate((np.array(dataShape2), [numOutputs]))
         self.rootwindow.createNewData(np.rollaxis(outputData.reshape(newShape), -1, axes), axes)
 
-    def sim(self, store=False):
+    def getSimParams(self):
         numExp = self.numExp.currentIndex() + 1
-        out = {'bgrnd': [0.0], 'slope':[0.0], 'pos':np.zeros(numExp), 'amp':np.zeros(numExp), 'lor':np.zeros(numExp), 'gauss':np.zeros(numExp)}
+        out = {'bgrnd': [0.0], 'slope':[0.0], 'pos':[0.0]*numExp, 'amp':[0.0]*numExp, 'lor':[0.0]*numExp, 'gauss':[0.0]*numExp}
         for name in ['bgrnd', 'slope']:
             inp = safeEval(self.entries[name][0].text())
             if inp is None:
                 self.rootwindow.mainProgram.dispMsg("One of the inputs is not valid")
                 return
-            if isinstance(inp, (float, int)):
-                out[name][0] = inp
+            out[name][0] = inp
         for i in range(numExp):
             for name in ['pos', 'amp', 'lor', 'gauss']:
                 inp = safeEval(self.entries[name][i].text())
-                if isinstance(inp, (float, int)):
-                    out[name][i] = inp
+                out[name][i] = inp
+        return out
+
+    def disp(self, params, num, store=False):
+        out = params[num]
         for name in ['bgrnd', 'slope']:
-            inp = safeEval(self.entries[name][0].text())
+            inp = out[name][0]
             if isinstance(inp, tuple):
                 inp = checkLinkTuple(inp)
-                out[name][0] = inp[2]*out[inp[0]][inp[1]] + inp[3]
+                out[name][0] = inp[2]*params[inp[4]][inp[0]][inp[1]] + inp[3]
+        numExp = len(out['pos'])
         for i in range(numExp):
             for name in ['pos', 'amp', 'lor', 'gauss']:
-                inp = safeEval(self.entries[name][i].text())
+                inp = out[name][i]
                 if isinstance(inp, tuple):
                     inp = checkLinkTuple(inp)
-                    out[name][i] = inp[2]*out[inp[0]][inp[1]] + inp[3]
+                    out[name][i] = inp[2]*params[inp[4]][inp[0]][inp[1]] + inp[3]
                 if not np.isfinite(out[name][i]):
                     self.rootwindow.mainProgram.dispMsg("One of the inputs is not valid")
                     return
-            out['lor'][i] = abs(out['lor'][i])
-            out['gauss'][i] = abs(out['gauss'][i])
-        self.disp(out['bgrnd'][0], out['slope'][0], out['amp'], out['pos'], out['lor'], out['gauss'], store)
-
-    def disp(self, outBgrnd, outSlope, outAmp, outPos, outWidth, outGauss, store=False):
+        outBgrnd, outSlope, outAmp, outPos, outWidth, outGauss = out['bgrnd'][0], out['slope'][0], out['amp'], out['pos'], out['lor'], out['gauss']
         tmpx = self.parent.xax
         outCurveBase = outBgrnd + tmpx * outSlope
         outCurve = outCurveBase.copy()
@@ -2879,7 +2891,7 @@ class PeakDeconvParamFrame(QtWidgets.QWidget):
         t = np.arange(len(tmpx)) / self.parent.current.sw
         for i in range(len(outAmp)):
             x.append(tmpx)
-            timeSignal = np.exp(1j * 2 * np.pi * t * (outPos[i] / self.axMult - self.axAdd)) * np.exp(-np.pi * outWidth[i] * t) * np.exp(-((np.pi * outGauss[i] * t)**2) / (4 * np.log(2))) * 2 / self.parent.current.sw
+            timeSignal = np.exp(1j * 2 * np.pi * t * (outPos[i] / self.axMult - self.axAdd)) * np.exp(-np.pi * np.abs(outWidth[i]) * t) * np.exp(-((np.pi * np.abs(outGauss[i]) * t)**2) / (4 * np.log(2))) * 2 / self.parent.current.sw
             timeSignal[0] = timeSignal[0] * 0.5
             y = outAmp[i] * np.real(np.fft.fftshift(np.fft.fft(timeSignal)))
             outCurvePart.append(outCurveBase + y)
@@ -2963,12 +2975,13 @@ def peakDeconvfitFunc(params, args):
                     parameters[name] = argu[struc[name][i][1]]
                 else:
                     altStruc = struc[name][i][1]
-                    if struc[altStruc[0]][altStruc[1]][0] == 1:
-                        parameters[name] = altStruc[2] * allParam[altStruc[4]][struc[altStruc[0]][altStruc[1]][1]] + altStruc[3]
-                    elif struc[altStruc[0]][altStruc[1]][0] == 0:
-                        parameters[name] = altStruc[2] * allArgu[altStruc[4]][struc[altStruc[0]][altStruc[1]][1]] + altStruc[3]
+                    strucTarget = allStruc[altStruc[4]]
+                    if strucTarget[altStruc[0]][altStruc[1]][0] == 1:
+                        parameters[name] = altStruc[2] * allParam[altStruc[4]][strucTarget[altStruc[0]][altStruc[1]][1]] + altStruc[3]
+                    elif strucTarget[altStruc[0]][altStruc[1]][0] == 0:
+                        parameters[name] = altStruc[2] * allArgu[altStruc[4]][strucTarget[altStruc[0]][altStruc[1]][1]] + altStruc[3]
             t = np.arange(len(x)) / sw
-            timeSignal = np.exp(1j * 2 * np.pi * t * (parameters['pos'] / axMult - axAdd)) * np.exp(-np.pi * parameters['lor'] * t) * np.exp(-((np.pi * parameters['gauss'] * t)**2) / (4 * np.log(2))) * 2 / sw
+            timeSignal = np.exp(1j * 2 * np.pi * t * (parameters['pos'] / axMult - axAdd)) * np.exp(-np.pi * np.abs(parameters['lor']) * t) * np.exp(-((np.pi * np.abs(parameters['gauss']) * t)**2) / (4 * np.log(2))) * 2 / sw
             timeSignal[0] = timeSignal[0] * 0.5
             testFunc += parameters['amp'] * np.real(np.fft.fftshift(np.fft.fft(timeSignal)))
         testFunc += parameters['bgrnd'] + parameters['slope'] * x
