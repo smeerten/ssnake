@@ -118,6 +118,31 @@ def shiftConversion(Values,Type):
     return Results
     
 
+def voigtLine(x, pos, lor, gau, integral, Type = 1):
+    
+    lor = np.abs(lor)
+    gau = np.abs(gau)
+    
+    if Type == 0: #Approximation: Extracted from matNMR
+        axis = x - pos
+        width = 0.5346 * lor + np.sqrt(0.2166 * lor**2 + gau **2)
+        frac = np.abs(lor) / width
+       
+        gau = 1.0 / np.sqrt(np.pi * (0.600561*width)**2) * np.exp( -(axis / (0.600561*width))**2)
+        lor = 1.0 / (np.pi * 0.5 * width * (1+ (axis /(0.5*width))**2))
+        return integral * ((frac * lor)+((1-frac)*gau))
+    elif Type == 1: #Exact: Freq domain simulation via Faddeeva function
+        axis = x - pos
+        if gau == 0.0: #If no gauss, just take lorentz
+           lor = 1.0 / (np.pi * 0.5 * lor * (1 + (axis /(0.5 * lor))**2) )
+           return integral * lor
+        else:
+            sigma = gau / (2 * np.sqrt(2 * np.log(2)))
+            z = ((x - pos) + 1j * lor / 2) / (sigma * np.sqrt(2))
+            return integral * scipy.special.wofz(z).real / (sigma * np.sqrt(2 * np.pi))
+
+
+
 class FittingWindow(QtWidgets.QWidget):
     # Inherited by the fitting windows
 
@@ -2788,14 +2813,14 @@ class PeakDeconvParamFrame(QtWidgets.QWidget):
         outCurve = outCurveBase.copy()
         outCurvePart = []
         x = []
-        t = np.arange(len(tmpx)) / self.parent.current.sw
         for i in range(len(outAmp)):
             x.append(tmpx)
-            timeSignal = np.exp(1j * 2 * np.pi * t * (outPos[i] / self.axMult - self.axAdd)) * np.exp(-np.pi * np.abs(outWidth[i]) * t) * np.exp(-((np.pi * np.abs(outGauss[i]) * t)**2) / (4 * np.log(2))) * 2 / self.parent.current.sw
-            timeSignal[0] = timeSignal[0] * 0.5
-            y = outAmp[i] * np.real(np.fft.fftshift(np.fft.fft(timeSignal)))
+            
+            pos = outPos[i] / self.axMult - self.axAdd
+            y = voigtLine(tmpx, pos, outWidth[i], outGauss[i], outAmp[i])
             outCurvePart.append(outCurveBase + y)
             outCurve += y
+        
         if store == 'copy':
             outCurvePart.append(outCurve)
             outCurvePart.append(self.parent.data1D)
@@ -2866,10 +2891,11 @@ def peakDeconvfitFunc(param, args):
                     parameters[name] = altStruc[2] * param[struc[altStruc[0]][altStruc[1]][1]] + altStruc[3]
                 elif struc[altStruc[0]][altStruc[1]][0] == 0:
                     parameters[name] = altStruc[2] * argu[struc[altStruc[0]][altStruc[1]][1]] + altStruc[3]
-        t = np.arange(len(x)) / sw
-        timeSignal = np.exp(1j * 2 * np.pi * t * (parameters['pos'] / axMult - axAdd)) * np.exp(-np.pi * np.abs(parameters['lor']) * t) * np.exp(-((np.pi * np.abs(parameters['gauss']) * t)**2) / (4 * np.log(2))) * 2 / sw
-        timeSignal[0] = timeSignal[0] * 0.5
-        testFunc += parameters['amp'] * np.real(np.fft.fftshift(np.fft.fft(timeSignal)))
+                    
+        #Extracted from matnmr
+        pos = parameters['pos'] / axMult - axAdd
+        testFunc += voigtLine(x, pos, parameters['lor'], parameters['gauss'], parameters['amp'])
+
     testFunc += parameters['bgrnd'] + parameters['slope'] * x
     return testFunc
 
