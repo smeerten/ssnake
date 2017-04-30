@@ -122,17 +122,18 @@ def voigtLine(x, pos, lor, gau, integral, Type = 1):
     
     lor = np.abs(lor)
     gau = np.abs(gau)
-    
-    if Type == 0: #Approximation: Extracted from matNMR
-        axis = x - pos
-        width = 0.5346 * lor + np.sqrt(0.2166 * lor**2 + gau **2)
-        frac = np.abs(lor) / width
-       
-        gau = 1.0 / np.sqrt(np.pi * (0.600561*width)**2) * np.exp( -(axis / (0.600561*width))**2)
-        lor = 1.0 / (np.pi * 0.5 * width * (1+ (axis /(0.5*width))**2))
-        return integral * ((frac * lor)+((1-frac)*gau))
+    axis = x - pos
+    if Type == 0: #Approximation: THOMPSON et al (doi: 10.1107/S0021889887087090 )
+        sigma = gau / (2 * np.sqrt(2 * np.log(2)))
+        lb = lor / 2
+        f = (sigma**5 + 2.69269 * sigma**4 * lb + 2.42843 * sigma**3 * lb**2 + 4.47163 * sigma**2 * lb**3 + 0.07842* sigma * lb**4 + lb**5) ** 0.2
+        eta = 1.36603 * (lb/f) - 0.47719 * (lb/f)**2 + 0.11116 * (lb/f)**3
+        lor = f / (np.pi * (axis**2 + f**2))
+        gauss = np.exp( -axis**2 / (2 * f**2)) / (f * np.sqrt(2 * np.pi))
+        return integral * (eta * lor + (1 - eta) * gauss)
+
     elif Type == 1: #Exact: Freq domain simulation via Faddeeva function
-        axis = x - pos
+
         if gau == 0.0: #If no gauss, just take lorentz
            lor = 1.0 / (np.pi * 0.5 * lor * (1 + (axis /(0.5 * lor))**2) )
            return integral * lor
