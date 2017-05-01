@@ -3111,7 +3111,7 @@ class TextFrame(QtWidgets.QScrollArea):
             self.ypos.setText(str(position[3]))
             self.deltaypoint.setText('%#.3g' % np.abs(self.oldy - position[4]))
             self.ypoint.setText('%#.3g' % position[4])
-            self.oldy = position[3]
+            self.oldy = position[4]
         self.deltaxpoint.setText('%#.3g' % np.abs(self.oldx - position[1]))
         self.deltaamppoint.setText('%#.3g' % np.abs(self.oldamp - position[2]))
         self.xpos.setText(str(position[0]))
