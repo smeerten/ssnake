@@ -118,21 +118,13 @@ def shiftConversion(Values,Type):
     return Results
     
 
-def voigtLine(x, pos, lor, gau, integral, Type = 1):
-    
+def voigtLine(x, pos, lor, gau, integral, Type = 0):
     lor = np.abs(lor)
     gau = np.abs(gau)
     axis = x - pos
-    if Type == 0: #Approximation: THOMPSON et al (doi: 10.1107/S0021889887087090 )
-        sigma = gau / (2 * np.sqrt(2 * np.log(2)))
-        lb = lor / 2
-        f = (sigma**5 + 2.69269 * sigma**4 * lb + 2.42843 * sigma**3 * lb**2 + 4.47163 * sigma**2 * lb**3 + 0.07842* sigma * lb**4 + lb**5) ** 0.2
-        eta = 1.36603 * (lb/f) - 0.47719 * (lb/f)**2 + 0.11116 * (lb/f)**3
-        lor = f / (np.pi * (axis**2 + f**2))
-        gauss = np.exp( -axis**2 / (2 * f**2)) / (f * np.sqrt(2 * np.pi))
-        return integral * (eta * lor + (1 - eta) * gauss)
 
-    elif Type == 1: #Exact: Freq domain simulation via Faddeeva function
+
+    if Type == 0: #Exact: Freq domain simulation via Faddeeva function
 
         if gau == 0.0: #If no gauss, just take lorentz
            lor = 1.0 / (np.pi * 0.5 * lor * (1 + (axis /(0.5 * lor))**2) )
@@ -142,7 +134,14 @@ def voigtLine(x, pos, lor, gau, integral, Type = 1):
             z = ((x - pos) + 1j * lor / 2) / (sigma * np.sqrt(2))
             return integral * scipy.special.wofz(z).real / (sigma * np.sqrt(2 * np.pi))
 
-
+    elif Type == 1: #Approximation: THOMPSON et al (doi: 10.1107/S0021889887087090 )
+        sigma = gau / (2 * np.sqrt(2 * np.log(2)))
+        lb = lor / 2
+        f = (sigma**5 + 2.69269 * sigma**4 * lb + 2.42843 * sigma**3 * lb**2 + 4.47163 * sigma**2 * lb**3 + 0.07842* sigma * lb**4 + lb**5) ** 0.2
+        eta = 1.36603 * (lb/f) - 0.47719 * (lb/f)**2 + 0.11116 * (lb/f)**3
+        lor = f / (np.pi * (axis**2 + f**2))
+        gauss = np.exp( -axis**2 / (2 * f**2)) / (f * np.sqrt(2 * np.pi))
+        return integral * (eta * lor + (1 - eta) * gauss)
 
 class FittingWindow(QtWidgets.QWidget):
     # Inherited by the fitting windows
@@ -2493,7 +2492,7 @@ class PeakDeconvParamFrame(QtWidgets.QWidget):
         self.frame1.setColumnStretch(self.FITNUM, 1)
         self.frame1.setAlignment(QtCore.Qt.AlignTop)
         self.ticks = {'bgrnd':[], 'slope':[], 'pos':[], 'amp':[], 'lor':[], 'gauss':[]}
-        self.entries = {'bgrnd':[], 'slope':[], 'pos':[], 'amp':[], 'lor':[], 'gauss':[]}
+        self.entries = {'bgrnd':[], 'slope':[], 'pos':[], 'amp':[], 'lor':[], 'gauss':[], 'method':[]}
         self.frame2.addWidget(QLabel("Bgrnd:"), 0, 0, 1, 2)
         self.ticks['bgrnd'].append(QtWidgets.QCheckBox(''))
         self.frame2.addWidget(self.ticks['bgrnd'][0], 1, 0)
@@ -2508,6 +2507,11 @@ class PeakDeconvParamFrame(QtWidgets.QWidget):
         self.entries['slope'][0].setAlignment(QtCore.Qt.AlignHCenter)
         self.entries['slope'][0].setText("0.0")
         self.frame2.addWidget(self.entries['slope'][0], 3, 1)
+        self.frame2.addWidget(QLabel("Method:"), 4, 0, 1, 2)
+        self.entries['method'].append(QtWidgets.QComboBox())
+        self.entries['method'][0].addItems(['Exact','Approx'])
+        self.frame2.addWidget(self.entries['method'][0], 5, 1)
+        
         self.frame2.setColumnStretch(self.FITNUM, 1)
         self.frame2.setAlignment(QtCore.Qt.AlignTop)
         self.numExp = QtWidgets.QComboBox()
@@ -2625,6 +2629,7 @@ class PeakDeconvParamFrame(QtWidgets.QWidget):
                         struc[name].append((0, len(argu)-1))
                 else:
                     struc[name].append((2, checkLinkTuple(safeEval(self.entries[name][i].text()))))
+        argu.append(self.entries['method'][0].currentIndex())
         args = (numExp, struc, argu, self.parent.current.sw, self.axAdd, self.axMult)
         self.queue = multiprocessing.Queue()
         self.process1 = multiprocessing.Process(target=peakDeconvmpFit, args=(self.parent.xax, self.parent.data1D, guess, args, self.queue))
@@ -2663,7 +2668,8 @@ class PeakDeconvParamFrame(QtWidgets.QWidget):
                         out[name][i] = abs(fitVal[0][struc[altStruc[0]][altStruc[1]][1]])
                     else:
                         out[name][i] = out[altStruc[0]][altStruc[1]]
-        self.disp(out['bgrnd'][0], out['slope'][0], out['amp'], out['pos'], out['lor'], out['gauss'])
+        method = self.entries['method'][0].currentIndex()
+        self.disp(out['bgrnd'][0], out['slope'][0], out['amp'], out['pos'], out['lor'], out['gauss'], method)
         
     def stopMP(self, *args):
         if self.queue is not None:
@@ -2711,6 +2717,7 @@ class PeakDeconvParamFrame(QtWidgets.QWidget):
                         struc[name].append((0, len(argu)-1))
                 else:
                     struc[name].append((2, checkLinkTuple(safeEval(self.entries[name][i].text()))))
+        argu.append(self.entries['method'][0].currentIndex())
         args = (numExp, struc, argu, self.parent.current.sw, self.axAdd, self.axMult)
         fullData = self.parent.current.data.data
         axes = self.parent.current.axes
@@ -2806,9 +2813,10 @@ class PeakDeconvParamFrame(QtWidgets.QWidget):
                     return
             out['lor'][i] = abs(out['lor'][i])
             out['gauss'][i] = abs(out['gauss'][i])
-        self.disp(out['bgrnd'][0], out['slope'][0], out['amp'], out['pos'], out['lor'], out['gauss'], store)
+        method = self.entries['method'][0].currentIndex()
+        self.disp(out['bgrnd'][0], out['slope'][0], out['amp'], out['pos'], out['lor'], out['gauss'], store, method)
 
-    def disp(self, outBgrnd, outSlope, outAmp, outPos, outWidth, outGauss, store=False):
+    def disp(self, outBgrnd, outSlope, outAmp, outPos, outWidth, outGauss, store=False, method = 0):
         tmpx = self.parent.xax
         outCurveBase = outBgrnd + tmpx * outSlope
         outCurve = outCurveBase.copy()
@@ -2818,7 +2826,7 @@ class PeakDeconvParamFrame(QtWidgets.QWidget):
             x.append(tmpx)
             
             pos = outPos[i] / self.axMult - self.axAdd
-            y = voigtLine(tmpx, pos, outWidth[i], outGauss[i], outAmp[i])
+            y = voigtLine(tmpx, pos, outWidth[i], outGauss[i], outAmp[i], method)
             outCurvePart.append(outCurveBase + y)
             outCurve += y
         
@@ -2893,9 +2901,8 @@ def peakDeconvfitFunc(param, args):
                 elif struc[altStruc[0]][altStruc[1]][0] == 0:
                     parameters[name] = altStruc[2] * argu[struc[altStruc[0]][altStruc[1]][1]] + altStruc[3]
                     
-        #Extracted from matnmr
         pos = parameters['pos'] / axMult - axAdd
-        testFunc += voigtLine(x, pos, parameters['lor'], parameters['gauss'], parameters['amp'])
+        testFunc += voigtLine(x, pos, parameters['lor'], parameters['gauss'], parameters['amp'], argu[-1])
 
     testFunc += parameters['bgrnd'] + parameters['slope'] * x
     return testFunc
