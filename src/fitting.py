@@ -122,8 +122,6 @@ def voigtLine(x, pos, lor, gau, integral, Type = 0):
     lor = np.abs(lor)
     gau = np.abs(gau)
     axis = x - pos
-    print(pos)
-
 
     if Type == 0: #Exact: Freq domain simulation via Faddeeva function
 
@@ -2438,7 +2436,6 @@ class PeakDeconvParamFrame(QtWidgets.QWidget):
         grid = QtWidgets.QGridLayout(self)
         self.setLayout(grid)
         if self.parent.current.spec == 1:
-            self.axAdd = self.parent.current.freq - self.parent.current.ref
             if self.parent.current.ppm:
                 self.axUnit = 'ppm'
                 self.axMult = 1e6 / self.parent.current.ref
@@ -2450,7 +2447,6 @@ class PeakDeconvParamFrame(QtWidgets.QWidget):
             axUnits = ['s','ms', u"\u03bcs"]
             self.axUnit = axUnits[self.parent.current.axType]
             self.axMult = 1000.0**self.parent.current.axType
-            self.axAdd = 0
         self.frame1 = QtWidgets.QGridLayout()
         self.frame2 = QtWidgets.QGridLayout()
         self.frame3Scroll = QtWidgets.QScrollArea()
@@ -2631,7 +2627,7 @@ class PeakDeconvParamFrame(QtWidgets.QWidget):
                 else:
                     struc[name].append((2, checkLinkTuple(safeEval(self.entries[name][i].text()))))
         argu.append(self.entries['method'][0].currentIndex())
-        args = (numExp, struc, argu, self.parent.current.sw, self.axAdd, self.axMult)
+        args = (numExp, struc, argu, self.parent.current.sw, self.axMult)
         self.queue = multiprocessing.Queue()
         self.process1 = multiprocessing.Process(target=peakDeconvmpFit, args=(self.parent.xax, self.parent.data1D, guess, args, self.queue))
         self.process1.start()
@@ -2719,7 +2715,7 @@ class PeakDeconvParamFrame(QtWidgets.QWidget):
                 else:
                     struc[name].append((2, checkLinkTuple(safeEval(self.entries[name][i].text()))))
         argu.append(self.entries['method'][0].currentIndex())
-        args = (numExp, struc, argu, self.parent.current.sw, self.axAdd, self.axMult)
+        args = (numExp, struc, argu, self.parent.current.sw, self.axMult)
         fullData = self.parent.current.data.data
         axes = self.parent.current.axes
         dataShape = fullData.shape
@@ -2874,8 +2870,7 @@ def peakDeconvfitFunc(param, args):
     struc = args[1]
     argu = args[2]
     sw = args[3]
-    axAdd = args[4]
-    axMult = args[5]
+    axMult = args[4]
     testFunc = np.zeros(len(x))
     parameters = {'bgrnd':0.0, 'slope':0.0, 'pos':0.0, 'amp':0.0, 'lor':0.0, 'gauss':0.0}
     for name in ['bgrnd', 'slope']:
