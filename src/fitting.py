@@ -122,6 +122,7 @@ def voigtLine(x, pos, lor, gau, integral, Type = 0):
     lor = np.abs(lor)
     gau = np.abs(gau)
     axis = x - pos
+    print(pos)
 
 
     if Type == 0: #Exact: Freq domain simulation via Faddeeva function
@@ -131,7 +132,7 @@ def voigtLine(x, pos, lor, gau, integral, Type = 0):
            return integral * lor
         else:
             sigma = gau / (2 * np.sqrt(2 * np.log(2)))
-            z = ((x - pos) + 1j * lor / 2) / (sigma * np.sqrt(2))
+            z = (axis + 1j * lor / 2) / (sigma * np.sqrt(2))
             return integral * scipy.special.wofz(z).real / (sigma * np.sqrt(2 * np.pi))
 
     elif Type == 1: #Approximation: THOMPSON et al (doi: 10.1107/S0021889887087090 )
@@ -2825,7 +2826,7 @@ class PeakDeconvParamFrame(QtWidgets.QWidget):
         for i in range(len(outAmp)):
             x.append(tmpx)
             
-            pos = outPos[i] / self.axMult - self.axAdd
+            pos = outPos[i] / self.axMult
             y = voigtLine(tmpx, pos, outWidth[i], outGauss[i], outAmp[i], method)
             outCurvePart.append(outCurveBase + y)
             outCurve += y
@@ -2901,7 +2902,7 @@ def peakDeconvfitFunc(param, args):
                 elif struc[altStruc[0]][altStruc[1]][0] == 0:
                     parameters[name] = altStruc[2] * argu[struc[altStruc[0]][altStruc[1]][1]] + altStruc[3]
                     
-        pos = parameters['pos'] / axMult - axAdd
+        pos = parameters['pos'] / axMult
         testFunc += voigtLine(x, pos, parameters['lor'], parameters['gauss'], parameters['amp'], argu[-1])
 
     testFunc += parameters['bgrnd'] + parameters['slope'] * x
