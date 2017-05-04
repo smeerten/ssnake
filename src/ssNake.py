@@ -299,7 +299,7 @@ class MainProgram(QtWidgets.QMainWindow):
 #                                     self.csastaticAct,self.csamasAct,self.firstquadstatAct,self.firstquadmasAct,
 #                                     self.secondquadstatAct,self.secondquadmasAct,self.czjzekstatAct,self.czjzekmasAct,
 #                                     self.insertdatAct,self.adddatAct,self.subdatAct,self.onedplotAct,self.scatterplotAct,
-#                                     self.stackplotAct,self.arrayplotAct,self.contourplotAct,self.skewplotAct,self.multiplotAct,
+#                                     self.stackplotAct,self.arrayplotAct,self.contourplotAct,self.multiplotAct,
 #                                     self.setrefAct, self.delrefAct,self.loadrefAct,self.userxAct,self.plotprefAct,self.historyAct,
 #                                     self.clearundoAct,self.updateAct,self.shiftconvAct,self.quadconvAct,self.nmrtableAct,
 #                                     self.aboutAct]
@@ -338,7 +338,7 @@ class MainProgram(QtWidgets.QMainWindow):
                                     ['Combine --> Insert From Workspace',self.insertdatAct],['Combine --> Add',self.adddatAct],['Combine --> Subtract',self.subdatAct],['Combine --> Multiply',self.multdatAct],
                                     ['Combine --> Divide',self.divdatAct],
                                     ['Plot --> 1D Plot',self.onedplotAct],['Plot --> Scatter',self.scatterplotAct],['Plot --> Stack Plot',self.stackplotAct],
-                                    ['Plot --> Array Plot',self.arrayplotAct],['Plot --> Contour Plot',self.contourplotAct],['Plot --> Skewed Plot',self.skewplotAct],['Plot --> Multi Plot',self.multiplotAct],
+                                    ['Plot --> Array Plot',self.arrayplotAct],['Plot --> Contour Plot',self.contourplotAct],['Plot --> Multi Plot',self.multiplotAct],
                                     ['Plot --> Set Reference',self.setrefAct],['Plot --> Clear Current Reference',self.delrefAct],['Plot --> Load Reference',self.loadrefAct],['Plot --> User X-axis',self.userxAct],
                                     ['Plot --> Plot Settings',self.plotprefAct],
                                     ['History --> History',self.historyAct],['History --> Clear Undo/Redo List',self.clearundoAct],
@@ -645,9 +645,9 @@ class MainProgram(QtWidgets.QMainWindow):
         self.contourplotAct = self.plotMenu.addAction(QtGui.QIcon(IconDirectory + 'contour.png'), "&Contour Plot", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.plotContour()))      
         self.contourplotAct.setToolTip('Contour Plot')
         self.multiDActions.append(self.contourplotAct)
-        self.skewplotAct = self.plotMenu.addAction(QtGui.QIcon(IconDirectory + 'skewed.png'),"S&kewed Plot", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.plotSkewed()))
-        self.skewplotAct.setToolTip('Skew Plot')
-        self.multiDActions.append(self.skewplotAct)
+#        self.skewplotAct = self.plotMenu.addAction(QtGui.QIcon(IconDirectory + 'skewed.png'),"S&kewed Plot", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.plotSkewed()))
+#        self.skewplotAct.setToolTip('Skew Plot')
+#        self.multiDActions.append(self.skewplotAct)
         self.multiplotAct = self.plotMenu.addAction(QtGui.QIcon(IconDirectory + 'multi.png'),"&Multi Plot", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.plotMulti()))
         self.multiplotAct.setToolTip('Multi Plot')
 
@@ -674,7 +674,7 @@ class MainProgram(QtWidgets.QMainWindow):
         self.plotprefAct.setToolTip('Plot Settings')
         
         self.plotActList = [self.onedplotAct,self.scatterplotAct,self.stackplotAct,self.arrayplotAct,
-                            self.contourplotAct,self.skewplotAct,self.multiplotAct,self.setrefAct,
+                            self.contourplotAct,self.multiplotAct,self.setrefAct,
                             self.delrefAct,self.loadrefAct,self.userxAct,self.plotprefAct]
         
         # the history drop down menu
