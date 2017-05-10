@@ -495,7 +495,7 @@ class EditLineWindow(QtWidgets.QWidget):
         self.setup()
         
     def setColor(self, *args):
-        color = QtWidgets.QColor()
+        color = QtGui.QColor()
         color.setRgbF(*self.backupColor)
         color = QtWidgets.QColorDialog.getColor(color, self, 'Color', QtWidgets.QColorDialog.ColorDialogOption(1))
         if not color.isValid():
@@ -504,7 +504,7 @@ class EditLineWindow(QtWidgets.QWidget):
         self.canvas.draw()
 
     def setEdgeColor(self, *args):
-        color = QtWidgets.QColor()
+        color = QtGui.QColor()
         color.setRgbF(*self.backupEdgeColor)
         color = QtWidgets.QColorDialog.getColor(color, self, 'Edgecolor', QtWidgets.QColorDialog.ColorDialogOption(1))
         if not color.isValid():
@@ -513,7 +513,7 @@ class EditLineWindow(QtWidgets.QWidget):
         self.canvas.draw()
 
     def setFaceColor(self, *args):
-        color = QtWidgets.QColor()
+        color = QtGui.QColor()
         color.setRgbF(*self.backupFaceColor)
         color = QtWidgets.QColorDialog.getColor(color, self, 'Facecolor', QtWidgets.QColorDialog.ColorDialogOption(1))
         if not color.isValid():

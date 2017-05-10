@@ -6617,19 +6617,19 @@ class PlotSettingsWindow(QtWidgets.QWidget):
         self.father.current.setContourColors(tmpContourColors)
 
     def setColor(self, *args):
-        tmp = QtWidgets.QColorDialog.getColor(QtWidgets.QColor(self.color))
+        tmp = QtWidgets.QColorDialog.getColor(QtGui.QColor(self.color))
         if tmp.isValid():
             self.color = tmp.name()
         self.preview()
 
     def setPosColor(self, *args):
-        tmp = QtWidgets.QColorDialog.getColor(QtWidgets.QColor(self.posColor))
+        tmp = QtWidgets.QColorDialog.getColor(QtGui.QColor(self.posColor))
         if tmp.isValid():
             self.posColor = tmp.name()
         self.preview()
 
     def setNegColor(self, *args):
-        tmp = QtWidgets.QColorDialog.getColor(QtWidgets.QColor(self.negColor))
+        tmp = QtWidgets.QColorDialog.getColor(QtGui.QColor(self.negColor))
         if tmp.isValid():
             self.negColor = tmp.name()
         self.preview()
@@ -6782,17 +6782,17 @@ class PreferenceWindow(QtWidgets.QWidget):
         self.show()
 
     def setColor(self, *args):
-        tmp = QtWidgets.QColorDialog.getColor(QtWidgets.QColor(self.color))
+        tmp = QtWidgets.QColorDialog.getColor(QtGui.QColor(self.color))
         if tmp.isValid():
             self.color = tmp.name()
 
     def setPosColor(self, *args):
-        tmp = QtWidgets.QColorDialog.getColor(QtWidgets.QColor(self.posColor))
+        tmp = QtWidgets.QColorDialog.getColor(QtGui.QColor(self.posColor))
         if tmp.isValid():
             self.posColor = tmp.name()
 
     def setNegColor(self, *args):
-        tmp = QtWidgets.QColorDialog.getColor(QtWidgets.QColor(self.negColor))
+        tmp = QtWidgets.QColorDialog.getColor(QtGui.QColor(self.negColor))
         if tmp.isValid():
             self.negColor = tmp.name()
 
