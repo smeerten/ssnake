@@ -2523,26 +2523,47 @@ class SideFrame(QtWidgets.QScrollArea):
                     self.elevEntry.returnPressed.connect(self.setSkew)
                     self.frame2.addWidget(self.elevEntry, 10, 0)
             if isinstance(current, (sc.CurrentContour)):
-                self.frame2.addWidget(wc.QLabel("Number of contours:", self), 1, 0,1,3)
+                
+                self.contourTypeGroup = QtWidgets.QGroupBox('Contour type:')
+                self.contourTypeFrame = QtWidgets.QGridLayout()
+                self.contourNumberLabel = QtWidgets.QLabel("Number:", self)
+                self.contourNumberLabel.setAlignment(QtCore.Qt.AlignLeft)
+                self.contourNumberLabel.setAlignment(QtCore.Qt.AlignVCenter)
+                
+                self.contourTypeFrame.addWidget(self.contourNumberLabel, 0, 0)
                 self.numLEntry = QtWidgets.QLineEdit(self)
                 self.numLEntry.setText(str(current.numLevels))
                 self.numLEntry.returnPressed.connect(self.setContour)
-                self.frame2.addWidget(self.numLEntry, 2, 0,1,3)
+                self.numLEntry.setMaximumWidth(120)
+                self.contourTypeFrame.addWidget(self.numLEntry, 0, 1)
+                
+                self.contourTypeLabel = QtWidgets.QLabel("Type:", self)
+                self.contourTypeLabel.setAlignment(QtCore.Qt.AlignLeft)
+                self.contourTypeLabel.setAlignment(QtCore.Qt.AlignVCenter)
+                self.contourTypeFrame.addWidget(self.contourTypeLabel, 1, 0)
+                
                 self.contourTypeEntry = QtWidgets.QComboBox()
                 self.contourTypeEntry.addItems(['Linear','Multiplier'])
                 self.contourTypeEntry.setCurrentIndex(current.contourType)
                 self.contourTypeEntry.currentIndexChanged.connect(self.setContour)
-                self.frame2.addWidget(wc.QLabel("Contour scale:", self), 3, 0,1,3)
-                self.frame2.addWidget(self.contourTypeEntry, 4, 0,1,3)
-                self.multiValueLabel = wc.QLabel("Multiplier value:", self)
-                self.frame2.addWidget(self.multiValueLabel, 5, 0,1,3)
+                self.contourTypeFrame.addWidget(self.contourTypeEntry, 1, 1)
+                
+                self.multiValueLabel = QtWidgets.QLabel("Multiplier:", self)
+                self.multiValueLabel.setAlignment(QtCore.Qt.AlignLeft)
+                self.multiValueLabel.setAlignment(QtCore.Qt.AlignVCenter)
+                self.contourTypeFrame.addWidget(self.multiValueLabel, 2, 0)
+                
                 self.multiValue = QtWidgets.QLineEdit(self)
                 self.multiValue.setText(str(current.multiValue))
                 self.multiValue.returnPressed.connect(self.setContour)
-                self.frame2.addWidget(self.multiValue, 6, 0, 1, 3)
+                self.multiValue.setMaximumWidth(120)
+                self.contourTypeFrame.addWidget(self.multiValue, 2, 1)
+                
                 if current.contourType != 1:
                     self.multiValueLabel.hide()
                     self.multiValue.hide()
+                self.contourTypeGroup.setLayout(self.contourTypeFrame)
+                self.frame2.addWidget(self.contourTypeGroup, 6, 0, 1, 3)
                     
                 #Contour limits    
                 self.contourLimitsGroup = QtWidgets.QGroupBox('Contour limits [%]:')
@@ -2597,17 +2618,24 @@ class SideFrame(QtWidgets.QScrollArea):
                 self.frame2.addWidget(self.contourProjGroup, 8, 0, 1, 3)
                 
                 
-                
-                
-                self.diagonalCheck = QtWidgets.QCheckBox("Diagonal")
-                self.diagonalCheck.setChecked(current.diagonalBool)
-                self.diagonalCheck.stateChanged.connect(self.switchDiagonal)
-                self.frame2.addWidget(self.diagonalCheck, 14, 0,1,3)
-                self.frame2.addWidget(wc.QLabel("Diagonal multiplier:", self), 15, 0,1,3)
+                #Diagonal group
+                self.diagonalGroup = QtWidgets.QGroupBox('Diagonal:')
+                self.diagonalGroup.setCheckable(True)
+                self.diagonalGroup.setChecked(current.diagonalBool)
+                self.diagonalGroup.toggled.connect(self.switchDiagonal)
+                self.diagonalFrame = QtWidgets.QGridLayout()
+                self.diagMultiLabel = QtWidgets.QLabel("Multiplier:", self)
+                self.diagMultiLabel.setAlignment(QtCore.Qt.AlignLeft)
+                self.diagMultiLabel.setAlignment(QtCore.Qt.AlignVCenter)
+                self.diagonalFrame.addWidget(self.diagMultiLabel, 0, 0)
                 self.diagonalEntry = QtWidgets.QLineEdit(self)
                 self.diagonalEntry.setText(str(current.diagonalMult))
                 self.diagonalEntry.returnPressed.connect(self.setDiagonal)
-                self.frame2.addWidget(self.diagonalEntry, 16, 0,1,3)
+                self.diagonalFrame.addWidget(self.diagonalEntry, 0, 1)
+                self.diagonalGroup.setLayout(self.diagonalFrame)
+                self.frame2.addWidget(self.diagonalGroup, 9, 0, 1, 3)
+                
+                
             self.buttons1Group.button(current.axes).toggle()
             if self.plotIs2D:
                 self.buttons2Group.button(current.axes2).toggle()
