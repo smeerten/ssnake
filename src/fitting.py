@@ -5925,8 +5925,31 @@ def quad2tensorFunc(x, I, pos, cq, eta, width, gauss, angleStuff, freq, sw, weig
     apod = np.exp(-np.pi * np.abs(width) * t) * np.exp(-((np.pi * np.abs(gauss) * t)**2) / (4 * np.log(2)))
     apod[-1:-(int(len(apod) / 2) + 1):-1] = apod[:int(len(apod) / 2)]
     inten = np.real(np.fft.fft(np.fft.ifft(final) * apod))
-    inten = inten / sw / len(inten)
+    inten = inten / sw * len(inten)
     return inten
+
+
+#    m = np.arange(-I, I)
+#    v = []
+#    weights = []
+#    pos = (pos / axMult)- axAdd
+#    for i in m:
+#        tmp = (cq / (4 * I * (2 * I - 1)) * (I * (I + 1) - 3 * (i + 1)**2)) - (cq / (4 * I * (2 * I - 1)) * (I * (I + 1) - 3 * (i)**2))
+#        v = np.append(v, tmp * (angleStuff[0] - eta * angleStuff[1]) + pos)
+#        weights = np.append(weights, weight)
+#    length = len(x)
+#    t = np.arange(length) / sw
+#    final = np.zeros(length)
+#    mult = v / sw * length
+#    x1 = np.array(np.round(mult) + np.floor(length / 2), dtype=int)
+#    weights = weights[np.logical_and(x1 >= 0, x1 < length)]
+#    x1 = x1[np.logical_and(x1 >= 0, x1 < length)]
+#    final = np.bincount(x1, weights, length)
+#    apod = np.exp(-np.pi * np.abs(width) * t) * np.exp(-((np.pi * np.abs(gauss) * t)**2) / (4 * np.log(2)))
+#    apod[-1:-int(len(apod) / 2 + 1):-1] = apod[:int(len(apod) / 2)]
+#    inten = np.real(np.fft.fft(np.fft.ifft(final) * apod))
+#    inten = inten / sw * len(inten) / (2 * I)
+
 
 def quad2StaticsetAngleStuff(cheng):
     phi, theta, weight = zcw_angles(cheng, symm=2)
