@@ -2532,6 +2532,7 @@ class SideFrame(QtWidgets.QScrollArea):
                 
                 self.contourTypeFrame.addWidget(self.contourNumberLabel, 0, 0)
                 self.numLEntry = QtWidgets.QLineEdit(self)
+                self.numLEntry.setAlignment(QtCore.Qt.AlignHCenter)
                 self.numLEntry.setText(str(current.numLevels))
                 self.numLEntry.returnPressed.connect(self.setContour)
                 self.numLEntry.setMaximumWidth(120)
@@ -2554,6 +2555,7 @@ class SideFrame(QtWidgets.QScrollArea):
                 self.contourTypeFrame.addWidget(self.multiValueLabel, 2, 0)
                 
                 self.multiValue = QtWidgets.QLineEdit(self)
+                self.multiValue.setAlignment(QtCore.Qt.AlignHCenter)
                 self.multiValue.setText(str(current.multiValue))
                 self.multiValue.returnPressed.connect(self.setContour)
                 self.multiValue.setMaximumWidth(120)
@@ -2569,12 +2571,14 @@ class SideFrame(QtWidgets.QScrollArea):
                 self.contourLimitsGroup = QtWidgets.QGroupBox('Contour limits [%]:')
                 self.contourLimitsFrame = QtWidgets.QGridLayout()
                 self.maxLEntry = QtWidgets.QLineEdit(self)
+                self.maxLEntry.setAlignment(QtCore.Qt.AlignHCenter)
                 self.maxLEntry.setMaximumWidth(120)
                 self.maxLEntry.setText(format(current.maxLevels * 100.0, '.7g'))
                 self.maxLEntry.returnPressed.connect(self.setContour)
                 
                 self.contourLimitsFrame.addWidget(self.maxLEntry, 0, 1)
                 self.minLEntry = QtWidgets.QLineEdit(self)
+                self.minLEntry.setAlignment(QtCore.Qt.AlignHCenter)
                 self.minLEntry.setMaximumWidth(120)
                 self.minLEntry.setText(format(current.minLevels * 100.0, '.7g'))
                 self.minLEntry.returnPressed.connect(self.setContour)
@@ -2629,6 +2633,7 @@ class SideFrame(QtWidgets.QScrollArea):
                 self.diagMultiLabel.setAlignment(QtCore.Qt.AlignVCenter)
                 self.diagonalFrame.addWidget(self.diagMultiLabel, 0, 0)
                 self.diagonalEntry = QtWidgets.QLineEdit(self)
+                self.diagonalEntry.setAlignment(QtCore.Qt.AlignHCenter)
                 self.diagonalEntry.setText(str(current.diagonalMult))
                 self.diagonalEntry.returnPressed.connect(self.setDiagonal)
                 self.diagonalFrame.addWidget(self.diagonalEntry, 0, 1)
