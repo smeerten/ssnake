@@ -2685,10 +2685,10 @@ class SideFrame(QtWidgets.QScrollArea):
                     for num in range(current.extraData[i].data.ndim):
                         buttons1.append(QtWidgets.QRadioButton(''))
                         self.extraButtons1Group[i].addButton(buttons1[num], num)
-                        frame.addWidget(buttons1[num], num * 3 + 5, 0)
-                        frame.addWidget(wc.QLabel("D" + str(num + 1), self), num * 3 + 4, 1)
+                        frame.addWidget(buttons1[num], num * 3 + 6, 0)
+                        frame.addWidget(wc.QLabel("D" + str(num + 1), self), num * 3 + 5, 1)
                         entries.append(wc.SliceSpinBox(self, 0, current.extraData[i].data.shape[num] - 1))
-                        frame.addWidget(entries[num], num * 3 + 5, 1)
+                        frame.addWidget(entries[num], num * 3 + 6, 1)
                         if num < current.extraAxes[i]:
                             entries[num].setValue(current.extraLoc[i][num])
                         elif num == current.extraAxes[i]:
