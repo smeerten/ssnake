@@ -217,6 +217,82 @@ class FittingWindow(QtWidgets.QWidget):
 
 ##############################################################################
 
+
+class FittingSideFrame(QtWidgets.QScrollArea):
+
+    def __init__(self, parent):
+        QtWidgets.QScrollArea.__init__(self, parent)
+        self.father = parent
+        self.entries = []
+        content = QtWidgets.QWidget()
+        grid = QtWidgets.QGridLayout(content)
+        grid.setSizeConstraint(QtWidgets.QLayout.SetFixedSize)
+        frame1Widget = QtWidgets.QWidget()
+        frame2Widget = QtWidgets.QWidget()
+        grid.addWidget(frame1Widget, 0, 0)
+        grid.addWidget(frame2Widget, 1, 0)
+        self.frame1 = QtWidgets.QGridLayout()
+        self.frame2 = QtWidgets.QGridLayout()
+        frame1Widget.setLayout(self.frame1)
+        frame2Widget.setLayout(self.frame2)
+        self.frame1.setAlignment(QtCore.Qt.AlignTop)
+        self.frame2.setAlignment(QtCore.Qt.AlignTop)
+        self.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
+        self.grid = grid
+        self.setWidget(content)
+        self.upd()
+
+    def kill(self):
+        for i in reversed(range(self.grid.count())):
+            self.grid.itemAt(i).widget().deleteLater()
+        self.grid.deleteLater()
+        
+    def upd(self):
+        current = self.father.current
+        self.shape = current.data.data.shape
+        self.length = len(self.shape)
+        for i in reversed(range(self.frame1.count())):
+            item = self.frame1.itemAt(i).widget()
+            self.frame1.removeWidget(item)
+            item.deleteLater()
+        for i in reversed(range(self.frame2.count())):
+            item = self.frame2.itemAt(i).widget()
+            self.frame2.removeWidget(item)
+            item.deleteLater()
+        self.entries = []
+        if self.length > 1:
+            for num in range(self.length):
+                self.frame1.addWidget(wc.QLabel("D" + str(num + 1), self), num * 2, 0)
+                self.entries.append(wc.SliceSpinBox(self, 0, self.shape[num] - 1))
+                self.frame1.addWidget(self.entries[num], num * 2 + 1, 0)
+                if num < current.axes:
+                    self.entries[num].setValue(current.locList[num])
+                elif num == current.axes:
+                    self.entries[num].setValue(0)
+                else:
+                    self.entries[num].setValue(current.locList[num - 1])
+                self.entries[num].valueChanged.connect(lambda event=None, num=num: self.getSlice(event, num))
+        QtCore.QTimer.singleShot(100, self.resizeAll)
+
+    def resizeAll(self):
+        self.setMinimumWidth(self.grid.sizeHint().width() + self.verticalScrollBar().sizeHint().width())
+
+    def getSlice(self, event, entryNum):
+        if entryNum == self.father.current.axes:
+            return
+        else:
+            dimNum = self.father.current.axes
+        locList = []
+        for num in range(self.length):
+            inp = self.entries[num].value()
+            if num == dimNum:
+                pass
+            else:
+                locList.append(inp)
+        self.father.current.setSlice(dimNum, locList)
+
+##############################################################################
+
 class FittingWindowTabs(QtWidgets.QWidget):
     # Inherited by the fitting windows
 
@@ -2320,6 +2396,8 @@ class PeakDeconvWindow2(FittingWindow):
         self.isMain = isMain
         FittingWindow.__init__(self, mainProgram, oldMainWindow)
         self.tabWindow = tabWindow
+        self.fittingSideFrame = FittingSideFrame(self)
+        self.grid.addWidget(self.fittingSideFrame, 0, 1)
 
     def setup(self):
         self.current = PeakDeconvFrame(self, self.fig, self.canvas, self.oldMainWindow.get_current())
@@ -2343,6 +2421,9 @@ class PeakDeconvFrame(Plot1DFrame):
     def __init__(self, rootwindow, fig, canvas, current):
         Plot1DFrame.__init__(self, rootwindow, fig, canvas)
         self.data1D = current.getDisplayedData()
+        self.data = current.data
+        self.axes = current.axes
+        self.locList = current.locList
         self.current = current
         self.spec = self.current.spec
         self.xax = self.current.xax
@@ -2360,6 +2441,25 @@ class PeakDeconvFrame(Plot1DFrame):
             self.plotReset(False, True)
         self.showPlot()
 
+    def setSlice(self, axes, locList):  
+        if self.axes != axes:
+            return
+        self.locList = locList
+        self.upd()
+        self.showPlot()
+
+    def upd(self):  
+        updateVar = self.data.getSlice(self.axes, self.locList)
+        tmp = updateVar[0]
+        if self.current.plotType == 0:
+            self.data1D = np.real(tmp)
+        elif self.current.plotType == 1:
+            self.data1D = np.imag(tmp)
+        elif self.current.plotType == 2:
+            self.data1D = np.real(tmp)
+        elif self.current.plotType == 3:
+            self.data1D = np.abs(tmp)
+        
     def plotReset(self, xReset=True, yReset=True):
         a = self.fig.gca()
         if self.plotType == 0:
