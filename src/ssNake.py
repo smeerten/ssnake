@@ -1717,9 +1717,9 @@ class Main1DWindow(QtWidgets.QWidget):
         self.sideframe = SideFrame(self)
         grid.addWidget(self.sideframe, 0, 1)
         self.bottomframe = BottomFrame(self)
-        grid.addWidget(self.bottomframe, 1, 0)
+        grid.addWidget(self.bottomframe, 1, 0 , 1, 2)
         self.textframe = TextFrame(self)
-        grid.addWidget(self.textframe, 2, 0)
+        grid.addWidget(self.textframe, 2, 0 , 1 , 2)
         grid.setColumnStretch(0, 1)
         grid.setRowStretch(0, 1)
         self.grid = grid
