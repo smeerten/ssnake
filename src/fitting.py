@@ -2431,9 +2431,9 @@ class PeakDeconvFrame(Plot1DFrame):
         tmp = list(self.data.data.shape)
         tmp.pop(self.axes)
         self.fitDataList = np.full(tmp, None, dtype=object)
+        self.fitPickNumList = np.zeros(tmp, dtype=int)
         self.plotType = 0
         self.rootwindow = rootwindow
-        self.pickNum = 0
         self.pickWidth = False
         #Set limits as in parant
         self.xminlim = self.current.xminlim
@@ -2444,11 +2444,13 @@ class PeakDeconvFrame(Plot1DFrame):
             self.plotReset(False, True)
         self.showPlot()
 
-    def setSlice(self, axes, locList):  
+    def setSlice(self, axes, locList):
+        self.pickWidth = False
         if self.axes != axes:
             return
         self.locList = locList
         self.upd()
+        self.rootwindow.paramframe.dispParams()
         self.showPlot()
 
     def upd(self):  
@@ -2560,6 +2562,7 @@ class PeakDeconvFrame(Plot1DFrame):
             self.peakPick = False
 
     def pickDeconv(self, pos):
+        pickNum = self.fitPickNumList[tuple(self.locList)]
         if self.pickWidth:
             if self.current.spec == 1:
                 if self.current.ppm:
@@ -2568,25 +2571,25 @@ class PeakDeconvFrame(Plot1DFrame):
                     axMult = 1.0 / (1000.0**self.current.axType)
             elif self.current.spec == 0:
                 axMult = 1000.0**self.current.axType
-            width = (2 * abs(float(self.rootwindow.paramframe.entries['pos'][self.pickNum].text()) - pos[1])) / axMult
-            self.rootwindow.paramframe.entries['amp'][self.pickNum].setText("%#.3g" % (float(self.rootwindow.paramframe.entries['amp'][self.pickNum].text()) * width))
-            self.rootwindow.paramframe.entries['lor'][self.pickNum].setText("%#.3g" % abs(width))
-            self.pickNum += 1
+            width = (2 * abs(float(self.rootwindow.paramframe.entries['pos'][pickNum].text()) - pos[1])) / axMult
+            self.rootwindow.paramframe.entries['amp'][pickNum].setText("%#.3g" % (float(self.rootwindow.paramframe.entries['amp'][pickNum].text()) * width))
+            self.rootwindow.paramframe.entries['lor'][pickNum].setText("%#.3g" % abs(width))
+            self.fitPickNumList[tuple(self.locList)] += 1
             self.pickWidth = False
         else:
-            self.rootwindow.paramframe.entries['pos'][self.pickNum].setText("%#.3g" % pos[1])
+            self.rootwindow.paramframe.entries['pos'][pickNum].setText("%#.3g" % pos[1])
             left = pos[0] - self.FITNUM
             if left < 0:
                 left = 0
             right = pos[0] + self.FITNUM
             if right >= len(self.data1D):
                 right = len(self.data1D) - 1
-            self.rootwindow.paramframe.entries['amp'][self.pickNum].setText("%#.3g" % (pos[2] * np.pi * 0.5))
-            if self.pickNum < self.FITNUM:
-                self.rootwindow.paramframe.numExp.setCurrentIndex(self.pickNum)
+            self.rootwindow.paramframe.entries['amp'][pickNum].setText("%#.3g" % (pos[2] * np.pi * 0.5))
+            if pickNum < self.FITNUM:
+                self.rootwindow.paramframe.numExp.setCurrentIndex(pickNum)
                 self.rootwindow.paramframe.changeNum()
             self.pickWidth = True
-        if self.pickNum < self.FITNUM:
+        if pickNum < self.FITNUM:
             self.peakPickFunc = lambda pos, self=self: self.pickDeconv(pos)
             self.peakPick = True
 
@@ -2601,6 +2604,12 @@ class PeakDeconvParamFrame(QtWidgets.QWidget):
         self.FITNUM = self.parent.FITNUM
         self.rootwindow = rootwindow
         self.isMain = isMain # display fitting buttons
+        tmp = list(self.parent.data.data.shape)
+        tmp.pop(self.parent.axes)
+        self.fitParamList = np.zeros(tmp, dtype=object)
+        for elem in np.nditer(self.fitParamList, flags=["refs_ok"], op_flags=['readwrite']):
+            elem[...] = {'bgrnd':[0.0, True], 'slope':[0.0, True], 'pos':np.repeat([[0.0, False]], self.FITNUM, axis=0), 'amp':np.repeat([[1.0, False]],self.FITNUM,axis=0), 'lor':np.repeat([[1.0, False]],self.FITNUM,axis=0), 'gauss':np.repeat([[0.0, True]],self.FITNUM,axis=0)}
+        self.fitNumList = np.zeros(tmp, dtype=int)
         grid = QtWidgets.QGridLayout(self)
         self.setLayout(grid)
         if self.parent.current.spec == 1:
@@ -2709,27 +2718,41 @@ class PeakDeconvParamFrame(QtWidgets.QWidget):
         self.stopMP()
         self.rootwindow.cancel()
 
-    def reset(self):
-        self.parent.pickNum = 0
+    def dispParams(self):
+        locList = tuple(self.parent.locList)
+        val = self.fitNumList[locList] + 1
         for name in ['bgrnd', 'slope']:
-            self.entries[name][0].setText("0.0")
-            self.ticks[name][0].setChecked(True)
-        self.numExp.setCurrentIndex(0)
-        self.pickTick.setChecked(True)
-        defaults = {'pos':("0.0",False), 'amp':("1.0",False), 'lor':("1.0",False), 'gauss':("0.0",True)}
+            self.entries[name][0].setText('%#.3g' % self.fitParamList[locList][name][0])
+            self.ticks[name][0].setChecked(self.fitParamList[locList][name][1])
+        self.numExp.setCurrentIndex(self.fitNumList[locList])
         for i in range(self.FITNUM):
-            for name in defaults.keys():
-                self.entries[name][i].setText(defaults[name][0])
-                self.ticks[name][i].setChecked(defaults[name][1])
-                if i > 0:
+            for name in ['pos', 'amp', 'lor', 'gauss']:
+                self.entries[name][i].setText('%#.3g' % self.fitParamList[locList][name][i][0])
+                self.ticks[name][i].setChecked(self.fitParamList[locList][name][i][1])
+                if i < val:
+                    self.ticks[name][i].show()
+                    self.entries[name][i].show()
+                else:
                     self.ticks[name][i].hide()
                     self.entries[name][i].hide()
+
+    def reset(self):
+        locList = tuple(self.parent.locList)
+        self.fitNumList[locList] = 0
+        for name in ['bgrnd', 'slope']:
+            self.fitParamList[locList][name] = [0.0, True]
+        self.pickTick.setChecked(True)
+        defaults = {'pos':[0.0,False], 'amp':[1.0,False], 'lor':[1.0,False], 'gauss':[0.0,True]}
+        for i in range(self.FITNUM):
+            for name in defaults.keys():
+                self.fitParamList[locList][name][i] = defaults[name]
         self.togglePick()
-        self.parent.pickWidth = False
-        self.parent.showPlot()
+        self.parent.pickWidth = False       
+        self.dispParams()
 
     def changeNum(self, *args):
         val = self.numExp.currentIndex() + 1
+        self.fitNumList[tuple(self.parent.locList)] = self.numExp.currentIndex()
         for i in range(self.FITNUM):
             for name in ['pos', 'amp', 'lor', 'gauss']:
                 if i < val:
@@ -2819,28 +2842,28 @@ class PeakDeconvParamFrame(QtWidgets.QWidget):
         return fitVal
 
     def setResults(self, fitVal, args, out):
+        locList = tuple(self.parent.locList)
         numExp = args[0][0]
         struc = args[1][0]
         for name in ['bgrnd', 'slope']:
             if struc[name][0][0] == 1:
-                out[name][0] = fitVal[struc[name][0][1]]
-                self.entries[name][0].setText('%#.3g' % out[name][0])
+                self.fitParamList[locList][name][0] = fitVal[struc[name][0][1]]
         for i in range(numExp):
             for name in ['pos', 'amp', 'lor', 'gauss']:
                 if struc[name][i][0] == 1:
-                    out[name][i] = fitVal[struc[name][i][1]]
-                    self.entries[name][i].setText('%#.3g' % out[name][i])
-        for name in ['bgrnd', 'slope']:
-            if struc[name][0][0] == 2:
-                out[name][0] = abs(fitVal[struc[struc[name][0][1][0]][struc[name][0][1][1]][1]])
-        for i in range(numExp):
-            for name in ['pos', 'amp', 'lor', 'gauss']:
-                if struc[name][i][0] == 2:
-                    altStruc = struc[name][i][1]
-                    if struc[altStruc[0]][altStruc[1]][0] == 1:
-                        out[name][i] = abs(fitVal[struc[altStruc[0]][altStruc[1]][1]])
-                    else:
-                        out[name][i] = out[altStruc[0]][altStruc[1]]
+                    self.fitParamList[locList][name][i][0] = fitVal[struc[name][i][1]]
+        # for name in ['bgrnd', 'slope']:
+        #     if struc[name][0][0] == 2:
+        #         out[name][0] = abs(fitVal[struc[struc[name][0][1][0]][struc[name][0][1][1]][1]])
+        # for i in range(numExp):
+        #     for name in ['pos', 'amp', 'lor', 'gauss']:
+        #         if struc[name][i][0] == 2:
+        #             altStruc = struc[name][i][1]
+        #             if struc[altStruc[0]][altStruc[1]][0] == 1:
+        #                 out[name][i] = abs(fitVal[struc[altStruc[0]][altStruc[1]][1]])
+        #             else:
+        #                 out[name][i] = out[altStruc[0]][altStruc[1]]
+        self.dispParams()
         self.rootwindow.sim()
         
     def stopMP(self, *args):
