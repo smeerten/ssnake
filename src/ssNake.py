@@ -3133,7 +3133,7 @@ class AsciiLoadWindow(QtWidgets.QDialog):
 
 class PhaseWindow(QtWidgets.QWidget):
 
-    RESOLUTION = 10000.0
+    RESOLUTION = 1000.0
     P1LIMIT = 540.0
     PHASE0STEP = 1.0
     PHASE1STEP = 1.0

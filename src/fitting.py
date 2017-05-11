@@ -2428,6 +2428,9 @@ class PeakDeconvFrame(Plot1DFrame):
         self.spec = self.current.spec
         self.xax = self.current.xax
         self.FITNUM = 10 # Maximum number of fits
+        tmp = list(self.data.data.shape)
+        tmp.pop(self.axes)
+        self.fitDataList = np.full(tmp, None, dtype=object)
         self.plotType = 0
         self.rootwindow = rootwindow
         self.pickNum = 0
@@ -2497,7 +2500,7 @@ class PeakDeconvFrame(Plot1DFrame):
             a.set_xlim(self.xminlim, self.xmaxlim)
         a.set_ylim(self.yminlim, self.ymaxlim)
 
-    def showPlot(self, tmpAx=None, tmpdata=None, tmpAx2=[], tmpdata2=[]):
+    def showPlot(self):
         a = self.fig.gca()
         a.cla()
         if self.spec == 1:
@@ -2510,10 +2513,11 @@ class PeakDeconvFrame(Plot1DFrame):
         self.line_xdata = self.xax * axMult
         self.line_ydata = self.data1D
         a.plot(self.xax * axMult, self.data1D, c=self.current.color, linewidth=self.current.linewidth, label=self.current.data.name, picker=True)
-        if tmpAx is not None:
-            a.plot(tmpAx * axMult, tmpdata, picker=True)
-        for i in range(len(tmpAx2)):
-            a.plot(tmpAx2[i] * axMult, tmpdata2[i], picker=True)
+        if self.fitDataList[tuple(self.locList)] is not None:
+            tmp = self.fitDataList[tuple(self.locList)]
+            a.plot(tmp[0] * axMult, tmp[1], picker=True)
+            for i in range(len(tmp[2])):
+                a.plot(tmp[2][i] * axMult, tmp[3][i], picker=True)
         if self.spec == 0:
             if self.current.axType == 0:
                 a.set_xlabel('Time [s]')
@@ -3011,7 +3015,8 @@ class PeakDeconvParamFrame(QtWidgets.QWidget):
             dataArray = np.transpose(np.append(np.array([self.parent.xax]),np.array(outCurvePart),0))
             saveResult(title,variablearray,dataArray)
         else:
-            self.parent.showPlot(tmpx, outCurve, x, outCurvePart)
+            self.parent.fitDataList[tuple(self.parent.locList)] = [tmpx, outCurve, x, outCurvePart]
+            self.parent.showPlot()
 
 ##############################################################################
 
