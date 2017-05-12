@@ -2327,6 +2327,8 @@ class PeakDeconvWindow(QtWidgets.QWidget):
         self.tabs.setTabPosition(2)
         self.mainFitWindow = PeakDeconvWindow2(mainProgram, oldMainWindow, self)
         self.current = self.mainFitWindow.current
+        self.tabs.setTabsClosable(True)
+        self.tabs.tabCloseRequested.connect(self.closeTab)
         self.tabs.addTab(self.mainFitWindow, 'Spectrum') 
         grid3 =  QtWidgets.QGridLayout(self)
         grid3.addWidget(self.tabs,0,0)
@@ -2337,8 +2339,22 @@ class PeakDeconvWindow(QtWidgets.QWidget):
         text = QtWidgets.QInputDialog.getItem(self, "Select spectrum to add", "Spectrum name:", self.mainProgram.workspaceNames, 0, False)
         if text[1]:
             self.subFitWindows.append(PeakDeconvWindow2(self.mainProgram, self.mainProgram.workspaces[self.mainProgram.workspaceNames.index(text[0])], self, isMain=False))
-            self.tabs.addTab(self.subFitWindows[-1], str(text[0])) 
+            self.tabs.addTab(self.subFitWindows[-1], str(text[0]))
+            self.tabs.setCurrentIndex(len(self.subFitWindows))
 
+    def removeSpectrum(self, spec):
+        num = self.subFitWindows.index(spec)
+        self.removeTab(num+1)
+        self.tabs.removeTab(num+1)
+        del self.subFitWindows[num]
+
+    def closeTab(self, num):
+        if num > 0:
+            self.tabs.removeTab(num)
+            del self.subFitWindows[num-1]
+        else:
+            self.mainFitWindow.paramframe.closeWindow()
+        
     def fit(self):
         xax, data1D, guess, args, out = self.mainFitWindow.paramframe.getFitParams()
         xax = [xax]
@@ -2359,7 +2375,7 @@ class PeakDeconvWindow(QtWidgets.QWidget):
             args = new_args # tuples are immutable
         new_args = (nameList, selectList) + args
         allFitVal = self.mainFitWindow.paramframe.fit(xax, data1D, guess, new_args)[0]
-        fitVal =[]
+        fitVal = []
         for length in selectList:
             fitVal.append(allFitVal[length])
         args_out = []
@@ -2388,6 +2404,9 @@ class PeakDeconvWindow(QtWidgets.QWidget):
     def get_current(self):
         return self.oldMainWindow.get_current()
 
+    def kill(self):
+        self.mainFitWindow.paramframe.closeWindow()
+
 ##############################################################################
 
 
@@ -2412,6 +2431,9 @@ class PeakDeconvWindow2(FittingWindow):
         
     def addSpectrum(self):
         self.tabWindow.addSpectrum()
+
+    def removeSpectrum(self):
+        self.tabWindow.removeSpectrum(self)
         
 
 #################################################################################
@@ -2637,41 +2659,45 @@ class PeakDeconvParamFrame(QtWidgets.QWidget):
         content = QtWidgets.QWidget()
         self.frame3 = QtWidgets.QGridLayout(content)
         #grid.addLayout(self.frame3, 0, 2)
+
+        simButton = QtWidgets.QPushButton("Sim")
+        simButton.clicked.connect(self.rootwindow.sim)
+        self.frame1.addWidget(simButton, 0, 0)
+        fitButton = QtWidgets.QPushButton("Fit")
+        fitButton.clicked.connect(self.rootwindow.fit)
+        self.frame1.addWidget(fitButton, 1, 0)
+        self.stopButton = QtWidgets.QPushButton("Stop")
+        self.stopButton.clicked.connect(self.stopMP)
+        self.frame1.addWidget(self.stopButton, 1, 0)
+        self.stopButton.hide()
+        self.process1 = None
+        self.queue = None
+        fitAllButton = QtWidgets.QPushButton("Fit all")
+        fitAllButton.clicked.connect(self.fitAll)
+        self.frame1.addWidget(fitAllButton, 2, 0)
+        self.stopAllButton = QtWidgets.QPushButton("Stop all")
+        self.stopAllButton.clicked.connect(self.stopAll)
+        self.frame1.addWidget(self.stopAllButton, 2, 0)
+        self.stopAllButton.hide()
+        copyParamsButton = QtWidgets.QPushButton("Copy parameters")
+        copyParamsButton.clicked.connect(self.copyParams)
+        self.frame1.addWidget(copyParamsButton, 3, 0)
+        copyResultButton = QtWidgets.QPushButton("Copy result")
+        copyResultButton.clicked.connect(lambda: self.sim('copy'))
+        self.frame1.addWidget(copyResultButton, 4, 0)
+        saveResultButton = QtWidgets.QPushButton("Save to text")
+        saveResultButton.clicked.connect(lambda: self.sim('save'))
+        self.frame1.addWidget(saveResultButton, 5, 0)
+        addSpecButton = QtWidgets.QPushButton("Add spectrum")
+        addSpecButton.clicked.connect(self.rootwindow.addSpectrum)
+        self.frame1.addWidget(addSpecButton, 6, 0)
         if self.isMain:
-            simButton = QtWidgets.QPushButton("Sim")
-            simButton.clicked.connect(self.rootwindow.sim)
-            self.frame1.addWidget(simButton, 0, 0)
-            fitButton = QtWidgets.QPushButton("Fit")
-            fitButton.clicked.connect(self.rootwindow.fit)
-            self.frame1.addWidget(fitButton, 1, 0)
-            self.stopButton = QtWidgets.QPushButton("Stop")
-            self.stopButton.clicked.connect(self.stopMP)
-            self.frame1.addWidget(self.stopButton, 1, 0)
-            self.stopButton.hide()
-            self.process1 = None
-            self.queue = None
-            fitAllButton = QtWidgets.QPushButton("Fit all")
-            fitAllButton.clicked.connect(self.fitAll)
-            self.frame1.addWidget(fitAllButton, 2, 0)
-            self.stopAllButton = QtWidgets.QPushButton("Stop all")
-            self.stopAllButton.clicked.connect(self.stopAll)
-            self.frame1.addWidget(self.stopAllButton, 2, 0)
-            self.stopAllButton.hide()
-            copyParamsButton = QtWidgets.QPushButton("Copy parameters")
-            copyParamsButton.clicked.connect(self.copyParams)
-            self.frame1.addWidget(copyParamsButton, 3, 0)
-            copyResultButton = QtWidgets.QPushButton("Copy result")
-            copyResultButton.clicked.connect(lambda: self.sim('copy'))
-            self.frame1.addWidget(copyResultButton, 4, 0)
-            saveResultButton = QtWidgets.QPushButton("Save to text")
-            saveResultButton.clicked.connect(lambda: self.sim('save'))
-            self.frame1.addWidget(saveResultButton, 5, 0)
-            addSpecButton = QtWidgets.QPushButton("Add spectrum")
-            addSpecButton.clicked.connect(self.rootwindow.addSpectrum)
-            self.frame1.addWidget(addSpecButton, 6, 0)
             cancelButton = QtWidgets.QPushButton("&Cancel")
             cancelButton.clicked.connect(self.closeWindow)
-            self.frame1.addWidget(cancelButton, 7, 0)
+        else:
+            cancelButton = QtWidgets.QPushButton("&Delete")
+            cancelButton.clicked.connect(self.rootwindow.removeSpectrum)
+        self.frame1.addWidget(cancelButton, 7, 0)            
         resetButton = QtWidgets.QPushButton("Reset")
         resetButton.clicked.connect(self.reset)
         self.frame1.addWidget(resetButton, 0, 1)
