@@ -182,7 +182,7 @@ class MainProgram(QtWidgets.QMainWindow):
                                      'Fitting --> Integrals','Fitting --> Relaxation Curve','Fitting --> Lorentzian/Gaussian','Seperator',
                                      'Plot --> 1D Plot','Plot --> Stack Plot','Plot --> Array Plot','Plot --> Contour Plot',
                                      'Plot --> Multi Plot','Seperator','History --> History','History --> Clear Undo/Redo List',
-                                     'Seperator','Help --> NMR Table'] 
+                                     'Seperator','Utilities --> NMR Table'] 
 
     def loadDefaults(self):
         self.resetDefaults()
@@ -280,35 +280,6 @@ class MainProgram(QtWidgets.QMainWindow):
             self.seperatorAction = []
 
             
-#            self.toobarActionList = [self.openAct,self.saveAct,self.saveMatAct,self.savefigAct,
-#                                     self.saveSimpsonAct,self.saveASCIIAct,self.saveASCIIAct,self.preferencesAct,
-#                                     self.quitAct,self.newAct,self.closeAct,self.renameWorkspaceAct,self.forwardAct,
-#                                     self.backAct,self.combineWorkspaceAct,self.macrostartAct,self.macrostopAct,
-#                                     self.macroLoadAct,self.undoAction,self.redoAction,self.reloadAct,self.monitorAct,
-#                                     self.realAct,self.imagAct,self.absAct,self.apodizeAct,self.phaseAct,
-#                                     self.swapEchoAct,self.corOffsetAct,self.baselineAct,self.subAvgAct,self.refDeconvAct,
-#                                     self.statesAct,self.statesTPPIAct,self.echoantiAct,self.brukDigitalAct,
-#                                     self.lpsvdAct,self.sizingAct,self.shiftAct,self.intRegionAct,
-#                                     self.sumRegionAct,self.maxRegionAct,self.minRegionAct,self.maxposRegionAct,
-#                                     self.minposRegionAct,self.averageRegionAct,self.diffAct,self.cumsumAct,
-#                                     self.extractpartAct,self.fliplrAct, self.matrixdelAct,self.splitAct,
-#                                     self.multiplyAct,self.reorderAct,self.concatAct,self.shearAct,
-#                                     self.fourierAct,self.realFourierAct,self.fftshiftAct,self.invfftshiftAct,
-#                                     self.hilbertAct,self.ffmAct,self.cleanAct,istAct,self.snrAct,self.fwhmAct,
-#                                     self.massAct,self.intfitAct,self.relaxAct,self.diffusionAct,self.lorentzfitAct,
-#                                     self.csastaticAct,self.csamasAct,self.firstquadstatAct,self.firstquadmasAct,
-#                                     self.secondquadstatAct,self.secondquadmasAct,self.czjzekstatAct,self.czjzekmasAct,
-#                                     self.insertdatAct,self.adddatAct,self.subdatAct,self.onedplotAct,self.scatterplotAct,
-#                                     self.stackplotAct,self.arrayplotAct,self.contourplotAct,self.multiplotAct,
-#                                     self.setrefAct, self.delrefAct,self.loadrefAct,self.userxAct,self.plotprefAct,self.historyAct,
-#                                     self.clearundoAct,self.updateAct,self.shiftconvAct,self.quadconvAct,self.nmrtableAct,
-#                                     self.aboutAct]
-            
-            
-#            self.toobarActionList = [
-#                                     ]
-
-        
             self.allActionsList = [['Seperator',None],['File --> Open',self.openAct],['File --> Save --> JSON',self.saveAct],['File -- > Save --> Matlab',self.saveMatAct],
                                    ['File --> Export --> Figure',self.savefigAct],['File --> Export --> Simpson',self.saveSimpsonAct],['File --> Export --> ASCII (1D/2D)',self.saveASCIIAct],
                                     ['File --> Preferences',self.preferencesAct],['File --> Quit',self.quitAct],
@@ -342,8 +313,8 @@ class MainProgram(QtWidgets.QMainWindow):
                                     ['Plot --> Set Reference',self.setrefAct],['Plot --> Clear Current Reference',self.delrefAct],['Plot --> Load Reference',self.loadrefAct],['Plot --> User X-axis',self.userxAct],
                                     ['Plot --> Plot Settings',self.plotprefAct],
                                     ['History --> History',self.historyAct],['History --> Clear Undo/Redo List',self.clearundoAct],
-                                    ['Help --> Update',self.updateAct],['Help --> Chemical Shift Conversion Tool',self.shiftconvAct],['Help --> Quadrupole Coupling Conversion Tool',self.quadconvAct],['Help --> NMR Table',self.nmrtableAct],
-                                    ['Help --> About',self.aboutAct]]
+                                    ['Utilities --> Chemical Shift Conversion Tool',self.shiftconvAct],['Utilities --> Quadrupole Coupling Conversion Tool',self.quadconvAct],['Utilities --> NMR Table',self.nmrtableAct],
+                                    ['Help --> Update',self.updateAct],['Help --> About',self.aboutAct]]
                               
                                      
             for element in self.defaultToolbarActionList:
@@ -687,18 +658,26 @@ class MainProgram(QtWidgets.QMainWindow):
         
         self.historyActList = [self.historyAct,self.clearundoAct]
         
+        
+        
+        
+        #Utilities dropdown menu
+        self.utilitiesMenu = QtWidgets.QMenu("&Utilities", self)
+        self.menubar.addMenu(self.utilitiesMenu)
+        self.shiftconvAct = self.utilitiesMenu.addAction(QtGui.QIcon(IconDirectory + 'shifttool.png'),"&Chemical Shift Conversion Tool", self.createShiftConversionWindow)
+        self.shiftconvAct.setToolTip('Chemical Shift Conversion Tool')
+        self.quadconvAct = self.utilitiesMenu.addAction(QtGui.QIcon(IconDirectory + 'quadconversion.png'),"&Quadrupole Coupling Conversion Tool", self.createQuadConversionWindow)
+        self.quadconvAct.setToolTip('Quadrupole Coupling Conversion Tool')
+        self.nmrtableAct = self.utilitiesMenu.addAction(QtGui.QIcon(IconDirectory + 'table.png'),"&NMR Table", self.nmrTable)
+        self.nmrtableAct.setToolTip('NMR Periodic Table')
+        self.utilitiesActList = [self.shiftconvAct,self.quadconvAct,self.nmrtableAct]
+        
+        
         # the help drop down menu
         self.helpMenu = QtWidgets.QMenu("&Help", self)
         self.menubar.addMenu(self.helpMenu)
         self.updateAct = self.helpMenu.addAction(QtGui.QIcon(IconDirectory + 'update.png'),"&Update", self.updateMenu)
         self.updateAct.setToolTip('Update ssNake')
-        self.shiftconvAct = self.helpMenu.addAction(QtGui.QIcon(IconDirectory + 'shifttool.png'),"&Chemical Shift Conversion Tool", self.createShiftConversionWindow)
-        self.shiftconvAct.setToolTip('Chemical Shift Conversion Tool')
-        self.quadconvAct = self.helpMenu.addAction(QtGui.QIcon(IconDirectory + 'quadconversion.png'),"&Quadrupole Coupling Conversion Tool", self.createQuadConversionWindow)
-        self.quadconvAct.setToolTip('Quadrupole Coupling Conversion Tool')
-        self.nmrtableAct = self.helpMenu.addAction(QtGui.QIcon(IconDirectory + 'table.png'),"&NMR Table", self.nmrTable)
-        self.nmrtableAct.setToolTip('NMR Periodic Table') 
-        
         self.aboutAct = self.helpMenu.addAction(QtGui.QIcon(IconDirectory + 'about.png'),"&About", lambda: aboutWindow(self))
         self.aboutAct.setToolTip('About Menu') 
 
