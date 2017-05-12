@@ -3591,19 +3591,28 @@ class ApodWindow(QtWidgets.QWidget):
 
         if self.father.current.data.data.ndim > 1:
             grid.addWidget(wc.QLabel("Shifting:"), 12, 0, 1, 3)
+            
+            self.shiftingDropdown = QtWidgets.QComboBox()
+            self.shiftingDropdown.addItems(['User Defined','Spin 3/2, -3Q','Spin 5/2, 3Q','Spin 5/2, -5Q','Spin 7/2, 3Q',
+                                         'Spin 7/2, 5Q','Spin 7/2, -7Q','Spin 9/2, 3Q','Spin 9/2, 5Q','Spin 9/2, 7Q','Spin 9/2, -9Q'])
+            self.shiftingDropdown.activated.connect(self.dropdownChanged)
+            self.shiftingList = [0,9.0/7.0,19.0/12.0,25.0/12.0,101.0/45.0,11.0/9.0,161.0/45.0,91.0/36.0,95.0/36.0,7.0/18.0,31.0/6.0]
+        
+            grid.addWidget(self.shiftingDropdown, 13, 1)
+            
             self.shiftingEntry = QtWidgets.QLineEdit()
             self.shiftingEntry.setAlignment(QtCore.Qt.AlignHCenter)
             self.shiftingEntry.setText("0.00")
             self.shiftingEntry.returnPressed.connect(self.apodPreview)
-            grid.addWidget(self.shiftingEntry, 13, 1)
+            grid.addWidget(self.shiftingEntry, 14, 1)
             self.shiftingAxes = QtWidgets.QComboBox()
             self.shiftingValues = list(map(str, np.delete(range(1, self.father.current.data.data.ndim + 1), self.father.current.axes)))
             self.shiftingAxes.addItems(self.shiftingValues)
             self.shiftingAxes.currentIndexChanged.connect(self.apodPreview)
-            grid.addWidget(self.shiftingAxes, 14, 1)
+            grid.addWidget(self.shiftingAxes, 15, 1)
 
         self.singleSlice = QtWidgets.QCheckBox("Single slice")
-        grid.addWidget(self.singleSlice, 15, 0, 1, 3)
+        grid.addWidget(self.singleSlice, 16, 0, 1, 3)
         cancelButton = QtWidgets.QPushButton("&Cancel")
         cancelButton.clicked.connect(self.closeEvent)
         layout.addWidget(cancelButton, 1, 0)
@@ -3615,6 +3624,11 @@ class ApodWindow(QtWidgets.QWidget):
         self.father.menuDisable()
         self.setGeometry(self.frameSize().width() - self.geometry().width(), self.frameSize().height() - self.geometry().height(), 0, 0)
 
+    def dropdownChanged(self):
+        index =  self.shiftingDropdown.currentIndex()
+        self.shiftingEntry.setText("%.9f" % self.shiftingList[index])
+        self.apodPreview()
+        
     def checkEval(self, num):
         if self.ticks[num].isChecked():
             self.entries[num].setEnabled(True)

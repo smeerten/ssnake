@@ -30,6 +30,7 @@ from matplotlib.pyplot import get_cmap
 import matplotlib
 import matplotlib._cntr as cntr
 import matplotlib.collections as mcoll
+import reimplement as reim
 
 COLORMAPLIST = ['seismic', 'BrBG', 'bwr', 'coolwarm', 'PiYG', 'PRGn', 'PuOr',
                 'RdBu', 'RdGy', 'RdYlBu', 'RdYlGn', 'Spectral', 'rainbow', 'jet']
@@ -1281,7 +1282,7 @@ class Spectrum:
         axes2 = self.checkAxes(axes2)
         if axes2 is None:
             return None
-        stackSlice = slice(stackBegin, stackEnd, stackStep)
+        stackSlice = reim.floatSlice(stackBegin, stackEnd, stackStep)
         if axes == axes2:
             self.dispMsg("First and second axes are the same")
             return None
@@ -3026,7 +3027,7 @@ class CurrentStacked(Current1D):
             if shiftingAxes == self.axes:
                 self.dispMsg('shiftingAxes cannot be equal to axes')
             elif shiftingAxes == self.axes2:
-                ar = np.arange(self.data.data.shape[self.axes2])[slice(self.stackBegin, self.stackEnd, self.stackStep)]
+                ar = np.arange(self.data.data.shape[self.axes2])[reim.floatSlice(self.stackBegin, self.stackEnd, self.stackStep)]
                 x = np.ones((len(ar), len(self.data1D[0])))
                 for i in range(len(ar)):
                     shift1 = shift + shifting * ar[i] / self.data.sw[shiftingAxes]
