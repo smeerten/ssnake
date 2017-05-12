@@ -284,7 +284,7 @@ class MainProgram(QtWidgets.QMainWindow):
                                    ['File --> Export --> Figure',self.savefigAct],['File --> Export --> Simpson',self.saveSimpsonAct],['File --> Export --> ASCII (1D/2D)',self.saveASCIIAct],
                                     ['File --> Preferences',self.preferencesAct],['File --> Quit',self.quitAct],
                                     ['Workspaces --> Duplicate',self.newAct],['Workspaces --> Delete',self.closeAct],['Workspaces --> Rename',self.renameWorkspaceAct],
-                                    ['Workspaces --> Next',self.forwardAct],['Workspaces --> Previous',self.backAct],['Workspaces --> Combine',self.combineWorkspaceAct],
+                                    ['Workspaces --> Next',self.forwardAct],['Workspaces --> Previous',self.backAct],
                                     ['Macro --> Start Recording',self.macrostartAct],['Macro --> Stop Recording',self.macrostopAct],['Macro --> Load',self.macroLoadAct],
                                     ['Edit --> Undo',self.undoAction],['Edit --> Redo',self.redoAction],['Edit --> Reload',self.reloadAct],['Edit --> Monitor',self.monitorAct],
                                     ['Tools --> Real',self.realAct],['Tools --> Imag',self.imagAct],['Tools --> Abs',self.absAct],['Tools --> Complex Conjugate',self.conjAct],['Tools --> Apodize',self.apodizeAct],
@@ -306,7 +306,7 @@ class MainProgram(QtWidgets.QMainWindow):
                                     ['Fitting --> Lorentzian/Gaussian',self.lorentzfitAct],['Fitting --> CSA Static',self.csastaticAct],['Fitting --> CSA MAS',self.csamasAct],
                                     ['Fitting --> First Order Quadrupole Static',self.firstquadstatAct],['Fitting --> First Order Quadrupole MAS',self.firstquadmasAct],['Fitting --> Second Order Quadrupole Static',self.secondquadstatAct],
                                     ['Fitting --> Second Order Quadrupole MAS',self.secondquadmasAct],['Fitting --> Czjzek Static',self.czjzekstatAct],['Fitting --> Czjzek MAS',self.czjzekmasAct],
-                                    ['Combine --> Insert From Workspace',self.insertdatAct],['Combine --> Add',self.adddatAct],['Combine --> Subtract',self.subdatAct],['Combine --> Multiply',self.multdatAct],
+                                    ['Combine --> Combine Workspaces',self.combineWorkspaceAct],['Combine --> Insert From Workspace',self.insertdatAct],['Combine --> Add',self.adddatAct],['Combine --> Subtract',self.subdatAct],['Combine --> Multiply',self.multdatAct],
                                     ['Combine --> Divide',self.divdatAct],
                                     ['Plot --> 1D Plot',self.onedplotAct],['Plot --> Scatter',self.scatterplotAct],['Plot --> Stack Plot',self.stackplotAct],
                                     ['Plot --> Array Plot',self.arrayplotAct],['Plot --> Contour Plot',self.contourplotAct],['Plot --> Multi Plot',self.multiplotAct],
@@ -375,11 +375,9 @@ class MainProgram(QtWidgets.QMainWindow):
         self.forwardAct.setToolTip('Next Workspace')
         self.backAct = self.workspacemenu.addAction(QtGui.QIcon(IconDirectory + 'previous.png'), '&Previous', lambda: self.stepWorkspace(-1), QtGui.QKeySequence.Back)
         self.backAct.setToolTip('Previous Workspace')
-        self.combineWorkspaceAct = self.workspacemenu.addAction(QtGui.QIcon(IconDirectory + 'combine.png'), '&Combine', self.createCombineWorkspaceWindow)
-        self.combineWorkspaceAct.setToolTip('Combine Workspaces')
 
         self.workspaceActList = [self.newAct,self.closeAct,self.renameWorkspaceAct,self.forwardAct,
-                                 self.backAct,self.combineWorkspaceAct]
+                                 self.backAct]
         # Macro menu
         self.macromenu = QtWidgets.QMenu('&Macros', self)
         self.menubar.addMenu(self.macromenu)
@@ -587,6 +585,8 @@ class MainProgram(QtWidgets.QMainWindow):
         # the combine drop down menu
         self.combineMenu = QtWidgets.QMenu("Com&bine", self)
         self.menubar.addMenu(self.combineMenu)
+        self.combineWorkspaceAct = self.combineMenu.addAction(QtGui.QIcon(IconDirectory + 'combine.png'), '&Combine Workspaces', self.createCombineWorkspaceWindow)
+        self.combineWorkspaceAct.setToolTip('Combine Workspaces')
         self.insertdatAct = self.combineMenu.addAction(QtGui.QIcon(IconDirectory + 'insert.png'),"&Insert From Workspace", lambda: self.mainWindowCheck(lambda mainWindow: InsertWindow(mainWindow)))
         self.insertdatAct.setToolTip('Insert From Workspace')
         self.adddatAct = self.combineMenu.addAction(QtGui.QIcon(IconDirectory + 'add.png'), "&Add", lambda: self.mainWindowCheck(lambda mainWindow: CombineWindow(mainWindow, 0)))
@@ -598,7 +598,7 @@ class MainProgram(QtWidgets.QMainWindow):
         self.divdatAct = self.combineMenu.addAction(QtGui.QIcon(IconDirectory + 'divideWorkspace.png'),"&Divide", lambda: self.mainWindowCheck(lambda mainWindow: CombineWindow(mainWindow, 3)))
         self.divdatAct.setToolTip('Divide Data From Workspace')
         
-        self.combineActList = [self.insertdatAct,self.adddatAct,self.subdatAct,self.multdatAct,self.divdatAct]
+        self.combineActList = [self.combineWorkspaceAct,self.insertdatAct,self.adddatAct,self.subdatAct,self.multdatAct,self.divdatAct]
         
         # the plot drop down menu
         self.plotMenu = QtWidgets.QMenu("&Plot", self)
@@ -1612,7 +1612,7 @@ class MainProgram(QtWidgets.QMainWindow):
         self.tabs.setCurrentIndex(num)
         self.menuCheck()
         self.allowChange = True
-        self.mainWindow.current.showFid()
+#        self.mainWindow.current.showFid()
 
     def createFitWindow(self, fitWindow):
         if self.mainWindow is None:
