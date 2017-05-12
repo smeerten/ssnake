@@ -1633,6 +1633,7 @@ class MainProgram(QtWidgets.QMainWindow):
         self.tabs.setCurrentIndex(num)
         self.menuCheck()
         self.allowChange = True
+        self.mainWindow.current.showFid()
 
     def createFitWindow(self, fitWindow):
         if self.mainWindow is None:
