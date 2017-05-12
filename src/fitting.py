@@ -118,6 +118,46 @@ def shiftConversion(Values,Type):
     return Results
     
 
+class FitCopySettingsWindow(QtWidgets.QWidget):
+
+    def __init__(self, parent, returnFunction):
+        QtWidgets.QWidget.__init__(self, parent)
+        self.setWindowFlags(QtCore.Qt.Window | QtCore.Qt.Tool)
+        self.father = parent
+        self.returnFunction = returnFunction
+        self.setWindowTitle("Settings")
+        layout = QtWidgets.QGridLayout(self)
+        grid = QtWidgets.QGridLayout()
+        layout.addLayout(grid, 0, 0, 1, 2)
+        self.allTraces = QtWidgets.QCheckBox("Export all traces")
+        grid.addWidget(self.allTraces, 0, 0)
+        self.original = QtWidgets.QCheckBox("Include original")
+        self.original.setChecked(True)
+        grid.addWidget(self.original, 1, 0)
+        self.subFits = QtWidgets.QCheckBox("Include subfits")
+        self.subFits.setChecked(True)
+        grid.addWidget(self.subFits, 2, 0)
+        self.difference = QtWidgets.QCheckBox("Include difference")
+        grid.addWidget(self.difference, 3, 0)
+        cancelButton = QtWidgets.QPushButton("&Cancel")
+        cancelButton.clicked.connect(self.closeEvent)
+        layout.addWidget(cancelButton, 2, 0)
+        okButton = QtWidgets.QPushButton("&Ok", self)
+        okButton.clicked.connect(self.applyAndClose)
+        okButton.setFocus()
+        layout.addWidget(okButton, 2, 1)
+        grid.setRowStretch(100, 1)
+        self.show()
+        self.setGeometry(self.frameSize().width() - self.geometry().width(), self.frameSize().height() - self.geometry().height(), 0, 0)
+
+    def closeEvent(self, *args):
+        self.deleteLater()
+
+    def applyAndClose(self, *args):
+        self.deleteLater()
+        self.returnFunction([self.allTraces.isChecked(), self.original.isChecked(), self.subFits.isChecked(), self.difference.isChecked()])
+
+
 class FittingWindow(QtWidgets.QWidget):
     # Inherited by the fitting windows
 
@@ -2682,12 +2722,12 @@ class PeakDeconvParamFrame(QtWidgets.QWidget):
         copyParamsButton = QtWidgets.QPushButton("Copy parameters")
         copyParamsButton.clicked.connect(self.copyParams)
         self.frame1.addWidget(copyParamsButton, 3, 0)
-        copyResultButton = QtWidgets.QPushButton("Copy result")
-        copyResultButton.clicked.connect(lambda: self.sim('copy'))
+        copyResultButton = QtWidgets.QPushButton("Result to workspace")
+        copyResultButton.clicked.connect(self.resultToWorkspaceWindow)
         self.frame1.addWidget(copyResultButton, 4, 0)
-        saveResultButton = QtWidgets.QPushButton("Save to text")
-        saveResultButton.clicked.connect(lambda: self.sim('save'))
-        self.frame1.addWidget(saveResultButton, 5, 0)
+        # saveResultButton = QtWidgets.QPushButton("Save to text")
+        # saveResultButton.clicked.connect(lambda: self.sim('save'))
+        # self.frame1.addWidget(saveResultButton, 5, 0)
         addSpecButton = QtWidgets.QPushButton("Add spectrum")
         addSpecButton.clicked.connect(self.rootwindow.addSpectrum)
         self.frame1.addWidget(addSpecButton, 6, 0)
@@ -2984,23 +3024,41 @@ class PeakDeconvParamFrame(QtWidgets.QWidget):
             y = outAmp[i] * np.real(np.fft.fftshift(np.fft.fft(timeSignal)))
             outCurvePart.append(outCurveBase + y)
             outCurve += y
-        if store == 'copy':
-            outCurvePart.append(outCurve)
-            outCurvePart.append(self.parent.data1D)
-            self.rootwindow.createNewData(np.array(outCurvePart), self.parent.current.axes, True)
-        elif store == 'save':
-            variablearray  = [['Number of sites',[len(outAmp)]]
-            ,['Background',[outBgrnd]],['Slope',[outSlope]],['Amplitude',outAmp]
-            ,['Position [' + self.axUnit + ']',outPos],['Lorentzian width [Hz]',outWidth],['Gaussian width [Hz]',outGauss]]
-            title = 'ssNake peak deconvolution fit results'
+        # if store == 'copy':
+        #     outCurvePart.append(outCurve)
+        #     outCurvePart.append(self.parent.data1D)
+        #     self.rootwindow.createNewData(np.array(outCurvePart), self.parent.current.axes, True)
+        # elif store == 'save':
+        #     variablearray  = [['Number of sites',[len(outAmp)]]
+        #     ,['Background',[outBgrnd]],['Slope',[outSlope]],['Amplitude',outAmp]
+        #     ,['Position [' + self.axUnit + ']',outPos],['Lorentzian width [Hz]',outWidth],['Gaussian width [Hz]',outGauss]]
+        #     title = 'ssNake peak deconvolution fit results'
             
-            outCurvePart.append(outCurve)
+        #     outCurvePart.append(outCurve)
+        #     outCurvePart.append(self.parent.data1D)
+        #     dataArray = np.transpose(np.append(np.array([self.parent.xax]),np.array(outCurvePart),0))
+        #     saveResult(title,variablearray,dataArray)
+        self.parent.fitDataList[tuple(self.parent.locList)] = [tmpx, outCurve, x, outCurvePart]
+        self.parent.showPlot()
+
+    def resultToWorkspaceWindow(self):
+        FitCopySettingsWindow(self, lambda settings, self=self: self.resultToWorkspace(settings))
+        
+    def resultToWorkspace(self, settings):
+        if settings is None:
+            return
+        fitData = self.parent.fitDataList[tuple(self.parent.locList)]
+        outCurvePart = []
+        if settings[1]:
             outCurvePart.append(self.parent.data1D)
-            dataArray = np.transpose(np.append(np.array([self.parent.xax]),np.array(outCurvePart),0))
-            saveResult(title,variablearray,dataArray)
-        else:
-            self.parent.fitDataList[tuple(self.parent.locList)] = [tmpx, outCurve, x, outCurvePart]
-            self.parent.showPlot()
+        if settings[2]:
+            for i in fitData[3]:
+                outCurvePart.append(i)
+        if settings[3]:
+            outCurvePart.append(self.parent.data1D-fitData[1])
+        outCurvePart.append(fitData[1])
+        self.rootwindow.createNewData(np.array(outCurvePart), self.parent.current.axes, True)
+        
 
 ##############################################################################
 
