@@ -1715,7 +1715,10 @@ class Current1D(Plot1DFrame):
         maxP = max(minPeak, maxPeak)
         if len(self.data1D.shape) > 1:
             tmpData = self.data1D[0]
-            tmpAxis = self.xax[0]
+            if len(self.xax.shape) > 1:
+                tmpAxis = self.xax[0]
+            else:
+                tmpAxis = self.xax
         else:
             tmpData = self.data1D
             tmpAxis = self.xax
