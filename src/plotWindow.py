@@ -136,25 +136,33 @@ class MainPlotWindow(QtWidgets.QWidget):
         self.widthBackup, self.heightBackup = self.fig.get_size_inches()
         self.widthBackup = self.widthBackup * 2.54
         self.heightBackup = self.heightBackup * 2.54
+        
         self.dimensionsFrame.addWidget(QLeftLabel("Width [cm]:"), 0, 0)
-        self.widthEntry = QtWidgets.QLineEdit()
-        self.widthEntry.setAlignment(QtCore.Qt.AlignHCenter)
-        self.widthEntry.setText(str(self.widthBackup))
-        self.widthEntry.returnPressed.connect(self.updatePlot)
+        self.widthEntry = QtWidgets.QDoubleSpinBox()
+        self.widthEntry.setSingleStep(0.1)
+        self.widthEntry.setMinimum(0)
+        self.widthEntry.setMaximum(1e6)
+        self.widthEntry.setValue(self.widthBackup)
+        self.widthEntry.valueChanged.connect(self.updatePlot)
         self.dimensionsFrame.addWidget(self.widthEntry, 0, 1)
+          
         
         self.dimensionsFrame.addWidget(QLeftLabel("Height [cm]:"), 1, 0)
-        self.heightEntry = QtWidgets.QLineEdit()
-        self.heightEntry.setAlignment(QtCore.Qt.AlignHCenter)
-        self.heightEntry.setText(str(self.heightBackup))
-        self.heightEntry.returnPressed.connect(self.updatePlot)
+        self.heightEntry = QtWidgets.QDoubleSpinBox()
+        self.heightEntry.setSingleStep(0.1)
+        self.heightEntry.setMinimum(0)
+        self.heightEntry.setMaximum(1e6)
+        self.heightEntry.setValue(self.heightBackup)
+        self.heightEntry.valueChanged.connect(self.updatePlot)
         self.dimensionsFrame.addWidget(self.heightEntry, 1, 1)
         
         self.dimensionsFrame.addWidget(QLeftLabel("dpi:"), 2, 0)
-        self.dpiEntry = QtWidgets.QLineEdit()
-        self.dpiEntry.setAlignment(QtCore.Qt.AlignHCenter)
-        self.dpiEntry.setText(str(self.fig.dpi))
-        self.dpiEntry.returnPressed.connect(self.updatePlot)
+        self.dpiEntry = QtWidgets.QSpinBox()
+        self.dpiEntry.setSingleStep(1)
+        self.dpiEntry.setMinimum(0)
+        self.dpiEntry.setMaximum(1e6)
+        self.dpiEntry.setValue(self.fig.dpi)
+        self.dpiEntry.valueChanged.connect(self.updatePlot)
         self.dimensionsFrame.addWidget(self.dpiEntry, 2, 1)
         
         self.dimensionsGroup.setLayout(self.dimensionsFrame)
@@ -300,7 +308,7 @@ class MainPlotWindow(QtWidgets.QWidget):
         self.ax.xaxis.get_offset_text().set_fontsize(self.xtickFontSizeEntry.value())
         self.ax.tick_params(axis='y', labelsize=self.ytickFontSizeEntry.value())
         self.ax.yaxis.get_offset_text().set_fontsize(self.ytickFontSizeEntry.value())
-        self.fig.set_size_inches((int(safeEval(self.widthEntry.text())) / 2.54, int(safeEval(self.heightEntry.text())) / 2.54))
+        self.fig.set_size_inches(self.widthEntry.value() / 2.54, self.heightEntry.value() / 2.54)
         self.canvas.draw()
         self.canvas.adjustSize()
 
@@ -347,14 +355,14 @@ class MainPlotWindow(QtWidgets.QWidget):
 
     def save(self):
         self.updatePlot()
-        self.fig.set_size_inches((int(safeEval(self.widthEntry.text())) / 2.54, int(safeEval(self.heightEntry.text())) / 2.54))
+        self.fig.set_size_inches(self.widthEntry.value() / 2.54, self.heightEntry.value() / 2.54)
         WorkspaceName = self.father.workspaceNames[self.father.workspaceNum]  # Set name of file to be saved to workspace name to start
         f = QtWidgets.QFileDialog.getSaveFileName(self, 'Save File', self.father.LastLocation + os.path.sep + WorkspaceName + '.' + self.fileOptions[self.filetypeEntry.currentIndex()],filter = '(*.' + self.fileOptions[self.filetypeEntry.currentIndex()] + ')')
         if type(f) is tuple:
             f = f[0]        
         if f:
             self.father.LastLocation = os.path.dirname(f)
-            dpi = safeEval(self.dpiEntry.text())
+            dpi = self.dpiEntry.value()
             if dpi is None:
                 dpi = self.fig.dpi
             self.fig.savefig(f, format=self.fileOptions[self.filetypeEntry.currentIndex()], dpi=dpi)
