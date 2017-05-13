@@ -177,7 +177,7 @@ class MainProgram(QtWidgets.QMainWindow):
         self.defaultNegColor = '#0000FF'
         self.defaultToolbarActionList = ['File --> Open','File -- > Save --> Matlab','File --> Export --> Figure','Seperator',
                                      'Workspaces --> Duplicate','Workspaces --> Delete','Seperator','Edit --> Undo','Edit --> Redo',
-                                     'Edit --> Reload','Seperator','Tools --> Apodize','Tools --> Phase','Seperator',
+                                     'Edit --> Reload','Seperator','Tools --> Apodize','Tools --> Phase','Tools --> Autophase 0','Seperator',
                                      'Matrix --> Sizing','Matrix --> Shift Data','Matrix --> Multiply','Seperator','Fitting --> S/N','Fitting --> FWHM',
                                      'Fitting --> Integrals','Fitting --> Relaxation Curve','Fitting --> Lorentzian/Gaussian','Seperator',
                                      'Plot --> 1D Plot','Plot --> Stack Plot','Plot --> Array Plot','Plot --> Contour Plot',
