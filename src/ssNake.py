@@ -21,6 +21,7 @@
 import sip
 import sys
 import os
+import traceback as tb
 sip.setapi('QString', 2)
 try:
     from PyQt4 import QtGui, QtCore
@@ -104,6 +105,7 @@ class MainProgram(QtWidgets.QMainWindow):
         QtWidgets.QMainWindow.__init__(self)
         self.root = root
         self.VERSION = VERSION
+        self.errors = []
         self.setAttribute(QtCore.Qt.WA_DeleteOnClose)
         self.setAcceptDrops(True)
         self.mainWindow = None
@@ -146,6 +148,11 @@ class MainProgram(QtWidgets.QMainWindow):
         QtWidgets.QShortcut(QtGui.QKeySequence.Paste, self).activated.connect(self.handlePaste)
         QtWidgets.QShortcut(QtGui.QKeySequence.Copy, self).activated.connect(self.handleCopy)
 
+    def dispError(self,exctype, value, traceback):
+        self.errors.append([exctype, value, traceback])
+#        tb.print_exception(exctype, value, traceback)
+        
+        
     def handlePaste(self):
         self.dropEvent(QtWidgets.QApplication.instance().clipboard())
 
@@ -7388,10 +7395,30 @@ class quadConversionWindow(QtWidgets.QWidget):
         self.deleteLater()
 
 
+
+
+
+
+
 if __name__ == '__main__':
+
+
     mainProgram = MainProgram(root)
     mainProgram.setWindowTitle("ssNake - " + VERSION)
     mainProgram.show()
     splash.finish(mainProgram)
+    
+    sys._excepthook = sys.excepthook
+    def exception_hook(exctype, value, traceback):
+        sys._excepthook(exctype, value, traceback)
+        mainProgram.dispError(exctype, value, traceback)
+    #    sys.exit(1)
+    sys.excepthook = exception_hook
+    
+    
+
     sys.exit(root.exec_())
+
+         
+#         raise
     
