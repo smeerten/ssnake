@@ -183,28 +183,39 @@ class FittingWindow(QtWidgets.QWidget):
     def setup(self):
         pass
 
-    def createNewData(self, data, axes, store=False):
+    def createNewData(self, data, axes, store=False, fitAll=False):
         masterData = self.get_masterData()
-        if store:
+        if fitAll:
             self.mainProgram.dataFromFit(data,
                                          masterData.filePath,
-                                         [masterData.freq[axes], masterData.freq[axes]],
-                                         [masterData.sw[axes], masterData.sw[axes]],
-                                         [False, masterData.spec[axes]],
-                                         [False, masterData.wholeEcho[axes]],
-                                         [None, masterData.ref[axes]],
-                                         [np.arange(len(data)), masterData.xaxArray[axes]],
-                                         axes)
+                                         np.append(masterData.freq[axes], masterData.freq),
+                                         np.append(masterData.sw[axes], masterData.sw),
+                                         np.append(False, masterData.spec),
+                                         np.append(False, masterData.wholeEcho),
+                                         np.append(None, masterData.ref),
+                                         copy.deepcopy(masterData.xaxArray).insert(0, np.arange(len(data))),
+                                         axes+1)
         else:
-            self.mainProgram.dataFromFit(data,
-                                         copy.deepcopy(masterData.filePath),
-                                         copy.deepcopy(masterData.freq),
-                                         copy.deepcopy(masterData.sw),
-                                         copy.deepcopy(masterData.spec),
-                                         copy.deepcopy(masterData.wholeEcho),
-                                         copy.deepcopy(masterData.ref),
-                                         copy.deepcopy(masterData.xaxArray),
-                                         axes)
+            if store:
+                self.mainProgram.dataFromFit(data,
+                                             masterData.filePath,
+                                             [masterData.freq[axes], masterData.freq[axes]],
+                                             [masterData.sw[axes], masterData.sw[axes]],
+                                             [False, masterData.spec[axes]],
+                                             [False, masterData.wholeEcho[axes]],
+                                             [None, masterData.ref[axes]],
+                                             [np.arange(len(data)), masterData.xaxArray[axes]],
+                                             axes)
+            else:
+                self.mainProgram.dataFromFit(data,
+                                             copy.deepcopy(masterData.filePath),
+                                             copy.deepcopy(masterData.freq),
+                                             copy.deepcopy(masterData.sw),
+                                             copy.deepcopy(masterData.spec),
+                                             copy.deepcopy(masterData.wholeEcho),
+                                             copy.deepcopy(masterData.ref),
+                                             copy.deepcopy(masterData.xaxArray),
+                                             axes)
 
     def rename(self, name):
         self.fig.suptitle(name)
@@ -379,28 +390,39 @@ class FittingWindowTabs(QtWidgets.QWidget):
     def setup(self):
         pass
 
-    def createNewData(self, data, axes, store=False):
+    def createNewData(self, data, axes, store=False, fitAll=False):
         masterData = self.get_masterData()
-        if store:
+        if fitAll:
             self.mainProgram.dataFromFit(data,
                                          masterData.filePath,
-                                         [masterData.freq[axes], masterData.freq[axes]],
-                                         [masterData.sw[axes], masterData.sw[axes]],
-                                         [False, masterData.spec[axes]],
-                                         [False, masterData.wholeEcho[axes]],
-                                         [None, masterData.ref[axes]],
-                                         [np.arange(len(data)), masterData.xaxArray[axes]],
-                                         axes)
+                                         np.append(masterData.freq[axes], masterData.freq),
+                                         np.append(masterData.sw[axes], masterData.sw),
+                                         np.append(False, masterData.spec),
+                                         np.append(False, masterData.wholeEcho),
+                                         np.append(None, masterData.ref),
+                                         copy.deepcopy(masterData.xaxArray).insert(0, np.arange(len(data))),
+                                         axes+1)
         else:
-            self.mainProgram.dataFromFit(data,
-                                         copy.deepcopy(masterData.filePath),
-                                         copy.deepcopy(masterData.freq),
-                                         copy.deepcopy(masterData.sw),
-                                         copy.deepcopy(masterData.spec),
-                                         copy.deepcopy(masterData.wholeEcho),
-                                         copy.deepcopy(masterData.ref),
-                                         copy.deepcopy(masterData.xaxArray),
-                                         axes)
+            if store:
+                self.mainProgram.dataFromFit(data,
+                                             masterData.filePath,
+                                             [masterData.freq[axes], masterData.freq[axes]],
+                                             [masterData.sw[axes], masterData.sw[axes]],
+                                             [False, masterData.spec[axes]],
+                                             [False, masterData.wholeEcho[axes]],
+                                             [None, masterData.ref[axes]],
+                                             [np.arange(len(data)), masterData.xaxArray[axes]],
+                                             axes)
+            else:
+                self.mainProgram.dataFromFit(data,
+                                             copy.deepcopy(masterData.filePath),
+                                             copy.deepcopy(masterData.freq),
+                                             copy.deepcopy(masterData.sw),
+                                             copy.deepcopy(masterData.spec),
+                                             copy.deepcopy(masterData.wholeEcho),
+                                             copy.deepcopy(masterData.ref),
+                                             copy.deepcopy(masterData.xaxArray),
+                                             axes)
 
     def rename(self, name):
         self.fig.suptitle(name)
@@ -3024,40 +3046,58 @@ class PeakDeconvParamFrame(QtWidgets.QWidget):
             y = outAmp[i] * np.real(np.fft.fftshift(np.fft.fft(timeSignal)))
             outCurvePart.append(outCurveBase + y)
             outCurve += y
-        # if store == 'copy':
-        #     outCurvePart.append(outCurve)
-        #     outCurvePart.append(self.parent.data1D)
-        #     self.rootwindow.createNewData(np.array(outCurvePart), self.parent.current.axes, True)
-        # elif store == 'save':
-        #     variablearray  = [['Number of sites',[len(outAmp)]]
-        #     ,['Background',[outBgrnd]],['Slope',[outSlope]],['Amplitude',outAmp]
-        #     ,['Position [' + self.axUnit + ']',outPos],['Lorentzian width [Hz]',outWidth],['Gaussian width [Hz]',outGauss]]
-        #     title = 'ssNake peak deconvolution fit results'
-            
-        #     outCurvePart.append(outCurve)
-        #     outCurvePart.append(self.parent.data1D)
-        #     dataArray = np.transpose(np.append(np.array([self.parent.xax]),np.array(outCurvePart),0))
-        #     saveResult(title,variablearray,dataArray)
         self.parent.fitDataList[tuple(self.parent.locList)] = [tmpx, outCurve, x, outCurvePart]
         self.parent.showPlot()
 
     def resultToWorkspaceWindow(self):
         FitCopySettingsWindow(self, lambda settings, self=self: self.resultToWorkspace(settings))
-        
+
     def resultToWorkspace(self, settings):
         if settings is None:
             return
+        if settings[0]:
+            oldLocList = self.parent.locList
+            maxNum = np.max(self.fitNumList)+1
+            extraLength = 1
+            if settings[1]:
+                extraLength += 1
+            if settings[2]:
+                extraLength += maxNum
+            if settings[3]:
+                extraLength += 1
+            data = np.zeros((extraLength,) + self.parent.data.data.shape)
+            tmp = list(self.parent.data.data.shape)
+            tmp.pop(self.parent.axes)
+            tmp2 = ()
+            for i in tmp:
+                tmp2 += (np.arange(i),)
+            grid = np.array([i.flatten() for i in np.meshgrid(*tmp2)]).T
+            for i in grid:
+                self.parent.setSlice(self.parent.axes, i)
+                data[(slice(None),) + tuple(i)] = self.prepareResultToWorkspace(settings, maxNum)
+            self.parent.setSlice(self.parent.axes, oldLocList)
+            self.rootwindow.createNewData(data, self.parent.current.axes, True, True)
+        else:
+            data = self.prepareResultToWorkspace(settings)
+            self.rootwindow.createNewData(data, self.parent.current.axes, True)
+        
+    def prepareResultToWorkspace(self, settings, minLength=1):
         fitData = self.parent.fitDataList[tuple(self.parent.locList)]
+        if fitData is None:
+            fitData = [np.zeros(len(self.parent.data1D)), np.zeros(len(self.parent.data1D)), np.zeros(len(self.parent.data1D)), np.array([np.zeros(len(self.parent.data1D))]*minLength)]
         outCurvePart = []
         if settings[1]:
             outCurvePart.append(self.parent.data1D)
         if settings[2]:
             for i in fitData[3]:
                 outCurvePart.append(i)
+            if len(fitData[3]) < minLength:
+                for i in range(minLength-len(fitData[3])):
+                    outCurvePart.append(np.zeros(len(self.parent.data1D)))
         if settings[3]:
             outCurvePart.append(self.parent.data1D-fitData[1])
         outCurvePart.append(fitData[1])
-        self.rootwindow.createNewData(np.array(outCurvePart), self.parent.current.axes, True)
+        return np.array(outCurvePart)
         
 
 ##############################################################################
