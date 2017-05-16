@@ -98,10 +98,10 @@ def LoadVarianFile(filePath, name=''):
         fid32 = int(bin(status)[-3])
         fidfloat = int(bin(status)[-4])
         hypercomplex = bool(bin(status)[-5])
-        flipped = bool(bin(status)[-10])
+        
 
         if not fid32 and fidfloat:  # only for `newest' format, use fast routine
-        
+            flipped = bool(bin(status)[-10])
             totalpoints = (ntraces * npoints + nbheaders**2 * 7)*nblocks
             raw = np.fromfile(f, np.float32, totalpoints)
             a = raw.newbyteorder('>f')
