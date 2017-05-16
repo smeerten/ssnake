@@ -22,6 +22,7 @@ import sip
 import sys
 import os
 import traceback as tb
+import datetime
 sip.setapi('QString', 2)
 try:
     from PyQt4 import QtGui, QtCore
@@ -148,9 +149,10 @@ class MainProgram(QtWidgets.QMainWindow):
         QtWidgets.QShortcut(QtGui.QKeySequence.Paste, self).activated.connect(self.handlePaste)
         QtWidgets.QShortcut(QtGui.QKeySequence.Copy, self).activated.connect(self.handleCopy)
 
-    def dispError(self,exctype, value, traceback):
-        self.errors.append([exctype, value, traceback])
-#        tb.print_exception(exctype, value, traceback)
+    def dispError(self,error):
+        CurTime = datetime.datetime.now()
+        TimeStr = '{0:02d}'.format(CurTime.hour) + ':' + '{0:02d}'.format(CurTime.minute) + ':' + '{0:02d}'.format(CurTime.second)
+        self.errors.append([TimeStr,error])
         
         
     def handlePaste(self):
@@ -275,6 +277,7 @@ class MainProgram(QtWidgets.QMainWindow):
             self.statusBar.setStyleSheet("QStatusBar{padding-left:8px;color:red;}")
         else:
             self.statusBar.setStyleSheet("QStatusBar{padding-left:8px;color:black;}")
+        self.dispError([msg])
         self.statusBar.showMessage(msg, 10000)
     
     
@@ -660,10 +663,12 @@ class MainProgram(QtWidgets.QMainWindow):
         self.menubar.addMenu(self.historyMenu)
         self.historyAct = self.historyMenu.addAction(QtGui.QIcon(IconDirectory + 'history.png'), "&History", lambda: self.mainWindowCheck(lambda mainWindow: HistoryWindow(mainWindow)))
         self.historyAct.setToolTip('Show Processing History')
+        self.errorAct = self.historyMenu.addAction("&Error Messages", lambda: errorWindow(self))
+        self.errorAct.setToolTip('Show Error Messages')
         self.clearundoAct = self.historyMenu.addAction(QtGui.QIcon(IconDirectory + 'delete.png'),"&Clear Undo/Redo List", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.clearUndo()))
         self.clearundoAct.setToolTip('Clear Undo/Redo List')
         
-        self.historyActList = [self.historyAct,self.clearundoAct]
+        self.historyActList = [self.historyAct,self.errorAct,self.clearundoAct]
         
         
         
@@ -6674,7 +6679,61 @@ class PlotSettingsWindow(QtWidgets.QWidget):
 
 ##############################################################################
 
+class errorWindow(QtWidgets.QWidget):
 
+    def __init__(self, parent):
+        QtWidgets.QWidget.__init__(self, parent)
+        self.setWindowFlags(QtCore.Qt.Window | QtCore.Qt.Tool)
+        self.father = parent
+
+        self.setWindowTitle("Error Messages")
+
+        grid = QtWidgets.QGridLayout()
+        
+        
+        self.errorQList = QtWidgets.QListWidget(self)
+        self.errorQList.currentRowChanged.connect(self.rowChange)
+        
+        for error in self.father.errors:
+            if len(error[1]) == 3:
+                tmp = QtWidgets.QListWidgetItem(error[0] + ': Python error', self.errorQList)
+                tmp.setForeground(QtGui.QBrush(QtGui.QColor('red')))
+            elif len(error[1]) == 1:
+                QtWidgets.QListWidgetItem(error[0] + ': ' + error[1][0], self.errorQList)
+
+        self.errorEdit = QtWidgets.QTextEdit(self)
+        self.errorEdit.setReadOnly(True)
+        errorText = ''
+        self.errorEdit.setHtml(errorText)
+       
+        
+        grid.addWidget(self.errorQList, 0, 0, 1, 3)
+        grid.addWidget(self.errorEdit, 1, 0, 1, 3)
+        closebutton = QtWidgets.QPushButton("Close")
+        grid.addWidget(closebutton, 12, 1, 1, 1)
+        closebutton.clicked.connect(self.closeEvent)
+
+        self.setLayout(grid)
+        self.resize(550, 700)
+        self.show()
+        
+        
+    def rowChange(self,row):
+        
+        errorText = ''
+        error = self.father.errors[row]
+        if len(error[1]) == 3 :
+            errorText = errorText + error[0] + '<br>'
+            for line in tb.format_exception(error[1][0],error[1][1],error[1][2]):
+                errorText = errorText + line + '<br>'
+        self.errorEdit.setHtml(errorText)
+        
+    def closeEvent(self):
+        self.deleteLater()
+
+##############################################################################
+  
+    
 class PreferenceWindow(QtWidgets.QWidget):
 
     def __init__(self, parent):
@@ -7411,7 +7470,7 @@ if __name__ == '__main__':
     sys._excepthook = sys.excepthook
     def exception_hook(exctype, value, traceback):
         sys._excepthook(exctype, value, traceback)
-        mainProgram.dispError(exctype, value, traceback)
+        mainProgram.dispError([exctype, value, traceback])
     #    sys.exit(1)
     sys.excepthook = exception_hook
     
