@@ -2606,8 +2606,9 @@ class SideFrame(QtWidgets.QScrollArea):
                 self.projDropTop.addItems(["sum", "max", "min" , "off"])
                 self.projDropTop.setCurrentIndex(current.projTop)
                 self.projDropTop.activated.connect(lambda val, self=self: self.changeProj(val, 1))
-                self.contourProjFrame.addWidget(self.projDropTop, 0, 1)
+                self.contourProjFrame.addWidget(self.projDropTop, 0, 1,)
                 
+           
                 self.projRightLabel = QtWidgets.QLabel("Right:", self)
                 self.projRightLabel.setAlignment(QtCore.Qt.AlignLeft)
                 self.projRightLabel.setAlignment(QtCore.Qt.AlignVCenter)
@@ -2618,8 +2619,63 @@ class SideFrame(QtWidgets.QScrollArea):
                 self.projDropRight.activated.connect(lambda val, self=self: self.changeProj(val, 2))
                 self.contourProjFrame.addWidget(self.projDropRight, 1, 1)
                 
+                #Ranges
+                self.rangeCheckbox = QtWidgets.QCheckBox('Projection ranges',self)
+                self.rangeCheckbox.stateChanged.connect(self.changeRanges)
+                self.contourProjFrame.addWidget(self.rangeCheckbox,2,0,1,2)
+                
+                self.projTopRangeMaxLabel = wc.QLeftLabel("Top max:", self)
+                self.projTopRangeMaxLabel.hide()
+                self.contourProjFrame.addWidget(self.projTopRangeMaxLabel, 3, 0)
+                self.projTopRangeMax = QtWidgets.QSpinBox()
+                self.projTopRangeMax.setMaximum(100000)
+                self.projTopRangeMax.setMinimum(0)
+#                self.projTopRange.setValue(current.numLevels)
+                self.projTopRangeMax.valueChanged.connect(self.setContour)
+                self.projTopRangeMax.hide()
+                self.contourProjFrame.addWidget(self.projTopRangeMax, 3, 1)
+                
+                
+                self.projTopRangeMinLabel = wc.QLeftLabel("Top min:", self)
+                self.projTopRangeMinLabel.hide()
+                self.contourProjFrame.addWidget(self.projTopRangeMinLabel, 4, 0)
+                self.projTopRangeMin = QtWidgets.QSpinBox()
+                self.projTopRangeMin.setMaximum(100000)
+                self.projTopRangeMin.setMinimum(0)
+#                self.projTopRange.setValue(current.numLevels)
+                self.projTopRangeMin.valueChanged.connect(self.setContour)
+                self.projTopRangeMin.hide()
+                self.contourProjFrame.addWidget(self.projTopRangeMin, 4, 1)
+                
+                self.projRightRangeMaxLabel = wc.QLeftLabel("Right max:", self)
+                self.projRightRangeMaxLabel.hide()
+                self.contourProjFrame.addWidget(self.projRightRangeMaxLabel, 5, 0)
+                self.projRightRangeMax = QtWidgets.QSpinBox()
+                self.projRightRangeMax.setMaximum(100000)
+                self.projRightRangeMax.setMinimum(0)
+#                self.projTopRange.setValue(current.numLevels)
+                self.projRightRangeMax.valueChanged.connect(self.setContour)
+                self.projRightRangeMax.hide()
+                self.contourProjFrame.addWidget(self.projRightRangeMax, 5, 1)
+                
+                
+                self.projRightRangeMinLabel = wc.QLeftLabel("Top min:", self)
+                self.contourProjFrame.addWidget(self.projRightRangeMinLabel, 6, 0)
+                self.projRightRangeMinLabel.hide()
+                self.projRightRangeMin = QtWidgets.QSpinBox()
+                self.projRightRangeMin.setMaximum(100000)
+                self.projRightRangeMin.setMinimum(0)
+#                self.projTopRange.setValue(current.numLevels)
+                self.projRightRangeMin.valueChanged.connect(self.setContour)
+                self.projRightRangeMin.hide()
+                self.contourProjFrame.addWidget(self.projRightRangeMin, 6, 1)
+                
+                
+
+
                 self.contourProjGroup.setLayout(self.contourProjFrame)
                 self.frame2.addWidget(self.contourProjGroup, 8, 0, 1, 3)
+                
                 
                 
                 #Diagonal group
@@ -2813,7 +2869,28 @@ class SideFrame(QtWidgets.QScrollArea):
     def changeProj(self, pType, direc):
         self.father.current.setProjType(pType, direc)
         self.father.current.showProj()
-
+    
+    def changeRanges(self,state):
+        if state:
+            self.projTopRangeMaxLabel.show()
+            self.projTopRangeMax.show()
+            self.projTopRangeMinLabel.show()
+            self.projTopRangeMin.show()
+            self.projRightRangeMaxLabel.show()
+            self.projRightRangeMax.show()
+            self.projRightRangeMinLabel.show()
+            self.projRightRangeMin.show()
+        else:
+            self.projTopRangeMaxLabel.hide()
+            self.projTopRangeMax.hide()
+            self.projTopRangeMinLabel.hide()
+            self.projTopRangeMin.hide()
+            self.projRightRangeMaxLabel.hide()
+            self.projRightRangeMax.hide()
+            self.projRightRangeMinLabel.hide()
+            self.projRightRangeMin.hide()
+        
+        
     def setAxes(self, first=True):
         axes = self.buttons1Group.checkedId()
         if self.plotIs2D:
