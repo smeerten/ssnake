@@ -904,6 +904,10 @@ class Spectrum:
             return None
         oldFreq = self.freq[axes]
         oldSw = self.sw[axes]
+        if freq is None:
+            freq = self.freq[axes]
+        if sw is None:
+            sw = self.sw[axes]
         self.freq[axes] = float(freq)
         self.sw[axes] = float(sw)
         self.resetXax(axes)

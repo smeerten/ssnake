@@ -3022,10 +3022,22 @@ class BottomFrame(QtWidgets.QWidget):
         self.father.menuCheck()
 
     def changeFreq(self):
-        freq = safeEval(self.freqEntry.text()) * 1e6
-        sw = safeEval(self.swEntry.text()) * 1e3
-        if freq != 0 and sw != 0:
-            self.father.setFreq(freq, sw)
+        freq = safeEval(self.freqEntry.text())
+        sw = safeEval(self.swEntry.text())
+        if sw is None:
+            self.father.father.dispMsg('Invalid sweepwidth')
+        elif sw == 0.0:
+            sw = None
+            self.father.father.dispMsg('Sweepwidth cannot be 0')
+        else:
+            sw *= 1000
+            
+        if freq is not None:
+            freq *= 1e6
+        else:
+            self.father.father.dispMsg('Invalid spectrum frequency')
+        
+        self.father.setFreq(freq, sw)
         self.upd()
 
     def changePlot(self, pType):
