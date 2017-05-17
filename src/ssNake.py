@@ -2529,37 +2529,37 @@ class SideFrame(QtWidgets.QScrollArea):
                 self.numLEntry.setMinimum(1)
                 self.numLEntry.setValue(current.numLevels)
                 self.numLEntry.valueChanged.connect(self.setContour)
-                
-                
-#                self.numLEntry = QtWidgets.QLineEdit(self)
-#                self.numLEntry.setAlignment(QtCore.Qt.AlignHCenter)
-#                self.numLEntry.setText(str(current.numLevels))
-#                self.numLEntry.returnPressed.connect(self.setContour)
-#                self.numLEntry.setMaximumWidth(120)
                 self.contourTypeFrame.addWidget(self.numLEntry, 0, 1)
+                
+                self.contourTypeFrame.addWidget(wc.QLeftLabel("Sign:", self), 1, 0)
+                self.contourSignEntry = QtWidgets.QComboBox()
+                self.contourSignEntry.addItems(['Both','+ only','- only'])
+                self.contourSignEntry.setCurrentIndex(current.contourSign)
+                self.contourSignEntry.currentIndexChanged.connect(self.setContour)
+                self.contourTypeFrame.addWidget(self.contourSignEntry, 1, 1)
                 
                 self.contourTypeLabel = QtWidgets.QLabel("Type:", self)
                 self.contourTypeLabel.setAlignment(QtCore.Qt.AlignLeft)
                 self.contourTypeLabel.setAlignment(QtCore.Qt.AlignVCenter)
-                self.contourTypeFrame.addWidget(self.contourTypeLabel, 1, 0)
+                self.contourTypeFrame.addWidget(self.contourTypeLabel, 2, 0)
                 
                 self.contourTypeEntry = QtWidgets.QComboBox()
                 self.contourTypeEntry.addItems(['Linear','Multiplier'])
                 self.contourTypeEntry.setCurrentIndex(current.contourType)
                 self.contourTypeEntry.currentIndexChanged.connect(self.setContour)
-                self.contourTypeFrame.addWidget(self.contourTypeEntry, 1, 1)
+                self.contourTypeFrame.addWidget(self.contourTypeEntry, 2, 1)
                 
                 self.multiValueLabel = QtWidgets.QLabel("Multiplier:", self)
                 self.multiValueLabel.setAlignment(QtCore.Qt.AlignLeft)
                 self.multiValueLabel.setAlignment(QtCore.Qt.AlignVCenter)
-                self.contourTypeFrame.addWidget(self.multiValueLabel, 2, 0)
+                self.contourTypeFrame.addWidget(self.multiValueLabel, 3, 0)
                 
                 self.multiValue = QtWidgets.QLineEdit(self)
                 self.multiValue.setAlignment(QtCore.Qt.AlignHCenter)
                 self.multiValue.setText(str(current.multiValue))
                 self.multiValue.returnPressed.connect(self.setContour)
                 self.multiValue.setMaximumWidth(120)
-                self.contourTypeFrame.addWidget(self.multiValue, 2, 1)
+                self.contourTypeFrame.addWidget(self.multiValue, 3, 1)
                 
                 if current.contourType != 1:
                     self.multiValueLabel.hide()
@@ -2786,6 +2786,11 @@ class SideFrame(QtWidgets.QScrollArea):
             maxC, minC = (minC , maxC)
         self.maxLEntry.setText(str(maxC))
         self.minLEntry.setText(str(minC))
+        
+        cSign = self.contourSignEntry.currentIndex()
+        
+        
+        
         cType =self.contourTypeEntry.currentIndex() 
         if cType == 0:
             self.multiValue.hide()
@@ -2802,7 +2807,7 @@ class SideFrame(QtWidgets.QScrollArea):
         else:
             multi = abs(float(multi))
         self.multiValue.setText(str(multi))
-        self.father.current.setLevels(var1, maxC / 100.0, minC / 100.0, cType, multi)
+        self.father.current.setLevels(var1, maxC / 100.0, minC / 100.0, cSign, cType, multi)
 
     def changeProj(self, pType, direc):
         self.father.current.setProjType(pType, direc)
