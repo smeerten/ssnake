@@ -2523,11 +2523,19 @@ class SideFrame(QtWidgets.QScrollArea):
                 self.contourNumberLabel.setAlignment(QtCore.Qt.AlignVCenter)
                 
                 self.contourTypeFrame.addWidget(self.contourNumberLabel, 0, 0)
-                self.numLEntry = QtWidgets.QLineEdit(self)
-                self.numLEntry.setAlignment(QtCore.Qt.AlignHCenter)
-                self.numLEntry.setText(str(current.numLevels))
-                self.numLEntry.returnPressed.connect(self.setContour)
-                self.numLEntry.setMaximumWidth(120)
+                
+                self.numLEntry = QtWidgets.QSpinBox()
+                self.numLEntry.setMaximum(100000)
+                self.numLEntry.setMinimum(1)
+                self.numLEntry.setValue(current.numLevels)
+                self.numLEntry.valueChanged.connect(self.setContour)
+                
+                
+#                self.numLEntry = QtWidgets.QLineEdit(self)
+#                self.numLEntry.setAlignment(QtCore.Qt.AlignHCenter)
+#                self.numLEntry.setText(str(current.numLevels))
+#                self.numLEntry.returnPressed.connect(self.setContour)
+#                self.numLEntry.setMaximumWidth(120)
                 self.contourTypeFrame.addWidget(self.numLEntry, 0, 1)
                 
                 self.contourTypeLabel = QtWidgets.QLabel("Type:", self)
@@ -2758,23 +2766,43 @@ class SideFrame(QtWidgets.QScrollArea):
         self.father.current.setSkewed(var, var2)
 
     def setContour(self, *args):
-        var1 = int(round(safeEval(self.numLEntry.text())))
-        self.numLEntry.setText(str(var1))
-        var2 = abs(float(safeEval(self.maxLEntry.text())))
-        var3 = abs(float(safeEval(self.minLEntry.text())))
-        if var3 > var2: #if wrong order, interchange
-            var2, var3 = (var3 , var2)
-        self.maxLEntry.setText(str(var2))
-        self.minLEntry.setText(str(var3))
-        var4 = self.contourTypeEntry.currentIndex()
-        if var4 == 0:
+        var1 = self.numLEntry.value()
+        
+        maxC =safeEval(self.maxLEntry.text())
+        if maxC is None:
+            maxC = self.father.current.maxLevels * 100
+            self.father.father.dispMsg('Invalid value for contour maximum')
+        else:
+            maxC = abs(float(maxC))
+        
+        minC =safeEval(self.minLEntry.text())
+        if minC is None:
+            minC = self.father.current.minLevels * 100
+            self.father.father.dispMsg('Invalid value for contour minimum')
+        else:
+            minC = abs(float(minC))
+            
+        if minC > maxC: #if wrong order, interchange
+            maxC, minC = (minC , maxC)
+        self.maxLEntry.setText(str(maxC))
+        self.minLEntry.setText(str(minC))
+        cType =self.contourTypeEntry.currentIndex() 
+        if cType == 0:
             self.multiValue.hide()
             self.multiValueLabel.hide()
         else:
             self.multiValue.show()
             self.multiValueLabel.show()
-        var5 = abs(float(safeEval(self.multiValue.text())))
-        self.father.current.setLevels(var1, var2 / 100.0, var3 / 100.0, var4, var5)
+            
+            
+        multi = safeEval(self.multiValue.text())
+        if multi is None:
+            multi = self.father.current.multiValue
+            self.father.father.dispMsg('Invalid value for contour multiplier')
+        else:
+            multi = abs(float(multi))
+        self.multiValue.setText(str(multi))
+        self.father.current.setLevels(var1, maxC / 100.0, minC / 100.0, cType, multi)
 
     def changeProj(self, pType, direc):
         self.father.current.setProjType(pType, direc)
@@ -2869,7 +2897,13 @@ class SideFrame(QtWidgets.QScrollArea):
         self.father.current.setDiagonal(bool(val))
 
     def setDiagonal(self):
-        inp = float(safeEval(self.diagonalEntry.text()))
+        inp = safeEval(self.diagonalEntry.text())
+        if inp is None:
+            inp = self.father.current.diagonalMult
+            self.father.father.dispMsg('Invalid value for diagonal multiplier')
+        else:
+            inp = float(inp)
+        self.diagonalEntry.setText(str(inp))
         self.father.current.setDiagonal(None, inp)
 
     def checkChanged(self):
