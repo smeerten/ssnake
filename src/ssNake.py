@@ -2636,6 +2636,7 @@ class SideFrame(QtWidgets.QScrollArea):
                 self.diagonalEntry.setAlignment(QtCore.Qt.AlignHCenter)
                 self.diagonalEntry.setText(str(current.diagonalMult))
                 self.diagonalEntry.returnPressed.connect(self.setDiagonal)
+                self.diagonalEntry.setMaximumWidth(120)
                 self.diagonalFrame.addWidget(self.diagonalEntry, 0, 1)
                 self.diagonalGroup.setLayout(self.diagonalFrame)
                 self.frame2.addWidget(self.diagonalGroup, 9, 0, 1, 3)
