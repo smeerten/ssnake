@@ -2037,7 +2037,7 @@ class Main1DWindow(QtWidgets.QWidget):
         self.addMacro(['reload'])
         self.menuCheck()
 
-    def monitorLoad(self, filePath):
+    def monitorLoad(self, filePath, delay = 0.5):
         self.monitor.blockSignals(True)
         if not os.path.exists(filePath):
             self.stopMonitor()
@@ -2053,16 +2053,16 @@ class Main1DWindow(QtWidgets.QWidget):
         self.current.showFid()  
         self.updAllFrames()
         self.menuCheck()
-        QtCore.QTimer.singleShot(500, lambda: self.monitor.blockSignals(False))
+        QtCore.QTimer.singleShot(delay * 1000, lambda: self.monitor.blockSignals(False))
         if filePath in self.monitor.files() or filePath in self.monitor.directories():
             return
         self.monitor.addPath(filePath)
 
-    def startMonitor(self, macroNames):
+    def startMonitor(self, macroNames, delay = 0.5):
         self.monitorMacros = macroNames
         self.monitor = QtCore.QFileSystemWatcher([self.masterData.filePath[1]], self)
-        self.monitor.fileChanged.connect(self.monitorLoad)
-        self.monitor.directoryChanged.connect(self.monitorLoad)
+        self.monitor.fileChanged.connect(lambda a: self.monitorLoad(a,delay))
+        self.monitor.directoryChanged.connect(lambda a: self.monitorLoad(a,delay))
 
     def stopMonitor(self):
         self.monitorMacros = []
@@ -6642,16 +6642,26 @@ class MonitorWindow(QtWidgets.QWidget):
             QtWidgets.QListWidgetItem(i, self.listB).setToolTip(i)
         grid.addWidget(self.listA, 1, 0)
         grid.addWidget(self.listB, 1, 1)
+        
+        grid.addWidget(wc.QLabel("Delay [s]:"), 2, 0)
+        self.delTime = QtWidgets.QDoubleSpinBox()
+        self.delTime.setMaximum(10000)
+        self.delTime.setMinimum(0)
+        self.delTime.setSingleStep(0.1)
+        self.delTime.setValue(0.5)
+        grid.addWidget(self.delTime, 2, 1)
+            
+            
         cancelButton = QtWidgets.QPushButton("&Close")
         cancelButton.clicked.connect(self.closeEvent)
-        layout.addWidget(cancelButton, 2, 0)
+        layout.addWidget(cancelButton, 3, 0)
         watchButton = QtWidgets.QPushButton("&Watch")
         watchButton.clicked.connect(self.applyAndClose)
-        layout.addWidget(watchButton, 2, 1)
+        layout.addWidget(watchButton, 3, 1)
         unwatchButton = QtWidgets.QPushButton("&Unwatch")
         unwatchButton.clicked.connect(self.stopAndClose)
-        layout.addWidget(unwatchButton, 2, 2)
-        layout.setColumnStretch(3, 1)
+        layout.addWidget(unwatchButton, 3, 2)
+        layout.setColumnStretch(4, 1)
         self.show()
         self.setFixedSize(self.size())
         self.father.menuDisable()
@@ -6662,7 +6672,8 @@ class MonitorWindow(QtWidgets.QWidget):
         items = []
         for index in range(self.listB.count()):
             items.append(self.listB.item(index).text())
-        self.father.startMonitor(items)
+        delay = self.delTime.value
+        self.father.startMonitor(items,delay)
         self.closeEvent()
         
     def stopAndClose(self, *args):
