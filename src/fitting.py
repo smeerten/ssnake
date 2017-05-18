@@ -157,7 +157,46 @@ class FitCopySettingsWindow(QtWidgets.QWidget):
         self.deleteLater()
         self.returnFunction([self.allTraces.isChecked(), self.original.isChecked(), self.subFits.isChecked(), self.difference.isChecked()])
 
+        
+class ParamCopySettingsWindow(QtWidgets.QWidget):
 
+    def __init__(self, parent, paramNames, returnFunction):
+        QtWidgets.QWidget.__init__(self, parent)
+        self.setWindowFlags(QtCore.Qt.Window | QtCore.Qt.Tool)
+        self.father = parent
+        self.returnFunction = returnFunction
+        self.setWindowTitle("Parameters to export")
+        layout = QtWidgets.QGridLayout(self)
+        grid = QtWidgets.QGridLayout()
+        layout.addLayout(grid, 0, 0, 1, 2)
+        self.allTraces = QtWidgets.QCheckBox("Export all traces")
+        grid.addWidget(self.allTraces, 0, 0)
+        self.exportList = []
+        for i in range(len(paramNames)):
+            self.exportList.append(QtWidgets.QCheckBox(paramNames[i]))
+            grid.addWidget(self.exportList[-1], i+1, 0)
+        cancelButton = QtWidgets.QPushButton("&Cancel")
+        cancelButton.clicked.connect(self.closeEvent)
+        layout.addWidget(cancelButton, 2, 0)
+        okButton = QtWidgets.QPushButton("&Ok", self)
+        okButton.clicked.connect(self.applyAndClose)
+        okButton.setFocus()
+        layout.addWidget(okButton, 2, 1)
+        grid.setRowStretch(100, 1)
+        self.show()
+        self.setGeometry(self.frameSize().width() - self.geometry().width(), self.frameSize().height() - self.geometry().height(), 0, 0)
+
+    def closeEvent(self, *args):
+        self.deleteLater()
+
+    def applyAndClose(self, *args):
+        self.deleteLater()
+        answers = []
+        for checkbox in self.exportList:
+            answers.append(checkbox.isChecked())
+        self.returnFunction(self.allTraces.isChecked(), answers)
+
+        
 class FittingWindow(QtWidgets.QWidget):
     # Inherited by the fitting windows
 
@@ -183,10 +222,21 @@ class FittingWindow(QtWidgets.QWidget):
     def setup(self):
         pass
 
-    def createNewData(self, data, axes, store=False, fitAll=False):
+    def createNewData(self, data, axes, params=False, fitAll=False):
         masterData = self.get_masterData()
         if fitAll:
-            self.mainProgram.dataFromFit(data,
+            if params:
+                self.mainProgram.dataFromFit(data,
+                                             masterData.filePath,
+                                             [masterData.freq[axes], masterData.freq[axes], np.delete(masterData.freq, axes)],
+                                             [masterData.sw[axes], masterData.sw[axes], np.delete(masterData.sw, axes)],
+                                             [False, False, np.delete(masterData.spec, axes)],
+                                             [False, False, np.delete(masterData.wholeEcho, axes)],
+                                             [None, None, np.delete(masterData.ref, axes)],
+                                             [np.arange(data.shape[0]), np.arange(data.shape[1]), np.delete(masterData.xaxArray, axes)],
+                                             axes+1)
+            else:
+                self.mainProgram.dataFromFit(data,
                                          masterData.filePath,
                                          np.append(masterData.freq[axes], masterData.freq),
                                          np.append(masterData.sw[axes], masterData.sw),
@@ -196,7 +246,17 @@ class FittingWindow(QtWidgets.QWidget):
                                          copy.deepcopy(masterData.xaxArray).insert(0, np.arange(len(data))),
                                          axes+1)
         else:
-            if store:
+            if params:
+                self.mainProgram.dataFromFit(data,
+                                             masterData.filePath,
+                                             [masterData.freq[axes], masterData.freq[axes]],
+                                             [masterData.sw[axes], masterData.sw[axes]],
+                                             [False, False],
+                                             [False, False],
+                                             [None, None],
+                                             [np.arange(data.shape[0]), np.arange(data.shape[1])],
+                                             0)
+            else:
                 self.mainProgram.dataFromFit(data,
                                              masterData.filePath,
                                              [masterData.freq[axes], masterData.freq[axes]],
@@ -205,16 +265,6 @@ class FittingWindow(QtWidgets.QWidget):
                                              [False, masterData.wholeEcho[axes]],
                                              [None, masterData.ref[axes]],
                                              [np.arange(len(data)), masterData.xaxArray[axes]],
-                                             axes)
-            else:
-                self.mainProgram.dataFromFit(data,
-                                             copy.deepcopy(masterData.filePath),
-                                             copy.deepcopy(masterData.freq),
-                                             copy.deepcopy(masterData.sw),
-                                             copy.deepcopy(masterData.spec),
-                                             copy.deepcopy(masterData.wholeEcho),
-                                             copy.deepcopy(masterData.ref),
-                                             copy.deepcopy(masterData.xaxArray),
                                              axes)
 
     def rename(self, name):
@@ -2747,6 +2797,9 @@ class PeakDeconvParamFrame(QtWidgets.QWidget):
         copyResultButton = QtWidgets.QPushButton("Result to workspace")
         copyResultButton.clicked.connect(self.resultToWorkspaceWindow)
         self.frame1.addWidget(copyResultButton, 4, 0)
+        copyParamButton = QtWidgets.QPushButton("Param. to workspace")
+        copyParamButton.clicked.connect(self.paramToWorkspaceWindow)
+        self.frame1.addWidget(copyParamButton, 5, 0)
         # saveResultButton = QtWidgets.QPushButton("Save to text")
         # saveResultButton.clicked.connect(lambda: self.sim('save'))
         # self.frame1.addWidget(saveResultButton, 5, 0)
@@ -3049,6 +3102,41 @@ class PeakDeconvParamFrame(QtWidgets.QWidget):
         self.parent.fitDataList[tuple(self.parent.locList)] = [tmpx, outCurve, x, outCurvePart]
         self.parent.showPlot()
 
+    def paramToWorkspaceWindow(self):
+        paramNameList = ['bgrnd', 'slope', 'amp', 'pos', 'lor', 'gauss']
+        ParamCopySettingsWindow(self, paramNameList, lambda allTraces, settings, self=self: self.paramToWorkspace(allTraces, settings))
+
+    def paramToWorkspace(self, allTraces, settings):
+        paramNameList = np.array(['bgrnd', 'slope', 'amp', 'pos', 'lor', 'gauss'], dtype=object)
+        locList = tuple(self.parent.locList)
+        if not np.any(settings):
+            return
+        names = paramNameList[settings]
+        if allTraces:
+            maxNum = np.max(self.fitNumList)+1
+            tmp = list(self.parent.data.data.shape)
+            tmp.pop(self.parent.axes)
+            data = np.zeros((sum(settings), maxNum) + tuple(tmp))
+            tmp2 = ()
+            for i in tmp:
+                tmp2 += (np.arange(i),)
+            grid = np.array([i.flatten() for i in np.meshgrid(*tmp2)]).T
+            for i in grid:
+                for j in range(len(names)):
+                    if names[j] in ['bgrnd', 'slope']:
+                        data[(j,)+(slice(None),)+tuple(i)].fill(self.fitParamList[locList][names[j]][0])
+                    else:
+                        data[(j,)+(slice(None),)+tuple(i)] = self.fitParamList[tuple(i)][names[j]].T[0][:(self.fitNumList[tuple(i)]+1)]
+            self.rootwindow.createNewData(data, self.parent.current.axes, True, True)
+        else:
+            data = np.zeros((sum(settings), self.fitNumList[locList]+1))
+            for i in range(len(names)):
+                if names[i] in ['bgrnd', 'slope']:
+                    data[i].fill(self.fitParamList[locList][names[i]][0])
+                else:
+                    data[i] = self.fitParamList[locList][names[i]].T[0][:(self.fitNumList[locList]+1)]
+            self.rootwindow.createNewData(data, self.parent.current.axes, True)
+
     def resultToWorkspaceWindow(self):
         FitCopySettingsWindow(self, lambda settings, self=self: self.resultToWorkspace(settings))
 
@@ -3076,10 +3164,10 @@ class PeakDeconvParamFrame(QtWidgets.QWidget):
                 self.parent.setSlice(self.parent.axes, i)
                 data[(slice(None),) + tuple(i)] = self.prepareResultToWorkspace(settings, maxNum)
             self.parent.setSlice(self.parent.axes, oldLocList)
-            self.rootwindow.createNewData(data, self.parent.current.axes, True, True)
+            self.rootwindow.createNewData(data, self.parent.current.axes, False, True)
         else:
             data = self.prepareResultToWorkspace(settings)
-            self.rootwindow.createNewData(data, self.parent.current.axes, True)
+            self.rootwindow.createNewData(data, self.parent.current.axes, False)
         
     def prepareResultToWorkspace(self, settings, minLength=1):
         fitData = self.parent.fitDataList[tuple(self.parent.locList)]
