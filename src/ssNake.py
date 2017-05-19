@@ -21,6 +21,8 @@
 import sip
 import sys
 import os
+import traceback as tb
+import datetime
 sip.setapi('QString', 2)
 try:
     from PyQt4 import QtGui, QtCore
@@ -104,6 +106,7 @@ class MainProgram(QtWidgets.QMainWindow):
         QtWidgets.QMainWindow.__init__(self)
         self.root = root
         self.VERSION = VERSION
+        self.errors = []
         self.setAttribute(QtCore.Qt.WA_DeleteOnClose)
         self.setAcceptDrops(True)
         self.mainWindow = None
@@ -146,6 +149,12 @@ class MainProgram(QtWidgets.QMainWindow):
         QtWidgets.QShortcut(QtGui.QKeySequence.Paste, self).activated.connect(self.handlePaste)
         QtWidgets.QShortcut(QtGui.QKeySequence.Copy, self).activated.connect(self.handleCopy)
 
+    def dispError(self,error):
+        CurTime = datetime.datetime.now()
+        TimeStr = '{0:02d}'.format(CurTime.hour) + ':' + '{0:02d}'.format(CurTime.minute) + ':' + '{0:02d}'.format(CurTime.second)
+        self.errors.append([TimeStr,error])
+        
+        
     def handlePaste(self):
         self.dropEvent(QtWidgets.QApplication.instance().clipboard())
 
@@ -166,6 +175,8 @@ class MainProgram(QtWidgets.QMainWindow):
         self.defaultLinewidth = 1.0
         self.defaultColor = '#0000FF'
         self.defaultGrids = [False, False]
+        self.defaultDiagonalBool = False
+        self.defaultDiagonalMult = 1
         self.defaultZeroScroll = True
         self.defaultColorMap = 'seismic'
         self.defaultWidthRatio = 3.0
@@ -175,12 +186,12 @@ class MainProgram(QtWidgets.QMainWindow):
         self.defaultNegColor = '#0000FF'
         self.defaultToolbarActionList = ['File --> Open','File -- > Save --> Matlab','File --> Export --> Figure','Seperator',
                                      'Workspaces --> Duplicate','Workspaces --> Delete','Seperator','Edit --> Undo','Edit --> Redo',
-                                     'Edit --> Reload','Seperator','Tools --> Apodize','Tools --> Phase','Seperator',
+                                     'Edit --> Reload','Seperator','Tools --> Apodize','Tools --> Phase','Tools --> Autophase 0','Seperator',
                                      'Matrix --> Sizing','Matrix --> Shift Data','Matrix --> Multiply','Seperator','Fitting --> S/N','Fitting --> FWHM',
                                      'Fitting --> Integrals','Fitting --> Relaxation Curve','Fitting --> Lorentzian/Gaussian','Seperator',
                                      'Plot --> 1D Plot','Plot --> Stack Plot','Plot --> Array Plot','Plot --> Contour Plot',
                                      'Plot --> Multi Plot','Seperator','History --> History','History --> Clear Undo/Redo List',
-                                     'Seperator','Help --> NMR Table'] 
+                                     'Seperator','Utilities --> NMR Table'] 
 
     def loadDefaults(self):
         self.resetDefaults()
@@ -208,6 +219,11 @@ class MainProgram(QtWidgets.QMainWindow):
         self.defaultNegColor = settings.value("contour/negcolor", self.defaultNegColor, str)
         if not str(self.defaultColorMap) in sc.COLORMAPLIST:
             self.dispMsg("Incorrect colormap in config file")
+        self.defaultDiagonalBool = settings.value("contour/diagonalbool", self.defaultDiagonalBool, bool)
+        try:
+            self.defaultDiagonalMult = settings.value("contour/diagonalmult", self.defaultDiagonalMult, float)
+        except TypeError:
+            self.dispMsg("Incorrect value in the config file for the diagonal multiplier")
         self.defaultMaximized = settings.value("maximized", self.defaultMaximized, bool)
         try:
             self.defaultWidth = settings.value("width", self.defaultWidth, int)
@@ -252,6 +268,8 @@ class MainProgram(QtWidgets.QMainWindow):
         settings.setValue("contour/negcolor", self.defaultNegColor)
         settings.setValue("contour/width_ratio", self.defaultWidthRatio)
         settings.setValue("contour/height_ratio", self.defaultHeightRatio)
+        settings.setValue("contour/diagonalbool", self.defaultDiagonalBool)
+        settings.setValue("contour/diagonalmult", self.defaultDiagonalMult)
         
 
     def dispMsg(self, msg, colour = 'black'):
@@ -259,6 +277,7 @@ class MainProgram(QtWidgets.QMainWindow):
             self.statusBar.setStyleSheet("QStatusBar{padding-left:8px;color:red;}")
         else:
             self.statusBar.setStyleSheet("QStatusBar{padding-left:8px;color:black;}")
+        self.dispError([msg])
         self.statusBar.showMessage(msg, 10000)
     
     
@@ -271,46 +290,17 @@ class MainProgram(QtWidgets.QMainWindow):
             self.seperatorAction = []
 
             
-#            self.toobarActionList = [self.openAct,self.saveAct,self.saveMatAct,self.savefigAct,
-#                                     self.saveSimpsonAct,self.saveASCIIAct,self.saveASCIIAct,self.preferencesAct,
-#                                     self.quitAct,self.newAct,self.closeAct,self.renameWorkspaceAct,self.forwardAct,
-#                                     self.backAct,self.combineWorkspaceAct,self.macrostartAct,self.macrostopAct,
-#                                     self.macroLoadAct,self.undoAction,self.redoAction,self.reloadAct,self.monitorAct,
-#                                     self.realAct,self.imagAct,self.absAct,self.apodizeAct,self.phaseAct,
-#                                     self.swapEchoAct,self.corOffsetAct,self.baselineAct,self.subAvgAct,self.refDeconvAct,
-#                                     self.statesAct,self.statesTPPIAct,self.echoantiAct,self.brukDigitalAct,
-#                                     self.lpsvdAct,self.sizingAct,self.shiftAct,self.intRegionAct,
-#                                     self.sumRegionAct,self.maxRegionAct,self.minRegionAct,self.maxposRegionAct,
-#                                     self.minposRegionAct,self.averageRegionAct,self.diffAct,self.cumsumAct,
-#                                     self.extractpartAct,self.fliplrAct, self.matrixdelAct,self.splitAct,
-#                                     self.multiplyAct,self.reorderAct,self.concatAct,self.shearAct,
-#                                     self.fourierAct,self.realFourierAct,self.fftshiftAct,self.invfftshiftAct,
-#                                     self.hilbertAct,self.ffmAct,self.cleanAct,istAct,self.snrAct,self.fwhmAct,
-#                                     self.massAct,self.intfitAct,self.relaxAct,self.diffusionAct,self.lorentzfitAct,
-#                                     self.csastaticAct,self.csamasAct,self.firstquadstatAct,self.firstquadmasAct,
-#                                     self.secondquadstatAct,self.secondquadmasAct,self.czjzekstatAct,self.czjzekmasAct,
-#                                     self.insertdatAct,self.adddatAct,self.subdatAct,self.onedplotAct,self.scatterplotAct,
-#                                     self.stackplotAct,self.arrayplotAct,self.contourplotAct,self.skewplotAct,self.multiplotAct,
-#                                     self.setrefAct, self.delrefAct,self.loadrefAct,self.userxAct,self.plotprefAct,self.historyAct,
-#                                     self.clearundoAct,self.updateAct,self.shiftconvAct,self.quadconvAct,self.nmrtableAct,
-#                                     self.aboutAct]
-            
-            
-#            self.toobarActionList = [
-#                                     ]
-
-        
             self.allActionsList = [['Seperator',None],['File --> Open',self.openAct],['File --> Save --> JSON',self.saveAct],['File -- > Save --> Matlab',self.saveMatAct],
                                    ['File --> Export --> Figure',self.savefigAct],['File --> Export --> Simpson',self.saveSimpsonAct],['File --> Export --> ASCII (1D/2D)',self.saveASCIIAct],
                                     ['File --> Preferences',self.preferencesAct],['File --> Quit',self.quitAct],
                                     ['Workspaces --> Duplicate',self.newAct],['Workspaces --> Delete',self.closeAct],['Workspaces --> Rename',self.renameWorkspaceAct],
-                                    ['Workspaces --> Next',self.forwardAct],['Workspaces --> Previous',self.backAct],['Workspaces --> Combine',self.combineWorkspaceAct],
+                                    ['Workspaces --> Next',self.forwardAct],['Workspaces --> Previous',self.backAct],
                                     ['Macro --> Start Recording',self.macrostartAct],['Macro --> Stop Recording',self.macrostopAct],['Macro --> Load',self.macroLoadAct],
                                     ['Edit --> Undo',self.undoAction],['Edit --> Redo',self.redoAction],['Edit --> Reload',self.reloadAct],['Edit --> Monitor',self.monitorAct],
                                     ['Tools --> Real',self.realAct],['Tools --> Imag',self.imagAct],['Tools --> Abs',self.absAct],['Tools --> Complex Conjugate',self.conjAct],['Tools --> Apodize',self.apodizeAct],
                                     ['Tools --> Phase',self.phaseAct],['Tools --> Autophase 0',self.autoPhaseAct0],['Tools --> Autophase 0+1',self.autoPhaseAct1],['Tools --> Swap Echo',self.swapEchoAct],['Tools --> Offset Correction',self.corOffsetAct],
                                     ['Tools --> Baseline Correction',self.baselineAct],['Tools --> Subtract Averages',self.subAvgAct],['Tools --> Reference Deconvolution',self.refDeconvAct],
-                                    ['Tools --> States',self.statesAct],['Tools --> TPPI',self.statesTPPIAct],['Tools --> Echo-antiecho',self.echoantiAct],['Tools --> Correct Bruker Digital Filter',self.brukDigitalAct],
+                                    ['Tools --> Correct Bruker Digital Filter',self.brukDigitalAct],['Tools --> Hypercomplex --> States',self.statesAct],['Tools --> Hypercomplex --> TPPI',self.statesTPPIAct],['Tools --> Hypercomplex --> Echo-antiecho',self.echoantiAct],
                                     ['Tools --> LPSVD',self.lpsvdAct],
                                     ['Matrix --> Sizing',self.sizingAct],['Matrix --> Shift Data',self.shiftAct],['Matrix --> Multiply',self.multiplyAct],['Matrix --> Region --> Integrate',self.intRegionAct],
                                     ['Matrix --> Region --> Sum',self.sumRegionAct],['Matrix --> Region --> Max',self.maxRegionAct],['Matrix --> Region --> Min',self.minRegionAct],
@@ -326,15 +316,15 @@ class MainProgram(QtWidgets.QMainWindow):
                                     ['Fitting --> Lorentzian/Gaussian',self.lorentzfitAct],['Fitting --> CSA Static',self.csastaticAct],['Fitting --> CSA MAS',self.csamasAct],
                                     ['Fitting --> First Order Quadrupole Static',self.firstquadstatAct],['Fitting --> First Order Quadrupole MAS',self.firstquadmasAct],['Fitting --> Second Order Quadrupole Static',self.secondquadstatAct],
                                     ['Fitting --> Second Order Quadrupole MAS',self.secondquadmasAct],['Fitting --> Czjzek Static',self.czjzekstatAct],['Fitting --> Czjzek MAS',self.czjzekmasAct],
-                                    ['Combine --> Insert From Workspace',self.insertdatAct],['Combine --> Add',self.adddatAct],['Combine --> Subtract',self.subdatAct],['Combine --> Multiply',self.multdatAct],
+                                    ['Combine --> Combine Workspaces',self.combineWorkspaceAct],['Combine --> Insert From Workspace',self.insertdatAct],['Combine --> Add',self.adddatAct],['Combine --> Subtract',self.subdatAct],['Combine --> Multiply',self.multdatAct],
                                     ['Combine --> Divide',self.divdatAct],
                                     ['Plot --> 1D Plot',self.onedplotAct],['Plot --> Scatter',self.scatterplotAct],['Plot --> Stack Plot',self.stackplotAct],
-                                    ['Plot --> Array Plot',self.arrayplotAct],['Plot --> Contour Plot',self.contourplotAct],['Plot --> Skewed Plot',self.skewplotAct],['Plot --> Multi Plot',self.multiplotAct],
+                                    ['Plot --> Array Plot',self.arrayplotAct],['Plot --> Contour Plot',self.contourplotAct],['Plot --> Multi Plot',self.multiplotAct],
                                     ['Plot --> Set Reference',self.setrefAct],['Plot --> Clear Current Reference',self.delrefAct],['Plot --> Load Reference',self.loadrefAct],['Plot --> User X-axis',self.userxAct],
                                     ['Plot --> Plot Settings',self.plotprefAct],
                                     ['History --> History',self.historyAct],['History --> Clear Undo/Redo List',self.clearundoAct],
-                                    ['Help --> Update',self.updateAct],['Help --> Chemical Shift Conversion Tool',self.shiftconvAct],['Help --> Quadrupole Coupling Conversion Tool',self.quadconvAct],['Help --> NMR Table',self.nmrtableAct],
-                                    ['Help --> About',self.aboutAct]]
+                                    ['Utilities --> Chemical Shift Conversion Tool',self.shiftconvAct],['Utilities --> Quadrupole Coupling Conversion Tool',self.quadconvAct],['Utilities --> NMR Table',self.nmrtableAct],
+                                    ['Help --> Update',self.updateAct],['Help --> About',self.aboutAct]]
                               
                                      
             for element in self.defaultToolbarActionList:
@@ -355,6 +345,8 @@ class MainProgram(QtWidgets.QMainWindow):
         self.menubar.addMenu(self.filemenu)
         self.openAct = self.filemenu.addAction(QtGui.QIcon(IconDirectory + 'open.png'), '&Open', self.loadFromMenu, QtGui.QKeySequence.Open)
         self.openAct.setToolTip('Open a File')
+        self.combineLoadAct = self.filemenu.addAction(QtGui.QIcon(IconDirectory + 'combine.png'),'&Open && Combine', self.createCombineLoadWindow)
+        self.combineLoadAct.setToolTip('Open and Combine Multiple Files')
         self.savemenu = QtWidgets.QMenu('&Save', self)
         self.filemenu.addMenu(self.savemenu)
         self.saveAct = self.savemenu.addAction(QtGui.QIcon(IconDirectory + 'JSON.png'), 'JSON', self.saveJSONFile, QtGui.QKeySequence.Save)
@@ -368,7 +360,7 @@ class MainProgram(QtWidgets.QMainWindow):
         self.saveSimpsonAct = self.exportmenu.addAction(QtGui.QIcon(IconDirectory + 'simpson.png'), 'Simpson', self.saveSimpsonFile)
         self.saveSimpsonAct.setToolTip('Export as Simpson File')
         self.saveASCIIAct = self.exportmenu.addAction(QtGui.QIcon(IconDirectory + 'ssnake.png'), 'ASCII (1D/2D)', self.saveASCIIFile)
-        self.saveASCIIAct.setToolTip('Save as ASCII Text File')        
+        self.saveASCIIAct.setToolTip('Save as ASCII Text File')
         self.preferencesAct = self.filemenu.addAction(QtGui.QIcon(IconDirectory + 'preferences.png'), '&Preferences', lambda: PreferenceWindow(self))
         self.preferencesAct.setToolTip('Open Preferences Window')
         self.quitAct = self.filemenu.addAction(QtGui.QIcon(IconDirectory + 'quit.png'), '&Quit', self.fileQuit, QtGui.QKeySequence.Quit)
@@ -377,7 +369,7 @@ class MainProgram(QtWidgets.QMainWindow):
         self.saveActList = [self.saveAct,self.saveMatAct]
         self.exportActList = [self.savefigAct,self.saveSimpsonAct,self.saveASCIIAct]        
         self.fileActList = [self.openAct,self.saveAct,self.saveMatAct,self.savefigAct,
-                            self.saveSimpsonAct,self.saveASCIIAct,self.preferencesAct,self.quitAct]
+                            self.saveSimpsonAct,self.saveASCIIAct,self.combineLoadAct,self.preferencesAct,self.quitAct]
         # Workspaces menu
         self.workspacemenu = QtWidgets.QMenu('&Workspaces', self)
         self.menubar.addMenu(self.workspacemenu)
@@ -393,11 +385,9 @@ class MainProgram(QtWidgets.QMainWindow):
         self.forwardAct.setToolTip('Next Workspace')
         self.backAct = self.workspacemenu.addAction(QtGui.QIcon(IconDirectory + 'previous.png'), '&Previous', lambda: self.stepWorkspace(-1), QtGui.QKeySequence.Back)
         self.backAct.setToolTip('Previous Workspace')
-        self.combineWorkspaceAct = self.workspacemenu.addAction(QtGui.QIcon(IconDirectory + 'combine.png'), '&Combine', self.createCombineWorkspaceWindow)
-        self.combineWorkspaceAct.setToolTip('Combine Workspaces')
 
         self.workspaceActList = [self.newAct,self.closeAct,self.renameWorkspaceAct,self.forwardAct,
-                                 self.backAct,self.combineWorkspaceAct]
+                                 self.backAct]
         # Macro menu
         self.macromenu = QtWidgets.QMenu('&Macros', self)
         self.menubar.addMenu(self.macromenu)
@@ -454,26 +444,30 @@ class MainProgram(QtWidgets.QMainWindow):
         self.autoPhaseAct0.setToolTip('Autophase 0 order')
         self.autoPhaseAct1 = self.toolMenu.addAction(QtGui.QIcon(IconDirectory + 'autophase1.png'),"Autophase 0+1", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.directAutoPhase(1)))
         self.autoPhaseAct1.setToolTip('Autophase 0 and 1 order')
-        self.swapEchoAct = self.toolMenu.addAction(QtGui.QIcon(IconDirectory + 'fliplr.png'), "Swap &Echo", lambda: self.mainWindowCheck(lambda mainWindow: SwapEchoWindow(mainWindow)))
+        self.swapEchoAct = self.toolMenu.addAction(QtGui.QIcon(IconDirectory + 'swapecho.png'), "Swap &Echo", lambda: self.mainWindowCheck(lambda mainWindow: SwapEchoWindow(mainWindow)))
         self.swapEchoAct.setToolTip('Swap Echo')
-        self.corOffsetAct = self.toolMenu.addAction("&Offset Correction", lambda: self.mainWindowCheck(lambda mainWindow: DCWindow(mainWindow)))
+        self.corOffsetAct = self.toolMenu.addAction(QtGui.QIcon(IconDirectory + 'offset.png'),"&Offset Correction", lambda: self.mainWindowCheck(lambda mainWindow: DCWindow(mainWindow)))
         self.corOffsetAct.setToolTip('Offset Correction')
-        self.baselineAct = self.toolMenu.addAction("&Baseline Correction", lambda: self.mainWindowCheck(lambda mainWindow: BaselineWindow(mainWindow)))
+        self.baselineAct = self.toolMenu.addAction(QtGui.QIcon(IconDirectory + 'baseline.png'),"&Baseline Correction", lambda: self.mainWindowCheck(lambda mainWindow: BaselineWindow(mainWindow)))
         self.baselineAct.setToolTip('Baseline Correction')
-        self.subAvgAct = self.toolMenu.addAction("S&ubtract Averages", lambda: self.mainWindowCheck(lambda mainWindow: SubtractAvgWindow(mainWindow)))
+        self.subAvgAct = self.toolMenu.addAction(QtGui.QIcon(IconDirectory + 'subaverage.png'),"S&ubtract Averages", lambda: self.mainWindowCheck(lambda mainWindow: SubtractAvgWindow(mainWindow)))
         self.subAvgAct.setToolTip('Subtract Averages')
-        self.refDeconvAct = self.toolMenu.addAction("Re&ference Deconvolution", lambda: self.mainWindowCheck(lambda mainWindow: FiddleWindow(mainWindow)))
+        self.refDeconvAct = self.toolMenu.addAction(QtGui.QIcon(IconDirectory + 'deconvolute.png'),"Re&ference Deconvolution", lambda: self.mainWindowCheck(lambda mainWindow: FiddleWindow(mainWindow)))
         self.refDeconvAct.setToolTip('Reference Deconvolution')
-        self.statesAct = self.toolMenu.addAction("&States", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.states()))
-        self.statesAct.setToolTip('States Hypercomplex Data Processing')
-        self.statesTPPIAct = self.toolMenu.addAction("States-&TPPI", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.statesTPPI()))
-        self.statesTPPIAct.setToolTip('States-TPPI Hypercomplex Data Processing')
-        self.echoantiAct = self.toolMenu.addAction("Ec&ho-antiecho", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.echoAntiEcho()))
-        self.echoantiAct.setToolTip('Ec&ho-antiecho Hypercomplex Data Processing')
         self.brukDigitalAct = self.toolMenu.addAction(QtGui.QIcon(IconDirectory + 'bruker.png'),"&Correct Bruker Digital Filter", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.BrukerDigital()))
         self.brukDigitalAct.setToolTip("Correct Bruker Digital Filter")
         self.lpsvdAct = self.toolMenu.addAction("&LPSVD", lambda: self.mainWindowCheck(lambda mainWindow: LPSVDWindow(mainWindow)))
         self.lpsvdAct.setToolTip('LPSVD linear prediction')
+        
+        self.hypercomplexMenu = QtWidgets.QMenu("Hypercomplex", self)
+        self.toolMenu.addMenu(self.hypercomplexMenu)
+        self.statesAct = self.hypercomplexMenu.addAction(QtGui.QIcon(IconDirectory + 'States.png'),"&States", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.states()))
+        self.statesAct.setToolTip('States Hypercomplex Data Processing')
+        self.statesTPPIAct = self.hypercomplexMenu.addAction(QtGui.QIcon(IconDirectory + 'statestppi.png'),"States-&TPPI", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.statesTPPI()))
+        self.statesTPPIAct.setToolTip('States-TPPI Hypercomplex Data Processing')
+        self.echoantiAct = self.hypercomplexMenu.addAction(QtGui.QIcon(IconDirectory + 'echoantiecho.png'),"Ec&ho-antiecho", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.echoAntiEcho()))
+        self.echoantiAct.setToolTip('Ec&ho-antiecho Hypercomplex Data Processing')
+        
 
         self.toolsActList = [self.realAct,self.imagAct,self.absAct,self.apodizeAct,self.phaseAct,self.autoPhaseAct0,self.autoPhaseAct1,
                              self.swapEchoAct,self.corOffsetAct,self.baselineAct,self.subAvgAct,self.refDeconvAct,self.statesAct,
@@ -521,10 +515,10 @@ class MainProgram(QtWidgets.QMainWindow):
         self.multiplyAct.setToolTip('Multiply')
         self.reorderAct = self.matrixMenu.addAction(QtGui.QIcon(IconDirectory + 'reorder.png'), "&Reorder", lambda: self.mainWindowCheck(lambda mainWindow: ReorderWindow(mainWindow)))
         self.reorderAct.setToolTip('Reorder')
-        self.concatAct = self.matrixMenu.addAction("C&oncatenate", lambda: self.mainWindowCheck(lambda mainWindow: ConcatenateWindow(mainWindow)))
+        self.concatAct = self.matrixMenu.addAction(QtGui.QIcon(IconDirectory + 'concatenate.png'),"C&oncatenate", lambda: self.mainWindowCheck(lambda mainWindow: ConcatenateWindow(mainWindow)))
         self.concatAct.setToolTip('Concatenate')
         self.multiDActions.append(self.concatAct)
-        self.shearAct = self.matrixMenu.addAction("Shearin&g", lambda: self.mainWindowCheck(lambda mainWindow: ShearingWindow(mainWindow)))
+        self.shearAct = self.matrixMenu.addAction(QtGui.QIcon(IconDirectory + 'shear.png'),"Shearin&g", lambda: self.mainWindowCheck(lambda mainWindow: ShearingWindow(mainWindow)))
         self.shearAct.setToolTip('Shearing')
         self.multiDActions.append(self.shearAct)
         
@@ -537,15 +531,15 @@ class MainProgram(QtWidgets.QMainWindow):
         # the fft drop down menu
         self.fftMenu = QtWidgets.QMenu("T&ransforms", self)
         self.menubar.addMenu(self.fftMenu)
-        self.fourierAct = self.fftMenu.addAction("&Fourier Transform", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.fourier()), QtCore.Qt.CTRL + QtCore.Qt.Key_F)
+        self.fourierAct = self.fftMenu.addAction(QtGui.QIcon(IconDirectory + 'fourier.png'),"&Fourier Transform", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.fourier()), QtCore.Qt.CTRL + QtCore.Qt.Key_F)
         self.fourierAct.setToolTip('Fourier Transform')
-        self.realFourierAct = self.fftMenu.addAction("&Real Fourier Transform", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.realFourier()))
+        self.realFourierAct = self.fftMenu.addAction(QtGui.QIcon(IconDirectory + 'realfourier.png'),"&Real Fourier Transform", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.realFourier()))
         self.realFourierAct.setToolTip('Real Fourier Transform')
         self.fftshiftAct = self.fftMenu.addAction("Fft&shift", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.fftshift()))
         self.fftshiftAct.setToolTip('Fftshift')
         self.invfftshiftAct = self.fftMenu.addAction("&Inv fftshift", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.invFftshift()))
         self.invfftshiftAct.setToolTip('Inverse fftshift')
-        self.hilbertAct = self.fftMenu.addAction("&Hilbert Transform", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.hilbert()))
+        self.hilbertAct = self.fftMenu.addAction(QtGui.QIcon(IconDirectory + 'hilbert.png'),"&Hilbert Transform", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.hilbert()))
         self.hilbertAct.setToolTip('Hilbert Transform') 
         self.nusMenu = QtWidgets.QMenu("&NUS", self)
         self.fftMenu.addMenu(self.nusMenu)
@@ -601,6 +595,8 @@ class MainProgram(QtWidgets.QMainWindow):
         # the combine drop down menu
         self.combineMenu = QtWidgets.QMenu("Com&bine", self)
         self.menubar.addMenu(self.combineMenu)
+        self.combineWorkspaceAct = self.combineMenu.addAction(QtGui.QIcon(IconDirectory + 'combine.png'), '&Combine Workspaces', self.createCombineWorkspaceWindow)
+        self.combineWorkspaceAct.setToolTip('Combine Workspaces')
         self.insertdatAct = self.combineMenu.addAction(QtGui.QIcon(IconDirectory + 'insert.png'),"&Insert From Workspace", lambda: self.mainWindowCheck(lambda mainWindow: InsertWindow(mainWindow)))
         self.insertdatAct.setToolTip('Insert From Workspace')
         self.adddatAct = self.combineMenu.addAction(QtGui.QIcon(IconDirectory + 'add.png'), "&Add", lambda: self.mainWindowCheck(lambda mainWindow: CombineWindow(mainWindow, 0)))
@@ -612,7 +608,7 @@ class MainProgram(QtWidgets.QMainWindow):
         self.divdatAct = self.combineMenu.addAction(QtGui.QIcon(IconDirectory + 'divideWorkspace.png'),"&Divide", lambda: self.mainWindowCheck(lambda mainWindow: CombineWindow(mainWindow, 3)))
         self.divdatAct.setToolTip('Divide Data From Workspace')
         
-        self.combineActList = [self.insertdatAct,self.adddatAct,self.subdatAct,self.multdatAct,self.divdatAct]
+        self.combineActList = [self.combineWorkspaceAct,self.insertdatAct,self.adddatAct,self.subdatAct,self.multdatAct,self.divdatAct]
         
         # the plot drop down menu
         self.plotMenu = QtWidgets.QMenu("&Plot", self)
@@ -630,9 +626,9 @@ class MainProgram(QtWidgets.QMainWindow):
         self.contourplotAct = self.plotMenu.addAction(QtGui.QIcon(IconDirectory + 'contour.png'), "&Contour Plot", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.plotContour()))      
         self.contourplotAct.setToolTip('Contour Plot')
         self.multiDActions.append(self.contourplotAct)
-        self.skewplotAct = self.plotMenu.addAction(QtGui.QIcon(IconDirectory + 'skewed.png'),"S&kewed Plot", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.plotSkewed()))
-        self.skewplotAct.setToolTip('Skew Plot')
-        self.multiDActions.append(self.skewplotAct)
+#        self.skewplotAct = self.plotMenu.addAction(QtGui.QIcon(IconDirectory + 'skewed.png'),"S&kewed Plot", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.plotSkewed()))
+#        self.skewplotAct.setToolTip('Skew Plot')
+#        self.multiDActions.append(self.skewplotAct)
         self.multiplotAct = self.plotMenu.addAction(QtGui.QIcon(IconDirectory + 'multi.png'),"&Multi Plot", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.plotMulti()))
         self.multiplotAct.setToolTip('Multi Plot')
 
@@ -659,7 +655,7 @@ class MainProgram(QtWidgets.QMainWindow):
         self.plotprefAct.setToolTip('Plot Settings')
         
         self.plotActList = [self.onedplotAct,self.scatterplotAct,self.stackplotAct,self.arrayplotAct,
-                            self.contourplotAct,self.skewplotAct,self.multiplotAct,self.setrefAct,
+                            self.contourplotAct,self.multiplotAct,self.setrefAct,
                             self.delrefAct,self.loadrefAct,self.userxAct,self.plotprefAct]
         
         # the history drop down menu
@@ -667,23 +663,33 @@ class MainProgram(QtWidgets.QMainWindow):
         self.menubar.addMenu(self.historyMenu)
         self.historyAct = self.historyMenu.addAction(QtGui.QIcon(IconDirectory + 'history.png'), "&History", lambda: self.mainWindowCheck(lambda mainWindow: HistoryWindow(mainWindow)))
         self.historyAct.setToolTip('Show Processing History')
+        self.errorAct = self.historyMenu.addAction("&Error Messages", lambda: errorWindow(self))
+        self.errorAct.setToolTip('Show Error Messages')
         self.clearundoAct = self.historyMenu.addAction(QtGui.QIcon(IconDirectory + 'delete.png'),"&Clear Undo/Redo List", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.clearUndo()))
         self.clearundoAct.setToolTip('Clear Undo/Redo List')
         
-        self.historyActList = [self.historyAct,self.clearundoAct]
+        self.historyActList = [self.historyAct,self.errorAct,self.clearundoAct]
+        
+        
+        
+        
+        #Utilities dropdown menu
+        self.utilitiesMenu = QtWidgets.QMenu("&Utilities", self)
+        self.menubar.addMenu(self.utilitiesMenu)
+        self.shiftconvAct = self.utilitiesMenu.addAction(QtGui.QIcon(IconDirectory + 'shifttool.png'),"&Chemical Shift Conversion Tool", self.createShiftConversionWindow)
+        self.shiftconvAct.setToolTip('Chemical Shift Conversion Tool')
+        self.quadconvAct = self.utilitiesMenu.addAction(QtGui.QIcon(IconDirectory + 'quadconversion.png'),"&Quadrupole Coupling Conversion Tool", self.createQuadConversionWindow)
+        self.quadconvAct.setToolTip('Quadrupole Coupling Conversion Tool')
+        self.nmrtableAct = self.utilitiesMenu.addAction(QtGui.QIcon(IconDirectory + 'table.png'),"&NMR Table", self.nmrTable)
+        self.nmrtableAct.setToolTip('NMR Periodic Table')
+        self.utilitiesActList = [self.shiftconvAct,self.quadconvAct,self.nmrtableAct]
+        
         
         # the help drop down menu
         self.helpMenu = QtWidgets.QMenu("&Help", self)
         self.menubar.addMenu(self.helpMenu)
         self.updateAct = self.helpMenu.addAction(QtGui.QIcon(IconDirectory + 'update.png'),"&Update", self.updateMenu)
         self.updateAct.setToolTip('Update ssNake')
-        self.shiftconvAct = self.helpMenu.addAction(QtGui.QIcon(IconDirectory + 'shifttool.png'),"&Chemical Shift Conversion Tool", self.createShiftConversionWindow)
-        self.shiftconvAct.setToolTip('Chemical Shift Conversion Tool')
-        self.quadconvAct = self.helpMenu.addAction(QtGui.QIcon(IconDirectory + 'quadconversion.png'),"&Quadrupole Coupling Conversion Tool", self.createQuadConversionWindow)
-        self.quadconvAct.setToolTip('Quadrupole Coupling Conversion Tool')
-        self.nmrtableAct = self.helpMenu.addAction(QtGui.QIcon(IconDirectory + 'table.png'),"&NMR Table", self.nmrTable)
-        self.nmrtableAct.setToolTip('NMR Periodic Table') 
-        
         self.aboutAct = self.helpMenu.addAction(QtGui.QIcon(IconDirectory + 'about.png'),"&About", lambda: aboutWindow(self))
         self.aboutAct.setToolTip('About Menu') 
 
@@ -1225,6 +1231,9 @@ class MainProgram(QtWidgets.QMainWindow):
     def createCombineWorkspaceWindow(self):
         CombineWorkspaceWindow(self)
 
+    def createCombineLoadWindow(self):
+        CombineLoadWindow(self)
+
     def combineWorkspace(self, combineNames):
         wsname = self.askName()
         if wsname is None:
@@ -1237,7 +1246,7 @@ class MainProgram(QtWidgets.QMainWindow):
             i = self.workspaceNames.index(name)
             addData = self.workspaces[i].get_masterData()
             if addData.data.shape != shapeRequired:
-                self.dispMsg("Not all the data has the required shape")
+                self.dispMsg("Not all the data has the same shape")
                 return False
             combineMasterData.insert(addData.data, combineMasterData.data.shape[0], 0)
         self.workspaces.append(Main1DWindow(self, combineMasterData))
@@ -1264,14 +1273,14 @@ class MainProgram(QtWidgets.QMainWindow):
                     temp_dir = tempfile.mkdtemp()
                     zipfile.ZipFile(filePath).extractall(temp_dir)
                     for i in os.listdir(temp_dir):
-                        if self.autoLoad(os.path.join(temp_dir, i),realpath=filePath):
+                        if self.autoLoad(os.path.join(temp_dir, i), realpath=filePath):
                             break
                 finally:
                     shutil.rmtree(temp_dir)
             else:
                 self.autoLoad(filePath)
 
-    def autoLoad(self, filePath,realpath=False):
+    def fileTypeCheck(self, filePath):
         returnVal = 0
         if os.path.isfile(filePath):
             filename = os.path.basename(filePath)
@@ -1279,52 +1288,97 @@ class MainProgram(QtWidgets.QMainWindow):
                 with open(filePath, 'r') as f:
                     check = int(np.fromfile(f, np.float32, 1))
                 if check == 0:
-                    self.loading(8, filePath)  # Suspected NMRpipe format
+                    return (8, filePath, returnVal)  # Suspected NMRpipe format
                 else:  # SIMPSON
-                    self.loading(4, filePath)
-                return returnVal
+                    return (4, filePath, returnVal)
             elif filename.endswith('.json') or filename.endswith('.JSON'):
-                self.loading(5, filePath)
-                return returnVal
+                return (5, filePath, returnVal)
             elif filename.endswith('.mat') or filename.endswith('.MAT'):
-                self.loading(6, filePath)
-                return returnVal
+                return (6, filePath, returnVal)
             elif filename.endswith('.jdf'):#JEOL delta format
-                self.loading(9, filePath)
-                return returnVal
+                return (9, filePath, returnVal)
             elif filename.endswith('.dx') or filename.endswith('.jdx') or filename.endswith('.jcamp'):#JCAMP format
-                self.loading(10, filePath)
-                return returnVal
+                return (10, filePath, returnVal)
+            elif filename.endswith('.sig'): #Bruker minispec    
+                return (12, filePath, returnVal)
+                
             fileName = filePath
             filePath = os.path.dirname(filePath)
             returnVal = 1
         direc = filePath
         if os.path.exists(direc + os.path.sep + 'procpar') and os.path.exists(direc + os.path.sep + 'fid'):
-            self.loading(0, filePath)
-            return returnVal
+            return (0, filePath, returnVal)
             # And for varian processed data
         if (os.path.exists(direc + os.path.sep + '..' + os.path.sep + 'procpar') or os.path.exists(direc + os.path.sep + 'procpar')) and os.path.exists(direc + os.path.sep + 'data'):
-            self.loading(0, filePath)
-            return returnVal
+            return (0, filePath, returnVal)
         elif os.path.exists(direc + os.path.sep + 'acqus') and (os.path.exists(direc + os.path.sep + 'fid') or os.path.exists(direc + os.path.sep + 'ser')):
-            self.loading(1, filePath)
-            return returnVal
+            return (1, filePath, returnVal)
         elif os.path.exists(direc + os.path.sep + 'procs') and (os.path.exists(direc + os.path.sep + '1r') or os.path.exists(direc + os.path.sep + '2rr')):
-            self.loading(7, filePath)
-            return returnVal
+            return (7, filePath, returnVal)
         elif os.path.exists(direc + os.path.sep + 'acq') and os.path.exists(direc + os.path.sep + 'data'):
-            self.loading(2, filePath)
-            return returnVal
+            return (2, filePath, returnVal)
         elif os.path.exists(direc + os.path.sep + 'acqu.par'):
             dirFiles = os.listdir(direc)
             files2D = [x for x in dirFiles if '.2d' in x]
             files1D = [x for x in dirFiles if '.1d' in x]
             if len(files2D) != 0 or len(files1D) != 0:
-                self.loading(3, filePath,realpath=realpath)
-                return returnVal
+                return (3, filePath, returnVal)
         else: #If not recognised, load as ascii
-            self.loading(11, fileName)
+            return (11, fileName, returnVal)
+                
+    def autoLoad(self, filePath, realpath=False):
+        val = self.fileTypeCheck(filePath)
+        self.loading(val[0], val[1], realpath=realpath)
+        return val[2]
 
+    def loadAndCombine(self, filePathList):
+        filePath = filePathList.pop(0)
+        combineMasterData = None
+        if filePath.endswith('.zip'):
+            import tempfile
+            import shutil
+            import zipfile
+            try:
+                temp_dir = tempfile.mkdtemp()
+                zipfile.ZipFile(filePath).extractall(temp_dir)
+                val = self.fileTypeCheck(os.path.join(temp_dir, os.listdir(temp_dir)[0]))
+                combineMasterData = self.loading(val[0], val[1], returnBool=True, realpath=filePath)
+            finally:
+                shutil.rmtree(temp_dir)
+        else:
+            val = self.fileTypeCheck(filePath)
+            combineMasterData = self.loading(val[0], val[1], returnBool=True)
+        if combineMasterData is None:
+            self.dispMsg("Data could not be loaded")
+            return False
+        shapeRequired = combineMasterData.data.shape
+        combineMasterData.split(1, -1)
+        for filePath in filePathList:
+            if filePath.endswith('.zip'):
+                import tempfile
+                import shutil
+                import zipfile
+                try:
+                    temp_dir = tempfile.mkdtemp()
+                    zipfile.ZipFile(filePath).extractall(temp_dir)
+                    val = self.fileTypeCheck(os.path.join(temp_dir, os.listdir(temp_dir)[0]))
+                    addData = self.loading(val[0], val[1], returnBool=True, realpath=filePath)
+                finally:
+                    shutil.rmtree(temp_dir)
+            else:
+                val = self.fileTypeCheck(filePath)
+                addData = self.loading(val[0], val[1], returnBool=True)
+            if addData.data.shape != shapeRequired:
+                self.dispMsg("Not all the data has the required shape")
+                return False
+            combineMasterData.insert(addData.data, combineMasterData.data.shape[0], 0)
+        wsname = self.askName()
+        self.workspaces.append(Main1DWindow(self, combineMasterData))
+        self.workspaces[-1].rename(wsname)
+        self.tabs.addTab(self.workspaces[-1], wsname)
+        self.workspaceNames.append(wsname)
+        self.changeMainWindow(wsname)
+    
     def dataFromFit(self, data, filePath, freq, sw, spec, wholeEcho, ref, xaxArray, axes):
         name = self.askName()
         if name is None:
@@ -1346,7 +1400,7 @@ class MainProgram(QtWidgets.QMainWindow):
         self.workspaceNames.append(name)
         self.changeMainWindow(name)
 
-    def loading(self, num, filePath, returnBool=False,realpath=False):
+    def loading(self, num, filePath, returnBool=False, realpath=False):
         if returnBool:
             name = None
         else:
@@ -1390,6 +1444,8 @@ class MainProgram(QtWidgets.QMainWindow):
             masterData = self.LoadJCAMP(filePath, name)   
         elif num == 11:
             masterData = self.LoadAscii(filePath, name) 
+        elif num == 12:
+            masterData = self.LoadMinispec(filePath, name) 
         if returnBool:
             return masterData
         else:
@@ -1517,7 +1573,19 @@ class MainProgram(QtWidgets.QMainWindow):
                 except:
                     self.dispMsg("Error on loading ASCII data",'red')
                     raise
-       
+                    
+    def LoadMinispec(self, filePath, name=''):
+        try:
+            masterData = LF.LoadMinispec(filePath,name)
+
+            masterData.msgHandler = lambda msg: self.dispMsg(msg)
+            masterData.addHistory("Minispec data loaded from " + filePath)
+        except:
+            self.dispMsg("Error on loading Minispec data",'red')
+            raise
+        return masterData 
+        
+        
     def saveSimpsonFile(self):
         self.mainWindow.get_mainWindow().SaveSimpsonFile()
 
@@ -1556,6 +1624,7 @@ class MainProgram(QtWidgets.QMainWindow):
         self.tabs.setCurrentIndex(num)
         self.menuCheck()
         self.allowChange = True
+#        self.mainWindow.current.showFid()
 
     def createFitWindow(self, fitWindow):
         if self.mainWindow is None:
@@ -1640,9 +1709,9 @@ class Main1DWindow(QtWidgets.QWidget):
         self.sideframe = SideFrame(self)
         grid.addWidget(self.sideframe, 0, 1)
         self.bottomframe = BottomFrame(self)
-        grid.addWidget(self.bottomframe, 1, 0)
+        grid.addWidget(self.bottomframe, 1, 0 , 1, 2)
         self.textframe = TextFrame(self)
-        grid.addWidget(self.textframe, 2, 0)
+        grid.addWidget(self.textframe, 2, 0 , 1 , 2)
         grid.setColumnStretch(0, 1)
         grid.setRowStretch(0, 1)
         self.grid = grid
@@ -1968,7 +2037,7 @@ class Main1DWindow(QtWidgets.QWidget):
         self.addMacro(['reload'])
         self.menuCheck()
 
-    def monitorLoad(self, filePath):
+    def monitorLoad(self, filePath, delay = 0.5):
         self.monitor.blockSignals(True)
         if not os.path.exists(filePath):
             self.stopMonitor()
@@ -1984,16 +2053,16 @@ class Main1DWindow(QtWidgets.QWidget):
         self.current.showFid()  
         self.updAllFrames()
         self.menuCheck()
-        QtCore.QTimer.singleShot(500, lambda: self.monitor.blockSignals(False))
+        QtCore.QTimer.singleShot(delay * 1000, lambda: self.monitor.blockSignals(False))
         if filePath in self.monitor.files() or filePath in self.monitor.directories():
             return
         self.monitor.addPath(filePath)
 
-    def startMonitor(self, macroNames):
+    def startMonitor(self, macroNames, delay = 0.5):
         self.monitorMacros = macroNames
         self.monitor = QtCore.QFileSystemWatcher([self.masterData.filePath[1]], self)
-        self.monitor.fileChanged.connect(self.monitorLoad)
-        self.monitor.directoryChanged.connect(self.monitorLoad)
+        self.monitor.fileChanged.connect(lambda a: self.monitorLoad(a,delay))
+        self.monitor.directoryChanged.connect(lambda a: self.monitorLoad(a,delay))
 
     def stopMonitor(self):
         self.monitorMacros = []
@@ -2446,34 +2515,189 @@ class SideFrame(QtWidgets.QScrollArea):
                     self.elevEntry.returnPressed.connect(self.setSkew)
                     self.frame2.addWidget(self.elevEntry, 10, 0)
             if isinstance(current, (sc.CurrentContour)):
-                self.frame2.addWidget(wc.QLabel("Number of contours:", self), 1, 0)
-                self.numLEntry = QtWidgets.QLineEdit(self)
-                self.numLEntry.setText(str(current.numLevels))
-                self.numLEntry.returnPressed.connect(self.setContour)
-                self.frame2.addWidget(self.numLEntry, 2, 0)
+                
+                self.contourTypeGroup = QtWidgets.QGroupBox('Contour type:')
+                self.contourTypeFrame = QtWidgets.QGridLayout()
+                self.contourNumberLabel = QtWidgets.QLabel("Number:", self)
+                self.contourNumberLabel.setAlignment(QtCore.Qt.AlignLeft)
+                self.contourNumberLabel.setAlignment(QtCore.Qt.AlignVCenter)
+                
+                self.contourTypeFrame.addWidget(self.contourNumberLabel, 0, 0)
+                
+                self.numLEntry = QtWidgets.QSpinBox()
+                self.numLEntry.setMaximum(100000)
+                self.numLEntry.setMinimum(1)
+                self.numLEntry.setValue(current.numLevels)
+                self.numLEntry.valueChanged.connect(self.setContour)
+                self.contourTypeFrame.addWidget(self.numLEntry, 0, 1)
+                
+                self.contourTypeFrame.addWidget(wc.QLeftLabel("Sign:", self), 1, 0)
+                self.contourSignEntry = QtWidgets.QComboBox()
+                self.contourSignEntry.addItems(['Both','+ only','- only'])
+                self.contourSignEntry.setCurrentIndex(current.contourSign)
+                self.contourSignEntry.currentIndexChanged.connect(self.setContour)
+                self.contourTypeFrame.addWidget(self.contourSignEntry, 1, 1)
+                
+                self.contourTypeLabel = QtWidgets.QLabel("Type:", self)
+                self.contourTypeLabel.setAlignment(QtCore.Qt.AlignLeft)
+                self.contourTypeLabel.setAlignment(QtCore.Qt.AlignVCenter)
+                self.contourTypeFrame.addWidget(self.contourTypeLabel, 2, 0)
+                
                 self.contourTypeEntry = QtWidgets.QComboBox()
                 self.contourTypeEntry.addItems(['Linear','Multiplier'])
+                self.contourTypeEntry.setCurrentIndex(current.contourType)
                 self.contourTypeEntry.currentIndexChanged.connect(self.setContour)
-                self.frame2.addWidget(wc.QLabel("Contour scale:", self), 3, 0)
-                self.frame2.addWidget(self.contourTypeEntry, 4, 0)
-                self.multiValueLabel = wc.QLabel("Multiplier value:", self)
-                self.frame2.addWidget(self.multiValueLabel, 5, 0)
-                self.multiValueLabel.hide()
+                self.contourTypeFrame.addWidget(self.contourTypeEntry, 2, 1)
+                
+                self.multiValueLabel = QtWidgets.QLabel("Multiplier:", self)
+                self.multiValueLabel.setAlignment(QtCore.Qt.AlignLeft)
+                self.multiValueLabel.setAlignment(QtCore.Qt.AlignVCenter)
+                self.contourTypeFrame.addWidget(self.multiValueLabel, 3, 0)
+                
                 self.multiValue = QtWidgets.QLineEdit(self)
-                self.multiValue.setText(str(1.5))
+                self.multiValue.setAlignment(QtCore.Qt.AlignHCenter)
+                self.multiValue.setText(str(current.multiValue))
                 self.multiValue.returnPressed.connect(self.setContour)
-                self.frame2.addWidget(self.multiValue, 6, 0)
-                self.multiValue.hide()
-                self.frame2.addWidget(wc.QLabel("Highest contour [%]:", self), 7, 0)
+                self.multiValue.setMaximumWidth(120)
+                self.contourTypeFrame.addWidget(self.multiValue, 3, 1)
+                
+                if current.contourType != 1:
+                    self.multiValueLabel.hide()
+                    self.multiValue.hide()
+                self.contourTypeGroup.setLayout(self.contourTypeFrame)
+                self.frame2.addWidget(self.contourTypeGroup, 6, 0, 1, 3)
+                    
+                #Contour limits    
+                self.contourLimitsGroup = QtWidgets.QGroupBox('Contour limits [%]:')
+                self.contourLimitsFrame = QtWidgets.QGridLayout()
                 self.maxLEntry = QtWidgets.QLineEdit(self)
-                self.maxLEntry.setText(str(current.maxLevels * 100.0))
+                self.maxLEntry.setAlignment(QtCore.Qt.AlignHCenter)
+                self.maxLEntry.setMaximumWidth(120)
+                self.maxLEntry.setText(format(current.maxLevels * 100.0, '.7g'))
                 self.maxLEntry.returnPressed.connect(self.setContour)
-                self.frame2.addWidget(self.maxLEntry, 8, 0)
-                self.frame2.addWidget(wc.QLabel("Lowest contour [%]:", self), 9, 0)
+                
+                self.contourLimitsFrame.addWidget(self.maxLEntry, 0, 1)
                 self.minLEntry = QtWidgets.QLineEdit(self)
-                self.minLEntry.setText(str(current.minLevels * 100.0))
+                self.minLEntry.setAlignment(QtCore.Qt.AlignHCenter)
+                self.minLEntry.setMaximumWidth(120)
+                self.minLEntry.setText(format(current.minLevels * 100.0, '.7g'))
                 self.minLEntry.returnPressed.connect(self.setContour)
-                self.frame2.addWidget(self.minLEntry, 10, 0)
+                self.contourLimitsFrame.addWidget(self.minLEntry, 1, 1)
+                self.maxLabel = QtWidgets.QLabel("Max:", self)
+                self.maxLabel.setAlignment(QtCore.Qt.AlignLeft)
+                self.maxLabel.setAlignment(QtCore.Qt.AlignVCenter)
+                self.minLabel = QtWidgets.QLabel("Min:", self)
+                self.minLabel.setAlignment(QtCore.Qt.AlignLeft)
+                self.minLabel.setAlignment(QtCore.Qt.AlignVCenter)
+                self.contourLimitsFrame.addWidget(self.maxLabel, 0, 0)
+                self.contourLimitsFrame.addWidget(self.minLabel, 1, 0)
+                self.contourLimitsGroup.setLayout(self.contourLimitsFrame)
+                self.frame2.addWidget(self.contourLimitsGroup, 7, 0, 1, 3)
+                
+                
+                #Projections
+                self.contourProjGroup = QtWidgets.QGroupBox('Projections:')
+                self.contourProjFrame = QtWidgets.QGridLayout()
+                self.projTopLabel = QtWidgets.QLabel("Top:", self)
+                self.projTopLabel.setAlignment(QtCore.Qt.AlignLeft)
+                self.projTopLabel.setAlignment(QtCore.Qt.AlignVCenter)
+                self.contourProjFrame.addWidget(self.projTopLabel, 0, 0)
+                self.projDropTop = QtWidgets.QComboBox()
+                self.projDropTop.addItems(["sum", "max", "min" , "off"])
+                self.projDropTop.setCurrentIndex(current.projTop)
+                self.projDropTop.activated.connect(lambda val, self=self: self.changeProj(val, 1))
+                self.contourProjFrame.addWidget(self.projDropTop, 0, 1,)
+                
+           
+                self.projRightLabel = QtWidgets.QLabel("Right:", self)
+                self.projRightLabel.setAlignment(QtCore.Qt.AlignLeft)
+                self.projRightLabel.setAlignment(QtCore.Qt.AlignVCenter)
+                self.contourProjFrame.addWidget(self.projRightLabel, 1, 0)
+                self.projDropRight = QtWidgets.QComboBox()
+                self.projDropRight.addItems(["sum", "max", "min" ,"off"])
+                self.projDropRight.setCurrentIndex(current.projRight)
+                self.projDropRight.activated.connect(lambda val, self=self: self.changeProj(val, 2))
+                self.contourProjFrame.addWidget(self.projDropRight, 1, 1)
+                
+                #Ranges
+                self.rangeCheckbox = QtWidgets.QCheckBox('Projection ranges',self)
+                self.rangeCheckbox.stateChanged.connect(self.changeRanges)
+                self.contourProjFrame.addWidget(self.rangeCheckbox,2,0,1,2)
+                
+                self.projTopRangeMaxLabel = wc.QLeftLabel("Top max:", self)
+                self.projTopRangeMaxLabel.hide()
+                self.contourProjFrame.addWidget(self.projTopRangeMaxLabel, 3, 0)
+                self.projTopRangeMax = QtWidgets.QSpinBox()
+                self.projTopRangeMax.setMaximum(100000)
+                self.projTopRangeMax.setMinimum(0)
+#                self.projTopRange.setValue(current.numLevels)
+                self.projTopRangeMax.valueChanged.connect(self.setContour)
+                self.projTopRangeMax.hide()
+                self.contourProjFrame.addWidget(self.projTopRangeMax, 3, 1)
+                
+                
+                self.projTopRangeMinLabel = wc.QLeftLabel("Top min:", self)
+                self.projTopRangeMinLabel.hide()
+                self.contourProjFrame.addWidget(self.projTopRangeMinLabel, 4, 0)
+                self.projTopRangeMin = QtWidgets.QSpinBox()
+                self.projTopRangeMin.setMaximum(100000)
+                self.projTopRangeMin.setMinimum(0)
+#                self.projTopRange.setValue(current.numLevels)
+                self.projTopRangeMin.valueChanged.connect(self.setContour)
+                self.projTopRangeMin.hide()
+                self.contourProjFrame.addWidget(self.projTopRangeMin, 4, 1)
+                
+                self.projRightRangeMaxLabel = wc.QLeftLabel("Right max:", self)
+                self.projRightRangeMaxLabel.hide()
+                self.contourProjFrame.addWidget(self.projRightRangeMaxLabel, 5, 0)
+                self.projRightRangeMax = QtWidgets.QSpinBox()
+                self.projRightRangeMax.setMaximum(100000)
+                self.projRightRangeMax.setMinimum(0)
+#                self.projTopRange.setValue(current.numLevels)
+                self.projRightRangeMax.valueChanged.connect(self.setContour)
+                self.projRightRangeMax.hide()
+                self.contourProjFrame.addWidget(self.projRightRangeMax, 5, 1)
+                
+                
+                self.projRightRangeMinLabel = wc.QLeftLabel("Top min:", self)
+                self.contourProjFrame.addWidget(self.projRightRangeMinLabel, 6, 0)
+                self.projRightRangeMinLabel.hide()
+                self.projRightRangeMin = QtWidgets.QSpinBox()
+                self.projRightRangeMin.setMaximum(100000)
+                self.projRightRangeMin.setMinimum(0)
+#                self.projTopRange.setValue(current.numLevels)
+                self.projRightRangeMin.valueChanged.connect(self.setContour)
+                self.projRightRangeMin.hide()
+                self.contourProjFrame.addWidget(self.projRightRangeMin, 6, 1)
+                
+                
+
+
+                self.contourProjGroup.setLayout(self.contourProjFrame)
+                self.frame2.addWidget(self.contourProjGroup, 8, 0, 1, 3)
+                
+                
+                
+                #Diagonal group
+                self.diagonalGroup = QtWidgets.QGroupBox('Diagonal:')
+                self.diagonalGroup.setCheckable(True)
+                self.diagonalGroup.setChecked(current.diagonalBool)
+                self.diagonalGroup.toggled.connect(self.switchDiagonal)
+                self.diagonalFrame = QtWidgets.QGridLayout()
+                self.diagMultiLabel = QtWidgets.QLabel("Multiplier:", self)
+                self.diagMultiLabel.setAlignment(QtCore.Qt.AlignLeft)
+                self.diagMultiLabel.setAlignment(QtCore.Qt.AlignVCenter)
+                self.diagonalFrame.addWidget(self.diagMultiLabel, 0, 0)
+                self.diagonalEntry = QtWidgets.QLineEdit(self)
+                self.diagonalEntry.setAlignment(QtCore.Qt.AlignHCenter)
+                self.diagonalEntry.setText(str(current.diagonalMult))
+                self.diagonalEntry.returnPressed.connect(self.setDiagonal)
+                self.diagonalEntry.setMaximumWidth(120)
+                self.diagonalFrame.addWidget(self.diagonalEntry, 0, 1)
+                self.diagonalGroup.setLayout(self.diagonalFrame)
+                self.frame2.addWidget(self.diagonalGroup, 9, 0, 1, 3)
+                
+                
             self.buttons1Group.button(current.axes).toggle()
             if self.plotIs2D:
                 self.buttons2Group.button(current.axes2).toggle()
@@ -2501,16 +2725,29 @@ class SideFrame(QtWidgets.QScrollArea):
                 button.clicked.connect(lambda arg, num=i: self.delMultiSpec(num))
                 frame.addWidget(button, 1, 1)
                 self.OOM = self.father.current.getOOM()  # Order of Magnitude
-                frame.addWidget(wc.QLabel("Scale", self), 2, 0)
-                frame.addWidget(wc.QLabel(u"Offset (\u00D71e" + str(self.OOM) + ")", self), 2, 1)
-                frame.addWidget(wc.QLabel("Shift", self), 2, 2)
+                
+                self.scaleLabel = QtWidgets.QLabel("Scale:", self)
+                self.scaleLabel.setAlignment(QtCore.Qt.AlignLeft)
+                self.scaleLabel.setAlignment(QtCore.Qt.AlignVCenter)
+                frame.addWidget(self.scaleLabel, 2, 0)
+                
+                self.offsetLabel = QtWidgets.QLabel(u"Offset (\u00D71e" + str(self.OOM) + "):", self)
+                self.offsetLabel.setAlignment(QtCore.Qt.AlignLeft)
+                self.offsetLabel.setAlignment(QtCore.Qt.AlignVCenter)
+                frame.addWidget(self.offsetLabel, 3, 0)
+                
+                self.shiftLabel = QtWidgets.QLabel("Shift:", self)
+                self.shiftLabel.setAlignment(QtCore.Qt.AlignLeft)
+                self.shiftLabel.setAlignment(QtCore.Qt.AlignVCenter)
+                frame.addWidget(self.shiftLabel, 4, 0)
+                
                 scaleEntry = QtWidgets.QDoubleSpinBox()
                 scaleEntry.setMaximum(1e3)
                 scaleEntry.setMinimum(-1e3)
                 scaleEntry.setSingleStep(0.1)
                 scaleEntry.setValue(self.father.current.extraScale[i])
                 scaleEntry.valueChanged.connect(lambda arg, num=i: self.setScale(arg, num))
-                frame.addWidget(scaleEntry, 3, 0)
+                frame.addWidget(scaleEntry, 2, 1)
                 offsetEntry = QtWidgets.QDoubleSpinBox()
                 offsetEntry.setMaximum(1e3)
                 offsetEntry.setMinimum(-1e3)
@@ -2525,7 +2762,7 @@ class SideFrame(QtWidgets.QScrollArea):
                 shiftEntry.setSingleStep(0.1)
                 shiftEntry.setValue(self.father.current.extraShift[i])
                 shiftEntry.valueChanged.connect(lambda arg, num=i: self.setShift(arg, num))
-                frame.addWidget(shiftEntry, 3, 2)
+                frame.addWidget(shiftEntry, 4, 1)
                 
                 
                 entries = []
@@ -2538,10 +2775,10 @@ class SideFrame(QtWidgets.QScrollArea):
                     for num in range(current.extraData[i].data.ndim):
                         buttons1.append(QtWidgets.QRadioButton(''))
                         self.extraButtons1Group[i].addButton(buttons1[num], num)
-                        frame.addWidget(buttons1[num], num * 2 + 5, 0)
-                        frame.addWidget(wc.QLabel("D" + str(num + 1), self), num * 2 + 4, 1)
+                        frame.addWidget(buttons1[num], num * 3 + 6, 0)
+                        frame.addWidget(wc.QLabel("D" + str(num + 1), self), num * 3 + 5, 1)
                         entries.append(wc.SliceSpinBox(self, 0, current.extraData[i].data.shape[num] - 1))
-                        frame.addWidget(entries[num], num * 2 + 5, 1)
+                        frame.addWidget(entries[num], num * 3 + 6, 1)
                         if num < current.extraAxes[i]:
                             entries[num].setValue(current.extraLoc[i][num])
                         elif num == current.extraAxes[i]:
@@ -2586,24 +2823,74 @@ class SideFrame(QtWidgets.QScrollArea):
         self.father.current.setSkewed(var, var2)
 
     def setContour(self, *args):
-        var1 = int(round(safeEval(self.numLEntry.text())))
-        self.numLEntry.setText(str(var1))
-        var2 = abs(float(safeEval(self.maxLEntry.text())))
-        var3 = abs(float(safeEval(self.minLEntry.text())))
-        if var3 > var2: #if wrong order, interchange
-            var2, var3 = (var3 , var2)
-        self.maxLEntry.setText(str(var2))
-        self.minLEntry.setText(str(var3))
-        var4 = self.contourTypeEntry.currentIndex()
-        if var4 == 0:
+        var1 = self.numLEntry.value()
+        
+        maxC =safeEval(self.maxLEntry.text())
+        if maxC is None:
+            maxC = self.father.current.maxLevels * 100
+            self.father.father.dispMsg('Invalid value for contour maximum')
+        else:
+            maxC = abs(float(maxC))
+        
+        minC =safeEval(self.minLEntry.text())
+        if minC is None:
+            minC = self.father.current.minLevels * 100
+            self.father.father.dispMsg('Invalid value for contour minimum')
+        else:
+            minC = abs(float(minC))
+            
+        if minC > maxC: #if wrong order, interchange
+            maxC, minC = (minC , maxC)
+        self.maxLEntry.setText(str(maxC))
+        self.minLEntry.setText(str(minC))
+        
+        cSign = self.contourSignEntry.currentIndex()
+        
+        
+        
+        cType =self.contourTypeEntry.currentIndex() 
+        if cType == 0:
             self.multiValue.hide()
             self.multiValueLabel.hide()
         else:
             self.multiValue.show()
             self.multiValueLabel.show()
-        var5 = abs(float(safeEval(self.multiValue.text())))
-        self.father.current.setLevels(var1, var2 / 100.0, var3 / 100.0, var4, var5)
+            
+            
+        multi = safeEval(self.multiValue.text())
+        if multi is None:
+            multi = self.father.current.multiValue
+            self.father.father.dispMsg('Invalid value for contour multiplier')
+        else:
+            multi = abs(float(multi))
+        self.multiValue.setText(str(multi))
+        self.father.current.setLevels(var1, maxC / 100.0, minC / 100.0, cSign, cType, multi)
 
+    def changeProj(self, pType, direc):
+        self.father.current.setProjType(pType, direc)
+        self.father.current.showProj()
+    
+    def changeRanges(self,state):
+        if state:
+            self.projTopRangeMaxLabel.show()
+            self.projTopRangeMax.show()
+            self.projTopRangeMinLabel.show()
+            self.projTopRangeMin.show()
+            self.projRightRangeMaxLabel.show()
+            self.projRightRangeMax.show()
+            self.projRightRangeMinLabel.show()
+            self.projRightRangeMin.show()
+        else:
+            self.projTopRangeMaxLabel.hide()
+            self.projTopRangeMax.hide()
+            self.projTopRangeMinLabel.hide()
+            self.projTopRangeMin.hide()
+            self.projRightRangeMaxLabel.hide()
+            self.projRightRangeMax.hide()
+            self.projRightRangeMinLabel.hide()
+            self.projRightRangeMin.hide()
+        
+        
     def setAxes(self, first=True):
         axes = self.buttons1Group.checkedId()
         if self.plotIs2D:
@@ -2688,7 +2975,19 @@ class SideFrame(QtWidgets.QScrollArea):
        
     def setShift(self, shift, num):
         self.father.current.setExtraShift(num, shift)    
-    
+
+    def switchDiagonal(self, val):
+        self.father.current.setDiagonal(bool(val))
+
+    def setDiagonal(self):
+        inp = safeEval(self.diagonalEntry.text())
+        if inp is None:
+            inp = self.father.current.diagonalMult
+            self.father.father.dispMsg('Invalid value for diagonal multiplier')
+        else:
+            inp = float(inp)
+        self.diagonalEntry.setText(str(inp))
+        self.father.current.setDiagonal(None, inp)
 
     def checkChanged(self):
         for i in range(len(self.father.current.extraData)):
@@ -2774,18 +3073,6 @@ class BottomFrame(QtWidgets.QWidget):
         self.axisDropFreq2.addItems(["Hz", "kHz", "MHz", "ppm"])
         self.axisDropFreq2.activated.connect(self.changeAxis2)
         grid.addWidget(self.axisDropFreq2, 1, 7)
-        self.proj1Label = wc.QLabel("Proj top:", self)
-        grid.addWidget(self.proj1Label, 0, 8)
-        self.projDrop1 = QtWidgets.QComboBox(parent=self)
-        self.projDrop1.addItems(["sum", "max", "min"])
-        self.projDrop1.activated.connect(lambda val, self=self: self.changeProj(val, 1))
-        grid.addWidget(self.projDrop1, 1, 8)
-        self.proj2Label = wc.QLabel("Proj right:", self)
-        grid.addWidget(self.proj2Label, 0, 9)
-        self.projDrop2 = QtWidgets.QComboBox(parent=self)
-        self.projDrop2.addItems(["sum", "max", "min"])
-        self.projDrop2.activated.connect(lambda val, self=self: self.changeProj(val, 2))
-        grid.addWidget(self.projDrop2, 1, 9)
         grid.setColumnStretch(10, 1)
         grid.setAlignment(QtCore.Qt.AlignLeft)
         self.grid = grid
@@ -2807,10 +3094,6 @@ class BottomFrame(QtWidgets.QWidget):
         self.swEntry.setText('%.6f' % (self.father.current.sw / 1000.0))
         self.axisDropTime2.hide()
         self.axisDropFreq2.hide()
-        self.proj1Label.hide()
-        self.proj2Label.hide()
-        self.projDrop1.hide()
-        self.projDrop2.hide()
         self.axisDropFreq.model().item(3).setEnabled(True)
         if self.father.current.spec == 0:
             self.specGroup.button(0).toggle()
@@ -2831,10 +3114,6 @@ class BottomFrame(QtWidgets.QWidget):
                 self.axisDropFreq.setCurrentIndex(self.father.current.axType)
         if isinstance(self.father.current, sc.CurrentContour):
             self.ax2Label.show()
-            self.proj1Label.show()
-            self.proj2Label.show()
-            self.projDrop1.show()
-            self.projDrop2.show()
             self.axisDropFreq2.model().item(3).setEnabled(True)
             if self.father.current.spec2 == 0:
                 self.axisDropTime2.show()
@@ -2860,10 +3139,22 @@ class BottomFrame(QtWidgets.QWidget):
         self.father.menuCheck()
 
     def changeFreq(self):
-        freq = safeEval(self.freqEntry.text()) * 1e6
-        sw = safeEval(self.swEntry.text()) * 1e3
-        if freq != 0 and sw != 0:
-            self.father.setFreq(freq, sw)
+        freq = safeEval(self.freqEntry.text())
+        sw = safeEval(self.swEntry.text())
+        if sw is None:
+            self.father.father.dispMsg('Invalid sweepwidth')
+        elif sw == 0.0:
+            sw = None
+            self.father.father.dispMsg('Sweepwidth cannot be 0')
+        else:
+            sw *= 1000
+            
+        if freq is not None:
+            freq *= 1e6
+        else:
+            self.father.father.dispMsg('Invalid spectrum frequency')
+        
+        self.father.setFreq(freq, sw)
         self.upd()
 
     def changePlot(self, pType):
@@ -2877,10 +3168,6 @@ class BottomFrame(QtWidgets.QWidget):
     def changeAxis2(self, pType):
         self.father.current.setAxType2(pType)
         self.father.current.showFid()
-
-    def changeProj(self, pType, direc):
-        self.father.current.setProjType(pType, direc)
-        self.father.current.showProj()
 
 ##################################################################
 
@@ -2991,7 +3278,7 @@ class TextFrame(QtWidgets.QScrollArea):
             self.ypos.setText(str(position[3]))
             self.deltaypoint.setText('%#.3g' % np.abs(self.oldy - position[4]))
             self.ypoint.setText('%#.3g' % position[4])
-            self.oldy = position[3]
+            self.oldy = position[4]
         self.deltaxpoint.setText('%#.3g' % np.abs(self.oldx - position[1]))
         self.deltaamppoint.setText('%#.3g' % np.abs(self.oldamp - position[2]))
         self.xpos.setText(str(position[0]))
@@ -3150,58 +3437,79 @@ class PhaseWindow(QtWidgets.QWidget):
         layout = QtWidgets.QGridLayout(self)
         grid = QtWidgets.QGridLayout()
         layout.addLayout(grid, 0, 0, 1, 2)
-        grid.addWidget(wc.QLabel("Zero order phasing:"), 0, 0, 1, 3)
+        
+        #Zero order
+        self.zeroOrderGroup = QtWidgets.QGroupBox('Zero order:')
+        self.zeroOrderFrame = QtWidgets.QGridLayout()
         autoZero = QtWidgets.QPushButton("Autophase 0th")
         autoZero.clicked.connect(lambda: self.autophase(0))
-        grid.addWidget(autoZero, 1, 1)
+        self.zeroOrderFrame.addWidget(autoZero, 0, 1)
+        
+        
         self.zeroEntry = QtWidgets.QLineEdit()
         self.zeroEntry.setAlignment(QtCore.Qt.AlignHCenter)
         self.zeroEntry.returnPressed.connect(self.inputZeroOrder)
         self.zeroEntry.setText("0.000")
-        grid.addWidget(self.zeroEntry, 2, 1)
+        self.zeroOrderFrame.addWidget(self.zeroEntry, 2, 1)
         leftZero = QtWidgets.QPushButton("<")
         leftZero.clicked.connect(lambda: self.stepPhase(-1, 0))
         leftZero.setAutoRepeat(True)
-        grid.addWidget(leftZero, 2, 0)
+        self.zeroOrderFrame.addWidget(leftZero, 2, 0)
         rightZero = QtWidgets.QPushButton(">")
         rightZero.clicked.connect(lambda: self.stepPhase(1, 0))
         rightZero.setAutoRepeat(True)
-        grid.addWidget(rightZero, 2, 2)
+        self.zeroOrderFrame.addWidget(rightZero, 2, 2)
         self.zeroScale = QtWidgets.QSlider(QtCore.Qt.Horizontal)
         self.zeroScale.setRange(-self.RESOLUTION, self.RESOLUTION)
         self.zeroScale.valueChanged.connect(self.setZeroOrder)
-        grid.addWidget(self.zeroScale, 3, 0, 1, 3)
-        grid.addWidget(wc.QLabel("First order phasing:"), 4, 0, 1, 3)
+        self.zeroOrderFrame.addWidget(self.zeroScale, 3, 0, 1, 3)
+        
+        
+        self.zeroOrderGroup.setLayout(self.zeroOrderFrame)
+        
+        grid.addWidget(self.zeroOrderGroup,0,0,1,3)
+        
+        #First order
+        self.firstOrderGroup = QtWidgets.QGroupBox('First order:')
+        self.firstOrderFrame = QtWidgets.QGridLayout()
+        
         autoFirst = QtWidgets.QPushButton("Autophase 0th+1st")
         autoFirst.clicked.connect(lambda: self.autophase(1))
-        grid.addWidget(autoFirst, 5, 1)
+        self.firstOrderFrame.addWidget(autoFirst, 5, 1)
         self.firstEntry = QtWidgets.QLineEdit()
         self.firstEntry.setAlignment(QtCore.Qt.AlignHCenter)
         self.firstEntry.returnPressed.connect(self.inputFirstOrder)
         self.firstEntry.setText("0.000")
-        grid.addWidget(self.firstEntry, 6, 1)
+        self.firstOrderFrame.addWidget(self.firstEntry, 6, 1)
         leftFirst = QtWidgets.QPushButton("<")
         leftFirst.clicked.connect(lambda: self.stepPhase(0, -1))
         leftFirst.setAutoRepeat(True)
-        grid.addWidget(leftFirst, 6, 0)
+        self.firstOrderFrame.addWidget(leftFirst, 6, 0)
         rightFirst = QtWidgets.QPushButton(">")
         rightFirst.clicked.connect(lambda: self.stepPhase(0, 1))
         rightFirst.setAutoRepeat(True)
-        grid.addWidget(rightFirst, 6, 2)
+        self.firstOrderFrame.addWidget(rightFirst, 6, 2)
         self.firstScale = QtWidgets.QSlider(QtCore.Qt.Horizontal)
         self.firstScale.setRange(-self.RESOLUTION, self.RESOLUTION)
         self.firstScale.valueChanged.connect(self.setFirstOrder)
-        grid.addWidget(self.firstScale, 7, 0, 1, 3)
+        self.firstOrderFrame.addWidget(self.firstScale, 7, 0, 1, 3)
         if self.father.current.spec > 0:
-            grid.addWidget(wc.QLabel("Reference:"), 8, 0, 1, 3)
+            self.firstOrderFrame.addWidget(wc.QLabel("Reference:"), 8, 0, 1, 3)
             pickRef = QtWidgets.QPushButton("Pick reference")
             pickRef.clicked.connect(self.pickRef)
-            grid.addWidget(pickRef, 9, 1)
+            self.firstOrderFrame.addWidget(pickRef, 9, 1)
             self.refEntry = QtWidgets.QLineEdit()
             self.refEntry.setAlignment(QtCore.Qt.AlignHCenter)
             self.refEntry.setText('%.3f' % self.refVal)
             self.refEntry.returnPressed.connect(self.inputRef)
-            grid.addWidget(self.refEntry, 10, 1)
+            self.firstOrderFrame.addWidget(self.refEntry, 10, 1)
+            
+        
+        self.firstOrderGroup.setLayout(self.firstOrderFrame)
+        grid.addWidget(self.firstOrderGroup,1,0,1,3)
+        
+        
+
 
         self.singleSlice = QtWidgets.QCheckBox("Single slice")
         grid.addWidget(self.singleSlice, 11, 0, 1, 3)
@@ -3425,19 +3733,28 @@ class ApodWindow(QtWidgets.QWidget):
 
         if self.father.current.data.data.ndim > 1:
             grid.addWidget(wc.QLabel("Shifting:"), 12, 0, 1, 3)
+            
+            self.shiftingDropdown = QtWidgets.QComboBox()
+            self.shiftingDropdown.addItems(['User Defined','Spin 3/2, -3Q','Spin 5/2, 3Q','Spin 5/2, -5Q','Spin 7/2, 3Q',
+                                         'Spin 7/2, 5Q','Spin 7/2, -7Q','Spin 9/2, 3Q','Spin 9/2, 5Q','Spin 9/2, 7Q','Spin 9/2, -9Q'])
+            self.shiftingDropdown.activated.connect(self.dropdownChanged)
+            self.shiftingList = [0,9.0/7.0,19.0/12.0,25.0/12.0,101.0/45.0,11.0/9.0,161.0/45.0,91.0/36.0,95.0/36.0,7.0/18.0,31.0/6.0]
+        
+            grid.addWidget(self.shiftingDropdown, 13, 1)
+            
             self.shiftingEntry = QtWidgets.QLineEdit()
             self.shiftingEntry.setAlignment(QtCore.Qt.AlignHCenter)
             self.shiftingEntry.setText("0.00")
             self.shiftingEntry.returnPressed.connect(self.apodPreview)
-            grid.addWidget(self.shiftingEntry, 13, 1)
+            grid.addWidget(self.shiftingEntry, 14, 1)
             self.shiftingAxes = QtWidgets.QComboBox()
             self.shiftingValues = list(map(str, np.delete(range(1, self.father.current.data.data.ndim + 1), self.father.current.axes)))
             self.shiftingAxes.addItems(self.shiftingValues)
             self.shiftingAxes.currentIndexChanged.connect(self.apodPreview)
-            grid.addWidget(self.shiftingAxes, 14, 1)
+            grid.addWidget(self.shiftingAxes, 15, 1)
 
         self.singleSlice = QtWidgets.QCheckBox("Single slice")
-        grid.addWidget(self.singleSlice, 15, 0, 1, 3)
+        grid.addWidget(self.singleSlice, 16, 0, 1, 3)
         cancelButton = QtWidgets.QPushButton("&Cancel")
         cancelButton.clicked.connect(self.closeEvent)
         layout.addWidget(cancelButton, 1, 0)
@@ -3449,6 +3766,11 @@ class ApodWindow(QtWidgets.QWidget):
         self.father.menuDisable()
         self.setGeometry(self.frameSize().width() - self.geometry().width(), self.frameSize().height() - self.geometry().height(), 0, 0)
 
+    def dropdownChanged(self):
+        index =  self.shiftingDropdown.currentIndex()
+        self.shiftingEntry.setText("%.9f" % self.shiftingList[index])
+        self.apodPreview()
+        
     def checkEval(self, num):
         if self.ticks[num].isChecked():
             self.entries[num].setEnabled(True)
@@ -6225,6 +6547,75 @@ class CombineWorkspaceWindow(QtWidgets.QWidget):
 ##########################################################################################
 
 
+class CombineLoadWindow(QtWidgets.QWidget):
+
+    def __init__(self, parent):
+        QtWidgets.QWidget.__init__(self, parent)
+        self.setWindowFlags(QtCore.Qt.Window | QtCore.Qt.Tool)
+        self.setAcceptDrops(True)
+        self.father = parent
+        self.setWindowTitle("Open & Combine")
+        layout = QtWidgets.QGridLayout(self)
+        grid = QtWidgets.QGridLayout()
+        layout.addLayout(grid, 0, 0, 1, 3)
+        grid.addWidget(wc.QLabel("Data to be Combined:"), 0, 0)
+        self.specList = DestListWidget(self)
+        grid.addWidget(self.specList, 1, 0)
+        browseButton = QtWidgets.QPushButton("&Browse")
+        browseButton.clicked.connect(self.browse)
+        layout.addWidget(browseButton, 2, 0)
+        cancelButton = QtWidgets.QPushButton("&Close")
+        cancelButton.clicked.connect(self.closeEvent)
+        layout.addWidget(cancelButton, 2, 1)
+        okButton = QtWidgets.QPushButton("&Ok")
+        okButton.clicked.connect(self.applyAndClose)
+        layout.addWidget(okButton, 2, 2)
+        layout.setColumnStretch(2, 1)
+        self.show()
+        self.setFixedSize(self.size())
+        self.father.menuDisable()
+        self.setGeometry(self.frameSize().width() - self.geometry().width(), self.frameSize().height() - self.geometry().height(), 0, 0)
+
+    def dragEnterEvent(self, event):
+        if event.mimeData().hasUrls:
+            event.accept()
+        else:
+            event.ignore()
+
+    def dropEvent(self, event):
+        for url in event.mimeData().urls():
+            name = url.toLocalFile()
+            self.specList.addItem(name)
+
+    def browse(self):
+        fileList = QtWidgets.QFileDialog.getOpenFileNames(self, 'Open File', self.father.LastLocation)
+        if type(fileList) is tuple:
+            fileList = fileList[0]
+        for filePath in fileList:
+            if filePath:  # if not cancelled
+                self.father.LastLocation = os.path.dirname(filePath)  # Save used path
+            if len(filePath) == 0:
+                return
+            self.specList.addItem(filePath)
+
+    def applyAndClose(self, *args):
+        items = []
+        for index in range(self.specList.count()):
+            items.append(self.specList.item(index).text())
+        if len(items) == 0:
+            self.father.dispMsg("Please select at least one workspace to combine")
+        else:
+            self.father.loadAndCombine(items)
+            self.father.menuEnable()
+            self.deleteLater()
+
+    def closeEvent(self, *args):
+        self.father.menuEnable()
+        self.deleteLater()
+
+##########################################################################################
+
+
 class MonitorWindow(QtWidgets.QWidget):
 
     def __init__(self, parent):
@@ -6251,16 +6642,26 @@ class MonitorWindow(QtWidgets.QWidget):
             QtWidgets.QListWidgetItem(i, self.listB).setToolTip(i)
         grid.addWidget(self.listA, 1, 0)
         grid.addWidget(self.listB, 1, 1)
+        
+        grid.addWidget(wc.QLabel("Delay [s]:"), 2, 0)
+        self.delTime = QtWidgets.QDoubleSpinBox()
+        self.delTime.setMaximum(10000)
+        self.delTime.setMinimum(0)
+        self.delTime.setSingleStep(0.1)
+        self.delTime.setValue(0.5)
+        grid.addWidget(self.delTime, 2, 1)
+            
+            
         cancelButton = QtWidgets.QPushButton("&Close")
         cancelButton.clicked.connect(self.closeEvent)
-        layout.addWidget(cancelButton, 2, 0)
+        layout.addWidget(cancelButton, 3, 0)
         watchButton = QtWidgets.QPushButton("&Watch")
         watchButton.clicked.connect(self.applyAndClose)
-        layout.addWidget(watchButton, 2, 1)
+        layout.addWidget(watchButton, 3, 1)
         unwatchButton = QtWidgets.QPushButton("&Unwatch")
         unwatchButton.clicked.connect(self.stopAndClose)
-        layout.addWidget(unwatchButton, 2, 2)
-        layout.setColumnStretch(3, 1)
+        layout.addWidget(unwatchButton, 3, 2)
+        layout.setColumnStretch(4, 1)
         self.show()
         self.setFixedSize(self.size())
         self.father.menuDisable()
@@ -6271,7 +6672,8 @@ class MonitorWindow(QtWidgets.QWidget):
         items = []
         for index in range(self.listB.count()):
             items.append(self.listB.item(index).text())
-        self.father.startMonitor(items)
+        delay = self.delTime.value
+        self.father.startMonitor(items,delay)
         self.closeEvent()
         
     def stopAndClose(self, *args):
@@ -6382,19 +6784,19 @@ class PlotSettingsWindow(QtWidgets.QWidget):
         self.father.current.setContourColors(tmpContourColors)
 
     def setColor(self, *args):
-        tmp = QtWidgets.QColorDialog.getColor(QtWidgets.QColor(self.color))
+        tmp = QtWidgets.QColorDialog.getColor(QtGui.QColor(self.color))
         if tmp.isValid():
             self.color = tmp.name()
         self.preview()
 
     def setPosColor(self, *args):
-        tmp = QtWidgets.QColorDialog.getColor(QtWidgets.QColor(self.posColor))
+        tmp = QtWidgets.QColorDialog.getColor(QtGui.QColor(self.posColor))
         if tmp.isValid():
             self.posColor = tmp.name()
         self.preview()
 
     def setNegColor(self, *args):
-        tmp = QtWidgets.QColorDialog.getColor(QtWidgets.QColor(self.negColor))
+        tmp = QtWidgets.QColorDialog.getColor(QtGui.QColor(self.negColor))
         if tmp.isValid():
             self.negColor = tmp.name()
         self.preview()
@@ -6417,7 +6819,61 @@ class PlotSettingsWindow(QtWidgets.QWidget):
 
 ##############################################################################
 
+class errorWindow(QtWidgets.QWidget):
 
+    def __init__(self, parent):
+        QtWidgets.QWidget.__init__(self, parent)
+        self.setWindowFlags(QtCore.Qt.Window | QtCore.Qt.Tool)
+        self.father = parent
+
+        self.setWindowTitle("Error Messages")
+
+        grid = QtWidgets.QGridLayout()
+        
+        
+        self.errorQList = QtWidgets.QListWidget(self)
+        self.errorQList.currentRowChanged.connect(self.rowChange)
+        
+        for error in self.father.errors:
+            if len(error[1]) == 3:
+                tmp = QtWidgets.QListWidgetItem(error[0] + ': Python error', self.errorQList)
+                tmp.setForeground(QtGui.QBrush(QtGui.QColor('red')))
+            elif len(error[1]) == 1:
+                QtWidgets.QListWidgetItem(error[0] + ': ' + error[1][0], self.errorQList)
+
+        self.errorEdit = QtWidgets.QTextEdit(self)
+        self.errorEdit.setReadOnly(True)
+        errorText = ''
+        self.errorEdit.setHtml(errorText)
+       
+        
+        grid.addWidget(self.errorQList, 0, 0, 1, 3)
+        grid.addWidget(self.errorEdit, 1, 0, 1, 3)
+        closebutton = QtWidgets.QPushButton("Close")
+        grid.addWidget(closebutton, 12, 1, 1, 1)
+        closebutton.clicked.connect(self.closeEvent)
+
+        self.setLayout(grid)
+        self.resize(550, 700)
+        self.show()
+        
+        
+    def rowChange(self,row):
+        
+        errorText = ''
+        error = self.father.errors[row]
+        if len(error[1]) == 3 :
+            errorText = errorText + error[0] + '<br>'
+            for line in tb.format_exception(error[1][0],error[1][1],error[1][2]):
+                errorText = errorText + line + '<br>'
+        self.errorEdit.setHtml(errorText)
+        
+    def closeEvent(self):
+        self.deleteLater()
+
+##############################################################################
+  
+    
 class PreferenceWindow(QtWidgets.QWidget):
 
     def __init__(self, parent):
@@ -6547,17 +7003,17 @@ class PreferenceWindow(QtWidgets.QWidget):
         self.show()
 
     def setColor(self, *args):
-        tmp = QtWidgets.QColorDialog.getColor(QtWidgets.QColor(self.color))
+        tmp = QtWidgets.QColorDialog.getColor(QtGui.QColor(self.color))
         if tmp.isValid():
             self.color = tmp.name()
 
     def setPosColor(self, *args):
-        tmp = QtWidgets.QColorDialog.getColor(QtWidgets.QColor(self.posColor))
+        tmp = QtWidgets.QColorDialog.getColor(QtGui.QColor(self.posColor))
         if tmp.isValid():
             self.posColor = tmp.name()
 
     def setNegColor(self, *args):
-        tmp = QtWidgets.QColorDialog.getColor(QtWidgets.QColor(self.negColor))
+        tmp = QtWidgets.QColorDialog.getColor(QtGui.QColor(self.negColor))
         if tmp.isValid():
             self.negColor = tmp.name()
 
@@ -7138,10 +7594,30 @@ class quadConversionWindow(QtWidgets.QWidget):
         self.deleteLater()
 
 
+
+
+
+
+
 if __name__ == '__main__':
+
+
     mainProgram = MainProgram(root)
     mainProgram.setWindowTitle("ssNake - " + VERSION)
     mainProgram.show()
     splash.finish(mainProgram)
+    
+    sys._excepthook = sys.excepthook
+    def exception_hook(exctype, value, traceback):
+        sys._excepthook(exctype, value, traceback)
+        mainProgram.dispError([exctype, value, traceback])
+    #    sys.exit(1)
+    sys.excepthook = exception_hook
+    
+    
+
     sys.exit(root.exec_())
+
+         
+#         raise
     

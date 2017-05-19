@@ -30,6 +30,7 @@ from matplotlib.pyplot import get_cmap
 import matplotlib
 import matplotlib._cntr as cntr
 import matplotlib.collections as mcoll
+import reimplement as reim
 
 COLORMAPLIST = ['seismic', 'BrBG', 'bwr', 'coolwarm', 'PiYG', 'PRGn', 'PuOr',
                 'RdBu', 'RdGy', 'RdYlBu', 'RdYlGn', 'Spectral', 'rainbow', 'jet']
@@ -77,6 +78,18 @@ class Spectrum:
         self.filePath = filePath
         self.freq = np.array(freq)  # array of center frequency (length is dim, MHz)
         self.sw = sw  # array of sweepwidths
+        
+        #Contour settings
+        self.contourSign = 0 #Both by default
+        self.contourType = 0 #Linear contour by default
+        self.numLevels = 20
+        self.minLevels = 0.1
+        self.maxLevels = 1
+        self.multiValue = 1.5
+        self.projTop = 0
+        self.projRight = 0
+        
+        #---------------
         if spec is None:
             self.spec = [0] * self.data.ndim
         else:
@@ -831,7 +844,7 @@ class Spectrum:
                     alpha = 0.53836  # constant for hamming window
                     x = x * (alpha + (1 - alpha) * np.cos(hamming * (-0.5 * shift1 * np.pi * self.sw[axes] / axLen + np.linspace(0, np.pi, axLen))))
                 if self.wholeEcho[axes]:
-                    x[-1:-(len(x) / 2 + 1):-1] = x[:len(x) / 2]
+                    x[-1:-(int(len(x) / 2) + 1):-1] = x[:int(len(x) / 2)]
                 if self.spec[axes] > 0:
                     self.fourier(axes, tmp=True)
                 for i in range(self.data.shape[axes]):
@@ -855,7 +868,7 @@ class Spectrum:
                 alpha = 0.53836  # constant for hamming window
                 x = x * (alpha + (1 - alpha) * np.cos(hamming * (-0.5 * shift * np.pi * self.sw[axes] / axLen + np.linspace(0, np.pi, axLen))))
             if self.wholeEcho[axes]:
-                x[-1:-(len(x) / 2 + 1):-1] = x[:len(x) / 2]
+                x[-1:-(int(len(x) / 2) + 1):-1] = x[:int(len(x) / 2)]
             if self.spec[axes] > 0:
                 self.fourier(axes, tmp=True)
             self.data[select] = np.apply_along_axis(np.multiply, axes, self.data, x)[select]
@@ -892,6 +905,10 @@ class Spectrum:
             return None
         oldFreq = self.freq[axes]
         oldSw = self.sw[axes]
+        if freq is None:
+            freq = self.freq[axes]
+        if sw is None:
+            sw = self.sw[axes]
         self.freq[axes] = float(freq)
         self.sw[axes] = float(sw)
         self.resetXax(axes)
@@ -1270,7 +1287,7 @@ class Spectrum:
         axes2 = self.checkAxes(axes2)
         if axes2 is None:
             return None
-        stackSlice = slice(stackBegin, stackEnd, stackStep)
+        stackSlice = reim.floatSlice(stackBegin, stackEnd, stackStep)
         if axes == axes2:
             self.dispMsg("First and second axes are the same")
             return None
@@ -1349,6 +1366,8 @@ class Current1D(Plot1DFrame):
             self.colorMap = self.root.father.defaultColorMap            # colormap for contour like plots
             self.contourConst = self.root.father.defaultContourConst    # bool contour levels have constant color
             self.contourColors = [self.root.father.defaultPosColor, self.root.father.defaultNegColor]  # The colors of the constant color contours
+            self.diagonalBool = self.root.father.defaultDiagonalBool
+            self.diagonalMult = self.root.father.defaultDiagonalMult
             self.upd()                                                  # get the first slice of data
             self.fig.suptitle(self.data.name)
             self.startUp()
@@ -1379,6 +1398,8 @@ class Current1D(Plot1DFrame):
             self.grids = duplicateCurrent.grids
             self.contourConst = duplicateCurrent.contourConst
             self.contourColors = duplicateCurrent.contourColors
+            self.diagonalBool = duplicateCurrent.diagonalBool
+            self.diagonalMult = duplicateCurrent.diagonalMult
             self.xminlim = duplicateCurrent.xminlim
             self.xmaxlim = duplicateCurrent.xmaxlim
             self.yminlim = duplicateCurrent.yminlim
@@ -1456,6 +1477,13 @@ class Current1D(Plot1DFrame):
     def setGrids(self, grids):
         self.grids = grids
 
+    def setDiagonal(self, diagonalBool=None, diagonalMult=None):
+        if diagonalBool is not None:
+            self.diagonalBool = diagonalBool
+        if diagonalMult is not None:
+            self.diagonalMult = diagonalMult
+        self.showFid()
+        
     def setPhaseInter(self, phase0in, phase1in):  # interactive changing the phase without editing the actual data
         phase0 = float(phase0in)
         phase1 = float(phase1in)
@@ -1692,7 +1720,10 @@ class Current1D(Plot1DFrame):
         maxP = max(minPeak, maxPeak)
         if len(self.data1D.shape) > 1:
             tmpData = self.data1D[0]
-            tmpAxis = self.xax[0]
+            if len(self.xax.shape) > 1:
+                tmpAxis = self.xax[0]
+            else:
+                tmpAxis = self.xax
         else:
             tmpData = self.data1D
             tmpAxis = self.xax
@@ -3004,7 +3035,7 @@ class CurrentStacked(Current1D):
             if shiftingAxes == self.axes:
                 self.dispMsg('shiftingAxes cannot be equal to axes')
             elif shiftingAxes == self.axes2:
-                ar = np.arange(self.data.data.shape[self.axes2])[slice(self.stackBegin, self.stackEnd, self.stackStep)]
+                ar = np.arange(self.data.data.shape[self.axes2])[reim.floatSlice(self.stackBegin, self.stackEnd, self.stackStep)]
                 x = np.ones((len(ar), len(self.data1D[0])))
                 for i in range(len(ar)):
                     shift1 = shift + shifting * ar[i] / self.data.sw[shiftingAxes]
@@ -3020,7 +3051,7 @@ class CurrentStacked(Current1D):
                         alpha = 0.53836  # constant for hamming window
                         x2 = x2 * (alpha + (1 - alpha) * np.cos(hamming * (-0.5 * shift1 * np.pi * self.sw / len(self.data1D[0]) + np.linspace(0, np.pi, len(self.data1D[0])))))
                     if self.wholeEcho:
-                        x2[-1:-(len(x2) / 2 + 1):-1] = x2[:len(x2) / 2]
+                        x2[-1:-(int(len(x2) / 2) + 1):-1] = x2[:int(len(x2) / 2)]
                     x[i] = x2
             else:
                 if (shiftingAxes < self.axes) and (shiftingAxes < self.axes2):
@@ -3041,7 +3072,7 @@ class CurrentStacked(Current1D):
                     alpha = 0.53836  # constant for hamming window
                     x = x * (alpha + (1 - alpha) * np.cos(hamming * (-0.5 * shift * np.pi * self.sw / len(self.data1D[0]) + np.linspace(0, np.pi, len(self.data1D[0])))))
                 if self.wholeEcho:
-                    x[-1:-(len(x) / 2 + 1):-1] = x[:len(x) / 2]
+                    x[-1:-(int(len(x) / 2) + 1):-1] = x[:int(len(x) / 2)]
                 x = np.repeat([x], len(self.data1D), axis=0)
         else:
             t2 = t - shift
@@ -3056,7 +3087,7 @@ class CurrentStacked(Current1D):
                 alpha = 0.53836  # constant for hamming window
                 x = x * (alpha + (1 - alpha) * np.cos(hamming * (-0.5 * shift * np.pi * self.sw / len(self.data1D[0]) + np.linspace(0, np.pi, len(self.data1D[0])))))
             if self.wholeEcho:
-                x[-1:-(len(x) / 2 + 1):-1] = x[:len(x) / 2]
+                x[-1:-(int(len(x) / 2) + 1):-1] = x[:int(len(x) / 2)]
             x = np.repeat([x], len(self.data1D), axis=0)
         y = self.data1D
         self.ax.cla()
@@ -3392,7 +3423,7 @@ class CurrentArrayed(Current1D):
                         alpha = 0.53836  # constant for hamming window
                         x2 = x2 * (alpha + (1 - alpha) * np.cos(hamming * (-0.5 * shift1 * np.pi * self.sw / len(self.data1D[0]) + np.linspace(0, np.pi, len(self.data1D[0])))))
                     if self.wholeEcho:
-                        x2[-1:-(len(x2) / 2 + 1):-1] = x2[:len(x2) / 2]
+                        x2[-1:-(int(len(x2) / 2) + 1):-1] = x2[:int(len(x2) / 2)]
                     x[i] = x2
             else:
                 if (shiftingAxes < self.axes) and (shiftingAxes < self.axes2):
@@ -3413,7 +3444,7 @@ class CurrentArrayed(Current1D):
                     alpha = 0.53836  # constant for hamming window
                     x = x * (alpha + (1 - alpha) * np.cos(hamming * (-0.5 * shift * np.pi * self.sw / len(self.data1D) + np.linspace(0, np.pi, len(self.data1D)))))
                 if self.wholeEcho:
-                    x[-1:-(len(x) / 2 + 1):-1] = x[:len(x) / 2]
+                    x[-1:-(int(len(x) / 2) + 1):-1] = x[:int(len(x) / 2)]
                 x = np.repeat([x], len(self.data1D), axis=0)
         else:
             t2 = t - shift
@@ -3428,7 +3459,7 @@ class CurrentArrayed(Current1D):
                 alpha = 0.53836  # constant for hamming window
                 x = x * (alpha + (1 - alpha) * np.cos(hamming * (-0.5 * shift * np.pi * self.sw / len(self.data1D) + np.linspace(0, np.pi, len(self.data1D)))))
             if self.wholeEcho:
-                x[-1:-(len(x) / 2 + 1):-1] = x[:len(x) / 2]
+                x[-1:-(int(len(x) / 2) + 1):-1] = x[:int(len(x) / 2)]
             x = np.repeat([x], len(self.data1D), axis=0)
         y = self.data1D
         self.ax.cla()
@@ -3592,6 +3623,27 @@ class CurrentArrayed(Current1D):
         self.ax.set_xlim(self.xminlim, self.xmaxlim)
         self.ax.set_ylim(self.yminlim, self.ymaxlim)
 
+######################################################################################################
+
+def add_diagonal(axes, mult, *line_args, **line_kwargs):
+    identity, = axes.plot([], [], *line_args, **line_kwargs)
+    def callback(axes):
+        low_x, high_x = axes.get_xlim()
+        low_y, high_y = axes.get_ylim()
+        if mult == 0:
+            low = low_y
+            high = high_y
+        else:
+            low_y = low_y/float(mult)
+            high_y = high_y/float(mult)        
+            low = max(low_x, low_y)
+            high = min(high_x, high_y)
+        identity.set_data([low, high], [low*mult, high*mult])
+    callback(axes)
+    axes.callbacks.connect('xlim_changed', callback)
+    axes.callbacks.connect('ylim_changed', callback)
+    return axes
+
 #########################################################################################################
 # the class from which the contour data is displayed, the operations which only edit the content of this class are for previewing
 
@@ -3621,33 +3673,38 @@ class CurrentContour(Current1D):
         if hasattr(duplicateCurrent, 'numLevels'):
             self.numLevels = duplicateCurrent.numLevels
         else:
-            self.numLevels = 20
+            self.numLevels = self.data.numLevels
         if hasattr(duplicateCurrent, 'minLevels'):
             self.minLevels = duplicateCurrent.minLevels
         else:
-            self.minLevels = 0.1
+            self.minLevels = self.data.minLevels
         if hasattr(duplicateCurrent, 'maxLevels'):
             self.maxLevels = duplicateCurrent.maxLevels
         else:
-            self.maxLevels = 1.0
+            self.maxLevels = self.data.maxLevels
+            
+        if hasattr(duplicateCurrent, 'contourSign'):
+            self.contourSign = duplicateCurrent.contourSign
+        else:
+            self.contourSign = self.data.contourSign   
+            
         if hasattr(duplicateCurrent, 'contourType'):
             self.contourType = duplicateCurrent.contourType
         else:
-            self.contourType = 0
+            self.contourType = self.data.contourType
         if hasattr(duplicateCurrent, 'multiValue'):
             self.multiValue = duplicateCurrent.multiValue
         else:
-            self.multiValue = 2
-        if hasattr(duplicateCurrent, 'projType1'):
-            self.projType1 = duplicateCurrent.projType1
+            self.multiValue = self.data.multiValue
+        if hasattr(duplicateCurrent, 'projTop'):
+            self.projTop = duplicateCurrent.projTop
         else:
-            self.projType1 =  root.bottomframe.projDrop1.currentIndex()
-        if hasattr(duplicateCurrent, 'projType2'):
-            self.projType2 = duplicateCurrent.projType2
+            self.projTop = self.data.projTop
+        if hasattr(duplicateCurrent, 'projRight'):
+            self.projRight = duplicateCurrent.projRight
         else:
-            self.projType2 = root.bottomframe.projDrop2.currentIndex()
+            self.projRight = self.data.projRight
         Current1D.__init__(self, root, fig, canvas, data, duplicateCurrent)
-    
     
     def altScroll(self, event): #Shift scroll scrolls contour limits
         minLevels = self.minLevels / 1.1**event.step
@@ -3656,6 +3713,7 @@ class CurrentContour(Current1D):
         if  self.maxLevels > 1:
              self.maxLevels = 1
         self.minLevels = minLevels
+        self.data.minLevels = minLevels
 #        self.root.sideframe.minLEntry.setText(str(round(self.minLevels*100,6)))
         self.root.sideframe.minLEntry.setText(format(self.minLevels*100,'.7g'))
         
@@ -3711,12 +3769,22 @@ class CurrentContour(Current1D):
             self.plotReset()
         self.showFid()
 
-    def setLevels(self, numLevels, maxLevels, minLevels,contourType,multiValue):
+    def setLevels(self, numLevels, maxLevels, minLevels,contourSign,contourType,multiValue):
         self.numLevels = numLevels
         self.maxLevels = maxLevels
         self.minLevels = minLevels
+        self.contourSign = contourSign
         self.contourType = contourType
         self.multiValue = multiValue
+        
+        # Remember the values
+        self.data.contourSign = contourSign
+        self.data.contourType = contourType
+        self.data.numLevels = numLevels
+        self.data.minLevels = minLevels
+        self.data.maxLevels = maxLevels
+        self.data.multiValue = multiValue
+        
         self.showFid()
 
     def resetLocList(self):
@@ -3748,9 +3816,12 @@ class CurrentContour(Current1D):
 
     def setProjType(self, val, direc):
         if direc == 1:
-            self.projType1 = val
+            self.projTop = val
+            self.data.projTop = val
         if direc == 2:
-            self.projType2 = val
+            self.projRight = val
+            self.data.projRight = val
+
 
     def apodPreview(self, lor=None, gauss=None, cos2=None, hamming=None, shift=0.0, shifting=0.0, shiftingAxes=None):  # display the 1D data including the apodization function
         t = np.arange(0, len(self.data1D[0])) / (self.sw)
@@ -3774,7 +3845,7 @@ class CurrentContour(Current1D):
                         alpha = 0.53836  # constant for hamming window
                         x2 = x2 * (alpha + (1 - alpha) * np.cos(hamming * (-0.5 * shift1 * np.pi * self.sw / len(self.data1D[0]) + np.linspace(0, np.pi, len(self.data1D[0])))))
                     if self.wholeEcho:
-                        x2[-1:-(len(x2) / 2 + 1):-1] = x2[:len(x2) / 2]
+                        x2[-1:-(int(len(x2) / 2) + 1):-1] = x2[:int(len(x2) / 2)]
                     x[i] = x2
             else:
                 if (shiftingAxes < self.axes) and (shiftingAxes < self.axes2):
@@ -3795,7 +3866,7 @@ class CurrentContour(Current1D):
                     alpha = 0.53836  # constant for hamming window
                     x = x * (alpha + (1 - alpha) * np.cos(hamming * (-0.5 * shift * np.pi * self.sw / len(self.data1D[0]) + np.linspace(0, np.pi, len(self.data1D[0])))))
                 if self.wholeEcho:
-                    x[-1:-(len(x) / 2 + 1):-1] = x[:len(x) / 2]
+                    x[-1:-(int(len(x) / 2) + 1):-1] = x[:int(len(x) / 2)]
                 x = np.repeat([x], len(self.data1D), axis=0)
         else:
             t2 = t - shift
@@ -3810,7 +3881,7 @@ class CurrentContour(Current1D):
                 alpha = 0.53836  # constant for hamming window
                 x = x * (alpha + (1 - alpha) * np.cos(hamming * (-0.5 * shift * np.pi * self.sw / len(self.data1D[0]) + np.linspace(0, np.pi, len(self.data1D[0])))))
             if self.wholeEcho:
-                x[-1:-(len(x) / 2 + 1):-1] = x[:len(x) / 2]
+                x[-1:-(int(len(x) / 2) + 1):-1] = x[:int(len(x) / 2)]
             x = np.repeat([x], len(self.data1D), axis=0)
         y = self.data1D
         self.ax.cla()
@@ -3832,6 +3903,8 @@ class CurrentContour(Current1D):
         self.ax.cla()
         self.x_ax.cla()
         self.y_ax.cla()
+        if self.diagonalBool:
+            add_diagonal(self.ax, self.diagonalMult, c='k', ls='--')
         if self.spec == 1:
             if self.ppm:
                 axMult = 1e6 / self.ref
@@ -3846,10 +3919,10 @@ class CurrentContour(Current1D):
                 axMult2 = 1.0 / (1000.0**self.axType2)
         elif self.spec2 == 0:
             axMult2 = 1000.0**self.axType2
-        x = self.xax * axMult
-        self.line_xdata = x
-        y = self.xax2 * axMult2
-        self.X, self.Y = np.meshgrid(x, y)
+        self.x = self.xax * axMult
+        self.line_xdata = self.x
+        self.y = self.xax2 * axMult2
+        self.X, self.Y = np.meshgrid(self.x, self.y)
         
         if (self.plotType == 0):
             self.tmpdata = np.real(self.tmpdata)
@@ -3861,31 +3934,8 @@ class CurrentContour(Current1D):
             self.tmpdata = np.abs(self.tmpdata)
         self.differ = np.amax(np.abs(self.tmpdata))
         self.plotContour(X=self.X,Y=self.Y)
+        self.showProj()
         
-        self.line_ydata = self.tmpdata[0]
-        if self.projType1 == 0:
-            xprojdata=np.sum(self.tmpdata, axis=0)
-            self.x_ax.plot(x, xprojdata, color=self.color, linewidth=self.linewidth, picker=True)
-        elif self.projType1 == 1:
-            xprojdata = np.max(self.tmpdata, axis=0)
-            self.x_ax.plot(x,xprojdata , color=self.color, linewidth=self.linewidth, picker=True)
-        elif self.projType1 == 2:
-            xprojdata =  np.min(self.tmpdata, axis=0)
-            self.x_ax.plot(x,xprojdata, color=self.color, linewidth=self.linewidth, picker=True)
-        
-        xmin, xmax =  np.min(xprojdata),np.max(xprojdata)
-        self.x_ax.set_ylim([xmin-0.15*(xmax-xmin), xmax+0.05*(xmax-xmin)]) #Set projection limits, and force 15% whitespace below plot
-        if self.projType2 == 0:
-            yprojdata=np.sum(self.tmpdata, axis=1)
-            self.y_ax.plot(yprojdata, y, color=self.color, linewidth=self.linewidth, picker=True)
-        elif self.projType2 == 1:
-            yprojdata=np.max(self.tmpdata, axis=1)
-            self.y_ax.plot(yprojdata, y, color=self.color, linewidth=self.linewidth, picker=True)
-        elif self.projType2 == 2:
-            yprojdata=np.min(self.tmpdata, axis=1)
-            self.y_ax.plot(yprojdata, y, color=self.color, linewidth=self.linewidth, picker=True)         
-        ymin, ymax =  np.min(yprojdata),np.max(yprojdata)
-        self.y_ax.set_xlim([ymin-0.15*(ymax-ymin), ymax+0.05*(ymax-ymin)]) #Set projection limits, and force 15% whitespace below plot
         if self.spec == 0:
             if self.axType == 0:
                 self.ax.set_xlabel('Time [s]')
@@ -3963,29 +4013,31 @@ class CurrentContour(Current1D):
             
         #Trim matrix of unused rows/columns for more efficient contour plotting
         PlotPositive = False
-        if self.tmpdata.shape[0] > 2: #if size 2 or lower, convolve fails, just take whole data then
-            YposMax = np.where( np.convolve(np.max(self.tmpdata,1) > contourLevels[0],[True,True,True],'same'))[0]
-        else:
-            YposMax = np.arange(self.tmpdata.shape[0])
-        if YposMax.size > 0: #if number of positive contours is non-zero
-            if self.tmpdata.shape[1] > 2:
-                XposMax = np.where(np.convolve(np.max(self.tmpdata,0) > contourLevels[0],[True,True,True],'same'))[0]
+        if self.contourSign == 0 or self.contourSign == 1:
+            if self.tmpdata.shape[0] > 2: #if size 2 or lower, convolve fails, just take whole data then
+                YposMax = np.where( np.convolve(np.max(self.tmpdata,1) > contourLevels[0],[True,True,True],'same'))[0]
             else:
-                XposMax = np.arange(self.tmpdata.shape[1])
-            PlotPositive = True
+                YposMax = np.arange(self.tmpdata.shape[0])
+            if YposMax.size > 0: #if number of positive contours is non-zero
+                if self.tmpdata.shape[1] > 2:
+                    XposMax = np.where(np.convolve(np.max(self.tmpdata,0) > contourLevels[0],[True,True,True],'same'))[0]
+                else:
+                    XposMax = np.arange(self.tmpdata.shape[1])
+                PlotPositive = True
         
         PlotNegative = False
-        if not self.plotType == 3: #for Absolute plot no negative
-            if self.tmpdata.shape[0] > 2:
-                YposMin = np.where( np.convolve(np.min(self.tmpdata,1) < -contourLevels[0],[True,True,True],'same'))[0]
-            else:
-                YposMin = np.arange(self.tmpdata.shape[0])    
-            if YposMin.size > 0:#if number of negative contours is non-zero
-                if self.tmpdata.shape[1] > 2:
-                    XposMin = np.where(np.convolve(np.min(self.tmpdata,0) < -contourLevels[0],[True,True,True],'same'))[0]
+        if self.contourSign == 0 or self.contourSign == 2:
+            if not self.plotType == 3: #for Absolute plot no negative
+                if self.tmpdata.shape[0] > 2:
+                    YposMin = np.where( np.convolve(np.min(self.tmpdata,1) < -contourLevels[0],[True,True,True],'same'))[0]
                 else:
-                    XposMin = np.arange(self.tmpdata.shape[1])
-                PlotNegative = True
+                    YposMin = np.arange(self.tmpdata.shape[0])    
+                if YposMin.size > 0:#if number of negative contours is non-zero
+                    if self.tmpdata.shape[1] > 2:
+                        XposMin = np.where(np.convolve(np.min(self.tmpdata,0) < -contourLevels[0],[True,True,True],'same'))[0]
+                    else:
+                        XposMin = np.arange(self.tmpdata.shape[1])
+                    PlotNegative = True
         
         def contourTrace(level,color):
             level = c.trace(level)
@@ -4035,9 +4087,9 @@ class CurrentContour(Current1D):
         
     def showProj(self):  
         xLimOld = self.x_ax.get_xlim()
-        x = self.x_ax.lines[0].get_xdata() #Get plot data from plot
+        x = self.x #Get plot data from plot
         yLimOld = self.y_ax.get_ylim()
-        y = self.y_ax.lines[0].get_ydata() #Get plot data from plot
+        y = self.y #Get plot data from plot
         self.x_ax.cla()
         self.y_ax.cla()
         tmpdata = self.data1D
@@ -4050,31 +4102,34 @@ class CurrentContour(Current1D):
         elif(self.plotType == 3):
             tmpdata = np.abs(tmpdata)
             
-        if self.projType1 == 0:
+        if self.projTop == 0:
             xprojdata=np.sum(tmpdata, axis=0)
             self.x_ax.plot(x, xprojdata, color=self.color, linewidth=self.linewidth, picker=True)
-        elif self.projType1 == 1:
+        elif self.projTop == 1:
             xprojdata = np.max(tmpdata, axis=0)
             self.x_ax.plot(x,xprojdata , color=self.color, linewidth=self.linewidth, picker=True)
-        elif self.projType1 == 2:
+        elif self.projTop == 2:
             xprojdata =  np.min(tmpdata, axis=0)
             self.x_ax.plot(x,xprojdata, color=self.color, linewidth=self.linewidth, picker=True)
         
-        xmin, xmax =  np.min(xprojdata),np.max(xprojdata)
-        self.x_ax.set_ylim([xmin-0.15*(xmax-xmin), xmax+0.05*(xmax-xmin)]) #Set projection limits, and force 15% whitespace below plot
-        self.x_ax.set_xlim(xLimOld)
-        if self.projType2 == 0:
+        if self.projTop != 3:
+            xmin, xmax =  np.min(xprojdata),np.max(xprojdata)
+            self.x_ax.set_ylim([xmin-0.15*(xmax-xmin), xmax+0.05*(xmax-xmin)]) #Set projection limits, and force 15% whitespace below plot
+            self.x_ax.set_xlim(xLimOld)
+        if self.projRight == 0:
             yprojdata=np.sum(tmpdata, axis=1)
             self.y_ax.plot(yprojdata, y, color=self.color, linewidth=self.linewidth, picker=True)
-        elif self.projType2 == 1:
+        elif self.projRight == 1:
             yprojdata=np.max(tmpdata, axis=1)
             self.y_ax.plot(yprojdata, y, color=self.color, linewidth=self.linewidth, picker=True)
-        elif self.projType2 == 2:
+        elif self.projRight == 2:
             yprojdata=np.min(tmpdata, axis=1)
             self.y_ax.plot(yprojdata, y, color=self.color, linewidth=self.linewidth, picker=True)
-        ymin, ymax =  np.min(yprojdata),np.max(yprojdata)
-        self.y_ax.set_xlim([ymin-0.15*(ymax-ymin), ymax+0.05*(ymax-ymin)]) #Set projection limits, and force 15% whitespace below plot
-        self.y_ax.set_ylim(yLimOld)
+            
+        if self.projRight != 3:
+            ymin, ymax =  np.min(yprojdata),np.max(yprojdata)
+            self.y_ax.set_xlim([ymin-0.15*(ymax-ymin), ymax+0.05*(ymax-ymin)]) #Set projection limits, and force 15% whitespace below plot
+            self.y_ax.set_ylim(yLimOld)
         
         self.canvas.draw()
     
@@ -4332,7 +4387,7 @@ class CurrentSkewed(Current1D):
                         alpha = 0.53836  # constant for hamming window
                         x2 = x2 * (alpha + (1 - alpha) * np.cos(hamming * (-0.5 * shift1 * np.pi * self.sw / len(self.data1D[0]) + np.linspace(0, np.pi, len(self.data1D[0])))))
                     if self.wholeEcho:
-                        x2[-1:-(len(x2) / 2 + 1):-1] = x2[:len(x2) / 2]
+                        x2[-1:-(int(len(x2) / 2) + 1):-1] = x2[:int(len(x2) / 2)]
                     x[i] = x2
             else:
                 if (shiftingAxes < self.axes) and (shiftingAxes < self.axes2):
@@ -4353,7 +4408,7 @@ class CurrentSkewed(Current1D):
                     alpha = 0.53836  # constant for hamming window
                     x = x * (alpha + (1 - alpha) * np.cos(hamming * (-0.5 * shift * np.pi * self.sw / len(self.data1D[0]) + np.linspace(0, np.pi, len(self.data1D[0])))))
                 if self.wholeEcho:
-                    x[-1:-(len(x) / 2 + 1):-1] = x[:len(x) / 2]
+                    x[-1:-(int(len(x)) / 2 + 1):-1] = x[:int(len(x) / 2)]
                 x = np.repeat([x], len(self.data1D), axis=0)
         else:
             t2 = t - shift
@@ -4368,7 +4423,7 @@ class CurrentSkewed(Current1D):
                 alpha = 0.53836  # constant for hamming window
                 x = x * (alpha + (1 - alpha) * np.cos(hamming * (-0.5 * shift * np.pi * self.sw / len(self.data1D[0]) + np.linspace(0, np.pi, len(self.data1D[0])))))
             if self.wholeEcho:
-                x[-1:-(len(x) / 2 + 1):-1] = x[:len(x) / 2]
+                x[-1:-(int(len(x) / 2) + 1):-1] = x[:int(len(x) / 2)]
             x = np.repeat([x], len(self.data1D), axis=0)
         y = self.data1D
         self.ax.cla()

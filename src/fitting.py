@@ -116,7 +116,31 @@ def shiftConversion(Values,Type):
         skew = 'ND'
     Results.append([iso,span,skew])
     return Results
-    
+
+def voigtLine(x, pos, lor, gau, integral, Type = 0):
+    lor = np.abs(lor)
+    gau = np.abs(gau)
+    axis = x - pos
+
+    if Type == 0: #Exact: Freq domain simulation via Faddeeva function
+
+        if gau == 0.0: #If no gauss, just take lorentz
+           lor = 1.0 / (np.pi * 0.5 * lor * (1 + (axis /(0.5 * lor))**2) )
+           return integral * lor
+        else:
+            sigma = gau / (2 * np.sqrt(2 * np.log(2)))
+            z = (axis + 1j * lor / 2) / (sigma * np.sqrt(2))
+            return integral * scipy.special.wofz(z).real / (sigma * np.sqrt(2 * np.pi))
+
+    elif Type == 1: #Approximation: THOMPSON et al (doi: 10.1107/S0021889887087090 )
+        sigma = gau / (2 * np.sqrt(2 * np.log(2)))
+        lb = lor / 2
+        f = (sigma**5 + 2.69269 * sigma**4 * lb + 2.42843 * sigma**3 * lb**2 + 4.47163 * sigma**2 * lb**3 + 0.07842* sigma * lb**4 + lb**5) ** 0.2
+        eta = 1.36603 * (lb/f) - 0.47719 * (lb/f)**2 + 0.11116 * (lb/f)**3
+        lor = f / (np.pi * (axis**2 + f**2))
+        gauss = np.exp( -axis**2 / (2 * f**2)) / (f * np.sqrt(2 * np.pi))
+        return integral * (eta * lor + (1 - eta) * gauss)
+
 
 class FitCopySettingsWindow(QtWidgets.QWidget):
 
@@ -2828,7 +2852,7 @@ class PeakDeconvParamFrame(QtWidgets.QWidget):
         self.frame1.setColumnStretch(self.FITNUM, 1)
         self.frame1.setAlignment(QtCore.Qt.AlignTop)
         self.ticks = {'bgrnd':[], 'slope':[], 'pos':[], 'amp':[], 'lor':[], 'gauss':[]}
-        self.entries = {'bgrnd':[], 'slope':[], 'pos':[], 'amp':[], 'lor':[], 'gauss':[]}
+        self.entries = {'bgrnd':[], 'slope':[], 'pos':[], 'amp':[], 'lor':[], 'gauss':[], 'method':[]}
         self.frame2.addWidget(QLabel("Bgrnd:"), 0, 0, 1, 2)
         self.ticks['bgrnd'].append(QtWidgets.QCheckBox(''))
         self.frame2.addWidget(self.ticks['bgrnd'][0], 1, 0)
@@ -2843,6 +2867,11 @@ class PeakDeconvParamFrame(QtWidgets.QWidget):
         self.entries['slope'][0].setAlignment(QtCore.Qt.AlignHCenter)
         self.entries['slope'][0].setText("0.0")
         self.frame2.addWidget(self.entries['slope'][0], 3, 1)
+        self.frame2.addWidget(QLabel("Method:"), 4, 0, 1, 2)
+        self.entries['method'].append(QtWidgets.QComboBox())
+        self.entries['method'][0].addItems(['Exact','Approx'])
+        self.frame2.addWidget(self.entries['method'][0], 5, 1)
+        
         self.frame2.setColumnStretch(self.FITNUM, 1)
         self.frame2.setAlignment(QtCore.Qt.AlignTop)
         self.numExp = QtWidgets.QComboBox()
@@ -2960,11 +2989,14 @@ class PeakDeconvParamFrame(QtWidgets.QWidget):
         if not self.checkInputs():
             self.rootwindow.mainProgram.dispMsg("One of the inputs is not valid")
             return
-        struc = {'bgrnd':[], 'slope':[], 'pos':[], 'amp':[], 'lor':[], 'gauss':[]}
+        struc = {'method':[], 'bgrnd':[], 'slope':[], 'pos':[], 'amp':[], 'lor':[], 'gauss':[]}
         guess = []
         argu = []
         numExp = self.numExp.currentIndex() + 1
-        out = {'bgrnd': [0.0], 'slope':[0.0], 'pos':np.zeros(numExp), 'amp':np.zeros(numExp), 'lor':np.zeros(numExp), 'gauss':np.zeros(numExp)}
+        out = {'method': [0], 'bgrnd': [0.0], 'slope':[0.0], 'pos':np.zeros(numExp), 'amp':np.zeros(numExp), 'lor':np.zeros(numExp), 'gauss':np.zeros(numExp)}
+        out['method'][0] = self.entries['method'][0].currentIndex()
+        argu.append(out['method'][0])
+        struc['method'].append((0, len(argu)-1))
         for name in ['bgrnd', 'slope']:
             if isfloat(self.entries[name][0].text()):
                 if not self.ticks[name][0].isChecked():
@@ -3061,7 +3093,8 @@ class PeakDeconvParamFrame(QtWidgets.QWidget):
   
     def getSimParams(self):
         numExp = self.numExp.currentIndex() + 1
-        out = {'bgrnd': [0.0], 'slope':[0.0], 'pos':[0.0]*numExp, 'amp':[0.0]*numExp, 'lor':[0.0]*numExp, 'gauss':[0.0]*numExp}
+        out = {'method': [0], 'bgrnd': [0.0], 'slope':[0.0], 'pos':[0.0]*numExp, 'amp':[0.0]*numExp, 'lor':[0.0]*numExp, 'gauss':[0.0]*numExp}
+        out['method'][0] = self.entries['method'][0].currentIndex()
         for name in ['bgrnd', 'slope']:
             inp = safeEval(self.entries[name][0].text())
             if inp is None:
@@ -3074,7 +3107,7 @@ class PeakDeconvParamFrame(QtWidgets.QWidget):
                 out[name][i] = inp
         return out
 
-    def disp(self, params, num, store=False):
+    def disp(self, params, num):
         out = params[num]
         for name in ['bgrnd', 'slope']:
             inp = out[name][0]
@@ -3097,12 +3130,10 @@ class PeakDeconvParamFrame(QtWidgets.QWidget):
         outCurve = outCurveBase.copy()
         outCurvePart = []
         x = []
-        t = np.arange(len(tmpx)) / self.parent.current.sw
         for i in range(len(outAmp)):
             x.append(tmpx)
-            timeSignal = np.exp(1j * 2 * np.pi * t * (outPos[i] / self.axMult - self.axAdd)) * np.exp(-np.pi * np.abs(outWidth[i]) * t) * np.exp(-((np.pi * np.abs(outGauss[i]) * t)**2) / (4 * np.log(2))) * 2 / self.parent.current.sw
-            timeSignal[0] = timeSignal[0] * 0.5
-            y = outAmp[i] * np.real(np.fft.fftshift(np.fft.fft(timeSignal)))
+            pos = outPos[i] / self.axMult
+            y = voigtLine(tmpx, pos, outWidth[i], outGauss[i], outAmp[i], out['method'][0])
             outCurvePart.append(outCurveBase + y)
             outCurve += y
         self.parent.fitDataList[tuple(self.parent.locList)] = [tmpx, outCurve, x, outCurvePart]
@@ -3227,7 +3258,8 @@ def peakDeconvfitFunc(params, args):
         sw = args[5][n]
         axAdd = args[6][n]
         axMult = args[7][n]
-        parameters = {'bgrnd':0.0, 'slope':0.0, 'pos':0.0, 'amp':0.0, 'lor':0.0, 'gauss':0.0}
+        parameters = {'method': 0, 'bgrnd':0.0, 'slope':0.0, 'pos':0.0, 'amp':0.0, 'lor':0.0, 'gauss':0.0}
+        parameters['method'] = argu[struc['method'][0][1]]
         for name in ['bgrnd', 'slope']:
             if struc[name][0][0] == 1:
                 parameters[name] = param[struc[name][0][1]]
@@ -3252,10 +3284,8 @@ def peakDeconvfitFunc(params, args):
                         parameters[name] = altStruc[2] * allParam[altStruc[4]][strucTarget[altStruc[0]][altStruc[1]][1]] + altStruc[3]
                     elif strucTarget[altStruc[0]][altStruc[1]][0] == 0:
                         parameters[name] = altStruc[2] * allArgu[altStruc[4]][strucTarget[altStruc[0]][altStruc[1]][1]] + altStruc[3]
-            t = np.arange(len(x)) / sw
-            timeSignal = np.exp(1j * 2 * np.pi * t * (parameters['pos'] / axMult - axAdd)) * np.exp(-np.pi * np.abs(parameters['lor']) * t) * np.exp(-((np.pi * np.abs(parameters['gauss']) * t)**2) / (4 * np.log(2))) * 2 / sw
-            timeSignal[0] = timeSignal[0] * 0.5
-            testFunc += parameters['amp'] * np.real(np.fft.fftshift(np.fft.fft(timeSignal)))
+            pos = parameters['pos'] / axMult
+            testFunc += voigtLine(x, pos, parameters['lor'], parameters['gauss'], parameters['amp'], parameters['method'])    
         testFunc += parameters['bgrnd'] + parameters['slope'] * x
         fullTestFunc = np.append(fullTestFunc, testFunc)
     return fullTestFunc
@@ -4432,7 +4462,7 @@ def tensorDeconvtensorFunc(x, t11, t22, t33, lor, gauss, multt, sw, weight, axAd
     weight = weight[np.logical_and(x1 >= 0, x1 < length)]
     x1 = x1[np.logical_and(x1 >= 0, x1 < length)]
     final = np.bincount(x1, weight, length)
-    apod = np.exp(-np.pi * lor * t) * np.exp(-((np.pi * gauss * t)**2) / (4 * np.log(2)))
+    apod = np.exp(-np.pi * np.abs(lor) * t) * np.exp(-((np.pi * np.abs(gauss) * t)**2) / (4 * np.log(2)))
     apod[-1:int(-(len(apod) / 2 + 1)):-1] = apod[:int(len(apod) / 2)]
     I = np.real(np.fft.fft(np.fft.ifft(final) * apod))
     I = I / sw * len(I)
@@ -6212,10 +6242,10 @@ def quad1DeconvtensorFunc(x, I, pos, cq, eta, width, gauss, angleStuff, freq, sw
     weights = weights[np.logical_and(x1 >= 0, x1 < length)]
     x1 = x1[np.logical_and(x1 >= 0, x1 < length)]
     final = np.bincount(x1, weights, length)
-    apod = np.exp(-np.pi * width * t) * np.exp(-((np.pi * gauss * t)**2) / (4 * np.log(2)))
+    apod = np.exp(-np.pi * np.abs(width) * t) * np.exp(-((np.pi * np.abs(gauss) * t)**2) / (4 * np.log(2)))
     apod[-1:-int(len(apod) / 2 + 1):-1] = apod[:int(len(apod) / 2)]
     inten = np.real(np.fft.fft(np.fft.ifft(final) * apod))
-    inten = inten / sw * len(inten)
+    inten = inten / sw * len(inten) / (2 * I)
     return inten
 
 def quad1DeconvsetAngleStuff(cheng):
@@ -6279,10 +6309,10 @@ def quad2tensorFunc(x, I, pos, cq, eta, width, gauss, angleStuff, freq, sw, weig
     weights = weight[np.logical_and(x1 >= 0, x1 < length)]
     x1 = x1[np.logical_and(x1 >= 0, x1 < length)]
     final = np.bincount(x1, weights, length)
-    apod = np.exp(-np.pi * width * t) * np.exp(-((np.pi * gauss * t)**2) / (4 * np.log(2)))
-    apod[-1:-(len(apod) / 2 + 1):-1] = apod[:len(apod) / 2]
+    apod = np.exp(-np.pi * np.abs(width) * t) * np.exp(-((np.pi * np.abs(gauss) * t)**2) / (4 * np.log(2)))
+    apod[-1:-(int(len(apod) / 2) + 1):-1] = apod[:int(len(apod) / 2)]
     inten = np.real(np.fft.fft(np.fft.ifft(final) * apod))
-    inten = inten / sw / len(inten)
+    inten = inten / sw * len(inten)
     return inten
 
 def quad2StaticsetAngleStuff(cheng):
@@ -7065,7 +7095,7 @@ def quad2CzjzektensorFunc(sigma, d, pos, width, gauss, wq, eta, lib, freq, sw, a
     czjzek = czjzek / np.sum(czjzek)
     fid = np.sum(lib * czjzek[..., None], axis=(0, 1))
     t = np.arange(len(fid)) / sw
-    apod = np.exp(-np.pi * width * t) * np.exp(-((np.pi * gauss * t)**2) / (4 * np.log(2)))
+    apod = np.exp(-np.pi * np.abs(width) * t) * np.exp(-((np.pi * np.abs(gauss) * t)**2) / (4 * np.log(2)))
     apod[-1:int(-(len(apod) / 2 + 1)):-1] = apod[:int(len(apod) / 2)]
     spectrum = scipy.ndimage.interpolation.shift(np.real(np.fft.fft(fid * apod)), len(fid) * pos / sw)
     spectrum = spectrum / sw * len(spectrum)

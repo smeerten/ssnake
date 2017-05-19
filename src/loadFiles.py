@@ -98,10 +98,10 @@ def LoadVarianFile(filePath, name=''):
         fid32 = int(bin(status)[-3])
         fidfloat = int(bin(status)[-4])
         hypercomplex = bool(bin(status)[-5])
-        flipped = bool(bin(status)[-10])
+        
 
         if not fid32 and fidfloat:  # only for `newest' format, use fast routine
-        
+            flipped = bool(bin(status)[-10])
             totalpoints = (ntraces * npoints + nbheaders**2 * 7)*nblocks
             raw = np.fromfile(f, np.float32, totalpoints)
             a = raw.newbyteorder('>f')
@@ -962,6 +962,30 @@ def LoadAscii(filePath, name, dataDimension, dataSpec, dataOrder, delimitor, swI
         
         
         
-        
-        
+def LoadMinispec(filePath,name):
+    with open(filePath, 'r') as f:
+        data = f.read().split('\n')    
+       
+    dataType = int(data[1][data[1].index('=')+1:])
+    dataLimits = np.fromstring(data[2][data[2].index('=')+1:],sep = ',')
+    dw = (dataLimits[1] - dataLimits[0]) / ( dataLimits[2] - 1)
+    if 'Time/ms' in data[3]:    
+        sw = 1.0/dw * 1000
+    elif 'Time/s' in data[3]: 
+        sw = 1.0/dw
+    totaldata = np.array([])
+    if dataType == 1: #real data?
+        for line in data[7:]:
+            if len(line) > 0:
+                totaldata = np.append(totaldata,float(line))
+    if dataType == 2: #Complex data
+        for line in data[7:]:
+            if len(line) > 0:
+                temp = np.fromstring(line,sep = '\t')
+                totaldata = np.append(totaldata,temp[0] + 1j * temp[1])
+    
+    
+    
+    masterData = sc.Spectrum(name, totaldata, (12, filePath), [0], [sw], [False])
+    return masterData       
         

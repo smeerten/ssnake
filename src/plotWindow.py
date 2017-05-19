@@ -27,7 +27,8 @@ except ImportError:
 import matplotlib
 matplotlib.rc('svg', fonttype='none')
 from matplotlib.colors import colorConverter
-from widgetClasses import QLabel
+from widgetClasses import QLabel, QLeftLabel
+
 from safeEval import safeEval
 import numpy as np
 import os
@@ -57,109 +58,176 @@ class MainPlotWindow(QtWidgets.QWidget):
         scroll.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
         content = QtWidgets.QWidget()
         self.optionFrame = QtWidgets.QGridLayout(content)
-        self.optionFrame.addWidget(QLabel("Title:"), 0, 0)
+        
+        self.labelGroup = QtWidgets.QGroupBox('Labels:')
+        self.labelFrame = QtWidgets.QGridLayout()
+        self.labelFrame.addWidget(QLeftLabel('Title:'), 0, 0)
+        
         self.titleEntry = QtWidgets.QLineEdit()
         self.titleEntry.setAlignment(QtCore.Qt.AlignHCenter)
         self.titleBackup = oldMainWindow.get_masterData().name
         self.titleEntry.setText(self.titleBackup)
         self.titleEntry.returnPressed.connect(self.updatePlot)
-        self.optionFrame.addWidget(self.titleEntry, 1, 0)
-        self.optionFrame.addWidget(QLabel("x-label:"), 2, 0)
+        self.labelFrame.addWidget(self.titleEntry, 0, 1)
+        
+        self.labelFrame.addWidget(QLeftLabel("x:"), 1, 0)
         self.xlabelEntry = QtWidgets.QLineEdit()
         self.xlabelEntry.setAlignment(QtCore.Qt.AlignHCenter)
         self.xlabelBackup = self.ax.get_xlabel()
         self.xlabelEntry.setText(self.xlabelBackup)
         self.xlabelEntry.returnPressed.connect(self.updatePlot)
-        self.optionFrame.addWidget(self.xlabelEntry, 3, 0)
-        self.optionFrame.addWidget(QLabel("y-label:"), 4, 0)
+        self.labelFrame.addWidget(self.xlabelEntry, 1, 1)
+        
+        self.labelFrame.addWidget(QLeftLabel("y:"), 2, 0)
         self.ylabelEntry = QtWidgets.QLineEdit()
         self.ylabelEntry.setAlignment(QtCore.Qt.AlignHCenter)
         self.ylabelBackup = self.ax.get_ylabel()
         self.ylabelEntry.setText(self.ylabelBackup)
         self.ylabelEntry.returnPressed.connect(self.updatePlot)
-        self.optionFrame.addWidget(self.ylabelEntry, 5, 0)
+        self.labelFrame.addWidget(self.ylabelEntry, 2, 1)
+        
+        self.labelGroup.setLayout(self.labelFrame)
+        
+        self.optionFrame.addWidget(self.labelGroup,0,0)
+        
+        #limits
+        self.limitsGroup = QtWidgets.QGroupBox('Limits:')
+        self.limitsFrame = QtWidgets.QGridLayout()
+        
         self.xlimBackup = self.ax.get_xlim()
-        self.optionFrame.addWidget(QLabel("x-limit left:"), 6, 0)
+        self.limitsFrame.addWidget(QLeftLabel("x left:"), 0, 0)
         self.xlimLeftEntry = QtWidgets.QLineEdit()
         self.xlimLeftEntry.setAlignment(QtCore.Qt.AlignHCenter)
         self.xlimLeftEntry.setText(str(self.xlimBackup[0]))
         self.xlimLeftEntry.returnPressed.connect(self.updatePlot)
-        self.optionFrame.addWidget(self.xlimLeftEntry, 7, 0)
-        self.optionFrame.addWidget(QLabel("x-limit right:"), 8, 0)
+        self.limitsFrame.addWidget(self.xlimLeftEntry, 0, 1)
+        
+        self.limitsFrame.addWidget(QLeftLabel("x right:"), 1, 0)
         self.xlimRightEntry = QtWidgets.QLineEdit()
         self.xlimRightEntry.setAlignment(QtCore.Qt.AlignHCenter)
         self.xlimRightEntry.setText(str(self.xlimBackup[1]))
         self.xlimRightEntry.returnPressed.connect(self.updatePlot)
-        self.optionFrame.addWidget(self.xlimRightEntry, 9, 0)
+        self.limitsFrame.addWidget(self.xlimRightEntry, 1, 1)
+        
         self.ylimBackup = self.ax.get_ylim()
-        self.optionFrame.addWidget(QLabel("y-limit down:"), 10, 0)
+        self.limitsFrame.addWidget(QLeftLabel("y down:"), 2, 0)
         self.ylimLeftEntry = QtWidgets.QLineEdit()
         self.ylimLeftEntry.setAlignment(QtCore.Qt.AlignHCenter)
         self.ylimLeftEntry.setText(str(self.ylimBackup[0]))
         self.ylimLeftEntry.returnPressed.connect(self.updatePlot)
-        self.optionFrame.addWidget(self.ylimLeftEntry, 11, 0)
-        self.optionFrame.addWidget(QLabel("y-limit up:"), 12, 0)
+        self.limitsFrame.addWidget(self.ylimLeftEntry, 2, 1)
+        
+        self.limitsFrame.addWidget(QLeftLabel("y up:"), 3, 0)
         self.ylimRightEntry = QtWidgets.QLineEdit()
         self.ylimRightEntry.setAlignment(QtCore.Qt.AlignHCenter)
         self.ylimRightEntry.setText(str(self.ylimBackup[1]))
         self.ylimRightEntry.returnPressed.connect(self.updatePlot)
-        self.optionFrame.addWidget(self.ylimRightEntry, 13, 0)
+        self.limitsFrame.addWidget(self.ylimRightEntry, 3, 1)
+        
+        
+        self.limitsGroup.setLayout(self.limitsFrame)
+        self.optionFrame.addWidget(self.limitsGroup,1,0)
+        
+        
+        #Dimensions
+        self.dimensionsGroup = QtWidgets.QGroupBox('Dimensions:')
+        self.dimensionsFrame = QtWidgets.QGridLayout()
+        
         self.widthBackup, self.heightBackup = self.fig.get_size_inches()
         self.widthBackup = self.widthBackup * 2.54
         self.heightBackup = self.heightBackup * 2.54
-        self.optionFrame.addWidget(QLabel("Width [cm]:"), 26, 0)
-        self.widthEntry = QtWidgets.QLineEdit()
-        self.widthEntry.setAlignment(QtCore.Qt.AlignHCenter)
-        self.widthEntry.setText(str(self.widthBackup))
-        self.widthEntry.returnPressed.connect(self.updatePlot)
-        self.optionFrame.addWidget(self.widthEntry, 27, 0)
-        self.optionFrame.addWidget(QLabel("Height [cm]:"), 28, 0)
-        self.heightEntry = QtWidgets.QLineEdit()
-        self.heightEntry.setAlignment(QtCore.Qt.AlignHCenter)
-        self.heightEntry.setText(str(self.heightBackup))
-        self.heightEntry.returnPressed.connect(self.updatePlot)
-        self.optionFrame.addWidget(self.heightEntry, 29, 0)
-        self.optionFrame.addWidget(QLabel("dpi:"), 30, 0)
-        self.dpiEntry = QtWidgets.QLineEdit()
-        self.dpiEntry.setAlignment(QtCore.Qt.AlignHCenter)
-        self.dpiEntry.setText(str(self.fig.dpi))
-        self.dpiEntry.returnPressed.connect(self.updatePlot)
-        self.optionFrame.addWidget(self.dpiEntry, 31, 0)
+        
+        self.dimensionsFrame.addWidget(QLeftLabel("Width [cm]:"), 0, 0)
+        self.widthEntry = QtWidgets.QDoubleSpinBox()
+        self.widthEntry.setSingleStep(0.1)
+        self.widthEntry.setMinimum(0)
+        self.widthEntry.setMaximum(1e6)
+        self.widthEntry.setValue(self.widthBackup)
+        self.widthEntry.valueChanged.connect(self.updatePlot)
+        self.dimensionsFrame.addWidget(self.widthEntry, 0, 1)
+          
+        
+        self.dimensionsFrame.addWidget(QLeftLabel("Height [cm]:"), 1, 0)
+        self.heightEntry = QtWidgets.QDoubleSpinBox()
+        self.heightEntry.setSingleStep(0.1)
+        self.heightEntry.setMinimum(0)
+        self.heightEntry.setMaximum(1e6)
+        self.heightEntry.setValue(self.heightBackup)
+        self.heightEntry.valueChanged.connect(self.updatePlot)
+        self.dimensionsFrame.addWidget(self.heightEntry, 1, 1)
+        
+        self.dimensionsFrame.addWidget(QLeftLabel("dpi:"), 2, 0)
+        self.dpiEntry = QtWidgets.QSpinBox()
+        self.dpiEntry.setSingleStep(1)
+        self.dpiEntry.setMinimum(0)
+        self.dpiEntry.setMaximum(1e6)
+        self.dpiEntry.setValue(self.fig.dpi)
+        self.dpiEntry.valueChanged.connect(self.updatePlot)
+        self.dimensionsFrame.addWidget(self.dpiEntry, 2, 1)
+        
+        self.dimensionsGroup.setLayout(self.dimensionsFrame)
+        self.optionFrame.addWidget(self.dimensionsGroup,2,0)
+
+        #Font size
+        self.fontGroup = QtWidgets.QGroupBox('Font sizes:')
+        self.fontFrame = QtWidgets.QGridLayout()
+        
+        
         self.titleFontSizeBackup = 12
-        self.optionFrame.addWidget(QLabel("Title font size:"), 32, 0)
-        self.titleFontSizeEntry = QtWidgets.QLineEdit()
-        self.titleFontSizeEntry.setAlignment(QtCore.Qt.AlignHCenter)
-        self.titleFontSizeEntry.setText(str(self.titleFontSizeBackup))
-        self.titleFontSizeEntry.returnPressed.connect(self.updatePlot)
-        self.optionFrame.addWidget(self.titleFontSizeEntry, 33, 0)
+        
+  
+        self.fontFrame.addWidget(QLeftLabel("Title:"), 0, 0)
+        self.titleFontSizeEntry = QtWidgets.QDoubleSpinBox()
+        self.titleFontSizeEntry.setSingleStep(0.1)
+        self.titleFontSizeEntry.setMinimum(0)
+        self.titleFontSizeEntry.setValue(self.titleFontSizeBackup)
+        self.titleFontSizeEntry.valueChanged.connect(self.updatePlot)
+        self.fontFrame.addWidget(self.titleFontSizeEntry, 0, 1)
+        
         self.xlabelFontSizeBackup = 12
-        self.optionFrame.addWidget(QLabel("X-label font size:"), 34, 0)
-        self.xlabelFontSizeEntry = QtWidgets.QLineEdit()
-        self.xlabelFontSizeEntry.setAlignment(QtCore.Qt.AlignHCenter)
-        self.xlabelFontSizeEntry.setText(str(self.xlabelFontSizeBackup))
-        self.xlabelFontSizeEntry.returnPressed.connect(self.updatePlot)
-        self.optionFrame.addWidget(self.xlabelFontSizeEntry, 35, 0)
+        self.fontFrame.addWidget(QLeftLabel("X-label:"), 1, 0)
+        self.xlabelFontSizeEntry = QtWidgets.QDoubleSpinBox()
+        self.xlabelFontSizeEntry.setSingleStep(0.1)
+        self.xlabelFontSizeEntry.setMinimum(0)
+        self.xlabelFontSizeEntry.setValue(self.xlabelFontSizeBackup)
+        self.xlabelFontSizeEntry.valueChanged.connect(self.updatePlot)
+        self.fontFrame.addWidget(self.xlabelFontSizeEntry, 1, 1)
+        
         self.ylabelFontSizeBackup = 12
-        self.optionFrame.addWidget(QLabel("Y-label font size:"), 36, 0)
-        self.ylabelFontSizeEntry = QtWidgets.QLineEdit()
-        self.ylabelFontSizeEntry.setAlignment(QtCore.Qt.AlignHCenter)
-        self.ylabelFontSizeEntry.setText(str(self.ylabelFontSizeBackup))
-        self.ylabelFontSizeEntry.returnPressed.connect(self.updatePlot)
-        self.optionFrame.addWidget(self.ylabelFontSizeEntry, 37, 0)
+        self.fontFrame.addWidget(QLeftLabel("Y-label:"), 2, 0)
+        self.ylabelFontSizeEntry = QtWidgets.QDoubleSpinBox()
+        self.ylabelFontSizeEntry.setSingleStep(0.1)
+        self.ylabelFontSizeEntry.setMinimum(0)
+        self.ylabelFontSizeEntry.setValue(self.ylabelFontSizeBackup)
+        self.ylabelFontSizeEntry.valueChanged.connect(self.updatePlot)
+        self.fontFrame.addWidget(self.ylabelFontSizeEntry, 2, 1)
+               
         self.xtickFontSizeBackup = 12
-        self.optionFrame.addWidget(QLabel("X-ticks font size:"), 38, 0)
-        self.xtickFontSizeEntry = QtWidgets.QLineEdit()
-        self.xtickFontSizeEntry.setAlignment(QtCore.Qt.AlignHCenter)
-        self.xtickFontSizeEntry.setText(str(self.xtickFontSizeBackup))
-        self.xtickFontSizeEntry.returnPressed.connect(self.updatePlot)
-        self.optionFrame.addWidget(self.xtickFontSizeEntry, 39, 0)
+        self.fontFrame.addWidget(QLeftLabel("X-ticks:"), 3, 0)
+        self.xtickFontSizeEntry = QtWidgets.QDoubleSpinBox()
+        self.xtickFontSizeEntry.setSingleStep(0.1)
+        self.xtickFontSizeEntry.setMinimum(0)
+        self.xtickFontSizeEntry.setValue(self.xtickFontSizeBackup)
+        self.xtickFontSizeEntry.valueChanged.connect(self.updatePlot)
+        self.fontFrame.addWidget(self.xtickFontSizeEntry, 3, 1)
+        
         self.ytickFontSizeBackup = 12
-        self.optionFrame.addWidget(QLabel("Y-ticks font size:"), 40, 0)
-        self.ytickFontSizeEntry = QtWidgets.QLineEdit()
-        self.ytickFontSizeEntry.setAlignment(QtCore.Qt.AlignHCenter)
-        self.ytickFontSizeEntry.setText(str(self.ytickFontSizeBackup))
-        self.ytickFontSizeEntry.returnPressed.connect(self.updatePlot)
-        self.optionFrame.addWidget(self.ytickFontSizeEntry, 41, 0)
+        self.fontFrame.addWidget(QLeftLabel("Y-ticks:"), 4, 0)
+        self.ytickFontSizeEntry = QtWidgets.QDoubleSpinBox()
+        self.ytickFontSizeEntry.setSingleStep(0.1)
+        self.ytickFontSizeEntry.setMinimum(0)
+        self.ytickFontSizeEntry.setValue(self.ytickFontSizeBackup)
+        self.ytickFontSizeEntry.valueChanged.connect(self.updatePlot)
+        self.fontFrame.addWidget(self.ytickFontSizeEntry, 4, 1)
+        
+        self.fontGroup.setLayout(self.fontFrame)
+        self.optionFrame.addWidget(self.fontGroup,3,0)
+        
+        
+        
+        #Legend
+
+       
         self.legend = self.ax.legend()
         if self.legend is not None:
             if self.oldMainWindow.current.__class__.__name__ == 'CurrentMulti': #If from multiplot
@@ -177,12 +245,19 @@ class MainPlotWindow(QtWidgets.QWidget):
                 self.legendTextList.append(line.get_text())
 
             self.legend.set_visible(False)
-            self.legendCheck = QtWidgets.QCheckBox('Legend')
-            self.legendCheck.stateChanged.connect(self.updateLegend)
-            self.optionFrame.addWidget(self.legendCheck, 42, 0)
+            
+            
+            
+            self.legendGroup = QtWidgets.QGroupBox('Legend:')
+            self.legendGroup.setCheckable(True)
+            self.legendGroup.setChecked(False)
+            self.legendGroup.toggled.connect(self.updateLegend)
+            self.legendFrame = QtWidgets.QGridLayout()
             legendButton = QtWidgets.QPushButton('Legend settings')
-            legendButton.clicked.connect(lambda: LegendWindow(self))
-            self.optionFrame.addWidget(legendButton, 43, 0)
+            legendButton.clicked.connect(lambda: LegendWindow(self)) 
+            self.legendFrame.addWidget(legendButton,0,0)
+            self.legendGroup.setLayout(self.legendFrame)
+            self.optionFrame.addWidget(self.legendGroup, 4, 0)
 
         execFileButton = QtWidgets.QPushButton('Execute file')
         execFileButton.clicked.connect(self.exFile)
@@ -206,13 +281,14 @@ class MainPlotWindow(QtWidgets.QWidget):
         self.optionFrame.setAlignment(QtCore.Qt.AlignTop)
         self.grid = grid
         scroll.setWidget(content)
+        scroll.setMinimumWidth(content.sizeHint().width() + scroll.verticalScrollBar().sizeHint().width())
         self.updatePlot()
 
     def rename(self, name):
         self.oldMainWindow.rename(name)
 
     def updateLegend(self, *args):
-        if self.legendCheck.isChecked():
+        if self.legendGroup.isChecked():
             orderedLines = [self.ax.lines[x] for x in self.legendOrder]
             orderedLegendText = [self.legendTextList[x] for x in self.legendOrder] 
             self.legend = self.ax.legend(orderedLines,orderedLegendText, loc=self.legendPos)
@@ -223,16 +299,16 @@ class MainPlotWindow(QtWidgets.QWidget):
         self.updatePlot()
 
     def updatePlot(self, *args):
-        self.fig.suptitle(self.titleEntry.text(), fontsize=safeEval(self.titleFontSizeEntry.text()))
-        self.ax.set_xlabel(self.xlabelEntry.text(), fontsize=safeEval(self.xlabelFontSizeEntry.text()))
-        self.ax.set_ylabel(self.ylabelEntry.text(), fontsize=safeEval(self.ylabelFontSizeEntry.text()))
+        self.fig.suptitle(self.titleEntry.text(), fontsize=self.titleFontSizeEntry.value())
+        self.ax.set_xlabel(self.xlabelEntry.text(), fontsize=self.xlabelFontSizeEntry.value())
+        self.ax.set_ylabel(self.ylabelEntry.text(), fontsize=self.ylabelFontSizeEntry.value())
         self.ax.set_xlim((safeEval(self.xlimLeftEntry.text()), safeEval(self.xlimRightEntry.text())))
         self.ax.set_ylim((safeEval(self.ylimLeftEntry.text()), safeEval(self.ylimRightEntry.text())))
-        self.ax.tick_params(axis='x', labelsize=safeEval(self.xtickFontSizeEntry.text()))
-        self.ax.xaxis.get_offset_text().set_fontsize(safeEval(self.xtickFontSizeEntry.text()))
-        self.ax.tick_params(axis='y', labelsize=safeEval(self.ytickFontSizeEntry.text()))
-        self.ax.yaxis.get_offset_text().set_fontsize(safeEval(self.ytickFontSizeEntry.text()))
-        self.fig.set_size_inches((int(safeEval(self.widthEntry.text())) / 2.54, int(safeEval(self.heightEntry.text())) / 2.54))
+        self.ax.tick_params(axis='x', labelsize=self.xtickFontSizeEntry.value())
+        self.ax.xaxis.get_offset_text().set_fontsize(self.xtickFontSizeEntry.value())
+        self.ax.tick_params(axis='y', labelsize=self.ytickFontSizeEntry.value())
+        self.ax.yaxis.get_offset_text().set_fontsize(self.ytickFontSizeEntry.value())
+        self.fig.set_size_inches(self.widthEntry.value() / 2.54, self.heightEntry.value() / 2.54)
         self.canvas.draw()
         self.canvas.adjustSize()
 
@@ -279,14 +355,14 @@ class MainPlotWindow(QtWidgets.QWidget):
 
     def save(self):
         self.updatePlot()
-        self.fig.set_size_inches((int(safeEval(self.widthEntry.text())) / 2.54, int(safeEval(self.heightEntry.text())) / 2.54))
+        self.fig.set_size_inches(self.widthEntry.value() / 2.54, self.heightEntry.value() / 2.54)
         WorkspaceName = self.father.workspaceNames[self.father.workspaceNum]  # Set name of file to be saved to workspace name to start
         f = QtWidgets.QFileDialog.getSaveFileName(self, 'Save File', self.father.LastLocation + os.path.sep + WorkspaceName + '.' + self.fileOptions[self.filetypeEntry.currentIndex()],filter = '(*.' + self.fileOptions[self.filetypeEntry.currentIndex()] + ')')
         if type(f) is tuple:
             f = f[0]        
         if f:
             self.father.LastLocation = os.path.dirname(f)
-            dpi = safeEval(self.dpiEntry.text())
+            dpi = self.dpiEntry.value()
             if dpi is None:
                 dpi = self.fig.dpi
             self.fig.savefig(f, format=self.fileOptions[self.filetypeEntry.currentIndex()], dpi=dpi)
@@ -344,7 +420,7 @@ class LegendWindow(QtWidgets.QWidget):
         self.orderEntry.returnPressed.connect(self.preview)
         grid.addWidget(self.orderEntry, 3, 0)
         grid.addWidget(QLabel("Legend:"), 4, 0)
-        self.father.legendCheck.setChecked(True)
+        self.father.legendGroup.setChecked(True)
         self.spinBox = QtWidgets.QSpinBox()
         self.spinBox.setMaximum(len(self.father.legendTextList) - 1)
         self.spinBox.valueChanged.connect(self.changeEdit)
@@ -495,7 +571,7 @@ class EditLineWindow(QtWidgets.QWidget):
         self.setup()
         
     def setColor(self, *args):
-        color = QtWidgets.QColor()
+        color = QtGui.QColor()
         color.setRgbF(*self.backupColor)
         color = QtWidgets.QColorDialog.getColor(color, self, 'Color', QtWidgets.QColorDialog.ColorDialogOption(1))
         if not color.isValid():
@@ -504,7 +580,7 @@ class EditLineWindow(QtWidgets.QWidget):
         self.canvas.draw()
 
     def setEdgeColor(self, *args):
-        color = QtWidgets.QColor()
+        color = QtGui.QColor()
         color.setRgbF(*self.backupEdgeColor)
         color = QtWidgets.QColorDialog.getColor(color, self, 'Edgecolor', QtWidgets.QColorDialog.ColorDialogOption(1))
         if not color.isValid():
@@ -513,7 +589,7 @@ class EditLineWindow(QtWidgets.QWidget):
         self.canvas.draw()
 
     def setFaceColor(self, *args):
-        color = QtWidgets.QColor()
+        color = QtGui.QColor()
         color.setRgbF(*self.backupFaceColor)
         color = QtWidgets.QColorDialog.getColor(color, self, 'Facecolor', QtWidgets.QColorDialog.ColorDialogOption(1))
         if not color.isValid():

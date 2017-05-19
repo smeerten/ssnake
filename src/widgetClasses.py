@@ -98,6 +98,13 @@ class QLabel(QtWidgets.QLabel):
         QtWidgets.QLabel.__init__(self, parent, *args, **kwargs)
         self.setAlignment(QtCore.Qt.AlignCenter)
 
+class QLeftLabel(QtWidgets.QLabel):
+
+    def __init__(self, parent, *args, **kwargs):
+        QtWidgets.QLabel.__init__(self, parent, *args, **kwargs)
+        self.setAlignment(QtCore.Qt.AlignLeft)
+        self.setAlignment(QtCore.Qt.AlignVCenter)
+
 
 class specialProgressBar(QtWidgets.QProgressBar):
     def __init__(self):
