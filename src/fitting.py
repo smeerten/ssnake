@@ -141,7 +141,103 @@ def voigtLine(x, pos, lor, gau, integral, Type = 0):
         gauss = np.exp( -axis**2 / (2 * f**2)) / (f * np.sqrt(2 * np.pi))
         return integral * (eta * lor + (1 - eta) * gauss)
 
+#############################################################################################
 
+
+class TabFittingWindow(QtWidgets.QWidget):
+
+    def __init__(self, mainProgram, oldMainWindow):
+        QtWidgets.QWidget.__init__(self, mainProgram)
+        self.mainProgram = mainProgram
+        self.oldMainWindow = oldMainWindow
+        self.subFitWindows = []
+        self.tabs = QtWidgets.QTabWidget(self)
+        self.tabs.setTabPosition(2)
+        self.mainFitWindow = self.FITWINDOW(mainProgram, oldMainWindow, self)
+        self.current = self.mainFitWindow.current
+        self.tabs.setTabsClosable(True)
+        self.tabs.tabCloseRequested.connect(self.closeTab)
+        self.tabs.addTab(self.mainFitWindow, 'Spectrum') 
+        grid3 =  QtWidgets.QGridLayout(self)
+        grid3.addWidget(self.tabs,0,0)
+        grid3.setColumnStretch(0, 1)
+        grid3.setRowStretch(0, 1)
+
+    def addSpectrum(self):
+        text = QtWidgets.QInputDialog.getItem(self, "Select spectrum to add", "Spectrum name:", self.mainProgram.workspaceNames, 0, False)
+        if text[1]:
+            self.subFitWindows.append(self.FITWINDOW(self.mainProgram, self.mainProgram.workspaces[self.mainProgram.workspaceNames.index(text[0])], self, isMain=False))
+            self.tabs.addTab(self.subFitWindows[-1], str(text[0]))
+            self.tabs.setCurrentIndex(len(self.subFitWindows))
+
+    def removeSpectrum(self, spec):
+        num = self.subFitWindows.index(spec)
+        self.removeTab(num+1)
+        self.tabs.removeTab(num+1)
+        del self.subFitWindows[num]
+
+    def closeTab(self, num):
+        if num > 0:
+            self.tabs.removeTab(num)
+            del self.subFitWindows[num-1]
+        else:
+            self.mainFitWindow.paramframe.closeWindow()
+        
+    def fit(self):
+        xax, data1D, guess, args, out = self.mainFitWindow.paramframe.getFitParams()
+        xax = [xax]
+        out = [out]
+        nameList = ['Spectrum']
+        selectList = [slice(0, len(guess))]
+        for i in range(len(self.subFitWindows)):
+            xax_tmp, data1D_tmp, guess_tmp, args_tmp, out_tmp = self.subFitWindows[i].paramframe.getFitParams()
+            out.append(out_tmp)
+            xax.append(xax_tmp)
+            nameList.append('bla')
+            selectList.append(slice(len(guess), len(guess)+len(guess_tmp)))
+            data1D = np.append(data1D, data1D_tmp)
+            guess += guess_tmp
+            new_args = ()
+            for n in range(len(args)):
+                new_args += (args[n] + args_tmp[n],)
+            args = new_args # tuples are immutable
+        new_args = (nameList, selectList) + args
+        allFitVal = self.mainFitWindow.paramframe.fit(xax, data1D, guess, new_args)[0]
+        fitVal = []
+        for length in selectList:
+            fitVal.append(allFitVal[length])
+        args_out = []
+        for n in range(len(args)):
+            args_out.append([args[n][0]])
+        self.mainFitWindow.paramframe.setResults(fitVal[0], args_out, out[0])
+        for i in (range(len(self.subFitWindows))):
+            args_out = []
+            for n in range(len(args)):
+                args_out.append([args[n][i+1]])
+            self.subFitWindows[i].paramframe.setResults(fitVal[i+1], args_out, out[i+1])
+
+    def disp(self):
+        params = [self.mainFitWindow.paramframe.getSimParams()]
+        for window in self.subFitWindows:
+            tmp_params = window.paramframe.getSimParams()
+            for i in range(len(params)):
+                params = np.append(params, [tmp_params], axis=0)
+        self.mainFitWindow.paramframe.disp(params, 0)
+        for i in range(len(self.subFitWindows)):
+            self.subFitWindows[i].paramframe.disp(params, i+1)
+
+    def get_masterData(self):
+        return self.oldMainWindow.get_masterData()
+
+    def get_current(self):
+        return self.oldMainWindow.get_current()
+
+    def kill(self):
+        self.mainFitWindow.paramframe.closeWindow()
+
+##############################################################################
+
+    
 class FitCopySettingsWindow(QtWidgets.QWidget):
 
     def __init__(self, parent, returnFunction):
@@ -2452,96 +2548,12 @@ def fitFunc(param, args):
 ##############################################################################
 
 
-class PeakDeconvWindow(QtWidgets.QWidget):
+class PeakDeconvWindow(TabFittingWindow):
 
     def __init__(self, mainProgram, oldMainWindow):
-        QtWidgets.QWidget.__init__(self, mainProgram)
-        self.mainProgram = mainProgram
-        self.oldMainWindow = oldMainWindow
-        self.subFitWindows = []
-        self.tabs = QtWidgets.QTabWidget(self)
-        self.tabs.setTabPosition(2)
-        self.mainFitWindow = PeakDeconvWindow2(mainProgram, oldMainWindow, self)
-        self.current = self.mainFitWindow.current
-        self.tabs.setTabsClosable(True)
-        self.tabs.tabCloseRequested.connect(self.closeTab)
-        self.tabs.addTab(self.mainFitWindow, 'Spectrum') 
-        grid3 =  QtWidgets.QGridLayout(self)
-        grid3.addWidget(self.tabs,0,0)
-        grid3.setColumnStretch(0, 1)
-        grid3.setRowStretch(0, 1)
+        self.FITWINDOW = PeakDeconvWindow2
+        TabFittingWindow.__init__(self, mainProgram, oldMainWindow)
 
-    def addSpectrum(self):
-        text = QtWidgets.QInputDialog.getItem(self, "Select spectrum to add", "Spectrum name:", self.mainProgram.workspaceNames, 0, False)
-        if text[1]:
-            self.subFitWindows.append(PeakDeconvWindow2(self.mainProgram, self.mainProgram.workspaces[self.mainProgram.workspaceNames.index(text[0])], self, isMain=False))
-            self.tabs.addTab(self.subFitWindows[-1], str(text[0]))
-            self.tabs.setCurrentIndex(len(self.subFitWindows))
-
-    def removeSpectrum(self, spec):
-        num = self.subFitWindows.index(spec)
-        self.removeTab(num+1)
-        self.tabs.removeTab(num+1)
-        del self.subFitWindows[num]
-
-    def closeTab(self, num):
-        if num > 0:
-            self.tabs.removeTab(num)
-            del self.subFitWindows[num-1]
-        else:
-            self.mainFitWindow.paramframe.closeWindow()
-        
-    def fit(self):
-        xax, data1D, guess, args, out = self.mainFitWindow.paramframe.getFitParams()
-        xax = [xax]
-        out = [out]
-        nameList = ['Spectrum']
-        selectList = [slice(0, len(guess))]
-        for i in range(len(self.subFitWindows)):
-            xax_tmp, data1D_tmp, guess_tmp, args_tmp, out_tmp = self.subFitWindows[i].paramframe.getFitParams()
-            out.append(out_tmp)
-            xax.append(xax_tmp)
-            nameList.append('bla')
-            selectList.append(slice(len(guess), len(guess)+len(guess_tmp)))
-            data1D = np.append(data1D, data1D_tmp)
-            guess += guess_tmp
-            new_args = ()
-            for n in range(len(args)):
-                new_args += (args[n] + args_tmp[n],)
-            args = new_args # tuples are immutable
-        new_args = (nameList, selectList) + args
-        allFitVal = self.mainFitWindow.paramframe.fit(xax, data1D, guess, new_args)[0]
-        fitVal = []
-        for length in selectList:
-            fitVal.append(allFitVal[length])
-        args_out = []
-        for n in range(len(args)):
-            args_out.append([args[n][0]])
-        self.mainFitWindow.paramframe.setResults(fitVal[0], args_out, out[0])
-        for i in (range(len(self.subFitWindows))):
-            args_out = []
-            for n in range(len(args)):
-                args_out.append([args[n][i+1]])
-            self.subFitWindows[i].paramframe.setResults(fitVal[i+1], args_out, out[i+1])
-
-    def disp(self):
-        params = [self.mainFitWindow.paramframe.getSimParams()]
-        for window in self.subFitWindows:
-            tmp_params = window.paramframe.getSimParams()
-            for i in range(len(params)):
-                params = np.append(params, [tmp_params], axis=0)
-        self.mainFitWindow.paramframe.disp(params, 0)
-        for i in range(len(self.subFitWindows)):
-            self.subFitWindows[i].paramframe.disp(params, i+1)
-
-    def get_masterData(self):
-        return self.oldMainWindow.get_masterData()
-
-    def get_current(self):
-        return self.oldMainWindow.get_current()
-
-    def kill(self):
-        self.mainFitWindow.paramframe.closeWindow()
 
 ##############################################################################
 
