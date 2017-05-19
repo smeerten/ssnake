@@ -581,7 +581,7 @@ class IntegralsFrame(Plot1DFrame):
         self.ymaxlim = self.current.ymaxlim
         if isinstance(self.current, spectrum_classes.CurrentContour):
             self.plotReset(False, True)
-        self.showPlot()
+        self.showFid()
 
     def plotReset(self, xReset=True, yReset=True):
         a = self.fig.gca()
@@ -620,7 +620,7 @@ class IntegralsFrame(Plot1DFrame):
             a.set_xlim(self.xminlim, self.xmaxlim)
         a.set_ylim(self.yminlim, self.ymaxlim)
 
-    def showPlot(self, tmpAx=None, tmpdata=None, tmpAx2=[], tmpdata2=[]):
+    def showFid(self, tmpAx=None, tmpdata=None, tmpAx2=[], tmpdata2=[]):
         a = self.fig.gca()
         a.cla()
         if self.spec == 1:
@@ -781,7 +781,7 @@ class IntegralsParamFrame(QtWidgets.QWidget):
         self.refVal = None
         self.pickTick.setChecked(True)
         self.togglePick()
-        self.parent.showPlot()
+        self.parent.showFid()
 
     def addValue(self, value):
         if self.first:
@@ -916,7 +916,7 @@ class IntegralsParamFrame(QtWidgets.QWidget):
         x = []
         y = []
         if self.integralIter == 0:
-            self.parent.showPlot()
+            self.parent.showFid()
             return
         for i in range(self.integralIter):
             tmpx = self.parent.current.xax[(self.minValues[i] < self.xax) & (self.maxValues[i] > self.xax)]
@@ -939,7 +939,7 @@ class IntegralsParamFrame(QtWidgets.QWidget):
             y = np.append(y, float('nan'))
         self.displayInt()
         y = y / (max(y) - min(y)) * self.diffy
-        self.parent.showPlot(x, y)
+        self.parent.showFid(x, y)
 
 ##############################################################################
 
@@ -971,7 +971,7 @@ class RelaxFrame(Plot1DFrame):
         self.current = current
         self.rootwindow = rootwindow
         self.plotReset()
-        self.showPlot()
+        self.showFid()
 
     def plotReset(self, xReset=True, yReset=True):
         if self.plotType == 0:
@@ -1006,7 +1006,7 @@ class RelaxFrame(Plot1DFrame):
         self.ax.set_xlim(self.xminlim, self.xmaxlim)
         self.ax.set_ylim(self.yminlim, self.ymaxlim)
 
-    def showPlot(self, tmpAx=None, tmpdata=None):
+    def showFid(self, tmpAx=None, tmpdata=None):
         self.ax.cla()
         if self.spec == 1:
             if self.ppm:
@@ -1605,7 +1605,7 @@ class RelaxParamFrame(QtWidgets.QWidget):
             x = np.linspace(min(self.parent.xax), max(self.parent.xax), numCurve)
         for i in range(len(outCoeff)):
             outCurve += outCoeff[i] * np.exp(-x / outT1[i])
-        self.parent.showPlot(x, outAmp * (outConst + outCurve))
+        self.parent.showFid(x, outAmp * (outConst + outCurve))
 
 #############################################################################
 
@@ -1690,7 +1690,7 @@ class DiffusionFrame(Plot1DFrame):
         self.current = current
         self.rootwindow = rootwindow
         self.plotReset()
-        self.showPlot()
+        self.showFid()
 
     def plotReset(self, xReset=True, yReset=True):
         if self.plotType == 0:
@@ -1725,7 +1725,7 @@ class DiffusionFrame(Plot1DFrame):
         self.ax.set_xlim(self.xminlim, self.xmaxlim)
         self.ax.set_ylim(self.yminlim, self.ymaxlim)
 
-    def showPlot(self, tmpAx=None, tmpdata=None):
+    def showFid(self, tmpAx=None, tmpdata=None):
         self.ax.cla()
         if self.spec == 1:
             if self.ppm:
@@ -2366,7 +2366,7 @@ class DiffusionParamFrame(QtWidgets.QWidget):
             x = np.linspace(min(self.parent.xax), max(self.parent.xax), numCurve)
         for i in range(len(outCoeff)):
             outCurve += outCoeff[i] * np.exp(-(gamma * delta * x)**2 * outD[i] * (triangle - delta / 3.0))
-        self.parent.showPlot(x, outAmp * (outConst + outCurve))
+        self.parent.showFid(x, outAmp * (outConst + outCurve))
 
 ##############################################################################
 
@@ -2558,7 +2558,13 @@ class PeakDeconvFrame(Plot1DFrame):
         self.data1D = current.getDisplayedData()
         self.data = current.data
         self.axes = current.axes
-        self.locList = current.locList
+        if (len(current.locList) == self.data.data.ndim - 1):
+            self.locList = current.locList
+        else:
+            if self.axes < current.axes2:
+                self.locList = np.insert(current.locList, current.axes2 - 1, 0)
+            else:
+                self.locList = np.insert(current.locList, current.axes2, 0)
         self.current = current
         self.spec = self.current.spec
         self.xax = self.current.xax
@@ -2577,7 +2583,7 @@ class PeakDeconvFrame(Plot1DFrame):
         self.ymaxlim = self.current.ymaxlim
         if isinstance(self.current, spectrum_classes.CurrentContour):
             self.plotReset(False, True)
-        self.showPlot()
+        self.showFid()
 
     def setSlice(self, axes, locList):
         self.rootwindow.paramframe.checkInputs()
@@ -2587,7 +2593,7 @@ class PeakDeconvFrame(Plot1DFrame):
         self.locList = locList
         self.upd()
         self.rootwindow.paramframe.dispParams()
-        self.showPlot()
+        self.showFid()
 
     def upd(self):  
         updateVar = self.data.getSlice(self.axes, self.locList)
@@ -2638,7 +2644,7 @@ class PeakDeconvFrame(Plot1DFrame):
             a.set_xlim(self.xminlim, self.xmaxlim)
         a.set_ylim(self.yminlim, self.ymaxlim)
 
-    def showPlot(self):
+    def showFid(self):
         a = self.fig.gca()
         a.cla()
         if self.spec == 1:
@@ -3100,7 +3106,7 @@ class PeakDeconvParamFrame(QtWidgets.QWidget):
             outCurvePart.append(outCurveBase + y)
             outCurve += y
         self.parent.fitDataList[tuple(self.parent.locList)] = [tmpx, outCurve, x, outCurvePart]
-        self.parent.showPlot()
+        self.parent.showFid()
 
     def paramToWorkspaceWindow(self):
         paramNameList = ['bgrnd', 'slope', 'amp', 'pos', 'lor', 'gauss']
@@ -3358,7 +3364,7 @@ class TensorDeconvFrame(Plot1DFrame):
         self.ymaxlim = self.current.ymaxlim
         if isinstance(self.current, spectrum_classes.CurrentContour):
             self.plotReset(False, True)
-        self.showPlot()
+        self.showFid()
 
     def plotReset(self, xReset=True, yReset=True):  # set the plot limits to min and max values
         if self.plotType == 0:
@@ -3389,7 +3395,7 @@ class TensorDeconvFrame(Plot1DFrame):
             self.ax.set_xlim(self.xminlim, self.xmaxlim)
         self.ax.set_ylim(self.yminlim, self.ymaxlim)
 
-    def showPlot(self, tmpAx=None, tmpdata=None, tmpAx2=[], tmpdata2=[]):
+    def showFid(self, tmpAx=None, tmpdata=None, tmpAx2=[], tmpdata2=[]):
         self.ax.cla()
         self.line_xdata = self.xax
         self.line_ydata = self.data1D
@@ -3694,7 +3700,7 @@ class TensorDeconvParamFrame(QtWidgets.QWidget):
                 self.gaussTicks[i].hide()
                 self.gaussEntries[i].hide()
         self.togglePick()
-        self.parent.showPlot()
+        self.parent.showFid()
 
     def togglePick(self):
         self.parent.togglePick(self.pickTick.isChecked())
@@ -4300,7 +4306,7 @@ class TensorDeconvParamFrame(QtWidgets.QWidget):
             dataArray = np.transpose(np.append(np.array([self.parent.xax]),np.array(outCurvePart),0))
             saveResult(title,variablearray,dataArray)
         else:
-            self.parent.showPlot(tmpx, outCurve, x, outCurvePart)
+            self.parent.showFid(tmpx, outCurve, x, outCurvePart)
 
 ##############################################################################
 
@@ -4471,7 +4477,7 @@ class HerzfeldBergerFrame(Plot1DFrame):
         self.xmaxlim = self.current.xmaxlim
         if isinstance(self.current, spectrum_classes.CurrentContour):
             self.plotReset(False, True)
-        self.showPlot()
+        self.showFid()
 
     def plotReset(self, xReset=True, yReset=True):  # set the plot limits to min and max values
         if self.plotType == 0:
@@ -4502,7 +4508,7 @@ class HerzfeldBergerFrame(Plot1DFrame):
             self.ax.set_xlim(self.xminlim, self.xmaxlim)
         self.ax.set_ylim(self.yminlim, self.ymaxlim)
 
-    def showPlot(self, tmpAx=None, tmpdata=None, tmpAx2=[], tmpdata2=[]):
+    def showFid(self, tmpAx=None, tmpdata=None, tmpAx2=[], tmpdata2=[]):
         self.ax.cla()
         self.line_xdata = self.xax
         self.line_ydata = self.data1D
@@ -4673,7 +4679,7 @@ class HerzfeldBergerParamFrame(QtWidgets.QWidget):
         self.resultLabels = []
         self.pickTick.setChecked(True)
         self.togglePick()
-        self.parent.showPlot()
+        self.parent.showFid()
 
     def addValue(self, value):
         if self.tmpPos is None:
@@ -4923,7 +4929,7 @@ class Quad1MASDeconvFrame(Plot1DFrame):
         self.yminlim=self.current.yminlim       
         if isinstance(self.current, spectrum_classes.CurrentContour):
             self.plotReset(False, True)
-        self.showPlot()
+        self.showFid()
 
     def plotReset(self, xReset=True, yReset=True):  # set the plot limits to min and max values
         if self.plotType == 0:
@@ -4954,7 +4960,7 @@ class Quad1MASDeconvFrame(Plot1DFrame):
             self.ax.set_xlim(self.xminlim, self.xmaxlim)
         self.ax.set_ylim(self.yminlim, self.ymaxlim)
 
-    def showPlot(self, tmpAx=None, tmpdata=None, tmpAx2=[], tmpdata2=[]):
+    def showFid(self, tmpAx=None, tmpdata=None, tmpAx2=[], tmpdata2=[]):
         self.ax.cla()
         self.line_xdata = self.xax
         self.line_ydata = self.data1D
@@ -5155,7 +5161,7 @@ class Quad1MASDeconvParamFrame(QtWidgets.QWidget):
         self.togglePick()
         self.rootwindow.current.resetPreviewRemoveList()
         self.rootwindow.current.removeList = []
-        self.parent.showPlot()
+        self.parent.showFid()
 
     def addValue(self, value):
         if self.tmpPos is None:
@@ -5436,7 +5442,7 @@ class Quad1DeconvFrame(Plot1DFrame):
         self.yminlim=self.current.yminlim   
         if isinstance(self.current, spectrum_classes.CurrentContour):
             self.plotReset(False, True)
-        self.showPlot()
+        self.showFid()
 
     def plotReset(self, xReset=True, yReset=True):  # set the plot limits to min and max values
         if self.plotType == 0:
@@ -5474,7 +5480,7 @@ class Quad1DeconvFrame(Plot1DFrame):
             self.ax.set_xlim(self.xminlim, self.xmaxlim)
         self.ax.set_ylim(self.yminlim, self.ymaxlim)
 
-    def showPlot(self, tmpAx=None, tmpdata=None, tmpAx2=[], tmpdata2=[]):
+    def showFid(self, tmpAx=None, tmpdata=None, tmpAx2=[], tmpdata2=[]):
         self.ax.cla()
         if self.spec == 1:
             if self.current.ppm:
@@ -6109,7 +6115,7 @@ class Quad1DeconvParamFrame(QtWidgets.QWidget):
             dataArray = np.transpose(np.append(np.array([self.parent.xax]),np.array(outCurvePart),0))
             saveResult(title,variablearray,dataArray)
         else:
-            self.parent.showPlot(tmpx, outCurve, x, outCurvePart)
+            self.parent.showFid(tmpx, outCurve, x, outCurvePart)
 
 ##############################################################################
 
@@ -6972,8 +6978,8 @@ class Quad2StaticCzjzekParamFrame(QtWidgets.QWidget):
             dataArray = np.transpose(np.append(np.array([self.parent.xax]),np.array(outCurvePart),0))
             saveResult(title,variablearray,dataArray)
         else:
-            self.parent.showPlot(tmpx, outCurve, x, outCurvePart)
-        self.parent.showPlot(tmpx, outCurve, x, outCurvePart)
+            self.parent.showFid(tmpx, outCurve, x, outCurvePart)
+        self.parent.showFid(tmpx, outCurve, x, outCurvePart)
 
 #################################################################################
 
