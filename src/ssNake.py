@@ -6238,6 +6238,7 @@ class XaxWindow(QtWidgets.QWidget):
         self.setWindowFlags(QtCore.Qt.Window | QtCore.Qt.Tool)
         self.father = parent
         self.setWindowTitle("User defined x-axis")
+        self.axisSize = int(self.father.current.data1D.shape[-1])
         layout = QtWidgets.QGridLayout(self)
         grid = QtWidgets.QGridLayout()
         layout.addLayout(grid, 0, 0, 1, 2)
@@ -6246,6 +6247,19 @@ class XaxWindow(QtWidgets.QWidget):
         self.valEntry.setAlignment(QtCore.Qt.AlignHCenter)
         self.valEntry.returnPressed.connect(self.xaxPreview)
         grid.addWidget(self.valEntry, 1, 0)
+        
+        self.table = QtWidgets.QTableWidget(self.axisSize,2)
+        self.table.setHorizontalHeaderLabels(['Index','Value [s]'])
+        self.table.verticalHeader().hide()
+        for val in range(self.axisSize):
+            item = QtWidgets.QTableWidgetItem(str(val))
+            item.setFlags(QtCore.Qt.ItemIsEnabled)
+            self.table.setItem(int(val),0,item)
+        
+#        self.table.setVerticalHeaderLabels([str(a) for a in range(self.axisSize)])
+        grid.addWidget(self.table, 2, 0)
+        
+        
         cancelButton = QtWidgets.QPushButton("&Cancel")
         cancelButton.clicked.connect(self.closeEvent)
         layout.addWidget(cancelButton, 2, 0)
@@ -6256,11 +6270,18 @@ class XaxWindow(QtWidgets.QWidget):
         self.setFixedSize(self.size())
         self.father.menuDisable()
         self.setGeometry(self.frameSize().width() - self.geometry().width(), self.frameSize().height() - self.geometry().height(), 0, 0)
-
+    
+    
+    
+    def tableChanged(self):
+        pass
+        
+        
+        
     def xaxPreview(self, *args):
         env = vars(np).copy()
         env['length'] = int(self.father.current.data1D.shape[-1])  # so length can be used to in equations
-        env['euro'] = lambda fVal, num=int(self.father.current.data1D.shape[-1]): euro(fVal, num)
+        env['euro'] = lambda fVal, num=self.axisSize: euro(fVal, num)
         try:
             val = np.array(eval(self.valEntry.text(), env))                # find a better solution, also add catch for exceptions
         except:
@@ -6280,6 +6301,9 @@ class XaxWindow(QtWidgets.QWidget):
         if not all(isinstance(x, (int, float)) for x in val):
             self.father.father.dispMsg("Array is not all of int or float type")
             return
+        for i in range(self.axisSize):
+            item = QtWidgets.QTableWidgetItem(str(val[i]))
+            self.table.setItem(i,1,item)
         self.father.current.setXaxPreview(np.array(val))
 
     def closeEvent(self, *args):
@@ -6291,7 +6315,7 @@ class XaxWindow(QtWidgets.QWidget):
     def applyAndClose(self):
         env = vars(np).copy()
         env['length'] = int(self.father.current.data1D.shape[-1])  # so length can be used to in equations
-        env['euro'] = lambda fVal, num=int(self.father.current.data1D.shape[-1]): euro(fVal, num)
+        env['euro'] = lambda fVal, num=self.axisSize: euro(fVal, num)
         try:
             val = np.array(eval(self.valEntry.text(), env))                # find a better solution, also add catch for exceptions
         except:
