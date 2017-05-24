@@ -638,7 +638,7 @@ class MainProgram(QtWidgets.QMainWindow):
         self.setrefAct.setToolTip('Set Reference')
         self.delrefAct = self.referencelistmenu.addAction(QtGui.QIcon(IconDirectory + 'delete.png'),"&Clear Current Reference", self.referenceClear)
         self.delrefAct.setToolTip('Clear Current Reference')
-        self.referencerunmenu = QtWidgets.QMenu('&Run', self)
+        self.referencerunmenu = QtWidgets.QMenu('&Apply', self)
         self.referencelistmenu.addMenu(self.referencerunmenu)
         self.referencedeletemenu = QtWidgets.QMenu('&Delete', self)
         self.referencelistmenu.addMenu(self.referencedeletemenu)
