@@ -88,6 +88,8 @@ class Spectrum:
         self.multiValue = 1.5
         self.projTop = 0
         self.projRight = 0
+        self.projLimitsBool = False
+        self.projLimits = [None,None,None,None]
         
         #---------------
         if spec is None:
@@ -3704,6 +3706,14 @@ class CurrentContour(Current1D):
             self.projRight = duplicateCurrent.projRight
         else:
             self.projRight = self.data.projRight
+        if hasattr(duplicateCurrent, 'projLimits'):
+            self.projLimits = duplicateCurrent.projLimits
+        else:
+            self.projLimits = self.data.projLimits  
+        if hasattr(duplicateCurrent, 'projLimitsBool'):
+            self.projLimitsBool = duplicateCurrent.projLimitsBool
+        else:
+            self.projLimitsBool = self.data.projLimitsBool    
         Current1D.__init__(self, root, fig, canvas, data, duplicateCurrent)
     
     def altScroll(self, event): #Shift scroll scrolls contour limits
@@ -3786,7 +3796,16 @@ class CurrentContour(Current1D):
         self.data.multiValue = multiValue
         
         self.showFid()
-
+    
+    def setProjLimits(self,ProjBool,Limits):
+        self.projLimits = Limits
+        self.projLimitsBool = ProjBool   
+        
+        self.data.projLimits = Limits
+        self.data.projLimitsBool = ProjBool
+        
+        
+        
     def resetLocList(self):
         self.locList = [0] * (len(self.data.data.shape) - 2)
 
@@ -4101,29 +4120,52 @@ class CurrentContour(Current1D):
             tmpdata = np.real(tmpdata)
         elif(self.plotType == 3):
             tmpdata = np.abs(tmpdata)
-            
+        
+        Limits = self.projLimits
+        
+        topSlice = np.s_[:,:]
+        rightSlice = np.s_[:,:]
+        if self.projLimitsBool is True:
+            if Limits[0] < Limits[1]:
+                topSlice = np.s_[Limits[0]:Limits[1] + 1,:]
+            elif Limits[0] > Limits[1]:
+                topSlice = np.s_[Limits[1]:Limits[0] + 1,:]
+            else:
+                topSlice = np.s_[Limits[0]:Limits[0] + 1,:]
+                
+            if Limits[2] < Limits[3]:
+                rightSlice = np.s_[:,Limits[2]:Limits[3] + 1]
+            elif Limits[2] > Limits[3]:
+                rightSlice = np.s_[:,Limits[3]:Limits[2] + 1]
+            else:
+                rightSlice = np.s_[:,Limits[2]:Limits[2] + 1]     
+          
+        
         if self.projTop == 0:
-            xprojdata=np.sum(tmpdata, axis=0)
+            xprojdata=np.sum(tmpdata[topSlice], axis=0)
             self.x_ax.plot(x, xprojdata, color=self.color, linewidth=self.linewidth, picker=True)
         elif self.projTop == 1:
-            xprojdata = np.max(tmpdata, axis=0)
+            xprojdata = np.max(tmpdata[topSlice], axis=0)
             self.x_ax.plot(x,xprojdata , color=self.color, linewidth=self.linewidth, picker=True)
         elif self.projTop == 2:
-            xprojdata =  np.min(tmpdata, axis=0)
+            xprojdata =  np.min(tmpdata[topSlice], axis=0)
             self.x_ax.plot(x,xprojdata, color=self.color, linewidth=self.linewidth, picker=True)
         
         if self.projTop != 3:
             xmin, xmax =  np.min(xprojdata),np.max(xprojdata)
             self.x_ax.set_ylim([xmin-0.15*(xmax-xmin), xmax+0.05*(xmax-xmin)]) #Set projection limits, and force 15% whitespace below plot
             self.x_ax.set_xlim(xLimOld)
+            
+            
+            
         if self.projRight == 0:
-            yprojdata=np.sum(tmpdata, axis=1)
+            yprojdata=np.sum(tmpdata[rightSlice], axis=1)
             self.y_ax.plot(yprojdata, y, color=self.color, linewidth=self.linewidth, picker=True)
         elif self.projRight == 1:
-            yprojdata=np.max(tmpdata, axis=1)
+            yprojdata=np.max(tmpdata[rightSlice], axis=1)
             self.y_ax.plot(yprojdata, y, color=self.color, linewidth=self.linewidth, picker=True)
         elif self.projRight == 2:
-            yprojdata=np.min(tmpdata, axis=1)
+            yprojdata=np.min(tmpdata[rightSlice], axis=1)
             self.y_ax.plot(yprojdata, y, color=self.color, linewidth=self.linewidth, picker=True)
             
         if self.projRight != 3:
