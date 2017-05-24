@@ -2621,8 +2621,8 @@ class SideFrame(QtWidgets.QScrollArea):
                 
                 #Ranges
                 self.rangeCheckbox = QtWidgets.QCheckBox('Projection ranges',self)
-                self.rangeCheckbox.stateChanged.connect(self.activateRanges)
                 self.rangeCheckbox.setChecked(current.projLimitsBool)
+                self.rangeCheckbox.stateChanged.connect(self.activateRanges)
                 self.contourProjFrame.addWidget(self.rangeCheckbox,2,0,1,2)
                 
                 
