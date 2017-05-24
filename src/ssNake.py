@@ -6242,11 +6242,62 @@ class XaxWindow(QtWidgets.QWidget):
         layout = QtWidgets.QGridLayout(self)
         grid = QtWidgets.QGridLayout()
         layout.addLayout(grid, 0, 0, 1, 2)
-        grid.addWidget(wc.QLabel("Expression for x-axis values:"), 0, 0)
-        self.valEntry = QtWidgets.QLineEdit()
-        self.valEntry.setAlignment(QtCore.Qt.AlignHCenter)
-        self.valEntry.returnPressed.connect(self.xaxPreview)
-        grid.addWidget(self.valEntry, 1, 0)
+        
+        
+        grid.addWidget(wc.QLabel("Input x-axis values:"), 0, 0, 1, 2) 
+        self.typeDropdown = QtWidgets.QComboBox()
+        self.typeDropdown.addItems(['Expression','Linear','Logarithmic'])
+        self.typeDropdown.activated.connect(self.typeChanged)
+        grid.addWidget(self.typeDropdown, 1, 0,1 ,2)    
+            
+        self.exprEntry = QtWidgets.QLineEdit()
+        self.exprEntry.setAlignment(QtCore.Qt.AlignHCenter)
+        self.exprEntry.returnPressed.connect(self.xaxPreview)
+        grid.addWidget(self.exprEntry, 2, 0, 1, 2)
+        
+        #Linear 
+        self.linStartLabel = wc.QLeftLabel("Start [s]:")
+        self.linStopLabel = wc.QLeftLabel("Stop [s]:")
+        self.linStartLabel.hide()
+        self.linStopLabel.hide()
+        grid.addWidget(self.linStartLabel, 3, 0, 1, 1) 
+        grid.addWidget(self.linStopLabel, 4, 0, 1, 1) 
+        
+        self.linStartEntry = QtWidgets.QLineEdit()
+        self.linStartEntry.setAlignment(QtCore.Qt.AlignHCenter)
+        self.linStartEntry.returnPressed.connect(self.xaxPreview)
+        self.linStartEntry.setMaximumWidth(120)
+        self.linStartEntry.hide()
+        grid.addWidget(self.linStartEntry, 3, 1, 1, 1)
+        
+        self.linStopEntry = QtWidgets.QLineEdit()
+        self.linStopEntry.setAlignment(QtCore.Qt.AlignHCenter)
+        self.linStopEntry.returnPressed.connect(self.xaxPreview)
+        self.linStopEntry.setMaximumWidth(120)
+        self.linStopEntry.hide()
+        grid.addWidget(self.linStopEntry, 4, 1, 1, 1)
+        
+        #Log
+        self.logStartLabel = wc.QLeftLabel("Start [s]:")
+        self.logStopLabel = wc.QLeftLabel("Stop [s]:")
+        self.logStartLabel.hide()
+        self.logStopLabel.hide()
+        grid.addWidget(self.logStartLabel, 5, 0, 1, 1) 
+        grid.addWidget(self.logStopLabel, 6, 0, 1, 1) 
+        
+        self.logStartEntry = QtWidgets.QLineEdit()
+        self.logStartEntry.setAlignment(QtCore.Qt.AlignHCenter)
+        self.logStartEntry.returnPressed.connect(self.xaxPreview)
+        self.logStartEntry.setMaximumWidth(120)
+        self.logStartEntry.hide()
+        grid.addWidget(self.logStartEntry, 5, 1, 1, 1)
+        
+        self.logStopEntry = QtWidgets.QLineEdit()
+        self.logStopEntry.setAlignment(QtCore.Qt.AlignHCenter)
+        self.logStopEntry.returnPressed.connect(self.xaxPreview)
+        self.logStopEntry.setMaximumWidth(120)
+        self.logStopEntry.hide()
+        grid.addWidget(self.logStopEntry, 6, 1, 1, 1)
         
         self.table = QtWidgets.QTableWidget(self.axisSize,2)
         self.table.setHorizontalHeaderLabels(['Index','Value [s]'])
@@ -6255,9 +6306,13 @@ class XaxWindow(QtWidgets.QWidget):
             item = QtWidgets.QTableWidgetItem(str(val))
             item.setFlags(QtCore.Qt.ItemIsEnabled)
             self.table.setItem(int(val),0,item)
-        
+            item2 = QtWidgets.QTableWidgetItem('')
+            item2.setFlags(QtCore.Qt.ItemIsEnabled)
+            self.table.setItem(int(val),1,item2)
+            
+            
 #        self.table.setVerticalHeaderLabels([str(a) for a in range(self.axisSize)])
-        grid.addWidget(self.table, 2, 0)
+        grid.addWidget(self.table, 12, 0, 1, 2)
         
         
         cancelButton = QtWidgets.QPushButton("&Cancel")
@@ -6273,36 +6328,94 @@ class XaxWindow(QtWidgets.QWidget):
     
     
     
-    def tableChanged(self):
-        pass
+    def typeChanged(self,index):
+        if index == 0: #If expr
+            self.exprEntry.show()
+            self.linStartLabel.hide()
+            self.linStopLabel.hide()
+            self.linStartEntry.hide()
+            self.linStopEntry.hide()
+            self.logStartLabel.hide()
+            self.logStopLabel.hide()
+            self.logStartEntry.hide()
+            self.logStopEntry.hide()
         
         
-        
-    def xaxPreview(self, *args):
-        env = vars(np).copy()
-        env['length'] = int(self.father.current.data1D.shape[-1])  # so length can be used to in equations
-        env['euro'] = lambda fVal, num=self.axisSize: euro(fVal, num)
-        try:
-            val = np.array(eval(self.valEntry.text(), env))                # find a better solution, also add catch for exceptions
-        except:
+        elif index == 1:
+           self.exprEntry.hide() 
+           self.linStartLabel.show()
+           self.linStopLabel.show()
+           self.linStartEntry.show()
+           self.linStopEntry.show()
+           self.logStartLabel.hide()
+           self.logStopLabel.hide()
+           self.logStartEntry.hide()
+           self.logStopEntry.hide()
+        elif index == 2:
+           self.exprEntry.hide()
+           self.linStartLabel.hide()
+           self.linStopLabel.hide()
+           self.linStartEntry.hide()
+           self.linStopEntry.hide()
+           self.logStartLabel.show()
+           self.logStopLabel.show()
+           self.logStartEntry.show()
+           self.logStopEntry.show()
+           
+    def getValues(self):
+        if self.typeDropdown.currentIndex() == 0:
+            env = vars(np).copy()
+            env['length'] = int(self.father.current.data1D.shape[-1])  # so length can be used to in equations
+            env['euro'] = lambda fVal, num=self.axisSize: euro(fVal, num)
             try:
-                val = np.fromstring(self.valEntry.text(),sep=' ')
-                val2 = np.fromstring(self.valEntry.text(),sep=',')
-                if len(val2) > len(val):
-                    val = val2
+                val = np.array(eval(self.exprEntry.text(), env))                # find a better solution, also add catch for exceptions
             except:
-                val = None
-        if not isinstance(val, (list, np.ndarray)):
-            self.father.father.dispMsg("Input is not a list or array")
+                try:
+                    val = np.fromstring(self.exprEntry.text(),sep=' ')
+                    val2 = np.fromstring(self.exprEntry.text(),sep=',')
+                    if len(val2) > len(val):
+                        val = val2
+                except:
+                    val = None
+            if not isinstance(val, (list, np.ndarray)):
+                self.father.father.dispMsg("X-axis: Input is not a list or array")
+                return
+            if len(val) != self.father.current.data1D.shape[-1]:
+                self.father.father.dispMsg("X-axis: Length of input does not match length of data")
+                return
+            if not all(isinstance(x, (int, float)) for x in val):
+                self.father.father.dispMsg("X-axis: Array is not all of int or float type")
+                return
+        elif self.typeDropdown.currentIndex() == 1:
+            start = safeEval(self.linStartEntry.text())
+            stop = safeEval(self.linStopEntry.text())
+            if start is None:
+                self.father.father.dispMsg("X-axis: linear start value is not valid")
+                return
+            if stop is None:
+                self.father.father.dispMsg("X-axis: linear stop value is not valid")
+                return
+            val = np.linspace(start,stop,self.axisSize)
+        elif self.typeDropdown.currentIndex() == 2:
+            start = safeEval(self.logStartEntry.text())
+            stop = safeEval(self.logStopEntry.text())
+            if start is None or start <= 0.0:
+                self.father.father.dispMsg("X-axis: logarithmic start value is not valid")
+                return
+            if stop is None or stop <= 0.0:
+                self.father.father.dispMsg("X-axis: logarithmic stop value is not valid")
+                return
+            val = np.logspace(np.log10(start),np.log10(stop),self.axisSize)
+        return val
+    
+    def xaxPreview(self, *args):
+        val = self.getValues()
+        if val is None: #if error return. Messages are handled by the called function
             return
-        if len(val) != self.father.current.data1D.shape[-1]:
-            self.father.father.dispMsg("Length of input does not match length of data")
-            return
-        if not all(isinstance(x, (int, float)) for x in val):
-            self.father.father.dispMsg("Array is not all of int or float type")
-            return
+        
         for i in range(self.axisSize):
-            item = QtWidgets.QTableWidgetItem(str(val[i]))
+            item = QtWidgets.QTableWidgetItem('{:.6g}'.format(val[i]))
+            item.setFlags(QtCore.Qt.ItemIsEnabled)
             self.table.setItem(i,1,item)
         self.father.current.setXaxPreview(np.array(val))
 
@@ -6313,28 +6426,9 @@ class XaxWindow(QtWidgets.QWidget):
         self.deleteLater()
 
     def applyAndClose(self):
-        env = vars(np).copy()
-        env['length'] = int(self.father.current.data1D.shape[-1])  # so length can be used to in equations
-        env['euro'] = lambda fVal, num=self.axisSize: euro(fVal, num)
-        try:
-            val = np.array(eval(self.valEntry.text(), env))                # find a better solution, also add catch for exceptions
-        except:
-            try:
-                val = np.fromstring(self.valEntry.text(),sep=' ')
-                val2 = np.fromstring(self.valEntry.text(),sep=',')
-                if len(val2) > len(val):
-                    val = val2
-            except:
-                val = None
-        if not isinstance(val, (list, np.ndarray)):
-            self.father.father.dispMsg("Input is not a list or array")
-            return
-        if len(val) != self.father.current.data1D.shape[-1]:
-            self.father.father.dispMsg("Length of input does not match length of data")
-            return
-        if not all(isinstance(x, (int, float)) for x in val):
-            self.father.father.dispMsg("Array is not all of int or float type")
-            return
+        val = self.getValues()
+        if val is None: #if error return. Messages are handled by the called function
+            return  
         self.father.redoList = []
         self.father.undoList.append(self.father.current.setXax(np.array(val)))
         self.father.menuEnable()
