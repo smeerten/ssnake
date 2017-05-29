@@ -4329,7 +4329,31 @@ class Quad1DeconvFrame(Plot1DFrame):
         if isinstance(self.current, spectrum_classes.CurrentContour):
             self.plotReset(False, True)
         self.showFid()
-
+        
+        
+    def setSlice(self, axes, locList):
+        self.rootwindow.paramframe.checkInputs()
+        self.pickWidth = False
+        if self.axes != axes:
+            return
+        self.locList = locList
+        self.upd()
+        self.rootwindow.paramframe.dispParams()
+        self.showFid()
+        
+    def upd(self):  
+        updateVar = self.data.getSlice(self.axes, self.locList)
+        tmp = updateVar[0]
+        if self.current.plotType == 0:
+            self.data1D = np.real(tmp)
+        elif self.current.plotType == 1:
+            self.data1D = np.imag(tmp)
+        elif self.current.plotType == 2:
+            self.data1D = np.real(tmp)
+        elif self.current.plotType == 3:
+            self.data1D = np.abs(tmp)    
+            
+            
     def plotReset(self, xReset=True, yReset=True):  # set the plot limits to min and max values
         if self.plotType == 0:
             miny = min(np.real(self.data1D))
