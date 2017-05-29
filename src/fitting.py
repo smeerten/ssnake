@@ -4576,6 +4576,7 @@ def quad1DeconvmpFit(xax, data1D, guess, args, queue):
     try:
         fitVal = scipy.optimize.curve_fit(lambda *param: quad1DeconvfitFunc(param, args), xax, data1D, guess)
     except:
+        raise
         fitVal = None
     queue.put(fitVal)
 
@@ -4638,6 +4639,7 @@ def quad1DeconvfitFunc(params, args):
 def quad1DeconvtensorFunc(x, I, pos, cq, eta, width, gauss, angleStuff, freq, sw, weight, axAdd, axMult = 1):
     m = np.arange(-I, I)
     v = []
+    cq *= 1e6
     weights = []
     pos = (pos / axMult)- axAdd
     for i in m:
@@ -4687,6 +4689,7 @@ class Quad2StaticDeconvParamFrame(Quad1DeconvParamFrame):
         Quad1DeconvParamFrame.__init__(self, parent, rootwindow, isMain)
         self.setAngleStuff = quad2StaticsetAngleStuff
         self.tensorFunc = quad2tensorFunc
+        self.entries['I'][-1].setCurrentIndex(0)
 
     def checkI(self, I):
         return I * 1.0 + 1.5
@@ -4702,11 +4705,13 @@ class Quad2MASDeconvParamFrame(Quad2StaticDeconvParamFrame):
         Quad2StaticDeconvParamFrame.__init__(self, parent, rootwindow, isMain)
         self.setAngleStuff = quad2MASsetAngleStuff
         self.tensorFunc = quad2tensorFunc
+        self.entries['I'][-1].setCurrentIndex(0)
 
 ##############################################################################
 
 def quad2tensorFunc(x, I, pos, cq, eta, width, gauss, angleStuff, freq, sw, weight, axAdd, axMult = 1):
     pos = (pos / axMult)- axAdd
+    cq *= 1e6
     v = -1 / (6 * freq) * (3 * cq / (2 * I * (2 * I - 1)))**2 * (I * (I + 1) - 3.0 / 4) * (angleStuff[0] + angleStuff[1] * eta + angleStuff[2] * eta**2) + pos
     length = len(x)
     t = np.arange(length) / sw
