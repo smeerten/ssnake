@@ -573,7 +573,7 @@ class MainProgram(QtWidgets.QMainWindow):
         self.lorentzfitAct.setToolTip('Fit Lorentzian/Gaussian')
         self.csastaticAct = self.fittingMenu.addAction(QtGui.QIcon(IconDirectory + 'csastatic.png'),"&CSA Static", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.createTensorDeconvWindow()))
         self.csastaticAct.setToolTip('Fit CSA Static')
-        self.csamasAct = self.fittingMenu.addAction(QtGui.QIcon(IconDirectory + 'csaMAS.png'),"CSA MAS", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.createHerzfeldBergerWindow()))
+        self.csamasAct = self.fittingMenu.addAction(QtGui.QIcon(IconDirectory + 'csaMAS.png'),"CSA MAS", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.createCSAMASWindow()))
         self.csamasAct.setToolTip('Fit CSA MAS')
         self.firstquadstatAct = self.fittingMenu.addAction(QtGui.QIcon(IconDirectory + 'firstquadstatic.png'),"First Order &Quadrupole Static", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.createQuad1DeconvWindow()))
         self.firstquadstatAct.setToolTip('Fit First Order Quadrupole Static')
@@ -2243,8 +2243,8 @@ class Main1DWindow(QtWidgets.QWidget):
     def createTensorDeconvWindow(self):
         self.father.createFitWindow(fit.TensorDeconvWindow(self.father, self.father.mainWindow))
 
-    def createHerzfeldBergerWindow(self):
-        self.father.createFitWindow(fit.HerzfeldBergerWindow(self.father, self.father.mainWindow))
+    def createCSAMASWindow(self):
+        self.father.createFitWindow(fit.CSAMASWindow(self.father, self.father.mainWindow))
 
     def createQuad1MASDeconvWindow(self):
         self.father.createFitWindow(fit.Quad1MASDeconvWindow(self.father, self.father.mainWindow))
