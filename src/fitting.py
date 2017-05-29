@@ -162,7 +162,7 @@ class TabFittingWindow(QtWidgets.QWidget):
     def addSpectrum(self):
         text = QtWidgets.QInputDialog.getItem(self, "Select spectrum to add", "Spectrum name:", self.mainProgram.workspaceNames, 0, False)
         if text[1]:
-            self.subFitWindows.append(self.FITWINDOW(self.mainProgram, self.mainProgram.workspaces[self.mainProgram.workspaceNames.index(text[0])], self, isMain))
+            self.subFitWindows.append(FittingWindow(self.mainProgram, self.mainProgram.workspaces[self.mainProgram.workspaceNames.index(text[0])], self, False))
             self.tabs.addTab(self.subFitWindows[-1], str(text[0]))
             self.tabs.setCurrentIndex(len(self.subFitWindows))
 
@@ -4330,7 +4330,6 @@ class Quad1DeconvFrame(Plot1DFrame):
             self.plotReset(False, True)
         self.showFid()
         
-        
     def setSlice(self, axes, locList):
         self.rootwindow.paramframe.checkInputs()
         self.pickWidth = False
@@ -4352,7 +4351,6 @@ class Quad1DeconvFrame(Plot1DFrame):
             self.data1D = np.real(tmp)
         elif self.current.plotType == 3:
             self.data1D = np.abs(tmp)    
-            
             
     def plotReset(self, xReset=True, yReset=True):  # set the plot limits to min and max values
         if self.plotType == 0:
