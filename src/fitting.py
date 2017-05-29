@@ -4759,11 +4759,11 @@ class Quad2StaticCzjzekParamFrame(AbstractParamFrame):
     
     def __init__(self, parent, rootwindow, isMain=True):
         self.SINGLENAMES = ['bgrnd', 'slope']
-        self.MULTINAMES = ['pos', 'd', 'sigma', 'amp', 'lor', 'gauss']
+        self.MULTINAMES = ['d', 'pos', 'sigma', 'amp', 'lor', 'gauss']
         self.FITFUNC = quad2CzjzekmpFit
         AbstractParamFrame.__init__(self, parent, rootwindow, isMain)
         for elem in np.nditer(self.fitParamList, flags=["refs_ok"], op_flags=['readwrite']):
-            elem[...] = {'bgrnd':[0.0, True], 'slope':[0.0, True], 'pos':np.repeat([[0.0, False]], self.FITNUM, axis=0), 'd':np.repeat([[5, False]], self.FITNUM, axis=0), 'sigma':np.repeat([[1.0, False]], self.FITNUM, axis=0), 'amp':np.repeat([[1.0, False]],self.FITNUM,axis=0), 'lor':np.repeat([[10.0, False]],self.FITNUM,axis=0), 'gauss':np.repeat([[0.0, True]],self.FITNUM,axis=0)}
+            elem[...] = {'bgrnd':[0.0, True], 'slope':[0.0, True], 'pos':np.repeat([[0.0, False]], self.FITNUM, axis=0), 'd':np.repeat([[5.0, False]], self.FITNUM, axis=0), 'sigma':np.repeat([[1.0, False]], self.FITNUM, axis=0), 'amp':np.repeat([[1.0, False]],self.FITNUM,axis=0), 'lor':np.repeat([[10.0, False]],self.FITNUM,axis=0), 'gauss':np.repeat([[0.0, True]],self.FITNUM,axis=0)}
         self.cheng = 15
         if self.parent.current.spec == 1:
             self.axAdd = self.parent.current.freq - self.parent.current.ref
@@ -4771,6 +4771,8 @@ class Quad2StaticCzjzekParamFrame(AbstractParamFrame):
             self.axAdd = 0
         self.frame1.setColumnStretch(10, 1)
         self.frame1.setAlignment(QtCore.Qt.AlignTop)
+        self.ticks = {'bgrnd':[], 'slope':[], 'pos':[], 'd':[], 'sigma':[], 'amp':[], 'lor':[], 'gauss':[]}
+        self.entries = {'bgrnd':[], 'slope':[], 'pos':[], 'd':[], 'sigma':[], 'amp':[], 'lor':[], 'gauss':[], 'method':[], 'cheng':[], 'I':[], 'wqgrid':[], 'etagrid':[], 'wqmax':[]}
         self.optframe.addWidget(QLabel("Cheng:"), 0, 0)
         self.entries['cheng'].append(QtWidgets.QLineEdit())
         self.entries['cheng'][-1].setAlignment(QtCore.Qt.AlignHCenter)
@@ -4813,7 +4815,7 @@ class Quad2StaticCzjzekParamFrame(AbstractParamFrame):
         self.ticks['slope'].append(QtWidgets.QCheckBox(''))
         self.ticks['slope'][-1].setChecked(True)
         self.frame2.addWidget(self.ticks['slope'][-1], 3, 0)
-        self.entries['slope'][-1] = QtWidgets.QLineEdit()
+        self.entries['slope'].append(QtWidgets.QLineEdit())
         self.entries['slope'][-1].setAlignment(QtCore.Qt.AlignHCenter)
         self.entries['slope'][-1].setText("0.0")
         self.frame2.addWidget(self.entries['slope'][-1], 3, 1)
@@ -4823,12 +4825,12 @@ class Quad2StaticCzjzekParamFrame(AbstractParamFrame):
         self.numExp.addItems([str(x+1) for x in range(self.FITNUM)])
         self.numExp.currentIndexChanged.connect(self.changeNum)
         self.frame3.addWidget(self.numExp, 0, 0)
-        self.frame3.addWidget(QLabel("d:"), 1, 0)
-        self.frame3.addWidget(QLabel("Pos [" + self.parent.axUnit + "]:"), 1, 1, 1, 2)
-        self.frame3.addWidget(QLabel(u"\u03c3 [MHz]:"), 1, 3, 1, 2)
-        self.frame3.addWidget(QLabel("Integral:"), 1, 5, 1, 2)
-        self.frame3.addWidget(QLabel("Lorentz [Hz]:"), 1, 7, 1, 2)
-        self.frame3.addWidget(QLabel("Gauss [Hz]:"), 1, 9, 1, 2)
+        self.frame3.addWidget(QLabel("d:"), 1, 0, 1, 2)
+        self.frame3.addWidget(QLabel("Pos [" + self.parent.axUnit + "]:"), 1, 2, 1, 2)
+        self.frame3.addWidget(QLabel(u"\u03c3 [MHz]:"), 1, 4, 1, 2)
+        self.frame3.addWidget(QLabel("Integral:"), 1, 6, 1, 2)
+        self.frame3.addWidget(QLabel("Lorentz [Hz]:"), 1, 8, 1, 2)
+        self.frame3.addWidget(QLabel("Gauss [Hz]:"), 1, 10, 1, 2)
         self.frame3.setColumnStretch(20, 1)
         self.frame3.setAlignment(QtCore.Qt.AlignTop)
         for i in range(self.FITNUM):
@@ -4896,12 +4898,13 @@ class Quad2StaticCzjzekParamFrame(AbstractParamFrame):
         numEta = int(self.entries['etagrid'][-1].text())
         weight, angleStuff = self.setAngleStuff(cheng)
         maxSigma = max(out['sigma'])
-        lib, wq, eta = self.genLib(len(self.parent.xax), I, maxSigma * wqMax, numWq, numEta, angleStuff, self.parent.current.freq, self.parent.current.sw, weight, self.axAdd)
+        lib, wq, eta = self.genLib(len(self.parent.xax), I, maxSigma * wqMax * 1e6, numWq, numEta, angleStuff, self.parent.current.freq, self.parent.current.sw, weight, self.axAdd)
         out['I'] = [I]
         out['lib'] = [lib]
         out['wq'] = [wq]
         out['eta'] = [eta]
-        return (out, [I, lib, wq, eta])
+        out['freq'] = [self.parent.current.freq]
+        return (out, [I, lib, wq, eta, self.parent.current.freq])
 
     def disp(self, params, num):
         out = params[num]
@@ -4937,12 +4940,11 @@ class Quad2StaticCzjzekParamFrame(AbstractParamFrame):
 
 
 def quad2CzjzekmpFit(xax, data1D, guess, args, queue):
-    arg = args + (wq, eta, lib, xax, data1D, axMult)
-    try:
-        fitVal = scipy.optimize.curve_fit(lambda *param: quad2CzjzekfitFunc(param, args), xax, data1D, guess)
-    except:
-        fitVal = None
-    queue.put(fitVal)
+    #try:
+    fitVal = scipy.optimize.curve_fit(lambda *param: quad2CzjzekfitFunc(param, args), xax, data1D, guess)
+    #except:
+    #    fitVal = None
+    #queue.put(fitVal)
 
 def quad2CzjzekfitFunc(params, args):
     allX = params[0]
@@ -4970,6 +4972,7 @@ def quad2CzjzekfitFunc(params, args):
         parameters['lib'] = argu[-1][1]
         parameters['wq'] = argu[-1][2]
         parameters['eta'] = argu[-1][3]
+        parameters['freq'] = argu[-1][4]
         for name in ['bgrnd', 'slope']:
             if struc[name][0][0] == 1:
                 parameters[name] = param[struc[name][0][1]]
@@ -4994,12 +4997,13 @@ def quad2CzjzekfitFunc(params, args):
                         parameters[name] = altStruc[2] * allParam[altStruc[4]][strucTarget[altStruc[0]][altStruc[1]][1]] + altStruc[3]
                     elif strucTarget[altStruc[0]][altStruc[1]][0] == 0:
                         parameters[name] = altStruc[2] * allArgu[altStruc[4]][strucTarget[altStruc[0]][altStruc[1]][1]] + altStruc[3]
-            testFunc += parameters['amp'] * quad2CzjzektensorFunc(parameters['sigma'], parameters['d'], parameters['pos'], parameters['width'], parameters['gauss'], parameters['wq'], parameters['eta'], parameters['lib'], parameters['freq'], sw, axAdd, axMult)
-        testFunc += parametersp['bgrnd'] + parameters['slope'] * x
+            testFunc += parameters['amp'] * quad2CzjzektensorFunc(parameters['sigma'], parameters['d'], parameters['pos'], parameters['lor'], parameters['gauss'], parameters['wq'], parameters['eta'], parameters['lib'], parameters['freq'], sw, axAdd, axMult)
+        testFunc += parameters['bgrnd'] + parameters['slope'] * x
         fullTestFunc = np.append(fullTestFunc, testFunc)
     return fullTestFunc
     
 def quad2CzjzektensorFunc(sigma, d, pos, width, gauss, wq, eta, lib, freq, sw, axAdd, axMult = 1):
+    sigma *= 1e6
     pos = (pos / axMult) - axAdd
     wq = wq
     eta = eta
@@ -5024,8 +5028,8 @@ class Quad2MASCzjzekParamFrame(Quad2StaticCzjzekParamFrame):
 
     Ioptions = ['3/2', '5/2', '7/2', '9/2']
     savetitle = 'ssNake Czjzek MAS fit results'
-    def __init__(self, parent, rootwindow):
-        Quad2StaticCzjzekParamFrame.__init__(self, parent, rootwindow)
+    def __init__(self, parent, rootwindow, isMain=True):
+        Quad2StaticCzjzekParamFrame.__init__(self, parent, rootwindow, isMain=True)
 
     def setAngleStuff(self, cheng):
         phi, theta, weight = zcw_angles(cheng, symm=2)
