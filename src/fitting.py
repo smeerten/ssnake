@@ -628,12 +628,14 @@ class AbstractParamFrame(QtWidgets.QWidget):
         locList = tuple(self.parent.locList)
         val = self.fitNumList[locList] + 1
         for name in self.SINGLENAMES:
-            self.entries[name][0].setText('%#.3g' % self.fitParamList[locList][name][0])
+            if isinstance(self.fitParamList[locList][name][0], float):
+                self.entries[name][0].setText('%#.3g' % self.fitParamList[locList][name][0])
             self.ticks[name][0].setChecked(self.fitParamList[locList][name][1])
         self.numExp.setCurrentIndex(self.fitNumList[locList])
         for i in range(self.FITNUM):
             for name in self.MULTINAMES:
-                self.entries[name][i].setText('%#.3g' % self.fitParamList[locList][name][i][0])
+                if isinstance(self.fitParamList[locList][name][i][0], float):
+                    self.entries[name][i].setText('%#.3g' % self.fitParamList[locList][name][i][0])
                 self.ticks[name][i].setChecked(self.fitParamList[locList][name][i][1])
                 if i < val:
                     self.ticks[name][i].show()
@@ -1778,7 +1780,7 @@ class RelaxParamFrame(AbstractParamFrame):
         self.FITFUNC = relaxationmpFit
         AbstractParamFrame.__init__(self, parent, rootwindow, isMain)
         for elem in np.nditer(self.fitParamList, flags=["refs_ok"], op_flags=['readwrite']):
-            elem[...] = {'amp':[np.amax(self.parent.data1D), False], 'const':[1.0, False], 'coeff':np.repeat([[-1.0, False]], self.FITNUM, axis=0), 't':np.repeat([[1.0, False]],self.FITNUM,axis=0)}
+            elem[...] = {'amp':[np.amax(self.parent.data1D), False], 'const':[1.0, False], 'coeff':np.repeat([np.array([-1.0, False], dtype=object)], self.FITNUM, axis=0), 't':np.repeat([np.array([1.0, False], dtype=object)], self.FITNUM,axis=0)}
         locList = tuple(self.parent.locList)
         self.ticks = {'amp':[], 'const':[], 'coeff':[], 't':[]}
         self.entries = {'amp':[], 'const':[], 'coeff':[], 't':[]}
@@ -2248,7 +2250,7 @@ class DiffusionParamFrame(AbstractParamFrame):
         self.FITFUNC = diffusionmpFit
         AbstractParamFrame.__init__(self, parent, rootwindow, isMain)
         for elem in np.nditer(self.fitParamList, flags=["refs_ok"], op_flags=['readwrite']):
-            elem[...] = {'amp':[np.amax(self.parent.data1D), False], 'const':[0.0, False], 'coeff':np.repeat([[1.0, False]], self.FITNUM, axis=0), 'd':np.repeat([[1.0e-9, False]],self.FITNUM,axis=0)}
+            elem[...] = {'amp':[np.amax(self.parent.data1D), False], 'const':[0.0, False], 'coeff':np.repeat([np.array([1.0, False], dtype=object)], self.FITNUM, axis=0), 'd':np.repeat([np.array([1.0e-9, False], dtype=object)], self.FITNUM,axis=0)}
         locList = tuple(self.parent.locList)
         self.ticks = {'amp':[], 'const':[], 'coeff':[], 'd':[]}
         self.entries = {'amp':[], 'const':[], 'coeff':[], 'd':[]}
@@ -2627,7 +2629,7 @@ class PeakDeconvParamFrame(AbstractParamFrame):
         self.FITFUNC = peakDeconvmpFit
         AbstractParamFrame.__init__(self, parent, rootwindow, isMain)
         for elem in np.nditer(self.fitParamList, flags=["refs_ok"], op_flags=['readwrite']):
-            elem[...] = {'bgrnd':[0.0, True], 'slope':[0.0, True], 'pos':np.repeat([[0.0, False]], self.FITNUM, axis=0), 'amp':np.repeat([[1.0, False]],self.FITNUM,axis=0), 'lor':np.repeat([[1.0, False]],self.FITNUM,axis=0), 'gauss':np.repeat([[0.0, True]],self.FITNUM,axis=0)}
+            elem[...] = {'bgrnd':[0.0, True], 'slope':[0.0, True], 'pos':np.repeat([np.array([0.0, False], dtype=object)], self.FITNUM, axis=0), 'amp':np.repeat([np.array([1.0, False], dtype=object)], self.FITNUM,axis=0), 'lor':np.repeat([np.array([1.0, False], dtype=object)], self.FITNUM,axis=0), 'gauss':np.repeat([np.array([0.0, True], dtype=object)], self.FITNUM,axis=0)}
         resetButton = QtWidgets.QPushButton("Reset")
         resetButton.clicked.connect(self.reset)
         self.frame1.addWidget(resetButton, 0, 1)
@@ -2996,7 +2998,7 @@ class TensorDeconvParamFrame(AbstractParamFrame):
         self.cheng = 15
         AbstractParamFrame.__init__(self, parent, rootwindow, isMain)
         for elem in np.nditer(self.fitParamList, flags=["refs_ok"], op_flags=['readwrite']):
-            elem[...] = {'bgrnd':[0.0, True], 'slope':[0.0, True], 't11':np.repeat([[0.0, False]], self.FITNUM, axis=0), 't22':np.repeat([[0.0, False]], self.FITNUM, axis=0), 't33':np.repeat([[0.0, False]], self.FITNUM, axis=0), 'amp':np.repeat([[1.0, False]],self.FITNUM,axis=0), 'lor':np.repeat([[1.0, False]],self.FITNUM,axis=0), 'gauss':np.repeat([[0.0, True]],self.FITNUM,axis=0)}
+            elem[...] = {'bgrnd':[0.0, True], 'slope':[0.0, True], 't11':np.repeat([np.array([0.0, False], dtype=object)], self.FITNUM, axis=0), 't22':np.repeat([np.array([0.0, False], dtype=object)], self.FITNUM, axis=0), 't33':np.repeat([np.array([0.0, False], dtype=object)], self.FITNUM, axis=0), 'amp':np.repeat([np.array([1.0, False], dtype=object)], self.FITNUM,axis=0), 'lor':np.repeat([np.array([1.0, False], dtype=object)], self.FITNUM,axis=0), 'gauss':np.repeat([np.array([0.0, True], dtype=object)], self.FITNUM,axis=0)}
         resetButton = QtWidgets.QPushButton("Reset")
         resetButton.clicked.connect(self.reset)
         self.frame1.addWidget(resetButton, 0, 1)
@@ -4451,7 +4453,7 @@ class Quad1DeconvParamFrame(AbstractParamFrame):
         self.FITFUNC = quad1DeconvmpFit
         AbstractParamFrame.__init__(self, parent, rootwindow, isMain)
         for elem in np.nditer(self.fitParamList, flags=["refs_ok"], op_flags=['readwrite']):
-            elem[...] = {'bgrnd':[0.0, True], 'slope':[0.0, True], 'pos':np.repeat([[0.0, False]], self.FITNUM, axis=0), 'cq':np.repeat([[1.0, False]], self.FITNUM, axis=0), 'eta':np.repeat([[0.0, False]], self.FITNUM, axis=0), 'amp':np.repeat([[1.0, False]],self.FITNUM,axis=0), 'lor':np.repeat([[1.0, False]],self.FITNUM,axis=0), 'gauss':np.repeat([[0.0, True]],self.FITNUM,axis=0)}
+            elem[...] = {'bgrnd':[0.0, True], 'slope':[0.0, True], 'pos':np.repeat([np.array([0.0, False], dtype=object)], self.FITNUM, axis=0), 'cq':np.repeat([np.array([1.0, False], dtype=object)], self.FITNUM, axis=0), 'eta':np.repeat([np.array([0.0, False], dtype=object)], self.FITNUM, axis=0), 'amp':np.repeat([np.array([1.0, False], dtype=object)], self.FITNUM,axis=0), 'lor':np.repeat([np.array([1.0, False], dtype=object)], self.FITNUM,axis=0), 'gauss':np.repeat([np.array([0.0, True], dtype=object)], self.FITNUM,axis=0)}
         self.cheng = 15
         self.setAngleStuff = quad1DeconvsetAngleStuff
         self.tensorFunc = quad1DeconvtensorFunc
@@ -4766,7 +4768,7 @@ class Quad2StaticCzjzekParamFrame(AbstractParamFrame):
         self.FITFUNC = quad2CzjzekmpFit
         AbstractParamFrame.__init__(self, parent, rootwindow, isMain)
         for elem in np.nditer(self.fitParamList, flags=["refs_ok"], op_flags=['readwrite']):
-            elem[...] = {'bgrnd':[0.0, True], 'slope':[0.0, True], 'pos':np.repeat([[0.0, False]], self.FITNUM, axis=0), 'd':np.repeat([[5.0, False]], self.FITNUM, axis=0), 'sigma':np.repeat([[1.0, False]], self.FITNUM, axis=0), 'amp':np.repeat([[1.0, False]],self.FITNUM,axis=0), 'lor':np.repeat([[10.0, False]],self.FITNUM,axis=0), 'gauss':np.repeat([[0.0, True]],self.FITNUM,axis=0)}
+            elem[...] = {'bgrnd':[0.0, True], 'slope':[0.0, True], 'pos':np.repeat([np.array([0.0, False], dtype=object)], self.FITNUM, axis=0), 'd':np.repeat([np.array([5.0, False], dtype=object)], self.FITNUM, axis=0), 'sigma':np.repeat([np.array([1.0, False], dtype=object)], self.FITNUM, axis=0), 'amp':np.repeat([np.array([1.0, False], dtype=object)], self.FITNUM,axis=0), 'lor':np.repeat([np.array([10.0, False], dtype=object)], self.FITNUM,axis=0), 'gauss':np.repeat([np.array([0.0, True], dtype=object)], self.FITNUM,axis=0)}
         self.cheng = 15
         if self.parent.current.spec == 1:
             self.axAdd = self.parent.current.freq - self.parent.current.ref
