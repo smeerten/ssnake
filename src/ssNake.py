@@ -1282,8 +1282,10 @@ class MainProgram(QtWidgets.QMainWindow):
 
     def fileTypeCheck(self, filePath):
         returnVal = 0
+        
         if os.path.isfile(filePath):
             filename = os.path.basename(filePath)
+            direc = os.path.dirname(filePath)
             if filename.endswith('.fid') or filename.endswith('.spe'):
                 with open(filePath, 'r') as f:
                     check = int(np.fromfile(f, np.float32, 1))
@@ -1301,11 +1303,10 @@ class MainProgram(QtWidgets.QMainWindow):
                 return (10, filePath, returnVal)
             elif filename.endswith('.sig'): #Bruker minispec    
                 return (12, filePath, returnVal)
-                
-            fileName = filePath
-            filePath = os.path.dirname(filePath)
             returnVal = 1
+
         direc = filePath
+            
         if os.path.exists(direc + os.path.sep + 'procpar') and os.path.exists(direc + os.path.sep + 'fid'):
             return (0, filePath, returnVal)
             # And for varian processed data
@@ -1323,12 +1324,14 @@ class MainProgram(QtWidgets.QMainWindow):
             files1D = [x for x in dirFiles if '.1d' in x]
             if len(files2D) != 0 or len(files1D) != 0:
                 return (3, filePath, returnVal)
-        else: #If not recognised, load as ascii
-            return (11, fileName, returnVal)
+        elif os.path.isfile(filePath): #If not recognised, load as ascii
+            return (11, filePath, returnVal)
+        return (None,filePath, 2)
                 
     def autoLoad(self, filePath, realpath=False):
         val = self.fileTypeCheck(filePath)
-        self.loading(val[0], val[1], realpath=realpath)
+        if val[0] is not None:
+            self.loading(val[0], val[1], realpath=realpath)
         return val[2]
 
     def loadAndCombine(self, filePathList):
