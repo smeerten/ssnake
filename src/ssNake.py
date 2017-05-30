@@ -668,7 +668,7 @@ class MainProgram(QtWidgets.QMainWindow):
         self.clearundoAct = self.historyMenu.addAction(QtGui.QIcon(IconDirectory + 'delete.png'),"&Clear Undo/Redo List", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.clearUndo()))
         self.clearundoAct.setToolTip('Clear Undo/Redo List')
         
-        self.historyActList = [self.historyAct,self.errorAct,self.clearundoAct]
+        self.historyActList = [self.historyAct,self.clearundoAct]
         
         
         
@@ -733,15 +733,18 @@ class MainProgram(QtWidgets.QMainWindow):
             self.savemenu.menuAction().setEnabled(False)
             self.exportmenu.menuAction().setEnabled(False)
             self.workspacemenu.menuAction().setEnabled(False)
-            self.macromenu.menuAction().setEnabled(False)
+
+            self.macrolistmenu.menuAction().setEnabled(False)
+            #self.macromenu.menuAction().setEnabled(False)
             self.editmenu.menuAction().setEnabled(False)
             self.toolMenu.menuAction().setEnabled(False)
             self.matrixMenu.menuAction().setEnabled(False)
             self.fftMenu.menuAction().setEnabled(False)
             self.fittingMenu.menuAction().setEnabled(False)
             self.combineMenu.menuAction().setEnabled(False)
-            self.plotMenu.menuAction().setEnabled(False)
-            self.historyMenu.menuAction().setEnabled(False)
+            #self.plotMenu.menuAction().setEnabled(False)
+            self.referencerunmenu.menuAction().setEnabled(False)
+            #self.historyMenu.menuAction().setEnabled(False)
             for act in self.saveActList + self.exportActList + self.workspaceActList + self.macroActList + self.editActList + self.toolsActList + self.matrixActList + self.fftActList + self.fittingActList + self.plotActList + self.combineActList + self.historyActList:
                 act.setEnabled(False)
  
@@ -752,8 +755,9 @@ class MainProgram(QtWidgets.QMainWindow):
             self.fftMenu.menuAction().setEnabled(True)
             self.fittingMenu.menuAction().setEnabled(True)
             self.combineMenu.menuAction().setEnabled(True)
-            self.plotMenu.menuAction().setEnabled(True)
-            self.historyMenu.menuAction().setEnabled(True)
+            self.referencerunmenu.menuAction().setEnabled(True)
+            #self.plotMenu.menuAction().setEnabled(True)
+            #self.historyMenu.menuAction().setEnabled(True)
             for act in self.editActList + self.toolsActList + self.matrixActList + self.fftActList + self.fittingActList + self.plotActList + self.historyActList + self.combineActList:
                 act.setEnabled(True)
             if isinstance(self.mainWindow, Main1DWindow):
@@ -775,7 +779,8 @@ class MainProgram(QtWidgets.QMainWindow):
                 self.savemenu.menuAction().setEnabled(True)
                 self.exportmenu.menuAction().setEnabled(True)
                 self.savefigAct.setEnabled(True)
-                self.macromenu.menuAction().setEnabled(True)
+                #self.macromenu.menuAction().setEnabled(True)
+                self.macrolistmenu.menuAction().setEnabled(True)
                 if self.mainWindow.currentMacro is None:
                     self.macrostopAct.setEnabled(False)
                     self.macrostartAct.setEnabled(True)
@@ -794,27 +799,31 @@ class MainProgram(QtWidgets.QMainWindow):
                     act.setEnabled(True)
                 self.savefigAct.setEnabled(False)
                 self.workspacemenu.menuAction().setEnabled(True)
-                self.macromenu.menuAction().setEnabled(False)
+                #self.macromenu.menuAction().setEnabled(False)
+                self.macrolistmenu.menuAction().setEnabled(False)
             else:
                 self.menuDisable(True)
                 self.savemenu.menuAction().setEnabled(True)
                 self.exportmenu.menuAction().setEnabled(True)
                 self.savefigAct.setEnabled(True)
                 self.workspacemenu.menuAction().setEnabled(True)
-                self.macromenu.menuAction().setEnabled(False)
+                #self.macromenu.menuAction().setEnabled(False)
+                self.macrolistmenu.menuAction().setEnabled(False)
                 for act in self.saveActList + self.exportActList + self.workspaceActList:
                     act.setEnabled(True)
 
     def menuEnable(self, internalWindow=False):
-        self.macromenu.menuAction().setEnabled(True)
+        #self.macromenu.menuAction().setEnabled(True)
+        self.macrolistmenu.menuAction().setEnabled(True)
         self.editmenu.menuAction().setEnabled(True)
         self.toolMenu.menuAction().setEnabled(True)
         self.matrixMenu.menuAction().setEnabled(True)
         self.fftMenu.menuAction().setEnabled(True)
         self.fittingMenu.menuAction().setEnabled(True)
         self.combineMenu.menuAction().setEnabled(True)
-        self.plotMenu.menuAction().setEnabled(True)
-        self.historyMenu.menuAction().setEnabled(True)
+        #self.plotMenu.menuAction().setEnabled(True)
+        self.referencerunmenu.menuAction().setEnabled(True)
+        #self.historyMenu.menuAction().setEnabled(True)
         
         #Actions:
         for act in self.macroActList + self.editActList + self.toolsActList + self.matrixActList + self.fftActList + self.fittingActList + self.plotActList + self.combineActList + self.historyActList:
@@ -832,15 +841,17 @@ class MainProgram(QtWidgets.QMainWindow):
         self.redoAction.setEnabled(True)
 
     def menuDisable(self, internalWindow=False):
-        self.macromenu.menuAction().setEnabled(False)
+        #self.macromenu.menuAction().setEnabled(False)
+        self.macrolistmenu.menuAction().setEnabled(True)
         self.editmenu.menuAction().setEnabled(False)
         self.toolMenu.menuAction().setEnabled(False)
         self.matrixMenu.menuAction().setEnabled(False)
         self.fftMenu.menuAction().setEnabled(False)
         self.fittingMenu.menuAction().setEnabled(False)
         self.combineMenu.menuAction().setEnabled(False)
-        self.plotMenu.menuAction().setEnabled(False)
-        self.historyMenu.menuAction().setEnabled(False)
+        #self.plotMenu.menuAction().setEnabled(False)
+        self.referencerunmenu.menuAction().setEnabled(False)
+        #self.historyMenu.menuAction().setEnabled(False)
         #Actions:
         for act in self.macroActList + self.editActList + self.toolsActList + self.matrixActList + self.fftActList + self.fittingActList + self.plotActList + self.combineActList + self.historyActList:
             act.setEnabled(False)
@@ -1283,6 +1294,8 @@ class MainProgram(QtWidgets.QMainWindow):
     def fileTypeCheck(self, filePath):
         returnVal = 0
         
+        
+        direc = filePath 
         if os.path.isfile(filePath):
             filename = os.path.basename(filePath)
             direc = os.path.dirname(filePath)
@@ -1304,9 +1317,8 @@ class MainProgram(QtWidgets.QMainWindow):
             elif filename.endswith('.sig'): #Bruker minispec    
                 return (12, filePath, returnVal)
             returnVal = 1
+            direc = os.path.dirname(filePath)
 
-        direc = filePath
-            
         if os.path.exists(direc + os.path.sep + 'procpar') and os.path.exists(direc + os.path.sep + 'fid'):
             return (0, filePath, returnVal)
             # And for varian processed data
