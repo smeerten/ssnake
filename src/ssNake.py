@@ -2020,7 +2020,22 @@ class Main1DWindow(QtWidgets.QWidget):
         if not name:
             return
         self.father.LastLocation = os.path.dirname(name)  # Save used path
-        axis = np.array([self.masterData.xaxArray[-1]]).transpose()
+        #axis = np.array([self.masterData.xaxArray[-1]]).transpose()
+        axType = self.current.axType
+        if self.masterData.spec[-1] == 1:
+            if self.current.ppm:
+                if self.current.ref is not None:
+                    axMult = 1e6 / self.masterData.ref[-1]
+                else:                    
+                    axMult = 1e6 / self.masterData.freq[-1]
+            else:
+                axMult = 1.0 / (1000.0**axType)
+        elif self.masterData.spec[-1] == 0:
+            axMult = 1000.0**axType
+
+        axis = np.array([self.masterData.xaxArray[-1] * axMult]).transpose()
+
+
         if self.masterData.data.ndim == 1:  # create nx1 matrix if it is a 1d data set
             data = np.array([self.masterData.data]).transpose()
         else:
@@ -2029,6 +2044,7 @@ class Main1DWindow(QtWidgets.QWidget):
         for line in np.arange(data.shape[1]):
             splitdata[:, line * 2] = np.real(data[:, line])
             splitdata[:, line * 2 + 1] = np.imag(data[:, line])
+
         data = np.concatenate((axis, splitdata), axis=1)
         np.savetxt(name, data, delimiter='\t')
 
