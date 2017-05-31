@@ -1866,7 +1866,7 @@ class RelaxParamFrame(AbstractParamFrame):
 
 def relaxationmpFit(xax, data1D, guess, args, queue):
     try:
-        fitVal = scipy.optimize.minimize(lambda *param: np.sum((data1D-relaxationfitFunc(param, xax, args))**2), guess, method='Nelder-Mead')
+        fitVal = scipy.optimize.minimize(lambda *param: np.sum((data1D-relaxationfitFunc(param, xax, args))**2), guess, method='Powell')
     except:
         fitVal = None
     queue.put(fitVal)
@@ -2365,7 +2365,7 @@ class DiffusionParamFrame(AbstractParamFrame):
 
 def diffusionmpFit(xax, data1D, guess, args, queue):
     try:
-        fitVal = scipy.optimize.minimize(lambda *param: np.sum((data1D-diffusionfitFunc(param, xax, args))**2), guess, method='Nelder-Mead')
+        fitVal = scipy.optimize.minimize(lambda *param: np.sum((data1D-diffusionfitFunc(param, xax, args))**2), guess, method='Powell')
     except:
         fitVal = None
     queue.put(fitVal)
@@ -2737,7 +2737,7 @@ class PeakDeconvParamFrame(AbstractParamFrame):
 
 def peakDeconvmpFit(xax, data1D, guess, args, queue):
     try:
-        fitVal = scipy.optimize.minimize(lambda *param: np.sum((data1D-peakDeconvfitFunc(param, xax, args))**2), guess, method='Nelder-Mead')
+        fitVal = scipy.optimize.minimize(lambda *param: np.sum((data1D-peakDeconvfitFunc(param, xax, args))**2), guess, method='Powell')
     except:
         fitVal = None
     queue.put(fitVal)
@@ -3256,7 +3256,7 @@ class TensorDeconvParamFrame(AbstractParamFrame):
         
 def tensorDeconvmpFit(xax, data1D, guess, args, queue):
     try:
-        fitVal = scipy.optimize.minimize(lambda *param: np.sum((data1D-tensorDeconvfitFunc(param, xax, args))**2), guess, method='Nelder-Mead')
+        fitVal = scipy.optimize.minimize(lambda *param: np.sum((data1D-tensorDeconvfitFunc(param, xax, args))**2), guess, method='Powell')
     except:
         fitVal = None
     queue.put(fitVal)
@@ -3508,7 +3508,7 @@ class CSAMASParamFrame(AbstractParamFrame):
         self.frame1.setColumnStretch(10, 1)
         self.frame1.setAlignment(QtCore.Qt.AlignTop)
         self.ticks = {'bgrnd':[], 'slope':[], 'spinspeed':[], 'pos':[], 'delta':[], 'eta':[], 'amp':[], 'lor':[], 'gauss':[]}
-        self.entries = {'bgrnd':[], 'slope':[], 'spinspeed':[], 'pos':[], 'delta':[], 'eta':[], 'amp':[], 'lor':[], 'gauss':[], 'shiftdef':[], 'cheng':[], 'method':[]}
+        self.entries = {'bgrnd':[], 'slope':[], 'spinspeed':[], 'pos':[], 'delta':[], 'eta':[], 'amp':[], 'lor':[], 'gauss':[], 'shiftdef':[], 'cheng':[]}
         # self.frame1.addWidget(QLabel("Definition:"), 3, 1) 
         # self.shiftDefType = 0 #variable to remember the selected tensor type
         # self.entries['shiftdef'].append(QtWidgets.QComboBox())
@@ -3523,10 +3523,6 @@ class CSAMASParamFrame(AbstractParamFrame):
         self.entries['cheng'][-1].setAlignment(QtCore.Qt.AlignHCenter)
         self.entries['cheng'][-1].setText(str(self.cheng))
         self.optframe.addWidget(self.entries['cheng'][-1], 1, 0)
-        self.optframe.addWidget(QLabel("Method:"), 2, 0)
-        self.entries['method'].append(QtWidgets.QComboBox())
-        self.entries['method'][0].addItems(['Exact','Approx'])
-        self.optframe.addWidget(self.entries['method'][0], 3, 0)
         self.optframe.setColumnStretch(10, 1)
         self.optframe.setAlignment(QtCore.Qt.AlignTop)
         self.frame2.addWidget(QLabel("Spin. speed [kHz]:"), 0, 0, 1, 2)
@@ -3590,29 +3586,9 @@ class CSAMASParamFrame(AbstractParamFrame):
         self.entries['cheng'][-1].setText(str(self.cheng))
 
     def getExtraParams(self, out):
-        NSTEPS = 30
-        omegar = 2*np.pi*1e3*out['spinspeed'][0]
         cheng = safeEval(self.entries['cheng'][-1].text())
-        phi, theta, weight = zcw_angles(cheng, symm=2)
-        sinPhi = np.sin(phi)
-        cosPhi = np.cos(phi)
-        sin2Theta = np.sin(2 * theta)
-        cos2Theta = np.cos(2 * theta)
-        tresolution = 2 * np.pi / omegar / NSTEPS
-        t = np.linspace(0, tresolution * (NSTEPS - 1), NSTEPS)
-        cosOmegarT = np.cos(omegar * t)
-        cos2OmegarT = np.cos(2 * omegar * t)
-        angleStuff = [np.array([np.sqrt(2) / 3 * sinPhi * cosPhi * 3]).transpose() * cosOmegarT,
-                      np.array([-1.0 / 3 * 3 / 2 * sinPhi**2]).transpose() * cos2OmegarT,
-                      np.transpose([cos2Theta / 3.0]) * (np.array([np.sqrt(2) / 3 * sinPhi * cosPhi * 3]).transpose() * cosOmegarT),
-                      np.array([1.0 / 3 / 2 * (1 + cosPhi**2) * cos2Theta]).transpose() * cos2OmegarT,
-                      np.array([np.sqrt(2) / 3 * sinPhi * sin2Theta]).transpose() * np.sin(omegar * t),
-                      np.array([cosPhi * sin2Theta / 3]).transpose() * np.sin(2 * omegar * t)]
-        out['weight'] = [weight]
-        out['tresolution'] = [tresolution]
-        out['anglestuff'] = [angleStuff]
-        out['method'] = [self.entries['method'][0].currentIndex()]
-        return (out, [out['tresolution'][-1], out['anglestuff'][-1], out['weight'][-1], out['method'][-1]])
+        out['cheng'] = [cheng]
+        return (out, [out['cheng'][-1]])
 
     def disp(self, params, num):
         out = params[num]
@@ -3638,7 +3614,7 @@ class CSAMASParamFrame(AbstractParamFrame):
         x = []
         for i in range(len(out['amp'])):
             x.append(tmpx)
-            y = out['amp'][i] * CSAMASFunc(tmpx, out['pos'][i] , out['delta'][i], out['eta'][i], out['lor'][i], out['gauss'][i], out['anglestuff'][0], out['tresolution'][0], self.parent.current.sw, out['weight'][0], self.axAdd, self.axMult, out['spinspeed'][0], out['method'][0])
+            y = out['amp'][i] * CSAMASFunc(tmpx, out['pos'][i] , out['delta'][i], out['eta'][i], out['lor'][i], out['gauss'][i], self.parent.current.sw, self.axAdd, self.axMult, out['spinspeed'][0], out['cheng'][0])
             outCurvePart.append(outCurveBase + y)
             outCurve += y
         self.parent.fitDataList[tuple(self.parent.locList)] = [tmpx, outCurve, x, outCurvePart]
@@ -3649,8 +3625,9 @@ class CSAMASParamFrame(AbstractParamFrame):
 
 def CSAMASmpFit(xax, data1D, guess, args, queue):
     try:
-        fitVal = scipy.optimize.minimize(lambda *param: np.sum((data1D-CSAMASfitFunc(param, xax, args))**2), guess, method='Nelder-Mead')
+        fitVal = scipy.optimize.minimize(lambda *param: np.sum((data1D-CSAMASfitFunc(param, xax, args))**2), guess, method='Powell')
     except:
+        raise
         fitVal = None
     queue.put(fitVal)
 
@@ -3675,10 +3652,7 @@ def CSAMASfitFunc(params, allX, args):
         axAdd = args[6][n]
         axMult = args[7][n]
         parameters = {'spinspeed':0.0, 'bgrnd':0.0, 'slope':0.0, 'pos':0.0, 'delta':0.0, 'eta':0.0, 'amp':0.0, 'lor':0.0, 'gauss':0.0}
-        parameters['tresolution'] = argu[-1][0]
-        parameters['anglestuff'] = argu[-1][1]
-        parameters['weight'] = argu[-1][2]
-        parameters['method'] = argu[-1][3]
+        parameters['cheng'] = argu[-1][0]
         for name in ['spinspeed', 'bgrnd', 'slope']:
             if struc[name][0][0] == 1:
                 parameters[name] = param[struc[name][0][1]]
@@ -3703,12 +3677,30 @@ def CSAMASfitFunc(params, allX, args):
                         parameters[name] = altStruc[2] * allParam[altStruc[4]][strucTarget[altStruc[0]][altStruc[1]][1]] + altStruc[3]
                     elif strucTarget[altStruc[0]][altStruc[1]][0] == 0:
                         parameters[name] = altStruc[2] * allArgu[altStruc[4]][strucTarget[altStruc[0]][altStruc[1]][1]] + altStruc[3]
-            testFunc += parameters['amp'] * CSAMASFunc(x, parameters['pos'], parameters['delta'], parameters['eta'], parameters['lor'], parameters['gauss'], parameters['anglestuff'], parameters['tresolution'], sw, parameters['weight'], axAdd, axMult, parameters['spinspeed'], parameters['method'])
+            testFunc += parameters['amp'] * CSAMASFunc(x, parameters['pos'], parameters['delta'], parameters['eta'], parameters['lor'], parameters['gauss'], sw, axAdd, axMult, parameters['spinspeed'], parameters['cheng'])
         testFunc += parameters['bgrnd'] + parameters['slope'] * x
         fullTestFunc = np.append(fullTestFunc, testFunc)
     return fullTestFunc
     
-def CSAMASFunc(x, pos, delta, eta, lor, gauss, angleStuff, tresolution, sw, weight, axAdd, axMult, spinspeed, method):
+def CSAMASFunc(x, pos, delta, eta, lor, gauss, sw, axAdd, axMult, spinspeed, cheng):
+    NSTEPS = 32.0
+    omegar = 2*np.pi*1e3*spinspeed
+    phi, theta, weight = zcw_angles(cheng, symm=2)
+    sinPhi = np.sin(phi)
+    cosPhi = np.cos(phi)
+    sin2Theta = np.sin(2 * theta)
+    cos2Theta = np.cos(2 * theta)
+    tresolution = 2 * np.pi / omegar / NSTEPS
+    t = np.linspace(0, tresolution * (NSTEPS - 1), NSTEPS)
+    cosOmegarT = np.cos(omegar * t)
+    cos2OmegarT = np.cos(2 * omegar * t)
+    angleStuff = [np.array([np.sqrt(2) / 3 * sinPhi * cosPhi * 3]).transpose() * cosOmegarT,
+                  np.array([-1.0 / 3 * 3 / 2 * sinPhi**2]).transpose() * cos2OmegarT,
+                  np.transpose([cos2Theta / 3.0]) * (np.array([np.sqrt(2) / 3 * sinPhi * cosPhi * 3]).transpose() * cosOmegarT),
+                  np.array([1.0 / 3 / 2 * (1 + cosPhi**2) * cos2Theta]).transpose() * cos2OmegarT,
+                  np.array([np.sqrt(2) / 3 * sinPhi * sin2Theta]).transpose() * np.sin(omegar * t),
+                  np.array([cosPhi * sin2Theta / 3]).transpose() * np.sin(2 * omegar * t)]
+    pos = (pos / axMult)- axAdd
     omegars = 2 * np.pi * delta/axMult * (angleStuff[0] + angleStuff[1] + eta * (angleStuff[2] + angleStuff[3] + angleStuff[4] + angleStuff[5]))
     nsteps = angleStuff[0].shape[1]
     QTrs = np.concatenate([np.ones([angleStuff[0].shape[0], 1]), np.exp(-1j * np.cumsum(omegars, axis=1) * tresolution)[:, :-1]], 1)
@@ -3721,12 +3713,19 @@ def CSAMASFunc(x, pos, delta, eta, lor, gauss, angleStuff, tresolution, sw, weig
         favrs[j] += np.sum(weight * np.sum(rhoT0sr * np.roll(QTrs, -j, axis=1), 1) / nsteps**2)
     # calculate the sideband intensities by doing an FT and pick the ones that are needed further
     inten = np.real(np.fft.fft(favrs))
-    y = np.zeros(len(x))
-    num = len(inten)
-    posList = np.array(np.fft.fftfreq(num, 1.0/num), dtype=int)
-    for i in range(num):
-        y += voigtLine(x, pos/axMult+posList[i]*spinspeed*1e3, lor, gauss, inten[i], method)
-    return y
+    posList = np.array(np.fft.fftfreq(nsteps, 1.0/nsteps))*spinspeed*1e3 + pos
+    length = len(x)
+    t = np.arange(length) / sw
+    mult = posList / sw * length
+    x1 = np.array(np.round(mult) + np.floor(length / 2), dtype=int)
+    weights = inten[np.logical_and(x1 >= 0, x1 < length)]
+    x1 = x1[np.logical_and(x1 >= 0, x1 < length)]
+    final = np.bincount(x1, weights, length)
+    apod = np.exp(-np.pi * np.abs(lor) * t) * np.exp(-((np.pi * np.abs(gauss) * t)**2) / (4 * np.log(2)))
+    apod[-1:-(int(len(apod) / 2) + 1):-1] = apod[:int(len(apod) / 2)]
+    inten = np.real(np.fft.fft(np.fft.ifft(final) * apod))
+    inten = inten / sw * len(inten)
+    return inten
 
 ##############################################################################
 
@@ -4534,7 +4533,7 @@ class Quad1DeconvParamFrame(AbstractParamFrame):
 
 def quad1DeconvmpFit(xax, data1D, guess, args, queue):
     try:
-        fitVal = scipy.optimize.minimize(lambda *param: np.sum((data1D-quad1DeconvfitFunc(param, xax, args))**2), guess, method='Nelder-Mead')
+        fitVal = scipy.optimize.minimize(lambda *param: np.sum((data1D-quad1DeconvfitFunc(param, xax, args))**2), guess, method='Powell')
     except:
         fitVal = None
     queue.put(fitVal)
@@ -4904,7 +4903,7 @@ class Quad2StaticCzjzekParamFrame(AbstractParamFrame):
 
 def quad2CzjzekmpFit(xax, data1D, guess, args, queue):
     try:
-        fitVal = scipy.optimize.minimize(lambda *param: np.sum((data1D-quad2CzjzekfitFunc(param, xax, args))**2), guess, method='Nelder-Mead')
+        fitVal = scipy.optimize.minimize(lambda *param: np.sum((data1D-quad2CzjzekfitFunc(param, xax, args))**2), guess, method='Powell')
     except:
        fitVal = None
     queue.put(fitVal)
