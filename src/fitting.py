@@ -628,13 +628,13 @@ class AbstractParamFrame(QtWidgets.QWidget):
         locList = tuple(self.parent.locList)
         val = self.fitNumList[locList] + 1
         for name in self.SINGLENAMES:
-            if isinstance(self.fitParamList[locList][name][0], float):
+            if isinstance(self.fitParamList[locList][name][0], (float, int)):
                 self.entries[name][0].setText('%#.3g' % self.fitParamList[locList][name][0])
             self.ticks[name][0].setChecked(self.fitParamList[locList][name][1])
         self.numExp.setCurrentIndex(self.fitNumList[locList])
         for i in range(self.FITNUM):
             for name in self.MULTINAMES:
-                if isinstance(self.fitParamList[locList][name][i][0], float):
+                if isinstance(self.fitParamList[locList][name][i][0], (float, int)):
                     self.entries[name][i].setText('%#.3g' % self.fitParamList[locList][name][i][0])
                 self.ticks[name][i].setChecked(self.fitParamList[locList][name][i][1])
                 if i < val:
@@ -3406,6 +3406,7 @@ class CSAMASFrame(Plot1DFrame):
             self.data1D = np.abs(tmp)
         
     def plotReset(self, xReset=True, yReset=True):  # set the plot limits to min and max values
+        a = self.fig.gca()
         if self.plotType == 0:
             miny = min(np.real(self.data1D))
             maxy = max(np.real(self.data1D))
@@ -3425,9 +3426,16 @@ class CSAMASFrame(Plot1DFrame):
         if yReset:
             self.yminlim = miny - differ
             self.ymaxlim = maxy + differ
+        if self.spec == 1:
+            if self.current.ppm:
+                axMult = 1e6 / self.current.ref
+            else:
+                axMult = 1.0 / (1000.0**self.current.axType)
+        elif self.spec == 0:
+            axMult = 1000.0**self.current.axType
         if xReset:
-            self.xminlim = min(self.xax)
-            self.xmaxlim = max(self.xax)
+            self.xminlim = min(self.xax * axMult)
+            self.xmaxlim = max(self.xax * axMult)
         if self.spec > 0:
             self.ax.set_xlim(self.xmaxlim, self.xminlim)
         else:
@@ -3445,7 +3453,7 @@ class CSAMASFrame(Plot1DFrame):
             axMult = 1000.0**self.current.axType
         self.line_xdata = self.xax * axMult
         self.line_ydata = self.data1D
-        self.ax.plot(self.xax, self.data1D, c=self.current.color, linewidth=self.current.linewidth, label=self.current.data.name, picker=True)
+        self.ax.plot(self.xax * axMult, self.data1D, c=self.current.color, linewidth=self.current.linewidth, label=self.current.data.name, picker=True)
         if self.fitDataList[tuple(self.locList)] is not None:
             tmp = self.fitDataList[tuple(self.locList)]
             self.ax.plot(tmp[0] * axMult, tmp[1], picker=True)
@@ -3489,30 +3497,36 @@ class CSAMASFrame(Plot1DFrame):
 class CSAMASParamFrame(AbstractParamFrame):
 
     def __init__(self, parent, rootwindow, isMain=True):
-        self.SINGLENAMES = ['bgrnd', 'slope']
-        self.MULTINAMES = ['t11', 't22', 't33', 'amp', 'lor', 'gauss']
+        self.SINGLENAMES = ['bgrnd', 'slope', 'spinspeed']
+        self.MULTINAMES = ['pos', 'delta', 'eta', 'amp', 'lor', 'gauss']
         self.FITFUNC = CSAMASmpFit
         self.cheng = 15
         self.NSTEPS = 30
         AbstractParamFrame.__init__(self, parent, rootwindow, isMain)
+        for elem in np.nditer(self.fitParamList, flags=["refs_ok"], op_flags=['readwrite']):
+            elem[...] = {'bgrnd':[0.0, True], 'slope':[0.0, True], 'spinspeed':[10.0, True], 'pos':np.repeat([np.array([0.0, False], dtype=object)], self.FITNUM, axis=0), 'delta':np.repeat([np.array([1.0, False], dtype=object)], self.FITNUM, axis=0), 'eta':np.repeat([np.array([0.0, False], dtype=object)], self.FITNUM, axis=0), 'amp':np.repeat([np.array([1.0, False], dtype=object)], self.FITNUM,axis=0), 'lor':np.repeat([np.array([1.0, False], dtype=object)], self.FITNUM,axis=0), 'gauss':np.repeat([np.array([0.0, True], dtype=object)], self.FITNUM,axis=0)}
         self.frame1.setColumnStretch(10, 1)
         self.frame1.setAlignment(QtCore.Qt.AlignTop)
-        self.ticks = {'bgrnd':[], 'slope':[], 't11':[], 't22':[], 't33':[], 'amp':[], 'lor':[], 'gauss':[]}
-        self.entries = {'bgrnd':[], 'slope':[], 't11':[], 't22':[], 't33':[], 'amp':[], 'lor':[], 'gauss':[], 'shiftdef':[], 'cheng':[]}
-        self.frame1.addWidget(QLabel("Definition:"), 3, 1) 
-        self.shiftDefType = 0 #variable to remember the selected tensor type
-        self.entries['shiftdef'].append(QtWidgets.QComboBox())
-        self.entries['shiftdef'][-1].addItems([u'\u03b411 - \u03b422 - \u03b433',
-                                               u'\u03b4xx - \u03b4yy - \u03b4zz',
-                                               u'\u03b4iso - \u03b4aniso - \u03b7',
-                                               u'\u03b4iso - \u03a9 - \u03b7'])
-        self.entries['shiftdef'][-1].currentIndexChanged.connect(self.changeShiftDef)
-        self.frame1.addWidget(self.entries['shiftdef'][-1], 4, 1)   
+        self.ticks = {'bgrnd':[], 'slope':[], 'spinspeed':[], 'pos':[], 'delta':[], 'eta':[], 'amp':[], 'lor':[], 'gauss':[]}
+        self.entries = {'bgrnd':[], 'slope':[], 'spinspeed':[], 'pos':[], 'delta':[], 'eta':[], 'amp':[], 'lor':[], 'gauss':[], 'shiftdef':[], 'cheng':[], 'method':[]}
+        # self.frame1.addWidget(QLabel("Definition:"), 3, 1) 
+        # self.shiftDefType = 0 #variable to remember the selected tensor type
+        # self.entries['shiftdef'].append(QtWidgets.QComboBox())
+        # self.entries['shiftdef'][-1].addItems([u'\u03b411 - \u03b422 - \u03b433',
+        #                                        u'\u03b4xx - \u03b4yy - \u03b4zz',
+        #                                        u'\u03b4iso - \u03b4aniso - \u03b7',
+        #                                        u'\u03b4iso - \u03a9 - \u03b7'])
+        # self.entries['shiftdef'][-1].currentIndexChanged.connect(self.changeShiftDef)
+        # self.frame1.addWidget(self.entries['shiftdef'][-1], 4, 1) 
         self.optframe.addWidget(QLabel("Cheng:"), 0, 0)
         self.entries['cheng'].append(QtWidgets.QLineEdit())
         self.entries['cheng'][-1].setAlignment(QtCore.Qt.AlignHCenter)
         self.entries['cheng'][-1].setText(str(self.cheng))
         self.optframe.addWidget(self.entries['cheng'][-1], 1, 0)
+        self.optframe.addWidget(QLabel("Method:"), 2, 0)
+        self.entries['method'].append(QtWidgets.QComboBox())
+        self.entries['method'][0].addItems(['Exact','Approx'])
+        self.optframe.addWidget(self.entries['method'][0], 3, 0)
         self.optframe.setColumnStretch(10, 1)
         self.optframe.setAlignment(QtCore.Qt.AlignTop)
         self.frame2.addWidget(QLabel("Spin. speed [kHz]:"), 0, 0, 1, 2)
@@ -3521,7 +3535,7 @@ class CSAMASParamFrame(AbstractParamFrame):
         self.entries['spinspeed'].append(QtWidgets.QLineEdit())
         self.entries['spinspeed'][-1].setAlignment(QtCore.Qt.AlignHCenter)
         self.entries['spinspeed'][-1].setText("10.0")
-        self.frame2.addWidget(self.entries['bgrnd'][-1], 1, 1)
+        self.frame2.addWidget(self.entries['spinspeed'][-1], 1, 1)
         self.frame2.addWidget(QLabel("Bgrnd:"), 2, 0, 1, 2)
         self.ticks['bgrnd'].append(QtWidgets.QCheckBox(''))
         self.frame2.addWidget(self.ticks['bgrnd'][-1], 3, 0)
@@ -3547,39 +3561,12 @@ class CSAMASParamFrame(AbstractParamFrame):
         else:
             axUnit = ['Hz', 'kHz', 'MHz'][self.parent.current.axType]
         #Labels
-        self.label11 = QLabel(u'\u03b4' + '<sub>11</sub> [' + axUnit + '] :')
-        self.label22 = QLabel(u'\u03b4' + '<sub>22</sub> [' + axUnit + '] :')
-        self.label33 = QLabel(u'\u03b4' + '<sub>33</sub> [' + axUnit + '] :')
-        self.frame3.addWidget(self.label11, 1, 0, 1, 2)
-        self.frame3.addWidget(self.label22, 1, 2, 1, 2)
-        self.frame3.addWidget(self.label33, 1, 4, 1, 2)
-        self.labelxx = QLabel(u'\u03b4' + '<sub>xx</sub> [' + axUnit + '] :')
-        self.labelyy = QLabel(u'\u03b4' + '<sub>yy</sub> [' + axUnit + '] :')
-        self.labelzz = QLabel(u'\u03b4' + '<sub>zz</sub> [' + axUnit + '] :')
-        self.labelxx.hide()
-        self.labelyy.hide()
-        self.labelzz.hide()
-        self.frame3.addWidget(self.labelxx, 1, 0, 1, 2)
-        self.frame3.addWidget(self.labelyy, 1, 2, 1, 2)
-        self.frame3.addWidget(self.labelzz, 1, 4, 1, 2)
-        self.labeliso = QLabel(u'\u03b4' + '<sub>iso</sub> [' + axUnit + '] :')
-        self.labelaniso = QLabel(u'\u03b4' + '<sub>aniso</sub> [' + axUnit  +'] :')
-        self.labeleta = QLabel(u'\u03b7:')
-        self.labeliso.hide()
-        self.labelaniso.hide()
-        self.labeleta.hide()
-        self.frame3.addWidget(self.labeliso, 1, 0, 1, 2)
-        self.frame3.addWidget(self.labelaniso, 1, 2, 1, 2)
+        self.labelpos = QLabel(u'Position [' + axUnit + ']:')
+        self.labeldelta = QLabel(u'delta [' + axUnit + ']:')
+        self.labeleta = QLabel(u'eta:')
+        self.frame3.addWidget(self.labelpos, 1, 0, 1, 2)
+        self.frame3.addWidget(self.labeldelta, 1, 2, 1, 2)
         self.frame3.addWidget(self.labeleta, 1, 4, 1, 2)
-        self.labeliso2 = QLabel(u'\u03b4' + '<sub>iso</sub> [' + axUnit  +'] :')
-        self.labelspan = QLabel(u'\u03a9 [' + axUnit  +'] :')
-        self.labelskew = QLabel(u'\u03ba:')
-        self.labeliso2.hide()
-        self.labelspan.hide()
-        self.labelskew.hide()
-        self.frame3.addWidget(self.labeliso2, 1, 0, 1, 2)
-        self.frame3.addWidget(self.labelspan, 1, 2, 1, 2)
-        self.frame3.addWidget(self.labelskew, 1, 4, 1, 2)
         self.frame3.addWidget(QLabel("Integral:"), 1, 6, 1, 2)
         self.frame3.addWidget(QLabel("Lorentz [Hz]:"), 1, 8, 1, 2)
         self.frame3.addWidget(QLabel("Gauss [Hz]:"), 1, 10, 1, 2)
@@ -3592,6 +3579,7 @@ class CSAMASParamFrame(AbstractParamFrame):
                 self.entries[self.MULTINAMES[j]].append(QtWidgets.QLineEdit())
                 self.entries[self.MULTINAMES[j]][i].setAlignment(QtCore.Qt.AlignHCenter)
                 self.frame3.addWidget(self.entries[self.MULTINAMES[j]][i], i + 2, 2*j+1)
+        self.dispParams()
 
     def setCheng(self, *args):
         inp = safeEval(self.entries['cheng'][-1].text())
@@ -3601,96 +3589,11 @@ class CSAMASParamFrame(AbstractParamFrame):
             self.cheng = int(inp)
         self.entries['cheng'][-1].setText(str(self.cheng))
 
-    def changeShiftDef(self):
-        NewType = self.entries['shiftdef'][-1].currentIndex()
-        OldType = self.shiftDefType 
-        if NewType == 0:
-            self.label11.show()
-            self.label22.show()
-            self.label33.show()
-            self.labelxx.hide()
-            self.labelyy.hide()
-            self.labelzz.hide()
-            self.labeliso.hide()
-            self.labelaniso.hide()
-            self.labeleta.hide()
-            self.labeliso2.hide()
-            self.labelspan.hide()
-            self.labelskew.hide()
-            self.pickTick.setChecked(True)
-            self.pickTick.show()
-        elif NewType == 1:
-            self.label11.hide()
-            self.label22.hide()
-            self.label33.hide()
-            self.labelxx.show()
-            self.labelyy.show()
-            self.labelzz.show()
-            self.labeliso.hide()
-            self.labelaniso.hide()
-            self.labeleta.hide()
-            self.labeliso2.hide()
-            self.labelspan.hide()
-            self.labelskew.hide()
-            self.pickTick.setChecked(True)
-            self.pickTick.show()
-        elif NewType == 2:
-            self.label11.hide()
-            self.label22.hide()
-            self.label33.hide()
-            self.labelxx.hide()
-            self.labelyy.hide()
-            self.labelzz.hide()
-            self.labeliso.show()
-            self.labelaniso.show()
-            self.labeleta.show()
-            self.labeliso2.hide()
-            self.labelspan.hide()
-            self.labelskew.hide()
-            self.pickTick.setChecked(False)
-            self.pickTick.hide()
-        elif NewType == 3:
-            self.label11.hide()
-            self.label22.hide()
-            self.label33.hide()
-            self.labelxx.hide()
-            self.labelyy.hide()
-            self.labelzz.hide()
-            self.labeliso.hide()
-            self.labelaniso.hide()
-            self.labeleta.hide()
-            self.labeliso2.show()
-            self.labelspan.show()
-            self.labelskew.show()
-            self.pickTick.setChecked(False)
-            self.pickTick.hide()
-        val = self.numExp.currentIndex() + 1
-        tensorList = []
-        for i in range(10): #Convert input
-            if i < val:
-                T11 = safeEval(self.entries['t11'][i].text())
-                T22 = safeEval(self.entries['t22'][i].text())
-                T33 = safeEval(self.entries['t33'][i].text())
-                startTensor = [T11,T22,T33]
-                if None in startTensor:
-                    self.entries['shiftdef'][-1].setCurrentIndex(OldType) #error, reset to old view
-                    self.rootwindow.mainProgram.dispMsg("One of the inputs is not valid")
-                    return
-                Tensors = shiftConversion(startTensor,OldType)
-                for element in range(3): #Check for `ND' s
-                    if type(Tensors[NewType][element]) == str:
-                        Tensors[NewType][element] = 0
-                tensorList.append(Tensors)   
-        printStr = '%#.' + str(self.parent.printDigits) + 'g'
-        for i in range(10): #Print output if not stopped before
-            if i < val:        
-                self.entries['t11'][i].setText(printStr % tensorList[i][NewType][0])
-                self.entries['t22'][i].setText(printStr % tensorList[i][NewType][1])
-                self.entries['t33'][i].setText(printStr % tensorList[i][NewType][2])
-        self.shiftDefType = NewType
-        
-    def disp(self, outDelta, outEta, NSTEPS, omegar, cheng):
-        theta, phi, weight = zcw_angles(cheng, symm=2)
+    def getExtraParams(self, out):
+        NSTEPS = 30
+        omegar = 2*np.pi*1e3*out['spinspeed'][0]
+        cheng = safeEval(self.entries['cheng'][-1].text())
+        phi, theta, weight = zcw_angles(cheng, symm=2)
         sinPhi = np.sin(phi)
         cosPhi = np.cos(phi)
         sin2Theta = np.sin(2 * theta)
@@ -3705,69 +3608,125 @@ class CSAMASParamFrame(AbstractParamFrame):
                       np.array([1.0 / 3 / 2 * (1 + cosPhi**2) * cos2Theta]).transpose() * cos2OmegarT,
                       np.array([np.sqrt(2) / 3 * sinPhi * sin2Theta]).transpose() * np.sin(omegar * t),
                       np.array([cosPhi * sin2Theta / 3]).transpose() * np.sin(2 * omegar * t)]
-        testFunc = hbFunc(self.parent.current.freq * np.pi * 2, outDelta, outEta, NSTEPS, tresolution, angleStuff, weight)
-        results = testFunc[self.sidebandList]
-        results /= np.sum(results)
-        for i in range(len(self.resultLabels)):
-            self.resultLabels[i].setText('%#.5g' % (results[i] * np.sum(self.integralList)))
+        out['weight'] = [weight]
+        out['tresolution'] = [tresolution]
+        out['anglestuff'] = [angleStuff]
+        out['method'] = [self.entries['method'][0].currentIndex()]
+        return (out, [out['tresolution'][-1], out['anglestuff'][-1], out['weight'][-1], out['method'][-1]])
+
+    def disp(self, params, num):
+        out = params[num]
+        for name in self.SINGLENAMES:
+            inp = out[name][0]
+            if isinstance(inp, tuple):
+                inp = checkLinkTuple(inp)
+                out[name][0] = inp[2]*params[inp[4]][inp[0]][inp[1]] + inp[3]
+        numExp = len(out[self.MULTINAMES[0]])
+        for i in range(numExp):
+            for name in self.MULTINAMES:
+                inp = out[name][i]
+                if isinstance(inp, tuple):
+                    inp = checkLinkTuple(inp)
+                    out[name][i] = inp[2]*params[inp[4]][inp[0]][inp[1]] + inp[3]
+                if not np.isfinite(out[name][i]):
+                    self.rootwindow.mainProgram.dispMsg("One of the inputs is not valid")
+                    return
+        tmpx = self.parent.xax
+        outCurveBase = out['bgrnd'][0] + tmpx * out['slope'][0]
+        outCurve = outCurveBase.copy()
+        outCurvePart = []
+        x = []
+        for i in range(len(out['amp'])):
+            x.append(tmpx)
+            y = out['amp'][i] * CSAMASFunc(tmpx, out['pos'][i] , out['delta'][i], out['eta'][i], out['lor'][i], out['gauss'][i], out['anglestuff'][0], out['tresolution'][0], self.parent.current.sw, out['weight'][0], self.axAdd, self.axMult, out['spinspeed'][0], out['method'][0])
+            outCurvePart.append(outCurveBase + y)
+            outCurve += y
+        self.parent.fitDataList[tuple(self.parent.locList)] = [tmpx, outCurve, x, outCurvePart]
+        self.parent.showFid()
 
 ##############################################################################
 
 
-def CSAMASmpFit(sidebandList, integralList, guess, args, queue, NSTEPS, omegar, cheng):
-    theta, phi, weight = zcw_angles(cheng, symm=2)
-    sinPhi = np.sin(phi)
-    cosPhi = np.cos(phi)
-    sin2Theta = np.sin(2 * theta)
-    cos2Theta = np.cos(2 * theta)
-    tresolution = 2 * np.pi / omegar / NSTEPS
-    t = np.linspace(0, tresolution * (NSTEPS - 1), NSTEPS)
-    cosOmegarT = np.cos(omegar * t)
-    cos2OmegarT = np.cos(2 * omegar * t)
-    angleStuff = [np.array([np.sqrt(2) / 3 * sinPhi * cosPhi * 3]).transpose() * cosOmegarT,
-                  np.array([-1.0 / 3 * 3 / 2 * sinPhi**2]).transpose() * cos2OmegarT,
-                  np.transpose([cos2Theta / 3.0]) * (np.array([np.sqrt(2) / 3 * sinPhi * cosPhi * 3]).transpose() * cosOmegarT),
-                  np.array([1.0 / 3 / 2 * (1 + cosPhi**2) * cos2Theta]).transpose() * cos2OmegarT,
-                  np.array([np.sqrt(2) / 3 * sinPhi * sin2Theta]).transpose() * np.sin(omegar * t),
-                  np.array([cosPhi * sin2Theta / 3]).transpose() * np.sin(2 * omegar * t)]
-    arg = args + (NSTEPS, tresolution, angleStuff, weight, sidebandList, integralList)
+def CSAMASmpFit(xax, data1D, guess, args, queue):
     try:
-        fitVal = scipy.optimize.fmin(hbfitFunc, guess, args=arg, disp=False)
+        fitVal = scipy.optimize.minimize(lambda *param: np.sum((data1D-CSAMASfitFunc(param, xax, args))**2), guess, method='Nelder-Mead')
     except:
         fitVal = None
     queue.put(fitVal)
 
-def CSAMASfitFunc(param, struc, argu, omega0, NSTEPS, tresolution, angleStuff, weight, x, y):
-    if struc[0]:
-        delta = param[0]
-        param = np.delete(param, [0])
-    else:
-        delta = argu[0]
-        argu = np.delete(argu, [0])
-    if struc[1]:
-        eta = param[0]
-        param = np.delete(param, [0])
-    else:
-        eta = argu[0]
-        argu = np.delete(argu, [0])
-    testFunc = hbFunc(omega0, delta, eta, NSTEPS, tresolution, angleStuff, weight)
-    testFunc = testFunc[x] / np.sum(testFunc[x]) * np.real(np.sum(y))
-    return np.sum((testFunc - y)**2)
-
-def CSAMASFunc(omega0, delta, eta, NSTEPS, tresolution, angleStuff, weight):
-    omegars = omega0 * delta * (angleStuff[0] + angleStuff[1] + eta * (angleStuff[2] + angleStuff[3] + angleStuff[4] + angleStuff[5]))
+def CSAMASfitFunc(params, allX, args):
+    params = params[0]
+    specName = args[0]
+    specSlices = args[1]
+    allParam = []
+    for length in specSlices:
+        allParam.append(params[length])
+    allStruc = args[3]
+    allArgu = args[4]
+    fullTestFunc = []
+    for n in range(len(allX)):
+        x=allX[n]
+        testFunc = np.zeros(len(x))
+        param = allParam[n]
+        numExp = args[2][n]
+        struc = args[3][n]
+        argu = args[4][n]
+        sw = args[5][n]
+        axAdd = args[6][n]
+        axMult = args[7][n]
+        parameters = {'spinspeed':0.0, 'bgrnd':0.0, 'slope':0.0, 'pos':0.0, 'delta':0.0, 'eta':0.0, 'amp':0.0, 'lor':0.0, 'gauss':0.0}
+        parameters['tresolution'] = argu[-1][0]
+        parameters['anglestuff'] = argu[-1][1]
+        parameters['weight'] = argu[-1][2]
+        parameters['method'] = argu[-1][3]
+        for name in ['spinspeed', 'bgrnd', 'slope']:
+            if struc[name][0][0] == 1:
+                parameters[name] = param[struc[name][0][1]]
+            elif struc[name][0][0] == 0:
+                parameters[name] = argu[struc[name][0][1]]
+            else:
+                altStruc = struc[name][0][1]
+                if struc[altStruc[0]][altStruc[1]][0] == 1:
+                    parameters[name] = altStruc[2] * allParam[altStruc[4]][struc[altStruc[0]][altStruc[1]][1]] + altStruc[3]
+                elif struc[altStruc[0]][altStruc[1]][0] == 0:
+                    parameters[name] = altStruc[2] * allArgu[altStruc[4]][struc[altStruc[0]][altStruc[1]][1]] + altStruc[3]
+        for i in range(numExp):
+            for name in ['pos', 'delta', 'eta', 'amp', 'lor', 'gauss']:
+                if struc[name][i][0] == 1:
+                    parameters[name] = param[struc[name][i][1]]
+                elif struc[name][i][0] == 0:
+                    parameters[name] = argu[struc[name][i][1]]
+                else:
+                    altStruc = struc[name][i][1]
+                    strucTarget = allStruc[altStruc[4]]
+                    if strucTarget[altStruc[0]][altStruc[1]][0] == 1:
+                        parameters[name] = altStruc[2] * allParam[altStruc[4]][strucTarget[altStruc[0]][altStruc[1]][1]] + altStruc[3]
+                    elif strucTarget[altStruc[0]][altStruc[1]][0] == 0:
+                        parameters[name] = altStruc[2] * allArgu[altStruc[4]][strucTarget[altStruc[0]][altStruc[1]][1]] + altStruc[3]
+            testFunc += parameters['amp'] * CSAMASFunc(x, parameters['pos'], parameters['delta'], parameters['eta'], parameters['lor'], parameters['gauss'], parameters['anglestuff'], parameters['tresolution'], sw, parameters['weight'], axAdd, axMult, parameters['spinspeed'], parameters['method'])
+        testFunc += parameters['bgrnd'] + parameters['slope'] * x
+        fullTestFunc = np.append(fullTestFunc, testFunc)
+    return fullTestFunc
+    
+def CSAMASFunc(x, pos, delta, eta, lor, gauss, angleStuff, tresolution, sw, weight, axAdd, axMult, spinspeed, method):
+    omegars = 2 * np.pi * delta/axMult * (angleStuff[0] + angleStuff[1] + eta * (angleStuff[2] + angleStuff[3] + angleStuff[4] + angleStuff[5]))
     nsteps = angleStuff[0].shape[1]
     QTrs = np.concatenate([np.ones([angleStuff[0].shape[0], 1]), np.exp(-1j * np.cumsum(omegars, axis=1) * tresolution)[:, :-1]], 1)
     for j in range(1, nsteps):
         QTrs[:, j] = np.exp(-1j * np.sum(omegars[:, 0:j] * tresolution, 1))
     rhoT0sr = np.conj(QTrs)
     # calculate the gamma-averaged FID over 1 rotor period for all crystallites
-    favrs = np.zeros(NSTEPS, dtype=complex)
-    for j in range(NSTEPS):
-        favrs[j] += np.sum(weight * np.sum(rhoT0sr * np.roll(QTrs, -j, axis=1), 1) / NSTEPS**2)
+    favrs = np.zeros(nsteps, dtype=complex)
+    for j in range(nsteps):
+        favrs[j] += np.sum(weight * np.sum(rhoT0sr * np.roll(QTrs, -j, axis=1), 1) / nsteps**2)
     # calculate the sideband intensities by doing an FT and pick the ones that are needed further
-    sidebands = np.real(np.fft.fft(favrs))
-    return sidebands
+    inten = np.real(np.fft.fft(favrs))
+    y = np.zeros(len(x))
+    num = len(inten)
+    posList = np.array(np.fft.fftfreq(num, 1.0/num), dtype=int)
+    for i in range(num):
+        y += voigtLine(x, pos/axMult+posList[i]*spinspeed*1e3, lor, gauss, inten[i], method)
+    return y
 
 ##############################################################################
 
@@ -4577,7 +4536,6 @@ def quad1DeconvmpFit(xax, data1D, guess, args, queue):
     try:
         fitVal = scipy.optimize.minimize(lambda *param: np.sum((data1D-quad1DeconvfitFunc(param, xax, args))**2), guess, method='Nelder-Mead')
     except:
-        raise
         fitVal = None
     queue.put(fitVal)
 
