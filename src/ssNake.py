@@ -663,12 +663,15 @@ class MainProgram(QtWidgets.QMainWindow):
         self.menubar.addMenu(self.historyMenu)
         self.historyAct = self.historyMenu.addAction(QtGui.QIcon(IconDirectory + 'history.png'), "&History", lambda: self.mainWindowCheck(lambda mainWindow: HistoryWindow(mainWindow)))
         self.historyAct.setToolTip('Show Processing History')
+        self.noUndoAct = QtWidgets.QAction("&No Undo Mode", self.historyMenu,checkable = True)
+        self.noUndoAct.toggled.connect(self.noUndoMode)
+        self.historyMenu.addAction(self.noUndoAct)
         self.errorAct = self.historyMenu.addAction("&Error Messages", lambda: errorWindow(self))
         self.errorAct.setToolTip('Show Error Messages')
         self.clearundoAct = self.historyMenu.addAction(QtGui.QIcon(IconDirectory + 'delete.png'),"&Clear Undo/Redo List", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.clearUndo()))
         self.clearundoAct.setToolTip('Clear Undo/Redo List')
         
-        self.historyActList = [self.historyAct,self.clearundoAct]
+        self.historyActList = [self.historyAct,self.noUndoAct,self.clearundoAct]
         
         
         
@@ -758,6 +761,12 @@ class MainProgram(QtWidgets.QMainWindow):
             self.referencerunmenu.menuAction().setEnabled(True)
             #self.plotMenu.menuAction().setEnabled(True)
             #self.historyMenu.menuAction().setEnabled(True)
+            if self.mainWindow.masterData.noUndo: #Set menu check to the same value as in the data
+                self.noUndoAct.setChecked(True)
+            else:
+                self.noUndoAct.setChecked(False)
+
+
             for act in self.editActList + self.toolsActList + self.matrixActList + self.fftActList + self.fittingActList + self.plotActList + self.historyActList + self.combineActList:
                 act.setEnabled(True)
             if isinstance(self.mainWindow, Main1DWindow):
@@ -1135,6 +1144,14 @@ class MainProgram(QtWidgets.QMainWindow):
         action4 = self.referencesavemenu.addAction(givenName, lambda name=givenName: self.referenceSave(name))
         self.referenceActions[givenName] = [action1, action2, action3, action4]
         self.menuCheck()
+
+    def noUndoMode(self,val):
+        if val:
+            self.mainWindow.masterData.noUndo = True
+        else:
+            self.mainWindow.masterData.noUndo = False
+
+
 
     def changeMainWindow(self, var):
         if not self.allowChange:
@@ -4032,7 +4049,10 @@ class SizeWindow(QtWidgets.QWidget):
         if inp is not None:
             self.posVal = int(round(inp))
         self.father.redoList = []
-        self.father.undoList.append(self.father.current.applySize(self.sizeVal, self.posVal))
+        if self.father.current.data.noUndo:
+            self.father.current.applySize(self.sizeVal, self.posVal)
+        else:
+            self.father.undoList.append(self.father.current.applySize(self.sizeVal, self.posVal))
         self.father.sideframe.upd()
         self.father.menuEnable()
         self.deleteLater()

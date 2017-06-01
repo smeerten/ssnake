@@ -78,7 +78,8 @@ class Spectrum:
         self.filePath = filePath
         self.freq = np.array(freq)  # array of center frequency (length is dim, MHz)
         self.sw = sw  # array of sweepwidths
-        
+        self.noUndo = False
+
         #Contour settings
         self.contourSign = 0 #Both by default
         self.contourType = 0 #Linear contour by default
@@ -943,8 +944,11 @@ class Spectrum:
         axes = self.checkAxes(axes)
         if axes is None:
             return None
-        copyData = copy.deepcopy(self)
-        returnValue = lambda self: self.restoreData(copyData, lambda self: self.setSize(size, pos, axes))
+        if self.noUndo:
+            returnValue = None
+        else:
+            copyData = copy.deepcopy(self)
+            returnValue = lambda self: self.restoreData(copyData, lambda self: self.setSize(size, pos, axes))
         if self.spec[axes] > 0:
             self.fourier(axes, tmp=True)
         if size > self.data.shape[axes]:
@@ -1800,7 +1804,11 @@ class Current1D(Plot1DFrame):
         self.upd()
 
     def applySize(self, size, pos):  # set size to the actual data
-        returnValue = self.data.setSize(size, pos, self.axes)
+        if self.data.noUndo:
+            self.data.setSize(size, pos, self.axes)
+            returnValue = None
+        else:
+            returnValue = self.data.setSize(size, pos, self.axes)
         self.upd()
         if not self.spec:
             self.plotReset(True, False)
