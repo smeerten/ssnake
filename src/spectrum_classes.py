@@ -461,8 +461,11 @@ class Spectrum:
         if len(pos1) != len(pos2):
             self.dispMsg("Length of the two arrays is not equal")
             return None
-        copyData = copy.deepcopy(self)
-        returnValue = lambda self: self.restoreData(copyData, lambda self: self.matrixManip(pos1, pos2, axes, which))
+        if self.noUndo:
+            returnValue = None
+        else:
+            copyData = copy.deepcopy(self)
+            returnValue = lambda self: self.restoreData(copyData, lambda self: self.matrixManip(pos1, pos2, axes, which))
         tmpdata = ()
         if len(pos1) == 1:
             keepdims = False
@@ -1120,8 +1123,11 @@ class Spectrum:
         axes = self.checkAxes(axes)
         if axes is None:
             return None
-        copyData = copy.deepcopy(self)
-        returnValue = lambda self: self.restoreData(copyData, lambda self: self.shiftData(shift, axes, select=select))
+        if self.noUndo:
+            returnValue = None
+        else:
+            copyData = copy.deepcopy(self)
+            returnValue = lambda self: self.restoreData(copyData, lambda self: self.shiftData(shift, axes, select=select))
         if self.spec[axes] > 0:
             self.fourier(axes, tmp=True)
         self.data[select] = np.roll(self.data, shift, axes)[select]

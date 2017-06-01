@@ -4370,7 +4370,10 @@ class ShiftDataWindow(QtWidgets.QWidget):
             return
         shift = int(round(inp))
         self.father.redoList = []
-        self.father.undoList.append(self.father.current.applyShift(shift, (self.singleSlice.isChecked())))
+        if self.father.current.data.noUndo:
+            self.father.current.applyShift(shift, (self.singleSlice.isChecked()))
+        else:
+            self.father.undoList.append(self.father.current.applyShift(shift, (self.singleSlice.isChecked())))
         self.father.menuEnable()
         self.deleteLater()
 
@@ -4775,11 +4778,14 @@ class integrateWindow(regionWindow):
             if self.father.father.newWorkspace(self.father.current.integrate(minimum, maximum, newSpec)) is None:
                 return None
         else:
-            returnValue = self.father.current.integrate(minimum, maximum, newSpec)
-            if returnValue is None:
-                return None
+            if self.father.current.data.noUndo:
+                self.father.current.integrate(minimum, maximum, newSpec)
+            else:
+                returnValue = self.father.current.integrate(minimum, maximum, newSpec)
+                if returnValue is None:
+                    return None
+                self.father.undoList.append(returnValue)
             self.father.redoList = []
-            self.father.undoList.append(returnValue)
             self.father.updAllFrames()
         return 1
 
@@ -4796,11 +4802,14 @@ class sumWindow(regionWindow):
             if self.father.father.newWorkspace(self.father.current.sum(minimum, maximum, newSpec)) is None:
                 return None
         else:
-            returnValue = self.father.current.sum(minimum, maximum, newSpec)
-            if returnValue is None:
-                return None
+            if self.father.current.data.noUndo:
+                self.father.current.sum(minimum, maximum, newSpec)
+            else:
+                returnValue = self.father.current.sum(minimum, maximum, newSpec)
+                if returnValue is None:
+                    return None
+                self.father.undoList.append(returnValue)
             self.father.redoList = []
-            self.father.undoList.append(returnValue)
             self.father.updAllFrames()
         return 1
 
@@ -4817,11 +4826,14 @@ class maxWindow(regionWindow):
             if self.father.father.newWorkspace(self.father.current.maxMatrix(minimum, maximum, newSpec)) is None:
                 return None
         else:
-            returnValue = self.father.current.maxMatrix(minimum, maximum, newSpec)
-            if returnValue is None:
-                return None
+            if self.father.current.data.noUndo:
+                self.father.current.maxMatrix(minimum, maximum, newSpec)
+            else:
+                returnValue = self.father.current.maxMatrix(minimum, maximum, newSpec)
+                if returnValue is None:
+                    return None
+                self.father.undoList.append(returnValue)
             self.father.redoList = []
-            self.father.undoList.append(returnValue)
             self.father.updAllFrames()
         return 1
 
@@ -4838,11 +4850,14 @@ class minWindow(regionWindow):
             if self.father.father.newWorkspace(self.father.current.minMatrix(minimum, maximum, newSpec)) is None:
                 return None
         else:
-            returnValue = self.father.current.minMatrix(minimum, maximum, newSpec)
-            if returnValue is None:
-                return None
+            if self.father.current.data.noUndo:
+                self.father.current.minMatrix(minimum, maximum, newSpec)
+            else:
+                returnValue = self.father.current.minMatrix(minimum, maximum, newSpec)
+                if returnValue is None:
+                    return None
+                self.father.undoList.append(returnValue)
             self.father.redoList = []
-            self.father.undoList.append(returnValue)
             self.father.updAllFrames()
         return 1
 
@@ -4859,11 +4874,14 @@ class argmaxWindow(regionWindow):
             if self.father.father.newWorkspace(self.father.current.argmaxMatrix(minimum, maximum, newSpec)) is None:
                 return None
         else:
-            returnValue = self.father.current.argmaxMatrix(minimum, maximum, newSpec)
-            if returnValue is None:
-                return None
+            if self.father.current.data.noUndo:
+                returnValue = self.father.current.argmaxMatrix(minimum, maximum, newSpec)
+            else:
+                returnValue = self.father.current.argmaxMatrix(minimum, maximum, newSpec)
+                if returnValue is None:
+                    return None
+                self.father.undoList.append(returnValue)
             self.father.redoList = []
-            self.father.undoList.append(returnValue)
             self.father.updAllFrames()
         return 1
 
@@ -4880,11 +4898,14 @@ class argminWindow(regionWindow):
             if self.father.father.newWorkspace(self.father.current.argminMatrix(minimum, maximum, newSpec)) is None:
                 return None
         else:
-            returnValue = self.father.current.argminMatrix(minimum, maximum, newSpec)
-            if returnValue is None:
-                return None
+            if self.father.current.data.noUndo:
+                returnValue = self.father.current.argminMatrix(minimum, maximum, newSpec)
+            else:
+                returnValue = self.father.current.argminMatrix(minimum, maximum, newSpec)
+                if returnValue is None:
+                    return None
+                self.father.undoList.append(returnValue)
             self.father.redoList = []
-            self.father.undoList.append(returnValue)
             self.father.updAllFrames()
         return 1
 
@@ -4901,11 +4922,14 @@ class avgWindow(regionWindow):
             if self.father.father.newWorkspace(self.father.current.average(minimum, maximum, newSpec)) is None:
                 return None
         else:
-            returnValue = self.father.current.average(minimum, maximum, newSpec)
-            if returnValue is None:
-                return None
+            if self.father.current.data.noUndo:
+                returnValue = self.father.current.average(minimum, maximum, newSpec)
+            else:
+                returnValue = self.father.current.average(minimum, maximum, newSpec)
+                if returnValue is None:
+                    return None
+                self.father.undoList.append(returnValue)
             self.father.redoList = []
-            self.father.undoList.append(returnValue)
             self.father.updAllFrames()
         return 1
 
