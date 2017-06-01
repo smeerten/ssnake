@@ -58,6 +58,7 @@ class MainPlotWindow(QtWidgets.QWidget):
         scroll.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
         content = QtWidgets.QWidget()
         self.optionFrame = QtWidgets.QGridLayout(content)
+        self.optionFrame.setSizeConstraint(QtWidgets.QLayout.SetFixedSize)
         
         self.labelGroup = QtWidgets.QGroupBox('Labels:')
         self.labelFrame = QtWidgets.QGridLayout()
@@ -172,53 +173,81 @@ class MainPlotWindow(QtWidgets.QWidget):
         self.fontGroup = QtWidgets.QGroupBox('Font sizes:')
         self.fontFrame = QtWidgets.QGridLayout()
         
+        self.mainFontSizeBackup = 12
+
+        self.mainFontLabel = QLeftLabel("Main:")
+        self.fontFrame.addWidget(self.mainFontLabel, 0, 0)
+        self.mainFontSizeEntry = QtWidgets.QDoubleSpinBox()
+        self.mainFontSizeEntry.setSingleStep(0.1)
+        self.mainFontSizeEntry.setMinimum(0)
+        self.mainFontSizeEntry.setValue(self.mainFontSizeBackup)
+        self.mainFontSizeEntry.valueChanged.connect(self.updatePlot)
+        self.fontFrame.addWidget(self.mainFontSizeEntry, 0, 1)
         
+        self.fontDetailsCheck = QtWidgets.QCheckBox('Details') 
+        self.fontDetailsCheck.stateChanged.connect(self.fontCheckChanged)
+        self.fontFrame.addWidget(self.fontDetailsCheck, 1, 0)
+
         self.titleFontSizeBackup = 12
         
-  
-        self.fontFrame.addWidget(QLeftLabel("Title:"), 0, 0)
+        self.titleFontLabel = QLeftLabel("Title:")
+        self.titleFontLabel.hide()
+        self.fontFrame.addWidget(self.titleFontLabel, 2, 0)
         self.titleFontSizeEntry = QtWidgets.QDoubleSpinBox()
         self.titleFontSizeEntry.setSingleStep(0.1)
         self.titleFontSizeEntry.setMinimum(0)
         self.titleFontSizeEntry.setValue(self.titleFontSizeBackup)
         self.titleFontSizeEntry.valueChanged.connect(self.updatePlot)
-        self.fontFrame.addWidget(self.titleFontSizeEntry, 0, 1)
+        self.titleFontSizeEntry.hide()
+        self.fontFrame.addWidget(self.titleFontSizeEntry, 2, 1)
         
         self.xlabelFontSizeBackup = 12
-        self.fontFrame.addWidget(QLeftLabel("X-label:"), 1, 0)
+        self.xlabelFontLabel = QLeftLabel("X-label:") 
+        self.xlabelFontLabel.hide()
+        self.fontFrame.addWidget(self.xlabelFontLabel, 3, 0)
         self.xlabelFontSizeEntry = QtWidgets.QDoubleSpinBox()
         self.xlabelFontSizeEntry.setSingleStep(0.1)
         self.xlabelFontSizeEntry.setMinimum(0)
         self.xlabelFontSizeEntry.setValue(self.xlabelFontSizeBackup)
         self.xlabelFontSizeEntry.valueChanged.connect(self.updatePlot)
-        self.fontFrame.addWidget(self.xlabelFontSizeEntry, 1, 1)
+        self.xlabelFontSizeEntry.hide()
+        self.fontFrame.addWidget(self.xlabelFontSizeEntry, 3, 1)
         
         self.ylabelFontSizeBackup = 12
-        self.fontFrame.addWidget(QLeftLabel("Y-label:"), 2, 0)
+        self.ylabelFontLabel = QLeftLabel("Y-label:") 
+        self.ylabelFontLabel.hide()
+        self.fontFrame.addWidget(self.ylabelFontLabel, 4, 0)
         self.ylabelFontSizeEntry = QtWidgets.QDoubleSpinBox()
         self.ylabelFontSizeEntry.setSingleStep(0.1)
         self.ylabelFontSizeEntry.setMinimum(0)
         self.ylabelFontSizeEntry.setValue(self.ylabelFontSizeBackup)
         self.ylabelFontSizeEntry.valueChanged.connect(self.updatePlot)
-        self.fontFrame.addWidget(self.ylabelFontSizeEntry, 2, 1)
+        self.ylabelFontSizeEntry.hide()
+        self.fontFrame.addWidget(self.ylabelFontSizeEntry, 4, 1)
                
         self.xtickFontSizeBackup = 12
-        self.fontFrame.addWidget(QLeftLabel("X-ticks:"), 3, 0)
+        self.xtickFontLabel = QLeftLabel("X-ticks:") 
+        self.xtickFontLabel.hide()
+        self.fontFrame.addWidget(self.xtickFontLabel, 5, 0)
         self.xtickFontSizeEntry = QtWidgets.QDoubleSpinBox()
         self.xtickFontSizeEntry.setSingleStep(0.1)
         self.xtickFontSizeEntry.setMinimum(0)
         self.xtickFontSizeEntry.setValue(self.xtickFontSizeBackup)
         self.xtickFontSizeEntry.valueChanged.connect(self.updatePlot)
-        self.fontFrame.addWidget(self.xtickFontSizeEntry, 3, 1)
+        self.xtickFontSizeEntry.hide()
+        self.fontFrame.addWidget(self.xtickFontSizeEntry, 5, 1)
         
         self.ytickFontSizeBackup = 12
-        self.fontFrame.addWidget(QLeftLabel("Y-ticks:"), 4, 0)
+        self.ytickFontLabel = QLeftLabel("Y-ticks:") 
+        self.ytickFontLabel.hide()
+        self.fontFrame.addWidget(self.ytickFontLabel, 6, 0)
         self.ytickFontSizeEntry = QtWidgets.QDoubleSpinBox()
         self.ytickFontSizeEntry.setSingleStep(0.1)
         self.ytickFontSizeEntry.setMinimum(0)
         self.ytickFontSizeEntry.setValue(self.ytickFontSizeBackup)
         self.ytickFontSizeEntry.valueChanged.connect(self.updatePlot)
-        self.fontFrame.addWidget(self.ytickFontSizeEntry, 4, 1)
+        self.ytickFontSizeEntry.hide()
+        self.fontFrame.addWidget(self.ytickFontSizeEntry, 6, 1)
         
         self.fontGroup.setLayout(self.fontFrame)
         self.optionFrame.addWidget(self.fontGroup,3,0)
@@ -286,6 +315,49 @@ class MainPlotWindow(QtWidgets.QWidget):
 
     def rename(self, name):
         self.oldMainWindow.rename(name)
+    
+    def fontCheckChanged(self,val):
+        if val: #If active
+            self.mainFontLabel.setEnabled(False)
+            self.mainFontSizeEntry.setEnabled(False)
+            
+            self.titleFontLabel.show()
+            self.titleFontSizeEntry.show()
+            
+            self.xlabelFontLabel.show()
+            self.xlabelFontSizeEntry.show()
+            
+            self.ylabelFontLabel.show()
+            self.ylabelFontSizeEntry.show()
+                   
+            self.xtickFontLabel.show()
+            self.xtickFontSizeEntry.show()
+            
+            self.ytickFontLabel.show()
+            self.ytickFontSizeEntry.show()
+        else:
+            self.mainFontLabel.setEnabled(True)
+            self.mainFontSizeEntry.setEnabled(True)
+            
+            self.titleFontLabel.hide()
+            self.titleFontSizeEntry.hide()
+            
+            self.xlabelFontLabel.hide()
+            self.xlabelFontSizeEntry.hide()
+            
+            self.ylabelFontLabel.hide()
+            self.ylabelFontSizeEntry.hide()
+                   
+            self.xtickFontLabel.hide()
+            self.xtickFontSizeEntry.hide()
+            
+            self.ytickFontLabel.hide()
+            self.ytickFontSizeEntry.hide()
+
+        self.updatePlot()
+
+
+
 
     def updateLegend(self, *args):
         if self.legendGroup.isChecked():
@@ -299,15 +371,26 @@ class MainPlotWindow(QtWidgets.QWidget):
         self.updatePlot()
 
     def updatePlot(self, *args):
-        self.fig.suptitle(self.titleEntry.text(), fontsize=self.titleFontSizeEntry.value())
-        self.ax.set_xlabel(self.xlabelEntry.text(), fontsize=self.xlabelFontSizeEntry.value())
-        self.ax.set_ylabel(self.ylabelEntry.text(), fontsize=self.ylabelFontSizeEntry.value())
-        self.ax.set_xlim((safeEval(self.xlimLeftEntry.text()), safeEval(self.xlimRightEntry.text())))
-        self.ax.set_ylim((safeEval(self.ylimLeftEntry.text()), safeEval(self.ylimRightEntry.text())))
-        self.ax.tick_params(axis='x', labelsize=self.xtickFontSizeEntry.value())
-        self.ax.xaxis.get_offset_text().set_fontsize(self.xtickFontSizeEntry.value())
-        self.ax.tick_params(axis='y', labelsize=self.ytickFontSizeEntry.value())
-        self.ax.yaxis.get_offset_text().set_fontsize(self.ytickFontSizeEntry.value())
+        if self.fontDetailsCheck.checkState(): #If details checked
+            self.fig.suptitle(self.titleEntry.text(), fontsize=self.titleFontSizeEntry.value())
+            self.ax.set_xlabel(self.xlabelEntry.text(), fontsize=self.xlabelFontSizeEntry.value())
+            self.ax.set_ylabel(self.ylabelEntry.text(), fontsize=self.ylabelFontSizeEntry.value())
+            self.ax.set_xlim((safeEval(self.xlimLeftEntry.text()), safeEval(self.xlimRightEntry.text())))
+            self.ax.set_ylim((safeEval(self.ylimLeftEntry.text()), safeEval(self.ylimRightEntry.text())))
+            self.ax.tick_params(axis='x', labelsize=self.xtickFontSizeEntry.value())
+            self.ax.xaxis.get_offset_text().set_fontsize(self.xtickFontSizeEntry.value())
+            self.ax.tick_params(axis='y', labelsize=self.ytickFontSizeEntry.value())
+            self.ax.yaxis.get_offset_text().set_fontsize(self.ytickFontSizeEntry.value())
+        else:
+            self.fig.suptitle(self.titleEntry.text(), fontsize=self.mainFontSizeEntry.value())
+            self.ax.set_xlabel(self.xlabelEntry.text(), fontsize=self.mainFontSizeEntry.value())
+            self.ax.set_ylabel(self.ylabelEntry.text(), fontsize=self.mainFontSizeEntry.value())
+            self.ax.set_xlim((safeEval(self.xlimLeftEntry.text()), safeEval(self.xlimRightEntry.text())))
+            self.ax.set_ylim((safeEval(self.ylimLeftEntry.text()), safeEval(self.ylimRightEntry.text())))
+            self.ax.tick_params(axis='x', labelsize=self.mainFontSizeEntry.value())
+            self.ax.xaxis.get_offset_text().set_fontsize(self.mainFontSizeEntry.value())
+            self.ax.tick_params(axis='y', labelsize=self.mainFontSizeEntry.value())
+            self.ax.yaxis.get_offset_text().set_fontsize(self.mainFontSizeEntry.value())
         self.fig.set_size_inches(self.widthEntry.value() / 2.54, self.heightEntry.value() / 2.54)
         self.canvas.draw()
         self.canvas.adjustSize()
