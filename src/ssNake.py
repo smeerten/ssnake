@@ -1146,11 +1146,13 @@ class MainProgram(QtWidgets.QMainWindow):
         self.menuCheck()
 
     def noUndoMode(self,val):
+        self.mainWindow.undoList = []
+        self.mainWindow.redoList = []
         if val:
             self.mainWindow.masterData.noUndo = True
         else:
             self.mainWindow.masterData.noUndo = False
-
+        self.menuCheck()
 
 
     def changeMainWindow(self, var):
@@ -2076,8 +2078,11 @@ class Main1DWindow(QtWidgets.QWidget):
             zipfile.ZipFile(path).extractall(temp_dir)
             loadData = self.father.loading(self.masterData.filePath[0], temp_dir, True,realpath=path) 
         else:
-            loadData = self.father.loading(self.masterData.filePath[0], self.masterData.filePath[1], True) 
-        self.undoList.append(self.masterData.restoreData(loadData, None))
+            loadData = self.father.loading(self.masterData.filePath[0], self.masterData.filePath[1], True)
+        if self.masterData.noUndo:
+            self.masterData.restoreData(loadData, None)
+        else:
+            self.undoList.append(self.masterData.restoreData(loadData, None))
         self.current.upd()
         self.current.plotReset()
         self.current.showFid()
@@ -2120,7 +2125,10 @@ class Main1DWindow(QtWidgets.QWidget):
         
     def real(self):
         self.redoList = []
-        self.undoList.append(self.masterData.real())
+        if self.masterData.noUndo:
+            self.masterData.real()
+        else:
+            self.undoList.append(self.masterData.real())
         self.current.upd()
         self.current.showFid()
         self.addMacro(['real'])
@@ -2128,7 +2136,10 @@ class Main1DWindow(QtWidgets.QWidget):
 
     def imag(self):
         self.redoList = []
-        self.undoList.append(self.masterData.imag())
+        if self.masterData.noUndo:
+            self.masterData.imag()
+        else:
+            self.undoList.append(self.masterData.imag())
         self.current.upd()
         self.current.showFid()
         self.addMacro(['imag'])
@@ -2136,7 +2147,10 @@ class Main1DWindow(QtWidgets.QWidget):
 
     def abs(self):
         self.redoList = []
-        self.undoList.append(self.masterData.abs())
+        if self.masterData.noUndo:
+            self.masterData.abs()
+        else:
+            self.undoList.append(self.masterData.abs())
         self.current.upd()
         self.current.showFid()
         self.addMacro(['abs'])
@@ -2144,7 +2158,10 @@ class Main1DWindow(QtWidgets.QWidget):
         
     def conj(self):
         self.redoList = []
-        self.undoList.append(self.masterData.conj())
+        if self.masterData.noUndo:
+            self.masterData.conj()
+        else:
+            self.undoList.append(self.masterData.conj())
         self.current.upd()
         self.current.showFid()
         self.addMacro(['conj'])
@@ -4049,7 +4066,7 @@ class SizeWindow(QtWidgets.QWidget):
         if inp is not None:
             self.posVal = int(round(inp))
         self.father.redoList = []
-        if self.father.current.data.noUndo:
+        if self.father.current.Data.noUndo:
             self.father.current.applySize(self.sizeVal, self.posVal)
         else:
             self.father.undoList.append(self.father.current.applySize(self.sizeVal, self.posVal))

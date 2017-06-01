@@ -322,31 +322,44 @@ class Spectrum:
         return lambda self: self.concatenate(axes)
 
     def real(self):
-        copyData = copy.deepcopy(self)
-        returnValue = lambda self: self.restoreData(copyData, lambda self: self.real())
+        if self.noUndo:
+            returnValue = None
+        else:
+            copyData = copy.deepcopy(self)
+            returnValue = lambda self: self.restoreData(copyData, lambda self: self.real())
         self.data = np.real(self.data)
         self.addHistory("Real")
         return returnValue
 
     def imag(self):
-        copyData = copy.deepcopy(self)
-        returnValue = lambda self: self.restoreData(copyData, lambda self: self.imag())
+        if self.noUndo:
+            returnValue = None
+        else:
+            copyData = copy.deepcopy(self)
+            returnValue = lambda self: self.restoreData(copyData, lambda self: self.imag())
         self.data = np.imag(self.data)
         self.addHistory("Imaginary")
         return returnValue
 
     def abs(self):
-        copyData = copy.deepcopy(self)
-        returnValue = lambda self: self.restoreData(copyData, lambda self: self.abs())
+        if self.noUndo:
+            returnValue = None
+        else:
+            copyData = copy.deepcopy(self)
+            returnValue = lambda self: self.restoreData(copyData, lambda self: self.abs())
         self.data = np.abs(self.data)
         self.addHistory("Absolute")
         return returnValue
     
     def conj(self):
-        copyData = copy.deepcopy(self)
+        if self.noUndo:
+            returnValue = None
+        else:
+            copyData = copy.deepcopy(self)
+            returnValue = lambda self: self.conj()
         self.data = np.conj(self.data)
         self.addHistory("Complex conjugate")
-        return lambda self: self.conj()
+        return returnValue
     
     def states(self, axes):
         axes = self.checkAxes(axes)
@@ -1327,9 +1340,12 @@ class Spectrum:
                                   self.ref[axes2]))
 
     def restoreData(self, copyData, returnValue):  # restore data from an old copy for undo purposes
-        if returnValue is None:
-            copyData2 = copy.deepcopy(self)
-            returnValue = lambda self: self.restoreData(copyData2, None)
+        if self.noUndo:
+            returnValue = None
+        else:
+            if returnValue is None:
+                copyData2 = copy.deepcopy(self)
+                returnValue = lambda self: self.restoreData(copyData2, None)
         self.data = copyData.data
         self.freq = copyData.freq  # array of center frequency (length is dim, MHz)
         self.filePath = copyData.filePath
