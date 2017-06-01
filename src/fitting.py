@@ -530,6 +530,150 @@ class FittingSideFrame(QtWidgets.QScrollArea):
 #################################################################################
 
 
+class FitPlotFrame(Plot1DFrame):
+
+    def __init__(self, rootwindow, fig, canvas, current):
+        Plot1DFrame.__init__(self, rootwindow, fig, canvas)
+        self.data1D = current.getDisplayedData()
+        self.data = current.data
+        self.axes = current.axes
+        if (len(current.locList) == self.data.data.ndim - 1):
+            self.locList = current.locList
+        else:
+            if self.axes < current.axes2:
+                self.locList = np.insert(current.locList, current.axes2 - 1, 0)
+            else:
+                self.locList = np.insert(current.locList, current.axes2, 0)
+        self.current = current
+        self.spec = self.current.spec
+        self.xax = self.current.xax
+        self.FITNUM = 10 # Standard number of fits
+        tmp = list(self.data.data.shape)
+        tmp.pop(self.axes)
+        self.fitDataList = np.full(tmp, None, dtype=object)
+        self.fitPickNumList = np.zeros(tmp, dtype=int)
+        self.plotType = 0
+        self.rootwindow = rootwindow
+        #Set limits as in parent
+        self.xminlim = self.current.xminlim
+        self.xmaxlim = self.current.xmaxlim
+        self.yminlim = self.current.yminlim
+        self.ymaxlim = self.current.ymaxlim
+        if isinstance(self.current, spectrum_classes.CurrentContour):
+            self.plotReset(False, True)
+        self.showFid()
+
+    def setSlice(self, axes, locList):
+        self.rootwindow.paramframe.checkInputs()
+        self.pickWidth = False
+        if self.axes != axes:
+            return
+        self.locList = locList
+        self.upd()
+        self.rootwindow.paramframe.dispParams()
+        self.showFid()
+
+    def upd(self):  
+        updateVar = self.data.getSlice(self.axes, self.locList)
+        tmp = updateVar[0]
+        if self.current.plotType == 0:
+            self.data1D = np.real(tmp)
+        elif self.current.plotType == 1:
+            self.data1D = np.imag(tmp)
+        elif self.current.plotType == 2:
+            self.data1D = np.real(tmp)
+        elif self.current.plotType == 3:
+            self.data1D = np.abs(tmp)
+        
+    def plotReset(self, xReset=True, yReset=True):
+        a = self.fig.gca()
+        if self.plotType == 0:
+            miny = min(np.real(self.data1D))
+            maxy = max(np.real(self.data1D))
+        elif self.plotType == 1:
+            miny = min(np.imag(self.data1D))
+            maxy = max(np.imag(self.data1D))
+        elif self.plotType == 2:
+            miny = min(min(np.real(self.data1D)), min(np.imag(self.data1D)))
+            maxy = max(max(np.real(self.data1D)), max(np.imag(self.data1D)))
+        elif self.plotType == 3:
+            miny = min(np.abs(self.data1D))
+            maxy = max(np.abs(self.data1D))
+        else:
+            miny = -1
+            maxy = 1
+        differ = 0.05 * (maxy - miny)
+        if yReset:
+            self.yminlim = miny - differ
+            self.ymaxlim = maxy + differ
+        if self.spec == 1:
+            if self.current.ppm:
+                axMult = 1e6 / self.current.ref
+            else:
+                axMult = 1.0 / (1000.0**self.current.axType)
+        elif self.spec == 0:
+            axMult = 1000.0**self.current.axType
+        if xReset:
+            self.xminlim = min(self.xax * axMult)
+            self.xmaxlim = max(self.xax * axMult)
+        if self.spec > 0:
+            a.set_xlim(self.xmaxlim, self.xminlim)
+        else:
+            a.set_xlim(self.xminlim, self.xmaxlim)
+        a.set_ylim(self.yminlim, self.ymaxlim)
+
+    def showFid(self):
+        self.ax.cla()
+        if self.spec == 1:
+            if self.current.ppm:
+                axMult = 1e6 / self.current.ref
+            else:
+                axMult = 1.0 / (1000.0**self.current.axType)
+        elif self.spec == 0:
+            axMult = 1000.0**self.current.axType
+        self.line_xdata = self.xax * axMult
+        self.line_ydata = self.data1D
+        self.ax.plot(self.xax * axMult, self.data1D, c=self.current.color, linewidth=self.current.linewidth, label=self.current.data.name, picker=True)
+        if self.fitDataList[tuple(self.locList)] is not None:
+            tmp = self.fitDataList[tuple(self.locList)]
+            self.ax.plot(tmp[0] * axMult, tmp[1], picker=True)
+            for i in range(len(tmp[2])):
+                self.ax.plot(tmp[2][i] * axMult, tmp[3][i], picker=True)
+        if self.spec == 0:
+            if self.current.axType == 0:
+                self.ax.set_xlabel('Time [s]')
+            elif self.current.axType == 1:
+                self.ax.set_xlabel('Time [ms]')
+            elif self.current.axType == 2:
+                self.ax.set_xlabel(r'Time [$\mu$s]')
+            else:
+                self.ax.set_xlabel('User defined')
+        elif self.spec == 1:
+            if self.current.ppm:
+                self.ax.set_xlabel('Frequency [ppm]')
+            else:
+                if self.current.axType == 0:
+                    self.ax.set_xlabel('Frequency [Hz]')
+                elif self.current.axType == 1:
+                    self.ax.set_xlabel('Frequency [kHz]')
+                elif self.current.axType == 2:
+                    self.ax.set_xlabel('Frequency [MHz]')
+                else:
+                    self.ax.set_xlabel('User defined')
+        else:
+            self.ax.set_xlabel('')
+        self.ax.get_xaxis().get_major_formatter().set_powerlimits((-4, 4))
+        self.ax.get_yaxis().get_major_formatter().set_powerlimits((-4, 4))
+        if self.spec > 0:
+            self.ax.set_xlim(self.xmaxlim, self.xminlim)
+        else:
+            self.ax.set_xlim(self.xminlim, self.xmaxlim)
+        self.ax.set_ylim(self.yminlim, self.ymaxlim)
+        self.canvas.draw()
+
+#################################################################################
+
+
 class AbstractParamFrame(QtWidgets.QWidget):
 
     def __init__(self, parent, rootwindow, isMain=True):
@@ -901,161 +1045,7 @@ class AbstractParamFrame(QtWidgets.QWidget):
         outCurvePart.append(fitData[1])
         return np.array(outCurvePart)
         
-##############################################################################
 
-
-class FittingWindowTabs(QtWidgets.QWidget):
-    # Inherited by the fitting windows
-
-    def __init__(self, mainProgram, oldMainWindow):
-        QtWidgets.QWidget.__init__(self, mainProgram)
-        self.mainProgram = mainProgram
-        self.oldMainWindow = oldMainWindow
-        self.fig = Figure()
-        self.canvas = FigureCanvas(self.fig)
-        grid = QtWidgets.QGridLayout()
-        grid.addWidget(self.canvas, 0, 0)
-        self.setup()
-        self.fig.suptitle(self.oldMainWindow.masterData.name)
-        grid.addWidget(self.paramframe, 1, 0)
-
-        self.grid = grid
-        self.tabs = QtWidgets.QTabWidget(self)
-        self.tabs.setTabPosition(2)
-        self.allowChange = True
-         
-        self.standard=QtWidgets.QWidget()
-        self.standard.setLayout(self.grid)
-        self.tabs.addTab(self.standard, 'Spectrum') 
-
-        
-        grid2 = QtWidgets.QGridLayout()
-        grid2.addWidget(self.fitparsframe, 0, 0)
-        self.grid2=grid2
-        self.fitpars = QtWidgets.QWidget()
-        self.fitpars.setLayout(self.grid2)
-        self.tabs.addTab(self.fitpars, 'Fit pars') 
-        
-        grid3 =  QtWidgets.QGridLayout(self)
-        grid3.addWidget(self.tabs,0,0)
-        grid3.setColumnStretch(0, 1)
-        grid3.setRowStretch(0, 1)
-
-        self.canvas.mpl_connect('button_press_event', self.buttonPress)
-        self.canvas.mpl_connect('button_release_event', self.buttonRelease)
-        self.canvas.mpl_connect('motion_notify_event', self.pan)
-        self.canvas.mpl_connect('scroll_event', self.scroll)
-
-    def setup(self):
-        pass
-
-    def createNewData(self, data, axes, store=False, fitAll=False):
-        masterData = self.get_masterData()
-        if fitAll:
-            self.mainProgram.dataFromFit(data,
-                                         masterData.filePath,
-                                         np.append(masterData.freq[axes], masterData.freq),
-                                         np.append(masterData.sw[axes], masterData.sw),
-                                         np.append(False, masterData.spec),
-                                         np.append(False, masterData.wholeEcho),
-                                         np.append(None, masterData.ref),
-                                         copy.deepcopy(masterData.xaxArray).insert(0, np.arange(len(data))),
-                                         axes+1)
-        else:
-            if store:
-                self.mainProgram.dataFromFit(data,
-                                             masterData.filePath,
-                                             [masterData.freq[axes], masterData.freq[axes]],
-                                             [masterData.sw[axes], masterData.sw[axes]],
-                                             [False, masterData.spec[axes]],
-                                             [False, masterData.wholeEcho[axes]],
-                                             [None, masterData.ref[axes]],
-                                             [np.arange(len(data)), masterData.xaxArray[axes]],
-                                             axes)
-            else:
-                self.mainProgram.dataFromFit(data,
-                                             copy.deepcopy(masterData.filePath),
-                                             copy.deepcopy(masterData.freq),
-                                             copy.deepcopy(masterData.sw),
-                                             copy.deepcopy(masterData.spec),
-                                             copy.deepcopy(masterData.wholeEcho),
-                                             copy.deepcopy(masterData.ref),
-                                             copy.deepcopy(masterData.xaxArray),
-                                             axes)
-
-    def rename(self, name):
-        self.fig.suptitle(name)
-        self.canvas.draw()
-        self.oldMainWindow.rename(name)
-
-    def buttonPress(self, event):
-        self.current.buttonPress(event)
-
-    def buttonRelease(self, event):
-        self.current.buttonRelease(event)
-
-    def pan(self, event):
-        self.current.pan(event)
-
-    def scroll(self, event):
-        self.current.scroll(event)
-
-    def get_mainWindow(self):
-        return self.oldMainWindow
-
-    def get_masterData(self):
-        return self.oldMainWindow.get_masterData()
-
-    def get_current(self):
-        return self.oldMainWindow.get_current()
-
-    def kill(self):
-        for i in reversed(range(self.grid.count())):
-            self.grid.itemAt(i).widget().deleteLater()
-        self.grid.deleteLater()
-        self.current.kill()
-        self.oldMainWindow.kill()
-        del self.current
-        del self.paramframe
-        del self.fig
-        del self.canvas
-        self.deleteLater()
-
-    def cancel(self):
-        for i in reversed(range(self.grid.count())):
-            self.grid.itemAt(i).widget().deleteLater()
-        self.grid.deleteLater()
-        del self.current
-        del self.paramframe
-        del self.canvas
-        del self.fig
-        self.mainProgram.closeFitWindow(self.oldMainWindow)
-        self.deleteLater()
-
-##############################################################################
-
-def saveResult(title, variablearray, dataArray):
-    #A function which saves fit results as an ascii:
-    #title: string for the first line of the file
-    #variablearray: array of arrays with all the variables to be printed. 
-    #First entry should be name of variable, second an array with the value(s)
-    #dataArray should be an array with the raw y data of the fit and the experiment (with as a first column the x-axis)
-    filename = QtWidgets.QFileDialog.getSaveFileName(caption = 'Save File', directory = 'FitResult.txt',filter = '(*.txt)')
-    if type(filename) is tuple:
-        filename = filename[0]        
-    with open(filename, 'w') as f:
-        f.write(title + '\n')
-        for var in variablearray:
-            tmp = var[0] + ' = '
-            for site in var[1]:
-                tmp += str(site) + ' , '
-            tmp = tmp[:-3] + '\n'
-            f.write(tmp)
-        f.write('DATA\n')
-    f = open(filename, 'ab')
-    np.savetxt(f, dataArray)
-    f.close()
-    
 ##############################################################################
     
     
@@ -1071,112 +1061,13 @@ class IntegralsWindow(FittingWindow):
 #################################################################################
 
 
-class IntegralsFrame(Plot1DFrame):
+class IntegralsFrame(FitPlotFrame):
 
     def __init__(self, rootwindow, fig, canvas, current):
-        Plot1DFrame.__init__(self, rootwindow, fig, canvas)
-        self.data1D = current.getDisplayedData()
-        self.current = current
-        self.spec = self.current.spec
-        self.xax = self.current.xax
-        self.plotType = 0
-        self.rootwindow = rootwindow
         self.pickNum = 0
         self.pickWidth = False
-        #Set plot limits as in parent
-        self.xminlim = self.current.xminlim
-        self.xmaxlim = self.current.xmaxlim
-        self.yminlim = self.current.yminlim
-        self.ymaxlim = self.current.ymaxlim
-        if isinstance(self.current, spectrum_classes.CurrentContour):
-            self.plotReset(False, True)
-        self.showFid()
+        FitPlotFrame.__init__(self, rootwindow, fig, canvas, current)
 
-    def plotReset(self, xReset=True, yReset=True):
-        a = self.fig.gca()
-        if self.plotType == 0:
-            miny = min(np.real(self.data1D))
-            maxy = max(np.real(self.data1D))
-        elif self.plotType == 1:
-            miny = min(np.imag(self.data1D))
-            maxy = max(np.imag(self.data1D))
-        elif self.plotType == 2:
-            miny = min(min(np.real(self.data1D)), min(np.imag(self.data1D)))
-            maxy = max(max(np.real(self.data1D)), max(np.imag(self.data1D)))
-        elif self.plotType == 3:
-            miny = min(np.abs(self.data1D))
-            maxy = max(np.abs(self.data1D))
-        else:
-            miny = -1
-            maxy = 1
-        differ = 0.05 * (maxy - miny)
-        if yReset:
-            self.yminlim = miny - differ
-            self.ymaxlim = maxy + differ
-        if self.spec == 1:
-            if self.current.ppm:
-                axMult = 1e6 / self.current.ref
-            else:
-                axMult = 1.0 / (1000.0**self.current.axType)
-        elif self.spec == 0:
-            axMult = 1000.0**self.current.axType
-        if xReset:
-            self.xminlim = min(self.xax * axMult)
-            self.xmaxlim = max(self.xax * axMult)
-        if self.spec > 0:
-            a.set_xlim(self.xmaxlim, self.xminlim)
-        else:
-            a.set_xlim(self.xminlim, self.xmaxlim)
-        a.set_ylim(self.yminlim, self.ymaxlim)
-
-    def showFid(self, tmpAx=None, tmpdata=None, tmpAx2=[], tmpdata2=[]):
-        a = self.fig.gca()
-        a.cla()
-        if self.spec == 1:
-            if self.current.ppm:
-                axMult = 1e6 / self.current.ref
-            else:
-                axMult = 1.0 / (1000.0**self.current.axType)
-        elif self.spec == 0:
-            axMult = 1000.0**self.current.axType
-        self.line_xdata = self.xax * axMult
-        self.line_ydata = self.data1D
-        a.plot(self.xax * axMult, self.data1D, c=self.current.color, linewidth=self.current.linewidth, label=self.current.data.name, picker=True)
-        if tmpAx is not None:
-            a.plot(tmpAx * axMult, tmpdata, c='g', picker=True)
-        for i in range(len(tmpAx2)):
-            a.plot(tmpAx2[i] * axMult, tmpdata2[i], picker=True)
-        if self.spec == 0:
-            if self.current.axType == 0:
-                a.set_xlabel('Time [s]')
-            elif self.current.axType == 1:
-                a.set_xlabel('Time [ms]')
-            elif self.current.axType == 2:
-                a.set_xlabel(r'Time [$\mu$s]')
-            else:
-                a.set_xlabel('User defined')
-        elif self.spec == 1:
-            if self.current.ppm:
-                a.set_xlabel('Frequency [ppm]')
-            else:
-                if self.current.axType == 0:
-                    a.set_xlabel('Frequency [Hz]')
-                elif self.current.axType == 1:
-                    a.set_xlabel('Frequency [kHz]')
-                elif self.current.axType == 2:
-                    a.set_xlabel('Frequency [MHz]')
-                else:
-                    a.set_xlabel('User defined')
-        else:
-            a.set_xlabel('')
-        a.get_xaxis().get_major_formatter().set_powerlimits((-4, 4))
-        a.get_yaxis().get_major_formatter().set_powerlimits((-4, 4))
-        if self.spec > 0:
-            a.set_xlim(self.xmaxlim, self.xminlim)
-        else:
-            a.set_xlim(self.xminlim, self.xmaxlim)
-        a.set_ylim(self.yminlim, self.ymaxlim)
-        self.canvas.draw()
 
     def togglePick(self, var):
         self.peakPickReset()
@@ -1463,107 +1354,16 @@ class RelaxWindow(TabFittingWindow):
 #################################################################################
 
 
-class RelaxFrame(Plot1DFrame):
+class RelaxFrame(FitPlotFrame):
 
     def __init__(self, rootwindow, fig, canvas, current):
-        self.ref = current.ref
-        self.axType = current.axType
-        self.freq = current.freq
-        self.xax = current.xax
-        self.data1D = current.getDisplayedData()
-        self.data = current.data
-        self.axes = current.axes
-        if (len(current.locList) == self.data.data.ndim - 1):
-            self.locList = current.locList
-        else:
-            if self.axes < current.axes2:
-                self.locList = np.insert(current.locList, current.axes2 - 1, 0)
-            else:
-                self.locList = np.insert(current.locList, current.axes2, 0)
         self.FITNUM = 4 # Maximum number of fits
-        tmp = list(self.data.data.shape)
-        tmp.pop(self.axes)
-        self.fitDataList = np.full(tmp, None, dtype=object)
-        self.fitPickNumList = np.zeros(tmp, dtype=int)
-        self.plotType = 0
         self.logx = 0
         self.logy = 0
-        Plot1DFrame.__init__(self, rootwindow, fig, canvas)
-        self.current = current
-        self.rootwindow = rootwindow
-        self.plotReset()
-        self.showFid()
-
-    def setSlice(self, axes, locList):
-        self.rootwindow.paramframe.checkInputs()
-        self.pickWidth = False
-        if self.axes != axes:
-            return
-        self.locList = locList
-        self.upd()
-        self.rootwindow.paramframe.dispParams()
-        self.showFid()
-
-    def upd(self):  
-        updateVar = self.data.getSlice(self.axes, self.locList)
-        tmp = updateVar[0]
-        if self.current.plotType == 0:
-            self.data1D = np.real(tmp)
-        elif self.current.plotType == 1:
-            self.data1D = np.imag(tmp)
-        elif self.current.plotType == 2:
-            self.data1D = np.real(tmp)
-        elif self.current.plotType == 3:
-            self.data1D = np.abs(tmp)
-            
-    def plotReset(self, xReset=True, yReset=True):
-        if self.plotType == 0:
-            miny = min(np.real(self.data1D))
-            maxy = max(np.real(self.data1D))
-        elif self.plotType == 1:
-            miny = min(np.imag(self.data1D))
-            maxy = max(np.imag(self.data1D))
-        elif self.plotType == 2:
-            miny = min(min(np.real(self.data1D)), min(np.imag(self.data1D)))
-            maxy = max(max(np.real(self.data1D)), max(np.imag(self.data1D)))
-        elif self.plotType == 3:
-            miny = min(np.abs(self.data1D))
-            maxy = max(np.abs(self.data1D))
-        else:
-            miny = -1
-            maxy = 1
-        differ = 0.05 * (maxy - miny)
-        if yReset:
-            self.yminlim = miny - differ
-            self.ymaxlim = maxy + differ
-        if self.spec == 1:
-            if self.ppm:
-                axMult = 1e6 / self.ref
-            else:
-                axMult = 1.0 / (1000.0**self.axType)
-        elif self.spec == 0:
-            axMult = 1000.0**self.axType
-        if xReset:
-            self.xminlim = min(self.xax * axMult)
-            self.xmaxlim = max(self.xax * axMult)
-        self.ax.set_xlim(self.xminlim, self.xmaxlim)
-        self.ax.set_ylim(self.yminlim, self.ymaxlim)
+        FitPlotFrame.__init__(self, rootwindow, fig, canvas, current)
 
     def showFid(self):
-        self.ax.cla()
-        if self.spec == 1:
-            if self.ppm:
-                axMult = 1e6 / self.ref
-            else:
-                axMult = 1.0 / (1000.0**self.axType)
-        elif self.spec == 0:
-            axMult = 1000.0**self.axType
-        self.ax.plot(self.xax * axMult, self.data1D, marker='o', linestyle='none', c=self.current.color, linewidth=self.current.linewidth, label=self.current.data.name, picker=True)
-        if self.fitDataList[tuple(self.locList)] is not None:
-            tmp = self.fitDataList[tuple(self.locList)]
-            self.ax.plot(tmp[0] * axMult, tmp[1], c=self.current.color, linewidth=self.current.linewidth, label=self.current.data.name, picker=True)
-            for i in range(len(tmp[2])):
-                self.ax.plot(tmp[2][i] * axMult, tmp[3][i], c=self.current.color, linewidth=self.current.linewidth, label=self.current.data.name, picker=True)
+        super(RelaxFrame, self).showFid()
         if self.logx == 0:
             self.ax.set_xscale('linear')
         else:
@@ -1572,31 +1372,6 @@ class RelaxFrame(Plot1DFrame):
             self.ax.set_yscale('linear')
         else:
             self.ax.set_yscale('log')
-        if self.spec == 0:
-            if self.current.axType == 0:
-                self.ax.set_xlabel('Time [s]')
-            elif self.current.axType == 1:
-                self.ax.set_xlabel('Time [ms]')
-            elif self.current.axType == 2:
-                self.ax.set_xlabel(r'Time [$\mu$s]')
-            else:
-                self.ax.set_xlabel('User defined')
-        elif self.spec == 1:
-            if self.current.ppm:
-                self.ax.set_xlabel('Frequency [ppm]')
-            else:
-                if self.current.axType == 0:
-                    self.ax.set_xlabel('Frequency [Hz]')
-                elif self.current.axType == 1:
-                    self.ax.set_xlabel('Frequency [kHz]')
-                elif self.current.axType == 2:
-                    self.ax.set_xlabel('Frequency [MHz]')
-                else:
-                    self.ax.set_xlabel('User defined')
-        else:
-            self.ax.set_xlabel('')
-        self.ax.set_xlim(self.xminlim, self.xmaxlim)
-        self.ax.set_ylim(self.yminlim, self.ymaxlim)
         if self.logx == 0:
             self.ax.get_xaxis().get_major_formatter().set_powerlimits((-4, 4))
         if self.logy == 0:
@@ -1933,107 +1708,16 @@ class DiffusionWindow(TabFittingWindow):
 #################################################################################
 
 
-class DiffusionFrame(Plot1DFrame):
+class DiffusionFrame(FitPlotFrame):
 
     def __init__(self, rootwindow, fig, canvas, current):
-        self.ref = current.ref
-        self.axType = current.axType
-        self.freq = current.freq
-        self.xax = current.xax
-        self.data1D = current.getDisplayedData()
-        self.data = current.data
-        self.axes = current.axes
-        if (len(current.locList) == self.data.data.ndim - 1):
-            self.locList = current.locList
-        else:
-            if self.axes < current.axes2:
-                self.locList = np.insert(current.locList, current.axes2 - 1, 0)
-            else:
-                self.locList = np.insert(current.locList, current.axes2, 0)
         self.FITNUM = 4 # Maximum number of fits
-        tmp = list(self.data.data.shape)
-        tmp.pop(self.axes)
-        self.fitDataList = np.full(tmp, None, dtype=object)
-        self.fitPickNumList = np.zeros(tmp, dtype=int)
-        self.plotType = 0
         self.logx = 0
         self.logy = 0
-        Plot1DFrame.__init__(self, rootwindow, fig, canvas)
-        self.current = current
-        self.rootwindow = rootwindow
-        self.plotReset()
-        self.showFid()
+        FitPlotFrame.__init__(self, rootwindow, fig, canvas)
 
-    def setSlice(self, axes, locList):
-        self.rootwindow.paramframe.checkInputs()
-        self.pickWidth = False
-        if self.axes != axes:
-            return
-        self.locList = locList
-        self.upd()
-        self.rootwindow.paramframe.dispParams()
-        self.showFid()
-
-    def upd(self):  
-        updateVar = self.data.getSlice(self.axes, self.locList)
-        tmp = updateVar[0]
-        if self.current.plotType == 0:
-            self.data1D = np.real(tmp)
-        elif self.current.plotType == 1:
-            self.data1D = np.imag(tmp)
-        elif self.current.plotType == 2:
-            self.data1D = np.real(tmp)
-        elif self.current.plotType == 3:
-            self.data1D = np.abs(tmp)
-
-    def plotReset(self, xReset=True, yReset=True):
-        if self.plotType == 0:
-            miny = min(np.real(self.data1D))
-            maxy = max(np.real(self.data1D))
-        elif self.plotType == 1:
-            miny = min(np.imag(self.data1D))
-            maxy = max(np.imag(self.data1D))
-        elif self.plotType == 2:
-            miny = min(min(np.real(self.data1D)), min(np.imag(self.data1D)))
-            maxy = max(max(np.real(self.data1D)), max(np.imag(self.data1D)))
-        elif self.plotType == 3:
-            miny = min(np.abs(self.data1D))
-            maxy = max(np.abs(self.data1D))
-        else:
-            miny = -1
-            maxy = 1
-        differ = 0.05 * (maxy - miny)
-        if yReset:
-            self.yminlim = miny - differ
-            self.ymaxlim = maxy + differ
-        if self.spec == 1:
-            if self.ppm:
-                axMult = 1e6 / self.ref
-            else:
-                axMult = 1.0 / (1000.0**self.axType)
-        elif self.spec == 0:
-            axMult = 1000.0**self.axType
-        if xReset:
-            self.xminlim = min(self.xax * axMult)
-            self.xmaxlim = max(self.xax * axMult)
-        self.ax.set_xlim(self.xminlim, self.xmaxlim)
-        self.ax.set_ylim(self.yminlim, self.ymaxlim)
-
-    def showFid(self, tmpAx=None, tmpdata=None):
-        self.ax.cla()
-        if self.spec == 1:
-            if self.ppm:
-                axMult = 1e6 / self.ref
-            else:
-                axMult = 1.0 / (1000.0**self.axType)
-        elif self.spec == 0:
-            axMult = 1000.0**self.axType
-        self.ax.plot(self.xax * axMult, self.data1D, marker='o', linestyle='none', c=self.current.color, linewidth=self.current.linewidth, label=self.current.data.name, picker=True)
-        if self.fitDataList[tuple(self.locList)] is not None:
-            tmp = self.fitDataList[tuple(self.locList)]
-            self.ax.plot(tmp[0] * axMult, tmp[1], c=self.current.color, linewidth=self.current.linewidth, label=self.current.data.name, picker=True)
-            for i in range(len(tmp[2])):
-                self.ax.plot(tmp[2][i] * axMult, tmp[3][i], c=self.current.color, linewidth=self.current.linewidth, label=self.current.data.name, picker=True)
+    def showFid(self):
+        super(DiffusionFrame, self).showFid()
         if self.logx == 0:
             self.ax.set_xscale('linear')
         else:
@@ -2042,31 +1726,6 @@ class DiffusionFrame(Plot1DFrame):
             self.ax.set_yscale('linear')
         else:
             self.ax.set_yscale('log')
-        if self.spec == 0:
-            if self.current.axType == 0:
-                self.ax.set_xlabel('Time [s]')
-            elif self.current.axType == 1:
-                self.ax.set_xlabel('Time [ms]')
-            elif self.current.axType == 2:
-                self.ax.set_xlabel(r'Time [$\mu$s]')
-            else:
-                self.ax.set_xlabel('User defined')
-        elif self.spec == 1:
-            if self.current.ppm:
-                self.ax.set_xlabel('Frequency [ppm]')
-            else:
-                if self.current.axType == 0:
-                    self.ax.set_xlabel('Frequency [Hz]')
-                elif self.current.axType == 1:
-                    self.ax.set_xlabel('Frequency [kHz]')
-                elif self.current.axType == 2:
-                    self.ax.set_xlabel('Frequency [MHz]')
-                else:
-                    self.ax.set_xlabel('User defined')
-        else:
-            self.ax.set_xlabel('')
-        self.ax.set_xlim(self.xminlim, self.xmaxlim)
-        self.ax.set_ylim(self.yminlim, self.ymaxlim)
         if self.logx == 0:
             self.ax.get_xaxis().get_major_formatter().set_powerlimits((-4, 4))
         if self.logy == 0:
@@ -2435,147 +2094,11 @@ class PeakDeconvWindow(TabFittingWindow):
 #################################################################################
 
 
-class PeakDeconvFrame(Plot1DFrame):
+class PeakDeconvFrame(FitPlotFrame):
 
     def __init__(self, rootwindow, fig, canvas, current):
-        Plot1DFrame.__init__(self, rootwindow, fig, canvas)
-        self.data1D = current.getDisplayedData()
-        self.data = current.data
-        self.axes = current.axes
-        if (len(current.locList) == self.data.data.ndim - 1):
-            self.locList = current.locList
-        else:
-            if self.axes < current.axes2:
-                self.locList = np.insert(current.locList, current.axes2 - 1, 0)
-            else:
-                self.locList = np.insert(current.locList, current.axes2, 0)
-        self.current = current
-        self.spec = self.current.spec
-        self.xax = self.current.xax
         self.FITNUM = 10 # Maximum number of fits
-        tmp = list(self.data.data.shape)
-        tmp.pop(self.axes)
-        self.fitDataList = np.full(tmp, None, dtype=object)
-        self.fitPickNumList = np.zeros(tmp, dtype=int)
-        self.plotType = 0
-        self.rootwindow = rootwindow
-        self.pickWidth = False
-        #Set limits as in parent
-        self.xminlim = self.current.xminlim
-        self.xmaxlim = self.current.xmaxlim
-        self.yminlim = self.current.yminlim
-        self.ymaxlim = self.current.ymaxlim
-        if isinstance(self.current, spectrum_classes.CurrentContour):
-            self.plotReset(False, True)
-        self.showFid()
-
-    def setSlice(self, axes, locList):
-        self.rootwindow.paramframe.checkInputs()
-        self.pickWidth = False
-        if self.axes != axes:
-            return
-        self.locList = locList
-        self.upd()
-        self.rootwindow.paramframe.dispParams()
-        self.showFid()
-
-    def upd(self):  
-        updateVar = self.data.getSlice(self.axes, self.locList)
-        tmp = updateVar[0]
-        if self.current.plotType == 0:
-            self.data1D = np.real(tmp)
-        elif self.current.plotType == 1:
-            self.data1D = np.imag(tmp)
-        elif self.current.plotType == 2:
-            self.data1D = np.real(tmp)
-        elif self.current.plotType == 3:
-            self.data1D = np.abs(tmp)
-        
-    def plotReset(self, xReset=True, yReset=True):
-        a = self.fig.gca()
-        if self.plotType == 0:
-            miny = min(np.real(self.data1D))
-            maxy = max(np.real(self.data1D))
-        elif self.plotType == 1:
-            miny = min(np.imag(self.data1D))
-            maxy = max(np.imag(self.data1D))
-        elif self.plotType == 2:
-            miny = min(min(np.real(self.data1D)), min(np.imag(self.data1D)))
-            maxy = max(max(np.real(self.data1D)), max(np.imag(self.data1D)))
-        elif self.plotType == 3:
-            miny = min(np.abs(self.data1D))
-            maxy = max(np.abs(self.data1D))
-        else:
-            miny = -1
-            maxy = 1
-        differ = 0.05 * (maxy - miny)
-        if yReset:
-            self.yminlim = miny - differ
-            self.ymaxlim = maxy + differ
-        if self.spec == 1:
-            if self.current.ppm:
-                axMult = 1e6 / self.current.ref
-            else:
-                axMult = 1.0 / (1000.0**self.current.axType)
-        elif self.spec == 0:
-            axMult = 1000.0**self.current.axType
-        if xReset:
-            self.xminlim = min(self.xax * axMult)
-            self.xmaxlim = max(self.xax * axMult)
-        if self.spec > 0:
-            a.set_xlim(self.xmaxlim, self.xminlim)
-        else:
-            a.set_xlim(self.xminlim, self.xmaxlim)
-        a.set_ylim(self.yminlim, self.ymaxlim)
-
-    def showFid(self):
-        self.ax.cla()
-        if self.spec == 1:
-            if self.current.ppm:
-                axMult = 1e6 / self.current.ref
-            else:
-                axMult = 1.0 / (1000.0**self.current.axType)
-        elif self.spec == 0:
-            axMult = 1000.0**self.current.axType
-        self.line_xdata = self.xax * axMult
-        self.line_ydata = self.data1D
-        self.ax.plot(self.xax * axMult, self.data1D, c=self.current.color, linewidth=self.current.linewidth, label=self.current.data.name, picker=True)
-        if self.fitDataList[tuple(self.locList)] is not None:
-            tmp = self.fitDataList[tuple(self.locList)]
-            self.ax.plot(tmp[0] * axMult, tmp[1], picker=True)
-            for i in range(len(tmp[2])):
-                self.ax.plot(tmp[2][i] * axMult, tmp[3][i], picker=True)
-        if self.spec == 0:
-            if self.current.axType == 0:
-                self.ax.set_xlabel('Time [s]')
-            elif self.current.axType == 1:
-                self.ax.set_xlabel('Time [ms]')
-            elif self.current.axType == 2:
-                self.ax.set_xlabel(r'Time [$\mu$s]')
-            else:
-                self.ax.set_xlabel('User defined')
-        elif self.spec == 1:
-            if self.current.ppm:
-                self.ax.set_xlabel('Frequency [ppm]')
-            else:
-                if self.current.axType == 0:
-                    self.ax.set_xlabel('Frequency [Hz]')
-                elif self.current.axType == 1:
-                    self.ax.set_xlabel('Frequency [kHz]')
-                elif self.current.axType == 2:
-                    self.ax.set_xlabel('Frequency [MHz]')
-                else:
-                    self.ax.set_xlabel('User defined')
-        else:
-            self.ax.set_xlabel('')
-        self.ax.get_xaxis().get_major_formatter().set_powerlimits((-4, 4))
-        self.ax.get_yaxis().get_major_formatter().set_powerlimits((-4, 4))
-        if self.spec > 0:
-            self.ax.set_xlim(self.xmaxlim, self.xminlim)
-        else:
-            self.ax.set_xlim(self.xminlim, self.xmaxlim)
-        self.ax.set_ylim(self.yminlim, self.ymaxlim)
-        self.canvas.draw()
+        FitPlotFrame.__init__(self, rootwindow, fig, canvas, current)
 
     def togglePick(self, var):
         self.peakPickReset()
@@ -2628,11 +2151,8 @@ class PeakDeconvParamFrame(AbstractParamFrame):
         self.MULTINAMES = ['pos', 'amp', 'lor', 'gauss']
         self.FITFUNC = peakDeconvmpFit
         AbstractParamFrame.__init__(self, parent, rootwindow, isMain)
-
-
         #Get full integral
         self.fullInt = np.sum(parent.data1D) * parent.current.sw / float(len(parent.data1D))
-
         for elem in np.nditer(self.fitParamList, flags=["refs_ok"], op_flags=['readwrite']):
             elem[...] = {'bgrnd':[0.0, True], 'slope':[0.0, True], 'pos':np.repeat([np.array([0.0, False], dtype=object)], self.FITNUM, axis=0), 'amp':np.repeat([np.array([self.fullInt, False], dtype=object)], self.FITNUM,axis=0), 'lor':np.repeat([np.array([1.0, False], dtype=object)], self.FITNUM,axis=0), 'gauss':np.repeat([np.array([0.0, True], dtype=object)], self.FITNUM,axis=0)}
         resetButton = QtWidgets.QPushButton("Reset")
@@ -2812,149 +2332,14 @@ class TensorDeconvWindow(TabFittingWindow):
 #####################################################################################
 
 
-class TensorDeconvFrame(Plot1DFrame):
+class TensorDeconvFrame(FitPlotFrame):
 
     def __init__(self, rootwindow, fig, canvas, current):
         self.printDigits = 3
-        Plot1DFrame.__init__(self, rootwindow, fig, canvas)
-        self.data1D = current.getDisplayedData()
-        self.data = current.data
-        self.axes = current.axes
-        if (len(current.locList) == self.data.data.ndim - 1):
-            self.locList = current.locList
-        else:
-            if self.axes < current.axes2:
-                self.locList = np.insert(current.locList, current.axes2 - 1, 0)
-            else:
-                self.locList = np.insert(current.locList, current.axes2, 0)
-        self.current = current
-        self.spec = self.current.spec
-        self.xax = self.current.xax
         self.FITNUM = 10 # Maximum number of fits
-        tmp = list(self.data.data.shape)
-        tmp.pop(self.axes)
-        self.fitDataList = np.full(tmp, None, dtype=object)
-        self.fitPickNumList = np.zeros(tmp, dtype=int)
-        self.plotType = 0
-        self.rootwindow = rootwindow
         self.pickNum = 0
         self.pickNum2 = 0
-        #Set limits as in parent plot
-        self.xminlim = self.current.xminlim
-        self.xmaxlim = self.current.xmaxlim
-        self.yminlim = self.current.yminlim
-        self.ymaxlim = self.current.ymaxlim
-        if isinstance(self.current, spectrum_classes.CurrentContour):
-            self.plotReset(False, True)
-        self.showFid()
-
-    def setSlice(self, axes, locList):
-        self.rootwindow.paramframe.checkInputs()
-        self.pickWidth = False
-        if self.axes != axes:
-            return
-        self.locList = locList
-        self.upd()
-        self.rootwindow.paramframe.dispParams()
-        self.showFid()
-
-    def upd(self):  
-        updateVar = self.data.getSlice(self.axes, self.locList)
-        tmp = updateVar[0]
-        if self.current.plotType == 0:
-            self.data1D = np.real(tmp)
-        elif self.current.plotType == 1:
-            self.data1D = np.imag(tmp)
-        elif self.current.plotType == 2:
-            self.data1D = np.real(tmp)
-        elif self.current.plotType == 3:
-            self.data1D = np.abs(tmp)
-        
-    def plotReset(self, xReset=True, yReset=True):  # set the plot limits to min and max values
-        a = self.fig.gca()
-        if self.plotType == 0:
-            miny = min(np.real(self.data1D))
-            maxy = max(np.real(self.data1D))
-        elif self.plotType == 1:
-            miny = min(np.imag(self.data1D))
-            maxy = max(np.imag(self.data1D))
-        elif self.plotType == 2:
-            miny = min(min(np.real(self.data1D)), min(np.imag(self.data1D)))
-            maxy = max(max(np.real(self.data1D)), max(np.imag(self.data1D)))
-        elif self.plotType == 3:
-            miny = min(np.abs(self.data1D))
-            maxy = max(np.abs(self.data1D))
-        else:
-            miny = -1
-            maxy = 1
-        differ = 0.05 * (maxy - miny)  # amount to add to show all datapoints (10%)
-        if yReset:
-            self.yminlim = miny - differ
-            self.ymaxlim = maxy + differ
-        if self.spec == 1:
-            if self.current.ppm:
-                axMult = 1e6 / self.current.ref
-            else:
-                axMult = 1.0 / (1000.0**self.current.axType)
-        elif self.spec == 0:
-            axMult = 1000.0**self.current.axType
-        if xReset:
-            self.xminlim = min(self.xax * axMult)
-            self.xmaxlim = max(self.xax * axMult)
-        if self.spec > 0:
-            self.ax.set_xlim(self.xmaxlim, self.xminlim)
-        else:
-            self.ax.set_xlim(self.xminlim, self.xmaxlim)
-        self.ax.set_ylim(self.yminlim, self.ymaxlim)
-
-    def showFid(self):
-        self.ax.cla()
-        if self.spec == 1:
-            if self.current.ppm:
-                axMult = 1e6 / self.current.ref
-            else:
-                axMult = 1.0 / (1000.0**self.current.axType)
-        elif self.spec == 0:
-            axMult = 1000.0**self.current.axType
-        self.line_xdata = self.xax * axMult
-        self.line_ydata = self.data1D
-        self.ax.plot(self.xax * axMult, self.data1D, c=self.current.color, linewidth=self.current.linewidth, label=self.current.data.name, picker=True)
-        if self.fitDataList[tuple(self.locList)] is not None:
-            tmp = self.fitDataList[tuple(self.locList)]
-            self.ax.plot(tmp[0] * axMult, tmp[1], picker=True)
-            for i in range(len(tmp[2])):
-                self.ax.plot(tmp[2][i] * axMult, tmp[3][i], picker=True)                
-        if self.spec == 0:
-            if self.current.axType == 0:
-                self.ax.set_xlabel('Time [s]')
-            elif self.current.axType == 1:
-                self.ax.set_xlabel('Time [ms]')
-            elif self.current.axType == 2:
-                self.ax.set_xlabel(r'Time [$\mu$s]')
-            else:
-                self.ax.set_xlabel('User defined')
-        elif self.spec == 1:
-            if self.current.ppm:
-                self.ax.set_xlabel('Frequency [ppm]')
-            else:
-                if self.current.axType == 0:
-                    self.ax.set_xlabel('Frequency [Hz]')
-                elif self.current.axType == 1:
-                    self.ax.set_xlabel('Frequency [kHz]')
-                elif self.current.axType == 2:
-                    self.ax.set_xlabel('Frequency [MHz]')
-                else:
-                    self.ax.set_xlabel('User defined')
-        else:
-            self.ax.set_xlabel('')
-        self.ax.get_xaxis().get_major_formatter().set_powerlimits((-4, 4))
-        self.ax.get_yaxis().get_major_formatter().set_powerlimits((-4, 4))
-        if self.spec > 0:
-            self.ax.set_xlim(self.xmaxlim, self.xminlim)
-        else:
-            self.ax.set_xlim(self.xminlim, self.xmaxlim)
-        self.ax.set_ylim(self.yminlim, self.ymaxlim)
-        self.canvas.draw()
+        FitPlotFrame.__init__(self, rootwindow, fig, canvas, current)
 
     def togglePick(self, var):
         self.peakPickReset()
@@ -3359,146 +2744,11 @@ class CSAMASWindow(TabFittingWindow):
 #################################################################################
 
 
-class CSAMASFrame(Plot1DFrame):
+class CSAMASFrame(FitPlotFrame):
 
     def __init__(self, rootwindow, fig, canvas, current):
-        Plot1DFrame.__init__(self, rootwindow, fig, canvas)
-        self.data1D = current.getDisplayedData()
-        self.data = current.data
-        self.axes = current.axes
-        if (len(current.locList) == self.data.data.ndim - 1):
-            self.locList = current.locList
-        else:
-            if self.axes < current.axes2:
-                self.locList = np.insert(current.locList, current.axes2 - 1, 0)
-            else:
-                self.locList = np.insert(current.locList, current.axes2, 0)
-        self.current = current
-        self.spec = self.current.spec
-        self.xax = self.current.xax
-        self.FITNUM = 10 # Maximum number of fits
-        tmp = list(self.data.data.shape)
-        tmp.pop(self.axes)
-        self.fitDataList = np.full(tmp, None, dtype=object)
-        self.fitPickNumList = np.zeros(tmp, dtype=int)
-        self.plotType = 0
-        self.rootwindow = rootwindow
-        #Set plot limits as in the parent window
-        self.yminlim = self.current.yminlim
-        self.ymaxlim = self.current.ymaxlim
-        self.xminlim = self.current.xminlim
-        self.xmaxlim = self.current.xmaxlim
-        if isinstance(self.current, spectrum_classes.CurrentContour):
-            self.plotReset(False, True)
-        self.showFid()
-
-    def setSlice(self, axes, locList):
-        self.rootwindow.paramframe.checkInputs()
-        self.pickWidth = False
-        if self.axes != axes:
-            return
-        self.locList = locList
-        self.upd()
-        self.rootwindow.paramframe.dispParams()
-        self.showFid()
-
-    def upd(self):  
-        updateVar = self.data.getSlice(self.axes, self.locList)
-        tmp = updateVar[0]
-        if self.current.plotType == 0:
-            self.data1D = np.real(tmp)
-        elif self.current.plotType == 1:
-            self.data1D = np.imag(tmp)
-        elif self.current.plotType == 2:
-            self.data1D = np.real(tmp)
-        elif self.current.plotType == 3:
-            self.data1D = np.abs(tmp)
-        
-    def plotReset(self, xReset=True, yReset=True):  # set the plot limits to min and max values
-        a = self.fig.gca()
-        if self.plotType == 0:
-            miny = min(np.real(self.data1D))
-            maxy = max(np.real(self.data1D))
-        elif self.plotType == 1:
-            miny = min(np.imag(self.data1D))
-            maxy = max(np.imag(self.data1D))
-        elif self.plotType == 2:
-            miny = min(min(np.real(self.data1D)), min(np.imag(self.data1D)))
-            maxy = max(max(np.real(self.data1D)), max(np.imag(self.data1D)))
-        elif self.plotType == 3:
-            miny = min(np.abs(self.data1D))
-            maxy = max(np.abs(self.data1D))
-        else:
-            miny = -1
-            maxy = 1
-        differ = 0.05 * (maxy - miny)  # amount to add to show all datapoints (10%)
-        if yReset:
-            self.yminlim = miny - differ
-            self.ymaxlim = maxy + differ
-        if self.spec == 1:
-            if self.current.ppm:
-                axMult = 1e6 / self.current.ref
-            else:
-                axMult = 1.0 / (1000.0**self.current.axType)
-        elif self.spec == 0:
-            axMult = 1000.0**self.current.axType
-        if xReset:
-            self.xminlim = min(self.xax * axMult)
-            self.xmaxlim = max(self.xax * axMult)
-        if self.spec > 0:
-            self.ax.set_xlim(self.xmaxlim, self.xminlim)
-        else:
-            self.ax.set_xlim(self.xminlim, self.xmaxlim)
-        self.ax.set_ylim(self.yminlim, self.ymaxlim)
-
-    def showFid(self):
-        self.ax.cla()
-        if self.spec == 1:
-            if self.current.ppm:
-                axMult = 1e6 / self.current.ref
-            else:
-                axMult = 1.0 / (1000.0**self.current.axType)
-        elif self.spec == 0:
-            axMult = 1000.0**self.current.axType
-        self.line_xdata = self.xax * axMult
-        self.line_ydata = self.data1D
-        self.ax.plot(self.xax * axMult, self.data1D, c=self.current.color, linewidth=self.current.linewidth, label=self.current.data.name, picker=True)
-        if self.fitDataList[tuple(self.locList)] is not None:
-            tmp = self.fitDataList[tuple(self.locList)]
-            self.ax.plot(tmp[0] * axMult, tmp[1], picker=True)
-            for i in range(len(tmp[2])):
-                self.ax.plot(tmp[2][i] * axMult, tmp[3][i], picker=True)
-        if self.spec == 0:
-            if self.current.axType == 0:
-                self.ax.set_xlabel('Time [s]')
-            elif self.current.axType == 1:
-                self.ax.set_xlabel('Time [ms]')
-            elif self.current.axType == 2:
-                self.ax.set_xlabel(r'Time [$\mu$s]')
-            else:
-                self.ax.set_xlabel('User defined')
-        elif self.spec == 1:
-            if self.current.ppm:
-                self.ax.set_xlabel('Frequency [ppm]')
-            else:
-                if self.current.axType == 0:
-                    self.ax.set_xlabel('Frequency [Hz]')
-                elif self.current.axType == 1:
-                    self.ax.set_xlabel('Frequency [kHz]')
-                elif self.current.axType == 2:
-                    self.ax.set_xlabel('Frequency [MHz]')
-                else:
-                    self.ax.set_xlabel('User defined')
-        else:
-            self.ax.set_xlabel('')
-        self.ax.get_xaxis().get_major_formatter().set_powerlimits((-4, 4))
-        self.ax.get_yaxis().get_major_formatter().set_powerlimits((-4, 4))
-        if self.spec > 0:
-            self.ax.set_xlim(self.xmaxlim, self.xminlim)
-        else:
-            self.ax.set_xlim(self.xminlim, self.xmaxlim)
-        self.ax.set_ylim(self.yminlim, self.ymaxlim)
-        self.canvas.draw()
+        self.FITNUM = 10 # Standard number of fits
+        FitPlotFrame.__init__(self, rootwindow, fig, canvas, current)
 
 #################################################################################
 
@@ -3747,146 +2997,11 @@ class Quad1MASDeconvWindow(TabFittingWindow):
 #################################################################################
 
 
-class Quad1MASDeconvFrame(Plot1DFrame):
+class Quad1MASDeconvFrame(FitPlotFrame):
 
     def __init__(self, rootwindow, fig, canvas, current):
-        Plot1DFrame.__init__(self, rootwindow, fig, canvas)
-        self.data1D = current.getDisplayedData()
-        self.data = current.data
-        self.axes = current.axes
-        if (len(current.locList) == self.data.data.ndim - 1):
-            self.locList = current.locList
-        else:
-            if self.axes < current.axes2:
-                self.locList = np.insert(current.locList, current.axes2 - 1, 0)
-            else:
-                self.locList = np.insert(current.locList, current.axes2, 0)
-        self.current = current
-        self.spec = self.current.spec
-        self.xax = self.current.xax
         self.FITNUM = 10 # Maximum number of fits
-        tmp = list(self.data.data.shape)
-        tmp.pop(self.axes)
-        self.fitDataList = np.full(tmp, None, dtype=object)
-        self.fitPickNumList = np.zeros(tmp, dtype=int)
-        self.plotType = 0
-        self.rootwindow = rootwindow
-        #Set plot limits as in the parent window
-        self.yminlim = self.current.yminlim
-        self.ymaxlim = self.current.ymaxlim
-        self.xminlim = self.current.xminlim
-        self.xmaxlim = self.current.xmaxlim
-        if isinstance(self.current, spectrum_classes.CurrentContour):
-            self.plotReset(False, True)
-        self.showFid()
-
-    def setSlice(self, axes, locList):
-        self.rootwindow.paramframe.checkInputs()
-        self.pickWidth = False
-        if self.axes != axes:
-            return
-        self.locList = locList
-        self.upd()
-        self.rootwindow.paramframe.dispParams()
-        self.showFid()
-
-    def upd(self):  
-        updateVar = self.data.getSlice(self.axes, self.locList)
-        tmp = updateVar[0]
-        if self.current.plotType == 0:
-            self.data1D = np.real(tmp)
-        elif self.current.plotType == 1:
-            self.data1D = np.imag(tmp)
-        elif self.current.plotType == 2:
-            self.data1D = np.real(tmp)
-        elif self.current.plotType == 3:
-            self.data1D = np.abs(tmp)
-
-    def plotReset(self, xReset=True, yReset=True):  # set the plot limits to min and max values
-        a = self.fig.gca()
-        if self.plotType == 0:
-            miny = min(np.real(self.data1D))
-            maxy = max(np.real(self.data1D))
-        elif self.plotType == 1:
-            miny = min(np.imag(self.data1D))
-            maxy = max(np.imag(self.data1D))
-        elif self.plotType == 2:
-            miny = min(min(np.real(self.data1D)), min(np.imag(self.data1D)))
-            maxy = max(max(np.real(self.data1D)), max(np.imag(self.data1D)))
-        elif self.plotType == 3:
-            miny = min(np.abs(self.data1D))
-            maxy = max(np.abs(self.data1D))
-        else:
-            miny = -1
-            maxy = 1
-        differ = 0.05 * (maxy - miny)  # amount to add to show all datapoints (10%)
-        if yReset:
-            self.yminlim = miny - differ
-            self.ymaxlim = maxy + differ
-        if self.spec == 1:
-            if self.current.ppm:
-                axMult = 1e6 / self.current.ref
-            else:
-                axMult = 1.0 / (1000.0**self.current.axType)
-        elif self.spec == 0:
-            axMult = 1000.0**self.current.axType
-        if xReset:
-            self.xminlim = min(self.xax * axMult)
-            self.xmaxlim = max(self.xax * axMult)
-        if self.spec > 0:
-            self.ax.set_xlim(self.xmaxlim, self.xminlim)
-        else:
-            self.ax.set_xlim(self.xminlim, self.xmaxlim)
-        self.ax.set_ylim(self.yminlim, self.ymaxlim)
-
-    def showFid(self):
-        self.ax.cla()
-        if self.spec == 1:
-            if self.current.ppm:
-                axMult = 1e6 / self.current.ref
-            else:
-                axMult = 1.0 / (1000.0**self.current.axType)
-        elif self.spec == 0:
-            axMult = 1000.0**self.current.axType
-        self.line_xdata = self.xax * axMult
-        self.line_ydata = self.data1D
-        self.ax.plot(self.xax * axMult, self.data1D, c=self.current.color, linewidth=self.current.linewidth, label=self.current.data.name, picker=True)
-        if self.fitDataList[tuple(self.locList)] is not None:
-            tmp = self.fitDataList[tuple(self.locList)]
-            self.ax.plot(tmp[0] * axMult, tmp[1], picker=True)
-            for i in range(len(tmp[2])):
-                self.ax.plot(tmp[2][i] * axMult, tmp[3][i], picker=True)
-        if self.spec == 0:
-            if self.current.axType == 0:
-                self.ax.set_xlabel('Time [s]')
-            elif self.current.axType == 1:
-                self.ax.set_xlabel('Time [ms]')
-            elif self.current.axType == 2:
-                self.ax.set_xlabel(r'Time [$\mu$s]')
-            else:
-                self.ax.set_xlabel('User defined')
-        elif self.spec == 1:
-            if self.current.ppm:
-                self.ax.set_xlabel('Frequency [ppm]')
-            else:
-                if self.current.axType == 0:
-                    self.ax.set_xlabel('Frequency [Hz]')
-                elif self.current.axType == 1:
-                    self.ax.set_xlabel('Frequency [kHz]')
-                elif self.current.axType == 2:
-                    self.ax.set_xlabel('Frequency [MHz]')
-                else:
-                    self.ax.set_xlabel('User defined')
-        else:
-            self.ax.set_xlabel('')
-        self.ax.get_xaxis().get_major_formatter().set_powerlimits((-4, 4))
-        self.ax.get_yaxis().get_major_formatter().set_powerlimits((-4, 4))
-        if self.spec > 0:
-            self.ax.set_xlim(self.xmaxlim, self.xminlim)
-        else:
-            self.ax.set_xlim(self.xminlim, self.xmaxlim)
-        self.ax.set_ylim(self.yminlim, self.ymaxlim)
-        self.canvas.draw()
+        FitPlotFrame.__init__(self, rootwindow, fig, canvas, current)
 
 #################################################################################
 
@@ -4151,159 +3266,25 @@ class Quad1DeconvWindow(TabFittingWindow):
 #################################################################################
 
 
-class Quad1DeconvFrame(Plot1DFrame):
+class Quad1DeconvFrame(FitPlotFrame):
 
     def __init__(self, rootwindow, fig, canvas, current):
-        Plot1DFrame.__init__(self, rootwindow, fig, canvas)
-        self.data1D = current.getDisplayedData()
-        self.data = current.data
-        self.axes = current.axes
-        if (len(current.locList) == self.data.data.ndim - 1):
-            self.locList = current.locList
-        else:
-            if self.axes < current.axes2:
-                self.locList = np.insert(current.locList, current.axes2 - 1, 0)
-            else:
-                self.locList = np.insert(current.locList, current.axes2, 0)
-        self.current = current
-        self.spec = self.current.spec
-        if self.spec == 1:
-            if self.current.ppm:
+        if current.spec == 1:
+            if current.ppm:
                 self.axUnit = 'ppm'
-                self.axMult = 1e6 / self.current.ref
+                self.axMult = 1e6 / current.ref
             else:
                 axUnits = ['Hz','kHz','MHz']
-                self.axUnit = axUnits[self.current.axType]
-                self.axMult = 1.0 / (1000.0**self.current.axType)
-        elif self.spec == 0:
+                self.axUnit = axUnits[current.axType]
+                self.axMult = 1.0 / (1000.0**current.axType)
+        elif current.spec == 0:
             axUnits = ['s','ms', u"\u03bcs"]
-            self.axUnit = axUnits[self.current.axType]
-            self.axMult = 1000.0**self.current.axType
-        self.xax = self.current.xax
+            self.axUnit = axUnits[current.axType]
+            self.axMult = 1000.0**current.axType
         self.FITNUM = 10 # Maximum number of fits
-        tmp = list(self.data.data.shape)
-        tmp.pop(self.axes)
-        self.fitDataList = np.full(tmp, None, dtype=object)
-        self.fitPickNumList = np.zeros(tmp, dtype=int)
-        self.plotType = 0
-        self.rootwindow = rootwindow
         self.pickNum = 0
         self.pickNum2 = 0
-        #Set limits as in parent plot
-        self.xmaxlim=self.current.xmaxlim
-        self.xminlim=self.current.xminlim
-        self.ymaxlim=self.current.ymaxlim
-        self.yminlim=self.current.yminlim   
-        if isinstance(self.current, spectrum_classes.CurrentContour):
-            self.plotReset(False, True)
-        self.showFid()
-        
-    def setSlice(self, axes, locList):
-        self.rootwindow.paramframe.checkInputs()
-        self.pickWidth = False
-        if self.axes != axes:
-            return
-        self.locList = locList
-        self.upd()
-        self.rootwindow.paramframe.dispParams()
-        self.showFid()
-        
-    def upd(self):  
-        updateVar = self.data.getSlice(self.axes, self.locList)
-        tmp = updateVar[0]
-        if self.current.plotType == 0:
-            self.data1D = np.real(tmp)
-        elif self.current.plotType == 1:
-            self.data1D = np.imag(tmp)
-        elif self.current.plotType == 2:
-            self.data1D = np.real(tmp)
-        elif self.current.plotType == 3:
-            self.data1D = np.abs(tmp)    
-            
-    def plotReset(self, xReset=True, yReset=True):  # set the plot limits to min and max values
-        if self.plotType == 0:
-            miny = min(np.real(self.data1D))
-            maxy = max(np.real(self.data1D))
-        elif self.plotType == 1:
-            miny = min(np.imag(self.data1D))
-            maxy = max(np.imag(self.data1D))
-        elif self.plotType == 2:
-            miny = min(min(np.real(self.data1D)), min(np.imag(self.data1D)))
-            maxy = max(max(np.real(self.data1D)), max(np.imag(self.data1D)))
-        elif self.plotType == 3:
-            miny = min(np.abs(self.data1D))
-            maxy = max(np.abs(self.data1D))
-        else:
-            miny = -1
-            maxy = 1
-        differ = 0.05 * (maxy - miny)  # amount to add to show all datapoints (10%)
-        if yReset:
-            self.yminlim = miny - differ
-            self.ymaxlim = maxy + differ
-        if self.spec == 1:
-            if self.current.ppm:
-                axMult = 1e6 / self.current.ref
-            else:
-                axMult = 1.0 / (1000.0**self.current.axType)
-        elif self.spec == 0:
-            axMult = 1000.0**self.current.axType
-        if xReset:
-            self.xminlim = min(self.xax * axMult)
-            self.xmaxlim = max(self.xax * axMult)
-        if self.spec > 0:
-            self.ax.set_xlim(self.xmaxlim, self.xminlim)
-        else:
-            self.ax.set_xlim(self.xminlim, self.xmaxlim)
-        self.ax.set_ylim(self.yminlim, self.ymaxlim)
-
-    def showFid(self):
-        self.ax.cla()
-        if self.spec == 1:
-            if self.current.ppm:
-                axMult = 1e6 / self.current.ref
-            else:
-                axMult = 1.0 / (1000.0**self.current.axType)
-        elif self.spec == 0:
-            axMult = 1000.0**self.current.axType
-        self.line_xdata = self.xax * axMult
-        self.line_ydata = self.data1D
-        self.ax.plot(self.xax * axMult, self.data1D, c=self.current.color, linewidth=self.current.linewidth, label=self.current.data.name, picker=True)
-        if self.fitDataList[tuple(self.locList)] is not None:
-            tmp = self.fitDataList[tuple(self.locList)]
-            self.ax.plot(tmp[0] * axMult, tmp[1], picker=True)
-            for i in range(len(tmp[2])):
-                self.ax.plot(tmp[2][i] * axMult, tmp[3][i], picker=True)
-        if self.spec == 0:
-            if self.current.axType == 0:
-                self.ax.set_xlabel('Time [s]')
-            elif self.current.axType == 1:
-                self.ax.set_xlabel('Time [ms]')
-            elif self.current.axType == 2:
-                self.ax.set_xlabel(r'Time [$\mu$s]')
-            else:
-                self.ax.set_xlabel('User defined')
-        elif self.spec == 1:
-            if self.current.ppm:
-                self.ax.set_xlabel('Frequency [ppm]')
-            else:
-                if self.current.axType == 0:
-                    self.ax.set_xlabel('Frequency [Hz]')
-                elif self.current.axType == 1:
-                    self.ax.set_xlabel('Frequency [kHz]')
-                elif self.current.axType == 2:
-                    self.ax.set_xlabel('Frequency [MHz]')
-                else:
-                    self.ax.set_xlabel('User defined')
-        else:
-            self.ax.set_xlabel('')
-        self.ax.get_xaxis().get_major_formatter().set_powerlimits((-4, 4))
-        self.ax.get_yaxis().get_major_formatter().set_powerlimits((-4, 4))
-        if self.spec > 0:
-            self.ax.set_xlim(self.xmaxlim, self.xminlim)
-        else:
-            self.ax.set_xlim(self.xminlim, self.xmaxlim)
-        self.ax.set_ylim(self.yminlim, self.ymaxlim)
-        self.canvas.draw()
+        FitPlotFrame.__init__(self, rootwindow, fig, canvas, current)
 
 #################################################################################
 
