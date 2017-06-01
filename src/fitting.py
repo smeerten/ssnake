@@ -2628,8 +2628,13 @@ class PeakDeconvParamFrame(AbstractParamFrame):
         self.MULTINAMES = ['pos', 'amp', 'lor', 'gauss']
         self.FITFUNC = peakDeconvmpFit
         AbstractParamFrame.__init__(self, parent, rootwindow, isMain)
+
+
+        #Get full integral
+        self.fullInt = np.sum(parent.data1D) * parent.current.sw / float(len(parent.data1D))
+
         for elem in np.nditer(self.fitParamList, flags=["refs_ok"], op_flags=['readwrite']):
-            elem[...] = {'bgrnd':[0.0, True], 'slope':[0.0, True], 'pos':np.repeat([np.array([0.0, False], dtype=object)], self.FITNUM, axis=0), 'amp':np.repeat([np.array([1.0, False], dtype=object)], self.FITNUM,axis=0), 'lor':np.repeat([np.array([1.0, False], dtype=object)], self.FITNUM,axis=0), 'gauss':np.repeat([np.array([0.0, True], dtype=object)], self.FITNUM,axis=0)}
+            elem[...] = {'bgrnd':[0.0, True], 'slope':[0.0, True], 'pos':np.repeat([np.array([0.0, False], dtype=object)], self.FITNUM, axis=0), 'amp':np.repeat([np.array([self.fullInt, False], dtype=object)], self.FITNUM,axis=0), 'lor':np.repeat([np.array([1.0, False], dtype=object)], self.FITNUM,axis=0), 'gauss':np.repeat([np.array([0.0, True], dtype=object)], self.FITNUM,axis=0)}
         resetButton = QtWidgets.QPushButton("Reset")
         resetButton.clicked.connect(self.reset)
         self.frame1.addWidget(resetButton, 0, 1)
@@ -2685,7 +2690,7 @@ class PeakDeconvParamFrame(AbstractParamFrame):
         for name in ['bgrnd', 'slope']:
             self.fitParamList[locList][name] = [0.0, True]
         self.pickTick.setChecked(True)
-        defaults = {'pos':[0.0,False], 'amp':[1.0,False], 'lor':[1.0,False], 'gauss':[0.0,True]}
+        defaults = {'pos':[0.0,False], 'amp':[self.fullInt,False], 'lor':[1.0,False], 'gauss':[0.0,True]}
         for i in range(self.FITNUM):
             for name in defaults.keys():
                 self.fitParamList[locList][name][i] = defaults[name]
@@ -2995,10 +3000,14 @@ class TensorDeconvParamFrame(AbstractParamFrame):
         self.SINGLENAMES = ['bgrnd', 'slope']
         self.MULTINAMES = ['t11', 't22', 't33', 'amp', 'lor', 'gauss']
         self.FITFUNC = tensorDeconvmpFit
+
+        #Get full integral
+        self.fullInt = np.sum(parent.data1D) * parent.current.sw / float(len(parent.data1D))
+
         self.cheng = 15
         AbstractParamFrame.__init__(self, parent, rootwindow, isMain)
         for elem in np.nditer(self.fitParamList, flags=["refs_ok"], op_flags=['readwrite']):
-            elem[...] = {'bgrnd':[0.0, True], 'slope':[0.0, True], 't11':np.repeat([np.array([0.0, False], dtype=object)], self.FITNUM, axis=0), 't22':np.repeat([np.array([0.0, False], dtype=object)], self.FITNUM, axis=0), 't33':np.repeat([np.array([0.0, False], dtype=object)], self.FITNUM, axis=0), 'amp':np.repeat([np.array([1.0, False], dtype=object)], self.FITNUM,axis=0), 'lor':np.repeat([np.array([1.0, False], dtype=object)], self.FITNUM,axis=0), 'gauss':np.repeat([np.array([0.0, True], dtype=object)], self.FITNUM,axis=0)}
+            elem[...] = {'bgrnd':[0.0, True], 'slope':[0.0, True], 't11':np.repeat([np.array([0.0, False], dtype=object)], self.FITNUM, axis=0), 't22':np.repeat([np.array([0.0, False], dtype=object)], self.FITNUM, axis=0), 't33':np.repeat([np.array([0.0, False], dtype=object)], self.FITNUM, axis=0), 'amp':np.repeat([np.array([self.fullInt, False], dtype=object)], self.FITNUM,axis=0), 'lor':np.repeat([np.array([1.0, False], dtype=object)], self.FITNUM,axis=0), 'gauss':np.repeat([np.array([0.0, True], dtype=object)], self.FITNUM,axis=0)}
         resetButton = QtWidgets.QPushButton("Reset")
         resetButton.clicked.connect(self.reset)
         self.frame1.addWidget(resetButton, 0, 1)
@@ -3107,7 +3116,7 @@ class TensorDeconvParamFrame(AbstractParamFrame):
         for name in self.SINGLENAMES:
             self.fitParamList[locList][name] = [0.0, True]
         self.pickTick.setChecked(True)
-        defaults = {'t11':[0.0,False], 't22':[0.0,False], 't33':[0.0,False], 'amp':[1.0,False], 'lor':[1.0,False], 'gauss':[0.0,True]}
+        defaults = {'t11':[0.0,False], 't22':[0.0,False], 't33':[0.0,False], 'amp':[self.fullInt,False], 'lor':[1.0,False], 'gauss':[0.0,True]}
         for i in range(self.FITNUM):
             for name in defaults.keys():
                 self.fitParamList[locList][name][i] = defaults[name]
@@ -3892,8 +3901,12 @@ class Quad1MASDeconvParamFrame(AbstractParamFrame):
         self.FITFUNC = quad1MASmpFit
         self.cheng = 12
         AbstractParamFrame.__init__(self, parent, rootwindow, isMain)
+
+        #Get full integral
+        self.fullInt = np.sum(parent.data1D) * parent.current.sw / float(len(parent.data1D))
+
         for elem in np.nditer(self.fitParamList, flags=["refs_ok"], op_flags=['readwrite']):
-            elem[...] = {'bgrnd':[0.0, True], 'slope':[0.0, True], 'spinspeed':[10.0, True], 'pos':np.repeat([np.array([0.0, False], dtype=object)], self.FITNUM, axis=0), 'cq':np.repeat([np.array([1.0, False], dtype=object)], self.FITNUM, axis=0), 'eta':np.repeat([np.array([0.0, False], dtype=object)], self.FITNUM, axis=0), 'amp':np.repeat([np.array([1.0, False], dtype=object)], self.FITNUM,axis=0), 'lor':np.repeat([np.array([1.0, False], dtype=object)], self.FITNUM,axis=0), 'gauss':np.repeat([np.array([0.0, True], dtype=object)], self.FITNUM,axis=0)}
+            elem[...] = {'bgrnd':[0.0, True], 'slope':[0.0, True], 'spinspeed':[10.0, True], 'pos':np.repeat([np.array([0.0, False], dtype=object)], self.FITNUM, axis=0), 'cq':np.repeat([np.array([1.0, False], dtype=object)], self.FITNUM, axis=0), 'eta':np.repeat([np.array([0.0, False], dtype=object)], self.FITNUM, axis=0), 'amp':np.repeat([np.array([self.fullInt, False], dtype=object)], self.FITNUM,axis=0), 'lor':np.repeat([np.array([1.0, False], dtype=object)], self.FITNUM,axis=0), 'gauss':np.repeat([np.array([0.0, True], dtype=object)], self.FITNUM,axis=0)}
         self.frame1.setColumnStretch(10, 1)
         self.frame1.setAlignment(QtCore.Qt.AlignTop)
         self.ticks = {'bgrnd':[], 'slope':[], 'spinspeed':[], 'pos':[], 'cq':[], 'eta':[], 'amp':[], 'lor':[], 'gauss':[]}
@@ -4305,8 +4318,12 @@ class Quad1DeconvParamFrame(AbstractParamFrame):
         self.MULTINAMES = ['pos', 'cq', 'eta', 'amp', 'lor', 'gauss']
         self.FITFUNC = quad1DeconvmpFit
         AbstractParamFrame.__init__(self, parent, rootwindow, isMain)
+
+        #Get full integral
+        self.fullInt = np.sum(parent.data1D) * parent.current.sw / float(len(parent.data1D))
+
         for elem in np.nditer(self.fitParamList, flags=["refs_ok"], op_flags=['readwrite']):
-            elem[...] = {'bgrnd':[0.0, True], 'slope':[0.0, True], 'pos':np.repeat([np.array([0.0, False], dtype=object)], self.FITNUM, axis=0), 'cq':np.repeat([np.array([1.0, False], dtype=object)], self.FITNUM, axis=0), 'eta':np.repeat([np.array([0.0, False], dtype=object)], self.FITNUM, axis=0), 'amp':np.repeat([np.array([1.0, False], dtype=object)], self.FITNUM,axis=0), 'lor':np.repeat([np.array([1.0, False], dtype=object)], self.FITNUM,axis=0), 'gauss':np.repeat([np.array([0.0, True], dtype=object)], self.FITNUM,axis=0)}
+            elem[...] = {'bgrnd':[0.0, True], 'slope':[0.0, True], 'pos':np.repeat([np.array([0.0, False], dtype=object)], self.FITNUM, axis=0), 'cq':np.repeat([np.array([1.0, False], dtype=object)], self.FITNUM, axis=0), 'eta':np.repeat([np.array([0.0, False], dtype=object)], self.FITNUM, axis=0), 'amp':np.repeat([np.array([self.fullInt, False], dtype=object)], self.FITNUM,axis=0), 'lor':np.repeat([np.array([1.0, False], dtype=object)], self.FITNUM,axis=0), 'gauss':np.repeat([np.array([0.0, True], dtype=object)], self.FITNUM,axis=0)}
         self.cheng = 15
         self.setAngleStuff = quad1DeconvsetAngleStuff
         self.tensorFunc = quad1DeconvtensorFunc
@@ -4619,8 +4636,12 @@ class Quad2StaticCzjzekParamFrame(AbstractParamFrame):
         self.MULTINAMES = ['d', 'pos', 'sigma', 'amp', 'lor', 'gauss']
         self.FITFUNC = quad2CzjzekmpFit
         AbstractParamFrame.__init__(self, parent, rootwindow, isMain)
+
+        #Get full integral
+        self.fullInt = np.sum(parent.data1D) * parent.current.sw / float(len(parent.data1D))
+
         for elem in np.nditer(self.fitParamList, flags=["refs_ok"], op_flags=['readwrite']):
-            elem[...] = {'bgrnd':[0.0, True], 'slope':[0.0, True], 'pos':np.repeat([np.array([0.0, False], dtype=object)], self.FITNUM, axis=0), 'd':np.repeat([np.array([5.0, False], dtype=object)], self.FITNUM, axis=0), 'sigma':np.repeat([np.array([1.0, False], dtype=object)], self.FITNUM, axis=0), 'amp':np.repeat([np.array([1.0, False], dtype=object)], self.FITNUM,axis=0), 'lor':np.repeat([np.array([10.0, False], dtype=object)], self.FITNUM,axis=0), 'gauss':np.repeat([np.array([0.0, True], dtype=object)], self.FITNUM,axis=0)}
+            elem[...] = {'bgrnd':[0.0, True], 'slope':[0.0, True], 'pos':np.repeat([np.array([0.0, False], dtype=object)], self.FITNUM, axis=0), 'd':np.repeat([np.array([5.0, False], dtype=object)], self.FITNUM, axis=0), 'sigma':np.repeat([np.array([1.0, False], dtype=object)], self.FITNUM, axis=0), 'amp':np.repeat([np.array([self.fullInt, False], dtype=object)], self.FITNUM,axis=0), 'lor':np.repeat([np.array([10.0, False], dtype=object)], self.FITNUM,axis=0), 'gauss':np.repeat([np.array([0.0, True], dtype=object)], self.FITNUM,axis=0)}
         self.cheng = 15
         if self.parent.current.spec == 1:
             self.axAdd = self.parent.current.freq - self.parent.current.ref
