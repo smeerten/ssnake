@@ -3749,7 +3749,10 @@ class PhaseWindow(QtWidgets.QWidget):
         self.inputZeroOrder()
         self.inputFirstOrder()
         self.father.redoList = []
-        self.father.undoList.append(self.father.current.applyPhase(np.pi * self.zeroVal / 180.0, np.pi * self.firstVal / 180.0, (self.singleSlice.isChecked() == 1)))
+        if self.father.current.data.noUndo:
+            self.father.current.applyPhase(np.pi * self.zeroVal / 180.0, np.pi * self.firstVal / 180.0, (self.singleSlice.isChecked() == 1))
+        else:
+            self.father.undoList.append(self.father.current.applyPhase(np.pi * self.zeroVal / 180.0, np.pi * self.firstVal / 180.0, (self.singleSlice.isChecked() == 1)))
         self.father.menuEnable()
         self.deleteLater()
 
@@ -4027,7 +4030,10 @@ class ApodWindow(QtWidgets.QWidget):
         else:
             shiftingAxes = None
         self.father.redoList = []
-        self.father.undoList.append(self.father.current.applyApod(lor, gauss, cos2, hamming, shift, shifting, shiftingAxes, (self.singleSlice.isChecked())))
+        if self.father.current.data.noUndo:
+            self.father.current.applyApod(lor, gauss, cos2, hamming, shift, shifting, shiftingAxes, (self.singleSlice.isChecked()))
+        else:
+            self.father.undoList.append(self.father.current.applyApod(lor, gauss, cos2, hamming, shift, shifting, shiftingAxes, (self.singleSlice.isChecked())))
         self.father.menuEnable()
         self.deleteLater()
 
@@ -4177,7 +4183,10 @@ class SwapEchoWindow(QtWidgets.QWidget):
             self.posVal = int(round(inp))
         if self.posVal > 0 and self.posVal < (self.father.current.data1D.shape[-1]):
             self.father.redoList = []
-            self.father.undoList.append(self.father.current.applySwapEcho(self.posVal))
+            if self.father.current.data.noUndo:
+                self.father.current.applySwapEcho(self.posVal)
+            else:
+                self.father.undoList.append(self.father.current.applySwapEcho(self.posVal))
             self.father.bottomframe.upd()
             self.father.menuEnable()
             self.deleteLater()
@@ -4264,7 +4273,10 @@ class LPSVDWindow(QtWidgets.QWidget):
             return
 
         self.father.redoList = []
-        self.father.undoList.append(self.father.current.applyLPSVD(self.analPoints, self.numberFreq, self.predictPoints, self.specGroup.checkedId()))
+        if self.father.current.data.noUndo:
+            self.father.current.applyLPSVD(self.analPoints, self.numberFreq, self.predictPoints, self.specGroup.checkedId())
+        else:
+            self.father.undoList.append(self.father.current.applyLPSVD(self.analPoints, self.numberFreq, self.predictPoints, self.specGroup.checkedId()))
         self.father.sideframe.upd()
         self.father.menuEnable()
         self.deleteLater()
@@ -4483,7 +4495,10 @@ class DCWindow(QtWidgets.QWidget):
             return
         self.father.current.peakPickReset()
         self.father.redoList = []
-        self.father.undoList.append(self.father.current.subtract(inp, self.singleSlice.isChecked()))
+        if self.father.current.data.noUndo:
+            self.father.current.subtract(inp, self.singleSlice.isChecked())
+        else:
+            self.father.undoList.append(self.father.current.subtract(inp, self.singleSlice.isChecked()))
         self.father.menuEnable()
         self.deleteLater()
 
@@ -4566,13 +4581,16 @@ class BaselineWindow(QtWidgets.QWidget):
         if inp is None:
             self.father.father.dispMsg("Not a valid value")
             return
-        returnValue = self.father.current.applyBaseline(self.degree, self.removeList, self.singleSlice.isChecked())
-        if returnValue is None:
-            return
+        if self.father.current.data.noUndo:
+            self.father.current.applyBaseline(self.degree, self.removeList, self.singleSlice.isChecked())
+        else:
+            returnValue = self.father.current.applyBaseline(self.degree, self.removeList, self.singleSlice.isChecked())
+            if returnValue is None:
+                return
+            self.father.undoList.append(returnValue)
         self.father.current.peakPickReset()
         self.father.current.resetPreviewRemoveList()
         self.father.redoList = []
-        self.father.undoList.append(returnValue)
         self.father.current.upd()
         self.father.current.showFid()
         self.father.menuEnable()
@@ -5046,11 +5064,14 @@ class SubtractAvgWindow(regionWindow2):
         regionWindow2.__init__(self, parent, 'Subtract Avg', False)
 
     def apply(self, maximum, minimum, newSpec):
-        returnValue = self.father.current.subtractAvg(maximum, minimum)
-        if returnValue is None:
-            return None
+        if self.father.current.data.noUndo:
+            self.father.current.subtractAvg(maximum, minimum)
+        else:
+            returnValue = self.father.current.subtractAvg(maximum, minimum)
+            if returnValue is None:
+                return None
+            self.father.undoList.append(returnValue)
         self.father.redoList = []
-        self.father.undoList.append(returnValue)
         self.father.updAllFrames()
         return 1
 
@@ -5177,11 +5198,14 @@ class FiddleWindow(QtWidgets.QWidget):
         if lb is None:
             self.father.father.dispMsg("Not a valid value")
             return
-        returnValue = self.father.current.fiddle(self.startVal, self.endVal, lb)
-        if returnValue is None:
-            return None
+        if self.father.current.data.noUndo:
+            self.father.current.fiddle(self.startVal, self.endVal, lb)
+        else:
+            returnValue = self.father.current.fiddle(self.startVal, self.endVal, lb)
+            if returnValue is None:
+                return None
+            self.father.undoList.append(returnValue)
         self.father.redoList = []
-        self.father.undoList.append(returnValue)
         self.father.updAllFrames()
         self.father.current.peakPickReset()
         self.father.menuEnable()

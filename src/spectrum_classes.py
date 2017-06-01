@@ -209,7 +209,10 @@ class Spectrum:
             self.dispMsg(str(error))
             return None
         self.addHistory("Added to data[" + str(select) + "]")
-        return lambda self: self.subtract(data, select=select)
+        if self.noUndo:
+            return None
+        else:
+            return lambda self: self.subtract(data, select=select)
 
     def subtract(self, data, dataImag=0, select=slice(None)):
         if isinstance(select, string_types):
@@ -221,7 +224,10 @@ class Spectrum:
             self.dispMsg(str(error))
             return None
         self.addHistory("Subtracted from data[" + str(select) + "]")
-        return lambda self: self.add(data, select=select)
+        if self.noUndo:
+            return None
+        else:
+            return lambda self: self.add(data, select=select)
     
     def multiplySpec(self, data, dataImag=0, select=slice(None)):
         if isinstance(select, string_types):
@@ -868,8 +874,11 @@ class Spectrum:
         if shiftingAxes is None:
             shiftingAxes = 0
             shifting = 0
-        copyData = copy.deepcopy(self)
-        returnValue = lambda self: self.restoreData(copyData, lambda self: self.apodize(lor, gauss, cos2, hamming, shift, shifting, shiftingAxes, axes, select=select))
+        if self.noUndo:
+            returnValue = None
+        else:
+            copyData = copy.deepcopy(self)
+            returnValue = lambda self: self.restoreData(copyData, lambda self: self.apodize(lor, gauss, cos2, hamming, shift, shifting, shiftingAxes, axes, select=select))
         axLen = self.data.shape[axes]
         t = np.arange(0, axLen) / self.sw[axes]
         if shifting != 0.0:
@@ -1023,8 +1032,11 @@ class Spectrum:
         axes = self.checkAxes(axes)
         if axes is None:
             return None
-        copyData = copy.deepcopy(self)
-        returnValue = lambda self: self.restoreData(copyData, lambda self: self.setLPSVD(nAnalyse, nFreq, nPredict, Direction, axes))
+        if self.noUndo:
+            returnValue = None
+        else:
+            copyData = copy.deepcopy(self)
+            returnValue = lambda self: self.restoreData(copyData, lambda self: self.setLPSVD(nAnalyse, nFreq, nPredict, Direction, axes))
 
         self.data = np.apply_along_axis(self.LPSVDfunction, axes, self.data, nAnalyse, nFreq, nPredict, Direction)
 
@@ -1097,7 +1109,10 @@ class Spectrum:
         self.data = np.concatenate((self.data[slicing2], self.data[slicing1]), axes)
         self.wholeEcho[axes] = not self.wholeEcho[axes]
         self.addHistory("Swap echo at position " + str(idx) + " for dimension " + str(axes + 1))
-        return lambda self: self.swapEcho(-idx, axes)
+        if self.noUndo:
+            return None
+        else:
+            return lambda self: self.swapEcho(-idx, axes)
 
     def shiftData(self, shift, axes, select=slice(None)):
         if isinstance(select, string_types):
