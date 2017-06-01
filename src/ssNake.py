@@ -2169,76 +2169,115 @@ class Main1DWindow(QtWidgets.QWidget):
 
     def fourier(self):
         self.redoList = []
-        self.undoList.append(self.current.fourier())
+        if self.masterData.noUndo:
+            self.current.fourier()
+        else:
+            self.undoList.append(self.current.fourier())
         self.bottomframe.upd()
         self.menuCheck()
 
     def realFourier(self):
         self.redoList = []
-        self.undoList.append(self.current.realFourier())
+        if self.masterData.noUndo:
+            self.current.realFourier()
+        else:
+            self.undoList.append(self.current.realFourier())
         self.bottomframe.upd()
         self.menuCheck()
 
     def fftshift(self):
         self.redoList = []
-        self.undoList.append(self.current.fftshift())
+        if self.masterData.noUndo:
+            self.current.fftshift()
+        else:
+            self.undoList.append(self.current.fftshift())
         self.updAllFrames()
         self.menuCheck()
 
     def invFftshift(self):
         self.redoList = []
-        self.undoList.append(self.current.fftshift(inv=True))
+        if self.masterData.noUndo:
+            self.current.fftshift(inv=True)
+        else:
+            self.undoList.append(self.current.fftshift(inv=True))
         self.updAllFrames()
         self.menuCheck()
 
     def diff(self):
         self.redoList = []
-        self.undoList.append(self.current.diff())
+        if self.masterData.noUndo:
+            self.current.diff()
+        else:
+            self.undoList.append(self.current.diff())
         self.updAllFrames()
         self.menuCheck()
 
     def cumsum(self):
         self.redoList = []
-        self.undoList.append(self.current.cumsum())
+        if self.masterData.noUndo:
+            self.current.cumsum()
+        else:
+            self.undoList.append(self.current.cumsum())
         self.updAllFrames()
         self.menuCheck()
 
     def hilbert(self):
         self.redoList = []
-        self.undoList.append(self.current.hilbert())
+        if self.masterData.noUndo:
+            self.current.hilbert()
+        else:
+            self.undoList.append(self.current.hilbert())
         self.menuCheck()
 
     def states(self):
         self.redoList = []
-        self.undoList.append(self.current.states())
+        if self.masterData.noUndo:
+            self.current.states()
+        else:
+            self.undoList.append(self.current.states())
         self.updAllFrames()
         self.menuCheck()
 
     def statesTPPI(self):
         self.redoList = []
-        self.undoList.append(self.current.statesTPPI())
+        if self.masterData.noUndo:
+            self.current.statesTPPI()
+        else:
+            self.undoList.append(self.current.statesTPPI())
         self.updAllFrames()
         self.menuCheck()
 
     def echoAntiEcho(self):
         self.redoList = []
-        self.undoList.append(self.current.echoAntiEcho())
+        if self.masterData.noUndo:
+            self.current.echoAntiEcho()
+        else:
+            self.undoList.append(self.current.echoAntiEcho())
         self.updAllFrames()
         self.menuCheck()
 
     def setFreq(self, freq, sw):
         self.redoList = []
-        self.undoList.append(self.current.setFreq(freq, sw))
+        if self.masterData.noUndo:
+            self.current.setFreq(freq, sw)
+        else:
+            self.undoList.append(self.current.setFreq(freq, sw))
         self.menuCheck()
 
     def flipLR(self):
         self.redoList = []
-        self.undoList.append(self.current.flipLR())
+        if self.masterData.noUndo:
+            self.current.flipLR()
+        else:
+            self.undoList.append(self.current.flipLR())
         self.menuCheck()
 
     def directAutoPhase(self, phaseNum):
         self.redoList = []
-        self.undoList.append(self.current.directAutoPhase(phaseNum))
+        if self.masterData.noUndo:
+            self.current.directAutoPhase(phaseNum)
+        else:
+            self.undoList.append(self.current.directAutoPhase(phaseNum))
         self.menuCheck()
 
     def BrukerDigital(self):
@@ -2290,7 +2329,10 @@ class Main1DWindow(QtWidgets.QWidget):
             return
         if FilterCorrection != -1.0:  # If changed
             self.redoList = []
-            self.undoList.append(self.current.applyPhase(0, FilterCorrection * 2 * np.pi))
+            if self.masterData.noUndo:
+                self.current.applyPhase(0, FilterCorrection * 2 * np.pi)
+            else:   
+                self.undoList.append(self.current.applyPhase(0, FilterCorrection * 2 * np.pi))
             self.menuCheck()
 
     def createIntegralsWindow(self):
@@ -4066,7 +4108,7 @@ class SizeWindow(QtWidgets.QWidget):
         if inp is not None:
             self.posVal = int(round(inp))
         self.father.redoList = []
-        if self.father.current.Data.noUndo:
+        if self.father.current.data.noUndo:
             self.father.current.applySize(self.sizeVal, self.posVal)
         else:
             self.father.undoList.append(self.father.current.applySize(self.sizeVal, self.posVal))

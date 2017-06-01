@@ -365,8 +365,11 @@ class Spectrum:
         axes = self.checkAxes(axes)
         if axes is None:
             return None
-        copyData = copy.deepcopy(self)
-        returnValue = lambda self: self.restoreData(copyData, lambda self: self.states(axes))
+        if self.noUndo:
+            returnValue = None
+        else:
+            copyData = copy.deepcopy(self)
+            returnValue = lambda self: self.restoreData(copyData, lambda self: self.states(axes))
         if self.data.shape[axes] % 2 != 0:
             self.dispMsg("data has to be even for States")
             return None
@@ -383,8 +386,11 @@ class Spectrum:
         axes = self.checkAxes(axes)
         if axes is None:
             return None
-        copyData = copy.deepcopy(self)
-        returnValue = lambda self: self.restoreData(copyData, lambda self: self.statesTPPI(axes))
+        if self.noUndo:
+            returnValue = None
+        else:
+            copyData = copy.deepcopy(self)
+            returnValue = lambda self: self.restoreData(copyData, lambda self: self.statesTPPI(axes))
         if self.data.shape[axes] % 2 != 0:
             self.dispMsg("data has to be even for States-TPPI")
             return None
@@ -402,8 +408,11 @@ class Spectrum:
         axes = self.checkAxes(axes)
         if axes is None:
             return None
-        copyData = copy.deepcopy(self)
-        returnValue = lambda self: self.restoreData(copyData, lambda self: self.echoAntiEcho(axes))
+        if self.noUndo:
+            returnValue = None
+        else:
+            copyData = copy.deepcopy(self)
+            returnValue = lambda self: self.restoreData(copyData, lambda self: self.echoAntiEcho(axes))
         if self.data.shape[axes] % 2 != 0:
             self.dispMsg("data has to be even for echo-antiecho")
             return None
@@ -738,8 +747,11 @@ class Spectrum:
         axes = self.checkAxes(axes)
         if axes is None:
             return None
-        copyData = copy.deepcopy(self)
-        returnValue = lambda self: self.restoreData(copyData, lambda self: self.diff(axes))
+        if self.noUndo:
+            returnValue = None
+        else:
+            copyData = copy.deepcopy(self)
+            returnValue = lambda self: self.restoreData(copyData, lambda self: self.diff(axes))
         self.data = np.diff(self.data, axis=axes)
         self.resetXax(axes)
         self.addHistory("Differences over dimension " + str(axes + 1))
@@ -749,8 +761,11 @@ class Spectrum:
         axes = self.checkAxes(axes)
         if axes is None:
             return None
-        copyData = copy.deepcopy(self)
-        returnValue = lambda self: self.restoreData(copyData, lambda self: self.cumsum(axes))
+        if self.noUndo:
+            returnValue = None
+        else:
+            copyData = copy.deepcopy(self)
+            returnValue = lambda self: self.restoreData(copyData, lambda self: self.cumsum(axes))
         self.data = np.cumsum(self.data, axis=axes)
         self.addHistory("Cumulative sum over dimension " + str(axes + 1))
         return returnValue
@@ -762,15 +777,21 @@ class Spectrum:
         slicing = (slice(None), ) * axes + (slice(None, None, -1), ) + (slice(None), ) * (self.data.ndim - 1 - axes)
         self.data = self.data[slicing]
         self.addHistory("Flipped dimension " + str(axes + 1))
-        return lambda self: self.flipLR(axes)
+        if self.noUndo:
+            return None
+        else:
+            return lambda self: self.flipLR(axes)
 
     def hilbert(self, axes):
         import scipy.signal
         axes = self.checkAxes(axes)
         if axes is None:
             return None
-        copyData = copy.deepcopy(self)
-        returnValue = lambda self: self.restoreData(copyData, lambda self: self.hilbert(axes))
+        if self.noUndo:
+            returnValue = None
+        else:
+            copyData = copy.deepcopy(self)
+            returnValue = lambda self: self.restoreData(copyData, lambda self: self.hilbert(axes))
         self.data = scipy.signal.hilbert(np.real(self.data), axis=axes)
         self.addHistory("Hilbert transform on dimension " + str(axes + 1))
         return returnValue
@@ -807,7 +828,10 @@ class Spectrum:
             self.fourier(axes, tmp=True, inv=True)
         Message = "Autophase: phase0 = " + str(phase0 * 180 / np.pi) + " and phase1 = " + str(phase1 * 180 / np.pi) + " for dimension " + str(axes + 1)
         self.addHistory(Message)
-        return lambda self: self.setPhase(-phase0, -phase1, axes)
+        if self.noUndo:
+            return None
+        else:
+            return lambda self: self.setPhase(-phase0, -phase1, axes)
     
     def setPhase(self, phase0, phase1, axes, select=slice(None)):
         if isinstance(select, string_types):
@@ -830,7 +854,10 @@ class Spectrum:
         if select != slice(None, None, None):
             Message = Message + " of data[" + str(select) + "]"
         self.addHistory(Message)
-        return lambda self: self.setPhase(-phase0, -phase1, axes, select=select)
+        if self.noUndo:
+            return None
+        else:
+            return lambda self: self.setPhase(-phase0, -phase1, axes, select=select)
 
     def apodize(self, lor, gauss, cos2, hamming, shift, shifting, shiftingAxes, axes, select=slice(None)):
         if isinstance(select, string_types):
@@ -929,7 +956,10 @@ class Spectrum:
         self.sw[axes] = float(sw)
         self.resetXax(axes)
         self.addHistory("Frequency set to " + str(freq * 1e-6) + " MHz and sw set to " + str(sw * 1e-3) + " kHz for dimension " + str(axes + 1))
-        return lambda self: self.setFreq(oldFreq, oldSw, axes)
+        if self.noUndo:
+            return None
+        else:
+            return lambda self: self.setFreq(oldFreq, oldSw, axes)
 
     def setRef(self, ref, axes):
         axes = self.checkAxes(axes)
@@ -1116,14 +1146,20 @@ class Spectrum:
                 self.spec[axes] = 0
                 self.addHistory("Inverse Fourier transform dimension " + str(axes + 1))
         self.resetXax(axes)
-        return lambda self: self.fourier(axes)
+        if self.noUndo:
+            return None
+        else:
+            return lambda self: self.fourier(axes)
 
     def realFourier(self, axes):
         axes = self.checkAxes(axes)
         if axes is None:
             return None
-        copyData = copy.deepcopy(self)
-        returnValue = lambda self: self.restoreData(copyData, lambda self: self.realFourier(axes))
+        if self.noUndo:
+            returnValue = None
+        else:
+            copyData = copy.deepcopy(self)
+            returnValue = lambda self: self.restoreData(copyData, lambda self: self.realFourier(axes))
         if self.spec[axes] == 0:
             if not self.wholeEcho[axes]:
                 slicing = (slice(None), ) * axes + (0, ) + (slice(None), ) * (self.data.ndim - 1 - axes)
@@ -1151,7 +1187,10 @@ class Spectrum:
         else:
             self.data = np.fft.fftshift(self.data, axes=axes)
             self.addHistory("Fourier shift dimension " + str(axes + 1))
-        return lambda self: self.fftshift(axes, not(inv))
+        if self.noUndo:
+            return None
+        else:
+            return lambda self: self.fftshift(axes, not(inv))
 
     def shear(self, shear, axes, axes2):
         axes = self.checkAxes(axes)
