@@ -70,7 +70,7 @@ def ACMEentropy(phaseIn, data, sw, spec, phaseAll=True):
 # the generic data class
 
 
-class Spectrum:
+class Spectrum(object):
 
     def __init__(self, name, data, filePath, freq, sw, spec=None, wholeEcho=None, ref=None, xaxArray=None, history=None, msgHandler=None):
         self.name = name
