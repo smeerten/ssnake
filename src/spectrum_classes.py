@@ -187,8 +187,11 @@ class Spectrum:
         axes = self.checkAxes(axes)
         if axes is None:
             return None
-        copyData = copy.deepcopy(self)
-        returnValue = lambda self: self.restoreData(copyData, lambda self: self.remove(pos, axes))
+        if self.noUndo:
+            returnValue = None
+        else:
+            copyData = copy.deepcopy(self)
+            returnValue = lambda self: self.restoreData(copyData, lambda self: self.remove(pos, axes))
         tmpdata = np.delete(self.data, pos, axes)
         if (np.array(tmpdata.shape) != 0).all():
             self.data = tmpdata
@@ -261,8 +264,11 @@ class Spectrum:
             return None
         try:
             mult = np.array(mult) + 1j * np.array(multImag)
-            copyData = copy.deepcopy(self)
-            returnValue = lambda self: self.restoreData(copyData, lambda self: self.multiply(mult, axes, select=select))
+            if self.noUndo:
+                returnValue = None
+            else:
+                copyData = copy.deepcopy(self)
+                returnValue = lambda self: self.restoreData(copyData, lambda self: self.multiply(mult, axes, select=select))
             self.data[select] = np.apply_along_axis(np.multiply, axes, self.data, mult)[select]
         except ValueError as error:
             self.dispMsg(str(error))
@@ -305,7 +311,10 @@ class Spectrum:
         # self.resetXax(axes)
         self.resetXax()
         self.addHistory("Concatenated dimension " + str(axes + 1))
-        return lambda self: self.split(splitVal, axes)
+        if self.noUndo:
+            return None
+        else:
+            return lambda self: self.split(splitVal, axes)
 
     def split(self, sections, axes):
         axes = self.checkAxes(axes)
@@ -325,7 +334,10 @@ class Spectrum:
         self.resetXax(0)
         self.resetXax(axes + 1)
         self.addHistory("Split dimension " + str(axes + 1) + " into " + str(sections) + " sections")
-        return lambda self: self.concatenate(axes)
+        if self.noUndo:
+            return None
+        else:
+            return lambda self: self.concatenate(axes)
 
     def real(self):
         if self.noUndo:
@@ -665,8 +677,11 @@ class Spectrum:
         axes = self.checkAxes(axes)
         if axes is None:
             return None
-        copyData = copy.deepcopy(self)
-        returnValue = lambda self: self.restoreData(copyData, lambda self: self.getRegion(axes, pos1, pos2))
+        if self.noUndo:
+            returnValue = None
+        else:
+            copyData = copy.deepcopy(self)
+            returnValue = lambda self: self.restoreData(copyData, lambda self: self.getRegion(axes, pos1, pos2))
         minPos = min(pos1, pos2)
         maxPos = max(pos1, pos2)
         slicing = (slice(None), ) * axes + (slice(minPos, maxPos), ) + (slice(None), ) * (self.data.ndim - 1 - axes)

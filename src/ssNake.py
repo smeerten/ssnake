@@ -5071,11 +5071,14 @@ class extractRegionWindow(regionWindow2):
             if self.father.father.newWorkspace(self.father.current.getRegion(minimum, maximum, newSpec)) is None:
                 return None
         else:
-            returnValue = self.father.current.getRegion(minimum, maximum, newSpec)
-            if returnValue is None:
-                return None
+            if self.father.current.data.noUndo:
+                self.father.current.getRegion(minimum, maximum, newSpec)
+            else:
+                returnValue = self.father.current.getRegion(minimum, maximum, newSpec)
+                if returnValue is None:
+                    return None
+                    self.father.undoList.append(returnValue)
             self.father.redoList = []
-            self.father.undoList.append(returnValue)
             self.father.updAllFrames()
         return 1
 
@@ -5284,7 +5287,10 @@ class DeleteWindow(QtWidgets.QWidget):
         pos[pos < 0] = pos[pos < 0] + length
         if (pos > -1).all() and (pos < length).all():
             self.father.redoList = []
-            self.father.undoList.append(self.father.current.delete(pos))
+            if self.father.current.data.noUndo:
+                self.father.current.delete(pos)
+            else:
+                self.father.undoList.append(self.father.current.delete(pos))
             self.father.menuEnable()
             self.father.sideframe.upd()
             self.deleteLater()
@@ -5336,11 +5342,14 @@ class SplitWindow(QtWidgets.QWidget):
         if val is None:
             self.father.father.dispMsg("Not a valid value")
             return
-        returnValue = self.father.current.split(int(round(val)))
-        if returnValue is None:
-            return
+        if self.father.current.data.noUndo:
+            self.father.current.split(int(round(val)))
+        else:
+            returnValue = self.father.current.split(int(round(val)))
+            if returnValue is None:
+                return
+            self.father.undoList.append(returnValue)
         self.father.redoList = []
-        self.father.undoList.append(returnValue)
         self.father.menuEnable()
         self.father.updAllFrames()
         self.deleteLater()
@@ -5378,11 +5387,14 @@ class ConcatenateWindow(QtWidgets.QWidget):
         self.setGeometry(self.frameSize().width() - self.geometry().width(), self.frameSize().height() - self.geometry().height(), 0, 0)
 
     def applyAndClose(self):
-        returnValue = self.father.current.concatenate(self.axesEntry.currentIndex())
-        if returnValue is None:
-            return
+        if self.father.current.data.noUndo:
+            self.father.current.concatenate(self.axesEntry.currentIndex())
+        else:
+            returnValue = self.father.current.concatenate(self.axesEntry.currentIndex())
+            if returnValue is None:
+                return
+            self.father.undoList.append(returnValue)
         self.father.redoList = []
-        self.father.undoList.append(returnValue)
         self.father.menuEnable()
         self.father.updAllFrames()
         self.deleteLater()
@@ -6396,11 +6408,14 @@ class MultiplyWindow(QtWidgets.QWidget):
         env['length'] = int(self.father.current.data1D.shape[-1])  # so length can be used to in equations
         env['euro'] = lambda fVal, num=int(self.father.current.data1D.shape[-1]): euro(fVal, num)
         val = eval(self.valEntry.text(), env)                # find a better solution, also add catch for exceptions
-        returnValue = self.father.current.multiply(np.array(val), self.singleSlice.isChecked())
-        if returnValue is None:
-            return
+        if self.father.current.data.noUndo:
+            self.father.current.multiply(np.array(val), self.singleSlice.isChecked())
+        else:
+            returnValue = self.father.current.multiply(np.array(val), self.singleSlice.isChecked())
+            if returnValue is None:
+                return
+            self.father.undoList.append(returnValue)
         self.father.redoList = []
-        self.father.undoList.append(returnValue)
         self.father.menuEnable()
         self.deleteLater()
 
