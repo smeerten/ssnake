@@ -1008,7 +1008,10 @@ class Spectrum:
             return None
         self.wholeEcho[axes] = val
         self.addHistory("Whole echo set to " + str(val) + " for dimension " + str(axes + 1))
-        return lambda self: self.setWholeEcho(not val, axes)
+        if self.noUndo:
+            return None
+        else:
+            return lambda self: self.setWholeEcho(not val, axes)
 
     def setSize(self, size, pos, axes):
         axes = self.checkAxes(axes)
@@ -1116,7 +1119,10 @@ class Spectrum:
             self.addHistory("Dimension " + str(axes + 1) + " set to FID")
         else:
             self.addHistory("Dimension " + str(axes + 1) + " set to spectrum")
-        return lambda self: self.changeSpec(oldVal, axes)
+        if self.noUndo:
+            return None
+        else:
+            return lambda self: self.changeSpec(oldVal, axes)
 
     def swapEcho(self, idx, axes):
         axes = self.checkAxes(axes)
@@ -1257,7 +1263,10 @@ class Spectrum:
         if self.spec[axes] > 0:
             self.fourier(axes, tmp=True, inv=True)
         self.addHistory("Shearing transform with shearing value " + str(shear) + " over dimensions " + str(axes + 1) + " and " + str(axes2 + 1))
-        return lambda self: self.shear(-shear, axes, axes2)
+        if self.noUndo:
+            return None
+        else:
+            return lambda self: self.shear(-shear, axes, axes2)
 
     def reorder(self, pos, newLength, axes):
         axes = self.checkAxes(axes)
@@ -1268,8 +1277,11 @@ class Spectrum:
         if (max(pos) >= newLength) or (min(pos) < 0):
             self.dispMsg("Invalid positions")
             return None
-        copyData = copy.deepcopy(self)
-        returnValue = lambda self: self.restoreData(copyData, lambda self: self.reorder(pos, newLength, axes))
+        if self.noUndo:
+            returnValue = None
+        else:
+            copyData = copy.deepcopy(self)
+            returnValue = lambda self: self.restoreData(copyData, lambda self: self.reorder(pos, newLength, axes))
         newShape = np.array(self.data.shape)
         newShape[axes] = newLength
         tmpData = np.zeros(newShape, dtype=complex)
@@ -1284,8 +1296,11 @@ class Spectrum:
         axes = self.checkAxes(axes)
         if axes is None:
             return None
-        copyData = copy.deepcopy(self)
-        returnValue = lambda self: self.restoreData(copyData, None)
+        if self.noUndo:
+            returnValue = None
+        else:
+            copyData = copy.deepcopy(self)
+            returnValue = lambda self: self.restoreData(copyData, None)
         # pos contains the values of fixed points which not to be translated to missing points
         posList = np.delete(range(self.data.shape[axes]), pos)
         if typeVal == 1:  # type is States or States-TPPI, the positions need to be divided by 2
@@ -1295,7 +1310,7 @@ class Spectrum:
         posList = np.unique(posList)
         tmpData = np.rollaxis(self.data, axes, self.data.ndim)
         tmpShape = tmpData.shape
-        tmpData = tmpData.reshape((tmpData.size / tmpShape[-1], tmpShape[-1]))
+        tmpData = tmpData.reshape((int(tmpData.size / tmpShape[-1]), tmpShape[-1]))
         pool = multiprocessing.Pool(multiprocessing.cpu_count())
         fit = pool.map_async(ffm, [(i, posList) for i in tmpData])
         pool.close()
@@ -1308,8 +1323,11 @@ class Spectrum:
         axes = self.checkAxes(axes)
         if axes is None:
             return None
-        copyData = copy.deepcopy(self)
-        returnValue = lambda self: self.restoreData(copyData, None)
+        if self.noUndo:
+            returnValue = None
+        else:
+            copyData = copy.deepcopy(self)
+            returnValue = lambda self: self.restoreData(copyData, None)
         # pos contains the values of fixed points which not to be translated to missing points
         posList = np.delete(range(self.data.shape[axes]), pos)
         if typeVal == 1:  # type is States or States-TPPI, the positions need to be divided by 2
@@ -1319,7 +1337,7 @@ class Spectrum:
         posList = np.unique(posList)
         tmpData = np.rollaxis(np.fft.fft(self.data, axis=axes), axes, self.data.ndim)
         tmpShape = tmpData.shape
-        tmpData = tmpData.reshape((tmpData.size / tmpShape[-1], tmpShape[-1]))
+        tmpData = tmpData.reshape((int(tmpData.size / tmpShape[-1]), tmpShape[-1]))
         mask = np.ones(tmpShape[-1]) / float(tmpShape[-1])
         mask[posList] = 0.0
         mask = np.fft.fft(mask)                                                    # abs or real???
@@ -1336,8 +1354,11 @@ class Spectrum:
         axes = self.checkAxes(axes)
         if axes is None:
             return None
-        copyData = copy.deepcopy(self)
-        returnValue = lambda self: self.restoreData(copyData, None)
+        if self.noUndo:
+            returnValue = None
+        else:
+            copyData = copy.deepcopy(self)
+            returnValue = lambda self: self.restoreData(copyData, None)
         # pos contains the values of fixed points which not to be translated to missing points
         posList = np.delete(range(self.data.shape[axes]), pos)
         if typeVal == 1:  # type is States or States-TPPI, the positions need to be divided by 2

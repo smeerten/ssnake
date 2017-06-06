@@ -1146,9 +1146,9 @@ class MainProgram(QtWidgets.QMainWindow):
         self.menuCheck()
 
     def noUndoMode(self,val):
-        self.mainWindow.undoList = []
-        self.mainWindow.redoList = []
         if val:
+            self.mainWindow.undoList = []
+            self.mainWindow.redoList = []
             self.mainWindow.masterData.noUndo = True
         else:
             self.mainWindow.masterData.noUndo = False
@@ -3254,12 +3254,18 @@ class BottomFrame(QtWidgets.QWidget):
             self.wholeEcho.setCheckState(QtCore.Qt.Unchecked)
 
     def setWholeEcho(self, inp):
-        self.father.undoList.append(self.father.current.setWholeEcho(inp))
+        if self.father.masterData.noUndo:
+            self.father.current.setWholeEcho(inp)
+        else:
+            self.father.undoList.append(self.father.current.setWholeEcho(inp))
         self.father.menuCheck()
 
     def changeSpec(self):
         self.father.redoList = []
-        self.father.undoList.append(self.father.current.changeSpec(self.specGroup.checkedId()))
+        if self.father.masterData.noUndo:
+            self.father.current.changeSpec(self.specGroup.checkedId())
+        else:
+            self.father.undoList.append(self.father.current.changeSpec(self.specGroup.checkedId()))
         self.upd()
         self.father.menuCheck()
 
@@ -6003,7 +6009,10 @@ class ReorderWindow(QtWidgets.QWidget):
             return
         val = np.array(val, dtype=int)
         self.father.redoList = []
-        self.father.undoList.append(self.father.current.reorder(val, newLength))
+        if self.father.masterData.noUndo:
+            self.father.current.reorder(val, newLength)
+        else:
+            self.father.undoList.append(self.father.current.reorder(val, newLength))
         self.father.menuEnable()
         self.father.updAllFrames()
         self.deleteLater()
@@ -6072,7 +6081,10 @@ class FFMWindow(QtWidgets.QWidget):
             return
         val = np.array(val, dtype=int)
         self.father.redoList = []
-        self.father.undoList.append(self.father.current.ffm(val, self.typeDrop.currentIndex()))
+        if self.father.masterData.noUndo:
+            self.father.current.ffm(val, self.typeDrop.currentIndex())
+        else:
+            self.father.undoList.append(self.father.current.ffm(val, self.typeDrop.currentIndex()))
         self.father.updAllFrames()
         self.father.menuEnable()
         self.deleteLater()
@@ -6178,7 +6190,10 @@ class CLEANWindow(QtWidgets.QWidget):
             return
         maxIter = int(maxIter)
         self.father.redoList = []
-        self.father.undoList.append(self.father.current.clean(val, self.typeDrop.currentIndex(), gamma, threshold, maxIter))
+        if self.father.masterData.noUndo:
+            self.father.current.clean(val, self.typeDrop.currentIndex(), gamma, threshold, maxIter)
+        else:
+            self.father.undoList.append(self.father.current.clean(val, self.typeDrop.currentIndex(), gamma, threshold, maxIter))
         self.father.updAllFrames()
         self.father.menuEnable()
         self.deleteLater()
@@ -6274,7 +6289,10 @@ class ISTWindow(QtWidgets.QWidget):
             return
         maxIter = int(maxIter)
         self.father.redoList = []
-        self.father.undoList.append(self.father.current.ist(val, self.typeDrop.currentIndex(), threshold, maxIter,tracelimit))
+        if self.father.masterData.noUndo:
+            self.father.current.ist(val, self.typeDrop.currentIndex(), threshold, maxIter,tracelimit)
+        else:
+            self.father.undoList.append(self.father.current.ist(val, self.typeDrop.currentIndex(), threshold, maxIter,tracelimit))
         self.father.updAllFrames()
         self.father.menuEnable()
         self.deleteLater()
@@ -6355,7 +6373,10 @@ class ShearingWindow(QtWidgets.QWidget):
             return
         else:
             self.father.redoList = []
-            self.father.undoList.append(self.father.current.shearing(float(shear), axes, axes2))
+            if self.father.masterData.noUndo:
+               self.father.current.shearing(float(shear), axes, axes2)
+            else:
+                self.father.undoList.append(self.father.current.shearing(float(shear), axes, axes2))
             self.father.menuEnable()
             self.deleteLater()
 
