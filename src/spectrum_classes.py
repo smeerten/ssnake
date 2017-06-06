@@ -464,7 +464,10 @@ class Spectrum:
         averages = np.mean(self.data[slicing], axis=axes, keepdims=True)
         self.data -= averages
         self.addHistory("Subtracted average determined between " + str(pos1) + " and " + str(pos2) + " of dimension " + str(axes + 1))
-        return lambda self: self.add(averages)
+        if self.noUndo:
+            return None
+        else:
+            return lambda self: self.add(averages)
 
     def matrixManip(self, pos1, pos2, axes, which):
         axes = self.checkAxes(axes)

@@ -1825,107 +1825,111 @@ class Main1DWindow(QtWidgets.QWidget):
         for iter1 in macro:
             if iter1[0] == 'reload':
                 loadData = self.father.loading(self.masterData.filePath[0], self.masterData.filePath[1], True) 
-                self.undoList.append(self.masterData.restoreData(loadData, None))
+                returnValue = self.masterData.restoreData(loadData, None)
             elif iter1[0] == 'real':
-                self.undoList.append(self.masterData.real())
+                returnValue = self.masterData.real()
             elif iter1[0] == 'imag':
-                self.undoList.append(self.masterData.imag())
+                returnValue = self.masterData.imag()
             elif iter1[0] == 'abs':
-                self.undoList.append(self.masterData.abs())
+                returnValue = self.masterData.abs()
             elif iter1[0] == 'conj':
-                self.undoList.append(self.masterData.conj())
+                returnValue = self.masterData.conj()
             elif iter1[0] == 'phase':
-                self.undoList.append(self.masterData.setPhase(*iter1[1]))
+                returnValue = self.masterData.setPhase(*iter1[1])
             elif iter1[0] == 'autoPhase':
-                self.undoList.append(self.masterData.autoPhase(*iter1[1]))
+                returnValue = self.masterData.autoPhase(*iter1[1])
             elif iter1[0] == 'fourier':
-                self.undoList.append(self.masterData.fourier(*iter1[1]))
+                returnValue = self.masterData.fourier(*iter1[1])
             elif iter1[0] == 'realFourier':
-                self.undoList.append(self.masterData.realFourier(*iter1[1]))
+                returnValue = self.masterData.realFourier(*iter1[1])
             elif iter1[0] == 'fftshift':
-                self.undoList.append(self.masterData.fftshift(*iter1[1]))
+                returnValue = self.masterData.fftshift(*iter1[1])
             elif iter1[0] == 'diff':
-                self.undoList.append(self.masterData.diff(*iter1[1]))
+                returnValue = self.masterData.diff(*iter1[1])
             elif iter1[0] == 'cumsum':
-                self.undoList.append(self.masterData.cumsum(*iter1[1]))
+                returnValue = self.masterData.cumsum(*iter1[1])
             elif iter1[0] == 'apodize':
-                self.undoList.append(self.masterData.apodize(*iter1[1]))
+                returnValue = self.masterData.apodize(*iter1[1])
             elif iter1[0] == 'freq':
-                self.undoList.append(self.masterData.setFreq(*iter1[1]))
+                returnValue = self.masterData.setFreq(*iter1[1])
             elif iter1[0] == 'ref':
-                self.undoList.append(self.masterData.setRef(*iter1[1]))
+                returnValue = self.masterData.setRef(*iter1[1])
             elif iter1[0] == 'size':
-                self.undoList.append(self.masterData.setSize(*iter1[1]))
+                returnValue = self.masterData.setSize(*iter1[1])
             elif iter1[0] == 'spec':
-                self.undoList.append(self.masterData.changeSpec(*iter1[1]))
+                returnValue = self.masterData.changeSpec(*iter1[1])
             elif iter1[0] == 'swapecho':
-                self.undoList.append(self.masterData.swapEcho(*iter1[1]))
+                returnValue = self.masterData.swapEcho(*iter1[1])
             elif iter1[0] == 'wholeEcho':
-                self.undoList.append(self.masterData.wholeEcho(*iter1[1]))
+                returnValue = self.masterData.wholeEcho(*iter1[1])
             elif iter1[0] == 'shift':
-                self.undoList.append(self.masterData.shiftData(*iter1[1]))
+                returnValue = self.masterData.shiftData(*iter1[1])
             elif iter1[0] == 'states':
-                self.undoList.append(self.masterData.states(*iter1[1]))
+                returnValue = self.masterData.states(*iter1[1])
             elif iter1[0] == 'statesTPPI':
-                self.undoList.append(self.masterData.statesTPPI(*iter1[1]))
+                returnValue = self.masterData.statesTPPI(*iter1[1])
             elif iter1[0] == 'echoAntiEcho':
-                self.undoList.append(self.masterData.echoAntiEcho(*iter1[1]))
+                returnValue = self.masterData.echoAntiEcho(*iter1[1])
             elif iter1[0] == 'baselineCorrection':
-                self.undoList.append(self.masterData.baselineCorrection(*iter1[1]))
+                returnValue = self.masterData.baselineCorrection(*iter1[1])
             elif iter1[0] == 'integrate':
-                self.undoList.append(self.masterData.matrixManip(*iter1[1], which=0))
+                returnValue = self.masterData.matrixManip(*iter1[1], which=0)
             elif iter1[0] == 'sum':
-                self.undoList.append(self.masterData.matrixManip(*iter1[1], which=5))
+                returnValue = self.masterData.matrixManip(*iter1[1], which=5)
             elif iter1[0] == 'max':
-                self.undoList.append(self.masterData.matrixManip(*iter1[1], which=1))
+                returnValue = self.masterData.matrixManip(*iter1[1], which=1)
             elif iter1[0] == 'min':
-                self.undoList.append(self.masterData.matrixManip(*iter1[1], which=2))
+                returnValue = self.masterData.matrixManip(*iter1[1], which=2)
             elif iter1[0] == 'argmax':
-                self.undoList.append(self.masterData.matrixManip(*iter1[1], which=3))
+                returnValue = self.masterData.matrixManip(*iter1[1], which=3)
             elif iter1[0] == 'argmin':
-                self.undoList.append(self.masterData.matrixManip(*iter1[1], which=4))
+                returnValue = self.masterData.matrixManip(*iter1[1], which=4)
             elif iter1[0] == 'average':
-                self.undoList.append(self.masterData.matrixManip(*iter1[1], which=6))
+                returnValue = self.masterData.matrixManip(*iter1[1], which=6)
             elif iter1[0] == 'fliplr':
-                self.undoList.append(self.masterData.flipLR(*iter1[1]))
+                returnValue = self.masterData.flipLR(*iter1[1])
             elif iter1[0] == 'concatenate':
-                self.undoList.append(self.masterData.concatenate(*iter1[1]))
+                returnValue = self.masterData.concatenate(*iter1[1])
             elif iter1[0] == 'split':
-                self.undoList.append(self.masterData.split(*iter1[1]))
+                returnValue = self.masterData.split(*iter1[1])
             elif iter1[0] == 'insert':
-                self.undoList.append(self.masterData.insert(*iter1[1]))
+                returnValue = self.masterData.insert(*iter1[1])
             elif iter1[0] == 'delete':
-                self.undoList.append(self.masterData.remove(*iter1[1]))
+                returnValue = self.masterData.remove(*iter1[1])
             elif iter1[0] == 'add':
-                self.undoList.append(self.masterData.add(*iter1[1]))
+                returnValue = self.masterData.add(*iter1[1])
             elif iter1[0] == 'subtract':
-                self.undoList.append(self.masterData.subtract(*iter1[1]))
+                returnValue = self.masterData.subtract(*iter1[1])
             elif iter1[0] == 'multiplySpec':
-                self.undoList.append(self.masterData.multiplySpec(*iter1[1]))
+                returnValue = self.masterData.multiplySpec(*iter1[1])
             elif iter1[0] == 'divideSpec':
-                self.undoList.append(self.masterData.divideSpec(*iter1[1]))
+                returnValue = self.masterData.divideSpec(*iter1[1])
             elif iter1[0] == 'multiply':
-                self.undoList.append(self.masterData.multiply(*iter1[1]))
+                returnValue = self.masterData.multiply(*iter1[1])
             elif iter1[0] == 'subtractAvg':
-                self.undoList.append(self.masterData.subtractAvg(*iter1[1]))
+                returnValue = self.masterData.subtractAvg(*iter1[1])
             elif iter1[0] == 'FIDDLE':
-                self.undoList.append(self.masterData.fiddle(*iter1[1]))
+                returnValue = self.masterData.fiddle(*iter1[1])
             elif iter1[0] == 'reorder':
-                self.undoList.append(self.masterData.reorder(*iter1[1]))
+                returnValue = self.masterData.reorder(*iter1[1])
             elif iter1[0] == 'ffm':
-                self.undoList.append(self.masterData.ffm_1d(*iter1[1]))
+                returnValue = self.masterData.ffm_1d(*iter1[1])
             elif iter1[0] == 'clean':
-                self.undoList.append(self.masterData.clean(*iter1[1]))
+                returnValue = self.masterData.clean(*iter1[1])
             elif iter1[0] == 'shear':
-                self.undoList.append(self.masterData.shear(*iter1[1]))
+                returnValue = self.masterData.shear(*iter1[1])
             elif iter1[0] == 'extract':
-                self.undoList.append(self.masterData.getRegion(*iter1[1]))
+                returnValue = self.masterData.getRegion(*iter1[1])
             elif iter1[0] == 'setxax':
-                self.undoList.append(self.masterData.setXax(*iter1[1]))
+                returnValue = self.masterData.setXax(*iter1[1])
             elif iter1[0] == 'hilbert':
-                self.undoList.append(self.masterData.hilbert(*iter1[1]))
+                returnValue = self.masterData.hilbert(*iter1[1])
             else:
                 self.father.dispMsg('unknown macro command: ' + iter1[0])
+                returnValue = None
+
+            if not self.masterData.noUndo or returnValue is not None:
+                self.undoList.append(returnValue)
         if display:
             self.current.upd()  # get the first slice of data
             self.current.plotReset()  # reset the axes limits
@@ -2459,6 +2463,7 @@ class Main1DWindow(QtWidgets.QWidget):
         if undoFunc is None:
             self.father.dispMsg("no undo information")
             return
+        print(undoFunc)
         self.redoList.append(undoFunc(self.masterData))
         self.masterData.removeFromHistory(2)
         self.current.upd()
@@ -5106,7 +5111,8 @@ class SubtractAvgWindow(regionWindow2):
             returnValue = self.father.current.subtractAvg(maximum, minimum)
             if returnValue is None:
                 return None
-            self.father.undoList.append(returnValue)
+            if not self.father.current.data.noUndo:
+                self.father.undoList.append(returnValue)
         self.father.redoList = []
         self.father.updAllFrames()
         return 1
