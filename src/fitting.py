@@ -781,7 +781,7 @@ class AbstractParamFrame(QtWidgets.QWidget):
                 self.entries[name][0].setText('%#.3g' % self.fitParamList[locList][name][0])
             if self.TICKS:
                 self.ticks[name][0].setChecked(self.fitParamList[locList][name][1])
-        self.numExp.setCurrentIndex(self.fitNumList[locList])
+        self.setNumExp()
         for i in range(self.FITNUM):
             for name in self.MULTINAMES:
                 if isinstance(self.fitParamList[locList][name][i][0], (float, int)):
@@ -797,6 +797,10 @@ class AbstractParamFrame(QtWidgets.QWidget):
                         self.ticks[name][i].hide()
                     self.entries[name][i].hide()
 
+    def setNumExp(self):
+        locList = tuple(self.parent.locList)
+        self.numExp.setCurrentIndex(self.fitNumList[locList])
+                    
     def changeNum(self, *args):
         val = self.numExp.currentIndex() + 1
         self.fitNumList[tuple(self.parent.locList)] = self.numExp.currentIndex()
@@ -813,7 +817,7 @@ class AbstractParamFrame(QtWidgets.QWidget):
 
     def checkInputs(self):
         locList = tuple(self.parent.locList)
-        numExp = self.numExp.currentIndex() + 1
+        numExp = self.getNumExp()
         for name in self.SINGLENAMES:
             if self.TICKS:
                 self.fitParamList[locList][name][1] = self.ticks[name][0].isChecked()
@@ -839,6 +843,9 @@ class AbstractParamFrame(QtWidgets.QWidget):
                 self.fitParamList[locList][name][i][0] = inp
         return True
 
+    def getNumExp(self):
+        return self.numExp.currentIndex() + 1
+    
     def getExtraParams(self, out):
         return (out, [])
     
@@ -851,7 +858,7 @@ class AbstractParamFrame(QtWidgets.QWidget):
             struc[name] = []
         guess = []
         argu = []
-        numExp = self.numExp.currentIndex() + 1
+        numExp = self.getNumExp()
         out = {}
         for name in self.SINGLENAMES:
             out[name] = [0.0]
@@ -859,7 +866,7 @@ class AbstractParamFrame(QtWidgets.QWidget):
             out[name] = np.zeros(numExp)
         for name in self.SINGLENAMES:
             if isfloat(self.entries[name][0].text()):
-                if not self.fitParamList[locList][name][0]:
+                if not self.fitParamList[tuple(self.parent.locList)][name][0]:
                     guess.append(float(self.entries[name][0].text()))
                     struc[name].append((1, len(guess)-1))
                 else:
@@ -871,7 +878,7 @@ class AbstractParamFrame(QtWidgets.QWidget):
         for i in range(numExp):
             for name in self.MULTINAMES:
                 if isfloat(self.entries[name][i].text()):
-                    if not self.fitParamList[locList][name][i]:
+                    if not self.fitParamList[tuple(self.parent.locList)][name][i][1]:
                         guess.append(float(self.entries[name][i].text()))
                         struc[name].append((1, len(guess)-1))
                     else:
@@ -954,7 +961,7 @@ class AbstractParamFrame(QtWidgets.QWidget):
         self.stopAllButton.hide()
 
     def getSimParams(self):
-        numExp = self.numExp.currentIndex() + 1
+        numExp = self.getNumExp()
         out = {}
         for name in self.SINGLENAMES:
             out[name] = [0.0]
@@ -1101,13 +1108,13 @@ class IntegralsParamFrame(AbstractParamFrame):
 
     TICKS = False
     
-    def __init__(self, parent, rootwindow):
+    def __init__(self, parent, rootwindow, isMain=True):
         self.SINGLENAMES = []
-        self.MULTINAMES = []
-        self.FITFUNC = integralmpFit
-        AbstractParamFrame.__init__(self, parent, rootwindow)
+        self.MULTINAMES = ['min', 'max', 'amp']
+        self.FITFUNC = integralsmpFit
+        AbstractParamFrame.__init__(self, parent, rootwindow, isMain=True)
         for elem in np.nditer(self.fitParamList, flags=["refs_ok"], op_flags=['readwrite']):
-            elem[...] = {'min':[np.array([min(self.xax), True], dtype=object)], 'max':[np.array([max(self.xax), True], dtype=object)], 'amp':[np.array([1.0, False], dtype=object)]}
+            elem[...] = {'min':[np.array([min(self.parent.current.xax), True], dtype=object)], 'max':[np.array([max(self.parent.current.xax), True], dtype=object)], 'amp':[np.array([1.0, False], dtype=object)]}
         resetButton = QtWidgets.QPushButton("Reset")
         resetButton.clicked.connect(self.reset)
         self.frame1.addWidget(resetButton, 0, 1)
@@ -1117,7 +1124,7 @@ class IntegralsParamFrame(AbstractParamFrame):
         self.absIntTick = QtWidgets.QCheckBox("Relative integrals")
         self.absIntTick.setChecked(True)
         self.absIntTick.stateChanged.connect(self.fit)
-        self.frame1.addWidget(self.absIntTick, 2, 0, 1, 2)
+        self.frame1.addWidget(self.absIntTick, 2, 1, 1, 2)
         self.frame1.setColumnStretch(10, 1)
         self.frame1.setAlignment(QtCore.Qt.AlignTop)
         self.frame3.addWidget(QLabel("Min bounds:"), 1, 0)
@@ -1125,7 +1132,7 @@ class IntegralsParamFrame(AbstractParamFrame):
         self.frame3.addWidget(QLabel("Integral:"), 1, 2)
         self.frame3.setColumnStretch(20, 1)
         self.frame3.setAlignment(QtCore.Qt.AlignTop)
-        self.integralIter = 0
+        self.FITNUM = 0
         self.refVal = None
         self.entries = {'min':[], 'max':[], 'amp':[]}
         self.deleteButtons = []
@@ -1142,74 +1149,86 @@ class IntegralsParamFrame(AbstractParamFrame):
         elif self.parent.current.plotType == 3:
             self.maxy = np.amax(np.abs(self.parent.current.data1D))
             self.diffy = self.maxy - np.amin(np.abs(self.parent.current.data1D))
+        locList = tuple(self.parent.locList)
         self.entries['min'].append(QtWidgets.QLineEdit())
-        self.entries['min'][0].setAlignment(QtCore.Qt.AlignHCenter)
-        self.entries['min'][0].editingFinished.connect(lambda self=self: self.setVal(self.entries['min'][0], True))
-        self.frame3.addWidget(self.entries['min'][0], 2, 0)
+        self.entries['min'][self.FITNUM].setAlignment(QtCore.Qt.AlignHCenter)
+        self.entries['min'][self.FITNUM].editingFinished.connect(lambda self=self, tmp=self.entries['min'][self.FITNUM]: self.setVal(tmp, True))
+        self.frame3.addWidget(self.entries['min'][self.FITNUM], 2, 0)
         self.entries['max'].append(QtWidgets.QLineEdit())
-        self.entries['max'][0].setAlignment(QtCore.Qt.AlignHCenter)
-        self.entries['max'][0].editingFinished.connect(lambda self=self: self.setVal(self.entries['max'][0], False))
-        self.frame3.addWidget(self.entries['max'][0], 2, 1)
+        self.entries['max'][self.FITNUM].setAlignment(QtCore.Qt.AlignHCenter)
+        self.entries['max'][self.FITNUM].editingFinished.connect(lambda self=self, tmp=self.entries['max'][self.FITNUM]: self.setVal(tmp, False))
+        self.frame3.addWidget(self.entries['max'][self.FITNUM], 2, 1)
         self.entries['amp'].append(QtWidgets.QLineEdit())
-        self.entries['amp'][0].setAlignment(QtCore.Qt.AlignHCenter)
-        self.entries['amp'][0].editingFinished.connect(lambda self=self: self.setRef(self.entries['amp'][0]))
-        self.frame3.addWidget(self.entries['amp'][0], 2, 2)
+        self.entries['amp'][self.FITNUM].setAlignment(QtCore.Qt.AlignHCenter)
+        self.entries['amp'][self.FITNUM].editingFinished.connect(lambda self=self, tmp=self.entries['amp'][self.FITNUM]: self.setRef(tmp))
+        self.frame3.addWidget(self.entries['amp'][self.FITNUM], 2, 2)
         self.deleteButtons.append(QtWidgets.QPushButton("X"))
         self.deleteButtons[0].clicked.connect(lambda extra, self=self: self.deleteEntry(self.deleteButtons[0]))
         self.frame3.addWidget(self.deleteButtons[0], 2, 3)
-        self.entries['min'].append(QtWidgets.QLineEdit())
+        self.entryCount = 0
         self.reset()
 
     def reset(self):
-        for i in range(self.integralIter + 1):
+        for i in range(self.FITNUM + 1):
             self.deleteEntry(num=0, reset=True)
+        for elem in np.nditer(self.fitParamList, flags=["refs_ok"], op_flags=['readwrite']):
+            elem[...] = {'min':[np.array([min(self.parent.current.xax), True], dtype=object)], 'max':[np.array([max(self.parent.current.xax), True], dtype=object)], 'amp':[np.array([1.0, False], dtype=object)]}
         self.refVal = None
         self.pickTick.setChecked(True)
         self.togglePick()
         self.parent.showFid()
 
+    def setNumExp(self):
+        pass
+
+    def getNumExp(self):
+        return self.FITNUM
+        
     def addValue(self, value):
+        locList = tuple(self.parent.locList)
         if self.first:
-            self.minValues[self.integralIter] = value
-            self.entries['min'][self.integralIter].setText("%#.3g" % value)
+            self.fitParamList[locList]['min'][self.FITNUM][0] = value
+            self.entries['min'][self.FITNUM].setText("%#.3g" % value)
             self.first = False
         else:
-            entryCount = self.fitNumList[tuple(self.parent.locList)]
-            tmp = self.minValues[self.integralIter]
-            self.minValues[self.integralIter] = min(value, tmp)
-            self.maxValues[self.integralIter] = max(value, tmp)
-            self.minValues = np.append(self.minValues, min(self.xax))
-            self.maxValues = np.append(self.maxValues, max(self.xax))
-            self.intValues = np.append(self.intValues, 1)
-            self.entries['min'][self.integralIter].setText("%#.3g" % min(value, tmp))
-            self.entries['max'][self.integralIter].setText("%#.3g" % max(value, tmp))
-            self.integralIter += 1
+            tmp = self.fitParamList[locList]['min'][self.FITNUM][0]
+            self.fitParamList[locList]['min'][self.FITNUM][0] = min(value, tmp)
+            self.fitParamList[locList]['max'][self.FITNUM][0] = max(value, tmp)
+            self.fitParamList[locList]['min'] = np.append(self.fitParamList[locList]['min'], [[min(self.parent.current.xax), True]], axis=0)
+            self.fitParamList[locList]['max'] = np.append(self.fitParamList[locList]['max'], [[max(self.parent.current.xax), True]], axis=0)
+            self.fitParamList[locList]['amp'] = np.append(self.fitParamList[locList]['amp'], [[1.0, False]], axis=0)
+            self.entries['min'][self.FITNUM].setText("%#.3g" % min(value, tmp))
+            self.entries['max'][self.FITNUM].setText("%#.3g" % max(value, tmp))
+            self.entries['amp'][self.FITNUM].setText('1.0')
+            self.FITNUM += 1
             self.entries['min'].append(QtWidgets.QLineEdit())
-            self.entries['min'][self.integralIter].setAlignment(QtCore.Qt.AlignHCenter)
-            self.entries['min'][self.integralIter].editingFinished.connect(lambda self=self, tmp=self.entries['min'][self.integralIter]: self.setVal(tmp, True))
-            self.frame3.addWidget(self.entries['min'][self.integralIter], 2 + entryCount, 0)
+            self.entries['min'][self.FITNUM].setAlignment(QtCore.Qt.AlignHCenter)
+            self.entries['min'][self.FITNUM].editingFinished.connect(lambda self=self, tmp=self.entries['min'][self.FITNUM]: self.setVal(tmp, True))
+            self.frame3.addWidget(self.entries['min'][self.FITNUM], 2 + self.entrycount, 0)
             self.entries['max'].append(QtWidgets.QLineEdit())
-            self.entries['max'][self.integralIter].setAlignment(QtCore.Qt.AlignHCenter)
-            self.entries['max'][self.integralIter].editingFinished.connect(lambda self=self, tmp=self.entries['max'][self.integralIter]: self.setVal(tmp, False))
-            self.frame3.addWidget(self.entries['max'][self.integralIter], 2 + entryCount, 1)
+            self.entries['max'][self.FITNUM].setAlignment(QtCore.Qt.AlignHCenter)
+            self.entries['max'][self.FITNUM].editingFinished.connect(lambda self=self, tmp=self.entries['max'][self.FITNUM]: self.setVal(tmp, False))
+            self.frame3.addWidget(self.entries['max'][self.FITNUM], 2 + self.entrycount, 1)
             self.entries['amp'].append(QtWidgets.QLineEdit())
-            self.entries['amp'][self.integralIter].setAlignment(QtCore.Qt.AlignHCenter)
-            self.entries['amp'][self.integralIter].editingFinished.connect(lambda self=self, tmp=self.entries['amp'][self.integralIter]: self.setRef(tmp))
-            self.frame3.addWidget(self.entries['amp'][self.integralIter], 2 + entryCount, 2)
+            self.entries['amp'][self.FITNUM].setAlignment(QtCore.Qt.AlignHCenter)
+            self.entries['amp'][self.FITNUM].editingFinished.connect(lambda self=self, tmp=self.entries['amp'][self.FITNUM]: self.setRef(tmp))
+            self.frame3.addWidget(self.entries['amp'][self.FITNUM], 2 + self.entrycount, 2)
             self.deleteButtons.append(QtWidgets.QPushButton("X"))
-            self.deleteButtons[self.integralIter].clicked.connect(lambda extra, self=self, tmp=self.deleteButtons[self.integralIter]: self.deleteEntry(tmp))
-            self.frame3.addWidget(self.deleteButtons[self.integralIter], 2 + entryCount, 3)
+            self.deleteButtons[self.FITNUM].clicked.connect(lambda extra, self=self, tmp=self.deleteButtons[self.FITNUM]: self.deleteEntry(tmp))
+            self.frame3.addWidget(self.deleteButtons[self.FITNUM], 2 + self.entrycount, 3)
             self.fitNumList[tuple(self.parent.locList)] += 1
+            self.entryCount += 1
             self.first = True
-            self.fit()
+            self.rootwindow.fit()
 
     def deleteEntry(self, button=None, num=None, reset=False):
+        locList = tuple(self.parent.locList)
         if num is None:
             num = self.deleteButtons.index(button)
-        if num == self.integralIter:
-            self.minValues[num] = min(self.xax)
-            self.maxValues[num] = max(self.xax)
-            self.intValues[num] = 1.0
+        if num == self.FITNUM:
+            self.fitParamList[locList]['min'][num][0] = min(self.parent.current.xax)
+            self.fitParamList[locList]['max'][num][0] = max(self.parent.current.xax)
+            self.fitParamList[locList]['amp'][num][0] = 1.0
             self.entries['min'][num].setText("")
             self.entries['max'][num].setText("")
             self.first = True
@@ -1226,122 +1245,146 @@ class IntegralsParamFrame(AbstractParamFrame):
         self.entries['min'].pop(num)
         self.deleteButtons.pop(num)
         self.entries['amp'].pop(num)
-        self.minValues = np.delete(self.minValues, num)
-        self.maxValues = np.delete(self.maxValues, num)
-        self.intValues = np.delete(self.intValues, num)
-        self.integralIter -= 1
+        self.fitParamList[locList]['min'] = np.delete(self.fitParamList[locList]['min'], num, axis=0)
+        self.fitParamList[locList]['max'] = np.delete(self.fitParamList[locList]['max'], num, axis=0)
+        self.fitParamList[locList]['amp'] = np.delete(self.fitParamList[locList]['amp'], num, axis=0)
+        self.FITNUM -= 1
+        self.fitNumList[locList] -= 1
         if not reset:
-            self.fit()
+            self.rootwindow.fit()
 
     def togglePick(self):
         self.parent.togglePick(self.pickTick.isChecked())
 
     def setVal(self, entry, isMin=False):
+        locList = tuple(self.parent.locList)
         inp = safeEval(entry.text())
         if inp is None:
             self.rootwindow.mainProgram.dispMsg("One of the inputs is not valid")
             return
-        if inp < min(self.xax):
-            inp = min(self.xax)
-        if inp > max(self.xax):
-            inp = max(self.xax)
+        if inp < min(self.parent.current.xax):
+            inp = min(self.parent.current.xax)
+        if inp > max(self.parent.current.xax):
+            inp = max(self.parent.current.xax)
         if isMin:
             num = self.entries['min'].index(entry)
-            self.minValues[num] = min(inp, self.maxValues[num])
-            self.maxValues[num] = max(inp, self.maxValues[num])
+            self.fitParamList[locList]['min'][num][0] = min(inp, self.fitParamList[locList]['max'][num][0])
+            self.fitParamList[locList]['max'][num][0] = max(inp, self.fitParamList[locList]['max'][num][0])
         else:
             num = self.entries['max'].index(entry)
-            self.maxValues[num] = max(inp, self.minValues[num])
-            self.minValues[num] = min(inp, self.minValues[num])
-        if num == self.integralIter:
-            entryCount = self.fitNumList[tuple(self.parent.locList)]
-            self.integralIter += 1
-            self.minValues = np.append(self.minValues, min(self.xax))
-            self.maxValues = np.append(self.maxValues, max(self.xax))
-            self.intValues = np.append(self.intValues, 1)
+            self.fitParamList[locList]['min'][num][0] = max(inp, self.fitParamList[locList]['min'][num][0])
+            self.fitParamList[locList]['max'][num][0] = min(inp, self.fitParamList[locList]['min'][num][0])
+        if num == self.FITNUM:
+            self.FITNUM += 1
+            self.fitParamList[locList]['min'] = np.append(self.fitParamList[locList]['min'], [[min(self.parent.current.xax), True]], axis=0)
+            self.fitParamList[locList]['max'] = np.append(self.fitParamList[locList]['max'], [[max(self.parent.current.xax), True]], axis=0)
+            self.fitParamList[locList]['amp'] = np.append(self.fitParamList[locList]['amp'], [[1.0, True]], axis=0)
             self.entries['min'].append(QtWidgets.QLineEdit())
-            self.entries['min'][self.integralIter].setAlignment(QtCore.Qt.AlignHCenter)
-            self.entries['min'][self.integralIter].editingFinished.connect(lambda self=self, tmp=self.entries['min'][self.integralIter]: self.setVal(tmp, True))
-            self.frame3.addWidget(self.entries['min'][self.integralIter], 2 + entryCount, 0)
+            self.entries['min'][self.FITNUM].setAlignment(QtCore.Qt.AlignHCenter)
+            self.entries['min'][self.FITNUM].editingFinished.connect(lambda self=self, tmp=self.entries['min'][self.FITNUM]: self.setVal(tmp, True))
+            self.frame3.addWidget(self.entries['min'][self.FITNUM], 2 + self.entrycount, 0)
             self.entries['max'].append(QtWidgets.QLineEdit())
-            self.entries['max'][self.integralIter].setAlignment(QtCore.Qt.AlignHCenter)
-            self.entries['max'][self.integralIter].editingFinished.connect(lambda self=self, tmp=self.entries['max'][self.integralIter]: self.setVal(tmp, False))
-            self.frame3.addWidget(self.entries['max'][self.integralIter], 2 + entryCount, 1)
+            self.entries['max'][self.FITNUM].setAlignment(QtCore.Qt.AlignHCenter)
+            self.entries['max'][self.FITNUM].editingFinished.connect(lambda self=self, tmp=self.entries['max'][self.FITNUM]: self.setVal(tmp, False))
+            self.frame3.addWidget(self.entries['max'][self.FITNUM], 2 + self.entrycount, 1)
             self.entries['amp'].append(QtWidgets.QLineEdit())
-            self.entries['amp'][self.integralIter].setAlignment(QtCore.Qt.AlignHCenter)
-            self.entries['amp'][self.integralIter].editingFinished.connect(lambda self=self, tmp=self.entries['amp'][self.integralIter]: self.setRef(tmp))
-            self.frame3.addWidget(self.entries['amp'][self.integralIter], 2 + entryCount, 2)
+            self.entries['amp'][self.FITNUM].setAlignment(QtCore.Qt.AlignHCenter)
+            self.entries['amp'][self.FITNUM].editingFinished.connect(lambda self=self, tmp=self.entries['amp'][self.FITNUM]: self.setRef(tmp))
+            self.frame3.addWidget(self.entries['amp'][self.FITNUM], 2 + self.entrycount, 2)
             self.deleteButtons.append(QtWidgets.QPushButton("X"))
-            self.deleteButtons[self.integralIter].clicked.connect(lambda extra, self=self, tmp=self.deleteButtons[self.integralIter]: self.deleteEntry(tmp))
-            self.frame3.addWidget(self.deleteButtons[self.integralIter], 2 + entryCount, 3)
+            self.deleteButtons[self.FITNUM].clicked.connect(lambda extra, self=self, tmp=self.deleteButtons[self.FITNUM]: self.deleteEntry(tmp))
+            self.frame3.addWidget(self.deleteButtons[self.FITNUM], 2 + self.entrycount, 3)
             self.fitNumList[tuple(self.parent.locList)] += 1
             self.first = True
         self.entries['min'][num].setText("%#.3g" % self.minValues[num])
         self.entries['max'][num].setText("%#.3g" % self.maxValues[num])
-        self.fit()
+        self.rootwindow.fit()
 
     def setRef(self, entry):
+        locList = tuple(self.parent.locList)
         num = self.entries['amp'].index(entry)
         inp = safeEval(entry.text())
         if inp is None:
             self.rootwindow.mainProgram.dispMsg("One of the inputs is not valid")
             return
-        self.refVal = self.intValues[num] / float(inp)
-        self.fit()
+        self.refVal = self.fitParamList[locList]['amp'][num][0] / float(inp)
+        self.rootwindow.fit()
 
     def displayInt(self):
+        locList = tuple(self.parent.locList)
         if self.refVal is None:
-            self.refVal = self.intValues[0]
+            self.refVal = self.fitParamList[locList]['amp'][0][0]
         if self.absIntTick.isChecked():
             tmpInts = self.intValues / float(self.refVal)
         else:
             tmpInts = self.intValues
-        for i in range(self.integralIter):
+        for i in range(self.FITNUM):
             self.entries['amp'][i].setText("%#.3g" % tmpInts[i])
 
-    def fit(self, *args):
+    def disp(self, params, num):
+        out = params[num]
+        numExp = len(out['min'])
+        tmpx = self.parent.xax * self.axMult
         x = []
-        y = []
-        if self.integralIter == 0:
-            self.parent.showFid()
-            return
-        for i in range(self.integralIter):
-            tmpx = self.parent.current.xax[(self.minValues[i] < self.xax) & (self.maxValues[i] > self.xax)]
-            if self.parent.current.plotType == 0:
-                tmpy = np.real(self.parent.data1D[(self.minValues[i] < self.xax) & (self.maxValues[i] > self.xax)])
-            elif self.parent.current.plotType == 1:
-                tmpy = np.imag(self.parent.data1D[(self.minValues[i] < self.xax) & (self.maxValues[i] > self.xax)])
-            elif self.parent.current.plotType == 2:
-                tmpy = np.real(self.parent.data1D[(self.minValues[i] < self.xax) & (self.maxValues[i] > self.xax)])
-            elif self.parent.current.plotType == 3:
-                tmpy = np.abs(self.parent.data1D[(self.minValues[i] < self.xax) & (self.maxValues[i] > self.xax)])
-            self.intValues[i] = np.sum(tmpy) * self.parent.current.sw / float(len(self.parent.data1D))
-            if self.parent.spec == 1:
-                x = np.append(x, tmpx[::-1])
-                y = np.append(y, np.cumsum(tmpy[::-1]))
-            else:
-                x = np.append(x, tmpx)
-                y = np.append(y, np.cumsum(tmpy))
-            x = np.append(x, float('nan'))
-            y = np.append(y, float('nan'))
-        self.displayInt()
-        y = y / (max(y) - min(y)) * self.diffy
-        self.parent.showFid(x, y)
+        outCurvePart = []
+        for i in range(numExp):
+            for name in ['min', 'max']:
+                inp = out[name][i]
+                if isinstance(inp, tuple):
+                    inp = checkLinkTuple(inp)
+                    out[name][i] = inp[2]*params[inp[4]][inp[0]][inp[1]] + inp[3]
+                if not np.isfinite(out[name][i]):
+                    self.rootwindow.mainProgram.dispMsg("One of the inputs is not valid")
+                    return
+            bArray = (out['min'][i] < tmpx) & (out['max'][i] > tmpx)
+            tmpx = self.parent.xax[bArray]
+            x.append(tmpx)
+            integral = np.cumsum(self.parent.data1D[bArray][::-1])[::-1]
+            outCurvePart.append(integral)
+        self.parent.fitDataList[tuple(self.parent.locList)] = [np.array([]), np.array([]), x, outCurvePart]
+        self.parent.showFid()
+            
+    # def fit(self, *args):
+    #     x = []
+    #     y = []
+    #     if self.FITNUM == 0:
+    #         self.parent.showFid()
+    #         return
+    #     for i in range(self.FITNUM):
+    #         tmpx = self.parent.current.xax[(self.minValues[i] < self.xax) & (self.maxValues[i] > self.xax)]
+    #         if self.parent.current.plotType == 0:
+    #             tmpy = np.real(self.parent.data1D[(self.minValues[i] < self.xax) & (self.maxValues[i] > self.xax)])
+    #         elif self.parent.current.plotType == 1:
+    #             tmpy = np.imag(self.parent.data1D[(self.minValues[i] < self.xax) & (self.maxValues[i] > self.xax)])
+    #         elif self.parent.current.plotType == 2:
+    #             tmpy = np.real(self.parent.data1D[(self.minValues[i] < self.xax) & (self.maxValues[i] > self.xax)])
+    #         elif self.parent.current.plotType == 3:
+    #             tmpy = np.abs(self.parent.data1D[(self.minValues[i] < self.xax) & (self.maxValues[i] > self.xax)])
+    #         self.intValues[i] = np.sum(tmpy) * self.parent.current.sw / float(len(self.parent.data1D))
+    #         if self.parent.spec == 1:
+    #             x = np.append(x, tmpx[::-1])
+    #             y = np.append(y, np.cumsum(tmpy[::-1]))
+    #         else:
+    #             x = np.append(x, tmpx)
+    #             y = np.append(y, np.cumsum(tmpy))
+    #         x = np.append(x, float('nan'))
+    #         y = np.append(y, float('nan'))
+    #     self.displayInt()
+    #     y = y / (max(y) - min(y)) * self.diffy
+    #     self.parent.showFid(x, y)
 
 ##############################################################################
 
-def integralsvmpFit(xax, data1D, guess, args, queue):
+def integralsmpFit(allX, data1D, guess, args, queue):
     specName = args[0]
     specSlices = args[1]
     allStruc = args[3]
     allArgu = args[4]
-    allSpec = []
-    for length in specSlices:
-        allSpec.append(data1D[length])
     results = []
     for n in range(len(allX)):
-        data = allSpec[n]
         x=allX[n]
+        data = data1D[:len(x)]
+        data1D = np.delete(data1D, range(len(x)))
         testFunc = np.zeros(len(x))
         numExp = args[2][n]
         struc = args[3][n]
@@ -1349,6 +1392,8 @@ def integralsvmpFit(xax, data1D, guess, args, queue):
         sw = args[5][n]
         axAdd = args[6][n]
         axMult = args[7][n]
+        x = x*axMult
+        parameters = {'min':0.0, 'max':0.0}
         for i in range(numExp):
             for name in ['min', 'max']:
                 if struc[name][i][0] == 0:
@@ -1360,7 +1405,7 @@ def integralsvmpFit(xax, data1D, guess, args, queue):
             tmpx = x[(parameters['min'] < x) & (parameters['max'] > x)]
             tmpy = data[(parameters['min'] < x) & (parameters['max'] > x)]
             results = np.append(results, np.sum(tmpy) * sw / float(len(data)))
-    return {'x':results}
+    queue.put({'x':results})
 
 ##############################################################################
 
