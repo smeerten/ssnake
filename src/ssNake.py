@@ -1049,7 +1049,10 @@ class MainProgram(QtWidgets.QMainWindow):
         self.menuCheck()
 
     def referenceClear(self):
-        self.mainWindow.undoList.append(self.mainWindow.current.setRef(None))
+        if self.mainWindow.masterData.noUndo:
+            self.mainWindow.current.setRef(None)
+        else:
+            self.mainWindow.undoList.append(self.mainWindow.current.setRef(None))
 
     def referenceRun(self, name):
         reffreq = self.referenceValue[self.referenceName.index(name)]
@@ -6642,7 +6645,10 @@ class XaxWindow(QtWidgets.QWidget):
         if val is None: #if error return. Messages are handled by the called function
             return  
         self.father.redoList = []
-        self.father.undoList.append(self.father.current.setXax(np.array(val)))
+        if self.father.current.data.noUndo:
+            self.father.current.setXax(np.array(val))
+        else:
+            self.father.undoList.append(self.father.current.setXax(np.array(val)))
         self.father.menuEnable()
         self.deleteLater()
 
@@ -6749,7 +6755,10 @@ class RefWindow(QtWidgets.QWidget):
 
         if nameOK:
             self.father.redoList = []
-            self.father.undoList.append(self.father.current.setRef(reffreq))
+            if self.father.current.data.noUndo:
+                self.father.current.setRef(reffreq)
+            else:
+                self.father.undoList.append(self.father.current.setRef(reffreq))
             self.father.menuEnable()
             self.deleteLater()
 

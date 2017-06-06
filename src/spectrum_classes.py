@@ -170,7 +170,10 @@ class Spectrum:
         oldXax = self.xaxArray[axes]
         self.xaxArray[axes] = xax
         self.addHistory("X-axes of dimension " + str(axes + 1) + " was set to " + str(xax).replace('\n', ''))
-        return lambda self: self.setXax(oldXax, axes)
+        if self.noUndo:
+            return None
+        else:
+            return lambda self: self.setXax(oldXax, axes)
 
     def insert(self, data, pos, axes, dataImag=0):
         axes = self.checkAxes(axes)
@@ -1000,7 +1003,10 @@ class Spectrum:
             self.ref[axes] = float(ref)
             self.addHistory("Reference frequency set to " + str(ref * 1e-6) + " MHz for dimension " + str(axes + 1))
         self.resetXax(axes)
-        return lambda self: self.setRef(oldRef, axes)
+        if self.noUndo:
+            return None
+        else:
+            return lambda self: self.setRef(oldRef, axes)
 
     def setWholeEcho(self, val, axes):
         axes = self.checkAxes(axes)
