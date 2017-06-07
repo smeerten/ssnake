@@ -761,18 +761,15 @@ class MainProgram(QtWidgets.QMainWindow):
             self.fittingMenu.menuAction().setEnabled(True)
             self.combineMenu.menuAction().setEnabled(True)
             self.referencerunmenu.menuAction().setEnabled(True)
-            #self.plotMenu.menuAction().setEnabled(True)
-            #self.historyMenu.menuAction().setEnabled(True)
-            if self.mainWindow.masterData.noUndo: #Set menu check to the same value as in the data
-                self.noUndoAct.setChecked(True)
-            else:
-                self.noUndoAct.setChecked(False)
-
 
             for act in self.editActList + self.toolsActList + self.matrixActList + self.fftActList + self.fittingActList + self.plotActList + self.historyActList + self.combineActList:
                 act.setEnabled(True)
             if isinstance(self.mainWindow, Main1DWindow):
                 self.menuEnable()
+                if self.mainWindow.masterData.noUndo: #Set menu check to the same value as in the data
+                    self.noUndoAct.setChecked(True)
+                else:
+                    self.noUndoAct.setChecked(False)
                 if (len(self.mainWindow.masterData.data.shape) < 2):
                     for i in self.multiDActions:
                         i.setEnabled(False)
