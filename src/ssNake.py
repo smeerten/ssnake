@@ -515,6 +515,8 @@ class MainProgram(QtWidgets.QMainWindow):
         self.multiplyAct.setToolTip('Multiply')
         self.reorderAct = self.matrixMenu.addAction(QtGui.QIcon(IconDirectory + 'reorder.png'), "&Reorder", lambda: self.mainWindowCheck(lambda mainWindow: ReorderWindow(mainWindow)))
         self.reorderAct.setToolTip('Reorder')
+        self.regridAct = self.matrixMenu.addAction("Regrid", lambda: self.mainWindowCheck(lambda mainWindow: RegridWindow(mainWindow)))
+        self.regridAct.setToolTip('Regrid')
         self.concatAct = self.matrixMenu.addAction(QtGui.QIcon(IconDirectory + 'concatenate.png'),"C&oncatenate", lambda: self.mainWindowCheck(lambda mainWindow: ConcatenateWindow(mainWindow)))
         self.concatAct.setToolTip('Concatenate')
         self.multiDActions.append(self.concatAct)
@@ -525,7 +527,7 @@ class MainProgram(QtWidgets.QMainWindow):
         self.matrixActList = [self.sizingAct,self.shiftAct,self.intRegionAct,self.sumRegionAct,self.maxRegionAct,
                               self.minRegionAct,self.maxposRegionAct,self.minposRegionAct,self.averageRegionAct,
                               self.diffAct,self.cumsumAct,self.extractpartAct,self.fliplrAct,self.matrixdelAct,
-                              self.splitAct,self.multiplyAct,self.reorderAct,self.concatAct,self.shearAct]
+                              self.splitAct,self.multiplyAct,self.regridAct,self.reorderAct,self.concatAct,self.shearAct]
 
 
         # the fft drop down menu
@@ -6031,6 +6033,47 @@ class ReorderWindow(QtWidgets.QWidget):
 
 ##########################################################################################
 
+class RegridWindow(QtWidgets.QWidget):
+
+    def __init__(self, parent ):
+        QtWidgets.QWidget.__init__(self, parent)
+        self.setWindowFlags(QtCore.Qt.Window | QtCore.Qt.Tool)
+        self.father = parent
+        layout = QtWidgets.QGridLayout(self)
+        grid = QtWidgets.QGridLayout()
+        layout.addLayout(grid, 0, 0, 1, 2)
+        self.setWindowTitle("Regrid")        
+        grid.addWidget(wc.QLabel("Workspace axis to use:"), 0, 0)
+        self.wsEntry = QtWidgets.QComboBox()
+        self.wsEntry.addItems(self.father.father.workspaceNames)
+        grid.addWidget(self.wsEntry, 1, 0)
+        cancelButton = QtWidgets.QPushButton("&Cancel")
+        cancelButton.clicked.connect(self.closeEvent)
+        layout.addWidget(cancelButton, 2, 0)
+        okButton = QtWidgets.QPushButton("&Ok")
+        okButton.clicked.connect(self.applyAndClose)
+        layout.addWidget(okButton, 2, 1)
+        self.show()
+        self.setFixedSize(self.size())
+        self.father.menuDisable()
+        self.setGeometry(self.frameSize().width() - self.geometry().width(), self.frameSize().height() - self.geometry().height(), 0, 0)
+
+    def applyAndClose(self):
+        ws = self.wsEntry.currentIndex()
+            #returnValue = self.father.current.add(self.father.father.workspaces[ws].masterData.data, self.singleSlice.isChecked())
+        if self.father.current.data.noUndo:
+            self.father.current.regrid(val, newLength)
+        else:
+            self.father.undoList.append(self.father.current.regrid(val, newLength))
+        self.father.menuEnable()
+        self.father.sideframe.upd()
+        self.deleteLater()
+
+    def closeEvent(self, *args):
+        self.father.menuEnable()
+        self.deleteLater()
+
+##########################################################################################
 
 class FFMWindow(QtWidgets.QWidget):
 
