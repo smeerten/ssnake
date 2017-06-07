@@ -1090,7 +1090,7 @@ class Spectrum:
         else:
             Y = data[-nAnalyse:]
         N = len(Y)						# # of complex data points in FID
-        L = np.floor(N * 3 / 4)						# linear prediction order L = 3/4*N
+        L = int(np.floor(N * 3 / 4))						# linear prediction order L = 3/4*N
         A = scipy.linalg.hankel(np.conj(Y[1:N - L + 1]), np.conj(Y[N - L:N]))  # backward prediction data matrix
         h = np.conj(Y[0:N - L])					# backward prediction data vector
         U, S, Vh = np.linalg.svd(A, full_matrices=1)                       # singular value decomposition
