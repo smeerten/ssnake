@@ -184,7 +184,10 @@ class Spectrum:
         self.data = np.insert(self.data, [pos], data, axis=axes)
         self.resetXax(axes)
         self.addHistory("Inserted " + str(self.data.shape[axes] - oldSize) + " datapoints in dimension " + str(axes + 1) + " at position " + str(pos))
-        return lambda self: self.remove(range(pos, pos + data.shape[axes]), axes)
+        if self.noUndo:
+            return None
+        else:
+            return lambda self: self.remove(range(pos, pos + data.shape[axes]), axes)
 
     def remove(self, pos, axes):
         axes = self.checkAxes(axes)
@@ -245,7 +248,10 @@ class Spectrum:
             self.dispMsg(str(error))
             return None
         self.addHistory("Multiplied with data[" + str(select) + "]")
-        return lambda self: self.divideSpec(data, select=select)
+        if self.noUndo:
+            return None
+        else:
+            return lambda self: self.divideSpec(data, select=select)
 
     def divideSpec(self, data, dataImag=0, select=slice(None)):
         if isinstance(select, string_types):
@@ -257,7 +263,10 @@ class Spectrum:
             self.dispMsg(str(error))
             return None
         self.addHistory("Divided by data[" + str(select) + "]")
-        return lambda self: self.multiplySpec(data, select=select)
+        if self.noUndo:
+            return None
+        else:
+            return lambda self: self.multiplySpec(data, select=select)
     
     def multiply(self, mult, axes, multImag=0, select=slice(None)):
         if isinstance(select, string_types):

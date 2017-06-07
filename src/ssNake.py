@@ -2463,7 +2463,6 @@ class Main1DWindow(QtWidgets.QWidget):
         if undoFunc is None:
             self.father.dispMsg("no undo information")
             return
-        print(undoFunc)
         self.redoList.append(undoFunc(self.masterData))
         self.masterData.removeFromHistory(2)
         self.current.upd()
@@ -5475,7 +5474,10 @@ class InsertWindow(QtWidgets.QWidget):
             pos = 0
         ws = self.wsEntry.currentIndex()
         self.father.redoList = []
-        self.father.undoList.append(self.father.current.insert(self.father.father.workspaces[ws].masterData.data, pos))
+        if self.father.current.data.noUndo:
+            self.father.current.insert(self.father.father.workspaces[ws].masterData.data, pos)
+        else:
+            self.father.undoList.append(self.father.current.insert(self.father.father.workspaces[ws].masterData.data, pos))
         self.father.menuEnable()
         self.father.sideframe.upd()
         self.deleteLater()
@@ -5535,10 +5537,11 @@ class CombineWindow(QtWidgets.QWidget):
             returnValue = self.father.current.multiplySpec(self.father.father.workspaces[ws].masterData.data, self.singleSlice.isChecked())
         elif self.combType is 3:
             returnValue = self.father.current.divideSpec(self.father.father.workspaces[ws].masterData.data, self.singleSlice.isChecked())
-        if returnValue is None:
+        if returnValue is None and not self.father.current.data.noUndo:
             return
         self.father.redoList = []
-        self.father.undoList.append(returnValue)
+        if not self.father.current.data.noUndo:
+            self.father.undoList.append(returnValue)
         self.father.menuEnable()
         self.father.sideframe.upd()
         self.deleteLater()
