@@ -1341,22 +1341,22 @@ class MainProgram(QtWidgets.QMainWindow):
             direc = os.path.dirname(filePath)
 
         if os.path.exists(direc + os.path.sep + 'procpar') and os.path.exists(direc + os.path.sep + 'fid'):
-            return (0, filePath, returnVal)
+            return (0, direc, returnVal)
             # And for varian processed data
         if (os.path.exists(direc + os.path.sep + '..' + os.path.sep + 'procpar') or os.path.exists(direc + os.path.sep + 'procpar')) and os.path.exists(direc + os.path.sep + 'data'):
-            return (0, filePath, returnVal)
+            return (0, direc, returnVal)
         elif os.path.exists(direc + os.path.sep + 'acqus') and (os.path.exists(direc + os.path.sep + 'fid') or os.path.exists(direc + os.path.sep + 'ser')):
-            return (1, filePath, returnVal)
+            return (1, direc, returnVal)
         elif os.path.exists(direc + os.path.sep + 'procs') and (os.path.exists(direc + os.path.sep + '1r') or os.path.exists(direc + os.path.sep + '2rr')):
-            return (7, filePath, returnVal)
+            return (7, direc, returnVal)
         elif os.path.exists(direc + os.path.sep + 'acq') and os.path.exists(direc + os.path.sep + 'data'):
-            return (2, filePath, returnVal)
+            return (2, direc, returnVal)
         elif os.path.exists(direc + os.path.sep + 'acqu.par'):
             dirFiles = os.listdir(direc)
             files2D = [x for x in dirFiles if '.2d' in x]
             files1D = [x for x in dirFiles if '.1d' in x]
             if len(files2D) != 0 or len(files1D) != 0:
-                return (3, filePath, returnVal)
+                return (3, direc, returnVal)
         elif os.path.isfile(filePath): #If not recognised, load as ascii
             return (11, filePath, returnVal)
         return (None,filePath, 2)
