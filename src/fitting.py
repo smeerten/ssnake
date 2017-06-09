@@ -211,15 +211,15 @@ class TabFittingWindow(QtWidgets.QWidget):
                 args_out.append([args[n][i+1]])
             self.subFitWindows[i].paramframe.setResults(fitVal[i+1], args_out, out[i+1])
 
-    def disp(self):
+    def disp(self, *args, **kwargs):
         params = [self.mainFitWindow.paramframe.getSimParams()]
         for window in self.subFitWindows:
             tmp_params = window.paramframe.getSimParams()
             for i in range(len(params)):
                 params = np.append(params, [tmp_params], axis=0)
-        self.mainFitWindow.paramframe.disp(params, 0)
+        self.mainFitWindow.paramframe.disp(params, 0, *args, **kwargs)
         for i in range(len(self.subFitWindows)):
-            self.subFitWindows[i].paramframe.disp(params, i+1)
+            self.subFitWindows[i].paramframe.disp(params, i+1, *args, **kwargs)
 
     def get_masterData(self):
         return self.oldMainWindow.get_masterData()
@@ -347,8 +347,8 @@ class FittingWindow(QtWidgets.QWidget):
     def fit(self):
         self.tabWindow.fit()
 
-    def sim(self):
-        self.tabWindow.disp()
+    def sim(self, *args, **kwargs):
+        self.tabWindow.disp(*args, **kwargs)
         
     def addSpectrum(self):
         self.tabWindow.addSpectrum()
@@ -1047,6 +1047,7 @@ class AbstractParamFrame(QtWidgets.QWidget):
             self.rootwindow.createNewData(data, self.parent.current.axes, False)
 
     def prepareResultToWorkspace(self, settings, minLength=1):
+        self.calculateResultsToWorkspace(True)
         fitData = self.parent.fitDataList[tuple(self.parent.locList)]
         if fitData is None:
             fitData = [np.zeros(len(self.parent.data1D)), np.zeros(len(self.parent.data1D)), np.zeros(len(self.parent.data1D)), np.array([np.zeros(len(self.parent.data1D))]*minLength)]
@@ -1062,8 +1063,12 @@ class AbstractParamFrame(QtWidgets.QWidget):
         if settings[3]:
             outCurvePart.append(self.parent.data1D-fitData[1])
         outCurvePart.append(fitData[1])
+        self.calculateResultsToWorkspace(False)
         return np.array(outCurvePart)
-        
+
+    def calculateResultsToWorkspace(self, *args):
+        # Some fitting methods need to recalculate the curves before exporting
+        pass
 
 ##############################################################################
     
@@ -1234,7 +1239,7 @@ class IntegralsParamFrame(AbstractParamFrame):
         for i in range(self.FITNUM):
             self.entries['amp'][i].setText("%#.3g" % tmpInts[i])
 
-    def disp(self, params, num):
+    def disp(self, params, num, display=True, prepExport=False):
         out = params[num]
         numExp = len(out['min'])
         tmpx = self.parent.xax * self.axMult
@@ -1253,15 +1258,34 @@ class IntegralsParamFrame(AbstractParamFrame):
             minVal = min(out['min'][i], out['max'][i])
             maxVal = max(out['min'][i], out['max'][i])
             bArray = (minVal < tmpx) & (maxVal > tmpx)
-            x.append(self.parent.xax[bArray])
-            integral = np.cumsum(self.parent.data1D[bArray][::-1])[::-1]
-            outCurvePart.append(integral)
+            if prepExport:
+                x.append(self.parent.xax)
+            else:
+                x.append(self.parent.xax[bArray])
+            if self.parent.spec:
+                integral = np.cumsum(self.parent.data1D[bArray][::-1])[::-1]
+            else:
+                integral = np.cumsum(self.parent.data1D[bArray])
+            if prepExport:
+                tmpIntegral = np.zeros(len(self.parent.xax))
+                tmpIntegral[bArray] = integral
+                outCurvePart.append(tmpIntegral)
+            else:
+                outCurvePart.append(integral)
             maxDiff = max(maxDiff, max(outCurvePart[-1])-min(outCurvePart[-1]))
         self.displayInt()
         for i in range(len(outCurvePart)):
             outCurvePart[i] = outCurvePart[i] / maxDiff * self.diffy
-        self.parent.fitDataList[tuple(self.parent.locList)] = [np.array([]), np.array([]), x, outCurvePart]
-        self.parent.showFid()
+        if prepExport:
+            self.parent.fitDataList[tuple(self.parent.locList)] = [self.parent.xax, np.zeros(len(self.parent.xax)), x, outCurvePart]
+        else:
+            self.parent.fitDataList[tuple(self.parent.locList)] = [np.array([]), np.array([]), x, outCurvePart]
+        if display:
+            self.parent.showFid()
+
+    def calculateResultsToWorkspace(self, prepExport):
+        self.rootwindow.sim(display=False, prepExport=prepExport)
+
 
 ##############################################################################
 
@@ -1569,7 +1593,7 @@ class RelaxParamFrame(AbstractParamFrame):
         self.parent.setLog(self.xlog.isChecked(), self.ylog.isChecked())
         self.sim()
 
-    def disp(self, params, num):
+    def disp(self, params, num, display=True, prepExport=False):
         out = params[num]
         for name in ['amp', 'const']:
             inp = out[name][0]
@@ -1587,16 +1611,24 @@ class RelaxParamFrame(AbstractParamFrame):
                     self.rootwindow.mainProgram.dispMsg("One of the inputs is not valid")
                     return
         tmpx = self.parent.xax
-        numCurve = 100  # number of points in output curve
-        outCurve = out['const'][0]*np.ones(numCurve)
-        if self.xlog.isChecked():
-            x = np.logspace(np.log(min(tmpx)), np.log(max(tmpx)), numCurve)
+        if prepExport:
+            x = tmpx
+            outCurve = out['const'][0]*np.ones(len(x))
         else:
-            x = np.linspace(min(tmpx), max(tmpx), numCurve)
+            numCurve = 100  # number of points in output curve
+            outCurve = out['const'][0]*np.ones(numCurve)
+            if self.xlog.isChecked():
+                x = np.logspace(np.log(min(tmpx)), np.log(max(tmpx)), numCurve)
+            else:
+                x = np.linspace(min(tmpx), max(tmpx), numCurve)
         for i in range(len(out['coeff'])):
             outCurve += out['coeff'][i] * np.exp(-x / out['t'][i])
         self.parent.fitDataList[tuple(self.parent.locList)] = [x, out['amp'][0]*outCurve, [], []]
-        self.parent.showFid()
+        if display:
+            self.parent.showFid()
+
+    def calculateResultsToWorkspace(self, prepExport):
+        self.rootwindow.sim(display=False, prepExport=prepExport)
 
 #############################################################################
 
@@ -1954,7 +1986,7 @@ class DiffusionParamFrame(AbstractParamFrame):
         out['triangle'] = [safeEval(self.triangleEntry.text())]
         return (out, [out['gamma'][-1], out['delta'][-1], out['triangle'][-1]])
         
-    def disp(self, params, num):
+    def disp(self, params, num, display=True, prepExport=False):
         out = params[num]
         for name in ['amp', 'const', 'gamma', 'delta', 'triangle']:
             inp = out[name][0]
@@ -1972,16 +2004,24 @@ class DiffusionParamFrame(AbstractParamFrame):
                     self.rootwindow.mainProgram.dispMsg("One of the inputs is not valid")
                     return
         tmpx = self.parent.xax
-        numCurve = 100  # number of points in output curve
-        outCurve = out['const'][0]*np.ones(numCurve)
-        if self.xlog.isChecked():
-            x = np.logspace(np.log(min(tmpx)), np.log(max(tmpx)), numCurve)
+        if prepExport:
+            x = tmpx
+            outCurve = out['const'][0]*np.ones(len(x))
         else:
-            x = np.linspace(min(tmpx), max(tmpx), numCurve)
+            numCurve = 100  # number of points in output curve
+            outCurve = out['const'][0]*np.ones(numCurve)
+            if self.xlog.isChecked():
+                x = np.logspace(np.log(min(tmpx)), np.log(max(tmpx)), numCurve)
+            else:
+                x = np.linspace(min(tmpx), max(tmpx), numCurve)
         for i in range(len(out['coeff'])):
             outCurve += out['coeff'][i] * np.exp(-(out['gamma'][0] * out['delta'][0] * x)**2 * out['d'][i] * (out['triangle'][0] - out['delta'][0] / 3.0))
         self.parent.fitDataList[tuple(self.parent.locList)] = [x, out['amp'][0]*outCurve, [], []]
-        self.parent.showFid()
+        if display:
+            self.parent.showFid()
+
+    def calculateResultsToWorkspace(self, prepExport):
+        self.rootwindow.sim(display=False, prepExport=prepExport)
 
 ##############################################################################
 
