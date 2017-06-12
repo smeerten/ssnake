@@ -134,7 +134,6 @@ The data parameter frame features the following elements:
 \item Plot: A dropdown menu specifying how the data should be plot. It has four options: Real, Imag, Both and Abs. Real: plots only the real part of the complex data. Imag: plots only the imaginary part. Both: plots both the real and imaginary part of the data in different colours. Abs: plots the absolute value of the data. Note that this only toggles the \textit{view} of the current data. Changing the data itself can be done via the Tools menu.
 \item Axis: Dropdown menu the change the unit of the current x-axis. For a time axis, s, ms and $\muup$ are supported. For the frequency axis: Hz, kHz, MHz and ppm.
 \item \textit{Special}: Axis2: changes the unit of the y-axis in a 2D contour plot.
-\item \textit{Special}: Proj top/right: changes the type of the projections in a 2D contour plot. The options are: sum, max and min, giving the sum of the data along that dimension, or the maximum or minimum of each trace.
 \end{itemize}
 
 \subsubsection*{Get Position Frame}
@@ -715,6 +714,35 @@ A &=  \dfrac{21}{16} \cos(\theta)^4 - \dfrac{9}{8} \cos(\theta)^2 + \dfrac{5}{16
 B &=  \left(-\dfrac{7}{8} \cos(\theta)^4 + \cos(\theta)^2 - \dfrac{1}{8}\right) \cos(2 \phi)\\
 C &=  \dfrac{1}{12} \cos(\theta)^2 + \left( \dfrac{7}{48} \cos(\theta)^4 - \dfrac{7}{24} \cos(\theta)^2 + \dfrac{7}{48} \right) \cos(2 \phi)^2
 \end{align}
+
+
+
+
+\section{Combine}
+The combine menu options allow the interaction between different workspaces like multiplication and addition. For some of these tools it is essential that the workspaces have exactly the same dimensions. Note that ssNake regards 1D data with size 1000 differently than 2D data with 1 point in the indirect dimension (1x1000).
+The same applies for all dimension with size 1 (they still count as a dimension).
+
+\subsection{Combine Workspaces}
+Using Combine Workspaces opens a window that allows for the selection of multiple workspaces via dragging and dropping in the right-hand list.
+Only workspaces with the same size can be combined (and error will be given otherwise). The selected workspaces will be combined and copied to a new workspaces, of which the name will be asked.
+Combining multiple sets of data this way requires the creation of a new dimension, which is always the new dimension D1. For example, combining two 1D data sets with 1024 points will lead to a combined data set of 2x1024 points (D1xD2).
+Combining a two sets of 10x512 data points leads to a 3D set of 2x10x1024.
+
+
+\subsection{Insert From Workspace}
+Insert From Workspace can be used to append data from another workspace to the current. For this, it is not necessary to have two Workspaces of exactly the same size.
+However, appending must be possible in some way. The way the data is appended depends on the current dimension. For example: the current data has size 2x1000 and D2 is viewed. 
+Inserting a 1D data set of 500 points leads to a 2x1500 data set. Doing the same when viewing the D1 dimension gives an error. It would be possible to append a 1D set of 1000 points to this data from D1.
+This gives a 3x1000 data set back.
+
+
+\subsection{Add}
+Add the data of the selected workspace to the current workspace. The active dimension is not considered. Data of both workspaces must be the same size, or must be able to be broadcasted.
+An example of the latter is the addition of a 1D set with size 1024 to a 2D 10x1024 set. In this case, all 10 traces of the 2D will have the 1D set added up to it.
+Generally speaking, data with less dimensions can be added to larger data if all the dimension it does have are the same size as those of the larger data set, or equal to 1.
+For example: 10x3x1024 + 3x1024 (or 1x1024) will go well. 10x3x1024 + 2x1024 will go wrong: what to do with the 2? The same goes for the last dimension: 2x512 + 2x1024 will go wrong.
+
+
 
 
 \section{Utilities}
