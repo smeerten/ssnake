@@ -142,6 +142,9 @@ def voigtLine(x, pos, lor, gau, integral, Type = 0):
 
 class TabFittingWindow(QtWidgets.QWidget):
 
+    PRECIS = 3
+    MINMETHOD = 'Powell'
+
     def __init__(self, mainProgram, oldMainWindow):
         QtWidgets.QWidget.__init__(self, mainProgram)
         self.mainProgram = mainProgram
@@ -348,7 +351,7 @@ class FittingWindow(QtWidgets.QWidget):
         self.tabWindow.fit()
 
     def sim(self, *args, **kwargs):
-        self.tabWindow.disp(*args, **kwargs)
+        self.tabWindow.disp(**kwargs)
         
     def addSpectrum(self):
         self.tabWindow.addSpectrum()
@@ -756,6 +759,9 @@ class AbstractParamFrame(QtWidgets.QWidget):
         else:
             cancelButton = QtWidgets.QPushButton("&Delete")
             cancelButton.clicked.connect(self.rootwindow.removeSpectrum)
+        prefButton = QtWidgets.QPushButton("Preferences")
+        prefButton.clicked.connect(self.createPrefWindow)
+        self.frame1.addWidget(prefButton, 0, 1)
         self.frame1.addWidget(cancelButton, 7, 0)
         self.frame1.setColumnStretch(10, 1)
         self.frame1.setAlignment(QtCore.Qt.AlignTop)
@@ -777,14 +783,14 @@ class AbstractParamFrame(QtWidgets.QWidget):
         val = self.fitNumList[locList] + 1
         for name in self.SINGLENAMES:
             if isinstance(self.fitParamList[locList][name][0], (float, int)):
-                self.entries[name][0].setText('%#.3g' % self.fitParamList[locList][name][0])
+                self.entries[name][0].setText(('%#.'+str(self.rootwindow.tabWindow.PRECIS)+'g') % self.fitParamList[locList][name][0])
             if self.TICKS:
                 self.ticks[name][0].setChecked(self.fitParamList[locList][name][1])
         self.setNumExp()
         for i in range(self.FITNUM):
             for name in self.MULTINAMES:
                 if isinstance(self.fitParamList[locList][name][i][0], (float, int)):
-                    self.entries[name][i].setText('%#.3g' % self.fitParamList[locList][name][i][0])
+                    self.entries[name][i].setText(('%#.'+str(self.rootwindow.tabWindow.PRECIS)+'g') % self.fitParamList[locList][name][i][0])
                 if self.TICKS:
                     self.ticks[name][i].setChecked(self.fitParamList[locList][name][i][1])
                 if i < val:
@@ -824,7 +830,7 @@ class AbstractParamFrame(QtWidgets.QWidget):
             if inp is None:
                 return False
             elif isinstance(inp, float):
-                self.entries[name][0].setText('%#.3g' % inp)
+                self.entries[name][0].setText(('%#.'+str(self.rootwindow.tabWindow.PRECIS)+'g') % inp)
             else:
                 self.entries[name][0].setText(str(inp))
             self.fitParamList[locList][name][0] = inp
@@ -836,7 +842,7 @@ class AbstractParamFrame(QtWidgets.QWidget):
                 if inp is None:
                     return False
                 elif isinstance(inp, float):
-                    self.entries[name][i].setText('%#.3g' % inp)
+                    self.entries[name][i].setText(('%#.'+str(self.rootwindow.tabWindow.PRECIS)+'g') % inp)
                 else:
                     self.entries[name][i].setText(str(inp))
                 self.fitParamList[locList][name][i][0] = inp
@@ -865,7 +871,7 @@ class AbstractParamFrame(QtWidgets.QWidget):
             out[name] = np.zeros(numExp)
         for name in self.SINGLENAMES:
             if isfloat(self.entries[name][0].text()):
-                if not self.fitParamList[tuple(self.parent.locList)][name][0]:
+                if not self.fitParamList[tuple(self.parent.locList)][name][1]:
                     guess.append(float(self.entries[name][0].text()))
                     struc[name].append((1, len(guess)-1))
                 else:
@@ -893,7 +899,7 @@ class AbstractParamFrame(QtWidgets.QWidget):
 
     def fit(self, xax, data1D, guess, args):
         self.queue = multiprocessing.Queue()
-        self.process1 = multiprocessing.Process(target=self.FITFUNC, args=(xax, data1D, guess, args, self.queue))
+        self.process1 = multiprocessing.Process(target=self.FITFUNC, args=(xax, data1D, guess, args, self.queue, self.rootwindow.tabWindow.MINMETHOD))
         self.process1.start()
         self.running = True
         self.stopButton.show()
@@ -1070,8 +1076,54 @@ class AbstractParamFrame(QtWidgets.QWidget):
         # Some fitting methods need to recalculate the curves before exporting
         pass
 
+    def createPrefWindow(self, *args):
+        PrefWindow(self.rootwindow.tabWindow)
+
 ##############################################################################
-    
+
+
+class PrefWindow(QtWidgets.QWidget):
+
+    METHODLIST = ['Powell', 'Nelder-Mead']
+
+    def __init__(self, parent):
+        QtWidgets.QWidget.__init__(self, parent)
+        self.setWindowFlags(QtCore.Qt.Window | QtCore.Qt.Tool)
+        self.father = parent
+        self.setWindowTitle("Preferences")
+        layout = QtWidgets.QGridLayout(self)
+        grid = QtWidgets.QGridLayout()
+        layout.addLayout(grid, 0, 0, 1, 2)
+        grid.addWidget(QLabel("Min. method:"), 0, 0)
+        self.minmethodBox = QtWidgets.QComboBox(self)
+        self.minmethodBox.addItems(self.METHODLIST)
+        self.minmethodBox.setCurrentIndex(self.METHODLIST.index(self.father.MINMETHOD))
+        grid.addWidget(self.minmethodBox, 0, 1)
+        grid.addWidget(QLabel("Significant digits:"), 1, 0)
+        self.precisBox = QtWidgets.QSpinBox(self)
+        self.precisBox.setValue(self.father.PRECIS)
+        grid.addWidget(self.precisBox, 1, 1)
+        cancelButton = QtWidgets.QPushButton("&Cancel")
+        cancelButton.clicked.connect(self.closeEvent)
+        layout.addWidget(cancelButton, 2, 0)
+        okButton = QtWidgets.QPushButton("&Ok", self)
+        okButton.clicked.connect(self.applyAndClose)
+        okButton.setFocus()
+        layout.addWidget(okButton, 2, 1)
+        grid.setRowStretch(100, 1)
+        self.show()
+        self.setGeometry(self.frameSize().width() - self.geometry().width(), self.frameSize().height() - self.geometry().height(), 0, 0)
+
+    def closeEvent(self, *args):
+        self.deleteLater()
+
+    def applyAndClose(self, *args):
+        self.father.PRECIS = self.precisBox.value()
+        self.father.MINMETHOD = self.METHODLIST[self.minmethodBox.currentIndex()]
+        self.closeEvent()
+
+##############################################################################
+
     
 class IntegralsWindow(TabFittingWindow):
 
@@ -1103,12 +1155,12 @@ class IntegralsFrame(FitPlotFrame):
     def pickDeconv(self, pos):
         pickNum = self.fitPickNumList[tuple(self.locList)]
         if self.pickWidth:
-            self.rootwindow.paramframe.entries['max'][pickNum].setText("%#.3g" % pos[1])
+            self.rootwindow.paramframe.entries['max'][pickNum].setText(('%#.'+str(self.rootwindow.tabWindow.PRECIS)+'g') % pos[1])
             self.fitPickNumList[tuple(self.locList)] += 1
             self.pickWidth = False
             self.rootwindow.fit()
         else:
-            self.rootwindow.paramframe.entries['min'][pickNum].setText("%#.3g" % pos[1])
+            self.rootwindow.paramframe.entries['min'][pickNum].setText(('%#.'+str(self.rootwindow.tabWindow.PRECIS)+'g') % pos[1])
             if pickNum < self.FITNUM:
                 self.rootwindow.paramframe.numExp.setCurrentIndex(pickNum)
                 self.rootwindow.paramframe.changeNum()
@@ -1133,16 +1185,14 @@ class IntegralsParamFrame(AbstractParamFrame):
             elem[...] = {'min':np.repeat([np.array([min(self.parent.current.xax), True], dtype=object)], self.FITNUM, axis=0), 'max':np.repeat([np.array([max(self.parent.current.xax), True], dtype=object)], self.FITNUM,axis=0), 'amp':np.repeat([np.array([1.0, False], dtype=object)], self.FITNUM,axis=0)}
         resetButton = QtWidgets.QPushButton("Reset")
         resetButton.clicked.connect(self.reset)
-        self.frame1.addWidget(resetButton, 0, 1)
+        self.frame1.addWidget(resetButton, 0, 2)
         self.pickTick = QtWidgets.QCheckBox("Pick")
         self.pickTick.stateChanged.connect(self.togglePick)
-        self.frame1.addWidget(self.pickTick, 1, 1)
+        self.frame1.addWidget(self.pickTick, 1, 2)
         self.absIntTick = QtWidgets.QCheckBox("Relative integrals")
         self.absIntTick.setChecked(True)
         self.absIntTick.stateChanged.connect(self.rootwindow.fit)
-        self.frame1.addWidget(self.absIntTick, 2, 1, 1, 2)
-        self.frame1.setColumnStretch(10, 1)
-        self.frame1.setAlignment(QtCore.Qt.AlignTop)
+        self.frame1.addWidget(self.absIntTick, 2, 2, 1, 2)
         self.numExp = QtWidgets.QComboBox()
         self.numExp.addItems([str(x+1) for x in range(self.FITNUM)])
         self.numExp.currentIndexChanged.connect(self.changeNum)
@@ -1214,8 +1264,8 @@ class IntegralsParamFrame(AbstractParamFrame):
             self.fitParamList[locList]['max'][num][0] = min(inp, self.fitParamList[locList]['min'][num][0])
         self.fitNumList[tuple(self.parent.locList)] += 1
         self.first = True
-        self.entries['min'][num].setText("%#.3g" % self.fitParamList[locList]['min'][num][0])
-        self.entries['max'][num].setText("%#.3g" % self.fitParamList[locList]['max'][num][0])
+        self.entries['min'][num].setText(('%#.'+str(self.rootwindow.tabWindow.PRECIS)+'g') % self.fitParamList[locList]['min'][num][0])
+        self.entries['max'][num].setText(('%#.'+str(self.rootwindow.tabWindow.PRECIS)+'g') % self.fitParamList[locList]['max'][num][0])
         self.rootwindow.fit()
 
     def setRef(self, entry):
@@ -1237,7 +1287,7 @@ class IntegralsParamFrame(AbstractParamFrame):
         else:
             tmpInts = np.array([num[0] for num in self.fitParamList[locList]['amp']])
         for i in range(self.FITNUM):
-            self.entries['amp'][i].setText("%#.3g" % tmpInts[i])
+            self.entries['amp'][i].setText(('%#.'+str(self.rootwindow.tabWindow.PRECIS)+'g') % tmpInts[i])
 
     def disp(self, params, num, display=True, prepExport=False):
         out = params[num]
@@ -1289,7 +1339,7 @@ class IntegralsParamFrame(AbstractParamFrame):
 
 ##############################################################################
 
-def integralsmpFit(allX, data1D, guess, args, queue):
+def integralsmpFit(allX, data1D, guess, args, queue, minmethod):
     specName = args[0]
     specSlices = args[1]
     allStruc = args[3]
@@ -1549,14 +1599,14 @@ class RelaxParamFrame(AbstractParamFrame):
         self.frame2.addWidget(self.ticks['amp'][-1], 1, 0)
         self.entries['amp'].append(QtWidgets.QLineEdit())
         self.entries['amp'][-1].setAlignment(QtCore.Qt.AlignHCenter)
-        self.entries['amp'][-1].setText("%#.3g" % self.fitParamList[locList]['amp'][0])
+        self.entries['amp'][-1].setText(('%#.'+str(self.rootwindow.tabWindow.PRECIS)+'g') % self.fitParamList[locList]['amp'][0])
         self.frame2.addWidget(self.entries['amp'][-1], 1, 1)
         self.frame2.addWidget(QLabel("Constant:"), 2, 0, 1, 2)
         self.ticks['const'].append(QtWidgets.QCheckBox(''))
         self.frame2.addWidget(self.ticks['const'][-1], 3, 0)
         self.entries['const'].append(QtWidgets.QLineEdit())
         self.entries['const'][-1].setAlignment(QtCore.Qt.AlignHCenter)
-        self.entries['const'][-1].setText("%#.3g" % self.fitParamList[locList]['const'][0])
+        self.entries['const'][-1].setText(('%#.'+str(self.rootwindow.tabWindow.PRECIS)+'g') % self.fitParamList[locList]['const'][0])
         self.frame2.addWidget(self.entries['const'][-1], 3, 1)
         self.frame2.setColumnStretch(10, 1)
         self.frame2.setAlignment(QtCore.Qt.AlignTop)
@@ -1583,7 +1633,7 @@ class RelaxParamFrame(AbstractParamFrame):
                 self.frame3.addWidget(self.ticks[self.MULTINAMES[j]][i], i + 2, 2*j)
                 self.entries[self.MULTINAMES[j]].append(QtWidgets.QLineEdit())
                 self.entries[self.MULTINAMES[j]][i].setAlignment(QtCore.Qt.AlignHCenter)
-                self.entries[self.MULTINAMES[j]][i].setText('%#.3g' % self.fitParamList[locList][self.MULTINAMES[j]][i][0])
+                self.entries[self.MULTINAMES[j]][i].setText(('%#.'+str(self.rootwindow.tabWindow.PRECIS)+'g') % self.fitParamList[locList][self.MULTINAMES[j]][i][0])
                 self.frame3.addWidget(self.entries[self.MULTINAMES[j]][i], i + 2, 2*j+1)
                 if i > 0:
                     self.ticks[self.MULTINAMES[j]][i].hide()
@@ -1632,9 +1682,9 @@ class RelaxParamFrame(AbstractParamFrame):
 
 #############################################################################
 
-def relaxationmpFit(xax, data1D, guess, args, queue):
+def relaxationmpFit(xax, data1D, guess, args, queue, minmethod):
     try:
-        fitVal = scipy.optimize.minimize(lambda *param: np.sum((data1D-relaxationfitFunc(param, xax, args))**2), guess, method='Powell')
+        fitVal = scipy.optimize.minimize(lambda *param: np.sum((data1D-relaxationfitFunc(param, xax, args))**2), guess, method=minmethod)
     except:
         fitVal = None
     queue.put(fitVal)
@@ -1931,7 +1981,7 @@ class DiffusionParamFrame(AbstractParamFrame):
         self.frame3.addWidget(self.ticks['amp'][-1], 1, 0)
         self.entries['amp'].append(QtWidgets.QLineEdit())
         self.entries['amp'][-1].setAlignment(QtCore.Qt.AlignHCenter)
-        self.entries['amp'][-1].setText("%#.3g" % np.amax(self.parent.data1D))
+        self.entries['amp'][-1].setText(('%#.'+str(self.rootwindow.tabWindow.PRECIS)+'g') % np.amax(self.parent.data1D))
         self.frame3.addWidget(self.entries['amp'][-1], 1, 1)
         self.frame3.addWidget(QLabel("Constant:"), 2, 0, 1, 2)
         self.ticks['const'].append(QtWidgets.QCheckBox(''))
@@ -1970,7 +2020,7 @@ class DiffusionParamFrame(AbstractParamFrame):
                 self.frame4.addWidget(self.ticks[self.MULTINAMES[j]][i], i + 2, 2*j)
                 self.entries[self.MULTINAMES[j]].append(QtWidgets.QLineEdit())
                 self.entries[self.MULTINAMES[j]][i].setAlignment(QtCore.Qt.AlignHCenter)
-                self.entries[self.MULTINAMES[j]][i].setText('%#.3g' % self.fitParamList[locList][self.MULTINAMES[j]][i][0])
+                self.entries[self.MULTINAMES[j]][i].setText(('%#.'+str(self.rootwindow.tabWindow.PRECIS)+'g') % self.fitParamList[locList][self.MULTINAMES[j]][i][0])
                 self.frame4.addWidget(self.entries[self.MULTINAMES[j]][i], i + 2, 2*j+1)
                 if i > 0:
                     self.ticks[self.MULTINAMES[j]][i].hide()
@@ -2026,9 +2076,9 @@ class DiffusionParamFrame(AbstractParamFrame):
 ##############################################################################
 
 
-def diffusionmpFit(xax, data1D, guess, args, queue):
+def diffusionmpFit(xax, data1D, guess, args, queue, minmethod):
     try:
-        fitVal = scipy.optimize.minimize(lambda *param: np.sum((data1D-diffusionfitFunc(param, xax, args))**2), guess, method='Powell')
+        fitVal = scipy.optimize.minimize(lambda *param: np.sum((data1D-diffusionfitFunc(param, xax, args))**2), guess, method=minmethod)
     except:
         fitVal = None
     queue.put(fitVal)
@@ -2124,19 +2174,19 @@ class PeakDeconvFrame(FitPlotFrame):
             elif self.current.spec == 0:
                 axMult = 1000.0**self.current.axType
             width = (2 * abs(float(self.rootwindow.paramframe.entries['pos'][pickNum].text()) - pos[1])) / axMult
-            self.rootwindow.paramframe.entries['amp'][pickNum].setText("%#.3g" % (float(self.rootwindow.paramframe.entries['amp'][pickNum].text()) * width))
-            self.rootwindow.paramframe.entries['lor'][pickNum].setText("%#.3g" % abs(width))
+            self.rootwindow.paramframe.entries['amp'][pickNum].setText(('%#.'+str(self.rootwindow.tabWindow.PRECIS)+'g') % (float(self.rootwindow.paramframe.entries['amp'][pickNum].text()) * width))
+            self.rootwindow.paramframe.entries['lor'][pickNum].setText(('%#.'+str(self.rootwindow.tabWindow.PRECIS)+'g') % abs(width))
             self.fitPickNumList[tuple(self.locList)] += 1
             self.pickWidth = False
         else:
-            self.rootwindow.paramframe.entries['pos'][pickNum].setText("%#.3g" % pos[1])
+            self.rootwindow.paramframe.entries['pos'][pickNum].setText(('%#.'+str(self.rootwindow.tabWindow.PRECIS)+'g') % pos[1])
             left = pos[0] - self.FITNUM
             if left < 0:
                 left = 0
             right = pos[0] + self.FITNUM
             if right >= len(self.data1D):
                 right = len(self.data1D) - 1
-            self.rootwindow.paramframe.entries['amp'][pickNum].setText("%#.3g" % (pos[2] * np.pi * 0.5))
+            self.rootwindow.paramframe.entries['amp'][pickNum].setText(('%#.'+str(self.rootwindow.tabWindow.PRECIS)+'g') % (pos[2] * np.pi * 0.5))
             if pickNum < self.FITNUM:
                 self.rootwindow.paramframe.numExp.setCurrentIndex(pickNum)
                 self.rootwindow.paramframe.changeNum()
@@ -2161,12 +2211,10 @@ class PeakDeconvParamFrame(AbstractParamFrame):
             elem[...] = {'bgrnd':[0.0, True], 'slope':[0.0, True], 'pos':np.repeat([np.array([0.0, False], dtype=object)], self.FITNUM, axis=0), 'amp':np.repeat([np.array([self.fullInt, False], dtype=object)], self.FITNUM,axis=0), 'lor':np.repeat([np.array([1.0, False], dtype=object)], self.FITNUM,axis=0), 'gauss':np.repeat([np.array([0.0, True], dtype=object)], self.FITNUM,axis=0)}
         resetButton = QtWidgets.QPushButton("Reset")
         resetButton.clicked.connect(self.reset)
-        self.frame1.addWidget(resetButton, 0, 1)
+        self.frame1.addWidget(resetButton, 0, 2)
         self.pickTick = QtWidgets.QCheckBox("Pick")
         self.pickTick.stateChanged.connect(self.togglePick)
-        self.frame1.addWidget(self.pickTick, 1, 1)
-        self.frame1.setColumnStretch(self.FITNUM, 1)
-        self.frame1.setAlignment(QtCore.Qt.AlignTop)
+        self.frame1.addWidget(self.pickTick, 1, 2)
         self.ticks = {'bgrnd':[], 'slope':[], 'pos':[], 'amp':[], 'lor':[], 'gauss':[]}
         self.entries = {'bgrnd':[], 'slope':[], 'pos':[], 'amp':[], 'lor':[], 'gauss':[], 'method':[]}
         self.frame2.addWidget(QLabel("Bgrnd:"), 0, 0, 1, 2)
@@ -2264,9 +2312,9 @@ class PeakDeconvParamFrame(AbstractParamFrame):
 ##############################################################################
 
 
-def peakDeconvmpFit(xax, data1D, guess, args, queue):
+def peakDeconvmpFit(xax, data1D, guess, args, queue, minmethod):
     try:
-        fitVal = scipy.optimize.minimize(lambda *param: np.sum((data1D-peakDeconvfitFunc(param, xax, args))**2), guess, method='Powell')
+        fitVal = scipy.optimize.minimize(lambda *param: np.sum((data1D-peakDeconvfitFunc(param, xax, args))**2), guess, method=minmethod)
     except:
         fitVal = None
     queue.put(fitVal)
@@ -2339,7 +2387,6 @@ class TensorDeconvWindow(TabFittingWindow):
 class TensorDeconvFrame(FitPlotFrame):
 
     def __init__(self, rootwindow, fig, canvas, current):
-        self.printDigits = 3
         self.FITNUM = 10 # Maximum number of fits
         self.pickNum = 0
         self.pickNum2 = 0
@@ -2355,7 +2402,7 @@ class TensorDeconvFrame(FitPlotFrame):
             self.peakPick = False
 
     def pickDeconv(self, pos):
-        printStr = "%#." + str(self.printDigits) + "g"
+        printStr = "%#." + str(self.rootwindow.param.PRECIS) + "g"
         if self.spec == 1:
             if self.current.ppm:
                 axMult = 1e6 / self.current.ref
@@ -2399,15 +2446,13 @@ class TensorDeconvParamFrame(AbstractParamFrame):
             elem[...] = {'bgrnd':[0.0, True], 'slope':[0.0, True], 't11':np.repeat([np.array([0.0, False], dtype=object)], self.FITNUM, axis=0), 't22':np.repeat([np.array([0.0, False], dtype=object)], self.FITNUM, axis=0), 't33':np.repeat([np.array([0.0, False], dtype=object)], self.FITNUM, axis=0), 'amp':np.repeat([np.array([self.fullInt, False], dtype=object)], self.FITNUM,axis=0), 'lor':np.repeat([np.array([1.0, False], dtype=object)], self.FITNUM,axis=0), 'gauss':np.repeat([np.array([0.0, True], dtype=object)], self.FITNUM,axis=0)}
         resetButton = QtWidgets.QPushButton("Reset")
         resetButton.clicked.connect(self.reset)
-        self.frame1.addWidget(resetButton, 0, 1)
+        self.frame1.addWidget(resetButton, 0, 2)
         self.pickTick = QtWidgets.QCheckBox("Pick")
         self.pickTick.stateChanged.connect(self.togglePick)
-        self.frame1.addWidget(self.pickTick, 2, 1)
-        self.frame1.setColumnStretch(10, 1)
-        self.frame1.setAlignment(QtCore.Qt.AlignTop)
+        self.frame1.addWidget(self.pickTick, 2, 2)
         self.ticks = {'bgrnd':[], 'slope':[], 't11':[], 't22':[], 't33':[], 'amp':[], 'lor':[], 'gauss':[]}
         self.entries = {'bgrnd':[], 'slope':[], 't11':[], 't22':[], 't33':[], 'amp':[], 'lor':[], 'gauss':[], 'shiftdef':[], 'cheng':[]}
-        self.frame1.addWidget(QLabel("Definition:"), 3, 1) 
+        self.frame1.addWidget(QLabel("Definition:"), 3, 2)
         self.shiftDefType = 0 #variable to remember the selected tensor type
         self.entries['shiftdef'].append(QtWidgets.QComboBox())
         self.entries['shiftdef'][-1].addItems([u'\u03b411 - \u03b422 - \u03b433',
@@ -2415,7 +2460,7 @@ class TensorDeconvParamFrame(AbstractParamFrame):
                                                u'\u03b4iso - \u03b4aniso - \u03b7',
                                                u'\u03b4iso - \u03a9 - \u03b7'])
         self.entries['shiftdef'][-1].currentIndexChanged.connect(self.changeShiftDef)
-        self.frame1.addWidget(self.entries['shiftdef'][-1], 4, 1)   
+        self.frame1.addWidget(self.entries['shiftdef'][-1], 4, 2)
         self.optframe.addWidget(QLabel("Cheng:"), 0, 0)
         self.entries['cheng'].append(QtWidgets.QLineEdit())
         self.entries['cheng'][-1].setAlignment(QtCore.Qt.AlignHCenter)
@@ -2603,7 +2648,7 @@ class TensorDeconvParamFrame(AbstractParamFrame):
                     if type(Tensors[NewType][element]) == str:
                         Tensors[NewType][element] = 0
                 tensorList.append(Tensors)   
-        printStr = '%#.' + str(self.parent.printDigits) + 'g'
+        printStr = '%#.' + str(self.rootwindow.tabWindow.PRECIS) + 'g'
         for i in range(10): #Print output if not stopped before
             if i < val:        
                 self.entries['t11'][i].setText(printStr % tensorList[i][NewType][0])
@@ -2652,9 +2697,9 @@ class TensorDeconvParamFrame(AbstractParamFrame):
 
 ##############################################################################
         
-def tensorDeconvmpFit(xax, data1D, guess, args, queue):
+def tensorDeconvmpFit(xax, data1D, guess, args, queue, minmethod):
     try:
-        fitVal = scipy.optimize.minimize(lambda *param: np.sum((data1D-tensorDeconvfitFunc(param, xax, args))**2), guess, method='Powell')
+        fitVal = scipy.optimize.minimize(lambda *param: np.sum((data1D-tensorDeconvfitFunc(param, xax, args))**2), guess, method=minmethod)
     except:
         fitVal = None
     queue.put(fitVal)
@@ -2767,8 +2812,6 @@ class CSAMASParamFrame(AbstractParamFrame):
         AbstractParamFrame.__init__(self, parent, rootwindow, isMain)
         for elem in np.nditer(self.fitParamList, flags=["refs_ok"], op_flags=['readwrite']):
             elem[...] = {'bgrnd':[0.0, True], 'slope':[0.0, True], 'spinspeed':[10.0, True], 'pos':np.repeat([np.array([0.0, False], dtype=object)], self.FITNUM, axis=0), 'delta':np.repeat([np.array([1.0, False], dtype=object)], self.FITNUM, axis=0), 'eta':np.repeat([np.array([0.0, False], dtype=object)], self.FITNUM, axis=0), 'amp':np.repeat([np.array([1.0, False], dtype=object)], self.FITNUM,axis=0), 'lor':np.repeat([np.array([1.0, False], dtype=object)], self.FITNUM,axis=0), 'gauss':np.repeat([np.array([0.0, True], dtype=object)], self.FITNUM,axis=0)}
-        self.frame1.setColumnStretch(10, 1)
-        self.frame1.setAlignment(QtCore.Qt.AlignTop)
         self.ticks = {'bgrnd':[], 'slope':[], 'spinspeed':[], 'pos':[], 'delta':[], 'eta':[], 'amp':[], 'lor':[], 'gauss':[]}
         self.entries = {'bgrnd':[], 'slope':[], 'spinspeed':[], 'pos':[], 'delta':[], 'eta':[], 'amp':[], 'lor':[], 'gauss':[], 'shiftdef':[], 'cheng':[]}
         # self.frame1.addWidget(QLabel("Definition:"), 3, 1) 
@@ -2885,9 +2928,9 @@ class CSAMASParamFrame(AbstractParamFrame):
 ##############################################################################
 
 
-def CSAMASmpFit(xax, data1D, guess, args, queue):
+def CSAMASmpFit(xax, data1D, guess, args, queue, minmethod):
     try:
-        fitVal = scipy.optimize.minimize(lambda *param: np.sum((data1D-CSAMASfitFunc(param, xax, args))**2), guess, method='Powell')
+        fitVal = scipy.optimize.minimize(lambda *param: np.sum((data1D-CSAMASfitFunc(param, xax, args))**2), guess, method=minmethod)
     except:
         fitVal = None
     queue.put(fitVal)
@@ -3026,8 +3069,6 @@ class Quad1MASDeconvParamFrame(AbstractParamFrame):
 
         for elem in np.nditer(self.fitParamList, flags=["refs_ok"], op_flags=['readwrite']):
             elem[...] = {'bgrnd':[0.0, True], 'slope':[0.0, True], 'spinspeed':[10.0, True], 'pos':np.repeat([np.array([0.0, False], dtype=object)], self.FITNUM, axis=0), 'cq':np.repeat([np.array([1.0, False], dtype=object)], self.FITNUM, axis=0), 'eta':np.repeat([np.array([0.0, False], dtype=object)], self.FITNUM, axis=0), 'amp':np.repeat([np.array([self.fullInt, False], dtype=object)], self.FITNUM,axis=0), 'lor':np.repeat([np.array([1.0, False], dtype=object)], self.FITNUM,axis=0), 'gauss':np.repeat([np.array([0.0, True], dtype=object)], self.FITNUM,axis=0)}
-        self.frame1.setColumnStretch(10, 1)
-        self.frame1.setAlignment(QtCore.Qt.AlignTop)
         self.ticks = {'bgrnd':[], 'slope':[], 'spinspeed':[], 'pos':[], 'cq':[], 'eta':[], 'amp':[], 'lor':[], 'gauss':[]}
         self.entries = {'bgrnd':[], 'slope':[], 'spinspeed':[], 'pos':[], 'cq':[], 'eta':[], 'amp':[], 'lor':[], 'gauss':[], 'shiftdef':[], 'cheng':[], 'I':[]}
         self.optframe.addWidget(QLabel("Cheng:"), 0, 0)
@@ -3143,9 +3184,9 @@ class Quad1MASDeconvParamFrame(AbstractParamFrame):
 
 ##############################################################################
 
-def quad1MASmpFit(xax, data1D, guess, args, queue):
+def quad1MASmpFit(xax, data1D, guess, args, queue, minmethod):
     try:
-        fitVal = scipy.optimize.minimize(lambda *param: np.sum((data1D-quad1MASfitFunc(param, xax, args))**2), guess, method='Powell')
+        fitVal = scipy.optimize.minimize(lambda *param: np.sum((data1D-quad1MASfitFunc(param, xax, args))**2), guess, method=minmethod)
     except:
         fitVal = None
     queue.put(fitVal)
@@ -3318,8 +3359,6 @@ class Quad1DeconvParamFrame(AbstractParamFrame):
             self.axAdd = 0
         self.ticks = {'bgrnd':[], 'slope':[], 'pos':[], 'cq':[], 'eta':[], 'amp':[], 'lor':[], 'gauss':[]}
         self.entries = {'bgrnd':[], 'slope':[], 'pos':[], 'cq':[], 'eta':[], 'amp':[], 'lor':[], 'gauss':[], 'method':[], 'cheng':[], 'I':[]}
-        self.frame1.setColumnStretch(self.FITNUM, 1)
-        self.frame1.setAlignment(QtCore.Qt.AlignTop)
         self.optframe.addWidget(QLabel("Cheng:"), 0, 0)
         self.entries['cheng'].append(QtWidgets.QLineEdit())
         self.entries['cheng'][-1].setAlignment(QtCore.Qt.AlignHCenter)
@@ -3369,7 +3408,7 @@ class Quad1DeconvParamFrame(AbstractParamFrame):
                 self.ticks[self.MULTINAMES[j]][i].setChecked(self.fitParamList[locList][self.MULTINAMES[j]][i][1])
                 self.frame3.addWidget(self.ticks[self.MULTINAMES[j]][i], i + 2, 2*j)
                 self.entries[self.MULTINAMES[j]].append(QtWidgets.QLineEdit())
-                self.entries[self.MULTINAMES[j]][i].setText('%#.3g' % self.fitParamList[locList][self.MULTINAMES[j]][i][0])
+                self.entries[self.MULTINAMES[j]][i].setText(('%#.'+str(self.rootwindow.tabWindow.PRECIS)+'g') % self.fitParamList[locList][self.MULTINAMES[j]][i][0])
                 self.entries[self.MULTINAMES[j]][i].setAlignment(QtCore.Qt.AlignHCenter)
                 self.frame3.addWidget(self.entries[self.MULTINAMES[j]][i], i + 2, 2*j+1)
         self.changeNum()
@@ -3428,9 +3467,9 @@ class Quad1DeconvParamFrame(AbstractParamFrame):
 ##############################################################################
 
 
-def quad1DeconvmpFit(xax, data1D, guess, args, queue):
+def quad1DeconvmpFit(xax, data1D, guess, args, queue, minmethod):
     try:
-        fitVal = scipy.optimize.minimize(lambda *param: np.sum((data1D-quad1DeconvfitFunc(param, xax, args))**2), guess, method='Powell')
+        fitVal = scipy.optimize.minimize(lambda *param: np.sum((data1D-quad1DeconvfitFunc(param, xax, args))**2), guess, method=minmethod)
     except:
         fitVal = None
     queue.put(fitVal)
@@ -3632,8 +3671,6 @@ class Quad2StaticCzjzekParamFrame(AbstractParamFrame):
             self.axAdd = self.parent.current.freq - self.parent.current.ref
         elif self.parent.current.spec == 0:
             self.axAdd = 0
-        self.frame1.setColumnStretch(10, 1)
-        self.frame1.setAlignment(QtCore.Qt.AlignTop)
         self.ticks = {'bgrnd':[], 'slope':[], 'pos':[], 'd':[], 'sigma':[], 'amp':[], 'lor':[], 'gauss':[]}
         self.entries = {'bgrnd':[], 'slope':[], 'pos':[], 'd':[], 'sigma':[], 'amp':[], 'lor':[], 'gauss':[], 'method':[], 'cheng':[], 'I':[], 'wqgrid':[], 'etagrid':[], 'wqmax':[]}
         self.optframe.addWidget(QLabel("Cheng:"), 0, 0)
@@ -3802,9 +3839,9 @@ class Quad2StaticCzjzekParamFrame(AbstractParamFrame):
 #################################################################################
 
 
-def quad2CzjzekmpFit(xax, data1D, guess, args, queue):
+def quad2CzjzekmpFit(xax, data1D, guess, args, queue, minmethod):
     try:
-        fitVal = scipy.optimize.minimize(lambda *param: np.sum((data1D-quad2CzjzekfitFunc(param, xax, args))**2), guess, method='Powell')
+        fitVal = scipy.optimize.minimize(lambda *param: np.sum((data1D-quad2CzjzekfitFunc(param, xax, args))**2), guess, method=minmethod)
     except:
        fitVal = None
     queue.put(fitVal)
