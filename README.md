@@ -59,6 +59,10 @@ Creators
 
 **Wouter Franssen**
 
+Contact
+-------
+For question and suggestions mail to: ssnake@science.ru.nl
+
 License
 -------
 
