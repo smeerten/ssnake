@@ -418,11 +418,16 @@ class MainProgram(QtWidgets.QMainWindow):
         self.redoAction = self.editmenu.addAction(QtGui.QIcon(IconDirectory + 'redo.png'), "&Redo", self.redo, QtGui.QKeySequence.Redo)
         self.redoAction.setShortcutContext(QtCore.Qt.WidgetShortcut)
         self.redoAction.setToolTip('Redo')
+        self.noUndoAct = QtWidgets.QAction("&No Undo Mode", self.editmenu,checkable = True)
+        self.noUndoAct.toggled.connect(self.noUndoMode)
+        self.editmenu.addAction(self.noUndoAct)
+        self.clearundoAct = self.editmenu.addAction(QtGui.QIcon(IconDirectory + 'delete.png'),"&Clear Undo/Redo List", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.clearUndo()))
+        self.clearundoAct.setToolTip('Clear Undo/Redo List')
         self.reloadAct = self.editmenu.addAction(QtGui.QIcon(IconDirectory + 'reload.png'), "Re&load", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.reloadLast()), QtGui.QKeySequence.Refresh)
         self.reloadAct.setToolTip('Reload Current Data')
         self.monitorAct = self.editmenu.addAction(QtGui.QIcon(IconDirectory + 'monitor.png'),"&Monitor", lambda: self.mainWindowCheck(lambda mainWindow: MonitorWindow(mainWindow)))
         self.monitorAct.setToolTip('Monitor Current Data')
-        self.editActList = [self.undoAction,self.redoAction,self.reloadAct,self.monitorAct]        
+        self.editActList = [self.undoAction,self.redoAction,self.clearundoAct, self.noUndoAct ,self.reloadAct,self.monitorAct]        
         
         
         # the tool drop down menu
@@ -665,15 +670,10 @@ class MainProgram(QtWidgets.QMainWindow):
         self.menubar.addMenu(self.historyMenu)
         self.historyAct = self.historyMenu.addAction(QtGui.QIcon(IconDirectory + 'history.png'), "&History", lambda: self.mainWindowCheck(lambda mainWindow: HistoryWindow(mainWindow)))
         self.historyAct.setToolTip('Show Processing History')
-        self.noUndoAct = QtWidgets.QAction("&No Undo Mode", self.historyMenu,checkable = True)
-        self.noUndoAct.toggled.connect(self.noUndoMode)
-        self.historyMenu.addAction(self.noUndoAct)
         self.errorAct = self.historyMenu.addAction("&Error Messages", lambda: errorWindow(self))
         self.errorAct.setToolTip('Show Error Messages')
-        self.clearundoAct = self.historyMenu.addAction(QtGui.QIcon(IconDirectory + 'delete.png'),"&Clear Undo/Redo List", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.clearUndo()))
-        self.clearundoAct.setToolTip('Clear Undo/Redo List')
         
-        self.historyActList = [self.historyAct,self.noUndoAct,self.clearundoAct]
+        self.historyActList = [self.historyAct]
         
         
         

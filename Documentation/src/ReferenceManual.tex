@@ -360,10 +360,16 @@ Can be used to save a macro to the disk as a .json file. This is a plain text fi
 Loads a saved macro in ssNake. Execution of the macro can then be performed using Macros $\rightarrow$ Run.
 
 \subsection{Notes on usage of macros}
-Note that ssNake only records the actions that are not undone. If you perform an action when recording is on, and you undo it while recording, the macro has no entries. However, performing two actions that cancel each other \textit{are} recorded. For example, issuing Fourier twice has no net effect, but a macro of this includes both commands.
+Note that ssNake only records the actions that are not undone. If you perform an action when recording is on, 
+and you undo it while recording, the macro has no entries. However, performing two actions that cancel each other
+\textit{are} recorded. For example, issuing Fourier twice has no net effect, but a macro of this includes both commands.
 
-SOME PART ABOUT RUNNING MACROS ON MORE OR LESS DIMENSIONS THEN THEY WERE CREATED FOR.
-
+Note that it is possible to run a macro which has been recorded on a data set to:w
+be used on a data set with a different number of dimensions.
+For this, it is important to note that ssNake counts backwards to remember the dimension in which an action is performed. When there are 3 dimensions,
+ssNake classifies them as the second to last, first to last and last. A recorded macro can therefore be run at data that has all the dimensions in which some actions was performed,
+counting from the end. Only doing a Fourier transform in the last dimension is therefore possible on every data set, regardless of the fact that it might be D5 in some set,
+and D1 in another.
 
 
 
@@ -375,6 +381,19 @@ Undo cannot be used the undo the current view to the previous view as this is no
 
 \subsection{Redo}
 When Undo is used, the action that is undone is put in the redo list. Using Undo and then Redo therefore performs no net action. Every time a new action (i.e. something other then redo) is performed the redo list is cleared.
+
+\subsection{No Undo Mode}
+Activating this checkbox starts the No Undo Mode. This clears the current undo and redo list, and prevents any further actions from adding to the undo list. This way, no undo is possible
+for any further actions. Normally, this is undesirable, however, in some cases the undo information takes a lot of computer memory, especially for large data sets.
+Having No Undo Mode activated makes it more convenient to processes this data. Also note that No Undo Mode also applies for any run macro's.
+
+\subsection{Clear Undo/Redo List}
+Clears the undo and redo lists of the current data. This clears any memory allocated to these list, which can be a burden when processing large data sets.
+Naturally, any mistakes made during processing can not be corrected after this. Use with care.
+
+
+
+
 
 \subsection{Reload}
 This action reloads the data from the original source. All undo and redo information is retained, so you can undo back to before you reloaded the data. Note that the undo information can take quite some memory on your computer, especially for bigger data sets. In case this gives problems: the undo/redo data can be cleared using History $\rightarrow$ Clear Undo/Redo List.
@@ -402,6 +421,12 @@ Abs replaces all complex datapoints by the length of the vector they span in the
 F_\text{new} = \sqrt{\text{real}(F_\text{old})^2 + \text{imag}(F_\text{old})^2}
 \end{equation*}
 for all points in the complex data. These values are put as the real part. The imaginary part is zeroed.
+
+
+
+\subsection{Complex Conjugate}
+Multiplies the imaginary part of the data with $-1$. Performing this in the FID leads to a spectrum which is flipped along that dimension.
+
 
 \subsection{Phasing}
 Opens a tool that can be use to change the phasing in the current spectrum or fid. Supports zero order, first order and autophasing.
@@ -511,6 +536,29 @@ Currently, ssNake supports only LPSVD as a linear prediction algorithm. Using th
 \item The number of points that need to be predicted.
 \end{itemize}
 Pushing OK starts the analysis. The linear prediction is performed independently for every trace. The time it takes can therefore be quite long. Note that increasing the number of points used for the analysis above 200 usually has only a negative effect on the calculation time.
+
+
+\subsection{Hypercomplex}
+Hypercomplex data is data that has a real and imaginary part along more than 1 dimension. For a 2D data set that is hypercomplex, four 2D data sets are necessary to
+describe the data: RR, RI, IR, and II (with R = Real, and I = Imag).
+Generally in NMR, the 2D data is recorded with alternating phase, in such a way that groups of 2 data points in the indirect dimension must be combined to recover
+the four hypercomplex values. Depending on the way the data is recorded, a different procedure is necessary to construct the hypercomplex data.
+Currently, ssNake only retains one part of the hypercomplex data, which means that phasing must be performed before the hypercomplex transformations described below. 
+All of these methods stat with a alternating data set consisting of [R1,I1,R2,I2], were R1 stands for the first recorded complex point with time 1, I1 for the second
+recorded complex point with time 1.
+
+\subsubsection{States}
+States conversion takes the alternating data set and makes new complex values following:
+\begin{equation*}
+  \text{C}n = \text{R}n + i \cdot \text{I}n \quad .
+\end{equation*}
+So for example, if the two complex values of time delay 1 (in the indirect dimension) are $0+1i$ and $2+3i$, the result will be $2+4i$. Note that some 
+information is lost in this way (ideally, the difference between the two value is also retained). Therefore, phasing of the data should be done (perfectly) before the States analysis.
+
+\subsection{States--TPPI}
+
+
+
 
 \section{Matrix}
 This section describes the ssNake matrix manipulation tools. NMR data is nothing more then a data matrix of a specific dimension. Using the matrix tools, you can change the size of a dimension, split the data into more dimension, integrate, multiply, mirror etc. In the following, the different supported matrix manipulations will be introduced.
