@@ -38,7 +38,7 @@ class SsnakeTabs(QtWidgets.QTabWidget):
 class MyEventFilter(QtCore.QObject):
 
     def __init__(self, root, *args):
-        QtCore.QObject.__init__(self, *args)
+        super(MyEventFilter, self).__init__(*args)
         self.root = root
 
     def eventFilter(self, receiver, event):
@@ -68,7 +68,7 @@ class SliceSpinBox(QtWidgets.QSpinBox):
 
     def __init__(self, parent, minimum, maximum, *args, **kwargs):
         self.validator = SliceValidator()
-        QtWidgets.QDoubleSpinBox.__init__(self, parent, *args, **kwargs)
+        super(SliceSpinBox, self).__init__(parent, *args, **kwargs)
         self.setMinimum(minimum)
         self.setMaximum(maximum)
         self.setKeyboardTracking(False)
@@ -95,20 +95,22 @@ class SliceSpinBox(QtWidgets.QSpinBox):
 class QLabel(QtWidgets.QLabel):
 
     def __init__(self, parent, *args, **kwargs):
-        QtWidgets.QLabel.__init__(self, parent, *args, **kwargs)
+        super(QLabel, self).__init__(parent, *args, **kwargs)
         self.setAlignment(QtCore.Qt.AlignCenter)
+
 
 class QLeftLabel(QtWidgets.QLabel):
 
     def __init__(self, parent, *args, **kwargs):
-        QtWidgets.QLabel.__init__(self, parent, *args, **kwargs)
+        super(QLeftLabel, self).__init__(parent, *args, **kwargs)
         self.setAlignment(QtCore.Qt.AlignLeft)
         self.setAlignment(QtCore.Qt.AlignVCenter)
 
 
 class specialProgressBar(QtWidgets.QProgressBar):
+    
     def __init__(self):
-        QtWidgets.QProgressBar.__init__(self)
+        super(specialProgressBar, self).__init__()
         self.setAlignment(QtCore.Qt.AlignCenter)
         self._text = 'Inactive'
 

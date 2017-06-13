@@ -1481,7 +1481,7 @@ class Current1D(Plot1DFrame):
     Y_RESIZE = False
 
     def __init__(self, root, fig, canvas, data, duplicateCurrent=None):
-        Plot1DFrame.__init__(self, root, fig, canvas)
+        super(Current1D, self).__init__(root, fig, canvas)
         self.xax = None  # x-axis
         self.data = data  # the actual spectrum instance
         self.freq = None  # frequency of the slice
@@ -2654,7 +2654,7 @@ class CurrentScatter(Current1D):
     Y_RESIZE = False
 
     def __init__(self, root, fig, canvas, data, duplicateCurrent=None):
-        Current1D.__init__(self, root, fig, canvas, data, duplicateCurrent)
+        super(CurrentScatter, self).__init__(root, fig, canvas, data, duplicateCurrent)
 
     def showFid(self, tmpdata=None, extraX=None, extraY=None, extraColor=None, old=False, output=None):  # display the 1D data
         self.peakPickReset()
@@ -2772,8 +2772,7 @@ class CurrentMulti(Current1D):
             self.extraShift = duplicateCurrent.extraShift
         else:
             self.extraShift = []    
-            
-        Current1D.__init__(self, root, fig, canvas, data, duplicateCurrent)
+        super(CurrentMulti, self).__init__(root, fig, canvas, data, duplicateCurrent)
 
     def setExtraSlice(self, extraNum, axes, locList):  # change the slice
         self.extraAxes[extraNum] = axes
@@ -3094,7 +3093,7 @@ class CurrentStacked(Current1D):
             if self.data.data.shape[self.axes2] > 100:
                 self.stackStep = 1 + int(self.data.data.shape[self.axes2]) / 100
         self.spacing = 0
-        Current1D.__init__(self, root, fig, canvas, data, duplicateCurrent)
+        super(CurrentStacked, self).__init__(root, fig, canvas, data, duplicateCurrent)
         # self.startUp()
 
     def startUp(self, xReset=True, yReset=True):
@@ -3468,7 +3467,7 @@ class CurrentArrayed(Current1D):
                     axMult = 1000.0**duplicateCurrent.axType
                 self.zminlim = (duplicateCurrent.xminlim) / axMult
                 self.zmaxlim = (duplicateCurrent.xmaxlim) / axMult
-        Current1D.__init__(self, root, fig, canvas, data, duplicateCurrent)
+        super(CurrentArrayed, self).__init__(root, fig, canvas, data, duplicateCurrent)
 
     def startUp(self, xReset=True, yReset=True):
         self.resetSpacing(False)
@@ -3822,12 +3821,10 @@ class CurrentContour(Current1D):
             self.maxLevels = duplicateCurrent.maxLevels
         else:
             self.maxLevels = self.data.maxLevels
-            
         if hasattr(duplicateCurrent, 'contourSign'):
             self.contourSign = duplicateCurrent.contourSign
         else:
             self.contourSign = self.data.contourSign   
-            
         if hasattr(duplicateCurrent, 'contourType'):
             self.contourType = duplicateCurrent.contourType
         else:
@@ -3851,8 +3848,8 @@ class CurrentContour(Current1D):
         if hasattr(duplicateCurrent, 'projLimitsBool'):
             self.projLimitsBool = duplicateCurrent.projLimitsBool
         else:
-            self.projLimitsBool = self.data.projLimitsBool    
-        Current1D.__init__(self, root, fig, canvas, data, duplicateCurrent)
+            self.projLimitsBool = self.data.projLimitsBool
+        super(CurrentContour, self).__init__(root, fig, canvas, data, duplicateCurrent)
     
     def altScroll(self, event): #Shift scroll scrolls contour limits
         minLevels = self.minLevels / 1.1**event.step
@@ -4463,7 +4460,7 @@ class CurrentSkewed(Current1D):
             self.ppm2 = duplicateCurrent.ppm2
         else:
             self.ppm2 = False
-        Current1D.__init__(self, root, fig, canvas, data, duplicateCurrent)
+        super(CurrentSkewed, self).__init__(root, fig, canvas, data, duplicateCurrent)
 
     def startUp(self, xReset=True, yReset=True):
         self.altReset()

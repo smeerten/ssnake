@@ -37,7 +37,7 @@ else:
 class UpdateWindow(QtWidgets.QWidget):
 
     def __init__(self, parent):
-        QtWidgets.QWidget.__init__(self, parent)
+        super(UpdateWindow, self).__init__(parent)
         self.setWindowFlags(QtCore.Qt.Window | QtCore.Qt.Tool)
         self.father = parent
         try:

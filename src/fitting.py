@@ -146,7 +146,7 @@ class TabFittingWindow(QtWidgets.QWidget):
     MINMETHOD = 'Powell'
 
     def __init__(self, mainProgram, oldMainWindow):
-        QtWidgets.QWidget.__init__(self, mainProgram)
+        super(TabFittingWindow, self).__init__(mainProgram)
         self.mainProgram = mainProgram
         self.oldMainWindow = oldMainWindow
         self.subFitWindows = []
@@ -239,7 +239,7 @@ class TabFittingWindow(QtWidgets.QWidget):
 class FitCopySettingsWindow(QtWidgets.QWidget):
 
     def __init__(self, parent, returnFunction):
-        QtWidgets.QWidget.__init__(self, parent)
+        super(FitCopySettingsWindow, self).__init__(parent)
         self.setWindowFlags(QtCore.Qt.Window | QtCore.Qt.Tool)
         self.father = parent
         self.returnFunction = returnFunction
@@ -281,7 +281,7 @@ class FitCopySettingsWindow(QtWidgets.QWidget):
 class ParamCopySettingsWindow(QtWidgets.QWidget):
 
     def __init__(self, parent, paramNames, returnFunction):
-        QtWidgets.QWidget.__init__(self, parent)
+        super(ParamCopySettingsWindow, self).__init__(parent)
         self.setWindowFlags(QtCore.Qt.Window | QtCore.Qt.Tool)
         self.father = parent
         self.returnFunction = returnFunction
@@ -323,7 +323,7 @@ class FittingWindow(QtWidgets.QWidget):
     # Inherited by the fitting windows
 
     def __init__(self, mainProgram, oldMainWindow, tabWindow, isMain=True):
-        QtWidgets.QWidget.__init__(self, mainProgram)
+        super(FittingWindow, self).__init__(mainProgram)
         self.isMain = isMain
         self.mainProgram = mainProgram
         self.oldMainWindow = oldMainWindow
@@ -459,7 +459,7 @@ class FittingWindow(QtWidgets.QWidget):
 class FittingSideFrame(QtWidgets.QScrollArea):
 
     def __init__(self, parent):
-        QtWidgets.QScrollArea.__init__(self, parent)
+        super(FittingSideFrame, self).__init__(parent)
         self.father = parent
         self.entries = []
         content = QtWidgets.QWidget()
@@ -540,7 +540,7 @@ class FitPlotFrame(Plot1DFrame):
     FITNUM = 10 # Standard number of fits
 
     def __init__(self, rootwindow, fig, canvas, current):
-        Plot1DFrame.__init__(self, rootwindow, fig, canvas)
+        super(FitPlotFrame, self).__init__(rootwindow, fig, canvas)
         self.data1D = current.getDisplayedData()
         self.data = current.data
         self.axes = current.axes
@@ -685,7 +685,7 @@ class AbstractParamFrame(QtWidgets.QWidget):
     TICKS = True # Fitting parameters can be fixed by checkboxes
 
     def __init__(self, parent, rootwindow, isMain=True):
-        QtWidgets.QWidget.__init__(self, rootwindow)
+        super(AbstractParamFrame, self).__init__(rootwindow)
         self.parent = parent
         self.FITNUM = self.parent.FITNUM
         self.rootwindow = rootwindow
@@ -1087,7 +1087,7 @@ class PrefWindow(QtWidgets.QWidget):
     METHODLIST = ['Powell', 'Nelder-Mead']
 
     def __init__(self, parent):
-        QtWidgets.QWidget.__init__(self, parent)
+        super(PrefWindow, self).__init__(parent)
         self.setWindowFlags(QtCore.Qt.Window | QtCore.Qt.Tool)
         self.father = parent
         self.setWindowTitle("Preferences")
@@ -1130,7 +1130,7 @@ class IntegralsWindow(TabFittingWindow):
     def __init__(self, mainProgram, oldMainWindow):
         self.CURRENTWINDOW = IntegralsFrame
         self.PARAMFRAME = IntegralsParamFrame
-        TabFittingWindow.__init__(self, mainProgram, oldMainWindow)
+        super(IntegralsWindow, self).__init__(mainProgram, oldMainWindow)
 
 #################################################################################
 
@@ -1141,7 +1141,7 @@ class IntegralsFrame(FitPlotFrame):
         self.FITNUM = 20 # Maximum number of fits
         self.pickNum = 0
         self.pickWidth = False
-        FitPlotFrame.__init__(self, rootwindow, fig, canvas, current)
+        super(IntegralsFrame, self).__init__(rootwindow, fig, canvas, current)
 
     def togglePick(self, var):
         self.peakPickReset()
@@ -1180,7 +1180,7 @@ class IntegralsParamFrame(AbstractParamFrame):
         self.SINGLENAMES = []
         self.MULTINAMES = ['min', 'max', 'amp']
         self.FITFUNC = integralsmpFit
-        AbstractParamFrame.__init__(self, parent, rootwindow, isMain=True)
+        super(IntegralsParamFrame, self).__init__(parent, rootwindow, isMain)
         for elem in np.nditer(self.fitParamList, flags=["refs_ok"], op_flags=['readwrite']):
             elem[...] = {'min':np.repeat([np.array([min(self.parent.current.xax), True], dtype=object)], self.FITNUM, axis=0), 'max':np.repeat([np.array([max(self.parent.current.xax), True], dtype=object)], self.FITNUM,axis=0), 'amp':np.repeat([np.array([1.0, False], dtype=object)], self.FITNUM,axis=0)}
         resetButton = QtWidgets.QPushButton("Reset")
@@ -1381,7 +1381,7 @@ class RelaxWindow(TabFittingWindow):
     def __init__(self, mainProgram, oldMainWindow):
         self.CURRENTWINDOW = RelaxFrame
         self.PARAMFRAME = RelaxParamFrame
-        TabFittingWindow.__init__(self, mainProgram, oldMainWindow)
+        super(RelaxWindow, self).__init__(mainProgram, oldMainWindow)
         
 #################################################################################
 
@@ -1395,7 +1395,7 @@ class RelaxFrame(FitPlotFrame):
         self.FITNUM = 4 # Maximum number of fits
         self.logx = 0
         self.logy = 0
-        FitPlotFrame.__init__(self, rootwindow, fig, canvas, current)
+        super(RelaxFrame, self).__init__(rootwindow, fig, canvas, current)
 
     def showFid(self):
         super(RelaxFrame, self).showFid()
@@ -1588,7 +1588,7 @@ class RelaxParamFrame(AbstractParamFrame):
         self.SINGLENAMES = ['amp', 'const']
         self.MULTINAMES = ['coeff', 't']
         self.FITFUNC = relaxationmpFit
-        AbstractParamFrame.__init__(self, parent, rootwindow, isMain)
+        super(RelaxParamFrame, self).__init__(parent, rootwindow, isMain)
         for elem in np.nditer(self.fitParamList, flags=["refs_ok"], op_flags=['readwrite']):
             elem[...] = {'amp':[np.amax(self.parent.data1D), False], 'const':[1.0, False], 'coeff':np.repeat([np.array([-1.0, False], dtype=object)], self.FITNUM, axis=0), 't':np.repeat([np.array([1.0, False], dtype=object)], self.FITNUM,axis=0)}
         locList = tuple(self.parent.locList)
@@ -1746,7 +1746,7 @@ class DiffusionWindow(TabFittingWindow):
     def __init__(self, mainProgram, oldMainWindow):
         self.CURRENTWINDOW = DiffusionFrame
         self.PARAMFRAME = DiffusionParamFrame
-        TabFittingWindow.__init__(self, mainProgram, oldMainWindow)
+        super(DiffusionWindow, self).__init__(mainProgram, oldMainWindow)
 
 #################################################################################
 
@@ -1760,7 +1760,7 @@ class DiffusionFrame(FitPlotFrame):
         self.FITNUM = 4 # Maximum number of fits
         self.logx = 0
         self.logy = 0
-        FitPlotFrame.__init__(self, rootwindow, fig, canvas, current)
+        super(DiffusionFrame, self).__init__(rootwindow, fig, canvas, current)
 
     def showFid(self):
         super(DiffusionFrame, self).showFid()
@@ -1953,7 +1953,7 @@ class DiffusionParamFrame(AbstractParamFrame):
         self.SINGLENAMES = ['amp', 'const']
         self.MULTINAMES = ['coeff', 'd']
         self.FITFUNC = diffusionmpFit
-        AbstractParamFrame.__init__(self, parent, rootwindow, isMain)
+        super(DiffusionParamFrame, self).__init__(parent, rootwindow, isMain)
         for elem in np.nditer(self.fitParamList, flags=["refs_ok"], op_flags=['readwrite']):
             elem[...] = {'amp':[np.amax(self.parent.data1D), False], 'const':[0.0, False], 'coeff':np.repeat([np.array([1.0, False], dtype=object)], self.FITNUM, axis=0), 'd':np.repeat([np.array([1.0e-9, False], dtype=object)], self.FITNUM,axis=0)}
         locList = tuple(self.parent.locList)
@@ -2143,7 +2143,7 @@ class PeakDeconvWindow(TabFittingWindow):
     def __init__(self, mainProgram, oldMainWindow):
         self.CURRENTWINDOW = PeakDeconvFrame
         self.PARAMFRAME = PeakDeconvParamFrame
-        TabFittingWindow.__init__(self, mainProgram, oldMainWindow)
+        super(PeakDeconvWindow, self).__init__(mainProgram, oldMainWindow)
 
 #################################################################################
 
@@ -2152,7 +2152,7 @@ class PeakDeconvFrame(FitPlotFrame):
 
     def __init__(self, rootwindow, fig, canvas, current):
         self.FITNUM = 10 # Maximum number of fits
-        FitPlotFrame.__init__(self, rootwindow, fig, canvas, current)
+        super(PeakDeconvFrame, self).__init__(rootwindow, fig, canvas, current)
 
     def togglePick(self, var):
         self.peakPickReset()
@@ -2204,7 +2204,7 @@ class PeakDeconvParamFrame(AbstractParamFrame):
         self.SINGLENAMES = ['bgrnd', 'slope']
         self.MULTINAMES = ['pos', 'amp', 'lor', 'gauss']
         self.FITFUNC = peakDeconvmpFit
-        AbstractParamFrame.__init__(self, parent, rootwindow, isMain)
+        super(PeakDeconvParamFrame, self).__init__(parent, rootwindow, isMain)
         #Get full integral
         self.fullInt = np.sum(parent.data1D) * parent.current.sw / float(len(parent.data1D))
         for elem in np.nditer(self.fitParamList, flags=["refs_ok"], op_flags=['readwrite']):
@@ -2379,7 +2379,7 @@ class TensorDeconvWindow(TabFittingWindow):
     def __init__(self, mainProgram, oldMainWindow):
         self.CURRENTWINDOW = TensorDeconvFrame
         self.PARAMFRAME = TensorDeconvParamFrame
-        TabFittingWindow.__init__(self, mainProgram, oldMainWindow)
+        super(TensorDeconvWindow, self).__init__(mainProgram, oldMainWindow)
 
 #####################################################################################
 
@@ -2390,7 +2390,7 @@ class TensorDeconvFrame(FitPlotFrame):
         self.FITNUM = 10 # Maximum number of fits
         self.pickNum = 0
         self.pickNum2 = 0
-        FitPlotFrame.__init__(self, rootwindow, fig, canvas, current)
+        super(TensorDeconvFrame, self).__init__(rootwindow, fig, canvas, current)
 
     def togglePick(self, var):
         self.peakPickReset()
@@ -2441,7 +2441,7 @@ class TensorDeconvParamFrame(AbstractParamFrame):
         self.fullInt = np.sum(parent.data1D) * parent.current.sw / float(len(parent.data1D))
 
         self.cheng = 15
-        AbstractParamFrame.__init__(self, parent, rootwindow, isMain)
+        super(TensorDeconvParamFrame, self).__init__(parent, rootwindow, isMain)
         for elem in np.nditer(self.fitParamList, flags=["refs_ok"], op_flags=['readwrite']):
             elem[...] = {'bgrnd':[0.0, True], 'slope':[0.0, True], 't11':np.repeat([np.array([0.0, False], dtype=object)], self.FITNUM, axis=0), 't22':np.repeat([np.array([0.0, False], dtype=object)], self.FITNUM, axis=0), 't33':np.repeat([np.array([0.0, False], dtype=object)], self.FITNUM, axis=0), 'amp':np.repeat([np.array([self.fullInt, False], dtype=object)], self.FITNUM,axis=0), 'lor':np.repeat([np.array([1.0, False], dtype=object)], self.FITNUM,axis=0), 'gauss':np.repeat([np.array([0.0, True], dtype=object)], self.FITNUM,axis=0)}
         resetButton = QtWidgets.QPushButton("Reset")
@@ -2780,7 +2780,7 @@ class CSAMASWindow(TabFittingWindow):
     def __init__(self, mainProgram, oldMainWindow):
         self.CURRENTWINDOW = CSAMASFrame
         self.PARAMFRAME = CSAMASParamFrame
-        TabFittingWindow.__init__(self, mainProgram, oldMainWindow)
+        super(CSAMASWindow, self).__init__(mainProgram, oldMainWindow)
 
 #################################################################################
 
@@ -2789,7 +2789,7 @@ class CSAMASFrame(FitPlotFrame):
 
     def __init__(self, rootwindow, fig, canvas, current):
         self.FITNUM = 10 # Standard number of fits
-        FitPlotFrame.__init__(self, rootwindow, fig, canvas, current)
+        super(CSAMASFrame, self).__init__(rootwindow, fig, canvas, current)
 
 #################################################################################
 
@@ -2801,7 +2801,7 @@ class CSAMASParamFrame(AbstractParamFrame):
         self.MULTINAMES = ['pos', 'delta', 'eta', 'amp', 'lor', 'gauss']
         self.FITFUNC = CSAMASmpFit
         self.cheng = 12
-        AbstractParamFrame.__init__(self, parent, rootwindow, isMain)
+        super(CSAMASParamFrame, self).__init__(parent, rootwindow, isMain)
         for elem in np.nditer(self.fitParamList, flags=["refs_ok"], op_flags=['readwrite']):
             elem[...] = {'bgrnd':[0.0, True], 'slope':[0.0, True], 'spinspeed':[10.0, True], 'pos':np.repeat([np.array([0.0, False], dtype=object)], self.FITNUM, axis=0), 'delta':np.repeat([np.array([1.0, False], dtype=object)], self.FITNUM, axis=0), 'eta':np.repeat([np.array([0.0, False], dtype=object)], self.FITNUM, axis=0), 'amp':np.repeat([np.array([1.0, False], dtype=object)], self.FITNUM,axis=0), 'lor':np.repeat([np.array([1.0, False], dtype=object)], self.FITNUM,axis=0), 'gauss':np.repeat([np.array([0.0, True], dtype=object)], self.FITNUM,axis=0)}
         self.ticks = {'bgrnd':[], 'slope':[], 'spinspeed':[], 'pos':[], 'delta':[], 'eta':[], 'amp':[], 'lor':[], 'gauss':[]}
@@ -3022,7 +3022,7 @@ class Quad1MASDeconvWindow(TabFittingWindow):
     def __init__(self, mainProgram, oldMainWindow):
         self.CURRENTWINDOW = Quad1MASDeconvFrame
         self.PARAMFRAME = Quad1MASDeconvParamFrame
-        TabFittingWindow.__init__(self, mainProgram, oldMainWindow)
+        super(Quad1MASDeconvWindow, self).__init__(mainProgram, oldMainWindow)
 
 #################################################################################
 
@@ -3031,7 +3031,7 @@ class Quad1MASDeconvFrame(FitPlotFrame):
 
     def __init__(self, rootwindow, fig, canvas, current):
         self.FITNUM = 10 # Maximum number of fits
-        FitPlotFrame.__init__(self, rootwindow, fig, canvas, current)
+        super(Quad1MASDeconvFrame, self).__init__(rootwindow, fig, canvas, current)
 
 #################################################################################
 
@@ -3045,7 +3045,7 @@ class Quad1MASDeconvParamFrame(AbstractParamFrame):
         self.MULTINAMES = ['pos', 'cq', 'eta', 'amp', 'lor', 'gauss']
         self.FITFUNC = quad1MASmpFit
         self.cheng = 12
-        AbstractParamFrame.__init__(self, parent, rootwindow, isMain)
+        super(Quad1MASDeconvParamFrame, self).__init__(parent, rootwindow, isMain)
 
         #Get full integral
         self.fullInt = np.sum(parent.data1D) * parent.current.sw / float(len(parent.data1D))
@@ -3281,7 +3281,7 @@ class Quad1DeconvWindow(TabFittingWindow):
     def __init__(self, mainProgram, oldMainWindow):
         self.CURRENTWINDOW = Quad1DeconvFrame
         self.PARAMFRAME = Quad1DeconvParamFrame
-        TabFittingWindow.__init__(self, mainProgram, oldMainWindow)
+        super(Quad1DeconvWindow, self).__init__(mainProgram, oldMainWindow)
 
 #################################################################################
 
@@ -3304,7 +3304,7 @@ class Quad1DeconvFrame(FitPlotFrame):
         self.FITNUM = 10 # Maximum number of fits
         self.pickNum = 0
         self.pickNum2 = 0
-        FitPlotFrame.__init__(self, rootwindow, fig, canvas, current)
+        super(Quad1DeconvFrame, self).__init__(rootwindow, fig, canvas, current)
 
 #################################################################################
 
@@ -3318,7 +3318,7 @@ class Quad1DeconvParamFrame(AbstractParamFrame):
         self.SINGLENAMES = ['bgrnd', 'slope']
         self.MULTINAMES = ['pos', 'cq', 'eta', 'amp', 'lor', 'gauss']
         self.FITFUNC = quad1DeconvmpFit
-        AbstractParamFrame.__init__(self, parent, rootwindow, isMain)
+        super(Quad1DeconvParamFrame, self).__init__(parent, rootwindow, isMain)
 
         #Get full integral
         self.fullInt = np.sum(parent.data1D) * parent.current.sw / float(len(parent.data1D))
@@ -3535,7 +3535,7 @@ class Quad2DeconvWindow(TabFittingWindow):
             self.PARAMFRAME = Quad2MASDeconvParamFrame
         else:
             self.PARAMFRAME = Quad2StaticDeconvParamFrame
-        TabFittingWindow.__init__(self, mainProgram, oldMainWindow)
+        super(Quad2DeconvWindow, self).__init__(mainProgram, oldMainWindow)
 
 #################################################################################
 
@@ -3545,7 +3545,7 @@ class Quad2StaticDeconvParamFrame(Quad1DeconvParamFrame):
     Ioptions = ['3/2', '5/2', '7/2', '9/2']
     savetitle = 'ssNake second order quadrupole static fit results'
     def __init__(self, parent, rootwindow, isMain=True):
-        Quad1DeconvParamFrame.__init__(self, parent, rootwindow, isMain)
+        super(Quad2StaticDeconvParamFrame, self).__init__(parent, rootwindow, isMain)
         self.setAngleStuff = quad2StaticsetAngleStuff
         self.tensorFunc = quad2tensorFunc
         self.entries['I'][-1].setCurrentIndex(0)
@@ -3561,7 +3561,7 @@ class Quad2MASDeconvParamFrame(Quad2StaticDeconvParamFrame):
     savetitle = 'ssNake second order quadrupole MAS fit results'
 
     def __init__(self, parent, rootwindow, isMain=True):
-        Quad2StaticDeconvParamFrame.__init__(self, parent, rootwindow, isMain)
+        super(Quad2MASDeconvParamFrame, self).__init__(parent, rootwindow, isMain)
         self.setAngleStuff = quad2MASsetAngleStuff
         self.tensorFunc = quad2tensorFunc
         self.entries['I'][-1].setCurrentIndex(0)
@@ -3611,7 +3611,7 @@ class Quad2CzjzekWindow(TabFittingWindow):
             self.PARAMFRAME = Quad2MASCzjzekParamFrame
         else:
             self.PARAMFRAME = Quad2StaticCzjzekParamFrame
-        TabFittingWindow.__init__(self, mainProgram, oldMainWindow)
+        super(Quad2CzjzekWindow, self).__init__(mainProgram, oldMainWindow)
 
 #################################################################################
 
@@ -3625,7 +3625,7 @@ class Quad2StaticCzjzekParamFrame(AbstractParamFrame):
         self.SINGLENAMES = ['bgrnd', 'slope']
         self.MULTINAMES = ['d', 'pos', 'sigma', 'amp', 'lor', 'gauss']
         self.FITFUNC = quad2CzjzekmpFit
-        AbstractParamFrame.__init__(self, parent, rootwindow, isMain)
+        super(Quad2StaticCzjzekParamFrame, self).__init__(parent, rootwindow, isMain)
 
         #Get full integral
         self.fullInt = np.sum(parent.data1D) * parent.current.sw / float(len(parent.data1D))
@@ -3885,7 +3885,7 @@ class Quad2MASCzjzekParamFrame(Quad2StaticCzjzekParamFrame):
     Ioptions = ['3/2', '5/2', '7/2', '9/2']
     savetitle = 'ssNake Czjzek MAS fit results'
     def __init__(self, parent, rootwindow, isMain=True):
-        Quad2StaticCzjzekParamFrame.__init__(self, parent, rootwindow, isMain=True)
+        super(Quad2MASCzjzekParamFrame, self).__init__(parent, rootwindow, isMain)
 
     def setAngleStuff(self, cheng):
         phi, theta, weight = zcw_angles(cheng, symm=2)
