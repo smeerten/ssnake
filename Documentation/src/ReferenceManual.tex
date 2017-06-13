@@ -845,6 +845,23 @@ Same as add, but now dividing. Note that the data is complex, as described for M
 
 
 
+\section{History}
+\subsection{History}
+Whenever ssNake performs an action on the data, a line is added to the history list to be able to show the processing history. In the History menu, these
+entries can be viewed. Saving the data (to a JSON or MATLAB file) also saves the history (but not the undo information). Note that changing the view of the data
+is not an action, nor is fitting the data. Changing the spectral width and such \textit{is} considered an action.
+
+
+\subsection{Error Messages}
+Whenever a wrong input is given to ssNake, a message is printed in the status bar (on the bottom of the main window). In Error Messages, these messages
+can also be found (printed in black), with a time stamp of their occurrence. Apart from these warning messages, there can also be more serious issues.
+These are python errors, and indicate that we did something wrong, or forgot to check if the input is correct. These messages are not displayed in the
+status bar, but only in the Error Messages window. They are printed in red, and when selected show some additional information in the bottom area of this window.
+Whenever a tools gives no, or an unpredictable result, consult this window for any errors. If such an error occurs you can email us with the specifics.
+For this, it is useful to be able to reproduce the error, otherwise it becomes difficult to find the cause.
+
+
+
 
 
 \section{Utilities}
