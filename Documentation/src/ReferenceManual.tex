@@ -557,6 +557,23 @@ information is lost in this way (ideally, the difference between the two value i
 
 \subsection{States--TPPI}
 
+States--TPPI conversion takes the alternating data set and makes new complex values following:
+\begin{equation*}
+  \text{C}n = \text{R}n + i \cdot \text{I}n 
+\end{equation*}
+for odd values of $n$. And:
+\begin{equation*}
+  \text{C}n = -\text{R}n - i \cdot \text{I}n 
+\end{equation*}
+for even values of $n$.
+
+
+
+\subsection{Echo--antiecho}
+Echo--antiecho conversion takes the alternating data set and makes new complex values following:
+\begin{equation*}
+  \text{C}n = \text{Re}(\text{R}n + \text{I}n ) - i \cdot \text{Im}(\text{R}n - \text{I}n )
+\end{equation*}
 
 
 
@@ -651,8 +668,30 @@ Multiplies the y-values of the data in the current dimension by a given number. 
 Reorders the data in the current dimension. Input is an array with the new, desired positions. For example, [0,2,1] keeps the position of the first element (`0'), but interchanges the second and the third. It is also possible to supply the input array by loading a filer (as is used in Non-Uniform Sampling). If the new data length is longer than the old, the missing points are filled with zeros. Also, the length of the desired new dimension can be given. If the length of the final data is shorter than this value, some zeros are appended.
 
 \subsection{Concatenate}
-Concatenates (i.e. sticks) that data of dimension $n$ after dimension $n+1$. So if the original data is 10x5x3, and dimension 2 is selected, it becomes 10x15. This can be seen as the opasite of the `Split' function. Note that after applying this function the numbers of the dimensions in the ssNake window changes accordingly.
+Concatenates (i.e. sticks) that data of dimension $n$ after dimension $n+1$. So if the original data is 10x5x3, and dimension 2 is selected,
+it becomes 10x15. This can be seen as the opposite of the `Split' function. Note that after applying this function the numbers of the dimensions in the ssNake window changes accordingly.
 
+\subsection{Shearing}
+Shearing data is a function most commonly used for MQMAS data (in solid state NMR, that is). It is used to correct a frequency slope along a specific dimension.
+The amount of shearing necessary is defined by a shearing constant, which needs to be supplied by the user. 
+For every trace in the current spectrum, the data is shifted (left or right, depending on the sign of the shearing constant) a specific amount. Any data point that goes outside 
+the range of the data rolls to the other side (aliasing). The size of the shift is directly related to the x-value of that specific trace in the shearing direction.
+
+
+\subsubsection*{ssNake implementation}
+Activating Shearing opens a menu, in which the shearing constant, direction and axis must be set.
+
+\begin{itemize}
+  \item \textit{Constant}: The amount of shearing necessary. The shift for each trace depends on this constant, and the spectral width in the shearing direction.
+	 For MQMAS data, the constant depends on the spin quantum number, and the quantum level that is used. A selection menu with these values can be found under Shearing Constant.
+  \item \textit{Direction}: The direction is the axis number, over which the amount of shearing differs. Usually, this is this indirect dimension (for 2D data this is D1).
+  \item \textit{Axis}: The axis over which the data must be rolled. In a 2D case, this is D2.
+\end{itemize}
+
+The actual shearing can be done in two ways: in the time, or in the frequency domain. Shearing in the frequency domain is intuitive: it just rolls the spectrum to the left or right.
+However, if the shift is not an integer number of data points, some interpolation is required. We therefore opted to apply the shearing in the time domain. This involves an inverse Fourier transform
+, after which each trace gets a time dependent phasing (1st order phasing in the time domain). A regular Fourier transform gives back the sheared spectrum.
+In this way, no interpolation is necessary.
 
 
 \section{Fitting}
