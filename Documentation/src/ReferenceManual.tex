@@ -719,28 +719,43 @@ C &=  \dfrac{1}{12} \cos(\theta)^2 + \left( \dfrac{7}{48} \cos(\theta)^4 - \dfra
 
 
 \section{Combine}
-The combine menu options allow the interaction between different workspaces like multiplication and addition. For some of these tools it is essential that the workspaces have exactly the same dimensions. Note that ssNake regards 1D data with size 1000 differently than 2D data with 1 point in the indirect dimension (1x1000).
-The same applies for all dimension with size 1 (they still count as a dimension).
+The combine menu options allow the interaction between different workspaces like multiplication and addition. For some of these tools it is essential that the workspaces
+are the same size, or can be broadcasted. Broadcasting is described below.
+
+\subsection{Broadcasting}
+ssNake makes use of the general broadcasting rules of the numpy python package. Generally, data that has less dimensions than the target can be added (multiplied, etc)
+if the last dimensions agree on size. For example, 3x1024 can be added to 2x3x1024 (the data is just stretched along a new third dimension). Alternatively, data that has a size 1
+along a specific dimension can also be added: 2x1x1024 added to 2x10x1024 (again, the data is copied in the second dimension to reach length 10).
+Note that always the last dimensions are checked, so adding 1024x3 to 1024x3x10 is not possible: checking is done from the right. 
 
 \subsection{Combine Workspaces}
 Using Combine Workspaces opens a window that allows for the selection of multiple workspaces via dragging and dropping in the right-hand list.
 Only workspaces with the same size can be combined (and error will be given otherwise). The selected workspaces will be combined and copied to a new workspaces, of which the name will be asked.
-Combining multiple sets of data this way requires the creation of a new dimension, which is always the new dimension D1. For example, combining two 1D data sets with 1024 points will lead to a combined data set of 2x1024 points (D1xD2).
-Combining a two sets of 10x512 data points leads to a 3D set of 2x10x1024.
+Combining multiple sets of data this way requires the creation of a new dimension, which is always the new dimension D1. For example, combining two 1D data sets with 1024 points will
+lead to a combined data set of 2x1024 points (D1xD2). Combining two sets of 10x512 data points leads to a 3D set of 2x10x512.
 
 
 \subsection{Insert From Workspace}
-Insert From Workspace can be used to append data from another workspace to the current. For this, it is not necessary to have two Workspaces of exactly the same size.
+Insert From Workspace can be used to append data from another workspace to the current. For this, it is \textit{not} necessary to have two Workspaces of exactly the same size.
 However, appending must be possible in some way. The way the data is appended depends on the current dimension. For example: the current data has size 2x1000 and D2 is viewed. 
-Inserting a 1D data set of 500 points leads to a 2x1500 data set. Doing the same when viewing the D1 dimension gives an error. It would be possible to append a 1D set of 1000 points to this data from D1.
-This gives a 3x1000 data set back.
+Inserting a 1D data set of 500 points leads to a 2x1500 data set. Doing the same when viewing the D1 dimension gives an error. It would be possible to append a 1D set of 1000
+points to this data from D1. This gives back a 3x1000 data set.
 
 
 \subsection{Add}
-Add the data of the selected workspace to the current workspace. The active dimension is not considered. Data of both workspaces must be the same size, or must be able to be broadcasted.
-An example of the latter is the addition of a 1D set with size 1024 to a 2D 10x1024 set. In this case, all 10 traces of the 2D will have the 1D set added up to it.
-Generally speaking, data with less dimensions can be added to larger data if all the dimension it does have are the same size as those of the larger data set, or equal to 1.
-For example: 10x3x1024 + 3x1024 (or 1x1024) will go well. 10x3x1024 + 2x1024 will go wrong: what to do with the 2? The same goes for the last dimension: 2x512 + 2x1024 will go wrong.
+Add the data of the selected workspace to the current workspace. The active dimension is not considered. Data of both workspaces must be the same size, or must be able to be broadcasted (see above).
+
+
+\subsection{Subtract}
+Same as add, but now subtracting.
+
+\subsection{Multiply}
+Same as add, but now multiplying the data sets. Note that ssNake by default has complex data. Using Multiply therefore does a complex multiplication.
+If this is not desirable, first use Tools $\rightarrow$ Real to get rid of the imaginary part of the data.
+
+\subsection{Divide}
+Same as add, but now dividing. Note that the data is complex, as described for Multiply.
+
 
 
 
