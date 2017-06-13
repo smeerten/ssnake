@@ -670,7 +670,7 @@ class MainProgram(QtWidgets.QMainWindow):
         self.menubar.addMenu(self.historyMenu)
         self.historyAct = self.historyMenu.addAction(QtGui.QIcon(IconDirectory + 'history.png'), "&History", lambda: self.mainWindowCheck(lambda mainWindow: HistoryWindow(mainWindow)))
         self.historyAct.setToolTip('Show Processing History')
-        self.errorAct = self.historyMenu.addAction("&Error Messages", lambda: errorWindow(self))
+        self.errorAct = self.historyMenu.addAction(QtGui.QIcon(IconDirectory + 'error.png'),"&Error Messages", lambda: errorWindow(self))
         self.errorAct.setToolTip('Show Error Messages')
         
         self.historyActList = [self.historyAct]
