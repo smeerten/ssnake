@@ -694,6 +694,42 @@ However, if the shift is not an integer number of data points, some interpolatio
 In this way, no interpolation is necessary.
 
 
+\section{Transforms}
+\subsection{Fourier Transform}
+Performs a Fourier Transform (equal to the `Fourier' button in the bottom frame). When the current data is in time units,
+it performs a regular Fourier transform, when in spectrum mode, it performs an inverse Fourier transform.
+The type (i.e. time or spectrum) of the data is modified accordingly.
+
+For the Fourier transform, ssNake uses the Fast Fourier Transform (FFT) form the numpy library. It also executes the
+corresponding fftshift after the transformation. Note that FFT is the most efficient when the data size is a power of 2.
+It is always wise to keep NMR data in this shape (by setting the size to a number of `k' as explained at Matrix $\rightarrow$ Sizing).
+
+
+
+\subsection{Real Fourier Transform}
+Performs a real Fourier transform. This is the same as performing a Fourier transform with only the real part of the data, as can be
+done by using Tools $\rightarrow$ Real. In this case, signals with a lower frequency than the offset cannot be distinguished
+from signals with a higher frequency. This makes the spectrum symmetric around the centre. In some Figures in the literature, only
+the positive frequencies are showed for this reason. We have opted to keep the negative frequency part.
+
+
+
+\subsection{Fftshift}
+Performs an fftshift. This interchanges the left and right part of the data. Normally, this function is not needed, as ssNake keeps
+track of the shifting when performing a Fourier transform.
+
+
+\subsection{Inv fftshift}
+Performs an inverse fftshift.
+
+
+\subsection{Hilbert Transform}
+Performs a Hilbert Transform on the current data. This removes the imaginary data, and creates new imaginary data from the real data
+via the Kramers--Kronig relations. The sign of the imaginary data is lost in this way. Most commonly, a Hilbert transform is
+used in algorithms that take some part of the real data, and the imaginary part needs to be reconstructed.
+
+
+
 \section{Fitting}
 In NMR spectroscopy, the shape of the resonance lines can provide information on the strength of interactions that the nucleus experiences. ssNake can, as many other programs, fit some idealized lineshapes with are often encountered in real life spectra. Fitting in ssNake ranges from trivial `full width at half maximum' (FWHM) fitting, to the complex quadrupolar Czjzek distribution. The following section will explain the way ssNake handles the different types of spectra it can fit, and which equations are used to simulate the different spectra.
 
