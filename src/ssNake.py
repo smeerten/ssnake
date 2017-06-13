@@ -103,7 +103,7 @@ VERSION = 'v0.7b'
 class MainProgram(QtWidgets.QMainWindow):
 
     def __init__(self, root):
-        QtWidgets.QMainWindow.__init__(self)
+        super(MainProgram, self).__init__()
         self.root = root
         self.VERSION = VERSION
         self.errors = []
@@ -1723,7 +1723,7 @@ class MainProgram(QtWidgets.QMainWindow):
 class Main1DWindow(QtWidgets.QWidget):
 
     def __init__(self, father, masterData, duplicateCurrent=None):
-        QtWidgets.QWidget.__init__(self, father)
+        super(Main1DWindow, self).__init__(father)
         self.fig = Figure()
         self.canvas = FigureCanvas(self.fig)
         grid = QtWidgets.QGridLayout(self)
@@ -2497,7 +2497,7 @@ class Main1DWindow(QtWidgets.QWidget):
 class SideFrame(QtWidgets.QScrollArea):
 
     def __init__(self, parent):
-        QtWidgets.QScrollArea.__init__(self, parent)
+        super(SideFrame, self).__init__(parent)
         self.father = parent
         self.entries = []
         self.plotIs2D = False
@@ -3152,7 +3152,7 @@ class SideFrame(QtWidgets.QScrollArea):
 class BottomFrame(QtWidgets.QWidget):
 
     def __init__(self, parent):
-        QtWidgets.QWidget.__init__(self, parent)
+        super(BottomFrame, self).__init__(parent)
         self.father = parent
         grid = QtWidgets.QGridLayout(self)
         self.setLayout(grid)
@@ -3312,7 +3312,7 @@ class BottomFrame(QtWidgets.QWidget):
 class TextFrame(QtWidgets.QScrollArea):
 
     def __init__(self, parent):
-        QtWidgets.QScrollArea.__init__(self, parent)
+        super(TextFrame, self).__init__(parent)
         self.father = parent
         self.oldx = 0.0
         self.oldy = 0.0
@@ -3435,10 +3435,12 @@ class TextFrame(QtWidgets.QScrollArea):
 
 
 class AsciiLoadWindow(QtWidgets.QDialog):
+    
     dataOrders = ['XRI','XR','XI','RI','R']
     delimiters = ['Tab','Space','Comma']
+    
     def __init__(self, parent, file):
-        QtWidgets.QWidget.__init__(self, parent)
+        super(AsciiLoadWindow, self).__init__(parent)
         self.setWindowFlags(QtCore.Qt.Window | QtCore.Qt.Tool)
         self.father = parent
         self.dataDimension = 1
@@ -3563,7 +3565,7 @@ class PhaseWindow(QtWidgets.QWidget):
     PHASE1STEP = 1.0
 
     def __init__(self, parent):
-        QtWidgets.QWidget.__init__(self, parent.father)
+        super(PhaseWindow, self).__init__(parent.father)
         self.setWindowFlags(QtCore.Qt.Window | QtCore.Qt.Tool)
         self.father = parent
         self.zeroVal = 0.0
@@ -3777,7 +3779,7 @@ class ApodWindow(QtWidgets.QWidget):
 
     def __init__(self, parent):
         parent.menuDisable()
-        QtWidgets.QWidget.__init__(self, parent)
+        super(ApodWindow, self).__init__(parent)
         self.setWindowFlags(QtCore.Qt.Window | QtCore.Qt.Tool)
         self.father = parent
         self.entries = []
@@ -4055,7 +4057,7 @@ class ApodWindow(QtWidgets.QWidget):
 class SizeWindow(QtWidgets.QWidget):
 
     def __init__(self, parent):
-        QtWidgets.QWidget.__init__(self, parent)
+        super(SizeWindow, self).__init__(parent)
         self.setWindowFlags(QtCore.Qt.Window | QtCore.Qt.Tool)
         parent.menuDisable()
         self.father = parent
@@ -4146,7 +4148,7 @@ class SizeWindow(QtWidgets.QWidget):
 class SwapEchoWindow(QtWidgets.QWidget):
 
     def __init__(self, parent):
-        QtWidgets.QWidget.__init__(self, parent)
+        super(SwapEchoWindow, self).__init__(parent)
         self.setWindowFlags(QtCore.Qt.Window | QtCore.Qt.Tool)
         self.father = parent
         self.setWindowTitle("Swap echo")
@@ -4216,7 +4218,7 @@ class SwapEchoWindow(QtWidgets.QWidget):
 class LPSVDWindow(QtWidgets.QWidget):
 
     def __init__(self, parent):
-        QtWidgets.QWidget.__init__(self, parent)
+        super(LPSVDWindow, self).__init__(parent)
         self.setWindowFlags(QtCore.Qt.Window | QtCore.Qt.Tool)
         parent.menuDisable()
         self.father = parent
@@ -4299,7 +4301,7 @@ class LPSVDWindow(QtWidgets.QWidget):
 class ShiftDataWindow(QtWidgets.QWidget):
 
     def __init__(self, parent):
-        QtWidgets.QWidget.__init__(self, parent)
+        super(ShiftDataWindow, self).__init__(parent)
         self.setWindowFlags(QtCore.Qt.Window | QtCore.Qt.Tool)
         self.father = parent
         self.setWindowTitle("Shifting data")
@@ -4395,7 +4397,7 @@ class ShiftDataWindow(QtWidgets.QWidget):
 class DCWindow(QtWidgets.QWidget):
 
     def __init__(self, parent):
-        QtWidgets.QWidget.__init__(self, parent)
+        super(DCWindow, self).__init__(parent)
         self.setWindowFlags(QtCore.Qt.Window | QtCore.Qt.Tool)
         self.father = parent
         self.setWindowTitle("Offset correction")
@@ -4523,7 +4525,7 @@ class DCWindow(QtWidgets.QWidget):
 class BaselineWindow(QtWidgets.QWidget):
 
     def __init__(self, parent):
-        QtWidgets.QWidget.__init__(self, parent)
+        super(BaselineWindow, self).__init__(parent)
         self.setWindowFlags(QtCore.Qt.Window | QtCore.Qt.Tool)
         self.father = parent
         self.setWindowTitle("Baseline correction")
@@ -4617,7 +4619,7 @@ class BaselineWindow(QtWidgets.QWidget):
 class regionWindow(QtWidgets.QWidget):
 
     def __init__(self, parent, name):
-        QtWidgets.QWidget.__init__(self, parent)
+        super(regionWindow, self).__init__(parent)
         self.setWindowFlags(QtCore.Qt.Window | QtCore.Qt.Tool)
         self.father = parent
         self.setWindowTitle(name)
@@ -4783,7 +4785,7 @@ class regionWindow(QtWidgets.QWidget):
 class integrateWindow(regionWindow):
 
     def __init__(self, parent):
-        regionWindow.__init__(self, parent, 'Integrate')
+        super(integrateWindow, self).__init__(parent, 'Integrate')
 
     def apply(self, maximum, minimum, newSpec):
         if newSpec:
@@ -4807,7 +4809,7 @@ class integrateWindow(regionWindow):
 class sumWindow(regionWindow):
 
     def __init__(self, parent):
-        regionWindow.__init__(self, parent, 'Sum')
+        super(sumWindow, self).__init__(parent, 'Sum')
 
     def apply(self, maximum, minimum, newSpec):
         if newSpec:
@@ -4831,7 +4833,7 @@ class sumWindow(regionWindow):
 class maxWindow(regionWindow):
 
     def __init__(self, parent):
-        regionWindow.__init__(self, parent, 'Max')
+        super(maxWindow, self).__init__(parent, 'Max')
 
     def apply(self, maximum, minimum, newSpec):
         if newSpec:
@@ -4855,7 +4857,7 @@ class maxWindow(regionWindow):
 class minWindow(regionWindow):
 
     def __init__(self, parent):
-        regionWindow.__init__(self, parent, 'Min')
+        super(minWindow, self).__init__(parent, 'Min')
 
     def apply(self, maximum, minimum, newSpec):
         if newSpec:
@@ -4879,7 +4881,7 @@ class minWindow(regionWindow):
 class argmaxWindow(regionWindow):
 
     def __init__(self, parent):
-        regionWindow.__init__(self, parent, 'Max position')
+        super(argmaxWindow, self).__init__(parent, 'Max position')
 
     def apply(self, maximum, minimum, newSpec):
         if newSpec:
@@ -4903,7 +4905,7 @@ class argmaxWindow(regionWindow):
 class argminWindow(regionWindow):
 
     def __init__(self, parent):
-        regionWindow.__init__(self, parent, 'Min position')
+        super(argminWindow, self).__init__(parent, 'Min position')
 
     def apply(self, maximum, minimum, newSpec):
         if newSpec:
@@ -4927,7 +4929,7 @@ class argminWindow(regionWindow):
 class avgWindow(regionWindow):
 
     def __init__(self, parent):
-        regionWindow.__init__(self, parent, 'Average')
+        super(avgWindow, self).__init__(parent, 'Average')
 
     def apply(self, maximum, minimum, newSpec):
         if newSpec:
@@ -4951,7 +4953,7 @@ class avgWindow(regionWindow):
 class regionWindow2(QtWidgets.QWidget):
 
     def __init__(self, parent, name, newSpecOption):
-        QtWidgets.QWidget.__init__(self, parent)
+        super(regionWindow2, self).__init__(parent)
         self.setWindowFlags(QtCore.Qt.Window | QtCore.Qt.Tool)
         self.father = parent
         self.setWindowTitle(name)
@@ -5076,7 +5078,7 @@ class regionWindow2(QtWidgets.QWidget):
 class extractRegionWindow(regionWindow2):
 
     def __init__(self, parent):
-        regionWindow2.__init__(self, parent, 'Extract part', True)
+        super(extractRegionWindow, self).__init__(parent, 'Extract part', True)
 
     def apply(self, maximum, minimum, newSpec):
         if newSpec:
@@ -5100,7 +5102,7 @@ class extractRegionWindow(regionWindow2):
 class SubtractAvgWindow(regionWindow2):
 
     def __init__(self, parent):
-        regionWindow2.__init__(self, parent, 'Subtract Avg', False)
+        super(SubtractAvgWindow, self).__init__(parent, 'Subtract Avg', False)
 
     def apply(self, maximum, minimum, newSpec):
         if self.father.current.data.noUndo:
@@ -5124,7 +5126,7 @@ class SubtractAvgWindow(regionWindow2):
 class FiddleWindow(QtWidgets.QWidget):
 
     def __init__(self, parent):
-        QtWidgets.QWidget.__init__(self, parent)
+        super(FiddleWindow, self).__init__(parent)
         self.setWindowFlags(QtCore.Qt.Window | QtCore.Qt.Tool)
         self.father = parent
         self.setWindowTitle("Reference deconvolution")
@@ -5257,7 +5259,7 @@ class FiddleWindow(QtWidgets.QWidget):
 class DeleteWindow(QtWidgets.QWidget):
 
     def __init__(self, parent):
-        QtWidgets.QWidget.__init__(self, parent)
+        super(DeleteWindow, self).__init__(parent)
         self.setWindowFlags(QtCore.Qt.Window | QtCore.Qt.Tool)
         self.father = parent
         self.setWindowTitle("Delete")
@@ -5321,7 +5323,7 @@ class DeleteWindow(QtWidgets.QWidget):
 class SplitWindow(QtWidgets.QWidget):
 
     def __init__(self, parent):
-        QtWidgets.QWidget.__init__(self, parent)
+        super(SplitWindow, self).__init__(parent)
         self.setWindowFlags(QtCore.Qt.Window | QtCore.Qt.Tool)
         self.father = parent
         self.setWindowTitle("Split")
@@ -5377,7 +5379,7 @@ class SplitWindow(QtWidgets.QWidget):
 class ConcatenateWindow(QtWidgets.QWidget):
 
     def __init__(self, parent):
-        QtWidgets.QWidget.__init__(self, parent)
+        super(ConcatenateWindow, self).__init__(parent)
         self.setWindowFlags(QtCore.Qt.Window | QtCore.Qt.Tool)
         self.father = parent
         self.setWindowTitle("Concatenate")
@@ -5422,7 +5424,7 @@ class ConcatenateWindow(QtWidgets.QWidget):
 class InsertWindow(QtWidgets.QWidget):
 
     def __init__(self, parent):
-        QtWidgets.QWidget.__init__(self, parent)
+        super(InsertWindow, self).__init__(parent)
         self.setWindowFlags(QtCore.Qt.Window | QtCore.Qt.Tool)
         self.father = parent
         self.setWindowTitle("Insert")
@@ -5491,7 +5493,7 @@ class InsertWindow(QtWidgets.QWidget):
 class CombineWindow(QtWidgets.QWidget):
 
     def __init__(self, parent, combType):
-        QtWidgets.QWidget.__init__(self, parent)
+        super(CombineWindow, self).__init__(parent)
         self.setWindowFlags(QtCore.Qt.Window | QtCore.Qt.Tool)
         self.father = parent
         self.combType = combType # 0 = add, 1 = subtract, 2 = multiply, 3 = divide
@@ -5555,7 +5557,7 @@ class CombineWindow(QtWidgets.QWidget):
 class SNWindow(QtWidgets.QWidget):
 
     def __init__(self, parent):
-        QtWidgets.QWidget.__init__(self, parent)
+        super(SNWindow, self).__init__(parent)
         self.setWindowFlags(QtCore.Qt.Window | QtCore.Qt.Tool)
         self.father = parent
         self.setWindowTitle("Signal to noise")
@@ -5718,7 +5720,7 @@ class SNWindow(QtWidgets.QWidget):
 class FWHMWindow(QtWidgets.QWidget):
 
     def __init__(self, parent):
-        QtWidgets.QWidget.__init__(self, parent)
+        super(FWHMWindow, self).__init__(parent)
         self.setWindowFlags(QtCore.Qt.Window | QtCore.Qt.Tool)
         self.father = parent
         self.setWindowTitle("FWHM")
@@ -5835,7 +5837,7 @@ class FWHMWindow(QtWidgets.QWidget):
 class COMWindow(QtWidgets.QWidget):  # Centre of Mass Window
 
     def __init__(self, parent):
-        QtWidgets.QWidget.__init__(self, parent)
+        super(COMWindow, self).__init__(parent)
         self.setWindowFlags(QtCore.Qt.Window | QtCore.Qt.Tool)
         self.father = parent
         self.setWindowTitle("Centre of Mass")
@@ -5958,7 +5960,7 @@ class COMWindow(QtWidgets.QWidget):  # Centre of Mass Window
 class ReorderWindow(QtWidgets.QWidget):
 
     def __init__(self, parent):
-        QtWidgets.QWidget.__init__(self, parent)
+        super(ReorderWindow, self).__init__(parent)
         self.setWindowFlags(QtCore.Qt.Window | QtCore.Qt.Tool)
         self.father = parent
         self.setWindowTitle("Reorder")
@@ -6033,7 +6035,7 @@ class ReorderWindow(QtWidgets.QWidget):
 class RegridWindow(QtWidgets.QWidget):
 
     def __init__(self, parent ):
-        QtWidgets.QWidget.__init__(self, parent)
+        super(RegridWindow, self).__init__(parent)
         self.setWindowFlags(QtCore.Qt.Window | QtCore.Qt.Tool)
         self.father = parent
         layout = QtWidgets.QGridLayout(self)
@@ -6075,7 +6077,7 @@ class RegridWindow(QtWidgets.QWidget):
 class FFMWindow(QtWidgets.QWidget):
 
     def __init__(self, parent):
-        QtWidgets.QWidget.__init__(self, parent)
+        super(FFMWindow, self).__init__(parent)
         self.setWindowFlags(QtCore.Qt.Window | QtCore.Qt.Tool)
         self.father = parent
         self.setWindowTitle("FFM")
@@ -6147,7 +6149,7 @@ class FFMWindow(QtWidgets.QWidget):
 class CLEANWindow(QtWidgets.QWidget):
 
     def __init__(self, parent):
-        QtWidgets.QWidget.__init__(self, parent)
+        super(CLEANWindow, self).__init__(parent)
         self.setWindowFlags(QtCore.Qt.Window | QtCore.Qt.Tool)
         self.father = parent
         self.setWindowTitle("CLEAN")
@@ -6255,7 +6257,7 @@ class CLEANWindow(QtWidgets.QWidget):
 class ISTWindow(QtWidgets.QWidget):
 
     def __init__(self, parent):
-        QtWidgets.QWidget.__init__(self, parent)
+        super(ISTWindow, self).__init__(parent)
         self.setWindowFlags(QtCore.Qt.Window | QtCore.Qt.Tool)
         self.father = parent
         self.setWindowTitle("IST")
@@ -6357,7 +6359,7 @@ class ISTWindow(QtWidgets.QWidget):
 class ShearingWindow(QtWidgets.QWidget):
 
     def __init__(self, parent):
-        QtWidgets.QWidget.__init__(self, parent)
+        super(ShearingWindow, self).__init__(parent)
         self.setWindowFlags(QtCore.Qt.Window | QtCore.Qt.Tool)
         self.father = parent
         self.setWindowTitle("Shearing")
@@ -6438,7 +6440,7 @@ class ShearingWindow(QtWidgets.QWidget):
 class MultiplyWindow(QtWidgets.QWidget):
 
     def __init__(self, parent):
-        QtWidgets.QWidget.__init__(self, parent)
+        super(MultiplyWindow, self).__init__(parent)
         self.setWindowFlags(QtCore.Qt.Window | QtCore.Qt.Tool)
         self.father = parent
         self.setWindowTitle("Multiply")
@@ -6498,7 +6500,7 @@ class MultiplyWindow(QtWidgets.QWidget):
 class XaxWindow(QtWidgets.QWidget):
 
     def __init__(self, parent):
-        QtWidgets.QWidget.__init__(self, parent)
+        super(XaxWindow, self).__init__(parent)
         self.setWindowFlags(QtCore.Qt.Window | QtCore.Qt.Tool)
         self.father = parent
         self.setWindowTitle("User defined x-axis")
@@ -6506,7 +6508,6 @@ class XaxWindow(QtWidgets.QWidget):
         layout = QtWidgets.QGridLayout(self)
         grid = QtWidgets.QGridLayout()
         layout.addLayout(grid, 0, 0, 1, 2)
-        
         
         grid.addWidget(wc.QLabel("Input x-axis values:"), 0, 0, 1, 2) 
         self.typeDropdown = QtWidgets.QComboBox()
@@ -6590,8 +6591,6 @@ class XaxWindow(QtWidgets.QWidget):
         self.father.menuDisable()
         self.setGeometry(self.frameSize().width() - self.geometry().width(), self.frameSize().height() - self.geometry().height(), 0, 0)
     
-    
-    
     def typeChanged(self,index):
         if index == 0: #If expr
             self.exprEntry.show()
@@ -6603,8 +6602,6 @@ class XaxWindow(QtWidgets.QWidget):
             self.logStopLabel.hide()
             self.logStartEntry.hide()
             self.logStopEntry.hide()
-        
-        
         elif index == 1:
            self.exprEntry.hide() 
            self.linStartLabel.show()
@@ -6676,7 +6673,6 @@ class XaxWindow(QtWidgets.QWidget):
         val = self.getValues()
         if val is None: #if error return. Messages are handled by the called function
             return
-        
         for i in range(self.axisSize):
             item = QtWidgets.QTableWidgetItem('{:.6g}'.format(val[i]))
             item.setFlags(QtCore.Qt.ItemIsEnabled)
@@ -6707,7 +6703,7 @@ class XaxWindow(QtWidgets.QWidget):
 class RefWindow(QtWidgets.QWidget):
 
     def __init__(self, parent):
-        QtWidgets.QWidget.__init__(self, parent)
+        super(RefWindow, self).__init__(parent)
         self.setWindowFlags(QtCore.Qt.Window | QtCore.Qt.Tool)
         self.father = parent
         self.setWindowTitle("Reference")
@@ -6784,7 +6780,6 @@ class RefWindow(QtWidgets.QWidget):
         self.deleteLater()
 
     def applyAndClose(self):
-
         self.father.current.peakPickReset()
         freq = safeEval(self.freqEntry.text())
         ref = safeEval(self.refEntry.text())
@@ -6796,7 +6791,7 @@ class RefWindow(QtWidgets.QWidget):
         givenname = self.refName.text()
         nameOK = True
         if givenname:  # If name is filled in
-            if self.father.father.referenceName.__contains__(givenname):  # if exists
+            if givenname in self.father.father.referenceName:  # if exists
                 self.father.father.dispMsg("Reference name '" + givenname + "' already exists")
                 nameOK = False
             else:
@@ -6822,7 +6817,7 @@ class RefWindow(QtWidgets.QWidget):
 class HistoryWindow(QtWidgets.QWidget):
 
     def __init__(self, parent):
-        QtWidgets.QWidget.__init__(self, parent)
+        super(HistoryWindow, self).__init__(parent)
         self.setWindowFlags(QtCore.Qt.Window | QtCore.Qt.Tool)
         self.father = parent
         self.setWindowTitle("Processing history")
@@ -6890,7 +6885,7 @@ class DestListWidget(QtWidgets.QListWidget):
 class CombineWorkspaceWindow(QtWidgets.QWidget):
 
     def __init__(self, parent):
-        QtWidgets.QWidget.__init__(self, parent)
+        super(CombineWorkspaceWindow, self).__init__(parent)
         self.setWindowFlags(QtCore.Qt.Window | QtCore.Qt.Tool)
         self.father = parent
         self.setWindowTitle("Combine workspaces")
@@ -6938,7 +6933,7 @@ class CombineWorkspaceWindow(QtWidgets.QWidget):
 class CombineLoadWindow(QtWidgets.QWidget):
 
     def __init__(self, parent):
-        QtWidgets.QWidget.__init__(self, parent)
+        super(CombineLoadWindow, self).__init__(parent)
         self.setWindowFlags(QtCore.Qt.Window | QtCore.Qt.Tool)
         self.setAcceptDrops(True)
         self.father = parent
@@ -7007,7 +7002,7 @@ class CombineLoadWindow(QtWidgets.QWidget):
 class MonitorWindow(QtWidgets.QWidget):
 
     def __init__(self, parent):
-        QtWidgets.QWidget.__init__(self, parent)
+        super(MonitorWindow, self).__init__(parent)
         self.setWindowFlags(QtCore.Qt.Window | QtCore.Qt.Tool)
         self.father = parent
         self.setWindowTitle("Monitor")
@@ -7078,7 +7073,7 @@ class MonitorWindow(QtWidgets.QWidget):
 class PlotSettingsWindow(QtWidgets.QWidget):
 
     def __init__(self, parent):
-        QtWidgets.QWidget.__init__(self, parent)
+        super(PlotSettingsWindow, self).__init__(parent)
         self.setWindowFlags(QtCore.Qt.Window | QtCore.Qt.Tool)
         self.father = parent
         self.setWindowTitle("Preferences")
@@ -7210,7 +7205,7 @@ class PlotSettingsWindow(QtWidgets.QWidget):
 class errorWindow(QtWidgets.QWidget):
 
     def __init__(self, parent):
-        QtWidgets.QWidget.__init__(self, parent)
+        super(errorWindow, self).__init__(parent)
         self.setWindowFlags(QtCore.Qt.Window | QtCore.Qt.Tool)
         self.father = parent
 
@@ -7265,7 +7260,7 @@ class errorWindow(QtWidgets.QWidget):
 class PreferenceWindow(QtWidgets.QWidget):
 
     def __init__(self, parent):
-        QtWidgets.QWidget.__init__(self, parent)
+        super(PreferenceWindow, self).__init__(parent)
         self.setWindowFlags(QtCore.Qt.Window | QtCore.Qt.Tool)
         self.father = parent
         self.setWindowTitle("Preferences")
@@ -7441,7 +7436,7 @@ class PreferenceWindow(QtWidgets.QWidget):
 class ToolbarWindow(QtWidgets.QWidget):
 
     def __init__(self,parent):
-        QtWidgets.QWidget.__init__(self,parent)
+        super(ToolbarWindow, self).__init__(parent)
         self.setWindowFlags(QtCore.Qt.Window | QtCore.Qt.Tool)
         self.father = parent
         self.setWindowTitle("Change Toolbar")
@@ -7493,23 +7488,18 @@ class ToolbarWindow(QtWidgets.QWidget):
 class aboutWindow(QtWidgets.QWidget):
 
     def __init__(self, parent):
-        QtWidgets.QWidget.__init__(self, parent)
+        super(aboutWindow, self).__init__(parent)
         self.setWindowFlags(QtCore.Qt.Window | QtCore.Qt.Tool)
         self.father = parent
-
         self.setWindowTitle("About ssNake")
-
         grid = QtWidgets.QGridLayout()
 #        grid.setColumnStretch(10, 1)
 #        grid.setRowStretch(14, 1)
-
         self.logo = QtWidgets.QLabel(self)
         self.logo.setPixmap(QtGui.QPixmap(os.path.dirname(os.path.realpath(__file__)) + "/logo.gif"))
-        
         self.tabs = QtWidgets.QTabWidget(self)
         self.text = QtWidgets.QTextEdit(self)
         self.text.setReadOnly(True)
-        
         self.license = QtWidgets.QTextEdit(self)
         self.license.setReadOnly(True)
         licenseText = ''
@@ -7518,7 +7508,6 @@ class aboutWindow(QtWidgets.QWidget):
         for line in licenseTextTemp:
             licenseText = licenseText + line + ' '
         self.license.setHtml(licenseText)
-        
         pythonVersion = sys.version
         pythonVersion = pythonVersion[:pythonVersion.index(' ')]
         try:
@@ -7527,9 +7516,7 @@ class aboutWindow(QtWidgets.QWidget):
         except:
             from PyQt5.Qt import PYQT_VERSION_STR
             from PyQt5.QtCore import QT_VERSION_STR
-            
         from scipy import __version__ as scipyVersion    
-        
         self.text.setText('<p><b>ssNake ' + VERSION + '</b></p>' + 
                 '<p>Copyright (&copy;) 2016&ndash;2017 Bas van Meerten & Wouter Franssen<\p>' + '<p>Email: <a href="mailto:ssnake@science.ru.nl" >ssnake@science.ru.nl</a></p>' +
         '<b>Library versions</b>:<br>Python ' + pythonVersion + '<br>numpy ' + np.__version__ +
@@ -7537,21 +7524,17 @@ class aboutWindow(QtWidgets.QWidget):
         '<br>matplotlib ' + matplotlib.__version__ + 
         '<br>PyQt ' + PYQT_VERSION_STR + 
         '<br>Qt ' + QT_VERSION_STR )
-        
         self.thanks = QtWidgets.QTextEdit(self)
         self.thanks.setReadOnly(True)
         self.thanks.setHtml('<p><b>The ssNake team wishes to thank:</b></p>Koen Tijssen<br>Ole Brauckmann')
-        
         self.tabs.addTab(self.text, 'Version') 
         self.tabs.addTab(self.thanks, 'Thanks') 
         self.tabs.addTab(self.license, 'License') 
-        
         grid.addWidget(self.logo, 0, 0, 1, 3, QtCore.Qt.AlignHCenter)
         grid.addWidget(self.tabs, 1, 0, 1, 3)
         closebutton = QtWidgets.QPushButton("Close")
         grid.addWidget(closebutton, 12, 1, 1, 1)
         closebutton.clicked.connect(self.closeEvent)
-
         self.setLayout(grid)
         self.resize(550, 700)
         self.show()
@@ -7566,16 +7549,13 @@ class aboutWindow(QtWidgets.QWidget):
 class shiftConversionWindow(QtWidgets.QWidget):
 
     def __init__(self, parent):
-        QtWidgets.QWidget.__init__(self, parent)
+        super(shiftConversionWindow, self).__init__(parent)
         self.setWindowFlags(QtCore.Qt.Window | QtCore.Qt.Tool)
         self.father = parent
-
         self.setWindowTitle("Chemical Shift Conversions")
-
         grid = QtWidgets.QGridLayout()
         grid.setColumnStretch(10, 1)
         grid.setRowStretch(14, 1)
-
         StConv = QtWidgets.QLabel("Standard Convention:")
         StConv.setAlignment(QtCore.Qt.AlignHCenter)
         grid.addWidget(StConv, 0, 0)
@@ -7801,7 +7781,7 @@ class quadConversionWindow(QtWidgets.QWidget):
     Ivalues = [1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 4.0, 4.5,5.0,6.0,7.0]
    
     def __init__(self, parent):
-        QtWidgets.QWidget.__init__(self, parent)
+        super(quadConversionWindow, self).__init__(parent)
         self.setWindowFlags(QtCore.Qt.Window | QtCore.Qt.Tool)
         self.father = parent
         self.setWindowTitle("Quadrupolar Coupling Conversions")

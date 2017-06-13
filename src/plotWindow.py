@@ -40,7 +40,7 @@ import copy
 class MainPlotWindow(QtWidgets.QWidget):
 
     def __init__(self, father, oldMainWindow):
-        QtWidgets.QWidget.__init__(self, father)
+        super(MainPlotWindow, self).__init__(father)
         self.father = father
         self.oldMainWindow = oldMainWindow
         self.fig = oldMainWindow.current.fig
@@ -251,12 +251,7 @@ class MainPlotWindow(QtWidgets.QWidget):
         
         self.fontGroup.setLayout(self.fontFrame)
         self.optionFrame.addWidget(self.fontGroup,3,0)
-        
-        
-        
         #Legend
-
-       
         self.legend = self.ax.legend()
         if self.legend is not None:
             if self.oldMainWindow.current.__class__.__name__ == 'CurrentMulti': #If from multiplot
@@ -272,11 +267,7 @@ class MainPlotWindow(QtWidgets.QWidget):
             self.legendTextList = []
             for line in self.legend.get_texts():
                 self.legendTextList.append(line.get_text())
-
             self.legend.set_visible(False)
-            
-            
-            
             self.legendGroup = QtWidgets.QGroupBox('Legend:')
             self.legendGroup.setCheckable(True)
             self.legendGroup.setChecked(False)
@@ -287,11 +278,9 @@ class MainPlotWindow(QtWidgets.QWidget):
             self.legendFrame.addWidget(legendButton,0,0)
             self.legendGroup.setLayout(self.legendFrame)
             self.optionFrame.addWidget(self.legendGroup, 4, 0)
-
         execFileButton = QtWidgets.QPushButton('Execute file')
         execFileButton.clicked.connect(self.exFile)
         self.optionFrame.addWidget(execFileButton, 44, 0)
-
         self.inFrame = QtWidgets.QGridLayout()
         self.frame1.addLayout(self.inFrame, 1, 0)
         self.inFrame.addWidget(QLabel("File type:"), 0, 0, 1, 2)
@@ -320,44 +309,30 @@ class MainPlotWindow(QtWidgets.QWidget):
         if val: #If active
             self.mainFontLabel.setEnabled(False)
             self.mainFontSizeEntry.setEnabled(False)
-            
             self.titleFontLabel.show()
             self.titleFontSizeEntry.show()
-            
             self.xlabelFontLabel.show()
             self.xlabelFontSizeEntry.show()
-            
             self.ylabelFontLabel.show()
             self.ylabelFontSizeEntry.show()
-                   
             self.xtickFontLabel.show()
             self.xtickFontSizeEntry.show()
-            
             self.ytickFontLabel.show()
             self.ytickFontSizeEntry.show()
         else:
             self.mainFontLabel.setEnabled(True)
             self.mainFontSizeEntry.setEnabled(True)
-            
             self.titleFontLabel.hide()
             self.titleFontSizeEntry.hide()
-            
             self.xlabelFontLabel.hide()
             self.xlabelFontSizeEntry.hide()
-            
             self.ylabelFontLabel.hide()
             self.ylabelFontSizeEntry.hide()
-                   
             self.xtickFontLabel.hide()
             self.xtickFontSizeEntry.hide()
-            
             self.ytickFontLabel.hide()
             self.ytickFontSizeEntry.hide()
-
         self.updatePlot()
-
-
-
 
     def updateLegend(self, *args):
         if self.legendGroup.isChecked():
@@ -454,7 +429,6 @@ class MainPlotWindow(QtWidgets.QWidget):
                     s = fd.read()
                 with open(f, 'w') as fd:
                     fd.write(s.replace('stroke-miterlimit:100000;', ''))
-            
 
     def cancel(self):
         self.fig.suptitle(self.titleBackup, fontsize=self.titleFontSizeBackup)
@@ -481,7 +455,7 @@ class MainPlotWindow(QtWidgets.QWidget):
 class LegendWindow(QtWidgets.QWidget):
 
     def __init__(self, parent):
-        QtWidgets.QWidget.__init__(self, parent)
+        super(LegendWindow, self).__init__(parent)
         self.setWindowFlags(QtCore.Qt.Window | QtCore.Qt.Tool)
         self.father = parent
         self.setWindowTitle("Legend")
@@ -571,7 +545,7 @@ class LegendWindow(QtWidgets.QWidget):
 class EditLineWindow(QtWidgets.QWidget):
 
     def __init__(self, parent, line=None):
-        QtWidgets.QWidget.__init__(self, parent)
+        super(EditLineWindow, self).__init__(parent)
         self.setWindowFlags(QtCore.Qt.Window | QtCore.Qt.Tool)
         self.father = parent
         self.canvas = self.father.canvas

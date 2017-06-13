@@ -483,13 +483,13 @@ class DetailWindow(QtWidgets.QWidget):
 
 class PtQLabel(QtWidgets.QLabel):
     def __init__(self, parent=None):
-        QtWidgets.QLabel.__init__(self, parent)
+        super(PtQLabel, self).__init__(parent)
         self.setAlignment(QtCore.Qt.AlignCenter)
 
 
 class PtQLineEdit(QtWidgets.QLineEdit):
     def __init__(self, parent=None):
-        QtWidgets.QLineEdit.__init__(self, parent)
+        super(PtQLineEdit, self).__init__(parent)
         self.setAlignment(QtCore.Qt.AlignCenter)
 
 
