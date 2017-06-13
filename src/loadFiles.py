@@ -994,24 +994,6 @@ def LoadMinispec(filePath,name):
 
 
 def LoadBrukerEPR(filePath,name=''):
-    from struct import unpack, calcsize
-    if os.path.isfile(filePath):
-        Dir = os.path.dirname(filePath)
-    else:
-        Dir = filePath
-
-    with open(filePath + '.spc',mode='rb') as f:
-        content = f.read()
-
-    x = 'f'
-    xsize = calcsize(x)
-    #print(xsize)
-    data = []
-    for i in range(int(len(content)/xsize)):
-        data.append(unpack(x,content[i*xsize:i*xsize+xsize])[0])
-
-    data =np.array(data) 
-
     with open(filePath + '.par',mode='r')     as f:
         textdata = [row.split() for row in f.readlines()]
 
@@ -1023,10 +1005,9 @@ def LoadBrukerEPR(filePath,name=''):
         elif row[0]=='GST':
             leftX = float(row[1])
 
-
-    xdata = np.arange(leftX,leftX+sweepWidth,sweepWidth/numOfPoints)        
-
-
+    with open(filePath + '.spc',mode='rb') as f:
+        data = np.fromfile(f, np.float32, numOfPoints)
+    
     masterData = sc.Spectrum(name, data, (0, filePath), [(sweepWidth + 2 * leftX)/2], [sweepWidth], [True], ref = [0])
     masterData.addHistory("Bruker EPR data loaded from " + filePath)
     return masterData
