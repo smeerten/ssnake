@@ -2462,9 +2462,9 @@ class TensorDeconvParamFrame(AbstractParamFrame):
         self.entries['shiftdef'][-1].currentIndexChanged.connect(self.changeShiftDef)
         self.frame1.addWidget(self.entries['shiftdef'][-1], 4, 2)
         self.optframe.addWidget(QLabel("Cheng:"), 0, 0)
-        self.entries['cheng'].append(QtWidgets.QLineEdit())
+        self.entries['cheng'].append(QtWidgets.QSpinBox())
         self.entries['cheng'][-1].setAlignment(QtCore.Qt.AlignHCenter)
-        self.entries['cheng'][-1].setText(str(self.cheng))
+        self.entries['cheng'][-1].setValue(self.cheng)
         self.optframe.addWidget(self.entries['cheng'][-1], 1, 0)
         self.optframe.setColumnStretch(10, 1)
         self.optframe.setAlignment(QtCore.Qt.AlignTop)
@@ -2545,7 +2545,7 @@ class TensorDeconvParamFrame(AbstractParamFrame):
         self.parent.pickNum = 0
         self.parent.pickNum2 = 0
         self.cheng = 15
-        self.entries['cheng'][-1].setText(str(self.cheng))
+        self.entries['cheng'][-1].setValue(self.cheng)
         self.fitNumList[locList] = 0
         for name in self.SINGLENAMES:
             self.fitParamList[locList][name] = [0.0, True]
@@ -2560,14 +2560,6 @@ class TensorDeconvParamFrame(AbstractParamFrame):
     def togglePick(self):
         self.parent.togglePick(self.pickTick.isChecked())
 
-    def setCheng(self, *args):
-        inp = safeEval(self.entries['cheng'][-1].text())
-        if inp is None:
-            self.cheng = 15
-        else:
-            self.cheng = int(inp)
-        self.entries['cheng'][-1].setText(str(self.cheng))
-                
     def changeShiftDef(self):
         NewType = self.entries['shiftdef'][-1].currentIndex()
         OldType = self.shiftDefType 
@@ -2657,7 +2649,7 @@ class TensorDeconvParamFrame(AbstractParamFrame):
         self.shiftDefType = NewType
 
     def getExtraParams(self, out):
-        cheng = safeEval(self.entries['cheng'][-1].text())
+        cheng = self.entries['cheng'][-1].value()
         phi, theta, weight = zcw_angles(cheng, symm=2)
         out['weight'] = [weight]
         out['multt'] = [[np.sin(theta)**2 * np.cos(phi)**2, np.sin(theta)**2 * np.sin(phi)**2, np.cos(theta)**2]]
@@ -2824,9 +2816,9 @@ class CSAMASParamFrame(AbstractParamFrame):
         # self.entries['shiftdef'][-1].currentIndexChanged.connect(self.changeShiftDef)
         # self.frame1.addWidget(self.entries['shiftdef'][-1], 4, 1) 
         self.optframe.addWidget(QLabel("Cheng:"), 0, 0)
-        self.entries['cheng'].append(QtWidgets.QLineEdit())
+        self.entries['cheng'].append(QtWidgets.QSpinBox())
         self.entries['cheng'][-1].setAlignment(QtCore.Qt.AlignHCenter)
-        self.entries['cheng'][-1].setText(str(self.cheng))
+        self.entries['cheng'][-1].setValue(self.cheng)
         self.optframe.addWidget(self.entries['cheng'][-1], 1, 0)
         self.optframe.setColumnStretch(10, 1)
         self.optframe.setAlignment(QtCore.Qt.AlignTop)
@@ -2882,17 +2874,8 @@ class CSAMASParamFrame(AbstractParamFrame):
                 self.frame3.addWidget(self.entries[self.MULTINAMES[j]][i], i + 2, 2*j+1)
         self.dispParams()
 
-    def setCheng(self, *args):
-        inp = safeEval(self.entries['cheng'][-1].text())
-        if inp is None:
-            self.cheng = 15
-        else:
-            self.cheng = int(inp)
-        self.entries['cheng'][-1].setText(str(self.cheng))
-
     def getExtraParams(self, out):
-        cheng = safeEval(self.entries['cheng'][-1].text())
-        out['cheng'] = [cheng]
+        out['cheng'] = [self.entries['cheng'][-1].value()]
         return (out, [out['cheng'][-1]])
 
     def disp(self, params, num):
@@ -3072,9 +3055,9 @@ class Quad1MASDeconvParamFrame(AbstractParamFrame):
         self.ticks = {'bgrnd':[], 'slope':[], 'spinspeed':[], 'pos':[], 'cq':[], 'eta':[], 'amp':[], 'lor':[], 'gauss':[]}
         self.entries = {'bgrnd':[], 'slope':[], 'spinspeed':[], 'pos':[], 'cq':[], 'eta':[], 'amp':[], 'lor':[], 'gauss':[], 'shiftdef':[], 'cheng':[], 'I':[]}
         self.optframe.addWidget(QLabel("Cheng:"), 0, 0)
-        self.entries['cheng'].append(QtWidgets.QLineEdit())
+        self.entries['cheng'].append(QtWidgets.QSpinBox())
         self.entries['cheng'][-1].setAlignment(QtCore.Qt.AlignHCenter)
-        self.entries['cheng'][-1].setText(str(self.cheng))
+        self.entries['cheng'][-1].setValue(self.cheng)
         self.optframe.addWidget(self.entries['cheng'][-1], 1, 0)
         self.optframe.addWidget(QLabel("I:"), 0, 1)
         self.entries['I'].append(QtWidgets.QComboBox())
@@ -3137,14 +3120,6 @@ class Quad1MASDeconvParamFrame(AbstractParamFrame):
 
     def checkI(self, I):
         return I * 0.5 + 1
-
-    def setCheng(self, *args):
-        inp = safeEval(self.entries['cheng'][-1].text())
-        if inp is None:
-            self.cheng = 15
-        else:
-            self.cheng = int(inp)
-        self.entries['cheng'][-1].setText(str(self.cheng))
 
     def getExtraParams(self, out):
         out['I'] = [self.checkI(self.entries['I'][-1].currentIndex())]
@@ -3360,9 +3335,9 @@ class Quad1DeconvParamFrame(AbstractParamFrame):
         self.ticks = {'bgrnd':[], 'slope':[], 'pos':[], 'cq':[], 'eta':[], 'amp':[], 'lor':[], 'gauss':[]}
         self.entries = {'bgrnd':[], 'slope':[], 'pos':[], 'cq':[], 'eta':[], 'amp':[], 'lor':[], 'gauss':[], 'method':[], 'cheng':[], 'I':[]}
         self.optframe.addWidget(QLabel("Cheng:"), 0, 0)
-        self.entries['cheng'].append(QtWidgets.QLineEdit())
+        self.entries['cheng'].append(QtWidgets.QSpinBox())
         self.entries['cheng'][-1].setAlignment(QtCore.Qt.AlignHCenter)
-        self.entries['cheng'][-1].setText(str(self.cheng))
+        self.entries['cheng'][-1].setValue(self.cheng)
         self.optframe.addWidget(self.entries['cheng'][-1], 1, 0)
         self.optframe.addWidget(QLabel("I:"), 0, 1)
         self.entries['I'].append(QtWidgets.QComboBox())
@@ -3416,17 +3391,8 @@ class Quad1DeconvParamFrame(AbstractParamFrame):
     def checkI(self, I):
         return I * 0.5 + 1
 
-    def setCheng(self, *args):
-        inp = safeEval(self.entries['cheng'][-1].text())
-        if inp is None:
-            self.cheng = 15
-        else:
-            self.cheng = int(inp)
-        self.entries['cheng'][-1].setText(str(self.cheng))
-
     def getExtraParams(self, out):
-        cheng = safeEval(self.entries['cheng'][-1].text())
-        weight, angleStuff = self.setAngleStuff(cheng)
+        weight, angleStuff = self.setAngleStuff(self.entries['cheng'][-1].value())
         out['I'] = [self.checkI(self.entries['I'][-1].currentIndex())]
         out['weight'] = [weight]
         out['anglestuff'] = [angleStuff]
@@ -3674,9 +3640,9 @@ class Quad2StaticCzjzekParamFrame(AbstractParamFrame):
         self.ticks = {'bgrnd':[], 'slope':[], 'pos':[], 'd':[], 'sigma':[], 'amp':[], 'lor':[], 'gauss':[]}
         self.entries = {'bgrnd':[], 'slope':[], 'pos':[], 'd':[], 'sigma':[], 'amp':[], 'lor':[], 'gauss':[], 'method':[], 'cheng':[], 'I':[], 'wqgrid':[], 'etagrid':[], 'wqmax':[]}
         self.optframe.addWidget(QLabel("Cheng:"), 0, 0)
-        self.entries['cheng'].append(QtWidgets.QLineEdit())
+        self.entries['cheng'].append(QtWidgets.QSpinBox())
         self.entries['cheng'][-1].setAlignment(QtCore.Qt.AlignHCenter)
-        self.entries['cheng'][-1].setText(str(self.cheng))
+        self.entries['cheng'][-1].setValue(self.cheng)
         self.optframe.addWidget(self.entries['cheng'][-1], 1, 0)
         self.optframe.addWidget(QLabel("I:"), 0, 1)
         self.entries['I'].append(QtWidgets.QComboBox())
@@ -3745,14 +3711,6 @@ class Quad2StaticCzjzekParamFrame(AbstractParamFrame):
     def checkI(self, I):
         return I * 1.0 + 1.5
 
-    def setCheng(self, *args):
-        inp = safeEval(self.entries['cheng'][-1].text())
-        if inp is None:
-            self.cheng = 15
-        else:
-            self.cheng = int(inp)
-        self.entries['cheng'][-1].setText(str(self.cheng))
-
     def setGrid(self, *args):
         inp = safeEval(self.entries['wqgrid'][-1].text())
         if inp is None:
@@ -3791,12 +3749,11 @@ class Quad2StaticCzjzekParamFrame(AbstractParamFrame):
         return weight, angleStuff
 
     def getExtraParams(self, out):
-        cheng = safeEval(self.entries['cheng'][-1].text())
         wqMax = safeEval(self.entries['wqmax'][-1].text())
         I = self.checkI(self.entries['I'][-1].currentIndex())
         numWq = int(self.entries['wqgrid'][-1].text())
         numEta = int(self.entries['etagrid'][-1].text())
-        weight, angleStuff = self.setAngleStuff(cheng)
+        weight, angleStuff = self.setAngleStuff(self.entries['cheng'][-1].value())
         maxSigma = max(out['sigma'])
         lib, wq, eta = self.genLib(len(self.parent.xax), I, maxSigma * wqMax * 1e6, numWq, numEta, angleStuff, self.parent.current.freq, self.parent.current.sw, weight, self.axAdd)
         out['I'] = [I]
