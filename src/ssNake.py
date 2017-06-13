@@ -1316,9 +1316,11 @@ class MainProgram(QtWidgets.QMainWindow):
         returnVal = 0
         
         
+        fileBase = '' 
         direc = filePath 
         if os.path.isfile(filePath):
             filename = os.path.basename(filePath)
+            fileBase = os.path.splitext(filename)[0]
             direc = os.path.dirname(filePath)
             if filename.endswith('.fid') or filename.endswith('.spe'):
                 with open(filePath, 'r') as f:
@@ -1357,6 +1359,8 @@ class MainProgram(QtWidgets.QMainWindow):
             files1D = [x for x in dirFiles if '.1d' in x]
             if len(files2D) != 0 or len(files1D) != 0:
                 return (3, direc, returnVal)
+        elif os.path.exists(direc + os.path.sep + fileBase + '.spc') and os.path.exists(direc + os.path.sep + fileBase + '.par'):
+            return (13, direc + os.path.sep + fileBase, returnVal)
         elif os.path.isfile(filePath): #If not recognised, load as ascii
             return (11, filePath, returnVal)
         return (None,filePath, 2)
@@ -1481,7 +1485,9 @@ class MainProgram(QtWidgets.QMainWindow):
         elif num == 11:
             masterData = self.LoadAscii(filePath, name) 
         elif num == 12:
-            masterData = self.LoadMinispec(filePath, name) 
+            masterData = self.LoadMinispec(filePath, name)
+        elif num == 13:
+            masterData = self.LoadBrukerEPR(filePath, name)
         if returnBool:
             return masterData
         else:
@@ -1620,7 +1626,17 @@ class MainProgram(QtWidgets.QMainWindow):
             self.dispMsg("Error on loading Minispec data",'red')
             raise
         return masterData 
-        
+          
+    def LoadBrukerEPR(self, filePath, name=''):
+        try:
+            masterData = LF.LoadBrukerEPR(filePath,name)
+            masterData.msgHandler = lambda msg: self.dispMsg(msg)
+        except:
+            self.dispMsg("Error on loading Bruker EPR data",'red')
+            raise
+        return masterData     
+
+   
         
     def saveSimpsonFile(self):
         self.mainWindow.get_mainWindow().SaveSimpsonFile()
