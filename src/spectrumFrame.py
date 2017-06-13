@@ -30,7 +30,7 @@ import warnings
 # the class from which the 1d data is displayed, the operations which only edit the content of this class are for previewing
 
 
-class Plot1DFrame:
+class Plot1DFrame(object):
 
     def __init__(self, root, fig, canvas):
         self.root = root
