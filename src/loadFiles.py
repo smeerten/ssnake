@@ -983,21 +983,15 @@ def LoadMinispec(filePath,name):
             if len(line) > 0:
                 temp = np.fromstring(line,sep = '\t')
                 totaldata = np.append(totaldata,temp[0] + 1j * temp[1])
-    
-    
-    
     masterData = sc.Spectrum(name, totaldata, (12, filePath), [0], [sw], [False])
     return masterData       
-        
-
-
-
 
 def LoadBrukerEPR(filePath,name=''):
-    with open(filePath + '.par',mode='r')     as f:
-        textdata = [row.split() for row in f.readlines()]
-
+    with open(filePath + '.par', mode='r') as f:
+        textdata = [row.split() for row in f.read().replace('\r','\n').split('\n')]
     for row in textdata:
+        if len(row) < 2:
+            continue
         if row[0]=='ANZ':
             numOfPoints = int(row[1])
         elif row[0]=='GSI':
