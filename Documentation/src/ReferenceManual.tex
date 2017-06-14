@@ -919,6 +919,78 @@ C &=  \dfrac{1}{12} \cos(\theta)^2 + \left( \dfrac{7}{48} \cos(\theta)^4 - \dfra
 
 
 
+\section{Plot}
+The plot menu allows the user the change the view and nature of the current data. Several types, for both 1D and 2D views are supported. Apart from the view, the current x-axis can be changed, and a 
+frequency reference can be set and saved. 
+
+
+\subsection{1D Plot}
+Shows the default 1D plot with a solid line. The side window only shows the dimension selector, as there are no additional options.
+
+
+\subsection{Scatter Plot}
+This plot type is essentially the same as the 1D Plot. However, the data is now plot as points without a line. Scatter plots can be useful for viewing 
+plots with only a couple of points.
+
+\subsection{Stack Plot}
+A stack plot is a way to view 2D data. Every trace is plot as a separate line, with a certain y-offset depending on its number. The y-axis in this view must be view with care,
+due to the offset given to each trace. In a stack plot, the dimension selector show two bullets: a left one for the main view, and the right one for the stack. For a T1 array, for example, having D2 as the first, and D1 
+as the right bullet shows a plot of the data along D2, with a separate spectrum (or FID) for every point in D1 (the arrayed recovery time in this case).
+
+The side frame shows several options:
+\begin{itemize}
+  \item From: index from where to start with the stack (zero is the start).
+  \item To: index where to stop with the stack. Note that this should be 1 higher than the last point (it is to not including the shown value)
+  \item Step: step size of the From to To array. 1 shows every spectrum, 2 only every second spectrum, etc.
+  \item Spacing: the distance in units of y between each spectrum (or FID). This can also be scrolled using <shift -- scroll>.
+\end{itemize}
+
+\subsection{Array Plot}
+This plot is essentially the same as the Stack Plot, only now the spectra are plot next to each other. In this case, the labels of the x-axis are
+not shown anymore, as the do not make any sense. The label of the x-axis is changed to `Frequency' or `Time' to indicate a series of spectra or FID's.
+The x-limits of every subplot are taken from the view before changing to the Array Plot, and cannot be changed from the array plot.
+
+The settings in the side frame are the same as with the Stack Plot.
+
+
+\subsection{Contour Plot}
+A contour plot shows the height profile of the data using constant height lines (like altitude lines on a map). This is the most common way to view true 2D data
+(data in which there are two NMR dimension, which are both Fourier transformed). Calculation of the contour lines takes some time, especially for larger data sets.
+As with the Stack and Array plot, the dimension selector shows two bullets. Now they stand for the x-axis (left) and y-axis (right). The Get Position frame now shows some extra features,
+as each data point now has a x-value, y-value and amplitude (z-value).
+
+The side frame has several options, which are described below.
+
+\subsubsection*{Contour type}
+\begin{itemize}
+  \item \textit{Number}: the number of contour lines plot. Positive and negative lines are treated separately (so the real maximum is twice this number). Also, when 
+	 the multiplier type is chosen, the total number of lines depends on whether or not the level maximum is exceeded.
+  \item \textit{Sign}: whether or not to plot only the positive contours (+ only), only the negative ($-$ only) or both (Both).
+  \item \textit{Type}: Linear or multiplier. Linear has even spacing between the contour lines, and goes in `Number' steps from the contour minimum to the
+	 maximum (for both the negative and positive contours). Multiplier takes the lowest contour and multiplies it with the Multiplier to get the 2nd contour. This is continues
+	 until the contour maximum, or the maximum number of lines is reached.
+  \item \textit{Multiplier (optional)}: Supplies the multiplier value as described above.
+\end{itemize}
+
+
+\subsubsection*{Contour limits [\%]}
+Sets the maximum and minimum contour. Note that the maximum always refers to the absolute maximum of the data that is plot (real or imaginary).
+The maximum cannot be higher than 100\%, and the minimum cannot be lower than 0\%. Whenever the minimum is higher than the maximum, 
+the meaning (but not the labels) is interchanged. The minimum contour level can be scrolled using the <shift -- scroll> with the mouse wheel.
+
+\subsubsection*{Projections}
+The projections are the regular 1D plots shown at the top and right of the contour plot. These can be of help in viewing the data.
+For both, several types are available:
+\begin{itemize}
+  \item Sum: the sum of the data 
+  \item Max: the maximum of the data
+  \item Min: the minimum of the data
+  \item Off: no projection is displayed
+\end{itemize}
+Sum, Max, and Min are applied along the axis opposite to the projection. So the top projection (which shows the x-axis) is summed (max/min) along the y-axis.
+
+
+
 
 \section{Combine}
 The combine menu options allow the interaction between different workspaces like multiplication and addition. For some of these tools it is essential that the workspaces
