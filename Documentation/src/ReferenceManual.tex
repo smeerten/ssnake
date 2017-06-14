@@ -375,12 +375,16 @@ and D1 in another.
 
 \section{Edit}
 \subsection{Undo}
-In ssNake, every action that causes a change in the data can be undone. When such an action is performed, the undo list is increased with one entry, in which the information is stored as how to undo the performed action. Sometimes this involves the inverse operation (e.g. for fft/inverse fft), but for some actions the old data must be preserved and put back when an undo is requested. Duplicating data to another workspace does not copy the undo list. The undo/redo data can be cleared using History $\rightarrow$ Clear Undo/Redo List.
+In ssNake, every action that causes a change in the data can be undone. When such an action is performed, the undo list is increased with one entry
+, in which the information is stored as how to undo the performed action. Sometimes this involves the inverse operation (e.g. for fft/inverse fft)
+, but for some actions the old data must be preserved and put back when an undo is requested. Duplicating data to another workspace does not copy
+the undo list. The undo/redo data can be cleared using Clear Undo/Redo List (see below).
 
 Undo cannot be used the undo the current view to the previous view as this is not an operation that changes the data.
 
 \subsection{Redo}
-When Undo is used, the action that is undone is put in the redo list. Using Undo and then Redo therefore performs no net action. Every time a new action (i.e. something other then redo) is performed the redo list is cleared.
+When Undo is used, the action that is undone is put in the redo list. Using Undo and then Redo therefore performs no net action.
+Every time a new action (i.e. something other then redo) is performed the redo list is cleared.
 
 \subsection{No Undo Mode}
 Activating this checkbox starts the No Undo Mode. This clears the current undo and redo list, and prevents any further actions from adding to the undo list. This way, no undo is possible
@@ -396,7 +400,9 @@ Naturally, any mistakes made during processing can not be corrected after this. 
 
 
 \subsection{Reload}
-This action reloads the data from the original source. All undo and redo information is retained, so you can undo back to before you reloaded the data. Note that the undo information can take quite some memory on your computer, especially for bigger data sets. In case this gives problems: the undo/redo data can be cleared using History $\rightarrow$ Clear Undo/Redo List.
+This action reloads the data from the original source. All undo and redo information is retained, so you can undo back to before you
+reloaded the data. Note that the undo information can take quite some memory on your computer, especially for bigger data sets. In case
+this gives problems: the undo/redo data can be cleared using Clear Undo/Redo List (see above).
 
 \subsection{Monitor}
 The monitor function can be used to automatically reload the data when the source file is changed (for example when measuring on the spectrometer). One or more macro's can be selected to be applied every time the data is reloaded. The Monitor action opens a window, in which the macro's can be selected (via dragging and dropping). Pushing `Watch' then starts the monitoring, which can be stopped by returning to this window and pushing `Unwatch'. Note that ssNake takes a cool-down period of half a second after the macro's have been executed, to avoid a lock-up of the program in the case of heavy macro's and fast changing data.
@@ -727,6 +733,79 @@ Performs an inverse fftshift.
 Performs a Hilbert Transform on the current data. This removes the imaginary data, and creates new imaginary data from the real data
 via the Kramers--Kronig relations. The sign of the imaginary data is lost in this way. Most commonly, a Hilbert transform is
 used in algorithms that take some part of the real data, and the imaginary part needs to be reconstructed.
+
+
+\subsection{NUS}
+Non-uniform sampling (NUS) is a way to reduce measurement time of a 2D (or higher) experiment. It involves measuring only selected t$_1$ delays, and using
+an algorithm to reconstruct the data. Reconstruction is necessary, as a regular Fourier transform can only deal with linearly sampled data.
+Most commonly, NUS is performed by choosing a regular delay time and number of points (i.e. a linear grid), and deleting selected values from this list.
+Processing NUS data is more involved then regularly measured data: the reconstruction process is not unique, and requires optimization.
+
+Processing NUS data in ssNake requires the data to be reordered (using Matrix $\rightarrow$ Reorder, and selecting the NUS list), in this way
+points that are not measured are taken as a 0. Now, phasing should be performed. The easiest way to do this is to do a regular Fourier transform. This will lead to ugly data, but 
+is sufficient to perform some 0th order phasing. Do another Fourier transform to get back to the time domain data. After this, NUS processing using the following methods is possible.
+
+\subsubsection{FFM}
+Fast Forward Maximum entropy (FFM, \cite{balsgart2012fast}) is a method to reconstruct the missing point is the FID by searching for the highest entropy. In our case, the entropy of the spectrum is defined 
+as the sum of the absolute values of the complex data. FFM changes the values of the missing points in search for the highest entropy. This means that FFM reduces
+the noise in the spectrum (but adds uncertainty to the peak shapes and amplitudes) and favours narrow lines. Naturally, the points that \textit{are} measured force the FFM analysis to 
+create a spectrum that resembles the actual data.
+
+For FFM, no additional parameters are needed, except for the NUS sampling scheme. Note that although the noise seems to be reduced by FFM, it is now equally contained
+in the peak shapes and amplitudes.
+
+
+
+
+\subsubsection{CLEAN}
+The CLEAN algorithm attempts to take single point in the spectrum, transfer part of it to a separate reconstructed spectrum, and subtract it from the main spectrum.
+The Fourier transform of the FID input mask (1's for measured points, 0's for skipped points) is used to not only subtract part of the spectrum maximum, but also the
+associated artifacts, that were introduced by the NUS. After a maximum number of iterations (or if the residual spectrum maximum falls below a value) the 
+loop is stopped, and the remainder is added to the reconstruction data. An inverse Fourier transform returns the reconstructed FID.
+
+In short:
+\begin{itemize}
+  \item Fourier transform to get the spectrum
+	 \item Select the maximum
+	 \item Multiply the maximum with the gamma factor and add it to the reconstructed spectrum (at that data point) 
+	 \item Remove the max * gamma value (multiplied by the Fourier transform of the mask, and shifted for a peak at that position) form the spectrum 
+\end{itemize}
+Steps 2--4 are repeated. Finally, the remained of the spectrum is added to the reconstruction.
+
+The user needs to supply the sampling scheme, the gamma value (lower is better, but slower) and the threshold (stopping criterion in \%, should be equal to the noise band for best results).
+
+
+
+
+
+\subsubsection{IST}
+Iterative Soft Thresholding (IST) is one of the methods to reconstruct the full FID from NUS sampled data. It involves the following steps:
+\begin{itemize}
+  \item Fourier transform the FID
+  \item Cut off the part of the spectrum that is above the threshold (in absolute mode)
+  \item Add the cut off part to a separate array, and remove it from the spectrum
+  \item Reconstruct the imaginary part of the spectrum via a Hilbert transform
+  \item Inverse Fourier transform to get the FID
+  \item Set the not measured parts back to zero
+\item (Repeat)
+\end{itemize}
+This is repeated for a specific maximum number of iterations, or until the residual spectrum is below a certain value. 
+Then finally:
+\begin{itemize}
+  \item The separate array is considered to be the reconstructed spectrum
+  \item The remained of the spectrum is added to this (i.e. the noise)
+  \item A Hilbert transform is used to reconstruct the imaginary data
+  \item Inverse Fourier transform gives the reconstructed FID
+\end{itemize}
+The settings that need to be supplied by the user are:
+\begin{itemize}
+  \item Positions of the spectra: list with the indices of the values that \textit{have} been measured (the others will be zeroed every iteration).
+  \item Threshold: at this relative intensity, the spectrum is cut (above goes to the separate array). Higher value (closer to 1) are more accurate, but more iterations are needed.
+  \item Max. iterations: Maximum number of iterations, higher is better but slower.
+  \item Stop when residual is below: stop when the spectrum has no points above value relative to the first spectrum (before any threshold steps). Value should be equal to the noise maximum.
+	 It is no problem if this value is too low (it might take longer). Having it too high leads to a bad reconstructions (if at 100\%, no reconstruction is done at all!).  
+\end{itemize}
+Reconstruction is done separately for every trace in the $n$D data. This also goes for the settings: the residual is compared to the first spectrum of \textit{that} trace.
 
 
 
