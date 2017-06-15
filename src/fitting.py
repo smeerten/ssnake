@@ -573,6 +573,7 @@ class FitPlotFrame(Plot1DFrame):
             return
         self.locList = locList
         self.upd()
+        self.rootwindow.paramframe.checkFitParamList(tuple(self.locList))
         self.rootwindow.paramframe.dispParams()
         self.showFid()
 
@@ -762,7 +763,12 @@ class AbstractParamFrame(QtWidgets.QWidget):
         self.frame1.addWidget(cancelButton, 7, 0)
         self.frame1.setColumnStretch(10, 1)
         self.frame1.setAlignment(QtCore.Qt.AlignTop)
+        self.checkFitParamList(tuple(self.parent.locList))
 
+    def checkFitParamList(self, locList):
+        if not self.fitParamList[locList]:
+            self.fitParamList[locList] = self.defaultValues(0)
+        
     def closeWindow(self, *args):
         self.stopMP()
         self.rootwindow.cancel()
@@ -770,6 +776,7 @@ class AbstractParamFrame(QtWidgets.QWidget):
     def copyParams(self):
         self.checkInputs()
         locList = tuple(self.parent.locList)
+        self.checkFitParamList(locList)
         for elem in np.nditer(self.fitParamList, flags=["refs_ok"], op_flags=['readwrite']):
             elem[...] = copy.deepcopy(self.fitParamList[locList])
         for elem in np.nditer(self.fitNumList, flags=["refs_ok"], op_flags=['readwrite']):
@@ -1002,9 +1009,10 @@ class AbstractParamFrame(QtWidgets.QWidget):
                 tmp2 += (np.arange(i),)
             grid = np.array([i.flatten() for i in np.meshgrid(*tmp2)]).T
             for i in grid:
+                self.checkFitParamList(tuple(i))
                 for j in range(len(names)):
                     if names[j] in self.SINGLENAMES:
-                        data[(j,)+(slice(None),)+tuple(i)].fill(self.fitParamList[locList][names[j]][0])
+                        data[(j,)+(slice(None),)+tuple(i)].fill(self.fitParamList[tuple(i)][names[j]][0])
                     else:
                         data[(j,)+(slice(None),)+tuple(i)] = self.fitParamList[tuple(i)][names[j]].T[0][:(self.fitNumList[tuple(i)]+1)]
             self.rootwindow.createNewData(data, self.parent.current.axes, True, True)
@@ -1178,8 +1186,6 @@ class IntegralsParamFrame(AbstractParamFrame):
         self.MULTINAMES = ['min', 'max', 'amp']
         self.FITFUNC = integralsmpFit
         super(IntegralsParamFrame, self).__init__(parent, rootwindow, isMain)
-        for elem in np.nditer(self.fitParamList, flags=["refs_ok"], op_flags=['readwrite']):
-            elem[...] = {'min':np.repeat([np.array([min(self.parent.current.xax), True], dtype=object)], self.FITNUM, axis=0), 'max':np.repeat([np.array([max(self.parent.current.xax), True], dtype=object)], self.FITNUM,axis=0), 'amp':np.repeat([np.array([1.0, False], dtype=object)], self.FITNUM,axis=0)}
         resetButton = QtWidgets.QPushButton("Reset")
         resetButton.clicked.connect(self.reset)
         self.frame1.addWidget(resetButton, 0, 2)
@@ -1219,6 +1225,12 @@ class IntegralsParamFrame(AbstractParamFrame):
                 self.entries[self.MULTINAMES[j]][i].setAlignment(QtCore.Qt.AlignHCenter)
                 self.frame3.addWidget(self.entries[self.MULTINAMES[j]][i], i + 2, j)
         self.resetVals()
+
+    def defaultValues(self, inp):
+        if not inp:
+            return {'min':np.repeat([np.array([min(self.parent.current.xax), True], dtype=object)], self.FITNUM, axis=0), 'max':np.repeat([np.array([max(self.parent.current.xax), True], dtype=object)], self.FITNUM,axis=0), 'amp':np.repeat([np.array([1.0, False], dtype=object)], self.FITNUM,axis=0)}
+        else:
+            return inp
 
     def reset(self):
         self.resetVals()
@@ -1586,9 +1598,6 @@ class RelaxParamFrame(AbstractParamFrame):
         self.MULTINAMES = ['coeff', 't']
         self.FITFUNC = relaxationmpFit
         super(RelaxParamFrame, self).__init__(parent, rootwindow, isMain)
-        timeit = time.time()
-        for elem in np.nditer(self.fitParamList, flags=["refs_ok"], op_flags=['readwrite']):
-            elem[...] = {'amp':[np.amax(self.parent.data1D), False], 'const':[1.0, False], 'coeff':np.repeat([np.array([-1.0, False], dtype=object)], self.FITNUM, axis=0), 't':np.repeat([np.array([1.0, False], dtype=object)], self.FITNUM,axis=0)}
         locList = tuple(self.parent.locList)
         self.ticks = {'amp':[], 'const':[], 'coeff':[], 't':[]}
         self.entries = {'amp':[], 'const':[], 'coeff':[], 't':[]}
@@ -1636,6 +1645,12 @@ class RelaxParamFrame(AbstractParamFrame):
                 if i > 0:
                     self.ticks[self.MULTINAMES[j]][i].hide()
                     self.entries[self.MULTINAMES[j]][i].hide()
+
+    def defaultValues(self, inp):
+        if not inp:
+            return {'amp':[np.amax(self.parent.data1D), False], 'const':[1.0, False], 'coeff':np.repeat([np.array([-1.0, False], dtype=object)], self.FITNUM, axis=0), 't':np.repeat([np.array([1.0, False], dtype=object)], self.FITNUM,axis=0)}
+        else:
+            return inp
 
     def setLog(self, *args):
         self.parent.setLog(self.xlog.isChecked(), self.ylog.isChecked())
@@ -1952,8 +1967,6 @@ class DiffusionParamFrame(AbstractParamFrame):
         self.MULTINAMES = ['coeff', 'd']
         self.FITFUNC = diffusionmpFit
         super(DiffusionParamFrame, self).__init__(parent, rootwindow, isMain)
-        for elem in np.nditer(self.fitParamList, flags=["refs_ok"], op_flags=['readwrite']):
-            elem[...] = {'amp':[np.amax(self.parent.data1D), False], 'const':[0.0, False], 'coeff':np.repeat([np.array([1.0, False], dtype=object)], self.FITNUM, axis=0), 'd':np.repeat([np.array([1.0e-9, False], dtype=object)], self.FITNUM,axis=0)}
         locList = tuple(self.parent.locList)
         self.ticks = {'amp':[], 'const':[], 'coeff':[], 'd':[]}
         self.entries = {'amp':[], 'const':[], 'coeff':[], 'd':[]}
@@ -2023,6 +2036,12 @@ class DiffusionParamFrame(AbstractParamFrame):
                 if i > 0:
                     self.ticks[self.MULTINAMES[j]][i].hide()
                     self.entries[self.MULTINAMES[j]][i].hide()
+
+    def defaultValues(self, inp):
+        if not inp:
+            return {'amp':[np.amax(self.parent.data1D), False], 'const':[0.0, False], 'coeff':np.repeat([np.array([1.0, False], dtype=object)], self.FITNUM, axis=0), 'd':np.repeat([np.array([1.0e-9, False], dtype=object)], self.FITNUM,axis=0)}
+        else:
+            return inp
 
     def setLog(self, *args):
         self.parent.setLog(self.xlog.isChecked(), self.ylog.isChecked())
@@ -2202,11 +2221,9 @@ class PeakDeconvParamFrame(AbstractParamFrame):
         self.SINGLENAMES = ['bgrnd', 'slope']
         self.MULTINAMES = ['pos', 'amp', 'lor', 'gauss']
         self.FITFUNC = peakDeconvmpFit
-        super(PeakDeconvParamFrame, self).__init__(parent, rootwindow, isMain)
         #Get full integral
         self.fullInt = np.sum(parent.data1D) * parent.current.sw / float(len(parent.data1D))
-        for elem in np.nditer(self.fitParamList, flags=["refs_ok"], op_flags=['readwrite']):
-            elem[...] = {'bgrnd':[0.0, True], 'slope':[0.0, True], 'pos':np.repeat([np.array([0.0, False], dtype=object)], self.FITNUM, axis=0), 'amp':np.repeat([np.array([self.fullInt, False], dtype=object)], self.FITNUM,axis=0), 'lor':np.repeat([np.array([1.0, False], dtype=object)], self.FITNUM,axis=0), 'gauss':np.repeat([np.array([0.0, True], dtype=object)], self.FITNUM,axis=0)}
+        super(PeakDeconvParamFrame, self).__init__(parent, rootwindow, isMain)
         resetButton = QtWidgets.QPushButton("Reset")
         resetButton.clicked.connect(self.reset)
         self.frame1.addWidget(resetButton, 0, 2)
@@ -2254,6 +2271,12 @@ class PeakDeconvParamFrame(AbstractParamFrame):
                 self.frame3.addWidget(self.entries[self.MULTINAMES[j]][i], i + 2, 2*j+1)
         self.reset()
 
+    def defaultValues(self, inp):
+        if not inp:
+            return {'bgrnd':[0.0, True], 'slope':[0.0, True], 'pos':np.repeat([np.array([0.0, False], dtype=object)], self.FITNUM, axis=0), 'amp':np.repeat([np.array([self.fullInt, False], dtype=object)], self.FITNUM,axis=0), 'lor':np.repeat([np.array([1.0, False], dtype=object)], self.FITNUM,axis=0), 'gauss':np.repeat([np.array([0.0, True], dtype=object)], self.FITNUM,axis=0)}
+        else:
+            return inp
+        
     def reset(self):
         locList = tuple(self.parent.locList)
         self.fitNumList[locList] = 0
@@ -2400,7 +2423,7 @@ class TensorDeconvFrame(FitPlotFrame):
             self.peakPick = False
 
     def pickDeconv(self, pos):
-        printStr = "%#." + str(self.rootwindow.param.PRECIS) + "g"
+        printStr = "%#." + str(self.rootwindow.tabWindow.PRECIS) + "g"
         if self.spec == 1:
             if self.current.ppm:
                 axMult = 1e6 / self.current.ref
@@ -2440,8 +2463,6 @@ class TensorDeconvParamFrame(AbstractParamFrame):
 
         self.cheng = 15
         super(TensorDeconvParamFrame, self).__init__(parent, rootwindow, isMain)
-        for elem in np.nditer(self.fitParamList, flags=["refs_ok"], op_flags=['readwrite']):
-            elem[...] = {'bgrnd':[0.0, True], 'slope':[0.0, True], 't11':np.repeat([np.array([0.0, False], dtype=object)], self.FITNUM, axis=0), 't22':np.repeat([np.array([0.0, False], dtype=object)], self.FITNUM, axis=0), 't33':np.repeat([np.array([0.0, False], dtype=object)], self.FITNUM, axis=0), 'amp':np.repeat([np.array([self.fullInt, False], dtype=object)], self.FITNUM,axis=0), 'lor':np.repeat([np.array([1.0, False], dtype=object)], self.FITNUM,axis=0), 'gauss':np.repeat([np.array([0.0, True], dtype=object)], self.FITNUM,axis=0)}
         resetButton = QtWidgets.QPushButton("Reset")
         resetButton.clicked.connect(self.reset)
         self.frame1.addWidget(resetButton, 0, 2)
@@ -2537,6 +2558,12 @@ class TensorDeconvParamFrame(AbstractParamFrame):
                 self.entries[self.MULTINAMES[j]][i].setAlignment(QtCore.Qt.AlignHCenter)
                 self.frame3.addWidget(self.entries[self.MULTINAMES[j]][i], i + 2, 2*j+1)
         self.reset()
+
+    def defaultValues(self, inp):
+        if not inp:
+            return {'bgrnd':[0.0, True], 'slope':[0.0, True], 't11':np.repeat([np.array([0.0, False], dtype=object)], self.FITNUM, axis=0), 't22':np.repeat([np.array([0.0, False], dtype=object)], self.FITNUM, axis=0), 't33':np.repeat([np.array([0.0, False], dtype=object)], self.FITNUM, axis=0), 'amp':np.repeat([np.array([self.fullInt, False], dtype=object)], self.FITNUM,axis=0), 'lor':np.repeat([np.array([1.0, False], dtype=object)], self.FITNUM,axis=0), 'gauss':np.repeat([np.array([0.0, True], dtype=object)], self.FITNUM,axis=0)}
+        else:
+            return inp
 
     def reset(self):
         locList = tuple(self.parent.locList)
@@ -2800,19 +2827,8 @@ class CSAMASParamFrame(AbstractParamFrame):
         self.FITFUNC = CSAMASmpFit
         self.cheng = 12
         super(CSAMASParamFrame, self).__init__(parent, rootwindow, isMain)
-        for elem in np.nditer(self.fitParamList, flags=["refs_ok"], op_flags=['readwrite']):
-            elem[...] = {'bgrnd':[0.0, True], 'slope':[0.0, True], 'spinspeed':[10.0, True], 'pos':np.repeat([np.array([0.0, False], dtype=object)], self.FITNUM, axis=0), 'delta':np.repeat([np.array([1.0, False], dtype=object)], self.FITNUM, axis=0), 'eta':np.repeat([np.array([0.0, False], dtype=object)], self.FITNUM, axis=0), 'amp':np.repeat([np.array([1.0, False], dtype=object)], self.FITNUM,axis=0), 'lor':np.repeat([np.array([1.0, False], dtype=object)], self.FITNUM,axis=0), 'gauss':np.repeat([np.array([0.0, True], dtype=object)], self.FITNUM,axis=0)}
         self.ticks = {'bgrnd':[], 'slope':[], 'spinspeed':[], 'pos':[], 'delta':[], 'eta':[], 'amp':[], 'lor':[], 'gauss':[]}
         self.entries = {'bgrnd':[], 'slope':[], 'spinspeed':[], 'pos':[], 'delta':[], 'eta':[], 'amp':[], 'lor':[], 'gauss':[], 'shiftdef':[], 'cheng':[]}
-        # self.frame1.addWidget(QLabel("Definition:"), 3, 1) 
-        # self.shiftDefType = 0 #variable to remember the selected tensor type
-        # self.entries['shiftdef'].append(QtWidgets.QComboBox())
-        # self.entries['shiftdef'][-1].addItems([u'\u03b411 - \u03b422 - \u03b433',
-        #                                        u'\u03b4xx - \u03b4yy - \u03b4zz',
-        #                                        u'\u03b4iso - \u03b4aniso - \u03b7',
-        #                                        u'\u03b4iso - \u03a9 - \u03b7'])
-        # self.entries['shiftdef'][-1].currentIndexChanged.connect(self.changeShiftDef)
-        # self.frame1.addWidget(self.entries['shiftdef'][-1], 4, 1) 
         self.optframe.addWidget(QLabel("Cheng:"), 0, 0)
         self.entries['cheng'].append(QtWidgets.QSpinBox())
         self.entries['cheng'][-1].setAlignment(QtCore.Qt.AlignHCenter)
@@ -2871,6 +2887,12 @@ class CSAMASParamFrame(AbstractParamFrame):
                 self.entries[self.MULTINAMES[j]][i].setAlignment(QtCore.Qt.AlignHCenter)
                 self.frame3.addWidget(self.entries[self.MULTINAMES[j]][i], i + 2, 2*j+1)
         self.dispParams()
+
+    def defaultValues(self, inp):
+        if not inp:
+            return {'bgrnd':[0.0, True], 'slope':[0.0, True], 'spinspeed':[10.0, True], 'pos':np.repeat([np.array([0.0, False], dtype=object)], self.FITNUM, axis=0), 'delta':np.repeat([np.array([1.0, False], dtype=object)], self.FITNUM, axis=0), 'eta':np.repeat([np.array([0.0, False], dtype=object)], self.FITNUM, axis=0), 'amp':np.repeat([np.array([1.0, False], dtype=object)], self.FITNUM,axis=0), 'lor':np.repeat([np.array([1.0, False], dtype=object)], self.FITNUM,axis=0), 'gauss':np.repeat([np.array([0.0, True], dtype=object)], self.FITNUM,axis=0)}
+        else:
+            return inp
 
     def getExtraParams(self, out):
         out['cheng'] = [self.entries['cheng'][-1].value()]
@@ -3046,13 +3068,9 @@ class Quad1DeconvParamFrame(AbstractParamFrame):
         self.setAngleStuff = quad1DeconvsetAngleStuff
         self.tensorFunc = quad1DeconvtensorFunc
         self.cheng = 15
-        super(Quad1DeconvParamFrame, self).__init__(parent, rootwindow, isMain)
-
         #Get full integral
         self.fullInt = np.sum(parent.data1D) * parent.current.sw / float(len(parent.data1D))
-
-        for elem in np.nditer(self.fitParamList, flags=["refs_ok"], op_flags=['readwrite']):
-            elem[...] = {'bgrnd':[0.0, True], 'slope':[0.0, True], 'spinspeed':[10.0, True], 'pos':np.repeat([np.array([0.0, False], dtype=object)], self.FITNUM, axis=0), 'cq':np.repeat([np.array([1.0, False], dtype=object)], self.FITNUM, axis=0), 'eta':np.repeat([np.array([0.0, False], dtype=object)], self.FITNUM, axis=0), 'amp':np.repeat([np.array([self.fullInt, False], dtype=object)], self.FITNUM,axis=0), 'lor':np.repeat([np.array([1.0, False], dtype=object)], self.FITNUM,axis=0), 'gauss':np.repeat([np.array([0.0, True], dtype=object)], self.FITNUM,axis=0)}
+        super(Quad1DeconvParamFrame, self).__init__(parent, rootwindow, isMain)
         self.ticks = {'bgrnd':[], 'slope':[], 'spinspeed':[], 'pos':[], 'cq':[], 'eta':[], 'amp':[], 'lor':[], 'gauss':[]}
         self.entries = {'bgrnd':[], 'slope':[], 'spinspeed':[], 'pos':[], 'cq':[], 'eta':[], 'amp':[], 'lor':[], 'gauss':[], 'shiftdef':[], 'cheng':[], 'I':[], 'mas':[]}
         self.optframe.addWidget(QLabel("Cheng:"), 0, 0)
@@ -3121,6 +3139,12 @@ class Quad1DeconvParamFrame(AbstractParamFrame):
                 self.entries[self.MULTINAMES[j]][i].setAlignment(QtCore.Qt.AlignHCenter)
                 self.frame3.addWidget(self.entries[self.MULTINAMES[j]][i], i + 2, 2*j+1)
         self.dispParams()
+
+    def defaultValues(self, inp):
+        if not inp:
+            return {'bgrnd':[0.0, True], 'slope':[0.0, True], 'spinspeed':[10.0, True], 'pos':np.repeat([np.array([0.0, False], dtype=object)], self.FITNUM, axis=0), 'cq':np.repeat([np.array([1.0, False], dtype=object)], self.FITNUM, axis=0), 'eta':np.repeat([np.array([0.0, False], dtype=object)], self.FITNUM, axis=0), 'amp':np.repeat([np.array([self.fullInt, False], dtype=object)], self.FITNUM,axis=0), 'lor':np.repeat([np.array([1.0, False], dtype=object)], self.FITNUM,axis=0), 'gauss':np.repeat([np.array([0.0, True], dtype=object)], self.FITNUM,axis=0)}
+        else:
+            return inp
 
     def checkI(self, I):
         return I * 0.5 + 1
@@ -3427,13 +3451,9 @@ class Quad2CzjzekParamFrame(AbstractParamFrame):
         self.SINGLENAMES = ['bgrnd', 'slope']
         self.MULTINAMES = ['d', 'pos', 'sigma', 'amp', 'lor', 'gauss']
         self.FITFUNC = quad2CzjzekmpFit
-        super(Quad2CzjzekParamFrame, self).__init__(parent, rootwindow, isMain)
-
         #Get full integral
         self.fullInt = np.sum(parent.data1D) * parent.current.sw / float(len(parent.data1D))
-
-        for elem in np.nditer(self.fitParamList, flags=["refs_ok"], op_flags=['readwrite']):
-            elem[...] = {'bgrnd':[0.0, True], 'slope':[0.0, True], 'pos':np.repeat([np.array([0.0, False], dtype=object)], self.FITNUM, axis=0), 'd':np.repeat([np.array([5.0, False], dtype=object)], self.FITNUM, axis=0), 'sigma':np.repeat([np.array([1.0, False], dtype=object)], self.FITNUM, axis=0), 'amp':np.repeat([np.array([self.fullInt, False], dtype=object)], self.FITNUM,axis=0), 'lor':np.repeat([np.array([10.0, False], dtype=object)], self.FITNUM,axis=0), 'gauss':np.repeat([np.array([0.0, True], dtype=object)], self.FITNUM,axis=0)}
+        super(Quad2CzjzekParamFrame, self).__init__(parent, rootwindow, isMain)
         self.cheng = 15
         if self.parent.current.spec == 1:
             self.axAdd = self.parent.current.freq - self.parent.current.ref
@@ -3515,6 +3535,12 @@ class Quad2CzjzekParamFrame(AbstractParamFrame):
                 self.entries[self.MULTINAMES[j]][i].setAlignment(QtCore.Qt.AlignHCenter)
                 self.frame3.addWidget(self.entries[self.MULTINAMES[j]][i], i + 2, 2*j+1)
         self.dispParams()
+
+    def defaultValues(self, inp):
+        if not inp:
+            return {'bgrnd':[0.0, True], 'slope':[0.0, True], 'pos':np.repeat([np.array([0.0, False], dtype=object)], self.FITNUM, axis=0), 'd':np.repeat([np.array([5.0, False], dtype=object)], self.FITNUM, axis=0), 'sigma':np.repeat([np.array([1.0, False], dtype=object)], self.FITNUM, axis=0), 'amp':np.repeat([np.array([self.fullInt, False], dtype=object)], self.FITNUM,axis=0), 'lor':np.repeat([np.array([10.0, False], dtype=object)], self.FITNUM,axis=0), 'gauss':np.repeat([np.array([0.0, True], dtype=object)], self.FITNUM,axis=0)}
+        else:
+            return inp
 
     def checkI(self, I):
         return I * 1.0 + 1.5
