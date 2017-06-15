@@ -3457,7 +3457,7 @@ class AsciiLoadWindow(QtWidgets.QDialog):
     
     def __init__(self, parent, file):
         super(AsciiLoadWindow, self).__init__(parent)
-        self.setWindowFlags(QtCore.Qt.Window | QtCore.Qt.Tool)
+        self.setWindowFlags(QtCore.Qt.Window | QtCore.Qt.Tool | QtCore.Qt.WindowContextHelpButtonHint  )
         self.father = parent
         self.dataDimension = 1
         self.dataSpec = False
@@ -3687,12 +3687,16 @@ class PhaseWindow(QtWidgets.QWidget):
 
     def inputZeroOrder(self, *args):
         inp = safeEval(self.zeroEntry.text())
+        if inp == None:
+            self.father.father.dispMsg('Phasing: zero order value input is not valid!')
+            return None
         self.zeroVal = np.mod(inp + 180, 360) - 180
         self.zeroEntry.setText('%.3f' % self.zeroVal)
         self.available = False
         self.zeroScale.setValue(round(self.zeroVal / 180.0 * self.RESOLUTION))
         self.available = True
         self.father.current.setPhaseInter(np.pi * self.zeroVal / 180.0, np.pi * self.firstVal / 180.0)
+        return 1
 
     def setFirstOrder(self, value, *args):
         if self.available:
@@ -3708,7 +3712,10 @@ class PhaseWindow(QtWidgets.QWidget):
             self.father.current.setPhaseInter(np.pi * self.zeroVal / 180.0, np.pi * self.firstVal / 180.0)
 
     def inputFirstOrder(self, *args):
-        value = float(safeEval(self.firstEntry.text()))
+        value = safeEval(self.firstEntry.text())
+        if value == None:
+            self.father.father.dispMsg('Phasing: first order value input is not valid!')
+            return None
         newZero = (self.zeroVal - (value - self.firstVal) * self.refVal / self.father.current.sw)
         self.zeroVal = np.mod(newZero + 180, 360) - 180
         self.zeroEntry.setText('%.3f' % self.zeroVal)
@@ -3719,6 +3726,7 @@ class PhaseWindow(QtWidgets.QWidget):
         self.firstScale.setValue(round(self.firstVal / self.P1LIMIT * self.RESOLUTION))
         self.available = True
         self.father.current.setPhaseInter(np.pi * self.zeroVal / 180.0, np.pi * self.firstVal / 180.0)
+        return 1
 
     def autophase(self, num):
         phases = self.father.current.autoPhase(num)
@@ -3743,9 +3751,22 @@ class PhaseWindow(QtWidgets.QWidget):
             multiplier = 1
         phase0 = multiplier * phase0
         phase1 = multiplier * phase1
-        inp = safeEval(self.zeroEntry.text()) + phase0 * self.PHASE0STEP
+        inp = safeEval(self.zeroEntry.text())
+        if inp == None:
+            self.father.father.dispMsg('Phasing: zero order value input is not valid!')
+            return None
+        inp +=  phase0 * self.PHASE0STEP
         self.zeroVal = np.mod(inp + 180, 360) - 180
         value = safeEval(self.firstEntry.text()) + phase1 * self.PHASE1STEP
+        if value == None:
+            self.father.father.dispMsg('Phasing: first order value input is not valid!')
+            return None
+
+        refCheck = self.inputRef()
+        if refCheck == None:
+            return
+
+        value += phase1 * self.PHASE1STEP
         newZero = (self.zeroVal - (value - self.firstVal) * self.refVal / self.father.current.sw)
         self.zeroVal = np.mod(newZero + 180, 360) - 180
         self.zeroEntry.setText('%.3f' % self.zeroVal)
@@ -3758,8 +3779,13 @@ class PhaseWindow(QtWidgets.QWidget):
         self.father.current.setPhaseInter(np.pi * self.zeroVal / 180.0, np.pi * self.firstVal / 180.0)
 
     def inputRef(self, *args):
-        self.refVal = safeEval(self.refEntry.text())
+        Val = safeEval(self.refEntry.text())
+        if Val == None:
+            self.father.father.dispMsg('Phasing: reference input is not valid!')
+            return None
+        self.refVal = Val
         self.refEntry.setText('%.3f' % self.refVal)
+        return 1
 
     def setRef(self, value, *args):
         self.refVal = float(value)
@@ -3776,8 +3802,11 @@ class PhaseWindow(QtWidgets.QWidget):
         self.deleteLater()
 
     def applyAndClose(self):
-        self.inputZeroOrder()
-        self.inputFirstOrder()
+        refCheck = self.inputRef()
+        zeroCheck = self.inputZeroOrder()
+        firstCheck = self.inputFirstOrder()
+        if refCheck == None or zeroCheck == None or firstCheck == None: #If error. Messages are handled by functions
+            return
         self.father.redoList = []
         if self.father.current.data.noUndo:
             self.father.current.applyPhase(np.pi * self.zeroVal / 180.0, np.pi * self.firstVal / 180.0, (self.singleSlice.isChecked() == 1))
