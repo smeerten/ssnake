@@ -7065,7 +7065,7 @@ class MonitorWindow(QtWidgets.QWidget):
         items = []
         for index in range(self.listB.count()):
             items.append(self.listB.item(index).text())
-        delay = self.delTime.value
+        delay = self.delTime.value()
         self.father.startMonitor(items,delay)
         self.closeEvent()
         
