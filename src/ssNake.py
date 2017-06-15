@@ -206,19 +206,19 @@ class MainProgram(QtWidgets.QMainWindow):
         self.defaultPPM = settings.value("plot/ppm", self.defaultPPM, bool)
         self.defaultToolbarActionList = settings.value("toolbarList", self.defaultToolbarActionList, str)
 
-        self.defaultColor = settings.value("plot/color", self.defaultColor, str)
+        self.defaultColor = settings.value("plot/colour", self.defaultColor, str)
         try:
             self.defaultLinewidth = settings.value("plot/linewidth", self.defaultLinewidth, float)
         except TypeError:
             self.dispMsg("Incorrect value in the config file for the plot/linewidth")
         self.defaultGrids = [settings.value("plot/xgrid", self.defaultGrids[0], bool), settings.value("plot/ygrid", self.defaultGrids[1], bool)]
         self.defaultZeroScroll = settings.value("plot/zeroscroll", self.defaultZeroScroll, bool)
-        self.defaultColorMap = settings.value("contour/colormap", self.defaultColorMap, str)
-        self.defaultContourConst = settings.value("contour/constantcolors", self.defaultContourConst, bool)
-        self.defaultPosColor = settings.value("contour/poscolor", self.defaultPosColor, str)
-        self.defaultNegColor = settings.value("contour/negcolor", self.defaultNegColor, str)
+        self.defaultColorMap = settings.value("contour/colourmap", self.defaultColorMap, str)
+        self.defaultContourConst = settings.value("contour/constantcolours", self.defaultContourConst, bool)
+        self.defaultPosColor = settings.value("contour/poscolour", self.defaultPosColor, str)
+        self.defaultNegColor = settings.value("contour/negcolour", self.defaultNegColor, str)
         if not str(self.defaultColorMap) in sc.COLORMAPLIST:
-            self.dispMsg("Incorrect colormap in config file")
+            self.dispMsg("Incorrect colourmap in config file")
         self.defaultDiagonalBool = settings.value("contour/diagonalbool", self.defaultDiagonalBool, bool)
         try:
             self.defaultDiagonalMult = settings.value("contour/diagonalmult", self.defaultDiagonalMult, float)
@@ -252,7 +252,7 @@ class MainProgram(QtWidgets.QMainWindow):
         settings.setValue("plot/units", self.defaultUnits)
         settings.setValue("plot/ppm", self.defaultPPM)
         settings.setValue('toolbarList', self.defaultToolbarActionList)
-        settings.setValue("plot/color", self.defaultColor)
+        settings.setValue("plot/colour", self.defaultColor)
         settings.setValue("plot/linewidth", self.defaultLinewidth)
         settings.setValue("plot/xgrid", self.defaultGrids[0])
         settings.setValue("plot/ygrid", self.defaultGrids[1])
@@ -262,18 +262,18 @@ class MainProgram(QtWidgets.QMainWindow):
         settings.setValue("height", self.defaultHeight)
         settings.setValue("ask_name", self.defaultAskName)
         settings.setValue("toolbar", self.defaultToolBar)
-        settings.setValue("contour/colormap", self.defaultColorMap)
-        settings.setValue("contour/constantcolors", self.defaultContourConst)
-        settings.setValue("contour/poscolor", self.defaultPosColor)
-        settings.setValue("contour/negcolor", self.defaultNegColor)
+        settings.setValue("contour/colourmap", self.defaultColorMap)
+        settings.setValue("contour/constantcolours", self.defaultContourConst)
+        settings.setValue("contour/poscolour", self.defaultPosColor)
+        settings.setValue("contour/negcolour", self.defaultNegColor)
         settings.setValue("contour/width_ratio", self.defaultWidthRatio)
         settings.setValue("contour/height_ratio", self.defaultHeightRatio)
         settings.setValue("contour/diagonalbool", self.defaultDiagonalBool)
         settings.setValue("contour/diagonalmult", self.defaultDiagonalMult)
         
 
-    def dispMsg(self, msg, colour = 'black'):
-        if colour == 'red':
+    def dispMsg(self, msg, color = 'black'):
+        if color == 'red':
             self.statusBar.setStyleSheet("QStatusBar{padding-left:8px;color:red;}")
         else:
             self.statusBar.setStyleSheet("QStatusBar{padding-left:8px;color:black;}")
@@ -2859,7 +2859,7 @@ class SideFrame(QtWidgets.QScrollArea):
                 self.nameLabels.append(wc.QLabel(name, self))
                 frame.addWidget(self.nameLabels[i], 0, 0, 1, 2)
                 self.nameLabels[i].setStyleSheet("QLabel { color: rgb" + str(current.getExtraColor(i)) + ";}")
-                colorbutton = QtWidgets.QPushButton("Color", self)
+                colorbutton = QtWidgets.QPushButton("Colour", self)
                 colorbutton.clicked.connect(lambda arg, num=i: self.setExtraColor(num))
                 frame.addWidget(colorbutton, 1, 0)
                 button = QtWidgets.QPushButton("x", self)
@@ -7119,7 +7119,7 @@ class PlotSettingsWindow(QtWidgets.QWidget):
         self.lwSpinBox.valueChanged.connect(self.preview)
         grid1.addWidget(self.lwSpinBox, 1, 1)
         self.color = self.father.current.color
-        lineColorButton = QtWidgets.QPushButton("Line color")
+        lineColorButton = QtWidgets.QPushButton("Line colour")
         lineColorButton.clicked.connect(self.setColor)
         grid1.addWidget(lineColorButton, 2, 0)
         self.xgridCheck = QtWidgets.QCheckBox("x-grid")
@@ -7131,22 +7131,22 @@ class PlotSettingsWindow(QtWidgets.QWidget):
         grid1.addWidget(self.ygridCheck, 4, 0, 1, 2)
         self.ygridCheck.stateChanged.connect(self.preview)
 
-        grid2.addWidget(QtWidgets.QLabel("Colormap:"), 0, 0)
+        grid2.addWidget(QtWidgets.QLabel("Colourmap:"), 0, 0)
         self.cmEntry = QtWidgets.QComboBox(self)
         self.cmEntry.addItems(sc.COLORMAPLIST)
         self.cmEntry.setCurrentIndex(sc.COLORMAPLIST.index(self.father.current.colorMap))
         self.cmEntry.currentIndexChanged.connect(self.preview)
         grid2.addWidget(self.cmEntry, 0, 1)
-        self.constColorCheck = QtWidgets.QCheckBox("Constant colors")
+        self.constColorCheck = QtWidgets.QCheckBox("Constant colours")
         self.constColorCheck.setChecked(self.father.current.contourConst)
         grid2.addWidget(self.constColorCheck, 1, 0)
         self.constColorCheck.stateChanged.connect(self.preview)
         self.posColor = self.father.current.contourColors[0]
-        posColorButton = QtWidgets.QPushButton("Positive color")
+        posColorButton = QtWidgets.QPushButton("Positive colour")
         posColorButton.clicked.connect(self.setPosColor)
         grid2.addWidget(posColorButton, 2, 0)
         self.negColor = self.father.current.contourColors[1]
-        negColorButton = QtWidgets.QPushButton("Negative color")
+        negColorButton = QtWidgets.QPushButton("Negative colour")
         negColorButton.clicked.connect(self.setNegColor)
         grid2.addWidget(negColorButton, 3, 0)
 
@@ -7332,7 +7332,7 @@ class PreferenceWindow(QtWidgets.QWidget):
         self.lwSpinBox.setValue(self.father.defaultLinewidth)
         grid2.addWidget(self.lwSpinBox, 1, 1)
         self.color = self.father.defaultColor
-        lineColorButton = QtWidgets.QPushButton("Line color")
+        lineColorButton = QtWidgets.QPushButton("Line colour")
         lineColorButton.clicked.connect(self.setColor)
         grid2.addWidget(lineColorButton, 2, 0)
         self.xgridCheck = QtWidgets.QCheckBox("x-grid")
@@ -7360,20 +7360,20 @@ class PreferenceWindow(QtWidgets.QWidget):
         self.zeroScrollCheck.setChecked(self.father.defaultZeroScroll)
         grid2.addWidget(self.zeroScrollCheck, 9, 0, 1, 2)
 
-        grid3.addWidget(QtWidgets.QLabel("Colormap:"), 0, 0)
+        grid3.addWidget(QtWidgets.QLabel("Colourmap:"), 0, 0)
         self.cmEntry = QtWidgets.QComboBox(self)
         self.cmEntry.addItems(sc.COLORMAPLIST)
         self.cmEntry.setCurrentIndex(sc.COLORMAPLIST.index(self.father.defaultColorMap))
         grid3.addWidget(self.cmEntry, 0, 1)
-        self.constColorCheck = QtWidgets.QCheckBox("Constant colors")
+        self.constColorCheck = QtWidgets.QCheckBox("Constant colours")
         self.constColorCheck.setChecked(self.father.defaultContourConst)
         grid3.addWidget(self.constColorCheck, 1, 0)
         self.posColor = self.father.defaultPosColor
-        posColorButton = QtWidgets.QPushButton("Positive color")
+        posColorButton = QtWidgets.QPushButton("Positive colour")
         posColorButton.clicked.connect(self.setPosColor)
         grid3.addWidget(posColorButton, 2, 0)
         self.negColor = self.father.defaultNegColor
-        negColorButton = QtWidgets.QPushButton("Negative color")
+        negColorButton = QtWidgets.QPushButton("Negative colour")
         negColorButton.clicked.connect(self.setNegColor)
         grid3.addWidget(negColorButton, 3, 0)
         grid3.addWidget(QtWidgets.QLabel("Width ratio:"), 4, 0)

@@ -957,7 +957,7 @@ The settings in the side frame are the same as with the Stack Plot.
 A contour plot shows the height profile of the data using constant height lines (like altitude lines on a map). This is the most common way to view true 2D data
 (data in which there are two NMR dimension, which are both Fourier transformed). Calculation of the contour lines takes some time, especially for larger data sets.
 As with the Stack and Array plot, the dimension selector shows two bullets. Now they stand for the x-axis (left) and y-axis (right). The Get Position frame now shows some extra features,
-as each data point now has a x-value, y-value and amplitude (z-value).
+as each data point now has a x-value, y-value and amplitude (z-value). Note that you can change the colour scheme of the contour plot under Plot $\rightarrow$ Plot Settings.
 
 The side frame has several options, which are described below.
 
@@ -989,7 +989,14 @@ For both, several types are available:
 \end{itemize}
 Sum, Max, and Min are applied along the axis opposite to the projection. So the top projection (which shows the x-axis) is summed (max/min) along the y-axis.
 
+Alternatively, the Projection Ranges box can be toggled. This allows the user to specify between which data points the operation (sum/min/max) should be applied.
+This can be useful to get higher signal-to-noise level projections, by preventing contributions from noise-only areas.
 
+
+\subsubsection*{Diagonal}
+Ticking this box draws a diagonal line across the 2D data at x = y. Note that the axis type is of importance: no scaling is performed.
+Therefore, if a data set with two identical axes is plot, only if the two units are the same, the diagonal is plot in a way that (probably) is the correct way.
+Alternatively, there is a box called `Multiplier', in which a value can be put that multiplies the x-axis (only for the calculation of the diagonal).
 
 
 \section{Combine}
