@@ -361,14 +361,14 @@ class FittingWindow(QtWidgets.QWidget):
         if fitAll:
             if params:
                 self.mainProgram.dataFromFit(data,
-                                             masterData.filePath,
-                                             [masterData.freq[axes], masterData.freq[axes], np.delete(masterData.freq, axes)],
-                                             [masterData.sw[axes], masterData.sw[axes], np.delete(masterData.sw, axes)],
-                                             [False, False, np.delete(masterData.spec, axes)],
-                                             [False, False, np.delete(masterData.wholeEcho, axes)],
-                                             [None, None, np.delete(masterData.ref, axes)],
-                                             [np.arange(data.shape[0]), np.arange(data.shape[1]), np.delete(masterData.xaxArray, axes)],
-                                             axes+1)
+                                         masterData.filePath,
+                                         np.append([masterData.freq[axes], masterData.freq[axes]], np.delete(masterData.freq, axes)),
+                                         np.append([masterData.sw[axes],masterData.sw[axes]], np.delete(masterData.sw, axes)),
+                                         np.append([False, False], np.delete(masterData.spec, axes)),
+                                         np.append([False, False], np.delete(masterData.wholeEcho, axes)),
+                                         np.append([None, None], np.delete(masterData.ref, axes)),
+                                         None,
+                                         axes+1)
             else:
                 self.mainProgram.dataFromFit(data,
                                          masterData.filePath,
@@ -377,7 +377,7 @@ class FittingWindow(QtWidgets.QWidget):
                                          np.append(False, masterData.spec),
                                          np.append(False, masterData.wholeEcho),
                                          np.append(None, masterData.ref),
-                                         copy.deepcopy(masterData.xaxArray).insert(0, np.arange(len(data))),
+                                             None,
                                          axes+1)
         else:
             if params:
@@ -1050,7 +1050,7 @@ class AbstractParamFrame(QtWidgets.QWidget):
             grid = np.array([i.flatten() for i in np.meshgrid(*tmp2)]).T
             for i in grid:
                 self.parent.setSlice(self.parent.axes, i)
-                data[(slice(None),) + tuple(i)] = self.prepareResultToWorkspace(settings, maxNum)
+                data[(slice(None),) + tuple(i[:self.parent.axes]) + (slice(None),) + tuple(i[self.parent.axes:])] = self.prepareResultToWorkspace(settings, maxNum)
             self.parent.setSlice(self.parent.axes, oldLocList)
             self.rootwindow.createNewData(data, self.parent.current.axes, False, True)
         else:
