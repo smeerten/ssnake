@@ -314,7 +314,7 @@ class MainProgram(QtWidgets.QMainWindow):
                                     ['Fitting --> S/N',self.snrAct],['Fitting --> FWHM',self.fwhmAct],['Fitting --> Centre of Mass',self.massAct],
                                     ['Fitting --> Integrals',self.intfitAct],['Fitting --> Relaxation Curve',self.relaxAct],['Fitting --> Diffusion Curve',self.diffusionAct],
                                     ['Fitting --> Lorentzian/Gaussian',self.lorentzfitAct],['Fitting --> CSA Static',self.csastaticAct],['Fitting --> CSA MAS',self.csamasAct],
-                                    ['Fitting --> First Order Quadrupole Static',self.firstquadstatAct],['Fitting --> First Order Quadrupole MAS',self.firstquadmasAct],['Fitting --> Second Order Quadrupole Static',self.secondquadstatAct],
+                                    ['Fitting --> First Order Quadrupole (Static/MAS)',self.firstquadstatAct],['Fitting --> Second Order Quadrupole Static',self.secondquadstatAct],
                                     ['Fitting --> Second Order Quadrupole MAS',self.secondquadmasAct],['Fitting --> Czjzek Static',self.czjzekstatAct],['Fitting --> Czjzek MAS',self.czjzekmasAct],
                                     ['Combine --> Combine Workspaces',self.combineWorkspaceAct],['Combine --> Insert From Workspace',self.insertdatAct],['Combine --> Add',self.adddatAct],['Combine --> Subtract',self.subdatAct],['Combine --> Multiply',self.multdatAct],
                                     ['Combine --> Divide',self.divdatAct],
@@ -325,8 +325,6 @@ class MainProgram(QtWidgets.QMainWindow):
                                     ['History --> History',self.historyAct],['History --> Clear Undo/Redo List',self.clearundoAct],
                                     ['Utilities --> Chemical Shift Conversion Tool',self.shiftconvAct],['Utilities --> Quadrupole Coupling Conversion Tool',self.quadconvAct],['Utilities --> NMR Table',self.nmrtableAct],
                                     ['Help --> Update',self.updateAct],['Help --> About',self.aboutAct]]
-                              
-                                     
             for element in self.defaultToolbarActionList:
                 if element == 'Seperator':
                         self.seperatorAction.append(QtWidgets.QAction(self))
@@ -336,7 +334,6 @@ class MainProgram(QtWidgets.QMainWindow):
                     for action in self.allActionsList:
                         if element == action[0]:
                             self.toolbar.addAction(action[1])
-                                     
     
     def initMenu(self):
         IconDirectory = os.path.dirname(os.path.realpath(__file__)) + os.path.sep + 'Icons' + os.path.sep
@@ -582,10 +579,8 @@ class MainProgram(QtWidgets.QMainWindow):
         self.csastaticAct.setToolTip('Fit CSA Static')
         self.csamasAct = self.fittingMenu.addAction(QtGui.QIcon(IconDirectory + 'csaMAS.png'),"CSA MAS", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.createCSAMASWindow()))
         self.csamasAct.setToolTip('Fit CSA MAS')
-        self.firstquadstatAct = self.fittingMenu.addAction(QtGui.QIcon(IconDirectory + 'firstquadstatic.png'),"First Order &Quadrupole Static", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.createQuad1DeconvWindow()))
-        self.firstquadstatAct.setToolTip('Fit First Order Quadrupole Static')
-        self.firstquadmasAct = self.fittingMenu.addAction(QtGui.QIcon(IconDirectory + 'firstquadMAS.png'),"First Order &Quadrupole MAS", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.createQuad1MASDeconvWindow()))
-        self.firstquadmasAct.setToolTip('Fit First Order Quadrupole MAS')
+        self.firstquadstatAct = self.fittingMenu.addAction(QtGui.QIcon(IconDirectory + 'firstquadstatic.png'),"First Order &Quadrupole (Static/MAS)", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.createQuad1DeconvWindow()))
+        self.firstquadstatAct.setToolTip('Fit First Order Quadrupole (Static/MAS)')
         self.secondquadstatAct = self.fittingMenu.addAction(QtGui.QIcon(IconDirectory + 'secondquadstatic.png'),"S&econd Order Quadrupole Static", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.createQuad2StaticDeconvWindow()))
         self.secondquadstatAct.setToolTip('Fit Second Order Quadrupole Static')
         self.secondquadmasAct = self.fittingMenu.addAction(QtGui.QIcon(IconDirectory + 'secondquadMAS.png'),"Se&cond Order Quadrupole MAS", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.createQuad2MASDeconvWindow()))
@@ -597,7 +592,7 @@ class MainProgram(QtWidgets.QMainWindow):
         
         self.fittingActList = [self.snrAct,self.fwhmAct,self.massAct,self.intfitAct,self.relaxAct,
                                self.diffusionAct,self.lorentzfitAct,self.csastaticAct,self.csamasAct,
-                               self.firstquadstatAct,self.firstquadmasAct,self.secondquadstatAct,
+                               self.firstquadstatAct,self.secondquadstatAct,
                                self.secondquadmasAct,self.czjzekstatAct,self.czjzekmasAct]
         # the combine drop down menu
         self.combineMenu = QtWidgets.QMenu("Com&bine", self)
@@ -2374,9 +2369,6 @@ class Main1DWindow(QtWidgets.QWidget):
 
     def createCSAMASWindow(self):
         self.father.createFitWindow(fit.CSAMASWindow(self.father, self.father.mainWindow))
-
-    def createQuad1MASDeconvWindow(self):
-        self.father.createFitWindow(fit.Quad1MASDeconvWindow(self.father, self.father.mainWindow))
 
     def createQuad1DeconvWindow(self):
         self.father.createFitWindow(fit.Quad1DeconvWindow(self.father, self.father.mainWindow))
