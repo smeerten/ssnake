@@ -3754,9 +3754,10 @@ class PhaseWindow(QtWidgets.QWidget):
             self.father.father.dispMsg('Phasing: first order value input is not valid!')
             return None
 
-        refCheck = self.inputRef()
-        if refCheck == None:
-            return
+        if self.father.current.spec > 0:
+            refCheck = self.inputRef()
+            if refCheck == None:
+                return
 
         value += phase1 * self.PHASE1STEP
         newZero = (self.zeroVal - (value - self.firstVal) * self.refVal / self.father.current.sw)
@@ -3794,7 +3795,9 @@ class PhaseWindow(QtWidgets.QWidget):
         self.deleteLater()
 
     def applyAndClose(self):
-        refCheck = self.inputRef()
+        refCheck = 1
+        if self.father.current.spec > 0:
+            refCheck = self.inputRef()
         zeroCheck = self.inputZeroOrder()
         firstCheck = self.inputFirstOrder()
         if refCheck == None or zeroCheck == None or firstCheck == None: #If error. Messages are handled by functions
