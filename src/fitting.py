@@ -1586,6 +1586,7 @@ class RelaxParamFrame(AbstractParamFrame):
         self.MULTINAMES = ['coeff', 't']
         self.FITFUNC = relaxationmpFit
         super(RelaxParamFrame, self).__init__(parent, rootwindow, isMain)
+        timeit = time.time()
         for elem in np.nditer(self.fitParamList, flags=["refs_ok"], op_flags=['readwrite']):
             elem[...] = {'amp':[np.amax(self.parent.data1D), False], 'const':[1.0, False], 'coeff':np.repeat([np.array([-1.0, False], dtype=object)], self.FITNUM, axis=0), 't':np.repeat([np.array([1.0, False], dtype=object)], self.FITNUM,axis=0)}
         locList = tuple(self.parent.locList)
@@ -3017,8 +3018,8 @@ def CSAMASFunc(x, pos, delta, eta, lor, gauss, sw, axAdd, axMult, spinspeed, che
 class Quad1DeconvWindow(TabFittingWindow):
 
     def __init__(self, mainProgram, oldMainWindow):
-        self.CURRENTWINDOW = Quad1MASDeconvFrame
-        self.PARAMFRAME = Quad1MASDeconvParamFrame
+        self.CURRENTWINDOW = Quad1DeconvFrame
+        self.PARAMFRAME = Quad1DeconvParamFrame
         super(Quad1DeconvWindow, self).__init__(mainProgram, oldMainWindow)
 
 #################################################################################
@@ -3034,6 +3035,7 @@ class Quad1DeconvFrame(FitPlotFrame):
 
 
 class Quad1DeconvParamFrame(AbstractParamFrame):
+    
     Ioptions = ['1', '3/2', '2', '5/2', '3', '7/2', '4', '9/2']
     Ivalues = [1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 4.0, 4.5]
 
@@ -3067,7 +3069,8 @@ class Quad1DeconvParamFrame(AbstractParamFrame):
         self.optframe.addWidget(self.entries['mas'][-1], 4, 0)
         self.optframe.setColumnStretch(10, 1)
         self.optframe.setAlignment(QtCore.Qt.AlignTop)
-        self.frame2.addWidget(QLabel("Spin. speed [kHz]:"), 0, 0, 1, 2)
+        self.spinLabel = QLabel("Spin. speed [kHz]:")
+        self.frame2.addWidget(self.spinLabel, 0, 0, 1, 2)
         self.ticks['spinspeed'].append(QtWidgets.QCheckBox(''))
         self.frame2.addWidget(self.ticks['spinspeed'][-1], 1, 0)
         self.entries['spinspeed'].append(QtWidgets.QLineEdit())
@@ -3328,77 +3331,46 @@ def quad1MASFunc(x, pos, cq, eta, lor, gauss, sw, axAdd, axMult, spinspeed, chen
 ##############################################################################
 
 
-class Quad1DeconvWindow(TabFittingWindow):
+class Quad2DeconvWindow(TabFittingWindow):
 
     def __init__(self, mainProgram, oldMainWindow):
         self.CURRENTWINDOW = Quad1DeconvFrame
-        self.PARAMFRAME = Quad1DeconvParamFrame
-        super(Quad1DeconvWindow, self).__init__(mainProgram, oldMainWindow)
-
-#################################################################################
-
-
-class Quad1DeconvFrame(FitPlotFrame):
-
-    def __init__(self, rootwindow, fig, canvas, current):
-        if current.spec == 1:
-            if current.ppm:
-                self.axUnit = 'ppm'
-                self.axMult = 1e6 / current.ref
-            else:
-                axUnits = ['Hz','kHz','MHz']
-                self.axUnit = axUnits[current.axType]
-                self.axMult = 1.0 / (1000.0**current.axType)
-        elif current.spec == 0:
-            axUnits = ['s','ms', u"\u03bcs"]
-            self.axUnit = axUnits[current.axType]
-            self.axMult = 1000.0**current.axType
-        self.FITNUM = 10 # Maximum number of fits
-        self.pickNum = 0
-        self.pickNum2 = 0
-        super(Quad1DeconvFrame, self).__init__(rootwindow, fig, canvas, current)
-
-##############################################################################
-
-
-class Quad2DeconvWindow(TabFittingWindow):
-
-    def __init__(self, mainProgram, oldMainWindow, mas=False):
-        self.CURRENTWINDOW = Quad1DeconvFrame
-        if mas:
-            self.PARAMFRAME = Quad2MASDeconvParamFrame
-        else:
-            self.PARAMFRAME = Quad2StaticDeconvParamFrame
+        self.PARAMFRAME = Quad2DeconvParamFrame
         super(Quad2DeconvWindow, self).__init__(mainProgram, oldMainWindow)
 
 #################################################################################
 
 
-class Quad2StaticDeconvParamFrame(Quad1DeconvParamFrame):
+class Quad2DeconvParamFrame(Quad1DeconvParamFrame):
 
     Ioptions = ['3/2', '5/2', '7/2', '9/2']
-    savetitle = 'ssNake second order quadrupole static fit results'
     def __init__(self, parent, rootwindow, isMain=True):
-        super(Quad2StaticDeconvParamFrame, self).__init__(parent, rootwindow, isMain)
+        super(Quad2DeconvParamFrame, self).__init__(parent, rootwindow, isMain)
         self.setAngleStuff = quad2StaticsetAngleStuff
         self.tensorFunc = quad2tensorFunc
         self.entries['I'][-1].setCurrentIndex(0)
+        self.spinLabel.hide()
+        self.ticks['spinspeed'][-1].hide()
+        self.entries['spinspeed'][-1].hide()
 
+    def getExtraParams(self, out):
+        out['mas'] = [0] # Second order quadrupole MAS is calculated as if it is static
+        if self.entries['mas'][-1].isChecked():
+            self.setAngleStuff = quad2MASsetAngleStuff
+        else:
+            self.setAngleStuff = quad2StaticsetAngleStuff
+        out['I'] = [self.checkI(self.entries['I'][-1].currentIndex())]
+        cheng = safeEval(self.entries['cheng'][-1].text())
+        out['cheng'] = [cheng]
+        weight, angleStuff = self.setAngleStuff(cheng)
+        out['weight'] = [weight]
+        out['anglestuff'] = [angleStuff]
+        out['tensorfunc'] = [self.tensorFunc]
+        out['freq'] = [self.parent.current.freq]
+        return (out, [out['mas'][-1], out['I'][-1], out['weight'][-1], out['anglestuff'][-1], out['tensorfunc'][-1], out['freq'][-1]])
+    
     def checkI(self, I):
         return I * 1.0 + 1.5
-
-#################################################################################
-
-
-class Quad2MASDeconvParamFrame(Quad2StaticDeconvParamFrame):
-    Ioptions = ['3/2', '5/2', '7/2', '9/2']
-    savetitle = 'ssNake second order quadrupole MAS fit results'
-
-    def __init__(self, parent, rootwindow, isMain=True):
-        super(Quad2MASDeconvParamFrame, self).__init__(parent, rootwindow, isMain)
-        self.setAngleStuff = quad2MASsetAngleStuff
-        self.tensorFunc = quad2tensorFunc
-        self.entries['I'][-1].setCurrentIndex(0)
 
 ##############################################################################
 
@@ -3439,27 +3411,23 @@ def quad2MASsetAngleStuff(cheng):
 
 class Quad2CzjzekWindow(TabFittingWindow):
 
-    def __init__(self, mainProgram, oldMainWindow, mas=False):
+    def __init__(self, mainProgram, oldMainWindow):
         self.CURRENTWINDOW = Quad1DeconvFrame
-        if mas:
-            self.PARAMFRAME = Quad2MASCzjzekParamFrame
-        else:
-            self.PARAMFRAME = Quad2StaticCzjzekParamFrame
+        self.PARAMFRAME = Quad2CzjzekParamFrame
         super(Quad2CzjzekWindow, self).__init__(mainProgram, oldMainWindow)
 
 #################################################################################
 
 
-class Quad2StaticCzjzekParamFrame(AbstractParamFrame):
+class Quad2CzjzekParamFrame(AbstractParamFrame):
 
     Ioptions = ['3/2', '5/2', '7/2', '9/2']
-    savetitle = 'ssNake Czjzek static fit results'
     
     def __init__(self, parent, rootwindow, isMain=True):
         self.SINGLENAMES = ['bgrnd', 'slope']
         self.MULTINAMES = ['d', 'pos', 'sigma', 'amp', 'lor', 'gauss']
         self.FITFUNC = quad2CzjzekmpFit
-        super(Quad2StaticCzjzekParamFrame, self).__init__(parent, rootwindow, isMain)
+        super(Quad2CzjzekParamFrame, self).__init__(parent, rootwindow, isMain)
 
         #Get full integral
         self.fullInt = np.sum(parent.data1D) * parent.current.sw / float(len(parent.data1D))
@@ -3472,36 +3440,38 @@ class Quad2StaticCzjzekParamFrame(AbstractParamFrame):
         elif self.parent.current.spec == 0:
             self.axAdd = 0
         self.ticks = {'bgrnd':[], 'slope':[], 'pos':[], 'd':[], 'sigma':[], 'amp':[], 'lor':[], 'gauss':[]}
-        self.entries = {'bgrnd':[], 'slope':[], 'pos':[], 'd':[], 'sigma':[], 'amp':[], 'lor':[], 'gauss':[], 'method':[], 'cheng':[], 'I':[], 'wqgrid':[], 'etagrid':[], 'wqmax':[]}
+        self.entries = {'bgrnd':[], 'slope':[], 'pos':[], 'd':[], 'sigma':[], 'amp':[], 'lor':[], 'gauss':[], 'method':[], 'cheng':[], 'I':[], 'wqgrid':[], 'etagrid':[], 'wqmax':[], 'mas':[]}
         self.optframe.addWidget(QLabel("Cheng:"), 0, 0)
         self.entries['cheng'].append(QtWidgets.QSpinBox())
         self.entries['cheng'][-1].setAlignment(QtCore.Qt.AlignHCenter)
         self.entries['cheng'][-1].setValue(self.cheng)
         self.optframe.addWidget(self.entries['cheng'][-1], 1, 0)
-        self.optframe.addWidget(QLabel("I:"), 0, 1)
+        self.optframe.addWidget(QLabel("I:"), 2, 0)
         self.entries['I'].append(QtWidgets.QComboBox())
         self.entries['I'][-1].addItems(self.Ioptions)
         self.entries['I'][-1].setCurrentIndex(1)
-        self.optframe.addWidget(self.entries['I'][-1], 1, 1)
-        self.optframe.addWidget(QLabel(u"\u03c9<sub>Q</sub> grid size:"), 2, 0)
+        self.optframe.addWidget(self.entries['I'][-1], 3, 0)
+        self.entries['mas'].append(QtWidgets.QCheckBox('Spinning'))
+        self.optframe.addWidget(self.entries['mas'][-1], 4, 0)
+        self.optframe.addWidget(QLabel(u"\u03c9<sub>Q</sub> grid size:"), 5, 0)
         self.entries['wqgrid'].append(QtWidgets.QLineEdit())
         self.entries['wqgrid'][-1].setAlignment(QtCore.Qt.AlignHCenter)
         self.entries['wqgrid'][-1].setText("50")
         self.entries['wqgrid'][-1].returnPressed.connect(self.setGrid)
-        self.optframe.addWidget(self.entries['wqgrid'][-1], 3, 0)
-        self.optframe.addWidget(QLabel(u"\u03b7 grid size:"), 4, 0)
+        self.optframe.addWidget(self.entries['wqgrid'][-1], 6, 0)
+        self.optframe.addWidget(QLabel(u"\u03b7 grid size:"), 7, 0)
         self.entries['etagrid'].append(QtWidgets.QLineEdit())
         self.entries['etagrid'][-1].setAlignment(QtCore.Qt.AlignHCenter)
         self.entries['etagrid'][-1].setText("10")
         self.entries['etagrid'][-1].returnPressed.connect(self.setGrid)
-        self.optframe.addWidget(self.entries['etagrid'][-1], 5, 0)
-        self.optframe.addWidget(QLabel(u"\u03c9<sub>Q</sub><sup>max</sup>/\u03c3:"), 6, 0)
+        self.optframe.addWidget(self.entries['etagrid'][-1], 8, 0)
+        self.optframe.addWidget(QLabel(u"\u03c9<sub>Q</sub><sup>max</sup>/\u03c3:"), 9, 0)
         self.entries['wqmax'].append(QtWidgets.QLineEdit())
         self.entries['wqmax'][-1].setAlignment(QtCore.Qt.AlignHCenter)
         self.entries['wqmax'][-1].setText("4")
         self.entries['wqmax'][-1].returnPressed.connect(self.setGrid)
-        self.optframe.addWidget(self.entries['wqmax'][-1], 7, 0)
-        self.optframe.setColumnStretch(10, 1)
+        self.optframe.addWidget(self.entries['wqmax'][-1], 10, 0)
+        self.optframe.setColumnStretch(11, 1)
         self.optframe.setAlignment(QtCore.Qt.AlignTop)    
         self.frame2.addWidget(QLabel("Bgrnd:"), 0, 0, 1, 2)
         self.ticks['bgrnd'].append(QtWidgets.QCheckBox(''))
@@ -3524,9 +3494,13 @@ class Quad2StaticCzjzekParamFrame(AbstractParamFrame):
         self.numExp = QtWidgets.QComboBox()
         self.numExp.addItems([str(x+1) for x in range(self.FITNUM)])
         self.numExp.currentIndexChanged.connect(self.changeNum)
-        self.frame3.addWidget(self.numExp, 0, 0)
+        self.frame3.addWidget(self.numExp, 0, 0, 1, 2)
         self.frame3.addWidget(QLabel("d:"), 1, 0, 1, 2)
-        self.frame3.addWidget(QLabel("Pos [" + self.parent.axUnit + "]:"), 1, 2, 1, 2)
+        if self.parent.current.ppm:
+            axUnit = 'ppm'
+        else:
+            axUnit = ['Hz', 'kHz', 'MHz'][self.parent.current.axType]
+        self.frame3.addWidget(QLabel("Pos [" + axUnit + "]:"), 1, 2, 1, 2)
         self.frame3.addWidget(QLabel(u"\u03c3 [MHz]:"), 1, 4, 1, 2)
         self.frame3.addWidget(QLabel("Integral:"), 1, 6, 1, 2)
         self.frame3.addWidget(QLabel("Lorentz [Hz]:"), 1, 8, 1, 2)
@@ -3575,19 +3549,16 @@ class Quad2StaticCzjzekParamFrame(AbstractParamFrame):
         lib = np.apply_along_axis(self.bincounting, 2, x1, weight, length)
         return lib, wq_return, eta_return
 
-    def setAngleStuff(self, cheng):
-        phi, theta, weight = zcw_angles(cheng, symm=2)
-        angleStuff = [-27 / 8.0 * np.cos(theta)**4 + 15 / 4.0 * np.cos(theta)**2 - 3 / 8.0,
-                      (-9 / 4.0 * np.cos(theta)**4 + 2 * np.cos(theta)**2 + 1 / 4.0) * np.cos(2 * phi),
-                      -1 / 2.0 * np.cos(theta)**2 + 1 / 3.0 + (-3 / 8.0 * np.cos(theta)**4 + 3 / 4.0 * np.cos(theta)**2 - 3 / 8.0) * np.cos(2 * phi)**2]
-        return weight, angleStuff
-
     def getExtraParams(self, out):
+        mas = self.entries['mas'][-1].isChecked()
         wqMax = safeEval(self.entries['wqmax'][-1].text())
         I = self.checkI(self.entries['I'][-1].currentIndex())
         numWq = int(self.entries['wqgrid'][-1].text())
         numEta = int(self.entries['etagrid'][-1].text())
-        weight, angleStuff = self.setAngleStuff(self.entries['cheng'][-1].value())
+        if mas:
+            weight, angleStuff = czjzekMASsetAngleStuff(self.entries['cheng'][-1].value())
+        else:
+            weight, angleStuff = czjzekStaticsetAngleStuff(self.entries['cheng'][-1].value())
         maxSigma = max(out['sigma'])
         lib, wq, eta = self.genLib(len(self.parent.xax), I, maxSigma * wqMax * 1e6, numWq, numEta, angleStuff, self.parent.current.freq, self.parent.current.sw, weight, self.axAdd)
         out['I'] = [I]
@@ -3621,7 +3592,7 @@ class Quad2StaticCzjzekParamFrame(AbstractParamFrame):
         x = []
         for i in range(len(out['pos'])):
             x.append(tmpx)
-            y = out['amp'][i] * quad2CzjzektensorFunc(out['sigma'][i], out['d'][i], out['pos'][i], out['lor'][i], out['gauss'][i], out['wq'][0], out['eta'][0], out['lib'][0], self.parent.current.freq, self.parent.current.sw, self.axAdd, self.parent.axMult)
+            y = out['amp'][i] * quad2CzjzektensorFunc(out['sigma'][i], out['d'][i], out['pos'][i], out['lor'][i], out['gauss'][i], out['wq'][0], out['eta'][0], out['lib'][0], self.parent.current.freq, self.parent.current.sw, self.axAdd, self.axMult)
             outCurvePart.append(outCurveBase + y)
             outCurve += y
         self.parent.fitDataList[tuple(self.parent.locList)] = [tmpx, outCurve, x, outCurvePart]
@@ -3713,17 +3684,16 @@ def quad2CzjzektensorFunc(sigma, d, pos, width, gauss, wq, eta, lib, freq, sw, a
 
 #################################################################################
 
-
-class Quad2MASCzjzekParamFrame(Quad2StaticCzjzekParamFrame):
-
-    Ioptions = ['3/2', '5/2', '7/2', '9/2']
-    savetitle = 'ssNake Czjzek MAS fit results'
-    def __init__(self, parent, rootwindow, isMain=True):
-        super(Quad2MASCzjzekParamFrame, self).__init__(parent, rootwindow, isMain)
-
-    def setAngleStuff(self, cheng):
-        phi, theta, weight = zcw_angles(cheng, symm=2)
-        angleStuff = [21 / 16.0 * np.cos(theta)**4 - 9 / 8.0 * np.cos(theta)**2 + 5 / 16.0,
-                      (-7 / 8.0 * np.cos(theta)**4 + np.cos(theta)**2 - 1 / 8.0) * np.cos(2 * phi),
-                      1 / 12.0 * np.cos(theta)**2 + (+7 / 48.0 * np.cos(theta)**4 - 7 / 24.0 * np.cos(theta)**2 + 7 / 48.0) * np.cos(2 * phi)**2]
-        return weight, angleStuff
+def czjzekStaticsetAngleStuff(cheng):
+    phi, theta, weight = zcw_angles(cheng, symm=2)
+    angleStuff = [-27 / 8.0 * np.cos(theta)**4 + 15 / 4.0 * np.cos(theta)**2 - 3 / 8.0,
+                  (-9 / 4.0 * np.cos(theta)**4 + 2 * np.cos(theta)**2 + 1 / 4.0) * np.cos(2 * phi),
+                  -1 / 2.0 * np.cos(theta)**2 + 1 / 3.0 + (-3 / 8.0 * np.cos(theta)**4 + 3 / 4.0 * np.cos(theta)**2 - 3 / 8.0) * np.cos(2 * phi)**2]
+    return weight, angleStuff
+        
+def czjzekMASsetAngleStuff(cheng):
+    phi, theta, weight = zcw_angles(cheng, symm=2)
+    angleStuff = [21 / 16.0 * np.cos(theta)**4 - 9 / 8.0 * np.cos(theta)**2 + 5 / 16.0,
+                  (-7 / 8.0 * np.cos(theta)**4 + np.cos(theta)**2 - 1 / 8.0) * np.cos(2 * phi),
+                  1 / 12.0 * np.cos(theta)**2 + (+7 / 48.0 * np.cos(theta)**4 - 7 / 24.0 * np.cos(theta)**2 + 7 / 48.0) * np.cos(2 * phi)**2]
+    return weight, angleStuff

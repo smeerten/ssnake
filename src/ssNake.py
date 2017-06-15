@@ -154,7 +154,6 @@ class MainProgram(QtWidgets.QMainWindow):
         TimeStr = '{0:02d}'.format(CurTime.hour) + ':' + '{0:02d}'.format(CurTime.minute) + ':' + '{0:02d}'.format(CurTime.second)
         self.errors.append([TimeStr,error])
         
-        
     def handlePaste(self):
         self.dropEvent(QtWidgets.QApplication.instance().clipboard())
 
@@ -270,7 +269,6 @@ class MainProgram(QtWidgets.QMainWindow):
         settings.setValue("contour/height_ratio", self.defaultHeightRatio)
         settings.setValue("contour/diagonalbool", self.defaultDiagonalBool)
         settings.setValue("contour/diagonalmult", self.defaultDiagonalMult)
-        
 
     def dispMsg(self, msg, color = 'black'):
         if color == 'red':
@@ -280,7 +278,6 @@ class MainProgram(QtWidgets.QMainWindow):
         self.dispError([msg])
         self.statusBar.showMessage(msg, 10000)
     
-    
     def initToolbar(self):
         if self.defaultToolBar:
             self.toolbar = self.addToolBar('Toolbar')
@@ -288,7 +285,6 @@ class MainProgram(QtWidgets.QMainWindow):
             self.toolbar.setIconSize(QtCore.QSize(22,22))
             
             self.seperatorAction = []
-
             
             self.allActionsList = [['Seperator',None],['File --> Open',self.openAct],['File --> Save --> JSON',self.saveAct],['File -- > Save --> Matlab',self.saveMatAct],
                                    ['File --> Export --> Figure',self.savefigAct],['File --> Export --> Simpson',self.saveSimpsonAct],['File --> Export --> ASCII (1D/2D)',self.saveASCIIAct],
@@ -314,8 +310,8 @@ class MainProgram(QtWidgets.QMainWindow):
                                     ['Fitting --> S/N',self.snrAct],['Fitting --> FWHM',self.fwhmAct],['Fitting --> Centre of Mass',self.massAct],
                                     ['Fitting --> Integrals',self.intfitAct],['Fitting --> Relaxation Curve',self.relaxAct],['Fitting --> Diffusion Curve',self.diffusionAct],
                                     ['Fitting --> Lorentzian/Gaussian',self.lorentzfitAct],['Fitting --> CSA Static',self.csastaticAct],['Fitting --> CSA MAS',self.csamasAct],
-                                    ['Fitting --> First Order Quadrupole (Static/MAS)',self.firstquadstatAct],['Fitting --> Second Order Quadrupole Static',self.secondquadstatAct],
-                                    ['Fitting --> Second Order Quadrupole MAS',self.secondquadmasAct],['Fitting --> Czjzek Static',self.czjzekstatAct],['Fitting --> Czjzek MAS',self.czjzekmasAct],
+                                    ['Fitting --> First Order Quadrupole (Static/MAS)',self.firstquadstatAct],['Fitting --> Second Order Quadrupole (Static/MAS)',self.secondquadstatAct],
+                                    ['Fitting --> Czjzek (Static/MAS)',self.czjzekstatAct],
                                     ['Combine --> Combine Workspaces',self.combineWorkspaceAct],['Combine --> Insert From Workspace',self.insertdatAct],['Combine --> Add',self.adddatAct],['Combine --> Subtract',self.subdatAct],['Combine --> Multiply',self.multdatAct],
                                     ['Combine --> Divide',self.divdatAct],
                                     ['Plot --> 1D Plot',self.onedplotAct],['Plot --> Scatter',self.scatterplotAct],['Plot --> Stack Plot',self.stackplotAct],
@@ -426,7 +422,6 @@ class MainProgram(QtWidgets.QMainWindow):
         self.monitorAct.setToolTip('Monitor Current Data')
         self.editActList = [self.undoAction,self.redoAction,self.clearundoAct, self.noUndoAct ,self.reloadAct,self.monitorAct]        
         
-        
         # the tool drop down menu
         self.toolMenu = QtWidgets.QMenu("&Tools", self)
         self.menubar.addMenu(self.toolMenu)
@@ -474,9 +469,6 @@ class MainProgram(QtWidgets.QMainWindow):
         self.toolsActList = [self.realAct,self.imagAct,self.absAct,self.apodizeAct,self.phaseAct,self.autoPhaseAct0,self.autoPhaseAct1,
                              self.swapEchoAct,self.corOffsetAct,self.baselineAct,self.subAvgAct,self.refDeconvAct,self.statesAct,
                              self.statesTPPIAct,self.echoantiAct,self.brukDigitalAct,self.lpsvdAct]
-        
-        
-        
         
         # the matrix drop down menu
         self.matrixMenu = QtWidgets.QMenu("M&atrix", self)
@@ -531,7 +523,6 @@ class MainProgram(QtWidgets.QMainWindow):
                               self.diffAct,self.cumsumAct,self.extractpartAct,self.fliplrAct,self.matrixdelAct,
                               self.splitAct,self.multiplyAct,self.regridAct,self.reorderAct,self.concatAct,self.shearAct]
 
-
         # the fft drop down menu
         self.fftMenu = QtWidgets.QMenu("T&ransforms", self)
         self.menubar.addMenu(self.fftMenu)
@@ -553,7 +544,6 @@ class MainProgram(QtWidgets.QMainWindow):
         self.cleanAct.setToolTip('CLEAN') 
         self.istAct = self.nusMenu.addAction("&IST", lambda: self.mainWindowCheck(lambda mainWindow: ISTWindow(mainWindow)))
         self.istAct.setToolTip('IST') 
-        
         
         self.fftActList = [self.fourierAct,self.realFourierAct,self.fftshiftAct,self.invfftshiftAct,
                            self.hilbertAct,self.ffmAct,self.cleanAct,self.istAct]
@@ -581,19 +571,15 @@ class MainProgram(QtWidgets.QMainWindow):
         self.csamasAct.setToolTip('Fit CSA MAS')
         self.firstquadstatAct = self.fittingMenu.addAction(QtGui.QIcon(IconDirectory + 'firstquadstatic.png'),"First Order &Quadrupole (Static/MAS)", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.createQuad1DeconvWindow()))
         self.firstquadstatAct.setToolTip('Fit First Order Quadrupole (Static/MAS)')
-        self.secondquadstatAct = self.fittingMenu.addAction(QtGui.QIcon(IconDirectory + 'secondquadstatic.png'),"S&econd Order Quadrupole Static", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.createQuad2StaticDeconvWindow()))
-        self.secondquadstatAct.setToolTip('Fit Second Order Quadrupole Static')
-        self.secondquadmasAct = self.fittingMenu.addAction(QtGui.QIcon(IconDirectory + 'secondquadMAS.png'),"Se&cond Order Quadrupole MAS", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.createQuad2MASDeconvWindow()))
-        self.secondquadmasAct.setToolTip('Fit Second Order Quadrupole MAS')
-        self.czjzekstatAct = self.fittingMenu.addAction(QtGui.QIcon(IconDirectory + 'czjzekstatic.png'),"Czjzek S&tatic", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.createQuad2StaticCzjzekWindow()))
-        self.czjzekstatAct.setToolTip('Fit Static Czjzek Pattern')
-        self.czjzekmasAct = self.fittingMenu.addAction(QtGui.QIcon(IconDirectory + 'czjzekMAS.png'),"Czjzek &MAS", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.createQuad2MASCzjzekWindow()))
-        self.czjzekmasAct.setToolTip('Fit MAS Czjzek Pattern')
+        self.secondquadstatAct = self.fittingMenu.addAction(QtGui.QIcon(IconDirectory + 'secondquadstatic.png'),"S&econd Order Quadrupole (Static/MAS)", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.createQuad2DeconvWindow()))
+        self.secondquadstatAct.setToolTip('Fit Second Order Quadrupole (Static/MAS)')
+        self.czjzekstatAct = self.fittingMenu.addAction(QtGui.QIcon(IconDirectory + 'czjzekstatic.png'),"Czjzek (S&tatic/MAS)", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.createQuad2CzjzekWindow()))
+        self.czjzekstatAct.setToolTip('Fit (Static/MAS) Czjzek Pattern')
         
         self.fittingActList = [self.snrAct,self.fwhmAct,self.massAct,self.intfitAct,self.relaxAct,
                                self.diffusionAct,self.lorentzfitAct,self.csastaticAct,self.csamasAct,
                                self.firstquadstatAct,self.secondquadstatAct,
-                               self.secondquadmasAct,self.czjzekstatAct,self.czjzekmasAct]
+                               self.czjzekstatAct]
         # the combine drop down menu
         self.combineMenu = QtWidgets.QMenu("Com&bine", self)
         self.menubar.addMenu(self.combineMenu)
@@ -670,9 +656,6 @@ class MainProgram(QtWidgets.QMainWindow):
         
         self.historyActList = [self.historyAct]
         
-        
-        
-        
         #Utilities dropdown menu
         self.utilitiesMenu = QtWidgets.QMenu("&Utilities", self)
         self.menubar.addMenu(self.utilitiesMenu)
@@ -683,7 +666,6 @@ class MainProgram(QtWidgets.QMainWindow):
         self.nmrtableAct = self.utilitiesMenu.addAction(QtGui.QIcon(IconDirectory + 'table.png'),"&NMR Table", self.nmrTable)
         self.nmrtableAct.setToolTip('NMR Periodic Table')
         self.utilitiesActList = [self.shiftconvAct,self.quadconvAct,self.nmrtableAct]
-        
         
         # the help drop down menu
         self.helpMenu = QtWidgets.QMenu("&Help", self)
@@ -2373,29 +2355,17 @@ class Main1DWindow(QtWidgets.QWidget):
     def createQuad1DeconvWindow(self):
         self.father.createFitWindow(fit.Quad1DeconvWindow(self.father, self.father.mainWindow))
 
-    def createQuad2StaticDeconvWindow(self):
+    def createQuad2DeconvWindow(self):
         if self.current.freq == 0.0:
             self.father.dispMsg("Please set the spectrometer frequency first!")
             return
         self.father.createFitWindow(fit.Quad2DeconvWindow(self.father, self.father.mainWindow))
 
-    def createQuad2MASDeconvWindow(self):
-        if self.current.freq == 0.0:
-            self.father.dispMsg("Please set the spectrometer frequency first!")
-            return
-        self.father.createFitWindow(fit.Quad2DeconvWindow(self.father, self.father.mainWindow, True))
-
-    def createQuad2StaticCzjzekWindow(self):
+    def createQuad2CzjzekWindow(self):
         if self.current.freq == 0.0:
             self.father.dispMsg("Please set the spectrometer frequency first!")
             return
         self.father.createFitWindow(fit.Quad2CzjzekWindow(self.father, self.father.mainWindow))
-
-    def createQuad2MASCzjzekWindow(self):
-        if self.current.freq == 0.0:
-            self.father.dispMsg("Please set the spectrometer frequency first!")
-            return
-        self.father.createFitWindow(fit.Quad2CzjzekWindow(self.father, self.father.mainWindow, True))
 
     def plot1D(self):
         tmpcurrent = sc.Current1D(self, self.fig, self.canvas, self.masterData, self.current)
