@@ -1148,8 +1148,11 @@ class MainProgram(QtWidgets.QMainWindow):
         self.tabs.setCurrentIndex(num)
         self.updWorkspaceMenu(var)
         self.menuCheck()
-        if isinstance(self.mainWindow.current, (sc.CurrentMulti)):
-            self.mainWindow.sideframe.checkChanged()
+        try:
+            if isinstance(self.mainWindow.current, (sc.CurrentMulti)):
+                self.mainWindow.sideframe.checkChanged()
+        except:
+            pass
 
     def moveWorkspace(self, end, start):
         self.workspaces.insert(end, self.workspaces.pop(start))
