@@ -58,6 +58,9 @@ class ToolWindows(QtWidgets.QWidget):
     NAME = ""
     PICK = False
     SINGLESLICE = False
+    BROWSE = False
+    RESIZABLE = False
+    MENUDISABLE = True
 
     def __init__(self, parent):
         super(ToolWindows, self).__init__(parent)
@@ -66,22 +69,37 @@ class ToolWindows(QtWidgets.QWidget):
         self.setWindowTitle(self.NAME)
         self.layout = QtWidgets.QGridLayout(self)
         self.grid = QtWidgets.QGridLayout()
-        self.layout.addLayout(self.grid, 0, 0, 1, 2)
+        if self.BROWSE:
+            self.layout.addLayout(self.grid, 0, 0, 1, 3)
+        else:
+            self.layout.addLayout(self.grid, 0, 0, 1, 2)
         if self.SINGLESLICE:
             self.singleSlice = QtWidgets.QCheckBox("Single slice")
             self.layout.addWidget(self.singleSlice, 1, 0, 1, 2)
-        cancelButton = QtWidgets.QPushButton("&Cancel")
-        cancelButton.clicked.connect(self.closeEvent)
-        self.layout.addWidget(cancelButton, 2, 0)
-        okButton = QtWidgets.QPushButton("&Ok")
-        okButton.clicked.connect(self.applyAndClose)
-        okButton.setFocus()
-        self.layout.addWidget(okButton, 2, 1)
+        if self.BROWSE:
+            self.browseButton = QtWidgets.QPushButton("&Browse")
+            self.browseButton.clicked.connect(self.browse)
+            self.layout.addWidget(self.browseButton, 2, 0)
+            offset = 1
+        else:
+            offset = 0
+        self.cancelButton = QtWidgets.QPushButton("&Cancel")
+        self.cancelButton.clicked.connect(self.closeEvent)
+        self.layout.addWidget(self.cancelButton, 2, offset)
+        self.okButton = QtWidgets.QPushButton("&Ok")
+        self.okButton.clicked.connect(self.applyAndClose)
+        self.okButton.setFocus()
+        self.layout.addWidget(self.okButton, 2, offset+1)
         self.show()
-        self.setFixedSize(self.size())
-        self.father.menuDisable()
+        if not self.RESIZABLE:
+            self.setFixedSize(self.size())
+        if self.MENUDISABLE:
+            self.father.menuDisable()
         self.setGeometry(self.frameSize().width() - self.geometry().width(), self.frameSize().height() - self.geometry().height(), 0, 0)
 
+    def browse(self):
+        pass
+        
     def applyFunc(self):
         pass
     
@@ -92,7 +110,8 @@ class ToolWindows(QtWidgets.QWidget):
     def closeEvent(self, *args):
         self.father.current.upd()
         self.father.current.showFid()
-        self.father.menuEnable()
+        if self.MENUDISABLE:
+            self.father.menuEnable()
         self.father.updAllFrames()
         self.deleteLater()
 

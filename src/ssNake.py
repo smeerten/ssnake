@@ -5786,49 +5786,35 @@ class ISTWindow(wc.ToolWindows):
 ################################################################
 
 
-class ShearingWindow(QtWidgets.QWidget):
+class ShearingWindow(wc.ToolWindows):
+
+    NAME = "Shearing"
 
     def __init__(self, parent):
         super(ShearingWindow, self).__init__(parent)
-        self.setWindowFlags(QtCore.Qt.Window | QtCore.Qt.Tool)
-        self.father = parent
-        self.setWindowTitle("Shearing")
-        layout = QtWidgets.QGridLayout(self)
-        grid = QtWidgets.QGridLayout()
-        layout.addLayout(grid, 0, 0, 1, 2)
         options = list(map(str, range(1, self.father.masterData.data.ndim + 1)))
-        grid.addWidget(wc.QLabel("Shearing constant:"), 0, 0)
+        self.grid.addWidget(wc.QLabel("Shearing constant:"), 0, 0)
         self.shearDropdown = QtWidgets.QComboBox()
         self.shearDropdown.addItems(['User Defined','Spin 3/2, -3Q (9/7)','Spin 5/2, 3Q (19/12)','Spin 5/2, -5Q (25/12)','Spin 7/2, 3Q (101/45)',
                                      'Spin 7/2, 5Q (11/9)','Spin 7/2, -7Q (161/45)','Spin 9/2, 3Q (91/36)','Spin 9/2, 5Q (95/36)','Spin 9/2, 7Q (7/18)','Spin 9/2, -9Q (31/6)'])
         self.shearDropdown.activated.connect(self.dropdownChanged)
         self.shearList = [0,9.0/7.0,19.0/12.0,25.0/12.0,101.0/45.0,11.0/9.0,161.0/45.0,91.0/36.0,95.0/36.0,7.0/18.0,31.0/6.0]
-        grid.addWidget(self.shearDropdown, 1, 0)
+        self.grid.addWidget(self.shearDropdown, 1, 0)
         self.shearEntry = QtWidgets.QLineEdit()
         self.shearEntry.setAlignment(QtCore.Qt.AlignHCenter)
         self.shearEntry.setText("0.0")
         self.shearEntry.returnPressed.connect(self.shearPreview)
-        grid.addWidget(self.shearEntry, 3, 0)
-        grid.addWidget(wc.QLabel("Shearing direction:"), 4, 0)
+        self.grid.addWidget(self.shearEntry, 3, 0)
+        self.grid.addWidget(wc.QLabel("Shearing direction:"), 4, 0)
         self.dirEntry = QtWidgets.QComboBox()
         self.dirEntry.addItems(options)
         self.dirEntry.setCurrentIndex(self.father.masterData.data.ndim - 2)
-        grid.addWidget(self.dirEntry, 5, 0)
-        grid.addWidget(wc.QLabel("Shearing axis:"), 6, 0)
+        self.grid.addWidget(self.dirEntry, 5, 0)
+        self.grid.addWidget(wc.QLabel("Shearing axis:"), 6, 0)
         self.axEntry = QtWidgets.QComboBox()
         self.axEntry.addItems(options)
         self.axEntry.setCurrentIndex(self.father.masterData.data.ndim - 1)
-        grid.addWidget(self.axEntry,7, 0)
-        cancelButton = QtWidgets.QPushButton("&Cancel")
-        cancelButton.clicked.connect(self.closeEvent)
-        layout.addWidget(cancelButton, 2, 0)
-        okButton = QtWidgets.QPushButton("&Ok")
-        okButton.clicked.connect(self.applyAndClose)
-        layout.addWidget(okButton, 2, 1)
-        self.show()
-        self.setFixedSize(self.size())
-        self.father.menuDisable()
-        self.setGeometry(self.frameSize().width() - self.geometry().width(), self.frameSize().height() - self.geometry().height(), 0, 0)
+        self.grid.addWidget(self.axEntry,7, 0)
 
     def dropdownChanged(self):
         index =  self.shearDropdown.currentIndex()
@@ -5839,11 +5825,7 @@ class ShearingWindow(QtWidgets.QWidget):
         if shear is not None:
             self.shearEntry.setText(str(float(shear)))
 
-    def closeEvent(self, *args):
-        self.father.menuEnable()
-        self.deleteLater()
-
-    def applyAndClose(self):
+    def applyFunc(self):
         shear = safeEval(self.shearEntry.text())
         if shear is None:
             self.father.father.dispMsg("Not a valid value")
@@ -5859,39 +5841,22 @@ class ShearingWindow(QtWidgets.QWidget):
                self.father.current.shearing(float(shear), axes, axes2)
             else:
                 self.father.undoList.append(self.father.current.shearing(float(shear), axes, axes2))
-            self.father.menuEnable()
-            self.deleteLater()
 
 ##########################################################################################
 
 
-class MultiplyWindow(QtWidgets.QWidget):
+class MultiplyWindow(wc.ToolWindows):
+
+    NAME = "Multiply"
+    SINGLESLICE = True
 
     def __init__(self, parent):
         super(MultiplyWindow, self).__init__(parent)
-        self.setWindowFlags(QtCore.Qt.Window | QtCore.Qt.Tool)
-        self.father = parent
-        self.setWindowTitle("Multiply")
-        layout = QtWidgets.QGridLayout(self)
-        grid = QtWidgets.QGridLayout()
-        layout.addLayout(grid, 0, 0, 1, 2)
-        grid.addWidget(wc.QLabel("Values:"), 0, 0)
+        self.grid.addWidget(wc.QLabel("Values:"), 0, 0)
         self.valEntry = QtWidgets.QLineEdit()
         self.valEntry.setAlignment(QtCore.Qt.AlignHCenter)
         self.valEntry.returnPressed.connect(self.preview)
-        grid.addWidget(self.valEntry, 1, 0)
-        self.singleSlice = QtWidgets.QCheckBox("Single slice")
-        layout.addWidget(self.singleSlice, 1, 0, 1, 2)
-        cancelButton = QtWidgets.QPushButton("&Cancel")
-        cancelButton.clicked.connect(self.closeEvent)
-        layout.addWidget(cancelButton, 2, 0)
-        okButton = QtWidgets.QPushButton("&Ok")
-        okButton.clicked.connect(self.applyAndClose)
-        layout.addWidget(okButton, 2, 1)
-        self.show()
-        self.setFixedSize(self.size())
-        self.father.menuDisable()
-        self.setGeometry(self.frameSize().width() - self.geometry().width(), self.frameSize().height() - self.geometry().height(), 0, 0)
+        self.grid.addWidget(self.valEntry, 1, 0)
 
     def preview(self, *args):
         env = vars(np).copy()
@@ -5900,13 +5865,7 @@ class MultiplyWindow(QtWidgets.QWidget):
         val = eval(self.valEntry.text(), env)                # find a better solution, also add catch for exceptions
         self.father.current.multiplyPreview(np.array(val))
 
-    def closeEvent(self, *args):
-        self.father.current.upd()
-        self.father.current.showFid()
-        self.father.menuEnable()
-        self.deleteLater()
-
-    def applyAndClose(self):
+    def applyFunc(self):
         env = vars(np).copy()
         env['length'] = int(self.father.current.data1D.shape[-1])  # so length can be used to in equations
         env['euro'] = lambda fVal, num=int(self.father.current.data1D.shape[-1]): euro(fVal, num)
@@ -5919,78 +5878,70 @@ class MultiplyWindow(QtWidgets.QWidget):
                 return
             self.father.undoList.append(returnValue)
         self.father.redoList = []
-        self.father.menuEnable()
-        self.deleteLater()
 
 ##########################################################################################
 
 
-class XaxWindow(QtWidgets.QWidget):
+class XaxWindow(wc.ToolWindows):
+
+    NAME = "User defined x-axis"
 
     def __init__(self, parent):
         super(XaxWindow, self).__init__(parent)
-        self.setWindowFlags(QtCore.Qt.Window | QtCore.Qt.Tool)
-        self.father = parent
-        self.setWindowTitle("User defined x-axis")
-        self.axisSize = int(self.father.current.data1D.shape[-1])
-        layout = QtWidgets.QGridLayout(self)
-        grid = QtWidgets.QGridLayout()
-        layout.addLayout(grid, 0, 0, 1, 2)
-        
-        grid.addWidget(wc.QLabel("Input x-axis values:"), 0, 0, 1, 2) 
+        self.axisSize = int(self.father.current.data1D.shape[-1])        
+        self.grid.addWidget(wc.QLabel("Input x-axis values:"), 0, 0, 1, 2) 
         self.typeDropdown = QtWidgets.QComboBox()
         self.typeDropdown.addItems(['Expression','Linear','Logarithmic'])
         self.typeDropdown.activated.connect(self.typeChanged)
-        grid.addWidget(self.typeDropdown, 1, 0,1 ,2)    
-            
+        self.grid.addWidget(self.typeDropdown, 1, 0,1 ,2)    
         self.exprEntry = QtWidgets.QLineEdit()
         self.exprEntry.setAlignment(QtCore.Qt.AlignHCenter)
         self.exprEntry.returnPressed.connect(self.xaxPreview)
-        grid.addWidget(self.exprEntry, 2, 0, 1, 2)
+        self.grid.addWidget(self.exprEntry, 2, 0, 1, 2)
         
         #Linear 
         self.linStartLabel = wc.QLeftLabel("Start [s]:")
         self.linStopLabel = wc.QLeftLabel("Stop [s]:")
         self.linStartLabel.hide()
         self.linStopLabel.hide()
-        grid.addWidget(self.linStartLabel, 3, 0, 1, 1) 
-        grid.addWidget(self.linStopLabel, 4, 0, 1, 1) 
+        self.grid.addWidget(self.linStartLabel, 3, 0, 1, 1) 
+        self.grid.addWidget(self.linStopLabel, 4, 0, 1, 1) 
         
         self.linStartEntry = QtWidgets.QLineEdit()
         self.linStartEntry.setAlignment(QtCore.Qt.AlignHCenter)
         self.linStartEntry.returnPressed.connect(self.xaxPreview)
         self.linStartEntry.setMaximumWidth(120)
         self.linStartEntry.hide()
-        grid.addWidget(self.linStartEntry, 3, 1, 1, 1)
+        self.grid.addWidget(self.linStartEntry, 3, 1, 1, 1)
         
         self.linStopEntry = QtWidgets.QLineEdit()
         self.linStopEntry.setAlignment(QtCore.Qt.AlignHCenter)
         self.linStopEntry.returnPressed.connect(self.xaxPreview)
         self.linStopEntry.setMaximumWidth(120)
         self.linStopEntry.hide()
-        grid.addWidget(self.linStopEntry, 4, 1, 1, 1)
+        self.grid.addWidget(self.linStopEntry, 4, 1, 1, 1)
         
         #Log
         self.logStartLabel = wc.QLeftLabel("Start [s]:")
         self.logStopLabel = wc.QLeftLabel("Stop [s]:")
         self.logStartLabel.hide()
         self.logStopLabel.hide()
-        grid.addWidget(self.logStartLabel, 5, 0, 1, 1) 
-        grid.addWidget(self.logStopLabel, 6, 0, 1, 1) 
+        self.grid.addWidget(self.logStartLabel, 5, 0, 1, 1) 
+        self.grid.addWidget(self.logStopLabel, 6, 0, 1, 1) 
         
         self.logStartEntry = QtWidgets.QLineEdit()
         self.logStartEntry.setAlignment(QtCore.Qt.AlignHCenter)
         self.logStartEntry.returnPressed.connect(self.xaxPreview)
         self.logStartEntry.setMaximumWidth(120)
         self.logStartEntry.hide()
-        grid.addWidget(self.logStartEntry, 5, 1, 1, 1)
+        self.grid.addWidget(self.logStartEntry, 5, 1, 1, 1)
         
         self.logStopEntry = QtWidgets.QLineEdit()
         self.logStopEntry.setAlignment(QtCore.Qt.AlignHCenter)
         self.logStopEntry.returnPressed.connect(self.xaxPreview)
         self.logStopEntry.setMaximumWidth(120)
         self.logStopEntry.hide()
-        grid.addWidget(self.logStopEntry, 6, 1, 1, 1)
+        self.grid.addWidget(self.logStopEntry, 6, 1, 1, 1)
         
         self.table = QtWidgets.QTableWidget(self.axisSize,2)
         self.table.setHorizontalHeaderLabels(['Index','Value [s]'])
@@ -6004,18 +5955,7 @@ class XaxWindow(QtWidgets.QWidget):
             self.table.setItem(int(val),1,item2)
             
 #        self.table.setVerticalHeaderLabels([str(a) for a in range(self.axisSize)])
-        grid.addWidget(self.table, 12, 0, 1, 2)
-        
-        cancelButton = QtWidgets.QPushButton("&Cancel")
-        cancelButton.clicked.connect(self.closeEvent)
-        layout.addWidget(cancelButton, 2, 0)
-        okButton = QtWidgets.QPushButton("&Ok")
-        okButton.clicked.connect(self.applyAndClose)
-        layout.addWidget(okButton, 2, 1)
-        self.show()
-        self.setFixedSize(self.size())
-        self.father.menuDisable()
-        self.setGeometry(self.frameSize().width() - self.geometry().width(), self.frameSize().height() - self.geometry().height(), 0, 0)
+        self.grid.addWidget(self.table, 12, 0, 1, 2)
     
     def typeChanged(self,index):
         if index == 0: #If expr
@@ -6105,13 +6045,7 @@ class XaxWindow(QtWidgets.QWidget):
             self.table.setItem(i,1,item)
         self.father.current.setXaxPreview(np.array(val))
 
-    def closeEvent(self, *args):
-        self.father.current.upd()
-        self.father.current.showFid()
-        self.father.menuEnable()
-        self.deleteLater()
-
-    def applyAndClose(self):
+    def applyFunc(self):
         val = self.getValues()
         if val is None: #if error return. Messages are handled by the called function
             return  
@@ -6120,20 +6054,16 @@ class XaxWindow(QtWidgets.QWidget):
             self.father.current.setXax(np.array(val))
         else:
             self.father.undoList.append(self.father.current.setXax(np.array(val)))
-        self.father.menuEnable()
-        self.deleteLater()
 
 ##########################################################################################
 
 
-class RefWindow(QtWidgets.QWidget):
+class RefWindow(wc.ToolWindows):
+
+    NAME = "Reference"
 
     def __init__(self, parent):
         super(RefWindow, self).__init__(parent)
-        self.setWindowFlags(QtCore.Qt.Window | QtCore.Qt.Tool)
-        self.father = parent
-        self.setWindowTitle("Reference")
-
         # Secondary reference definitions
         file = os.path.dirname(os.path.realpath(__file__)) + os.path.sep + "References.txt"
         with open(file) as refFile:
@@ -6141,52 +6071,37 @@ class RefWindow(QtWidgets.QWidget):
         secRefNames = ["User Defined"]
         secRefValues = ["0.0"] 
         for entry in refList:
-            secRefNames.append(entry[0])  
-            secRefValues.append(entry[1])   
-             
+            secRefNames.append(entry[0]) 
+            secRefValues.append(entry[1])
         self.secRefNames = secRefNames
         self.secRefValues = secRefValues
-        layout = QtWidgets.QGridLayout(self)
-        grid = QtWidgets.QGridLayout()
-        layout.addLayout(grid, 0, 0, 1, 2)
         if parent.current.spec == 0:
             self.father.father.dispMsg('Setting ppm is only available for frequency data')
             self.deleteLater()
             return
-        grid.addWidget(wc.QLabel("Name:"), 0, 0)
+        self.grid.addWidget(wc.QLabel("Name:"), 0, 0)
         self.refName = QtWidgets.QLineEdit()
         self.refName.setAlignment(QtCore.Qt.AlignHCenter)
-        grid.addWidget(self.refName, 1, 0)
-        grid.addWidget(wc.QLabel("Frequency [MHz]:"), 2, 0)
+        self.grid.addWidget(self.refName, 1, 0)
+        self.grid.addWidget(wc.QLabel("Frequency [MHz]:"), 2, 0)
         self.freqEntry = QtWidgets.QLineEdit()
         self.freqEntry.setText("%.7f" % (self.father.current.ref * 1e-6))
         self.freqEntry.setAlignment(QtCore.Qt.AlignHCenter)
         self.freqEntry.returnPressed.connect(self.preview)
-        grid.addWidget(self.freqEntry, 3, 0)
-        grid.addWidget(wc.QLabel("Secondary Reference:"), 4, 0)
+        self.grid.addWidget(self.freqEntry, 3, 0)
+        self.grid.addWidget(wc.QLabel("Secondary Reference:"), 4, 0)
         self.refSecond = QtWidgets.QComboBox(parent=self)
         self.refSecond.addItems(self.secRefNames)
         self.refSecond.activated.connect(self.fillSecondaryRef)
-        grid.addWidget(self.refSecond, 5, 0)
-
-        grid.addWidget(wc.QLabel("Reference [ppm]:"), 6, 0)
+        self.grid.addWidget(self.refSecond, 5, 0)
+        self.grid.addWidget(wc.QLabel("Reference [ppm]:"), 6, 0)
         self.refEntry = QtWidgets.QLineEdit()
         self.refEntry.setText("0.0")
         self.refEntry.setAlignment(QtCore.Qt.AlignHCenter)
         self.refEntry.returnPressed.connect(self.preview)
-        grid.addWidget(self.refEntry, 7, 0)
-        cancelButton = QtWidgets.QPushButton("&Cancel")
-        cancelButton.clicked.connect(self.closeEvent)
-        layout.addWidget(cancelButton, 2, 0)
-        okButton = QtWidgets.QPushButton("&Ok")
-        okButton.clicked.connect(self.applyAndClose)
-        layout.addWidget(okButton, 2, 1)
-        self.show()
-        self.setFixedSize(self.size())
-        self.father.menuDisable()
+        self.grid.addWidget(self.refEntry, 7, 0)
         self.father.current.peakPickFunc = lambda pos, self=self: self.picked(pos)
         self.father.current.peakPick = True
-        self.setGeometry(self.frameSize().width() - self.geometry().width(), self.frameSize().height() - self.geometry().height(), 0, 0)
 
     def preview(self, *args):
         freq = safeEval(self.freqEntry.text())
@@ -6198,12 +6113,6 @@ class RefWindow(QtWidgets.QWidget):
 
     def fillSecondaryRef(self):
         self.refEntry.setText(self.secRefValues[self.refSecond.currentIndex()])
-
-    def closeEvent(self, *args):
-        self.father.current.peakPickReset()
-        self.father.current.showFid()
-        self.father.menuEnable()
-        self.deleteLater()
 
     def applyAndClose(self):
         self.father.current.peakPickReset()
@@ -6222,15 +6131,13 @@ class RefWindow(QtWidgets.QWidget):
                 nameOK = False
             else:
                 self.father.mainProgram.referenceAdd(reffreq, givenname)
-
         if nameOK:
             self.father.redoList = []
             if self.father.current.data.noUndo:
                 self.father.current.setRef(reffreq)
             else:
                 self.father.undoList.append(self.father.current.setRef(reffreq))
-            self.father.menuEnable()
-            self.deleteLater()
+            self.closeEvent()
 
     def picked(self, pos):
         self.freqEntry.setText("%.7f" % ((self.father.current.ref + self.father.current.xax[pos[0]]) * 1e-6))
@@ -6240,32 +6147,21 @@ class RefWindow(QtWidgets.QWidget):
 ##########################################################################################
 
 
-class HistoryWindow(QtWidgets.QWidget):
+class HistoryWindow(wc.ToolWindows):
+
+    NAME = "Processing history"
+    RESIZABLE = True
+    MENUDISABLE = False
 
     def __init__(self, parent):
         super(HistoryWindow, self).__init__(parent)
-        self.setWindowFlags(QtCore.Qt.Window | QtCore.Qt.Tool)
-        self.father = parent
-        self.setWindowTitle("Processing history")
-        layout = QtWidgets.QGridLayout(self)
-        grid = QtWidgets.QGridLayout()
-        layout.addLayout(grid, 0, 0, 1, 2)
-        # grid.addWidget(wc.QLabel("History:"), 0, 0)
+        self.cancelButton.hide()
         self.valEntry = QtWidgets.QTextEdit()
         self.valEntry.setReadOnly(True)
         self.valEntry.setLineWrapMode(QtWidgets.QTextEdit.NoWrap)
         self.valEntry.setText(self.father.masterData.getHistory())
-        grid.addWidget(self.valEntry, 1, 0)
-        cancelButton = QtWidgets.QPushButton("&Close")
-        cancelButton.clicked.connect(self.closeEvent)
-        layout.addWidget(cancelButton, 2, 0)
-        layout.setColumnStretch(1, 1)
-        self.show()
-        self.father.menuDisable()
-
-    def closeEvent(self, *args):
-        self.father.menuEnable()
-        self.deleteLater()
+        self.grid.addWidget(self.valEntry, 1, 0)
+        self.resize(550, 700)
 
 #########################################################################################
 
@@ -6308,82 +6204,47 @@ class DestListWidget(QtWidgets.QListWidget):
 ##########################################################################################
 
 
-class CombineWorkspaceWindow(QtWidgets.QWidget):
+class CombineWorkspaceWindow(wc.ToolWindows):
+
+    NAME = "Combine workspaces"
 
     def __init__(self, parent):
         super(CombineWorkspaceWindow, self).__init__(parent)
-        self.setWindowFlags(QtCore.Qt.Window | QtCore.Qt.Tool)
-        self.father = parent
-        self.setWindowTitle("Combine workspaces")
-        layout = QtWidgets.QGridLayout(self)
-        grid = QtWidgets.QGridLayout()
-        layout.addLayout(grid, 0, 0, 1, 3)
-        grid.addWidget(wc.QLabel("Workspaces:"), 0, 0)
-        grid.addWidget(wc.QLabel("Combined spectrum:"), 0, 1)
+        self.grid.addWidget(wc.QLabel("Workspaces:"), 0, 0)
+        self.grid.addWidget(wc.QLabel("Combined spectrum:"), 0, 1)
         self.listA = OrigListWidget(self)
         for i in self.father.workspaceNames:
             QtWidgets.QListWidgetItem(i, self.listA).setToolTip(i)
         self.listB = DestListWidget(self)
-        grid.addWidget(self.listA, 1, 0)
-        grid.addWidget(self.listB, 1, 1)
-        cancelButton = QtWidgets.QPushButton("&Close")
-        cancelButton.clicked.connect(self.closeEvent)
-        layout.addWidget(cancelButton, 2, 0)
-        okButton = QtWidgets.QPushButton("&Ok")
-        okButton.clicked.connect(self.applyAndClose)
-        layout.addWidget(okButton, 2, 1)
-        layout.setColumnStretch(2, 1)
-        self.show()
-        self.setFixedSize(self.size())
-        self.father.menuDisable()
-        self.setGeometry(self.frameSize().width() - self.geometry().width(), self.frameSize().height() - self.geometry().height(), 0, 0)
+        self.grid.addWidget(self.listA, 1, 0)
+        self.grid.addWidget(self.listB, 1, 1)
+        self.layout.setColumnStretch(2, 1)
 
-    def applyAndClose(self, *args):
+    def applyFunc(self, *args):
         items = []
         for index in range(self.listB.count()):
             items.append(self.listB.item(index).text())
         if len(items) == 0:
             self.father.dispMsg("Please select at least one workspace to combine")
         else:
-            if self.father.combineWorkspace(items):
-                self.father.menuEnable()
-                self.deleteLater()
-
-    def closeEvent(self, *args):
-        self.father.menuEnable()
-        self.deleteLater()
+            self.father.combineWorkspace(items)
 
 ##########################################################################################
 
 
-class CombineLoadWindow(QtWidgets.QWidget):
+class CombineLoadWindow(wc.ToolWindows):
+
+    NAME = "Open & Combine"
+    BROWSE = True
+    RESIZABLE = True
+    MENUDISABLE = False
 
     def __init__(self, parent):
         super(CombineLoadWindow, self).__init__(parent)
-        self.setWindowFlags(QtCore.Qt.Window | QtCore.Qt.Tool)
         self.setAcceptDrops(True)
-        self.father = parent
-        self.setWindowTitle("Open & Combine")
-        layout = QtWidgets.QGridLayout(self)
-        grid = QtWidgets.QGridLayout()
-        layout.addLayout(grid, 0, 0, 1, 3)
-        grid.addWidget(wc.QLabel("Data to be Combined:"), 0, 0)
+        self.grid.addWidget(wc.QLabel("Data to be Combined:"), 0, 0)
         self.specList = DestListWidget(self)
-        grid.addWidget(self.specList, 1, 0)
-        browseButton = QtWidgets.QPushButton("&Browse")
-        browseButton.clicked.connect(self.browse)
-        layout.addWidget(browseButton, 2, 0)
-        cancelButton = QtWidgets.QPushButton("&Close")
-        cancelButton.clicked.connect(self.closeEvent)
-        layout.addWidget(cancelButton, 2, 1)
-        okButton = QtWidgets.QPushButton("&Ok")
-        okButton.clicked.connect(self.applyAndClose)
-        layout.addWidget(okButton, 2, 2)
-        layout.setColumnStretch(2, 1)
-        self.show()
-        self.setFixedSize(self.size())
-        self.father.menuDisable()
-        self.setGeometry(self.frameSize().width() - self.geometry().width(), self.frameSize().height() - self.geometry().height(), 0, 0)
+        self.grid.addWidget(self.specList, 1, 0)
 
     def dragEnterEvent(self, event):
         if event.mimeData().hasUrls:
@@ -6407,7 +6268,7 @@ class CombineLoadWindow(QtWidgets.QWidget):
                 return
             self.specList.addItem(filePath)
 
-    def applyAndClose(self, *args):
+    def applyFunc(self, *args):
         items = []
         for index in range(self.specList.count()):
             items.append(self.specList.item(index).text())
@@ -6415,11 +6276,8 @@ class CombineLoadWindow(QtWidgets.QWidget):
             self.father.dispMsg("Please select at least one workspace to combine")
         else:
             self.father.loadAndCombine(items)
-            self.father.menuEnable()
-            self.deleteLater()
 
     def closeEvent(self, *args):
-        self.father.menuEnable()
         self.deleteLater()
 
 ##########################################################################################
@@ -6494,31 +6352,25 @@ class MonitorWindow(QtWidgets.QWidget):
 ##############################################################################
 
 
-class PlotSettingsWindow(QtWidgets.QWidget):
+class PlotSettingsWindow(wc.ToolWindows):
+
+    NAME = "Preferences"
 
     def __init__(self, parent):
         super(PlotSettingsWindow, self).__init__(parent)
-        self.setWindowFlags(QtCore.Qt.Window | QtCore.Qt.Tool)
-        self.father = parent
-        self.setWindowTitle("Preferences")
         tabWidget = QtWidgets.QTabWidget()
         tab1 = QtWidgets.QWidget()
         tab2 = QtWidgets.QWidget()
-        # tab3 = QtWidgets.QWidget()
         tabWidget.addTab(tab1, "Plot")
         tabWidget.addTab(tab2, "Contour")
         grid1 = QtWidgets.QGridLayout()
         grid2 = QtWidgets.QGridLayout()
-        # grid3 = QtWidgets.QGridLayout()
         tab1.setLayout(grid1)
         tab2.setLayout(grid2)
-        # tab3.setLayout(grid3)
         grid1.setColumnStretch(10, 1)
         grid1.setRowStretch(10, 1)
         grid2.setColumnStretch(10, 1)
         grid2.setRowStretch(10, 1)
-        # grid3.setColumnStretch(10, 1)
-        # grid3.setRowStretch(10, 1)
 
         grid1.addWidget(QtWidgets.QLabel("Linewidth:"), 1, 0)
         self.lwSpinBox = QtWidgets.QDoubleSpinBox()
@@ -6557,17 +6409,7 @@ class PlotSettingsWindow(QtWidgets.QWidget):
         negColorButton = QtWidgets.QPushButton("Negative colour")
         negColorButton.clicked.connect(self.setNegColor)
         grid2.addWidget(negColorButton, 3, 0)
-
-        layout = QtWidgets.QGridLayout(self)
-        layout.addWidget(tabWidget, 0, 0, 1, 4)
-        cancelButton = QtWidgets.QPushButton("&Cancel")
-        cancelButton.clicked.connect(self.closeEvent)
-        layout.addWidget(cancelButton, 1, 0)
-        okButton = QtWidgets.QPushButton("&Ok")
-        okButton.clicked.connect(self.applyAndClose)
-        layout.addWidget(okButton, 1, 1)
-        self.show()
-        self.father.menuDisable()
+        self.grid.addWidget(tabWidget, 0, 0)
 
     def preview(self, *args):
         tmpLw = self.father.current.linewidth
@@ -6608,32 +6450,26 @@ class PlotSettingsWindow(QtWidgets.QWidget):
             self.negColor = tmp.name()
         self.preview()
 
-    def applyAndClose(self, *args):
+    def applyFunc(self, *args):
         self.father.current.setColor(self.color)
         self.father.current.setLw(self.lwSpinBox.value())
         self.father.current.setGrids([self.xgridCheck.isChecked(), self.ygridCheck.isChecked()])
         self.father.current.setColorMap(self.cmEntry.currentIndex())
         self.father.current.setContourConst(self.constColorCheck.isChecked())
         self.father.current.setContourColors([self.posColor, self.negColor])
-        self.father.current.showFid()
-        self.father.menuEnable()
-        self.deleteLater()
-
-    def closeEvent(self, *args):
-        self.father.current.showFid()
-        self.father.menuEnable()
-        self.deleteLater()
 
 ##############################################################################
 
-class errorWindow(QtWidgets.QWidget):
+
+class errorWindow(wc.ToolWindows):
+
+    NAME = "Error Messages"
+    RESIZABLE = True
+    MENUDISABLE = False
 
     def __init__(self, parent):
         super(errorWindow, self).__init__(parent)
-        self.setWindowFlags(QtCore.Qt.Window | QtCore.Qt.Tool)
-        self.father = parent
-        self.setWindowTitle("Error Messages")
-        grid = QtWidgets.QGridLayout()
+        self.cancelButton.hide()
         self.errorQList = QtWidgets.QListWidget(self)
         self.errorQList.currentRowChanged.connect(self.rowChange)
         for error in self.father.errors:
@@ -6646,14 +6482,9 @@ class errorWindow(QtWidgets.QWidget):
         self.errorEdit.setReadOnly(True)
         errorText = ''
         self.errorEdit.setHtml(errorText)
-        grid.addWidget(self.errorQList, 0, 0, 1, 3)
-        grid.addWidget(self.errorEdit, 1, 0, 1, 3)
-        closebutton = QtWidgets.QPushButton("Close")
-        grid.addWidget(closebutton, 12, 1, 1, 1)
-        closebutton.clicked.connect(self.closeEvent)
-        self.setLayout(grid)
+        self.grid.addWidget(self.errorQList, 0, 0, 1, 3)
+        self.grid.addWidget(self.errorEdit, 1, 0, 1, 3)
         self.resize(550, 700)
-        self.show()
         
     def rowChange(self,row):
         errorText = ''
@@ -6663,8 +6494,8 @@ class errorWindow(QtWidgets.QWidget):
             for line in tb.format_exception(error[1][0],error[1][1],error[1][2]):
                 errorText = errorText + line + '<br>'
         self.errorEdit.setHtml(errorText)
-        
-    def closeEvent(self):
+
+    def closeEvent(self, *args):
         self.deleteLater()
 
 ##############################################################################
@@ -6847,39 +6678,26 @@ class PreferenceWindow(QtWidgets.QWidget):
 ##############################################################################
 
 
-class ToolbarWindow(QtWidgets.QWidget):
+class ToolbarWindow(wc.ToolWindows):
+
+    NAME = "Change Toolbar"
+    RESIZABLE = True
+    MENUDISABLE = False
 
     def __init__(self,parent):
         super(ToolbarWindow, self).__init__(parent)
-        self.setWindowFlags(QtCore.Qt.Window | QtCore.Qt.Tool)
-        self.father = parent
-        self.setWindowTitle("Change Toolbar")
-        layout = QtWidgets.QGridLayout(self)
-        grid = QtWidgets.QGridLayout()
-        layout.addLayout(grid, 1, 0, 1, 3)
-        grid.addWidget(wc.QLabel("Actions:"), 0, 0)
-        grid.addWidget(wc.QLabel("Toolbar Actions:"), 0, 1)
+        self.grid.addWidget(wc.QLabel("Actions:"), 0, 0)
+        self.grid.addWidget(wc.QLabel("Toolbar Actions:"), 0, 1)
         self.listA = OrigListWidget(self)
         for i in self.father.father.allActionsList:
             QtWidgets.QListWidgetItem(i[0], self.listA).setToolTip(i[0])
         self.listB = DestListWidget(self)
         for i in self.father.father.defaultToolbarActionList:
             QtWidgets.QListWidgetItem(i, self.listB).setToolTip(i)
-        grid.addWidget(self.listA, 1, 0)
-        grid.addWidget(self.listB, 1, 1)
-        cancelButton = QtWidgets.QPushButton("&Cancel")
-        cancelButton.clicked.connect(self.closeEvent)
-        layout.addWidget(cancelButton, 2, 0)
-        watchButton = QtWidgets.QPushButton("&Apply")
-        watchButton.clicked.connect(self.applyAndClose)
-        layout.addWidget(watchButton, 2, 1)
-        layout.setColumnStretch(3, 1)
-        self.show()
-        self.setFixedSize(self.size())
-        self.setGeometry(self.frameSize().width() - self.geometry().width(), self.frameSize().height() - self.geometry().height(), 0, 0)
+        self.grid.addWidget(self.listA, 1, 0)
+        self.grid.addWidget(self.listB, 1, 1)
 
     def applyAndClose(self, *args):
-#        self.father.stopMonitor()
         items = []
         for index in range(self.listB.count()):
             items.append(self.listB.item(index).text())
@@ -6887,22 +6705,20 @@ class ToolbarWindow(QtWidgets.QWidget):
         self.closeEvent()
         
     def closeEvent(self, *args):
-#        self.father.father.menuEnable()
         self.deleteLater()
         
 ##############################################################################
 
 
-class aboutWindow(QtWidgets.QWidget):
+class aboutWindow(wc.ToolWindows):
+
+    NAME = "About ssNake"
+    RESIZABLE = True
+    MENUDISABLE = False
 
     def __init__(self, parent):
         super(aboutWindow, self).__init__(parent)
-        self.setWindowFlags(QtCore.Qt.Window | QtCore.Qt.Tool)
-        self.father = parent
-        self.setWindowTitle("About ssNake")
-        grid = QtWidgets.QGridLayout()
-#        grid.setColumnStretch(10, 1)
-#        grid.setRowStretch(14, 1)
+        self.cancelButton.hide()
         self.logo = QtWidgets.QLabel(self)
         self.logo.setPixmap(QtGui.QPixmap(os.path.dirname(os.path.realpath(__file__)) + "/logo.gif"))
         self.tabs = QtWidgets.QTabWidget(self)
@@ -6938,14 +6754,9 @@ class aboutWindow(QtWidgets.QWidget):
         self.tabs.addTab(self.text, 'Version') 
         self.tabs.addTab(self.thanks, 'Thanks') 
         self.tabs.addTab(self.license, 'License') 
-        grid.addWidget(self.logo, 0, 0, 1, 3, QtCore.Qt.AlignHCenter)
-        grid.addWidget(self.tabs, 1, 0, 1, 3)
-        closebutton = QtWidgets.QPushButton("Close")
-        grid.addWidget(closebutton, 12, 1, 1, 1)
-        closebutton.clicked.connect(self.closeEvent)
-        self.setLayout(grid)
+        self.grid.addWidget(self.logo, 0, 0, 1, 3, QtCore.Qt.AlignHCenter)
+        self.grid.addWidget(self.tabs, 1, 0, 1, 3)
         self.resize(550, 700)
-        self.show()
 
     def closeEvent(self):
         self.deleteLater()
@@ -6953,149 +6764,142 @@ class aboutWindow(QtWidgets.QWidget):
 ##############################################################################
 
 
-class shiftConversionWindow(QtWidgets.QWidget):
+class shiftConversionWindow(wc.ToolWindows):
+
+    NAME = "Chemical Shift Conversions"
+    MENUDISABLE = False
+    RESIZABLE = True
 
     def __init__(self, parent):
         super(shiftConversionWindow, self).__init__(parent)
-        self.setWindowFlags(QtCore.Qt.Window | QtCore.Qt.Tool)
-        self.father = parent
-        self.setWindowTitle("Chemical Shift Conversions")
-        grid = QtWidgets.QGridLayout()
-        grid.setColumnStretch(10, 1)
-        grid.setRowStretch(14, 1)
         StConv = QtWidgets.QLabel("Standard Convention:")
         StConv.setAlignment(QtCore.Qt.AlignHCenter)
-        grid.addWidget(StConv, 0, 0)
+        self.grid.addWidget(StConv, 0, 0)
         D11label = QtWidgets.QLabel(u'\u03b4' + '<sub>11</sub> [ppm]')
         D11label.setAlignment(QtCore.Qt.AlignHCenter)
-        grid.addWidget(D11label, 0, 1)
+        self.grid.addWidget(D11label, 0, 1)
         D22label = QtWidgets.QLabel(u'\u03b4' + '<sub>22</sub> [ppm]')
         D22label.setAlignment(QtCore.Qt.AlignHCenter)
-        grid.addWidget(D22label, 0, 2)
+        self.grid.addWidget(D22label, 0, 2)
         D33label = QtWidgets.QLabel(u'\u03b4' + '<sub>33</sub> [ppm]')
         D33label.setAlignment(QtCore.Qt.AlignHCenter)
-        grid.addWidget(D33label, 0, 3)
+        self.grid.addWidget(D33label, 0, 3)
         standardGO = QtWidgets.QPushButton("Go")
-        grid.addWidget(standardGO, 1, 0)
+        self.grid.addWidget(standardGO, 1, 0)
         standardGO.clicked.connect(lambda: self.shiftCalc(0))
         self.D11 = QtWidgets.QLineEdit()
         self.D11.setText("0")
         self.D11.setAlignment(QtCore.Qt.AlignHCenter)
-        grid.addWidget(self.D11, 1, 1)
+        self.grid.addWidget(self.D11, 1, 1)
         self.D22 = QtWidgets.QLineEdit()
         self.D22.setText("0")
         self.D22.setAlignment(QtCore.Qt.AlignHCenter)
-        grid.addWidget(self.D22, 1, 2)
+        self.grid.addWidget(self.D22, 1, 2)
         self.D33 = QtWidgets.QLineEdit()
         self.D33.setText("0")
         self.D33.setAlignment(QtCore.Qt.AlignHCenter)
-        grid.addWidget(self.D33, 1, 3)
+        self.grid.addWidget(self.D33, 1, 3)
 
         # xyz Convention
-        grid.addWidget(QtWidgets.QLabel(""), 2, 0)
+        self.grid.addWidget(QtWidgets.QLabel(""), 2, 0)
         StConv = QtWidgets.QLabel("xyz Convention:")
         StConv.setAlignment(QtCore.Qt.AlignHCenter)
-        grid.addWidget(StConv, 3, 0)
+        self.grid.addWidget(StConv, 3, 0)
         dxxlabel = QtWidgets.QLabel(u'\u03b4' + '<sub>xx</sub> [ppm]')
         dxxlabel.setAlignment(QtCore.Qt.AlignHCenter)
-        grid.addWidget(dxxlabel, 3, 1)
+        self.grid.addWidget(dxxlabel, 3, 1)
         dyylabel = QtWidgets.QLabel(u'\u03b4' + '<sub>yy</sub> [ppm]')
         dyylabel.setAlignment(QtCore.Qt.AlignHCenter)
-        grid.addWidget(dyylabel, 3, 2)
+        self.grid.addWidget(dyylabel, 3, 2)
         dzzlabel = QtWidgets.QLabel(u'\u03b4' + '<sub>zz</sub> [ppm]')
         dzzlabel.setAlignment(QtCore.Qt.AlignHCenter)
-        grid.addWidget(dzzlabel, 3, 3)
+        self.grid.addWidget(dzzlabel, 3, 3)
 
         xyzGO = QtWidgets.QPushButton("Go")
-        grid.addWidget(xyzGO, 4, 0)
+        self.grid.addWidget(xyzGO, 4, 0)
         xyzGO.clicked.connect(lambda: self.shiftCalc(1))
         self.dxx = QtWidgets.QLineEdit()
         self.dxx.setText("0")
         self.dxx.setAlignment(QtCore.Qt.AlignHCenter)
-        grid.addWidget(self.dxx, 4, 1)
+        self.grid.addWidget(self.dxx, 4, 1)
         self.dyy = QtWidgets.QLineEdit()
         self.dyy.setText("0")
         self.dyy.setAlignment(QtCore.Qt.AlignHCenter)
-        grid.addWidget(self.dyy, 4, 2)
+        self.grid.addWidget(self.dyy, 4, 2)
         self.dzz = QtWidgets.QLineEdit()
         self.dzz.setText("0")
         self.dzz.setAlignment(QtCore.Qt.AlignHCenter)
-        grid.addWidget(self.dzz, 4, 3)
+        self.grid.addWidget(self.dzz, 4, 3)
 
         # Haeberlen Convention
-        grid.addWidget(QtWidgets.QLabel(""), 5, 0)
+        self.grid.addWidget(QtWidgets.QLabel(""), 5, 0)
         StConv = QtWidgets.QLabel("Haeberlen Convention:")
         StConv.setAlignment(QtCore.Qt.AlignHCenter)
-        grid.addWidget(StConv, 6, 0)
+        self.grid.addWidget(StConv, 6, 0)
         disolabel = QtWidgets.QLabel(u'\u03b4' + '<sub>iso</sub> [ppm]')
         disolabel.setAlignment(QtCore.Qt.AlignHCenter)
-        grid.addWidget(disolabel, 6, 1)
+        self.grid.addWidget(disolabel, 6, 1)
         danisolabel = QtWidgets.QLabel(u'\u03b4' + '<sub>aniso</sub> [ppm]')
         danisolabel.setAlignment(QtCore.Qt.AlignHCenter)
-        grid.addWidget(danisolabel, 6, 2)
+        self.grid.addWidget(danisolabel, 6, 2)
         etalabel = QtWidgets.QLabel(u'\u03b7')
         etalabel.setAlignment(QtCore.Qt.AlignHCenter)
-        grid.addWidget(etalabel, 6, 3)
+        self.grid.addWidget(etalabel, 6, 3)
 
         haeberGO = QtWidgets.QPushButton("Go")
-        grid.addWidget(haeberGO, 7, 0)
+        self.grid.addWidget(haeberGO, 7, 0)
         haeberGO.clicked.connect(lambda: self.shiftCalc(2))
         self.diso = QtWidgets.QLineEdit()
         self.diso.setText("0")
         self.diso.setAlignment(QtCore.Qt.AlignHCenter)
-        grid.addWidget(self.diso, 7, 1)
+        self.grid.addWidget(self.diso, 7, 1)
         self.daniso = QtWidgets.QLineEdit()
         self.daniso.setText("0")
         self.daniso.setAlignment(QtCore.Qt.AlignHCenter)
-        grid.addWidget(self.daniso, 7, 2)
+        self.grid.addWidget(self.daniso, 7, 2)
         self.eta = QtWidgets.QLineEdit()
         self.eta.setText("0")
         self.eta.setAlignment(QtCore.Qt.AlignHCenter)
-        grid.addWidget(self.eta, 7, 3)
+        self.grid.addWidget(self.eta, 7, 3)
 
         # Hertzfeld berger
-        grid.addWidget(QtWidgets.QLabel(""), 8, 0)
+        self.grid.addWidget(QtWidgets.QLabel(""), 8, 0)
         HbConv = QtWidgets.QLabel("Hertzfeld-Berger Convention:")
         HbConv.setAlignment(QtCore.Qt.AlignHCenter)
-        grid.addWidget(HbConv, 9, 0)
+        self.grid.addWidget(HbConv, 9, 0)
         hbdisolabel = QtWidgets.QLabel(u'\u03b4' + '<sub>iso</sub> [ppm]')
         hbdisolabel.setAlignment(QtCore.Qt.AlignHCenter)
-        grid.addWidget(hbdisolabel, 9, 1)
+        self.grid.addWidget(hbdisolabel, 9, 1)
         omegalabel = QtWidgets.QLabel(u'\u03a9 [ppm]')
         omegalabel.setAlignment(QtCore.Qt.AlignHCenter)
-        grid.addWidget(omegalabel, 9, 2)
+        self.grid.addWidget(omegalabel, 9, 2)
         skewlabel = QtWidgets.QLabel(u'\u03ba')
         skewlabel.setAlignment(QtCore.Qt.AlignHCenter)
-        grid.addWidget(skewlabel, 9, 3)
+        self.grid.addWidget(skewlabel, 9, 3)
 
         hbGO = QtWidgets.QPushButton("Go")
-        grid.addWidget(hbGO, 10, 0)
+        self.grid.addWidget(hbGO, 10, 0)
         hbGO.clicked.connect(lambda: self.shiftCalc(3))
         self.hbdiso = QtWidgets.QLineEdit()
         self.hbdiso.setText("0")
         self.hbdiso.setAlignment(QtCore.Qt.AlignHCenter)
-        grid.addWidget(self.hbdiso, 10, 1)
+        self.grid.addWidget(self.hbdiso, 10, 1)
         self.hbdaniso = QtWidgets.QLineEdit()
         self.hbdaniso.setText("0")
         self.hbdaniso.setAlignment(QtCore.Qt.AlignHCenter)
-        grid.addWidget(self.hbdaniso, 10, 2)
+        self.grid.addWidget(self.hbdaniso, 10, 2)
         self.hbskew = QtWidgets.QLineEdit()
         self.hbskew.setText("0")
         self.hbskew.setAlignment(QtCore.Qt.AlignHCenter)
-        grid.addWidget(self.hbskew, 10, 3)
+        self.grid.addWidget(self.hbskew, 10, 3)
 
         # Reset
-        grid.addWidget(QtWidgets.QLabel(""), 11, 0)
-        resetbutton = QtWidgets.QPushButton("Reset")
-        grid.addWidget(resetbutton, 12, 0)
-        resetbutton.clicked.connect(self.valueReset)
-
-        closebutton = QtWidgets.QPushButton("Close")
-        grid.addWidget(closebutton, 12, 3)
-        closebutton.clicked.connect(self.closeEvent)
-
-        self.setLayout(grid)
-        self.show()
+        self.cancelButton.setText("Reset")
+        self.cancelButton.clicked.disconnect()
+        self.cancelButton.clicked.connect(self.valueReset)
+        self.okButton.setText("Close")
+        self.okButton.clicked.disconnect()
+        self.okButton.clicked.connect(self.closeEvent)
 
     def shiftCalc(self, Type):
         if Type == 0:  # If from standard
@@ -7180,107 +6984,105 @@ class shiftConversionWindow(QtWidgets.QWidget):
     def closeEvent(self):
         self.deleteLater()
 
-class quadConversionWindow(QtWidgets.QWidget):
+##############################################################################
+
+
+class quadConversionWindow(wc.ToolWindows):
     
     Ioptions = ['1', '3/2', '2', '5/2', '3', '7/2', '4', '9/2','5','6','7']
     Ivalues = [1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 4.0, 4.5,5.0,6.0,7.0]
-   
+    
+    NAME = "Quadrupolar Coupling Conversions"
+    RESIZABLE = True
+    MENUDISABLE = False
+
     def __init__(self, parent):
         super(quadConversionWindow, self).__init__(parent)
-        self.setWindowFlags(QtCore.Qt.Window | QtCore.Qt.Tool)
-        self.father = parent
-        self.setWindowTitle("Quadrupolar Coupling Conversions")
-        grid = QtWidgets.QGridLayout()
-        grid.setColumnStretch(10, 1)
-        grid.setRowStretch(14, 1)
         Itext = QtWidgets.QLabel("I:")
         Itext.setAlignment(QtCore.Qt.AlignHCenter)
-        grid.addWidget(Itext, 0, 0)
+        self.grid.addWidget(Itext, 0, 0)
         self.IEntry = QtWidgets.QComboBox()
         self.IEntry.addItems(self.Ioptions)
         self.IEntry.setCurrentIndex(0)
-        grid.addWidget(self.IEntry, 1, 0)
+        self.grid.addWidget(self.IEntry, 1, 0)
         etalabel = QtWidgets.QLabel(u'\u03b7')
         etalabel.setAlignment(QtCore.Qt.AlignHCenter)
-        grid.addWidget(etalabel, 0, 1)
+        self.grid.addWidget(etalabel, 0, 1)
         self.Eta = QtWidgets.QLineEdit()
         self.Eta.setText("0")
         self.Eta.setAlignment(QtCore.Qt.AlignHCenter)
-        grid.addWidget(self.Eta, 1, 1)
+        self.grid.addWidget(self.Eta, 1, 1)
         momentlabel = QtWidgets.QLabel('Q [fm<sup>2</sup>]')
         momentlabel.setAlignment(QtCore.Qt.AlignHCenter)
-        grid.addWidget(momentlabel, 0, 2)
+        self.grid.addWidget(momentlabel, 0, 2)
         self.Moment = QtWidgets.QLineEdit()
         self.Moment.setText("ND")
         self.Moment.setAlignment(QtCore.Qt.AlignHCenter)
-        grid.addWidget(self.Moment, 1, 2)
-        grid.addWidget(QtWidgets.QLabel(""),2, 0)
+        self.grid.addWidget(self.Moment, 1, 2)
+        self.grid.addWidget(QtWidgets.QLabel(""),2, 0)
         CqConv = QtWidgets.QLabel("C<sub>Q</sub> Convention:")
         CqConv.setAlignment(QtCore.Qt.AlignHCenter)
-        grid.addWidget(CqConv, 3, 0)
+        self.grid.addWidget(CqConv, 3, 0)
         Cqlabel = QtWidgets.QLabel(u'C' + u'<sub>Q</sub>/2\u03c0 [MHz]')
         Cqlabel.setAlignment(QtCore.Qt.AlignHCenter)
-        grid.addWidget(Cqlabel, 3, 1)
+        self.grid.addWidget(Cqlabel, 3, 1)
         CqGO = QtWidgets.QPushButton("Go")
-        grid.addWidget(CqGO, 4, 0)
+        self.grid.addWidget(CqGO, 4, 0)
         CqGO.clicked.connect(lambda: self.quadCalc(0))
         self.Cq = QtWidgets.QLineEdit()
         self.Cq.setText("0")
         self.Cq.setAlignment(QtCore.Qt.AlignHCenter)
-        grid.addWidget(self.Cq, 4, 1)
-        grid.addWidget(QtWidgets.QLabel(""),5, 0)
+        self.grid.addWidget(self.Cq, 4, 1)
+        self.grid.addWidget(QtWidgets.QLabel(""),5, 0)
         WqConv = QtWidgets.QLabel(u"\u03c9<sub>Q</sub> Convention:")
         WqConv.setAlignment(QtCore.Qt.AlignHCenter)
-        grid.addWidget(WqConv, 6, 0)
+        self.grid.addWidget(WqConv, 6, 0)
         Wqlabel = QtWidgets.QLabel(u'\u03c9' + u'<sub>Q</sub>/2\u03c0 [MHz]')
         Wqlabel.setAlignment(QtCore.Qt.AlignHCenter)
-        grid.addWidget(Wqlabel, 6, 1)
+        self.grid.addWidget(Wqlabel, 6, 1)
         WqGO = QtWidgets.QPushButton("Go")
-        grid.addWidget(WqGO, 7, 0)
+        self.grid.addWidget(WqGO, 7, 0)
         WqGO.clicked.connect(lambda: self.quadCalc(1))
         self.Wq = QtWidgets.QLineEdit()
         self.Wq.setText("0")
         self.Wq.setAlignment(QtCore.Qt.AlignHCenter)
-        grid.addWidget(self.Wq, 7, 1)        
-        grid.addWidget(QtWidgets.QLabel(""),8, 0)        
+        self.grid.addWidget(self.Wq, 7, 1)        
+        self.grid.addWidget(QtWidgets.QLabel(""),8, 0)        
         VConv = QtWidgets.QLabel("Field gradients:")
         VConv.setAlignment(QtCore.Qt.AlignHCenter)
-        grid.addWidget(VConv, 9, 0)
+        self.grid.addWidget(VConv, 9, 0)
         Vxxlabel = QtWidgets.QLabel('V<sub>xx</sub> [V/m<sup>2</sup>]')
         Vxxlabel.setAlignment(QtCore.Qt.AlignHCenter)
-        grid.addWidget(Vxxlabel, 9, 1)
+        self.grid.addWidget(Vxxlabel, 9, 1)
         VGO = QtWidgets.QPushButton("Go")
-        grid.addWidget(VGO, 10, 0)
+        self.grid.addWidget(VGO, 10, 0)
         VGO.clicked.connect(lambda: self.quadCalc(2))
         self.Vxx = QtWidgets.QLineEdit()
         self.Vxx.setText("ND")
         self.Vxx.setAlignment(QtCore.Qt.AlignHCenter)
-        grid.addWidget(self.Vxx, 10, 1)        
+        self.grid.addWidget(self.Vxx, 10, 1)        
         Vyylabel = QtWidgets.QLabel('V<sub>yy</sub> [V/m<sup>2</sup>]')
         Vyylabel.setAlignment(QtCore.Qt.AlignHCenter)
-        grid.addWidget(Vyylabel, 9, 2)
+        self.grid.addWidget(Vyylabel, 9, 2)
         self.Vyy = QtWidgets.QLineEdit()
         self.Vyy.setText("ND")
         self.Vyy.setAlignment(QtCore.Qt.AlignHCenter)
-        grid.addWidget(self.Vyy, 10, 2)        
+        self.grid.addWidget(self.Vyy, 10, 2)        
         Vzzlabel = QtWidgets.QLabel('V<sub>zz</sub> [V/m<sup>2</sup>]')
         Vzzlabel.setAlignment(QtCore.Qt.AlignHCenter)
-        grid.addWidget(Vzzlabel, 9, 3)
+        self.grid.addWidget(Vzzlabel, 9, 3)
         self.Vzz = QtWidgets.QLineEdit()
         self.Vzz.setText("ND")
         self.Vzz.setAlignment(QtCore.Qt.AlignHCenter)
-        grid.addWidget(self.Vzz, 10, 3)
+        self.grid.addWidget(self.Vzz, 10, 3)
 
         # Reset
-        grid.addWidget(QtWidgets.QLabel(""), 11, 0)
-        resetbutton = QtWidgets.QPushButton("Reset")
-        grid.addWidget(resetbutton, 12, 0)
-        resetbutton.clicked.connect(self.valueReset)
-        closebutton = QtWidgets.QPushButton("Close")
-        grid.addWidget(closebutton, 12, 3)
-        closebutton.clicked.connect(self.closeEvent)        
-        self.setLayout(grid)
-        self.show()
+        self.cancelButton.setText("Reset")
+        self.cancelButton.clicked.disconnect()
+        self.cancelButton.clicked.connect(self.valueReset)
+        self.okButton.setText("Close")
+        self.okButton.clicked.disconnect()
+        self.okButton.clicked.connect(self.closeEvent)
 
     def quadCalc(self, Type):
         I = self.Ivalues[self.IEntry.currentIndex()]
@@ -7288,7 +7090,6 @@ class quadConversionWindow(QtWidgets.QWidget):
             #Czz is equal to Cq, via same definition (scale) Cxx and Cyy can be found
             try:
                 Czz = float(safeEval(self.Cq.text())) 
-                
                 Eta = float(safeEval(self.Eta.text())) 
                 Cxx = Czz*(Eta-1)/2
                 Cyy = -Cxx-Czz
