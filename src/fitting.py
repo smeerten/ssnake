@@ -2454,7 +2454,7 @@ class TensorDeconvFrame(FitPlotFrame):
 class TensorDeconvParamFrame(AbstractParamFrame):
 
     def __init__(self, parent, rootwindow, isMain=True):
-        self.SINGLENAMES = ['bgrnd', 'slope']
+        self.SINGLENAMES = ['bgrnd', 'slope', 'spinspeed']
         self.MULTINAMES = ['t11', 't22', 't33', 'amp', 'lor', 'gauss']
         self.FITFUNC = tensorDeconvmpFit
 
@@ -2469,8 +2469,8 @@ class TensorDeconvParamFrame(AbstractParamFrame):
         self.pickTick = QtWidgets.QCheckBox("Pick")
         self.pickTick.stateChanged.connect(self.togglePick)
         self.frame1.addWidget(self.pickTick, 2, 2)
-        self.ticks = {'bgrnd':[], 'slope':[], 't11':[], 't22':[], 't33':[], 'amp':[], 'lor':[], 'gauss':[]}
-        self.entries = {'bgrnd':[], 'slope':[], 't11':[], 't22':[], 't33':[], 'amp':[], 'lor':[], 'gauss':[], 'shiftdef':[], 'cheng':[]}
+        self.ticks = {'bgrnd':[], 'slope':[], 'spinspeed':[], 't11':[], 't22':[], 't33':[], 'amp':[], 'lor':[], 'gauss':[]}
+        self.entries = {'bgrnd':[], 'slope':[], 'spinspeed':[], 't11':[], 't22':[], 't33':[], 'amp':[], 'lor':[], 'gauss':[], 'shiftdef':[], 'cheng':[], 'mas':[]}
         self.frame1.addWidget(QLabel("Definition:"), 3, 2)
         self.shiftDefType = 0 #variable to remember the selected tensor type
         self.entries['shiftdef'].append(QtWidgets.QComboBox())
@@ -2485,22 +2485,32 @@ class TensorDeconvParamFrame(AbstractParamFrame):
         self.entries['cheng'][-1].setAlignment(QtCore.Qt.AlignHCenter)
         self.entries['cheng'][-1].setValue(self.cheng)
         self.optframe.addWidget(self.entries['cheng'][-1], 1, 0)
+        self.entries['mas'].append(QtWidgets.QCheckBox('Spinning'))
+        self.optframe.addWidget(self.entries['mas'][-1], 2, 0)
         self.optframe.setColumnStretch(10, 1)
         self.optframe.setAlignment(QtCore.Qt.AlignTop)
-        self.frame2.addWidget(QLabel("Bgrnd:"), 0, 0, 1, 2)
+        self.spinLabel = QLabel("Spin. speed [kHz]:")
+        self.frame2.addWidget(self.spinLabel, 0, 0, 1, 2)
+        self.ticks['spinspeed'].append(QtWidgets.QCheckBox(''))
+        self.frame2.addWidget(self.ticks['spinspeed'][-1], 1, 0)
+        self.entries['spinspeed'].append(QtWidgets.QLineEdit())
+        self.entries['spinspeed'][-1].setAlignment(QtCore.Qt.AlignHCenter)
+        self.entries['spinspeed'][-1].setText("10.0")
+        self.frame2.addWidget(self.entries['spinspeed'][-1], 1, 1)
+        self.frame2.addWidget(QLabel("Bgrnd:"), 2, 0, 1, 2)
         self.ticks['bgrnd'].append(QtWidgets.QCheckBox(''))
-        self.frame2.addWidget(self.ticks['bgrnd'][-1], 1, 0)
+        self.frame2.addWidget(self.ticks['bgrnd'][-1], 3, 0)
         self.entries['bgrnd'].append(QtWidgets.QLineEdit())
         self.entries['bgrnd'][-1].setAlignment(QtCore.Qt.AlignHCenter)
         self.entries['bgrnd'][-1].setText("0.0")
-        self.frame2.addWidget(self.entries['bgrnd'][-1], 1, 1)
-        self.frame2.addWidget(QLabel("Slope:"), 2, 0, 1, 2)
+        self.frame2.addWidget(self.entries['bgrnd'][-1], 3, 1)
+        self.frame2.addWidget(QLabel("Slope:"), 4, 0, 1, 2)
         self.ticks['slope'].append(QtWidgets.QCheckBox(''))
-        self.frame2.addWidget(self.ticks['slope'][-1], 3, 0)
+        self.frame2.addWidget(self.ticks['slope'][-1], 5, 0)
         self.entries['slope'].append(QtWidgets.QLineEdit())
         self.entries['slope'][-1].setAlignment(QtCore.Qt.AlignHCenter)
         self.entries['slope'][-1].setText("0.0")
-        self.frame2.addWidget(self.entries['slope'][-1], 3, 1)
+        self.frame2.addWidget(self.entries['slope'][-1], 5, 1)
         self.frame2.setColumnStretch(10, 1)
         self.frame2.setAlignment(QtCore.Qt.AlignTop)
         self.numExp = QtWidgets.QComboBox()
@@ -2561,7 +2571,7 @@ class TensorDeconvParamFrame(AbstractParamFrame):
 
     def defaultValues(self, inp):
         if not inp:
-            return {'bgrnd':[0.0, True], 'slope':[0.0, True], 't11':np.repeat([np.array([0.0, False], dtype=object)], self.FITNUM, axis=0), 't22':np.repeat([np.array([0.0, False], dtype=object)], self.FITNUM, axis=0), 't33':np.repeat([np.array([0.0, False], dtype=object)], self.FITNUM, axis=0), 'amp':np.repeat([np.array([self.fullInt, False], dtype=object)], self.FITNUM,axis=0), 'lor':np.repeat([np.array([1.0, False], dtype=object)], self.FITNUM,axis=0), 'gauss':np.repeat([np.array([0.0, True], dtype=object)], self.FITNUM,axis=0)}
+            return {'bgrnd':[0.0, True], 'slope':[0.0, True], 'spinspeed':[10.0, True], 't11':np.repeat([np.array([0.0, False], dtype=object)], self.FITNUM, axis=0), 't22':np.repeat([np.array([0.0, False], dtype=object)], self.FITNUM, axis=0), 't33':np.repeat([np.array([0.0, False], dtype=object)], self.FITNUM, axis=0), 'amp':np.repeat([np.array([self.fullInt, False], dtype=object)], self.FITNUM,axis=0), 'lor':np.repeat([np.array([1.0, False], dtype=object)], self.FITNUM,axis=0), 'gauss':np.repeat([np.array([0.0, True], dtype=object)], self.FITNUM,axis=0)}
         else:
             return inp
 
@@ -2572,13 +2582,8 @@ class TensorDeconvParamFrame(AbstractParamFrame):
         self.cheng = 15
         self.entries['cheng'][-1].setValue(self.cheng)
         self.fitNumList[locList] = 0
-        for name in self.SINGLENAMES:
-            self.fitParamList[locList][name] = [0.0, True]
+        self.fitParamList[locList] = self.defaultValues(0)
         self.pickTick.setChecked(True)
-        defaults = {'t11':[0.0,False], 't22':[0.0,False], 't33':[0.0,False], 'amp':[self.fullInt,False], 'lor':[1.0,False], 'gauss':[0.0,True]}
-        for i in range(self.FITNUM):
-            for name in defaults.keys():
-                self.fitParamList[locList][name][i] = defaults[name]
         self.togglePick()
         self.dispParams()
         
@@ -2674,13 +2679,17 @@ class TensorDeconvParamFrame(AbstractParamFrame):
         self.shiftDefType = NewType
 
     def getExtraParams(self, out):
+        out['mas'] = [self.entries['mas'][-1].isChecked()]
         cheng = self.entries['cheng'][-1].value()
-        phi, theta, weight = zcw_angles(cheng, symm=2)
-        out['weight'] = [weight]
-        out['multt'] = [[np.sin(theta)**2 * np.cos(phi)**2, np.sin(theta)**2 * np.sin(phi)**2, np.cos(theta)**2]]
-        
+        out['cheng'] = [cheng]
         out['shiftdef'] = [self.entries['shiftdef'][0].currentIndex()]
-        return (out, [out['multt'][-1], out['weight'][-1], out['shiftdef'][-1]])
+        if out['mas'][0]:
+            return (out, [out['mas'][-1], out['cheng'][-1], out['shiftdef'][-1]])
+        else:
+            phi, theta, weight = zcw_angles(cheng, symm=2)
+            out['weight'] = [weight]
+            out['multt'] = [[np.sin(theta)**2 * np.cos(phi)**2, np.sin(theta)**2 * np.sin(phi)**2, np.cos(theta)**2]]
+            return (out, [out['mas'][-1], out['multt'][-1], out['weight'][-1], out['shiftdef'][-1]])
         
     def disp(self, params, num):
         out = params[num]
@@ -2706,7 +2715,10 @@ class TensorDeconvParamFrame(AbstractParamFrame):
         x = []
         for i in range(len(out['amp'])):
             x.append(tmpx)
-            y = out['amp'][i] * tensorDeconvtensorFunc(tmpx, out['t11'][i] , out['t22'][i], out['t33'][i], out['lor'][i], out['gauss'][i], out['multt'][0], self.parent.current.sw, out['weight'][0], self.axAdd, out['shiftdef'][-1], self.axMult)
+            if out['mas'][0]:
+                y = out['amp'][i] * tensorMASDeconvtensorFunc(tmpx, out['t11'][i] , out['t22'][i], out['t33'][i], out['lor'][i], out['gauss'][i], self.parent.current.sw, self.axAdd, self.axMult, out['spinspeed'][0], out['cheng'][0], out['shiftdef'][-1])
+            else:
+                y = out['amp'][i] * tensorDeconvtensorFunc(tmpx, out['t11'][i] , out['t22'][i], out['t33'][i], out['lor'][i], out['gauss'][i], out['multt'][0], self.parent.current.sw, out['weight'][0], self.axAdd, out['shiftdef'][-1], self.axMult)
             outCurvePart.append(outCurveBase + y)
             outCurve += y
         self.parent.fitDataList[tuple(self.parent.locList)] = [tmpx, outCurve, x, outCurvePart]
@@ -2742,10 +2754,14 @@ def tensorDeconvfitFunc(params, allX, args):
         axAdd = args[6][n]
         axMult = args[7][n]
         parameters = {'bgrnd':0.0, 'slope':0.0, 't11':0.0, 't22':0.0, 't33':0.0, 'amp':0.0, 'lor':0.0, 'gauss':0.0}
-        parameters['multt'] = argu[-1][0]
-        parameters['weight'] = argu[-1][1]
-        parameters['shiftdef'] = argu[-1][2]
-        for name in ['bgrnd', 'slope']:
+        mas = argu[-1][0]
+        if mas:
+            parameters['cheng'] = argu[-1][1]
+        else:
+            parameters['multt'] = argu[-1][1]
+            parameters['weight'] = argu[-1][2]
+            parameters['shiftdef'] = argu[-1][3]
+        for name in ['spinspeed', 'bgrnd', 'slope']:
             if struc[name][0][0] == 1:
                 parameters[name] = param[struc[name][0][1]]
             elif struc[name][0][0] == 0:
@@ -2769,7 +2785,10 @@ def tensorDeconvfitFunc(params, allX, args):
                         parameters[name] = altStruc[2] * allParam[altStruc[4]][strucTarget[altStruc[0]][altStruc[1]][1]] + altStruc[3]
                     elif strucTarget[altStruc[0]][altStruc[1]][0] == 0:
                         parameters[name] = altStruc[2] * allArgu[altStruc[4]][strucTarget[altStruc[0]][altStruc[1]][1]] + altStruc[3]
-            testFunc += parameters['amp'] * tensorDeconvtensorFunc(x, parameters['t11'], parameters['t22'], parameters['t33'], parameters['lor'], parameters['gauss'], parameters['multt'], sw, parameters['weight'], axAdd, parameters['shiftdef'], axMult)
+            if mas:
+                testFunc += parameters['amp'] * tensorMASDeconvtensorFunc(x, parameters['t11'], parameters['t22'], parameters['t33'], parameters['lor'], parameters['gauss'], sw, axAdd, axMult, parameters['spinspeed'], parameters['cheng'], parameters['shiftdef'])
+            else:
+                testFunc += parameters['amp'] * tensorDeconvtensorFunc(x, parameters['t11'], parameters['t22'], parameters['t33'], parameters['lor'], parameters['gauss'], parameters['multt'], sw, parameters['weight'], axAdd, parameters['shiftdef'], axMult)
         testFunc += parameters['bgrnd'] + parameters['slope'] * x
         fullTestFunc = np.append(fullTestFunc, testFunc)
     return fullTestFunc
@@ -2797,199 +2816,14 @@ def tensorDeconvtensorFunc(x, t11, t22, t33, lor, gauss, multt, sw, weight, axAd
     I = I / sw * len(I)
     return I
 
-##############################################################################
-
-
-class CSAMASWindow(TabFittingWindow):
-
-    def __init__(self, mainProgram, oldMainWindow):
-        self.CURRENTWINDOW = CSAMASFrame
-        self.PARAMFRAME = CSAMASParamFrame
-        super(CSAMASWindow, self).__init__(mainProgram, oldMainWindow)
-
-#################################################################################
-
-
-class CSAMASFrame(FitPlotFrame):
-
-    def __init__(self, rootwindow, fig, canvas, current):
-        self.FITNUM = 10 # Standard number of fits
-        super(CSAMASFrame, self).__init__(rootwindow, fig, canvas, current)
-
-#################################################################################
-
-
-class CSAMASParamFrame(AbstractParamFrame):
-
-    def __init__(self, parent, rootwindow, isMain=True):
-        self.SINGLENAMES = ['bgrnd', 'slope', 'spinspeed']
-        self.MULTINAMES = ['pos', 'delta', 'eta', 'amp', 'lor', 'gauss']
-        self.FITFUNC = CSAMASmpFit
-        self.cheng = 12
-        super(CSAMASParamFrame, self).__init__(parent, rootwindow, isMain)
-        self.ticks = {'bgrnd':[], 'slope':[], 'spinspeed':[], 'pos':[], 'delta':[], 'eta':[], 'amp':[], 'lor':[], 'gauss':[]}
-        self.entries = {'bgrnd':[], 'slope':[], 'spinspeed':[], 'pos':[], 'delta':[], 'eta':[], 'amp':[], 'lor':[], 'gauss':[], 'shiftdef':[], 'cheng':[]}
-        self.optframe.addWidget(QLabel("Cheng:"), 0, 0)
-        self.entries['cheng'].append(QtWidgets.QSpinBox())
-        self.entries['cheng'][-1].setAlignment(QtCore.Qt.AlignHCenter)
-        self.entries['cheng'][-1].setValue(self.cheng)
-        self.optframe.addWidget(self.entries['cheng'][-1], 1, 0)
-        self.optframe.setColumnStretch(10, 1)
-        self.optframe.setAlignment(QtCore.Qt.AlignTop)
-        self.frame2.addWidget(QLabel("Spin. speed [kHz]:"), 0, 0, 1, 2)
-        self.ticks['spinspeed'].append(QtWidgets.QCheckBox(''))
-        self.frame2.addWidget(self.ticks['spinspeed'][-1], 1, 0)
-        self.entries['spinspeed'].append(QtWidgets.QLineEdit())
-        self.entries['spinspeed'][-1].setAlignment(QtCore.Qt.AlignHCenter)
-        self.entries['spinspeed'][-1].setText("10.0")
-        self.frame2.addWidget(self.entries['spinspeed'][-1], 1, 1)
-        self.frame2.addWidget(QLabel("Bgrnd:"), 2, 0, 1, 2)
-        self.ticks['bgrnd'].append(QtWidgets.QCheckBox(''))
-        self.frame2.addWidget(self.ticks['bgrnd'][-1], 3, 0)
-        self.entries['bgrnd'].append(QtWidgets.QLineEdit())
-        self.entries['bgrnd'][-1].setAlignment(QtCore.Qt.AlignHCenter)
-        self.entries['bgrnd'][-1].setText("0.0")
-        self.frame2.addWidget(self.entries['bgrnd'][-1], 3, 1)
-        self.frame2.addWidget(QLabel("Slope:"), 4, 0, 1, 2)
-        self.ticks['slope'].append(QtWidgets.QCheckBox(''))
-        self.frame2.addWidget(self.ticks['slope'][-1], 5, 0)
-        self.entries['slope'].append(QtWidgets.QLineEdit())
-        self.entries['slope'][-1].setAlignment(QtCore.Qt.AlignHCenter)
-        self.entries['slope'][-1].setText("0.0")
-        self.frame2.addWidget(self.entries['slope'][-1], 5, 1)
-        self.frame2.setColumnStretch(10, 1)
-        self.frame2.setAlignment(QtCore.Qt.AlignTop)
-        self.numExp = QtWidgets.QComboBox()
-        self.numExp.addItems([str(x+1) for x in range(self.FITNUM)])
-        self.numExp.currentIndexChanged.connect(self.changeNum)
-        self.frame3.addWidget(self.numExp, 0, 0, 1, 2)
-        if self.parent.current.ppm:
-            axUnit = 'ppm'
-        else:
-            axUnit = ['Hz', 'kHz', 'MHz'][self.parent.current.axType]
-        #Labels
-        self.labelpos = QLabel(u'Position [' + axUnit + ']:')
-        self.labeldelta = QLabel(u'delta [' + axUnit + ']:')
-        self.labeleta = QLabel(u'\u03B7:')
-        self.frame3.addWidget(self.labelpos, 1, 0, 1, 2)
-        self.frame3.addWidget(self.labeldelta, 1, 2, 1, 2)
-        self.frame3.addWidget(self.labeleta, 1, 4, 1, 2)
-        self.frame3.addWidget(QLabel("Integral:"), 1, 6, 1, 2)
-        self.frame3.addWidget(QLabel("Lorentz [Hz]:"), 1, 8, 1, 2)
-        self.frame3.addWidget(QLabel("Gauss [Hz]:"), 1, 10, 1, 2)
-        self.frame3.setColumnStretch(20, 1)
-        self.frame3.setAlignment(QtCore.Qt.AlignTop)
-        for i in range(self.FITNUM):
-            for j in range(len(self.MULTINAMES)):
-                self.ticks[self.MULTINAMES[j]].append(QtWidgets.QCheckBox(''))
-                self.frame3.addWidget(self.ticks[self.MULTINAMES[j]][i], i + 2, 2*j)
-                self.entries[self.MULTINAMES[j]].append(QtWidgets.QLineEdit())
-                self.entries[self.MULTINAMES[j]][i].setAlignment(QtCore.Qt.AlignHCenter)
-                self.frame3.addWidget(self.entries[self.MULTINAMES[j]][i], i + 2, 2*j+1)
-        self.dispParams()
-
-    def defaultValues(self, inp):
-        if not inp:
-            return {'bgrnd':[0.0, True], 'slope':[0.0, True], 'spinspeed':[10.0, True], 'pos':np.repeat([np.array([0.0, False], dtype=object)], self.FITNUM, axis=0), 'delta':np.repeat([np.array([1.0, False], dtype=object)], self.FITNUM, axis=0), 'eta':np.repeat([np.array([0.0, False], dtype=object)], self.FITNUM, axis=0), 'amp':np.repeat([np.array([1.0, False], dtype=object)], self.FITNUM,axis=0), 'lor':np.repeat([np.array([1.0, False], dtype=object)], self.FITNUM,axis=0), 'gauss':np.repeat([np.array([0.0, True], dtype=object)], self.FITNUM,axis=0)}
-        else:
-            return inp
-
-    def getExtraParams(self, out):
-        out['cheng'] = [self.entries['cheng'][-1].value()]
-        return (out, [out['cheng'][-1]])
-
-    def disp(self, params, num):
-        out = params[num]
-        for name in self.SINGLENAMES:
-            inp = out[name][0]
-            if isinstance(inp, tuple):
-                inp = checkLinkTuple(inp)
-                out[name][0] = inp[2]*params[inp[4]][inp[0]][inp[1]] + inp[3]
-        numExp = len(out[self.MULTINAMES[0]])
-        for i in range(numExp):
-            for name in self.MULTINAMES:
-                inp = out[name][i]
-                if isinstance(inp, tuple):
-                    inp = checkLinkTuple(inp)
-                    out[name][i] = inp[2]*params[inp[4]][inp[0]][inp[1]] + inp[3]
-                if not np.isfinite(out[name][i]):
-                    self.rootwindow.mainProgram.dispMsg("One of the inputs is not valid")
-                    return
-        tmpx = self.parent.xax
-        outCurveBase = out['bgrnd'][0] + tmpx * out['slope'][0]
-        outCurve = outCurveBase.copy()
-        outCurvePart = []
-        x = []
-        for i in range(len(out['amp'])):
-            x.append(tmpx)
-            y = out['amp'][i] * CSAMASFunc(tmpx, out['pos'][i] , out['delta'][i], out['eta'][i], out['lor'][i], out['gauss'][i], self.parent.current.sw, self.axAdd, self.axMult, out['spinspeed'][0], out['cheng'][0])
-            outCurvePart.append(outCurveBase + y)
-            outCurve += y
-        self.parent.fitDataList[tuple(self.parent.locList)] = [tmpx, outCurve, x, outCurvePart]
-        self.parent.showFid()
-
-##############################################################################
-
-
-def CSAMASmpFit(xax, data1D, guess, args, queue, minmethod):
-    try:
-        fitVal = scipy.optimize.minimize(lambda *param: np.sum((data1D-CSAMASfitFunc(param, xax, args))**2), guess, method=minmethod)
-    except:
-        fitVal = None
-    queue.put(fitVal)
-
-def CSAMASfitFunc(params, allX, args):
-    params = params[0]
-    specName = args[0]
-    specSlices = args[1]
-    allParam = []
-    for length in specSlices:
-        allParam.append(params[length])
-    allStruc = args[3]
-    allArgu = args[4]
-    fullTestFunc = []
-    for n in range(len(allX)):
-        x=allX[n]
-        testFunc = np.zeros(len(x))
-        param = allParam[n]
-        numExp = args[2][n]
-        struc = args[3][n]
-        argu = args[4][n]
-        sw = args[5][n]
-        axAdd = args[6][n]
-        axMult = args[7][n]
-        parameters = {'spinspeed':0.0, 'bgrnd':0.0, 'slope':0.0, 'pos':0.0, 'delta':0.0, 'eta':0.0, 'amp':0.0, 'lor':0.0, 'gauss':0.0}
-        parameters['cheng'] = argu[-1][0]
-        for name in ['spinspeed', 'bgrnd', 'slope']:
-            if struc[name][0][0] == 1:
-                parameters[name] = param[struc[name][0][1]]
-            elif struc[name][0][0] == 0:
-                parameters[name] = argu[struc[name][0][1]]
-            else:
-                altStruc = struc[name][0][1]
-                if struc[altStruc[0]][altStruc[1]][0] == 1:
-                    parameters[name] = altStruc[2] * allParam[altStruc[4]][struc[altStruc[0]][altStruc[1]][1]] + altStruc[3]
-                elif struc[altStruc[0]][altStruc[1]][0] == 0:
-                    parameters[name] = altStruc[2] * allArgu[altStruc[4]][struc[altStruc[0]][altStruc[1]][1]] + altStruc[3]
-        for i in range(numExp):
-            for name in ['pos', 'delta', 'eta', 'amp', 'lor', 'gauss']:
-                if struc[name][i][0] == 1:
-                    parameters[name] = param[struc[name][i][1]]
-                elif struc[name][i][0] == 0:
-                    parameters[name] = argu[struc[name][i][1]]
-                else:
-                    altStruc = struc[name][i][1]
-                    strucTarget = allStruc[altStruc[4]]
-                    if strucTarget[altStruc[0]][altStruc[1]][0] == 1:
-                        parameters[name] = altStruc[2] * allParam[altStruc[4]][strucTarget[altStruc[0]][altStruc[1]][1]] + altStruc[3]
-                    elif strucTarget[altStruc[0]][altStruc[1]][0] == 0:
-                        parameters[name] = altStruc[2] * allArgu[altStruc[4]][strucTarget[altStruc[0]][altStruc[1]][1]] + altStruc[3]
-            testFunc += parameters['amp'] * CSAMASFunc(x, parameters['pos'], parameters['delta'], parameters['eta'], parameters['lor'], parameters['gauss'], sw, axAdd, axMult, parameters['spinspeed'], parameters['cheng'])
-        testFunc += parameters['bgrnd'] + parameters['slope'] * x
-        fullTestFunc = np.append(fullTestFunc, testFunc)
-    return fullTestFunc
-    
-def CSAMASFunc(x, pos, delta, eta, lor, gauss, sw, axAdd, axMult, spinspeed, cheng):
+def tensorMASDeconvtensorFunc(x, t11, t22, t33, lor, gauss, sw, axAdd, axMult, spinspeed, cheng, convention):
+    if convention == 0 or convention == 1:
+        Tensors = shiftConversion([t11/axMult, t22/axMult, t33/axMult], convention)
+    else:
+        Tensors = shiftConversion([t11/axMult, t22/axMult, t33], convention)
+    pos = Tensors[2][0] - axAdd
+    delta = Tensors[2][1]
+    eta = Tensors[2][2]
     NSTEPS = 32.0
     omegar = 2*np.pi*1e3*spinspeed
     phi, theta, weight = zcw_angles(cheng, symm=2)
@@ -3007,8 +2841,7 @@ def CSAMASFunc(x, pos, delta, eta, lor, gauss, sw, axAdd, axMult, spinspeed, che
                   np.array([1.0 / 3 / 2 * (1 + cosPhi**2) * cos2Theta]).transpose() * cos2OmegarT,
                   np.array([np.sqrt(2) / 3 * sinPhi * sin2Theta]).transpose() * np.sin(omegar * t),
                   np.array([cosPhi * sin2Theta / 3]).transpose() * np.sin(2 * omegar * t)]
-    pos = (pos / axMult)- axAdd
-    omegars = 2 * np.pi * delta/axMult * (angleStuff[0] + angleStuff[1] + eta * (angleStuff[2] + angleStuff[3] + angleStuff[4] + angleStuff[5]))
+    omegars = 2 * np.pi * delta * (angleStuff[0] + angleStuff[1] + eta * (angleStuff[2] + angleStuff[3] + angleStuff[4] + angleStuff[5]))
     nsteps = angleStuff[0].shape[1]
     QTrs = np.concatenate([np.ones([angleStuff[0].shape[0], 1]), np.exp(-1j * np.cumsum(omegars, axis=1) * tresolution)[:, :-1]], 1)
     for j in range(1, nsteps):

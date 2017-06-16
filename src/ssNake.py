@@ -309,7 +309,7 @@ class MainProgram(QtWidgets.QMainWindow):
                                     ['Transforms --> NUS --> CLEAN',self.cleanAct],['Transforms --> NUS --> IST',self.istAct],
                                     ['Fitting --> S/N',self.snrAct],['Fitting --> FWHM',self.fwhmAct],['Fitting --> Centre of Mass',self.massAct],
                                     ['Fitting --> Integrals',self.intfitAct],['Fitting --> Relaxation Curve',self.relaxAct],['Fitting --> Diffusion Curve',self.diffusionAct],
-                                    ['Fitting --> Lorentzian/Gaussian',self.lorentzfitAct],['Fitting --> CSA Static',self.csastaticAct],['Fitting --> CSA MAS',self.csamasAct],
+                                    ['Fitting --> Lorentzian/Gaussian',self.lorentzfitAct],['Fitting --> CSA (Static/MAS)',self.csastaticAct],
                                     ['Fitting --> First Order Quadrupole (Static/MAS)',self.firstquadstatAct],['Fitting --> Second Order Quadrupole (Static/MAS)',self.secondquadstatAct],
                                     ['Fitting --> Czjzek (Static/MAS)',self.czjzekstatAct],
                                     ['Combine --> Combine Workspaces',self.combineWorkspaceAct],['Combine --> Insert From Workspace',self.insertdatAct],['Combine --> Add',self.adddatAct],['Combine --> Subtract',self.subdatAct],['Combine --> Multiply',self.multdatAct],
@@ -565,10 +565,8 @@ class MainProgram(QtWidgets.QMainWindow):
         self.diffusionAct.setToolTip('Fit Diffusion Curve')
         self.lorentzfitAct = self.fittingMenu.addAction(QtGui.QIcon(IconDirectory + 'lorentz.png'),"&Lorentzian/Gaussian", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.createPeakDeconvWindow()))
         self.lorentzfitAct.setToolTip('Fit Lorentzian/Gaussian')
-        self.csastaticAct = self.fittingMenu.addAction(QtGui.QIcon(IconDirectory + 'csastatic.png'),"&CSA Static", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.createTensorDeconvWindow()))
-        self.csastaticAct.setToolTip('Fit CSA Static')
-        self.csamasAct = self.fittingMenu.addAction(QtGui.QIcon(IconDirectory + 'csaMAS.png'),"CSA MAS", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.createCSAMASWindow()))
-        self.csamasAct.setToolTip('Fit CSA MAS')
+        self.csastaticAct = self.fittingMenu.addAction(QtGui.QIcon(IconDirectory + 'csastatic.png'),"&CSA (Static/MAS)", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.createTensorDeconvWindow()))
+        self.csastaticAct.setToolTip('Fit CSA (Static/MAS)')
         self.firstquadstatAct = self.fittingMenu.addAction(QtGui.QIcon(IconDirectory + 'firstquadstatic.png'),"First Order &Quadrupole (Static/MAS)", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.createQuad1DeconvWindow()))
         self.firstquadstatAct.setToolTip('Fit First Order Quadrupole (Static/MAS)')
         self.secondquadstatAct = self.fittingMenu.addAction(QtGui.QIcon(IconDirectory + 'secondquadstatic.png'),"S&econd Order Quadrupole (Static/MAS)", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.createQuad2DeconvWindow()))
@@ -577,7 +575,7 @@ class MainProgram(QtWidgets.QMainWindow):
         self.czjzekstatAct.setToolTip('Fit (Static/MAS) Czjzek Pattern')
         
         self.fittingActList = [self.snrAct,self.fwhmAct,self.massAct,self.intfitAct,self.relaxAct,
-                               self.diffusionAct,self.lorentzfitAct,self.csastaticAct,self.csamasAct,
+                               self.diffusionAct,self.lorentzfitAct,self.csastaticAct,
                                self.firstquadstatAct,self.secondquadstatAct,
                                self.czjzekstatAct]
         # the combine drop down menu
@@ -2351,9 +2349,6 @@ class Main1DWindow(QtWidgets.QWidget):
 
     def createTensorDeconvWindow(self):
         self.father.createFitWindow(fit.TensorDeconvWindow(self.father, self.father.mainWindow))
-
-    def createCSAMASWindow(self):
-        self.father.createFitWindow(fit.CSAMASWindow(self.father, self.father.mainWindow))
 
     def createQuad1DeconvWindow(self):
         self.father.createFitWindow(fit.Quad1DeconvWindow(self.father, self.father.mainWindow))
