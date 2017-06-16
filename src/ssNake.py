@@ -309,9 +309,9 @@ class MainProgram(QtWidgets.QMainWindow):
                                     ['Transforms --> NUS --> CLEAN',self.cleanAct],['Transforms --> NUS --> IST',self.istAct],
                                     ['Fitting --> S/N',self.snrAct],['Fitting --> FWHM',self.fwhmAct],['Fitting --> Centre of Mass',self.massAct],
                                     ['Fitting --> Integrals',self.intfitAct],['Fitting --> Relaxation Curve',self.relaxAct],['Fitting --> Diffusion Curve',self.diffusionAct],
-                                    ['Fitting --> Lorentzian/Gaussian',self.lorentzfitAct],['Fitting --> CSA (Static/MAS)',self.csastaticAct],
-                                    ['Fitting --> First Order Quadrupole (Static/MAS)',self.firstquadstatAct],['Fitting --> Second Order Quadrupole (Static/MAS)',self.secondquadstatAct],
-                                    ['Fitting --> Czjzek (Static/MAS)',self.czjzekstatAct],
+                                    ['Fitting --> Lorentzian/Gaussian',self.lorentzfitAct],['Fitting --> CSA',self.csastaticAct],
+                                    ['Fitting --> First Order Quadrupole',self.firstquadstatAct],['Fitting --> Second Order Quadrupole',self.secondquadstatAct],
+                                    ['Fitting --> Czjzek',self.czjzekstatAct],
                                     ['Combine --> Combine Workspaces',self.combineWorkspaceAct],['Combine --> Insert From Workspace',self.insertdatAct],['Combine --> Add',self.adddatAct],['Combine --> Subtract',self.subdatAct],['Combine --> Multiply',self.multdatAct],
                                     ['Combine --> Divide',self.divdatAct],
                                     ['Plot --> 1D Plot',self.onedplotAct],['Plot --> Scatter',self.scatterplotAct],['Plot --> Stack Plot',self.stackplotAct],
@@ -565,14 +565,14 @@ class MainProgram(QtWidgets.QMainWindow):
         self.diffusionAct.setToolTip('Fit Diffusion Curve')
         self.lorentzfitAct = self.fittingMenu.addAction(QtGui.QIcon(IconDirectory + 'lorentz.png'),"&Lorentzian/Gaussian", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.createPeakDeconvWindow()))
         self.lorentzfitAct.setToolTip('Fit Lorentzian/Gaussian')
-        self.csastaticAct = self.fittingMenu.addAction(QtGui.QIcon(IconDirectory + 'csastatic.png'),"&CSA (Static/MAS)", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.createTensorDeconvWindow()))
-        self.csastaticAct.setToolTip('Fit CSA (Static/MAS)')
-        self.firstquadstatAct = self.fittingMenu.addAction(QtGui.QIcon(IconDirectory + 'firstquadstatic.png'),"First Order &Quadrupole (Static/MAS)", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.createQuad1DeconvWindow()))
-        self.firstquadstatAct.setToolTip('Fit First Order Quadrupole (Static/MAS)')
-        self.secondquadstatAct = self.fittingMenu.addAction(QtGui.QIcon(IconDirectory + 'secondquadstatic.png'),"S&econd Order Quadrupole (Static/MAS)", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.createQuad2DeconvWindow()))
-        self.secondquadstatAct.setToolTip('Fit Second Order Quadrupole (Static/MAS)')
-        self.czjzekstatAct = self.fittingMenu.addAction(QtGui.QIcon(IconDirectory + 'czjzekstatic.png'),"Czjzek (S&tatic/MAS)", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.createQuad2CzjzekWindow()))
-        self.czjzekstatAct.setToolTip('Fit (Static/MAS) Czjzek Pattern')
+        self.csastaticAct = self.fittingMenu.addAction(QtGui.QIcon(IconDirectory + 'csastatic.png'),"&CSA", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.createTensorDeconvWindow()))
+        self.csastaticAct.setToolTip('Fit CSA')
+        self.firstquadstatAct = self.fittingMenu.addAction(QtGui.QIcon(IconDirectory + 'firstquadstatic.png'),"First Order &Quadrupole", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.createQuad1DeconvWindow()))
+        self.firstquadstatAct.setToolTip('Fit First Order Quadrupole')
+        self.secondquadstatAct = self.fittingMenu.addAction(QtGui.QIcon(IconDirectory + 'secondquadstatic.png'),"S&econd Order Quadrupole", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.createQuad2DeconvWindow()))
+        self.secondquadstatAct.setToolTip('Fit Second Order Quadrupole')
+        self.czjzekstatAct = self.fittingMenu.addAction(QtGui.QIcon(IconDirectory + 'czjzekstatic.png'),"C&zjzek", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.createQuad2CzjzekWindow()))
+        self.czjzekstatAct.setToolTip('Fit Czjzek Pattern')
         
         self.fittingActList = [self.snrAct,self.fwhmAct,self.massAct,self.intfitAct,self.relaxAct,
                                self.diffusionAct,self.lorentzfitAct,self.csastaticAct,
