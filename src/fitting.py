@@ -235,7 +235,7 @@ class TabFittingWindow(QtWidgets.QWidget):
     
 class FitCopySettingsWindow(QtWidgets.QWidget):
 
-    def __init__(self, parent, returnFunction):
+    def __init__(self, parent, returnFunction, single=False):
         super(FitCopySettingsWindow, self).__init__(parent)
         self.setWindowFlags(QtCore.Qt.Window | QtCore.Qt.Tool)
         self.father = parent
@@ -245,7 +245,8 @@ class FitCopySettingsWindow(QtWidgets.QWidget):
         grid = QtWidgets.QGridLayout()
         layout.addLayout(grid, 0, 0, 1, 2)
         self.allTraces = QtWidgets.QCheckBox("Export all traces")
-        grid.addWidget(self.allTraces, 0, 0)
+        if not single:
+            grid.addWidget(self.allTraces, 0, 0)
         self.original = QtWidgets.QCheckBox("Include original")
         self.original.setChecked(True)
         grid.addWidget(self.original, 1, 0)
@@ -277,7 +278,7 @@ class FitCopySettingsWindow(QtWidgets.QWidget):
         
 class ParamCopySettingsWindow(QtWidgets.QWidget):
 
-    def __init__(self, parent, paramNames, returnFunction):
+    def __init__(self, parent, paramNames, returnFunction, single=False):
         super(ParamCopySettingsWindow, self).__init__(parent)
         self.setWindowFlags(QtCore.Qt.Window | QtCore.Qt.Tool)
         self.father = parent
@@ -287,7 +288,8 @@ class ParamCopySettingsWindow(QtWidgets.QWidget):
         grid = QtWidgets.QGridLayout()
         layout.addLayout(grid, 0, 0, 1, 2)
         self.allTraces = QtWidgets.QCheckBox("Export all traces")
-        grid.addWidget(self.allTraces, 0, 0)
+        if not single:
+            grid.addWidget(self.allTraces, 0, 0)
         self.exportList = []
         for i in range(len(paramNames)):
             self.exportList.append(QtWidgets.QCheckBox(paramNames[i]))
@@ -970,6 +972,9 @@ class AbstractParamFrame(QtWidgets.QWidget):
         self.stopAllButton.hide()
 
     def getSimParams(self):
+        if not self.checkInputs():
+            self.rootwindow.mainProgram.dispMsg("One of the inputs is not valid")
+            return
         numExp = self.getNumExp()
         out = {}
         for name in self.SINGLENAMES:
@@ -978,9 +983,6 @@ class AbstractParamFrame(QtWidgets.QWidget):
             out[name] = [0.0]*numExp
         for name in self.SINGLENAMES:
             inp = safeEval(self.entries[name][0].text())
-            if inp is None:
-                self.rootwindow.mainProgram.dispMsg("One of the inputs is not valid")
-                return
             out[name][0] = inp
         for i in range(numExp):
             for name in self.MULTINAMES:
@@ -991,9 +993,16 @@ class AbstractParamFrame(QtWidgets.QWidget):
 
     def paramToWorkspaceWindow(self):
         paramNameList = self.SINGLENAMES + self.MULTINAMES
-        ParamCopySettingsWindow(self, paramNameList, lambda allTraces, settings, self=self: self.paramToWorkspace(allTraces, settings))
+        if self.parent.data.data.ndim == 1:
+            single = True
+        else:
+            single = False
+        ParamCopySettingsWindow(self, paramNameList, lambda allTraces, settings, self=self: self.paramToWorkspace(allTraces, settings), single)
 
     def paramToWorkspace(self, allTraces, settings):
+        if not self.checkInputs():
+            self.rootwindow.mainProgram.dispMsg("One of the inputs is not valid")
+            return
         paramNameList = np.array(self.SINGLENAMES + self.MULTINAMES, dtype=object)
         locList = tuple(self.parent.locList)
         if not np.any(settings):
@@ -1026,7 +1035,11 @@ class AbstractParamFrame(QtWidgets.QWidget):
             self.rootwindow.createNewData(data, self.parent.current.axes, True)
 
     def resultToWorkspaceWindow(self):
-        FitCopySettingsWindow(self, lambda settings, self=self: self.resultToWorkspace(settings))
+        if self.parent.data.data.ndim == 1:
+            single = True
+        else:
+            single = False
+        FitCopySettingsWindow(self, lambda settings, self=self: self.resultToWorkspace(settings), single)
 
     def resultToWorkspace(self, settings):
         if settings is None:
@@ -1188,14 +1201,16 @@ class IntegralsParamFrame(AbstractParamFrame):
         super(IntegralsParamFrame, self).__init__(parent, rootwindow, isMain)
         resetButton = QtWidgets.QPushButton("Reset")
         resetButton.clicked.connect(self.reset)
-        self.frame1.addWidget(resetButton, 0, 2)
+        self.frame1.addWidget(resetButton, 1, 1)
         self.pickTick = QtWidgets.QCheckBox("Pick")
         self.pickTick.stateChanged.connect(self.togglePick)
-        self.frame1.addWidget(self.pickTick, 1, 2)
+        self.frame1.addWidget(self.pickTick, 2, 1)
         self.absIntTick = QtWidgets.QCheckBox("Relative integrals")
         self.absIntTick.setChecked(True)
         self.absIntTick.stateChanged.connect(self.rootwindow.fit)
-        self.frame1.addWidget(self.absIntTick, 2, 2, 1, 2)
+        self.optframe.addWidget(self.absIntTick, 0, 0)
+        self.optframe.setColumnStretch(10, 1)
+        self.optframe.setAlignment(QtCore.Qt.AlignTop)
         self.numExp = QtWidgets.QComboBox()
         self.numExp.addItems([str(x+1) for x in range(self.FITNUM)])
         self.numExp.currentIndexChanged.connect(self.changeNum)
@@ -2195,6 +2210,7 @@ class PeakDeconvFrame(FitPlotFrame):
             self.rootwindow.paramframe.entries['lor'][pickNum].setText(('%#.'+str(self.rootwindow.tabWindow.PRECIS)+'g') % abs(width))
             self.fitPickNumList[tuple(self.locList)] += 1
             self.pickWidth = False
+            self.rootwindow.sim()
         else:
             self.rootwindow.paramframe.entries['pos'][pickNum].setText(('%#.'+str(self.rootwindow.tabWindow.PRECIS)+'g') % pos[1])
             left = pos[0] - self.FITNUM
@@ -2226,10 +2242,10 @@ class PeakDeconvParamFrame(AbstractParamFrame):
         super(PeakDeconvParamFrame, self).__init__(parent, rootwindow, isMain)
         resetButton = QtWidgets.QPushButton("Reset")
         resetButton.clicked.connect(self.reset)
-        self.frame1.addWidget(resetButton, 0, 2)
+        self.frame1.addWidget(resetButton, 1, 1)
         self.pickTick = QtWidgets.QCheckBox("Pick")
         self.pickTick.stateChanged.connect(self.togglePick)
-        self.frame1.addWidget(self.pickTick, 1, 2)
+        self.frame1.addWidget(self.pickTick, 2, 1)
         self.ticks = {'bgrnd':[], 'slope':[], 'pos':[], 'amp':[], 'lor':[], 'gauss':[]}
         self.entries = {'bgrnd':[], 'slope':[], 'pos':[], 'amp':[], 'lor':[], 'gauss':[], 'method':[]}
         self.frame2.addWidget(QLabel("Bgrnd:"), 0, 0, 1, 2)
@@ -2465,21 +2481,13 @@ class TensorDeconvParamFrame(AbstractParamFrame):
         super(TensorDeconvParamFrame, self).__init__(parent, rootwindow, isMain)
         resetButton = QtWidgets.QPushButton("Reset")
         resetButton.clicked.connect(self.reset)
-        self.frame1.addWidget(resetButton, 0, 2)
+        self.frame1.addWidget(resetButton, 1, 1)
         self.pickTick = QtWidgets.QCheckBox("Pick")
         self.pickTick.stateChanged.connect(self.togglePick)
-        self.frame1.addWidget(self.pickTick, 2, 2)
+        self.frame1.addWidget(self.pickTick, 2, 1)
         self.ticks = {'bgrnd':[], 'slope':[], 'spinspeed':[], 't11':[], 't22':[], 't33':[], 'amp':[], 'lor':[], 'gauss':[]}
         self.entries = {'bgrnd':[], 'slope':[], 'spinspeed':[], 't11':[], 't22':[], 't33':[], 'amp':[], 'lor':[], 'gauss':[], 'shiftdef':[], 'cheng':[], 'mas':[]}
-        self.frame1.addWidget(QLabel("Definition:"), 3, 2)
-        self.shiftDefType = 0 #variable to remember the selected tensor type
-        self.entries['shiftdef'].append(QtWidgets.QComboBox())
-        self.entries['shiftdef'][-1].addItems([u'\u03b411 - \u03b422 - \u03b433',
-                                               u'\u03b4xx - \u03b4yy - \u03b4zz',
-                                               u'\u03b4iso - \u03b4aniso - \u03b7',
-                                               u'\u03b4iso - \u03a9 - \u03b7'])
-        self.entries['shiftdef'][-1].currentIndexChanged.connect(self.changeShiftDef)
-        self.frame1.addWidget(self.entries['shiftdef'][-1], 4, 2)
+
         self.optframe.addWidget(QLabel("Cheng:"), 0, 0)
         self.entries['cheng'].append(QtWidgets.QSpinBox())
         self.entries['cheng'][-1].setAlignment(QtCore.Qt.AlignHCenter)
@@ -2487,6 +2495,15 @@ class TensorDeconvParamFrame(AbstractParamFrame):
         self.optframe.addWidget(self.entries['cheng'][-1], 1, 0)
         self.entries['mas'].append(QtWidgets.QCheckBox('Spinning'))
         self.optframe.addWidget(self.entries['mas'][-1], 2, 0)
+        self.shiftDefType = 0 #variable to remember the selected tensor type
+        self.optframe.addWidget(QLabel("Definition:"), 3, 0)
+        self.entries['shiftdef'].append(QtWidgets.QComboBox())
+        self.entries['shiftdef'][-1].addItems([u'\u03b411 - \u03b422 - \u03b433',
+                                               u'\u03b4xx - \u03b4yy - \u03b4zz',
+                                               u'\u03b4iso - \u03b4aniso - \u03b7',
+                                               u'\u03b4iso - \u03a9 - \u03b7'])
+        self.entries['shiftdef'][-1].currentIndexChanged.connect(self.changeShiftDef)
+        self.optframe.addWidget(self.entries['shiftdef'][-1], 4, 0)
         self.optframe.setColumnStretch(10, 1)
         self.optframe.setAlignment(QtCore.Qt.AlignTop)
         self.spinLabel = QLabel("Spin. speed [kHz]:")
