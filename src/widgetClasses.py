@@ -169,6 +169,16 @@ class QLeftLabel(QtWidgets.QLabel):
         self.setAlignment(QtCore.Qt.AlignVCenter)
 
 
+class QLineEdit(QtWidgets.QLineEdit):
+    
+    def __init__(self, text='', func=None, parent=None):
+        super(QLineEdit, self).__init__(parent)
+        self.setText(str(text))
+        self.setAlignment(QtCore.Qt.AlignCenter)
+        if func is not None:
+            self.returnPressed.connect(func)
+
+
 class specialProgressBar(QtWidgets.QProgressBar):
     
     def __init__(self):
