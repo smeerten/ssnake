@@ -53,6 +53,49 @@ class MyEventFilter(QtCore.QObject):
         return False
 
 
+class ToolWindows(QtWidgets.QWidget):
+
+    NAME = ""
+    PICK = False
+    SINGLESLICE = False
+
+    def __init__(self, parent):
+        super(ToolWindows, self).__init__(parent)
+        self.setWindowFlags(QtCore.Qt.Window | QtCore.Qt.Tool)
+        self.father = parent
+        self.setWindowTitle(self.NAME)
+        self.layout = QtWidgets.QGridLayout(self)
+        self.grid = QtWidgets.QGridLayout()
+        self.layout.addLayout(self.grid, 0, 0, 1, 2)
+        if self.SINGLESLICE:
+            self.singleSlice = QtWidgets.QCheckBox("Single slice")
+            self.layout.addWidget(self.singleSlice, 1, 0, 1, 2)
+        cancelButton = QtWidgets.QPushButton("&Cancel")
+        cancelButton.clicked.connect(self.closeEvent)
+        self.layout.addWidget(cancelButton, 2, 0)
+        okButton = QtWidgets.QPushButton("&Ok")
+        okButton.clicked.connect(self.applyAndClose)
+        okButton.setFocus()
+        self.layout.addWidget(okButton, 2, 1)
+        self.show()
+        self.setFixedSize(self.size())
+        self.father.menuDisable()
+        self.setGeometry(self.frameSize().width() - self.geometry().width(), self.frameSize().height() - self.geometry().height(), 0, 0)
+
+    def applyFunc(self):
+        pass
+    
+    def applyAndClose(self):
+        self.applyFunc()
+        self.closeEvent()
+        
+    def closeEvent(self, *args):
+        self.father.current.upd()
+        self.father.current.showFid()
+        self.father.menuEnable()
+        self.father.updAllFrames()
+        self.deleteLater()
+
 class SliceValidator(QtGui.QValidator):
 
     def validate(self, string, position):

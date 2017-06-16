@@ -1705,8 +1705,6 @@ class MainProgram(QtWidgets.QMainWindow):
         if reply == QtWidgets.QMessageBox.Yes:
             for item in fit.stopDict.keys(): #Send stop commands to all threads
                 fit.stopDict[item] = True
-            
-            
             event.accept()
         else:
             event.ignore()
@@ -2925,30 +2923,23 @@ class SideFrame(QtWidgets.QScrollArea):
 
     def setContour(self, *args):
         var1 = self.numLEntry.value()
-        
         maxC =safeEval(self.maxLEntry.text())
         if maxC is None:
             maxC = self.father.current.maxLevels * 100
             self.father.father.dispMsg('Invalid value for contour maximum')
         else:
             maxC = abs(float(maxC))
-        
         minC =safeEval(self.minLEntry.text())
         if minC is None:
             minC = self.father.current.minLevels * 100
             self.father.father.dispMsg('Invalid value for contour minimum')
         else:
             minC = abs(float(minC))
-            
         if minC > maxC: #if wrong order, interchange
             maxC, minC = (minC , maxC)
         self.maxLEntry.setText(str(maxC))
         self.minLEntry.setText(str(minC))
-        
         cSign = self.contourSignEntry.currentIndex()
-        
-        
-        
         cType =self.contourTypeEntry.currentIndex() 
         if cType == 0:
             self.multiValue.hide()
@@ -2956,8 +2947,6 @@ class SideFrame(QtWidgets.QScrollArea):
         else:
             self.multiValue.show()
             self.multiValueLabel.show()
-            
-            
         multi = safeEval(self.multiValue.text())
         if multi is None:
             multi = self.father.current.multiValue
@@ -3261,12 +3250,10 @@ class BottomFrame(QtWidgets.QWidget):
             self.father.father.dispMsg('Sweepwidth cannot be 0')
         else:
             sw *= 1000
-            
         if freq is not None:
             freq *= 1e6
         else:
             self.father.father.dispMsg('Invalid spectrum frequency')
-        
         self.father.setFreq(freq, sw)
         self.upd()
 
@@ -3506,7 +3493,6 @@ class AsciiLoadWindow(QtWidgets.QDialog):
 #                self.datOrderBox.setCurrentIndex(1)
         except:
             raise
-
     
     def closeEvent(self, *args):
         self.closed = True
@@ -3530,37 +3516,31 @@ class AsciiLoadWindow(QtWidgets.QDialog):
 
         self.accept()
         self.deleteLater()
+
 #################################################################################
 
 
-class PhaseWindow(QtWidgets.QWidget):
+class PhaseWindow(wc.ToolWindows):
 
+    NAME = "Phasing"
+    SINGLESLICE = True
     RESOLUTION = 1000.0
     P1LIMIT = 540.0
     PHASE0STEP = 1.0
     PHASE1STEP = 1.0
 
     def __init__(self, parent):
-        super(PhaseWindow, self).__init__(parent.father)
-        self.setWindowFlags(QtCore.Qt.Window | QtCore.Qt.Tool)
-        self.father = parent
+        super(PhaseWindow, self).__init__(parent)
         self.zeroVal = 0.0
         self.firstVal = 0.0
         self.refVal = 0.0
         self.available = True
-        self.setWindowTitle("Phasing")
-        layout = QtWidgets.QGridLayout(self)
-        grid = QtWidgets.QGridLayout()
-        layout.addLayout(grid, 0, 0, 1, 2)
-        
         #Zero order
         self.zeroOrderGroup = QtWidgets.QGroupBox('Zero order:')
         self.zeroOrderFrame = QtWidgets.QGridLayout()
         autoZero = QtWidgets.QPushButton("Autophase 0th")
         autoZero.clicked.connect(lambda: self.autophase(0))
         self.zeroOrderFrame.addWidget(autoZero, 0, 1)
-        
-        
         self.zeroEntry = QtWidgets.QLineEdit()
         self.zeroEntry.setAlignment(QtCore.Qt.AlignHCenter)
         self.zeroEntry.returnPressed.connect(self.inputZeroOrder)
@@ -3578,16 +3558,11 @@ class PhaseWindow(QtWidgets.QWidget):
         self.zeroScale.setRange(-self.RESOLUTION, self.RESOLUTION)
         self.zeroScale.valueChanged.connect(self.setZeroOrder)
         self.zeroOrderFrame.addWidget(self.zeroScale, 3, 0, 1, 3)
-        
-        
         self.zeroOrderGroup.setLayout(self.zeroOrderFrame)
-        
-        grid.addWidget(self.zeroOrderGroup,0,0,1,3)
-        
+        self.grid.addWidget(self.zeroOrderGroup,0,0,1,3)
         #First order
         self.firstOrderGroup = QtWidgets.QGroupBox('First order:')
         self.firstOrderFrame = QtWidgets.QGridLayout()
-        
         autoFirst = QtWidgets.QPushButton("Autophase 0th+1st")
         autoFirst.clicked.connect(lambda: self.autophase(1))
         self.firstOrderFrame.addWidget(autoFirst, 5, 1)
@@ -3618,26 +3593,8 @@ class PhaseWindow(QtWidgets.QWidget):
             self.refEntry.setText('%.3f' % self.refVal)
             self.refEntry.returnPressed.connect(self.inputRef)
             self.firstOrderFrame.addWidget(self.refEntry, 10, 1)
-            
-        
         self.firstOrderGroup.setLayout(self.firstOrderFrame)
-        grid.addWidget(self.firstOrderGroup,1,0,1,3)
-        
-        
-
-
-        self.singleSlice = QtWidgets.QCheckBox("Single slice")
-        grid.addWidget(self.singleSlice, 11, 0, 1, 3)
-        cancelButton = QtWidgets.QPushButton("&Cancel")
-        cancelButton.clicked.connect(self.closeEvent)
-        layout.addWidget(cancelButton, 1, 0)
-        okButton = QtWidgets.QPushButton("&Ok")
-        okButton.clicked.connect(self.applyAndClose)
-        layout.addWidget(okButton, 1, 1)
-        self.show()
-        self.setFixedSize(self.size())
-        self.father.menuDisable()
-        self.setGeometry(self.frameSize().width() - self.geometry().width(), self.frameSize().height() - self.geometry().height(), 0, 0)
+        self.grid.addWidget(self.firstOrderGroup,1,0,1,3)
 
     def setZeroOrder(self, value, *args):
         if self.available:
@@ -3756,13 +3713,7 @@ class PhaseWindow(QtWidgets.QWidget):
         self.father.current.peakPickFunc = lambda pos, self=self: self.setRef(self.father.current.xax[pos[0]])
         self.father.current.peakPick = True
 
-    def closeEvent(self, *args):
-        self.father.current.upd()
-        self.father.current.showFid()
-        self.father.menuEnable()
-        self.deleteLater()
-
-    def applyAndClose(self):
+    def applyFunc(self):
         refCheck = 1
         if self.father.current.spec > 0:
             refCheck = self.inputRef()
@@ -3775,114 +3726,107 @@ class PhaseWindow(QtWidgets.QWidget):
             self.father.current.applyPhase(np.pi * self.zeroVal / 180.0, np.pi * self.firstVal / 180.0, (self.singleSlice.isChecked() == 1))
         else:
             self.father.undoList.append(self.father.current.applyPhase(np.pi * self.zeroVal / 180.0, np.pi * self.firstVal / 180.0, (self.singleSlice.isChecked() == 1)))
-        self.father.menuEnable()
-        self.deleteLater()
 
 ################################################################
 
 
-class ApodWindow(QtWidgets.QWidget):
+class ApodWindow(wc.ToolWindows):
 
     RESOLUTION = 10000
+    NAME = "Apodize"
+    SINGLESLICE = True
 
     def __init__(self, parent):
-        parent.menuDisable()
         super(ApodWindow, self).__init__(parent)
-        self.setWindowFlags(QtCore.Qt.Window | QtCore.Qt.Tool)
-        self.father = parent
         self.entries = []
         self.ticks = []
         self.maximum = 100.0 * self.father.current.sw / (self.father.current.data1D.shape[-1])
         self.lorstep = 1.0
         self.gaussstep = 1.0
         self.available = True
-        self.setWindowTitle("Apodize")
-        layout = QtWidgets.QGridLayout(self)
-        grid = QtWidgets.QGridLayout()
-        layout.addLayout(grid, 0, 0, 1, 2)
         lorTick = QtWidgets.QCheckBox("Lorentzian:")
         lorTick.toggled.connect(lambda: self.checkEval(0))
-        grid.addWidget(lorTick, 0, 0, 1, 3)
+        self.grid.addWidget(lorTick, 0, 0, 1, 3)
         self.ticks.append(lorTick)
         lorEntry = QtWidgets.QLineEdit()
         lorEntry.setEnabled(False)
         lorEntry.setAlignment(QtCore.Qt.AlignHCenter)
         lorEntry.setText("0.00")
         lorEntry.returnPressed.connect(self.apodPreview)
-        grid.addWidget(lorEntry, 1, 1)
+        self.grid.addWidget(lorEntry, 1, 1)
         self.entries.append(lorEntry)
         leftLor = QtWidgets.QPushButton("<")
         leftLor.clicked.connect(lambda: self.stepLB(-0.5 * self.father.current.sw / (self.father.current.data1D.shape[-1]), 0))
         leftLor.setAutoRepeat(True)
-        grid.addWidget(leftLor, 1, 0)
+        self.grid.addWidget(leftLor, 1, 0)
         rightLor = QtWidgets.QPushButton(">")
         rightLor.clicked.connect(lambda: self.stepLB(0.5 * self.father.current.sw / (self.father.current.data1D.shape[-1]), 0))
         rightLor.setAutoRepeat(True)
-        grid.addWidget(rightLor, 1, 2)
+        self.grid.addWidget(rightLor, 1, 2)
         self.lorScale = QtWidgets.QSlider(QtCore.Qt.Horizontal)
         self.lorScale.setRange(0, self.RESOLUTION)
         self.lorScale.valueChanged.connect(self.setLor)
-        grid.addWidget(self.lorScale, 2, 0, 1, 3)
+        self.grid.addWidget(self.lorScale, 2, 0, 1, 3)
         self.lorMax = 100.0 * self.father.current.sw / (self.father.current.data1D.shape[-1])
 
         gaussTick = QtWidgets.QCheckBox("Gaussian:")
         gaussTick.toggled.connect(lambda: self.checkEval(1))
-        grid.addWidget(gaussTick, 3, 0, 1, 3)
+        self.grid.addWidget(gaussTick, 3, 0, 1, 3)
         self.ticks.append(gaussTick)
         gaussEntry = QtWidgets.QLineEdit()
         gaussEntry.setEnabled(False)
         gaussEntry.setAlignment(QtCore.Qt.AlignHCenter)
         gaussEntry.setText("0.00")
         gaussEntry.returnPressed.connect(self.apodPreview)
-        grid.addWidget(gaussEntry, 4, 1)
+        self.grid.addWidget(gaussEntry, 4, 1)
         self.entries.append(gaussEntry)
         leftGauss = QtWidgets.QPushButton("<")
         leftGauss.clicked.connect(lambda: self.stepLB(0, -0.5 * self.father.current.sw / (self.father.current.data1D.shape[-1])))
         leftGauss.setAutoRepeat(True)
-        grid.addWidget(leftGauss, 4, 0)
+        self.grid.addWidget(leftGauss, 4, 0)
         rightGauss = QtWidgets.QPushButton(">")
         rightGauss.clicked.connect(lambda: self.stepLB(0, 0.5 * self.father.current.sw / (self.father.current.data1D.shape[-1])))
         rightGauss.setAutoRepeat(True)
-        grid.addWidget(rightGauss, 4, 2)
+        self.grid.addWidget(rightGauss, 4, 2)
         self.gaussScale = QtWidgets.QSlider(QtCore.Qt.Horizontal)
         self.gaussScale.setRange(0, self.RESOLUTION)
         self.gaussScale.valueChanged.connect(self.setGauss)
-        grid.addWidget(self.gaussScale, 5, 0, 1, 3)
+        self.grid.addWidget(self.gaussScale, 5, 0, 1, 3)
         self.gaussMax = 100.0 * self.father.current.sw / (self.father.current.data1D.shape[-1])
 
         cos2Tick = QtWidgets.QCheckBox("Cos^2:")
         cos2Tick.clicked.connect(lambda: self.checkEval(2))
-        grid.addWidget(cos2Tick, 6, 0, 1, 3)
+        self.grid.addWidget(cos2Tick, 6, 0, 1, 3)
         self.ticks.append(cos2Tick)
         cos2Entry = QtWidgets.QLineEdit()
         cos2Entry.setEnabled(False)
         cos2Entry.setAlignment(QtCore.Qt.AlignHCenter)
         cos2Entry.setText("1.00")
         cos2Entry.returnPressed.connect(self.apodPreview)
-        grid.addWidget(cos2Entry, 7, 1)
+        self.grid.addWidget(cos2Entry, 7, 1)
         self.entries.append(cos2Entry)
 
         hammingTick = QtWidgets.QCheckBox("Hamming:")
         hammingTick.clicked.connect(lambda: self.checkEval(3))
-        grid.addWidget(hammingTick, 8, 0, 1, 3)
+        self.grid.addWidget(hammingTick, 8, 0, 1, 3)
         self.ticks.append(hammingTick)
         hammingEntry = QtWidgets.QLineEdit()
         hammingEntry.setEnabled(False)
         hammingEntry.setAlignment(QtCore.Qt.AlignHCenter)
         hammingEntry.setText("1.00")
         hammingEntry.returnPressed.connect(self.apodPreview)
-        grid.addWidget(hammingEntry, 9, 1)
+        self.grid.addWidget(hammingEntry, 9, 1)
         self.entries.append(hammingEntry)
 
-        grid.addWidget(wc.QLabel("Shift:"), 10, 0, 1, 3)
+        self.grid.addWidget(wc.QLabel("Shift:"), 10, 0, 1, 3)
         self.shiftEntry = QtWidgets.QLineEdit()
         self.shiftEntry.setAlignment(QtCore.Qt.AlignHCenter)
         self.shiftEntry.setText("0.00")
         self.shiftEntry.returnPressed.connect(self.apodPreview)
-        grid.addWidget(self.shiftEntry, 11, 1)
+        self.grid.addWidget(self.shiftEntry, 11, 1)
 
         if self.father.current.data.data.ndim > 1:
-            grid.addWidget(wc.QLabel("Shifting:"), 12, 0, 1, 3)
+            self.grid.addWidget(wc.QLabel("Shifting:"), 12, 0, 1, 3)
             
             self.shiftingDropdown = QtWidgets.QComboBox()
             self.shiftingDropdown.addItems(['User Defined','Spin 3/2, -3Q (9/7)','Spin 5/2, 3Q (19/12)','Spin 5/2, -5Q (25/12)','Spin 7/2, 3Q (101/45)',
@@ -3890,31 +3834,18 @@ class ApodWindow(QtWidgets.QWidget):
             self.shiftingDropdown.activated.connect(self.dropdownChanged)
             self.shiftingList = [0,9.0/7.0,19.0/12.0,25.0/12.0,101.0/45.0,11.0/9.0,161.0/45.0,91.0/36.0,95.0/36.0,7.0/18.0,31.0/6.0]
         
-            grid.addWidget(self.shiftingDropdown, 13, 1)
+            self.grid.addWidget(self.shiftingDropdown, 13, 1)
             
             self.shiftingEntry = QtWidgets.QLineEdit()
             self.shiftingEntry.setAlignment(QtCore.Qt.AlignHCenter)
             self.shiftingEntry.setText("0.00")
             self.shiftingEntry.returnPressed.connect(self.apodPreview)
-            grid.addWidget(self.shiftingEntry, 14, 1)
+            self.grid.addWidget(self.shiftingEntry, 14, 1)
             self.shiftingAxes = QtWidgets.QComboBox()
             self.shiftingValues = list(map(str, np.delete(range(1, self.father.current.data.data.ndim + 1), self.father.current.axes)))
             self.shiftingAxes.addItems(self.shiftingValues)
             self.shiftingAxes.currentIndexChanged.connect(self.apodPreview)
-            grid.addWidget(self.shiftingAxes, 15, 1)
-
-        self.singleSlice = QtWidgets.QCheckBox("Single slice")
-        grid.addWidget(self.singleSlice, 16, 0, 1, 3)
-        cancelButton = QtWidgets.QPushButton("&Cancel")
-        cancelButton.clicked.connect(self.closeEvent)
-        layout.addWidget(cancelButton, 1, 0)
-        okButton = QtWidgets.QPushButton("&Ok")
-        okButton.clicked.connect(self.applyAndClose)
-        layout.addWidget(okButton, 1, 1)
-        self.show()
-        self.setFixedSize(self.size())
-        self.father.menuDisable()
-        self.setGeometry(self.frameSize().width() - self.geometry().width(), self.frameSize().height() - self.geometry().height(), 0, 0)
+            self.grid.addWidget(self.shiftingAxes, 15, 1)
 
     def dropdownChanged(self):
         index =  self.shiftingDropdown.currentIndex()
@@ -4006,13 +3937,7 @@ class ApodWindow(QtWidgets.QWidget):
             self.ticks[1].setChecked(1)
         self.apodPreview()
 
-    def closeEvent(self, *args):
-        self.father.current.upd()
-        self.father.current.showFid()
-        self.father.menuEnable()
-        self.deleteLater()
-
-    def applyAndClose(self):
+    def applyFunc(self):
         lor = None
         gauss = None
         cos2 = None
@@ -4056,32 +3981,24 @@ class ApodWindow(QtWidgets.QWidget):
             self.father.current.applyApod(lor, gauss, cos2, hamming, shift, shifting, shiftingAxes, (self.singleSlice.isChecked()))
         else:
             self.father.undoList.append(self.father.current.applyApod(lor, gauss, cos2, hamming, shift, shifting, shiftingAxes, (self.singleSlice.isChecked())))
-        self.father.menuEnable()
-        self.deleteLater()
 
 #######################################################################################
 
 
-class SizeWindow(QtWidgets.QWidget):
+class SizeWindow(wc.ToolWindows):
+
+    NAME = "Set size"
 
     def __init__(self, parent):
         super(SizeWindow, self).__init__(parent)
-        self.setWindowFlags(QtCore.Qt.Window | QtCore.Qt.Tool)
-        parent.menuDisable()
-        self.father = parent
-        self.setWindowTitle("Set size")
-        layout = QtWidgets.QGridLayout(self)
-        grid = QtWidgets.QGridLayout()
-        layout.addLayout(grid, 0, 0, 1, 2)
-        grid.addWidget(wc.QLabel("Size:"), 0, 0)
+        self.grid.addWidget(wc.QLabel("Size:"), 0, 0)
         self.sizeVal = parent.current.data1D.shape[-1]
         self.sizeEntry = QtWidgets.QLineEdit()
         self.sizeEntry.setAlignment(QtCore.Qt.AlignHCenter)
         self.sizeEntry.setText(str(self.sizeVal))
         self.sizeEntry.returnPressed.connect(self.sizePreview)
-
-        grid.addWidget(self.sizeEntry, 1, 0)
-        grid.addWidget(wc.QLabel("Offset:"), 2, 0)
+        self.grid.addWidget(self.sizeEntry, 1, 0)
+        self.grid.addWidget(wc.QLabel("Offset:"), 2, 0)
         if self.father.current.wholeEcho:
             self.posVal = int(np.floor(parent.current.data1D.shape[-1] / 2.0))
         else:
@@ -4090,20 +4007,10 @@ class SizeWindow(QtWidgets.QWidget):
         self.posEntry.setAlignment(QtCore.Qt.AlignHCenter)
         self.posEntry.setText(str(self.posVal))
         self.posEntry.returnPressed.connect(self.sizePreview)
-        grid.addWidget(self.posEntry, 3, 0)
-        cancelButton = QtWidgets.QPushButton("&Cancel")
-        cancelButton.clicked.connect(self.closeEvent)
-        layout.addWidget(cancelButton, 1, 0)
-        okButton = QtWidgets.QPushButton("&Ok")
-        okButton.clicked.connect(self.applyAndClose)
-        layout.addWidget(okButton, 1, 1)
-        self.show()
-        self.setFixedSize(self.size())
-        self.father.menuDisable()
+        self.grid.addWidget(self.posEntry, 3, 0)
         if not self.father.current.spec:
             self.father.current.peakPickFunc = lambda pos, self=self: self.picked(pos)
             self.father.current.peakPick = True
-        self.setGeometry(self.frameSize().width() - self.geometry().width(), self.frameSize().height() - self.geometry().height(), 0, 0)
 
     def sizePreview(self, *args):
         inp = safeEval(self.sizeEntry.text())
@@ -4119,13 +4026,7 @@ class SizeWindow(QtWidgets.QWidget):
         self.posEntry.setText(str(self.posVal))
         self.father.current.setSizePreview(self.sizeVal, self.posVal)
 
-    def closeEvent(self, *args):
-        self.father.current.upd()
-        self.father.current.showFid()
-        self.father.menuEnable()
-        self.deleteLater()
-
-    def applyAndClose(self):
+    def applyFunc(self):
         inp = safeEval(self.sizeEntry.text())
         if inp is not None:
             self.sizeVal = int(round(inp))
@@ -4141,8 +4042,6 @@ class SizeWindow(QtWidgets.QWidget):
         else:
             self.father.undoList.append(self.father.current.applySize(self.sizeVal, self.posVal))
         self.father.sideframe.upd()
-        self.father.menuEnable()
-        self.deleteLater()
 
     def picked(self, pos):
         self.posEntry.setText(str(pos[0]))
@@ -4153,35 +4052,21 @@ class SizeWindow(QtWidgets.QWidget):
 ##########################################################################################
 
 
-class SwapEchoWindow(QtWidgets.QWidget):
+class SwapEchoWindow(wc.ToolWindows):
 
+    NAME = "Swap echo"
+    
     def __init__(self, parent):
         super(SwapEchoWindow, self).__init__(parent)
-        self.setWindowFlags(QtCore.Qt.Window | QtCore.Qt.Tool)
-        self.father = parent
-        self.setWindowTitle("Swap echo")
-        layout = QtWidgets.QGridLayout(self)
-        grid = QtWidgets.QGridLayout()
-        layout.addLayout(grid, 0, 0, 1, 2)
-        grid.addWidget(wc.QLabel("Echo position:"), 0, 0)
+        self.grid.addWidget(wc.QLabel("Echo position:"), 0, 0)
         self.posVal = int(round(0.5 * len(parent.current.data1D)))
         self.posEntry = QtWidgets.QLineEdit()
         self.posEntry.setAlignment(QtCore.Qt.AlignHCenter)
         self.posEntry.setText(str(self.posVal))
         self.posEntry.returnPressed.connect(self.swapEchoPreview)
-        grid.addWidget(self.posEntry, 1, 0)
-        cancelButton = QtWidgets.QPushButton("&Cancel")
-        cancelButton.clicked.connect(self.closeEvent)
-        layout.addWidget(cancelButton, 1, 0)
-        okButton = QtWidgets.QPushButton("&Ok")
-        okButton.clicked.connect(self.applyAndClose)
-        layout.addWidget(okButton, 1, 1)
-        self.show()
-        self.setFixedSize(self.size())
-        self.father.menuDisable()
+        self.grid.addWidget(self.posEntry, 1, 0)
         self.father.current.peakPickFunc = lambda pos, self=self: self.picked(pos)
         self.father.current.peakPick = True
-        self.setGeometry(self.frameSize().width() - self.geometry().width(), self.frameSize().height() - self.geometry().height(), 0, 0)
 
     def swapEchoPreview(self, *args):
         inp = safeEval(self.posEntry.text())
@@ -4191,14 +4076,7 @@ class SwapEchoWindow(QtWidgets.QWidget):
             self.father.current.setSwapEchoPreview(self.posVal)
             self.father.current.peakPick = False
 
-    def closeEvent(self, *args):
-        self.father.current.peakPickReset()
-        self.father.current.upd()
-        self.father.current.showFid()
-        self.father.menuEnable()
-        self.deleteLater()
-
-    def applyAndClose(self):
+    def applyFunc(self):
         self.father.current.peakPickReset()
         inp = safeEval(self.posEntry.text())
         if inp is not None:
@@ -4210,8 +4088,6 @@ class SwapEchoWindow(QtWidgets.QWidget):
             else:
                 self.father.undoList.append(self.father.current.applySwapEcho(self.posVal))
             self.father.bottomframe.upd()
-            self.father.menuEnable()
-            self.deleteLater()
         else:
             self.father.father.dispMsg("not a valid index for swap echo")
 
@@ -4223,126 +4099,85 @@ class SwapEchoWindow(QtWidgets.QWidget):
 ###########################################################################
 
 
-class LPSVDWindow(QtWidgets.QWidget):
+class LPSVDWindow(wc.ToolWindows):
+
+    NAME = "LPSVD"
 
     def __init__(self, parent):
         super(LPSVDWindow, self).__init__(parent)
-        self.setWindowFlags(QtCore.Qt.Window | QtCore.Qt.Tool)
-        parent.menuDisable()
-        self.father = parent
-        self.setWindowTitle("LPSVD")
-        layout = QtWidgets.QGridLayout(self)
-        grid = QtWidgets.QGridLayout()
-        layout.addLayout(grid, 0, 0, 1, 2)
-        # grid.addWidget(wc.QLabel("# points for analysis:"), 2, 0)
+        # self.grid.addWidget(wc.QLabel("# points for analysis:"), 2, 0)
         self.specGroup = QtWidgets.QButtonGroup(self)
         # self.specGroup.buttonClicked.connect(self.changeSpec)
         backwardButton = QtWidgets.QRadioButton('Backward', parent=self)
         self.specGroup.addButton(backwardButton, 1)
         forwardButton = QtWidgets.QRadioButton('Forward', parent=self)
         self.specGroup.addButton(forwardButton, 0)
-        grid.addWidget(backwardButton, 1, 0)
-        grid.addWidget(forwardButton, 2, 0)
+        self.grid.addWidget(backwardButton, 1, 0)
+        self.grid.addWidget(forwardButton, 2, 0)
         backwardButton.setChecked(True)
 
-        grid.addWidget(wc.QLabel("# points for analysis:"), 3, 0)
+        self.grid.addWidget(wc.QLabel("# points for analysis:"), 3, 0)
         self.analPoints = 200
         self.aPointsEntry = QtWidgets.QLineEdit()
         self.aPointsEntry.setAlignment(QtCore.Qt.AlignHCenter)
         self.aPointsEntry.setText(str(self.analPoints))
-        grid.addWidget(self.aPointsEntry, 4, 0)
-        grid.addWidget(wc.QLabel("Number of frequencies:"), 5, 0)
+        self.grid.addWidget(self.aPointsEntry, 4, 0)
+        self.grid.addWidget(wc.QLabel("Number of frequencies:"), 5, 0)
         self.numberFreq = 1
         self.nFreqEntry = QtWidgets.QLineEdit()
         self.nFreqEntry.setAlignment(QtCore.Qt.AlignHCenter)
         self.nFreqEntry.setText(str(self.numberFreq))
-        grid.addWidget(self.nFreqEntry, 6, 0)
+        self.grid.addWidget(self.nFreqEntry, 6, 0)
 
-        grid.addWidget(wc.QLabel("Number prediction points:"), 7, 0)
+        self.grid.addWidget(wc.QLabel("Number prediction points:"), 7, 0)
         self.predictPoints = 10
         self.nPredictEntry = QtWidgets.QLineEdit()
         self.nPredictEntry.setAlignment(QtCore.Qt.AlignHCenter)
         self.nPredictEntry.setText(str(self.predictPoints))
-        grid.addWidget(self.nPredictEntry, 8, 0)
+        self.grid.addWidget(self.nPredictEntry, 8, 0)
 
-        cancelButton = QtWidgets.QPushButton("&Cancel")
-        cancelButton.clicked.connect(self.closeEvent)
-        layout.addWidget(cancelButton, 1, 0)
-        okButton = QtWidgets.QPushButton("&Ok")
-        okButton.clicked.connect(self.applyAndClose)
-        layout.addWidget(okButton, 1, 1)
-        self.show()
-        self.setFixedSize(self.size())
-        self.father.menuDisable()
-        self.setGeometry(self.frameSize().width() - self.geometry().width(), self.frameSize().height() - self.geometry().height(), 0, 0)
-
-    def closeEvent(self, *args):
-        self.father.current.upd()
-        self.father.current.showFid()
-        self.father.menuEnable()
-        self.deleteLater()
-
-    def applyAndClose(self):
+    def applyFunc(self):
         self.analPoints = safeEval(self.aPointsEntry.text())
         self.numberFreq = safeEval(self.nFreqEntry.text())
         self.predictPoints = safeEval(self.nPredictEntry.text())
-
         if self.analPoints > len(self.father.current.data1D):
             self.father.father.dispMsg('Number of points for analysis cannot be more than data size!')
             return
         if self.analPoints <= self.numberFreq * 4:
             self.father.father.dispMsg('Number of points for analysis must be more than 4 times the number of frequencies!')
             return
-
         self.father.redoList = []
         if self.father.current.data.noUndo:
             self.father.current.applyLPSVD(self.analPoints, self.numberFreq, self.predictPoints, self.specGroup.checkedId())
         else:
             self.father.undoList.append(self.father.current.applyLPSVD(self.analPoints, self.numberFreq, self.predictPoints, self.specGroup.checkedId()))
         self.father.sideframe.upd()
-        self.father.menuEnable()
-        self.deleteLater()
 
 ###########################################################################
 
 
-class ShiftDataWindow(QtWidgets.QWidget):
+class ShiftDataWindow(wc.ToolWindows):
 
+    NAME = "Shifting data"
+    SINGLESLICE = True
+    
     def __init__(self, parent):
         super(ShiftDataWindow, self).__init__(parent)
-        self.setWindowFlags(QtCore.Qt.Window | QtCore.Qt.Tool)
-        self.father = parent
-        self.setWindowTitle("Shifting data")
-        layout = QtWidgets.QGridLayout(self)
-        grid = QtWidgets.QGridLayout()
-        layout.addLayout(grid, 0, 0, 1, 2)
-        grid.addWidget(wc.QLabel("Data points to shift:"), 0, 0, 1, 3)
+        self.grid.addWidget(wc.QLabel("Data points to shift:"), 0, 0, 1, 3)
         self.shiftVal = 0
         self.shiftEntry = QtWidgets.QLineEdit()
         self.shiftEntry.setAlignment(QtCore.Qt.AlignHCenter)
         self.shiftEntry.setText(str(self.shiftVal))
         self.shiftEntry.returnPressed.connect(self.shiftPreview)
-        grid.addWidget(self.shiftEntry, 1, 1)
+        self.grid.addWidget(self.shiftEntry, 1, 1)
         leftShift = QtWidgets.QPushButton("<")
         leftShift.clicked.connect(self.stepDownShift)
         leftShift.setAutoRepeat(True)
-        grid.addWidget(leftShift, 1, 0)
+        self.grid.addWidget(leftShift, 1, 0)
         rightShift = QtWidgets.QPushButton(">")
         rightShift.clicked.connect(self.stepUpShift)
         rightShift.setAutoRepeat(True)
-        grid.addWidget(rightShift, 1, 2)
-        self.singleSlice = QtWidgets.QCheckBox("Single slice")
-        layout.addWidget(self.singleSlice, 1, 0, 1, 2)
-        cancelButton = QtWidgets.QPushButton("&Cancel")
-        cancelButton.clicked.connect(self.closeEvent)
-        layout.addWidget(cancelButton, 2, 0)
-        okButton = QtWidgets.QPushButton("&Ok")
-        okButton.clicked.connect(self.applyAndClose)
-        layout.addWidget(okButton, 2, 1)
-        self.show()
-        self.setFixedSize(self.size())
-        self.father.menuDisable()
-        self.setGeometry(self.frameSize().width() - self.geometry().width(), self.frameSize().height() - self.geometry().height(), 0, 0)
+        self.grid.addWidget(rightShift, 1, 2)
 
     def stepUpShift(self, *args):
         inp = safeEval(self.shiftEntry.text())
@@ -4379,13 +4214,7 @@ class ShiftDataWindow(QtWidgets.QWidget):
         self.shiftEntry.setText(str(self.shiftVal))
         self.father.current.setShiftPreview(self.shiftVal)
 
-    def closeEvent(self, *args):
-        self.father.current.upd()
-        self.father.current.showFid()
-        self.father.menuEnable()
-        self.deleteLater()
-
-    def applyAndClose(self):
+    def applyFunc(self):
         inp = safeEval(self.shiftEntry.text())
         if inp is None:
             self.father.father.dispMsg("Not a valid input")
@@ -4396,57 +4225,40 @@ class ShiftDataWindow(QtWidgets.QWidget):
             self.father.current.applyShift(shift, (self.singleSlice.isChecked()))
         else:
             self.father.undoList.append(self.father.current.applyShift(shift, (self.singleSlice.isChecked())))
-        self.father.menuEnable()
-        self.deleteLater()
 
 #############################################################
 
 
-class DCWindow(QtWidgets.QWidget):
+class DCWindow(wc.ToolWindows):
+
+    NAME = "Offset correction"
+    SINGLESLICE = True
 
     def __init__(self, parent):
         super(DCWindow, self).__init__(parent)
-        self.setWindowFlags(QtCore.Qt.Window | QtCore.Qt.Tool)
-        self.father = parent
-        self.setWindowTitle("Offset correction")
-        layout = QtWidgets.QGridLayout(self)
-        grid = QtWidgets.QGridLayout()
-        layout.addLayout(grid, 0, 0, 1, 2)
         self.startVal = int(round(0.8 * parent.current.data1D.shape[-1]))
         self.endVal = parent.current.data1D.shape[-1]
-        grid.addWidget(wc.QLabel("Start point:"), 0, 0)
+        self.grid.addWidget(wc.QLabel("Start point:"), 0, 0)
         self.startEntry = QtWidgets.QLineEdit()
         self.startEntry.setAlignment(QtCore.Qt.AlignHCenter)
         self.startEntry.setText(str(self.startVal))
         self.startEntry.returnPressed.connect(self.offsetPreview)
-        grid.addWidget(self.startEntry, 1, 0)
-        grid.addWidget(wc.QLabel("End point:"), 2, 0)
+        self.grid.addWidget(self.startEntry, 1, 0)
+        self.grid.addWidget(wc.QLabel("End point:"), 2, 0)
         self.endEntry = QtWidgets.QLineEdit()
         self.endEntry.setAlignment(QtCore.Qt.AlignHCenter)
         self.endEntry.setText(str(self.endVal))
         self.endEntry.returnPressed.connect(self.offsetPreview)
-        grid.addWidget(self.endEntry, 3, 0)
-        grid.addWidget(wc.QLabel("Offset:"), 4, 0)
+        self.grid.addWidget(self.endEntry, 3, 0)
+        self.grid.addWidget(wc.QLabel("Offset:"), 4, 0)
         self.offsetEntry = QtWidgets.QLineEdit()
         self.offsetEntry.setAlignment(QtCore.Qt.AlignHCenter)
         val = parent.current.getdcOffset(int(round(0.8 * parent.current.data1D.shape[-1])), parent.current.data1D.shape[-1])
         self.offsetEntry.setText('{:.2e}'.format(val))
         self.offsetEntry.returnPressed.connect(lambda: self.offsetPreview(True))
-        grid.addWidget(self.offsetEntry, 5, 0)
-        self.singleSlice = QtWidgets.QCheckBox("Single slice")
-        layout.addWidget(self.singleSlice, 1, 0, 1, 2)
-        cancelButton = QtWidgets.QPushButton("&Cancel")
-        cancelButton.clicked.connect(self.closeEvent)
-        layout.addWidget(cancelButton, 2, 0)
-        okButton = QtWidgets.QPushButton("&Ok")
-        okButton.clicked.connect(self.applyAndClose)
-        layout.addWidget(okButton, 2, 1)
-        self.show()
-        self.setFixedSize(self.size())
-        self.father.menuDisable()
+        self.grid.addWidget(self.offsetEntry, 5, 0)
         self.father.current.peakPickFunc = lambda pos, self=self: self.picked(pos)
         self.father.current.peakPick = True
-        self.setGeometry(self.frameSize().width() - self.geometry().width(), self.frameSize().height() - self.geometry().height(), 0, 0)
 
     def picked(self, pos, second=False):
         dataLength = self.father.current.data1D.shape[-1]
@@ -4506,14 +4318,7 @@ class DCWindow(QtWidgets.QWidget):
             self.offsetEntry.setText('{:.2e}'.format(val))
             self.father.current.dcOffset(val)
 
-    def closeEvent(self, *args):
-        self.father.current.peakPickReset()
-        self.father.current.upd()
-        self.father.current.showFid()
-        self.father.menuEnable()
-        self.deleteLater()
-
-    def applyAndClose(self):
+    def applyFunc(self):
         inp = safeEval(self.offsetEntry.text())
         if inp is None:
             self.father.father.dispMsg("Not a valid value")
@@ -4524,50 +4329,33 @@ class DCWindow(QtWidgets.QWidget):
             self.father.current.subtract(inp, self.singleSlice.isChecked())
         else:
             self.father.undoList.append(self.father.current.subtract(inp, self.singleSlice.isChecked()))
-        self.father.menuEnable()
-        self.deleteLater()
 
 #############################################################
 
 
-class BaselineWindow(QtWidgets.QWidget):
+class BaselineWindow(wc.ToolWindows):
+
+    NAME = "Baseline correction"
+    SINGLESLICE = True
 
     def __init__(self, parent):
         super(BaselineWindow, self).__init__(parent)
-        self.setWindowFlags(QtCore.Qt.Window | QtCore.Qt.Tool)
-        self.father = parent
-        self.setWindowTitle("Baseline correction")
-        layout = QtWidgets.QGridLayout(self)
-        grid = QtWidgets.QGridLayout()
-        layout.addLayout(grid, 0, 0, 1, 2)
-        grid.addWidget(wc.QLabel("Polynomial Degree:"), 0, 0, 1, 2)
+        self.grid.addWidget(wc.QLabel("Polynomial Degree:"), 0, 0, 1, 2)
         self.removeList = []
         self.degree = 3
         self.degreeEntry = QtWidgets.QLineEdit()
         self.degreeEntry.setAlignment(QtCore.Qt.AlignHCenter)
         self.degreeEntry.setText(str(self.degree))
         self.degreeEntry.returnPressed.connect(self.setDegree)
-        grid.addWidget(self.degreeEntry, 1, 0, 1, 2)
+        self.grid.addWidget(self.degreeEntry, 1, 0, 1, 2)
         resetButton = QtWidgets.QPushButton("&Reset")
         resetButton.clicked.connect(self.reset)
-        grid.addWidget(resetButton, 2, 0)
+        self.grid.addWidget(resetButton, 2, 0)
         fitButton = QtWidgets.QPushButton("&Fit")
         fitButton.clicked.connect(self.preview)
-        grid.addWidget(fitButton, 2, 1)
-        self.singleSlice = QtWidgets.QCheckBox("Single slice")
-        layout.addWidget(self.singleSlice, 1, 0, 1, 2)
-        cancelButton = QtWidgets.QPushButton("&Cancel")
-        cancelButton.clicked.connect(self.closeEvent)
-        layout.addWidget(cancelButton, 2, 0)
-        okButton = QtWidgets.QPushButton("&Ok")
-        okButton.clicked.connect(self.applyAndClose)
-        layout.addWidget(okButton, 2, 1)
-        self.show()
-        self.setFixedSize(self.size())
-        self.father.menuDisable()
+        self.grid.addWidget(fitButton, 2, 1)
         self.father.current.peakPickFunc = lambda pos, self=self: self.picked(pos)
         self.father.current.peakPick = True
-        self.setGeometry(self.frameSize().width() - self.geometry().width(), self.frameSize().height() - self.geometry().height(), 0, 0)
 
     def picked(self, pos):
         self.removeList.append(pos[0])
@@ -4594,14 +4382,7 @@ class BaselineWindow(QtWidgets.QWidget):
         self.removeList = []
         self.father.current.resetPreviewRemoveList()
 
-    def closeEvent(self, *args):
-        self.father.current.peakPickReset()
-        self.father.current.resetPreviewRemoveList()
-        self.father.current.showFid()
-        self.father.menuEnable()
-        self.deleteLater()
-
-    def applyAndClose(self):
+    def applyFunc(self):
         inp = safeEval(self.degreeEntry.text())
         if inp is None:
             self.father.father.dispMsg("Not a valid value")
@@ -4616,24 +4397,15 @@ class BaselineWindow(QtWidgets.QWidget):
         self.father.current.peakPickReset()
         self.father.current.resetPreviewRemoveList()
         self.father.redoList = []
-        self.father.current.upd()
-        self.father.current.showFid()
-        self.father.menuEnable()
-        self.deleteLater()
 
 #############################################################
 
 
-class regionWindow(QtWidgets.QWidget):
+class regionWindow(wc.ToolWindows):
 
     def __init__(self, parent, name):
+        self.NAME = name
         super(regionWindow, self).__init__(parent)
-        self.setWindowFlags(QtCore.Qt.Window | QtCore.Qt.Tool)
-        self.father = parent
-        self.setWindowTitle(name)
-        layout = QtWidgets.QGridLayout(self)
-        self.grid = QtWidgets.QGridLayout()
-        layout.addLayout(self.grid, 0, 0, 1, 2)
         self.startVal = [0]  # dummy variables
         self.endVal = [parent.current.data1D.shape[-1]]  # dummy variables
         self.grid.addWidget(wc.QLabel("Start point:"), 0, 0)
@@ -4658,21 +4430,10 @@ class regionWindow(QtWidgets.QWidget):
         self.deleteButton[0].clicked.connect(lambda extra, self=self: self.deleteEntry(self.deleteButton[0]))
         self.grid.addWidget(self.deleteButton[0], 1, 2)
         self.newSpec = QtWidgets.QCheckBox("Result in new workspace")
-        layout.addWidget(self.newSpec, 1, 0, 1, 2)
-        cancelButton = QtWidgets.QPushButton("&Cancel")
-        cancelButton.clicked.connect(self.closeEvent)
-        layout.addWidget(cancelButton, 2, 0)
-        okButton = QtWidgets.QPushButton("&Ok", self)
-        okButton.clicked.connect(self.applyAndClose)
-        okButton.setFocus()
-        layout.addWidget(okButton, 2, 1)
+        self.layout.addWidget(self.newSpec, 1, 0, 1, 2)
         self.grid.setRowStretch(100, 1)
-        self.show()
-        # self.setFixedSize(self.size())
-        self.father.menuDisable()
         self.father.current.peakPickFunc = lambda pos, self=self: self.picked(pos)
         self.father.current.peakPick = True
-        self.setGeometry(self.frameSize().width() - self.geometry().width(), self.frameSize().height() - self.geometry().height(), 0, 0)
 
     def addValue(self, pos):
         if self.first:
@@ -4770,22 +4531,13 @@ class regionWindow(QtWidgets.QWidget):
     def apply(self, maximum, minimum, newSpec):
         pass
 
-    def closeEvent(self, *args):
-        self.father.current.peakPickReset()
-        self.father.updAllFrames()
-        self.father.menuEnable()
-        self.deleteLater()
-
-    def applyAndClose(self):
+    def applyFunc(self):
         if self.partIter == 0:
             if self.apply(np.array([0]), np.array([self.father.current.data1D.shape[-1]]), self.newSpec.isChecked()) is None:
                 return
         else:
             if self.apply(self.startVal[:self.partIter], self.endVal[:self.partIter], self.newSpec.isChecked()) is None:
                 return
-        self.father.current.peakPickReset()
-        self.father.menuEnable()
-        self.deleteLater()
 
 ############################################################
 
@@ -4958,46 +4710,31 @@ class avgWindow(regionWindow):
 #############################################################
 
 
-class regionWindow2(QtWidgets.QWidget):
+class regionWindow2(wc.ToolWindows):
 
     def __init__(self, parent, name, newSpecOption):
+        self.NAME = name
         super(regionWindow2, self).__init__(parent)
-        self.setWindowFlags(QtCore.Qt.Window | QtCore.Qt.Tool)
-        self.father = parent
-        self.setWindowTitle(name)
-        layout = QtWidgets.QGridLayout(self)
-        grid = QtWidgets.QGridLayout()
-        layout.addLayout(grid, 0, 0, 1, 2)
         self.startVal = 0
         self.endVal = parent.current.data1D.shape[-1]
-        grid.addWidget(wc.QLabel("Start point:"), 0, 0)
+        self.grid.addWidget(wc.QLabel("Start point:"), 0, 0)
         self.startEntry = QtWidgets.QLineEdit()
         self.startEntry.setAlignment(QtCore.Qt.AlignHCenter)
         self.startEntry.setText(str(self.startVal))
         self.startEntry.returnPressed.connect(self.checkValues)
-        grid.addWidget(self.startEntry, 1, 0)
-        grid.addWidget(wc.QLabel("End point:"), 2, 0)
+        self.grid.addWidget(self.startEntry, 1, 0)
+        self.grid.addWidget(wc.QLabel("End point:"), 2, 0)
         self.endEntry = QtWidgets.QLineEdit()
         self.endEntry.setAlignment(QtCore.Qt.AlignHCenter)
         self.endEntry.setText(str(self.endVal))
         self.endEntry.returnPressed.connect(self.checkValues)
-        grid.addWidget(self.endEntry, 3, 0)
+        self.grid.addWidget(self.endEntry, 3, 0)
         self.newSpec = QtWidgets.QCheckBox("Result in new workspace")
         if not newSpecOption:
             self.newSpec.hide()
-        layout.addWidget(self.newSpec, 1, 0, 1, 2)
-        cancelButton = QtWidgets.QPushButton("&Cancel")
-        cancelButton.clicked.connect(self.closeEvent)
-        layout.addWidget(cancelButton, 2, 0)
-        okButton = QtWidgets.QPushButton("&Ok")
-        okButton.clicked.connect(self.applyAndClose)
-        layout.addWidget(okButton, 2, 1)
-        self.show()
-        self.setFixedSize(self.size())
-        self.father.menuDisable()
+        self.layout.addWidget(self.newSpec, 1, 0, 1, 2)
         self.father.current.peakPickFunc = lambda pos, self=self: self.picked(pos)
         self.father.current.peakPick = True
-        self.setGeometry(self.frameSize().width() - self.geometry().width(), self.frameSize().height() - self.geometry().height(), 0, 0)
 
     def preview(self, maximum, minimum):
         pass
@@ -5043,15 +4780,7 @@ class regionWindow2(QtWidgets.QWidget):
         self.endEntry.setText(str(self.endVal))
         self.preview(self.startVal, self.endVal)
 
-    def closeEvent(self, *args):
-        self.father.current.peakPickReset()
-        self.father.current.upd()
-        self.father.current.showFid()
-        self.father.updAllFrames()
-        self.father.menuEnable()
-        self.deleteLater()
-
-    def applyAndClose(self):
+    def applyFunc(self):
         dataLength = self.father.current.data1D.shape[-1]
         inp = safeEval(self.startEntry.text())
         if inp is None:
@@ -5073,9 +4802,6 @@ class regionWindow2(QtWidgets.QWidget):
             self.endVal = dataLength
         if self.apply(self.startVal, self.endVal, self.newSpec.isChecked()) is None:
             return
-        self.father.current.peakPickReset()
-        self.father.menuEnable()
-        self.deleteLater()
 
     def apply(self, maximum, minimum, newSpec):
         pass
@@ -5131,48 +4857,34 @@ class SubtractAvgWindow(regionWindow2):
 #############################################################
 
 
-class FiddleWindow(QtWidgets.QWidget):
+class FiddleWindow(wc.ToolWindows):
+
+    NAME = "Reference deconvolution"
 
     def __init__(self, parent):
         super(FiddleWindow, self).__init__(parent)
-        self.setWindowFlags(QtCore.Qt.Window | QtCore.Qt.Tool)
-        self.father = parent
-        self.setWindowTitle("Reference deconvolution")
-        layout = QtWidgets.QGridLayout(self)
-        grid = QtWidgets.QGridLayout()
-        layout.addLayout(grid, 0, 0, 1, 2)
         self.startVal = 0
         self.endVal = parent.current.data1D.shape[-1]
-        grid.addWidget(wc.QLabel("Start point:"), 0, 0)
+        self.grid.addWidget(wc.QLabel("Start point:"), 0, 0)
         self.startEntry = QtWidgets.QLineEdit()
         self.startEntry.setAlignment(QtCore.Qt.AlignHCenter)
         self.startEntry.setText(str(self.startVal))
         self.startEntry.returnPressed.connect(self.checkValues)
-        grid.addWidget(self.startEntry, 1, 0)
-        grid.addWidget(wc.QLabel("End point:"), 2, 0)
+        self.grid.addWidget(self.startEntry, 1, 0)
+        self.grid.addWidget(wc.QLabel("End point:"), 2, 0)
         self.endEntry = QtWidgets.QLineEdit()
         self.endEntry.setAlignment(QtCore.Qt.AlignHCenter)
         self.endEntry.setText(str(self.endVal))
         self.endEntry.returnPressed.connect(self.checkValues)
-        grid.addWidget(self.endEntry, 3, 0)
-        grid.addWidget(wc.QLabel("Linebroadening [Hz]:"), 4, 0)
+        self.grid.addWidget(self.endEntry, 3, 0)
+        self.grid.addWidget(wc.QLabel("Linebroadening [Hz]:"), 4, 0)
         self.lbEntry = QtWidgets.QLineEdit()
         self.lbEntry.setAlignment(QtCore.Qt.AlignHCenter)
         self.lbEntry.setText("1.0")
         self.lbEntry.returnPressed.connect(self.checkValues)
-        grid.addWidget(self.lbEntry, 5, 0)
-        cancelButton = QtWidgets.QPushButton("&Cancel")
-        cancelButton.clicked.connect(self.closeEvent)
-        layout.addWidget(cancelButton, 2, 0)
-        okButton = QtWidgets.QPushButton("&Ok")
-        okButton.clicked.connect(self.applyAndClose)
-        layout.addWidget(okButton, 2, 1)
-        self.show()
-        self.setFixedSize(self.size())
-        self.father.menuDisable()
+        self.grid.addWidget(self.lbEntry, 5, 0)
         self.father.current.peakPickFunc = lambda pos, self=self: self.picked(pos)
         self.father.current.peakPick = True
-        self.setGeometry(self.frameSize().width() - self.geometry().width(), self.frameSize().height() - self.geometry().height(), 0, 0)
 
     def picked(self, pos, second=False):
         if second:
@@ -5216,15 +4928,7 @@ class FiddleWindow(QtWidgets.QWidget):
         if inp is not None:
             self.lbEntry.setText(str(inp))
 
-    def closeEvent(self, *args):
-        self.father.current.peakPickReset()
-        self.father.current.upd()
-        self.father.current.showFid()
-        self.father.updAllFrames()
-        self.father.menuEnable()
-        self.deleteLater()
-
-    def applyAndClose(self):
+    def applyFunc(self):
         dataLength = self.father.current.data1D.shape[-1]
         inp = safeEval(self.startEntry.text())
         if inp is None:
@@ -5256,40 +4960,22 @@ class FiddleWindow(QtWidgets.QWidget):
                 return None
             self.father.undoList.append(returnValue)
         self.father.redoList = []
-        self.father.updAllFrames()
-        self.father.current.peakPickReset()
-        self.father.menuEnable()
-        self.deleteLater()
 
 ##############################################################
 
 
-class DeleteWindow(QtWidgets.QWidget):
+class DeleteWindow(wc.ToolWindows):
+
+    NAME = "Delete"
 
     def __init__(self, parent):
         super(DeleteWindow, self).__init__(parent)
-        self.setWindowFlags(QtCore.Qt.Window | QtCore.Qt.Tool)
-        self.father = parent
-        self.setWindowTitle("Delete")
-        layout = QtWidgets.QGridLayout(self)
-        grid = QtWidgets.QGridLayout()
-        layout.addLayout(grid, 0, 0, 1, 2)
-        grid.addWidget(wc.QLabel("Indexes to delete:"), 0, 0)
+        self.grid.addWidget(wc.QLabel("Indexes to delete:"), 0, 0)
         self.delEntry = QtWidgets.QLineEdit()
         self.delEntry.setAlignment(QtCore.Qt.AlignHCenter)
         self.delEntry.setText(str('0'))
         self.delEntry.returnPressed.connect(self.preview)
-        grid.addWidget(self.delEntry, 1, 0)
-        cancelButton = QtWidgets.QPushButton("&Cancel")
-        cancelButton.clicked.connect(self.closeEvent)
-        layout.addWidget(cancelButton, 2, 0)
-        okButton = QtWidgets.QPushButton("&Ok")
-        okButton.clicked.connect(self.applyAndClose)
-        layout.addWidget(okButton, 2, 1)
-        self.show()
-        self.setFixedSize(self.size())
-        self.father.menuDisable()
-        self.setGeometry(self.frameSize().width() - self.geometry().width(), self.frameSize().height() - self.geometry().height(), 0, 0)
+        self.grid.addWidget(self.delEntry, 1, 0)
 
     def preview(self, *args):
         env = vars(np).copy()
@@ -5302,7 +4988,7 @@ class DeleteWindow(QtWidgets.QWidget):
         else:
             self.father.father.dispMsg('Not all values are valid indexes to delete')
 
-    def applyAndClose(self):
+    def applyFunc(self):
         env = vars(np).copy()
         length = int(self.father.current.data1D.shape[-1])
         env['length'] = length  # so length can be used to in equations
@@ -5314,53 +5000,31 @@ class DeleteWindow(QtWidgets.QWidget):
                 self.father.current.delete(pos)
             else:
                 self.father.undoList.append(self.father.current.delete(pos))
-            self.father.menuEnable()
-            self.father.sideframe.upd()
-            self.deleteLater()
         else:
             self.father.father.dispMsg('Not all values are valid indexes to delete')
-
-    def closeEvent(self, *args):
-        self.father.current.showFid()
-        self.father.menuEnable()
-        self.deleteLater()
 
 ##############################################################
 
 
-class SplitWindow(QtWidgets.QWidget):
+class SplitWindow(wc.ToolWindows):
+
+    NAME = "Split"
 
     def __init__(self, parent):
         super(SplitWindow, self).__init__(parent)
-        self.setWindowFlags(QtCore.Qt.Window | QtCore.Qt.Tool)
-        self.father = parent
-        self.setWindowTitle("Split")
-        layout = QtWidgets.QGridLayout(self)
-        grid = QtWidgets.QGridLayout()
-        layout.addLayout(grid, 0, 0, 1, 2)
-        grid.addWidget(wc.QLabel("Sections:"), 0, 0)
+        self.grid.addWidget(wc.QLabel("Sections:"), 0, 0)
         self.splitEntry = QtWidgets.QLineEdit()
         self.splitEntry.setAlignment(QtCore.Qt.AlignHCenter)
         self.splitEntry.setText('1')
         self.splitEntry.returnPressed.connect(self.preview)
-        grid.addWidget(self.splitEntry, 1, 0)
-        cancelButton = QtWidgets.QPushButton("&Cancel")
-        cancelButton.clicked.connect(self.closeEvent)
-        layout.addWidget(cancelButton, 2, 0)
-        okButton = QtWidgets.QPushButton("&Ok")
-        okButton.clicked.connect(self.applyAndClose)
-        layout.addWidget(okButton, 2, 1)
-        self.show()
-        self.setFixedSize(self.size())
-        self.father.menuDisable()
-        self.setGeometry(self.frameSize().width() - self.geometry().width(), self.frameSize().height() - self.geometry().height(), 0, 0)
+        self.grid.addWidget(self.splitEntry, 1, 0)
 
     def preview(self, *args):
         val = safeEval(self.splitEntry.text(), self.father.current.data1D.shape[-1])
         if val is not None:
             self.splitEntry.setText(str(int(round(val))))
 
-    def applyAndClose(self):
+    def applyFunc(self):
         val = safeEval(self.splitEntry.text(), self.father.current.data1D.shape[-1])
         if val is None:
             self.father.father.dispMsg("Not a valid value")
@@ -5373,43 +5037,22 @@ class SplitWindow(QtWidgets.QWidget):
                 return
             self.father.undoList.append(returnValue)
         self.father.redoList = []
-        self.father.menuEnable()
-        self.father.updAllFrames()
-        self.deleteLater()
-
-    def closeEvent(self, *args):
-        self.father.menuEnable()
-        self.deleteLater()
 
 ##############################################################
 
 
-class ConcatenateWindow(QtWidgets.QWidget):
+class ConcatenateWindow(wc.ToolWindows):
+
+    NAME = "Concatenate"
 
     def __init__(self, parent):
         super(ConcatenateWindow, self).__init__(parent)
-        self.setWindowFlags(QtCore.Qt.Window | QtCore.Qt.Tool)
-        self.father = parent
-        self.setWindowTitle("Concatenate")
-        layout = QtWidgets.QGridLayout(self)
-        grid = QtWidgets.QGridLayout()
-        layout.addLayout(grid, 0, 0, 1, 2)
-        grid.addWidget(wc.QLabel("Concatenation axes:"), 0, 0)
+        self.grid.addWidget(wc.QLabel("Concatenation axes:"), 0, 0)
         self.axesEntry = QtWidgets.QComboBox()
         self.axesEntry.addItems(np.array(np.arange(self.father.current.data.data.ndim - 1) + 1, dtype=str))
-        grid.addWidget(self.axesEntry, 1, 0)
-        cancelButton = QtWidgets.QPushButton("&Cancel")
-        cancelButton.clicked.connect(self.closeEvent)
-        layout.addWidget(cancelButton, 2, 0)
-        okButton = QtWidgets.QPushButton("&Ok")
-        okButton.clicked.connect(self.applyAndClose)
-        layout.addWidget(okButton, 2, 1)
-        self.show()
-        self.setFixedSize(self.size())
-        self.father.menuDisable()
-        self.setGeometry(self.frameSize().width() - self.geometry().width(), self.frameSize().height() - self.geometry().height(), 0, 0)
+        self.grid.addWidget(self.axesEntry, 1, 0)
 
-    def applyAndClose(self):
+    def applyFunc(self):
         if self.father.current.data.noUndo:
             self.father.current.concatenate(self.axesEntry.currentIndex())
         else:
@@ -5418,47 +5061,26 @@ class ConcatenateWindow(QtWidgets.QWidget):
                 return
             self.father.undoList.append(returnValue)
         self.father.redoList = []
-        self.father.menuEnable()
-        self.father.updAllFrames()
-        self.deleteLater()
-
-    def closeEvent(self, *args):
-        self.father.menuEnable()
-        self.deleteLater()
 
 ##############################################################
 
 
-class InsertWindow(QtWidgets.QWidget):
+class InsertWindow(wc.ToolWindows):
+
+    NAME = "Insert"
 
     def __init__(self, parent):
         super(InsertWindow, self).__init__(parent)
-        self.setWindowFlags(QtCore.Qt.Window | QtCore.Qt.Tool)
-        self.father = parent
-        self.setWindowTitle("Insert")
-        layout = QtWidgets.QGridLayout(self)
-        grid = QtWidgets.QGridLayout()
-        layout.addLayout(grid, 0, 0, 1, 2)
-        grid.addWidget(wc.QLabel("Start insert at index:"), 0, 0)
+        self.grid.addWidget(wc.QLabel("Start insert at index:"), 0, 0)
         self.posEntry = QtWidgets.QLineEdit()
         self.posEntry.setAlignment(QtCore.Qt.AlignHCenter)
         self.posEntry.setText(str(self.father.current.data1D.shape[-1]))
         self.posEntry.returnPressed.connect(self.preview)
-        grid.addWidget(self.posEntry, 1, 0)
-        grid.addWidget(wc.QLabel("Workspace to insert:"), 2, 0)
+        self.grid.addWidget(self.posEntry, 1, 0)
+        self.grid.addWidget(wc.QLabel("Workspace to insert:"), 2, 0)
         self.wsEntry = QtWidgets.QComboBox()
         self.wsEntry.addItems(self.father.father.workspaceNames)
-        grid.addWidget(self.wsEntry, 3, 0)
-        cancelButton = QtWidgets.QPushButton("&Cancel")
-        cancelButton.clicked.connect(self.closeEvent)
-        layout.addWidget(cancelButton, 2, 0)
-        okButton = QtWidgets.QPushButton("&Ok")
-        okButton.clicked.connect(self.applyAndClose)
-        layout.addWidget(okButton, 2, 1)
-        self.show()
-        self.setFixedSize(self.size())
-        self.father.menuDisable()
-        self.setGeometry(self.frameSize().width() - self.geometry().width(), self.frameSize().height() - self.geometry().height(), 0, 0)
+        self.grid.addWidget(self.wsEntry, 3, 0)
 
     def preview(self, *args):
         pos = safeEval(self.posEntry.text())
@@ -5471,7 +5093,7 @@ class InsertWindow(QtWidgets.QWidget):
             pos = 0
         self.posEntry.setText(str(pos))
 
-    def applyAndClose(self):
+    def applyFunc(self):
         pos = safeEval(self.posEntry.text())
         if pos is None:
             self.father.father.dispMsg("Not a valid value")
@@ -5487,56 +5109,34 @@ class InsertWindow(QtWidgets.QWidget):
             self.father.current.insert(self.father.father.workspaces[ws].masterData.data, pos)
         else:
             self.father.undoList.append(self.father.current.insert(self.father.father.workspaces[ws].masterData.data, pos))
-        self.father.menuEnable()
-        self.father.sideframe.upd()
-        self.deleteLater()
-
-    def closeEvent(self, *args):
-        self.father.menuEnable()
-        self.deleteLater()
 
 ##############################################################
 
 
-class CombineWindow(QtWidgets.QWidget):
+class CombineWindow(wc.ToolWindows):
 
+    SINGLESLICE = True
+    
     def __init__(self, parent, combType):
         super(CombineWindow, self).__init__(parent)
-        self.setWindowFlags(QtCore.Qt.Window | QtCore.Qt.Tool)
-        self.father = parent
         self.combType = combType # 0 = add, 1 = subtract, 2 = multiply, 3 = divide
-        layout = QtWidgets.QGridLayout(self)
-        grid = QtWidgets.QGridLayout()
-        layout.addLayout(grid, 0, 0, 1, 2)
         if self.combType is 0:
             self.setWindowTitle("Add")        
-            grid.addWidget(wc.QLabel("Workspace to add:"), 0, 0)
+            self.grid.addWidget(wc.QLabel("Workspace to add:"), 0, 0)
         elif self.combType is 1:
             self.setWindowTitle("Subtract")        
-            grid.addWidget(wc.QLabel("Workspace to subtract:"), 0, 0)
+            self.grid.addWidget(wc.QLabel("Workspace to subtract:"), 0, 0)
         elif self.combType is 2:
             self.setWindowTitle("Multiply")        
-            grid.addWidget(wc.QLabel("Workspace to multiply:"), 0, 0)
+            self.grid.addWidget(wc.QLabel("Workspace to multiply:"), 0, 0)
         elif self.combType is 3:
             self.setWindowTitle("Divide")        
-            grid.addWidget(wc.QLabel("Workspace to divide:"), 0, 0)
+            self.grid.addWidget(wc.QLabel("Workspace to divide:"), 0, 0)
         self.wsEntry = QtWidgets.QComboBox()
         self.wsEntry.addItems(self.father.father.workspaceNames)
-        grid.addWidget(self.wsEntry, 1, 0)
-        self.singleSlice = QtWidgets.QCheckBox("Single slice")
-        layout.addWidget(self.singleSlice, 1, 0, 1, 2)
-        cancelButton = QtWidgets.QPushButton("&Cancel")
-        cancelButton.clicked.connect(self.closeEvent)
-        layout.addWidget(cancelButton, 2, 0)
-        okButton = QtWidgets.QPushButton("&Ok")
-        okButton.clicked.connect(self.applyAndClose)
-        layout.addWidget(okButton, 2, 1)
-        self.show()
-        self.setFixedSize(self.size())
-        self.father.menuDisable()
-        self.setGeometry(self.frameSize().width() - self.geometry().width(), self.frameSize().height() - self.geometry().height(), 0, 0)
+        self.grid.addWidget(self.wsEntry, 1, 0)
 
-    def applyAndClose(self):
+    def applyFunc(self):
         ws = self.wsEntry.currentIndex()
         if self.combType is 0:
             returnValue = self.father.current.add(self.father.father.workspaces[ws].masterData.data, self.singleSlice.isChecked())
@@ -5551,68 +5151,47 @@ class CombineWindow(QtWidgets.QWidget):
         self.father.redoList = []
         if not self.father.current.data.noUndo:
             self.father.undoList.append(returnValue)
-        self.father.menuEnable()
-        self.father.sideframe.upd()
-        self.deleteLater()
-
-    def closeEvent(self, *args):
-        self.father.menuEnable()
-        self.deleteLater()
 
 ##############################################################
 
 
-class SNWindow(QtWidgets.QWidget):
+class SNWindow(wc.ToolWindows):
+
+    NAME = "Signal to noise"
 
     def __init__(self, parent):
         super(SNWindow, self).__init__(parent)
-        self.setWindowFlags(QtCore.Qt.Window | QtCore.Qt.Tool)
-        self.father = parent
-        self.setWindowTitle("Signal to noise")
-        layout = QtWidgets.QGridLayout(self)
-        grid = QtWidgets.QGridLayout()
-        layout.addLayout(grid, 0, 0, 1, 2)
-        grid.addWidget(wc.QLabel("Start point noise:"), 0, 0)
+        self.grid.addWidget(wc.QLabel("Start point noise:"), 0, 0)
         self.minNoiseEntry = QtWidgets.QLineEdit()
         self.minNoiseEntry.setAlignment(QtCore.Qt.AlignHCenter)
         self.minNoiseEntry.setText("0")
         self.minNoiseEntry.returnPressed.connect(self.checkValues)
-        grid.addWidget(self.minNoiseEntry, 1, 0)
-        grid.addWidget(wc.QLabel("End point noise:"), 2, 0)
+        self.grid.addWidget(self.minNoiseEntry, 1, 0)
+        self.grid.addWidget(wc.QLabel("End point noise:"), 2, 0)
         self.maxNoiseEntry = QtWidgets.QLineEdit()
         self.maxNoiseEntry.setAlignment(QtCore.Qt.AlignHCenter)
         self.maxNoiseEntry.setText(str(parent.current.data1D.shape[-1]))
         self.maxNoiseEntry.returnPressed.connect(self.checkValues)
-        grid.addWidget(self.maxNoiseEntry, 3, 0)
-        grid.addWidget(wc.QLabel("Start point signal:"), 4, 0)
+        self.grid.addWidget(self.maxNoiseEntry, 3, 0)
+        self.grid.addWidget(wc.QLabel("Start point signal:"), 4, 0)
         self.minEntry = QtWidgets.QLineEdit()
         self.minEntry.setAlignment(QtCore.Qt.AlignHCenter)
         self.minEntry.setText("0")
         self.minEntry.returnPressed.connect(self.checkValues)
-        grid.addWidget(self.minEntry, 5, 0)
-        grid.addWidget(wc.QLabel("End point signal:"), 6, 0)
+        self.grid.addWidget(self.minEntry, 5, 0)
+        self.grid.addWidget(wc.QLabel("End point signal:"), 6, 0)
         self.maxEntry = QtWidgets.QLineEdit()
         self.maxEntry.setAlignment(QtCore.Qt.AlignHCenter)
         self.maxEntry.setText(str(parent.current.data1D.shape[-1]))
         self.maxEntry.returnPressed.connect(self.checkValues)
-        grid.addWidget(self.maxEntry, 7, 0)
-        grid.addWidget(wc.QLabel("S/N:"), 8, 0)
+        self.grid.addWidget(self.maxEntry, 7, 0)
+        self.grid.addWidget(wc.QLabel("S/N:"), 8, 0)
         self.snEntry = QtWidgets.QLineEdit()
         self.snEntry.setAlignment(QtCore.Qt.AlignHCenter)
         self.snEntry.setText('0.0')
-        grid.addWidget(self.snEntry, 9, 0)
-        cancelButton = QtWidgets.QPushButton("&Cancel")
-        cancelButton.clicked.connect(self.closeEvent)
-        layout.addWidget(cancelButton, 2, 0)
-        okButton = QtWidgets.QPushButton("&Fit")
-        okButton.clicked.connect(self.apply)
-        layout.addWidget(okButton, 2, 1)
-        self.show()
-        self.setFixedSize(self.size())
-        self.father.menuDisable()
+        self.grid.addWidget(self.snEntry, 9, 0)
         self.father.current.peakPickFunc = lambda pos, self=self: self.picked(pos)
         self.father.current.peakPick = True
-        self.setGeometry(self.frameSize().width() - self.geometry().width(), self.frameSize().height() - self.geometry().height(), 0, 0)
 
     def picked(self, pos, num=0):
         if num == 0:
@@ -5631,7 +5210,7 @@ class SNWindow(QtWidgets.QWidget):
             self.maxEntry.setText(str(pos[0]))
             self.father.current.peakPickFunc = lambda pos, self=self: self.picked(pos, 0)
             self.father.current.peakPick = True
-            self.apply()
+            self.applyAndClose()
 
     def checkValues(self, *args):
         dataLength = self.father.current.data1D.shape[-1]
@@ -5671,9 +5250,9 @@ class SNWindow(QtWidgets.QWidget):
         elif maximum > dataLength:
             maximum = dataLength
         self.maxEntry.setText(str(maximum))
-        self.apply()
+        self.applyAndClose()
 
-    def apply(self):
+    def applyAndClose(self):
         dataLength = self.father.current.data1D.shape[-1]
         inp = safeEval(self.minNoiseEntry.text())
         if inp is None:
@@ -5717,37 +5296,28 @@ class SNWindow(QtWidgets.QWidget):
         self.maxEntry.setText(str(maximum))
         self.snEntry.setText(str(self.father.current.SN(minimumNoise, maximumNoise, minimum, maximum)))
 
-    def closeEvent(self, *args):
-        self.father.current.peakPickReset()
-        self.father.menuEnable()
-        self.deleteLater()
-
 ##############################################################
 
 
-class FWHMWindow(QtWidgets.QWidget):
+class FWHMWindow(wc.ToolWindows):
+
+    NAME = "FWHM"
 
     def __init__(self, parent):
         super(FWHMWindow, self).__init__(parent)
-        self.setWindowFlags(QtCore.Qt.Window | QtCore.Qt.Tool)
-        self.father = parent
-        self.setWindowTitle("FWHM")
-        layout = QtWidgets.QGridLayout(self)
-        grid = QtWidgets.QGridLayout()
-        layout.addLayout(grid, 0, 0, 1, 2)
-        grid.addWidget(wc.QLabel("Start point:"), 0, 0)
+        self.grid.addWidget(wc.QLabel("Start point:"), 0, 0)
         self.minEntry = QtWidgets.QLineEdit()
         self.minEntry.setAlignment(QtCore.Qt.AlignHCenter)
         self.minEntry.setText("0")
         self.minEntry.returnPressed.connect(self.checkValues)
-        grid.addWidget(self.minEntry, 1, 0)
-        grid.addWidget(wc.QLabel("End point:"), 2, 0)
+        self.grid.addWidget(self.minEntry, 1, 0)
+        self.grid.addWidget(wc.QLabel("End point:"), 2, 0)
         self.maxEntry = QtWidgets.QLineEdit()
         self.maxEntry.setAlignment(QtCore.Qt.AlignHCenter)
         self.maxEntry.setText(str(parent.current.data1D.shape[-1]))
         self.maxEntry.returnPressed.connect(self.checkValues)
-        grid.addWidget(self.maxEntry, 3, 0)
-        grid.addWidget(wc.QLabel("Units:"), 4, 0)
+        self.grid.addWidget(self.maxEntry, 3, 0)
+        self.grid.addWidget(wc.QLabel("Units:"), 4, 0)
         unitSelect = self.father.current.axType
         if self.father.current.spec == 1:
             unitList = ['Hz', 'kHz', 'MHz', 'ppm']
@@ -5759,24 +5329,14 @@ class FWHMWindow(QtWidgets.QWidget):
         self.unitDrop.addItems(unitList)
         self.unitDrop.setCurrentIndex(unitSelect)
         self.unitDrop.currentIndexChanged.connect(self.checkValues)
-        grid.addWidget(self.unitDrop, 5, 0)
-        grid.addWidget(wc.QLabel(u"FWHM:"), 6, 0)
+        self.grid.addWidget(self.unitDrop, 5, 0)
+        self.grid.addWidget(wc.QLabel(u"FWHM:"), 6, 0)
         self.fwhmEntry = QtWidgets.QLineEdit()
         self.fwhmEntry.setAlignment(QtCore.Qt.AlignHCenter)
         self.fwhmEntry.setText('0.0')
-        grid.addWidget(self.fwhmEntry, 7, 0)
-        cancelButton = QtWidgets.QPushButton("&Cancel")
-        cancelButton.clicked.connect(self.closeEvent)
-        layout.addWidget(cancelButton, 2, 0)
-        okButton = QtWidgets.QPushButton("&Fit")
-        okButton.clicked.connect(self.apply)
-        layout.addWidget(okButton, 2, 1)
-        self.show()
-        self.setFixedSize(self.size())
-        self.father.menuDisable()
+        self.grid.addWidget(self.fwhmEntry, 7, 0)
         self.father.current.peakPickFunc = lambda pos, self=self: self.picked(pos)
         self.father.current.peakPick = True
-        self.setGeometry(self.frameSize().width() - self.geometry().width(), self.frameSize().height() - self.geometry().height(), 0, 0)
 
     def picked(self, pos, num=0):
         if num == 0:
@@ -5787,7 +5347,7 @@ class FWHMWindow(QtWidgets.QWidget):
             self.maxEntry.setText(str(pos[0]))
             self.father.current.peakPickFunc = lambda pos, self=self: self.picked(pos, 0)
             self.father.current.peakPick = True
-            self.apply()
+            self.applyAndClose()
 
     def checkValues(self, *args):
         dataLength = self.father.current.data1D.shape[-1]
@@ -5809,9 +5369,9 @@ class FWHMWindow(QtWidgets.QWidget):
         elif maximum > dataLength:
             maximum = dataLength
         self.maxEntry.setText(str(maximum))
-        self.apply()
+        self.applyAndClose()
 
-    def apply(self):
+    def applyAndClose(self):
         dataLength = self.father.current.data1D.shape[-1]
         inp = safeEval(self.minEntry.text())
         if inp is None:
@@ -5835,70 +5395,52 @@ class FWHMWindow(QtWidgets.QWidget):
         self.maxEntry.setText(str(maximum))
         self.fwhmEntry.setText(str(self.father.current.fwhm(minimum, maximum, self.unitDrop.currentIndex())))
 
-    def closeEvent(self, *args):
-        self.father.current.peakPickReset()
-        self.father.menuEnable()
-        self.deleteLater()
 ##############################################################
 
 
-class COMWindow(QtWidgets.QWidget):  # Centre of Mass Window
+class COMWindow(wc.ToolWindows):  # Centre of Mass Window
+
+    NAME = "Centre of Mass"
 
     def __init__(self, parent):
         super(COMWindow, self).__init__(parent)
-        self.setWindowFlags(QtCore.Qt.Window | QtCore.Qt.Tool)
-        self.father = parent
-        self.setWindowTitle("Centre of Mass")
-        layout = QtWidgets.QGridLayout(self)
-        grid = QtWidgets.QGridLayout()
-        layout.addLayout(grid, 0, 0, 1, 2)
-        grid.addWidget(wc.QLabel("Start point:"), 0, 0)
+        self.grid.addWidget(wc.QLabel("Start point:"), 0, 0)
         self.minEntry = QtWidgets.QLineEdit()
         self.minEntry.setAlignment(QtCore.Qt.AlignHCenter)
         self.minEntry.setText("0")
         self.minEntry.returnPressed.connect(self.checkValues)
-        grid.addWidget(self.minEntry, 1, 0)
-        grid.addWidget(wc.QLabel("End point:"), 2, 0)
+        self.grid.addWidget(self.minEntry, 1, 0)
+        self.grid.addWidget(wc.QLabel("End point:"), 2, 0)
         self.maxEntry = QtWidgets.QLineEdit()
         self.maxEntry.setAlignment(QtCore.Qt.AlignHCenter)
         self.maxEntry.setText(str(parent.current.data1D.shape[-1]))
         self.maxEntry.returnPressed.connect(self.checkValues)
-        grid.addWidget(self.maxEntry, 3, 0)
+        self.grid.addWidget(self.maxEntry, 3, 0)
         if self.father.current.spec == 1:
             if self.father.current.ppm:
-                grid.addWidget(wc.QLabel("Centre of Mass [ppm]:"), 4, 0)
+                self.grid.addWidget(wc.QLabel("Centre of Mass [ppm]:"), 4, 0)
             else:
                 if self.father.current.axType == 0:
-                    grid.addWidget(wc.QLabel("Centre of Mass [Hz]:"), 4, 0)
+                    self.grid.addWidget(wc.QLabel("Centre of Mass [Hz]:"), 4, 0)
                 elif self.father.current.axType == 1:
-                    grid.addWidget(wc.QLabel("Centre of Mass [kHz]:"), 4, 0)
+                    self.grid.addWidget(wc.QLabel("Centre of Mass [kHz]:"), 4, 0)
                 elif self.father.current.axType == 2:
-                    grid.addWidget(wc.QLabel("Centre of Mass [MHz]:"), 4, 0)
+                    self.grid.addWidget(wc.QLabel("Centre of Mass [MHz]:"), 4, 0)
                 elif self.father.current.axType == 3:
-                    grid.addWidget(wc.QLabel("Centre of Mass [ppm]:"), 4, 0)
+                    self.grid.addWidget(wc.QLabel("Centre of Mass [ppm]:"), 4, 0)
         else:
             if self.father.current.axType == 0:
-                grid.addWidget(wc.QLabel("Centre of Mass [s]:"), 4, 0)
+                self.grid.addWidget(wc.QLabel("Centre of Mass [s]:"), 4, 0)
             elif self.father.current.axType == 1:
-                grid.addWidget(wc.QLabel("Centre of Mass [ms]:"), 4, 0)
+                self.grid.addWidget(wc.QLabel("Centre of Mass [ms]:"), 4, 0)
             elif self.father.current.axType == 2:
-                grid.addWidget(wc.QLabel(u"Centre of Mass [\u03bcs]:"), 4, 0)
+                self.grid.addWidget(wc.QLabel(u"Centre of Mass [\u03bcs]:"), 4, 0)
         self.comEntry = QtWidgets.QLineEdit()
         self.comEntry.setAlignment(QtCore.Qt.AlignHCenter)
         self.comEntry.setText('0.0')
-        grid.addWidget(self.comEntry, 5, 0)
-        cancelButton = QtWidgets.QPushButton("&Cancel")
-        cancelButton.clicked.connect(self.closeEvent)
-        layout.addWidget(cancelButton, 2, 0)
-        okButton = QtWidgets.QPushButton("&Fit")
-        okButton.clicked.connect(self.apply)
-        layout.addWidget(okButton, 2, 1)
-        self.show()
-        self.setFixedSize(self.size())
-        self.father.menuDisable()
+        self.grid.addWidget(self.comEntry, 5, 0)
         self.father.current.peakPickFunc = lambda pos, self=self: self.picked(pos)
         self.father.current.peakPick = True
-        self.setGeometry(self.frameSize().width() - self.geometry().width(), self.frameSize().height() - self.geometry().height(), 0, 0)
 
     def picked(self, pos, num=0):
         if num == 0:
@@ -5909,7 +5451,7 @@ class COMWindow(QtWidgets.QWidget):  # Centre of Mass Window
             self.maxEntry.setText(str(pos[0]))
             self.father.current.peakPickFunc = lambda pos, self=self: self.picked(pos, 0)
             self.father.current.peakPick = True
-            self.apply()
+            self.applyAndClose()
 
     def checkValues(self, *args):
         dataLength = self.father.current.data1D.shape[-1]
@@ -5931,9 +5473,9 @@ class COMWindow(QtWidgets.QWidget):  # Centre of Mass Window
         elif maximum > dataLength:
             maximum = dataLength
         self.maxEntry.setText(str(maximum))
-        self.apply()
+        self.applyAndClose()
 
-    def apply(self):
+    def applyAndClose(self):
         dataLength = self.father.current.data1D.shape[-1]
         inp = safeEval(self.minEntry.text())
         if inp is None:
@@ -5957,47 +5499,28 @@ class COMWindow(QtWidgets.QWidget):  # Centre of Mass Window
         self.maxEntry.setText(str(maximum))
         self.comEntry.setText(str(self.father.current.COM(minimum, maximum)))
 
-    def closeEvent(self, *args):
-        self.father.current.peakPickReset()
-        self.father.menuEnable()
-        self.deleteLater()
-
 ##########################################################################################
 
 
-class ReorderWindow(QtWidgets.QWidget):
+class ReorderWindow(wc.ToolWindows):
+
+    NAME = "Reorder"
 
     def __init__(self, parent):
         super(ReorderWindow, self).__init__(parent)
-        self.setWindowFlags(QtCore.Qt.Window | QtCore.Qt.Tool)
-        self.father = parent
-        self.setWindowTitle("Reorder")
-        layout = QtWidgets.QGridLayout(self)
-        grid = QtWidgets.QGridLayout()
-        layout.addLayout(grid, 0, 0, 1, 2)
-        grid.addWidget(wc.QLabel("Positions of the spectra:"), 0, 0)
+        self.grid.addWidget(wc.QLabel("Positions of the spectra:"), 0, 0)
         self.valEntry = QtWidgets.QLineEdit()
         self.valEntry.setAlignment(QtCore.Qt.AlignHCenter)
         self.valEntry.returnPressed.connect(self.preview)
-        grid.addWidget(self.valEntry, 1, 0)
+        self.grid.addWidget(self.valEntry, 1, 0)
         fileButton = QtWidgets.QPushButton("&Browse")
         fileButton.clicked.connect(self.getPosFromFile)
-        grid.addWidget(fileButton, 2, 0)
-        grid.addWidget(wc.QLabel("Length of dimension:"), 3, 0)
+        self.grid.addWidget(fileButton, 2, 0)
+        self.grid.addWidget(wc.QLabel("Length of dimension:"), 3, 0)
         self.lengthEntry = QtWidgets.QLineEdit()
         self.lengthEntry.setAlignment(QtCore.Qt.AlignHCenter)
         self.lengthEntry.returnPressed.connect(self.preview)
-        grid.addWidget(self.lengthEntry, 4, 0)
-        cancelButton = QtWidgets.QPushButton("&Cancel")
-        cancelButton.clicked.connect(self.closeEvent)
-        layout.addWidget(cancelButton, 2, 0)
-        okButton = QtWidgets.QPushButton("&Ok")
-        okButton.clicked.connect(self.applyAndClose)
-        layout.addWidget(okButton, 2, 1)
-        self.show()
-        self.setFixedSize(self.size())
-        self.father.menuDisable()
-        self.setGeometry(self.frameSize().width() - self.geometry().width(), self.frameSize().height() - self.geometry().height(), 0, 0)
+        self.grid.addWidget(self.lengthEntry, 4, 0)
 
     def preview(self, *args):
         pass
@@ -6011,10 +5534,6 @@ class ReorderWindow(QtWidgets.QWidget):
         if len(filename) == 0:
             return
         self.valEntry.setText(repr(np.loadtxt(filename, dtype=int)))
-
-    def closeEvent(self, *args):
-        self.father.menuEnable()
-        self.deleteLater()
 
     def applyAndClose(self):
         newLength = safeEval(self.lengthEntry.text())
@@ -6034,87 +5553,51 @@ class ReorderWindow(QtWidgets.QWidget):
             self.father.current.reorder(val, newLength)
         else:
             self.father.undoList.append(self.father.current.reorder(val, newLength))
-        self.father.menuEnable()
-        self.father.updAllFrames()
-        self.deleteLater()
 
 ##########################################################################################
 
-class RegridWindow(QtWidgets.QWidget):
+
+class RegridWindow(wc.ToolWindows):
+
+    NAME = "Regrid"
 
     def __init__(self, parent ):
         super(RegridWindow, self).__init__(parent)
-        self.setWindowFlags(QtCore.Qt.Window | QtCore.Qt.Tool)
-        self.father = parent
-        layout = QtWidgets.QGridLayout(self)
-        grid = QtWidgets.QGridLayout()
-        layout.addLayout(grid, 0, 0, 1, 2)
-        self.setWindowTitle("Regrid")        
-        grid.addWidget(wc.QLabel("Workspace axis to use:"), 0, 0)
+        self.grid.addWidget(wc.QLabel("Workspace axis to use:"), 0, 0)
         self.wsEntry = QtWidgets.QComboBox()
         self.wsEntry.addItems(self.father.father.workspaceNames)
-        grid.addWidget(self.wsEntry, 1, 0)
-        cancelButton = QtWidgets.QPushButton("&Cancel")
-        cancelButton.clicked.connect(self.closeEvent)
-        layout.addWidget(cancelButton, 2, 0)
-        okButton = QtWidgets.QPushButton("&Ok")
-        okButton.clicked.connect(self.applyAndClose)
-        layout.addWidget(okButton, 2, 1)
-        self.show()
-        self.setFixedSize(self.size())
-        self.father.menuDisable()
-        self.setGeometry(self.frameSize().width() - self.geometry().width(), self.frameSize().height() - self.geometry().height(), 0, 0)
+        self.grid.addWidget(self.wsEntry, 1, 0)
 
     def applyAndClose(self):
         ws = self.wsEntry.currentIndex()
-            #returnValue = self.father.current.add(self.father.father.workspaces[ws].masterData.data, self.singleSlice.isChecked())
+        #returnValue = self.father.current.add(self.father.father.workspaces[ws].masterData.data, self.singleSlice.isChecked())
         if self.father.current.data.noUndo:
             self.father.current.regrid(val, newLength)
         else:
             self.father.undoList.append(self.father.current.regrid(val, newLength))
-        self.father.menuEnable()
-        self.father.sideframe.upd()
-        self.deleteLater()
-
-    def closeEvent(self, *args):
-        self.father.menuEnable()
-        self.deleteLater()
 
 ##########################################################################################
 
-class FFMWindow(QtWidgets.QWidget):
+
+class FFMWindow(wc.ToolWindows):
+
+    NAME = "FFM"
 
     def __init__(self, parent):
         super(FFMWindow, self).__init__(parent)
-        self.setWindowFlags(QtCore.Qt.Window | QtCore.Qt.Tool)
-        self.father = parent
-        self.setWindowTitle("FFM")
-        layout = QtWidgets.QGridLayout(self)
-        grid = QtWidgets.QGridLayout()
-        layout.addLayout(grid, 0, 0, 1, 2)
-        grid.addWidget(wc.QLabel("Positions of the spectra:"), 0, 0)
+        self.grid.addWidget(wc.QLabel("Positions of the spectra:"), 0, 0)
         self.valEntry = QtWidgets.QLineEdit()
         self.valEntry.setAlignment(QtCore.Qt.AlignHCenter)
         self.valEntry.returnPressed.connect(self.preview)
-        grid.addWidget(self.valEntry, 1, 0)
+        self.grid.addWidget(self.valEntry, 1, 0)
         fileButton = QtWidgets.QPushButton("&Browse")
         fileButton.clicked.connect(self.getPosFromFile)
-        grid.addWidget(fileButton, 2, 0)
-        grid.addWidget(wc.QLabel("Type of the position list:"), 3, 0)
+        self.grid.addWidget(fileButton, 2, 0)
+        self.grid.addWidget(wc.QLabel("Type of the position list:"), 3, 0)
         self.typeDrop = QtWidgets.QComboBox(parent=self)
         self.typeDrop.addItems(["Complex", "States/States-TPPI", "TPPI"])
-        grid.addWidget(self.typeDrop, 4, 0)
-        grid.addWidget(wc.QLabel("Reconstruction may take a while"), 5, 0)
-        cancelButton = QtWidgets.QPushButton("&Cancel")
-        cancelButton.clicked.connect(self.closeEvent)
-        layout.addWidget(cancelButton, 2, 0)
-        okButton = QtWidgets.QPushButton("&Ok")
-        okButton.clicked.connect(self.applyAndClose)
-        layout.addWidget(okButton, 2, 1)
-        self.show()
-        self.setFixedSize(self.size())
-        self.father.menuDisable()
-        self.setGeometry(self.frameSize().width() - self.geometry().width(), self.frameSize().height() - self.geometry().height(), 0, 0)
+        self.grid.addWidget(self.typeDrop, 4, 0)
+        self.grid.addWidget(wc.QLabel("Reconstruction may take a while"), 5, 0)
 
     def preview(self, *args):
         pass
@@ -6128,10 +5611,6 @@ class FFMWindow(QtWidgets.QWidget):
         if len(filename) == 0:
             return
         self.valEntry.setText(repr(np.loadtxt(filename, dtype=int)))
-
-    def closeEvent(self, *args):
-        self.father.menuEnable()
-        self.deleteLater()
 
     def applyAndClose(self):
         env = vars(np).copy()
@@ -6147,65 +5626,43 @@ class FFMWindow(QtWidgets.QWidget):
             self.father.current.ffm(val, self.typeDrop.currentIndex())
         else:
             self.father.undoList.append(self.father.current.ffm(val, self.typeDrop.currentIndex()))
-        self.father.updAllFrames()
-        self.father.menuEnable()
-        self.deleteLater()
 
 ##########################################################################################
 
 
-class CLEANWindow(QtWidgets.QWidget):
+class CLEANWindow(wc.ToolWindows):
+
+    NAME = "CLEAN"
 
     def __init__(self, parent):
         super(CLEANWindow, self).__init__(parent)
-        self.setWindowFlags(QtCore.Qt.Window | QtCore.Qt.Tool)
-        self.father = parent
-        self.setWindowTitle("CLEAN")
-        layout = QtWidgets.QGridLayout(self)
-        grid = QtWidgets.QGridLayout()
-        layout.addLayout(grid, 0, 0, 1, 2)
-        grid.addWidget(wc.QLabel("Positions of the spectra:"), 0, 0)
+        self.grid.addWidget(wc.QLabel("Positions of the spectra:"), 0, 0)
         self.valEntry = QtWidgets.QLineEdit()
         self.valEntry.setAlignment(QtCore.Qt.AlignHCenter)
         self.valEntry.returnPressed.connect(self.preview)
-        grid.addWidget(self.valEntry, 1, 0)
+        self.grid.addWidget(self.valEntry, 1, 0)
         fileButton = QtWidgets.QPushButton("&Browse")
         fileButton.clicked.connect(self.getPosFromFile)
-        grid.addWidget(fileButton, 2, 0)
-        grid.addWidget(wc.QLabel("Type of the position list:"), 3, 0)
+        self.grid.addWidget(fileButton, 2, 0)
+        self.grid.addWidget(wc.QLabel("Type of the position list:"), 3, 0)
         self.typeDrop = QtWidgets.QComboBox(parent=self)
         self.typeDrop.addItems(["Complex", "States/States-TPPI", "TPPI"])
-        grid.addWidget(self.typeDrop, 4, 0)
-        grid.addWidget(wc.QLabel("Gamma:"), 5, 0)
+        self.grid.addWidget(self.typeDrop, 4, 0)
+        self.grid.addWidget(wc.QLabel("Gamma:"), 5, 0)
         self.gammaEntry = QtWidgets.QLineEdit()
         self.gammaEntry.setAlignment(QtCore.Qt.AlignHCenter)
         self.gammaEntry.setText("0.2")
-        grid.addWidget(self.gammaEntry, 6, 0)
-        grid.addWidget(wc.QLabel("Threshold:"), 7, 0)
+        self.grid.addWidget(self.gammaEntry, 6, 0)
+        self.grid.addWidget(wc.QLabel("Threshold:"), 7, 0)
         self.thresholdEntry = QtWidgets.QLineEdit()
         self.thresholdEntry.setAlignment(QtCore.Qt.AlignHCenter)
         self.thresholdEntry.setText("2.0")
-        grid.addWidget(self.thresholdEntry, 8, 0)
-        # grid.addWidget(wc.QLabel("Linewidth [Hz]:"), 9, 0)
-        # self.lbEntry = QtWidgets.QLineEdit()
-        # self.lbEntry.setAlignment(QtCore.Qt.AlignHCenter)
-        # self.lbEntry.setText("1.0")
-        # grid.addWidget(self.lbEntry, 10, 0)
-        grid.addWidget(wc.QLabel("Max. iterations:"), 11, 0)
+        self.grid.addWidget(self.thresholdEntry, 8, 0)
+        self.grid.addWidget(wc.QLabel("Max. iterations:"), 11, 0)
         self.maxIterEntry = QtWidgets.QLineEdit()
         self.maxIterEntry.setAlignment(QtCore.Qt.AlignHCenter)
         self.maxIterEntry.setText("2000")
-        grid.addWidget(self.maxIterEntry, 12, 0)
-        cancelButton = QtWidgets.QPushButton("&Cancel")
-        cancelButton.clicked.connect(self.closeEvent)
-        layout.addWidget(cancelButton, 2, 0)
-        okButton = QtWidgets.QPushButton("&Ok")
-        okButton.clicked.connect(self.applyAndClose)
-        layout.addWidget(okButton, 2, 1)
-        self.show()
-        self.setFixedSize(self.size())
-        self.father.menuDisable()
-        self.setGeometry(self.frameSize().width() - self.geometry().width(), self.frameSize().height() - self.geometry().height(), 0, 0)
+        self.grid.addWidget(self.maxIterEntry, 12, 0)
 
     def preview(self, *args):
         pass
@@ -6219,10 +5676,6 @@ class CLEANWindow(QtWidgets.QWidget):
         if len(filename) == 0:
             return
         self.valEntry.setText(repr(np.loadtxt(filename, dtype=int)))
-
-    def closeEvent(self, *args):
-        self.father.menuEnable()
-        self.deleteLater()
 
     def applyAndClose(self):
         env = vars(np).copy()
@@ -6242,10 +5695,6 @@ class CLEANWindow(QtWidgets.QWidget):
             self.father.dispMsg("One of the inputs is not valid")
             return
         threshold = threshold
-        # lb = safeEval(self.lbEntry.text())
-        # if lb is None:
-        #    self.father.dispMsg("One of the inputs is not valid")
-        #    return
         maxIter = safeEval(self.maxIterEntry.text())
         if maxIter is None:
             self.father.dispMsg("One of the inputs is not valid")
@@ -6256,60 +5705,42 @@ class CLEANWindow(QtWidgets.QWidget):
             self.father.current.clean(val, self.typeDrop.currentIndex(), gamma, threshold, maxIter)
         else:
             self.father.undoList.append(self.father.current.clean(val, self.typeDrop.currentIndex(), gamma, threshold, maxIter))
-        self.father.updAllFrames()
-        self.father.menuEnable()
-        self.deleteLater()
 
 ################################################################
 
-class ISTWindow(QtWidgets.QWidget):
+
+class ISTWindow(wc.ToolWindows):
+
+    NAME = "IST"
 
     def __init__(self, parent):
         super(ISTWindow, self).__init__(parent)
-        self.setWindowFlags(QtCore.Qt.Window | QtCore.Qt.Tool)
-        self.father = parent
-        self.setWindowTitle("IST")
-        layout = QtWidgets.QGridLayout(self)
-        grid = QtWidgets.QGridLayout()
-        layout.addLayout(grid, 0, 0, 1, 2)
-        grid.addWidget(wc.QLabel("Positions of the spectra:"), 0, 0)
+        self.grid.addWidget(wc.QLabel("Positions of the spectra:"), 0, 0)
         self.valEntry = QtWidgets.QLineEdit()
         self.valEntry.setAlignment(QtCore.Qt.AlignHCenter)
         self.valEntry.returnPressed.connect(self.preview)
-        grid.addWidget(self.valEntry, 1, 0)
+        self.grid.addWidget(self.valEntry, 1, 0)
         fileButton = QtWidgets.QPushButton("&Browse")
         fileButton.clicked.connect(self.getPosFromFile)
-        grid.addWidget(fileButton, 2, 0)
-        grid.addWidget(wc.QLabel("Type of the position list:"), 3, 0)
+        self.grid.addWidget(fileButton, 2, 0)
+        self.grid.addWidget(wc.QLabel("Type of the position list:"), 3, 0)
         self.typeDrop = QtWidgets.QComboBox(parent=self)
         self.typeDrop.addItems(["Complex", "States/States-TPPI", "TPPI"])
-        grid.addWidget(self.typeDrop, 4, 0)
-        grid.addWidget(wc.QLabel("Threshold:"), 5, 0)
+        self.grid.addWidget(self.typeDrop, 4, 0)
+        self.grid.addWidget(wc.QLabel("Threshold:"), 5, 0)
         self.thresholdEntry = QtWidgets.QLineEdit()
         self.thresholdEntry.setAlignment(QtCore.Qt.AlignHCenter)
         self.thresholdEntry.setText("0.9")
-        grid.addWidget(self.thresholdEntry, 6, 0)
-        grid.addWidget(wc.QLabel("Max. iterations:"), 7, 0)
+        self.grid.addWidget(self.thresholdEntry, 6, 0)
+        self.grid.addWidget(wc.QLabel("Max. iterations:"), 7, 0)
         self.maxIterEntry = QtWidgets.QLineEdit()
         self.maxIterEntry.setAlignment(QtCore.Qt.AlignHCenter)
         self.maxIterEntry.setText("100")
-        grid.addWidget(self.maxIterEntry, 8, 0)
-        
-        grid.addWidget(wc.QLabel("Stop when residual below (% of ND max):"), 9, 0)
+        self.grid.addWidget(self.maxIterEntry, 8, 0)
+        self.grid.addWidget(wc.QLabel("Stop when residual below (% of ND max):"), 9, 0)
         self.tracelimitEntry = QtWidgets.QLineEdit()
         self.tracelimitEntry.setAlignment(QtCore.Qt.AlignHCenter)
         self.tracelimitEntry.setText("2.0")
-        grid.addWidget(self.tracelimitEntry, 10, 0)
-        cancelButton = QtWidgets.QPushButton("&Cancel")
-        cancelButton.clicked.connect(self.closeEvent)
-        layout.addWidget(cancelButton, 2, 0)
-        okButton = QtWidgets.QPushButton("&Ok")
-        okButton.clicked.connect(self.applyAndClose)
-        layout.addWidget(okButton, 2, 1)
-        self.show()
-        self.setFixedSize(self.size())
-        self.father.menuDisable()
-        self.setGeometry(self.frameSize().width() - self.geometry().width(), self.frameSize().height() - self.geometry().height(), 0, 0)
 
     def preview(self, *args):
         pass
@@ -6324,11 +5755,7 @@ class ISTWindow(QtWidgets.QWidget):
             return
         self.valEntry.setText(repr(np.loadtxt(filename, dtype=int)))
 
-    def closeEvent(self, *args):
-        self.father.menuEnable()
-        self.deleteLater()
-
-    def applyAndClose(self):
+    def applyFunc(self):
         env = vars(np).copy()
         env['length'] = int(self.father.current.data1D.shape[-1])  # so length can be used to in equations
         env['euro'] = lambda fVal, num=int(self.father.current.data1D.shape[-1]): euro(fVal, num)
@@ -6355,14 +5782,9 @@ class ISTWindow(QtWidgets.QWidget):
             self.father.current.ist(val, self.typeDrop.currentIndex(), threshold, maxIter,tracelimit)
         else:
             self.father.undoList.append(self.father.current.ist(val, self.typeDrop.currentIndex(), threshold, maxIter,tracelimit))
-        self.father.updAllFrames()
-        self.father.menuEnable()
-        self.deleteLater()
-        
-        
-        
         
 ################################################################
+
 
 class ShearingWindow(QtWidgets.QWidget):
 
@@ -6408,11 +5830,9 @@ class ShearingWindow(QtWidgets.QWidget):
         self.father.menuDisable()
         self.setGeometry(self.frameSize().width() - self.geometry().width(), self.frameSize().height() - self.geometry().height(), 0, 0)
 
-
     def dropdownChanged(self):
         index =  self.shearDropdown.currentIndex()
         self.shearEntry.setText("%.9f" % self.shearList[index])
-        
         
     def shearPreview(self, *args):
         shear = safeEval(self.shearEntry.text())
@@ -6583,10 +6003,8 @@ class XaxWindow(QtWidgets.QWidget):
             item2.setFlags(QtCore.Qt.ItemIsEnabled)
             self.table.setItem(int(val),1,item2)
             
-            
 #        self.table.setVerticalHeaderLabels([str(a) for a in range(self.axisSize)])
         grid.addWidget(self.table, 12, 0, 1, 2)
-        
         
         cancelButton = QtWidgets.QPushButton("&Cancel")
         cancelButton.clicked.connect(self.closeEvent)
@@ -7041,8 +6459,6 @@ class MonitorWindow(QtWidgets.QWidget):
         self.delTime.setSingleStep(0.1)
         self.delTime.setValue(0.5)
         grid.addWidget(self.delTime, 2, 1)
-            
-            
         cancelButton = QtWidgets.QPushButton("&Close")
         cancelButton.clicked.connect(self.closeEvent)
         layout.addWidget(cancelButton, 3, 0)
@@ -7216,41 +6632,30 @@ class errorWindow(QtWidgets.QWidget):
         super(errorWindow, self).__init__(parent)
         self.setWindowFlags(QtCore.Qt.Window | QtCore.Qt.Tool)
         self.father = parent
-
         self.setWindowTitle("Error Messages")
-
         grid = QtWidgets.QGridLayout()
-        
-        
         self.errorQList = QtWidgets.QListWidget(self)
         self.errorQList.currentRowChanged.connect(self.rowChange)
-        
         for error in self.father.errors:
             if len(error[1]) == 3:
                 tmp = QtWidgets.QListWidgetItem(error[0] + ': Python error', self.errorQList)
                 tmp.setForeground(QtGui.QBrush(QtGui.QColor('red')))
             elif len(error[1]) == 1:
                 QtWidgets.QListWidgetItem(error[0] + ': ' + error[1][0], self.errorQList)
-
         self.errorEdit = QtWidgets.QTextEdit(self)
         self.errorEdit.setReadOnly(True)
         errorText = ''
         self.errorEdit.setHtml(errorText)
-       
-        
         grid.addWidget(self.errorQList, 0, 0, 1, 3)
         grid.addWidget(self.errorEdit, 1, 0, 1, 3)
         closebutton = QtWidgets.QPushButton("Close")
         grid.addWidget(closebutton, 12, 1, 1, 1)
         closebutton.clicked.connect(self.closeEvent)
-
         self.setLayout(grid)
         self.resize(550, 700)
         self.show()
         
-        
     def rowChange(self,row):
-        
         errorText = ''
         error = self.father.errors[row]
         if len(error[1]) == 3 :
@@ -7441,6 +6846,7 @@ class PreferenceWindow(QtWidgets.QWidget):
 
 ##############################################################################
 
+
 class ToolbarWindow(QtWidgets.QWidget):
 
     def __init__(self,parent):
@@ -7450,12 +6856,6 @@ class ToolbarWindow(QtWidgets.QWidget):
         self.setWindowTitle("Change Toolbar")
         layout = QtWidgets.QGridLayout(self)
         grid = QtWidgets.QGridLayout()
-#        fileName = self.father.masterData.filePath[1]
-#        if len(fileName) > 58:
-#            fileName = fileName[:55] + '...'
-#        fileLabel = wc.QLabel("File: " + fileName)
-#        fileLabel.setToolTip(self.father.masterData.filePath[1])
-#        layout.addWidget(fileLabel, 0, 0, 1, 3)
         layout.addLayout(grid, 1, 0, 1, 3)
         grid.addWidget(wc.QLabel("Actions:"), 0, 0)
         grid.addWidget(wc.QLabel("Toolbar Actions:"), 0, 1)
@@ -7490,8 +6890,8 @@ class ToolbarWindow(QtWidgets.QWidget):
 #        self.father.father.menuEnable()
         self.deleteLater()
         
-
 ##############################################################################
+
 
 class aboutWindow(QtWidgets.QWidget):
 
@@ -7551,7 +6951,6 @@ class aboutWindow(QtWidgets.QWidget):
         self.deleteLater()
 
 ##############################################################################
-
 
 
 class shiftConversionWindow(QtWidgets.QWidget):
@@ -7748,7 +7147,6 @@ class shiftConversionWindow(QtWidgets.QWidget):
         self.dyy.setText('%#.4g' % Results[1][1])
         self.dzz.setText('%#.4g' % Results[1][2])
 
-
         #Haeberlen def
         self.diso.setText('%#.4g' % Results[2][0])
         self.daniso.setText('%#.4g' % Results[2][1])
@@ -7764,7 +7162,6 @@ class shiftConversionWindow(QtWidgets.QWidget):
             self.hbskew.setText('%#.4g' % Results[3][2])
         except:
             self.hbskew.setText('ND')
-
 
     def valueReset(self):  # Resets all the boxes to 0
         self.D11.setText('0')
@@ -7970,14 +7367,7 @@ class quadConversionWindow(QtWidgets.QWidget):
         self.deleteLater()
 
 
-
-
-
-
-
 if __name__ == '__main__':
-
-
     mainProgram = MainProgram(root)
     mainProgram.setWindowTitle("ssNake - " + VERSION)
     mainProgram.show()
@@ -7987,13 +7377,6 @@ if __name__ == '__main__':
     def exception_hook(exctype, value, traceback):
         sys._excepthook(exctype, value, traceback)
         mainProgram.dispError([exctype, value, traceback])
-    #    sys.exit(1)
     sys.excepthook = exception_hook
-    
-    
-
     sys.exit(root.exec_())
-
-         
-#         raise
     
