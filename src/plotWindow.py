@@ -64,27 +64,18 @@ class MainPlotWindow(QtWidgets.QWidget):
         self.labelFrame = QtWidgets.QGridLayout()
         self.labelFrame.addWidget(QLeftLabel('Title:'), 0, 0)
         
-        self.titleEntry = QtWidgets.QLineEdit()
-        self.titleEntry.setAlignment(QtCore.Qt.AlignHCenter)
         self.titleBackup = oldMainWindow.get_masterData().name
-        self.titleEntry.setText(self.titleBackup)
-        self.titleEntry.returnPressed.connect(self.updatePlot)
+        self.titleEntry = wc.QLineEdit(self.titleBackup, self.updatePlot)
         self.labelFrame.addWidget(self.titleEntry, 0, 1)
         
         self.labelFrame.addWidget(QLeftLabel("x:"), 1, 0)
-        self.xlabelEntry = QtWidgets.QLineEdit()
-        self.xlabelEntry.setAlignment(QtCore.Qt.AlignHCenter)
         self.xlabelBackup = self.ax.get_xlabel()
-        self.xlabelEntry.setText(self.xlabelBackup)
-        self.xlabelEntry.returnPressed.connect(self.updatePlot)
+        self.xlabelEntry = wc.QLineEdit(self.xlabelBackup, self.updatePlot)
         self.labelFrame.addWidget(self.xlabelEntry, 1, 1)
         
         self.labelFrame.addWidget(QLeftLabel("y:"), 2, 0)
-        self.ylabelEntry = QtWidgets.QLineEdit()
-        self.ylabelEntry.setAlignment(QtCore.Qt.AlignHCenter)
         self.ylabelBackup = self.ax.get_ylabel()
-        self.ylabelEntry.setText(self.ylabelBackup)
-        self.ylabelEntry.returnPressed.connect(self.updatePlot)
+        self.ylabelEntry = wc.QLineEdit(self.ylabelBackup, self.updatePlot)
         self.labelFrame.addWidget(self.ylabelEntry, 2, 1)
         
         self.labelGroup.setLayout(self.labelFrame)
@@ -97,38 +88,24 @@ class MainPlotWindow(QtWidgets.QWidget):
         
         self.xlimBackup = self.ax.get_xlim()
         self.limitsFrame.addWidget(QLeftLabel("x left:"), 0, 0)
-        self.xlimLeftEntry = QtWidgets.QLineEdit()
-        self.xlimLeftEntry.setAlignment(QtCore.Qt.AlignHCenter)
-        self.xlimLeftEntry.setText(str(self.xlimBackup[0]))
-        self.xlimLeftEntry.returnPressed.connect(self.updatePlot)
+        self.xlimLeftEntry = wc.QLineEdit(self.xlimBackup[0], self.updatePlot)
         self.limitsFrame.addWidget(self.xlimLeftEntry, 0, 1)
         
         self.limitsFrame.addWidget(QLeftLabel("x right:"), 1, 0)
-        self.xlimRightEntry = QtWidgets.QLineEdit()
-        self.xlimRightEntry.setAlignment(QtCore.Qt.AlignHCenter)
-        self.xlimRightEntry.setText(str(self.xlimBackup[1]))
-        self.xlimRightEntry.returnPressed.connect(self.updatePlot)
+        self.xlimRightEntry = wc.QLineEdit(self.xlimBackup[1], self.updatePlot)
         self.limitsFrame.addWidget(self.xlimRightEntry, 1, 1)
         
         self.ylimBackup = self.ax.get_ylim()
         self.limitsFrame.addWidget(QLeftLabel("y down:"), 2, 0)
-        self.ylimLeftEntry = QtWidgets.QLineEdit()
-        self.ylimLeftEntry.setAlignment(QtCore.Qt.AlignHCenter)
-        self.ylimLeftEntry.setText(str(self.ylimBackup[0]))
-        self.ylimLeftEntry.returnPressed.connect(self.updatePlot)
+        self.ylimLeftEntry = wc.QLineEdit(self.ylimBackup[0], self.updatePlot)
         self.limitsFrame.addWidget(self.ylimLeftEntry, 2, 1)
         
         self.limitsFrame.addWidget(QLeftLabel("y up:"), 3, 0)
-        self.ylimRightEntry = QtWidgets.QLineEdit()
-        self.ylimRightEntry.setAlignment(QtCore.Qt.AlignHCenter)
-        self.ylimRightEntry.setText(str(self.ylimBackup[1]))
-        self.ylimRightEntry.returnPressed.connect(self.updatePlot)
+        self.ylimRightEntry = wc.QLineEdit(self.ylimBackup[1], self.updatePlot)
         self.limitsFrame.addWidget(self.ylimRightEntry, 3, 1)
-        
         
         self.limitsGroup.setLayout(self.limitsFrame)
         self.optionFrame.addWidget(self.limitsGroup,1,0)
-        
         
         #Dimensions
         self.dimensionsGroup = QtWidgets.QGroupBox('Dimensions:')
@@ -464,17 +441,11 @@ class LegendWindow(QtWidgets.QWidget):
         layout.addLayout(grid, 0, 0, 1, 2)
         grid.addWidget(QLabel("Legend position:"), 0, 0)
         self.posVal = self.father.legendPos
-        self.posEntry = QtWidgets.QLineEdit()
-        self.posEntry.setAlignment(QtCore.Qt.AlignHCenter)
-        self.posEntry.setText(self.posVal)
-        self.posEntry.returnPressed.connect(self.preview)
+        self.posEntry = wc.QLineEdit(self.posVal, self.preview)
         grid.addWidget(self.posEntry, 1, 0)
         grid.addWidget(QLabel("Legend order:"), 2, 0)
         self.orderVal = self.father.legendOrder
-        self.orderEntry = QtWidgets.QLineEdit()
-        self.orderEntry.setAlignment(QtCore.Qt.AlignHCenter)
-        self.orderEntry.setText(str(self.orderVal))
-        self.orderEntry.returnPressed.connect(self.preview)
+        self.orderEntry = wc.QLineEdit(self.orderVal, self.preview)
         grid.addWidget(self.orderEntry, 3, 0)
         grid.addWidget(QLabel("Legend:"), 4, 0)
         self.father.legendGroup.setChecked(True)
@@ -484,10 +455,7 @@ class LegendWindow(QtWidgets.QWidget):
         grid.addWidget(self.spinBox, 5, 0)
         self.legendEditList = []
         for i in range(len(self.father.legendTextList)):
-            self.legendEditList.append(QtWidgets.QLineEdit())
-            self.legendEditList[i].setAlignment(QtCore.Qt.AlignHCenter)
-            self.legendEditList[i].setText(self.father.legendTextList[i])
-            self.legendEditList[i].returnPressed.connect(self.preview)
+            self.legendEditList.append(wc.QLineEdit(self.father.legendTextList[i], self.preview))
             grid.addWidget(self.legendEditList[i], 6, 0)
             self.legendEditList[i].setVisible(False)
         self.legendEditList[0].setVisible(True)
