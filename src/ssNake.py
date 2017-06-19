@@ -3739,7 +3739,7 @@ class ApodWindow(wc.ToolWindows):
         
             self.grid.addWidget(self.shiftingDropdown, 13, 1)
             
-            self.shiftingEntry = QtWidgets.QLineEdit("0.00", self.apodPreview)
+            self.shiftingEntry = wc.QLineEdit("0.00", self.apodPreview)
             self.grid.addWidget(self.shiftingEntry, 14, 1)
             self.shiftingAxes = QtWidgets.QComboBox()
             self.shiftingValues = list(map(str, np.delete(range(1, self.father.current.data.data.ndim + 1), self.father.current.axes)))
