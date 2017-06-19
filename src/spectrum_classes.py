@@ -1689,19 +1689,6 @@ class Current1D(Plot1DFrame):
         length = len(self.data1D)
         t = np.arange(0, length) / (self.sw)
         x = func.apodize(t,shift,self.sw,length,lor,gauss,cos2,hamming,self.wholeEcho)
-        #t2 = t - shift
-        #x = np.ones(length)
-        #if lor is not None:
-        #    x = x * np.exp(-np.pi * lor * abs(t2))
-        #if gauss is not None:
-        #    x = x * np.exp(-((np.pi * gauss * t2)**2) / (4 * np.log(2)))
-        #if cos2 is not None:
-        #    x = x * (np.cos(cos2 * (-0.5 * shift * np.pi * self.sw / length + np.linspace(0, 0.5 * np.pi, len(self.data1D))))**2)
-        #if hamming is not None:
-        #    alpha = 0.53836  # constant for hamming window
-        #    x = x * (alpha + (1 - alpha) * np.cos(hamming * (-0.5 * shift * np.pi * self.sw / length + np.linspace(0, np.pi, length))))
-        #if self.wholeEcho:
-        #    x[-1:-(int(len(x) / 2 + 1)):-1] = x[:int(len(x) / 2)]
         self.ax.cla()
         y = self.data1D
         if self.spec == 1:
