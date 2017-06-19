@@ -31,6 +31,7 @@ import matplotlib
 import matplotlib._cntr as cntr
 import matplotlib.collections as mcoll
 import reimplement as reim
+import functions as func
 
 COLORMAPLIST = ['seismic', 'BrBG', 'bwr', 'coolwarm', 'PiYG', 'PRGn', 'PuOr',
                 'RdBu', 'RdGy', 'RdYlBu', 'RdYlGn', 'Spectral', 'rainbow', 'jet']
@@ -917,19 +918,8 @@ class Spectrum(object):
         if shifting != 0.0:
             for j in range(self.data.shape[shiftingAxes]):
                 shift1 = shift + shifting * j / self.sw[shiftingAxes]
-                t2 = t - shift1
-                x = np.ones(axLen)
-                if lor is not None:
-                    x = x * np.exp(-np.pi * lor * abs(t2))
-                if gauss is not None:
-                    x = x * np.exp(-((np.pi * gauss * t2)**2) / (4 * np.log(2)))
-                if cos2 is not None:
-                    x = x * (np.cos(cos2 * (-0.5 * shift1 * np.pi * self.sw[axes] / axLen + np.linspace(0, 0.5 * np.pi, axLen)))**2)
-                if hamming is not None:
-                    alpha = 0.53836  # constant for hamming window
-                    x = x * (alpha + (1 - alpha) * np.cos(hamming * (-0.5 * shift1 * np.pi * self.sw[axes] / axLen + np.linspace(0, np.pi, axLen))))
-                if self.wholeEcho[axes]:
-                    x[-1:-(int(len(x) / 2) + 1):-1] = x[:int(len(x) / 2)]
+
+                x = func.apodize(t,shift1,self.sw[axes],axLen,lor,gauss,cos2,hamming,self.wholeEcho[axes])
                 if self.spec[axes] > 0:
                     self.fourier(axes, tmp=True)
                 for i in range(self.data.shape[axes]):
@@ -941,19 +931,8 @@ class Spectrum(object):
                 if self.spec[axes] > 0:
                     self.fourier(axes, tmp=True, inv=True)
         else:
-            t2 = t - shift
-            x = np.ones(axLen)
-            if lor is not None:
-                x = x * np.exp(-np.pi * lor * abs(t2))
-            if gauss is not None:
-                x = x * np.exp(-((np.pi * gauss * t2)**2) / (4 * np.log(2)))
-            if cos2 is not None:
-                x = x * (np.cos(cos2 * (-0.5 * shift * np.pi * self.sw[axes] / axLen + np.linspace(0, 0.5 * np.pi, axLen)))**2)
-            if hamming is not None:
-                alpha = 0.53836  # constant for hamming window
-                x = x * (alpha + (1 - alpha) * np.cos(hamming * (-0.5 * shift * np.pi * self.sw[axes] / axLen + np.linspace(0, np.pi, axLen))))
-            if self.wholeEcho[axes]:
-                x[-1:-(int(len(x) / 2) + 1):-1] = x[:int(len(x) / 2)]
+
+            x = func.apodize(t,shift,self.sw[axes],axLen,lor,gauss,cos2,hamming,self.wholeEcho[axes])
             if self.spec[axes] > 0:
                 self.fourier(axes, tmp=True)
             self.data[select] = np.apply_along_axis(np.multiply, axes, self.data, x)[select]
