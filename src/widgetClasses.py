@@ -95,7 +95,7 @@ class ToolWindows(QtWidgets.QWidget):
             self.setFixedSize(self.size())
         if self.MENUDISABLE:
             self.father.menuDisable()
-        self.setGeometry(self.frameSize().width() - self.geometry().width(), self.frameSize().height() - self.geometry().height(), 0, 0)
+        self.setGeometry(self.frameSize().width() - self.geometry().width(), self.frameSize().height() , 0, 0)
 
     def browse(self):
         pass
