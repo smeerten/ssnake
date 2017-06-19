@@ -179,6 +179,84 @@ class QLineEdit(QtWidgets.QLineEdit):
             self.returnPressed.connect(func)
 
 
+class FitQLineEdit(QLineEdit):
+
+    def __init__(self, fitParent, paramName, *args):
+        super(FitQLineEdit, self).__init__(*args)
+        self.fitParent = fitParent
+        self.paramName = paramName
+    
+    def contextMenuEvent(self, event):
+        menu = self.createStandardContextMenu()
+        menu.addAction('Connect Param.', self.connectParams)
+        menu.exec_(event.globalPos())
+
+    def connectParams(self, *args):
+        ConnectParamsWindow(self, self.fitParent.PARAMTEXT, self.paramName, self.fitParent.rootwindow.getTabNames(), self.fitParent.rootwindow.getCurrentTabName(), self.setConnect)
+
+    def setConnect(self, inpTuple):
+        self.setText(str(inpTuple))
+
+
+class ConnectParamsWindow(QtWidgets.QWidget):
+
+    def __init__(self, parent, paramTextList, paramName, spectrumNames, currentSpectrum, returnFunc):
+        super(ConnectParamsWindow, self).__init__(parent)
+        self.setWindowFlags(QtCore.Qt.Window | QtCore.Qt.Tool)
+        self.setWindowTitle("Connect Parameter")
+        self.paramTextDict = paramTextList
+        self.paramTextList = self.paramTextDict.values()
+        self.paramName = paramName
+        self.paramText = self.paramTextDict[self.paramName]
+        self.spectrumNames = spectrumNames
+        self.currentSpectrum = self.spectrumNames.index(currentSpectrum)
+        self.returnFunc = returnFunc
+        self.layout = QtWidgets.QGridLayout(self)
+        self.grid = QtWidgets.QGridLayout()
+        self.layout.addLayout(self.grid, 0, 0, 1, 2)
+        self.grid.addWidget(QtWidgets.QLabel("Parameter:"), 0, 0)
+        self.paramNameEntry = QtWidgets.QComboBox()
+        self.paramNameEntry.addItems(self.paramTextList)
+        self.paramNameEntry.setCurrentIndex(self.paramTextList.index(self.paramText))
+        self.grid.addWidget(self.paramNameEntry, 0, 1)
+        
+        self.grid.addWidget(QtWidgets.QLabel("Spectrum:"), 1, 0)
+        self.spectrumNameEntry = QtWidgets.QComboBox()
+        self.spectrumNameEntry.addItems(self.spectrumNames)
+        self.spectrumNameEntry.setCurrentIndex(self.currentSpectrum)
+        self.grid.addWidget(self.spectrumNameEntry, 1, 1)
+
+        self.grid.addWidget(QtWidgets.QLabel("Line:"), 2, 0)
+        self.lineEntry = QtWidgets.QSpinBox()
+        self.grid.addWidget(self.lineEntry, 2, 1)
+        
+        self.grid.addWidget(QtWidgets.QLabel("Multiplier:"), 3, 0)
+        self.multEntry = QLineEdit("1.0")
+        self.grid.addWidget(self.multEntry, 3, 1)
+
+        self.grid.addWidget(QtWidgets.QLabel("Offset:"), 4, 0)
+        self.addEntry = QLineEdit("0.0")
+        self.grid.addWidget(self.addEntry, 4, 1)
+        
+        self.cancelButton = QtWidgets.QPushButton("&Cancel")
+        self.cancelButton.clicked.connect(self.closeEvent)
+        self.layout.addWidget(self.cancelButton, 2, 0)
+        self.okButton = QtWidgets.QPushButton("&Ok")
+        self.okButton.clicked.connect(self.applyAndClose)
+        self.okButton.setFocus()
+        self.layout.addWidget(self.okButton, 2, 1)
+        self.show()
+
+    def applyAndClose(self):
+        paramName = self.paramTextDict.keys()[self.paramNameEntry.currentIndex()]
+        returnTuple = (self.lineEntry.value(), paramName, safeEval(self.multEntry.text()), safeEval(self.addEntry.text()), self.spectrumNameEntry.currentIndex())
+        self.closeEvent()
+        self.returnFunc(returnTuple)
+
+    def closeEvent(self, *args):
+        self.deleteLater()
+
+
 class specialProgressBar(QtWidgets.QProgressBar):
     
     def __init__(self):

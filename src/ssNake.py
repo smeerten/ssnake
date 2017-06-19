@@ -4954,6 +4954,7 @@ class InsertWindow(wc.ToolWindows):
 class CombineWindow(wc.ToolWindows):
 
     SINGLESLICE = True
+    RESIZABLE = True
     
     def __init__(self, parent, combType):
         super(CombineWindow, self).__init__(parent)
@@ -4989,7 +4990,7 @@ class CombineWindow(wc.ToolWindows):
         self.father.redoList = []
         if not self.father.current.data.noUndo:
             self.father.undoList.append(returnValue)
-
+            
 ##############################################################
 
 
@@ -5972,6 +5973,7 @@ class DestListWidget(QtWidgets.QListWidget):
 class CombineWorkspaceWindow(wc.ToolWindows):
 
     NAME = "Combine workspaces"
+    RESIZABLE = True
 
     def __init__(self, parent):
         super(CombineWorkspaceWindow, self).__init__(parent)
@@ -5993,6 +5995,11 @@ class CombineWorkspaceWindow(wc.ToolWindows):
             self.father.dispMsg("Please select at least one workspace to combine")
         else:
             self.father.combineWorkspace(items)
+
+    def closeEvent(self, *args):
+        if self.MENUDISABLE:
+            self.father.menuEnable()
+        self.deleteLater()
 
 ##########################################################################################
 

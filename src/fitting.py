@@ -159,6 +159,12 @@ class TabFittingWindow(QtWidgets.QWidget):
         grid3.setColumnStretch(0, 1)
         grid3.setRowStretch(0, 1)
 
+    def getTabNames(self):
+        return [self.tabs.tabText(i) for i in range(self.tabs.count())]
+
+    def getCurrentTabName(self):
+        return self.tabs.tabText(self.tabs.currentIndex())
+        
     def addSpectrum(self):
         text = QtWidgets.QInputDialog.getItem(self, "Select spectrum to add", "Spectrum name:", self.mainProgram.workspaceNames, 0, False)
         if text[1]:
@@ -352,6 +358,12 @@ class FittingWindow(QtWidgets.QWidget):
     def sim(self, *args, **kwargs):
         self.tabWindow.disp(**kwargs)
         
+    def getCurrentTabName(self, *args, **kwargs):
+        return self.tabWindow.getCurrentTabName(*args, **kwargs)
+
+    def getTabNames(self, *args, **kwargs):
+        return self.tabWindow.getTabNames(*args, **kwargs)
+
     def addSpectrum(self):
         self.tabWindow.addSpectrum()
 
@@ -2217,6 +2229,7 @@ class PeakDeconvParamFrame(AbstractParamFrame):
     def __init__(self, parent, rootwindow, isMain=True):
         self.SINGLENAMES = ['bgrnd', 'slope']
         self.MULTINAMES = ['pos', 'amp', 'lor', 'gauss']
+        self.PARAMTEXT = {'bgrnd':'Background', 'slope':'Slope', 'pos':'Position', 'amp':'Integral', 'lor':'Lorentz', 'gauss':'Gauss'}
         self.FITFUNC = peakDeconvmpFit
         #Get full integral
         self.fullInt = np.sum(parent.data1D) * parent.current.sw / float(len(parent.data1D))
@@ -2232,12 +2245,12 @@ class PeakDeconvParamFrame(AbstractParamFrame):
         self.frame2.addWidget(QLabel("Bgrnd:"), 0, 0, 1, 2)
         self.ticks['bgrnd'].append(QtWidgets.QCheckBox(''))
         self.frame2.addWidget(self.ticks['bgrnd'][0], 1, 0)
-        self.entries['bgrnd'].append(wc.QLineEdit("0.0"))
+        self.entries['bgrnd'].append(wc.FitQLineEdit(self, 'bgrnd', "0.0"))
         self.frame2.addWidget(self.entries['bgrnd'][0], 1, 1)
         self.frame2.addWidget(QLabel("Slope:"), 2, 0, 1, 2)
         self.ticks['slope'].append(QtWidgets.QCheckBox(''))
         self.frame2.addWidget(self.ticks['slope'][0], 3, 0)
-        self.entries['slope'].append(wc.QLineEdit("0.0"))
+        self.entries['slope'].append(wc.FitQLineEdit(self, 'slope', "0.0"))
         self.frame2.addWidget(self.entries['slope'][0], 3, 1)
         self.frame2.addWidget(QLabel("Method:"), 4, 0, 1, 2)
         self.entries['method'].append(QtWidgets.QComboBox())
@@ -2259,7 +2272,7 @@ class PeakDeconvParamFrame(AbstractParamFrame):
             for j in range(len(self.MULTINAMES)):
                 self.ticks[self.MULTINAMES[j]].append(QtWidgets.QCheckBox(''))
                 self.frame3.addWidget(self.ticks[self.MULTINAMES[j]][i], i + 2, 2*j)
-                self.entries[self.MULTINAMES[j]].append(wc.QLineEdit())
+                self.entries[self.MULTINAMES[j]].append(wc.FitQLineEdit(self, self.MULTINAMES[j]))
                 self.frame3.addWidget(self.entries[self.MULTINAMES[j]][i], i + 2, 2*j+1)
         self.reset()
 
