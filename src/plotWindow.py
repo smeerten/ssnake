@@ -27,7 +27,7 @@ except ImportError:
 import matplotlib
 matplotlib.rc('svg', fonttype='none')
 from matplotlib.colors import colorConverter
-from widgetClasses import QLabel, QLeftLabel
+import widgetClasses as wc
 
 from safeEval import safeEval
 import numpy as np
@@ -62,18 +62,18 @@ class MainPlotWindow(QtWidgets.QWidget):
         
         self.labelGroup = QtWidgets.QGroupBox('Labels:')
         self.labelFrame = QtWidgets.QGridLayout()
-        self.labelFrame.addWidget(QLeftLabel('Title:'), 0, 0)
+        self.labelFrame.addWidget(wc.QLeftLabel('Title:'), 0, 0)
         
         self.titleBackup = oldMainWindow.get_masterData().name
         self.titleEntry = wc.QLineEdit(self.titleBackup, self.updatePlot)
         self.labelFrame.addWidget(self.titleEntry, 0, 1)
         
-        self.labelFrame.addWidget(QLeftLabel("x:"), 1, 0)
+        self.labelFrame.addWidget(wc.QLeftLabel("x:"), 1, 0)
         self.xlabelBackup = self.ax.get_xlabel()
         self.xlabelEntry = wc.QLineEdit(self.xlabelBackup, self.updatePlot)
         self.labelFrame.addWidget(self.xlabelEntry, 1, 1)
         
-        self.labelFrame.addWidget(QLeftLabel("y:"), 2, 0)
+        self.labelFrame.addWidget(wc.QLeftLabel("y:"), 2, 0)
         self.ylabelBackup = self.ax.get_ylabel()
         self.ylabelEntry = wc.QLineEdit(self.ylabelBackup, self.updatePlot)
         self.labelFrame.addWidget(self.ylabelEntry, 2, 1)
@@ -87,20 +87,20 @@ class MainPlotWindow(QtWidgets.QWidget):
         self.limitsFrame = QtWidgets.QGridLayout()
         
         self.xlimBackup = self.ax.get_xlim()
-        self.limitsFrame.addWidget(QLeftLabel("x left:"), 0, 0)
+        self.limitsFrame.addWidget(wc.QLeftLabel("x left:"), 0, 0)
         self.xlimLeftEntry = wc.QLineEdit(self.xlimBackup[0], self.updatePlot)
         self.limitsFrame.addWidget(self.xlimLeftEntry, 0, 1)
         
-        self.limitsFrame.addWidget(QLeftLabel("x right:"), 1, 0)
+        self.limitsFrame.addWidget(wc.QLeftLabel("x right:"), 1, 0)
         self.xlimRightEntry = wc.QLineEdit(self.xlimBackup[1], self.updatePlot)
         self.limitsFrame.addWidget(self.xlimRightEntry, 1, 1)
         
         self.ylimBackup = self.ax.get_ylim()
-        self.limitsFrame.addWidget(QLeftLabel("y down:"), 2, 0)
+        self.limitsFrame.addWidget(wc.QLeftLabel("y down:"), 2, 0)
         self.ylimLeftEntry = wc.QLineEdit(self.ylimBackup[0], self.updatePlot)
         self.limitsFrame.addWidget(self.ylimLeftEntry, 2, 1)
         
-        self.limitsFrame.addWidget(QLeftLabel("y up:"), 3, 0)
+        self.limitsFrame.addWidget(wc.QLeftLabel("y up:"), 3, 0)
         self.ylimRightEntry = wc.QLineEdit(self.ylimBackup[1], self.updatePlot)
         self.limitsFrame.addWidget(self.ylimRightEntry, 3, 1)
         
@@ -115,7 +115,7 @@ class MainPlotWindow(QtWidgets.QWidget):
         self.widthBackup = self.widthBackup * 2.54
         self.heightBackup = self.heightBackup * 2.54
         
-        self.dimensionsFrame.addWidget(QLeftLabel("Width [cm]:"), 0, 0)
+        self.dimensionsFrame.addWidget(wc.QLeftLabel("Width [cm]:"), 0, 0)
         self.widthEntry = QtWidgets.QDoubleSpinBox()
         self.widthEntry.setSingleStep(0.1)
         self.widthEntry.setMinimum(0)
@@ -125,7 +125,7 @@ class MainPlotWindow(QtWidgets.QWidget):
         self.dimensionsFrame.addWidget(self.widthEntry, 0, 1)
           
         
-        self.dimensionsFrame.addWidget(QLeftLabel("Height [cm]:"), 1, 0)
+        self.dimensionsFrame.addWidget(wc.QLeftLabel("Height [cm]:"), 1, 0)
         self.heightEntry = QtWidgets.QDoubleSpinBox()
         self.heightEntry.setSingleStep(0.1)
         self.heightEntry.setMinimum(0)
@@ -134,7 +134,7 @@ class MainPlotWindow(QtWidgets.QWidget):
         self.heightEntry.valueChanged.connect(self.updatePlot)
         self.dimensionsFrame.addWidget(self.heightEntry, 1, 1)
         
-        self.dimensionsFrame.addWidget(QLeftLabel("dpi:"), 2, 0)
+        self.dimensionsFrame.addWidget(wc.QLeftLabel("dpi:"), 2, 0)
         self.dpiEntry = QtWidgets.QSpinBox()
         self.dpiEntry.setSingleStep(1)
         self.dpiEntry.setMinimum(0)
@@ -152,7 +152,7 @@ class MainPlotWindow(QtWidgets.QWidget):
         
         self.mainFontSizeBackup = 12
 
-        self.mainFontLabel = QLeftLabel("Main:")
+        self.mainFontLabel = wc.QLeftLabel("Main:")
         self.fontFrame.addWidget(self.mainFontLabel, 0, 0)
         self.mainFontSizeEntry = QtWidgets.QDoubleSpinBox()
         self.mainFontSizeEntry.setSingleStep(0.1)
@@ -167,7 +167,7 @@ class MainPlotWindow(QtWidgets.QWidget):
 
         self.titleFontSizeBackup = 12
         
-        self.titleFontLabel = QLeftLabel("Title:")
+        self.titleFontLabel = wc.QLeftLabel("Title:")
         self.titleFontLabel.hide()
         self.fontFrame.addWidget(self.titleFontLabel, 2, 0)
         self.titleFontSizeEntry = QtWidgets.QDoubleSpinBox()
@@ -179,7 +179,7 @@ class MainPlotWindow(QtWidgets.QWidget):
         self.fontFrame.addWidget(self.titleFontSizeEntry, 2, 1)
         
         self.xlabelFontSizeBackup = 12
-        self.xlabelFontLabel = QLeftLabel("X-label:") 
+        self.xlabelFontLabel = wc.QLeftLabel("X-label:") 
         self.xlabelFontLabel.hide()
         self.fontFrame.addWidget(self.xlabelFontLabel, 3, 0)
         self.xlabelFontSizeEntry = QtWidgets.QDoubleSpinBox()
@@ -191,7 +191,7 @@ class MainPlotWindow(QtWidgets.QWidget):
         self.fontFrame.addWidget(self.xlabelFontSizeEntry, 3, 1)
         
         self.ylabelFontSizeBackup = 12
-        self.ylabelFontLabel = QLeftLabel("Y-label:") 
+        self.ylabelFontLabel = wc.QLeftLabel("Y-label:") 
         self.ylabelFontLabel.hide()
         self.fontFrame.addWidget(self.ylabelFontLabel, 4, 0)
         self.ylabelFontSizeEntry = QtWidgets.QDoubleSpinBox()
@@ -203,7 +203,7 @@ class MainPlotWindow(QtWidgets.QWidget):
         self.fontFrame.addWidget(self.ylabelFontSizeEntry, 4, 1)
                
         self.xtickFontSizeBackup = 12
-        self.xtickFontLabel = QLeftLabel("X-ticks:") 
+        self.xtickFontLabel = wc.QLeftLabel("X-ticks:") 
         self.xtickFontLabel.hide()
         self.fontFrame.addWidget(self.xtickFontLabel, 5, 0)
         self.xtickFontSizeEntry = QtWidgets.QDoubleSpinBox()
@@ -215,7 +215,7 @@ class MainPlotWindow(QtWidgets.QWidget):
         self.fontFrame.addWidget(self.xtickFontSizeEntry, 5, 1)
         
         self.ytickFontSizeBackup = 12
-        self.ytickFontLabel = QLeftLabel("Y-ticks:") 
+        self.ytickFontLabel = wc.QLeftLabel("Y-ticks:") 
         self.ytickFontLabel.hide()
         self.fontFrame.addWidget(self.ytickFontLabel, 6, 0)
         self.ytickFontSizeEntry = QtWidgets.QDoubleSpinBox()
@@ -260,7 +260,7 @@ class MainPlotWindow(QtWidgets.QWidget):
         self.optionFrame.addWidget(execFileButton, 44, 0)
         self.inFrame = QtWidgets.QGridLayout()
         self.frame1.addLayout(self.inFrame, 1, 0)
-        self.inFrame.addWidget(QLabel("File type:"), 0, 0, 1, 2)
+        self.inFrame.addWidget(wc.QLabel("File type:"), 0, 0, 1, 2)
         self.filetypeEntry = QtWidgets.QComboBox()
         self.fileOptions = ['svg', 'png', 'eps', 'jpg', 'pdf']
         self.filetypeEntry.addItems(self.fileOptions)
@@ -439,15 +439,15 @@ class LegendWindow(QtWidgets.QWidget):
         layout = QtWidgets.QGridLayout(self)
         grid = QtWidgets.QGridLayout()
         layout.addLayout(grid, 0, 0, 1, 2)
-        grid.addWidget(QLabel("Legend position:"), 0, 0)
+        grid.addWidget(wc.QLabel("Legend position:"), 0, 0)
         self.posVal = self.father.legendPos
         self.posEntry = wc.QLineEdit(self.posVal, self.preview)
         grid.addWidget(self.posEntry, 1, 0)
-        grid.addWidget(QLabel("Legend order:"), 2, 0)
+        grid.addWidget(wc.QLabel("Legend order:"), 2, 0)
         self.orderVal = self.father.legendOrder
         self.orderEntry = wc.QLineEdit(self.orderVal, self.preview)
         grid.addWidget(self.orderEntry, 3, 0)
-        grid.addWidget(QLabel("Legend:"), 4, 0)
+        grid.addWidget(wc.QLabel("Legend:"), 4, 0)
         self.father.legendGroup.setChecked(True)
         self.spinBox = QtWidgets.QSpinBox()
         self.spinBox.setMaximum(len(self.father.legendTextList) - 1)
@@ -527,29 +527,29 @@ class EditLineWindow(QtWidgets.QWidget):
         layout = QtWidgets.QGridLayout(self)
         grid = QtWidgets.QGridLayout()
         layout.addLayout(grid, 0, 0, 1, 2)        
-        grid.addWidget(QLabel("Index:"), 0, 0)
+        grid.addWidget(wc.QLabel("Index:"), 0, 0)
         self.indexSpinBox = QtWidgets.QSpinBox()
         self.indexSpinBox.setMaximum(len(self.lineList)-1)
         self.indexSpinBox.setValue(self.lineList.index(self.line))
         self.indexSpinBox.valueChanged.connect(self.setIndex)
         grid.addWidget(self.indexSpinBox, 1, 0)
-        grid.addWidget(QLabel("Line:"), 2, 0)
+        grid.addWidget(wc.QLabel("Line:"), 2, 0)
         colorbutton = QtWidgets.QPushButton("Color", self)
         colorbutton.clicked.connect(self.setColor)
         grid.addWidget(colorbutton, 3, 0)
-        grid.addWidget(QLabel("Linewidth:"), 4, 0)
+        grid.addWidget(wc.QLabel("Linewidth:"), 4, 0)
         self.lwSpinBox = QtWidgets.QDoubleSpinBox()
         self.lwSpinBox.setSingleStep(0.1)
         self.lwSpinBox.valueChanged.connect(self.setLineWidth)
         grid.addWidget(self.lwSpinBox, 5, 0)
-        grid.addWidget(QLabel("Linestyle:"), 6, 0)
+        grid.addWidget(wc.QLabel("Linestyle:"), 6, 0)
         self.LINESTYLES = ['-', '--', '-.', ':', 'None']
         self.LINENAMES = ['solid', 'dashed', 'dashdot', 'dotted', 'none']
         self.lineDrop = QtWidgets.QComboBox()
         self.lineDrop.addItems(self.LINENAMES)
         self.lineDrop.activated.connect(self.setLineStyle)
         grid.addWidget(self.lineDrop, 7, 0)
-        grid.addWidget(QLabel("Marker:"), 8, 0)
+        grid.addWidget(wc.QLabel("Marker:"), 8, 0)
         self.MARKERSTYLES = ['o', 'v', '^', '<', '>', '1', '2', '3', '4', '8', 's', 'p', '*', 'h', '+', 'x', 'd', 'None']
         self.MARKERNAMES = ['circle', 'triangle down', 'triangle up', 'triangle left', 'triangle right', 'tri up', 'tri down', 'tri left', 'tri right', 'octagon', 'square', 'pentagon', 'star', 'hexagon', 'plus', 'x', 'diamond', 'none']
         self.markerDrop = QtWidgets.QComboBox()
@@ -562,7 +562,7 @@ class EditLineWindow(QtWidgets.QWidget):
         colorbutton = QtWidgets.QPushButton("Edgecolor", self)
         colorbutton.clicked.connect(self.setEdgeColor)
         grid.addWidget(colorbutton, 11, 0)
-        grid.addWidget(QLabel("Markersize:"), 12, 0)
+        grid.addWidget(wc.QLabel("Markersize:"), 12, 0)
         self.msSpinBox = QtWidgets.QDoubleSpinBox()
         self.msSpinBox.setSingleStep(0.1)
         self.msSpinBox.valueChanged.connect(self.setMarkerSize)
