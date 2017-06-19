@@ -1688,19 +1688,20 @@ class Current1D(Plot1DFrame):
                 shift += shifting * self.locList[shiftingAxes - 1] / self.data.sw[shiftingAxes]
         length = len(self.data1D)
         t = np.arange(0, length) / (self.sw)
-        t2 = t - shift
-        x = np.ones(length)
-        if lor is not None:
-            x = x * np.exp(-np.pi * lor * abs(t2))
-        if gauss is not None:
-            x = x * np.exp(-((np.pi * gauss * t2)**2) / (4 * np.log(2)))
-        if cos2 is not None:
-            x = x * (np.cos(cos2 * (-0.5 * shift * np.pi * self.sw / length + np.linspace(0, 0.5 * np.pi, len(self.data1D))))**2)
-        if hamming is not None:
-            alpha = 0.53836  # constant for hamming window
-            x = x * (alpha + (1 - alpha) * np.cos(hamming * (-0.5 * shift * np.pi * self.sw / length + np.linspace(0, np.pi, length))))
-        if self.wholeEcho:
-            x[-1:-(int(len(x) / 2 + 1)):-1] = x[:int(len(x) / 2)]
+        x = func.apodize(t,shift,self.sw,length,lor,gauss,cos2,hamming,self.wholeEcho)
+        #t2 = t - shift
+        #x = np.ones(length)
+        #if lor is not None:
+        #    x = x * np.exp(-np.pi * lor * abs(t2))
+        #if gauss is not None:
+        #    x = x * np.exp(-((np.pi * gauss * t2)**2) / (4 * np.log(2)))
+        #if cos2 is not None:
+        #    x = x * (np.cos(cos2 * (-0.5 * shift * np.pi * self.sw / length + np.linspace(0, 0.5 * np.pi, len(self.data1D))))**2)
+        #if hamming is not None:
+        #    alpha = 0.53836  # constant for hamming window
+        #    x = x * (alpha + (1 - alpha) * np.cos(hamming * (-0.5 * shift * np.pi * self.sw / length + np.linspace(0, np.pi, length))))
+        #if self.wholeEcho:
+        #    x[-1:-(int(len(x) / 2 + 1)):-1] = x[:int(len(x) / 2)]
         self.ax.cla()
         y = self.data1D
         if self.spec == 1:
@@ -3157,19 +3158,7 @@ class CurrentStacked(Current1D):
                 x = np.ones((len(ar), len(self.data1D[0])))
                 for i in range(len(ar)):
                     shift1 = shift + shifting * ar[i] / self.data.sw[shiftingAxes]
-                    t2 = t - shift1
-                    x2 = np.ones(len(self.data1D[0]))
-                    if lor is not None:
-                        x2 = x2 * np.exp(-np.pi * lor * abs(t2))
-                    if gauss is not None:
-                        x2 = x2 * np.exp(-((np.pi * gauss * t2)**2) / (4 * np.log(2)))
-                    if cos2 is not None:
-                        x2 = x2 * (np.cos(cos2 * (-0.5 * shift1 * np.pi * self.sw / len(self.data1D[0]) + np.linspace(0, 0.5 * np.pi, len(self.data1D[0]))))**2)
-                    if hamming is not None:
-                        alpha = 0.53836  # constant for hamming window
-                        x2 = x2 * (alpha + (1 - alpha) * np.cos(hamming * (-0.5 * shift1 * np.pi * self.sw / len(self.data1D[0]) + np.linspace(0, np.pi, len(self.data1D[0])))))
-                    if self.wholeEcho:
-                        x2[-1:-(int(len(x2) / 2) + 1):-1] = x2[:int(len(x2) / 2)]
+                    x2 = func.apodize(t, shift1, self.sw, len(self.data1D[0]), lor, gauss, cos2, hamming, self.wholeEcho)
                     x[i] = x2
             else:
                 if (shiftingAxes < self.axes) and (shiftingAxes < self.axes2):
@@ -3178,34 +3167,10 @@ class CurrentStacked(Current1D):
                     shift += shifting * self.locList[shiftingAxes - 2] * self.data.data.shape[shiftingAxes] / self.data.sw[shiftingAxes]
                 else:
                     shift += shifting * self.locList[shiftingAxes - 1] * self.data.data.shape[shiftingAxes] / self.data.sw[shiftingAxes]
-                t2 = t - shift
-                x = np.ones(len(self.data1D[0]))
-                if lor is not None:
-                    x = x * np.exp(-lor * abs(t2))
-                if gauss is not None:
-                    x = x * np.exp(-(gauss * t2)**2)
-                if cos2 is not None:
-                    x = x * (np.cos(cos2 * (-0.5 * shift * np.pi * self.sw / len(self.data1D[0]) + np.linspace(0, 0.5 * np.pi, len(self.data1D[0]))))**2)
-                if hamming is not None:
-                    alpha = 0.53836  # constant for hamming window
-                    x = x * (alpha + (1 - alpha) * np.cos(hamming * (-0.5 * shift * np.pi * self.sw / len(self.data1D[0]) + np.linspace(0, np.pi, len(self.data1D[0])))))
-                if self.wholeEcho:
-                    x[-1:-(int(len(x) / 2) + 1):-1] = x[:int(len(x) / 2)]
+                x = func.apodize(t, shift, self.sw, len(self.data1D[0]), lor, gauss, cos2, hamming, self.wholeEcho)
                 x = np.repeat([x], len(self.data1D), axis=0)
         else:
-            t2 = t - shift
-            x = np.ones(len(self.data1D[0]))
-            if lor is not None:
-                x = x * np.exp(-lor * abs(t2))
-            if gauss is not None:
-                x = x * np.exp(-(gauss * t2)**2)
-            if cos2 is not None:
-                x = x * (np.cos(cos2 * (-0.5 * shift * np.pi * self.sw / len(self.data1D[0]) + np.linspace(0, 0.5 * np.pi, len(self.data1D[0]))))**2)
-            if hamming is not None:
-                alpha = 0.53836  # constant for hamming window
-                x = x * (alpha + (1 - alpha) * np.cos(hamming * (-0.5 * shift * np.pi * self.sw / len(self.data1D[0]) + np.linspace(0, np.pi, len(self.data1D[0])))))
-            if self.wholeEcho:
-                x[-1:-(int(len(x) / 2) + 1):-1] = x[:int(len(x) / 2)]
+            x = func.apodize(t, shift, self.sw, len(self.data1D[0]), lor, gauss, cos2, hamming, self.wholeEcho)
             x = np.repeat([x], len(self.data1D), axis=0)
         y = self.data1D
         self.ax.cla()
@@ -3529,19 +3494,7 @@ class CurrentArrayed(Current1D):
                 x = np.ones((len(ar), len(self.data1D[0])))
                 for i in range(len(ar)):
                     shift1 = shift + shifting * ar[i] / self.data.sw[shiftingAxes]
-                    t2 = t - shift1
-                    x2 = np.ones(len(self.data1D[0]))
-                    if lor is not None:
-                        x2 = x2 * np.exp(-np.pi * lor * abs(t2))
-                    if gauss is not None:
-                        x2 = x2 * np.exp(-((np.pi * gauss * t2)**2) / (4 * np.log(2)))
-                    if cos2 is not None:
-                        x2 = x2 * (np.cos(cos2 * (-0.5 * shift1 * np.pi * self.sw / len(self.data1D[0]) + np.linspace(0, 0.5 * np.pi, len(self.data1D[0]))))**2)
-                    if hamming is not None:
-                        alpha = 0.53836  # constant for hamming window
-                        x2 = x2 * (alpha + (1 - alpha) * np.cos(hamming * (-0.5 * shift1 * np.pi * self.sw / len(self.data1D[0]) + np.linspace(0, np.pi, len(self.data1D[0])))))
-                    if self.wholeEcho:
-                        x2[-1:-(int(len(x2) / 2) + 1):-1] = x2[:int(len(x2) / 2)]
+                    x2 = func.apodize(t, shift1, self.sw, len(self.data1D[0]), lor, gauss, cos2, hamming, self.wholeEcho)
                     x[i] = x2
             else:
                 if (shiftingAxes < self.axes) and (shiftingAxes < self.axes2):
@@ -3550,34 +3503,10 @@ class CurrentArrayed(Current1D):
                     shift += shifting * self.locList[shiftingAxes - 2] * self.data.data.shape[shiftingAxes] / self.data.sw[shiftingAxes]
                 else:
                     shift += shifting * self.locList[shiftingAxes - 1] * self.data.data.shape[shiftingAxes] / self.data.sw[shiftingAxes]
-                t2 = t - shift
-                x = np.ones(len(self.data1D[0]))
-                if lor is not None:
-                    x = x * np.exp(-lor * abs(t2))
-                if gauss is not None:
-                    x = x * np.exp(-(gauss * t2)**2)
-                if cos2 is not None:
-                    x = x * (np.cos(cos2 * (-0.5 * shift * np.pi * self.sw / len(self.data1D[0]) + np.linspace(0, 0.5 * np.pi, len(self.data1D[0]))))**2)
-                if hamming is not None:
-                    alpha = 0.53836  # constant for hamming window
-                    x = x * (alpha + (1 - alpha) * np.cos(hamming * (-0.5 * shift * np.pi * self.sw / len(self.data1D) + np.linspace(0, np.pi, len(self.data1D)))))
-                if self.wholeEcho:
-                    x[-1:-(int(len(x) / 2) + 1):-1] = x[:int(len(x) / 2)]
+                x = func.apodize(t, shift, self.sw, len(self.data1D[0]), lor, gauss, cos2, hamming, self.wholeEcho)
                 x = np.repeat([x], len(self.data1D), axis=0)
         else:
-            t2 = t - shift
-            x = np.ones(len(self.data1D[0]))
-            if lor is not None:
-                x = x * np.exp(-lor * abs(t2))
-            if gauss is not None:
-                x = x * np.exp(-(gauss * t2)**2)
-            if cos2 is not None:
-                x = x * (np.cos(cos2 * (-0.5 * shift * np.pi * self.sw / len(self.data1D[0]) + np.linspace(0, 0.5 * np.pi, len(self.data1D[0]))))**2)
-            if hamming is not None:
-                alpha = 0.53836  # constant for hamming window
-                x = x * (alpha + (1 - alpha) * np.cos(hamming * (-0.5 * shift * np.pi * self.sw / len(self.data1D) + np.linspace(0, np.pi, len(self.data1D)))))
-            if self.wholeEcho:
-                x[-1:-(int(len(x) / 2) + 1):-1] = x[:int(len(x) / 2)]
+            x = func.apodize(t, shift, self.sw, len(self.data1D[0]), lor, gauss, cos2, hamming, self.wholeEcho)
             x = np.repeat([x], len(self.data1D), axis=0)
         y = self.data1D
         self.ax.cla()
@@ -3966,19 +3895,7 @@ class CurrentContour(Current1D):
                 x = np.ones((len(ar), len(self.data1D[0])))
                 for i in range(len(ar)):
                     shift1 = shift + shifting * ar[i] / self.data.sw[shiftingAxes]
-                    t2 = t - shift1
-                    x2 = np.ones(len(self.data1D[0]))
-                    if lor is not None:
-                        x2 = x2 * np.exp(-np.pi * lor * abs(t2))
-                    if gauss is not None:
-                        x2 = x2 * np.exp(-((np.pi * gauss * t2)**2) / (4 * np.log(2)))
-                    if cos2 is not None:
-                        x2 = x2 * (np.cos(cos2 * (-0.5 * shift1 * np.pi * self.sw / len(self.data1D[0]) + np.linspace(0, 0.5 * np.pi, len(self.data1D[0]))))**2)
-                    if hamming is not None:
-                        alpha = 0.53836  # constant for hamming window
-                        x2 = x2 * (alpha + (1 - alpha) * np.cos(hamming * (-0.5 * shift1 * np.pi * self.sw / len(self.data1D[0]) + np.linspace(0, np.pi, len(self.data1D[0])))))
-                    if self.wholeEcho:
-                        x2[-1:-(int(len(x2) / 2) + 1):-1] = x2[:int(len(x2) / 2)]
+                    x2 = func.apodize(t, shift1, self.sw, len(self.data1D[0]), lor, gauss, cos2, hamming, self.wholeEcho)
                     x[i] = x2
             else:
                 if (shiftingAxes < self.axes) and (shiftingAxes < self.axes2):
@@ -3987,34 +3904,10 @@ class CurrentContour(Current1D):
                     shift += shifting * self.locList[shiftingAxes - 2] * self.data.data.shape[shiftingAxes] / self.data.sw[shiftingAxes]
                 else:
                     shift += shifting * self.locList[shiftingAxes - 1] * self.data.data.shape[shiftingAxes] / self.data.sw[shiftingAxes]
-                t2 = t - shift
-                x = np.ones(len(self.data1D[0]))
-                if lor is not None:
-                    x = x * np.exp(-lor * abs(t2))
-                if gauss is not None:
-                    x = x * np.exp(-(gauss * t2)**2)
-                if cos2 is not None:
-                    x = x * (np.cos(cos2 * (-0.5 * shift * np.pi * self.sw / len(self.data1D[0]) + np.linspace(0, 0.5 * np.pi, len(self.data1D[0]))))**2)
-                if hamming is not None:
-                    alpha = 0.53836  # constant for hamming window
-                    x = x * (alpha + (1 - alpha) * np.cos(hamming * (-0.5 * shift * np.pi * self.sw / len(self.data1D[0]) + np.linspace(0, np.pi, len(self.data1D[0])))))
-                if self.wholeEcho:
-                    x[-1:-(int(len(x) / 2) + 1):-1] = x[:int(len(x) / 2)]
+                x = func.apodize(t, shift, self.sw, len(self.data1D[0]), lor, gauss, cos2, hamming, self.wholeEcho)
                 x = np.repeat([x], len(self.data1D), axis=0)
         else:
-            t2 = t - shift
-            x = np.ones(len(self.data1D[0]))
-            if lor is not None:
-                x = x * np.exp(-lor * abs(t2))
-            if gauss is not None:
-                x = x * np.exp(-(gauss * t2)**2)
-            if cos2 is not None:
-                x = x * (np.cos(cos2 * (-0.5 * shift * np.pi * self.sw / len(self.data1D[0]) + np.linspace(0, 0.5 * np.pi, len(self.data1D[0]))))**2)
-            if hamming is not None:
-                alpha = 0.53836  # constant for hamming window
-                x = x * (alpha + (1 - alpha) * np.cos(hamming * (-0.5 * shift * np.pi * self.sw / len(self.data1D[0]) + np.linspace(0, np.pi, len(self.data1D[0])))))
-            if self.wholeEcho:
-                x[-1:-(int(len(x) / 2) + 1):-1] = x[:int(len(x) / 2)]
+            x = func.apodize(t, shift, self.sw, len(self.data1D[0]), lor, gauss, cos2, hamming, self.wholeEcho)
             x = np.repeat([x], len(self.data1D), axis=0)
         y = self.data1D
         self.ax.cla()
@@ -4531,19 +4424,7 @@ class CurrentSkewed(Current1D):
                 x = np.ones((len(ar), len(self.data1D[0])))
                 for i in range(len(ar)):
                     shift1 = shift + shifting * ar[i] / self.data.sw[shiftingAxes]
-                    t2 = t - shift1
-                    x2 = np.ones(len(self.data1D[0]))
-                    if lor is not None:
-                        x2 = x2 * np.exp(-np.pi * lor * abs(t2))
-                    if gauss is not None:
-                        x2 = x2 * np.exp(-((np.pi * gauss * t2)**2) / (4 * np.log(2)))
-                    if cos2 is not None:
-                        x2 = x2 * (np.cos(cos2 * (-0.5 * shift1 * np.pi * self.sw / len(self.data1D[0]) + np.linspace(0, 0.5 * np.pi, len(self.data1D[0]))))**2)
-                    if hamming is not None:
-                        alpha = 0.53836  # constant for hamming window
-                        x2 = x2 * (alpha + (1 - alpha) * np.cos(hamming * (-0.5 * shift1 * np.pi * self.sw / len(self.data1D[0]) + np.linspace(0, np.pi, len(self.data1D[0])))))
-                    if self.wholeEcho:
-                        x2[-1:-(int(len(x2) / 2) + 1):-1] = x2[:int(len(x2) / 2)]
+                    x2 = func.apodize(t, shift1, self.sw, len(self.data1D[0]), lor, gauss, cos2, hamming, self.wholeEcho)
                     x[i] = x2
             else:
                 if (shiftingAxes < self.axes) and (shiftingAxes < self.axes2):
@@ -4552,34 +4433,10 @@ class CurrentSkewed(Current1D):
                     shift += shifting * self.locList[shiftingAxes - 2] * self.data.data.shape[shiftingAxes] / self.data.sw[shiftingAxes]
                 else:
                     shift += shifting * self.locList[shiftingAxes - 1] * self.data.data.shape[shiftingAxes] / self.data.sw[shiftingAxes]
-                t2 = t - shift
-                x = np.ones(len(self.data1D[0]))
-                if lor is not None:
-                    x = x * np.exp(-lor * abs(t2))
-                if gauss is not None:
-                    x = x * np.exp(-(gauss * t2)**2)
-                if cos2 is not None:
-                    x = x * (np.cos(cos2 * (-0.5 * shift * np.pi * self.sw / len(self.data1D[0]) + np.linspace(0, 0.5 * np.pi, len(self.data1D[0]))))**2)
-                if hamming is not None:
-                    alpha = 0.53836  # constant for hamming window
-                    x = x * (alpha + (1 - alpha) * np.cos(hamming * (-0.5 * shift * np.pi * self.sw / len(self.data1D[0]) + np.linspace(0, np.pi, len(self.data1D[0])))))
-                if self.wholeEcho:
-                    x[-1:-(int(len(x)) / 2 + 1):-1] = x[:int(len(x) / 2)]
+                x = func.apodize(t, shift, self.sw, len(self.data1D[0]), lor, gauss, cos2, hamming, self.wholeEcho)
                 x = np.repeat([x], len(self.data1D), axis=0)
         else:
-            t2 = t - shift
-            x = np.ones(len(self.data1D[0]))
-            if lor is not None:
-                x = x * np.exp(-lor * abs(t2))
-            if gauss is not None:
-                x = x * np.exp(-(gauss * t2)**2)
-            if cos2 is not None:
-                x = x * (np.cos(cos2 * (-0.5 * shift * np.pi * self.sw / len(self.data1D[0]) + np.linspace(0, 0.5 * np.pi, len(self.data1D[0]))))**2)
-            if hamming is not None:
-                alpha = 0.53836  # constant for hamming window
-                x = x * (alpha + (1 - alpha) * np.cos(hamming * (-0.5 * shift * np.pi * self.sw / len(self.data1D[0]) + np.linspace(0, np.pi, len(self.data1D[0])))))
-            if self.wholeEcho:
-                x[-1:-(int(len(x) / 2) + 1):-1] = x[:int(len(x) / 2)]
+            x = func.apodize(t, shift, self.sw, len(self.data1D[0]), lor, gauss, cos2, hamming, self.wholeEcho)
             x = np.repeat([x], len(self.data1D), axis=0)
         y = self.data1D
         self.ax.cla()
