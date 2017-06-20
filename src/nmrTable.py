@@ -129,7 +129,8 @@ class PeriodicTable(QtWidgets.QWidget):
         self.resetIso()
         self.initUI()
         self.upd()
-        
+
+        self.setGeometry(self.frameSize().width() - self.geometry().width(), self.frameSize().height() - self.geometry().height() + 40, 0, 0)
     def resetIso(self):
         self.isoSelect = np.zeros(ATOMNUM)
         for i in range(ATOMNUM):
