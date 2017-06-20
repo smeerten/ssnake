@@ -1209,6 +1209,7 @@ class IntegralsParamFrame(AbstractParamFrame):
     def __init__(self, parent, rootwindow, isMain=True):
         self.SINGLENAMES = []
         self.MULTINAMES = ['min', 'max', 'amp']
+        self.PARAMTEXT = {'min':'Minimum', 'max':'Maximum', 'amp':'Integral'}
         self.FITFUNC = integralsmpFit
         super(IntegralsParamFrame, self).__init__(parent, rootwindow, isMain)
         resetButton = QtWidgets.QPushButton("Reset")
@@ -1248,7 +1249,7 @@ class IntegralsParamFrame(AbstractParamFrame):
             self.diffy = self.maxy - np.amin(np.abs(self.parent.current.data1D))
         for i in range(self.FITNUM):
             for j in range(len(self.MULTINAMES)):
-                self.entries[self.MULTINAMES[j]].append(wc.QLineEdit())
+                self.entries[self.MULTINAMES[j]].append(wc.FitQLineEdit(self, self.MULTINAMES[j]))
                 self.frame3.addWidget(self.entries[self.MULTINAMES[j]][i], i + 2, j)
         self.resetVals()
 
@@ -1622,6 +1623,7 @@ class RelaxParamFrame(AbstractParamFrame):
     def __init__(self, parent, rootwindow, isMain=True):
         self.SINGLENAMES = ['amp', 'const']
         self.MULTINAMES = ['coeff', 't']
+        self.PARAMTEXT = {'amp':'Amplitude', 'const':'Constant', 'coeff':'Coefficient', 't':'Relaxation time'}
         self.FITFUNC = relaxationmpFit
         super(RelaxParamFrame, self).__init__(parent, rootwindow, isMain)
         locList = tuple(self.parent.locList)
@@ -1630,12 +1632,12 @@ class RelaxParamFrame(AbstractParamFrame):
         self.frame2.addWidget(QLabel("Amplitude:"), 0, 0, 1, 2)
         self.ticks['amp'].append(QtWidgets.QCheckBox(''))
         self.frame2.addWidget(self.ticks['amp'][-1], 1, 0)
-        self.entries['amp'].append(wc.QLineEdit(('%#.'+str(self.rootwindow.tabWindow.PRECIS)+'g') % self.fitParamList[locList]['amp'][0]))
+        self.entries['amp'].append(wc.FitQLineEdit(self, 'amp', ('%#.'+str(self.rootwindow.tabWindow.PRECIS)+'g') % self.fitParamList[locList]['amp'][0]))
         self.frame2.addWidget(self.entries['amp'][-1], 1, 1)
         self.frame2.addWidget(QLabel("Constant:"), 2, 0, 1, 2)
         self.ticks['const'].append(QtWidgets.QCheckBox(''))
         self.frame2.addWidget(self.ticks['const'][-1], 3, 0)
-        self.entries['const'].append(wc.QLineEdit(('%#.'+str(self.rootwindow.tabWindow.PRECIS)+'g') % self.fitParamList[locList]['const'][0]))
+        self.entries['const'].append(wc.FitQLineEdit(self, 'const', ('%#.'+str(self.rootwindow.tabWindow.PRECIS)+'g') % self.fitParamList[locList]['const'][0]))
         self.frame2.addWidget(self.entries['const'][-1], 3, 1)
         self.frame2.setColumnStretch(10, 1)
         self.frame2.setAlignment(QtCore.Qt.AlignTop)
@@ -1660,7 +1662,7 @@ class RelaxParamFrame(AbstractParamFrame):
                 self.ticks[self.MULTINAMES[j]].append(QtWidgets.QCheckBox(''))
                 self.ticks[self.MULTINAMES[j]][i].setChecked(self.fitParamList[locList][self.MULTINAMES[j]][i][1])
                 self.frame3.addWidget(self.ticks[self.MULTINAMES[j]][i], i + 2, 2*j)
-                self.entries[self.MULTINAMES[j]].append(wc.QLineEdit(('%#.'+str(self.rootwindow.tabWindow.PRECIS)+'g') % self.fitParamList[locList][self.MULTINAMES[j]][i][0]))
+                self.entries[self.MULTINAMES[j]].append(wc.FitQLineEdit(self, self.MULTINAMES[j], ('%#.'+str(self.rootwindow.tabWindow.PRECIS)+'g') % self.fitParamList[locList][self.MULTINAMES[j]][i][0]))
                 self.frame3.addWidget(self.entries[self.MULTINAMES[j]][i], i + 2, 2*j+1)
                 if i > 0:
                     self.ticks[self.MULTINAMES[j]][i].hide()
@@ -1985,6 +1987,7 @@ class DiffusionParamFrame(AbstractParamFrame):
     def __init__(self, parent, rootwindow, isMain=True):
         self.SINGLENAMES = ['amp', 'const']
         self.MULTINAMES = ['coeff', 'd']
+        self.PARAMTEXT = {'amp':'Amplitude', 'const':'Constant', 'coeff':'Coefficient', 'd':'Diffusion constant'}
         self.FITFUNC = diffusionmpFit
         super(DiffusionParamFrame, self).__init__(parent, rootwindow, isMain)
         locList = tuple(self.parent.locList)
@@ -2004,13 +2007,13 @@ class DiffusionParamFrame(AbstractParamFrame):
         self.frame3.addWidget(QLabel("Amplitude:"), 0, 0, 1, 2)
         self.ticks['amp'].append(QtWidgets.QCheckBox(''))
         self.frame3.addWidget(self.ticks['amp'][-1], 1, 0)
-        self.entries['amp'].append(wc.QLineEdit(('%#.'+str(self.rootwindow.tabWindow.PRECIS)+'g') % np.amax(self.parent.data1D)))
+        self.entries['amp'].append(wc.FitQLineEdit(self, 'amp', ('%#.'+str(self.rootwindow.tabWindow.PRECIS)+'g') % np.amax(self.parent.data1D)))
         self.frame3.addWidget(self.entries['amp'][-1], 1, 1)
         self.frame3.addWidget(QLabel("Constant:"), 2, 0, 1, 2)
         self.ticks['const'].append(QtWidgets.QCheckBox(''))
         self.ticks['const'][-1].setChecked(True)
         self.frame3.addWidget(self.ticks['const'][-1], 3, 0)
-        self.entries['const'].append(wc.QLineEdit("0.0"))
+        self.entries['const'].append(wc.FitQLineEdit(self, 'const', "0.0"))
         self.frame3.addWidget(self.entries['const'][-1], 3, 1)
         self.frame3.setColumnStretch(10, 1)
         self.frame3.setAlignment(QtCore.Qt.AlignTop)
@@ -2039,7 +2042,7 @@ class DiffusionParamFrame(AbstractParamFrame):
                 self.ticks[self.MULTINAMES[j]].append(QtWidgets.QCheckBox(''))
                 self.ticks[self.MULTINAMES[j]][i].setChecked(self.fitParamList[locList][self.MULTINAMES[j]][i][1])
                 self.frame4.addWidget(self.ticks[self.MULTINAMES[j]][i], i + 2, 2*j)
-                self.entries[self.MULTINAMES[j]].append(wc.QLineEdit(('%#.'+str(self.rootwindow.tabWindow.PRECIS)+'g') % self.fitParamList[locList][self.MULTINAMES[j]][i][0]))
+                self.entries[self.MULTINAMES[j]].append(wc.FitQLineEdit(self, self.MULTINAMES[j], ('%#.'+str(self.rootwindow.tabWindow.PRECIS)+'g') % self.fitParamList[locList][self.MULTINAMES[j]][i][0]))
                 self.frame4.addWidget(self.entries[self.MULTINAMES[j]][i], i + 2, 2*j+1)
                 if i > 0:
                     self.ticks[self.MULTINAMES[j]][i].hide()
@@ -2461,6 +2464,7 @@ class TensorDeconvParamFrame(AbstractParamFrame):
     def __init__(self, parent, rootwindow, isMain=True):
         self.SINGLENAMES = ['bgrnd', 'slope', 'spinspeed']
         self.MULTINAMES = ['t11', 't22', 't33', 'amp', 'lor', 'gauss']
+        self.PARAMTEXT = {'bgrnd':'Background', 'slope':'Slope', 'spinspeed':'Spinning Speed', 't11':'T11', 't22':'T22', 't33':'T33', 'amp':'Integral', 'lor':'Lorentz', 'gauss':'Gauss'}
         self.FITFUNC = tensorDeconvmpFit
 
         #Get full integral
@@ -2504,17 +2508,17 @@ class TensorDeconvParamFrame(AbstractParamFrame):
         self.frame2.addWidget(self.spinLabel, 0, 0, 1, 2)
         self.ticks['spinspeed'].append(QtWidgets.QCheckBox(''))
         self.frame2.addWidget(self.ticks['spinspeed'][-1], 1, 0)
-        self.entries['spinspeed'].append(wc.QLineEdit("10.0"))
+        self.entries['spinspeed'].append(wc.FitQLineEdit(self, 'spinspeed', "10.0"))
         self.frame2.addWidget(self.entries['spinspeed'][-1], 1, 1)
         self.frame2.addWidget(QLabel("Bgrnd:"), 2, 0, 1, 2)
         self.ticks['bgrnd'].append(QtWidgets.QCheckBox(''))
         self.frame2.addWidget(self.ticks['bgrnd'][-1], 3, 0)
-        self.entries['bgrnd'].append(wc.QLineEdit("0.0"))
+        self.entries['bgrnd'].append(wc.FitQLineEdit(self, 'bgrnd', "0.0"))
         self.frame2.addWidget(self.entries['bgrnd'][-1], 3, 1)
         self.frame2.addWidget(QLabel("Slope:"), 4, 0, 1, 2)
         self.ticks['slope'].append(QtWidgets.QCheckBox(''))
         self.frame2.addWidget(self.ticks['slope'][-1], 5, 0)
-        self.entries['slope'].append(wc.QLineEdit("0.0"))
+        self.entries['slope'].append(wc.FitQLineEdit(self, "slope", "0.0"))
         self.frame2.addWidget(self.entries['slope'][-1], 5, 1)
         self.frame2.setColumnStretch(10, 1)
         self.frame2.setAlignment(QtCore.Qt.AlignTop)
@@ -2569,7 +2573,7 @@ class TensorDeconvParamFrame(AbstractParamFrame):
             for j in range(len(self.MULTINAMES)):
                 self.ticks[self.MULTINAMES[j]].append(QtWidgets.QCheckBox(''))
                 self.frame3.addWidget(self.ticks[self.MULTINAMES[j]][i], i + 2, 2*j)
-                self.entries[self.MULTINAMES[j]].append(wc.QLineEdit())
+                self.entries[self.MULTINAMES[j]].append(wc.FitQLineEdit(self, self.MULTINAMES[j]))
                 self.frame3.addWidget(self.entries[self.MULTINAMES[j]][i], i + 2, 2*j+1)
         self.reset()
 
@@ -2904,6 +2908,7 @@ class Quad1DeconvParamFrame(AbstractParamFrame):
     def __init__(self, parent, rootwindow, isMain=True):
         self.SINGLENAMES = ['bgrnd', 'slope', 'spinspeed']
         self.MULTINAMES = ['pos', 'cq', 'eta', 'amp', 'lor', 'gauss']
+        self.PARAMTEXT = {'bgrnd':'Background', 'slope':'Slope', 'spinspeed':'Spinning Speed', 'pos':'Position', 'cq':'Cq', 'eta':'eta', 'amp':'Integral', 'lor':'Lorentz', 'gauss':'Gauss'}
         self.FITFUNC = quad1mpFit
         self.setAngleStuff = quad1DeconvsetAngleStuff
         self.tensorFunc = quad1DeconvtensorFunc
@@ -2974,7 +2979,7 @@ class Quad1DeconvParamFrame(AbstractParamFrame):
             for j in range(len(self.MULTINAMES)):
                 self.ticks[self.MULTINAMES[j]].append(QtWidgets.QCheckBox(''))
                 self.frame3.addWidget(self.ticks[self.MULTINAMES[j]][i], i + 2, 2*j)
-                self.entries[self.MULTINAMES[j]].append(wc.QLineEdit())
+                self.entries[self.MULTINAMES[j]].append(wc.FitQLineEdit(self, self.MULTINAMES[j]))
                 self.frame3.addWidget(self.entries[self.MULTINAMES[j]][i], i + 2, 2*j+1)
         self.dispParams()
 
@@ -3289,6 +3294,7 @@ class Quad2CzjzekParamFrame(AbstractParamFrame):
     def __init__(self, parent, rootwindow, isMain=True):
         self.SINGLENAMES = ['bgrnd', 'slope']
         self.MULTINAMES = ['d', 'pos', 'sigma', 'amp', 'lor', 'gauss']
+        self.PARAMTEXT = {'bgrnd':'Background', 'slope':'Slope', 'd':'d parameter', 'pos':'Position', 'sigma':'Sigma', 'amp':'Integral', 'lor':'Lorentz', 'gauss':'Gauss'}
         self.FITFUNC = quad2CzjzekmpFit
         #Get full integral
         self.fullInt = np.sum(parent.data1D) * parent.current.sw / float(len(parent.data1D))
@@ -3331,13 +3337,13 @@ class Quad2CzjzekParamFrame(AbstractParamFrame):
         self.ticks['bgrnd'].append(QtWidgets.QCheckBox(''))
         self.ticks['bgrnd'][-1].setChecked(True)
         self.frame2.addWidget(self.ticks['bgrnd'][-1], 1, 0)
-        self.entries['bgrnd'].append(wc.QLineEdit("0.0"))
+        self.entries['bgrnd'].append(wc.FitQLineEdit(self, 'bgrnd', "0.0"))
         self.frame2.addWidget(self.entries['bgrnd'][-1], 1, 1)
         self.frame2.addWidget(QLabel("Slope:"), 2, 0, 1, 2)
         self.ticks['slope'].append(QtWidgets.QCheckBox(''))
         self.ticks['slope'][-1].setChecked(True)
         self.frame2.addWidget(self.ticks['slope'][-1], 3, 0)
-        self.entries['slope'].append(wc.QLineEdit("0.0"))
+        self.entries['slope'].append(wc.FitQLineEdit(self, 'slope', "0.0"))
         self.frame2.addWidget(self.entries['slope'][-1], 3, 1)
         self.frame2.setColumnStretch(10, 1)
         self.frame2.setAlignment(QtCore.Qt.AlignTop)
@@ -3361,7 +3367,7 @@ class Quad2CzjzekParamFrame(AbstractParamFrame):
             for j in range(len(self.MULTINAMES)):
                 self.ticks[self.MULTINAMES[j]].append(QtWidgets.QCheckBox(''))
                 self.frame3.addWidget(self.ticks[self.MULTINAMES[j]][i], i + 2, 2*j)
-                self.entries[self.MULTINAMES[j]].append(wc.QLineEdit())
+                self.entries[self.MULTINAMES[j]].append(wc.FitQLineEdit(self, self.MULTINAMES[j]))
                 self.frame3.addWidget(self.entries[self.MULTINAMES[j]][i], i + 2, 2*j+1)
         self.dispParams()
 

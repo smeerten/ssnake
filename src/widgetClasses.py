@@ -188,7 +188,7 @@ class FitQLineEdit(QLineEdit):
     
     def contextMenuEvent(self, event):
         menu = self.createStandardContextMenu()
-        menu.addAction('Connect Param.', self.connectParams)
+        menu.addAction('Connect Parameter', self.connectParams)
         menu.exec_(event.globalPos())
 
     def connectParams(self, *args):
