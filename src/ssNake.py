@@ -4051,6 +4051,7 @@ class ShiftDataWindow(wc.ToolWindows):
         self.grid.addWidget(wc.QLabel("Data points to shift:"), 0, 0, 1, 3)
         self.shiftVal = 0
         self.shiftEntry = wc.QLineEdit(self.shiftVal, self.shiftPreview)
+        self.shiftEntry.setMinimumWidth(100)
         self.grid.addWidget(self.shiftEntry, 1, 1)
         leftShift = QtWidgets.QPushButton("<")
         leftShift.clicked.connect(self.stepDownShift)
@@ -6469,6 +6470,7 @@ class ToolbarWindow(wc.ToolWindows):
             QtWidgets.QListWidgetItem(i, self.listB).setToolTip(i)
         self.grid.addWidget(self.listA, 1, 0)
         self.grid.addWidget(self.listB, 1, 1)
+        self.resize(650, 500)
 
     def applyAndClose(self, *args):
         items = []
