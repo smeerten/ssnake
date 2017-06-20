@@ -5666,6 +5666,7 @@ class MultiplyWindow(wc.ToolWindows):
 
 class XaxWindow(wc.ToolWindows):
 
+    RESIZABLE = True
     NAME = "User defined x-axis"
 
     def __init__(self, parent):
@@ -5677,7 +5678,6 @@ class XaxWindow(wc.ToolWindows):
         self.typeDropdown.activated.connect(self.typeChanged)
         self.grid.addWidget(self.typeDropdown, 1, 0,1 ,2)    
         self.exprEntry = wc.QLineEdit('', self.xaxPreview)
-        self.exprEntry.returnPressed.connect()
         self.grid.addWidget(self.exprEntry, 2, 0, 1, 2)
         
         #Linear 
@@ -5693,7 +5693,7 @@ class XaxWindow(wc.ToolWindows):
         self.linStartEntry.hide()
         self.grid.addWidget(self.linStartEntry, 3, 1, 1, 1)
         
-        self.linStopEntry = wc.QLineEdit(self.xaxPreview)
+        self.linStopEntry = wc.QLineEdit('',self.xaxPreview)
         self.linStopEntry.setMaximumWidth(120)
         self.linStopEntry.hide()
         self.grid.addWidget(self.linStopEntry, 4, 1, 1, 1)
@@ -5729,7 +5729,8 @@ class XaxWindow(wc.ToolWindows):
             
 #        self.table.setVerticalHeaderLabels([str(a) for a in range(self.axisSize)])
         self.grid.addWidget(self.table, 12, 0, 1, 2)
-    
+        self.resize(250, 500)
+
     def typeChanged(self,index):
         if index == 0: #If expr
             self.exprEntry.show()
