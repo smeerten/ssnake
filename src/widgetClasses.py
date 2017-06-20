@@ -205,7 +205,7 @@ class ConnectParamsWindow(QtWidgets.QWidget):
         self.setWindowFlags(QtCore.Qt.Window | QtCore.Qt.Tool)
         self.setWindowTitle("Connect Parameter")
         self.paramTextDict = paramTextList
-        self.paramTextList = self.paramTextDict.values()
+        self.paramTextList = list(self.paramTextDict.values())
         self.paramName = paramName
         self.paramText = self.paramTextDict[self.paramName]
         self.spectrumNames = spectrumNames
@@ -248,7 +248,7 @@ class ConnectParamsWindow(QtWidgets.QWidget):
         self.show()
 
     def applyAndClose(self):
-        paramName = self.paramTextDict.keys()[self.paramNameEntry.currentIndex()]
+        paramName = list(self.paramTextDict.keys())[self.paramNameEntry.currentIndex()]
         returnTuple = (self.lineEntry.value(), paramName, safeEval(self.multEntry.text()), safeEval(self.addEntry.text()), self.spectrumNameEntry.currentIndex())
         self.closeEvent()
         self.returnFunc(returnTuple)
