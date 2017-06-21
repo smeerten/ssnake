@@ -2007,10 +2007,13 @@ class Current1D(Plot1DFrame):
             minVal = min(removeList[2 * i], removeList[2 * i + 1])
             maxVal = max(removeList[2 * i], removeList[2 * i + 1])
             bArray = np.logical_and(bArray, np.logical_or((tmpAx < minVal), (tmpAx > maxVal)))
-        polyCoeff = poly.polyfit(self.xax[bArray], tmpData[bArray], degree)
-        y = poly.polyval(self.xax, polyCoeff)
-        self.root.addMacro(['baselineCorrection', (list(np.real(y)), self.axes - self.data.data.ndim, list(np.imag(y)), str(selectSlice))])
-        return self.data.baselineCorrection(y, self.axes, select=selectSlice)
+        try:
+            polyCoeff = poly.polyfit(self.xax[bArray], tmpData[bArray], degree)
+            y = poly.polyval(self.xax, polyCoeff)
+            self.root.addMacro(['baselineCorrection', (list(np.real(y)), self.axes - self.data.data.ndim, list(np.imag(y)), str(selectSlice))])
+            return self.data.baselineCorrection(y, self.axes, select=selectSlice)
+        except:
+            return None
 
     def previewBaseline(self, degree, removeList):
         import numpy.polynomial.polynomial as poly
@@ -2024,22 +2027,30 @@ class Current1D(Plot1DFrame):
             minVal = min(removeList[2 * i], removeList[2 * i + 1])
             maxVal = max(removeList[2 * i], removeList[2 * i + 1])
             bArray = np.logical_and(bArray, np.logical_or((tmpAx < minVal), (tmpAx > maxVal)))
-        polyCoeff = poly.polyfit(self.xax[bArray], tmpData[bArray], degree)
-        y = poly.polyval(self.xax, polyCoeff)
-        if (self.plotType == 0):
-            y = np.real(y)
-        elif (self.plotType == 1):
-            y = np.imag(y)
-        elif (self.plotType == 2):
-            y = np.real(y)
-        elif (self.plotType == 3):
-            y = np.abs(y)
+        check = True
+        try:
+            polyCoeff = poly.polyfit(self.xax[bArray], tmpData[bArray], degree)
+            y = poly.polyval(self.xax, polyCoeff)
+            if (self.plotType == 0):
+                y = np.real(y)
+            elif (self.plotType == 1):
+                y = np.imag(y)
+            elif (self.plotType == 2):
+                y = np.real(y)
+            elif (self.plotType == 3):
+                y = np.abs(y)
+        except:
+            check = False
         self.resetPreviewRemoveList()
-        if len(self.data1D.shape) > 1:
-            self.showFid(self.data1D, [self.xax], [y] * self.data1D.shape[0], ['g'])
+        if check:
+            if len(self.data1D.shape) > 1:
+                self.showFid(self.data1D, [self.xax], [y] * self.data1D.shape[0], ['g'])
+            else:
+                self.showFid(self.data1D, [self.xax], [y], ['g'])
         else:
-            self.showFid(self.data1D, [self.xax], [y], ['g'])
+            self.showFid()
         self.previewRemoveList(removeList)
+        return check
 
     def previewRemoveList(self, removeList):
         if self.spec == 1:

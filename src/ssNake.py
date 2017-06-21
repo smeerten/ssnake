@@ -4245,7 +4245,9 @@ class BaselineWindow(wc.ToolWindows):
         if inp is not None:
             self.degree = inp
         self.degreeEntry.setText(str(self.degree))
-        self.father.current.previewBaseline(self.degree, self.removeList)
+        check = self.father.current.previewBaseline(self.degree, self.removeList)
+        if check == False:
+            self.father.father.dispMsg("Baseline correct: error in polynomial fit",'red')
         self.father.current.peakPickFunc = lambda pos, self=self: self.picked(pos)
         self.father.current.peakPick = True
 
@@ -4257,13 +4259,12 @@ class BaselineWindow(wc.ToolWindows):
         inp = safeEval(self.degreeEntry.text())
         if inp is None:
             self.father.father.dispMsg("Not a valid value")
-            return
-        if self.father.current.data.noUndo:
-            self.father.current.applyBaseline(self.degree, self.removeList, self.singleSlice.isChecked())
-        else:
-            returnValue = self.father.current.applyBaseline(self.degree, self.removeList, self.singleSlice.isChecked())
-            if returnValue is None:
-                return
+            return False
+        returnValue = self.father.current.applyBaseline(self.degree, self.removeList, self.singleSlice.isChecked())
+        if returnValue is None:
+            self.father.father.dispMsg("Baseline correct: error in polynomial fit",'red')
+            return False
+        if not self.father.current.data.noUndo:
             self.father.undoList.append(returnValue)
         self.father.current.peakPickReset()
         self.father.current.resetPreviewRemoveList()

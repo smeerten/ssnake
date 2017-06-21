@@ -104,8 +104,9 @@ class ToolWindows(QtWidgets.QWidget):
         pass
     
     def applyAndClose(self):
-        self.applyFunc()
-        self.closeEvent()
+        check = self.applyFunc()
+        if check is None:
+            self.closeEvent()
         
     def closeEvent(self, *args):
         self.father.current.upd()
