@@ -3999,6 +3999,10 @@ class SwapEchoWindow(wc.ToolWindows):
         inp = safeEval(self.posEntry.text())
         if inp is not None:
             self.posVal = int(round(inp))
+        else:
+            self.father.father.dispMsg("Swap echo: not a valid index")
+            return False
+        self.posEntry.setText(str(self.posVal))
         if self.posVal > 0 and self.posVal < (self.father.current.data1D.shape[-1]):
             self.father.current.setSwapEchoPreview(self.posVal)
             self.father.current.peakPick = False
@@ -4008,6 +4012,10 @@ class SwapEchoWindow(wc.ToolWindows):
         inp = safeEval(self.posEntry.text())
         if inp is not None:
             self.posVal = int(round(inp))
+        else:
+            self.father.father.dispMsg("Swap echo: not a valid index")
+            return False
+        self.posEntry.setText(str(self.posVal))
         if self.posVal > 0 and self.posVal < (self.father.current.data1D.shape[-1]):
             self.father.redoList = []
             if self.father.current.data.noUndo:
@@ -4016,7 +4024,7 @@ class SwapEchoWindow(wc.ToolWindows):
                 self.father.undoList.append(self.father.current.applySwapEcho(self.posVal))
             self.father.bottomframe.upd()
         else:
-            self.father.father.dispMsg("not a valid index for swap echo")
+            self.father.father.dispMsg("Swap echo: not a valid index")
 
     def picked(self, pos):
         self.father.current.setSwapEchoPreview(pos[0])
