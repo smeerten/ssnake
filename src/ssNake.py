@@ -3910,13 +3910,16 @@ class SizeWindow(wc.ToolWindows):
         inp = safeEval(self.sizeEntry.text())
         if inp is not None:
             self.sizeVal = int(round(inp))
-        if self.sizeVal < 1:
-            self.father.father.dispMsg('Value is not valid')
-            return
+        if self.sizeVal < 1 or inp is None:
+            self.father.father.dispMsg('Sizing: \'Size\' input is not valid')
+            return False
         self.sizeEntry.setText(str(self.sizeVal))
         inp = safeEval(self.posEntry.text())
         if inp is not None:
             self.posVal = int(round(inp))
+        if self.posVal < 1 or inp is None:
+            self.father.father.dispMsg('Sizing: \'Offset\' input is not valid')
+            return False
         self.posEntry.setText(str(self.posVal))
         self.father.current.setSizePreview(self.sizeVal, self.posVal)
 
@@ -3924,12 +3927,15 @@ class SizeWindow(wc.ToolWindows):
         inp = safeEval(self.sizeEntry.text())
         if inp is not None:
             self.sizeVal = int(round(inp))
-        if self.sizeVal < 1:
-            self.father.father.dispMsg('Value is not valid')
-            return
+        if self.sizeVal < 1 or inp is None:
+            self.father.father.dispMsg('Sizing: \'Size\' input is not valid')
+            return False
         inp = safeEval(self.posEntry.text())
         if inp is not None:
             self.posVal = int(round(inp))
+        if self.posVal < 1 or inp is None:
+            self.father.father.dispMsg('Sizing: \'Offset\' input is not valid')
+            return False
         self.father.redoList = []
         if self.father.current.data.noUndo:
             self.father.current.applySize(self.sizeVal, self.posVal)
