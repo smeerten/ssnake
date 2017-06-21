@@ -4216,8 +4216,11 @@ class BaselineWindow(wc.ToolWindows):
         super(BaselineWindow, self).__init__(parent)
         self.grid.addWidget(wc.QLabel("Polynomial Degree:"), 0, 0, 1, 2)
         self.removeList = []
-        self.degree = 3
-        self.degreeEntry = wc.QLineEdit(self.degree, self.setDegree)
+        self.degreeEntry = QtWidgets.QSpinBox()
+        self.degreeEntry.setMaximum(100)
+        self.degreeEntry.setMinimum(1)
+        self.degreeEntry.setValue(3)
+        self.degreeEntry.setAlignment(QtCore.Qt.AlignCenter)
         self.grid.addWidget(self.degreeEntry, 1, 0, 1, 2)
         resetButton = QtWidgets.QPushButton("&Reset")
         resetButton.clicked.connect(self.reset)
@@ -4234,18 +4237,9 @@ class BaselineWindow(wc.ToolWindows):
         self.father.current.peakPickFunc = lambda pos, self=self: self.picked(pos)
         self.father.current.peakPick = True
 
-    def setDegree(self):
-        inp = safeEval(self.degreeEntry.text())
-        if inp is not None:
-            self.degree = inp
-        self.degreeEntry.setText(str(self.degree))
-
     def preview(self, *args):
-        inp = safeEval(self.degreeEntry.text())
-        if inp is not None:
-            self.degree = inp
-        self.degreeEntry.setText(str(self.degree))
-        check = self.father.current.previewBaseline(self.degree, self.removeList)
+        inp = self.degreeEntry.value()
+        check = self.father.current.previewBaseline(inp, self.removeList)
         if check == False:
             self.father.father.dispMsg("Baseline correct: error in polynomial fit",'red')
         self.father.current.peakPickFunc = lambda pos, self=self: self.picked(pos)
@@ -4254,13 +4248,11 @@ class BaselineWindow(wc.ToolWindows):
     def reset(self, *args):
         self.removeList = []
         self.father.current.resetPreviewRemoveList()
+        self.preview()
 
     def applyFunc(self):
-        inp = safeEval(self.degreeEntry.text())
-        if inp is None:
-            self.father.father.dispMsg("Not a valid value")
-            return False
-        returnValue = self.father.current.applyBaseline(self.degree, self.removeList, self.singleSlice.isChecked())
+        inp = self.degreeEntry.value()
+        returnValue = self.father.current.applyBaseline(inp, self.removeList, self.singleSlice.isChecked())
         if returnValue is None:
             self.father.father.dispMsg("Baseline correct: error in polynomial fit",'red')
             return False
