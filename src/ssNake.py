@@ -3788,33 +3788,45 @@ class ApodWindow(wc.ToolWindows):
         if self.ticks[0].isChecked():
             lor = safeEval(self.entries[0].text())
             if lor is None:
-                self.father.father.dispMsg('Lorentzian value is not valid!')
+                self.father.father.dispMsg('Apodize: Lorentzian value is not valid!')
+                self.father.current.showFid()
+                return False
             self.entries[0].setText('%.4g' % lor)
             self.lorScale.setValue(round(lor * self.RESOLUTION / self.maximum))
         if self.ticks[1].isChecked():
             gauss = safeEval(self.entries[1].text())
             if gauss is None:
-                self.father.father.dispMsg('Gaussian value is not valid!')
+                self.father.father.dispMsg('Apodize: Gaussian value is not valid!')
+                self.father.current.showFid()
+                return False
             self.entries[1].setText('%.4g' % gauss)
             self.gaussScale.setValue(round(gauss * self.RESOLUTION / self.maximum))
         if self.ticks[2].isChecked():
             cos2 = safeEval(self.entries[2].text())
             if cos2 is None:
-                self.father.father.dispMsg('cos^2 value is not valid!')
+                self.father.father.dispMsg('Apodize: cos^2 value is not valid!')
+                self.father.current.showFid()
+                return False
             self.entries[2].setText('%.4g' % cos2)
         if self.ticks[3].isChecked():
             hamming = safeEval(self.entries[3].text())
             if hamming is None:
-                self.father.father.dispMsg('Hamming value is not valid!')
+                self.father.father.dispMsg('Apodize: Hamming value is not valid!')
+                self.father.current.showFid()
+                return False
             self.entries[3].setText('%.4g' % hamming)
         shift = safeEval(self.shiftEntry.text())
         if shift is None:
-            self.father.father.dispMsg('Shift value is not valid!')
+            self.father.father.dispMsg('Apodize: Shift value is not valid!')
+            self.father.current.showFid()
+            return False
         self.shiftEntry.setText('%.4g' % shift)
         if self.father.current.data.data.ndim > 1:
             shifting = safeEval(self.shiftingEntry.text())
             if shifting is None:
-                self.father.father.dispMsg('Shifting value is not valid!')
+                self.father.father.dispMsg('Apodize: Shifting value is not valid!')
+                self.father.current.showFid()
+                return False
             self.shiftingEntry.setText('%.4g' % shifting)
             shiftingAxes = int(self.shiftingValues[self.shiftingAxes.currentIndex()]) - 1
         else:
@@ -3829,8 +3841,18 @@ class ApodWindow(wc.ToolWindows):
             multiplier = 100
         else:
             multiplier = 1
-        self.entries[0].setText('%.4g' % (float(self.entries[0].text()) + multiplier*lorincr * self.lorstep))
-        self.entries[1].setText('%.4g' % (float(self.entries[1].text()) + multiplier*gaussincr * self.gaussstep))
+        lor = safeEval(self.entries[0].text())
+        if lor is None:
+            self.father.father.dispMsg('Apodize: Lorentzian value is not valid!')
+            self.father.current.showFid()
+            return False
+        self.entries[0].setText('%.4g' % (lor + multiplier*lorincr * self.lorstep))
+        gauss = safeEval(self.entries[1].text())
+        if gauss is None:
+            self.father.father.dispMsg('Apodize: Gaussian value is not valid!')
+            self.father.current.showFid()
+            return False
+        self.entries[1].setText('%.4g' % (gauss + multiplier*gaussincr * self.gaussstep))
         if (lorincr != 0) and (not self.ticks[0].isChecked()):
             self.ticks[0].setChecked(1)
         if (gaussincr != 0) and (not self.ticks[1].isChecked()):
@@ -3847,32 +3869,38 @@ class ApodWindow(wc.ToolWindows):
         if self.ticks[0].isChecked():
             lor = safeEval(self.entries[0].text())
             if lor is None:
-                self.father.father.dispMsg('Lorentzian value is not valid!')
-                return
+                self.father.father.dispMsg('Apodize: Lorentzian value is not valid!')
+                self.father.current.showFid()
+                return False
         if self.ticks[1].isChecked():
             gauss = safeEval(self.entries[1].text())
             if gauss is None:
-                self.father.father.dispMsg('Gaussian value is not valid!')
-                return
+                self.father.father.dispMsg('Apodize: Gaussian value is not valid!')
+                self.father.current.showFid()
+                return False
         if self.ticks[2].isChecked():
             cos2 = safeEval(self.entries[2].text())
             if cos2 is None:
-                self.father.father.dispMsg('cos^2 value is not valid!')
-                return
+                self.father.father.dispMsg('Apodize: cos^2 value is not valid!')
+                self.father.current.showFid()
+                return False
         if self.ticks[3].isChecked():
             hamming = safeEval(self.entries[3].text())
             if hamming is None:
-                self.father.father.dispMsg('Hamming value is not valid!')
-                return
+                self.father.father.dispMsg('Apodize: Hamming value is not valid!')
+                self.father.current.showFid()
+                return False
         shift = safeEval(self.shiftEntry.text())
         if shift is None:
-            self.father.father.dispMsg('Shift value is not valid!')
-            return
+            self.father.father.dispMsg('Apodize: Shift value is not valid!')
+            self.father.current.showFid()
+            return False
         if self.father.current.data.data.ndim > 1:
             shifting = safeEval(self.shiftingEntry.text())
             if shifting is None:
-                self.father.father.dispMsg('Shifting value is not valid!')
-                return
+                self.father.father.dispMsg('Apodize: Shifting value is not valid!')
+                self.father.current.showFid()
+                return False
             shiftingAxes = int(self.shiftingValues[self.shiftingAxes.currentIndex()]) - 1
         else:
             shiftingAxes = None
