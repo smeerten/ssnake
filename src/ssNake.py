@@ -4188,12 +4188,16 @@ class DCWindow(wc.ToolWindows):
                 self.startVal = 0
             elif self.startVal > dataLength:
                 self.startVal = dataLength
-            self.startEntry.setText(str(self.startVal))
             self.endVal = pos[0]
             self.endEntry.setText(str(self.endVal))
-            val = self.father.current.getdcOffset(self.startVal, self.endVal)
-            self.offsetEntry.setText('{:.2e}'.format(val))
-            self.father.current.dcOffset(val)
+
+            if inp is not None:
+                self.startEntry.setText(str(self.startVal))
+                val = self.father.current.getdcOffset(self.startVal, self.endVal)
+                self.offsetEntry.setText('{:.2e}'.format(val))
+                self.father.current.dcOffset(val)
+            else:
+                self.offsetEntry.setText('')
             self.father.current.peakPickFunc = lambda pos, self=self: self.picked(pos)
             self.father.current.peakPick = True
         else:
@@ -4206,19 +4210,29 @@ class DCWindow(wc.ToolWindows):
             elif self.endVal > dataLength:
                 self.endVal = dataLength
             self.startVal = pos[0]
-            val = self.father.current.getdcOffset(self.startVal, self.endVal)
-            self.offsetEntry.setText('{:.2e}'.format(val))
+            if inp is not None:
+                val = self.father.current.getdcOffset(self.startVal, self.endVal)
+                self.offsetEntry.setText('{:.2e}'.format(val))
+            else:
+                self.offsetEntry.setText('')
             self.father.current.peakPickFunc = lambda pos, self= self: self.picked(pos, True)
             self.father.current.peakPick = True
 
     def offsetPreview(self, inserted=False):
         if inserted:
-            self.father.current.dcOffset(safeEval(self.offsetEntry.text()))
+            dcVal = safeEval(self.offsetEntry.text())
+            if dcVal is None:
+                self.father.father.dispMsg("Offset correction: offset value not valid")
+                return
+            self.father.current.dcOffset(dcVal)
         else:
             dataLength = self.father.current.data1D.shape[-1]
             inp = safeEval(self.startEntry.text())
             if inp is not None:
                 self.startVal = int(round(inp))
+            else:
+                self.father.father.dispMsg("Offset correction: start value not valid")
+                return
             if self.startVal < 0:
                 self.startVal = 0
             elif self.startVal > dataLength:
@@ -4227,6 +4241,9 @@ class DCWindow(wc.ToolWindows):
             inp = safeEval(self.endEntry.text())
             if inp is not None:
                 self.endVal = int(round(inp))
+            else:
+                self.father.father.dispMsg("Offset correction: end value not valid")
+                return
             if self.endVal < 0:
                 self.endVal = 0
             elif self.endVal > dataLength:
@@ -4239,8 +4256,8 @@ class DCWindow(wc.ToolWindows):
     def applyFunc(self):
         inp = safeEval(self.offsetEntry.text())
         if inp is None:
-            self.father.father.dispMsg("Not a valid value")
-            return
+            self.father.father.dispMsg("Offset correction: offset value not valid")
+            return False
         self.father.current.peakPickReset()
         self.father.redoList = []
         if self.father.current.data.noUndo:
