@@ -3522,7 +3522,7 @@ class PhaseWindow(wc.ToolWindows):
 
     def inputZeroOrder(self, *args):
         inp = safeEval(self.zeroEntry.text())
-        if inp == None:
+        if inp is None:
             self.father.father.dispMsg('Phasing: zero order value input is not valid!')
             return None
         self.zeroVal = np.mod(inp + 180, 360) - 180
@@ -3592,10 +3592,11 @@ class PhaseWindow(wc.ToolWindows):
             return None
         inp +=  phase0 * self.PHASE0STEP
         self.zeroVal = np.mod(inp + 180, 360) - 180
-        value = safeEval(self.firstEntry.text()) + phase1 * self.PHASE1STEP
+        value = safeEval(self.firstEntry.text())
         if value == None:
             self.father.father.dispMsg('Phasing: first order value input is not valid!')
             return None
+        value += phase1 * self.PHASE1STEP
 
         if self.father.current.spec > 0:
             refCheck = self.inputRef()
@@ -3636,9 +3637,10 @@ class PhaseWindow(wc.ToolWindows):
         if self.father.current.spec > 0:
             refCheck = self.inputRef()
         zeroCheck = self.inputZeroOrder()
-        firstCheck = self.inputFirstOrder()
+        if zeroCheck is not None:
+            firstCheck = self.inputFirstOrder()
         if refCheck == None or zeroCheck == None or firstCheck == None: #If error. Messages are handled by functions
-            return
+            return False
         self.father.redoList = []
         if self.father.current.data.noUndo:
             self.father.current.applyPhase(np.pi * self.zeroVal / 180.0, np.pi * self.firstVal / 180.0, (self.singleSlice.isChecked() == 1))
