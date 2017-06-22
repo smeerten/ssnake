@@ -6576,8 +6576,7 @@ class aboutWindow(wc.ToolWindows):
         licenseText = ''
         with open(os.path.dirname(os.path.realpath(__file__)) + os.path.sep + 'licenseHtml.txt') as f:
             licenseTextTemp = f.read().split('\n')
-        for line in licenseTextTemp:
-            licenseText = licenseText + line + ' '
+        licenseText = ' '.join(licenseTextTemp)
         self.license.setHtml(licenseText)
         pythonVersion = sys.version
         pythonVersion = pythonVersion[:pythonVersion.index(' ')]
