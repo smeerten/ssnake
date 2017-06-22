@@ -402,7 +402,7 @@ class Spectrum(object):
             copyData = copy.deepcopy(self)
             returnValue = lambda self: self.restoreData(copyData, lambda self: self.states(axes))
         if self.data.shape[axes] % 2 != 0:
-            self.dispMsg("data has to be even for States")
+            self.dispMsg("States: data has to be even")
             return None
         tmpdata = np.real(self.data)
         slicing1 = (slice(None), ) * axes + (slice(None, None, 2), ) + (slice(None), ) * (self.data.ndim - 1 - axes)
@@ -423,7 +423,7 @@ class Spectrum(object):
             copyData = copy.deepcopy(self)
             returnValue = lambda self: self.restoreData(copyData, lambda self: self.statesTPPI(axes))
         if self.data.shape[axes] % 2 != 0:
-            self.dispMsg("data has to be even for States-TPPI")
+            self.dispMsg("States-TPPI: data has to be even")
             return None
         tmpdata = np.real(self.data)
         slicing1 = (slice(None), ) * axes + (slice(None, None, 2), ) + (slice(None), ) * (self.data.ndim - 1 - axes)
@@ -445,7 +445,7 @@ class Spectrum(object):
             copyData = copy.deepcopy(self)
             returnValue = lambda self: self.restoreData(copyData, lambda self: self.echoAntiEcho(axes))
         if self.data.shape[axes] % 2 != 0:
-            self.dispMsg("data has to be even for echo-antiecho")
+            self.dispMsg("Echo-antiecho: data has to be even")
             return None
         slicing1 = (slice(None), ) * axes + (slice(None, None, 2), ) + (slice(None), ) * (self.data.ndim - 1 - axes)
         slicing2 = (slice(None), ) * axes + (slice(1, None, 2), ) + (slice(None), ) * (self.data.ndim - 1 - axes)

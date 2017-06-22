@@ -6596,7 +6596,7 @@ class aboutWindow(wc.ToolWindows):
         self.grid.addWidget(self.tabs, 1, 0, 1, 3)
         self.resize(550, 700)
 
-    def closeEvent(self):
+    def closeEvent(self, *args):
         self.deleteLater()
 
 ##############################################################################
