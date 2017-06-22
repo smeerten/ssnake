@@ -4485,14 +4485,14 @@ class integrateWindow(regionWindow):
     def apply(self, maximum, minimum, newSpec):
         if newSpec:
             if self.father.father.newWorkspace(self.father.current.integrate(minimum, maximum, newSpec)) is None:
-                return None
+                return False
         else:
             if self.father.current.data.noUndo:
                 self.father.current.integrate(minimum, maximum, newSpec)
             else:
                 returnValue = self.father.current.integrate(minimum, maximum, newSpec)
                 if returnValue is None:
-                    return None
+                    return False
                 self.father.undoList.append(returnValue)
             self.father.redoList = []
             self.father.updAllFrames()
@@ -4681,9 +4681,9 @@ class regionWindow2(wc.ToolWindows):
             self.startEntry.setText(str(self.startVal))
             self.endVal = pos[0]
             self.endEntry.setText(str(self.endVal))
+            self.preview(self.startVal, self.endVal)
             self.father.current.peakPickFunc = lambda pos, self=self: self.picked(pos)
             self.father.current.peakPick = True
-            self.preview(self.startVal, self.endVal)
         else:
             self.startEntry.setText(str(pos[0]))
             self.father.current.peakPickFunc = lambda pos, self=self: self.picked(pos, True)
