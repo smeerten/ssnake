@@ -4066,15 +4066,24 @@ class LPSVDWindow(wc.ToolWindows):
         self.grid.addWidget(self.nPredictEntry, 8, 0)
 
     def applyFunc(self):
-        self.analPoints = safeEval(self.aPointsEntry.text())
-        self.numberFreq = safeEval(self.nFreqEntry.text())
-        self.predictPoints = safeEval(self.nPredictEntry.text())
+        analPoints = safeEval(self.aPointsEntry.text())
+        if analPoints is None:
+            self.father.father.dispMsg('LPSVD: Number of points for analysis is not valid')
+            return False
+        numberFreq = safeEval(self.nFreqEntry.text())
+        if numberFreq is None:
+            self.father.father.dispMsg('LPSVD: Number of frequencies is not valid')
+            return False
+        predictPoints = safeEval(self.nPredictEntry.text())
+        if predictPoints is None:
+            self.father.father.dispMsg('LPSVD: Number of predication points is not valid')
+            return False
         if self.analPoints > len(self.father.current.data1D):
-            self.father.father.dispMsg('Number of points for analysis cannot be more than data size!')
-            return
+            self.father.father.dispMsg('LPSVD: number of points for analysis cannot be more than data size')
+            return False
         if self.analPoints <= self.numberFreq * 4:
-            self.father.father.dispMsg('Number of points for analysis must be more than 4 times the number of frequencies!')
-            return
+            self.father.father.dispMsg('LPSVD: number of points for analysis must be more than 4 times the number of frequencies')
+            return False
         self.father.redoList = []
         if self.father.current.data.noUndo:
             self.father.current.applyLPSVD(self.analPoints, self.numberFreq, self.predictPoints, self.specGroup.checkedId())
@@ -4834,8 +4843,8 @@ class FiddleWindow(wc.ToolWindows):
         dataLength = self.father.current.data1D.shape[-1]
         inp = safeEval(self.startEntry.text())
         if inp is None:
-            self.father.father.dispMsg("Not a valid value")
-            return
+            self.father.father.dispMsg("Reference deconv: start entry not valid")
+            return False
         self.startVal = int(round(inp))
         if self.startVal < 0:
             self.startVal = 0
@@ -4843,8 +4852,8 @@ class FiddleWindow(wc.ToolWindows):
             self.startVal = dataLength
         inp = safeEval(self.endEntry.text())
         if inp is None:
-            self.father.father.dispMsg("Not a valid value")
-            return
+            self.father.father.dispMsg("Reference deconv: end entry not valid")
+            return False
         self.endVal = int(round(inp))
         if self.endVal < 0:
             self.endVal = 0
@@ -4852,8 +4861,8 @@ class FiddleWindow(wc.ToolWindows):
             self.endVal = dataLength
         lb = safeEval(self.lbEntry.text())
         if lb is None:
-            self.father.father.dispMsg("Not a valid value")
-            return
+            self.father.father.dispMsg("Reference deconv: Linebroadening entry not valid")
+            return False
         if self.father.current.data.noUndo:
             self.father.current.fiddle(self.startVal, self.endVal, lb)
         else:
