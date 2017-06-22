@@ -4119,6 +4119,9 @@ class ShiftDataWindow(wc.ToolWindows):
         inp = safeEval(self.shiftEntry.text())
         if inp is not None:
             self.shiftVal = int(round(inp))
+        else:
+            self.father.father.dispMsg("Shift data: shift value not valid")
+            return 
         if QtWidgets.qApp.keyboardModifiers() & QtCore.Qt.ControlModifier:
             shift = +10
         elif QtWidgets.qApp.keyboardModifiers() & QtCore.Qt.ShiftModifier:
@@ -4133,6 +4136,9 @@ class ShiftDataWindow(wc.ToolWindows):
         inp = safeEval(self.shiftEntry.text())
         if inp is not None:
             self.shiftVal = int(round(inp))
+        else:
+            self.father.father.dispMsg("Shift data: shift value not valid")
+            return 
         if QtWidgets.qApp.keyboardModifiers() & QtCore.Qt.ControlModifier:
             shift = -10
         elif QtWidgets.qApp.keyboardModifiers() & QtCore.Qt.ShiftModifier:
@@ -4147,14 +4153,17 @@ class ShiftDataWindow(wc.ToolWindows):
         inp = safeEval(self.shiftEntry.text())
         if inp is not None:
             self.shiftVal = int(round(inp))
+        else:
+            self.father.father.dispMsg("Shift data: shift value not valid")
+            return 
         self.shiftEntry.setText(str(self.shiftVal))
         self.father.current.setShiftPreview(self.shiftVal)
 
     def applyFunc(self):
         inp = safeEval(self.shiftEntry.text())
         if inp is None:
-            self.father.father.dispMsg("Not a valid input")
-            return
+            self.father.father.dispMsg("Shift data: shift value not valid")
+            return False
         shift = int(round(inp))
         self.father.redoList = []
         if self.father.current.data.noUndo:
