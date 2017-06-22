@@ -3734,10 +3734,10 @@ class ApodWindow(wc.ToolWindows):
             self.grid.addWidget(wc.QLabel("Shifting:"), 12, 0, 1, 3)
             
             self.shiftingDropdown = QtWidgets.QComboBox()
-            self.shiftingDropdown.addItems(['User Defined','Spin 3/2, -3Q (9/7)','Spin 5/2, 3Q (19/12)','Spin 5/2, -5Q (25/12)','Spin 7/2, 3Q (101/45)',
+            self.shiftingDropdown.addItems(['User Defined','Spin 3/2, -3Q (7/9)','Spin 5/2, 3Q (19/12)','Spin 5/2, -5Q (25/12)','Spin 7/2, 3Q (101/45)',
                                          'Spin 7/2, 5Q (11/9)','Spin 7/2, -7Q (161/45)','Spin 9/2, 3Q (91/36)','Spin 9/2, 5Q (95/36)','Spin 9/2, 7Q (7/18)','Spin 9/2, -9Q (31/6)'])
             self.shiftingDropdown.activated.connect(self.dropdownChanged)
-            self.shiftingList = [0,9.0/7.0,19.0/12.0,25.0/12.0,101.0/45.0,11.0/9.0,161.0/45.0,91.0/36.0,95.0/36.0,7.0/18.0,31.0/6.0]
+            self.shiftingList = [0,7.0/9.0,19.0/12.0,25.0/12.0,101.0/45.0,11.0/9.0,161.0/45.0,91.0/36.0,95.0/36.0,7.0/18.0,31.0/6.0]
         
             self.grid.addWidget(self.shiftingDropdown, 13, 1)
             
@@ -5637,10 +5637,10 @@ class ShearingWindow(wc.ToolWindows):
         options = list(map(str, range(1, self.father.masterData.data.ndim + 1)))
         self.grid.addWidget(wc.QLabel("Shearing constant:"), 0, 0)
         self.shearDropdown = QtWidgets.QComboBox()
-        self.shearDropdown.addItems(['User Defined','Spin 3/2, -3Q (9/7)','Spin 5/2, 3Q (19/12)','Spin 5/2, -5Q (25/12)','Spin 7/2, 3Q (101/45)',
+        self.shearDropdown.addItems(['User Defined','Spin 3/2, -3Q (7/9)','Spin 5/2, 3Q (19/12)','Spin 5/2, -5Q (25/12)','Spin 7/2, 3Q (101/45)',
                                      'Spin 7/2, 5Q (11/9)','Spin 7/2, -7Q (161/45)','Spin 9/2, 3Q (91/36)','Spin 9/2, 5Q (95/36)','Spin 9/2, 7Q (7/18)','Spin 9/2, -9Q (31/6)'])
         self.shearDropdown.activated.connect(self.dropdownChanged)
-        self.shearList = [0,9.0/7.0,19.0/12.0,25.0/12.0,101.0/45.0,11.0/9.0,161.0/45.0,91.0/36.0,95.0/36.0,7.0/18.0,31.0/6.0]
+        self.shearList = [0,7.0/9.0,19.0/12.0,25.0/12.0,101.0/45.0,11.0/9.0,161.0/45.0,91.0/36.0,95.0/36.0,7.0/18.0,31.0/6.0]
         self.grid.addWidget(self.shearDropdown, 1, 0)
         self.shearEntry = wc.QLineEdit("0.0", self.shearPreview)
         self.grid.addWidget(self.shearEntry, 3, 0)
