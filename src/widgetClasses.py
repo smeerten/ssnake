@@ -250,7 +250,7 @@ class ConnectParamsWindow(QtWidgets.QWidget):
 
     def applyAndClose(self):
         paramName = list(self.paramTextDict.keys())[self.paramNameEntry.currentIndex()]
-        returnTuple = (self.lineEntry.value(), paramName, safeEval(self.multEntry.text()), safeEval(self.addEntry.text()), self.spectrumNameEntry.currentIndex())
+        returnTuple = (paramName, self.lineEntry.value(), safeEval(self.multEntry.text()), safeEval(self.addEntry.text()), self.spectrumNameEntry.currentIndex())
         self.closeEvent()
         self.returnFunc(returnTuple)
 
