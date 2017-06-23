@@ -4432,21 +4432,34 @@ class regionWindow(wc.ToolWindows):
 
     def setVal(self, entry, isMin=False):
         inp = safeEval(entry.text())
-        if inp is None:
-            return
-        inp = int(inp)
-        if inp < 0:
-            inp = 0
-        if inp > self.father.current.data1D.shape[-1]:
-            inp = self.father.current.data1D.shape[-1]
+        if inp is not None:
+            inp = int(inp)
+            if inp < 0:
+                inp = 0
+            if inp > self.father.current.data1D.shape[-1]:
+                inp = self.father.current.data1D.shape[-1]
         if isMin:
             num = self.startEntry.index(entry)
-            self.startVal[num] = min(inp, self.endVal[num])
-            self.endVal[num] = max(inp, self.endVal[num])
+            if inp is None:
+                self.startVal[num] = -1 #If the input is wrong, use -1 as a placeholder for it in the value list
+                self.father.father.dispMsg(self.NAME + ": wrong input")
+                return
+            elif self.endVal[num] == -1:
+                self.startVal[num] = inp
+            else:
+                self.startVal[num] = min(inp, self.endVal[num])
+                self.endVal[num] = max(inp, self.endVal[num])
         else:
             num = self.endEntry.index(entry)
-            self.endVal[num] = max(inp, self.startVal[num])
-            self.startVal[num] = min(inp, self.startVal[num])
+            if inp is None:
+                self.endVal[num] = -1
+                self.father.father.dispMsg(self.NAME + ": wrong input")
+                return
+            elif self.startVal[num] == -1:
+                self.endVal[num] = inp
+            else:
+                self.endVal[num] = max(inp, self.startVal[num])
+                self.startVal[num] = min(inp, self.startVal[num])
         if num == self.partIter:
             self.partIter += 1
             self.startVal = np.append(self.startVal, 0)
@@ -4462,8 +4475,10 @@ class regionWindow(wc.ToolWindows):
             self.grid.addWidget(self.deleteButton[self.partIter], 1 + self.entryCount, 2)
             self.entryCount += 1
             self.first = True
-        self.startEntry[num].setText(str(self.startVal[num]))
-        self.endEntry[num].setText(str(self.endVal[num]))
+        if self.startVal[num] != -1: #Only if the input is OK, reprint it
+            self.startEntry[num].setText(str(self.startVal[num]))
+        if self.endVal[num] != -1:
+            self.endEntry[num].setText(str(self.endVal[num]))
 
     def apply(self, maximum, minimum, newSpec):
         pass
@@ -4471,10 +4486,10 @@ class regionWindow(wc.ToolWindows):
     def applyFunc(self):
         if self.partIter == 0:
             if self.apply(np.array([0]), np.array([self.father.current.data1D.shape[-1]]), self.newSpec.isChecked()) is None:
-                return
+                return False
         else:
             if self.apply(self.startVal[:self.partIter], self.endVal[:self.partIter], self.newSpec.isChecked()) is None:
-                return
+                return False
 
 ############################################################
 
@@ -4485,16 +4500,19 @@ class integrateWindow(regionWindow):
         super(integrateWindow, self).__init__(parent, 'Integrate')
 
     def apply(self, maximum, minimum, newSpec):
+        if np.any(maximum < 0) or np.any(minimum < 0): #Check for errors in the inputs
+            self.father.father.dispMsg(self.NAME + ": wrong input")
+            return None
         if newSpec:
             if self.father.father.newWorkspace(self.father.current.integrate(minimum, maximum, newSpec)) is None:
-                return False
+                return None
         else:
             if self.father.current.data.noUndo:
                 self.father.current.integrate(minimum, maximum, newSpec)
             else:
                 returnValue = self.father.current.integrate(minimum, maximum, newSpec)
                 if returnValue is None:
-                    return False
+                    return None
                 self.father.undoList.append(returnValue)
             self.father.redoList = []
             self.father.updAllFrames()
@@ -4509,6 +4527,9 @@ class sumWindow(regionWindow):
         super(sumWindow, self).__init__(parent, 'Sum')
 
     def apply(self, maximum, minimum, newSpec):
+        if np.any(maximum < 0) or np.any(minimum < 0):
+            self.father.father.dispMsg(self.NAME + ": wrong input")
+            return None
         if newSpec:
             if self.father.father.newWorkspace(self.father.current.sum(minimum, maximum, newSpec)) is None:
                 return None
@@ -4533,6 +4554,9 @@ class maxWindow(regionWindow):
         super(maxWindow, self).__init__(parent, 'Max')
 
     def apply(self, maximum, minimum, newSpec):
+        if np.any(maximum < 0) or np.any(minimum < 0):
+            self.father.father.dispMsg(self.NAME + ": wrong input")
+            return None
         if newSpec:
             if self.father.father.newWorkspace(self.father.current.maxMatrix(minimum, maximum, newSpec)) is None:
                 return None
@@ -4557,6 +4581,9 @@ class minWindow(regionWindow):
         super(minWindow, self).__init__(parent, 'Min')
 
     def apply(self, maximum, minimum, newSpec):
+        if np.any(maximum < 0) or np.any(minimum < 0):
+            self.father.father.dispMsg(self.NAME + ": wrong input")
+            return None
         if newSpec:
             if self.father.father.newWorkspace(self.father.current.minMatrix(minimum, maximum, newSpec)) is None:
                 return None
@@ -4581,6 +4608,9 @@ class argmaxWindow(regionWindow):
         super(argmaxWindow, self).__init__(parent, 'Max position')
 
     def apply(self, maximum, minimum, newSpec):
+        if np.any(maximum < 0) or np.any(minimum < 0):
+            self.father.father.dispMsg(self.NAME + ": wrong input")
+            return None
         if newSpec:
             if self.father.father.newWorkspace(self.father.current.argmaxMatrix(minimum, maximum, newSpec)) is None:
                 return None
@@ -4605,6 +4635,9 @@ class argminWindow(regionWindow):
         super(argminWindow, self).__init__(parent, 'Min position')
 
     def apply(self, maximum, minimum, newSpec):
+        if np.any(maximum < 0) or np.any(minimum < 0):
+            self.father.father.dispMsg(self.NAME + ": wrong input")
+            return None
         if newSpec:
             if self.father.father.newWorkspace(self.father.current.argminMatrix(minimum, maximum, newSpec)) is None:
                 return None
@@ -4629,6 +4662,9 @@ class avgWindow(regionWindow):
         super(avgWindow, self).__init__(parent, 'Average')
 
     def apply(self, maximum, minimum, newSpec):
+        if np.any(maximum < 0) or np.any(minimum < 0):
+            self.father.father.dispMsg(self.NAME + ": wrong input")
+            return None
         if newSpec:
             if self.father.father.newWorkspace(self.father.current.average(minimum, maximum, newSpec)) is None:
                 return None
