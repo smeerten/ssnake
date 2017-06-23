@@ -538,11 +538,11 @@ class MainProgram(QtWidgets.QMainWindow):
         self.hilbertAct.setToolTip('Hilbert Transform') 
         self.nusMenu = QtWidgets.QMenu("&NUS", self)
         self.fftMenu.addMenu(self.nusMenu)
-        self.ffmAct = self.nusMenu.addAction("&FFM", lambda: self.mainWindowCheck(lambda mainWindow: FFMWindow(mainWindow)))
+        self.ffmAct = self.nusMenu.addAction(QtGui.QIcon(IconDirectory + 'ffm.png'),"&FFM", lambda: self.mainWindowCheck(lambda mainWindow: FFMWindow(mainWindow)))
         self.ffmAct.setToolTip('FFM') 
-        self.cleanAct = self.nusMenu.addAction("&CLEAN", lambda: self.mainWindowCheck(lambda mainWindow: CLEANWindow(mainWindow)))
+        self.cleanAct = self.nusMenu.addAction(QtGui.QIcon(IconDirectory + 'clean.png'),"&CLEAN", lambda: self.mainWindowCheck(lambda mainWindow: CLEANWindow(mainWindow)))
         self.cleanAct.setToolTip('CLEAN') 
-        self.istAct = self.nusMenu.addAction("&IST", lambda: self.mainWindowCheck(lambda mainWindow: ISTWindow(mainWindow)))
+        self.istAct = self.nusMenu.addAction(QtGui.QIcon(IconDirectory + 'ist.png'),"&IST", lambda: self.mainWindowCheck(lambda mainWindow: ISTWindow(mainWindow)))
         self.istAct.setToolTip('IST') 
         
         self.fftActList = [self.fourierAct,self.realFourierAct,self.fftshiftAct,self.invfftshiftAct,
