@@ -4753,8 +4753,8 @@ class regionWindow2(wc.ToolWindows):
         dataLength = self.father.current.data1D.shape[-1]
         inp = safeEval(self.startEntry.text())
         if inp is None:
-            self.father.father.dispMsg("Not a valid value")
-            return
+            self.father.father.dispMsg(self.NAME + ": value not valid")
+            return False
         self.startVal = int(round(inp))
         if self.startVal < 0:
             self.startVal = 0
@@ -4762,15 +4762,15 @@ class regionWindow2(wc.ToolWindows):
             self.startVal = dataLength
         inp = safeEval(self.endEntry.text())
         if inp is None:
-            self.father.father.dispMsg("Not a valid value")
-            return
+            self.father.father.dispMsg(self.NAME + ": value not valid")
+            return False
         self.endVal = int(round(inp))
         if self.endVal < 0:
             self.endVal = 0
         elif self.endVal > dataLength:
             self.endVal = dataLength
         if self.apply(self.startVal, self.endVal, self.newSpec.isChecked()) is None:
-            return
+            return False
 
     def apply(self, maximum, minimum, newSpec):
         pass
@@ -4935,21 +4935,25 @@ class DeleteWindow(wc.ToolWindows):
         self.grid.addWidget(self.delEntry, 1, 0)
 
     def preview(self, *args):
-        env = vars(np).copy()
         length = int(self.father.current.data1D.shape[-1])
-        env['length'] = length  # so length can be used to in equations
-        pos = np.array(eval(self.delEntry.text(), env)).flatten()                # find a better solution, also add catch for exceptions
+        pos = safeEval(self.delEntry.text())
+        if pos == None:
+            self.father.father.dispMsg('Delete: not all values are valid indexes to delete')
+            return False
+        pos = np.array(pos)
         pos[pos < 0] = pos[pos < 0] + length
         if (pos > -1).all() and (pos < length).all():
             self.father.current.deletePreview(pos)
         else:
-            self.father.father.dispMsg('Not all values are valid indexes to delete')
+            self.father.father.dispMsg('Delete: not all values are valid indexes to delete')
 
     def applyFunc(self):
-        env = vars(np).copy()
         length = int(self.father.current.data1D.shape[-1])
-        env['length'] = length  # so length can be used to in equations
-        pos = np.array(eval(self.delEntry.text(), env)).flatten()                # find a better solution, also add catch for exceptions
+        pos = safeEval(self.delEntry.text())
+        if pos == None:
+            self.father.father.dispMsg('Delete: not all values are valid indexes to delete')
+            return False
+        pos = np.array(pos)
         pos[pos < 0] = pos[pos < 0] + length
         if (pos > -1).all() and (pos < length).all():
             self.father.redoList = []
@@ -4958,7 +4962,8 @@ class DeleteWindow(wc.ToolWindows):
             else:
                 self.father.undoList.append(self.father.current.delete(pos))
         else:
-            self.father.father.dispMsg('Not all values are valid indexes to delete')
+            self.father.father.dispMsg('Delete: not all values are valid indexes to delete')
+            return False
 
 ##############################################################
 
