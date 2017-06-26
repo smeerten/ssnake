@@ -2289,7 +2289,9 @@ class Main1DWindow(QtWidgets.QWidget):
         Dir = os.path.dirname(FilePath)
         if not os.path.exists(Dir + os.path.sep + 'acqus'):
             self.father.dispMsg("acqus file does not exist, specify load path")
-            FilePath = QtWidgets.QFileDialog.getOpenFileName(self, 'Open File', self.father.LastLocation)
+            FilePath = QtWidgets.QFileDialog.getOpenFileName(self, 'Open File', self.father.LastLocation)[0]
+            if FilePath == '':
+                return
             self.father.LastLocation = os.path.dirname(FilePath)  # Save used path
             Dir = os.path.dirname(FilePath)
             if type(FilePath) is tuple:
@@ -6098,6 +6100,7 @@ class CombineWorkspaceWindow(wc.ToolWindows):
         self.grid.addWidget(self.listA, 1, 0)
         self.grid.addWidget(self.listB, 1, 1)
         self.layout.setColumnStretch(2, 1)
+        self.resize(500, 400)
 
     def applyFunc(self, *args):
         items = []
