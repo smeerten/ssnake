@@ -4330,7 +4330,7 @@ class BaselineWindow(wc.ToolWindows):
 
     def reset(self, *args):
         self.removeList = []
-        self.father.current.resetPreviewRemoveList()
+        #self.father.current.resetPreviewRemoveList()
         self.preview()
 
     def applyFunc(self):
@@ -4342,7 +4342,7 @@ class BaselineWindow(wc.ToolWindows):
         if not self.father.current.data.noUndo:
             self.father.undoList.append(returnValue)
         self.father.current.peakPickReset()
-        self.father.current.resetPreviewRemoveList()
+        #self.father.current.resetPreviewRemoveList()
         self.father.redoList = []
 
 #############################################################
