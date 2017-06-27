@@ -2041,7 +2041,7 @@ class Current1D(Plot1DFrame):
                 y = np.abs(y)
         except:
             check = False
-        #self.resetPreviewRemoveList()
+        self.resetPreviewRemoveList()
         if check:
             if len(self.data1D.shape) > 1:
                 self.showFid(self.data1D, [self.xax], [y] * self.data1D.shape[0], ['g'])
@@ -2060,7 +2060,7 @@ class Current1D(Plot1DFrame):
                 axMult = 1.0 / (1000.0**self.axType)
         elif self.spec == 0:
             axMult = 1000.0**self.axType
-        #self.resetPreviewRemoveList()
+        self.resetPreviewRemoveList()
         self.removeListLines = []
         for i in range(int(np.floor(len(removeList) / 2.0))):
             self.removeListLines.append(self.ax.axvspan(self.xax[removeList[2 * i]] * axMult, self.xax[removeList[2 * i + 1]] * axMult, color='r'))
@@ -2068,12 +2068,11 @@ class Current1D(Plot1DFrame):
             self.removeListLines.append(self.ax.axvline(self.xax[removeList[-1]] * axMult, c='r', linestyle='--'))
         self.canvas.draw()
 
-    #def resetPreviewRemoveList(self):
-    #    if hasattr(self, 'removeListLines'):
-    #        for i in self.removeListLines:
-    #            print(i)
-    #            #i.remove()
-    #        #del self.removeListLines
+    def resetPreviewRemoveList(self):
+        if hasattr(self, 'removeListLines'):
+            for i in self.removeListLines:
+                i.remove()
+            del self.removeListLines
             
 
     def states(self):
