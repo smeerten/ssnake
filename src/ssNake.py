@@ -4299,7 +4299,6 @@ class BaselineWindow(wc.ToolWindows):
         super(BaselineWindow, self).__init__(parent)
         self.grid.addWidget(wc.QLabel("Polynomial Degree:"), 0, 0, 1, 2)
         self.removeList = []
-        self.father.current.removeListLines = []
         self.degreeEntry = QtWidgets.QSpinBox()
         self.degreeEntry.setMaximum(100)
         self.degreeEntry.setMinimum(1)
@@ -4333,6 +4332,11 @@ class BaselineWindow(wc.ToolWindows):
         self.removeList = []
         self.father.current.resetPreviewRemoveList()
         self.preview()
+
+    def closeEvent(self, *args):
+        del self.father.current.removeListLines
+        super(BaselineWindow,self).closeEvent(*args)
+
 
     def applyFunc(self):
         inp = self.degreeEntry.value()

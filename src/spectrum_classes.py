@@ -2061,7 +2061,6 @@ class Current1D(Plot1DFrame):
         elif self.spec == 0:
             axMult = 1000.0**self.axType
         self.resetPreviewRemoveList()
-        self.removeListLines = []
         for i in range(int(np.floor(len(removeList) / 2.0))):
             self.removeListLines.append(self.ax.axvspan(self.xax[removeList[2 * i]] * axMult, self.xax[removeList[2 * i + 1]] * axMult, color='r'))
         if len(removeList) % 2:
@@ -2072,7 +2071,7 @@ class Current1D(Plot1DFrame):
         if hasattr(self, 'removeListLines'):
             for i in self.removeListLines:
                 i.remove()
-            del self.removeListLines
+        self.removeListLines = []
             
 
     def states(self):
