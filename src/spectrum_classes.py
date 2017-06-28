@@ -284,7 +284,7 @@ class Spectrum(object):
                 returnValue = lambda self: self.restoreData(copyData, lambda self: self.multiply(mult, axes, select=select))
             self.data[select] = np.apply_along_axis(np.multiply, axes, self.data, mult)[select]
         except ValueError as error:
-            self.dispMsg(str(error))
+            self.dispMsg('Multiply: ' + str(error))
             return None
         self.addHistory("Multiplied dimension " + str(axes + 1) + " of data[" + str(select) + "]: " + str(mult).replace('\n', ''))
         return returnValue
@@ -2288,8 +2288,12 @@ class Current1D(Plot1DFrame):
     
     def multiplyPreview(self, data):
         self.upd()
-        self.data1D = self.data1D * data
-        self.showFid()
+        try:
+            self.data1D = self.data1D * data
+            self.showFid()
+            return True
+        except ValueError as error:
+            return error
 
     def subtractAvg(self, pos1, pos2):
         returnValue = self.data.subtractAvg(pos1, pos2, self.axes)

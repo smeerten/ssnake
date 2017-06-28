@@ -5771,23 +5771,25 @@ class MultiplyWindow(wc.ToolWindows):
         self.grid.addWidget(self.valEntry, 1, 0)
 
     def preview(self, *args):
-        env = vars(np).copy()
-        env['length'] = int(self.father.current.data1D.shape[-1])  # so length can be used to in equations
-        env['euro'] = lambda fVal, num=int(self.father.current.data1D.shape[-1]): euro(fVal, num)
-        val = eval(self.valEntry.text(), env)                # find a better solution, also add catch for exceptions
-        self.father.current.multiplyPreview(np.array(val))
+        val = safeEval(self.valEntry.text())
+        if val is None:
+            self.father.father.dispMsg("Multiply: input not valid")
+            return False
+        check = self.father.current.multiplyPreview(np.array(val))
+        if check is not True:
+            self.father.father.dispMsg("Multiply: " + check)
 
     def applyFunc(self):
-        env = vars(np).copy()
-        env['length'] = int(self.father.current.data1D.shape[-1])  # so length can be used to in equations
-        env['euro'] = lambda fVal, num=int(self.father.current.data1D.shape[-1]): euro(fVal, num)
-        val = eval(self.valEntry.text(), env)                # find a better solution, also add catch for exceptions
+        val = safeEval(self.valEntry.text())
+        if val is None:
+            self.father.father.dispMsg("Multiply: input not valid")
+            return False
         if self.father.current.data.noUndo:
             self.father.current.multiply(np.array(val), self.singleSlice.isChecked())
         else:
             returnValue = self.father.current.multiply(np.array(val), self.singleSlice.isChecked())
             if returnValue is None:
-                return
+                return False
             self.father.undoList.append(returnValue)
         self.father.redoList = []
 
