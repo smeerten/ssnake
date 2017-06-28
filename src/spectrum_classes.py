@@ -336,7 +336,7 @@ class Spectrum(object):
         try:
             self.data = np.array(np.split(self.data, sections, axis=axes))
         except ValueError as error:
-            self.dispMsg(str(error))
+            self.dispMsg('Split: ' + str(error))
             return None
         self.freq = np.insert(self.freq, 0, self.freq[axes])
         self.sw = np.insert(self.sw, 0, self.sw[axes])

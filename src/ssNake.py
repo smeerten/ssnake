@@ -4985,20 +4985,27 @@ class SplitWindow(wc.ToolWindows):
 
     def preview(self, *args):
         val = safeEval(self.splitEntry.text(), self.father.current.data1D.shape[-1])
-        if val is not None:
+        if val is None:
+            self.father.father.dispMsg("Split: input not valid")
+            return False
+        else:
             self.splitEntry.setText(str(int(round(val))))
 
     def applyFunc(self):
         val = safeEval(self.splitEntry.text(), self.father.current.data1D.shape[-1])
         if val is None:
-            self.father.father.dispMsg("Not a valid value")
-            return
+            self.father.father.dispMsg("Split: input not valid")
+            return False
+        val = int(val)
+        if val <= 0:
+            self.father.father.dispMsg("Split: input not valid")
+            return False
         if self.father.current.data.noUndo:
             self.father.current.split(int(round(val)))
         else:
             returnValue = self.father.current.split(int(round(val)))
             if returnValue is None:
-                return
+                return False
             self.father.undoList.append(returnValue)
         self.father.redoList = []
 
