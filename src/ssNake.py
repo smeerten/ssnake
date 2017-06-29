@@ -4441,6 +4441,7 @@ class regionWindow(wc.ToolWindows):
 
     def setVal(self, entry, isMin=False):
         inp = safeEval(entry.text())
+        error = False
         if inp is not None:
             inp = int(inp)
             if inp < 0:
@@ -4452,7 +4453,7 @@ class regionWindow(wc.ToolWindows):
             if inp is None:
                 self.startVal[num] = -1 #If the input is wrong, use -1 as a placeholder for it in the value list
                 self.father.father.dispMsg(self.NAME + ": wrong input")
-                return
+                error = True
             elif self.endVal[num] == -1:
                 self.startVal[num] = inp
             else:
@@ -4463,7 +4464,7 @@ class regionWindow(wc.ToolWindows):
             if inp is None:
                 self.endVal[num] = -1
                 self.father.father.dispMsg(self.NAME + ": wrong input")
-                return
+                error = True
             elif self.startVal[num] == -1:
                 self.endVal[num] = inp
             else:
@@ -4484,6 +4485,10 @@ class regionWindow(wc.ToolWindows):
             self.grid.addWidget(self.deleteButton[self.partIter], 1 + self.entryCount, 2)
             self.entryCount += 1
             self.first = True
+
+        if error: #Return only after partIter check
+            return
+
         if self.startVal[num] != -1: #Only if the input is OK, reprint it
             self.startEntry[num].setText(str(self.startVal[num]))
         if self.endVal[num] != -1:
