@@ -135,7 +135,8 @@ class Spectrum(object):
     def removeFromHistory(self, num):
         for i in range(num):
             if len(self.history) > 0:
-                self.history.pop()
+                val = self.history.pop()
+        return val 
 
     def checkAxes(self, axes):
         if axes < 0:
