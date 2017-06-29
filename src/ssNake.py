@@ -400,7 +400,7 @@ class MainProgram(QtWidgets.QMainWindow):
         self.macroLoadAct = self.macromenu.addAction(QtGui.QIcon(IconDirectory + 'open.png'), '&Load', self.loadMacro)
         self.macroLoadAct.setToolTip('Load Macro')
         
-        self.macroActList = [self.macrostartAct,self.macrostopAct,self.macroLoadAct]
+        self.macroActList = [self.macrostartAct,self.macrostopAct]
 
         self.multiDActions = []
         # the edit drop down menu
@@ -643,7 +643,7 @@ class MainProgram(QtWidgets.QMainWindow):
         
         self.plotActList = [self.onedplotAct,self.scatterplotAct,self.stackplotAct,self.arrayplotAct,
                             self.contourplotAct,self.multiplotAct,self.setrefAct,
-                            self.delrefAct,self.loadrefAct,self.userxAct,self.plotprefAct]
+                            self.delrefAct,self.userxAct,self.plotprefAct]
         
         # the history drop down menu
         self.historyMenu = QtWidgets.QMenu("&History", self)
