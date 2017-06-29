@@ -270,12 +270,13 @@ class MainProgram(QtWidgets.QMainWindow):
         settings.setValue("contour/diagonalbool", self.defaultDiagonalBool)
         settings.setValue("contour/diagonalmult", self.defaultDiagonalMult)
 
-    def dispMsg(self, msg, color = 'black'):
+    def dispMsg(self, msg, color = 'black', error = True):
         if color == 'red':
             self.statusBar.setStyleSheet("QStatusBar{padding-left:8px;color:red;}")
         else:
             self.statusBar.setStyleSheet("QStatusBar{padding-left:8px;color:black;}")
-        self.dispError([msg])
+        if error:
+            self.dispError([msg])
         self.statusBar.showMessage(msg, 10000)
     
     def initToolbar(self):
@@ -2440,7 +2441,7 @@ class Main1DWindow(QtWidgets.QWidget):
             return
         self.redoList.append(undoFunc(self.masterData))
         message = self.masterData.removeFromHistory(2)
-        self.father.dispMsg("Undo: " + message)
+        self.father.dispMsg("Undo: " + message,error = False)
         self.current.upd()
         self.current.plotReset()
         self.current.showFid()
