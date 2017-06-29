@@ -1272,10 +1272,10 @@ class Spectrum(object):
         if newLength is None:
             newLength = max(pos) + 1
         if (max(pos) >= newLength) or (min(pos) < 0):
-            self.dispMsg("Invalid positions")
+            self.dispMsg("Reorder: invalid positions")
             return None
         if self.noUndo:
-            returnValue = None
+            returnValue = False
         else:
             copyData = copy.deepcopy(self)
             returnValue = lambda self: self.restoreData(copyData, lambda self: self.reorder(pos, newLength, axes))

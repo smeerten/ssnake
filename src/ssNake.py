@@ -5470,24 +5470,31 @@ class ReorderWindow(wc.ToolWindows):
             return
         self.valEntry.setText(repr(np.loadtxt(filename, dtype=int)))
 
-    def applyAndClose(self):
-        newLength = safeEval(self.lengthEntry.text())
-        env = vars(np).copy()
-        env['length'] = int(self.father.current.data1D.shape[-1])  # so length can be used to in equations
-        env['euro'] = lambda fVal, num=int(self.father.current.data1D.shape[-1]): euro(fVal, num)
-        val = eval(self.valEntry.text(), env)                # find a better solution, also add catch for exceptions
+    def applyFunc(self):
+        newLength = self.lengthEntry.text()
+        if newLength == '':
+            newLength = None
+        else:
+            newLength = safeEval(self.lengthEntry.text())
+            if newLength is None:
+                self.father.father.dispMsg("Reorder: `Length' input is not valid")
+                return False
+        val = safeEval(self.valEntry.text(), int(self.father.current.data1D.shape[-1]))
         if not isinstance(val, (list, np.ndarray)):
-            self.father.father.dispMsg("Input is not a list or array")
-            return
+            self.father.father.dispMsg("Reorder: `Positions' input is not a list or array")
+            return False
         if len(val) != self.father.current.data1D.shape[-1]:
-            self.father.father.dispMsg("Length of input does not match length of data")
-            return
+            self.father.father.dispMsg("Reorder: length of input does not match length of data")
+            return False
         val = np.array(val, dtype=int)
         self.father.redoList = []
-        if self.father.masterData.noUndo:
-            self.father.current.reorder(val, newLength)
-        else:
-            self.father.undoList.append(self.father.current.reorder(val, newLength))
+        check = self.father.current.reorder(val, newLength)
+        if check is None:
+            return False
+
+        if not self.father.masterData.noUndo:
+            self.father.undoList.append(check)
+        return
 
 ##########################################################################################
 
@@ -5658,6 +5665,7 @@ class ISTWindow(wc.ToolWindows):
         self.grid.addWidget(self.maxIterEntry, 8, 0)
         self.grid.addWidget(wc.QLabel("Stop when residual below (% of ND max):"), 9, 0)
         self.tracelimitEntry = wc.QLineEdit("2.0")
+        self.grid.addWidget(self.tracelimitEntry, 10, 0)
 
     def preview(self, *args):
         pass
