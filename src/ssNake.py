@@ -510,8 +510,8 @@ class MainProgram(QtWidgets.QMainWindow):
         self.multiplyAct.setToolTip('Multiply')
         self.reorderAct = self.matrixMenu.addAction(QtGui.QIcon(IconDirectory + 'reorder.png'), "&Reorder", lambda: self.mainWindowCheck(lambda mainWindow: ReorderWindow(mainWindow)))
         self.reorderAct.setToolTip('Reorder')
-        self.regridAct = self.matrixMenu.addAction("Regrid", lambda: self.mainWindowCheck(lambda mainWindow: RegridWindow(mainWindow)))
-        self.regridAct.setToolTip('Regrid')
+        #self.regridAct = self.matrixMenu.addAction("Regrid", lambda: self.mainWindowCheck(lambda mainWindow: RegridWindow(mainWindow)))
+        #self.regridAct.setToolTip('Regrid')
         self.concatAct = self.matrixMenu.addAction(QtGui.QIcon(IconDirectory + 'concatenate.png'),"C&oncatenate", lambda: self.mainWindowCheck(lambda mainWindow: ConcatenateWindow(mainWindow)))
         self.concatAct.setToolTip('Concatenate')
         self.multiDActions.append(self.concatAct)
@@ -522,7 +522,7 @@ class MainProgram(QtWidgets.QMainWindow):
         self.matrixActList = [self.sizingAct,self.shiftAct,self.intRegionAct,self.sumRegionAct,self.maxRegionAct,
                               self.minRegionAct,self.maxposRegionAct,self.minposRegionAct,self.averageRegionAct,
                               self.diffAct,self.cumsumAct,self.extractpartAct,self.fliplrAct,self.matrixdelAct,
-                              self.splitAct,self.multiplyAct,self.regridAct,self.reorderAct,self.concatAct,self.shearAct]
+                              self.splitAct,self.multiplyAct,self.reorderAct,self.concatAct,self.shearAct]
 
         # the fft drop down menu
         self.fftMenu = QtWidgets.QMenu("T&ransforms", self)
@@ -5752,13 +5752,13 @@ class ShearingWindow(wc.ToolWindows):
     def applyFunc(self):
         shear = safeEval(self.shearEntry.text())
         if shear is None:
-            self.father.father.dispMsg("Not a valid value")
-            return
+            self.father.father.dispMsg("Shearing: 'constant' not a valid value")
+            return False
         axes = self.dirEntry.currentIndex()
         axes2 = self.axEntry.currentIndex()
         if axes == axes2:
-            self.father.father.dispMsg("Axes can't be the same for shearing")
-            return
+            self.father.father.dispMsg("Shearing: axes cannot be the same for shearing")
+            return False
         else:
             self.father.redoList = []
             if self.father.masterData.noUndo:
