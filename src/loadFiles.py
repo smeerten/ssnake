@@ -909,56 +909,58 @@ def loadJCAMP(filePath,name):
 
 
 def LoadAscii(filePath, name, dataDimension, dataSpec, dataOrder, delimitor, swInp = 0.0):
-    
-    freq = 0.0
-    delimChar = ''
-    if delimitor == 'Tab':
-        delimChar = '\t'
-    elif delimitor == 'Space':
-        delimChar = ' '
-    elif delimitor == 'Comma':
-        delimChar = ','
-    else:
-        return
-    
-    matrix = np.genfromtxt(filePath,dtype=None, delimiter = delimChar)
-    if dataOrder == 'XRI' or dataOrder == 'XR' or dataOrder == 'XI':
-        if dataSpec == False:
-            sw = 1.0 / (matrix[1,0] - matrix[0,0])
+    try: 
+        freq = 0.0
+        delimChar = ''
+        if delimitor == 'Tab':
+            delimChar = '\t'
+        elif delimitor == 'Space':
+            delimChar = ' '
+        elif delimitor == 'Comma':
+            delimChar = ','
         else:
-            sw = abs(matrix[0,0] - matrix[-1,0])/(matrix.shape[0] - 1) * matrix.shape[0]
-    else:
-        sw = swInp * 1000
-    
-    if dataDimension == 1:
-        if dataOrder == 'XRI':
-            data = matrix[:,1] + 1j * matrix[:,2]
-        elif dataOrder == 'XR':
-            data = matrix[:,1]
-        elif dataOrder == 'XI':
-            data = 1j * matrix[:,1]
-        elif dataOrder == 'RI':
-            data = matrix[:,0] + 1j * matrix[:,1]
-        elif dataOrder == 'R':
-            data = matrix
-        masterData = sc.Spectrum(name, data, (11, filePath), [freq], [sw], [dataSpec], ref = [None])
-    elif dataDimension == 2:
-        if dataOrder == 'XRI':
-            data = np.transpose(matrix[:,1::2] + 1j * matrix[:,2::2])
-        elif dataOrder == 'XR':
-           data = np.transpose(matrix[:,1:]) 
-        elif dataOrder == 'XI':
-           data = 1j * np.transpose(matrix[:,1:]) 
-        elif dataOrder == 'RI':  
-            data = np.transpose(matrix[:,0::2] + 1j * matrix[:,1::2])
-        elif dataOrder == 'RI':  
-            data = np.transpose(matrix)
-        masterData = sc.Spectrum(name, data, (11, filePath), [freq,freq], [1,sw], [False,dataSpec], ref = [None,None])
-    else:
+            return
+        
+        matrix = np.genfromtxt(filePath,dtype=None, delimiter = delimChar)
+        if dataOrder == 'XRI' or dataOrder == 'XR' or dataOrder == 'XI':
+            if dataSpec == False:
+                sw = 1.0 / (matrix[1,0] - matrix[0,0])
+            else:
+                sw = abs(matrix[0,0] - matrix[-1,0])/(matrix.shape[0] - 1) * matrix.shape[0]
+        else:
+            sw = swInp * 1000
+        
+        if dataDimension == 1:
+            if dataOrder == 'XRI':
+                data = matrix[:,1] + 1j * matrix[:,2]
+            elif dataOrder == 'XR':
+                data = matrix[:,1]
+            elif dataOrder == 'XI':
+                data = 1j * matrix[:,1]
+            elif dataOrder == 'RI':
+                data = matrix[:,0] + 1j * matrix[:,1]
+            elif dataOrder == 'R':
+                data = matrix
+            masterData = sc.Spectrum(name, data, (11, filePath), [freq], [sw], [dataSpec], ref = [None])
+        elif dataDimension == 2:
+            if dataOrder == 'XRI':
+                data = np.transpose(matrix[:,1::2] + 1j * matrix[:,2::2])
+            elif dataOrder == 'XR':
+               data = np.transpose(matrix[:,1:]) 
+            elif dataOrder == 'XI':
+               data = 1j * np.transpose(matrix[:,1:]) 
+            elif dataOrder == 'RI':  
+                data = np.transpose(matrix[:,0::2] + 1j * matrix[:,1::2])
+            elif dataOrder == 'RI':  
+                data = np.transpose(matrix)
+            masterData = sc.Spectrum(name, data, (11, filePath), [freq,freq], [1,sw], [False,dataSpec], ref = [None,None])
+        else:
+            return
+                
+        masterData.addHistory("ASCII data loaded from " + filePath)    
+        return masterData
+    except:
         return
-            
-    masterData.addHistory("ASCII data loaded from " + filePath)    
-    return masterData
         
         
         

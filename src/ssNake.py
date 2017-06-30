@@ -1482,7 +1482,6 @@ class MainProgram(QtWidgets.QMainWindow):
             masterData.msgHandler = lambda msg: self.dispMsg(msg)
         except:
             self.dispMsg("Error on loading Varian data",'red')
-            raise
         return masterData
 
     def LoadPipe(self, filePath, name=''):
@@ -1491,7 +1490,6 @@ class MainProgram(QtWidgets.QMainWindow):
             masterData.msgHandler = lambda msg: self.dispMsg(msg)
         except:
             self.dispMsg("Error on loading NMRpipe data",'red')
-            raise
         return masterData
 
     def LoadJEOLDelta(self, filePath, name=''):
@@ -1502,7 +1500,6 @@ class MainProgram(QtWidgets.QMainWindow):
             raise
         if masterData ==  'ND error':
             self.dispMsg("Error: JEOL Delta data of this type is not supported",'red')
-            return
         masterData.msgHandler = lambda msg: self.dispMsg(msg)
         return masterData
 
@@ -1513,7 +1510,6 @@ class MainProgram(QtWidgets.QMainWindow):
             masterData.msgHandler = lambda msg: self.dispMsg(msg)
         except:
             self.dispMsg("Error on loading JSON data",'red')
-            raise
         return masterData
 
     def loadMatlabFile(self, filePath, name=''):
@@ -1522,7 +1518,6 @@ class MainProgram(QtWidgets.QMainWindow):
             masterData.msgHandler = lambda msg: self.dispMsg(msg)
         except:
             self.dispMsg("Error on loading MATLAB data",'red')
-            raise
         return masterData
 
     def LoadBrukerTopspin(self, filePath, name=''):
@@ -1531,7 +1526,6 @@ class MainProgram(QtWidgets.QMainWindow):
             masterData.msgHandler = lambda msg: self.dispMsg(msg)
         except:
             self.dispMsg("Error on loading Bruker data",'red')
-            raise
         return masterData
         
         
@@ -1541,7 +1535,6 @@ class MainProgram(QtWidgets.QMainWindow):
             masterData.msgHandler = lambda msg: self.dispMsg(msg)
         except:
             self.dispMsg("Error on loading Bruker Spectrum data",'red')
-            raise
         return masterData     
 
     def LoadChemFile(self, filePath, name=''):
@@ -1550,7 +1543,6 @@ class MainProgram(QtWidgets.QMainWindow):
             masterData.msgHandler = lambda msg: self.dispMsg(msg)
         except:
             self.dispMsg("Error on loading Chemagnetic data",'red')
-            raise
         return masterData   
 
     def LoadMagritek(self, filePath, name='',realPath=''):
@@ -1559,7 +1551,6 @@ class MainProgram(QtWidgets.QMainWindow):
             masterData.msgHandler = lambda msg: self.dispMsg(msg)
         except:
             self.dispMsg("Error on loading Magritek data",'red')
-            raise
         return masterData  
 
     def LoadSimpsonFile(self, filePath, name=''):
@@ -1568,7 +1559,6 @@ class MainProgram(QtWidgets.QMainWindow):
             masterData.msgHandler = lambda msg: self.dispMsg(msg)
         except:
             self.dispMsg("Error on loading SIMPSON data",'red')
-            raise
         return masterData  
     
     def LoadJCAMP(self, filePath, name=''):
@@ -1578,7 +1568,6 @@ class MainProgram(QtWidgets.QMainWindow):
             masterData.addHistory("JCAMP data loaded from " + filePath)
         except:
             self.dispMsg("Error on loading JCAMP data",'red')
-            raise
         return masterData
         
     def LoadAscii(self, filePath, name=''):
@@ -1593,7 +1582,6 @@ class MainProgram(QtWidgets.QMainWindow):
                     return masterData
                 except:
                     self.dispMsg("Error on loading ASCII data",'red')
-                    raise
                     
     def LoadMinispec(self, filePath, name=''):
         try:
@@ -1603,7 +1591,6 @@ class MainProgram(QtWidgets.QMainWindow):
             masterData.addHistory("Minispec data loaded from " + filePath)
         except:
             self.dispMsg("Error on loading Minispec data",'red')
-            raise
         return masterData 
           
     def LoadBrukerEPR(self, filePath, name=''):
@@ -1612,7 +1599,6 @@ class MainProgram(QtWidgets.QMainWindow):
             masterData.msgHandler = lambda msg: self.dispMsg(msg)
         except:
             self.dispMsg("Error on loading Bruker EPR data",'red')
-            raise
         return masterData     
 
    
