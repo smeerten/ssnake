@@ -5559,20 +5559,19 @@ class FFMWindow(wc.ToolWindows):
             return
         self.valEntry.setText(repr(np.loadtxt(filename, dtype=int)))
 
-    def applyAndClose(self):
-        env = vars(np).copy()
-        env['length'] = int(self.father.current.data1D.shape[-1])  # so length can be used to in equations
-        env['euro'] = lambda fVal, num=int(self.father.current.data1D.shape[-1]): func.euro(fVal, num)
-        val = eval(self.valEntry.text(), env)                # find a better solution, also add catch for exceptions
+    def applyFunc(self):
+        val = safeEval(self.valEntry.text())
         if not isinstance(val, (list, np.ndarray)):
-            self.father.father.dispMsg("Input is not a list or array")
-            return
+            self.father.father.dispMsg("FFM: 'Positions' is not a list or array")
+            return False
         val = np.array(val, dtype=int)
         self.father.redoList = []
-        if self.father.masterData.noUndo:
-            self.father.current.ffm(val, self.typeDrop.currentIndex())
-        else:
-            self.father.undoList.append(self.father.current.ffm(val, self.typeDrop.currentIndex()))
+        check = self.father.current.ffm(val, self.typeDrop.currentIndex())
+        if check is None:
+            self.father.father.dispMsg("FFM: error",color = 'red')
+            return False
+        if not self.father.masterData.noUndo:
+            self.father.undoList.append(check)
 
 ##########################################################################################
 
@@ -5616,34 +5615,33 @@ class CLEANWindow(wc.ToolWindows):
             return
         self.valEntry.setText(repr(np.loadtxt(filename, dtype=int)))
 
-    def applyAndClose(self):
-        env = vars(np).copy()
-        env['length'] = int(self.father.current.data1D.shape[-1])  # so length can be used to in equations
-        env['euro'] = lambda fVal, num=int(self.father.current.data1D.shape[-1]): func.euro(fVal, num)
-        val = eval(self.valEntry.text(), env)                # find a better solution, also add catch for exceptions
+    def applyFunc(self):
+        val = safeEval(self.valEntry.text())
         if not isinstance(val, (list, np.ndarray)):
-            self.father.father.dispMsg("Input is not a list or array")
-            return
+            self.father.father.dispMsg("CLEAN: 'Positions' is not a list or array")
+            return False
         val = np.array(val, dtype=int)
         gamma = safeEval(self.gammaEntry.text())
         if gamma is None:
-            self.father.dispMsg("One of the inputs is not valid")
-            return
+            self.father.father.dispMsg("CLEAN: 'Gamma' input is not valid")
+            return False
         threshold = safeEval(self.thresholdEntry.text())
         if threshold is None:
-            self.father.dispMsg("One of the inputs is not valid")
-            return
+            self.father.father.dispMsg("CLEAN: 'Threshold' input is not valid")
+            return False
         threshold = threshold
         maxIter = safeEval(self.maxIterEntry.text())
         if maxIter is None:
-            self.father.dispMsg("One of the inputs is not valid")
-            return
+            self.father.father.dispMsg("CLEAN: 'Max. iter.' is not valid")
+            return False
         maxIter = int(maxIter)
         self.father.redoList = []
-        if self.father.masterData.noUndo:
-            self.father.current.clean(val, self.typeDrop.currentIndex(), gamma, threshold, maxIter)
-        else:
-            self.father.undoList.append(self.father.current.clean(val, self.typeDrop.currentIndex(), gamma, threshold, maxIter))
+        check = self.father.current.clean(val, self.typeDrop.currentIndex(), gamma, threshold, maxIter)
+        if check is None:
+            self.father.father.father.dispMsg("CLEAN: error",color = 'red')
+            return False
+        if not self.father.masterData.noUndo:
+            self.father.undoList.append(check)
 
 ################################################################
 
@@ -5688,32 +5686,32 @@ class ISTWindow(wc.ToolWindows):
         self.valEntry.setText(repr(np.loadtxt(filename, dtype=int)))
 
     def applyFunc(self):
-        env = vars(np).copy()
-        env['length'] = int(self.father.current.data1D.shape[-1])  # so length can be used to in equations
-        env['euro'] = lambda fVal, num=int(self.father.current.data1D.shape[-1]): func.euro(fVal, num)
-        val = eval(self.valEntry.text(), env)                # find a better solution, also add catch for exceptions
+        val = safeEval(self.valEntry.text())
         if not isinstance(val, (list, np.ndarray)):
-            self.father.father.dispMsg("Input is not a list or array")
-            return
+            self.father.father.dispMsg("IST: 'Positions' input is not a list or array")
+            return False
         val = np.array(val, dtype=int)
-        tracelimit = safeEval(self.tracelimitEntry.text()) / 100.0
+        tracelimit = safeEval(self.tracelimitEntry.text()) 
         if tracelimit is None:
-            self.father.dispMsg("One of the inputs is not valid")
-            return
+            self.father.father.dispMsg("IST: 'Residual' input is not valid")
+            return False
+        tracelimit /= 100
         threshold = safeEval(self.thresholdEntry.text())
         if threshold is None:
-            self.father.dispMsg("One of the inputs is not valid")
-            return
+            self.father.father.dispMsg("IST: 'Threshold' input is not valid")
+            return False
         maxIter = safeEval(self.maxIterEntry.text())
         if maxIter is None:
-            self.father.dispMsg("One of the inputs is not valid")
-            return
+            self.father.father.dispMsg("IST: 'Max. iter.' input is not valid")
+            return False
         maxIter = int(maxIter)
         self.father.redoList = []
-        if self.father.masterData.noUndo:
-            self.father.current.ist(val, self.typeDrop.currentIndex(), threshold, maxIter,tracelimit)
-        else:
-            self.father.undoList.append(self.father.current.ist(val, self.typeDrop.currentIndex(), threshold, maxIter,tracelimit))
+        check = self.father.current.ist(val, self.typeDrop.currentIndex(), threshold, maxIter,tracelimit)
+        if check is None:
+            self.father.father.father.dispMsg("IST: error",color = 'red')
+            return False
+        if not self.father.masterData.noUndo:
+            self.father.undoList.append(check)
         
 ################################################################
 

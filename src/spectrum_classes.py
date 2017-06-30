@@ -1295,7 +1295,7 @@ class Spectrum(object):
         if axes is None:
             return None
         if self.noUndo:
-            returnValue = None
+            returnValue = False
         else:
             copyData = copy.deepcopy(self)
             returnValue = lambda self: self.restoreData(copyData, None)
@@ -1322,7 +1322,7 @@ class Spectrum(object):
         if axes is None:
             return None
         if self.noUndo:
-            returnValue = None
+            returnValue = False
         else:
             copyData = copy.deepcopy(self)
             returnValue = lambda self: self.restoreData(copyData, None)
@@ -1353,7 +1353,7 @@ class Spectrum(object):
         if axes is None:
             return None
         if self.noUndo:
-            returnValue = None
+            returnValue = False
         else:
             copyData = copy.deepcopy(self)
             returnValue = lambda self: self.restoreData(copyData, None)
@@ -2352,24 +2352,33 @@ class Current1D(Plot1DFrame):
         return returnValue
 
     def ffm(self, posList, typeVal):
-        returnValue = self.data.ffm_1d(posList, typeVal, self.axes)
-        self.upd()
-        self.showFid()
-        self.root.addMacro(['ffm', (posList, typeVal, self.axes - self.data.data.ndim)])
+        try:
+            returnValue = self.data.ffm_1d(posList, typeVal, self.axes)
+            self.upd()
+            self.showFid()
+            self.root.addMacro(['ffm', (posList, typeVal, self.axes - self.data.data.ndim)])
+        except:
+            returnValue = None
         return returnValue
 
     def clean(self, posList, typeVal, gamma, threshold, maxIter):
-        returnValue = self.data.clean(posList, typeVal, self.axes, gamma, threshold, maxIter)
-        self.upd()
-        self.showFid()
-        self.root.addMacro(['clean', (posList, typeVal, self.axes - self.data.data.ndim, gamma, threshold, maxIter)])
+        try:
+            returnValue = self.data.clean(posList, typeVal, self.axes, gamma, threshold, maxIter)
+            self.upd()
+            self.showFid()
+            self.root.addMacro(['clean', (posList, typeVal, self.axes - self.data.data.ndim, gamma, threshold, maxIter)])
+        except:
+            returnValue = None
         return returnValue
         
     def ist(self, posList, typeVal, threshold, maxIter, tracelimit):
-        returnValue = self.data.ist(posList, typeVal, self.axes, threshold, maxIter,tracelimit)
-        self.upd()
-        self.showFid()
-#        self.root.addMacro(['clean', (posList, typeVal, self.axes - self.data.data.ndim, gamma, threshold, maxIter)])
+        try:
+            returnValue = self.data.ist(posList, typeVal, self.axes, threshold, maxIter,tracelimit)
+            self.upd()
+            self.showFid()
+    #        self.root.addMacro(['clean', (posList, typeVal, self.axes - self.data.data.ndim, gamma, threshold, maxIter)])
+        except:
+            returnValue = None
         return returnValue
 
     def autoPhase(self, phaseNum):
