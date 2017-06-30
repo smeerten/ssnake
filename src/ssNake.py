@@ -5120,6 +5120,8 @@ class CombineWindow(wc.ToolWindows):
 class SNWindow(wc.ToolWindows):
 
     NAME = "Signal to noise"
+    CANCELNAME = "&Close"
+    OKNAME = "C&alc"
 
     def __init__(self, parent):
         super(SNWindow, self).__init__(parent)
@@ -5158,7 +5160,7 @@ class SNWindow(wc.ToolWindows):
             self.maxEntry.setText(str(pos[0]))
             self.father.current.peakPickFunc = lambda pos, self=self: self.picked(pos, 0)
             self.father.current.peakPick = True
-            self.applyAndClose()
+            self.applyFunc()
 
     def checkValues(self, *args):
         dataLength = self.father.current.data1D.shape[-1]
@@ -5198,14 +5200,14 @@ class SNWindow(wc.ToolWindows):
         elif maximum > dataLength:
             maximum = dataLength
         self.maxEntry.setText(str(maximum))
-        self.applyAndClose()
+        self.applyFunc()
 
-    def applyAndClose(self):
+    def applyFunc(self):
         dataLength = self.father.current.data1D.shape[-1]
         inp = safeEval(self.minNoiseEntry.text())
         if inp is None:
-            self.father.father.dispMsg("Not a valid value")
-            return
+            self.father.father.dispMsg("S/N: invalid range")
+            return False
         minimumNoise = int(round(inp))
         if minimumNoise < 0:
             minimumNoise = 0
@@ -5214,8 +5216,8 @@ class SNWindow(wc.ToolWindows):
         self.minNoiseEntry.setText(str(minimumNoise))
         inp = safeEval(self.maxNoiseEntry.text())
         if inp is None:
-            self.father.father.dispMsg("Not a valid value")
-            return
+            self.father.father.dispMsg("S/N: invalid range")
+            return False
         maximumNoise = int(round(inp))
         if maximumNoise < 0:
             maximumNoise = 0
@@ -5224,8 +5226,8 @@ class SNWindow(wc.ToolWindows):
         self.maxNoiseEntry.setText(str(maximumNoise))
         inp = safeEval(self.minEntry.text())
         if inp is None:
-            self.father.father.dispMsg("Not a valid value")
-            return
+            self.father.father.dispMsg("S/N: invalid range")
+            return False
         minimum = int(round(inp))
         if minimum < 0:
             minimum = 0
@@ -5234,8 +5236,8 @@ class SNWindow(wc.ToolWindows):
         self.minEntry.setText(str(minimum))
         inp = safeEval(self.maxEntry.text())
         if inp is None:
-            self.father.father.dispMsg("Not a valid value")
-            return
+            self.father.father.dispMsg("S/N: invalid range")
+            return False
         maximum = int(round(inp))
         if maximum < 0:
             maximum = 0
@@ -5243,6 +5245,7 @@ class SNWindow(wc.ToolWindows):
             maximum = dataLength
         self.maxEntry.setText(str(maximum))
         self.snEntry.setText(str(self.father.current.SN(minimumNoise, maximumNoise, minimum, maximum)))
+        return False #Return to keep window
 
 ##############################################################
 
@@ -5250,6 +5253,8 @@ class SNWindow(wc.ToolWindows):
 class FWHMWindow(wc.ToolWindows):
 
     NAME = "FWHM"
+    CANCELNAME = "&Close"
+    OKNAME = "C&alc"
 
     def __init__(self, parent):
         super(FWHMWindow, self).__init__(parent)
@@ -5287,7 +5292,7 @@ class FWHMWindow(wc.ToolWindows):
             self.maxEntry.setText(str(pos[0]))
             self.father.current.peakPickFunc = lambda pos, self=self: self.picked(pos, 0)
             self.father.current.peakPick = True
-            self.applyAndClose()
+            self.applyFunc()
 
     def checkValues(self, *args):
         dataLength = self.father.current.data1D.shape[-1]
@@ -5309,14 +5314,14 @@ class FWHMWindow(wc.ToolWindows):
         elif maximum > dataLength:
             maximum = dataLength
         self.maxEntry.setText(str(maximum))
-        self.applyAndClose()
+        self.applyFunc()
 
-    def applyAndClose(self):
+    def applyFunc(self):
         dataLength = self.father.current.data1D.shape[-1]
         inp = safeEval(self.minEntry.text())
         if inp is None:
-            self.father.father.dispMsg("Not a valid value")
-            return
+            self.father.father.dispMsg("FWHM: invalid range")
+            return False
         minimum = int(round(inp))
         if minimum < 0:
             minimum = 0
@@ -5325,8 +5330,8 @@ class FWHMWindow(wc.ToolWindows):
         self.minEntry.setText(str(minimum))
         inp = safeEval(self.maxEntry.text())
         if inp is None:
-            self.father.father.dispMsg("Not a valid value")
-            return
+            self.father.father.dispMsg("FWHM: invalid range")
+            return False
         maximum = int(round(inp))
         if maximum < 0:
             maximum = 0
@@ -5334,6 +5339,7 @@ class FWHMWindow(wc.ToolWindows):
             maximum = dataLength
         self.maxEntry.setText(str(maximum))
         self.fwhmEntry.setText(str(self.father.current.fwhm(minimum, maximum, self.unitDrop.currentIndex())))
+        return False #Return to keep window
 
 ##############################################################
 
@@ -5341,6 +5347,8 @@ class FWHMWindow(wc.ToolWindows):
 class COMWindow(wc.ToolWindows):  # Centre of Mass Window
 
     NAME = "Centre of Mass"
+    CANCELNAME = "&Close"
+    OKNAME = "C&alc"
 
     def __init__(self, parent):
         super(COMWindow, self).__init__(parent)
@@ -5383,7 +5391,7 @@ class COMWindow(wc.ToolWindows):  # Centre of Mass Window
             self.maxEntry.setText(str(pos[0]))
             self.father.current.peakPickFunc = lambda pos, self=self: self.picked(pos, 0)
             self.father.current.peakPick = True
-            self.applyAndClose()
+            self.applyFunc()
 
     def checkValues(self, *args):
         dataLength = self.father.current.data1D.shape[-1]
@@ -5405,14 +5413,14 @@ class COMWindow(wc.ToolWindows):  # Centre of Mass Window
         elif maximum > dataLength:
             maximum = dataLength
         self.maxEntry.setText(str(maximum))
-        self.applyAndClose()
+        self.applyFunc()
 
-    def applyAndClose(self):
+    def applyFunc(self):
         dataLength = self.father.current.data1D.shape[-1]
         inp = safeEval(self.minEntry.text())
         if inp is None:
-            self.father.father.dispMsg("Not a valid value")
-            return
+            self.father.father.dispMsg("Centre of Mass: invalid range")
+            return False
         minimum = int(round(inp))
         if minimum < 0:
             minimum = 0
@@ -5421,8 +5429,8 @@ class COMWindow(wc.ToolWindows):  # Centre of Mass Window
         self.minEntry.setText(str(minimum))
         inp = safeEval(self.maxEntry.text())
         if inp is None:
-            self.father.father.dispMsg("Not a valid value")
-            return
+            self.father.father.dispMsg("Centre of Mass: invalid range")
+            return False
         maximum = int(round(inp))
         if maximum < 0:
             maximum = 0
@@ -5430,6 +5438,7 @@ class COMWindow(wc.ToolWindows):  # Centre of Mass Window
             maximum = dataLength
         self.maxEntry.setText(str(maximum))
         self.comEntry.setText(str(self.father.current.COM(minimum, maximum)))
+        return False #Return to keep window
 
 ##########################################################################################
 

@@ -61,6 +61,8 @@ class ToolWindows(QtWidgets.QWidget):
     BROWSE = False
     RESIZABLE = False
     MENUDISABLE = True
+    CANCELNAME = "&Cancel"
+    OKNAME = "&Ok"
 
     def __init__(self, parent):
         super(ToolWindows, self).__init__(parent)
@@ -83,10 +85,10 @@ class ToolWindows(QtWidgets.QWidget):
             offset = 1
         else:
             offset = 0
-        self.cancelButton = QtWidgets.QPushButton("&Cancel")
+        self.cancelButton = QtWidgets.QPushButton(self.CANCELNAME)
         self.cancelButton.clicked.connect(self.closeEvent)
         self.layout.addWidget(self.cancelButton, 2, offset)
-        self.okButton = QtWidgets.QPushButton("&Ok")
+        self.okButton = QtWidgets.QPushButton(self.OKNAME)
         self.okButton.clicked.connect(self.applyAndClose)
         self.okButton.setFocus()
         self.layout.addWidget(self.okButton, 2, offset+1)
