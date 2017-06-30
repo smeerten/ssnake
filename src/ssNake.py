@@ -84,7 +84,7 @@ from updateWindow import UpdateWindow
 splashStep = splashProgressStep(splashStep)
 from plotWindow import MainPlotWindow
 splashStep = splashProgressStep(splashStep)
-from euro import euro
+import functions as func
 splashStep = splashProgressStep(splashStep)
 import scipy.constants as SC
 splashStep = splashProgressStep(splashStep)
@@ -5562,7 +5562,7 @@ class FFMWindow(wc.ToolWindows):
     def applyAndClose(self):
         env = vars(np).copy()
         env['length'] = int(self.father.current.data1D.shape[-1])  # so length can be used to in equations
-        env['euro'] = lambda fVal, num=int(self.father.current.data1D.shape[-1]): euro(fVal, num)
+        env['euro'] = lambda fVal, num=int(self.father.current.data1D.shape[-1]): func.euro(fVal, num)
         val = eval(self.valEntry.text(), env)                # find a better solution, also add catch for exceptions
         if not isinstance(val, (list, np.ndarray)):
             self.father.father.dispMsg("Input is not a list or array")
@@ -5619,7 +5619,7 @@ class CLEANWindow(wc.ToolWindows):
     def applyAndClose(self):
         env = vars(np).copy()
         env['length'] = int(self.father.current.data1D.shape[-1])  # so length can be used to in equations
-        env['euro'] = lambda fVal, num=int(self.father.current.data1D.shape[-1]): euro(fVal, num)
+        env['euro'] = lambda fVal, num=int(self.father.current.data1D.shape[-1]): func.euro(fVal, num)
         val = eval(self.valEntry.text(), env)                # find a better solution, also add catch for exceptions
         if not isinstance(val, (list, np.ndarray)):
             self.father.father.dispMsg("Input is not a list or array")
@@ -5690,7 +5690,7 @@ class ISTWindow(wc.ToolWindows):
     def applyFunc(self):
         env = vars(np).copy()
         env['length'] = int(self.father.current.data1D.shape[-1])  # so length can be used to in equations
-        env['euro'] = lambda fVal, num=int(self.father.current.data1D.shape[-1]): euro(fVal, num)
+        env['euro'] = lambda fVal, num=int(self.father.current.data1D.shape[-1]): func.euro(fVal, num)
         val = eval(self.valEntry.text(), env)                # find a better solution, also add catch for exceptions
         if not isinstance(val, (list, np.ndarray)):
             self.father.father.dispMsg("Input is not a list or array")
@@ -5914,7 +5914,7 @@ class XaxWindow(wc.ToolWindows):
         if self.typeDropdown.currentIndex() == 0:
             env = vars(np).copy()
             env['length'] = int(self.father.current.data1D.shape[-1])  # so length can be used to in equations
-            env['euro'] = lambda fVal, num=self.axisSize: euro(fVal, num)
+            env['euro'] = lambda fVal, num=self.axisSize: func.euro(fVal, num)
             try:
                 val = np.array(eval(self.exprEntry.text(), env))                # find a better solution, also add catch for exceptions
             except:

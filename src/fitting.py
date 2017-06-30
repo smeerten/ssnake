@@ -33,7 +33,6 @@ import copy
 import spectrum_classes
 from safeEval import safeEval
 from spectrumFrame import Plot1DFrame
-from zcw import zcw_angles
 from widgetClasses import QLabel
 import widgetClasses as wc
 import functions as func
@@ -2695,7 +2694,7 @@ class TensorDeconvParamFrame(AbstractParamFrame):
             out['numssb'] = [self.entries['numssb'][0].value()]
             return (out, [out['mas'][-1], out['cheng'][-1], out['shiftdef'][-1], out['numssb'][-1]])
         else:
-            phi, theta, weight = zcw_angles(cheng, symm=2)
+            phi, theta, weight = func.zcw_angles(cheng, symm=2)
             out['weight'] = [weight]
             out['multt'] = [[np.sin(theta)**2 * np.cos(phi)**2, np.sin(theta)**2 * np.sin(phi)**2, np.cos(theta)**2]]
             return (out, [out['mas'][-1], out['multt'][-1], out['weight'][-1], out['shiftdef'][-1]])
@@ -2837,7 +2836,7 @@ def tensorMASDeconvtensorFunc(x, t11, t22, t33, lor, gauss, sw, axAdd, axMult, s
     eta = Tensors[2][2]
     numssb = float(numssb)
     omegar = 2*np.pi*1e3*spinspeed
-    phi, theta, weight = zcw_angles(cheng, symm=2)
+    phi, theta, weight = func.zcw_angles(cheng, symm=2)
     sinPhi = np.sin(phi)
     cosPhi = np.cos(phi)
     sin2Theta = np.sin(2 * theta)
@@ -3138,14 +3137,14 @@ def quad1DeconvtensorFunc(x, I, pos, cq, eta, width, gauss, angleStuff, freq, sw
     return inten
 
 def quad1DeconvsetAngleStuff(cheng):
-    phi, theta, weight = zcw_angles(cheng, symm=2)
+    phi, theta, weight = func.zcw_angles(cheng, symm=2)
     angleStuff = [0.5 * (3 * np.cos(theta)**2 - 1), 0.5 * np.cos(2 * phi) * (np.sin(theta)**2)]
     return weight, angleStuff
 
 def quad1MASFunc(x, pos, cq, eta, lor, gauss, sw, axAdd, axMult, spinspeed, cheng, I, numssb):
     numssb = float(numssb)
     omegar = 2*np.pi*1e3*spinspeed
-    phi, theta, weight = zcw_angles(cheng, symm=2)
+    phi, theta, weight = func.zcw_angles(cheng, symm=2)
     sinPhi = np.sin(phi)
     cosPhi = np.cos(phi)
     sin2Theta = np.sin(2 * theta)
@@ -3261,14 +3260,14 @@ def quad2tensorFunc(x, I, pos, cq, eta, width, gauss, angleStuff, freq, sw, weig
     return inten
 
 def quad2StaticsetAngleStuff(cheng):
-    phi, theta, weight = zcw_angles(cheng, symm=2)
+    phi, theta, weight = func.zcw_angles(cheng, symm=2)
     angleStuff = [-27 / 8.0 * np.cos(theta)**4 + 15 / 4.0 * np.cos(theta)**2 - 3 / 8.0,
                   (-9 / 4.0 * np.cos(theta)**4 + 2 * np.cos(theta)**2 + 1 / 4.0) * np.cos(2 * phi),
                   -1 / 2.0 * np.cos(theta)**2 + 1 / 3.0 + (-3 / 8.0 * np.cos(theta)**4 + 3 / 4.0 * np.cos(theta)**2 - 3 / 8.0) * np.cos(2 * phi)**2]
     return weight, angleStuff
 
 def quad2MASsetAngleStuff(cheng):
-    phi, theta, weight = zcw_angles(cheng, symm=2)
+    phi, theta, weight = func.zcw_angles(cheng, symm=2)
     angleStuff = [21 / 16.0 * np.cos(theta)**4 - 9 / 8.0 * np.cos(theta)**2 + 5 / 16.0,
                   (-7 / 8.0 * np.cos(theta)**4 + np.cos(theta)**2 - 1 / 8.0) * np.cos(2 * phi),
                   1 / 12.0 * np.cos(theta)**2 + (+7 / 48.0 * np.cos(theta)**4 - 7 / 24.0 * np.cos(theta)**2 + 7 / 48.0) * np.cos(2 * phi)**2]
@@ -3538,14 +3537,14 @@ def quad2CzjzektensorFunc(sigma, d, pos, width, gauss, wq, eta, lib, freq, sw, a
 #################################################################################
 
 def czjzekStaticsetAngleStuff(cheng):
-    phi, theta, weight = zcw_angles(cheng, symm=2)
+    phi, theta, weight = func.zcw_angles(cheng, symm=2)
     angleStuff = [-27 / 8.0 * np.cos(theta)**4 + 15 / 4.0 * np.cos(theta)**2 - 3 / 8.0,
                   (-9 / 4.0 * np.cos(theta)**4 + 2 * np.cos(theta)**2 + 1 / 4.0) * np.cos(2 * phi),
                   -1 / 2.0 * np.cos(theta)**2 + 1 / 3.0 + (-3 / 8.0 * np.cos(theta)**4 + 3 / 4.0 * np.cos(theta)**2 - 3 / 8.0) * np.cos(2 * phi)**2]
     return weight, angleStuff
         
 def czjzekMASsetAngleStuff(cheng):
-    phi, theta, weight = zcw_angles(cheng, symm=2)
+    phi, theta, weight = func.zcw_angles(cheng, symm=2)
     angleStuff = [21 / 16.0 * np.cos(theta)**4 - 9 / 8.0 * np.cos(theta)**2 + 5 / 16.0,
                   (-7 / 8.0 * np.cos(theta)**4 + np.cos(theta)**2 - 1 / 8.0) * np.cos(2 * phi),
                   1 / 12.0 * np.cos(theta)**2 + (+7 / 48.0 * np.cos(theta)**4 - 7 / 24.0 * np.cos(theta)**2 + 7 / 48.0) * np.cos(2 * phi)**2]

@@ -61,3 +61,49 @@ def apodize(t,shift,sw,axLen,lor,gauss,cos2,hamming,wholeEcho = False):
         x[-1:-(int(len(x) / 2) + 1):-1] = x[:int(len(x) / 2)]
 
     return x
+
+def fib(n):
+    start = np.array([[1, 1], [1, 0]], dtype='int64')
+    temp = start[:]
+    for i in range(n):
+        temp = np.dot(start, temp)
+    return temp[0, 0], temp[0, 1], temp[1, 1]
+
+
+def zcw_angles(m, symm=0):
+    samples, fib_1, fib_2 = fib(m)
+    js = np.arange(samples, dtype='Float64') / samples
+    if symm == 0:
+        # full
+        c = (1., 2., 1.)
+    elif symm == 1:
+        # hemi
+        c = (-1., 1., 1.)
+    elif symm == 2:
+        # oct
+        c = (-1., 1., 4.)
+    j_samples = fib_2 * js
+    phi = 2 * np.pi / c[2] * np.mod(j_samples, 1.0)
+    theta = np.arccos(c[0] * (c[1] * np.mod(js, 1.0) - 1))
+    weight = np.ones(samples) / samples
+    return phi, theta, weight
+
+def euro(val, num):
+    firstDigit = '%.0e' % val
+    firstDigit = int(firstDigit[0])
+    order = int(np.floor(np.log10(val)))
+    if num < 1:
+        return
+    numStep = int(num) // 3 + 1
+    if firstDigit == 1:
+        subset = [1, 2, 5]
+    elif firstDigit == 2:
+        subset = [2, 5, 10]
+    elif firstDigit == 5:
+        subset = [5, 10, 20]
+    else:
+        return
+    returnVal = np.tile(subset, numStep)
+    orderArray = np.repeat(range(numStep), 3) + order
+    returnVal = returnVal * 10.0**orderArray
+    return returnVal[:num]
