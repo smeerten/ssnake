@@ -184,7 +184,11 @@ class TabFittingWindow(QtWidgets.QWidget):
             self.mainFitWindow.paramframe.closeWindow()
         
     def fit(self):
-        xax, data1D, guess, args, out = self.mainFitWindow.paramframe.getFitParams()
+        value = self.mainFitWindow.paramframe.getFitParams()
+        if value is None:
+            return
+        else:
+            xax, data1D, guess, args, out = value
         xax = [xax]
         out = [out]
         nameList = ['Spectrum']
@@ -222,6 +226,8 @@ class TabFittingWindow(QtWidgets.QWidget):
             tmp_params = window.paramframe.getSimParams()
             for i in range(len(params)):
                 params = np.append(params, [tmp_params], axis=0)
+        if params[0] is None:
+            return
         self.mainFitWindow.paramframe.disp(params, 0, *args, **kwargs)
         for i in range(len(self.subFitWindows)):
             self.subFitWindows[i].paramframe.disp(params, i+1, *args, **kwargs)
@@ -873,7 +879,7 @@ class AbstractParamFrame(QtWidgets.QWidget):
     
     def getFitParams(self):
         if not self.checkInputs():
-            self.rootwindow.mainProgram.dispMsg("One of the inputs is not valid")
+            self.rootwindow.mainProgram.dispMsg("Fitting: One of the inputs is not valid")
             return
         struc = {}
         for name in (self.SINGLENAMES + self.MULTINAMES):
@@ -984,7 +990,7 @@ class AbstractParamFrame(QtWidgets.QWidget):
 
     def getSimParams(self):
         if not self.checkInputs():
-            self.rootwindow.mainProgram.dispMsg("One of the inputs is not valid")
+            self.rootwindow.mainProgram.dispMsg("Fitting: One of the inputs is not valid")
             return
         numExp = self.getNumExp()
         out = {}
@@ -1012,7 +1018,7 @@ class AbstractParamFrame(QtWidgets.QWidget):
 
     def paramToWorkspace(self, allTraces, settings):
         if not self.checkInputs():
-            self.rootwindow.mainProgram.dispMsg("One of the inputs is not valid")
+            self.rootwindow.mainProgram.dispMsg("Fitting: One of the inputs is not valid")
             return
         paramNameList = np.array(self.SINGLENAMES + self.MULTINAMES, dtype=object)
         locList = tuple(self.parent.locList)
@@ -1283,7 +1289,7 @@ class IntegralsParamFrame(AbstractParamFrame):
         locList = tuple(self.parent.locList)
         inp = safeEval(entry.text())
         if inp is None:
-            self.rootwindow.mainProgram.dispMsg("One of the inputs is not valid")
+            self.rootwindow.mainProgram.dispMsg("Fitting: One of the inputs is not valid")
             return
         if inp < min(self.parent.current.xax):
             inp = min(self.parent.current.xax)
@@ -1308,7 +1314,7 @@ class IntegralsParamFrame(AbstractParamFrame):
         num = self.entries['amp'].index(entry)
         inp = safeEval(entry.text())
         if inp is None:
-            self.rootwindow.mainProgram.dispMsg("One of the inputs is not valid")
+            self.rootwindow.mainProgram.dispMsg("Fitting: One of the inputs is not valid")
             return
         self.refVal = self.fitParamList[locList]['amp'][num][0] / float(inp)
         self.rootwindow.fit()
@@ -1338,7 +1344,7 @@ class IntegralsParamFrame(AbstractParamFrame):
                     inp = checkLinkTuple(inp)
                     out[name][i] = inp[2]*params[inp[4]][inp[0]][inp[1]] + inp[3]
                 if not np.isfinite(out[name][i]):
-                    self.rootwindow.mainProgram.dispMsg("One of the inputs is not valid")
+                    self.rootwindow.mainProgram.dispMsg("Fitting: One of the inputs is not valid")
                     return
             minVal = min(out['min'][i], out['max'][i])
             maxVal = max(out['min'][i], out['max'][i])
@@ -1692,7 +1698,7 @@ class RelaxParamFrame(AbstractParamFrame):
                     inp = checkLinkTuple(inp)
                     out[name][i] = inp[2]*params[inp[4]][inp[0]][inp[1]] + inp[3]
                 if not np.isfinite(out[name][i]):
-                    self.rootwindow.mainProgram.dispMsg("One of the inputs is not valid")
+                    self.rootwindow.mainProgram.dispMsg("Fitting: One of the inputs is not valid")
                     return
         tmpx = self.parent.xax
         if prepExport:
@@ -2078,7 +2084,7 @@ class DiffusionParamFrame(AbstractParamFrame):
                     inp = checkLinkTuple(inp)
                     out[name][i] = inp[2]*params[inp[4]][inp[0]][inp[1]] + inp[3]
                 if not np.isfinite(out[name][i]):
-                    self.rootwindow.mainProgram.dispMsg("One of the inputs is not valid")
+                    self.rootwindow.mainProgram.dispMsg("Fitting: One of the inputs is not valid")
                     return
         tmpx = self.parent.xax
         if prepExport:
@@ -2321,7 +2327,7 @@ class PeakDeconvParamFrame(AbstractParamFrame):
                     inp = checkLinkTuple(inp)
                     out[name][i] = inp[2]*params[inp[4]][inp[0]][inp[1]] + inp[3]
                 if not np.isfinite(out[name][i]):
-                    self.rootwindow.mainProgram.dispMsg("One of the inputs is not valid")
+                    self.rootwindow.mainProgram.dispMsg("Fitting: One of the inputs is not valid")
                     return
         tmpx = self.parent.xax
         outCurveBase = out['bgrnd'][0] + tmpx * out['slope'][0]
@@ -2670,7 +2676,7 @@ class TensorDeconvParamFrame(AbstractParamFrame):
                 startTensor = [T11,T22,T33]
                 if None in startTensor:
                     self.entries['shiftdef'][-1].setCurrentIndex(OldType) #error, reset to old view
-                    self.rootwindow.mainProgram.dispMsg("One of the inputs is not valid")
+                    self.rootwindow.mainProgram.dispMsg("Fitting: One of the inputs is not valid")
                     return
                 Tensors = shiftConversion(startTensor,OldType)
                 for element in range(3): #Check for `ND' s
@@ -2714,7 +2720,7 @@ class TensorDeconvParamFrame(AbstractParamFrame):
                     inp = checkLinkTuple(inp)
                     out[name][i] = inp[2]*params[inp[4]][inp[0]][inp[1]] + inp[3]
                 if not np.isfinite(out[name][i]):
-                    self.rootwindow.mainProgram.dispMsg("One of the inputs is not valid")
+                    self.rootwindow.mainProgram.dispMsg("Fitting: One of the inputs is not valid")
                     return
         tmpx = self.parent.xax
         outCurveBase = out['bgrnd'][0] + tmpx * out['slope'][0]
@@ -3022,7 +3028,7 @@ class Quad1DeconvParamFrame(AbstractParamFrame):
                     inp = checkLinkTuple(inp)
                     out[name][i] = inp[2]*params[inp[4]][inp[0]][inp[1]] + inp[3]
                 if not np.isfinite(out[name][i]):
-                    self.rootwindow.mainProgram.dispMsg("One of the inputs is not valid")
+                    self.rootwindow.mainProgram.dispMsg("Fitting: One of the inputs is not valid")
                     return
         tmpx = self.parent.xax
         outCurveBase = out['bgrnd'][0] + tmpx * out['slope'][0]
@@ -3435,7 +3441,7 @@ class Quad2CzjzekParamFrame(AbstractParamFrame):
                     inp = checkLinkTuple(inp)
                     out[name][i] = inp[2]*params[inp[4]][inp[0]][inp[1]] + inp[3]
                 if not np.isfinite(out[name][i]):
-                    self.rootwindow.mainProgram.dispMsg("One of the inputs is not valid")
+                    self.rootwindow.mainProgram.dispMsg("Fitting: One of the inputs is not valid")
                     return
         tmpx = self.parent.xax
         outCurveBase = out['bgrnd'][0] + tmpx * out['slope'][0]
