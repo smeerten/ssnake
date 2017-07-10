@@ -1113,7 +1113,7 @@ class MainProgram(QtWidgets.QMainWindow):
 
             except:
                 self.dispMsg("Failed loading '" + filename + "' as reference.")
-                raise
+                return
         IconDirectory = os.path.dirname(os.path.realpath(__file__)) + os.path.sep + 'Icons' + os.path.sep
         self.referenceValue.append(freq)
         action1 = self.referencerunmenu.addAction(QtGui.QIcon(IconDirectory + 'run.png'),givenName, lambda name=givenName: self.referenceRun(name))
@@ -1497,7 +1497,6 @@ class MainProgram(QtWidgets.QMainWindow):
             masterData = LF.LoadJEOLDelta(filePath,name)
         except:
             self.dispMsg("Error on loading JEOL Delta data",'red')
-            raise
         if masterData ==  'ND error':
             self.dispMsg("Error: JEOL Delta data of this type is not supported",'red')
         masterData.msgHandler = lambda msg: self.dispMsg(msg)
@@ -3409,7 +3408,7 @@ class AsciiLoadWindow(QtWidgets.QDialog):
 #            if len(data) % 2 == 0: #if odd size
 #                self.datOrderBox.setCurrentIndex(1)
         except:
-            raise
+            return
     
     def closeEvent(self, *args):
         self.closed = True
@@ -6810,8 +6809,8 @@ class shiftConversionWindow(wc.ToolWindows):
                 delta33 = float(safeEval(self.D33.text()))
                 Values = [delta11,delta22,delta33]
             except:
-                self.father.dispMsg("Invalid input in Standard Convention")
-                raise
+                self.father.dispMsg("Shift Conversion: Invalid input in Standard Convention")
+                return
         if Type == 1:  # If from xyz
             try:
                 delta11 = float(safeEval(self.dxx.text()))  # Treat xyz as 123, as it reorders them anyway
@@ -6819,8 +6818,8 @@ class shiftConversionWindow(wc.ToolWindows):
                 delta33 = float(safeEval(self.dzz.text()))
                 Values = [delta11,delta22,delta33]
             except:
-                self.father.dispMsg("Invalid input in xyz Convention")
-                raise
+                self.father.dispMsg("Shift Conversion: Invalid input in xyz Convention")
+                return
         if Type == 2:  # From haeberlen
             try:
                 eta = float(safeEval(self.eta.text()))
@@ -6828,8 +6827,8 @@ class shiftConversionWindow(wc.ToolWindows):
                 iso = float(safeEval(self.diso.text()))
                 Values = [iso,delta,eta]
             except:
-                self.father.dispMsg("Invalid input in Haeberlen Convention")
-                raise                
+                self.father.dispMsg("Shift Conversion: Invalid input in Haeberlen Convention")
+                return                
         if Type == 3:  # From Hertzfeld-Berger
             try:
                 iso = float(safeEval(self.hbdiso.text()))
@@ -6837,8 +6836,8 @@ class shiftConversionWindow(wc.ToolWindows):
                 skew = float(safeEval(self.hbskew.text()))
                 Values = [iso,span,skew]
             except:
-                self.father.dispMsg("Invalid input in Hertzfeld-Berger Convention")
-                raise    
+                self.father.dispMsg("Shift Conversion: Invalid input in Hertzfeld-Berger Convention")
+                return    
 
         Results = fit.shiftConversion(Values,Type) #Do the actual conversion
 
@@ -6988,8 +6987,8 @@ class quadConversionWindow(wc.ToolWindows):
                 Cxx = Czz*(Eta-1)/2
                 Cyy = -Cxx-Czz
             except:
-                self.father.dispMsg("Invalid input in Cq definition")
-                raise 
+                self.father.dispMsg("Quad Conversion: Invalid input in Cq definition")
+                return 
         if Type == 1:
             try:
                 Vmax = float(safeEval(self.Wq.text()))                 
@@ -6998,8 +6997,8 @@ class quadConversionWindow(wc.ToolWindows):
                 Cxx = Czz*(Eta-1)/2
                 Cyy = -Cxx-Czz
             except:
-                self.father.dispMsg("Invalid input in Wq definition")
-                raise                 
+                self.father.dispMsg("Quad Conversion: Invalid input in Wq definition")
+                return                 
         if Type ==2:
              try:
                 Vxx = float(safeEval(self.Vxx.text())) 
@@ -7017,8 +7016,8 @@ class quadConversionWindow(wc.ToolWindows):
                 Cxx = Vxx * Scaling/1e6
                 Cyy = Vyy * Scaling/1e6
              except:
-                self.father.dispMsg("Invalid input in field gradients")
-                raise             
+                self.father.dispMsg("Quad Conversion: Invalid input in field gradients")
+                return             
         #sort    
         CArray = np.array([Cxx, Cyy, Czz])
         Cindex = np.argsort(np.abs(CArray))
