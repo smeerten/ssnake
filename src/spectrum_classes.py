@@ -3618,7 +3618,7 @@ class CurrentArrayed(Current1D):
         else:
             for num in range(len(tmpdata)):
                 if (self.plotType == 2):
-                    self.ax.plot((num * self.spacing + self.xax[xaxZlims]) * axMult, np.imag(tmpdata[num])[direc], c='r', linewidth=self.linewidth, label=self.data.name + '_imag', picker=True)
+                    self.ax.plot((num * self.spacing + self.xax[xaxZlims]) * axMult, np.imag(tmpdata[num][xaxZlims])[direc], c='r', linewidth=self.linewidth, label=self.data.name + '_imag', picker=True)
                 self.line_xdata = np.append(self.line_xdata, (num * self.spacing + self.xax[xaxZlims]) * axMult)
                 self.line_ydata = np.append(self.line_ydata, np.real(tmpdata[num][xaxZlims])[direc])
                 self.ax.plot((num * self.spacing + self.xax[xaxZlims]) * axMult, np.real(tmpdata[num][xaxZlims])[direc], c=self.color, linewidth=self.linewidth, label=self.data.name, picker=True)
