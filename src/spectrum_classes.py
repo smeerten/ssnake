@@ -204,7 +204,11 @@ class Spectrum(object):
         if (np.array(tmpdata.shape) != 0).all():
             self.data = tmpdata
             self.xaxArray[axes] = np.delete(self.xaxArray[axes], pos)
-            self.addHistory("Removed " + str(len(pos)) + " datapoints from dimension " + str(axes + 1) + " at position " + str(pos))
+            try:
+                length = len(pos)
+            except:
+                length = 1
+            self.addHistory("Removed " + str(length) + " datapoints from dimension " + str(axes + 1) + " at position " + str(pos))
             return returnValue
         else:
             self.dispMsg('Cannot delete all data')
