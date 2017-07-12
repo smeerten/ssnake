@@ -14,13 +14,17 @@
    viewBox="0 0 35.433071 35.433071"
    id="svg2"
    version="1.1"
-   inkscape:version="0.91 r13725"
+   inkscape:version="0.92.1 r15371"
    inkscape:export-filename="/media/HDD/ssnake/ssnake/src/Icons/xgrid.png"
    inkscape:export-xdpi="162.56"
    inkscape:export-ydpi="162.56"
-   sodipodi:docname="xgrid.svg">
+   sodipodi:docname="regrid.svg">
   <defs
      id="defs4">
+    <inkscape:path-effect
+       is_visible="true"
+       id="path-effect4498"
+       effect="spiro" />
     <inkscape:path-effect
        effect="spiro"
        id="path-effect4140"
@@ -55,14 +59,14 @@
      borderopacity="1.0"
      inkscape:pageopacity="0.0"
      inkscape:pageshadow="2"
-     inkscape:zoom="5.6"
-     inkscape:cx="-34.581912"
-     inkscape:cy="26.74399"
+     inkscape:zoom="7.9195959"
+     inkscape:cx="11.644202"
+     inkscape:cy="21.012266"
      inkscape:document-units="px"
      inkscape:current-layer="layer1"
      showgrid="false"
-     inkscape:window-width="1440"
-     inkscape:window-height="851"
+     inkscape:window-width="1600"
+     inkscape:window-height="1149"
      inkscape:window-x="0"
      inkscape:window-y="0"
      inkscape:window-maximized="1" />
@@ -91,23 +95,19 @@
        x="-1.3516643e-07"
        y="1016.9291" />
     <g
-       id="g4142"
-       transform="translate(0,-0.37846457)"
+       id="g4512"
+       transform="translate(-2.0461565e-7,0.44083501)"
        style="stroke-linecap:butt;stroke-linejoin:round">
       <path
-         inkscape:connector-curvature="0"
-         inkscape:original-d="M 8.3287402e-7,1043.4001 35.43307,1043.4001"
-         inkscape:path-effect="#path-effect4140"
+         style="fill:none;fill-opacity:1;fill-rule:evenodd;stroke:#454545;stroke-width:8.96874905;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:8.96874883, 8.96874883;stroke-dashoffset:13.45312309;stroke-opacity:1"
+         d="M 4.2364272e-7,1043.0831 H 35.43307"
          id="path4138"
-         d="M 8.3287402e-7,1043.4001 35.43307,1043.4001"
-         style="fill:none;fill-opacity:1;fill-rule:evenodd;stroke:#454545;stroke-width:7;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:7, 7;stroke-dashoffset:0;stroke-opacity:1" />
+         inkscape:connector-curvature="0" />
       <path
          inkscape:connector-curvature="0"
-         inkscape:original-d="M 1.0030709e-6,1026.6481 35.43307,1026.6481"
-         inkscape:path-effect="#path-effect4140-1-8"
-         id="path4138-3-9"
-         d="M 1.0030709e-6,1026.6481 35.43307,1026.6481"
-         style="fill:none;fill-opacity:1;fill-rule:evenodd;stroke:#454545;stroke-width:7;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:7, 7;stroke-dashoffset:0;stroke-opacity:1" />
+         id="path4508"
+         d="M 4.2364272e-7,1025.3265 H 35.43307"
+         style="fill:none;fill-opacity:1;fill-rule:evenodd;stroke:#454545;stroke-width:8.96874905;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:8.96874883, 8.96874883;stroke-dashoffset:13.45312309;stroke-opacity:1" />
     </g>
   </g>
 </svg>

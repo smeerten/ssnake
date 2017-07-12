@@ -1004,6 +1004,38 @@ class Spectrum(object):
         else:
             return lambda self: self.setRef(oldRef, axes)
 
+
+    def regrid(self,limits,axis):
+        oldLimits = [self.xaxArray[axis][0],self.xaxArray[axis][-1]]
+
+        if self.noUndo:
+            returnValue = None
+        else:
+            copyData = copy.deepcopy(self)
+            returnValue = lambda self: self.restoreData(copyData, lambda self: self.regrid(limits, axis))
+        if len(self.data.shape) > 1:
+            newDat = np.apply_along_axis(self.regridFunc, axis, self.data,limits ,self.xaxArray[axis])
+        else:
+            newDat = self.regridFunc(self.data,limits ,self.xaxArray[axis])
+        
+        self.data = newDat
+        self.sw[axis] = (limits[1]-limits[0])
+        if self.ref[axis] is None: #Set new 0 freq to those of the old view, if needed
+            self.ref[axis] = self.freq[axis]
+        self.freq[axis] = self.freq[axis] - (oldLimits[1] + oldLimits[0]) / 2 + (limits[1] + limits[0]) / 2
+        self.resetXax(axis)
+
+        self.addHistory("Regrid dimension " + str(axis) + " between " + str(limits[0]) + ' and ' + str(limits[1]))
+        return returnValue
+
+
+    def regridFunc(self,data,limits,x):
+
+        from scipy import interpolate as intp
+        f = intp.interp1d(x, data, fill_value = 0,bounds_error = False)
+        newAx = np.linspace(limits[0],limits[1],1000)
+        return f(newAx)
+
     def setWholeEcho(self, val, axes):
         axes = self.checkAxes(axes)
         if axes is None:
@@ -1756,6 +1788,18 @@ class Current1D(Plot1DFrame):
 #        self.setAxType(0)
         self.root.addMacro(['ref', (ref, self.axes - self.data.data.ndim)])
         return returnValue
+
+    def regrid(self,limits): 
+        ax = self.axes
+        returnValue = self.data.regrid(limits,ax)
+
+        self.upd()
+        self.plotReset()
+        self.showFid()
+
+        return returnValue
+
+
 
     def SN(self, minNoise, maxNoise, minPeak, maxPeak):
         minN = min(minNoise, maxNoise)

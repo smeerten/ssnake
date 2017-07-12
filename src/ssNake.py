@@ -510,7 +510,7 @@ class MainProgram(QtWidgets.QMainWindow):
         self.multiplyAct.setToolTip('Multiply')
         self.reorderAct = self.matrixMenu.addAction(QtGui.QIcon(IconDirectory + 'reorder.png'), "&Reorder", lambda: self.mainWindowCheck(lambda mainWindow: ReorderWindow(mainWindow)))
         self.reorderAct.setToolTip('Reorder')
-        #self.regridAct = self.matrixMenu.addAction("Regrid", lambda: self.mainWindowCheck(lambda mainWindow: RegridWindow(mainWindow)))
+        #self.regridAct = self.matrixMenu.addAction(QtGui.QIcon(IconDirectory + 'regrid.png'),"Regrid", lambda: self.mainWindowCheck(lambda mainWindow: RegridWindow(mainWindow)))
         #self.regridAct.setToolTip('Regrid')
         self.concatAct = self.matrixMenu.addAction(QtGui.QIcon(IconDirectory + 'concatenate.png'),"C&oncatenate", lambda: self.mainWindowCheck(lambda mainWindow: ConcatenateWindow(mainWindow)))
         self.concatAct.setToolTip('Concatenate')
@@ -5507,17 +5507,20 @@ class RegridWindow(wc.ToolWindows):
     def __init__(self, parent ):
         super(RegridWindow, self).__init__(parent)
         self.grid.addWidget(wc.QLabel("Workspace axis to use:"), 0, 0)
-        self.wsEntry = QtWidgets.QComboBox()
-        self.wsEntry.addItems(self.father.father.workspaceNames)
-        self.grid.addWidget(self.wsEntry, 1, 0)
+        self.maxValue = wc.QLineEdit(10)
+        self.minValue = wc.QLineEdit(0)
 
-    def applyAndClose(self):
-        ws = self.wsEntry.currentIndex()
-        #returnValue = self.father.current.add(self.father.father.workspaces[ws].masterData.data, self.singleSlice.isChecked())
+        self.grid.addWidget(self.maxValue, 1, 0)
+        self.grid.addWidget(self.minValue, 2, 0)
+
+    def applyFunc(self):
+        maxVal = safeEval(self.maxValue.text())
+        minVal = safeEval(self.minValue.text())
         if self.father.current.data.noUndo:
-            self.father.current.regrid(val, newLength)
+            self.father.current.regrid([minVal,maxVal])
         else:
-            self.father.undoList.append(self.father.current.regrid(val, newLength))
+            self.father.undoList.append(self.father.current.regrid([minVal,maxVal]))
+        return
 
 ##########################################################################################
 
