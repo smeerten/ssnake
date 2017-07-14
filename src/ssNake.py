@@ -1212,7 +1212,8 @@ class MainProgram(QtWidgets.QMainWindow):
         del self.workspaceNames[num]
         del self.workspaces[num]
         if num == self.workspaceNum:
-            self.workspaceNum = 0
+            if num == len(self.workspaces):
+                self.workspaceNum = num - 1
         if num < self.workspaceNum:
             self.workspaceNum -= 1
         if len(self.workspaces) > 0:
