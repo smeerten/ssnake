@@ -4323,9 +4323,9 @@ class BaselineWindow(wc.ToolWindows):
         self.preview()
 
     def closeEvent(self, *args):
+        self.father.current.removeListLines = []
         del self.father.current.removeListLines
         super(BaselineWindow,self).closeEvent(*args)
-
 
     def applyFunc(self):
         inp = self.degreeEntry.value()
