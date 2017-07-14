@@ -21,7 +21,7 @@ import numpy as np
 import re
 
 
-def safeEval(inp, length=None, keywords=[]):
+def safeEval(inp, length=None, keywords=[], type = 'All'):
     env = vars(np).copy()
     env["locals"] = None
     env["globals"] = None
@@ -36,6 +36,15 @@ def safeEval(inp, length=None, keywords=[]):
         if i in inp:
             return inp
     try:
-        return eval(inp, env)
+        val = eval(inp, env)
+        if isinstance(val, str):
+            return None
+        if type == 'All':
+            return val
+        elif type == 'FI': #Float/int type
+            if isinstance(val, (float, int)):
+                return val
+            return None
+
     except:
         return None

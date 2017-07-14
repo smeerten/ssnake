@@ -1005,35 +1005,43 @@ class Spectrum(object):
             return lambda self: self.setRef(oldRef, axes)
 
 
-    def regrid(self,limits,axis):
+    def regrid(self,limits,numPoints,axis):
         oldLimits = [self.xaxArray[axis][0],self.xaxArray[axis][-1]]
 
         if self.noUndo:
             returnValue = None
         else:
             copyData = copy.deepcopy(self)
-            returnValue = lambda self: self.restoreData(copyData, lambda self: self.regrid(limits, axis))
+            returnValue = lambda self: self.restoreData(copyData, lambda self: self.regrid(limits, numPoints, axis))
+
+        newSw = (limits[1]-limits[0]) / (numPoints - 1) * numPoints 
+        newAxis = np.fft.fftshift(np.fft.fftfreq(numPoints, 1.0 / newSw))
+        newAxis = newAxis - (newAxis[0] + newAxis[-1]) / 2 + (limits[0] + limits[-1]) / 2 #Axis with correct min/max
+        newFreq = self.freq[axis] + (newAxis[0] + newAxis[-1]) / 2
+        if numPoints % 2 == 0:
+            newFreq += newSw / numPoints / 2
         if len(self.data.shape) > 1:
-            newDat = np.apply_along_axis(self.regridFunc, axis, self.data,limits ,self.xaxArray[axis])
+            newDat = np.apply_along_axis(self.regridFunc, axis, self.data,newAxis,self.xaxArray[axis])
         else:
-            newDat = self.regridFunc(self.data,limits ,self.xaxArray[axis])
+            newDat = self.regridFunc(self.data,newAxis ,self.xaxArray[axis])
         
         self.data = newDat
-        self.sw[axis] = (limits[1]-limits[0])
+        self.sw[axis] = newSw
         if self.ref[axis] is None: #Set new 0 freq to those of the old view, if needed
             self.ref[axis] = self.freq[axis]
-        self.freq[axis] = self.freq[axis] - (oldLimits[1] + oldLimits[0]) / 2 + (limits[1] + limits[0]) / 2
+        else:
+            newFreq += - self.freq[axis] + self.ref[axis]
+        self.freq[axis] = newFreq
         self.resetXax(axis)
 
-        self.addHistory("Regrid dimension " + str(axis) + " between " + str(limits[0]) + ' and ' + str(limits[1]))
+        self.addHistory("Regrid dimension " + str(axis) + " between " + str(limits[0]) + ' and ' + str(limits[1]) + ' with ' + str(numPoints) + ' points')
         return returnValue
 
 
-    def regridFunc(self,data,limits,x):
+    def regridFunc(self,data,newAx,x):
 
         from scipy import interpolate as intp
         f = intp.interp1d(x, data, fill_value = 0,bounds_error = False)
-        newAx = np.linspace(limits[0],limits[1],1000)
         return f(newAx)
 
     def setWholeEcho(self, val, axes):
@@ -1789,14 +1797,15 @@ class Current1D(Plot1DFrame):
         self.root.addMacro(['ref', (ref, self.axes - self.data.data.ndim)])
         return returnValue
 
-    def regrid(self,limits): 
+    def regrid(self,limits,numPoints): 
         ax = self.axes
-        returnValue = self.data.regrid(limits,ax)
+        returnValue = self.data.regrid(limits,numPoints,ax)
 
         self.upd()
         self.plotReset()
         self.showFid()
 
+        self.root.addMacro(['regrid', (limits, numPoints,ax)])
         return returnValue
 
 

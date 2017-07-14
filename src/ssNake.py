@@ -510,8 +510,8 @@ class MainProgram(QtWidgets.QMainWindow):
         self.multiplyAct.setToolTip('Multiply')
         self.reorderAct = self.matrixMenu.addAction(QtGui.QIcon(IconDirectory + 'reorder.png'), "&Reorder", lambda: self.mainWindowCheck(lambda mainWindow: ReorderWindow(mainWindow)))
         self.reorderAct.setToolTip('Reorder')
-        #self.regridAct = self.matrixMenu.addAction(QtGui.QIcon(IconDirectory + 'regrid.png'),"Regrid", lambda: self.mainWindowCheck(lambda mainWindow: RegridWindow(mainWindow)))
-        #self.regridAct.setToolTip('Regrid')
+        self.regridAct = self.matrixMenu.addAction(QtGui.QIcon(IconDirectory + 'regrid.png'),"Regrid", lambda: self.mainWindowCheck(lambda mainWindow: RegridWindow(mainWindow)))
+        self.regridAct.setToolTip('Regrid')
         self.concatAct = self.matrixMenu.addAction(QtGui.QIcon(IconDirectory + 'concatenate.png'),"C&oncatenate", lambda: self.mainWindowCheck(lambda mainWindow: ConcatenateWindow(mainWindow)))
         self.concatAct.setToolTip('Concatenate')
         self.multiDActions.append(self.concatAct)
@@ -1863,6 +1863,8 @@ class Main1DWindow(QtWidgets.QWidget):
                 returnValue = self.masterData.matrixManip(*iter1[1], which=4)
             elif iter1[0] == 'average':
                 returnValue = self.masterData.matrixManip(*iter1[1], which=6)
+            elif iter1[0] == 'regrid':
+                returnValue = self.masterData.regrid(*iter1[1])
             elif iter1[0] == 'fliplr':
                 returnValue = self.masterData.flipLR(*iter1[1])
             elif iter1[0] == 'concatenate':
@@ -5506,20 +5508,40 @@ class RegridWindow(wc.ToolWindows):
 
     def __init__(self, parent ):
         super(RegridWindow, self).__init__(parent)
-        self.grid.addWidget(wc.QLabel("Workspace axis to use:"), 0, 0)
+        self.typeDrop = QtWidgets.QComboBox(parent=self)
+        self.typeDrop.addItems(["Min/max input"])
+        self.grid.addWidget(self.typeDrop, 0, 0, 1, 2)
         self.maxValue = wc.QLineEdit(10)
+        self.maxLabel = wc.QLeftLabel('Max:')
         self.minValue = wc.QLineEdit(0)
-
-        self.grid.addWidget(self.maxValue, 1, 0)
-        self.grid.addWidget(self.minValue, 2, 0)
+        self.minLabel = wc.QLeftLabel('Min:')
+        self.points = wc.QLineEdit(1000)
+        self.pointsLabel = wc.QLeftLabel('# of points:')
+        self.grid.addWidget(self.minValue, 1, 1)
+        self.grid.addWidget(self.minLabel, 1, 0)
+        self.grid.addWidget(self.maxValue, 2, 1)
+        self.grid.addWidget(self.maxLabel, 2, 0)
+        self.grid.addWidget(self.pointsLabel, 3, 0)
+        self.grid.addWidget(self.points, 3, 1)
 
     def applyFunc(self):
-        maxVal = safeEval(self.maxValue.text())
-        minVal = safeEval(self.minValue.text())
+        maxVal = safeEval(self.maxValue.text(), type = 'FI')
+        if maxVal is None:
+            self.father.father.dispMsg("Regrid: 'Max' input not valid")
+            return False
+        minVal = safeEval(self.minValue.text(), type = 'FI')
+        if minVal is None:
+            self.father.father.dispMsg("Regrid: 'Min' input not valid")
+            return False
+        numPoints = safeEval(self.points.text(), type = 'FI')
+        if numPoints is None:
+            self.father.father.dispMsg("Regrid: '# of points' input not valid")
+            return False
+        numPoints = int(numPoints)
         if self.father.current.data.noUndo:
-            self.father.current.regrid([minVal,maxVal])
+            self.father.current.regrid([minVal,maxVal],numPoints)
         else:
-            self.father.undoList.append(self.father.current.regrid([minVal,maxVal]))
+            self.father.undoList.append(self.father.current.regrid([minVal,maxVal],numPoints))
         return
 
 ##########################################################################################
