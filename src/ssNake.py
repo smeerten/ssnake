@@ -676,6 +676,12 @@ class MainProgram(QtWidgets.QMainWindow):
 
         self.helpActList = [self.updateAct,self.shiftconvAct,self.quadconvAct,self.nmrtableAct,self.aboutAct]
     
+
+        #Extra event lists:
+        self.specOnlyList = [self.regridAct,self.csastaticAct,self.firstquadstatAct,self.secondquadstatAct,self.czjzekstatAct]
+        self.fidOnlyList = [self.relaxAct,self.diffusionAct]
+
+
     def mainWindowCheck(self, transfer):
         # checks if mainWindow exist to execute the function
         if self.mainWindow is not None:
@@ -742,6 +748,12 @@ class MainProgram(QtWidgets.QMainWindow):
                 act.setEnabled(True)
             if isinstance(self.mainWindow, Main1DWindow):
                 self.menuEnable()
+
+                for act in self.specOnlyList:
+                    act.setEnabled(self.mainWindow.current.spec == 1) #Only on for spec
+                for act in self.fidOnlyList:
+                    act.setEnabled(self.mainWindow.current.spec == 0) #Only on for FID
+                
                 if self.mainWindow.masterData.noUndo: #Set menu check to the same value as in the data
                     self.noUndoAct.setChecked(True)
                 else:
@@ -760,6 +772,8 @@ class MainProgram(QtWidgets.QMainWindow):
                     self.redoAction.setEnabled(False)
                 else:
                     self.redoAction.setEnabled(True)
+                if not self.mainWindow.undoList and not self.mainWindow.redoList:
+                    self.clearundoAct.setEnabled(False)
                 self.savemenu.menuAction().setEnabled(True)
                 self.exportmenu.menuAction().setEnabled(True)
                 self.savefigAct.setEnabled(True)
@@ -2941,6 +2955,7 @@ class SideFrame(QtWidgets.QScrollArea):
             self.buttons2Group.button(axes2).toggle()
         self.getSlice(None, axes, True)
         self.upd()
+        self.father.menuCheck()
 
     def getSlice(self, event, entryNum, button=False):
         if button:
@@ -5513,17 +5528,33 @@ class RegridWindow(wc.ToolWindows):
         self.typeDrop.addItems(["Min/max input"])
         self.grid.addWidget(self.typeDrop, 0, 0, 1, 2)
         self.maxValue = wc.QLineEdit(10)
-        self.maxLabel = wc.QLeftLabel('Max:')
-        self.minValue = wc.QLineEdit(0)
-        self.minLabel = wc.QLeftLabel('Min:')
-        self.points = wc.QLineEdit(1000)
-        self.pointsLabel = wc.QLeftLabel('# of points:')
-        self.grid.addWidget(self.minValue, 1, 1)
-        self.grid.addWidget(self.minLabel, 1, 0)
-        self.grid.addWidget(self.maxValue, 2, 1)
-        self.grid.addWidget(self.maxLabel, 2, 0)
-        self.grid.addWidget(self.pointsLabel, 3, 0)
-        self.grid.addWidget(self.points, 3, 1)
+        #Get unit
+        if self.father.current.spec == 1:
+            if self.father.current.ppm:
+                self.unit = 'ppm'
+            else:
+                if self.father.current.axType == 0:
+                    self.unit = 'Hz'
+                elif self.father.current.axType == 1:
+                    self.unit = 'kHz'
+                elif self.father.current.axType == 2:
+                    self.unit = 'MHz'
+                elif self.father.current.axType == 3:
+                    self.unit = 'ppm'
+            self.comEntry = wc.QLineEdit("0.0")
+            self.maxLabel = wc.QLeftLabel('Max [' + self.unit + ']:')
+            self.minValue = wc.QLineEdit(0)
+            self.minLabel = wc.QLeftLabel('Min [' + self.unit + ']:')
+            self.points = wc.QLineEdit(1000)
+            self.pointsLabel = wc.QLeftLabel('# of points:')
+            self.grid.addWidget(self.minValue, 1, 1)
+            self.grid.addWidget(self.minLabel, 1, 0)
+            self.grid.addWidget(self.maxValue, 2, 1)
+            self.grid.addWidget(self.maxLabel, 2, 0)
+            self.grid.addWidget(self.pointsLabel, 3, 0)
+            self.grid.addWidget(self.points, 3, 1)
+        else:
+            self.closeEvent()
 
     def applyFunc(self):
         maxVal = safeEval(self.maxValue.text(), type = 'FI')
@@ -5539,6 +5570,19 @@ class RegridWindow(wc.ToolWindows):
             self.father.father.dispMsg("Regrid: '# of points' input not valid")
             return False
         numPoints = int(numPoints)
+
+        #Convert to Hz/s
+
+        if self.unit == 'kHz':
+            maxVal *= 1e3
+            minVal *= 1e3
+        elif self.unit == 'MHz':
+            maxVal *= 1e6
+            minVal *= 1e6
+        elif self.unit == 'ppm':
+            maxVal *= self.father.masterData.ref[self.father.current.axes] / 1e6
+            minVal *= self.father.masterData.ref[self.father.current.axes] / 1e6
+   
         if self.father.current.data.noUndo:
             self.father.current.regrid([minVal,maxVal],numPoints)
         else:
