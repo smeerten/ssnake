@@ -303,7 +303,7 @@ class MainProgram(QtWidgets.QMainWindow):
                                     ['Matrix --> Region --> Sum',self.sumRegionAct],['Matrix --> Region --> Max',self.maxRegionAct],['Matrix --> Region --> Min',self.minRegionAct],
                                     ['Matrix --> Region --> Max Position',self.maxposRegionAct],['Matrix --> Region --> Min Position',self.minposRegionAct],['Matrix --> Region --> Average',self.averageRegionAct],
                                     ['Matrix --> Diff',self.diffAct],['Matrix --> Cumsum',self.cumsumAct],['Matrix --> Extract Part',self.extractpartAct],['Matrix --> Flip L/R',self.fliplrAct],
-                                    ['Matrix --> Delete',self.matrixdelAct],['Matrix --> Split',self.splitAct],['Matrix --> Multiply',self.multiplyAct],['Matrix --> Reorder',self.reorderAct],
+                                    ['Matrix --> Delete',self.matrixdelAct],['Matrix --> Split',self.splitAct],['Matrix --> Multiply',self.multiplyAct],['Matrix --> Reorder',self.reorderAct], ['Matrix --> Regrid',self.regridAct],
                                     ['Matrix --> Concatenate',self.concatAct],['Matrix --> Shearing',self.shearAct],
                                     ['Transforms --> Fourier Transform',self.fourierAct],['Transforms --> Real Fourier Transform',self.realFourierAct],['Transforms --> Fftshift',self.fftshiftAct],
                                     ['Transforms --> Inv fftshift',self.invfftshiftAct],['Transforms --> Hilbert Transform',self.hilbertAct],['Transforms --> NUS --> FFM',self.ffmAct],
@@ -522,7 +522,7 @@ class MainProgram(QtWidgets.QMainWindow):
         self.matrixActList = [self.sizingAct,self.shiftAct,self.intRegionAct,self.sumRegionAct,self.maxRegionAct,
                               self.minRegionAct,self.maxposRegionAct,self.minposRegionAct,self.averageRegionAct,
                               self.diffAct,self.cumsumAct,self.extractpartAct,self.fliplrAct,self.matrixdelAct,
-                              self.splitAct,self.multiplyAct,self.reorderAct,self.concatAct,self.shearAct]
+                              self.splitAct,self.multiplyAct,self.reorderAct,self.regridAct,self.concatAct,self.shearAct]
 
         # the fft drop down menu
         self.fftMenu = QtWidgets.QMenu("T&ransforms", self)
@@ -1495,23 +1495,26 @@ class MainProgram(QtWidgets.QMainWindow):
         try:
             masterData = LF.LoadVarianFile(filePath,name)
             masterData.msgHandler = lambda msg: self.dispMsg(msg)
+            return masterData
         except:
             self.dispMsg("Error on loading Varian data",'red')
-        return masterData
+            return None 
 
     def LoadPipe(self, filePath, name=''):
         try:
             masterData = LF.LoadPipe(filePath,name)
             masterData.msgHandler = lambda msg: self.dispMsg(msg)
+            return masterData
         except:
             self.dispMsg("Error on loading NMRpipe data",'red')
-        return masterData
+            return None 
 
     def LoadJEOLDelta(self, filePath, name=''):
         try:
             masterData = LF.LoadJEOLDelta(filePath,name)
         except:
             self.dispMsg("Error on loading JEOL Delta data",'red')
+            return None
         if masterData ==  'ND error':
             self.dispMsg("Error: JEOL Delta data of this type is not supported",'red')
         masterData.msgHandler = lambda msg: self.dispMsg(msg)
@@ -1522,67 +1525,75 @@ class MainProgram(QtWidgets.QMainWindow):
         try:
             masterData = LF.loadJSONFile(filePath,name)
             masterData.msgHandler = lambda msg: self.dispMsg(msg)
+            return masterData
         except:
             self.dispMsg("Error on loading JSON data",'red')
-        return masterData
+            return None 
 
     def loadMatlabFile(self, filePath, name=''):
         try:
             masterData = LF.loadMatlabFile(filePath,name)
             masterData.msgHandler = lambda msg: self.dispMsg(msg)
+            return masterData
         except:
             self.dispMsg("Error on loading MATLAB data",'red')
-        return masterData
+            return None 
 
     def LoadBrukerTopspin(self, filePath, name=''):
         try:
             masterData = LF.LoadBrukerTopspin(filePath,name)
             masterData.msgHandler = lambda msg: self.dispMsg(msg)
+            return masterData
         except:
             self.dispMsg("Error on loading Bruker data",'red')
-        return masterData
+            return None 
         
         
     def LoadBrukerSpectrum(self, filePath, name=''):
         try:
             masterData = LF.LoadBrukerSpectrum(filePath,name)
             masterData.msgHandler = lambda msg: self.dispMsg(msg)
+            return masterData     
         except:
             self.dispMsg("Error on loading Bruker Spectrum data",'red')
-        return masterData     
+            return None 
 
     def LoadChemFile(self, filePath, name=''):
         try:
             masterData = LF.LoadChemFile(filePath,name)
             masterData.msgHandler = lambda msg: self.dispMsg(msg)
+            return masterData   
         except:
             self.dispMsg("Error on loading Chemagnetic data",'red')
-        return masterData   
+            return None
 
     def LoadMagritek(self, filePath, name='',realPath=''):
         try:
             masterData = LF.LoadMagritek(filePath,name)
             masterData.msgHandler = lambda msg: self.dispMsg(msg)
+            return masterData  
         except:
             self.dispMsg("Error on loading Magritek data",'red')
-        return masterData  
+            return None 
 
     def LoadSimpsonFile(self, filePath, name=''):
         try:
             masterData = LF.LoadSimpsonFile(filePath,name)
             masterData.msgHandler = lambda msg: self.dispMsg(msg)
+            return masterData  
         except:
             self.dispMsg("Error on loading SIMPSON data",'red')
-        return masterData  
+            return None 
     
     def LoadJCAMP(self, filePath, name=''):
         try:
             masterData = LF.loadJCAMP(filePath,name)
             masterData.msgHandler = lambda msg: self.dispMsg(msg)
             masterData.addHistory("JCAMP data loaded from " + filePath)
+            return masterData
         except:
             self.dispMsg("Error on loading JCAMP data",'red')
-        return masterData
+            return None 
         
     def LoadAscii(self, filePath, name=''):
         dialog = AsciiLoadWindow(self, filePath)
@@ -1596,6 +1607,7 @@ class MainProgram(QtWidgets.QMainWindow):
                     return masterData
                 except:
                     self.dispMsg("Error on loading ASCII data",'red')
+                    return None
                     
     def LoadMinispec(self, filePath, name=''):
         try:
@@ -1603,17 +1615,19 @@ class MainProgram(QtWidgets.QMainWindow):
 
             masterData.msgHandler = lambda msg: self.dispMsg(msg)
             masterData.addHistory("Minispec data loaded from " + filePath)
+            return masterData 
         except:
             self.dispMsg("Error on loading Minispec data",'red')
-        return masterData 
+            return None 
           
     def LoadBrukerEPR(self, filePath, name=''):
         try:
             masterData = LF.LoadBrukerEPR(filePath,name)
             masterData.msgHandler = lambda msg: self.dispMsg(msg)
+            return masterData     
         except:
             self.dispMsg("Error on loading Bruker EPR data",'red')
-        return masterData     
+            return None 
 
    
         
