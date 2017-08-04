@@ -2497,6 +2497,7 @@ class TensorDeconvParamFrame(AbstractParamFrame):
         self.entries['numssb'].append(QtWidgets.QSpinBox())
         self.entries['numssb'][-1].setAlignment(QtCore.Qt.AlignHCenter)
         self.entries['numssb'][-1].setValue(32)
+        self.entries['numssb'][-1].setMaximum(100000)
         self.optframe.addWidget(self.entries['numssb'][-1], 4, 0)
         self.shiftDefType = 0 #variable to remember the selected tensor type
         self.optframe.addWidget(QLabel("Definition:"), 5, 0)
@@ -2939,6 +2940,7 @@ class Quad1DeconvParamFrame(AbstractParamFrame):
         self.entries['numssb'].append(QtWidgets.QSpinBox())
         self.entries['numssb'][-1].setAlignment(QtCore.Qt.AlignHCenter)
         self.entries['numssb'][-1].setValue(32)
+        self.entries['numssb'][-1].setMaximum(100000)
         self.optframe.addWidget(self.entries['numssb'][-1], 6, 0)
         self.optframe.setColumnStretch(10, 1)
         self.optframe.setAlignment(QtCore.Qt.AlignTop)
