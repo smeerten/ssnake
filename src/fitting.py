@@ -3380,7 +3380,7 @@ class Quad2CzjzekParamFrame(AbstractParamFrame):
 
     def defaultValues(self, inp):
         if not inp:
-            return {'bgrnd':[0.0, True], 'slope':[0.0, True], 'pos':np.repeat([np.array([0.0, False], dtype=object)], self.FITNUM, axis=0), 'd':np.repeat([np.array([5.0, False], dtype=object)], self.FITNUM, axis=0), 'sigma':np.repeat([np.array([1.0, False], dtype=object)], self.FITNUM, axis=0), 'amp':np.repeat([np.array([self.fullInt, False], dtype=object)], self.FITNUM,axis=0), 'lor':np.repeat([np.array([10.0, False], dtype=object)], self.FITNUM,axis=0), 'gauss':np.repeat([np.array([0.0, True], dtype=object)], self.FITNUM,axis=0)}
+            return {'bgrnd':[0.0, True], 'slope':[0.0, True], 'pos':np.repeat([np.array([0.0, False], dtype=object)], self.FITNUM, axis=0), 'd':np.repeat([np.array([5.0, True], dtype=object)], self.FITNUM, axis=0), 'sigma':np.repeat([np.array([1.0, False], dtype=object)], self.FITNUM, axis=0), 'amp':np.repeat([np.array([self.fullInt, False], dtype=object)], self.FITNUM,axis=0), 'lor':np.repeat([np.array([10.0, False], dtype=object)], self.FITNUM,axis=0), 'gauss':np.repeat([np.array([0.0, True], dtype=object)], self.FITNUM,axis=0)}
         else:
             return inp
 
@@ -3419,7 +3419,12 @@ class Quad2CzjzekParamFrame(AbstractParamFrame):
             weight, angleStuff = czjzekMASsetAngleStuff(self.entries['cheng'][-1].value())
         else:
             weight, angleStuff = czjzekStaticsetAngleStuff(self.entries['cheng'][-1].value())
-        maxSigma = max(out['sigma'])
+        maxSigma = 0.0
+        for val in self.entries['sigma']:
+            try:
+                maxSigma = max(maxSigma, float(val.text()))
+            except ValueError:
+                continue
         lib, wq, eta = self.genLib(len(self.parent.xax), I, maxSigma * wqMax * 1e6, numWq, numEta, angleStuff, self.parent.current.freq, self.parent.current.sw, weight, self.axAdd)
         out['I'] = [I]
         out['lib'] = [lib]
@@ -3506,7 +3511,7 @@ def quad2CzjzekfitFunc(params, allX, args):
                 elif struc[altStruc[0]][altStruc[1]][0] == 0:
                     parameters[name] = altStruc[2] * allArgu[altStruc[4]][struc[altStruc[0]][altStruc[1]][1]] + altStruc[3]
         for i in range(numExp):
-            for name in ['pos', 'd', 'sigma', 'amp', 'lor', 'gauss']:
+            for name in ['d', 'pos', 'sigma', 'amp', 'lor', 'gauss']:
                 if struc[name][i][0] == 1:
                     parameters[name] = param[struc[name][i][1]]
                 elif struc[name][i][0] == 0:
@@ -3528,7 +3533,7 @@ def quad2CzjzektensorFunc(sigma, d, pos, width, gauss, wq, eta, lib, freq, sw, a
     pos = (pos / axMult) - axAdd
     wq = wq
     eta = eta
-    if sigma == 0.0: #protect against devide by zero
+    if sigma == 0.0: #protect against divide by zero
         czjzek = np.zeros_like(wq)
         czjzek[:,0] = 1
     else:
