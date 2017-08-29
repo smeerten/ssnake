@@ -508,15 +508,24 @@ tails.
 \subsubsection{cos square}
 The $\cos^2$ distribution is as a says: a squared cosine. The special feature of this distribution is that it
 involves no aditional settings. It is a general $\cos^2$ function. It is applied in such a way it goes
-smoothly to 0 at the end of the time signal. Therefore $f(t) = \cos^2(t/t_\text{max} \cdot \pi/2)$ and the
+smoothly to 0 at the end of the time signal. Therefore $f(t) = \cos^2(\pi t/2t_\text{max})$ and the
 last point has a phase of 90$^\circ$ (or $\pi/2$). 
 
 In ssNake, the number of periods (or half periods) of the $\cos^2$ can be set (as the only input), with this
 value $n$, the equation becomes:
 \begin{equation}
-  f(t) = \cos^2(n \cdot t/t_\text{max} \cdot \pi/2) \quad .
+  f(t) = \cos^2(n\pi  t/2t_\text{max}) \quad .
 \end{equation}
-This distribution is usually used for its easy use and certain decay to 0.
+This distribution is usually used for its easy use and certain decay to 0 (for $n = 1$).
+
+
+\subsubsection{Hamming}
+The Hamming window is defined as:
+\begin{equation}
+  f(t) = \alpha + (1 - \alpha)\cos(n\pi t/t_\text{max})
+\end{equation}
+with $\alpha = 0.53836$, and $n$ defined as with the $\cos^2$ distribution (see above). It has a similar use
+as the $\cos^2$, but its Fourier transform has less intense ripples.
 
 
 
