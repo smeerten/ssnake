@@ -466,6 +466,71 @@ for all points in the complex data. These values are put as the real part. The i
 Multiplies the imaginary part of the data with $-1$. Performing this in the FID leads to a spectrum which is flipped along that dimension.
 
 
+
+
+\subsection{Apodize}
+Opens a tool that can be used to apply apodization (i.e. line broadening) to the current spectrum or FID. It
+supports Lorentzian, Gaussian, cos$^2$ and Hamming windows, with an optional shift or shifting (trace
+dependent shift). 
+
+\subsubsection{Background}
+Apodization (also known as line broadeing, or windowing) is a technique to farce a faster decay of the
+recorded NMR time signal. This leads to broader lines, but, in some cases, better signal-to-noise. Using line
+broadening can make broader (i.e. faster decaying) signals more prominent. Also, when a to long acquisition
+time has been chosen, apodization can decrease the noise level while hardly effecting the signals. 
+
+Every windowing function has its own merits, and features. Lorentzian (i.e. exponential) decay is the most
+common decay that is already on a measured NMR signal. Adding more of this then seems the most natural choice.
+The same goes for Gaussian, which is often naturally encountered in solid state spectra.
+
+\subsubsection{Lorentzian}
+Lorentzian (i.e. exponential) apodization has the form:
+\begin{equation}
+  f(t) = e^{-\pi \cdot lor \cdot |t|}
+\end{equation}
+with $lor$ the Lorentzian value in Hz, and $t$ the time. In the frequency domain, this means that that the
+spectrum is convoluted with the Fourier transform of this function:
+\begin{equation}
+  F(\nu) = \frac{1}{\pi \cdot \gamma \cdot \left[ 1 + \frac{\nu}{\gamma}^2 \right]}
+\end{equation}
+with $\gamma = 2 \cdot lor$ and $\nu$ the frequency position. Lorentzian line shapes a characterized by a
+relative sharp peak, but with a far reaching tail. 
+
+\subsubsection{Gaussian}
+Gaussian apodization has the form:
+\begin{equation}
+  f(t) = e^{\frac{(-\pi \cdot g \cdot |t|)^2}{4 \log(2)} }
+\end{equation}
+with $g$ the Gaussian broadening in Hz. The Fourier transform of this is again a Gaussian function. Gaussian
+line shapes are broader (smoother) on the top when compared to Lorentzian shapes, but have more confined
+tails. 
+
+\subsubsection{cos square}
+The $\cos^2$ distribution is as a says: a squared cosine. The special feature of this distribution is that it
+involves no aditional settings. It is a general $\cos^2$ function. It is applied in such a way it goes
+smoothly to 0 at the end of the time signal. Therefore $f(t) = \cos^2(t/t_\text{max} \cdot \pi/2)$ and the
+last point has a phase of 90$^\circ$ (or $\pi/2$). 
+
+In ssNake, the number of periods (or half periods) of the $\cos^2$ can be set (as the only input), with this
+value $n$, the equation becomes:
+\begin{equation}
+  f(t) = \cos^2(n \cdot t/t_\text{max} \cdot \pi/2) \quad .
+\end{equation}
+This distribution is usually used for its easy use and certain decay to 0.
+
+
+
+\subsubsection{ssNake implementation}
+While using the tool, the effect can be previewed on the current plot. When used in the time
+domain, the windowing function is plot in green and the original data is shown in grey. When used from the
+frequency domain, it actually transforms back to the time domain, applies the window, and transforms back to
+the frequency domain. Usually, this is fast and can be viewed live. However, especially for contour plots, the
+redrawing of the contour lines takes a long time. It is therefore advised to use this function from a 1D view
+(if previewing is needed).
+
+For most types, negative line broadening parameters are allowed, but quickly lead to massive distortions.
+
+
 \subsection{Phasing}
 Opens a tool that can be use to change the phasing in the current spectrum or fid. Supports zero order, first
 order and autophasing.
