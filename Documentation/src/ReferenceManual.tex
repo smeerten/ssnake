@@ -287,6 +287,42 @@ This option saves the current data to a bare ascii format (text file). The first
 \subsubsection*{Figure}
 The Figure option can be used to export any Figure plot within ssNake. The title, axis labels and size of the Figure can be changed. Be aware that choosing a too small height can cause the x-axis label to disappear. After all the titles have been set, pushing `Save' will save the Figure to a directory of your choice. The Figure can be saved in vector format (.eps, .pdf, .svg), in lossless pixel format (.png), and in lossy pixel format (.jpg). We advice to use vector formats to make high quality pictures.
 
+
+\subsection{Preferences}
+Opens a menu were some preferences can be set. Preferences are saved using the regular Qt settings files.
+Click on `Store' to save the changes, and use `Reset' (and `Store') to reset to the default values. The `Plot'
+and `Contour' settings can also be changed for a specific workspace via the `Plot' menu.
+
+\subsubsection{Window}
+\begin{itemize}
+  \item Default width and height of the ssNake window (in pixels). The window is never smaller than the ssNake
+	 logo shown on boot.
+  \item Open maximized: make ssNake open with a maximized window
+  \item Ask workspace name when loading: Whenever ssNake loads a file, it asks for a name (default is the file
+	 name, or spectrum0 etc.). When this box is unticked, files are loaded without asking for a name, but using
+	 the default name. Very useful when loading large sets of data.
+  \item Show Shortcut Toolbar: Shows the toolbar below the menu.
+  \item Edit Toolbar: Opens a window were, via drag-and-drop, items can be added or removed from the toolbar.
+	 Drag an item from left to right to add to the toolbar, and use the `delete' button to remove items from
+	 the toolbar.
+\end{itemize}
+
+\subsubsection{Plot}
+Can be used to set the linewidth (in pixels) and line colour. Also, x and y grids can be turned on. The
+default units can be set, and whether the spectrum should be in ppm by default. `Scroll axis from zero' makes
+sure the $y=0$ position stays at the same spot on the screen when zooming $y$ (default behaviour for most NMR
+software).
+
+\subsubsection{Contour}
+Change the default settings of a contour plot.
+
+\begin{itemize}
+  \item Colourmap: defines the colourmap of the contours
+  \item Constant Colours: makes all contour lines with the same sign the same colour (Colourmap is now
+	 ignored). Colours can be set with `Positive colour' and `Negative colour'.
+  \item Ratio: sets the default ratio of the contour plot.
+\end{itemize}
+
 \subsection{Quit}
 Closes the ssNake application. Quiting ssNake always asks for conformation, to prevent data loss.
 
@@ -312,10 +348,6 @@ Makes the next workspace the active workspace.
 
 \subsection{Previous}
 Makes the previous workspace the active workspace.
-
-
-\subsection{Combine}
-Combines the data from several workspaces. This can be used, for example, to create a $2\times1024$ data file from two spectra with 1024 points (\textit{i.e.} combine several separate spectra into an array). Do note that only workspaces files with the same shape can be combined (\textit{i.e.} with the same number of data points). Also note that ssNake considers a 1D data file with $n$ points to be different than a 2D data file with only one trace ($n\times1$ data points). Using this tool opens a window in which, via dragging and dropping, a selection can be made from the current workspaces. Pressing OK asks for a name for the new workspace.
 
 
 \subsection{Keyboard shortcuts}
@@ -364,7 +396,7 @@ Note that ssNake only records the actions that are not undone. If you perform an
 and you undo it while recording, the macro has no entries. However, performing two actions that cancel each other
 \textit{are} recorded. For example, issuing Fourier twice has no net effect, but a macro of this includes both commands.
 
-Note that it is possible to run a macro which has been recorded on a data set to:w
+Note that it is possible to run a macro which has been recorded on a data set to
 be used on a data set with a different number of dimensions.
 For this, it is important to note that ssNake counts backwards to remember the dimension in which an action is performed. When there are 3 dimensions,
 ssNake classifies them as the second to last, first to last and last. A recorded macro can therefore be run at data that has all the dimensions in which some actions was performed,
@@ -435,26 +467,61 @@ Multiplies the imaginary part of the data with $-1$. Performing this in the FID 
 
 
 \subsection{Phasing}
-Opens a tool that can be use to change the phasing in the current spectrum or fid. Supports zero order, first order and autophasing.
+Opens a tool that can be use to change the phasing in the current spectrum or fid. Supports zero order, first
+order and autophasing.
 
 \subsubsection*{Background}
-NMR data is usually recorded as complex data. Here the real part can be said to be the x-magnetization, and the imaginary part the y-magnetization. This gives the NMR signal as a complex vector, that is rotating in the complex plane during the signal acquisition. An ideal NMR signal consists of a cosine in the real part, and a sine in the imaginary part. This gives, after Fourier transform, a spectrum were a pure absorption lineshape (i.e. a peak) is seen. Depending on the way the time signal is recorded, there can be a distortion to this line, as a constant phase is added to both the sinusoids. With zero order phase correction, an additional phase is added to both the complex and the real part, to adjust for this effect. When expressed in complex exponentials, the following holds:
+NMR data is usually recorded as complex data. Here the real part can be said to be the x-magnetization, and
+the imaginary part the y-magnetization. This gives the NMR signal as a complex vector, that is rotating in the
+complex plane during the signal acquisition. An ideal NMR signal consists of a cosine in the real part, and a
+sine in the imaginary part. This gives, after Fourier transform, a spectrum were a pure absorption lineshape
+(i.e. a peak) is seen. Depending on the way the time signal is recorded, there can be a distortion to this
+line, as a constant phase is added to both the sinusoids. With zero order phase correction, an additional
+phase is added to both the complex and the real part, to adjust for this effect. When expressed in complex
+exponentials, the following holds:
 \begin{equation}
 f_\text{new} = f_\text{old}\cdot\text{e}^{i\pi\cdot\theta/180} 
 \end{equation}
-were $f$ is a complex value in the time or frequency domain and $\theta$ the desired phase correction in degrees. When using this zero order phase correction, all points in the time or frequency domain get the same phase correction.
+were $f$ is a complex value in the time or frequency domain and $\theta$ the desired phase correction in
+degrees. When using this zero order phase correction, all points in the time or frequency domain get the same
+phase correction.
 
-In the spectral domain, a \textit{first} order phase correction is also defined. This leads to a phase correction that linearly depends on the frequency offset with respect to a set central frequency. 
+In the spectral domain, a \textit{first} order phase correction is also defined. This leads to a phase
+correction that linearly depends on the frequency offset with respect to a set central frequency (i.e.
+reference). This gives:
+\begin{equation}
+  f_\text{new} = f_\text{old}\cdot\text{e}^{i\pi\cdot(\theta + x\cdot \phi)/180} 
+\end{equation}
+with $\phi$ the first order phasing, and $x$ the $x$-value of $f$.
 
 
 \subsubsection*{ssNake implementation}
-Selecting phasing in the tools menu opens the phasing window. In this windows, the zero and first order phasing can be set, as well as the reference frequency (centre point) for the first order phasing. The values can be either filled in the boxes,  changed by pushing the left and right buttons, or set by dragging the slider to the left or the right. For zero order phase correction, the limits are -180 and 180 degrees. For first order correction, these are -540 and 540 degrees. Higher values for the first order correction sometimes make sense, and can be filled in the box directly. Note that the values for the zero order correction are circular, so that -180 and 180 degrees lead to the same effect.
+Selecting phasing in the tools menu opens the phasing window. In this windows, the zero and first order
+phasing can be set, as well as the reference frequency (centre point) for the first order phasing. The values
+can be either filled in the boxes,  changed by pushing the left and right buttons (click for $\pm1$,
+ctrl+click for $\pm10$, and shift+click for $\pm100$) , or set by dragging the
+slider to the left or the right. For zero order phase correction, the limits are -180 and 180 degrees. For
+first order correction, these are -540 and 540 degrees. Higher values for the first order correction sometimes
+make sense, and can be filled in the box directly, or via clicking on the arrows. Note that the values for the
+zero order correction are circular, so that -180 and 180 degrees lead to the same effect.
 
-While in this menu, the effect of a certain phasing can be immediately viewed in the ssNake window. When a good setting is reach, `Ok' can be pushed to apply the phasing. Note that for multidimensional data, the preview only shows the current trace. Pushing `Ok' the applies the same phasing correction on all the traces (might take some time for large data). If the phasing should only be applied on the current spectrum or fid, the box `Single slice' can be ticked. Note that you still have to push `Ok' to apply the phasing.
+While in this menu, the effect of a certain phasing can be immediately viewed in the ssNake window. When a
+good setting is reach, `Ok' can be pushed to apply the phasing. Note that for multidimensional data, the
+preview only shows the current trace. Pushing `Ok' the applies the same phasing correction on all the traces
+(might take some time for large data). If the phasing should only be applied on the current spectrum or fid,
+the box `Single slice' can be ticked. Note that you still have to push `Ok' to apply the phasing.
 
-Apart from manual phasing, ssNake also supports two types of autophasing: zero order only, and zero and first order. When pushing these buttons, ssNake will search for the best phasing in the \textit{current} trace, with only first order phasing correction, or with both zero and first order. Do note that the setting that ssNake finds might not be the best: phasing an NMR spectrum is tricky and has no unique mathematical solution. However, for a fast analysis it can be useful.
+Apart from manual phasing, ssNake also supports two types of autophasing: zero order only, and zero and first
+order. When pushing these buttons, ssNake will search for the best phasing in the \textit{current} trace, with
+only first order phasing correction, or with both zero and first order. Do note that the setting that ssNake
+finds might not be the best: phasing an NMR spectrum is tricky and has no unique mathematical solution.
+However, for a fast analysis it can be useful.
 
-Also, note that first order phase correction has no meaning in NMR when applied to the time domain. ssNake therefore always applies first order phasing in the \textit{frequency} domain. When first order phasing is applied when viewing the time domain signal, ssNake transforms to the spectral domain, does the phase correction, and transforms back. As Fourier transforms are quite fast, this provides no issues when viewing the effect of the phase correction.
+Also, note that first order phase correction has no meaning in NMR when applied to the time domain. ssNake
+therefore always applies first order phasing in the \textit{frequency} domain. When first order phasing is
+applied when viewing the time domain signal, ssNake transforms to the spectral domain, does the phase
+correction, and transforms back. As Fourier transforms are quite fast, this provides no issues when viewing
+the effect of the phase correction.
 
 \subsection{Autophase 0}
 Perform a 0th order autophase on the current spectrum (and applies it on all traces). This is identical to doing this via the Phasing window, but requires less effort for the user.
@@ -561,7 +628,7 @@ States conversion takes the alternating data set and makes new complex values fo
 So for example, if the two complex values of time delay 1 (in the indirect dimension) are $0+1i$ and $2+3i$, the result will be $2+4i$. Note that some 
 information is lost in this way (ideally, the difference between the two value is also retained). Therefore, phasing of the data should be done (perfectly) before the States analysis.
 
-\subsection{States--TPPI}
+\subsubsection{States--TPPI}
 
 States--TPPI conversion takes the alternating data set and makes new complex values following:
 \begin{equation*}
@@ -575,7 +642,7 @@ for even values of $n$.
 
 
 
-\subsection{Echo--antiecho}
+\subsubsection{Echo--antiecho}
 Echo--antiecho conversion takes the alternating data set and makes new complex values following:
 \begin{equation*}
   \text{C}n = \text{Re}(\text{R}n + \text{I}n ) - i \cdot \text{Im}(\text{R}n - \text{I}n )
@@ -954,10 +1021,13 @@ The settings in the side frame are the same as with the Stack Plot.
 
 
 \subsection{Contour Plot}
-A contour plot shows the height profile of the data using constant height lines (like altitude lines on a map). This is the most common way to view true 2D data
-(data in which there are two NMR dimension, which are both Fourier transformed). Calculation of the contour lines takes some time, especially for larger data sets.
-As with the Stack and Array plot, the dimension selector shows two bullets. Now they stand for the x-axis (left) and y-axis (right). The Get Position frame now shows some extra features,
-as each data point now has a x-value, y-value and amplitude (z-value). Note that you can change the colour scheme of the contour plot under Plot $\rightarrow$ Plot Settings.
+A contour plot shows the height profile of the data using constant height lines (like altitude lines on a
+map). This is the most common way to view true 2D data (data in which there are two NMR dimension, which are
+both Fourier transformed). Calculation of the contour lines takes some time, especially for larger data sets.
+As with the Stack and Array plot, the dimension selector shows two bullets. Now they stand for the x-axis
+(left) and y-axis (right). The Get Position frame now shows some extra features, as each data point now has a
+x-value, y-value and amplitude (z-value). Note that you can change the colour scheme of the contour plot under
+Plot $\rightarrow$ Plot Settings.
 
 The side frame has several options, which are described below.
 
@@ -997,6 +1067,85 @@ This can be useful to get higher signal-to-noise level projections, by preventin
 Ticking this box draws a diagonal line across the 2D data at x = y. Note that the axis type is of importance: no scaling is performed.
 Therefore, if a data set with two identical axes is plot, only if the two units are the same, the diagonal is plot in a way that (probably) is the correct way.
 Alternatively, there is a box called `Multiplier', in which a value can be put that multiplies the x-axis (only for the calculation of the diagonal).
+
+
+\subsection{Multi plot}
+A multi plot is on overlay of multiple workspaces. It shows the 1D Plot of the current workspace, and a button
+to add additional data (from other, or the same workspace). Things that can be changed are:
+\begin{itemize}
+  \item Scale: linear multiplier of the signal ($y$ value)
+  \item Offset: gives an offset to the current data. The step size depends on the data, and is shown between
+	 brackets.
+  \item Shift: horizontal shift in units of the current axis.
+  \item Dimension selector: selects the dimension and trace to be shown (as with a regular 1D plot).
+\end{itemize}
+The added data can be removed by pushing the `x' button.
+
+
+\subsection{Reference}
+This is a collection of tools to set the current reference (0 frequency) of the current spectrum.
+
+\subsubsection{Set reference}
+Opens a tool were the reference frequency can be set. It is easiest to click on the position in the spectrum
+which should be referenced, which fills in the frequency. In the lowest box (`Reference [ppm]') the desired
+ppm value of the clicked position can be filled in. Alternatively, a series of common solid state references
+are available via the drop-down menu called `Secondary Reference'.
+
+A name can be given to the reference if reuse is desired. The references saved this way are accessible via Plot
+$\rightarrow$ Reference $\rightarrow$ Apply.
+
+
+\subsubsection{Clear current reference}
+Removes the reference of the current spectrum. This means that 0 Hz (or ppm) is now at the centre of the
+spectrum.
+
+\subsubsection{Apply}
+Apply the selected saved reference.
+
+\subsubsection{Delete}
+Delete a saved reference.
+
+\subsubsection{Rename}
+Rename a saved reference.
+
+\subsubsection{Save}
+Save a saved reference to disk. The create file contains a single number: the zero frequency of the reference.
+
+\subsubsection{Load}
+Loads a reference from disk.
+
+\subsection{User X-axis}
+This function opens a window were the current axis can be changed. This is commonly done in the time domain
+for relaxation data (as the axis is probably non-linear). The possible inputs are described below. Pushing OK
+applies the axis to the current data. To preview it, push enter while in on of the input boxes. The values are
+then printed in the table below.
+
+Note that several actions on the data reset the $x$-axis (Fourier transform, for example). This is because
+these processes can only use the default axis. It is therefore wise to set the $x$-axis after all processing is
+done (i.e. before fitting, or printing a figure).
+
+\subsubsection{Expression}
+Allows input of a list of values via an input box. Allowed inputs are any \texttt{Python} commands that lead
+to a list of the correct length. Alternatively a space separated input can be given, e.g.: 0 0.1 0.2 0.4.
+
+One extra command that we have included and regularly use is the `euro' command. For relaxation measurements a
+list that follows the series of the euro coins is easy to remember and convenient. The series always start at
+1, 2 or 5 (or 10 times lower/higher values). Having a euro series of length 5 starting at 0.1 therefore gives:
+0.1, 0.2, 0.5, 1, 2. The euro series can be created with the command `euro($y$)' with $y$ the start value of
+the series.
+
+
+
+\subsubsection{Linear}
+A regular linear spacing. The start and end value needs to be supplied.
+
+\subsubsection{Logarithmic}
+A logarithmic spacing. The start and end value need to be supplied (and ssNake calculates the spacing). Not
+that negative values are not allowed.
+
+\subsection{Plot Settings}
+This open a window were the plot settings of the current workspace can be changed. The input value are explained
+at File $\rightarrow$ Preferences.
 
 
 \section{Combine}
@@ -1121,6 +1270,19 @@ The leftmost entry of the details window is a bullet, which can be used to set t
 
 
 
+
+
+\section{Help}
+\subsection{Update}
+This tool can be used to update ssNake via the github page. It show a dropdown menu with all the available
+versions. We recommend using that latest version (that has a version number). The `develop' version is the
+version we are currency working on. This has the most resent features, but might be unstable. Note that updating via
+this tool does not always work (ssNake needs write permission on its ow directory). If ssNake does not work
+after using the Update tool, you can download it from the github page:
+\url{https://github.com/smeerten/ssnake/}.
+
+\subsection{About}
+Opens the About box with information on the version, acknowledgements and license (GPL 3).
 
 \section{Contact}
 To contact the \texttt{ssNake} team write to \texttt{ssnake@science.ru.nl}.
