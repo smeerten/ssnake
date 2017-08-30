@@ -285,8 +285,30 @@ Simpson is a general NMR simulation program with its own data format. The format
 This option saves the current data to a bare ascii format (text file). The first column is the axis in units of Hz or seconds. The next columns are alternating real and imaginary for all traces in the 2D data. For 1D data, only a single set of real and imaginary data is printed. The axis of dimension 1 of the 2D data is not saved.
 
 \subsubsection*{Figure}
-The Figure option can be used to export any Figure plot within ssNake. The title, axis labels and size of the Figure can be changed. Be aware that choosing a too small height can cause the x-axis label to disappear. After all the titles have been set, pushing `Save' will save the Figure to a directory of your choice. The Figure can be saved in vector format (.eps, .pdf, .svg), in lossless pixel format (.png), and in lossy pixel format (.jpg). We advice to use vector formats to make high quality pictures.
+The Figure option can be used to export any Figure plot within ssNake. The title, axis labels and size of the
+Figure can be changed. Be aware that choosing a too small height can cause the x-axis label to disappear.
+After all the titles have been set, pushing `Save' will save the Figure to a directory of your choice. The
+Figure can be saved in vector format (.eps, .pdf, .svg), in lossless pixel format (.png), and in lossy pixel
+format (.jpg). We advice to use vector formats to make high quality pictures.
 
+The following settings can be changed:
+\begin{itemize}
+  \item Title, $x$ and $y$-axis labels
+  \item Limits: the limits along the $x$ and $y$-axis
+  \item Dimensions: the size of the Figure in cm. Also the resolution (dots per inch, dpi) can be set.
+  \item Font sizes: sizes of all the font (Main) or per item, when `Details' is checked. This then allows the
+	 fonts sizes for the tile, $x$ and $y$-labels, and $x$ and $y$-ticks to be set individually.
+  \item Legend: when ticked, shows the legend.
+  \item Legend settings: allows the position of the legend to be set (allowed options: best, left, right, upper/lower
+	 left/right/center) as well as the order in the case of
+	 multiple spectra (multi plot). The order should be filled in as a list, with the first element being the
+	 topmost entry in the legend (an input of [1,0] will show element 1 on the top). Also the name can be set.
+	 The number input allows to switch between the different entries.
+\end{itemize}
+
+The legend can also be dragged around in the Figure to position it. Note that double-clicking on a plot
+line opens a window in which the line width and colour can be set. It also allows adding or changing plot
+markers.
 
 \subsection{Preferences}
 Opens a menu were some preferences can be set. Preferences are saved using the regular Qt settings files.
@@ -834,7 +856,34 @@ Splits the current dimension in $n$ parts with an equal number of data points. T
 Multiplies the y-values of the data in the current dimension by a given number. If a single number is supplied, all the points are multiplied by this number. Alternatively, an array with the same length as the data can be given to specify a position dependent multiplication. For example, for a dimension with 3 data points: [1,3.34,2]. This multiplies the first data point by 1, second by 3.34, etc. Do not forget the about the mirroring in the spectral domain (see Diff)!
 
 \subsection{Reorder}
-Reorders the data in the current dimension. Input is an array with the new, desired positions. For example, [0,2,1] keeps the position of the first element (`0'), but interchanges the second and the third. It is also possible to supply the input array by loading a filer (as is used in Non-Uniform Sampling). If the new data length is longer than the old, the missing points are filled with zeros. Also, the length of the desired new dimension can be given. If the length of the final data is shorter than this value, some zeros are appended.
+Reorders the data in the current dimension. Input is an array with the new,
+desired positions. For example, [0,2,1] keeps the position of the first element
+(`0'), but interchanges the second and the third. It is also possible to supply
+the input array by loading a filer (as is used in Non-Uniform Sampling). If the
+new data length is longer than the old, the missing points are filled with
+zeros. Also, the length of the desired new dimension can be given. If the
+length of the final data is shorter than this value, some zeros are appended.
+
+\subsection{Regrid}
+Opens a window that can be used to regrid the spectrum. This involves linear interpolation if the new
+$x$-values fall between data points.
+
+\subsubsection*{Background}
+When recording two sets of data, adding them is only possible if no frequency shift has occurred in between
+(i.e. if the $x$-axis is identical for both spectra). When this is not the case, the axis of one of the
+spectra most be regrid to comply to the other. This involves constructions $y$-values at new $x$-positions, and
+therefore needs some interpolation, which is done linearly in our case. When new $x$-values fall outside the
+range of the initial data, the new $y$-value is set to zero (no \textit{extrapolation} is done).
+
+Another good example for this function is the analysis of Variable Offset Cumulative Spectra (i.e. VOCS), in
+which multiple spectra with different offsets are recorded. Adding them then requires the same $x$-axis for
+all of them.
+
+\subsubsection*{ssNake implementation}
+Using this tool opens a window in which the type of interpolation can be set (now only min/max). The min/max
+input then requires a new minimum and maximum to be set, and the number of points. Note that a power of 2 is
+advised if Fourier transforms are necessary on the data. The spectral width and centre frequency are adjusted
+to comply to the new axis (and the reference, when defined, stays the same).
 
 \subsection{Concatenate}
 Concatenates (i.e. sticks) that data of dimension $n$ after dimension $n+1$. So if the original data is 10x5x3, and dimension 2 is selected,
