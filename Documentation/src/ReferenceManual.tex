@@ -527,7 +527,25 @@ The Hamming window is defined as:
 with $\alpha = 0.53836$, and $n$ defined as with the $\cos^2$ distribution (see above). It has a similar use
 as the $\cos^2$, but its Fourier transform has less intense ripples.
 
+\subsubsection{Shift}
+In some cases, the centre of the window function needs to be shifted from $t = 0$ (in case of an echo for
+example). This can be done using the
+Shift option (input in seconds). Note that all the window functions are symmetric around its centre.
 
+\subsubsection{Shifting}
+In some cases (i.e MQMAS experiments) the window function needs a trace-dependent shift. This usually means
+that, for 2D data, the $t$-shift of the window function along D2 depends on the position of that trace along
+D1. A `Shifting' value of $n$, means that the shift for a trace is equal to $n \cdot t_1$, with $t_1$ the time
+position of the specific trace along D1.
+
+For data with more then 2 dimensions, the shifting axis needs to bu supplied.
+
+Shifting apodization can be best viewed from a Stack Plot view.
+
+\subsubsection{Whole echo}
+When the Whole Echo property is activated (see the section on the Bottom Frame), all the apodization windows
+are changed in such a way that they are symmetric around $t = t_\text{max}/2$. This means that the window is
+only calculated for $t=0$ to $t= t_\text{max}/2$. 
 
 \subsubsection{ssNake implementation}
 While using the tool, the effect can be previewed on the current plot. When used in the time
@@ -536,6 +554,10 @@ frequency domain, it actually transforms back to the time domain, applies the wi
 the frequency domain. Usually, this is fast and can be viewed live. However, especially for contour plots, the
 redrawing of the contour lines takes a long time. It is therefore advised to use this function from a 1D view
 (if previewing is needed).
+
+The Lorentzian and Gaussian apodization have sliders and arrows. The step sizes of both are determined by the
+spectral width and number of points. Note that the coarseness of the steps when pushing on the arrow buttons
+can be altered by holding ctrl (x10) or shift (x100).
 
 For most types, negative line broadening parameters are allowed, but quickly lead to massive distortions.
 
