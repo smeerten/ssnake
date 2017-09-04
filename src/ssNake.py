@@ -758,7 +758,7 @@ class MainProgram(QtWidgets.QMainWindow):
                     self.noUndoAct.setChecked(True)
                 else:
                     self.noUndoAct.setChecked(False)
-                if (len(self.mainWindow.masterData.data.shape) < 2):
+                if (len(self.mainWindow.masterData.data[0].shape) < 2):
                     for i in self.multiDActions:
                         i.setEnabled(False)
                 else:
@@ -2526,7 +2526,7 @@ class SideFrame(QtWidgets.QScrollArea):
 
     def upd(self):
         current = self.father.current
-        self.shape = current.data.data.shape
+        self.shape = current.data.data[0].shape
         self.length = len(self.shape)
         for i in reversed(range(self.frame1.count())):
             item = self.frame1.itemAt(i).widget()
@@ -3479,6 +3479,10 @@ class PhaseWindow(wc.ToolWindows):
 
     def __init__(self, parent):
         super(PhaseWindow, self).__init__(parent)
+        self.hyper = True
+        if len(self.father.current.data.data) > 1:
+            self.hyper = True
+            print('hyper')
         self.zeroVal = 0.0
         self.firstVal = 0.0
         self.refVal = 0.0

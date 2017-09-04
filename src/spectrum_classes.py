@@ -75,7 +75,8 @@ class Spectrum(object):
 
     def __init__(self, name, data, filePath, freq, sw, spec=None, wholeEcho=None, ref=None, xaxArray=None, history=None, msgHandler=None):
         self.name = name
-        self.data = np.array(data, dtype=complex)  # data of dimension dim
+        self.data = [np.array(data, dtype=complex)]  # data of dimension dim
+        self.hyper = ['R' * len(data.shape)] #Labels of the hypercomplex traces
         self.filePath = filePath
         self.freq = np.array(freq)  # array of center frequency (length is dim, MHz)
         self.sw = sw  # array of sweepwidths
@@ -99,15 +100,15 @@ class Spectrum(object):
         else:
             self.spec = spec  # int array of length dim where 0 = time domain, 1 = complex spectral
         if wholeEcho is None:
-            self.wholeEcho = [False] * self.data.ndim
+            self.wholeEcho = [False] * self.data[0].ndim
         else:
             self.wholeEcho = wholeEcho  # boolean array of length dim where True indicates a full Echo
         if ref is None:
-            self.ref = np.array(self.data.ndim * [None])
+            self.ref = np.array(self.data[0].ndim * [None])
         else:
             self.ref = np.array(ref,dtype=object)
         if xaxArray is None:
-            self.xaxArray = [[] for i in range(self.data.ndim)]
+            self.xaxArray = [[] for i in range(self.data[0].ndim)]
             self.resetXax()
         else:
             self.xaxArray = xaxArray
@@ -140,8 +141,8 @@ class Spectrum(object):
 
     def checkAxes(self, axes):
         if axes < 0:
-            axes = axes + self.data.ndim
-        if not (0 <= axes < self.data.ndim):
+            axes = axes + self.data[0].ndim
+        if not (0 <= axes < self.data[0].ndim):
             self.dispMsg('Not a valid axes')
             return None
         return axes
@@ -153,12 +154,12 @@ class Spectrum(object):
                 return None
             val = [axes]
         else:
-            val = range(self.data.ndim)
+            val = range(self.data[0].ndim)
         for i in val:
             if self.spec[i] == 0:
-                self.xaxArray[i] = np.arange(self.data.shape[i]) / (self.sw[i])
+                self.xaxArray[i] = np.arange(self.data[0].shape[i]) / (self.sw[i])
             elif self.spec[i] == 1:
-                self.xaxArray[i] = np.fft.fftshift(np.fft.fftfreq(self.data.shape[i], 1.0 / self.sw[i]))
+                self.xaxArray[i] = np.fft.fftshift(np.fft.fftfreq(self.data[0].shape[i], 1.0 / self.sw[i]))
                 if self.ref[i] is not None:
                     self.xaxArray[i] += self.freq[i] - self.ref[i]
 
@@ -166,7 +167,7 @@ class Spectrum(object):
         axes = self.checkAxes(axes)
         if axes is None:
             return None
-        if len(xax) != self.data.shape[axes]:
+        if len(xax) != self.data[0].shape[axes]:
             self.dispMsg("Length of new x-axis does not match length of the data")
             return None
         oldXax = self.xaxArray[axes]
@@ -406,14 +407,18 @@ class Spectrum(object):
         else:
             copyData = copy.deepcopy(self)
             returnValue = lambda self: self.restoreData(copyData, lambda self: self.states(axes))
-        if self.data.shape[axes] % 2 != 0:
+        if self.data[0].shape[axes] % 2 != 0:
             self.dispMsg("States: data has to be even")
             return None
-        tmpdata = np.real(self.data)
-        slicing1 = (slice(None), ) * axes + (slice(None, None, 2), ) + (slice(None), ) * (self.data.ndim - 1 - axes)
-        slicing2 = (slice(None), ) * axes + (slice(1, None, 2), ) + (slice(None), ) * (self.data.ndim - 1 - axes)
-        tmpdata = tmpdata[slicing1] + 1j * tmpdata[slicing2]
-        self.data = tmpdata
+        tmpdata = self.data
+        slicing1 = (slice(None), ) * axes + (slice(None, None, 2), ) + (slice(None), ) * (self.data[0].ndim - 1 - axes)
+        slicing2 = (slice(None), ) * axes + (slice(1, None, 2), ) + (slice(None), ) * (self.data[0].ndim - 1 - axes)
+        self.data = []
+        for index in range(len(tmpdata)):
+            tmp = np.real(tmpdata[index][slicing1]) + 1j * np.real(tmpdata[index][slicing2])
+            tmp2 = np.imag(tmpdata[index][slicing1]) + 1j * np.imag(tmpdata[index][slicing2])
+            self.data.append(tmp)
+            self.data.append(tmp2)
         self.resetXax(axes)
         self.addHistory("States conversion on dimension " + str(axes + 1))
         return returnValue
@@ -427,15 +432,20 @@ class Spectrum(object):
         else:
             copyData = copy.deepcopy(self)
             returnValue = lambda self: self.restoreData(copyData, lambda self: self.statesTPPI(axes))
-        if self.data.shape[axes] % 2 != 0:
+        if self.data[0].shape[axes] % 2 != 0:
             self.dispMsg("States-TPPI: data has to be even")
             return None
-        tmpdata = np.real(self.data)
-        slicing1 = (slice(None), ) * axes + (slice(None, None, 2), ) + (slice(None), ) * (self.data.ndim - 1 - axes)
-        slicing2 = (slice(None), ) * axes + (slice(1, None, 2), ) + (slice(None), ) * (self.data.ndim - 1 - axes)
-        tmpdata = tmpdata[slicing1] + 1j * tmpdata[slicing2]
-        tmpdata[slicing2] = -1 * tmpdata[slicing2]
-        self.data = tmpdata
+        tmpdata = self.data
+        slicing1 = (slice(None), ) * axes + (slice(None, None, 2), ) + (slice(None), ) * (self.data[0].ndim - 1 - axes)
+        slicing2 = (slice(None), ) * axes + (slice(1, None, 2), ) + (slice(None), ) * (self.data[0].ndim - 1 - axes)
+        self.data = []
+        for index in range(len(tmpdata)):
+            tmp = np.real(tmpdata[index][slicing1]) + 1j * np.real(tmpdata[index][slicing2])
+            tmp[slicing2] = -1 * tmp[slicing2]
+            tmp2 = np.imag(tmpdata[index][slicing1]) + 1j * np.imag(tmpdata[index][slicing2])
+            tmp2[slicing2] = -1 * tmp2[slicing2]
+            self.data.append(tmp)
+            self.data.append(tmp2)
         self.resetXax(axes)
         self.addHistory("States-TPPI conversion on dimension " + str(axes + 1))
         return returnValue
@@ -888,11 +898,12 @@ class Spectrum(object):
             offset = 0
         else:
             offset = self.freq[axes] - self.ref[axes]
-        vector = np.exp(np.fft.fftshift(np.fft.fftfreq(self.data.shape[axes], 1.0 / self.sw[axes]) + offset) / self.sw[axes] * phase1 * 1j)
-        if self.spec[axes] == 0:
-            self.fourier(axes, tmp=True)
-        self.data[select] = self.data[select] * np.exp(phase0 * 1j)
-        self.data[select] = np.apply_along_axis(np.multiply, axes, self.data, vector)[select]
+        for index in range(len(self.data)):
+            vector = np.exp(np.fft.fftshift(np.fft.fftfreq(self.data[index].shape[axes], 1.0 / self.sw[axes]) + offset) / self.sw[axes] * phase1 * 1j)
+            if self.spec[axes] == 0:
+                self.fourier(axes, tmp=True)
+            self.data[index][select] = self.data[index][select] * np.exp(phase0 * 1j)
+            self.data[index][select] = np.apply_along_axis(np.multiply, axes, self.data[index], vector)[select]
         if self.spec[axes] == 0:
             self.fourier(axes, tmp=True, inv=True)
         Message = "Phasing: phase0 = " + str(phase0 * 180 / np.pi) + " and phase1 = " + str(phase1 * 180 / np.pi) + " for dimension " + str(axes + 1)
@@ -1066,25 +1077,29 @@ class Spectrum(object):
             returnValue = lambda self: self.restoreData(copyData, lambda self: self.setSize(size, pos, axes))
         if self.spec[axes] > 0:
             self.fourier(axes, tmp=True)
-        if size > self.data.shape[axes]:
-            slicing1 = (slice(None), ) * axes + (slice(None, pos), ) + (slice(None), ) * (self.data.ndim - 1 - axes)
-            slicing2 = (slice(None), ) * axes + (slice(pos, None), ) + (slice(None), ) * (self.data.ndim - 1 - axes)
-            self.data = np.concatenate((np.pad(self.data[slicing1], [(0, 0)] * axes + [(0, size - self.data.shape[axes])] + [(0, 0)] * (self.data.ndim - axes - 1), 'constant', constant_values=0),
-                                        self.data[slicing2]), axes)
+        if size > self.data[0].shape[axes]:
+            slicing1 = (slice(None), ) * axes + (slice(None, pos), ) + (slice(None), ) * (self.data[0].ndim - 1 - axes)
+            slicing2 = (slice(None), ) * axes + (slice(pos, None), ) + (slice(None), ) * (self.data[0].ndim - 1 - axes)
+            for index in range(len(self.data)):
+                self.data[index] = np.concatenate((np.pad(self.data[index][slicing1], [(0, 0)] * axes + [(0, size - self.data[0].shape[axes])] + [(0, 0)] * (self.data[0].ndim - axes - 1), 'constant', constant_values=0),
+                                        self.data[index][slicing2]), axes)
         else:
-            difference = self.data.shape[axes] - size
+            difference = self.data[0].shape[axes] - size
             removeBegin = int(np.floor(difference / 2))
             removeEnd = difference - removeBegin
             if pos < removeBegin:
-                slicing = (slice(None), ) * axes + (slice(self.data.shape[axes] - size, None), ) + (slice(None), ) * (self.data.ndim - 1 - axes)
-                self.data = self.data[slicing]
-            elif self.data.shape[axes] - pos < removeEnd:
-                slicing = (slice(None), ) * axes + (slice(None, size), ) + (slice(None), ) * (self.data.ndim - 1 - axes)
-                self.data = self.data[slicing]
+                slicing = (slice(None), ) * axes + (slice(self.data[0].shape[axes] - size, None), ) + (slice(None), ) * (self.data[0].ndim - 1 - axes)
+                for index in range(len(self.data)):
+                    self.data[index] = self.data[index][slicing]
+            elif self.data[0].shape[axes] - pos < removeEnd:
+                slicing = (slice(None), ) * axes + (slice(None, size), ) + (slice(None), ) * (self.data[0].ndim - 1 - axes)
+                for index in range(len(self.data)):
+                    self.data[index] = self.data[index][slicing]
             else:
-                slicing1 = (slice(None), ) * axes + (slice(None, pos - removeBegin), ) + (slice(None), ) * (self.data.ndim - 1 - axes)
-                slicing2 = (slice(None), ) * axes + (slice(pos + removeEnd, None), ) + (slice(None), ) * (self.data.ndim - 1 - axes)
-                self.data = np.concatenate((self.data[slicing1], self.data[slicing2]), axis=axes)
+                slicing1 = (slice(None), ) * axes + (slice(None, pos - removeBegin), ) + (slice(None), ) * (self.data[0].ndim - 1 - axes)
+                slicing2 = (slice(None), ) * axes + (slice(pos + removeEnd, None), ) + (slice(None), ) * (self.data[0].ndim - 1 - axes)
+                for index in range(len(self.data)):
+                    self.data[index] = np.concatenate((self.data[index][slicing1], self.data[index][slicing2]), axis=axes)
         if self.spec[axes] > 0:
             self.fourier(axes, tmp=True, inv=True)
         self.resetXax(axes)
@@ -1215,17 +1230,21 @@ class Spectrum(object):
             return None
         if np.logical_xor(self.spec[axes], inv) == 0:
             if not self.wholeEcho[axes] and not tmp:
-                slicing = (slice(None), ) * axes + (0, ) + (slice(None), ) * (self.data.ndim - 1 - axes)
-                self.data[slicing] = self.data[slicing] * 0.5
-            self.data = np.fft.fftshift(np.fft.fftn(self.data, axes=[axes]), axes=axes)
+                slicing = (slice(None), ) * axes + (0, ) + (slice(None), ) * (self.data[0].ndim - 1 - axes)
+                for index in range(len(self.data)):
+                    self.data[index][slicing] = self.data[index][slicing] * 0.5
+            for index in range(len(self.data)): 
+                self.data[index] = np.fft.fftshift(np.fft.fftn(self.data[index], axes=[axes]), axes=axes)
             if not tmp:
                 self.spec[axes] = 1
                 self.addHistory("Fourier transform dimension " + str(axes + 1))
         else:
-            self.data = np.fft.ifftn(np.fft.ifftshift(self.data, axes=axes), axes=[axes])
+            for index in range(len(self.data)): 
+                self.data[index] = np.fft.ifftn(np.fft.ifftshift(self.data[index], axes=axes), axes=[axes])
             if not self.wholeEcho[axes] and not tmp:
-                slicing = (slice(None), ) * axes + (0, ) + (slice(None), ) * (self.data.ndim - 1 - axes)
-                self.data[slicing] = self.data[slicing] * 2.0
+                slicing = (slice(None), ) * axes + (0, ) + (slice(None), ) * (self.data[0].ndim - 1 - axes)
+                for index in range(len(self.data)): 
+                    self.data[index][slicing] = self.data[index][slicing] * 2.0
             if not tmp:
                 self.spec[axes] = 0
                 self.addHistory("Inverse Fourier transform dimension " + str(axes + 1))
@@ -1429,7 +1448,7 @@ class Spectrum(object):
         axes = self.checkAxes(axes)
         if axes is None:
             return None
-        return copy.deepcopy((self.data[tuple(locList[:axes]) + (slice(None), ) + tuple(locList[axes:])],
+        return copy.deepcopy((self.data[0][tuple(locList[:axes]) + (slice(None), ) + tuple(locList[axes:])],
                               self.freq[axes],
                               self.sw[axes],
                               self.spec[axes],
@@ -1516,7 +1535,7 @@ class Current1D(Plot1DFrame):
         self.ref = None  # reference frequency
         if duplicateCurrent is None:
             self.ppm = self.root.father.defaultPPM             # display frequency as ppm
-            self.axes = len(self.data.data.shape) - 1
+            self.axes = len(self.data.data[0].shape) - 1
             self.resetLocList()
             self.plotType = 0
             self.axType = self.root.father.defaultUnits
@@ -1535,7 +1554,7 @@ class Current1D(Plot1DFrame):
             self.ppm = duplicateCurrent.ppm
             self.axes = duplicateCurrent.axes
             if isinstance(self, (CurrentStacked, CurrentArrayed, CurrentContour, CurrentSkewed)):
-                if (len(duplicateCurrent.locList) == self.data.data.ndim - 2):
+                if (len(duplicateCurrent.locList) == self.data.data[0].ndim - 2):
                     self.locList = duplicateCurrent.locList
                 else:
                     if self.axes < self.axes2:
@@ -1543,7 +1562,7 @@ class Current1D(Plot1DFrame):
                     else:
                         self.locList = np.delete(duplicateCurrent.locList, self.axes2)
             else:
-                if (len(duplicateCurrent.locList) == self.data.data.ndim - 1):
+                if (len(duplicateCurrent.locList) == self.data.data[0].ndim - 1):
                     self.locList = duplicateCurrent.locList
                 else:
                     if self.axes < duplicateCurrent.axes2:
@@ -1586,9 +1605,9 @@ class Current1D(Plot1DFrame):
         return Current1D(root, fig, canvas, data, self)
 
     def upd(self):  # get new data from the data instance
-        if self.data.data.ndim <= self.axes:
-            self.axes = len(self.data.data.shape) - 1
-        if (len(self.locList) + 1) != self.data.data.ndim:
+        if self.data.data[0].ndim <= self.axes:
+            self.axes = len(self.data.data[0].shape) - 1
+        if (len(self.locList) + 1) != self.data.data[0].ndim:
             self.resetLocList()
         try:
             updateVar = self.data.getSlice(self.axes, self.locList)
@@ -1621,7 +1640,7 @@ class Current1D(Plot1DFrame):
         self.showFid()
 
     def resetLocList(self):
-        self.locList = [0] * (len(self.data.data.shape) - 1)
+        self.locList = [0] * (len(self.data.data[0].shape) - 1)
 
     def getSelect(self):
         tmp = list(self.locList)
@@ -1677,7 +1696,7 @@ class Current1D(Plot1DFrame):
         returnValue = self.data.setPhase(phase0, phase1, self.axes, selectSlice)
         self.upd()
         self.showFid()
-        self.root.addMacro(['phase', (phase0, phase1, self.axes - self.data.data.ndim, str(selectSlice))])
+        self.root.addMacro(['phase', (phase0, phase1, self.axes - self.data.data[0].ndim, str(selectSlice))])
         return returnValue
 
     def fourier(self):  # fourier the actual data and replot
@@ -1687,7 +1706,7 @@ class Current1D(Plot1DFrame):
             self.resetSpacing()
         self.plotReset()
         self.showFid()
-        self.root.addMacro(['fourier', (self.axes - self.data.data.ndim, )])
+        self.root.addMacro(['fourier', (self.axes - self.data.data[0].ndim, )])
         return returnValue
 
     def realFourier(self):  # fourier the real data and replot
@@ -1968,7 +1987,7 @@ class Current1D(Plot1DFrame):
         if not self.spec:
             self.plotReset(True, False)
         self.showFid()
-        self.root.addMacro(['size', (size, pos, self.axes - self.data.data.ndim)])
+        self.root.addMacro(['size', (size, pos, self.axes - self.data.data[0].ndim)])
         return returnValue
 
     def applyLPSVD(self, nAnalyse, nFreq, nPredict, Direction):
@@ -2136,21 +2155,21 @@ class Current1D(Plot1DFrame):
         returnValue = self.data.states(self.axes)
         self.upd()
         self.showFid()
-        self.root.addMacro(['states', (self.axes - self.data.data.ndim, )])
+        self.root.addMacro(['states', (self.axes - self.data.data[0].ndim, )])
         return returnValue
 
     def statesTPPI(self):
         returnValue = self.data.statesTPPI(self.axes)
         self.upd()
         self.showFid()
-        self.root.addMacro(['statesTPPI', (self.axes - self.data.data.ndim, )])
+        self.root.addMacro(['statesTPPI', (self.axes - self.data.data[0].ndim, )])
         return returnValue
 
     def echoAntiEcho(self):
         returnValue = self.data.echoAntiEcho(self.axes)
         self.upd()
         self.showFid()
-        self.root.addMacro(['echoAntiEcho', (self.axes - self.data.data.ndim, )])
+        self.root.addMacro(['echoAntiEcho', (self.axes - self.data.data[0].ndim, )])
         return returnValue
 
     def integrate(self, pos1, pos2, newSpec=False):
