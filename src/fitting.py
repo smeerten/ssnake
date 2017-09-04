@@ -2492,12 +2492,16 @@ class TensorDeconvParamFrame(AbstractParamFrame):
         self.entries['cheng'][-1].setValue(self.cheng)
         self.optframe.addWidget(self.entries['cheng'][-1], 1, 0)
         self.entries['mas'].append(QtWidgets.QCheckBox('Spinning'))
+        self.entries['mas'][-1].stateChanged.connect(self.MASChange)
         self.optframe.addWidget(self.entries['mas'][-1], 2, 0)
-        self.optframe.addWidget(QLabel("# sidebands:"), 3, 0)
+        self.sidebandLabel = QLabel("# sidebands:")
+        self.optframe.addWidget(self.sidebandLabel, 3, 0)
+        self.sidebandLabel.setEnabled(False)
         self.entries['numssb'].append(QtWidgets.QSpinBox())
         self.entries['numssb'][-1].setAlignment(QtCore.Qt.AlignHCenter)
         self.entries['numssb'][-1].setValue(32)
         self.entries['numssb'][-1].setMaximum(100000)
+        self.entries['numssb'][-1].setEnabled(False)
         self.optframe.addWidget(self.entries['numssb'][-1], 4, 0)
         self.shiftDefType = 0 #variable to remember the selected tensor type
         self.optframe.addWidget(QLabel("Definition:"), 5, 0)
@@ -2511,11 +2515,14 @@ class TensorDeconvParamFrame(AbstractParamFrame):
         self.optframe.setColumnStretch(10, 1)
         self.optframe.setAlignment(QtCore.Qt.AlignTop)
         self.spinLabel = QLabel("Spin. speed [kHz]:")
+        self.spinLabel.setEnabled(False)
         self.frame2.addWidget(self.spinLabel, 0, 0, 1, 2)
         self.ticks['spinspeed'].append(QtWidgets.QCheckBox(''))
+        self.ticks['spinspeed'][-1].setEnabled(False)
         self.frame2.addWidget(self.ticks['spinspeed'][-1], 1, 0)
         self.entries['spinspeed'].append(wc.FitQLineEdit(self, 'spinspeed', "10.0"))
         self.frame2.addWidget(self.entries['spinspeed'][-1], 1, 1)
+        self.entries['spinspeed'][-1].setEnabled(False)
         self.frame2.addWidget(QLabel("Bgrnd:"), 2, 0, 1, 2)
         self.ticks['bgrnd'].append(QtWidgets.QCheckBox(''))
         self.frame2.addWidget(self.ticks['bgrnd'][-1], 3, 0)
@@ -2582,6 +2589,20 @@ class TensorDeconvParamFrame(AbstractParamFrame):
                 self.entries[self.MULTINAMES[j]].append(wc.FitQLineEdit(self, self.MULTINAMES[j]))
                 self.frame3.addWidget(self.entries[self.MULTINAMES[j]][i], i + 2, 2*j+1)
         self.reset()
+
+    def MASChange(self,state):
+        if state: #When turned on
+            self.entries['spinspeed'][-1].setEnabled(True)
+            self.ticks['spinspeed'][-1].setEnabled(True)
+            self.spinLabel.setEnabled(True)
+            self.entries['numssb'][-1].setEnabled(True)
+            self.sidebandLabel.setEnabled(True)
+        else:
+            self.entries['spinspeed'][-1].setEnabled(False)
+            self.ticks['spinspeed'][-1].setEnabled(False)
+            self.spinLabel.setEnabled(False)
+            self.entries['numssb'][-1].setEnabled(False)
+            self.sidebandLabel.setEnabled(False)
 
     def defaultValues(self, inp):
         if not inp:
@@ -2935,21 +2956,28 @@ class Quad1DeconvParamFrame(AbstractParamFrame):
         self.entries['I'][-1].setCurrentIndex(1)
         self.optframe.addWidget(self.entries['I'][-1], 3, 0)
         self.entries['mas'].append(QtWidgets.QCheckBox('Spinning'))
+        self.entries['mas'][-1].stateChanged.connect(self.MASChange)
         self.optframe.addWidget(self.entries['mas'][-1], 4, 0)
-        self.optframe.addWidget(QLabel("# sidebands:"), 5, 0)
+        self.sidebandLabel = QLabel("# sidebands:")
+        self.sidebandLabel.setEnabled(False)
+        self.optframe.addWidget(self.sidebandLabel, 5, 0)
         self.entries['numssb'].append(QtWidgets.QSpinBox())
         self.entries['numssb'][-1].setAlignment(QtCore.Qt.AlignHCenter)
         self.entries['numssb'][-1].setValue(32)
         self.entries['numssb'][-1].setMaximum(100000)
+        self.entries['numssb'][-1].setEnabled(False)
         self.optframe.addWidget(self.entries['numssb'][-1], 6, 0)
         self.optframe.setColumnStretch(10, 1)
         self.optframe.setAlignment(QtCore.Qt.AlignTop)
         self.spinLabel = QLabel("Spin. speed [kHz]:")
         self.frame2.addWidget(self.spinLabel, 0, 0, 1, 2)
+        self.spinLabel.setEnabled(False)
         self.ticks['spinspeed'].append(QtWidgets.QCheckBox(''))
         self.frame2.addWidget(self.ticks['spinspeed'][-1], 1, 0)
+        self.ticks['spinspeed'][-1].setEnabled(False)
         self.entries['spinspeed'].append(wc.QLineEdit("10.0"))
         self.frame2.addWidget(self.entries['spinspeed'][-1], 1, 1)
+        self.entries['spinspeed'][-1].setEnabled(False)
         self.frame2.addWidget(QLabel("Bgrnd:"), 2, 0, 1, 2)
         self.ticks['bgrnd'].append(QtWidgets.QCheckBox(''))
         self.frame2.addWidget(self.ticks['bgrnd'][-1], 3, 0)
@@ -2989,6 +3017,21 @@ class Quad1DeconvParamFrame(AbstractParamFrame):
                 self.entries[self.MULTINAMES[j]].append(wc.FitQLineEdit(self, self.MULTINAMES[j]))
                 self.frame3.addWidget(self.entries[self.MULTINAMES[j]][i], i + 2, 2*j+1)
         self.dispParams()
+
+
+    def MASChange(self,state):
+        if state: #When turned on
+            self.entries['spinspeed'][-1].setEnabled(True)
+            self.ticks['spinspeed'][-1].setEnabled(True)
+            self.spinLabel.setEnabled(True)
+            self.entries['numssb'][-1].setEnabled(True)
+            self.sidebandLabel.setEnabled(True)
+        else:
+            self.entries['spinspeed'][-1].setEnabled(False)
+            self.ticks['spinspeed'][-1].setEnabled(False)
+            self.spinLabel.setEnabled(False)
+            self.entries['numssb'][-1].setEnabled(False)
+            self.sidebandLabel.setEnabled(False)
 
     def defaultValues(self, inp):
         if not inp:
@@ -3227,6 +3270,8 @@ class Quad2DeconvParamFrame(Quad1DeconvParamFrame):
         self.spinLabel.hide()
         self.ticks['spinspeed'][-1].hide()
         self.entries['spinspeed'][-1].hide()
+        self.sidebandLabel.hide()
+        self.entries['numssb'][-1].hide()
 
     def getExtraParams(self, out):
         out['mas'] = [0] # Second order quadrupole MAS is calculated as if it is static
@@ -3321,7 +3366,7 @@ class Quad2CzjzekParamFrame(AbstractParamFrame):
         self.optframe.addWidget(QLabel("I:"), 2, 0)
         self.entries['I'].append(QtWidgets.QComboBox())
         self.entries['I'][-1].addItems(self.Ioptions)
-        self.entries['I'][-1].setCurrentIndex(1)
+        self.entries['I'][-1].setCurrentIndex(0)
         self.optframe.addWidget(self.entries['I'][-1], 3, 0)
         self.entries['mas'].append(QtWidgets.QCheckBox('Spinning'))
         self.optframe.addWidget(self.entries['mas'][-1], 4, 0)
