@@ -17,7 +17,6 @@
 # You should have received a copy of the GNU General Public License
 # along with ssNake. If not, see <http://www.gnu.org/licenses/>.
 
-
 import numpy as np
 import sys
 try:
@@ -25,14 +24,14 @@ try:
     from PyQt4 import QtGui as QtWidgets
 except ImportError:
     from PyQt5 import QtGui, QtCore, QtWidgets
-import os
 from safeEval import safeEval
+import os
 
 SPINNAMES = ['0', '1/2', '1', '3/2', '2', '5/2', '3', '7/2', '4', '9/2', '5', '11/2', '6', '13/2', '7', '15/2', '8', '17/2', '9']
-SPINCOLORS = ['white', 'blue', 'orange', 'green', 'yellow', 'red', 'lime', 'olive', 'lightBlue', 'maroon', 'gray', 'pink', 'magenta', 'black']
+SPINCOLORS = ['white', 'blue', 'orange', 'green', 'yellow', 'red', 'lime', 'olive', 'lightBlue', 'maroon', 'gray', 'pink', 'magenta', 'black', 'cyan', 'crimson', 'navy', 'beige']
 GAMMASCALE = 100 / 42.576
 ELECTRONSCALE = GAMMASCALE * 28.02495266
-with open(os.path.dirname(os.path.realpath(__file__)) +"/IsotopeProperties") as isoFile:
+with open(os.path.dirname(os.path.realpath(__file__)) + "/IsotopeProperties") as isoFile:
     isoList = [line.strip().split('\t') for line in isoFile]
 isoList = isoList[1:]
 N = len(isoList)
@@ -129,8 +128,7 @@ class PeriodicTable(QtWidgets.QWidget):
         self.resetIso()
         self.initUI()
         self.upd()
-
-        self.setGeometry(self.frameSize().width() - self.geometry().width(), self.frameSize().height() - self.geometry().height() + 40, 0, 0)
+        
     def resetIso(self):
         self.isoSelect = np.zeros(ATOMNUM)
         for i in range(ATOMNUM):
@@ -159,6 +157,12 @@ class PeriodicTable(QtWidgets.QWidget):
         self.electronEntry = PtQLineEdit()
         self.electronEntry.returnPressed.connect(self.setElectron)
         grid.addWidget(self.electronEntry, 1, 3)
+        self.electronEntry.returnPressed.connect(self.setElectron)
+        grid.addWidget(self.electronEntry, 1, 3)
+
+        self.detailsPush = QtWidgets.QPushButton('Details')
+        self.detailsPush.pressed.connect(lambda : self.openWindow(None, 0))
+        grid.addWidget(self.detailsPush, 1, 4,1,2)
         grid.addWidget(PtQLabel('Spin:'), 0, 4)
         splitVal = int(np.ceil(len(SPINNAMES)/2.0))
         for i in range(1, splitVal):
