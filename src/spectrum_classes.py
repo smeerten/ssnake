@@ -76,7 +76,7 @@ class Spectrum(object):
     def __init__(self, name, data, filePath, freq, sw, spec=None, wholeEcho=None, ref=None, xaxArray=None, history=None, msgHandler=None):
         self.name = name
         self.data = [np.array(data, dtype=complex)]  # data of dimension dim
-        self.hyper = ['R' * len(data.shape)] #Labels of the hypercomplex traces
+        self.hyper = [] #Holds the axes were hypercomplex data exists
         self.filePath = filePath
         self.freq = np.array(freq)  # array of center frequency (length is dim, MHz)
         self.sw = sw  # array of sweepwidths
@@ -419,6 +419,7 @@ class Spectrum(object):
             tmp2 = np.imag(tmpdata[index][slicing1]) + 1j * np.imag(tmpdata[index][slicing2])
             self.data.append(tmp)
             self.data.append(tmp2)
+        self.hyper.append(axes)
         self.resetXax(axes)
         self.addHistory("States conversion on dimension " + str(axes + 1))
         return returnValue
@@ -888,7 +889,7 @@ class Spectrum(object):
         else:
             return lambda self: self.setPhase(-phase0, -phase1, axes)
     
-    def setPhase(self, phase0, phase1, axes, select=slice(None)):
+    def setPhase(self, phase0, phase1, axes, hyperIn, hyperAxis, select=slice(None)):
         if isinstance(select, string_types):
             select = safeEval(select)
         axes = self.checkAxes(axes)
@@ -898,14 +899,26 @@ class Spectrum(object):
             offset = 0
         else:
             offset = self.freq[axes] - self.ref[axes]
+        vector = np.exp(np.fft.fftshift(np.fft.fftfreq(self.data[0].shape[axes], 1.0 / self.sw[axes]) + offset) / self.sw[axes] * phase1 * 1j)
         for index in range(len(self.data)):
-            vector = np.exp(np.fft.fftshift(np.fft.fftfreq(self.data[index].shape[axes], 1.0 / self.sw[axes]) + offset) / self.sw[axes] * phase1 * 1j)
             if self.spec[axes] == 0:
+                print('f1')
                 self.fourier(axes, tmp=True)
             self.data[index][select] = self.data[index][select] * np.exp(phase0 * 1j)
             self.data[index][select] = np.apply_along_axis(np.multiply, axes, self.data[index], vector)[select]
+
+        if hyperIn is not None:
+            hyperindex = self.hyper.index(hyperAxis)
+            #Get positions to be phased
+            hyperFrac = [np.cos(hyperIn), np.sin(hyperIn)]
+            hyper1 = self.data[0][select]
+            hyper2 = self.data[1][select]
+            self.data[0][select] = hyperFrac[0] * hyper1 - hyperFrac[1] * hyper2
+            self.data[1][select] = hyperFrac[1] * hyper1 + hyperFrac[0] * hyper2
+
         if self.spec[axes] == 0:
             self.fourier(axes, tmp=True, inv=True)
+            print('f2')
         Message = "Phasing: phase0 = " + str(phase0 * 180 / np.pi) + " and phase1 = " + str(phase1 * 180 / np.pi) + " for dimension " + str(axes + 1)
         if select != slice(None, None, None):
             Message = Message + " of data[" + str(select) + "]"
@@ -913,7 +926,11 @@ class Spectrum(object):
         if self.noUndo:
             return None
         else:
-            return lambda self: self.setPhase(-phase0, -phase1, axes, select=select)
+            if hyperIn is not None:
+                val = -hyperIn
+            else:
+                val = None
+            return lambda self: self.setPhase(-phase0, -phase1, axes, val, hyperAxis, select=select)
 
     def apodize(self, lor, gauss, cos2, hamming, shift, shifting, shiftingAxes, axes, select=slice(None)):
         if isinstance(select, string_types):
@@ -1081,7 +1098,7 @@ class Spectrum(object):
             slicing1 = (slice(None), ) * axes + (slice(None, pos), ) + (slice(None), ) * (self.data[0].ndim - 1 - axes)
             slicing2 = (slice(None), ) * axes + (slice(pos, None), ) + (slice(None), ) * (self.data[0].ndim - 1 - axes)
             for index in range(len(self.data)):
-                self.data[index] = np.concatenate((np.pad(self.data[index][slicing1], [(0, 0)] * axes + [(0, size - self.data[0].shape[axes])] + [(0, 0)] * (self.data[0].ndim - axes - 1), 'constant', constant_values=0),
+                self.data[index] = np.concatenate((np.pad(self.data[index][slicing1], [(0, 0)] * axes + [(0, size - self.data[index].shape[axes])] + [(0, 0)] * (self.data[index].ndim - axes - 1), 'constant', constant_values=0),
                                         self.data[index][slicing2]), axes)
         else:
             difference = self.data[0].shape[axes] - size
@@ -1102,6 +1119,11 @@ class Spectrum(object):
                     self.data[index] = np.concatenate((self.data[index][slicing1], self.data[index][slicing2]), axis=axes)
         if self.spec[axes] > 0:
             self.fourier(axes, tmp=True, inv=True)
+
+        
+        for index in range(len(self.data)):
+            print(self.data[index].shape)
+
         self.resetXax(axes)
         self.addHistory("Resized dimension " + str(axes + 1) + " to " + str(size) + " points at position " + str(pos))
         return returnValue
@@ -1448,7 +1470,10 @@ class Spectrum(object):
         axes = self.checkAxes(axes)
         if axes is None:
             return None
-        return copy.deepcopy((self.data[0][tuple(locList[:axes]) + (slice(None), ) + tuple(locList[axes:])],
+        datList = []
+        for item in self.data:
+            datList.append(item[tuple(locList[:axes]) + (slice(None), ) + tuple(locList[axes:])])
+        return copy.deepcopy((datList,
                               self.freq[axes],
                               self.sw[axes],
                               self.spec[axes],
@@ -1468,6 +1493,9 @@ class Spectrum(object):
             self.dispMsg("First and second axes are the same")
             return None
         elif axes < axes2:
+            datList = []
+            for item in self.data:
+                datList.append(item[tuple(locList[:axes]) + (slice(None), ) + tuple(locList[axes:])])
             return copy.deepcopy((np.transpose(self.data[tuple(locList[:axes]) + (slice(None), ) + tuple(locList[axes:axes2 - 1]) + (stackSlice, ) + tuple(locList[axes2 - 1:])]),
                                   self.freq[axes],
                                   self.freq[axes2],
@@ -1504,6 +1532,7 @@ class Spectrum(object):
                 copyData2 = copy.deepcopy(self)
                 returnValue = lambda self: self.restoreData(copyData2, None)
         self.data = copyData.data
+        self.hyper = copyData.hyper
         self.freq = copyData.freq  # array of center frequency (length is dim, MHz)
         self.filePath = copyData.filePath
         self.sw = copyData.sw  # array of sweepwidths
@@ -1625,7 +1654,7 @@ class Current1D(Plot1DFrame):
         self.ref = updateVar[6]
         if self.ref is None:
             self.ref = self.freq
-        self.single = self.data1D.shape[-1] == 1
+        self.single = self.data1D[0].shape[-1] == 1
         return True
 
     def setSlice(self, axes, locList):  # change the slice
@@ -1663,40 +1692,56 @@ class Current1D(Plot1DFrame):
             self.diagonalMult = diagonalMult
         self.showFid()
         
-    def setPhaseInter(self, phase0in, phase1in):  # interactive changing the phase without editing the actual data
+    def setPhaseInter(self, phase0in, phase1in, hyperin = None, hyperaxis = None):  # interactive changing the phase without editing the actual data
         phase0 = float(phase0in)
         phase1 = float(phase1in)
+        if hyperin is not None:
+            hyperin = float(hyperin)
         self.upd()
         if self.spec == 0:
             tmpdata = self.fourierLocal(self.data1D, 0)
         else:
             tmpdata = self.data1D
-        tmpdata = tmpdata * np.exp(phase0 * 1j)
+        for index in range(len(tmpdata)):
+            tmpdata[index] = tmpdata[index] * np.exp(phase0 * 1j)
+        if hyperin is not None:
+            hyperindex = self.data.hyper.index(hyperaxis)
+            #Get positions to be phased
+            hyperFrac = [np.cos(hyperin), np.sin(hyperin)]
+            hyper1 = tmpdata[0]
+            hyper2 = tmpdata[1]
+            tmpdata[0] = hyperFrac[0] * hyper1 - hyperFrac[1] * hyper2
+            tmpdata[1] = hyperFrac[1] * hyper1 + hyperFrac[0] * hyper2
+
+
         if self.ref is None:
             offset = 0
         else:
             offset = +self.freq - self.ref
-        if len(self.data1D.shape) > 1:
-            mult = np.repeat([np.exp(np.fft.fftshift(np.fft.fftfreq(len(tmpdata[0]), 1.0 / self.sw) + offset) / self.sw * phase1 * 1j)], len(tmpdata), axis=0)
+        if len(self.data1D[0].shape) > 1:
+            mult = np.repeat([np.exp(np.fft.fftshift(np.fft.fftfreq(len(tmpdata[0][0]), 1.0 / self.sw) + offset) / self.sw * phase1 * 1j)], len(tmpdata[0]), axis=0)
         else:
-            mult = np.exp(np.fft.fftshift(np.fft.fftfreq(len(tmpdata), 1.0 / self.sw) + offset) / self.sw * phase1 * 1j)
-        tmpdata = tmpdata * mult
+            mult = np.exp(np.fft.fftshift(np.fft.fftfreq(len(tmpdata[0]), 1.0 / self.sw) + offset) / self.sw * phase1 * 1j)
+        for index in range(len(tmpdata)):
+            tmpdata[index] = tmpdata[index] * mult
         if self.spec == 0:
             tmpdata = self.fourierLocal(tmpdata, 1)
         self.data1D = tmpdata
         self.showFid()
 
-    def applyPhase(self, phase0, phase1, select=False):  # apply the phase to the actual data
+    def applyPhase(self, phase0, phase1, hyperIn = None, hyperAxis = None, select=False):  # apply the phase to the actual data
         phase0 = float(phase0)
         phase1 = float(phase1)
+        if hyperIn is not None:
+            hyperIn = float(hyperIn)
         if select:
             selectSlice = self.getSelect()
         else:
             selectSlice = slice(None)
-        returnValue = self.data.setPhase(phase0, phase1, self.axes, selectSlice)
+        returnValue = self.data.setPhase(phase0, phase1, self.axes, hyperIn, hyperAxis, selectSlice)
         self.upd()
         self.showFid()
-        self.root.addMacro(['phase', (phase0, phase1, self.axes - self.data.data[0].ndim, str(selectSlice))])
+        self.root.addMacro(['phase', (phase0, phase1, self.axes - self.data.data[0].ndim, hyperIn, hyperAxis, str(selectSlice))])
         return returnValue
 
     def fourier(self):  # fourier the actual data and replot
@@ -1727,17 +1772,21 @@ class Current1D(Plot1DFrame):
         return returnValue
 
     def fourierLocal(self, fourData, spec):  # fourier the local data for other functions
-        ax = len(fourData.shape) - 1
+        ax = len(fourData[0].shape) - 1
         if spec == 0:
             if not self.wholeEcho:
                 slicing = (slice(None), ) * ax + (0, )
-                fourData[slicing] = fourData[slicing] * 0.5
-            fourData = np.fft.fftshift(np.fft.fftn(fourData, axes=[ax]), axes=ax)
+                for index in range(len(fourData)):
+                    fourData[index][slicing] = fourData[index][slicing] * 0.5
+            for index in range(len(fourData)):
+                fourData[index] = np.fft.fftshift(np.fft.fftn(fourData[index], axes=[ax]), axes=ax)
         else:
-            fourData = np.fft.ifftn(np.fft.ifftshift(fourData, axes=ax), axes=[ax])
+            for index in range(len(fourData)):
+                fourData[index] = np.fft.ifftn(np.fft.ifftshift(fourData[index], axes=ax), axes=[ax])
             if not self.wholeEcho:
                 slicing = (slice(None), ) * ax + (0, )
-                fourData[slicing] = fourData[slicing] * 2.0
+                for index in range(len(fourData)):
+                    fourData[index][slicing] = fourData[index][slicing] * 2.0
         return fourData
 
     def apodPreview(self, lor=None, gauss=None, cos2=None, hamming=None, shift=0.0, shifting=0.0, shiftingAxes=None):  # display the 1D data including the apodization function
@@ -2575,7 +2624,7 @@ class Current1D(Plot1DFrame):
     def showFid(self, tmpdata=None, extraX=None, extraY=None, extraColor=None, old=False, output=None):  # display the 1D data
         self.peakPickReset()
         if tmpdata is None:
-            tmpdata = self.data1D
+            tmpdata = self.data1D[0]
         self.ax.cla()
         if self.spec == 1:
             if self.ppm:
@@ -2588,24 +2637,24 @@ class Current1D(Plot1DFrame):
         if old:
             if (self.plotType == 0):
                 if self.single:
-                    self.ax.plot(self.line_xdata, np.real(self.data1D), marker='o', linestyle='none', c='k', alpha=0.2, label=self.data.name + '_old', picker=True)
+                    self.ax.plot(self.line_xdata, np.real(self.data1D[0]), marker='o', linestyle='none', c='k', alpha=0.2, label=self.data.name + '_old', picker=True)
                 else:
-                    self.ax.plot(self.line_xdata, np.real(self.data1D), c='k', alpha=0.2, linewidth=self.linewidth, label=self.data.name + '_old', picker=True)
+                    self.ax.plot(self.line_xdata, np.real(self.data1D[0]), c='k', alpha=0.2, linewidth=self.linewidth, label=self.data.name + '_old', picker=True)
             elif(self.plotType == 1):
                 if self.single:
-                    self.ax.plot(self.line_xdata, np.imag(self.data1D), marker='o', linestyle='none', c='k', alpha=0.2, label=self.data.name + '_old', picker=True)
+                    self.ax.plot(self.line_xdata, np.imag(self.data1D[0]), marker='o', linestyle='none', c='k', alpha=0.2, label=self.data.name + '_old', picker=True)
                 else:
-                    self.ax.plot(self.line_xdata, np.imag(self.data1D), c='k', alpha=0.2, linewidth=self.linewidth, label=self.data.name + '_old', picker=True)
+                    self.ax.plot(self.line_xdata, np.imag(self.data1D[0]), c='k', alpha=0.2, linewidth=self.linewidth, label=self.data.name + '_old', picker=True)
             elif(self.plotType == 2):
                 if self.single:
-                    self.ax.plot(self.line_xdata, np.real(self.data1D), marker='o', linestyle='none', c='k', alpha=0.2, label=self.data.name + '_old', picker=True)
+                    self.ax.plot(self.line_xdata, np.real(self.data1D[0]), marker='o', linestyle='none', c='k', alpha=0.2, label=self.data.name + '_old', picker=True)
                 else:
-                    self.ax.plot(self.line_xdata, np.real(self.data1D), c='k', alpha=0.2, linewidth=self.linewidth, label=self.data.name + '_old', picker=True)
+                    self.ax.plot(self.line_xdata, np.real(self.data1D[0]), c='k', alpha=0.2, linewidth=self.linewidth, label=self.data.name + '_old', picker=True)
             elif(self.plotType == 3):
                 if self.single:
-                    self.ax.plot(self.line_xdata, np.abs(self.data1D), marker='o', linestyle='none', c='k', alpha=0.2, label=self.data.name + '_old', picker=True)
+                    self.ax.plot(self.line_xdata, np.abs(self.data1D[0]), marker='o', linestyle='none', c='k', alpha=0.2, label=self.data.name + '_old', picker=True)
                 else:
-                    self.ax.plot(self.line_xdata, np.abs(self.data1D), c='k', alpha=0.2, linewidth=self.linewidth, label=self.data.name + '_old', picker=True)
+                    self.ax.plot(self.line_xdata, np.abs(self.data1D[0]), c='k', alpha=0.2, linewidth=self.linewidth, label=self.data.name + '_old', picker=True)
         if (extraX is not None):
             for num in range(len(extraX)):
                 if self.single:
@@ -2675,18 +2724,19 @@ class Current1D(Plot1DFrame):
         self.canvas.draw()
 
     def plotReset(self, xReset=True, yReset=True):  # set the plot limits to min and max values
+        showDat = self.data1D[0]
         if self.plotType == 0:
-            miny = min(np.real(self.data1D))
-            maxy = max(np.real(self.data1D))
+            miny = min(np.real(showDat))
+            maxy = max(np.real(showDat))
         elif self.plotType == 1:
-            miny = min(np.imag(self.data1D))
-            maxy = max(np.imag(self.data1D))
+            miny = min(np.imag(showDat))
+            maxy = max(np.imag(showDat))
         elif self.plotType == 2:
-            miny = min(min(np.real(self.data1D)), min(np.imag(self.data1D)))
-            maxy = max(max(np.real(self.data1D)), max(np.imag(self.data1D)))
+            miny = min(min(np.real(showDat)), min(np.imag(showDat)))
+            maxy = max(max(np.real(showDat)), max(np.imag(showDat)))
         elif self.plotType == 3:
-            miny = min(np.abs(self.data1D))
-            maxy = max(np.abs(self.data1D))
+            miny = min(np.abs(showDat))
+            maxy = max(np.abs(showDat))
         else:
             miny = -1
             maxy = 1
@@ -3793,10 +3843,10 @@ class CurrentContour(Current1D):
         if hasattr(duplicateCurrent, 'axes2'):
             self.axes2 = duplicateCurrent.axes2
         else:
-            self.axes2 = len(self.data.data.shape) - 2
+            self.axes2 = len(self.data.data[0].shape) - 2
             if hasattr(duplicateCurrent, 'axes'):
                 if self.axes2 == duplicateCurrent.axes:
-                    self.axes2 = (self.axes2 - 1) % self.data.data.ndim
+                    self.axes2 = (self.axes2 - 1) % self.data.data[0].ndim
         if hasattr(duplicateCurrent, 'axType2'):
             self.axType2 = duplicateCurrent.axType2
         else:
@@ -3865,10 +3915,10 @@ class CurrentContour(Current1D):
         return CurrentContour(root, fig, canvas, data, self)
 
     def upd(self):  # get new data from the data instance
-        if self.data.data.ndim < 2:
+        if self.data.data[0].ndim < 2:
             self.root.rescue()
             return False
-        if (len(self.locList) + 2) != self.data.data.ndim:
+        if (len(self.locList) + 2) != self.data.data[0].ndim:
             self.resetLocList()
         try:
             updateVar = self.data.getBlock(self.axes, self.axes2, self.locList)
@@ -3938,7 +3988,7 @@ class CurrentContour(Current1D):
         
         
     def resetLocList(self):
-        self.locList = [0] * (len(self.data.data.shape) - 2)
+        self.locList = [0] * (len(self.data.data[0].shape) - 2)
 
     def setAxType2(self, val):
         if self.spec2 == 1:
@@ -3979,7 +4029,7 @@ class CurrentContour(Current1D):
             if shiftingAxes == self.axes:
                 self.dispMsg('shiftingAxes cannot be equal to axes')
             elif shiftingAxes == self.axes2:
-                ar = np.arange(self.data.data.shape[self.axes2])
+                ar = np.arange(self.data.data[0].shape[self.axes2])
                 x = np.ones((len(ar), len(self.data1D[0])))
                 for i in range(len(ar)):
                     shift1 = shift + shifting * ar[i] / self.data.sw[shiftingAxes]
@@ -3987,11 +4037,11 @@ class CurrentContour(Current1D):
                     x[i] = x2
             else:
                 if (shiftingAxes < self.axes) and (shiftingAxes < self.axes2):
-                    shift += shifting * self.locList[shiftingAxes] * self.data.data.shape[shiftingAxes] / self.data.sw[shiftingAxes]
+                    shift += shifting * self.locList[shiftingAxes] * self.data.data[0].shape[shiftingAxes] / self.data.sw[shiftingAxes]
                 elif (shiftingAxes > self.axes) and (shiftingAxes > self.axes2):
-                    shift += shifting * self.locList[shiftingAxes - 2] * self.data.data.shape[shiftingAxes] / self.data.sw[shiftingAxes]
+                    shift += shifting * self.locList[shiftingAxes - 2] * self.data.data[0].shape[shiftingAxes] / self.data.sw[shiftingAxes]
                 else:
-                    shift += shifting * self.locList[shiftingAxes - 1] * self.data.data.shape[shiftingAxes] / self.data.sw[shiftingAxes]
+                    shift += shifting * self.locList[shiftingAxes - 1] * self.data.data[0].shape[shiftingAxes] / self.data.sw[shiftingAxes]
                 x = func.apodize(t, shift, self.sw, len(self.data1D[0]), lor, gauss, cos2, hamming, self.wholeEcho)
                 x = np.repeat([x], len(self.data1D), axis=0)
         else:

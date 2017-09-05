@@ -2417,7 +2417,7 @@ class Main1DWindow(QtWidgets.QWidget):
             self.father.dispMsg("Data does not have enough dimensions")
 
     def plotContour(self):
-        if len(self.masterData.data.shape) > 1:
+        if len(self.masterData.data[0].shape) > 1:
             tmpcurrent = sc.CurrentContour(self, self.fig, self.canvas, self.masterData, self.current)
             self.current.kill()
             del self.current
@@ -3476,16 +3476,35 @@ class PhaseWindow(wc.ToolWindows):
     P1LIMIT = 540.0
     PHASE0STEP = 1.0
     PHASE1STEP = 1.0
+    HYPERSTEP = 1.0
 
     def __init__(self, parent):
         super(PhaseWindow, self).__init__(parent)
-        self.hyper = True
+        self.hyper = False
         if len(self.father.current.data.data) > 1:
             self.hyper = True
-            print('hyper')
+        ####Tabs
+        tabWidget = QtWidgets.QTabWidget()
+        tab1 = QtWidgets.QWidget()
+        tab2 = QtWidgets.QWidget()
+        tabWidget.addTab(tab1, "Regular")
+        tabWidget.addTab(tab2, "Hypercomplex")
+        if not self.hyper:
+            tabWidget.setTabEnabled(1,False)
+        self.grid1 = QtWidgets.QGridLayout()
+        self.grid2 = QtWidgets.QGridLayout()
+        tab1.setLayout(self.grid1)
+        tab2.setLayout(self.grid2)
+        self.grid1.setColumnStretch(10, 1)
+        self.grid1.setRowStretch(10, 1)
+        self.grid2.setColumnStretch(10, 1)
+        self.grid2.setRowStretch(10, 1)
+
+        
         self.zeroVal = 0.0
         self.firstVal = 0.0
         self.refVal = 0.0
+        self.hyperVal = 0.0
         self.available = True
         #Zero order
         self.zeroOrderGroup = QtWidgets.QGroupBox('Zero order:')
@@ -3496,11 +3515,11 @@ class PhaseWindow(wc.ToolWindows):
         self.zeroEntry = wc.QLineEdit("0.000", self.inputZeroOrder)
         self.zeroOrderFrame.addWidget(self.zeroEntry, 2, 1)
         leftZero = QtWidgets.QPushButton("<")
-        leftZero.clicked.connect(lambda: self.stepPhase(-1, 0))
+        leftZero.clicked.connect(lambda: self.stepPhase(-1, 0,0))
         leftZero.setAutoRepeat(True)
         self.zeroOrderFrame.addWidget(leftZero, 2, 0)
         rightZero = QtWidgets.QPushButton(">")
-        rightZero.clicked.connect(lambda: self.stepPhase(1, 0))
+        rightZero.clicked.connect(lambda: self.stepPhase(1, 0,0))
         rightZero.setAutoRepeat(True)
         self.zeroOrderFrame.addWidget(rightZero, 2, 2)
         self.zeroScale = QtWidgets.QSlider(QtCore.Qt.Horizontal)
@@ -3508,7 +3527,7 @@ class PhaseWindow(wc.ToolWindows):
         self.zeroScale.valueChanged.connect(self.setZeroOrder)
         self.zeroOrderFrame.addWidget(self.zeroScale, 3, 0, 1, 3)
         self.zeroOrderGroup.setLayout(self.zeroOrderFrame)
-        self.grid.addWidget(self.zeroOrderGroup,0,0,1,3)
+        self.grid1.addWidget(self.zeroOrderGroup,0,0,1,3)
         #First order
         self.firstOrderGroup = QtWidgets.QGroupBox('First order:')
         self.firstOrderFrame = QtWidgets.QGridLayout()
@@ -3518,11 +3537,11 @@ class PhaseWindow(wc.ToolWindows):
         self.firstEntry = wc.QLineEdit("0.000", self.inputFirstOrder)
         self.firstOrderFrame.addWidget(self.firstEntry, 6, 1)
         leftFirst = QtWidgets.QPushButton("<")
-        leftFirst.clicked.connect(lambda: self.stepPhase(0, -1))
+        leftFirst.clicked.connect(lambda: self.stepPhase(0, -1, 0))
         leftFirst.setAutoRepeat(True)
         self.firstOrderFrame.addWidget(leftFirst, 6, 0)
         rightFirst = QtWidgets.QPushButton(">")
-        rightFirst.clicked.connect(lambda: self.stepPhase(0, 1))
+        rightFirst.clicked.connect(lambda: self.stepPhase(0, 1, 0))
         rightFirst.setAutoRepeat(True)
         self.firstOrderFrame.addWidget(rightFirst, 6, 2)
         self.firstScale = QtWidgets.QSlider(QtCore.Qt.Horizontal)
@@ -3537,13 +3556,51 @@ class PhaseWindow(wc.ToolWindows):
             self.refEntry = wc.QLineEdit(('%.3f' % self.refVal), self.inputRef)
             self.firstOrderFrame.addWidget(self.refEntry, 10, 1)
         self.firstOrderGroup.setLayout(self.firstOrderFrame)
-        self.grid.addWidget(self.firstOrderGroup,1,0,1,3)
+        self.grid1.addWidget(self.firstOrderGroup,1,0,1,3)
+
+
+        ######hypercomplex
+        self.hyperGroup = QtWidgets.QGroupBox('Zero order:')
+        self.hyperFrame = QtWidgets.QGridLayout()
+        self.hyperEntry = wc.QLineEdit("0.000", self.inputHyper)
+        self.hyperFrame.addWidget(self.hyperEntry, 2, 1)
+        leftHyper = QtWidgets.QPushButton("<")
+        leftHyper.clicked.connect(lambda: self.stepPhase(0, 0, -1))
+        leftHyper.setAutoRepeat(True)
+        self.hyperFrame.addWidget(leftHyper, 2, 0)
+        rightHyper = QtWidgets.QPushButton(">")
+        rightHyper.clicked.connect(lambda: self.stepPhase(0, 0, 1))
+        rightHyper.setAutoRepeat(True)
+        self.hyperFrame.addWidget(rightHyper, 2, 2)
+        self.hyperScale = QtWidgets.QSlider(QtCore.Qt.Horizontal)
+        self.hyperScale.setRange(-self.RESOLUTION, self.RESOLUTION)
+        self.hyperScale.valueChanged.connect(self.setHyper)
+        self.hyperFrame.addWidget(self.hyperScale, 3, 0, 1, 3)
+        self.hyperGroup.setLayout(self.hyperFrame)
+        self.grid2.addWidget(self.hyperGroup,0,0,1,3)
+
+
+        self.hyperAxGroup = QtWidgets.QGroupBox('Axis:')
+        self.hyperAxFrame = QtWidgets.QGridLayout()
+        self.axisDrop = QtWidgets.QComboBox()
+        self.axisDrop.addItems([str(x) for x in self.father.current.data.hyper])
+        self.axisDrop.activated.connect(self.inputHyper)
+        self.hyperAxFrame.addWidget(self.axisDrop, 2, 0)
+        self.hyperAxGroup.setLayout(self.hyperAxFrame)
+        self.grid2.addWidget(self.hyperAxGroup,1,0,1,3)
+
+        self.grid.addWidget(tabWidget, 0, 0)
 
     def setZeroOrder(self, value, *args):
         if self.available:
             self.zeroVal = float(value) / self.RESOLUTION * 180
             self.zeroEntry.setText('%.3f' % self.zeroVal)
-            self.father.current.setPhaseInter(np.pi * self.zeroVal / 180.0, np.pi * self.firstVal / 180.0)
+            if self.hyper:
+                index =  self.axisDrop.currentIndex()
+                axis =  self.father.current.data.hyper[index]
+                self.father.current.setPhaseInter(np.pi * self.zeroVal / 180.0, np.pi * self.firstVal / 180.0, np.pi * self.hyperVal / 180.0, axis)
+            else:
+                self.father.current.setPhaseInter(np.pi * self.zeroVal / 180.0, np.pi * self.firstVal / 180.0)
 
     def inputZeroOrder(self, *args):
         inp = safeEval(self.zeroEntry.text())
@@ -3555,7 +3612,12 @@ class PhaseWindow(wc.ToolWindows):
         self.available = False
         self.zeroScale.setValue(round(self.zeroVal / 180.0 * self.RESOLUTION))
         self.available = True
-        self.father.current.setPhaseInter(np.pi * self.zeroVal / 180.0, np.pi * self.firstVal / 180.0)
+        if self.hyper:
+            index =  self.axisDrop.currentIndex()
+            axis =  self.father.current.data.hyper[index]
+            self.father.current.setPhaseInter(np.pi * self.zeroVal / 180.0, np.pi * self.firstVal / 180.0, np.pi * self.hyperVal / 180.0, axis)
+        else:
+            self.father.current.setPhaseInter(np.pi * self.zeroVal / 180.0, np.pi * self.firstVal / 180.0)
         return 1
 
     def setFirstOrder(self, value, *args):
@@ -3569,7 +3631,12 @@ class PhaseWindow(wc.ToolWindows):
             self.available = False
             self.zeroScale.setValue(round(self.zeroVal / 180.0 * self.RESOLUTION))
             self.available = True
-            self.father.current.setPhaseInter(np.pi * self.zeroVal / 180.0, np.pi * self.firstVal / 180.0)
+            if self.hyper:
+                index =  self.axisDrop.currentIndex()
+                axis =  self.father.current.data.hyper[index]
+                self.father.current.setPhaseInter(np.pi * self.zeroVal / 180.0, np.pi * self.firstVal / 180.0, np.pi * self.hyperVal / 180.0, axis)
+            else:
+                self.father.current.setPhaseInter(np.pi * self.zeroVal / 180.0, np.pi * self.firstVal / 180.0)
 
     def inputFirstOrder(self, *args):
         value = safeEval(self.firstEntry.text())
@@ -3585,7 +3652,36 @@ class PhaseWindow(wc.ToolWindows):
         self.zeroScale.setValue(round(self.zeroVal / 180.0 * self.RESOLUTION))
         self.firstScale.setValue(round(self.firstVal / self.P1LIMIT * self.RESOLUTION))
         self.available = True
-        self.father.current.setPhaseInter(np.pi * self.zeroVal / 180.0, np.pi * self.firstVal / 180.0)
+        if self.hyper:
+            index =  self.axisDrop.currentIndex()
+            axis =  self.father.current.data.hyper[index]
+            self.father.current.setPhaseInter(np.pi * self.zeroVal / 180.0, np.pi * self.firstVal / 180.0, np.pi * self.hyperVal / 180.0, axis)
+        else:
+            self.father.current.setPhaseInter(np.pi * self.zeroVal / 180.0, np.pi * self.firstVal / 180.0)
+        return 1
+
+    def setHyper(self, value, *args):
+        if self.available:
+            self.hyperVal = float(value) / self.RESOLUTION * 180
+            self.hyperEntry.setText('%.3f' % self.hyperVal)
+            index =  self.axisDrop.currentIndex()
+            axis =  self.father.current.data.hyper[index]
+            self.father.current.setPhaseInter(np.pi * self.zeroVal / 180.0, np.pi * self.firstVal / 180.0, np.pi * self.hyperVal / 180.0 , axis)
+
+    def inputHyper(self, *args):
+        inp = safeEval(self.hyperEntry.text())
+        if inp is None:
+            self.father.father.dispMsg('Phasing: hypercomplex input is not valid!')
+            return None
+        self.hyperVal = np.mod(inp + 180, 360) - 180
+        self.hyperEntry.setText('%.3f' % self.zeroVal)
+        self.available = False
+        self.hyperScale.setValue(round(self.hyperVal / 180.0 * self.RESOLUTION))
+        self.available = True
+        
+        index =  self.axisDrop.currentIndex()
+        axis =  self.father.current.data.hyper[index]
+        self.father.current.setPhaseInter(np.pi * self.zeroVal / 180.0, np.pi * self.firstVal / 180.0, np.pi * self.hyperVal / 180.0 , axis)
         return 1
 
     def autophase(self, num):
@@ -3602,7 +3698,7 @@ class PhaseWindow(wc.ToolWindows):
             self.firstEntry.setText('%.3f' % self.firstVal)
         self.inputFirstOrder()
 
-    def stepPhase(self, phase0, phase1):
+    def stepPhase(self, phase0, phase1, phaseHyper):
         if QtWidgets.qApp.keyboardModifiers() & QtCore.Qt.ControlModifier:
             multiplier = 10
         elif QtWidgets.qApp.keyboardModifiers() & QtCore.Qt.ShiftModifier:
@@ -3611,6 +3707,7 @@ class PhaseWindow(wc.ToolWindows):
             multiplier = 1
         phase0 = multiplier * phase0
         phase1 = multiplier * phase1
+        phaseHyper = multiplier * phaseHyper
         inp = safeEval(self.zeroEntry.text())
         if inp == None:
             self.father.father.dispMsg('Phasing: zero order value input is not valid!')
@@ -3623,12 +3720,23 @@ class PhaseWindow(wc.ToolWindows):
             return None
         value += phase1 * self.PHASE1STEP
 
+        if self.hyper:
+            hVal = safeEval(self.hyperEntry.text())
+            if hVal == None:
+                self.father.father.dispMsg('Phasing: hypercomplex value input is not valid!')
+                return None
+            hVal +=  phaseHyper * self.HYPERSTEP
+            self.hyperVal = np.mod(hVal + 180, 360) - 180
+            self.hyperEntry.setText('%.3f' % self.hyperVal)
+            self.available = False
+            self.hyperScale.setValue(round(self.hyperVal / 180.0 * self.RESOLUTION))
+            self.available = True
+
         if self.father.current.spec > 0:
             refCheck = self.inputRef()
             if refCheck == None:
                 return
 
-        value += phase1 * self.PHASE1STEP
         newZero = (self.zeroVal - (value - self.firstVal) * self.refVal / self.father.current.sw)
         self.zeroVal = np.mod(newZero + 180, 360) - 180
         self.zeroEntry.setText('%.3f' % self.zeroVal)
@@ -3638,7 +3746,12 @@ class PhaseWindow(wc.ToolWindows):
         self.zeroScale.setValue(round(self.zeroVal / 180.0 * self.RESOLUTION))
         self.firstScale.setValue(round(self.firstVal / self.P1LIMIT * self.RESOLUTION))
         self.available = True
-        self.father.current.setPhaseInter(np.pi * self.zeroVal / 180.0, np.pi * self.firstVal / 180.0)
+        if self.hyper:
+            index =  self.axisDrop.currentIndex()
+            axis =  self.father.current.data.hyper[index]
+            self.father.current.setPhaseInter(np.pi * self.zeroVal / 180.0, np.pi * self.firstVal / 180.0, np.pi * self.hyperVal / 180.0, self.hyper, axis)
+        else:
+            self.father.current.setPhaseInter(np.pi * self.zeroVal / 180.0, np.pi * self.firstVal / 180.0)
 
     def inputRef(self, *args):
         Val = safeEval(self.refEntry.text())
@@ -3667,10 +3780,17 @@ class PhaseWindow(wc.ToolWindows):
         if refCheck == None or zeroCheck == None or firstCheck == None: #If error. Messages are handled by functions
             return False
         self.father.redoList = []
-        if self.father.current.data.noUndo:
-            self.father.current.applyPhase(np.pi * self.zeroVal / 180.0, np.pi * self.firstVal / 180.0, (self.singleSlice.isChecked() == 1))
+        if self.hyper:
+            val1 = np.pi * self.hyperVal / 180.0
+            index =  self.axisDrop.currentIndex()
+            val2 =  self.father.current.data.hyper[index]
         else:
-            self.father.undoList.append(self.father.current.applyPhase(np.pi * self.zeroVal / 180.0, np.pi * self.firstVal / 180.0, (self.singleSlice.isChecked() == 1)))
+            val1 = None
+            val2 = None
+        if self.father.current.data.noUndo:
+            self.father.current.applyPhase(np.pi * self.zeroVal / 180.0, np.pi * self.firstVal / 180.0, val1, val2, (self.singleSlice.isChecked() == 1))
+        else:
+            self.father.undoList.append(self.father.current.applyPhase(np.pi * self.zeroVal / 180.0, np.pi * self.firstVal / 180.0, val1, val2, (self.singleSlice.isChecked() == 1)))
 
 ################################################################
 
@@ -3949,14 +4069,14 @@ class SizeWindow(wc.ToolWindows):
     def __init__(self, parent):
         super(SizeWindow, self).__init__(parent)
         self.grid.addWidget(wc.QLabel("Size:"), 0, 0)
-        self.sizeVal = parent.current.data1D.shape[-1]
+        self.sizeVal = parent.current.data1D[0].shape[-1]
         self.sizeEntry = wc.QLineEdit(self.sizeVal, self.sizePreview)
         self.grid.addWidget(self.sizeEntry, 1, 0)
         self.grid.addWidget(wc.QLabel("Offset:"), 2, 0)
         if self.father.current.wholeEcho:
             self.posVal = int(np.floor(parent.current.data1D.shape[-1] / 2.0))
         else:
-            self.posVal = parent.current.data1D.shape[-1]
+            self.posVal = parent.current.data1D[0].shape[-1]
         self.posEntry = wc.QLineEdit(self.posVal, self.sizePreview)
         self.grid.addWidget(self.posEntry, 3, 0)
         if not self.father.current.spec:
