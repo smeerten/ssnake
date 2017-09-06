@@ -476,8 +476,8 @@ class Spectrum(object):
         for index in range(len(tmpdata)):
             #tmp1 = np.real(tmpdata[index][slicing1] + tmpdata[index][slicing2]) - 1j * np.imag(tmpdata[index][slicing1] - tmpdata[index][slicing2])
             #tmp2 = np.real(tmpdata[index][slicing1] - tmpdata[index][slicing2]) - 1j * np.imag(tmpdata[index][slicing1] + tmpdata[index][slicing2])
-            tmp1 = np.real(tmpdata[index][slicing1] + tmpdata[index][slicing2]) - 1j * np.imag(tmpdata[index][slicing1] - tmpdata[index][slicing2])
-            tmp2 = 1j * np.real(tmpdata[index][slicing1] - tmpdata[index][slicing2]) + np.imag(tmpdata[index][slicing1] + tmpdata[index][slicing2])
+            tmp1 = 1j * np.real(tmpdata[index][slicing1] - tmpdata[index][slicing2]) - 1j * np.imag(tmpdata[index][slicing1] - tmpdata[index][slicing2])
+            tmp2 = np.real(tmpdata[index][slicing1] + tmpdata[index][slicing2]) + np.imag(tmpdata[index][slicing1] + tmpdata[index][slicing2])
             self.data.append(tmp1)
             self.data.append(tmp2)
         self.hyper.append(axes)
@@ -1247,13 +1247,14 @@ class Spectrum(object):
             returnValue = lambda self: self.restoreData(copyData, lambda self: self.shiftData(shift, axes, select=select))
         if self.spec[axes] > 0:
             self.fourier(axes, tmp=True)
-        self.data[select] = np.roll(self.data, shift, axes)[select]
-        mask = np.ones(self.data.shape[axes])
+        mask = np.ones(self.data[0].shape[axes])
         if shift < 0:
             mask[slice(shift, None)] = 0
         else:
             mask[slice(None, shift)] = 0
-        self.data[select] = np.apply_along_axis(np.multiply, axes, self.data, mask)[select]
+        for index in range(len(self.data)):
+            self.data[index][select] = np.roll(self.data[index], shift, axes)[select]
+            self.data[index][select] = np.apply_along_axis(np.multiply, axes, self.data[index], mask)[select]
         if self.spec[axes] > 0:
             self.fourier(axes, tmp=True, inv=True)
 
@@ -2122,12 +2123,13 @@ class Current1D(Plot1DFrame):
         returnValue = self.data.shiftData(shift, self.axes, selectSlice)
         self.upd()
         self.showFid()
-        self.root.addMacro(['shift', (shift, self.axes - self.data.data.ndim, str(selectSlice))])
+        self.root.addMacro(['shift', (shift, self.axes - self.data.data[0].ndim, str(selectSlice))])
         return returnValue
 
     def setShiftPreview(self, shift):
-        tmpData = self.data1D
-        dim = len(self.data1D.shape)
+        hyperView = 0
+        tmpData = self.data1D[hyperView]
+        dim = len(self.data1D[0].shape)
         if self.spec > 0:
             tmpData = self.fourierLocal(tmpData, 1)
         tmpData = np.roll(tmpData, shift)
