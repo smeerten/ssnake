@@ -2306,7 +2306,7 @@ class Main1DWindow(QtWidgets.QWidget):
         Dir = os.path.dirname(FilePath)
         if not os.path.exists(Dir + os.path.sep + 'acqus'):
             self.father.dispMsg("acqus file does not exist, specify load path")
-            FilePath = QtWidgets.QFileDialog.getOpenFileName(self, 'Open File', self.father.LastLocation)[0]
+            FilePath = QtWidgets.QFileDialog.getOpenFileName(self, 'Open File', self.father.LastLocation)
             if FilePath == '':
                 return
             self.father.LastLocation = os.path.dirname(FilePath)  # Save used path
@@ -4166,7 +4166,7 @@ class SwapEchoWindow(wc.ToolWindows):
             self.father.father.dispMsg("Swap echo: not a valid index")
             return False
         self.posEntry.setText(str(self.posVal))
-        if self.posVal > 0 and self.posVal < (self.father.current.data1D.shape[-1]):
+        if self.posVal > 0 and self.posVal < (self.father.current.data1D[0].shape[-1]):
             self.father.redoList = []
             if self.father.current.data.noUndo:
                 self.father.current.applySwapEcho(self.posVal)
@@ -4228,7 +4228,7 @@ class LPSVDWindow(wc.ToolWindows):
         if predictPoints is None:
             self.father.father.dispMsg('LPSVD: Number of predication points is not valid')
             return False
-        if self.analPoints > len(self.father.current.data1D):
+        if self.analPoints > len(self.father.current.data1D[0]):
             self.father.father.dispMsg('LPSVD: number of points for analysis cannot be more than data size')
             return False
         if self.analPoints <= self.numberFreq * 4:
@@ -4331,8 +4331,8 @@ class DCWindow(wc.ToolWindows):
 
     def __init__(self, parent):
         super(DCWindow, self).__init__(parent)
-        self.startVal = int(round(0.8 * parent.current.data1D.shape[-1]))
-        self.endVal = parent.current.data1D.shape[-1]
+        self.startVal = int(round(0.8 * parent.current.data1D[0].shape[-1]))
+        self.endVal = parent.current.data1D[0].shape[-1]
         self.grid.addWidget(wc.QLabel("Start point:"), 0, 0)
         self.startEntry = wc.QLineEdit(self.startVal, self.offsetPreview)
         self.grid.addWidget(self.startEntry, 1, 0)
@@ -4340,14 +4340,14 @@ class DCWindow(wc.ToolWindows):
         self.endEntry = wc.QLineEdit(self.endVal, self.offsetPreview)
         self.grid.addWidget(self.endEntry, 3, 0)
         self.grid.addWidget(wc.QLabel("Offset:"), 4, 0)
-        val = parent.current.getdcOffset(int(round(0.8 * parent.current.data1D.shape[-1])), parent.current.data1D.shape[-1])
+        val = parent.current.getdcOffset(int(round(0.8 * parent.current.data1D[0].shape[-1])), parent.current.data1D[0].shape[-1])
         self.offsetEntry = wc.QLineEdit('{:.2e}'.format(val), lambda: self.offsetPreview(True))
         self.grid.addWidget(self.offsetEntry, 5, 0)
         self.father.current.peakPickFunc = lambda pos, self=self: self.picked(pos)
         self.father.current.peakPick = True
 
     def picked(self, pos, second=False):
-        dataLength = self.father.current.data1D.shape[-1]
+        dataLength = self.father.current.data1D[0].shape[-1]
         if second:
             inp = safeEval(self.startEntry.text())
             if inp is not None:
@@ -4394,7 +4394,7 @@ class DCWindow(wc.ToolWindows):
                 return
             self.father.current.dcOffset(dcVal)
         else:
-            dataLength = self.father.current.data1D.shape[-1]
+            dataLength = self.father.current.data1D[0].shape[-1]
             inp = safeEval(self.startEntry.text())
             if inp is not None:
                 self.startVal = int(round(inp))
@@ -4847,7 +4847,7 @@ class regionWindow2(wc.ToolWindows):
         self.NAME = name
         super(regionWindow2, self).__init__(parent)
         self.startVal = 0
-        self.endVal = parent.current.data1D.shape[-1]
+        self.endVal = parent.current.data1D[0].shape[-1]
         self.grid.addWidget(wc.QLabel("Start point:"), 0, 0)
         self.startEntry = wc.QLineEdit(self.startVal, self.checkValues)
         self.grid.addWidget(self.startEntry, 1, 0)
@@ -4866,7 +4866,7 @@ class regionWindow2(wc.ToolWindows):
 
     def picked(self, pos, second=False):
         if second:
-            dataLength = self.father.current.data1D.shape[-1]
+            dataLength = self.father.current.data1D[0].shape[-1]
             inp = safeEval(self.startEntry.text())
             if inp is not None:
                 self.startVal = int(round(inp))
@@ -4886,7 +4886,7 @@ class regionWindow2(wc.ToolWindows):
             self.father.current.peakPick = True
 
     def checkValues(self, *args):
-        dataLength = self.father.current.data1D.shape[-1]
+        dataLength = self.father.current.data1D[0].shape[-1]
         inp = safeEval(self.startEntry.text())
         if inp is not None:
             self.startVal = int(round(inp))
@@ -4906,7 +4906,7 @@ class regionWindow2(wc.ToolWindows):
         self.preview(self.startVal, self.endVal)
 
     def applyFunc(self):
-        dataLength = self.father.current.data1D.shape[-1]
+        dataLength = self.father.current.data1D[0].shape[-1]
         inp = safeEval(self.startEntry.text())
         if inp is None:
             self.father.father.dispMsg(self.NAME + ": value not valid")
@@ -4989,7 +4989,7 @@ class FiddleWindow(wc.ToolWindows):
     def __init__(self, parent):
         super(FiddleWindow, self).__init__(parent)
         self.startVal = 0
-        self.endVal = parent.current.data1D.shape[-1]
+        self.endVal = parent.current.data1D[0].shape[-1]
         self.grid.addWidget(wc.QLabel("Start point:"), 0, 0)
         self.startEntry = wc.QLineEdit(self.startVal, self.checkValues)
         self.grid.addWidget(self.startEntry, 1, 0)
@@ -5004,7 +5004,7 @@ class FiddleWindow(wc.ToolWindows):
 
     def picked(self, pos, second=False):
         if second:
-            dataLength = self.father.current.data1D.shape[-1]
+            dataLength = self.father.current.data1D[0].shape[-1]
             inp = safeEval(self.startEntry.text())
             if inp is not None:
                 self.startVal = int(round(inp))
@@ -5023,7 +5023,7 @@ class FiddleWindow(wc.ToolWindows):
             self.father.current.peakPick = True
 
     def checkValues(self, *args):
-        dataLength = self.father.current.data1D.shape[-1]
+        dataLength = self.father.current.data1D[0].shape[-1]
         inp = safeEval(self.startEntry.text())
         if inp is not None:
             self.startVal = int(round(inp))
@@ -5045,7 +5045,7 @@ class FiddleWindow(wc.ToolWindows):
             self.lbEntry.setText(str(inp))
 
     def applyFunc(self):
-        dataLength = self.father.current.data1D.shape[-1]
+        dataLength = self.father.current.data1D[0].shape[-1]
         inp = safeEval(self.startEntry.text())
         if inp is None:
             self.father.father.dispMsg("Reference deconv: start entry not valid")
