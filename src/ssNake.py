@@ -2397,7 +2397,7 @@ class Main1DWindow(QtWidgets.QWidget):
         self.updAllFrames()
 
     def plotStack(self):
-        if len(self.masterData.data.shape) > 1:
+        if len(self.masterData.data[0].shape) > 1:
             tmpcurrent = sc.CurrentStacked(self, self.fig, self.canvas, self.masterData, self.current)
             self.current.kill()
             del self.current
@@ -2407,7 +2407,7 @@ class Main1DWindow(QtWidgets.QWidget):
             self.father.dispMsg("Data does not have enough dimensions")
 
     def plotArray(self):
-        if len(self.masterData.data.shape) > 1:
+        if len(self.masterData.data[0].shape) > 1:
             tmpcurrent = sc.CurrentArrayed(self, self.fig, self.canvas, self.masterData, self.current)
             self.current.kill()
             del self.current
@@ -2426,15 +2426,15 @@ class Main1DWindow(QtWidgets.QWidget):
         else:
             self.father.dispMsg("Data does not have enough dimensions")
 
-    def plotSkewed(self):
-        if len(self.masterData.data.shape) > 1:
-            tmpcurrent = sc.CurrentSkewed(self, self.fig, self.canvas, self.masterData, self.current)
-            self.current.kill()
-            del self.current
-            self.current = tmpcurrent
-            self.updAllFrames()
-        else:
-            self.father.dispMsg("Data does not have enough dimensions")
+    #def plotSkewed(self):
+    #    if len(self.masterData.data.shape) > 1:
+    #        tmpcurrent = sc.CurrentSkewed(self, self.fig, self.canvas, self.masterData, self.current)
+    #        self.current.kill()
+    #        del self.current
+    #        self.current = tmpcurrent
+    #        self.updAllFrames()
+    #    else:
+    #        self.father.dispMsg("Data does not have enough dimensions")
 
     def plotMulti(self):
         tmpcurrent = sc.CurrentMulti(self, self.fig, self.canvas, self.masterData, self.current)
@@ -2537,7 +2537,8 @@ class SideFrame(QtWidgets.QScrollArea):
             self.frame2.removeWidget(item)
             item.deleteLater()
         offset = 0
-        self.plotIs2D = isinstance(current, (sc.CurrentStacked, sc.CurrentArrayed, sc.CurrentContour, sc.CurrentSkewed))
+        self.plotIs2D = isinstance(current, (sc.CurrentStacked, sc.CurrentArrayed, sc.CurrentContour))
+        #self.plotIs2D = isinstance(current, (sc.CurrentStacked, sc.CurrentArrayed, sc.CurrentContour, sc.CurrentSkewed))
         if self.plotIs2D:
             offset = 1
         self.entries = []
@@ -2576,7 +2577,8 @@ class SideFrame(QtWidgets.QScrollArea):
                     else:
                         self.entries[num].setValue(current.locList[num - 1])
                 self.entries[num].valueChanged.connect(lambda event=None, num=num: self.getSlice(event, num))
-            if isinstance(current, (sc.CurrentStacked, sc.CurrentArrayed, sc.CurrentSkewed)):
+            #if isinstance(current, (sc.CurrentStacked, sc.CurrentArrayed, sc.CurrentSkewed)):
+            if isinstance(current, (sc.CurrentStacked, sc.CurrentArrayed)):
                 if current.stackBegin is not None:
                     from2D = current.stackBegin
                 else:
@@ -2610,17 +2612,17 @@ class SideFrame(QtWidgets.QScrollArea):
                     self.spacingEntry.setText('%#.3g' % current.spacing)
                     self.spacingEntry.returnPressed.connect(self.setSpacing)
                     self.frame2.addWidget(self.spacingEntry, 8, 0)
-                elif isinstance(current, (sc.CurrentSkewed)):
-                    self.frame2.addWidget(wc.QLabel("Skew", self), 7, 0)
-                    self.skewEntry = QtWidgets.QLineEdit(self)
-                    self.skewEntry.setText('%.2f' % current.skewed)
-                    self.skewEntry.returnPressed.connect(self.setSkew)
-                    self.frame2.addWidget(self.skewEntry, 8, 0)
-                    self.frame2.addWidget(wc.QLabel("Elevation", self), 9, 0)
-                    self.elevEntry = QtWidgets.QLineEdit(self)
-                    self.elevEntry.setText('%.1f' % current.elevation)
-                    self.elevEntry.returnPressed.connect(self.setSkew)
-                    self.frame2.addWidget(self.elevEntry, 10, 0)
+                #elif isinstance(current, (sc.CurrentSkewed)):
+                #    self.frame2.addWidget(wc.QLabel("Skew", self), 7, 0)
+                #    self.skewEntry = QtWidgets.QLineEdit(self)
+                #    self.skewEntry.setText('%.2f' % current.skewed)
+                #    self.skewEntry.returnPressed.connect(self.setSkew)
+                #    self.frame2.addWidget(self.skewEntry, 8, 0)
+                #    self.frame2.addWidget(wc.QLabel("Elevation", self), 9, 0)
+                #    self.elevEntry = QtWidgets.QLineEdit(self)
+                #    self.elevEntry.setText('%.1f' % current.elevation)
+                #    self.elevEntry.returnPressed.connect(self.setSkew)
+                #    self.frame2.addWidget(self.elevEntry, 10, 0)
             if isinstance(current, (sc.CurrentContour)):
                 
                 self.contourTypeGroup = QtWidgets.QGroupBox('Contour type:')
@@ -2840,13 +2842,13 @@ class SideFrame(QtWidgets.QScrollArea):
                 self.extraButtons1.append(buttons1)
                 self.extraButtons1Group.append(QtWidgets.QButtonGroup(self))
                 self.extraButtons1Group[i].buttonClicked.connect(lambda: self.setExtraAxes(True))
-                if current.extraData[i].data.ndim > 1:
-                    for num in range(current.extraData[i].data.ndim):
+                if current.extraData[i].data[0].ndim > 1:
+                    for num in range(current.extraData[i].data[0].ndim):
                         buttons1.append(QtWidgets.QRadioButton(''))
                         self.extraButtons1Group[i].addButton(buttons1[num], num)
                         frame.addWidget(buttons1[num], num * 3 + 6, 0)
                         frame.addWidget(wc.QLabel("D" + str(num + 1), self), num * 3 + 5, 1)
-                        entries.append(wc.SliceSpinBox(self, 0, current.extraData[i].data.shape[num] - 1))
+                        entries.append(wc.SliceSpinBox(self, 0, current.extraData[i].data[0].shape[num] - 1))
                         frame.addWidget(entries[num], num * 3 + 6, 1)
                         if num < current.extraAxes[i]:
                             entries[num].setValue(current.extraLoc[i][num])
@@ -2867,7 +2869,8 @@ class SideFrame(QtWidgets.QScrollArea):
 
     def setToFrom(self, *args):
         current = self.father.current
-        if not isinstance(current, (sc.CurrentStacked, sc.CurrentArrayed, sc.CurrentSkewed)):
+        #if not isinstance(current, (sc.CurrentStacked, sc.CurrentArrayed, sc.CurrentSkewed)):
+        if not isinstance(current, (sc.CurrentStacked, sc.CurrentArrayed)):
             return
         fromVar = self.fromSpin.value()
         toVar = self.toSpin.value()
@@ -3010,7 +3013,7 @@ class SideFrame(QtWidgets.QScrollArea):
         self.father.current.showFid()
 
     def getExtraSlice(self, event, entryNum, entryi, button=False):
-        length = self.father.current.extraData[entryi].data.ndim
+        length = self.father.current.extraData[entryi].data[0].ndim
         if button:
             dimNum = entryNum
         else:
@@ -3805,7 +3808,7 @@ class ApodWindow(wc.ToolWindows):
         super(ApodWindow, self).__init__(parent)
         self.entries = []
         self.ticks = []
-        self.maximum = 100.0 * self.father.current.sw / (self.father.current.data1D.shape[-1])
+        self.maximum = 100.0 * self.father.current.sw / (self.father.current.data1D[0].shape[-1])
         self.lorstep = 1.0
         self.gaussstep = 1.0
         self.available = True
@@ -3819,18 +3822,18 @@ class ApodWindow(wc.ToolWindows):
         self.grid.addWidget(lorEntry, 1, 1)
         self.entries.append(lorEntry)
         leftLor = QtWidgets.QPushButton("<")
-        leftLor.clicked.connect(lambda: self.stepLB(-0.5 * self.father.current.sw / (self.father.current.data1D.shape[-1]), 0))
+        leftLor.clicked.connect(lambda: self.stepLB(-0.5 * self.father.current.sw / (self.father.current.data1D[0].shape[-1]), 0))
         leftLor.setAutoRepeat(True)
         self.grid.addWidget(leftLor, 1, 0)
         rightLor = QtWidgets.QPushButton(">")
-        rightLor.clicked.connect(lambda: self.stepLB(0.5 * self.father.current.sw / (self.father.current.data1D.shape[-1]), 0))
+        rightLor.clicked.connect(lambda: self.stepLB(0.5 * self.father.current.sw / (self.father.current.data1D[0].shape[-1]), 0))
         rightLor.setAutoRepeat(True)
         self.grid.addWidget(rightLor, 1, 2)
         self.lorScale = QtWidgets.QSlider(QtCore.Qt.Horizontal)
         self.lorScale.setRange(0, self.RESOLUTION)
         self.lorScale.valueChanged.connect(self.setLor)
         self.grid.addWidget(self.lorScale, 2, 0, 1, 3)
-        self.lorMax = 100.0 * self.father.current.sw / (self.father.current.data1D.shape[-1])
+        self.lorMax = 100.0 * self.father.current.sw / (self.father.current.data1D[0].shape[-1])
 
         gaussTick = QtWidgets.QCheckBox("Gaussian:")
         gaussTick.toggled.connect(lambda: self.checkEval(1))
@@ -3842,18 +3845,18 @@ class ApodWindow(wc.ToolWindows):
         self.grid.addWidget(gaussEntry, 4, 1)
         self.entries.append(gaussEntry)
         leftGauss = QtWidgets.QPushButton("<")
-        leftGauss.clicked.connect(lambda: self.stepLB(0, -0.5 * self.father.current.sw / (self.father.current.data1D.shape[-1])))
+        leftGauss.clicked.connect(lambda: self.stepLB(0, -0.5 * self.father.current.sw / (self.father.current.data1D[0].shape[-1])))
         leftGauss.setAutoRepeat(True)
         self.grid.addWidget(leftGauss, 4, 0)
         rightGauss = QtWidgets.QPushButton(">")
-        rightGauss.clicked.connect(lambda: self.stepLB(0, 0.5 * self.father.current.sw / (self.father.current.data1D.shape[-1])))
+        rightGauss.clicked.connect(lambda: self.stepLB(0, 0.5 * self.father.current.sw / (self.father.current.data1D[0].shape[-1])))
         rightGauss.setAutoRepeat(True)
         self.grid.addWidget(rightGauss, 4, 2)
         self.gaussScale = QtWidgets.QSlider(QtCore.Qt.Horizontal)
         self.gaussScale.setRange(0, self.RESOLUTION)
         self.gaussScale.valueChanged.connect(self.setGauss)
         self.grid.addWidget(self.gaussScale, 5, 0, 1, 3)
-        self.gaussMax = 100.0 * self.father.current.sw / (self.father.current.data1D.shape[-1])
+        self.gaussMax = 100.0 * self.father.current.sw / (self.father.current.data1D[0].shape[-1])
 
         cos2Tick = QtWidgets.QCheckBox("Cos^2:")
         cos2Tick.clicked.connect(lambda: self.checkEval(2))
@@ -3877,7 +3880,7 @@ class ApodWindow(wc.ToolWindows):
         self.shiftEntry = wc.QLineEdit("0.00", self.apodPreview)
         self.grid.addWidget(self.shiftEntry, 11, 1)
 
-        if self.father.current.data.data.ndim > 1:
+        if self.father.current.data.data[0].ndim > 1:
             self.grid.addWidget(wc.QLabel("Shifting:"), 12, 0, 1, 3)
             
             self.shiftingDropdown = QtWidgets.QComboBox()
@@ -3891,7 +3894,7 @@ class ApodWindow(wc.ToolWindows):
             self.shiftingEntry = wc.QLineEdit("0.00", self.apodPreview)
             self.grid.addWidget(self.shiftingEntry, 14, 1)
             self.shiftingAxes = QtWidgets.QComboBox()
-            self.shiftingValues = list(map(str, np.delete(range(1, self.father.current.data.data.ndim + 1), self.father.current.axes)))
+            self.shiftingValues = list(map(str, np.delete(range(1, self.father.current.data.data[0].ndim + 1), self.father.current.axes)))
             self.shiftingAxes.addItems(self.shiftingValues)
             self.shiftingAxes.currentIndexChanged.connect(self.apodPreview)
             self.grid.addWidget(self.shiftingAxes, 15, 1)
@@ -3970,7 +3973,7 @@ class ApodWindow(wc.ToolWindows):
             self.father.current.showFid()
             return False
         self.shiftEntry.setText('%.4g' % shift)
-        if self.father.current.data.data.ndim > 1:
+        if self.father.current.data.data[0].ndim > 1:
             shifting = safeEval(self.shiftingEntry.text())
             if shifting is None:
                 self.father.father.dispMsg('Apodize: Shifting value is not valid!')
@@ -4044,7 +4047,7 @@ class ApodWindow(wc.ToolWindows):
             self.father.father.dispMsg('Apodize: Shift value is not valid!')
             self.father.current.showFid()
             return False
-        if self.father.current.data.data.ndim > 1:
+        if self.father.current.data.data[0].ndim > 1:
             shifting = safeEval(self.shiftingEntry.text())
             if shifting is None:
                 self.father.father.dispMsg('Apodize: Shifting value is not valid!')
