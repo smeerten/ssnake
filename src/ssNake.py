@@ -4505,7 +4505,7 @@ class regionWindow(wc.ToolWindows):
         self.NAME = name
         super(regionWindow, self).__init__(parent)
         self.startVal = [0]  # dummy variables
-        self.endVal = [parent.current.data1D.shape[-1]]  # dummy variables
+        self.endVal = [parent.current.data1D[0].shape[-1]]  # dummy variables
         self.grid.addWidget(wc.QLabel("Start point:"), 0, 0)
         self.grid.addWidget(wc.QLabel("End point:"), 0, 1)
         self.startEntry = []
@@ -4539,7 +4539,7 @@ class regionWindow(wc.ToolWindows):
             self.startVal[self.partIter] = min(pos, tmp)
             self.endVal[self.partIter] = max(pos, tmp)
             self.startVal = np.append(self.startVal, 0)
-            self.endVal = np.append(self.endVal, self.father.current.data1D.shape[-1])
+            self.endVal = np.append(self.endVal, self.father.current.data1D[0].shape[-1])
             self.startEntry[self.partIter].setText(str(self.startVal[self.partIter]))
             self.endEntry[self.partIter].setText(str(self.endVal[self.partIter]))
             self.partIter += 1
@@ -4560,7 +4560,7 @@ class regionWindow(wc.ToolWindows):
             num = self.deleteButton.index(button)
         if num == self.partIter:
             self.startVal[num] = 0
-            self.endVal[num] = self.father.current.data1D.shape[-1]
+            self.endVal[num] = self.father.current.data1D[0].shape[-1]
             self.startEntry[num].setText("")
             self.endEntry[num].setText("")
             self.first = True
@@ -4590,8 +4590,8 @@ class regionWindow(wc.ToolWindows):
             inp = int(inp)
             if inp < 0:
                 inp = 0
-            if inp > self.father.current.data1D.shape[-1]:
-                inp = self.father.current.data1D.shape[-1]
+            if inp > self.father.current.data1D[0].shape[-1]:
+                inp = self.father.current.data1D[0].shape[-1]
         if isMin:
             num = self.startEntry.index(entry)
             if inp is None:
@@ -4617,7 +4617,7 @@ class regionWindow(wc.ToolWindows):
         if num == self.partIter:
             self.partIter += 1
             self.startVal = np.append(self.startVal, 0)
-            self.endVal = np.append(self.endVal, self.father.current.data1D.shape[-1])
+            self.endVal = np.append(self.endVal, self.father.current.data1D[0].shape[-1])
             self.startEntry.append(wc.QLineEdit())
             self.startEntry[self.partIter].editingFinished.connect(lambda self=self, tmp=self.startEntry[self.partIter]: self.setVal(tmp, True))
             self.grid.addWidget(self.startEntry[self.partIter], 1 + self.entryCount, 0)
@@ -4643,7 +4643,7 @@ class regionWindow(wc.ToolWindows):
 
     def applyFunc(self):
         if self.partIter == 0:
-            if self.apply(np.array([0]), np.array([self.father.current.data1D.shape[-1]]), self.newSpec.isChecked()) is None:
+            if self.apply(np.array([0]), np.array([self.father.current.data1D[0].shape[-1]]), self.newSpec.isChecked()) is None:
                 return False
         else:
             if self.apply(self.startVal[:self.partIter], self.endVal[:self.partIter], self.newSpec.isChecked()) is None:
@@ -4950,7 +4950,7 @@ class extractRegionWindow(regionWindow2):
                 returnValue = self.father.current.getRegion(minimum, maximum, newSpec)
                 if returnValue is None:
                     return None
-                    self.father.undoList.append(returnValue)
+                self.father.undoList.append(returnValue)
             self.father.redoList = []
             self.father.updAllFrames()
         return 1
@@ -5091,7 +5091,7 @@ class DeleteWindow(wc.ToolWindows):
         self.grid.addWidget(self.delEntry, 1, 0)
 
     def preview(self, *args):
-        length = int(self.father.current.data1D.shape[-1])
+        length = int(self.father.current.data1D[0].shape[-1])
         pos = safeEval(self.delEntry.text())
         if pos == None:
             self.father.father.dispMsg('Delete: not all values are valid indexes to delete')
@@ -5104,7 +5104,7 @@ class DeleteWindow(wc.ToolWindows):
             self.father.father.dispMsg('Delete: not all values are valid indexes to delete')
 
     def applyFunc(self):
-        length = int(self.father.current.data1D.shape[-1])
+        length = int(self.father.current.data1D[0].shape[-1])
         pos = safeEval(self.delEntry.text())
         if pos == None:
             self.father.father.dispMsg('Delete: not all values are valid indexes to delete')
