@@ -4823,7 +4823,7 @@ class extractRegionWindow(regionWindow2):
                 returnValue = self.father.current.getRegion(minimum, maximum, newSpec)
                 if returnValue is None:
                     return None
-                    self.father.undoList.append(returnValue)
+                self.father.undoList.append(returnValue)
             self.father.redoList = []
             self.father.updAllFrames()
         return 1
