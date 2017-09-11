@@ -3752,7 +3752,7 @@ class PhaseWindow(wc.ToolWindows):
         if self.hyper:
             index =  self.axisDrop.currentIndex()
             axis =  self.father.current.data.hyper[index]
-            self.father.current.setPhaseInter(np.pi * self.zeroVal / 180.0, np.pi * self.firstVal / 180.0, np.pi * self.hyperVal / 180.0, self.hyper, axis)
+            self.father.current.setPhaseInter(np.pi * self.zeroVal / 180.0, np.pi * self.firstVal / 180.0, np.pi * self.hyperVal / 180.0, axis)
         else:
             self.father.current.setPhaseInter(np.pi * self.zeroVal / 180.0, np.pi * self.firstVal / 180.0)
 
