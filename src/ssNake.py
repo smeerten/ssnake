@@ -1266,15 +1266,19 @@ class MainProgram(QtWidgets.QMainWindow):
             return
         i = self.workspaceNames.index(combineNames[0])
         combineMasterData = copy.deepcopy(self.workspaces[i].get_masterData())
-        shapeRequired = combineMasterData.data.shape
+        shapeRequired = combineMasterData.data[0].shape
+        hyperShape = len(combineMasterData.data)
         combineMasterData.split(1, -1)
         for name in combineNames[1:]:
             i = self.workspaceNames.index(name)
             addData = self.workspaces[i].get_masterData()
-            if addData.data.shape != shapeRequired:
+            if addData.data[0].shape != shapeRequired:
                 self.dispMsg("Not all the data has the same shape")
                 return False
-            combineMasterData.insert(addData.data, combineMasterData.data.shape[0], 0)
+            if len(addData.data) != hyperShape:
+                self.dispMsg("Not all the data has the same hypercomplex shape")
+                return False
+            combineMasterData.insert(addData.data, combineMasterData.data[0].shape[0], 0)
         self.workspaces.append(Main1DWindow(self, combineMasterData))
         self.workspaces[-1].rename(wsname)
         self.tabs.addTab(self.workspaces[-1], wsname)

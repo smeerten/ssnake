@@ -178,19 +178,22 @@ class Spectrum(object):
         else:
             return lambda self: self.setXax(oldXax, axes)
 
-    def insert(self, data, pos, axes, dataImag=0):
+    def insert(self, data, pos, axes, dataImag=None):
         axes = self.checkAxes(axes)
         if axes is None:
             return None
-        data = np.array(data) + 1j * np.array(dataImag)
-        oldSize = self.data.shape[axes]
-        self.data = np.insert(self.data, [pos], data, axis=axes)
+        for index in range(len(self.data)):
+            data = np.array(data[index]) 
+            if dataImag is not None:
+                data += 1j * np.array(dataImag[index])
+            oldSize = self.data[index].shape[axes]
+            self.data[index] = np.insert(self.data[index], [pos], data, axis=axes)
         self.resetXax(axes)
-        self.addHistory("Inserted " + str(self.data.shape[axes] - oldSize) + " datapoints in dimension " + str(axes + 1) + " at position " + str(pos))
+        self.addHistory("Inserted " + str(self.data[0].shape[axes] - oldSize) + " datapoints in dimension " + str(axes + 1) + " at position " + str(pos))
         if self.noUndo:
             return None
         else:
-            return lambda self: self.remove(range(pos, pos + data.shape[axes]), axes)
+            return lambda self: self.remove(range(pos, pos + data[0].shape[axes]), axes)
 
     def remove(self, pos, axes):
         axes = self.checkAxes(axes)
