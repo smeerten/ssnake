@@ -1950,6 +1950,7 @@ class Current1D(Plot1DFrame):
         return (np.amax(tmpData[minP:maxP]) / (np.std(tmpData[minN:maxN])))
 
     def fwhm(self, minPeak, maxPeak, unitType=None):
+	hyperView = 0
         from scipy.interpolate import UnivariateSpline
         if unitType is None:
             axType = self.axType
@@ -1962,10 +1963,10 @@ class Current1D(Plot1DFrame):
                 ppm = 0
         minP = min(minPeak, maxPeak)
         maxP = max(minPeak, maxPeak)
-        if len(self.data1D.shape) > 1:
-            tmpData = self.data1D[0]
+        if len(self.data1D[0].shape) > 1:
+            tmpData = self.data1D[hyperView][0]
         else:
-            tmpData = self.data1D
+            tmpData = self.data1D[hyperView]
         if (self.plotType == 0):
             tmpData = np.real(tmpData)
         elif(self.plotType == 1):
