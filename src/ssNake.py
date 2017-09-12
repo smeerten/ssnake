@@ -5135,7 +5135,7 @@ class SplitWindow(wc.ToolWindows):
         self.grid.addWidget(self.splitEntry, 1, 0)
 
     def preview(self, *args):
-        val = safeEval(self.splitEntry.text(), self.father.current.data1D.shape[-1])
+        val = safeEval(self.splitEntry.text(), self.father.current.data1D[0].shape[-1])
         if val is None:
             self.father.father.dispMsg("Split: input not valid")
             return False
@@ -5143,7 +5143,7 @@ class SplitWindow(wc.ToolWindows):
             self.splitEntry.setText(str(int(round(val))))
 
     def applyFunc(self):
-        val = safeEval(self.splitEntry.text(), self.father.current.data1D.shape[-1])
+        val = safeEval(self.splitEntry.text(), self.father.current.data1D[0].shape[-1])
         if val is None:
             self.father.father.dispMsg("Split: input not valid")
             return False
@@ -5171,7 +5171,7 @@ class ConcatenateWindow(wc.ToolWindows):
         super(ConcatenateWindow, self).__init__(parent)
         self.grid.addWidget(wc.QLabel("Concatenation axes:"), 0, 0)
         self.axesEntry = QtWidgets.QComboBox()
-        self.axesEntry.addItems(np.array(np.arange(self.father.current.data.data.ndim - 1) + 1, dtype=str))
+        self.axesEntry.addItems(np.array(np.arange(self.father.current.data.data[0].ndim - 1) + 1, dtype=str))
         self.grid.addWidget(self.axesEntry, 1, 0)
 
     def applyFunc(self):
@@ -5639,11 +5639,11 @@ class ReorderWindow(wc.ToolWindows):
             if newLength is None:
                 self.father.father.dispMsg("Reorder: `Length' input is not valid")
                 return False
-        val = safeEval(self.valEntry.text(), int(self.father.current.data1D.shape[-1]))
+        val = safeEval(self.valEntry.text(), int(self.father.current.data1D[0].shape[-1]))
         if not isinstance(val, (list, np.ndarray)):
             self.father.father.dispMsg("Reorder: `Positions' input is not a list or array")
             return False
-        if len(val) != self.father.current.data1D.shape[-1]:
+        if len(val) != self.father.current.data1D[0].shape[-1]:
             self.father.father.dispMsg("Reorder: length of input does not match length of data")
             return False
         val = np.array(val, dtype=int)
@@ -5927,7 +5927,7 @@ class ShearingWindow(wc.ToolWindows):
 
     def __init__(self, parent):
         super(ShearingWindow, self).__init__(parent)
-        options = list(map(str, range(1, self.father.masterData.data.ndim + 1)))
+        options = list(map(str, range(1, self.father.masterData.data[0].ndim + 1)))
         self.grid.addWidget(wc.QLabel("Shearing constant:"), 0, 0)
         self.shearDropdown = QtWidgets.QComboBox()
         self.shearDropdown.addItems(['User Defined','Spin 3/2, -3Q (7/9)','Spin 5/2, 3Q (19/12)','Spin 5/2, -5Q (25/12)','Spin 7/2, 3Q (101/45)',
@@ -5940,12 +5940,12 @@ class ShearingWindow(wc.ToolWindows):
         self.grid.addWidget(wc.QLabel("Shearing direction:"), 4, 0)
         self.dirEntry = QtWidgets.QComboBox()
         self.dirEntry.addItems(options)
-        self.dirEntry.setCurrentIndex(self.father.masterData.data.ndim - 2)
+        self.dirEntry.setCurrentIndex(self.father.masterData.data[0].ndim - 2)
         self.grid.addWidget(self.dirEntry, 5, 0)
         self.grid.addWidget(wc.QLabel("Shearing axis:"), 6, 0)
         self.axEntry = QtWidgets.QComboBox()
         self.axEntry.addItems(options)
-        self.axEntry.setCurrentIndex(self.father.masterData.data.ndim - 1)
+        self.axEntry.setCurrentIndex(self.father.masterData.data[0].ndim - 1)
         self.grid.addWidget(self.axEntry,7, 0)
 
     def dropdownChanged(self):

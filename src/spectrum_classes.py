@@ -290,7 +290,8 @@ class Spectrum(object):
             else:
                 copyData = copy.deepcopy(self)
                 returnValue = lambda self: self.restoreData(copyData, lambda self: self.multiply(mult, axes, select=select))
-            self.data[select] = np.apply_along_axis(np.multiply, axes, self.data, mult)[select]
+            for index in range(len(self.data)):
+                self.data[index][select] = np.apply_along_axis(np.multiply, axes, self.data[index], mult)[select]
         except ValueError as error:
             self.dispMsg('Multiply: ' + str(error))
             return None
@@ -318,9 +319,10 @@ class Spectrum(object):
         axes = self.checkAxes(axes)
         if axes is None:
             return None
-        splitVal = self.data.shape[axes]
+        splitVal = self.data[0].shape[axes]
         try:
-            self.data = np.concatenate(self.data, axis=axes)
+            for index in range(len(self.data)):
+                self.data[index] = np.concatenate(self.data[index], axis=axes)
         except ValueError as error:
             self.dispMsg(str(error))
             return None
@@ -343,7 +345,8 @@ class Spectrum(object):
         if axes is None:
             return None
         try:
-            self.data = np.array(np.split(self.data, sections, axis=axes))
+            for index in range(len(self.data)):
+                self.data[index] = np.array(np.split(self.data[index], sections, axis=axes))
         except ValueError as error:
             self.dispMsg('Split: ' + str(error))
             return None
@@ -1078,10 +1081,13 @@ class Spectrum(object):
         newFreq = self.freq[axis] + (newAxis[0] + newAxis[-1]) / 2
         if numPoints % 2 == 0:
             newFreq += newSw / numPoints / 2
-        if len(self.data.shape) > 1:
-            newDat = np.apply_along_axis(self.regridFunc, axis, self.data,newAxis,self.xaxArray[axis])
+        newDat = []
+        if len(self.data[0].shape) > 1:
+            for index in range(len(self.data)):
+                newDat.append(np.apply_along_axis(self.regridFunc, axis, self.data[index],newAxis,self.xaxArray[axis]))
         else:
-            newDat = self.regridFunc(self.data,newAxis ,self.xaxArray[axis])
+            for index in range(len(self.data)):
+                newDat.append(self.regridFunc(self.data[index], newAxis ,self.xaxArray[axis]))
         
         self.data = newDat
         self.sw[axis] = newSw
@@ -1356,13 +1362,13 @@ class Spectrum(object):
         if axes == axes2:
             self.dispMsg('Both shearing axes cannot be equal')
             return None
-        if self.data.ndim < 2:
+        if self.data[0].ndim < 2:
             self.dispMsg("The data does not have enough dimensions for a shearing transformation")
             return None
-        shape = self.data.shape
+        shape = self.data[0].shape
         vec1 = np.linspace(0, shear * 2 * np.pi * shape[axes] / self.sw[axes], shape[axes] + 1)[:-1]
         vec2 = np.fft.fftshift(np.fft.fftfreq(shape[axes2], 1 / self.sw[axes2]))
-        newShape = [1, ] * self.data.ndim
+        newShape = [1, ] * self.data[0].ndim
         newShape[axes] = shape[axes]
         newShape[axes2] = shape[axes2]
         if axes > axes2:
@@ -1371,7 +1377,8 @@ class Spectrum(object):
             shearMatrix = np.exp(1j * np.outer(vec1, vec2))
         if self.spec[axes] > 0:
             self.fourier(axes, tmp=True)
-        self.data = self.data * shearMatrix.reshape(shape)
+        for index in range(len(self.data)):
+            self.data[index] = self.data[index] * shearMatrix.reshape(shape)
         if self.spec[axes] > 0:
             self.fourier(axes, tmp=True, inv=True)
         self.addHistory("Shearing transform with shearing value " + str(shear) + " over dimensions " + str(axes + 1) + " and " + str(axes2 + 1))
@@ -1394,12 +1401,13 @@ class Spectrum(object):
         else:
             copyData = copy.deepcopy(self)
             returnValue = lambda self: self.restoreData(copyData, lambda self: self.reorder(pos, newLength, axes))
-        newShape = np.array(self.data.shape)
+        newShape = np.array(self.data[0].shape)
         newShape[axes] = newLength
         tmpData = np.zeros(newShape, dtype=complex)
-        slicing = (slice(None), ) * axes + (pos, ) + (slice(None), ) * (self.data.ndim - 1 - axes)
-        tmpData[slicing] = self.data
-        self.data = tmpData
+        slicing = (slice(None), ) * axes + (pos, ) + (slice(None), ) * (self.data[0].ndim - 1 - axes)
+        for index in range(len(self.data)):
+            tmpData[slicing] = self.data[index]
+            self.data[index] = tmpData
         self.resetXax(axes)
         self.addHistory("Reorder dimension " + str(axes + 1) + " to obtain a new length of " + str(newLength) + " with positions " + str(pos))
         return returnValue
@@ -1896,7 +1904,7 @@ class Current1D(Plot1DFrame):
         
         
 #        self.setAxType(0)
-        self.root.addMacro(['ref', (ref, self.axes - self.data.data.ndim)])
+        self.root.addMacro(['ref', (ref, self.axes - self.data.data[0].ndim)])
         return returnValue
 
     def regrid(self,limits,numPoints): 
@@ -1907,7 +1915,7 @@ class Current1D(Plot1DFrame):
         self.plotReset()
         self.showFid()
 
-        self.root.addMacro(['regrid', (limits, numPoints,ax)])
+        self.root.addMacro(['regrid', (limits, numPoints,ax - self.data.data[0].ndim)])
         return returnValue
 
 
@@ -2466,7 +2474,8 @@ class Current1D(Plot1DFrame):
     def multiplyPreview(self, data):
         self.upd()
         try:
-            self.data1D = self.data1D * data
+            for index in range(len(self.data1D)):
+                self.data1D[index] = self.data1D[index] * data
             self.showFid()
             return True
         except ValueError as error:
@@ -2519,14 +2528,14 @@ class Current1D(Plot1DFrame):
         returnValue = self.data.shear(shear, axes, axes2)
         self.upd()
         self.showFid()
-        self.root.addMacro(['shear', (shear, axes - self.data.data.ndim, axes2 - self.data.data.ndim)])
+        self.root.addMacro(['shear', (shear, axes - self.data.data[0].ndim, axes2 - self.data.data[0].ndim)])
         return returnValue
 
     def reorder(self, pos, newLength):
         returnValue = self.data.reorder(pos, newLength, self.axes)
         self.upd()
         self.showFid()
-        self.root.addMacro(['reorder', (pos, newLength, self.axes - self.data.data.ndim)])
+        self.root.addMacro(['reorder', (pos, newLength, self.axes - self.data.data[0].ndim)])
         return returnValue
 
     def ffm(self, posList, typeVal):
@@ -2534,7 +2543,7 @@ class Current1D(Plot1DFrame):
             returnValue = self.data.ffm_1d(posList, typeVal, self.axes)
             self.upd()
             self.showFid()
-            self.root.addMacro(['ffm', (posList, typeVal, self.axes - self.data.data.ndim)])
+            self.root.addMacro(['ffm', (posList, typeVal, self.axes - self.data.data[0].ndim)])
         except:
             returnValue = None
         return returnValue
