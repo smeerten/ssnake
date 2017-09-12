@@ -1931,14 +1931,15 @@ class Current1D(Plot1DFrame):
 
 
     def SN(self, minNoise, maxNoise, minPeak, maxPeak):
+	hyperView = 0
         minN = min(minNoise, maxNoise)
         maxN = max(minNoise, maxNoise)
         minP = min(minPeak, maxPeak)
         maxP = max(minPeak, maxPeak)
-        if len(self.data1D.shape) > 1:
-            tmpData = self.data1D[0]
+        if len(self.data1D[0].shape) > 1:
+            tmpData = self.data1D[hyperView][0]
         else:
-            tmpData = self.data1D
+            tmpData = self.data1D[hyperView]
         if (self.plotType == 0):
             tmpData = np.real(tmpData)
         elif(self.plotType == 1):

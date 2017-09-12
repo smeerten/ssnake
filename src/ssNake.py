@@ -5291,13 +5291,13 @@ class SNWindow(wc.ToolWindows):
         self.minNoiseEntry = wc.QLineEdit('0', self.checkValues)
         self.grid.addWidget(self.minNoiseEntry, 1, 0)
         self.grid.addWidget(wc.QLabel("End point noise:"), 2, 0)
-        self.maxNoiseEntry = wc.QLineEdit(parent.current.data1D.shape[-1], self.checkValues)
+        self.maxNoiseEntry = wc.QLineEdit(parent.current.data1D[0].shape[-1], self.checkValues)
         self.grid.addWidget(self.maxNoiseEntry, 3, 0)
         self.grid.addWidget(wc.QLabel("Start point signal:"), 4, 0)
         self.minEntry = wc.QLineEdit('0', self.checkValues)
         self.grid.addWidget(self.minEntry, 5, 0)
         self.grid.addWidget(wc.QLabel("End point signal:"), 6, 0)
-        self.maxEntry = wc.QLineEdit(parent.current.data1D.shape[-1], self.checkValues)
+        self.maxEntry = wc.QLineEdit(parent.current.data1D[0].shape[-1], self.checkValues)
         self.grid.addWidget(self.maxEntry, 7, 0)
         self.grid.addWidget(wc.QLabel("S/N:"), 8, 0)
         self.snEntry = wc.QLineEdit("0.0")
@@ -5325,7 +5325,7 @@ class SNWindow(wc.ToolWindows):
             self.applyFunc()
 
     def checkValues(self, *args):
-        dataLength = self.father.current.data1D.shape[-1]
+        dataLength = self.father.current.data1D[0].shape[-1]
         inp = safeEval(self.minNoiseEntry.text())
         if inp is None:
             return
@@ -5365,7 +5365,7 @@ class SNWindow(wc.ToolWindows):
         self.applyFunc()
 
     def applyFunc(self):
-        dataLength = self.father.current.data1D.shape[-1]
+        dataLength = self.father.current.data1D[0].shape[-1]
         inp = safeEval(self.minNoiseEntry.text())
         if inp is None:
             self.father.father.dispMsg("S/N: invalid range")
