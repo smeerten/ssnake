@@ -4425,6 +4425,7 @@ class CurrentContour(Current1D):
 
     # The peakpicking function needs to be changed for contour plots
     def buttonRelease(self, event):
+        hyperView = 0
         if event.button == 1:
             if self.peakPick:
                 if self.rect[1] is not None:
@@ -4454,13 +4455,13 @@ class CurrentContour(Current1D):
                     idy = np.argmin(np.abs(ydata - event.ydata))
                     if self.peakPickFunc is not None:
                         if (self.plotType == 0):
-                            tmpdata = np.real(self.data1D[idy, idx])
+                            tmpdata = np.real(self.data1D[hyperView][idy, idx])
                         elif(self.plotType == 1):
-                            tmpdata = np.imag(self.data1D[idy, idx])
+                            tmpdata = np.imag(self.data1D[hyperView][idy, idx])
                         elif(self.plotType == 2):
-                            tmpdata = np.real(self.data1D[idy, idx])
+                            tmpdata = np.real(self.data1D[hyperView][idy, idx])
                         elif(self.plotType == 3):
-                            tmpdata = np.abs(self.data1D[idy, idx])
+                            tmpdata = np.abs(self.data1D[hyperView][idy, idx])
                         self.peakPickFunc((idx, xdata[idx], tmpdata, idy, ydata[idy]))
                     if not self.peakPick:  # check if peakpicking is still required
                         self.peakPickFunc = None
