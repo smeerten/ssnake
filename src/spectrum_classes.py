@@ -878,7 +878,8 @@ class Spectrum(object):
         else:
             copyData = copy.deepcopy(self)
             returnValue = lambda self: self.restoreData(copyData, lambda self: self.hilbert(axes))
-        self.data = scipy.signal.hilbert(np.real(self.data), axis=axes)
+        for index in range(len(self.data)):
+            self.data[index] = scipy.signal.hilbert(np.real(self.data[index]), axis=axes)
         self.addHistory("Hilbert transform on dimension " + str(axes + 1))
         return returnValue
 
@@ -1322,16 +1323,20 @@ class Spectrum(object):
             returnValue = lambda self: self.restoreData(copyData, lambda self: self.realFourier(axes))
         if self.spec[axes] == 0:
             if not self.wholeEcho[axes]:
-                slicing = (slice(None), ) * axes + (0, ) + (slice(None), ) * (self.data.ndim - 1 - axes)
-                self.data[slicing] = self.data[slicing] * 0.5
-            self.data = np.fft.fftshift(np.fft.fftn(np.real(self.data), axes=[axes]), axes=axes)
+                slicing = (slice(None), ) * axes + (0, ) + (slice(None), ) * (self.data[0].ndim - 1 - axes)
+                for index in range(len(self.data)):
+                    self.data[index][slicing] = self.data[index][slicing] * 0.5
+            for index in range(len(self.data)):
+                self.data[index] = np.fft.fftshift(np.fft.fftn(np.real(self.data[index]), axes=[axes]), axes=axes)
             self.spec[axes] = 1
             self.addHistory("Real Fourier transform dimension " + str(axes + 1))
         else:
-            self.data = np.fft.ifftn(np.fft.ifftshift(np.real(self.data), axes=axes), axes=[axes])
+            for index in range(len(self.data)):
+                self.data[index] = np.fft.ifftn(np.fft.ifftshift(np.real(self.data[index]), axes=axes), axes=[axes])
             if not self.wholeEcho[axes]:
-                slicing = (slice(None), ) * axes + (0, ) + (slice(None), ) * (self.data.ndim - 1 - axes)
-                self.data[slicing] = self.data[slicing] * 2.0
+                slicing = (slice(None), ) * axes + (0, ) + (slice(None), ) * (self.data[0].ndim - 1 - axes)
+                for index in range(len(self.data)):
+                    self.data[index][slicing] = self.data[index][slicing] * 2.0
             self.spec[axes] = 0
             self.addHistory("Real inverse Fourier transform dimension " + str(axes + 1))
         self.resetXax(axes)
@@ -1342,10 +1347,12 @@ class Spectrum(object):
         if axes is None:
             return None
         if inv:
-            self.data = np.fft.ifftshift(self.data, axes=[axes])
+            for index in range(len(self.data)):
+                self.data[index] = np.fft.ifftshift(self.data[index], axes=[axes])
             self.addHistory("Inverse Fourier shift dimension " + str(axes + 1))
         else:
-            self.data = np.fft.fftshift(self.data, axes=axes)
+            for index in range(len(self.data)):
+                self.data[index] = np.fft.fftshift(self.data[index], axes=axes)
             self.addHistory("Fourier shift dimension " + str(axes + 1))
         if self.noUndo:
             return None
@@ -1802,14 +1809,14 @@ class Current1D(Plot1DFrame):
             self.resetSpacing()
         self.plotReset()
         self.showFid()
-        self.root.addMacro(['realFourier', (self.axes - self.data.data.ndim, )])
+        self.root.addMacro(['realFourier', (self.axes - self.data.data[0].ndim, )])
         return returnValue
 
     def fftshift(self, inv=False):  # fftshift the actual data and replot
         returnValue = self.data.fftshift(self.axes, inv)
         self.upd()
         self.showFid()
-        self.root.addMacro(['fftshift', (self.axes - self.data.data.ndim, inv)])
+        self.root.addMacro(['fftshift', (self.axes - self.data.data[0].ndim, inv)])
         return returnValue
 
     def fourierLocal(self, fourData, spec):  # fourier the local data for other functions
@@ -2642,7 +2649,7 @@ class Current1D(Plot1DFrame):
         returnValue = self.data.hilbert(self.axes)
         self.upd()
         self.showFid()
-        self.root.addMacro(['hilbert', (self.axes - self.data.data.ndim, )])
+        self.root.addMacro(['hilbert', (self.axes - self.data.data[0].ndim, )])
         return returnValue
 
     def getDisplayedData(self):
