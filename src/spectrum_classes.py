@@ -1999,16 +1999,17 @@ class Current1D(Plot1DFrame):
             return 0.0
 
     def COM(self, minPeak, maxPeak):  # Centre of Mass
+        hyperView = 0
         minP = min(minPeak, maxPeak)
         maxP = max(minPeak, maxPeak)
-        if len(self.data1D.shape) > 1:
-            tmpData = self.data1D[0]
+        if len(self.data1D[0].shape) > 1:
+            tmpData = self.data1D[hyperView][0]
             if len(self.xax.shape) > 1:
                 tmpAxis = self.xax[0]
             else:
                 tmpAxis = self.xax
         else:
-            tmpData = self.data1D
+            tmpData = self.data1D[hyperView]
             tmpAxis = self.xax
         if (self.plotType == 0):
             tmpData = np.real(tmpData)
@@ -2656,20 +2657,6 @@ class Current1D(Plot1DFrame):
         self.showFid()
         self.root.addMacro(['hilbert', (self.axes - self.data.data[0].ndim, )])
         return returnValue
-
-    def getDisplayedData(self):
-        if len(self.data1D.shape) > 1:
-            tmp = self.data1D[0]
-        else:
-            tmp = self.data1D
-        if self.plotType == 0:
-            return np.real(tmp)
-        elif self.plotType == 1:
-            return np.imag(tmp)
-        elif self.plotType == 2:
-            return np.real(tmp)
-        elif self.plotType == 3:
-            return np.abs(tmp)
 
     def getColorMap(self):
         return COLORMAPLIST.index(self.colorMap)

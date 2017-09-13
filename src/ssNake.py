@@ -5518,7 +5518,7 @@ class COMWindow(wc.ToolWindows):  # Centre of Mass Window
         self.minEntry = wc.QLineEdit("0", self.checkValues)
         self.grid.addWidget(self.minEntry, 1, 0)
         self.grid.addWidget(wc.QLabel("End point:"), 2, 0)
-        self.maxEntry = wc.QLineEdit(parent.current.data1D.shape[-1], self.checkValues)
+        self.maxEntry = wc.QLineEdit(parent.current.data1D[0].shape[-1], self.checkValues)
         self.grid.addWidget(self.maxEntry, 3, 0)
         if self.father.current.spec == 1:
             if self.father.current.ppm:
@@ -5556,7 +5556,7 @@ class COMWindow(wc.ToolWindows):  # Centre of Mass Window
             self.applyFunc()
 
     def checkValues(self, *args):
-        dataLength = self.father.current.data1D.shape[-1]
+        dataLength = self.father.current.data1D[0].shape[-1]
         inp = safeEval(self.minEntry.text())
         if inp is None:
             return
@@ -5578,7 +5578,7 @@ class COMWindow(wc.ToolWindows):  # Centre of Mass Window
         self.applyFunc()
 
     def applyFunc(self):
-        dataLength = self.father.current.data1D.shape[-1]
+        dataLength = self.father.current.data1D[0].shape[-1]
         inp = safeEval(self.minEntry.text())
         if inp is None:
             self.father.father.dispMsg("Centre of Mass: invalid range")
