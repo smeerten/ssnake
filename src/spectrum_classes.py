@@ -193,7 +193,7 @@ class Spectrum(object):
         if self.noUndo:
             return None
         else:
-            return lambda self: self.remove(range(pos, pos + data[0].shape[axes]), axes)
+            return lambda self: self.remove(range(pos, pos + data.shape[axes]), axes)
 
     def remove(self, pos, axes):
         axes = self.checkAxes(axes)
@@ -220,12 +220,14 @@ class Spectrum(object):
             self.dispMsg('Cannot delete all data')
             return None
 
-    def add(self, data, dataImag=0, select=slice(None)):
+    def add(self, data, dataImag= None, select=slice(None)):
         if isinstance(select, string_types):
             select = safeEval(select)
         try:
-            data = np.array(data) + 1j * np.array(dataImag)
-            self.data[select] = self.data[select] + data
+            for index in range(len(self.data)):
+                if dataImag is not None:
+                    data[index] = np.array(data[index]) + 1j * np.array(dataImag[index])
+                self.data[index][select] = self.data[index][select] + data[index]
         except ValueError as error:
             self.dispMsg(str(error))
             return None
@@ -235,12 +237,14 @@ class Spectrum(object):
         else:
             return lambda self: self.subtract(data, select=select)
 
-    def subtract(self, data, dataImag=0, select=slice(None)):
+    def subtract(self, data, dataImag=None, select=slice(None)):
         if isinstance(select, string_types):
             select = safeEval(select)
         try:
-            data = np.array(data) + 1j * np.array(dataImag)
-            self.data[select] = self.data[select] - data
+            for index in range(len(self.data)):
+                if dataImag is not None:
+                    data[index] = np.array(data[index]) + 1j * np.array(dataImag[index])
+                self.data[index][select] = self.data[index][select] - data[index]
         except ValueError as error:
             self.dispMsg(str(error))
             return None
@@ -250,12 +254,14 @@ class Spectrum(object):
         else:
             return lambda self: self.add(data, select=select)
     
-    def multiplySpec(self, data, dataImag=0, select=slice(None)):
+    def multiplySpec(self, data, dataImag=None, select=slice(None)):
         if isinstance(select, string_types):
             select = safeEval(select)
         try:
-            data = np.array(data) + 1j * np.array(dataImag)
-            self.data[select] = self.data[select] * data
+            for index in range(len(self.data)):
+                if dataImag is not None:
+                    data[index] = np.array(data[index]) + 1j * np.array(dataImag[index])
+                self.data[index][select] = self.data[index][select] * data[index]
         except ValueError as error:
             self.dispMsg(str(error))
             return None
@@ -265,12 +271,14 @@ class Spectrum(object):
         else:
             return lambda self: self.divideSpec(data, select=select)
 
-    def divideSpec(self, data, dataImag=0, select=slice(None)):
+    def divideSpec(self, data, dataImag=None, select=slice(None)):
         if isinstance(select, string_types):
             select = safeEval(select)
         try:
-            data = np.array(data) + 1j * np.array(dataImag)
-            self.data[select] = self.data[select] / data
+            for index in range(len(self.data)):
+                if dataImag is not None:
+                    data[index] = np.array(data[index]) + 1j * np.array(dataImag[index])
+                self.data[index][select] = self.data[index][select] / data[index]
         except ValueError as error:
             self.dispMsg(str(error))
             return None
@@ -2411,7 +2419,7 @@ class Current1D(Plot1DFrame):
         self.upd()
         self.plotReset()
         self.showFid()
-        self.root.addMacro(['insert', (np.real(data).tolist(), pos, self.axes - self.data.data.ndim, np.imag(data).tolist())])
+        self.root.addMacro(['insert', (np.real(data).tolist(), pos, self.axes - self.data.data[0].ndim, np.imag(data).tolist())])
         return returnValue
 
     def delete(self, pos):

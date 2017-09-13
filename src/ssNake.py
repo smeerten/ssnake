@@ -5198,7 +5198,7 @@ class InsertWindow(wc.ToolWindows):
     def __init__(self, parent):
         super(InsertWindow, self).__init__(parent)
         self.grid.addWidget(wc.QLabel("Start insert at index:"), 0, 0)
-        self.posEntry = wc.QLineEdit(self.father.current.data1D.shape[-1], self.preview)
+        self.posEntry = wc.QLineEdit(self.father.current.data1D[0].shape[-1], self.preview)
         self.grid.addWidget(self.posEntry, 1, 0)
         self.grid.addWidget(wc.QLabel("Workspace to insert:"), 2, 0)
         self.wsEntry = QtWidgets.QComboBox()
@@ -5210,8 +5210,8 @@ class InsertWindow(wc.ToolWindows):
         if pos is None:
             return
         pos = int(round(pos))
-        if pos > self.father.current.data1D.shape[-1]:
-            pos = self.father.current.data1D.shape[-1]
+        if pos > self.father.current.data1D[0].shape[-1]:
+            pos = self.father.current.data1D[0].shape[-1]
         elif pos < 0:
             pos = 0
         self.posEntry.setText(str(pos))
@@ -5222,8 +5222,8 @@ class InsertWindow(wc.ToolWindows):
             self.father.father.dispMsg("Not a valid value")
             return
         pos = int(round(pos))
-        if pos > self.father.current.data1D.shape[-1]:
-            pos = self.father.current.data1D.shape[-1]
+        if pos > self.father.current.data1D[0].shape[-1]:
+            pos = self.father.current.data1D[0].shape[-1]
         elif pos < 0:
             pos = 0
         ws = self.wsEntry.currentIndex()
@@ -5245,23 +5245,27 @@ class CombineWindow(wc.ToolWindows):
         super(CombineWindow, self).__init__(parent)
         self.combType = combType # 0 = add, 1 = subtract, 2 = multiply, 3 = divide
         if self.combType is 0:
-            self.setWindowTitle("Add")        
+            self.WindowTitle = "Add"
             self.grid.addWidget(wc.QLabel("Workspace to add:"), 0, 0)
         elif self.combType is 1:
-            self.setWindowTitle("Subtract")        
+            self.WindowTitle = "Subtract"
             self.grid.addWidget(wc.QLabel("Workspace to subtract:"), 0, 0)
         elif self.combType is 2:
-            self.setWindowTitle("Multiply")        
+            self.WindowTitle = "Multiply"
             self.grid.addWidget(wc.QLabel("Workspace to multiply:"), 0, 0)
         elif self.combType is 3:
-            self.setWindowTitle("Divide")        
+            self.WindowTitle = "Divide"
             self.grid.addWidget(wc.QLabel("Workspace to divide:"), 0, 0)
+        self.setWindowTitle(self.WindowTitle)        
         self.wsEntry = QtWidgets.QComboBox()
         self.wsEntry.addItems(self.father.father.workspaceNames)
         self.grid.addWidget(self.wsEntry, 1, 0)
 
     def applyFunc(self):
         ws = self.wsEntry.currentIndex()
+        if len(self.father.father.workspaces[ws].masterData.data) != len(self.father.current.data.data):
+            self.father.father.dispMsg(self.WindowTitle + ": hypercomplex sizes are not identical")
+            return None
         if self.combType is 0:
             returnValue = self.father.current.add(self.father.father.workspaces[ws].masterData.data, self.singleSlice.isChecked())
         elif self.combType is 1:
