@@ -2632,7 +2632,7 @@ class Current1D(Plot1DFrame):
         self.upd()
         self.plotReset()
         self.showFid()
-        self.root.addMacro(['setxax', (xax, self.axes - self.data.data.ndim)])
+        self.root.addMacro(['setxax', (xax, self.axes - self.data.data[0].ndim)])
         return returnVal
 
     def setAxType(self, val):

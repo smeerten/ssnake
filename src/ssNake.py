@@ -6029,7 +6029,7 @@ class XaxWindow(wc.ToolWindows):
 
     def __init__(self, parent):
         super(XaxWindow, self).__init__(parent)
-        self.axisSize = int(self.father.current.data1D.shape[-1])        
+        self.axisSize = int(self.father.current.data1D[0].shape[-1])        
         self.grid.addWidget(wc.QLabel("Input x-axis values:"), 0, 0, 1, 2) 
         self.typeDropdown = QtWidgets.QComboBox()
         self.typeDropdown.addItems(['Expression','Linear','Logarithmic'])
@@ -6124,7 +6124,7 @@ class XaxWindow(wc.ToolWindows):
     def getValues(self):
         if self.typeDropdown.currentIndex() == 0:
             env = vars(np).copy()
-            env['length'] = int(self.father.current.data1D.shape[-1])  # so length can be used to in equations
+            env['length'] = int(self.father.current.data1D[0].shape[-1])  # so length can be used to in equations
             env['euro'] = lambda fVal, num=self.axisSize: func.euro(fVal, num)
             try:
                 val = np.array(eval(self.exprEntry.text(), env))                # find a better solution, also add catch for exceptions
@@ -6139,7 +6139,7 @@ class XaxWindow(wc.ToolWindows):
             if not isinstance(val, (list, np.ndarray)):
                 self.father.father.dispMsg("X-axis: Input is not a list or array")
                 return
-            if len(val) != self.father.current.data1D.shape[-1]:
+            if len(val) != self.father.current.data1D[0].shape[-1]:
                 self.father.father.dispMsg("X-axis: Length of input does not match length of data")
                 return
             if not all(isinstance(x, (int, float)) for x in val):
@@ -6209,7 +6209,7 @@ class RefWindow(wc.ToolWindows):
         self.secRefValues = secRefValues
         if parent.current.spec == 0:
             self.father.father.dispMsg('Setting ppm is only available for frequency data')
-            self.deleteLater()
+            self.closeEvent()
             return
         self.grid.addWidget(wc.QLabel("Name:"), 0, 0)
         self.refName = wc.QLineEdit()
