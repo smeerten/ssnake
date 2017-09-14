@@ -1389,7 +1389,8 @@ class MainProgram(QtWidgets.QMainWindow):
         if combineMasterData is None:
             self.dispMsg("Data could not be loaded")
             return False
-        shapeRequired = combineMasterData.data.shape
+        shapeRequired = combineMasterData.data[0].shape
+        hyperShape = len(combineMasterData.data)
         combineMasterData.split(1, -1)
         for filePath in filePathList:
             if filePath.endswith('.zip'):
@@ -1406,10 +1407,13 @@ class MainProgram(QtWidgets.QMainWindow):
             else:
                 val = self.fileTypeCheck(filePath)
                 addData = self.loading(val[0], val[1], returnBool=True)
-            if addData.data.shape != shapeRequired:
+            if addData.data[0].shape != shapeRequired:
                 self.dispMsg("Not all the data has the required shape")
                 return False
-            combineMasterData.insert(addData.data, combineMasterData.data.shape[0], 0)
+            if len(addData.data) != hyperShape:
+                self.dispMsg("Not all the data has the required shape")
+                return False
+            combineMasterData.insert(addData.data, combineMasterData.data[0].shape[0], 0)
         wsname = self.askName()
         self.workspaces.append(Main1DWindow(self, combineMasterData))
         self.workspaces[-1].rename(wsname)
@@ -1526,13 +1530,13 @@ class MainProgram(QtWidgets.QMainWindow):
 
 
     def loadJSONFile(self, filePath, name=''):
-        try:
+        #try:
             masterData = LF.loadJSONFile(filePath,name)
             masterData.msgHandler = lambda msg: self.dispMsg(msg)
             return masterData
-        except:
-            self.dispMsg("Error on loading JSON data",'red')
-            return None 
+        #except:
+        #    self.dispMsg("Error on loading JSON data",'red')
+        #    return None 
 
     def loadMatlabFile(self, filePath, name=''):
         try:
@@ -1964,8 +1968,14 @@ class Main1DWindow(QtWidgets.QWidget):
             return
         self.father.LastLocation = os.path.dirname(name)  # Save used path
         struct = {}
-        struct['dataReal'] = np.real(self.masterData.data).tolist()
-        struct['dataImag'] = np.imag(self.masterData.data).tolist()
+        realData = []
+        imagData = []
+        for item in self.masterData.data:
+            realData.append(np.real(item).tolist())
+            imagData.append(np.imag(item).tolist())
+        struct['dataReal'] = realData
+        struct['dataImag'] = imagData
+        struct['hyper'] = self.masterData.hyper
         struct['freq'] = self.masterData.freq.tolist()
         struct['sw'] = list(self.masterData.sw)
         struct['spec'] = list(1.0 * np.array(self.masterData.spec))

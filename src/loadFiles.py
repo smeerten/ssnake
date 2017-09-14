@@ -313,7 +313,20 @@ def loadJSONFile(filePath, name=''):
     import json
     with open(filePath, 'r') as inputfile:
         struct = json.load(inputfile)
-    data = np.array(struct['dataReal']) + 1j * np.array(struct['dataImag'])
+    
+    hyper = None
+    try: #Try to get the hyper list (if works: new data definition)
+        hyper = list(struct['hyper'])
+        data = []
+        tmpReal = struct['dataReal']
+        tmpImag = struct['dataImag']
+        
+        for index in range(len(tmpReal)):
+             data.append(np.array(tmpReal[index])+ 1j * np.array(tmpImag[index]))
+    except:
+        hyper = None
+        data = np.array(struct['dataReal']) + 1j * np.array(struct['dataImag'])
+
     ref = np.where(np.isnan(struct['ref']), None, struct['ref'])
     if 'history' in struct.keys():
         history = struct['history']
@@ -329,6 +342,7 @@ def loadJSONFile(filePath, name=''):
                              list(struct['sw']),
                              list(struct['spec']),
                              list(np.array(struct['wholeEcho'], dtype=bool)),
+                             hyper,
                              list(ref),
                              xaxA,                             
                              history=history)

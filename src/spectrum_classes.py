@@ -73,10 +73,18 @@ def ACMEentropy(phaseIn, data, sw, spec, phaseAll=True):
 
 class Spectrum(object):
 
-    def __init__(self, name, data, filePath, freq, sw, spec=None, wholeEcho=None, ref=None, xaxArray=None, history=None, msgHandler=None):
+    def __init__(self, name, data, filePath, freq, sw, spec=None, wholeEcho=None, hyper = [], ref=None, xaxArray=None, history=None, msgHandler=None):
         self.name = name
-        self.data = [np.array(data, dtype=complex)]  # data of dimension dim
-        self.hyper = [] #Holds the axes were hypercomplex data exists
+        if isinstance(data, (list)):
+            self.data = []
+            for item in data:
+                self.data.append(np.array(item, dtype=complex))
+        else:
+            self.data = [np.array(data, dtype=complex)]  # data of dimension dim
+        if hyper is None:
+            self.hyper = [] #Holds the axes where hypercomplex data exists
+        else:
+            self.hyper = hyper
         self.filePath = filePath
         self.freq = np.array(freq)  # array of center frequency (length is dim, MHz)
         self.sw = sw  # array of sweepwidths
@@ -1939,7 +1947,8 @@ class Current1D(Plot1DFrame):
 
 
     def SN(self, minNoise, maxNoise, minPeak, maxPeak):
-	hyperView = 0
+        
+        hyperView = 0
         minN = min(minNoise, maxNoise)
         maxN = max(minNoise, maxNoise)
         minP = min(minPeak, maxPeak)
@@ -1959,7 +1968,7 @@ class Current1D(Plot1DFrame):
         return (np.amax(tmpData[minP:maxP]) / (np.std(tmpData[minN:maxN])))
 
     def fwhm(self, minPeak, maxPeak, unitType=None):
-	hyperView = 0
+        hyperView = 0
         from scipy.interpolate import UnivariateSpline
         if unitType is None:
             axType = self.axType
