@@ -1530,22 +1530,22 @@ class MainProgram(QtWidgets.QMainWindow):
 
 
     def loadJSONFile(self, filePath, name=''):
-        #try:
+        try:
             masterData = LF.loadJSONFile(filePath,name)
             masterData.msgHandler = lambda msg: self.dispMsg(msg)
             return masterData
-        #except:
-        #    self.dispMsg("Error on loading JSON data",'red')
-        #    return None 
+        except:
+            self.dispMsg("Error on loading JSON data",'red')
+            return None 
 
     def loadMatlabFile(self, filePath, name=''):
-        try:
+        #try:
             masterData = LF.loadMatlabFile(filePath,name)
             masterData.msgHandler = lambda msg: self.dispMsg(msg)
             return masterData
-        except:
-            self.dispMsg("Error on loading MATLAB data",'red')
-            return None 
+        #except:
+        #    self.dispMsg("Error on loading MATLAB data",'red')
+        #    return None 
 
     def LoadBrukerTopspin(self, filePath, name=''):
         try:
@@ -1999,9 +1999,10 @@ class Main1DWindow(QtWidgets.QWidget):
             return
         self.father.LastLocation = os.path.dirname(name)  # Save used path
         struct = {}
-        struct['dim'] = self.masterData.data.ndim
+        struct['dim'] = self.masterData.data[0].ndim
         struct['data'] = self.masterData.data
         struct['freq'] = self.masterData.freq
+        struct['hyper'] = self.masterData.hyper
         struct['sw'] = self.masterData.sw
         struct['spec'] = self.masterData.spec
         struct['wholeEcho'] = self.masterData.wholeEcho

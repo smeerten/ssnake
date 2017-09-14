@@ -358,12 +358,27 @@ def loadMatlabFile(filePath, name=''):
         matlabStruct = scipy.io.loadmat(filePath)
         var = [k for k in matlabStruct.keys() if not k.startswith('__')][0]
         mat = matlabStruct[var]
+        try:
+            hyper = list(mat['hyper'][0,0])
+            if len(hyper) > 0:
+                hyper = list(hyper[0])
+        except:
+            hyper = None
+        data = []
         if mat['dim'] == 1:
-            data = mat['data'][0, 0][0]
+            data = mat['data'][0][0][0]
             xaxA = [k[0] for k in (mat['xaxArray'][0])]
         else:
-            data = mat['data'][0, 0]
-            if all(x == data.shape[0] for x in data.shape):
+            if hyper is None: #If old format
+                data = mat['data'][0, 0]
+                shapes = [data.shape[0],data.shape] #Save for the xax determination
+            else: #If new format
+                tmp = mat['data'][0][0]
+                for item in tmp:
+                    data.append(item)
+                shapes = [data[0].shape[0],data[0].shape]
+
+            if all(x == shapes[0] for x in shapes[1]):
                 xaxA = [k for k in (mat['xaxArray'][0, 0])]
             else:
                 xaxA = [k[0] for k in (mat['xaxArray'][0, 0][0])]
@@ -381,6 +396,7 @@ def loadMatlabFile(filePath, name=''):
                                  list(mat['sw'][0, 0][0]),
                                  list(mat['spec'][0, 0][0]),
                                  list(np.array(mat['wholeEcho'][0, 0][0]) > 0),
+                                 hyper,
                                  list(ref),
                                  xaxA,
                                  history=history)
