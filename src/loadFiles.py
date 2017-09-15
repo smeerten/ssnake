@@ -370,15 +370,10 @@ def loadMatlabFile(filePath, name=''):
             xaxA = [k[0] for k in (mat['xaxArray'][0])]
         else:
             if hyper is None: #If old format
-                data = mat['data'][0, 0]
-                shapes = [data.shape[0],data.shape] #Save for the xax determination
+                data = [mat['data'][0, 0]]
             else: #If new format
-                tmp = mat['data'][0][0]
-                for item in tmp:
-                    data.append(item)
-                shapes = [data[0].shape[0],data[0].shape]
-
-            if all(x == shapes[0] for x in shapes[1]):
+                data = list(mat['data'][0][0])
+            if all(x == data[0].shape[0] for x in data[0].shape):
                 xaxA = [k for k in (mat['xaxArray'][0, 0])]
             else:
                 xaxA = [k[0] for k in (mat['xaxArray'][0, 0][0])]
@@ -409,16 +404,35 @@ def loadMatlabFile(filePath, name=''):
         for name in f:
             if name != '#refs#':
                 Groups.append(name)
-        DataGroup = Groups[0]  # get the groupo name
+        DataGroup = Groups[0]  # get the group name
         mat = f[DataGroup]
+        try:
+            hyper = list(np.array(mat['hyper']))
+            if hyper == [0,0]:
+                hyper = []
+            else:
+                hyper = list(hyper[0])
+        except:
+            hyper = None
+
         if np.array(mat['dim'])[0][0] == 1:
             xaxA = list([np.array(mat['xaxArray'])[:, 0]])
-            data = np.array(mat['data'])
-            data = (data['real'] + data['imag'] * 1j)[:, 0]  # split and use real and imag part
+            if hyper is None: #Old data format
+                data = np.array(mat['data'])
+                data = [(data['real'] + data['imag'] * 1j)[:, 0]]  # split and use real and imag part
+            else: #New format (hypercomplex)
+                data = np.transpose(np.array(mat['data']))
+                data = list(data['real'] + data['imag'] * 1j)
         else:
-            data = np.transpose(np.array(mat['data']))
-            data = data['real'] + data['imag'] * 1j
-            if all(x == data.shape[0] for x in data.shape):
+            if hyper is None:
+                data = np.transpose(np.array(mat['data']))
+                data = [data['real'] + data['imag'] * 1j]
+            else:
+                tmp = np.transpose(np.array(mat['data']))
+                data = []
+                for index in range(tmp.shape[0]):
+                    data.append(tmp['real'][index] + tmp['imag'][index] * 1j)
+            if all(x == data[0].shape[0] for x in data[0].shape):
                 xaxA = [np.array(mat[k]) for k in (mat['xaxArray'])]
             else:
                 xaxA = [np.array(mat[k[0]]) for k in (mat['xaxArray'])]
@@ -437,6 +451,7 @@ def loadMatlabFile(filePath, name=''):
                                  list(np.array(mat['sw'])[:, 0]),
                                  list(np.array(mat['spec'])[:, 0]),
                                  list(np.array(mat['wholeEcho'])[:, 0] > 0),
+                                 hyper,
                                  list(ref),
                                  xaxA,
                                  history=history)
