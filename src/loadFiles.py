@@ -366,13 +366,16 @@ def loadMatlabFile(filePath, name=''):
             hyper = None
         data = []
         if mat['dim'] == 1:
-            data = mat['data'][0][0][0]
+            if hyper is None:
+                data = [np.array(mat['data'][0][0][0])]
+            else:
+                data = list(np.array(mat['data'][0][0]))
             xaxA = [k[0] for k in (mat['xaxArray'][0])]
         else:
             if hyper is None: #If old format
-                data = [mat['data'][0, 0]]
+                data = [np.array(mat['data'][0, 0])]
             else: #If new format
-                data = list(mat['data'][0][0])
+                data = list(np.array(mat['data'][0][0]))
             if all(x == data[0].shape[0] for x in data[0].shape):
                 xaxA = [k for k in (mat['xaxArray'][0, 0])]
             else:
@@ -769,9 +772,9 @@ def LoadSimpsonFile(filePath, name=''):
     elif 'SPE' in TYPE:
         spec = [True]
     if NI is 1:
-        masterData = sc.Spectrum(name, data, (4, filePath), [0], [SW], spec)
+        masterData = sc.Spectrum(name, [data], (4, filePath), [0], [SW], spec)
     else:
-        masterData = sc.Spectrum(name, data, (4, filePath), [0, 0], [SW1, SW], spec * 2)
+        masterData = sc.Spectrum(name, [data], (4, filePath), [0, 0], [SW1, SW], spec * 2)
     masterData.addHistory("SIMPSON data loaded from " + filePath)
     return masterData
 

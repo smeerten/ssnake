@@ -2013,8 +2013,11 @@ class Main1DWindow(QtWidgets.QWidget):
         scipy.io.savemat(name, matlabStruct)
 
     def SaveSimpsonFile(self):
-        if self.masterData.data.ndim > 2:
+        if self.masterData.data[0].ndim > 2:
             self.father.dispMsg('Saving to Simpson format only allowed for 1D and 2D data!')
+            return
+        if len(self.masterData.data) > 1:
+            self.father.dispMsg('Saving to Simpson format not allowed for hypercomplex data!')
             return
         WorkspaceName = self.father.workspaceNames[self.father.workspaceNum]  # Set name of file to be saved to workspace name to start
         if sum(self.masterData.spec) / len(self.masterData.spec) == 1:
@@ -2035,27 +2038,27 @@ class Main1DWindow(QtWidgets.QWidget):
         self.father.LastLocation = os.path.dirname(name)  # Save used path
         with open(name, 'w') as f:
             f.write('SIMP\n')
-            if self.masterData.data.ndim is 2:
-                f.write('NP=' + str(self.masterData.data.shape[1]) + '\n')
-                f.write('NI=' + str(self.masterData.data.shape[0]) + '\n')
+            if self.masterData.data[0].ndim is 2:
+                f.write('NP=' + str(self.masterData.data[0].shape[1]) + '\n')
+                f.write('NI=' + str(self.masterData.data[0].shape[0]) + '\n')
                 f.write('SW=' + str(self.masterData.sw[1]) + '\n')
                 f.write('SW1=' + str(self.masterData.sw[0]) + '\n')
             else:
-                f.write('NP=' + str(self.masterData.data.shape[0]) + '\n')
+                f.write('NP=' + str(self.masterData.data[0].shape[0]) + '\n')
                 f.write('SW=' + str(self.masterData.sw[0]) + '\n')
             if self.masterData.spec[0]:
                 f.write('TYPE=SPE' + '\n')
             else:
                 f.write('TYPE=FID' + '\n')
             f.write('DATA' + '\n')
-            if self.masterData.data.ndim is 1:
-                for Line in self.masterData.data:
+            if self.masterData.data[0].ndim is 1:
+                for Line in self.masterData.data[0]:
                     f.write(str(Line.real) + ' ' + str(Line.imag) + '\n')
-            if self.masterData.data.ndim is 2:
-                Points = self.masterData.data.shape
+            if self.masterData.data[0].ndim is 2:
+                Points = self.masterData.data[0].shape
                 for iii in range(0, Points[0]):
                     for jjj in range(0, Points[1]):
-                        f.write(str(self.masterData.data[iii][jjj].real) + ' ' + str(self.masterData.data[iii][jjj].imag) + '\n')
+                        f.write(str(self.masterData.data[0][iii][jjj].real) + ' ' + str(self.masterData.data[0][iii][jjj].imag) + '\n')
             f.write('END')
 
     def saveASCIIFile(self):
