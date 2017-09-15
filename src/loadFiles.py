@@ -325,7 +325,7 @@ def loadJSONFile(filePath, name=''):
              data.append(np.array(tmpReal[index])+ 1j * np.array(tmpImag[index]))
     except:
         hyper = None
-        data = np.array(struct['dataReal']) + 1j * np.array(struct['dataImag'])
+        data = [np.array(struct['dataReal']) + 1j * np.array(struct['dataImag'])]
 
     ref = np.where(np.isnan(struct['ref']), None, struct['ref'])
     if 'history' in struct.keys():

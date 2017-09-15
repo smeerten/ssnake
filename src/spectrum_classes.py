@@ -941,7 +941,7 @@ class Spectrum(object):
         else:
             return lambda self: self.setPhase(-phase0, -phase1, axes, None, None)
     
-    def setPhase(self, phase0, phase1, axes, hyperIn, hyperAxis, select=slice(None)):
+    def setPhase(self, phase0, phase1, axes, select=slice(None)):
         if isinstance(select, string_types):
             select = safeEval(select)
         axes = self.checkAxes(axes)
@@ -958,15 +958,7 @@ class Spectrum(object):
             self.data[index][select] = self.data[index][select] * np.exp(phase0 * 1j)
             self.data[index][select] = np.apply_along_axis(np.multiply, axes, self.data[index], vector)[select]
 
-        if hyperIn is not None:
-            hyperindex = self.hyper.index(hyperAxis)
-            #Get positions to be phased
-            hyperFrac = [np.cos(hyperIn), np.sin(hyperIn)]
-            hyper1 = self.data[0][select]
-            hyper2 = self.data[1][select]
-            self.data[0][select] = hyperFrac[0] * hyper1 - hyperFrac[1] * hyper2
-            self.data[1][select] = hyperFrac[1] * hyper1 + hyperFrac[0] * hyper2
-
+       
         if self.spec[axes] == 0:
             self.fourier(axes, tmp=True, inv=True)
         Message = "Phasing: phase0 = " + str(phase0 * 180 / np.pi) + " and phase1 = " + str(phase1 * 180 / np.pi) + " for dimension " + str(axes + 1)
@@ -976,11 +968,7 @@ class Spectrum(object):
         if self.noUndo:
             return None
         else:
-            if hyperIn is not None:
-                val = -hyperIn
-            else:
-                val = None
-            return lambda self: self.setPhase(-phase0, -phase1, axes, val, hyperAxis, select=select)
+            return lambda self: self.setPhase(-phase0, -phase1, axes, select=select)
 
     def apodize(self, lor, gauss, cos2, hamming, shift, shifting, shiftingAxes, axes, select=slice(None)):
         if isinstance(select, string_types):
@@ -1759,11 +1747,9 @@ class Current1D(Plot1DFrame):
             self.diagonalMult = diagonalMult
         self.showFid()
         
-    def setPhaseInter(self, phase0in, phase1in, hyperin = None, hyperaxis = None):  # interactive changing the phase without editing the actual data
+    def setPhaseInter(self, phase0in, phase1in ):  # interactive changing the phase without editing the actual data
         phase0 = float(phase0in)
         phase1 = float(phase1in)
-        if hyperin is not None:
-            hyperin = float(hyperin)
         self.upd()
         if self.spec == 0:
             tmpdata = self.fourierLocal(self.data1D, 0)
@@ -1771,15 +1757,6 @@ class Current1D(Plot1DFrame):
             tmpdata = self.data1D
         for index in range(len(tmpdata)):
             tmpdata[index] = tmpdata[index] * np.exp(phase0 * 1j)
-        if hyperin is not None:
-            hyperindex = self.data.hyper.index(hyperaxis)
-            #Get positions to be phased
-            hyperFrac = [np.cos(hyperin), np.sin(hyperin)]
-            hyper1 = tmpdata[0]
-            hyper2 = tmpdata[1]
-            tmpdata[0] = hyperFrac[0] * hyper1 - hyperFrac[1] * hyper2
-            tmpdata[1] = hyperFrac[1] * hyper1 + hyperFrac[0] * hyper2
-
 
         if self.ref is None:
             offset = 0
@@ -1796,19 +1773,17 @@ class Current1D(Plot1DFrame):
         self.data1D = tmpdata
         self.showFid()
 
-    def applyPhase(self, phase0, phase1, hyperIn = None, hyperAxis = None, select=False):  # apply the phase to the actual data
+    def applyPhase(self, phase0, phase1, select=False):  # apply the phase to the actual data
         phase0 = float(phase0)
         phase1 = float(phase1)
-        if hyperIn is not None:
-            hyperIn = float(hyperIn)
         if select:
             selectSlice = self.getSelect()
         else:
             selectSlice = slice(None)
-        returnValue = self.data.setPhase(phase0, phase1, self.axes, hyperIn, hyperAxis, selectSlice)
+        returnValue = self.data.setPhase(phase0, phase1, self.axes, selectSlice)
         self.upd()
         self.showFid()
-        self.root.addMacro(['phase', (phase0, phase1, self.axes - self.data.data[0].ndim, hyperIn, hyperAxis, str(selectSlice))])
+        self.root.addMacro(['phase', (phase0, phase1, self.axes - self.data.data[0].ndim, str(selectSlice))])
         return returnValue
 
     def fourier(self):  # fourier the actual data and replot
@@ -1846,10 +1821,16 @@ class Current1D(Plot1DFrame):
                 for index in range(len(fourData)):
                     fourData[index][slicing] = fourData[index][slicing] * 0.5
             for index in range(len(fourData)):
-                fourData[index] = np.fft.fftshift(np.fft.fftn(fourData[index], axes=[ax]), axes=ax)
+                if ax == 0:
+                    fourData[index] = np.fft.fftshift(np.fft.fft(fourData[index]))
+                else:
+                    fourData[index] = np.fft.fftshift(np.fft.fftn(fourData[index], axes=[ax]), axes=ax)
         else:
             for index in range(len(fourData)):
-                fourData[index] = np.fft.ifftn(np.fft.ifftshift(fourData[index], axes=ax), axes=[ax])
+                if ax == 0:
+                    fourData[index] = np.fft.ifft(np.fft.ifftshift(fourData[index]))
+                else:
+                    fourData[index] = np.fft.ifftn(np.fft.ifftshift(fourData[index], axes=ax), axes=[ax])
             if not self.wholeEcho:
                 slicing = (slice(None), ) * ax + (0, )
                 for index in range(len(fourData)):
@@ -1871,24 +1852,26 @@ class Current1D(Plot1DFrame):
         t = np.arange(0, length) / (self.sw)
         x = func.apodize(t,shift,self.sw,length,lor,gauss,cos2,hamming,self.wholeEcho)
         self.ax.cla()
-        y = self.data1D[hyperView]
+        y = copy.copy(self.data1D)
         if self.spec == 1:
-            y = np.fft.ifft(np.fft.ifftshift(y))
-            y = y * x
-            y = np.fft.fftshift(np.fft.fft(y))
+            y = self.fourierLocal(y, 1)
+            for index in range(len(y)):
+                y[index] = y[index] * x
+            y = self.fourierLocal(y, 0)
         else:
-            y = y * x
+            for index in range(len(y)):
+                y[index] = y[index] * x
         if self.spec == 0:
             if self.plotType == 0:
-                self.showFid(y, [t], [x * max(np.real(self.data1D[hyperView]))], ['g'], old=True)
+                self.showFid(y[hyperView], [t], [x * max(np.real(self.data1D[hyperView]))], ['g'], old=True)
             elif self.plotType == 1:
-                self.showFid(y, [t], [x * max(np.imag(self.data1D[hyperView]))], ['g'], old=True)
+                self.showFid(y[hyperView], [t], [x * max(np.imag(self.data1D[hyperView]))], ['g'], old=True)
             elif self.plotType == 2:
-                self.showFid(y, [t], [x * max(max(np.real(self.data1D[hyperView])), max(np.imag(self.data1D[hyperView])))], ['g'], old=True)
+                self.showFid(y[hyperView], [t], [x * max(max(np.real(self.data1D[hyperView])), max(np.imag(self.data1D[hyperView])))], ['g'], old=True)
             elif self.plotType == 3:
-                self.showFid(y, [t], [x * max(np.abs(self.data1D[hyperView]))], ['g'], old=True)
+                self.showFid(y[hyperView], [t], [x * max(np.abs(self.data1D[hyperView]))], ['g'], old=True)
         else:
-            self.showFid(y)
+            self.showFid(y[hyperView])
 
     def applyApod(self, lor=None, gauss=None, cos2=None, hamming=None, shift=0.0, shifting=0.0, shiftingAxes=0, select=False):  # apply the apodization to the actual data
         if select:
@@ -2058,11 +2041,9 @@ class Current1D(Plot1DFrame):
         else:
             length = len(self.data1D[0])
         if self.spec == 1:
-            tmpdata = []
-            for index in range(len(self.data1D)):
-                tmpdata.append(self.fourierLocal(self.data1D[index], 1))
+            tmpdata = self.fourierLocal(self.data1D, 1)
         else:
-            tmpdata = self.data1D
+            tmpdata = copy.copy(self.data1D)
         axes = len(self.data1D[0].shape) - 1
         if size > length:
             slicing1 = (slice(None), ) * axes + (slice(None, pos), ) + (slice(None), ) * (tmpdata[0].ndim - 1 - axes)
@@ -2080,7 +2061,7 @@ class Current1D(Plot1DFrame):
                 slicing = (slice(None), ) * axes + (slice(tmpdata[0].shape[axes] - size, None), ) + (slice(None), ) * (tmpdata[0].ndim - 1 - axes)
                 for index in range(len(self.data1D)):
                     tmpdata[index] = tmpdata[index][slicing]
-            elif tmpdata.shape[axes] - pos < removeEnd:
+            elif tmpdata[0].shape[axes] - pos < removeEnd:
                 slicing = (slice(None), ) * axes + (slice(None, size), ) + (slice(None), ) * (tmpdata[0].ndim - 1 - axes)
                 for index in range(len(self.data1D)):
                     tmpdata[index] = tmpdata[index][slicing]
@@ -2090,8 +2071,7 @@ class Current1D(Plot1DFrame):
                 for index in range(len(self.data1D)):
                     tmpdata[index] = np.concatenate((tmpdata[index][slicing1], tmpdata[index][slicing2]), axis=axes)
         if self.spec == 1:
-            for index in range(len(self.data1D)):
-                self.data1D[index] = self.fourierLocal(tmpdata[index], 0)
+            self.data1D = self.fourierLocal(tmpdata, 0)
         else:
             self.data1D = tmpdata
         if len(self.data1D[0].shape) > 1:
@@ -2701,6 +2681,7 @@ class Current1D(Plot1DFrame):
             return int(np.floor(np.log10(absVal)))
 
     def showFid(self, tmpdata=None, extraX=None, extraY=None, extraColor=None, old=False, output=None):  # display the 1D data
+        hyperView = 0
         self.peakPickReset()
         if tmpdata is None:
             tmpdata = self.data1D[0]
@@ -2716,24 +2697,24 @@ class Current1D(Plot1DFrame):
         if old:
             if (self.plotType == 0):
                 if self.single:
-                    self.ax.plot(self.line_xdata, np.real(self.data1D[0]), marker='o', linestyle='none', c='k', alpha=0.2, label=self.data.name + '_old', picker=True)
+                    self.ax.plot(self.line_xdata, np.real(self.data1D[hyperView]), marker='o', linestyle='none', c='k', alpha=0.2, label=self.data.name + '_old', picker=True)
                 else:
-                    self.ax.plot(self.line_xdata, np.real(self.data1D[0]), c='k', alpha=0.2, linewidth=self.linewidth, label=self.data.name + '_old', picker=True)
+                    self.ax.plot(self.line_xdata, np.real(self.data1D[hyperView]), c='k', alpha=0.2, linewidth=self.linewidth, label=self.data.name + '_old', picker=True)
             elif(self.plotType == 1):
                 if self.single:
-                    self.ax.plot(self.line_xdata, np.imag(self.data1D[0]), marker='o', linestyle='none', c='k', alpha=0.2, label=self.data.name + '_old', picker=True)
+                    self.ax.plot(self.line_xdata, np.imag(self.data1D[hyperView]), marker='o', linestyle='none', c='k', alpha=0.2, label=self.data.name + '_old', picker=True)
                 else:
-                    self.ax.plot(self.line_xdata, np.imag(self.data1D[0]), c='k', alpha=0.2, linewidth=self.linewidth, label=self.data.name + '_old', picker=True)
+                    self.ax.plot(self.line_xdata, np.imag(self.data1D[hyperView]), c='k', alpha=0.2, linewidth=self.linewidth, label=self.data.name + '_old', picker=True)
             elif(self.plotType == 2):
                 if self.single:
-                    self.ax.plot(self.line_xdata, np.real(self.data1D[0]), marker='o', linestyle='none', c='k', alpha=0.2, label=self.data.name + '_old', picker=True)
+                    self.ax.plot(self.line_xdata, np.real(self.data1D[hyperView]), marker='o', linestyle='none', c='k', alpha=0.2, label=self.data.name + '_old', picker=True)
                 else:
-                    self.ax.plot(self.line_xdata, np.real(self.data1D[0]), c='k', alpha=0.2, linewidth=self.linewidth, label=self.data.name + '_old', picker=True)
+                    self.ax.plot(self.line_xdata, np.real(self.data1D[hyperView]), c='k', alpha=0.2, linewidth=self.linewidth, label=self.data.name + '_old', picker=True)
             elif(self.plotType == 3):
                 if self.single:
-                    self.ax.plot(self.line_xdata, np.abs(self.data1D[0]), marker='o', linestyle='none', c='k', alpha=0.2, label=self.data.name + '_old', picker=True)
+                    self.ax.plot(self.line_xdata, np.abs(self.data1D[hyperView]), marker='o', linestyle='none', c='k', alpha=0.2, label=self.data.name + '_old', picker=True)
                 else:
-                    self.ax.plot(self.line_xdata, np.abs(self.data1D[0]), c='k', alpha=0.2, linewidth=self.linewidth, label=self.data.name + '_old', picker=True)
+                    self.ax.plot(self.line_xdata, np.abs(self.data1D[hyperView]), c='k', alpha=0.2, linewidth=self.linewidth, label=self.data.name + '_old', picker=True)
         if (extraX is not None):
             for num in range(len(extraX)):
                 if self.single:
@@ -3392,25 +3373,27 @@ class CurrentStacked(Current1D):
         else:
             x = func.apodize(t, shift, self.sw, len(self.data1D[0][0]), lor, gauss, cos2, hamming, self.wholeEcho)
             x = np.repeat([x], len(self.data1D[0]), axis=0)
-        y = self.data1D[hyperView]
+        y = copy.copy(self.data1D)
         self.ax.cla()
         if self.spec == 1:
-            y = np.fft.ifftn(np.fft.ifftshift(y, axes=1), axes=[1])
-            y = y * x
-            y = np.fft.fftshift(np.fft.fftn(y, axes=[1]), axes=1)
+            y = self.fourierLocal(y, 1)
+            for index in range(len(y)):
+                y[index] = y[index] * x
+            y = self.fourierLocal(y, 0)
         else:
-            y = y * x
+            for index in range(len(y)):
+                y[index] = y[index] * x
         if self.spec == 0:
             if self.plotType == 0:
-                self.showFid(y, [t], x * np.amax(np.real(self.data1D[hyperView])), ['g'], old=True)
+                self.showFid(y[hyperView], [t], x * np.amax(np.real(self.data1D[hyperView])), ['g'], old=True)
             elif self.plotType == 1:
-                self.showFid(y, [t], x * np.amax(np.imag(self.data1D[hyperView])), ['g'], old=True)
+                self.showFid(y[hyperView], [t], x * np.amax(np.imag(self.data2D[hyperView])), ['g'], old=True)
             elif self.plotType == 2:
-                self.showFid(y, [t], x * np.amax(np.amax(np.real(self.data1D[hyperView])), np.amax(np.imag(self.data1D[hyperView]))), ['g'], old=True)
+                self.showFid(y[hyperView], [t], x * np.amax(np.amax(np.real(self.data1D[hyperView])), np.amax(np.imag(self.data1D[hyperView]))), ['g'], old=True)
             elif self.plotType == 3:
-                self.showFid(y, [t], x * np.amax(np.abs(self.data1D[hyperView])), ['g'], old=True)
+                self.showFid(y[hyperView], [t], x * np.amax(np.abs(self.data1D[hyperView])), ['g'], old=True)
         else:
-            self.showFid(y)
+            self.showFid(y[hyperView])
 
     def setSpacing(self, spacing):
         self.spacing = spacing
@@ -3732,25 +3715,28 @@ class CurrentArrayed(Current1D):
         else:
             x = func.apodize(t, shift, self.sw, len(self.data1D[0][0]), lor, gauss, cos2, hamming, self.wholeEcho)
             x = np.repeat([x], len(self.data1D[0]), axis=0)
-        y = self.data1D[hyperView]
+        y = copy.copy(self.data1D)
         self.ax.cla()
         if self.spec == 1:
-            y = np.fft.ifftn(np.fft.ifftshift(y, axes=1), axes=[1])
-            y = y * x
-            y = np.fft.fftshift(np.fft.fftn(y, axes=[1]), axes=1)
+            y = self.fourierLocal(y, 1)
+            for index in range(len(y)):
+                y[index] = y[index] * x
+            y = self.fourierLocal(y, 0)
         else:
-            y = y * x
+            for index in range(len(y)):
+                y[index] = y[index] * x
+
         if self.spec == 0:
             if self.plotType == 0:
-                self.showFid(y, [t], x * np.amax(np.real(self.data1D[hyperView])), ['g'], old=True)
+                self.showFid(y[hyperView], [t], x * np.amax(np.real(self.data1D[hyperView])), ['g'], old=True)
             elif self.plotType == 1:
-                self.showFid(y, [t], x * np.amax(np.imag(self.data1D[hyperView])), ['g'], old=True)
+                self.showFid(y[hyperView], [t], x * np.amax(np.imag(self.data1D[hyperView])), ['g'], old=True)
             elif self.plotType == 2:
-                self.showFid(y, [t], x * np.amax(np.amax(np.real(self.data1D[hyperView])), np.amax(np.imag(self.data1D[hyperView]))), ['g'], old=True)
+                self.showFid(y[hyperView], [t], x * np.amax(np.amax(np.real(self.data1D[hyperView])), np.amax(np.imag(self.data1D[hyperView]))), ['g'], old=True)
             elif self.plotType == 3:
-                self.showFid(y, [t], x * np.amax(np.abs(self.data1D[hyperView])), ['g'], old=True)
+                self.showFid(y[hyperView], [t], x * np.amax(np.abs(self.data1D[hyperView])), ['g'], old=True)
         else:
-            self.showFid(y)
+            self.showFid(y[hyperView])
 
     def setSpacing(self, spacing):
         self.spacing = spacing
@@ -4135,16 +4121,18 @@ class CurrentContour(Current1D):
                 x = np.repeat([x], len(self.data1D), axis=0)
         else:
             x = func.apodize(t, shift, self.sw, len(self.data1D[0][0]), lor, gauss, cos2, hamming, self.wholeEcho)
-            x = np.repeat([x], len(self.data1D), axis=0)
-        y = self.data1D[hyperView]
+            x = np.repeat([x], len(self.data1D[0]), axis=0)
+        y = copy.copy(self.data1D)
         self.ax.cla()
         if self.spec == 1:
-            y = np.fft.ifftn(np.fft.ifftshift(y, axes=1), axes=[1])
-            y = y * x
-            y = np.fft.fftshift(np.fft.fftn(y, axes=[1]), axes=1)
+            y = self.fourierLocal(y, 1)
+            for index in range(len(y)):
+                y[index] = y[index] * x
+            y = self.fourierLocal(y, 0)
         else:
-            y = y * x
-        self.showFid(y)
+            for index in range(len(y)):
+                y[index] = y[index] * x
+        self.showFid(y[hyperView])
 
     def showFid(self, tmpdata=None):  # display the 1D data
         self.differ = None
