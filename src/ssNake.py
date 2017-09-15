@@ -2062,8 +2062,11 @@ class Main1DWindow(QtWidgets.QWidget):
             f.write('END')
 
     def saveASCIIFile(self):
-        if self.masterData.data.ndim > 2:
+        if self.masterData.data[0].ndim > 2:
             self.father.dispMsg('Saving to ASCII format only allowed for 1D and 2D data!')
+            return
+        if len(self.masterData.data) > 1:
+            self.father.dispMsg('Saving to ASCII format not allowed for hypercomplex data!')
             return
         WorkspaceName = self.father.workspaceNames[self.father.workspaceNum]  # Set name of file to be saved to workspace name to start
         name = QtWidgets.QFileDialog.getSaveFileName(self, 'Save File', self.father.LastLocation + os.path.sep + WorkspaceName + '.txt', 'ASCII file (*.txt)')
@@ -2088,10 +2091,10 @@ class Main1DWindow(QtWidgets.QWidget):
         axis = np.array([self.masterData.xaxArray[-1] * axMult]).transpose()
 
 
-        if self.masterData.data.ndim == 1:  # create nx1 matrix if it is a 1d data set
-            data = np.array([self.masterData.data]).transpose()
+        if self.masterData.data[0].ndim == 1:  # create nx1 matrix if it is a 1d data set
+            data = np.array([self.masterData.data[0]]).transpose()
         else:
-            data = self.masterData.data.transpose()
+            data = self.masterData.data[0].transpose()
         splitdata = np.zeros([data.shape[0], data.shape[1] * 2])
         for line in np.arange(data.shape[1]):
             splitdata[:, line * 2] = np.real(data[:, line])
