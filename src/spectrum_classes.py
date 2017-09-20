@@ -39,35 +39,6 @@ COLORCYCLE = list(matplotlib.rcParams['axes.prop_cycle'])
 COLORCONVERTER = matplotlib.colors.ColorConverter()
 
 #########################################################################
-# The function for automatic phasing
-
-
-def ACMEentropy(phaseIn, data, sw, spec, phaseAll=True):
-    phase0 = phaseIn[0]
-    if phaseAll:
-        phase1 = phaseIn[1]
-    else:
-        phase1 = 0.0
-    L = len(data)
-    x = np.fft.fftshift(np.fft.fftfreq(L, 1.0 / sw)) / sw
-    if spec > 0:
-        s0 = data * np.exp(1j * (phase0 + phase1 * x))
-    else:
-        s0 = np.fft.fftshift(np.fft.fft(data)) * np.exp(1j * (phase0 + phase1 * x))
-    s2 = np.real(s0)
-    ds1 = np.abs((s2[3:L] - s2[1:L - 2]) / 2.0)
-    p1 = ds1 / sum(ds1)
-    p1[np.where(p1 == 0)] = 1
-    h1 = -p1 * np.log(p1)
-    H1 = sum(h1)
-    Pfun = 0.0
-    as1 = s2 - np.abs(s2)
-    sumas = sum(as1)
-    if (np.real(sumas) < 0):
-        Pfun = Pfun + sum(as1**2) / 4 / L**2
-    return H1 + 1000 * Pfun
-
-#########################################################################
 # the generic data class
 
 
@@ -915,11 +886,11 @@ class Spectrum(object):
             return None
         tmp = self.data[hyperView][tuple(locList[:axes]) + (slice(None), ) + tuple(locList[axes:])]
         if phaseNum == 0:
-            phases = scipy.optimize.minimize(ACMEentropy, [0], (tmp, self.sw[axes], self.spec[axes], False), method='Powell')
+            phases = scipy.optimize.minimize(self.ACMEentropy, [0], (tmp, self.sw[axes], self.spec[axes], False), method='Powell')
             phase0 = phases['x']
             phase1 = 0.0
         elif phaseNum == 1:
-            phases = scipy.optimize.minimize(ACMEentropy, [0, 0], (tmp, self.sw[axes], self.spec[axes]), method='Powell')
+            phases = scipy.optimize.minimize(self.ACMEentropy, [0, 0], (tmp, self.sw[axes], self.spec[axes]), method='Powell')
             phase0 = phases['x'][0]
             phase1 = phases['x'][1]
         if self.ref[axes] is None:
@@ -940,7 +911,34 @@ class Spectrum(object):
             return None
         else:
             return lambda self: self.setPhase(-phase0, -phase1, axes, None, None)
-    
+
+
+    def ACMEentropy(self, phaseIn, data, sw, spec, phaseAll=True):
+        phase0 = phaseIn[0]
+        if phaseAll:
+            phase1 = phaseIn[1]
+        else:
+            phase1 = 0.0
+        L = len(data)
+        x = np.fft.fftshift(np.fft.fftfreq(L, 1.0 / sw)) / sw
+        if spec > 0:
+            s0 = data * np.exp(1j * (phase0 + phase1 * x))
+        else:
+            s0 = np.fft.fftshift(np.fft.fft(data)) * np.exp(1j * (phase0 + phase1 * x))
+        s2 = np.real(s0)
+        ds1 = np.abs((s2[3:L] - s2[1:L - 2]) / 2.0)
+        p1 = ds1 / sum(ds1)
+        p1[np.where(p1 == 0)] = 1
+        h1 = -p1 * np.log(p1)
+        H1 = sum(h1)
+        Pfun = 0.0
+        as1 = s2 - np.abs(s2)
+        sumas = sum(as1)
+        if (np.real(sumas) < 0):
+            Pfun = Pfun + sum(as1**2) / 4 / L**2
+        return H1 + 1000 * Pfun
+
+
     def setPhase(self, phase0, phase1, axes, select=slice(None)):
         if isinstance(select, string_types):
             select = safeEval(select)
@@ -2586,10 +2584,10 @@ class Current1D(Plot1DFrame):
         else:
             tmp = self.data1D[hyperView]
         if phaseNum == 0:
-            phases = scipy.optimize.minimize(ACMEentropy, [0], (tmp, self.sw, self.spec, False), method='Powell')
+            phases = scipy.optimize.minimize(self.data.ACMEentropy, [0], (tmp, self.sw, self.spec, False), method='Powell')
             phases = [phases['x']]
         elif phaseNum == 1:
-            phases = scipy.optimize.minimize(ACMEentropy, [0, 0], (tmp, self.sw, self.spec), method='Powell')
+            phases = scipy.optimize.minimize(self.data.ACMEentropy, [0, 0], (tmp, self.sw, self.spec), method='Powell')
             phases = phases['x']
         return phases
 
