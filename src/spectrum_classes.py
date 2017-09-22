@@ -44,7 +44,7 @@ COLORCONVERTER = matplotlib.colors.ColorConverter()
 
 class Spectrum(object):
 
-    def __init__(self, name, data, filePath, freq, sw, spec=None, wholeEcho=None, hyper = [], ref=None, xaxArray=None, history=None, msgHandler=None):
+    def __init__(self, name, data, filePath, freq, sw, spec=None, wholeEcho=None, hyper = None, ref=None, xaxArray=None, history=None, msgHandler=None):
         self.name = name
         if isinstance(data, (list)):
             self.data = []
@@ -54,8 +54,10 @@ class Spectrum(object):
             self.data = [np.array(data, dtype=complex)]  # data of dimension dim
         if hyper is None:
             self.hyper = [] #Holds the axes where hypercomplex data exists
+            print('start',self.hyper)
         else:
             self.hyper = hyper
+            print('start2',self.hyper)
         self.filePath = filePath
         self.freq = np.array(freq)  # array of center frequency (length is dim, MHz)
         self.sw = sw  # array of sweepwidths
@@ -1358,6 +1360,7 @@ class Spectrum(object):
         else:
             print('error in hyper')
         hyperLen = len(data)
+        print('hyper',hyper)
         if hyper == 0: #if first index
             step = 1
             amount = int(hyperLen/(step + 1))
