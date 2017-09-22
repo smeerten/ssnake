@@ -980,6 +980,18 @@ class Spectrum(object):
                     fourData[index][slicing] = fourData[index][slicing] * 2.0
         return fourData
 
+    def phaseLocal(self, data, sw, offset, phase0, phase1, axis = None): #Provides a phase function on any data
+        #Data input always as spectrum (calling code should make sure of this)
+        if len(data[0].shape) > 1:
+            mult = np.repeat([np.exp(np.fft.fftshift(np.fft.fftfreq(len(data[0][0]), 1.0 / self.sw) + offset) / sw * phase1 * 1j)], len(data[0]), axis=0)
+        else:
+            mult = np.exp(np.fft.fftshift(np.fft.fftfreq(len(data[0]), 1.0 / sw) + offset) / sw * phase1 * 1j)
+        for index in range(len(data)):
+            data[index] = data[index] * mult
+        print('test')
+        return data
+
+
     def setPhase(self, phase0, phase1, axes, select=slice(None)):
         if isinstance(select, string_types):
             select = safeEval(select)
@@ -1830,12 +1842,7 @@ class Current1D(Plot1DFrame):
             offset = 0
         else:
             offset = +self.freq - self.ref
-        if len(self.data1D[0].shape) > 1:
-            mult = np.repeat([np.exp(np.fft.fftshift(np.fft.fftfreq(len(tmpdata[0][0]), 1.0 / self.sw) + offset) / self.sw * phase1 * 1j)], len(tmpdata[0]), axis=0)
-        else:
-            mult = np.exp(np.fft.fftshift(np.fft.fftfreq(len(tmpdata[0]), 1.0 / self.sw) + offset) / self.sw * phase1 * 1j)
-        for index in range(len(tmpdata)):
-            tmpdata[index] = tmpdata[index] * mult
+        tmpdata = self.data.phaseLocal(tmpdata,self.sw,offset,phase0,phase1,self.axes)
         if self.spec == 0:
             tmpdata = self.fourierLocal(tmpdata, 1)
         self.data1D = tmpdata
