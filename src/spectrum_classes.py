@@ -980,16 +980,19 @@ class Spectrum(object):
                     fourData[index][slicing] = fourData[index][slicing] * 2.0
         return fourData
 
-    def phaseLocal(self, data, sw, offset, phase0, phase1, axis = None): #Provides a phase function on any data
+    def phaseLocal(self, data, sw, offset, phase0, phase1, axis): #Provides a phase function on any data
+
+        tmpdat = self.hyperReorder(data, axis)
         #Data input always as spectrum (calling code should make sure of this)
         if len(data[0].shape) > 1:
-            mult = np.repeat([np.exp(np.fft.fftshift(np.fft.fftfreq(len(data[0][0]), 1.0 / self.sw) + offset) / sw * phase1 * 1j)], len(data[0]), axis=0)
+            mult = np.repeat([np.exp(np.fft.fftshift(np.fft.fftfreq(len(data[0][0]), 1.0 / sw) + offset) / sw * phase1 * 1j)], len(tmpdat[0]), axis=0)
         else:
             mult = np.exp(np.fft.fftshift(np.fft.fftfreq(len(data[0]), 1.0 / sw) + offset) / sw * phase1 * 1j)
-        for index in range(len(data)):
-            data[index] = data[index] * mult
-        print('test')
-        return data
+        for index in range(len(tmpdat)):
+            tmpdat[index] = tmpdat[index] * mult * np.exp(phase0 * 1j)
+
+        tmpdat = self.hyperReorder(tmpdat, axis)
+        return tmpdat
 
 
     def setPhase(self, phase0, phase1, axes, select=slice(None)):
@@ -1003,13 +1006,16 @@ class Spectrum(object):
         else:
             offset = self.freq[axes] - self.ref[axes]
         vector = np.exp(np.fft.fftshift(np.fft.fftfreq(self.data[0].shape[axes], 1.0 / self.sw[axes]) + offset) / self.sw[axes] * phase1 * 1j)
+        if self.spec[axes] == 0:
+            self.fourier(axes, tmp=True)
+
+        self.data = self.hyperReorder(self.data, axes)
         for index in range(len(self.data)):
-            if self.spec[axes] == 0:
-                self.fourier(axes, tmp=True)
             self.data[index][select] = self.data[index][select] * np.exp(phase0 * 1j)
             self.data[index][select] = np.apply_along_axis(np.multiply, axes, self.data[index], vector)[select]
 
-       
+        self.data = self.hyperReorder(self.data, axes)
+
         if self.spec[axes] == 0:
             self.fourier(axes, tmp=True, inv=True)
         Message = "Phasing: phase0 = " + str(phase0 * 180 / np.pi) + " and phase1 = " + str(phase1 * 180 / np.pi) + " for dimension " + str(axes + 1)
@@ -1340,27 +1346,36 @@ class Spectrum(object):
         self.addHistory(Message)
         return returnValue
 
-    def fourier(self, axes, tmp=False, inv=False):
-        axes = self.checkAxes(axes)
-        hyper = [x for x in self.hyper if x == axes]
+
+
+
+    def hyperReorder(self, data, axis): #A function to reorder the data for a hypercomplex operation
+        hyper = [x for x in self.hyper if x == axis]
         if len(hyper) == 0:
             hyper = None
         elif len(hyper) == 1:
             hyper = self.hyper.index(hyper[0])
         else:
             print('error in hyper')
-        hyperLen = len(self.data)
-
+        hyperLen = len(data)
         if hyper == 0: #if first index
-            tmpdat = []
             step = 1
             amount = int(hyperLen/(step + 1))
-            for index in range(amount):
-                tmpdat.append(np.real(self.data[index*(step + 1)]) + 1j*np.real(self.data[index*(step + 1) + step ]))
-                tmpdat.append(np.imag(self.data[index*(step + 1)]) + 1j*np.imag(self.data[index*(step + 1) + step ]))
-
         elif hyper == None:
-            tmpdat = self.data
+            return data
+
+        tmpdat = []
+        for index in range(amount):
+            tmpdat.append(np.real(data[index*(step + 1)]) + 1j*np.real(data[index*(step + 1) + step ]))
+            tmpdat.append(np.imag(data[index*(step + 1)]) + 1j*np.imag(data[index*(step + 1) + step ]))
+
+        return tmpdat
+
+
+    def fourier(self, axes, tmp=False, inv=False):
+        axes = self.checkAxes(axes)
+       
+        tmpdat = self.hyperReorder(self.data, axes)
 
         if axes is None:
             return None
@@ -1385,14 +1400,7 @@ class Spectrum(object):
                 self.spec[axes] = 0
                 self.addHistory("Inverse Fourier transform dimension " + str(axes + 1))
 
-        if hyper == 0: #if first index
-            for index in range(amount):
-                self.data[index*(step + 1)] = np.real(tmpdat[index*(step + 1)]) + 1j*np.real(tmpdat[index*(step + 1) + step])
-                self.data[index*(step + 1) + 1] = np.imag(tmpdat[index*(step + 1)]) + 1j*np.imag(tmpdat[index*(step + 1) + step])
-
-        elif hyper == None:
-            self.data = tmpdat
-
+        self.data = self.hyperReorder(tmpdat, axes)
         self.resetXax(axes)
         if self.noUndo:
             return None
@@ -1835,13 +1843,11 @@ class Current1D(Plot1DFrame):
             tmpdata = self.fourierLocal(self.data1D, 0)
         else:
             tmpdata = self.data1D
-        for index in range(len(tmpdata)):
-            tmpdata[index] = tmpdata[index] * np.exp(phase0 * 1j)
-
         if self.ref is None:
             offset = 0
         else:
             offset = +self.freq - self.ref
+
         tmpdata = self.data.phaseLocal(tmpdata,self.sw,offset,phase0,phase1,self.axes)
         if self.spec == 0:
             tmpdata = self.fourierLocal(tmpdata, 1)
