@@ -54,10 +54,8 @@ class Spectrum(object):
             self.data = [np.array(data, dtype=complex)]  # data of dimension dim
         if hyper is None:
             self.hyper = [] #Holds the axes where hypercomplex data exists
-            print('start',self.hyper)
         else:
             self.hyper = hyper
-            print('start2',self.hyper)
         self.filePath = filePath
         self.freq = np.array(freq)  # array of center frequency (length is dim, MHz)
         self.sw = sw  # array of sweepwidths
@@ -897,13 +895,11 @@ class Spectrum(object):
         for item in self.data:
             tmp.append(item[tuple(locList[:axes]) + (slice(None), ) + tuple(locList[axes:])])
 
-
-
-
         if self.spec[axes] == 0:
-                tmp = self.fourierLocal(tmp,0)
+                tmp = self.fourierLocal(tmp,0, self.axes)
         x = np.fft.fftshift(np.fft.fftfreq(len(tmp[0]), 1.0 / self.sw[axes])) / self.sw[axes]
 
+        tmp = self.hyperReorder(tmp, axes)
         if phaseNum == 0:
             phases = scipy.optimize.minimize(self.ACMEentropy, [0], (tmp, x, False), method='Powell')
             phase0 = phases['x']
@@ -913,8 +909,10 @@ class Spectrum(object):
             phase0 = phases['x'][0]
             phase1 = phases['x'][1]
 
+        tmp = self.hyperReorder(tmp, axes)
+
         if self.spec == 0:
-                tmp = self.fourierLocal(tmp,1)
+                tmp = self.fourierLocal(tmp,1, self.axes)
         if self.ref[axes] is None:
             offset = 0
         else:
@@ -922,9 +920,11 @@ class Spectrum(object):
         vector = np.exp(np.fft.fftshift(np.fft.fftfreq(self.data[0].shape[axes], 1.0 / self.sw[axes]) + offset) / self.sw[axes] * phase1 * 1j)
         if self.spec[axes] == 0:
             self.fourier(axes, tmp=True)
+        self.data = self.hyperReorder(self.data, axes)
         for index in range(len(self.data)):
             self.data[index] = self.data[index] * np.exp(phase0 * 1j)
             self.data[index] = np.apply_along_axis(np.multiply, axes, self.data[index], vector)
+        self.data = self.hyperReorder(self.data, axes)
         if self.spec[axes] == 0:
             self.fourier(axes, tmp=True, inv=True)
         Message = "Autophase: phase0 = " + str(phase0 * 180 / np.pi) + " and phase1 = " + str(phase1 * 180 / np.pi) + " for dimension " + str(axes + 1)
@@ -958,8 +958,9 @@ class Spectrum(object):
             Pfun = Pfun + sum(as1**2) / 4 / L**2
         return H1 + 1000 * Pfun
 
-    def fourierLocal(self, fourData, spec, wholeEcho = False):  # fourier the local data for other functions
+    def fourierLocal(self, fourData, spec, axis, wholeEcho = False):  # fourier the local data for other functions
         ax = len(fourData[0].shape) - 1
+        fourData = self.hyperReorder(fourData, axis)
         if spec == 0:
             if not wholeEcho:
                 slicing = (slice(None), ) * ax + (0, )
@@ -980,6 +981,7 @@ class Spectrum(object):
                 slicing = (slice(None), ) * ax + (0, )
                 for index in range(len(fourData)):
                     fourData[index][slicing] = fourData[index][slicing] * 2.0
+        fourData = self.hyperReorder(fourData, axis)
         return fourData
 
     def phaseLocal(self, data, sw, offset, phase0, phase1, axis): #Provides a phase function on any data
@@ -1360,7 +1362,6 @@ class Spectrum(object):
         else:
             print('error in hyper')
         hyperLen = len(data)
-        print('hyper',hyper)
         if hyper == 0: #if first index
             step = 1
             amount = int(hyperLen/(step + 1))
@@ -1843,7 +1844,7 @@ class Current1D(Plot1DFrame):
         phase1 = float(phase1in)
         self.upd()
         if self.spec == 0:
-            tmpdata = self.fourierLocal(self.data1D, 0)
+            tmpdata = self.fourierLocal(self.data1D, 0, self.axes)
         else:
             tmpdata = self.data1D
         if self.ref is None:
@@ -1853,7 +1854,7 @@ class Current1D(Plot1DFrame):
 
         tmpdata = self.data.phaseLocal(tmpdata,self.sw,offset,phase0,phase1,self.axes)
         if self.spec == 0:
-            tmpdata = self.fourierLocal(tmpdata, 1)
+            tmpdata = self.fourierLocal(tmpdata, 1, self.axes)
         self.data1D = tmpdata
         self.showFid()
 
@@ -1897,9 +1898,9 @@ class Current1D(Plot1DFrame):
         self.root.addMacro(['fftshift', (self.axes - self.data.data[0].ndim, inv)])
         return returnValue
 
-    def fourierLocal(self, fourData, spec):  # fourier the local data for other functions
+    def fourierLocal(self, fourData, spec, axis):  # fourier the local data for other functions
         #Now links to data structure function
-        return self.data.fourierLocal(fourData, spec, self.wholeEcho)
+        return self.data.fourierLocal(fourData, spec, axis, self.wholeEcho)
 
     def apodPreview(self, lor=None, gauss=None, cos2=None, hamming=None, shift=0.0, shifting=0.0, shiftingAxes=None):  # display the 1D data including the apodization function
         hyperView = 0
@@ -1918,10 +1919,10 @@ class Current1D(Plot1DFrame):
         self.ax.cla()
         y = copy.copy(self.data1D)
         if self.spec == 1:
-            y = self.fourierLocal(y, 1)
+            y = self.fourierLocal(y, 1, self.axes)
             for index in range(len(y)):
                 y[index] = y[index] * x
-            y = self.fourierLocal(y, 0)
+            y = self.fourierLocal(y, 0, self.axes)
         else:
             for index in range(len(y)):
                 y[index] = y[index] * x
@@ -2104,17 +2105,17 @@ class Current1D(Plot1DFrame):
             length = len(self.data1D[0][0])
         else:
             length = len(self.data1D[0])
+        axes = len(self.data1D[0].shape) - 1
         if self.spec == 1:
-            tmpdata = self.fourierLocal(self.data1D, 1)
+            tmpdata = self.fourierLocal(self.data1D, 1, axes)
         else:
             tmpdata = copy.copy(self.data1D)
-        axes = len(self.data1D[0].shape) - 1
         if size > length:
             slicing1 = (slice(None), ) * axes + (slice(None, pos), ) + (slice(None), ) * (tmpdata[0].ndim - 1 - axes)
             slicing2 = (slice(None), ) * axes + (slice(pos, None), ) + (slice(None), ) * (tmpdata[0].ndim - 1 - axes)
 
             for index in range(len(self.data1D)):
-                tmpdata[index] = np.concatenate((np.pad(tmpdata[index][slicing1], [(0, 0)] * axes + [(0, size - tmpdata[0].shape[axes])] + [(0, 0)] * (tmpdata[0].ndim - axes - 1), 'constant', constant_values=0),
+                tmpdata[index] = np.concatenate((np.pad(tmpdata[index][slicing1], [(0, 0)] * axes + [(0, size - self.data1D[0].shape[axes])] + [(0, 0)] * (self.data1D[0].ndim - axes - 1), 'constant', constant_values=0),
                                       tmpdata[index][slicing2]),
                                      axes)
         else:
@@ -2134,8 +2135,10 @@ class Current1D(Plot1DFrame):
                 slicing2 = (slice(None), ) * axes + (slice(pos + removeEnd, None), ) + (slice(None), ) * (tmpdata[0].ndim - 1 - axes)
                 for index in range(len(self.data1D)):
                     tmpdata[index] = np.concatenate((tmpdata[index][slicing1], tmpdata[index][slicing2]), axis=axes)
+
+
         if self.spec == 1:
-            self.data1D = self.fourierLocal(tmpdata, 0)
+            self.data1D = self.fourierLocal(tmpdata, 0, axes)
         else:
             self.data1D = tmpdata
         if len(self.data1D[0].shape) > 1:
@@ -2224,14 +2227,14 @@ class Current1D(Plot1DFrame):
         tmpData = self.data1D[hyperView]
         dim = len(self.data1D[0].shape)
         if self.spec > 0:
-            tmpData = self.fourierLocal(tmpData, 1)
+            tmpData = self.fourierLocal(tmpData, 1, self.axes)
         tmpData = np.roll(tmpData, shift)
         if shift < 0:
             tmpData[(slice(None), ) * (dim - 1) + (slice(shift, None), )] = tmpData[(slice(None), ) * (dim - 1) + (slice(shift, None), )] * 0
         else:
             tmpData[(slice(None), ) * (dim - 1) + (slice(None, shift), )] = tmpData[(slice(None), ) * (dim - 1) + (slice(None, shift), )] * 0
         if self.spec > 0:
-            tmpData = self.fourierLocal(tmpData, 0)
+            tmpData = self.fourierLocal(tmpData, 0, self.axes)
         self.showFid(tmpData)
 
     def getdcOffset(self, pos1, pos2):
@@ -2653,17 +2656,19 @@ class Current1D(Plot1DFrame):
             tmp = self.data1D
 
         if self.spec == 0:
-            tmp = self.fourierLocal(tmp,0)
+            tmp = self.fourierLocal(tmp,0, self.axes)
         x = np.fft.fftshift(np.fft.fftfreq(len(tmp[0]), 1.0 / self.sw)) / self.sw
-
+        
+        tmp = self.data.hyperReorder(tmp, self.axes)
         if phaseNum == 0:
             phases = scipy.optimize.minimize(self.data.ACMEentropy, [0], (tmp, x, False), method='Powell')
             phases = [phases['x']]
         elif phaseNum == 1:
             phases = scipy.optimize.minimize(self.data.ACMEentropy, [0, 0], (tmp, x ), method='Powell')
             phases = phases['x']
+        tmp = self.data.hyperReorder(tmp, self.axes)
         if self.spec == 0:
-                tmp = self.fourierLocal(tmp,1)
+                tmp = self.fourierLocal(tmp,1, self.axes)
         return phases
 
     def directAutoPhase(self, phaseNum):
@@ -3449,10 +3454,10 @@ class CurrentStacked(Current1D):
         y = copy.copy(self.data1D)
         self.ax.cla()
         if self.spec == 1:
-            y = self.fourierLocal(y, 1)
+            y = self.fourierLocal(y, 1,self.axes)
             for index in range(len(y)):
                 y[index] = y[index] * x
-            y = self.fourierLocal(y, 0)
+            y = self.fourierLocal(y, 0,self.axes)
         else:
             for index in range(len(y)):
                 y[index] = y[index] * x
@@ -3460,7 +3465,7 @@ class CurrentStacked(Current1D):
             if self.plotType == 0:
                 self.showFid(y[hyperView], [t], x * np.amax(np.real(self.data1D[hyperView])), ['g'], old=True)
             elif self.plotType == 1:
-                self.showFid(y[hyperView], [t], x * np.amax(np.imag(self.data2D[hyperView])), ['g'], old=True)
+                self.showFid(y[hyperView], [t], x * np.amax(np.imag(self.data1D[hyperView])), ['g'], old=True)
             elif self.plotType == 2:
                 self.showFid(y[hyperView], [t], x * np.amax(np.amax(np.real(self.data1D[hyperView])), np.amax(np.imag(self.data1D[hyperView]))), ['g'], old=True)
             elif self.plotType == 3:
@@ -3791,10 +3796,10 @@ class CurrentArrayed(Current1D):
         y = copy.copy(self.data1D)
         self.ax.cla()
         if self.spec == 1:
-            y = self.fourierLocal(y, 1)
+            y = self.fourierLocal(y, 1,self.axes)
             for index in range(len(y)):
                 y[index] = y[index] * x
-            y = self.fourierLocal(y, 0)
+            y = self.fourierLocal(y, 0, self.axes)
         else:
             for index in range(len(y)):
                 y[index] = y[index] * x
@@ -4198,10 +4203,10 @@ class CurrentContour(Current1D):
         y = copy.copy(self.data1D)
         self.ax.cla()
         if self.spec == 1:
-            y = self.fourierLocal(y, 1)
+            y = self.fourierLocal(y, 1, self.axes)
             for index in range(len(y)):
                 y[index] = y[index] * x
-            y = self.fourierLocal(y, 0)
+            y = self.fourierLocal(y, 0, self.axes)
         else:
             for index in range(len(y)):
                 y[index] = y[index] * x
