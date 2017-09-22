@@ -874,7 +874,6 @@ class Spectrum(object):
         return returnValue
 
     def autoPhase(self, phaseNum, axes, locList):
-        hyperView = 0
         axes = self.checkAxes(axes)
         if axes is None:
             return None
@@ -884,15 +883,28 @@ class Spectrum(object):
         if np.any(locList >= np.delete(self.data[0].shape, axes)) or np.any(np.array(locList) < 0):
             self.dispMsg("The location array contains invalid indices")
             return None
-        tmp = self.data[hyperView][tuple(locList[:axes]) + (slice(None), ) + tuple(locList[axes:])]
+        tmp = []
+        for item in self.data:
+            tmp.append(item[tuple(locList[:axes]) + (slice(None), ) + tuple(locList[axes:])])
+
+
+
+
+        if self.spec[axes] == 0:
+                tmp = self.fourierLocal(tmp,0)
+        x = np.fft.fftshift(np.fft.fftfreq(len(tmp[0]), 1.0 / self.sw[axes])) / self.sw[axes]
+
         if phaseNum == 0:
-            phases = scipy.optimize.minimize(self.ACMEentropy, [0], (tmp, self.sw[axes], self.spec[axes], False), method='Powell')
+            phases = scipy.optimize.minimize(self.ACMEentropy, [0], (tmp, x, False), method='Powell')
             phase0 = phases['x']
             phase1 = 0.0
         elif phaseNum == 1:
-            phases = scipy.optimize.minimize(self.ACMEentropy, [0, 0], (tmp, self.sw[axes], self.spec[axes]), method='Powell')
+            phases = scipy.optimize.minimize(self.ACMEentropy, [0, 0], (tmp, x ), method='Powell')
             phase0 = phases['x'][0]
             phase1 = phases['x'][1]
+
+        if self.spec == 0:
+                tmp = self.fourierLocal(tmp,1)
         if self.ref[axes] is None:
             offset = 0
         else:
@@ -913,18 +925,16 @@ class Spectrum(object):
             return lambda self: self.setPhase(-phase0, -phase1, axes, None, None)
 
 
-    def ACMEentropy(self, phaseIn, data, sw, spec, phaseAll=True):
+    def ACMEentropy(self, phaseIn, data, x, phaseAll=True):
+        hyperView = 0 #Temp
         phase0 = phaseIn[0]
         if phaseAll:
             phase1 = phaseIn[1]
         else:
             phase1 = 0.0
-        L = len(data)
-        x = np.fft.fftshift(np.fft.fftfreq(L, 1.0 / sw)) / sw
-        if spec > 0:
-            s0 = data * np.exp(1j * (phase0 + phase1 * x))
-        else:
-            s0 = np.fft.fftshift(np.fft.fft(data)) * np.exp(1j * (phase0 + phase1 * x))
+        L = len(data[hyperView])
+        s0 = data[hyperView] * np.exp(1j * (phase0 + phase1 * x))
+
         s2 = np.real(s0)
         ds1 = np.abs((s2[3:L] - s2[1:L - 2]) / 2.0)
         p1 = ds1 / sum(ds1)
@@ -938,6 +948,29 @@ class Spectrum(object):
             Pfun = Pfun + sum(as1**2) / 4 / L**2
         return H1 + 1000 * Pfun
 
+    def fourierLocal(self, fourData, spec, wholeEcho = False):  # fourier the local data for other functions
+        ax = len(fourData[0].shape) - 1
+        if spec == 0:
+            if not wholeEcho:
+                slicing = (slice(None), ) * ax + (0, )
+                for index in range(len(fourData)):
+                    fourData[index][slicing] = fourData[index][slicing] * 0.5
+            for index in range(len(fourData)):
+                if ax == 0:
+                    fourData[index] = np.fft.fftshift(np.fft.fft(fourData[index]))
+                else:
+                    fourData[index] = np.fft.fftshift(np.fft.fftn(fourData[index], axes=[ax]), axes=ax)
+        else:
+            for index in range(len(fourData)):
+                if ax == 0:
+                    fourData[index] = np.fft.ifft(np.fft.ifftshift(fourData[index]))
+                else:
+                    fourData[index] = np.fft.ifftn(np.fft.ifftshift(fourData[index], axes=ax), axes=[ax])
+            if not wholeEcho:
+                slicing = (slice(None), ) * ax + (0, )
+                for index in range(len(fourData)):
+                    fourData[index][slicing] = fourData[index][slicing] * 2.0
+        return fourData
 
     def setPhase(self, phase0, phase1, axes, select=slice(None)):
         if isinstance(select, string_types):
@@ -1812,28 +1845,8 @@ class Current1D(Plot1DFrame):
         return returnValue
 
     def fourierLocal(self, fourData, spec):  # fourier the local data for other functions
-        ax = len(fourData[0].shape) - 1
-        if spec == 0:
-            if not self.wholeEcho:
-                slicing = (slice(None), ) * ax + (0, )
-                for index in range(len(fourData)):
-                    fourData[index][slicing] = fourData[index][slicing] * 0.5
-            for index in range(len(fourData)):
-                if ax == 0:
-                    fourData[index] = np.fft.fftshift(np.fft.fft(fourData[index]))
-                else:
-                    fourData[index] = np.fft.fftshift(np.fft.fftn(fourData[index], axes=[ax]), axes=ax)
-        else:
-            for index in range(len(fourData)):
-                if ax == 0:
-                    fourData[index] = np.fft.ifft(np.fft.ifftshift(fourData[index]))
-                else:
-                    fourData[index] = np.fft.ifftn(np.fft.ifftshift(fourData[index], axes=ax), axes=[ax])
-            if not self.wholeEcho:
-                slicing = (slice(None), ) * ax + (0, )
-                for index in range(len(fourData)):
-                    fourData[index][slicing] = fourData[index][slicing] * 2.0
-        return fourData
+        #Now links to data structure function
+        return self.data.fourierLocal(fourData, spec, self.wholeEcho)
 
     def apodPreview(self, lor=None, gauss=None, cos2=None, hamming=None, shift=0.0, shifting=0.0, shiftingAxes=None):  # display the 1D data including the apodization function
         hyperView = 0
@@ -2580,15 +2593,24 @@ class Current1D(Plot1DFrame):
         self.upd()
         hyperView = 0
         if len(self.data1D[0].shape) > 1:
-            tmp = self.data1D[hyperView][0]
+            tmp = []
+            for item in self.data1D:
+                tmp.append(item[0])
         else:
-            tmp = self.data1D[hyperView]
+            tmp = self.data1D
+
+        if self.spec == 0:
+            tmp = self.fourierLocal(tmp,0)
+        x = np.fft.fftshift(np.fft.fftfreq(len(tmp[0]), 1.0 / self.sw)) / self.sw
+
         if phaseNum == 0:
-            phases = scipy.optimize.minimize(self.data.ACMEentropy, [0], (tmp, self.sw, self.spec, False), method='Powell')
+            phases = scipy.optimize.minimize(self.data.ACMEentropy, [0], (tmp, x, False), method='Powell')
             phases = [phases['x']]
         elif phaseNum == 1:
-            phases = scipy.optimize.minimize(self.data.ACMEentropy, [0, 0], (tmp, self.sw, self.spec), method='Powell')
+            phases = scipy.optimize.minimize(self.data.ACMEentropy, [0, 0], (tmp, x ), method='Powell')
             phases = phases['x']
+        if self.spec == 0:
+                tmp = self.fourierLocal(tmp,1)
         return phases
 
     def directAutoPhase(self, phaseNum):
