@@ -1040,7 +1040,7 @@ class Spectrum(object):
             x = func.apodize(t,shift,self.sw[axes],axLen,lor,gauss,cos2,hamming,self.wholeEcho[axes])
             if self.spec[axes] > 0:
                 self.fourier(axes, tmp=True)
-
+            
             for index in range(len(self.data)): #For all hypercomplex parts
                 self.data[index][select] = np.apply_along_axis(np.multiply, axes, self.data[index], x)[select]
             if self.spec[axes] > 0:
@@ -1332,13 +1332,11 @@ class Spectrum(object):
         else:
             print('error in hyper')
         hyperLen = len(self.data)
-        tmpdat = []
-        print(hyper)
+
         if hyper == 0: #if first index
+            tmpdat = []
             step = 1
             amount = int(hyperLen/(step + 1))
-            print('amount',amount)
-            print('hyperlen',hyperLen)
             for index in range(amount):
                 tmpdat.append(np.real(self.data[index*(step + 1)]) + 1j*np.real(self.data[index*(step + 1) + step ]))
                 tmpdat.append(np.imag(self.data[index*(step + 1)]) + 1j*np.imag(self.data[index*(step + 1) + step ]))
@@ -1360,7 +1358,7 @@ class Spectrum(object):
                 self.addHistory("Fourier transform dimension " + str(axes + 1))
         else:
             for index in range(len(tmpdat)): 
-                tmpdat = np.fft.ifftn(np.fft.ifftshift(tmpdat[index], axes=axes), axes=[axes])
+                tmpdat[index] = np.fft.ifftn(np.fft.ifftshift(tmpdat[index], axes=axes), axes=[axes])
             if not self.wholeEcho[axes] and not tmp:
                 slicing = (slice(None), ) * axes + (0, ) + (slice(None), ) * (self.data[0].ndim - 1 - axes)
                 for index in range(len(tmpdat)): 
