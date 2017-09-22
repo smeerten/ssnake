@@ -469,8 +469,10 @@ class Spectrum(object):
         slicing2 = (slice(None), ) * axes + (slice(1, None, 2), ) + (slice(None), ) * (self.data[0].ndim - 1 - axes)
         self.data = []
         for index in range(len(tmpdata)):
-            tmp1 = np.real(tmpdata[index][slicing1] + tmpdata[index][slicing2]) - 1j * np.imag(tmpdata[index][slicing1] - tmpdata[index][slicing2])
-            tmp2 = 1j * np.real(tmpdata[index][slicing1] - tmpdata[index][slicing2]) + np.imag(tmpdata[index][slicing1] + tmpdata[index][slicing2])
+            #tmp1 = np.real(tmpdata[index][slicing1] + tmpdata[index][slicing2]) - 1j * np.imag(tmpdata[index][slicing1] - tmpdata[index][slicing2])
+            #tmp2 = np.real(tmpdata[index][slicing1] - tmpdata[index][slicing2]) + 1j * np.imag(tmpdata[index][slicing1] + tmpdata[index][slicing2])
+            tmp1 = np.real(tmpdata[index][slicing1] + tmpdata[index][slicing2]) + 1j * np.imag(tmpdata[index][slicing1] + tmpdata[index][slicing2])
+            tmp2 =  - np.imag(tmpdata[index][slicing1] - tmpdata[index][slicing2]) + 1j * np.real(tmpdata[index][slicing1] - tmpdata[index][slicing2])
             
 
             self.data.append(tmp1)
@@ -1322,28 +1324,59 @@ class Spectrum(object):
 
     def fourier(self, axes, tmp=False, inv=False):
         axes = self.checkAxes(axes)
+        hyper = [x for x in self.hyper if x == axes]
+        if len(hyper) == 0:
+            hyper = None
+        elif len(hyper) == 1:
+            hyper = self.hyper.index(hyper[0])
+        else:
+            print('error in hyper')
+        hyperLen = len(self.data)
+        tmpdat = []
+        print(hyper)
+        if hyper == 0: #if first index
+            step = 1
+            amount = int(hyperLen/(step + 1))
+            print('amount',amount)
+            print('hyperlen',hyperLen)
+            for index in range(amount):
+                tmpdat.append(np.real(self.data[index*(step + 1)]) + 1j*np.real(self.data[index*(step + 1) + step ]))
+                tmpdat.append(np.imag(self.data[index*(step + 1)]) + 1j*np.imag(self.data[index*(step + 1) + step ]))
+
+        elif hyper == None:
+            tmpdat = self.data
+
         if axes is None:
             return None
         if np.logical_xor(self.spec[axes], inv) == 0:
             if not self.wholeEcho[axes] and not tmp:
                 slicing = (slice(None), ) * axes + (0, ) + (slice(None), ) * (self.data[0].ndim - 1 - axes)
-                for index in range(len(self.data)):
-                    self.data[index][slicing] = self.data[index][slicing] * 0.5
-            for index in range(len(self.data)): 
-                self.data[index] = np.fft.fftshift(np.fft.fftn(self.data[index], axes=[axes]), axes=axes)
+                for index in range(len(tmpdat)):
+                    tmpdat[index][slicing] = tmpdat[index][slicing] * 0.5
+            for index in range(len(tmpdat)): 
+                tmpdat[index] = np.fft.fftshift(np.fft.fftn(tmpdat[index], axes=[axes]), axes=axes)
             if not tmp:
                 self.spec[axes] = 1
                 self.addHistory("Fourier transform dimension " + str(axes + 1))
         else:
-            for index in range(len(self.data)): 
-                self.data[index] = np.fft.ifftn(np.fft.ifftshift(self.data[index], axes=axes), axes=[axes])
+            for index in range(len(tmpdat)): 
+                tmpdat = np.fft.ifftn(np.fft.ifftshift(tmpdat[index], axes=axes), axes=[axes])
             if not self.wholeEcho[axes] and not tmp:
                 slicing = (slice(None), ) * axes + (0, ) + (slice(None), ) * (self.data[0].ndim - 1 - axes)
-                for index in range(len(self.data)): 
-                    self.data[index][slicing] = self.data[index][slicing] * 2.0
+                for index in range(len(tmpdat)): 
+                    tmpdat[index][slicing] = tmpdat[index][slicing] * 2.0
             if not tmp:
                 self.spec[axes] = 0
                 self.addHistory("Inverse Fourier transform dimension " + str(axes + 1))
+
+        if hyper == 0: #if first index
+            for index in range(amount):
+                self.data[index*(step + 1)] = np.real(tmpdat[index*(step + 1)]) + 1j*np.real(tmpdat[index*(step + 1) + step])
+                self.data[index*(step + 1) + 1] = np.imag(tmpdat[index*(step + 1)]) + 1j*np.imag(tmpdat[index*(step + 1) + step])
+
+        elif hyper == None:
+            self.data = tmpdat
+
         self.resetXax(axes)
         if self.noUndo:
             return None
