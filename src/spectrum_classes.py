@@ -922,7 +922,7 @@ class Spectrum(object):
         if self.noUndo:
             return None
         else:
-            return lambda self: self.setPhase(-phase0, -phase1, axes, None, None)
+            return lambda self: self.setPhase(-phase0, -phase1, axes)
 
 
     def ACMEentropy(self, phaseIn, data, x, phaseAll=True):
