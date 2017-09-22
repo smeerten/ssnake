@@ -415,8 +415,10 @@ class Spectrum(object):
         slicing2 = (slice(None), ) * axes + (slice(1, None, 2), ) + (slice(None), ) * (self.data[0].ndim - 1 - axes)
         self.data = []
         for index in range(len(tmpdata)):
-            tmp = np.real(tmpdata[index][slicing1]) + 1j * np.real(tmpdata[index][slicing2])
-            tmp2 = np.imag(tmpdata[index][slicing1]) + 1j * np.imag(tmpdata[index][slicing2])
+            #tmp = np.real(tmpdata[index][slicing1]) + 1j * np.real(tmpdata[index][slicing2])
+            #tmp2 = np.imag(tmpdata[index][slicing1]) + 1j * np.imag(tmpdata[index][slicing2])
+            tmp = np.real(tmpdata[index][slicing1]) + 1j * np.imag(tmpdata[index][slicing1])
+            tmp2 = np.real(tmpdata[index][slicing2]) + 1j * np.imag(tmpdata[index][slicing2])
             self.data.append(tmp)
             self.data.append(tmp2)
         self.hyper.append(axes)
@@ -441,9 +443,13 @@ class Spectrum(object):
         slicing2 = (slice(None), ) * axes + (slice(1, None, 2), ) + (slice(None), ) * (self.data[0].ndim - 1 - axes)
         self.data = []
         for index in range(len(tmpdata)):
-            tmp = np.real(tmpdata[index][slicing1]) + 1j * np.real(tmpdata[index][slicing2])
+            #tmp = np.real(tmpdata[index][slicing1]) + 1j * np.real(tmpdata[index][slicing2])
+            #tmp[slicing2] = -1 * tmp[slicing2]
+            #tmp2 = np.imag(tmpdata[index][slicing1]) + 1j * np.imag(tmpdata[index][slicing2])
+            #tmp2[slicing2] = -1 * tmp2[slicing2]
+            tmp = np.real(tmpdata[index][slicing1]) + 1j * np.imag(tmpdata[index][slicing1])
             tmp[slicing2] = -1 * tmp[slicing2]
-            tmp2 = np.imag(tmpdata[index][slicing1]) + 1j * np.imag(tmpdata[index][slicing2])
+            tmp2 = np.real(tmpdata[index][slicing2]) + 1j * np.imag(tmpdata[index][slicing2])
             tmp2[slicing2] = -1 * tmp2[slicing2]
             self.data.append(tmp)
             self.data.append(tmp2)
