@@ -1363,9 +1363,7 @@ class Spectrum(object):
             print('error in hyper')
             return
         hyperLen = len(data)
-        #if hyper == 0: #if first index
-        #    step = 1
-        #    amount = int(hyperLen/(step + 1))
+
         if hyper == None:
             return data
         else:
@@ -1380,15 +1378,12 @@ class Spectrum(object):
                     list1 = np.append(list1,values[0:step])
                 values = values[step::]
 
-
-        tmpdat = [np.zeros_like(data[0])] * len(data) #Ini new data
         for index in range(len(list1)):
             l1 = list1[index]
             l2 = list2[index]
-            tmpdat[l1] = np.real(data[l1]) + 1j*np.real(data[l2])
-            tmpdat[l2] = np.imag(data[l1]) + 1j*np.imag(data[l2])
+            data[l1], data[l2] = np.real(data[l1]) + 1j*np.real(data[l2]), np.imag(data[l1]) + 1j*np.imag(data[l2])
 
-        return tmpdat
+        return data
 
 
     def fourier(self, axes, tmp=False, inv=False):
