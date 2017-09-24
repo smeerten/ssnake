@@ -1361,17 +1361,32 @@ class Spectrum(object):
             hyper = self.hyper.index(hyper[0])
         else:
             print('error in hyper')
+            return
         hyperLen = len(data)
-        if hyper == 0: #if first index
-            step = 1
-            amount = int(hyperLen/(step + 1))
-        elif hyper == None:
+        #if hyper == 0: #if first index
+        #    step = 1
+        #    amount = int(hyperLen/(step + 1))
+        if hyper == None:
             return data
+        else:
+            values = np.arange(hyperLen)
+            step = 2**(len(self.hyper) - hyper - 1)
+            list1 = np.array([],dtype=int)
+            list2 = np.array([],dtype=int)
+            for index in range(int(hyperLen/step)):
+                if index % 2: #if even
+                    list2 = np.append(list2,values[0:step])
+                else:
+                    list1 = np.append(list1,values[0:step])
+                values = values[step::]
 
-        tmpdat = []
-        for index in range(amount):
-            tmpdat.append(np.real(data[index*(step + 1)]) + 1j*np.real(data[index*(step + 1) + step ]))
-            tmpdat.append(np.imag(data[index*(step + 1)]) + 1j*np.imag(data[index*(step + 1) + step ]))
+
+        tmpdat = [np.zeros_like(data[0])] * len(data) #Ini new data
+        for index in range(len(list1)):
+            l1 = list1[index]
+            l2 = list2[index]
+            tmpdat[l1] = np.real(data[l1]) + 1j*np.real(data[l2])
+            tmpdat[l2] = np.imag(data[l1]) + 1j*np.imag(data[l2])
 
         return tmpdat
 
