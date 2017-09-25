@@ -3990,7 +3990,7 @@ class SizeWindow(wc.ToolWindows):
         if forward: #If + button
             new = int(np.floor(np.log2(inp)) + 1)
         else:
-            new = int(np.floor(np.log2(inp)) - 1)
+            new = int(np.ceil(np.log2(inp)) - 1)
         if new < 0:
             new = 0
         
