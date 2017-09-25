@@ -180,15 +180,44 @@ Now we are in ppm, but the ppm scale is always defined as `x ppm relative to sig
 Now that we have analysed this data you can close this workspace by going to Workspaces $\rightarrow$ Delete, by typing ctrl-w, or by clicking on the cross button on the tab. Use this to clean up and close all the workspaces. You can view the current workspaces via Workspaces $\rightarrow$ Active. You can click on a non-active workspace to go there, or use alt-rightarrow and alt-leftarrow to cycle through the list.
 
 \section{Fitting a T$_1$ relaxation curve}
-ssNake can also be used for fitting exponential decays such as T$_1$ and T$_2$. For this we are going to open a true experimental spectrum measured on one of our Varian spectrometers. Go to Load and navigate to the folder `satrec2D.fid' and open the `fid' file from this folder to load the data. Name it `KI' (it is the $^{127}$I signal of potassium iodide).
+ssNake can also be used for fitting exponential decays such as T$_1$ and T$_2$.
+For this we are going to open a true experimental spectrum measured on one of
+our Varian spectrometers. Go to Load and navigate to the folder `satrec2D.fid'
+and open the `fid' file from this folder to load the data. Name it `KI' (it is
+the $^{127}$I signal of potassium iodide).
 
-You now have loaded a 2D data set. You can see this by looking at the right side of the screen, which now shows a dimension selector with two dimensions. By pushing the radiobutton you can show the signal in another dimension. To view the FIDs measured with different recovery times (as is done in a T$_1$ experiment), click on the \^{} button close to the D1 text. This will cycle through the list of measurements, and will eventually show some signal. Alternatively, it is possible to show them all by going to Plot $\rightarrow$ Stack plot. Push Plot $\rightarrow$ 1D plot, to go back to the original view.
+You now have loaded a 2D data set. You can see this by looking at the right
+side of the screen, which now shows a dimension selector with two dimensions.
+By pushing the radiobutton you can show the signal in another dimension. To
+view the FIDs measured with different recovery times (as is done in a T$_1$
+experiment), click on the \^{} button close to the D1 text. This will cycle
+through the list of measurements, and will eventually show some signal.
+Alternatively, it is possible to show them all by going to Plot $\rightarrow$
+Stack plot. Push Plot $\rightarrow$ 1D plot, to go back to the original view.
 
-The FID we now see does not have that many points. As the number of points in the FID is equal to the number of points in the spectrum (after we push Fourier), we must increase the number of points to improve the digital resolution of the spectrum. Go to Matrix $\rightarrow$ Sizing, and fill in `8k' at the `Size' box (ignore the `Offset' box for the time being) and press apply. This will set the number of points to 8192 (one `k' is 1024 points). The new datapoints are zeroes, and are put at the end by default. The signal is now `zerofilled'. The signal is still somewhat noisy, but it is easier to correct this in the frequency domain. Press `Fourier' to go there.
+The FID we now see does not have that many points. As the number of points in
+the FID is equal to the number of points in the spectrum (after we push
+Fourier), we must increase the number of points to improve the digital
+resolution of the spectrum. Go to Matrix $\rightarrow$ Sizing, and push the
+$+2\text{\textasciicircum}n$ button until you reach 8192 points. The new
+datapoints are zeroes, and are put at the end by default. The signal is now
+`zerofilled'. The signal is still somewhat noisy, but it is easier to correct
+this in the frequency domain. Press `Fourier' to go there.
 
-Now we have the spectrum. Due to the nature of the saturation recovery experiment that was performed, the first spectra have hardly any signal. To phase the signal properly, go to the last spectrum via multiple pushes on the up button next to D1. Alternatively, you can go there by typing `$-1$' in the field there and push enter. ssNake uses the regular python definitions for array indexing, meaning that 0 is the first spectrum, and $-1$ is the spectrum before that, which python sees as the last. We can now phase the last spectrum properly (and the phasing will be set for the others too after we push `apply').
+Now we have the spectrum. Due to the nature of the saturation recovery
+experiment that was performed, the first spectra have hardly any signal. To
+phase the signal properly, go to the last spectrum via multiple pushes on the
+up button next to D1. Alternatively, you can go there by typing `$-1$' in the
+field there and push enter. ssNake uses the regular python definitions for
+array indexing, meaning that 0 is the first spectrum, and $-1$ is the spectrum
+before that, which python sees as the last. We can now phase the last spectrum
+properly (and the phasing will be set for the others too after we push
+`apply').
 
-Now, we have to apply some linebroading. But let us use a nice trick. Go to Plot $\rightarrow$ Stack plot again. Now open Tools $\rightarrow$ Apodize and move the Lorentzian slider: you can see the effect on all traces! Choose something nice and apply. 
+Now, we have to apply some linebroading. But let us use a nice trick. Go to
+Plot $\rightarrow$ Stack plot again. Now open Tools $\rightarrow$ Apodize and
+move the Lorentzian slider: you can see the effect on all traces! Choose
+something nice and apply. 
 
 \subsection{The actual fitting}
 Now we have `massaged' our data properly, and it is time for the actual T$_1$ fitting. For this we have to make a plot of the intensity of the peak over time. First, get the position of the line
