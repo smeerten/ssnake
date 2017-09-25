@@ -3944,20 +3944,58 @@ class SizeWindow(wc.ToolWindows):
 
     def __init__(self, parent):
         super(SizeWindow, self).__init__(parent)
-        self.grid.addWidget(wc.QLabel("Size:"), 0, 0)
+
+        self.sizeGroup = QtWidgets.QGroupBox('Size:')
+        self.sizeFrame = QtWidgets.QGridLayout()
+
         self.sizeVal = parent.current.data1D.shape[-1]
         self.sizeEntry = wc.QLineEdit(self.sizeVal, self.sizePreview)
-        self.grid.addWidget(self.sizeEntry, 1, 0)
-        self.grid.addWidget(wc.QLabel("Offset:"), 2, 0)
+        self.sizeEntry.setMinimumWidth(100)
+        self.sizeFrame.addWidget(self.sizeEntry, 0, 1)
+
+        rightPower = QtWidgets.QPushButton("+ 2^n")
+        rightPower.clicked.connect(lambda: self.stepSize(True))
+        #rightZero.setAutoRepeat(True)
+        self.sizeFrame.addWidget(rightPower, 0, 2)
+
+        leftPower = QtWidgets.QPushButton("- 2^n")
+        leftPower.clicked.connect(lambda: self.stepSize(False))
+        self.sizeFrame.addWidget(leftPower, 0, 0)
+
+        self.sizeGroup.setLayout(self.sizeFrame)
+        self.grid.addWidget(self.sizeGroup,0,0,1,3)
+
+        #offset
+        self.offGroup = QtWidgets.QGroupBox('Offset:')
+        self.offFrame = QtWidgets.QGridLayout()
         if self.father.current.wholeEcho:
             self.posVal = int(np.floor(parent.current.data1D.shape[-1] / 2.0))
         else:
             self.posVal = parent.current.data1D.shape[-1]
         self.posEntry = wc.QLineEdit(self.posVal, self.sizePreview)
-        self.grid.addWidget(self.posEntry, 3, 0)
+        self.offFrame.addWidget(self.posEntry, 0, 1)
+        self.offGroup.setLayout(self.offFrame)
+        self.grid.addWidget(self.offGroup,1,0,1,3)
         if not self.father.current.spec:
             self.father.current.peakPickFunc = lambda pos, self=self: self.picked(pos)
             self.father.current.peakPick = True
+
+    def stepSize(self,forward):
+        inp = safeEval(self.sizeEntry.text())
+        if inp is not None:
+            inp = int(round(inp))
+        if inp < 1 or inp is None:
+            self.father.father.dispMsg('Sizing: \'Size\' input is not valid')
+            return False
+        if forward: #If + button
+            new = int(np.floor(np.log2(inp)) + 1)
+        else:
+            new = int(np.floor(np.log2(inp)) - 1)
+        if new < 0:
+            new = 0
+        
+        self.sizeEntry.setText(str(2**new))
+        self.sizePreview()
 
     def sizePreview(self, *args):
         inp = safeEval(self.sizeEntry.text())
