@@ -1548,13 +1548,13 @@ class MainProgram(QtWidgets.QMainWindow):
         #    return None 
 
     def LoadBrukerTopspin(self, filePath, name=''):
-        try:
+        #try:
             masterData = LF.LoadBrukerTopspin(filePath,name)
             masterData.msgHandler = lambda msg: self.dispMsg(msg)
             return masterData
-        except:
-            self.dispMsg("Error on loading Bruker data",'red')
-            return None 
+        #except:
+        #    self.dispMsg("Error on loading Bruker data",'red')
+        #    return None 
         
         
     def LoadBrukerSpectrum(self, filePath, name=''):

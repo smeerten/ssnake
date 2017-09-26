@@ -174,7 +174,7 @@ def LoadPipe(filePath, name=''):
             sw = header[100]
             reference = header[101]  # frequency of last point in Hz
 
-        sidefreq = -np.floor(NumberofPoints / 2) / NumberofPoints * sw  # freqeuency of last point on axis
+        sidefreq = -np.floor(NumberofPoints / 2) / NumberofPoints * sw  # frequency of last point on axis
         ref = sidefreq + freq - reference
         if spec == 1:
             data = np.flipud(data)
@@ -467,50 +467,54 @@ def LoadBrukerTopspin(filePath, name=''):
         Dir = os.path.dirname(filePath)
     else:
         Dir = filePath
-    if os.path.exists(Dir + os.path.sep + 'acqus'):
-        with open(Dir + os.path.sep + 'acqus', 'r') as f:
-            data = f.read().split('\n')
-        for s in range(0, len(data)):
-            if data[s].startswith('##$TD='):
-                sizeTD2 = int(data[s][6:])
-            if data[s].startswith('##$SFO1='):
-                freq2 = float(data[s][8:]) * 1e6
-            if data[s].startswith('##$SW_h='):
-                SW2 = float(data[s][8:])
-            if data[s].startswith('##$BYTORDA='):
-                ByteOrder = int(data[s][11:])
-    sizeTD1 = 1
-    if os.path.exists(Dir + os.path.sep + 'acqu2s'):
-        with open(Dir + os.path.sep + 'acqu2s', 'r') as f:
-            data2 = f.read().split('\n')
-        SW1 = 10e3 #pre initialize
-        for s in range(0, len(data2)):
-            if data2[s].startswith('##$TD='):
-                sizeTD1 = int(data2[s][6:])
-            if data2[s].startswith('##$SFO1='):
-                freq1 = float(data2[s][8:]) * 1e6
-            if data2[s].startswith('##$SW_h='):
-                SW1 = float(data2[s][8:])
+    SW = []
+    SIZE = []
+    FREQ = []
+    REF = []
+   
+    for elem in ['acqus','acqu2s','acqu3s']:
+        if os.path.exists(Dir + os.path.sep + elem):
+            with open(Dir + os.path.sep + elem, 'r') as f:
+                data = f.read().split('\n')
+            SW.append(10e3) #pre initialize
+            for s in range(0, len(data)):
+                if data[s].startswith('##$TD='):
+                    SIZE.append(int(data[s][6:]))
+                if data[s].startswith('##$SFO1='):
+                    FREQ.append(float(data[s][8:]) * 1e6)
+                if data[s].startswith('##$SW_h='):
+                    SW[-1] = float(data[s][8:])
+                if data[s].startswith('##$O1='):
+                    REF.append(float(data[s][6:]))
+                if data[s].startswith('##$BYTORDA=') and elem == 'acqus': #only for first file
+                    ByteOrder = int(data[s][11:])
+    REF = list(- np.array(REF) + np.array(FREQ))
+
+    totsize = np.cumprod(SIZE)[-1]
     if os.path.exists(Dir + os.path.sep + 'fid'):
         filePath = Dir + os.path.sep + 'fid'
         with open(Dir + os.path.sep + 'fid', "rb") as f:
-            raw = np.fromfile(f, np.int32, sizeTD1* sizeTD2)
+            raw = np.fromfile(f, np.int32, totsize)
     elif os.path.exists(Dir + os.path.sep + 'ser'):
         filePath = Dir + os.path.sep + 'ser'
         with open(Dir + os.path.sep + 'ser', "rb") as f:
-            raw = np.fromfile(f, np.int32, sizeTD1 * int(np.ceil(sizeTD2 / 256))*256) #Always load full 1024 byte blocks (256 data points)
+            raw = np.fromfile(f, np.int32, totsize / SIZE[0] * int(np.ceil(SIZE[0] / 256))*256) #Always load full 1024 byte blocks (256 data points)
     if ByteOrder:
         RawInt = raw.newbyteorder('b')
     else:
         RawInt = raw.newbyteorder('l')
     ComplexData = np.array(RawInt[0:len(RawInt):2]) + 1j * np.array(RawInt[1:len(RawInt):2])
     spec = [False]
-    if sizeTD1 is 1:
-        masterData = sc.Spectrum(name, ComplexData, (1, filePath), [freq2], [SW2], spec)
-    else:
-        ComplexData = ComplexData.reshape(sizeTD1, int(np.ceil(sizeTD2 / 256) * 256 / 2))
-        ComplexData = ComplexData[:,0:int(sizeTD2/2)] #Cut off placeholder data
-        masterData = sc.Spectrum(name, ComplexData, (1, filePath), [freq1, freq2], [SW1, SW2], spec * 2)
+    if len(SIZE) == 1:
+        masterData = sc.Spectrum(name, ComplexData, (1, filePath), FREQ, SW, spec, ref = REF[-1::-1])
+    elif len(SIZE) == 2:
+        ComplexData = ComplexData.reshape(SIZE[1], int(np.ceil(SIZE[0] / 256) * 256 / 2))
+        ComplexData = ComplexData[:,0:int(SIZE[0]/2)] #Cut off placeholder data
+        masterData = sc.Spectrum(name, ComplexData, (1, filePath), FREQ[-1::-1], SW[-1::-1], spec * 2, ref = REF[-1::-1])
+    elif len(SIZE) == 3:
+        ComplexData = ComplexData.reshape(SIZE[2], SIZE[1], int(np.ceil(SIZE[0] / 256) * 256 / 2))
+        ComplexData = ComplexData[:,:,0:int(SIZE[0]/2)] #Cut off placeholder data
+        masterData = sc.Spectrum(name, ComplexData, (1, filePath), FREQ[-1::-1], SW[-1::-1], spec * 3, ref = REF[-1::-1])
     masterData.addHistory("Bruker data loaded from " + filePath)
     return masterData
 
@@ -580,6 +584,9 @@ def LoadBrukerSpectrum(filePath, name=''):
         elif os.path.exists(Dir + os.path.sep + '2ii'):
             with open(Dir + os.path.sep + '2ii', "rb") as f:
                 RawImag = np.fromfile(f, np.int32, sizeTD1 * sizeTD2)
+    elif os.path.exists(Dir + os.path.sep + '3rrr'):  # Get D1 data
+        pass
+
     if ByteOrder:
         RawReal = RawReal.newbyteorder('b')
         RawImag = RawImag.newbyteorder('b')
