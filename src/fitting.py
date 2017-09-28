@@ -239,7 +239,7 @@ class TabFittingWindow(QtWidgets.QWidget):
         return self.oldMainWindow.get_current()
 
     def kill(self):
-        self.mainFitWindow.paramframe.closeWindow()
+        self.mainFitWindow.kill()
 
 ##############################################################################
 
