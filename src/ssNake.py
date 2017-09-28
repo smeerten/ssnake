@@ -748,7 +748,6 @@ class MainProgram(QtWidgets.QMainWindow):
                 act.setEnabled(True)
             if isinstance(self.mainWindow, Main1DWindow):
                 self.menuEnable()
-
                 for act in self.specOnlyList:
                     act.setEnabled(self.mainWindow.current.spec == 1) #Only on for spec
                 for act in self.fidOnlyList:
@@ -2969,17 +2968,21 @@ class SideFrame(QtWidgets.QScrollArea):
             self.buttons2Group.button(axes2).toggle()
         self.getSlice(None, axes, True)
         self.upd()
-        self.father.menuCheck()
+        #self.father.menuCheck()
 
     def getSlice(self, event, entryNum, button=False):
+        axisChange = False
         if button:
             dimNum = entryNum
+            axisChange = True
         elif not self.plotIs2D:
             if entryNum == self.father.current.axes:
                 if entryNum == self.length - 1:
                     dimNum = self.length - 2
+                    axisChange = True
                 else:
                     dimNum = self.length - 1
+                    axisChange = True
             else:
                 dimNum = self.father.current.axes
         else:
@@ -3001,7 +3004,9 @@ class SideFrame(QtWidgets.QScrollArea):
         else:
             self.father.current.setSlice(dimNum, locList)
         self.father.bottomframe.upd()
-        # self.upd()
+        if axisChange:
+            self.father.menuCheck()
+            self.upd()
 
     def setExtraAxes(self, first=True):
         for i in range(len(self.extraButtons1Group)):
