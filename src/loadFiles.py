@@ -523,69 +523,69 @@ def LoadBrukerSpectrum(filePath, name=''):
         Dir = os.path.dirname(filePath)
     else:
         Dir = filePath
-    if os.path.exists(Dir + os.path.sep + 'procs'):  # Get D2 parameters
-        with open(Dir + os.path.sep + 'procs', 'r') as f:
-            data = f.read().split('\n')
-        for s in range(0, len(data)):
-            if data[s].startswith('##$SI='):
-                sizeTD2 = int(re.findall("\#\#\$SI= (.*.)", data[s])[0])
-#                if data[s].startswith('##$XDIM='):
-#                    blockingD2 = int(data[s][8:])
-            if data[s].startswith('##$BYTORDP='):
-                ByteOrder = int(data[s][11:])
-            if data[s].startswith('##$SW_p='):
-                SW2 = float(data[s][8:])
-            if data[s].startswith('##$SF='):
-                Ref2 = float(data[s][6:])*1e6 
+
+    SIZE = []
+    SW = []
+    REF = []
+    FREQ = []
+    files = ['procs','proc2s','proc3s']
+    for file in files:
+        if os.path.exists(Dir + os.path.sep + file):  # Get D2 parameters
+            with open(Dir + os.path.sep + file, 'r') as f:
+                data = f.read().split('\n')
+            for s in range(0, len(data)):
+                if data[s].startswith('##$SI='):
+                    SIZE.append(int(data[s][6:]))
+#                    if data[s].startswith('##$XDIM='):
+#                        blockingD2 = int(data[s][8:])
+                if data[s].startswith('##$SW_p='):
+                    SW.append(float(data[s][8:]))
+                if data[s].startswith('##$SF='):
+                    REF.append(float(data[s][6:])*1e6)
+                if file == 'procs':
+                    if data[s].startswith('##$BYTORDP='):
+                        ByteOrder = int(data[s][11:])
                 
-    freq2 = 0
-    if os.path.exists(Dir + os.path.sep + '..' + os.path.sep + '..' + os.path.sep + 'acqus'):  # Get D2 parameters from fid directory, if available
-        with open(Dir + os.path.sep + '..' + os.path.sep + '..' + os.path.sep + 'acqus', 'r') as f:
-            data = f.read().split('\n')
-        for s in range(0, len(data)):
-            if data[s].startswith('##$SFO1='):
-                freq2 = float(data[s][8:]) * 1e6
-    sizeTD1 = 1
-    if os.path.exists(Dir + os.path.sep + 'proc2s'):  # Get D1 parameters
-        with open(Dir + os.path.sep + 'proc2s', 'r') as f:
-            data2 = f.read().split('\n')
-        for s in range(0, len(data2)):
-            if data2[s].startswith('##$SI='):
-                sizeTD1 = int(data2[s][6:])
-#                if data2[s].startswith('##$XDIM='):
-#                    blockingD1 = int(data[s][8:])
-            if data2[s].startswith('##$SW_p='):
-                SW1 = float(data2[s][8:])
-            if data2[s].startswith('##$SF='):
-                Ref1 = float(data2[s][6:])*1e6
-    freq1 = 0
-    if os.path.exists(Dir + os.path.sep + '..' + os.path.sep + '..' + os.path.sep + 'acqu2s'):  # Get D1 parameters from fid directory, if available
-        with open(Dir + os.path.sep + '..' + os.path.sep + '..' + os.path.sep + 'acqu2s', 'r') as f:
-            data = f.read().split('\n')
-        for s in range(0, len(data)):
-            if data[s].startswith('##$SFO1='):
-                freq1 = float(data[s][8:]) * 1e6
+    files = ['acqus','acqu2s','acqu3s']
+    for file in files:
+        if os.path.exists(Dir + os.path.sep + '..' + os.path.sep + '..' + os.path.sep + file):  # Get D2 parameters from fid directory, if available
+            with open(Dir + os.path.sep + '..' + os.path.sep + '..' + os.path.sep + file, 'r') as f:
+                data = f.read().split('\n')
+            for s in range(0, len(data)):
+                if data[s].startswith('##$SFO1='):
+                    FREQ.append(float(data[s][8:]) * 1e6)
+
+
+    totsize =  np.cumprod(SIZE)[-1] 
+
     if os.path.exists(Dir + os.path.sep + '1r'):  # Get D2 data
         filePath = Dir + os.path.sep + '1r'
         with open(Dir + os.path.sep + '1r', "rb") as f:
-            RawReal = np.fromfile(f, np.int32, sizeTD1 * sizeTD2)
-        RawImag = np.zeros([sizeTD1 * sizeTD2])
+            RawReal = np.fromfile(f, np.int32, totsize)
+        RawImag = np.zeros([totsize])
         if os.path.exists(Dir + os.path.sep + '1i'):
             with open(Dir + os.path.sep + '1i', "rb") as f:
-                RawImag = np.fromfile(f, np.int32, sizeTD1 * sizeTD2)
+                RawImag = np.fromfile(f, np.int32, totsize)
     elif os.path.exists(Dir + os.path.sep + '2rr'):  # Get D1 data
         filePath = Dir + os.path.sep + '2rr'
         with open(Dir + os.path.sep + '2rr', "rb") as f:
-            RawReal = np.fromfile(f, np.int32, sizeTD1 * sizeTD2)
-        RawImag = np.zeros([sizeTD1 * sizeTD2])
+            RawReal = np.fromfile(f, np.int32, totsize)
+        print('real',len(RawReal),totsize)
+        RawImag = np.zeros([totsize])
         if os.path.exists(Dir + os.path.sep + '2ir'):  # If hypercomplex
             with open(Dir + os.path.sep + '2ir', "rb") as f:
-                RawImag = np.fromfile(f, np.int32, sizeTD1 * sizeTD2)
+                RawImag = np.fromfile(f, np.int32, totsize)
         elif os.path.exists(Dir + os.path.sep + '2ii'):
             with open(Dir + os.path.sep + '2ii', "rb") as f:
-                RawImag = np.fromfile(f, np.int32, sizeTD1 * sizeTD2)
+                RawImag = np.fromfile(f, np.int32, totsize)
     elif os.path.exists(Dir + os.path.sep + '3rrr'):  # Get D1 data
-        pass
+        filePath = Dir + os.path.sep + '3rrr'
+        with open(Dir + os.path.sep + '3rrr', "rb") as f:
+            RawReal = np.fromfile(f, np.int32, totsize)
+        RawImag = np.zeros([totsize])
+        if os.path.exists(Dir + os.path.sep + '3irr'):  # If hypercomplex
+            with open(Dir + os.path.sep + '3irr', "rb") as f:
+                RawImag = np.fromfile(f, np.int32, totsize)
 
     if ByteOrder:
         RawReal = RawReal.newbyteorder('b')
@@ -595,11 +595,14 @@ def LoadBrukerSpectrum(filePath, name=''):
         RawImag = RawImag.newbyteorder('l')
     Data = np.flipud(RawReal) - 1j * np.flipud(RawImag)
     spec = [True]
-    if sizeTD1 is 1:
-        masterData = sc.Spectrum(name, Data, (7, filePath), [freq2], [SW2], spec,ref=[Ref2])
-    else:
-        Data = Data.reshape(sizeTD1, sizeTD2)
-        masterData = sc.Spectrum(name, Data, (7, filePath), [freq1, freq2], [SW1, SW2], spec * 2,ref=[Ref1,Ref2])
+    if len(SIZE) == 1:
+        masterData = sc.Spectrum(name, Data, (7, filePath), FREQ[-1::-1], SW[-1::-1], spec, ref=REF[-1::-1])
+    elif len(SIZE) == 2:
+        Data = Data.reshape(SIZE[1], SIZE[0])
+        masterData = sc.Spectrum(name, Data, (7, filePath), FREQ[-1::-1], SW[-1::-1], spec * 2, ref=REF[-1::-1])
+    elif len(SIZE) == 3:
+        Data = Data.reshape(SIZE[2],SIZE[1], SIZE[0])
+        masterData = sc.Spectrum(name, Data, (7, filePath), FREQ[-1::-1], SW[-1::-1], spec * 3, ref=REF[-1::-1])
     masterData.addHistory("Bruker spectrum data loaded from " + filePath)
     return masterData
 
