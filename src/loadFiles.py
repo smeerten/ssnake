@@ -498,7 +498,7 @@ def LoadBrukerTopspin(filePath, name=''):
     elif os.path.exists(Dir + os.path.sep + 'ser'):
         filePath = Dir + os.path.sep + 'ser'
         with open(Dir + os.path.sep + 'ser', "rb") as f:
-            raw = np.fromfile(f, np.int32, totsize / SIZE[0] * int(np.ceil(SIZE[0] / 256))*256) #Always load full 1024 byte blocks (256 data points)
+            raw = np.fromfile(f, np.int32, int(totsize / SIZE[0]) * int(np.ceil(SIZE[0] / 256))*256) #Always load full 1024 byte blocks (256 data points)
     if ByteOrder:
         RawInt = raw.newbyteorder('b')
     else:
@@ -528,6 +528,7 @@ def LoadBrukerSpectrum(filePath, name=''):
     SW = []
     REF = []
     FREQ = []
+    BLOCKING = []
     files = ['procs','proc2s','proc3s']
     for file in files:
         if os.path.exists(Dir + os.path.sep + file):  # Get D2 parameters
@@ -536,15 +537,18 @@ def LoadBrukerSpectrum(filePath, name=''):
             for s in range(0, len(data)):
                 if data[s].startswith('##$SI='):
                     SIZE.append(int(data[s][6:]))
-#                    if data[s].startswith('##$XDIM='):
-#                        blockingD2 = int(data[s][8:])
+                if data[s].startswith('##$XDIM='):
+                    BLOCKING.append(int(data[s][8:]))
                 if data[s].startswith('##$SW_p='):
                     SW.append(float(data[s][8:]))
                 if data[s].startswith('##$SF='):
                     REF.append(float(data[s][6:])*1e6)
                 if file == 'procs':
                     if data[s].startswith('##$BYTORDP='):
-                        ByteOrder = int(data[s][11:])
+                        if int(data[s][11:]) == 1:
+                            ByteOrder = 'b'
+                        else:
+                            ByteOrder = 'l'
                 
     files = ['acqus','acqu2s','acqu3s']
     for file in files:
@@ -555,54 +559,33 @@ def LoadBrukerSpectrum(filePath, name=''):
                 if data[s].startswith('##$SFO1='):
                     FREQ.append(float(data[s][8:]) * 1e6)
 
-
+    
     totsize =  np.cumprod(SIZE)[-1] 
+    dim = len(SIZE)
+    DATA = []
+    files = [['1r','1i'],['2rr','2ir','2ri','2ii'],['3rrr']]
+    counter = 0
+    for file in files[dim - 1]:
+        if os.path.exists(Dir + os.path.sep + file):  # Get D2 data
+            with open(Dir + os.path.sep + file, "rb") as f:
+                if counter % 2 == 0:
+                    DATA.append(np.flipud(np.fromfile(f, np.int32, totsize)))
+                else:
+                    DATA[-1] = DATA[-1] - 1j * np.flipud(np.fromfile(f, np.int32, totsize))
+                counter += 1
 
-    if os.path.exists(Dir + os.path.sep + '1r'):  # Get D2 data
-        filePath = Dir + os.path.sep + '1r'
-        with open(Dir + os.path.sep + '1r', "rb") as f:
-            RawReal = np.fromfile(f, np.int32, totsize)
-        RawImag = np.zeros([totsize])
-        if os.path.exists(Dir + os.path.sep + '1i'):
-            with open(Dir + os.path.sep + '1i', "rb") as f:
-                RawImag = np.fromfile(f, np.int32, totsize)
-    elif os.path.exists(Dir + os.path.sep + '2rr'):  # Get D1 data
-        filePath = Dir + os.path.sep + '2rr'
-        with open(Dir + os.path.sep + '2rr', "rb") as f:
-            RawReal = np.fromfile(f, np.int32, totsize)
-        print('real',len(RawReal),totsize)
-        RawImag = np.zeros([totsize])
-        if os.path.exists(Dir + os.path.sep + '2ir'):  # If hypercomplex
-            with open(Dir + os.path.sep + '2ir', "rb") as f:
-                RawImag = np.fromfile(f, np.int32, totsize)
-        elif os.path.exists(Dir + os.path.sep + '2ii'):
-            with open(Dir + os.path.sep + '2ii', "rb") as f:
-                RawImag = np.fromfile(f, np.int32, totsize)
-    elif os.path.exists(Dir + os.path.sep + '3rrr'):  # Get D1 data
-        filePath = Dir + os.path.sep + '3rrr'
-        with open(Dir + os.path.sep + '3rrr', "rb") as f:
-            RawReal = np.fromfile(f, np.int32, totsize)
-        RawImag = np.zeros([totsize])
-        if os.path.exists(Dir + os.path.sep + '3irr'):  # If hypercomplex
-            with open(Dir + os.path.sep + '3irr', "rb") as f:
-                RawImag = np.fromfile(f, np.int32, totsize)
-
-    if ByteOrder:
-        RawReal = RawReal.newbyteorder('b')
-        RawImag = RawImag.newbyteorder('b')
-    else:
-        RawReal = RawReal.newbyteorder('l')
-        RawImag = RawImag.newbyteorder('l')
-    Data = np.flipud(RawReal) - 1j * np.flipud(RawImag)
+    if dim == 2:
+        if len(DATA) == 1:
+            hyper = None
+        else:
+            hyper = [0]
     spec = [True]
     if len(SIZE) == 1:
-        masterData = sc.Spectrum(name, Data, (7, filePath), FREQ[-1::-1], SW[-1::-1], spec, ref=REF[-1::-1])
-    elif len(SIZE) == 2:
-        Data = Data.reshape(SIZE[1], SIZE[0])
-        masterData = sc.Spectrum(name, Data, (7, filePath), FREQ[-1::-1], SW[-1::-1], spec * 2, ref=REF[-1::-1])
-    elif len(SIZE) == 3:
-        Data = Data.reshape(SIZE[2],SIZE[1], SIZE[0])
-        masterData = sc.Spectrum(name, Data, (7, filePath), FREQ[-1::-1], SW[-1::-1], spec * 3, ref=REF[-1::-1])
+        masterData = sc.Spectrum(name, DATA, (7, filePath), FREQ[-1::-1], SW[-1::-1], spec, ref=REF[-1::-1])
+    else:
+        for index in range(len(DATA)):
+            DATA[index] = DATA[index].reshape(*SIZE[-1::-1])
+        masterData = sc.Spectrum(name, DATA, (7, filePath), FREQ[-1::-1], SW[-1::-1], spec * dim, ref=REF[-1::-1],hyper = hyper)
     masterData.addHistory("Bruker spectrum data loaded from " + filePath)
     return masterData
 
