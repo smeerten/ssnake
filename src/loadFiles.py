@@ -528,7 +528,8 @@ def LoadBrukerSpectrum(filePath, name=''):
     SW = []
     REF = []
     FREQ = []
-    BLOCKING = []
+    OFFSET = []
+    XDIM = []
     files = ['procs','proc2s','proc3s']
     for file in files:
         if os.path.exists(Dir + os.path.sep + file):  # Get D2 parameters
@@ -538,11 +539,13 @@ def LoadBrukerSpectrum(filePath, name=''):
                 if data[s].startswith('##$SI='):
                     SIZE.append(int(data[s][6:]))
                 if data[s].startswith('##$XDIM='):
-                    BLOCKING.append(int(data[s][8:]))
+                    XDIM.append(int(data[s][8:]))
                 if data[s].startswith('##$SW_p='):
                     SW.append(float(data[s][8:]))
                 if data[s].startswith('##$SF='):
-                    REF.append(float(data[s][6:])*1e6)
+                    FREQ.append(float(data[s][6:])*1e6)
+                if data[s].startswith('##$OFFSET='):
+                    OFFSET.append(float(data[s][10:]))
                 if file == 'procs':
                     if data[s].startswith('##$BYTORDP='):
                         if int(data[s][11:]) == 1:
@@ -550,20 +553,22 @@ def LoadBrukerSpectrum(filePath, name=''):
                         else:
                             ByteOrder = 'l'
                 
-    files = ['acqus','acqu2s','acqu3s']
-    for file in files:
-        if os.path.exists(Dir + os.path.sep + '..' + os.path.sep + '..' + os.path.sep + file):  # Get D2 parameters from fid directory, if available
-            with open(Dir + os.path.sep + '..' + os.path.sep + '..' + os.path.sep + file, 'r') as f:
-                data = f.read().split('\n')
-            for s in range(0, len(data)):
-                if data[s].startswith('##$SFO1='):
-                    FREQ.append(float(data[s][8:]) * 1e6)
+    #files = ['acqus','acqu2s','acqu3s']
+    #for file in files:
+    #    if os.path.exists(Dir + os.path.sep + '..' + os.path.sep + '..' + os.path.sep + file):  # Get D2 parameters from fid directory, if available
+    #        with open(Dir + os.path.sep + '..' + os.path.sep + '..' + os.path.sep + file, 'r') as f:
+    #            data = f.read().split('\n')
+    #        for s in range(0, len(data)):
+    #            if data[s].startswith('##$O1='):
+    #                REF.append(float(data[s][6:]))
 
-    
+
+    #NOTE: OFFSET hold the ppm value of the leftmost point of the axis
     totsize =  np.cumprod(SIZE)[-1] 
     dim = len(SIZE)
+    REF = [None] * dim
     DATA = []
-    files = [['1r','1i'],['2rr','2ir','2ri','2ii'],['3rrr']]
+    files = [['1r','1i'],['2rr','2ir','2ri','2ii'],['3rrr','3irr','3rir','3iir','3rri','3iri','3rii','3iii']]
     counter = 0
     for file in files[dim - 1]:
         if os.path.exists(Dir + os.path.sep + file):  # Get D2 data
@@ -573,19 +578,21 @@ def LoadBrukerSpectrum(filePath, name=''):
                 else:
                     DATA[-1] = DATA[-1] - 1j * np.flipud(np.fromfile(f, np.int32, totsize))
                 counter += 1
-
+    hyper = None
     if dim == 2:
-        if len(DATA) == 1:
-            hyper = None
-        else:
+        if len(DATA) != 1:
             hyper = [0]
-    spec = [True]
-    if len(SIZE) == 1:
-        masterData = sc.Spectrum(name, DATA, (7, filePath), FREQ[-1::-1], SW[-1::-1], spec, ref=REF[-1::-1])
-    else:
+
+    if len(SIZE) == 2:
         for index in range(len(DATA)):
-            DATA[index] = DATA[index].reshape(*SIZE[-1::-1])
-        masterData = sc.Spectrum(name, DATA, (7, filePath), FREQ[-1::-1], SW[-1::-1], spec * dim, ref=REF[-1::-1],hyper = hyper)
+            DATA[index] = np.reshape(DATA[index],[int(SIZE[1]/XDIM[1]),int(SIZE[0]/XDIM[0]),XDIM[1],XDIM[0]])
+            DATA[index] = np.concatenate(np.concatenate(DATA[index],1),1)
+    elif len(SIZE) == 3:
+        for index in range(len(DATA)):
+            DATA[index] = np.reshape(DATA[index],[int(SIZE[2]/XDIM[2]),int(SIZE[1]/XDIM[1]),int(SIZE[0]/XDIM[0]),XDIM[2],XDIM[1],XDIM[0]])
+            DATA[index] = np.concatenate(np.concatenate(np.concatenate(DATA[index],2),2),2)
+    spec = [True]
+    masterData = sc.Spectrum(name, DATA, (7, filePath), FREQ[-1::-1], SW[-1::-1], spec * dim, ref=REF[-1::-1],hyper = hyper)
     masterData.addHistory("Bruker spectrum data loaded from " + filePath)
     return masterData
 
