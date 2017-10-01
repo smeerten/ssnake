@@ -552,21 +552,15 @@ def LoadBrukerSpectrum(filePath, name=''):
                             ByteOrder = 'b'
                         else:
                             ByteOrder = 'l'
-                
-    #files = ['acqus','acqu2s','acqu3s']
-    #for file in files:
-    #    if os.path.exists(Dir + os.path.sep + '..' + os.path.sep + '..' + os.path.sep + file):  # Get D2 parameters from fid directory, if available
-    #        with open(Dir + os.path.sep + '..' + os.path.sep + '..' + os.path.sep + file, 'r') as f:
-    #            data = f.read().split('\n')
-    #        for s in range(0, len(data)):
-    #            if data[s].startswith('##$O1='):
-    #                REF.append(float(data[s][6:]))
-
 
     #NOTE: OFFSET hold the ppm value of the leftmost point of the axis
+    for index in range(len(SIZE)): #For each axis
+        pos = np.fft.fftshift(np.fft.fftfreq(SIZE[index], 1.0 / SW[index]))[-1] #Get last point of axis
+        pos2 = OFFSET[index] * 1e-6 * FREQ[index] #offset in Hz
+        REF.append(FREQ[index] + pos - pos2)
+
     totsize =  np.cumprod(SIZE)[-1] 
     dim = len(SIZE)
-    REF = [None] * dim
     DATA = []
     files = [['1r','1i'],['2rr','2ir','2ri','2ii'],['3rrr','3irr','3rir','3iir','3rri','3iri','3rii','3iii']]
     counter = 0
