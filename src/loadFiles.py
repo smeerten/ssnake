@@ -486,35 +486,32 @@ def LoadBrukerTopspin(filePath, name=''):
                     SW[-1] = float(data[s][8:])
                 if data[s].startswith('##$O1='):
                     REF.append(float(data[s][6:]))
-                if data[s].startswith('##$BYTORDA=') and elem == 'acqus': #only for first file
-                    ByteOrder = int(data[s][11:])
+                if elem == 'acqus':
+                    if data[s].startswith('##$BYTORDA='):
+                        if int(data[s][11:]) == 1:
+                            ByteOrder = 'b'
+                        else:
+                            ByteOrder = 'l'
     REF = list(- np.array(REF) + np.array(FREQ))
 
     totsize = np.cumprod(SIZE)[-1]
-    if os.path.exists(Dir + os.path.sep + 'fid'):
-        filePath = Dir + os.path.sep + 'fid'
-        with open(Dir + os.path.sep + 'fid', "rb") as f:
-            raw = np.fromfile(f, np.int32, totsize)
-    elif os.path.exists(Dir + os.path.sep + 'ser'):
-        filePath = Dir + os.path.sep + 'ser'
-        with open(Dir + os.path.sep + 'ser', "rb") as f:
-            raw = np.fromfile(f, np.int32, int(totsize / SIZE[0]) * int(np.ceil(SIZE[0] / 256))*256) #Always load full 1024 byte blocks (256 data points)
-    if ByteOrder:
-        RawInt = raw.newbyteorder('b')
-    else:
-        RawInt = raw.newbyteorder('l')
-    ComplexData = np.array(RawInt[0:len(RawInt):2]) + 1j * np.array(RawInt[1:len(RawInt):2])
+    dim = len(SIZE)
+    loadsize = totsize
+    files = ['fid','ser']
+    for file in files:
+        if os.path.exists(Dir + os.path.sep + file):
+            if file == 'ser':
+                loadsize = int(totsize / SIZE[0]) * int(np.ceil(SIZE[0] / 256))*256 #Always load full 1024 byte blocks (256 data points) for >1D
+            with open(Dir + os.path.sep + file, "rb") as f:
+                raw = np.fromfile(f, np.int32, loadsize)
+            raw = raw.newbyteorder(ByteOrder)
+            
+    ComplexData = np.array(raw[0:len(raw):2]) + 1j * np.array(raw[1:len(raw):2])
     spec = [False]
-    if len(SIZE) == 1:
-        masterData = sc.Spectrum(name, ComplexData, (1, filePath), FREQ, SW, spec, ref = REF[-1::-1])
-    elif len(SIZE) == 2:
-        ComplexData = ComplexData.reshape(SIZE[1], int(np.ceil(SIZE[0] / 256) * 256 / 2))
+    if len(SIZE) >= 2:
+        ComplexData = ComplexData.reshape(*SIZE[1:], int(np.ceil(SIZE[0] / 256) * 256 / 2))
         ComplexData = ComplexData[:,0:int(SIZE[0]/2)] #Cut off placeholder data
-        masterData = sc.Spectrum(name, ComplexData, (1, filePath), FREQ[-1::-1], SW[-1::-1], spec * 2, ref = REF[-1::-1])
-    elif len(SIZE) == 3:
-        ComplexData = ComplexData.reshape(SIZE[2], SIZE[1], int(np.ceil(SIZE[0] / 256) * 256 / 2))
-        ComplexData = ComplexData[:,:,0:int(SIZE[0]/2)] #Cut off placeholder data
-        masterData = sc.Spectrum(name, ComplexData, (1, filePath), FREQ[-1::-1], SW[-1::-1], spec * 3, ref = REF[-1::-1])
+    masterData = sc.Spectrum(name, ComplexData, (1, filePath), FREQ, SW, spec * dim, ref = REF[-1::-1])
     masterData.addHistory("Bruker data loaded from " + filePath)
     return masterData
 
@@ -528,8 +525,8 @@ def LoadBrukerSpectrum(filePath, name=''):
     SW = []
     REF = []
     FREQ = []
-    OFFSET = []
-    XDIM = []
+    OFFSET = [] #The highest ppm values of the axis
+    XDIM = [] #The blocking size along an axis
     files = ['procs','proc2s','proc3s']
     for file in files:
         if os.path.exists(Dir + os.path.sep + file):  # Get D2 parameters
@@ -553,7 +550,6 @@ def LoadBrukerSpectrum(filePath, name=''):
                         else:
                             ByteOrder = 'l'
 
-    #NOTE: OFFSET hold the ppm value of the leftmost point of the axis
     for index in range(len(SIZE)): #For each axis
         pos = np.fft.fftshift(np.fft.fftfreq(SIZE[index], 1.0 / SW[index]))[-1] #Get last point of axis
         pos2 = OFFSET[index] * 1e-6 * FREQ[index] #offset in Hz
@@ -564,25 +560,32 @@ def LoadBrukerSpectrum(filePath, name=''):
     DATA = []
     files = [['1r','1i'],['2rr','2ir','2ri','2ii'],['3rrr','3irr','3rir','3iir','3rri','3iri','3rii','3iii']]
     counter = 0
-    for file in files[dim - 1]:
-        if os.path.exists(Dir + os.path.sep + file):  # Get D2 data
+    for file in files[dim - 1]: #For all the files
+        if os.path.exists(Dir + os.path.sep + file): 
             with open(Dir + os.path.sep + file, "rb") as f:
-                if counter % 2 == 0:
-                    DATA.append(np.flipud(np.fromfile(f, np.int32, totsize)))
-                else:
-                    DATA[-1] = DATA[-1] - 1j * np.flipud(np.fromfile(f, np.int32, totsize))
-                counter += 1
+                raw = np.fromfile(f, np.int32, totsize)
+                raw = raw.newbyteorder(ByteOrder) #Set right byteorder
+                if counter % 2 == 0: #If even, data is real part
+                    DATA.append(np.flipud(raw))
+                else: #If odd, data is imag, and needs to be add to the previous
+                    DATA[-1] = DATA[-1] - 1j * np.flipud(raw)
+                counter += 1 #only advance counter when file is found
+    del raw
+
     hyper = None
-    if dim == 2:
+    if dim == 2: #If 2D data has more than 1 part: hypercomplex along the first axis
         if len(DATA) != 1:
             hyper = [0]
 
     if len(SIZE) == 2:
-        for index in range(len(DATA)):
+        for index in range(len(DATA)): #For each data set
+            #Reshape DATA to 4D data using the block information
+            #Twice concat along axis 1 canstructs the regular x-y data
             DATA[index] = np.reshape(DATA[index],[int(SIZE[1]/XDIM[1]),int(SIZE[0]/XDIM[0]),XDIM[1],XDIM[0]])
             DATA[index] = np.concatenate(np.concatenate(DATA[index],1),1)
     elif len(SIZE) == 3:
         for index in range(len(DATA)):
+            #The same as 2D, but now split to 6D data, and concat along 2
             DATA[index] = np.reshape(DATA[index],[int(SIZE[2]/XDIM[2]),int(SIZE[1]/XDIM[1]),int(SIZE[0]/XDIM[0]),XDIM[2],XDIM[1],XDIM[0]])
             DATA[index] = np.concatenate(np.concatenate(np.concatenate(DATA[index],2),2),2)
     spec = [True]
