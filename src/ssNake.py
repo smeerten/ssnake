@@ -1500,13 +1500,13 @@ class MainProgram(QtWidgets.QMainWindow):
                 self.changeMainWindow(name)
 
     def LoadVarianFile(self, filePath, name=''):
-        try:
+        #try:
             masterData = LF.LoadVarianFile(filePath,name)
             masterData.msgHandler = lambda msg: self.dispMsg(msg)
             return masterData
-        except:
-            self.dispMsg("Error on loading Varian data",'red')
-            return None 
+        #except:
+        #    self.dispMsg("Error on loading Varian data",'red')
+        #    return None 
 
     def LoadPipe(self, filePath, name=''):
         try:

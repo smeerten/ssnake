@@ -32,6 +32,7 @@ def LoadVarianFile(filePath, name=''):
     sw = 1
     sw1 = 1
     freq1 = 0  # intialize second dimension freqency as 0
+    phfid = 0
 
     if os.path.exists(Dir + os.path.sep + 'procpar'):
         file = Dir + os.path.sep + 'procpar'
@@ -60,8 +61,6 @@ def LoadVarianFile(filePath, name=''):
             elif data[s].startswith('phfid '):
                 if int(data[s].split()[-2]): #if on
                     phfid = float(data[s + 1].split()[1]) 
-                else:
-                    phfid = 0
             elif data[s].startswith('rp '):
                 rp = float(data[s + 1].split()[1])  
         if indirectRef:
@@ -69,8 +68,6 @@ def LoadVarianFile(filePath, name=''):
                 if data[s].startswith(indirectRef + " "):
                     freq1 = float(data[s + 1].split()[1]) * 1e6
                 
-            
-
     if os.path.exists(Dir + os.path.sep + 'fid'):
         datafile = Dir + os.path.sep + 'fid'
         filePath = datafile
@@ -87,42 +84,38 @@ def LoadVarianFile(filePath, name=''):
         tbytes = unpack('>l', raw[4])[0]
         bbytes = unpack('>l', raw[5])[0]
         raw = np.fromfile(f, np.int16, 2)
-        vers_id = unpack('>h', raw[0])[0]
         status = unpack('>h', raw[1])[0]
         spec = bool(int(bin(status)[-2]))
         raw = np.fromfile(f, np.int32, 1)
         nbheaders = unpack('>l', raw[0])[0]
         SizeTD2 = npoints
         SizeTD1 = nblocks * ntraces
-        a = []
         fid32 = int(bin(status)[-3])
         fidfloat = int(bin(status)[-4])
         hypercomplex = bool(bin(status)[-5])
         
-
         if not fid32 and fidfloat:  # only for `newest' format, use fast routine
             flipped = bool(bin(status)[-10])
             totalpoints = (ntraces * npoints + nbheaders**2 * 7)*nblocks
-            raw = np.fromfile(f, np.float32, totalpoints)
-            a = raw.newbyteorder('>f')
-#                print(bin(status)[-10])
+            fid = np.fromfile(f, np.float32, totalpoints)
+            fid = fid.newbyteorder('>f')
             if not spec or (spec and not hypercomplex):
-                a = a.reshape(nblocks, int(totalpoints / nblocks))
-                a = a[:, 7::]
-                fid = a[:, ::2] - 1j * a[:, 1::2]
+                fid = fid.reshape(nblocks, int(totalpoints / nblocks))
+                fid = fid[:, 7::]
+                fid = fid[:, ::2] - 1j * fid[:, 1::2]
             else:
-                fid = a[nbheaders*7::4] - 1j * a[nbheaders*7+1::4]
+                fid = fid[nbheaders*7::4] - 1j * fid[nbheaders*7+1::4]
                 fid = fid.reshape(int(SizeTD1/4),SizeTD2)
                 if flipped:
                     fid = np.fliplr(fid)
  
         elif fid32 and not fidfloat:  # for VNMRJ 2 data
             totalpoints = (ntraces * npoints + nbheaders**2 * 7)*nblocks
-            raw = np.fromfile(f, np.int32, totalpoints)
-            a = raw.newbyteorder('>l')
-            a = a.reshape(nblocks, int(totalpoints / nblocks))
-            a = a[:, 7::]
-            fid = a[:, ::2] - 1j * a[:, 1::2]
+            fid = np.fromfile(f, np.int32, totalpoints)
+            fid = fid.newbyteorder('>l')
+            fid = fid.reshape(nblocks, int(totalpoints / nblocks))
+            fid = fid[:, 7::]
+            fid = fid[:, ::2] - 1j * fid[:, 1::2]
         else:  # use slow, but robust routine
             for iter1 in range(0, nblocks):
                 b = []
