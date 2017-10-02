@@ -502,8 +502,12 @@ def LoadBrukerTopspin(filePath, name=''):
     ComplexData = np.array(raw[0:len(raw):2]) + 1j * np.array(raw[1:len(raw):2])
     spec = [False]
     if len(SIZE) >= 2:
-        ComplexData = ComplexData.reshape(*SIZE[1:], int(np.ceil(SIZE[0] / 256) * 256 / 2))
+        SIZE[0] = int(np.ceil(SIZE[0] / 256) * 256 / 2)
+        ComplexData = ComplexData.reshape(*SIZE[-1::-1])
+    if len(SIZE) == 2:
         ComplexData = ComplexData[:,0:int(SIZE[0]/2)] #Cut off placeholder data
+    elif len(SIZE) == 3:
+        ComplexData = ComplexData[:,:,0:int(SIZE[0]/2)] #Cut off placeholder data
     masterData = sc.Spectrum(name, ComplexData, (1, filePath), FREQ, SW, spec * dim, ref = REF[-1::-1])
     masterData.addHistory("Bruker data loaded from " + filePath)
     return masterData
