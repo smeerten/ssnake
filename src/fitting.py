@@ -345,7 +345,7 @@ class FittingWindow(QtWidgets.QWidget):
         self.current = self.tabWindow.CURRENTWINDOW(self, self.fig, self.canvas, self.oldMainWindow.get_current())
         self.paramframe = self.tabWindow.PARAMFRAME(self.current, self, isMain=self.isMain)
 
-        self.fig.suptitle(self.oldMainWindow.get_masterData().name)
+        #self.fig.suptitle(self.oldMainWindow.get_masterData().name)
         grid.addWidget(self.paramframe, 1, 0)
         grid.setColumnStretch(0, 1)
         grid.setRowStretch(0, 1)
@@ -421,7 +421,7 @@ class FittingWindow(QtWidgets.QWidget):
                                              axes)
 
     def rename(self, name):
-        self.fig.suptitle(name)
+        #self.fig.suptitle(name)
         self.canvas.draw()
         self.oldMainWindow.rename(name)
 

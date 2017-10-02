@@ -408,7 +408,7 @@ class MainPlotWindow(QtWidgets.QWidget):
                     fd.write(s.replace('stroke-miterlimit:100000;', ''))
 
     def cancel(self):
-        self.fig.suptitle(self.titleBackup, fontsize=self.titleFontSizeBackup)
+        self.fig.suptitle('', fontsize=self.titleFontSizeBackup)
         self.ax.set_xlabel(self.xlabelBackup, fontsize=self.xlabelFontSizeBackup)
         self.ax.set_ylabel(self.ylabelBackup, fontsize=self.ylabelFontSizeBackup)
         self.ax.set_xlim((self.xlimBackup[0], self.xlimBackup[1]))

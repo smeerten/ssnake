@@ -1529,7 +1529,7 @@ class Current1D(Plot1DFrame):
             self.diagonalBool = self.root.father.defaultDiagonalBool
             self.diagonalMult = self.root.father.defaultDiagonalMult
             self.upd()                                                  # get the first slice of data
-            self.fig.suptitle(self.data.name)
+            #self.fig.suptitle(self.data.name)
             self.startUp()
         else:
             self.ppm = duplicateCurrent.ppm
@@ -1567,7 +1567,7 @@ class Current1D(Plot1DFrame):
             xReset = self.X_RESIZE or duplicateCurrent.X_RESIZE
             yReset = self.Y_RESIZE or duplicateCurrent.Y_RESIZE
             self.upd()  # get the first slice of data
-            self.fig.suptitle(self.data.name)
+            #self.fig.suptitle(self.data.name)
             self.startUp(xReset, yReset)
 
     def dispMsg(self):
@@ -1579,7 +1579,7 @@ class Current1D(Plot1DFrame):
 
     def rename(self, name):
         self.data.rename(name)
-        self.fig.suptitle(name)
+        #self.fig.suptitle(name)
         self.canvas.draw()
 
     def copyCurrent(self, root, fig, canvas, data):
