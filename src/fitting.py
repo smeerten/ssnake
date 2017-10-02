@@ -2759,6 +2759,7 @@ class TensorDeconvParamFrame(AbstractParamFrame):
             outCurve += y
         self.parent.fitDataList[tuple(self.parent.locList)] = [tmpx, outCurve, x, outCurvePart]
         self.parent.showFid()
+        self.changeShiftDef() #Reformat output to correct display
 
 ##############################################################################
         
