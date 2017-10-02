@@ -2812,6 +2812,7 @@ class SideFrame(QtWidgets.QScrollArea):
                 frame.addWidget(self.shiftLabel, 4, 0)
                 
                 scaleEntry = QtWidgets.QDoubleSpinBox()
+                scaleEntry.setDecimals(4)
                 scaleEntry.setMaximum(1e3)
                 scaleEntry.setMinimum(-1e3)
                 scaleEntry.setSingleStep(0.1)
@@ -2819,6 +2820,7 @@ class SideFrame(QtWidgets.QScrollArea):
                 scaleEntry.valueChanged.connect(lambda arg, num=i: self.setScale(arg, num))
                 frame.addWidget(scaleEntry, 2, 1)
                 offsetEntry = QtWidgets.QDoubleSpinBox()
+                offsetEntry.setDecimals(4)
                 offsetEntry.setMaximum(1e3)
                 offsetEntry.setMinimum(-1e3)
                 offsetEntry.setSingleStep(0.1)
@@ -2826,6 +2828,7 @@ class SideFrame(QtWidgets.QScrollArea):
                 offsetEntry.valueChanged.connect(lambda arg, num=i: self.setOffset(arg, num))
                 frame.addWidget(offsetEntry, 3, 1)
                 shiftEntry = QtWidgets.QDoubleSpinBox()
+                shiftEntry.setDecimals(4)
                 shiftEntry.setMaximum(1e3)
                 shiftEntry.setMinimum(-1e3)
                 shiftEntry.setSingleStep(0.1)
