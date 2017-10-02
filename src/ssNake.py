@@ -2968,6 +2968,18 @@ class SideFrame(QtWidgets.QScrollArea):
                     axes2 = self.father.current.axes
                 else:
                     axes = self.father.current.axes2
+                if isinstance(self.father.current, (sc.CurrentContour)): #If contour
+                    #Correct proj values and maxima
+                    Ranges = [self.projTopRangeMax.value(),self.projTopRangeMin.value(),self.projRightRangeMax.value(),self.projRightRangeMin.value()]
+                    topMax = self.projTopRangeMax.maximum()
+                    rightMax = self.projRightRangeMax.maximum()
+                    self.projTopRangeMax.setMaximum(rightMax)
+                    self.projRightRangeMax.setMaximum(topMax)
+                    self.projTopRangeMax.setValue(Ranges[2])
+                    self.projTopRangeMin.setValue(Ranges[3])
+                    self.projRightRangeMax.setValue(Ranges[0])
+                    self.projRightRangeMin.setValue(Ranges[1])
+
             self.buttons2Group.button(axes2).toggle()
         self.getSlice(None, axes, True)
         self.upd()
