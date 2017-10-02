@@ -3665,6 +3665,7 @@ class CurrentArrayed(Current1D):
             tmpdata = np.abs(tmpdata)
         self.line_xdata = []
         self.line_ydata = []
+        ticksPos = []
         if self.single:
             for num in range(len(tmpdata)):
                 if (self.plotType == 2):
@@ -3672,6 +3673,9 @@ class CurrentArrayed(Current1D):
                 self.line_xdata = np.append(self.line_xdata, (num * self.spacing + self.xax[xaxZlims]) * axMult)
                 self.line_ydata = np.append(self.line_ydata, np.real(tmpdata[num][xaxZlims])[direc])
                 self.ax.plot((num * self.spacing + self.xax[xaxZlims]) * axMult, np.real(tmpdata[num][xaxZlims])[direc], marker='o', linestyle='none', c=self.color, label=self.data.name, picker=True)
+
+                pos = (num * self.spacing + 0.5 * (self.xax[xaxZlims][-1] - self.xax[xaxZlims][0])) * axMult
+                ticksPos.append(pos)
         else:
             for num in range(len(tmpdata)):
                 if (self.plotType == 2):
@@ -3679,23 +3683,16 @@ class CurrentArrayed(Current1D):
                 self.line_xdata = np.append(self.line_xdata, (num * self.spacing + self.xax[xaxZlims]) * axMult)
                 self.line_ydata = np.append(self.line_ydata, np.real(tmpdata[num][xaxZlims])[direc])
                 self.ax.plot((num * self.spacing + self.xax[xaxZlims]) * axMult, np.real(tmpdata[num][xaxZlims])[direc], c=self.color, linewidth=self.linewidth, label=self.data.name, picker=True)
-        if self.spec == 0:
-            self.ax.set_xlabel('Time')
-        elif self.spec == 1:
-            self.ax.set_xlabel('Frequency')
-        else:
-            self.ax.set_xlabel('')
-        self.ax.set_xticks([])
-        self.ax.tick_params(axis='x',
-                            which='both',
-                            bottom='off',
-                            top='off',
-                            labelbottom='off')
-    
+                pos = (num * self.spacing + 0.5 * (self.xax[xaxZlims][-1] - self.xax[xaxZlims][0])) * axMult
+                ticksPos.append(pos)
+
+        self.ax.set_xticks(ticksPos)
+        self.ax.set_xticklabels([('%#.3g') % x for x in self.xax2]) 
+          
 
         self.ax.set_xlim(self.xminlim, self.xmaxlim)
         self.ax.set_ylim(self.yminlim, self.ymaxlim)
-        self.ax.get_xaxis().get_major_formatter().set_powerlimits((-4, 4))
+        #self.ax.get_xaxis().get_major_formatter().set_powerlimits((-4, 4))
         self.ax.get_yaxis().get_major_formatter().set_powerlimits((-4, 4))
         self.ax.xaxis.grid(self.grids[0])
         self.ax.yaxis.grid(self.grids[1])
