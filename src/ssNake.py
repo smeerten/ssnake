@@ -2194,10 +2194,11 @@ class Main1DWindow(QtWidgets.QWidget):
         
     def conj(self):
         self.redoList = []
+        axes = self.current.axes
         if self.masterData.noUndo:
-            self.masterData.conj()
+            self.masterData.conj(axes)
         else:
-            self.undoList.append(self.masterData.conj())
+            self.undoList.append(self.masterData.conj(axes))
         self.current.upd()
         self.current.showFid()
         self.addMacro(['conj'])
