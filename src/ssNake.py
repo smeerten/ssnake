@@ -3206,6 +3206,19 @@ class BottomFrame(QtWidgets.QWidget):
                 if self.father.current.freq2 == 0.0:
                     self.axisDropFreq2.model().item(3).setEnabled(False)
                 self.axisDropFreq2.setCurrentIndex(self.father.current.axType2)
+        if isinstance(self.father.current, sc.CurrentArrayed):
+            self.ax2Label.show()
+            self.axisDropFreq2.model().item(3).setEnabled(True)
+
+            if self.father.current.spec2 == 0:
+                self.axisDropTime2.show()
+                self.axisDropTime2.setCurrentIndex(self.father.current.axType2)
+            elif self.father.current.spec2 == 1:
+                self.axisDropFreq2.show()
+                if self.father.current.freq2 == 0.0:
+                    self.axisDropFreq2.model().item(3).setEnabled(False)
+                self.axisDropFreq2.setCurrentIndex(self.father.current.axType2)
+
         if self.father.current.wholeEcho:
             self.wholeEcho.setCheckState(QtCore.Qt.Checked)
         else:

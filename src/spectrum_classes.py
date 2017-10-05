@@ -3450,6 +3450,15 @@ class CurrentArrayed(Current1D):
             if hasattr(duplicateCurrent, 'axes'):
                 if self.axes2 == duplicateCurrent.axes:
                     self.axes2 = (self.axes2 - 1) % self.data.data.ndim
+        if hasattr(duplicateCurrent, 'axType2'):
+            self.axType2 = duplicateCurrent.axType2
+        else:
+            self.axType2 = root.father.defaultUnits
+        if hasattr(duplicateCurrent, 'ppm2'):
+            self.ppm2 = duplicateCurrent.ppm2
+        else:
+            self.ppm2 = False
+
         if hasattr(duplicateCurrent, 'stackBegin'):
             self.stackBegin = duplicateCurrent.stackBegin
         else:
@@ -3545,6 +3554,30 @@ class CurrentArrayed(Current1D):
     def resetLocList(self):
         self.locList = [0] * (len(self.data.data.shape) - 2)
 
+    def setAxType2(self, val):
+        if self.spec2 == 1:
+            if self.ppm2:
+                oldAxMult = 1e6 / self.ref2
+            else:
+                oldAxMult = 1.0 / (1000.0**self.axType2)
+        elif self.spec2 == 0:
+            oldAxMult = 1000.0**self.axType2
+        if self.spec2 == 1:
+            if val == 3:
+                newAxMult = 1e6 / self.ref2
+            else:
+                newAxMult = 1.0 / (1000.0**val)
+        elif self.spec2 == 0:
+            newAxMult = 1000.0**val
+        if val == 3:
+            self.ppm2 = True
+        else:
+            self.ppm2 = False
+            self.axType2 = val
+        #self.yminlim = self.yminlim * newAxMult / oldAxMult
+        #self.ymaxlim = self.ymaxlim * newAxMult / oldAxMult
+        self.showFid()
+
     def stackSelect(self, stackBegin, stackEnd, stackStep):
         self.stackBegin = stackBegin
         self.stackEnd = stackEnd
@@ -3636,6 +3669,14 @@ class CurrentArrayed(Current1D):
                 axMult = 1.0 / (1000.0**self.axType)
         elif self.spec == 0:
             axMult = 1000.0**self.axType
+        if self.spec2 == 1:
+            if self.ppm2:
+                axMult2 = 1e6 / self.ref2
+            else:
+                axMult2 = 1.0 / (1000.0**self.axType2)
+        elif self.spec2 == 0:
+            axMult2 = 1000.0**self.axType2
+
         if old:
             if (self.plotType == 0):
                 oldData = np.real(self.data1D)
@@ -3686,7 +3727,7 @@ class CurrentArrayed(Current1D):
                 pos = (num * self.spacing + 0.5 * (self.xax[xaxZlims][-1] + self.xax[xaxZlims][0])) * axMult
                 ticksPos.append(pos)
         self.ax.set_xticks(ticksPos)
-        self.ax.set_xticklabels([('%#.3g') % x for x in self.xax2]) 
+        self.ax.set_xticklabels([('%#.3g') % x for x in self.xax2 * axMult2]) 
           
 
         self.ax.set_xlim(self.xminlim, self.xmaxlim)
