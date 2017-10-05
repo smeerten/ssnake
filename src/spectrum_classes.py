@@ -3674,7 +3674,7 @@ class CurrentArrayed(Current1D):
                 self.line_ydata = np.append(self.line_ydata, np.real(tmpdata[num][xaxZlims])[direc])
                 self.ax.plot((num * self.spacing + self.xax[xaxZlims]) * axMult, np.real(tmpdata[num][xaxZlims])[direc], marker='o', linestyle='none', c=self.color, label=self.data.name, picker=True)
 
-                pos = (num * self.spacing + 0.5 * (self.xax[xaxZlims][-1] - self.xax[xaxZlims][0])) * axMult
+                pos = (num * self.spacing + 0.5 * (self.xax[xaxZlims][-1] + self.xax[xaxZlims][0])) * axMult
                 ticksPos.append(pos)
         else:
             for num in range(len(tmpdata)):
@@ -3683,9 +3683,8 @@ class CurrentArrayed(Current1D):
                 self.line_xdata = np.append(self.line_xdata, (num * self.spacing + self.xax[xaxZlims]) * axMult)
                 self.line_ydata = np.append(self.line_ydata, np.real(tmpdata[num][xaxZlims])[direc])
                 self.ax.plot((num * self.spacing + self.xax[xaxZlims]) * axMult, np.real(tmpdata[num][xaxZlims])[direc], c=self.color, linewidth=self.linewidth, label=self.data.name, picker=True)
-                pos = (num * self.spacing + 0.5 * (self.xax[xaxZlims][-1] - self.xax[xaxZlims][0])) * axMult
+                pos = (num * self.spacing + 0.5 * (self.xax[xaxZlims][-1] + self.xax[xaxZlims][0])) * axMult
                 ticksPos.append(pos)
-
         self.ax.set_xticks(ticksPos)
         self.ax.set_xticklabels([('%#.3g') % x for x in self.xax2]) 
           
