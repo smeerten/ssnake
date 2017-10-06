@@ -1305,10 +1305,12 @@ class MainProgram(QtWidgets.QMainWindow):
             else:
                 self.autoLoad(filePath)
 
+    def loadFitLibDir(self):
+        fileName = QtWidgets.QFileDialog.getExistingDirectory(self, 'Open Library Directory', self.LastLocation)
+        return fileName
+
     def fileTypeCheck(self, filePath):
         returnVal = 0
-        
-        
         fileBase = '' 
         direc = filePath 
         if os.path.isfile(filePath):

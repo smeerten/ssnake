@@ -3363,7 +3363,13 @@ class Quad2CzjzekParamFrame(AbstractParamFrame):
         self.optframe.addWidget(QLabel(u"\u03c9<sub>Q</sub><sup>max</sup>/\u03c3:"), 9, 0)
         self.entries['wqmax'].append(wc.QLineEdit("4", self.setGrid))
         self.optframe.addWidget(self.entries['wqmax'][-1], 10, 0)
-        self.optframe.setColumnStretch(11, 1)
+        # loadLibButton = QtWidgets.QPushButton("Load Library")
+        # loadLibButton.clicked.connect(self.loadLib)
+        # self.optframe.addWidget(loadLibButton, 11, 0)
+        self.extLibCheck = QtWidgets.QCheckBox("Ext. Library")
+        # self.extLibCheck.setEnabled(False)
+        # self.optframe.addWidget(self.extLibCheck, 12, 0)
+        self.optframe.setColumnStretch(21, 1)
         self.optframe.setAlignment(QtCore.Qt.AlignTop)    
         self.frame2.addWidget(QLabel("Bgrnd:"), 0, 0, 1, 2)
         self.ticks['bgrnd'].append(QtWidgets.QCheckBox(''))
@@ -3434,6 +3440,45 @@ class Quad2CzjzekParamFrame(AbstractParamFrame):
         lib = np.apply_along_axis(self.bincounting, 2, x1, weight, length)
         return lib, wq_return, eta_return
 
+    def loadLib(self):
+        import os, re
+        dirName = self.rootwindow.mainProgram.loadFitLibDir()
+        nameList = os.listdir(dirName)
+        cq = []
+        eta = []
+        data = []
+        for name in nameList:
+            matchName = re.search("-(\d+\.\d+)-(\d+\.\d+)\.fid$", name)
+            if matchName:
+                cq.append(float(matchName.group(1)))
+                eta.append(float(matchName.group(2)))
+                fullName = os.path.join(dirName, name)
+                val = self.rootwindow.mainProgram.fileTypeCheck(fullName)
+                if val[0] is not None:
+                    libData = self.rootwindow.mainProgram.loading(val[0], val[1], returnBool=True)
+                if libData.data.ndim is not 1:
+                    self.rootwindow.mainProgram.dispMsg("A spectrum in the library is not a 1D spectrum.")
+                if not libData.spec[0]:
+                    libData.fourier(0)
+                libData.regrid([self.parent.current.xax[0], self.parent.current.xax[-1]], len(self.parent.current.xax), 0)
+                libData.fftshift(0)
+                libData.fourier(0)
+                data.append(libData.data)
+        cq = np.array(cq) * 1e6
+        eta = np.array(eta)
+        data = np.array(data)
+        numWq = len(np.unique(cq))
+        numEta = len(np.unique(eta))
+        if len(cq) != numWq*numEta:
+            self.rootwindow.mainProgram.dispMsg("Library to be loaded is not of a rectangular grid in Cq and eta.")
+            return
+        sortIndex = np.lexsort((cq, eta))
+        self.cqLib = cq[sortIndex].reshape((numEta, numWq))
+        self.etaLib = eta[sortIndex].reshape((numEta, numWq))
+        self.lib = data[sortIndex].reshape((numEta, numWq, len(data[0])))
+        self.extLibCheck.setEnabled(True)
+        self.extLibCheck.setChecked(True)
+
     def getExtraParams(self, out):
         mas = self.entries['mas'][-1].isChecked()
         wqMax = safeEval(self.entries['wqmax'][-1].text())
@@ -3450,7 +3495,12 @@ class Quad2CzjzekParamFrame(AbstractParamFrame):
                 maxSigma = max(maxSigma, float(val.text()))
             except ValueError:
                 continue
-        lib, wq, eta = self.genLib(len(self.parent.xax), I, maxSigma * wqMax * 1e6, numWq, numEta, angleStuff, self.parent.current.freq, self.parent.current.sw, weight, self.axAdd)
+        if self.extLibCheck.isChecked():
+            lib = self.lib
+            wq = self.cqLib
+            eta = self.etaLib
+        else:
+            lib, wq, eta = self.genLib(len(self.parent.xax), I, maxSigma * wqMax * 1e6, numWq, numEta, angleStuff, self.parent.current.freq, self.parent.current.sw, weight, self.axAdd)
         out['I'] = [I]
         out['lib'] = [lib]
         out['wq'] = [wq]
@@ -3556,8 +3606,6 @@ def quad2CzjzekfitFunc(params, allX, args):
 def quad2CzjzektensorFunc(sigma, d, pos, width, gauss, wq, eta, lib, freq, sw, axAdd, axMult = 1):
     sigma *= 1e6
     pos = (pos / axMult) - axAdd
-    wq = wq
-    eta = eta
     if sigma == 0.0: #protect against divide by zero
         czjzek = np.zeros_like(wq)
         czjzek[:,0] = 1

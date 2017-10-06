@@ -1004,16 +1004,13 @@ class Spectrum(object):
         else:
             return lambda self: self.setRef(oldRef, axes)
 
-
-    def regrid(self,limits,numPoints,axis):
-        oldLimits = [self.xaxArray[axis][0],self.xaxArray[axis][-1]]
-
+    def regrid(self, limits, numPoints, axis):
+        oldLimits = [self.xaxArray[axis][0], self.xaxArray[axis][-1]]
         if self.noUndo:
             returnValue = None
         else:
             copyData = copy.deepcopy(self)
             returnValue = lambda self: self.restoreData(copyData, lambda self: self.regrid(limits, numPoints, axis))
-
         newSw = (limits[1]-limits[0]) / (numPoints - 1) * numPoints 
         newAxis = np.fft.fftshift(np.fft.fftfreq(numPoints, 1.0 / newSw))
         newAxis = newAxis - (newAxis[0] + newAxis[-1]) / 2 + (limits[0] + limits[-1]) / 2 #Axis with correct min/max
@@ -1024,7 +1021,6 @@ class Spectrum(object):
             newDat = np.apply_along_axis(self.regridFunc, axis, self.data,newAxis,self.xaxArray[axis])
         else:
             newDat = self.regridFunc(self.data,newAxis ,self.xaxArray[axis])
-        
         self.data = newDat
         self.sw[axis] = newSw
         if self.ref[axis] is None: #Set new 0 freq to those of the old view, if needed
@@ -1033,13 +1029,10 @@ class Spectrum(object):
             newFreq += - self.freq[axis] + self.ref[axis]
         self.freq[axis] = newFreq
         self.resetXax(axis)
-
         self.addHistory("Regrid dimension " + str(axis) + " between " + str(limits[0]) + ' and ' + str(limits[1]) + ' with ' + str(numPoints) + ' points')
         return returnValue
 
-
-    def regridFunc(self,data,newAx,x):
-
+    def regridFunc(self, data, newAx, x):
         from scipy import interpolate as intp
         f = intp.interp1d(x, data, fill_value = 0,bounds_error = False)
         return f(newAx)
