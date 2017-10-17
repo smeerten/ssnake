@@ -313,6 +313,7 @@ class MainProgram(QtWidgets.QMainWindow):
                                     ['Fitting --> Lorentzian/Gaussian',self.lorentzfitAct],['Fitting --> CSA',self.csastaticAct],
                                     ['Fitting --> First Order Quadrupole',self.firstquadstatAct],['Fitting --> Second Order Quadrupole',self.secondquadstatAct],
                                     ['Fitting --> Czjzek',self.czjzekstatAct],
+                                    #['Fitting --> SIMPSON',self.simpsonAct],
                                     ['Combine --> Combine Workspaces',self.combineWorkspaceAct],['Combine --> Insert From Workspace',self.insertdatAct],['Combine --> Add',self.adddatAct],['Combine --> Subtract',self.subdatAct],['Combine --> Multiply',self.multdatAct],
                                     ['Combine --> Divide',self.divdatAct],
                                     ['Plot --> 1D Plot',self.onedplotAct],['Plot --> Scatter',self.scatterplotAct],['Plot --> Stack Plot',self.stackplotAct],
@@ -574,6 +575,8 @@ class MainProgram(QtWidgets.QMainWindow):
         self.secondquadstatAct.setToolTip('Fit Second Order Quadrupole')
         self.czjzekstatAct = self.fittingMenu.addAction(QtGui.QIcon(IconDirectory + 'czjzekstatic.png'),"C&zjzek", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.createQuad2CzjzekWindow()))
         self.czjzekstatAct.setToolTip('Fit Czjzek Pattern')
+        #self.simpsonAct = self.fittingMenu.addAction("&SIMPSON", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.createSIMPSONWindow()))
+        #self.simpsonAct.setToolTip('Fit SIMPSON Script')
         
         self.fittingActList = [self.snrAct,self.fwhmAct,self.massAct,self.intfitAct,self.relaxAct,
                                self.diffusionAct,self.lorentzfitAct,self.csastaticAct,
@@ -1307,6 +1310,12 @@ class MainProgram(QtWidgets.QMainWindow):
 
     def loadFitLibDir(self):
         fileName = QtWidgets.QFileDialog.getExistingDirectory(self, 'Open Library Directory', self.LastLocation)
+        return fileName
+
+    def loadSIMPSONScript(self):
+        fileName = QtWidgets.QFileDialog.getOpenFileName(self, 'Open SIMPSON Script', self.LastLocation)
+        if type(fileName) is tuple:
+            fileName = fileName[0]
         return fileName
 
     def fileTypeCheck(self, filePath):
@@ -2382,6 +2391,9 @@ class Main1DWindow(QtWidgets.QWidget):
             self.father.dispMsg("Please set the spectrometer frequency first!")
             return
         self.father.createFitWindow(fit.Quad2CzjzekWindow(self.father, self.father.mainWindow))
+
+    def createSIMPSONWindow(self):
+        self.father.createFitWindow(fit.SIMPSONDeconvWindow(self.father, self.father.mainWindow))
 
     def plot1D(self):
         tmpcurrent = sc.Current1D(self, self.fig, self.canvas, self.masterData, self.current)

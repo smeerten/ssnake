@@ -30,13 +30,18 @@ import scipy.optimize
 import scipy.ndimage
 import multiprocessing
 import copy
+import re
+import time
+import tempfile
+import os
+import subprocess
+import shutil
 import spectrum_classes
 from safeEval import safeEval
 from spectrumFrame import Plot1DFrame
 from widgetClasses import QLabel
 import widgetClasses as wc
 import functions as func
-import time
 
 pi = np.pi
 stopDict = {} #Global dictionary with stopping commands for fits
@@ -2998,7 +3003,6 @@ class Quad1DeconvParamFrame(AbstractParamFrame):
                 self.frame3.addWidget(self.entries[self.MULTINAMES[j]][i], i + 2, 2*j+1)
         self.dispParams()
 
-
     def MASChange(self,state):
         if state: #When turned on
             self.entries['spinspeed'][-1].setEnabled(True)
@@ -3441,7 +3445,6 @@ class Quad2CzjzekParamFrame(AbstractParamFrame):
         return lib, wq_return, eta_return
 
     def loadLib(self):
-        import os, re
         dirName = self.rootwindow.mainProgram.loadFitLibDir()
         nameList = os.listdir(dirName)
         cq = []
@@ -3635,3 +3638,258 @@ def czjzekMASsetAngleStuff(cheng):
                   (-7 / 8.0 * np.cos(theta)**4 + np.cos(theta)**2 - 1 / 8.0) * np.cos(2 * phi),
                   1 / 12.0 * np.cos(theta)**2 + (+7 / 48.0 * np.cos(theta)**4 - 7 / 24.0 * np.cos(theta)**2 + 7 / 48.0) * np.cos(2 * phi)**2]
     return weight, angleStuff
+
+#################################################################################
+
+
+class SIMPSONDeconvWindow(TabFittingWindow):
+
+    def __init__(self, mainProgram, oldMainWindow):
+        self.CURRENTWINDOW = SIMPSONDeconvFrame
+        self.PARAMFRAME = SIMPSONDeconvParamFrame
+        super(SIMPSONDeconvWindow, self).__init__(mainProgram, oldMainWindow)
+
+#################################################################################
+
+
+class SIMPSONDeconvFrame(FitPlotFrame):
+
+    def __init__(self, rootwindow, fig, canvas, current):
+        self.FITNUM = 1 # Maximum number of fits
+        super(SIMPSONDeconvFrame, self).__init__(rootwindow, fig, canvas, current)
+
+
+#################################################################################
+
+
+class SIMPSONDeconvParamFrame(AbstractParamFrame):
+
+    def __init__(self, parent, rootwindow, isMain=True):
+        self.SINGLENAMES = []
+        self.MULTINAMES = []
+        self.PARAMTEXT = {}
+        self.numExp = QtWidgets.QComboBox()
+        self.script = None
+        self.command = "simpson"
+        self.FITFUNC = SIMPSONDeconvmpFit
+        #Get full integral
+        super(SIMPSONDeconvParamFrame, self).__init__(parent, rootwindow, isMain)
+        resetButton = QtWidgets.QPushButton("Reset")
+        resetButton.clicked.connect(self.reset)
+        self.frame1.addWidget(resetButton, 1, 1)
+        loadButton = QtWidgets.QPushButton("Load Script")
+        loadButton.clicked.connect(self.loadScript)
+        self.frame1.addWidget(loadButton, 2, 1)
+        self.labels = {}
+        self.ticks = {}
+        self.entries = {}
+        self.frame3.setColumnStretch(20, 1)
+        self.frame3.setAlignment(QtCore.Qt.AlignTop)
+        self.reset()
+
+    def getNumExp(self):
+        return 1
+        
+    def defaultValues(self, inp):
+        if not inp:
+            val = {}
+            for name in self.MULTINAMES:
+                val[name] = np.repeat([np.array([0.0, False], dtype=object)], self.FITNUM,axis=0)
+            return val
+        else:
+            return inp
+        
+    def reset(self):
+        locList = tuple(self.parent.locList)
+        self.fitParamList[locList] = self.defaultValues(0)
+        self.dispParams()
+
+    def loadScript(self):
+        fileName = self.rootwindow.mainProgram.loadSIMPSONScript()
+        with open (fileName, "r") as myfile:
+            inFile = myfile.read()
+        matches = np.unique(re.findall("(@\w+)", inFile))
+        self.script = inFile
+        self.MULTINAMES = [e[1:] for e in matches]
+        for n in self.PARAMTEXT.keys():
+            self.labels[n][0].deleteLater()
+            self.ticks[n][0].deleteLater()
+            self.entries[n][0].deleteLater()
+        self.PARAMTEXT = {}
+        self.labels = {}
+        self.ticks = {}
+        self.entries = {}
+        for i in range(len(self.MULTINAMES)):
+            name = self.MULTINAMES[i]
+            self.PARAMTEXT[name] = name
+            self.labels[name] = [QtWidgets.QLabel(name)]
+            self.frame3.addWidget(self.labels[name][0], i, 0)
+            self.ticks[name] = [QtWidgets.QCheckBox('')]
+            self.frame3.addWidget(self.ticks[name][0], i, 1)
+            self.entries[name] = [wc.FitQLineEdit(self, name)]
+            self.frame3.addWidget(self.entries[name][0], i, 2)
+        self.reset()
+        
+    def getExtraParams(self, out):
+        out["nameList"] = [self.MULTINAMES]
+        out["command"] = [self.command]
+        out["script"] = [self.script]
+        return (out, [out["nameList"][-1], out["command"][-1], out["script"][-1]])
+        
+    def disp(self, params, num):
+        out = params[num]
+        numExp = len(out[self.MULTINAMES[0]])
+        for i in range(numExp):
+            for name in self.MULTINAMES:
+                inp = out[name][i]
+                if isinstance(inp, tuple):
+                    inp = checkLinkTuple(inp)
+                    out[name][i] = inp[2]*params[inp[4]][inp[0]][inp[1]] + inp[3]
+                if not np.isfinite(out[name][i]):
+                    self.rootwindow.mainProgram.dispMsg("Fitting: One of the inputs is not valid")
+                    return
+        tmpx = self.parent.xax
+        outCurveBase = np.zeros(len(tmpx))
+        outCurve = outCurveBase.copy()
+        outCurvePart = []
+        x = []
+        for i in range(len(out[self.MULTINAMES[0]])):
+            x.append(tmpx)
+            inputPar = {}
+            for name in self.MULTINAMES:
+                inputPar[name] = out[name][0]
+            y = SIMPSONRunScript(self.command, self.script, inputPar)
+            outCurvePart.append(outCurveBase + y)
+            outCurve += y
+        self.parent.fitDataList[tuple(self.parent.locList)] = [tmpx, outCurve, x, outCurvePart]
+        self.parent.showFid()
+
+##############################################################################
+
+
+def SIMPSONDeconvmpFit(xax, data1D, guess, args, queue, minmethod):
+    try:
+        fitVal = scipy.optimize.minimize(lambda *param: np.sum((data1D-SIMPSONDeconvfitFunc(param, xax, args))**2), guess, method=minmethod)
+    except:
+        fitVal = None
+    queue.put(fitVal)
+
+def SIMPSONDeconvfitFunc(params, allX, args):
+    params = params[0]
+    specName = args[0]
+    specSlices = args[1]
+    allParam = []
+    for length in specSlices:
+        allParam.append(params[length])
+    allStruc = args[3]
+    allArgu = args[4]
+    fullTestFunc = []
+    for n in range(len(allX)):
+        x=allX[n]
+        testFunc = np.zeros(len(x))
+        param = allParam[n]
+        numExp = args[2][n]
+        struc = args[3][n]
+        argu = args[4][n]
+        sw = args[5][n]
+        axAdd = args[6][n]
+        axMult = args[7][n]
+        nameList = argu[-1][0]
+        command = argu[-1][1]
+        script = argu[-1][2]        
+        parameters = {}
+        for i in range(numExp):
+            for name in nameList:
+                if struc[name][i][0] == 1:
+                    parameters[name] = param[struc[name][i][1]]
+                elif struc[name][i][0] == 0:
+                    parameters[name] = argu[struc[name][i][1]]
+                else:
+                    altStruc = struc[name][i][1]
+                    strucTarget = allStruc[altStruc[4]]
+                    if strucTarget[altStruc[0]][altStruc[1]][0] == 1:
+                        parameters[name] = altStruc[2] * allParam[altStruc[4]][strucTarget[altStruc[0]][altStruc[1]][1]] + altStruc[3]
+                    elif strucTarget[altStruc[0]][altStruc[1]][0] == 0:
+                        parameters[name] = altStruc[2] * allArgu[altStruc[4]][strucTarget[altStruc[0]][altStruc[1]][1]] + altStruc[3]
+            testFunc += SIMPSONRunScript(command, script, parameters)
+        fullTestFunc = np.append(fullTestFunc, testFunc)
+    return fullTestFunc
+
+def tmpLoadSimpsonFile(filePath):
+    with open(filePath, 'r') as f:
+        Lines = f.read().split('\n')
+    NP, NI, SW, SW1, TYPE, FORMAT = 0, 1, 0, 0, '', 'Normal'
+    DataStart = Lines.index('DATA')
+    DataEnd = Lines.index('END')
+    for s in range(0, DataStart):
+        if Lines[s].startswith('NP='):
+            NP = int(re.sub('NP=', '', Lines[s]))
+        elif Lines[s].startswith('NI='):
+            NI = int(re.sub('NI=', '', Lines[s]))
+        elif Lines[s].startswith('SW='):
+            SW = float(re.sub('SW=', '', Lines[s]))
+        elif Lines[s].startswith('SW1='):
+            SW1 = float(re.sub('SW1=', '', Lines[s]))
+        elif Lines[s].startswith('TYPE='):
+            TYPE = re.sub('TYPE=', '', Lines[s])
+        elif Lines[s].startswith('FORMAT='):
+            FORMAT = re.sub('FORMAT=', '', Lines[s])
+    if 'Normal' in FORMAT:
+        length = DataEnd - DataStart - 1
+        data = np.zeros(length, dtype=complex)
+        for i in range(length):
+            temp = Lines[DataStart + 1 + i].split()
+            data[i] = float(temp[0]) + 1j * float(temp[1])
+    elif 'BINARY' in FORMAT:
+        # Binary code based on:
+        # pysimpson: Python module for reading SIMPSON files
+        # By: Jonathan J. Helmus (jjhelmus@gmail.com)
+        # Version: 0.1 (2012-04-13)
+        # License: GPL
+        chardata = ''.join(Lines[DataStart + 1:DataEnd])
+        nquads, mod = divmod(len(chardata), 4)
+        assert mod == 0     # character should be in blocks of 4
+        BASE = 33
+        charst =  np.fromstring(chardata, dtype=np.uint8)
+        charst = charst.reshape(nquads,4) - BASE
+        FIRST = lambda f, x: ((x) & ~(~0 << f))
+        LAST = lambda f, x: ((x) & (~0 << (8 - f)))
+        first = FIRST(6, charst[:,0]) | LAST(2, charst[:,1] << 2)
+        second  = FIRST(4, charst[:,1]) | LAST(4, charst[:,2] << 2)
+        third = FIRST(2, charst[:,2]) | LAST(6, charst[:,3] << 2)
+        Bytes = np.ravel(np.transpose(np.array([first,second,third]))).astype('int64')
+        # convert every 4 'bytes' to a float
+        num_points, num_pad = divmod(len(Bytes), 4)
+        Bytes = np.array(Bytes)
+        Bytes=Bytes[:-num_pad]
+        Bytes=Bytes.reshape(num_points,4)
+        mantissa = ((Bytes[:,2] % 128) << 16) + (Bytes[:,1] << 8) + Bytes[:,0]
+        exponent = (Bytes[:,3] % 128) * 2 + (Bytes[:,2] >= 128) * 1
+        negative = Bytes[:,3] >= 128
+        e = exponent - 127
+        m = np.abs(mantissa) / np.float64(1 << 23)
+        data = np.float32((-1)**negative*np.ldexp(m,e))
+        data = data.view('complex64')
+    if NI != 1:  # 2D data, reshape to NI, NP
+        print("ERROR: Data is not 1D")
+        return None
+    return (data, SW)
+
+def SIMPSONRunScript(command, script, parameters):
+    for elem in parameters.keys():
+        script = script.replace('@'+elem, str(parameters[elem]))
+    directory_name = tempfile.mkdtemp()
+    inputFileName = "simpsonScript.in"
+    fullPath = os.path.join(directory_name, inputFileName)
+    with open(fullPath, "w") as text_file:
+        text_file.write(script)
+    process = subprocess.Popen(command + ' ' + fullPath, shell=True, stdout=subprocess.PIPE, cwd=directory_name)
+    # print(process.stdout.read())
+    process.wait()
+    fileList = os.listdir(directory_name)
+    fileList.remove(inputFileName)
+    outputFileName = fileList[0]
+    (data, sw) = tmpLoadSimpsonFile(os.path.join(directory_name, outputFileName))
+    #print os.path.join(directory_name, outputFileName)
+    shutil.rmtree(directory_name, ignore_errors=True)
+    return np.real(data)
