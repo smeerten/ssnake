@@ -83,9 +83,9 @@ def ist(inp): #Iterative soft thresholding
         data = np.fft.ifft(spectrum,axis=0)
         data[posList] = 0
         
-    result = np.conj(scipy.signal.hilbert(np.real(result + spectrum), axis=0))
-    result = np.fft.ifft(result,axis=0)
-    result[0] = result[0]*2
+    result = np.real(result + spectrum)
+
+    result = np.fft.fftshift(result,axes=0)
     return result
     
     

@@ -879,8 +879,10 @@ class Spectrum(object):
         else:
             copyData = copy.deepcopy(self)
             returnValue = lambda self: self.restoreData(copyData, lambda self: self.hilbert(axes))
+        self.data = self.hyperReorder(self.data,axes)
         for index in range(len(self.data)):
             self.data[index] = scipy.signal.hilbert(np.real(self.data[index]), axis=axes)
+        self.data = self.hyperReorder(self.data,axes)
         self.addHistory("Hilbert transform on dimension " + str(axes + 1))
         return returnValue
 
@@ -1590,6 +1592,7 @@ class Spectrum(object):
         return returnValue
         
     def ist(self,pos, typeVal, axes, threshold, maxIter,tracelimit)  :
+        import scipy.signal
         axes = self.checkAxes(axes)
         if axes is None:
             return None
@@ -1599,11 +1602,18 @@ class Spectrum(object):
             copyData = copy.deepcopy(self)
             returnValue = lambda self: self.restoreData(copyData, None)
         # pos contains the values of fixed points which not to be translated to missing points
+        if axes in self.hyper:
+            self.data = self.hyperReorder(self.data, axes)[0]
+        else:
+            self.data = self.data[0]
         posList = np.delete(range(self.data.shape[axes]), pos)
         if typeVal == 1:  # type is States or States-TPPI, the positions need to be divided by 2
             posList = np.array(np.floor(posList / 2), dtype=int)
         elif typeVal == 2:  # type is TPPI, for now handle the same as Complex
             pass
+
+
+
         NDmax = np.max(np.max(np.abs(np.real(np.fft.fft(self.data,axis=axes))))) #Get max of ND matrix
         
         tmpData = np.rollaxis(self.data, axes, self.data.ndim)
@@ -1614,8 +1624,40 @@ class Spectrum(object):
         fit = pool.map_async(ist, [(i, posList, threshold, maxIter, tracelimit,NDmax ) for i in tmpData])
         pool.close()
         pool.join()
-        self.data = np.rollaxis(np.array(fit.get()).reshape(tmpShape), -1, axes)
-        
+        hyperLen = len(self.hyper)
+        totLen = 2**hyperLen
+        self.data = [ x for x in range(totLen)]
+        self.data[0] = np.rollaxis(np.array(fit.get()).reshape(tmpShape), -1, axes)
+
+        if hyperLen != 0: #Construct hyper parts if any
+            hilbertBool = np.zeros((totLen,hyperLen)) #Holds which dims need Hilbert transform
+            for index in range(len(self.hyper)):
+                tmp2 = [0,1]
+                step = totLen / (2 ** (index + 1))
+                tmp2 = np.tile(np.repeat(tmp2,step),totLen / step / 2)
+                hilbertBool[:,index] = tmp2
+            for index in range(1,totLen): #For all but the first
+                tmp = copy.copy(self.data[0]) # Get the original data
+                for hyper in range(len(hilbertBool[index])):
+                    if hilbertBool[index][hyper] == 1.0:
+                        print(self.hyper[hyper])
+                        tmp = scipy.signal.hilbert(np.real(tmp),axis = self.hyper[hyper])
+                        tmp = np.imag(np.conj(tmp))
+                self.data[index] = tmp
+           
+            #directVal = len(np.shape(self.data[0])) - 1
+            for index in range(len(self.data)):#Do hilbert in the direct dim for all
+                self.data[index] = np.conj(scipy.signal.hilbert(np.real(self.data[index]),axis = -1))
+
+
+            #self.data = self.fourierLocal(self.data, 1, axes)
+
+        self.changeSpec(True, axes)
+                
+
+        #result = np.conj(scipy.signal.hilbert(np.real(result + spectrum), axis=0))
+        #result = np.fft.ifft(result,axis=0)
+        #result[0] = result[0]*2
         self.addHistory("IST reconstruction (threshold = " + str(threshold) + " , maxIter = " + str(maxIter) + " , tracelimit = " + str(tracelimit*100) + ") " + 
         "of dimension " + str(axes + 1) + " at positions " + str(pos))
         return returnValue
@@ -2649,14 +2691,14 @@ class Current1D(Plot1DFrame):
         return returnValue
         
     def ist(self, posList, typeVal, threshold, maxIter, tracelimit):
-        try:
+        #try:
             returnValue = self.data.ist(posList, typeVal, self.axes, threshold, maxIter,tracelimit)
             self.upd()
             self.showFid()
-    #        self.root.addMacro(['clean', (posList, typeVal, self.axes - self.data.data.ndim, gamma, threshold, maxIter)])
-        except:
-            returnValue = None
-        return returnValue
+       #     self.root.addMacro(['clean', (posList, typeVal, self.axes - self.data.data.ndim, gamma, threshold, maxIter)])
+        #except:
+        #    returnValue = None
+            return returnValue
 
     def autoPhase(self, phaseNum):
         self.upd()

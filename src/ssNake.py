@@ -5813,7 +5813,7 @@ class ISTWindow(wc.ToolWindows):
         self.father.redoList = []
         check = self.father.current.ist(val, self.typeDrop.currentIndex(), threshold, maxIter,tracelimit)
         if check is None:
-            self.father.father.father.dispMsg("IST: error",color = 'red')
+            self.father.father.dispMsg("IST: error",color = 'red')
             return False
         if not self.father.masterData.noUndo:
             self.father.undoList.append(check)
