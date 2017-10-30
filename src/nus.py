@@ -36,7 +36,7 @@ def ffm(inp):
                                   args=inp,
                                   jac=True)
     inp[0][inp[1]] = res['x'][:l] + 1j * res['x'][l:]
-    return inp[0]
+    return np.fft.fftshift(np.fft.fft(inp[0]))
 
 
 def clean(inp):
@@ -54,6 +54,8 @@ def clean(inp):
         replica[findMax] += maxAmp * gamma
         residuals -= maxAmp * gamma * np.roll(mask, findMax)
     replica += residuals
+    replica = np.real(np.fft.fftshift(replica))
+    #Return 'good' spectrum
     return replica
     
     

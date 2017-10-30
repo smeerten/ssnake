@@ -5743,7 +5743,7 @@ class CLEANWindow(wc.ToolWindows):
         self.father.redoList = []
         check = self.father.current.clean(val, self.typeDrop.currentIndex(), gamma, threshold, maxIter)
         if check is None:
-            self.father.father.father.dispMsg("CLEAN: error",color = 'red')
+            self.father.father.dispMsg("CLEAN: error",color = 'red')
             return False
         if not self.father.masterData.noUndo:
             self.father.undoList.append(check)

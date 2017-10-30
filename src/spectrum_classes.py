@@ -975,13 +975,13 @@ class Spectrum(object):
                 if ax == 0:
                     fourData[index] = np.fft.fftshift(np.fft.fft(fourData[index]))
                 else:
-                    fourData[index] = np.fft.fftshift(np.fft.fftn(fourData[index], axes=[ax]), axes=ax)
+                    fourData[index] = np.fft.fftshift(np.fft.fftn(fourData[index], axes=[axis]), axes=axis)
         else:
             for index in range(len(fourData)):
                 if ax == 0:
                     fourData[index] = np.fft.ifft(np.fft.ifftshift(fourData[index]))
                 else:
-                    fourData[index] = np.fft.ifftn(np.fft.ifftshift(fourData[index], axes=ax), axes=[ax])
+                    fourData[index] = np.fft.ifftn(np.fft.ifftshift(fourData[index], axes=axis), axes=[axis])
             if not wholeEcho:
                 slicing = (slice(None), ) * ax + (0, )
                 for index in range(len(fourData)):
@@ -1527,6 +1527,7 @@ class Spectrum(object):
         tmpData = np.zeros(newShape, dtype=complex)
         slicing = (slice(None), ) * axes + (pos, ) + (slice(None), ) * (self.data[0].ndim - 1 - axes)
         for index in range(len(self.data)):
+            tmpData = np.zeros(newShape, dtype=complex)
             tmpData[slicing] = self.data[index]
             self.data[index] = tmpData
         self.resetXax(axes)
@@ -1543,12 +1544,16 @@ class Spectrum(object):
             copyData = copy.deepcopy(self)
             returnValue = lambda self: self.restoreData(copyData, None)
         # pos contains the values of fixed points which not to be translated to missing points
-        posList = np.delete(range(self.data.shape[axes]), pos)
+        posList = np.delete(range(self.data[0].shape[axes]), pos)
         if typeVal == 1:  # type is States or States-TPPI, the positions need to be divided by 2
             posList = np.array(np.floor(posList / 2), dtype=int)
         if typeVal == 2:  # type is TPPI, for now handle the same as Complex
             pass
         posList = np.unique(posList)
+        if axes in self.hyper: #Get good hypercomplex part
+            self.data = self.hyperReorder(self.data, axes)[0]
+        else:
+            self.data = self.data[0]
         tmpData = np.rollaxis(self.data, axes, self.data.ndim)
         tmpShape = tmpData.shape
         tmpData = tmpData.reshape((int(tmpData.size / tmpShape[-1]), tmpShape[-1]))
@@ -1557,6 +1562,10 @@ class Spectrum(object):
         pool.close()
         pool.join()
         self.data = np.rollaxis(np.array(fit.get()).reshape(tmpShape), -1, axes)
+        #Reconstruct hypercomplex parts
+        self.data = self.reconstructHyper(self.data)
+        #Transform back to FID
+        self.data = self.fourierLocal(self.data, 1, axes)
         self.addHistory("Fast Forward Maximum Entropy reconstruction of dimension " + str(axes + 1) + " at positions " + str(pos))
         return returnValue
 
@@ -1570,12 +1579,16 @@ class Spectrum(object):
             copyData = copy.deepcopy(self)
             returnValue = lambda self: self.restoreData(copyData, None)
         # pos contains the values of fixed points which not to be translated to missing points
-        posList = np.delete(range(self.data.shape[axes]), pos)
+        posList = np.delete(range(self.data[0].shape[axes]), pos)
         if typeVal == 1:  # type is States or States-TPPI, the positions need to be divided by 2
             posList = np.array(np.floor(posList / 2), dtype=int)
         if typeVal == 2:  # type is TPPI, for now handle the same as Complex
             pass
         posList = np.unique(posList)
+        if axes in self.hyper: #Take correct hypercomplex
+            self.data = self.hyperReorder(self.data, axes)[0]
+        else:
+            self.data = self.data[0]
         tmpData = np.rollaxis(np.fft.fft(self.data, axis=axes), axes, self.data.ndim)
         tmpShape = tmpData.shape
         tmpData = tmpData.reshape((int(tmpData.size / tmpShape[-1]), tmpShape[-1]))
@@ -1586,7 +1599,12 @@ class Spectrum(object):
         fit = pool.map_async(clean, [(i, mask, gamma, threshold, maxIter) for i in tmpData])
         pool.close()
         pool.join()
-        self.data = np.fft.ifft(np.rollaxis(np.array(fit.get()).reshape(tmpShape), -1, axes), axis=axes)
+        self.data = np.rollaxis(np.array(fit.get()).reshape(tmpShape), -1, axes)
+        #Reconstruct hypercomplex parts
+        self.data = self.reconstructHyper(self.data)
+        #Transform back to FID
+        self.data = self.fourierLocal(self.data, 1, axes)
+
         self.addHistory("CLEAN reconstruction (gamma = " + str(gamma) + " , threshold = " + str(threshold) + " , maxIter = " + str(maxIter) + ") " + 
         "of dimension " + str(axes + 1) + " at positions " + str(pos))
         return returnValue
@@ -1612,8 +1630,6 @@ class Spectrum(object):
         elif typeVal == 2:  # type is TPPI, for now handle the same as Complex
             pass
 
-
-
         NDmax = np.max(np.max(np.abs(np.real(np.fft.fft(self.data,axis=axes))))) #Get max of ND matrix
         
         tmpData = np.rollaxis(self.data, axes, self.data.ndim)
@@ -1624,10 +1640,23 @@ class Spectrum(object):
         fit = pool.map_async(ist, [(i, posList, threshold, maxIter, tracelimit,NDmax ) for i in tmpData])
         pool.close()
         pool.join()
+        self.data = np.rollaxis(np.array(fit.get()).reshape(tmpShape), -1, axes)
+        
+        #Reconstruct hypercomplex parts
+        self.data = self.reconstructHyper(self.data)
+        #Transform back to FID
+        self.data = self.fourierLocal(self.data, 1, axes)
+
+        self.addHistory("IST reconstruction (threshold = " + str(threshold) + " , maxIter = " + str(maxIter) + " , tracelimit = " + str(tracelimit*100) + ") " + 
+        "of dimension " + str(axes + 1) + " at positions " + str(pos))
+        return returnValue
+
+    def reconstructHyper(self,data):
+        #Reconstructs hyper data from R*ndim spectrum
         hyperLen = len(self.hyper)
         totLen = 2**hyperLen
-        self.data = [ x for x in range(totLen)]
-        self.data[0] = np.rollaxis(np.array(fit.get()).reshape(tmpShape), -1, axes)
+        newData = [ x for x in range(totLen)]
+        newData[0] = copy.copy(data)
 
         if hyperLen != 0: #Construct hyper parts if any
             hilbertBool = np.zeros((totLen,hyperLen)) #Holds which dims need Hilbert transform
@@ -1637,32 +1666,16 @@ class Spectrum(object):
                 tmp2 = np.tile(np.repeat(tmp2,step),totLen / step / 2)
                 hilbertBool[:,index] = tmp2
             for index in range(1,totLen): #For all but the first
-                tmp = copy.copy(self.data[0]) # Get the original data
+                tmp = copy.copy(data) # Get the original data
                 for hyper in range(len(hilbertBool[index])):
                     if hilbertBool[index][hyper] == 1.0:
                         print(self.hyper[hyper])
                         tmp = scipy.signal.hilbert(np.real(tmp),axis = self.hyper[hyper])
                         tmp = np.imag(np.conj(tmp))
-                self.data[index] = tmp
-           
-            #directVal = len(np.shape(self.data[0])) - 1
-            for index in range(len(self.data)):#Do hilbert in the direct dim for all
-                self.data[index] = np.conj(scipy.signal.hilbert(np.real(self.data[index]),axis = -1))
-
-
-            #self.data = self.fourierLocal(self.data, 1, axes)
-
-        self.changeSpec(True, axes)
-                
-
-        #result = np.conj(scipy.signal.hilbert(np.real(result + spectrum), axis=0))
-        #result = np.fft.ifft(result,axis=0)
-        #result[0] = result[0]*2
-        self.addHistory("IST reconstruction (threshold = " + str(threshold) + " , maxIter = " + str(maxIter) + " , tracelimit = " + str(tracelimit*100) + ") " + 
-        "of dimension " + str(axes + 1) + " at positions " + str(pos))
-        return returnValue
-
-    
+                newData[index] = tmp
+            for index in range(len(newData)):#Do hilbert in the direct dim for all. Axis should not matter
+                newData[index] = np.conj(scipy.signal.hilbert(np.real(newData[index]),axis = -1))
+        return newData
 
     def getSlice(self, axes, locList):
         axes = self.checkAxes(axes)
@@ -2685,20 +2698,20 @@ class Current1D(Plot1DFrame):
             returnValue = self.data.clean(posList, typeVal, self.axes, gamma, threshold, maxIter)
             self.upd()
             self.showFid()
-            self.root.addMacro(['clean', (posList, typeVal, self.axes - self.data.data.ndim, gamma, threshold, maxIter)])
+            self.root.addMacro(['clean', (posList, typeVal, self.axes - self.data.data[0].ndim, gamma, threshold, maxIter)])
         except:
             returnValue = None
         return returnValue
         
     def ist(self, posList, typeVal, threshold, maxIter, tracelimit):
-        #try:
+        try:
             returnValue = self.data.ist(posList, typeVal, self.axes, threshold, maxIter,tracelimit)
             self.upd()
             self.showFid()
-       #     self.root.addMacro(['clean', (posList, typeVal, self.axes - self.data.data.ndim, gamma, threshold, maxIter)])
-        #except:
-        #    returnValue = None
-            return returnValue
+            #self.root.addMacro(['clean', (posList, typeVal, self.axes - self.data.data[0].ndim, gamma, threshold, maxIter)])
+        except:
+            returnValue = None
+        return returnValue
 
     def autoPhase(self, phaseNum):
         self.upd()
