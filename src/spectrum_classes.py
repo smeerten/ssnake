@@ -531,7 +531,7 @@ class Spectrum(object):
         else:
             copyData = copy.deepcopy(self)
             returnValue = lambda self: self.restoreData(copyData, lambda self: self.matrixManip(pos1, pos2, axes, which))
-        tmpdata = [()]
+        tmpdata = [() for x in range(2**len(self.hyper))]
         if len(pos1) == 1:
             keepdims = False
         else:
@@ -593,14 +593,31 @@ class Spectrum(object):
             self.addHistory("Minimum position between " + str(pos1) + " and " + str(pos2) + " of dimension " + str(axes + 1))
         elif which == 6:
             self.addHistory("Average between " + str(pos1) + " and " + str(pos2) + " of dimension " + str(axes + 1))
+
+        #Remove hyper along this dim if necessary
+        if keepdims ==  False and axes in self.hyper:
+            totlen = 2**len(self.hyper)
+            indx = self.hyper.index(axes)
+            step = 2**(len(self.hyper) - indx - 1)
+            boollist = np.array([True,False])
+            boollist = np.tile(np.repeat(boollist,totlen / step / 2),step)
+            newdat = []
+            for i in range(len(boollist)):
+                if boollist[i] == True:
+                    newdat.append( tmpdata[i])
+            tmpdata = newdat
+            del self.hyper[indx]
+
+        self.data = []
         if len(tmpdata[0]) == 1:
-            if self.data[0].ndim == 1:
-                for index in range(len(self.data)):
-                    self.data[index] = np.array([tmpdata[index][0]])
+            if tmpdata[0][0].ndim == 1:
+                for index in range(len(tmpdata)):
+                    self.data.append(tmpdata[index][0])
                 self.resetXax(axes)
             else:
-                for index in range(len(self.data)):
-                    self.data[index] = tmpdata[index][0]
+                for index in range(len(tmpdata)):
+                    self.data.append(tmpdata[index][0])
+                    print(self.data[0].shape)
                 self.freq = np.delete(self.freq, axes)
                 self.ref = np.delete(self.ref, axes)
 #                del self.ref[axes]
@@ -609,9 +626,10 @@ class Spectrum(object):
                 self.wholeEcho = np.delete(self.wholeEcho, axes)
                 del self.xaxArray[axes]
         else:
-            for index in range(len(self.data)):
-                self.data[index] = np.concatenate(tmpdata[index], axis=axes)
+            for index in range(len(tmpdata)):
+                self.data.append(np.concatenate(tmpdata[index], axis=axes))
             self.resetXax(axes)
+
         return returnValue
 
     def matrixManipNew(self, pos1, pos2, axes, which):
