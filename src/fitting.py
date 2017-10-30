@@ -42,6 +42,7 @@ from spectrumFrame import Plot1DFrame
 from widgetClasses import QLabel
 import widgetClasses as wc
 import functions as func
+import loadFiles as LF
 
 pi = np.pi
 stopDict = {} #Global dictionary with stopping commands for fits
@@ -3456,9 +3457,9 @@ class Quad2CzjzekParamFrame(AbstractParamFrame):
                 cq.append(float(matchName.group(1)))
                 eta.append(float(matchName.group(2)))
                 fullName = os.path.join(dirName, name)
-                val = self.rootwindow.mainProgram.fileTypeCheck(fullName)
+                val = LF.fileTypeCheck(fullName)
                 if val[0] is not None:
-                    libData = self.rootwindow.mainProgram.loading(val[0], val[1], returnBool=True)
+                    libData = LF.loading(val[0], val[1])
                 if libData.data.ndim is not 1:
                     self.rootwindow.mainProgram.dispMsg("A spectrum in the library is not a 1D spectrum.")
                 if not libData.spec[0]:
@@ -3758,7 +3759,7 @@ class SIMPSONDeconvParamFrame(AbstractParamFrame):
             inputPar = {}
             for name in self.MULTINAMES:
                 inputPar[name] = out[name][0]
-            y = SIMPSONRunScript(self.command, self.script, inputPar)
+            y = SIMPSONRunScript(self.command, self.script, inputPar, tmpx)
             outCurvePart.append(outCurveBase + y)
             outCurve += y
         self.parent.fitDataList[tuple(self.parent.locList)] = [tmpx, outCurve, x, outCurvePart]
@@ -3811,71 +3812,11 @@ def SIMPSONDeconvfitFunc(params, allX, args):
                         parameters[name] = altStruc[2] * allParam[altStruc[4]][strucTarget[altStruc[0]][altStruc[1]][1]] + altStruc[3]
                     elif strucTarget[altStruc[0]][altStruc[1]][0] == 0:
                         parameters[name] = altStruc[2] * allArgu[altStruc[4]][strucTarget[altStruc[0]][altStruc[1]][1]] + altStruc[3]
-            testFunc += SIMPSONRunScript(command, script, parameters)
+            testFunc += SIMPSONRunScript(command, script, parameters, x)
         fullTestFunc = np.append(fullTestFunc, testFunc)
     return fullTestFunc
 
-def tmpLoadSimpsonFile(filePath):
-    with open(filePath, 'r') as f:
-        Lines = f.read().split('\n')
-    NP, NI, SW, SW1, TYPE, FORMAT = 0, 1, 0, 0, '', 'Normal'
-    DataStart = Lines.index('DATA')
-    DataEnd = Lines.index('END')
-    for s in range(0, DataStart):
-        if Lines[s].startswith('NP='):
-            NP = int(re.sub('NP=', '', Lines[s]))
-        elif Lines[s].startswith('NI='):
-            NI = int(re.sub('NI=', '', Lines[s]))
-        elif Lines[s].startswith('SW='):
-            SW = float(re.sub('SW=', '', Lines[s]))
-        elif Lines[s].startswith('SW1='):
-            SW1 = float(re.sub('SW1=', '', Lines[s]))
-        elif Lines[s].startswith('TYPE='):
-            TYPE = re.sub('TYPE=', '', Lines[s])
-        elif Lines[s].startswith('FORMAT='):
-            FORMAT = re.sub('FORMAT=', '', Lines[s])
-    if 'Normal' in FORMAT:
-        length = DataEnd - DataStart - 1
-        data = np.zeros(length, dtype=complex)
-        for i in range(length):
-            temp = Lines[DataStart + 1 + i].split()
-            data[i] = float(temp[0]) + 1j * float(temp[1])
-    elif 'BINARY' in FORMAT:
-        # Binary code based on:
-        # pysimpson: Python module for reading SIMPSON files
-        # By: Jonathan J. Helmus (jjhelmus@gmail.com)
-        # Version: 0.1 (2012-04-13)
-        # License: GPL
-        chardata = ''.join(Lines[DataStart + 1:DataEnd])
-        nquads, mod = divmod(len(chardata), 4)
-        assert mod == 0     # character should be in blocks of 4
-        BASE = 33
-        charst =  np.fromstring(chardata, dtype=np.uint8)
-        charst = charst.reshape(nquads,4) - BASE
-        FIRST = lambda f, x: ((x) & ~(~0 << f))
-        LAST = lambda f, x: ((x) & (~0 << (8 - f)))
-        first = FIRST(6, charst[:,0]) | LAST(2, charst[:,1] << 2)
-        second  = FIRST(4, charst[:,1]) | LAST(4, charst[:,2] << 2)
-        third = FIRST(2, charst[:,2]) | LAST(6, charst[:,3] << 2)
-        Bytes = np.ravel(np.transpose(np.array([first,second,third]))).astype('int64')
-        # convert every 4 'bytes' to a float
-        num_points, num_pad = divmod(len(Bytes), 4)
-        Bytes = np.array(Bytes)
-        Bytes=Bytes[:-num_pad]
-        Bytes=Bytes.reshape(num_points,4)
-        mantissa = ((Bytes[:,2] % 128) << 16) + (Bytes[:,1] << 8) + Bytes[:,0]
-        exponent = (Bytes[:,3] % 128) * 2 + (Bytes[:,2] >= 128) * 1
-        negative = Bytes[:,3] >= 128
-        e = exponent - 127
-        m = np.abs(mantissa) / np.float64(1 << 23)
-        data = np.float32((-1)**negative*np.ldexp(m,e))
-        data = data.view('complex64')
-    if NI != 1:  # 2D data, reshape to NI, NP
-        print("ERROR: Data is not 1D")
-        return None
-    return (data, SW)
-
-def SIMPSONRunScript(command, script, parameters):
+def SIMPSONRunScript(command, script, parameters, xax):
     for elem in parameters.keys():
         script = script.replace('@'+elem, str(parameters[elem]))
     directory_name = tempfile.mkdtemp()
@@ -3889,7 +3830,12 @@ def SIMPSONRunScript(command, script, parameters):
     fileList = os.listdir(directory_name)
     fileList.remove(inputFileName)
     outputFileName = fileList[0]
-    (data, sw) = tmpLoadSimpsonFile(os.path.join(directory_name, outputFileName))
-    #print os.path.join(directory_name, outputFileName)
+    val = LF.fileTypeCheck(os.path.join(directory_name, outputFileName))
+    if val[0] is not None:
+        masterData = LF.loading(val[0], val[1])
+    else:
+        shutil.rmtree(directory_name, ignore_errors=True)
+        return None
+    masterData.regrid([xax[0], xax[-1]], len(xax), 0)
     shutil.rmtree(directory_name, ignore_errors=True)
-    return np.real(data)
+    return np.real(masterData.data)

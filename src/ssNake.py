@@ -575,8 +575,8 @@ class MainProgram(QtWidgets.QMainWindow):
         self.secondquadstatAct.setToolTip('Fit Second Order Quadrupole')
         self.czjzekstatAct = self.fittingMenu.addAction(QtGui.QIcon(IconDirectory + 'czjzekstatic.png'),"C&zjzek", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.createQuad2CzjzekWindow()))
         self.czjzekstatAct.setToolTip('Fit Czjzek Pattern')
-        #self.simpsonAct = self.fittingMenu.addAction("&SIMPSON", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.createSIMPSONWindow()))
-        #self.simpsonAct.setToolTip('Fit SIMPSON Script')
+        self.simpsonAct = self.fittingMenu.addAction("&SIMPSON", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.createSIMPSONWindow()))
+        self.simpsonAct.setToolTip('Fit SIMPSON Script')
         
         self.fittingActList = [self.snrAct,self.fwhmAct,self.massAct,self.intfitAct,self.relaxAct,
                                self.diffusionAct,self.lorentzfitAct,self.csastaticAct,
@@ -1317,60 +1317,9 @@ class MainProgram(QtWidgets.QMainWindow):
         if type(fileName) is tuple:
             fileName = fileName[0]
         return fileName
-
-    def fileTypeCheck(self, filePath):
-        returnVal = 0
-        fileBase = '' 
-        direc = filePath 
-        if os.path.isfile(filePath):
-            filename = os.path.basename(filePath)
-            fileBase = os.path.splitext(filename)[0]
-            direc = os.path.dirname(filePath)
-            if filename.endswith('.fid') or filename.endswith('.spe'):
-                with open(filePath, 'r') as f:
-                    check = int(np.fromfile(f, np.float32, 1))
-                if check == 0:
-                    return (8, filePath, returnVal)  # Suspected NMRpipe format
-                else:  # SIMPSON
-                    return (4, filePath, returnVal)
-            elif filename.endswith('.json') or filename.endswith('.JSON'):
-                return (5, filePath, returnVal)
-            elif filename.endswith('.mat') or filename.endswith('.MAT'):
-                return (6, filePath, returnVal)
-            elif filename.endswith('.jdf'):#JEOL delta format
-                return (9, filePath, returnVal)
-            elif filename.endswith('.dx') or filename.endswith('.jdx') or filename.endswith('.jcamp'):#JCAMP format
-                return (10, filePath, returnVal)
-            elif filename.endswith('.sig'): #Bruker minispec    
-                return (12, filePath, returnVal)
-            returnVal = 1
-            direc = os.path.dirname(filePath)
-
-        if os.path.exists(direc + os.path.sep + 'procpar') and os.path.exists(direc + os.path.sep + 'fid'):
-            return (0, direc, returnVal)
-            # And for varian processed data
-        if (os.path.exists(direc + os.path.sep + '..' + os.path.sep + 'procpar') or os.path.exists(direc + os.path.sep + 'procpar')) and os.path.exists(direc + os.path.sep + 'data'):
-            return (0, direc, returnVal)
-        elif os.path.exists(direc + os.path.sep + 'acqus') and (os.path.exists(direc + os.path.sep + 'fid') or os.path.exists(direc + os.path.sep + 'ser')):
-            return (1, direc, returnVal)
-        elif os.path.exists(direc + os.path.sep + 'procs') and (os.path.exists(direc + os.path.sep + '1r') or os.path.exists(direc + os.path.sep + '2rr')):
-            return (7, direc, returnVal)
-        elif os.path.exists(direc + os.path.sep + 'acq') and os.path.exists(direc + os.path.sep + 'data'):
-            return (2, direc, returnVal)
-        elif os.path.exists(direc + os.path.sep + 'acqu.par'):
-            dirFiles = os.listdir(direc)
-            files2D = [x for x in dirFiles if '.2d' in x]
-            files1D = [x for x in dirFiles if '.1d' in x]
-            if len(files2D) != 0 or len(files1D) != 0:
-                return (3, direc, returnVal)
-        elif os.path.exists(direc + os.path.sep + fileBase + '.spc') and os.path.exists(direc + os.path.sep + fileBase + '.par'):
-            return (13, direc + os.path.sep + fileBase, returnVal)
-        elif os.path.isfile(filePath): #If not recognised, load as ascii
-            return (11, filePath, returnVal)
-        return (None,filePath, 2)
                 
     def autoLoad(self, filePath, realpath=False):
-        val = self.fileTypeCheck(filePath)
+        val = LF.fileTypeCheck(filePath)
         if val[0] is not None:
             self.loading(val[0], val[1], realpath=realpath)
         return val[2]
@@ -1385,12 +1334,12 @@ class MainProgram(QtWidgets.QMainWindow):
             try:
                 temp_dir = tempfile.mkdtemp()
                 zipfile.ZipFile(filePath).extractall(temp_dir)
-                val = self.fileTypeCheck(os.path.join(temp_dir, os.listdir(temp_dir)[0]))
+                val = LF.fileTypeCheck(os.path.join(temp_dir, os.listdir(temp_dir)[0]))
                 combineMasterData = self.loading(val[0], val[1], returnBool=True, realpath=filePath)
             finally:
                 shutil.rmtree(temp_dir)
         else:
-            val = self.fileTypeCheck(filePath)
+            val = LF.fileTypeCheck(filePath)
             combineMasterData = self.loading(val[0], val[1], returnBool=True)
         if combineMasterData is None:
             self.dispMsg("Data could not be loaded")
@@ -1405,12 +1354,12 @@ class MainProgram(QtWidgets.QMainWindow):
                 try:
                     temp_dir = tempfile.mkdtemp()
                     zipfile.ZipFile(filePath).extractall(temp_dir)
-                    val = self.fileTypeCheck(os.path.join(temp_dir, os.listdir(temp_dir)[0]))
+                    val = LF.fileTypeCheck(os.path.join(temp_dir, os.listdir(temp_dir)[0]))
                     addData = self.loading(val[0], val[1], returnBool=True, realpath=filePath)
                 finally:
                     shutil.rmtree(temp_dir)
             else:
-                val = self.fileTypeCheck(filePath)
+                val = LF.fileTypeCheck(filePath)
                 addData = self.loading(val[0], val[1], returnBool=True)
             if addData.data.shape != shapeRequired:
                 self.dispMsg("Not all the data has the required shape")
@@ -1445,6 +1394,7 @@ class MainProgram(QtWidgets.QMainWindow):
         self.changeMainWindow(name)
 
     def loading(self, num, filePath, returnBool=False, realpath=False):
+        errorNames = ["Varian", "Bruker", "Chemagnetic", "Magritek", "SIMPSON", "JSON", "Matlab", "Bruker Spectrum", "NMRpipe", "JEOL", "JCAMP", "ASCII", "Minispec", "Bruker EPR"]
         if returnBool:
             name = None
         else:
@@ -1464,34 +1414,20 @@ class MainProgram(QtWidgets.QMainWindow):
                 while name in self.workspaceNames:
                     name = 'spectrum' + str(count)
                     count += 1
-        if num == 0:
-            masterData = self.LoadVarianFile(filePath, name)
-        elif num == 1:
-            masterData = self.LoadBrukerTopspin(filePath, name)
-        elif num == 2:
-            masterData = self.LoadChemFile(filePath, name)
-        elif num == 3:
-            masterData = self.LoadMagritek(filePath, name,realpath)
-        elif num == 4:
-            masterData = self.LoadSimpsonFile(filePath, name)
-        elif num == 5:
-            masterData = self.loadJSONFile(filePath, name)
-        elif num == 6:
-            masterData = self.loadMatlabFile(filePath, name)
-        elif num == 7:
-            masterData = self.LoadBrukerSpectrum(filePath, name)
-        elif num == 8:
-            masterData = self.LoadPipe(filePath, name)
-        elif num == 9:
-            masterData = self.LoadJEOLDelta(filePath, name)
-        elif num == 10:
-            masterData = self.LoadJCAMP(filePath, name)   
-        elif num == 11:
-            masterData = self.LoadAscii(filePath, name) 
-        elif num == 12:
-            masterData = self.LoadMinispec(filePath, name)
-        elif num == 13:
-            masterData = self.LoadBrukerEPR(filePath, name)
+        dialog = None
+        if num == 11: # ASCII data requires a dialog
+            dialog = AsciiLoadWindow(self, filePath)
+            if dialog.exec_():
+                if dialog.closed:
+                    return
+        masterData = LF.loading(num, filePath, name, realpath, dialog=dialog)
+        if masterData is None:
+            self.dispMsg("Error on loading " + errorNames[num] + " data", 'red')
+            return None 
+        elif masterData is 'ND error':
+            self.dispMsg("Error: JEOL Delta data of this type is not supported", 'red')
+            return None
+        masterData.msgHandler = lambda msg: self.dispMsg(msg)
         if returnBool:
             return masterData
         else:
@@ -1501,146 +1437,6 @@ class MainProgram(QtWidgets.QMainWindow):
                 self.workspaceNames.append(name)
                 self.changeMainWindow(name)
 
-    def LoadVarianFile(self, filePath, name=''):
-        try:
-            masterData = LF.LoadVarianFile(filePath,name)
-            masterData.msgHandler = lambda msg: self.dispMsg(msg)
-            return masterData
-        except:
-            self.dispMsg("Error on loading Varian data",'red')
-            return None 
-
-    def LoadPipe(self, filePath, name=''):
-        try:
-            masterData = LF.LoadPipe(filePath,name)
-            masterData.msgHandler = lambda msg: self.dispMsg(msg)
-            return masterData
-        except:
-            self.dispMsg("Error on loading NMRpipe data",'red')
-            return None 
-
-    def LoadJEOLDelta(self, filePath, name=''):
-        try:
-            masterData = LF.LoadJEOLDelta(filePath,name)
-        except:
-            self.dispMsg("Error on loading JEOL Delta data",'red')
-            return None
-        if masterData ==  'ND error':
-            self.dispMsg("Error: JEOL Delta data of this type is not supported",'red')
-        masterData.msgHandler = lambda msg: self.dispMsg(msg)
-        return masterData
-
-
-    def loadJSONFile(self, filePath, name=''):
-        try:
-            masterData = LF.loadJSONFile(filePath,name)
-            masterData.msgHandler = lambda msg: self.dispMsg(msg)
-            return masterData
-        except:
-            self.dispMsg("Error on loading JSON data",'red')
-            return None 
-
-    def loadMatlabFile(self, filePath, name=''):
-        try:
-            masterData = LF.loadMatlabFile(filePath,name)
-            masterData.msgHandler = lambda msg: self.dispMsg(msg)
-            return masterData
-        except:
-            self.dispMsg("Error on loading MATLAB data",'red')
-            return None 
-
-    def LoadBrukerTopspin(self, filePath, name=''):
-        try:
-            masterData = LF.LoadBrukerTopspin(filePath,name)
-            masterData.msgHandler = lambda msg: self.dispMsg(msg)
-            return masterData
-        except:
-            self.dispMsg("Error on loading Bruker data",'red')
-            return None 
-        
-        
-    def LoadBrukerSpectrum(self, filePath, name=''):
-        try:
-            masterData = LF.LoadBrukerSpectrum(filePath,name)
-            masterData.msgHandler = lambda msg: self.dispMsg(msg)
-            return masterData     
-        except:
-            self.dispMsg("Error on loading Bruker Spectrum data",'red')
-            return None 
-
-    def LoadChemFile(self, filePath, name=''):
-        try:
-            masterData = LF.LoadChemFile(filePath,name)
-            masterData.msgHandler = lambda msg: self.dispMsg(msg)
-            return masterData   
-        except:
-            self.dispMsg("Error on loading Chemagnetic data",'red')
-            return None
-
-    def LoadMagritek(self, filePath, name='',realPath=''):
-        try:
-            masterData = LF.LoadMagritek(filePath,name)
-            masterData.msgHandler = lambda msg: self.dispMsg(msg)
-            return masterData  
-        except:
-            self.dispMsg("Error on loading Magritek data",'red')
-            return None 
-
-    def LoadSimpsonFile(self, filePath, name=''):
-        try:
-            masterData = LF.LoadSimpsonFile(filePath,name)
-            masterData.msgHandler = lambda msg: self.dispMsg(msg)
-            return masterData  
-        except:
-            self.dispMsg("Error on loading SIMPSON data",'red')
-            return None 
-    
-    def LoadJCAMP(self, filePath, name=''):
-        try:
-            masterData = LF.loadJCAMP(filePath,name)
-            masterData.msgHandler = lambda msg: self.dispMsg(msg)
-            masterData.addHistory("JCAMP data loaded from " + filePath)
-            return masterData
-        except:
-            self.dispMsg("Error on loading JCAMP data",'red')
-            return None 
-        
-    def LoadAscii(self, filePath, name=''):
-        dialog = AsciiLoadWindow(self, filePath)
-        if dialog.exec_():
-            if dialog.closed:
-                return
-            else:
-                try:
-                    masterData = LF.LoadAscii(filePath, name, dialog.dataDimension, dialog.dataSpec, dialog.dataOrder, dialog.delim, dialog.sw)
-                    masterData.msgHandler = lambda msg: self.dispMsg(msg)
-                    return masterData
-                except:
-                    self.dispMsg("Error on loading ASCII data",'red')
-                    return None
-                    
-    def LoadMinispec(self, filePath, name=''):
-        try:
-            masterData = LF.LoadMinispec(filePath,name)
-
-            masterData.msgHandler = lambda msg: self.dispMsg(msg)
-            masterData.addHistory("Minispec data loaded from " + filePath)
-            return masterData 
-        except:
-            self.dispMsg("Error on loading Minispec data",'red')
-            return None 
-          
-    def LoadBrukerEPR(self, filePath, name=''):
-        try:
-            masterData = LF.LoadBrukerEPR(filePath,name)
-            masterData.msgHandler = lambda msg: self.dispMsg(msg)
-            return masterData     
-        except:
-            self.dispMsg("Error on loading Bruker EPR data",'red')
-            return None 
-
-   
-        
     def saveSimpsonFile(self):
         self.mainWindow.get_mainWindow().SaveSimpsonFile()
 
