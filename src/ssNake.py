@@ -4205,24 +4205,28 @@ class BaselineWindow(wc.ToolWindows):
         self.degreeEntry.setValue(3)
         self.degreeEntry.setAlignment(QtCore.Qt.AlignCenter)
         self.grid.addWidget(self.degreeEntry, 1, 0, 1, 2)
+        self.invertButton = QtWidgets.QCheckBox("Invert selection")
+        self.invertButton.stateChanged.connect(self.preview)
+        self.grid.addWidget(self.invertButton, 2, 0 , 1, 2)
         resetButton = QtWidgets.QPushButton("&Reset")
         resetButton.clicked.connect(self.reset)
-        self.grid.addWidget(resetButton, 2, 0)
+        self.grid.addWidget(resetButton, 3, 0)
         fitButton = QtWidgets.QPushButton("&Fit")
         fitButton.clicked.connect(self.preview)
-        self.grid.addWidget(fitButton, 2, 1)
+        self.grid.addWidget(fitButton, 3, 1)
         self.father.current.peakPickFunc = lambda pos, self=self: self.picked(pos)
         self.father.current.peakPick = True
 
     def picked(self, pos):
         self.removeList.append(pos[0])
-        self.father.current.previewRemoveList(self.removeList)
+        self.father.current.previewRemoveList(self.removeList, invert=self.invertButton.isChecked())
         self.father.current.peakPickFunc = lambda pos, self=self: self.picked(pos)
         self.father.current.peakPick = True
 
     def preview(self, *args):
         inp = self.degreeEntry.value()
-        check = self.father.current.previewBaseline(inp, self.removeList)
+        self.father.current.previewRemoveList(self.removeList, invert=self.invertButton.isChecked())
+        check = self.father.current.previewBaseline(inp, self.removeList, invert=self.invertButton.isChecked())
         if check == False:
             self.father.father.dispMsg("Baseline correct: error in polynomial fit",'red')
         self.father.current.peakPickFunc = lambda pos, self=self: self.picked(pos)
@@ -4240,7 +4244,7 @@ class BaselineWindow(wc.ToolWindows):
 
     def applyFunc(self):
         inp = self.degreeEntry.value()
-        returnValue = self.father.current.applyBaseline(inp, self.removeList, self.singleSlice.isChecked())
+        returnValue = self.father.current.applyBaseline(inp, self.removeList, self.singleSlice.isChecked(), invert=self.invertButton.isChecked())
         if returnValue is None:
             self.father.father.dispMsg("Baseline correct: error in polynomial fit",'red')
             return False

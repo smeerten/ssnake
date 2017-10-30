@@ -2042,7 +2042,7 @@ class Current1D(Plot1DFrame):
     def dcOffset(self, offset):
         self.showFid(self.data1D - offset)
 
-    def applyBaseline(self, degree, removeList, select=False):
+    def applyBaseline(self, degree, removeList, select=False, invert=False):
         import numpy.polynomial.polynomial as poly
         if select:
             selectSlice = self.getSelect()
@@ -2058,6 +2058,8 @@ class Current1D(Plot1DFrame):
             minVal = min(removeList[2 * i], removeList[2 * i + 1])
             maxVal = max(removeList[2 * i], removeList[2 * i + 1])
             bArray = np.logical_and(bArray, np.logical_or((tmpAx < minVal), (tmpAx > maxVal)))
+        if invert:
+            bArray = np.logical_not(bArray)
         try:
             polyCoeff = poly.polyfit(self.xax[bArray], tmpData[bArray], degree)
             y = poly.polyval(self.xax, polyCoeff)
@@ -2066,7 +2068,7 @@ class Current1D(Plot1DFrame):
         except:
             return None
 
-    def previewBaseline(self, degree, removeList):
+    def previewBaseline(self, degree, removeList, invert=False):
         import numpy.polynomial.polynomial as poly
         if len(self.data1D.shape) > 1:
             tmpData = self.data1D[0]
@@ -2078,6 +2080,8 @@ class Current1D(Plot1DFrame):
             minVal = min(removeList[2 * i], removeList[2 * i + 1])
             maxVal = max(removeList[2 * i], removeList[2 * i + 1])
             bArray = np.logical_and(bArray, np.logical_or((tmpAx < minVal), (tmpAx > maxVal)))
+        if invert:
+            bArray = np.logical_not(bArray)
         check = True
         try:
             polyCoeff = poly.polyfit(self.xax[bArray], tmpData[bArray], degree)
@@ -2100,10 +2104,10 @@ class Current1D(Plot1DFrame):
                 self.showFid(self.data1D, [self.xax], [y], ['g'])
         else:
             self.showFid()
-        self.previewRemoveList(removeList)
+        self.previewRemoveList(removeList, invert)
         return check
 
-    def previewRemoveList(self, removeList):
+    def previewRemoveList(self, removeList, invert=False):
         if self.spec == 1:
             if self.ppm:
                 axMult = 1e6 / self.ref
@@ -2112,10 +2116,14 @@ class Current1D(Plot1DFrame):
         elif self.spec == 0:
             axMult = 1000.0**self.axType
         self.resetPreviewRemoveList()
+        lineColor = 'r'
+        if invert:
+            lineColor = 'w'
+            self.removeListLines.append(self.ax.axvspan(self.xax[0] * axMult, self.xax[-1] * axMult, color='r'))
         for i in range(int(np.floor(len(removeList) / 2.0))):
-            self.removeListLines.append(self.ax.axvspan(self.xax[removeList[2 * i]] * axMult, self.xax[removeList[2 * i + 1]] * axMult, color='r'))
+            self.removeListLines.append(self.ax.axvspan(self.xax[removeList[2 * i]] * axMult, self.xax[removeList[2 * i + 1]] * axMult, color=lineColor))
         if len(removeList) % 2:
-            self.removeListLines.append(self.ax.axvline(self.xax[removeList[-1]] * axMult, c='r', linestyle='--'))
+            self.removeListLines.append(self.ax.axvline(self.xax[removeList[-1]] * axMult, c=lineColor, linestyle='--'))
         self.canvas.draw()
 
     def resetPreviewRemoveList(self):
@@ -2123,7 +2131,6 @@ class Current1D(Plot1DFrame):
             for i in self.removeListLines:
                 i.remove()
         self.removeListLines = []
-            
 
     def states(self):
         returnValue = self.data.states(self.axes)
