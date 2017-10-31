@@ -4208,12 +4208,14 @@ class BaselineWindow(wc.ToolWindows):
         self.invertButton = QtWidgets.QCheckBox("Invert selection")
         self.invertButton.stateChanged.connect(self.preview)
         self.grid.addWidget(self.invertButton, 2, 0 , 1, 2)
+        self.allFitButton = QtWidgets.QCheckBox("Fit traces separately")
+        self.grid.addWidget(self.allFitButton, 3, 0 , 1, 2)
         resetButton = QtWidgets.QPushButton("&Reset")
         resetButton.clicked.connect(self.reset)
-        self.grid.addWidget(resetButton, 3, 0)
+        self.grid.addWidget(resetButton, 4, 0)
         fitButton = QtWidgets.QPushButton("&Fit")
         fitButton.clicked.connect(self.preview)
-        self.grid.addWidget(fitButton, 3, 1)
+        self.grid.addWidget(fitButton, 4, 1)
         self.father.current.peakPickFunc = lambda pos, self=self: self.picked(pos)
         self.father.current.peakPick = True
 
@@ -4244,7 +4246,10 @@ class BaselineWindow(wc.ToolWindows):
 
     def applyFunc(self):
         inp = self.degreeEntry.value()
-        returnValue = self.father.current.applyBaseline(inp, self.removeList, self.singleSlice.isChecked(), invert=self.invertButton.isChecked())
+        if self.allFitButton.isChecked():
+            returnValue = self.father.current.applyBaselineAll(inp, self.removeList, self.singleSlice.isChecked(), invert=self.invertButton.isChecked())
+        else:
+            returnValue = self.father.current.applyBaseline(inp, self.removeList, self.singleSlice.isChecked(), invert=self.invertButton.isChecked())
         if returnValue is None:
             self.father.father.dispMsg("Baseline correct: error in polynomial fit",'red')
             return False

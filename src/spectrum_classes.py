@@ -2042,8 +2042,29 @@ class Current1D(Plot1DFrame):
     def dcOffset(self, offset):
         self.showFid(self.data1D - offset)
 
-    def applyBaseline(self, degree, removeList, select=False, invert=False):
+    def baselinePolyFit(self, x, data, bArray, degree):
         import numpy.polynomial.polynomial as poly
+        polyCoeff = poly.polyfit(x[bArray], data[bArray], degree)
+        return poly.polyval(x, polyCoeff)
+        
+    def applyBaselineAll(self, degree, removeList, select=False, invert=False):
+        tmpAx = np.arange(self.data1D.shape[-1])
+        bArray = np.array([True] * self.data1D.shape[-1])
+        for i in range(int(np.floor(len(removeList) / 2.0))):
+            minVal = min(removeList[2 * i], removeList[2 * i + 1])
+            maxVal = max(removeList[2 * i], removeList[2 * i + 1])
+            bArray = np.logical_and(bArray, np.logical_or((tmpAx < minVal), (tmpAx > maxVal)))
+        if invert:
+            bArray = np.logical_not(bArray)
+        try:
+            dataFit = np.apply_along_axis(lambda data: self.baselinePolyFit(self.xax, data, bArray, degree), self.axes, self.data.data)
+            returnValue = self.data.subtract(dataFit)
+            self.root.addMacro(['subtract', (np.real(dataFit).tolist())])
+        except:
+            return None
+        return returnValue
+        
+    def applyBaseline(self, degree, removeList, select=False, invert=False):
         if select:
             selectSlice = self.getSelect()
         else:
@@ -2061,15 +2082,13 @@ class Current1D(Plot1DFrame):
         if invert:
             bArray = np.logical_not(bArray)
         try:
-            polyCoeff = poly.polyfit(self.xax[bArray], tmpData[bArray], degree)
-            y = poly.polyval(self.xax, polyCoeff)
+            y = self.baselinePolyFit(self.xax, tmpData, bArray, degree)
             self.root.addMacro(['baselineCorrection', (list(np.real(y)), self.axes - self.data.data.ndim, list(np.imag(y)), str(selectSlice))])
             return self.data.baselineCorrection(y, self.axes, select=selectSlice)
         except:
             return None
 
     def previewBaseline(self, degree, removeList, invert=False):
-        import numpy.polynomial.polynomial as poly
         if len(self.data1D.shape) > 1:
             tmpData = self.data1D[0]
         else:
@@ -2084,8 +2103,7 @@ class Current1D(Plot1DFrame):
             bArray = np.logical_not(bArray)
         check = True
         try:
-            polyCoeff = poly.polyfit(self.xax[bArray], tmpData[bArray], degree)
-            y = poly.polyval(self.xax, polyCoeff)
+            y = self.baselinePolyFit(self.xax, tmpData, bArray, degree)
             if (self.plotType == 0):
                 y = np.real(y)
             elif (self.plotType == 1):
