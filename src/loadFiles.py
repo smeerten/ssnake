@@ -25,35 +25,35 @@ import os
 def loading(num, filePath, name=None, realpath=False, dialog=None):
     try:
         if num == 0:
-            masterData = LoadVarianFile(filePath, name)
+            masterData = loadVarianFile(filePath, name)
         elif num == 1:
-            masterData = LoadBrukerTopspin(filePath, name)
+            masterData = loadBrukerTopspin(filePath, name)
         elif num == 2:
-            masterData = LoadChemFile(filePath, name)
+            masterData = loadChemFile(filePath, name)
         elif num == 3:
-            masterData = LoadMagritek(filePath, name, realpath)
+            masterData = loadMagritek(filePath, name, realpath)
         elif num == 4:
-            masterData = LoadSimpsonFile(filePath, name)
+            masterData = loadSimpsonFile(filePath, name)
         elif num == 5:
             masterData = loadJSONFile(filePath, name)
         elif num == 6:
             masterData = loadMatlabFile(filePath, name)
         elif num == 7:
-            masterData = LoadBrukerSpectrum(filePath, name)
+            masterData = loadBrukerSpectrum(filePath, name)
         elif num == 8:
-            masterData = LoadPipe(filePath, name)
+            masterData = loadPipe(filePath, name)
         elif num == 9:
-            masterData = LoadJEOLDelta(filePath, name)
+            masterData = loadJEOLDelta(filePath, name)
         elif num == 10:
-            masterData = LoadJCAMP(filePath, name)   
+            masterData = loadJCAMP(filePath, name)   
         elif num == 11:
             if dialog is None:
                 return None
-            masterData = LoadAscii(filePath, name, dialog.dataDimension, dialog.dataSpec, dialog.dataOrder, dialog.delim, dialog.sw) 
+            masterData = loadAscii(filePath, name, dialog.dataDimension, dialog.dataSpec, dialog.dataOrder, dialog.delim, dialog.sw) 
         elif num == 12:
-            masterData = LoadMinispec(filePath, name)
+            masterData = loadMinispec(filePath, name)
         elif num == 13:
-            masterData = LoadBrukerEPR(filePath, name)
+            masterData = loadBrukerEPR(filePath, name)
     except:
         return None
     return masterData
@@ -108,7 +108,7 @@ def fileTypeCheck(filePath):
         return (11, filePath, returnVal)
     return (None,filePath, 2)
 
-def LoadVarianFile(filePath, name=''):
+def loadVarianFile(filePath, name=''):
     from struct import unpack
     if os.path.isfile(filePath):
         Dir = os.path.dirname(filePath)
@@ -234,7 +234,7 @@ def LoadVarianFile(filePath, name=''):
     masterData.addHistory("Varian data loaded from " + filePath)
     return masterData    
         
-def LoadPipe(filePath, name=''):
+def loadPipe(filePath, name=''):
         with open(filePath, 'r') as f:
             header = np.fromfile(f, np.float32, 512)
             NumberofPoints = int(header[99])
@@ -253,7 +253,7 @@ def LoadPipe(filePath, name=''):
         masterData.addHistory("NMRpipe data loaded from " + filePath)
         return masterData        
 
-def LoadJEOLDelta(filePath, name=''):
+def loadJEOLDelta(filePath, name=''):
     from struct import unpack
     with open(filePath, "rb") as f:
         file_identifier = f.read(8)
@@ -482,7 +482,7 @@ def loadMatlabFile(filePath, name=''):
         masterData.addHistory("Matlab data loaded from " + filePath)
         return masterData       
 
-def LoadBrukerTopspin(filePath, name=''):
+def loadBrukerTopspin(filePath, name=''):
     if os.path.isfile(filePath):
         Dir = os.path.dirname(filePath)
     else:
@@ -534,7 +534,7 @@ def LoadBrukerTopspin(filePath, name=''):
     masterData.addHistory("Bruker data loaded from " + filePath)
     return masterData
 
-def LoadBrukerSpectrum(filePath, name=''):
+def loadBrukerSpectrum(filePath, name=''):
     if os.path.isfile(filePath):
         Dir = os.path.dirname(filePath)
     else:
@@ -615,7 +615,7 @@ def LoadBrukerSpectrum(filePath, name=''):
     masterData.addHistory("Bruker spectrum data loaded from " + filePath)
     return masterData
 
-def LoadChemFile(filePath, name=''):
+def loadChemFile(filePath, name=''):
     if os.path.isfile(filePath):
         Dir = os.path.dirname(filePath)
     else:
@@ -658,7 +658,7 @@ def LoadChemFile(filePath, name=''):
     masterData.addHistory("Chemagnetics data loaded from " + filePath)
     return masterData
 
-def LoadMagritek(filePath, name='',realPath=''):
+def loadMagritek(filePath, name='',realPath=''):
     # Magritek load script based on some Matlab files by Ole Brauckman
     if os.path.isfile(filePath):
         Dir = os.path.dirname(filePath)
@@ -716,7 +716,7 @@ def LoadMagritek(filePath, name='',realPath=''):
     masterData.addHistory("Magritek data loaded from " + rememberPath)
     return masterData
 
-def LoadSimpsonFile(filePath, name=''):
+def loadSimpsonFile(filePath, name=''):
     with open(filePath, 'r') as f:
         Lines = f.read().split('\n')
     NP, NI, SW, SW1, TYPE, FORMAT = 0, 1, 0, 0, '', 'Normal'
@@ -941,7 +941,7 @@ def loadJCAMP(filePath,name):
         masterData = sc.Spectrum(name, spectDat, (10, filePath), [freq], [sw], [True], ref = [None])
     return masterData
 
-def LoadAscii(filePath, name, dataDimension, dataSpec, dataOrder, delimitor, swInp = 0.0):
+def loadAscii(filePath, name, dataDimension, dataSpec, dataOrder, delimitor, swInp = 0.0):
     freq = 0.0
     delimChar = ''
     if delimitor == 'Tab':
@@ -989,7 +989,7 @@ def LoadAscii(filePath, name, dataDimension, dataSpec, dataOrder, delimitor, swI
     masterData.addHistory("ASCII data loaded from " + filePath)    
     return masterData
         
-def LoadMinispec(filePath, name):
+def loadMinispec(filePath, name):
     with open(filePath, 'r') as f:
         data = f.read().split('\n')    
     dataType = int(data[1][data[1].index('=')+1:])
@@ -1013,7 +1013,7 @@ def LoadMinispec(filePath, name):
     masterData.addHistory("Minispec data loaded from " + filePath)
     return masterData       
 
-def LoadBrukerEPR(filePath,name=''):
+def loadBrukerEPR(filePath,name=''):
     with open(filePath + '.par', mode='r') as f:
         textdata = [row.split() for row in f.read().replace('\r','\n').split('\n')]
     for row in textdata:
