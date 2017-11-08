@@ -52,7 +52,7 @@ class UpdateWindow(QtWidgets.QWidget):
             for i in range(len(info)):
                 self.nameList.append(info[i]['name'])
                 self.urlList.append(info[i]['zipball_url'])
-        except:
+        except Exception:
             self.father.dispMsg("Could not connect to the server")
             return
         self.setWindowTitle("Update ssNake")

@@ -21,11 +21,12 @@ import numpy as np
 import matplotlib.gridspec as gridspec
 try:
     from PyQt4 import QtGui, QtCore
-    from PyQt4 import QtGui as QtWidgets    
+    from PyQt4 import QtGui as QtWidgets
 except ImportError:
     from PyQt5 import QtGui, QtCore, QtWidgets
 import spectrum_classes
 import warnings
+
 #########################################################################################################
 # the class from which the 1d data is displayed, the operations which only edit the content of this class are for previewing
 
@@ -40,16 +41,14 @@ class Plot1DFrame(object):
         if isinstance(self, spectrum_classes.CurrentContour):
             self.gs = gridspec.GridSpec(2, 2, width_ratios=[self.root.father.defaultWidthRatio, 1], height_ratios=[1, self.root.father.defaultHeightRatio])
             self.ax = self.fig.add_subplot(self.gs[2])
-#            self.x_ax = self.fig.add_subplot(gs[0], sharex=self.ax,axisbg='#bfbfbf')
-#            self.y_ax = self.fig.add_subplot(gs[3], sharey=self.ax,axisbg='#bfbfbf')
-            self.x_ax = self.fig.add_subplot(self.gs[0], sharex=self.ax,axisbg='none',frameon=False)
-            self.y_ax = self.fig.add_subplot(self.gs[3], sharey=self.ax,axisbg='none',frameon=False)
+            self.x_ax = self.fig.add_subplot(self.gs[0], sharex=self.ax, axisbg='none', frameon=False)
+            self.y_ax = self.fig.add_subplot(self.gs[3], sharey=self.ax, axisbg='none', frameon=False)
             self.fig.subplots_adjust(hspace=0)
             self.fig.subplots_adjust(wspace=0)
             self.x_ax.axes.get_xaxis().set_visible(False)
             self.x_ax.axes.get_yaxis().set_visible(False)
             self.y_ax.axes.get_xaxis().set_visible(False)
-            self.y_ax.axes.get_yaxis().set_visible(False)            
+            self.y_ax.axes.get_yaxis().set_visible(False)
         elif isinstance(self, spectrum_classes.CurrentSkewed):
             self.ax = self.fig.add_subplot(1, 1, 1, projection='3d')
             self.ax.disable_mouse_rotation()
@@ -84,13 +83,13 @@ class Plot1DFrame(object):
         if self.rect[0] is not None:
             try:
                 self.rect[0].remove()
-            except:
+            except Exception:
                 pass
             self.canvas.draw_idle()
         if self.rect[1] is not None:
             try:
                 self.rect[1].remove()
-            except:
+            except Exception:
                 pass
             self.canvas.draw_idle()
         self.rect = [None, None, None, None]
@@ -240,7 +239,6 @@ class Plot1DFrame(object):
                 point = inv.transform((event.x, event.y))
                 diffx = point[0] - self.panX
                 diffy = point[1] - self.panY
-            
             if modifiers == QtCore.Qt.ControlModifier:
                 self.xmaxlim = self.xmaxlim - diffx
                 self.xminlim = self.xminlim - diffx
@@ -265,13 +263,13 @@ class Plot1DFrame(object):
             if self.rect[0] is not None:
                 try:
                     self.rect[0].remove()
-                except:
+                except Exception:
                     pass
                 self.rect[0] = None
             if self.rect[1] is not None:
                 try:
                     self.rect[1].remove()
-                except:
+                except Exception:
                     pass
                 self.rect[1] = None
             if event.xdata is not None:

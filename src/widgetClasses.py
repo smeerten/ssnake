@@ -91,25 +91,25 @@ class ToolWindows(QtWidgets.QWidget):
         self.okButton = QtWidgets.QPushButton(self.OKNAME)
         self.okButton.clicked.connect(self.applyAndClose)
         self.okButton.setFocus()
-        self.layout.addWidget(self.okButton, 2, offset+1)
+        self.layout.addWidget(self.okButton, 2, offset + 1)
         self.show()
         if not self.RESIZABLE:
             self.setFixedSize(self.size())
         if self.MENUDISABLE:
             self.father.menuDisable()
-        self.setGeometry(self.frameSize().width() - self.geometry().width(), self.frameSize().height() , 0, 0)
+        self.setGeometry(self.frameSize().width() - self.geometry().width(), self.frameSize().height(), 0, 0)
 
     def browse(self):
         pass
-        
+
     def applyFunc(self):
         pass
-    
+
     def applyAndClose(self):
         check = self.applyFunc()
         if check is None:
             self.closeEvent()
-        
+
     def closeEvent(self, *args):
         self.father.current.upd()
         self.father.current.showFid()
@@ -118,6 +118,7 @@ class ToolWindows(QtWidgets.QWidget):
         self.father.updAllFrames()
         self.deleteLater()
 
+
 class SliceValidator(QtGui.QValidator):
 
     def validate(self, string, position):
@@ -125,7 +126,7 @@ class SliceValidator(QtGui.QValidator):
         try:
             int(safeEval(string))
             return (QtGui.QValidator.Acceptable, string, position)
-        except:
+        except Exception:
             return (QtGui.QValidator.Intermediate, string, position)
 
 
@@ -173,7 +174,7 @@ class QLeftLabel(QtWidgets.QLabel):
 
 
 class QLineEdit(QtWidgets.QLineEdit):
-    
+
     def __init__(self, text='', func=None, parent=None):
         super(QLineEdit, self).__init__(parent)
         self.setText(str(text))
@@ -188,7 +189,7 @@ class FitQLineEdit(QLineEdit):
         super(FitQLineEdit, self).__init__(*args)
         self.fitParent = fitParent
         self.paramName = paramName
-    
+
     def contextMenuEvent(self, event):
         menu = self.createStandardContextMenu()
         menu.addAction('Connect Parameter', self.connectParams)
@@ -222,25 +223,20 @@ class ConnectParamsWindow(QtWidgets.QWidget):
         self.paramNameEntry.addItems(self.paramTextList)
         self.paramNameEntry.setCurrentIndex(self.paramTextList.index(self.paramText))
         self.grid.addWidget(self.paramNameEntry, 0, 1)
-        
         self.grid.addWidget(QtWidgets.QLabel("Spectrum:"), 1, 0)
         self.spectrumNameEntry = QtWidgets.QComboBox()
         self.spectrumNameEntry.addItems(self.spectrumNames)
         self.spectrumNameEntry.setCurrentIndex(self.currentSpectrum)
         self.grid.addWidget(self.spectrumNameEntry, 1, 1)
-
         self.grid.addWidget(QtWidgets.QLabel("Line:"), 2, 0)
         self.lineEntry = QtWidgets.QSpinBox()
         self.grid.addWidget(self.lineEntry, 2, 1)
-        
         self.grid.addWidget(QtWidgets.QLabel("Multiplier:"), 3, 0)
         self.multEntry = QLineEdit("1.0")
         self.grid.addWidget(self.multEntry, 3, 1)
-
         self.grid.addWidget(QtWidgets.QLabel("Offset:"), 4, 0)
         self.addEntry = QLineEdit("0.0")
         self.grid.addWidget(self.addEntry, 4, 1)
-        
         self.cancelButton = QtWidgets.QPushButton("&Cancel")
         self.cancelButton.clicked.connect(self.closeEvent)
         self.layout.addWidget(self.cancelButton, 2, 0)
@@ -261,7 +257,7 @@ class ConnectParamsWindow(QtWidgets.QWidget):
 
 
 class specialProgressBar(QtWidgets.QProgressBar):
-    
+
     def __init__(self):
         super(specialProgressBar, self).__init__()
         self.setAlignment(QtCore.Qt.AlignCenter)
