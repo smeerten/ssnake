@@ -747,7 +747,9 @@ class MainProgram(QtWidgets.QMainWindow):
         self.quadconvAct.setToolTip('Quadrupole Coupling Conversion Tool')
         self.nmrtableAct = self.utilitiesMenu.addAction(QtGui.QIcon(IconDirectory + 'table.png'), "&NMR Table", self.nmrTable)
         self.nmrtableAct.setToolTip('NMR Periodic Table')
-        self.utilitiesActList = [self.shiftconvAct, self.quadconvAct, self.nmrtableAct]
+        self.gameAct = self.utilitiesMenu.addAction(QtGui.QIcon(IconDirectory + 'ssnake.png'), "&Snake Game", self.snakeGame)
+        self.gameAct.setToolTip('Snake Game')
+        self.utilitiesActList = [self.shiftconvAct, self.quadconvAct, self.nmrtableAct, self.gameAct]
         # the help drop down menu
         self.helpMenu = QtWidgets.QMenu("&Help", self)
         self.menubar.addMenu(self.helpMenu)
@@ -1572,6 +1574,10 @@ class MainProgram(QtWidgets.QMainWindow):
     def nmrTable(self):
         import subprocess
         subprocess.Popen([sys.executable, os.path.dirname(os.path.realpath(__file__)) + '/nmrTable.py'])
+
+    def snakeGame(self):
+        import subprocess
+        subprocess.Popen([sys.executable, os.path.dirname(os.path.realpath(__file__)) + '/game.py'])
 
     def fileQuit(self):
         self.close()
