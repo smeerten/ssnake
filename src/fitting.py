@@ -3417,12 +3417,12 @@ class Quad2CzjzekParamFrame(AbstractParamFrame):
         self.optframe.addWidget(QLabel(u"\u03c9<sub>Q</sub><sup>max</sup>/\u03c3:"), 9, 0)
         self.entries['wqmax'].append(wc.QLineEdit("4", self.setGrid))
         self.optframe.addWidget(self.entries['wqmax'][-1], 10, 0)
-        # loadLibButton = QtWidgets.QPushButton("Load Library")
-        # loadLibButton.clicked.connect(self.loadLib)
-        # self.optframe.addWidget(loadLibButton, 11, 0)
+        loadLibButton = QtWidgets.QPushButton("Load Library")
+        loadLibButton.clicked.connect(self.loadLib)
+        self.optframe.addWidget(loadLibButton, 11, 0)
         self.extLibCheck = QtWidgets.QCheckBox("Ext. Library")
-        # self.extLibCheck.setEnabled(False)
-        # self.optframe.addWidget(self.extLibCheck, 12, 0)
+        self.extLibCheck.setEnabled(False)
+        self.optframe.addWidget(self.extLibCheck, 12, 0)
         self.optframe.setColumnStretch(21, 1)
         self.optframe.setAlignment(QtCore.Qt.AlignTop)
         self.frame2.addWidget(QLabel("Bgrnd:"), 0, 0, 1, 2)
@@ -3489,7 +3489,9 @@ class Quad2CzjzekParamFrame(AbstractParamFrame):
     def bincounting(self, x1, weight, length):
         weights = weight[np.logical_and(x1 >= 0, x1 < length)]
         x1 = x1[np.logical_and(x1 >= 0, x1 < length)]
-        return np.fft.ifft(np.bincount(x1, weights, length))
+        fid = np.fft.ifft(np.bincount(x1, weights, length))
+        fid[0] *= 2
+        return fid
 
     def genLib(self, length, I, maxWq, numWq, numEta, angleStuff, freq, sw, weight, axAdd):
         wq_return, eta_return = np.meshgrid(np.linspace(0, maxWq, numWq), np.linspace(0, 1, numEta))
@@ -3508,16 +3510,17 @@ class Quad2CzjzekParamFrame(AbstractParamFrame):
         eta = []
         data = []
         for name in nameList:
-            matchName = re.search("-(\d+\.\d+)-(\d+\.\d+)\.fid$", name)
+            matchName = re.search("-(\d+\.\d+)-(\d+\.\d+)\.(fid|spe)$", name)
             if matchName:
-                cq.append(float(matchName.group(1)))
-                eta.append(float(matchName.group(2)))
+                eta.append(float(matchName.group(1)))
+                cq.append(float(matchName.group(2)))
                 fullName = os.path.join(dirName, name)
                 val = LF.fileTypeCheck(fullName)
                 if val[0] is not None:
                     libData = LF.loading(val[0], val[1])
                 if libData.data.ndim is not 1:
                     self.rootwindow.mainProgram.dispMsg("A spectrum in the library is not a 1D spectrum.")
+                    continue
                 if not libData.spec[0]:
                     libData.fourier(0)
                 libData.regrid([self.parent.current.xax[0], self.parent.current.xax[-1]], len(self.parent.current.xax), 0)
@@ -3550,9 +3553,10 @@ class Quad2CzjzekParamFrame(AbstractParamFrame):
         else:
             weight, angleStuff = czjzekStaticsetAngleStuff(self.entries['cheng'][-1].value())
         maxSigma = 0.0
-        for val in self.entries['sigma']:
+        for i in range(self.numExp.currentIndex()+1):
+            val = self.entries['sigma'][i]
             try:
-                maxSigma = max(maxSigma, float(val.text()))
+                maxSigma = max(maxSigma, np.abs(float(val.text())))
             except ValueError:
                 continue
         if self.extLibCheck.isChecked():
@@ -3666,7 +3670,7 @@ def quad2CzjzekfitFunc(params, allX, args):
 
 
 def quad2CzjzektensorFunc(sigma, d, pos, width, gauss, wq, eta, lib, freq, sw, axAdd, axMult=1):
-    sigma *= 1e6
+    sigma = sigma * 1e6
     pos = (pos / axMult) - axAdd
     if sigma == 0.0:  # protect against divide by zero
         czjzek = np.zeros_like(wq)
@@ -3678,6 +3682,7 @@ def quad2CzjzektensorFunc(sigma, d, pos, width, gauss, wq, eta, lib, freq, sw, a
     t = np.arange(len(fid)) / sw
     apod = np.exp(-np.pi * np.abs(width) * t) * np.exp(-((np.pi * np.abs(gauss) * t)**2) / (4 * np.log(2)))
     apod[-1:int(-(len(apod) / 2 + 1)):-1] = apod[:int(len(apod) / 2)]
+    apod[0] *= 0.5
     spectrum = scipy.ndimage.interpolation.shift(np.real(np.fft.fft(fid * apod)), len(fid) * pos / sw)
     spectrum = spectrum / sw * len(spectrum)
     return spectrum
