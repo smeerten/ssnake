@@ -3739,7 +3739,6 @@ class SIMPSONDeconvParamFrame(AbstractParamFrame):
         self.PARAMTEXT = {}
         self.numExp = QtWidgets.QComboBox()
         self.script = None
-        self.command = "simpson"
         self.txtOutput = ["", ""]
         self.FITFUNC = SIMPSONDeconvmpFit
         # Get full integral
@@ -3753,6 +3752,8 @@ class SIMPSONDeconvParamFrame(AbstractParamFrame):
         outputButton = QtWidgets.QPushButton("Output")
         outputButton.clicked.connect(self.txtOutputWindow)
         self.frame1.addWidget(outputButton, 3, 1)
+        self.commandLine = wc.QLineEdit("simpson")
+        self.frame1.addWidget(self.commandLine, 4, 1)
         self.labels = {}
         self.ticks = {}
         self.entries = {}
@@ -3808,7 +3809,7 @@ class SIMPSONDeconvParamFrame(AbstractParamFrame):
 
     def getExtraParams(self, out):
         out["nameList"] = [self.MULTINAMES]
-        out["command"] = [self.command]
+        out["command"] = [self.commandLine.text()]
         out["script"] = [self.script]
         out["txtOutput"] = [self.txtOutput]
         return (out, [out["nameList"][-1], out["command"][-1], out["script"][-1], out["txtOutput"][-1]])
