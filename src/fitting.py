@@ -345,6 +345,9 @@ class FittingWindow(QtWidgets.QWidget):
         self.canvas.mpl_connect('motion_notify_event', self.pan)
         self.canvas.mpl_connect('scroll_event', self.scroll)
 
+    def updAllFrames(self, *args):
+        pass
+        
     def fit(self):
         self.tabWindow.fit()
 
@@ -3737,6 +3740,7 @@ class SIMPSONDeconvParamFrame(AbstractParamFrame):
         self.numExp = QtWidgets.QComboBox()
         self.script = None
         self.command = "simpson"
+        self.txtOutput = ["", ""]
         self.FITFUNC = SIMPSONDeconvmpFit
         # Get full integral
         super(SIMPSONDeconvParamFrame, self).__init__(parent, rootwindow, isMain)
@@ -3746,6 +3750,9 @@ class SIMPSONDeconvParamFrame(AbstractParamFrame):
         loadButton = QtWidgets.QPushButton("Load Script")
         loadButton.clicked.connect(self.loadScript)
         self.frame1.addWidget(loadButton, 2, 1)
+        outputButton = QtWidgets.QPushButton("Output")
+        outputButton.clicked.connect(self.txtOutputWindow)
+        self.frame1.addWidget(outputButton, 3, 1)
         self.labels = {}
         self.ticks = {}
         self.entries = {}
@@ -3753,6 +3760,9 @@ class SIMPSONDeconvParamFrame(AbstractParamFrame):
         self.frame3.setAlignment(QtCore.Qt.AlignTop)
         self.reset()
 
+    def txtOutputWindow(self):
+        TxtOutputWindow(self.rootwindow, self.txtOutput[0], self.txtOutput[1])
+        
     def getNumExp(self):
         return 1
 
@@ -3800,7 +3810,8 @@ class SIMPSONDeconvParamFrame(AbstractParamFrame):
         out["nameList"] = [self.MULTINAMES]
         out["command"] = [self.command]
         out["script"] = [self.script]
-        return (out, [out["nameList"][-1], out["command"][-1], out["script"][-1]])
+        out["txtOutput"] = [self.txtOutput]
+        return (out, [out["nameList"][-1], out["command"][-1], out["script"][-1], out["txtOutput"][-1]])
 
     def disp(self, params, num):
         out = params[num]
@@ -3824,7 +3835,10 @@ class SIMPSONDeconvParamFrame(AbstractParamFrame):
             inputPar = {}
             for name in self.MULTINAMES:
                 inputPar[name] = out[name][0]
-            y = SIMPSONRunScript(self.command, self.script, inputPar, tmpx)
+            y = SIMPSONRunScript(out["command"][0], out["script"][0], inputPar, tmpx, out["txtOutput"][0])
+            if y is None:
+                self.rootwindow.mainProgram.dispMsg("Fitting: The script didn't output anything", 'red')
+                return
             outCurvePart.append(outCurveBase + y)
             outCurve += y
         self.parent.fitDataList[tuple(self.parent.locList)] = [tmpx, outCurve, x, outCurvePart]
@@ -3864,6 +3878,7 @@ def SIMPSONDeconvfitFunc(params, allX, args):
         nameList = argu[-1][0]
         command = argu[-1][1]
         script = argu[-1][2]
+        txtOutput = argu[-1][3]
         parameters = {}
         for i in range(numExp):
             for name in nameList:
@@ -3878,12 +3893,12 @@ def SIMPSONDeconvfitFunc(params, allX, args):
                         parameters[name] = altStruc[2] * allParam[altStruc[4]][strucTarget[altStruc[0]][altStruc[1]][1]] + altStruc[3]
                     elif strucTarget[altStruc[0]][altStruc[1]][0] == 0:
                         parameters[name] = altStruc[2] * allArgu[altStruc[4]][strucTarget[altStruc[0]][altStruc[1]][1]] + altStruc[3]
-            testFunc += SIMPSONRunScript(command, script, parameters, x)
+            testFunc += SIMPSONRunScript(command, script, parameters, x, txtOutput)
         fullTestFunc = np.append(fullTestFunc, testFunc)
     return fullTestFunc
 
 
-def SIMPSONRunScript(command, script, parameters, xax):
+def SIMPSONRunScript(command, script, parameters, xax, output=None):
     for elem in parameters.keys():
         script = script.replace('@' + elem, str(parameters[elem]))
     directory_name = tempfile.mkdtemp()
@@ -3891,11 +3906,16 @@ def SIMPSONRunScript(command, script, parameters, xax):
     fullPath = os.path.join(directory_name, inputFileName)
     with open(fullPath, "w") as text_file:
         text_file.write(script)
-    process = subprocess.Popen(command + ' ' + fullPath, shell=True, stdout=subprocess.PIPE, cwd=directory_name)
-    # print(process.stdout.read())
-    process.wait()
+    process = subprocess.Popen(command + ' ' + fullPath, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, cwd=directory_name)
+    if output:
+        output[0], output[1] = process.communicate()
+    else:
+        process.wait()
     fileList = os.listdir(directory_name)
     fileList.remove(inputFileName)
+    if not fileList:
+        shutil.rmtree(directory_name, ignore_errors=True)
+        return None
     outputFileName = fileList[0]
     val = LF.fileTypeCheck(os.path.join(directory_name, outputFileName))
     if val[0] is not None:
@@ -3906,3 +3926,27 @@ def SIMPSONRunScript(command, script, parameters, xax):
     masterData.regrid([xax[0], xax[-1]], len(xax), 0)
     shutil.rmtree(directory_name, ignore_errors=True)
     return np.real(masterData.data)
+
+
+class TxtOutputWindow(wc.ToolWindows):
+
+    NAME = "Script Output"
+    RESIZABLE = True
+    MENUDISABLE = False
+
+    def __init__(self, parent, txt, errTxt):
+        super(TxtOutputWindow, self).__init__(parent)
+        self.cancelButton.hide()
+        self.grid.addWidget(QtWidgets.QLabel("Output:"), 1, 0)
+        self.valEntry = QtWidgets.QTextEdit()
+        self.valEntry.setReadOnly(True)
+        self.valEntry.setLineWrapMode(QtWidgets.QTextEdit.NoWrap)
+        self.valEntry.setText(txt)
+        self.grid.addWidget(self.valEntry, 2, 0)
+        self.grid.addWidget(QtWidgets.QLabel("Errors:"), 3, 0)
+        self.errEntry = QtWidgets.QTextEdit()
+        self.errEntry.setReadOnly(True)
+        self.errEntry.setLineWrapMode(QtWidgets.QTextEdit.NoWrap)
+        self.errEntry.setText(errTxt)
+        self.grid.addWidget(self.errEntry, 4, 0)
+        self.resize(550, 700)
