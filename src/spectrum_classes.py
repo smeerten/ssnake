@@ -316,6 +316,12 @@ class Spectrum(object):
         except ValueError as error:
             self.dispMsg(str(error))
             return None
+
+        self.data = self.deleteHyper(axes,self.data) #Remove hypercomplex along the axis to be removed
+
+        for i in range(len(self.hyper)):
+            if self.hyper[i] > axes:
+                self.hyper[i] += -1
         self.freq = np.delete(self.freq, axes)
         self.sw = np.delete(self.sw, axes)
         self.spec = np.delete(self.spec, axes)
@@ -597,17 +603,11 @@ class Spectrum(object):
 
         #Remove hyper along this dim if necessary
         if keepdims ==  False and axes in self.hyper:
-            totlen = 2**len(self.hyper)
-            indx = self.hyper.index(axes)
-            step = 2**(len(self.hyper) - indx - 1)
-            boollist = np.array([True,False])
-            boollist = np.tile(np.repeat(boollist,totlen / step / 2),step)
-            newdat = []
-            for i in range(len(boollist)):
-                if boollist[i] == True:
-                    newdat.append( tmpdata[i])
-            tmpdata = newdat
-            del self.hyper[indx]
+            tmpdata = self.deleteHyper(axes,tmpdata)
+        #Correct hyper for missing dim 
+        for i in range(len(self.hyper)):
+            if self.hyper[i] > axes:
+                self.hyper[i] += -1
 
         self.data = []
         if len(tmpdata[0]) == 1:
@@ -631,6 +631,7 @@ class Spectrum(object):
                 self.data.append(np.concatenate(tmpdata[index], axis=axes))
             self.resetXax(axes)
 
+        print(self.hyper,len(self.data))
         return returnValue
 
     def matrixManipNew(self, pos1, pos2, axes, which):
@@ -1408,6 +1409,23 @@ class Spectrum(object):
             data[l1], data[l2] = np.real(data[l1]) + 1j*np.real(data[l2]), np.imag(data[l1]) + 1j*np.imag(data[l2])
 
         return data
+
+    def deleteHyper(self,axis,data):
+        #Deletes hypercomplex data along axis, is any
+        #Deletes its entry from self.hyper list.
+        if axis in self.hyper:
+            totlen = 2**len(self.hyper)
+            indx = self.hyper.index(axis)
+            step = 2**(len(self.hyper) - indx - 1)
+            boollist = np.array([True,False])
+            boollist = np.tile(np.repeat(boollist,totlen / step / 2),step)
+            newdat = []
+            for i in range(len(boollist)):
+                if boollist[i] == True:
+                    newdat.append(data[i])
+            del self.hyper[indx]
+            data = newdat
+        return data 
 
 
     def fourier(self, axes, tmp=False, inv=False):
