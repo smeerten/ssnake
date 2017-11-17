@@ -97,6 +97,8 @@ class Plot1DFrame(object):
         self.peakPickFunc = None
 
     def scroll(self, event):
+        zoomStep = self.root.mainProgram.defaultZoomStep
+        event.step = event.step * zoomStep #Apply zoom sensitivity
         modifiers = QtWidgets.QApplication.keyboardModifiers()
         if modifiers == QtCore.Qt.ShiftModifier:
             self.altScroll(event)
