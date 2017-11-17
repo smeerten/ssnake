@@ -345,6 +345,7 @@ class Spectrum(object):
         self.spec = np.insert(self.spec, 0, self.spec[axes])
         self.wholeEcho = np.insert(self.wholeEcho, 0, self.wholeEcho[axes])
         self.ref = np.insert(self.ref, 0, self.ref[axes])
+        self.hyper = [x + 1 for x in self.hyper] #New dim always the new D1. All hyper values must be increased by 1
         self.xaxArray.insert(0, [])
         self.resetXax(0)
         self.resetXax(axes + 1)
