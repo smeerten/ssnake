@@ -3829,14 +3829,14 @@ class ApodWindow(wc.ToolWindows):
 
 #######################################################################################
 
-
 class SizeWindow(wc.ToolWindows):
 
     NAME = "Set size"
 
     def __init__(self, parent):
         super(SizeWindow, self).__init__(parent)
-        self.grid.addWidget(wc.QLabel("Size:"), 0, 0)
+        self.sizeGroup = QtWidgets.QGroupBox('Size:')
+        self.sizeFrame = QtWidgets.QGridLayout()
         self.sizeVal = parent.current.data1D[0].shape[-1]
         self.sizeEntry = wc.QLineEdit(self.sizeVal, self.sizePreview)
         self.sizeEntry.setMinimumWidth(100)
