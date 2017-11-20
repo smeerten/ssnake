@@ -317,7 +317,7 @@ class Spectrum(object):
             self.dispMsg(str(error))
             return None
 
-        self.data = self.deleteHyper(axes,self.data) #Remove hypercomplex along the axis to be removed
+        self.data, self.hyper = self.deleteHyper(axes,self.data,self.hyper) #Remove hypercomplex along the axis to be removed
 
         for i in range(len(self.hyper)):
             if self.hyper[i] > axes:
@@ -603,11 +603,11 @@ class Spectrum(object):
 
         #Remove hyper along this dim if necessary
         if keepdims ==  False and axes in self.hyper:
-            tmpdata = self.deleteHyper(axes,tmpdata)
-        #Correct hyper for missing dim 
-        for i in range(len(self.hyper)):
-            if self.hyper[i] > axes:
-                self.hyper[i] += -1
+            tmpdata , self.hyper = self.deleteHyper(axes,tmpdata,self.hyper)
+            #Correct hyper for missing dim 
+            for i in range(len(self.hyper)):
+                if self.hyper[i] > axes:
+                    self.hyper[i] += -1
 
         if len(tmpdata[0]) == 1:
             if self.data[0].ndim == 1:
@@ -621,12 +621,12 @@ class Spectrum(object):
                     self.data.append(tmpdata[index][0])
                 self.freq = np.delete(self.freq, axes)
                 self.ref = np.delete(self.ref, axes)
-#                del self.ref[axes]
                 self.sw = np.delete(self.sw, axes)
                 self.spec = np.delete(self.spec, axes)
                 self.wholeEcho = np.delete(self.wholeEcho, axes)
                 del self.xaxArray[axes]
         else:
+            self.data = []
             for index in range(len(tmpdata)):
                 self.data.append(np.concatenate(tmpdata[index], axis=axes))
             self.resetXax(axes)
@@ -643,16 +643,16 @@ class Spectrum(object):
         if len(pos1) != len(pos2):
             self.dispMsg("Length of the two arrays is not equal")
             return None
-        tmpdata = ()
+        tmpdata = [() for x in range(2**len(self.hyper))]
         if len(pos1) == 1:
             keepdims = False
         else:
             keepdims = True
         for i in range(len(pos1)):
-            if not (0 <= pos1[i] <= self.data.shape[axes]):
+            if not (0 <= pos1[i] <= self.data[0].shape[axes]):
                 self.dispMsg("Indices not within range")
                 return None
-            if not (0 <= pos2[i] <= self.data.shape[axes]):
+            if not (0 <= pos2[i] <= self.data[0].shape[axes]):
                 self.dispMsg("Indices not within range")
                 return None
             if pos1[i] == pos2[i]:
@@ -660,39 +660,53 @@ class Spectrum(object):
                 return None
             minPos = min(pos1[i], pos2[i])
             maxPos = max(pos1[i], pos2[i])
-            slicing = (slice(None), ) * axes + (slice(minPos, maxPos), ) + (slice(None), ) * (self.data.ndim - 1 - axes)
-            if which == 0:
-                if self.spec[axes] == 0:
-                    tmpdata += (np.sum(self.data[slicing], axis=axes, keepdims=keepdims) / self.sw[axes], )
-                else:
-                    tmpdata += (np.sum(self.data[slicing], axis=axes, keepdims=keepdims) * self.sw[axes] / (1.0 * self.data.shape[axes]), )
-            elif which == 5:
-                tmpdata += (np.sum(self.data[slicing], axis=axes, keepdims=keepdims), )
-            elif which == 1:
-                tmpdata += (np.amax(self.data[slicing], axis=axes, keepdims=keepdims), )
-            elif which == 2:
-                tmpdata += (np.amin(self.data[slicing], axis=axes, keepdims=keepdims), )
-            elif which == 3:
-                maxArgPos = np.argmax(np.real(self.data[slicing]), axis=axes)
-                tmpmaxPos = maxArgPos.flatten()
-                tmp = self.xaxArray[axes][slice(minPos, maxPos)][tmpmaxPos].reshape(maxArgPos.shape)
-                if keepdims:
-                    tmpdata += (np.expand_dims(tmp, axes), )
-                else:
-                    tmpdata += (tmp, )
-            elif which == 4:
-                minArgPos = np.argmin(np.real(self.data[slicing]), axis=axes)
-                tmpminPos = minArgPos.flatten()
-                tmp = self.xaxArray[axes][slice(minPos, maxPos)][tmpminPos].reshape(minArgPos.shape)
-                if keepdims:
-                    tmpdata += (np.expand_dims(tmp, axes), )
-                else:
-                    tmpdata += (tmp, )
-            elif which == 6:
-                tmpdata += (np.mean(self.data[slicing], axis=axes, keepdims=keepdims), )
-        if len(tmpdata) == 1:
-            if self.data.ndim == 1:
-                tmpdata = np.array([tmpdata[0]])
+            slicing = (slice(None), ) * axes + (slice(minPos, maxPos), ) + (slice(None), ) * (self.data[0].ndim - 1 - axes)
+            for index in range(len(self.data)):
+                if which == 0:
+                    if self.spec[axes] == 0:
+                        tmpdata[index] += (np.sum(self.data[index][slicing], axis=axes, keepdims=keepdims) / self.sw[axes], )
+                    else:
+                        tmpdata[index] += (np.sum(self.data[index][slicing], axis=axes, keepdims=keepdims) * self.sw[axes] / (1.0 * self.data[0].shape[axes]), )
+                elif which == 5:
+                    tmpdata[index] += (np.sum(self.data[index][slicing], axis=axes, keepdims=keepdims), )
+                elif which == 1:
+                    tmpdata[index] += (np.amax(self.data[index][slicing], axis=axes, keepdims=keepdims), )
+                elif which == 2:
+                    tmpdata[index] += (np.amin(self.data[index][slicing], axis=axes, keepdims=keepdims), )
+                elif which == 3:
+                    maxArgPos = np.argmax(np.real(self.data[index][slicing]), axis=axes)
+                    tmpmaxPos = maxArgPos.flatten()
+                    tmp = self.xaxArray[axes][slice(minPos, maxPos)][tmpmaxPos].reshape(maxArgPos.shape)
+                    if keepdims:
+                        tmpdata[index] += (np.expand_dims(tmp, axes), )
+                    else:
+                        tmpdata[index] += (tmp, )
+                elif which == 4:
+                    minArgPos = np.argmin(np.real(self.data[index][slicing]), axis=axes)
+                    tmpminPos = minArgPos.flatten()
+                    tmp = self.xaxArray[axes][slice(minPos, maxPos)][tmpminPos].reshape(minArgPos.shape)
+                    if keepdims:
+                        tmpdata += (np.expand_dims(tmp, axes), )
+                    else:
+                        tmpdata += (tmp, )
+                elif which == 6:
+                    tmpdata[index] += (np.mean(self.data[index][slicing], axis=axes, keepdims=keepdims), )
+
+
+
+        #Remove hyper along this dim if necessary
+        tmphyper = copy.deepcopy(self.hyper)
+        if keepdims ==  False and axes in self.hyper:
+            tmpdata, tmphyper = self.deleteHyper(axes,tmpdata, tmphyper)
+            #Correct hyper for missing dim 
+            for i in range(len(tmphyper)):
+                if tmphyper[i] > axes:
+                    tmphyper[i] += -1
+
+        if len(tmpdata[0]) == 1:
+            if self.data[0].ndim == 1:
+                for index in range(len(tmpdata)):
+                    tmpdata[index] = np.array([tmpdata[index][0]])
                 newSpec = Spectrum(self.name,
                                    tmpdata,
                                    self.filePath,
@@ -700,6 +714,7 @@ class Spectrum(object):
                                    copy.deepcopy(self.sw),
                                    copy.deepcopy(self.spec),
                                    copy.deepcopy(self.wholeEcho),
+                                   tmphyper,
                                    copy.deepcopy(self.ref),
                                    copy.deepcopy(self.xaxArray),
                                    copy.deepcopy(self.history),
@@ -708,19 +723,24 @@ class Spectrum(object):
             else:
                 tmpXax = copy.deepcopy(self.xaxArray)
                 del tmpXax[axes]
+                for index in range(len(tmpdata)):
+                    tmpdata[index] = tmpdata[index][0]
                 newSpec = Spectrum(self.name,
-                                   tmpdata[0],
+                                   tmpdata,
                                    self.filePath,
                                    copy.deepcopy(np.delete(self.freq, axes)),
                                    copy.deepcopy(np.delete(self.sw, axes)),
                                    copy.deepcopy(np.delete(self.spec, axes)),
                                    copy.deepcopy(np.delete(self.wholeEcho, axes)),
+                                   tmphyper,
                                    copy.deepcopy(np.delete(self.ref, axes)),
                                    tmpXax,
                                    copy.deepcopy(self.history),
                                    self.msgHandler)
         else:
-            tmpdata = np.concatenate(tmpdata, axis=axes)
+            for index in range(len(tmpdata)):
+                tmpdata[index] = np.concatenate(tmpdata[index], axis=axes)
+
             newSpec = Spectrum(self.name,
                                tmpdata,
                                self.filePath,
@@ -728,6 +748,7 @@ class Spectrum(object):
                                copy.deepcopy(self.sw),
                                copy.deepcopy(self.spec),
                                copy.deepcopy(self.wholeEcho),
+                               tmphyper,
                                copy.deepcopy(self.ref),
                                copy.deepcopy(self.xaxArray),
                                copy.deepcopy(self.history),
@@ -1409,22 +1430,22 @@ class Spectrum(object):
 
         return data
 
-    def deleteHyper(self,axis,data):
+    def deleteHyper(self,axis,data,hyper):
         #Deletes hypercomplex data along axis, is any
         #Deletes its entry from self.hyper list.
-        if axis in self.hyper:
-            totlen = 2**len(self.hyper)
-            indx = self.hyper.index(axis)
-            step = 2**(len(self.hyper) - indx - 1)
+        if axis in hyper:
+            totlen = 2**len(hyper)
+            indx = hyper.index(axis)
+            step = 2**(len(hyper) - indx - 1)
             boollist = np.array([True,False])
             boollist = np.tile(np.repeat(boollist,totlen / step / 2),step)
             newdat = []
             for i in range(len(boollist)):
                 if boollist[i] == True:
                     newdat.append(data[i])
-            del self.hyper[indx]
+            del hyper[indx]
             data = newdat
-        return data 
+        return data, hyper
 
 
     def fourier(self, axes, tmp=False, inv=False):
