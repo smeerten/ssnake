@@ -609,16 +609,16 @@ class Spectrum(object):
             if self.hyper[i] > axes:
                 self.hyper[i] += -1
 
-        self.data = []
         if len(tmpdata[0]) == 1:
-            if tmpdata[0][0].ndim == 1:
+            if self.data[0].ndim == 1:
+                self.data = []
                 for index in range(len(tmpdata)):
                     self.data.append(tmpdata[index][0])
                 self.resetXax(axes)
             else:
+                self.data = []
                 for index in range(len(tmpdata)):
                     self.data.append(tmpdata[index][0])
-                    print(self.data[0].shape)
                 self.freq = np.delete(self.freq, axes)
                 self.ref = np.delete(self.ref, axes)
 #                del self.ref[axes]
@@ -631,7 +631,6 @@ class Spectrum(object):
                 self.data.append(np.concatenate(tmpdata[index], axis=axes))
             self.resetXax(axes)
 
-        print(self.hyper,len(self.data))
         return returnValue
 
     def matrixManipNew(self, pos1, pos2, axes, which):
@@ -1706,7 +1705,6 @@ class Spectrum(object):
                 tmp = copy.copy(data) # Get the original data
                 for hyper in range(len(hilbertBool[index])):
                     if hilbertBool[index][hyper] == 1.0:
-                        print(self.hyper[hyper])
                         tmp = scipy.signal.hilbert(np.real(tmp),axis = self.hyper[hyper])
                         tmp = np.imag(np.conj(tmp))
                 newData[index] = tmp
