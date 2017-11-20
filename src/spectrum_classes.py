@@ -2205,7 +2205,7 @@ class Current1D(Plot1DFrame):
             length = len(self.data1D[0])
         axes = len(self.data1D[0].shape) - 1
         if self.spec == 1:
-            tmpdata = self.fourierLocal(self.data1D, 1, axes)
+            tmpdata = self.fourierLocal(copy.copy(self.data1D), 1, axes)
         else:
             tmpdata = copy.copy(self.data1D)
         if size > length:
