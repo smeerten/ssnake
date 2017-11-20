@@ -22,7 +22,96 @@ import spectrum_classes as sc
 import re
 import os
 
-def LoadVarianFile(filePath, name=''):
+
+def loading(num, filePath, name=None, realpath=False, dialog=None):
+    try:
+        if num == 0:
+            masterData = loadVarianFile(filePath, name)
+        elif num == 1:
+            masterData = loadBrukerTopspin(filePath, name)
+        elif num == 2:
+            masterData = loadChemFile(filePath, name)
+        elif num == 3:
+            masterData = loadMagritek(filePath, name, realpath)
+        elif num == 4:
+            masterData = loadSimpsonFile(filePath, name)
+        elif num == 5:
+            masterData = loadJSONFile(filePath, name)
+        elif num == 6:
+            masterData = loadMatlabFile(filePath, name)
+        elif num == 7:
+            masterData = loadBrukerSpectrum(filePath, name)
+        elif num == 8:
+            masterData = loadPipe(filePath, name)
+        elif num == 9:
+            masterData = loadJEOLDelta(filePath, name)
+        elif num == 10:
+            masterData = loadJCAMP(filePath, name)
+        elif num == 11:
+            if dialog is None:
+                return None
+            masterData = loadAscii(filePath, name, dialog.dataDimension, dialog.dataSpec, dialog.dataOrder, dialog.delim, dialog.sw)
+        elif num == 12:
+            masterData = loadMinispec(filePath, name)
+        elif num == 13:
+            masterData = loadBrukerEPR(filePath, name)
+    except Exception:
+        return None
+    return masterData
+
+
+def fileTypeCheck(filePath):
+    returnVal = 0
+    fileBase = ''
+    direc = filePath
+    if os.path.isfile(filePath):
+        filename = os.path.basename(filePath)
+        fileBase = os.path.splitext(filename)[0]
+        direc = os.path.dirname(filePath)
+        if filename.endswith('.fid') or filename.endswith('.spe'):
+            with open(filePath, 'r') as f:
+                check = int(np.fromfile(f, np.float32, 1))
+            if check == 0:
+                return (8, filePath, returnVal)  # Suspected NMRpipe format
+            else:  # SIMPSON
+                return (4, filePath, returnVal)
+        elif filename.endswith('.json') or filename.endswith('.JSON'):
+            return (5, filePath, returnVal)
+        elif filename.endswith('.mat') or filename.endswith('.MAT'):
+            return (6, filePath, returnVal)
+        elif filename.endswith('.jdf'):  # JEOL delta format
+            return (9, filePath, returnVal)
+        elif filename.endswith('.dx') or filename.endswith('.jdx') or filename.endswith('.jcamp'):  # JCAMP format
+            return (10, filePath, returnVal)
+        elif filename.endswith('.sig'):  # Bruker minispec
+            return (12, filePath, returnVal)
+        returnVal = 1
+        direc = os.path.dirname(filePath)
+    if os.path.exists(direc + os.path.sep + 'procpar') and os.path.exists(direc + os.path.sep + 'fid'):
+        return (0, direc, returnVal)
+        # And for varian processed data
+    if (os.path.exists(direc + os.path.sep + '..' + os.path.sep + 'procpar') or os.path.exists(direc + os.path.sep + 'procpar')) and os.path.exists(direc + os.path.sep + 'data'):
+        return (0, direc, returnVal)
+    elif os.path.exists(direc + os.path.sep + 'acqus') and (os.path.exists(direc + os.path.sep + 'fid') or os.path.exists(direc + os.path.sep + 'ser')):
+        return (1, direc, returnVal)
+    elif os.path.exists(direc + os.path.sep + 'procs') and (os.path.exists(direc + os.path.sep + '1r') or os.path.exists(direc + os.path.sep + '2rr')):
+        return (7, direc, returnVal)
+    elif os.path.exists(direc + os.path.sep + 'acq') and os.path.exists(direc + os.path.sep + 'data'):
+        return (2, direc, returnVal)
+    elif os.path.exists(direc + os.path.sep + 'acqu.par'):
+        dirFiles = os.listdir(direc)
+        files2D = [x for x in dirFiles if '.2d' in x]
+        files1D = [x for x in dirFiles if '.1d' in x]
+        if len(files2D) != 0 or len(files1D) != 0:
+            return (3, direc, returnVal)
+    elif os.path.exists(direc + os.path.sep + fileBase + '.spc') and os.path.exists(direc + os.path.sep + fileBase + '.par'):
+        return (13, direc + os.path.sep + fileBase, returnVal)
+    elif os.path.isfile(filePath):  # If not recognised, load as ascii
+        return (11, filePath, returnVal)
+    return (None, filePath, 2)
+
+
+def loadVarianFile(filePath, name=''):
     from struct import unpack
     if os.path.isfile(filePath):
         Dir = os.path.dirname(filePath)
@@ -43,7 +132,6 @@ def LoadVarianFile(filePath, name=''):
     if file is not None:
         with open(file, 'r') as f:
             data = f.read().split('\n')
-        
         indirectRef = ''
         for s in range(0, len(data)):
             if data[s].startswith('sfrq '):
@@ -62,19 +150,17 @@ def LoadVarianFile(filePath, name=''):
                 if int(data[s].split()[-2]): #if on
                     phfid = float(data[s + 1].split()[1]) 
             elif data[s].startswith('rp '):
-                rp = float(data[s + 1].split()[1])  
+                rp = float(data[s + 1].split()[1])
         if indirectRef:
-            for s in range(0, len(data)): #Extra loop to get freq in indirect dimension
+            for s in range(0, len(data)):  # Extra loop to get freq in indirect dimension
                 if data[s].startswith(indirectRef + " "):
                     freq1 = float(data[s + 1].split()[1]) * 1e6
-                
     if os.path.exists(Dir + os.path.sep + 'fid'):
         datafile = Dir + os.path.sep + 'fid'
         filePath = datafile
     elif os.path.exists(Dir + os.path.sep + 'data'):
         datafile = Dir + os.path.sep + 'data'
         filePath = datafile
-
     with open(datafile, "rb") as f:
         raw = np.fromfile(f, np.int32, 6)
         nblocks = unpack('>l', raw[0])[0]
@@ -104,18 +190,17 @@ def LoadVarianFile(filePath, name=''):
                 fid = fid[:, 7::]
                 fid = fid[:, ::2] - 1j * fid[:, 1::2]
             else:
-                fid = fid[nbheaders*7::4] - 1j * fid[nbheaders*7+1::4]
-                fid = fid.reshape(int(SizeTD1/4),SizeTD2)
+                fid = a[nbheaders * 7::4] - 1j * a[nbheaders * 7 + 1::4]
+                fid = fid.reshape(int(SizeTD1 / 4), SizeTD2)
                 if flipped:
                     fid = np.fliplr(fid)
- 
         elif fid32 and not fidfloat:  # for VNMRJ 2 data
-            totalpoints = (ntraces * npoints + nbheaders**2 * 7)*nblocks
-            fid = np.fromfile(f, np.int32, totalpoints)
-            fid = fid.newbyteorder('>l')
-            fid = fid.reshape(nblocks, int(totalpoints / nblocks))
-            fid = fid[:, 7::]
-            fid = fid[:, ::2] - 1j * fid[:, 1::2]
+            totalpoints = (ntraces * npoints + nbheaders**2 * 7) * nblocks
+            raw = np.fromfile(f, np.int32, totalpoints)
+            a = raw.newbyteorder('>l')
+            a = a.reshape(nblocks, int(totalpoints / nblocks))
+            a = a[:, 7::]
+            fid = a[:, ::2] - 1j * a[:, 1::2]
         else:  # use slow, but robust routine
             for iter1 in range(0, nblocks):
                 b = []
@@ -139,106 +224,100 @@ def LoadVarianFile(filePath, name=''):
                 a.append(b)
             a = np.complex128(a)
             fid = a[:, ::2] - 1j * a[:, 1::2]
-    
-    
-    fid = fid * np.exp((rp + phfid) / 180 * np.pi * 1j) #apply zero order phase
+    fid = fid * np.exp((rp + phfid) / 180 * np.pi * 1j)  # apply zero order phase
     if SizeTD1 is 1:
         fid = fid[0][:]
         if spec:  # flip if spectrum
             fid = np.flipud(fid)
-        masterData = sc.Spectrum(name, fid, (0, filePath), [freq], [sw], [bool(int(spec))],ref = [reffreq])
+        masterData = sc.Spectrum(name, fid, (0, filePath), [freq], [sw], [bool(int(spec))], ref=[reffreq])
     else:
-        masterData = sc.Spectrum(name, fid, (0, filePath), [freq1, freq], [sw1, sw], [bool(int(spec))] * 2,ref = [reffreq1,reffreq])
+        masterData = sc.Spectrum(name, fid, (0, filePath), [freq1, freq], [sw1, sw], [bool(int(spec))] * 2, ref=[reffreq1, reffreq])
     masterData.addHistory("Varian data loaded from " + filePath)
     return masterData
-    
-        
-def LoadPipe(filePath, name=''):
-        with open(filePath, 'r') as f:
-            header = np.fromfile(f, np.float32, 512)
-
-            NumberofPoints = int(header[99])
-            data = np.fromfile(f, np.float32, NumberofPoints)
-            if int(header[106]) == 0:  # if complex
-                data = data + 1j * np.fromfile(f, np.float32, NumberofPoints)
-
-            spec = int(header[220])  # 1 if ft, 0 if time
-            freq = header[119] * 1e6
-            sw = header[100]
-            reference = header[101]  # frequency of last point in Hz
-
-        sidefreq = -np.floor(NumberofPoints / 2) / NumberofPoints * sw  # frequency of last point on axis
-        ref = sidefreq + freq - reference
-        if spec == 1:
-            data = np.flipud(data)
-
-        masterData = sc.Spectrum(name, data, (8, filePath), [freq], [sw], [spec], ref=[ref])
-        masterData.addHistory("NMRpipe data loaded from " + filePath)
-        return masterData        
 
 
-def LoadJEOLDelta(filePath, name=''):
+def loadPipe(filePath, name=''):
+    with open(filePath, 'r') as f:
+        header = np.fromfile(f, np.float32, 512)
+        NumberofPoints = int(header[99])
+        data = np.fromfile(f, np.float32, NumberofPoints)
+        if int(header[106]) == 0:  # if complex
+            data = data + 1j * np.fromfile(f, np.float32, NumberofPoints)
+        spec = int(header[220])  # 1 if ft, 0 if time
+        freq = header[119] * 1e6
+        sw = header[100]
+        reference = header[101]  # frequency of last point in Hz
+    sidefreq = -np.floor(NumberofPoints / 2) / NumberofPoints * sw  # freqeuency of last point on axis
+    ref = sidefreq + freq - reference
+    if spec == 1:
+        data = np.flipud(data)
+    masterData = sc.Spectrum(name, data, (8, filePath), [freq], [sw], [spec], ref=[ref])
+    masterData.addHistory("NMRpipe data loaded from " + filePath)
+    return masterData
+
+
+def loadJEOLDelta(filePath, name=''):
     from struct import unpack
     with open(filePath, "rb") as f:
         file_identifier = f.read(8)
-        endian = unpack('>B',f.read(1))[0]
-        f.read(3) #placeholder to get rid of unused data
-        data_dimension_number = unpack('>B',f.read(1))[0]
-        data_dimension_exist = unpack('>B',f.read(1))[0]
-        data_type = unpack('>B',f.read(1))[0]
-        f.read(1) #placeholder to get rid of unused data
+        endian = unpack('>B', f.read(1))[0]
+        f.read(3)  # placeholder to get rid of unused data
+        data_dimension_number = unpack('>B', f.read(1))[0]
+        data_dimension_exist = unpack('>B', f.read(1))[0]
+        data_type = unpack('>B', f.read(1))[0]
+        f.read(1)  # placeholder to get rid of unused data
         translate = np.fromfile(f, '>B', 8)
         data_axis_type = np.fromfile(f, '>B', 8)
-        data_units = np.fromfile(f, '>B', 16).reshape(8,2)#Reshape for later unit extraction
+        data_units = np.fromfile(f, '>B', 16).reshape(8, 2)  # Reshape for later unit extraction
         title = f.read(76)
         f.read(52)
-        #176
+        # 176
         data_points = np.fromfile(f, '>I', 8)
         data_offset_start = np.fromfile(f, '>I', 8)
         data_offset_stop = np.fromfile(f, '>I', 8)
         data_axis_start = np.fromfile(f, '>d', 8)
         data_axis_stop = np.fromfile(f, '>d', 8)
-        #400
+        # 400
         f.read(664)
         base_freq = np.fromfile(f, '>d', 8)
-        #1128
+        # 1128
         zero_point = np.fromfile(f, '>d', 8)
         reverse = np.fromfile(f, '>B', 8)
-        #1200
+        # 1200
         f.read(12)
         param_start = np.fromfile(f, '>I', 1)[0]
         param_length = np.fromfile(f, '>I', 1)[0]
-        #1220
+        # 1220
         f.read(64)
         data_start = np.fromfile(f, '>I', 1)[0]
         data_length = np.fromfile(f, '>Q', 1)[0]
-        #1296
-        f.read(data_start-1296) #skip to data_start
-        #start reading the data
+        # 1296
+        f.read(data_start - 1296)  # skip to data_start
+        # start reading the data
         if endian:
             dataendian = '<d'
         else:
             dataendian = '>d'
         if data_dimension_number == 1:
-            if data_axis_type[0] == 1: #if real
+            if data_axis_type[0] == 1:  # if real
                 data = np.fromfile(f, dataendian, data_points[0])
-            elif data_axis_type[0] == 3: #if complex
-                data = np.fromfile(f, dataendian, data_points[0]) - 1j*np.fromfile(f, dataendian, data_points[0])
-                data = data[0:data_offset_stop[0]+1]
+            elif data_axis_type[0] == 3:  # if complex
+                data = np.fromfile(f, dataendian, data_points[0]) - 1j * np.fromfile(f, dataendian, data_points[0])
+                data = data[0:data_offset_stop[0] + 1]
         elif data_dimension_number == 2:
-            if data_axis_type[0] == 4: #if real-complex (no hypercomplex)
-                Step = 4 #Step size of block
+            if data_axis_type[0] == 4:  # if real-complex (no hypercomplex)
+                Step = 4  # Step size of block
                 pointsD2 = data_points[0]
                 pointsD1 = data_points[1]
                 datalength = pointsD2 * pointsD1
                 datareal = np.fromfile(f, dataendian, datalength)
                 dataimag = np.fromfile(f, dataendian, datalength)
-                data = datareal - 1j*dataimag
-                data = np.reshape(data,[pointsD1/Step,datalength/pointsD1/Step,Step,Step])
-                data = np.concatenate(np.concatenate(data,1),1)
-                data = data[0:data_offset_stop[1]+1,0:data_offset_stop[0]+1] #cut back to real size
-            if data_axis_type[0] == 3: #if complex (i.e. hypercomplex)
-                Step = 32 #Step size of block
+                data = datareal - 1j * dataimag
+                data = np.reshape(data, [pointsD1 / Step, datalength / pointsD1 / Step, Step, Step])
+                data = np.concatenate(np.concatenate(data, 1), 1)
+                data = data[0:data_offset_stop[1] + 1, 0:data_offset_stop[0] + 1]  # cut back to real size
+            if data_axis_type[0] == 3:  # if complex (i.e. hypercomplex)
+                Step = 32  # Step size of block
                 pointsD2 = data_points[0]
                 pointsD1 = data_points[1]
                 datalength = pointsD2 * pointsD1
@@ -246,61 +325,62 @@ def LoadJEOLDelta(filePath, name=''):
                 dataimag1 = np.fromfile(f, dataendian, datalength)
                 datareal2 = np.fromfile(f, dataendian, datalength)
                 dataimag2 = np.fromfile(f, dataendian, datalength)
-                data1 = datareal1 - 1j*dataimag1
-                data1 = np.reshape(data1,[pointsD1/Step,datalength/pointsD1/Step,Step,Step])
-                data1 = np.concatenate(np.concatenate(data1,1),1)
-                data2 = datareal2 - 1j*dataimag2
-                data2 = np.reshape(data2,[pointsD1/Step,datalength/pointsD1/Step,Step,Step])
-                data2 = np.concatenate(np.concatenate(data2,1),1)
-                data = np.zeros([data2.shape[0]*2,data2.shape[1]],dtype=complex)
+                data1 = datareal1 - 1j * dataimag1
+                data1 = np.reshape(data1, [pointsD1 / Step, datalength / pointsD1 / Step, Step, Step])
+                data1 = np.concatenate(np.concatenate(data1, 1), 1)
+                data2 = datareal2 - 1j * dataimag2
+                data2 = np.reshape(data2, [pointsD1 / Step, datalength / pointsD1 / Step, Step, Step])
+                data2 = np.concatenate(np.concatenate(data2, 1), 1)
+                data = np.zeros([data2.shape[0] * 2, data2.shape[1]], dtype=complex)
                 if reverse[0] == 0:
-                    data[::2,:] = data1 #Interleave both types in D1
-                    data[1::2,:] = data2
+                    data[::2, :] = data1  # Interleave both types in D1
+                    data[1::2, :] = data2
                 else:
-                    data[::2,:] = data2 #Interleave both types in D1
-                    data[1::2,:] = data1           
-                data = data[0:(data_offset_stop[1] + 1)*2,0:data_offset_stop[0]+1] #Cut back to real size
+                    data[::2, :] = data2  # Interleave both types in D1
+                    data[1::2, :] = data1
+                data = data[0:(data_offset_stop[1] + 1) * 2, 0:data_offset_stop[0] + 1]  # Cut back to real size
                 if reverse[1] == 1:
                     data = np.conjugate(data)
         else:
-                return 'ND error'
-	#unitExp = data_units[0][0] &15#unit_exp: if (unitExp > 7) >unitExp -= 16;
-	#scaleType = (data_units[0][1]>>4) &15 #scaleType: if (scaleType > 7) scaleType -= 16;
+            return 'ND error'
+        # unitExp = data_units[0][0] &15#unit_exp: if (unitExp > 7) >unitExp -= 16;
+        # scaleType = (data_units[0][1]>>4) &15 #scaleType: if (scaleType > 7) scaleType -= 16;
     sw = []
     spec = []
     ref = []
     freq = []
     for axisNum in reversed(range(data_dimension_number)):
-        freq.append(base_freq[0]*1e6)
-        axisType = data_units[axisNum][1] #Sec = 28, Hz = 13, PPM = 26
+        freq.append(base_freq[0] * 1e6)
+        axisType = data_units[axisNum][1]  # Sec = 28, Hz = 13, PPM = 26
         axisScale = data_units[axisNum][0]
-        if axisType == 28: #Sec
+        if axisType == 28:  # Sec
             scale = (axisScale >> 4) & 15
             if scale > 7:
-                scale = scale -16
-            dw = (data_axis_stop[axisNum]-data_axis_start[axisNum])/(data_offset_stop[axisNum]+1 -1)*10**(-scale*3)#minus one to give same axis as spectrum???
-            #scale for SI prefix
+                scale = scale - 16
+            dw = (data_axis_stop[axisNum] - data_axis_start[axisNum]) / (data_offset_stop[axisNum] + 1 - 1) * 10**(-scale * 3)  # minus one to give same axis as spectrum???
+            # scale for SI prefix
             sw.append(1.0 / dw)
             spec.append(False)
-            sidefreq = -np.floor((data_offset_stop[axisNum]+1) / 2) / data_offset_stop[axisNum]+1 * sw[-1]  # frequency of last point on axis
-            ref.append(base_freq[axisNum]*1e6)
-        if axisType == 13: #Hz
-            sw.append(np.abs(data_axis_start[axisNum]-data_axis_stop[0]))
+            sidefreq = -np.floor((data_offset_stop[axisNum] + 1) / 2) / data_offset_stop[axisNum] + 1 * sw[-1]  # frequency of last point on axis
+            ref.append(base_freq[axisNum] * 1e6)
+        if axisType == 13:  # Hz
+            sw.append(np.abs(data_axis_start[axisNum] - data_axis_stop[0]))
             spec.append(True)
             if data_dimension_number == 1:
                 data = np.flipud(data)
-            sidefreq = -np.floor(data_points[axisNum] / 2) / (data_offset_stop[axisNum]+1) * sw[-1]  # frequency of last point on axis
-            ref.append(sidefreq + base_freq[axisNum]*1e6 - data_axis_stop[axisNum])
-        if axisType == 26: #ppm
-            sw.append(np.abs(data_axis_start[axisNum]-data_axis_stop[axisNum])*base_freq[axisNum])
+            sidefreq = -np.floor(data_points[axisNum] / 2) / (data_offset_stop[axisNum] + 1) * sw[-1]  # frequency of last point on axis
+            ref.append(sidefreq + base_freq[axisNum] * 1e6 - data_axis_stop[axisNum])
+        if axisType == 26:  # ppm
+            sw.append(np.abs(data_axis_start[axisNum] - data_axis_stop[axisNum]) * base_freq[axisNum])
             spec.append(True)
             if data_dimension_number == 1:
                 data = np.flipud(data)
-            sidefreq = -np.floor((data_offset_stop[axisNum]+1) / 2) / (data_offset_stop[axisNum]+1) * sw[-1]  # frequency of last point on axis
-            ref.append(sidefreq + base_freq[axisNum]*1e6 - data_axis_stop[axisNum]*base_freq[axisNum])
-    masterData = sc.Spectrum(name, data, (9, filePath), freq, sw, spec,ref=ref)
+            sidefreq = -np.floor((data_offset_stop[axisNum] + 1) / 2) / (data_offset_stop[axisNum] + 1) * sw[-1]  # frequency of last point on axis
+            ref.append(sidefreq + base_freq[axisNum] * 1e6 - data_axis_stop[axisNum] * base_freq[axisNum])
+    masterData = sc.Spectrum(name, data, (9, filePath), freq, sw, spec, ref=ref)
     masterData.addHistory("JEOL Delta data loaded from " + filePath)
     return masterData
+
 
 def loadJSONFile(filePath, name=''):
     import json
@@ -337,11 +417,12 @@ def loadJSONFile(filePath, name=''):
                              list(np.array(struct['wholeEcho'], dtype=bool)),
                              hyper,
                              list(ref),
-                             xaxA,                             
+                             xaxA,
                              history=history)
     masterData.addHistory("JSON data loaded from " + filePath)
     return masterData
-    
+
+
 def loadMatlabFile(filePath, name=''):
     import scipy.io
     with open(filePath, 'rb') as inputfile:  # read first several bytes the check .mat version
@@ -452,10 +533,10 @@ def loadMatlabFile(filePath, name=''):
                                  xaxA,
                                  history=history)
         masterData.addHistory("Matlab data loaded from " + filePath)
-        return masterData       
+        return masterData
 
 
-def LoadBrukerTopspin(filePath, name=''):
+def loadBrukerTopspin(filePath, name=''):
     if os.path.isfile(filePath):
         Dir = os.path.dirname(filePath)
     else:
@@ -512,12 +593,12 @@ def LoadBrukerTopspin(filePath, name=''):
     masterData.addHistory("Bruker data loaded from " + filePath)
     return masterData
 
-def LoadBrukerSpectrum(filePath, name=''):
+
+def loadBrukerSpectrum(filePath, name=''):
     if os.path.isfile(filePath):
         Dir = os.path.dirname(filePath)
     else:
         Dir = filePath
-
     SIZE = []
     SW = []
     REF = []
@@ -591,7 +672,7 @@ def LoadBrukerSpectrum(filePath, name=''):
     return masterData
 
 
-def LoadChemFile(filePath, name=''):
+def loadChemFile(filePath, name=''):
     if os.path.isfile(filePath):
         Dir = os.path.dirname(filePath)
     else:
@@ -634,13 +715,13 @@ def LoadChemFile(filePath, name=''):
     masterData.addHistory("Chemagnetics data loaded from " + filePath)
     return masterData
 
-def LoadMagritek(filePath, name='',realPath=''):
+
+def loadMagritek(filePath, name='', realPath=''):
     # Magritek load script based on some Matlab files by Ole Brauckman
     if os.path.isfile(filePath):
         Dir = os.path.dirname(filePath)
     else:
         Dir = filePath
-        
     if realPath:
         rememberPath = realPath
     else:
@@ -648,14 +729,12 @@ def LoadMagritek(filePath, name='',realPath=''):
     DirFiles = os.listdir(Dir)
     Files2D = [x for x in DirFiles if '.2d' in x]
     Files1D = [x for x in DirFiles if '.1d' in x]
-    
-    #initialize 2D values to some dummy value
+    # initialize 2D values to some dummy value
     sizeTD1 = 0
     sw1 = 50e3
     lastfreq1 = None
     ref1 = None
-    
-    #Start pars extraction
+    # Start pars extraction
     H = dict(line.strip().split('=') for line in open(Dir + os.path.sep + 'acqu.par', 'r'))
     for key in H.keys():
         if key.startswith("bandwidth "):
@@ -663,45 +742,40 @@ def LoadMagritek(filePath, name='',realPath=''):
         elif key.startswith("nrPnts "):
             sizeTD2 = int(H[key])
         elif key.startswith("b1Freq "):
-            freq = float(H[key])*1e6
+            freq = float(H[key]) * 1e6
         elif key.startswith("lowestFrequency "):
             lastfreq = float(H[key])
-        elif key.startswith("nrSteps "):   
+        elif key.startswith("nrSteps "):
             sizeTD1 = int(H[key])
         elif key.startswith("bandwidth2 "):
-            sw1 = float(H[key]) *1000
+            sw1 = float(H[key]) * 1000
         elif key.startswith("lowestFrequency2 "):
             lastfreq1 = float(H[key])
-    
     sidefreq = -np.floor(sizeTD2 / 2) / sizeTD2 * sw  # freqeuency of last point on axis
     ref = sidefreq + freq - lastfreq
     if len(Files2D) == 1:
         File = Files2D[0]
-        
-        if lastfreq1 != None:   
+        if lastfreq1 is not None:
             sidefreq1 = -np.floor(sizeTD1 / 2) / sizeTD1 * sw1  # freqeuency of last point on axis
             ref1 = sidefreq1 + freq - lastfreq1
-
-        
         with open(Dir + os.path.sep + File, 'rb') as f:
             raw = np.fromfile(f, np.float32)
         Data = raw[-2 * sizeTD2 * sizeTD1::]
         ComplexData = Data[0:Data.shape[0]:2] - 1j * Data[1:Data.shape[0]:2]
         ComplexData = ComplexData.reshape((sizeTD1, sizeTD2))
-        masterData = sc.Spectrum(name, ComplexData, (3, rememberPath), [freq] * 2, [sw1,sw], [False] * 2,ref=[ref1,ref])
+        masterData = sc.Spectrum(name, ComplexData, (3, rememberPath), [freq] * 2, [sw1, sw], [False] * 2, ref=[ref1, ref])
     elif len(Files1D) != 0:
         File = 'data.1d'
         with open(Dir + os.path.sep + File, 'rb') as f:
             raw = np.fromfile(f, np.float32)
         Data = raw[-2 * sizeTD2::]
         ComplexData = Data[0:Data.shape[0]:2] - 1j * Data[1:Data.shape[0]:2]
-        masterData = sc.Spectrum(name, ComplexData, (3, rememberPath), [freq], [sw], [False],ref=[ref])
+        masterData = sc.Spectrum(name, ComplexData, (3, rememberPath), [freq], [sw], [False], ref=[ref])
     masterData.addHistory("Magritek data loaded from " + rememberPath)
     return masterData
- 
 
 
-def LoadSimpsonFile(filePath, name=''):
+def loadSimpsonFile(filePath, name=''):
     with open(filePath, 'r') as f:
         Lines = f.read().split('\n')
     NP, NI, SW, SW1, TYPE, FORMAT = 0, 1, 0, 0, '', 'Normal'
@@ -736,28 +810,27 @@ def LoadSimpsonFile(filePath, name=''):
         nquads, mod = divmod(len(chardata), 4)
         assert mod == 0     # character should be in blocks of 4
         BASE = 33
-        charst =  np.fromstring(chardata, dtype=np.uint8)
-        charst = charst.reshape(nquads,4) - BASE
-        FIRST = lambda f, x: ((x) & ~(~0 << f))
-        LAST = lambda f, x: ((x) & (~0 << (8 - f)))
-        
-        first = FIRST(6, charst[:,0]) | LAST(2, charst[:,1] << 2)
-        second  = FIRST(4, charst[:,1]) | LAST(4, charst[:,2] << 2)
-        third = FIRST(2, charst[:,2]) | LAST(6, charst[:,3] << 2)
-        
-        Bytes = np.ravel(np.transpose(np.array([first,second,third]))).astype('int64')
-        
+        charst = np.fromstring(chardata, dtype=np.uint8)
+        charst = charst.reshape(nquads, 4) - BASE
+
+        def FIRST(f, x): return ((x) & ~(~0 << f))
+
+        def LAST(f, x): return ((x) & (~0 << (8 - f)))
+        first = FIRST(6, charst[:, 0]) | LAST(2, charst[:, 1] << 2)
+        second = FIRST(4, charst[:, 1]) | LAST(4, charst[:, 2] << 2)
+        third = FIRST(2, charst[:, 2]) | LAST(6, charst[:, 3] << 2)
+        Bytes = np.ravel(np.transpose(np.array([first, second, third]))).astype('int64')
         # convert every 4 'bytes' to a float
         num_points, num_pad = divmod(len(Bytes), 4)
         Bytes = np.array(Bytes)
-        Bytes=Bytes[:-num_pad]
-        Bytes=Bytes.reshape(num_points,4)
-        mantissa = ((Bytes[:,2] % 128) << 16) + (Bytes[:,1] << 8) + Bytes[:,0]
-        exponent = (Bytes[:,3] % 128) * 2 + (Bytes[:,2] >= 128) * 1
-        negative = Bytes[:,3] >= 128
+        Bytes = Bytes[:-num_pad]
+        Bytes = Bytes.reshape(num_points, 4)
+        mantissa = ((Bytes[:, 2] % 128) << 16) + (Bytes[:, 1] << 8) + Bytes[:, 0]
+        exponent = (Bytes[:, 3] % 128) * 2 + (Bytes[:, 2] >= 128) * 1
+        negative = Bytes[:, 3] >= 128
         e = exponent - 127
         m = np.abs(mantissa) / np.float64(1 << 23)
-        data = np.float32((-1)**negative*np.ldexp(m,e))
+        data = np.float32((-1)**negative * np.ldexp(m, e))
         data = data.view('complex64')
     if NI != 1:  # 2D data, reshape to NI, NP
         data = data.reshape(int(NI), -1)
@@ -772,117 +845,102 @@ def LoadSimpsonFile(filePath, name=''):
     masterData.addHistory("SIMPSON data loaded from " + filePath)
     return masterData
 
-        
-        
-        
+
 def convertDIFDUB(dat):
-    def checkWrite(dup,currentNum,step,numberList):
+    def checkWrite(dup, currentNum, step, numberList):
         if dup != '':
             for dupli in range(int(dup)):
                 numberList.append(numberList[-1] + int(step))
             dup = ''
             step = ''
-        elif currentNum != '': #Write if available
-            numberList.append(int(currentNum)) #write old num
+        elif currentNum != '':  # Write if available
+            numberList.append(int(currentNum))  # write old num
             currentNum = ''
         elif step != '':
             numberList.append(numberList[-1] + int(step))
             step = ''
-            
-        return dup,currentNum,step,numberList
-        
-        
-    SQZ = {'@': 0, 'A': 1, 'B': 2,'C': 3,'D': 4,'E': 5,'F': 6,'G': 7,'H': 8,'I': 9,
-           'a': -1,'b': -2,'c': -3,'d': -4,'e': -5,'f': -6,'g': -7,'h': -8,'i': -9}
-    DIF = {'%': 0,'J': 1,'K': 2,'L': 3,'M': 4,'N': 5,'O': 6,'P': 7,'Q': 8,'R': 9,
-           'j': -1,'k': -2,'l': -3,'m': -4,'n': -5,'o': -6,'p': -7,'q': -8,'r': -9}
-    DUP = {'S': 1,'T': 2,'U': 3,'V': 4,'W': 5,'X': 6,'Y': 7,'Z': 8,'s': 9}
-    
-    
+        return dup, currentNum, step, numberList
+
+    SQZ = {'@': 0, 'A': 1, 'B': 2, 'C': 3, 'D': 4, 'E': 5, 'F': 6, 'G': 7, 'H': 8, 'I': 9,
+           'a': -1, 'b': -2, 'c': -3, 'd': -4, 'e': -5, 'f': -6, 'g': -7, 'h': -8, 'i': -9}
+    DIF = {'%': 0, 'J': 1, 'K': 2, 'L': 3, 'M': 4, 'N': 5, 'O': 6, 'P': 7, 'Q': 8, 'R': 9,
+           'j': -1, 'k': -2, 'l': -3, 'm': -4, 'n': -5, 'o': -6, 'p': -7, 'q': -8, 'r': -9}
+    DUP = {'S': 1, 'T': 2, 'U': 3, 'V': 4, 'W': 5, 'X': 6, 'Y': 7, 'Z': 8, 's': 9}
     currentNum = ''
     step = ''
     dup = ''
     numberList = []
-    
     last = False
     for char in dat:
         if char in '0123456789':
-                if dup != "":
-                    dup = dup + char
-                elif currentNum != '':
-                    currentNum = currentNum + char
-                elif step != '':
-                    step = step + char
-                else:
-                    continue
-    
+            if dup != "":
+                dup = dup + char
+            elif currentNum != '':
+                currentNum = currentNum + char
+            elif step != '':
+                step = step + char
+            else:
+                continue
         elif char in SQZ.keys():
-            dup,currentNum,step,numberList = checkWrite(dup,currentNum,step,numberList)
-            
+            dup, currentNum, step, numberList = checkWrite(dup, currentNum, step, numberList)
             currentNum = currentNum + str(SQZ[char])
-            
         elif char in DIF.keys():
-            dup,currentNum,step,numberList = checkWrite(dup,currentNum,step,numberList)
-                
-            step = step + str(DIF[char])     
+            dup, currentNum, step, numberList = checkWrite(dup, currentNum, step, numberList)
+            step = step + str(DIF[char])
         elif char in DUP.keys():
-            dup = dup + str(DUP[char]) #For now, assume no SQZ defore DUP
+            dup = dup + str(DUP[char])  # For now, assume no SQZ defore DUP
         elif char == ' ':
             last = True
             break
-    
-    dup,currentNum,step,numberList = checkWrite(dup,currentNum,step,numberList)
+    dup, currentNum, step, numberList = checkWrite(dup, currentNum, step, numberList)
     if last:
-       return np.array(numberList)
+        return np.array(numberList)
     else:
-        return np.array(numberList)[:-1] 
-        
-        
-def loadJCAMP(filePath,name):
+        return np.array(numberList)[:-1]
+
+
+def loadJCAMP(filePath, name):
     with open(filePath, 'r') as f:
         data = f.read().split('\n')
-
-
-    realDataPos = []   
+    realDataPos = []
     imagDataPos = []
     spectDataPos = []
-    currentPos = 0    
+    currentPos = 0
     for line in data:
-        testline = re.sub('[\t ]*','', line)
-
+        testline = re.sub('[\t ]*', '', line)
         if '#.OBSERVEFREQUENCY=' in testline:
-            freq = float(line[line.index('=')+1:]) * 1e6
-        elif '##DATATYPE=' in testline:   
-            dataType = line[line.index('=')+1:]
+            freq = float(line[line.index('=') + 1:]) * 1e6
+        elif '##DATATYPE=' in testline:
+            dataType = line[line.index('=') + 1:]
         elif '#VAR_DIM=' in testline:
-            nPoints = line[line.index('=')+1:]
-            nPoints = re.sub(',[\t ][\t ]*',' ', nPoints)
-            nPoints = re.sub('[\t\r]*','', nPoints)
+            nPoints = line[line.index('=') + 1:]
+            nPoints = re.sub(',[\t ][\t ]*', ' ', nPoints)
+            nPoints = re.sub('[\t\r]*', '', nPoints)
             nPoints = int(nPoints.split()[0])
         elif '#VAR_FORM=' in testline:
-            varForm = line[line.index('=')+1:]
-            varForm = re.sub(',[\t ][\t ]*',' ', varForm)
-            varForm = re.sub('[\t\r]*','', varForm)
+            varForm = line[line.index('=') + 1:]
+            varForm = re.sub(',[\t ][\t ]*', ' ', varForm)
+            varForm = re.sub('[\t\r]*', '', varForm)
             varForm = varForm.split()
         elif '#UNITS=' in testline:
-            units = line[line.index('=')+1:]
-            units = re.sub(',[\t ][\t ]*',' ', units)
-            units = re.sub('[\t\r]*','', units)
+            units = line[line.index('=') + 1:]
+            units = re.sub(',[\t ][\t ]*', ' ', units)
+            units = re.sub('[\t\r]*', '', units)
             units = units.split()[0]
         elif '#FIRST=' in testline:
-            first = line[line.index('=')+1:]
-            first = re.sub(',[\t ][\t ]*',' ', first)
-            first = re.sub('[\t\r]*','', first)
+            first = line[line.index('=') + 1:]
+            first = re.sub(',[\t ][\t ]*', ' ', first)
+            first = re.sub('[\t\r]*', '', first)
             first = float(first.split()[0].replace(',', '.'))
         elif '#LAST=' in testline:
-            last = line[line.index('=')+1:]
-            last = re.sub(',[\t ][\t ]*',' ', last)
-            last = re.sub('[\t\r]*','', last)
+            last = line[line.index('=') + 1:]
+            last = re.sub(',[\t ][\t ]*', ' ', last)
+            last = re.sub('[\t\r]*', '', last)
             last = float(last.split()[0].replace(',', '.'))
         elif '#FACTOR=' in testline:
-            factor = line[line.index('=')+1:]
-            factor = re.sub(',[\t ][\t ]*',' ', factor)
-            factor = re.sub('[\t\r]*','', factor)
+            factor = line[line.index('=') + 1:]
+            factor = re.sub(',[\t ][\t ]*', ' ', factor)
+            factor = re.sub('[\t\r]*', '', factor)
             factor = factor.split()
             for elem in range(len(factor)):
                 factor[elem] = float(factor[elem].replace(',', '.'))
@@ -893,65 +951,61 @@ def loadJCAMP(filePath,name):
         elif '(X++(I..I))' in testline:
             imagDataPos.append(currentPos + 1)
         elif '#ENDNTUPLES=' in testline and len(imagDataPos) == 1:
-            imagDataPos.append(currentPos - 1)  
-        #Spectrum specific
-        elif   '(X++(Y..Y))' in testline:  
-            spectDataPos.append(currentPos + 1)   
-        elif   '##END' in testline and len(spectDataPos) == 1:  
-            spectDataPos.append(currentPos - 1) 
-        elif   '##XUNITS=' in testline: 
-            Xunit = line[line.index('=')+1:]
-            Xunit = re.sub('[ \t]*','', Xunit)
+            imagDataPos.append(currentPos - 1)
+        # Spectrum specific
+        elif '(X++(Y..Y))' in testline:
+            spectDataPos.append(currentPos + 1)
+        elif '##END' in testline and len(spectDataPos) == 1:
+            spectDataPos.append(currentPos - 1)
+        elif '##XUNITS=' in testline:
+            Xunit = line[line.index('=') + 1:]
+            Xunit = re.sub('[ \t]*', '', Xunit)
         elif '##FIRSTX=' in testline:
-            FirstX = float(line[line.index('=')+1:])
+            FirstX = float(line[line.index('=') + 1:])
         elif '##LASTX=' in testline:
-            LastX = float(line[line.index('=')+1:])
+            LastX = float(line[line.index('=') + 1:])
         elif '##YFACTOR=' in testline:
-            YFactor= float(line[line.index('=')+1:])
+            YFactor = float(line[line.index('=') + 1:])
         elif '##NPOINTS=' in testline:
-            NPoints= int(line[line.index('=')+1:])    
+            NPoints = int(line[line.index('=') + 1:])
         currentPos += 1
-
-    #Convert the data
+    # Convert the data
     if 'NMR FID' in dataType:
         realDat = np.array([])
-        if varForm[1] == 'ASDF': #If DIFDUB form
-            for line in data[realDataPos[0]:realDataPos[1]+1]:
-                realDat = np.append(realDat,convertDIFDUB(line))
-        elif varForm[1] == 'AFFN': #If regular list form
-            for line in data[realDataPos[0]:realDataPos[1]+1]:
-                realDat = np.append(realDat,np.fromstring(line,sep=' ')[1:])
+        if varForm[1] == 'ASDF':  # If DIFDUB form
+            for line in data[realDataPos[0]:realDataPos[1] + 1]:
+                realDat = np.append(realDat, convertDIFDUB(line))
+        elif varForm[1] == 'AFFN':  # If regular list form
+            for line in data[realDataPos[0]:realDataPos[1] + 1]:
+                realDat = np.append(realDat, np.fromstring(line, sep=' ')[1:])
         realDat = realDat * factor[1]
-            
-        imagDat = np.array([])  
+        imagDat = np.array([])
         if varForm[2] == 'ASDF':
-            for line in data[imagDataPos[0]:imagDataPos[1]+1]:
-                imagDat = np.append(imagDat,convertDIFDUB(line))
+            for line in data[imagDataPos[0]:imagDataPos[1] + 1]:
+                imagDat = np.append(imagDat, convertDIFDUB(line))
         elif varForm[1] == 'AFFN':
-            for line in data[imagDataPos[0]:imagDataPos[1]+1]:
-                imagDat = np.append(imagDat,np.fromstring(line,sep=' ')[1:])       
-        imagDat = imagDat * factor[2]  
-        fullData = realDat - 1j *  imagDat
-        sw = 1.0/((last - first)/(nPoints-1))
+            for line in data[imagDataPos[0]:imagDataPos[1] + 1]:
+                imagDat = np.append(imagDat, np.fromstring(line, sep=' ')[1:])
+        imagDat = imagDat * factor[2]
+        fullData = realDat - 1j * imagDat
+        sw = 1.0 / ((last - first) / (nPoints - 1))
         masterData = sc.Spectrum(name, fullData, (10, filePath), [freq], [sw], [False])
     elif 'NMRSPECTRUM' in dataType:
         spectDat = np.array([])
-        for line in data[spectDataPos[0]:spectDataPos[1]+1]:
-            spectDat = np.append(spectDat,convertDIFDUB(line))
+        for line in data[spectDataPos[0]:spectDataPos[1] + 1]:
+            spectDat = np.append(spectDat, convertDIFDUB(line))
         spectDat = np.flipud(spectDat) * YFactor
         if Xunit == 'HZ':
-            sw = abs(FirstX - LastX) 
+            sw = abs(FirstX - LastX)
             sw = sw + sw / NPoints
         elif Xunit == 'PPM':
             sw = abs(FirstX - LastX) * freq
             sw = sw + sw / NPoints
-        masterData = sc.Spectrum(name, spectDat, (10, filePath), [freq], [sw], [True], ref = [None])
-    
+        masterData = sc.Spectrum(name, spectDat, (10, filePath), [freq], [sw], [True], ref=[None])
     return masterData
 
 
-def LoadAscii(filePath, name, dataDimension, dataSpec, dataOrder, delimitor, swInp = 0.0):
-    
+def loadAscii(filePath, name, dataDimension, dataSpec, dataOrder, delimitor, swInp=0.0):
     freq = 0.0
     delimChar = ''
     if delimitor == 'Tab':
@@ -962,90 +1016,83 @@ def LoadAscii(filePath, name, dataDimension, dataSpec, dataOrder, delimitor, swI
         delimChar = ','
     else:
         return
-    
-    matrix = np.genfromtxt(filePath,dtype=None, delimiter = delimChar)
+    matrix = np.genfromtxt(filePath, dtype=None, delimiter=delimChar)
     if dataOrder == 'XRI' or dataOrder == 'XR' or dataOrder == 'XI':
-        if dataSpec == False:
-            sw = 1.0 / (matrix[1,0] - matrix[0,0])
+        if not dataSpec:
+            sw = 1.0 / (matrix[1, 0] - matrix[0, 0])
         else:
-            sw = abs(matrix[0,0] - matrix[-1,0])/(matrix.shape[0] - 1) * matrix.shape[0]
+            sw = abs(matrix[0, 0] - matrix[-1, 0]) / (matrix.shape[0] - 1) * matrix.shape[0]
     else:
         sw = swInp * 1000
-    
     if dataDimension == 1:
         if dataOrder == 'XRI':
-            data = matrix[:,1] + 1j * matrix[:,2]
+            data = matrix[:, 1] + 1j * matrix[:, 2]
         elif dataOrder == 'XR':
-            data = matrix[:,1]
+            data = matrix[:, 1]
         elif dataOrder == 'XI':
-            data = 1j * matrix[:,1]
+            data = 1j * matrix[:, 1]
         elif dataOrder == 'RI':
-            data = matrix[:,0] + 1j * matrix[:,1]
+            data = matrix[:, 0] + 1j * matrix[:, 1]
         elif dataOrder == 'R':
             data = matrix
-        masterData = sc.Spectrum(name, data, (11, filePath), [freq], [sw], [dataSpec], ref = [None])
+        masterData = sc.Spectrum(name, data, (11, filePath), [freq], [sw], [dataSpec], ref=[None])
     elif dataDimension == 2:
         if dataOrder == 'XRI':
-            data = np.transpose(matrix[:,1::2] + 1j * matrix[:,2::2])
+            data = np.transpose(matrix[:, 1::2] + 1j * matrix[:, 2::2])
         elif dataOrder == 'XR':
-           data = np.transpose(matrix[:,1:]) 
+            data = np.transpose(matrix[:, 1:])
         elif dataOrder == 'XI':
-           data = 1j * np.transpose(matrix[:,1:]) 
-        elif dataOrder == 'RI':  
-            data = np.transpose(matrix[:,0::2] + 1j * matrix[:,1::2])
-        elif dataOrder == 'RI':  
+            data = 1j * np.transpose(matrix[:, 1:])
+        elif dataOrder == 'RI':
+            data = np.transpose(matrix[:, 0::2] + 1j * matrix[:, 1::2])
+        elif dataOrder == 'RI':
             data = np.transpose(matrix)
-        masterData = sc.Spectrum(name, data, (11, filePath), [freq,freq], [1,sw], [False,dataSpec], ref = [None,None])
+        masterData = sc.Spectrum(name, data, (11, filePath), [freq, freq], [1, sw], [False, dataSpec], ref=[None, None])
     else:
         return
-            
-    masterData.addHistory("ASCII data loaded from " + filePath)    
+    masterData.addHistory("ASCII data loaded from " + filePath)
     return masterData
-        
-        
-        
-def LoadMinispec(filePath,name):
-    with open(filePath, 'r') as f:
-        data = f.read().split('\n')    
-       
-    dataType = int(data[1][data[1].index('=')+1:])
-    dataLimits = np.fromstring(data[2][data[2].index('=')+1:],sep = ',')
-    dw = (dataLimits[1] - dataLimits[0]) / ( dataLimits[2] - 1)
-    if 'Time/ms' in data[3]:    
-        sw = 1.0/dw * 1000
-    elif 'Time/s' in data[3]: 
-        sw = 1.0/dw
-    totaldata = np.array([])
-    if dataType == 1: #real data?
-        for line in data[7:]:
-            if len(line) > 0:
-                totaldata = np.append(totaldata,float(line))
-    if dataType == 2: #Complex data
-        for line in data[7:]:
-            if len(line) > 0:
-                temp = np.fromstring(line,sep = '\t')
-                totaldata = np.append(totaldata,temp[0] + 1j * temp[1])
-    masterData = sc.Spectrum(name, totaldata, (12, filePath), [0], [sw], [False])
-    return masterData       
 
-def LoadBrukerEPR(filePath,name=''):
+
+def loadMinispec(filePath, name):
+    with open(filePath, 'r') as f:
+        data = f.read().split('\n')
+    dataType = int(data[1][data[1].index('=') + 1:])
+    dataLimits = np.fromstring(data[2][data[2].index('=') + 1:], sep=',')
+    dw = (dataLimits[1] - dataLimits[0]) / (dataLimits[2] - 1)
+    if 'Time/ms' in data[3]:
+        sw = 1.0 / dw * 1000
+    elif 'Time/s' in data[3]:
+        sw = 1.0 / dw
+    totaldata = np.array([])
+    if dataType == 1:  # real data?
+        for line in data[7:]:
+            if len(line) > 0:
+                totaldata = np.append(totaldata, float(line))
+    if dataType == 2:  # Complex data
+        for line in data[7:]:
+            if len(line) > 0:
+                temp = np.fromstring(line, sep='\t')
+                totaldata = np.append(totaldata, temp[0] + 1j * temp[1])
+    masterData = sc.Spectrum(name, totaldata, (12, filePath), [0], [sw], [False])
+    masterData.addHistory("Minispec data loaded from " + filePath)
+    return masterData
+
+
+def loadBrukerEPR(filePath, name=''):
     with open(filePath + '.par', mode='r') as f:
-        textdata = [row.split() for row in f.read().replace('\r','\n').split('\n')]
+        textdata = [row.split() for row in f.read().replace('\r', '\n').split('\n')]
     for row in textdata:
         if len(row) < 2:
             continue
-        if row[0]=='ANZ':
+        if row[0] == 'ANZ':
             numOfPoints = int(row[1])
-        elif row[0]=='GSI':
+        elif row[0] == 'GSI':
             sweepWidth = float(row[1])
-        elif row[0]=='GST':
+        elif row[0] == 'GST':
             leftX = float(row[1])
-
-    with open(filePath + '.spc',mode='rb') as f:
+    with open(filePath + '.spc', mode='rb') as f:
         data = np.fromfile(f, np.float32, numOfPoints)
-    
-    masterData = sc.Spectrum(name, data, (13, filePath), [(sweepWidth + 2 * leftX)/2], [sweepWidth], [True], ref = [0])
+    masterData = sc.Spectrum(name, data, (13, filePath), [(sweepWidth + 2 * leftX) / 2], [sweepWidth], [True], ref=[0])
     masterData.addHistory("Bruker EPR data loaded from " + filePath)
     return masterData
-    
-

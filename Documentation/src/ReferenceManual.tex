@@ -781,11 +781,28 @@ The number of point taken in an NMR time signal is usually restricted, as increa
 If the time signal has not fully decayed, the signal abruptly changes to zero when zero-filling is applied. This leads to distortions in the spectrum (i.e. sinc wiggles) as the time signal is effectively multiplied with a block function. General Fourier theory then states that the spectrum must then be convoluted with the Fourier transform of the block function, which is $\sin(x)/x$, i.e. sinc.
 
 \subsubsection*{ssNake implementation}
-Selecting `Matrix $\rightarrow$ Sizing' creates a sizing window. In here a single number has to be filled in the box titled `Size'. Decimal values will be rounded to the nearest integer. Apart from numbers, the command `k' (or `K') is also supported, which stands for `1024'. When using this definition there has to be a number before the `k'. A valid input would therefore be: `2k'. Which sets the number of points to $2 \cdot 1024=2048$. Pressing `Apply' executes the sizing command on all traces in all dimensions.
+Selecting `Matrix $\rightarrow$ Sizing' creates a sizing window. In here a
+single number has to be filled in the box titled `Size'. Decimal values will be
+rounded to the nearest integer. Apart from numbers, the command `k' (or `K') is
+also supported, which stands for `1024'. When using this definition there has
+to be a number before the `k'. A valid input would therefore be: `2k'. Which
+sets the number of points to $2 \cdot 1024=2048$. Pressing `Apply' executes the
+sizing command on all traces in all dimensions. Also, the $\pm 2\text{\textasciicircum}n$ buttons can be used
+to go to the nearest power of 2 (which makes subsequent Fourier transforms much faster).
 
-If the supplied number is larger than the current size, zeroes are added at the right-hand side of the time signal. If the value is lower, points are removed from the right-hand side of the time signal. If the whole echo type is on, the zeroes are added in the centre of the time signal, or points are taken symmetrically from the centre, if the size is reduced. Alternatively, the position of the zero filling can be specified by left-clicking in the spectrum, or by manually filling in the desired offset value in the box `Offset'.
+If the supplied number is larger than the current size, zeroes are added at the
+right-hand side of the time signal. If the value is lower, points are removed
+from the right-hand side of the time signal. If the whole echo type is on, the
+zeroes are added in the centre of the time signal, or points are taken
+symmetrically from the centre, if the size is reduced. Alternatively, the
+position of the zero filling can be specified by left-clicking in the spectrum,
+or by manually filling in the desired offset value in the box `Offset'.
 
-When applied to the frequency domain, zero filling makes no real sense. Therefore, ssNake always applies it in the time domain. So when the size is changed within a spectrum, it is transformed back to the time domain, the size is changed, and a forward Fourier transform gets the data back to the frequency domain.
+When applied to the frequency domain, zero filling makes no real sense.
+Therefore, ssNake always applies it in the time domain. So when the size is
+changed within a spectrum, it is transformed back to the time domain, the size
+is changed, and a forward Fourier transform gets the data back to the frequency
+domain.
 
 \subsection{Shift data}
 Shifts the data to the left or to the right, by removing data points on the left or on the right, and filling with zeroes on the other side. Negative shifts are left shifts, positive right shifts.
