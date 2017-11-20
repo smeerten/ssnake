@@ -1683,7 +1683,10 @@ class Spectrum(object):
 
         self.addHistory("IST reconstruction (threshold = " + str(threshold) + " , maxIter = " + str(maxIter) + " , tracelimit = " + str(tracelimit*100) + ") " + 
         "of dimension " + str(axes + 1) + " at positions " + str(pos))
-        return returnValue
+        if self.noUndo:
+            return None
+        else:
+            return lambda self: self.restoreData(copyData, None)
 
     def reconstructHyper(self,data):
         #Reconstructs hyper data from R*ndim spectrum
@@ -1708,10 +1711,7 @@ class Spectrum(object):
                 newData[index] = tmp
             for index in range(len(newData)):#Do hilbert in the direct dim for all. Axis should not matter
                 newData[index] = np.conj(scipy.signal.hilbert(np.real(newData[index]),axis = -1))
-        if self.noUndo:
-            return None
-        else:
-            return lambda self: self.restoreData(copyData, None)
+        return newData
 
     def getSlice(self, axes, locList):
         axes = self.checkAxes(axes)
@@ -2213,9 +2213,8 @@ class Current1D(Plot1DFrame):
             slicing2 = (slice(None), ) * axes + (slice(pos, None), ) + (slice(None), ) * (tmpdata[0].ndim - 1 - axes)
 
             for index in range(len(self.data1D)):
-                tmpdata[index] = np.concatenate((np.pad(tmpdata[index][slicing1], [(0, 0)] * axes + [(0, size - self.data1D[0].shape[axes])] + [(0, 0)] * (self.data1D[0].ndim - axes - 1), 'constant', constant_values=0),
-                                      tmpdata[index][slicing2]),
-                                     axes)
+                tmpdata[index] = np.concatenate((np.pad(tmpdata[index][slicing1], [(0, 0)] * axes + [(0, size - self.data1D[index].shape[axes])] + [(0, 0)] * (self.data1D[index].ndim - axes - 1),
+                    'constant', constant_values=0), tmpdata[index][slicing2]), axes)
         else:
             difference = tmpdata[0].shape[axes] - size
             removeBegin = int(np.floor(difference / 2))
