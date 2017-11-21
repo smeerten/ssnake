@@ -3522,7 +3522,7 @@ class Quad2CzjzekParamFrame(AbstractParamFrame):
                 val = LF.fileTypeCheck(fullName)
                 if val[0] is not None:
                     libData = LF.loading(val[0], val[1])
-                if libData.data.ndim is not 1:
+                if libData.data[0].ndim is not 1:
                     self.rootwindow.mainProgram.dispMsg("A spectrum in the library is not a 1D spectrum.")
                     continue
                 if not libData.spec[0]:
@@ -3530,7 +3530,7 @@ class Quad2CzjzekParamFrame(AbstractParamFrame):
                 libData.regrid([self.parent.current.xax[0], self.parent.current.xax[-1]], len(self.parent.current.xax), 0)
                 libData.fftshift(0)
                 libData.fourier(0)
-                data.append(libData.data)
+                data.append(np.real(libData.data[0]))
         cq = np.array(cq) * 1e6
         eta = np.array(eta)
         data = np.array(data)
