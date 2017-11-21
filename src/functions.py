@@ -58,7 +58,6 @@ def apodize(t, shift, sw, axLen, lor, gauss, cos2, hamming, wholeEcho=False):
         x = x * (alpha + (1 - alpha) * np.cos(hamming * (-0.5 * shift * np.pi * sw / axLen + np.linspace(0, np.pi, axLen))))
     if wholeEcho:
         x[-1:-(int(len(x) / 2) + 1):-1] = x[:int(len(x) / 2)]
-
     return x
 
 
