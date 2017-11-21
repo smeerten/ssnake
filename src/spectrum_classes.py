@@ -1430,10 +1430,11 @@ class Spectrum(object):
         return data, hyper
 
 
-    def fourier(self, axes, tmp=False, inv=False):
+    def fourier(self, axes, tmp=False, inv=False, reorder = [True,True]):
         axes = self.checkAxes(axes)
-       
-        tmpdat = self.hyperReorder(self.data, axes)
+        tmpdat = self.data 
+        if reorder[0]:
+            tmpdat = self.hyperReorder(self.data, axes)
 
         if axes is None:
             return None
@@ -1457,8 +1458,9 @@ class Spectrum(object):
             if not tmp:
                 self.spec[axes] = 0
                 self.addHistory("Inverse Fourier transform dimension " + str(axes + 1))
-
-        self.data = self.hyperReorder(tmpdat, axes)
+        
+        if reorder[1]:
+            self.data = self.hyperReorder(tmpdat, axes)
         self.resetXax(axes)
         if self.noUndo:
             return None
@@ -1535,15 +1537,17 @@ class Spectrum(object):
             shearMatrix = np.exp(1j * np.outer(vec2, vec1))
         elif axes < axes2:
             shearMatrix = np.exp(1j * np.outer(vec1, vec2))
-        if self.spec[axes] > 0:
-            self.fourier(axes, tmp=True)
-
-        self.data = self.hyperReorder(self.data, axes)
+        if self.spec[axes] > 0: #rorder and fft for spec
+            self.fourier(axes, tmp=True, reorder = [True,False])
+        else: #Reorder if FID
+            self.data = self.hyperReorder(self.data, axes)
         for index in range(len(self.data)):
             self.data[index] = self.data[index] * shearMatrix.reshape(shape)
-        self.data = self.hyperReorder(self.data, axes)
         if self.spec[axes] > 0:
-            self.fourier(axes, tmp=True, inv=True)
+            self.fourier(axes, tmp=True, inv=True, reorder = [False,True])
+        else:
+            self.data = self.hyperReorder(self.data, axes)
+
         self.addHistory("Shearing transform with shearing value " + str(shear) + " over dimensions " + str(axes + 1) + " and " + str(axes2 + 1))
         if self.noUndo:
             return None
