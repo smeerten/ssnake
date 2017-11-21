@@ -489,7 +489,7 @@ class Spectrum(object):
         self.hyper.append(axes)
         self.resetXax(axes)
         self.addHistory("Echo-antiecho conversion on dimension " + str(axes + 1))
-        if noUndo:
+        if self.noUndo:
             return None
         else:
             return lambda self: self.restoreData(copyData, lambda self: self.echoAntiEcho(axes))
