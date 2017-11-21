@@ -1933,7 +1933,7 @@ class Current1D(Plot1DFrame):
 
     def getSelect(self):
         tmp = list(self.locList)
-        if len(self.data1D.shape) > 1:
+        if len(self.data1D[0].shape) > 1:
             minVal = min(self.axes, self.axes2)
             maxVal = max(self.axes, self.axes2)
             tmp.insert(minVal, slice(None))
@@ -3776,7 +3776,6 @@ class CurrentStacked(Current1D):
 #########################################################################################################
 # the class from which the arrayed data is displayed, the operations which only edit the content of this class are for previewing
 
-
 class CurrentArrayed(Current1D):
 
     X_RESIZE = True
@@ -3791,6 +3790,14 @@ class CurrentArrayed(Current1D):
             if hasattr(duplicateCurrent, 'axes'):
                 if self.axes2 == duplicateCurrent.axes:
                     self.axes2 = (self.axes2 - 1) % self.data.data[0].ndim
+        if hasattr(duplicateCurrent, 'axType2'):
+            self.axType2 = duplicateCurrent.axType2
+        else:
+            self.axType2 = root.father.defaultUnits
+        if hasattr(duplicateCurrent, 'ppm2'):
+            self.ppm2 = duplicateCurrent.ppm2
+        else:
+            self.ppm2 = False
         if hasattr(duplicateCurrent, 'stackBegin'):
             self.stackBegin = duplicateCurrent.stackBegin
         else:
@@ -3965,7 +3972,7 @@ class CurrentArrayed(Current1D):
                 self.showFid(y[hyperView], [t], x * np.amax(np.abs(self.data1D[hyperView])), ['g'], old=True)
         else:
             self.showFid(y[hyperView])
-
+   
     def setSpacing(self, spacing):
         self.spacing = spacing
         self.plotReset(True, False)
@@ -4022,7 +4029,7 @@ class CurrentArrayed(Current1D):
                 oldData = np.real(self.data1D[hyperView])
             elif(self.plotType == 3):
                 oldData = np.abs(self.data1D[hyperView])
-            for num in range(len(self.data1D[0])):
+            for num in range(len(self.data1D[hyperView])):
                 if self.single:
                     self.ax.plot((num * self.spacing + self.xax[xaxZlims]) * axMult, oldData[num][xaxZlims][direc], marker='o', linestyle='none', c='k', alpha=0.2, label=self.data.name + '_old', picker=True)
                 else:
@@ -4109,6 +4116,14 @@ class CurrentArrayed(Current1D):
             self.xmaxlim = (max(self.xax[xaxZlims]) + (len(self.data1D[0]) - 1) * self.spacing) * axMult
         self.ax.set_xlim(self.xminlim, self.xmaxlim)
         self.ax.set_ylim(self.yminlim, self.ymaxlim)
+  
+    def stackSelect(self, stackBegin, stackEnd, stackStep):
+        self.stackBegin = stackBegin
+        self.stackEnd = stackEnd
+        self.stackStep = stackStep
+        self.upd()
+        self.plotReset(True, False)
+        self.showFid()
 
 ######################################################################################################
 
