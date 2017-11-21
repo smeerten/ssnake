@@ -395,6 +395,7 @@ class MainProgram(QtWidgets.QMainWindow):
                                    ['Fitting --> Second Order Quadrupole', self.secondquadstatAct],
                                    ['Fitting --> Czjzek', self.czjzekstatAct],
                                    ['Fitting --> SIMPSON', self.simpsonAct],
+                                   ['Fitting --> Function', self.functionFitAct],
                                    ['Combine --> Combine Workspaces', self.combineWorkspaceAct],
                                    ['Combine --> Insert From Workspace', self.insertdatAct],
                                    ['Combine --> Add', self.adddatAct],
@@ -668,10 +669,13 @@ class MainProgram(QtWidgets.QMainWindow):
         self.czjzekstatAct.setToolTip('Fit Czjzek Pattern')
         self.simpsonAct = self.fittingMenu.addAction("&SIMPSON", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.createSIMPSONWindow()))
         self.simpsonAct.setToolTip('Fit SIMPSON Script')
+        self.functionFitAct = self.fittingMenu.addAction("F&unction fit", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.createFunctionFitWindow()))
+        self.functionFitAct.setToolTip('Fit Function')
         self.fittingActList = [self.snrAct, self.fwhmAct, self.massAct,
                                self.intfitAct, self.relaxAct, self.diffusionAct,
                                self.lorentzfitAct, self.csastaticAct, self.firstquadstatAct,
-                               self.secondquadstatAct, self.czjzekstatAct]
+                               self.secondquadstatAct, self.czjzekstatAct, self.simpsonAct,
+                               self.functionFitAct]
         # the combine drop down menu
         self.combineMenu = QtWidgets.QMenu("Com&bine", self)
         self.menubar.addMenu(self.combineMenu)
@@ -2272,6 +2276,9 @@ class Main1DWindow(QtWidgets.QWidget):
 
     def createSIMPSONWindow(self):
         self.father.createFitWindow(fit.SIMPSONDeconvWindow(self.father, self.father.mainWindow))
+
+    def createFunctionFitWindow(self):
+        self.father.createFitWindow(fit.FunctionFitWindow(self.father, self.father.mainWindow))
 
     def plot1D(self):
         tmpcurrent = sc.Current1D(self, self.fig, self.canvas, self.masterData, self.current)

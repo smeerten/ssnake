@@ -21,7 +21,7 @@ import numpy as np
 import re
 
 
-def safeEval(inp, length=None, keywords=[], type='All'):
+def safeEval(inp, length=None, keywords=[], type='All', x=None):
     env = vars(np).copy()
     env["locals"] = None
     env["globals"] = None
@@ -31,6 +31,8 @@ def safeEval(inp, length=None, keywords=[], type='All'):
     env["slice"] = slice
     if length is not None:
         env["length"] = length
+    if x is not None:
+        env["x"] = x
     inp = re.sub('([0-9]+)[kK]', '\g<1>*1024', str(inp))
     for i in keywords:
         if i in inp:

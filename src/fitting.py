@@ -197,7 +197,10 @@ class TabFittingWindow(QtWidgets.QWidget):
         allFitVal = self.mainFitWindow.paramframe.fit(xax, data1D, guess, new_args)['x']
         fitVal = []
         for length in selectList:
-            fitVal.append(allFitVal[length])
+            if allFitVal.ndim is 0:
+                fitVal.append(np.array([allFitVal]))
+            else:
+                fitVal.append(allFitVal[length])
         args_out = []
         for n in range(len(args)):
             args_out.append([args[n][0]])
@@ -3952,3 +3955,208 @@ class TxtOutputWindow(wc.ToolWindows):
         self.errEntry.setText(errTxt)
         self.grid.addWidget(self.errEntry, 4, 0)
         self.resize(550, 700)
+
+
+#################################################################################
+
+
+class FunctionFitWindow(TabFittingWindow):
+
+    def __init__(self, mainProgram, oldMainWindow):
+        self.CURRENTWINDOW = FunctionFitFrame
+        self.PARAMFRAME = FunctionFitParamFrame
+        super(FunctionFitWindow, self).__init__(mainProgram, oldMainWindow)
+
+#################################################################################
+
+
+class FunctionFitFrame(FitPlotFrame):
+
+    def __init__(self, rootwindow, fig, canvas, current):
+        self.FITNUM = 1  # Maximum number of fits
+        super(FunctionFitFrame, self).__init__(rootwindow, fig, canvas, current)
+
+
+#################################################################################
+
+
+class FunctionFitParamFrame(AbstractParamFrame):
+
+    def __init__(self, parent, rootwindow, isMain=True):
+        self.SINGLENAMES = []
+        self.MULTINAMES = []
+        self.PARAMTEXT = {}
+        self.numExp = QtWidgets.QComboBox()
+        self.function = ""
+        self.FITFUNC = functionmpFit
+        super(FunctionFitParamFrame, self).__init__(parent, rootwindow, isMain)
+        resetButton = QtWidgets.QPushButton("Reset")
+        resetButton.clicked.connect(self.reset)
+        self.frame1.addWidget(resetButton, 1, 1)
+        functionButton = QtWidgets.QPushButton("Input Function")
+        functionButton.clicked.connect(self.functionInput)
+        self.frame1.addWidget(functionButton, 2, 1)
+        self.labels = {}
+        self.ticks = {}
+        self.entries = {}
+        self.frame3.setColumnStretch(20, 1)
+        self.frame3.setAlignment(QtCore.Qt.AlignTop)
+        self.reset()
+
+    def getNumExp(self):
+        return 1
+        
+    def defaultValues(self, inp):
+        if not inp:
+            val = {}
+            for name in self.MULTINAMES:
+                val[name] = np.repeat([np.array([0.0, False], dtype=object)], self.FITNUM, axis=0)
+            return val
+        else:
+            return inp
+
+    def reset(self):
+        locList = tuple(self.parent.locList)
+        self.fitParamList[locList] = self.defaultValues(0)
+        self.dispParams()
+
+    def functionInput(self):
+        FunctionInputWindow(self, self.function)
+
+    def functionInputSetup(self):
+        matches = np.unique(re.findall("(@\w+)", self.function))
+        self.MULTINAMES = [e[1:] for e in matches]
+        for n in self.PARAMTEXT.keys():
+            self.labels[n][0].deleteLater()
+            self.ticks[n][0].deleteLater()
+            self.entries[n][0].deleteLater()
+        self.PARAMTEXT = {}
+        self.labels = {}
+        self.ticks = {}
+        self.entries = {}
+        for i in range(len(self.MULTINAMES)):
+            name = self.MULTINAMES[i]
+            self.PARAMTEXT[name] = name
+            self.labels[name] = [QtWidgets.QLabel(name)]
+            self.frame3.addWidget(self.labels[name][0], i, 0)
+            self.ticks[name] = [QtWidgets.QCheckBox('')]
+            self.frame3.addWidget(self.ticks[name][0], i, 1)
+            self.entries[name] = [wc.FitQLineEdit(self, name)]
+            self.frame3.addWidget(self.entries[name][0], i, 2)
+        self.reset()
+
+    def getExtraParams(self, out):
+        out["nameList"] = [self.MULTINAMES]
+        out["function"] = [self.function]
+        return (out, [out["nameList"][-1], out["function"][-1]])
+
+    def disp(self, params, num):
+        out = params[num]
+        numExp = len(out[self.MULTINAMES[0]])
+        for i in range(numExp):
+            for name in self.MULTINAMES:
+                inp = out[name][i]
+                if isinstance(inp, tuple):
+                    inp = checkLinkTuple(inp)
+                    out[name][i] = inp[2] * params[inp[4]][inp[0]][inp[1]] + inp[3]
+                if not np.isfinite(out[name][i]):
+                    self.rootwindow.mainProgram.dispMsg("Fitting: One of the inputs is not valid")
+                    return
+        tmpx = self.parent.xax
+        outCurveBase = np.zeros(len(tmpx))
+        outCurve = outCurveBase.copy()
+        outCurvePart = []
+        x = []
+        for i in range(len(out[self.MULTINAMES[0]])):
+            x.append(tmpx)
+            inputPar = {}
+            for name in self.MULTINAMES:
+                inputPar[name] = out[name][0]
+            y = functionRun(out["function"][0], inputPar, tmpx)
+            if y is None:
+                self.rootwindow.mainProgram.dispMsg("Fitting: The script didn't output anything", 'red')
+                return
+            outCurvePart.append(outCurveBase + y)
+            outCurve += y
+        self.parent.fitDataList[tuple(self.parent.locList)] = [tmpx, outCurve, x, outCurvePart]
+        self.parent.showFid()
+
+##############################################################################
+
+
+def functionmpFit(xax, data1D, guess, args, queue, minmethod):
+    try:
+        fitVal = scipy.optimize.minimize(lambda *param: np.sum((data1D - functionfitFunc(param, xax, args))**2), guess, method=minmethod)
+    except Exception:
+        fitVal = None
+    queue.put(fitVal)
+
+
+def functionfitFunc(params, allX, args):
+    params = params[0]
+    specName = args[0]
+    specSlices = args[1]
+    allParam = []
+    for length in specSlices:
+        allParam.append(params[length])
+    allStruc = args[3]
+    allArgu = args[4]
+    fullTestFunc = []
+    for n in range(len(allX)):
+        x = allX[n]
+        testFunc = np.zeros(len(x))
+        param = allParam[n]
+        numExp = args[2][n]
+        struc = args[3][n]
+        argu = args[4][n]
+        sw = args[5][n]
+        axAdd = args[6][n]
+        axMult = args[7][n]
+        nameList = argu[-1][0]
+        function = argu[-1][1]
+        parameters = {}
+        for i in range(numExp):
+            for name in nameList:
+                if struc[name][i][0] == 1:
+                    parameters[name] = param[struc[name][i][1]]
+                elif struc[name][i][0] == 0:
+                    parameters[name] = argu[struc[name][i][1]]
+                else:
+                    altStruc = struc[name][i][1]
+                    strucTarget = allStruc[altStruc[4]]
+                    if strucTarget[altStruc[0]][altStruc[1]][0] == 1:
+                        parameters[name] = altStruc[2] * allParam[altStruc[4]][strucTarget[altStruc[0]][altStruc[1]][1]] + altStruc[3]
+                    elif strucTarget[altStruc[0]][altStruc[1]][0] == 0:
+                        parameters[name] = altStruc[2] * allArgu[altStruc[4]][strucTarget[altStruc[0]][altStruc[1]][1]] + altStruc[3]
+            testFunc += functionRun(function, parameters, x)
+        fullTestFunc = np.append(fullTestFunc, testFunc)
+    return fullTestFunc
+
+
+def functionRun(function, parameters, xax):
+    for elem in parameters.keys():
+        function = function.replace('@' + elem, str(parameters[elem]))
+    return safeEval(function, length=len(xax), x=xax)
+
+
+class FunctionInputWindow(wc.ToolWindows):
+
+    NAME = "Fitting Function"
+    RESIZABLE = True
+    MENUDISABLE = False
+
+    def __init__(self, parent, txt):
+        super(FunctionInputWindow, self).__init__(parent)
+        self.grid.addWidget(QtWidgets.QLabel("Function:"), 1, 0)
+        self.valEntry = QtWidgets.QTextEdit()
+        self.valEntry.setLineWrapMode(QtWidgets.QTextEdit.NoWrap)
+        self.valEntry.setText(txt)
+        self.grid.addWidget(self.valEntry, 2, 0)
+        self.resize(550, 400)
+
+    def applyFunc(self):
+        self.father.function = self.valEntry.toPlainText()
+        self.father.functionInputSetup()
+
+    def closeEvent(self, *args):
+        self.deleteLater()
