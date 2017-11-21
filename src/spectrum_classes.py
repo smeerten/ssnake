@@ -3040,9 +3040,10 @@ class CurrentScatter(Current1D):
         super(CurrentScatter, self).__init__(root, fig, canvas, data, duplicateCurrent)
 
     def showFid(self, tmpdata=None, extraX=None, extraY=None, extraColor=None, old=False, output=None):  # display the 1D data
+        hyperView = 0
         self.peakPickReset()
         if tmpdata is None:
-            tmpdata = self.data1D
+            tmpdata = self.data1D[hyperView]
         self.ax.cla()
         if self.spec == 1:
             if self.ppm:
@@ -3054,13 +3055,13 @@ class CurrentScatter(Current1D):
         self.line_xdata = self.xax * axMult
         if old:
             if (self.plotType == 0):
-                self.ax.plot(self.line_xdata, np.real(self.data1D), marker='o', linestyle='none', c='k', alpha=0.2, label=self.data.name + '_old', picker=True)
+                self.ax.plot(self.line_xdata, np.real(self.data1D[hyperView]), marker='o', linestyle='none', c='k', alpha=0.2, label=self.data.name + '_old', picker=True)
             elif(self.plotType == 1):
-                self.ax.plot(self.line_xdata, np.imag(self.data1D), marker='o', linestyle='none', c='k', alpha=0.2, label=self.data.name + '_old', picker=True)
+                self.ax.plot(self.line_xdata, np.imag(self.data1D[hyperView]), marker='o', linestyle='none', c='k', alpha=0.2, label=self.data.name + '_old', picker=True)
             elif(self.plotType == 2):
-                self.ax.plot(self.line_xdata, np.real(self.data1D), marker='o', linestyle='none', c='k', alpha=0.2, label=self.data.name + '_old', picker=True)
+                self.ax.plot(self.line_xdata, np.real(self.data1D[hyperView]), marker='o', linestyle='none', c='k', alpha=0.2, label=self.data.name + '_old', picker=True)
             elif(self.plotType == 3):
-                self.ax.plot(self.line_xdata, np.abs(self.data1D), marker='o', linestyle='none', c='k', alpha=0.2, label=self.data.name + '_old', picker=True)
+                self.ax.plot(self.line_xdata, np.abs(self.data1D[hyperView]), marker='o', linestyle='none', c='k', alpha=0.2, label=self.data.name + '_old', picker=True)
         if (extraX is not None):
             for num in range(len(extraX)):
                 self.ax.plot(extraX[num] * axMult, extraY[num], marker='o', linestyle='none', c=extraColor[num])
