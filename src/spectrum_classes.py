@@ -1537,8 +1537,11 @@ class Spectrum(object):
             shearMatrix = np.exp(1j * np.outer(vec1, vec2))
         if self.spec[axes] > 0:
             self.fourier(axes, tmp=True)
+
+        self.data = self.hyperReorder(self.data, axes)
         for index in range(len(self.data)):
             self.data[index] = self.data[index] * shearMatrix.reshape(shape)
+        self.data = self.hyperReorder(self.data, axes)
         if self.spec[axes] > 0:
             self.fourier(axes, tmp=True, inv=True)
         self.addHistory("Shearing transform with shearing value " + str(shear) + " over dimensions " + str(axes + 1) + " and " + str(axes2 + 1))
