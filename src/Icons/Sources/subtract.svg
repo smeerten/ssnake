@@ -14,7 +14,7 @@
    viewBox="0 0 35.433071 35.433071"
    id="svg2"
    version="1.1"
-   inkscape:version="0.91 r13725"
+   inkscape:version="0.92.2 (5c3e80d, 2017-08-06)"
    inkscape:export-filename="/media/HDD/ssnake/ssnake/src/Icons/subtract.png"
    inkscape:export-xdpi="162.56"
    inkscape:export-ydpi="162.56"
@@ -247,13 +247,13 @@
      inkscape:pageopacity="0.0"
      inkscape:pageshadow="2"
      inkscape:zoom="5.6"
-     inkscape:cx="-4.5258594"
+     inkscape:cx="-36.490145"
      inkscape:cy="32.344093"
      inkscape:document-units="px"
      inkscape:current-layer="layer1"
      showgrid="false"
-     inkscape:window-width="1440"
-     inkscape:window-height="851"
+     inkscape:window-width="1920"
+     inkscape:window-height="1149"
      inkscape:window-x="0"
      inkscape:window-y="0"
      inkscape:window-maximized="1" />
@@ -274,6 +274,16 @@
      inkscape:groupmode="layer"
      id="layer1"
      transform="translate(0,-1016.9291)">
+    <rect
+       style="opacity:1;fill:#ffffff;fill-opacity:1;stroke:none;stroke-width:0.99374622;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1;paint-order:markers fill stroke"
+       id="rect876"
+       width="35.433071"
+       height="35.433071"
+       x="-5.6103158e-07"
+       y="1016.9291"
+       inkscape:export-filename="/home/wfranssen/Desktop/subtract.png"
+       inkscape:export-xdpi="162"
+       inkscape:export-ydpi="162" />
     <rect
        style="opacity:1;fill:#e91d25;fill-opacity:1;fill-rule:nonzero;stroke:#bb0000;stroke-width:1.5;stroke-linecap:butt;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1"
        id="rect4197"
