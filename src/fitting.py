@@ -215,8 +215,7 @@ class TabFittingWindow(QtWidgets.QWidget):
         params = [self.mainFitWindow.paramframe.getSimParams()]
         for window in self.subFitWindows:
             tmp_params = window.paramframe.getSimParams()
-            for i in range(len(params)):
-                params = np.append(params, [tmp_params], axis=0)
+            params = np.append(params, [tmp_params], axis=0)
         if params[0] is None:
             return
         self.mainFitWindow.paramframe.disp(params, 0, *args, **kwargs)
