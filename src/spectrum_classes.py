@@ -315,9 +315,7 @@ class Spectrum(object):
         except ValueError as error:
             self.dispMsg(str(error))
             return None
-
         self.data, self.hyper = self.deleteHyper(axes,self.data,self.hyper) #Remove hypercomplex along the axis to be removed
-
         for i in range(len(self.hyper)):
             if self.hyper[i] > axes:
                 self.hyper[i] += -1
@@ -482,8 +480,6 @@ class Spectrum(object):
             #tmp2 = np.real(tmpdata[index][slicing1] - tmpdata[index][slicing2]) + 1j * np.imag(tmpdata[index][slicing1] + tmpdata[index][slicing2])
             tmp1 = np.real(tmpdata[index][slicing1] + tmpdata[index][slicing2]) + 1j * np.imag(tmpdata[index][slicing1] + tmpdata[index][slicing2])
             tmp2 =  - np.imag(tmpdata[index][slicing1] - tmpdata[index][slicing2]) + 1j * np.real(tmpdata[index][slicing1] - tmpdata[index][slicing2])
-            
-
             self.data.append(tmp1)
             self.data.append(tmp2)
         self.hyper.append(axes)
@@ -593,7 +589,6 @@ class Spectrum(object):
             self.addHistory("Minimum position between " + str(pos1) + " and " + str(pos2) + " of dimension " + str(axes + 1))
         elif which == 6:
             self.addHistory("Average between " + str(pos1) + " and " + str(pos2) + " of dimension " + str(axes + 1))
-
         #Remove hyper along this dim if necessary
         if keepdims ==  False and axes in self.hyper:
             tmpdata , self.hyper = self.deleteHyper(axes,tmpdata,self.hyper)
@@ -601,12 +596,11 @@ class Spectrum(object):
             for i in range(len(self.hyper)):
                 if self.hyper[i] > axes:
                     self.hyper[i] += -1
-
         if len(tmpdata[0]) == 1:
             if self.data[0].ndim == 1:
                 self.data = []
                 for index in range(len(tmpdata)):
-                    self.data.append(tmpdata[index][0])
+                    self.data.append(np.array([tmpdata[index][0]]))
                 self.resetXax(axes)
             else:
                 self.data = []
@@ -686,9 +680,6 @@ class Spectrum(object):
                         tmpdata += (tmp, )
                 elif which == 6:
                     tmpdata[index] += (np.mean(self.data[index][slicing], axis=axes, keepdims=keepdims), )
-
-
-
         #Remove hyper along this dim if necessary
         tmphyper = copy.deepcopy(self.hyper)
         if keepdims ==  False and axes in self.hyper:
@@ -697,7 +688,6 @@ class Spectrum(object):
             for i in range(len(tmphyper)):
                 if tmphyper[i] > axes:
                     tmphyper[i] += -1
-
         if len(tmpdata[0]) == 1:
             if self.data[0].ndim == 1:
                 for index in range(len(tmpdata)):
@@ -735,7 +725,6 @@ class Spectrum(object):
         else:
             for index in range(len(tmpdata)):
                 tmpdata[index] = np.concatenate(tmpdata[index], axis=axes)
-
             newSpec = Spectrum(self.name,
                                tmpdata,
                                self.filePath,
@@ -936,11 +925,9 @@ class Spectrum(object):
         tmp = []
         for item in self.data:
             tmp.append(item[tuple(locList[:axes]) + (slice(None), ) + tuple(locList[axes:])])
-
         if self.spec[axes] == 0:
                 tmp = self.fourierLocal(tmp,0, self.axes)
         x = np.fft.fftshift(np.fft.fftfreq(len(tmp[0]), 1.0 / self.sw[axes])) / self.sw[axes]
-
         tmp = self.hyperReorder(tmp, axes)
         if phaseNum == 0:
             phases = scipy.optimize.minimize(self.ACMEentropy, [0], (tmp, x, False), method='Powell')
@@ -950,9 +937,7 @@ class Spectrum(object):
             phases = scipy.optimize.minimize(self.ACMEentropy, [0, 0], (tmp, x ), method='Powell')
             phase0 = phases['x'][0]
             phase1 = phases['x'][1]
-
         tmp = self.hyperReorder(tmp, axes)
-
         if self.spec == 0:
                 tmp = self.fourierLocal(tmp,1, self.axes)
         if self.ref[axes] is None:
@@ -976,7 +961,6 @@ class Spectrum(object):
         else:
             return lambda self: self.setPhase(-phase0, -phase1, axes)
 
-
     def ACMEentropy(self, phaseIn, data, x, phaseAll=True):
         hyperView = 0 #Temp
         phase0 = phaseIn[0]
@@ -986,7 +970,6 @@ class Spectrum(object):
             phase1 = 0.0
         L = len(data[hyperView])
         s0 = data[hyperView] * np.exp(1j * (phase0 + phase1 * x))
-
         s2 = np.real(s0)
         ds1 = np.abs((s2[3:L] - s2[1:L - 2]) / 2.0)
         p1 = ds1 / sum(ds1)
@@ -1027,7 +1010,6 @@ class Spectrum(object):
         return fourData
 
     def phaseLocal(self, data, sw, offset, phase0, phase1, axis): #Provides a phase function on any data
-
         tmpdat = self.hyperReorder(data, axis)
         #Data input always as spectrum (calling code should make sure of this)
         if len(data[0].shape) > 1:
@@ -1036,10 +1018,8 @@ class Spectrum(object):
             mult = np.exp(np.fft.fftshift(np.fft.fftfreq(len(data[0]), 1.0 / sw) + offset) / sw * phase1 * 1j)
         for index in range(len(tmpdat)):
             tmpdat[index] = tmpdat[index] * mult * np.exp(phase0 * 1j)
-
         tmpdat = self.hyperReorder(tmpdat, axis)
         return tmpdat
-
 
     def setPhase(self, phase0, phase1, axes, select=slice(None)):
         if isinstance(select, string_types):
@@ -1054,14 +1034,11 @@ class Spectrum(object):
         vector = np.exp(np.fft.fftshift(np.fft.fftfreq(self.data[0].shape[axes], 1.0 / self.sw[axes]) + offset) / self.sw[axes] * phase1 * 1j)
         if self.spec[axes] == 0:
             self.fourier(axes, tmp=True)
-
         self.data = self.hyperReorder(self.data, axes)
         for index in range(len(self.data)):
             self.data[index][select] = self.data[index][select] * np.exp(phase0 * 1j)
             self.data[index][select] = np.apply_along_axis(np.multiply, axes, self.data[index], vector)[select]
-
         self.data = self.hyperReorder(self.data, axes)
-
         if self.spec[axes] == 0:
             self.fourier(axes, tmp=True, inv=True)
         Message = "Phasing: phase0 = " + str(phase0 * 180 / np.pi) + " and phase1 = " + str(phase1 * 180 / np.pi) + " for dimension " + str(axes + 1)
@@ -1105,7 +1082,6 @@ class Spectrum(object):
             x = func.apodize(t, shift, self.sw[axes], axLen, lor, gauss, cos2, hamming, self.wholeEcho[axes])
             if self.spec[axes] > 0:
                 self.fourier(axes, tmp=True)
-            
             for index in range(len(self.data)): #For all hypercomplex parts
                 self.data[index][select] = np.apply_along_axis(np.multiply, axes, self.data[index], x)[select]
             if self.spec[axes] > 0:
@@ -1190,7 +1166,6 @@ class Spectrum(object):
         else:
             for index in range(len(self.data)):
                 newDat.append(self.regridFunc(self.data[index], newAxis ,self.xaxArray[axis]))
-        
         self.data = newDat
         self.sw[axis] = newSw
         if self.ref[axis] is None:  # Set new 0 freq to those of the old view, if needed
@@ -1254,7 +1229,6 @@ class Spectrum(object):
                     self.data[index] = np.concatenate((self.data[index][slicing1], self.data[index][slicing2]), axis=axes)
         if self.spec[axes] > 0:
             self.fourier(axes, tmp=True, inv=True)
-
         self.resetXax(axes)
         self.addHistory("Resized dimension " + str(axes + 1) + " to " + str(size) + " points at position " + str(pos))
         if self.noUndo:
@@ -1269,10 +1243,8 @@ class Spectrum(object):
         if not self.noUndo:
             copyData = copy.deepcopy(self)
             returnValue = lambda self: self.restoreData(copyData, lambda self: self.setLPSVD(nAnalyse, nFreq, nPredict, Direction, axes))
-        
         for index in range(len(self.data)):
             self.data[index] = np.apply_along_axis(self.LPSVDfunction, axes, self.data[index], nAnalyse, nFreq, nPredict, Direction)
-
         self.resetXax(axes)
         self.addHistory("LPSVD ")
         if self.noUndo:
@@ -1377,9 +1349,6 @@ class Spectrum(object):
         else:
             return lambda self: self.restoreData(copyData, lambda self: self.shiftData(shift, axes, select=select))
 
-
-
-
     def hyperReorder(self, data, axis): #A function to reorder the data for a hypercomplex operation
         hyper = [x for x in self.hyper if x == axis]
         if len(hyper) == 0:
@@ -1390,7 +1359,6 @@ class Spectrum(object):
             print('error in hyper')
             return
         hyperLen = len(data)
-
         if hyper == None:
             return data
         else:
@@ -1404,12 +1372,10 @@ class Spectrum(object):
                 else:
                     list1 = np.append(list1,values[0:step])
                 values = values[step::]
-
         for index in range(len(list1)):
             l1 = list1[index]
             l2 = list2[index]
             data[l1], data[l2] = np.real(data[l1]) + 1j*np.real(data[l2]), np.imag(data[l1]) + 1j*np.imag(data[l2])
-
         return data
 
     def deleteHyper(self,axis,data,hyper):
@@ -1429,13 +1395,11 @@ class Spectrum(object):
             data = newdat
         return data, hyper
 
-
     def fourier(self, axes, tmp=False, inv=False, reorder = [True,True]):
         axes = self.checkAxes(axes)
         tmpdat = self.data 
         if reorder[0]:
             tmpdat = self.hyperReorder(self.data, axes)
-
         if axes is None:
             return None
         if np.logical_xor(self.spec[axes], inv) == 0:
@@ -1458,7 +1422,6 @@ class Spectrum(object):
             if not tmp:
                 self.spec[axes] = 0
                 self.addHistory("Inverse Fourier transform dimension " + str(axes + 1))
-        
         if reorder[1]:
             self.data = self.hyperReorder(tmpdat, axes)
         self.resetXax(axes)
@@ -1547,7 +1510,6 @@ class Spectrum(object):
             self.fourier(axes, tmp=True, inv=True, reorder = [False,True])
         else:
             self.data = self.hyperReorder(self.data, axes)
-
         self.addHistory("Shearing transform with shearing value " + str(shear) + " over dimensions " + str(axes + 1) + " and " + str(axes2 + 1))
         if self.noUndo:
             return None
@@ -1647,7 +1609,6 @@ class Spectrum(object):
         self.data = self.reconstructHyper(self.data)
         #Transform back to FID
         self.data = self.fourierLocal(self.data, 1, axes)
-
         self.addHistory("CLEAN reconstruction (gamma = " + str(gamma) + " , threshold = " + str(threshold) + " , maxIter = " + str(maxIter) + ") " + 
         "of dimension " + str(axes + 1) + " at positions " + str(pos))
         if self.noUndo:
@@ -1673,7 +1634,6 @@ class Spectrum(object):
         elif typeVal == 2:  # type is TPPI, for now handle the same as Complex
             pass
         NDmax = np.max(np.max(np.abs(np.real(np.fft.fft(self.data,axis=axes))))) #Get max of ND matrix
-        
         tmpData = np.rollaxis(self.data, axes, self.data.ndim)
         tmpShape = tmpData.shape
         tmpData = tmpData.reshape((int(tmpData.size / tmpShape[-1]), tmpShape[-1]))
@@ -1682,12 +1642,10 @@ class Spectrum(object):
         pool.close()
         pool.join()
         self.data = np.rollaxis(np.array(fit.get()).reshape(tmpShape), -1, axes)
-        
         #Reconstruct hypercomplex parts
         self.data = self.reconstructHyper(self.data)
         #Transform back to FID
         self.data = self.fourierLocal(self.data, 1, axes)
-
         self.addHistory("IST reconstruction (threshold = " + str(threshold) + " , maxIter = " + str(maxIter) + " , tracelimit = " + str(tracelimit*100) + ") " + 
         "of dimension " + str(axes + 1) + " at positions " + str(pos))
         if self.noUndo:
@@ -1701,7 +1659,6 @@ class Spectrum(object):
         totLen = 2**hyperLen
         newData = [ x for x in range(totLen)]
         newData[0] = copy.copy(data)
-
         if hyperLen != 0: #Construct hyper parts if any
             hilbertBool = np.zeros((totLen,hyperLen)) #Holds which dims need Hilbert transform
             for index in range(len(self.hyper)):
@@ -1964,7 +1921,6 @@ class Current1D(Plot1DFrame):
             offset = 0
         else:
             offset = +self.freq - self.ref
-
         tmpdata = self.data.phaseLocal(tmpdata,self.sw,offset,phase0,phase1,self.axes)
         if self.spec == 0:
             tmpdata = self.fourierLocal(tmpdata, 1, self.axes)
@@ -2086,9 +2042,6 @@ class Current1D(Plot1DFrame):
                 self.xmaxlim = self.xmaxlim + (oldref - ref) / 10**(val * 3)
         self.upd()
         self.showFid()
-        
-        
-#        self.setAxType(0)
         self.root.addMacro(['ref', (ref, self.axes - self.data.data[0].ndim)])
         return returnValue
 
@@ -2102,7 +2055,6 @@ class Current1D(Plot1DFrame):
         return returnValue
 
     def SN(self, minNoise, maxNoise, minPeak, maxPeak):
-        
         hyperView = 0
         minN = min(minNoise, maxNoise)
         maxN = max(minNoise, maxNoise)
@@ -2218,7 +2170,6 @@ class Current1D(Plot1DFrame):
         if size > length:
             slicing1 = (slice(None), ) * axes + (slice(None, pos), ) + (slice(None), ) * (tmpdata[0].ndim - 1 - axes)
             slicing2 = (slice(None), ) * axes + (slice(pos, None), ) + (slice(None), ) * (tmpdata[0].ndim - 1 - axes)
-
             for index in range(len(self.data1D)):
                 tmpdata[index] = np.concatenate((np.pad(tmpdata[index][slicing1], [(0, 0)] * axes + [(0, size - self.data1D[index].shape[axes])] + [(0, 0)] * (self.data1D[index].ndim - axes - 1),
                     'constant', constant_values=0), tmpdata[index][slicing2]), axes)
@@ -2239,8 +2190,6 @@ class Current1D(Plot1DFrame):
                 slicing2 = (slice(None), ) * axes + (slice(pos + removeEnd, None), ) + (slice(None), ) * (tmpdata[0].ndim - 1 - axes)
                 for index in range(len(self.data1D)):
                     tmpdata[index] = np.concatenate((tmpdata[index][slicing1], tmpdata[index][slicing2]), axis=axes)
-
-
         if self.spec == 1:
             self.data1D = self.fourierLocal(tmpdata, 0, axes)
         else:
@@ -2781,11 +2730,9 @@ class Current1D(Plot1DFrame):
                 tmp.append(item[0])
         else:
             tmp = self.data1D
-
         if self.spec == 0:
             tmp = self.fourierLocal(tmp,0, self.axes)
         x = np.fft.fftshift(np.fft.fftfreq(len(tmp[0]), 1.0 / self.sw)) / self.sw
-        
         tmp = self.data.hyperReorder(tmp, self.axes)
         if phaseNum == 0:
             phases = scipy.optimize.minimize(self.data.ACMEentropy, [0], (tmp, x, False), method='Powell')
@@ -3961,7 +3908,6 @@ class CurrentArrayed(Current1D):
         else:
             for index in range(len(y)):
                 y[index] = y[index] * x
-
         if self.spec == 0:
             if self.plotType == 0:
                 self.showFid(y[hyperView], [t], x * np.amax(np.real(self.data1D[hyperView])), ['g'], old=True)
@@ -4512,7 +4458,6 @@ class CurrentContour(Current1D):
                     else:
                         XposMin = np.arange(self.tmpdata.shape[1])
                     PlotNegative = True
-
         def contourTrace(level, color):
             level = c.trace(level)
             segs = level[:len(level) // 2]
@@ -4522,7 +4467,6 @@ class CurrentContour(Current1D):
             col.set_linestyle('solid')
             col.set_color(color)
             return col
-
         if self.contourConst:
             collections = []
             if PlotPositive:
