@@ -2066,7 +2066,7 @@ class Current1D(Plot1DFrame):
         returnValue = self.data.setFreq(freq, sw, self.axes)
         self.upd()
         self.showFid()
-        self.root.addMacro(['freq', (freq, sw, self.axes - self.data.data.ndim)])
+        self.root.addMacro(['freq', (freq, sw, self.axes - self.data.data[0].ndim)])
         return returnValue
 
     def setRef(self, ref):  # set the frequency of the actual data
