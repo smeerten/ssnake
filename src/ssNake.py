@@ -1446,7 +1446,7 @@ class MainProgram(QtWidgets.QMainWindow):
         self.workspaceNames.append(wsname)
         self.changeMainWindow(wsname)
 
-    def dataFromFit(self, data, filePath, freq, sw, spec, wholeEcho, ref, xaxArray, axes):
+    def dataFromFit(self, data, filePath, freq, sw, spec, wholeEcho,hyper, ref, xaxArray, axes):
         name = self.askName()
         if name is None:
             return
@@ -1457,6 +1457,7 @@ class MainProgram(QtWidgets.QMainWindow):
                                  sw,
                                  spec,
                                  wholeEcho,
+                                 hyper,
                                  ref,
                                  xaxArray,
                                  msgHandler=lambda msg: self.dispMsg(msg),
