@@ -2725,7 +2725,7 @@ class Current1D(Plot1DFrame):
             returnValue = self.data.ist(posList, typeVal, self.axes, threshold, maxIter, tracelimit)
             self.upd()
             self.showFid()
-            #self.root.addMacro(['clean', (posList, typeVal, self.axes - self.data.data[0].ndim, gamma, threshold, maxIter)])
+            self.root.addMacro(['ist', (posList, typeVal, self.axes - self.data.data[0].ndim, threshold, maxIter, tracelimit)])
         except Exception:
             returnValue = None
         return returnValue

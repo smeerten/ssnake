@@ -1808,6 +1808,8 @@ class Main1DWindow(QtWidgets.QWidget):
                 returnValue = self.masterData.ffm_1d(*iter1[1])
             elif iter1[0] == 'clean':
                 returnValue = self.masterData.clean(*iter1[1])
+            elif iter1[0] == 'ist':
+                returnValue = self.masterData.ist(*iter1[1])
             elif iter1[0] == 'shear':
                 returnValue = self.masterData.shear(*iter1[1])
             elif iter1[0] == 'extract':
