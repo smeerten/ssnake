@@ -2122,8 +2122,17 @@ class Current1D(Plot1DFrame):
         else:
             return 0.0
 
-    def COM(self, minPeak, maxPeak):  # Centre of Mass
-        hyperView = 0
+    def COM(self, minPeak, maxPeak,unitType=None):  # Centre of Mass
+        hyperView = 0 
+        if unitType is None:
+            axType = self.axType
+            ppm = self.ppm
+        else:
+            axType = unitType
+            if unitType == 3:  # ppm
+                ppm = 1
+            else:
+                ppm = 0
         minP = min(minPeak, maxPeak)
         maxP = max(minPeak, maxPeak)
         if len(self.data1D[0].shape) > 1:
@@ -2144,12 +2153,12 @@ class Current1D(Plot1DFrame):
         elif(self.plotType == 3):
             tmpData = np.abs(tmpData)
         if self.spec == 1:
-            if self.ppm:
+            if ppm:
                 axMult = 1e6 / self.ref
             else:
-                axMult = 1.0 / (1000.0**self.axType)
+                axMult = 1.0 / (1000.0**axType)
         elif self.spec == 0:
-            axMult = 1000.0**self.axType
+            axMult = 1000.0**axType
         tmpAxis = tmpAxis[minP:maxP] * axMult
         tmpData = tmpData[minP:maxP]
         # COM = 1/M *sum(m_i * r_i)

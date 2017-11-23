@@ -5327,27 +5327,23 @@ class COMWindow(wc.ToolWindows):  # Centre of Mass Window
         self.grid.addWidget(wc.QLabel("End point:"), 2, 0)
         self.maxEntry = wc.QLineEdit(parent.current.data1D[0].shape[-1], self.checkValues)
         self.grid.addWidget(self.maxEntry, 3, 0)
+        self.grid.addWidget(wc.QLabel("Units:"), 4, 0)
+        unitSelect = self.father.current.axType
         if self.father.current.spec == 1:
+            unitList = ['Hz', 'kHz', 'MHz', 'ppm']
             if self.father.current.ppm:
-                self.grid.addWidget(wc.QLabel("Centre of Mass [ppm]:"), 4, 0)
-            else:
-                if self.father.current.axType == 0:
-                    self.grid.addWidget(wc.QLabel("Centre of Mass [Hz]:"), 4, 0)
-                elif self.father.current.axType == 1:
-                    self.grid.addWidget(wc.QLabel("Centre of Mass [kHz]:"), 4, 0)
-                elif self.father.current.axType == 2:
-                    self.grid.addWidget(wc.QLabel("Centre of Mass [MHz]:"), 4, 0)
-                elif self.father.current.axType == 3:
-                    self.grid.addWidget(wc.QLabel("Centre of Mass [ppm]:"), 4, 0)
+                unitSelect = 3
         else:
-            if self.father.current.axType == 0:
-                self.grid.addWidget(wc.QLabel("Centre of Mass [s]:"), 4, 0)
-            elif self.father.current.axType == 1:
-                self.grid.addWidget(wc.QLabel("Centre of Mass [ms]:"), 4, 0)
-            elif self.father.current.axType == 2:
-                self.grid.addWidget(wc.QLabel(u"Centre of Mass [\u03bcs]:"), 4, 0)
+            unitList = ['s', 'ms', u'\u03BCs']
+        self.unitDrop = QtWidgets.QComboBox()
+        self.unitDrop.addItems(unitList)
+        self.unitDrop.setCurrentIndex(unitSelect)
+        self.unitDrop.currentIndexChanged.connect(self.checkValues)
+        self.grid.addWidget(self.unitDrop, 5, 0)
+
+        self.grid.addWidget(wc.QLabel(u"Centre:"), 6, 0)
         self.comEntry = wc.QLineEdit("0.0")
-        self.grid.addWidget(self.comEntry, 5, 0)
+        self.grid.addWidget(self.comEntry, 7, 0)
         self.father.current.peakPickFunc = lambda pos, self=self: self.picked(pos)
         self.father.current.peakPick = True
 
@@ -5406,7 +5402,7 @@ class COMWindow(wc.ToolWindows):  # Centre of Mass Window
         elif maximum > dataLength:
             maximum = dataLength
         self.maxEntry.setText(str(maximum))
-        self.comEntry.setText(str(self.father.current.COM(minimum, maximum)))
+        self.comEntry.setText(str(self.father.current.COM(minimum, maximum,self.unitDrop.currentIndex())))
         return False  # Return to keep window
 
 ##########################################################################################
