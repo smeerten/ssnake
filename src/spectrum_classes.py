@@ -215,14 +215,19 @@ class Spectrum(object):
         else:
             return lambda self: self.subtract(data, select=select)
 
-    def subtract(self, data, dataImag=None, select=slice(None)):
+    def subtract(self, data, dataImag=None, select=slice(None), singleHyper = False):
         if isinstance(select, string_types):
             select = safeEval(select)
         try:
-            for index in range(len(self.data)):
+            if singleHyper:
                 if dataImag is not None:
-                    data[index] = np.array(data[index]) + 1j * np.array(dataImag[index])
-                self.data[index][select] = self.data[index][select] - data[index]
+                    data = np.array(data) + 1j * np.array(dataImag)
+                self.data[0][select] = self.data[0][select] - data[0]
+            else:
+                for index in range(len(self.data)):
+                    if dataImag is not None:
+                        data[index] = np.array(data[index]) + 1j * np.array(dataImag[index])
+                    self.data[index][select] = self.data[index][select] - data[index]
         except ValueError as error:
             self.dispMsg(str(error))
             return None
@@ -288,6 +293,7 @@ class Spectrum(object):
             return lambda self: self.restoreData(copyData, lambda self: self.multiply(mult, axes, select=select))
 
     def baselineCorrection(self, baseline, axes, baselineImag=0, select=slice(None)):
+        hyperView = 0
         if isinstance(select, string_types):
             select = safeEval(select)
         axes = self.checkAxes(axes)
@@ -296,8 +302,7 @@ class Spectrum(object):
         try:
             baseline = np.array(baseline) + 1j * np.array(baselineImag)
             baselinetmp = baseline.reshape((1, ) * axes + (self.data[0].shape[axes], ) + (1, ) * (self.data[0].ndim - axes - 1))
-            for index in range(len(self.data)):
-                self.data[index][select] = self.data[index][select] - baselinetmp
+            self.data[hyperView][select] = self.data[hyperView][select] - baselinetmp
         except ValueError as error:
             self.dispMsg(str(error))
             return None
@@ -2318,8 +2323,9 @@ class Current1D(Plot1DFrame):
         return poly.polyval(x, polyCoeff)
 
     def applyBaselineAll(self, degree, removeList, select=False, invert=False):
-        tmpAx = np.arange(self.data1D.shape[-1])
-        bArray = np.array([True] * self.data1D.shape[-1])
+        hyperView = 0
+        tmpAx = np.arange(self.data1D[0].shape[-1])
+        bArray = np.array([True] * self.data1D[0].shape[-1])
         for i in range(int(np.floor(len(removeList) / 2.0))):
             minVal = min(removeList[2 * i], removeList[2 * i + 1])
             maxVal = max(removeList[2 * i], removeList[2 * i + 1])
@@ -2327,14 +2333,24 @@ class Current1D(Plot1DFrame):
         if invert:
             bArray = np.logical_not(bArray)
         try:
-            dataFit = np.apply_along_axis(lambda data: self.baselinePolyFit(self.xax, data, bArray, degree), self.axes, self.data.data)
-            returnValue = self.data.subtract(dataFit)
-            self.root.addMacro(['subtract', (np.real(dataFit).tolist())])
+            dataFit = np.apply_along_axis(lambda data: self.baselinePolyFit(self.xax, data, bArray, degree), self.axes, self.data.data[hyperView])
+            if (self.plotType == 0):
+                dataFit = np.real(dataFit)
+            elif (self.plotType == 1):
+                dataFit = np.imag(dataFit)
+            elif (self.plotType == 2):
+                dataFit = np.real(dataFit)
+            elif (self.plotType == 3):
+                dataFit = np.abs(dataFit)
+
+            returnValue = self.data.subtract(dataFit,singleHyper = True)
+            self.root.addMacro(['subtract', (dataFit.tolist(), None, slice(None), True)])
         except Exception:
             return None
         return returnValue
 
     def applyBaseline(self, degree, removeList, select=False, invert=False):
+        hyperView = 0
         if select:
             selectSlice = self.getSelect()
         else:
@@ -2353,14 +2369,24 @@ class Current1D(Plot1DFrame):
             bArray = np.logical_not(bArray)
         try:
             y = self.baselinePolyFit(self.xax, tmpData, bArray, degree)
+            if (self.plotType == 0):
+                y = np.real(y)
+            elif (self.plotType == 1):
+                y = np.imag(y)
+            elif (self.plotType == 2):
+                y = np.real(y)
+            elif (self.plotType == 3):
+                y = np.abs(y)
+
             self.root.addMacro(['baselineCorrection', (list(np.real(y)), self.axes - self.data.data[0].ndim, list(np.imag(y)), str(selectSlice))])
             return self.data.baselineCorrection(y, self.axes, select=selectSlice)
         except Exception:
             return None
 
     def previewBaseline(self, degree, removeList, invert=False):
-        if len(self.data1D.shape) > 1:
-            tmpData = self.data1D[0]
+        hyperView = 0
+        if len(self.data1D[0].shape) > 1:
+            tmpData = self.data1D[hyperView][0]
         else:
             tmpData = self.data1D[hyperView]
         tmpAx = np.arange(self.data1D[0].shape[-1])
