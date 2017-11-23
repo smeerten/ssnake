@@ -6835,7 +6835,7 @@ class shiftConversionWindow(wc.ToolWindows):
             except Exception:
                 self.father.dispMsg("Shift Conversion: Invalid input in Hertzfeld-Berger Convention")
                 return
-        Results = fit.shiftConversion(Values, Type)  # Do the actual conversion
+        Results = func.shiftConversion(Values, Type)  # Do the actual conversion
         # Standard convention
         self.D11.setText('%#.4g' % Results[0][0])
         self.D22.setText('%#.4g' % Results[0][1])
@@ -6968,20 +6968,17 @@ class quadConversionWindow(wc.ToolWindows):
         if Type == 0:  # Cq as input
             # Czz is equal to Cq, via same definition (scale) Cxx and Cyy can be found
             try:
-                Czz = float(safeEval(self.Cq.text()))
+                Cq = float(safeEval(self.Cq.text()))
                 Eta = float(safeEval(self.Eta.text()))
-                Cxx = Czz * (Eta - 1) / 2
-                Cyy = -Cxx - Czz
+                Values = [ Cq, Eta]
             except Exception:
                 self.father.dispMsg("Quad Conversion: Invalid input in Cq definition")
                 return
         if Type == 1:
             try:
-                Vmax = float(safeEval(self.Wq.text()))
+                Wq = float(safeEval(self.Wq.text()))
                 Eta = float(safeEval(self.Eta.text()))
-                Czz = Vmax * (2.0 * I * (2 * I - 1)) / 3.0
-                Cxx = Czz * (Eta - 1) / 2
-                Cyy = -Cxx - Czz
+                Values = [ Wq, Eta]
             except Exception:
                 self.father.dispMsg("Quad Conversion: Invalid input in Wq definition")
                 return
@@ -6990,49 +6987,39 @@ class quadConversionWindow(wc.ToolWindows):
                 Vxx = float(safeEval(self.Vxx.text()))
                 Vyy = float(safeEval(self.Vyy.text()))
                 Vzz = float(safeEval(self.Vzz.text()))
-                Q = float(safeEval(self.Moment.text())) * 1e-30  # get moment and convert from fm^2
-                # Force traceless
-                if not np.isclose(Vxx + Vyy + Vzz, 0.0):
-                    Diff = (Vxx + Vyy + Vzz) / 3.0
-                    Vxx = Vxx - Diff
-                    Vyy = Vyy - Diff
-                    Vzz = Vzz - Diff
-                Scaling = SC.elementary_charge * Q / SC.Planck
-                Czz = Vzz * Scaling / 1e6  # scale for Cq definition in MHz
-                Cxx = Vxx * Scaling / 1e6
-                Cyy = Vyy * Scaling / 1e6
+                Values = [ Vxx, Vyy, Vzz]
             except Exception:
                 self.father.dispMsg("Quad Conversion: Invalid input in field gradients")
                 return
-        # sort
-        CArray = np.array([Cxx, Cyy, Czz])
-        Cindex = np.argsort(np.abs(CArray))
-        Csort = CArray[Cindex]
-        if Csort[2] < 0:  # If Czz negative due to weird input, make it positive
-            Csort = -Csort
-        CqNew = Csort[2]
-        if CqNew == 0.0:
-            self.Eta.setText('ND')
-        else:
-            EtaNew = np.abs((Csort[0] - Csort[1]) / Csort[2])  # Abs to avoid -0.0 rounding error
-            self.Eta.setText('%#.4g' % EtaNew)
-        WqNew = CqNew * 3.0 / (2.0 * I * (2 * I - 1))
-        self.Cq.setText('%#.4g' % CqNew)
-        self.Wq.setText('%#.4g' % WqNew)
         try:
             Q = float(safeEval(self.Moment.text())) * 1e-30  # get moment and convert from fm^2
-            Scaling = SC.elementary_charge * Q / SC.Planck
-            Vxx = Csort[0] / Scaling * 1e6
-            Vyy = Csort[1] / Scaling * 1e6
-            Vzz = Csort[2] / Scaling * 1e6
-            self.Vxx.setText('%#.4g' % Vxx)
-            self.Vyy.setText('%#.4g' % Vyy)
-            self.Vzz.setText('%#.4g' % Vzz)
         except Exception:
+            if Type == 0 or Type == 1:
+                Q = None
+            else:
+                self.father.dispMsg("Quad Conversion: Invalid input in quadrupole moment Q")
+                return
+
+        #Do conversion
+        Result = func.quadConversion(Values,I, Type, Q)
+        #Print results
+        if Result[0][1] == None:
+            self.Eta.setText('ND')
+        else:
+            self.Eta.setText('%#.4g' % Result[0][1])
+
+        self.Cq.setText('%#.4g' % Result[0][0])
+        self.Wq.setText('%#.4g' % Result[1][0])
+
+        if Result[2][0] == None:
             self.Moment.setText('ND')
             self.Vxx.setText('ND')
             self.Vyy.setText('ND')
             self.Vzz.setText('ND')
+        else:
+            self.Vxx.setText('%#.4g' % Result[2][0])
+            self.Vyy.setText('%#.4g' % Result[2][1])
+            self.Vzz.setText('%#.4g' % Result[2][2])
 
     def valueReset(self):  # Resets all the boxes to 0
         self.Cq.setText('0')

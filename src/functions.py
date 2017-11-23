@@ -20,6 +20,7 @@
 
 import numpy as np
 from scipy.special import wofz
+import scipy.constants as SC
 
 
 def voigtLine(x, pos, lor, gau, integral, Type=0):
@@ -107,3 +108,121 @@ def euro(val, num):
     orderArray = np.repeat(range(numStep), 3) + order
     returnVal = returnVal * 10.0**orderArray
     return returnVal[:num]
+
+
+def shiftConversion(Values, Type):
+    # Calculates the chemical shift tensor based on:
+    # Values: a list with three numbers
+    # Type: an integer defining the input shift convention
+    # Returns a list of list with all calculated values
+
+    if Type == 0:  # If from standard
+        deltaArray = Values
+    if Type == 1:  # If from xyz
+        deltaArray = Values  # Treat xyz as 123, as it reorders them anyway
+    if Type == 2:  # From haeberlen
+        iso = Values[0]
+        delta = Values[1]
+        eta = Values[2]
+        delta11 = delta + iso  # Treat xyz as 123, as it reorders them anyway
+        delta22 = (eta * delta + iso * 3 - delta11) / 2.0
+        delta33 = iso * 3 - delta11 - delta22
+        deltaArray = [delta11, delta22, delta33]
+    if Type == 3:  # From Hertzfeld-Berger
+        iso = Values[0]
+        span = Values[1]
+        skew = Values[2]
+        delta22 = iso + skew * span / 3.0
+        delta33 = (3 * iso - delta22 - span) / 2.0
+        delta11 = 3 * iso - delta22 - delta33
+        deltaArray = [delta11, delta22, delta33]
+    Results = []  # List of list with the different definitions
+    # Force right order
+    deltaSorted = np.sort(deltaArray)
+    D11 = deltaSorted[2]
+    D22 = deltaSorted[1]
+    D33 = deltaSorted[0]
+    Results.append([D11, D22, D33])
+    # Convert to haeberlen convention and xxyyzz
+    iso = (D11 + D22 + D33) / 3.0
+    xyzIndex = np.argsort(np.abs(deltaArray - iso))
+    zz = deltaArray[xyzIndex[2]]
+    yy = deltaArray[xyzIndex[0]]
+    xx = deltaArray[xyzIndex[1]]
+    Results.append([xx, yy, zz])
+    aniso = zz - iso
+    if aniso != 0.0:  # Only is not zero
+        eta = (yy - xx) / aniso
+    else:
+        eta = 'ND'
+    Results.append([iso, aniso, eta])
+    # Convert to Herzfeld-Berger Convention
+    span = D11 - D33
+    if span != 0.0:  # Only if not zero
+        skew = 3.0 * (D22 - iso) / span
+    else:
+        skew = 'ND'
+    Results.append([iso, span, skew])
+    return Results
+
+
+def quadConversion(Values,I, Type, Q = None):
+        print('type',Type)
+        if Type == 0:  # Cq as input
+            # Cq, eta
+            # Czz is equal to Cq, via same definition (scale) Cxx and Cyy can be found
+            Czz = Values[0]
+            Eta = Values[1]
+            Cxx = Czz * (Eta - 1) / 2
+            Cyy = -Cxx - Czz
+            Values = [ Cxx, Cyy, Czz]
+        if Type == 1:
+            #Wq, eta
+            Vmax = Values[0]
+            Eta = Values[1]
+            Czz = Vmax * (2.0 * I * (2 * I - 1)) / 3.0
+            Cxx = Czz * (Eta - 1) / 2
+            Cyy = -Cxx - Czz
+            Values = [ Cxx, Cyy, Czz]
+        if Type == 2:
+            #Vxx, Vyy, Vzz
+            Vxx = Values[0]
+            Vyy = Values[1]
+            Vzz = Values[2]
+            # Force traceless
+            if not np.isclose(Vxx + Vyy + Vzz, 0.0):
+                Diff = (Vxx + Vyy + Vzz) / 3.0
+                Vxx = Vxx - Diff
+                Vyy = Vyy - Diff
+                Vzz = Vzz - Diff
+            Scaling = SC.elementary_charge * Q / SC.Planck
+            Czz = Vzz * Scaling / 1e6  # scale for Cq definition in MHz
+            Cxx = Vxx * Scaling / 1e6
+            Cyy = Vyy * Scaling / 1e6
+            Values = [ Cxx, Cyy, Czz]
+
+        #Conversion
+        print('val',Values)
+        CArray = np.array(Values)
+        Cindex = np.argsort(np.abs(CArray))
+        Csort = CArray[Cindex]
+        if Csort[2] < 0:  # If Czz negative due to weird input, make it positive
+            Csort = -Csort
+        CqNew = Csort[2]
+        if CqNew == 0.0:
+            EtaNew = None
+        else:
+            EtaNew = np.abs((Csort[0] - Csort[1]) / Csort[2])  # Abs to avoid -0.0 rounding error
+        WqNew = CqNew * 3.0 / (2.0 * I * (2 * I - 1))
+        if Q != None:
+            Scaling = SC.elementary_charge * Q / SC.Planck
+            Vxx = Csort[0] / Scaling * 1e6
+            Vyy = Csort[1] / Scaling * 1e6
+            Vzz = Csort[2] / Scaling * 1e6
+        else:
+            Vxx = None
+            Vyy = None
+            Vzz = None
+
+        return [[CqNew, EtaNew], [WqNew, EtaNew], [Vxx, Vyy, Vzz]]
+

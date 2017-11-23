@@ -63,64 +63,6 @@ def checkLinkTuple(inp):
         inp += (0, 0)
     return inp
 
-##############################################################################
-
-
-def shiftConversion(Values, Type):
-    # Calculates the chemical shift tensor based on:
-    # Values: a list with three numbers
-    # Type: an integer defining the input shift convention
-    # Returns a list of list with all calculated values
-
-    if Type == 0:  # If from standard
-        deltaArray = Values
-    if Type == 1:  # If from xyz
-        deltaArray = Values  # Treat xyz as 123, as it reorders them anyway
-    if Type == 2:  # From haeberlen
-        iso = Values[0]
-        delta = Values[1]
-        eta = Values[2]
-        delta11 = delta + iso  # Treat xyz as 123, as it reorders them anyway
-        delta22 = (eta * delta + iso * 3 - delta11) / 2.0
-        delta33 = iso * 3 - delta11 - delta22
-        deltaArray = [delta11, delta22, delta33]
-    if Type == 3:  # From Hertzfeld-Berger
-        iso = Values[0]
-        span = Values[1]
-        skew = Values[2]
-        delta22 = iso + skew * span / 3.0
-        delta33 = (3 * iso - delta22 - span) / 2.0
-        delta11 = 3 * iso - delta22 - delta33
-        deltaArray = [delta11, delta22, delta33]
-    Results = []  # List of list with the different definitions
-    # Force right order
-    deltaSorted = np.sort(deltaArray)
-    D11 = deltaSorted[2]
-    D22 = deltaSorted[1]
-    D33 = deltaSorted[0]
-    Results.append([D11, D22, D33])
-    # Convert to haeberlen convention and xxyyzz
-    iso = (D11 + D22 + D33) / 3.0
-    xyzIndex = np.argsort(np.abs(deltaArray - iso))
-    zz = deltaArray[xyzIndex[2]]
-    yy = deltaArray[xyzIndex[0]]
-    xx = deltaArray[xyzIndex[1]]
-    Results.append([xx, yy, zz])
-    aniso = zz - iso
-    if aniso != 0.0:  # Only is not zero
-        eta = (yy - xx) / aniso
-    else:
-        eta = 'ND'
-    Results.append([iso, aniso, eta])
-    # Convert to Herzfeld-Berger Convention
-    span = D11 - D33
-    if span != 0.0:  # Only if not zero
-        skew = 3.0 * (D22 - iso) / span
-    else:
-        skew = 'ND'
-    Results.append([iso, span, skew])
-    return Results
-
 #############################################################################################
 
 
@@ -2723,7 +2665,7 @@ class TensorDeconvParamFrame(AbstractParamFrame):
                     self.entries['shiftdef'][-1].setCurrentIndex(OldType)  # error, reset to old view
                     self.rootwindow.mainProgram.dispMsg("Fitting: One of the inputs is not valid")
                     return
-                Tensors = shiftConversion(startTensor, OldType)
+                Tensors = func.shiftConversion(startTensor, OldType)
                 for element in range(3):  # Check for `ND' s
                     if isinstance(Tensors[NewType][element], str):
                         Tensors[NewType][element] = 0
@@ -2860,9 +2802,9 @@ def tensorDeconvfitFunc(params, allX, args):
 
 def tensorDeconvtensorFunc(x, t11, t22, t33, lor, gauss, multt, sw, weight, axAdd, convention=0, axMult=1):
     if convention == 0 or convention == 1:
-        Tensors = shiftConversion([t11 / axMult, t22 / axMult, t33 / axMult], convention)
+        Tensors = func.shiftConversion([t11 / axMult, t22 / axMult, t33 / axMult], convention)
     else:
-        Tensors = shiftConversion([t11 / axMult, t22 / axMult, t33], convention)
+        Tensors = func.shiftConversion([t11 / axMult, t22 / axMult, t33], convention)
     t11 = Tensors[0][0] * multt[0]
     t22 = Tensors[0][1] * multt[1]
     t33 = Tensors[0][2] * multt[2]
@@ -2884,9 +2826,9 @@ def tensorDeconvtensorFunc(x, t11, t22, t33, lor, gauss, multt, sw, weight, axAd
 
 def tensorMASDeconvtensorFunc(x, t11, t22, t33, lor, gauss, sw, axAdd, axMult, spinspeed, cheng, convention, numssb):
     if convention == 0 or convention == 1:
-        Tensors = shiftConversion([t11 / axMult, t22 / axMult, t33 / axMult], convention)
+        Tensors = func.shiftConversion([t11 / axMult, t22 / axMult, t33 / axMult], convention)
     else:
-        Tensors = shiftConversion([t11 / axMult, t22 / axMult, t33], convention)
+        Tensors = func.shiftConversion([t11 / axMult, t22 / axMult, t33], convention)
     pos = Tensors[2][0] - axAdd
     delta = Tensors[2][1]
     eta = Tensors[2][2]
@@ -3125,6 +3067,7 @@ class Quad1DeconvParamFrame(AbstractParamFrame):
             outCurve += y
         self.parent.fitDataList[tuple(self.parent.locList)] = [tmpx, outCurve, x, outCurvePart]
         self.parent.showFid()
+
 
 ##############################################################################
 
