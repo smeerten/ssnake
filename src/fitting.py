@@ -334,8 +334,6 @@ class FittingWindow(QtWidgets.QWidget):
         grid.addWidget(self.canvas, 0, 0)
         self.current = self.tabWindow.CURRENTWINDOW(self, self.fig, self.canvas, self.oldMainWindow.get_current())
         self.paramframe = self.tabWindow.PARAMFRAME(self.current, self, isMain=self.isMain)
-
-        # self.fig.suptitle(self.oldMainWindow.get_masterData().name)
         grid.addWidget(self.paramframe, 1, 0)
         grid.setColumnStretch(0, 1)
         grid.setRowStretch(0, 1)
@@ -418,7 +416,6 @@ class FittingWindow(QtWidgets.QWidget):
                                              axes)
 
     def rename(self, name):
-        # self.fig.suptitle(name)
         self.canvas.draw()
         self.oldMainWindow.rename(name)
 
@@ -571,7 +568,8 @@ class FitPlotFrame(Plot1DFrame):
         tmp.pop(self.axes)
         self.fitDataList = np.full(tmp, None, dtype=object)
         self.fitPickNumList = np.zeros(tmp, dtype=int)
-        self.plotType = 0
+        self.viewSettings = {}
+        self.viewSettings["plotType"] = 0
         self.rootwindow = rootwindow
         # Set limits as in parent
         self.xminlim = self.current.xminlim
@@ -597,27 +595,27 @@ class FitPlotFrame(Plot1DFrame):
         hyperView = 0
         updateVar = self.data.getSlice(self.axes, self.locList)
         tmp = updateVar[0][hyperView]
-        if self.current.plotType == 0:
+        if self.current.viewSettings["plotType"] == 0:
             self.data1D = np.real(tmp)
-        elif self.current.plotType == 1:
+        elif self.current.viewSettings["plotType"] == 1:
             self.data1D = np.imag(tmp)
-        elif self.current.plotType == 2:
+        elif self.current.viewSettings["plotType"] == 2:
             self.data1D = np.real(tmp)
-        elif self.current.plotType == 3:
+        elif self.current.viewSettings["plotType"] == 3:
             self.data1D = np.abs(tmp)
 
     def plotReset(self, xReset=True, yReset=True):
         a = self.fig.gca()
-        if self.plotType == 0:
+        if self.viewSettings["plotType"] == 0:
             miny = min(np.real(self.data1D))
             maxy = max(np.real(self.data1D))
-        elif self.plotType == 1:
+        elif self.viewSettings["plotType"] == 1:
             miny = min(np.imag(self.data1D))
             maxy = max(np.imag(self.data1D))
-        elif self.plotType == 2:
+        elif self.viewSettings["plotType"] == 2:
             miny = min(min(np.real(self.data1D)), min(np.imag(self.data1D)))
             maxy = max(max(np.real(self.data1D)), max(np.imag(self.data1D)))
-        elif self.plotType == 3:
+        elif self.viewSettings["plotType"] == 3:
             miny = min(np.abs(self.data1D))
             maxy = max(np.abs(self.data1D))
         else:
@@ -631,9 +629,9 @@ class FitPlotFrame(Plot1DFrame):
             if self.current.ppm:
                 axMult = 1e6 / self.current.ref
             else:
-                axMult = 1.0 / (1000.0**self.current.axType)
+                axMult = 1.0 / (1000.0**self.current.viewSettings["axType"])
         elif self.spec == 0:
-            axMult = 1000.0**self.current.axType
+            axMult = 1000.0**self.current.viewSettings["axType"]
         if xReset:
             self.xminlim = min(self.xax * axMult)
             self.xmaxlim = max(self.xax * axMult)
@@ -649,23 +647,23 @@ class FitPlotFrame(Plot1DFrame):
             if self.current.ppm:
                 axMult = 1e6 / self.current.ref
             else:
-                axMult = 1.0 / (1000.0**self.current.axType)
+                axMult = 1.0 / (1000.0**self.current.viewSettings["axType"])
         elif self.spec == 0:
-            axMult = 1000.0**self.current.axType
+            axMult = 1000.0**self.current.viewSettings["axType"]
         self.line_xdata = self.xax * axMult
         self.line_ydata = self.data1D
-        self.ax.plot(self.xax * axMult, self.data1D, c=self.current.color, marker=self.MARKER, linestyle=self.LINESTYLE, linewidth=self.current.linewidth, label=self.current.data.name, picker=True)
+        self.ax.plot(self.xax * axMult, self.data1D, c=self.current.viewSettings["color"], marker=self.MARKER, linestyle=self.LINESTYLE, linewidth=self.current.viewSettings["linewidth"], label=self.current.data.name, picker=True)
         if self.fitDataList[tuple(self.locList)] is not None:
             tmp = self.fitDataList[tuple(self.locList)]
             self.ax.plot(tmp[0] * axMult, tmp[1], picker=True)
             for i in range(len(tmp[2])):
                 self.ax.plot(tmp[2][i] * axMult, tmp[3][i], picker=True)
         if self.spec == 0:
-            if self.current.axType == 0:
+            if self.current.viewSettings["axType"] == 0:
                 self.ax.set_xlabel('Time [s]')
-            elif self.current.axType == 1:
+            elif self.current.viewSettings["axType"] == 1:
                 self.ax.set_xlabel('Time [ms]')
-            elif self.current.axType == 2:
+            elif self.current.viewSettings["axType"] == 2:
                 self.ax.set_xlabel(r'Time [$\mu$s]')
             else:
                 self.ax.set_xlabel('User defined')
@@ -673,11 +671,11 @@ class FitPlotFrame(Plot1DFrame):
             if self.current.ppm:
                 self.ax.set_xlabel('Frequency [ppm]')
             else:
-                if self.current.axType == 0:
+                if self.current.viewSettings["axType"] == 0:
                     self.ax.set_xlabel('Frequency [Hz]')
-                elif self.current.axType == 1:
+                elif self.current.viewSettings["axType"] == 1:
                     self.ax.set_xlabel('Frequency [kHz]')
-                elif self.current.axType == 2:
+                elif self.current.viewSettings["axType"] == 2:
                     self.ax.set_xlabel('Frequency [MHz]')
                 else:
                     self.ax.set_xlabel('User defined')
@@ -717,13 +715,13 @@ class AbstractParamFrame(QtWidgets.QWidget):
                 self.axUnit = 'ppm'
                 self.axMult = 1e6 / self.parent.current.ref
             else:
-                self.axMult = 1.0 / (1000.0**self.parent.current.axType)
+                self.axMult = 1.0 / (1000.0**self.parent.current.viewSettings["axType"])
                 axUnits = ['Hz', 'kHz', 'MHz']
-                self.axUnit = axUnits[self.parent.current.axType]
+                self.axUnit = axUnits[self.parent.current.viewSettings["axType"]]
         elif self.parent.current.spec == 0:
             axUnits = ['s', 'ms', u"\u03bcs"]
-            self.axUnit = axUnits[self.parent.current.axType]
-            self.axMult = 1000.0**self.parent.current.axType
+            self.axUnit = axUnits[self.parent.current.viewSettings["axType"]]
+            self.axMult = 1000.0**self.parent.current.viewSettings["axType"]
             self.axAdd = 0
         self.frame1 = QtWidgets.QGridLayout()
         self.optframe = QtWidgets.QGridLayout()
@@ -1238,16 +1236,16 @@ class IntegralsParamFrame(AbstractParamFrame):
         self.frame3.setAlignment(QtCore.Qt.AlignTop)
         self.refVal = None
         self.entries = {'min': [], 'max': [], 'amp': []}
-        if self.parent.current.plotType == 0:
+        if self.parent.current.viewSettings["plotType"] == 0:
             self.maxy = np.amax(np.real(self.parent.current.data1D))
             self.diffy = self.maxy - np.amin(np.real(self.parent.current.data1D))
-        elif self.parent.current.plotType == 1:
+        elif self.parent.current.viewSettings["plotType"] == 1:
             self.maxy = np.amax(np.imag(self.parent.current.data1D))
             self.diffy = self.maxy - np.amin(np.imag(self.parent.current.data1D))
-        elif self.parent.current.plotType == 2:
+        elif self.parent.current.viewSettings["plotType"] == 2:
             self.maxy = np.amax(np.real(self.parent.current.data1D))
             self.diffy = self.maxy - np.amin(np.real(self.parent.current.data1D))
-        elif self.parent.current.plotType == 3:
+        elif self.parent.current.viewSettings["plotType"] == 3:
             self.maxy = np.amax(np.abs(self.parent.current.data1D))
             self.diffy = self.maxy - np.amin(np.abs(self.parent.current.data1D))
         for i in range(self.FITNUM):
@@ -2212,9 +2210,9 @@ class PeakDeconvFrame(FitPlotFrame):
                 if self.current.ppm:
                     axMult = 1e6 / self.current.ref
                 else:
-                    axMult = 1.0 / (1000.0**self.current.axType)
+                    axMult = 1.0 / (1000.0**self.current.viewSettings["axType"])
             elif self.current.spec == 0:
-                axMult = 1000.0**self.current.axType
+                axMult = 1000.0**self.current.viewSettings["axType"]
             width = (2 * abs(float(self.rootwindow.paramframe.entries['pos'][pickNum].text()) - pos[1])) / axMult
             self.rootwindow.paramframe.entries['amp'][pickNum].setText(('%#.' + str(self.rootwindow.tabWindow.PRECIS) + 'g') % (float(self.rootwindow.paramframe.entries['amp'][pickNum].text()) * width))
             self.rootwindow.paramframe.entries['lor'][pickNum].setText(('%#.' + str(self.rootwindow.tabWindow.PRECIS) + 'g') % abs(width))
@@ -2456,9 +2454,9 @@ class TensorDeconvFrame(FitPlotFrame):
             if self.current.ppm:
                 axMult = 1e6 / self.current.ref
             else:
-                axMult = 1.0 / (1000.0**self.current.axType)
+                axMult = 1.0 / (1000.0**self.current.viewSettings["axType"])
         elif self.spec == 0:
-            axMult = 1000.0**self.current.axType
+            axMult = 1000.0**self.current.viewSettings["axType"]
         if self.pickNum2 == 0:
             if self.pickNum < self.FITNUM:
                 self.rootwindow.paramframe.numExp.setCurrentIndex(self.pickNum)
@@ -2557,7 +2555,7 @@ class TensorDeconvParamFrame(AbstractParamFrame):
         if self.parent.current.ppm:
             axUnit = 'ppm'
         else:
-            axUnit = ['Hz', 'kHz', 'MHz'][self.parent.current.axType]
+            axUnit = ['Hz', 'kHz', 'MHz'][self.parent.current.viewSettings["axType"]]
         # Labels
         self.label11 = QLabel(u'\u03b4' + '<sub>11</sub> [' + axUnit + '] :')
         self.label22 = QLabel(u'\u03b4' + '<sub>22</sub> [' + axUnit + '] :')
@@ -3025,7 +3023,7 @@ class Quad1DeconvParamFrame(AbstractParamFrame):
         if self.parent.current.ppm:
             axUnit = 'ppm'
         else:
-            axUnit = ['Hz', 'kHz', 'MHz'][self.parent.current.axType]
+            axUnit = ['Hz', 'kHz', 'MHz'][self.parent.current.viewSettings["axType"]]
         # Labels
         self.labelpos = QLabel(u'Position [' + axUnit + ']:')
         self.labelcq = QLabel(u'C<sub>Q</sub> [MHz]:')
@@ -3457,7 +3455,7 @@ class Quad2CzjzekParamFrame(AbstractParamFrame):
         if self.parent.current.ppm:
             axUnit = 'ppm'
         else:
-            axUnit = ['Hz', 'kHz', 'MHz'][self.parent.current.axType]
+            axUnit = ['Hz', 'kHz', 'MHz'][self.parent.current.viewSettings["axType"]]
         self.frame3.addWidget(QLabel("Pos [" + axUnit + "]:"), 1, 2, 1, 2)
         self.frame3.addWidget(QLabel(u"\u03c3 [MHz]:"), 1, 4, 1, 2)
         self.frame3.addWidget(QLabel("Integral:"), 1, 6, 1, 2)
