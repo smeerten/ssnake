@@ -675,6 +675,7 @@ class AbstractParamFrame(QtWidgets.QWidget):
         self.frame1.addWidget(fitButton, 1, 0)
         self.stopButton = QtWidgets.QPushButton("Stop")
         self.stopButton.clicked.connect(self.stopMP)
+        self.stopButton.setStyleSheet('background-color: green') 
         self.frame1.addWidget(self.stopButton, 1, 0)
         self.stopButton.hide()
         self.process1 = None
@@ -684,6 +685,7 @@ class AbstractParamFrame(QtWidgets.QWidget):
         self.frame1.addWidget(fitAllButton, 2, 0)
         self.stopAllButton = QtWidgets.QPushButton("Stop all")
         self.stopAllButton.clicked.connect(self.stopAll)
+        self.stopAllButton.setStyleSheet('background-color: green') 
         self.frame1.addWidget(self.stopAllButton, 2, 0)
         self.stopAllButton.hide()
         copyParamsButton = QtWidgets.QPushButton("Copy parameters")
