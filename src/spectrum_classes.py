@@ -2330,17 +2330,17 @@ class Current1D(Plot1DFrame):
         if invert:
             bArray = np.logical_not(bArray)
         try:
-            dataFit = np.apply_along_axis(lambda data: self.baselinePolyFit(self.xax, data, bArray, degree), self.axes, self.data.data[hyperView])
-            if (self.plotType == 0):
-                dataFit = np.real(dataFit)
-            elif (self.plotType == 1):
-                dataFit = np.imag(dataFit)
-            elif (self.plotType == 2):
-                dataFit = np.real(dataFit)
-            elif (self.plotType == 3):
-                dataFit = np.abs(dataFit)
-            returnValue = self.data.subtract(dataFit,singleHyper = True)
-            self.root.addMacro(['subtract', (dataFit.tolist(), None, slice(None), True)])
+            y = np.apply_along_axis(lambda data: self.baselinePolyFit(self.xax, data, bArray, degree), self.axes, self.data.data[hyperView])
+            if (self.viewSettings["plotType"] == 0):
+                y = np.real(y)
+            elif(self.viewSettings["plotType"] == 1):
+                y = np.imag(y)
+            elif(self.viewSettings["plotType"] == 2):
+                y = np.real(y)
+            elif(self.viewSettings["plotType"] == 3):
+                y = np.abs(y)
+            returnValue = self.data.subtract(y,singleHyper = True)
+            self.root.addMacro(['subtract', (y.tolist(), None, slice(None), True)])
         except Exception:
             return None
         return returnValue
@@ -2364,14 +2364,16 @@ class Current1D(Plot1DFrame):
         if invert:
             bArray = np.logical_not(bArray)
         try:
+            print('1')
             y = self.baselinePolyFit(self.xax, tmpData, bArray, degree)
-            if (self.plotType == 0):
+            print('2')
+            if (self.viewSettings["plotType"] == 0):
                 y = np.real(y)
-            elif (self.plotType == 1):
+            elif(self.viewSettings["plotType"] == 1):
                 y = np.imag(y)
-            elif (self.plotType == 2):
+            elif(self.viewSettings["plotType"] == 2):
                 y = np.real(y)
-            elif (self.plotType == 3):
+            elif(self.viewSettings["plotType"] == 3):
                 y = np.abs(y)
             self.root.addMacro(['baselineCorrection', (list(np.real(y)), self.axes - self.data.data[0].ndim, list(np.imag(y)), str(selectSlice))])
             return self.data.baselineCorrection(y, self.axes, select=selectSlice)
