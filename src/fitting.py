@@ -567,13 +567,7 @@ class FitPlotFrame(Plot1DFrame):
         if yReset:
             self.yminlim = miny - differ
             self.ymaxlim = maxy + differ
-        if self.spec == 1:
-            if self.current.ppm:
-                axMult = 1e6 / self.current.ref
-            else:
-                axMult = 1.0 / (1000.0**self.current.viewSettings["axType"])
-        elif self.spec == 0:
-            axMult = 1000.0**self.current.viewSettings["axType"]
+        axMult = self.getAxMult(self.spec, self.current.viewSettings["axType"], self.current.ppm, self.current.freq, self.current.ref)
         if xReset:
             self.xminlim = min(self.xax * axMult)
             self.xmaxlim = max(self.xax * axMult)
@@ -585,13 +579,7 @@ class FitPlotFrame(Plot1DFrame):
 
     def showFid(self):
         self.ax.cla()
-        if self.spec == 1:
-            if self.current.ppm:
-                axMult = 1e6 / self.current.ref
-            else:
-                axMult = 1.0 / (1000.0**self.current.viewSettings["axType"])
-        elif self.spec == 0:
-            axMult = 1000.0**self.current.viewSettings["axType"]
+        axMult = self.getAxMult(self.spec, self.current.viewSettings["axType"], self.current.ppm, self.current.freq, self.current.ref)
         self.line_xdata = self.xax * axMult
         self.line_ydata = self.data1D
         self.ax.plot(self.xax * axMult, self.data1D, c=self.current.viewSettings["color"], marker=self.MARKER, linestyle=self.LINESTYLE, linewidth=self.current.viewSettings["linewidth"], label=self.current.data.name, picker=True)
@@ -651,19 +639,21 @@ class AbstractParamFrame(QtWidgets.QWidget):
         self.fitNumList = np.zeros(tmp, dtype=int)
         grid = QtWidgets.QGridLayout(self)
         self.setLayout(grid)
+        self.axMult = self.parent.current.getAxMult(self.parent.current.spec,
+                                                    self.parent.current.viewSettings["axType"],
+                                                    self.parent.current.ppm,
+                                                    self.parent.current.freq,
+                                                    self.parent.current.ref)
         if self.parent.current.spec == 1:
             self.axAdd = self.parent.current.freq - self.parent.current.ref
             if self.parent.current.ppm:
                 self.axUnit = 'ppm'
-                self.axMult = 1e6 / self.parent.current.ref
             else:
-                self.axMult = 1.0 / (1000.0**self.parent.current.viewSettings["axType"])
                 axUnits = ['Hz', 'kHz', 'MHz']
                 self.axUnit = axUnits[self.parent.current.viewSettings["axType"]]
         elif self.parent.current.spec == 0:
             axUnits = ['s', 'ms', u"\u03bcs"]
             self.axUnit = axUnits[self.parent.current.viewSettings["axType"]]
-            self.axMult = 1000.0**self.parent.current.viewSettings["axType"]
             self.axAdd = 0
         self.frame1 = QtWidgets.QGridLayout()
         self.optframe = QtWidgets.QGridLayout()
@@ -1179,17 +1169,17 @@ class IntegralsParamFrame(AbstractParamFrame):
         self.refVal = None
         self.entries = {'min': [], 'max': [], 'amp': []}
         if self.parent.current.viewSettings["plotType"] == 0:
-            self.maxy = np.amax(np.real(self.parent.current.data1D))
-            self.diffy = self.maxy - np.amin(np.real(self.parent.current.data1D))
+            self.maxy = np.max(np.real(self.parent.current.data1D))
+            self.diffy = self.maxy - np.min(np.real(self.parent.current.data1D))
         elif self.parent.current.viewSettings["plotType"] == 1:
-            self.maxy = np.amax(np.imag(self.parent.current.data1D))
-            self.diffy = self.maxy - np.amin(np.imag(self.parent.current.data1D))
+            self.maxy = np.max(np.imag(self.parent.current.data1D))
+            self.diffy = self.maxy - np.min(np.imag(self.parent.current.data1D))
         elif self.parent.current.viewSettings["plotType"] == 2:
-            self.maxy = np.amax(np.real(self.parent.current.data1D))
-            self.diffy = self.maxy - np.amin(np.real(self.parent.current.data1D))
+            self.maxy = np.max(np.real(self.parent.current.data1D))
+            self.diffy = self.maxy - np.min(np.real(self.parent.current.data1D))
         elif self.parent.current.viewSettings["plotType"] == 3:
-            self.maxy = np.amax(np.abs(self.parent.current.data1D))
-            self.diffy = self.maxy - np.amin(np.abs(self.parent.current.data1D))
+            self.maxy = np.max(np.abs(self.parent.current.data1D))
+            self.diffy = self.maxy - np.min(np.abs(self.parent.current.data1D))
         for i in range(self.FITNUM):
             for j in range(len(self.MULTINAMES)):
                 self.entries[self.MULTINAMES[j]].append(wc.FitQLineEdit(self, self.MULTINAMES[j]))
@@ -1371,9 +1361,9 @@ class RelaxFrame(FitPlotFrame):
 
     MARKER = 'o'
     LINESTYLE = 'none'
+    FITNUM = 4  # Maximum number of fits
 
     def __init__(self, rootwindow, fig, canvas, current):
-        self.FITNUM = 4  # Maximum number of fits
         self.logx = 0
         self.logy = 0
         super(RelaxFrame, self).__init__(rootwindow, fig, canvas, current)
@@ -1615,7 +1605,7 @@ class RelaxParamFrame(AbstractParamFrame):
 
     def defaultValues(self, inp):
         if not inp:
-            return {'amp': [np.amax(self.parent.data1D), False],
+            return {'amp': [np.max(self.parent.data1D), False],
                     'const': [1.0, False],
                     'coeff': np.repeat([np.array([-1.0, False], dtype=object)], self.FITNUM, axis=0),
                     't': np.repeat([np.array([1.0, False], dtype=object)], self.FITNUM, axis=0)}
@@ -1740,9 +1730,9 @@ class DiffusionFrame(FitPlotFrame):
 
     MARKER = 'o'
     LINESTYLE = 'none'
+    FITNUM = 4  # Maximum number of fits
 
     def __init__(self, rootwindow, fig, canvas, current):
-        self.FITNUM = 4  # Maximum number of fits
         self.logx = 0
         self.logy = 0
         super(DiffusionFrame, self).__init__(rootwindow, fig, canvas, current)
@@ -1957,7 +1947,7 @@ class DiffusionParamFrame(AbstractParamFrame):
         self.frame3.addWidget(QLabel("Amplitude:"), 0, 0, 1, 2)
         self.ticks['amp'].append(QtWidgets.QCheckBox(''))
         self.frame3.addWidget(self.ticks['amp'][-1], 1, 0)
-        self.entries['amp'].append(wc.FitQLineEdit(self, 'amp', ('%#.' + str(self.rootwindow.tabWindow.PRECIS) + 'g') % np.amax(self.parent.data1D)))
+        self.entries['amp'].append(wc.FitQLineEdit(self, 'amp', ('%#.' + str(self.rootwindow.tabWindow.PRECIS) + 'g') % np.max(self.parent.data1D)))
         self.frame3.addWidget(self.entries['amp'][-1], 1, 1)
         self.frame3.addWidget(QLabel("Constant:"), 2, 0, 1, 2)
         self.ticks['const'].append(QtWidgets.QCheckBox(''))
@@ -2000,7 +1990,7 @@ class DiffusionParamFrame(AbstractParamFrame):
 
     def defaultValues(self, inp):
         if not inp:
-            return {'amp': [np.amax(self.parent.data1D), False],
+            return {'amp': [np.max(self.parent.data1D), False],
                     'const': [0.0, False],
                     'coeff': np.repeat([np.array([1.0, False], dtype=object)], self.FITNUM, axis=0),
                     'd': np.repeat([np.array([1.0e-9, False], dtype=object)], self.FITNUM, axis=0)}
@@ -2121,7 +2111,7 @@ def diffusionfitFunc(params, allX, args):
 
 
 class PeakDeconvWindow(TabFittingWindow):
-
+    
     def __init__(self, mainProgram, oldMainWindow):
         self.CURRENTWINDOW = PeakDeconvFrame
         self.PARAMFRAME = PeakDeconvParamFrame
@@ -2131,10 +2121,8 @@ class PeakDeconvWindow(TabFittingWindow):
 
 
 class PeakDeconvFrame(FitPlotFrame):
-
-    def __init__(self, rootwindow, fig, canvas, current):
-        self.FITNUM = 10  # Maximum number of fits
-        super(PeakDeconvFrame, self).__init__(rootwindow, fig, canvas, current)
+    
+    FITNUM = 10
 
     def togglePick(self, var):
         self.peakPickReset()
@@ -2148,14 +2136,8 @@ class PeakDeconvFrame(FitPlotFrame):
     def pickDeconv(self, pos):
         pickNum = self.fitPickNumList[tuple(self.locList)]
         if self.pickWidth:
-            if self.current.spec == 1:
-                if self.current.ppm:
-                    axMult = 1e6 / self.current.ref
-                else:
-                    axMult = 1.0 / (1000.0**self.current.viewSettings["axType"])
-            elif self.current.spec == 0:
-                axMult = 1000.0**self.current.viewSettings["axType"]
-            width = (2 * abs(float(self.rootwindow.paramframe.entries['pos'][pickNum].text()) - pos[1])) / axMult
+            axMult = self.getAxMult(self.current.spec, self.current.viewSettings["axType"], self.current.ppm, self.current.freq, self.current.ref)
+            width = (2 * abs(float(self.rootwindow.paramframe.entries['pos'][pickNum].text()) - pos[1])) / self.getAxMult(self.current.spec, self.current.viewSettings["axType"], self.current.ppm, self.current.freq, self.current.ref)
             self.rootwindow.paramframe.entries['amp'][pickNum].setText(('%#.' + str(self.rootwindow.tabWindow.PRECIS) + 'g') % (float(self.rootwindow.paramframe.entries['amp'][pickNum].text()) * width))
             self.rootwindow.paramframe.entries['lor'][pickNum].setText(('%#.' + str(self.rootwindow.tabWindow.PRECIS) + 'g') % abs(width))
             self.fitPickNumList[tuple(self.locList)] += 1
@@ -2375,8 +2357,9 @@ class TensorDeconvWindow(TabFittingWindow):
 
 class TensorDeconvFrame(FitPlotFrame):
 
+    FITNUM = 10  # Maximum number of fits
+    
     def __init__(self, rootwindow, fig, canvas, current):
-        self.FITNUM = 10  # Maximum number of fits
         self.pickNum = 0
         self.pickNum2 = 0
         super(TensorDeconvFrame, self).__init__(rootwindow, fig, canvas, current)
@@ -2392,13 +2375,7 @@ class TensorDeconvFrame(FitPlotFrame):
 
     def pickDeconv(self, pos):
         printStr = "%#." + str(self.rootwindow.tabWindow.PRECIS) + "g"
-        if self.spec == 1:
-            if self.current.ppm:
-                axMult = 1e6 / self.current.ref
-            else:
-                axMult = 1.0 / (1000.0**self.current.viewSettings["axType"])
-        elif self.spec == 0:
-            axMult = 1000.0**self.current.viewSettings["axType"]
+        axMult = self.getAxMult(self.spec, self.current.viewSettings["axType"], self.current.ppm, self.current.freq, self.current.ref)
         if self.pickNum2 == 0:
             if self.pickNum < self.FITNUM:
                 self.rootwindow.paramframe.numExp.setCurrentIndex(self.pickNum)
@@ -2888,9 +2865,7 @@ class Quad1DeconvWindow(TabFittingWindow):
 
 class Quad1DeconvFrame(FitPlotFrame):
 
-    def __init__(self, rootwindow, fig, canvas, current):
-        self.FITNUM = 10  # Maximum number of fits
-        super(Quad1DeconvFrame, self).__init__(rootwindow, fig, canvas, current)
+    FITNUM = 10  # Maximum number of fits
 
 #################################################################################
 
@@ -3687,10 +3662,7 @@ class SIMPSONDeconvWindow(TabFittingWindow):
 
 class SIMPSONDeconvFrame(FitPlotFrame):
 
-    def __init__(self, rootwindow, fig, canvas, current):
-        self.FITNUM = 1  # Maximum number of fits
-        super(SIMPSONDeconvFrame, self).__init__(rootwindow, fig, canvas, current)
-
+    FITNUM = 1  # Maximum number of fits
 
 #################################################################################
 
@@ -3932,10 +3904,7 @@ class FunctionFitWindow(TabFittingWindow):
 
 class FunctionFitFrame(FitPlotFrame):
 
-    def __init__(self, rootwindow, fig, canvas, current):
-        self.FITNUM = 1  # Maximum number of fits
-        super(FunctionFitFrame, self).__init__(rootwindow, fig, canvas, current)
-
+    FITNUM = 1  # Maximum number of fits
 
 #################################################################################
 
