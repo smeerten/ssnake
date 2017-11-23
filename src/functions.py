@@ -167,7 +167,12 @@ def shiftConversion(Values, Type):
 
 
 def quadConversion(Values,I, Type, Q = None):
-        print('type',Type)
+    # Calculates the chemical shift tensor based on:
+    # Values: a list with two or three numbers (Cq/Wq and Eta, Or Vxx Vyy Vzz)
+    # Type: an integer defining the input shift convention
+    # I: spin quntum number
+    # Q: Quad moment in fm^2
+    # Returns a list of list with all calculated values
         if Type == 0:  # Cq as input
             # Cq, eta
             # Czz is equal to Cq, via same definition (scale) Cxx and Cyy can be found
@@ -202,7 +207,6 @@ def quadConversion(Values,I, Type, Q = None):
             Values = [ Cxx, Cyy, Czz]
 
         #Conversion
-        print('val',Values)
         CArray = np.array(Values)
         Cindex = np.argsort(np.abs(CArray))
         Csort = CArray[Cindex]

@@ -3033,6 +3033,21 @@ class Quad1DeconvParamFrame(AbstractParamFrame):
             out['freq'] = [self.parent.current.freq]
             return (out, [out['mas'][-1], out['I'][-1], out['weight'][-1], out['anglestuff'][-1], out['tensorfunc'][-1], out['freq'][-1]])
 
+
+    def checkParam(self):
+         val = self.numExp.currentIndex() + 1
+         printStr = '%#.' + str(self.rootwindow.tabWindow.PRECIS) + 'g'
+         for i in range(10):  # Print output if not stopped before
+            if i < val:
+                #try:
+                    cq = float(safeEval(self.entries['cq'][i].text()))
+                    eta = float(safeEval(self.entries['eta'][i].text()))
+                    Res = func.quadConversion([cq,eta], 1, 0)[0]
+                    self.entries['cq'][i].setText(printStr % Res[0])
+                    self.entries['eta'][i].setText(printStr % Res[1])
+                #except Exception:
+                #    return
+
     def disp(self, params, num):
         out = params[num]
         for name in self.SINGLENAMES:
@@ -3065,6 +3080,7 @@ class Quad1DeconvParamFrame(AbstractParamFrame):
             outCurve += y
         self.parent.fitDataList[tuple(self.parent.locList)] = [tmpx, outCurve, x, outCurvePart]
         self.parent.showFid()
+        self.checkParam()
 
 
 ##############################################################################
