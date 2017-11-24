@@ -65,15 +65,15 @@ class Spectrum(object):
         else:
             self.spec = spec  # int array of length dim where 0 = time domain, 1 = complex spectral
         if wholeEcho is None:
-            self.wholeEcho = [False] * self.data[0].ndim
+            self.wholeEcho = [False] * self.ndim()
         else:
             self.wholeEcho = wholeEcho  # boolean array of length dim where True indicates a full Echo
         if ref is None:
-            self.ref = np.array(self.data[0].ndim * [None])
+            self.ref = np.array(self.ndim() * [None])
         else:
             self.ref = np.array(ref, dtype=object)
         if xaxArray is None:
-            self.xaxArray = [[] for i in range(self.data[0].ndim)]
+            self.xaxArray = [[] for i in range(self.ndim())]
             self.resetXax()
         else:
             self.xaxArray = xaxArray
@@ -83,6 +83,12 @@ class Spectrum(object):
             self.history = history
         self.msgHandler = msgHandler
 
+    def ndim(self):
+        return self.data[0].ndim
+
+    def shape(self):
+        return self.data[0].shape
+        
     def dispMsg(self, msg):
         if self.msgHandler is None:
             print(msg)
@@ -106,8 +112,8 @@ class Spectrum(object):
 
     def checkAxes(self, axes):
         if axes < 0:
-            axes = axes + self.data[0].ndim
-        if not (0 <= axes < self.data[0].ndim):
+            axes = axes + self.ndim()
+        if not (0 <= axes < self.ndim()):
             self.dispMsg('Not a valid axes')
             return None
         return axes
@@ -119,12 +125,12 @@ class Spectrum(object):
                 return None
             val = [axes]
         else:
-            val = range(self.data[0].ndim)
+            val = range(self.ndim())
         for i in val:
             if self.spec[i] == 0:
-                self.xaxArray[i] = np.arange(self.data[0].shape[i]) / (self.sw[i])
+                self.xaxArray[i] = np.arange(self.shape()[i]) / (self.sw[i])
             elif self.spec[i] == 1:
-                self.xaxArray[i] = np.fft.fftshift(np.fft.fftfreq(self.data[0].shape[i], 1.0 / self.sw[i]))
+                self.xaxArray[i] = np.fft.fftshift(np.fft.fftfreq(self.shape()[i], 1.0 / self.sw[i]))
                 if self.ref[i] is not None:
                     self.xaxArray[i] += self.freq[i] - self.ref[i]
 
@@ -132,7 +138,7 @@ class Spectrum(object):
         axes = self.checkAxes(axes)
         if axes is None:
             return None
-        if len(xax) != self.data[0].shape[axes]:
+        if len(xax) != self.shape()[axes]:
             self.dispMsg("Length of new x-axis does not match length of the data")
             return None
         oldXax = self.xaxArray[axes]
@@ -154,7 +160,7 @@ class Spectrum(object):
             oldSize = self.data[index].shape[axes]
             self.data[index] = np.insert(self.data[index], [pos], data, axis=axes)
         self.resetXax(axes)
-        self.addHistory("Inserted " + str(self.data[0].shape[axes] - oldSize) + " datapoints in dimension " + str(axes + 1) + " at position " + str(pos))
+        self.addHistory("Inserted " + str(self.shape()[axes] - oldSize) + " datapoints in dimension " + str(axes + 1) + " at position " + str(pos))
         if self.noUndo:
             return None
         else:
@@ -289,7 +295,7 @@ class Spectrum(object):
             return None
         try:
             baseline = np.array(baseline) + 1j * np.array(baselineImag)
-            baselinetmp = baseline.reshape((1, ) * axes + (self.data[0].shape[axes], ) + (1, ) * (self.data[0].ndim - axes - 1))
+            baselinetmp = baseline.reshape((1, ) * axes + (self.shape()[axes], ) + (1, ) * (self.ndim() - axes - 1))
             self.data[hyperView][select] = self.data[hyperView][select] - baselinetmp
         except ValueError as error:
             self.dispMsg(str(error))
@@ -301,7 +307,7 @@ class Spectrum(object):
         axes = self.checkAxes(axes)
         if axes is None:
             return None
-        splitVal = self.data[0].shape[axes]
+        splitVal = self.shape()[axes]
         try:
             for index in range(len(self.data)):
                 self.data[index] = np.concatenate(self.data[index], axis=axes)
@@ -401,12 +407,12 @@ class Spectrum(object):
             return None
         if not self.noUndo:
             copyData = copy.deepcopy(self)
-        if self.data[0].shape[axes] % 2 != 0:
+        if self.shape()[axes] % 2 != 0:
             self.dispMsg("States: data has to be even")
             return None
         tmpdata = self.data
-        slicing1 = (slice(None), ) * axes + (slice(None, None, 2), ) + (slice(None), ) * (self.data[0].ndim - 1 - axes)
-        slicing2 = (slice(None), ) * axes + (slice(1, None, 2), ) + (slice(None), ) * (self.data[0].ndim - 1 - axes)
+        slicing1 = (slice(None), ) * axes + (slice(None, None, 2), ) + (slice(None), ) * (self.ndim() - 1 - axes)
+        slicing2 = (slice(None), ) * axes + (slice(1, None, 2), ) + (slice(None), ) * (self.ndim() - 1 - axes)
         self.data = []
         for index in range(len(tmpdata)):
             #tmp = np.real(tmpdata[index][slicing1]) + 1j * np.real(tmpdata[index][slicing2])
@@ -429,12 +435,12 @@ class Spectrum(object):
             return None
         if not self.noUndo:
             copyData = copy.deepcopy(self)
-        if self.data[0].shape[axes] % 2 != 0:
+        if self.shape()[axes] % 2 != 0:
             self.dispMsg("States-TPPI: data has to be even")
             return None
         tmpdata = self.data
-        slicing1 = (slice(None), ) * axes + (slice(None, None, 2), ) + (slice(None), ) * (self.data[0].ndim - 1 - axes)
-        slicing2 = (slice(None), ) * axes + (slice(1, None, 2), ) + (slice(None), ) * (self.data[0].ndim - 1 - axes)
+        slicing1 = (slice(None), ) * axes + (slice(None, None, 2), ) + (slice(None), ) * (self.ndim() - 1 - axes)
+        slicing2 = (slice(None), ) * axes + (slice(1, None, 2), ) + (slice(None), ) * (self.ndim() - 1 - axes)
         self.data = []
         for index in range(len(tmpdata)):
             #tmp = np.real(tmpdata[index][slicing1]) + 1j * np.real(tmpdata[index][slicing2])
@@ -461,12 +467,12 @@ class Spectrum(object):
             return None
         if not self.noUndo:
             copyData = copy.deepcopy(self)
-        if self.data[0].shape[axes] % 2 != 0:
+        if self.shape()[axes] % 2 != 0:
             self.dispMsg("Echo-antiecho: data has to be even")
             return None
         tmpdata = self.data
-        slicing1 = (slice(None), ) * axes + (slice(None, None, 2), ) + (slice(None), ) * (self.data[0].ndim - 1 - axes)
-        slicing2 = (slice(None), ) * axes + (slice(1, None, 2), ) + (slice(None), ) * (self.data[0].ndim - 1 - axes)
+        slicing1 = (slice(None), ) * axes + (slice(None, None, 2), ) + (slice(None), ) * (self.ndim() - 1 - axes)
+        slicing2 = (slice(None), ) * axes + (slice(1, None, 2), ) + (slice(None), ) * (self.ndim() - 1 - axes)
         self.data = []
         for index in range(len(tmpdata)):
             #tmp1 = np.real(tmpdata[index][slicing1] + tmpdata[index][slicing2]) - 1j * np.imag(tmpdata[index][slicing1] - tmpdata[index][slicing2])
@@ -487,10 +493,10 @@ class Spectrum(object):
         axes = self.checkAxes(axes)
         if axes is None:
             return None
-        if not (0 <= pos1 <= self.data[0].shape[axes]):
+        if not (0 <= pos1 <= self.shape()[axes]):
             self.dispMsg("Indices not within range")
             return None
-        if not (0 <= pos2 <= self.data[0].shape[axes]):
+        if not (0 <= pos2 <= self.shape()[axes]):
             self.dispMsg("Indices not within range")
             return None
         if pos1 == pos2:
@@ -498,7 +504,7 @@ class Spectrum(object):
             return None
         minPos = min(pos1, pos2)
         maxPos = max(pos1, pos2)
-        slicing = (slice(None), ) * axes + (slice(minPos, maxPos), ) + (slice(None), ) * (self.data[0].ndim - 1 - axes)
+        slicing = (slice(None), ) * axes + (slice(minPos, maxPos), ) + (slice(None), ) * (self.ndim() - 1 - axes)
         for index in range(len(self.data)):
             averages = np.mean(self.data[index][slicing], axis=axes, keepdims=True)
             self.data[index] -= averages
@@ -526,10 +532,10 @@ class Spectrum(object):
         else:
             keepdims = True
         for i in range(len(pos1)):
-            if not (0 <= pos1[i] <= self.data[0].shape[axes]):
+            if not (0 <= pos1[i] <= self.shape()[axes]):
                 self.dispMsg("Indices not within range")
                 return None
-            if not (0 <= pos2[i] <= self.data[0].shape[axes]):
+            if not (0 <= pos2[i] <= self.shape()[axes]):
                 self.dispMsg("Indices not within range")
                 return None
             if pos1[i] == pos2[i]:
@@ -537,13 +543,13 @@ class Spectrum(object):
                 return None
             minPos = min(pos1[i], pos2[i])
             maxPos = max(pos1[i], pos2[i])
-            slicing = (slice(None), ) * axes + (slice(minPos, maxPos), ) + (slice(None), ) * (self.data[0].ndim - 1 - axes)
+            slicing = (slice(None), ) * axes + (slice(minPos, maxPos), ) + (slice(None), ) * (self.ndim() - 1 - axes)
             for index in range(len(self.data)):
                 if which == 0:
                     if self.spec[axes] == 0:
                         tmpdata[index] += (np.sum(self.data[index][slicing], axis=axes, keepdims=keepdims) / self.sw[axes], )
                     else:
-                        tmpdata[index] += (np.sum(self.data[index][slicing], axis=axes, keepdims=keepdims) * self.sw[axes] / (1.0 * self.data[0].shape[axes]), )
+                        tmpdata[index] += (np.sum(self.data[index][slicing], axis=axes, keepdims=keepdims) * self.sw[axes] / (1.0 * self.shape()[axes]), )
                 elif which == 5:
                     tmpdata[index] += (np.sum(self.data[index][slicing], axis=axes, keepdims=keepdims), )
                 elif which == 1:
@@ -590,7 +596,7 @@ class Spectrum(object):
                 if self.hyper[i] > axes:
                     self.hyper[i] += -1
         if len(tmpdata[0]) == 1:
-            if self.data[0].ndim == 1:
+            if self.ndim() == 1:
                 self.data = []
                 for index in range(len(tmpdata)):
                     self.data.append(np.array([tmpdata[index][0]]))
@@ -631,10 +637,10 @@ class Spectrum(object):
         else:
             keepdims = True
         for i in range(len(pos1)):
-            if not (0 <= pos1[i] <= self.data[0].shape[axes]):
+            if not (0 <= pos1[i] <= self.shape()[axes]):
                 self.dispMsg("Indices not within range")
                 return None
-            if not (0 <= pos2[i] <= self.data[0].shape[axes]):
+            if not (0 <= pos2[i] <= self.shape()[axes]):
                 self.dispMsg("Indices not within range")
                 return None
             if pos1[i] == pos2[i]:
@@ -642,13 +648,13 @@ class Spectrum(object):
                 return None
             minPos = min(pos1[i], pos2[i])
             maxPos = max(pos1[i], pos2[i])
-            slicing = (slice(None), ) * axes + (slice(minPos, maxPos), ) + (slice(None), ) * (self.data[0].ndim - 1 - axes)
+            slicing = (slice(None), ) * axes + (slice(minPos, maxPos), ) + (slice(None), ) * (self.ndim() - 1 - axes)
             for index in range(len(self.data)):
                 if which == 0:
                     if self.spec[axes] == 0:
                         tmpdata[index] += (np.sum(self.data[index][slicing], axis=axes, keepdims=keepdims) / self.sw[axes], )
                     else:
-                        tmpdata[index] += (np.sum(self.data[index][slicing], axis=axes, keepdims=keepdims) * self.sw[axes] / (1.0 * self.data[0].shape[axes]), )
+                        tmpdata[index] += (np.sum(self.data[index][slicing], axis=axes, keepdims=keepdims) * self.sw[axes] / (1.0 * self.shape()[axes]), )
                 elif which == 5:
                     tmpdata[index] += (np.sum(self.data[index][slicing], axis=axes, keepdims=keepdims), )
                 elif which == 1:
@@ -682,7 +688,7 @@ class Spectrum(object):
                 if tmphyper[i] > axes:
                     tmphyper[i] += -1
         if len(tmpdata[0]) == 1:
-            if self.data[0].ndim == 1:
+            if self.ndim() == 1:
                 for index in range(len(tmpdata)):
                     tmpdata[index] = np.array([tmpdata[index][0]])
                 newSpec = Spectrum(self.name,
@@ -755,14 +761,14 @@ class Spectrum(object):
             copyData = copy.deepcopy(self)
         minPos = min(pos1, pos2)
         maxPos = max(pos1, pos2)
-        slicing = (slice(None), ) * axes + (slice(minPos, maxPos), ) + (slice(None), ) * (self.data[0].ndim - 1 - axes)
+        slicing = (slice(None), ) * axes + (slice(minPos, maxPos), ) + (slice(None), ) * (self.ndim() - 1 - axes)
         if self.spec[axes] == 1:
             oldFxax = self.xaxArray[axes][slice(minPos, maxPos)][0]
-            self.sw[axes] = self.sw[axes] * (maxPos - minPos) / (1.0 * self.data[0].shape[axes])
+            self.sw[axes] = self.sw[axes] * (maxPos - minPos) / (1.0 * self.shape()[axes])
         for index in range(len(self.data)):
             self.data[index] = self.data[index][slicing]
         if self.spec[axes] == 1:
-            newFxax = np.fft.fftshift(np.fft.fftfreq(self.data[0].shape[axes], 1.0 / self.sw[axes]))[0]
+            newFxax = np.fft.fftshift(np.fft.fftfreq(self.shape()[axes], 1.0 / self.sw[axes]))[0]
             if self.ref[axes] is None:
                 self.ref[axes] = self.freq[axes]
             self.freq[axes] = self.ref[axes] - newFxax + oldFxax
@@ -811,7 +817,7 @@ class Spectrum(object):
         axes = self.checkAxes(axes)
         if axes is None:
             return None
-        axLen = self.data[0].shape[axes]
+        axLen = self.shape()[axes]
         if len(refSpec) != axLen:
             self.dispMsg("Reference FID does not have the correct length")
             return None
@@ -879,7 +885,7 @@ class Spectrum(object):
         axes = self.checkAxes(axes)
         if axes is None:
             return None
-        slicing = (slice(None), ) * axes + (slice(None, None, -1), ) + (slice(None), ) * (self.data[0].ndim - 1 - axes)
+        slicing = (slice(None), ) * axes + (slice(None, None, -1), ) + (slice(None), ) * (self.ndim() - 1 - axes)
         for index in range(len(self.data)):
             self.data[index] = self.data[index][slicing]
         self.addHistory("Flipped dimension " + str(axes + 1))
@@ -909,10 +915,10 @@ class Spectrum(object):
         axes = self.checkAxes(axes)
         if axes is None:
             return None
-        if len(locList) != self.data[0].ndim-1:
+        if len(locList) != self.ndim()-1:
             self.dispMsg("Data does not have the correct number of dimensions")
             return None
-        if np.any(locList >= np.delete(self.data[0].shape, axes)) or np.any(np.array(locList) < 0):
+        if np.any(locList >= np.delete(self.shape(), axes)) or np.any(np.array(locList) < 0):
             self.dispMsg("The location array contains invalid indices")
             return None
         tmp = []
@@ -937,7 +943,7 @@ class Spectrum(object):
             offset = 0
         else:
             offset = self.freq[axes] - self.ref[axes]
-        vector = np.exp(np.fft.fftshift(np.fft.fftfreq(self.data[0].shape[axes], 1.0 / self.sw[axes]) + offset) / self.sw[axes] * phase1 * 1j)
+        vector = np.exp(np.fft.fftshift(np.fft.fftfreq(self.shape()[axes], 1.0 / self.sw[axes]) + offset) / self.sw[axes] * phase1 * 1j)
         if self.spec[axes] == 0:
             self.fourier(axes, tmp=True)
         self.data = self.hyperReorder(self.data, axes)
@@ -1024,7 +1030,7 @@ class Spectrum(object):
             offset = 0
         else:
             offset = self.freq[axes] - self.ref[axes]
-        vector = np.exp(np.fft.fftshift(np.fft.fftfreq(self.data[0].shape[axes], 1.0 / self.sw[axes]) + offset) / self.sw[axes] * phase1 * 1j)
+        vector = np.exp(np.fft.fftshift(np.fft.fftfreq(self.shape()[axes], 1.0 / self.sw[axes]) + offset) / self.sw[axes] * phase1 * 1j)
         if self.spec[axes] == 0:
             self.fourier(axes, tmp=True)
         self.data = self.hyperReorder(self.data, axes)
@@ -1054,19 +1060,19 @@ class Spectrum(object):
             shifting = 0
         if not self.noUndo:
             copyData = copy.deepcopy(self)
-        axLen = self.data[0].shape[axes]
+        axLen = self.shape()[axes]
         t = np.arange(0, axLen) / self.sw[axes]
         if shifting != 0.0:
-            for j in range(self.data[0].shape[shiftingAxes]):
+            for j in range(self.shape()[shiftingAxes]):
                 shift1 = shift + shifting * j / self.sw[shiftingAxes]
                 x = func.apodize(t, shift1, self.sw[axes], axLen, lor, gauss, cos2, hamming, self.wholeEcho[axes])
                 if self.spec[axes] > 0:
                     self.fourier(axes, tmp=True)
-                for i in range(self.data[0].shape[axes]):
+                for i in range(self.shape()[axes]):
                     if axes < shiftingAxes:
-                        slicing = (slice(None), ) * axes + (i, ) + (slice(None), ) * (shiftingAxes - 1 - axes) + (j, ) + (slice(None), ) * (self.data[0].ndim - 2 - shiftingAxes)
+                        slicing = (slice(None), ) * axes + (i, ) + (slice(None), ) * (shiftingAxes - 1 - axes) + (j, ) + (slice(None), ) * (self.ndim() - 2 - shiftingAxes)
                     else:
-                        slicing = (slice(None), ) * shiftingAxes + (j, ) + (slice(None), ) * (axes - 1 - shiftingAxes) + (i, ) + (slice(None), ) * (self.data[0].ndim - 2 - axes)
+                        slicing = (slice(None), ) * shiftingAxes + (j, ) + (slice(None), ) * (axes - 1 - shiftingAxes) + (i, ) + (slice(None), ) * (self.ndim() - 2 - axes)
                     for index in range(len(self.data)): #For all hypercomplex parts
                         self.data[index][slicing] = self.data[index][slicing] * x[i]
                 if self.spec[axes] > 0:
@@ -1153,7 +1159,7 @@ class Spectrum(object):
         if numPoints % 2 == 0:
             newFreq += newSw / numPoints / 2
         newDat = []
-        if len(self.data[0].shape) > 1:
+        if len(self.shape()) > 1:
             for index in range(len(self.data)):
                 newDat.append(np.apply_along_axis(self.regridFunc, axis, self.data[index],newAxis,self.xaxArray[axis]))
         else:
@@ -1197,27 +1203,27 @@ class Spectrum(object):
             copyData = copy.deepcopy(self)
         if self.spec[axes] > 0:
             self.fourier(axes, tmp=True)
-        if size > self.data[0].shape[axes]:
-            slicing1 = (slice(None), ) * axes + (slice(None, pos), ) + (slice(None), ) * (self.data[0].ndim - 1 - axes)
-            slicing2 = (slice(None), ) * axes + (slice(pos, None), ) + (slice(None), ) * (self.data[0].ndim - 1 - axes)
+        if size > self.shape()[axes]:
+            slicing1 = (slice(None), ) * axes + (slice(None, pos), ) + (slice(None), ) * (self.ndim() - 1 - axes)
+            slicing2 = (slice(None), ) * axes + (slice(pos, None), ) + (slice(None), ) * (self.ndim() - 1 - axes)
             for index in range(len(self.data)):
                 self.data[index] = np.concatenate((np.pad(self.data[index][slicing1], [(0, 0)] * axes + [(0, size - self.data[index].shape[axes])] + [(0, 0)] * (self.data[index].ndim - axes - 1), 'constant', constant_values=0),
                                         self.data[index][slicing2]), axes)
         else:
-            difference = self.data[0].shape[axes] - size
+            difference = self.shape()[axes] - size
             removeBegin = int(np.floor(difference / 2))
             removeEnd = difference - removeBegin
             if pos < removeBegin:
-                slicing = (slice(None), ) * axes + (slice(self.data[0].shape[axes] - size, None), ) + (slice(None), ) * (self.data[0].ndim - 1 - axes)
+                slicing = (slice(None), ) * axes + (slice(self.shape()[axes] - size, None), ) + (slice(None), ) * (self.ndim() - 1 - axes)
                 for index in range(len(self.data)):
                     self.data[index] = self.data[index][slicing]
-            elif self.data[0].shape[axes] - pos < removeEnd:
-                slicing = (slice(None), ) * axes + (slice(None, size), ) + (slice(None), ) * (self.data[0].ndim - 1 - axes)
+            elif self.shape()[axes] - pos < removeEnd:
+                slicing = (slice(None), ) * axes + (slice(None, size), ) + (slice(None), ) * (self.ndim() - 1 - axes)
                 for index in range(len(self.data)):
                     self.data[index] = self.data[index][slicing]
             else:
-                slicing1 = (slice(None), ) * axes + (slice(None, pos - removeBegin), ) + (slice(None), ) * (self.data[0].ndim - 1 - axes)
-                slicing2 = (slice(None), ) * axes + (slice(pos + removeEnd, None), ) + (slice(None), ) * (self.data[0].ndim - 1 - axes)
+                slicing1 = (slice(None), ) * axes + (slice(None, pos - removeBegin), ) + (slice(None), ) * (self.ndim() - 1 - axes)
+                slicing2 = (slice(None), ) * axes + (slice(pos + removeEnd, None), ) + (slice(None), ) * (self.ndim() - 1 - axes)
                 for index in range(len(self.data)):
                     self.data[index] = np.concatenate((self.data[index][slicing1], self.data[index][slicing2]), axis=axes)
         if self.spec[axes] > 0:
@@ -1302,8 +1308,8 @@ class Spectrum(object):
         axes = self.checkAxes(axes)
         if axes is None:
             return None
-        slicing1 = (slice(None), ) * axes + (slice(None, idx), ) + (slice(None), ) * (self.data[0].ndim - 1 - axes)
-        slicing2 = (slice(None), ) * axes + (slice(idx, None), ) + (slice(None), ) * (self.data[0].ndim - 1 - axes)
+        slicing1 = (slice(None), ) * axes + (slice(None, idx), ) + (slice(None), ) * (self.ndim() - 1 - axes)
+        slicing2 = (slice(None), ) * axes + (slice(idx, None), ) + (slice(None), ) * (self.ndim() - 1 - axes)
         for index in range(len(self.data)):
             self.data[index] = np.concatenate((self.data[index][slicing2], self.data[index][slicing1]), axes)
         self.wholeEcho[axes] = not self.wholeEcho[axes]
@@ -1323,7 +1329,7 @@ class Spectrum(object):
             copyData = copy.deepcopy(self)
         if self.spec[axes] > 0:
             self.fourier(axes, tmp=True)
-        mask = np.ones(self.data[0].shape[axes])
+        mask = np.ones(self.shape()[axes])
         if shift < 0:
             mask[slice(shift, None)] = 0
         else:
@@ -1397,7 +1403,7 @@ class Spectrum(object):
             return None
         if np.logical_xor(self.spec[axes], inv) == 0:
             if not self.wholeEcho[axes] and not tmp:
-                slicing = (slice(None), ) * axes + (0, ) + (slice(None), ) * (self.data[0].ndim - 1 - axes)
+                slicing = (slice(None), ) * axes + (0, ) + (slice(None), ) * (self.ndim() - 1 - axes)
                 for index in range(len(tmpdat)):
                     tmpdat[index][slicing] = tmpdat[index][slicing] * 0.5
             for index in range(len(tmpdat)): 
@@ -1409,7 +1415,7 @@ class Spectrum(object):
             for index in range(len(tmpdat)): 
                 tmpdat[index] = np.fft.ifftn(np.fft.ifftshift(tmpdat[index], axes=axes), axes=[axes])
             if not self.wholeEcho[axes] and not tmp:
-                slicing = (slice(None), ) * axes + (0, ) + (slice(None), ) * (self.data[0].ndim - 1 - axes)
+                slicing = (slice(None), ) * axes + (0, ) + (slice(None), ) * (self.ndim() - 1 - axes)
                 for index in range(len(tmpdat)): 
                     tmpdat[index][slicing] = tmpdat[index][slicing] * 2.0
             if not tmp:
@@ -1431,7 +1437,7 @@ class Spectrum(object):
             copyData = copy.deepcopy(self)
         if self.spec[axes] == 0:
             if not self.wholeEcho[axes]:
-                slicing = (slice(None), ) * axes + (0, ) + (slice(None), ) * (self.data[0].ndim - 1 - axes)
+                slicing = (slice(None), ) * axes + (0, ) + (slice(None), ) * (self.ndim() - 1 - axes)
                 for index in range(len(self.data)):
                     self.data[index][slicing] = self.data[index][slicing] * 0.5
             for index in range(len(self.data)):
@@ -1442,7 +1448,7 @@ class Spectrum(object):
             for index in range(len(self.data)):
                 self.data[index] = np.fft.ifftn(np.fft.ifftshift(np.real(self.data[index]), axes=axes), axes=[axes])
             if not self.wholeEcho[axes]:
-                slicing = (slice(None), ) * axes + (0, ) + (slice(None), ) * (self.data[0].ndim - 1 - axes)
+                slicing = (slice(None), ) * axes + (0, ) + (slice(None), ) * (self.ndim() - 1 - axes)
                 for index in range(len(self.data)):
                     self.data[index][slicing] = self.data[index][slicing] * 2.0
             self.spec[axes] = 0
@@ -1480,13 +1486,13 @@ class Spectrum(object):
         if axes == axes2:
             self.dispMsg('Both shearing axes cannot be equal')
             return None
-        if self.data[0].ndim < 2:
+        if self.ndim() < 2:
             self.dispMsg("The data does not have enough dimensions for a shearing transformation")
             return None
-        shape = self.data[0].shape
+        shape = self.shape()
         vec1 = np.linspace(0, shear * 2 * np.pi * shape[axes] / self.sw[axes], shape[axes] + 1)[:-1]
         vec2 = np.fft.fftshift(np.fft.fftfreq(shape[axes2], 1 / self.sw[axes2]))
-        newShape = [1, ] * self.data[0].ndim
+        newShape = [1, ] * self.ndim()
         newShape[axes] = shape[axes]
         newShape[axes2] = shape[axes2]
         if axes > axes2:
@@ -1520,10 +1526,10 @@ class Spectrum(object):
             return None
         if not self.noUndo:
             copyData = copy.deepcopy(self)
-        newShape = np.array(self.data[0].shape)
+        newShape = np.array(self.shape())
         newShape[axes] = newLength
         tmpData = np.zeros(newShape, dtype=complex)
-        slicing = (slice(None), ) * axes + (pos, ) + (slice(None), ) * (self.data[0].ndim - 1 - axes)
+        slicing = (slice(None), ) * axes + (pos, ) + (slice(None), ) * (self.ndim() - 1 - axes)
         for index in range(len(self.data)):
             tmpData = np.zeros(newShape, dtype=complex)
             tmpData[slicing] = self.data[index]
@@ -1542,7 +1548,7 @@ class Spectrum(object):
         if not self.noUndo:
             copyData = copy.deepcopy(self)
         # pos contains the values of fixed points which not to be translated to missing points
-        posList = np.delete(range(self.data[0].shape[axes]), pos)
+        posList = np.delete(range(self.shape()[axes]), pos)
         if typeVal == 1:  # type is States or States-TPPI, the positions need to be divided by 2
             posList = np.array(np.floor(posList / 2), dtype=int)
         if typeVal == 2:  # type is TPPI, for now handle the same as Complex
@@ -1577,7 +1583,7 @@ class Spectrum(object):
         if not self.noUndo:
             copyData = copy.deepcopy(self)
         # pos contains the values of fixed points which not to be translated to missing points
-        posList = np.delete(range(self.data[0].shape[axes]), pos)
+        posList = np.delete(range(self.shape()[axes]), pos)
         if typeVal == 1:  # type is States or States-TPPI, the positions need to be divided by 2
             posList = np.array(np.floor(posList / 2), dtype=int)
         if typeVal == 2:  # type is TPPI, for now handle the same as Complex
@@ -1775,7 +1781,7 @@ class Current1D(Plot1DFrame):
         if duplicateCurrent is None:
             self.ppm = self.root.father.defaultPPM             # display frequency as ppm
             self.ppm2 = self.root.father.defaultPPM             # display frequency as ppm
-            self.axes = len(self.data.data[0].shape) - 1
+            self.axes = len(self.data.shape()) - 1
             self.axes2 = 0
             self.resetLocList()
             self.viewSettings = {"plotType": 0,
@@ -1822,7 +1828,7 @@ class Current1D(Plot1DFrame):
             self.axes = duplicateCurrent.axes
             self.axes2 = duplicateCurrent.axes2
             if isinstance(self, (CurrentStacked, CurrentArrayed, CurrentContour)):
-                if (len(duplicateCurrent.locList) == self.data.data[0].ndim - 2):
+                if (len(duplicateCurrent.locList) == self.data.ndim() - 2):
                     self.locList = duplicateCurrent.locList
                 else:
                     if self.axes < self.axes2:
@@ -1830,7 +1836,7 @@ class Current1D(Plot1DFrame):
                     else:
                         self.locList = np.delete(duplicateCurrent.locList, self.axes2)
             else:
-                if (len(duplicateCurrent.locList) == self.data.data[0].ndim - 1):
+                if (len(duplicateCurrent.locList) == self.data.ndim() - 1):
                     self.locList = duplicateCurrent.locList
                 else:
                     if self.axes < duplicateCurrent.axes2:
@@ -1870,9 +1876,9 @@ class Current1D(Plot1DFrame):
         return Current1D(root, fig, canvas, data, self)
 
     def upd(self):  # get new data from the data instance
-        if self.data.data[0].ndim <= self.axes:
-            self.axes = len(self.data.data[0].shape) - 1
-        if (len(self.locList) + 1) != self.data.data[0].ndim:
+        if self.data.ndim() <= self.axes:
+            self.axes = len(self.data.shape()) - 1
+        if (len(self.locList) + 1) != self.data.ndim():
             self.resetLocList()
         try:
             updateVar = self.data.getSlice(self.axes, self.locList)
@@ -1905,7 +1911,7 @@ class Current1D(Plot1DFrame):
         self.showFid()
 
     def resetLocList(self):
-        self.locList = [0] * (len(self.data.data[0].shape) - 1)
+        self.locList = [0] * (len(self.data.shape()) - 1)
 
     def getSelect(self):
         tmp = list(self.locList)
@@ -1956,7 +1962,7 @@ class Current1D(Plot1DFrame):
         returnValue = self.data.setPhase(phase0, phase1, self.axes, selectSlice)
         self.upd()
         self.showFid()
-        self.root.addMacro(['phase', (phase0, phase1, self.axes - self.data.data[0].ndim, str(selectSlice))])
+        self.root.addMacro(['phase', (phase0, phase1, self.axes - self.data.ndim(), str(selectSlice))])
         return returnValue
 
     def fourier(self):  # fourier the actual data and replot
@@ -1966,7 +1972,7 @@ class Current1D(Plot1DFrame):
             self.resetSpacing()
         self.plotReset()
         self.showFid()
-        self.root.addMacro(['fourier', (self.axes - self.data.data[0].ndim, )])
+        self.root.addMacro(['fourier', (self.axes - self.data.ndim(), )])
         return returnValue
 
     def realFourier(self):  # fourier the real data and replot
@@ -1976,14 +1982,14 @@ class Current1D(Plot1DFrame):
             self.resetSpacing()
         self.plotReset()
         self.showFid()
-        self.root.addMacro(['realFourier', (self.axes - self.data.data[0].ndim, )])
+        self.root.addMacro(['realFourier', (self.axes - self.data.ndim(), )])
         return returnValue
 
     def fftshift(self, inv=False):  # fftshift the actual data and replot
         returnValue = self.data.fftshift(self.axes, inv)
         self.upd()
         self.showFid()
-        self.root.addMacro(['fftshift', (self.axes - self.data.data[0].ndim, inv)])
+        self.root.addMacro(['fftshift', (self.axes - self.data.ndim(), inv)])
         return returnValue
 
     def fourierLocal(self, fourData, spec, axis):  # fourier the local data for other functions
@@ -2034,14 +2040,14 @@ class Current1D(Plot1DFrame):
         returnValue = self.data.apodize(lor, gauss, cos2, hamming, shift, shifting, shiftingAxes, self.axes, selectSlice)
         self.upd()
         self.showFid()
-        self.root.addMacro(['apodize', (lor, gauss, cos2, hamming, shift, shifting, shiftingAxes, self.axes - self.data.data[0].ndim, str(selectSlice))])
+        self.root.addMacro(['apodize', (lor, gauss, cos2, hamming, shift, shifting, shiftingAxes, self.axes - self.data.ndim(), str(selectSlice))])
         return returnValue
 
     def setFreq(self, freq, sw):  # set the frequency of the actual data
         returnValue = self.data.setFreq(freq, sw, self.axes)
         self.upd()
         self.showFid()
-        self.root.addMacro(['freq', (freq, sw, self.axes - self.data.data[0].ndim)])
+        self.root.addMacro(['freq', (freq, sw, self.axes - self.data.ndim())])
         return returnValue
 
     def setRef(self, ref):  # set the frequency of the actual data
@@ -2061,7 +2067,7 @@ class Current1D(Plot1DFrame):
                 self.xmaxlim = self.xmaxlim + (oldref - ref) / 10**(val * 3)
         self.upd()
         self.showFid()
-        self.root.addMacro(['ref', (ref, self.axes - self.data.data[0].ndim)])
+        self.root.addMacro(['ref', (ref, self.axes - self.data.ndim())])
         return returnValue
 
     def regrid(self, limits, numPoints):
@@ -2070,7 +2076,7 @@ class Current1D(Plot1DFrame):
         self.upd()
         self.plotReset()
         self.showFid()
-        self.root.addMacro(['regrid', (limits, numPoints,ax - self.data.data[0].ndim)])
+        self.root.addMacro(['regrid', (limits, numPoints,ax - self.data.ndim())])
         return returnValue
 
     def SN(self, minNoise, maxNoise, minPeak, maxPeak):
@@ -2228,7 +2234,7 @@ class Current1D(Plot1DFrame):
         if not self.spec:
             self.plotReset(True, False)
         self.showFid()
-        self.root.addMacro(['size', (size, pos, self.axes - self.data.data[0].ndim)])
+        self.root.addMacro(['size', (size, pos, self.axes - self.data.ndim())])
         return returnValue
 
     def applyLPSVD(self, nAnalyse, nFreq, nPredict, Direction):
@@ -2244,14 +2250,14 @@ class Current1D(Plot1DFrame):
             self.resetSpacing()
         self.plotReset()
         self.showFid()
-        self.root.addMacro(['spec', (val, self.axes - self.data.data[0].ndim)])
+        self.root.addMacro(['spec', (val, self.axes - self.data.ndim())])
         return returnValue
 
     def applySwapEcho(self, idx):
         returnValue = self.data.swapEcho(idx, self.axes)
         self.upd()
         self.showFid()
-        self.root.addMacro(['swapecho', (idx, self.axes - self.data.data[0].ndim)])
+        self.root.addMacro(['swapecho', (idx, self.axes - self.data.ndim())])
         return returnValue
 
     def setSwapEchoPreview(self, idx):
@@ -2268,11 +2274,11 @@ class Current1D(Plot1DFrame):
         if value == 0:
             returnValue = self.data.setWholeEcho(False, self.axes)
             self.wholeEcho = False
-            self.root.addMacro(['wholeEcho', (False, self.axes - self.data.data[0].ndim)])
+            self.root.addMacro(['wholeEcho', (False, self.axes - self.data.ndim())])
         else:
             returnValue = self.data.setWholeEcho(True, self.axes)
             self.wholeEcho = True
-            self.root.addMacro(['wholeEcho', (True, self.axes - self.data.data[0].ndim)])
+            self.root.addMacro(['wholeEcho', (True, self.axes - self.data.ndim())])
         return returnValue
 
     def applyShift(self, shift, select=False):
@@ -2283,7 +2289,7 @@ class Current1D(Plot1DFrame):
         returnValue = self.data.shiftData(shift, self.axes, selectSlice)
         self.upd()
         self.showFid()
-        self.root.addMacro(['shift', (shift, self.axes - self.data.data[0].ndim, str(selectSlice))])
+        self.root.addMacro(['shift', (shift, self.axes - self.data.ndim(), str(selectSlice))])
         return returnValue
 
     def setShiftPreview(self, shift):
@@ -2375,7 +2381,7 @@ class Current1D(Plot1DFrame):
                 y = np.real(y)
             elif(self.viewSettings["plotType"] == 3):
                 y = np.abs(y)
-            self.root.addMacro(['baselineCorrection', (list(np.real(y)), self.axes - self.data.data[0].ndim, list(np.imag(y)), str(selectSlice))])
+            self.root.addMacro(['baselineCorrection', (list(np.real(y)), self.axes - self.data.ndim(), list(np.imag(y)), str(selectSlice))])
             return self.data.baselineCorrection(y, self.axes, select=selectSlice)
         except Exception:
             return None
@@ -2441,28 +2447,28 @@ class Current1D(Plot1DFrame):
         returnValue = self.data.states(self.axes)
         self.upd()
         self.showFid()
-        self.root.addMacro(['states', (self.axes - self.data.data[0].ndim, )])
+        self.root.addMacro(['states', (self.axes - self.data.ndim(), )])
         return returnValue
 
     def statesTPPI(self):
         returnValue = self.data.statesTPPI(self.axes)
         self.upd()
         self.showFid()
-        self.root.addMacro(['statesTPPI', (self.axes - self.data.data[0].ndim, )])
+        self.root.addMacro(['statesTPPI', (self.axes - self.data.ndim(), )])
         return returnValue
 
     def echoAntiEcho(self):
         returnValue = self.data.echoAntiEcho(self.axes)
         self.upd()
         self.showFid()
-        self.root.addMacro(['echoAntiEcho', (self.axes - self.data.data[0].ndim, )])
+        self.root.addMacro(['echoAntiEcho', (self.axes - self.data.ndim(), )])
         return returnValue
 
     def integrate(self, pos1, pos2, newSpec=False):
         if newSpec:
             return self.data.matrixManipNew(pos1, pos2, self.axes, 0)
         else:
-            self.root.addMacro(['integrate', (pos1.tolist(), pos2.tolist(), self.axes - self.data.data[0].ndim, )])
+            self.root.addMacro(['integrate', (pos1.tolist(), pos2.tolist(), self.axes - self.data.ndim(), )])
             returnValue = self.data.matrixManip(pos1, pos2, self.axes, 0)
             if self.upd():
                 self.plotReset()
@@ -2473,7 +2479,7 @@ class Current1D(Plot1DFrame):
         if newSpec:
             return self.data.matrixManipNew(pos1, pos2, self.axes, 5)
         else:
-            self.root.addMacro(['sum', (pos1.tolist(), pos2.tolist(), self.axes - self.data.data[0].ndim, )])
+            self.root.addMacro(['sum', (pos1.tolist(), pos2.tolist(), self.axes - self.data.ndim(), )])
             returnValue = self.data.matrixManip(pos1, pos2, self.axes, 5)
             if self.upd():
                 self.plotReset()
@@ -2484,7 +2490,7 @@ class Current1D(Plot1DFrame):
         if newSpec:
             return self.data.matrixManipNew(pos1, pos2, self.axes, 1)
         else:
-            self.root.addMacro(['max', (pos1.tolist(), pos2.tolist(), self.axes - self.data.data[0].ndim, )])
+            self.root.addMacro(['max', (pos1.tolist(), pos2.tolist(), self.axes - self.data.ndim(), )])
             returnValue = self.data.matrixManip(pos1, pos2, self.axes, 1)
             if self.upd():
                 self.plotReset()
@@ -2495,7 +2501,7 @@ class Current1D(Plot1DFrame):
         if newSpec:
             return self.data.matrixManipNew(pos1, pos2, self.axes, 2)
         else:
-            self.root.addMacro(['min', (pos1.tolist(), pos2.tolist(), self.axes - self.data.data[0].ndim, )])
+            self.root.addMacro(['min', (pos1.tolist(), pos2.tolist(), self.axes - self.data.ndim(), )])
             returnValue = self.data.matrixManip(pos1, pos2, self.axes, 2)
             if self.upd():
                 self.plotReset()
@@ -2506,7 +2512,7 @@ class Current1D(Plot1DFrame):
         if newSpec:
             return self.data.matrixManipNew(pos1, pos2, self.axes, 3)
         else:
-            self.root.addMacro(['argmax', (pos1.tolist(), pos2.tolist(), self.axes - self.data.data[0].ndim, )])
+            self.root.addMacro(['argmax', (pos1.tolist(), pos2.tolist(), self.axes - self.data.ndim(), )])
             returnValue = self.data.matrixManip(pos1, pos2, self.axes, 3)
             if self.upd():
                 self.plotReset()
@@ -2517,7 +2523,7 @@ class Current1D(Plot1DFrame):
         if newSpec:
             return self.data.matrixManipNew(pos1, pos2, self.axes, 4)
         else:
-            self.root.addMacro(['argmin', (pos1.tolist(), pos2.tolist(), self.axes - self.data.data[0].ndim, )])
+            self.root.addMacro(['argmin', (pos1.tolist(), pos2.tolist(), self.axes - self.data.ndim(), )])
             returnValue = self.data.matrixManip(pos1, pos2, self.axes, 4)
             if self.upd():
                 self.plotReset()
@@ -2528,7 +2534,7 @@ class Current1D(Plot1DFrame):
         if newSpec:
             return self.data.matrixManipNew(pos1, pos2, self.axes, 6)
         else:
-            self.root.addMacro(['average', (pos1.tolist(), pos2.tolist(), self.axes - self.data.data[0].ndim, )])
+            self.root.addMacro(['average', (pos1.tolist(), pos2.tolist(), self.axes - self.data.ndim(), )])
             returnValue = self.data.matrixManip(pos1, pos2, self.axes, 6)
             if self.upd():
                 self.plotReset()
@@ -2539,7 +2545,7 @@ class Current1D(Plot1DFrame):
         returnValue = self.data.flipLR(self.axes)
         self.upd()
         self.showFid()
-        self.root.addMacro(['fliplr', (self.axes - self.data.data[0].ndim, )])
+        self.root.addMacro(['fliplr', (self.axes - self.data.ndim(), )])
         return returnValue
 
     def concatenate(self, axes):
@@ -2547,7 +2553,7 @@ class Current1D(Plot1DFrame):
         self.upd()
         self.plotReset()
         self.showFid()
-        self.root.addMacro(['concatenate', (axes - self.data.data[0].ndim - 1, )])
+        self.root.addMacro(['concatenate', (axes - self.data.ndim() - 1, )])
         return returnValue
 
     def split(self, sections):
@@ -2555,21 +2561,21 @@ class Current1D(Plot1DFrame):
         self.upd()
         self.plotReset()
         self.showFid()
-        self.root.addMacro(['split', (sections, self.axes - self.data.data[0].ndim + 1)])
+        self.root.addMacro(['split', (sections, self.axes - self.data.ndim() + 1)])
         return returnValue
 
     def diff(self):
         returnValue = self.data.diff(self.axes)
         self.upd()
         self.showFid()
-        self.root.addMacro(['diff', (self.axes - self.data.data[0].ndim, )])
+        self.root.addMacro(['diff', (self.axes - self.data.ndim(), )])
         return returnValue
 
     def cumsum(self):
         returnValue = self.data.cumsum(self.axes)
         self.upd()
         self.showFid()
-        self.root.addMacro(['cumsum', (self.axes - self.data.data[0].ndim, )])
+        self.root.addMacro(['cumsum', (self.axes - self.data.ndim(), )])
         return returnValue
 
     def insert(self, data, pos):
@@ -2577,14 +2583,14 @@ class Current1D(Plot1DFrame):
         self.upd()
         self.plotReset()
         self.showFid()
-        self.root.addMacro(['insert', (np.real(data).tolist(), pos, self.axes - self.data.data[0].ndim, np.imag(data).tolist())])
+        self.root.addMacro(['insert', (np.real(data).tolist(), pos, self.axes - self.data.ndim(), np.imag(data).tolist())])
         return returnValue
 
     def delete(self, pos):
         returnValue = self.data.remove(pos, self.axes)
         self.upd()
         self.showFid()
-        self.root.addMacro(['delete', (pos, self.axes - self.data.data[0].ndim)])
+        self.root.addMacro(['delete', (pos, self.axes - self.data.ndim())])
         return returnValue
 
     def deletePreview(self, pos):
@@ -2647,7 +2653,7 @@ class Current1D(Plot1DFrame):
         returnValue = self.data.multiply(data, self.axes, select=selectSlice)
         self.upd()
         self.showFid()
-        self.root.addMacro(['multiply', (np.real(data).tolist(), self.axes - self.data.data[0].ndim, np.imag(data).tolist(), str(selectSlice))])
+        self.root.addMacro(['multiply', (np.real(data).tolist(), self.axes - self.data.ndim(), np.imag(data).tolist(), str(selectSlice))])
         return returnValue
 
     def multiplyPreview(self, data):
@@ -2664,7 +2670,7 @@ class Current1D(Plot1DFrame):
         returnValue = self.data.subtractAvg(pos1, pos2, self.axes)
         self.upd()
         self.showFid()
-        self.root.addMacro(['subtractAvg', (pos1, pos2, self.axes - self.data.data[0].ndim)])
+        self.root.addMacro(['subtractAvg', (pos1, pos2, self.axes - self.data.ndim())])
         return returnValue
 
     def subtractAvgPreview(self, pos1, pos2):
@@ -2685,7 +2691,7 @@ class Current1D(Plot1DFrame):
             self.upd()
             self.plotReset()
             self.showFid()
-            self.root.addMacro(['extract', (pos1, pos2, self.axes - self.data.data[0].ndim)])
+            self.root.addMacro(['extract', (pos1, pos2, self.axes - self.data.ndim())])
             return returnValue
 
     def fiddle(self, pos1, pos2, lb):
@@ -2700,21 +2706,21 @@ class Current1D(Plot1DFrame):
         returnValue = self.data.fiddle(refSpec, lb, self.axes)
         self.upd()
         self.showFid()
-        self.root.addMacro(['FIDDLE', (refSpec, lb, self.axes - self.data.data[0].ndim)])
+        self.root.addMacro(['FIDDLE', (refSpec, lb, self.axes - self.data.ndim())])
         return returnValue
 
     def shearing(self, shear, axes, axes2):
         returnValue = self.data.shear(shear, axes, axes2)
         self.upd()
         self.showFid()
-        self.root.addMacro(['shear', (shear, axes - self.data.data[0].ndim, axes2 - self.data.data[0].ndim)])
+        self.root.addMacro(['shear', (shear, axes - self.data.ndim(), axes2 - self.data.ndim())])
         return returnValue
 
     def reorder(self, pos, newLength):
         returnValue = self.data.reorder(pos, newLength, self.axes)
         self.upd()
         self.showFid()
-        self.root.addMacro(['reorder', (pos, newLength, self.axes - self.data.data[0].ndim)])
+        self.root.addMacro(['reorder', (pos, newLength, self.axes - self.data.ndim())])
         return returnValue
 
     def ffm(self, posList, typeVal):
@@ -2722,7 +2728,7 @@ class Current1D(Plot1DFrame):
             returnValue = self.data.ffm_1d(posList, typeVal, self.axes)
             self.upd()
             self.showFid()
-            self.root.addMacro(['ffm', (posList, typeVal, self.axes - self.data.data[0].ndim)])
+            self.root.addMacro(['ffm', (posList, typeVal, self.axes - self.data.ndim())])
         except:
             returnValue = None
         return returnValue
@@ -2732,7 +2738,7 @@ class Current1D(Plot1DFrame):
             returnValue = self.data.clean(posList, typeVal, self.axes, gamma, threshold, maxIter)
             self.upd()
             self.showFid()
-            self.root.addMacro(['clean', (posList, typeVal, self.axes - self.data.data[0].ndim, gamma, threshold, maxIter)])
+            self.root.addMacro(['clean', (posList, typeVal, self.axes - self.data.ndim(), gamma, threshold, maxIter)])
         except:
             returnValue = None
         return returnValue
@@ -2742,7 +2748,7 @@ class Current1D(Plot1DFrame):
             returnValue = self.data.ist(posList, typeVal, self.axes, threshold, maxIter, tracelimit)
             self.upd()
             self.showFid()
-            self.root.addMacro(['ist', (posList, typeVal, self.axes - self.data.data[0].ndim, threshold, maxIter, tracelimit)])
+            self.root.addMacro(['ist', (posList, typeVal, self.axes - self.data.ndim(), threshold, maxIter, tracelimit)])
         except Exception:
             returnValue = None
         return returnValue
@@ -2785,7 +2791,7 @@ class Current1D(Plot1DFrame):
         returnValue = self.data.autoPhase(phaseNum, self.axes, tmpLocList)
         self.upd()
         self.showFid()
-        self.root.addMacro(['autoPhase', (phaseNum, self.axes - self.data.data[0].ndim, tmpLocList)])
+        self.root.addMacro(['autoPhase', (phaseNum, self.axes - self.data.ndim(), tmpLocList)])
         return returnValue
 
     def setXaxPreview(self, xax):
@@ -2799,7 +2805,7 @@ class Current1D(Plot1DFrame):
         self.upd()
         self.plotReset()
         self.showFid()
-        self.root.addMacro(['setxax', (xax, self.axes - self.data.data[0].ndim)])
+        self.root.addMacro(['setxax', (xax, self.axes - self.data.ndim())])
         return returnVal
 
     def setAxType(self, val):
@@ -2818,7 +2824,7 @@ class Current1D(Plot1DFrame):
         returnValue = self.data.hilbert(self.axes)
         self.upd()
         self.showFid()
-        self.root.addMacro(['hilbert', (self.axes - self.data.data[0].ndim, )])
+        self.root.addMacro(['hilbert', (self.axes - self.data.ndim(), )])
         return returnValue
 
     def getColorMap(self):
@@ -3001,9 +3007,9 @@ class CurrentMulti(Current1D):
     def addExtraData(self, data, name):
         self.viewSettings["extraName"].append(name)
         self.viewSettings["extraData"].append(data)
-        self.viewSettings["extraLoc"].append([0] * (len(self.viewSettings["extraData"][-1].data[0].shape) - 1))
+        self.viewSettings["extraLoc"].append([0] * (len(self.viewSettings["extraData"][-1].shape()) - 1))
         self.viewSettings["extraColor"].append(COLORCONVERTER.to_rgb(COLORCYCLE[np.mod(len(self.viewSettings["extraData"]), len(COLORCYCLE))]['color']))  # find a good color system
-        self.viewSettings["extraAxes"].append(len(data.data[0].shape) - 1)
+        self.viewSettings["extraAxes"].append(len(data.shape()) - 1)
         self.viewSettings["extraScale"].append(1.0)
         self.viewSettings["extraOffset"].append(0.0)
         self.viewSettings["extraShift"].append(0.0)
@@ -3028,7 +3034,7 @@ class CurrentMulti(Current1D):
         return tuple(np.array(255 * np.array(self.viewSettings["extraColor"][num]), dtype=int))
 
     def resetLocList(self):
-        self.locList = [0] * (len(self.data.data[0].shape) - 1)
+        self.locList = [0] * (len(self.data.shape()) - 1)
         self.resetExtraLocList()
 
     def setExtraScale(self, num, scale):
@@ -3046,9 +3052,9 @@ class CurrentMulti(Current1D):
     def resetExtraLocList(self, num=None):
         if num is None:
             for i in range(len(self.viewSettings["extraLoc"])):
-                self.viewSettings["extraLoc"][i] = [0] * (len(self.viewSettings["extraData"][i].data[0].shape) - 1)
+                self.viewSettings["extraLoc"][i] = [0] * (len(self.viewSettings["extraData"][i].shape()) - 1)
         else:
-            self.viewSettings["extraLoc"][num] = [0] * (len(self.viewSettings["extraData"][num].data[0].shape) - 1)
+            self.viewSettings["extraLoc"][num] = [0] * (len(self.viewSettings["extraData"][num].shape()) - 1)
 
     def plotReset(self, xReset=True, yReset=True):  # set the plot limits to min and max values
         hyperView = 0
@@ -3075,8 +3081,8 @@ class CurrentMulti(Current1D):
         for i in range(len(self.viewSettings["extraData"])):
             data = self.viewSettings["extraData"][i]
             try:
-                if data.data[0].ndim <= self.viewSettings["extraAxes"][i]:
-                    self.viewSettings["extraAxes"][i] = len(data.data[0].shape) - 1
+                if data.ndim() <= self.viewSettings["extraAxes"][i]:
+                    self.viewSettings["extraAxes"][i] = len(data.shape()) - 1
                     self.resetExtraLocList(i)
                 updateVar = data.getSlice(self.viewSettings["extraAxes"][i], self.viewSettings["extraLoc"][i])
             except Exception:
@@ -3121,8 +3127,8 @@ class CurrentMulti(Current1D):
         for i in range(len(self.viewSettings["extraData"])):
             data = self.viewSettings["extraData"][i]
             try:
-                if self.viewSettings["extraData"][i].data[0].ndim <= self.viewSettings["extraAxes"][i]:
-                    self.viewSettings["extraAxes"][i] = len(self.viewSettings["extraData"][i].data[0].shape) - 1
+                if self.viewSettings["extraData"][i].ndim() <= self.viewSettings["extraAxes"][i]:
+                    self.viewSettings["extraAxes"][i] = len(self.viewSettings["extraData"][i].shape()) - 1
                     self.resetExtraLocList(i)
                 updateVar = data.getSlice(self.viewSettings["extraAxes"][i], self.viewSettings["extraLoc"][i])
             except Exception:
@@ -3219,10 +3225,10 @@ class CurrentStacked(Current1D):
         return CurrentStacked(root, fig, canvas, data, self)
 
     def upd(self):  # get new data from the data instance
-        if self.data.data[0].ndim < 2:
+        if self.data.ndim() < 2:
             self.root.rescue()
             return False
-        if (len(self.locList) + 2) != self.data.data[0].ndim:
+        if (len(self.locList) + 2) != self.data.ndim():
             self.resetLocList()
         try:
             updateVar = self.data.getBlock(self.axes, self.axes2, self.locList, self.viewSettings["stackBegin"], self.viewSettings["stackEnd"], self.viewSettings["stackStep"])
@@ -3262,8 +3268,8 @@ class CurrentStacked(Current1D):
         self.viewSettings["stackEnd"] = stackEnd
         self.viewSettings["stackStep"] = stackStep
         if stackStep is None:
-            if self.data.data[0].shape[self.axes2] > 100:
-                self.viewSettings["stackStep"] = 1 + int(self.data.data[0].shape[self.axes2]) / 100
+            if self.data.shape()[self.axes2] > 100:
+                self.viewSettings["stackStep"] = 1 + int(self.data.shape()[self.axes2]) / 100
         self.locList = locList
         self.upd()
         if not axesSame:
@@ -3272,7 +3278,7 @@ class CurrentStacked(Current1D):
         self.showFid()
 
     def resetLocList(self):
-        self.locList = [0] * (len(self.data.data[0].shape) - 2)
+        self.locList = [0] * (len(self.data.shape()) - 2)
 
     def stackSelect(self, stackBegin, stackEnd, stackStep):
         self.viewSettings["stackBegin"] = stackBegin
@@ -3289,7 +3295,7 @@ class CurrentStacked(Current1D):
             if shiftingAxes == self.axes:
                 self.dispMsg('shiftingAxes cannot be equal to axes')
             elif shiftingAxes == self.axes2:
-                ar = np.arange(self.data.data[0].shape[self.axes2])[reim.floatSlice(self.viewSettings["stackBegin"], self.viewSettings["stackEnd"], self.viewSettings["stackStep"])]
+                ar = np.arange(self.data.shape()[self.axes2])[reim.floatSlice(self.viewSettings["stackBegin"], self.viewSettings["stackEnd"], self.viewSettings["stackStep"])]
                 x = np.ones((len(ar), len(self.data1D[0][0])))
                 for i in range(len(ar)):
                     shift1 = shift + shifting * ar[i] / self.data.sw[shiftingAxes]
@@ -3297,11 +3303,11 @@ class CurrentStacked(Current1D):
                     x[i] = x2
             else:
                 if (shiftingAxes < self.axes) and (shiftingAxes < self.axes2):
-                    shift += shifting * self.locList[shiftingAxes] * self.data.data[0].shape[shiftingAxes] / self.data.sw[shiftingAxes]
+                    shift += shifting * self.locList[shiftingAxes] * self.data.shape()[shiftingAxes] / self.data.sw[shiftingAxes]
                 elif (shiftingAxes > self.axes) and (shiftingAxes > self.axes2):
-                    shift += shifting * self.locList[shiftingAxes - 2] * self.data.data[0].shape[shiftingAxes] / self.data.sw[shiftingAxes]
+                    shift += shifting * self.locList[shiftingAxes - 2] * self.data.shape()[shiftingAxes] / self.data.sw[shiftingAxes]
                 else:
-                    shift += shifting * self.locList[shiftingAxes - 1] * self.data.data[0].shape[shiftingAxes] / self.data.sw[shiftingAxes]
+                    shift += shifting * self.locList[shiftingAxes - 1] * self.data.shape()[shiftingAxes] / self.data.sw[shiftingAxes]
                 x = func.apodize(t, shift, self.sw, len(self.data1D[0][0]), lor, gauss, cos2, hamming, self.wholeEcho)
                 x = np.repeat([x], len(self.data1D[0]), axis=0)
         else:
@@ -3484,10 +3490,10 @@ class CurrentArrayed(Current1D):
         return CurrentArrayed(root, fig, canvas, data, self)
 
     def upd(self):  # get new data from the data instance
-        if self.data.data[0].ndim < 2:
+        if self.data.ndim() < 2:
             self.root.rescue()
             return False
-        if (len(self.locList) + 2) != self.data.data[0].ndim:
+        if (len(self.locList) + 2) != self.data.ndim():
             self.resetLocList()
         try:
             updateVar = self.data.getBlock(self.axes, self.axes2, self.locList, self.viewSettings["stackBegin"], self.viewSettings["stackEnd"], self.viewSettings["stackStep"])
@@ -3526,8 +3532,8 @@ class CurrentArrayed(Current1D):
         self.viewSettings["stackBegin"] = stackBegin
         self.viewSettings["stackEnd"] = stackEnd
         self.viewSettings["stackStep"] = stackStep
-        if self.data.data[0].shape[self.axes2] > 100:
-            self.viewSettings["stackStep"] = 1 + int(self.data.data[0].shape[self.axes2]) / 100
+        if self.data.shape()[self.axes2] > 100:
+            self.viewSettings["stackStep"] = 1 + int(self.data.shape()[self.axes2]) / 100
         self.locList = locList
         self.upd()
         if not axesSame:
@@ -3536,7 +3542,7 @@ class CurrentArrayed(Current1D):
         self.showFid()
 
     def resetLocList(self):
-        self.locList = [0] * (len(self.data.data[0].shape) - 2)
+        self.locList = [0] * (len(self.data.shape()) - 2)
 
     def setAxType2(self, val):
         oldAxMult = self.getAxMult(self.spec2, self.viewSettings["axType2"], self.ppm2, self.freq2, self.ref2)
@@ -3563,7 +3569,7 @@ class CurrentArrayed(Current1D):
             if shiftingAxes == self.axes:
                 self.dispMsg('shiftingAxes cannot be equal to axes')
             elif shiftingAxes == self.axes2:
-                ar = np.arange(self.data.data[0].shape[self.axes2])[slice(self.viewSettings["stackBegin"], self.viewSettings["stackEnd"], self.viewSettings["stackStep"])]
+                ar = np.arange(self.data.shape()[self.axes2])[slice(self.viewSettings["stackBegin"], self.viewSettings["stackEnd"], self.viewSettings["stackStep"])]
                 x = np.ones((len(ar), len(self.data1D[0][0])))
                 for i in range(len(ar)):
                     shift1 = shift + shifting * ar[i] / self.data.sw[shiftingAxes]
@@ -3571,11 +3577,11 @@ class CurrentArrayed(Current1D):
                     x[i] = x2
             else:
                 if (shiftingAxes < self.axes) and (shiftingAxes < self.axes2):
-                    shift += shifting * self.locList[shiftingAxes] * self.data.data[0].shape[shiftingAxes] / self.data.sw[shiftingAxes]
+                    shift += shifting * self.locList[shiftingAxes] * self.data.shape()[shiftingAxes] / self.data.sw[shiftingAxes]
                 elif (shiftingAxes > self.axes) and (shiftingAxes > self.axes2):
-                    shift += shifting * self.locList[shiftingAxes - 2] * self.data.data[0].shape[shiftingAxes] / self.data.sw[shiftingAxes]
+                    shift += shifting * self.locList[shiftingAxes - 2] * self.data.shape()[shiftingAxes] / self.data.sw[shiftingAxes]
                 else:
-                    shift += shifting * self.locList[shiftingAxes - 1] * self.data.data[0].shape[shiftingAxes] / self.data.sw[shiftingAxes]
+                    shift += shifting * self.locList[shiftingAxes - 1] * self.data.shape()[shiftingAxes] / self.data.sw[shiftingAxes]
                 x = func.apodize(t, shift, self.sw, len(self.data1D[0][0]), lor, gauss, cos2, hamming, self.wholeEcho)
                 x = np.repeat([x], len(self.data1D[0]), axis=0)
         else:
@@ -3772,10 +3778,10 @@ class CurrentContour(Current1D):
         return CurrentContour(root, fig, canvas, data, self)
 
     def upd(self):  # get new data from the data instance
-        if self.data.data[0].ndim < 2:
+        if self.data.ndim() < 2:
             self.root.rescue()
             return False
-        if (len(self.locList) + 2) != self.data.data[0].ndim:
+        if (len(self.locList) + 2) != self.data.ndim():
             self.resetLocList()
         try:
             updateVar = self.data.getBlock(self.axes, self.axes2, self.locList)
@@ -3831,7 +3837,7 @@ class CurrentContour(Current1D):
         self.viewSettings["projLimitsBool"] = ProjBool
 
     def resetLocList(self):
-        self.locList = [0] * (len(self.data.data[0].shape) - 2)
+        self.locList = [0] * (len(self.data.shape()) - 2)
 
     def setAxType2(self, val):
         oldAxMult = self.getAxMult(self.spec2, self.viewSettings["axType2"], self.ppm2, self.freq2, self.ref2)
@@ -3858,7 +3864,7 @@ class CurrentContour(Current1D):
             if shiftingAxes == self.axes:
                 self.dispMsg('shiftingAxes cannot be equal to axes')
             elif shiftingAxes == self.axes2:
-                ar = np.arange(self.data.data[0].shape[self.axes2])
+                ar = np.arange(self.data.shape()[self.axes2])
                 x = np.ones((len(ar), len(self.data1D[0][0])))
                 for i in range(len(ar)):
                     shift1 = shift + shifting * ar[i] / self.data.sw[shiftingAxes]
@@ -3866,11 +3872,11 @@ class CurrentContour(Current1D):
                     x[i] = x2
             else:
                 if (shiftingAxes < self.axes) and (shiftingAxes < self.axes2):
-                    shift += shifting * self.locList[shiftingAxes] * self.data.data[0].shape[shiftingAxes] / self.data.sw[shiftingAxes]
+                    shift += shifting * self.locList[shiftingAxes] * self.data.shape()[shiftingAxes] / self.data.sw[shiftingAxes]
                 elif (shiftingAxes > self.axes) and (shiftingAxes > self.axes2):
-                    shift += shifting * self.locList[shiftingAxes - 2] * self.data.data[0].shape[shiftingAxes] / self.data.sw[shiftingAxes]
+                    shift += shifting * self.locList[shiftingAxes - 2] * self.data.shape()[shiftingAxes] / self.data.sw[shiftingAxes]
                 else:
-                    shift += shifting * self.locList[shiftingAxes - 1] * self.data.data[0].shape[shiftingAxes] / self.data.sw[shiftingAxes]
+                    shift += shifting * self.locList[shiftingAxes - 1] * self.data.shape()[shiftingAxes] / self.data.sw[shiftingAxes]
                 x = func.apodize(t, shift, self.sw, len(self.data1D[0][0]), lor, gauss, cos2, hamming, self.wholeEcho)
                 x = np.repeat([x], len(self.data1D), axis=0)
         else:

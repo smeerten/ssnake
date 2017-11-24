@@ -842,7 +842,7 @@ class MainProgram(QtWidgets.QMainWindow):
                     self.noUndoAct.setChecked(True)
                 else:
                     self.noUndoAct.setChecked(False)
-                if (len(self.mainWindow.masterData.data[0].shape) < 2):
+                if (len(self.mainWindow.masterData.shape()) < 2):
                     for i in self.multiDActions:
                         i.setEnabled(False)
                 else:
@@ -1334,19 +1334,19 @@ class MainProgram(QtWidgets.QMainWindow):
             return
         i = self.workspaceNames.index(combineNames[0])
         combineMasterData = copy.deepcopy(self.workspaces[i].get_masterData())
-        shapeRequired = combineMasterData.data[0].shape
+        shapeRequired = combineMasterData.shape()
         hyperShape = len(combineMasterData.data)
         combineMasterData.split(1, -1)
         for name in combineNames[1:]:
             i = self.workspaceNames.index(name)
             addData = self.workspaces[i].get_masterData()
-            if addData.data[0].shape != shapeRequired:
+            if addData.shape() != shapeRequired:
                 self.dispMsg("Not all the data has the same shape")
                 return False
             if len(addData.data) != hyperShape:
                 self.dispMsg("Not all the data has the same hypercomplex shape")
                 return False
-            combineMasterData.insert(addData.data, combineMasterData.data[0].shape[0], 0)
+            combineMasterData.insert(addData.data, combineMasterData.shape()[0], 0)
         self.workspaces.append(Main1DWindow(self, combineMasterData))
         self.workspaces[-1].rename(wsname)
         self.tabs.addTab(self.workspaces[-1], wsname)
@@ -1414,7 +1414,7 @@ class MainProgram(QtWidgets.QMainWindow):
         if combineMasterData is None:
             self.dispMsg("Data could not be loaded")
             return False
-        shapeRequired = combineMasterData.data[0].shape
+        shapeRequired = combineMasterData.shape()
         hyperShape = len(combineMasterData.data)
         combineMasterData.split(1, -1)
         for filePath in filePathList:
@@ -1432,13 +1432,13 @@ class MainProgram(QtWidgets.QMainWindow):
             else:
                 val = LF.fileTypeCheck(filePath)
                 addData = self.loading(val[0], val[1], returnBool=True)
-            if addData.data[0].shape != shapeRequired:
+            if addData.shape() != shapeRequired:
                 self.dispMsg("Not all the data has the required shape")
                 return False
             if len(addData.data) != hyperShape:
                 self.dispMsg("Not all the data has the required shape")
                 return False
-            combineMasterData.insert(addData.data, combineMasterData.data[0].shape[0], 0)
+            combineMasterData.insert(addData.data, combineMasterData.shape()[0], 0)
         wsname = self.askName()
         self.workspaces.append(Main1DWindow(self, combineMasterData))
         self.workspaces[-1].rename(wsname)
@@ -1876,7 +1876,7 @@ class Main1DWindow(QtWidgets.QWidget):
             return
         self.father.LastLocation = os.path.dirname(name)  # Save used path
         struct = {}
-        struct['dim'] = self.masterData.data[0].ndim
+        struct['dim'] = self.masterData.ndim()
         struct['data'] = self.masterData.data
         struct['freq'] = self.masterData.freq
         struct['hyper'] = self.masterData.hyper
@@ -1890,7 +1890,7 @@ class Main1DWindow(QtWidgets.QWidget):
         scipy.io.savemat(name, matlabStruct)
 
     def SaveSimpsonFile(self):
-        if self.masterData.data[0].ndim > 2:
+        if self.masterData.ndim() > 2:
             self.father.dispMsg('Saving to Simpson format only allowed for 1D and 2D data!')
             return
         if len(self.masterData.data) > 1:
@@ -1915,31 +1915,31 @@ class Main1DWindow(QtWidgets.QWidget):
         self.father.LastLocation = os.path.dirname(name)  # Save used path
         with open(name, 'w') as f:
             f.write('SIMP\n')
-            if self.masterData.data[0].ndim is 2:
-                f.write('NP=' + str(self.masterData.data[0].shape[1]) + '\n')
-                f.write('NI=' + str(self.masterData.data[0].shape[0]) + '\n')
+            if self.masterData.ndim() is 2:
+                f.write('NP=' + str(self.masterData.shape()[1]) + '\n')
+                f.write('NI=' + str(self.masterData.shape()[0]) + '\n')
                 f.write('SW=' + str(self.masterData.sw[1]) + '\n')
                 f.write('SW1=' + str(self.masterData.sw[0]) + '\n')
             else:
-                f.write('NP=' + str(self.masterData.data[0].shape[0]) + '\n')
+                f.write('NP=' + str(self.masterData.shape()[0]) + '\n')
                 f.write('SW=' + str(self.masterData.sw[0]) + '\n')
             if self.masterData.spec[0]:
                 f.write('TYPE=SPE' + '\n')
             else:
                 f.write('TYPE=FID' + '\n')
             f.write('DATA' + '\n')
-            if self.masterData.data[0].ndim is 1:
+            if self.masterData.ndim() is 1:
                 for Line in self.masterData.data[0]:
                     f.write(str(Line.real) + ' ' + str(Line.imag) + '\n')
-            if self.masterData.data[0].ndim is 2:
-                Points = self.masterData.data[0].shape
+            if self.masterData.ndim() is 2:
+                Points = self.masterData.shape()
                 for iii in range(0, Points[0]):
                     for jjj in range(0, Points[1]):
                         f.write(str(self.masterData.data[0][iii][jjj].real) + ' ' + str(self.masterData.data[0][iii][jjj].imag) + '\n')
             f.write('END')
 
     def saveASCIIFile(self):
-        if self.masterData.data[0].ndim > 2:
+        if self.masterData.ndim() > 2:
             self.father.dispMsg('Saving to ASCII format only allowed for 1D and 2D data!')
             return
         if len(self.masterData.data) > 1:
@@ -1966,7 +1966,7 @@ class Main1DWindow(QtWidgets.QWidget):
             axMult = 1000.0**axType
         axis = np.array([self.masterData.xaxArray[-1] * axMult]).transpose()
 
-        if self.masterData.data[0].ndim == 1:  # create nx1 matrix if it is a 1d data set
+        if self.masterData.ndim() == 1:  # create nx1 matrix if it is a 1d data set
             data = np.array([self.masterData.data[0]]).transpose()
 
         else:
@@ -2298,7 +2298,7 @@ class Main1DWindow(QtWidgets.QWidget):
         self.updAllFrames()
 
     def plotStack(self):
-        if len(self.masterData.data[0].shape) > 1:
+        if len(self.masterData.shape()) > 1:
             tmpcurrent = sc.CurrentStacked(self, self.fig, self.canvas, self.masterData, self.current)
             self.current.kill()
             del self.current
@@ -2308,7 +2308,7 @@ class Main1DWindow(QtWidgets.QWidget):
             self.father.dispMsg("Data does not have enough dimensions")
 
     def plotArray(self):
-        if len(self.masterData.data[0].shape) > 1:
+        if len(self.masterData.shape()) > 1:
             tmpcurrent = sc.CurrentArrayed(self, self.fig, self.canvas, self.masterData, self.current)
             self.current.kill()
             del self.current
@@ -2318,7 +2318,7 @@ class Main1DWindow(QtWidgets.QWidget):
             self.father.dispMsg("Data does not have enough dimensions")
 
     def plotContour(self):
-        if len(self.masterData.data[0].shape) > 1:
+        if len(self.masterData.shape()) > 1:
             tmpcurrent = sc.CurrentContour(self, self.fig, self.canvas, self.masterData, self.current)
             self.current.kill()
             del self.current
@@ -2427,7 +2427,7 @@ class SideFrame(QtWidgets.QScrollArea):
 
     def upd(self):
         current = self.father.current
-        self.shape = current.data.data[0].shape
+        self.shape = current.data.shape()
         self.length = len(self.shape)
         for i in reversed(range(self.frame1.count())):
             item = self.frame1.itemAt(i).widget()
@@ -2726,13 +2726,13 @@ class SideFrame(QtWidgets.QScrollArea):
                 self.extraButtons1.append(buttons1)
                 self.extraButtons1Group.append(QtWidgets.QButtonGroup(self))
                 self.extraButtons1Group[i].buttonClicked.connect(lambda: self.setExtraAxes(True))
-                if current.viewSettings["extraData"][i].data[0].ndim > 1:
-                    for num in range(current.viewSettings["extraData"][i].data[0].ndim):
+                if current.viewSettings["extraData"][i].ndim() > 1:
+                    for num in range(current.viewSettings["extraData"][i].ndim()):
                         buttons1.append(QtWidgets.QRadioButton(''))
                         self.extraButtons1Group[i].addButton(buttons1[num], num)
                         frame.addWidget(buttons1[num], num * 3 + 6, 0)
                         frame.addWidget(wc.QLabel("D" + str(num + 1), self), num * 3 + 5, 1)
-                        entries.append(wc.SliceSpinBox(self, 0, current.viewSettings["extraData"][i].data[0].shape[num] - 1))
+                        entries.append(wc.SliceSpinBox(self, 0, current.viewSettings["extraData"][i].shape()[num] - 1))
                         frame.addWidget(entries[num], num * 3 + 6, 1)
                         if num < current.viewSettings["extraAxes"][i]:
                             entries[num].setValue(current.viewSettings["extraLoc"][i][num])
@@ -2914,7 +2914,7 @@ class SideFrame(QtWidgets.QScrollArea):
         self.father.current.showFid()
 
     def getExtraSlice(self, event, entryNum, entryi, button=False):
-        length = self.father.current.viewSettings["extraData"][entryi].data[0].ndim
+        length = self.father.current.viewSettings["extraData"][entryi].ndim()
         if button:
             dimNum = entryNum
         else:
@@ -3652,7 +3652,7 @@ class ApodWindow(wc.ToolWindows):
         self.shiftEntry = wc.QLineEdit("0.00", self.apodPreview)
         self.grid.addWidget(self.shiftEntry, 11, 1)
 
-        if self.father.current.data.data[0].ndim > 1:
+        if self.father.current.data.ndim() > 1:
             self.grid.addWidget(wc.QLabel("Shifting:"), 12, 0, 1, 3)
             self.shiftingDropdown = QtWidgets.QComboBox()
             self.shiftingDropdown.addItems(['User Defined', 'Spin 3/2, -3Q (7/9)', 'Spin 5/2, 3Q (19/12)',
@@ -3668,7 +3668,7 @@ class ApodWindow(wc.ToolWindows):
             self.shiftingEntry = wc.QLineEdit("0.00", self.apodPreview)
             self.grid.addWidget(self.shiftingEntry, 14, 1)
             self.shiftingAxes = QtWidgets.QComboBox()
-            self.shiftingValues = list(map(str, np.delete(range(1, self.father.current.data.data[0].ndim + 1), self.father.current.axes)))
+            self.shiftingValues = list(map(str, np.delete(range(1, self.father.current.data.ndim() + 1), self.father.current.axes)))
             self.shiftingAxes.addItems(self.shiftingValues)
             self.shiftingAxes.currentIndexChanged.connect(self.apodPreview)
             self.grid.addWidget(self.shiftingAxes, 15, 1)
@@ -3747,7 +3747,7 @@ class ApodWindow(wc.ToolWindows):
             self.father.current.showFid()
             return False
         self.shiftEntry.setText('%.4g' % shift)
-        if self.father.current.data.data[0].ndim > 1:
+        if self.father.current.data.ndim() > 1:
             shifting = safeEval(self.shiftingEntry.text())
             if shifting is None:
                 self.father.father.dispMsg('Apodize: Shifting value is not valid!')
@@ -3821,7 +3821,7 @@ class ApodWindow(wc.ToolWindows):
             self.father.father.dispMsg('Apodize: Shift value is not valid!')
             self.father.current.showFid()
             return False
-        if self.father.current.data.data[0].ndim > 1:
+        if self.father.current.data.ndim() > 1:
             shifting = safeEval(self.shiftingEntry.text())
             if shifting is None:
                 self.father.father.dispMsg('Apodize: Shifting value is not valid!')
@@ -4980,7 +4980,7 @@ class ConcatenateWindow(wc.ToolWindows):
         super(ConcatenateWindow, self).__init__(parent)
         self.grid.addWidget(wc.QLabel("Concatenation axes:"), 0, 0)
         self.axesEntry = QtWidgets.QComboBox()
-        self.axesEntry.addItems(np.array(np.arange(self.father.current.data.data[0].ndim - 1) + 1, dtype=str))
+        self.axesEntry.addItems(np.array(np.arange(self.father.current.data.ndim() - 1) + 1, dtype=str))
         self.grid.addWidget(self.axesEntry, 1, 0)
 
     def applyFunc(self):
@@ -5739,7 +5739,7 @@ class ShearingWindow(wc.ToolWindows):
 
     def __init__(self, parent):
         super(ShearingWindow, self).__init__(parent)
-        options = list(map(str, range(1, self.father.masterData.data[0].ndim + 1)))
+        options = list(map(str, range(1, self.father.masterData.ndim() + 1)))
         self.grid.addWidget(wc.QLabel("Shearing constant:"), 0, 0)
         self.shearDropdown = QtWidgets.QComboBox()
         self.shearDropdown.addItems(['User Defined', 'Spin 3/2, -3Q (7/9)', 'Spin 5/2, 3Q (19/12)', 'Spin 5/2, -5Q (25/12)', 'Spin 7/2, 3Q (101/45)',
@@ -5752,12 +5752,12 @@ class ShearingWindow(wc.ToolWindows):
         self.grid.addWidget(wc.QLabel("Shearing direction:"), 4, 0)
         self.dirEntry = QtWidgets.QComboBox()
         self.dirEntry.addItems(options)
-        self.dirEntry.setCurrentIndex(self.father.masterData.data[0].ndim - 2)
+        self.dirEntry.setCurrentIndex(self.father.masterData.ndim() - 2)
         self.grid.addWidget(self.dirEntry, 5, 0)
         self.grid.addWidget(wc.QLabel("Shearing axis:"), 6, 0)
         self.axEntry = QtWidgets.QComboBox()
         self.axEntry.addItems(options)
-        self.axEntry.setCurrentIndex(self.father.masterData.data[0].ndim - 1)
+        self.axEntry.setCurrentIndex(self.father.masterData.ndim() - 1)
         self.grid.addWidget(self.axEntry,7, 0)
 
     def dropdownChanged(self):
