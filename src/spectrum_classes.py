@@ -2167,7 +2167,7 @@ class Current1D(Plot1DFrame):
             tmpData = np.real(tmpData)
         elif(self.viewSettings["plotType"] == 3):
             tmpData = np.abs(tmpData)
-        tmpAxis = tmpAxis[minP:maxP] * self.getAxMult(self.spec, self.viewSettings["axType"], ppm, self.freq, self.ref)
+        tmpAxis = tmpAxis[minP:maxP] * self.getAxMult(self.spec, axType, ppm, self.freq, self.ref)
         tmpData = tmpData[minP:maxP]
         # COM = 1/M *sum(m_i * r_i)
         CentreOM = 1.0 / np.sum(tmpData) * np.sum(tmpData * tmpAxis)
