@@ -651,7 +651,7 @@ class MainProgram(QtWidgets.QMainWindow):
         self.fwhmAct.setToolTip('Full Width at Half Maximum')
         self.massAct = self.fittingMenu.addAction(QtGui.QIcon(IconDirectory + 'mass.png'), "Centre of Mass", lambda: self.mainWindowCheck(lambda mainWindow: COMWindow(mainWindow)))
         self.massAct.setToolTip('Centre of Mass')
-        self.intfitAct = self.fittingMenu.addAction(QtGui.QIcon(IconDirectory + 'int.png'), "&Integrals", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.createIntegralsWindow()))
+        self.intfitAct = self.fittingMenu.addAction(QtGui.QIcon(IconDirectory + 'int.png'),"&Integrals", lambda: self.mainWindowCheck(lambda mainWindow: IntegralsWindow(mainWindow)))
         self.intfitAct.setToolTip('Get Integrals')
         self.relaxAct = self.fittingMenu.addAction(QtGui.QIcon(IconDirectory + 'relaxation.png'), "&Relaxation Curve", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.createRelaxWindow()))
         self.relaxAct.setToolTip('Fit Relaxation Curve')
@@ -2246,9 +2246,6 @@ class Main1DWindow(QtWidgets.QWidget):
             else:
                 self.undoList.append(self.current.applyPhase(0, FilterCorrection * 2 * np.pi))
             self.menuCheck()
-
-    def createIntegralsWindow(self):
-        self.father.createFitWindow(fit.IntegralsWindow(self.father, self.father.mainWindow))
 
     def createRelaxWindow(self):
         self.father.createFitWindow(fit.RelaxWindow(self.father, self.father.mainWindow))
@@ -5416,6 +5413,87 @@ class COMWindow(wc.ToolWindows):  # Centre of Mass Window
 
 ##########################################################################################
 
+class IntegralsWindow(wc.ToolWindows):
+    NAME = "Integrals"
+    CANCELNAME = "&Close"
+    OKNAME = "C&alc"
+
+    def __init__(self, parent):
+        super(IntegralsWindow, self).__init__(parent)
+        self.grid.addWidget(wc.QLabel("Start point:"), 0, 0)
+        self.grid.addWidget(wc.QLabel("End point:"), 0, 1)
+        self.grid.addWidget(wc.QLabel("Integral:"), 0, 2)
+        self.scaling = 1 
+        self.num = 0
+        self.minEntries = []
+        self.maxEntries = []
+        self.intEntries = []
+        self.intValues = []
+        self.father.current.peakPickFunc = lambda pos, self=self: self.picked(pos)
+        self.father.current.peakPick = True
+
+    def picked(self, pos, num=0):
+        pos = str(pos[0])
+        if num == 0:
+            self.minEntries.append(wc.QLineEdit(pos, self.applyFunc))
+            self.maxEntries.append(wc.QLineEdit('', self.applyFunc))
+            self.intEntries.append(wc.QLineEdit('', (lambda n: lambda: self.setScaling(n))(self.num)))
+            self.intValues.append(None)
+            self.intEntries[-1].setMinimumWidth(120)
+            self.grid.addWidget(self.minEntries[-1],self.num + 1, 0)
+            self.grid.addWidget(self.maxEntries[-1],self.num + 1, 1)
+            self.grid.addWidget(self.intEntries[-1],self.num + 1, 2)
+            self.father.current.peakPickFunc = lambda pos, self=self: self.picked(pos, 1)
+        elif num == 1:
+            self.maxEntries[-1].setText(pos)
+            self.num += 1
+            self.father.current.peakPickFunc = lambda pos, self=self: self.picked(pos, 0)
+            self.applyFunc()
+        self.father.current.peakPick = True
+
+    def setScaling(self,num):
+        inp = safeEval(self.intEntries[num].text())
+        int = self.intValues[num]
+        if inp is None:
+            return
+        else:
+            self.scaling = int / inp
+        self.applyFunc()
+
+    def applyFunc(self):
+        dataLength = self.father.current.data1D[0].shape[-1]
+        for num in range(len(self.minEntries)):
+            ok = True
+            inp = safeEval(self.minEntries[num].text())
+            if inp is None:
+                self.minEntries[num].setText('')
+                ok = False
+            else:
+                minimum = int(round(inp))
+                if minimum < 0:
+                    minimum = 0
+                elif minimum > dataLength:
+                    minimum = dataLength
+                self.minEntries[num].setText(str(minimum))
+            inp = safeEval(self.maxEntries[num].text())
+            if inp is None:
+                self.maxEntries[num].setText('')
+                ok = False
+            else:
+                maximum = int(round(inp))
+                if maximum < 0:
+                    maximum = 0
+                elif maximum > dataLength:
+                    maximum = dataLength
+                self.maxEntries[num].setText(str(maximum))
+            if ok:
+                self.intValues[num] = self.father.current.Integrals(minimum,maximum)
+                self.intEntries[num].setText('%#.7g' % (self.intValues[num] / self.scaling))
+            else:
+                self.intEntries[num].setText('')
+                self.intValues[num] = None
+
+        return False  # Return to keep window
 
 class ReorderWindow(wc.ToolWindows):
 

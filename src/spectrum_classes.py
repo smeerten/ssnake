@@ -2167,6 +2167,36 @@ class Current1D(Plot1DFrame):
         CentreOM = 1.0 / np.sum(tmpData) * np.sum(tmpData * tmpAxis)
         return CentreOM
 
+    def Integrals(self, minPeak, maxPeak):
+        hyperView = 0 
+        minP = min(minPeak, maxPeak)
+        maxP = max(minPeak, maxPeak)
+        if len(self.data1D[0].shape) > 1:
+            tmpData = self.data1D[hyperView][0]
+            if len(self.xax.shape) > 1:
+                tmpAxis = self.xax[0]
+            else:
+                tmpAxis = self.xax
+        else:
+            tmpData = self.data1D[hyperView]
+            tmpAxis = self.xax
+        if (self.viewSettings["plotType"] == 0):
+            tmpData = np.real(tmpData)
+        elif(self.viewSettings["plotType"] == 1):
+            tmpData = np.imag(tmpData)
+        elif(self.viewSettings["plotType"] == 2):
+            tmpData = np.real(tmpData)
+        elif(self.viewSettings["plotType"] == 3):
+            tmpData = np.abs(tmpData)
+        tmpAxis = tmpAxis[minP:maxP] * self.getAxMult(self.spec, self.viewSettings["axType"], self.ppm, self.freq, self.ref)
+        tmpData = tmpData[minP:maxP]
+
+        if self.spec == 0:
+            inte = np.sum(tmpData) / self.sw
+        else:
+            inte = np.sum(tmpData) * self.sw / (1.0 * tmpData.shape[0])
+        return inte
+
     def setSizePreview(self, size, pos):  # set size only on local data
         hyperView = 0
         if len(self.data1D[0].shape) > 1:
