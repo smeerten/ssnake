@@ -5417,31 +5417,44 @@ class IntegralsWindow(wc.ToolWindows):
         self.grid.addWidget(wc.QLabel("Integral:"), 0, 2)
         self.scaling = 1 
         self.num = 0
+        self.pickType = 0
         self.minEntries = []
         self.maxEntries = []
         self.intEntries = []
         self.intValues = []
+        self.xValues = []
+        self.yValues = []
+        self.datMax = 0
         self.father.current.peakPickFunc = lambda pos, self=self: self.picked(pos)
         self.father.current.peakPick = True
 
-    def picked(self, pos, num=0):
+    def picked(self, pos):
         pos = str(pos[0])
-        if num == 0:
+        if self.pickType == 0:
             self.minEntries.append(wc.QLineEdit(pos, self.applyFunc))
             self.maxEntries.append(wc.QLineEdit('', self.applyFunc))
             self.intEntries.append(wc.QLineEdit('', (lambda n: lambda: self.setScaling(n))(self.num)))
             self.intValues.append(None)
+            self.xValues.append(None)
+            self.yValues.append(None)
             self.intEntries[-1].setMinimumWidth(120)
             self.grid.addWidget(self.minEntries[-1],self.num + 1, 0)
             self.grid.addWidget(self.maxEntries[-1],self.num + 1, 1)
             self.grid.addWidget(self.intEntries[-1],self.num + 1, 2)
-            self.father.current.peakPickFunc = lambda pos, self=self: self.picked(pos, 1)
-        elif num == 1:
+            self.pickType = 1
+        elif self.pickType == 1:
             self.maxEntries[-1].setText(pos)
             self.num += 1
-            self.father.current.peakPickFunc = lambda pos, self=self: self.picked(pos, 0)
             self.applyFunc()
+            self.pickType = 0
+        self.father.current.peakPickFunc = lambda pos, self=self: self.picked(pos)
         self.father.current.peakPick = True
+
+
+    def preview(self):
+        self.father.current.integralsPreview(self.xValues, self.yValues, self.datMax)
+        self.father.current.peakPick = True
+        self.father.current.peakPickFunc = lambda pos, self=self: self.picked(pos)
 
     def setScaling(self,num):
         inp = safeEval(self.intEntries[num].text())
@@ -5479,12 +5492,12 @@ class IntegralsWindow(wc.ToolWindows):
                     maximum = dataLength
                 self.maxEntries[num].setText(str(maximum))
             if ok:
-                self.intValues[num] = self.father.current.Integrals(minimum,maximum)
+                self.intValues[num], self.xValues[num], self.yValues[num], self.datMax = self.father.current.Integrals(minimum,maximum)
                 self.intEntries[num].setText('%#.7g' % (self.intValues[num] / self.scaling))
             else:
                 self.intEntries[num].setText('')
                 self.intValues[num] = None
-
+        self.preview()
         return False  # Return to keep window
 
 ##########################################################################################

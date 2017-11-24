@@ -2194,14 +2194,33 @@ class Current1D(Plot1DFrame):
             tmpData = np.real(tmpData)
         elif(self.viewSettings["plotType"] == 3):
             tmpData = np.abs(tmpData)
-        tmpAxis = tmpAxis[minP:maxP] * self.getAxMult(self.spec, self.viewSettings["axType"], self.ppm, self.freq, self.ref)
+        maxim = np.max(np.abs(tmpData))
+        tmpAxis = tmpAxis[minP:maxP] 
         tmpData = tmpData[minP:maxP]
 
         if self.spec == 0:
+            intSum = np.cumsum(tmpData)
             inte = np.sum(tmpData) / self.sw
         else:
+            intSum = np.cumsum(tmpData[-1::-1])[-1::-1]
             inte = np.sum(tmpData) * self.sw / (1.0 * tmpData.shape[0])
-        return inte
+        return inte, tmpAxis, intSum, maxim
+
+    def integralsPreview(self, x, y, maxim):
+        xNew = []
+        yNew = []
+        scale = 0
+        for num in range(len(x)):
+            if x[num] is not None and y[num] is not None:
+                xNew.append(x[num])
+                yNew.append(y[num])
+                scale = np.max([scale,abs(yNew[-1][0]),abs(yNew[-1][-1])])
+        for num in range(len(yNew)):
+            yNew[num] = yNew[num] / scale * maxim
+
+
+        self.showFid(extraX =  xNew, extraY = yNew, extraColor = ['g'] * len(xNew))
+        return
 
     def setSizePreview(self, size, pos):  # set size only on local data
         hyperView = 0
