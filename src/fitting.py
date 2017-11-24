@@ -439,7 +439,7 @@ class FittingSideFrame(QtWidgets.QScrollArea):
 
     def upd(self):
         current = self.father.current
-        self.shape = current.data.data[0].shape
+        self.shape = current.data.shape()
         self.length = len(self.shape)
         for i in reversed(range(self.frame1.count())):
             item = self.frame1.itemAt(i).widget()
@@ -495,7 +495,7 @@ class FitPlotFrame(Plot1DFrame):
         super(FitPlotFrame, self).__init__(rootwindow, fig, canvas)
         self.data = current.data
         self.axes = current.axes
-        if (len(current.locList) == self.data.data[0].ndim - 1):
+        if (len(current.locList) == self.data.ndim() - 1):
             self.locList = current.locList
         else:
             if self.axes < current.axes2:
@@ -506,7 +506,7 @@ class FitPlotFrame(Plot1DFrame):
         self.upd()
         self.spec = self.current.spec
         self.xax = self.current.xax
-        tmp = list(self.data.data[0].shape)
+        tmp = list(self.data.shape())
         tmp.pop(self.axes)
         self.fitDataList = np.full(tmp, None, dtype=object)
         self.fitPickNumList = np.zeros(tmp, dtype=int)
@@ -611,7 +611,7 @@ class AbstractParamFrame(QtWidgets.QWidget):
         self.FITNUM = self.parent.FITNUM
         self.rootwindow = rootwindow
         self.isMain = isMain # display fitting buttons
-        tmp = list(self.parent.data.data[0].shape)
+        tmp = list(self.parent.data.shape())
         tmp.pop(self.parent.axes)
         self.fitParamList = np.zeros(tmp, dtype=object)
         self.fitNumList = np.zeros(tmp, dtype=int)
@@ -881,7 +881,7 @@ class AbstractParamFrame(QtWidgets.QWidget):
     def fitAll(self, *args):
         self.runningAll = True
         self.stopAllButton.show()
-        tmp = list(self.parent.data.data[0].shape)
+        tmp = list(self.parent.data.shape())
         tmp.pop(self.parent.axes)
         tmp2 = ()
         for i in tmp:
@@ -918,7 +918,7 @@ class AbstractParamFrame(QtWidgets.QWidget):
 
     def paramToWorkspaceWindow(self):
         paramNameList = self.SINGLENAMES + self.MULTINAMES
-        if self.parent.data.data[0].ndim == 1:
+        if self.parent.data.ndim() == 1:
             single = True
         else:
             single = False
@@ -935,7 +935,7 @@ class AbstractParamFrame(QtWidgets.QWidget):
         names = paramNameList[settings]
         if allTraces:
             maxNum = np.max(self.fitNumList)+1
-            tmp = list(self.parent.data.data[0].shape)
+            tmp = list(self.parent.data.shape())
             tmp.pop(self.parent.axes)
             data = np.zeros((sum(settings), maxNum) + tuple(tmp))
             tmp2 = ()
@@ -960,7 +960,7 @@ class AbstractParamFrame(QtWidgets.QWidget):
             self.rootwindow.createNewData(data, self.parent.current.axes, True)
 
     def resultToWorkspaceWindow(self):
-        if self.parent.data.data[0].ndim == 1:
+        if self.parent.data.ndim() == 1:
             single = True
         else:
             single = False
@@ -979,8 +979,8 @@ class AbstractParamFrame(QtWidgets.QWidget):
                 extraLength += maxNum
             if settings[3]:
                 extraLength += 1
-            data = np.zeros((extraLength,) + self.parent.data.data[0].shape)
-            tmp = list(self.parent.data.data[0].shape)
+            data = np.zeros((extraLength,) + self.parent.data.shape())
+            tmp = list(self.parent.data.shape())
             tmp.pop(self.parent.axes)
             tmp2 = ()
             for i in tmp:
@@ -3440,7 +3440,7 @@ class Quad2CzjzekParamFrame(AbstractParamFrame):
                 val = LF.fileTypeCheck(fullName)
                 if val[0] is not None:
                     libData = LF.loading(val[0], val[1])
-                if libData.data[0].ndim is not 1:
+                if libData.ndim() is not 1:
                     self.rootwindow.mainProgram.dispMsg("A spectrum in the library is not a 1D spectrum.")
                     continue
                 if not libData.spec[0]:
