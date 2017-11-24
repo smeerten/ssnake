@@ -5331,24 +5331,10 @@ class COMWindow(wc.ToolWindows):  # Centre of Mass Window
         if self.father.current.spec == 1:
             unitList = ['Hz', 'kHz', 'MHz', 'ppm']
             if self.father.current.ppm:
-                self.grid.addWidget(wc.QLabel("Centre of Mass [ppm]:"), 6, 0)
-            else:
-                if self.father.current.viewSettings["axType"] == 0:
-                    self.grid.addWidget(wc.QLabel("Centre of Mass [Hz]:"), 6, 0)
-                elif self.father.current.viewSettings["axType"] == 1:
-                    self.grid.addWidget(wc.QLabel("Centre of Mass [kHz]:"), 6, 0)
-                elif self.father.current.viewSettings["axType"] == 2:
-                    self.grid.addWidget(wc.QLabel("Centre of Mass [MHz]:"), 6, 0)
-                elif self.father.current.viewSettings["axType"] == 3:
-                    self.grid.addWidget(wc.QLabel("Centre of Mass [ppm]:"), 6, 0)
+                unitSelect = 3
         else:
             unitList = ['s', 'ms', u'\u03BCs']
-            if self.father.current.viewSettings["axType"] == 0:
-                self.grid.addWidget(wc.QLabel("Centre of Mass [s]:"), 6, 0)
-            elif self.father.current.viewSettings["axType"] == 1:
-                self.grid.addWidget(wc.QLabel("Centre of Mass [ms]:"), 6, 0)
-            elif self.father.current.viewSettings["axType"] == 2:
-                self.grid.addWidget(wc.QLabel(u"Centre of Mass [\u03bcs]:"), 6, 0)
+        self.grid.addWidget(wc.QLabel(u"Centre of Mass:"), 6, 0)
         self.unitDrop = QtWidgets.QComboBox()
         self.unitDrop.addItems(unitList)
         self.unitDrop.setCurrentIndex(unitSelect)
