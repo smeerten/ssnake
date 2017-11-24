@@ -588,29 +588,7 @@ class FitPlotFrame(Plot1DFrame):
             self.ax.plot(tmp[0] * axMult, tmp[1], picker=True)
             for i in range(len(tmp[2])):
                 self.ax.plot(tmp[2][i] * axMult, tmp[3][i], picker=True)
-        if self.spec == 0:
-            if self.current.viewSettings["axType"] == 0:
-                self.ax.set_xlabel('Time [s]')
-            elif self.current.viewSettings["axType"] == 1:
-                self.ax.set_xlabel('Time [ms]')
-            elif self.current.viewSettings["axType"] == 2:
-                self.ax.set_xlabel(r'Time [$\mu$s]')
-            else:
-                self.ax.set_xlabel('User defined')
-        elif self.spec == 1:
-            if self.current.ppm:
-                self.ax.set_xlabel('Frequency [ppm]')
-            else:
-                if self.current.viewSettings["axType"] == 0:
-                    self.ax.set_xlabel('Frequency [Hz]')
-                elif self.current.viewSettings["axType"] == 1:
-                    self.ax.set_xlabel('Frequency [kHz]')
-                elif self.current.viewSettings["axType"] == 2:
-                    self.ax.set_xlabel('Frequency [MHz]')
-                else:
-                    self.ax.set_xlabel('User defined')
-        else:
-            self.ax.set_xlabel('')
+        self.ax.set_xlabel(self.getLabel(self.spec, self.current.viewSettings["axType"], self.current.ppm))
         self.ax.get_xaxis().get_major_formatter().set_powerlimits((-4, 4))
         self.ax.get_yaxis().get_major_formatter().set_powerlimits((-4, 4))
         if self.spec > 0:

@@ -27,6 +27,9 @@ except ImportError:
 import spectrum_classes
 import warnings
 
+TIMELABELLIST = [u'Time [s]', u'Time [ms]', u'Time [\u03BCs]']
+FREQLABELLIST = [u'Frequency [Hz]', u'Frequency [kHz]', u'Frequency [MHz]']
+
 #########################################################################################################
 # the class from which the 1d data is displayed, the operations which only edit the content of this class are for previewing
 
@@ -297,3 +300,16 @@ class Plot1DFrame(object):
         elif spec == 0:
             axMult = 1000.0**axType
         return axMult
+
+    def getLabel(self, spec, axType, ppm):
+        if not axType in range(3):
+            return 'User defined'
+        if spec is 0:
+            return TIMELABELLIST[axType]
+        elif spec is 1:
+            if ppm:
+                return 'Frequency [ppm]'
+            else:
+                return FREQLABELLIST[axType]
+        else:
+            return ''

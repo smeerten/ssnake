@@ -2883,29 +2883,7 @@ class Current1D(Plot1DFrame):
         elif(self.viewSettings["plotType"] == 3):
             self.line_ydata = np.abs(tmpdata)
         self.ax.plot(self.line_xdata, self.line_ydata, marker=marker, linestyle=linestyle, c=self.viewSettings["color"], linewidth=self.viewSettings["linewidth"], label=self.data.name, picker=True)
-        if self.spec == 0:
-            if self.viewSettings["axType"] == 0:
-                self.ax.set_xlabel('Time [s]')
-            elif self.viewSettings["axType"] == 1:
-                self.ax.set_xlabel('Time [ms]')
-            elif self.viewSettings["axType"] == 2:
-                self.ax.set_xlabel(u'Time [\u03BCs]')
-            else:
-                self.ax.set_xlabel('User defined')
-        elif self.spec == 1:
-            if self.ppm:
-                self.ax.set_xlabel('Frequency [ppm]')
-            else:
-                if self.viewSettings["axType"] == 0:
-                    self.ax.set_xlabel('Frequency [Hz]')
-                elif self.viewSettings["axType"] == 1:
-                    self.ax.set_xlabel('Frequency [kHz]')
-                elif self.viewSettings["axType"] == 2:
-                    self.ax.set_xlabel('Frequency [MHz]')
-                else:
-                    self.ax.set_xlabel('User defined')
-        else:
-            self.ax.set_xlabel('')
+        self.ax.set_xlabel(self.getLabel(self.spec, self.viewSettings["axType"], self.ppm))
         self.ax.get_xaxis().get_major_formatter().set_powerlimits((-4, 4))
         self.ax.get_yaxis().get_major_formatter().set_powerlimits((-4, 4))
         self.ax.xaxis.grid(self.viewSettings["grids"][0])
@@ -2990,29 +2968,7 @@ class CurrentScatter(Current1D):
         elif(self.viewSettings["plotType"] == 3):
             self.line_ydata = np.abs(tmpdata)
         self.ax.plot(self.line_xdata, self.line_ydata, marker='o', linestyle='none', c=self.viewSettings["color"], label=self.data.name, picker=True)
-        if self.spec == 0:
-            if self.viewSettings["axType"] == 0:
-                self.ax.set_xlabel('Time [s]')
-            elif self.viewSettings["axType"] == 1:
-                self.ax.set_xlabel('Time [ms]')
-            elif self.viewSettings["axType"] == 2:
-                self.ax.set_xlabel(u'Time [\u03BCs]')
-            else:
-                self.ax.set_xlabel('User defined')
-        elif self.spec == 1:
-            if self.ppm:
-                self.ax.set_xlabel('Frequency [ppm]')
-            else:
-                if self.viewSettings["axType"] == 0:
-                    self.ax.set_xlabel('Frequency [Hz]')
-                elif self.viewSettings["axType"] == 1:
-                    self.ax.set_xlabel('Frequency [kHz]')
-                elif self.viewSettings["axType"] == 2:
-                    self.ax.set_xlabel('Frequency [MHz]')
-                else:
-                    self.ax.set_xlabel('User defined')
-        else:
-            self.ax.set_xlabel('')
+        self.ax.set_xlabel(self.getLabel(self.spec, self.viewSettings["axType"], self.ppm))
         self.ax.get_xaxis().get_major_formatter().set_powerlimits((-4, 4))
         self.ax.get_yaxis().get_major_formatter().set_powerlimits((-4, 4))
         self.ax.xaxis.grid(self.viewSettings["grids"][0])
@@ -3231,29 +3187,7 @@ class CurrentMulti(Current1D):
         elif(self.viewSettings["plotType"] == 3):
             self.line_ydata = np.abs(tmpdata)
         self.ax.plot(self.line_xdata, self.line_ydata, marker=marker, linestyle=linestyle, c=self.viewSettings["color"], linewidth=self.viewSettings["linewidth"], label=self.data.name, picker=True)
-        if self.spec == 0:
-            if self.viewSettings["axType"] == 0:
-                self.ax.set_xlabel('Time [s]')
-            elif self.viewSettings["axType"] == 1:
-                self.ax.set_xlabel('Time [ms]')
-            elif self.viewSettings["axType"] == 2:
-                self.ax.set_xlabel(u'Time [\u03BCs]')
-            else:
-                self.ax.set_xlabel('User defined')
-        elif self.spec == 1:
-            if self.ppm:
-                self.ax.set_xlabel('Frequency [ppm]')
-            else:
-                if self.viewSettings["axType"] == 0:
-                    self.ax.set_xlabel('Frequency [Hz]')
-                elif self.viewSettings["axType"] == 1:
-                    self.ax.set_xlabel('Frequency [kHz]')
-                elif self.viewSettings["axType"] == 2:
-                    self.ax.set_xlabel('Frequency [MHz]')
-                else:
-                    self.ax.set_xlabel('User defined')
-        else:
-            self.ax.set_xlabel('')
+        self.ax.set_xlabel(self.getLabel(self.spec, self.viewSettings["axType"], self.ppm))
         self.ax.get_xaxis().get_major_formatter().set_powerlimits((-4, 4))
         self.ax.get_yaxis().get_major_formatter().set_powerlimits((-4, 4))
         self.ax.xaxis.grid(self.viewSettings["grids"][0])
@@ -3470,29 +3404,7 @@ class CurrentStacked(Current1D):
             if (self.viewSettings["plotType"] == 2):
                 self.ax.plot(self.line_xdata, num * self.viewSettings["spacing"] + np.imag(tmpdata[num]), marker=marker, linestyle=linestyle, c='r', linewidth=self.viewSettings["linewidth"], label=self.data.name + '_imag', picker=True)
             self.ax.plot(self.line_xdata, num * self.viewSettings["spacing"] + np.real(tmpdata[num]), marker=marker, linestyle=linestyle, c=self.viewSettings["color"], linewidth=self.viewSettings["linewidth"], label=self.data.name, picker=True)
-        if self.spec == 0:
-            if self.viewSettings["axType"] == 0:
-                self.ax.set_xlabel('Time [s]')
-            elif self.viewSettings["axType"] == 1:
-                self.ax.set_xlabel('Time [ms]')
-            elif self.viewSettings["axType"] == 2:
-                self.ax.set_xlabel(u'Time [\u03BCs]')
-            else:
-                self.ax.set_xlabel('User defined')
-        elif self.spec == 1:
-            if self.ppm:
-                self.ax.set_xlabel('Frequency [ppm]')
-            else:
-                if self.viewSettings["axType"] == 0:
-                    self.ax.set_xlabel('Frequency [Hz]')
-                elif self.viewSettings["axType"] == 1:
-                    self.ax.set_xlabel('Frequency [kHz]')
-                elif self.viewSettings["axType"] == 2:
-                    self.ax.set_xlabel('Frequency [MHz]')
-                else:
-                    self.ax.set_xlabel('User defined')
-        else:
-            self.ax.set_xlabel('')
+        self.ax.set_xlabel(self.getLabel(self.spec, self.viewSettings["axType"], self.ppm))
         if self.spec > 0:
             self.ax.set_xlim(self.xmaxlim, self.xminlim)
         else:
@@ -4004,52 +3916,8 @@ class CurrentContour(Current1D):
         self.differ = np.max(np.abs(self.tmpdata))
         self.plotContour(X=self.X, Y=self.Y)
         self.showProj()
-        if self.spec == 0:
-            if self.viewSettings["axType"] == 0:
-                self.ax.set_xlabel('Time [s]')
-            elif self.viewSettings["axType"] == 1:
-                self.ax.set_xlabel('Time [ms]')
-            elif self.viewSettings["axType"] == 2:
-                self.ax.set_xlabel(u'Time [\u03BCs]')
-            else:
-                self.ax.set_xlabel('User defined')
-        elif self.spec == 1:
-            if self.ppm:
-                self.ax.set_xlabel('Frequency [ppm]')
-            else:
-                if self.viewSettings["axType"] == 0:
-                    self.ax.set_xlabel('Frequency [Hz]')
-                elif self.viewSettings["axType"] == 1:
-                    self.ax.set_xlabel('Frequency [kHz]')
-                elif self.viewSettings["axType"] == 2:
-                    self.ax.set_xlabel('Frequency [MHz]')
-                else:
-                    self.ax.set_xlabel('User defined')
-        else:
-            self.ax.set_xlabel('')
-        if self.spec2 == 0:
-            if self.viewSettings["axType2"] == 0:
-                self.ax.set_ylabel('Time [s]')
-            elif self.viewSettings["axType2"] == 1:
-                self.ax.set_ylabel('Time [ms]')
-            elif self.viewSettings["axType2"] == 2:
-                self.ax.set_ylabel(u'Time [\u03BCs]')
-            else:
-                self.ax.set_ylabel('User defined')
-        elif self.spec2 == 1:
-            if self.ppm2:
-                self.ax.set_ylabel('Frequency [ppm]')
-            else:
-                if self.viewSettings["axType2"] == 0:
-                    self.ax.set_ylabel('Frequency [Hz]')
-                elif self.viewSettings["axType2"] == 1:
-                    self.ax.set_ylabel('Frequency [kHz]')
-                elif self.viewSettings["axType2"] == 2:
-                    self.ax.set_ylabel('Frequency [MHz]')
-                else:
-                    self.ax.set_ylabel('User defined')
-        else:
-            self.ax.set_ylabel('')
+        self.ax.set_xlabel(self.getLabel(self.spec, self.viewSettings["axType"], self.ppm))
+        self.ax.set_ylabel(self.getLabel(self.spec2, self.viewSettings["axType2"], self.ppm2))
         if self.spec:
             self.ax.set_xlim(self.xmaxlim, self.xminlim)
         else:
