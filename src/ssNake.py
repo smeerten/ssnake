@@ -1955,7 +1955,7 @@ class Main1DWindow(QtWidgets.QWidget):
         #axis = np.array([self.masterData.xaxArray[-1]]).transpose()
         axType = self.current.viewSettings["axType"]
         if self.masterData.spec[-1] == 1:
-            if self.current.ppm:
+            if self.current.viewSettings["ppm"]:
                 if self.current.ref is not None:
                     axMult = 1e6 / self.masterData.ref[-1]
                 else:
@@ -3072,7 +3072,7 @@ class BottomFrame(QtWidgets.QWidget):
             if self.father.current.freq == 0.0:
                 self.axisDropFreq.model().item(3).setEnabled(False)
             self.ax2Label.hide()
-            if self.father.current.ppm:
+            if self.father.current.viewSettings["ppm"]:
                 self.axisDropFreq.setCurrentIndex(3)
             else:
                 self.axisDropFreq.setCurrentIndex(self.father.current.viewSettings["axType"])
@@ -5236,7 +5236,7 @@ class FWHMWindow(wc.ToolWindows):
         unitSelect = self.father.current.viewSettings["axType"]
         if self.father.current.spec == 1:
             unitList = ['Hz', 'kHz', 'MHz', 'ppm']
-            if self.father.current.ppm:
+            if self.father.current.viewSettings["ppm"]:
                 unitSelect = 3
         else:
             unitList = ['s', 'ms', u'\u03BCs']
@@ -5330,7 +5330,7 @@ class COMWindow(wc.ToolWindows):  # Centre of Mass Window
         unitSelect = self.father.current.viewSettings["axType"]
         if self.father.current.spec == 1:
             unitList = ['Hz', 'kHz', 'MHz', 'ppm']
-            if self.father.current.ppm:
+            if self.father.current.viewSettings["ppm"]:
                 unitSelect = 3
         else:
             unitList = ['s', 'ms', u'\u03BCs']
@@ -5571,7 +5571,7 @@ class RegridWindow(wc.ToolWindows):
         self.maxValue = wc.QLineEdit(10)
         # Get unit
         if self.father.current.spec == 1:
-            if self.father.current.ppm:
+            if self.father.current.viewSettings["ppm"]:
                 self.unit = 'ppm'
             else:
                 if self.father.current.viewSettings["axType"] == 0:

@@ -304,12 +304,10 @@ class Plot1DFrame(object):
     def getLabel(self, spec, axType, ppm):
         if not axType in range(3):
             return 'User defined'
-        if spec is 0:
-            return TIMELABELLIST[axType]
-        elif spec is 1:
+        if spec:
             if ppm:
                 return 'Frequency [ppm]'
             else:
                 return FREQLABELLIST[axType]
         else:
-            return ''
+            return TIMELABELLIST[axType]

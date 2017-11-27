@@ -567,7 +567,7 @@ class FitPlotFrame(Plot1DFrame):
         if yReset:
             self.yminlim = miny - differ
             self.ymaxlim = maxy + differ
-        axMult = self.getAxMult(self.spec, self.current.viewSettings["axType"], self.current.ppm, self.current.freq, self.current.ref)
+        axMult = self.getAxMult(self.spec, self.current.viewSettings["axType"], self.current.viewSettings["ppm"], self.current.freq, self.current.ref)
         if xReset:
             self.xminlim = min(self.xax * axMult)
             self.xmaxlim = max(self.xax * axMult)
@@ -579,7 +579,7 @@ class FitPlotFrame(Plot1DFrame):
 
     def showFid(self):
         self.ax.cla()
-        axMult = self.getAxMult(self.spec, self.current.viewSettings["axType"], self.current.ppm, self.current.freq, self.current.ref)
+        axMult = self.getAxMult(self.spec, self.current.viewSettings["axType"], self.current.viewSettings["ppm"], self.current.freq, self.current.ref)
         self.line_xdata = self.xax * axMult
         self.line_ydata = self.data1D
         self.ax.plot(self.xax * axMult, self.data1D, c=self.current.viewSettings["color"], marker=self.MARKER, linestyle=self.LINESTYLE, linewidth=self.current.viewSettings["linewidth"], label=self.current.data.name, picker=True)
@@ -588,7 +588,7 @@ class FitPlotFrame(Plot1DFrame):
             self.ax.plot(tmp[0] * axMult, tmp[1], picker=True)
             for i in range(len(tmp[2])):
                 self.ax.plot(tmp[2][i] * axMult, tmp[3][i], picker=True)
-        self.ax.set_xlabel(self.getLabel(self.spec, self.current.viewSettings["axType"], self.current.ppm))
+        self.ax.set_xlabel(self.getLabel(self.spec, self.current.viewSettings["axType"], self.current.viewSettings["ppm"]))
         self.ax.get_xaxis().get_major_formatter().set_powerlimits((-4, 4))
         self.ax.get_yaxis().get_major_formatter().set_powerlimits((-4, 4))
         if self.spec > 0:
@@ -619,12 +619,12 @@ class AbstractParamFrame(QtWidgets.QWidget):
         self.setLayout(grid)
         self.axMult = self.parent.current.getAxMult(self.parent.current.spec,
                                                     self.parent.current.viewSettings["axType"],
-                                                    self.parent.current.ppm,
+                                                    self.parent.current.viewSettings["ppm"],
                                                     self.parent.current.freq,
                                                     self.parent.current.ref)
         if self.parent.current.spec == 1:
             self.axAdd = self.parent.current.freq - self.parent.current.ref
-            if self.parent.current.ppm:
+            if self.parent.current.viewSettings["ppm"]:
                 self.axUnit = 'ppm'
             else:
                 axUnits = ['Hz', 'kHz', 'MHz']
@@ -2116,8 +2116,8 @@ class PeakDeconvFrame(FitPlotFrame):
     def pickDeconv(self, pos):
         pickNum = self.fitPickNumList[tuple(self.locList)]
         if self.pickWidth:
-            axMult = self.getAxMult(self.current.spec, self.current.viewSettings["axType"], self.current.ppm, self.current.freq, self.current.ref)
-            width = (2 * abs(float(self.rootwindow.paramframe.entries['pos'][pickNum].text()) - pos[1])) / self.getAxMult(self.current.spec, self.current.viewSettings["axType"], self.current.ppm, self.current.freq, self.current.ref)
+            axMult = self.getAxMult(self.current.spec, self.current.viewSettings["axType"], self.current.viewSettings["ppm"], self.current.freq, self.current.ref)
+            width = (2 * abs(float(self.rootwindow.paramframe.entries['pos'][pickNum].text()) - pos[1])) / self.getAxMult(self.current.spec, self.current.viewSettings["axType"], self.current.viewSettings["ppm"], self.current.freq, self.current.ref)
             self.rootwindow.paramframe.entries['amp'][pickNum].setText(('%#.' + str(self.rootwindow.tabWindow.PRECIS) + 'g') % (float(self.rootwindow.paramframe.entries['amp'][pickNum].text()) * width))
             self.rootwindow.paramframe.entries['lor'][pickNum].setText(('%#.' + str(self.rootwindow.tabWindow.PRECIS) + 'g') % abs(width))
             self.fitPickNumList[tuple(self.locList)] += 1
@@ -2355,7 +2355,7 @@ class TensorDeconvFrame(FitPlotFrame):
 
     def pickDeconv(self, pos):
         printStr = "%#." + str(self.rootwindow.tabWindow.PRECIS) + "g"
-        axMult = self.getAxMult(self.spec, self.current.viewSettings["axType"], self.current.ppm, self.current.freq, self.current.ref)
+        axMult = self.getAxMult(self.spec, self.current.viewSettings["axType"], self.current.viewSettings["ppm"], self.current.freq, self.current.ref)
         if self.pickNum2 == 0:
             if self.pickNum < self.FITNUM:
                 self.rootwindow.paramframe.numExp.setCurrentIndex(self.pickNum)
@@ -2451,7 +2451,7 @@ class TensorDeconvParamFrame(AbstractParamFrame):
         self.numExp.addItems([str(x + 1) for x in range(self.FITNUM)])
         self.numExp.currentIndexChanged.connect(self.changeNum)
         self.frame3.addWidget(self.numExp, 0, 0, 1, 2)
-        if self.parent.current.ppm:
+        if self.parent.current.viewSettings["ppm"]:
             axUnit = 'ppm'
         else:
             axUnit = ['Hz', 'kHz', 'MHz'][self.parent.current.viewSettings["axType"]]
@@ -2917,7 +2917,7 @@ class Quad1DeconvParamFrame(AbstractParamFrame):
         self.numExp.addItems([str(x + 1) for x in range(self.FITNUM)])
         self.numExp.currentIndexChanged.connect(self.changeNum)
         self.frame3.addWidget(self.numExp, 0, 0, 1, 2)
-        if self.parent.current.ppm:
+        if self.parent.current.viewSettings["ppm"]:
             axUnit = 'ppm'
         else:
             axUnit = ['Hz', 'kHz', 'MHz'][self.parent.current.viewSettings["axType"]]
@@ -3366,7 +3366,7 @@ class Quad2CzjzekParamFrame(AbstractParamFrame):
         self.numExp.currentIndexChanged.connect(self.changeNum)
         self.frame3.addWidget(self.numExp, 0, 0, 1, 2)
         self.frame3.addWidget(QLabel("d:"), 1, 0, 1, 2)
-        if self.parent.current.ppm:
+        if self.parent.current.viewSettings["ppm"]:
             axUnit = 'ppm'
         else:
             axUnit = ['Hz', 'kHz', 'MHz'][self.parent.current.viewSettings["axType"]]

@@ -1779,14 +1779,14 @@ class Current1D(Plot1DFrame):
         self.wholeEcho = None
         self.ref = None  # reference frequency
         if duplicateCurrent is None:
-            self.ppm = self.root.father.defaultPPM             # display frequency as ppm
-            self.ppm2 = self.root.father.defaultPPM             # display frequency as ppm
             self.axes = len(self.data.shape()) - 1
             self.axes2 = 0
             self.resetLocList()
             self.viewSettings = {"plotType": 0,
                                  "axType": self.root.father.defaultUnits,
                                  "axType2": self.root.father.defaultUnits,
+                                 "ppm": self.root.father.defaultPPM,             # display frequency as ppm
+                                 "ppm2": self.root.father.defaultPPM,            # display frequency as ppm
                                  "color": self.root.father.defaultColor,
                                  "linewidth": self.root.father.defaultLinewidth,
                                  "grids": self.root.father.defaultGrids,
@@ -1823,8 +1823,6 @@ class Current1D(Plot1DFrame):
             self.upd()  # get the first slice of data
             self.startUp()
         else:
-            self.ppm = duplicateCurrent.ppm
-            self.ppm2 = duplicateCurrent.ppm2
             self.axes = duplicateCurrent.axes
             self.axes2 = duplicateCurrent.axes2
             if isinstance(self, (CurrentStacked, CurrentArrayed, CurrentContour)):
@@ -2059,7 +2057,7 @@ class Current1D(Plot1DFrame):
             ref = self.freq
         val = self.viewSettings["axType"]
         if self.spec == 1:
-            if self.ppm:
+            if self.viewSettings["ppm"]:
                 self.xminlim = (self.xminlim * oldref * 10**-6 + oldref - ref) / (ref * 10**-6)
                 self.xmaxlim = (self.xmaxlim * oldref * 10**-6 + oldref - ref) / (ref * 10**-6)
             else:
@@ -2104,7 +2102,7 @@ class Current1D(Plot1DFrame):
         from scipy.interpolate import UnivariateSpline
         if unitType is None:
             axType = self.viewSettings["axType"]
-            ppm = self.ppm
+            ppm = self.viewSettings["ppm"]
         else:
             axType = unitType
             if unitType == 3:  # ppm
@@ -2141,7 +2139,7 @@ class Current1D(Plot1DFrame):
         hyperView = 0 
         if unitType is None:
             axType = self.axType
-            ppm = self.ppm
+            ppm = self.viewSettings["ppm"]
         else:
             axType = unitType
             if unitType == 3:  # ppm
@@ -2474,7 +2472,7 @@ class Current1D(Plot1DFrame):
         return check
 
     def previewRemoveList(self, removeList, invert=False):
-        axMult = self.getAxMult(self.spec, self.viewSettings["axType"], self.ppm, self.freq, self.ref)
+        axMult = self.getAxMult(self.spec, self.viewSettings["axType"], self.viewSettings["ppm"], self.freq, self.ref)
         self.resetPreviewRemoveList()
         lineColor = 'r'
         if invert:
@@ -2858,13 +2856,13 @@ class Current1D(Plot1DFrame):
         return returnVal
 
     def setAxType(self, val):
-        oldAxMult = self.getAxMult(self.spec, self.viewSettings["axType"], self.ppm, self.freq, self.ref)
+        oldAxMult = self.getAxMult(self.spec, self.viewSettings["axType"], self.viewSettings["ppm"], self.freq, self.ref)
         if val == 3:
-            self.ppm = True
+            self.viewSettings["ppm"] = True
         else:
-            self.ppm = False
+            self.viewSettings["ppm"] = False
             self.viewSettings["axType"] = val
-        newAxMult = self.getAxMult(self.spec, self.viewSettings["axType"], self.ppm, self.freq, self.ref)
+        newAxMult = self.getAxMult(self.spec, self.viewSettings["axType"], self.viewSettings["ppm"], self.freq, self.ref)
         self.xminlim = self.xminlim * newAxMult / oldAxMult
         self.xmaxlim = self.xmaxlim * newAxMult / oldAxMult
         self.showFid()
@@ -2907,7 +2905,7 @@ class Current1D(Plot1DFrame):
         if tmpdata is None:
             tmpdata = self.data1D[0]
         self.ax.cla()
-        axMult = self.getAxMult(self.spec, self.viewSettings["axType"], self.ppm, self.freq, self.ref)
+        axMult = self.getAxMult(self.spec, self.viewSettings["axType"], self.viewSettings["ppm"], self.freq, self.ref)
         self.line_xdata = self.xax * axMult
         if self.single:
             marker = 'o'
@@ -2938,7 +2936,7 @@ class Current1D(Plot1DFrame):
         elif(self.viewSettings["plotType"] == 3):
             self.line_ydata = np.abs(tmpdata)
         self.ax.plot(self.line_xdata, self.line_ydata, marker=marker, linestyle=linestyle, c=self.viewSettings["color"], linewidth=self.viewSettings["linewidth"], label=self.data.name, picker=True)
-        self.ax.set_xlabel(self.getLabel(self.spec, self.viewSettings["axType"], self.ppm))
+        self.ax.set_xlabel(self.getLabel(self.spec, self.viewSettings["axType"], self.viewSettings["ppm"]))
         self.ax.get_xaxis().get_major_formatter().set_powerlimits((-4, 4))
         self.ax.get_yaxis().get_major_formatter().set_powerlimits((-4, 4))
         self.ax.xaxis.grid(self.viewSettings["grids"][0])
@@ -2974,8 +2972,8 @@ class Current1D(Plot1DFrame):
             self.yminlim = miny - differ
             self.ymaxlim = maxy + differ
         if self.ref == 0.0:
-            self.ppm = False
-        axMult = self.getAxMult(self.spec, self.viewSettings["axType"], self.ppm, self.freq, self.ref)
+            self.viewSettings["ppm"] = False
+        axMult = self.getAxMult(self.spec, self.viewSettings["axType"], self.viewSettings["ppm"], self.freq, self.ref)
         if xReset:
             self.xminlim = min(self.xax * axMult)
             self.xmaxlim = max(self.xax * axMult)
@@ -2998,7 +2996,7 @@ class CurrentScatter(Current1D):
         if tmpdata is None:
             tmpdata = self.data1D[hyperView]
         self.ax.cla()
-        axMult = self.getAxMult(self.spec, self.viewSettings["axType"], self.ppm, self.freq, self.ref)
+        axMult = self.getAxMult(self.spec, self.viewSettings["axType"], self.viewSettings["ppm"], self.freq, self.ref)
         self.line_xdata = self.xax * axMult
         if old:
             if (self.viewSettings["plotType"] == 0):
@@ -3023,7 +3021,7 @@ class CurrentScatter(Current1D):
         elif(self.viewSettings["plotType"] == 3):
             self.line_ydata = np.abs(tmpdata)
         self.ax.plot(self.line_xdata, self.line_ydata, marker='o', linestyle='none', c=self.viewSettings["color"], label=self.data.name, picker=True)
-        self.ax.set_xlabel(self.getLabel(self.spec, self.viewSettings["axType"], self.ppm))
+        self.ax.set_xlabel(self.getLabel(self.spec, self.viewSettings["axType"], self.viewSettings["ppm"]))
         self.ax.get_xaxis().get_major_formatter().set_powerlimits((-4, 4))
         self.ax.get_yaxis().get_major_formatter().set_powerlimits((-4, 4))
         self.ax.xaxis.grid(self.viewSettings["grids"][0])
@@ -3123,8 +3121,8 @@ class CurrentMulti(Current1D):
             miny = -1
             maxy = 1
         if self.ref == 0.0:
-            self.ppm = False
-        axMult = self.getAxMult(self.spec, self.viewSettings["axType"], self.ppm, self.freq, self.ref)
+            self.viewSettings["ppm"] = False
+        axMult = self.getAxMult(self.spec, self.viewSettings["axType"], self.viewSettings["ppm"], self.freq, self.ref)
         minx = min(self.xax * axMult)
         maxx = max(self.xax * axMult)
         for i in range(len(self.viewSettings["extraData"])):
@@ -3141,7 +3139,7 @@ class CurrentMulti(Current1D):
             spec = updateVar[3]
             xax = updateVar[5]
             ref = updateVar[6]
-            axMult = self.getAxMult(spec, self.viewSettings["axType"], self.ppm, data.freq[self.viewSettings["extraAxes"][i]], ref)
+            axMult = self.getAxMult(spec, self.viewSettings["axType"], self.viewSettings["ppm"], data.freq[self.viewSettings["extraAxes"][i]], ref)
             maxx = max(max(xax * axMult), maxx)
             minx = min(min(xax * axMult), minx)
             if self.viewSettings["plotType"] == 0:
@@ -3187,7 +3185,7 @@ class CurrentMulti(Current1D):
             spec = updateVar[3]
             xax = updateVar[5]
             ref = updateVar[6]
-            line_xdata = xax * self.getAxMult(spec, self.viewSettings["axType"], self.ppm, data.freq[self.viewSettings["extraAxes"][i]], ref)
+            line_xdata = xax * self.getAxMult(spec, self.viewSettings["axType"], self.viewSettings["ppm"], data.freq[self.viewSettings["extraAxes"][i]], ref)
             if len(data1D[0]) == 1:
                 marker = 'o'
                 linestyle = 'none'
@@ -3211,7 +3209,7 @@ class CurrentMulti(Current1D):
                          picker=True)
         if tmpdata is None:
             tmpdata = self.data1D[hyperView]
-        axMult = self.getAxMult(self.spec, self.viewSettings["axType"], self.ppm, self.freq, self.ref)
+        axMult = self.getAxMult(self.spec, self.viewSettings["axType"], self.viewSettings["ppm"], self.freq, self.ref)
         self.line_xdata = self.xax * axMult
         if self.single:
             marker = 'o'
@@ -3242,7 +3240,7 @@ class CurrentMulti(Current1D):
         elif(self.viewSettings["plotType"] == 3):
             self.line_ydata = np.abs(tmpdata)
         self.ax.plot(self.line_xdata, self.line_ydata, marker=marker, linestyle=linestyle, c=self.viewSettings["color"], linewidth=self.viewSettings["linewidth"], label=self.data.name, picker=True)
-        self.ax.set_xlabel(self.getLabel(self.spec, self.viewSettings["axType"], self.ppm))
+        self.ax.set_xlabel(self.getLabel(self.spec, self.viewSettings["axType"], self.viewSettings["ppm"]))
         self.ax.get_xaxis().get_major_formatter().set_powerlimits((-4, 4))
         self.ax.get_yaxis().get_major_formatter().set_powerlimits((-4, 4))
         self.ax.xaxis.grid(self.viewSettings["grids"][0])
@@ -3426,7 +3424,7 @@ class CurrentStacked(Current1D):
         if tmpdata is None:
             tmpdata = self.data1D[hyperView]
         self.ax.cla()
-        axMult = self.getAxMult(self.spec, self.viewSettings["axType"], self.ppm, self.freq, self.ref)
+        axMult = self.getAxMult(self.spec, self.viewSettings["axType"], self.viewSettings["ppm"], self.freq, self.ref)
         self.line_xdata = self.xax * axMult
         if self.single:
             marker = 'o'
@@ -3459,7 +3457,7 @@ class CurrentStacked(Current1D):
             if (self.viewSettings["plotType"] == 2):
                 self.ax.plot(self.line_xdata, num * self.viewSettings["spacing"] + np.imag(tmpdata[num]), marker=marker, linestyle=linestyle, c='r', linewidth=self.viewSettings["linewidth"], label=self.data.name + '_imag', picker=True)
             self.ax.plot(self.line_xdata, num * self.viewSettings["spacing"] + np.real(tmpdata[num]), marker=marker, linestyle=linestyle, c=self.viewSettings["color"], linewidth=self.viewSettings["linewidth"], label=self.data.name, picker=True)
-        self.ax.set_xlabel(self.getLabel(self.spec, self.viewSettings["axType"], self.ppm))
+        self.ax.set_xlabel(self.getLabel(self.spec, self.viewSettings["axType"], self.viewSettings["ppm"]))
         if self.spec > 0:
             self.ax.set_xlim(self.xmaxlim, self.xminlim)
         else:
@@ -3495,8 +3493,8 @@ class CurrentStacked(Current1D):
             self.yminlim = miny - differ
             self.ymaxlim = maxy + differ
         if self.ref == 0.0:
-            self.ppm = False
-        axMult = self.getAxMult(self.spec, self.viewSettings["axType"], self.ppm, self.freq, self.ref)
+            self.viewSettings["ppm"] = False
+        axMult = self.getAxMult(self.spec, self.viewSettings["axType"], self.viewSettings["ppm"], self.freq, self.ref)
         if xReset:
             self.xminlim = min(self.xax * axMult)
             self.xmaxlim = max(self.xax * axMult)
@@ -3523,7 +3521,7 @@ class CurrentArrayed(Current1D):
                 # The z-axes limits are in xax units unlike the x-axes and y-axes limits
                 axMult = self.getAxMult(duplicateCurrent.spec,
                                         duplicateCurrent.viewSettings["axType"],
-                                        duplicateCurrent.ppm,
+                                        duplicateCurrent.viewSettings["ppm"],
                                         duplicateCurrent.freq,
                                         duplicateCurrent.ref)
                 self.zminlim = (duplicateCurrent.xminlim) / axMult
@@ -3594,13 +3592,13 @@ class CurrentArrayed(Current1D):
         self.locList = [0] * (len(self.data.shape()) - 2)
 
     def setAxType2(self, val):
-        oldAxMult = self.getAxMult(self.spec2, self.viewSettings["axType2"], self.ppm2, self.freq2, self.ref2)
+        oldAxMult = self.getAxMult(self.spec2, self.viewSettings["axType2"], self.viewSettings["ppm2"], self.freq2, self.ref2)
         if val == 3:
-            self.ppm2 = True
+            self.viewSettings["ppm2"] = True
         else:
-            self.ppm2 = False
+            self.viewSettings["ppm2"] = False
             self.viewSettings["axType2"] = val
-        newAxMult = self.getAxMult(self.spec2, self.viewSettings["axType2"], self.ppm2, self.freq2, self.ref2)
+        newAxMult = self.getAxMult(self.spec2, self.viewSettings["axType2"], self.viewSettings["ppm2"], self.freq2, self.ref2)
         self.showFid()
 
     def stackSelect(self, stackBegin, stackEnd, stackStep):
@@ -3692,8 +3690,8 @@ class CurrentArrayed(Current1D):
         else:
             direc = slice(None, None, 1)
         xaxZlims = (self.xax > self.zminlim) & (self.xax < self.zmaxlim)
-        axMult = self.getAxMult(self.spec, self.viewSettings["axType"], self.ppm, self.freq, self.ref)
-        axMult2 = self.getAxMult(self.spec2, self.viewSettings["axType2"], self.ppm2, self.freq2, self.ref2)
+        axMult = self.getAxMult(self.spec, self.viewSettings["axType"], self.viewSettings["ppm"], self.freq, self.ref)
+        axMult2 = self.getAxMult(self.spec2, self.viewSettings["axType2"], self.viewSettings["ppm2"], self.freq2, self.ref2)
         if self.single:
             marker = 'o'
             linestyle = 'none'
@@ -3765,8 +3763,8 @@ class CurrentArrayed(Current1D):
         if xReset:
             xaxZlims = (self.xax > self.zminlim) & (self.xax < self.zmaxlim)
             if self.ref == 0.0:
-                self.ppm = False
-            axMult = self.getAxMult(self.spec, self.viewSettings["axType"], self.ppm, self.freq, self.ref)
+                self.viewSettings["ppm"] = False
+            axMult = self.getAxMult(self.spec, self.viewSettings["axType"], self.viewSettings["ppm"], self.freq, self.ref)
             self.xminlim = min(self.xax[xaxZlims] * axMult)
             self.xmaxlim = (max(self.xax[xaxZlims]) + (len(self.data1D[0]) - 1) * self.viewSettings["spacing"]) * axMult
         self.ax.set_xlim(self.xminlim, self.xmaxlim)
@@ -3889,13 +3887,13 @@ class CurrentContour(Current1D):
         self.locList = [0] * (len(self.data.shape()) - 2)
 
     def setAxType2(self, val):
-        oldAxMult = self.getAxMult(self.spec2, self.viewSettings["axType2"], self.ppm2, self.freq2, self.ref2)
+        oldAxMult = self.getAxMult(self.spec2, self.viewSettings["axType2"], self.viewSettings["ppm2"], self.freq2, self.ref2)
         if val == 3:
-            self.ppm2 = True
+            self.viewSettings["ppm2"] = True
         else:
-            self.ppm2 = False
+            self.viewSettings["ppm2"] = False
             self.viewSettings["axType2"] = val
-        newAxMult = self.getAxMult(self.spec2, self.viewSettings["axType2"], self.ppm2, self.freq2, self.ref2)
+        newAxMult = self.getAxMult(self.spec2, self.viewSettings["axType2"], self.viewSettings["ppm2"], self.freq2, self.ref2)
         self.yminlim = self.yminlim * newAxMult / oldAxMult
         self.ymaxlim = self.ymaxlim * newAxMult / oldAxMult
         self.showFid()
@@ -3956,9 +3954,9 @@ class CurrentContour(Current1D):
         self.y_ax.cla()
         if self.viewSettings["diagonalBool"]:
             add_diagonal(self.ax, self.viewSettings["diagonalMult"], c='k', ls='--')
-        self.x = self.xax * self.getAxMult(self.spec, self.viewSettings["axType"], self.ppm, self.freq, self.ref)
+        self.x = self.xax * self.getAxMult(self.spec, self.viewSettings["axType"], self.viewSettings["ppm"], self.freq, self.ref)
         self.line_xdata = self.x
-        self.y = self.xax2 * self.getAxMult(self.spec2, self.viewSettings["axType2"], self.ppm2, self.freq2, self.ref2)
+        self.y = self.xax2 * self.getAxMult(self.spec2, self.viewSettings["axType2"], self.viewSettings["ppm2"], self.freq2, self.ref2)
         self.X, self.Y = np.meshgrid(self.x, self.y)
         if (self.viewSettings["plotType"] == 0):
             self.tmpdata = np.real(self.tmpdata)
@@ -3971,8 +3969,8 @@ class CurrentContour(Current1D):
         self.differ = np.max(np.abs(self.tmpdata))
         self.plotContour(X=self.X, Y=self.Y)
         self.showProj()
-        self.ax.set_xlabel(self.getLabel(self.spec, self.viewSettings["axType"], self.ppm))
-        self.ax.set_ylabel(self.getLabel(self.spec2, self.viewSettings["axType2"], self.ppm2))
+        self.ax.set_xlabel(self.getLabel(self.spec, self.viewSettings["axType"], self.viewSettings["ppm"]))
+        self.ax.set_ylabel(self.getLabel(self.spec2, self.viewSettings["axType2"], self.viewSettings["ppm2"]))
         if self.spec:
             self.ax.set_xlim(self.xmaxlim, self.xminlim)
         else:
@@ -4124,14 +4122,14 @@ class CurrentContour(Current1D):
 
     def plotReset(self, xReset=True, yReset=True):  # set the plot limits to min and max values
         if self.ref == 0.0:
-            self.ppm = False
-        axMult = self.getAxMult(self.spec, self.viewSettings["axType"], self.ppm, self.freq, self.ref)
+            self.viewSettings["ppm"] = False
+        axMult = self.getAxMult(self.spec, self.viewSettings["axType"], self.viewSettings["ppm"], self.freq, self.ref)
         if xReset:
             self.xminlim = min(self.xax * axMult)
             self.xmaxlim = max(self.xax * axMult)
         if self.ref2 == 0.0:
-            self.ppm2 = False
-        axMult2 = self.getAxMult(self.spec2, self.viewSettings["axType2"], self.ppm2, self.freq2, self.ref2)
+            self.viewSettings["ppm2"] = False
+        axMult2 = self.getAxMult(self.spec2, self.viewSettings["axType2"], self.viewSettings["ppm2"], self.freq2, self.ref2)
         if yReset:
             self.yminlim = min(self.xax2 * axMult2)
             self.ymaxlim = max(self.xax2 * axMult2)
@@ -4156,8 +4154,8 @@ class CurrentContour(Current1D):
                     self.rect[0].remove()
                     self.rect[0] = None
                     self.peakPick = False
-                    xdata = self.xax * self.getAxMult(self.spec, self.viewSettings["axType"], self.ppm, self.freq, self.ref)
-                    ydata = self.xax2 * self.getAxMult(self.spec2, self.viewSettings["axType2"], self.ppm2, self.freq2, self.ref2)
+                    xdata = self.xax * self.getAxMult(self.spec, self.viewSettings["axType"], self.viewSettings["ppm"], self.freq, self.ref)
+                    ydata = self.xax2 * self.getAxMult(self.spec2, self.viewSettings["axType2"], self.viewSettings["ppm2"], self.freq2, self.ref2)
                     idx = np.argmin(np.abs(xdata - event.xdata))
                     idy = np.argmin(np.abs(ydata - event.ydata))
                     if self.peakPickFunc is not None:
