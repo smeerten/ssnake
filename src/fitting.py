@@ -2994,14 +2994,14 @@ class Quad1DeconvParamFrame(AbstractParamFrame):
          printStr = '%#.' + str(self.rootwindow.tabWindow.PRECIS) + 'g'
          for i in range(10):  # Print output if not stopped before
             if i < val:
-                #try:
+                try:
                     cq = float(safeEval(self.entries['cq'][i].text()))
                     eta = float(safeEval(self.entries['eta'][i].text()))
                     Res = func.quadConversion([cq,eta], 1, 0)[0]
                     self.entries['cq'][i].setText(printStr % Res[0])
                     self.entries['eta'][i].setText(printStr % Res[1])
-                #except Exception:
-                #    return
+                except Exception:
+                    return
 
     def disp(self, params, num):
         out = params[num]
