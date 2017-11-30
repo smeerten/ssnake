@@ -3437,7 +3437,7 @@ class SIMPSONDeconvParamFrame(AbstractParamFrame):
         if not inp:
             val = {}
             for name in self.MULTINAMES:
-                if name is "Amplitude":
+                if name is "amp":
                     num = 1.0
                 else:
                     num = 0.0
@@ -3458,7 +3458,8 @@ class SIMPSONDeconvParamFrame(AbstractParamFrame):
         matches = np.unique(re.findall("(@\w+)", inFile))
         self.script = inFile
         self.MULTINAMES = [e[1:] for e in matches]
-        self.MULTINAMES.insert(0, "Amplitude")
+        self.MULTINAMES.insert(0, "amp")
+        self.MULTINAMES.extend(["lor", "gauss"])
         for n in self.PARAMTEXT.keys():
             self.labels[n][0].deleteLater()
             for i in range(self.FITNUM):
@@ -3601,11 +3602,13 @@ def SIMPSONRunScript(command, script, parameters, xax, output=None, spec=True):
     else:
         shutil.rmtree(directory_name, ignore_errors=True)
         return None
+    masterData.noUndo = True
+    masterData.apodize(parameters["lor"], parameters["gauss"], 0, 0, 0, 0, 0, 0)
     if masterData.spec[0] != spec:
         masterData.fourier(0)
     masterData.regrid([xax[0], xax[-1]], len(xax), 0)
     shutil.rmtree(directory_name, ignore_errors=True)
-    return parameters["Amplitude"] * np.real(masterData.data[0])
+    return parameters["amp"] * np.real(masterData.data[0])
 
 
 class TxtOutputWindow(wc.ToolWindows):
