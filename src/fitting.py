@@ -1048,11 +1048,11 @@ class PrefWindow(QtWidgets.QWidget):
         self.precisBox.setValue(self.father.PRECIS)
         grid.addWidget(self.precisBox, 1, 1)
         grid.addWidget(QLabel("# evaluations:"), 2, 0)
-        self.numFevalIterBox = QtWidgets.QSpinBox(self)
+        self.numFevalBox = QtWidgets.QSpinBox(self)
         self.numFevalBox.setMaximum(100000)
         self.numFevalBox.setMinimum(1)
         self.numFevalBox.setValue(self.father.NUMFEVAL)
-        grid.addWidget(self.numIterBox, 2, 1)
+        grid.addWidget(self.numFevalBox, 2, 1)
         cancelButton = QtWidgets.QPushButton("&Cancel")
         cancelButton.clicked.connect(self.closeEvent)
         layout.addWidget(cancelButton, 4, 0)
@@ -3519,10 +3519,10 @@ class SIMPSONDeconvParamFrame(AbstractParamFrame):
 
 
 def SIMPSONDeconvmpFit(xax, data1D, guess, args, queue, minmethod, numfeval):
-    try:
-        fitVal = scipy.optimize.minimize(lambda *param: np.sum((data1D - SIMPSONDeconvfitFunc(param, xax, args))**2), guess, method=minmethod, options = {'maxfev': numfeval})
-    except Exception:
-        fitVal = None
+    #try:
+    fitVal = scipy.optimize.minimize(lambda *param: np.sum((data1D - SIMPSONDeconvfitFunc(param, xax, args))**2), guess, method=minmethod, options = {'maxfev': numfeval})
+    #except Exception:
+    #    fitVal = None
     queue.put(fitVal)
 
 
