@@ -3437,7 +3437,11 @@ class SIMPSONDeconvParamFrame(AbstractParamFrame):
         if not inp:
             val = {}
             for name in self.MULTINAMES:
-                val[name] = np.repeat([np.array([0.0, False], dtype=object)], self.FITNUM, axis=0)
+                if name is "amp":
+                    num = 1.0
+                else:
+                    num = 0.0
+                val[name] = np.repeat([np.array([num, False], dtype=object)], self.FITNUM, axis=0)
             return val
         else:
             return inp
@@ -3454,6 +3458,8 @@ class SIMPSONDeconvParamFrame(AbstractParamFrame):
         matches = np.unique(re.findall("(@\w+)", inFile))
         self.script = inFile
         self.MULTINAMES = [e[1:] for e in matches]
+        self.MULTINAMES.insert(0, "amp")
+        self.MULTINAMES.extend(["lor", "gauss"])
         for n in self.PARAMTEXT.keys():
             self.labels[n][0].deleteLater()
             for i in range(self.FITNUM):
@@ -3482,7 +3488,8 @@ class SIMPSONDeconvParamFrame(AbstractParamFrame):
         out["command"] = [self.commandLine.text()]
         out["script"] = [self.script]
         out["txtOutput"] = [self.txtOutput]
-        return (out, [out["nameList"][-1], out["command"][-1], out["script"][-1], out["txtOutput"][-1]])
+        out["spec"] = [self.parent.current.spec]
+        return (out, [out["nameList"][-1], out["command"][-1], out["script"][-1], out["txtOutput"][-1], out["spec"][-1]])
 
     def disp(self, params, num):
         out = params[num]
@@ -3506,7 +3513,7 @@ class SIMPSONDeconvParamFrame(AbstractParamFrame):
             inputPar = {}
             for name in self.MULTINAMES:
                 inputPar[name] = out[name][i]
-            y = SIMPSONRunScript(out["command"][0], out["script"][0], inputPar, tmpx, out["txtOutput"][0])
+            y = SIMPSONRunScript(out["command"][0], out["script"][0], inputPar, tmpx, out["txtOutput"][0], out["spec"][0])
             if y is None:
                 self.rootwindow.mainProgram.dispMsg("Fitting: The script didn't output anything", 'red')
                 return
@@ -3550,6 +3557,7 @@ def SIMPSONDeconvfitFunc(params, allX, args):
         command = argu[-1][1]
         script = argu[-1][2]
         txtOutput = argu[-1][3]
+        spec = argu[-1][4]
         parameters = {}
         for i in range(numExp):
             for name in nameList:
@@ -3564,12 +3572,12 @@ def SIMPSONDeconvfitFunc(params, allX, args):
                         parameters[name] = altStruc[2] * allParam[altStruc[4]][strucTarget[altStruc[0]][altStruc[1]][1]] + altStruc[3]
                     elif strucTarget[altStruc[0]][altStruc[1]][0] == 0:
                         parameters[name] = altStruc[2] * allArgu[altStruc[4]][strucTarget[altStruc[0]][altStruc[1]][1]] + altStruc[3]
-            testFunc += SIMPSONRunScript(command, script, parameters, x, txtOutput)
+            testFunc += SIMPSONRunScript(command, script, parameters, x, txtOutput, spec)
         fullTestFunc = np.append(fullTestFunc, testFunc)
     return fullTestFunc
 
 
-def SIMPSONRunScript(command, script, parameters, xax, output=None):
+def SIMPSONRunScript(command, script, parameters, xax, output=None, spec=True):
     for elem in parameters.keys():
         script = script.replace('@' + elem, str(parameters[elem]))
     directory_name = tempfile.mkdtemp()
@@ -3594,9 +3602,13 @@ def SIMPSONRunScript(command, script, parameters, xax, output=None):
     else:
         shutil.rmtree(directory_name, ignore_errors=True)
         return None
+    masterData.noUndo = True
+    masterData.apodize(parameters["lor"], parameters["gauss"], 0, 0, 0, 0, 0, 0)
+    if masterData.spec[0] != spec:
+        masterData.fourier(0)
     masterData.regrid([xax[0], xax[-1]], len(xax), 0)
     shutil.rmtree(directory_name, ignore_errors=True)
-    return np.real(masterData.data[0])
+    return parameters["amp"] * np.real(masterData.data[0])
 
 
 class TxtOutputWindow(wc.ToolWindows):
