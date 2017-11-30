@@ -842,6 +842,7 @@ class AbstractParamFrame(QtWidgets.QWidget):
         if self.queue is None:
             return
         fitVal = self.queue.get(timeout=2)
+        print(fitVal)
         self.stopMP()
         if fitVal is None:
             self.rootwindow.mainProgram.dispMsg('Optimal parameters not found')
@@ -1066,53 +1067,6 @@ class PrefWindow(QtWidgets.QWidget):
         self.closeEvent()
 
 ##############################################################################
-
-
-class IntegralsWindow(TabFittingWindow):
-
-    def __init__(self, mainProgram, oldMainWindow):
-        self.CURRENTWINDOW = IntegralsFrame
-        self.PARAMFRAME = IntegralsParamFrame
-        super(IntegralsWindow, self).__init__(mainProgram, oldMainWindow)
-
-#################################################################################
-
-
-class IntegralsFrame(FitPlotFrame):
-
-    def __init__(self, rootwindow, fig, canvas, current):
-        self.FITNUM = 20  # Maximum number of fits
-        self.pickNum = 0
-        self.pickWidth = False
-        super(IntegralsFrame, self).__init__(rootwindow, fig, canvas, current)
-
-    def togglePick(self, var):
-        self.peakPickReset()
-        if var == 1:
-            self.peakPickFunc = lambda pos, self=self: self.pickDeconv(pos)
-            self.peakPick = True
-        else:
-            self.peakPickFunc = None
-            self.peakPick = False
-
-    def pickDeconv(self, pos):
-        pickNum = self.fitPickNumList[tuple(self.locList)]
-        if self.pickWidth:
-            self.rootwindow.paramframe.entries['max'][pickNum].setText(('%#.' + str(self.rootwindow.tabWindow.PRECIS) + 'g') % pos[1])
-            self.fitPickNumList[tuple(self.locList)] += 1
-            self.pickWidth = False
-            self.rootwindow.fit()
-        else:
-            self.rootwindow.paramframe.entries['min'][pickNum].setText(('%#.' + str(self.rootwindow.tabWindow.PRECIS) + 'g') % pos[1])
-            if pickNum < self.FITNUM:
-                self.rootwindow.paramframe.numExp.setCurrentIndex(pickNum)
-                self.rootwindow.paramframe.changeNum()
-            self.pickWidth = True
-        if pickNum < self.FITNUM:
-            self.peakPickFunc = lambda pos, self=self: self.pickDeconv(pos)
-            self.peakPick = True
-
-#################################################################################
 
 
 class RelaxWindow(TabFittingWindow):
@@ -3630,7 +3584,7 @@ def SIMPSONRunScript(command, script, parameters, xax, output=None):
         return None
     masterData.regrid([xax[0], xax[-1]], len(xax), 0)
     shutil.rmtree(directory_name, ignore_errors=True)
-    return np.real(masterData.data)
+    return np.real(masterData.data[0])
 
 
 class TxtOutputWindow(wc.ToolWindows):
@@ -3646,13 +3600,13 @@ class TxtOutputWindow(wc.ToolWindows):
         self.valEntry = QtWidgets.QTextEdit()
         self.valEntry.setReadOnly(True)
         self.valEntry.setLineWrapMode(QtWidgets.QTextEdit.NoWrap)
-        self.valEntry.setText(txt)
+        self.valEntry.setText(txt.decode())
         self.grid.addWidget(self.valEntry, 2, 0)
         self.grid.addWidget(QtWidgets.QLabel("Errors:"), 3, 0)
         self.errEntry = QtWidgets.QTextEdit()
         self.errEntry.setReadOnly(True)
         self.errEntry.setLineWrapMode(QtWidgets.QTextEdit.NoWrap)
-        self.errEntry.setText(errTxt)
+        self.errEntry.setText(errTxt.decode())
         self.grid.addWidget(self.errEntry, 4, 0)
         self.resize(550, 700)
 
