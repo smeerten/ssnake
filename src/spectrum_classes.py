@@ -1394,7 +1394,7 @@ class Spectrum(object):
             data = newdat
         return data, hyper
 
-    def fourier(self, axes, tmp=False, inv=False, reorder = [True,True]):
+    def fourier(self, axes, tmp=False, inv=False, reorder=[True,True]):
         axes = self.checkAxes(axes)
         tmpdat = self.data 
         if reorder[0]:
