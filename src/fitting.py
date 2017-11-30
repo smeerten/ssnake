@@ -70,6 +70,7 @@ class TabFittingWindow(QtWidgets.QWidget):
 
     PRECIS = 4
     MINMETHOD = 'Powell'
+    NUMFEVAL = 150
 
     def __init__(self, mainProgram, oldMainWindow):
         super(TabFittingWindow, self).__init__(mainProgram)
@@ -830,7 +831,7 @@ class AbstractParamFrame(QtWidgets.QWidget):
 
     def fit(self, xax, data1D, guess, args):
         self.queue = multiprocessing.Queue()
-        self.process1 = multiprocessing.Process(target=self.FITFUNC, args=(xax, data1D, guess, args, self.queue, self.rootwindow.tabWindow.MINMETHOD))
+        self.process1 = multiprocessing.Process(target=self.FITFUNC, args=(xax, data1D, guess, args, self.queue, self.rootwindow.tabWindow.MINMETHOD, self.rootwindow.tabWindow.NUMFEVAL))
         self.process1.start()
         self.running = True
         self.stopButton.show()
@@ -842,7 +843,6 @@ class AbstractParamFrame(QtWidgets.QWidget):
         if self.queue is None:
             return
         fitVal = self.queue.get(timeout=2)
-        print(fitVal)
         self.stopMP()
         if fitVal is None:
             self.rootwindow.mainProgram.dispMsg('Optimal parameters not found')
@@ -1047,13 +1047,19 @@ class PrefWindow(QtWidgets.QWidget):
         self.precisBox = QtWidgets.QSpinBox(self)
         self.precisBox.setValue(self.father.PRECIS)
         grid.addWidget(self.precisBox, 1, 1)
+        grid.addWidget(QLabel("# evaluations:"), 2, 0)
+        self.numFevalIterBox = QtWidgets.QSpinBox(self)
+        self.numFevalBox.setMaximum(100000)
+        self.numFevalBox.setMinimum(1)
+        self.numFevalBox.setValue(self.father.NUMFEVAL)
+        grid.addWidget(self.numIterBox, 2, 1)
         cancelButton = QtWidgets.QPushButton("&Cancel")
         cancelButton.clicked.connect(self.closeEvent)
-        layout.addWidget(cancelButton, 2, 0)
+        layout.addWidget(cancelButton, 4, 0)
         okButton = QtWidgets.QPushButton("&Ok", self)
         okButton.clicked.connect(self.applyAndClose)
         okButton.setFocus()
-        layout.addWidget(okButton, 2, 1)
+        layout.addWidget(okButton, 4, 1)
         grid.setRowStretch(100, 1)
         self.show()
         self.setGeometry(self.frameSize().width() - self.geometry().width(), self.frameSize().height() - self.geometry().height(), 0, 0)
@@ -1064,6 +1070,7 @@ class PrefWindow(QtWidgets.QWidget):
     def applyAndClose(self, *args):
         self.father.PRECIS = self.precisBox.value()
         self.father.MINMETHOD = self.METHODLIST[self.minmethodBox.currentIndex()]
+        self.father.NUMFEVAL = self.numFevalBox.value()
         self.closeEvent()
 
 ##############################################################################
@@ -1378,9 +1385,9 @@ class RelaxParamFrame(AbstractParamFrame):
 #############################################################################
 
 
-def relaxationmpFit(xax, data1D, guess, args, queue, minmethod):
+def relaxationmpFit(xax, data1D, guess, args, queue, minmethod, numfeval):
     try:
-        fitVal = scipy.optimize.minimize(lambda *param: np.sum((data1D - relaxationfitFunc(param, xax, args))**2), guess, method=minmethod)
+        fitVal = scipy.optimize.minimize(lambda *param: np.sum((data1D - relaxationfitFunc(param, xax, args))**2), guess, method=minmethod, options = {'maxfev': numfeval})
     except Exception:
         fitVal = None
     queue.put(fitVal)
@@ -1769,9 +1776,9 @@ class DiffusionParamFrame(AbstractParamFrame):
 ##############################################################################
 
 
-def diffusionmpFit(xax, data1D, guess, args, queue, minmethod):
+def diffusionmpFit(xax, data1D, guess, args, queue, minmethod, numfeval):
     try:
-        fitVal = scipy.optimize.minimize(lambda *param: np.sum((data1D - diffusionfitFunc(param, xax, args))**2), guess, method=minmethod)
+        fitVal = scipy.optimize.minimize(lambda *param: np.sum((data1D - diffusionfitFunc(param, xax, args))**2), guess, method=minmethod, options = {'maxfev': numfeval})
     except Exception:
         fitVal = None
     queue.put(fitVal)
@@ -2004,9 +2011,9 @@ class PeakDeconvParamFrame(AbstractParamFrame):
 ##############################################################################
 
 
-def peakDeconvmpFit(xax, data1D, guess, args, queue, minmethod):
+def peakDeconvmpFit(xax, data1D, guess, args, queue, minmethod, numfeval):
     try:
-        fitVal = scipy.optimize.minimize(lambda *param: np.sum((data1D - peakDeconvfitFunc(param, xax, args))**2), guess, method=minmethod)
+        fitVal = scipy.optimize.minimize(lambda *param: np.sum((data1D - peakDeconvfitFunc(param, xax, args))**2), guess, method=minmethod, options = {'maxfev': numfeval})
     except Exception:
         fitVal = None
     queue.put(fitVal)
@@ -2426,9 +2433,9 @@ class TensorDeconvParamFrame(AbstractParamFrame):
 ##############################################################################
 
 
-def tensorDeconvmpFit(xax, data1D, guess, args, queue, minmethod):
+def tensorDeconvmpFit(xax, data1D, guess, args, queue, minmethod, numfeval):
     try:
-        fitVal = scipy.optimize.minimize(lambda *param: np.sum((data1D - tensorDeconvfitFunc(param, xax, args))**2), guess, method=minmethod)
+        fitVal = scipy.optimize.minimize(lambda *param: np.sum((data1D - tensorDeconvfitFunc(param, xax, args))**2), guess, method=minmethod, options = {'maxfev': numfeval})
     except Exception:
         fitVal = None
     queue.put(fitVal)
@@ -2783,9 +2790,9 @@ class Quad1DeconvParamFrame(AbstractParamFrame):
 ##############################################################################
 
 
-def quad1mpFit(xax, data1D, guess, args, queue, minmethod):
+def quad1mpFit(xax, data1D, guess, args, queue, minmethod, numfeval):
     try:
-        fitVal = scipy.optimize.minimize(lambda *param: np.sum((data1D - quad1fitFunc(param, xax, args))**2), guess, method=minmethod)
+        fitVal = scipy.optimize.minimize(lambda *param: np.sum((data1D - quad1fitFunc(param, xax, args))**2), guess, method=minmethod, options = {'maxfev': numfeval})
     except Exception:
         fitVal = None
     queue.put(fitVal)
@@ -3269,9 +3276,9 @@ class Quad2CzjzekParamFrame(AbstractParamFrame):
 #################################################################################
 
 
-def quad2CzjzekmpFit(xax, data1D, guess, args, queue, minmethod):
+def quad2CzjzekmpFit(xax, data1D, guess, args, queue, minmethod, numfeval):
     try:
-        fitVal = scipy.optimize.minimize(lambda *param: np.sum((data1D - quad2CzjzekfitFunc(param, xax, args))**2), guess, method=minmethod)
+        fitVal = scipy.optimize.minimize(lambda *param: np.sum((data1D - quad2CzjzekfitFunc(param, xax, args))**2), guess, method=minmethod, options = {'maxfev': numfeval})
     except Exception:
         fitVal = None
     queue.put(fitVal)
@@ -3506,9 +3513,9 @@ class SIMPSONDeconvParamFrame(AbstractParamFrame):
 ##############################################################################
 
 
-def SIMPSONDeconvmpFit(xax, data1D, guess, args, queue, minmethod):
+def SIMPSONDeconvmpFit(xax, data1D, guess, args, queue, minmethod, numfeval):
     try:
-        fitVal = scipy.optimize.minimize(lambda *param: np.sum((data1D - SIMPSONDeconvfitFunc(param, xax, args))**2), guess, method=minmethod)
+        fitVal = scipy.optimize.minimize(lambda *param: np.sum((data1D - SIMPSONDeconvfitFunc(param, xax, args))**2), guess, method=minmethod, options = {'maxfev': numfeval})
     except Exception:
         fitVal = None
     queue.put(fitVal)
@@ -3735,9 +3742,9 @@ class FunctionFitParamFrame(AbstractParamFrame):
 ##############################################################################
 
 
-def functionmpFit(xax, data1D, guess, args, queue, minmethod):
+def functionmpFit(xax, data1D, guess, args, queue, minmethod, numfeval):
     try:
-        fitVal = scipy.optimize.minimize(lambda *param: np.sum((data1D - functionfitFunc(param, xax, args))**2), guess, method=minmethod)
+        fitVal = scipy.optimize.minimize(lambda *param: np.sum((data1D - functionfitFunc(param, xax, args))**2), guess, method=minmethod, options = {'maxfev': numfeval})
     except Exception:
         fitVal = None
     queue.put(fitVal)
