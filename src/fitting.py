@@ -3391,7 +3391,7 @@ class SIMPSONDeconvWindow(TabFittingWindow):
 
 class SIMPSONDeconvFrame(FitPlotFrame):
 
-    FITNUM = 1  # Maximum number of fits
+    FITNUM = 10  # Maximum number of fits
 
 #################################################################################
 
@@ -3419,6 +3419,10 @@ class SIMPSONDeconvParamFrame(AbstractParamFrame):
         self.frame1.addWidget(outputButton, 3, 1)
         self.commandLine = wc.QLineEdit("simpson")
         self.frame1.addWidget(self.commandLine, 4, 1)
+        self.numExp = QtWidgets.QComboBox()
+        self.numExp.addItems([str(x + 1) for x in range(self.FITNUM)])
+        self.numExp.currentIndexChanged.connect(self.changeNum)
+        self.frame3.addWidget(self.numExp, 0, 0, 1, 2)
         self.labels = {}
         self.ticks = {}
         self.entries = {}
@@ -3428,9 +3432,6 @@ class SIMPSONDeconvParamFrame(AbstractParamFrame):
 
     def txtOutputWindow(self):
         TxtOutputWindow(self.rootwindow, self.txtOutput[0], self.txtOutput[1])
-        
-    def getNumExp(self):
-        return 1
 
     def defaultValues(self, inp):
         if not inp:
@@ -3455,8 +3456,9 @@ class SIMPSONDeconvParamFrame(AbstractParamFrame):
         self.MULTINAMES = [e[1:] for e in matches]
         for n in self.PARAMTEXT.keys():
             self.labels[n][0].deleteLater()
-            self.ticks[n][0].deleteLater()
-            self.entries[n][0].deleteLater()
+            for i in range(self.FITNUM):
+                self.ticks[n][i].deleteLater()
+                self.entries[n][i].deleteLater()
         self.PARAMTEXT = {}
         self.labels = {}
         self.ticks = {}
@@ -3464,12 +3466,15 @@ class SIMPSONDeconvParamFrame(AbstractParamFrame):
         for i in range(len(self.MULTINAMES)):
             name = self.MULTINAMES[i]
             self.PARAMTEXT[name] = name
-            self.labels[name] = [QtWidgets.QLabel(name)]
-            self.frame3.addWidget(self.labels[name][0], i, 0)
-            self.ticks[name] = [QtWidgets.QCheckBox('')]
-            self.frame3.addWidget(self.ticks[name][0], i, 1)
-            self.entries[name] = [wc.FitQLineEdit(self, name)]
-            self.frame3.addWidget(self.entries[name][0], i, 2)
+            self.labels[name] = [QLabel(name)]
+            self.frame3.addWidget(self.labels[name][0], 1, 2*i, 1, 2)
+            self.ticks[name] = []
+            self.entries[name] = []
+            for j in range(self.FITNUM):
+                self.ticks[name].append(QtWidgets.QCheckBox(''))
+                self.frame3.addWidget(self.ticks[name][j], 2+j, 2*i)
+                self.entries[name].append(wc.FitQLineEdit(self, name))
+                self.frame3.addWidget(self.entries[name][j], 2+j, 2*i+1)
         self.reset()
 
     def getExtraParams(self, out):
@@ -3496,11 +3501,11 @@ class SIMPSONDeconvParamFrame(AbstractParamFrame):
         outCurve = outCurveBase.copy()
         outCurvePart = []
         x = []
-        for i in range(len(out[self.MULTINAMES[0]])):
+        for i in range(numExp):
             x.append(tmpx)
             inputPar = {}
             for name in self.MULTINAMES:
-                inputPar[name] = out[name][0]
+                inputPar[name] = out[name][i]
             y = SIMPSONRunScript(out["command"][0], out["script"][0], inputPar, tmpx, out["txtOutput"][0])
             if y is None:
                 self.rootwindow.mainProgram.dispMsg("Fitting: The script didn't output anything", 'red')
@@ -3633,7 +3638,7 @@ class FunctionFitWindow(TabFittingWindow):
 
 class FunctionFitFrame(FitPlotFrame):
 
-    FITNUM = 1  # Maximum number of fits
+    FITNUM = 10  # Maximum number of fits
 
 #################################################################################
 
@@ -3654,6 +3659,10 @@ class FunctionFitParamFrame(AbstractParamFrame):
         functionButton = QtWidgets.QPushButton("Input Function")
         functionButton.clicked.connect(self.functionInput)
         self.frame1.addWidget(functionButton, 2, 1)
+        self.numExp = QtWidgets.QComboBox()
+        self.numExp.addItems([str(x + 1) for x in range(self.FITNUM)])
+        self.numExp.currentIndexChanged.connect(self.changeNum)
+        self.frame3.addWidget(self.numExp, 0, 0, 1, 2)
         self.labels = {}
         self.ticks = {}
         self.entries = {}
@@ -3661,9 +3670,6 @@ class FunctionFitParamFrame(AbstractParamFrame):
         self.frame3.setAlignment(QtCore.Qt.AlignTop)
         self.reset()
 
-    def getNumExp(self):
-        return 1
-        
     def defaultValues(self, inp):
         if not inp:
             val = {}
@@ -3686,8 +3692,9 @@ class FunctionFitParamFrame(AbstractParamFrame):
         self.MULTINAMES = [e[1:] for e in matches]
         for n in self.PARAMTEXT.keys():
             self.labels[n][0].deleteLater()
-            self.ticks[n][0].deleteLater()
-            self.entries[n][0].deleteLater()
+            for i in range(self.FITNUM):
+                self.ticks[n][i].deleteLater()
+                self.entries[n][i].deleteLater()
         self.PARAMTEXT = {}
         self.labels = {}
         self.ticks = {}
@@ -3695,12 +3702,15 @@ class FunctionFitParamFrame(AbstractParamFrame):
         for i in range(len(self.MULTINAMES)):
             name = self.MULTINAMES[i]
             self.PARAMTEXT[name] = name
-            self.labels[name] = [QtWidgets.QLabel(name)]
-            self.frame3.addWidget(self.labels[name][0], i, 0)
-            self.ticks[name] = [QtWidgets.QCheckBox('')]
-            self.frame3.addWidget(self.ticks[name][0], i, 1)
-            self.entries[name] = [wc.FitQLineEdit(self, name)]
-            self.frame3.addWidget(self.entries[name][0], i, 2)
+            self.labels[name] = [QLabel(name)]
+            self.frame3.addWidget(self.labels[name][0], 1, 2*i, 1, 2)
+            self.ticks[name] = []
+            self.entries[name] = []
+            for j in range(self.FITNUM):
+                self.ticks[name].append(QtWidgets.QCheckBox(''))
+                self.frame3.addWidget(self.ticks[name][j], 2+j, 2*i)
+                self.entries[name].append(wc.FitQLineEdit(self, name))
+                self.frame3.addWidget(self.entries[name][j], 2+j, 2*i+1)
         self.reset()
 
     def getExtraParams(self, out):
@@ -3725,11 +3735,11 @@ class FunctionFitParamFrame(AbstractParamFrame):
         outCurve = outCurveBase.copy()
         outCurvePart = []
         x = []
-        for i in range(len(out[self.MULTINAMES[0]])):
+        for i in range(numExp):
             x.append(tmpx)
             inputPar = {}
             for name in self.MULTINAMES:
-                inputPar[name] = out[name][0]
+                inputPar[name] = out[name][i]
             y = functionRun(out["function"][0], inputPar, tmpx)
             if y is None:
                 self.rootwindow.mainProgram.dispMsg("Fitting: The script didn't output anything", 'red')
