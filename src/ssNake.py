@@ -357,6 +357,7 @@ class MainProgram(QtWidgets.QMainWindow):
                                    ['Matrix --> Sizing', self.sizingAct],
                                    ['Matrix --> Shift Data', self.shiftAct],
                                    ['Matrix --> Multiply', self.multiplyAct],
+                                   ['Matrix --> Normalize', self.normalizeAct],
                                    ['Matrix --> Region --> Integrate', self.intRegionAct],
                                    ['Matrix --> Region --> Sum', self.sumRegionAct],
                                    ['Matrix --> Region --> Max', self.maxRegionAct],
@@ -370,7 +371,6 @@ class MainProgram(QtWidgets.QMainWindow):
                                    ['Matrix --> Flip L/R', self.fliplrAct],
                                    ['Matrix --> Delete', self.matrixdelAct],
                                    ['Matrix --> Split', self.splitAct],
-                                   ['Matrix --> Multiply', self.multiplyAct],
                                    ['Matrix --> Reorder', self.reorderAct],
                                    ['Matrix --> Regrid', self.regridAct],
                                    ['Matrix --> Concatenate', self.concatAct],
@@ -601,6 +601,8 @@ class MainProgram(QtWidgets.QMainWindow):
         self.splitAct.setToolTip('Split')
         self.multiplyAct = self.matrixMenu.addAction(QtGui.QIcon(IconDirectory + 'multiply.png'), "Mul&tiply", lambda: self.mainWindowCheck(lambda mainWindow: MultiplyWindow(mainWindow)))
         self.multiplyAct.setToolTip('Multiply')
+        self.normalizeAct = self.matrixMenu.addAction(QtGui.QIcon(IconDirectory + 'multiply.png'), "Normalize", lambda: self.mainWindowCheck(lambda mainWindow: NormalizeWindow(mainWindow)))
+        self.normalizeAct.setToolTip('Normalize')
         self.reorderAct = self.matrixMenu.addAction(QtGui.QIcon(IconDirectory + 'reorder.png'), "&Reorder", lambda: self.mainWindowCheck(lambda mainWindow: ReorderWindow(mainWindow)))
         self.reorderAct.setToolTip('Reorder')
         self.regridAct = self.matrixMenu.addAction(QtGui.QIcon(IconDirectory + 'regrid.png'), "Regrid", lambda: self.mainWindowCheck(lambda mainWindow: RegridWindow(mainWindow)))
@@ -616,7 +618,7 @@ class MainProgram(QtWidgets.QMainWindow):
                               self.maxposRegionAct, self.minposRegionAct, self.averageRegionAct,
                               self.diffAct, self.cumsumAct, self.extractpartAct,
                               self.fliplrAct, self.matrixdelAct, self.splitAct,
-                              self.multiplyAct, self.reorderAct, self.regridAct,
+                              self.multiplyAct, self.normalizeAct, self.reorderAct, self.regridAct,
                               self.concatAct, self.shearAct]
         # the fft drop down menu
         self.fftMenu = QtWidgets.QMenu("T&ransforms", self)
@@ -1798,6 +1800,8 @@ class Main1DWindow(QtWidgets.QWidget):
                 returnValue = self.masterData.divideSpec(*iter1[1])
             elif iter1[0] == 'multiply':
                 returnValue = self.masterData.multiply(*iter1[1])
+            elif iter1[0] == 'normalize':
+                returnValue = self.masterData.normalize(*iter1[1])
             elif iter1[0] == 'subtractAvg':
                 returnValue = self.masterData.subtractAvg(*iter1[1])
             elif iter1[0] == 'FIDDLE':
@@ -5910,6 +5914,108 @@ class MultiplyWindow(wc.ToolWindows):
 
 ##########################################################################################
 
+class NormalizeWindow(wc.ToolWindows):
+
+    NAME = "Normalize"
+    SINGLESLICE = True
+
+    def __init__(self, parent):
+        super(NormalizeWindow, self).__init__(parent)
+        self.grid.addWidget(wc.QLabel("Start point:"), 0, 0)
+        self.minEntry = wc.QLineEdit("0", self.checkValues)
+        self.grid.addWidget(self.minEntry, 1, 0)
+        self.grid.addWidget(wc.QLabel("End point:"), 2, 0)
+        self.maxEntry = wc.QLineEdit(parent.current.data1D[0].shape[-1], self.checkValues)
+        self.grid.addWidget(self.maxEntry, 3, 0)
+        self.grid.addWidget(wc.QLabel("Type:"), 4, 0)
+        self.typeDrop = QtWidgets.QComboBox()
+        self.typeDrop.addItems(['Integral','Maximum','Minimum'])
+        self.typeDrop.setCurrentIndex(0)
+        self.typeDrop.currentIndexChanged.connect(self.checkValues)
+        self.grid.addWidget(self.typeDrop, 5, 0)
+        self.grid.addWidget(wc.QLabel("Multiplier:"), 6, 0)
+        self.valEntry = wc.QLineEdit("1.0")
+        self.grid.addWidget(self.valEntry, 7, 0)
+        self.father.current.peakPickFunc = lambda pos, self=self: self.picked(pos)
+        self.father.current.peakPick = True
+
+    def picked(self, pos, num=0):
+        if num == 0:
+            self.minEntry.setText(str(pos[0]))
+            self.father.current.peakPickFunc = lambda pos, self=self: self.picked(pos, 1)
+            self.father.current.peakPick = True
+        elif num == 1:
+            self.maxEntry.setText(str(pos[0]))
+            self.father.current.peakPickFunc = lambda pos, self=self: self.picked(pos, 0)
+            self.father.current.peakPick = True
+            #self.applyFunc()
+
+    def checkValues(self, *args):
+        dataLength = self.father.current.data1D[0].shape[-1]
+        inp = safeEval(self.minEntry.text())
+        if inp is None:
+            return
+        minimum = int(round(inp))
+        if minimum < 0:
+            minimum = 0
+        elif minimum > dataLength:
+            minimum = dataLength
+        self.minEntry.setText(str(minimum))
+        inp = safeEval(self.maxEntry.text())
+        if inp is None:
+            return
+        maximum = int(round(inp))
+        if maximum < 0:
+            maximum = 0
+        elif maximum > dataLength:
+            maximum = dataLength
+        self.maxEntry.setText(str(maximum))
+        #self.applyFunc()
+
+    def applyFunc(self):
+        dataLength = self.father.current.data1D[0].shape[-1]
+        inp = safeEval(self.minEntry.text())
+        if inp is None:
+            self.father.father.dispMsg("Normalize: invalid range")
+            return False
+        minimum = int(round(inp))
+        if minimum < 0:
+            minimum = 0
+        elif minimum > dataLength:
+            minimum = dataLength
+        self.minEntry.setText(str(minimum))
+        inp = safeEval(self.maxEntry.text())
+        if inp is None:
+            self.father.father.dispMsg("Normalize: invalid range")
+            return False
+        maximum = int(round(inp))
+        if maximum < 0:
+            maximum = 0
+        elif maximum > dataLength:
+            maximum = dataLength
+        self.maxEntry.setText(str(maximum))
+
+        try:
+            scale = float(safeEval(self.valEntry.text()))
+        except Exception:
+            self.father.father.dispMsg("Normalize: invalid multiplier")
+            return False
+
+        type = self.typeDrop.currentIndex()
+        if type == 0:
+            val, xValues,yValues, datMax = self.father.current.Integrals(minimum,maximum)
+        elif type == 1:
+            val = self.father.current.MaxMin(minimum,maximum, type = 'max')
+        elif type == 2:
+            val = self.father.current.MaxMin(minimum,maximum, type = 'min')
+        returnValue = self.father.current.normalize( 1.0 / val, scale, type, self.singleSlice.isChecked())
+        if returnValue is None:
+            return False
+        self.father.undoList.append(returnValue)
+        self.father.redoList = []
+        return 
+
+##########################################################################################
 
 class XaxWindow(wc.ToolWindows):
 

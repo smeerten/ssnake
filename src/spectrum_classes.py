@@ -286,6 +286,29 @@ class Spectrum(object):
         else:
             return lambda self: self.restoreData(copyData, lambda self: self.multiply(mult, axes, select=select))
 
+    def normalize(self, mult, scale, type, axes, select=slice(None)):
+        if isinstance(select, string_types):
+            select = safeEval(select)
+        axes = self.checkAxes(axes)
+        if axes is None:
+            return None
+        try:
+            for index in range(len(self.data)):
+                self.data[index][select] = np.apply_along_axis(np.multiply, axes, self.data[index], mult * scale)[select]
+        except ValueError as error:
+            self.dispMsg('Normalize: ' + str(error))
+            return None
+        if type == 0:
+            self.addHistory("Normalized integral of dimension " + str(axes + 1) + " of data[" + str(select) + "] to " + str(scale))
+        elif type == 1:
+            self.addHistory("Normalized maximum of dimension " + str(axes + 1) + " of data[" + str(select) + "] to " + str(scale))
+        elif type == 2:
+            self.addHistory("Normalized minimum of dimension " + str(axes + 1) + " of data[" + str(select) + "] to " + str(scale))
+        if self.noUndo:
+            return None
+        else:
+            return lambda self: self.normalize(1.0 / mult, scale, type, axes, select=select)
+
     def baselineCorrection(self, baseline, axes, baselineImag=0, select=slice(None)):
         hyperView = 0
         if isinstance(select, string_types):
@@ -2077,6 +2100,7 @@ class Current1D(Plot1DFrame):
         self.root.addMacro(['regrid', (limits, numPoints,ax - self.data.ndim())])
         return returnValue
 
+
     def SN(self, minNoise, maxNoise, minPeak, maxPeak):
         hyperView = 0
         minN = min(minNoise, maxNoise)
@@ -2203,6 +2227,28 @@ class Current1D(Plot1DFrame):
             intSum = np.cumsum(tmpData[-1::-1])[-1::-1]
             inte = np.sum(tmpData) * self.sw / (1.0 * tmpData.shape[0])
         return inte, tmpAxis, intSum, maxim
+
+    def MaxMin(self, minPeak, maxPeak, type = 'max'):
+        hyperView = 0 
+        minP = min(minPeak, maxPeak)
+        maxP = max(minPeak, maxPeak)
+        if len(self.data1D[0].shape) > 1:
+            tmpData = self.data1D[hyperView][0]
+        else:
+            tmpData = self.data1D[hyperView]
+        if (self.viewSettings["plotType"] == 0):
+            tmpData = np.real(tmpData)
+        elif(self.viewSettings["plotType"] == 1):
+            tmpData = np.imag(tmpData)
+        elif(self.viewSettings["plotType"] == 2):
+            tmpData = np.real(tmpData)
+        elif(self.viewSettings["plotType"] == 3):
+            tmpData = np.abs(tmpData)
+        if type == 'max':
+            return np.max(tmpData[minP:maxP])
+        elif type == 'min':
+            return np.min(tmpData[minP:maxP])
+
 
     def integralsPreview(self, x, y, maxim):
         xNew = []
@@ -2701,6 +2747,17 @@ class Current1D(Plot1DFrame):
         self.upd()
         self.showFid()
         self.root.addMacro(['multiply', (np.real(data).tolist(), self.axes - self.data.ndim(), np.imag(data).tolist(), str(selectSlice))])
+        return returnValue
+
+    def normalize(self, value, scale, type, select=False):
+        if select:
+            selectSlice = self.getSelect()
+        else:
+            selectSlice = slice(None)
+        returnValue = self.data.normalize(value, scale, type, self.axes, select=selectSlice)
+        self.upd()
+        self.showFid()
+        self.root.addMacro(['normalize', (value, scale, type, self.axes - self.data.ndim(), str(selectSlice))])
         return returnValue
 
     def multiplyPreview(self, data):
