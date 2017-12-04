@@ -601,7 +601,7 @@ class MainProgram(QtWidgets.QMainWindow):
         self.splitAct.setToolTip('Split')
         self.multiplyAct = self.matrixMenu.addAction(QtGui.QIcon(IconDirectory + 'multiply.png'), "Mul&tiply", lambda: self.mainWindowCheck(lambda mainWindow: MultiplyWindow(mainWindow)))
         self.multiplyAct.setToolTip('Multiply')
-        self.normalizeAct = self.matrixMenu.addAction(QtGui.QIcon(IconDirectory + 'multiply.png'), "Normalize", lambda: self.mainWindowCheck(lambda mainWindow: NormalizeWindow(mainWindow)))
+        self.normalizeAct = self.matrixMenu.addAction(QtGui.QIcon(IconDirectory + 'normalize.png'), "Normalize", lambda: self.mainWindowCheck(lambda mainWindow: NormalizeWindow(mainWindow)))
         self.normalizeAct.setToolTip('Normalize')
         self.reorderAct = self.matrixMenu.addAction(QtGui.QIcon(IconDirectory + 'reorder.png'), "&Reorder", lambda: self.mainWindowCheck(lambda mainWindow: ReorderWindow(mainWindow)))
         self.reorderAct.setToolTip('Reorder')
