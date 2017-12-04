@@ -998,7 +998,7 @@ class MainProgram(QtWidgets.QMainWindow):
         self.mainWindow.currentMacro = givenName
         IconDirectory = os.path.dirname(os.path.realpath(__file__)) + os.path.sep + 'Icons' + os.path.sep
         action1 = self.macrolistmenu.addAction(QtGui.QIcon(IconDirectory + 'run.png'), givenName, lambda name=givenName: self.runMacro(name))
-        action2 = self.macrosavemenu.addAction(givenName, lambda name=givenName: self.saveMacro(name))
+        action2 = self.macrosavemenu.addAction(QtGui.QIcon(IconDirectory + 'save.png'), givenName, lambda name=givenName: self.saveMacro(name))
         action3 = self.macrodeletemenu.addAction(QtGui.QIcon(IconDirectory + 'delete.png'), givenName, lambda name=givenName: self.deleteMacro(name))
         action4 = self.macrorenamemenu.addAction(QtGui.QIcon(IconDirectory + 'rename.png'), givenName, lambda name=givenName: self.renameMacro(name))
         self.macroActions[givenName] = [action1, action2, action3, action4]
@@ -1028,7 +1028,7 @@ class MainProgram(QtWidgets.QMainWindow):
         self.macrorenamemenu.removeAction(oldActions[3])
         IconDirectory = os.path.dirname(os.path.realpath(__file__)) + os.path.sep + 'Icons' + os.path.sep
         action1 = self.macrolistmenu.addAction(QtGui.QIcon(IconDirectory + 'run.png'), givenName, lambda name=givenName: self.runMacro(name))
-        action2 = self.macrosavemenu.addAction(givenName, lambda name=givenName: self.saveMacro(name))
+        action2 = self.macrosavemenu.addAction(QtGui.QIcon(IconDirectory + 'save.png'), givenName, lambda name=givenName: self.saveMacro(name))
         action3 = self.macrodeletemenu.addAction(QtGui.QIcon(IconDirectory + 'delete.png'), givenName, lambda name=givenName: self.deleteMacro(name))
         action4 = self.macrorenamemenu.addAction(QtGui.QIcon(IconDirectory + 'rename.png'), givenName, lambda name=givenName: self.renameMacro(name))
         self.macroActions[givenName] = [action1, action2, action3, action4]
@@ -1099,7 +1099,7 @@ class MainProgram(QtWidgets.QMainWindow):
             self.macros[givenName] = json.load(f)
         IconDirectory = os.path.dirname(os.path.realpath(__file__)) + os.path.sep + 'Icons' + os.path.sep
         action1 = self.macrolistmenu.addAction(QtGui.QIcon(IconDirectory + 'run.png'), givenName, lambda name=givenName: self.runMacro(name))
-        action2 = self.macrosavemenu.addAction(givenName, lambda name=givenName: self.saveMacro(name))
+        action2 = self.macrosavemenu.addAction(QtGui.QIcon(IconDirectory + 'save.png'), givenName, lambda name=givenName: self.saveMacro(name))
         action3 = self.macrodeletemenu.addAction(QtGui.QIcon(IconDirectory + 'delete.png'), givenName, lambda name=givenName: self.deleteMacro(name))
         action4 = self.macrorenamemenu.addAction(QtGui.QIcon(IconDirectory + 'rename.png'), givenName, lambda name=givenName: self.renameMacro(name))
         self.macroActions[givenName] = [action1, action2, action3, action4]
@@ -1112,7 +1112,7 @@ class MainProgram(QtWidgets.QMainWindow):
         action1 = self.referencerunmenu.addAction(QtGui.QIcon(IconDirectory + 'run.png'), name, lambda name=name: self.referenceRun(name))
         action2 = self.referencedeletemenu.addAction(QtGui.QIcon(IconDirectory + 'delete.png'), name, lambda name=name: self.referenceRemove(name))
         action3 = self.referencerenamemenu.addAction(QtGui.QIcon(IconDirectory + 'rename.png'), name, lambda name=name: self.referenceRename(name))
-        action4 = self.referencesavemenu.addAction(name, lambda name=name: self.referenceSave(name))
+        action4 = self.referencesavemenu.addAction(QtGui.QIcon(IconDirectory + 'save.png'), name, lambda name=name: self.referenceSave(name))
         self.referenceActions[name] = [action1, action2, action3, action4]
         self.menuCheck()
 
@@ -1157,7 +1157,7 @@ class MainProgram(QtWidgets.QMainWindow):
         action1 = self.referencerunmenu.addAction(QtGui.QIcon(IconDirectory + 'run.png'), givenName, lambda name=givenName: self.referenceRun(name))
         action2 = self.referencedeletemenu.addAction(QtGui.QIcon(IconDirectory + 'delete.png'), givenName, lambda name=givenName: self.referenceRemove(name))
         action3 = self.referencerenamemenu.addAction(QtGui.QIcon(IconDirectory + 'rename.png'), givenName, lambda name=givenName: self.referenceRename(name))
-        action4 = self.referencesavemenu.addAction(givenName, lambda name=givenName: self.referenceSave(name))
+        action4 = self.referencesavemenu.addAction(QtGui.QIcon(IconDirectory + 'save.png'), givenName, lambda name=givenName: self.referenceSave(name))
         self.referenceActions[givenName] = [action1, action2, action3, action4]
         self.menuCheck()
 
@@ -1204,7 +1204,7 @@ class MainProgram(QtWidgets.QMainWindow):
         action1 = self.referencerunmenu.addAction(QtGui.QIcon(IconDirectory + 'run.png'), givenName, lambda name=givenName: self.referenceRun(name))
         action2 = self.referencedeletemenu.addAction(QtGui.QIcon(IconDirectory + 'delete.png'), givenName, lambda name=givenName: self.referenceRemove(name))
         action3 = self.referencerenamemenu.addAction(QtGui.QIcon(IconDirectory + 'rename.png'), givenName, lambda name=givenName: self.referenceRename(name))
-        action4 = self.referencesavemenu.addAction(givenName, lambda name=givenName: self.referenceSave(name))
+        action4 = self.referencesavemenu.addAction(QtGui.QIcon(IconDirectory + 'save.png'), givenName, lambda name=givenName: self.referenceSave(name))
         self.referenceActions[givenName] = [action1, action2, action3, action4]
         self.menuCheck()
 
