@@ -202,7 +202,7 @@ class MainPlotWindow(QtWidgets.QWidget):
         self.legend = self.ax.legend()
         if self.legend is not None:
             if self.oldMainWindow.current.__class__.__name__ == 'CurrentMulti':  # If from multiplot
-                order = list(self.oldMainWindow.current.extraOffset)
+                order = list(self.oldMainWindow.current.viewSettings['extraOffset'])
                 order.append(0)
                 self.legendOrder = list(np.argsort(order))[::-1]
             elif self.oldMainWindow.current.__class__.__name__ == 'CurrentStacked' or self.oldMainWindow.current.__class__.__name__ == 'CurrentSkewed':
