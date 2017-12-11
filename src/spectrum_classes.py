@@ -948,7 +948,7 @@ class Spectrum(object):
         for item in self.data:
             tmp.append(item[tuple(locList[:axes]) + (slice(None), ) + tuple(locList[axes:])])
         if self.spec[axes] == 0:
-                tmp = self.fourierLocal(tmp,0, self.axes)
+                tmp = self.fourierLocal(tmp,0, axes)
         x = np.fft.fftshift(np.fft.fftfreq(len(tmp[0]), 1.0 / self.sw[axes])) / self.sw[axes]
         tmp = self.hyperReorder(tmp, axes)
         if phaseNum == 0:
@@ -960,8 +960,8 @@ class Spectrum(object):
             phase0 = phases['x'][0]
             phase1 = phases['x'][1]
         tmp = self.hyperReorder(tmp, axes)
-        if self.spec == 0:
-                tmp = self.fourierLocal(tmp,1, self.axes)
+        if self.spec[axes] == 0:
+                tmp = self.fourierLocal(tmp,1, axes)
         if self.ref[axes] is None:
             offset = 0
         else:
