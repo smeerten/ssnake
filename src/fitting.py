@@ -154,12 +154,25 @@ class TabFittingWindow(QtWidgets.QWidget):
                 args_out.append([args[n][i + 1]])
             self.subFitWindows[i].paramframe.setResults(fitVal[i + 1], args_out, out[i + 1])
 
-    def disp(self, *args, **kwargs):
+    def getNum(self, paramfitwindow):
+        fitwindow = paramfitwindow.rootwindow
+        if fitwindow is self.mainFitWindow:
+            return 0
+        else:
+            return self.subFitWindows.index(fitwindow) + 1
+
+    def getParams(self):
         params = [self.mainFitWindow.paramframe.getSimParams()]
         for window in self.subFitWindows:
             tmp_params = window.paramframe.getSimParams()
             params = np.append(params, [tmp_params], axis=0)
         if params[0] is None:
+            return None
+        return params
+            
+    def disp(self, *args, **kwargs):
+        params = self.getParams()
+        if params is None:
             return
         self.mainFitWindow.paramframe.disp(params, 0, *args, **kwargs)
         for i in range(len(self.subFitWindows)):
@@ -302,6 +315,12 @@ class FittingWindow(QtWidgets.QWidget):
 
     def getTabNames(self, *args, **kwargs):
         return self.tabWindow.getTabNames(*args, **kwargs)
+
+    def getParams(self, *args, **kwargs):
+        return self.tabWindow.getParams(*args, **kwargs)
+
+    def getNum(self, *args, **kwargs):
+        return self.tabWindow.getNum(*args, **kwargs)
 
     def addSpectrum(self):
         self.tabWindow.addSpectrum()
@@ -934,7 +953,9 @@ class AbstractParamFrame(QtWidgets.QWidget):
         if not np.any(settings):
             return
         names = paramNameList[settings]
+        params = self.rootwindow.getParams()
         if allTraces:
+            num = self.rootwindow.getNum(self)
             maxNum = np.max(self.fitNumList)+1
             tmp = list(self.parent.data.shape())
             tmp.pop(self.parent.axes)
@@ -947,17 +968,43 @@ class AbstractParamFrame(QtWidgets.QWidget):
                 self.checkFitParamList(tuple(i))
                 for j in range(len(names)):
                     if names[j] in self.SINGLENAMES:
-                        data[(j,) + (slice(None),) + tuple(i)].fill(self.fitParamList[tuple(i)][names[j]][0])
+                        inp = self.fitParamList[tuple(i)][names[j]][0]
+                        if isinstance(inp, tuple):
+                            inp = checkLinkTuple(inp)
+                            if inp[4] is num:
+                                inp = inp[2] * self.fitParamList[tuple(i)][inp[0]][inp[1]][0] + inp[3]
+                            else:
+                                inp = inp[2] * params[inp[4]][inp[0]][inp[1]] + inp[3]
+                        data[(j,) + (slice(None),) + tuple(i)].fill(inp)
                     else:
-                        data[(j,) + (slice(None),) + tuple(i)] = self.fitParamList[tuple(i)][names[j]].T[0][:(self.fitNumList[tuple(i)] + 1)]
+                        tmpInp = self.fitParamList[tuple(i)][names[j]].T[0][:(self.fitNumList[tuple(i)] + 1)]
+                        for n in range(len(tmpInp)):
+                            inp = tmpInp[n]
+                            if isinstance(inp, tuple):
+                                inp = checkLinkTuple(inp)
+                                if inp[4] is num:
+                                    inp = inp[2] * self.fitParamList[tuple(i)][inp[0]][inp[1]][0] + inp[3]
+                                else:
+                                    inp = inp[2] * params[inp[4]][inp[0]][inp[1]] + inp[3]
+                            data[(j,) + (slice(None),) + tuple(i)][n] = inp
             self.rootwindow.createNewData(data, self.parent.current.axes, True, True)
         else:
             data = np.zeros((sum(settings), self.fitNumList[locList] + 1))
             for i in range(len(names)):
                 if names[i] in self.SINGLENAMES:
-                    data[i].fill(self.fitParamList[locList][names[i]][0])
+                    inp = self.fitParamList[locList][names[i]][0]
+                    if isinstance(inp, tuple):
+                        inp = checkLinkTuple(inp)
+                        inp = inp[2] * params[inp[4]][inp[0]][inp[1]] + inp[3]
+                    data[i].fill(inp)
                 else:
-                    data[i] = self.fitParamList[locList][names[i]].T[0][:(self.fitNumList[locList] + 1)]
+                    tmpInp = self.fitParamList[locList][names[i]].T[0][:(self.fitNumList[locList] + 1)]
+                    for j in range(len(tmpInp)):
+                        inp = tmpInp[j]
+                        if isinstance(inp, tuple):
+                            inp = checkLinkTuple(inp)
+                            inp = inp[2] * params[inp[4]][inp[0]][inp[1]] + inp[3]
+                        data[i][j] = inp
             self.rootwindow.createNewData(data, self.parent.current.axes, True)
 
     def resultToWorkspaceWindow(self):
