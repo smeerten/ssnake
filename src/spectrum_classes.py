@@ -61,7 +61,7 @@ class Spectrum(object):
         self.sw = sw  # array of sweepwidths
         self.noUndo = False
         if spec is None:
-            self.spec = [0] * self.data.ndim
+            self.spec = [0] * self.ndim()
         else:
             self.spec = spec  # int array of length dim where 0 = time domain, 1 = complex spectral
         if wholeEcho is None:
@@ -808,7 +808,7 @@ class Spectrum(object):
             return None
         minPos = min(pos1, pos2)
         maxPos = max(pos1, pos2)
-        slicing = (slice(None), ) * axes + (slice(minPos, maxPos), ) + (slice(None), ) * (self.data.ndim - 1 - axes)
+        slicing = (slice(None), ) * axes + (slice(minPos, maxPos), ) + (slice(None), ) * (self.ndim() - 1 - axes)
         tmpsw = copy.deepcopy(self.sw)
         tmpfreq = copy.deepcopy(self.freq)
         tmpref = copy.deepcopy(self.ref)
@@ -1230,7 +1230,7 @@ class Spectrum(object):
             slicing1 = (slice(None), ) * axes + (slice(None, pos), ) + (slice(None), ) * (self.ndim() - 1 - axes)
             slicing2 = (slice(None), ) * axes + (slice(pos, None), ) + (slice(None), ) * (self.ndim() - 1 - axes)
             for index in range(len(self.data)):
-                self.data[index] = np.concatenate((np.pad(self.data[index][slicing1], [(0, 0)] * axes + [(0, size - self.data[index].shape[axes])] + [(0, 0)] * (self.data[index].ndim - axes - 1), 'constant', constant_values=0),
+                self.data[index] = np.concatenate((np.pad(self.data[index][slicing1], [(0, 0)] * axes + [(0, size - self.data[index].shape[axes])] + [(0, 0)] * (self.ndim() - axes - 1), 'constant', constant_values=0),
                                         self.data[index][slicing2]), axes)
         else:
             difference = self.shape()[axes] - size
@@ -1581,7 +1581,7 @@ class Spectrum(object):
             self.data = self.hyperReorder(self.data, axes)[0]
         else:
             self.data = self.data[0]
-        tmpData = np.rollaxis(self.data, axes, self.data.ndim)
+        tmpData = np.rollaxis(self.data, axes, self.ndim())
         tmpShape = tmpData.shape
         tmpData = tmpData.reshape((int(tmpData.size / tmpShape[-1]), tmpShape[-1]))
         pool = multiprocessing.Pool(multiprocessing.cpu_count())
@@ -1616,7 +1616,7 @@ class Spectrum(object):
             self.data = self.hyperReorder(self.data, axes)[0]
         else:
             self.data = self.data[0]
-        tmpData = np.rollaxis(np.fft.fft(self.data, axis=axes), axes, self.data.ndim)
+        tmpData = np.rollaxis(np.fft.fft(self.data, axis=axes), axes, self.ndim())
         tmpShape = tmpData.shape
         tmpData = tmpData.reshape((int(tmpData.size / tmpShape[-1]), tmpShape[-1]))
         mask = np.ones(tmpShape[-1]) / float(tmpShape[-1])
@@ -1656,7 +1656,7 @@ class Spectrum(object):
         elif typeVal == 2:  # type is TPPI, for now handle the same as Complex
             pass
         NDmax = np.max(np.max(np.abs(np.real(np.fft.fft(self.data,axis=axes))))) #Get max of ND matrix
-        tmpData = np.rollaxis(self.data, axes, self.data.ndim)
+        tmpData = np.rollaxis(self.data, axes, self.ndim())
         tmpShape = tmpData.shape
         tmpData = tmpData.reshape((int(tmpData.size / tmpShape[-1]), tmpShape[-1]))
         pool = multiprocessing.Pool(multiprocessing.cpu_count())
