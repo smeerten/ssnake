@@ -1581,7 +1581,7 @@ class Spectrum(object):
             self.data = self.hyperReorder(self.data, axes)[0]
         else:
             self.data = self.data[0]
-        tmpData = np.rollaxis(self.data, axes, self.ndim())
+        tmpData = np.rollaxis(self.data, axes, self.data.ndim)
         tmpShape = tmpData.shape
         tmpData = tmpData.reshape((int(tmpData.size / tmpShape[-1]), tmpShape[-1]))
         pool = multiprocessing.Pool(multiprocessing.cpu_count())
@@ -1616,7 +1616,7 @@ class Spectrum(object):
             self.data = self.hyperReorder(self.data, axes)[0]
         else:
             self.data = self.data[0]
-        tmpData = np.rollaxis(np.fft.fft(self.data, axis=axes), axes, self.ndim())
+        tmpData = np.rollaxis(np.fft.fft(self.data, axis=axes), axes, self.data.ndim)
         tmpShape = tmpData.shape
         tmpData = tmpData.reshape((int(tmpData.size / tmpShape[-1]), tmpShape[-1]))
         mask = np.ones(tmpShape[-1]) / float(tmpShape[-1])
@@ -1656,7 +1656,7 @@ class Spectrum(object):
         elif typeVal == 2:  # type is TPPI, for now handle the same as Complex
             pass
         NDmax = np.max(np.max(np.abs(np.real(np.fft.fft(self.data,axis=axes))))) #Get max of ND matrix
-        tmpData = np.rollaxis(self.data, axes, self.ndim())
+        tmpData = np.rollaxis(self.data, axes, self.data.ndim)
         tmpShape = tmpData.shape
         tmpData = tmpData.reshape((int(tmpData.size / tmpShape[-1]), tmpShape[-1]))
         pool = multiprocessing.Pool(multiprocessing.cpu_count())
