@@ -2964,9 +2964,9 @@ class SideFrame(QtWidgets.QScrollArea):
     def checkChanged(self):
         for i in range(len(self.father.current.viewSettings["extraData"])):
             extraData = self.father.current.viewSettings["extraData"][i]
-            if extraData.data.ndim > 1:
+            if extraData.ndim() > 1:
                 for j in range(len(self.extraEntries[i])):
-                    self.extraEntries[i][j].setMaximum(extraData.data.shape[j] - 1)
+                    self.extraEntries[i][j].setMaximum(extraData.data[0].shape[j] - 1)
             self.upd()
             self.father.current.showFid()
 
