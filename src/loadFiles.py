@@ -572,10 +572,12 @@ def loadBrukerTopspin(filePath, name=''):
     dim = len(SIZE)
     loadsize = totsize
     files = ['fid','ser']
+    directSize = int(np.ceil(float(SIZE[0]) / 256)) * 256 #Size of direct dimension including
+    #blocking size of 256 data points
     for file in files:
         if os.path.exists(Dir + os.path.sep + file):
             if file == 'ser':
-                loadsize = int(totsize / SIZE[0]) * int(np.ceil(SIZE[0] / 256))*256 #Always load full 1024 byte blocks (256 data points) for >1D
+                loadsize = int(totsize / SIZE[0]) * directSize #Always load full 1024 byte blocks (256 data points) for >1D
             with open(Dir + os.path.sep + file, "rb") as f:
                 raw = np.fromfile(f, np.int32, loadsize)
             raw = raw.newbyteorder(ByteOrder)
@@ -584,7 +586,7 @@ def loadBrukerTopspin(filePath, name=''):
     spec = [False]
     if len(SIZE) >= 2:
         newSize = list(SIZE)
-        newSize[0] = int(np.ceil(SIZE[0] / 256) * 256 / 2)
+        newSize[0] = int(directSize / 2)
         ComplexData = ComplexData.reshape(*newSize[-1::-1])
     if len(SIZE) == 2:
         ComplexData = ComplexData[:,0:int(SIZE[0]/2)] #Cut off placeholder data
