@@ -1849,6 +1849,12 @@ class Current1D(Plot1DFrame):
             self.axes = duplicateCurrent.axes
             self.axes2 = duplicateCurrent.axes2
             if isinstance(self, (CurrentStacked, CurrentArrayed, CurrentContour)):
+                if self.axes == self.axes2: #If axes are equal, change axes2 to one value below/above
+                    if self.axes2 > 0:
+                        self.axes2 += -1
+                    else:
+                        self.axes2 += 1
+
                 if (len(duplicateCurrent.locList) == self.data.ndim() - 2):
                     self.locList = duplicateCurrent.locList
                 else:
