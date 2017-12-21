@@ -129,19 +129,18 @@ class MainPlotWindow(QtWidgets.QWidget):
         # Font size
         self.fontGroup = QtWidgets.QGroupBox('Font sizes:')
         self.fontFrame = QtWidgets.QGridLayout()
-        self.mainFontSizeBackup = 12
         self.mainFontLabel = wc.QLeftLabel("Main:")
         self.fontFrame.addWidget(self.mainFontLabel, 0, 0)
         self.mainFontSizeEntry = QtWidgets.QDoubleSpinBox()
         self.mainFontSizeEntry.setSingleStep(0.1)
         self.mainFontSizeEntry.setMinimum(0)
-        self.mainFontSizeEntry.setValue(self.mainFontSizeBackup)
+        self.mainFontSizeEntry.setValue(self.ax.xaxis.get_label().get_fontsize())
         self.mainFontSizeEntry.valueChanged.connect(self.updatePlot)
         self.fontFrame.addWidget(self.mainFontSizeEntry, 0, 1)
         self.fontDetailsCheck = QtWidgets.QCheckBox('Details')
         self.fontDetailsCheck.stateChanged.connect(self.fontCheckChanged)
         self.fontFrame.addWidget(self.fontDetailsCheck, 1, 0)
-        self.titleFontSizeBackup = 12
+        self.titleFontSizeBackup = self.ax.title.get_fontsize()
         self.titleFontLabel = wc.QLeftLabel("Title:")
         self.titleFontLabel.hide()
         self.fontFrame.addWidget(self.titleFontLabel, 2, 0)
@@ -152,7 +151,7 @@ class MainPlotWindow(QtWidgets.QWidget):
         self.titleFontSizeEntry.valueChanged.connect(self.updatePlot)
         self.titleFontSizeEntry.hide()
         self.fontFrame.addWidget(self.titleFontSizeEntry, 2, 1)
-        self.xlabelFontSizeBackup = 12
+        self.xlabelFontSizeBackup = self.ax.xaxis.get_label().get_fontsize()
         self.xlabelFontLabel = wc.QLeftLabel("X-label:")
         self.xlabelFontLabel.hide()
         self.fontFrame.addWidget(self.xlabelFontLabel, 3, 0)
@@ -163,7 +162,7 @@ class MainPlotWindow(QtWidgets.QWidget):
         self.xlabelFontSizeEntry.valueChanged.connect(self.updatePlot)
         self.xlabelFontSizeEntry.hide()
         self.fontFrame.addWidget(self.xlabelFontSizeEntry, 3, 1)
-        self.ylabelFontSizeBackup = 12
+        self.ylabelFontSizeBackup = self.ax.yaxis.get_label().get_fontsize()
         self.ylabelFontLabel = wc.QLeftLabel("Y-label:")
         self.ylabelFontLabel.hide()
         self.fontFrame.addWidget(self.ylabelFontLabel, 4, 0)
@@ -174,7 +173,7 @@ class MainPlotWindow(QtWidgets.QWidget):
         self.ylabelFontSizeEntry.valueChanged.connect(self.updatePlot)
         self.ylabelFontSizeEntry.hide()
         self.fontFrame.addWidget(self.ylabelFontSizeEntry, 4, 1)
-        self.xtickFontSizeBackup = 12
+        self.xtickFontSizeBackup = self.ax.xaxis.get_ticklabels()[0].get_fontsize()
         self.xtickFontLabel = wc.QLeftLabel("X-ticks:")
         self.xtickFontLabel.hide()
         self.fontFrame.addWidget(self.xtickFontLabel, 5, 0)
@@ -185,7 +184,7 @@ class MainPlotWindow(QtWidgets.QWidget):
         self.xtickFontSizeEntry.valueChanged.connect(self.updatePlot)
         self.xtickFontSizeEntry.hide()
         self.fontFrame.addWidget(self.xtickFontSizeEntry, 5, 1)
-        self.ytickFontSizeBackup = 12
+        self.ytickFontSizeBackup = self.ax.yaxis.get_ticklabels()[0].get_fontsize()
         self.ytickFontLabel = wc.QLeftLabel("Y-ticks:")
         self.ytickFontLabel.hide()
         self.fontFrame.addWidget(self.ytickFontLabel, 6, 0)
@@ -197,7 +196,8 @@ class MainPlotWindow(QtWidgets.QWidget):
         self.ytickFontSizeEntry.hide()
         self.fontFrame.addWidget(self.ytickFontSizeEntry, 6, 1)
 
-        self.legendFontSizeBackup = 12
+        self.legend = self.ax.legend()
+        self.legendFontSizeBackup = self.ax.get_legend().get_texts()[0].get_fontsize()
         self.legendFontLabel = wc.QLeftLabel("Legend:")
         self.legendFontLabel.hide()
         self.fontFrame.addWidget(self.legendFontLabel, 7, 0)
@@ -211,7 +211,6 @@ class MainPlotWindow(QtWidgets.QWidget):
         self.fontGroup.setLayout(self.fontFrame)
         self.optionFrame.addWidget(self.fontGroup, 3, 0)
         # Legend
-        self.legend = self.ax.legend()
         if self.legend is not None:
             if self.oldMainWindow.current.__class__.__name__ == 'CurrentMulti':  # If from multiplot
                 order = list(self.oldMainWindow.current.viewSettings['extraOffset'])
