@@ -2019,37 +2019,37 @@ class Current1D(Plot1DFrame):
             selectSlice = self.getSelect()
         else:
             selectSlice = slice(None)
+        self.root.addMacro(['phase', (phase0, phase1, self.axes - self.data.ndim(), str(selectSlice))])
         returnValue = self.data.setPhase(phase0, phase1, self.axes, selectSlice)
         self.upd()
         self.showFid()
-        self.root.addMacro(['phase', (phase0, phase1, self.axes - self.data.ndim(), str(selectSlice))])
         return returnValue
 
     def fourier(self):  # fourier the actual data and replot
+        self.root.addMacro(['fourier', (self.axes - self.data.ndim(), )])
         returnValue = self.data.fourier(self.axes)
         self.upd()
         if isinstance(self, (CurrentStacked, CurrentArrayed)):
             self.resetSpacing()
         self.plotReset()
         self.showFid()
-        self.root.addMacro(['fourier', (self.axes - self.data.ndim(), )])
         return returnValue
 
     def realFourier(self):  # fourier the real data and replot
+        self.root.addMacro(['realFourier', (self.axes - self.data.ndim(), )])
         returnValue = self.data.realFourier(self.axes)
         self.upd()
         if isinstance(self, (CurrentStacked, CurrentArrayed)):
             self.resetSpacing()
         self.plotReset()
         self.showFid()
-        self.root.addMacro(['realFourier', (self.axes - self.data.ndim(), )])
         return returnValue
 
     def fftshift(self, inv=False):  # fftshift the actual data and replot
+        self.root.addMacro(['fftshift', (self.axes - self.data.ndim(), inv)])
         returnValue = self.data.fftshift(self.axes, inv)
         self.upd()
         self.showFid()
-        self.root.addMacro(['fftshift', (self.axes - self.data.ndim(), inv)])
         return returnValue
 
     def fourierLocal(self, fourData, spec, axis):  # fourier the local data for other functions
@@ -2097,23 +2097,24 @@ class Current1D(Plot1DFrame):
             selectSlice = self.getSelect()
         else:
             selectSlice = slice(None)
+        self.root.addMacro(['apodize', (lor, gauss, cos2, hamming, shift, shifting, shiftingAxes, self.axes - self.data.ndim(), str(selectSlice))])
         returnValue = self.data.apodize(lor, gauss, cos2, hamming, shift, shifting, shiftingAxes, self.axes, selectSlice)
         self.upd()
         self.showFid()
-        self.root.addMacro(['apodize', (lor, gauss, cos2, hamming, shift, shifting, shiftingAxes, self.axes - self.data.ndim(), str(selectSlice))])
         return returnValue
 
     def setFreq(self, freq, sw):  # set the frequency of the actual data
+        self.root.addMacro(['freq', (freq, sw, self.axes - self.data.ndim())])
         returnValue = self.data.setFreq(freq, sw, self.axes)
         self.upd()
         self.showFid()
-        self.root.addMacro(['freq', (freq, sw, self.axes - self.data.ndim())])
         return returnValue
 
     def setRef(self, ref):  # set the frequency of the actual data
         oldref = self.ref
         if oldref is None:
             oldref = self.freq
+        self.root.addMacro(['ref', (ref, self.axes - self.data.ndim())])
         returnValue = self.data.setRef(ref, self.axes)
         if ref is None:
             ref = self.freq
@@ -2127,16 +2128,15 @@ class Current1D(Plot1DFrame):
                 self.xmaxlim = self.xmaxlim + (oldref - ref) / 10**(val * 3)
         self.upd()
         self.showFid()
-        self.root.addMacro(['ref', (ref, self.axes - self.data.ndim())])
         return returnValue
 
     def regrid(self, limits, numPoints):
         ax = self.axes
+        self.root.addMacro(['regrid', (limits, numPoints,ax - self.data.ndim())])
         returnValue = self.data.regrid(limits, numPoints, ax)
         self.upd()
         self.plotReset()
         self.showFid()
-        self.root.addMacro(['regrid', (limits, numPoints,ax - self.data.ndim())])
         return returnValue
 
 
@@ -2357,6 +2357,7 @@ class Current1D(Plot1DFrame):
         self.upd()
 
     def applySize(self, size, pos):  # set size to the actual data
+        self.root.addMacro(['size', (size, pos, self.axes - self.data.ndim())])
         if self.data.noUndo:
             self.data.setSize(size, pos, self.axes)
             returnValue = None
@@ -2366,7 +2367,6 @@ class Current1D(Plot1DFrame):
         if not self.spec:
             self.plotReset(True, False)
         self.showFid()
-        self.root.addMacro(['size', (size, pos, self.axes - self.data.ndim())])
         return returnValue
 
     def applyLPSVD(self, nAnalyse, nFreq, nPredict, Direction):
@@ -2376,20 +2376,20 @@ class Current1D(Plot1DFrame):
         return returnValue
 
     def changeSpec(self, val):  # change from time to freq domain of the actual data
+        self.root.addMacro(['spec', (val, self.axes - self.data.ndim())])
         returnValue = self.data.changeSpec(val, self.axes)
         self.upd()
         if isinstance(self, CurrentArrayed):
             self.resetSpacing()
         self.plotReset()
         self.showFid()
-        self.root.addMacro(['spec', (val, self.axes - self.data.ndim())])
         return returnValue
 
     def applySwapEcho(self, idx):
+        self.root.addMacro(['swapecho', (idx, self.axes - self.data.ndim())])
         returnValue = self.data.swapEcho(idx, self.axes)
         self.upd()
         self.showFid()
-        self.root.addMacro(['swapecho', (idx, self.axes - self.data.ndim())])
         return returnValue
 
     def setSwapEchoPreview(self, idx):
@@ -2404,13 +2404,13 @@ class Current1D(Plot1DFrame):
 
     def setWholeEcho(self, value):
         if value == 0:
+            self.root.addMacro(['wholeEcho', (False, self.axes - self.data.ndim())])
             returnValue = self.data.setWholeEcho(False, self.axes)
             self.wholeEcho = False
-            self.root.addMacro(['wholeEcho', (False, self.axes - self.data.ndim())])
         else:
+            self.root.addMacro(['wholeEcho', (True, self.axes - self.data.ndim())])
             returnValue = self.data.setWholeEcho(True, self.axes)
             self.wholeEcho = True
-            self.root.addMacro(['wholeEcho', (True, self.axes - self.data.ndim())])
         return returnValue
 
     def applyShift(self, shift, select=False):
@@ -2418,10 +2418,10 @@ class Current1D(Plot1DFrame):
             selectSlice = self.getSelect()
         else:
             selectSlice = slice(None)
+        self.root.addMacro(['shift', (shift, self.axes - self.data.ndim(), str(selectSlice))])
         returnValue = self.data.shiftData(shift, self.axes, selectSlice)
         self.upd()
         self.showFid()
-        self.root.addMacro(['shift', (shift, self.axes - self.data.ndim(), str(selectSlice))])
         return returnValue
 
     def setShiftPreview(self, shift):
@@ -2477,8 +2477,8 @@ class Current1D(Plot1DFrame):
                 y = np.real(y)
             elif(self.viewSettings["plotType"] == 3):
                 y = np.abs(y)
-            returnValue = self.data.subtract(y,singleHyper = True)
             self.root.addMacro(['subtract', (y.tolist(), None, slice(None), True)])
+            returnValue = self.data.subtract(y,singleHyper = True)
         except Exception:
             return None
         return returnValue
@@ -2576,24 +2576,24 @@ class Current1D(Plot1DFrame):
         self.removeListLines = []
 
     def states(self):
+        self.root.addMacro(['states', (self.axes - self.data.ndim(), )])
         returnValue = self.data.states(self.axes)
         self.upd()
         self.showFid()
-        self.root.addMacro(['states', (self.axes - self.data.ndim(), )])
         return returnValue
 
     def statesTPPI(self):
+        self.root.addMacro(['statesTPPI', (self.axes - self.data.ndim(), )])
         returnValue = self.data.statesTPPI(self.axes)
         self.upd()
         self.showFid()
-        self.root.addMacro(['statesTPPI', (self.axes - self.data.ndim(), )])
         return returnValue
 
     def echoAntiEcho(self):
+        self.root.addMacro(['echoAntiEcho', (self.axes - self.data.ndim(), )])
         returnValue = self.data.echoAntiEcho(self.axes)
         self.upd()
         self.showFid()
-        self.root.addMacro(['echoAntiEcho', (self.axes - self.data.ndim(), )])
         return returnValue
 
     def integrate(self, pos1, pos2, newSpec=False):
@@ -2738,10 +2738,10 @@ class Current1D(Plot1DFrame):
             selectSlice = self.getSelect()
         else:
             selectSlice = slice(None)
+        self.root.addMacro(['add', ([np.real(x).tolist() for x in data], [np.imag(x).tolist() for x in data], str(selectSlice))])
         returnValue = self.data.add(data, select=selectSlice)
         self.upd()
         self.showFid()
-        self.root.addMacro(['add', (np.real(data).tolist(), np.imag(data).tolist(), str(selectSlice))])
         return returnValue
 
     def subtract(self, data, select=False):
@@ -2749,10 +2749,10 @@ class Current1D(Plot1DFrame):
             selectSlice = self.getSelect()
         else:
             selectSlice = slice(None)
+        self.root.addMacro(['subtract', ([np.real(x).tolist() for x in data], [np.imag(x).tolist() for x in data], str(selectSlice))])
         returnValue = self.data.subtract(data, select=selectSlice)
         self.upd()
         self.showFid()
-        self.root.addMacro(['subtract', (np.real(data).tolist(), np.imag(data).tolist(), str(selectSlice))])
         return returnValue
 
     def multiplySpec(self, data, select=False):
@@ -2760,10 +2760,10 @@ class Current1D(Plot1DFrame):
             selectSlice = self.getSelect()
         else:
             selectSlice = slice(None)
+        self.root.addMacro(['multiplySpec', ([np.real(x).tolist() for x in data], [np.imag(x).tolist() for x in data], str(selectSlice))])
         returnValue = self.data.multiplySpec(data, select=selectSlice)
         self.upd()
         self.showFid()
-        self.root.addMacro(['multiplySpec', (np.real(data).tolist(), np.imag(data).tolist(), str(selectSlice))])
         return returnValue
 
     def divideSpec(self, data, select=False):
@@ -2771,10 +2771,10 @@ class Current1D(Plot1DFrame):
             selectSlice = self.getSelect()
         else:
             selectSlice = slice(None)
+        self.root.addMacro(['divideSpec', ([np.real(x).tolist() for x in data], [np.imag(x).tolist() for x in data], str(selectSlice))])
         returnValue = self.data.divideSpec(data, select=selectSlice)
         self.upd()
         self.showFid()
-        self.root.addMacro(['divideSpec', (np.real(data).tolist(), np.imag(data).tolist(), str(selectSlice))])
         return returnValue
 
     def multiply(self, data, select=False):
@@ -2782,10 +2782,10 @@ class Current1D(Plot1DFrame):
             selectSlice = self.getSelect()
         else:
             selectSlice = slice(None)
+        self.root.addMacro(['multiply', (np.real(data).tolist(), self.axes - self.data.ndim(), np.imag(data).tolist(), str(selectSlice))])
         returnValue = self.data.multiply(data, self.axes, select=selectSlice)
         self.upd()
         self.showFid()
-        self.root.addMacro(['multiply', (np.real(data).tolist(), self.axes - self.data.ndim(), np.imag(data).tolist(), str(selectSlice))])
         return returnValue
 
     def normalize(self, value, scale, type, select=False):
@@ -2793,10 +2793,10 @@ class Current1D(Plot1DFrame):
             selectSlice = self.getSelect()
         else:
             selectSlice = slice(None)
+        self.root.addMacro(['normalize', (value, scale, type, self.axes - self.data.ndim(), str(selectSlice))])
         returnValue = self.data.normalize(value, scale, type, self.axes, select=selectSlice)
         self.upd()
         self.showFid()
-        self.root.addMacro(['normalize', (value, scale, type, self.axes - self.data.ndim(), str(selectSlice))])
         return returnValue
 
     def multiplyPreview(self, data):
@@ -2810,10 +2810,10 @@ class Current1D(Plot1DFrame):
             return error
 
     def subtractAvg(self, pos1, pos2):
+        self.root.addMacro(['subtractAvg', (pos1, pos2, self.axes - self.data.ndim())])
         returnValue = self.data.subtractAvg(pos1, pos2, self.axes)
         self.upd()
         self.showFid()
-        self.root.addMacro(['subtractAvg', (pos1, pos2, self.axes - self.data.ndim())])
         return returnValue
 
     def subtractAvgPreview(self, pos1, pos2):
@@ -2830,11 +2830,11 @@ class Current1D(Plot1DFrame):
         if newSpec:
             return self.data.getRegionNew(pos1, pos2, self.axes)
         else:
+            self.root.addMacro(['extract', (pos1, pos2, self.axes - self.data.ndim())])
             returnValue = self.data.getRegion(pos1, pos2, self.axes)
             self.upd()
             self.plotReset()
             self.showFid()
-            self.root.addMacro(['extract', (pos1, pos2, self.axes - self.data.ndim())])
             return returnValue
 
     def fiddle(self, pos1, pos2, lb):
@@ -2846,52 +2846,52 @@ class Current1D(Plot1DFrame):
             refSpec[minPos:maxPos] = np.real(self.data1D[hyperView][0][minPos:maxPos])
         else:
             refSpec[minPos:maxPos] = np.real(self.data1D[hyperView][minPos:maxPos])
+        self.root.addMacro(['FIDDLE', (refSpec, lb, self.axes - self.data.ndim())])
         returnValue = self.data.fiddle(refSpec, lb, self.axes)
         self.upd()
         self.showFid()
-        self.root.addMacro(['FIDDLE', (refSpec, lb, self.axes - self.data.ndim())])
         return returnValue
 
     def shearing(self, shear, axes, axes2):
+        self.root.addMacro(['shear', (shear, axes - self.data.ndim(), axes2 - self.data.ndim())])
         returnValue = self.data.shear(shear, axes, axes2)
         self.upd()
         self.showFid()
-        self.root.addMacro(['shear', (shear, axes - self.data.ndim(), axes2 - self.data.ndim())])
         return returnValue
 
     def reorder(self, pos, newLength):
+        self.root.addMacro(['reorder', (pos, newLength, self.axes - self.data.ndim())])
         returnValue = self.data.reorder(pos, newLength, self.axes)
         self.upd()
         self.showFid()
-        self.root.addMacro(['reorder', (pos, newLength, self.axes - self.data.ndim())])
         return returnValue
 
     def ffm(self, posList, typeVal):
         try:
+            self.root.addMacro(['ffm', (posList, typeVal, self.axes - self.data.ndim())])
             returnValue = self.data.ffm_1d(posList, typeVal, self.axes)
             self.upd()
             self.showFid()
-            self.root.addMacro(['ffm', (posList, typeVal, self.axes - self.data.ndim())])
         except:
             returnValue = None
         return returnValue
 
     def clean(self, posList, typeVal, gamma, threshold, maxIter):
         try:
+            self.root.addMacro(['clean', (posList, typeVal, self.axes - self.data.ndim(), gamma, threshold, maxIter)])
             returnValue = self.data.clean(posList, typeVal, self.axes, gamma, threshold, maxIter)
             self.upd()
             self.showFid()
-            self.root.addMacro(['clean', (posList, typeVal, self.axes - self.data.ndim(), gamma, threshold, maxIter)])
         except:
             returnValue = None
         return returnValue
 
     def ist(self, posList, typeVal, threshold, maxIter, tracelimit):
         try:
+            self.root.addMacro(['ist', (posList, typeVal, self.axes - self.data.ndim(), threshold, maxIter, tracelimit)])
             returnValue = self.data.ist(posList, typeVal, self.axes, threshold, maxIter, tracelimit)
             self.upd()
             self.showFid()
-            self.root.addMacro(['ist', (posList, typeVal, self.axes - self.data.ndim(), threshold, maxIter, tracelimit)])
         except Exception:
             returnValue = None
         return returnValue
@@ -2931,10 +2931,10 @@ class Current1D(Plot1DFrame):
                 tmpLocList = np.insert(tmpLocList, self.axes2, val)
             else:
                 tmpLocList = np.insert(tmpLocList, self.axes2 - 1, val)
+        self.root.addMacro(['autoPhase', (phaseNum, self.axes - self.data.ndim(), tmpLocList)])
         returnValue = self.data.autoPhase(phaseNum, self.axes, tmpLocList)
         self.upd()
         self.showFid()
-        self.root.addMacro(['autoPhase', (phaseNum, self.axes - self.data.ndim(), tmpLocList)])
         return returnValue
 
     def setXaxPreview(self, xax):
@@ -2944,11 +2944,11 @@ class Current1D(Plot1DFrame):
         self.upd()
 
     def setXax(self, xax):
+        self.root.addMacro(['setxax', (xax, self.axes - self.data.ndim())])
         returnVal = self.data.setXax(xax, self.axes)
         self.upd()
         self.plotReset()
         self.showFid()
-        self.root.addMacro(['setxax', (xax, self.axes - self.data.ndim())])
         return returnVal
 
     def setAxType(self, val):
@@ -2964,10 +2964,10 @@ class Current1D(Plot1DFrame):
         self.showFid()
 
     def hilbert(self):
+        self.root.addMacro(['hilbert', (self.axes - self.data.ndim(), )])
         returnValue = self.data.hilbert(self.axes)
         self.upd()
         self.showFid()
-        self.root.addMacro(['hilbert', (self.axes - self.data.ndim(), )])
         return returnValue
 
     def getColorMap(self):
