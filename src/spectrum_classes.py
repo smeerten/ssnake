@@ -90,6 +90,9 @@ class Spectrum(object):
 
     def shape(self):
         return self.data[0].shape
+
+    def getData(self): #Returns a copy of the data 
+        return copy.deepcopy(self.data)
         
     def dispMsg(self, msg):
         if self.msgHandler is None:

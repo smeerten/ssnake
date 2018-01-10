@@ -5035,9 +5035,9 @@ class InsertWindow(wc.ToolWindows):
         ws = self.wsEntry.currentIndex()
         self.father.redoList = []
         if self.father.current.data.noUndo:
-            self.father.current.insert(self.father.father.workspaces[ws].masterData.data, pos)
+            self.father.current.insert(self.father.father.workspaces[ws].masterData.getData(), pos)
         else:
-            self.father.undoList.append(self.father.current.insert(self.father.father.workspaces[ws].masterData.data, pos))
+            self.father.undoList.append(self.father.current.insert(self.father.father.workspaces[ws].masterData.getData(), pos))
 
 ##############################################################
 
@@ -5073,13 +5073,13 @@ class CombineWindow(wc.ToolWindows):
             self.father.father.dispMsg(self.WindowTitle + ": hypercomplex sizes are not identical")
             return None
         if self.combType is 0:
-            returnValue = self.father.current.add(self.father.father.workspaces[ws].masterData.data, self.singleSlice.isChecked())
+            returnValue = self.father.current.add(self.father.father.workspaces[ws].masterData.getData(), self.singleSlice.isChecked())
         elif self.combType is 1:
-            returnValue = self.father.current.subtract(self.father.father.workspaces[ws].masterData.data, self.singleSlice.isChecked())
+            returnValue = self.father.current.subtract(self.father.father.workspaces[ws].masterData.getData(), self.singleSlice.isChecked())
         elif self.combType is 2:
-            returnValue = self.father.current.multiplySpec(self.father.father.workspaces[ws].masterData.data, self.singleSlice.isChecked())
+            returnValue = self.father.current.multiplySpec(self.father.father.workspaces[ws].masterData.getData(), self.singleSlice.isChecked())
         elif self.combType is 3:
-            returnValue = self.father.current.divideSpec(self.father.father.workspaces[ws].masterData.data, self.singleSlice.isChecked())
+            returnValue = self.father.current.divideSpec(self.father.father.workspaces[ws].masterData.getData(), self.singleSlice.isChecked())
         if returnValue is None and not self.father.current.data.noUndo:
             return
         self.father.redoList = []
