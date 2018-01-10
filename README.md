@@ -24,6 +24,8 @@ sudo apt-get install python python-numpy python-matplotlib python-scipy python-q
 ```
 
 On Windows these packages can easily be installed by downloading [Anaconda](http://continuum.io/downloads).
+During installation, you should enable the 'Add Anaconda to the system PATH environment variable' box.
+This makes sure ssNake can find the python executable installed by Anaconda.
 
 [1]: The program might work on older versions, but they have not been tested.
 
