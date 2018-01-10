@@ -661,7 +661,7 @@ def loadBrukerSpectrum(filePath, name=''):
     if len(SIZE) == 2:
         for index in range(len(DATA)): #For each data set
             #Reshape DATA to 4D data using the block information
-            #Twice concat along axis 1 canstructs the regular x-y data
+            #Twice concat along axis 1 constructs the regular x-y data
             DATA[index] = np.reshape(DATA[index],[int(SIZE[1]/XDIM[1]),int(SIZE[0]/XDIM[0]),XDIM[1],XDIM[0]])
             DATA[index] = np.concatenate(np.concatenate(DATA[index],1),1)
     elif len(SIZE) == 3:

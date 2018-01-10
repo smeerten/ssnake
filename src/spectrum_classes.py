@@ -56,6 +56,8 @@ class Spectrum(object):
             self.hyper = [] #Holds the axes where hypercomplex data exists
         else:
             self.hyper = hyper
+        self.data, self.hyper = self.sortHyper(self.data, self.hyper) #force hyper into descending order
+
         self.filePath = filePath
         self.freq = np.array(freq)  # array of center frequency (length is dim, MHz)
         self.sw = sw  # array of sweepwidths
@@ -445,6 +447,7 @@ class Spectrum(object):
             self.data.append(tmp)
             self.data.append(tmp2)
         self.hyper.append(axes)
+        self.data, self.hyper = self.sortHyper(self.data, self.hyper) #Order the hyper data to default order
         self.resetXax(axes)
         self.addHistory("States conversion on dimension " + str(axes + 1))
         if self.noUndo:
@@ -477,6 +480,7 @@ class Spectrum(object):
             self.data.append(tmp)
             self.data.append(tmp2)
         self.hyper.append(axes)
+        self.data, self.hyper = self.sortHyper(self.data, self.hyper) #Order the hyper data to default order
         self.resetXax(axes)
         self.addHistory("States-TPPI conversion on dimension " + str(axes + 1))
         if self.noUndo:
@@ -505,6 +509,7 @@ class Spectrum(object):
             self.data.append(tmp1)
             self.data.append(tmp2)
         self.hyper.append(axes)
+        self.data, self.hyper = self.sortHyper(self.data, self.hyper) #Order the hyper data to default order
         self.resetXax(axes)
         self.addHistory("Echo-antiecho conversion on dimension " + str(axes + 1))
         if self.noUndo:
@@ -1416,6 +1421,34 @@ class Spectrum(object):
             del hyper[indx]
             data = newdat
         return data, hyper
+
+    def sortHyper(self,data, hyper):
+        #Makes sure that the hyper list is in descending order (e.g. [3,1,0])
+        #and adjust the data list accordingly
+        if len(hyper) == 0:
+            return data, hyper
+        else:
+            order = np.argsort(hyper)[::-1]
+            newhyper = [hyper[x] for x in order]
+            nat = ['R','I'] #nature of each data matrix
+            for elem in hyper[1::]:
+                tmp = []
+                for l in nat:
+                    tmp.append(l + 'R')
+                    tmp.append(l + 'I')
+                nat = copy.copy(tmp)
+
+            newnat = [] #the required new nature
+            for elem in nat:
+                tmp = ''
+                for i in order:
+                    tmp += elem[i]
+                newnat.append(tmp)
+
+            #Order the data in the new way
+            newindex = [nat.index(x) for x in newnat]
+            newdata = [data[x] for x in newindex]
+            return newdata, newhyper
 
     def fourier(self, axes, tmp=False, inv=False, reorder=[True,True]):
         axes = self.checkAxes(axes)
