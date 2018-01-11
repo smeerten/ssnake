@@ -93,6 +93,9 @@ class Spectrum(object):
 
     def getData(self): #Returns a copy of the data 
         return copy.deepcopy(self.data)
+
+    def getHyper(self): #Returns a copy of the hyper list
+        return copy.copy(self.hyper)
         
     def dispMsg(self, msg):
         if self.msgHandler is None:
@@ -154,22 +157,45 @@ class Spectrum(object):
         else:
             return lambda self: self.setXax(oldXax, axes)
 
-    def insert(self, data, pos, axes, dataImag=None):
+    def insert(self, data, pos, axes, hyper=[], dataImag=None):
+        #Convert both data sets to the full hyper space
+        #to be able to sum them
+        hyper1 = self.hyper
+        hyper2 = hyper
+        if self.noUndo:
+            returnValue = None
+        else:
+            if hyper1 == hyper2: #If both sets have same hyper: easy undo can be used
+                returnValue = lambda self: self.remove(range(pos, pos + data.shape[axes]), axes)
+            else: #Otherwise: do a deep copy of the class
+                copyData = copy.deepcopy(self)
+                returnValue = lambda self: self.restoreData(copyData, lambda self: self.insert(data, pos, axes, hyper, dataImag))
+       
+        #Merge data and dataImag if these were separated
+        if dataImag is not None:
+            try:
+                for i in range(len(data)):
+                    data[i] += dataImag[i]
+            except ValueError as error:
+                self.dispMsg(str(error))
+                return None
+
+        self.data, hyper1, data, hyper2 = self.expandHyperData(self.data, hyper1, data, hyper2)
+
         axes = self.checkAxes(axes)
         if axes is None:
             return None
         for index in range(len(self.data)):
             data = np.array(data[index]) 
-            if dataImag is not None:
-                data += 1j * np.array(dataImag[index])
             oldSize = self.data[index].shape[axes]
             self.data[index] = np.insert(self.data[index], [pos], data, axis=axes)
+            self.hyper = hyper1 #Set hyper to expanded value
         self.resetXax(axes)
         self.addHistory("Inserted " + str(self.shape()[axes] - oldSize) + " datapoints in dimension " + str(axes + 1) + " at position " + str(pos))
         if self.noUndo:
             return None
         else:
-            return lambda self: self.remove(range(pos, pos + data.shape[axes]), axes)
+            return returnValue
 
     def remove(self, pos, axes):
         axes = self.checkAxes(axes)
@@ -197,36 +223,102 @@ class Spectrum(object):
             self.dispMsg('Cannot delete all data')
             return None
 
-    def add(self, data, dataImag= None, select=slice(None)):
+    def expandHyperData(self,data1, hyper1, data2, hyper2):
+        #Takes two hypercomplex datasets and returns both sets having the same hyper shape
+        #New hypercomplex dimensions are filled with zeros.
+
+        newElem1 = list(set(hyper2) - set(hyper1))
+        newElem2 = list(set(hyper1) - set(hyper2))
+
+        newdata1 = []
+        newSize = 2**len(newElem1)
+        for i in range(len(data1)):
+            newdata1.append(data1[i])
+            for k in range(newSize - 1):
+                newdata1.append(np.zeros_like(data1[0]))
+        hyper1 = hyper1 + newElem1 #New hyper list
+        newdata1, hyper1= self.sortHyper(newdata1, hyper1) #Sort the hyperdata in descending order
+
+        newdata2 = []
+        newSize = 2**len(newElem2)
+        for i in range(len(data2)):
+            newdata2.append(data2[i])
+            for k in range(newSize - 1):
+                newdata2.append(np.zeros_like(data1[0]))
+        hyper2 = hyper2 + newElem2 #New hyper list
+        newdata2, hyper2 = self.sortHyper(newdata2, hyper2) #Sort the hyperdata in descending order
+
+        return newdata1, hyper1, newdata2, hyper2
+
+
+    def add(self, data, dataImag= None, hyper = [], select=slice(None)):
+        #Convert both data sets to the full hyper space
+        #to be able to sum them
+        hyper1 = self.hyper
+        hyper2 = hyper
+        if self.noUndo:
+            returnValue = None
+        else:
+            if hyper1 == hyper2: #If both sets have same hyper: easy subtract can be used for undo
+                returnValue = lambda self: self.subtract(data, hyper = hyper, select=select)
+            else: #Otherwise: do a deep copy of the class
+                copyData = copy.deepcopy(self)
+                returnValue = lambda self: self.restoreData(copyData, lambda self: self.add(data, dataImag, hyper, select))
+       
+        #Merge data and dataImag if these were separated
+        if dataImag is not None:
+            try:
+                for i in range(len(data)):
+                    data[i] += dataImag[i]
+            except ValueError as error:
+                self.dispMsg(str(error))
+                return None
+
+        self.data, hyper1, data, hyper2 = self.expandHyperData(self.data, hyper1, data, hyper2)
+
         if isinstance(select, string_types):
             select = safeEval(select)
         try:
             for index in range(len(self.data)):
-                if dataImag is not None:
-                    data[index] = np.array(data[index]) + 1j * np.array(dataImag[index])
                 self.data[index][select] = self.data[index][select] + data[index]
+            self.hyper = hyper1 #Set hyper to expanded value
         except ValueError as error:
             self.dispMsg(str(error))
             return None
         self.addHistory("Added to data[" + str(select) + "]")
-        if self.noUndo:
-            return None
-        else:
-            return lambda self: self.subtract(data, select=select)
+        return returnValue
 
-    def subtract(self, data, dataImag=None, select=slice(None), singleHyper = False):
+    def subtract(self, data, dataImag=None, hyper = [], select=slice(None)):
+        #Convert both data sets to the full hyper space
+        #to be able to sum them
+        hyper1 = self.hyper
+        hyper2 = hyper
+        if self.noUndo:
+            returnValue = None
+        else:
+            if hyper1 == hyper2: #If both sets have same hyper: easy subtract can be used for undo
+                returnValue = lambda self: self.add(data, hyper=hyper, select=select)
+            else: #Otherwise: do a deep copy of the class
+                copyData = copy.deepcopy(self)
+                returnValue = lambda self: self.restoreData(copyData, lambda self: self.subtract(data, dataImag, hyper, select))
+
+        #Merge data and dataImag if these were separated
+        if dataImag is not None:
+            try:
+                for i in range(len(data)):
+                    data[i] += dataImag[i]
+            except ValueError as error:
+                self.dispMsg(str(error))
+                return None
+
+        self.data, hyper1, data, hyper2 = self.expandHyperData(self.data, hyper1, data, hyper2)
+
         if isinstance(select, string_types):
             select = safeEval(select)
         try:
-            if singleHyper:
-                if dataImag is not None:
-                    data = np.array(data) + 1j * np.array(dataImag)
-                self.data[0][select] = self.data[0][select] - data[0]
-            else:
-                for index in range(len(self.data)):
-                    if dataImag is not None:
-                        data[index] = np.array(data[index]) + 1j * np.array(dataImag[index])
-                    self.data[index][select] = self.data[index][select] - data[index]
+            for index in range(len(self.data)):
+                self.data[index][select] = self.data[index][select] - data[index]
+            self.hyper = hyper1 #Set hyper to expanded value
         except ValueError as error:
             self.dispMsg(str(error))
             return None
@@ -234,16 +326,39 @@ class Spectrum(object):
         if self.noUndo:
             return None
         else:
-            return lambda self: self.add(data, select=select)
+            return returnValue
     
-    def multiplySpec(self, data, dataImag=None, select=slice(None)):
+    def multiplySpec(self, data, dataImag=None, hyper = [], select=slice(None)):
+        #Convert both data sets to the full hyper space
+        #to be able to sum them
+        hyper1 = self.hyper
+        hyper2 = hyper
+        if self.noUndo:
+            returnValue = None
+        else:
+            if hyper1 == hyper2: #If both sets have same hyper: easy subtract can be used for undo
+                returnValue = lambda self: self.divideSpec(data, hyper=hyper, select=select)
+            else: #Otherwise: do a deep copy of the class
+                copyData = copy.deepcopy(self)
+                returnValue = lambda self: self.restoreData(copyData, lambda self: self.multiplySpec(data, dataImag, hyper, select))
+       
+        #Merge data and dataImag if these were separated
+        if dataImag is not None:
+            try:
+                for i in range(len(data)):
+                    data[i] += dataImag[i]
+            except ValueError as error:
+                self.dispMsg(str(error))
+                return None
+
+        self.data, hyper1, data, hyper2 = self.expandHyperData(self.data, hyper1, data, hyper2)
+
         if isinstance(select, string_types):
             select = safeEval(select)
         try:
             for index in range(len(self.data)):
-                if dataImag is not None:
-                    data[index] = np.array(data[index]) + 1j * np.array(dataImag[index])
                 self.data[index][select] = self.data[index][select] * data[index]
+            self.hyper = hyper1 #Set hyper to expanded value
         except ValueError as error:
             self.dispMsg(str(error))
             return None
@@ -251,16 +366,39 @@ class Spectrum(object):
         if self.noUndo:
             return None
         else:
-            return lambda self: self.divideSpec(data, select=select)
+            return returnValue
 
-    def divideSpec(self, data, dataImag=None, select=slice(None)):
+    def divideSpec(self, data, dataImag=None, hyper=[], select=slice(None)):
+        #Convert both data sets to the full hyper space
+        #to be able to sum them
+        hyper1 = self.hyper
+        hyper2 = hyper
+        if self.noUndo:
+            returnValue = None
+        else:
+            if hyper1 == hyper2: #If both sets have same hyper: easy subtract can be used for undo
+                returnValue = lambda self: self.multiplySpec(data, hyper=hyper, select=select)
+            else: #Otherwise: do a deep copy of the class
+                copyData = copy.deepcopy(self)
+                returnValue = lambda self: self.restoreData(copyData, lambda self: self.divide(data, dataImag, hyper, select))
+       
+        #Merge data and dataImag if these were separated
+        if dataImag is not None:
+            try:
+                for i in range(len(data)):
+                    data[i] += dataImag[i]
+            except ValueError as error:
+                self.dispMsg(str(error))
+                return None
+
+        self.data, hyper1, data, hyper2 = self.expandHyperData(self.data, hyper1, data, hyper2)
+
         if isinstance(select, string_types):
             select = safeEval(select)
         try:
             for index in range(len(self.data)):
-                if dataImag is not None:
-                    data[index] = np.array(data[index]) + 1j * np.array(dataImag[index])
                 self.data[index][select] = self.data[index][select] / data[index]
+            self.hyper = hyper1 #Set hyper to expanded value
         except ValueError as error:
             self.dispMsg(str(error))
             return None
@@ -268,7 +406,7 @@ class Spectrum(object):
         if self.noUndo:
             return None
         else:
-            return lambda self: self.multiplySpec(data, select=select)
+            return returnValue
 
     def multiply(self, mult, axes, multImag=0, select=slice(None)):
         if isinstance(select, string_types):
@@ -2481,7 +2619,7 @@ class Current1D(Plot1DFrame):
             elif(self.viewSettings["plotType"] == 3):
                 y = np.abs(y)
             self.root.addMacro(['subtract', (y.tolist(), None, slice(None), True)])
-            returnValue = self.data.subtract(y,singleHyper = True)
+            returnValue = self.data.subtract([y])
         except Exception:
             return None
         return returnValue
@@ -2505,9 +2643,7 @@ class Current1D(Plot1DFrame):
         if invert:
             bArray = np.logical_not(bArray)
         try:
-            print('1')
             y = self.baselinePolyFit(self.xax, tmpData, bArray, degree)
-            print('2')
             if (self.viewSettings["plotType"] == 0):
                 y = np.real(y)
             elif(self.viewSettings["plotType"] == 1):
@@ -2713,12 +2849,12 @@ class Current1D(Plot1DFrame):
         self.root.addMacro(['cumsum', (self.axes - self.data.ndim(), )])
         return returnValue
 
-    def insert(self, data, pos):
-        returnValue = self.data.insert(data, pos, self.axes)
+    def insert(self, data, hyper, pos):
+        self.root.addMacro(['insert', ([np.real(x).tolist() for x in data], pos, self.axes - self.data.ndim(), hyper, [np.imag(x).tolist() for x in data])])
+        returnValue = self.data.insert(data, pos, self.axes, hyper=hyper)
         self.upd()
         self.plotReset()
         self.showFid()
-        self.root.addMacro(['insert', (np.real(data).tolist(), pos, self.axes - self.data.ndim(), np.imag(data).tolist())])
         return returnValue
 
     def delete(self, pos):
@@ -2736,46 +2872,46 @@ class Current1D(Plot1DFrame):
             self.showFid()
         self.upd()
 
-    def add(self, data, select=False):
+    def add(self, data, hyper, select=False):
         if select:
             selectSlice = self.getSelect()
         else:
             selectSlice = slice(None)
-        self.root.addMacro(['add', ([np.real(x).tolist() for x in data], [np.imag(x).tolist() for x in data], str(selectSlice))])
-        returnValue = self.data.add(data, select=selectSlice)
+        self.root.addMacro(['add', ([np.real(x).tolist() for x in data], [np.imag(x).tolist() for x in data], hyper, str(selectSlice))])
+        returnValue = self.data.add(data, hyper=hyper, select=selectSlice)
         self.upd()
         self.showFid()
         return returnValue
 
-    def subtract(self, data, select=False):
+    def subtract(self, data, hyper, select=False):
         if select:
             selectSlice = self.getSelect()
         else:
             selectSlice = slice(None)
-        self.root.addMacro(['subtract', ([np.real(x).tolist() for x in data], [np.imag(x).tolist() for x in data], str(selectSlice))])
-        returnValue = self.data.subtract(data, select=selectSlice)
+        self.root.addMacro(['subtract', ([np.real(x).tolist() for x in data], [np.imag(x).tolist() for x in data], hyper, str(selectSlice))])
+        returnValue = self.data.subtract(data, hyper=hyper, select=selectSlice)
         self.upd()
         self.showFid()
         return returnValue
 
-    def multiplySpec(self, data, select=False):
+    def multiplySpec(self, data, hyper, select=False):
         if select:
             selectSlice = self.getSelect()
         else:
             selectSlice = slice(None)
-        self.root.addMacro(['multiplySpec', ([np.real(x).tolist() for x in data], [np.imag(x).tolist() for x in data], str(selectSlice))])
-        returnValue = self.data.multiplySpec(data, select=selectSlice)
+        self.root.addMacro(['multiplySpec', ([np.real(x).tolist() for x in data], [np.imag(x).tolist() for x in data], hyper, str(selectSlice))])
+        returnValue = self.data.multiplySpec(data, hyper=hyper, select=selectSlice)
         self.upd()
         self.showFid()
         return returnValue
 
-    def divideSpec(self, data, select=False):
+    def divideSpec(self, data, hyper, select=False):
         if select:
             selectSlice = self.getSelect()
         else:
             selectSlice = slice(None)
-        self.root.addMacro(['divideSpec', ([np.real(x).tolist() for x in data], [np.imag(x).tolist() for x in data], str(selectSlice))])
-        returnValue = self.data.divideSpec(data, select=selectSlice)
+        self.root.addMacro(['divideSpec', ([np.real(x).tolist() for x in data], [np.imag(x).tolist() for x in data], hyper, str(selectSlice))])
+        returnValue = self.data.divideSpec(data, hyper=hyper, select=selectSlice)
         self.upd()
         self.showFid()
         return returnValue
