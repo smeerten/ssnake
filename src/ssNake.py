@@ -6005,11 +6005,14 @@ class NormalizeWindow(wc.ToolWindows):
             val = self.father.current.MaxMin(minimum,maximum, type = 'max')
         elif type == 2:
             val = self.father.current.MaxMin(minimum,maximum, type = 'min')
-        returnValue = self.father.current.normalize( 1.0 / val, scale, type, self.singleSlice.isChecked())
-        if returnValue is None:
-            return False
-        self.father.undoList.append(returnValue)
-        self.father.redoList = []
+        if self.father.current.data.noUndo:
+            self.father.current.normalize( 1.0 / val, scale, type, self.singleSlice.isChecked())
+        else:
+            returnValue = self.father.current.normalize( 1.0 / val, scale, type, self.singleSlice.isChecked())
+            if returnValue is None:
+                return False
+            self.father.undoList.append(returnValue)
+            self.father.redoList = []
         return 
 
 ##########################################################################################
