@@ -960,10 +960,12 @@ class Spectrum(object):
         tmpref = copy.deepcopy(self.ref)
         if self.spec[axes] == 1:
             oldFxax = self.xaxArray[axes][slice(minPos, maxPos)][0]
-            tmpsw[axes] = tmpsw[axes] * (maxPos - minPos) / (1.0 * self.data.shape[axes])
-        tmpdata = self.data[slicing]
+            tmpsw[axes] = tmpsw[axes] * (maxPos - minPos) / (1.0 * self.shape()[axes])
+        tmpdata = []
+        for index in range(len(self.data)):
+            tmpdata.append(self.data[index][slicing])
         if self.spec[axes] == 1:
-            newFxax = np.fft.fftshift(np.fft.fftfreq(tmpdata.shape[axes], 1.0 / tmpsw[axes]))[0]
+            newFxax = np.fft.fftshift(np.fft.fftfreq(tmpdata[0].shape[axes], 1.0 / tmpsw[axes]))[0]
             if tmpref[axes] is None:
                 tmpref[axes] = tmpfreq[axes]
             tmpfreq[axes] = tmpref[axes] - newFxax + oldFxax
@@ -974,6 +976,7 @@ class Spectrum(object):
                            tmpsw,
                            copy.deepcopy(self.spec),
                            copy.deepcopy(self.wholeEcho),
+                           copy.deepcopy(self.hyper),
                            tmpref,
                            copy.deepcopy(self.xaxArray),
                            copy.deepcopy(self.history),
