@@ -843,9 +843,9 @@ class Spectrum(object):
                     tmpminPos = minArgPos.flatten()
                     tmp = self.xaxArray[axes][slice(minPos, maxPos)][tmpminPos].reshape(minArgPos.shape)
                     if keepdims:
-                        tmpdata += (np.expand_dims(tmp, axes), )
+                        tmpdata[index] += (np.expand_dims(tmp, axes), )
                     else:
-                        tmpdata += (tmp, )
+                        tmpdata[index] += (tmp, )
                 elif which == 6:
                     tmpdata[index] += (np.mean(self.data[index][slicing], axis=axes, keepdims=keepdims), )
         #Remove hyper along this dim if necessary
