@@ -2569,18 +2569,19 @@ class Current1D(Plot1DFrame):
 
     def setShiftPreview(self, shift):
         hyperView = 0
-        tmpData = self.data1D[hyperView]
+        tmpData = copy.deepcopy(self.data1D)
         dim = len(self.data1D[0].shape)
         if self.spec > 0:
             tmpData = self.fourierLocal(tmpData, 1, self.axes)
-        tmpData = np.roll(tmpData, shift)
-        if shift < 0:
-            tmpData[(slice(None), ) * (dim - 1) + (slice(shift, None), )] = tmpData[(slice(None), ) * (dim - 1) + (slice(shift, None), )] * 0
-        else:
-            tmpData[(slice(None), ) * (dim - 1) + (slice(None, shift), )] = tmpData[(slice(None), ) * (dim - 1) + (slice(None, shift), )] * 0
+        for index in range(len(tmpData)):
+            tmpData[index] = np.roll(tmpData[index], shift)
+            if shift < 0:
+                tmpData[index][(slice(None), ) * (dim - 1) + (slice(shift, None), )] = tmpData[index][(slice(None), ) * (dim - 1) + (slice(shift, None), )] * 0
+            else:
+                tmpData[index][(slice(None), ) * (dim - 1) + (slice(None, shift), )] = tmpData[index][(slice(None), ) * (dim - 1) + (slice(None, shift), )] * 0
         if self.spec > 0:
             tmpData = self.fourierLocal(tmpData, 0, self.axes)
-        self.showFid(tmpData)
+        self.showFid(tmpData[hyperView])
 
     def getdcOffset(self, pos1, pos2):
         hyperView = 0
