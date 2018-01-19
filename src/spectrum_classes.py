@@ -556,16 +556,15 @@ class Spectrum(object):
     
     def conj(self,axes):
         if self.noUndo:
-            return None
+            returnValue = None
         else:
-            copyData = copy.deepcopy(self)
-
+            returnValue = lambda self: self.conj(axes)
         self.data = self.hyperReorder(self.data, axes)
         for index in range(len(self.data)):
             self.data[index] = np.conj(self.data[index])
         self.data = self.hyperReorder(self.data, axes)
         self.addHistory("Complex conjugate dimension " + str(axes))
-        return lambda self: self.restoreData(copyData, lambda self: self.abs())
+        return returnValue
 
     def states(self, axes):
         axes = self.checkAxes(axes)
