@@ -2959,13 +2959,20 @@ def quad1MASFunc(x, pos, cq, eta, lor, gauss, sw, axAdd, axMult, spinspeed, chen
                   np.array([np.sqrt(2) / 3 * sinPhi * sin2Theta]).transpose() * np.sin(omegar * t),
                   np.array([cosPhi * sin2Theta / 3]).transpose() * np.sin(2 * omegar * t)]
     pos = (pos / axMult) - axAdd
-    m = np.arange(-I, 0)  # Only half the transitions have to be caclulated, as the others are mirror images (sidebands inversed)
+    m = np.arange(-I, 0)  # Only half the transitions have to be calculated, as the others are mirror images (sidebands inverted)
     eff = I**2 + I - m * (m + 1)  # The detection efficiencies of the top half transitions
+    #Scale the intensities to sum to 1
+    if np.floor(I) != I: #If not even:
+        scale = np.sum(eff[0:-1] * 2) + eff[-1]
+    else:
+        scale = np.sum(eff) * 2
+    eff = eff / scale
+
     splitting = np.arange(I - 0.5, -0.1, -1)  # The quadrupolar couplings of the top half transitions
     sidebands = np.zeros(int(numssb))
     for transition in range(len(eff)):  # For all transitions
         if splitting[transition] != 0:  # If quad coupling not zero: calculate sideban pattern
-            delta = splitting[transition] * 2 * np.pi * 3 / (2 * I * (2 * I - 1)) * cq * 1e6  # Calc delta based on Cq [MHz] and spin qunatum
+            delta = splitting[transition] * 2 * np.pi * 3 / (2 * I * (2 * I - 1)) * cq * 1e6  # Calc delta based on Cq [MHz] and spin quantum
             omegars = delta * (angleStuff[0] + angleStuff[1] + eta * (angleStuff[2] + angleStuff[3] + angleStuff[4] + angleStuff[5]))
             QTrs = np.concatenate([np.ones([angleStuff[0].shape[0], 1]), np.exp(-1j * np.cumsum(omegars, axis=1) * tresolution)[:, :-1]], 1)
             for j in range(1, int(numssb)):
