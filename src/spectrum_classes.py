@@ -2623,7 +2623,7 @@ class Current1D(Plot1DFrame):
             self.root.addMacro(['subtract', (y.tolist(), None, slice(None), True)])
             returnValue = self.data.subtract([y])
         except Exception:
-            return None
+            return False
         return returnValue
 
     def applyBaseline(self, degree, removeList, select=False, invert=False):

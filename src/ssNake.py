@@ -4298,7 +4298,7 @@ class BaselineWindow(wc.ToolWindows):
             returnValue = self.father.current.applyBaselineAll(inp, self.removeList, self.singleSlice.isChecked(), invert=self.invertButton.isChecked())
         else:
             returnValue = self.father.current.applyBaseline(inp, self.removeList, self.singleSlice.isChecked(), invert=self.invertButton.isChecked())
-        if returnValue is None:
+        if returnValue is False:
             self.father.father.dispMsg("Baseline correct: error in polynomial fit", 'red')
             return False
         if not self.father.current.data.noUndo:
