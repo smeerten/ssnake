@@ -5552,7 +5552,8 @@ class ReorderWindow(wc.ToolWindows):
         val = np.array(val, dtype=int)
         self.father.redoList = []
         check = self.father.current.reorder(val, newLength)
-        if check is None:
+        if check is False:
+            self.father.father.dispMsg("Reorder: error during applying")
             return False
         if not self.father.masterData.noUndo:
             self.father.undoList.append(check)
@@ -5671,7 +5672,7 @@ class FFMWindow(wc.ToolWindows):
         val = np.array(val, dtype=int)
         self.father.redoList = []
         check = self.father.current.ffm(val, self.typeDrop.currentIndex())
-        if check is None:
+        if check is False:
             self.father.father.dispMsg("FFM: error", color='red')
             return False
         if not self.father.masterData.noUndo:
@@ -5741,7 +5742,7 @@ class CLEANWindow(wc.ToolWindows):
         maxIter = int(maxIter)
         self.father.redoList = []
         check = self.father.current.clean(val, self.typeDrop.currentIndex(), gamma, threshold, maxIter)
-        if check is None:
+        if check is False:
             self.father.father.dispMsg("CLEAN: error",color = 'red')
             return False
         if not self.father.masterData.noUndo:
@@ -5811,7 +5812,7 @@ class ISTWindow(wc.ToolWindows):
         maxIter = int(maxIter)
         self.father.redoList = []
         check = self.father.current.ist(val, self.typeDrop.currentIndex(), threshold, maxIter, tracelimit)
-        if check is None:
+        if check is False:
             self.father.father.dispMsg("IST: error",color = 'red')
             return False
         if not self.father.masterData.noUndo:

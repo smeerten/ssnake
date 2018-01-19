@@ -1717,12 +1717,12 @@ class Spectrum(object):
     def reorder(self, pos, newLength, axes):
         axes = self.checkAxes(axes)
         if axes is None:
-            return None
+            return False
         if newLength is None:
             newLength = max(pos) + 1
         if (max(pos) >= newLength) or (min(pos) < 0):
             self.dispMsg("Reorder: invalid positions")
-            return None
+            return False
         if not self.noUndo:
             copyData = copy.deepcopy(self)
         newShape = np.array(self.shape())
@@ -1743,7 +1743,7 @@ class Spectrum(object):
     def ffm_1d(self, pos, typeVal, axes):
         axes = self.checkAxes(axes)
         if axes is None:
-            return None
+            return False
         if not self.noUndo:
             copyData = copy.deepcopy(self)
         # pos contains the values of fixed points which not to be translated to missing points
@@ -1778,7 +1778,7 @@ class Spectrum(object):
     def clean(self, pos, typeVal, axes, gamma, threshold, maxIter):
         axes = self.checkAxes(axes)
         if axes is None:
-            return None
+            return False
         if not self.noUndo:
             copyData = copy.deepcopy(self)
         # pos contains the values of fixed points which not to be translated to missing points
@@ -1818,7 +1818,7 @@ class Spectrum(object):
         import scipy.signal
         axes = self.checkAxes(axes)
         if axes is None:
-            return None
+            return False
         if not self.noUndo:
             copyData = copy.deepcopy(self)
         # pos contains the values of fixed points which not to be translated to missing points
@@ -3015,7 +3015,7 @@ class Current1D(Plot1DFrame):
             self.upd()
             self.showFid()
         except:
-            returnValue = None
+            returnValue = False
         return returnValue
 
     def clean(self, posList, typeVal, gamma, threshold, maxIter):
@@ -3025,7 +3025,7 @@ class Current1D(Plot1DFrame):
             self.upd()
             self.showFid()
         except:
-            returnValue = None
+            returnValue = False
         return returnValue
 
     def ist(self, posList, typeVal, threshold, maxIter, tracelimit):
@@ -3035,7 +3035,7 @@ class Current1D(Plot1DFrame):
             self.upd()
             self.showFid()
         except Exception:
-            returnValue = None
+            returnValue = False
         return returnValue
 
     def autoPhase(self, phaseNum):
