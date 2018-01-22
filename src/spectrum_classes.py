@@ -2390,6 +2390,7 @@ class Current1D(Plot1DFrame):
         else:
             tmpData = self.data1D[hyperView]
             tmpAxis = self.xax
+        totLen = len(tmpData)
         if (self.viewSettings["plotType"] == 0):
             tmpData = np.real(tmpData)
         elif(self.viewSettings["plotType"] == 1):
@@ -2407,7 +2408,7 @@ class Current1D(Plot1DFrame):
             inte = np.sum(tmpData) / self.sw
         else:
             intSum = np.cumsum(tmpData[-1::-1])[-1::-1]
-            inte = np.sum(tmpData) * self.sw / (1.0 * tmpData.shape[0])
+            inte = np.sum(tmpData) * self.sw / (1.0 * totLen)
         return inte, tmpAxis, intSum, maxim
 
     def MaxMin(self, minPeak, maxPeak, type = 'max'):
