@@ -463,10 +463,12 @@ class FittingSideFrame(QtWidgets.QScrollArea):
         self.length = len(self.shape)
         for i in reversed(range(self.frame1.count())):
             item = self.frame1.itemAt(i).widget()
+            item.hide()
             self.frame1.removeWidget(item)
             item.deleteLater()
         for i in reversed(range(self.frame2.count())):
             item = self.frame2.itemAt(i).widget()
+            item.hide()
             self.frame2.removeWidget(item)
             item.deleteLater()
         self.entries = []
