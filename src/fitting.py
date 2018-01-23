@@ -3402,7 +3402,10 @@ def quad2CzjzektensorFunc(sigma, d, pos, width, gauss, wq, eta, lib, freq, sw, a
         czjzek[:, 0] = 1
     else:
         czjzek = wq**(d - 1) * eta / (np.sqrt(2 * np.pi) * sigma**d) * (1 - eta**2 / 9.0) * np.exp(-wq**2 / (2.0 * sigma**2) * (1 + eta**2 / 3.0))
-    czjzek = czjzek / np.sum(czjzek)
+    if np.sum(czjzek) == 0.0: #Protect against divide by zero
+        czjzek = 0 * czjzek
+    else:
+        czjzek = czjzek / np.sum(czjzek)
     fid = np.sum(lib * czjzek[..., None], axis=(0, 1))
     t = np.arange(len(fid)) / sw
     apod = np.exp(-np.pi * np.abs(width) * t) * np.exp(-((np.pi * np.abs(gauss) * t)**2) / (4 * np.log(2)))
