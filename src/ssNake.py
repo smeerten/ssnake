@@ -1756,6 +1756,8 @@ class Main1DWindow(QtWidgets.QWidget):
                 returnValue = self.masterData.wholeEcho(*iter1[1])
             elif iter1[0] == 'shift':
                 returnValue = self.masterData.shiftData(*iter1[1])
+            elif iter1[0] == 'LPSVD':
+                returnValue = self.masterData.setLPSVD(*iter1[1])
             elif iter1[0] == 'states':
                 returnValue = self.masterData.states(*iter1[1])
             elif iter1[0] == 'statesTPPI':
@@ -4040,9 +4042,9 @@ class LPSVDWindow(wc.ToolWindows):
             return False
         self.father.redoList = []
         if self.father.current.data.noUndo:
-            self.father.current.applyLPSVD(self.analPoints, self.numberFreq, self.predictPoints, self.specGroup.checkedId())
+            self.father.current.applyLPSVD(analPoints, numberFreq, predictPoints, self.specGroup.checkedId())
         else:
-            self.father.undoList.append(self.father.current.applyLPSVD(self.analPoints, self.numberFreq, self.predictPoints, self.specGroup.checkedId()))
+            self.father.undoList.append(self.father.current.applyLPSVD(analPoints, numberFreq, predictPoints, self.specGroup.checkedId()))
         self.father.sideframe.upd()
 
 ###########################################################################

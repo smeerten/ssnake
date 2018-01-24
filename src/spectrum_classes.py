@@ -2514,6 +2514,7 @@ class Current1D(Plot1DFrame):
         return returnValue
 
     def applyLPSVD(self, nAnalyse, nFreq, nPredict, Direction):
+        self.root.addMacro(['LPSVD', (nAnalyse, nFreq, nPredict, Direction, self.axes - self.data.ndim())])
         returnValue = self.data.setLPSVD(nAnalyse, nFreq, nPredict, Direction, self.axes)
         self.upd()
         self.showFid()
