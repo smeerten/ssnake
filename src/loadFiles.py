@@ -163,12 +163,7 @@ def loadVarianFile(filePath, name=''):
         filePath = datafile
     with open(datafile, "rb") as f:
         raw = np.fromfile(f, np.int32, 6)
-        nblocks = unpack('>l', raw[0])[0]
-        ntraces = unpack('>l', raw[1])[0]
-        npoints = unpack('>l', raw[2])[0]
-        ebytes = unpack('>l', raw[3])[0]
-        tbytes = unpack('>l', raw[4])[0]
-        bbytes = unpack('>l', raw[5])[0]
+        nblocks, ntraces, npoints, ebytes, tbytes, bbytes  = [unpack('>l', x)[0] for x in raw]
         raw = np.fromfile(f, np.int16, 2)
         status = unpack('>h', raw[1])[0]
         spec = bool(int(bin(status)[-2]))
