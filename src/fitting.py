@@ -3791,34 +3791,35 @@ class FunctionFitParamFrame(AbstractParamFrame):
 
     def disp(self, params, num):
         out = params[num]
-        numExp = len(out[self.MULTINAMES[0]])
-        for i in range(numExp):
-            for name in self.MULTINAMES:
-                inp = out[name][i]
-                if isinstance(inp, tuple):
-                    inp = checkLinkTuple(inp)
-                    out[name][i] = inp[2] * params[inp[4]][inp[0]][inp[1]] + inp[3]
-                if not np.isfinite(out[name][i]):
-                    self.rootwindow.mainProgram.dispMsg("Fitting: One of the inputs is not valid")
+        if len(self.MULTINAMES) > 0: #If there are elements
+            numExp = len(out[self.MULTINAMES[0]])
+            for i in range(numExp):
+                for name in self.MULTINAMES:
+                    inp = out[name][i]
+                    if isinstance(inp, tuple):
+                        inp = checkLinkTuple(inp)
+                        out[name][i] = inp[2] * params[inp[4]][inp[0]][inp[1]] + inp[3]
+                    if not np.isfinite(out[name][i]):
+                        self.rootwindow.mainProgram.dispMsg("Fitting: One of the inputs is not valid")
+                        return
+            tmpx = self.parent.xax
+            outCurveBase = np.zeros(len(tmpx))
+            outCurve = outCurveBase.copy()
+            outCurvePart = []
+            x = []
+            for i in range(numExp):
+                x.append(tmpx)
+                inputPar = {}
+                for name in self.MULTINAMES:
+                    inputPar[name] = out[name][i]
+                y = functionRun(out["function"][0], inputPar, tmpx)
+                if y is None:
+                    self.rootwindow.mainProgram.dispMsg("Fitting: The script didn't output anything", 'red')
                     return
-        tmpx = self.parent.xax
-        outCurveBase = np.zeros(len(tmpx))
-        outCurve = outCurveBase.copy()
-        outCurvePart = []
-        x = []
-        for i in range(numExp):
-            x.append(tmpx)
-            inputPar = {}
-            for name in self.MULTINAMES:
-                inputPar[name] = out[name][i]
-            y = functionRun(out["function"][0], inputPar, tmpx)
-            if y is None:
-                self.rootwindow.mainProgram.dispMsg("Fitting: The script didn't output anything", 'red')
-                return
-            outCurvePart.append(outCurveBase + y)
-            outCurve += y
-        self.parent.fitDataList[tuple(self.parent.locList)] = [tmpx, outCurve, x, outCurvePart]
-        self.parent.showFid()
+                outCurvePart.append(outCurveBase + y)
+                outCurve += y
+            self.parent.fitDataList[tuple(self.parent.locList)] = [tmpx, outCurve, x, outCurvePart]
+            self.parent.showFid()
 
 ##############################################################################
 
