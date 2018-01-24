@@ -1725,7 +1725,7 @@ class Main1DWindow(QtWidgets.QWidget):
             elif iter1[0] == 'abs':
                 returnValue = self.masterData.abs()
             elif iter1[0] == 'conj':
-                returnValue = self.masterData.conj()
+                returnValue = self.masterData.conj(*iter1[1])
             elif iter1[0] == 'phase':
                 returnValue = self.masterData.setPhase(*iter1[1])
             elif iter1[0] == 'autoPhase':
@@ -2080,7 +2080,7 @@ class Main1DWindow(QtWidgets.QWidget):
             self.undoList.append(self.masterData.conj(axes))
         self.current.upd()
         self.current.showFid()
-        self.addMacro(['conj'])
+        self.addMacro(['conj',(axes,)])
         self.menuCheck()
 
     def fourier(self):
