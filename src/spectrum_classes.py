@@ -2622,7 +2622,7 @@ class Current1D(Plot1DFrame):
                 y = np.real(y)
             elif(self.viewSettings["plotType"] == 3):
                 y = np.abs(y)
-            self.root.addMacro(['subtract', (y.tolist(), None, slice(None), True)])
+            self.root.addMacro(['subtract', ([y.tolist()], None, [], str(slice(None)))])
             returnValue = self.data.subtract([y])
         except Exception:
             return False
