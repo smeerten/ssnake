@@ -3589,10 +3589,10 @@ class SIMPSONDeconvParamFrame(AbstractParamFrame):
 
 
 def SIMPSONDeconvmpFit(xax, data1D, guess, args, queue, minmethod, numfeval):
-    #try:
-    fitVal = scipy.optimize.minimize(lambda *param: np.sum((data1D - SIMPSONDeconvfitFunc(param, xax, args))**2), guess, method=minmethod, options = {'maxfev': numfeval})
-    #except Exception:
-    #    fitVal = None
+    try:
+        fitVal = scipy.optimize.minimize(lambda *param: np.sum((data1D - SIMPSONDeconvfitFunc(param, xax, args))**2), guess, method=minmethod, options = {'maxfev': numfeval})
+    except Exception:
+        fitVal = None
     queue.put(fitVal)
 
 
@@ -3641,6 +3641,8 @@ def SIMPSONDeconvfitFunc(params, allX, args):
 
 
 def SIMPSONRunScript(command, script, parameters, xax, output=None, spec=True):
+    if script is None:
+        return None
     for elem in parameters.keys():
         script = script.replace('@' + elem, str(parameters[elem]))
     directory_name = tempfile.mkdtemp()
