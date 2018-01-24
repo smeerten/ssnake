@@ -2989,7 +2989,7 @@ class Current1D(Plot1DFrame):
             refSpec[minPos:maxPos] = np.real(self.data1D[hyperView][0][minPos:maxPos])
         else:
             refSpec[minPos:maxPos] = np.real(self.data1D[hyperView][minPos:maxPos])
-        self.root.addMacro(['FIDDLE', (refSpec, lb, self.axes - self.data.ndim())])
+        self.root.addMacro(['FIDDLE', (refSpec.tolist(), lb, self.axes - self.data.ndim())])
         returnValue = self.data.fiddle(refSpec, lb, self.axes)
         self.upd()
         self.showFid()
