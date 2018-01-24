@@ -162,65 +162,43 @@ def loadVarianFile(filePath, name=''):
         datafile = Dir + os.path.sep + 'data'
         filePath = datafile
     with open(datafile, "rb") as f:
-        raw = np.fromfile(f, np.int32, 6)
-        nblocks, ntraces, npoints, ebytes, tbytes, bbytes  = [unpack('>l', x)[0] for x in raw]
-        raw = np.fromfile(f, np.int16, 2)
-        status = unpack('>h', raw[1])[0]
-        spec = bool(int(bin(status)[-2]))
-        raw = np.fromfile(f, np.int32, 1)
-        nbheaders = unpack('>l', raw[0])[0]
+        nblocks, ntraces, npoints, ebytes, tbytes, bbytes  = np.fromfile(f, np.int32, 6).newbyteorder('>l')
+        tmp, status = np.fromfile(f, np.int16, 2).newbyteorder('>h')
+        status = '{0:016b}'.format(status)[::-1] #send to zeropadded string, and put order correct
+        spec = bool(int(status[1]))
+        nbheaders = np.fromfile(f, np.int32, 1).newbyteorder('>l')[0]
         SizeTD2 = npoints
         SizeTD1 = nblocks * ntraces
-        fid32 = int(bin(status)[-3])
-        fidfloat = int(bin(status)[-4])
-        hypercomplex = bool(bin(status)[-5])
-        
-        if not fid32 and fidfloat:  # only for `newest' format, use fast routine
-            flipped = bool(bin(status)[-10])
-            totalpoints = (ntraces * npoints + nbheaders**2 * 7)*nblocks
-            fid = np.fromfile(f, np.float32, totalpoints)
-            fid = fid.newbyteorder('>f')
-            if not spec or (spec and not hypercomplex):
-                fid = fid.reshape(nblocks, int(totalpoints / nblocks))
-                fid = fid[:, 7::]
-                fid = fid[:, ::2] - 1j * fid[:, 1::2]
+        fid32 = int(status[2])
+        fidfloat = int(status[3])
+        hypercomplex = bool(status[5])
+
+        if fidfloat:
+            bitType = ['>f', np.float32, 7] # [bitorder, read as, number of elements in nbheader]
+        else:
+            if fid32:
+                bitType = ['>l', np.int32, 7]
             else:
-                fid = a[nbheaders * 7::4] - 1j * a[nbheaders * 7 + 1::4]
-                fid = fid.reshape(int(SizeTD1 / 4), SizeTD2)
-                if flipped:
-                    fid = np.fliplr(fid)
-        elif fid32 and not fidfloat:  # for VNMRJ 2 data
-            totalpoints = (ntraces * npoints + nbheaders**2 * 7) * nblocks
-            raw = np.fromfile(f, np.int32, totalpoints)
-            a = raw.newbyteorder('>l')
-            a = a.reshape(nblocks, int(totalpoints / nblocks))
-            a = a[:, 7::]
-            fid = a[:, ::2] - 1j * a[:, 1::2]
-        else:  # use slow, but robust routine
-            for iter1 in range(0, nblocks):
-                b = []
-                for iter2 in range(0, nbheaders):
-                    raw = np.fromfile(f, np.int16, nbheaders * 14)
-                if not fid32 and not fidfloat:
-                    raw = np.fromfile(f, np.int16, ntraces * npoints)
-                    for iter3 in raw:
-                        b.append(unpack('>h', iter3)[0])
-                elif fid32 and not fidfloat:
-                    raw = np.fromfile(f, np.int32, ntraces * npoints)
-                    for iter3 in raw:
-                        b.append(unpack('>l', iter3)[0])
-                else:
-                    raw = np.fromfile(f, np.float32, ntraces * npoints)
-                    for iter3 in raw:
-                        b.append(unpack('>f', iter3)[0])
-                b = np.array(b)
-                if(len(b) != ntraces * npoints):
-                    b.append(np.zeros(ntraces * npoints - len(b)))
-                a.append(b)
-            a = np.complex128(a)
-            fid = a[:, ::2] - 1j * a[:, 1::2]
+                bitType = ['>h', np.int16, 14]
+
+        totalpoints = (ntraces * npoints + nbheaders**2 * bitType[2])*nblocks
+        flipped = bool(status[9])
+        fid = np.fromfile(f, bitType[1], totalpoints)
+        fid = fid.newbyteorder(bitType[0])
+        fid = fid.astype(np.complex128)
+
+        if not spec or (spec and not hypercomplex):
+            fid = fid.reshape(nblocks, int(totalpoints / nblocks))
+            fid = fid[:, bitType[2]::]
+            fid = fid[:, ::2] - 1j * fid[:, 1::2]
+        else:
+            fid = a[nbheaders * bitType[2]::4] - 1j * a[nbheaders * bitType[2] + 1::4]
+            fid = fid.reshape(int(SizeTD1 / 4), SizeTD2)
+            if flipped:
+                fid = np.fliplr(fid)
+
     fid = fid * np.exp((rp + phfid) / 180 * np.pi * 1j)  # apply zero order phase
-    if SizeTD1 is 1:
+    if SizeTD1 == 1:
         fid = fid[0][:]
         if spec:  # flip if spectrum
             fid = np.flipud(fid)
