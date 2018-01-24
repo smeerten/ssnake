@@ -137,7 +137,10 @@ class TabFittingWindow(QtWidgets.QWidget):
                 new_args += (args[n] + args_tmp[n],)
             args = new_args  # tuples are immutable
         new_args = (nameList, selectList) + args
-        allFitVal = self.mainFitWindow.paramframe.fit(xax, data1D, guess, new_args)['x']
+        allFitVal = self.mainFitWindow.paramframe.fit(xax, data1D, guess, new_args)
+        if allFitVal is None:
+            return
+        allFitVal = allFitVal['x']
         fitVal = []
         for length in selectList:
             if allFitVal.ndim is 0:
@@ -3552,34 +3555,35 @@ class SIMPSONDeconvParamFrame(AbstractParamFrame):
 
     def disp(self, params, num):
         out = params[num]
-        numExp = len(out[self.MULTINAMES[0]])
-        for i in range(numExp):
-            for name in self.MULTINAMES:
-                inp = out[name][i]
-                if isinstance(inp, tuple):
-                    inp = checkLinkTuple(inp)
-                    out[name][i] = inp[2] * params[inp[4]][inp[0]][inp[1]] + inp[3]
-                if not np.isfinite(out[name][i]):
-                    self.rootwindow.mainProgram.dispMsg("Fitting: One of the inputs is not valid")
+        if len(self.MULTINAMES) > 0: 
+            numExp = len(out[self.MULTINAMES[0]])
+            for i in range(numExp):
+                for name in self.MULTINAMES:
+                    inp = out[name][i]
+                    if isinstance(inp, tuple):
+                        inp = checkLinkTuple(inp)
+                        out[name][i] = inp[2] * params[inp[4]][inp[0]][inp[1]] + inp[3]
+                    if not np.isfinite(out[name][i]):
+                        self.rootwindow.mainProgram.dispMsg("Fitting: One of the inputs is not valid")
+                        return
+            tmpx = self.parent.xax
+            outCurveBase = np.zeros(len(tmpx))
+            outCurve = outCurveBase.copy()
+            outCurvePart = []
+            x = []
+            for i in range(numExp):
+                x.append(tmpx)
+                inputPar = {}
+                for name in self.MULTINAMES:
+                    inputPar[name] = out[name][i]
+                y = SIMPSONRunScript(out["command"][0], out["script"][0], inputPar, tmpx, out["txtOutput"][0], out["spec"][0])
+                if y is None:
+                    self.rootwindow.mainProgram.dispMsg("Fitting: The script didn't output anything", 'red')
                     return
-        tmpx = self.parent.xax
-        outCurveBase = np.zeros(len(tmpx))
-        outCurve = outCurveBase.copy()
-        outCurvePart = []
-        x = []
-        for i in range(numExp):
-            x.append(tmpx)
-            inputPar = {}
-            for name in self.MULTINAMES:
-                inputPar[name] = out[name][i]
-            y = SIMPSONRunScript(out["command"][0], out["script"][0], inputPar, tmpx, out["txtOutput"][0], out["spec"][0])
-            if y is None:
-                self.rootwindow.mainProgram.dispMsg("Fitting: The script didn't output anything", 'red')
-                return
-            outCurvePart.append(outCurveBase + y)
-            outCurve += y
-        self.parent.fitDataList[tuple(self.parent.locList)] = [tmpx, outCurve, x, outCurvePart]
-        self.parent.showFid()
+                outCurvePart.append(outCurveBase + y)
+                outCurve += y
+            self.parent.fitDataList[tuple(self.parent.locList)] = [tmpx, outCurve, x, outCurvePart]
+            self.parent.showFid()
 
 ##############################################################################
 
