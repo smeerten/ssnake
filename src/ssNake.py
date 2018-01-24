@@ -2199,27 +2199,18 @@ class Main1DWindow(QtWidgets.QWidget):
         self.menuCheck()
 
     def BrukerDigital(self):
-        #        FilePath = QtWidgets.QFileDialog.getOpenFileName(self, 'Open File', self.father.LastLocation)
-        #        if type(FilePath) is tuple:
-        #            FilePath = FilePath[0]
-        #        self.father.LastLocation = os.path.dirname(FilePath)  # Save used path
         Dir = self.masterData.filePath[1]
         if Dir is '':
             return
-        if not os.path.exists(Dir + os.path.sep + 'acqus'):
+        FilePath = self.masterData.filePath[1] + os.path.sep + 'acqus'
+        if not os.path.exists(FilePath):
             self.father.dispMsg("Bruker correct: acqus file does not exist, specify load path")
             FilePath = QtWidgets.QFileDialog.getOpenFileName(self, 'Open File', self.father.LastLocation)
             if FilePath == '':
                 return
-            FilePath = FilePath[0]
+            FilePath = FilePath
             self.father.LastLocation = os.path.dirname(FilePath)  # Save used path
-            Dir = os.path.dirname(FilePath)
-            if isinstance(FilePath, tuple):
-                FilePath = FilePath[0]
-            if not os.path.exists(Dir + os.path.sep + 'acqus'):
-                self.father.dispMsg("acqus file does not exist")
-                return
-        with open(Dir + os.path.sep + 'acqus', 'r') as f:
+        with open(FilePath) as f:
             data = f.read().split('\n')
         FilterCorrection = -1.0
         for s in range(0, len(data)):
