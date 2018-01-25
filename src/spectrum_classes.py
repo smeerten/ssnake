@@ -264,12 +264,22 @@ class Spectrum(object):
             else: #Otherwise: do a deep copy of the class
                 copyData = copy.deepcopy(self)
                 returnValue = lambda self: self.restoreData(copyData, lambda self: self.add(data, dataImag, hyper, select))
-       
+      
+        #Convert to np.array (needed from macro), and make copy to prevent overwrite
+        if isinstance(data[0], list):
+            data = copy.deepcopy(data)
+            for i in range(len(data)):
+                data[i] = np.array(data[i])
+            if dataImag is not None:
+                dataImag = copy.deepcopy(dataImag)
+                for i in range(len(dataImag)):
+                    dataImag[i] = np.array(dataImag[i])
+
         #Merge data and dataImag if these were separated
         if dataImag is not None:
             try:
                 for i in range(len(data)):
-                    data[i] += dataImag[i]
+                    data[i] = data[i] + 1j*dataImag[i]
             except ValueError as error:
                 self.dispMsg(str(error))
                 return None
@@ -301,12 +311,21 @@ class Spectrum(object):
             else: #Otherwise: do a deep copy of the class
                 copyData = copy.deepcopy(self)
                 returnValue = lambda self: self.restoreData(copyData, lambda self: self.subtract(data, dataImag, hyper, select))
+        #Convert to np.array (needed from macro), and make copy to prevent overwrite
+        if isinstance(data[0], list):
+            data = copy.deepcopy(data)
+            for i in range(len(data)):
+                data[i] = np.array(data[i])
+            if dataImag is not None:
+                dataImag = copy.deepcopy(dataImag)
+                for i in range(len(dataImag)):
+                    dataImag[i] = np.array(dataImag[i])
 
         #Merge data and dataImag if these were separated
         if dataImag is not None:
             try:
                 for i in range(len(data)):
-                    data[i] += dataImag[i]
+                    data[i] = data[i] + 1j* dataImag[i]
             except ValueError as error:
                 self.dispMsg(str(error))
                 return None
@@ -341,12 +360,21 @@ class Spectrum(object):
             else: #Otherwise: do a deep copy of the class
                 copyData = copy.deepcopy(self)
                 returnValue = lambda self: self.restoreData(copyData, lambda self: self.multiplySpec(data, dataImag, hyper, select))
-       
+        #Convert to np.array (needed from macro), and make copy to prevent overwrite
+        if isinstance(data[0], list):
+            data = copy.deepcopy(data)
+            for i in range(len(data)):
+                data[i] = np.array(data[i])
+            if dataImag is not None:
+                dataImag = copy.deepcopy(dataImag)
+                for i in range(len(dataImag)):
+                    dataImag[i] = np.array(dataImag[i])
+
         #Merge data and dataImag if these were separated
         if dataImag is not None:
             try:
                 for i in range(len(data)):
-                    data[i] += dataImag[i]
+                    data[i] = data[i] + 1j * dataImag[i]
             except ValueError as error:
                 self.dispMsg(str(error))
                 return None
@@ -381,12 +409,21 @@ class Spectrum(object):
             else: #Otherwise: do a deep copy of the class
                 copyData = copy.deepcopy(self)
                 returnValue = lambda self: self.restoreData(copyData, lambda self: self.divide(data, dataImag, hyper, select))
-       
+        #Convert to np.array (needed from macro), and make copy to prevent overwrite
+        if isinstance(data[0], list):
+            data = copy.deepcopy(data)
+            for i in range(len(data)):
+                data[i] = np.array(data[i])
+            if dataImag is not None:
+                dataImag = copy.deepcopy(dataImag)
+                for i in range(len(dataImag)):
+                    dataImag[i] = np.array(dataImag[i])
+
         #Merge data and dataImag if these were separated
         if dataImag is not None:
             try:
                 for i in range(len(data)):
-                    data[i] += dataImag[i]
+                    data[i] = data[i] + 1j * dataImag[i]
             except ValueError as error:
                 self.dispMsg(str(error))
                 return None
