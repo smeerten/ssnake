@@ -251,7 +251,7 @@ class Spectrum(object):
         return newdata1, hyper1, newdata2, hyper2
 
 
-    def add(self, data, dataImag= None, hyper = [], select=slice(None)):
+    def add(self, data, dataImag = None, hyper = [], select=slice(None)):
         #Convert both data sets to the full hyper space
         #to be able to sum them
         hyper1 = self.hyper
@@ -260,37 +260,28 @@ class Spectrum(object):
             returnValue = None
         else:
             if hyper1 == hyper2: #If both sets have same hyper: easy subtract can be used for undo
-                returnValue = lambda self: self.subtract(data, hyper = hyper, select=select)
+                returnValue = lambda self: self.subtract(data, dataImag, hyper = hyper, select=select)
             else: #Otherwise: do a deep copy of the class
                 copyData = copy.deepcopy(self)
                 returnValue = lambda self: self.restoreData(copyData, lambda self: self.add(data, dataImag, hyper, select))
-      
-        #Convert to np.array (needed from macro), and make copy to prevent overwrite
-        if isinstance(data[0], list):
-            data = copy.deepcopy(data)
-            for i in range(len(data)):
-                data[i] = np.array(data[i])
-            if dataImag is not None:
-                dataImag = copy.deepcopy(dataImag)
-                for i in range(len(dataImag)):
-                    dataImag[i] = np.array(dataImag[i])
+        try:
+            newDat = []
+            for In in range(len(data)):
+                if dataImag is not None:
+                    newDat.append(np.array(data[In]) + 1j * np.array(dataImag))
+                else:
+                    newDat.append(np.array(data[In]))
+        except ValueError as error:
+            self.dispMsg(str(error))
+            return None
 
-        #Merge data and dataImag if these were separated
-        if dataImag is not None:
-            try:
-                for i in range(len(data)):
-                    data[i] = data[i] + 1j*dataImag[i]
-            except ValueError as error:
-                self.dispMsg(str(error))
-                return None
-
-        self.data, hyper1, data, hyper2 = self.expandHyperData(self.data, hyper1, data, hyper2)
+        self.data, hyper1, newDat, hyper2 = self.expandHyperData(self.data, hyper1, newDat, hyper2)
 
         if isinstance(select, string_types):
             select = safeEval(select)
         try:
             for index in range(len(self.data)):
-                self.data[index][select] = self.data[index][select] + data[index]
+                self.data[index][select] = self.data[index][select] + newDat[index]
             self.hyper = hyper1 #Set hyper to expanded value
         except ValueError as error:
             self.dispMsg(str(error))
@@ -307,36 +298,28 @@ class Spectrum(object):
             returnValue = None
         else:
             if hyper1 == hyper2: #If both sets have same hyper: easy subtract can be used for undo
-                returnValue = lambda self: self.add(data, hyper=hyper, select=select)
+                returnValue = lambda self: self.add(data, dataImag, hyper=hyper, select=select)
             else: #Otherwise: do a deep copy of the class
                 copyData = copy.deepcopy(self)
                 returnValue = lambda self: self.restoreData(copyData, lambda self: self.subtract(data, dataImag, hyper, select))
-        #Convert to np.array (needed from macro), and make copy to prevent overwrite
-        if isinstance(data[0], list):
-            data = copy.deepcopy(data)
-            for i in range(len(data)):
-                data[i] = np.array(data[i])
-            if dataImag is not None:
-                dataImag = copy.deepcopy(dataImag)
-                for i in range(len(dataImag)):
-                    dataImag[i] = np.array(dataImag[i])
+        try:
+            newDat = []
+            for In in range(len(data)):
+                if dataImag is not None:
+                    newDat.append(np.array(data[In]) + 1j * np.array(dataImag))
+                else:
+                    newDat.append(np.array(data[In]))
+        except ValueError as error:
+            self.dispMsg(str(error))
+            return None
 
-        #Merge data and dataImag if these were separated
-        if dataImag is not None:
-            try:
-                for i in range(len(data)):
-                    data[i] = data[i] + 1j* dataImag[i]
-            except ValueError as error:
-                self.dispMsg(str(error))
-                return None
-
-        self.data, hyper1, data, hyper2 = self.expandHyperData(self.data, hyper1, data, hyper2)
+        self.data, hyper1, newDat, hyper2 = self.expandHyperData(self.data, hyper1, newDat, hyper2)
 
         if isinstance(select, string_types):
             select = safeEval(select)
         try:
             for index in range(len(self.data)):
-                self.data[index][select] = self.data[index][select] - data[index]
+                self.data[index][select] = self.data[index][select] - newDat[index]
             self.hyper = hyper1 #Set hyper to expanded value
         except ValueError as error:
             self.dispMsg(str(error))
@@ -356,36 +339,28 @@ class Spectrum(object):
             returnValue = None
         else:
             if hyper1 == hyper2: #If both sets have same hyper: easy subtract can be used for undo
-                returnValue = lambda self: self.divideSpec(data, hyper=hyper, select=select)
+                returnValue = lambda self: self.divideSpec(data, dataImag, hyper=hyper, select=select)
             else: #Otherwise: do a deep copy of the class
                 copyData = copy.deepcopy(self)
                 returnValue = lambda self: self.restoreData(copyData, lambda self: self.multiplySpec(data, dataImag, hyper, select))
-        #Convert to np.array (needed from macro), and make copy to prevent overwrite
-        if isinstance(data[0], list):
-            data = copy.deepcopy(data)
-            for i in range(len(data)):
-                data[i] = np.array(data[i])
-            if dataImag is not None:
-                dataImag = copy.deepcopy(dataImag)
-                for i in range(len(dataImag)):
-                    dataImag[i] = np.array(dataImag[i])
+        try:
+            newDat = []
+            for In in range(len(data)):
+                if dataImag is not None:
+                    newDat.append(np.array(data[In]) + 1j * np.array(dataImag))
+                else:
+                    newDat.append(np.array(data[In]))
+        except ValueError as error:
+            self.dispMsg(str(error))
+            return None
 
-        #Merge data and dataImag if these were separated
-        if dataImag is not None:
-            try:
-                for i in range(len(data)):
-                    data[i] = data[i] + 1j * dataImag[i]
-            except ValueError as error:
-                self.dispMsg(str(error))
-                return None
-
-        self.data, hyper1, data, hyper2 = self.expandHyperData(self.data, hyper1, data, hyper2)
+        self.data, hyper1, newDat, hyper2 = self.expandHyperData(self.data, hyper1, newDat, hyper2)
 
         if isinstance(select, string_types):
             select = safeEval(select)
         try:
             for index in range(len(self.data)):
-                self.data[index][select] = self.data[index][select] * data[index]
+                self.data[index][select] = self.data[index][select] * newDat[index]
             self.hyper = hyper1 #Set hyper to expanded value
         except ValueError as error:
             self.dispMsg(str(error))
@@ -405,36 +380,28 @@ class Spectrum(object):
             returnValue = None
         else:
             if hyper1 == hyper2: #If both sets have same hyper: easy subtract can be used for undo
-                returnValue = lambda self: self.multiplySpec(data, hyper=hyper, select=select)
+                returnValue = lambda self: self.multiplySpec(data, dataImag, hyper=hyper, select=select)
             else: #Otherwise: do a deep copy of the class
                 copyData = copy.deepcopy(self)
                 returnValue = lambda self: self.restoreData(copyData, lambda self: self.divide(data, dataImag, hyper, select))
-        #Convert to np.array (needed from macro), and make copy to prevent overwrite
-        if isinstance(data[0], list):
-            data = copy.deepcopy(data)
-            for i in range(len(data)):
-                data[i] = np.array(data[i])
-            if dataImag is not None:
-                dataImag = copy.deepcopy(dataImag)
-                for i in range(len(dataImag)):
-                    dataImag[i] = np.array(dataImag[i])
+        try:
+            newDat = []
+            for In in range(len(data)):
+                if dataImag is not None:
+                    newDat.append(np.array(data[In]) + 1j * np.array(dataImag))
+                else:
+                    newDat.append(np.array(data[In]))
+        except ValueError as error:
+            self.dispMsg(str(error))
+            return None
 
-        #Merge data and dataImag if these were separated
-        if dataImag is not None:
-            try:
-                for i in range(len(data)):
-                    data[i] = data[i] + 1j * dataImag[i]
-            except ValueError as error:
-                self.dispMsg(str(error))
-                return None
-
-        self.data, hyper1, data, hyper2 = self.expandHyperData(self.data, hyper1, data, hyper2)
+        self.data, hyper1, newDat, hyper2 = self.expandHyperData(self.data, hyper1, newDat, hyper2)
 
         if isinstance(select, string_types):
             select = safeEval(select)
         try:
             for index in range(len(self.data)):
-                self.data[index][select] = self.data[index][select] / data[index]
+                self.data[index][select] = self.data[index][select] / newDat[index]
             self.hyper = hyper1 #Set hyper to expanded value
         except ValueError as error:
             self.dispMsg(str(error))
