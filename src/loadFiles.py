@@ -117,61 +117,46 @@ def loadVarianFile(filePath, name=''):
         Dir = os.path.dirname(filePath)
     else:
         Dir = filePath
-    freq = 0
-    sw = 1
-    sw1 = 1
-    freq1 = 0  # intialize second dimension freqency as 0
-    phfid = 0
-
     if os.path.exists(Dir + os.path.sep + 'procpar'):
         file = Dir + os.path.sep + 'procpar'
     elif os.path.exists(Dir + os.path.sep + '..' + os.path.sep + 'procpar'):
         file = Dir + os.path.sep + '..' + os.path.sep + 'procpar'
     else:
         file = None
+
+    Out = [0,1,1,0,0,0,0,0] 
+    indirectRef = 'dfrq'
     if file is not None:
         with open(file, 'r') as f:
             data = f.read().split('\n')
-        indirectRef = ''
-        for s in range(0, len(data)):
-            if data[s].startswith('sfrq '):
-                freq = float(data[s + 1].split()[1]) * 1e6
-            elif data[s].startswith('refsource1 '):
+        for s in range(0, len(data)): #First check indirect ref name
+            if data[s].startswith('refsource1' + " "):
                 indirectRef = data[s + 1].split()[1][1:-1]
-            elif data[s].startswith('sw '):
-                sw = float(data[s + 1].split()[1])
-            elif data[s].startswith('sw1 '):
-                sw1 = float(data[s + 1].split()[1])
-            elif data[s].startswith('reffrq '):
-                reffreq = float(data[s + 1].split()[1]) * 1e6
-            elif data[s].startswith('reffrq1 '):
-                reffreq1 = float(data[s + 1].split()[1]) * 1e6
-            elif data[s].startswith('phfid '):
-                if int(data[s].split()[-2]): #if on
-                    phfid = float(data[s + 1].split()[1]) 
-            elif data[s].startswith('rp '):
-                rp = float(data[s + 1].split()[1])
-        if indirectRef:
-            for s in range(0, len(data)):  # Extra loop to get freq in indirect dimension
-                if data[s].startswith(indirectRef + " "):
-                    freq1 = float(data[s + 1].split()[1]) * 1e6
+
+        f, fM, S = lambda x: float(x), lambda x: float(x) * 1e6, lambda x: x
+        Elem = [['sfrq', fM],['sw', f],['sw1', f],['reffrq',fM],['reffrq1',fM],['rp',f],['phfid',f],[indirectRef,fM]]
+        for s in range(0, len(data)):
+            for index in range(len(Elem)):
+                if data[s].startswith(Elem[index][0] + ' '):
+                   Out[index] = Elem[index][1]((data[s + 1].split()[1]))
+            #elif data[s].startswith('phfid '):
+            #    if int(data[s].split()[-2]): #if on
+            #        phfid = float(data[s + 1].split()[1]) 
+    freq, sw, sw1, reffreq, reffreq1, rp, phfid, freq1 = Out 
+
     if os.path.exists(Dir + os.path.sep + 'fid'):
-        datafile = Dir + os.path.sep + 'fid'
-        filePath = datafile
+        filePath = Dir + os.path.sep + 'fid'
     elif os.path.exists(Dir + os.path.sep + 'data'):
-        datafile = Dir + os.path.sep + 'data'
-        filePath = datafile
-    with open(datafile, "rb") as f:
+        filePath = Dir + os.path.sep + 'data'
+
+    with open(filePath, "rb") as f:
         nblocks, ntraces, npoints, ebytes, tbytes, bbytes  = np.fromfile(f, np.int32, 6).newbyteorder('>l')
-        tmp, status = np.fromfile(f, np.int16, 2).newbyteorder('>h')
+        status = np.fromfile(f, np.int16, 2).newbyteorder('>h')[1]
         status = '{0:016b}'.format(status)[::-1] #send to zeropadded string, and put order correct
-        spec = bool(int(status[1]))
+        spec, fid32, fidfloat, hypercomplex, flipped = np.array([bool(int(x)) for x in status])[[1,2,3,5,9]]
         nbheaders = np.fromfile(f, np.int32, 1).newbyteorder('>l')[0]
         SizeTD2 = npoints
         SizeTD1 = nblocks * ntraces
-        fid32 = int(status[2])
-        fidfloat = int(status[3])
-        hypercomplex = bool(status[5])
 
         if fidfloat:
             bitType = ['>f', np.float32, 7] # [bitorder, read as, number of elements in nbheader]
@@ -182,22 +167,19 @@ def loadVarianFile(filePath, name=''):
                 bitType = ['>h', np.int16, 14]
 
         totalpoints = (ntraces * npoints + nbheaders**2 * bitType[2])*nblocks
-        flipped = bool(status[9])
-        fid = np.fromfile(f, bitType[1], totalpoints)
-        fid = fid.newbyteorder(bitType[0])
-        fid = fid.astype(np.complex128)
+        fid = np.fromfile(f, bitType[1], totalpoints).newbyteorder(bitType[0]).astype(np.complex128)
 
         if not spec or (spec and not hypercomplex):
             fid = fid.reshape(nblocks, int(totalpoints / nblocks))
-            fid = fid[:, bitType[2]::]
+            fid = fid[:, bitType[2]::] #Cut off block headers
             fid = fid[:, ::2] - 1j * fid[:, 1::2]
         else:
-            fid = a[nbheaders * bitType[2]::4] - 1j * a[nbheaders * bitType[2] + 1::4]
+            fid = fid[nbheaders * bitType[2]::4] - 1j * fid[nbheaders * bitType[2] + 1::4]
             fid = fid.reshape(int(SizeTD1 / 4), SizeTD2)
             if flipped:
                 fid = np.fliplr(fid)
-
-    fid = fid * np.exp((rp + phfid) / 180 * np.pi * 1j)  # apply zero order phase
+    if spec == 0:
+        fid = fid * np.exp((rp + phfid) / 180 * np.pi * 1j)  # apply zero order phase
     if SizeTD1 == 1:
         fid = fid[0][:]
         if spec:  # flip if spectrum
@@ -514,11 +496,7 @@ def loadBrukerTopspin(filePath, name=''):
         Dir = os.path.dirname(filePath)
     else:
         Dir = filePath
-    SW = []
-    SIZE = []
-    FREQ = []
-    REF = []
-   
+    SW, SIZE, FREQ, REF = [], [], [], []
     for elem in ['acqus','acqu2s','acqu3s']:
         if os.path.exists(Dir + os.path.sep + elem):
             with open(Dir + os.path.sep + elem, 'r') as f:
