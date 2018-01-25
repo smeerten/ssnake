@@ -88,8 +88,6 @@ from plotWindow import MainPlotWindow
 splashStep = splashProgressStep(splashStep)
 import functions as func
 splashStep = splashProgressStep(splashStep)
-import scipy.constants as SC
-splashStep = splashProgressStep(splashStep)
 import loadFiles as LF
 splashStep = splashProgressStep(splashStep)
 

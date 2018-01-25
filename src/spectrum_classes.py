@@ -20,7 +20,6 @@
 import numpy as np
 import scipy.optimize
 import copy
-from mpl_toolkits.mplot3d import proj3d
 from six import string_types
 from spectrumFrame import Plot1DFrame
 from safeEval import safeEval
