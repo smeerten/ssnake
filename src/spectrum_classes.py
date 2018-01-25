@@ -3004,7 +3004,7 @@ class Current1D(Plot1DFrame):
         return returnValue
 
     def reorder(self, pos, newLength):
-        self.root.addMacro(['reorder', (pos, newLength, self.axes - self.data.ndim())])
+        self.root.addMacro(['reorder', (pos.tolist(), newLength, self.axes - self.data.ndim())])
         returnValue = self.data.reorder(pos, newLength, self.axes)
         self.upd()
         self.showFid()
@@ -3012,7 +3012,7 @@ class Current1D(Plot1DFrame):
 
     def ffm(self, posList, typeVal):
         try:
-            self.root.addMacro(['ffm', (posList, typeVal, self.axes - self.data.ndim())])
+            self.root.addMacro(['ffm', (posList.tolist(), typeVal, self.axes - self.data.ndim())])
             returnValue = self.data.ffm_1d(posList, typeVal, self.axes)
             self.upd()
             self.showFid()
@@ -3022,7 +3022,7 @@ class Current1D(Plot1DFrame):
 
     def clean(self, posList, typeVal, gamma, threshold, maxIter):
         try:
-            self.root.addMacro(['clean', (posList, typeVal, self.axes - self.data.ndim(), gamma, threshold, maxIter)])
+            self.root.addMacro(['clean', (posList.tolist(), typeVal, self.axes - self.data.ndim(), gamma, threshold, maxIter)])
             returnValue = self.data.clean(posList, typeVal, self.axes, gamma, threshold, maxIter)
             self.upd()
             self.showFid()
@@ -3032,7 +3032,7 @@ class Current1D(Plot1DFrame):
 
     def ist(self, posList, typeVal, threshold, maxIter, tracelimit):
         try:
-            self.root.addMacro(['ist', (posList, typeVal, self.axes - self.data.ndim(), threshold, maxIter, tracelimit)])
+            self.root.addMacro(['ist', (posList.tolist(), typeVal, self.axes - self.data.ndim(), threshold, maxIter, tracelimit)])
             returnValue = self.data.ist(posList, typeVal, self.axes, threshold, maxIter, tracelimit)
             self.upd()
             self.showFid()
