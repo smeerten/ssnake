@@ -216,7 +216,7 @@ class MainPlotWindow(QtWidgets.QWidget):
                 order = list(self.oldMainWindow.current.viewSettings['extraOffset'])
                 order.append(0)
                 self.legendOrder = list(np.argsort(order))[::-1]
-            elif self.oldMainWindow.current.__class__.__name__ == 'CurrentStacked' or self.oldMainWindow.current.__class__.__name__ == 'CurrentSkewed':
+            elif self.oldMainWindow.current.__class__.__name__ == 'CurrentStacked':
                 self.legendOrder = list(np.arange(0, len(self.legend.get_texts())))[::-1]
             else:
                 self.legendOrder = list(np.arange(0, len(self.legend.get_texts())))

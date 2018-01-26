@@ -709,9 +709,6 @@ class MainProgram(QtWidgets.QMainWindow):
         self.contourplotAct = self.plotMenu.addAction(QtGui.QIcon(IconDirectory + 'contour.png'), "&Contour Plot", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.plotContour()))
         self.contourplotAct.setToolTip('Contour Plot')
         self.multiDActions.append(self.contourplotAct)
-#        self.skewplotAct = self.plotMenu.addAction(QtGui.QIcon(IconDirectory + 'skewed.png'),"S&kewed Plot", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.plotSkewed()))
-#        self.skewplotAct.setToolTip('Skew Plot')
-#        self.multiDActions.append(self.skewplotAct)
         self.multiplotAct = self.plotMenu.addAction(QtGui.QIcon(IconDirectory + 'multi.png'), "&Multi Plot", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.plotMulti()))
         self.multiplotAct.setToolTip('Multi Plot')
         self.referencelistmenu = QtWidgets.QMenu('&Reference', self)
@@ -2320,16 +2317,6 @@ class Main1DWindow(QtWidgets.QWidget):
         else:
             self.father.dispMsg("Data does not have enough dimensions")
 
-    #def plotSkewed(self):
-    #    if len(self.masterData.data.shape) > 1:
-    #        tmpcurrent = sc.CurrentSkewed(self, self.fig, self.canvas, self.masterData, self.current)
-    #        self.current.kill()
-    #        del self.current
-    #        self.current = tmpcurrent
-    #        self.updAllFrames()
-    #    else:
-    #        self.father.dispMsg("Data does not have enough dimensions")
-
     def plotMulti(self):
         tmpcurrent = sc.CurrentMulti(self, self.fig, self.canvas, self.masterData, self.current)
         self.current.kill()
@@ -2432,7 +2419,6 @@ class SideFrame(QtWidgets.QScrollArea):
             item.deleteLater()
         offset = 0
         self.plotIs2D = isinstance(current, (sc.CurrentStacked, sc.CurrentArrayed, sc.CurrentContour))
-        #self.plotIs2D = isinstance(current, (sc.CurrentStacked, sc.CurrentArrayed, sc.CurrentContour, sc.CurrentSkewed))
         if self.plotIs2D:
             offset = 1
         self.entries = []
@@ -2471,7 +2457,6 @@ class SideFrame(QtWidgets.QScrollArea):
                     else:
                         self.entries[num].setValue(current.locList[num - 1])
                 self.entries[num].valueChanged.connect(lambda event=None, num=num: self.getSlice(event, num))
-            #if isinstance(current, (sc.CurrentStacked, sc.CurrentArrayed, sc.CurrentSkewed)):
             if isinstance(current, (sc.CurrentStacked, sc.CurrentArrayed)):
                 if current.viewSettings["stackBegin"] is not None:
                     from2D = current.viewSettings["stackBegin"]
@@ -2506,17 +2491,6 @@ class SideFrame(QtWidgets.QScrollArea):
                     self.spacingEntry.setText('%#.3g' % current.viewSettings["spacing"])
                     self.spacingEntry.returnPressed.connect(self.setSpacing)
                     self.frame2.addWidget(self.spacingEntry, 8, 0)
-                #elif isinstance(current, (sc.CurrentSkewed)):
-                #    self.frame2.addWidget(wc.QLabel("Skew", self), 7, 0)
-                #    self.skewEntry = QtWidgets.QLineEdit(self)
-                #    self.skewEntry.setText('%.2f' % current.skewed)
-                #    self.skewEntry.returnPressed.connect(self.setSkew)
-                #    self.frame2.addWidget(self.skewEntry, 8, 0)
-                #    self.frame2.addWidget(wc.QLabel("Elevation", self), 9, 0)
-                #    self.elevEntry = QtWidgets.QLineEdit(self)
-                #    self.elevEntry.setText('%.1f' % current.elevation)
-                #    self.elevEntry.returnPressed.connect(self.setSkew)
-                #    self.frame2.addWidget(self.elevEntry, 10, 0)
             if isinstance(current, (sc.CurrentContour)):
                 self.contourTypeGroup = QtWidgets.QGroupBox('Contour type:')
                 self.contourTypeFrame = QtWidgets.QGridLayout()
@@ -2572,25 +2546,41 @@ class SideFrame(QtWidgets.QScrollArea):
                 self.projTopLabel = wc.QLeftLabel("Top:", self)
                 self.contourProjFrame.addWidget(self.projTopLabel, 0, 0)
                 self.projDropTop = QtWidgets.QComboBox()
-                self.projDropTop.addItems(["sum", "max", "min", "off"])
+                self.projDropTop.addItems(["Sum", "Max", "Min", "Off", "Trace"])
                 self.projDropTop.setCurrentIndex(current.viewSettings["projTop"])
                 self.projDropTop.activated.connect(lambda val, self=self: self.changeProj(val, 1))
-                self.contourProjFrame.addWidget(self.projDropTop, 0, 1,)
+                self.contourProjFrame.addWidget(self.projDropTop, 0, 1)
+                self.projTraceTop = QtWidgets.QSpinBox()
+                self.projTraceTop.setMaximum(self.shape[current.axes2] - 1)
+                self.projTraceTop.setMinimum(0)
+                self.projTraceTop.setValue(current.viewSettings["projPos"][0])
+                self.projTraceTop.valueChanged.connect(lambda val, self=self: self.changeTrace(val, 0))
+                self.contourProjFrame.addWidget(self.projTraceTop, 1, 1)
+                if current.viewSettings["projTop"] is not 4:
+                    self.projTraceTop.hide()
                 self.projRightLabel = wc.QLeftLabel("Right:", self)
-                self.contourProjFrame.addWidget(self.projRightLabel, 1, 0)
+                self.contourProjFrame.addWidget(self.projRightLabel, 2, 0)
                 self.projDropRight = QtWidgets.QComboBox()
-                self.projDropRight.addItems(["sum", "max", "min", "off"])
+                self.projDropRight.addItems(["Sum", "Max", "Min", "Off", "Trace"])
                 self.projDropRight.setCurrentIndex(current.viewSettings["projRight"])
                 self.projDropRight.activated.connect(lambda val, self=self: self.changeProj(val, 2))
-                self.contourProjFrame.addWidget(self.projDropRight, 1, 1)
+                self.contourProjFrame.addWidget(self.projDropRight, 2, 1)
+                self.projTraceRight = QtWidgets.QSpinBox()
+                self.projTraceRight.setMaximum(self.shape[current.axes] - 1)
+                self.projTraceRight.setMinimum(0)
+                self.projTraceRight.setValue(current.viewSettings["projPos"][1])
+                self.projTraceRight.valueChanged.connect(lambda val, self=self: self.changeTrace(val, 1))
+                self.contourProjFrame.addWidget(self.projTraceRight, 3, 1)
+                if current.viewSettings["projRight"] is not 4:
+                    self.projTraceRight.hide()
                 # Ranges
                 self.rangeCheckbox = QtWidgets.QCheckBox('Projection ranges', self)
                 self.rangeCheckbox.setChecked(current.viewSettings["projLimitsBool"])
                 self.rangeCheckbox.stateChanged.connect(self.activateRanges)
-                self.contourProjFrame.addWidget(self.rangeCheckbox, 2, 0, 1, 2)
+                self.contourProjFrame.addWidget(self.rangeCheckbox, 4, 0, 1, 2)
                 self.projTopRangeMaxLabel = wc.QLeftLabel("Top max:", self)
                 self.projTopRangeMaxLabel.hide()
-                self.contourProjFrame.addWidget(self.projTopRangeMaxLabel, 3, 0)
+                self.contourProjFrame.addWidget(self.projTopRangeMaxLabel, 5, 0)
                 self.projTopRangeMax = QtWidgets.QSpinBox()
                 self.projTopRangeMax.setMaximum(self.shape[current.axes2] - 1)
                 self.projTopRangeMax.setMinimum(0)
@@ -2600,10 +2590,10 @@ class SideFrame(QtWidgets.QScrollArea):
                     self.projTopRangeMax.setValue(current.viewSettings["projLimits"][0])
                 self.projTopRangeMax.valueChanged.connect(self.changeRanges)
                 self.projTopRangeMax.hide()
-                self.contourProjFrame.addWidget(self.projTopRangeMax, 3, 1)
+                self.contourProjFrame.addWidget(self.projTopRangeMax, 5, 1)
                 self.projTopRangeMinLabel = wc.QLeftLabel("Top min:", self)
                 self.projTopRangeMinLabel.hide()
-                self.contourProjFrame.addWidget(self.projTopRangeMinLabel, 4, 0)
+                self.contourProjFrame.addWidget(self.projTopRangeMinLabel, 6, 0)
                 self.projTopRangeMin = QtWidgets.QSpinBox()
                 self.projTopRangeMin.setMaximum(self.shape[current.axes2] - 1)
                 self.projTopRangeMin.setMinimum(0)
@@ -2613,10 +2603,10 @@ class SideFrame(QtWidgets.QScrollArea):
                     self.projTopRangeMin.setValue(current.viewSettings["projLimits"][1])
                 self.projTopRangeMin.valueChanged.connect(self.changeRanges)
                 self.projTopRangeMin.hide()
-                self.contourProjFrame.addWidget(self.projTopRangeMin, 4, 1)
+                self.contourProjFrame.addWidget(self.projTopRangeMin, 6, 1)
                 self.projRightRangeMaxLabel = wc.QLeftLabel("Right max:", self)
                 self.projRightRangeMaxLabel.hide()
-                self.contourProjFrame.addWidget(self.projRightRangeMaxLabel, 5, 0)
+                self.contourProjFrame.addWidget(self.projRightRangeMaxLabel, 7, 0)
                 self.projRightRangeMax = QtWidgets.QSpinBox()
                 self.projRightRangeMax.setMaximum(self.shape[current.axes] - 1)
                 self.projRightRangeMax.setMinimum(0)
@@ -2626,9 +2616,9 @@ class SideFrame(QtWidgets.QScrollArea):
                     self.projRightRangeMax.setValue(current.viewSettings["projLimits"][2])
                 self.projRightRangeMax.valueChanged.connect(self.changeRanges)
                 self.projRightRangeMax.hide()
-                self.contourProjFrame.addWidget(self.projRightRangeMax, 5, 1)
+                self.contourProjFrame.addWidget(self.projRightRangeMax, 7, 1)
                 self.projRightRangeMinLabel = wc.QLeftLabel("Right min:", self)
-                self.contourProjFrame.addWidget(self.projRightRangeMinLabel, 6, 0)
+                self.contourProjFrame.addWidget(self.projRightRangeMinLabel, 8, 0)
                 self.projRightRangeMinLabel.hide()
                 self.projRightRangeMin = QtWidgets.QSpinBox()
                 self.projRightRangeMin.setMaximum(self.shape[current.axes] - 1)
@@ -2639,7 +2629,7 @@ class SideFrame(QtWidgets.QScrollArea):
                     self.projRightRangeMin.setValue(current.viewSettings["projLimits"][3])
                 self.projRightRangeMin.valueChanged.connect(self.changeRanges)
                 self.projRightRangeMin.hide()
-                self.contourProjFrame.addWidget(self.projRightRangeMin, 6, 1)
+                self.contourProjFrame.addWidget(self.projRightRangeMin, 8, 1)
                 self.contourProjGroup.setLayout(self.contourProjFrame)
                 self.frame2.addWidget(self.contourProjGroup, 8, 0, 1, 3)
                 self.activateRanges(self.rangeCheckbox.checkState())
@@ -2746,7 +2736,6 @@ class SideFrame(QtWidgets.QScrollArea):
 
     def setToFrom(self, *args):
         current = self.father.current
-        #if not isinstance(current, (sc.CurrentStacked, sc.CurrentArrayed, sc.CurrentSkewed)):
         if not isinstance(current, (sc.CurrentStacked, sc.CurrentArrayed)):
             return
         fromVar = self.fromSpin.value()
@@ -2763,13 +2752,6 @@ class SideFrame(QtWidgets.QScrollArea):
         var = float(safeEval(self.spacingEntry.text()))
         self.spacingEntry.setText('%#.3g' % var)
         self.father.current.setSpacing(var)
-
-    def setSkew(self, *args):
-        var = float(safeEval(self.skewEntry.text()))
-        self.skewEntry.setText('%.2f' % var)
-        var2 = float(safeEval(self.elevEntry.text()))
-        self.elevEntry.setText('%.1f' % var2)
-        self.father.current.setSkewed(var, var2)
 
     def setContour(self, *args):
         var1 = self.numLEntry.value()
@@ -2807,13 +2789,27 @@ class SideFrame(QtWidgets.QScrollArea):
         self.father.current.setLevels(var1, maxC / 100.0, minC / 100.0, cSign, cType, multi)
 
     def changeProj(self, pType, direc):
+        if pType is 4:
+            if direc is 1:
+                self.projTraceTop.show()
+            else:
+                self.projTraceRight.show()
+        else:
+            if direc is 1:
+                self.projTraceTop.hide()
+            else:
+                self.projTraceRight.hide()
         self.father.current.setProjType(pType, direc)
         self.father.current.showProj()
 
+    def changeTrace(self, num, direc):
+        self.father.current.setProjTraces(num, direc)
+        self.father.current.showProj()
+        
     def changeRanges(self):
-        Check = self.rangeCheckbox.isChecked()
-        Ranges = [self.projTopRangeMax.value(), self.projTopRangeMin.value(), self.projRightRangeMax.value(), self.projRightRangeMin.value()]
-        self.father.current.setProjLimits(Check, Ranges)
+        check = self.rangeCheckbox.isChecked()
+        ranges = [self.projTopRangeMax.value(), self.projTopRangeMin.value(), self.projRightRangeMax.value(), self.projRightRangeMin.value()]
+        self.father.current.setProjLimits(check, ranges)
         self.father.current.showProj()
 
     def activateRanges(self, state):
@@ -2848,15 +2844,10 @@ class SideFrame(QtWidgets.QScrollArea):
                     axes = self.father.current.axes2
                 if isinstance(self.father.current, (sc.CurrentContour)):  # If contour
                     # Correct proj values and maxima
-                    Ranges = [self.projTopRangeMax.value(), self.projTopRangeMin.value(), self.projRightRangeMax.value(), self.projRightRangeMin.value()]
-                    topMax = self.projTopRangeMax.maximum()
-                    rightMax = self.projRightRangeMax.maximum()
-                    self.projTopRangeMax.setMaximum(rightMax)
-                    self.projRightRangeMax.setMaximum(topMax)
-                    self.projTopRangeMax.setValue(Ranges[2])
-                    self.projTopRangeMin.setValue(Ranges[3])
-                    self.projRightRangeMax.setValue(Ranges[0])
-                    self.projRightRangeMin.setValue(Ranges[1])
+                    newRanges = [self.projRightRangeMax.value(), self.projRightRangeMin.value(), self.projTopRangeMax.value(), self.projTopRangeMin.value()]
+                    self.father.current.setProjLimits(self.rangeCheckbox.isChecked(), newRanges)
+                    self.father.current.setProjTraces(self.projTraceTop.value(), 1)
+                    self.father.current.setProjTraces(self.projTraceRight.value(), 0)
             self.buttons2Group.button(axes2).toggle()
         self.getSlice(None, axes, True)
         self.upd()

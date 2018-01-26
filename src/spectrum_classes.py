@@ -2007,6 +2007,7 @@ class Current1D(Plot1DFrame):
                                  "projRight": 0,
                                  "projLimitsBool": False,
                                  "projLimits": [None, None, None, None],
+                                 "projPos": [0, 0],
                                  # CurrentMulti variables
                                  "extraData": [],
                                  "extraLoc": [],
@@ -4126,6 +4127,9 @@ class CurrentContour(Current1D):
         self.viewSettings["projLimits"] = Limits
         self.viewSettings["projLimitsBool"] = ProjBool
 
+    def setProjPos(self, pos):
+        self.viewSettings["projPos"] = pos
+
     def resetLocList(self):
         self.locList = [0] * (len(self.data.shape()) - 2)
 
@@ -4146,6 +4150,9 @@ class CurrentContour(Current1D):
             self.viewSettings["projTop"] = val
         if direc == 2:
             self.viewSettings["projRight"] = val
+
+    def setProjTraces(self, val, direc):
+        self.viewSettings["projPos"][direc] = val
 
     def apodPreview(self, lor=None, gauss=None, cos2=None, hamming=None, shift=0.0, shifting=0.0, shiftingAxes=None):  # display the 1D data including the apodization function
         hyperView = 0
@@ -4345,6 +4352,12 @@ class CurrentContour(Current1D):
             xprojdata = np.max(tmpdata[topSlice], axis=0)
         elif self.viewSettings["projTop"] == 2:
             xprojdata = np.min(tmpdata[topSlice], axis=0)
+        elif self.viewSettings["projTop"] == 4:
+            if self.viewSettings["projPos"][0] >= self.data.shape()[self.axes2]:
+                self.viewSettings["projPos"][0] = self.data.shape()[self.axes2] - 1
+            elif self.viewSettings["projPos"][0] < 0:
+                self.viewSettings["projPos"][0] = 0
+            xprojdata = tmpdata[self.viewSettings["projPos"][0]]
         if self.viewSettings["projTop"] != 3:
             self.x_ax.plot(x, xprojdata, color=self.viewSettings["color"], linewidth=self.viewSettings["linewidth"], picker=True)            
             xmin, xmax = np.min(xprojdata), np.max(xprojdata)
@@ -4356,6 +4369,12 @@ class CurrentContour(Current1D):
             yprojdata = np.max(tmpdata[rightSlice], axis=1)
         elif self.viewSettings["projRight"] == 2:
             yprojdata = np.min(tmpdata[rightSlice], axis=1)
+        elif self.viewSettings["projRight"] == 4:
+            if self.viewSettings["projPos"][1] >= self.data.shape()[self.axes]:
+                self.viewSettings["projPos"][1] = self.data.shape()[self.axes] - 1
+            elif self.viewSettings["projPos"][1] < 0:
+                self.viewSettings["projPos"][1] = 0
+            yprojdata = tmpdata[:, self.viewSettings["projPos"][1]]
         if self.viewSettings["projRight"] != 3:
             self.y_ax.plot(yprojdata, y, color=self.viewSettings["color"], linewidth=self.viewSettings["linewidth"], picker=True)
             ymin, ymax = np.min(yprojdata), np.max(yprojdata)
