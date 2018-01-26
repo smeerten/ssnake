@@ -2573,14 +2573,19 @@ class SideFrame(QtWidgets.QScrollArea):
                 self.contourProjFrame.addWidget(self.projTraceRight, 3, 1)
                 if current.viewSettings["projRight"] is not 4:
                     self.projTraceRight.hide()
+                self.selectTraceButton = QtWidgets.QPushButton("Select traces", self)
+                self.selectTraceButton.clicked.connect(self.selectTraces)
+                self.contourProjFrame.addWidget(self.selectTraceButton, 4, 1)
+                if (current.viewSettings["projTop"] is not 4) and (current.viewSettings["projRight"] is not 4):
+                    self.selectTraceButton.hide()
                 # Ranges
                 self.rangeCheckbox = QtWidgets.QCheckBox('Projection ranges', self)
                 self.rangeCheckbox.setChecked(current.viewSettings["projLimitsBool"])
                 self.rangeCheckbox.stateChanged.connect(self.activateRanges)
-                self.contourProjFrame.addWidget(self.rangeCheckbox, 4, 0, 1, 2)
+                self.contourProjFrame.addWidget(self.rangeCheckbox, 5, 0, 1, 2)
                 self.projTopRangeMaxLabel = wc.QLeftLabel("Top max:", self)
                 self.projTopRangeMaxLabel.hide()
-                self.contourProjFrame.addWidget(self.projTopRangeMaxLabel, 5, 0)
+                self.contourProjFrame.addWidget(self.projTopRangeMaxLabel, 6, 0)
                 self.projTopRangeMax = QtWidgets.QSpinBox()
                 self.projTopRangeMax.setMaximum(self.shape[current.axes2] - 1)
                 self.projTopRangeMax.setMinimum(0)
@@ -2590,10 +2595,10 @@ class SideFrame(QtWidgets.QScrollArea):
                     self.projTopRangeMax.setValue(current.viewSettings["projLimits"][0])
                 self.projTopRangeMax.valueChanged.connect(self.changeRanges)
                 self.projTopRangeMax.hide()
-                self.contourProjFrame.addWidget(self.projTopRangeMax, 5, 1)
+                self.contourProjFrame.addWidget(self.projTopRangeMax, 6, 1)
                 self.projTopRangeMinLabel = wc.QLeftLabel("Top min:", self)
                 self.projTopRangeMinLabel.hide()
-                self.contourProjFrame.addWidget(self.projTopRangeMinLabel, 6, 0)
+                self.contourProjFrame.addWidget(self.projTopRangeMinLabel, 7, 0)
                 self.projTopRangeMin = QtWidgets.QSpinBox()
                 self.projTopRangeMin.setMaximum(self.shape[current.axes2] - 1)
                 self.projTopRangeMin.setMinimum(0)
@@ -2603,10 +2608,10 @@ class SideFrame(QtWidgets.QScrollArea):
                     self.projTopRangeMin.setValue(current.viewSettings["projLimits"][1])
                 self.projTopRangeMin.valueChanged.connect(self.changeRanges)
                 self.projTopRangeMin.hide()
-                self.contourProjFrame.addWidget(self.projTopRangeMin, 6, 1)
+                self.contourProjFrame.addWidget(self.projTopRangeMin, 7, 1)
                 self.projRightRangeMaxLabel = wc.QLeftLabel("Right max:", self)
                 self.projRightRangeMaxLabel.hide()
-                self.contourProjFrame.addWidget(self.projRightRangeMaxLabel, 7, 0)
+                self.contourProjFrame.addWidget(self.projRightRangeMaxLabel, 8, 0)
                 self.projRightRangeMax = QtWidgets.QSpinBox()
                 self.projRightRangeMax.setMaximum(self.shape[current.axes] - 1)
                 self.projRightRangeMax.setMinimum(0)
@@ -2616,9 +2621,9 @@ class SideFrame(QtWidgets.QScrollArea):
                     self.projRightRangeMax.setValue(current.viewSettings["projLimits"][2])
                 self.projRightRangeMax.valueChanged.connect(self.changeRanges)
                 self.projRightRangeMax.hide()
-                self.contourProjFrame.addWidget(self.projRightRangeMax, 7, 1)
+                self.contourProjFrame.addWidget(self.projRightRangeMax, 8, 1)
                 self.projRightRangeMinLabel = wc.QLeftLabel("Right min:", self)
-                self.contourProjFrame.addWidget(self.projRightRangeMinLabel, 8, 0)
+                self.contourProjFrame.addWidget(self.projRightRangeMinLabel, 9, 0)
                 self.projRightRangeMinLabel.hide()
                 self.projRightRangeMin = QtWidgets.QSpinBox()
                 self.projRightRangeMin.setMaximum(self.shape[current.axes] - 1)
@@ -2629,9 +2634,9 @@ class SideFrame(QtWidgets.QScrollArea):
                     self.projRightRangeMin.setValue(current.viewSettings["projLimits"][3])
                 self.projRightRangeMin.valueChanged.connect(self.changeRanges)
                 self.projRightRangeMin.hide()
-                self.contourProjFrame.addWidget(self.projRightRangeMin, 8, 1)
+                self.contourProjFrame.addWidget(self.projRightRangeMin, 9, 1)
                 self.contourProjGroup.setLayout(self.contourProjFrame)
-                self.frame2.addWidget(self.contourProjGroup, 8, 0, 1, 3)
+                self.frame2.addWidget(self.contourProjGroup, 9, 0, 1, 3)
                 self.activateRanges(self.rangeCheckbox.checkState())
                 # Diagonal group
                 self.diagonalGroup = QtWidgets.QGroupBox('Diagonal:')
@@ -2645,7 +2650,7 @@ class SideFrame(QtWidgets.QScrollArea):
                 self.diagonalEntry.setMaximumWidth(120)
                 self.diagonalFrame.addWidget(self.diagonalEntry, 0, 1)
                 self.diagonalGroup.setLayout(self.diagonalFrame)
-                self.frame2.addWidget(self.diagonalGroup, 9, 0, 1, 3)
+                self.frame2.addWidget(self.diagonalGroup, 10, 0, 1, 3)
             self.buttons1Group.button(current.axes).toggle()
             if self.plotIs2D:
                 self.buttons2Group.button(current.axes2).toggle()
@@ -2795,16 +2800,30 @@ class SideFrame(QtWidgets.QScrollArea):
             else:
                 self.projTraceRight.show()
         else:
+            self.selectTraceButton.hide()
             if direc is 1:
                 self.projTraceTop.hide()
             else:
                 self.projTraceRight.hide()
         self.father.current.setProjType(pType, direc)
+        if (self.father.current.viewSettings["projTop"] is 4) or (self.father.current.viewSettings["projRight"] is 4):
+            self.selectTraceButton.show()
+        else:
+            self.selectTraceButton.hide()
         self.father.current.showProj()
 
     def changeTrace(self, num, direc):
         self.father.current.setProjTraces(num, direc)
         self.father.current.showProj()
+
+    def selectTraces(self, *args):
+        self.father.current.peakPickFunc = lambda pos, self=self: self.pickedTraces(pos)
+        self.father.current.peakPick = 2
+
+    def pickedTraces(self, pos):
+        self.father.current.setProjTraces(pos[0], 1)
+        self.father.current.setProjTraces(pos[3], 0)
+        self.upd()
         
     def changeRanges(self):
         check = self.rangeCheckbox.isChecked()
@@ -7181,18 +7200,14 @@ class quadConversionWindow(wc.ToolWindows):
             else:
                 self.father.dispMsg("Quad Conversion: Invalid input in quadrupole moment Q")
                 return
-
         #Do conversion
         Result = func.quadConversion(Values,I, Type, Q)
-        #Print results
         if Result[0][1] == None:
             self.Eta.setText('ND')
         else:
             self.Eta.setText('%#.4g' % Result[0][1])
-
         self.Cq.setText('%#.4g' % Result[0][0])
         self.Wq.setText('%#.4g' % Result[1][0])
-
         if Result[2][0] == None:
             self.Moment.setText('ND')
             self.Vxx.setText('ND')
