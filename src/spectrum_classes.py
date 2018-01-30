@@ -161,33 +161,34 @@ class Spectrum(object):
         #to be able to sum them
         hyper1 = self.hyper
         hyper2 = hyper
+        try:
+            newDat = []
+            for In in range(len(data)):
+                if dataImag is not None:
+                    newDat.append(np.array(data[In]) + 1j * np.array(dataImag[In]))
+                else:
+                    newDat.append(np.array(data[In]))
+        except ValueError as error:
+            self.dispMsg(str(error))
+            return None
+
         if self.noUndo:
             returnValue = None
         else:
             if hyper1 == hyper2: #If both sets have same hyper: easy undo can be used
-                returnValue = lambda self: self.remove(range(pos, pos + data.shape[axes]), axes)
+                returnValue = lambda self: self.remove(range(pos, pos + newDat[0].shape[axes]), axes)
             else: #Otherwise: do a deep copy of the class
                 copyData = copy.deepcopy(self)
                 returnValue = lambda self: self.restoreData(copyData, lambda self: self.insert(data, pos, axes, hyper, dataImag))
-       
-        #Merge data and dataImag if these were separated
-        if dataImag is not None:
-            try:
-                for i in range(len(data)):
-                    data[i] += dataImag[i]
-            except ValueError as error:
-                self.dispMsg(str(error))
-                return None
 
-        self.data, hyper1, data, hyper2 = self.expandHyperData(self.data, hyper1, data, hyper2)
+        self.data, hyper1, newDat, hyper2 = self.expandHyperData(self.data, hyper1, newDat, hyper2)
 
         axes = self.checkAxes(axes)
         if axes is None:
             return None
         for index in range(len(self.data)):
-            data = np.array(data[index]) 
             oldSize = self.data[index].shape[axes]
-            self.data[index] = np.insert(self.data[index], [pos], data, axis=axes)
+            self.data[index] = np.insert(self.data[index], [pos], newDat[index], axis=axes)
             self.hyper = hyper1 #Set hyper to expanded value
         self.resetXax(axes)
         self.addHistory("Inserted " + str(self.shape()[axes] - oldSize) + " datapoints in dimension " + str(axes + 1) + " at position " + str(pos))
@@ -267,7 +268,7 @@ class Spectrum(object):
             newDat = []
             for In in range(len(data)):
                 if dataImag is not None:
-                    newDat.append(np.array(data[In]) + 1j * np.array(dataImag))
+                    newDat.append(np.array(data[In]) + 1j * np.array(dataImag[In]))
                 else:
                     newDat.append(np.array(data[In]))
         except ValueError as error:
@@ -305,7 +306,7 @@ class Spectrum(object):
             newDat = []
             for In in range(len(data)):
                 if dataImag is not None:
-                    newDat.append(np.array(data[In]) + 1j * np.array(dataImag))
+                    newDat.append(np.array(data[In]) + 1j * np.array(dataImag[In]))
                 else:
                     newDat.append(np.array(data[In]))
         except ValueError as error:
@@ -346,7 +347,7 @@ class Spectrum(object):
             newDat = []
             for In in range(len(data)):
                 if dataImag is not None:
-                    newDat.append(np.array(data[In]) + 1j * np.array(dataImag))
+                    newDat.append(np.array(data[In]) + 1j * np.array(dataImag[In]))
                 else:
                     newDat.append(np.array(data[In]))
         except ValueError as error:
@@ -387,7 +388,7 @@ class Spectrum(object):
             newDat = []
             for In in range(len(data)):
                 if dataImag is not None:
-                    newDat.append(np.array(data[In]) + 1j * np.array(dataImag))
+                    newDat.append(np.array(data[In]) + 1j * np.array(dataImag[In]))
                 else:
                     newDat.append(np.array(data[In]))
         except ValueError as error:
