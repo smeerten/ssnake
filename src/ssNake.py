@@ -667,9 +667,9 @@ class MainProgram(QtWidgets.QMainWindow):
         self.secondquadstatAct.setToolTip('Fit Second Order Quadrupole')
         self.czjzekstatAct = self.fittingMenu.addAction(QtGui.QIcon(IconDirectory + 'czjzekstatic.png'), "C&zjzek", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.createQuad2CzjzekWindow()))
         self.czjzekstatAct.setToolTip('Fit Czjzek Pattern')
-        self.simpsonAct = self.fittingMenu.addAction("&SIMPSON", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.createSIMPSONWindow()))
+        self.simpsonAct = self.fittingMenu.addAction(QtGui.QIcon(IconDirectory + 'simpson.png'),"&SIMPSON", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.createSIMPSONWindow()))
         self.simpsonAct.setToolTip('Fit SIMPSON Script')
-        self.functionFitAct = self.fittingMenu.addAction("F&unction fit", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.createFunctionFitWindow()))
+        self.functionFitAct = self.fittingMenu.addAction(QtGui.QIcon(IconDirectory + 'function.png'),"F&unction fit", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.createFunctionFitWindow()))
         self.functionFitAct.setToolTip('Fit Function')
         self.fittingActList = [self.snrAct, self.fwhmAct, self.massAct,
                                self.intfitAct, self.relaxAct, self.diffusionAct,
