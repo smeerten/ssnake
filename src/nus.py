@@ -37,7 +37,7 @@ def ffm(inp):
                                   args=inp,
                                   jac=True)
     inp[0][inp[1]] = res['x'][:l] + 1j * res['x'][l:]
-    return inp[0]
+    return np.fft.fftshift(np.fft.fft(inp[0]))
 
 
 def clean(inp):
@@ -55,6 +55,8 @@ def clean(inp):
         replica[findMax] += maxAmp * gamma
         residuals -= maxAmp * gamma * np.roll(mask, findMax)
     replica += residuals
+    replica = np.real(np.fft.fftshift(replica))
+    #Return 'good' spectrum
     return replica
 
 
@@ -81,7 +83,8 @@ def ist(inp):  # Iterative soft thresholding
         spectrum = np.conj(scipy.signal.hilbert(spectrum, axis=0))
         data = np.fft.ifft(spectrum, axis=0)
         data[posList] = 0
-    result = np.conj(scipy.signal.hilbert(np.real(result + spectrum), axis=0))
-    result = np.fft.ifft(result, axis=0)
-    result[0] = result[0] * 2
+        
+    result = np.real(result + spectrum)
+
+    result = np.fft.fftshift(result,axes=0)
     return result

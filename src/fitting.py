@@ -63,64 +63,6 @@ def checkLinkTuple(inp):
         inp += (0, 0)
     return inp
 
-##############################################################################
-
-
-def shiftConversion(Values, Type):
-    # Calculates the chemical shift tensor based on:
-    # Values: a list with three numbers
-    # Type: an integer defining the input shift convention
-    # Returns a list of list with all calculated values
-
-    if Type == 0:  # If from standard
-        deltaArray = Values
-    if Type == 1:  # If from xyz
-        deltaArray = Values  # Treat xyz as 123, as it reorders them anyway
-    if Type == 2:  # From haeberlen
-        iso = Values[0]
-        delta = Values[1]
-        eta = Values[2]
-        delta11 = delta + iso  # Treat xyz as 123, as it reorders them anyway
-        delta22 = (eta * delta + iso * 3 - delta11) / 2.0
-        delta33 = iso * 3 - delta11 - delta22
-        deltaArray = [delta11, delta22, delta33]
-    if Type == 3:  # From Hertzfeld-Berger
-        iso = Values[0]
-        span = Values[1]
-        skew = Values[2]
-        delta22 = iso + skew * span / 3.0
-        delta33 = (3 * iso - delta22 - span) / 2.0
-        delta11 = 3 * iso - delta22 - delta33
-        deltaArray = [delta11, delta22, delta33]
-    Results = []  # List of list with the different definitions
-    # Force right order
-    deltaSorted = np.sort(deltaArray)
-    D11 = deltaSorted[2]
-    D22 = deltaSorted[1]
-    D33 = deltaSorted[0]
-    Results.append([D11, D22, D33])
-    # Convert to haeberlen convention and xxyyzz
-    iso = (D11 + D22 + D33) / 3.0
-    xyzIndex = np.argsort(np.abs(deltaArray - iso))
-    zz = deltaArray[xyzIndex[2]]
-    yy = deltaArray[xyzIndex[0]]
-    xx = deltaArray[xyzIndex[1]]
-    Results.append([xx, yy, zz])
-    aniso = zz - iso
-    if aniso != 0.0:  # Only is not zero
-        eta = (yy - xx) / aniso
-    else:
-        eta = 'ND'
-    Results.append([iso, aniso, eta])
-    # Convert to Herzfeld-Berger Convention
-    span = D11 - D33
-    if span != 0.0:  # Only if not zero
-        skew = 3.0 * (D22 - iso) / span
-    else:
-        skew = 'ND'
-    Results.append([iso, span, skew])
-    return Results
-
 #############################################################################################
 
 
@@ -128,6 +70,7 @@ class TabFittingWindow(QtWidgets.QWidget):
 
     PRECIS = 4
     MINMETHOD = 'Powell'
+    NUMFEVAL = 150
 
     def __init__(self, mainProgram, oldMainWindow):
         super(TabFittingWindow, self).__init__(mainProgram)
@@ -194,10 +137,16 @@ class TabFittingWindow(QtWidgets.QWidget):
                 new_args += (args[n] + args_tmp[n],)
             args = new_args  # tuples are immutable
         new_args = (nameList, selectList) + args
-        allFitVal = self.mainFitWindow.paramframe.fit(xax, data1D, guess, new_args)['x']
+        allFitVal = self.mainFitWindow.paramframe.fit(xax, data1D, guess, new_args)
+        if allFitVal is None:
+            return
+        allFitVal = allFitVal['x']
         fitVal = []
         for length in selectList:
-            fitVal.append(allFitVal[length])
+            if allFitVal.ndim is 0:
+                fitVal.append(np.array([allFitVal]))
+            else:
+                fitVal.append(allFitVal[length])
         args_out = []
         for n in range(len(args)):
             args_out.append([args[n][0]])
@@ -208,13 +157,25 @@ class TabFittingWindow(QtWidgets.QWidget):
                 args_out.append([args[n][i + 1]])
             self.subFitWindows[i].paramframe.setResults(fitVal[i + 1], args_out, out[i + 1])
 
-    def disp(self, *args, **kwargs):
+    def getNum(self, paramfitwindow):
+        fitwindow = paramfitwindow.rootwindow
+        if fitwindow is self.mainFitWindow:
+            return 0
+        else:
+            return self.subFitWindows.index(fitwindow) + 1
+
+    def getParams(self):
         params = [self.mainFitWindow.paramframe.getSimParams()]
         for window in self.subFitWindows:
             tmp_params = window.paramframe.getSimParams()
-            for i in range(len(params)):
-                params = np.append(params, [tmp_params], axis=0)
+            params = np.append(params, [tmp_params], axis=0)
         if params[0] is None:
+            return None
+        return params
+            
+    def disp(self, *args, **kwargs):
+        params = self.getParams()
+        if params is None:
             return
         self.mainFitWindow.paramframe.disp(params, 0, *args, **kwargs)
         for i in range(len(self.subFitWindows)):
@@ -332,8 +293,6 @@ class FittingWindow(QtWidgets.QWidget):
         grid.addWidget(self.canvas, 0, 0)
         self.current = self.tabWindow.CURRENTWINDOW(self, self.fig, self.canvas, self.oldMainWindow.get_current())
         self.paramframe = self.tabWindow.PARAMFRAME(self.current, self, isMain=self.isMain)
-
-        # self.fig.suptitle(self.oldMainWindow.get_masterData().name)
         grid.addWidget(self.paramframe, 1, 0)
         grid.setColumnStretch(0, 1)
         grid.setRowStretch(0, 1)
@@ -360,6 +319,12 @@ class FittingWindow(QtWidgets.QWidget):
     def getTabNames(self, *args, **kwargs):
         return self.tabWindow.getTabNames(*args, **kwargs)
 
+    def getParams(self, *args, **kwargs):
+        return self.tabWindow.getParams(*args, **kwargs)
+
+    def getNum(self, *args, **kwargs):
+        return self.tabWindow.getNum(*args, **kwargs)
+
     def addSpectrum(self):
         self.tabWindow.addSpectrum()
 
@@ -376,6 +341,7 @@ class FittingWindow(QtWidgets.QWidget):
                                              np.append([masterData.sw[axes], masterData.sw[axes]], np.delete(masterData.sw, axes)),
                                              np.append([False, False], np.delete(masterData.spec, axes)),
                                              np.append([False, False], np.delete(masterData.wholeEcho, axes)),
+                                             None,    
                                              np.append([None, None], np.delete(masterData.ref, axes)),
                                              None,
                                              axes + 1)
@@ -386,6 +352,7 @@ class FittingWindow(QtWidgets.QWidget):
                                              np.append(masterData.sw[axes], masterData.sw),
                                              np.append(False, masterData.spec),
                                              np.append(False, masterData.wholeEcho),
+                                             None,    
                                              np.append(None, masterData.ref),
                                              None,
                                              axes + 1)
@@ -397,6 +364,7 @@ class FittingWindow(QtWidgets.QWidget):
                                              [masterData.sw[axes], masterData.sw[axes]],
                                              [False, False],
                                              [False, False],
+                                             None,    
                                              [None, None],
                                              [np.arange(data.shape[0]), np.arange(data.shape[1])],
                                              0)
@@ -407,12 +375,12 @@ class FittingWindow(QtWidgets.QWidget):
                                              [masterData.sw[axes], masterData.sw[axes]],
                                              [False, masterData.spec[axes]],
                                              [False, masterData.wholeEcho[axes]],
+                                             None,    
                                              [None, masterData.ref[axes]],
                                              [np.arange(len(data)), masterData.xaxArray[axes]],
                                              axes)
 
     def rename(self, name):
-        # self.fig.suptitle(name)
         self.canvas.draw()
         self.oldMainWindow.rename(name)
 
@@ -494,14 +462,16 @@ class FittingSideFrame(QtWidgets.QScrollArea):
 
     def upd(self):
         current = self.father.current
-        self.shape = current.data.data.shape
+        self.shape = current.data.shape()
         self.length = len(self.shape)
         for i in reversed(range(self.frame1.count())):
             item = self.frame1.itemAt(i).widget()
+            item.hide()
             self.frame1.removeWidget(item)
             item.deleteLater()
         for i in reversed(range(self.frame2.count())):
             item = self.frame2.itemAt(i).widget()
+            item.hide()
             self.frame2.removeWidget(item)
             item.deleteLater()
         self.entries = []
@@ -548,10 +518,9 @@ class FitPlotFrame(Plot1DFrame):
 
     def __init__(self, rootwindow, fig, canvas, current):
         super(FitPlotFrame, self).__init__(rootwindow, fig, canvas)
-        self.data1D = current.getDisplayedData()
         self.data = current.data
         self.axes = current.axes
-        if (len(current.locList) == self.data.data.ndim - 1):
+        if (len(current.locList) == self.data.ndim() - 1):
             self.locList = current.locList
         else:
             if self.axes < current.axes2:
@@ -559,13 +528,15 @@ class FitPlotFrame(Plot1DFrame):
             else:
                 self.locList = np.insert(current.locList, current.axes2, 0)
         self.current = current
+        self.upd()
         self.spec = self.current.spec
         self.xax = self.current.xax
-        tmp = list(self.data.data.shape)
+        tmp = list(self.data.shape())
         tmp.pop(self.axes)
         self.fitDataList = np.full(tmp, None, dtype=object)
         self.fitPickNumList = np.zeros(tmp, dtype=int)
-        self.plotType = 0
+        self.viewSettings = {}
+        self.viewSettings["plotType"] = 0
         self.rootwindow = rootwindow
         # Set limits as in parent
         self.xminlim = self.current.xminlim
@@ -587,30 +558,31 @@ class FitPlotFrame(Plot1DFrame):
         self.rootwindow.paramframe.dispParams()
         self.showFid()
 
-    def upd(self):
+    def upd(self):  
+        hyperView = 0
         updateVar = self.data.getSlice(self.axes, self.locList)
-        tmp = updateVar[0]
-        if self.current.plotType == 0:
+        tmp = updateVar[0][hyperView]
+        if self.current.viewSettings["plotType"] == 0:
             self.data1D = np.real(tmp)
-        elif self.current.plotType == 1:
+        elif self.current.viewSettings["plotType"] == 1:
             self.data1D = np.imag(tmp)
-        elif self.current.plotType == 2:
+        elif self.current.viewSettings["plotType"] == 2:
             self.data1D = np.real(tmp)
-        elif self.current.plotType == 3:
+        elif self.current.viewSettings["plotType"] == 3:
             self.data1D = np.abs(tmp)
 
     def plotReset(self, xReset=True, yReset=True):
         a = self.fig.gca()
-        if self.plotType == 0:
+        if self.viewSettings["plotType"] == 0:
             miny = min(np.real(self.data1D))
             maxy = max(np.real(self.data1D))
-        elif self.plotType == 1:
+        elif self.viewSettings["plotType"] == 1:
             miny = min(np.imag(self.data1D))
             maxy = max(np.imag(self.data1D))
-        elif self.plotType == 2:
+        elif self.viewSettings["plotType"] == 2:
             miny = min(min(np.real(self.data1D)), min(np.imag(self.data1D)))
             maxy = max(max(np.real(self.data1D)), max(np.imag(self.data1D)))
-        elif self.plotType == 3:
+        elif self.viewSettings["plotType"] == 3:
             miny = min(np.abs(self.data1D))
             maxy = max(np.abs(self.data1D))
         else:
@@ -620,13 +592,7 @@ class FitPlotFrame(Plot1DFrame):
         if yReset:
             self.yminlim = miny - differ
             self.ymaxlim = maxy + differ
-        if self.spec == 1:
-            if self.current.ppm:
-                axMult = 1e6 / self.current.ref
-            else:
-                axMult = 1.0 / (1000.0**self.current.axType)
-        elif self.spec == 0:
-            axMult = 1000.0**self.current.axType
+        axMult = self.getAxMult(self.spec, self.current.viewSettings["axType"], self.current.viewSettings["ppm"], self.current.freq, self.current.ref)
         if xReset:
             self.xminlim = min(self.xax * axMult)
             self.xmaxlim = max(self.xax * axMult)
@@ -638,44 +604,16 @@ class FitPlotFrame(Plot1DFrame):
 
     def showFid(self):
         self.ax.cla()
-        if self.spec == 1:
-            if self.current.ppm:
-                axMult = 1e6 / self.current.ref
-            else:
-                axMult = 1.0 / (1000.0**self.current.axType)
-        elif self.spec == 0:
-            axMult = 1000.0**self.current.axType
+        axMult = self.getAxMult(self.spec, self.current.viewSettings["axType"], self.current.viewSettings["ppm"], self.current.freq, self.current.ref)
         self.line_xdata = self.xax * axMult
         self.line_ydata = self.data1D
-        self.ax.plot(self.xax * axMult, self.data1D, c=self.current.color, marker=self.MARKER, linestyle=self.LINESTYLE, linewidth=self.current.linewidth, label=self.current.data.name, picker=True)
+        self.ax.plot(self.xax * axMult, self.data1D, c=self.current.viewSettings["color"], marker=self.MARKER, linestyle=self.LINESTYLE, linewidth=self.current.viewSettings["linewidth"], label=self.current.data.name, picker=True)
         if self.fitDataList[tuple(self.locList)] is not None:
             tmp = self.fitDataList[tuple(self.locList)]
             self.ax.plot(tmp[0] * axMult, tmp[1], picker=True)
             for i in range(len(tmp[2])):
                 self.ax.plot(tmp[2][i] * axMult, tmp[3][i], picker=True)
-        if self.spec == 0:
-            if self.current.axType == 0:
-                self.ax.set_xlabel('Time [s]')
-            elif self.current.axType == 1:
-                self.ax.set_xlabel('Time [ms]')
-            elif self.current.axType == 2:
-                self.ax.set_xlabel(r'Time [$\mu$s]')
-            else:
-                self.ax.set_xlabel('User defined')
-        elif self.spec == 1:
-            if self.current.ppm:
-                self.ax.set_xlabel('Frequency [ppm]')
-            else:
-                if self.current.axType == 0:
-                    self.ax.set_xlabel('Frequency [Hz]')
-                elif self.current.axType == 1:
-                    self.ax.set_xlabel('Frequency [kHz]')
-                elif self.current.axType == 2:
-                    self.ax.set_xlabel('Frequency [MHz]')
-                else:
-                    self.ax.set_xlabel('User defined')
-        else:
-            self.ax.set_xlabel('')
+        self.ax.set_xlabel(self.getLabel(self.spec, self.current.viewSettings["axType"], self.current.viewSettings["ppm"]))
         self.ax.get_xaxis().get_major_formatter().set_powerlimits((-4, 4))
         self.ax.get_yaxis().get_major_formatter().set_powerlimits((-4, 4))
         if self.spec > 0:
@@ -697,26 +635,28 @@ class AbstractParamFrame(QtWidgets.QWidget):
         self.parent = parent
         self.FITNUM = self.parent.FITNUM
         self.rootwindow = rootwindow
-        self.isMain = isMain  # display fitting buttons
-        tmp = list(self.parent.data.data.shape)
+        self.isMain = isMain # display fitting buttons
+        tmp = list(self.parent.data.shape())
         tmp.pop(self.parent.axes)
         self.fitParamList = np.zeros(tmp, dtype=object)
         self.fitNumList = np.zeros(tmp, dtype=int)
         grid = QtWidgets.QGridLayout(self)
         self.setLayout(grid)
+        self.axMult = self.parent.current.getAxMult(self.parent.current.spec,
+                                                    self.parent.current.viewSettings["axType"],
+                                                    self.parent.current.viewSettings["ppm"],
+                                                    self.parent.current.freq,
+                                                    self.parent.current.ref)
         if self.parent.current.spec == 1:
             self.axAdd = self.parent.current.freq - self.parent.current.ref
-            if self.parent.current.ppm:
+            if self.parent.current.viewSettings["ppm"]:
                 self.axUnit = 'ppm'
-                self.axMult = 1e6 / self.parent.current.ref
             else:
-                self.axMult = 1.0 / (1000.0**self.parent.current.axType)
                 axUnits = ['Hz', 'kHz', 'MHz']
-                self.axUnit = axUnits[self.parent.current.axType]
+                self.axUnit = axUnits[self.parent.current.viewSettings["axType"]]
         elif self.parent.current.spec == 0:
             axUnits = ['s', 'ms', u"\u03bcs"]
-            self.axUnit = axUnits[self.parent.current.axType]
-            self.axMult = 1000.0**self.parent.current.axType
+            self.axUnit = axUnits[self.parent.current.viewSettings["axType"]]
             self.axAdd = 0
         self.frame1 = QtWidgets.QGridLayout()
         self.optframe = QtWidgets.QGridLayout()
@@ -738,6 +678,7 @@ class AbstractParamFrame(QtWidgets.QWidget):
         self.frame1.addWidget(fitButton, 1, 0)
         self.stopButton = QtWidgets.QPushButton("Stop")
         self.stopButton.clicked.connect(self.stopMP)
+        self.stopButton.setStyleSheet('background-color: green') 
         self.frame1.addWidget(self.stopButton, 1, 0)
         self.stopButton.hide()
         self.process1 = None
@@ -747,6 +688,7 @@ class AbstractParamFrame(QtWidgets.QWidget):
         self.frame1.addWidget(fitAllButton, 2, 0)
         self.stopAllButton = QtWidgets.QPushButton("Stop all")
         self.stopAllButton.clicked.connect(self.stopAll)
+        self.stopAllButton.setStyleSheet('background-color: green') 
         self.frame1.addWidget(self.stopAllButton, 2, 0)
         self.stopAllButton.hide()
         copyParamsButton = QtWidgets.QPushButton("Copy parameters")
@@ -913,7 +855,7 @@ class AbstractParamFrame(QtWidgets.QWidget):
 
     def fit(self, xax, data1D, guess, args):
         self.queue = multiprocessing.Queue()
-        self.process1 = multiprocessing.Process(target=self.FITFUNC, args=(xax, data1D, guess, args, self.queue, self.rootwindow.tabWindow.MINMETHOD))
+        self.process1 = multiprocessing.Process(target=self.FITFUNC, args=(xax, data1D, guess, args, self.queue, self.rootwindow.tabWindow.MINMETHOD, self.rootwindow.tabWindow.NUMFEVAL))
         self.process1.start()
         self.running = True
         self.stopButton.show()
@@ -964,7 +906,7 @@ class AbstractParamFrame(QtWidgets.QWidget):
     def fitAll(self, *args):
         self.runningAll = True
         self.stopAllButton.show()
-        tmp = list(self.parent.data.data.shape)
+        tmp = list(self.parent.data.shape())
         tmp.pop(self.parent.axes)
         tmp2 = ()
         for i in tmp:
@@ -1001,7 +943,7 @@ class AbstractParamFrame(QtWidgets.QWidget):
 
     def paramToWorkspaceWindow(self):
         paramNameList = self.SINGLENAMES + self.MULTINAMES
-        if self.parent.data.data.ndim == 1:
+        if self.parent.data.ndim() == 1:
             single = True
         else:
             single = False
@@ -1016,9 +958,11 @@ class AbstractParamFrame(QtWidgets.QWidget):
         if not np.any(settings):
             return
         names = paramNameList[settings]
+        params = self.rootwindow.getParams()
         if allTraces:
-            maxNum = np.max(self.fitNumList) + 1
-            tmp = list(self.parent.data.data.shape)
+            num = self.rootwindow.getNum(self)
+            maxNum = np.max(self.fitNumList)+1
+            tmp = list(self.parent.data.shape())
             tmp.pop(self.parent.axes)
             data = np.zeros((sum(settings), maxNum) + tuple(tmp))
             tmp2 = ()
@@ -1029,21 +973,47 @@ class AbstractParamFrame(QtWidgets.QWidget):
                 self.checkFitParamList(tuple(i))
                 for j in range(len(names)):
                     if names[j] in self.SINGLENAMES:
-                        data[(j,) + (slice(None),) + tuple(i)].fill(self.fitParamList[tuple(i)][names[j]][0])
+                        inp = self.fitParamList[tuple(i)][names[j]][0]
+                        if isinstance(inp, tuple):
+                            inp = checkLinkTuple(inp)
+                            if inp[4] is num:
+                                inp = inp[2] * self.fitParamList[tuple(i)][inp[0]][inp[1]][0] + inp[3]
+                            else:
+                                inp = inp[2] * params[inp[4]][inp[0]][inp[1]] + inp[3]
+                        data[(j,) + (slice(None),) + tuple(i)].fill(inp)
                     else:
-                        data[(j,) + (slice(None),) + tuple(i)] = self.fitParamList[tuple(i)][names[j]].T[0][:(self.fitNumList[tuple(i)] + 1)]
+                        tmpInp = self.fitParamList[tuple(i)][names[j]].T[0][:(self.fitNumList[tuple(i)] + 1)]
+                        for n in range(len(tmpInp)):
+                            inp = tmpInp[n]
+                            if isinstance(inp, tuple):
+                                inp = checkLinkTuple(inp)
+                                if inp[4] is num:
+                                    inp = inp[2] * self.fitParamList[tuple(i)][inp[0]][inp[1]][0] + inp[3]
+                                else:
+                                    inp = inp[2] * params[inp[4]][inp[0]][inp[1]] + inp[3]
+                            data[(j,) + (slice(None),) + tuple(i)][n] = inp
             self.rootwindow.createNewData(data, self.parent.current.axes, True, True)
         else:
             data = np.zeros((sum(settings), self.fitNumList[locList] + 1))
             for i in range(len(names)):
                 if names[i] in self.SINGLENAMES:
-                    data[i].fill(self.fitParamList[locList][names[i]][0])
+                    inp = self.fitParamList[locList][names[i]][0]
+                    if isinstance(inp, tuple):
+                        inp = checkLinkTuple(inp)
+                        inp = inp[2] * params[inp[4]][inp[0]][inp[1]] + inp[3]
+                    data[i].fill(inp)
                 else:
-                    data[i] = self.fitParamList[locList][names[i]].T[0][:(self.fitNumList[locList] + 1)]
+                    tmpInp = self.fitParamList[locList][names[i]].T[0][:(self.fitNumList[locList] + 1)]
+                    for j in range(len(tmpInp)):
+                        inp = tmpInp[j]
+                        if isinstance(inp, tuple):
+                            inp = checkLinkTuple(inp)
+                            inp = inp[2] * params[inp[4]][inp[0]][inp[1]] + inp[3]
+                        data[i][j] = inp
             self.rootwindow.createNewData(data, self.parent.current.axes, True)
 
     def resultToWorkspaceWindow(self):
-        if self.parent.data.data.ndim == 1:
+        if self.parent.data.ndim() == 1:
             single = True
         else:
             single = False
@@ -1062,8 +1032,8 @@ class AbstractParamFrame(QtWidgets.QWidget):
                 extraLength += maxNum
             if settings[3]:
                 extraLength += 1
-            data = np.zeros((extraLength,) + self.parent.data.data.shape)
-            tmp = list(self.parent.data.data.shape)
+            data = np.zeros((extraLength,) + self.parent.data.shape())
+            tmp = list(self.parent.data.shape())
             tmp.pop(self.parent.axes)
             tmp2 = ()
             for i in tmp:
@@ -1129,13 +1099,19 @@ class PrefWindow(QtWidgets.QWidget):
         self.precisBox = QtWidgets.QSpinBox(self)
         self.precisBox.setValue(self.father.PRECIS)
         grid.addWidget(self.precisBox, 1, 1)
+        grid.addWidget(QLabel("# evaluations:"), 2, 0)
+        self.numFevalBox = QtWidgets.QSpinBox(self)
+        self.numFevalBox.setMaximum(100000)
+        self.numFevalBox.setMinimum(1)
+        self.numFevalBox.setValue(self.father.NUMFEVAL)
+        grid.addWidget(self.numFevalBox, 2, 1)
         cancelButton = QtWidgets.QPushButton("&Cancel")
         cancelButton.clicked.connect(self.closeEvent)
-        layout.addWidget(cancelButton, 2, 0)
+        layout.addWidget(cancelButton, 4, 0)
         okButton = QtWidgets.QPushButton("&Ok", self)
         okButton.clicked.connect(self.applyAndClose)
         okButton.setFocus()
-        layout.addWidget(okButton, 2, 1)
+        layout.addWidget(okButton, 4, 1)
         grid.setRowStretch(100, 1)
         self.show()
         self.setGeometry(self.frameSize().width() - self.geometry().width(), self.frameSize().height() - self.geometry().height(), 0, 0)
@@ -1146,266 +1122,8 @@ class PrefWindow(QtWidgets.QWidget):
     def applyAndClose(self, *args):
         self.father.PRECIS = self.precisBox.value()
         self.father.MINMETHOD = self.METHODLIST[self.minmethodBox.currentIndex()]
+        self.father.NUMFEVAL = self.numFevalBox.value()
         self.closeEvent()
-
-##############################################################################
-
-
-class IntegralsWindow(TabFittingWindow):
-
-    def __init__(self, mainProgram, oldMainWindow):
-        self.CURRENTWINDOW = IntegralsFrame
-        self.PARAMFRAME = IntegralsParamFrame
-        super(IntegralsWindow, self).__init__(mainProgram, oldMainWindow)
-
-#################################################################################
-
-
-class IntegralsFrame(FitPlotFrame):
-
-    def __init__(self, rootwindow, fig, canvas, current):
-        self.FITNUM = 20  # Maximum number of fits
-        self.pickNum = 0
-        self.pickWidth = False
-        super(IntegralsFrame, self).__init__(rootwindow, fig, canvas, current)
-
-    def togglePick(self, var):
-        self.peakPickReset()
-        if var == 1:
-            self.peakPickFunc = lambda pos, self=self: self.pickDeconv(pos)
-            self.peakPick = True
-        else:
-            self.peakPickFunc = None
-            self.peakPick = False
-
-    def pickDeconv(self, pos):
-        pickNum = self.fitPickNumList[tuple(self.locList)]
-        if self.pickWidth:
-            self.rootwindow.paramframe.entries['max'][pickNum].setText(('%#.' + str(self.rootwindow.tabWindow.PRECIS) + 'g') % pos[1])
-            self.fitPickNumList[tuple(self.locList)] += 1
-            self.pickWidth = False
-            self.rootwindow.fit()
-        else:
-            self.rootwindow.paramframe.entries['min'][pickNum].setText(('%#.' + str(self.rootwindow.tabWindow.PRECIS) + 'g') % pos[1])
-            if pickNum < self.FITNUM:
-                self.rootwindow.paramframe.numExp.setCurrentIndex(pickNum)
-                self.rootwindow.paramframe.changeNum()
-            self.pickWidth = True
-        if pickNum < self.FITNUM:
-            self.peakPickFunc = lambda pos, self=self: self.pickDeconv(pos)
-            self.peakPick = True
-
-#################################################################################
-
-
-class IntegralsParamFrame(AbstractParamFrame):
-
-    TICKS = False
-
-    def __init__(self, parent, rootwindow, isMain=True):
-        self.SINGLENAMES = []
-        self.MULTINAMES = ['min', 'max', 'amp']
-        self.PARAMTEXT = {'min': 'Minimum', 'max': 'Maximum', 'amp': 'Integral'}
-        self.FITFUNC = integralsmpFit
-        super(IntegralsParamFrame, self).__init__(parent, rootwindow, isMain)
-        resetButton = QtWidgets.QPushButton("Reset")
-        resetButton.clicked.connect(self.reset)
-        self.frame1.addWidget(resetButton, 1, 1)
-        self.pickTick = QtWidgets.QCheckBox("Pick")
-        self.pickTick.stateChanged.connect(self.togglePick)
-        self.frame1.addWidget(self.pickTick, 2, 1)
-        self.absIntTick = QtWidgets.QCheckBox("Relative integrals")
-        self.absIntTick.setChecked(True)
-        self.absIntTick.stateChanged.connect(self.rootwindow.fit)
-        self.optframe.addWidget(self.absIntTick, 0, 0)
-        self.optframe.setColumnStretch(10, 1)
-        self.optframe.setAlignment(QtCore.Qt.AlignTop)
-        self.numExp = QtWidgets.QComboBox()
-        self.numExp.addItems([str(x + 1) for x in range(self.FITNUM)])
-        self.numExp.currentIndexChanged.connect(self.changeNum)
-        self.frame3.addWidget(self.numExp, 0, 0)
-        self.frame3.addWidget(QLabel("Min bounds:"), 1, 0)
-        self.frame3.addWidget(QLabel("Max bounds:"), 1, 1)
-        self.frame3.addWidget(QLabel("Integral:"), 1, 2)
-        self.frame3.setColumnStretch(20, 1)
-        self.frame3.setAlignment(QtCore.Qt.AlignTop)
-        self.refVal = None
-        self.entries = {'min': [], 'max': [], 'amp': []}
-        if self.parent.current.plotType == 0:
-            self.maxy = np.amax(np.real(self.parent.current.data1D))
-            self.diffy = self.maxy - np.amin(np.real(self.parent.current.data1D))
-        elif self.parent.current.plotType == 1:
-            self.maxy = np.amax(np.imag(self.parent.current.data1D))
-            self.diffy = self.maxy - np.amin(np.imag(self.parent.current.data1D))
-        elif self.parent.current.plotType == 2:
-            self.maxy = np.amax(np.real(self.parent.current.data1D))
-            self.diffy = self.maxy - np.amin(np.real(self.parent.current.data1D))
-        elif self.parent.current.plotType == 3:
-            self.maxy = np.amax(np.abs(self.parent.current.data1D))
-            self.diffy = self.maxy - np.amin(np.abs(self.parent.current.data1D))
-        for i in range(self.FITNUM):
-            for j in range(len(self.MULTINAMES)):
-                self.entries[self.MULTINAMES[j]].append(wc.FitQLineEdit(self, self.MULTINAMES[j]))
-                self.frame3.addWidget(self.entries[self.MULTINAMES[j]][i], i + 2, j)
-        self.resetVals()
-
-    def defaultValues(self, inp):
-        if not inp:
-            return {'min': np.repeat([np.array([min(self.parent.current.xax), True], dtype=object)], self.FITNUM, axis=0),
-                    'max': np.repeat([np.array([max(self.parent.current.xax), True], dtype=object)], self.FITNUM, axis=0),
-                    'amp': np.repeat([np.array([1.0, False], dtype=object)], self.FITNUM, axis=0)}
-        else:
-            return inp
-
-    def reset(self):
-        self.resetVals()
-        self.rootwindow.fit()
-
-    def resetVals(self):
-        locList = tuple(self.parent.locList)
-        self.refVal = None
-        self.fitNumList[locList] = 0
-        self.pickTick.setChecked(True)
-        defaults = {'min': [min(self.parent.current.xax), True], 'max': [max(self.parent.current.xax), True], 'amp': [1.0, False]}
-        for i in range(self.FITNUM):
-            for name in defaults.keys():
-                self.fitParamList[locList][name][i] = defaults[name]
-        self.togglePick()
-        self.parent.pickWidth = False
-        self.parent.fitPickNumList[locList] = 0
-        self.dispParams()
-
-    def togglePick(self):
-        self.parent.togglePick(self.pickTick.isChecked())
-
-    def setVal(self, entry, isMin=False):
-        locList = tuple(self.parent.locList)
-        inp = safeEval(entry.text())
-        if inp is None:
-            self.rootwindow.mainProgram.dispMsg("Fitting: One of the inputs is not valid")
-            return
-        if inp < min(self.parent.current.xax):
-            inp = min(self.parent.current.xax)
-        if inp > max(self.parent.current.xax):
-            inp = max(self.parent.current.xax)
-        if isMin:
-            num = self.entries['min'].index(entry)
-            self.fitParamList[locList]['min'][num][0] = min(inp, self.fitParamList[locList]['max'][num][0])
-            self.fitParamList[locList]['max'][num][0] = max(inp, self.fitParamList[locList]['max'][num][0])
-        else:
-            num = self.entries['max'].index(entry)
-            self.fitParamList[locList]['min'][num][0] = max(inp, self.fitParamList[locList]['min'][num][0])
-            self.fitParamList[locList]['max'][num][0] = min(inp, self.fitParamList[locList]['min'][num][0])
-        self.fitNumList[tuple(self.parent.locList)] += 1
-        self.first = True
-        self.entries['min'][num].setText(('%#.' + str(self.rootwindow.tabWindow.PRECIS) + 'g') % self.fitParamList[locList]['min'][num][0])
-        self.entries['max'][num].setText(('%#.' + str(self.rootwindow.tabWindow.PRECIS) + 'g') % self.fitParamList[locList]['max'][num][0])
-        self.rootwindow.fit()
-
-    def setRef(self, entry):
-        locList = tuple(self.parent.locList)
-        num = self.entries['amp'].index(entry)
-        inp = safeEval(entry.text())
-        if inp is None:
-            self.rootwindow.mainProgram.dispMsg("Fitting: One of the inputs is not valid")
-            return
-        self.refVal = self.fitParamList[locList]['amp'][num][0] / float(inp)
-        self.rootwindow.fit()
-
-    def displayInt(self):
-        locList = tuple(self.parent.locList)
-        if self.refVal is None:
-            self.refVal = self.fitParamList[locList]['amp'][0][0]
-        if self.absIntTick.isChecked():
-            tmpInts = np.array([num[0] for num in self.fitParamList[locList]['amp']]) / float(self.refVal)
-        else:
-            tmpInts = np.array([num[0] for num in self.fitParamList[locList]['amp']])
-        for i in range(self.FITNUM):
-            self.entries['amp'][i].setText(('%#.' + str(self.rootwindow.tabWindow.PRECIS) + 'g') % tmpInts[i])
-
-    def disp(self, params, num, display=True, prepExport=False):
-        out = params[num]
-        numExp = len(out['min'])
-        tmpx = self.parent.xax * self.axMult
-        x = []
-        outCurvePart = []
-        maxDiff = 0.0
-        for i in range(numExp):
-            for name in ['min', 'max']:
-                inp = out[name][i]
-                if isinstance(inp, tuple):
-                    inp = checkLinkTuple(inp)
-                    out[name][i] = inp[2] * params[inp[4]][inp[0]][inp[1]] + inp[3]
-                if not np.isfinite(out[name][i]):
-                    self.rootwindow.mainProgram.dispMsg("Fitting: One of the inputs is not valid")
-                    return
-            minVal = min(out['min'][i], out['max'][i])
-            maxVal = max(out['min'][i], out['max'][i])
-            bArray = (minVal < tmpx) & (maxVal > tmpx)
-            if prepExport:
-                x.append(self.parent.xax)
-            else:
-                x.append(self.parent.xax[bArray])
-            if self.parent.spec:
-                integral = np.cumsum(self.parent.data1D[bArray][::-1])[::-1]
-            else:
-                integral = np.cumsum(self.parent.data1D[bArray])
-            if prepExport:
-                tmpIntegral = np.zeros(len(self.parent.xax))
-                tmpIntegral[bArray] = integral
-                outCurvePart.append(tmpIntegral)
-            else:
-                outCurvePart.append(integral)
-            maxDiff = max(maxDiff, max(outCurvePart[-1]) - min(outCurvePart[-1]))
-        self.displayInt()
-        for i in range(len(outCurvePart)):
-            outCurvePart[i] = outCurvePart[i] / maxDiff * self.diffy
-        if prepExport:
-            self.parent.fitDataList[tuple(self.parent.locList)] = [self.parent.xax, np.zeros(len(self.parent.xax)), x, outCurvePart]
-        else:
-            self.parent.fitDataList[tuple(self.parent.locList)] = [np.array([]), np.array([]), x, outCurvePart]
-        if display:
-            self.parent.showFid()
-
-    def calculateResultsToWorkspace(self, prepExport):
-        self.rootwindow.sim(display=False, prepExport=prepExport)
-
-
-##############################################################################
-
-def integralsmpFit(allX, data1D, guess, args, queue, minmethod):
-    specName = args[0]
-    specSlices = args[1]
-    allStruc = args[3]
-    allArgu = args[4]
-    results = []
-    for n in range(len(allX)):
-        x = allX[n]
-        data = data1D[:len(x)]
-        data1D = np.delete(data1D, range(len(x)))
-        testFunc = np.zeros(len(x))
-        numExp = args[2][n]
-        struc = args[3][n]
-        argu = args[4][n]
-        sw = args[5][n]
-        axAdd = args[6][n]
-        axMult = args[7][n]
-        x = x * axMult
-        parameters = {'min': 0.0, 'max': 0.0}
-        for i in range(numExp):
-            for name in ['min', 'max']:
-                if struc[name][i][0] == 0:
-                    parameters[name] = argu[struc[name][i][1]]
-                else:
-                    altStruc = struc[name][i][1]
-                    strucTarget = allStruc[altStruc[4]]
-                    parameters[name] = altStruc[2] * allArgu[altStruc[4]][strucTarget[altStruc[0]][altStruc[1]][1]] + altStruc[3]
-            minVal = min(parameters['min'], parameters['max'])
-            maxVal = max(parameters['min'], parameters['max'])
-            tmpx = x[(minVal < x) & (maxVal > x)]
-            tmpy = data[(minVal < x) & (maxVal > x)]
-            results = np.append(results, np.sum(tmpy) * sw / float(len(data)))
-    queue.put({'x': results})
 
 ##############################################################################
 
@@ -1424,9 +1142,9 @@ class RelaxFrame(FitPlotFrame):
 
     MARKER = 'o'
     LINESTYLE = 'none'
+    FITNUM = 4  # Maximum number of fits
 
     def __init__(self, rootwindow, fig, canvas, current):
-        self.FITNUM = 4  # Maximum number of fits
         self.logx = 0
         self.logy = 0
         super(RelaxFrame, self).__init__(rootwindow, fig, canvas, current)
@@ -1668,7 +1386,7 @@ class RelaxParamFrame(AbstractParamFrame):
 
     def defaultValues(self, inp):
         if not inp:
-            return {'amp': [np.amax(self.parent.data1D), False],
+            return {'amp': [np.max(self.parent.data1D), False],
                     'const': [1.0, False],
                     'coeff': np.repeat([np.array([-1.0, False], dtype=object)], self.FITNUM, axis=0),
                     't': np.repeat([np.array([1.0, False], dtype=object)], self.FITNUM, axis=0)}
@@ -1719,9 +1437,9 @@ class RelaxParamFrame(AbstractParamFrame):
 #############################################################################
 
 
-def relaxationmpFit(xax, data1D, guess, args, queue, minmethod):
+def relaxationmpFit(xax, data1D, guess, args, queue, minmethod, numfeval):
     try:
-        fitVal = scipy.optimize.minimize(lambda *param: np.sum((data1D - relaxationfitFunc(param, xax, args))**2), guess, method=minmethod)
+        fitVal = scipy.optimize.minimize(lambda *param: np.sum((data1D - relaxationfitFunc(param, xax, args))**2), guess, method=minmethod, options = {'maxfev': numfeval})
     except Exception:
         fitVal = None
     queue.put(fitVal)
@@ -1793,9 +1511,9 @@ class DiffusionFrame(FitPlotFrame):
 
     MARKER = 'o'
     LINESTYLE = 'none'
+    FITNUM = 4  # Maximum number of fits
 
     def __init__(self, rootwindow, fig, canvas, current):
-        self.FITNUM = 4  # Maximum number of fits
         self.logx = 0
         self.logy = 0
         super(DiffusionFrame, self).__init__(rootwindow, fig, canvas, current)
@@ -2010,7 +1728,7 @@ class DiffusionParamFrame(AbstractParamFrame):
         self.frame3.addWidget(QLabel("Amplitude:"), 0, 0, 1, 2)
         self.ticks['amp'].append(QtWidgets.QCheckBox(''))
         self.frame3.addWidget(self.ticks['amp'][-1], 1, 0)
-        self.entries['amp'].append(wc.FitQLineEdit(self, 'amp', ('%#.' + str(self.rootwindow.tabWindow.PRECIS) + 'g') % np.amax(self.parent.data1D)))
+        self.entries['amp'].append(wc.FitQLineEdit(self, 'amp', ('%#.' + str(self.rootwindow.tabWindow.PRECIS) + 'g') % np.max(self.parent.data1D)))
         self.frame3.addWidget(self.entries['amp'][-1], 1, 1)
         self.frame3.addWidget(QLabel("Constant:"), 2, 0, 1, 2)
         self.ticks['const'].append(QtWidgets.QCheckBox(''))
@@ -2053,7 +1771,7 @@ class DiffusionParamFrame(AbstractParamFrame):
 
     def defaultValues(self, inp):
         if not inp:
-            return {'amp': [np.amax(self.parent.data1D), False],
+            return {'amp': [np.max(self.parent.data1D), False],
                     'const': [0.0, False],
                     'coeff': np.repeat([np.array([1.0, False], dtype=object)], self.FITNUM, axis=0),
                     'd': np.repeat([np.array([1.0e-9, False], dtype=object)], self.FITNUM, axis=0)}
@@ -2110,9 +1828,9 @@ class DiffusionParamFrame(AbstractParamFrame):
 ##############################################################################
 
 
-def diffusionmpFit(xax, data1D, guess, args, queue, minmethod):
+def diffusionmpFit(xax, data1D, guess, args, queue, minmethod, numfeval):
     try:
-        fitVal = scipy.optimize.minimize(lambda *param: np.sum((data1D - diffusionfitFunc(param, xax, args))**2), guess, method=minmethod)
+        fitVal = scipy.optimize.minimize(lambda *param: np.sum((data1D - diffusionfitFunc(param, xax, args))**2), guess, method=minmethod, options = {'maxfev': numfeval})
     except Exception:
         fitVal = None
     queue.put(fitVal)
@@ -2174,7 +1892,7 @@ def diffusionfitFunc(params, allX, args):
 
 
 class PeakDeconvWindow(TabFittingWindow):
-
+    
     def __init__(self, mainProgram, oldMainWindow):
         self.CURRENTWINDOW = PeakDeconvFrame
         self.PARAMFRAME = PeakDeconvParamFrame
@@ -2184,10 +1902,8 @@ class PeakDeconvWindow(TabFittingWindow):
 
 
 class PeakDeconvFrame(FitPlotFrame):
-
-    def __init__(self, rootwindow, fig, canvas, current):
-        self.FITNUM = 10  # Maximum number of fits
-        super(PeakDeconvFrame, self).__init__(rootwindow, fig, canvas, current)
+    
+    FITNUM = 10
 
     def togglePick(self, var):
         self.peakPickReset()
@@ -2201,14 +1917,8 @@ class PeakDeconvFrame(FitPlotFrame):
     def pickDeconv(self, pos):
         pickNum = self.fitPickNumList[tuple(self.locList)]
         if self.pickWidth:
-            if self.current.spec == 1:
-                if self.current.ppm:
-                    axMult = 1e6 / self.current.ref
-                else:
-                    axMult = 1.0 / (1000.0**self.current.axType)
-            elif self.current.spec == 0:
-                axMult = 1000.0**self.current.axType
-            width = (2 * abs(float(self.rootwindow.paramframe.entries['pos'][pickNum].text()) - pos[1])) / axMult
+            axMult = self.getAxMult(self.current.spec, self.current.viewSettings["axType"], self.current.viewSettings["ppm"], self.current.freq, self.current.ref)
+            width = (2 * abs(float(self.rootwindow.paramframe.entries['pos'][pickNum].text()) - pos[1])) / self.getAxMult(self.current.spec, self.current.viewSettings["axType"], self.current.viewSettings["ppm"], self.current.freq, self.current.ref)
             self.rootwindow.paramframe.entries['amp'][pickNum].setText(('%#.' + str(self.rootwindow.tabWindow.PRECIS) + 'g') % (float(self.rootwindow.paramframe.entries['amp'][pickNum].text()) * width))
             self.rootwindow.paramframe.entries['lor'][pickNum].setText(('%#.' + str(self.rootwindow.tabWindow.PRECIS) + 'g') % abs(width))
             self.fitPickNumList[tuple(self.locList)] += 1
@@ -2353,9 +2063,9 @@ class PeakDeconvParamFrame(AbstractParamFrame):
 ##############################################################################
 
 
-def peakDeconvmpFit(xax, data1D, guess, args, queue, minmethod):
+def peakDeconvmpFit(xax, data1D, guess, args, queue, minmethod, numfeval):
     try:
-        fitVal = scipy.optimize.minimize(lambda *param: np.sum((data1D - peakDeconvfitFunc(param, xax, args))**2), guess, method=minmethod)
+        fitVal = scipy.optimize.minimize(lambda *param: np.sum((data1D - peakDeconvfitFunc(param, xax, args))**2), guess, method=minmethod, options = {'maxfev': numfeval})
     except Exception:
         fitVal = None
     queue.put(fitVal)
@@ -2428,8 +2138,9 @@ class TensorDeconvWindow(TabFittingWindow):
 
 class TensorDeconvFrame(FitPlotFrame):
 
+    FITNUM = 10  # Maximum number of fits
+    
     def __init__(self, rootwindow, fig, canvas, current):
-        self.FITNUM = 10  # Maximum number of fits
         self.pickNum = 0
         self.pickNum2 = 0
         super(TensorDeconvFrame, self).__init__(rootwindow, fig, canvas, current)
@@ -2445,13 +2156,7 @@ class TensorDeconvFrame(FitPlotFrame):
 
     def pickDeconv(self, pos):
         printStr = "%#." + str(self.rootwindow.tabWindow.PRECIS) + "g"
-        if self.spec == 1:
-            if self.current.ppm:
-                axMult = 1e6 / self.current.ref
-            else:
-                axMult = 1.0 / (1000.0**self.current.axType)
-        elif self.spec == 0:
-            axMult = 1000.0**self.current.axType
+        axMult = self.getAxMult(self.spec, self.current.viewSettings["axType"], self.current.viewSettings["ppm"], self.current.freq, self.current.ref)
         if self.pickNum2 == 0:
             if self.pickNum < self.FITNUM:
                 self.rootwindow.paramframe.numExp.setCurrentIndex(self.pickNum)
@@ -2547,10 +2252,10 @@ class TensorDeconvParamFrame(AbstractParamFrame):
         self.numExp.addItems([str(x + 1) for x in range(self.FITNUM)])
         self.numExp.currentIndexChanged.connect(self.changeNum)
         self.frame3.addWidget(self.numExp, 0, 0, 1, 2)
-        if self.parent.current.ppm:
+        if self.parent.current.viewSettings["ppm"]:
             axUnit = 'ppm'
         else:
-            axUnit = ['Hz', 'kHz', 'MHz'][self.parent.current.axType]
+            axUnit = ['Hz', 'kHz', 'MHz'][self.parent.current.viewSettings["axType"]]
         # Labels
         self.label11 = QLabel(u'\u03b4' + '<sub>11</sub> [' + axUnit + '] :')
         self.label22 = QLabel(u'\u03b4' + '<sub>22</sub> [' + axUnit + '] :')
@@ -2716,7 +2421,7 @@ class TensorDeconvParamFrame(AbstractParamFrame):
                     self.entries['shiftdef'][-1].setCurrentIndex(OldType)  # error, reset to old view
                     self.rootwindow.mainProgram.dispMsg("Fitting: One of the inputs is not valid")
                     return
-                Tensors = shiftConversion(startTensor, OldType)
+                Tensors = func.shiftConversion(startTensor, OldType)
                 for element in range(3):  # Check for `ND' s
                     if isinstance(Tensors[NewType][element], str):
                         Tensors[NewType][element] = 0
@@ -2780,9 +2485,9 @@ class TensorDeconvParamFrame(AbstractParamFrame):
 ##############################################################################
 
 
-def tensorDeconvmpFit(xax, data1D, guess, args, queue, minmethod):
+def tensorDeconvmpFit(xax, data1D, guess, args, queue, minmethod, numfeval):
     try:
-        fitVal = scipy.optimize.minimize(lambda *param: np.sum((data1D - tensorDeconvfitFunc(param, xax, args))**2), guess, method=minmethod)
+        fitVal = scipy.optimize.minimize(lambda *param: np.sum((data1D - tensorDeconvfitFunc(param, xax, args))**2), guess, method=minmethod, options = {'maxfev': numfeval})
     except Exception:
         fitVal = None
     queue.put(fitVal)
@@ -2853,9 +2558,9 @@ def tensorDeconvfitFunc(params, allX, args):
 
 def tensorDeconvtensorFunc(x, t11, t22, t33, lor, gauss, multt, sw, weight, axAdd, convention=0, axMult=1):
     if convention == 0 or convention == 1:
-        Tensors = shiftConversion([t11 / axMult, t22 / axMult, t33 / axMult], convention)
+        Tensors = func.shiftConversion([t11 / axMult, t22 / axMult, t33 / axMult], convention)
     else:
-        Tensors = shiftConversion([t11 / axMult, t22 / axMult, t33], convention)
+        Tensors = func.shiftConversion([t11 / axMult, t22 / axMult, t33], convention)
     t11 = Tensors[0][0] * multt[0]
     t22 = Tensors[0][1] * multt[1]
     t33 = Tensors[0][2] * multt[2]
@@ -2877,9 +2582,9 @@ def tensorDeconvtensorFunc(x, t11, t22, t33, lor, gauss, multt, sw, weight, axAd
 
 def tensorMASDeconvtensorFunc(x, t11, t22, t33, lor, gauss, sw, axAdd, axMult, spinspeed, cheng, convention, numssb):
     if convention == 0 or convention == 1:
-        Tensors = shiftConversion([t11 / axMult, t22 / axMult, t33 / axMult], convention)
+        Tensors = func.shiftConversion([t11 / axMult, t22 / axMult, t33 / axMult], convention)
     else:
-        Tensors = shiftConversion([t11 / axMult, t22 / axMult, t33], convention)
+        Tensors = func.shiftConversion([t11 / axMult, t22 / axMult, t33], convention)
     pos = Tensors[2][0] - axAdd
     delta = Tensors[2][1]
     eta = Tensors[2][2]
@@ -2941,9 +2646,7 @@ class Quad1DeconvWindow(TabFittingWindow):
 
 class Quad1DeconvFrame(FitPlotFrame):
 
-    def __init__(self, rootwindow, fig, canvas, current):
-        self.FITNUM = 10  # Maximum number of fits
-        super(Quad1DeconvFrame, self).__init__(rootwindow, fig, canvas, current)
+    FITNUM = 10  # Maximum number of fits
 
 #################################################################################
 
@@ -3015,10 +2718,10 @@ class Quad1DeconvParamFrame(AbstractParamFrame):
         self.numExp.addItems([str(x + 1) for x in range(self.FITNUM)])
         self.numExp.currentIndexChanged.connect(self.changeNum)
         self.frame3.addWidget(self.numExp, 0, 0, 1, 2)
-        if self.parent.current.ppm:
+        if self.parent.current.viewSettings["ppm"]:
             axUnit = 'ppm'
         else:
-            axUnit = ['Hz', 'kHz', 'MHz'][self.parent.current.axType]
+            axUnit = ['Hz', 'kHz', 'MHz'][self.parent.current.viewSettings["axType"]]
         # Labels
         self.labelpos = QLabel(u'Position [' + axUnit + ']:')
         self.labelcq = QLabel(u'C<sub>Q</sub> [MHz]:')
@@ -3086,6 +2789,21 @@ class Quad1DeconvParamFrame(AbstractParamFrame):
             out['freq'] = [self.parent.current.freq]
             return (out, [out['mas'][-1], out['I'][-1], out['weight'][-1], out['anglestuff'][-1], out['tensorfunc'][-1], out['freq'][-1]])
 
+
+    def checkParam(self):
+         val = self.numExp.currentIndex() + 1
+         printStr = '%#.' + str(self.rootwindow.tabWindow.PRECIS) + 'g'
+         for i in range(10):  # Print output if not stopped before
+            if i < val:
+                try:
+                    cq = float(safeEval(self.entries['cq'][i].text()))
+                    eta = float(safeEval(self.entries['eta'][i].text()))
+                    Res = func.quadConversion([cq,eta], 1, 0)[0]
+                    self.entries['cq'][i].setText(printStr % Res[0])
+                    self.entries['eta'][i].setText(printStr % Res[1])
+                except Exception:
+                    return
+
     def disp(self, params, num):
         out = params[num]
         for name in self.SINGLENAMES:
@@ -3118,13 +2836,15 @@ class Quad1DeconvParamFrame(AbstractParamFrame):
             outCurve += y
         self.parent.fitDataList[tuple(self.parent.locList)] = [tmpx, outCurve, x, outCurvePart]
         self.parent.showFid()
+        self.checkParam()
+
 
 ##############################################################################
 
 
-def quad1mpFit(xax, data1D, guess, args, queue, minmethod):
+def quad1mpFit(xax, data1D, guess, args, queue, minmethod, numfeval):
     try:
-        fitVal = scipy.optimize.minimize(lambda *param: np.sum((data1D - quad1fitFunc(param, xax, args))**2), guess, method=minmethod)
+        fitVal = scipy.optimize.minimize(lambda *param: np.sum((data1D - quad1fitFunc(param, xax, args))**2), guess, method=minmethod, options = {'maxfev': numfeval})
     except Exception:
         fitVal = None
     queue.put(fitVal)
@@ -3244,13 +2964,20 @@ def quad1MASFunc(x, pos, cq, eta, lor, gauss, sw, axAdd, axMult, spinspeed, chen
                   np.array([np.sqrt(2) / 3 * sinPhi * sin2Theta]).transpose() * np.sin(omegar * t),
                   np.array([cosPhi * sin2Theta / 3]).transpose() * np.sin(2 * omegar * t)]
     pos = (pos / axMult) - axAdd
-    m = np.arange(-I, 0)  # Only half the transitions have to be caclulated, as the others are mirror images (sidebands inversed)
+    m = np.arange(-I, 0)  # Only half the transitions have to be calculated, as the others are mirror images (sidebands inverted)
     eff = I**2 + I - m * (m + 1)  # The detection efficiencies of the top half transitions
+    #Scale the intensities to sum to 1
+    if np.floor(I) != I: #If not even:
+        scale = np.sum(eff[0:-1] * 2) + eff[-1]
+    else:
+        scale = np.sum(eff) * 2
+    eff = eff / scale
+
     splitting = np.arange(I - 0.5, -0.1, -1)  # The quadrupolar couplings of the top half transitions
     sidebands = np.zeros(int(numssb))
     for transition in range(len(eff)):  # For all transitions
         if splitting[transition] != 0:  # If quad coupling not zero: calculate sideban pattern
-            delta = splitting[transition] * 2 * np.pi * 3 / (2 * I * (2 * I - 1)) * cq * 1e6  # Calc delta based on Cq [MHz] and spin qunatum
+            delta = splitting[transition] * 2 * np.pi * 3 / (2 * I * (2 * I - 1)) * cq * 1e6  # Calc delta based on Cq [MHz] and spin quantum
             omegars = delta * (angleStuff[0] + angleStuff[1] + eta * (angleStuff[2] + angleStuff[3] + angleStuff[4] + angleStuff[5]))
             QTrs = np.concatenate([np.ones([angleStuff[0].shape[0], 1]), np.exp(-1j * np.cumsum(omegars, axis=1) * tresolution)[:, :-1]], 1)
             for j in range(1, int(numssb)):
@@ -3447,10 +3174,10 @@ class Quad2CzjzekParamFrame(AbstractParamFrame):
         self.numExp.currentIndexChanged.connect(self.changeNum)
         self.frame3.addWidget(self.numExp, 0, 0, 1, 2)
         self.frame3.addWidget(QLabel("d:"), 1, 0, 1, 2)
-        if self.parent.current.ppm:
+        if self.parent.current.viewSettings["ppm"]:
             axUnit = 'ppm'
         else:
-            axUnit = ['Hz', 'kHz', 'MHz'][self.parent.current.axType]
+            axUnit = ['Hz', 'kHz', 'MHz'][self.parent.current.viewSettings["axType"]]
         self.frame3.addWidget(QLabel("Pos [" + axUnit + "]:"), 1, 2, 1, 2)
         self.frame3.addWidget(QLabel(u"\u03c3 [MHz]:"), 1, 4, 1, 2)
         self.frame3.addWidget(QLabel("Integral:"), 1, 6, 1, 2)
@@ -3521,7 +3248,7 @@ class Quad2CzjzekParamFrame(AbstractParamFrame):
                 val = LF.fileTypeCheck(fullName)
                 if val[0] is not None:
                     libData = LF.loading(val[0], val[1])
-                if libData.data.ndim is not 1:
+                if libData.ndim() is not 1:
                     self.rootwindow.mainProgram.dispMsg("A spectrum in the library is not a 1D spectrum.")
                     continue
                 if not libData.spec[0]:
@@ -3529,7 +3256,7 @@ class Quad2CzjzekParamFrame(AbstractParamFrame):
                 libData.regrid([self.parent.current.xax[0], self.parent.current.xax[-1]], len(self.parent.current.xax), 0)
                 libData.fftshift(0)
                 libData.fourier(0)
-                data.append(libData.data)
+                data.append(np.real(libData.data[0]))
         cq = np.array(cq) * 1e6
         eta = np.array(eta)
         data = np.array(data)
@@ -3608,9 +3335,9 @@ class Quad2CzjzekParamFrame(AbstractParamFrame):
 #################################################################################
 
 
-def quad2CzjzekmpFit(xax, data1D, guess, args, queue, minmethod):
+def quad2CzjzekmpFit(xax, data1D, guess, args, queue, minmethod, numfeval):
     try:
-        fitVal = scipy.optimize.minimize(lambda *param: np.sum((data1D - quad2CzjzekfitFunc(param, xax, args))**2), guess, method=minmethod)
+        fitVal = scipy.optimize.minimize(lambda *param: np.sum((data1D - quad2CzjzekfitFunc(param, xax, args))**2), guess, method=minmethod, options = {'maxfev': numfeval})
     except Exception:
         fitVal = None
     queue.put(fitVal)
@@ -3680,7 +3407,10 @@ def quad2CzjzektensorFunc(sigma, d, pos, width, gauss, wq, eta, lib, freq, sw, a
         czjzek[:, 0] = 1
     else:
         czjzek = wq**(d - 1) * eta / (np.sqrt(2 * np.pi) * sigma**d) * (1 - eta**2 / 9.0) * np.exp(-wq**2 / (2.0 * sigma**2) * (1 + eta**2 / 3.0))
-    czjzek = czjzek / np.sum(czjzek)
+    if np.sum(czjzek) == 0.0: #Protect against divide by zero
+        czjzek = 0 * czjzek
+    else:
+        czjzek = czjzek / np.sum(czjzek)
     fid = np.sum(lib * czjzek[..., None], axis=(0, 1))
     t = np.arange(len(fid)) / sw
     apod = np.exp(-np.pi * np.abs(width) * t) * np.exp(-((np.pi * np.abs(gauss) * t)**2) / (4 * np.log(2)))
@@ -3723,10 +3453,7 @@ class SIMPSONDeconvWindow(TabFittingWindow):
 
 class SIMPSONDeconvFrame(FitPlotFrame):
 
-    def __init__(self, rootwindow, fig, canvas, current):
-        self.FITNUM = 1  # Maximum number of fits
-        super(SIMPSONDeconvFrame, self).__init__(rootwindow, fig, canvas, current)
-
+    FITNUM = 10  # Maximum number of fits
 
 #################################################################################
 
@@ -3754,6 +3481,10 @@ class SIMPSONDeconvParamFrame(AbstractParamFrame):
         self.frame1.addWidget(outputButton, 3, 1)
         self.commandLine = wc.QLineEdit("simpson")
         self.frame1.addWidget(self.commandLine, 4, 1)
+        self.numExp = QtWidgets.QComboBox()
+        self.numExp.addItems([str(x + 1) for x in range(self.FITNUM)])
+        self.numExp.currentIndexChanged.connect(self.changeNum)
+        self.frame3.addWidget(self.numExp, 0, 0, 1, 2)
         self.labels = {}
         self.ticks = {}
         self.entries = {}
@@ -3763,15 +3494,16 @@ class SIMPSONDeconvParamFrame(AbstractParamFrame):
 
     def txtOutputWindow(self):
         TxtOutputWindow(self.rootwindow, self.txtOutput[0], self.txtOutput[1])
-        
-    def getNumExp(self):
-        return 1
 
     def defaultValues(self, inp):
         if not inp:
             val = {}
             for name in self.MULTINAMES:
-                val[name] = np.repeat([np.array([0.0, False], dtype=object)], self.FITNUM, axis=0)
+                if name is "amp":
+                    num = 1.0
+                else:
+                    num = 0.0
+                val[name] = np.repeat([np.array([num, False], dtype=object)], self.FITNUM, axis=0)
             return val
         else:
             return inp
@@ -3788,10 +3520,13 @@ class SIMPSONDeconvParamFrame(AbstractParamFrame):
         matches = np.unique(re.findall("(@\w+)", inFile))
         self.script = inFile
         self.MULTINAMES = [e[1:] for e in matches]
+        self.MULTINAMES.insert(0, "amp")
+        self.MULTINAMES.extend(["lor", "gauss"])
         for n in self.PARAMTEXT.keys():
             self.labels[n][0].deleteLater()
-            self.ticks[n][0].deleteLater()
-            self.entries[n][0].deleteLater()
+            for i in range(self.FITNUM):
+                self.ticks[n][i].deleteLater()
+                self.entries[n][i].deleteLater()
         self.PARAMTEXT = {}
         self.labels = {}
         self.ticks = {}
@@ -3799,12 +3534,15 @@ class SIMPSONDeconvParamFrame(AbstractParamFrame):
         for i in range(len(self.MULTINAMES)):
             name = self.MULTINAMES[i]
             self.PARAMTEXT[name] = name
-            self.labels[name] = [QtWidgets.QLabel(name)]
-            self.frame3.addWidget(self.labels[name][0], i, 0)
-            self.ticks[name] = [QtWidgets.QCheckBox('')]
-            self.frame3.addWidget(self.ticks[name][0], i, 1)
-            self.entries[name] = [wc.FitQLineEdit(self, name)]
-            self.frame3.addWidget(self.entries[name][0], i, 2)
+            self.labels[name] = [QLabel(name)]
+            self.frame3.addWidget(self.labels[name][0], 1, 2*i, 1, 2)
+            self.ticks[name] = []
+            self.entries[name] = []
+            for j in range(self.FITNUM):
+                self.ticks[name].append(QtWidgets.QCheckBox(''))
+                self.frame3.addWidget(self.ticks[name][j], 2+j, 2*i)
+                self.entries[name].append(wc.FitQLineEdit(self, name))
+                self.frame3.addWidget(self.entries[name][j], 2+j, 2*i+1)
         self.reset()
 
     def getExtraParams(self, out):
@@ -3812,45 +3550,47 @@ class SIMPSONDeconvParamFrame(AbstractParamFrame):
         out["command"] = [self.commandLine.text()]
         out["script"] = [self.script]
         out["txtOutput"] = [self.txtOutput]
-        return (out, [out["nameList"][-1], out["command"][-1], out["script"][-1], out["txtOutput"][-1]])
+        out["spec"] = [self.parent.current.spec]
+        return (out, [out["nameList"][-1], out["command"][-1], out["script"][-1], out["txtOutput"][-1], out["spec"][-1]])
 
     def disp(self, params, num):
         out = params[num]
-        numExp = len(out[self.MULTINAMES[0]])
-        for i in range(numExp):
-            for name in self.MULTINAMES:
-                inp = out[name][i]
-                if isinstance(inp, tuple):
-                    inp = checkLinkTuple(inp)
-                    out[name][i] = inp[2] * params[inp[4]][inp[0]][inp[1]] + inp[3]
-                if not np.isfinite(out[name][i]):
-                    self.rootwindow.mainProgram.dispMsg("Fitting: One of the inputs is not valid")
+        if len(self.MULTINAMES) > 0: 
+            numExp = len(out[self.MULTINAMES[0]])
+            for i in range(numExp):
+                for name in self.MULTINAMES:
+                    inp = out[name][i]
+                    if isinstance(inp, tuple):
+                        inp = checkLinkTuple(inp)
+                        out[name][i] = inp[2] * params[inp[4]][inp[0]][inp[1]] + inp[3]
+                    if not np.isfinite(out[name][i]):
+                        self.rootwindow.mainProgram.dispMsg("Fitting: One of the inputs is not valid")
+                        return
+            tmpx = self.parent.xax
+            outCurveBase = np.zeros(len(tmpx))
+            outCurve = outCurveBase.copy()
+            outCurvePart = []
+            x = []
+            for i in range(numExp):
+                x.append(tmpx)
+                inputPar = {}
+                for name in self.MULTINAMES:
+                    inputPar[name] = out[name][i]
+                y = SIMPSONRunScript(out["command"][0], out["script"][0], inputPar, tmpx, out["txtOutput"][0], out["spec"][0])
+                if y is None:
+                    self.rootwindow.mainProgram.dispMsg("Fitting: The script didn't output anything", 'red')
                     return
-        tmpx = self.parent.xax
-        outCurveBase = np.zeros(len(tmpx))
-        outCurve = outCurveBase.copy()
-        outCurvePart = []
-        x = []
-        for i in range(len(out[self.MULTINAMES[0]])):
-            x.append(tmpx)
-            inputPar = {}
-            for name in self.MULTINAMES:
-                inputPar[name] = out[name][0]
-            y = SIMPSONRunScript(out["command"][0], out["script"][0], inputPar, tmpx, out["txtOutput"][0])
-            if y is None:
-                self.rootwindow.mainProgram.dispMsg("Fitting: The script didn't output anything", 'red')
-                return
-            outCurvePart.append(outCurveBase + y)
-            outCurve += y
-        self.parent.fitDataList[tuple(self.parent.locList)] = [tmpx, outCurve, x, outCurvePart]
-        self.parent.showFid()
+                outCurvePart.append(outCurveBase + y)
+                outCurve += y
+            self.parent.fitDataList[tuple(self.parent.locList)] = [tmpx, outCurve, x, outCurvePart]
+            self.parent.showFid()
 
 ##############################################################################
 
 
-def SIMPSONDeconvmpFit(xax, data1D, guess, args, queue, minmethod):
+def SIMPSONDeconvmpFit(xax, data1D, guess, args, queue, minmethod, numfeval):
     try:
-        fitVal = scipy.optimize.minimize(lambda *param: np.sum((data1D - SIMPSONDeconvfitFunc(param, xax, args))**2), guess, method=minmethod)
+        fitVal = scipy.optimize.minimize(lambda *param: np.sum((data1D - SIMPSONDeconvfitFunc(param, xax, args))**2), guess, method=minmethod, options = {'maxfev': numfeval})
     except Exception:
         fitVal = None
     queue.put(fitVal)
@@ -3880,6 +3620,7 @@ def SIMPSONDeconvfitFunc(params, allX, args):
         command = argu[-1][1]
         script = argu[-1][2]
         txtOutput = argu[-1][3]
+        spec = argu[-1][4]
         parameters = {}
         for i in range(numExp):
             for name in nameList:
@@ -3894,12 +3635,14 @@ def SIMPSONDeconvfitFunc(params, allX, args):
                         parameters[name] = altStruc[2] * allParam[altStruc[4]][strucTarget[altStruc[0]][altStruc[1]][1]] + altStruc[3]
                     elif strucTarget[altStruc[0]][altStruc[1]][0] == 0:
                         parameters[name] = altStruc[2] * allArgu[altStruc[4]][strucTarget[altStruc[0]][altStruc[1]][1]] + altStruc[3]
-            testFunc += SIMPSONRunScript(command, script, parameters, x, txtOutput)
+            testFunc += SIMPSONRunScript(command, script, parameters, x, txtOutput, spec)
         fullTestFunc = np.append(fullTestFunc, testFunc)
     return fullTestFunc
 
 
-def SIMPSONRunScript(command, script, parameters, xax, output=None):
+def SIMPSONRunScript(command, script, parameters, xax, output=None, spec=True):
+    if script is None:
+        return None
     for elem in parameters.keys():
         script = script.replace('@' + elem, str(parameters[elem]))
     directory_name = tempfile.mkdtemp()
@@ -3924,9 +3667,13 @@ def SIMPSONRunScript(command, script, parameters, xax, output=None):
     else:
         shutil.rmtree(directory_name, ignore_errors=True)
         return None
+    masterData.noUndo = True
+    masterData.apodize(parameters["lor"], parameters["gauss"], 0, 0, 0, 0, 0, 0)
+    if masterData.spec[0] != spec:
+        masterData.fourier(0)
     masterData.regrid([xax[0], xax[-1]], len(xax), 0)
     shutil.rmtree(directory_name, ignore_errors=True)
-    return np.real(masterData.data)
+    return parameters["amp"] * np.real(masterData.data[0])
 
 
 class TxtOutputWindow(wc.ToolWindows):
@@ -3942,12 +3689,220 @@ class TxtOutputWindow(wc.ToolWindows):
         self.valEntry = QtWidgets.QTextEdit()
         self.valEntry.setReadOnly(True)
         self.valEntry.setLineWrapMode(QtWidgets.QTextEdit.NoWrap)
-        self.valEntry.setText(txt)
+        self.valEntry.setText(txt.decode())
         self.grid.addWidget(self.valEntry, 2, 0)
         self.grid.addWidget(QtWidgets.QLabel("Errors:"), 3, 0)
         self.errEntry = QtWidgets.QTextEdit()
         self.errEntry.setReadOnly(True)
         self.errEntry.setLineWrapMode(QtWidgets.QTextEdit.NoWrap)
-        self.errEntry.setText(errTxt)
+        self.errEntry.setText(errTxt.decode())
         self.grid.addWidget(self.errEntry, 4, 0)
         self.resize(550, 700)
+
+
+#################################################################################
+
+
+class FunctionFitWindow(TabFittingWindow):
+
+    def __init__(self, mainProgram, oldMainWindow):
+        self.CURRENTWINDOW = FunctionFitFrame
+        self.PARAMFRAME = FunctionFitParamFrame
+        super(FunctionFitWindow, self).__init__(mainProgram, oldMainWindow)
+
+#################################################################################
+
+
+class FunctionFitFrame(FitPlotFrame):
+
+    FITNUM = 10  # Maximum number of fits
+
+#################################################################################
+
+
+class FunctionFitParamFrame(AbstractParamFrame):
+
+    def __init__(self, parent, rootwindow, isMain=True):
+        self.SINGLENAMES = []
+        self.MULTINAMES = []
+        self.PARAMTEXT = {}
+        self.numExp = QtWidgets.QComboBox()
+        self.function = ""
+        self.FITFUNC = functionmpFit
+        super(FunctionFitParamFrame, self).__init__(parent, rootwindow, isMain)
+        resetButton = QtWidgets.QPushButton("Reset")
+        resetButton.clicked.connect(self.reset)
+        self.frame1.addWidget(resetButton, 1, 1)
+        functionButton = QtWidgets.QPushButton("Input Function")
+        functionButton.clicked.connect(self.functionInput)
+        self.frame1.addWidget(functionButton, 2, 1)
+        self.numExp = QtWidgets.QComboBox()
+        self.numExp.addItems([str(x + 1) for x in range(self.FITNUM)])
+        self.numExp.currentIndexChanged.connect(self.changeNum)
+        self.frame3.addWidget(self.numExp, 0, 0, 1, 2)
+        self.labels = {}
+        self.ticks = {}
+        self.entries = {}
+        self.frame3.setColumnStretch(20, 1)
+        self.frame3.setAlignment(QtCore.Qt.AlignTop)
+        self.reset()
+
+    def defaultValues(self, inp):
+        if not inp:
+            val = {}
+            for name in self.MULTINAMES:
+                val[name] = np.repeat([np.array([0.0, False], dtype=object)], self.FITNUM, axis=0)
+            return val
+        else:
+            return inp
+
+    def reset(self):
+        locList = tuple(self.parent.locList)
+        self.fitParamList[locList] = self.defaultValues(0)
+        self.dispParams()
+
+    def functionInput(self):
+        FunctionInputWindow(self, self.function)
+
+    def functionInputSetup(self):
+        matches = np.unique(re.findall("(@\w+)", self.function))
+        self.MULTINAMES = [e[1:] for e in matches]
+        for n in self.PARAMTEXT.keys():
+            self.labels[n][0].deleteLater()
+            for i in range(self.FITNUM):
+                self.ticks[n][i].deleteLater()
+                self.entries[n][i].deleteLater()
+        self.PARAMTEXT = {}
+        self.labels = {}
+        self.ticks = {}
+        self.entries = {}
+        for i in range(len(self.MULTINAMES)):
+            name = self.MULTINAMES[i]
+            self.PARAMTEXT[name] = name
+            self.labels[name] = [QLabel(name)]
+            self.frame3.addWidget(self.labels[name][0], 1, 2*i, 1, 2)
+            self.ticks[name] = []
+            self.entries[name] = []
+            for j in range(self.FITNUM):
+                self.ticks[name].append(QtWidgets.QCheckBox(''))
+                self.frame3.addWidget(self.ticks[name][j], 2+j, 2*i)
+                self.entries[name].append(wc.FitQLineEdit(self, name))
+                self.frame3.addWidget(self.entries[name][j], 2+j, 2*i+1)
+        self.reset()
+
+    def getExtraParams(self, out):
+        out["nameList"] = [self.MULTINAMES]
+        out["function"] = [self.function]
+        return (out, [out["nameList"][-1], out["function"][-1]])
+
+    def disp(self, params, num):
+        out = params[num]
+        if len(self.MULTINAMES) > 0: #If there are elements
+            numExp = len(out[self.MULTINAMES[0]])
+            for i in range(numExp):
+                for name in self.MULTINAMES:
+                    inp = out[name][i]
+                    if isinstance(inp, tuple):
+                        inp = checkLinkTuple(inp)
+                        out[name][i] = inp[2] * params[inp[4]][inp[0]][inp[1]] + inp[3]
+                    if not np.isfinite(out[name][i]):
+                        self.rootwindow.mainProgram.dispMsg("Fitting: One of the inputs is not valid")
+                        return
+            tmpx = self.parent.xax
+            outCurveBase = np.zeros(len(tmpx))
+            outCurve = outCurveBase.copy()
+            outCurvePart = []
+            x = []
+            for i in range(numExp):
+                x.append(tmpx)
+                inputPar = {}
+                for name in self.MULTINAMES:
+                    inputPar[name] = out[name][i]
+                y = functionRun(out["function"][0], inputPar, tmpx)
+                if y is None:
+                    self.rootwindow.mainProgram.dispMsg("Fitting: The script didn't output anything", 'red')
+                    return
+                outCurvePart.append(outCurveBase + y)
+                outCurve += y
+            self.parent.fitDataList[tuple(self.parent.locList)] = [tmpx, outCurve, x, outCurvePart]
+            self.parent.showFid()
+
+##############################################################################
+
+
+def functionmpFit(xax, data1D, guess, args, queue, minmethod, numfeval):
+    try:
+        fitVal = scipy.optimize.minimize(lambda *param: np.sum((data1D - functionfitFunc(param, xax, args))**2), guess, method=minmethod, options = {'maxfev': numfeval})
+    except Exception:
+        fitVal = None
+    queue.put(fitVal)
+
+
+def functionfitFunc(params, allX, args):
+    params = params[0]
+    specName = args[0]
+    specSlices = args[1]
+    allParam = []
+    for length in specSlices:
+        allParam.append(params[length])
+    allStruc = args[3]
+    allArgu = args[4]
+    fullTestFunc = []
+    for n in range(len(allX)):
+        x = allX[n]
+        testFunc = np.zeros(len(x))
+        param = allParam[n]
+        numExp = args[2][n]
+        struc = args[3][n]
+        argu = args[4][n]
+        sw = args[5][n]
+        axAdd = args[6][n]
+        axMult = args[7][n]
+        nameList = argu[-1][0]
+        function = argu[-1][1]
+        parameters = {}
+        for i in range(numExp):
+            for name in nameList:
+                if struc[name][i][0] == 1:
+                    parameters[name] = param[struc[name][i][1]]
+                elif struc[name][i][0] == 0:
+                    parameters[name] = argu[struc[name][i][1]]
+                else:
+                    altStruc = struc[name][i][1]
+                    strucTarget = allStruc[altStruc[4]]
+                    if strucTarget[altStruc[0]][altStruc[1]][0] == 1:
+                        parameters[name] = altStruc[2] * allParam[altStruc[4]][strucTarget[altStruc[0]][altStruc[1]][1]] + altStruc[3]
+                    elif strucTarget[altStruc[0]][altStruc[1]][0] == 0:
+                        parameters[name] = altStruc[2] * allArgu[altStruc[4]][strucTarget[altStruc[0]][altStruc[1]][1]] + altStruc[3]
+            testFunc += functionRun(function, parameters, x)
+        fullTestFunc = np.append(fullTestFunc, testFunc)
+    return fullTestFunc
+
+
+def functionRun(function, parameters, xax):
+    for elem in parameters.keys():
+        function = function.replace('@' + elem, str(parameters[elem]))
+    return safeEval(function, length=len(xax), x=xax)
+
+
+class FunctionInputWindow(wc.ToolWindows):
+
+    NAME = "Fitting Function"
+    RESIZABLE = True
+    MENUDISABLE = False
+
+    def __init__(self, parent, txt):
+        super(FunctionInputWindow, self).__init__(parent)
+        self.grid.addWidget(QtWidgets.QLabel("Function:"), 1, 0)
+        self.valEntry = QtWidgets.QTextEdit()
+        self.valEntry.setLineWrapMode(QtWidgets.QTextEdit.NoWrap)
+        self.valEntry.setText(txt)
+        self.grid.addWidget(self.valEntry, 2, 0)
+        self.resize(550, 400)
+
+    def applyFunc(self):
+        self.father.function = self.valEntry.toPlainText()
+        self.father.functionInputSetup()
+
+    def closeEvent(self, *args):
+        self.deleteLater()

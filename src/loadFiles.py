@@ -94,7 +94,7 @@ def fileTypeCheck(filePath):
         return (0, direc, returnVal)
     elif os.path.exists(direc + os.path.sep + 'acqus') and (os.path.exists(direc + os.path.sep + 'fid') or os.path.exists(direc + os.path.sep + 'ser')):
         return (1, direc, returnVal)
-    elif os.path.exists(direc + os.path.sep + 'procs') and (os.path.exists(direc + os.path.sep + '1r') or os.path.exists(direc + os.path.sep + '2rr')):
+    elif os.path.exists(direc + os.path.sep + 'procs') and (os.path.exists(direc + os.path.sep + '1r') or os.path.exists(direc + os.path.sep + '2rr') or os.path.exists(direc + os.path.sep + '3rrr')):
         return (7, direc, returnVal)
     elif os.path.exists(direc + os.path.sep + 'acq') and os.path.exists(direc + os.path.sep + 'data'):
         return (2, direc, returnVal)
@@ -117,117 +117,70 @@ def loadVarianFile(filePath, name=''):
         Dir = os.path.dirname(filePath)
     else:
         Dir = filePath
-    freq = 0
-    sw = 1
-    sw1 = 1
-    freq1 = 0  # intialize second dimension freqency as 0
     if os.path.exists(Dir + os.path.sep + 'procpar'):
         file = Dir + os.path.sep + 'procpar'
     elif os.path.exists(Dir + os.path.sep + '..' + os.path.sep + 'procpar'):
         file = Dir + os.path.sep + '..' + os.path.sep + 'procpar'
     else:
         file = None
+
+    Out = [0,1,1,0,0,0,0,0] 
+    indirectRef = 'dfrq'
     if file is not None:
         with open(file, 'r') as f:
             data = f.read().split('\n')
-        indirectRef = ''
-        for s in range(0, len(data)):
-            if data[s].startswith('sfrq '):
-                freq = float(data[s + 1].split()[1]) * 1e6
-            elif data[s].startswith('refsource1 '):
+        for s in range(0, len(data)): #First check indirect ref name
+            if data[s].startswith('refsource1' + " "):
                 indirectRef = data[s + 1].split()[1][1:-1]
-            elif data[s].startswith('sw '):
-                sw = float(data[s + 1].split()[1])
-            elif data[s].startswith('sw1 '):
-                sw1 = float(data[s + 1].split()[1])
-            elif data[s].startswith('reffrq '):
-                reffreq = float(data[s + 1].split()[1]) * 1e6
-            elif data[s].startswith('reffrq1 '):
-                reffreq1 = float(data[s + 1].split()[1]) * 1e6
-            elif data[s].startswith('phfid '):
-                if int(data[s].split()[-2]):  # if on
-                    phfid = float(data[s + 1].split()[1])
-                else:
-                    phfid = 0
-            elif data[s].startswith('rp '):
-                rp = float(data[s + 1].split()[1])
-        if indirectRef:
-            for s in range(0, len(data)):  # Extra loop to get freq in indirect dimension
-                if data[s].startswith(indirectRef + " "):
-                    freq1 = float(data[s + 1].split()[1]) * 1e6
+
+        f, fM, S = lambda x: float(x), lambda x: float(x) * 1e6, lambda x: x
+        Elem = [['sfrq', fM],['sw', f],['sw1', f],['reffrq',fM],['reffrq1',fM],['rp',f],['phfid',f],[indirectRef,fM]]
+        for s in range(0, len(data)):
+            for index in range(len(Elem)):
+                if data[s].startswith(Elem[index][0] + ' '):
+                   Out[index] = Elem[index][1]((data[s + 1].split()[1]))
+            #elif data[s].startswith('phfid '):
+            #    if int(data[s].split()[-2]): #if on
+            #        phfid = float(data[s + 1].split()[1]) 
+    freq, sw, sw1, reffreq, reffreq1, rp, phfid, freq1 = Out 
+
     if os.path.exists(Dir + os.path.sep + 'fid'):
-        datafile = Dir + os.path.sep + 'fid'
-        filePath = datafile
+        filePath = Dir + os.path.sep + 'fid'
     elif os.path.exists(Dir + os.path.sep + 'data'):
-        datafile = Dir + os.path.sep + 'data'
-        filePath = datafile
-    with open(datafile, "rb") as f:
-        raw = np.fromfile(f, np.int32, 6)
-        nblocks = unpack('>l', raw[0])[0]
-        ntraces = unpack('>l', raw[1])[0]
-        npoints = unpack('>l', raw[2])[0]
-        ebytes = unpack('>l', raw[3])[0]
-        tbytes = unpack('>l', raw[4])[0]
-        bbytes = unpack('>l', raw[5])[0]
-        raw = np.fromfile(f, np.int16, 2)
-        vers_id = unpack('>h', raw[0])[0]
-        status = unpack('>h', raw[1])[0]
-        spec = bool(int(bin(status)[-2]))
-        raw = np.fromfile(f, np.int32, 1)
-        nbheaders = unpack('>l', raw[0])[0]
+        filePath = Dir + os.path.sep + 'data'
+
+    with open(filePath, "rb") as f:
+        nblocks, ntraces, npoints, ebytes, tbytes, bbytes  = np.fromfile(f, np.int32, 6).newbyteorder('>l')
+        status = np.fromfile(f, np.int16, 2).newbyteorder('>h')[1]
+        status = '{0:016b}'.format(status)[::-1] #send to zeropadded string, and put order correct
+        spec, fid32, fidfloat, hypercomplex, flipped = np.array([bool(int(x)) for x in status])[[1,2,3,5,9]]
+        nbheaders = np.fromfile(f, np.int32, 1).newbyteorder('>l')[0]
         SizeTD2 = npoints
         SizeTD1 = nblocks * ntraces
-        a = []
-        fid32 = int(bin(status)[-3])
-        fidfloat = int(bin(status)[-4])
-        hypercomplex = bool(bin(status)[-5])
-        if not fid32 and fidfloat:  # only for `newest' format, use fast routine
-            flipped = bool(bin(status)[-10])
-            totalpoints = (ntraces * npoints + nbheaders**2 * 7) * nblocks
-            raw = np.fromfile(f, np.float32, totalpoints)
-            a = raw.newbyteorder('>f')
-#                print(bin(status)[-10])
-            if not spec or (spec and not hypercomplex):
-                a = a.reshape(nblocks, int(totalpoints / nblocks))
-                a = a[:, 7::]
-                fid = a[:, ::2] - 1j * a[:, 1::2]
+
+        if fidfloat:
+            bitType = ['>f', np.float32, 7] # [bitorder, read as, number of elements in nbheader]
+        else:
+            if fid32:
+                bitType = ['>l', np.int32, 7]
             else:
-                fid = a[nbheaders * 7::4] - 1j * a[nbheaders * 7 + 1::4]
-                fid = fid.reshape(int(SizeTD1 / 4), SizeTD2)
-                if flipped:
-                    fid = np.fliplr(fid)
-        elif fid32 and not fidfloat:  # for VNMRJ 2 data
-            totalpoints = (ntraces * npoints + nbheaders**2 * 7) * nblocks
-            raw = np.fromfile(f, np.int32, totalpoints)
-            a = raw.newbyteorder('>l')
-            a = a.reshape(nblocks, int(totalpoints / nblocks))
-            a = a[:, 7::]
-            fid = a[:, ::2] - 1j * a[:, 1::2]
-        else:  # use slow, but robust routine
-            for iter1 in range(0, nblocks):
-                b = []
-                for iter2 in range(0, nbheaders):
-                    raw = np.fromfile(f, np.int16, nbheaders * 14)
-                if not fid32 and not fidfloat:
-                    raw = np.fromfile(f, np.int16, ntraces * npoints)
-                    for iter3 in raw:
-                        b.append(unpack('>h', iter3)[0])
-                elif fid32 and not fidfloat:
-                    raw = np.fromfile(f, np.int32, ntraces * npoints)
-                    for iter3 in raw:
-                        b.append(unpack('>l', iter3)[0])
-                else:
-                    raw = np.fromfile(f, np.float32, ntraces * npoints)
-                    for iter3 in raw:
-                        b.append(unpack('>f', iter3)[0])
-                b = np.array(b)
-                if(len(b) != ntraces * npoints):
-                    b.append(np.zeros(ntraces * npoints - len(b)))
-                a.append(b)
-            a = np.complex128(a)
-            fid = a[:, ::2] - 1j * a[:, 1::2]
-    fid = fid * np.exp((rp + phfid) / 180 * np.pi * 1j)  # apply zero order phase
-    if SizeTD1 is 1:
+                bitType = ['>h', np.int16, 14]
+
+        totalpoints = (ntraces * npoints + nbheaders**2 * bitType[2])*nblocks
+        fid = np.fromfile(f, bitType[1], totalpoints).newbyteorder(bitType[0]).astype(np.complex128)
+
+        if not spec or (spec and not hypercomplex):
+            fid = fid.reshape(nblocks, int(totalpoints / nblocks))
+            fid = fid[:, bitType[2]::] #Cut off block headers
+            fid = fid[:, ::2] - 1j * fid[:, 1::2]
+        else:
+            fid = fid[nbheaders * bitType[2]::4] - 1j * fid[nbheaders * bitType[2] + 1::4]
+            fid = fid.reshape(int(SizeTD1 / 4), SizeTD2)
+            if flipped:
+                fid = np.fliplr(fid)
+    if spec == 0:
+        fid = fid * np.exp((rp + phfid) / 180 * np.pi * 1j)  # apply zero order phase
+    if SizeTD1 == 1:
         fid = fid[0][:]
         if spec:  # flip if spectrum
             fid = np.flipud(fid)
@@ -388,7 +341,20 @@ def loadJSONFile(filePath, name=''):
     import json
     with open(filePath, 'r') as inputfile:
         struct = json.load(inputfile)
-    data = np.array(struct['dataReal']) + 1j * np.array(struct['dataImag'])
+    
+    hyper = None
+    try: #Try to get the hyper list (if works: new data definition)
+        hyper = list(struct['hyper'])
+        data = []
+        tmpReal = struct['dataReal']
+        tmpImag = struct['dataImag']
+        
+        for index in range(len(tmpReal)):
+             data.append(np.array(tmpReal[index])+ 1j * np.array(tmpImag[index]))
+    except:
+        hyper = None
+        data = [np.array(struct['dataReal']) + 1j * np.array(struct['dataImag'])]
+
     ref = np.where(np.isnan(struct['ref']), None, struct['ref'])
     if 'history' in struct.keys():
         history = struct['history']
@@ -404,6 +370,7 @@ def loadJSONFile(filePath, name=''):
                              list(struct['sw']),
                              list(struct['spec']),
                              list(np.array(struct['wholeEcho'], dtype=bool)),
+                             hyper,
                              list(ref),
                              xaxA,
                              history=history)
@@ -420,12 +387,25 @@ def loadMatlabFile(filePath, name=''):
         matlabStruct = scipy.io.loadmat(filePath)
         var = [k for k in matlabStruct.keys() if not k.startswith('__')][0]
         mat = matlabStruct[var]
+        try:
+            hyper = list(mat['hyper'][0,0])
+            if len(hyper) > 0:
+                hyper = list(hyper[0])
+        except:
+            hyper = None
+        data = []
         if mat['dim'] == 1:
-            data = mat['data'][0, 0][0]
+            if hyper is None:
+                data = [np.array(mat['data'][0][0][0])]
+            else:
+                data = list(np.array(mat['data'][0][0]))
             xaxA = [k[0] for k in (mat['xaxArray'][0])]
         else:
-            data = mat['data'][0, 0]
-            if all(x == data.shape[0] for x in data.shape):
+            if hyper is None: #If old format
+                data = [np.array(mat['data'][0, 0])]
+            else: #If new format
+                data = list(np.array(mat['data'][0][0]))
+            if all(x == data[0].shape[0] for x in data[0].shape):
                 xaxA = [k for k in (mat['xaxArray'][0, 0])]
             else:
                 xaxA = [k[0] for k in (mat['xaxArray'][0, 0][0])]
@@ -443,6 +423,7 @@ def loadMatlabFile(filePath, name=''):
                                  list(mat['sw'][0, 0][0]),
                                  list(mat['spec'][0, 0][0]),
                                  list(np.array(mat['wholeEcho'][0, 0][0]) > 0),
+                                 hyper,
                                  list(ref),
                                  xaxA,
                                  history=history)
@@ -455,16 +436,35 @@ def loadMatlabFile(filePath, name=''):
         for name in f:
             if name != '#refs#':
                 Groups.append(name)
-        DataGroup = Groups[0]  # get the groupo name
+        DataGroup = Groups[0]  # get the group name
         mat = f[DataGroup]
+        try:
+            hyper = list(np.array(mat['hyper']))
+            if hyper == [0,0]:
+                hyper = []
+            else:
+                hyper = list(hyper[0])
+        except:
+            hyper = None
+
         if np.array(mat['dim'])[0][0] == 1:
             xaxA = list([np.array(mat['xaxArray'])[:, 0]])
-            data = np.array(mat['data'])
-            data = (data['real'] + data['imag'] * 1j)[:, 0]  # split and use real and imag part
+            if hyper is None: #Old data format
+                data = np.array(mat['data'])
+                data = [(data['real'] + data['imag'] * 1j)[:, 0]]  # split and use real and imag part
+            else: #New format (hypercomplex)
+                data = np.transpose(np.array(mat['data']))
+                data = list(data['real'] + data['imag'] * 1j)
         else:
-            data = np.transpose(np.array(mat['data']))
-            data = data['real'] + data['imag'] * 1j
-            if all(x == data.shape[0] for x in data.shape):
+            if hyper is None:
+                data = np.transpose(np.array(mat['data']))
+                data = [data['real'] + data['imag'] * 1j]
+            else:
+                tmp = np.transpose(np.array(mat['data']))
+                data = []
+                for index in range(tmp.shape[0]):
+                    data.append(tmp['real'][index] + tmp['imag'][index] * 1j)
+            if all(x == data[0].shape[0] for x in data[0].shape):
                 xaxA = [np.array(mat[k]) for k in (mat['xaxArray'])]
             else:
                 xaxA = [np.array(mat[k[0]]) for k in (mat['xaxArray'])]
@@ -483,6 +483,7 @@ def loadMatlabFile(filePath, name=''):
                                  list(np.array(mat['sw'])[:, 0]),
                                  list(np.array(mat['spec'])[:, 0]),
                                  list(np.array(mat['wholeEcho'])[:, 0] > 0),
+                                 hyper,
                                  list(ref),
                                  xaxA,
                                  history=history)
@@ -495,50 +496,54 @@ def loadBrukerTopspin(filePath, name=''):
         Dir = os.path.dirname(filePath)
     else:
         Dir = filePath
-    if os.path.exists(Dir + os.path.sep + 'acqus'):
-        with open(Dir + os.path.sep + 'acqus', 'r') as f:
-            data = f.read().split('\n')
-        for s in range(0, len(data)):
-            if data[s].startswith('##$TD='):
-                sizeTD2 = int(data[s][6:])
-            if data[s].startswith('##$SFO1='):
-                freq2 = float(data[s][8:]) * 1e6
-            if data[s].startswith('##$SW_h='):
-                SW2 = float(data[s][8:])
-            if data[s].startswith('##$BYTORDA='):
-                ByteOrder = int(data[s][11:])
-    sizeTD1 = 1
-    if os.path.exists(Dir + os.path.sep + 'acqu2s'):
-        with open(Dir + os.path.sep + 'acqu2s', 'r') as f:
-            data2 = f.read().split('\n')
-        SW1 = 10e3  # pre initialize
-        for s in range(0, len(data2)):
-            if data2[s].startswith('##$TD='):
-                sizeTD1 = int(data2[s][6:])
-            if data2[s].startswith('##$SFO1='):
-                freq1 = float(data2[s][8:]) * 1e6
-            if data2[s].startswith('##$SW_h='):
-                SW1 = float(data2[s][8:])
-    if os.path.exists(Dir + os.path.sep + 'fid'):
-        filePath = Dir + os.path.sep + 'fid'
-        with open(Dir + os.path.sep + 'fid', "rb") as f:
-            raw = np.fromfile(f, np.int32, sizeTD1 * sizeTD2)
-    elif os.path.exists(Dir + os.path.sep + 'ser'):
-        filePath = Dir + os.path.sep + 'ser'
-        with open(Dir + os.path.sep + 'ser', "rb") as f:
-            raw = np.fromfile(f, np.int32, sizeTD1 * int(np.ceil(sizeTD2 / 256)) * 256)  # Always load full 1024 byte blocks (256 data points)
-    if ByteOrder:
-        RawInt = raw.newbyteorder('b')
-    else:
-        RawInt = raw.newbyteorder('l')
-    ComplexData = np.array(RawInt[0:len(RawInt):2]) + 1j * np.array(RawInt[1:len(RawInt):2])
+    SW, SIZE, FREQ, REF = [], [], [], []
+    for elem in ['acqus','acqu2s','acqu3s']:
+        if os.path.exists(Dir + os.path.sep + elem):
+            with open(Dir + os.path.sep + elem, 'r') as f:
+                data = f.read().split('\n')
+            SW.append(10e3) #pre initialize
+            for s in range(0, len(data)):
+                if data[s].startswith('##$TD='):
+                    SIZE.append(int(data[s][6:]))
+                if data[s].startswith('##$SFO1='):
+                    FREQ.append(float(data[s][8:]) * 1e6)
+                if data[s].startswith('##$SW_h='):
+                    SW[-1] = float(data[s][8:])
+                if data[s].startswith('##$O1='):
+                    REF.append(float(data[s][6:]))
+                if elem == 'acqus':
+                    if data[s].startswith('##$BYTORDA='):
+                        if int(data[s][11:]) == 1:
+                            ByteOrder = 'b'
+                        else:
+                            ByteOrder = 'l'
+    REF = list(- np.array(REF) + np.array(FREQ))
+
+    totsize = np.cumprod(SIZE)[-1]
+    dim = len(SIZE)
+    loadsize = totsize
+    files = ['fid','ser']
+    directSize = int(np.ceil(float(SIZE[0]) / 256)) * 256 #Size of direct dimension including
+    #blocking size of 256 data points
+    for file in files:
+        if os.path.exists(Dir + os.path.sep + file):
+            if file == 'ser':
+                loadsize = int(totsize / SIZE[0]) * directSize #Always load full 1024 byte blocks (256 data points) for >1D
+            with open(Dir + os.path.sep + file, "rb") as f:
+                raw = np.fromfile(f, np.int32, loadsize)
+            raw = raw.newbyteorder(ByteOrder)
+            
+    ComplexData = np.array(raw[0:len(raw):2]) + 1j * np.array(raw[1:len(raw):2])
     spec = [False]
-    if sizeTD1 is 1:
-        masterData = sc.Spectrum(name, ComplexData, (1, filePath), [freq2], [SW2], spec)
-    else:
-        ComplexData = ComplexData.reshape(sizeTD1, int(np.ceil(sizeTD2 / 256) * 256 / 2))
-        ComplexData = ComplexData[:, 0:int(sizeTD2 / 2)]  # Cut off placeholder data
-        masterData = sc.Spectrum(name, ComplexData, (1, filePath), [freq1, freq2], [SW1, SW2], spec * 2)
+    if len(SIZE) >= 2:
+        newSize = list(SIZE)
+        newSize[0] = int(directSize / 2)
+        ComplexData = ComplexData.reshape(*newSize[-1::-1])
+    if len(SIZE) == 2:
+        ComplexData = ComplexData[:,0:int(SIZE[0]/2)] #Cut off placeholder data
+    elif len(SIZE) == 3:
+        ComplexData = ComplexData[:,:,0:int(SIZE[0]/2)] #Cut off placeholder data
+    masterData = sc.Spectrum(name, ComplexData, (1, filePath), FREQ[-1::-1], SW[-1::-1], spec * dim, ref = REF[-1::-1])
     masterData.addHistory("Bruker data loaded from " + filePath)
     return masterData
 
@@ -548,79 +553,75 @@ def loadBrukerSpectrum(filePath, name=''):
         Dir = os.path.dirname(filePath)
     else:
         Dir = filePath
-    if os.path.exists(Dir + os.path.sep + 'procs'):  # Get D2 parameters
-        with open(Dir + os.path.sep + 'procs', 'r') as f:
-            data = f.read().split('\n')
-        for s in range(0, len(data)):
-            if data[s].startswith('##$SI='):
-                sizeTD2 = int(re.findall("\#\#\$SI= (.*.)", data[s])[0])
-#                if data[s].startswith('##$XDIM='):
-#                    blockingD2 = int(data[s][8:])
-            if data[s].startswith('##$BYTORDP='):
-                ByteOrder = int(data[s][11:])
-            if data[s].startswith('##$SW_p='):
-                SW2 = float(data[s][8:])
-            if data[s].startswith('##$SF='):
-                Ref2 = float(data[s][6:]) * 1e6
-    freq2 = 0
-    if os.path.exists(Dir + os.path.sep + '..' + os.path.sep + '..' + os.path.sep + 'acqus'):  # Get D2 parameters from fid directory, if available
-        with open(Dir + os.path.sep + '..' + os.path.sep + '..' + os.path.sep + 'acqus', 'r') as f:
-            data = f.read().split('\n')
-        for s in range(0, len(data)):
-            if data[s].startswith('##$SFO1='):
-                freq2 = float(data[s][8:]) * 1e6
-    sizeTD1 = 1
-    if os.path.exists(Dir + os.path.sep + 'proc2s'):  # Get D1 parameters
-        with open(Dir + os.path.sep + 'proc2s', 'r') as f:
-            data2 = f.read().split('\n')
-        for s in range(0, len(data2)):
-            if data2[s].startswith('##$SI='):
-                sizeTD1 = int(data2[s][6:])
-#                if data2[s].startswith('##$XDIM='):
-#                    blockingD1 = int(data[s][8:])
-            if data2[s].startswith('##$SW_p='):
-                SW1 = float(data2[s][8:])
-            if data2[s].startswith('##$SF='):
-                Ref1 = float(data2[s][6:]) * 1e6
-    freq1 = 0
-    if os.path.exists(Dir + os.path.sep + '..' + os.path.sep + '..' + os.path.sep + 'acqu2s'):  # Get D1 parameters from fid directory, if available
-        with open(Dir + os.path.sep + '..' + os.path.sep + '..' + os.path.sep + 'acqu2s', 'r') as f:
-            data = f.read().split('\n')
-        for s in range(0, len(data)):
-            if data[s].startswith('##$SFO1='):
-                freq1 = float(data[s][8:]) * 1e6
-    if os.path.exists(Dir + os.path.sep + '1r'):  # Get D2 data
-        filePath = Dir + os.path.sep + '1r'
-        with open(Dir + os.path.sep + '1r', "rb") as f:
-            RawReal = np.fromfile(f, np.int32, sizeTD1 * sizeTD2)
-        RawImag = np.zeros([sizeTD1 * sizeTD2])
-        if os.path.exists(Dir + os.path.sep + '1i'):
-            with open(Dir + os.path.sep + '1i', "rb") as f:
-                RawImag = np.fromfile(f, np.int32, sizeTD1 * sizeTD2)
-    elif os.path.exists(Dir + os.path.sep + '2rr'):  # Get D1 data
-        filePath = Dir + os.path.sep + '2rr'
-        with open(Dir + os.path.sep + '2rr', "rb") as f:
-            RawReal = np.fromfile(f, np.int32, sizeTD1 * sizeTD2)
-        RawImag = np.zeros([sizeTD1 * sizeTD2])
-        if os.path.exists(Dir + os.path.sep + '2ir'):  # If hypercomplex
-            with open(Dir + os.path.sep + '2ir', "rb") as f:
-                RawImag = np.fromfile(f, np.int32, sizeTD1 * sizeTD2)
-        elif os.path.exists(Dir + os.path.sep + '2ii'):
-            with open(Dir + os.path.sep + '2ii', "rb") as f:
-                RawImag = np.fromfile(f, np.int32, sizeTD1 * sizeTD2)
-    if ByteOrder:
-        RawReal = RawReal.newbyteorder('b')
-        RawImag = RawImag.newbyteorder('b')
-    else:
-        RawReal = RawReal.newbyteorder('l')
-        RawImag = RawImag.newbyteorder('l')
-    Data = np.flipud(RawReal) - 1j * np.flipud(RawImag)
+    SIZE = []
+    SW = []
+    REF = []
+    FREQ = []
+    OFFSET = [] #The highest ppm values of the axis
+    XDIM = [] #The blocking size along an axis
+    files = ['procs','proc2s','proc3s']
+    for file in files:
+        if os.path.exists(Dir + os.path.sep + file):  # Get D2 parameters
+            with open(Dir + os.path.sep + file, 'r') as f:
+                data = f.read().split('\n')
+            for s in range(0, len(data)):
+                if data[s].startswith('##$SI='):
+                    SIZE.append(int(data[s][6:]))
+                if data[s].startswith('##$XDIM='):
+                    XDIM.append(int(data[s][8:]))
+                if data[s].startswith('##$SW_p='):
+                    SW.append(float(data[s][8:]))
+                if data[s].startswith('##$SF='):
+                    FREQ.append(float(data[s][6:])*1e6)
+                if data[s].startswith('##$OFFSET='):
+                    OFFSET.append(float(data[s][10:]))
+                if file == 'procs':
+                    if data[s].startswith('##$BYTORDP='):
+                        if int(data[s][11:]) == 1:
+                            ByteOrder = 'b'
+                        else:
+                            ByteOrder = 'l'
+
+    for index in range(len(SIZE)): #For each axis
+        pos = np.fft.fftshift(np.fft.fftfreq(SIZE[index], 1.0 / SW[index]))[-1] #Get last point of axis
+        pos2 = OFFSET[index] * 1e-6 * FREQ[index] #offset in Hz
+        REF.append(FREQ[index] + pos - pos2)
+
+    totsize =  np.cumprod(SIZE)[-1] 
+    dim = len(SIZE)
+    DATA = []
+    files = [['1r','1i'],['2rr','2ir','2ri','2ii'],['3rrr','3irr','3rir','3iir','3rri','3iri','3rii','3iii']]
+    counter = 0
+    for file in files[dim - 1]: #For all the files
+        if os.path.exists(Dir + os.path.sep + file): 
+            with open(Dir + os.path.sep + file, "rb") as f:
+                raw = np.fromfile(f, np.int32, totsize)
+                raw = raw.newbyteorder(ByteOrder) #Set right byteorder
+                if counter % 2 == 0: #If even, data is real part
+                    DATA.append(np.flipud(raw))
+                else: #If odd, data is imag, and needs to be add to the previous
+                    DATA[-1] = DATA[-1] - 1j * np.flipud(raw)
+                counter += 1 #only advance counter when file is found
+    del raw
+
+    hyper = None
+    if dim == 2: #If 2D data has more than 1 part: hypercomplex along the first axis
+        if len(DATA) != 1:
+            hyper = [0]
+
+    if len(SIZE) == 2:
+        for index in range(len(DATA)): #For each data set
+            #Reshape DATA to 4D data using the block information
+            #Twice concat along axis 1 constructs the regular x-y data
+            DATA[index] = np.reshape(DATA[index],[int(SIZE[1]/XDIM[1]),int(SIZE[0]/XDIM[0]),XDIM[1],XDIM[0]])
+            DATA[index] = np.concatenate(np.concatenate(DATA[index],1),1)
+    elif len(SIZE) == 3:
+        for index in range(len(DATA)):
+            #The same as 2D, but now split to 6D data, and concat along 2
+            DATA[index] = np.reshape(DATA[index],[int(SIZE[2]/XDIM[2]),int(SIZE[1]/XDIM[1]),int(SIZE[0]/XDIM[0]),XDIM[2],XDIM[1],XDIM[0]])
+            DATA[index] = np.concatenate(np.concatenate(np.concatenate(DATA[index],2),2),2)
     spec = [True]
-    if sizeTD1 is 1:
-        masterData = sc.Spectrum(name, Data, (7, filePath), [freq2], [SW2], spec, ref=[Ref2])
-    else:
-        Data = Data.reshape(sizeTD1, sizeTD2)
-        masterData = sc.Spectrum(name, Data, (7, filePath), [freq1, freq2], [SW1, SW2], spec * 2, ref=[Ref1, Ref2])
+    masterData = sc.Spectrum(name, DATA, (7, filePath), FREQ[-1::-1], SW[-1::-1], spec * dim, ref=REF[-1::-1],hyper = hyper)
     masterData.addHistory("Bruker spectrum data loaded from " + filePath)
     return masterData
 
@@ -792,9 +793,9 @@ def loadSimpsonFile(filePath, name=''):
     elif 'SPE' in TYPE:
         spec = [True]
     if NI is 1:
-        masterData = sc.Spectrum(name, data, (4, filePath), [0], [SW], spec)
+        masterData = sc.Spectrum(name, [data], (4, filePath), [0], [SW], spec)
     else:
-        masterData = sc.Spectrum(name, data, (4, filePath), [0, 0], [SW1, SW], spec * 2)
+        masterData = sc.Spectrum(name, [data], (4, filePath), [0, 0], [SW1, SW], spec * 2)
     masterData.addHistory("SIMPSON data loaded from " + filePath)
     return masterData
 

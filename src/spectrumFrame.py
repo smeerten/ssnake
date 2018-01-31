@@ -27,6 +27,9 @@ except ImportError:
 import spectrum_classes
 import warnings
 
+TIMELABELLIST = [u'Time [s]', u'Time [ms]', u'Time [\u03BCs]']
+FREQLABELLIST = [u'Frequency [Hz]', u'Frequency [kHz]', u'Frequency [MHz]']
+
 #########################################################################################################
 # the class from which the 1d data is displayed, the operations which only edit the content of this class are for previewing
 
@@ -48,10 +51,7 @@ class Plot1DFrame(object):
             self.x_ax.axes.get_xaxis().set_visible(False)
             self.x_ax.axes.get_yaxis().set_visible(False)
             self.y_ax.axes.get_xaxis().set_visible(False)
-            self.y_ax.axes.get_yaxis().set_visible(False)
-        elif isinstance(self, spectrum_classes.CurrentSkewed):
-            self.ax = self.fig.add_subplot(1, 1, 1, projection='3d')
-            self.ax.disable_mouse_rotation()
+            self.y_ax.axes.get_yaxis().set_visible(False)            
         else:
             self.ax = self.fig.add_subplot(111)
         self.leftMouse = False  # is the left mouse button currently pressed
@@ -153,13 +153,8 @@ class Plot1DFrame(object):
     def buttonPress(self, event):
         if event.button == 1 and not self.peakPick:
             self.leftMouse = True
-            if isinstance(self, spectrum_classes.CurrentSkewed):
-                a = self.ax.format_coord(event.xdata, event.ydata)
-                self.zoomX1 = float(a[2:14])
-                self.zoomY1 = float(a[18:30])
-            else:
-                self.zoomX1 = event.xdata
-                self.zoomY1 = event.ydata
+            self.zoomX1 = event.xdata
+            self.zoomY1 = event.ydata
         elif (event.button == 3) and event.dblclick:
             modifiers = QtWidgets.QApplication.keyboardModifiers()
             if modifiers == QtCore.Qt.ShiftModifier:
@@ -168,13 +163,8 @@ class Plot1DFrame(object):
                 self.plotReset()
         elif event.button == 3:
             self.rightMouse = True
-            if isinstance(self, spectrum_classes.CurrentSkewed):
-                a = self.ax.format_coord(event.xdata, event.ydata)
-                self.panX = float(a[2:14])
-                self.panY = float(a[18:30])
-            else:
-                self.panX = event.xdata
-                self.panY = event.ydata
+            self.panX = event.xdata
+            self.panY = event.ydata
 
     def buttonRelease(self, event):
         if event.button == 1:
@@ -232,15 +222,10 @@ class Plot1DFrame(object):
     def pan(self, event):
         modifiers = QtWidgets.QApplication.keyboardModifiers()
         if self.rightMouse and self.panX is not None and self.panY is not None:
-            if isinstance(self, spectrum_classes.CurrentSkewed):
-                a = self.ax.format_coord(event.xdata, event.ydata)
-                diffx = float(a[2:14]) - self.panX
-                diffy = float(a[18:30]) - self.panY
-            else:
-                inv = self.ax.transData.inverted()
-                point = inv.transform((event.x, event.y))
-                diffx = point[0] - self.panX
-                diffy = point[1] - self.panY
+            inv = self.ax.transData.inverted()
+            point = inv.transform((event.x, event.y))
+            diffx = point[0] - self.panX
+            diffy = point[1] - self.panY
             if modifiers == QtCore.Qt.ControlModifier:
                 self.xmaxlim = self.xmaxlim - diffx
                 self.xminlim = self.xminlim - diffx
@@ -281,15 +266,10 @@ class Plot1DFrame(object):
                     self.rect[1] = self.ax.axhline(event.ydata, c='k', linestyle='--')
             self.canvas.draw_idle()
         elif self.leftMouse and (self.zoomX1 is not None) and (self.zoomY1 is not None):
-            if isinstance(self, spectrum_classes.CurrentSkewed):
-                a = self.ax.format_coord(event.xdata, event.ydata)
-                self.zoomX2 = float(a[2:14])
-                self.zoomY2 = float(a[18:30])
-            else:
-                inv = self.ax.transData.inverted()
-                point = inv.transform((event.x, event.y))
-                self.zoomX2 = point[0]
-                self.zoomY2 = point[1]
+            inv = self.ax.transData.inverted()
+            point = inv.transform((event.x, event.y))
+            self.zoomX2 = point[0]
+            self.zoomY2 = point[1]
             if self.rect[0] is not None:
                 try:
                     if self.rect[0] is not None:
@@ -307,3 +287,27 @@ class Plot1DFrame(object):
             self.rect[2], = self.ax.plot([self.zoomX1, self.zoomX1], [self.zoomY1, self.zoomY2], 'k', clip_on=False)
             self.rect[3], = self.ax.plot([self.zoomX2, self.zoomX2], [self.zoomY1, self.zoomY2], 'k', clip_on=False)
             self.canvas.draw_idle()
+
+    def getAxMult(self, spec, axType, ppm, freq, ref=None):
+        if spec == 1:
+            if ppm:
+                if ref is not None:
+                    axMult = 1e6 / ref
+                else:
+                    axMult = 1e6 / freq
+            else:
+                axMult = 1.0 / (1000.0**axType)
+        elif spec == 0:
+            axMult = 1000.0**axType
+        return axMult
+
+    def getLabel(self, spec, axType, ppm):
+        if not axType in range(3):
+            return 'User defined'
+        if spec:
+            if ppm:
+                return 'Frequency [ppm]'
+            else:
+                return FREQLABELLIST[axType]
+        else:
+            return TIMELABELLIST[axType]

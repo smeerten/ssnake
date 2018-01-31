@@ -15,12 +15,40 @@
    id="svg2"
    version="1.1"
    inkscape:version="0.92.2 (5c3e80d, 2017-08-06)"
-   inkscape:export-filename="/media/HDD/ssnake/ssnake/src/Icons/subtract.png"
+   inkscape:export-filename="/home/wfranssen/Desktop/maxpos.png"
    inkscape:export-xdpi="162.56"
    inkscape:export-ydpi="162.56"
-   sodipodi:docname="subtract.svg">
+   sodipodi:docname="maxpos.svg">
   <defs
      id="defs4">
+    <marker
+       inkscape:stockid="TriangleOutL"
+       orient="auto"
+       refY="0.0"
+       refX="0.0"
+       id="TriangleOutL"
+       style="overflow:visible"
+       inkscape:isstock="true">
+      <path
+         id="path4471"
+         d="M 5.77,0.0 L -2.88,5.0 L -2.88,-5.0 L 5.77,0.0 z "
+         style="fill-rule:evenodd;stroke:#000000;stroke-width:1pt;stroke-opacity:1;fill:#000000;fill-opacity:1"
+         transform="scale(0.8)" />
+    </marker>
+    <marker
+       inkscape:stockid="Arrow2Lend"
+       orient="auto"
+       refY="0.0"
+       refX="0.0"
+       id="Arrow2Lend"
+       style="overflow:visible;"
+       inkscape:isstock="true">
+      <path
+         id="path4350"
+         style="fill-rule:evenodd;stroke-width:0.625;stroke-linejoin:round;stroke:#000000;stroke-opacity:1;fill:#000000;fill-opacity:1"
+         d="M 8.7185878,4.0337352 L -2.2072895,0.016013256 L 8.7185884,-4.0017078 C 6.9730900,-1.6296469 6.9831476,1.6157441 8.7185878,4.0337352 z "
+         transform="scale(1.1) rotate(180) translate(1,0)" />
+    </marker>
     <style
        id="style4260"
        type="text/css">
@@ -168,76 +196,6 @@
            style="stroke:none;" />
       </symbol>
     </g>
-    <g
-       id="g4410">
-      <symbol
-         id="glyph0-0-3"
-         overflow="visible">
-        <path
-           id="path4413"
-           d="M 0.96875 0 L 6.15625 0 L 6.15625 -7.203125 L 0.96875 -7.203125 Z M 2.15625 -0.625 L 2.953125 -2.078125 L 3.546875 -3.203125 L 3.59375 -3.203125 L 4.15625 -2.078125 L 4.953125 -0.625 Z M 3.546875 -4.21875 L 3 -5.25 L 2.28125 -6.546875 L 4.84375 -6.546875 L 4.125 -5.25 L 3.59375 -4.21875 Z M 1.671875 -1.203125 L 1.671875 -6.234375 L 3.0625 -3.703125 Z M 5.4375 -1.203125 L 4.0625 -3.703125 L 5.4375 -6.234375 Z M 5.4375 -1.203125 "
-           style="stroke:none;" />
-      </symbol>
-      <symbol
-         id="glyph0-1-8"
-         overflow="visible">
-        <path
-           id="path4416"
-           d="M 1.828125 0 L 2.71875 0 L 2.71875 -6.953125 L 2.03125 -6.953125 C 1.640625 -6.734375 1.1875 -6.546875 0.546875 -6.453125 L 0.546875 -5.875 L 1.828125 -5.875 Z M 1.828125 0 "
-           style="stroke:none;" />
-      </symbol>
-      <symbol
-         id="glyph1-0-88"
-         overflow="visible">
-        <path
-           id="path4419"
-           d=""
-           style="stroke:none;" />
-      </symbol>
-      <symbol
-         id="glyph1-1-2"
-         overflow="visible">
-        <path
-           id="path4422"
-           d="M 4.203125 -7.796875 C 2.828125 -7.796875 1.53125 -6.15625 1.09375 -3.859375 C 1 -3.375 0.9375 -2.90625 0.9375 -2.484375 C 0.9375 -0.9375 1.578125 0.09375 2.65625 0.09375 C 4.03125 0.09375 5.328125 -1.546875 5.78125 -3.859375 C 5.875 -4.328125 5.921875 -4.796875 5.921875 -5.21875 C 5.921875 -6.765625 5.28125 -7.796875 4.203125 -7.796875 Z M 2.015625 -4.09375 C 2.40625 -6.09375 3.234375 -7.390625 4.109375 -7.390625 C 4.75 -7.390625 5.09375 -6.71875 5.09375 -5.59375 C 5.09375 -5.15625 5.046875 -4.65625 4.9375 -4.09375 Z M 1.921875 -3.609375 L 4.84375 -3.609375 C 4.453125 -1.609375 3.625 -0.3125 2.75 -0.3125 C 2.109375 -0.3125 1.765625 -0.984375 1.765625 -2.109375 C 1.765625 -2.546875 1.8125 -3.046875 1.921875 -3.609375 Z M 1.921875 -3.609375 "
-           style="stroke:none;" />
-      </symbol>
-    </g>
-    <g
-       id="g4482">
-      <symbol
-         id="glyph0-0-6"
-         overflow="visible">
-        <path
-           id="path4485"
-           d="M 0.96875 0 L 6.15625 0 L 6.15625 -7.203125 L 0.96875 -7.203125 Z M 2.15625 -0.625 L 2.953125 -2.078125 L 3.546875 -3.203125 L 3.59375 -3.203125 L 4.15625 -2.078125 L 4.953125 -0.625 Z M 3.546875 -4.21875 L 3 -5.25 L 2.28125 -6.546875 L 4.84375 -6.546875 L 4.125 -5.25 L 3.59375 -4.21875 Z M 1.671875 -1.203125 L 1.671875 -6.234375 L 3.0625 -3.703125 Z M 5.4375 -1.203125 L 4.0625 -3.703125 L 5.4375 -6.234375 Z M 5.4375 -1.203125 "
-           style="stroke:none;" />
-      </symbol>
-      <symbol
-         id="glyph0-1-6"
-         overflow="visible">
-        <path
-           id="path4488"
-           d="M 1.828125 0 L 2.71875 0 L 2.71875 -6.953125 L 2.03125 -6.953125 C 1.640625 -6.734375 1.1875 -6.546875 0.546875 -6.453125 L 0.546875 -5.875 L 1.828125 -5.875 Z M 1.828125 0 "
-           style="stroke:none;" />
-      </symbol>
-      <symbol
-         id="glyph1-0-89"
-         overflow="visible">
-        <path
-           id="path4491"
-           d=""
-           style="stroke:none;" />
-      </symbol>
-      <symbol
-         id="glyph1-1-3"
-         overflow="visible">
-        <path
-           id="path4494"
-           d="M 0.59375 0 L 0.59375 0.5625 L 5.3125 6.09375 L 0.21875 11.859375 L 9.953125 11.859375 L 9.953125 8.640625 L 9.28125 8.640625 L 9.015625 10.203125 L 8.515625 10.6875 L 1.984375 10.6875 L 6.5 5.578125 L 2.203125 0.5625 L 8.515625 0.5625 L 9 1.046875 L 9.28125 2.609375 L 9.953125 2.609375 L 9.953125 0 Z M 0.59375 0 "
-           style="stroke:none;" />
-      </symbol>
-    </g>
   </defs>
   <sodipodi:namedview
      id="base"
@@ -246,9 +204,9 @@
      borderopacity="1.0"
      inkscape:pageopacity="0.0"
      inkscape:pageshadow="2"
-     inkscape:zoom="5.6"
-     inkscape:cx="-36.490145"
-     inkscape:cy="32.344093"
+     inkscape:zoom="9.1016664"
+     inkscape:cx="10.90585"
+     inkscape:cy="17.842124"
      inkscape:document-units="px"
      inkscape:current-layer="layer1"
      showgrid="false"
@@ -275,22 +233,25 @@
      id="layer1"
      transform="translate(0,-1016.9291)">
     <rect
-       style="opacity:1;fill:#ffffff;fill-opacity:1;stroke:none;stroke-width:0.99374622;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1;paint-order:markers fill stroke"
-       id="rect876"
+       style="opacity:1;fill:#ffffff;fill-opacity:1;fill-rule:nonzero;stroke:none;stroke-width:1;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+       id="rect4245"
        width="35.433071"
        height="35.433071"
-       x="-5.6103158e-07"
-       y="1016.9291"
-       inkscape:export-filename="/home/wfranssen/Desktop/subtract.png"
-       inkscape:export-xdpi="162"
-       inkscape:export-ydpi="162" />
+       x="-1.3516643e-07"
+       y="1016.9291" />
+    <path
+       style="fill:#00e481;fill-opacity:1;stroke:#005931;stroke-width:1.11757004;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+       d="m 9.623911,1029.0695 h 6.910101 v 22.224 h 9.6908 c 0.031,-22.224 0,0 0.031,-22.224 h 6.1591 l -5.696,-5.4293 -5.7,-5.4294 -5.696,5.4294 z"
+       id="rect4193"
+       inkscape:connector-curvature="0"
+       sodipodi:nodetypes="cccccccccc" />
     <rect
-       style="opacity:1;fill:#e91d25;fill-opacity:1;fill-rule:nonzero;stroke:#bb0000;stroke-width:1.5;stroke-linecap:butt;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1"
-       id="rect4197"
-       width="9.4701805"
-       height="28.41054"
-       x="1029.9105"
-       y="-31.921804"
-       transform="matrix(0,1,-1,0,0,0)" />
+       style="opacity:1;fill:#00e481;fill-opacity:1;fill-rule:nonzero;stroke:#005931;stroke-width:1;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1"
+       id="rect4208"
+       width="35.433071"
+       height="5.4382868"
+       x="1016.9291"
+       y="-5.9382868"
+       transform="rotate(90)" />
   </g>
 </svg>

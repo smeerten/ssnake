@@ -129,19 +129,18 @@ class MainPlotWindow(QtWidgets.QWidget):
         # Font size
         self.fontGroup = QtWidgets.QGroupBox('Font sizes:')
         self.fontFrame = QtWidgets.QGridLayout()
-        self.mainFontSizeBackup = 12
         self.mainFontLabel = wc.QLeftLabel("Main:")
         self.fontFrame.addWidget(self.mainFontLabel, 0, 0)
         self.mainFontSizeEntry = QtWidgets.QDoubleSpinBox()
         self.mainFontSizeEntry.setSingleStep(0.1)
         self.mainFontSizeEntry.setMinimum(0)
-        self.mainFontSizeEntry.setValue(self.mainFontSizeBackup)
+        self.mainFontSizeEntry.setValue(self.ax.xaxis.get_label().get_fontsize())
         self.mainFontSizeEntry.valueChanged.connect(self.updatePlot)
         self.fontFrame.addWidget(self.mainFontSizeEntry, 0, 1)
         self.fontDetailsCheck = QtWidgets.QCheckBox('Details')
         self.fontDetailsCheck.stateChanged.connect(self.fontCheckChanged)
         self.fontFrame.addWidget(self.fontDetailsCheck, 1, 0)
-        self.titleFontSizeBackup = 12
+        self.titleFontSizeBackup = self.ax.title.get_fontsize()
         self.titleFontLabel = wc.QLeftLabel("Title:")
         self.titleFontLabel.hide()
         self.fontFrame.addWidget(self.titleFontLabel, 2, 0)
@@ -152,7 +151,7 @@ class MainPlotWindow(QtWidgets.QWidget):
         self.titleFontSizeEntry.valueChanged.connect(self.updatePlot)
         self.titleFontSizeEntry.hide()
         self.fontFrame.addWidget(self.titleFontSizeEntry, 2, 1)
-        self.xlabelFontSizeBackup = 12
+        self.xlabelFontSizeBackup = self.ax.xaxis.get_label().get_fontsize()
         self.xlabelFontLabel = wc.QLeftLabel("X-label:")
         self.xlabelFontLabel.hide()
         self.fontFrame.addWidget(self.xlabelFontLabel, 3, 0)
@@ -163,7 +162,7 @@ class MainPlotWindow(QtWidgets.QWidget):
         self.xlabelFontSizeEntry.valueChanged.connect(self.updatePlot)
         self.xlabelFontSizeEntry.hide()
         self.fontFrame.addWidget(self.xlabelFontSizeEntry, 3, 1)
-        self.ylabelFontSizeBackup = 12
+        self.ylabelFontSizeBackup = self.ax.yaxis.get_label().get_fontsize()
         self.ylabelFontLabel = wc.QLeftLabel("Y-label:")
         self.ylabelFontLabel.hide()
         self.fontFrame.addWidget(self.ylabelFontLabel, 4, 0)
@@ -174,7 +173,7 @@ class MainPlotWindow(QtWidgets.QWidget):
         self.ylabelFontSizeEntry.valueChanged.connect(self.updatePlot)
         self.ylabelFontSizeEntry.hide()
         self.fontFrame.addWidget(self.ylabelFontSizeEntry, 4, 1)
-        self.xtickFontSizeBackup = 12
+        self.xtickFontSizeBackup = self.ax.xaxis.get_ticklabels()[0].get_fontsize()
         self.xtickFontLabel = wc.QLeftLabel("X-ticks:")
         self.xtickFontLabel.hide()
         self.fontFrame.addWidget(self.xtickFontLabel, 5, 0)
@@ -185,7 +184,7 @@ class MainPlotWindow(QtWidgets.QWidget):
         self.xtickFontSizeEntry.valueChanged.connect(self.updatePlot)
         self.xtickFontSizeEntry.hide()
         self.fontFrame.addWidget(self.xtickFontSizeEntry, 5, 1)
-        self.ytickFontSizeBackup = 12
+        self.ytickFontSizeBackup = self.ax.yaxis.get_ticklabels()[0].get_fontsize()
         self.ytickFontLabel = wc.QLeftLabel("Y-ticks:")
         self.ytickFontLabel.hide()
         self.fontFrame.addWidget(self.ytickFontLabel, 6, 0)
@@ -196,16 +195,28 @@ class MainPlotWindow(QtWidgets.QWidget):
         self.ytickFontSizeEntry.valueChanged.connect(self.updatePlot)
         self.ytickFontSizeEntry.hide()
         self.fontFrame.addWidget(self.ytickFontSizeEntry, 6, 1)
+
+        self.legend = self.ax.legend()
+        self.legendFontSizeBackup = self.ax.get_legend().get_texts()[0].get_fontsize()
+        self.legendFontLabel = wc.QLeftLabel("Legend:")
+        self.legendFontLabel.hide()
+        self.fontFrame.addWidget(self.legendFontLabel, 7, 0)
+        self.legendFontSizeEntry = QtWidgets.QDoubleSpinBox()
+        self.legendFontSizeEntry.setSingleStep(0.1)
+        self.legendFontSizeEntry.setMinimum(0)
+        self.legendFontSizeEntry.setValue(self.legendFontSizeBackup)
+        self.legendFontSizeEntry.valueChanged.connect(self.updatePlot)
+        self.legendFontSizeEntry.hide()
+        self.fontFrame.addWidget(self.legendFontSizeEntry, 7, 1)
         self.fontGroup.setLayout(self.fontFrame)
         self.optionFrame.addWidget(self.fontGroup, 3, 0)
         # Legend
-        self.legend = self.ax.legend()
         if self.legend is not None:
             if self.oldMainWindow.current.__class__.__name__ == 'CurrentMulti':  # If from multiplot
-                order = list(self.oldMainWindow.current.extraOffset)
+                order = list(self.oldMainWindow.current.viewSettings['extraOffset'])
                 order.append(0)
                 self.legendOrder = list(np.argsort(order))[::-1]
-            elif self.oldMainWindow.current.__class__.__name__ == 'CurrentStacked' or self.oldMainWindow.current.__class__.__name__ == 'CurrentSkewed':
+            elif self.oldMainWindow.current.__class__.__name__ == 'CurrentStacked':
                 self.legendOrder = list(np.arange(0, len(self.legend.get_texts())))[::-1]
             else:
                 self.legendOrder = list(np.arange(0, len(self.legend.get_texts())))
@@ -218,7 +229,7 @@ class MainPlotWindow(QtWidgets.QWidget):
             self.legendGroup = QtWidgets.QGroupBox('Legend:')
             self.legendGroup.setCheckable(True)
             self.legendGroup.setChecked(False)
-            self.legendGroup.toggled.connect(self.updateLegend)
+            self.legendGroup.toggled.connect(self.updatePlot)
             self.legendFrame = QtWidgets.QGridLayout()
             legendButton = QtWidgets.QPushButton('Legend settings')
             legendButton.clicked.connect(lambda: LegendWindow(self))
@@ -266,6 +277,8 @@ class MainPlotWindow(QtWidgets.QWidget):
             self.xtickFontSizeEntry.show()
             self.ytickFontLabel.show()
             self.ytickFontSizeEntry.show()
+            self.legendFontLabel.show()
+            self.legendFontSizeEntry.show()
         else:
             self.mainFontLabel.setEnabled(True)
             self.mainFontSizeEntry.setEnabled(True)
@@ -279,18 +292,24 @@ class MainPlotWindow(QtWidgets.QWidget):
             self.xtickFontSizeEntry.hide()
             self.ytickFontLabel.hide()
             self.ytickFontSizeEntry.hide()
+            self.legendFontLabel.hide()
+            self.legendFontSizeEntry.hide()
         self.updatePlot()
 
     def updateLegend(self, *args):
         if self.legendGroup.isChecked():
             orderedLines = [self.ax.lines[x] for x in self.legendOrder]
             orderedLegendText = [self.legendTextList[x] for x in self.legendOrder]
-            self.legend = self.ax.legend(orderedLines, orderedLegendText, loc=self.legendPos)
+            if self.fontDetailsCheck.checkState():  # If details checked
+                size = self.legendFontSizeEntry.value()
+            else:
+                size = self.mainFontSizeEntry.value()
+            self.legend = self.ax.legend(orderedLines, orderedLegendText,framealpha = 1.0, loc=self.legendPos, prop =
+                    {'size': size })
             self.legend.draggable(True)
         else:
             if self.legend is not None:
                 self.legend.set_visible(False)
-        self.updatePlot()
 
     def updatePlot(self, *args):
         if self.fontDetailsCheck.checkState():  # If details checked
@@ -313,6 +332,8 @@ class MainPlotWindow(QtWidgets.QWidget):
             self.ax.xaxis.get_offset_text().set_fontsize(self.mainFontSizeEntry.value())
             self.ax.tick_params(axis='y', labelsize=self.mainFontSizeEntry.value())
             self.ax.yaxis.get_offset_text().set_fontsize(self.mainFontSizeEntry.value())
+            self.legend.prop = {'size': self.mainFontSizeEntry.value()}
+        self.updateLegend()
         self.fig.set_size_inches(self.widthEntry.value() / 2.54, self.heightEntry.value() / 2.54)
         self.canvas.draw()
         self.canvas.adjustSize()
@@ -462,7 +483,7 @@ class LegendWindow(QtWidgets.QWidget):
 
     def closeEvent(self, *args):
         self.deleteLater()
-        self.father.updateLegend()
+        self.father.updatePlot()
 
     def applyAndClose(self):
         for i in range(len(self.legendEditList)):
@@ -619,7 +640,7 @@ class EditLineWindow(QtWidgets.QWidget):
 
     def closeEvent(self, *args):
         self.deleteLater()
-        self.father.updateLegend()
+        self.father.updatePlot()
 
     def apply(self):
         self.setup()
