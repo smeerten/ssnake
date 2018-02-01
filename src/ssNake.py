@@ -768,6 +768,8 @@ class MainProgram(QtWidgets.QMainWindow):
                              self.secondquadstatAct, self.czjzekstatAct]
         self.fidOnlyList = [self.relaxAct, self.diffusionAct]
 
+        self.Only1DPlot = [self.snrAct, self.fwhmAct, self.massAct,  self.intfitAct]
+
     def mainWindowCheck(self, transfer):
         # checks if mainWindow exist to execute the function
         if self.mainWindow is not None:
@@ -835,6 +837,11 @@ class MainProgram(QtWidgets.QMainWindow):
                     act.setEnabled(self.mainWindow.current.spec == 1)  # Only on for spec
                 for act in self.fidOnlyList:
                     act.setEnabled(self.mainWindow.current.spec == 0)  # Only on for FID
+                  #Limit functions based on plot type
+                if isinstance(self.mainWindow.current, (sc.CurrentMulti, sc.CurrentStacked, sc.CurrentArrayed, sc.CurrentContour)):
+                    for act in self.Only1DPlot:
+                        act.setEnabled(False)
+
                 if self.mainWindow.masterData.noUndo:  # Set menu check to the same value as in the data
                     self.noUndoAct.setChecked(True)
                 else:
@@ -889,6 +896,9 @@ class MainProgram(QtWidgets.QMainWindow):
                 self.macrolistmenu.menuAction().setEnabled(False)
                 for act in self.saveActList + self.exportActList + self.workspaceActList:
                     act.setEnabled(True)
+
+          
+
 
     def menuEnable(self, internalWindow=False):
         # self.macromenu.menuAction().setEnabled(True)
@@ -2279,6 +2289,7 @@ class Main1DWindow(QtWidgets.QWidget):
         del self.current
         self.current = tmpcurrent
         self.updAllFrames()
+        self.menuCheck()
 
     def plotScatter(self):
         tmpcurrent = sc.CurrentScatter(self, self.fig, self.canvas, self.masterData, self.current)
@@ -2286,6 +2297,7 @@ class Main1DWindow(QtWidgets.QWidget):
         del self.current
         self.current = tmpcurrent
         self.updAllFrames()
+        self.menuCheck()
 
     def plotStack(self):
         if len(self.masterData.shape()) > 1:
@@ -2296,6 +2308,7 @@ class Main1DWindow(QtWidgets.QWidget):
             self.updAllFrames()
         else:
             self.father.dispMsg("Data does not have enough dimensions")
+        self.menuCheck()
 
     def plotArray(self):
         if len(self.masterData.shape()) > 1:
@@ -2306,6 +2319,7 @@ class Main1DWindow(QtWidgets.QWidget):
             self.updAllFrames()
         else:
             self.father.dispMsg("Data does not have enough dimensions")
+        self.menuCheck()
 
     def plotContour(self):
         if len(self.masterData.shape()) > 1:
@@ -2316,6 +2330,7 @@ class Main1DWindow(QtWidgets.QWidget):
             self.updAllFrames()
         else:
             self.father.dispMsg("Data does not have enough dimensions")
+        self.menuCheck()
 
     def plotMulti(self):
         tmpcurrent = sc.CurrentMulti(self, self.fig, self.canvas, self.masterData, self.current)
@@ -2323,6 +2338,7 @@ class Main1DWindow(QtWidgets.QWidget):
         del self.current
         self.current = tmpcurrent
         self.updAllFrames()
+        self.menuCheck()
 
     def updAllFrames(self):
         self.sideframe.upd()
