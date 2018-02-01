@@ -5572,7 +5572,6 @@ class RegridWindow(wc.ToolWindows):
         self.typeDrop = QtWidgets.QComboBox(parent=self)
         self.typeDrop.addItems(["Min/max input"])
         self.grid.addWidget(self.typeDrop, 0, 0, 1, 2)
-        self.maxValue = wc.QLineEdit(10)
         # Get unit
         if self.father.current.spec == 1:
             if self.father.current.viewSettings["ppm"]:
@@ -5586,11 +5585,24 @@ class RegridWindow(wc.ToolWindows):
                     self.unit = 'MHz'
                 elif self.father.current.viewSettings["axType"] == 3:
                     self.unit = 'ppm'
-            self.comEntry = wc.QLineEdit("0.0")
+            maxVal = self.father.current.xax[-1]
+            minVal = self.father.current.xax[0]
+            if self.unit == 'kHz':
+                maxVal /= 1e3
+                minVal /= 1e3
+            elif self.unit == 'MHz':
+                maxVal /= 1e6
+                minVal /= 1e6
+            elif self.unit == 'ppm':
+                maxVal /= self.father.masterData.ref[self.father.current.axes] / 1e6
+                minVal /= self.father.masterData.ref[self.father.current.axes] / 1e6
+
+            self.maxValue = wc.QLineEdit(maxVal)
+            self.maxValue.setMinimumWidth(150)
             self.maxLabel = wc.QLeftLabel('Max [' + self.unit + ']:')
-            self.minValue = wc.QLineEdit(0)
+            self.minValue = wc.QLineEdit(minVal)
             self.minLabel = wc.QLeftLabel('Min [' + self.unit + ']:')
-            self.points = wc.QLineEdit(1000)
+            self.points = wc.QLineEdit(self.father.masterData.shape()[self.father.current.axes])
             self.pointsLabel = wc.QLeftLabel('# of points:')
             self.grid.addWidget(self.minValue, 1, 1)
             self.grid.addWidget(self.minLabel, 1, 0)
