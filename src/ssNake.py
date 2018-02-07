@@ -5590,6 +5590,9 @@ class RegridWindow(wc.ToolWindows):
         self.grid.addWidget(self.typeDrop, 0, 0, 1, 2)
         # Get unit
         if self.father.current.spec == 1:
+            if self.father.masterData.shape()[self.father.current.axes] == 1:
+                self.father.father.dispMsg("Regrid: Regrid not possible with size 1")
+                self.closeEvent()
             if self.father.current.viewSettings["ppm"]:
                 self.unit = 'ppm'
             else:
