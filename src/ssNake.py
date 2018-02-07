@@ -5642,7 +5642,7 @@ class RegridWindow(wc.ToolWindows):
             self.father.father.dispMsg("Regrid: 'Min' input not valid")
             return False
         numPoints = safeEval(self.points.text(), type='FI')
-        if numPoints is None:
+        if numPoints is None or numPoints == 1:
             self.father.father.dispMsg("Regrid: '# of points' input not valid")
             return False
         numPoints = int(numPoints)
