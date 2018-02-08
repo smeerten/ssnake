@@ -496,7 +496,6 @@ def loadBrukerTopspin(filePath, name=''):
         Dir = os.path.dirname(filePath)
     else:
         Dir = filePath
-    #---Get parameters-----
     f,fM, i = lambda x: float(x), lambda x: float(x) * 1e6, lambda x: int(x) #Conversion functions
     Elem = [['TD', i, []],['SFO1', fM ,[]],['SW_h', f, []],['O1',f, []], ['BYTORDA',i,[]]] #The elements to be found [Name, conversion, list with hits]
     for File in ['acqus','acqu2s','acqu3s']:
@@ -506,13 +505,14 @@ def loadBrukerTopspin(filePath, name=''):
             for s in range(0, len(data)):
                 for var in Elem:
                     if data[s].startswith('##$' + var[0] + '='):
-                        var[2].append( var[1](re.sub('##\$' + var[0] + '=', '', data[s]))
+                        var[2].append( var[1](re.sub('##\$' + var[0] + '=', '', data[s])))
 
     SIZE, FREQ, SW, REF, BYTE = [x[2] for x in Elem] #Unpack results
     ByteOrder = ['l','b'][BYTE[0]] #The byte orders that is used 
+    
     REF = list(- np.array(REF) + np.array(FREQ))
+
     totsize = np.cumprod(SIZE)[-1]
-    #---Get data----
     dim = len(SIZE)
     directSize = int(np.ceil(float(SIZE[0]) / 256)) * 256 #Size of direct dimension including
     #blocking size of 256 data points
@@ -543,35 +543,23 @@ def loadBrukerSpectrum(filePath, name=''):
         Dir = os.path.dirname(filePath)
     else:
         Dir = filePath
-    SIZE = []
-    SW = []
-    REF = []
-    FREQ = []
-    OFFSET = [] #The highest ppm values of the axis
-    XDIM = [] #The blocking size along an axis
-    files = ['procs','proc2s','proc3s']
-    for file in files:
-        if os.path.exists(Dir + os.path.sep + file):  # Get D2 parameters
-            with open(Dir + os.path.sep + file, 'r') as f:
+    f,fM, i = lambda x: float(x), lambda x: float(x) * 1e6, lambda x: int(x) #Conversion functions
+    Elem = [['SI', i, []],['XDIM', i ,[]],['SW_p', f, []],['SF',fM, []],['OFFSET', f, []], ['BYTORDP',i,[]]] #The elements to be found [Name, conversion, list with hits]
+    #OFFSET: The highest ppm values of the axis
+    #XDIM: The blocking size along an axis
+    for File in ['procs','proc2s','proc3s']:
+         if os.path.exists(Dir + os.path.sep + File):
+            with open(Dir + os.path.sep + File, 'r') as f:
                 data = f.read().split('\n')
             for s in range(0, len(data)):
-                if data[s].startswith('##$SI='):
-                    SIZE.append(int(data[s][6:]))
-                if data[s].startswith('##$XDIM='):
-                    XDIM.append(int(data[s][8:]))
-                if data[s].startswith('##$SW_p='):
-                    SW.append(float(data[s][8:]))
-                if data[s].startswith('##$SF='):
-                    FREQ.append(float(data[s][6:])*1e6)
-                if data[s].startswith('##$OFFSET='):
-                    OFFSET.append(float(data[s][10:]))
-                if file == 'procs':
-                    if data[s].startswith('##$BYTORDP='):
-                        if int(data[s][11:]) == 1:
-                            ByteOrder = 'b'
-                        else:
-                            ByteOrder = 'l'
+                for var in Elem:
+                    if data[s].startswith('##$' + var[0] + '='):
+                        var[2].append( var[1](re.sub('##\$' + var[0] + '=', '', data[s])))
 
+    SIZE, XDIM, SW, FREQ, OFFSET, BYTE = [x[2] for x in Elem] #Unpack results
+    ByteOrder = ['l','b'][BYTE[0]] #The byte orders that is used 
+    REF = []
+  
     for index in range(len(SIZE)): #For each axis
         pos = np.fft.fftshift(np.fft.fftfreq(SIZE[index], 1.0 / SW[index]))[-1] #Get last point of axis
         pos2 = OFFSET[index] * 1e-6 * FREQ[index] #offset in Hz
