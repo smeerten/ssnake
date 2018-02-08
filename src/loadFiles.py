@@ -24,7 +24,7 @@ import os
 
 
 def loading(num, filePath, name=None, realpath=False, dialog=None):
-    try:
+    #try:
         if num == 0:
             masterData = loadVarianFile(filePath, name)
         elif num == 1:
@@ -55,9 +55,9 @@ def loading(num, filePath, name=None, realpath=False, dialog=None):
             masterData = loadMinispec(filePath, name)
         elif num == 13:
             masterData = loadBrukerEPR(filePath, name)
-    except Exception:
-        return None
-    return masterData
+   # except Exception:
+   #     return None
+        return masterData
 
 
 def fileTypeCheck(filePath):
@@ -496,54 +496,44 @@ def loadBrukerTopspin(filePath, name=''):
         Dir = os.path.dirname(filePath)
     else:
         Dir = filePath
-    SW, SIZE, FREQ, REF = [], [], [], []
-    for elem in ['acqus','acqu2s','acqu3s']:
-        if os.path.exists(Dir + os.path.sep + elem):
-            with open(Dir + os.path.sep + elem, 'r') as f:
+    #---Get parameters-----
+    f,fM, i = lambda x: float(x), lambda x: float(x) * 1e6, lambda x: int(x) #Conversion functions
+    Elem = [['TD', i, []],['SFO1', fM ,[]],['SW_h', f, []],['O1',f, []], ['BYTORDA',i,[]]] #The elements to be found [Name, conversion, list with hits]
+    for File in ['acqus','acqu2s','acqu3s']:
+        if os.path.exists(Dir + os.path.sep + File):
+            with open(Dir + os.path.sep + File, 'r') as f:
                 data = f.read().split('\n')
-            SW.append(10e3) #pre initialize
             for s in range(0, len(data)):
-                if data[s].startswith('##$TD='):
-                    SIZE.append(int(data[s][6:]))
-                if data[s].startswith('##$SFO1='):
-                    FREQ.append(float(data[s][8:]) * 1e6)
-                if data[s].startswith('##$SW_h='):
-                    SW[-1] = float(data[s][8:])
-                if data[s].startswith('##$O1='):
-                    REF.append(float(data[s][6:]))
-                if elem == 'acqus':
-                    if data[s].startswith('##$BYTORDA='):
-                        if int(data[s][11:]) == 1:
-                            ByteOrder = 'b'
-                        else:
-                            ByteOrder = 'l'
-    REF = list(- np.array(REF) + np.array(FREQ))
+                for var in Elem:
+                    if data[s].startswith('##$' + var[0] + '='):
+                        var[2].append( var[1](re.sub('##\$' + var[0] + '=', '', data[s]))
 
+    SIZE, FREQ, SW, REF, BYTE = [x[2] for x in Elem] #Unpack results
+    ByteOrder = ['l','b'][BYTE[0]] #The byte orders that is used 
+    REF = list(- np.array(REF) + np.array(FREQ))
     totsize = np.cumprod(SIZE)[-1]
+    #---Get data----
     dim = len(SIZE)
-    loadsize = totsize
-    files = ['fid','ser']
     directSize = int(np.ceil(float(SIZE[0]) / 256)) * 256 #Size of direct dimension including
     #blocking size of 256 data points
-    for file in files:
+    for file in ['fid','ser']:
         if os.path.exists(Dir + os.path.sep + file):
             if file == 'ser':
-                loadsize = int(totsize / SIZE[0]) * directSize #Always load full 1024 byte blocks (256 data points) for >1D
+                totsize = int(totsize / SIZE[0]) * directSize #Always load full 1024 byte blocks (256 data points) for >1D
             with open(Dir + os.path.sep + file, "rb") as f:
-                raw = np.fromfile(f, np.int32, loadsize)
-            raw = raw.newbyteorder(ByteOrder)
+                raw = np.fromfile(f, np.int32, totsize)
+            raw = raw.newbyteorder(ByteOrder) #Load with right byte order
             
     ComplexData = np.array(raw[0:len(raw):2]) + 1j * np.array(raw[1:len(raw):2])
-    spec = [False]
-    if len(SIZE) >= 2:
+    if dim >= 2:
         newSize = list(SIZE)
         newSize[0] = int(directSize / 2)
         ComplexData = ComplexData.reshape(*newSize[-1::-1])
-    if len(SIZE) == 2:
+    if dim == 2:
         ComplexData = ComplexData[:,0:int(SIZE[0]/2)] #Cut off placeholder data
-    elif len(SIZE) == 3:
+    elif dim == 3:
         ComplexData = ComplexData[:,:,0:int(SIZE[0]/2)] #Cut off placeholder data
-    masterData = sc.Spectrum(name, ComplexData, (1, filePath), FREQ[-1::-1], SW[-1::-1], spec * dim, ref = REF[-1::-1])
+    masterData = sc.Spectrum(name, ComplexData, (1, filePath), FREQ[-1::-1], SW[-1::-1], [False] * dim, ref = REF[-1::-1])
     masterData.addHistory("Bruker data loaded from " + filePath)
     return masterData
 
