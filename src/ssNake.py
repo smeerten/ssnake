@@ -3182,11 +3182,9 @@ class BottomFrame(QtWidgets.QWidget):
 
     def changeAxis(self, pType):
         self.father.current.setAxType(pType)
-        self.father.current.showFid()
 
     def changeAxis2(self, pType):
         self.father.current.setAxType2(pType)
-        self.father.current.showFid()
 
 ##################################################################
 

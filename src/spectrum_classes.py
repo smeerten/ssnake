@@ -4136,6 +4136,19 @@ class CurrentContour(Current1D):
     def resetLocList(self):
         self.locList = [0] * (len(self.data.shape()) - 2)
 
+    
+    def setAxType(self, val):
+        oldAxMult = self.getAxMult(self.spec, self.viewSettings["axType"], self.viewSettings["ppm"], self.freq, self.ref)
+        if val == 3:
+            self.viewSettings["ppm"] = True
+        else:
+            self.viewSettings["ppm"] = False
+            self.viewSettings["axType"] = val
+        newAxMult = self.getAxMult(self.spec, self.viewSettings["axType"], self.viewSettings["ppm"], self.freq, self.ref)
+        self.xminlim = self.xminlim * newAxMult / oldAxMult
+        self.xmaxlim = self.xmaxlim * newAxMult / oldAxMult
+        self.updateAxes(oldAxMult,newAxMult,0)
+    
     def setAxType2(self, val):
         oldAxMult = self.getAxMult(self.spec2, self.viewSettings["axType2"], self.viewSettings["ppm2"], self.freq2, self.ref2)
         if val == 3:
@@ -4146,7 +4159,8 @@ class CurrentContour(Current1D):
         newAxMult = self.getAxMult(self.spec2, self.viewSettings["axType2"], self.viewSettings["ppm2"], self.freq2, self.ref2)
         self.yminlim = self.yminlim * newAxMult / oldAxMult
         self.ymaxlim = self.ymaxlim * newAxMult / oldAxMult
-        self.showFid()
+        #self.showFid()
+        self.updateAxes(oldAxMult,newAxMult,1)
 
     def setProjType(self, val, direc):
         if direc == 1:
@@ -4194,7 +4208,41 @@ class CurrentContour(Current1D):
                 y[index] = y[index] * x
         self.showFid(y[hyperView])
 
-    def showFid(self, tmpdata=None):  # display the 1D data
+
+    def updateAxes(self,oldAx, newAx, axis):
+        scale = newAx / oldAx
+        #Scale the path vertices, so no new contours need to be calculated
+        cols = self.ax.collections
+        for col in cols:
+            paths = col.get_paths()
+            for path in paths:
+                tmp = path.vertices
+                tmp[:,axis] = tmp[:,axis] * scale
+                path.vertices = tmp
+        #self.showFid(makeContours = False, clearCntr = False)
+        #Scale the projections
+        if axis == 1: #Yaxis
+            line = self.y_ax.lines
+            line[0].set_ydata(line[0].get_ydata() * scale)
+        else:
+            line = self.x_ax.lines
+            line[0].set_xdata(line[0].get_xdata() * scale)
+        #Set the labels
+        self.ax.set_xlabel(self.getLabel(self.spec, self.viewSettings["axType"], self.viewSettings["ppm"]))
+        self.ax.set_ylabel(self.getLabel(self.spec2, self.viewSettings["axType2"], self.viewSettings["ppm2"]))
+        #Set the zoom
+        if axis == 1:
+            ylim = self.ax.get_ylim()
+            self.ax.set_ylim(ylim[0] * scale, ylim[1] * scale)
+            self.y *= scale
+        else:
+            xlim = self.ax.get_xlim()
+            self.ax.set_xlim(xlim[0] * scale, xlim[1] * scale)
+            self.x *= scale
+        self.canvas.draw()
+
+
+    def showFid(self, tmpdata=None, makeContours = True, clearCntr = True):  # display the 1D data
         self.differ = None
         self.peakPickReset()
         hyperView = 0
@@ -4202,7 +4250,8 @@ class CurrentContour(Current1D):
             self.tmpdata = self.data1D[hyperView]
         else:
             self.tmpdata = tmpdata
-        self.ax.cla()
+        if clearCntr:
+            self.ax.cla()
         self.x_ax.cla()
         self.y_ax.cla()
         if self.viewSettings["diagonalBool"]:
@@ -4210,7 +4259,6 @@ class CurrentContour(Current1D):
         self.x = self.xax * self.getAxMult(self.spec, self.viewSettings["axType"], self.viewSettings["ppm"], self.freq, self.ref)
         self.line_xdata = self.x
         self.y = self.xax2 * self.getAxMult(self.spec2, self.viewSettings["axType2"], self.viewSettings["ppm2"], self.freq2, self.ref2)
-        self.X, self.Y = np.meshgrid(self.x, self.y)
         if (self.viewSettings["plotType"] == 0):
             self.tmpdata = np.real(self.tmpdata)
         elif(self.viewSettings["plotType"] == 1):
@@ -4223,7 +4271,8 @@ class CurrentContour(Current1D):
             self.differ = np.max(np.abs(self.tmpdata))
         else:
             self.differ = np.max(np.abs(np.ravel(self.data.data[hyperView])))
-        self.plotContour(X=self.X, Y=self.Y)
+        if makeContours:
+            self.plotContour()
         self.showProj()
         self.ax.set_xlabel(self.getLabel(self.spec, self.viewSettings["axType"], self.viewSettings["ppm"]))
         self.ax.set_ylabel(self.getLabel(self.spec2, self.viewSettings["axType2"], self.viewSettings["ppm2"]))
@@ -4243,7 +4292,8 @@ class CurrentContour(Current1D):
         self.ax.yaxis.grid(self.viewSettings["grids"][1])
         self.canvas.draw()
 
-    def plotContour(self, X=False, Y=False, updateOnly=False):  # Plots the contour plot
+    def plotContour(self, updateOnly=False):  # Plots the contour plot
+        X, Y = np.meshgrid(self.x, self.y)
         if updateOnly:  # Set some extra stuff if only the contour plot needs updating
             del self.ax.collections[:]  # Clear all plot collections
         if self.viewSettings["contourType"] == 0:  # if linear
@@ -4293,11 +4343,11 @@ class CurrentContour(Current1D):
         if self.viewSettings["contourConst"]:
             collections = []
             if PlotPositive:
-                c = cntr.Cntr(self.X[YposMax[:, None], XposMax], self.Y[YposMax[:, None], XposMax], self.tmpdata[YposMax[:, None], XposMax])
+                c = cntr.Cntr(X[YposMax[:, None], XposMax], Y[YposMax[:, None], XposMax], self.tmpdata[YposMax[:, None], XposMax])
                 for level in contourLevels:
                     collections.append(contourTrace(level, self.viewSettings["contourColors"][0]))
             if PlotNegative:
-                c = cntr.Cntr(self.X[YposMin[:, None], XposMin], self.Y[YposMin[:, None], XposMin], self.tmpdata[YposMin[:, None], XposMin])
+                c = cntr.Cntr(X[YposMin[:, None], XposMin], Y[YposMin[:, None], XposMin], self.tmpdata[YposMin[:, None], XposMin])
                 for level in -contourLevels[::-1]:
                     collections.append(contourTrace(level, self.viewSettings["contourColors"][1]))
             for col in collections:  # plot all
@@ -4308,12 +4358,12 @@ class CurrentContour(Current1D):
             colorMap = get_cmap(self.viewSettings["colorMap"])
             collections = []
             if PlotPositive:
-                c = cntr.Cntr(self.X[YposMax[:, None], XposMax], self.Y[YposMax[:, None], XposMax], self.tmpdata[YposMax[:, None], XposMax])
+                c = cntr.Cntr(X[YposMax[:, None], XposMax], Y[YposMax[:, None], XposMax], self.tmpdata[YposMax[:, None], XposMax])
                 for level in contourLevels:
                     clevel = colorMap((level - vmin) / (vmax - vmin))
                     collections.append(contourTrace(level, clevel))
             if PlotNegative:
-                c = cntr.Cntr(self.X[YposMin[:, None], XposMin], self.Y[YposMin[:, None], XposMin], self.tmpdata[YposMin[:, None], XposMin])
+                c = cntr.Cntr(X[YposMin[:, None], XposMin], Y[YposMin[:, None], XposMin], self.tmpdata[YposMin[:, None], XposMin])
                 for level in -contourLevels[::-1]:
                     clevel = colorMap((level - vmin) / (vmax - vmin))
                     collections.append(contourTrace(level, clevel))
