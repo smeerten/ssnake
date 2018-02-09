@@ -4279,15 +4279,17 @@ class CurrentContour(Current1D):
                     else:
                         XposMin = np.arange(self.tmpdata.shape[1])
                     PlotNegative = True
+
         def contourTrace(level, color):
-            level = c.trace(level)
+            level = c.trace(level) #25% of time
             segs = level[:len(level) // 2]
-            col = mcoll.LineCollection(segs)
+            col = mcoll.LineCollection(segs) #75% of time
             col.set_label(self.data.name)
             col.set_linewidth(self.viewSettings["linewidth"])
             col.set_linestyle('solid')
             col.set_color(color)
             return col
+
         if self.viewSettings["contourConst"]:
             collections = []
             if PlotPositive:

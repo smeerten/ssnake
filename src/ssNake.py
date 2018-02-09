@@ -3106,7 +3106,7 @@ class BottomFrame(QtWidgets.QWidget):
             if self.father.current.freq == 0.0:
                 self.axisDropFreq.model().item(3).setEnabled(False)
             self.ax2Label.hide()
-            if self.father.current.viewSettings["ppm"]:
+            if self.father.current.viewSettings["ppm"] and self.father.current.freq != 0.0:
                 self.axisDropFreq.setCurrentIndex(3)
             else:
                 self.axisDropFreq.setCurrentIndex(self.father.current.viewSettings["axType"])
@@ -3120,7 +3120,10 @@ class BottomFrame(QtWidgets.QWidget):
                 self.axisDropFreq2.show()
                 if self.father.current.freq2 == 0.0:
                     self.axisDropFreq2.model().item(3).setEnabled(False)
-                self.axisDropFreq2.setCurrentIndex(self.father.current.viewSettings["axType2"])
+                if self.father.current.viewSettings["ppm2"] and self.father.current.freq2 != 0.0:
+                    self.axisDropFreq2.setCurrentIndex(3)
+                else:
+                    self.axisDropFreq2.setCurrentIndex(self.father.current.viewSettings["axType2"])
         if isinstance(self.father.current, sc.CurrentArrayed):
             self.ax2Label.show()
             self.axisDropFreq2.model().item(3).setEnabled(True)
@@ -3131,7 +3134,10 @@ class BottomFrame(QtWidgets.QWidget):
                 self.axisDropFreq2.show()
                 if self.father.current.freq2 == 0.0:
                     self.axisDropFreq2.model().item(3).setEnabled(False)
-                self.axisDropFreq2.setCurrentIndex(self.father.current.viewSettings["axType2"])
+                if self.father.current.viewSettings["ppm2"] and self.father.current.freq2 != 0.0:
+                    self.axisDropFreq2.setCurrentIndex(3)
+                else:
+                    self.axisDropFreq2.setCurrentIndex(self.father.current.viewSettings["axType2"])
         if self.father.current.wholeEcho:
             self.wholeEcho.setCheckState(QtCore.Qt.Checked)
         else:
