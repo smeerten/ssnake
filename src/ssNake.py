@@ -2546,14 +2546,23 @@ class SideFrame(QtWidgets.QScrollArea):
                 self.contourLimitsFrame = QtWidgets.QGridLayout()
                 self.maxLEntry = wc.QLineEdit(format(current.viewSettings["maxLevels"] * 100.0, '.7g'), self.setContour)
                 self.maxLEntry.setMaximumWidth(120)
-                self.contourLimitsFrame.addWidget(self.maxLEntry, 0, 1)
+                self.contourLimitsFrame.addWidget(self.maxLEntry, 1, 1)
                 self.minLEntry = wc.QLineEdit(format(current.viewSettings["minLevels"] * 100.0, '.7g'), self.setContour)
                 self.minLEntry.setMaximumWidth(120)
-                self.contourLimitsFrame.addWidget(self.minLEntry, 1, 1)
+                self.contourLimitsFrame.addWidget(self.minLEntry, 2, 1)
+
+                self.contourLimType = QtWidgets.QComboBox()
+                self.contourLimType.addItems(['Current 2D', 'Full data'])
+                self.contourLimType.setCurrentIndex(current.viewSettings["limitType"])
+                self.contourLimType.currentIndexChanged.connect(self.setContour)
+                self.contourLimitsFrame.addWidget(self.contourLimType, 0, 1)
+
                 self.maxLabel = wc.QLeftLabel("Max:", self)
                 self.minLabel = wc.QLeftLabel("Min:", self)
-                self.contourLimitsFrame.addWidget(self.maxLabel, 0, 0)
-                self.contourLimitsFrame.addWidget(self.minLabel, 1, 0)
+                self.relLabel = wc.QLeftLabel("Rel. to:", self)
+                self.contourLimitsFrame.addWidget(self.relLabel, 0, 0)
+                self.contourLimitsFrame.addWidget(self.maxLabel, 1, 0)
+                self.contourLimitsFrame.addWidget(self.minLabel, 2, 0)
                 self.contourLimitsGroup.setLayout(self.contourLimitsFrame)
                 self.frame2.addWidget(self.contourLimitsGroup, 7, 0, 1, 3)
                 # Projections
@@ -2807,7 +2816,10 @@ class SideFrame(QtWidgets.QScrollArea):
         else:
             multi = abs(float(multi))
         self.multiValue.setText(str(multi))
-        self.father.current.setLevels(var1, maxC / 100.0, minC / 100.0, cSign, cType, multi)
+
+        limitType = self.contourLimType.currentIndex()
+
+        self.father.current.setLevels(var1, maxC / 100.0, minC / 100.0, limitType, cSign, cType, multi)
 
     def changeProj(self, pType, direc):
         if pType is 4:

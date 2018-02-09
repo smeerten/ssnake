@@ -2003,6 +2003,7 @@ class Current1D(Plot1DFrame):
                                  "numLevels": 20,
                                  "minLevels": 0.1,
                                  "maxLevels": 1,
+                                 "limitType": 0,
                                  "multiValue": 1.5,
                                  "projTop": 0,
                                  "projRight": 0,
@@ -4115,10 +4116,11 @@ class CurrentContour(Current1D):
             self.plotReset()
         self.showFid()
 
-    def setLevels(self, numLevels, maxLevels, minLevels, contourSign, contourType, multiValue):
+    def setLevels(self, numLevels, maxLevels, minLevels, limitType, contourSign, contourType, multiValue):
         self.viewSettings["numLevels"] = numLevels
         self.viewSettings["maxLevels"] = maxLevels
         self.viewSettings["minLevels"] = minLevels
+        self.viewSettings["limitType"] = limitType
         self.viewSettings["contourSign"] = contourSign
         self.viewSettings["contourType"] = contourType
         self.viewSettings["multiValue"] = multiValue
@@ -4217,7 +4219,10 @@ class CurrentContour(Current1D):
             self.tmpdata = np.real(self.tmpdata)
         elif(self.viewSettings["plotType"] == 3):
             self.tmpdata = np.abs(self.tmpdata)
-        self.differ = np.max(np.abs(self.tmpdata))
+        if self.viewSettings["limitType"] == 0:
+            self.differ = np.max(np.abs(self.tmpdata))
+        else:
+            self.differ = np.max(np.abs(np.ravel(self.data.data[hyperView])))
         self.plotContour(X=self.X, Y=self.Y)
         self.showProj()
         self.ax.set_xlabel(self.getLabel(self.spec, self.viewSettings["axType"], self.viewSettings["ppm"]))
