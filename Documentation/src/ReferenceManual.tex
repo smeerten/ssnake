@@ -872,6 +872,11 @@ Splits the current dimension in $n$ parts with an equal number of data points. T
 \subsection{Multiply}
 Multiplies the y-values of the data in the current dimension by a given number. If a single number is supplied, all the points are multiplied by this number. Alternatively, an array with the same length as the data can be given to specify a position dependent multiplication. For example, for a dimension with 3 data points: [1,3.34,2]. This multiplies the first data point by 1, second by 3.34, etc. Do not forget the about the mirroring in the spectral domain (see Diff)!
 
+\subsection{Normalize}
+A tool to scale a selected region to a particular maximum, minimum, or integral. This is
+essentially the same as the `Multiply' tool, only ssNake calculates the relevant multiplication
+factor for you.
+
 \subsection{Reorder}
 Reorders the data in the current dimension. Input is an array with the new,
 desired positions. For example, [0,2,1] keeps the position of the first element
@@ -1039,40 +1044,73 @@ Reconstruction is done separately for every trace in the $n$D data. This also go
 
 
 \section{Fitting}
-In NMR spectroscopy, the shape of the resonance lines can provide information on the strength of interactions that the nucleus experiences. ssNake can, as many other programs, fit some idealized lineshapes with are often encountered in real life spectra. Fitting in ssNake ranges from trivial `full width at half maximum' (FWHM) fitting, to the complex quadrupolar Czjzek distribution. The following section will explain the way ssNake handles the different types of spectra it can fit, and which equations are used to simulate the different spectra.
+In NMR spectroscopy, the shape of the resonance lines can provide information on the strength of
+interactions that the nucleus experiences. ssNake can, as many other programs, fit some idealized
+lineshapes with are often encountered in real life spectra. Fitting in ssNake ranges from trivial
+`full width at half maximum' (FWHM) fitting, to the complex quadrupolar Czjzek distribution. The
+following section will explain the way ssNake handles the different types of spectra it can fit, and
+which equations are used to simulate the different spectra.
 
 \subsection{Fitting basics}
-Roughly speaking, ssNake uses two types of fitting procedures: those with a mathematical solution, and those who have to be approximated iteratively. An example of the former type is the fitting of the width of a peak at halve height (FWHM). This involves nothing more than finding the left and right side of the peak (at halve height) and to calculate the width of this interval. This can be done in one easy mathematical procedure, and involves no iterative loop. The second type of fitting procedure is used for the powder lineshapes (e.g. quadrupolar and chemical shift lineshapes). With these problems, there is no direct mathematical solution. We are searching a parameter space for the solution that best fits the experimental spectrum. This is done by trying different settings, and qualifying how well these fit. Based on these attempts, a new setting is tested. This is continued until an optimum has been found. There are several ways to do such an iterative fitting: ssNake uses the Nelder-Mead algorithm \cite{nelder1965simplex} (also known as ``Simplex'').
+Roughly speaking, ssNake uses two types of fitting procedures: those with a mathematical solution,
+and those who have to be approximated iteratively. An example of the former type is the fitting of
+the width of a peak at halve height (FWHM). This involves nothing more than finding the left and
+right side of the peak (at halve height) and to calculate the width of this interval. This can be
+done in one easy mathematical procedure, and involves no iterative loop. The second type of fitting
+procedure is used for the powder lineshapes (e.g. quadrupolar and chemical shift lineshapes). With
+these problems, there is no direct mathematical solution. We are searching a parameter space for the
+solution that best fits the experimental spectrum. This is done by trying different settings, and
+qualifying how well these fit. Based on these attempts, a new setting is tested. This is continued
+until an optimum has been found. There are several ways to do such an iterative fitting: ssNake uses
+the Nelder-Mead algorithm \cite{nelder1965simplex} (also known as ``Simplex'').
 
 \subsubsection*{Powder distributions and line shape fitting}
-ssNake supports fitting procedures for several idealized lineshapes commonly encountered in solid state NMR. In the following sections, the equations for these shapes fill be given. In all cases, the fitted shape represents an ideal version assuming perfect excitation, and no mixed lineshape effects (e.g. quadrupolar and CSA at the same time). Note that the quality of the fit is determined by the digital resolution, which is the same as in the spectrum that is fitted. In many cases, convergence towards to optimum solution is difficult, as our fitting procedure is sensitive for local optima. It is therefore good practice to have a good initial guess. Use the `Sim' button to show the current guess, and put all variables to reasonable values.
+ssNake supports fitting procedures for several idealized lineshapes commonly encountered in solid
+state NMR. In the following sections, the equations for these shapes fill be given. In all cases,
+the fitted shape represents an ideal version assuming perfect excitation, and no mixed lineshape
+effects (e.g. quadrupolar and CSA at the same time). Note that the quality of the fit is determined
+by the digital resolution, which is the same as in the spectrum that is fitted. In many cases,
+convergence towards to optimum solution is difficult, as our fitting procedure is sensitive for
+local optima. It is therefore good practice to have a good initial guess. Use the `Sim' button to
+show the current guess, and put all variables to reasonable values.
 
-Simulation of powder spectra is done by getting intensities and frequencies of all the crystallite angles contained in a crystal file. These crystal files (which are not files in our case, but merely matrices) are made on the fly by ssNake depending on the `Cheng' number supplied by the user from the fitting window. Higher values of this number lead to more powder orientations and more accurate results. Note that the number of angles increases exponentially with the Cheng number, which can lead to very slow fits. The resulting frequency/intensity pairs will be add to a vector of the current intensities. Nearly always, the found frequency is not a value of the x-axis, in which case it is shifted to the nearest point that is. This introduces a small error in the simulation, but if the digital resolution is good enough to show the pattern nicely, this error will be very small. Also note that values that are not within the limits of the x-axis are discarded, no aliasing is performed.
+Simulation of powder spectra is done by getting intensities and frequencies of all the crystallite
+angles contained in a crystal file. These crystal files (which are not files in our case, but merely
+matrices) are made on the fly by ssNake depending on the `Cheng' number supplied by the user from
+the fitting window. Higher values of this number lead to more powder orientations and more accurate
+results. Note that the number of angles increases exponentially with the Cheng number, which can
+lead to very slow fits. The resulting frequency/intensity pairs will be add to a vector of the
+current intensities. Nearly always, the found frequency is not a value of the x-axis, in which case
+it is shifted to the nearest point that is. This introduces a small error in the simulation, but if
+the digital resolution is good enough to show the pattern nicely, this error will be very small.
+Also note that values that are not within the limits of the x-axis are discarded, no aliasing is
+performed.
 
 \subsection*{ZCW crystal files}
-As explained in the previous section, simulation of powder patterns requires averaging over a sphere. In practice, only a finite amount of angles (the polar angles $\theta$ and $\phi$) is selected and saved in the crystal file. There is no perfect way to do this, and therefore there exist multiple methods to do this. We use the ZCW method (named after Zaremba, Conroy, and Wolfsberg \cite{zaremba1966good,conroy1967molecular,cheng1973investigations}), being both fast and accurate. The required input is a single number: the `Cheng' number. This number specifies the amount of crystal orientations via the Fibonacci series, with Cheng(0) being `1', Cheng(1) `2' and subsequent values the sum of the two previous:
-\begin{equation}
-F_M = F_{M-1} + F_{M-2}	\quad .
+As explained in the previous section, simulation of powder patterns requires averaging over a
+sphere. In practice, only a finite amount of angles (the polar angles $\theta$ and $\phi$) is
+selected and saved in the crystal file. There is no perfect way to do this, and therefore there
+exist multiple methods to do this. We use the ZCW method (named after Zaremba, Conroy, and Wolfsberg
+\cite{zaremba1966good,conroy1967molecular,cheng1973investigations}), being both fast and accurate.
+The required input is a single number: the `Cheng' number. This number specifies the amount of
+crystal orientations via the Fibonacci series, with Cheng(0) being `1', Cheng(1) `2' and subsequent
+values the sum of the two previous: \begin{equation} F_M = F_{M-1} + F_{M-2}	\quad .
 \end{equation} 
-From this, a list $js$ is made, going from 0 to 1 (not including) with the number of steps equal to the Fibonacci number. Phi is equal to:
-\begin{equation}
-\phi = \dfrac{2  \piup}{c_2} \cdot \text{mod}(F_{M-1} \cdot js, 1)
-\end{equation} 
-with $c_2$ a scaling factor (see below) and $F_{M-1}$ the value of the Fibonacci series for $\text{Cheng} - 1$. In practice this means that (due to the `mod'), the list makes $F_{M-1}$ passes through the region 0:$2  \piup/c_2$, with slightly different values for every pass. Theta is equal to:
-\begin{equation}
-\theta = \text{acos}(c_0 (c_1 \cdot js - 1)) \quad .
-\end{equation}
-In the above, the $c$ parameters define the limits over which the angles are calculated. ssNake provides three options for this: a full sphere, a hemisphere (the upper half) and an octant (a quarter of the upper half). In the simulations that ssNake performs, the symmetry of the NMR interactions is high, and only the octant needs to be sampled. The $c$ values are:
-\begin{equation}
-\mathbf{c} = \left\{
-  \begin{array}{ll}
-    (1, 2, 1) & \text{full sphere}\\
-    (-1, 1, 1) &\text{hemisphere}\\
-    (-1, 1, 4) &\text{octant}\\
-  \end{array}
-\right. \quad .
-\end{equation}
-The source code of this can be found in \texttt{zcw.py}. For more information on powder averaging see the paper by Mattias Ed\'{e}n \cite{eden2003computer}.
+From this, a list $js$ is made, going from 0 to 1 (not including) with the number of steps equal to
+the Fibonacci number. Phi is equal to: \begin{equation} \phi = \dfrac{2  \piup}{c_2} \cdot
+  \text{mod}(F_{M-1} \cdot js, 1) \end{equation} 
+with $c_2$ a scaling factor (see below) and $F_{M-1}$ the value of the Fibonacci series for
+$\text{Cheng} - 1$. In practice this means that (due to the `mod'), the list makes $F_{M-1}$ passes
+through the region 0:$2  \piup/c_2$, with slightly different values for every pass. Theta is equal
+to: \begin{equation} \theta = \text{acos}(c_0 (c_1 \cdot js - 1)) \quad .  \end{equation}
+In the above, the $c$ parameters define the limits over which the angles are calculated. ssNake
+provides three options for this: a full sphere, a hemisphere (the upper half) and an octant (a
+quarter of the upper half). In the simulations that ssNake performs, the symmetry of the NMR
+interactions is high, and only the octant needs to be sampled. The $c$ values are: \begin{equation}
+  \mathbf{c} = \left\{ \begin{array}{ll} (1, 2, 1) & \text{full sphere}\\ (-1, 1, 1)
+	 &\text{hemisphere}\\ (-1, 1, 4) &\text{octant}\\ \end{array} \right. \quad .  \end{equation}
+The source code of this can be found in \texttt{zcw.py}. For more information on powder averaging
+see the paper by Mattias Ed\'{e}n \cite{eden2003computer}.
 
 
 
@@ -1241,7 +1279,19 @@ better tweaked library for this specific value of $\sigma$.
 
 %czjzek = wq**(d - 1) * eta / (np.sqrt(2 * np.pi) * sigma**d) * (1 - eta**2 / 9.0) * np.exp(-wq**2 / (2.0 * sigma**2) * (1 + eta**2 / 3.0))
 
-
+\subsection{Function fit}
+While we try and include as  many relevant fit function as possible, we cannot include everything in
+ssNake. In cases were the supplied functions are not useful, `Function fit' can be used. Using this
+window, a function input by the user can be supplied. Pushing the `Input Function' button opens a
+window were the required function can be supplied. The $x$-variable is the $x$-axis, and other
+variable can be supplied by the @$a$ notation (with $a$ any variable name you like, with no special
+characters in the name). For example, let us say we want to fit a parabola with an offset. This would look like:
+\begin{equation}
+  x ** 2 * @a + @b
+\end{equation}
+with $a$ and $b$ the variable to be fit. Note the Python way of writing the square of $x$ is $x **
+2$. Pushing Ok will load the function, and display $a$ and $b$ for the user to input (or fit). Note
+that the `@' sign is only used by ssNake to recognise which are variable in the equation.
 
 \section{Plot}
 The plot menu allows the user the change the view and nature of the current data. Several types, for both 1D and 2D views are supported. Apart from the view, the current x-axis can be changed, and a 
@@ -1301,9 +1351,16 @@ The side frame has several options, which are described below.
 
 
 \subsubsection*{Contour limits [\%]}
-Sets the maximum and minimum contour. Note that the maximum always refers to the absolute maximum of the data that is plot (real or imaginary).
-The maximum cannot be higher than 100\%, and the minimum cannot be lower than 0\%. Whenever the minimum is higher than the maximum, 
-the meaning (but not the labels) is interchanged. The minimum contour level can be scrolled using the <shift -- scroll> with the mouse wheel.
+Sets the maximum and minimum contour. The maximum cannot be higher than 100\%, and the minimum
+cannot be lower than 0\%. Whenever the minimum is higher than the maximum, the meaning (but not the
+labels) is interchanged. The minimum contour level can be scrolled using the <shift -- scroll> with
+the mouse wheel.
+
+Two types are supported via the `Rel.\ to.' dropdown menu: `Current 2D' and `Full data'. `Current
+2D' sets the 100 \% value of the contours equal to the maximum of the current shown 2D plot. `Full
+data' displays it relative to the maximum of the entire dataset. This last option is particularly
+handy when view 3D data, were traces with no intensity compared to the data maximum are irrelevant,
+and should not show any contour levels.
 
 \subsubsection*{Projections}
 The projections are the regular 1D plots shown at the top and right of the contour plot. These can be of help in viewing the data.
@@ -1313,12 +1370,17 @@ For both, several types are available:
   \item Max: the maximum of the data
   \item Min: the minimum of the data
   \item Off: no projection is displayed
+  \item Trace: value of a particular trace
 \end{itemize}
-Sum, Max, and Min are applied along the axis opposite to the projection. So the top projection (which shows the x-axis) is summed (max/min) along the y-axis.
+Sum, Max, and Min are applied along the axis opposite to the projection. So the top projection
+(which shows the x-axis) is summed (max/min) along the y-axis.
 
-Alternatively, the Projection Ranges box can be toggled. This allows the user to specify between which data points the operation (sum/min/max) should be applied.
-This can be useful to get higher signal-to-noise level projections, by preventing contributions from noise-only areas.
+Alternatively, the Projection Ranges box can be toggled. This allows the user to specify between
+which data points the operation (sum/min/max) should be applied.  This can be useful to get higher
+signal-to-noise level projections, by preventing contributions from noise-only areas.
 
+The `Trace' option sets the projection equal to a particular line in the 2D data. Using the `Select
+Traces' button, a trace can be selected by clicking in the contour plot.
 
 \subsubsection*{Diagonal}
 Ticking this box draws a diagonal line across the 2D data at x = y. Note that the axis type is of importance: no scaling is performed.
