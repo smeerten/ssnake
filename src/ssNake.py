@@ -2895,6 +2895,10 @@ class SideFrame(QtWidgets.QScrollArea):
                     self.father.current.setProjLimits(self.rangeCheckbox.isChecked(), newRanges)
                     self.father.current.setProjTraces(self.projTraceTop.value(), 1)
                     self.father.current.setProjTraces(self.projTraceRight.value(), 0)
+                    #Flip diagonal multiplier:
+                    inp = safeEval(self.diagonalEntry.text())
+                    if inp is not None:
+                        self.father.current.viewSettings["diagonalMult"] = 1.0 / inp
                     #Make sure the bottom frame nicely inverts the axis units
                     time1 = self.father.bottomframe.axisDropTime.currentIndex()
                     time2 = self.father.bottomframe.axisDropTime2.currentIndex()
