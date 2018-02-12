@@ -3101,7 +3101,7 @@ class Current1D(Plot1DFrame):
         self.showFid()
         return returnVal
 
-    def setAxType(self, val):
+    def setAxType(self, val, update = True):
         oldAxMult = self.getAxMult(self.spec, self.viewSettings["axType"], self.viewSettings["ppm"], self.freq, self.ref)
         if val == 3:
             self.viewSettings["ppm"] = True
@@ -3111,7 +3111,8 @@ class Current1D(Plot1DFrame):
         newAxMult = self.getAxMult(self.spec, self.viewSettings["axType"], self.viewSettings["ppm"], self.freq, self.ref)
         self.xminlim = self.xminlim * newAxMult / oldAxMult
         self.xmaxlim = self.xmaxlim * newAxMult / oldAxMult
-        self.showFid()
+        if update:
+            self.showFid()
 
     def hilbert(self):
         self.root.addMacro(['hilbert', (self.axes - self.data.ndim(), )])
@@ -3837,7 +3838,7 @@ class CurrentArrayed(Current1D):
     def resetLocList(self):
         self.locList = [0] * (len(self.data.shape()) - 2)
 
-    def setAxType2(self, val):
+    def setAxType2(self, val, update = True):
         oldAxMult = self.getAxMult(self.spec2, self.viewSettings["axType2"], self.viewSettings["ppm2"], self.freq2, self.ref2)
         if val == 3:
             self.viewSettings["ppm2"] = True
@@ -3845,7 +3846,8 @@ class CurrentArrayed(Current1D):
             self.viewSettings["ppm2"] = False
             self.viewSettings["axType2"] = val
         newAxMult = self.getAxMult(self.spec2, self.viewSettings["axType2"], self.viewSettings["ppm2"], self.freq2, self.ref2)
-        self.showFid()
+        if update:
+            self.showFid()
 
     def stackSelect(self, stackBegin, stackEnd, stackStep):
         self.viewSettings["stackBegin"] = stackBegin
@@ -4137,7 +4139,7 @@ class CurrentContour(Current1D):
         self.locList = [0] * (len(self.data.shape()) - 2)
 
     
-    def setAxType(self, val):
+    def setAxType(self, val, update = True):
         oldAxMult = self.getAxMult(self.spec, self.viewSettings["axType"], self.viewSettings["ppm"], self.freq, self.ref)
         if val == 3:
             self.viewSettings["ppm"] = True
@@ -4147,9 +4149,10 @@ class CurrentContour(Current1D):
         newAxMult = self.getAxMult(self.spec, self.viewSettings["axType"], self.viewSettings["ppm"], self.freq, self.ref)
         self.xminlim = self.xminlim * newAxMult / oldAxMult
         self.xmaxlim = self.xmaxlim * newAxMult / oldAxMult
-        self.updateAxes(oldAxMult,newAxMult,0)
+        if update:
+            self.updateAxes(oldAxMult,newAxMult,0)
     
-    def setAxType2(self, val):
+    def setAxType2(self, val, update = True):
         oldAxMult = self.getAxMult(self.spec2, self.viewSettings["axType2"], self.viewSettings["ppm2"], self.freq2, self.ref2)
         if val == 3:
             self.viewSettings["ppm2"] = True
@@ -4159,8 +4162,8 @@ class CurrentContour(Current1D):
         newAxMult = self.getAxMult(self.spec2, self.viewSettings["axType2"], self.viewSettings["ppm2"], self.freq2, self.ref2)
         self.yminlim = self.yminlim * newAxMult / oldAxMult
         self.ymaxlim = self.ymaxlim * newAxMult / oldAxMult
-        #self.showFid()
-        self.updateAxes(oldAxMult,newAxMult,1)
+        if update:
+            self.updateAxes(oldAxMult,newAxMult,1)
 
     def setProjType(self, val, direc):
         if direc == 1:

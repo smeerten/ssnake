@@ -2895,6 +2895,29 @@ class SideFrame(QtWidgets.QScrollArea):
                     self.father.current.setProjLimits(self.rangeCheckbox.isChecked(), newRanges)
                     self.father.current.setProjTraces(self.projTraceTop.value(), 1)
                     self.father.current.setProjTraces(self.projTraceRight.value(), 0)
+                    #Make sure the bottom frame nicely inverts the axis units
+                    time1 = self.father.bottomframe.axisDropTime.currentIndex()
+                    time2 = self.father.bottomframe.axisDropTime2.currentIndex()
+                    freq1 = self.father.bottomframe.axisDropFreq.currentIndex()
+                    freq2 = self.father.bottomframe.axisDropFreq2.currentIndex()
+                    self.father.bottomframe.axisDropTime.setCurrentIndex(time2)
+                    self.father.bottomframe.axisDropTime2.setCurrentIndex(time1)
+                    self.father.bottomframe.axisDropFreq.setCurrentIndex(freq2)
+                    self.father.bottomframe.axisDropFreq2.setCurrentIndex(freq1)
+                    if bool(self.father.current.spec) is True:
+                        tmp1 = freq1
+                    else:
+                        tmp1 = time1
+                    if bool(self.father.current.spec2) is True:
+                        tmp2 = freq2
+                    else:
+                        tmp2 = time2
+                    self.father.bottomframe.changeAxis( tmp2, update = False)
+                    self.father.bottomframe.changeAxis2( tmp1, update = False)
+
+
+
+
             self.buttons2Group.button(axes2).toggle()
         self.getSlice(None, axes, True)
         self.upd()
@@ -3180,11 +3203,11 @@ class BottomFrame(QtWidgets.QWidget):
         self.father.current.viewSettings["plotType"] = pType
         self.father.current.showFid()
 
-    def changeAxis(self, pType):
-        self.father.current.setAxType(pType)
+    def changeAxis(self, pType, update = True):
+        self.father.current.setAxType(pType, update)
 
-    def changeAxis2(self, pType):
-        self.father.current.setAxType2(pType)
+    def changeAxis2(self, pType, update = True):
+        self.father.current.setAxType2(pType, update)
 
 ##################################################################
 
