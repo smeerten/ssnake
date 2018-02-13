@@ -730,41 +730,62 @@ Pushing OK starts the analysis. The linear prediction is performed independently
 
 
 \subsection{Hypercomplex}
-Hypercomplex data is data that has a real and imaginary part along more than 1 dimension. For a 2D data set that is hypercomplex, four 2D data sets are necessary to
-describe the data: RR, RI, IR, and II (with R = Real, and I = Imag).
-Generally in NMR, the 2D data is recorded with alternating phase, in such a way that groups of 2 data points in the indirect dimension must be combined to recover
-the four hypercomplex values. Depending on the way the data is recorded, a different procedure is necessary to construct the hypercomplex data.
-Currently, ssNake only retains one part of the hypercomplex data, which means that phasing must be performed before the hypercomplex transformations described below. 
-All of these methods stat with a alternating data set consisting of [R1,I1,R2,I2], were R1 stands for the first recorded complex point with time 1, I1 for the second
-recorded complex point with time 1.
+Hypercomplex data is data that has a real and imaginary part along more than 1 dimension. For a 2D
+data set that is hypercomplex, four 2D data sets are necessary to describe the data: RR, RI, IR, and
+II (with R = Real, and I = Imag).  Generally in NMR, the 2D data is recorded with alternating phase,
+in such a way that groups of 2 data points in the indirect dimension must be combined to recover the
+four hypercomplex values. Depending on the way the data is recorded, a different procedure is
+necessary to construct the hypercomplex data. All of these methods start with a alternating data set consisting
+of [R1, I1, R2, I2], were R1 stands for the first recorded complex point with time 1, I1 for the second
+recorded complex point with time 1. After the conversion to hypercomplex data (along a specific
+dimension), ssNake then does hypercomplex processing along that dimension. Phasing along a hyper
+complex axis, for example, performs a different phasing than phasing over a non-hypercomplex axis.
+Let's say we have a 2D data set with hypercomplex information along D1. Phasing along D2, we will
+issue a regular phasing. In the notation used above (RR, IR, RI, II), this means that we will phase
+between RR$\leftrightarrow$RI and IR$\leftrightarrow$II. If we phase along D1, we must phase in the
+opposite way: RR$\leftrightarrow$IR and RI$\leftrightarrow$II. Also, a Fourier transform along D1
+must take RR + $i\cdot$IR as its real and imaginary part (and separately transform RI + $i\cdot$II). 
+
+In principle, there can be hypercomplex data along every dimension except one. Normally in NMR, the
+direct dimension (last dimension) cannot be hyper complex. This is because it does not make sense,
+as the direct real data already has its imaginary counterpart: the direct imaginary data. Hypercomplex
+data can be seen as adding the imaginary part to also the indirect dimensions, to allow phasing
+along this dimension.
+
 
 \subsubsection{States}
-States conversion takes the alternating data set and makes new complex values following:
+States conversion takes the alternating data set and makes new hypercomplex values. For 2D
+data this means that when preforming states along D1, the two complex numbers are converted as:
 \begin{equation*}
-  \text{C}n = \text{R}n + i \cdot \text{I}n \quad .
+  \text{RR} + i \cdot \text{RI} = \text{R}_{1} + i \cdot \text{I}_{1} \quad .
 \end{equation*}
-So for example, if the two complex values of time delay 1 (in the indirect dimension) are $0+1i$ and $2+3i$, the result will be $2+4i$. Note that some 
-information is lost in this way (ideally, the difference between the two value is also retained). Therefore, phasing of the data should be done (perfectly) before the States analysis.
+\begin{equation*}
+  \text{IR} + i \cdot \text{II} = \text{R}_{2} + i \cdot \text{I}_{2} \quad .
+\end{equation*}
+Making two new complex numbers from the old ones. In this case R$_1$ is the real value of the first
+point of the set of two, and R$_2$ the second real point (and the same for the imaginary, I).
+
 
 \subsubsection{States--TPPI}
 
-States--TPPI conversion takes the alternating data set and makes new complex values following:
-\begin{equation*}
-  \text{C}n = \text{R}n + i \cdot \text{I}n 
-\end{equation*}
-for odd values of $n$. And:
-\begin{equation*}
-  \text{C}n = -\text{R}n - i \cdot \text{I}n 
-\end{equation*}
-for even values of $n$.
+States--TPPI conversion takes the alternating data set and makes new complex values following the
+same procedure as States. After the procedure, the values as odd positions are multiplied with $-1$
+(and the even positions are retained).
 
 
 
 \subsubsection{Echo--antiecho}
 Echo--antiecho conversion takes the alternating data set and makes new complex values following:
 \begin{equation*}
-  \text{C}n = \text{Re}(\text{R}n + \text{I}n ) - i \cdot \text{Im}(\text{R}n - \text{I}n )
+  \text{RR} + i \cdot \text{RI} = (\text{R}_{1} +\text{R}_{2})  + i \cdot (\text{I}_{1} +
+  \text{I}_2) 
 \end{equation*}
+\begin{equation*}
+  \text{IR} + i \cdot \text{II} = (\text{I}_{2} - \text{I}_1) + i \cdot (\text{R}_{1} - \text{R}_2  ) \quad .
+\end{equation*}
+
+
+
 
 
 
