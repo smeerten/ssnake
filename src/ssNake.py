@@ -2453,7 +2453,11 @@ class SideFrame(QtWidgets.QScrollArea):
                     self.buttons2.append(QtWidgets.QRadioButton(''))
                     self.buttons2Group.addButton(self.buttons2[num], num)
                     self.frame1.addWidget(self.buttons2[num], num * 2 + 1, 1)
-                self.frame1.addWidget(wc.QLabel("D" + str(num + 1), self), num * 2, 1 + offset)
+                if current.isComplex(num):
+                    tmpLabel = "*D"
+                else:
+                    tmpLabel = "D"
+                self.frame1.addWidget(wc.QLabel(tmpLabel + str(num + 1), self), num * 2, 1 + offset)
                 self.entries.append(wc.SliceSpinBox(self, 0, self.shape[num] - 1))
                 self.frame1.addWidget(self.entries[num], num * 2 + 1, 1 + offset)
                 if not self.plotIs2D:

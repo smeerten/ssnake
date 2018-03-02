@@ -52,7 +52,7 @@ class Spectrum(object):
         else:
             self.data = [np.array(data, dtype=complex)]  # data of dimension dim
         if hyper is None:
-            self.hyper = [] #Holds the axes where hypercomplex data exists
+            self.hyper = [] # Holds the axes where hypercomplex data exists
         else:
             self.hyper = hyper
         self.data, self.hyper = self.sortHyper(self.data, self.hyper) #force hyper into descending order
@@ -95,6 +95,12 @@ class Spectrum(object):
 
     def getHyper(self): #Returns a copy of the hyper list
         return copy.copy(self.hyper)
+
+    def isComplex(self, axis):
+        if axis == (self.ndim() - 1):
+            return True
+        else:
+            return (axis in self.hyper)
         
     def dispMsg(self, msg):
         if self.msgHandler is None:
@@ -2142,6 +2148,9 @@ class Current1D(Plot1DFrame):
         if diagonalMult is not None:
             self.viewSettings["diagonalMult"] = diagonalMult
         self.showFid()
+
+    def isComplex(self, *args):
+        return self.data.isComplex(*args)
         
     def setPhaseInter(self, phase0in, phase1in):  # interactive changing the phase without editing the actual data
         phase0 = float(phase0in)
