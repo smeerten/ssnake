@@ -24,7 +24,7 @@ import os
 
 
 def loading(num, filePath, name=None, realpath=False, dialog=None):
-    #try:
+    try:
         if num == 0:
             masterData = loadVarianFile(filePath, name)
         elif num == 1:
@@ -55,9 +55,9 @@ def loading(num, filePath, name=None, realpath=False, dialog=None):
             masterData = loadMinispec(filePath, name)
         elif num == 13:
             masterData = loadBrukerEPR(filePath, name)
-   # except Exception:
-   #     return None
-        return masterData
+    except Exception:
+        return None
+    return masterData
 
 
 def fileTypeCheck(filePath):
@@ -75,6 +75,11 @@ def fileTypeCheck(filePath):
                 return (8, filePath, returnVal)  # Suspected NMRpipe format
             else:  # SIMPSON
                 return (4, filePath, returnVal)
+        if filename.endswith('.ft') or filename.endswith('.ft2'):
+            with open(filePath, 'r') as f:
+                check = int(np.fromfile(f, np.float32, 1))
+            if check == 0:
+                return (8, filePath, returnVal)  # Suspected NMRpipe format
         elif filename.endswith('.json') or filename.endswith('.JSON'):
             return (5, filePath, returnVal)
         elif filename.endswith('.mat') or filename.endswith('.MAT'):
@@ -194,19 +199,43 @@ def loadVarianFile(filePath, name=''):
 def loadPipe(filePath, name=''):
     with open(filePath, 'r') as f:
         header = np.fromfile(f, np.float32, 512)
-        NumberofPoints = int(header[99])
-        data = np.fromfile(f, np.float32, NumberofPoints)
+        NP = int(header[99])
+        NI = int(header[219])
+        NDIM = int(header[9])
+        if NDIM > 2:
+            return
+        SIZE = [1,1,NI,NP]
+        hyper = int(header[106])
+        TotP = np.cumprod(SIZE)[-1]
         if int(header[106]) == 0:  # if complex
-            data = data + 1j * np.fromfile(f, np.float32, NumberofPoints)
-        spec = int(header[220])  # 1 if ft, 0 if time
-        freq = header[119] * 1e6
-        sw = header[100]
-        reference = header[101]  # frequency of last point in Hz
-    sidefreq = -np.floor(NumberofPoints / 2) / NumberofPoints * sw  # freqeuency of last point on axis
-    ref = sidefreq + freq - reference
-    if spec == 1:
-        data = np.flipud(data)
-    masterData = sc.Spectrum(name, data, (8, filePath), [freq], [sw], [spec], ref=[ref])
+            TotP = TotP * 2
+        data = np.fromfile(f, np.float32, TotP)
+        if SIZE[2] > 1:
+            data = np.reshape(data, (SIZE[2],int(TotP/SIZE[2])))
+
+        if int(header[106]) == 0:
+            if SIZE[2] == 1:
+                data = data[:SIZE[3]] + 1j * data[SIZE[3]:]
+            else:
+                data = data[:,:SIZE[3]] + 1j * data[:,SIZE[3]:]
+
+        
+        spec = [int(header[31]),int(header[13]),int(header[222]),int(header[220])]  # 1 if ft, 0 if time
+        freq = np.array([header[28],header[10],header[218],header[119]]) * 1e6
+        sw = [header[29],header[11],header[229],header[100]]
+        ref = [header[30],header[12],header[249],header[101]]  # frequency of last point in Hz
+
+    for i in range(len(spec)):
+        sidefreq = -np.floor(SIZE[i] / 2) / SIZE[i] * sw[i]  # freqeuency of last point on axis
+        ref[i] = sidefreq + freq[i] - ref[i]
+
+
+    for i in range(NDIM):
+        if spec[-1 - i] == 1: #If spectrum
+            data = np.flip(data, NDIM -1 - i)
+
+    masterData = sc.Spectrum(name, data, (8, filePath), freq[4 - NDIM:4], sw[4 - NDIM:4], spec[4 - NDIM:4], ref=ref[4 - NDIM:4])
+
     masterData.addHistory("NMRpipe data loaded from " + filePath)
     return masterData
 
