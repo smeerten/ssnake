@@ -24,7 +24,7 @@ import os
 
 
 def loading(num, filePath, name=None, realpath=False, dialog=None):
-    try:
+    #try:
         if num == 0:
             masterData = loadVarianFile(filePath, name)
         elif num == 1:
@@ -55,9 +55,9 @@ def loading(num, filePath, name=None, realpath=False, dialog=None):
             masterData = loadMinispec(filePath, name)
         elif num == 13:
             masterData = loadBrukerEPR(filePath, name)
-    except Exception:
-        return None
-    return masterData
+    #except Exception:
+    #    return None
+        return masterData
 
 
 def fileTypeCheck(filePath):
@@ -75,7 +75,7 @@ def fileTypeCheck(filePath):
                 return (8, filePath, returnVal)  # Suspected NMRpipe format
             else:  # SIMPSON
                 return (4, filePath, returnVal)
-        if filename.endswith('.ft') or filename.endswith('.ft2'):
+        if filename.endswith('.ft') or filename.endswith('.ft2') or filename.endswith('.ft3'):
             with open(filePath, 'r') as f:
                 check = int(np.fromfile(f, np.float32, 1))
             if check == 0:
@@ -203,10 +203,11 @@ def loadPipe(filePath, name=''):
         NI = int(header[219])
         NDIM = int(header[9])
         if NDIM > 2:
-            return
-        SIZE = [1,1,NI,NP]
+            NDIM = 2
+        SIZE = [int(header[32]),int(header[15]),int(header[219]),int(header[99])]
+        #print('new',newSize)
         hyper = int(header[106])
-        TotP = np.cumprod(SIZE)[-1]
+        TotP = SIZE[3] * SIZE[2] #Max 2D size
         if int(header[106]) == 0:  # if complex
             TotP = TotP * 2
         data = np.fromfile(f, np.float32, TotP)
@@ -219,7 +220,7 @@ def loadPipe(filePath, name=''):
             else:
                 data = data[:,:SIZE[3]] + 1j * data[:,SIZE[3]:]
 
-        
+        quadflag = [int(header[54]),int(header[51]),int(header[55]),int(header[56])] #0 complex, 1 real        
         spec = [int(header[31]),int(header[13]),int(header[222]),int(header[220])]  # 1 if ft, 0 if time
         freq = np.array([header[28],header[10],header[218],header[119]]) * 1e6
         sw = [header[29],header[11],header[229],header[100]]
