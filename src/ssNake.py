@@ -1724,11 +1724,11 @@ class Main1DWindow(QtWidgets.QWidget):
                 loadData = self.father.loading(self.masterData.filePath[0], self.masterData.filePath[1], True)
                 returnValue = self.masterData.restoreData(loadData, None)
             elif iter1[0] == 'real':
-                returnValue = self.masterData.real()
+                returnValue = self.masterData.real(*iter1[1])
             elif iter1[0] == 'imag':
-                returnValue = self.masterData.imag()
+                returnValue = self.masterData.imag(*iter1[1])
             elif iter1[0] == 'abs':
-                returnValue = self.masterData.abs()
+                returnValue = self.masterData.abs(*iter1[1])
             elif iter1[0] == 'conj':
                 returnValue = self.masterData.conj(*iter1[1])
             elif iter1[0] == 'phase':
@@ -2048,46 +2048,37 @@ class Main1DWindow(QtWidgets.QWidget):
     def real(self):
         self.redoList = []
         if self.masterData.noUndo:
-            self.masterData.real()
+            self.current.real()
         else:
-            self.undoList.append(self.masterData.real())
-        self.current.upd()
-        self.current.showFid()
-        self.addMacro(['real'])
+            self.undoList.append(self.current.real())
+        self.sideframe.upd()
         self.menuCheck()
 
     def imag(self):
         self.redoList = []
         if self.masterData.noUndo:
-            self.masterData.imag()
+            self.current.imag()
         else:
-            self.undoList.append(self.masterData.imag())
-        self.current.upd()
-        self.current.showFid()
-        self.addMacro(['imag'])
+            self.undoList.append(self.current.imag())
+        self.sideframe.upd()
         self.menuCheck()
 
     def abs(self):
         self.redoList = []
         if self.masterData.noUndo:
-            self.masterData.abs()
+            self.current.abs()
         else:
-            self.undoList.append(self.masterData.abs())
-        self.current.upd()
-        self.current.showFid()
-        self.addMacro(['abs'])
+            self.undoList.append(self.current.abs())
+        self.sideframe.upd()
         self.menuCheck()
 
     def conj(self):
         self.redoList = []
-        axes = self.current.axes
         if self.masterData.noUndo:
-            self.masterData.conj(axes)
+            self.current.conj()
         else:
-            self.undoList.append(self.masterData.conj(axes))
-        self.current.upd()
-        self.current.showFid()
-        self.addMacro(['conj',(axes,)])
+            self.undoList.append(self.current.conj())
+        self.sideframe.upd()
         self.menuCheck()
 
     def fourier(self):

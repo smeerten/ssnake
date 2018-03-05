@@ -96,11 +96,11 @@ class Spectrum(object):
     def getHyper(self): #Returns a copy of the hyper list
         return copy.copy(self.hyper)
 
-    def isComplex(self, axis):
-        if axis == (self.ndim() - 1):
+    def isComplex(self, axes):
+        if axes == (self.ndim() - 1):
             return True
         else:
-            return (axis in self.hyper)
+            return (axes in self.hyper)
         
     def dispMsg(self, msg):
         if self.msgHandler is None:
@@ -533,48 +533,72 @@ class Spectrum(object):
         else:
             return lambda self: self.concatenate(axes)
 
-    def real(self):
+    def real(self, axes=-1):
         if not self.noUndo:
             copyData = copy.deepcopy(self)
-        for index in range(len(self.data)):
-            self.data[index] = np.real(self.data[index])
-        self.addHistory("Real")
+        axes = self.checkAxes(axes)
+        if axes is None:
+            return None
+        if axes in self.hyper:
+            self.data, self.hyper = self.deleteHyper(axes, self.data, self.hyper, False)
+        else:
+            for index in range(len(self.data)):
+                self.data[index] = np.real(self.data[index])
+        self.addHistory("Real along dimension " + str(axes+1))
         if self.noUndo:
             return None
         else:
-            return lambda self: self.restoreData(copyData, lambda self: self.real())
+            return lambda self: self.restoreData(copyData, lambda self: self.real(axes))
 
-    def imag(self):
+    def imag(self, axes=-1):
         if not self.noUndo:
             copyData = copy.deepcopy(self)
-        for index in range(len(self.data)):
-            self.data[index] = np.imag(self.data[index])
-        self.addHistory("Imaginary")
+        axes = self.checkAxes(axes)
+        if axes is None:
+            return None
+        if axes in self.hyper:
+            self.data, self.hyper = self.deleteHyper(axes, self.data, self.hyper, True)
+        else:
+            for index in range(len(self.data)):
+                self.data[index] = np.imag(self.data[index])
+        self.addHistory("Imaginary along dimension " + str(axes+1))
         if self.noUndo:
             return None
         else:
-            return lambda self: self.restoreData(copyData, lambda self: self.imag())
+            return lambda self: self.restoreData(copyData, lambda self: self.imag(axes))
 
-    def abs(self):
+    def abs(self, axes=-1):
         if not self.noUndo:
             copyData = copy.deepcopy(self)
-            returnValue = lambda self: self.restoreData(copyData, lambda self: self.abs())
-        for index in range(len(self.data)):
-            self.data[index] = np.abs(self.data[index])
-        self.addHistory("Absolute")
-        return returnValue
+        axes = self.checkAxes(axes)
+        if axes is None:
+            return None
+        if axes in self.hyper:
+            realdata, tmphyper = self.deleteHyper(axes, self.data, self.hyper, False)
+            imagdata, tmphyper = self.deleteHyper(axes, self.data, self.hyper, True)
+            for index in range(len(realdata)):
+                realdata[index] = np.sqrt(np.real(realdata)[index]**2 + np.real(imagdata)[index]**2) + 1j*np.sqrt(np.imag(realdata)[index]**2 + np.imag(imagdata)[index]**2)
+            self.data = realdata
+            self.hyper = tmphyper
+        else:
+            for index in range(len(self.data)):
+                self.data[index] = np.abs(self.data[index])
+        self.addHistory("Absolute along dimension " + str(axes+1))
+        if self.noUndo:
+            return None
+        else:
+            return lambda self: self.restoreData(copyData, lambda self: self.abs(axes))
     
-    def conj(self,axes):
-        if self.noUndo:
-            returnValue = None
-        else:
-            returnValue = lambda self: self.conj(axes)
+    def conj(self, axes):
         self.data = self.hyperReorder(self.data, axes)
         for index in range(len(self.data)):
             self.data[index] = np.conj(self.data[index])
         self.data = self.hyperReorder(self.data, axes)
-        self.addHistory("Complex conjugate dimension " + str(axes))
-        return returnValue
+        self.addHistory("Complex conjugate dimension " + str(axes+1))
+        if self.noUndo:
+            return None
+        else:
+            return lambda self: self.conj(axes)
 
     def states(self, axes):
         axes = self.checkAxes(axes)
@@ -1558,24 +1582,25 @@ class Spectrum(object):
             data[l1], data[l2] = np.real(data[l1]) + 1j*np.real(data[l2]), np.imag(data[l1]) + 1j*np.imag(data[l2])
         return data
 
-    def deleteHyper(self,axis,data,hyper):
+    def deleteHyper(self, axis, data, hyper, imag=False):
         #Deletes hypercomplex data along axis, is any
         #Deletes its entry from self.hyper list.
         if axis in hyper:
             totlen = 2**len(hyper)
             indx = hyper.index(axis)
             step = 2**(len(hyper) - indx - 1)
-            boollist = np.array([True,False])
-            boollist = np.tile(np.repeat(boollist,totlen / step / 2),step)
+            if imag:                
+                boollist = np.array([False, True])
+            else:
+                boollist = np.array([True, False])
+            boollist = np.tile(np.repeat(boollist, totlen / step / 2), step)
             newdat = []
             for i in range(len(boollist)):
                 if boollist[i] == True:
                     newdat.append(data[i])
-            del hyper[indx]
-            data = newdat
-        return data, hyper
+        return newdat, [x for x in hyper if x != axis]
 
-    def sortHyper(self,data, hyper):
+    def sortHyper(self, data, hyper):
         #Makes sure that the hyper list is in descending order (e.g. [3,1,0])
         #and adjust the data list accordingly
         if len(hyper) == 0:
@@ -2151,7 +2176,35 @@ class Current1D(Plot1DFrame):
 
     def isComplex(self, *args):
         return self.data.isComplex(*args)
-        
+
+    def real(self, *args):
+        self.root.addMacro(['real', (self.axes - self.data.ndim(), )])
+        returnValue = self.data.real(self.axes)
+        self.upd()
+        self.showFid()
+        return returnValue
+    
+    def imag(self, *args):
+        self.root.addMacro(['imag', (self.axes - self.data.ndim(), )])
+        returnValue = self.data.imag(self.axes)
+        self.upd()
+        self.showFid()
+        return returnValue
+    
+    def abs(self, *args):
+        self.root.addMacro(['abs', (self.axes - self.data.ndim(), )])
+        returnValue = self.data.abs(self.axes)
+        self.upd()
+        self.showFid()
+        return returnValue
+
+    def conj(self, *args):
+        self.root.addMacro(['conj', (self.axes - self.data.ndim(), )])
+        returnValue = self.data.conj(self.axes)
+        self.upd()
+        self.showFid()
+        return returnValue
+    
     def setPhaseInter(self, phase0in, phase1in):  # interactive changing the phase without editing the actual data
         phase0 = float(phase0in)
         phase1 = float(phase1in)
