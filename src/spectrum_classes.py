@@ -177,7 +177,6 @@ class Spectrum(object):
         except ValueError as error:
             self.dispMsg(str(error))
             return None
-
         if self.noUndo:
             returnValue = None
         else:
@@ -186,9 +185,7 @@ class Spectrum(object):
             else: #Otherwise: do a deep copy of the class
                 copyData = copy.deepcopy(self)
                 returnValue = lambda self: self.restoreData(copyData, lambda self: self.insert(data, pos, axes, hyper, dataImag))
-
         self.data, hyper1, newDat, hyper2 = self.expandHyperData(self.data, hyper1, newDat, hyper2)
-
         axes = self.checkAxes(axes)
         if axes is None:
             return None
@@ -232,10 +229,8 @@ class Spectrum(object):
     def expandHyperData(self,data1, hyper1, data2, hyper2):
         #Takes two hypercomplex datasets and returns both sets having the same hyper shape
         #New hypercomplex dimensions are filled with zeros.
-
         newElem1 = list(set(hyper2) - set(hyper1))
         newElem2 = list(set(hyper1) - set(hyper2))
-
         newdata1 = []
         newSize = 2**len(newElem1)
         for i in range(len(data1)):
@@ -244,7 +239,6 @@ class Spectrum(object):
                 newdata1.append(np.zeros_like(data1[0]))
         hyper1 = hyper1 + newElem1 #New hyper list
         newdata1, hyper1= self.sortHyper(newdata1, hyper1) #Sort the hyperdata in descending order
-
         newdata2 = []
         newSize = 2**len(newElem2)
         for i in range(len(data2)):
@@ -253,9 +247,7 @@ class Spectrum(object):
                 newdata2.append(np.zeros_like(data1[0]))
         hyper2 = hyper2 + newElem2 #New hyper list
         newdata2, hyper2 = self.sortHyper(newdata2, hyper2) #Sort the hyperdata in descending order
-
         return newdata1, hyper1, newdata2, hyper2
-
 
     def add(self, data, dataImag = None, hyper = [], select=slice(None)):
         #Convert both data sets to the full hyper space
@@ -280,9 +272,7 @@ class Spectrum(object):
         except ValueError as error:
             self.dispMsg(str(error))
             return None
-
         self.data, hyper1, newDat, hyper2 = self.expandHyperData(self.data, hyper1, newDat, hyper2)
-
         if isinstance(select, string_types):
             select = safeEval(select)
         try:
@@ -318,9 +308,7 @@ class Spectrum(object):
         except ValueError as error:
             self.dispMsg(str(error))
             return None
-
         self.data, hyper1, newDat, hyper2 = self.expandHyperData(self.data, hyper1, newDat, hyper2)
-
         if isinstance(select, string_types):
             select = safeEval(select)
         try:
@@ -359,9 +347,7 @@ class Spectrum(object):
         except ValueError as error:
             self.dispMsg(str(error))
             return None
-
         self.data, hyper1, newDat, hyper2 = self.expandHyperData(self.data, hyper1, newDat, hyper2)
-
         if isinstance(select, string_types):
             select = safeEval(select)
         try:
@@ -400,9 +386,7 @@ class Spectrum(object):
         except ValueError as error:
             self.dispMsg(str(error))
             return None
-
         self.data, hyper1, newDat, hyper2 = self.expandHyperData(self.data, hyper1, newDat, hyper2)
-
         if isinstance(select, string_types):
             select = safeEval(select)
         try:
@@ -1615,14 +1599,12 @@ class Spectrum(object):
                     tmp.append(l + 'R')
                     tmp.append(l + 'I')
                 nat = copy.copy(tmp)
-
             newnat = [] #the required new nature
             for elem in nat:
                 tmp = ''
                 for i in order:
                     tmp += elem[i]
                 newnat.append(tmp)
-
             #Order the data in the new way
             newindex = [nat.index(x) for x in newnat]
             newdata = [data[x] for x in newindex]
@@ -2350,7 +2332,6 @@ class Current1D(Plot1DFrame):
         self.showFid()
         return returnValue
 
-
     def SN(self, minNoise, maxNoise, minPeak, maxPeak):
         hyperView = 0
         minN = min(minNoise, maxNoise)
@@ -2470,7 +2451,6 @@ class Current1D(Plot1DFrame):
         maxim = np.max(np.abs(tmpData))
         tmpAxis = tmpAxis[minP:maxP] 
         tmpData = tmpData[minP:maxP]
-
         if self.spec == 0:
             intSum = np.cumsum(tmpData)
             inte = np.sum(tmpData) / self.sw
@@ -2500,7 +2480,6 @@ class Current1D(Plot1DFrame):
         elif type == 'min':
             return np.min(tmpData[minP:maxP])
 
-
     def integralsPreview(self, x, y, maxim):
         xNew = []
         yNew = []
@@ -2512,8 +2491,6 @@ class Current1D(Plot1DFrame):
                 scale = np.max([scale,abs(yNew[-1][0]),abs(yNew[-1][-1])])
         for num in range(len(yNew)):
             yNew[num] = yNew[num] / scale * maxim
-
-
         self.showFid(extraX =  xNew, extraY = yNew, extraColor = ['g'] * len(xNew))
         return
 
@@ -4273,7 +4250,6 @@ class CurrentContour(Current1D):
                 y[index] = y[index] * x
         self.showFid(y[hyperView])
 
-
     def updateAxes(self,oldAx, newAx, axis):
         scale = newAx / oldAx
         #Scale the path vertices, so no new contours need to be calculated
@@ -4305,7 +4281,6 @@ class CurrentContour(Current1D):
             self.ax.set_xlim(xlim[0] * scale, xlim[1] * scale)
             self.x *= scale
         self.canvas.draw()
-
 
     def showFid(self, tmpdata=None, makeContours = True, clearCntr = True):  # display the 1D data
         self.differ = None

@@ -767,7 +767,6 @@ class MainProgram(QtWidgets.QMainWindow):
         self.specOnlyList = [self.regridAct, self.csastaticAct, self.firstquadstatAct,
                              self.secondquadstatAct, self.czjzekstatAct]
         self.fidOnlyList = [self.relaxAct, self.diffusionAct]
-
         self.Only1DPlot = [self.snrAct, self.fwhmAct, self.massAct,  self.intfitAct]
 
     def mainWindowCheck(self, transfer):
@@ -841,7 +840,6 @@ class MainProgram(QtWidgets.QMainWindow):
                 if isinstance(self.mainWindow.current, (sc.CurrentMulti, sc.CurrentStacked, sc.CurrentArrayed, sc.CurrentContour)):
                     for act in self.Only1DPlot:
                         act.setEnabled(False)
-
                 if self.mainWindow.masterData.noUndo:  # Set menu check to the same value as in the data
                     self.noUndoAct.setChecked(True)
                 else:
@@ -896,9 +894,6 @@ class MainProgram(QtWidgets.QMainWindow):
                 self.macrolistmenu.menuAction().setEnabled(False)
                 for act in self.saveActList + self.exportActList + self.workspaceActList:
                     act.setEnabled(True)
-
-          
-
 
     def menuEnable(self, internalWindow=False):
         # self.macromenu.menuAction().setEnabled(True)
@@ -1976,10 +1971,8 @@ class Main1DWindow(QtWidgets.QWidget):
         elif self.masterData.spec[-1] == 0:
             axMult = 1000.0**axType
         axis = np.array([self.masterData.xaxArray[-1] * axMult]).transpose()
-
         if self.masterData.ndim() == 1:  # create nx1 matrix if it is a 1d data set
             data = np.array([self.masterData.data[0]]).transpose()
-
         else:
             data = self.masterData.data[0].transpose()
         splitdata = np.zeros([data.shape[0], data.shape[1] * 2])
@@ -2372,7 +2365,6 @@ class Main1DWindow(QtWidgets.QWidget):
         self.redoList = []
         self.menuCheck()
 
-
 ########################################################################################
 
 
@@ -2545,13 +2537,11 @@ class SideFrame(QtWidgets.QScrollArea):
                 self.minLEntry = wc.QLineEdit(format(current.viewSettings["minLevels"] * 100.0, '.7g'), self.setContour)
                 self.minLEntry.setMaximumWidth(120)
                 self.contourLimitsFrame.addWidget(self.minLEntry, 2, 1)
-
                 self.contourLimType = QtWidgets.QComboBox()
                 self.contourLimType.addItems(['Current 2D', 'Full data'])
                 self.contourLimType.setCurrentIndex(current.viewSettings["limitType"])
                 self.contourLimType.currentIndexChanged.connect(self.setContour)
                 self.contourLimitsFrame.addWidget(self.contourLimType, 0, 1)
-
                 self.maxLabel = wc.QLeftLabel("Max:", self)
                 self.minLabel = wc.QLeftLabel("Min:", self)
                 self.relLabel = wc.QLeftLabel("Rel. to:", self)
@@ -2811,9 +2801,7 @@ class SideFrame(QtWidgets.QScrollArea):
         else:
             multi = abs(float(multi))
         self.multiValue.setText(str(multi))
-
         limitType = self.contourLimType.currentIndex()
-
         self.father.current.setLevels(var1, maxC / 100.0, minC / 100.0, limitType, cSign, cType, multi)
 
     def changeProj(self, pType, direc):
@@ -2913,10 +2901,6 @@ class SideFrame(QtWidgets.QScrollArea):
                         tmp2 = time2
                     self.father.bottomframe.changeAxis( tmp2, update = False)
                     self.father.bottomframe.changeAxis2( tmp1, update = False)
-
-
-
-
             self.buttons2Group.button(axes2).toggle()
         self.getSlice(None, axes, True)
         self.upd()
@@ -3665,7 +3649,6 @@ class ApodWindow(wc.ToolWindows):
         self.lorScale.valueChanged.connect(self.setLor)
         self.grid.addWidget(self.lorScale, 2, 0, 1, 3)
         self.lorMax = 100.0 * self.father.current.sw / (self.father.current.data1D[0].shape[-1])
-
         gaussTick = QtWidgets.QCheckBox("Gaussian:")
         gaussTick.toggled.connect(lambda: self.checkEval(1))
         self.grid.addWidget(gaussTick, 3, 0, 1, 3)
@@ -3688,7 +3671,6 @@ class ApodWindow(wc.ToolWindows):
         self.gaussScale.valueChanged.connect(self.setGauss)
         self.grid.addWidget(self.gaussScale, 5, 0, 1, 3)
         self.gaussMax = 100.0 * self.father.current.sw / (self.father.current.data1D[0].shape[-1])
-
         cos2Tick = QtWidgets.QCheckBox("Cos^2:")
         cos2Tick.clicked.connect(lambda: self.checkEval(2))
         self.grid.addWidget(cos2Tick, 6, 0, 1, 3)
@@ -3708,7 +3690,6 @@ class ApodWindow(wc.ToolWindows):
         self.grid.addWidget(wc.QLabel("Shift:"), 10, 0, 1, 3)
         self.shiftEntry = wc.QLineEdit("0.00", self.apodPreview)
         self.grid.addWidget(self.shiftEntry, 11, 1)
-
         if self.father.current.data.ndim() > 1:
             self.grid.addWidget(wc.QLabel("Shifting:"), 12, 0, 1, 3)
             self.shiftingDropdown = QtWidgets.QComboBox()
@@ -5507,7 +5488,6 @@ class IntegralsWindow(wc.ToolWindows):
         self.father.current.peakPickFunc = lambda pos, self=self: self.picked(pos)
         self.father.current.peakPick = True
 
-
     def preview(self):
         self.father.current.integralsPreview(self.xValues, self.yValues, self.datMax)
         self.father.current.peakPick = True
@@ -5653,7 +5633,6 @@ class RegridWindow(wc.ToolWindows):
             elif self.unit == 'ppm':
                 maxVal /= self.father.masterData.ref[self.father.current.axes] / 1e6
                 minVal /= self.father.masterData.ref[self.father.current.axes] / 1e6
-
             self.maxValue = wc.QLineEdit(maxVal)
             self.maxValue.setMinimumWidth(150)
             self.maxLabel = wc.QLeftLabel('Max [' + self.unit + ']:')
@@ -6063,13 +6042,11 @@ class NormalizeWindow(wc.ToolWindows):
         elif maximum > dataLength:
             maximum = dataLength
         self.maxEntry.setText(str(maximum))
-
         try:
             scale = float(safeEval(self.valEntry.text()))
         except Exception:
             self.father.father.dispMsg("Normalize: invalid multiplier")
             return False
-
         type = self.typeDrop.currentIndex()
         if type == 0:
             val, xValues,yValues, datMax = self.father.current.Integrals(minimum,maximum)
