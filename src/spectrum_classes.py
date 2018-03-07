@@ -3449,8 +3449,8 @@ class CurrentMulti(Current1D):
             xax = updateVar[5]
             ref = updateVar[6]
             axMult = self.getAxMult(spec, self.viewSettings["axType"], self.viewSettings["ppm"], data.freq[self.viewSettings["extraAxes"][i]], ref)
-            maxx = max(max(xax * axMult), maxx)
-            minx = min(min(xax * axMult), minx)
+            maxx = max(max(xax * axMult + self.viewSettings["extraShift"]), maxx)
+            minx = min(min(xax * axMult + self.viewSettings["extraShift"]), minx)
             if self.viewSettings["plotType"] == 0:
                 miny = min(np.min(np.real(data1D[hyperView]) * self.viewSettings["extraScale"][i] + self.viewSettings["extraOffset"][i]), miny)
                 maxy = max(np.max(np.real(data1D[hyperView]) * self.viewSettings["extraScale"][i] + self.viewSettings["extraOffset"][i]), maxy)
