@@ -43,9 +43,9 @@ COLORCONVERTER = matplotlib.colors.ColorConverter()
 
 class Spectrum(object):
 
-    def __init__(self, name, data, filePath, freq, sw, spec=None, wholeEcho=None, hyper = None, ref=None, xaxArray=None, history=None, msgHandler=None):
+    def __init__(self, name, data, filePath, freq, sw, spec=None, wholeEcho=None, hyper=None, ref=None, xaxArray=None, history=None, msgHandler=None):
         self.name = name
-        if isinstance(data, (list)):
+        if isinstance(data, list):
             self.data = []
             for item in data:
                 self.data.append(np.array(item, dtype=complex))
@@ -56,7 +56,6 @@ class Spectrum(object):
         else:
             self.hyper = hyper
         self.data, self.hyper = self.sortHyper(self.data, self.hyper) #force hyper into descending order
-
         self.filePath = filePath
         self.freq = np.array(freq)  # array of center frequency (length is dim, MHz)
         self.sw = sw  # array of sweepwidths
@@ -1238,7 +1237,7 @@ class Spectrum(object):
         else:
             return lambda self: self.setPhase(-phase0, -phase1, axes, select=select)
 
-    def apodize(self, lor, gauss, cos2, hamming, shift, shifting, shiftingAxes, axes, select=slice(None)):
+    def apodize(self, lor, gauss, cos2, hamming, shift, shifting, shiftingAxes, axes, select=slice(None), preview=False):
         if isinstance(select, string_types):
             select = safeEval(select)
         axes = self.checkAxes(axes)
@@ -1252,9 +1251,15 @@ class Spectrum(object):
         axLen = self.shape()[axes]
         t = np.arange(0, axLen) / self.sw[axes]
         if shifting != 0.0:
+            previewData = []
             for j in range(self.shape()[shiftingAxes]):
-                shift1 = shift + shifting * j / self.sw[shiftingAxes]
+                if self.spec[shiftingAxes]:
+                    shift1 = shift + shifting * j / self.sw[shiftingAxes]
+                else:
+                    shift1 = shift + shifting * self.xaxArray[shiftingAxes][j]
                 x = func.apodize(t, shift1, self.sw[axes], axLen, lor, gauss, cos2, hamming, self.wholeEcho[axes])
+                if preview:
+                    previewData.append(x)
                 if self.spec[axes] > 0:
                     self.fourier(axes, tmp=True)
                 for i in range(self.shape()[axes]):
@@ -1268,6 +1273,8 @@ class Spectrum(object):
                     self.fourier(axes, tmp=True, inv=True)
         else:
             x = func.apodize(t, shift, self.sw[axes], axLen, lor, gauss, cos2, hamming, self.wholeEcho[axes])
+            if preview:
+                previewData = [x] * (np.prod(self.data[0].shape) / self.data[0].shape[axes])
             if self.spec[axes] > 0:
                 self.fourier(axes, tmp=True)
             for index in range(len(self.data)): #For all hypercomplex parts
@@ -1296,6 +1303,8 @@ class Spectrum(object):
         if select != slice(None, None, None):
             Message = Message + " of data[" + str(select) + "]"
         self.addHistory(Message)
+        if preview:
+            return ([t]*len(previewData), previewData)
         if self.noUndo:
             return None
         else:
@@ -1899,15 +1908,69 @@ class Spectrum(object):
         datList = []
         for item in self.data:
             datList.append(item[tuple(locList[:axes]) + (slice(None), ) + tuple(locList[axes:])])
-        return copy.deepcopy((datList,
-                              self.freq[axes],
-                              self.sw[axes],
-                              self.spec[axes],
-                              self.wholeEcho[axes],
-                              self.xaxArray[axes],
-                              self.ref[axes]))
+        sliceSpec = copy.deepcopy(Spectrum(self.name,
+                                           datList,
+                                           self.filePath,
+                                           [self.freq[axes]],
+                                           [self.sw[axes]],
+                                           [self.spec[axes]],
+                                           [self.wholeEcho[axes]],
+                                           self.hyper,
+                                           [self.ref[axes]],
+                                           [self.xaxArray[axes]],
+                                           self.history,
+                                           self.msgHandler))
+        sliceSpec.noUndo = True
+        return sliceSpec
+    
+    # def getSlice(self, axes, locList):
+    #     axes = self.checkAxes(axes)
+    #     if axes is None:
+    #         return None
+    #     datList = []
+    #     for item in self.data:
+    #         datList.append(item[tuple(locList[:axes]) + (slice(None), ) + tuple(locList[axes:])])
+    #     return copy.deepcopy((datList,
+    #                           self.freq[axes],
+    #                           self.sw[axes],
+    #                           self.spec[axes],
+    #                           self.wholeEcho[axes],
+    #                           self.xaxArray[axes],
+    #                           self.ref[axes]))
 
     def getBlock(self, axes, axes2, locList, stackBegin=None, stackEnd=None, stackStep=None):
+        axes = self.checkAxes(axes)
+        if axes is None:
+            return None
+        axes2 = self.checkAxes(axes2)
+        if axes2 is None:
+            return None
+        stackSlice = reim.floatSlice(stackBegin, stackEnd, stackStep)
+        if axes == axes2:
+            self.dispMsg("First and second axes are the same")
+            return None
+        elif axes < axes2:
+            datList = []
+            for item in self.data:
+                datList.append(np.transpose(item[tuple(locList[:axes]) + (slice(None), ) + tuple(locList[axes:axes2 - 1]) + (stackSlice, ) + tuple(locList[axes2 - 1:])]))
+        elif axes > axes2:
+            datList = []
+            for item in self.data:
+                datList.append(item[tuple(locList[:axes2]) + (stackSlice, ) + tuple(locList[axes2:axes - 1]) + (slice(None), ) + tuple(locList[axes - 1:])])
+        return copy.deepcopy(Spectrum(self.name,
+                                      datList,
+                                      self.filePath,
+                                      [self.freq[axes2], self.freq[axes]],
+                                      [self.sw[axes2], self.sw[axes]],
+                                      [self.spec[axes2], self.spec[axes]],
+                                      [self.wholeEcho[axes2], self.wholeEcho[axes]],
+                                      self.hyper,
+                                      [self.ref[axes2], self.ref[axes]],
+                                      [self.xaxArray[axes2][stackSlice], self.xaxArray[axes]],
+                                      self.history,
+                                      self.msgHandler))
+    
+    def getBlock_old(self, axes, axes2, locList, stackBegin=None, stackEnd=None, stackStep=None):
         axes = self.checkAxes(axes)
         if axes is None:
             return None
@@ -1983,17 +2046,13 @@ class Current1D(Plot1DFrame):
     X_RESIZE = False
     Y_RESIZE = False
 
+    MARKER = ''
+    LINESTYLE = '-'
+
     def __init__(self, root, fig, canvas, data, duplicateCurrent=None):
         super(Current1D, self).__init__(root, fig, canvas)
-        self.xax = None  # x-axis
         self.data = data  # the actual spectrum instance
-        self.freq = None  # frequency of the slice
-        self.freq2 = None  # frequency of the slice
-        self.sw = None  # x-data display
         self.data1D = None  # the data1D
-        self.spec = None  # boolean where False=time domain and True=spectral domain
-        self.wholeEcho = None
-        self.ref = None  # reference frequency
         if duplicateCurrent is None:
             self.axes = len(self.data.shape()) - 1
             self.axes2 = 0
@@ -2049,7 +2108,6 @@ class Current1D(Plot1DFrame):
                         self.axes2 += -1
                     else:
                         self.axes2 += 1
-
                 if (len(duplicateCurrent.locList) == self.data.ndim() - 2):
                     self.locList = duplicateCurrent.locList
                 else:
@@ -2083,12 +2141,39 @@ class Current1D(Plot1DFrame):
             self.upd()  # get the first slice of data
             self.startUp(xReset, yReset)
 
-    def dispMsg(self):
-        self.data1D.dispMsg()
+    def shape(self):
+        return self.data1D.shape()
+
+    def len(self, dim=-1):
+        return self.shape()[dim]
+    
+    def ndim(self):
+        return self.data1D.ndim()
+
+    def freq(self, dim=-1):
+        return self.data1D.freq[dim]
+
+    def ref(self, dim=-1):
+        if self.data1D.ref[dim] is not None:
+            return self.data1D.ref[dim]
+        else:
+            return self.data1D.freq[dim]
+
+    def sw(self, dim=-1):
+        return self.data1D.sw[dim]
+
+    def spec(self, dim=-1):
+        return self.data1D.spec[dim]
+
+    def xax(self, dim=-1):
+        return self.data1D.xaxArray[dim]
+
+    def wholeEcho(self, dim=-1):
+        return self.data1D.wholeEcho[dim]
 
     def startUp(self, xReset=True, yReset=True):
-        self.plotReset(xReset, yReset)  # reset the axes limits
         self.showFid()  # plot the data
+        self.plotReset(xReset, yReset)  # reset the axes limits
 
     def rename(self, name):
         self.data.rename(name)
@@ -2103,22 +2188,12 @@ class Current1D(Plot1DFrame):
         if (len(self.locList) + 1) != self.data.ndim():
             self.resetLocList()
         try:
-            updateVar = self.data.getSlice(self.axes, self.locList)
-            if updateVar is None:
+            self.data1D = self.data.getSlice(self.axes, self.locList)
+            if self.data1D is None:
                 self.root.rescue()
         except Exception:
             self.resetLocList()
-            updateVar = self.data.getSlice(self.axes, self.locList)
-        self.data1D = updateVar[0]
-        self.freq = updateVar[1]
-        self.sw = updateVar[2]
-        self.spec = updateVar[3]
-        self.wholeEcho = updateVar[4]
-        self.xax = updateVar[5]
-        self.ref = updateVar[6]
-        if self.ref is None:
-            self.ref = self.freq
-        self.single = self.data1D[0].shape[-1] == 1
+            self.data1D = self.data.getSlice(self.axes, self.locList)
         return True
 
     def setSlice(self, axes, locList):  # change the slice
@@ -2128,16 +2203,16 @@ class Current1D(Plot1DFrame):
             self.axes = axes
         self.locList = locList
         self.upd()
+        self.showFid()
         if not axesSame:
             self.plotReset()
-        self.showFid()
 
     def resetLocList(self):
         self.locList = [0] * (len(self.data.shape()) - 1)
 
     def getSelect(self):
         tmp = list(self.locList)
-        if len(self.data1D[0].shape) > 1:
+        if self.ndim() > 1:
             minVal = min(self.axes, self.axes2)
             maxVal = max(self.axes, self.axes2)
             tmp.insert(minVal, slice(None))
@@ -2190,20 +2265,9 @@ class Current1D(Plot1DFrame):
     def setPhaseInter(self, phase0in, phase1in):  # interactive changing the phase without editing the actual data
         phase0 = float(phase0in)
         phase1 = float(phase1in)
-        self.upd()
-        if self.spec == 0:
-            tmpdata = self.fourierLocal(self.data1D, 0, self.axes)
-        else:
-            tmpdata = self.data1D
-        if self.ref is None:
-            offset = 0
-        else:
-            offset = +self.freq - self.ref
-        tmpdata = self.data.phaseLocal(tmpdata,self.sw,offset,phase0,phase1,self.axes)
-        if self.spec == 0:
-            tmpdata = self.fourierLocal(tmpdata, 1, self.axes)
-        self.data1D = tmpdata
+        self.data1D.setPhase(phase0, phase1, -1)
         self.showFid()
+        self.upd()
 
     def applyPhase(self, phase0, phase1, select=False):  # apply the phase to the actual data
         phase0 = float(phase0)
@@ -2224,8 +2288,8 @@ class Current1D(Plot1DFrame):
         self.upd()
         if isinstance(self, (CurrentStacked, CurrentArrayed)):
             self.resetSpacing()
-        self.plotReset()
         self.showFid()
+        self.plotReset()
         return returnValue
 
     def realFourier(self):  # fourier the real data and replot
@@ -2234,8 +2298,8 @@ class Current1D(Plot1DFrame):
         self.upd()
         if isinstance(self, (CurrentStacked, CurrentArrayed)):
             self.resetSpacing()
-        self.plotReset()
         self.showFid()
+        self.plotReset()
         return returnValue
 
     def fftshift(self, inv=False):  # fftshift the actual data and replot
@@ -2250,41 +2314,39 @@ class Current1D(Plot1DFrame):
         return self.data.fourierLocal(fourData, spec, axis, self.wholeEcho)
 
     def apodPreview(self, lor=None, gauss=None, cos2=None, hamming=None, shift=0.0, shifting=0.0, shiftingAxes=None):  # display the 1D data including the apodization function
-        hyperView = 0
-        if shiftingAxes is not None:
-            if shiftingAxes == self.axes:
-                self.dispMsg('shiftingAxes cannot be equal to axes')
-                return
-            elif shiftingAxes < self.axes:
-                shift += shifting * self.locList[shiftingAxes] / self.data.sw[shiftingAxes]
+        if (self.spec() == 0) and not type(self) is CurrentContour:
+            y = copy.deepcopy(self.data1D.data)
+            preview = True
+        else:
+            preview = False
+        if shiftingAxes is None:
+            curve = self.data1D.apodize(lor, gauss, cos2, hamming, shift, shifting, None, -1, preview=preview)
+        else:
+            if (self.ndim() > 1) and (shiftingAxes == self.axes2):
+                curve = self.data1D.apodize(lor, gauss, cos2, hamming, shift, shifting, shiftingAxes, -1, preview=preview)
             else:
-                shift += shifting * self.locList[shiftingAxes - 1] / self.data.sw[shiftingAxes]
-        length = len(self.data1D[0])
-        t = np.arange(0, length) / (self.sw)
-        x = func.apodize(t, shift, self.sw, length, lor, gauss, cos2, hamming, self.wholeEcho)
-        self.ax.cla()
-        y = copy.copy(self.data1D)
-        if self.spec == 1:
-            y = self.fourierLocal(y, 1, self.axes)
-            for index in range(len(y)):
-                y[index] = y[index] * x
-            y = self.fourierLocal(y, 0, self.axes)
-        else:
-            for index in range(len(y)):
-                y[index] = y[index] * x
-        if self.spec == 0:
+                if shiftingAxes == self.axes:
+                    self.dispMsg('shiftingAxes cannot be equal to axes')
+                    return
+                elif shiftingAxes < self.axes:
+                    shift += shifting * self.locList[shiftingAxes] / self.data.sw[shiftingAxes]
+                else:
+                    shift += shifting * self.locList[shiftingAxes - 1] / self.data.sw[shiftingAxes]
+                curve = self.data1D.apodize(lor, gauss, cos2, hamming, shift, 0.0, None, -1, preview=preview)
+        if self.spec() == 0 and not type(self) is CurrentContour:
             if self.viewSettings["plotType"] == 0:
-                scale = np.max(np.real(self.data1D[hyperView]))
+                scale = np.max(np.real(y))
             elif self.viewSettings["plotType"] == 1:
-                scale = np.max(np.imag(self.data1D[hyperView]))
+                scale = np.max(np.imag(y))
             elif self.viewSettings["plotType"] == 2:
-                scale = np.max(np.max(np.real(self.data1D[hyperView])), np.max(np.imag(self.data1D[hyperView])))
+                scale = np.max(np.max(np.real(y)), np.max(np.imag(y)))
             elif self.viewSettings["plotType"] == 3:
-                scale = np.max(np.abs(self.data1D[hyperView]))
-            self.showFid(y[hyperView], [t], [x * scale], ['g'], old=True)
+                scale = np.max(np.abs(y))
+            self.showFid(y, curve[0], scale*np.array(curve[1]), ['g']*len(curve[0]))
         else:
-            self.showFid(y[hyperView])
-
+            self.showFid()
+        self.upd()
+    
     def applyApod(self, lor=None, gauss=None, cos2=None, hamming=None, shift=0.0, shifting=0.0, shiftingAxes=0, select=False):  # apply the apodization to the actual data
         if select:
             selectSlice = self.getSelect()
@@ -2304,15 +2366,13 @@ class Current1D(Plot1DFrame):
         return returnValue
 
     def setRef(self, ref):  # set the frequency of the actual data
-        oldref = self.ref
-        if oldref is None:
-            oldref = self.freq
+        oldref = self.ref()
         self.root.addMacro(['ref', (ref, self.axes - self.data.ndim())])
         returnValue = self.data.setRef(ref, self.axes)
         if ref is None:
-            ref = self.freq
+            ref = self.freq()
         val = self.viewSettings["axType"]
-        if self.spec == 1:
+        if self.spec() == 1:
             if self.viewSettings["ppm"]:
                 self.xminlim = (self.xminlim * oldref * 10**-6 + oldref - ref) / (ref * 10**-6)
                 self.xmaxlim = (self.xmaxlim * oldref * 10**-6 + oldref - ref) / (ref * 10**-6)
@@ -2328,8 +2388,8 @@ class Current1D(Plot1DFrame):
         self.root.addMacro(['regrid', (limits, numPoints,ax - self.data.ndim())])
         returnValue = self.data.regrid(limits, numPoints, ax)
         self.upd()
-        self.plotReset()
         self.showFid()
+        self.plotReset()
         return returnValue
 
     def SN(self, minNoise, maxNoise, minPeak, maxPeak):
@@ -2338,10 +2398,10 @@ class Current1D(Plot1DFrame):
         maxN = max(minNoise, maxNoise)
         minP = min(minPeak, maxPeak)
         maxP = max(minPeak, maxPeak)
-        if len(self.data1D[0].shape) > 1:
-            tmpData = self.data1D[hyperView][0]
+        if self.ndim() > 1:
+            tmpData = self.data1D.data[hyperView][0]
         else:
-            tmpData = self.data1D[hyperView]
+            tmpData = self.data1D.data[hyperView]
         if (self.viewSettings["plotType"] == 0):
             tmpData = np.real(tmpData)
         elif(self.viewSettings["plotType"] == 1):
@@ -2366,10 +2426,10 @@ class Current1D(Plot1DFrame):
                 ppm = 0
         minP = min(minPeak, maxPeak)
         maxP = max(minPeak, maxPeak)
-        if len(self.data1D[0].shape) > 1:
-            tmpData = self.data1D[hyperView][0]
+        if self.ndim() > 1:
+            tmpData = self.data1D.data[hyperView][0]
         else:
-            tmpData = self.data1D[hyperView]
+            tmpData = self.data1D.data[hyperView]
         if (self.viewSettings["plotType"] == 0):
             tmpData = np.real(tmpData)
         elif(self.viewSettings["plotType"] == 1):
@@ -2379,7 +2439,7 @@ class Current1D(Plot1DFrame):
         elif(self.viewSettings["plotType"] == 3):
             tmpData = np.abs(tmpData)
         maxPos = np.argmax(tmpData[minP:maxP])
-        x = self.xax * self.getAxMult(self.spec, axType, ppm, self.freq, self.ref)
+        x = self.xax() * self.getAxMult(self.spec(), axType, ppm, self.freq(), self.ref())
         maxX = x[minP:maxP][maxPos]
         spline = UnivariateSpline(x, tmpData - tmpData[minP:maxP][maxPos] / 2.0, s=0)
         zeroPos = spline.roots()
@@ -2403,15 +2463,15 @@ class Current1D(Plot1DFrame):
                 ppm = 0
         minP = min(minPeak, maxPeak)
         maxP = max(minPeak, maxPeak)
-        if len(self.data1D[0].shape) > 1:
-            tmpData = self.data1D[hyperView][0]
-            if len(self.xax.shape) > 1:
-                tmpAxis = self.xax[0]
+        if self.data1D.ndim() > 1:
+            tmpData = self.data1D.data[hyperView][0]
+            if len(self.xax().shape()) > 1:
+                tmpAxis = self.xax()[0]
             else:
-                tmpAxis = self.xax
+                tmpAxis = self.xax()
         else:
-            tmpData = self.data1D[hyperView]
-            tmpAxis = self.xax
+            tmpData = self.data1D.data[hyperView]
+            tmpAxis = self.data1D.xax()
         if (self.viewSettings["plotType"] == 0):
             tmpData = np.real(tmpData)
         elif(self.viewSettings["plotType"] == 1):
@@ -2420,7 +2480,7 @@ class Current1D(Plot1DFrame):
             tmpData = np.real(tmpData)
         elif(self.viewSettings["plotType"] == 3):
             tmpData = np.abs(tmpData)
-        tmpAxis = tmpAxis[minP:maxP] * self.getAxMult(self.spec, axType, ppm, self.freq, self.ref)
+        tmpAxis = tmpAxis[minP:maxP] * self.getAxMult(self.spec(), axType, ppm, self.freq(), self.ref())
         tmpData = tmpData[minP:maxP]
         # COM = 1/M *sum(m_i * r_i)
         CentreOM = 1.0 / np.sum(tmpData) * np.sum(tmpData * tmpAxis)
@@ -2430,15 +2490,15 @@ class Current1D(Plot1DFrame):
         hyperView = 0 
         minP = min(minPeak, maxPeak)
         maxP = max(minPeak, maxPeak)
-        if len(self.data1D[0].shape) > 1:
-            tmpData = self.data1D[hyperView][0]
-            if len(self.xax.shape) > 1:
-                tmpAxis = self.xax[0]
+        if self.ndim() > 1:
+            tmpData = self.data1D.data[hyperView][0]
+            if len(self.xax().shape) > 1:
+                tmpAxis = self.xax()[0]
             else:
-                tmpAxis = self.xax
+                tmpAxis = self.xax()
         else:
-            tmpData = self.data1D[hyperView]
-            tmpAxis = self.xax
+            tmpData = self.data1D.data[hyperView]
+            tmpAxis = self.xax()
         totLen = len(tmpData)
         if (self.viewSettings["plotType"] == 0):
             tmpData = np.real(tmpData)
@@ -2451,22 +2511,22 @@ class Current1D(Plot1DFrame):
         maxim = np.max(np.abs(tmpData))
         tmpAxis = tmpAxis[minP:maxP] 
         tmpData = tmpData[minP:maxP]
-        if self.spec == 0:
+        if self.spec() == 0:
             intSum = np.cumsum(tmpData)
-            inte = np.sum(tmpData) / self.sw
+            inte = np.sum(tmpData) / self.sw()
         else:
             intSum = np.cumsum(tmpData[-1::-1])[-1::-1]
-            inte = np.sum(tmpData) * self.sw / (1.0 * totLen)
+            inte = np.sum(tmpData) * self.sw() / (1.0 * totLen)
         return inte, tmpAxis, intSum, maxim
 
     def MaxMin(self, minPeak, maxPeak, type = 'max'):
         hyperView = 0 
         minP = min(minPeak, maxPeak)
         maxP = max(minPeak, maxPeak)
-        if len(self.data1D[0].shape) > 1:
-            tmpData = self.data1D[hyperView][0]
+        if self.ndim() > 1:
+            tmpData = self.data1D.data[hyperView][0]
         else:
-            tmpData = self.data1D[hyperView]
+            tmpData = self.data1D.data[hyperView]
         if (self.viewSettings["plotType"] == 0):
             tmpData = np.real(tmpData)
         elif(self.viewSettings["plotType"] == 1):
@@ -2491,58 +2551,14 @@ class Current1D(Plot1DFrame):
                 scale = np.max([scale,abs(yNew[-1][0]),abs(yNew[-1][-1])])
         for num in range(len(yNew)):
             yNew[num] = yNew[num] / scale * maxim
-        self.showFid(extraX =  xNew, extraY = yNew, extraColor = ['g'] * len(xNew))
+        self.showFid(extraX=xNew, extraY=yNew, extraColor = ['g'] * len(xNew))
         return
 
     def setSizePreview(self, size, pos):  # set size only on local data
-        hyperView = 0
-        if len(self.data1D[0].shape) > 1:
-            length = len(self.data1D[0][0])
-        else:
-            length = len(self.data1D[0])
-        axes = len(self.data1D[0].shape) - 1
-        if self.spec == 1:
-            tmpdata = self.fourierLocal(copy.copy(self.data1D), 1, axes)
-        else:
-            tmpdata = copy.copy(self.data1D)
-        if size > length:
-            slicing1 = (slice(None), ) * axes + (slice(None, pos), ) + (slice(None), ) * (tmpdata[0].ndim - 1 - axes)
-            slicing2 = (slice(None), ) * axes + (slice(pos, None), ) + (slice(None), ) * (tmpdata[0].ndim - 1 - axes)
-            for index in range(len(self.data1D)):
-                tmpdata[index] = np.concatenate((np.pad(tmpdata[index][slicing1], [(0, 0)] * axes + [(0, size - self.data1D[index].shape[axes])] + [(0, 0)] * (self.data1D[index].ndim - axes - 1),
-                    'constant', constant_values=0), tmpdata[index][slicing2]), axes)
-        else:
-            difference = tmpdata[0].shape[axes] - size
-            removeBegin = int(np.floor(difference / 2))
-            removeEnd = difference - removeBegin
-            if pos < removeBegin:
-                slicing = (slice(None), ) * axes + (slice(tmpdata[0].shape[axes] - size, None), ) + (slice(None), ) * (tmpdata[0].ndim - 1 - axes)
-                for index in range(len(self.data1D)):
-                    tmpdata[index] = tmpdata[index][slicing]
-            elif tmpdata[0].shape[axes] - pos < removeEnd:
-                slicing = (slice(None), ) * axes + (slice(None, size), ) + (slice(None), ) * (tmpdata[0].ndim - 1 - axes)
-                for index in range(len(self.data1D)):
-                    tmpdata[index] = tmpdata[index][slicing]
-            else:
-                slicing1 = (slice(None), ) * axes + (slice(None, pos - removeBegin), ) + (slice(None), ) * (tmpdata[0].ndim - 1 - axes)
-                slicing2 = (slice(None), ) * axes + (slice(pos + removeEnd, None), ) + (slice(None), ) * (tmpdata[0].ndim - 1 - axes)
-                for index in range(len(self.data1D)):
-                    tmpdata[index] = np.concatenate((tmpdata[index][slicing1], tmpdata[index][slicing2]), axis=axes)
-        if self.spec == 1:
-            self.data1D = self.fourierLocal(tmpdata, 0, axes)
-        else:
-            self.data1D = tmpdata
-        if len(self.data1D[0].shape) > 1:
-            length = len(self.data1D[0][0])
-        else:
-            length = len(self.data1D[0])
-        if self.spec == 0:
-            self.xax = np.arange(length) / self.sw
-        elif self.spec == 1:
-            self.xax = np.fft.fftshift(np.fft.fftfreq(length, 1.0 / self.sw)) + self.freq - self.ref
-        if not self.spec:
-            self.plotReset(True, False)
+        self.data1D.setSize(size, pos, -1)
         self.showFid()
+        if not self.spec():
+            self.plotReset(True, False)
         self.upd()
 
     def applySize(self, size, pos):  # set size to the actual data
@@ -2553,9 +2569,9 @@ class Current1D(Plot1DFrame):
         else:
             returnValue = self.data.setSize(size, pos, self.axes)
         self.upd()
-        if not self.spec:
-            self.plotReset(True, False)
         self.showFid()
+        if not self.spec():
+            self.plotReset(True, False)
         return returnValue
 
     def applyLPSVD(self, nAnalyse, nFreq, nPredict, Direction):
@@ -2571,8 +2587,8 @@ class Current1D(Plot1DFrame):
         self.upd()
         if isinstance(self, CurrentArrayed):
             self.resetSpacing()
-        self.plotReset()
         self.showFid()
+        self.plotReset()
         return returnValue
 
     def applySwapEcho(self, idx):
@@ -2583,12 +2599,7 @@ class Current1D(Plot1DFrame):
         return returnValue
 
     def setSwapEchoPreview(self, idx):
-        if len(self.data1D[0].shape) > 1:
-            for index in range(len(self.data1D)):
-                self.data1D[index] = np.concatenate((self.data1D[index][:, idx:], self.data1D[index][:, :idx]), axis=1)
-        else:
-            for index in range(len(self.data1D)):
-                self.data1D[index] = np.concatenate((self.data1D[index][idx:], self.data1D[index][:idx]))
+        self.data1D.swapEcho(idx, -1)
         self.showFid()
         self.upd()
 
@@ -2596,11 +2607,11 @@ class Current1D(Plot1DFrame):
         if value == 0:
             self.root.addMacro(['wholeEcho', (False, self.axes - self.data.ndim())])
             returnValue = self.data.setWholeEcho(False, self.axes)
-            self.wholeEcho = False
+            self.data1D.setWholeEcho(False, self.axes)
         else:
             self.root.addMacro(['wholeEcho', (True, self.axes - self.data.ndim())])
             returnValue = self.data.setWholeEcho(True, self.axes)
-            self.wholeEcho = True
+            self.data1D.setWholeEcho(True, self.axes)
         return returnValue
 
     def applyShift(self, shift, select=False):
@@ -2615,33 +2626,23 @@ class Current1D(Plot1DFrame):
         return returnValue
 
     def setShiftPreview(self, shift):
-        hyperView = 0
-        tmpData = copy.deepcopy(self.data1D)
-        dim = len(self.data1D[0].shape)
-        if self.spec > 0:
-            tmpData = self.fourierLocal(tmpData, 1, self.axes)
-        for index in range(len(tmpData)):
-            tmpData[index] = np.roll(tmpData[index], shift)
-            if shift < 0:
-                tmpData[index][(slice(None), ) * (dim - 1) + (slice(shift, None), )] = tmpData[index][(slice(None), ) * (dim - 1) + (slice(shift, None), )] * 0
-            else:
-                tmpData[index][(slice(None), ) * (dim - 1) + (slice(None, shift), )] = tmpData[index][(slice(None), ) * (dim - 1) + (slice(None, shift), )] * 0
-        if self.spec > 0:
-            tmpData = self.fourierLocal(tmpData, 0, self.axes)
-        self.showFid(tmpData[hyperView])
+        self.data1D.shiftData(shift, -1)
+        self.showFid()
+        self.upd()
 
     def getdcOffset(self, pos1, pos2):
         hyperView = 0
         minPos = int(min(pos1, pos2))
         maxPos = int(max(pos1, pos2))
         if minPos != maxPos:
-            return np.mean(self.data1D[hyperView][(len(self.data1D[hyperView].shape) - 1) * (slice(None), ) + (slice(minPos, maxPos), )])
+            return np.mean(self.data1D.data[hyperView][(len(self.shape()) - 1) * (slice(None), ) + (slice(minPos, maxPos), )])
         else:
             return 0
 
     def dcOffset(self, offset):
-        hyperView = 0
-        self.showFid(self.data1D[hyperView] - offset)
+        self.data1D.subtract([offset])
+        self.showFid()
+        self.upd()
 
     def baselinePolyFit(self, x, data, bArray, degree):
         import numpy.polynomial.polynomial as poly
@@ -2650,8 +2651,8 @@ class Current1D(Plot1DFrame):
 
     def applyBaselineAll(self, degree, removeList, select=False, invert=False):
         hyperView = 0
-        tmpAx = np.arange(self.data1D[0].shape[-1])
-        bArray = np.array([True] * self.data1D[0].shape[-1])
+        tmpAx = np.arange(self.len())
+        bArray = np.array([True] * self.len())
         for i in range(int(np.floor(len(removeList) / 2.0))):
             minVal = min(removeList[2 * i], removeList[2 * i + 1])
             maxVal = max(removeList[2 * i], removeList[2 * i + 1])
@@ -2659,7 +2660,7 @@ class Current1D(Plot1DFrame):
         if invert:
             bArray = np.logical_not(bArray)
         try:
-            y = np.apply_along_axis(lambda data: self.baselinePolyFit(self.xax, data, bArray, degree), self.axes, self.data.data[hyperView])
+            y = np.apply_along_axis(lambda data: self.baselinePolyFit(self.xax(), data, bArray, degree), self.axes, self.data.data[hyperView])
             if (self.viewSettings["plotType"] == 0):
                 y = np.real(y)
             elif(self.viewSettings["plotType"] == 1):
@@ -2680,12 +2681,12 @@ class Current1D(Plot1DFrame):
             selectSlice = self.getSelect()
         else:
             selectSlice = slice(None)
-        if len(self.data1D[0].shape) > 1:
-            tmpData = self.data1D[hyperView][0]
+        if self.ndim() > 1:
+            tmpData = self.data1D.data[hyperView][0]
         else:
-            tmpData = self.data1D[hyperView]
-        tmpAx = np.arange(self.data1D[0].shape[-1])
-        bArray = np.array([True] * self.data1D[0].shape[-1])
+            tmpData = self.data1D.data[hyperView]
+        tmpAx = np.arange(self.len())
+        bArray = np.array([True] * self.len())
         for i in range(int(np.floor(len(removeList) / 2.0))):
             minVal = min(removeList[2 * i], removeList[2 * i + 1])
             maxVal = max(removeList[2 * i], removeList[2 * i + 1])
@@ -2693,7 +2694,7 @@ class Current1D(Plot1DFrame):
         if invert:
             bArray = np.logical_not(bArray)
         try:
-            y = self.baselinePolyFit(self.xax, tmpData, bArray, degree)
+            y = self.baselinePolyFit(self.xax(), tmpData, bArray, degree)
             if (self.viewSettings["plotType"] == 0):
                 y = np.real(y)
             elif(self.viewSettings["plotType"] == 1):
@@ -2709,12 +2710,12 @@ class Current1D(Plot1DFrame):
 
     def previewBaseline(self, degree, removeList, invert=False):
         hyperView = 0
-        if len(self.data1D[0].shape) > 1:
-            tmpData = self.data1D[hyperView][0]
+        if self.ndim() > 1:
+            tmpData = self.data1D.data[hyperView][0]
         else:
-            tmpData = self.data1D[hyperView]
-        tmpAx = np.arange(self.data1D[0].shape[-1])
-        bArray = np.array([True] * self.data1D[0].shape[-1])
+            tmpData = self.data1D.data[hyperView]
+        tmpAx = np.arange(self.len())
+        bArray = np.array([True] * self.len())
         for i in range(int(np.floor(len(removeList) / 2.0))):
             minVal = min(removeList[2 * i], removeList[2 * i + 1])
             maxVal = max(removeList[2 * i], removeList[2 * i + 1])
@@ -2723,39 +2724,41 @@ class Current1D(Plot1DFrame):
             bArray = np.logical_not(bArray)
         check = True
         try:
-            y = self.baselinePolyFit(self.xax, tmpData, bArray, degree)
+            y = self.baselinePolyFit(self.xax(), tmpData, bArray, degree)
             if (self.viewSettings["plotType"] == 0):
                 y = np.real(y)
-            elif (self.viewSettings["plotType"] == 1):
+            elif(self.viewSettings["plotType"] == 1):
                 y = np.imag(y)
-            elif (self.viewSettings["plotType"] == 2):
+            elif(self.viewSettings["plotType"] == 2):
                 y = np.real(y)
-            elif (self.viewSettings["plotType"] == 3):
+            elif(self.viewSettings["plotType"] == 3):
                 y = np.abs(y)
+            self.data1D.baselineCorrection(y, -1)
         except Exception:
             check = False
         self.resetPreviewRemoveList()
         if check:
-            if len(self.data1D[0].shape) > 1:
-                self.showFid(self.data1D[hyperView], [self.xax], [y] * self.data1D[0].shape[0], ['g'])
+            if self.ndim() > 1:
+                self.showFid(extraX=[self.xax()], extraY=[y]*self.len(-2), extraColor=['g'])
             else:
-                self.showFid(self.data1D[hyperView], [self.xax], [y], ['g'])
+                self.showFid(extraX=[self.xax()], extraY=[y], extraColor=['g'])
         else:
             self.showFid()
         self.previewRemoveList(removeList, invert)
+        self.upd()
         return check
 
     def previewRemoveList(self, removeList, invert=False):
-        axMult = self.getAxMult(self.spec, self.viewSettings["axType"], self.viewSettings["ppm"], self.freq, self.ref)
+        axMult = self.getAxMult(self.spec(), self.viewSettings["axType"], self.viewSettings["ppm"], self.freq(), self.ref())
         self.resetPreviewRemoveList()
         lineColor = 'r'
         if invert:
             lineColor = 'w'
-            self.removeListLines.append(self.ax.axvspan(self.xax[0] * axMult, self.xax[-1] * axMult, color='r'))
+            self.removeListLines.append(self.ax.axvspan(self.xax()[0] * axMult, self.xax()[-1] * axMult, color='r'))
         for i in range(int(np.floor(len(removeList) / 2.0))):
-            self.removeListLines.append(self.ax.axvspan(self.xax[removeList[2 * i]] * axMult, self.xax[removeList[2 * i + 1]] * axMult, color=lineColor))
+            self.removeListLines.append(self.ax.axvspan(self.xax()[removeList[2 * i]] * axMult, self.xax()[removeList[2 * i + 1]] * axMult, color=lineColor))
         if len(removeList) % 2:
-            self.removeListLines.append(self.ax.axvline(self.xax[removeList[-1]] * axMult, c=lineColor, linestyle='--'))
+            self.removeListLines.append(self.ax.axvline(self.xax()[removeList[-1]] * axMult, c=lineColor, linestyle='--'))
         self.canvas.draw()
 
     def resetPreviewRemoveList(self):
@@ -2792,8 +2795,8 @@ class Current1D(Plot1DFrame):
             self.root.addMacro(['integrate', (pos1.tolist(), pos2.tolist(), self.axes - self.data.ndim(), )])
             returnValue = self.data.matrixManip(pos1, pos2, self.axes, 0)
             if self.upd():
-                self.plotReset()
                 self.showFid()
+                self.plotReset()
             return returnValue
 
     def sum(self, pos1, pos2, newSpec=False):
@@ -2803,8 +2806,8 @@ class Current1D(Plot1DFrame):
             self.root.addMacro(['sum', (pos1.tolist(), pos2.tolist(), self.axes - self.data.ndim(), )])
             returnValue = self.data.matrixManip(pos1, pos2, self.axes, 5)
             if self.upd():
-                self.plotReset()
                 self.showFid()
+                self.plotReset()
             return returnValue
 
     def maxMatrix(self, pos1, pos2, newSpec=False):
@@ -2814,8 +2817,8 @@ class Current1D(Plot1DFrame):
             self.root.addMacro(['max', (pos1.tolist(), pos2.tolist(), self.axes - self.data.ndim(), )])
             returnValue = self.data.matrixManip(pos1, pos2, self.axes, 1)
             if self.upd():
-                self.plotReset()
                 self.showFid()
+                self.plotReset()
             return returnValue
 
     def minMatrix(self, pos1, pos2, newSpec=False):
@@ -2825,8 +2828,8 @@ class Current1D(Plot1DFrame):
             self.root.addMacro(['min', (pos1.tolist(), pos2.tolist(), self.axes - self.data.ndim(), )])
             returnValue = self.data.matrixManip(pos1, pos2, self.axes, 2)
             if self.upd():
-                self.plotReset()
                 self.showFid()
+                self.plotReset()
             return returnValue
 
     def argmaxMatrix(self, pos1, pos2, newSpec=False):
@@ -2836,8 +2839,8 @@ class Current1D(Plot1DFrame):
             self.root.addMacro(['argmax', (pos1.tolist(), pos2.tolist(), self.axes - self.data.ndim(), )])
             returnValue = self.data.matrixManip(pos1, pos2, self.axes, 3)
             if self.upd():
-                self.plotReset()
                 self.showFid()
+                self.plotReset()
             return returnValue
 
     def argminMatrix(self, pos1, pos2, newSpec=False):
@@ -2847,8 +2850,8 @@ class Current1D(Plot1DFrame):
             self.root.addMacro(['argmin', (pos1.tolist(), pos2.tolist(), self.axes - self.data.ndim(), )])
             returnValue = self.data.matrixManip(pos1, pos2, self.axes, 4)
             if self.upd():
-                self.plotReset()
                 self.showFid()
+                self.plotReset()
             return returnValue
 
     def average(self, pos1, pos2, newSpec=False):
@@ -2858,8 +2861,8 @@ class Current1D(Plot1DFrame):
             self.root.addMacro(['average', (pos1.tolist(), pos2.tolist(), self.axes - self.data.ndim(), )])
             returnValue = self.data.matrixManip(pos1, pos2, self.axes, 6)
             if self.upd():
-                self.plotReset()
                 self.showFid()
+                self.plotReset()
             return returnValue
 
     def flipLR(self):
@@ -2872,16 +2875,16 @@ class Current1D(Plot1DFrame):
     def concatenate(self, axes):
         returnValue = self.data.concatenate(axes)
         self.upd()
-        self.plotReset()
         self.showFid()
+        self.plotReset()
         self.root.addMacro(['concatenate', (axes - self.data.ndim() - 1, )])
         return returnValue
 
     def split(self, sections):
         returnValue = self.data.split(sections, self.axes)
         self.upd()
-        self.plotReset()
         self.showFid()
+        self.plotReset()
         self.root.addMacro(['split', (sections, self.axes - self.data.ndim() + 1)])
         return returnValue
 
@@ -2903,8 +2906,8 @@ class Current1D(Plot1DFrame):
         self.root.addMacro(['insert', ([np.real(x).tolist() for x in data], pos, self.axes - self.data.ndim(), hyper, [np.imag(x).tolist() for x in data])])
         returnValue = self.data.insert(data, pos, self.axes, hyper=hyper)
         self.upd()
-        self.plotReset()
         self.showFid()
+        self.plotReset()
         return returnValue
 
     def delete(self, pos):
@@ -2915,11 +2918,8 @@ class Current1D(Plot1DFrame):
         return returnValue
 
     def deletePreview(self, pos):
-        for index in range(len(self.data1D)):
-            self.data1D[index] = np.delete(self.data1D[index], pos, axis=len(self.data1D[0].shape) - 1)
-        self.xax = np.delete(self.xax, pos)
-        if (np.array(self.data1D[0].shape) != 0).all():
-            self.showFid()
+        self.data1D.remove(pos, -1)
+        self.showFid()
         self.upd()
 
     def add(self, data, hyper, select=False):
@@ -2927,7 +2927,7 @@ class Current1D(Plot1DFrame):
             selectSlice = self.getSelect()
         else:
             selectSlice = slice(None)
-        self.root.addMacro(['add', ([np.real(x).tolist() for x in data], [np.imag(x).tolist() for x in data], hyper, str(selectSlice))])
+        self.root.addMacro(['add', (np.real(data).tolist(), np.imag(data), hyper, str(selectSlice))])
         returnValue = self.data.add(data, hyper=hyper, select=selectSlice)
         self.upd()
         self.showFid()
@@ -2938,7 +2938,7 @@ class Current1D(Plot1DFrame):
             selectSlice = self.getSelect()
         else:
             selectSlice = slice(None)
-        self.root.addMacro(['subtract', ([np.real(x).tolist() for x in data], [np.imag(x).tolist() for x in data], hyper, str(selectSlice))])
+        self.root.addMacro(['subtract', (np.real(data).tolist(), np.imag(data).tolist(), hyper, str(selectSlice))])
         returnValue = self.data.subtract(data, hyper=hyper, select=selectSlice)
         self.upd()
         self.showFid()
@@ -2977,6 +2977,11 @@ class Current1D(Plot1DFrame):
         self.showFid()
         return returnValue
 
+    def multiplyPreview(self, data):
+        self.data1D.multiply(data, -1)
+        self.showFid()
+        self.upd()
+
     def normalize(self, value, scale, type, select=False):
         if select:
             selectSlice = self.getSelect()
@@ -2987,17 +2992,7 @@ class Current1D(Plot1DFrame):
         self.upd()
         self.showFid()
         return returnValue
-
-    def multiplyPreview(self, data):
-        self.upd()
-        try:
-            for index in range(len(self.data1D)):
-                self.data1D[index] = self.data1D[index] * data
-            self.showFid()
-            return True
-        except ValueError as error:
-            return error
-
+    
     def subtractAvg(self, pos1, pos2):
         self.root.addMacro(['subtractAvg', (pos1, pos2, self.axes - self.data.ndim())])
         returnValue = self.data.subtractAvg(pos1, pos2, self.axes)
@@ -3006,14 +3001,9 @@ class Current1D(Plot1DFrame):
         return returnValue
 
     def subtractAvgPreview(self, pos1, pos2):
-        self.upd()
-        axes = self.data1D[0].ndim - 1
-        minPos = min(pos1, pos2)
-        maxPos = max(pos1, pos2)
-        slicing = (slice(None), ) * axes + (slice(minPos, maxPos), ) + (slice(None), ) * (self.data1D[0].ndim - 1 - axes)
-        for index in range(len(self.data1D)):
-            self.data1D[index] -= np.mean(self.data1D[index][slicing], axis=-1, keepdims=True)
+        self.data1D.subtractAvg(pos1, pos2, -1)
         self.showFid()
+        self.upd()
 
     def getRegion(self, pos1, pos2, newSpec=False):
         if newSpec:
@@ -3022,19 +3012,19 @@ class Current1D(Plot1DFrame):
             self.root.addMacro(['extract', (pos1, pos2, self.axes - self.data.ndim())])
             returnValue = self.data.getRegion(pos1, pos2, self.axes)
             self.upd()
-            self.plotReset()
             self.showFid()
+            self.plotReset()
             return returnValue
 
     def fiddle(self, pos1, pos2, lb):
         hyperView = 0
         minPos = min(pos1, pos2)
         maxPos = max(pos1, pos2)
-        refSpec = np.zeros(self.data1D[0].shape[-1])
-        if len(self.data1D[0].shape) > 1:
-            refSpec[minPos:maxPos] = np.real(self.data1D[hyperView][0][minPos:maxPos])
+        refSpec = np.zeros(self.len())
+        if self.ndim() > 1:
+            refSpec[minPos:maxPos] = np.real(self.data1D.data[hyperView][0][minPos:maxPos])
         else:
-            refSpec[minPos:maxPos] = np.real(self.data1D[hyperView][minPos:maxPos])
+            refSpec[minPos:maxPos] = np.real(self.data1D.data[hyperView][minPos:maxPos])
         self.root.addMacro(['FIDDLE', (refSpec.tolist(), lb, self.axes - self.data.ndim())])
         returnValue = self.data.fiddle(refSpec, lb, self.axes)
         self.upd()
@@ -3088,15 +3078,15 @@ class Current1D(Plot1DFrame):
     def autoPhase(self, phaseNum):
         self.upd()
         hyperView = 0
-        if len(self.data1D[0].shape) > 1:
+        if self.ndim() > 1:
             tmp = []
-            for item in self.data1D:
+            for item in self.data1D.data:
                 tmp.append(item[0])
         else:
-            tmp = self.data1D
-        if self.spec == 0:
-            tmp = self.fourierLocal(tmp,0, self.axes)
-        x = np.fft.fftshift(np.fft.fftfreq(len(tmp[0]), 1.0 / self.sw)) / self.sw
+            tmp = self.data1D.data
+        if self.spec() == 0:
+            tmp = self.fourierLocal(tmp, 0, self.axes)
+        x = np.fft.fftshift(np.fft.fftfreq(len(tmp[0]), 1.0 / self.sw())) / self.sw()
         tmp = self.data.hyperReorder(tmp, self.axes)
         if phaseNum == 0:
             phases = scipy.optimize.minimize(self.data.ACMEentropy, [0], (tmp, x, False), method='Powell')
@@ -3105,13 +3095,13 @@ class Current1D(Plot1DFrame):
             phases = scipy.optimize.minimize(self.data.ACMEentropy, [0, 0], (tmp, x ), method='Powell')
             phases = phases['x']
         tmp = self.data.hyperReorder(tmp, self.axes)
-        if self.spec == 0:
+        if self.spec() == 0:
                 tmp = self.fourierLocal(tmp,1, self.axes)
         return phases
 
     def directAutoPhase(self, phaseNum):
         tmpLocList = self.locList
-        if len(self.data1D[0].shape) > 1:
+        if self.ndim() > 1:
             if hasattr(self, 'stackBegin'):
                 val = self.viewSettings["stackBegin"]
             else:
@@ -3127,27 +3117,27 @@ class Current1D(Plot1DFrame):
         return returnValue
 
     def setXaxPreview(self, xax):
-        self.xax = xax
-        self.plotReset()
+        self.data1D.setXax(xax, -1)
         self.showFid()
+        self.plotReset()
         self.upd()
 
     def setXax(self, xax):
         self.root.addMacro(['setxax', (xax, self.axes - self.data.ndim())])
         returnVal = self.data.setXax(xax, self.axes)
         self.upd()
-        self.plotReset()
         self.showFid()
+        self.plotReset()
         return returnVal
 
-    def setAxType(self, val, update = True):
-        oldAxMult = self.getAxMult(self.spec, self.viewSettings["axType"], self.viewSettings["ppm"], self.freq, self.ref)
+    def setAxType(self, val, update=True):
+        oldAxMult = self.getAxMult(self.spec(), self.viewSettings["axType"], self.viewSettings["ppm"], self.freq(), self.ref())
         if val == 3:
             self.viewSettings["ppm"] = True
         else:
             self.viewSettings["ppm"] = False
             self.viewSettings["axType"] = val
-        newAxMult = self.getAxMult(self.spec, self.viewSettings["axType"], self.viewSettings["ppm"], self.freq, self.ref)
+        newAxMult = self.getAxMult(self.spec(), self.viewSettings["axType"], self.viewSettings["ppm"], self.freq(), self.ref())
         self.xminlim = self.xminlim * newAxMult / oldAxMult
         self.xmaxlim = self.xmaxlim * newAxMult / oldAxMult
         if update:
@@ -3185,89 +3175,91 @@ class Current1D(Plot1DFrame):
         else:
             return int(np.floor(np.log10(absVal)))
 
-    def showFid(self, tmpdata=None, extraX=None, extraY=None, extraColor=None, old=False, output=None):  # display the 1D data
+    def showFid(self, oldData=None, extraX=None, extraY=None, extraColor=None):  # display the 1D data
         hyperView = 0
         self.peakPickReset()
-        if tmpdata is None:
-            tmpdata = self.data1D[0]
+        tmpdata = self.data1D.data[hyperView]
         self.ax.cla()
-        axMult = self.getAxMult(self.spec, self.viewSettings["axType"], self.viewSettings["ppm"], self.freq, self.ref)
-        self.line_xdata = self.xax * axMult
-        if self.single:
+        axMult = self.getAxMult(self.spec(), self.viewSettings["axType"], self.viewSettings["ppm"], self.freq(), self.ref())
+        self.line_xdata = [self.xax() * axMult]
+        self.line_xdata_extra = []
+        self.line_ydata_extra = []
+        if self.shape() == 1:
             marker = 'o'
             linestyle = 'none'
         else:
-            marker = ''
-            linestyle = '-'
-        if old:
+            marker = self.MARKER
+            linestyle = self.LINESTYLE
+        if oldData is not None:
             if (self.viewSettings["plotType"] == 0):
-                oldData = np.real(self.data1D[hyperView])
+                tmp = np.real(oldData[hyperView])
             elif(self.viewSettings["plotType"] == 1):
-                oldData = np.imag(self.data1D[hyperView])
+                tmp = np.imag(oldData[hyperView])
             elif(self.viewSettings["plotType"] == 2):
-                oldData = np.real(self.data1D[hyperView])
+                tmp = np.real(oldData[hyperView])
             elif(self.viewSettings["plotType"] == 3):
-                oldData = np.abs(self.data1D[hyperView])
-            self.ax.plot(self.line_xdata, oldData, marker=marker, linestyle=linestyle, c='k', alpha=0.2, linewidth=self.viewSettings["linewidth"], label=self.data.name + '_old', picker=True)
+                tmp = np.abs(oldData[hyperView])
+            self.line_xdata_extra.append(self.xax() * axMult)
+            self.line_ydata_extra.append(tmp)
+            self.ax.plot(self.line_xdata_extra[-1], self.line_ydata_extra[-1], marker=marker, linestyle=linestyle, c='k', alpha=0.2, linewidth=self.viewSettings["linewidth"], label=self.data.name + '_old', picker=True)
         if (extraX is not None):
             for num in range(len(extraX)):
-                self.ax.plot(extraX[num] * axMult, extraY[num], marker=marker, linestyle=linestyle, c=extraColor[num], linewidth=self.viewSettings["linewidth"], picker=True)
+                self.line_xdata_extra.append(extraX[num] * axMult)
+                self.line_ydata_extra.append(extraY[num])
+                self.ax.plot(self.line_xdata_extra[-1], self.line_ydata_extra[-1], marker=marker, linestyle=linestyle, c=extraColor[num], linewidth=self.viewSettings["linewidth"], picker=True)
         if (self.viewSettings["plotType"] == 0):
-            self.line_ydata = np.real(tmpdata)
+            self.line_ydata = [np.real(tmpdata)]
         elif(self.viewSettings["plotType"] == 1):
-            self.line_ydata = np.imag(tmpdata)
+            self.line_ydata = [np.imag(tmpdata)]
         elif(self.viewSettings["plotType"] == 2):
-            self.line_ydata = np.real(tmpdata)
-            self.ax.plot(self.line_xdata, np.imag(tmpdata), marker=marker, linestyle=linestyle, c='r', linewidth=self.viewSettings["linewidth"], label=self.data.name + '_imag', picker=True)
+            self.line_xdata.append(self.line_xdata[-1])
+            self.line_ydata = [np.imag(tmpdata), np.real(tmpdata)]
+            self.ax.plot(self.line_xdata[0], self.line_ydata[0], marker=marker, linestyle=linestyle, c='r', linewidth=self.viewSettings["linewidth"], label=self.data.name + '_imag', picker=True)
         elif(self.viewSettings["plotType"] == 3):
-            self.line_ydata = np.abs(tmpdata)
-        self.ax.plot(self.line_xdata, self.line_ydata, marker=marker, linestyle=linestyle, c=self.viewSettings["color"], linewidth=self.viewSettings["linewidth"], label=self.data.name, picker=True)
-        self.ax.set_xlabel(self.getLabel(self.spec, self.viewSettings["axType"], self.viewSettings["ppm"]))
+            self.line_ydata = [np.abs(tmpdata)]
+        self.ax.plot(self.line_xdata[-1], self.line_ydata[-1], marker=marker, linestyle=linestyle, c=self.viewSettings["color"], linewidth=self.viewSettings["linewidth"], label=self.data.name, picker=True)
+        self.ax.set_xlabel(self.getLabel(self.spec(), self.viewSettings["axType"], self.viewSettings["ppm"]))
         self.ax.get_xaxis().get_major_formatter().set_powerlimits((-4, 4))
         self.ax.get_yaxis().get_major_formatter().set_powerlimits((-4, 4))
         self.ax.xaxis.grid(self.viewSettings["grids"][0])
         self.ax.yaxis.grid(self.viewSettings["grids"][1])
-        if self.spec > 0:
+        if self.spec() > 0:
             self.ax.set_xlim(self.xmaxlim, self.xminlim)
         else:
             self.ax.set_xlim(self.xminlim, self.xmaxlim)
         self.ax.set_ylim(self.yminlim, self.ymaxlim)
-        if output is not None:
-            self.canvas.print_figure(output)
         self.canvas.draw()
 
     def plotReset(self, xReset=True, yReset=True):  # set the plot limits to min and max values
-        showDat = self.data1D[0]
-        if self.viewSettings["plotType"] == 0:
-            miny = min(np.real(showDat))
-            maxy = max(np.real(showDat))
-        elif self.viewSettings["plotType"] == 1:
-            miny = min(np.imag(showDat))
-            maxy = max(np.imag(showDat))
-        elif self.viewSettings["plotType"] == 2:
-            miny = min(min(np.real(showDat)), min(np.imag(showDat)))
-            maxy = max(max(np.real(showDat)), max(np.imag(showDat)))
-        elif self.viewSettings["plotType"] == 3:
-            miny = min(np.abs(showDat))
-            maxy = max(np.abs(showDat))
+        showDat = self.data1D.data[0]
+        miny = np.min(self.line_ydata)
+        maxy = np.max(self.line_ydata)
+        for line in self.line_ydata_extra:
+            miny = min(miny, min(line))
+            maxy = max(maxy, max(line))
+        if type(self) is CurrentContour:
+            differ = 0
         else:
-            miny = -1
-            maxy = 1
-        differ = 0.05 * (maxy - miny)  # amount to add to show all datapoints (10%)
+            differ = 0.05 * (maxy - miny)  # amount to add to show all datapoints (10%)
         if yReset:
             self.yminlim = miny - differ
             self.ymaxlim = maxy + differ
-        if self.ref == 0.0:
+        if self.ref() == 0.0:
             self.viewSettings["ppm"] = False
-        axMult = self.getAxMult(self.spec, self.viewSettings["axType"], self.viewSettings["ppm"], self.freq, self.ref)
+        minx = np.min(self.line_xdata)
+        maxx = np.max(self.line_xdata)
+        for line in self.line_xdata_extra:
+            minx = min(minx, min(line))
+            maxx = max(maxx, max(line))
         if xReset:
-            self.xminlim = min(self.xax * axMult)
-            self.xmaxlim = max(self.xax * axMult)
-        if self.spec > 0:
+            self.xminlim = minx
+            self.xmaxlim = maxx
+        if self.spec() > 0:
             self.ax.set_xlim(self.xmaxlim, self.xminlim)
         else:
             self.ax.set_xlim(self.xminlim, self.xmaxlim)
         self.ax.set_ylim(self.yminlim, self.ymaxlim)
+        self.canvas.draw()
 
 
 #########################################################################################################
@@ -3276,50 +3268,9 @@ class CurrentScatter(Current1D):
     X_RESIZE = False
     Y_RESIZE = False
 
-    def showFid(self, tmpdata=None, extraX=None, extraY=None, extraColor=None, old=False, output=None):  # display the 1D data
-        hyperView = 0
-        self.peakPickReset()
-        if tmpdata is None:
-            tmpdata = self.data1D[hyperView]
-        self.ax.cla()
-        axMult = self.getAxMult(self.spec, self.viewSettings["axType"], self.viewSettings["ppm"], self.freq, self.ref)
-        self.line_xdata = self.xax * axMult
-        if old:
-            if (self.viewSettings["plotType"] == 0):
-                oldData = np.real(self.data1D[hyperView])
-            elif(self.viewSettings["plotType"] == 1):
-                oldData = np.imag(self.data1D[hyperView])
-            elif(self.viewSettings["plotType"] == 2):
-                oldData = np.real(self.data1D[hyperView])
-            elif(self.viewSettings["plotType"] == 3):
-                oldData = np.abs(self.data1D[hyperView])
-            self.ax.plot(self.line_xdata, oldData, marker='o', linestyle='none', c='k', alpha=0.2, label=self.data.name + '_old', picker=True)
-        if (extraX is not None):
-            for num in range(len(extraX)):
-                self.ax.plot(extraX[num] * axMult, extraY[num], marker='o', linestyle='none', c=extraColor[num])
-        if (self.viewSettings["plotType"] == 0):
-            self.line_ydata = np.real(tmpdata)
-        elif(self.viewSettings["plotType"] == 1):
-            self.line_ydata = np.imag(tmpdata)
-        elif(self.viewSettings["plotType"] == 2):
-            self.line_ydata = np.real(tmpdata)
-            self.ax.plot(self.line_xdata, np.imag(tmpdata), marker='o', linestyle='none', c='r', label=self.data.name + '_imag', picker=True)
-        elif(self.viewSettings["plotType"] == 3):
-            self.line_ydata = np.abs(tmpdata)
-        self.ax.plot(self.line_xdata, self.line_ydata, marker='o', linestyle='none', c=self.viewSettings["color"], label=self.data.name, picker=True)
-        self.ax.set_xlabel(self.getLabel(self.spec, self.viewSettings["axType"], self.viewSettings["ppm"]))
-        self.ax.get_xaxis().get_major_formatter().set_powerlimits((-4, 4))
-        self.ax.get_yaxis().get_major_formatter().set_powerlimits((-4, 4))
-        self.ax.xaxis.grid(self.viewSettings["grids"][0])
-        self.ax.yaxis.grid(self.viewSettings["grids"][1])
-        if self.spec > 0:
-            self.ax.set_xlim(self.xmaxlim, self.xminlim)
-        else:
-            self.ax.set_xlim(self.xminlim, self.xmaxlim)
-        self.ax.set_ylim(self.yminlim, self.ymaxlim)
-        if output is not None:
-            self.canvas.print_figure(output)
-        self.canvas.draw()
+    MARKER = 'o'
+    LINESTYLE = 'none'
+
 
 #########################################################################################################
 # the class from which the data of multiple spectra is displayed, the operations which only edit the content of this class are for previewing
@@ -3367,7 +3318,7 @@ class CurrentMulti(Current1D):
         return tuple(np.array(255 * np.array(self.viewSettings["extraColor"][num]), dtype=int))
 
     def resetLocList(self):
-        self.locList = [0] * (len(self.data.shape()) - 1)
+        super(CurrentMulti, self).resetLocList()
         self.resetExtraLocList()
 
     def setExtraScale(self, num, scale):
@@ -3389,155 +3340,99 @@ class CurrentMulti(Current1D):
         else:
             self.viewSettings["extraLoc"][num] = [0] * (len(self.viewSettings["extraData"][num].shape()) - 1)
 
-    def plotReset(self, xReset=True, yReset=True):  # set the plot limits to min and max values
-        hyperView = 0
-        if self.viewSettings["plotType"] == 0:
-            miny = np.min(np.real(self.data1D[hyperView]))
-            maxy = np.max(np.real(self.data1D[hyperView]))
-        elif self.viewSettings["plotType"] == 1:
-            miny = np.min(np.imag(self.data1D[hyperView]))
-            maxy = np.max(np.imag(self.data1D[hyperView]))
-        elif self.viewSettings["plotType"] == 2:
-            miny = np.min((np.min(np.real(self.data1D[hyperView])), np.min(np.imag(self.data1D[hyperView]))))
-            maxy = np.max((np.max(np.real(self.data1D[hyperView])), np.max(np.imag(self.data1D[hyperView]))))
-        elif self.viewSettings["plotType"] == 3:
-            miny = np.min(np.abs(self.data1D[hyperView]))
-            maxy = np.max(np.abs(self.data1D[hyperView]))
-        else:
-            miny = -1
-            maxy = 1
-        if self.ref == 0.0:
-            self.viewSettings["ppm"] = False
-        axMult = self.getAxMult(self.spec, self.viewSettings["axType"], self.viewSettings["ppm"], self.freq, self.ref)
-        minx = min(self.xax * axMult)
-        maxx = max(self.xax * axMult)
-        for i in range(len(self.viewSettings["extraData"])):
-            data = self.viewSettings["extraData"][i]
-            try:
-                if data.ndim() <= self.viewSettings["extraAxes"][i]:
-                    self.viewSettings["extraAxes"][i] = len(data.shape()) - 1
-                    self.resetExtraLocList(i)
-                updateVar = data.getSlice(self.viewSettings["extraAxes"][i], self.viewSettings["extraLoc"][i])
-            except Exception:
-                self.resetExtraLocList(i)
-                updateVar = data.getSlice(self.viewSettings["extraAxes"][i], self.viewSettings["extraLoc"][i])
-            data1D = updateVar[0]
-            spec = updateVar[3]
-            xax = updateVar[5]
-            ref = updateVar[6]
-            axMult = self.getAxMult(spec, self.viewSettings["axType"], self.viewSettings["ppm"], data.freq[self.viewSettings["extraAxes"][i]], ref)
-            maxx = max(max(xax * axMult + self.viewSettings["extraShift"]), maxx)
-            minx = min(min(xax * axMult + self.viewSettings["extraShift"]), minx)
-            if self.viewSettings["plotType"] == 0:
-                miny = min(np.min(np.real(data1D[hyperView]) * self.viewSettings["extraScale"][i] + self.viewSettings["extraOffset"][i]), miny)
-                maxy = max(np.max(np.real(data1D[hyperView]) * self.viewSettings["extraScale"][i] + self.viewSettings["extraOffset"][i]), maxy)
-            elif self.viewSettings["plotType"] == 1:
-                miny = min(np.min(np.imag(data1D[hyperView]) * self.viewSettings["extraScale"][i] + self.viewSettings["extraOffset"][i]), miny)
-                maxy = max(np.max(np.imag(data1D[hyperView]) * self.viewSettings["extraScale"][i] + self.viewSettings["extraOffset"][i]), maxy)
-            elif self.viewSettings["plotType"] == 2:
-                miny = min(np.min((np.min(np.real(data1D[hyperView]) * self.viewSettings["extraScale"][i] + self.viewSettings["extraOffset"][i]), np.min(np.imag(data1D[hyperView]) * self.viewSettings["extraScale"][i] + self.viewSettings["extraOffset"][i]))), miny)
-                maxy = max(np.max((np.max(np.real(data1D[hyperView]) * self.viewSettings["extraScale"][i] + self.viewSettings["extraOffset"][i]), np.max(np.imag(data1D[hyperView]) * self.viewSettings["extraScale"][i] + self.viewSettings["extraOffset"][i]))), maxy)
-            elif self.viewSettings["plotType"] == 3:
-                miny = min(np.min(np.abs(data1D[hyperView]) * self.viewSettings["extraScale"][i] + self.viewSettings["extraOffset"][i]), miny)
-                maxy = max(np.max(np.abs(data1D[hyperView]) * self.viewSettings["extraScale"][i] + self.viewSettings["extraOffset"][i]), maxy)
-        differ = 0.05 * (maxy - miny)  # amount to add to show all datapoints (10%)
-        if yReset:
-            self.yminlim = miny - differ
-            self.ymaxlim = maxy + differ
-        if xReset:
-            self.xminlim = minx
-            self.xmaxlim = maxx
-        if self.spec > 0:
-            self.ax.set_xlim(self.xmaxlim, self.xminlim)
-        else:
-            self.ax.set_xlim(self.xminlim, self.xmaxlim)
-        self.ax.set_ylim(self.yminlim, self.ymaxlim)
-
-    def showFid(self, tmpdata=None, extraX=None, extraY=None, extraColor=None, old=False, output=None):  # display the 1D data
+    def showFid(self, oldData=None, extraX=None, extraY=None, extraColor=None):  # display the 1D data
         hyperView = 0
         self.peakPickReset()
+        tmpdata = self.data1D.data[hyperView]
         self.ax.cla()
+        axMult = self.getAxMult(self.spec(), self.viewSettings["axType"], self.viewSettings["ppm"], self.freq(), self.ref())
+        self.line_xdata = [self.xax() * axMult]
+        self.line_xdata_extra = []
+        self.line_ydata_extra = []
         for i in range(len(self.viewSettings["extraData"])):
             data = self.viewSettings["extraData"][i]
             try:
                 if self.viewSettings["extraData"][i].ndim() <= self.viewSettings["extraAxes"][i]:
                     self.viewSettings["extraAxes"][i] = len(self.viewSettings["extraData"][i].shape()) - 1
                     self.resetExtraLocList(i)
-                updateVar = data.getSlice(self.viewSettings["extraAxes"][i], self.viewSettings["extraLoc"][i])
+                extraData1D = data.getSlice(self.viewSettings["extraAxes"][i], self.viewSettings["extraLoc"][i])
             except Exception:
                 self.resetExtraLocList(i)
-                updateVar = data.getSlice(self.viewSettings["extraAxes"][i], self.viewSettings["extraLoc"][i])
-            data1D = updateVar[0]
-            spec = updateVar[3]
-            xax = updateVar[5]
-            ref = updateVar[6]
-            line_xdata = xax * self.getAxMult(spec, self.viewSettings["axType"], self.viewSettings["ppm"], data.freq[self.viewSettings["extraAxes"][i]], ref)
-            if len(data1D[0]) == 1:
+                extraData1D = data.getSlice(self.viewSettings["extraAxes"][i], self.viewSettings["extraLoc"][i])
+            xax = extraData1D.xaxArray[-1]
+            spec = extraData1D.spec[-1]
+            freq = extraData1D.freq[-1]
+            if extraData1D.ref[-1] is not None:
+                ref = extraData1D.ref[-1]
+            else:
+                ref = extraData1D.freq[-1]
+            self.line_xdata_extra.append(self.viewSettings["extraShift"][i] + xax * self.getAxMult(spec, self.viewSettings["axType"], self.viewSettings["ppm"], freq, ref))
+            if extraData1D.shape() == 1:
                 marker = 'o'
                 linestyle = 'none'
             else:
-                marker = ''
-                linestyle = '-'
+                marker = self.MARKER
+                linestyle = self.LINESTYLE
             if (self.viewSettings["plotType"] == 0):
-                extraData = np.real(data1D[hyperView])
+                extraData = np.real(extraData1D.data[hyperView])
             elif(self.viewSettings["plotType"] == 1):
-                extraData = np.imag(data1D[hyperView])
+                extraData = np.imag(extraData1D.data[hyperView])
             elif(self.viewSettings["plotType"] == 2):
-                extraData = np.real(data1D[hyperView])
+                extraData = np.real(extraData1D.data[hyperView])
             elif(self.viewSettings["plotType"] == 3):
-                extraData = np.abs(data1D[hyperView])
-            self.ax.plot(line_xdata + self.viewSettings["extraShift"][i],
-                         extraData * self.viewSettings["extraScale"][i] + self.viewSettings["extraOffset"][i],
+                extraData = np.abs(extraData1D.data[hyperView])
+            self.line_ydata_extra.append(extraData * self.viewSettings["extraScale"][i] + self.viewSettings["extraOffset"][i])
+            self.ax.plot(self.line_xdata_extra[-1],
+                         self.line_ydata_extra[-1],
                          marker=marker, linestyle=linestyle,
                          c=self.viewSettings["extraColor"][i],
                          linewidth=self.viewSettings["linewidth"],
                          label=data.name,
                          picker=True)
-        if tmpdata is None:
-            tmpdata = self.data1D[hyperView]
-        axMult = self.getAxMult(self.spec, self.viewSettings["axType"], self.viewSettings["ppm"], self.freq, self.ref)
-        self.line_xdata = self.xax * axMult
-        if self.single:
+        if self.shape() == 1:
             marker = 'o'
             linestyle = 'none'
         else:
             marker = ''
             linestyle = '-'
-        if old:
+        if oldData is not None:
             if (self.viewSettings["plotType"] == 0):
-                oldData = np.real(self.data1D[hyperView])
+                tmp = np.real(oldData[hyperView])
             elif(self.viewSettings["plotType"] == 1):
-                oldData = np.imag(self.data1D[hyperView])
+                tmp = np.imag(oldData[hyperView])
             elif(self.viewSettings["plotType"] == 2):
-                oldData = np.real(self.data1D[hyperView])
+                tmp = np.real(oldData[hyperView])
             elif(self.viewSettings["plotType"] == 3):
-                oldData = np.abs(self.data1D[hyperView])
-            self.ax.plot(self.line_xdata, oldData, marker=marker, linestyle=linestyle, c='k', alpha=0.2, linewidth=self.viewSettings["linewidth"], label=self.data.name + '_old', picker=True)
+                tmp = np.abs(oldData[hyperView])
+            self.line_xdata_extra.append(self.xax() * axMult)
+            self.line_ydata_extra.append(tmp)
+            self.ax.plot(self.line_xdata_extra[-1], self.line_ydata_extra[-1], marker=marker, linestyle=linestyle, c='k', alpha=0.2, linewidth=self.viewSettings["linewidth"], label=self.data.name + '_old', picker=True)
         if (extraX is not None):
             for num in range(len(extraX)):
-                self.ax.plot(extraX[num] * axMult, extraY[num], marker=marker, linestyle=linestyle, linewidth=self.viewSettings["linewidth"], c=extraColor[num], picker=True)
+                self.line_xdata_extra.append(extraX[num] * axMult)
+                self.line_ydata_extra.append(extraY[num])
+                self.ax.plot(self.line_xdata_extra[-1], self.line_ydata_extra[-1], marker=marker, linestyle=linestyle, linewidth=self.viewSettings["linewidth"], c=extraColor[num], picker=True)
         if (self.viewSettings["plotType"] == 0):
-            self.line_ydata = np.real(tmpdata)
+            self.line_ydata = [np.real(tmpdata)]
         elif(self.viewSettings["plotType"] == 1):
-            self.line_ydata = np.imag(tmpdata)
+            self.line_ydata = [np.imag(tmpdata)]
         elif(self.viewSettings["plotType"] == 2):
-            self.line_ydata = np.real(tmpdata)
-            self.ax.plot(self.line_xdata, np.imag(tmpdata), marker=marker, linestyle=linestyle, c='r', linewidth=self.viewSettings["linewidth"], label=self.data.name + '_imag', picker=True)
+            self.line_xdata.append(self.line_xdata[-1])
+            self.line_ydata = [np.imag(tmpdata), np.real(tmpdata)]
+            self.ax.plot(self.line_xdata[-2], self.line_ydata[-2], marker=marker, linestyle=linestyle, c='r', linewidth=self.viewSettings["linewidth"], label=self.data.name + '_imag', picker=True)
         elif(self.viewSettings["plotType"] == 3):
-            self.line_ydata = np.abs(tmpdata)
-        self.ax.plot(self.line_xdata, self.line_ydata, marker=marker, linestyle=linestyle, c=self.viewSettings["color"], linewidth=self.viewSettings["linewidth"], label=self.data.name, picker=True)
-        self.ax.set_xlabel(self.getLabel(self.spec, self.viewSettings["axType"], self.viewSettings["ppm"]))
+            self.line_ydata = [np.abs(tmpdata)]
+        self.ax.plot(self.line_xdata[-1], self.line_ydata[-1], marker=marker, linestyle=linestyle, c=self.viewSettings["color"], linewidth=self.viewSettings["linewidth"], label=self.data.name, picker=True)
+        self.ax.set_xlabel(self.getLabel(self.spec(), self.viewSettings["axType"], self.viewSettings["ppm"]))
         self.ax.get_xaxis().get_major_formatter().set_powerlimits((-4, 4))
         self.ax.get_yaxis().get_major_formatter().set_powerlimits((-4, 4))
         self.ax.xaxis.grid(self.viewSettings["grids"][0])
         self.ax.yaxis.grid(self.viewSettings["grids"][1])
-        if self.spec > 0:
+        if self.spec() > 0:
             self.ax.set_xlim(self.xmaxlim, self.xminlim)
         else:
             self.ax.set_xlim(self.xminlim, self.xmaxlim)
         self.ax.set_ylim(self.yminlim, self.ymaxlim)
-        if output is not None:
-            self.canvas.print_figure(output)
         self.canvas.draw()
 
 #########################################################################################################
@@ -3551,8 +3446,8 @@ class CurrentStacked(Current1D):
 
     def startUp(self, xReset=True, yReset=True):
         self.resetSpacing()
-        self.plotReset(xReset, yReset)
         self.showFid()
+        self.plotReset(xReset, yReset)
 
     def copyCurrent(self, root, fig, canvas, data):
         return CurrentStacked(root, fig, canvas, data, self)
@@ -3564,31 +3459,13 @@ class CurrentStacked(Current1D):
         if (len(self.locList) + 2) != self.data.ndim():
             self.resetLocList()
         try:
-            updateVar = self.data.getBlock(self.axes, self.axes2, self.locList, self.viewSettings["stackBegin"], self.viewSettings["stackEnd"], self.viewSettings["stackStep"])
+            self.data1D = self.data.getBlock(self.axes, self.axes2, self.locList, self.viewSettings["stackBegin"], self.viewSettings["stackEnd"], self.viewSettings["stackStep"])
             if updateVar is None:
                 self.root.rescue()
                 return False
         except Exception:
             self.resetLocList()
-            updateVar = self.data.getBlock(self.axes, self.axes2, self.locList, self.viewSettings["stackBegin"], self.viewSettings["stackEnd"], self.viewSettings["stackStep"])
-        self.data1D = updateVar[0]
-        self.freq = updateVar[1]
-        self.freq2 = updateVar[2]
-        self.sw = updateVar[3]
-        self.sw2 = updateVar[4]
-        self.spec = updateVar[5]
-        self.spec2 = updateVar[6]
-        self.wholeEcho = updateVar[7]
-        self.wholeEcho2 = updateVar[8]
-        self.xax = updateVar[9]
-        self.xax2 = updateVar[10]
-        self.ref = updateVar[11]
-        self.ref2 = updateVar[12]
-        if self.ref is None:
-            self.ref = self.freq
-        if self.ref2 is None:
-            self.ref2 = self.freq2
-        self.single = self.data1D[0].shape[-1] == 1
+            self.data1D = self.data.getBlock(self.axes, self.axes2, self.locList, self.viewSettings["stackBegin"], self.viewSettings["stackEnd"], self.viewSettings["stackStep"])
         return True
 
     def setBlock(self, axes, axes2, locList, stackBegin=None, stackEnd=None, stackStep=None):  # change the slice
@@ -3605,10 +3482,10 @@ class CurrentStacked(Current1D):
                 self.viewSettings["stackStep"] = 1 + int(self.data.shape()[self.axes2]) / 100
         self.locList = locList
         self.upd()
+        self.showFid()
         if not axesSame:
             self.resetSpacing()
             self.plotReset()
-        self.showFid()
 
     def resetLocList(self):
         self.locList = [0] * (len(self.data.shape()) - 2)
@@ -3618,80 +3495,32 @@ class CurrentStacked(Current1D):
         self.viewSettings["stackEnd"] = stackEnd
         self.viewSettings["stackStep"] = stackStep
         self.upd()
-        self.plotReset(False, True)
         self.showFid()
-
-    def apodPreview(self, lor=None, gauss=None, cos2=None, hamming=None, shift=0.0, shifting=0.0, shiftingAxes=None):  # display the 1D data including the apodization function
-        hyperView = 0
-        t = np.arange(0, len(self.data1D[0][0])) / (self.sw)
-        if shiftingAxes is not None:
-            if shiftingAxes == self.axes:
-                self.dispMsg('shiftingAxes cannot be equal to axes')
-            elif shiftingAxes == self.axes2:
-                ar = np.arange(self.data.shape()[self.axes2])[reim.floatSlice(self.viewSettings["stackBegin"], self.viewSettings["stackEnd"], self.viewSettings["stackStep"])]
-                x = np.ones((len(ar), len(self.data1D[0][0])))
-                for i in range(len(ar)):
-                    shift1 = shift + shifting * ar[i] / self.data.sw[shiftingAxes]
-                    x2 = func.apodize(t, shift1, self.sw, len(self.data1D[0][0]), lor, gauss, cos2, hamming, self.wholeEcho)
-                    x[i] = x2
-            else:
-                if (shiftingAxes < self.axes) and (shiftingAxes < self.axes2):
-                    shift += shifting * self.locList[shiftingAxes] * self.data.shape()[shiftingAxes] / self.data.sw[shiftingAxes]
-                elif (shiftingAxes > self.axes) and (shiftingAxes > self.axes2):
-                    shift += shifting * self.locList[shiftingAxes - 2] * self.data.shape()[shiftingAxes] / self.data.sw[shiftingAxes]
-                else:
-                    shift += shifting * self.locList[shiftingAxes - 1] * self.data.shape()[shiftingAxes] / self.data.sw[shiftingAxes]
-                x = func.apodize(t, shift, self.sw, len(self.data1D[0][0]), lor, gauss, cos2, hamming, self.wholeEcho)
-                x = np.repeat([x], len(self.data1D[0]), axis=0)
-        else:
-            x = func.apodize(t, shift, self.sw, len(self.data1D[0][0]), lor, gauss, cos2, hamming, self.wholeEcho)
-            x = np.repeat([x], len(self.data1D[0]), axis=0)
-        y = copy.copy(self.data1D)
-        self.ax.cla()
-        if self.spec == 1:
-            y = self.fourierLocal(y, 1,self.axes)
-            for index in range(len(y)):
-                y[index] = y[index] * x
-            y = self.fourierLocal(y, 0,self.axes)
-        else:
-            for index in range(len(y)):
-                y[index] = y[index] * x
-        if self.spec == 0:
-            if self.viewSettings["plotType"] == 0:
-                scale = np.max(np.real(self.data1D[hyperView]))
-            elif self.viewSettings["plotType"] == 1:
-                scale = np.max(np.imag(self.data1D[hyperView]))
-            elif self.viewSettings["plotType"] == 2:
-                scale = np.max((np.max(np.real(self.data1D[hyperView])), np.max(np.imag(self.data1D[hyperView]))))
-            elif self.viewSettings["plotType"] == 3:
-                scale = np.max(np.abs(self.data1D[hyperView]))
-            self.showFid(y[hyperView], [t], x * scale, ['g'], old=True)
-        else:
-            self.showFid(y[hyperView])
+        self.plotReset(self.X_RESIZE, self.Y_RESIZE)
 
     def setSpacing(self, spacing):
         self.viewSettings["spacing"] = spacing
-        self.plotReset(False, True)
         self.showFid()
+        self.plotReset(self.X_RESIZE, self.Y_RESIZE)
 
     def resetSpacing(self):
         hyperView = 0
-        difference = np.diff(self.data1D[hyperView], axis=0)
+        difference = np.diff(self.data1D.data[hyperView], axis=0)
         if difference.size == 0:
             self.viewSettings["spacing"] = 0
         else:
             if self.viewSettings["plotType"] == 0:
                 difference = np.min(np.real(difference))
-                amp = np.max(np.real(self.data1D[hyperView])) - np.min(np.real(self.data1D[hyperView]))
+                amp = np.max(np.real(self.data1D.data[hyperView])) - np.min(np.real(self.data1D.data[hyperView]))
             elif self.viewSettings["plotType"] == 1:
                 difference = np.min(np.imag(difference))
-                amp = np.max(np.imag(self.data1D[hyperView])) - np.min(np.imag(self.data1D[hyperView]))
+                amp = np.max(np.imag(self.data1D.data[hyperView])) - np.min(np.imag(self.data1D.data[hyperView]))
             elif self.viewSettings["plotType"] == 2:
                 difference = np.min((np.real(difference), np.imag(difference)))
-                amp = np.max((np.real(self.data1D[hyperView]), np.imag(self.data1D[hyperView]))) - np.min((np.real(self.data1D[hyperView]), np.imag(self.data1D[hyperView])))
+                amp = np.max((np.real(self.data1D.data[hyperView]), np.imag(self.data1D.data[hyperView]))) - np.min((np.real(self.data1D.data[hyperView]), np.imag(self.data1D.data[hyperView])))
             elif self.viewSettings["plotType"] == 3:
                 difference = np.min(np.abs(difference))
-                amp = np.max(np.abs(self.data1D[hyperView])) - np.min(np.abs(self.data1D[hyperView]))
+                amp = np.max(np.abs(self.data1D.data[hyperView])) - np.min(np.abs(self.data1D.data[hyperView]))
             self.viewSettings["spacing"] = np.abs(difference) + 0.1 * amp
 
     def altScroll(self, event):
@@ -3704,47 +3533,58 @@ class CurrentStacked(Current1D):
         self.root.sideframe.scrollSpacing(self.viewSettings["spacing"])
         self.showFid()
 
-    def showFid(self, tmpdata=None, extraX=None, extraY=None, extraColor=None, old=False):  # display the 1D data
+    def showFid(self, oldData=None, extraX=None, extraY=None, extraColor=None):  # display the 1D data
         hyperView = 0
         self.peakPickReset()
-        if tmpdata is None:
-            tmpdata = self.data1D[hyperView]
+        tmpdata = self.data1D.data[hyperView]
         self.ax.cla()
-        axMult = self.getAxMult(self.spec, self.viewSettings["axType"], self.viewSettings["ppm"], self.freq, self.ref)
-        self.line_xdata = self.xax * axMult
-        if self.single:
+        axMult = self.getAxMult(self.spec(), self.viewSettings["axType"], self.viewSettings["ppm"], self.freq(), self.ref())
+        tmp_line_xdata = self.xax() * axMult
+        self.line_xdata = []
+        self.line_ydata = []
+        self.line_xdata_extra = []
+        self.line_ydata_extra = []
+        if self.shape() == 1:
             marker = 'o'
             linestyle = 'none'
         else:
-            marker = ''
-            linestyle = '-'
-        if old:
-            for num in range(len(self.data1D[0])):
+            marker = self.MARKER
+            linestyle = self.LINESTYLE
+        if oldData is not None:
+            for num in range(len(oldData[hyperView])):
                 if (self.viewSettings["plotType"] == 0):
-                    tmpData = np.real(self.data1D[hyperView][num])
+                    tmp = np.real(oldData[hyperView][num])
                 elif(self.viewSettings["plotType"] == 1):
-                    tmpData = np.imag(self.data1D[hyperView][num])
+                    tmp = np.imag(oldData[hyperView][num])
                 elif(self.viewSettings["plotType"] == 2):
-                    tmpData = np.real(self.data1D[hyperView][num])
+                    tmp = np.real(oldData[hyperView][num])
                 elif(self.viewSettings["plotType"] == 3):
-                    tmpData = np.abs(self.data1D[hyperView][num])
-                self.ax.plot(self.line_xdata, num * self.viewSettings["spacing"] + tmpData, marker=marker, linestyle=linestyle, c='k', alpha=0.2, linewidth=self.viewSettings["linewidth"], label=self.data.name + '_old', picker=True)
+                    tmp = np.abs(oldData[hyperView][num])
+                self.line_xdata_extra.append(tmp_line_xdata)
+                self.line_ydata_extra.append(num * self.viewSettings["spacing"] + tmp)
+                self.ax.plot(self.line_xdata_extra[-1], self.line_ydata_extra[-1], marker=marker, linestyle=linestyle, c='k', alpha=0.2, linewidth=self.viewSettings["linewidth"], label=self.data.name + '_old', picker=True)
         if (extraX is not None):
+            tmpx = extraX[0] * axMult
             for num in range(len(extraY)):
-                self.ax.plot(extraX[0] * axMult, num * self.viewSettings["spacing"] + extraY[num], marker=marker, linestyle=linestyle, linewidth=self.viewSettings["linewidth"], c=extraColor[0], picker=True)
+                self.line_xdata_extra.append(tmpx)
+                self.line_ydata_extra.append(num * self.viewSettings["spacing"] + extraY[num])
+                self.ax.plot(self.line_xdata_extra[-1], self.line_ydata_extra[-1], marker=marker, linestyle=linestyle, linewidth=self.viewSettings["linewidth"], c=extraColor[0], picker=True)
         if (self.viewSettings["plotType"] == 0):
             tmpdata = np.real(tmpdata)
         elif (self.viewSettings["plotType"] == 1):
             tmpdata = np.imag(tmpdata)
         elif(self.viewSettings["plotType"] == 3):
             tmpdata = np.abs(tmpdata)
-        self.line_ydata = np.real(tmpdata[0])
         for num in range(len(tmpdata)):
             if (self.viewSettings["plotType"] == 2):
-                self.ax.plot(self.line_xdata, num * self.viewSettings["spacing"] + np.imag(tmpdata[num]), marker=marker, linestyle=linestyle, c='r', linewidth=self.viewSettings["linewidth"], label=self.data.name + '_imag', picker=True)
-            self.ax.plot(self.line_xdata, num * self.viewSettings["spacing"] + np.real(tmpdata[num]), marker=marker, linestyle=linestyle, c=self.viewSettings["color"], linewidth=self.viewSettings["linewidth"], label=self.data.name, picker=True)
-        self.ax.set_xlabel(self.getLabel(self.spec, self.viewSettings["axType"], self.viewSettings["ppm"]))
-        if self.spec > 0:
+                self.line_xdata.append(tmp_line_xdata)
+                self.line_ydata.append(num * self.viewSettings["spacing"] + np.imag(tmpdata[num]))
+                self.ax.plot(self.line_xdata[-1], self.line_ydata[-1], marker=marker, linestyle=linestyle, c='r', linewidth=self.viewSettings["linewidth"], label=self.data.name + '_imag', picker=True)
+            self.line_xdata.append(tmp_line_xdata)
+            self.line_ydata.append(num * self.viewSettings["spacing"] + np.real(tmpdata[num]))
+            self.ax.plot(self.line_xdata[-1], self.line_ydata[-1], marker=marker, linestyle=linestyle, c=self.viewSettings["color"], linewidth=self.viewSettings["linewidth"], label=self.data.name, picker=True)
+        self.ax.set_xlabel(self.getLabel(self.spec(), self.viewSettings["axType"], self.viewSettings["ppm"]))
+        if self.spec() > 0:
             self.ax.set_xlim(self.xmaxlim, self.xminlim)
         else:
             self.ax.set_xlim(self.xminlim, self.xmaxlim)
@@ -3755,45 +3595,10 @@ class CurrentStacked(Current1D):
         self.ax.yaxis.grid(self.viewSettings["grids"][1])
         self.canvas.draw()
 
-    def plotReset(self, xReset=True, yReset=True):  # set the plot limits to min and max values
-        hyperView = 0
-        self.ax = self.fig.gca()
-        incr = np.repeat(np.arange(len(self.data1D[0])).reshape((len(self.data1D[0]), 1)), len(self.data1D[0][0]), axis=1) * self.viewSettings["spacing"]
-        if self.viewSettings["plotType"] == 0:
-            miny = np.min(np.real(self.data1D[hyperView]) + incr)
-            maxy = np.max(np.real(self.data1D[hyperView]) + incr)
-        elif self.viewSettings["plotType"] == 1:
-            miny = np.min(np.imag(self.data1D[hyperView]) + incr)
-            maxy = np.max(np.imag(self.data1D[hyperView]) + incr)
-        elif self.viewSettings["plotType"] == 2:
-            miny = np.min((np.min(np.real(self.data1D[hyperView]) + incr), np.min(np.imag(self.data1D[hyperView]) + incr)))
-            maxy = np.max((np.max(np.real(self.data1D[hyperView]) + incr), np.max(np.imag(self.data1D[hyperView]) + incr)))
-        elif self.viewSettings["plotType"] == 3:
-            miny = np.min(np.abs(self.data1D[hyperView]) + incr)
-            maxy = np.max(np.abs(self.data1D[hyperView]) + incr)
-        else:
-            miny = -1
-            maxy = 1
-        differ = 0.05 * (maxy - miny)  # amount to add to show all datapoints (10%)
-        if yReset:
-            self.yminlim = miny - differ
-            self.ymaxlim = maxy + differ
-        if self.ref == 0.0:
-            self.viewSettings["ppm"] = False
-        axMult = self.getAxMult(self.spec, self.viewSettings["axType"], self.viewSettings["ppm"], self.freq, self.ref)
-        if xReset:
-            self.xminlim = min(self.xax * axMult)
-            self.xmaxlim = max(self.xax * axMult)
-        if self.spec > 0:
-            self.ax.set_xlim(self.xmaxlim, self.xminlim)
-        else:
-            self.ax.set_xlim(self.xminlim, self.xmaxlim)
-        self.ax.set_ylim(self.yminlim, self.ymaxlim)
-
 #########################################################################################################
 # the class from which the arrayed data is displayed, the operations which only edit the content of this class are for previewing
 
-class CurrentArrayed(Current1D):
+class CurrentArrayed(CurrentStacked):
 
     X_RESIZE = True
     Y_RESIZE = False
@@ -3805,265 +3610,107 @@ class CurrentArrayed(Current1D):
                 self.zmaxlim = duplicateCurrent.zmaxlim
             else:
                 # The z-axes limits are in xax units unlike the x-axes and y-axes limits
-                axMult = self.getAxMult(duplicateCurrent.spec,
+                axMult = self.getAxMult(duplicateCurrent.spec(),
                                         duplicateCurrent.viewSettings["axType"],
                                         duplicateCurrent.viewSettings["ppm"],
-                                        duplicateCurrent.freq,
-                                        duplicateCurrent.ref)
+                                        duplicateCurrent.freq(),
+                                        duplicateCurrent.ref())
                 self.zminlim = (duplicateCurrent.xminlim) / axMult
                 self.zmaxlim = (duplicateCurrent.xmaxlim) / axMult
         super(CurrentArrayed, self).__init__(root, fig, canvas, data, duplicateCurrent)
 
     def startUp(self, xReset=True, yReset=True):
         self.resetSpacing(False)
-        self.plotReset(xReset, yReset)
         self.showFid()
+        self.plotReset(xReset, yReset)
 
     def copyCurrent(self, root, fig, canvas, data):
         return CurrentArrayed(root, fig, canvas, data, self)
 
-    def upd(self):  # get new data from the data instance
-        if self.data.ndim() < 2:
-            self.root.rescue()
-            return False
-        if (len(self.locList) + 2) != self.data.ndim():
-            self.resetLocList()
-        try:
-            updateVar = self.data.getBlock(self.axes, self.axes2, self.locList, self.viewSettings["stackBegin"], self.viewSettings["stackEnd"], self.viewSettings["stackStep"])
-            if updateVar is None:
-                self.root.rescue()
-                return False
-        except Exception:
-            self.resetLocList()
-            updateVar = self.data.getBlock(self.axes, self.axes2, self.locList, self.viewSettings["stackBegin"], self.viewSettings["stackEnd"], self.viewSettings["stackStep"])
-        self.data1D = updateVar[0]
-        self.freq = updateVar[1]
-        self.freq2 = updateVar[2]
-        self.sw = updateVar[3]
-        self.sw2 = updateVar[4]
-        self.spec = updateVar[5]
-        self.spec2 = updateVar[6]
-        self.wholeEcho = updateVar[7]
-        self.wholeEcho2 = updateVar[8]
-        self.xax = updateVar[9]
-        self.xax2 = updateVar[10]
-        self.ref = updateVar[11]
-        self.ref2 = updateVar[12]
-        if self.ref is None:
-            self.ref = self.freq
-        if self.ref2 is None:
-            self.ref2 = self.freq2
-        self.single = self.data1D[0].shape[-1] == 1
-        return True
-
-    def setBlock(self, axes, axes2, locList, stackBegin=None, stackEnd=None, stackStep=None):  # change the slice
-        axesSame = True
-        if (self.axes != axes) or (self.axes2 != axes2):
-            axesSame = False
-        self.axes = axes
-        self.axes2 = axes2
-        self.viewSettings["stackBegin"] = stackBegin
-        self.viewSettings["stackEnd"] = stackEnd
-        self.viewSettings["stackStep"] = stackStep
-        if self.data.shape()[self.axes2] > 100:
-            self.viewSettings["stackStep"] = 1 + int(self.data.shape()[self.axes2]) / 100
-        self.locList = locList
-        self.upd()
-        if not axesSame:
-            self.resetSpacing()
-            self.plotReset()
-        self.showFid()
-
-    def resetLocList(self):
-        self.locList = [0] * (len(self.data.shape()) - 2)
-
     def setAxType2(self, val, update = True):
-        oldAxMult = self.getAxMult(self.spec2, self.viewSettings["axType2"], self.viewSettings["ppm2"], self.freq2, self.ref2)
+        oldAxMult = self.getAxMult(self.spec(-2), self.viewSettings["axType2"], self.viewSettings["ppm2"], self.freq(-2), self.ref(-2))
         if val == 3:
             self.viewSettings["ppm2"] = True
         else:
             self.viewSettings["ppm2"] = False
             self.viewSettings["axType2"] = val
-        newAxMult = self.getAxMult(self.spec2, self.viewSettings["axType2"], self.viewSettings["ppm2"], self.freq2, self.ref2)
+        newAxMult = self.getAxMult(self.spec(-2), self.viewSettings["axType2"], self.viewSettings["ppm2"], self.freq(-2), self.ref(-2))
         if update:
             self.showFid()
 
-    def stackSelect(self, stackBegin, stackEnd, stackStep):
-        self.viewSettings["stackBegin"] = stackBegin
-        self.viewSettings["stackEnd"] = stackEnd
-        self.viewSettings["stackStep"] = stackStep
-        self.upd()
-        self.plotReset(True, False)
-        self.showFid()
-
-    def apodPreview(self, lor=None, gauss=None, cos2=None, hamming=None, shift=0.0, shifting=0.0, shiftingAxes=None):  # display the 1D data including the apodization function
-        hyperView = 0
-        t = np.arange(0, len(self.data1D[0][0])) / (self.sw)
-        if shiftingAxes is not None:
-            if shiftingAxes == self.axes:
-                self.dispMsg('shiftingAxes cannot be equal to axes')
-            elif shiftingAxes == self.axes2:
-                ar = np.arange(self.data.shape()[self.axes2])[slice(self.viewSettings["stackBegin"], self.viewSettings["stackEnd"], self.viewSettings["stackStep"])]
-                x = np.ones((len(ar), len(self.data1D[0][0])))
-                for i in range(len(ar)):
-                    shift1 = shift + shifting * ar[i] / self.data.sw[shiftingAxes]
-                    x2 = func.apodize(t, shift1, self.sw, len(self.data1D[0][0]), lor, gauss, cos2, hamming, self.wholeEcho)
-                    x[i] = x2
-            else:
-                if (shiftingAxes < self.axes) and (shiftingAxes < self.axes2):
-                    shift += shifting * self.locList[shiftingAxes] * self.data.shape()[shiftingAxes] / self.data.sw[shiftingAxes]
-                elif (shiftingAxes > self.axes) and (shiftingAxes > self.axes2):
-                    shift += shifting * self.locList[shiftingAxes - 2] * self.data.shape()[shiftingAxes] / self.data.sw[shiftingAxes]
-                else:
-                    shift += shifting * self.locList[shiftingAxes - 1] * self.data.shape()[shiftingAxes] / self.data.sw[shiftingAxes]
-                x = func.apodize(t, shift, self.sw, len(self.data1D[0][0]), lor, gauss, cos2, hamming, self.wholeEcho)
-                x = np.repeat([x], len(self.data1D[0]), axis=0)
-        else:
-            x = func.apodize(t, shift, self.sw, len(self.data1D[0][0]), lor, gauss, cos2, hamming, self.wholeEcho)
-            x = np.repeat([x], len(self.data1D[0]), axis=0)
-        y = copy.copy(self.data1D)
-        self.ax.cla()
-        if self.spec == 1:
-            y = self.fourierLocal(y, 1,self.axes)
-            for index in range(len(y)):
-                y[index] = y[index] * x
-            y = self.fourierLocal(y, 0, self.axes)
-        else:
-            for index in range(len(y)):
-                y[index] = y[index] * x
-        if self.spec == 0:
-            if self.viewSettings["plotType"] == 0:
-                tmpData = np.max(np.real(self.data1D[hyperView]))
-            elif self.viewSettings["plotType"] == 1:
-                tmpData = np.max(np.imag(self.data1D[hyperView]))
-            elif self.viewSettings["plotType"] == 2:
-                tmpData = np.max((np.max(np.real(self.data1D[hyperView])), np.max(np.imag(self.data1D[hyperView]))))
-            elif self.viewSettings["plotType"] == 3:
-                tmpData = np.max(np.abs(self.data1D[hyperView]))
-            self.showFid(y[hyperView], [t], x * tmpData, ['g'], old=True)
-        else:
-            self.showFid(y[hyperView])
-   
-    def setSpacing(self, spacing):
-        self.viewSettings["spacing"] = spacing
-        self.plotReset(True, False)
-        self.showFid()
-
     def resetSpacing(self, zlims=True):
         if zlims:
-            self.zminlim = min(self.xax)
-            self.zmaxlim = max(self.xax)
-        xaxZlims = (self.xax > self.zminlim) & (self.xax < self.zmaxlim)
-        self.viewSettings["spacing"] = (self.xax[xaxZlims][-1] - self.xax[xaxZlims][0]) * 1.1
+            self.zminlim = min(self.xax())
+            self.zmaxlim = max(self.xax())
+        xaxZlims = (self.xax() > self.zminlim) & (self.xax() < self.zmaxlim)
+        self.viewSettings["spacing"] = (self.xax()[xaxZlims][-1] - self.xax()[xaxZlims][0]) * 1.1
 
-    def altScroll(self, event):
-        self.viewSettings["spacing"] = self.viewSettings["spacing"] * 1.1**event.step
-        self.root.sideframe.scrollSpacing(self.viewSettings["spacing"])
-        self.showFid()
-
-    def altReset(self):
-        self.resetSpacing()
-        self.root.sideframe.scrollSpacing(self.viewSettings["spacing"])
-        self.showFid()
-
-    def showFid(self, tmpdata=None, extraX=None, extraY=None, extraColor=None, old=False):  # display the 1D data
+    def showFid(self, oldData=None, extraX=None, extraY=None, extraColor=None):  # display the 1D data
         hyperView = 0
         self.peakPickReset()
-        if tmpdata is None:
-            tmpdata = self.data1D[hyperView]
+        tmpdata = self.data1D.data[hyperView]
         self.ax.cla()
-        if self.spec > 0:
+        if self.spec() > 0:
             direc = slice(None, None, -1)
         else:
             direc = slice(None, None, 1)
-        xaxZlims = (self.xax > self.zminlim) & (self.xax < self.zmaxlim)
-        axMult = self.getAxMult(self.spec, self.viewSettings["axType"], self.viewSettings["ppm"], self.freq, self.ref)
-        axMult2 = self.getAxMult(self.spec2, self.viewSettings["axType2"], self.viewSettings["ppm2"], self.freq2, self.ref2)
-        if self.single:
+        xaxZlims = (self.xax() > self.zminlim) & (self.xax() < self.zmaxlim)
+        axMult = self.getAxMult(self.spec(), self.viewSettings["axType"], self.viewSettings["ppm"], self.freq(), self.ref())
+        axMult2 = self.getAxMult(self.spec(-2), self.viewSettings["axType2"], self.viewSettings["ppm2"], self.freq(-2), self.ref(-2))
+        self.line_xdata = []
+        self.line_ydata = []
+        self.line_xdata_extra = []
+        self.line_ydata_extra = []
+        if self.shape() == 1:
             marker = 'o'
             linestyle = 'none'
         else:
-            marker = ''
-            linestyle = '-'
-        if old:
-            if (self.viewSettings["plotType"] == 0):
-                oldData = np.real(self.data1D[hyperView])
-            elif(self.viewSettings["plotType"] == 1):
-                oldData = np.imag(self.data1D[hyperView])
-            elif(self.viewSettings["plotType"] == 2):
-                oldData = np.real(self.data1D[hyperView])
-            elif(self.viewSettings["plotType"] == 3):
-                oldData = np.abs(self.data1D[hyperView])
-            for num in range(len(self.data1D[hyperView])):
-                self.ax.plot((num * self.viewSettings["spacing"] + self.xax[xaxZlims]) * axMult, oldData[num][xaxZlims][direc], marker=marker, linestyle=linestyle, c='k', alpha=0.2, linewidth=self.viewSettings["linewidth"], label=self.data.name + '_old', picker=True)
+            marker = self.MARKER
+            linestyle = self.LINESTYLE
+        if oldData is not None:
+            for num in range(len(oldData[hyperView])):
+                if (self.viewSettings["plotType"] == 0):
+                    tmp = np.real(oldData[hyperView][num])
+                elif(self.viewSettings["plotType"] == 1):
+                    tmp = np.imag(oldData[hyperView][num])
+                elif(self.viewSettings["plotType"] == 2):
+                    tmp = np.real(oldData[hyperView][num])
+                elif(self.viewSettings["plotType"] == 3):
+                    tmp = np.abs(oldData[hyperView][num])
+                self.line_xdata_extra.append((num * self.viewSettings["spacing"] + self.xax()[xaxZlims]) * axMult)
+                self.line_ydata_extra.append(tmp[xaxZlims][direc])
+                self.ax.plot(self.line_xdata_extra[-1], self.line_ydata_extra[-1], marker=marker, linestyle=linestyle, c='k', alpha=0.2, linewidth=self.viewSettings["linewidth"], label=self.data.name + '_old', picker=True)
         if (extraX is not None):
             extraZlims = (extraX[0] > self.zminlim) & (extraX[0] < self.zmaxlim)
             for num in range(len(extraY)):
-                self.ax.plot((num * self.viewSettings["spacing"] + extraX[0][extraZlims]) * axMult, extraY[num][extraZlims][direc], marker=marker, linestyle=linestyle, linewidth=self.viewSettings["linewidth"], c=extraColor[0], picker=True)
+                self.line_xdata_extra.append((num * self.viewSettings["spacing"] + extraX[0][extraZlims]) * axMult)
+                self.line_ydata_extra.append(extraY[num][extraZlims][direc])
+                self.ax.plot(self.line_xdata_extra[-1], self.line_ydata_extra[-1], marker=marker, linestyle=linestyle, linewidth=self.viewSettings["linewidth"], c=extraColor[0], picker=True)
         if (self.viewSettings["plotType"] == 0):
             tmpdata = np.real(tmpdata)
         elif(self.viewSettings["plotType"] == 1):
             tmpdata = np.imag(tmpdata)
         elif(self.viewSettings["plotType"] == 3):
             tmpdata = np.abs(tmpdata)
-        self.line_xdata = []
-        self.line_ydata = []
         ticksPos = []
         for num in range(len(tmpdata)):
             if (self.viewSettings["plotType"] == 2):
-                self.ax.plot((num * self.viewSettings["spacing"] + self.xax[xaxZlims]) * axMult, np.imag(tmpdata[num][xaxZlims])[direc], marker=marker, linestyle=linestyle, c='r', linewidth=self.viewSettings["linewidth"], label=self.data.name + '_imag', picker=True)
-            self.line_xdata = np.append(self.line_xdata, (num * self.viewSettings["spacing"] + self.xax[xaxZlims]) * axMult)
-            self.line_ydata = np.append(self.line_ydata, np.real(tmpdata[num][xaxZlims])[direc])
-            self.ax.plot((num * self.viewSettings["spacing"] + self.xax[xaxZlims]) * axMult, np.real(tmpdata[num][xaxZlims])[direc], marker=marker, linestyle=linestyle, c=self.viewSettings["color"], linewidth=self.viewSettings["linewidth"], label=self.data.name, picker=True)
-            pos = (num * self.viewSettings["spacing"] + 0.5 * (self.xax[xaxZlims][-1] + self.xax[xaxZlims][0])) * axMult
+                self.line_xdata.append((num * self.viewSettings["spacing"] + self.xax()[xaxZlims]) * axMult)
+                self.line_ydata.append(np.imag(tmpdata[num][xaxZlims])[direc])
+                self.ax.plot(self.line_xdata[-1], self.line_ydata[-1], marker=marker, linestyle=linestyle, c='r', linewidth=self.viewSettings["linewidth"], label=self.data.name + '_imag', picker=True)
+            self.line_xdata.append((num * self.viewSettings["spacing"] + self.xax()[xaxZlims]) * axMult)
+            self.line_ydata.append(np.real(tmpdata[num][xaxZlims])[direc])
+            self.ax.plot(self.line_xdata[-1], self.line_ydata[-1], marker=marker, linestyle=linestyle, c=self.viewSettings["color"], linewidth=self.viewSettings["linewidth"], label=self.data.name, picker=True)
+            pos = (num * self.viewSettings["spacing"] + 0.5 * (self.xax()[xaxZlims][-1] + self.xax()[xaxZlims][0])) * axMult
             ticksPos.append(pos)
         self.ax.set_xticks(ticksPos)
-        self.ax.set_xticklabels([('%#.3g') % x for x in self.xax2 * axMult2])
+        self.ax.set_xticklabels([('%#.3g') % x for x in self.xax(-2) * axMult2])
         self.ax.set_xlim(self.xminlim, self.xmaxlim)
         self.ax.set_ylim(self.yminlim, self.ymaxlim)
         self.ax.get_yaxis().get_major_formatter().set_powerlimits((-4, 4))
         self.ax.xaxis.grid(self.viewSettings["grids"][0])
         self.ax.yaxis.grid(self.viewSettings["grids"][1])
         self.canvas.draw()
-
-    def plotReset(self, xReset=True, yReset=True):  # set the plot limits to min and max values
-        hyperView = 0
-        if self.viewSettings["plotType"] == 0:
-            miny = np.min(np.real(self.data1D[hyperView]))
-            maxy = np.max(np.real(self.data1D[hyperView]))
-        elif self.viewSettings["plotType"] == 1:
-            miny = np.min(np.imag(self.data1D[hyperView]))
-            maxy = np.max(np.imag(self.data1D[hyperView]))
-        elif self.viewSettings["plotType"] == 2:
-            miny = np.min((np.min(np.real(self.data1D[hyperView])), np.min(np.imag(self.data1D[hyperView]))))
-            maxy = np.max((np.max(np.real(self.data1D[hyperView])), np.max(np.imag(self.data1D[hyperView]))))
-        elif self.viewSettings["plotType"] == 3:
-            miny = np.min(np.abs(self.data1D[hyperView]))
-            maxy = np.max(np.abs(self.data1D[hyperView]))
-        else:
-            miny = -1
-            maxy = 1
-        differ = 0.05 * (maxy - miny)  # amount to add to show all datapoints (10%)
-        if yReset:
-            self.yminlim = miny - differ
-            self.ymaxlim = maxy + differ
-        if xReset:
-            xaxZlims = (self.xax > self.zminlim) & (self.xax < self.zmaxlim)
-            if self.ref == 0.0:
-                self.viewSettings["ppm"] = False
-            axMult = self.getAxMult(self.spec, self.viewSettings["axType"], self.viewSettings["ppm"], self.freq, self.ref)
-            self.xminlim = min(self.xax[xaxZlims] * axMult)
-            self.xmaxlim = (max(self.xax[xaxZlims]) + (len(self.data1D[0]) - 1) * self.viewSettings["spacing"]) * axMult
-        self.ax.set_xlim(self.xminlim, self.xmaxlim)
-        self.ax.set_ylim(self.yminlim, self.ymaxlim)
-  
-    def stackSelect(self, stackBegin, stackEnd, stackStep):
-        self.viewSettings["stackBegin"] = stackBegin
-        self.viewSettings["stackEnd"] = stackEnd
-        self.viewSettings["stackStep"] = stackStep
-        self.upd()
-        self.plotReset(True, False)
-        self.showFid()
 
 ######################################################################################################
 
@@ -4092,11 +3739,15 @@ def add_diagonal(axes, mult, *line_args, **line_kwargs):
 # the class from which the contour data is displayed, the operations which only edit the content of this class are for previewing
 
 
-class CurrentContour(Current1D):
+class CurrentContour(CurrentStacked):
 
     X_RESIZE = False
     Y_RESIZE = True
 
+    def startUp(self, xReset=True, yReset=True):
+        self.showFid()
+        self.plotReset(xReset, yReset)
+    
     def altScroll(self, event):  # Shift scroll scrolls contour limits
         minLevels = self.viewSettings["minLevels"] / 1.1**event.step
         if minLevels > 1:
@@ -4111,40 +3762,6 @@ class CurrentContour(Current1D):
     def copyCurrent(self, root, fig, canvas, data):
         return CurrentContour(root, fig, canvas, data, self)
 
-    def upd(self):  # get new data from the data instance
-        if self.data.ndim() < 2:
-            self.root.rescue()
-            return False
-        if (len(self.locList) + 2) != self.data.ndim():
-            self.resetLocList()
-        try:
-            updateVar = self.data.getBlock(self.axes, self.axes2, self.locList)
-            if updateVar is None:
-                self.root.rescue()
-                return False
-        except Exception:
-            self.resetLocList()
-            updateVar = self.data.getBlock(self.axes, self.axes2, self.locList)
-        self.data1D = updateVar[0]
-        self.freq = updateVar[1]
-        self.freq2 = updateVar[2]
-        self.sw = updateVar[3]
-        self.sw2 = updateVar[4]
-        self.spec = updateVar[5]
-        self.spec2 = updateVar[6]
-        self.wholeEcho = updateVar[7]
-        self.wholeEcho2 = updateVar[8]
-        self.xax = updateVar[9]
-        self.xax2 = updateVar[10]
-        self.ref = updateVar[11]
-        self.ref2 = updateVar[12]
-        if self.ref is None:
-            self.ref = self.freq
-        if self.ref2 is None:
-            self.ref2 = self.freq2
-        self.single = self.data1D[0].shape[-1] == 1
-        return True
-
     def setBlock(self, axes, axes2, locList):  # change the slice
         axesSame = True
         if (self.axes != axes) or (self.axes2 != axes2):
@@ -4153,9 +3770,9 @@ class CurrentContour(Current1D):
         self.axes2 = axes2
         self.locList = locList
         self.upd()
+        self.showFid()
         if not axesSame:
             self.plotReset()
-        self.showFid()
 
     def setLevels(self, numLevels, maxLevels, minLevels, limitType, contourSign, contourType, multiValue):
         self.viewSettings["numLevels"] = numLevels
@@ -4173,36 +3790,19 @@ class CurrentContour(Current1D):
 
     def setProjPos(self, pos):
         self.viewSettings["projPos"] = pos
-
-    def resetLocList(self):
-        self.locList = [0] * (len(self.data.shape()) - 2)
-
-    
-    def setAxType(self, val, update = True):
-        oldAxMult = self.getAxMult(self.spec, self.viewSettings["axType"], self.viewSettings["ppm"], self.freq, self.ref)
-        if val == 3:
-            self.viewSettings["ppm"] = True
-        else:
-            self.viewSettings["ppm"] = False
-            self.viewSettings["axType"] = val
-        newAxMult = self.getAxMult(self.spec, self.viewSettings["axType"], self.viewSettings["ppm"], self.freq, self.ref)
-        self.xminlim = self.xminlim * newAxMult / oldAxMult
-        self.xmaxlim = self.xmaxlim * newAxMult / oldAxMult
-        if update:
-            self.updateAxes(oldAxMult,newAxMult,0)
     
     def setAxType2(self, val, update = True):
-        oldAxMult = self.getAxMult(self.spec2, self.viewSettings["axType2"], self.viewSettings["ppm2"], self.freq2, self.ref2)
+        oldAxMult = self.getAxMult(self.spec(-2), self.viewSettings["axType2"], self.viewSettings["ppm2"], self.freq(-2), self.ref(-2))
         if val == 3:
             self.viewSettings["ppm2"] = True
         else:
             self.viewSettings["ppm2"] = False
             self.viewSettings["axType2"] = val
-        newAxMult = self.getAxMult(self.spec2, self.viewSettings["axType2"], self.viewSettings["ppm2"], self.freq2, self.ref2)
+        newAxMult = self.getAxMult(self.spec(-2), self.viewSettings["axType2"], self.viewSettings["ppm2"], self.freq(-2), self.ref(-2))
         self.yminlim = self.yminlim * newAxMult / oldAxMult
         self.ymaxlim = self.ymaxlim * newAxMult / oldAxMult
         if update:
-            self.updateAxes(oldAxMult,newAxMult,1)
+            self.updateAxes(oldAxMult, newAxMult, 1)
 
     def setProjType(self, val, direc):
         if direc == 1:
@@ -4213,46 +3813,9 @@ class CurrentContour(Current1D):
     def setProjTraces(self, val, direc):
         self.viewSettings["projPos"][direc] = val
 
-    def apodPreview(self, lor=None, gauss=None, cos2=None, hamming=None, shift=0.0, shifting=0.0, shiftingAxes=None):  # display the 1D data including the apodization function
-        hyperView = 0
-        t = np.arange(0, len(self.data1D[0][0])) / (self.sw)
-        if shiftingAxes is not None:
-            if shiftingAxes == self.axes:
-                self.dispMsg('shiftingAxes cannot be equal to axes')
-            elif shiftingAxes == self.axes2:
-                ar = np.arange(self.data.shape()[self.axes2])
-                x = np.ones((len(ar), len(self.data1D[0][0])))
-                for i in range(len(ar)):
-                    shift1 = shift + shifting * ar[i] / self.data.sw[shiftingAxes]
-                    x2 = func.apodize(t, shift1, self.sw, len(self.data1D[0][0]), lor, gauss, cos2, hamming, self.wholeEcho)
-                    x[i] = x2
-            else:
-                if (shiftingAxes < self.axes) and (shiftingAxes < self.axes2):
-                    shift += shifting * self.locList[shiftingAxes] * self.data.shape()[shiftingAxes] / self.data.sw[shiftingAxes]
-                elif (shiftingAxes > self.axes) and (shiftingAxes > self.axes2):
-                    shift += shifting * self.locList[shiftingAxes - 2] * self.data.shape()[shiftingAxes] / self.data.sw[shiftingAxes]
-                else:
-                    shift += shifting * self.locList[shiftingAxes - 1] * self.data.shape()[shiftingAxes] / self.data.sw[shiftingAxes]
-                x = func.apodize(t, shift, self.sw, len(self.data1D[0][0]), lor, gauss, cos2, hamming, self.wholeEcho)
-                x = np.repeat([x], len(self.data1D), axis=0)
-        else:
-            x = func.apodize(t, shift, self.sw, len(self.data1D[0][0]), lor, gauss, cos2, hamming, self.wholeEcho)
-            x = np.repeat([x], len(self.data1D[0]), axis=0)
-        y = copy.copy(self.data1D)
-        self.ax.cla()
-        if self.spec == 1:
-            y = self.fourierLocal(y, 1, self.axes)
-            for index in range(len(y)):
-                y[index] = y[index] * x
-            y = self.fourierLocal(y, 0, self.axes)
-        else:
-            for index in range(len(y)):
-                y[index] = y[index] * x
-        self.showFid(y[hyperView])
-
     def updateAxes(self,oldAx, newAx, axis):
         scale = newAx / oldAx
-        #Scale the path vertices, so no new contours need to be calculated
+        # Scale the path vertices, so no new contours need to be calculated
         cols = self.ax.collections
         for col in cols:
             paths = col.get_paths()
@@ -4260,67 +3823,66 @@ class CurrentContour(Current1D):
                 tmp = path.vertices
                 tmp[:,axis] = tmp[:,axis] * scale
                 path.vertices = tmp
-        #self.showFid(makeContours = False, clearCntr = False)
-        #Scale the projections
+        # Scale the projections
         if axis == 1: #Yaxis
             line = self.y_ax.lines
             line[0].set_ydata(line[0].get_ydata() * scale)
         else:
             line = self.x_ax.lines
             line[0].set_xdata(line[0].get_xdata() * scale)
-        #Set the labels
-        self.ax.set_xlabel(self.getLabel(self.spec, self.viewSettings["axType"], self.viewSettings["ppm"]))
-        self.ax.set_ylabel(self.getLabel(self.spec2, self.viewSettings["axType2"], self.viewSettings["ppm2"]))
-        #Set the zoom
+        # Set the labels
+        self.ax.set_xlabel(self.getLabel(self.spec(), self.viewSettings["axType"], self.viewSettings["ppm"]))
+        self.ax.set_ylabel(self.getLabel(self.spec(-2), self.viewSettings["axType2"], self.viewSettings["ppm2"]))
+        # Set the zoom
         if axis == 1:
             ylim = self.ax.get_ylim()
             self.ax.set_ylim(ylim[0] * scale, ylim[1] * scale)
-            self.y *= scale
+            self.line_ydata *= scale
         else:
             xlim = self.ax.get_xlim()
             self.ax.set_xlim(xlim[0] * scale, xlim[1] * scale)
-            self.x *= scale
+            self.line_xdata *= scale
         self.canvas.draw()
 
-    def showFid(self, tmpdata=None, makeContours = True, clearCntr = True):  # display the 1D data
+    def showFid(self, oldData=None, extraX=None, extraY=None, extraColor=None, makeContours=True, clearCntr=True):
+        # The oldData and extra plots are not displayed in the contourplot for now
+        self.line_xdata_extra = []
+        self.line_ydata_extra = []
         self.differ = None
         self.peakPickReset()
         hyperView = 0
-        if tmpdata is None:
-            self.tmpdata = self.data1D[hyperView]
-        else:
-            self.tmpdata = tmpdata
+        tmpdata = self.data1D.data[hyperView]
         if clearCntr:
             self.ax.cla()
         self.x_ax.cla()
         self.y_ax.cla()
         if self.viewSettings["diagonalBool"]:
             add_diagonal(self.ax, self.viewSettings["diagonalMult"], c='k', ls='--')
-        self.x = self.xax * self.getAxMult(self.spec, self.viewSettings["axType"], self.viewSettings["ppm"], self.freq, self.ref)
-        self.line_xdata = self.x
-        self.y = self.xax2 * self.getAxMult(self.spec2, self.viewSettings["axType2"], self.viewSettings["ppm2"], self.freq2, self.ref2)
+        self.line_xdata = [self.xax() * self.getAxMult(self.spec(), self.viewSettings["axType"], self.viewSettings["ppm"], self.freq(), self.ref())]
+        self.line_ydata = [self.xax(-2) * self.getAxMult(self.spec(-2), self.viewSettings["axType2"], self.viewSettings["ppm2"], self.freq(-2), self.ref(-2))]
         if (self.viewSettings["plotType"] == 0):
-            self.tmpdata = np.real(self.tmpdata)
+            tmpdata = np.real(tmpdata)
         elif(self.viewSettings["plotType"] == 1):
-            self.tmpdata = np.imag(self.tmpdata)
+            tmpdata = np.imag(tmpdata)
         elif(self.viewSettings["plotType"] == 2):
-            self.tmpdata = np.real(self.tmpdata)
+            tmpdata = np.real(tmpdata)
         elif(self.viewSettings["plotType"] == 3):
-            self.tmpdata = np.abs(self.tmpdata)
+            tmpdata = np.abs(tmpdata)
+        self.line_zdata = [tmpdata]
         if self.viewSettings["limitType"] == 0:
-            self.differ = np.max(np.abs(self.tmpdata))
+            self.differ = np.max(np.abs(tmpdata))
         else:
             self.differ = np.max(np.abs(np.ravel(self.data.data[hyperView])))
         if makeContours:
             self.plotContour()
         self.showProj()
-        self.ax.set_xlabel(self.getLabel(self.spec, self.viewSettings["axType"], self.viewSettings["ppm"]))
-        self.ax.set_ylabel(self.getLabel(self.spec2, self.viewSettings["axType2"], self.viewSettings["ppm2"]))
-        if self.spec:
+        self.ax.set_xlabel(self.getLabel(self.spec(), self.viewSettings["axType"], self.viewSettings["ppm"]))
+        self.ax.set_ylabel(self.getLabel(self.spec(-2), self.viewSettings["axType2"], self.viewSettings["ppm2"]))
+        if self.spec():
             self.ax.set_xlim(self.xmaxlim, self.xminlim)
         else:
             self.ax.set_xlim(self.xminlim, self.xmaxlim)
-        if self.spec2:
+        if self.spec(-2):
             self.ax.set_ylim(self.ymaxlim, self.yminlim)
         else:
             self.ax.set_ylim(self.yminlim, self.ymaxlim)
@@ -4333,7 +3895,7 @@ class CurrentContour(Current1D):
         self.canvas.draw()
 
     def plotContour(self, updateOnly=False):  # Plots the contour plot
-        X, Y = np.meshgrid(self.x, self.y)
+        X, Y = np.meshgrid(self.line_xdata[-1], self.line_ydata[-1])
         if updateOnly:  # Set some extra stuff if only the contour plot needs updating
             del self.ax.collections[:]  # Clear all plot collections
         if self.viewSettings["contourType"] == 0:  # if linear
@@ -4346,28 +3908,28 @@ class CurrentContour(Current1D):
         # Trim matrix of unused rows/columns for more efficient contour plotting
         PlotPositive = False
         if self.viewSettings["contourSign"] == 0 or self.viewSettings["contourSign"] == 1:
-            if self.tmpdata.shape[0] > 2:  # if size 2 or lower, convolve fails, just take whole data then
-                YposMax = np.where(np.convolve(np.max(self.tmpdata, 1) > contourLevels[0], [True, True, True], 'same'))[0]
+            if self.line_zdata[-1].shape[0] > 2:  # if size 2 or lower, convolve fails, just take whole data then
+                YposMax = np.where(np.convolve(np.max(self.line_zdata[-1], 1) > contourLevels[0], [True, True, True], 'same'))[0]
             else:
-                YposMax = np.arange(self.tmpdata.shape[0])
+                YposMax = np.arange(self.line_zdata[-1].shape[0])
             if YposMax.size > 0:  # if number of positive contours is non-zero
-                if self.tmpdata.shape[1] > 2:
-                    XposMax = np.where(np.convolve(np.max(self.tmpdata, 0) > contourLevels[0], [True, True, True], 'same'))[0]
+                if self.line_zdata[-1].shape[1] > 2:
+                    XposMax = np.where(np.convolve(np.max(self.line_zdata[-1], 0) > contourLevels[0], [True, True, True], 'same'))[0]
                 else:
-                    XposMax = np.arange(self.tmpdata.shape[1])
+                    XposMax = np.arange(self.line_zdata[-1].shape[1])
                 PlotPositive = True
         PlotNegative = False
         if self.viewSettings["contourSign"] == 0 or self.viewSettings["contourSign"] == 2:
             if not self.viewSettings["plotType"] == 3:  # for Absolute plot no negative
-                if self.tmpdata.shape[0] > 2:
-                    YposMin = np.where(np.convolve(np.min(self.tmpdata, 1) < -contourLevels[0], [True, True, True], 'same'))[0]
+                if self.line_zdata[-1].shape[0] > 2:
+                    YposMin = np.where(np.convolve(np.min(self.line_zdata[-1], 1) < -contourLevels[0], [True, True, True], 'same'))[0]
                 else:
-                    YposMin = np.arange(self.tmpdata.shape[0])
+                    YposMin = np.arange(self.line_zdata[-1].shape[0])
                 if YposMin.size > 0:  # if number of negative contours is non-zero
-                    if self.tmpdata.shape[1] > 2:
-                        XposMin = np.where(np.convolve(np.min(self.tmpdata, 0) < -contourLevels[0], [True, True, True], 'same'))[0]
+                    if self.line_zdata[-1].shape[1] > 2:
+                        XposMin = np.where(np.convolve(np.min(self.line_zdata[-1], 0) < -contourLevels[0], [True, True, True], 'same'))[0]
                     else:
-                        XposMin = np.arange(self.tmpdata.shape[1])
+                        XposMin = np.arange(self.line_zdata[-1].shape[1])
                     PlotNegative = True
 
         def contourTrace(level, color):
@@ -4379,15 +3941,14 @@ class CurrentContour(Current1D):
             col.set_linestyle('solid')
             col.set_color(color)
             return col
-
         if self.viewSettings["contourConst"]:
             collections = []
             if PlotPositive:
-                c = cntr.Cntr(X[YposMax[:, None], XposMax], Y[YposMax[:, None], XposMax], self.tmpdata[YposMax[:, None], XposMax])
+                c = cntr.Cntr(X[YposMax[:, None], XposMax], Y[YposMax[:, None], XposMax], self.line_zdata[-1][YposMax[:, None], XposMax])
                 for level in contourLevels:
                     collections.append(contourTrace(level, self.viewSettings["contourColors"][0]))
             if PlotNegative:
-                c = cntr.Cntr(X[YposMin[:, None], XposMin], Y[YposMin[:, None], XposMin], self.tmpdata[YposMin[:, None], XposMin])
+                c = cntr.Cntr(X[YposMin[:, None], XposMin], Y[YposMin[:, None], XposMin], self.line_zdata[-1][YposMin[:, None], XposMin])
                 for level in -contourLevels[::-1]:
                     collections.append(contourTrace(level, self.viewSettings["contourColors"][1]))
             for col in collections:  # plot all
@@ -4398,12 +3959,12 @@ class CurrentContour(Current1D):
             colorMap = get_cmap(self.viewSettings["colorMap"])
             collections = []
             if PlotPositive:
-                c = cntr.Cntr(X[YposMax[:, None], XposMax], Y[YposMax[:, None], XposMax], self.tmpdata[YposMax[:, None], XposMax])
+                c = cntr.Cntr(X[YposMax[:, None], XposMax], Y[YposMax[:, None], XposMax], self.line_zdata[-1][YposMax[:, None], XposMax])
                 for level in contourLevels:
                     clevel = colorMap((level - vmin) / (vmax - vmin))
                     collections.append(contourTrace(level, clevel))
             if PlotNegative:
-                c = cntr.Cntr(X[YposMin[:, None], XposMin], Y[YposMin[:, None], XposMin], self.tmpdata[YposMin[:, None], XposMin])
+                c = cntr.Cntr(X[YposMin[:, None], XposMin], Y[YposMin[:, None], XposMin], self.line_zdata[-1][YposMin[:, None], XposMin])
                 for level in -contourLevels[::-1]:
                     clevel = colorMap((level - vmin) / (vmax - vmin))
                     collections.append(contourTrace(level, clevel))
@@ -4414,12 +3975,12 @@ class CurrentContour(Current1D):
 
     def showProj(self):
         xLimOld = self.x_ax.get_xlim()
-        x = self.x  # Get plot data from plot
+        x = self.line_xdata[-1]  # Get plot data from plot
         yLimOld = self.y_ax.get_ylim()
-        y = self.y  # Get plot data from plot
+        y = self.line_ydata[-1]  # Get plot data from plot
         self.x_ax.cla()
         self.y_ax.cla()
-        tmpdata = self.data1D[0]
+        tmpdata = self.data1D.data[0]
         if (self.viewSettings["plotType"] == 0):
             tmpdata = np.real(tmpdata)
         elif(self.viewSettings["plotType"] == 1):
@@ -4480,28 +4041,6 @@ class CurrentContour(Current1D):
             self.y_ax.set_ylim(yLimOld)
         self.canvas.draw()
 
-    def plotReset(self, xReset=True, yReset=True):  # set the plot limits to min and max values
-        if self.ref == 0.0:
-            self.viewSettings["ppm"] = False
-        axMult = self.getAxMult(self.spec, self.viewSettings["axType"], self.viewSettings["ppm"], self.freq, self.ref)
-        if xReset:
-            self.xminlim = min(self.xax * axMult)
-            self.xmaxlim = max(self.xax * axMult)
-        if self.ref2 == 0.0:
-            self.viewSettings["ppm2"] = False
-        axMult2 = self.getAxMult(self.spec2, self.viewSettings["axType2"], self.viewSettings["ppm2"], self.freq2, self.ref2)
-        if yReset:
-            self.yminlim = min(self.xax2 * axMult2)
-            self.ymaxlim = max(self.xax2 * axMult2)
-        if self.spec:
-            self.ax.set_xlim(self.xmaxlim, self.xminlim)
-        else:
-            self.ax.set_xlim(self.xminlim, self.xmaxlim)
-        if self.spec2:
-            self.ax.set_ylim(self.ymaxlim, self.yminlim)
-        else:
-            self.ax.set_ylim(self.yminlim, self.ymaxlim)
-
     # The peakpicking function needs to be changed for contour plots
     def buttonRelease(self, event):
         hyperView = 0
@@ -4514,8 +4053,8 @@ class CurrentContour(Current1D):
                     self.rect[0].remove()
                     self.rect[0] = None
                     self.peakPick = False
-                    xdata = self.xax * self.getAxMult(self.spec, self.viewSettings["axType"], self.viewSettings["ppm"], self.freq, self.ref)
-                    ydata = self.xax2 * self.getAxMult(self.spec2, self.viewSettings["axType2"], self.viewSettings["ppm2"], self.freq2, self.ref2)
+                    xdata = self.xax() * self.getAxMult(self.spec(), self.viewSettings["axType"], self.viewSettings["ppm"], self.freq(), self.ref())
+                    ydata = self.xax(-2) * self.getAxMult(self.spec(-2), self.viewSettings["axType2"], self.viewSettings["ppm2"], self.freq(-2), self.ref(-2))
                     idx = np.argmin(np.abs(xdata - event.xdata))
                     idy = np.argmin(np.abs(ydata - event.ydata))
                     if self.peakPickFunc is not None:
@@ -4546,11 +4085,11 @@ class CurrentContour(Current1D):
                     self.xmaxlim = max([self.zoomX1, self.zoomX2])
                     self.yminlim = min([self.zoomY1, self.zoomY2])
                     self.ymaxlim = max([self.zoomY1, self.zoomY2])
-                    if self.spec > 0:
+                    if self.spec() > 0:
                         self.ax.set_xlim(self.xmaxlim, self.xminlim)
                     else:
                         self.ax.set_xlim(self.xminlim, self.xmaxlim)
-                    if self.spec2 > 0:
+                    if self.spec(-2) > 0:
                         self.ax.set_ylim(self.ymaxlim, self.yminlim)
                     else:
                         self.ax.set_ylim(self.yminlim, self.ymaxlim)

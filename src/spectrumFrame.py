@@ -41,6 +41,10 @@ class Plot1DFrame(object):
         self.fig = fig
         self.canvas = canvas
         self.fig.clf()
+        self.xminlim = -1
+        self.xmaxlim = 1
+        self.yminlim = -1
+        self.ymaxlim = 1
         if isinstance(self, spectrum_classes.CurrentContour):
             self.gs = gridspec.GridSpec(2, 2, width_ratios=[self.root.father.defaultWidthRatio, 1], height_ratios=[1, self.root.father.defaultHeightRatio])
             self.ax = self.fig.add_subplot(self.gs[2])
@@ -66,8 +70,6 @@ class Plot1DFrame(object):
         self.peakPick = False  # currently peakPicking (if 2 display cross)
         self.peakPickFunc = None  # the function that needs to be called after peakPicking
         # variables to be initialized
-        self.spec = 0
-        self.spec2 = 0
 
     def kill(self):
         pass
@@ -112,7 +114,7 @@ class Plot1DFrame(object):
                     width = width * 0.9**event.step
                 self.xmaxlim = middle + width / 2.0
                 self.xminlim = middle - width / 2.0
-                if self.spec > 0 and not isinstance(self, spectrum_classes.CurrentArrayed):
+                if self.spec() > 0 and not isinstance(self, spectrum_classes.CurrentArrayed):
                     self.ax.set_xlim(self.xmaxlim, self.xminlim)
                 else:
                     self.ax.set_xlim(self.xminlim, self.xmaxlim)
@@ -137,7 +139,7 @@ class Plot1DFrame(object):
                     else:
                         self.ymaxlim *= 0.9**event.step
                         self.yminlim *= 0.9**event.step
-                if self.spec2 > 0 and isinstance(self, spectrum_classes.CurrentContour):
+                if self.spec() > 0 and isinstance(self, spectrum_classes.CurrentContour):
                     self.ax.set_ylim(self.ymaxlim, self.yminlim)
                 else:
                     self.ax.set_ylim(self.yminlim, self.ymaxlim)
@@ -203,11 +205,11 @@ class Plot1DFrame(object):
                     self.xmaxlim = max([self.zoomX1, self.zoomX2])
                     self.yminlim = min([self.zoomY1, self.zoomY2])
                     self.ymaxlim = max([self.zoomY1, self.zoomY2])
-                    if self.spec > 0 and not isinstance(self, spectrum_classes.CurrentArrayed):
+                    if self.spec() > 0 and not isinstance(self, spectrum_classes.CurrentArrayed):
                         self.ax.set_xlim(self.xmaxlim, self.xminlim)
                     else:
                         self.ax.set_xlim(self.xminlim, self.xmaxlim)
-                    if self.spec2 > 0 and isinstance(self, spectrum_classes.CurrentContour):
+                    if self.spec(-2) > 0 and isinstance(self, spectrum_classes.CurrentContour):
                         self.ax.set_ylim(self.ymaxlim, self.yminlim)
                     else:
                         self.ax.set_ylim(self.yminlim, self.ymaxlim)
@@ -237,14 +239,14 @@ class Plot1DFrame(object):
                 self.xminlim = self.xminlim - diffx
                 self.ymaxlim = self.ymaxlim - diffy
                 self.yminlim = self.yminlim - diffy
-            if self.spec > 0 and not isinstance(self, spectrum_classes.CurrentArrayed):
+            if self.spec() > 0 and not isinstance(self, spectrum_classes.CurrentArrayed):
                 self.ax.set_xlim(self.xmaxlim, self.xminlim)
             else:
                 self.ax.set_xlim(self.xminlim, self.xmaxlim)
-            if self.spec2 > 0 and isinstance(self, spectrum_classes.CurrentContour):
-                self.ax.set_ylim(self.ymaxlim, self.yminlim)
-            else:
-                self.ax.set_ylim(self.yminlim, self.ymaxlim)
+            self.ax.set_ylim(self.yminlim, self.ymaxlim)
+            if isinstance(self, spectrum_classes.CurrentContour):
+                if self.spec(-2) > 0:
+                    self.ax.set_ylim(self.ymaxlim, self.yminlim)
             self.canvas.draw_idle()
         elif self.peakPick:
             if self.rect[0] is not None:

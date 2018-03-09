@@ -830,14 +830,14 @@ class MainProgram(QtWidgets.QMainWindow):
             self.referencerunmenu.menuAction().setEnabled(True)
             for act in self.editActList + self.toolsActList + self.matrixActList + self.fftActList + self.fittingActList + self.plotActList + self.historyActList + self.combineActList:
                 act.setEnabled(True)
-            if isinstance(self.mainWindow, Main1DWindow):
+            if type(self.mainWindow) is Main1DWindow:
                 self.menuEnable()
                 for act in self.specOnlyList:
-                    act.setEnabled(self.mainWindow.current.spec == 1)  # Only on for spec
+                    act.setEnabled(self.mainWindow.current.spec() == 1)  # Only on for spec
                 for act in self.fidOnlyList:
-                    act.setEnabled(self.mainWindow.current.spec == 0)  # Only on for FID
+                    act.setEnabled(self.mainWindow.current.spec() == 0)  # Only on for FID
                   #Limit functions based on plot type
-                if isinstance(self.mainWindow.current, (sc.CurrentMulti, sc.CurrentStacked, sc.CurrentArrayed, sc.CurrentContour)):
+                if type(self.mainWindow.current) is sc.CurrentMulti or type(self.mainWindow.current) is sc.CurrentStacked:
                     for act in self.Only1DPlot:
                         act.setEnabled(False)
                 if self.mainWindow.masterData.noUndo:  # Set menu check to the same value as in the data
@@ -874,7 +874,7 @@ class MainProgram(QtWidgets.QMainWindow):
                 self.savemenu.menuAction().setEnabled(True)
                 self.exportmenu.menuAction().setEnabled(True)
                 self.workspacemenu.menuAction().setEnabled(True)
-            elif isinstance(self.mainWindow, MainPlotWindow):
+            elif type(self.mainWindow) is MainPlotWindow:
                 self.menuDisable(True)
                 self.savemenu.menuAction().setEnabled(True)
                 self.exportmenu.menuAction().setEnabled(True)
@@ -1232,7 +1232,7 @@ class MainProgram(QtWidgets.QMainWindow):
         self.updWorkspaceMenu(var)
         self.menuCheck()
         try:
-            if isinstance(self.mainWindow.current, (sc.CurrentMulti)):
+            if type(self.mainWindow.current) is sc.CurrentMulti:
                 self.mainWindow.sideframe.checkChanged()
         except Exception:
             pass
@@ -1255,7 +1255,7 @@ class MainProgram(QtWidgets.QMainWindow):
             self.tabs.setCurrentIndex(self.workspaceNum)
             self.updWorkspaceMenu(self.workspaceNames[self.workspaceNum])
             self.menuCheck()
-            if isinstance(self.mainWindow.current, (sc.CurrentMulti)):
+            if type(self.mainWindow.current) is sc.CurrentMulti:
                 self.mainWindow.sideframe.checkChanged()
 
     def duplicateWorkspace(self, *args):
@@ -1831,8 +1831,8 @@ class Main1DWindow(QtWidgets.QWidget):
                 self.undoList.append(returnValue)
         if display:
             self.current.upd()  # get the first slice of data
-            self.current.plotReset()  # reset the axes limits
             self.current.showFid()  # plot the data
+            self.current.plotReset()  # reset the axes limits
             self.updAllFrames()
             self.menuCheck()
 
@@ -1962,7 +1962,7 @@ class Main1DWindow(QtWidgets.QWidget):
         axType = self.current.viewSettings["axType"]
         if self.masterData.spec[-1] == 1:
             if self.current.viewSettings["ppm"]:
-                if self.current.ref is not None:
+                if self.current.ref() is not None:
                     axMult = 1e6 / self.masterData.ref[-1]
                 else:
                     axMult = 1e6 / self.masterData.freq[-1]
@@ -1999,8 +1999,8 @@ class Main1DWindow(QtWidgets.QWidget):
         else:
             self.undoList.append(self.masterData.restoreData(loadData, None))
         self.current.upd()
-        self.current.plotReset()
         self.current.showFid()
+        self.current.plotReset()
         self.updAllFrames()
         self.addMacro(['reload'])
         self.menuCheck()
@@ -2250,13 +2250,13 @@ class Main1DWindow(QtWidgets.QWidget):
         self.father.createFitWindow(fit.Quad1DeconvWindow(self.father, self.father.mainWindow))
 
     def createQuad2DeconvWindow(self):
-        if self.current.freq == 0.0:
+        if self.current.freq() == 0.0:
             self.father.dispMsg("Please set the spectrometer frequency first!")
             return
         self.father.createFitWindow(fit.Quad2DeconvWindow(self.father, self.father.mainWindow))
 
     def createQuad2CzjzekWindow(self):
-        if self.current.freq == 0.0:
+        if self.current.freq() == 0.0:
             self.father.dispMsg("Please set the spectrometer frequency first!")
             return
         self.father.createFitWindow(fit.Quad2CzjzekWindow(self.father, self.father.mainWindow))
@@ -2340,8 +2340,8 @@ class Main1DWindow(QtWidgets.QWidget):
         message = self.masterData.removeFromHistory(2)
         self.father.dispMsg("Undo: " + message, error=False)
         self.current.upd()
-        self.current.plotReset()
         self.current.showFid()
+        self.current.plotReset()
         self.updAllFrames()
         if self.currentMacro is not None:
             self.redoMacro.append(self.father.macros[self.currentMacro].pop())
@@ -2351,8 +2351,8 @@ class Main1DWindow(QtWidgets.QWidget):
         if self.redoList:
             self.undoList.append(self.redoList.pop()(self.masterData))
             self.current.upd()
-            self.current.plotReset()
             self.current.showFid()
+            self.current.plotReset()
             self.updAllFrames()
             if self.currentMacro is not None:
                 self.father.macroAdd(self.currentMacro, self.redoMacro.pop())
@@ -2417,7 +2417,7 @@ class SideFrame(QtWidgets.QScrollArea):
             self.frame2.removeWidget(item)
             item.deleteLater()
         offset = 0
-        self.plotIs2D = isinstance(current, (sc.CurrentStacked, sc.CurrentArrayed, sc.CurrentContour))
+        self.plotIs2D = isinstance(current, sc.CurrentStacked)
         if self.plotIs2D:
             offset = 1
         self.entries = []
@@ -2460,7 +2460,7 @@ class SideFrame(QtWidgets.QScrollArea):
                     else:
                         self.entries[num].setValue(current.locList[num - 1])
                 self.entries[num].valueChanged.connect(lambda event=None, num=num: self.getSlice(event, num))
-            if isinstance(current, (sc.CurrentStacked, sc.CurrentArrayed)):
+            if type(current) is sc.CurrentStacked or type(current) is sc.CurrentArrayed:
                 if current.viewSettings["stackBegin"] is not None:
                     from2D = current.viewSettings["stackBegin"]
                 else:
@@ -2488,7 +2488,7 @@ class SideFrame(QtWidgets.QScrollArea):
                 self.frame2.addWidget(self.stepSpin, 6, 0)
                 self.stepSpin.setValue(step2D)
                 self.stepSpin.valueChanged.connect(self.setToFrom)
-                if isinstance(current, (sc.CurrentStacked, sc.CurrentArrayed)):
+                if type(current) is sc.CurrentStacked or type(current) is sc.CurrentArrayed:
                     self.frame2.addWidget(wc.QLabel("Spacing", self), 7, 0)
                     self.spacingEntry = QtWidgets.QLineEdit(self)
                     self.spacingEntry.setText('%#.3g' % current.viewSettings["spacing"])
@@ -2751,7 +2751,7 @@ class SideFrame(QtWidgets.QScrollArea):
 
     def setToFrom(self, *args):
         current = self.father.current
-        if not isinstance(current, (sc.CurrentStacked, sc.CurrentArrayed)):
+        if not (type(current) is sc.CurrentStacked or type(current) is sc.CurrentArrayed):
             return
         fromVar = self.fromSpin.value()
         toVar = self.toSpin.value()
@@ -2891,16 +2891,16 @@ class SideFrame(QtWidgets.QScrollArea):
                     self.father.bottomframe.axisDropTime2.setCurrentIndex(time1)
                     self.father.bottomframe.axisDropFreq.setCurrentIndex(freq2)
                     self.father.bottomframe.axisDropFreq2.setCurrentIndex(freq1)
-                    if bool(self.father.current.spec) is True:
+                    if bool(self.father.current.spec()) is True:
                         tmp1 = freq1
                     else:
                         tmp1 = time1
-                    if bool(self.father.current.spec2) is True:
+                    if bool(self.father.current.spec(-2)) is True:
                         tmp2 = freq2
                     else:
                         tmp2 = time2
-                    self.father.bottomframe.changeAxis( tmp2, update = False)
-                    self.father.bottomframe.changeAxis2( tmp1, update = False)
+                    self.father.bottomframe.changeAxis(tmp2, update = False)
+                    self.father.bottomframe.changeAxis2(tmp1, update = False)
             self.buttons2Group.button(axes2).toggle()
         self.getSlice(None, axes, True)
         self.upd()
@@ -3094,57 +3094,57 @@ class BottomFrame(QtWidgets.QWidget):
         self.setEnabled(False)
 
     def upd(self):
-        self.freqEntry.setText('%.6f' % (self.father.current.freq / 1000000.0))
-        self.swEntry.setText('%.6f' % (self.father.current.sw / 1000.0))
+        self.freqEntry.setText('%.6f' % (self.father.current.freq() / 1000000.0))
+        self.swEntry.setText('%.6f' % (self.father.current.sw() / 1000.0))
         self.axisDropTime2.hide()
         self.axisDropFreq2.hide()
         self.axisDropFreq.model().item(3).setEnabled(True)
-        if self.father.current.spec == 0:
+        if self.father.current.spec() == 0:
             self.specGroup.button(0).toggle()
             self.axisDropFreq.hide()
             self.axisDropTime.show()
             self.ax2Label.hide()
             self.axisDropTime.setCurrentIndex(self.father.current.viewSettings["axType"])
-        elif self.father.current.spec == 1:
+        elif self.father.current.spec() == 1:
             self.specGroup.button(1).toggle()
             self.axisDropTime.hide()
             self.axisDropFreq.show()
-            if self.father.current.freq == 0.0:
+            if self.father.current.freq() == 0.0:
                 self.axisDropFreq.model().item(3).setEnabled(False)
             self.ax2Label.hide()
-            if self.father.current.viewSettings["ppm"] and self.father.current.freq != 0.0:
+            if self.father.current.viewSettings["ppm"] and self.father.current.freq() != 0.0:
                 self.axisDropFreq.setCurrentIndex(3)
             else:
                 self.axisDropFreq.setCurrentIndex(self.father.current.viewSettings["axType"])
         if isinstance(self.father.current, sc.CurrentContour):
             self.ax2Label.show()
             self.axisDropFreq2.model().item(3).setEnabled(True)
-            if self.father.current.spec2 == 0:
+            if self.father.current.spec(-2) == 0:
                 self.axisDropTime2.show()
                 self.axisDropTime2.setCurrentIndex(self.father.current.viewSettings["axType2"])
-            elif self.father.current.spec2 == 1:
+            elif self.father.current.spec(-2) == 1:
                 self.axisDropFreq2.show()
-                if self.father.current.freq2 == 0.0:
+                if self.father.current.freq(-2) == 0.0:
                     self.axisDropFreq2.model().item(3).setEnabled(False)
-                if self.father.current.viewSettings["ppm2"] and self.father.current.freq2 != 0.0:
+                if self.father.current.viewSettings["ppm2"] and self.father.current.freq(-2) != 0.0:
                     self.axisDropFreq2.setCurrentIndex(3)
                 else:
                     self.axisDropFreq2.setCurrentIndex(self.father.current.viewSettings["axType2"])
-        if isinstance(self.father.current, sc.CurrentArrayed):
+        if type(self.father.current) is sc.CurrentArrayed:
             self.ax2Label.show()
             self.axisDropFreq2.model().item(3).setEnabled(True)
-            if self.father.current.spec2 == 0:
+            if self.father.current.spec(-2) == 0:
                 self.axisDropTime2.show()
                 self.axisDropTime2.setCurrentIndex(self.father.current.viewSettings["axType2"])
-            elif self.father.current.spec2 == 1:
+            elif self.father.current.spec(-2) == 1:
                 self.axisDropFreq2.show()
-                if self.father.current.freq2 == 0.0:
+                if self.father.current.freq(-2) == 0.0:
                     self.axisDropFreq2.model().item(3).setEnabled(False)
-                if self.father.current.viewSettings["ppm2"] and self.father.current.freq2 != 0.0:
+                if self.father.current.viewSettings["ppm2"] and self.father.current.freq(-2) != 0.0:
                     self.axisDropFreq2.setCurrentIndex(3)
                 else:
                     self.axisDropFreq2.setCurrentIndex(self.father.current.viewSettings["axType2"])
-        if self.father.current.wholeEcho:
+        if self.father.current.wholeEcho():
             self.wholeEcho.setCheckState(QtCore.Qt.Checked)
         else:
             self.wholeEcho.setCheckState(QtCore.Qt.Unchecked)
@@ -3469,7 +3469,7 @@ class PhaseWindow(wc.ToolWindows):
         self.firstScale.setRange(-self.RESOLUTION, self.RESOLUTION)
         self.firstScale.valueChanged.connect(self.setFirstOrder)
         self.firstOrderFrame.addWidget(self.firstScale, 7, 0, 1, 3)
-        if self.father.current.spec > 0:
+        if self.father.current.spec() > 0:
             self.firstOrderFrame.addWidget(wc.QLabel("Reference:"), 8, 0, 1, 3)
             pickRef = QtWidgets.QPushButton("Pick reference")
             pickRef.clicked.connect(self.pickRef)
@@ -3501,7 +3501,7 @@ class PhaseWindow(wc.ToolWindows):
     def setFirstOrder(self, value, *args):
         if self.available:
             value = float(value) / self.RESOLUTION * self.P1LIMIT
-            newZero = (self.zeroVal - (value - self.firstVal) * self.refVal / self.father.current.sw)
+            newZero = (self.zeroVal - (value - self.firstVal) * self.refVal / self.father.current.sw())
             self.zeroVal = np.mod(newZero + 180, 360) - 180
             self.zeroEntry.setText('%.3f' % self.zeroVal)
             self.firstVal = value
@@ -3516,7 +3516,7 @@ class PhaseWindow(wc.ToolWindows):
         if value is None:
             self.father.father.dispMsg('Phasing: first order value input is not valid!')
             return None
-        newZero = (self.zeroVal - (value - self.firstVal) * self.refVal / self.father.current.sw)
+        newZero = (self.zeroVal - (value - self.firstVal) * self.refVal / self.father.current.sw())
         self.zeroVal = np.mod(newZero + 180, 360) - 180
         self.zeroEntry.setText('%.3f' % self.zeroVal)
         self.firstVal = value
@@ -3562,12 +3562,12 @@ class PhaseWindow(wc.ToolWindows):
             self.father.father.dispMsg('Phasing: first order value input is not valid!')
             return None
         value += phase1 * self.PHASE1STEP
-        if self.father.current.spec > 0:
+        if self.father.current.spec() > 0:
             refCheck = self.inputRef()
             if refCheck is None:
                 return
         value += phase1 * self.PHASE1STEP
-        newZero = (self.zeroVal - (value - self.firstVal) * self.refVal / self.father.current.sw)
+        newZero = (self.zeroVal - (value - self.firstVal) * self.refVal / self.father.current.sw())
         self.zeroVal = np.mod(newZero + 180, 360) - 180
         self.zeroEntry.setText('%.3f' % self.zeroVal)
         self.firstVal = value
@@ -3592,12 +3592,12 @@ class PhaseWindow(wc.ToolWindows):
         self.refEntry.setText('%.3f' % self.refVal)
 
     def pickRef(self, *args):
-        self.father.current.peakPickFunc = lambda pos, self=self: self.setRef(self.father.current.xax[pos[0]])
+        self.father.current.peakPickFunc = lambda pos, self=self: self.setRef(self.father.current.xax()[pos[0]])
         self.father.current.peakPick = True
 
     def applyFunc(self):
         refCheck = 1
-        if self.father.current.spec > 0:
+        if self.father.current.spec() > 0:
             refCheck = self.inputRef()
         zeroCheck = self.inputZeroOrder()
         if zeroCheck is not None:
@@ -3623,7 +3623,7 @@ class ApodWindow(wc.ToolWindows):
         super(ApodWindow, self).__init__(parent)
         self.entries = []
         self.ticks = []
-        self.maximum = 100.0 * self.father.current.sw / (self.father.current.data1D[0].shape[-1])
+        self.maximum = 100.0 * self.father.current.sw() / (self.father.current.len())
         self.lorstep = 1.0
         self.gaussstep = 1.0
         self.available = True
@@ -3637,18 +3637,18 @@ class ApodWindow(wc.ToolWindows):
         self.grid.addWidget(lorEntry, 1, 1)
         self.entries.append(lorEntry)
         leftLor = QtWidgets.QPushButton("<")
-        leftLor.clicked.connect(lambda: self.stepLB(-0.5 * self.father.current.sw / (self.father.current.data1D[0].shape[-1]), 0))
+        leftLor.clicked.connect(lambda: self.stepLB(-0.5 * self.father.current.sw() / (self.father.current.len()), 0))
         leftLor.setAutoRepeat(True)
         self.grid.addWidget(leftLor, 1, 0)
         rightLor = QtWidgets.QPushButton(">")
-        rightLor.clicked.connect(lambda: self.stepLB(0.5 * self.father.current.sw / (self.father.current.data1D[0].shape[-1]), 0))
+        rightLor.clicked.connect(lambda: self.stepLB(0.5 * self.father.current.sw() / (self.father.current.len()), 0))
         rightLor.setAutoRepeat(True)
         self.grid.addWidget(rightLor, 1, 2)
         self.lorScale = QtWidgets.QSlider(QtCore.Qt.Horizontal)
         self.lorScale.setRange(0, self.RESOLUTION)
         self.lorScale.valueChanged.connect(self.setLor)
         self.grid.addWidget(self.lorScale, 2, 0, 1, 3)
-        self.lorMax = 100.0 * self.father.current.sw / (self.father.current.data1D[0].shape[-1])
+        self.lorMax = 100.0 * self.father.current.sw() / (self.father.current.len())
         gaussTick = QtWidgets.QCheckBox("Gaussian:")
         gaussTick.toggled.connect(lambda: self.checkEval(1))
         self.grid.addWidget(gaussTick, 3, 0, 1, 3)
@@ -3659,18 +3659,18 @@ class ApodWindow(wc.ToolWindows):
         self.grid.addWidget(gaussEntry, 4, 1)
         self.entries.append(gaussEntry)
         leftGauss = QtWidgets.QPushButton("<")
-        leftGauss.clicked.connect(lambda: self.stepLB(0, -0.5 * self.father.current.sw / (self.father.current.data1D[0].shape[-1])))
+        leftGauss.clicked.connect(lambda: self.stepLB(0, -0.5 * self.father.current.sw() / (self.father.current.len())))
         leftGauss.setAutoRepeat(True)
         self.grid.addWidget(leftGauss, 4, 0)
         rightGauss = QtWidgets.QPushButton(">")
-        rightGauss.clicked.connect(lambda: self.stepLB(0, 0.5 * self.father.current.sw / (self.father.current.data1D[0].shape[-1])))
+        rightGauss.clicked.connect(lambda: self.stepLB(0, 0.5 * self.father.current.sw() / (self.father.current.len())))
         rightGauss.setAutoRepeat(True)
         self.grid.addWidget(rightGauss, 4, 2)
         self.gaussScale = QtWidgets.QSlider(QtCore.Qt.Horizontal)
         self.gaussScale.setRange(0, self.RESOLUTION)
         self.gaussScale.valueChanged.connect(self.setGauss)
         self.grid.addWidget(self.gaussScale, 5, 0, 1, 3)
-        self.gaussMax = 100.0 * self.father.current.sw / (self.father.current.data1D[0].shape[-1])
+        self.gaussMax = 100.0 * self.father.current.sw() / (self.father.current.len())
         cos2Tick = QtWidgets.QCheckBox("Cos^2:")
         cos2Tick.clicked.connect(lambda: self.checkEval(2))
         self.grid.addWidget(cos2Tick, 6, 0, 1, 3)
@@ -3884,7 +3884,7 @@ class SizeWindow(wc.ToolWindows):
         super(SizeWindow, self).__init__(parent)
         self.sizeGroup = QtWidgets.QGroupBox('Size:')
         self.sizeFrame = QtWidgets.QGridLayout()
-        self.sizeVal = parent.current.data1D[0].shape[-1]
+        self.sizeVal = parent.current.len()
         self.sizeEntry = wc.QLineEdit(self.sizeVal, self.sizePreview)
         self.sizeEntry.setMinimumWidth(100)
         self.sizeFrame.addWidget(self.sizeEntry, 0, 1)
@@ -3900,15 +3900,15 @@ class SizeWindow(wc.ToolWindows):
         # offset
         self.offGroup = QtWidgets.QGroupBox('Offset:')
         self.offFrame = QtWidgets.QGridLayout()
-        if self.father.current.wholeEcho:
-            self.posVal = int(np.floor(parent.current.data1D[0].shape[-1] / 2.0))
+        if self.father.current.wholeEcho():
+            self.posVal = int(np.floor(parent.current.len() / 2.0))
         else:
-            self.posVal = parent.current.data1D[0].shape[-1]
+            self.posVal = parent.current.len()
         self.posEntry = wc.QLineEdit(self.posVal, self.sizePreview)
         self.offFrame.addWidget(self.posEntry, 0, 1)
         self.offGroup.setLayout(self.offFrame)
         self.grid.addWidget(self.offGroup, 1, 0, 1, 3)
-        if not self.father.current.spec:
+        if not self.father.current.spec():
             self.father.current.peakPickFunc = lambda pos, self=self: self.picked(pos)
             self.father.current.peakPick = True
 
@@ -3981,7 +3981,7 @@ class SwapEchoWindow(wc.ToolWindows):
     def __init__(self, parent):
         super(SwapEchoWindow, self).__init__(parent)
         self.grid.addWidget(wc.QLabel("Echo position:"), 0, 0)
-        self.posVal = int(round(0.5 * len(parent.current.data1D)))
+        self.posVal = int(round(0.5 * parent.current.len()))
         self.posEntry = wc.QLineEdit(self.posVal, self.swapEchoPreview)
         self.grid.addWidget(self.posEntry, 1, 0)
         self.father.current.peakPickFunc = lambda pos, self=self: self.picked(pos)
@@ -3995,7 +3995,7 @@ class SwapEchoWindow(wc.ToolWindows):
             self.father.father.dispMsg("Swap echo: not a valid index")
             return False
         self.posEntry.setText(str(self.posVal))
-        if self.posVal > 0 and self.posVal < (self.father.current.data1D.shape[-1]):
+        if self.posVal > 0 and self.posVal < self.father.current.len():
             self.father.current.setSwapEchoPreview(self.posVal)
             self.father.current.peakPick = False
 
@@ -4008,7 +4008,7 @@ class SwapEchoWindow(wc.ToolWindows):
             self.father.father.dispMsg("Swap echo: not a valid index")
             return False
         self.posEntry.setText(str(self.posVal))
-        if self.posVal > 0 and self.posVal < (self.father.current.data1D[0].shape[-1]):
+        if self.posVal > 0 and self.posVal < (self.father.current.len()):
             self.father.redoList = []
             if self.father.current.data.noUndo:
                 self.father.current.applySwapEcho(self.posVal)
@@ -4068,7 +4068,7 @@ class LPSVDWindow(wc.ToolWindows):
         if predictPoints is None:
             self.father.father.dispMsg('LPSVD: Number of predication points is not valid')
             return False
-        if self.analPoints > len(self.father.current.data1D[0]):
+        if self.analPoints > len(self.father.current.data1D.data[0]):
             self.father.father.dispMsg('LPSVD: number of points for analysis cannot be more than data size')
             return False
         if self.analPoints <= self.numberFreq * 4:
@@ -4171,8 +4171,8 @@ class DCWindow(wc.ToolWindows):
 
     def __init__(self, parent):
         super(DCWindow, self).__init__(parent)
-        self.startVal = int(round(0.8 * parent.current.data1D[0].shape[-1]))
-        self.endVal = parent.current.data1D[0].shape[-1]
+        self.startVal = int(round(0.8 * parent.current.len()))
+        self.endVal = parent.current.len()
         self.grid.addWidget(wc.QLabel("Start point:"), 0, 0)
         self.startEntry = wc.QLineEdit(self.startVal, self.offsetPreview)
         self.grid.addWidget(self.startEntry, 1, 0)
@@ -4180,14 +4180,14 @@ class DCWindow(wc.ToolWindows):
         self.endEntry = wc.QLineEdit(self.endVal, self.offsetPreview)
         self.grid.addWidget(self.endEntry, 3, 0)
         self.grid.addWidget(wc.QLabel("Offset:"), 4, 0)
-        val = parent.current.getdcOffset(int(round(0.8 * parent.current.data1D[0].shape[-1])), parent.current.data1D[0].shape[-1])
+        val = parent.current.getdcOffset(int(round(0.8 * parent.current.len())), parent.current.len())
         self.offsetEntry = wc.QLineEdit('{:.2e}'.format(val), lambda: self.offsetPreview(True))
         self.grid.addWidget(self.offsetEntry, 5, 0)
         self.father.current.peakPickFunc = lambda pos, self=self: self.picked(pos)
         self.father.current.peakPick = True
 
     def picked(self, pos, second=False):
-        dataLength = self.father.current.data1D[0].shape[-1]
+        dataLength = self.father.current.len()
         if second:
             inp = safeEval(self.startEntry.text())
             if inp is not None:
@@ -4233,7 +4233,7 @@ class DCWindow(wc.ToolWindows):
                 return
             self.father.current.dcOffset(dcVal)
         else:
-            dataLength = self.father.current.data1D[0].shape[-1]
+            dataLength = self.father.current.len()
             inp = safeEval(self.startEntry.text())
             if inp is not None:
                 self.startVal = int(round(inp))
@@ -4353,7 +4353,7 @@ class regionWindow(wc.ToolWindows):
         self.NAME = name
         super(regionWindow, self).__init__(parent)
         self.startVal = [0]  # dummy variables
-        self.endVal = [parent.current.data1D[0].shape[-1]]  # dummy variables
+        self.endVal = [parent.currentlen()]  # dummy variables
         self.grid.addWidget(wc.QLabel("Start point:"), 0, 0)
         self.grid.addWidget(wc.QLabel("End point:"), 0, 1)
         self.startEntry = []
@@ -4387,7 +4387,7 @@ class regionWindow(wc.ToolWindows):
             self.startVal[self.partIter] = min(pos, tmp)
             self.endVal[self.partIter] = max(pos, tmp)
             self.startVal = np.append(self.startVal, 0)
-            self.endVal = np.append(self.endVal, self.father.current.data1D[0].shape[-1])
+            self.endVal = np.append(self.endVal, self.father.current.len())
             self.startEntry[self.partIter].setText(str(self.startVal[self.partIter]))
             self.endEntry[self.partIter].setText(str(self.endVal[self.partIter]))
             self.partIter += 1
@@ -4408,7 +4408,7 @@ class regionWindow(wc.ToolWindows):
             num = self.deleteButton.index(button)
         if num == self.partIter:
             self.startVal[num] = 0
-            self.endVal[num] = self.father.current.data1D[0].shape[-1]
+            self.endVal[num] = self.father.current.len()
             self.startEntry[num].setText("")
             self.endEntry[num].setText("")
             self.first = True
@@ -4438,8 +4438,8 @@ class regionWindow(wc.ToolWindows):
             inp = int(inp)
             if inp < 0:
                 inp = 0
-            if inp > self.father.current.data1D[0].shape[-1]:
-                inp = self.father.current.data1D[0].shape[-1]
+            if inp > self.father.current.len():
+                inp = self.father.current.len()
         if isMin:
             num = self.startEntry.index(entry)
             if inp is None:
@@ -4465,7 +4465,7 @@ class regionWindow(wc.ToolWindows):
         if num == self.partIter:
             self.partIter += 1
             self.startVal = np.append(self.startVal, 0)
-            self.endVal = np.append(self.endVal, self.father.current.data1D[0].shape[-1])
+            self.endVal = np.append(self.endVal, self.father.current.len())
             self.startEntry.append(wc.QLineEdit())
             self.startEntry[self.partIter].editingFinished.connect(lambda self=self, tmp=self.startEntry[self.partIter]: self.setVal(tmp, True))
             self.grid.addWidget(self.startEntry[self.partIter], 1 + self.entryCount, 0)
@@ -4490,7 +4490,7 @@ class regionWindow(wc.ToolWindows):
 
     def applyFunc(self):
         if self.partIter == 0:
-            if self.apply(np.array([0]), np.array([self.father.current.data1D[0].shape[-1]]), self.newSpec.isChecked()) is None:
+            if self.apply(np.array([0]), np.array([self.father.current.len()]), self.newSpec.isChecked()) is None:
                 return False
         else:
             if self.apply(self.startVal[:self.partIter], self.endVal[:self.partIter], self.newSpec.isChecked()) is None:
@@ -4694,7 +4694,7 @@ class regionWindow2(wc.ToolWindows):
         self.NAME = name
         super(regionWindow2, self).__init__(parent)
         self.startVal = 0
-        self.endVal = parent.current.data1D[0].shape[-1]
+        self.endVal = parent.current.len()
         self.grid.addWidget(wc.QLabel("Start point:"), 0, 0)
         self.startEntry = wc.QLineEdit(self.startVal, self.checkValues)
         self.grid.addWidget(self.startEntry, 1, 0)
@@ -4713,7 +4713,7 @@ class regionWindow2(wc.ToolWindows):
 
     def picked(self, pos, second=False):
         if second:
-            dataLength = self.father.current.data1D[0].shape[-1]
+            dataLength = self.father.current.len()
             inp = safeEval(self.startEntry.text())
             if inp is not None:
                 self.startVal = int(round(inp))
@@ -4733,7 +4733,7 @@ class regionWindow2(wc.ToolWindows):
             self.father.current.peakPick = True
 
     def checkValues(self, *args):
-        dataLength = self.father.current.data1D[0].shape[-1]
+        dataLength = self.father.current.len()
         inp = safeEval(self.startEntry.text())
         if inp is not None:
             self.startVal = int(round(inp))
@@ -4753,7 +4753,7 @@ class regionWindow2(wc.ToolWindows):
         self.preview(self.startVal, self.endVal)
 
     def applyFunc(self):
-        dataLength = self.father.current.data1D[0].shape[-1]
+        dataLength = self.father.current.len()
         inp = safeEval(self.startEntry.text())
         if inp is None:
             self.father.father.dispMsg(self.NAME + ": value not valid")
@@ -4836,7 +4836,7 @@ class FiddleWindow(wc.ToolWindows):
     def __init__(self, parent):
         super(FiddleWindow, self).__init__(parent)
         self.startVal = 0
-        self.endVal = parent.current.data1D[0].shape[-1]
+        self.endVal = parent.current.len()
         self.grid.addWidget(wc.QLabel("Start point:"), 0, 0)
         self.startEntry = wc.QLineEdit(self.startVal, self.checkValues)
         self.grid.addWidget(self.startEntry, 1, 0)
@@ -4851,7 +4851,7 @@ class FiddleWindow(wc.ToolWindows):
 
     def picked(self, pos, second=False):
         if second:
-            dataLength = self.father.current.data1D[0].shape[-1]
+            dataLength = self.father.current.len()
             inp = safeEval(self.startEntry.text())
             if inp is not None:
                 self.startVal = int(round(inp))
@@ -4870,7 +4870,7 @@ class FiddleWindow(wc.ToolWindows):
             self.father.current.peakPick = True
 
     def checkValues(self, *args):
-        dataLength = self.father.current.data1D[0].shape[-1]
+        dataLength = self.father.current.len()
         inp = safeEval(self.startEntry.text())
         if inp is not None:
             self.startVal = int(round(inp))
@@ -4892,7 +4892,7 @@ class FiddleWindow(wc.ToolWindows):
             self.lbEntry.setText(str(inp))
 
     def applyFunc(self):
-        dataLength = self.father.current.data1D[0].shape[-1]
+        dataLength = self.father.current.len()
         inp = safeEval(self.startEntry.text())
         if inp is None:
             self.father.father.dispMsg("Reference deconv: start entry not valid")
@@ -4938,7 +4938,7 @@ class DeleteWindow(wc.ToolWindows):
         self.grid.addWidget(self.delEntry, 1, 0)
 
     def preview(self, *args):
-        length = int(self.father.current.data1D[0].shape[-1])
+        length = int(self.father.current.len())
         pos = safeEval(self.delEntry.text())
         if pos is None:
             self.father.father.dispMsg('Delete: not all values are valid indexes to delete')
@@ -4951,7 +4951,7 @@ class DeleteWindow(wc.ToolWindows):
             self.father.father.dispMsg('Delete: not all values are valid indexes to delete')
 
     def applyFunc(self):
-        length = int(self.father.current.data1D[0].shape[-1])
+        length = self.father.current.len()
         pos = safeEval(self.delEntry.text())
         if pos is None:
             self.father.father.dispMsg('Delete: not all values are valid indexes to delete')
@@ -4982,7 +4982,7 @@ class SplitWindow(wc.ToolWindows):
         self.grid.addWidget(self.splitEntry, 1, 0)
 
     def preview(self, *args):
-        val = safeEval(self.splitEntry.text(), self.father.current.data1D[0].shape[-1])
+        val = safeEval(self.splitEntry.text(), self.father.current.len())
         if val is None:
             self.father.father.dispMsg("Split: input not valid")
             return False
@@ -4990,7 +4990,7 @@ class SplitWindow(wc.ToolWindows):
             self.splitEntry.setText(str(int(round(val))))
 
     def applyFunc(self):
-        val = safeEval(self.splitEntry.text(), self.father.current.data1D[0].shape[-1])
+        val = safeEval(self.splitEntry.text(), self.father.current.len())
         if val is None:
             self.father.father.dispMsg("Split: input not valid")
             return False
@@ -5041,7 +5041,7 @@ class InsertWindow(wc.ToolWindows):
     def __init__(self, parent):
         super(InsertWindow, self).__init__(parent)
         self.grid.addWidget(wc.QLabel("Start insert at index:"), 0, 0)
-        self.posEntry = wc.QLineEdit(self.father.current.data1D[0].shape[-1], self.preview)
+        self.posEntry = wc.QLineEdit(self.father.current.len(), self.preview)
         self.grid.addWidget(self.posEntry, 1, 0)
         self.grid.addWidget(wc.QLabel("Workspace to insert:"), 2, 0)
         self.wsEntry = QtWidgets.QComboBox()
@@ -5053,8 +5053,8 @@ class InsertWindow(wc.ToolWindows):
         if pos is None:
             return
         pos = int(round(pos))
-        if pos > self.father.current.data1D[0].shape[-1]:
-            pos = self.father.current.data1D[0].shape[-1]
+        if pos > self.father.current.len():
+            pos = self.father.current.len()
         elif pos < 0:
             pos = 0
         self.posEntry.setText(str(pos))
@@ -5065,8 +5065,8 @@ class InsertWindow(wc.ToolWindows):
             self.father.father.dispMsg("Not a valid value")
             return
         pos = int(round(pos))
-        if pos > self.father.current.data1D[0].shape[-1]:
-            pos = self.father.current.data1D[0].shape[-1]
+        if pos > self.father.current.len():
+            pos = self.father.current.len()
         elif pos < 0:
             pos = 0
         ws = self.wsEntry.currentIndex()
@@ -5135,13 +5135,13 @@ class SNWindow(wc.ToolWindows):
         self.minNoiseEntry = wc.QLineEdit('0', self.checkValues)
         self.grid.addWidget(self.minNoiseEntry, 1, 0)
         self.grid.addWidget(wc.QLabel("End point noise:"), 2, 0)
-        self.maxNoiseEntry = wc.QLineEdit(parent.current.data1D[0].shape[-1], self.checkValues)
+        self.maxNoiseEntry = wc.QLineEdit(parent.current.len(), self.checkValues)
         self.grid.addWidget(self.maxNoiseEntry, 3, 0)
         self.grid.addWidget(wc.QLabel("Start point signal:"), 4, 0)
         self.minEntry = wc.QLineEdit('0', self.checkValues)
         self.grid.addWidget(self.minEntry, 5, 0)
         self.grid.addWidget(wc.QLabel("End point signal:"), 6, 0)
-        self.maxEntry = wc.QLineEdit(parent.current.data1D[0].shape[-1], self.checkValues)
+        self.maxEntry = wc.QLineEdit(parent.current.len(), self.checkValues)
         self.grid.addWidget(self.maxEntry, 7, 0)
         self.grid.addWidget(wc.QLabel("S/N:"), 8, 0)
         self.snEntry = wc.QLineEdit("0.0")
@@ -5169,7 +5169,7 @@ class SNWindow(wc.ToolWindows):
             self.applyFunc()
 
     def checkValues(self, *args):
-        dataLength = self.father.current.data1D[0].shape[-1]
+        dataLength = self.father.current.len()
         inp = safeEval(self.minNoiseEntry.text())
         if inp is None:
             return
@@ -5209,7 +5209,7 @@ class SNWindow(wc.ToolWindows):
         self.applyFunc()
 
     def applyFunc(self):
-        dataLength = self.father.current.data1D[0].shape[-1]
+        dataLength = self.father.current.len()
         inp = safeEval(self.minNoiseEntry.text())
         if inp is None:
             self.father.father.dispMsg("S/N: invalid range")
@@ -5268,11 +5268,11 @@ class FWHMWindow(wc.ToolWindows):
         self.minEntry = wc.QLineEdit('0', self.checkValues)
         self.grid.addWidget(self.minEntry, 1, 0)
         self.grid.addWidget(wc.QLabel("End point:"), 2, 0)
-        self.maxEntry = wc.QLineEdit(parent.current.data1D[0].shape[-1], self.checkValues)
+        self.maxEntry = wc.QLineEdit(parent.current.len(), self.checkValues)
         self.grid.addWidget(self.maxEntry, 3, 0)
         self.grid.addWidget(wc.QLabel("Units:"), 4, 0)
         unitSelect = self.father.current.viewSettings["axType"]
-        if self.father.current.spec == 1:
+        if self.father.current.spec() == 1:
             unitList = ['Hz', 'kHz', 'MHz', 'ppm']
             if self.father.current.viewSettings["ppm"]:
                 unitSelect = 3
@@ -5301,7 +5301,7 @@ class FWHMWindow(wc.ToolWindows):
             self.applyFunc()
 
     def checkValues(self, *args):
-        dataLength = self.father.current.data1D[0].shape[-1]
+        dataLength = self.father.current.len()
         inp = safeEval(self.minEntry.text())
         if inp is None:
             return
@@ -5323,7 +5323,7 @@ class FWHMWindow(wc.ToolWindows):
         self.applyFunc()
 
     def applyFunc(self):
-        dataLength = self.father.current.data1D[0].shape[-1]
+        dataLength = self.father.current.len()
         inp = safeEval(self.minEntry.text())
         if inp is None:
             self.father.father.dispMsg("FWHM: invalid range")
@@ -5362,11 +5362,11 @@ class COMWindow(wc.ToolWindows):  # Centre of Mass Window
         self.minEntry = wc.QLineEdit("0", self.checkValues)
         self.grid.addWidget(self.minEntry, 1, 0)
         self.grid.addWidget(wc.QLabel("End point:"), 2, 0)
-        self.maxEntry = wc.QLineEdit(parent.current.data1D[0].shape[-1], self.checkValues)
+        self.maxEntry = wc.QLineEdit(parent.current.len(), self.checkValues)
         self.grid.addWidget(self.maxEntry, 3, 0)
         self.grid.addWidget(wc.QLabel("Units:"), 4, 0)
         unitSelect = self.father.current.viewSettings["axType"]
-        if self.father.current.spec == 1:
+        if self.father.current.spec() == 1:
             unitList = ['Hz', 'kHz', 'MHz', 'ppm']
             if self.father.current.viewSettings["ppm"]:
                 unitSelect = 3
@@ -5395,7 +5395,7 @@ class COMWindow(wc.ToolWindows):  # Centre of Mass Window
             self.applyFunc()
 
     def checkValues(self, *args):
-        dataLength = self.father.current.data1D[0].shape[-1]
+        dataLength = self.father.current.len()
         inp = safeEval(self.minEntry.text())
         if inp is None:
             return
@@ -5417,7 +5417,7 @@ class COMWindow(wc.ToolWindows):  # Centre of Mass Window
         self.applyFunc()
 
     def applyFunc(self):
-        dataLength = self.father.current.data1D[0].shape[-1]
+        dataLength = self.father.current.len()
         inp = safeEval(self.minEntry.text())
         if inp is None:
             self.father.father.dispMsg("Centre of Mass: invalid range")
@@ -5503,7 +5503,7 @@ class IntegralsWindow(wc.ToolWindows):
         self.applyFunc()
 
     def applyFunc(self):
-        dataLength = self.father.current.data1D[0].shape[-1]
+        dataLength = self.father.current.len()
         for num in range(len(self.minEntries)):
             ok = True
             inp = safeEval(self.minEntries[num].text())
@@ -5577,11 +5577,11 @@ class ReorderWindow(wc.ToolWindows):
             if newLength is None:
                 self.father.father.dispMsg("Reorder: `Length' input is not valid")
                 return False
-        val = safeEval(self.valEntry.text(), int(self.father.current.data1D[0].shape[-1]))
+        val = safeEval(self.valEntry.text(), int(self.father.current.len()))
         if not isinstance(val, (list, np.ndarray)):
             self.father.father.dispMsg("Reorder: `Positions' input is not a list or array")
             return False
-        if len(val) != self.father.current.data1D[0].shape[-1]:
+        if len(val) != self.father.current.len():
             self.father.father.dispMsg("Reorder: length of input does not match length of data")
             return False
         val = np.array(val, dtype=int)
@@ -5607,7 +5607,7 @@ class RegridWindow(wc.ToolWindows):
         self.typeDrop.addItems(["Min/max input"])
         self.grid.addWidget(self.typeDrop, 0, 0, 1, 2)
         # Get unit
-        if self.father.current.spec == 1:
+        if self.father.current.spec() == 1:
             if self.father.masterData.shape()[self.father.current.axes] == 1:
                 self.father.father.dispMsg("Regrid: Regrid not possible with size 1")
                 self.closeEvent()
@@ -5622,8 +5622,8 @@ class RegridWindow(wc.ToolWindows):
                     self.unit = 'MHz'
                 elif self.father.current.viewSettings["axType"] == 3:
                     self.unit = 'ppm'
-            maxVal = self.father.current.xax[-1]
-            minVal = self.father.current.xax[0]
+            maxVal = self.father.current.xax()
+            minVal = self.father.current.xax(-2)
             if self.unit == 'kHz':
                 maxVal /= 1e3
                 minVal /= 1e3
@@ -5942,9 +5942,7 @@ class MultiplyWindow(wc.ToolWindows):
         if val is None:
             self.father.father.dispMsg("Multiply: input not valid")
             return False
-        check = self.father.current.multiplyPreview(np.array(val))
-        if check is not True:
-            self.father.father.dispMsg("Multiply: " + check)
+        self.father.current.multiplyPreview(np.array(val))
 
     def applyFunc(self):
         val = safeEval(self.valEntry.text())
@@ -5973,7 +5971,7 @@ class NormalizeWindow(wc.ToolWindows):
         self.minEntry = wc.QLineEdit("0", self.checkValues)
         self.grid.addWidget(self.minEntry, 1, 0)
         self.grid.addWidget(wc.QLabel("End point:"), 2, 0)
-        self.maxEntry = wc.QLineEdit(parent.current.data1D[0].shape[-1], self.checkValues)
+        self.maxEntry = wc.QLineEdit(parent.current.len(), self.checkValues)
         self.grid.addWidget(self.maxEntry, 3, 0)
         self.grid.addWidget(wc.QLabel("Type:"), 4, 0)
         self.typeDrop = QtWidgets.QComboBox()
@@ -5999,7 +5997,7 @@ class NormalizeWindow(wc.ToolWindows):
             #self.applyFunc()
 
     def checkValues(self, *args):
-        dataLength = self.father.current.data1D[0].shape[-1]
+        dataLength = self.father.current.len()
         inp = safeEval(self.minEntry.text())
         if inp is None:
             return
@@ -6021,7 +6019,7 @@ class NormalizeWindow(wc.ToolWindows):
         #self.applyFunc()
 
     def applyFunc(self):
-        dataLength = self.father.current.data1D[0].shape[-1]
+        dataLength = self.father.current.len()
         inp = safeEval(self.minEntry.text())
         if inp is None:
             self.father.father.dispMsg("Normalize: invalid range")
@@ -6073,7 +6071,7 @@ class XaxWindow(wc.ToolWindows):
 
     def __init__(self, parent):
         super(XaxWindow, self).__init__(parent)
-        self.axisSize = int(self.father.current.data1D[0].shape[-1])        
+        self.axisSize = self.father.current.len()
         self.grid.addWidget(wc.QLabel("Input x-axis values:"), 0, 0, 1, 2) 
         self.typeDropdown = QtWidgets.QComboBox()
         self.typeDropdown.addItems(['Expression', 'Linear', 'Logarithmic'])
@@ -6160,7 +6158,7 @@ class XaxWindow(wc.ToolWindows):
     def getValues(self):
         if self.typeDropdown.currentIndex() == 0:
             env = vars(np).copy()
-            env['length'] = int(self.father.current.data1D[0].shape[-1])  # so length can be used to in equations
+            env['length'] = self.father.current.len()  # so length can be used to in equations
             env['euro'] = lambda fVal, num=self.axisSize: func.euro(fVal, num)
             try:
                 val = np.array(eval(self.exprEntry.text(), env))                # find a better solution, also add catch for exceptions
@@ -6175,7 +6173,7 @@ class XaxWindow(wc.ToolWindows):
             if not isinstance(val, (list, np.ndarray)):
                 self.father.father.dispMsg("X-axis: Input is not a list or array")
                 return
-            if len(val) != self.father.current.data1D[0].shape[-1]:
+            if len(val) != self.father.current.len():
                 self.father.father.dispMsg("X-axis: Length of input does not match length of data")
                 return
             if not all(isinstance(x, (int, float)) for x in val):
@@ -6243,7 +6241,7 @@ class RefWindow(wc.ToolWindows):
             secRefValues.append(entry[1])
         self.secRefNames = secRefNames
         self.secRefValues = secRefValues
-        if parent.current.spec == 0:
+        if parent.current.spec() == 0:
             self.father.father.dispMsg('Setting ppm is only available for frequency data')
             self.closeEvent()
             return
@@ -6251,7 +6249,7 @@ class RefWindow(wc.ToolWindows):
         self.refName = wc.QLineEdit()
         self.grid.addWidget(self.refName, 1, 0)
         self.grid.addWidget(wc.QLabel("Frequency [MHz]:"), 2, 0)
-        self.freqEntry = wc.QLineEdit(("%.7f" % (self.father.current.ref * 1e-6)), self.preview)
+        self.freqEntry = wc.QLineEdit(("%.7f" % (self.father.current.ref() * 1e-6)), self.preview)
         self.grid.addWidget(self.freqEntry, 3, 0)
         self.grid.addWidget(wc.QLabel("Secondary Reference:"), 4, 0)
         self.refSecond = QtWidgets.QComboBox(parent=self)
@@ -6301,7 +6299,7 @@ class RefWindow(wc.ToolWindows):
             self.closeEvent()
 
     def picked(self, pos):
-        self.freqEntry.setText("%.7f" % ((self.father.current.ref + self.father.current.xax[pos[0]]) * 1e-6))
+        self.freqEntry.setText("%.7f" % ((self.father.current.ref() + self.father.current.xax()[pos[0]]) * 1e-6))
         self.father.current.peakPickFunc = lambda pos, self=self: self.picked(pos)
         self.father.current.peakPick = True
 
