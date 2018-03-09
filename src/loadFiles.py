@@ -75,7 +75,7 @@ def fileTypeCheck(filePath):
                 return (8, filePath, returnVal)  # Suspected NMRpipe format
             else:  # SIMPSON
                 return (4, filePath, returnVal)
-        if filename.endswith('.ft') or filename.endswith('.ft2') or filename.endswith('.ft3') or filename.endswith('.ft4'):
+        if filename.endswith('.ft') or filename.endswith('.ft1') or filename.endswith('.ft2') or filename.endswith('.ft3') or filename.endswith('.ft4'):
             with open(filePath, 'r') as f:
                 check = int(np.fromfile(f, np.float32, 1))
             if check == 0:
@@ -217,8 +217,12 @@ def loadPipe(filePath, name=''):
     TotP = SIZE[3] * SIZE[2] #Max file size
     if quadFlag[3] == 0:  # if complex direct axis
         TotP = TotP * 2
-    if NDIM == 4 and cubeFlag == 1:
+    if NDIM == 4 and cubeFlag == 1 and pipeFlag == 0:
         TotP *= SIZE[1] #If file 3D format, load more data points
+    elif NDIM == 4 and pipeFlag > 0:
+        TotP *= SIZE[0] * SIZE[1]
+    if NDIM == 3 and pipeFlag > 0:
+        TotP *= SIZE[1]
 
     if numFiles  == 1:
         files = [filePath]
@@ -237,9 +241,13 @@ def loadPipe(filePath, name=''):
             data.append( np.fromfile(f, np.float32, TotP))
 
     for i in range(len(data)): #Reshape all the data
-        if NDIM > 1 and cubeFlag == 0: #Reshape 2D sets if needed
+        if NDIM > 1 and cubeFlag == 0 and pipeFlag == 0: #Reshape 2D sets if needed
             data[i] = np.reshape(data[i], (SIZE[2],int(TotP/SIZE[2])))
-        elif NDIM == 4 and cubeFlag == 1: #For 4D, in sets of 3D
+        elif NDIM == 4 and cubeFlag == 1 and pipeFlag == 0: #For 4D, in sets of 3D
+            data[i] = np.reshape(data[i], (SIZE[1],SIZE[2],int(TotP/SIZE[2]/SIZE[1])))
+        elif NDIM == 4 and pipeFlag > 0: #For stream
+            data[i] = np.reshape(data[i], (SIZE[0],SIZE[1],SIZE[2],int(TotP/SIZE[2]/SIZE[1]/SIZE[0])))
+        elif NDIM ==3 and pipeFlag > 0: #For stream
             data[i] = np.reshape(data[i], (SIZE[1],SIZE[2],int(TotP/SIZE[2]/SIZE[1])))
 
     #For 3D or 4D data, merge the datasets
