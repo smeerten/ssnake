@@ -24,7 +24,7 @@ import os
 
 
 def loading(num, filePath, name=None, realpath=False, dialog=None):
-    #try:
+    try:
         if num == 0:
             masterData = loadVarianFile(filePath, name)
         elif num == 1:
@@ -55,9 +55,9 @@ def loading(num, filePath, name=None, realpath=False, dialog=None):
             masterData = loadMinispec(filePath, name)
         elif num == 13:
             masterData = loadBrukerEPR(filePath, name)
-    #except Exception:
-    #    return None
-        return masterData
+    except Exception:
+        return None
+    return masterData
 
 
 def fileTypeCheck(filePath):
@@ -75,7 +75,7 @@ def fileTypeCheck(filePath):
                 return (8, filePath, returnVal)  # Suspected NMRpipe format
             else:  # SIMPSON
                 return (4, filePath, returnVal)
-        if filename.endswith('.ft') or filename.endswith('.ft2') or filename.endswith('.ft3'):
+        if filename.endswith('.ft') or filename.endswith('.ft2') or filename.endswith('.ft3') or filename.endswith('.ft4'):
             with open(filePath, 'r') as f:
                 check = int(np.fromfile(f, np.float32, 1))
             if check == 0:
@@ -199,44 +199,78 @@ def loadVarianFile(filePath, name=''):
 def loadPipe(filePath, name=''):
     with open(filePath, 'r') as f:
         header = np.fromfile(f, np.float32, 512)
-        NP = int(header[99])
-        NI = int(header[219])
-        NDIM = int(header[9])
-        if NDIM > 2:
-            NDIM = 2
-        SIZE = [int(header[32]),int(header[15]),int(header[219]),int(header[99])]
-        #print('new',newSize)
-        hyper = int(header[106])
-        TotP = SIZE[3] * SIZE[2] #Max 2D size
-        if int(header[106]) == 0:  # if complex
-            TotP = TotP * 2
-        data = np.fromfile(f, np.float32, TotP)
-        if SIZE[2] > 1:
-            data = np.reshape(data, (SIZE[2],int(TotP/SIZE[2])))
+    NDIM = int(header[9])
+    SIZE = [int(header[32]),int(header[15]),int(header[219]),int(header[99])]
+    quadFlag = [int(header[54]),int(header[51]),int(header[55]),int(header[56])] #0 complex, 1 real        
+    spec = [int(header[31]),int(header[13]),int(header[222]),int(header[220])]  # 1 if ft, 0 if time
+    freq = np.array([header[28],header[10],header[218],header[119]]) * 1e6
+    sw = [header[29],header[11],header[229],header[100]]
+    ref = [header[30],header[12],header[249],header[101]]  # frequency of last point in Hz
+    numFiles = int(header[442]) #Number of files to be loaded
+    pipeFlag = int(header[57]) #Indicates stream, or separate files
+    cubeFlag = int(header[447]) #1 if 4D, and saved as sets of 3D
 
-        if int(header[106]) == 0:
-            if SIZE[2] == 1:
-                data = data[:SIZE[3]] + 1j * data[SIZE[3]:]
-            else:
-                data = data[:,:SIZE[3]] + 1j * data[:,SIZE[3]:]
-
-        quadflag = [int(header[54]),int(header[51]),int(header[55]),int(header[56])] #0 complex, 1 real        
-        spec = [int(header[31]),int(header[13]),int(header[222]),int(header[220])]  # 1 if ft, 0 if time
-        freq = np.array([header[28],header[10],header[218],header[119]]) * 1e6
-        sw = [header[29],header[11],header[229],header[100]]
-        ref = [header[30],header[12],header[249],header[101]]  # frequency of last point in Hz
-
-    for i in range(len(spec)):
-        sidefreq = -np.floor(SIZE[i] / 2) / SIZE[i] * sw[i]  # freqeuency of last point on axis
+    for i in range(len(spec)): #get reference frequencies
+        sidefreq = -np.floor(SIZE[i] / 2) / SIZE[i] * sw[i]  # frequency of last point on axis
         ref[i] = sidefreq + freq[i] - ref[i]
 
+    TotP = SIZE[3] * SIZE[2] #Max file size
+    if quadFlag[3] == 0:  # if complex direct axis
+        TotP = TotP * 2
+    if NDIM == 4 and cubeFlag == 1:
+        TotP *= SIZE[1] #If file 3D format, load more data points
 
-    for i in range(NDIM):
-        if spec[-1 - i] == 1: #If spectrum
-            data = np.flip(data, NDIM -1 - i)
+    if numFiles  == 1:
+        files = [filePath]
+    else: #Get the names of the files, if more than 1
+        dir,file = os.path.split(filePath)
+        base, ext = os.path.splitext(file)
+        start = re.search('[0-9]+$',base).start()
+        basename = base[:start]
+        numbers = len(base[start:])
+        files = [dir + os.path.sep + basename + str(x + 1).zfill(numbers) + ext for x in range(numFiles)]
 
-    masterData = sc.Spectrum(name, data, (8, filePath), freq[4 - NDIM:4], sw[4 - NDIM:4], spec[4 - NDIM:4], ref=ref[4 - NDIM:4])
+    data = []
+    for file in files: #Load all the data from the files
+        with open(file, 'r') as f:
+            tmp = np.fromfile(f, np.float32, 512)
+            data.append( np.fromfile(f, np.float32, TotP))
 
+    for i in range(len(data)): #Reshape all the data
+        if NDIM > 1 and cubeFlag == 0: #Reshape 2D sets if needed
+            data[i] = np.reshape(data[i], (SIZE[2],int(TotP/SIZE[2])))
+        elif NDIM == 4 and cubeFlag == 1: #For 4D, in sets of 3D
+            data[i] = np.reshape(data[i], (SIZE[1],SIZE[2],int(TotP/SIZE[2]/SIZE[1])))
+
+    #For 3D or 4D data, merge the datasets
+    if NDIM > 2 and pipeFlag == 0:
+        data = [np.array(data)]
+
+
+    eS = (slice(None),) #empty slice
+    if quadFlag[3] == 0: #If complex along last dim
+        useSlice = eS * (NDIM - 1)
+        data[0] = data[0][useSlice + (slice(None,SIZE[3],None),)] + 1j * data[0][useSlice + (slice(SIZE[3],None,None),)]
+
+    hyper = []
+    if NDIM > 1: #Reorder data, if hypercomplex along an axis
+        for dim in range(NDIM - 1):
+            newdata = []
+            if quadFlag[4 - NDIM + dim] == 0:
+                useSlice1 = eS * dim +(slice(None,None,2),) + eS * (NDIM - dim - 1)
+                useSlice2 = eS * dim +(slice(1,None,2),) + eS * (NDIM - dim - 1)
+                for dat in data:
+                    newdata.append(dat[useSlice1])
+                    newdata.append(dat[useSlice2])
+                data = newdata
+                hyper.append(dim)
+              
+    for k in range(len(data)): #Flip LR if spectrum axis
+        for i in range(NDIM):
+            if spec[-1 - i] == 1: 
+                data[k] = np.flip(data[k], NDIM -1 - i)
+
+    masterData = sc.Spectrum(name, data, (8, filePath), freq[4 - NDIM:4], sw[4 - NDIM:4], spec[4 - NDIM:4], ref=ref[4 - NDIM:4], hyper = hyper)
     masterData.addHistory("NMRpipe data loaded from " + filePath)
     return masterData
 
