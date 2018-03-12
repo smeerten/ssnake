@@ -27,8 +27,6 @@ from nus import ffm, clean, ist
 import multiprocessing
 from matplotlib.pyplot import get_cmap
 import matplotlib
-import matplotlib._cntr as cntr
-import matplotlib.collections as mcoll
 import reimplement as reim
 import functions as func
 
@@ -1922,21 +1920,6 @@ class Spectrum(object):
                                            self.msgHandler))
         sliceSpec.noUndo = True
         return sliceSpec
-    
-    # def getSlice(self, axes, locList):
-    #     axes = self.checkAxes(axes)
-    #     if axes is None:
-    #         return None
-    #     datList = []
-    #     for item in self.data:
-    #         datList.append(item[tuple(locList[:axes]) + (slice(None), ) + tuple(locList[axes:])])
-    #     return copy.deepcopy((datList,
-    #                           self.freq[axes],
-    #                           self.sw[axes],
-    #                           self.spec[axes],
-    #                           self.wholeEcho[axes],
-    #                           self.xaxArray[axes],
-    #                           self.ref[axes]))
 
     def getBlock(self, axes, axes2, locList, stackBegin=None, stackEnd=None, stackStep=None):
         axes = self.checkAxes(axes)
@@ -2342,7 +2325,7 @@ class Current1D(Plot1DFrame):
                 scale = np.max(np.max(np.real(y)), np.max(np.imag(y)))
             elif self.viewSettings["plotType"] == 3:
                 scale = np.max(np.abs(y))
-            self.showFid(y, curve[0], scale*np.array(curve[1]), ['g']*len(curve[0]))
+            self.showFid(y, curve[0], scale*np.array(curve[1]), 'g')
         else:
             self.showFid()
         self.upd()
@@ -2551,7 +2534,7 @@ class Current1D(Plot1DFrame):
                 scale = np.max([scale,abs(yNew[-1][0]),abs(yNew[-1][-1])])
         for num in range(len(yNew)):
             yNew[num] = yNew[num] / scale * maxim
-        self.showFid(extraX=xNew, extraY=yNew, extraColor = ['g'] * len(xNew))
+        self.showFid(extraX=xNew, extraY=yNew, extraColor='g')
         return
 
     def setSizePreview(self, size, pos):  # set size only on local data
@@ -2739,9 +2722,9 @@ class Current1D(Plot1DFrame):
         self.resetPreviewRemoveList()
         if check:
             if self.ndim() > 1:
-                self.showFid(extraX=[self.xax()], extraY=[y]*self.len(-2), extraColor=['g'])
+                self.showFid(extraX=[self.xax()], extraY=[y]*self.len(-2), extraColor='g')
             else:
-                self.showFid(extraX=[self.xax()], extraY=[y], extraColor=['g'])
+                self.showFid(extraX=[self.xax()], extraY=[y], extraColor='g')
         else:
             self.showFid()
         self.previewRemoveList(removeList, invert)
@@ -3206,7 +3189,7 @@ class Current1D(Plot1DFrame):
             for num in range(len(extraX)):
                 self.line_xdata_extra.append(extraX[num] * axMult)
                 self.line_ydata_extra.append(extraY[num])
-                self.ax.plot(self.line_xdata_extra[-1], self.line_ydata_extra[-1], marker=marker, linestyle=linestyle, c=extraColor[num], linewidth=self.viewSettings["linewidth"], picker=True)
+                self.ax.plot(self.line_xdata_extra[-1], self.line_ydata_extra[-1], marker='', linestyle='-', c=extraColor, linewidth=self.viewSettings["linewidth"], picker=True)
         if (self.viewSettings["plotType"] == 0):
             self.line_ydata = [np.real(tmpdata)]
         elif(self.viewSettings["plotType"] == 1):
@@ -3219,8 +3202,16 @@ class Current1D(Plot1DFrame):
             self.line_ydata = [np.abs(tmpdata)]
         self.ax.plot(self.line_xdata[-1], self.line_ydata[-1], marker=marker, linestyle=linestyle, c=self.viewSettings["color"], linewidth=self.viewSettings["linewidth"], label=self.data.name, picker=True)
         self.ax.set_xlabel(self.getLabel(self.spec(), self.viewSettings["axType"], self.viewSettings["ppm"]))
-        self.ax.get_xaxis().get_major_formatter().set_powerlimits((-4, 4))
-        self.ax.get_yaxis().get_major_formatter().set_powerlimits((-4, 4))
+        if self.logx:
+            self.ax.set_xscale('log')
+        else:
+            self.ax.set_xscale('linear')
+            self.ax.get_xaxis().get_major_formatter().set_powerlimits((-4, 4))
+        if self.logy:
+            self.ax.set_yscale('log')
+        else:
+            self.ax.set_yscale('linear')
+            self.ax.get_yaxis().get_major_formatter().set_powerlimits((-4, 4))
         self.ax.xaxis.grid(self.viewSettings["grids"][0])
         self.ax.yaxis.grid(self.viewSettings["grids"][1])
         if self.spec() > 0:
@@ -3931,45 +3922,18 @@ class CurrentContour(CurrentStacked):
                     else:
                         XposMin = np.arange(self.line_zdata[-1].shape[1])
                     PlotNegative = True
-
-        def contourTrace(level, color):
-            level = c.trace(level) #25% of time
-            segs = level[:len(level) // 2]
-            col = mcoll.LineCollection(segs) #75% of time
-            col.set_label(self.data.name)
-            col.set_linewidth(self.viewSettings["linewidth"])
-            col.set_linestyle('solid')
-            col.set_color(color)
-            return col
+        vmax = max(np.abs(self.viewSettings["minLevels"] * self.differ), np.abs(self.viewSettings["maxLevels"] * self.differ))
+        vmin = -vmax
         if self.viewSettings["contourConst"]:
-            collections = []
             if PlotPositive:
-                c = cntr.Cntr(X[YposMax[:, None], XposMax], Y[YposMax[:, None], XposMax], self.line_zdata[-1][YposMax[:, None], XposMax])
-                for level in contourLevels:
-                    collections.append(contourTrace(level, self.viewSettings["contourColors"][0]))
+                self.ax.contour(X[YposMax[:,None],XposMax],Y[YposMax[:,None],XposMax],self.line_zdata[-1][YposMax[:,None],XposMax], colors=self.viewSettings["contourColors"][0], levels=contourLevels, vmax=vmax, vmin=vmin, linewidths=self.viewSettings["linewidth"], label=self.data.name, linestyles='solid')
             if PlotNegative:
-                c = cntr.Cntr(X[YposMin[:, None], XposMin], Y[YposMin[:, None], XposMin], self.line_zdata[-1][YposMin[:, None], XposMin])
-                for level in -contourLevels[::-1]:
-                    collections.append(contourTrace(level, self.viewSettings["contourColors"][1]))
-            for col in collections:  # plot all
-                self.ax.add_collection(col)
+                self.ax.contour(X[YposMin[:,None],XposMin],Y[YposMin[:,None],XposMin],self.line_zdata[-1][YposMin[:,None],XposMin], colors=self.viewSettings["contourColors"][1], levels=-contourLevels[::-1], vmax=vmax, vmin=vmin, linewidths=self.viewSettings["linewidth"], linestyles='solid')
         else:
-            vmax = max(np.abs(self.viewSettings["minLevels"] * self.differ), np.abs(self.viewSettings["maxLevels"] * self.differ))
-            vmin = -vmax
-            colorMap = get_cmap(self.viewSettings["colorMap"])
-            collections = []
             if PlotPositive:
-                c = cntr.Cntr(X[YposMax[:, None], XposMax], Y[YposMax[:, None], XposMax], self.line_zdata[-1][YposMax[:, None], XposMax])
-                for level in contourLevels:
-                    clevel = colorMap((level - vmin) / (vmax - vmin))
-                    collections.append(contourTrace(level, clevel))
-            if PlotNegative:
-                c = cntr.Cntr(X[YposMin[:, None], XposMin], Y[YposMin[:, None], XposMin], self.line_zdata[-1][YposMin[:, None], XposMin])
-                for level in -contourLevels[::-1]:
-                    clevel = colorMap((level - vmin) / (vmax - vmin))
-                    collections.append(contourTrace(level, clevel))
-            for col in collections:  # plot all
-                self.ax.add_collection(col)
+                self.ax.contour(X[YposMax[:,None],XposMax],Y[YposMax[:,None],XposMax],self.line_zdata[-1][YposMax[:,None],XposMax], cmap=get_cmap(self.colorMap), levels=contourLevels, vmax=vmax, vmin=vmin, linewidths=self.viewSettings["linewidth"], label=self.data.name, linestyles='solid')
+            if PlotNegative:    
+                self.ax.contour(X[YposMin[:,None],XposMin],Y[YposMin[:,None],XposMin],self.line_zdata[-1][YposMin[:,None],XposMin], cmap=get_cmap(self.colorMap), levels=-contourLevels[::-1], vmax=vmax, vmin=vmin, linewidths=self.viewSettings["linewidth"], linestyles='solid')
         if updateOnly:
             self.canvas.draw()
 
