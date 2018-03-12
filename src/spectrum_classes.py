@@ -53,7 +53,7 @@ class Spectrum(object):
             self.hyper = [] # Holds the axes where hypercomplex data exists
         else:
             self.hyper = hyper
-        self.data, self.hyper = self.sortHyper(self.data, self.hyper) #force hyper into descending order
+        self.sortHyper() #force hyper into descending order
         self.filePath = filePath
         self.freq = np.array(freq)  # array of center frequency (length is dim, MHz)
         self.sw = sw  # array of sweepwidths
@@ -223,39 +223,28 @@ class Spectrum(object):
             self.dispMsg('Cannot delete all data')
             return None
 
-    def expandHyperData(self,data1, hyper1, data2, hyper2):
-        #Takes two hypercomplex datasets and returns both sets having the same hyper shape
-        #New hypercomplex dimensions are filled with zeros.
-        newElem1 = list(set(hyper2) - set(hyper1))
-        newElem2 = list(set(hyper1) - set(hyper2))
-        newdata1 = []
-        newSize = 2**len(newElem1)
-        for i in range(len(data1)):
-            newdata1.append(data1[i])
+    def expandHyperData(self, incl_hyper):
+        # Expands the hypercomplex data to include hypercomplex axes.
+        # New hypercomplex dimensions are filled with zeros.
+        newElem = list(set(incl_hyper) - set(self.hyper))
+        newdata = []
+        newSize = 2**len(newElem)
+        for i in range(len(self.data)):
+            newdata.append(self.data[i])
             for k in range(newSize - 1):
-                newdata1.append(np.zeros_like(data1[0]))
-        hyper1 = hyper1 + newElem1 #New hyper list
-        newdata1, hyper1= self.sortHyper(newdata1, hyper1) #Sort the hyperdata in descending order
-        newdata2 = []
-        newSize = 2**len(newElem2)
-        for i in range(len(data2)):
-            newdata2.append(data2[i])
-            for k in range(newSize - 1):
-                newdata2.append(np.zeros_like(data1[0]))
-        hyper2 = hyper2 + newElem2 #New hyper list
-        newdata2, hyper2 = self.sortHyper(newdata2, hyper2) #Sort the hyperdata in descending order
-        return newdata1, hyper1, newdata2, hyper2
+                newdata.append(np.zeros_like(self.data[0]))
+        self.data = newdata
+        self.hyper += newElem #New hyper list
+        self.sortHyper() #Sort the hyperdata in descending order
 
-    def add(self, data, dataImag = None, hyper = [], select=slice(None)):
+    def add(self, data, dataImag=None, hyper=[], select=slice(None)):
         #Convert both data sets to the full hyper space
         #to be able to sum them
-        hyper1 = self.hyper
-        hyper2 = hyper
         if self.noUndo:
             returnValue = None
         else:
-            if hyper1 == hyper2: #If both sets have same hyper: easy subtract can be used for undo
-                returnValue = lambda self: self.subtract(data, dataImag, hyper = hyper, select=select)
+            if self.hyper == hyper: #If both sets have same hyper: easy subtract can be used for undo
+                returnValue = lambda self: self.subtract(data, dataImag, hyper=hyper, select=select)
             else: #Otherwise: do a deep copy of the class
                 copyData = copy.deepcopy(self)
                 returnValue = lambda self: self.restoreData(copyData, lambda self: self.add(data, dataImag, hyper, select))
@@ -269,20 +258,24 @@ class Spectrum(object):
         except ValueError as error:
             self.dispMsg(str(error))
             return None
-        self.data, hyper1, newDat, hyper2 = self.expandHyperData(self.data, hyper1, newDat, hyper2)
+        self.expandHyperData(hyper)
         if isinstance(select, string_types):
             select = safeEval(select)
         try:
+            #BvM
+            #self.data[0][select] += newDat[0]
+            count = 0
             for index in range(len(self.data)):
-                self.data[index][select] = self.data[index][select] + newDat[index]
-            self.hyper = hyper1 #Set hyper to expanded value
+                if self.hyper[index % len(self.hyper)] in hyper:
+                    self.data[index][select] += newDat[count]
+                    count += 1
         except ValueError as error:
             self.dispMsg(str(error))
             return None
         self.addHistory("Added to data[" + str(select) + "]")
         return returnValue
 
-    def subtract(self, data, dataImag=None, hyper = [], select=slice(None)):
+    def subtract(self, data, dataImag=None, hyper=[], select=slice(None)):
         #Convert both data sets to the full hyper space
         #to be able to sum them
         hyper1 = self.hyper
@@ -321,7 +314,7 @@ class Spectrum(object):
         else:
             return returnValue
     
-    def multiplySpec(self, data, dataImag=None, hyper = [], select=slice(None)):
+    def multiplySpec(self, data, dataImag=None, hyper=[], select=slice(None)):
         #Convert both data sets to the full hyper space
         #to be able to sum them
         hyper1 = self.hyper
@@ -571,10 +564,11 @@ class Spectrum(object):
             return lambda self: self.restoreData(copyData, lambda self: self.abs(axes))
     
     def conj(self, axes):
-        self.data = self.hyperReorder(self.data, axes)
+        axes = self.checkAxes(axes)
+        self.hyperReorder(axes)
         for index in range(len(self.data)):
             self.data[index] = np.conj(self.data[index])
-        self.data = self.hyperReorder(self.data, axes)
+        self.hyperReorder(axes)
         self.addHistory("Complex conjugate dimension " + str(axes+1))
         if self.noUndo:
             return None
@@ -602,7 +596,7 @@ class Spectrum(object):
             self.data.append(tmp)
             self.data.append(tmp2)
         self.hyper.append(axes)
-        self.data, self.hyper = self.sortHyper(self.data, self.hyper) #Order the hyper data to default order
+        self.sortHyper() #Order the hyper data to default order
         self.resetXax(axes)
         self.addHistory("States conversion on dimension " + str(axes + 1))
         if self.noUndo:
@@ -635,7 +629,7 @@ class Spectrum(object):
             self.data.append(tmp)
             self.data.append(tmp2)
         self.hyper.append(axes)
-        self.data, self.hyper = self.sortHyper(self.data, self.hyper) #Order the hyper data to default order
+        self.sortHyper() #Order the hyper data to default order
         self.resetXax(axes)
         self.addHistory("States-TPPI conversion on dimension " + str(axes + 1))
         if self.noUndo:
@@ -664,7 +658,7 @@ class Spectrum(object):
             self.data.append(tmp1)
             self.data.append(tmp2)
         self.hyper.append(axes)
-        self.data, self.hyper = self.sortHyper(self.data, self.hyper) #Order the hyper data to default order
+        self.sortHyper() #Order the hyper data to default order
         self.resetXax(axes)
         self.addHistory("Echo-antiecho conversion on dimension " + str(axes + 1))
         if self.noUndo:
@@ -1087,17 +1081,17 @@ class Spectrum(object):
             return None
         if not self.noUndo:
             copyData = copy.deepcopy(self)
-        self.data = self.hyperReorder(self.data,axes)
+        self.hyperReorder(axes)
         for index in range(len(self.data)):
             self.data[index] = scipy.signal.hilbert(np.real(self.data[index]), axis=axes)
-        self.data = self.hyperReorder(self.data,axes)
+        self.hyperReorder(axes)
         self.addHistory("Hilbert transform on dimension " + str(axes + 1))
         if self.noUndo:
             return None
         else:
             return lambda self: self.restoreData(copyData, lambda self: self.hilbert(axes))
 
-    def autoPhase(self, phaseNum, axes, locList):
+    def autoPhase(self, phaseNum, axes, locList, returnPhases=False):
         axes = self.checkAxes(axes)
         if axes is None:
             return None
@@ -1107,40 +1101,39 @@ class Spectrum(object):
         if np.any(locList >= np.delete(self.shape(), axes)) or np.any(np.array(locList) < 0):
             self.dispMsg("The location array contains invalid indices")
             return None
+        self.hyperReorder(axes)
+        if self.spec[axes] == 0:
+            self.fourier(axes, tmp=True)
         tmp = []
         for item in self.data:
             tmp.append(item[tuple(locList[:axes]) + (slice(None), ) + tuple(locList[axes:])])
-        if self.spec[axes] == 0:
-                tmp = self.fourierLocal(tmp, 0, axes)
         x = np.fft.fftshift(np.fft.fftfreq(len(tmp[0]), 1.0 / self.sw[axes])) / self.sw[axes]
-        tmp = self.hyperReorder(tmp, axes)
         if phaseNum == 0:
             phases = scipy.optimize.minimize(self.ACMEentropy, [0], (tmp, x, False), method='Powell')
             phase0 = phases['x']
             phase1 = 0.0
         elif phaseNum == 1:
-            phases = scipy.optimize.minimize(self.ACMEentropy, [0, 0], (tmp, x ), method='Powell')
+            phases = scipy.optimize.minimize(self.ACMEentropy, [0, 0], (tmp, x), method='Powell')
             phase0 = phases['x'][0]
             phase1 = phases['x'][1]
-        tmp = self.hyperReorder(tmp, axes)
-        if self.spec[axes] == 0:
-                tmp = self.fourierLocal(tmp,1, axes)
         if self.ref[axes] is None:
             offset = 0
         else:
             offset = self.freq[axes] - self.ref[axes]
         vector = np.exp(np.fft.fftshift(np.fft.fftfreq(self.shape()[axes], 1.0 / self.sw[axes]) + offset) / self.sw[axes] * phase1 * 1j)
-        if self.spec[axes] == 0:
-            self.fourier(axes, tmp=True)
-        self.data = self.hyperReorder(self.data, axes)
         for index in range(len(self.data)):
             self.data[index] = self.data[index] * np.exp(phase0 * 1j)
             self.data[index] = np.apply_along_axis(np.multiply, axes, self.data[index], vector)
-        self.data = self.hyperReorder(self.data, axes)
         if self.spec[axes] == 0:
             self.fourier(axes, tmp=True, inv=True)
+        self.hyperReorder(axes)
         Message = "Autophase: phase0 = " + str(phase0 * 180 / np.pi) + " and phase1 = " + str(phase1 * 180 / np.pi) + " for dimension " + str(axes + 1)
         self.addHistory(Message)
+        if returnPhases:
+            if phaseNum == 0:
+                return [phases['x']]
+            else:
+                return phases['x']
         if self.noUndo:
             return None
         else:
@@ -1168,44 +1161,6 @@ class Spectrum(object):
             Pfun = Pfun + sum(as1**2) / 4 / L**2
         return H1 + 1000 * Pfun
 
-    def fourierLocal(self, fourData, spec, axis, wholeEcho = False):  # fourier the local data for other functions
-        ax = len(fourData[0].shape) - 1
-        fourData = self.hyperReorder(fourData, axis)
-        if spec == 0:
-            if not wholeEcho:
-                slicing = (slice(None), ) * ax + (0, )
-                for index in range(len(fourData)):
-                    fourData[index][slicing] = fourData[index][slicing] * 0.5
-            for index in range(len(fourData)):
-                if ax == 0:
-                    fourData[index] = np.fft.fftshift(np.fft.fft(fourData[index]))
-                else:
-                    fourData[index] = np.fft.fftshift(np.fft.fftn(fourData[index], axes=[axis]), axes=axis)
-        else:
-            for index in range(len(fourData)):
-                if ax == 0:
-                    fourData[index] = np.fft.ifft(np.fft.ifftshift(fourData[index]))
-                else:
-                    fourData[index] = np.fft.ifftn(np.fft.ifftshift(fourData[index], axes=axis), axes=[axis])
-            if not wholeEcho:
-                slicing = (slice(None), ) * ax + (0, )
-                for index in range(len(fourData)):
-                    fourData[index][slicing] = fourData[index][slicing] * 2.0
-        fourData = self.hyperReorder(fourData, axis)
-        return fourData
-
-    def phaseLocal(self, data, sw, offset, phase0, phase1, axis): #Provides a phase function on any data
-        tmpdat = self.hyperReorder(data, axis)
-        #Data input always as spectrum (calling code should make sure of this)
-        if len(data[0].shape) > 1:
-            mult = np.repeat([np.exp(np.fft.fftshift(np.fft.fftfreq(len(data[0][0]), 1.0 / sw) + offset) / sw * phase1 * 1j)], len(tmpdat[0]), axis=0)
-        else:
-            mult = np.exp(np.fft.fftshift(np.fft.fftfreq(len(data[0]), 1.0 / sw) + offset) / sw * phase1 * 1j)
-        for index in range(len(tmpdat)):
-            tmpdat[index] = tmpdat[index] * mult * np.exp(phase0 * 1j)
-        tmpdat = self.hyperReorder(tmpdat, axis)
-        return tmpdat
-
     def setPhase(self, phase0, phase1, axes, select=slice(None)):
         if isinstance(select, string_types):
             select = safeEval(select)
@@ -1219,11 +1174,11 @@ class Spectrum(object):
         vector = np.exp(np.fft.fftshift(np.fft.fftfreq(self.shape()[axes], 1.0 / self.sw[axes]) + offset) / self.sw[axes] * phase1 * 1j)
         if self.spec[axes] == 0:
             self.fourier(axes, tmp=True)
-        self.data = self.hyperReorder(self.data, axes)
+        self.hyperReorder(axes)
         for index in range(len(self.data)):
             self.data[index][select] = self.data[index][select] * np.exp(phase0 * 1j)
             self.data[index][select] = np.apply_along_axis(np.multiply, axes, self.data[index], vector)[select]
-        self.data = self.hyperReorder(self.data, axes)
+        self.hyperReorder(axes)
         if self.spec[axes] == 0:
             self.fourier(axes, tmp=True, inv=True)
         Message = "Phasing: phase0 = " + str(phase0 * 180 / np.pi) + " and phase1 = " + str(phase1 * 180 / np.pi) + " for dimension " + str(axes + 1)
@@ -1544,16 +1499,16 @@ class Spectrum(object):
         else:
             return lambda self: self.restoreData(copyData, lambda self: self.shiftData(shift, axes, select=select))
 
-    def hyperReorder(self, data, axis): #A function to reorder the data for a hypercomplex operation
+    def hyperReorder(self, axis): #A function to reorder the data for a hypercomplex operation
         hyper = [x for x in self.hyper if x == axis]
         if len(hyper) == 0:
-            return data
+            return
         elif len(hyper) == 1:
             hyper = self.hyper.index(hyper[0])
         else:
             print('error in hyper')
             return
-        hyperLen = len(data)
+        hyperLen = len(self.data)
         values = np.arange(hyperLen)
         step = 2**(len(self.hyper) - hyper - 1)
         list1 = np.array([], dtype=int)
@@ -1567,8 +1522,7 @@ class Spectrum(object):
         for index in range(len(list1)):
             l1 = list1[index]
             l2 = list2[index]
-            data[l1], data[l2] = np.real(data[l1]) + 1j*np.real(data[l2]), np.imag(data[l1]) + 1j*np.imag(data[l2])
-        return data
+            self.data[l1], self.data[l2] = np.real(self.data[l1]) + 1j*np.real(self.data[l2]), np.imag(self.data[l1]) + 1j*np.imag(self.data[l2])
 
     def deleteHyper(self, axis, data, hyper, imag=False):
         #Deletes hypercomplex data along axis, is any
@@ -1588,61 +1542,59 @@ class Spectrum(object):
                     newdat.append(data[i])
         return newdat, [x for x in hyper if x != axis]
 
-    def sortHyper(self, data, hyper):
+    def sortHyper(self):
         # Makes sure that the hyper list is in descending order (e.g. [3,1,0])
         # and adjust the data list accordingly
-        if len(hyper) == 0:
-            return data, hyper
-        else:
-            order = np.argsort(hyper)[::-1]
-            newhyper = [hyper[x] for x in order]
-            nat = ['R','I'] # nature of each data matrix
-            for elem in hyper[1::]:
-                tmp = []
-                for l in nat:
-                    tmp.append(l + 'R')
-                    tmp.append(l + 'I')
-                nat = copy.copy(tmp)
-            newnat = [] # the required new nature
-            for elem in nat:
-                tmp = ''
-                for i in order:
-                    tmp += elem[i]
-                newnat.append(tmp)
-            # Order the data in the new way
-            newindex = [nat.index(x) for x in newnat]
-            newdata = [data[x] for x in newindex]
-            return newdata, newhyper
+        if len(self.hyper) == 0:
+            return
+        order = np.argsort(self.hyper)[::-1]
+        self.hyper = [self.hyper[x] for x in order]
+        nat = ['R','I'] # nature of each data matrix
+        for elem in self.hyper[1::]:
+            tmp = []
+            for l in nat:
+                tmp.append(l + 'R')
+                tmp.append(l + 'I')
+            nat = copy.copy(tmp)
+        newnat = [] # the required new nature
+        for elem in nat:
+            tmp = ''
+            for i in order:
+                tmp += elem[i]
+            newnat.append(tmp)
+        # Order the data in the new way
+        newindex = [nat.index(x) for x in newnat]
+        self.data= [self.data[x] for x in newindex]
+        return
 
     def fourier(self, axes, tmp=False, inv=False, reorder=[True,True]):
         axes = self.checkAxes(axes)
-        tmpdat = self.data 
         if reorder[0]:
-            tmpdat = self.hyperReorder(self.data, axes)
+            self.hyperReorder(axes)
         if axes is None:
             return None
         if np.logical_xor(self.spec[axes], inv) == 0:
             if not self.wholeEcho[axes] and not tmp:
                 slicing = (slice(None), ) * axes + (0, ) + (slice(None), ) * (self.ndim() - 1 - axes)
-                for index in range(len(tmpdat)):
-                    tmpdat[index][slicing] = tmpdat[index][slicing] * 0.5
-            for index in range(len(tmpdat)): 
-                tmpdat[index] = np.fft.fftshift(np.fft.fftn(tmpdat[index], axes=[axes]), axes=axes)
+                for index in range(len(self.data)):
+                    self.data[index][slicing] = self.data[index][slicing] * 0.5
+            for index in range(len(self.data)): 
+                self.data[index] = np.fft.fftshift(np.fft.fftn(self.data[index], axes=[axes]), axes=axes)
             if not tmp:
                 self.spec[axes] = 1
                 self.addHistory("Fourier transform dimension " + str(axes + 1))
         else:
-            for index in range(len(tmpdat)): 
-                tmpdat[index] = np.fft.ifftn(np.fft.ifftshift(tmpdat[index], axes=axes), axes=[axes])
+            for index in range(len(self.data)): 
+                self.data[index] = np.fft.ifftn(np.fft.ifftshift(self.data[index], axes=axes), axes=[axes])
             if not self.wholeEcho[axes] and not tmp:
                 slicing = (slice(None), ) * axes + (0, ) + (slice(None), ) * (self.ndim() - 1 - axes)
-                for index in range(len(tmpdat)): 
-                    tmpdat[index][slicing] = tmpdat[index][slicing] * 2.0
+                for index in range(len(self.data)): 
+                    self.data[index][slicing] = self.data[index][slicing] * 2.0
             if not tmp:
                 self.spec[axes] = 0
                 self.addHistory("Inverse Fourier transform dimension " + str(axes + 1))
         if reorder[1]:
-            self.data = self.hyperReorder(tmpdat, axes)
+            self.hyperReorder(axes)
         self.resetXax(axes)
         if self.noUndo:
             return None
@@ -1722,13 +1674,13 @@ class Spectrum(object):
         if self.spec[axes] > 0: #rorder and fft for spec
             self.fourier(axes, tmp=True, reorder = [True,False])
         else: #Reorder if FID
-            self.data = self.hyperReorder(self.data, axes)
+            self.hyperReorder(axes)
         for index in range(len(self.data)):
             self.data[index] = self.data[index] * shearMatrix.reshape(shape)
         if self.spec[axes] > 0:
             self.fourier(axes, tmp=True, inv=True, reorder = [False,True])
         else:
-            self.data = self.hyperReorder(self.data, axes)
+            self.hyperReorder(axes)
         self.addHistory("Shearing transform with shearing value " + str(shear) + " over dimensions " + str(axes + 1) + " and " + str(axes2 + 1))
         if self.noUndo:
             return None
@@ -1775,7 +1727,7 @@ class Spectrum(object):
             pass
         posList = np.unique(posList)
         if axes in self.hyper: #Get good hypercomplex part
-            self.data = self.hyperReorder(self.data, axes)[0]
+            self.hyperReorder(axes)[0]
         else:
             self.data = self.data[0]
         tmpData = np.rollaxis(self.data, axes, self.data.ndim)
@@ -1789,7 +1741,7 @@ class Spectrum(object):
         #Reconstruct hypercomplex parts
         self.data = self.reconstructHyper(self.data)
         #Transform back to FID
-        self.data = self.fourierLocal(self.data, 1, axes)
+        self.fourier(axes, tmp=True, inv=True)
         self.addHistory("Fast Forward Maximum Entropy reconstruction of dimension " + str(axes + 1) + " at positions " + str(pos))
         if self.noUndo:
             return None
@@ -1810,7 +1762,7 @@ class Spectrum(object):
             pass
         posList = np.unique(posList)
         if axes in self.hyper: #Take correct hypercomplex
-            self.data = self.hyperReorder(self.data, axes)[0]
+            self.hyperReorder(axes)[0]
         else:
             self.data = self.data[0]
         tmpData = np.rollaxis(np.fft.fft(self.data, axis=axes), axes, self.data.ndim)
@@ -1827,7 +1779,7 @@ class Spectrum(object):
         #Reconstruct hypercomplex parts
         self.data = self.reconstructHyper(self.data)
         #Transform back to FID
-        self.data = self.fourierLocal(self.data, 1, axes)
+        self.fourier(axes, tmp=True, inv=True)
         self.addHistory("CLEAN reconstruction (gamma = " + str(gamma) + " , threshold = " + str(threshold) + " , maxIter = " + str(maxIter) + ") " + 
         "of dimension " + str(axes + 1) + " at positions " + str(pos))
         if self.noUndo:
@@ -1844,7 +1796,7 @@ class Spectrum(object):
             copyData = copy.deepcopy(self)
         # pos contains the values of fixed points which not to be translated to missing points
         if axes in self.hyper:
-            self.data = self.hyperReorder(self.data, axes)[0]
+            self.hyperReorder(axes)[0]
         else:
             self.data = self.data[0]
         posList = np.delete(range(self.data.shape[axes]), pos)
@@ -1864,7 +1816,7 @@ class Spectrum(object):
         #Reconstruct hypercomplex parts
         self.data = self.reconstructHyper(self.data)
         #Transform back to FID
-        self.data = self.fourierLocal(self.data, 1, axes)
+        self.fourier(axes, tmp=True, inv=True)
         self.addHistory("IST reconstruction (threshold = " + str(threshold) + " , maxIter = " + str(maxIter) + " , tracelimit = " + str(tracelimit*100) + ") " + 
         "of dimension " + str(axes + 1) + " at positions " + str(pos))
         if self.noUndo:
@@ -1901,8 +1853,8 @@ class Spectrum(object):
         if axes is None:
             return None
         datList = []
-        dataList = self.hyperReorder(self.data, axes)
-        for item in dataList:
+        self.hyperReorder(axes)
+        for item in self.data:
             datList.append(item[tuple(locList[:axes]) + (slice(None), ) + tuple(locList[axes:])])
         hyper = []
         sliceSpec = copy.deepcopy(Spectrum(self.name,
@@ -1918,7 +1870,7 @@ class Spectrum(object):
                                            self.history,
                                            self.msgHandler))
         sliceSpec.noUndo = True
-        self.hyperReorder(self.data, axes)
+        self.hyperReorder(axes)
         return sliceSpec
 
     def getBlock(self, axes, axes2, locList, stackBegin=None, stackEnd=None, stackStep=None):
@@ -2249,10 +2201,6 @@ class Current1D(Plot1DFrame):
         self.upd()
         self.showFid()
         return returnValue
-
-    def fourierLocal(self, fourData, spec, axis):  # fourier the local data for other functions
-        #Now links to data structure function
-        return self.data.fourierLocal(fourData, spec, axis, self.wholeEcho)
 
     def apodPreview(self, lor=None, gauss=None, cos2=None, hamming=None, shift=0.0, shifting=0.0, shiftingAxes=None):  # display the 1D data including the apodization function
         if (self.spec() == 0) and not type(self) is CurrentContour:
@@ -2955,27 +2903,8 @@ class Current1D(Plot1DFrame):
         return returnValue
 
     def autoPhase(self, phaseNum):
+        phases = self.data1D.autoPhase(phaseNum, -1, [0]*(self.ndim()-1), returnPhases=True)
         self.upd()
-        hyperView = 0
-        if self.ndim() > 1:
-            tmp = []
-            for item in self.data1D.data:
-                tmp.append(item[0])
-        else:
-            tmp = self.data1D.data
-        if self.spec() == 0:
-            tmp = self.fourierLocal(tmp, 0, self.axes)
-        x = np.fft.fftshift(np.fft.fftfreq(len(tmp[0]), 1.0 / self.sw())) / self.sw()
-        tmp = self.data.hyperReorder(tmp, self.axes)
-        if phaseNum == 0:
-            phases = scipy.optimize.minimize(self.data.ACMEentropy, [0], (tmp, x, False), method='Powell')
-            phases = [phases['x']]
-        elif phaseNum == 1:
-            phases = scipy.optimize.minimize(self.data.ACMEentropy, [0, 0], (tmp, x ), method='Powell')
-            phases = phases['x']
-        tmp = self.data.hyperReorder(tmp, self.axes)
-        if self.spec() == 0:
-                tmp = self.fourierLocal(tmp,1, self.axes)
         return phases
 
     def directAutoPhase(self, phaseNum):
