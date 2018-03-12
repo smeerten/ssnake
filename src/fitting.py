@@ -533,14 +533,7 @@ class FitPlotFrame(Current1D):
         self.rootwindow.paramframe.dispParams()
 
     def getData1D(self):
-        if self.viewSettings["plotType"] == 0:
-            return np.real(self.data1D.data[0])
-        elif self.viewSettings["plotType"] == 1:
-            return np.imag(self.data1D.data[0])
-        elif self.viewSettings["plotType"] == 2:
-            return np.real(self.data1D.data[0])
-        elif self.viewSettings["plotType"] == 3:
-            return np.abs(self.data1D.data[0])
+        return np.real(self.getDataType(self.data1D.data[0]))
 
     def showFid(self):
         extraX = []

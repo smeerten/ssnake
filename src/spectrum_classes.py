@@ -2154,6 +2154,10 @@ class Current1D(Plot1DFrame):
     def wholeEcho(self, dim=-1):
         return self.data1D.wholeEcho[dim]
 
+    def getDataType(self, data):
+        typeList = [np.real, np.imag, np.array, np.abs]
+        return typeList[self.viewSettings["plotType"]](data)
+    
     def startUp(self, xReset=True, yReset=True):
         self.showFid()  # plot the data
         self.plotReset(xReset, yReset)  # reset the axes limits
@@ -2317,14 +2321,8 @@ class Current1D(Plot1DFrame):
                     shift += shifting * self.locList[shiftingAxes - 1] / self.data.sw[shiftingAxes]
                 curve = self.data1D.apodize(lor, gauss, cos2, hamming, shift, 0.0, None, -1, preview=preview)
         if self.spec() == 0 and not type(self) is CurrentContour:
-            if self.viewSettings["plotType"] == 0:
-                scale = np.max(np.real(y))
-            elif self.viewSettings["plotType"] == 1:
-                scale = np.max(np.imag(y))
-            elif self.viewSettings["plotType"] == 2:
-                scale = np.max(np.max(np.real(y)), np.max(np.imag(y)))
-            elif self.viewSettings["plotType"] == 3:
-                scale = np.max(np.abs(y))
+            tmp = self.getDataType(y)
+            scale = np.max([np.real(tmp), np.imag(tmp)])
             self.showFid(y, curve[0], scale*np.array(curve[1]), 'g')
         else:
             self.showFid()
@@ -2385,14 +2383,7 @@ class Current1D(Plot1DFrame):
             tmpData = self.data1D.data[hyperView][0]
         else:
             tmpData = self.data1D.data[hyperView]
-        if (self.viewSettings["plotType"] == 0):
-            tmpData = np.real(tmpData)
-        elif(self.viewSettings["plotType"] == 1):
-            tmpData = np.imag(tmpData)
-        elif(self.viewSettings["plotType"] == 2):
-            tmpData = np.real(tmpData)
-        elif(self.viewSettings["plotType"] == 3):
-            tmpData = np.abs(tmpData)
+        tmpData = np.real(self.getDataType(tmpData))
         return (np.max(tmpData[minP:maxP]) / (np.std(tmpData[minN:maxN])))
 
     def fwhm(self, minPeak, maxPeak, unitType=None):
@@ -2413,14 +2404,7 @@ class Current1D(Plot1DFrame):
             tmpData = self.data1D.data[hyperView][0]
         else:
             tmpData = self.data1D.data[hyperView]
-        if (self.viewSettings["plotType"] == 0):
-            tmpData = np.real(tmpData)
-        elif(self.viewSettings["plotType"] == 1):
-            tmpData = np.imag(tmpData)
-        elif(self.viewSettings["plotType"] == 2):
-            tmpData = np.real(tmpData)
-        elif(self.viewSettings["plotType"] == 3):
-            tmpData = np.abs(tmpData)
+        tmpData = np.real(self.getDataType(tmpData))
         maxPos = np.argmax(tmpData[minP:maxP])
         x = self.xax() * self.getAxMult(self.spec(), axType, ppm, self.freq(), self.ref())
         maxX = x[minP:maxP][maxPos]
@@ -2455,14 +2439,7 @@ class Current1D(Plot1DFrame):
         else:
             tmpData = self.data1D.data[hyperView]
             tmpAxis = self.data1D.xax()
-        if (self.viewSettings["plotType"] == 0):
-            tmpData = np.real(tmpData)
-        elif(self.viewSettings["plotType"] == 1):
-            tmpData = np.imag(tmpData)
-        elif(self.viewSettings["plotType"] == 2):
-            tmpData = np.real(tmpData)
-        elif(self.viewSettings["plotType"] == 3):
-            tmpData = np.abs(tmpData)
+        tmpData = np.real(self.getDataType(tmpData))
         tmpAxis = tmpAxis[minP:maxP] * self.getAxMult(self.spec(), axType, ppm, self.freq(), self.ref())
         tmpData = tmpData[minP:maxP]
         # COM = 1/M *sum(m_i * r_i)
@@ -2483,14 +2460,7 @@ class Current1D(Plot1DFrame):
             tmpData = self.data1D.data[hyperView]
             tmpAxis = self.xax()
         totLen = len(tmpData)
-        if (self.viewSettings["plotType"] == 0):
-            tmpData = np.real(tmpData)
-        elif(self.viewSettings["plotType"] == 1):
-            tmpData = np.imag(tmpData)
-        elif(self.viewSettings["plotType"] == 2):
-            tmpData = np.real(tmpData)
-        elif(self.viewSettings["plotType"] == 3):
-            tmpData = np.abs(tmpData)
+        tmpData = np.real(self.getDataType(tmpData))
         maxim = np.max(np.abs(tmpData))
         tmpAxis = tmpAxis[minP:maxP] 
         tmpData = tmpData[minP:maxP]
@@ -2502,7 +2472,7 @@ class Current1D(Plot1DFrame):
             inte = np.sum(tmpData) * self.sw() / (1.0 * totLen)
         return inte, tmpAxis, intSum, maxim
 
-    def MaxMin(self, minPeak, maxPeak, type = 'max'):
+    def MaxMin(self, minPeak, maxPeak, type='max'):
         hyperView = 0 
         minP = min(minPeak, maxPeak)
         maxP = max(minPeak, maxPeak)
@@ -2510,14 +2480,7 @@ class Current1D(Plot1DFrame):
             tmpData = self.data1D.data[hyperView][0]
         else:
             tmpData = self.data1D.data[hyperView]
-        if (self.viewSettings["plotType"] == 0):
-            tmpData = np.real(tmpData)
-        elif(self.viewSettings["plotType"] == 1):
-            tmpData = np.imag(tmpData)
-        elif(self.viewSettings["plotType"] == 2):
-            tmpData = np.real(tmpData)
-        elif(self.viewSettings["plotType"] == 3):
-            tmpData = np.abs(tmpData)
+        tmpData = np.real(self.getDataType(tmpData))
         if type == 'max':
             return np.max(tmpData[minP:maxP])
         elif type == 'min':
@@ -2644,14 +2607,7 @@ class Current1D(Plot1DFrame):
             bArray = np.logical_not(bArray)
         try:
             y = np.apply_along_axis(lambda data: self.baselinePolyFit(self.xax(), data, bArray, degree), self.axes, self.data.data[hyperView])
-            if (self.viewSettings["plotType"] == 0):
-                y = np.real(y)
-            elif(self.viewSettings["plotType"] == 1):
-                y = np.imag(y)
-            elif(self.viewSettings["plotType"] == 2):
-                y = np.real(y)
-            elif(self.viewSettings["plotType"] == 3):
-                y = np.abs(y)
+            y = np.real(self.getDataType(y))
             self.root.addMacro(['subtract', ([y.tolist()], None, [], str(slice(None)))])
             returnValue = self.data.subtract([y])
         except Exception:
@@ -2678,14 +2634,7 @@ class Current1D(Plot1DFrame):
             bArray = np.logical_not(bArray)
         try:
             y = self.baselinePolyFit(self.xax(), tmpData, bArray, degree)
-            if (self.viewSettings["plotType"] == 0):
-                y = np.real(y)
-            elif(self.viewSettings["plotType"] == 1):
-                y = np.imag(y)
-            elif(self.viewSettings["plotType"] == 2):
-                y = np.real(y)
-            elif(self.viewSettings["plotType"] == 3):
-                y = np.abs(y)
+            y = np.real(self.getDataType(y))
             self.root.addMacro(['baselineCorrection', (list(np.real(y)), self.axes - self.data.ndim(), list(np.imag(y)), str(selectSlice))])
             return self.data.baselineCorrection(y, self.axes, select=selectSlice)
         except Exception:
@@ -2708,14 +2657,7 @@ class Current1D(Plot1DFrame):
         check = True
         try:
             y = self.baselinePolyFit(self.xax(), tmpData, bArray, degree)
-            if (self.viewSettings["plotType"] == 0):
-                y = np.real(y)
-            elif(self.viewSettings["plotType"] == 1):
-                y = np.imag(y)
-            elif(self.viewSettings["plotType"] == 2):
-                y = np.real(y)
-            elif(self.viewSettings["plotType"] == 3):
-                y = np.abs(y)
+            y = np.real(self.getDataType(y))
             self.data1D.baselineCorrection(y, -1)
         except Exception:
             check = False
@@ -3167,21 +3109,14 @@ class Current1D(Plot1DFrame):
         self.line_xdata = [self.xax() * axMult]
         self.line_xdata_extra = []
         self.line_ydata_extra = []
-        if self.shape() == 1:
+        if self.len() == 1:
             marker = 'o'
             linestyle = 'none'
         else:
             marker = self.MARKER
             linestyle = self.LINESTYLE
         if oldData is not None:
-            if (self.viewSettings["plotType"] == 0):
-                tmp = np.real(oldData[hyperView])
-            elif(self.viewSettings["plotType"] == 1):
-                tmp = np.imag(oldData[hyperView])
-            elif(self.viewSettings["plotType"] == 2):
-                tmp = np.real(oldData[hyperView])
-            elif(self.viewSettings["plotType"] == 3):
-                tmp = np.abs(oldData[hyperView])
+            tmp = np.real(self.getDataType(oldData[hyperView]))
             self.line_xdata_extra.append(self.xax() * axMult)
             self.line_ydata_extra.append(tmp)
             self.ax.plot(self.line_xdata_extra[-1], self.line_ydata_extra[-1], marker=marker, linestyle=linestyle, c='k', alpha=0.2, linewidth=self.viewSettings["linewidth"], label=self.data.name + '_old', picker=True)
@@ -3190,16 +3125,13 @@ class Current1D(Plot1DFrame):
                 self.line_xdata_extra.append(extraX[num] * axMult)
                 self.line_ydata_extra.append(extraY[num])
                 self.ax.plot(self.line_xdata_extra[-1], self.line_ydata_extra[-1], marker='', linestyle='-', c=extraColor, linewidth=self.viewSettings["linewidth"], picker=True)
-        if (self.viewSettings["plotType"] == 0):
-            self.line_ydata = [np.real(tmpdata)]
-        elif(self.viewSettings["plotType"] == 1):
-            self.line_ydata = [np.imag(tmpdata)]
-        elif(self.viewSettings["plotType"] == 2):
+        tmpdata = self.getDataType(tmpdata)
+        if(self.viewSettings["plotType"] == 2):
             self.line_xdata.append(self.line_xdata[-1])
             self.line_ydata = [np.imag(tmpdata), np.real(tmpdata)]
-            self.ax.plot(self.line_xdata[0], self.line_ydata[0], marker=marker, linestyle=linestyle, c='r', linewidth=self.viewSettings["linewidth"], label=self.data.name + '_imag', picker=True)
-        elif(self.viewSettings["plotType"] == 3):
-            self.line_ydata = [np.abs(tmpdata)]
+            self.ax.plot(self.line_xdata[-2], self.line_ydata[-2], marker=marker, linestyle=linestyle, c='r', linewidth=self.viewSettings["linewidth"], label=self.data.name + '_imag', picker=True)
+        else:
+            self.line_ydata = [np.real(tmpdata)]
         self.ax.plot(self.line_xdata[-1], self.line_ydata[-1], marker=marker, linestyle=linestyle, c=self.viewSettings["color"], linewidth=self.viewSettings["linewidth"], label=self.data.name, picker=True)
         self.ax.set_xlabel(self.getLabel(self.spec(), self.viewSettings["axType"], self.viewSettings["ppm"]))
         if self.logx:
@@ -3228,6 +3160,9 @@ class Current1D(Plot1DFrame):
         for line in self.line_ydata_extra:
             miny = min(miny, min(line))
             maxy = max(maxy, max(line))
+        if miny == maxy: # Prevents setting the limits equal
+            miny -= 0.01
+            maxy += 0.01
         if type(self) is CurrentContour:
             differ = 0
         else:
@@ -3242,10 +3177,13 @@ class Current1D(Plot1DFrame):
         for line in self.line_xdata_extra:
             minx = min(minx, min(line))
             maxx = max(maxx, max(line))
+        if minx == maxx: # Prevents setting the limits equal
+            minx -= 0.01
+            maxx += 0.01
         if xReset:
             self.xminlim = minx
             self.xmaxlim = maxx
-        if self.spec() > 0:
+        if self.spec() > 0 and type(self) is not CurrentArrayed:
             self.ax.set_xlim(self.xmaxlim, self.xminlim)
         else:
             self.ax.set_xlim(self.xminlim, self.xmaxlim)
@@ -3358,20 +3296,13 @@ class CurrentMulti(Current1D):
             else:
                 ref = extraData1D.freq[-1]
             self.line_xdata_extra.append(self.viewSettings["extraShift"][i] + xax * self.getAxMult(spec, self.viewSettings["axType"], self.viewSettings["ppm"], freq, ref))
-            if extraData1D.shape() == 1:
+            if extraData1D.len() == 1:
                 marker = 'o'
                 linestyle = 'none'
             else:
                 marker = self.MARKER
                 linestyle = self.LINESTYLE
-            if (self.viewSettings["plotType"] == 0):
-                extraData = np.real(extraData1D.data[hyperView])
-            elif(self.viewSettings["plotType"] == 1):
-                extraData = np.imag(extraData1D.data[hyperView])
-            elif(self.viewSettings["plotType"] == 2):
-                extraData = np.real(extraData1D.data[hyperView])
-            elif(self.viewSettings["plotType"] == 3):
-                extraData = np.abs(extraData1D.data[hyperView])
+            extraData = np.real(self.getDataType(extraData1D.data[hyperView]))
             self.line_ydata_extra.append(extraData * self.viewSettings["extraScale"][i] + self.viewSettings["extraOffset"][i])
             self.ax.plot(self.line_xdata_extra[-1],
                          self.line_ydata_extra[-1],
@@ -3380,21 +3311,14 @@ class CurrentMulti(Current1D):
                          linewidth=self.viewSettings["linewidth"],
                          label=data.name,
                          picker=True)
-        if self.shape() == 1:
+        if self.len() == 1:
             marker = 'o'
             linestyle = 'none'
         else:
             marker = ''
             linestyle = '-'
         if oldData is not None:
-            if (self.viewSettings["plotType"] == 0):
-                tmp = np.real(oldData[hyperView])
-            elif(self.viewSettings["plotType"] == 1):
-                tmp = np.imag(oldData[hyperView])
-            elif(self.viewSettings["plotType"] == 2):
-                tmp = np.real(oldData[hyperView])
-            elif(self.viewSettings["plotType"] == 3):
-                tmp = np.abs(oldData[hyperView])
+            tmp = np.real(self.getDataType(oldData[hyperView]))
             self.line_xdata_extra.append(self.xax() * axMult)
             self.line_ydata_extra.append(tmp)
             self.ax.plot(self.line_xdata_extra[-1], self.line_ydata_extra[-1], marker=marker, linestyle=linestyle, c='k', alpha=0.2, linewidth=self.viewSettings["linewidth"], label=self.data.name + '_old', picker=True)
@@ -3403,16 +3327,13 @@ class CurrentMulti(Current1D):
                 self.line_xdata_extra.append(extraX[num] * axMult)
                 self.line_ydata_extra.append(extraY[num])
                 self.ax.plot(self.line_xdata_extra[-1], self.line_ydata_extra[-1], marker=marker, linestyle=linestyle, linewidth=self.viewSettings["linewidth"], c=extraColor[num], picker=True)
-        if (self.viewSettings["plotType"] == 0):
-            self.line_ydata = [np.real(tmpdata)]
-        elif(self.viewSettings["plotType"] == 1):
-            self.line_ydata = [np.imag(tmpdata)]
-        elif(self.viewSettings["plotType"] == 2):
+        tmpdata = self.getDataType(tmpdata)
+        if(self.viewSettings["plotType"] == 2):
             self.line_xdata.append(self.line_xdata[-1])
             self.line_ydata = [np.imag(tmpdata), np.real(tmpdata)]
             self.ax.plot(self.line_xdata[-2], self.line_ydata[-2], marker=marker, linestyle=linestyle, c='r', linewidth=self.viewSettings["linewidth"], label=self.data.name + '_imag', picker=True)
-        elif(self.viewSettings["plotType"] == 3):
-            self.line_ydata = [np.abs(tmpdata)]
+        else:
+            self.line_ydata = [np.real(tmpdata)]
         self.ax.plot(self.line_xdata[-1], self.line_ydata[-1], marker=marker, linestyle=linestyle, c=self.viewSettings["color"], linewidth=self.viewSettings["linewidth"], label=self.data.name, picker=True)
         self.ax.set_xlabel(self.getLabel(self.spec(), self.viewSettings["axType"], self.viewSettings["ppm"]))
         self.ax.get_xaxis().get_major_formatter().set_powerlimits((-4, 4))
@@ -3479,7 +3400,7 @@ class CurrentStacked(Current1D):
             self.plotReset()
 
     def resetLocList(self):
-        self.locList = [0] * (len(self.data.shape()) - 2)
+        self.locList = [0] * (self.data.ndim() - 2)
 
     def stackSelect(self, stackBegin, stackEnd, stackStep):
         self.viewSettings["stackBegin"] = stackBegin
@@ -3500,18 +3421,10 @@ class CurrentStacked(Current1D):
         if difference.size == 0:
             self.viewSettings["spacing"] = 0
         else:
-            if self.viewSettings["plotType"] == 0:
-                difference = np.min(np.real(difference))
-                amp = np.max(np.real(self.data1D.data[hyperView])) - np.min(np.real(self.data1D.data[hyperView]))
-            elif self.viewSettings["plotType"] == 1:
-                difference = np.min(np.imag(difference))
-                amp = np.max(np.imag(self.data1D.data[hyperView])) - np.min(np.imag(self.data1D.data[hyperView]))
-            elif self.viewSettings["plotType"] == 2:
-                difference = np.min((np.real(difference), np.imag(difference)))
-                amp = np.max((np.real(self.data1D.data[hyperView]), np.imag(self.data1D.data[hyperView]))) - np.min((np.real(self.data1D.data[hyperView]), np.imag(self.data1D.data[hyperView])))
-            elif self.viewSettings["plotType"] == 3:
-                difference = np.min(np.abs(difference))
-                amp = np.max(np.abs(self.data1D.data[hyperView])) - np.min(np.abs(self.data1D.data[hyperView]))
+            difference = self.getDataType(difference)
+            tmpData = self.getDataType(self.data1D.data[hyperView])
+            difference = np.min((np.real(difference), np.imag(difference)))
+            amp = np.max((np.real(tmpData), np.imag(tmpData))) - np.min((np.real(tmpData), np.imag(tmpData)))
             self.viewSettings["spacing"] = np.abs(difference) + 0.1 * amp
 
     def altScroll(self, event):
@@ -3535,7 +3448,7 @@ class CurrentStacked(Current1D):
         self.line_ydata = []
         self.line_xdata_extra = []
         self.line_ydata_extra = []
-        if self.shape() == 1:
+        if self.len() == 1:
             marker = 'o'
             linestyle = 'none'
         else:
@@ -3543,14 +3456,7 @@ class CurrentStacked(Current1D):
             linestyle = self.LINESTYLE
         if oldData is not None:
             for num in range(len(oldData[hyperView])):
-                if (self.viewSettings["plotType"] == 0):
-                    tmp = np.real(oldData[hyperView][num])
-                elif(self.viewSettings["plotType"] == 1):
-                    tmp = np.imag(oldData[hyperView][num])
-                elif(self.viewSettings["plotType"] == 2):
-                    tmp = np.real(oldData[hyperView][num])
-                elif(self.viewSettings["plotType"] == 3):
-                    tmp = np.abs(oldData[hyperView][num])
+                tmp = np.real(self.getDataType(oldData[hyperView][num]))
                 self.line_xdata_extra.append(tmp_line_xdata)
                 self.line_ydata_extra.append(num * self.viewSettings["spacing"] + tmp)
                 self.ax.plot(self.line_xdata_extra[-1], self.line_ydata_extra[-1], marker=marker, linestyle=linestyle, c='k', alpha=0.2, linewidth=self.viewSettings["linewidth"], label=self.data.name + '_old', picker=True)
@@ -3560,12 +3466,7 @@ class CurrentStacked(Current1D):
                 self.line_xdata_extra.append(tmpx)
                 self.line_ydata_extra.append(num * self.viewSettings["spacing"] + extraY[num])
                 self.ax.plot(self.line_xdata_extra[-1], self.line_ydata_extra[-1], marker=marker, linestyle=linestyle, linewidth=self.viewSettings["linewidth"], c=extraColor[0], picker=True)
-        if (self.viewSettings["plotType"] == 0):
-            tmpdata = np.real(tmpdata)
-        elif (self.viewSettings["plotType"] == 1):
-            tmpdata = np.imag(tmpdata)
-        elif(self.viewSettings["plotType"] == 3):
-            tmpdata = np.abs(tmpdata)
+        tmpdata = self.getDataType(tmpdata)
         for num in range(len(tmpdata)):
             if (self.viewSettings["plotType"] == 2):
                 self.line_xdata.append(tmp_line_xdata)
@@ -3652,7 +3553,7 @@ class CurrentArrayed(CurrentStacked):
         self.line_ydata = []
         self.line_xdata_extra = []
         self.line_ydata_extra = []
-        if self.shape() == 1:
+        if self.len() == 1:
             marker = 'o'
             linestyle = 'none'
         else:
@@ -3660,14 +3561,7 @@ class CurrentArrayed(CurrentStacked):
             linestyle = self.LINESTYLE
         if oldData is not None:
             for num in range(len(oldData[hyperView])):
-                if (self.viewSettings["plotType"] == 0):
-                    tmp = np.real(oldData[hyperView][num])
-                elif(self.viewSettings["plotType"] == 1):
-                    tmp = np.imag(oldData[hyperView][num])
-                elif(self.viewSettings["plotType"] == 2):
-                    tmp = np.real(oldData[hyperView][num])
-                elif(self.viewSettings["plotType"] == 3):
-                    tmp = np.abs(oldData[hyperView][num])
+                tmp = np.real(self.getDataType(oldData[hyperView][num]))
                 self.line_xdata_extra.append((num * self.viewSettings["spacing"] + self.xax()[xaxZlims]) * axMult)
                 self.line_ydata_extra.append(tmp[xaxZlims][direc])
                 self.ax.plot(self.line_xdata_extra[-1], self.line_ydata_extra[-1], marker=marker, linestyle=linestyle, c='k', alpha=0.2, linewidth=self.viewSettings["linewidth"], label=self.data.name + '_old', picker=True)
@@ -3677,12 +3571,7 @@ class CurrentArrayed(CurrentStacked):
                 self.line_xdata_extra.append((num * self.viewSettings["spacing"] + extraX[0][extraZlims]) * axMult)
                 self.line_ydata_extra.append(extraY[num][extraZlims][direc])
                 self.ax.plot(self.line_xdata_extra[-1], self.line_ydata_extra[-1], marker=marker, linestyle=linestyle, linewidth=self.viewSettings["linewidth"], c=extraColor[0], picker=True)
-        if (self.viewSettings["plotType"] == 0):
-            tmpdata = np.real(tmpdata)
-        elif(self.viewSettings["plotType"] == 1):
-            tmpdata = np.imag(tmpdata)
-        elif(self.viewSettings["plotType"] == 3):
-            tmpdata = np.abs(tmpdata)
+        tmpdata = self.getDataType(tmpdata)
         ticksPos = []
         for num in range(len(tmpdata)):
             if (self.viewSettings["plotType"] == 2):
@@ -3851,14 +3740,7 @@ class CurrentContour(CurrentStacked):
             add_diagonal(self.ax, self.viewSettings["diagonalMult"], c='k', ls='--')
         self.line_xdata = [self.xax() * self.getAxMult(self.spec(), self.viewSettings["axType"], self.viewSettings["ppm"], self.freq(), self.ref())]
         self.line_ydata = [self.xax(-2) * self.getAxMult(self.spec(-2), self.viewSettings["axType2"], self.viewSettings["ppm2"], self.freq(-2), self.ref(-2))]
-        if (self.viewSettings["plotType"] == 0):
-            tmpdata = np.real(tmpdata)
-        elif(self.viewSettings["plotType"] == 1):
-            tmpdata = np.imag(tmpdata)
-        elif(self.viewSettings["plotType"] == 2):
-            tmpdata = np.real(tmpdata)
-        elif(self.viewSettings["plotType"] == 3):
-            tmpdata = np.abs(tmpdata)
+        tmpdata = np.real(self.getDataType(tmpdata))
         self.line_zdata = [tmpdata]
         if self.viewSettings["limitType"] == 0:
             self.differ = np.max(np.abs(tmpdata))
@@ -3944,15 +3826,7 @@ class CurrentContour(CurrentStacked):
         y = self.line_ydata[-1]  # Get plot data from plot
         self.x_ax.cla()
         self.y_ax.cla()
-        tmpdata = self.data1D.data[0]
-        if (self.viewSettings["plotType"] == 0):
-            tmpdata = np.real(tmpdata)
-        elif(self.viewSettings["plotType"] == 1):
-            tmpdata = np.imag(tmpdata)
-        elif(self.viewSettings["plotType"] == 2):
-            tmpdata = np.real(tmpdata)
-        elif(self.viewSettings["plotType"] == 3):
-            tmpdata = np.abs(tmpdata)
+        tmpdata = np.real(self.getDataType(self.data1D.data[0]))
         Limits = self.viewSettings["projLimits"]
         topSlice = np.s_[:, :]
         rightSlice = np.s_[:, :]
@@ -4022,14 +3896,7 @@ class CurrentContour(CurrentStacked):
                     idx = np.argmin(np.abs(xdata - event.xdata))
                     idy = np.argmin(np.abs(ydata - event.ydata))
                     if self.peakPickFunc is not None:
-                        if (self.viewSettings["plotType"] == 0):
-                            tmpdata = np.real(self.data1D[hyperView][idy, idx])
-                        elif(self.viewSettings["plotType"] == 1):
-                            tmpdata = np.imag(self.data1D[hyperView][idy, idx])
-                        elif(self.viewSettings["plotType"] == 2):
-                            tmpdata = np.real(self.data1D[hyperView][idy, idx])
-                        elif(self.viewSettings["plotType"] == 3):
-                            tmpdata = np.abs(self.data1D[hyperView][idy, idx])
+                        tmpdata = np.real(self.getDataType(self.data1D[hyperView][idy, idx]))
                         self.peakPickFunc((idx, xdata[idx], tmpdata, idy, ydata[idy]))
                     if not self.peakPick:  # check if peakpicking is still required
                         self.peakPickFunc = None
@@ -4064,3 +3931,4 @@ class CurrentContour(CurrentStacked):
         elif event.button == 3:
             self.rightMouse = False
         self.canvas.draw()
+

@@ -4353,7 +4353,7 @@ class regionWindow(wc.ToolWindows):
         self.NAME = name
         super(regionWindow, self).__init__(parent)
         self.startVal = [0]  # dummy variables
-        self.endVal = [parent.currentlen()]  # dummy variables
+        self.endVal = [parent.current.len()]  # dummy variables
         self.grid.addWidget(wc.QLabel("Start point:"), 0, 0)
         self.grid.addWidget(wc.QLabel("End point:"), 0, 1)
         self.startEntry = []
