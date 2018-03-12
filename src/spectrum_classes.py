@@ -1111,7 +1111,7 @@ class Spectrum(object):
         for item in self.data:
             tmp.append(item[tuple(locList[:axes]) + (slice(None), ) + tuple(locList[axes:])])
         if self.spec[axes] == 0:
-                tmp = self.fourierLocal(tmp,0, axes)
+                tmp = self.fourierLocal(tmp, 0, axes)
         x = np.fft.fftshift(np.fft.fftfreq(len(tmp[0]), 1.0 / self.sw[axes])) / self.sw[axes]
         tmp = self.hyperReorder(tmp, axes)
         if phaseNum == 0:
@@ -1547,26 +1547,23 @@ class Spectrum(object):
     def hyperReorder(self, data, axis): #A function to reorder the data for a hypercomplex operation
         hyper = [x for x in self.hyper if x == axis]
         if len(hyper) == 0:
-            hyper = None
+            return data
         elif len(hyper) == 1:
             hyper = self.hyper.index(hyper[0])
         else:
             print('error in hyper')
             return
         hyperLen = len(data)
-        if hyper == None:
-            return data
-        else:
-            values = np.arange(hyperLen)
-            step = 2**(len(self.hyper) - hyper - 1)
-            list1 = np.array([],dtype=int)
-            list2 = np.array([],dtype=int)
-            for index in range(int(hyperLen/step)):
-                if index % 2: #if even
-                    list2 = np.append(list2,values[0:step])
-                else:
-                    list1 = np.append(list1,values[0:step])
-                values = values[step::]
+        values = np.arange(hyperLen)
+        step = 2**(len(self.hyper) - hyper - 1)
+        list1 = np.array([], dtype=int)
+        list2 = np.array([], dtype=int)
+        for index in range(int(hyperLen/step)):
+            if index % 2: # if even
+                list2 = np.append(list2,values[0:step])
+            else:
+                list1 = np.append(list1,values[0:step])
+            values = values[step::]
         for index in range(len(list1)):
             l1 = list1[index]
             l2 = list2[index]
@@ -1592,27 +1589,27 @@ class Spectrum(object):
         return newdat, [x for x in hyper if x != axis]
 
     def sortHyper(self, data, hyper):
-        #Makes sure that the hyper list is in descending order (e.g. [3,1,0])
-        #and adjust the data list accordingly
+        # Makes sure that the hyper list is in descending order (e.g. [3,1,0])
+        # and adjust the data list accordingly
         if len(hyper) == 0:
             return data, hyper
         else:
             order = np.argsort(hyper)[::-1]
             newhyper = [hyper[x] for x in order]
-            nat = ['R','I'] #nature of each data matrix
+            nat = ['R','I'] # nature of each data matrix
             for elem in hyper[1::]:
                 tmp = []
                 for l in nat:
                     tmp.append(l + 'R')
                     tmp.append(l + 'I')
                 nat = copy.copy(tmp)
-            newnat = [] #the required new nature
+            newnat = [] # the required new nature
             for elem in nat:
                 tmp = ''
                 for i in order:
                     tmp += elem[i]
                 newnat.append(tmp)
-            #Order the data in the new way
+            # Order the data in the new way
             newindex = [nat.index(x) for x in newnat]
             newdata = [data[x] for x in newindex]
             return newdata, newhyper
@@ -1904,8 +1901,10 @@ class Spectrum(object):
         if axes is None:
             return None
         datList = []
-        for item in self.data:
+        dataList = self.hyperReorder(self.data, axes)
+        for item in dataList:
             datList.append(item[tuple(locList[:axes]) + (slice(None), ) + tuple(locList[axes:])])
+        hyper = []
         sliceSpec = copy.deepcopy(Spectrum(self.name,
                                            datList,
                                            self.filePath,
@@ -1913,12 +1912,13 @@ class Spectrum(object):
                                            [self.sw[axes]],
                                            [self.spec[axes]],
                                            [self.wholeEcho[axes]],
-                                           self.hyper,
+                                           hyper,
                                            [self.ref[axes]],
                                            [self.xaxArray[axes]],
                                            self.history,
                                            self.msgHandler))
         sliceSpec.noUndo = True
+        self.hyperReorder(self.data, axes)
         return sliceSpec
 
     def getBlock(self, axes, axes2, locList, stackBegin=None, stackEnd=None, stackStep=None):
@@ -1953,52 +1953,6 @@ class Spectrum(object):
                                       self.history,
                                       self.msgHandler))
     
-    def getBlock_old(self, axes, axes2, locList, stackBegin=None, stackEnd=None, stackStep=None):
-        axes = self.checkAxes(axes)
-        if axes is None:
-            return None
-        axes2 = self.checkAxes(axes2)
-        if axes2 is None:
-            return None
-        stackSlice = reim.floatSlice(stackBegin, stackEnd, stackStep)
-        if axes == axes2:
-            self.dispMsg("First and second axes are the same")
-            return None
-        elif axes < axes2:
-            datList = []
-            for item in self.data:
-                datList.append(np.transpose(item[tuple(locList[:axes]) + (slice(None), ) + tuple(locList[axes:axes2 - 1]) + (stackSlice, ) + tuple(locList[axes2 - 1:])]))
-            return copy.deepcopy((datList,
-                                  self.freq[axes],
-                                  self.freq[axes2],
-                                  self.sw[axes],
-                                  self.sw[axes2],
-                                  self.spec[axes],
-                                  self.spec[axes2],
-                                  self.wholeEcho[axes],
-                                  self.wholeEcho[axes2],
-                                  self.xaxArray[axes],
-                                  self.xaxArray[axes2][stackSlice],
-                                  self.ref[axes],
-                                  self.ref[axes2]))
-        elif axes > axes2:
-            datList = []
-            for item in self.data:
-                datList.append(item[tuple(locList[:axes2]) + (stackSlice, ) + tuple(locList[axes2:axes - 1]) + (slice(None), ) + tuple(locList[axes - 1:])])
-            return copy.deepcopy((datList,
-                                  self.freq[axes],
-                                  self.freq[axes2],
-                                  self.sw[axes],
-                                  self.sw[axes2],
-                                  self.spec[axes],
-                                  self.spec[axes2],
-                                  self.wholeEcho[axes],
-                                  self.wholeEcho[axes2],
-                                  self.xaxArray[axes],
-                                  self.xaxArray[axes2][stackSlice],
-                                  self.ref[axes],
-                                  self.ref[axes2]))
-
     def restoreData(self, copyData, returnValue):  # restore data from an old copy for undo purposes
         if (not self.noUndo) and returnValue is None:
             copyData2 = copy.deepcopy(self)
@@ -3296,7 +3250,7 @@ class CurrentMulti(Current1D):
             else:
                 ref = extraData1D.freq[-1]
             self.line_xdata_extra.append(self.viewSettings["extraShift"][i] + xax * self.getAxMult(spec, self.viewSettings["axType"], self.viewSettings["ppm"], freq, ref))
-            if extraData1D.len() == 1:
+            if extraData1D.data[hyperView].shape[-1] == 1:
                 marker = 'o'
                 linestyle = 'none'
             else:
@@ -3896,7 +3850,7 @@ class CurrentContour(CurrentStacked):
                     idx = np.argmin(np.abs(xdata - event.xdata))
                     idy = np.argmin(np.abs(ydata - event.ydata))
                     if self.peakPickFunc is not None:
-                        tmpdata = np.real(self.getDataType(self.data1D[hyperView][idy, idx]))
+                        tmpdata = np.real(self.getDataType(self.data1D.data[hyperView][idy, idx]))
                         self.peakPickFunc((idx, xdata[idx], tmpdata, idy, ydata[idy]))
                     if not self.peakPick:  # check if peakpicking is still required
                         self.peakPickFunc = None

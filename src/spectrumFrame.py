@@ -202,7 +202,7 @@ class Plot1DFrame(object):
                     self.peakPick = False
                     idx = np.argmin(np.abs(self.line_xdata - event.xdata))
                     if self.peakPickFunc is not None:
-                        self.peakPickFunc((idx, self.line_xdata[-1][idx], self.line_ydata[-1][idx]))
+                        self.peakPickFunc((idx, np.array(self.line_xdata).flatten()[idx], np.array(self.line_ydata).flatten()[idx]))
                     if not self.peakPick:  # check if peakpicking is still required
                         self.peakPickFunc = None
             else:
