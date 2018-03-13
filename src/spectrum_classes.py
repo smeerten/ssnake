@@ -53,7 +53,7 @@ class Spectrum(object):
             self.hyper = [] # Holds the axes where hypercomplex data exists
         else:
             self.hyper = hyper
-        self.sortHyper() #force hyper into descending order
+        self.hyperSort() #force hyper into descending order
         self.filePath = filePath
         self.freq = np.array(freq)  # array of center frequency (length is dim, MHz)
         self.sw = sw  # array of sweepwidths
@@ -162,8 +162,6 @@ class Spectrum(object):
     def insert(self, data, pos, axes, hyper=[], dataImag=None):
         #Convert both data sets to the full hyper space
         #to be able to sum them
-        hyper1 = self.hyper
-        hyper2 = hyper
         try:
             newDat = []
             for In in range(len(data)):
@@ -177,12 +175,12 @@ class Spectrum(object):
         if self.noUndo:
             returnValue = None
         else:
-            if hyper1 == hyper2: #If both sets have same hyper: easy undo can be used
+            if self.hyper == hyper: #If both sets have same hyper: easy undo can be used
                 returnValue = lambda self: self.remove(range(pos, pos + newDat[0].shape[axes]), axes)
             else: #Otherwise: do a deep copy of the class
                 copyData = copy.deepcopy(self)
                 returnValue = lambda self: self.restoreData(copyData, lambda self: self.insert(data, pos, axes, hyper, dataImag))
-        self.data, hyper1, newDat, hyper2 = self.expandHyperData(self.data, hyper1, newDat, hyper2)
+        self.hyperExpand(hyper)
         axes = self.checkAxes(axes)
         if axes is None:
             return None
@@ -223,20 +221,6 @@ class Spectrum(object):
             self.dispMsg('Cannot delete all data')
             return None
 
-    def expandHyperData(self, incl_hyper):
-        # Expands the hypercomplex data to include hypercomplex axes.
-        # New hypercomplex dimensions are filled with zeros.
-        newElem = list(set(incl_hyper) - set(self.hyper))
-        newdata = []
-        newSize = 2**len(newElem)
-        for i in range(len(self.data)):
-            newdata.append(self.data[i])
-            for k in range(newSize - 1):
-                newdata.append(np.zeros_like(self.data[0]))
-        self.data = newdata
-        self.hyper += newElem #New hyper list
-        self.sortHyper() #Sort the hyperdata in descending order
-
     def add(self, data, dataImag=None, hyper=[], select=slice(None)):
         if self.noUndo:
             returnValue = None
@@ -256,7 +240,7 @@ class Spectrum(object):
         except ValueError as error:
             self.dispMsg(str(error))
             return None
-        self.expandHyperData(hyper)
+        self.hyperExpand(hyper)
         if isinstance(select, string_types):
             select = safeEval(select)
         try:
@@ -267,7 +251,8 @@ class Spectrum(object):
                 else:
                     bArray = np.kron(bArray, [1,0])
             tmpData = np.array(self.data)
-            tmpData[np.array(bArray, dtype=bool), select] += newDat
+            bArray = np.array(bArray, dtype=bool)
+            tmpData[bArray, select] += newDat
             self.data = list(tmpData)
         except ValueError as error:
             self.dispMsg(str(error))
@@ -294,7 +279,7 @@ class Spectrum(object):
         except ValueError as error:
             self.dispMsg(str(error))
             return None
-        self.expandHyperData(hyper)
+        self.hyperExpand(hyper)
         if isinstance(select, string_types):
             select = safeEval(select)
         try:
@@ -305,7 +290,8 @@ class Spectrum(object):
                 else:
                     bArray = np.kron(bArray, [1,0])
             tmpData = np.array(self.data)
-            tmpData[np.array(bArray, dtype=bool), select] -= newDat
+            bArray = np.array(bArray, dtype=bool)
+            tmpData[bArray, select] -= newDat
             self.data = list(tmpData)
         except ValueError as error:
             self.dispMsg(str(error))
@@ -329,19 +315,20 @@ class Spectrum(object):
         except ValueError as error:
             self.dispMsg(str(error))
             return None
-        self.expandHyperData(hyper)
+        self.hyperContract(hyper)
         if isinstance(select, string_types):
             select = safeEval(select)
         try:
             bArray = np.array([1])
-            for index in self.hyper:
-                if index in hyper:
+            for index in hyper:
+                if index in self.hyper:
                     bArray = np.kron(bArray, [1,1])
                 else:
                     bArray = np.kron(bArray, [1,0])
             tmpData = np.array(self.data)
-            tmpData[np.array(bArray, dtype=bool), select] *= newDat
-            tmpData[np.invert(np.array(bArray, dtype=bool)), select] *= 0
+            bArray = np.array(bArray, dtype=bool)
+            newDat = np.array(newDat)
+            tmpData[:, select] *= newDat[bArray]
             self.data = list(tmpData)
         except ValueError as error:
             self.dispMsg(str(error))
@@ -365,19 +352,20 @@ class Spectrum(object):
         except ValueError as error:
             self.dispMsg(str(error))
             return None
-        self.expandHyperData(hyper)
+        self.hyperContract(hyper)
         if isinstance(select, string_types):
             select = safeEval(select)
         try:
             bArray = np.array([1])
-            for index in self.hyper:
-                if index in hyper:
+            for index in hyper:
+                if index in self.hyper:
                     bArray = np.kron(bArray, [1,1])
                 else:
                     bArray = np.kron(bArray, [1,0])
             tmpData = np.array(self.data)
-            tmpData[np.array(bArray, dtype=bool), select] /= newDat
-            tmpData[np.invert(np.array(bArray, dtype=bool)), select] *= 0 # Multiply to prevent divide by zero
+            bArray = np.array(bArray, dtype=bool)
+            newDat = np.array(newDat)
+            tmpData[:, select] /= newDat[bArray]
             self.data = list(tmpData)
         except ValueError as error:
             self.dispMsg(str(error))
@@ -457,7 +445,7 @@ class Spectrum(object):
         except ValueError as error:
             self.dispMsg(str(error))
             return None
-        self.data, self.hyper = self.deleteHyper(axes,self.data,self.hyper) #Remove hypercomplex along the axis to be removed
+        self.data, self.hyper = self.hyperDelete(axes,self.data,self.hyper) #Remove hypercomplex along the axis to be removed
         for i in range(len(self.hyper)):
             if self.hyper[i] > axes:
                 self.hyper[i] += -1
@@ -507,7 +495,7 @@ class Spectrum(object):
         if axes is None:
             return None
         if axes in self.hyper:
-            self.data, self.hyper = self.deleteHyper(axes, self.data, self.hyper, False)
+            self.data, self.hyper = self.hyperDelete(axes, self.data, self.hyper, False)
         else:
             for index in range(len(self.data)):
                 self.data[index] = np.real(self.data[index])
@@ -524,7 +512,7 @@ class Spectrum(object):
         if axes is None:
             return None
         if axes in self.hyper:
-            self.data, self.hyper = self.deleteHyper(axes, self.data, self.hyper, True)
+            self.data, self.hyper = self.hyperDelete(axes, self.data, self.hyper, True)
         else:
             for index in range(len(self.data)):
                 self.data[index] = np.imag(self.data[index])
@@ -541,8 +529,8 @@ class Spectrum(object):
         if axes is None:
             return None
         if axes in self.hyper:
-            realdata, tmphyper = self.deleteHyper(axes, self.data, self.hyper, False)
-            imagdata, tmphyper = self.deleteHyper(axes, self.data, self.hyper, True)
+            realdata, tmphyper = self.hyperDelete(axes, self.data, self.hyper, False)
+            imagdata, tmphyper = self.hyperDelete(axes, self.data, self.hyper, True)
             for index in range(len(realdata)):
                 realdata[index] = np.sqrt(np.real(realdata)[index]**2 + np.real(imagdata)[index]**2) + 1j*np.sqrt(np.imag(realdata)[index]**2 + np.imag(imagdata)[index]**2)
             self.data = realdata
@@ -589,7 +577,7 @@ class Spectrum(object):
             self.data.append(tmp)
             self.data.append(tmp2)
         self.hyper.append(axes)
-        self.sortHyper() #Order the hyper data to default order
+        self.hyperSort() #Order the hyper data to default order
         self.resetXax(axes)
         self.addHistory("States conversion on dimension " + str(axes + 1))
         if self.noUndo:
@@ -611,10 +599,6 @@ class Spectrum(object):
         slicing2 = (slice(None), ) * axes + (slice(1, None, 2), ) + (slice(None), ) * (self.ndim() - 1 - axes)
         self.data = []
         for index in range(len(tmpdata)):
-            #tmp = np.real(tmpdata[index][slicing1]) + 1j * np.real(tmpdata[index][slicing2])
-            #tmp[slicing2] = -1 * tmp[slicing2]
-            #tmp2 = np.imag(tmpdata[index][slicing1]) + 1j * np.imag(tmpdata[index][slicing2])
-            #tmp2[slicing2] = -1 * tmp2[slicing2]
             tmp = np.real(tmpdata[index][slicing1]) + 1j * np.imag(tmpdata[index][slicing1])
             tmp[slicing2] = -1 * tmp[slicing2]
             tmp2 = np.real(tmpdata[index][slicing2]) + 1j * np.imag(tmpdata[index][slicing2])
@@ -622,7 +606,7 @@ class Spectrum(object):
             self.data.append(tmp)
             self.data.append(tmp2)
         self.hyper.append(axes)
-        self.sortHyper() #Order the hyper data to default order
+        self.hyperSort() #Order the hyper data to default order
         self.resetXax(axes)
         self.addHistory("States-TPPI conversion on dimension " + str(axes + 1))
         if self.noUndo:
@@ -644,14 +628,12 @@ class Spectrum(object):
         slicing2 = (slice(None), ) * axes + (slice(1, None, 2), ) + (slice(None), ) * (self.ndim() - 1 - axes)
         self.data = []
         for index in range(len(tmpdata)):
-            #tmp1 = np.real(tmpdata[index][slicing1] + tmpdata[index][slicing2]) - 1j * np.imag(tmpdata[index][slicing1] - tmpdata[index][slicing2])
-            #tmp2 = np.real(tmpdata[index][slicing1] - tmpdata[index][slicing2]) + 1j * np.imag(tmpdata[index][slicing1] + tmpdata[index][slicing2])
             tmp1 = np.real(tmpdata[index][slicing1] + tmpdata[index][slicing2]) + 1j * np.imag(tmpdata[index][slicing1] + tmpdata[index][slicing2])
             tmp2 =  - np.imag(tmpdata[index][slicing1] - tmpdata[index][slicing2]) + 1j * np.real(tmpdata[index][slicing1] - tmpdata[index][slicing2])
             self.data.append(tmp1)
             self.data.append(tmp2)
         self.hyper.append(axes)
-        self.sortHyper() #Order the hyper data to default order
+        self.hyperSort() #Order the hyper data to default order
         self.resetXax(axes)
         self.addHistory("Echo-antiecho conversion on dimension " + str(axes + 1))
         if self.noUndo:
@@ -760,7 +742,7 @@ class Spectrum(object):
             self.addHistory("Average between " + str(pos1) + " and " + str(pos2) + " of dimension " + str(axes + 1))
         #Remove hyper along this dim if necessary
         if keepdims ==  False and axes in self.hyper:
-            tmpdata , self.hyper = self.deleteHyper(axes,tmpdata,self.hyper)
+            tmpdata , self.hyper = self.hyperDelete(axes,tmpdata,self.hyper)
             #Correct hyper for missing dim 
             for i in range(len(self.hyper)):
                 if self.hyper[i] > axes:
@@ -852,7 +834,7 @@ class Spectrum(object):
         #Remove hyper along this dim if necessary
         tmphyper = copy.deepcopy(self.hyper)
         if keepdims ==  False and axes in self.hyper:
-            tmpdata, tmphyper = self.deleteHyper(axes,tmpdata, tmphyper)
+            tmpdata, tmphyper = self.hyperDelete(axes,tmpdata, tmphyper)
             #Correct hyper for missing dim 
             for i in range(len(tmphyper)):
                 if tmphyper[i] > axes:
@@ -1494,12 +1476,9 @@ class Spectrum(object):
 
     def hyperReorder(self, axis): #A function to reorder the data for a hypercomplex operation
         hyper = [x for x in self.hyper if x == axis]
-        if len(hyper) == 0:
-            return
-        elif len(hyper) == 1:
-            hyper = self.hyper.index(hyper[0])
+        if axis in self.hyper:
+            hyper = self.hyper.index(axis)
         else:
-            print('error in hyper')
             return
         hyperLen = len(self.data)
         values = np.arange(hyperLen)
@@ -1508,59 +1487,70 @@ class Spectrum(object):
         list2 = np.array([], dtype=int)
         for index in range(int(hyperLen/step)):
             if index % 2: # if even
-                list2 = np.append(list2,values[0:step])
+                list2 = np.append(list2, values[0:step])
             else:
-                list1 = np.append(list1,values[0:step])
+                list1 = np.append(list1, values[0:step])
             values = values[step::]
         for index in range(len(list1)):
             l1 = list1[index]
             l2 = list2[index]
             self.data[l1], self.data[l2] = np.real(self.data[l1]) + 1j*np.real(self.data[l2]), np.imag(self.data[l1]) + 1j*np.imag(self.data[l2])
 
-    def deleteHyper(self, axis, data, hyper, imag=False):
+    def hyperDelete(self, axis, imag=False):
         #Deletes hypercomplex data along axis, is any
         #Deletes its entry from self.hyper list.
-        if axis in hyper:
-            totlen = 2**len(hyper)
-            indx = hyper.index(axis)
-            step = 2**(len(hyper) - indx - 1)
-            if imag:                
-                boollist = np.array([False, True])
-            else:
-                boollist = np.array([True, False])
-            boollist = np.tile(np.repeat(boollist, totlen / step / 2), step)
-            newdat = []
-            for i in range(len(boollist)):
-                if boollist[i] == True:
-                    newdat.append(data[i])
-        return newdat, [x for x in hyper if x != axis]
+        if axis not in self.hyper:
+            return
+        L = len(self.hyper)
+        indx = self.hyper.index(axis)
+        if imag:                
+            boollist = np.array([False, True])
+        else:
+            boollist = np.array([True, False])
+        boollist = np.repeat(np.tile(boollist, 2**(L-(indx+1))), 2**indx)
+        self.data = list(np.array(self.data)[boolist])
+        del self.hyper[indx]
 
-    def sortHyper(self):
+    def hyperSort(self):
         # Makes sure that the hyper list is in descending order (e.g. [3,1,0])
         # and adjust the data list accordingly
-        if len(self.hyper) == 0:
+        L = len(self.hyper)
+        if L == 0:
             return
         order = np.argsort(self.hyper)[::-1]
-        newHyper = [self.hyper[x] for x in order]
-        nat = ['R','I'] # nature of each data matrix
-        for elem in self.hyper[1::]:
-            tmp = []
-            for l in nat:
-                tmp.append(l + 'R')
-                tmp.append(l + 'I')
-            nat = copy.copy(tmp)
-        newnat = [] # the required new nature
-        for elem in nat:
-            tmp = ''
-            for i in order:
-                tmp += elem[i]
-            newnat.append(tmp)
-        # Order the data in the new way
-        newindex = [nat.index(x) for x in newnat]
-        self.data= [self.data[x] for x in newindex]
-        self.hyper = newHyper
-        return
+        imagBool = np.array([np.repeat(np.tile([0,1], 2**(L-(n+1))), 2**n) for n in range(L)]) # Matrix where 0 is real and 1 is imag.
+        imagBool = imagBool[order] # Reorder to resemble the current ordering of the data.
+        dataOrder = np.lexsort(imagBool)
+        self.data = [self.data[i] for i in dataOrder]
+        self.hyper = [self.hyper[i] for i in order]
 
+    def hyperExpand(self, incl_hyper):
+        # Expands the hypercomplex data to include hypercomplex axes.
+        # New hypercomplex dimensions are filled with zeros.
+        newElem = list(set(incl_hyper) - set(self.hyper))
+        newdata = []
+        newSize = 2**len(newElem)
+        for i in range(len(self.data)):
+            newdata.append(self.data[i])
+            for k in range(newSize - 1):
+                newdata.append(np.zeros_like(self.data[0]))
+        self.data = newdata
+        self.hyper += newElem # New hyper list
+        self.hyperSort()
+
+    def hyperContract(self, incl_hyper):
+        newHyper = list(set(incl_hyper).intersection(self.hyper))
+        bArray = np.array([1])
+        for index in self.hyper:
+            if index in newHyper:
+                bArray = np.kron(bArray, [1,1])
+            else:
+                bArray = np.kron(bArray, [1,0])
+        bArray = np.array(bArray, dtype=bool)
+        self.hyper = newHyper
+        self.data = list(np.array(self.data)[bArray])
+        self.hyperSort()
+        
     def fourier(self, axes, tmp=False, inv=False, reorder=[True,True]):
         axes = self.checkAxes(axes)
         if reorder[0]:
