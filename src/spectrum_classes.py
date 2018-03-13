@@ -238,14 +238,12 @@ class Spectrum(object):
         self.sortHyper() #Sort the hyperdata in descending order
 
     def add(self, data, dataImag=None, hyper=[], select=slice(None)):
-        #Convert both data sets to the full hyper space
-        #to be able to sum them
         if self.noUndo:
             returnValue = None
         else:
             if self.hyper == hyper: #If both sets have same hyper: easy subtract can be used for undo
                 returnValue = lambda self: self.subtract(data, dataImag, hyper=hyper, select=select)
-            else: #Otherwise: do a deep copy of the class
+            else: # Otherwise: do a deep copy of the class
                 copyData = copy.deepcopy(self)
                 returnValue = lambda self: self.restoreData(copyData, lambda self: self.add(data, dataImag, hyper, select))
         try:
@@ -262,13 +260,15 @@ class Spectrum(object):
         if isinstance(select, string_types):
             select = safeEval(select)
         try:
-            #BvM
-            #self.data[0][select] += newDat[0]
-            count = 0
-            for index in range(len(self.data)):
-                if self.hyper[index % len(self.hyper)] in hyper:
-                    self.data[index][select] += newDat[count]
-                    count += 1
+            bArray = np.array([1])
+            for index in self.hyper:
+                if index in hyper:
+                    bArray = np.kron(bArray, [1,1])
+                else:
+                    bArray = np.kron(bArray, [1,0])
+            tmpData = np.array(self.data)
+            tmpData[np.array(bArray, dtype=bool), select] += newDat
+            self.data = list(tmpData)
         except ValueError as error:
             self.dispMsg(str(error))
             return None
@@ -276,16 +276,12 @@ class Spectrum(object):
         return returnValue
 
     def subtract(self, data, dataImag=None, hyper=[], select=slice(None)):
-        #Convert both data sets to the full hyper space
-        #to be able to sum them
-        hyper1 = self.hyper
-        hyper2 = hyper
         if self.noUndo:
             returnValue = None
         else:
-            if hyper1 == hyper2: #If both sets have same hyper: easy subtract can be used for undo
+            if self.hyper == hyper: #If both sets have same hyper: easy subtract can be used for undo
                 returnValue = lambda self: self.add(data, dataImag, hyper=hyper, select=select)
-            else: #Otherwise: do a deep copy of the class
+            else: # Otherwise: do a deep copy of the class
                 copyData = copy.deepcopy(self)
                 returnValue = lambda self: self.restoreData(copyData, lambda self: self.subtract(data, dataImag, hyper, select))
         try:
@@ -298,35 +294,31 @@ class Spectrum(object):
         except ValueError as error:
             self.dispMsg(str(error))
             return None
-        self.data, hyper1, newDat, hyper2 = self.expandHyperData(self.data, hyper1, newDat, hyper2)
+        self.expandHyperData(hyper)
         if isinstance(select, string_types):
             select = safeEval(select)
         try:
-            for index in range(len(self.data)):
-                self.data[index][select] = self.data[index][select] - newDat[index]
-            self.hyper = hyper1 #Set hyper to expanded value
+            bArray = np.array([1])
+            for index in self.hyper:
+                if index in hyper:
+                    bArray = np.kron(bArray, [1,1])
+                else:
+                    bArray = np.kron(bArray, [1,0])
+            tmpData = np.array(self.data)
+            tmpData[np.array(bArray, dtype=bool), select] -= newDat
+            self.data = list(tmpData)
         except ValueError as error:
             self.dispMsg(str(error))
             return None
         self.addHistory("Subtracted from data[" + str(select) + "]")
-        if self.noUndo:
-            return None
-        else:
-            return returnValue
-    
+        return returnValue
+
     def multiplySpec(self, data, dataImag=None, hyper=[], select=slice(None)):
-        #Convert both data sets to the full hyper space
-        #to be able to sum them
-        hyper1 = self.hyper
-        hyper2 = hyper
         if self.noUndo:
             returnValue = None
         else:
-            if hyper1 == hyper2: #If both sets have same hyper: easy subtract can be used for undo
-                returnValue = lambda self: self.divideSpec(data, dataImag, hyper=hyper, select=select)
-            else: #Otherwise: do a deep copy of the class
-                copyData = copy.deepcopy(self)
-                returnValue = lambda self: self.restoreData(copyData, lambda self: self.multiplySpec(data, dataImag, hyper, select))
+            copyData = copy.deepcopy(self)
+            returnValue = lambda self: self.restoreData(copyData, lambda self: self.multiplySpec(data, dataImag, hyper, select))
         try:
             newDat = []
             for In in range(len(data)):
@@ -337,35 +329,32 @@ class Spectrum(object):
         except ValueError as error:
             self.dispMsg(str(error))
             return None
-        self.data, hyper1, newDat, hyper2 = self.expandHyperData(self.data, hyper1, newDat, hyper2)
+        self.expandHyperData(hyper)
         if isinstance(select, string_types):
             select = safeEval(select)
         try:
-            for index in range(len(self.data)):
-                self.data[index][select] = self.data[index][select] * newDat[index]
-            self.hyper = hyper1 #Set hyper to expanded value
+            bArray = np.array([1])
+            for index in self.hyper:
+                if index in hyper:
+                    bArray = np.kron(bArray, [1,1])
+                else:
+                    bArray = np.kron(bArray, [1,0])
+            tmpData = np.array(self.data)
+            tmpData[np.array(bArray, dtype=bool), select] *= newDat
+            tmpData[np.invert(np.array(bArray, dtype=bool)), select] *= 0
+            self.data = list(tmpData)
         except ValueError as error:
             self.dispMsg(str(error))
             return None
         self.addHistory("Multiplied with data[" + str(select) + "]")
-        if self.noUndo:
-            return None
-        else:
-            return returnValue
+        return returnValue
 
     def divideSpec(self, data, dataImag=None, hyper=[], select=slice(None)):
-        #Convert both data sets to the full hyper space
-        #to be able to sum them
-        hyper1 = self.hyper
-        hyper2 = hyper
         if self.noUndo:
             returnValue = None
         else:
-            if hyper1 == hyper2: #If both sets have same hyper: easy subtract can be used for undo
-                returnValue = lambda self: self.multiplySpec(data, dataImag, hyper=hyper, select=select)
-            else: #Otherwise: do a deep copy of the class
-                copyData = copy.deepcopy(self)
-                returnValue = lambda self: self.restoreData(copyData, lambda self: self.divide(data, dataImag, hyper, select))
+            copyData = copy.deepcopy(self)
+            returnValue = lambda self: self.restoreData(copyData, lambda self: self.divideSpec(data, dataImag, hyper, select))
         try:
             newDat = []
             for In in range(len(data)):
@@ -376,21 +365,25 @@ class Spectrum(object):
         except ValueError as error:
             self.dispMsg(str(error))
             return None
-        self.data, hyper1, newDat, hyper2 = self.expandHyperData(self.data, hyper1, newDat, hyper2)
+        self.expandHyperData(hyper)
         if isinstance(select, string_types):
             select = safeEval(select)
         try:
-            for index in range(len(self.data)):
-                self.data[index][select] = self.data[index][select] / newDat[index]
-            self.hyper = hyper1 #Set hyper to expanded value
+            bArray = np.array([1])
+            for index in self.hyper:
+                if index in hyper:
+                    bArray = np.kron(bArray, [1,1])
+                else:
+                    bArray = np.kron(bArray, [1,0])
+            tmpData = np.array(self.data)
+            tmpData[np.array(bArray, dtype=bool), select] /= newDat
+            tmpData[np.invert(np.array(bArray, dtype=bool)), select] *= 0 # Multiply to prevent divide by zero
+            self.data = list(tmpData)
         except ValueError as error:
             self.dispMsg(str(error))
             return None
         self.addHistory("Divided by data[" + str(select) + "]")
-        if self.noUndo:
-            return None
-        else:
-            return returnValue
+        return returnValue
 
     def multiply(self, mult, axes, multImag=0, select=slice(None)):
         if isinstance(select, string_types):
@@ -1548,7 +1541,7 @@ class Spectrum(object):
         if len(self.hyper) == 0:
             return
         order = np.argsort(self.hyper)[::-1]
-        self.hyper = [self.hyper[x] for x in order]
+        newHyper = [self.hyper[x] for x in order]
         nat = ['R','I'] # nature of each data matrix
         for elem in self.hyper[1::]:
             tmp = []
@@ -1565,6 +1558,7 @@ class Spectrum(object):
         # Order the data in the new way
         newindex = [nat.index(x) for x in newnat]
         self.data= [self.data[x] for x in newindex]
+        self.hyper = newHyper
         return
 
     def fourier(self, axes, tmp=False, inv=False, reorder=[True,True]):
@@ -1678,7 +1672,7 @@ class Spectrum(object):
         for index in range(len(self.data)):
             self.data[index] = self.data[index] * shearMatrix.reshape(shape)
         if self.spec[axes] > 0:
-            self.fourier(axes, tmp=True, inv=True, reorder = [False,True])
+            self.fourier(axes, tmp=True, inv=True, reorder=[False,True])
         else:
             self.hyperReorder(axes)
         self.addHistory("Shearing transform with shearing value " + str(shear) + " over dimensions " + str(axes + 1) + " and " + str(axes2 + 1))
