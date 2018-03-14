@@ -35,7 +35,7 @@ class HComplexData(object):
                 self.hyper = np.array([0]) # The data is only complex in the last dimension
             else:
                 if len(hyper) != len(data):
-                    raise RuntimeError('')
+                    raise RuntimeError('Length of hyper and data mismatch')
                 self.data = np.array(data, dtype=complex)
                 self.hyper = np.array(hyper)
                 
@@ -43,17 +43,43 @@ class HComplexData(object):
         if self.data:
             return self.data[0]
 
-    def __add__(self, x):
-        if isinstance(x, HComplexData):
-            tmpData = np.setdiff1d(x.hyper, self.hyper)
-            tmpData[np.isin(self.hyper, x.hyper, assume_unique=True)] += x.data[np.isin(x.hyper, self.hyper, assume_unique=True)]
-            tmpData
+    def __add__(self, other):
+        tmpData = np.copy(self.data)
+        tmpHyper = np.copy(self.hyper)
+        if isinstance(other, HComplexData):
+            tmpData[np.isin(self.hyper, other.hyper, assume_unique=True)] += other.data[np.isin(other.hyper, tmpHyper, assume_unique=True)]
+            diffList = np.setdiff1d(other.hyper, tmpHyper, assume_unique=True)
+            insertOrder = np.searchsorted(tmpHyper, diffList)
+            tmpData = np.insert(tmpData, insertOrder, other.data[np.isin(other.hyper, diffList, assume_unique=True)], axis=0)
+            tmpHyper = np.insert(tmpHyper, insertOrder, diffList)
+            return HComplexData(tmpData, tmpHyper)
         else:
-            return HComplexData(self.data+x, self.hyper)
+            tmpData[0] += other # Real values should only be added to the real data
+            return HComplexData(tmpData, tmpHyper)
 
-    def __radd__(self, x):
-        return self.__add__(x)
+    def __radd__(self, other):
+        return self.__add__(other)
 
+    def __sub__(self, other):
+        tmpData = np.copy(self.data)
+        tmpHyper = np.copy(self.hyper)
+        if isinstance(other, HComplexData):
+            tmpData[np.isin(tmpHyper, other.hyper, assume_unique=True)] -= other.data[np.isin(other.hyper, tmpHyper, assume_unique=True)]
+            diffList = np.setdiff1d(other.hyper, tmpHyper, assume_unique=True)
+            insertOrder = np.searchsorted(tmpHyper, diffList)
+            tmpData = np.insert(tmpData, insertOrder, -1*other.data[np.isin(other.hyper, diffList, assume_unique=True)], axis=0)
+            tmpHyper = np.insert(tmpHyper, insertOrder, diffList)
+            return HComplexData(tmpData, tmpHyper)
+        else:
+            tmpData[0] -= other
+            return HComplexData(tmpData, tmpHyper)
+
+    def __rsub__(self, other):
+        tmpData = -1 * self.data
+        tmpHyper = np.copy(self.hyper)
+        tmpData[0] += other
+        return HComplexData(tmpData, tmpHyper)
+        
     def ndim(self):
         return self.data.ndim - 1 # One extra dimension to contain the hypercomplex information
 
@@ -62,3 +88,6 @@ class HComplexData(object):
             return True
         return bool(np.max(self.hyper) & (2**axis))
         
+a = HComplexData([[1]], [0])
+b = HComplexData([[1], [2]], [0,1])
+print (b+10).data
