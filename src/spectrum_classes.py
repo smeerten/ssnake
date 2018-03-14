@@ -35,8 +35,9 @@ COLORMAPLIST = ['seismic', 'BrBG', 'bwr', 'coolwarm', 'PiYG', 'PRGn', 'PuOr',
 COLORCYCLE = list(matplotlib.rcParams['axes.prop_cycle'])
 COLORCONVERTER = matplotlib.colors.ColorConverter()
 
+
 #########################################################################
-# the generic data class
+# the generic spectrum class
 
 
 class Spectrum(object):
@@ -445,7 +446,7 @@ class Spectrum(object):
         except ValueError as error:
             self.dispMsg(str(error))
             return None
-        self.data, self.hyper = self.hyperDelete(axes,self.data,self.hyper) #Remove hypercomplex along the axis to be removed
+        self.hyperDelete(axes) #Remove hypercomplex along the axis to be removed
         for i in range(len(self.hyper)):
             if self.hyper[i] > axes:
                 self.hyper[i] += -1
@@ -495,7 +496,7 @@ class Spectrum(object):
         if axes is None:
             return None
         if axes in self.hyper:
-            self.data, self.hyper = self.hyperDelete(axes, self.data, self.hyper, False)
+            self.hyperDelete(axes, False)
         else:
             for index in range(len(self.data)):
                 self.data[index] = np.real(self.data[index])
@@ -512,7 +513,7 @@ class Spectrum(object):
         if axes is None:
             return None
         if axes in self.hyper:
-            self.data, self.hyper = self.hyperDelete(axes, self.data, self.hyper, True)
+            self.hyperDelete(axes, True)
         else:
             for index in range(len(self.data)):
                 self.data[index] = np.imag(self.data[index])
@@ -2187,7 +2188,7 @@ class Current1D(Plot1DFrame):
         return returnValue
 
     def apodPreview(self, lor=None, gauss=None, cos2=None, hamming=None, shift=0.0, shifting=0.0, shiftingAxes=None):  # display the 1D data including the apodization function
-        if (self.spec() == 0) and not type(self) is CurrentContour:
+        if not type(self) is CurrentContour:
             y = copy.deepcopy(self.data1D.data)
             preview = True
         else:
@@ -2206,10 +2207,13 @@ class Current1D(Plot1DFrame):
                 else:
                     shift += shifting * self.locList[shiftingAxes - 1] / self.data.sw[shiftingAxes]
                 curve = self.data1D.apodize(lor, gauss, cos2, hamming, shift, 0.0, None, -1, preview=preview)
-        if self.spec() == 0 and not type(self) is CurrentContour:
-            tmp = self.getDataType(y)
-            scale = np.max([np.real(tmp), np.imag(tmp)])
-            self.showFid(y, curve[0], scale*np.array(curve[1]), 'g')
+        if not type(self) is CurrentContour:
+            if self.spec() == 0:
+                tmp = self.getDataType(y)
+                scale = np.max([np.real(tmp), np.imag(tmp)])
+                self.showFid(y, curve[0], scale*np.array(curve[1]), 'g')
+            else:
+                self.showFid(y)
         else:
             self.showFid()
         self.upd()
