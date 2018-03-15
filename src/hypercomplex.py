@@ -19,8 +19,19 @@
 
 import numpy as np
 
+def parity(x):
+    # Find the parity of an integer
+    parity = False
+    if x<0:
+        raise RuntimeError('Parity does not work for negative values')
+    while x:
+        parity = not parity
+        x = x & (x - 1)
+    return int(parity)
+
 #########################################################################
 # the hyper complex data class
+
 
 class HComplexData(object):
 
@@ -38,10 +49,22 @@ class HComplexData(object):
                     raise RuntimeError('Length of hyper and data mismatch')
                 self.data = np.array(data, dtype=complex)
                 self.hyper = np.array(hyper)
-                
+
+    def ndim(self):
+        return self.data.ndim - 1 # One extra dimension to contain the hypercomplex information
+
     def __len__(self):
         if self.data:
             return self.data[0]
+
+    def __neg__(self):
+        return HComplexData(-self.data, np.copy(self.hyper))
+
+    def __pos__(self):
+        return HComplexData(+self.data, np.copy(self.hyper))
+
+    def __abs__(self):
+        return HComplexData(np.abs(self.data), np.copy(self.hyper))
 
     def __add__(self, other):
         tmpData = np.copy(self.data)
@@ -61,33 +84,79 @@ class HComplexData(object):
         return self.__add__(other)
 
     def __sub__(self, other):
-        tmpData = np.copy(self.data)
-        tmpHyper = np.copy(self.hyper)
+        return self.__add__(-other)
+    
+    def __rsub__(self, other):
+        return (-self).__add__(other)
+
+    def __mul__(self, other):
         if isinstance(other, HComplexData):
-            tmpData[np.isin(tmpHyper, other.hyper, assume_unique=True)] -= other.data[np.isin(other.hyper, tmpHyper, assume_unique=True)]
-            diffList = np.setdiff1d(other.hyper, tmpHyper, assume_unique=True)
-            insertOrder = np.searchsorted(tmpHyper, diffList)
-            tmpData = np.insert(tmpData, insertOrder, -1*other.data[np.isin(other.hyper, diffList, assume_unique=True)], axis=0)
-            tmpHyper = np.insert(tmpHyper, insertOrder, diffList)
+            tmpHyper = np.unique(np.concatenate((self.hyper, other.hyper)))
+            tmpHyper.sort()
+            tmpData = np.zeros((len(tmpHyper),) + self.data[0].shape, dtype=complex)
+            for i, idim in enumerate(self.hyper):
+                for j, jdim in enumerate(other.hyper):
+                    if parity(idim & jdim):
+                        tmpData[(idim^jdim) == tmpHyper] -= self.data[i] * other.data[j]
+                    else:
+                        tmpData[(idim^jdim) == tmpHyper] += self.data[i] * other.data[j]
             return HComplexData(tmpData, tmpHyper)
         else:
-            tmpData[0] -= other
-            return HComplexData(tmpData, tmpHyper)
+            return HComplexData(self.data*other, np.copy(self.hyper))
 
-    def __rsub__(self, other):
-        tmpData = -1 * self.data
-        tmpHyper = np.copy(self.hyper)
-        tmpData[0] += other
-        return HComplexData(tmpData, tmpHyper)
-        
-    def ndim(self):
-        return self.data.ndim - 1 # One extra dimension to contain the hypercomplex information
+    def __rmul__(self, other):
+        return self.__mul__(other)
+
+    def conj(self):
+        self.data.conj()
+        self.data[1:] = -self.data[1:]
+
+    def isAllReal(self):
+        tmp = 0
+        if len(self.hyper) > 1:
+            tmp = np.count_nonzero(self.data[1:])
+        tmp += np.count_nonzero(tmp.imag)
+        return not bool(tmp)
+
+    def __div__(self, other):
+        if isinstance(other, HComplexData):
+            if len(other.hyper) > 1:
+                # Recursive calculation of the multicomplex division
+                tmpOther = HComplexData(np.copy(other.data), np.copy(other.hyper))
+                tmpSelf = HComplexData(np.copy(self.data), np.copy(self.hyper))
+                while not tmpOther.isAllReal():
+                    tmpObj = HComplexData(np.copy(tmpOther.data), np.copy(tmpOther.hyper))
+                    tmpObj.conj()
+                    tmpOther *= tmpObj
+                    tmpSelf *= tmpObj
+                tmpSelf.data /= tmpOther.data[0]
+                # Zero divisors might introduce incorrect division by zero errors
+                return tmpSelf
+            return HComplexData(self.data/other.data, np.copy(self.hyper))
+        else:
+            return HComplexData(self.data/other, np.copy(self.hyper))
+
+    def __truediv__(self, other):
+        return self.__div__(other)
+
+    def __pow__(self, other):
+        if isinstance(other, HComplexData):
+            if len(self.hyper) > 1 or len(other.hyper) > 1:
+                raise RuntimeError('Division of data with more than one complex axis is not permitted')
+            return HComplexData(self.data**other.data, np.copy(self.hyper))
+        else:
+            return HComplexData(self.data**other, np.copy(self.hyper))
+
+    def __rpow__(self, other):
+        return HComplexData(other**self.data, np.copy(self.hyper))
 
     def isComplex(self, axis):
         if axis == (self.ndim()-1):
             return True
         return bool(np.max(self.hyper) & (2**axis))
         
-a = HComplexData([[1]], [0])
-b = HComplexData([[1], [2]], [0,1])
-print (b+10).data
+a = HComplexData([[5], [2.5]], [0,3])
+b = HComplexData([[0], [1.5]], [0,3])
+c = HComplexData([[[10]]], [0])
+print (a/b).data
+#print (divmod(c,a)).data
