@@ -24,7 +24,7 @@ import os
 
 
 def loading(num, filePath, name=None, realpath=False, dialog=None):
-    #try:
+    try:
         if num == 0:
             masterData = loadVarianFile(filePath, name)
         elif num == 1:
@@ -55,8 +55,8 @@ def loading(num, filePath, name=None, realpath=False, dialog=None):
             masterData = loadMinispec(filePath, name)
         elif num == 13:
             masterData = loadBrukerEPR(filePath, name)
-    #except Exception:
-    #    return None
+    except Exception:
+        return None
         return masterData
 
 
@@ -364,7 +364,7 @@ def loadJEOLDelta(filePath, name=''):
             sidefreq = -np.floor((dataStop[axisNum] + 1) / 2) / dataStop[axisNum] + 1 * sw[-1]  # frequency of last point on axis
             ref.append(baseFreq[axisNum] * 1e6)
         if axisType == 13:  # Hz
-            sw.append(np.abs(axisStart[axisNum] - axisStop[0]))
+            sw.append(np.abs(axisStart[axisNum] - axisStop[axisNum]))
             sidefreq = -np.floor((dataStop[axisNum] + 1) / 2) / (dataStop[axisNum] + 1) * sw[-1]  # frequency of last point on axis
             ref.append(sidefreq + baseFreq[axisNum] * 1e6 - axisStop[axisNum])
         if axisType == 26:  # ppm
@@ -542,7 +542,7 @@ def loadBrukerTopspin(filePath, name=''):
         Dir = filePath
     f,fM, i = lambda x: float(x), lambda x: float(x) * 1e6, lambda x: int(x) #Conversion functions
     Elem = [['TD', i, []],['SFO1', fM ,[]],['SW_h', f, []],['O1',f, []], ['BYTORDA',i,[]]] #The elements to be found [Name, conversion, list with hits]
-    for File in ['acqus','acqu2s','acqu3s']:
+    for File in ['acqu','acqu2','acqu3']:
         if os.path.exists(Dir + os.path.sep + File):
             with open(Dir + os.path.sep + File, 'r') as f:
                 data = f.read().split('\n')
