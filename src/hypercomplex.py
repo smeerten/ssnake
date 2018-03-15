@@ -53,10 +53,23 @@ class HComplexData(object):
     def ndim(self):
         return self.data.ndim - 1 # One extra dimension to contain the hypercomplex information
 
+    def shape(self):
+        return self.data[0].shape
+    
     def __len__(self):
         if self.data:
             return self.data[0]
 
+    def __eq__(self, other):
+        if isinstance(other, self.__class__):
+            return np.all(other.data == self.data) and np.all(other.hyper == self.hyper)
+        return False
+        
+    def __ne__(self, other):
+        if isinstance(other, self.__class__):
+            return np.any(other.data != self.data) and np.any(other.hyper != self.hyper)
+        return True
+        
     def __neg__(self):
         return HComplexData(-self.data, np.copy(self.hyper))
 
@@ -93,7 +106,7 @@ class HComplexData(object):
         if isinstance(other, HComplexData):
             tmpHyper = np.unique(np.concatenate((self.hyper, other.hyper)))
             tmpHyper.sort()
-            tmpData = np.zeros((len(tmpHyper),) + self.data[0].shape, dtype=complex)
+            tmpData = np.zeros((len(tmpHyper),) + self.shape(), dtype=complex)
             for i, idim in enumerate(self.hyper):
                 for j, jdim in enumerate(other.hyper):
                     if parity(idim & jdim):
@@ -145,18 +158,35 @@ class HComplexData(object):
                 raise RuntimeError('Division of data with more than one complex axis is not permitted')
             return HComplexData(self.data**other.data, np.copy(self.hyper))
         else:
+            if len(self.hyper) > 1:
+                raise RuntimeError('Power with more than one complex axis is not permitted')
             return HComplexData(self.data**other, np.copy(self.hyper))
 
     def __rpow__(self, other):
+        if len(self.hyper) > 1:
+            raise RuntimeError('Power with more than one complex axis is not permitted')
         return HComplexData(other**self.data, np.copy(self.hyper))
 
+    def __getitem__(self, key):
+        return HComplexData(self.data[:, key], self.hyper)
+
+    def __setitem__(self, key, value):
+        if isinstance(value, HComplexData):
+            self.data[:, key] = 0
+            diffList = np.setdiff1d(value.hyper, self.hyper, assume_unique=True)
+            insertOrder = np.searchsorted(self.hyper, diffList)
+            self.data = np.insert(self.data, insertOrder, 0, axis=0)
+            self.hyper = np.insert(self.hyper, insertOrder, diffList)
+            self.data[np.isin(self.hyper, value.hyper), key] = value.data
+        else:
+            self.data[0, key] = value
+            self.data[1:, key] = 0
+    
     def isComplex(self, axis):
         if axis == (self.ndim()-1):
             return True
         return bool(np.max(self.hyper) & (2**axis))
         
-a = HComplexData([[5], [2.5]], [0,3])
-b = HComplexData([[0], [1.5]], [0,3])
-c = HComplexData([[[10]]], [0])
-print (a/b).data
-#print (divmod(c,a)).data
+a = HComplexData([5, 2.5], [0,3])
+b = HComplexData([[2,6], [2.5,4]], [0,3])
+c = HComplexData([[10,20,30], [100, 200, 300]], [0,1])
