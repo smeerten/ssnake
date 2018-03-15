@@ -57,7 +57,7 @@ def loading(num, filePath, name=None, realpath=False, dialog=None):
             masterData = loadBrukerEPR(filePath, name)
     except Exception:
         return None
-        return masterData
+    return masterData
 
 
 def fileTypeCheck(filePath):
