@@ -18,6 +18,7 @@
 # along with ssNake. If not, see <http://www.gnu.org/licenses/>.
 
 import numpy as np
+import warnings
 
 def parity(x):
     # Find the parity of an integer
@@ -81,17 +82,18 @@ class HComplexData(object):
 
     def __add__(self, other):
         tmpData = np.copy(self.data)
-        tmpHyper = np.copy(self.hyper)
         if isinstance(other, HComplexData):
-            tmpData[np.isin(self.hyper, other.hyper, assume_unique=True)] += other.data[np.isin(other.hyper, tmpHyper, assume_unique=True)]
-            diffList = np.setdiff1d(other.hyper, tmpHyper, assume_unique=True)
-            insertOrder = np.searchsorted(tmpHyper, diffList)
-            tmpData = np.insert(tmpData, insertOrder, other.data[np.isin(other.hyper, diffList, assume_unique=True)], axis=0)
-            tmpHyper = np.insert(tmpHyper, insertOrder, diffList)
+            tmpHyper = np.unique(np.concatenate((self.hyper, other.hyper)))
+            tmpHyper.sort()
+            tmpData = np.zeros((len(tmpHyper),) + np.broadcast(self.data[0], other.data[0]).shape, dtype=complex)
+            for i in self.hyper:
+                tmpData[i==tmpHyper] = self.data[i==self.hyper]
+            for i in other.hyper:
+                tmpData[i==tmpHyper] += other.data[i==other.hyper]
             return HComplexData(tmpData, tmpHyper)
         else:
             tmpData[0] += other # Real values should only be added to the real data
-            return HComplexData(tmpData, tmpHyper)
+            return HComplexData(tmpData, self.hyper)
 
     def __radd__(self, other):
         return self.__add__(other)
@@ -104,9 +106,13 @@ class HComplexData(object):
 
     def __mul__(self, other):
         if isinstance(other, HComplexData):
-            tmpHyper = np.unique(np.concatenate((self.hyper, other.hyper)))
+            tmpHyper = np.concatenate((self.hyper, other.hyper))
+            for i in other.hyper:
+                xorHyper = i^self.hyper
+                tmpHyper = np.concatenate((tmpHyper, xorHyper))
+            tmpHyper = np.unique(tmpHyper)
             tmpHyper.sort()
-            tmpData = np.zeros((len(tmpHyper),) + self.shape(), dtype=complex)
+            tmpData = np.zeros((len(tmpHyper),) + np.broadcast(self.data[0], other.data[0]).shape, dtype=complex)
             for i, idim in enumerate(self.hyper):
                 for j, jdim in enumerate(other.hyper):
                     if parity(idim & jdim):
@@ -121,6 +127,12 @@ class HComplexData(object):
         return self.__mul__(other)
 
     def conj(self):
+        tmpData = np.conj(self.data)
+        tmpData[1:] = - tmpData[1:]
+        return HComplexData(tmpData, np.copy(self.hyper))
+    
+    def iconj(self):
+        # In place complex conjugation
         self.data.conj()
         self.data[1:] = -self.data[1:]
 
@@ -135,11 +147,12 @@ class HComplexData(object):
         if isinstance(other, HComplexData):
             if len(other.hyper) > 1:
                 # Recursive calculation of the multicomplex division
+                warnings.warn("Calculation of multicomplex data may not result in the correct value")
                 tmpOther = HComplexData(np.copy(other.data), np.copy(other.hyper))
                 tmpSelf = HComplexData(np.copy(self.data), np.copy(self.hyper))
                 while not tmpOther.isAllReal():
                     tmpObj = HComplexData(np.copy(tmpOther.data), np.copy(tmpOther.hyper))
-                    tmpObj.conj()
+                    tmpObj.iconj()
                     tmpOther *= tmpObj
                     tmpSelf *= tmpObj
                 tmpSelf.data /= tmpOther.data[0]
@@ -183,10 +196,65 @@ class HComplexData(object):
             self.data[1:, key] = 0
     
     def isComplex(self, axis):
-        if axis == (self.ndim()-1):
+        # Axis 0 are the regular complex numbers, which are always complex
+        if axis == 0:
             return True
-        return bool(np.max(self.hyper) & (2**axis))
+        return bool(np.max(self.hyper) & (2**(axis-1)))
+
+    def real(self, axis=0):
+        if axis==0 or not self.isComplex(axis):
+            return HComplexData(np.real(self.data), np.copy(self.hyper))
+        bit = 2**(axis-1)
+        return HComplexData(self.data[np.logical_not(self.hyper & bit)], self.hyper[self.hyper != axis])
         
-a = HComplexData([5, 2.5], [0,3])
-b = HComplexData([[2,6], [2.5,4]], [0,3])
-c = HComplexData([[10,20,30], [100, 200, 300]], [0,1])
+    def imag(self, axis=0):
+        if axis == 0 or not self.isComplex(axis):
+            return HComplexData(np.imag(self.data), np.copy(self.hyper))
+        bit = 2**(axis-1)
+        return HComplexData(self.data[np.array(self.hyper & bit, dtype=bool)], self.hyper[self.hyper != axis])
+
+    def abs(self, axis=0):
+        if axis == 0 or not self.isComplex(axis):
+            return HComplexData(np.abs(self.data), np.copy(self.hyper))
+        bit = 2**(axis-1)
+        bArray = np.array(self.hyper & bit, dtype=bool)
+        tmpHyper = np.concatenate((self.hyper[np.logical_not(bArray)], self.hyper[bArray] - bit))
+        tmpHyper = np.unique(tmpHyper)
+        tmpHyper.sort()
+        tmpData = np.zeros((len(tmpHyper),) + self.data[0].shape, dtype=complex)
+        for i, idim in enumerate(tmpHyper):
+            if idim in self.hyper and (idim+bit) in self.hyper:
+                tmpData[i] += np.sqrt(np.real(self.data[idim==self.hyper][0])**2 + np.real(self.data[(idim+bit)==self.hyper][0])**2)
+                tmpData[i] += 1j * np.sqrt(np.imag(self.data[idim==self.hyper][0])**2 + np.imag(self.data[(idim+bit)==self.hyper][0])**2)
+            elif idim in self.hyper:
+                tmpData[i] = self.data[idim==self.hyper]
+            elif (idim+bit) in self.hyper:
+                tmpData[i] = self.data[idim==self.hyper]
+        return HComplexData(tmpData, tmpHyper)
+
+    def hyperReorder(self, axis=0):
+        if axis == 0:
+            return HComplexData(np.copy(self.data), np.copy(self.hyper))
+        bit = 2**(axis-1)
+        bArray = np.array(self.hyper & bit, dtype=bool)
+        tmpHyper = np.concatenate((self.hyper, self.hyper[bArray] - bit, self.hyper[np.logical_not(bArray)] + bit))
+        tmpHyper = np.unique(tmpHyper)
+        tmpHyper.sort()
+        tmpData = np.zeros((len(tmpHyper),) + self.data[0].shape, dtype=complex)
+        tmpBArray = np.array(self.hyper & bit, dtype=bool)
+        tmpData[np.logical_not(tmpBArray)] = np.real(self.data[np.logical_not(bArray)]) + 1j*np.real(self.data[bArray])
+        tmpData[tmpBArray] = np.imag(self.data[np.logical_not(bArray)]) + 1j*np.imag(self.data[bArray])
+        return HComplexData(tmpData, tmpHyper)
+        
+
+# a = HComplexData([5, 2.5], [0,1])
+# b = HComplexData([[2,6], [2.5,4]], [0,2])
+# c = HComplexData([[10+10j,20-3j,30], [100-5j, 200, 300+4j]], [0,1])
+# print(c.data)
+# print(c.hyperReorder(1).data)
+# #c = c.abs(1)
+# #print(c.data)
+# #print(c.abs(1).data)
+# #print(c.abs(1).hyper)
+# #print((a*(a.conj())).data)
+# #print(HComplexData(b.data[:,1], b.hyper))
