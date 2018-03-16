@@ -29,6 +29,7 @@ from matplotlib.pyplot import get_cmap
 import matplotlib
 import reimplement as reim
 import functions as func
+import hypercomplex as hc
 
 COLORMAPLIST = ['seismic', 'BrBG', 'bwr', 'coolwarm', 'PiYG', 'PRGn', 'PuOr',
                 'RdBu', 'RdGy', 'RdYlBu', 'RdYlGn', 'Spectral', 'rainbow', 'jet']
@@ -42,19 +43,12 @@ COLORCONVERTER = matplotlib.colors.ColorConverter()
 
 class Spectrum(object):
 
-    def __init__(self, name, data, filePath, freq, sw, spec=None, wholeEcho=None, hyper=None, ref=None, xaxArray=None, history=None, msgHandler=None):
+    def __init__(self, name, data, filePath, freq, sw, spec=None, wholeEcho=None, ref=None, xaxArray=None, history=None, msgHandler=None):
         self.name = name
-        if isinstance(data, list):
-            self.data = []
-            for item in data:
-                self.data.append(np.array(item, dtype=complex))
+        if isinstance(data, hc.HComplexData):
+            self.data = data
         else:
-            self.data = [np.array(data, dtype=complex)]  # data of dimension dim
-        if hyper is None:
-            self.hyper = [] # Holds the axes where hypercomplex data exists
-        else:
-            self.hyper = hyper
-        self.hyperSort() #force hyper into descending order
+            self.data = hc.HComplex(data)
         self.filePath = filePath
         self.freq = np.array(freq)  # array of center frequency (length is dim, MHz)
         self.sw = sw  # array of sweepwidths
@@ -83,23 +77,14 @@ class Spectrum(object):
         self.msgHandler = msgHandler
 
     def ndim(self):
-        return self.data[0].ndim
+        return self.data.ndim()
 
     def shape(self):
-        return self.data[0].shape
+        return self.data.shape()
 
-    def getData(self): #Returns a copy of the data 
+    def getData(self): # Returns a copy of the data 
         return copy.deepcopy(self.data)
 
-    def getHyper(self): #Returns a copy of the hyper list
-        return copy.copy(self.hyper)
-
-    def isComplex(self, axes):
-        if axes == (self.ndim() - 1):
-            return True
-        else:
-            return (axes in self.hyper)
-        
     def dispMsg(self, msg):
         if self.msgHandler is None:
             print(msg)
@@ -160,37 +145,24 @@ class Spectrum(object):
         else:
             return lambda self: self.setXax(oldXax, axes)
 
-    def insert(self, data, pos, axes, hyper=[], dataImag=None):
-        #Convert both data sets to the full hyper space
-        #to be able to sum them
-        try:
-            newDat = []
-            for In in range(len(data)):
-                if dataImag is not None:
-                    newDat.append(np.array(data[In]) + 1j * np.array(dataImag[In]))
-                else:
-                    newDat.append(np.array(data[In]))
-        except ValueError as error:
-            self.dispMsg(str(error))
-            return None
+    def insert(self, data, pos, axes):
+        if not isinstance(data, hc.HComplexData):
+            data = hc.HComplexData(data)
         if self.noUndo:
             returnValue = None
         else:
-            if self.hyper == hyper: #If both sets have same hyper: easy undo can be used
-                returnValue = lambda self: self.remove(range(pos, pos + newDat[0].shape[axes]), axes)
-            else: #Otherwise: do a deep copy of the class
+            if self.data.hyper == data.hyper: # If both sets have same hyper: easy undo can be used
+                returnValue = lambda self: self.remove(range(pos, pos + data.shape()[axes]), axes)
+            else: # Otherwise: do a deep copy of the class
                 copyData = copy.deepcopy(self)
-                returnValue = lambda self: self.restoreData(copyData, lambda self: self.insert(data, pos, axes, hyper, dataImag))
-        self.hyperExpand(hyper)
+                returnValue = lambda self: self.restoreData(copyData, lambda self: self.insert(data, pos, axes))
         axes = self.checkAxes(axes)
         if axes is None:
             return None
-        for index in range(len(self.data)):
-            oldSize = self.data[index].shape[axes]
-            self.data[index] = np.insert(self.data[index], [pos], newDat[index], axis=axes)
-            self.hyper = hyper1 #Set hyper to expanded value
+        # Check for a change in dimensions
+        self.data = self.data.insert(pos, data, axes)
         self.resetXax(axes)
-        self.addHistory("Inserted " + str(self.shape()[axes] - oldSize) + " datapoints in dimension " + str(axes + 1) + " at position " + str(pos))
+        self.addHistory("Inserted " + str(data.shape()[axes]) + " datapoints in dimension " + str(axes + 1) + " at position " + str(pos))
         if self.noUndo:
             return None
         else:
@@ -203,197 +175,97 @@ class Spectrum(object):
         if not self.noUndo:
             copyData = copy.deepcopy(self)
             returnValue = lambda self: self.restoreData(copyData, lambda self: self.remove(pos, axes))
-        tmpdata = []
-        for index in range(len(self.data)):
-            tmpdata.append(np.delete(self.data[index], pos, axes))
-        if (np.array(tmpdata[0].shape) != 0).all():
-            self.data = tmpdata
-            self.xaxArray[axes] = np.delete(self.xaxArray[axes], pos)
-            try:
-                length = len(pos)
-            except Exception:
-                length = 1
-            self.addHistory("Removed " + str(length) + " datapoints from dimension " + str(axes + 1) + " at position " + str(pos))
-            if self.noUndo:
-                return None
-            else:
-                return lambda self: self.restoreData(copyData, lambda self: self.remove(pos, axes))
-        else:
+        tmpData = self.data.delete(pos, axes)
+        if 0 in tmpData.shape():
             self.dispMsg('Cannot delete all data')
             return None
+        self.data = tmpData
+        self.xaxArray[axes] = np.delete(self.xaxArray[axes], pos)
+        if isinstance(pos, (int, float)):
+            length = 1
+        else:
+            length = len(pos)
+        self.addHistory("Removed " + str(length) + " datapoints from dimension " + str(axes + 1) + " at position " + str(pos))
+        if self.noUndo:
+            return None
+        else:
+            return lambda self: self.restoreData(copyData, lambda self: self.remove(pos, axes))
 
-    def add(self, data, dataImag=None, hyper=[], select=slice(None)):
+    def add(self, data, select=slice(None), axis=None):
+        if isinstance(data, np.ndarray) and axis is not None:
+            data = data.reshape(data.shape + (1,)*(self.ndim() - axis - 1))
         if self.noUndo:
             returnValue = None
         else:
-            if self.hyper == hyper: #If both sets have same hyper: easy subtract can be used for undo
-                returnValue = lambda self: self.subtract(data, dataImag, hyper=hyper, select=select)
+            if not isinstance(data, hc.HComplexData):
+                returnValue = lambda self: self.subtract(data, select=select)
+            elif self.data.hyper == data.hyper: # If both sets have same hyper: easy subtract can be used for undo
+                returnValue = lambda self: self.subtract(data, select=select)
             else: # Otherwise: do a deep copy of the class
                 copyData = copy.deepcopy(self)
-                returnValue = lambda self: self.restoreData(copyData, lambda self: self.add(data, dataImag, hyper, select))
-        try:
-            newDat = []
-            for In in range(len(data)):
-                if dataImag is not None:
-                    newDat.append(np.array(data[In]) + 1j * np.array(dataImag[In]))
-                else:
-                    newDat.append(np.array(data[In]))
-        except ValueError as error:
-            self.dispMsg(str(error))
-            return None
-        self.hyperExpand(hyper)
+                returnValue = lambda self: self.restoreData(copyData, lambda self: self.add(data, select))
         if isinstance(select, string_types):
             select = safeEval(select)
-        try:
-            bArray = np.array([1])
-            for index in self.hyper:
-                if index in hyper:
-                    bArray = np.kron(bArray, [1,1])
-                else:
-                    bArray = np.kron(bArray, [1,0])
-            tmpData = np.array(self.data)
-            bArray = np.array(bArray, dtype=bool)
-            tmpData[bArray, select] += newDat
-            self.data = list(tmpData)
-        except ValueError as error:
-            self.dispMsg(str(error))
-            return None
+        self.data[select] += data
         self.addHistory("Added to data[" + str(select) + "]")
         return returnValue
 
-    def subtract(self, data, dataImag=None, hyper=[], select=slice(None)):
+    def subtract(self, data, select=slice(None), axis=None):
+        if isinstance(data, np.ndarray) and axis is not None:
+            data = data.reshape(data.shape + (1,)*(self.ndim() - axis - 1))
         if self.noUndo:
             returnValue = None
         else:
-            if self.hyper == hyper: #If both sets have same hyper: easy subtract can be used for undo
-                returnValue = lambda self: self.add(data, dataImag, hyper=hyper, select=select)
+            if not isinstance(data, hc.HComplexData):
+                returnValue = lambda self: self.add(data, select=select)
+            elif self.data.hyper == data.hyper: #If both sets have same hyper: easy subtract can be used for undo
+                returnValue = lambda self: self.add(data, select=select)
             else: # Otherwise: do a deep copy of the class
                 copyData = copy.deepcopy(self)
-                returnValue = lambda self: self.restoreData(copyData, lambda self: self.subtract(data, dataImag, hyper, select))
-        try:
-            newDat = []
-            for In in range(len(data)):
-                if dataImag is not None:
-                    newDat.append(np.array(data[In]) + 1j * np.array(dataImag[In]))
-                else:
-                    newDat.append(np.array(data[In]))
-        except ValueError as error:
-            self.dispMsg(str(error))
-            return None
-        self.hyperExpand(hyper)
+                returnValue = lambda self: self.restoreData(copyData, lambda self: self.subtract(data, select))
         if isinstance(select, string_types):
             select = safeEval(select)
-        try:
-            bArray = np.array([1])
-            for index in self.hyper:
-                if index in hyper:
-                    bArray = np.kron(bArray, [1,1])
-                else:
-                    bArray = np.kron(bArray, [1,0])
-            tmpData = np.array(self.data)
-            bArray = np.array(bArray, dtype=bool)
-            tmpData[bArray, select] -= newDat
-            self.data = list(tmpData)
-        except ValueError as error:
-            self.dispMsg(str(error))
-            return None
+        self.data[select] -= data
         self.addHistory("Subtracted from data[" + str(select) + "]")
         return returnValue
 
-    def multiplySpec(self, data, dataImag=None, hyper=[], select=slice(None)):
+    def multiply(self, data, select=slice(None), axis=None):
+        if isinstance(data, np.ndarray) and axis is not None:
+            data = data.reshape(data.shape + (1,)*(self.ndim() - axis - 1))
         if self.noUndo:
             returnValue = None
         else:
-            copyData = copy.deepcopy(self)
-            returnValue = lambda self: self.restoreData(copyData, lambda self: self.multiplySpec(data, dataImag, hyper, select))
-        try:
-            newDat = []
-            for In in range(len(data)):
-                if dataImag is not None:
-                    newDat.append(np.array(data[In]) + 1j * np.array(dataImag[In]))
-                else:
-                    newDat.append(np.array(data[In]))
-        except ValueError as error:
-            self.dispMsg(str(error))
-            return None
-        self.hyperContract(hyper)
+            if not isinstance(data, hc.HComplexData):
+                returnValue = lambda self: self.divide(data, select=select)
+            elif self.data.hyper == data.hyper: #If both sets have same hyper: easy subtract can be used for undo
+                returnValue = lambda self: self.divide(data, select=select)
+            else: # Otherwise: do a deep copy of the class
+                copyData = copy.deepcopy(self)
+                returnValue = lambda self: self.restoreData(copyData, lambda self: self.multiply(data, select))
         if isinstance(select, string_types):
             select = safeEval(select)
-        try:
-            bArray = np.array([1])
-            for index in hyper:
-                if index in self.hyper:
-                    bArray = np.kron(bArray, [1,1])
-                else:
-                    bArray = np.kron(bArray, [1,0])
-            tmpData = np.array(self.data)
-            bArray = np.array(bArray, dtype=bool)
-            newDat = np.array(newDat)
-            tmpData[:, select] *= newDat[bArray]
-            self.data = list(tmpData)
-        except ValueError as error:
-            self.dispMsg(str(error))
-            return None
-        self.addHistory("Multiplied with data[" + str(select) + "]")
+        self.data[select] *= data
+        self.addHistory("Multiplied data[" + str(select) + "]")
         return returnValue
 
-    def divideSpec(self, data, dataImag=None, hyper=[], select=slice(None)):
+    def divide(self, data, select=slice(None), axis=None):
+        if isinstance(data, np.ndarray) and axis is not None:
+            data = data.reshape(data.shape + (1,)*(self.ndim() - axis - 1))
         if self.noUndo:
             returnValue = None
         else:
-            copyData = copy.deepcopy(self)
-            returnValue = lambda self: self.restoreData(copyData, lambda self: self.divideSpec(data, dataImag, hyper, select))
-        try:
-            newDat = []
-            for In in range(len(data)):
-                if dataImag is not None:
-                    newDat.append(np.array(data[In]) + 1j * np.array(dataImag[In]))
-                else:
-                    newDat.append(np.array(data[In]))
-        except ValueError as error:
-            self.dispMsg(str(error))
-            return None
-        self.hyperContract(hyper)
+            if not isinstance(data, hc.HComplexData):
+                returnValue = lambda self: self.multiply(data, select=select)
+            elif self.data.hyper == data.hyper: #If both sets have same hyper: easy subtract can be used for undo
+                returnValue = lambda self: self.multiply(data, select=select)
+            else: # Otherwise: do a deep copy of the class
+                copyData = copy.deepcopy(self)
+                returnValue = lambda self: self.restoreData(copyData, lambda self: self.divide(data, select))
         if isinstance(select, string_types):
             select = safeEval(select)
-        try:
-            bArray = np.array([1])
-            for index in hyper:
-                if index in self.hyper:
-                    bArray = np.kron(bArray, [1,1])
-                else:
-                    bArray = np.kron(bArray, [1,0])
-            tmpData = np.array(self.data)
-            bArray = np.array(bArray, dtype=bool)
-            newDat = np.array(newDat)
-            tmpData[:, select] /= newDat[bArray]
-            self.data = list(tmpData)
-        except ValueError as error:
-            self.dispMsg(str(error))
-            return None
+        self.data[select] /= data
         self.addHistory("Divided by data[" + str(select) + "]")
         return returnValue
-
-    def multiply(self, mult, axes, multImag=0, select=slice(None)):
-        if isinstance(select, string_types):
-            select = safeEval(select)
-        axes = self.checkAxes(axes)
-        if axes is None:
-            return None
-        try:
-            mult = np.array(mult) + 1j * np.array(multImag)
-            if not self.noUndo:
-                copyData = copy.deepcopy(self)
-            for index in range(len(self.data)):
-                self.data[index][select] = np.apply_along_axis(np.multiply, axes, self.data[index], mult)[select]
-        except ValueError as error:
-            self.dispMsg('Multiply: ' + str(error))
-            return None
-        self.addHistory("Multiplied dimension " + str(axes + 1) + " of data[" + str(select) + "]: " + str(mult).replace('\n', ''))
-        if self.noUndo:
-            return None
-        else:
-            return lambda self: self.restoreData(copyData, lambda self: self.multiply(mult, axes, select=select))
 
     def normalize(self, mult, scale, type, axes, select=slice(None)):
         if isinstance(select, string_types):
@@ -418,20 +290,14 @@ class Spectrum(object):
         else:
             return lambda self: self.normalize(1.0 / mult, scale, type, axes, select=select)
 
-    def baselineCorrection(self, baseline, axes, baselineImag=0, select=slice(None)):
-        hyperView = 0
+    def baselineCorrection(self, baseline, axes, select=slice(None)):
         if isinstance(select, string_types):
             select = safeEval(select)
         axes = self.checkAxes(axes)
         if axes is None:
             return None
-        try:
-            baseline = np.array(baseline) + 1j * np.array(baselineImag)
-            baselinetmp = baseline.reshape((1, ) * axes + (self.shape()[axes], ) + (1, ) * (self.ndim() - axes - 1))
-            self.data[hyperView][select] = self.data[hyperView][select] - baselinetmp
-        except ValueError as error:
-            self.dispMsg(str(error))
-            return None
+        baselinetmp = baseline.reshape((self.shape()[axes], ) + (1, ) * (self.ndim() - axes - 1))
+        self.data[select] -= baselinetmp
         self.addHistory("Baseline corrected dimension " + str(axes + 1) + " of data[" + str(select) + "]")
         return lambda self: self.baselineCorrection(-baseline, axes, select=select)
 
@@ -440,29 +306,28 @@ class Spectrum(object):
         if axes is None:
             return None
         splitVal = self.shape()[axes]
-        try:
-            for index in range(len(self.data)):
-                self.data[index] = np.concatenate(self.data[index], axis=axes)
-        except ValueError as error:
-            self.dispMsg(str(error))
-            return None
-        self.hyperDelete(axes) #Remove hypercomplex along the axis to be removed
-        for i in range(len(self.hyper)):
-            if self.hyper[i] > axes:
-                self.hyper[i] += -1
+        copyData = None
+        if self.data.isComplex(axes):
+            if self.noUndo:
+                copyData = copy.deepcopy(self)
+            self.data = self.data.real(axes)
+        self.data[index] = np.concatenate(self.data[index], axis=axes)
+        # Shift the hyper values to match the dimensions
         self.freq = np.delete(self.freq, axes)
         self.sw = np.delete(self.sw, axes)
         self.spec = np.delete(self.spec, axes)
         self.wholeEcho = np.delete(self.wholeEcho, axes)
         self.ref = np.delete(self.ref, axes)
-        del self.xaxArray[0]
-        # self.resetXax(axes)
+        del self.xaxArray[axes]
         self.resetXax()
         self.addHistory("Concatenated dimension " + str(axes + 1))
         if self.noUndo:
             return None
         else:
-            return lambda self: self.split(splitVal, axes)
+            if copyData is None:
+                return lambda self: self.restoreData(copyData, lambda self: self.concatenate(axes))
+            else:
+                return lambda self: self.split(splitVal, axes)
 
     def split(self, sections, axes):
         axes = self.checkAxes(axes)

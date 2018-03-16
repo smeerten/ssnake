@@ -125,7 +125,7 @@ class HComplexData(object):
 
     def __rmul__(self, other):
         return self.__mul__(other)
-
+    
     def conj(self):
         tmpData = np.conj(self.data)
         tmpData[1:] = - tmpData[1:]
@@ -232,7 +232,7 @@ class HComplexData(object):
                 tmpData[i] = self.data[idim==self.hyper]
         return HComplexData(tmpData, tmpHyper)
 
-    def hyperReorder(self, axis=0):
+    def reorder(self, axis=0):
         if axis == 0:
             return HComplexData(np.copy(self.data), np.copy(self.hyper))
         bit = 2**(axis-1)
@@ -246,12 +246,39 @@ class HComplexData(object):
         tmpData[tmpBArray] = np.imag(self.data[np.logical_not(bArray)]) + 1j*np.imag(self.data[bArray])
         return HComplexData(tmpData, tmpHyper)
         
+    def insert(self, pos, other, axis=-1):
+        if not isinstance(other, HComplexData):
+            other = HComplexData(other)
+        tmpHyper = np.unique(np.concatenate((self.hyper, other.hyper)))
+        tmpHyper.sort()
+        tmpData = []
+        for i, idim in enumerate(tmpHyper):
+            if idim in self.hyper and idim in other.hyper:
+                tmpData.append(np.insert(self.data[idim==self.hyper][0], pos, other.data[idim==other.hyper][0], axis=axis))
+            elif idim in self.hyper:
+                tmpData.append(np.insert(self.data[idim==self.hyper][0], pos, np.zeros_like(other.data[0]), axis=axis))
+            elif idim in other.hyper:
+                tmpData.append(np.insert(np.zeros_like(self.data[0]), pos, other.data[idim==other.hyper][0], axis=axis))
+            else:
+                tmpData.append(np.insert(np.zeros_like(self.data[0]), pos, np.zeros_like(other.data[0]), axis=axis))
+        return HComplexData(np.array(tmpData), tmpHyper)
+
+    def delete(self, pos, axis):
+        if axis >= 0:
+            axis += 1
+        return HComplexData(np.delete(self.data, pos, axis), np.copy(self.hyper))
+    
+    def concatenate(self, axis):
+        if axis >= 0:
+            axis += 1
+        return HComplexData(np.concatenate(self.data, axis), np.copy(self.hyper))
 
 # a = HComplexData([5, 2.5], [0,1])
-# b = HComplexData([[2,6], [2.5,4]], [0,2])
-# c = HComplexData([[10+10j,20-3j,30], [100-5j, 200, 300+4j]], [0,1])
+b = HComplexData([[2,6], [2.5,4]], [0,2])
+c = HComplexData([[[10+10j,20-3j],[30,10]], [[100-5j, 200], [300+4j,1000]]], [0,1])
+print(c.imag(0).data)
 # print(c.data)
-# print(c.hyperReorder(1).data)
+# print(c.reorder(1).data)
 # #c = c.abs(1)
 # #print(c.data)
 # #print(c.abs(1).data)
