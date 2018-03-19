@@ -464,7 +464,7 @@ class Spectrum(object):
         minPos = min(pos1, pos2)
         maxPos = max(pos1, pos2)
         slicing = (slice(None), ) * axes + (slice(minPos, maxPos), ) + (slice(None), ) * (self.ndim() - 1 - axes)
-        averages = np.mean(self.data[:, slicing], axis=axes, keepdims=True)
+        averages = self.data[slicing].mean(axis=axes, keepdims=True)
         self.data -= averages
         self.addHistory("Subtracted average determined between " + str(pos1) + " and " + str(pos2) + " of dimension " + str(axes + 1))
         if self.noUndo:
@@ -503,33 +503,29 @@ class Spectrum(object):
             slicing = (slice(None), ) * axes + (slice(minPos, maxPos), ) + (slice(None), ) * (self.ndim() - 1 - axes)
             if which == 0:
                 if self.spec[axes] == 0:
-                    tmpdata = self.data[slicing].sum(axis=axes, keepdims=keepdims) / self.sw[axes]
+                    tmpdata = self.data[slicing].sum(axis=axes) / self.sw[axes]
                 else:
-                    tmpdata = self.data[slicing].sum(axis=axes, keepdims=keepdims) * self.sw[axes] / (1.0 * self.shape()[axes])
+                    tmpdata = self.data[slicing].sum(axis=axes) * self.sw[axes] / (1.0 * self.shape()[axes])
             elif which == 5:
-                tmpdata = self.data[slicing].sum(axis=axes, keepdims=keepdims)
+                tmpdata = self.data[slicing].sum(axis=axes)
             elif which == 1:
-                tmpdata = self.data[slicing].max(axis=axes, keepdims=keepdims)
+                tmpdata = self.data[slicing].max(axis=axes)
             elif which == 2:
-                tmpdata = self.data[slicing].min(axis=axes, keepdims=keepdims)
+                tmpdata = self.data[slicing].min(axis=axes)
             elif which == 3:
-                maxArgPos = np.argmax(np.real(self.data[index][slicing]), axis=axes)
+                maxArgPos = self.data[slicing].argmax(axis=axes).data
                 tmpmaxPos = maxArgPos.flatten()
                 tmp = self.xaxArray[axes][slice(minPos, maxPos)][tmpmaxPos].reshape(maxArgPos.shape)
-                if keepdims:
-                    tmpdata[index] += (np.expand_dims(tmp, axes), )
-                else:
-                    tmpdata[index] += (tmp, )
             elif which == 4:
-                minArgPos = np.argmin(np.real(self.data[index][slicing]), axis=axes)
+                minArgPos = self.data[slicing].argmin(axis=axes).data
                 tmpminPos = minArgPos.flatten()
                 tmp = self.xaxArray[axes][slice(minPos, maxPos)][tmpminPos].reshape(minArgPos.shape)
-                if keepdims:
-                    tmpdata[index] += (np.expand_dims(tmp, axes), )
-                else:
-                    tmpdata[index] += (tmp, )
             elif which == 6:
-                tmpdata[index] += (np.mean(self.data[index][slicing], axis=axes, keepdims=keepdims), )
+                tmpdata = self.data[slicing].mean(axis=axes, keepdims=keepdims)
+            if keepdims:
+                    tmpdata = (np.expand_dims(tmp, axes), )
+                else:
+                    tmpdata = (tmp, )
         if which == 0:
             self.addHistory("Integrate between " + str(pos1) + " and " + str(pos2) + " of dimension " + str(axes + 1))
         elif which == 5:

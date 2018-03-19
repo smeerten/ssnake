@@ -340,22 +340,28 @@ class HComplexData(object):
             axis += 1
         return HComplexData(np.sum(self.data, axis=axis, **kwargs), np.copy(self.hyper))
 
-    def max(self, axis=-1, **kwargs):
+    def max(self, axis=-1):
         if axis >= 0:
             axis += 1
-        return HComplexData(self.data[:, np.argmax(self.data[0], axis=axis, **kwargs)], np.copy(self.hyper))
+        argVals = np.argmax(self.data[0], axis=axis)
+        ind = list(np.indices(argVals.shape))
+        ind.insert(axis, argVals)
+        return HComplexData(self.data[:, ind], np.copy(self.hyper))
 
-    def min(self, axis=-1, **kwargs):
+    def min(self, axis=-1):
         if axis >= 0:
             axis += 1
-        return HComplexData(self.data[:, np.argmin(self.data[0], axis=axis, **kwargs)], np.copy(self.hyper))
+        argVals = np.argmin(self.data[0], axis=axis)
+        ind = list(np.indices(argVals.shape))
+        ind.insert(axis, argVals)
+        return HComplexData(self.data[:, ind], np.copy(self.hyper))
 
-    def argmax(self, axis=-1, **kwargs):
+    def argmax(self, axis=-1):
         if axis >= 0:
             axis += 1
         return HComplexData(np.argmax(self.data[0], axis=axis, **kwargs), np.copy(self.hyper))
 
-    def argmin(self, axis=-1, **kwargs):
+    def argmin(self, axis=-1):
         if axis >= 0:
             axis += 1
         return HComplexData(np.argmin(self.data[0], axis=axis, **kwargs), np.copy(self.hyper))
