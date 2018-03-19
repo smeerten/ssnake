@@ -174,7 +174,6 @@ class Spectrum(object):
             return None
         if not self.noUndo:
             copyData = copy.deepcopy(self)
-            returnValue = lambda self: self.restoreData(copyData, lambda self: self.remove(pos, axes))
         tmpData = self.data.delete(pos, axes)
         if 0 in tmpData.shape():
             self.dispMsg('Cannot delete all data')
@@ -308,11 +307,12 @@ class Spectrum(object):
         splitVal = self.shape()[axes]
         copyData = None
         if self.data.isComplex(axes):
-            if self.noUndo:
+            if not self.noUndo:
                 copyData = copy.deepcopy(self)
             self.data = self.data.real(axes)
-        self.data[index] = np.concatenate(self.data[index], axis=axes)
-        # Shift the hyper values to match the dimensions
+        invAxis = self.ndim() - self.axes
+        self.data = self.data.concatenate(axes)
+        self.data.removeDim(invAxis)
         self.freq = np.delete(self.freq, axes)
         self.sw = np.delete(self.sw, axes)
         self.spec = np.delete(self.spec, axes)
@@ -333,18 +333,14 @@ class Spectrum(object):
         axes = self.checkAxes(axes)
         if axes is None:
             return None
-        try:
-            for index in range(len(self.data)):
-                self.data[index] = np.array(np.split(self.data[index], sections, axis=axes))
-        except ValueError as error:
-            self.dispMsg('Split: ' + str(error))
-            return None
+        invAxis = self.ndim() - self.axes
+        self.data = self.data.split(sections, axes)
+        self.data.insertDim(invAxis)
         self.freq = np.insert(self.freq, 0, self.freq[axes])
         self.sw = np.insert(self.sw, 0, self.sw[axes])
         self.spec = np.insert(self.spec, 0, self.spec[axes])
         self.wholeEcho = np.insert(self.wholeEcho, 0, self.wholeEcho[axes])
         self.ref = np.insert(self.ref, 0, self.ref[axes])
-        self.hyper = [x + 1 for x in self.hyper] #New dim always the new D1. All hyper values must be increased by 1
         self.xaxArray.insert(0, [])
         self.resetXax(0)
         self.resetXax(axes + 1)
@@ -360,11 +356,7 @@ class Spectrum(object):
         axes = self.checkAxes(axes)
         if axes is None:
             return None
-        if axes in self.hyper:
-            self.hyperDelete(axes, False)
-        else:
-            for index in range(len(self.data)):
-                self.data[index] = np.real(self.data[index])
+        self.data = self.data.real(axes)
         self.addHistory("Real along dimension " + str(axes+1))
         if self.noUndo:
             return None
@@ -377,11 +369,7 @@ class Spectrum(object):
         axes = self.checkAxes(axes)
         if axes is None:
             return None
-        if axes in self.hyper:
-            self.hyperDelete(axes, True)
-        else:
-            for index in range(len(self.data)):
-                self.data[index] = np.imag(self.data[index])
+        self.data = self.data.imag(axes)
         self.addHistory("Imaginary along dimension " + str(axes+1))
         if self.noUndo:
             return None
@@ -394,33 +382,20 @@ class Spectrum(object):
         axes = self.checkAxes(axes)
         if axes is None:
             return None
-        if axes in self.hyper:
-            realdata, tmphyper = self.hyperDelete(axes, self.data, self.hyper, False)
-            imagdata, tmphyper = self.hyperDelete(axes, self.data, self.hyper, True)
-            for index in range(len(realdata)):
-                realdata[index] = np.sqrt(np.real(realdata)[index]**2 + np.real(imagdata)[index]**2) + 1j*np.sqrt(np.imag(realdata)[index]**2 + np.imag(imagdata)[index]**2)
-            self.data = realdata
-            self.hyper = tmphyper
-        else:
-            for index in range(len(self.data)):
-                self.data[index] = np.abs(self.data[index])
+        self.data = self.data.abs(axes)
         self.addHistory("Absolute along dimension " + str(axes+1))
         if self.noUndo:
             return None
         else:
             return lambda self: self.restoreData(copyData, lambda self: self.abs(axes))
     
-    def conj(self, axes):
-        axes = self.checkAxes(axes)
-        self.hyperReorder(axes)
-        for index in range(len(self.data)):
-            self.data[index] = np.conj(self.data[index])
-        self.hyperReorder(axes)
-        self.addHistory("Complex conjugate dimension " + str(axes+1))
+    def conj(self):
+        self.data.iconj()
+        self.addHistory("Complex conjugate")
         if self.noUndo:
             return None
         else:
-            return lambda self: self.conj(axes)
+            return lambda self: self.conj()
 
     def states(self, axes):
         axes = self.checkAxes(axes)
@@ -431,19 +406,7 @@ class Spectrum(object):
         if self.shape()[axes] % 2 != 0:
             self.dispMsg("States: data has to be even")
             return None
-        tmpdata = self.data
-        slicing1 = (slice(None), ) * axes + (slice(None, None, 2), ) + (slice(None), ) * (self.ndim() - 1 - axes)
-        slicing2 = (slice(None), ) * axes + (slice(1, None, 2), ) + (slice(None), ) * (self.ndim() - 1 - axes)
-        self.data = []
-        for index in range(len(tmpdata)):
-            #tmp = np.real(tmpdata[index][slicing1]) + 1j * np.real(tmpdata[index][slicing2])
-            #tmp2 = np.imag(tmpdata[index][slicing1]) + 1j * np.imag(tmpdata[index][slicing2])
-            tmp = np.real(tmpdata[index][slicing1]) + 1j * np.imag(tmpdata[index][slicing1])
-            tmp2 = np.real(tmpdata[index][slicing2]) + 1j * np.imag(tmpdata[index][slicing2])
-            self.data.append(tmp)
-            self.data.append(tmp2)
-        self.hyper.append(axes)
-        self.hyperSort() #Order the hyper data to default order
+        self.data.states(axes)
         self.resetXax(axes)
         self.addHistory("States conversion on dimension " + str(axes + 1))
         if self.noUndo:
@@ -460,19 +423,7 @@ class Spectrum(object):
         if self.shape()[axes] % 2 != 0:
             self.dispMsg("States-TPPI: data has to be even")
             return None
-        tmpdata = self.data
-        slicing1 = (slice(None), ) * axes + (slice(None, None, 2), ) + (slice(None), ) * (self.ndim() - 1 - axes)
-        slicing2 = (slice(None), ) * axes + (slice(1, None, 2), ) + (slice(None), ) * (self.ndim() - 1 - axes)
-        self.data = []
-        for index in range(len(tmpdata)):
-            tmp = np.real(tmpdata[index][slicing1]) + 1j * np.imag(tmpdata[index][slicing1])
-            tmp[slicing2] = -1 * tmp[slicing2]
-            tmp2 = np.real(tmpdata[index][slicing2]) + 1j * np.imag(tmpdata[index][slicing2])
-            tmp2[slicing2] = -1 * tmp2[slicing2]
-            self.data.append(tmp)
-            self.data.append(tmp2)
-        self.hyper.append(axes)
-        self.hyperSort() #Order the hyper data to default order
+        self.data.states(axes, TPPI=True)
         self.resetXax(axes)
         self.addHistory("States-TPPI conversion on dimension " + str(axes + 1))
         if self.noUndo:
@@ -489,17 +440,7 @@ class Spectrum(object):
         if self.shape()[axes] % 2 != 0:
             self.dispMsg("Echo-antiecho: data has to be even")
             return None
-        tmpdata = self.data
-        slicing1 = (slice(None), ) * axes + (slice(None, None, 2), ) + (slice(None), ) * (self.ndim() - 1 - axes)
-        slicing2 = (slice(None), ) * axes + (slice(1, None, 2), ) + (slice(None), ) * (self.ndim() - 1 - axes)
-        self.data = []
-        for index in range(len(tmpdata)):
-            tmp1 = np.real(tmpdata[index][slicing1] + tmpdata[index][slicing2]) + 1j * np.imag(tmpdata[index][slicing1] + tmpdata[index][slicing2])
-            tmp2 =  - np.imag(tmpdata[index][slicing1] - tmpdata[index][slicing2]) + 1j * np.real(tmpdata[index][slicing1] - tmpdata[index][slicing2])
-            self.data.append(tmp1)
-            self.data.append(tmp2)
-        self.hyper.append(axes)
-        self.hyperSort() #Order the hyper data to default order
+        self.data.echoAntiEcho(axes)
         self.resetXax(axes)
         self.addHistory("Echo-antiecho conversion on dimension " + str(axes + 1))
         if self.noUndo:
@@ -523,9 +464,8 @@ class Spectrum(object):
         minPos = min(pos1, pos2)
         maxPos = max(pos1, pos2)
         slicing = (slice(None), ) * axes + (slice(minPos, maxPos), ) + (slice(None), ) * (self.ndim() - 1 - axes)
-        for index in range(len(self.data)):
-            averages = np.mean(self.data[index][slicing], axis=axes, keepdims=True)
-            self.data[index] -= averages
+        averages = np.mean(self.data[:, slicing], axis=axes, keepdims=True)
+        self.data -= averages
         self.addHistory("Subtracted average determined between " + str(pos1) + " and " + str(pos2) + " of dimension " + str(axes + 1))
         if self.noUndo:
             return None
@@ -544,7 +484,6 @@ class Spectrum(object):
             return None
         if not self.noUndo:
             copyData = copy.deepcopy(self)
-        tmpdata = [() for x in range(2**len(self.hyper))]
         if len(pos1) == 1:
             keepdims = False
         else:
@@ -562,36 +501,35 @@ class Spectrum(object):
             minPos = min(pos1[i], pos2[i])
             maxPos = max(pos1[i], pos2[i])
             slicing = (slice(None), ) * axes + (slice(minPos, maxPos), ) + (slice(None), ) * (self.ndim() - 1 - axes)
-            for index in range(len(self.data)):
-                if which == 0:
-                    if self.spec[axes] == 0:
-                        tmpdata[index] += (np.sum(self.data[index][slicing], axis=axes, keepdims=keepdims) / self.sw[axes], )
-                    else:
-                        tmpdata[index] += (np.sum(self.data[index][slicing], axis=axes, keepdims=keepdims) * self.sw[axes] / (1.0 * self.shape()[axes]), )
-                elif which == 5:
-                    tmpdata[index] += (np.sum(self.data[index][slicing], axis=axes, keepdims=keepdims), )
-                elif which == 1:
-                    tmpdata[index] += (np.max(self.data[index][slicing], axis=axes, keepdims=keepdims), )
-                elif which == 2:
-                    tmpdata[index] += (np.min(self.data[index][slicing], axis=axes, keepdims=keepdims), )
-                elif which == 3:
-                    maxArgPos = np.argmax(np.real(self.data[index][slicing]), axis=axes)
-                    tmpmaxPos = maxArgPos.flatten()
-                    tmp = self.xaxArray[axes][slice(minPos, maxPos)][tmpmaxPos].reshape(maxArgPos.shape)
-                    if keepdims:
-                        tmpdata[index] += (np.expand_dims(tmp, axes), )
-                    else:
-                        tmpdata[index] += (tmp, )
-                elif which == 4:
-                    minArgPos = np.argmin(np.real(self.data[index][slicing]), axis=axes)
-                    tmpminPos = minArgPos.flatten()
-                    tmp = self.xaxArray[axes][slice(minPos, maxPos)][tmpminPos].reshape(minArgPos.shape)
-                    if keepdims:
-                        tmpdata[index] += (np.expand_dims(tmp, axes), )
-                    else:
-                        tmpdata[index] += (tmp, )
-                elif which == 6:
-                    tmpdata[index] += (np.mean(self.data[index][slicing], axis=axes, keepdims=keepdims), )
+            if which == 0:
+                if self.spec[axes] == 0:
+                    tmpdata = self.data[slicing].sum(axis=axes, keepdims=keepdims) / self.sw[axes]
+                else:
+                    tmpdata = self.data[slicing].sum(axis=axes, keepdims=keepdims) * self.sw[axes] / (1.0 * self.shape()[axes])
+            elif which == 5:
+                tmpdata = self.data[slicing].sum(axis=axes, keepdims=keepdims)
+            elif which == 1:
+                tmpdata = self.data[slicing].max(axis=axes, keepdims=keepdims)
+            elif which == 2:
+                tmpdata = self.data[slicing].min(axis=axes, keepdims=keepdims)
+            elif which == 3:
+                maxArgPos = np.argmax(np.real(self.data[index][slicing]), axis=axes)
+                tmpmaxPos = maxArgPos.flatten()
+                tmp = self.xaxArray[axes][slice(minPos, maxPos)][tmpmaxPos].reshape(maxArgPos.shape)
+                if keepdims:
+                    tmpdata[index] += (np.expand_dims(tmp, axes), )
+                else:
+                    tmpdata[index] += (tmp, )
+            elif which == 4:
+                minArgPos = np.argmin(np.real(self.data[index][slicing]), axis=axes)
+                tmpminPos = minArgPos.flatten()
+                tmp = self.xaxArray[axes][slice(minPos, maxPos)][tmpminPos].reshape(minArgPos.shape)
+                if keepdims:
+                    tmpdata[index] += (np.expand_dims(tmp, axes), )
+                else:
+                    tmpdata[index] += (tmp, )
+            elif which == 6:
+                tmpdata[index] += (np.mean(self.data[index][slicing], axis=axes, keepdims=keepdims), )
         if which == 0:
             self.addHistory("Integrate between " + str(pos1) + " and " + str(pos2) + " of dimension " + str(axes + 1))
         elif which == 5:
@@ -1339,83 +1277,6 @@ class Spectrum(object):
             return None
         else:
             return lambda self: self.restoreData(copyData, lambda self: self.shiftData(shift, axes, select=select))
-
-    def hyperReorder(self, axis): #A function to reorder the data for a hypercomplex operation
-        hyper = [x for x in self.hyper if x == axis]
-        if axis in self.hyper:
-            hyper = self.hyper.index(axis)
-        else:
-            return
-        hyperLen = len(self.data)
-        values = np.arange(hyperLen)
-        step = 2**(len(self.hyper) - hyper - 1)
-        list1 = np.array([], dtype=int)
-        list2 = np.array([], dtype=int)
-        for index in range(int(hyperLen/step)):
-            if index % 2: # if even
-                list2 = np.append(list2, values[0:step])
-            else:
-                list1 = np.append(list1, values[0:step])
-            values = values[step::]
-        for index in range(len(list1)):
-            l1 = list1[index]
-            l2 = list2[index]
-            self.data[l1], self.data[l2] = np.real(self.data[l1]) + 1j*np.real(self.data[l2]), np.imag(self.data[l1]) + 1j*np.imag(self.data[l2])
-
-    def hyperDelete(self, axis, imag=False):
-        #Deletes hypercomplex data along axis, is any
-        #Deletes its entry from self.hyper list.
-        if axis not in self.hyper:
-            return
-        L = len(self.hyper)
-        indx = self.hyper.index(axis)
-        if imag:                
-            boollist = np.array([False, True])
-        else:
-            boollist = np.array([True, False])
-        boollist = np.repeat(np.tile(boollist, 2**(L-(indx+1))), 2**indx)
-        self.data = list(np.array(self.data)[boolist])
-        del self.hyper[indx]
-
-    def hyperSort(self):
-        # Makes sure that the hyper list is in descending order (e.g. [3,1,0])
-        # and adjust the data list accordingly
-        L = len(self.hyper)
-        if L == 0:
-            return
-        order = np.argsort(self.hyper)[::-1]
-        imagBool = np.array([np.repeat(np.tile([0,1], 2**(L-(n+1))), 2**n) for n in range(L)]) # Matrix where 0 is real and 1 is imag.
-        imagBool = imagBool[order] # Reorder to resemble the current ordering of the data.
-        dataOrder = np.lexsort(imagBool)
-        self.data = [self.data[i] for i in dataOrder]
-        self.hyper = [self.hyper[i] for i in order]
-
-    def hyperExpand(self, incl_hyper):
-        # Expands the hypercomplex data to include hypercomplex axes.
-        # New hypercomplex dimensions are filled with zeros.
-        newElem = list(set(incl_hyper) - set(self.hyper))
-        newdata = []
-        newSize = 2**len(newElem)
-        for i in range(len(self.data)):
-            newdata.append(self.data[i])
-            for k in range(newSize - 1):
-                newdata.append(np.zeros_like(self.data[0]))
-        self.data = newdata
-        self.hyper += newElem # New hyper list
-        self.hyperSort()
-
-    def hyperContract(self, incl_hyper):
-        newHyper = list(set(incl_hyper).intersection(self.hyper))
-        bArray = np.array([1])
-        for index in self.hyper:
-            if index in newHyper:
-                bArray = np.kron(bArray, [1,1])
-            else:
-                bArray = np.kron(bArray, [1,0])
-        bArray = np.array(bArray, dtype=bool)
-        self.hyper = newHyper
-        self.data = list(np.array(self.data)[bArray])
-        self.hyperSort()
         
     def fourier(self, axes, tmp=False, inv=False, reorder=[True,True]):
         axes = self.checkAxes(axes)
@@ -1999,8 +1860,8 @@ class Current1D(Plot1DFrame):
         return returnValue
 
     def conj(self, *args):
-        self.root.addMacro(['conj', (self.axes - self.data.ndim(), )])
-        returnValue = self.data.conj(self.axes)
+        self.root.addMacro(['conj'])
+        returnValue = self.data.conj()
         self.upd()
         self.showFid()
         return returnValue

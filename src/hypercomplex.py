@@ -44,7 +44,7 @@ class HComplexData(object):
             if hyper is None:
                 # Data is not hypercomplex
                 self.data = np.array([data], dtype=complex)
-                self.hyper = np.array([0]) # The data is only complex in the last dimension
+                self.hyper = np.array([0])
             else:
                 if len(hyper) != len(data):
                     raise RuntimeError('Length of hyper and data mismatch')
@@ -143,6 +143,20 @@ class HComplexData(object):
         tmp += np.count_nonzero(tmp.imag)
         return not bool(tmp)
 
+    def insertDim(self, axis):
+        watershedBits = 2**axis - 1
+        lowBits = self.hyper & watershedBits
+        self.hyper = (self.hyper - lowBits) * 2 + lowBits
+    
+    def removeDim(self, axis):
+        if axis < 1:
+            raise RuntimeError("Cannot remove axis below 1 from hyper dimensions")
+        if self.isComplex(axis):
+            raise RuntimeError("Cannot remove dimension which is still complex")
+        watershedBits = 2**axis - 1
+        lowBits = self.hyper & watershedBits
+        self.hyper = (self.hyper - lowBits) / 2 + lowBits
+    
     def __div__(self, other):
         if isinstance(other, HComplexData):
             if len(other.hyper) > 1:
@@ -196,27 +210,38 @@ class HComplexData(object):
             self.data[1:, key] = 0
     
     def isComplex(self, axis):
-        # Axis 0 are the regular complex numbers, which are always complex
-        if axis == 0:
+        # Axis ndim-1 are the regular complex numbers, which are always complex
+        if axis == (self.ndim()-1):
             return True
-        return bool(np.max(self.hyper) & (2**(axis-1)))
+        return self.isHyperComplex(axes)
 
-    def real(self, axis=0):
-        if axis==0 or not self.isComplex(axis):
+    def isHyperComplex(self, axis):
+        return bool(np.max(self.hyper) & (2**axis))
+
+    def real(self, axis=-1):
+        if axis < 0:
+            axis = self.ndim() + axis
+        if not self.isHyperComplex(axis):
             return HComplexData(np.real(self.data), np.copy(self.hyper))
-        bit = 2**(axis-1)
-        return HComplexData(self.data[np.logical_not(self.hyper & bit)], self.hyper[self.hyper != axis])
+        bit = 2**axis
+        select = np.logical_not(self.hyper & bit)
+        return HComplexData(self.data[select], self.hyper[select])
         
-    def imag(self, axis=0):
-        if axis == 0 or not self.isComplex(axis):
+    def imag(self, axis=-1):
+        if axis < 0:
+            axis = self.ndim() + axis
+        if not self.isHyperComplex(axis):
             return HComplexData(np.imag(self.data), np.copy(self.hyper))
-        bit = 2**(axis-1)
-        return HComplexData(self.data[np.array(self.hyper & bit, dtype=bool)], self.hyper[self.hyper != axis])
+        bit = 2**axis
+        select = np.array(self.hyper & bit, dtype=bool)
+        return HComplexData(self.data[select], self.hyper[select]-bit)
 
-    def abs(self, axis=0):
-        if axis == 0 or not self.isComplex(axis):
+    def abs(self, axis=-1):
+        if axis < 0:
+            axis = self.ndim() + axis
+        if not self.isHyperComplex(axis):
             return HComplexData(np.abs(self.data), np.copy(self.hyper))
-        bit = 2**(axis-1)
+        bit = 2**axis
         bArray = np.array(self.hyper & bit, dtype=bool)
         tmpHyper = np.concatenate((self.hyper[np.logical_not(bArray)], self.hyper[bArray] - bit))
         tmpHyper = np.unique(tmpHyper)
@@ -233,9 +258,7 @@ class HComplexData(object):
         return HComplexData(tmpData, tmpHyper)
 
     def reorder(self, axis=0):
-        if axis == 0:
-            return HComplexData(np.copy(self.data), np.copy(self.hyper))
-        bit = 2**(axis-1)
+        bit = 2**axis
         bArray = np.array(self.hyper & bit, dtype=bool)
         tmpHyper = np.concatenate((self.hyper, self.hyper[bArray] - bit, self.hyper[np.logical_not(bArray)] + bit))
         tmpHyper = np.unique(tmpHyper)
@@ -247,6 +270,8 @@ class HComplexData(object):
         return HComplexData(tmpData, tmpHyper)
         
     def insert(self, pos, other, axis=-1):
+        if axis < 0:
+            axis = self.ndim() - axis
         if not isinstance(other, HComplexData):
             other = HComplexData(other)
         tmpHyper = np.unique(np.concatenate((self.hyper, other.hyper)))
@@ -273,15 +298,75 @@ class HComplexData(object):
             axis += 1
         return HComplexData(np.concatenate(self.data, axis), np.copy(self.hyper))
 
+    def split(self, sections, axis):
+        if axis >= 0:
+            axis += 1
+        return HComplexData(np.split(self.data, sections, axis), np.copy(self.hyper))
+
+    def states(self, axis, TPPI=False):
+        if self.shape()[axis] % 2 != 0:
+            raise RuntimeError("For conversion the data has to have even datapoints in dimension axis")
+        slicing1 = (slice(None), ) * (axis+1) + (slice(None, None, 2), ) + (slice(None), ) * (self.ndim() - 1 - axis)
+        slicing2 = (slice(None), ) * (axis+1) + (slice(1, None, 2), ) + (slice(None), ) * (self.ndim() - 1 - axis)
+        addHyper = self.hyper + 2**axis
+        insertOrder = np.searchsorted(self.hyper, addHyper)
+        tmp1 = self.data[slicing1]
+        tmp2 = self.data[slicing2]
+        if TPPI:
+            tmp1[slicing2] *= -1
+            tmp2[slicing2] *= -1
+        self.data = np.insert(tmp1, insertOrder, tmp2, axis=0)
+        self.hyper = np.insert(self.hyper, insertOrder, addHyper)
+
+    def echoAntiEcho(self, axis):
+        if self.shape()[axis] % 2 != 0:
+            raise RuntimeError("For conversion the data has to have even datapoints in dimension axis")
+        slicing1 = (slice(None), ) * (axis+1) + (slice(None, None, 2), ) + (slice(None), ) * (self.ndim() - 1 - axis)
+        slicing2 = (slice(None), ) * (axis+1) + (slice(1, None, 2), ) + (slice(None), ) * (self.ndim() - 1 - axis)
+        addHyper = self.hyper + 2**axis
+        insertOrder = np.searchsorted(self.hyper, addHyper)
+        tmp1 = self.data[slicing1] + self.data[slicing2]
+        tmp2 = 1j * (self.data[slicing1] - self.data[slicing2])
+        self.data = np.insert(tmp1, insertOrder, tmp2, axis=0)
+        self.hyper = np.insert(self.hyper, insertOrder, addHyper)
+
+    def mean(self, axis=-1, **kwargs):
+        if axis >= 0:
+            axis += 1
+        return HComplexData(np.mean(self.data, axis=axis, **kwargs), np.copy(self.hyper))
+
+    def sum(self, axis=-1, **kwargs):
+        if axis >= 0:
+            axis += 1
+        return HComplexData(np.sum(self.data, axis=axis, **kwargs), np.copy(self.hyper))
+
+    def max(self, axis=-1, **kwargs):
+        if axis >= 0:
+            axis += 1
+        return HComplexData(self.data[:, np.argmax(self.data[0], axis=axis, **kwargs)], np.copy(self.hyper))
+
+    def min(self, axis=-1, **kwargs):
+        if axis >= 0:
+            axis += 1
+        return HComplexData(self.data[:, np.argmin(self.data[0], axis=axis, **kwargs)], np.copy(self.hyper))
+
+    def argmax(self, axis=-1, **kwargs):
+        if axis >= 0:
+            axis += 1
+        return HComplexData(np.argmax(self.data[0], axis=axis, **kwargs), np.copy(self.hyper))
+
+    def argmin(self, axis=-1, **kwargs):
+        if axis >= 0:
+            axis += 1
+        return HComplexData(np.argmin(self.data[0], axis=axis, **kwargs), np.copy(self.hyper))
+
+
+
+
+
 # a = HComplexData([5, 2.5], [0,1])
-b = HComplexData([[2,6], [2.5,4]], [0,2])
+b = HComplexData([[[2,6],[7,8]]], [0])
 c = HComplexData([[[10+10j,20-3j],[30,10]], [[100-5j, 200], [300+4j,1000]]], [0,1])
-print(c.imag(0).data)
-# print(c.data)
-# print(c.reorder(1).data)
-# #c = c.abs(1)
-# #print(c.data)
-# #print(c.abs(1).data)
-# #print(c.abs(1).hyper)
-# #print((a*(a.conj())).data)
-# #print(HComplexData(b.data[:,1], b.hyper))
+b.states(1)
+print(b.hyper)
+# print(c.imag(0).data)
