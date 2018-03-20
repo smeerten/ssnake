@@ -196,76 +196,76 @@ class Spectrum(object):
         else:
             return lambda self: self.restoreData(copyData, lambda self: self.remove(pos, axes))
 
-    def add(self, data, select=slice(None), axis=None):
+    def add(self, data, axis=None, select=slice(None)):
         if isinstance(data, np.ndarray) and axis is not None:
             data = data.reshape(data.shape + (1,)*(self.ndim() - axis - 1))
         if self.noUndo:
             returnValue = None
         else:
             if not isinstance(data, hc.HComplexData):
-                returnValue = lambda self: self.subtract(data, select=select)
+                returnValue = lambda self: self.subtract(data, axis, select=select)
             elif self.data.hyper == data.hyper: # If both sets have same hyper: easy subtract can be used for undo
-                returnValue = lambda self: self.subtract(data, select=select)
+                returnValue = lambda self: self.subtract(data, axis, select=select)
             else: # Otherwise: do a deep copy of the class
                 copyData = copy.deepcopy(self)
-                returnValue = lambda self: self.restoreData(copyData, lambda self: self.add(data, select))
+                returnValue = lambda self: self.restoreData(copyData, lambda self: self.add(data, axis, select))
         if isinstance(select, string_types):
             select = safeEval(select)
         self.data[select] += data
         self.addHistory("Added to data[" + str(select) + "]")
         return returnValue
 
-    def subtract(self, data, select=slice(None), axis=None):
+    def subtract(self, data, axis=None, select=slice(None)):
         if isinstance(data, np.ndarray) and axis is not None:
             data = data.reshape(data.shape + (1,)*(self.ndim() - axis - 1))
         if self.noUndo:
             returnValue = None
         else:
             if not isinstance(data, hc.HComplexData):
-                returnValue = lambda self: self.add(data, select=select)
+                returnValue = lambda self: self.add(data, axis, select=select)
             elif self.data.hyper == data.hyper: #If both sets have same hyper: easy subtract can be used for undo
-                returnValue = lambda self: self.add(data, select=select)
+                returnValue = lambda self: self.add(data, axis, select=select)
             else: # Otherwise: do a deep copy of the class
                 copyData = copy.deepcopy(self)
-                returnValue = lambda self: self.restoreData(copyData, lambda self: self.subtract(data, select))
+                returnValue = lambda self: self.restoreData(copyData, lambda self: self.subtract(data, axis, select))
         if isinstance(select, string_types):
             select = safeEval(select)
         self.data[select] -= data
         self.addHistory("Subtracted from data[" + str(select) + "]")
         return returnValue
 
-    def multiply(self, data, select=slice(None), axis=None):
+    def multiply(self, data, axis=None, select=slice(None)):
         if isinstance(data, np.ndarray) and axis is not None:
             data = data.reshape(data.shape + (1,)*(self.ndim() - axis - 1))
         if self.noUndo:
             returnValue = None
         else:
             if not isinstance(data, hc.HComplexData):
-                returnValue = lambda self: self.divide(data, select=select)
+                returnValue = lambda self: self.divide(data, axis, select=select)
             elif self.data.hyper == data.hyper: #If both sets have same hyper: easy subtract can be used for undo
-                returnValue = lambda self: self.divide(data, select=select)
+                returnValue = lambda self: self.divide(data, axis, select=select)
             else: # Otherwise: do a deep copy of the class
                 copyData = copy.deepcopy(self)
-                returnValue = lambda self: self.restoreData(copyData, lambda self: self.multiply(data, select))
+                returnValue = lambda self: self.restoreData(copyData, lambda self: self.multiply(data, axis, select))
         if isinstance(select, string_types):
             select = safeEval(select)
         self.data[select] *= data
         self.addHistory("Multiplied data[" + str(select) + "]")
         return returnValue
 
-    def divide(self, data, select=slice(None), axis=None):
+    def divide(self, data, axis=None, select=slice(None)):
         if isinstance(data, np.ndarray) and axis is not None:
             data = data.reshape(data.shape + (1,)*(self.ndim() - axis - 1))
         if self.noUndo:
             returnValue = None
         else:
             if not isinstance(data, hc.HComplexData):
-                returnValue = lambda self: self.multiply(data, select=select)
+                returnValue = lambda self: self.multiply(data, axis, select=select)
             elif self.data.hyper == data.hyper: #If both sets have same hyper: easy subtract can be used for undo
-                returnValue = lambda self: self.multiply(data, select=select)
+                returnValue = lambda self: self.multiply(data, axis, select=select)
             else: # Otherwise: do a deep copy of the class
                 copyData = copy.deepcopy(self)
-                returnValue = lambda self: self.restoreData(copyData, lambda self: self.divide(data, select))
+                returnValue = lambda self: self.restoreData(copyData, lambda self: self.divide(data, axis, select))
         if isinstance(select, string_types):
             select = safeEval(select)
         self.data[select] /= data
@@ -280,7 +280,7 @@ class Spectrum(object):
             return None
         try:
             for index in range(len(self.data)):
-                self.data[index][select] = np.apply_along_axis(np.multiply, axes, self.data[index], mult * scale)[select]
+                self.data[select] = np.apply_along_axis(np.multiply, axes, self.data, mult * scale)[select]
         except ValueError as error:
             self.dispMsg('Normalize: ' + str(error))
             return None
@@ -339,7 +339,7 @@ class Spectrum(object):
         axes = self.checkAxes(axes)
         if axes is None:
             return None
-        invAxis = self.ndim() - self.axes
+        invAxis = self.ndim() - axes
         self.data = self.data.split(sections, axes)
         self.data.insertDim(invAxis)
         self.freq = np.insert(self.freq, 0, self.freq[axes])
@@ -521,12 +521,12 @@ class Spectrum(object):
                 tmp = self.data[slicing].min(axis=axes)
             elif which == 3:
                 tmp = self.data[slicing].argmax(axis=axes)
-                maxArgPos = tmp.data
+                maxArgPos = np.array(tmp.data, dtype=int)
                 tmpmaxPos = maxArgPos.flatten()
                 tmp.data = self.xaxArray[axes][slice(minPos, maxPos)][tmpmaxPos].reshape(maxArgPos.shape)
             elif which == 4:
                 tmp = self.data[slicing].argmin(axis=axes)
-                minArgPos = tmp.data
+                minArgPos = np.array(tmp.data, dtype=int)
                 tmpminPos = minArgPos.flatten()
                 tmp.data = self.xaxArray[axes][slice(minPos, maxPos)][tmpminPos].reshape(minArgPos.shape)
             elif which == 6:
@@ -872,14 +872,15 @@ class Spectrum(object):
         if self.spec[axes] == 0:
             self.fourier(axes, tmp=True)
         tmp = self.data[tuple(locList[:axes]) + (slice(None), ) + tuple(locList[axes:])]
-        x = np.fft.fftshift(np.fft.fftfreq(len(tmp[0]), 1.0 / self.sw[axes])) / self.sw[axes]
+        tmp = tmp.getHyperData(0)
+        x = np.fft.fftshift(np.fft.fftfreq(len(tmp), 1.0 / self.sw[axes])) / self.sw[axes]
         # only optimize on the hyper real data
         if phaseNum == 0:
-            phases = scipy.optimize.minimize(self.ACMEentropy, [0], (tmp.data[0], x, False), method='Powell')
+            phases = scipy.optimize.minimize(self.ACMEentropy, [0], (tmp, x, False), method='Powell')
             phase0 = phases['x']
             phase1 = 0.0
         elif phaseNum == 1:
-            phases = scipy.optimize.minimize(self.ACMEentropy, [0, 0], (tmp.data[0], x), method='Powell')
+            phases = scipy.optimize.minimize(self.ACMEentropy, [0, 0], (tmp, x), method='Powell')
             phase0 = phases['x'][0]
             phase1 = phases['x'][1]
         if self.ref[axes] is None:
@@ -887,8 +888,8 @@ class Spectrum(object):
         else:
             offset = self.freq[axes] - self.ref[axes]
         vector = np.exp(np.fft.fftshift(np.fft.fftfreq(self.shape()[axes], 1.0 / self.sw[axes]) + offset) / self.sw[axes] * phase1 * 1j)
-        vector = vector.reshape(vector.shape + (1, )*axes)
-        self.data *= np.exp(phase0 * 1j) + vector
+        vector = vector.reshape(vector.shape + (1, )*(self.ndim()-axes-1))
+        self.data *= np.exp(phase0 * 1j) * vector
         if self.spec[axes] == 0:
             self.fourier(axes, tmp=True, inv=True)
         self.data = self.data.complexReorder(axes)
@@ -905,14 +906,13 @@ class Spectrum(object):
             return lambda self: self.setPhase(-phase0, -phase1, axes)
 
     def ACMEentropy(self, phaseIn, data, x, phaseAll=True):
-        hyperView = 0 #Temp
         phase0 = phaseIn[0]
         if phaseAll:
             phase1 = phaseIn[1]
         else:
             phase1 = 0.0
-        L = len(data[hyperView])
-        s0 = data[hyperView] * np.exp(1j * (phase0 + phase1 * x))
+        L = len(data)
+        s0 = data * np.exp(1j * (phase0 + phase1 * x))
         s2 = np.real(s0)
         ds1 = np.abs((s2[3:L] - s2[1:L - 2]) / 2.0)
         p1 = ds1 / sum(ds1)
@@ -939,9 +939,9 @@ class Spectrum(object):
         vector = np.exp(np.fft.fftshift(np.fft.fftfreq(self.shape()[axes], 1.0 / self.sw[axes]) + offset) / self.sw[axes] * phase1 * 1j)
         if self.spec[axes] == 0:
             self.fourier(axes, tmp=True)
-        vector = vector.reshape(vector.shape + (1, )*axes)
+        vector = vector.reshape(vector.shape + (1, )*(self.ndim()-axes-1))
         self.data = self.data.complexReorder(axes)
-        self.data[select] *= np.exp(phase0 * 1j) + vector[select]
+        self.data[select] *= np.exp(phase0 * 1j) * vector[select]
         self.data = self.data.complexReorder(axes)
         if self.spec[axes] == 0:
             self.fourier(axes, tmp=True, inv=True)
@@ -993,7 +993,7 @@ class Spectrum(object):
                 previewData = [x] * (np.prod(self.data[0].shape) / self.data[0].shape[axes])
             if self.spec[axes] > 0:
                 self.fourier(axes, tmp=True)
-            self.data[select] *= x.reshape(x.shape + (1, )*axes)
+            self.data[select] *= x.reshape(x.shape + (1, )*(self.ndim()-axes-1))
             if self.spec[axes] > 0:
                 self.fourier(axes, tmp=True, inv=True)
         # Create the history message based on the input values.
@@ -1188,7 +1188,7 @@ class Spectrum(object):
             return None
         slicing1 = (slice(None), ) * axes + (slice(None, idx), )
         slicing2 = (slice(None), ) * axes + (slice(idx, None), )
-        self.data = self.data[slicing2].append(self.data[index][slicing1], axis=axes)
+        self.data = self.data[slicing2].append(self.data[slicing1], axis=axes)
         self.wholeEcho[axes] = not self.wholeEcho[axes]
         self.addHistory("Swap echo at position " + str(idx) + " for dimension " + str(axes + 1))
         if self.noUndo:
@@ -1213,7 +1213,7 @@ class Spectrum(object):
             mask[slice(None, shift)] = 0
         self.data[select] = self.data.roll(shift, axes)[select]
         if zeros:
-            self.data[select] *= mask.reshape(mask.shape + (1,)*axes) 
+            self.data[select] *= mask.reshape(mask.shape + (1,)*(self.ndim()-axes-1)) 
         if self.spec[axes] > 0:
             self.fourier(axes, tmp=True, inv=True)
         Message = "Shifted " + str(shift) + " points in dimension " + str(axes + 1)
@@ -1240,7 +1240,7 @@ class Spectrum(object):
                 self.spec[axes] = 1
                 self.addHistory("Fourier transform dimension " + str(axes + 1))
         else:
-            self.data = self.data.ifft(axes).ifftshift(axes)
+            self.data = self.data.ifftshift(axes).ifft(axes)
             if not self.wholeEcho[axes] and not tmp:
                 slicing = (slice(None), ) * axes + (0, )
                 self.data[slicing] *= 2.0
@@ -1464,7 +1464,7 @@ class Spectrum(object):
         if axes is None:
             return None
         sliceData = self.data[tuple(locList[:axes]) + (slice(None), ) + tuple(locList[axes:])]
-        sliceData.complexReorder(axes)
+        sliceData = sliceData.complexReorder(axes)
         sliceSpec = copy.deepcopy(Spectrum(self.name,
                                            hc.HComplexData(sliceData.getHyperData(0)),
                                            self.filePath,
@@ -1492,14 +1492,14 @@ class Spectrum(object):
             return None
         elif axes < axes2:
             sliceData = self.data[tuple(locList[:axes]) + (slice(None), ) + tuple(locList[axes:axes2 - 1]) + (stackSlice, ) + tuple(locList[axes2 - 1:])]
-            sliceData.complexReorder(axes)
+            sliceData = sliceData.complexReorder(axes)
             newData = hc.HComplexData(np.transpose(sliceData.getHyperData(0)))
         elif axes > axes2:
             sliceData = self.data[tuple(locList[:axes2]) + (stackSlice, ) + tuple(locList[axes2:axes - 1]) + (slice(None), ) + tuple(locList[axes - 1:])]
-            sliceData.complexReorder(axes)
+            sliceData = sliceData.complexReorder(axes)
             newData = hc.HComplexData(sliceData.getHyperData(0))            
         return copy.deepcopy(Spectrum(self.name,
-                                      datList,
+                                      newData,
                                       self.filePath,
                                       [self.freq[axes2], self.freq[axes]],
                                       [self.sw[axes2], self.sw[axes]],
@@ -2066,7 +2066,7 @@ class Current1D(Plot1DFrame):
         minPos = int(min(pos1, pos2))
         maxPos = int(max(pos1, pos2))
         if minPos != maxPos:
-            tmpData = self.data1D[(len(self.shape()) - 1) * (slice(None), ) + (slice(minPos, maxPos), )]
+            tmpData = self.data1D.data[(len(self.shape()) - 1) * (slice(None), ) + (slice(minPos, maxPos), )]
             return np.mean(tmpData.getHyperData(0))
         else:
             return 0
@@ -2332,7 +2332,7 @@ class Current1D(Plot1DFrame):
         else:
             selectSlice = slice(None)
         self.root.addMacro(['add', (np.real(data).tolist(), np.imag(data), str(selectSlice))])
-        returnValue = self.data.add(data, select=selectSlice)
+        returnValue = self.data.add(data, self.axes, select=selectSlice)
         self.upd()
         self.showFid()
         return returnValue
@@ -2343,7 +2343,7 @@ class Current1D(Plot1DFrame):
         else:
             selectSlice = slice(None)
         self.root.addMacro(['subtract', (np.real(data).tolist(), np.imag(data).tolist(), str(selectSlice))])
-        returnValue = self.data.subtract(data, select=selectSlice)
+        returnValue = self.data.subtract(data, self.axes, select=selectSlice)
         self.upd()
         self.showFid()
         return returnValue

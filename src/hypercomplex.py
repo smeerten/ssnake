@@ -102,7 +102,7 @@ class HComplexData(object):
         return self.__add__(other)
 
     def __sub__(self, other):
-        return self.__add__(-other)
+        return self.__add__(-np.asarray(other))
     
     def __rsub__(self, other):
         return (-self).__add__(other)
@@ -265,7 +265,7 @@ class HComplexData(object):
         return HComplexData(tmpData, tmpHyper)
 
     def complexReorder(self, axis=0):
-        if not self.isComplex(axis):
+        if not self.isHyperComplex(axis):
             # If the data is not complex along that axis return the data unchanged
             return HComplexData(np.copy(self.data), np.copy(self.hyper))
         bit = 2**axis
@@ -311,7 +311,7 @@ class HComplexData(object):
     def split(self, sections, axis):
         if axis >= 0:
             axis += 1
-        return HComplexData(np.split(self.data, sections, axis), np.copy(self.hyper))
+        return HComplexData(np.swapaxes(np.split(self.data, sections, axis), 0, 1), np.copy(self.hyper))
 
     def states(self, axis, TPPI=False):
         if self.shape()[axis] % 2 != 0:
@@ -351,30 +351,22 @@ class HComplexData(object):
         return HComplexData(np.sum(self.data, axis=axis, **kwargs), np.copy(self.hyper))
 
     def max(self, axis=-1):
-        if axis >= 0:
-            axis += 1
         argVals = np.argmax(self.data[0], axis=axis)
         ind = list(np.indices(argVals.shape))
         ind.insert(axis, argVals)
-        return HComplexData(self.data[:, ind], np.copy(self.hyper))
+        return HComplexData(self.data[(slice(None), ) + tuple(ind)], np.copy(self.hyper))
 
     def min(self, axis=-1):
-        if axis >= 0:
-            axis += 1
         argVals = np.argmin(self.data[0], axis=axis)
         ind = list(np.indices(argVals.shape))
         ind.insert(axis, argVals)
-        return HComplexData(self.data[:, ind], np.copy(self.hyper))
+        return HComplexData(self.data[(slice(None), ) + tuple(ind)], np.copy(self.hyper))
 
     def argmax(self, axis=-1):
-        if axis >= 0:
-            axis += 1
-        return HComplexData(np.argmax(self.data[0], axis=axis, **kwargs), np.array([0]))
+        return HComplexData(np.argmax(self.data[0], axis=axis))
 
     def argmin(self, axis=-1):
-        if axis >= 0:
-            axis += 1
-        return HComplexData(np.argmin(self.data[0], axis=axis, **kwargs), np.array([0]))
+        return HComplexData(np.argmin(self.data[0], axis=axis))
 
     def expand_dims(self, axis=-1):
         if axis >= 0:
@@ -427,7 +419,7 @@ class HComplexData(object):
             slicing2 = (slice(None), ) * axis + (slice(pos, None), )
             zeroShape = np.array(self.data.shape)
             zeroShape[axis] = size - oldSize
-            tmpData = np.concatenate((self.data[slicing1], np.zeros(zeroShape), self.data[slicing1]), axis=axis)
+            tmpData = np.concatenate((self.data[slicing1], np.zeros(zeroShape), self.data[slicing2]), axis=axis)
         else:
             difference = oldSize - size
             removeBegin = int(np.floor(difference / 2))
@@ -483,10 +475,10 @@ class HComplexData(object):
     def fftshift(self, axis):
         if axis >= 0:
             axis += 1
-        return HComplexData(np.fft.fftshift(self.data, axis=axis), np.copy(self.hyper))
+        return HComplexData(np.fft.fftshift(self.data, axes=axis), np.copy(self.hyper))
 
     def ifftshift(self, axis):
         if axis >= 0:
             axis += 1
-        return HComplexData(np.fft.ifftshift(self.data, axis=axis), np.copy(self.hyper))
+        return HComplexData(np.fft.ifftshift(self.data, axes=axis), np.copy(self.hyper))
 

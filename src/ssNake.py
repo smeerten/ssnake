@@ -4265,9 +4265,9 @@ class DCWindow(wc.ToolWindows):
         self.father.current.peakPickReset()
         self.father.redoList = []
         if self.father.current.data.noUndo:
-            self.father.current.subtract([inp], [], self.singleSlice.isChecked())
+            self.father.current.subtract([inp], self.singleSlice.isChecked())
         else:
-            self.father.undoList.append(self.father.current.subtract([inp], [], self.singleSlice.isChecked()))
+            self.father.undoList.append(self.father.current.subtract([inp], self.singleSlice.isChecked()))
 
 #############################################################
 
