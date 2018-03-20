@@ -1448,7 +1448,7 @@ class MainProgram(QtWidgets.QMainWindow):
         self.workspaceNames.append(wsname)
         self.changeMainWindow(wsname)
 
-    def dataFromFit(self, data, filePath, freq, sw, spec, wholeEcho,hyper, ref, xaxArray, axes):
+    def dataFromFit(self, data, filePath, freq, sw, spec, wholeEcho, ref, xaxArray, axes):
         name = self.askName()
         if name is None:
             return
@@ -1459,7 +1459,6 @@ class MainProgram(QtWidgets.QMainWindow):
                                  sw,
                                  spec,
                                  wholeEcho,
-                                 hyper,
                                  ref,
                                  xaxArray,
                                  msgHandler=lambda msg: self.dispMsg(msg),
@@ -1858,7 +1857,6 @@ class Main1DWindow(QtWidgets.QWidget):
             imagData.append(np.imag(item).tolist())
         struct['dataReal'] = realData
         struct['dataImag'] = imagData
-        struct['hyper'] = self.masterData.hyper
         struct['freq'] = self.masterData.freq.tolist()
         struct['sw'] = list(self.masterData.sw)
         struct['spec'] = list(1.0 * np.array(self.masterData.spec))
@@ -1885,7 +1883,6 @@ class Main1DWindow(QtWidgets.QWidget):
         struct['dim'] = self.masterData.ndim()
         struct['data'] = self.masterData.data
         struct['freq'] = self.masterData.freq
-        struct['hyper'] = self.masterData.hyper
         struct['sw'] = self.masterData.sw
         struct['spec'] = self.masterData.spec
         struct['wholeEcho'] = self.masterData.wholeEcho
@@ -5072,9 +5069,9 @@ class InsertWindow(wc.ToolWindows):
         ws = self.wsEntry.currentIndex()
         self.father.redoList = []
         if self.father.current.data.noUndo:
-            self.father.current.insert(self.father.father.workspaces[ws].masterData.getData(), self.father.father.workspaces[ws].masterData.getHyper(), pos)
+            self.father.current.insert(self.father.father.workspaces[ws].masterData.getData(), pos)
         else:
-            self.father.undoList.append(self.father.current.insert(self.father.father.workspaces[ws].masterData.getData(), self.father.father.workspaces[ws].masterData.getHyper(), pos))
+            self.father.undoList.append(self.father.current.insert(self.father.father.workspaces[ws].masterData.getData(), pos))
 
 ##############################################################
 
@@ -5107,13 +5104,13 @@ class CombineWindow(wc.ToolWindows):
     def applyFunc(self):
         ws = self.wsEntry.currentIndex()
         if self.combType is 0:
-            returnValue = self.father.current.add(self.father.father.workspaces[ws].masterData.getData(), self.father.father.workspaces[ws].masterData.getHyper(), self.singleSlice.isChecked())
+            returnValue = self.father.current.add(self.father.father.workspaces[ws].masterData.getData(), self.singleSlice.isChecked())
         elif self.combType is 1:
-            returnValue = self.father.current.subtract(self.father.father.workspaces[ws].masterData.getData(),self.father.father.workspaces[ws].masterData.getHyper(), self.singleSlice.isChecked())
+            returnValue = self.father.current.subtract(self.father.father.workspaces[ws].masterData.getData(), self.singleSlice.isChecked())
         elif self.combType is 2:
-            returnValue = self.father.current.multiplySpec(self.father.father.workspaces[ws].masterData.getData(),self.father.father.workspaces[ws].masterData.getHyper(), self.singleSlice.isChecked())
+            returnValue = self.father.current.multiplySpec(self.father.father.workspaces[ws].masterData.getData(), self.singleSlice.isChecked())
         elif self.combType is 3:
-            returnValue = self.father.current.divideSpec(self.father.father.workspaces[ws].masterData.getData(),self.father.father.workspaces[ws].masterData.getHyper(), self.singleSlice.isChecked())
+            returnValue = self.father.current.divideSpec(self.father.father.workspaces[ws].masterData.getData(), self.singleSlice.isChecked())
         if returnValue is None and not self.father.current.data.noUndo:
             return
         self.father.redoList = []

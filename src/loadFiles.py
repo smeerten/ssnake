@@ -24,40 +24,37 @@ import os
 
 
 def loading(num, filePath, name=None, realpath=False, dialog=None):
-    #try:
-        if num == 0:
-            masterData = loadVarianFile(filePath, name)
-        elif num == 1:
-            masterData = loadBrukerTopspin(filePath, name)
-        elif num == 2:
-            masterData = loadChemFile(filePath, name)
-        elif num == 3:
-            masterData = loadMagritek(filePath, name, realpath)
-        elif num == 4:
-            masterData = loadSimpsonFile(filePath, name)
-        elif num == 5:
-            masterData = loadJSONFile(filePath, name)
-        elif num == 6:
-            masterData = loadMatlabFile(filePath, name)
-        elif num == 7:
-            masterData = loadBrukerSpectrum(filePath, name)
-        elif num == 8:
-            masterData = loadPipe(filePath, name)
-        elif num == 9:
-            masterData = loadJEOLDelta(filePath, name)
-        elif num == 10:
-            masterData = loadJCAMP(filePath, name)
-        elif num == 11:
-            if dialog is None:
-                return None
-            masterData = loadAscii(filePath, name, dialog.dataDimension, dialog.dataSpec, dialog.dataOrder, dialog.delim, dialog.sw)
-        elif num == 12:
-            masterData = loadMinispec(filePath, name)
-        elif num == 13:
-            masterData = loadBrukerEPR(filePath, name)
-    #except Exception:
-    #    return None
-        return masterData
+    if num == 0:
+        masterData = loadVarianFile(filePath, name)
+    elif num == 1:
+        masterData = loadBrukerTopspin(filePath, name)
+    elif num == 2:
+        masterData = loadChemFile(filePath, name)
+    elif num == 3:
+        masterData = loadMagritek(filePath, name, realpath)
+    elif num == 4:
+        masterData = loadSimpsonFile(filePath, name)
+    elif num == 5:
+        masterData = loadJSONFile(filePath, name)
+    elif num == 6:
+        masterData = loadMatlabFile(filePath, name)
+    elif num == 7:
+        masterData = loadBrukerSpectrum(filePath, name)
+    elif num == 8:
+        masterData = loadPipe(filePath, name)
+    elif num == 9:
+        masterData = loadJEOLDelta(filePath, name)
+    elif num == 10:
+        masterData = loadJCAMP(filePath, name)
+    elif num == 11:
+        if dialog is None:
+            return None
+        masterData = loadAscii(filePath, name, dialog.dataDimension, dialog.dataSpec, dialog.dataOrder, dialog.delim, dialog.sw)
+    elif num == 12:
+        masterData = loadMinispec(filePath, name)
+    elif num == 13:
+        masterData = loadBrukerEPR(filePath, name)
+    return masterData
 
 
 def fileTypeCheck(filePath):
