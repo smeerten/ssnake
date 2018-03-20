@@ -23,6 +23,7 @@
 \usepackage[protrusion=true,expansion,tracking=true]{microtype}
 \pgfplotsset{compat=1.7,/pgf/number format/1000 sep={}, axis lines*=left,axis line style={gray},every outer x axis line/.append style={-stealth'},every outer y axis line/.append style={-stealth'},tick label style={font=\small},label style={font=\small},legend style={font=\footnotesize}}
 \usepackage{colortbl}
+\usepackage{listings}
 
 
 %Set section font
@@ -1299,6 +1300,99 @@ better tweaked library for this specific value of $\sigma$.
 
 
 %czjzek = wq**(d - 1) * eta / (np.sqrt(2 * np.pi) * sigma**d) * (1 - eta**2 / 9.0) * np.exp(-wq**2 / (2.0 * sigma**2) * (1 + eta**2 / 3.0))
+
+
+\subsection{Simpson}
+Simulating NMR data for fitting can be straightforward, if idealized line shapes are requires. These
+type of calculation are programmed into ssNake, and can be run using the different tools described
+above. However, if actual pulse sequences need to be calculated, the simulations become involved
+quite quickly. In order ot be able to fit spectra wich require a more involved calculation, the
+`Simpson' tool can be used to fit spectra via the Simpson package
+\cite{Bak2000SIMPSON,Tosner2014Computer,Tosner2009Optimal}. For this, a Simpson input script is
+required which gives a single spectrum/FID as output. ssNake then loads this data, applies a Fourier
+transfrom (if necessary) and regrids the data to have the same $x$-axis as the experimental data.
+
+As with the `Function Fit' described below, the variables that we want to fit (or change) in the
+ssNake fit window must be defined as `@a' in the Simpson input file (were $a$ can be any name). ssNake
+then recognizes the differnt varibales defined in this way. When a simulation is run, ssNake
+replaces these variable names by the relevant number and performs a Simpson simulation using this
+input script. By default, ssNake also adds a scale factor, and Lorentzian and Gaussian apodization
+input boxes.
+
+The window also features a dropdown box for the number of sites. When increasing this, new input
+boxes for all the relevant primate's appear. Note that ssNake is now running Simpson multiple times
+for each simulation: once for each site. Note that it is also possible to make Simpson run
+simulations with multiple sites in one go, but that this is really inefficient. Naturally, when
+spin-spin interactions are present (dipolar, J) the relevant spins \textit{should} be included in a single
+Simpson file.
+
+
+If, for
+example, we want to fit a spectrum were we want to change the chemical shift anisotropy
+($\delta_\text{aniso}$) and asymmetry ($\eta$), we could use the following Simpson spinsys:
+
+\lstset{language=tcl}          % Set your language (you can change the language for each code-block optionally)
+
+\begin{lstlisting}[frame=single]  % Start your code-block
+
+spinsys {
+    channels	1H
+    nuclei	1H 
+    shift	1 100 @aniso @eta 0 0 0
+}
+\end{lstlisting}
+Here, the isotropic shift ($\delta_\text{iso}$) has been fixed at 100 Hz, while the anisotropy and
+eta can be changed from within ssNake. Note that the @$a$ variables can be used anywhere in the
+input file. Also, the used names can be anything (but be careful with special characters), but names
+like `a' or `agdv' might be difficult to recognise for the user in the ssNake window.
+A full input file could look like:
+
+\begin{lstlisting}[frame=single]  % Start your code-block
+
+spinsys {
+    channels	1H
+    nuclei	1H 
+    shift	1 100 @aniso @eta 0 0 0
+}
+
+par {
+	proton_frequency	600e6
+	method 			direct
+	sw			1E6
+	variable np		512
+	crystal_file	  	zcw232
+	gamma_angles		1
+	start_operator		Inx
+	detect_operator		Inp
+	verbose			0000
+	spin_rate 		0
+}
+
+proc pulseq {} {
+   global par
+   delay [expr 1e6/$par(sw)]
+   store 1
+   reset
+   acq $par(np) 1 0
+}
+
+proc main {} {
+   global par
+   set f [fsimpson]
+   fzerofill $f 16384
+   fft $f
+   fsave $f $par(name).spe
+}
+\end{lstlisting}
+Note that, when external files like user crystal files are used, the full path to this file must be
+included in the input file (ssNake copies the input file to a random directory, without any
+required files).
+
+Simpson calulations can take a very long time. We therefore suggest to always optimze the input file
+as much as possible (minimum number of points and crystal orientations).
+
+
+
 
 \subsection{Function fit}
 While we try and include as  many relevant fit function as possible, we cannot include everything in

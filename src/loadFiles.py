@@ -19,7 +19,7 @@
 
 import numpy as np
 import spectrum_classes as sc
-import re
+import rep
 import os
 
 
@@ -56,7 +56,6 @@ def loading(num, filePath, name=None, realpath=False, dialog=None):
         masterData = loadBrukerEPR(filePath, name)
     return masterData
 
-
 def fileTypeCheck(filePath):
     returnVal = 0
     fileBase = ''
@@ -72,7 +71,7 @@ def fileTypeCheck(filePath):
                 return (8, filePath, returnVal)  # Suspected NMRpipe format
             else:  # SIMPSON
                 return (4, filePath, returnVal)
-        if filename.endswith('.ft') or filename.endswith('.ft2') or filename.endswith('.ft3'):
+        if filename.endswith('.ft') or filename.endswith('.ft1') or filename.endswith('.ft2') or filename.endswith('.ft3') or filename.endswith('.ft4'):
             with open(filePath, 'r') as f:
                 check = int(np.fromfile(f, np.float32, 1))
             if check == 0:
@@ -112,7 +111,6 @@ def fileTypeCheck(filePath):
         return (11, filePath, returnVal)
     return (None, filePath, 2)
 
-
 def loadVarianFile(filePath, name=''):
     from struct import unpack
     if os.path.isfile(filePath):
@@ -125,7 +123,6 @@ def loadVarianFile(filePath, name=''):
         file = Dir + os.path.sep + '..' + os.path.sep + 'procpar'
     else:
         file = None
-
     Out = [0,1,1,0,0,0,0,0] 
     indirectRef = 'dfrq'
     if file is not None:
@@ -196,170 +193,184 @@ def loadVarianFile(filePath, name=''):
 def loadPipe(filePath, name=''):
     with open(filePath, 'r') as f:
         header = np.fromfile(f, np.float32, 512)
-        NP = int(header[99])
-        NI = int(header[219])
-        NDIM = int(header[9])
-        if NDIM > 2:
-            NDIM = 2
-        SIZE = [int(header[32]),int(header[15]),int(header[219]),int(header[99])]
-        #print('new',newSize)
-        hyper = int(header[106])
-        TotP = SIZE[3] * SIZE[2] #Max 2D size
-        if int(header[106]) == 0:  # if complex
-            TotP = TotP * 2
-        data = np.fromfile(f, np.float32, TotP)
-        if SIZE[2] > 1:
-            data = np.reshape(data, (SIZE[2],int(TotP/SIZE[2])))
+    NDIM = int(header[9])
+    SIZE = [int(header[32]),int(header[15]),int(header[219]),int(header[99])]
+    quadFlag = [int(header[54]),int(header[51]),int(header[55]),int(header[56])] #0 complex, 1 real        
+    spec = [int(header[31]),int(header[13]),int(header[222]),int(header[220])]  # 1 if ft, 0 if time
+    freq = np.array([header[28],header[10],header[218],header[119]]) * 1e6
+    sw = [header[29],header[11],header[229],header[100]]
+    ref = [header[30],header[12],header[249],header[101]]  # frequency of last point in Hz
+    numFiles = int(header[442]) #Number of files to be loaded
+    pipeFlag = int(header[57]) #Indicates stream, or separate files
+    cubeFlag = int(header[447]) #1 if 4D, and saved as sets of 3D
 
-        if int(header[106]) == 0:
-            if SIZE[2] == 1:
-                data = data[:SIZE[3]] + 1j * data[SIZE[3]:]
-            else:
-                data = data[:,:SIZE[3]] + 1j * data[:,SIZE[3]:]
-
-        quadflag = [int(header[54]),int(header[51]),int(header[55]),int(header[56])] #0 complex, 1 real        
-        spec = [int(header[31]),int(header[13]),int(header[222]),int(header[220])]  # 1 if ft, 0 if time
-        freq = np.array([header[28],header[10],header[218],header[119]]) * 1e6
-        sw = [header[29],header[11],header[229],header[100]]
-        ref = [header[30],header[12],header[249],header[101]]  # frequency of last point in Hz
-
-    for i in range(len(spec)):
-        sidefreq = -np.floor(SIZE[i] / 2) / SIZE[i] * sw[i]  # freqeuency of last point on axis
+    for i in range(len(spec)): #get reference frequencies
+        sidefreq = -np.floor(SIZE[i] / 2) / SIZE[i] * sw[i]  # frequency of last point on axis
         ref[i] = sidefreq + freq[i] - ref[i]
 
+    TotP = SIZE[3] * SIZE[2] #Max file size
+    if quadFlag[3] == 0:  # if complex direct axis
+        TotP = TotP * 2
+    if NDIM == 4 and cubeFlag == 1 and pipeFlag == 0:
+        TotP *= SIZE[1] #If file 3D format, load more data points
+    elif NDIM == 4 and pipeFlag > 0:
+        TotP *= SIZE[0] * SIZE[1]
+    if NDIM == 3 and pipeFlag > 0:
+        TotP *= SIZE[1]
 
-    for i in range(NDIM):
-        if spec[-1 - i] == 1: #If spectrum
-            data = np.flip(data, NDIM -1 - i)
+    if numFiles  == 1:
+        files = [filePath]
+    else: #Get the names of the files, if more than 1
+        dir,file = os.path.split(filePath)
+        base, ext = os.path.splitext(file)
+        start = re.search('[0-9]+$',base).start()
+        basename = base[:start]
+        numbers = len(base[start:])
+        files = [dir + os.path.sep + basename + str(x + 1).zfill(numbers) + ext for x in range(numFiles)]
 
-    masterData = sc.Spectrum(name, data, (8, filePath), freq[4 - NDIM:4], sw[4 - NDIM:4], spec[4 - NDIM:4], ref=ref[4 - NDIM:4])
+    data = []
+    for file in files: #Load all the data from the files
+        with open(file, 'r') as f:
+            tmp = np.fromfile(f, np.float32, 512)
+            data.append( np.fromfile(f, np.float32, TotP))
 
+    for i in range(len(data)): #Reshape all the data
+        if NDIM > 1 and cubeFlag == 0 and pipeFlag == 0: #Reshape 2D sets if needed
+            data[i] = np.reshape(data[i], (SIZE[2],int(TotP/SIZE[2])))
+        elif NDIM == 4 and cubeFlag == 1 and pipeFlag == 0: #For 4D, in sets of 3D
+            data[i] = np.reshape(data[i], (SIZE[1],SIZE[2],int(TotP/SIZE[2]/SIZE[1])))
+        elif NDIM == 4 and pipeFlag > 0: #For stream
+            data[i] = np.reshape(data[i], (SIZE[0],SIZE[1],SIZE[2],int(TotP/SIZE[2]/SIZE[1]/SIZE[0])))
+        elif NDIM ==3 and pipeFlag > 0: #For stream
+            data[i] = np.reshape(data[i], (SIZE[1],SIZE[2],int(TotP/SIZE[2]/SIZE[1])))
+
+    #For 3D or 4D data, merge the datasets
+    if NDIM > 2 and pipeFlag == 0:
+        data = [np.array(data)]
+
+
+    eS = (slice(None),) #empty slice
+    if quadFlag[3] == 0: #If complex along last dim
+        useSlice = eS * (NDIM - 1)
+        data[0] = data[0][useSlice + (slice(None,SIZE[3],None),)] + 1j * data[0][useSlice + (slice(SIZE[3],None,None),)]
+
+    hyper = []
+    if NDIM > 1: #Reorder data, if hypercomplex along an axis
+        for dim in range(NDIM - 1):
+            newdata = []
+            if quadFlag[4 - NDIM + dim] == 0:
+                useSlice1 = eS * dim +(slice(None,None,2),) + eS * (NDIM - dim - 1)
+                useSlice2 = eS * dim +(slice(1,None,2),) + eS * (NDIM - dim - 1)
+                for dat in data:
+                    newdata.append(dat[useSlice1])
+                    newdata.append(dat[useSlice2])
+                data = newdata
+                hyper.append(dim)
+              
+    for k in range(len(data)): #Flip LR if spectrum axis
+        for i in range(NDIM):
+            if spec[-1 - i] == 1: 
+                data[k] = np.flip(data[k], NDIM -1 - i)
+
+    masterData = sc.Spectrum(name, data, (8, filePath), freq[4 - NDIM:4], sw[4 - NDIM:4], spec[4 - NDIM:4], ref=ref[4 - NDIM:4], hyper = hyper)
     masterData.addHistory("NMRpipe data loaded from " + filePath)
     return masterData
 
 
 def loadJEOLDelta(filePath, name=''):
     from struct import unpack
+    multiUP = lambda typ, bit, num, start: np.array([unpack(typ,header[start + x:start + bit + x])[0] for x in range(0,num * bit,bit)])
+
     with open(filePath, "rb") as f:
-        file_identifier = f.read(8)
-        endian = unpack('>B', f.read(1))[0]
-        f.read(3)  # placeholder to get rid of unused data
-        data_dimension_number = unpack('>B', f.read(1))[0]
-        data_dimension_exist = unpack('>B', f.read(1))[0]
-        data_type = unpack('>B', f.read(1))[0]
-        f.read(1)  # placeholder to get rid of unused data
-        translate = np.fromfile(f, '>B', 8)
-        data_axis_type = np.fromfile(f, '>B', 8)
-        data_units = np.fromfile(f, '>B', 16).reshape(8, 2)  # Reshape for later unit extraction
-        title = f.read(76)
-        f.read(52)
-        # 176
-        data_points = np.fromfile(f, '>I', 8)
-        data_offset_start = np.fromfile(f, '>I', 8)
-        data_offset_stop = np.fromfile(f, '>I', 8)
-        data_axis_start = np.fromfile(f, '>d', 8)
-        data_axis_stop = np.fromfile(f, '>d', 8)
-        # 400
-        f.read(664)
-        base_freq = np.fromfile(f, '>d', 8)
-        # 1128
-        zero_point = np.fromfile(f, '>d', 8)
-        reverse = np.fromfile(f, '>B', 8)
-        # 1200
-        f.read(12)
-        param_start = np.fromfile(f, '>I', 1)[0]
-        param_length = np.fromfile(f, '>I', 1)[0]
-        # 1220
-        f.read(64)
-        data_start = np.fromfile(f, '>I', 1)[0]
-        data_length = np.fromfile(f, '>Q', 1)[0]
-        # 1296
-        f.read(data_start - 1296)  # skip to data_start
-        # start reading the data
-        if endian:
-            dataendian = '<d'
-        else:
-            dataendian = '>d'
-        if data_dimension_number == 1:
-            if data_axis_type[0] == 1:  # if real
-                data = np.fromfile(f, dataendian, data_points[0])
-            elif data_axis_type[0] == 3:  # if complex
-                data = np.fromfile(f, dataendian, data_points[0]) - 1j * np.fromfile(f, dataendian, data_points[0])
-                data = data[0:data_offset_stop[0] + 1]
-        elif data_dimension_number == 2:
-            if data_axis_type[0] == 4:  # if real-complex (no hypercomplex)
-                Step = 4  # Step size of block
-                pointsD2 = data_points[0]
-                pointsD1 = data_points[1]
-                datalength = pointsD2 * pointsD1
-                datareal = np.fromfile(f, dataendian, datalength)
-                dataimag = np.fromfile(f, dataendian, datalength)
-                data = datareal - 1j * dataimag
-                data = np.reshape(data, [pointsD1 / Step, datalength / pointsD1 / Step, Step, Step])
-                data = np.concatenate(np.concatenate(data, 1), 1)
-                data = data[0:data_offset_stop[1] + 1, 0:data_offset_stop[0] + 1]  # cut back to real size
-            if data_axis_type[0] == 3:  # if complex (i.e. hypercomplex)
-                Step = 32  # Step size of block
-                pointsD2 = data_points[0]
-                pointsD1 = data_points[1]
-                datalength = pointsD2 * pointsD1
-                datareal1 = np.fromfile(f, dataendian, datalength)
-                dataimag1 = np.fromfile(f, dataendian, datalength)
-                datareal2 = np.fromfile(f, dataendian, datalength)
-                dataimag2 = np.fromfile(f, dataendian, datalength)
-                data1 = datareal1 - 1j * dataimag1
-                data1 = np.reshape(data1, [pointsD1 / Step, datalength / pointsD1 / Step, Step, Step])
-                data1 = np.concatenate(np.concatenate(data1, 1), 1)
-                data2 = datareal2 - 1j * dataimag2
-                data2 = np.reshape(data2, [pointsD1 / Step, datalength / pointsD1 / Step, Step, Step])
-                data2 = np.concatenate(np.concatenate(data2, 1), 1)
-                data = np.zeros([data2.shape[0] * 2, data2.shape[1]], dtype=complex)
-                if reverse[0] == 0:
-                    data[::2, :] = data1  # Interleave both types in D1
-                    data[1::2, :] = data2
-                else:
-                    data[::2, :] = data2  # Interleave both types in D1
-                    data[1::2, :] = data1
-                data = data[0:(data_offset_stop[1] + 1) * 2, 0:data_offset_stop[0] + 1]  # Cut back to real size
-                if reverse[1] == 1:
-                    data = np.conjugate(data)
-        else:
-            return 'ND error'
-        # unitExp = data_units[0][0] &15#unit_exp: if (unitExp > 7) >unitExp -= 16;
-        # scaleType = (data_units[0][1]>>4) &15 #scaleType: if (scaleType > 7) scaleType -= 16;
+        header = f.read(1296)
+
+    endian =['>d','<d'][multiUP('>B', 1, 1, 8)[0]]
+    NDIM =  multiUP('>B', 1, 1, 12)[0]
+    #data_dimension_exist = multiUP('>B', 1, 1, 13)[0]
+    #data_type = multiUP('>B', 1, 1, 14)[0]
+    #translate = multiUP('>B', 1, 8, 16)
+    dataType = multiUP('>B', 1, 8, 24)
+    dataUnits = multiUP('>B', 1, 16, 32).reshape(8, 2)
+    NP = multiUP('>I', 4, 8, 176)
+    #dataStart = multiUP('>I', 4, 8, 208)
+    dataStop = multiUP('>I', 4, 8, 240)
+    axisStart = multiUP('>d', 8, 8, 272)
+    axisStop = multiUP('>d', 8, 8, 336)
+    baseFreq = multiUP('>d', 8, 8, 1064)
+    #zero_point = multiUP('>d', 8, 8, 1128)
+    reverse = multiUP('>B', 1, 8, 1192)
+    readStart = multiUP('>I', 4, 1, 1284)[0]
+    #data_length = multiUP('>Q', 8, 1, 1288)[0]
+
+    loadSize = np.cumprod(NP[:NDIM])[-1]
+    if NDIM == 1 and dataType[0] == 3: #Complex 1D
+        loadSize *= 2
+    elif NDIM == 2 and dataType[0] == 4: #2D Real-Complex (non-Hypercomplex) 
+        loadSize *= 2
+    elif NDIM == 2 and dataType[0] == 3: #2D Complex-Complex (Hypercomplex) 
+        loadSize *= 4
+    
+    with open(filePath, "rb") as f:
+        f.seek(readStart) #Set read start to position of data
+        data = np.fromfile(f, endian, loadSize)
+
+    hyper = [] 
+    if NDIM == 1 and dataType[0] == 1: #Real 1D
+        data = [data]
+    elif NDIM == 1 and dataType[0] == 3: #Complex 1D
+        data = data[:NP[0]] - 1j * data[NP[0]:]
+        data = [data[0:data_offset_stop[0] + 1]]
+    elif NDIM == 2 and dataType[0] == 4: #2D Real-Complex (non-Hypercomplex) 
+        Step = 4
+        data = data[:int(loadSize/2)] - 1j * data[int(loadSize/2):]
+        data = np.reshape(data, [int(NP[1] / Step), int(NP[0] / Step), Step, Step])
+        data = [np.concatenate(np.concatenate(data, 1), 1)]
+    elif NDIM == 2 and dataType[0] == 3: #2D Complex-Complex (Hypercomplex) 
+        hyper = [0]
+        Step = 32  # Step size of block
+        tmp = np.split(data,4)
+        data = [tmp[0] - 1j * tmp[1], tmp[2] - 1j * tmp[3]]
+        del tmp
+        for i in range(len(data)):
+            data[i] = np.reshape(data[i], [int(NP[1] / Step), int(NP[0] / Step), Step, Step])
+            data[i] = np.concatenate(np.concatenate(data[i], 1), 1)
+
+    eS = (slice(None),) #empty slice
+    for dim in range(NDIM): #Cut data for every dim
+        useSlice = eS * (NDIM - dim - 1) +(slice(0,dataStop[dim],None),) + eS * dim 
+        for i in range(len(data)):
+            data[i] = data[i][useSlice]
+
+    freq = baseFreq[0:NDIM][::-1] * 1e6
+    spec = dataUnits[0:NDIM,1][::-1] != 28 #If not 28 (Hz), then spec = true
     sw = []
-    spec = []
     ref = []
-    freq = []
-    for axisNum in reversed(range(data_dimension_number)):
-        freq.append(base_freq[0] * 1e6)
-        axisType = data_units[axisNum][1]  # Sec = 28, Hz = 13, PPM = 26
-        axisScale = data_units[axisNum][0]
+    for axisNum in reversed(range(NDIM)):
+        axisType = dataUnits[axisNum][1]  # Sec = 28, Hz = 13, PPM = 26
+        axisScale = dataUnits[axisNum][0]
         if axisType == 28:  # Sec
             scale = (axisScale >> 4) & 15
             if scale > 7:
                 scale = scale - 16
-            dw = (data_axis_stop[axisNum] - data_axis_start[axisNum]) / (data_offset_stop[axisNum] + 1 - 1) * 10**(-scale * 3)  # minus one to give same axis as spectrum???
+            dw = (axisStop[axisNum] - axisStart[axisNum]) / (dataStop[axisNum] + 1 - 1) * 10.0**(-scale * 3)  # minus one to give same axis as spectrum???
             # scale for SI prefix
             sw.append(1.0 / dw)
-            spec.append(False)
-            sidefreq = -np.floor((data_offset_stop[axisNum] + 1) / 2) / data_offset_stop[axisNum] + 1 * sw[-1]  # frequency of last point on axis
-            ref.append(base_freq[axisNum] * 1e6)
+            sidefreq = -np.floor((dataStop[axisNum] + 1) / 2) / dataStop[axisNum] + 1 * sw[-1]  # frequency of last point on axis
+            ref.append(baseFreq[axisNum] * 1e6)
         if axisType == 13:  # Hz
-            sw.append(np.abs(data_axis_start[axisNum] - data_axis_stop[0]))
-            spec.append(True)
-            if data_dimension_number == 1:
-                data = np.flipud(data)
-            sidefreq = -np.floor(data_points[axisNum] / 2) / (data_offset_stop[axisNum] + 1) * sw[-1]  # frequency of last point on axis
-            ref.append(sidefreq + base_freq[axisNum] * 1e6 - data_axis_stop[axisNum])
+            sw.append(np.abs(axisStart[axisNum] - axisStop[axisNum]))
+            sidefreq = -np.floor((dataStop[axisNum] + 1) / 2) / (dataStop[axisNum] + 1) * sw[-1]  # frequency of last point on axis
+            ref.append(sidefreq + baseFreq[axisNum] * 1e6 - axisStop[axisNum])
         if axisType == 26:  # ppm
-            sw.append(np.abs(data_axis_start[axisNum] - data_axis_stop[axisNum]) * base_freq[axisNum])
-            spec.append(True)
-            if data_dimension_number == 1:
-                data = np.flipud(data)
-            sidefreq = -np.floor((data_offset_stop[axisNum] + 1) / 2) / (data_offset_stop[axisNum] + 1) * sw[-1]  # frequency of last point on axis
-            ref.append(sidefreq + base_freq[axisNum] * 1e6 - data_axis_stop[axisNum] * base_freq[axisNum])
-    masterData = sc.Spectrum(name, data, (9, filePath), freq, sw, spec, ref=ref)
+            sw.append(np.abs(axisStart[axisNum] - axisStop[axisNum]) * baseFreq[axisNum])
+            sidefreq = -np.floor((dataStop[axisNum] + 1) / 2) / (dataStop[axisNum] + 1) * sw[-1]  # frequency of last point on axis
+            ref.append(sidefreq + baseFreq[axisNum] * 1e6 - axisStop[axisNum] * baseFreq[axisNum])
+
+    for k in range(len(data)): #Flip LR if spectrum axis
+        for i in range(NDIM):
+            if spec[-1 - i] == 1: 
+                data[k] = np.flip(data[k], NDIM -1 - i)
+    masterData = sc.Spectrum(name, data, (9, filePath), freq, sw, spec, ref=ref, hyper = hyper)
     masterData.addHistory("JEOL Delta data loaded from " + filePath)
     return masterData
 
@@ -525,7 +536,7 @@ def loadBrukerTopspin(filePath, name=''):
         Dir = filePath
     f,fM, i = lambda x: float(x), lambda x: float(x) * 1e6, lambda x: int(x) #Conversion functions
     Elem = [['TD', i, []],['SFO1', fM ,[]],['SW_h', f, []],['O1',f, []], ['BYTORDA',i,[]]] #The elements to be found [Name, conversion, list with hits]
-    for File in ['acqus','acqu2s','acqu3s']:
+    for File in ['acqu','acqu2','acqu3']:
         if os.path.exists(Dir + os.path.sep + File):
             with open(Dir + os.path.sep + File, 'r') as f:
                 data = f.read().split('\n')
