@@ -58,7 +58,7 @@ class HComplexData(object):
         return self.data[0].shape
 
     def getHyperData(self, hyperVal):
-        return self.data[hyperVal == self.hyper]
+        return self.data[hyperVal == self.hyper][0]
     
     def __len__(self):
         if self.data:
@@ -198,25 +198,29 @@ class HComplexData(object):
         return HComplexData(other**self.data, np.copy(self.hyper))
 
     def __getitem__(self, key):
-        return HComplexData(self.data[:, key], self.hyper)
+        if not isinstance(key, tuple):
+            key = (key, )
+        return HComplexData(self.data[(slice(None), ) + key], self.hyper)
 
     def __setitem__(self, key, value):
+        if not isinstance(key, tuple):
+            key = (key, )
         if isinstance(value, HComplexData):
-            self.data[:, key] = 0
+            self.data[(slice(None), ) + key] = 0
             diffList = np.setdiff1d(value.hyper, self.hyper, assume_unique=True)
             insertOrder = np.searchsorted(self.hyper, diffList)
             self.data = np.insert(self.data, insertOrder, 0, axis=0)
             self.hyper = np.insert(self.hyper, insertOrder, diffList)
-            self.data[np.isin(self.hyper, value.hyper), key] = value.data
+            self.data[(np.isin(self.hyper, value.hyper), ) + key] = value.data
         else:
-            self.data[0, key] = value
-            self.data[1:, key] = 0
+            self.data[(slice(0,1), ) + key] = value
+            self.data[(slice(1,None), ) + key] = 0
     
     def isComplex(self, axis):
         # Axis ndim-1 are the regular complex numbers, which are always complex
         if axis == (self.ndim()-1):
             return True
-        return self.isHyperComplex(axes)
+        return self.isHyperComplex(axis)
 
     def isHyperComplex(self, axis):
         return bool(np.max(self.hyper) & (2**axis))
@@ -404,7 +408,7 @@ class HComplexData(object):
         import scipy.signal
         if axis >= 0:
             axis += 1
-        tmpData = scipy.signal.hilbert(np.real(self.data), axis=axes)
+        tmpData = scipy.signal.hilbert(np.real(self.data), axis=axis)
         return HComplexData(tmpData, np.copy(self.hyper))
 
     def regrid(self, newX, oldX, axis=-1):
@@ -414,7 +418,7 @@ class HComplexData(object):
         tmpData = np.apply_along_axis(lambda data, newX, oldX: intp.interp1d(oldX, data, fill_value=0, bounds_error=False)(newX), axis, self.data, newX, oldX)
         return HComplexData(tmpData, np.copy(self.hyper))
 
-    def setSize(self size, pos, axis):
+    def setSize(self, size, pos, axis):
         if axis >= 0:
             axis += 1
         oldSize = self.data.shape[axis]
@@ -429,14 +433,14 @@ class HComplexData(object):
             removeBegin = int(np.floor(difference / 2))
             removeEnd = difference - removeBegin
             if pos < removeBegin:
-                slicing = (slice(None), ) * axes + (slice(difference, None), )
+                slicing = (slice(None), ) * axis + (slice(difference, None), )
                 tmpData = self.data[slicing]
             elif oldSize - pos < removeEnd:
-                slicing = (slice(None), ) * axes + (slice(None, size), )
+                slicing = (slice(None), ) * axis + (slice(None, size), )
                 tmpData = self.data[slicing]
             else:
-                slicing1 = (slice(None), ) * axes + (slice(None, pos - removeBegin), )
-                slicing2 = (slice(None), ) * axes + (slice(pos + removeEnd, None), )
+                slicing1 = (slice(None), ) * axis + (slice(None, pos - removeBegin), )
+                slicing2 = (slice(None), ) * axis + (slice(pos + removeEnd, None), )
                 tmpData = np.append(self.data[slicing1], self.data[slicing2], axis=axis)
         return HComplexData(tmpData, np.copy(self.hyper))
 
@@ -485,10 +489,4 @@ class HComplexData(object):
         if axis >= 0:
             axis += 1
         return HComplexData(np.fft.ifftshift(self.data, axis=axis), np.copy(self.hyper))
-    
-# a = HComplexData([5, 2.5], [0,1])
-b = HComplexData([[[2,6],[7,8]]], [0])
-c = HComplexData([[[10+10j,20-3j],[30,10]], [[100-5j, 200], [300+4j,1000]]], [0,1])
-b.states(1)
-print(b.hyper)
-# print(c.imag(0).data)
+

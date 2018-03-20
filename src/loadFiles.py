@@ -18,10 +18,10 @@
 # along with ssNake. If not, see <http://www.gnu.org/licenses/>.
 
 import numpy as np
-import spectrum_classes as sc
-import rep
+import re
 import os
-
+import spectrum_classes as sc
+import hypercomplex as hc
 
 def loading(num, filePath, name=None, realpath=False, dialog=None):
     if num == 0:
@@ -131,7 +131,6 @@ def loadVarianFile(filePath, name=''):
         for s in range(0, len(data)): #First check indirect ref name
             if data[s].startswith('refsource1' + " "):
                 indirectRef = data[s + 1].split()[1][1:-1]
-
         f, fM, S = lambda x: float(x), lambda x: float(x) * 1e6, lambda x: x
         Elem = [['sfrq', fM],['sw', f],['sw1', f],['reffrq',fM],['reffrq1',fM],['rp',f],['phfid',f],[indirectRef,fM]]
         for s in range(0, len(data)):
@@ -142,12 +141,10 @@ def loadVarianFile(filePath, name=''):
             #    if int(data[s].split()[-2]): #if on
             #        phfid = float(data[s + 1].split()[1]) 
     freq, sw, sw1, reffreq, reffreq1, rp, phfid, freq1 = Out 
-
     if os.path.exists(Dir + os.path.sep + 'fid'):
         filePath = Dir + os.path.sep + 'fid'
     elif os.path.exists(Dir + os.path.sep + 'data'):
         filePath = Dir + os.path.sep + 'data'
-
     with open(filePath, "rb") as f:
         nblocks, ntraces, npoints, ebytes, tbytes, bbytes  = np.fromfile(f, np.int32, 6).newbyteorder('>l')
         status = np.fromfile(f, np.int16, 2).newbyteorder('>h')[1]
@@ -156,7 +153,6 @@ def loadVarianFile(filePath, name=''):
         nbheaders = np.fromfile(f, np.int32, 1).newbyteorder('>l')[0]
         SizeTD2 = npoints
         SizeTD1 = nblocks * ntraces
-
         if fidfloat:
             bitType = ['>f', np.float32, 7] # [bitorder, read as, number of elements in nbheader]
         else:
@@ -164,10 +160,8 @@ def loadVarianFile(filePath, name=''):
                 bitType = ['>l', np.int32, 7]
             else:
                 bitType = ['>h', np.int16, 14]
-
         totalpoints = (ntraces * npoints + nbheaders**2 * bitType[2])*nblocks
         fid = np.fromfile(f, bitType[1], totalpoints).newbyteorder(bitType[0]).astype(np.complex128)
-
         if not spec or (spec and not hypercomplex):
             fid = fid.reshape(nblocks, int(totalpoints / nblocks))
             fid = fid[:, bitType[2]::] #Cut off block headers
@@ -189,7 +183,6 @@ def loadVarianFile(filePath, name=''):
     masterData.addHistory("Varian data loaded from " + filePath)
     return masterData
 
-
 def loadPipe(filePath, name=''):
     with open(filePath, 'r') as f:
         header = np.fromfile(f, np.float32, 512)
@@ -203,11 +196,9 @@ def loadPipe(filePath, name=''):
     numFiles = int(header[442]) #Number of files to be loaded
     pipeFlag = int(header[57]) #Indicates stream, or separate files
     cubeFlag = int(header[447]) #1 if 4D, and saved as sets of 3D
-
     for i in range(len(spec)): #get reference frequencies
         sidefreq = -np.floor(SIZE[i] / 2) / SIZE[i] * sw[i]  # frequency of last point on axis
         ref[i] = sidefreq + freq[i] - ref[i]
-
     TotP = SIZE[3] * SIZE[2] #Max file size
     if quadFlag[3] == 0:  # if complex direct axis
         TotP = TotP * 2
@@ -217,7 +208,6 @@ def loadPipe(filePath, name=''):
         TotP *= SIZE[0] * SIZE[1]
     if NDIM == 3 and pipeFlag > 0:
         TotP *= SIZE[1]
-
     if numFiles  == 1:
         files = [filePath]
     else: #Get the names of the files, if more than 1
@@ -227,13 +217,11 @@ def loadPipe(filePath, name=''):
         basename = base[:start]
         numbers = len(base[start:])
         files = [dir + os.path.sep + basename + str(x + 1).zfill(numbers) + ext for x in range(numFiles)]
-
     data = []
     for file in files: #Load all the data from the files
         with open(file, 'r') as f:
             tmp = np.fromfile(f, np.float32, 512)
             data.append( np.fromfile(f, np.float32, TotP))
-
     for i in range(len(data)): #Reshape all the data
         if NDIM > 1 and cubeFlag == 0 and pipeFlag == 0: #Reshape 2D sets if needed
             data[i] = np.reshape(data[i], (SIZE[2],int(TotP/SIZE[2])))
@@ -243,17 +231,13 @@ def loadPipe(filePath, name=''):
             data[i] = np.reshape(data[i], (SIZE[0],SIZE[1],SIZE[2],int(TotP/SIZE[2]/SIZE[1]/SIZE[0])))
         elif NDIM ==3 and pipeFlag > 0: #For stream
             data[i] = np.reshape(data[i], (SIZE[1],SIZE[2],int(TotP/SIZE[2]/SIZE[1])))
-
     #For 3D or 4D data, merge the datasets
     if NDIM > 2 and pipeFlag == 0:
         data = [np.array(data)]
-
-
     eS = (slice(None),) #empty slice
     if quadFlag[3] == 0: #If complex along last dim
         useSlice = eS * (NDIM - 1)
         data[0] = data[0][useSlice + (slice(None,SIZE[3],None),)] + 1j * data[0][useSlice + (slice(SIZE[3],None,None),)]
-
     hyper = []
     if NDIM > 1: #Reorder data, if hypercomplex along an axis
         for dim in range(NDIM - 1):
@@ -266,24 +250,19 @@ def loadPipe(filePath, name=''):
                     newdata.append(dat[useSlice2])
                 data = newdata
                 hyper.append(dim)
-              
     for k in range(len(data)): #Flip LR if spectrum axis
         for i in range(NDIM):
             if spec[-1 - i] == 1: 
                 data[k] = np.flip(data[k], NDIM -1 - i)
-
     masterData = sc.Spectrum(name, data, (8, filePath), freq[4 - NDIM:4], sw[4 - NDIM:4], spec[4 - NDIM:4], ref=ref[4 - NDIM:4], hyper = hyper)
     masterData.addHistory("NMRpipe data loaded from " + filePath)
     return masterData
 
-
 def loadJEOLDelta(filePath, name=''):
     from struct import unpack
     multiUP = lambda typ, bit, num, start: np.array([unpack(typ,header[start + x:start + bit + x])[0] for x in range(0,num * bit,bit)])
-
     with open(filePath, "rb") as f:
         header = f.read(1296)
-
     endian =['>d','<d'][multiUP('>B', 1, 1, 8)[0]]
     NDIM =  multiUP('>B', 1, 1, 12)[0]
     #data_dimension_exist = multiUP('>B', 1, 1, 13)[0]
@@ -301,7 +280,6 @@ def loadJEOLDelta(filePath, name=''):
     reverse = multiUP('>B', 1, 8, 1192)
     readStart = multiUP('>I', 4, 1, 1284)[0]
     #data_length = multiUP('>Q', 8, 1, 1288)[0]
-
     loadSize = np.cumprod(NP[:NDIM])[-1]
     if NDIM == 1 and dataType[0] == 3: #Complex 1D
         loadSize *= 2
@@ -309,11 +287,9 @@ def loadJEOLDelta(filePath, name=''):
         loadSize *= 2
     elif NDIM == 2 and dataType[0] == 3: #2D Complex-Complex (Hypercomplex) 
         loadSize *= 4
-    
     with open(filePath, "rb") as f:
         f.seek(readStart) #Set read start to position of data
         data = np.fromfile(f, endian, loadSize)
-
     hyper = [] 
     if NDIM == 1 and dataType[0] == 1: #Real 1D
         data = [data]
@@ -334,13 +310,11 @@ def loadJEOLDelta(filePath, name=''):
         for i in range(len(data)):
             data[i] = np.reshape(data[i], [int(NP[1] / Step), int(NP[0] / Step), Step, Step])
             data[i] = np.concatenate(np.concatenate(data[i], 1), 1)
-
     eS = (slice(None),) #empty slice
     for dim in range(NDIM): #Cut data for every dim
         useSlice = eS * (NDIM - dim - 1) +(slice(0,dataStop[dim],None),) + eS * dim 
         for i in range(len(data)):
             data[i] = data[i][useSlice]
-
     freq = baseFreq[0:NDIM][::-1] * 1e6
     spec = dataUnits[0:NDIM,1][::-1] != 28 #If not 28 (Hz), then spec = true
     sw = []
@@ -365,7 +339,6 @@ def loadJEOLDelta(filePath, name=''):
             sw.append(np.abs(axisStart[axisNum] - axisStop[axisNum]) * baseFreq[axisNum])
             sidefreq = -np.floor((dataStop[axisNum] + 1) / 2) / (dataStop[axisNum] + 1) * sw[-1]  # frequency of last point on axis
             ref.append(sidefreq + baseFreq[axisNum] * 1e6 - axisStop[axisNum] * baseFreq[axisNum])
-
     for k in range(len(data)): #Flip LR if spectrum axis
         for i in range(NDIM):
             if spec[-1 - i] == 1: 
@@ -374,25 +347,21 @@ def loadJEOLDelta(filePath, name=''):
     masterData.addHistory("JEOL Delta data loaded from " + filePath)
     return masterData
 
-
 def loadJSONFile(filePath, name=''):
     import json
     with open(filePath, 'r') as inputfile:
         struct = json.load(inputfile)
-    
     hyper = None
     try: #Try to get the hyper list (if works: new data definition)
         hyper = list(struct['hyper'])
         data = []
         tmpReal = struct['dataReal']
         tmpImag = struct['dataImag']
-        
         for index in range(len(tmpReal)):
              data.append(np.array(tmpReal[index])+ 1j * np.array(tmpImag[index]))
     except:
         hyper = None
         data = [np.array(struct['dataReal']) + 1j * np.array(struct['dataImag'])]
-
     ref = np.where(np.isnan(struct['ref']), None, struct['ref'])
     if 'history' in struct.keys():
         history = struct['history']
@@ -414,7 +383,6 @@ def loadJSONFile(filePath, name=''):
                              history=history)
     masterData.addHistory("JSON data loaded from " + filePath)
     return masterData
-
 
 def loadMatlabFile(filePath, name=''):
     import scipy.io
@@ -484,7 +452,6 @@ def loadMatlabFile(filePath, name=''):
                 hyper = list(hyper[0])
         except:
             hyper = None
-
         if np.array(mat['dim'])[0][0] == 1:
             xaxA = list([np.array(mat['xaxArray'])[:, 0]])
             if hyper is None: #Old data format
@@ -528,7 +495,6 @@ def loadMatlabFile(filePath, name=''):
         masterData.addHistory("Matlab data loaded from " + filePath)
         return masterData
 
-
 def loadBrukerTopspin(filePath, name=''):
     if os.path.isfile(filePath):
         Dir = os.path.dirname(filePath)
@@ -544,12 +510,9 @@ def loadBrukerTopspin(filePath, name=''):
                 for var in Elem:
                     if data[s].startswith('##$' + var[0] + '='):
                         var[2].append( var[1](re.sub('##\$' + var[0] + '=', '', data[s])))
-
     SIZE, FREQ, SW, REF, BYTE = [x[2] for x in Elem] #Unpack results
     ByteOrder = ['l','b'][BYTE[0]] #The byte orders that is used 
-    
     REF = list(- np.array(REF) + np.array(FREQ))
-
     totsize = np.cumprod(SIZE)[-1]
     dim = len(SIZE)
     directSize = int(np.ceil(float(SIZE[0]) / 256)) * 256 #Size of direct dimension including
@@ -561,7 +524,6 @@ def loadBrukerTopspin(filePath, name=''):
             with open(Dir + os.path.sep + file, "rb") as f:
                 raw = np.fromfile(f, np.int32, totsize)
             raw = raw.newbyteorder(ByteOrder) #Load with right byte order
-            
     ComplexData = np.array(raw[0:len(raw):2]) + 1j * np.array(raw[1:len(raw):2])
     if dim >= 2:
         newSize = list(SIZE)
@@ -574,7 +536,6 @@ def loadBrukerTopspin(filePath, name=''):
     masterData = sc.Spectrum(name, ComplexData, (1, filePath), FREQ[-1::-1], SW[-1::-1], [False] * dim, ref = REF[-1::-1])
     masterData.addHistory("Bruker data loaded from " + filePath)
     return masterData
-
 
 def loadBrukerSpectrum(filePath, name=''):
     if os.path.isfile(filePath):
@@ -593,16 +554,13 @@ def loadBrukerSpectrum(filePath, name=''):
                 for var in Elem:
                     if data[s].startswith('##$' + var[0] + '='):
                         var[2].append( var[1](re.sub('##\$' + var[0] + '=', '', data[s])))
-
     SIZE, XDIM, SW, FREQ, OFFSET, BYTE = [x[2] for x in Elem] #Unpack results
     ByteOrder = ['l','b'][BYTE[0]] #The byte orders that is used 
     REF = []
-  
     for index in range(len(SIZE)): #For each axis
         pos = np.fft.fftshift(np.fft.fftfreq(SIZE[index], 1.0 / SW[index]))[-1] #Get last point of axis
         pos2 = OFFSET[index] * 1e-6 * FREQ[index] #offset in Hz
         REF.append(FREQ[index] + pos - pos2)
-
     totsize =  np.cumprod(SIZE)[-1] 
     dim = len(SIZE)
     DATA = []
@@ -619,12 +577,10 @@ def loadBrukerSpectrum(filePath, name=''):
                     DATA[-1] = DATA[-1] - 1j * np.flipud(raw)
                 counter += 1 #only advance counter when file is found
     del raw
-
     hyper = None
     if dim == 2: #If 2D data has more than 1 part: hypercomplex along the first axis
         if len(DATA) != 1:
             hyper = [0]
-
     if len(SIZE) == 2:
         for index in range(len(DATA)): #For each data set
             #Reshape DATA to 4D data using the block information
@@ -640,7 +596,6 @@ def loadBrukerSpectrum(filePath, name=''):
     masterData = sc.Spectrum(name, DATA, (7, filePath), FREQ[-1::-1], SW[-1::-1], spec * dim, ref=REF[-1::-1],hyper = hyper)
     masterData.addHistory("Bruker spectrum data loaded from " + filePath)
     return masterData
-
 
 def loadChemFile(filePath, name=''):
     if os.path.isfile(filePath):
@@ -684,7 +639,6 @@ def loadChemFile(filePath, name=''):
         masterData = sc.Spectrum(name, data, (2, filePath), [freq * 1e6] * 2, [sw1, sw], spec * 2)
     masterData.addHistory("Chemagnetics data loaded from " + filePath)
     return masterData
-
 
 def loadMagritek(filePath, name='', realPath=''):
     # Magritek load script based on some Matlab files by Ole Brauckman
@@ -743,7 +697,6 @@ def loadMagritek(filePath, name='', realPath=''):
         masterData = sc.Spectrum(name, ComplexData, (3, rememberPath), [freq], [sw], [False], ref=[ref])
     masterData.addHistory("Magritek data loaded from " + rememberPath)
     return masterData
-
 
 def loadSimpsonFile(filePath, name=''):
     with open(filePath, 'r') as f:
@@ -815,7 +768,6 @@ def loadSimpsonFile(filePath, name=''):
     masterData.addHistory("SIMPSON data loaded from " + filePath)
     return masterData
 
-
 def convertDIFDUB(dat):
     def checkWrite(dup, currentNum, step, numberList):
         if dup != '':
@@ -830,7 +782,6 @@ def convertDIFDUB(dat):
             numberList.append(numberList[-1] + int(step))
             step = ''
         return dup, currentNum, step, numberList
-
     SQZ = {'@': 0, 'A': 1, 'B': 2, 'C': 3, 'D': 4, 'E': 5, 'F': 6, 'G': 7, 'H': 8, 'I': 9,
            'a': -1, 'b': -2, 'c': -3, 'd': -4, 'e': -5, 'f': -6, 'g': -7, 'h': -8, 'i': -9}
     DIF = {'%': 0, 'J': 1, 'K': 2, 'L': 3, 'M': 4, 'N': 5, 'O': 6, 'P': 7, 'Q': 8, 'R': 9,
@@ -867,7 +818,6 @@ def convertDIFDUB(dat):
         return np.array(numberList)
     else:
         return np.array(numberList)[:-1]
-
 
 def loadJCAMP(filePath, name):
     with open(filePath, 'r') as f:
@@ -974,7 +924,6 @@ def loadJCAMP(filePath, name):
         masterData = sc.Spectrum(name, spectDat, (10, filePath), [freq], [sw], [True], ref=[None])
     return masterData
 
-
 def loadAscii(filePath, name, dataDimension, dataSpec, dataOrder, delimitor, swInp=0.0):
     freq = 0.0
     delimChar = ''
@@ -1023,7 +972,6 @@ def loadAscii(filePath, name, dataDimension, dataSpec, dataOrder, delimitor, swI
     masterData.addHistory("ASCII data loaded from " + filePath)
     return masterData
 
-
 def loadMinispec(filePath, name):
     with open(filePath, 'r') as f:
         data = f.read().split('\n')
@@ -1047,7 +995,6 @@ def loadMinispec(filePath, name):
     masterData = sc.Spectrum(name, totaldata, (12, filePath), [0], [sw], [False])
     masterData.addHistory("Minispec data loaded from " + filePath)
     return masterData
-
 
 def loadBrukerEPR(filePath, name=''):
     with open(filePath + '.par', mode='r') as f:

@@ -48,7 +48,7 @@ class Spectrum(object):
         if isinstance(data, hc.HComplexData):
             self.data = data
         else:
-            self.data = hc.HComplex(data)
+            self.data = hc.HComplexData(data)
         self.filePath = filePath
         self.freq = np.array(freq)  # array of center frequency (length is dim, MHz)
         self.sw = sw  # array of sweepwidths
@@ -87,6 +87,9 @@ class Spectrum(object):
 
     def getHyperData(self, *args):
         return self.data.getHyperData(*args)
+
+    def isComplex(self, *args):
+        return self.data.isComplex(*args)
     
     def dispMsg(self, msg):
         if self.msgHandler is None:
@@ -529,9 +532,9 @@ class Spectrum(object):
             elif which == 6:
                 tmp = self.data[slicing].mean(axis=axes)
             if keepdims:
-                    tmpdata += (tmp.expand_dims(axes), )
-                else:
-                    tmpdata += (tmp, )
+                tmpdata += (tmp.expand_dims(axes), )
+            else:
+                tmpdata += (tmp, )
         if which == 0:
             self.addHistory("Integrate between " + str(pos1) + " and " + str(pos2) + " of dimension " + str(axes + 1))
         elif which == 5:
