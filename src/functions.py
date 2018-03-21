@@ -44,6 +44,21 @@ def voigtLine(x, pos, lor, gau, integral, Type=0):
         gauss = np.exp(-axis**2 / (2 * f**2)) / (f * np.sqrt(2 * np.pi))
         return integral * (eta * lor + (1 - eta) * gauss)
 
+def czjzekIntensities(sigma, d, wq, eta):
+    #Calculates an intensity distribution for a Czjzek library
+    #wq: omega_q grid (2D)
+    #eta: eta grid (2D)
+    if sigma == 0.0:  # protect against divide by zero
+        czjzek = np.zeros_like(wq)
+        czjzek[:, 0] = 1
+    else:
+        czjzek = wq**(d - 1) * eta / (np.sqrt(2 * np.pi) * sigma**d) * (1 - eta**2 / 9.0) * np.exp(-wq**2 / (2.0 * sigma**2) * (1 + eta**2 / 3.0))
+    if np.sum(czjzek) == 0.0: #Protect against divide by zero
+        czjzek = 0 * czjzek
+    else:
+        czjzek = czjzek / np.sum(czjzek)
+    return czjzek
+
 
 def apodize(t, shift, sw, axLen, lor, gauss, cos2, hamming, wholeEcho=False):
     t2 = t - shift

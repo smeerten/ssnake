@@ -3032,6 +3032,64 @@ def quad2MASsetAngleStuff(cheng):
 
 ##############################################################################
 
+class CzjzekPrefWindow(QtWidgets.QWidget):
+
+    def __init__(self, parent):
+        super(CzjzekPrefWindow, self).__init__(parent)
+        self.setWindowFlags(QtCore.Qt.Window | QtCore.Qt.Tool)
+        self.father = parent
+        self.setWindowTitle("Grid Settings")
+        layout = QtWidgets.QGridLayout(self)
+        grid = QtWidgets.QGridLayout()
+        layout.addLayout(grid, 0, 0, 1, 2)
+        grid.addWidget(QLabel(u"\u03c9<sub>Q</sub> grid size:"), 0, 0)
+        self.wqsteps = QtWidgets.QSpinBox()
+        self.wqsteps.setMinimum(2)
+        self.wqsteps.setAlignment(QtCore.Qt.AlignHCenter) 
+        self.wqsteps.setValue(self.father.wqsteps)
+        grid.addWidget(self.wqsteps, 1, 0)
+        grid.addWidget(QLabel(u"\u03b7 grid size:"), 2, 0)
+        self.etasteps = QtWidgets.QSpinBox()
+        self.etasteps.setMinimum(2)
+        self.etasteps.setAlignment(QtCore.Qt.AlignHCenter) 
+        self.etasteps.setValue(self.father.etasteps)
+        grid.addWidget(self.etasteps, 3, 0)
+        grid.addWidget(QLabel(u"\u03c9<sub>Q</sub><sup>max</sup>/\u03c3:"), 4, 0)
+        self.wqmax = wc.QLineEdit(str(self.father.wqmax), self.checkWqmax)
+        grid.addWidget(self.wqmax, 5, 0)
+
+        cancelButton = QtWidgets.QPushButton("&Cancel")
+        cancelButton.clicked.connect(self.closeEvent)
+        layout.addWidget(cancelButton, 4, 0)
+        okButton = QtWidgets.QPushButton("&Ok", self)
+        okButton.clicked.connect(self.applyAndClose)
+        okButton.setFocus()
+        layout.addWidget(okButton, 4, 1)
+        grid.setRowStretch(100, 1)
+        self.show()
+        self.setGeometry(self.frameSize().width() - self.geometry().width(), self.frameSize().height() - self.geometry().height(), 0, 0)
+
+    def checkWqmax(self):
+        inp = safeEval(self.wqmax.text(),type='FI')
+        if inp is None:
+            return False
+        self.wqmax.setText(str(float(inp)))
+        return True
+
+    def closeEvent(self, *args):
+        self.deleteLater()
+
+    def applyAndClose(self, *args):
+        self.father.wqsteps = self.wqsteps.value()
+        self.father.etasteps = self.etasteps.value()
+        inp = safeEval(self.wqmax.text(),type='FI')
+        if inp is None:
+            self.father.rootwindow.mainProgram.dispMsg(u"\u03c9_Q_max value not valid.")
+            return
+        self.father.wqmax = safeEval(self.wqmax.text())
+        self.closeEvent()
+
+##############################################################################
 
 class Quad2CzjzekWindow(TabFittingWindow):
 
@@ -3052,6 +3110,9 @@ class Quad2CzjzekParamFrame(AbstractParamFrame):
         self.MULTINAMES = ['d', 'pos', 'sigma', 'amp', 'lor', 'gauss']
         self.PARAMTEXT = {'bgrnd': 'Background', 'slope': 'Slope', 'd': 'd parameter', 'pos': 'Position', 'sigma': 'Sigma', 'amp': 'Integral', 'lor': 'Lorentz', 'gauss': 'Gauss'}
         self.FITFUNC = quad2CzjzekmpFit
+        self.wqsteps = 50
+        self.etasteps = 10
+        self.wqmax = 4
         # Get full integral
         self.fullInt = np.sum(parent.getData1D()) * parent.sw / float(len(parent.getData1D()))
         super(Quad2CzjzekParamFrame, self).__init__(parent, rootwindow, isMain)
@@ -3062,6 +3123,10 @@ class Quad2CzjzekParamFrame(AbstractParamFrame):
             self.axAdd = 0
         self.ticks = {'bgrnd': [], 'slope': [], 'pos': [], 'd': [], 'sigma': [], 'amp': [], 'lor': [], 'gauss': []}
         self.entries = {'bgrnd': [], 'slope': [], 'pos': [], 'd': [], 'sigma': [], 'amp': [], 'lor': [], 'gauss': [], 'method': [], 'cheng': [], 'I': [], 'wqgrid': [], 'etagrid': [], 'wqmax': [], 'mas': []}
+        czjzekPrefButton = QtWidgets.QPushButton("Grid Settings")
+        czjzekPrefButton.clicked.connect(self.createCzjzekPrefWindow)
+        self.frame1.addWidget(czjzekPrefButton, 1, 1)
+
         self.optframe.addWidget(QLabel("Cheng:"), 0, 0)
         self.entries['cheng'].append(QtWidgets.QSpinBox())
         self.entries['cheng'][-1].setAlignment(QtCore.Qt.AlignHCenter)
@@ -3074,19 +3139,19 @@ class Quad2CzjzekParamFrame(AbstractParamFrame):
         self.optframe.addWidget(self.entries['I'][-1], 3, 0)
         self.entries['mas'].append(QtWidgets.QCheckBox('Spinning'))
         self.optframe.addWidget(self.entries['mas'][-1], 4, 0)
-        self.optframe.addWidget(QLabel(u"\u03c9<sub>Q</sub> grid size:"), 5, 0)
-        self.entries['wqgrid'].append(QtWidgets.QSpinBox())
-        self.entries['wqgrid'][-1].setAlignment(QtCore.Qt.AlignHCenter)
-        self.entries['wqgrid'][-1].setValue(50)
-        self.optframe.addWidget(self.entries['wqgrid'][-1], 6, 0)
-        self.optframe.addWidget(QLabel(u"\u03b7 grid size:"), 7, 0)
-        self.entries['etagrid'].append(QtWidgets.QSpinBox())
-        self.entries['etagrid'][-1].setAlignment(QtCore.Qt.AlignHCenter)
-        self.entries['etagrid'][-1].setValue(10)
-        self.optframe.addWidget(self.entries['etagrid'][-1], 8, 0)
-        self.optframe.addWidget(QLabel(u"\u03c9<sub>Q</sub><sup>max</sup>/\u03c3:"), 9, 0)
-        self.entries['wqmax'].append(wc.QLineEdit("4", self.setGrid))
-        self.optframe.addWidget(self.entries['wqmax'][-1], 10, 0)
+        #self.optframe.addWidget(QLabel(u"\u03c9<sub>Q</sub> grid size:"), 5, 0)
+        #self.entries['wqgrid'].append(QtWidgets.QSpinBox())
+        #self.entries['wqgrid'][-1].setAlignment(QtCore.Qt.AlignHCenter)
+        #self.entries['wqgrid'][-1].setValue(50)
+        #self.optframe.addWidget(self.entries['wqgrid'][-1], 6, 0)
+        #self.optframe.addWidget(QLabel(u"\u03b7 grid size:"), 7, 0)
+        #self.entries['etagrid'].append(QtWidgets.QSpinBox())
+        #self.entries['etagrid'][-1].setAlignment(QtCore.Qt.AlignHCenter)
+        #self.entries['etagrid'][-1].setValue(10)
+        #self.optframe.addWidget(self.entries['etagrid'][-1], 8, 0)
+        #self.optframe.addWidget(QLabel(u"\u03c9<sub>Q</sub><sup>max</sup>/\u03c3:"), 9, 0)
+        #self.entries['wqmax'].append(wc.QLineEdit("4", self.setGrid))
+        #self.optframe.addWidget(self.entries['wqmax'][-1], 10, 0)
         loadLibButton = QtWidgets.QPushButton("Load Library")
         loadLibButton.clicked.connect(self.loadLib)
         self.optframe.addWidget(loadLibButton, 11, 0)
@@ -3132,6 +3197,9 @@ class Quad2CzjzekParamFrame(AbstractParamFrame):
                 self.entries[self.MULTINAMES[j]].append(wc.FitQLineEdit(self, self.MULTINAMES[j]))
                 self.frame3.addWidget(self.entries[self.MULTINAMES[j]][i], i + 2, 2 * j + 1)
         self.dispParams()
+
+    def createCzjzekPrefWindow(self, *args):
+        CzjzekPrefWindow(self)
 
     def defaultValues(self, inp):
         if not inp:
@@ -3214,10 +3282,10 @@ class Quad2CzjzekParamFrame(AbstractParamFrame):
 
     def getExtraParams(self, out):
         mas = self.entries['mas'][-1].isChecked()
-        wqMax = safeEval(self.entries['wqmax'][-1].text())
+        wqMax = self.wqmax
         I = self.checkI(self.entries['I'][-1].currentIndex())
-        numWq = self.entries['wqgrid'][-1].value()
-        numEta = self.entries['etagrid'][-1].value()
+        numWq = self.wqsteps
+        numEta = self.etasteps
         if mas:
             weight, angleStuff = czjzekMASsetAngleStuff(self.entries['cheng'][-1].value())
         else:
@@ -3342,15 +3410,7 @@ def quad2CzjzekfitFunc(params, allX, args):
 def quad2CzjzektensorFunc(sigma, d, pos, width, gauss, wq, eta, lib, freq, sw, axAdd, axMult=1):
     sigma = sigma * 1e6
     pos = (pos / axMult) - axAdd
-    if sigma == 0.0:  # protect against divide by zero
-        czjzek = np.zeros_like(wq)
-        czjzek[:, 0] = 1
-    else:
-        czjzek = wq**(d - 1) * eta / (np.sqrt(2 * np.pi) * sigma**d) * (1 - eta**2 / 9.0) * np.exp(-wq**2 / (2.0 * sigma**2) * (1 + eta**2 / 3.0))
-    if np.sum(czjzek) == 0.0: #Protect against divide by zero
-        czjzek = 0 * czjzek
-    else:
-        czjzek = czjzek / np.sum(czjzek)
+    czjzek = func.czjzekIntensities(sigma,d, wq, eta)
     fid = np.sum(lib * czjzek[..., None], axis=(0, 1))
     t = np.arange(len(fid)) / sw
     apod = np.exp(-np.pi * np.abs(width) * t) * np.exp(-((np.pi * np.abs(gauss) * t)**2) / (4 * np.log(2)))
