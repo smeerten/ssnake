@@ -808,16 +808,13 @@ class MainProgram(QtWidgets.QMainWindow):
             self.exportmenu.menuAction().setEnabled(False)
             self.workspacemenu.menuAction().setEnabled(False)
             self.macrolistmenu.menuAction().setEnabled(False)
-            # self.macromenu.menuAction().setEnabled(False)
             self.editmenu.menuAction().setEnabled(False)
             self.toolMenu.menuAction().setEnabled(False)
             self.matrixMenu.menuAction().setEnabled(False)
             self.fftMenu.menuAction().setEnabled(False)
             self.fittingMenu.menuAction().setEnabled(False)
             self.combineMenu.menuAction().setEnabled(False)
-            # self.plotMenu.menuAction().setEnabled(False)
             self.referencerunmenu.menuAction().setEnabled(False)
-            # self.historyMenu.menuAction().setEnabled(False)
             for act in self.saveActList + self.exportActList + self.workspaceActList + self.macroActList + self.editActList + self.toolsActList + self.matrixActList + self.fftActList + self.fittingActList + self.plotActList + self.combineActList + self.historyActList:
                 act.setEnabled(False)
         else:
@@ -850,20 +847,19 @@ class MainProgram(QtWidgets.QMainWindow):
                 else:
                     for i in self.multiDActions:
                         i.setEnabled(True)
-                if not self.mainWindow.undoList:
+                if not self.mainWindow.masterData.undoList:
                     self.undoAction.setEnabled(False)
                 else:
                     self.undoAction.setEnabled(True)
-                if not self.mainWindow.redoList:
+                if not self.mainWindow.masterData.redoList:
                     self.redoAction.setEnabled(False)
                 else:
                     self.redoAction.setEnabled(True)
-                if not self.mainWindow.undoList and not self.mainWindow.redoList:
+                if not self.mainWindow.masterData.undoList and not self.mainWindow.masterData.redoList:
                     self.clearundoAct.setEnabled(False)
                 self.savemenu.menuAction().setEnabled(True)
                 self.exportmenu.menuAction().setEnabled(True)
                 self.savefigAct.setEnabled(True)
-                # self.macromenu.menuAction().setEnabled(True)
                 self.macrolistmenu.menuAction().setEnabled(True)
                 if self.mainWindow.currentMacro is None:
                     self.macrostopAct.setEnabled(False)
@@ -882,7 +878,6 @@ class MainProgram(QtWidgets.QMainWindow):
                     act.setEnabled(True)
                 self.savefigAct.setEnabled(False)
                 self.workspacemenu.menuAction().setEnabled(True)
-                # self.macromenu.menuAction().setEnabled(False)
                 self.macrolistmenu.menuAction().setEnabled(False)
             else:
                 self.menuDisable(True)
@@ -890,13 +885,11 @@ class MainProgram(QtWidgets.QMainWindow):
                 self.exportmenu.menuAction().setEnabled(True)
                 self.savefigAct.setEnabled(True)
                 self.workspacemenu.menuAction().setEnabled(True)
-                # self.macromenu.menuAction().setEnabled(False)
                 self.macrolistmenu.menuAction().setEnabled(False)
                 for act in self.saveActList + self.exportActList + self.workspaceActList:
                     act.setEnabled(True)
 
     def menuEnable(self, internalWindow=False):
-        # self.macromenu.menuAction().setEnabled(True)
         self.macrolistmenu.menuAction().setEnabled(True)
         self.editmenu.menuAction().setEnabled(True)
         self.toolMenu.menuAction().setEnabled(True)
@@ -904,9 +897,7 @@ class MainProgram(QtWidgets.QMainWindow):
         self.fftMenu.menuAction().setEnabled(True)
         self.fittingMenu.menuAction().setEnabled(True)
         self.combineMenu.menuAction().setEnabled(True)
-        # self.plotMenu.menuAction().setEnabled(True)
         self.referencerunmenu.menuAction().setEnabled(True)
-        # self.historyMenu.menuAction().setEnabled(True)
         # Actions:
         for act in self.macroActList + self.editActList + self.toolsActList + self.matrixActList + self.fftActList + self.fittingActList + self.plotActList + self.combineActList + self.historyActList:
             act.setEnabled(True)
@@ -921,7 +912,6 @@ class MainProgram(QtWidgets.QMainWindow):
         self.redoAction.setEnabled(True)
 
     def menuDisable(self, internalWindow=False):
-        # self.macromenu.menuAction().setEnabled(False)
         self.macrolistmenu.menuAction().setEnabled(True)
         self.editmenu.menuAction().setEnabled(False)
         self.toolMenu.menuAction().setEnabled(False)
@@ -929,9 +919,7 @@ class MainProgram(QtWidgets.QMainWindow):
         self.fftMenu.menuAction().setEnabled(False)
         self.fittingMenu.menuAction().setEnabled(False)
         self.combineMenu.menuAction().setEnabled(False)
-        # self.plotMenu.menuAction().setEnabled(False)
         self.referencerunmenu.menuAction().setEnabled(False)
-        # self.historyMenu.menuAction().setEnabled(False)
         # Actions:
         for act in self.macroActList + self.editActList + self.toolsActList + self.matrixActList + self.fftActList + self.fittingActList + self.plotActList + self.combineActList + self.historyActList:
             act.setEnabled(False)
@@ -1123,14 +1111,11 @@ class MainProgram(QtWidgets.QMainWindow):
         self.menuCheck()
 
     def referenceClear(self):
-        if self.mainWindow.masterData.noUndo:
-            self.mainWindow.current.setRef(None)
-        else:
-            self.mainWindow.undoList.append(self.mainWindow.current.setRef(None))
+        self.mainWindow.current.setRef(None)
 
     def referenceRun(self, name):
         reffreq = self.referenceValue[self.referenceName.index(name)]
-        self.mainWindow.undoList.append(self.mainWindow.current.setRef(reffreq))
+        self.mainWindow.current.setRef(reffreq)
 
     def referenceRemove(self, name):
         self.referenceValue.remove(self.referenceValue[self.referenceName.index(name)])
@@ -1215,12 +1200,7 @@ class MainProgram(QtWidgets.QMainWindow):
         self.menuCheck()
 
     def noUndoMode(self, val):
-        if val:
-            self.mainWindow.undoList = []
-            self.mainWindow.redoList = []
-            self.mainWindow.masterData.noUndo = True
-        else:
-            self.mainWindow.masterData.noUndo = False
+        self.mainWindow.masterData.setNoUndo(val)
         self.menuCheck()
 
     def changeMainWindow(self, var):
@@ -1626,8 +1606,6 @@ class Main1DWindow(QtWidgets.QWidget):
         self.canvas = FigureCanvas(self.fig)
         grid = QtWidgets.QGridLayout(self)
         grid.addWidget(self.canvas, 0, 0)
-        self.undoList = []
-        self.redoList = []
         self.currentMacro = None
         self.redoMacro = []
         self.monitor = None  # Monitor of files
@@ -1718,7 +1696,6 @@ class Main1DWindow(QtWidgets.QWidget):
         self.father.menuCheck()
 
     def runMacro(self, macro, display=True):
-        self.redoList = []
         for iter1 in macro:
             if iter1[0] == 'reload':
                 loadData = self.father.loading(self.masterData.filePath[0], self.masterData.filePath[1], True)
@@ -1772,19 +1749,19 @@ class Main1DWindow(QtWidgets.QWidget):
             elif iter1[0] == 'baselineCorrection':
                 returnValue = self.masterData.baselineCorrection(*iter1[1])
             elif iter1[0] == 'integrate':
-                returnValue = self.masterData.matrixManip(*iter1[1], which=0)
+                returnValue = self.masterData.integrate(*iter1[1])
             elif iter1[0] == 'sum':
-                returnValue = self.masterData.matrixManip(*iter1[1], which=5)
+                returnValue = self.masterData.sum(*iter1[1])
             elif iter1[0] == 'max':
-                returnValue = self.masterData.matrixManip(*iter1[1], which=1)
+                returnValue = self.masterData.max(*iter1[1])
             elif iter1[0] == 'min':
-                returnValue = self.masterData.matrixManip(*iter1[1], which=2)
+                returnValue = self.masterData.min(*iter1[1])
             elif iter1[0] == 'argmax':
-                returnValue = self.masterData.matrixManip(*iter1[1], which=3)
+                returnValue = self.masterData.argmax(*iter1[1])
             elif iter1[0] == 'argmin':
-                returnValue = self.masterData.matrixManip(*iter1[1], which=4)
+                returnValue = self.masterData.argmin(*iter1[1])
             elif iter1[0] == 'average':
-                returnValue = self.masterData.matrixManip(*iter1[1], which=6)
+                returnValue = self.masterData.average(*iter1[1])
             elif iter1[0] == 'regrid':
                 returnValue = self.masterData.regrid(*iter1[1])
             elif iter1[0] == 'fliplr':
@@ -1801,22 +1778,20 @@ class Main1DWindow(QtWidgets.QWidget):
                 returnValue = self.masterData.add(*iter1[1])
             elif iter1[0] == 'subtract':
                 returnValue = self.masterData.subtract(*iter1[1])
-            elif iter1[0] == 'multiplySpec':
-                returnValue = self.masterData.multiplySpec(*iter1[1])
-            elif iter1[0] == 'divideSpec':
-                returnValue = self.masterData.divideSpec(*iter1[1])
             elif iter1[0] == 'multiply':
                 returnValue = self.masterData.multiply(*iter1[1])
+            elif iter1[0] == 'divide':
+                returnValue = self.masterData.divide(*iter1[1])
             elif iter1[0] == 'normalize':
                 returnValue = self.masterData.normalize(*iter1[1])
             elif iter1[0] == 'subtractAvg':
                 returnValue = self.masterData.subtractAvg(*iter1[1])
-            elif iter1[0] == 'FIDDLE':
+            elif iter1[0] == 'fiddle':
                 returnValue = self.masterData.fiddle(*iter1[1])
             elif iter1[0] == 'reorder':
                 returnValue = self.masterData.reorder(*iter1[1])
             elif iter1[0] == 'ffm':
-                returnValue = self.masterData.ffm_1d(*iter1[1])
+                returnValue = self.masterData.ffm(*iter1[1])
             elif iter1[0] == 'clean':
                 returnValue = self.masterData.clean(*iter1[1])
             elif iter1[0] == 'ist':
@@ -1832,8 +1807,6 @@ class Main1DWindow(QtWidgets.QWidget):
             else:
                 self.father.dispMsg('unknown macro command: ' + iter1[0])
                 returnValue = None
-            if not self.masterData.noUndo or returnValue is not None:
-                self.undoList.append(returnValue)
         if display:
             self.current.upd()  # get the first slice of data
             self.current.showFid()  # plot the data
@@ -1986,7 +1959,6 @@ class Main1DWindow(QtWidgets.QWidget):
         np.savetxt(name, data, delimiter='\t')
 
     def reloadLast(self):
-        self.redoList = []
         path = self.masterData.filePath[1]
         if path.endswith('.zip'):
             import tempfile
@@ -1997,10 +1969,7 @@ class Main1DWindow(QtWidgets.QWidget):
             loadData = self.father.loading(self.masterData.filePath[0], temp_dir, True, realpath=path)
         else:
             loadData = self.father.loading(self.masterData.filePath[0], self.masterData.filePath[1], True)
-        if self.masterData.noUndo:
-            self.masterData.restoreData(loadData, None)
-        else:
-            self.undoList.append(self.masterData.restoreData(loadData, None))
+        self.masterData.restoreData(loadData, None)
         self.current.upd()
         self.current.showFid()
         self.current.plotReset()
@@ -2013,8 +1982,6 @@ class Main1DWindow(QtWidgets.QWidget):
         if not os.path.exists(filePath):
             self.stopMonitor()
             return
-        self.redoList = []
-        self.undoList = []
         loadData = self.father.loading(self.masterData.filePath[0], self.masterData.filePath[1], True)
         self.masterData.restoreData(loadData, None)
         for name in self.monitorMacros:
@@ -2042,152 +2009,84 @@ class Main1DWindow(QtWidgets.QWidget):
         self.monitor = None
 
     def real(self):
-        self.redoList = []
-        if self.masterData.noUndo:
-            self.current.real()
-        else:
-            self.undoList.append(self.current.real())
+        self.current.real()
         self.sideframe.upd()
         self.menuCheck()
 
     def imag(self):
-        self.redoList = []
-        if self.masterData.noUndo:
-            self.current.imag()
-        else:
-            self.undoList.append(self.current.imag())
+        self.current.imag()
         self.sideframe.upd()
         self.menuCheck()
 
     def abs(self):
-        self.redoList = []
-        if self.masterData.noUndo:
-            self.current.abs()
-        else:
-            self.undoList.append(self.current.abs())
+        self.current.abs()
         self.sideframe.upd()
         self.menuCheck()
 
     def conj(self):
-        self.redoList = []
-        if self.masterData.noUndo:
-            self.current.conj()
-        else:
-            self.undoList.append(self.current.conj())
+        self.current.conj()
         self.sideframe.upd()
         self.menuCheck()
 
     def fourier(self):
-        self.redoList = []
-        if self.masterData.noUndo:
-            self.current.fourier()
-        else:
-            self.undoList.append(self.current.fourier())
+        self.current.fourier()
         self.bottomframe.upd()
         self.menuCheck()
 
     def realFourier(self):
-        self.redoList = []
-        if self.masterData.noUndo:
-            self.current.realFourier()
-        else:
-            self.undoList.append(self.current.realFourier())
+        self.current.realFourier()
         self.bottomframe.upd()
         self.menuCheck()
 
     def fftshift(self):
-        self.redoList = []
-        if self.masterData.noUndo:
-            self.current.fftshift()
-        else:
-            self.undoList.append(self.current.fftshift())
+        self.current.fftshift()
         self.updAllFrames()
         self.menuCheck()
 
     def invFftshift(self):
-        self.redoList = []
-        if self.masterData.noUndo:
-            self.current.fftshift(inv=True)
-        else:
-            self.undoList.append(self.current.fftshift(inv=True))
+        self.current.fftshift(inv=True)
         self.updAllFrames()
         self.menuCheck()
 
     def diff(self):
-        self.redoList = []
-        if self.masterData.noUndo:
-            self.current.diff()
-        else:
-            self.undoList.append(self.current.diff())
+        self.current.diff()
         self.updAllFrames()
         self.menuCheck()
 
     def cumsum(self):
-        self.redoList = []
-        if self.masterData.noUndo:
-            self.current.cumsum()
-        else:
-            self.undoList.append(self.current.cumsum())
+        self.current.cumsum()
         self.updAllFrames()
         self.menuCheck()
 
     def hilbert(self):
-        self.redoList = []
-        if self.masterData.noUndo:
-            self.current.hilbert()
-        else:
-            self.undoList.append(self.current.hilbert())
+        self.current.hilbert()
         self.menuCheck()
 
     def states(self):
-        self.redoList = []
-        if self.masterData.noUndo:
-            self.current.states()
-        else:
-            self.undoList.append(self.current.states())
+        self.current.states()
         self.updAllFrames()
         self.menuCheck()
 
     def statesTPPI(self):
-        self.redoList = []
-        if self.masterData.noUndo:
-            self.current.statesTPPI()
-        else:
-            self.undoList.append(self.current.statesTPPI())
+        self.current.statesTPPI()
         self.updAllFrames()
         self.menuCheck()
 
     def echoAntiEcho(self):
-        self.redoList = []
-        if self.masterData.noUndo:
-            self.current.echoAntiEcho()
-        else:
-            self.undoList.append(self.current.echoAntiEcho())
+        self.current.echoAntiEcho()
         self.updAllFrames()
         self.menuCheck()
 
     def setFreq(self, freq, sw):
-        self.redoList = []
-        if self.masterData.noUndo:
-            self.current.setFreq(freq, sw)
-        else:
-            self.undoList.append(self.current.setFreq(freq, sw))
+        self.current.setFreq(freq, sw)
         self.menuCheck()
 
     def flipLR(self):
-        self.redoList = []
-        if self.masterData.noUndo:
-            self.current.flipLR()
-        else:
-            self.undoList.append(self.current.flipLR())
+        self.current.flipLR()
         self.menuCheck()
 
     def directAutoPhase(self, phaseNum):
-        self.redoList = []
-        if self.masterData.noUndo:
-            self.current.directAutoPhase(phaseNum)
-        else:
-            self.undoList.append(self.current.directAutoPhase(phaseNum))
+        self.current.directAutoPhase(phaseNum)
         self.menuCheck()
 
     def BrukerDigital(self):
@@ -2230,11 +2129,7 @@ class Main1DWindow(QtWidgets.QWidget):
             self.father.dispMsg('DSPFVS value not recognized (Bruker hardware version not known)')
             return
         if FilterCorrection != -1.0:  # If changed
-            self.redoList = []
-            if self.masterData.noUndo:
-                self.current.applyPhase(0, FilterCorrection * 2 * np.pi)
-            else:
-                self.undoList.append(self.current.applyPhase(0, FilterCorrection * 2 * np.pi))
+            self.current.applyPhase(0, FilterCorrection * 2 * np.pi)
             self.menuCheck()
 
     def createRelaxWindow(self):
@@ -2333,26 +2228,17 @@ class Main1DWindow(QtWidgets.QWidget):
         self.textframe.upd()
 
     def undo(self, *args):
-        undoFunc = None
-        while undoFunc is None and self.undoList:
-            undoFunc = self.undoList.pop()
-        if undoFunc is None:
-            self.father.dispMsg("no undo information")
-            return
-        self.redoList.append(undoFunc(self.masterData))
-        message = self.masterData.removeFromHistory(2)
-        self.father.dispMsg("Undo: " + message, error=False)
-        self.current.upd()
-        self.current.showFid()
-        self.current.plotReset()
-        self.updAllFrames()
-        if self.currentMacro is not None:
-            self.redoMacro.append(self.father.macros[self.currentMacro].pop())
-        self.menuCheck()
+        if self.masterData.undo():
+            self.current.upd()
+            self.current.showFid()
+            self.current.plotReset()
+            self.updAllFrames()
+            if self.currentMacro is not None:
+                self.redoMacro.append(self.father.macros[self.currentMacro].pop())
+            self.menuCheck()
 
     def redo(self, *args):
-        if self.redoList:
-            self.undoList.append(self.redoList.pop()(self.masterData))
+        if self.masterData.redo():
             self.current.upd()
             self.current.showFid()
             self.current.plotReset()
@@ -2360,12 +2246,9 @@ class Main1DWindow(QtWidgets.QWidget):
             if self.currentMacro is not None:
                 self.father.macroAdd(self.currentMacro, self.redoMacro.pop())
             self.menuCheck()
-        else:
-            self.father.dispMsg("no redo information")
 
     def clearUndo(self):
-        self.undoList = []
-        self.redoList = []
+        self.masterData.clearUndo()
         self.menuCheck()
 
 ########################################################################################
@@ -3153,18 +3036,11 @@ class BottomFrame(QtWidgets.QWidget):
             self.wholeEcho.setCheckState(QtCore.Qt.Unchecked)
 
     def setWholeEcho(self, inp):
-        if self.father.masterData.noUndo:
-            self.father.current.setWholeEcho(inp)
-        else:
-            self.father.undoList.append(self.father.current.setWholeEcho(inp))
+        self.father.current.setWholeEcho(inp)
         self.father.menuCheck()
 
     def changeSpec(self):
-        self.father.redoList = []
-        if self.father.masterData.noUndo:
-            self.father.current.changeSpec(self.specGroup.checkedId())
-        else:
-            self.father.undoList.append(self.father.current.changeSpec(self.specGroup.checkedId()))
+        self.father.current.changeSpec(self.specGroup.checkedId())
         self.upd()
         self.father.menuCheck()
 
@@ -3607,11 +3483,7 @@ class PhaseWindow(wc.ToolWindows):
             firstCheck = self.inputFirstOrder()
         if refCheck is None or zeroCheck is None or firstCheck is None:  # If error. Messages are handled by functions
             return False
-        self.father.redoList = []
-        if self.father.current.data.noUndo:
-            self.father.current.applyPhase(np.pi * self.zeroVal / 180.0, np.pi * self.firstVal / 180.0, (self.singleSlice.isChecked() == 1))
-        else:
-            self.father.undoList.append(self.father.current.applyPhase(np.pi * self.zeroVal / 180.0, np.pi * self.firstVal / 180.0, (self.singleSlice.isChecked() == 1)))
+        self.father.current.applyPhase(np.pi * self.zeroVal / 180.0, np.pi * self.firstVal / 180.0, (self.singleSlice.isChecked() == 1))
 
 ################################################################
 
@@ -3871,11 +3743,7 @@ class ApodWindow(wc.ToolWindows):
             shiftingAxes = int(self.shiftingValues[self.shiftingAxes.currentIndex()]) - 1
         else:
             shiftingAxes = None
-        self.father.redoList = []
-        if self.father.current.data.noUndo:
-            self.father.current.applyApod(lor, gauss, cos2, hamming, shift, shifting, shiftingAxes, (self.singleSlice.isChecked()))
-        else:
-            self.father.undoList.append(self.father.current.applyApod(lor, gauss, cos2, hamming, shift, shifting, shiftingAxes, (self.singleSlice.isChecked())))
+        self.father.current.applyApod(lor, gauss, cos2, hamming, shift, shifting, shiftingAxes, (self.singleSlice.isChecked()))
 
 #######################################################################################
 
@@ -3961,11 +3829,7 @@ class SizeWindow(wc.ToolWindows):
         if self.posVal < 1 or inp is None:
             self.father.father.dispMsg('Sizing: \'Offset\' input is not valid')
             return False
-        self.father.redoList = []
-        if self.father.current.data.noUndo:
-            self.father.current.applySize(self.sizeVal, self.posVal)
-        else:
-            self.father.undoList.append(self.father.current.applySize(self.sizeVal, self.posVal))
+        self.father.current.applySize(self.sizeVal, self.posVal)
         self.father.sideframe.upd()
 
     def picked(self, pos):
@@ -4012,11 +3876,7 @@ class SwapEchoWindow(wc.ToolWindows):
             return False
         self.posEntry.setText(str(self.posVal))
         if self.posVal > 0 and self.posVal < (self.father.current.len()):
-            self.father.redoList = []
-            if self.father.current.data.noUndo:
-                self.father.current.applySwapEcho(self.posVal)
-            else:
-                self.father.undoList.append(self.father.current.applySwapEcho(self.posVal))
+            self.father.current.applySwapEcho(self.posVal)
             self.father.bottomframe.upd()
         else:
             self.father.father.dispMsg("Swap echo: not a valid index")
@@ -4077,11 +3937,7 @@ class LPSVDWindow(wc.ToolWindows):
         if self.analPoints <= self.numberFreq * 4:
             self.father.father.dispMsg('LPSVD: number of points for analysis must be more than 4 times the number of frequencies')
             return False
-        self.father.redoList = []
-        if self.father.current.data.noUndo:
-            self.father.current.applyLPSVD(analPoints, numberFreq, predictPoints, self.specGroup.checkedId())
-        else:
-            self.father.undoList.append(self.father.current.applyLPSVD(analPoints, numberFreq, predictPoints, self.specGroup.checkedId()))
+        self.father.current.applyLPSVD(analPoints, numberFreq, predictPoints, self.specGroup.checkedId())
         self.father.sideframe.upd()
 
 ###########################################################################
@@ -4158,11 +4014,7 @@ class ShiftDataWindow(wc.ToolWindows):
             self.father.father.dispMsg("Shift data: shift value not valid")
             return False
         shift = int(round(inp))
-        self.father.redoList = []
-        if self.father.current.data.noUndo:
-            self.father.current.applyShift(shift, (self.singleSlice.isChecked()))
-        else:
-            self.father.undoList.append(self.father.current.applyShift(shift, (self.singleSlice.isChecked())))
+        self.father.current.applyShift(shift, (self.singleSlice.isChecked()))
 
 #############################################################
 
@@ -4269,11 +4121,7 @@ class DCWindow(wc.ToolWindows):
             self.father.father.dispMsg("Offset correction: offset value not valid")
             return False
         self.father.current.peakPickReset()
-        self.father.redoList = []
-        if self.father.current.data.noUndo:
-            self.father.current.subtract([inp], self.singleSlice.isChecked())
-        else:
-            self.father.undoList.append(self.father.current.subtract([inp], self.singleSlice.isChecked()))
+        self.father.current.subtract([inp], self.singleSlice.isChecked())
 
 #############################################################
 
@@ -4341,11 +4189,8 @@ class BaselineWindow(wc.ToolWindows):
         if returnValue is False:
             self.father.father.dispMsg("Baseline correct: error in polynomial fit", 'red')
             return False
-        if not self.father.current.data.noUndo:
-            self.father.undoList.append(returnValue)
         self.father.current.peakPickReset()
         self.father.current.resetPreviewRemoveList()
-        self.father.redoList = []
 
 #############################################################
 
@@ -4515,14 +4360,7 @@ class integrateWindow(regionWindow):
             if self.father.father.newWorkspace(self.father.current.integrate(minimum, maximum, newSpec)) is None:
                 return None
         else:
-            if self.father.current.data.noUndo:
-                self.father.current.integrate(minimum, maximum, newSpec)
-            else:
-                returnValue = self.father.current.integrate(minimum, maximum, newSpec)
-                if returnValue is None:
-                    return None
-                self.father.undoList.append(returnValue)
-            self.father.redoList = []
+            self.father.current.integrate(minimum, maximum, newSpec)
             self.father.updAllFrames()
         return 1
 
@@ -4542,14 +4380,7 @@ class sumWindow(regionWindow):
             if self.father.father.newWorkspace(self.father.current.sum(minimum, maximum, newSpec)) is None:
                 return None
         else:
-            if self.father.current.data.noUndo:
-                self.father.current.sum(minimum, maximum, newSpec)
-            else:
-                returnValue = self.father.current.sum(minimum, maximum, newSpec)
-                if returnValue is None:
-                    return None
-                self.father.undoList.append(returnValue)
-            self.father.redoList = []
+            self.father.current.sum(minimum, maximum, newSpec)
             self.father.updAllFrames()
         return 1
 
@@ -4566,17 +4397,10 @@ class maxWindow(regionWindow):
             self.father.father.dispMsg(self.NAME + ": wrong input")
             return None
         if newSpec:
-            if self.father.father.newWorkspace(self.father.current.maxMatrix(minimum, maximum, newSpec)) is None:
+            if self.father.father.newWorkspace(self.father.current.max(minimum, maximum, newSpec)) is None:
                 return None
         else:
-            if self.father.current.data.noUndo:
-                self.father.current.maxMatrix(minimum, maximum, newSpec)
-            else:
-                returnValue = self.father.current.maxMatrix(minimum, maximum, newSpec)
-                if returnValue is None:
-                    return None
-                self.father.undoList.append(returnValue)
-            self.father.redoList = []
+            self.father.current.max(minimum, maximum, newSpec)
             self.father.updAllFrames()
         return 1
 
@@ -4593,17 +4417,10 @@ class minWindow(regionWindow):
             self.father.father.dispMsg(self.NAME + ": wrong input")
             return None
         if newSpec:
-            if self.father.father.newWorkspace(self.father.current.minMatrix(minimum, maximum, newSpec)) is None:
+            if self.father.father.newWorkspace(self.father.current.min(minimum, maximum, newSpec)) is None:
                 return None
         else:
-            if self.father.current.data.noUndo:
-                self.father.current.minMatrix(minimum, maximum, newSpec)
-            else:
-                returnValue = self.father.current.minMatrix(minimum, maximum, newSpec)
-                if returnValue is None:
-                    return None
-                self.father.undoList.append(returnValue)
-            self.father.redoList = []
+            self.father.current.min(minimum, maximum, newSpec)
             self.father.updAllFrames()
         return 1
 
@@ -4620,17 +4437,10 @@ class argmaxWindow(regionWindow):
             self.father.father.dispMsg(self.NAME + ": wrong input")
             return None
         if newSpec:
-            if self.father.father.newWorkspace(self.father.current.argmaxMatrix(minimum, maximum, newSpec)) is None:
+            if self.father.father.newWorkspace(self.father.current.argmax(minimum, maximum, newSpec)) is None:
                 return None
         else:
-            if self.father.current.data.noUndo:
-                returnValue = self.father.current.argmaxMatrix(minimum, maximum, newSpec)
-            else:
-                returnValue = self.father.current.argmaxMatrix(minimum, maximum, newSpec)
-                if returnValue is None:
-                    return None
-                self.father.undoList.append(returnValue)
-            self.father.redoList = []
+            self.father.current.argmax(minimum, maximum, newSpec)
             self.father.updAllFrames()
         return 1
 
@@ -4647,17 +4457,10 @@ class argminWindow(regionWindow):
             self.father.father.dispMsg(self.NAME + ": wrong input")
             return None
         if newSpec:
-            if self.father.father.newWorkspace(self.father.current.argminMatrix(minimum, maximum, newSpec)) is None:
+            if self.father.father.newWorkspace(self.father.current.argmin(minimum, maximum, newSpec)) is None:
                 return None
         else:
-            if self.father.current.data.noUndo:
-                returnValue = self.father.current.argminMatrix(minimum, maximum, newSpec)
-            else:
-                returnValue = self.father.current.argminMatrix(minimum, maximum, newSpec)
-                if returnValue is None:
-                    return None
-                self.father.undoList.append(returnValue)
-            self.father.redoList = []
+            self.father.current.argmin(minimum, maximum, newSpec)
             self.father.updAllFrames()
         return 1
 
@@ -4677,14 +4480,7 @@ class avgWindow(regionWindow):
             if self.father.father.newWorkspace(self.father.current.average(minimum, maximum, newSpec)) is None:
                 return None
         else:
-            if self.father.current.data.noUndo:
-                returnValue = self.father.current.average(minimum, maximum, newSpec)
-            else:
-                returnValue = self.father.current.average(minimum, maximum, newSpec)
-                if returnValue is None:
-                    return None
-                self.father.undoList.append(returnValue)
-            self.father.redoList = []
+            self.father.current.average(minimum, maximum, newSpec)
             self.father.updAllFrames()
         return 1
 
@@ -4794,14 +4590,7 @@ class extractRegionWindow(regionWindow2):
             if self.father.father.newWorkspace(self.father.current.getRegion(minimum, maximum, newSpec)) is None:
                 return None
         else:
-            if self.father.current.data.noUndo:
-                self.father.current.getRegion(minimum, maximum, newSpec)
-            else:
-                returnValue = self.father.current.getRegion(minimum, maximum, newSpec)
-                if returnValue is None:
-                    return None
-                self.father.undoList.append(returnValue)
-            self.father.redoList = []
+            self.father.current.getRegion(minimum, maximum, newSpec)
             self.father.updAllFrames()
         return 1
 
@@ -4814,15 +4603,7 @@ class SubtractAvgWindow(regionWindow2):
         super(SubtractAvgWindow, self).__init__(parent, 'Subtract Avg', False)
 
     def apply(self, maximum, minimum, newSpec):
-        if self.father.current.data.noUndo:
-            self.father.current.subtractAvg(maximum, minimum)
-        else:
-            returnValue = self.father.current.subtractAvg(maximum, minimum)
-            if returnValue is None:
-                return None
-            if not self.father.current.data.noUndo:
-                self.father.undoList.append(returnValue)
-        self.father.redoList = []
+        self.father.current.subtractAvg(maximum, minimum)
         self.father.updAllFrames()
         return 1
 
@@ -4918,14 +4699,7 @@ class FiddleWindow(wc.ToolWindows):
         if lb is None:
             self.father.father.dispMsg("Reference deconv: Linebroadening entry not valid")
             return False
-        if self.father.current.data.noUndo:
-            self.father.current.fiddle(self.startVal, self.endVal, lb)
-        else:
-            returnValue = self.father.current.fiddle(self.startVal, self.endVal, lb)
-            if returnValue is None:
-                return None
-            self.father.undoList.append(returnValue)
-        self.father.redoList = []
+        self.father.current.fiddle(self.startVal, self.endVal, lb)
 
 ##############################################################
 
@@ -4962,11 +4736,7 @@ class DeleteWindow(wc.ToolWindows):
         pos = np.array(pos)
         pos[pos < 0] = pos[pos < 0] + length
         if (pos > -1).all() and (pos < length).all():
-            self.father.redoList = []
-            if self.father.current.data.noUndo:
-                self.father.current.delete(pos)
-            else:
-                self.father.undoList.append(self.father.current.delete(pos))
+            self.father.current.delete(pos)
         else:
             self.father.father.dispMsg('Delete: not all values are valid indexes to delete')
             return False
@@ -5001,14 +4771,7 @@ class SplitWindow(wc.ToolWindows):
         if val <= 0:
             self.father.father.dispMsg("Split: input not valid")
             return False
-        if self.father.current.data.noUndo:
-            self.father.current.split(int(round(val)))
-        else:
-            returnValue = self.father.current.split(int(round(val)))
-            if returnValue is None:
-                return False
-            self.father.undoList.append(returnValue)
-        self.father.redoList = []
+        self.father.current.split(int(round(val)))
 
 ##############################################################
 
@@ -5025,14 +4788,7 @@ class ConcatenateWindow(wc.ToolWindows):
         self.grid.addWidget(self.axesEntry, 1, 0)
 
     def applyFunc(self):
-        if self.father.current.data.noUndo:
-            self.father.current.concatenate(self.axesEntry.currentIndex())
-        else:
-            returnValue = self.father.current.concatenate(self.axesEntry.currentIndex())
-            if returnValue is None:
-                return
-            self.father.undoList.append(returnValue)
-        self.father.redoList = []
+        self.father.current.concatenate(self.axesEntry.currentIndex())
 
 ##############################################################
 
@@ -5073,11 +4829,7 @@ class InsertWindow(wc.ToolWindows):
         elif pos < 0:
             pos = 0
         ws = self.wsEntry.currentIndex()
-        self.father.redoList = []
-        if self.father.current.data.noUndo:
-            self.father.current.insert(self.father.father.workspaces[ws].masterData.getData(), pos)
-        else:
-            self.father.undoList.append(self.father.current.insert(self.father.father.workspaces[ws].masterData.getData(), pos))
+        self.father.current.insert(self.father.father.workspaces[ws].masterData.getData(), pos)
 
 ##############################################################
 
@@ -5117,11 +4869,6 @@ class CombineWindow(wc.ToolWindows):
             returnValue = self.father.current.multiplySpec(self.father.father.workspaces[ws].masterData.getData(), self.singleSlice.isChecked())
         elif self.combType is 3:
             returnValue = self.father.current.divideSpec(self.father.father.workspaces[ws].masterData.getData(), self.singleSlice.isChecked())
-        if returnValue is None and not self.father.current.data.noUndo:
-            return
-        self.father.redoList = []
-        if not self.father.current.data.noUndo:
-            self.father.undoList.append(returnValue)
 
 ##############################################################
 
@@ -5588,14 +5335,10 @@ class ReorderWindow(wc.ToolWindows):
             self.father.father.dispMsg("Reorder: length of input does not match length of data")
             return False
         val = np.array(val, dtype=int)
-        self.father.redoList = []
         check = self.father.current.reorder(val, newLength)
         if check is False:
             self.father.father.dispMsg("Reorder: error during applying")
             return False
-        if not self.father.masterData.noUndo:
-            self.father.undoList.append(check)
-        return
 
 ##########################################################################################
 
@@ -5676,11 +5419,7 @@ class RegridWindow(wc.ToolWindows):
         elif self.unit == 'ppm':
             maxVal *= self.father.masterData.ref[self.father.current.axes] / 1e6
             minVal *= self.father.masterData.ref[self.father.current.axes] / 1e6
-        if self.father.current.data.noUndo:
-            self.father.current.regrid([minVal, maxVal], numPoints)
-        else:
-            self.father.undoList.append(self.father.current.regrid([minVal, maxVal], numPoints))
-        return
+        self.father.current.regrid([minVal, maxVal], numPoints)
 
 ##########################################################################################
 
@@ -5722,13 +5461,10 @@ class FFMWindow(wc.ToolWindows):
             self.father.father.dispMsg("FFM: 'Positions' is not a list or array")
             return False
         val = np.array(val, dtype=int)
-        self.father.redoList = []
         check = self.father.current.ffm(val, self.typeDrop.currentIndex())
         if check is False:
             self.father.father.dispMsg("FFM: error", color='red')
             return False
-        if not self.father.masterData.noUndo:
-            self.father.undoList.append(check)
 
 ##########################################################################################
 
@@ -5792,13 +5528,10 @@ class CLEANWindow(wc.ToolWindows):
             self.father.father.dispMsg("CLEAN: 'Max. iter.' is not valid")
             return False
         maxIter = int(maxIter)
-        self.father.redoList = []
         check = self.father.current.clean(val, self.typeDrop.currentIndex(), gamma, threshold, maxIter)
         if check is False:
             self.father.father.dispMsg("CLEAN: error",color = 'red')
             return False
-        if not self.father.masterData.noUndo:
-            self.father.undoList.append(check)
 
 ################################################################
 
@@ -5862,13 +5595,10 @@ class ISTWindow(wc.ToolWindows):
             self.father.father.dispMsg("IST: 'Max. iter.' input is not valid")
             return False
         maxIter = int(maxIter)
-        self.father.redoList = []
         check = self.father.current.ist(val, self.typeDrop.currentIndex(), threshold, maxIter, tracelimit)
         if check is False:
             self.father.father.dispMsg("IST: error",color = 'red')
             return False
-        if not self.father.masterData.noUndo:
-            self.father.undoList.append(check)
 
 ################################################################
 
@@ -5920,11 +5650,7 @@ class ShearingWindow(wc.ToolWindows):
             self.father.father.dispMsg("Shearing: axes cannot be the same for shearing")
             return False
         else:
-            self.father.redoList = []
-            if self.father.masterData.noUndo:
-                self.father.current.shearing(float(shear), axes, axes2)
-            else:
-                self.father.undoList.append(self.father.current.shearing(float(shear), axes, axes2))
+            self.father.current.shearing(float(shear), axes, axes2)
 
 ##########################################################################################
 
@@ -5952,14 +5678,7 @@ class MultiplyWindow(wc.ToolWindows):
         if val is None:
             self.father.father.dispMsg("Multiply: input not valid")
             return False
-        if self.father.current.data.noUndo:
-            self.father.current.multiply(np.array(val), self.singleSlice.isChecked())
-        else:
-            returnValue = self.father.current.multiply(np.array(val), self.singleSlice.isChecked())
-            if returnValue is None:
-                return False
-            self.father.undoList.append(returnValue)
-        self.father.redoList = []
+        self.father.current.multiply(np.array(val), self.singleSlice.isChecked())
 
 ##########################################################################################
 
@@ -6055,15 +5774,7 @@ class NormalizeWindow(wc.ToolWindows):
             val = self.father.current.MaxMin(minimum,maximum, type = 'max')
         elif type == 2:
             val = self.father.current.MaxMin(minimum,maximum, type = 'min')
-        if self.father.current.data.noUndo:
-            self.father.current.normalize( 1.0 / val, scale, type, self.singleSlice.isChecked())
-        else:
-            returnValue = self.father.current.normalize( 1.0 / val, scale, type, self.singleSlice.isChecked())
-            if returnValue is None:
-                return False
-            self.father.undoList.append(returnValue)
-            self.father.redoList = []
-        return 
+        self.father.current.normalize( 1.0 / val, scale, type, self.singleSlice.isChecked())
 
 ##########################################################################################
 
@@ -6218,11 +5929,7 @@ class XaxWindow(wc.ToolWindows):
         val = self.getValues()
         if val is None:  # if error return. Messages are handled by the called function
             return
-        self.father.redoList = []
-        if self.father.current.data.noUndo:
-            self.father.current.setXax(np.array(val))
-        else:
-            self.father.undoList.append(self.father.current.setXax(np.array(val)))
+        self.father.current.setXax(np.array(val))
 
 ##########################################################################################
 
@@ -6294,11 +6001,7 @@ class RefWindow(wc.ToolWindows):
             else:
                 self.father.mainProgram.referenceAdd(reffreq, givenname)
         if nameOK:
-            self.father.redoList = []
-            if self.father.current.data.noUndo:
-                self.father.current.setRef(reffreq)
-            else:
-                self.father.undoList.append(self.father.current.setRef(reffreq))
+            self.father.current.setRef(reffreq)
             self.closeEvent()
 
     def picked(self, pos):
