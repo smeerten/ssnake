@@ -1051,16 +1051,18 @@ class MainProgram(QtWidgets.QMainWindow):
             self.mainWindow.runMacro(self.macros[name])
 
     def saveMacro(self, name):
-        import json
-        fileName = QtWidgets.QFileDialog.getSaveFileName(self, 'Save File', self.LastLocation + os.path.sep + name + '.json', 'JSON (*.json)')
+        fileName = QtWidgets.QFileDialog.getSaveFileName(self, 'Save File', self.LastLocation + os.path.sep + name + '.macro', 'MACRO (*.macro)')
         if isinstance(fileName, tuple):
             fileName = fileName[0]
-        if fileName:  # if not cancelled
-            self.LastLocation = os.path.dirname(fileName)
         if not fileName:
             return
+        self.LastLocation = os.path.dirname(fileName)
+        outputMacro = self.macros[name]
         with open(fileName, 'w') as f:
-            json.dump(self.macros[name], f, indent=4)
+            for line in outputMacro:
+                f.write(line[0])
+                f.write(repr(line[1]).replace('\n', ''))
+                f.write('\n')
 
     def deleteMacro(self, name):
         self.macrolistmenu.removeAction(self.macroActions[name][0])
@@ -1075,7 +1077,6 @@ class MainProgram(QtWidgets.QMainWindow):
         self.menuCheck()
 
     def loadMacro(self):
-        import json
         filename = QtWidgets.QFileDialog.getOpenFileName(self, 'Open File', self.LastLocation)
         if isinstance(filename, tuple):
             filename = filename[0]
@@ -1096,7 +1097,12 @@ class MainProgram(QtWidgets.QMainWindow):
             self.dispMsg("Macro name '" + givenName + "' already exists")
             givenName, ok = QtWidgets.QInputDialog.getText(self, 'Macro name', 'Name:', text=name)
         with open(filename, 'r') as f:
-            self.macros[givenName] = json.load(f)
+            stringList = f.readlines()
+        self.macros[givenName] = []
+        for line in stringList:
+            splitLine = line.split("(", 1)
+            splitLine[1] = safeEval("(" + splitLine[1])
+            self.macros[givenName].append(splitLine)
         IconDirectory = os.path.dirname(os.path.realpath(__file__)) + os.path.sep + 'Icons' + os.path.sep
         action1 = self.macrolistmenu.addAction(QtGui.QIcon(IconDirectory + 'run.png'), givenName, lambda name=givenName: self.runMacro(name))
         action2 = self.macrosavemenu.addAction(QtGui.QIcon(IconDirectory + 'save.png'), givenName, lambda name=givenName: self.saveMacro(name))

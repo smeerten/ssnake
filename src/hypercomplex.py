@@ -131,13 +131,8 @@ class HComplexData(object):
     
     def conj(self):
         tmpData = np.conj(self.data)
-        tmpData[1:] = - tmpData[1:]
+        tmpData[1:] = -tmpData[1:]
         return HComplexData(tmpData, np.copy(self.hyper))
-    
-    def iconj(self):
-        # In place complex conjugation
-        self.data.conj()
-        self.data[1:] = -self.data[1:]
 
     def isAllReal(self):
         tmp = 0
@@ -199,12 +194,18 @@ class HComplexData(object):
 
     def __getitem__(self, key):
         if not isinstance(key, tuple):
-            key = (key, )
+            try:
+                key = tuple(key)
+            except TypeError:
+                key = (key, )
         return HComplexData(self.data[(slice(None), ) + key], self.hyper)
 
     def __setitem__(self, key, value):
         if not isinstance(key, tuple):
-            key = (key, )
+            try:
+                key = tuple(key)
+            except TypeError:
+                key = (key, )
         if isinstance(value, HComplexData):
             self.data[(slice(None), ) + key] = 0
             diffList = np.setdiff1d(value.hyper, self.hyper, assume_unique=True)
@@ -306,7 +307,9 @@ class HComplexData(object):
     def concatenate(self, axis):
         if axis >= 0:
             axis += 1
-        return HComplexData(np.concatenate(self.data, axis), np.copy(self.hyper))
+        tmpData = np.swapaxes(self.data, 0, 1)
+        tmpData = np.concatenate(tmpData, axis)
+        return HComplexData(tmpData, np.copy(self.hyper))
 
     def split(self, sections, axis):
         if axis >= 0:

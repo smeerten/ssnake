@@ -27,7 +27,7 @@ def safeEval(inp, length=None, keywords=[], type='All', x=None):
     env["globals"] = None
     env["__name__"] = None
     env["__file__"] = None
-    env["__builtins__"] = None
+    env["__builtins__"] = {'None': None, 'False': False, 'True':True} # None
     env["slice"] = slice
     if length is not None:
         env["length"] = length
