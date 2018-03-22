@@ -4548,7 +4548,10 @@ class DeleteWindow(wc.ToolWindows):
         if pos is None:
             self.father.father.dispMsg('Delete: not all values are valid indexes to delete')
             return False
-        pos = np.array(pos)
+        if isinstance(pos, (int, float)):
+            pos = np.array([pos])
+        else:
+            pos = np.array(pos)
         pos[pos < 0] = pos[pos < 0] + length
         if (pos > -1).all() and (pos < length).all():
             self.father.current.delete(pos)
