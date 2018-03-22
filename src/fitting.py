@@ -342,7 +342,6 @@ class FittingWindow(QtWidgets.QWidget):
                                              np.append([masterData.sw[axes], masterData.sw[axes]], np.delete(masterData.sw, axes)),
                                              np.append([False, False], np.delete(masterData.spec, axes)),
                                              np.append([False, False], np.delete(masterData.wholeEcho, axes)),
-                                             None,    
                                              np.append([None, None], np.delete(masterData.ref, axes)),
                                              None,
                                              axes + 1)
@@ -353,7 +352,6 @@ class FittingWindow(QtWidgets.QWidget):
                                              np.append(masterData.sw[axes], masterData.sw),
                                              np.append(False, masterData.spec),
                                              np.append(False, masterData.wholeEcho),
-                                             None,    
                                              np.append(None, masterData.ref),
                                              None,
                                              axes + 1)
@@ -365,7 +363,6 @@ class FittingWindow(QtWidgets.QWidget):
                                              [masterData.sw[axes], masterData.sw[axes]],
                                              [False, False],
                                              [False, False],
-                                             None,    
                                              [None, None],
                                              [np.arange(data.shape[0]), np.arange(data.shape[1])],
                                              0)
@@ -376,7 +373,6 @@ class FittingWindow(QtWidgets.QWidget):
                                              [masterData.sw[axes], masterData.sw[axes]],
                                              [False, masterData.spec[axes]],
                                              [False, masterData.wholeEcho[axes]],
-                                             None,    
                                              [None, masterData.ref[axes]],
                                              [np.arange(len(data)), masterData.xaxArray[axes]],
                                              axes)
@@ -533,7 +529,7 @@ class FitPlotFrame(Current1D):
         self.rootwindow.paramframe.dispParams()
 
     def getData1D(self):
-        return np.real(self.getDataType(self.data1D.data[0]))
+        return np.real(self.getDataType(self.data1D.getHyperData(0)))
 
     def showFid(self):
         extraX = []
