@@ -2841,7 +2841,6 @@ class CurrentContour(CurrentStacked):
             self.ax.set_xlim(self.xmaxlim, self.xminlim)
         else:
             self.ax.set_xlim(self.xminlim, self.xmaxlim)
-        print(self.spec(-2))
         if self.spec(-2):
             self.ax.set_ylim(self.ymaxlim, self.yminlim)
         else:
