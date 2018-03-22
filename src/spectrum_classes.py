@@ -2276,6 +2276,9 @@ class Current1D(Plot1DFrame):
         else:
             self.ax.set_xlim(self.xminlim, self.xmaxlim)
         self.ax.set_ylim(self.yminlim, self.ymaxlim)
+        if type(self) is CurrentContour: #If contour: reverse y-axis
+            if  self.spec(-2) > 0:
+                self.ax.set_ylim(self.ymaxlim, self.yminlim)
         self.canvas.draw()
 
 
@@ -2838,6 +2841,7 @@ class CurrentContour(CurrentStacked):
             self.ax.set_xlim(self.xmaxlim, self.xminlim)
         else:
             self.ax.set_xlim(self.xminlim, self.xmaxlim)
+        print(self.spec(-2))
         if self.spec(-2):
             self.ax.set_ylim(self.ymaxlim, self.yminlim)
         else:

@@ -212,7 +212,7 @@ class HComplexData(object):
             insertOrder = np.searchsorted(self.hyper, diffList)
             self.data = np.insert(self.data, insertOrder, 0, axis=0)
             self.hyper = np.insert(self.hyper, insertOrder, diffList)
-            self.data[(np.isin(self.hyper, value.hyper), ) + key] = value.data
+            self.data[(np.in1d(self.hyper, value.hyper), ) + key] = value.data
         else:
             self.data[(slice(0,1), ) + key] = value
             self.data[(slice(1,None), ) + key] = 0
