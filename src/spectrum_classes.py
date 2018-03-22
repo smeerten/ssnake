@@ -153,15 +153,12 @@ class Spectrum(object):
         if axes < 0:
             axes = axes + self.ndim()
         if not (0 <= axes < self.ndim()):
-            self.dispMsg('Not a valid axes')
-            return None
+            raise IndexError("Not a valid axis for Spectrum")
         return axes
 
     def resetXax(self, axes=None):
         if axes is not None:
             axes = self.checkAxes(axes)
-            if axes is None:
-                return None
             val = [axes]
         else:
             val = range(self.ndim())
@@ -175,8 +172,6 @@ class Spectrum(object):
 
     def setXax(self, xax, axes):
         axes = self.checkAxes(axes)
-        if axes is None:
-            return
         if len(xax) != self.shape()[axes]:
             self.dispMsg("Length of new x-axis does not match length of the data")
             return
@@ -194,13 +189,11 @@ class Spectrum(object):
             returnValue = None
         else:
             if self.data.hyper == data.hyper: # If both sets have same hyper: easy undo can be used
-                returnValue = lambda self: self.remove(range(pos, pos + data.shape()[axes]), axes)
+                returnValue = lambda self: self.delete(range(pos, pos + data.shape()[axes]), axes)
             else: # Otherwise: do a deep copy of the class
                 copyData = copy.deepcopy(self)
                 returnValue = lambda self: self.restoreData(copyData, lambda self: self.insert(data, pos, axes))
         axes = self.checkAxes(axes)
-        if axes is None:
-            return
         # Check for a change in dimensions
         self.data = self.data.insert(pos, data, axes)
         self.resetXax(axes)
@@ -209,10 +202,8 @@ class Spectrum(object):
         if not self.noUndo:
             self.undoList.append(returnValue)
 
-    def remove(self, pos, axes):
+    def delete(self, pos, axes):
         axes = self.checkAxes(axes)
-        if axes is None:
-            return None
         if not self.noUndo:
             copyData = copy.deepcopy(self)
         tmpData = self.data.delete(pos, axes)
@@ -228,7 +219,7 @@ class Spectrum(object):
         self.addHistory("Removed " + str(length) + " datapoints from dimension " + str(axes + 1) + " at position " + str(pos))
         self.redoList = []
         if not self.noUndo:
-            self.undoList.append(lambda self: self.restoreData(copyData, lambda self: self.remove(pos, axes)))
+            self.undoList.append(lambda self: self.restoreData(copyData, lambda self: self.delete(pos, axes)))
 
     def add(self, data, axis=None, select=slice(None)):
         if isinstance(data, np.ndarray) and axis is not None:
@@ -310,8 +301,6 @@ class Spectrum(object):
         if isinstance(select, string_types):
             select = safeEval(select)
         axes = self.checkAxes(axes)
-        if axes is None:
-            return None
         try:
             for index in range(len(self.data)):
                 self.data[select] = np.apply_along_axis(np.multiply, axes, self.data, mult * scale)[select]
@@ -332,8 +321,6 @@ class Spectrum(object):
         if isinstance(select, string_types):
             select = safeEval(select)
         axes = self.checkAxes(axes)
-        if axes is None:
-            return
         baselinetmp = baseline.reshape((self.shape()[axes], ) + (1, ) * (self.ndim() - axes - 1))
         self.data[select] -= baselinetmp
         self.addHistory("Baseline corrected dimension " + str(axes + 1) + " of data[" + str(select) + "]")
@@ -343,8 +330,6 @@ class Spectrum(object):
 
     def concatenate(self, axes):
         axes = self.checkAxes(axes)
-        if axes is None:
-            return
         splitVal = self.shape()[axes]
         copyData = None
         if self.data.isComplex(axes):
@@ -371,8 +356,6 @@ class Spectrum(object):
 
     def split(self, sections, axes):
         axes = self.checkAxes(axes)
-        if axes is None:
-            return None
         invAxis = self.ndim() - axes
         self.data = self.data.split(sections, axes)
         self.data.insertDim(invAxis)
@@ -393,8 +376,6 @@ class Spectrum(object):
         if not self.noUndo:
             copyData = copy.deepcopy(self)
         axes = self.checkAxes(axes)
-        if axes is None:
-            return
         self.data = self.data.real(axes)
         self.addHistory("Real along dimension " + str(axes+1))
         self.redoList = []
@@ -405,8 +386,6 @@ class Spectrum(object):
         if not self.noUndo:
             copyData = copy.deepcopy(self)
         axes = self.checkAxes(axes)
-        if axes is None:
-            return None
         self.data = self.data.imag(axes)
         self.addHistory("Imaginary along dimension " + str(axes+1))
         self.redoList = []
@@ -417,8 +396,6 @@ class Spectrum(object):
         if not self.noUndo:
             copyData = copy.deepcopy(self)
         axes = self.checkAxes(axes)
-        if axes is None:
-            return None
         self.data = self.data.abs(axes)
         self.addHistory("Absolute along dimension " + str(axes+1))
         self.redoList = []
@@ -434,8 +411,6 @@ class Spectrum(object):
 
     def states(self, axes):
         axes = self.checkAxes(axes)
-        if axes is None:
-            return
         if not self.noUndo:
             copyData = copy.deepcopy(self)
         if self.shape()[axes] % 2 != 0:
@@ -450,8 +425,6 @@ class Spectrum(object):
 
     def statesTPPI(self, axes):
         axes = self.checkAxes(axes)
-        if axes is None:
-            return
         if not self.noUndo:
             copyData = copy.deepcopy(self)
         if self.shape()[axes] % 2 != 0:
@@ -466,8 +439,6 @@ class Spectrum(object):
 
     def echoAntiEcho(self, axes):
         axes = self.checkAxes(axes)
-        if axes is None:
-            return None
         if not self.noUndo:
             copyData = copy.deepcopy(self)
         if self.shape()[axes] % 2 != 0:
@@ -482,17 +453,15 @@ class Spectrum(object):
 
     def subtractAvg(self, pos1, pos2, axes):
         axes = self.checkAxes(axes)
-        if axes is None:
-            return None
         if not (0 <= pos1 <= self.shape()[axes]):
             self.dispMsg("Indices not within range")
-            return None
+            return
         if not (0 <= pos2 <= self.shape()[axes]):
             self.dispMsg("Indices not within range")
-            return None
+            return
         if pos1 == pos2:
             self.dispMsg("Indices cannot be equal")
-            return None
+            return
         minPos = min(pos1, pos2)
         maxPos = max(pos1, pos2)
         slicing = (slice(None), ) * axes + (slice(minPos, maxPos), )
@@ -505,8 +474,6 @@ class Spectrum(object):
 
     def matrixManip(self, pos1, pos2, axes, which):
         axes = self.checkAxes(axes)
-        if axes is None:
-            return
         if isinstance(pos1, int):
             pos1 = np.array([pos1])
             pos2 = np.array([pos2])
@@ -645,10 +612,8 @@ class Spectrum(object):
             self.undoList.append(lambda self: self.restoreData(copyData, lambda self: self.average(pos1, pos2, axes)))
         self.addHistory("Average between " + str(pos1) + " and " + str(pos2) + " of dimension " + str(axes + 1))
 
-    def getRegion(self, pos1, pos2, axes):
+    def extract(self, pos1, pos2, axes):
         axes = self.checkAxes(axes)
-        if axes is None:
-            return
         if not self.noUndo:
             copyData = copy.deepcopy(self)
         minPos = min(pos1, pos2)
@@ -667,12 +632,10 @@ class Spectrum(object):
         self.addHistory("Extracted part between " + str(minPos) + " and " + str(maxPos) + " of dimension " + str(axes + 1))
         self.redoList = []
         if not self.noUndo:
-            self.undoList.append(lambda self: self.restoreData(copyData, lambda self: self.getRegion(axes, pos1, pos2)))
+            self.undoList.append(lambda self: self.restoreData(copyData, lambda self: self.extract(axes, pos1, pos2)))
 
     def fiddle(self, refSpec, lb, axes):
         axes = self.checkAxes(axes)
-        if axes is None:
-            return 
         axLen = self.shape()[axes]
         if len(refSpec) != axLen:
             self.dispMsg("Reference FID does not have the correct length")
@@ -707,8 +670,6 @@ class Spectrum(object):
 
     def diff(self, axes):
         axes = self.checkAxes(axes)
-        if axes is None:
-            return
         if not self.noUndo:
             copyData = copy.deepcopy(self)
         self.data = self.data.diff(axis=axes)
@@ -720,8 +681,6 @@ class Spectrum(object):
 
     def cumsum(self, axes):
         axes = self.checkAxes(axes)
-        if axes is None:
-            return
         if not self.noUndo:
             copyData = copy.deepcopy(self)
         self.data = self.data.cumsum(axis=axes)
@@ -732,8 +691,6 @@ class Spectrum(object):
 
     def flipLR(self, axes):
         axes = self.checkAxes(axes)
-        if axes is None:
-            return
         slicing = (slice(None), ) * axes + (slice(None, None, -1), )
         self.data = self.data[slicing]
         self.addHistory("Flipped dimension " + str(axes + 1))
@@ -743,8 +700,6 @@ class Spectrum(object):
 
     def hilbert(self, axes):
         axes = self.checkAxes(axes)
-        if axes is None:
-            return
         if not self.noUndo:
             copyData = copy.deepcopy(self)
         self.data = self.data.complexReorder(axes)
@@ -757,8 +712,6 @@ class Spectrum(object):
 
     def autoPhase(self, phaseNum, axes, locList, returnPhases=False):
         axes = self.checkAxes(axes)
-        if axes is None:
-            return
         if len(locList) != self.ndim()-1:
             self.dispMsg("Data does not have the correct number of dimensions")
             return
@@ -799,7 +752,7 @@ class Spectrum(object):
                 return phases['x']
         self.redoList = []
         if not self.noUndo:
-            self.undoList.append(lambda self: self.setPhase(-phase0, -phase1, axes))
+            self.undoList.append(lambda self: self.phase(-phase0, -phase1, axes))
 
     def ACMEentropy(self, phaseIn, data, x, phaseAll=True):
         phase0 = phaseIn[0]
@@ -822,12 +775,10 @@ class Spectrum(object):
             Pfun = Pfun + sum(as1**2) / 4 / L**2
         return H1 + 1000 * Pfun
 
-    def setPhase(self, phase0, phase1, axes, select=slice(None)):
+    def phase(self, phase0, phase1, axes, select=slice(None)):
         if isinstance(select, string_types):
             select = safeEval(select)
         axes = self.checkAxes(axes)
-        if axes is None:
-            return
         if self.ref[axes] is None:
             offset = 0
         else:
@@ -847,14 +798,12 @@ class Spectrum(object):
         self.addHistory(Message)
         self.redoList = []
         if not self.noUndo:
-            self.undoList.append(lambda self: self.setPhase(-phase0, -phase1, axes, select=select))
+            self.undoList.append(lambda self: self.phase(-phase0, -phase1, axes, select=select))
 
     def apodize(self, lor, gauss, cos2, hamming, shift, shifting, shiftingAxes, axes, select=slice(None), preview=False):
         if isinstance(select, string_types):
             select = safeEval(select)
         axes = self.checkAxes(axes)
-        if axes is None:
-            return
         if shiftingAxes is None:
             shiftingAxes = 0
             shifting = 0
@@ -921,8 +870,6 @@ class Spectrum(object):
 
     def setFreq(self, freq, sw, axes):
         axes = self.checkAxes(axes)
-        if axes is None:
-            return
         oldFreq = self.freq[axes]
         oldSw = self.sw[axes]
         if freq is None:
@@ -939,8 +886,6 @@ class Spectrum(object):
 
     def setRef(self, ref, axes):
         axes = self.checkAxes(axes)
-        if axes is None:
-            return
         oldRef = self.ref[axes]
         if ref is None:
             self.ref[axes] = None
@@ -978,46 +923,39 @@ class Spectrum(object):
 
     def setWholeEcho(self, val, axes):
         axes = self.checkAxes(axes)
-        if axes is None:
-            return
         self.wholeEcho[axes] = val
         self.addHistory("Whole echo set to " + str(val) + " for dimension " + str(axes + 1))
         self.redoList = []
         if not self.noUndo:
             self.undoList.append(lambda self: self.setWholeEcho(not val, axes))
 
-    def setSize(self, size, pos, axes):
+    def resize(self, size, pos, axes):
         axes = self.checkAxes(axes)
-        if axes is None:
-            return
         if not self.noUndo:
             copyData = copy.deepcopy(self)
         if self.spec[axes] > 0:
             self.fourier(axes, tmp=True)
-        self.data = self.data.setSize(size, pos, axis=axes)
+        self.data = self.data.resize(size, pos, axis=axes)
         if self.spec[axes] > 0:
             self.fourier(axes, tmp=True, inv=True)
         self.resetXax(axes)
         self.addHistory("Resized dimension " + str(axes + 1) + " to " + str(size) + " points at position " + str(pos))
         self.redoList = []
         if not self.noUndo:
-            self.undoList.append(lambda self: self.restoreData(copyData, lambda self: self.setSize(size, pos, axes)))
+            self.undoList.append(lambda self: self.restoreData(copyData, lambda self: self.resize(size, pos, axes)))
 
-    def setLPSVD(self, nAnalyse, nFreq, nPredict, Direction, axes):
+    def lpsvd(self, nAnalyse, nFreq, nPredict, Direction, axes):
         axes = self.checkAxes(axes)
-        if axes is None:
-            return
         if not self.noUndo:
             copyData = copy.deepcopy(self)
-            returnValue = lambda self: self.restoreData(copyData, lambda self: self.setLPSVD(nAnalyse, nFreq, nPredict, Direction, axes))
-        self.data.apply_along_axis(self.LPSVDfunction, axes, nAnalyse, nFreq, nPredict, Direction)
+        self.data.apply_along_axis(self.lpsvdfunction, axes, nAnalyse, nFreq, nPredict, Direction)
         self.resetXax(axes)
         self.addHistory("LPSVD ")
         self.redoList = []
         if not self.noUndo:
-            self.undoList.append(lambda self: self.restoreData(copyData, lambda self: self.setLPSVD(nAnalyse, nFreq, nPredict, Direction, axes)))
+            self.undoList.append(lambda self: self.restoreData(copyData, lambda self: self.lpsvd(nAnalyse, nFreq, nPredict, Direction, axes)))
 
-    def LPSVDfunction(self, data, nAnalyse, nFreq, nPredict, Direction):
+    def lpsvdfunction(self, data, nAnalyse, nFreq, nPredict, Direction):
         # LPSVD algorithm
         if Direction == 1:  # If backward
             Y = data[0:nAnalyse]
@@ -1054,10 +992,8 @@ class Spectrum(object):
             data = np.concatenate((reconstructed, data))
         return data
 
-    def changeSpec(self, val, axes):
+    def setSpec(self, val, axes):
         axes = self.checkAxes(axes)
-        if axes is None:
-            return
         oldVal = self.spec[axes]
         self.spec[axes] = val
         self.resetXax(axes)
@@ -1067,12 +1003,10 @@ class Spectrum(object):
             self.addHistory("Dimension " + str(axes + 1) + " set to spectrum")
         self.redoList = []
         if not self.noUndo:
-            self.undoList.append(lambda self: self.changeSpec(oldVal, axes))
+            self.undoList.append(lambda self: self.setSpec(oldVal, axes))
 
     def swapEcho(self, idx, axes):
         axes = self.checkAxes(axes)
-        if axes is None:
-            return
         slicing1 = (slice(None), ) * axes + (slice(None, idx), )
         slicing2 = (slice(None), ) * axes + (slice(idx, None), )
         self.data = self.data[slicing2].append(self.data[slicing1], axis=axes)
@@ -1082,12 +1016,10 @@ class Spectrum(object):
         if not self.noUndo:
             self.undoList.append(lambda self: self.swapEcho(-idx, axes))
 
-    def shiftData(self, shift, axes, select=slice(None), zeros=True):
+    def shift(self, shift, axes, select=slice(None), zeros=True):
         if isinstance(select, string_types):
             select = safeEval(select)
         axes = self.checkAxes(axes)
-        if axes is None:
-            return
         if not self.noUndo:
             copyData = copy.deepcopy(self)
         if self.spec[axes] > 0:
@@ -1108,12 +1040,10 @@ class Spectrum(object):
         self.addHistory(Message)
         self.redoList = []
         if not self.noUndo:
-            self.undoList.append(lambda self: self.restoreData(copyData, lambda self: self.shiftData(shift, axes, select=select, zeros=zeros)))
+            self.undoList.append(lambda self: self.restoreData(copyData, lambda self: self.shift(shift, axes, select=select, zeros=zeros)))
         
     def fourier(self, axes, tmp=False, inv=False, reorder=[True,True]):
         axes = self.checkAxes(axes)
-        if axes is None:
-            return
         if reorder[0]:
             self.data = self.data.complexReorder(axes)
         if np.logical_xor(self.spec[axes], inv) == 0:
@@ -1141,8 +1071,6 @@ class Spectrum(object):
 
     def realFourier(self, axes):
         axes = self.checkAxes(axes)
-        if axes is None:
-            return
         self.data = self.data.real(axes)
         self.fourier(axes)
         self.redoList = []
@@ -1151,8 +1079,6 @@ class Spectrum(object):
 
     def fftshift(self, axes, inv=False):
         axes = self.checkAxes(axes)
-        if axes is None:
-            return
         if inv:
             self.data = self.data.ifftshift(axis=axes)
             self.addHistory("Inverse Fourier shift dimension " + str(axes + 1))
@@ -1165,11 +1091,7 @@ class Spectrum(object):
 
     def shear(self, shear, axes, axes2):
         axes = self.checkAxes(axes)
-        if axes is None:
-            return None
         axes2 = self.checkAxes(axes2)
-        if axes2 is None:
-            return None
         if axes == axes2:
             self.dispMsg('Both shearing axes cannot be equal')
             return
@@ -1202,8 +1124,6 @@ class Spectrum(object):
 
     def reorder(self, pos, newLength, axes):
         axes = self.checkAxes(axes)
-        if axes is None:
-            return
         if not self.noUndo:
             copyData = copy.deepcopy(self)
         self.data = self.data.reorder(pos, newLength, axes)
@@ -1215,8 +1135,6 @@ class Spectrum(object):
 
     def ffm(self, pos, typeVal, axes):
         axes = self.checkAxes(axes)
-        if axes is None:
-            return
         if not self.noUndo:
             copyData = copy.deepcopy(self)
         # pos contains the values of fixed points which not to be translated to missing points
@@ -1246,8 +1164,6 @@ class Spectrum(object):
 
     def clean(self, pos, typeVal, axes, gamma, threshold, maxIter):
         axes = self.checkAxes(axes)
-        if axes is None:
-            return
         if not self.noUndo:
             copyData = copy.deepcopy(self)
         # pos contains the values of fixed points which not to be translated to missing points
@@ -1282,8 +1198,6 @@ class Spectrum(object):
     def ist(self,pos, typeVal, axes, threshold, maxIter,tracelimit):
         import scipy.signal
         axes = self.checkAxes(axes)
-        if axes is None:
-            return
         if not self.noUndo:
             copyData = copy.deepcopy(self)
         # pos contains the values of fixed points which not to be translated to missing points
@@ -1314,8 +1228,6 @@ class Spectrum(object):
 
     def getSlice(self, axes, locList):
         axes = self.checkAxes(axes)
-        if axes is None:
-            return
         sliceData = self.data[tuple(locList[:axes]) + (slice(None), ) + tuple(locList[axes:])]
         sliceData = sliceData.complexReorder(axes)
         sliceSpec = copy.deepcopy(Spectrum(self.name,
@@ -1334,11 +1246,7 @@ class Spectrum(object):
 
     def getBlock(self, axes, axes2, locList, stackBegin=None, stackEnd=None, stackStep=None):
         axes = self.checkAxes(axes)
-        if axes is None:
-            return None
         axes2 = self.checkAxes(axes2)
-        if axes2 is None:
-            return None
         stackSlice = reim.floatSlice(stackBegin, stackEnd, stackStep)
         if axes == axes2:
             self.dispMsg("First and second axes are the same")
@@ -1611,7 +1519,7 @@ class Current1D(Plot1DFrame):
     def setPhaseInter(self, phase0in, phase1in):  # interactive changing the phase without editing the actual data
         phase0 = float(phase0in)
         phase1 = float(phase1in)
-        self.data1D.setPhase(phase0, phase1, -1)
+        self.data1D.phase(phase0, phase1, -1)
         self.showFid()
         self.upd()
 
@@ -1623,7 +1531,7 @@ class Current1D(Plot1DFrame):
         else:
             selectSlice = slice(None)
         self.root.addMacro(['phase', (phase0, phase1, self.axes - self.data.ndim(), selectSlice)])
-        self.data.setPhase(phase0, phase1, self.axes, selectSlice)
+        self.data.phase(phase0, phase1, self.axes, selectSlice)
         self.upd()
         self.showFid()
 
@@ -1693,14 +1601,14 @@ class Current1D(Plot1DFrame):
         self.showFid()
 
     def setFreq(self, freq, sw):  # set the frequency of the actual data
-        self.root.addMacro(['freq', (freq, sw, self.axes - self.data.ndim())])
+        self.root.addMacro(['setFreq', (freq, sw, self.axes - self.data.ndim())])
         self.data.setFreq(freq, sw, self.axes)
         self.upd()
         self.showFid()
 
     def setRef(self, ref):  # set the frequency of the actual data
         oldref = self.ref()
-        self.root.addMacro(['ref', (ref, self.axes - self.data.ndim())])
+        self.root.addMacro(['setRef', (ref, self.axes - self.data.ndim())])
         self.data.setRef(ref, self.axes)
         if ref is None:
             ref = self.freq()
@@ -1825,68 +1733,68 @@ class Current1D(Plot1DFrame):
             yNew[num] = yNew[num] / scale * maxim
         self.showFid(extraX=xNew, extraY=yNew, extraColor='g')
 
-    def setSizePreview(self, size, pos):  # set size only on local data
-        self.data1D.setSize(size, pos, -1)
+    def resizePreview(self, size, pos):  # set size only on local data
+        self.data1D.resize(size, pos, -1)
         self.showFid()
         if not self.spec():
             self.plotReset(True, False)
         self.upd()
 
-    def applySize(self, size, pos):  # set size to the actual data
-        self.root.addMacro(['size', (size, pos, self.axes - self.data.ndim())])
+    def resize(self, size, pos):  # set size to the actual data
+        self.root.addMacro(['resize', (size, pos, self.axes - self.data.ndim())])
         if self.data.noUndo:
-            self.data.setSize(size, pos, self.axes)
+            self.data.resize(size, pos, self.axes)
         else:
-            self.data.setSize(size, pos, self.axes)
+            self.data.resize(size, pos, self.axes)
         self.upd()
         self.showFid()
         if not self.spec():
             self.plotReset(True, False)
 
-    def applyLPSVD(self, nAnalyse, nFreq, nPredict, Direction):
-        self.root.addMacro(['LPSVD', (nAnalyse, nFreq, nPredict, Direction, self.axes - self.data.ndim())])
-        self.data.setLPSVD(nAnalyse, nFreq, nPredict, Direction, self.axes)
+    def lpsvd(self, nAnalyse, nFreq, nPredict, Direction):
+        self.root.addMacro(['lpsvd', (nAnalyse, nFreq, nPredict, Direction, self.axes - self.data.ndim())])
+        self.data.lpsvd(nAnalyse, nFreq, nPredict, Direction, self.axes)
         self.upd()
         self.showFid()
 
-    def changeSpec(self, val):  # change from time to freq domain of the actual data
-        self.root.addMacro(['spec', (val, self.axes - self.data.ndim())])
-        self.data.changeSpec(val, self.axes)
+    def setSpec(self, val):  # change from time to freq domain of the actual data
+        self.root.addMacro(['setSpec', (val, self.axes - self.data.ndim())])
+        self.data.setSpec(val, self.axes)
         self.upd()
         if isinstance(self, CurrentArrayed):
             self.resetSpacing()
         self.showFid()
         self.plotReset()
 
-    def applySwapEcho(self, idx):
-        self.root.addMacro(['swapecho', (idx, self.axes - self.data.ndim())])
+    def swapEcho(self, idx):
+        self.root.addMacro(['swapEcho', (idx, self.axes - self.data.ndim())])
         self.data.swapEcho(idx, self.axes)
         self.upd()
         self.showFid()
 
-    def setSwapEchoPreview(self, idx):
+    def swapEchoPreview(self, idx):
         self.data1D.swapEcho(idx, -1)
         self.showFid()
         self.upd()
 
     def setWholeEcho(self, value):
         valBool = value != 0
-        self.root.addMacro(['wholeEcho', (valBool, self.axes - self.data.ndim())])
+        self.root.addMacro(['setWholeEcho', (valBool, self.axes - self.data.ndim())])
         self.data.setWholeEcho(valBool, self.axes)
         self.data1D.setWholeEcho(valBool, self.axes)
 
-    def applyShift(self, shift, select=False):
+    def shift(self, shift, select=False):
         if select:
             selectSlice = self.getSelect()
         else:
             selectSlice = slice(None)
         self.root.addMacro(['shift', (shift, self.axes - self.data.ndim(), selectSlice)])
-        self.data.shiftData(shift, self.axes, selectSlice)
+        self.data.shift(shift, self.axes, selectSlice)
         self.upd()
         self.showFid()
 
-    def setShiftPreview(self, shift):
-        self.data1D.shiftData(shift, -1)
+    def shiftPreview(self, shift):
+        self.data1D.shift(shift, -1)
         self.showFid()
         self.upd()
 
@@ -1909,7 +1817,7 @@ class Current1D(Plot1DFrame):
         polyCoeff = poly.polyfit(x[bArray], data[bArray], degree)
         return poly.polyval(x, polyCoeff)
 
-    def applyBaselineAll(self, degree, removeList, select=False, invert=False):
+    def baselineCorrectionAll(self, degree, removeList, select=False, invert=False):
         tmpAx = np.arange(self.len())
         bArray = np.array([True] * self.len())
         for i in range(int(np.floor(len(removeList) / 2.0))):
@@ -1923,7 +1831,7 @@ class Current1D(Plot1DFrame):
         self.root.addMacro(['subtract', ([y])])
         self.data.subtract([y])
 
-    def applyBaseline(self, degree, removeList, select=False, invert=False):
+    def baselineCorrection(self, degree, removeList, select=False, invert=False):
         if select:
             selectSlice = self.getSelect()
         else:
@@ -1943,7 +1851,7 @@ class Current1D(Plot1DFrame):
         self.root.addMacro(['baselineCorrection', (y, self.axes - self.data.ndim(), selectSlice)])
         self.data.baselineCorrection(y, self.axes, select=selectSlice)
 
-    def previewBaseline(self, degree, removeList, invert=False):
+    def previewBaselineCorrection(self, degree, removeList, invert=False):
         tmpData = self.data1D.getHyperData(0)
         tmpData = tmpData[(0,)*(self.ndim()-1) + (slice(None), )]
         tmpAx = np.arange(self.len())
@@ -2043,7 +1951,7 @@ class Current1D(Plot1DFrame):
         self.data.flipLR(self.axes)
         self.upd()
         self.showFid()
-        self.root.addMacro(['fliplr', (self.axes - self.data.ndim(), )])
+        self.root.addMacro(['flipLR', (self.axes - self.data.ndim(), )])
 
     def concatenate(self, axes):
         self.data.concatenate(axes)
@@ -2079,13 +1987,13 @@ class Current1D(Plot1DFrame):
         self.plotReset()
 
     def delete(self, pos):
-        self.data.remove(pos, self.axes)
+        self.data.delete(pos, self.axes)
         self.upd()
         self.showFid()
         self.root.addMacro(['delete', (pos, self.axes - self.data.ndim())])
 
     def deletePreview(self, pos):
-        self.data1D.remove(pos, -1)
+        self.data1D.delete(pos, -1)
         self.showFid()
         self.upd()
 
@@ -2145,14 +2053,14 @@ class Current1D(Plot1DFrame):
         self.showFid()
         self.upd()
 
-    def getRegion(self, pos1, pos2, newSpec=False):
+    def extract(self, pos1, pos2, newSpec=False):
         if newSpec:
             tmpData = copy.deepcopy(self.data)
-            tmpData.getRegion(pos1, pos2, self.axes)
+            tmpData.extract(pos1, pos2, self.axes)
             return tmpData
         else:
             self.root.addMacro(['extract', (pos1, pos2, self.axes - self.data.ndim())])
-            self.data.getRegion(pos1, pos2, self.axes)
+            self.data.extract(pos1, pos2, self.axes)
             self.upd()
             self.showFid()
             self.plotReset()
@@ -2227,7 +2135,7 @@ class Current1D(Plot1DFrame):
         self.upd()
 
     def setXax(self, xax):
-        self.root.addMacro(['setxax', (xax, self.axes - self.data.ndim())])
+        self.root.addMacro(['setXax', (xax, self.axes - self.data.ndim())])
         self.data.setXax(xax, self.axes)
         self.upd()
         self.showFid()

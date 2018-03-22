@@ -1699,114 +1699,12 @@ class Main1DWindow(QtWidgets.QWidget):
         for iter1 in macro:
             if iter1[0] == 'reload':
                 loadData = self.father.loading(self.masterData.filePath[0], self.masterData.filePath[1], True)
-                returnValue = self.masterData.restoreData(loadData, None)
-            elif iter1[0] == 'real':
-                returnValue = self.masterData.real(*iter1[1])
-            elif iter1[0] == 'imag':
-                returnValue = self.masterData.imag(*iter1[1])
-            elif iter1[0] == 'abs':
-                returnValue = self.masterData.abs(*iter1[1])
-            elif iter1[0] == 'conj':
-                returnValue = self.masterData.conj(*iter1[1])
-            elif iter1[0] == 'phase':
-                returnValue = self.masterData.setPhase(*iter1[1])
-            elif iter1[0] == 'autoPhase':
-                returnValue = self.masterData.autoPhase(*iter1[1])
-            elif iter1[0] == 'fourier':
-                returnValue = self.masterData.fourier(*iter1[1])
-            elif iter1[0] == 'realFourier':
-                returnValue = self.masterData.realFourier(*iter1[1])
-            elif iter1[0] == 'fftshift':
-                returnValue = self.masterData.fftshift(*iter1[1])
-            elif iter1[0] == 'diff':
-                returnValue = self.masterData.diff(*iter1[1])
-            elif iter1[0] == 'cumsum':
-                returnValue = self.masterData.cumsum(*iter1[1])
-            elif iter1[0] == 'apodize':
-                returnValue = self.masterData.apodize(*iter1[1])
-            elif iter1[0] == 'freq':
-                returnValue = self.masterData.setFreq(*iter1[1])
-            elif iter1[0] == 'ref':
-                returnValue = self.masterData.setRef(*iter1[1])
-            elif iter1[0] == 'size':
-                returnValue = self.masterData.setSize(*iter1[1])
-            elif iter1[0] == 'spec':
-                returnValue = self.masterData.changeSpec(*iter1[1])
-            elif iter1[0] == 'swapecho':
-                returnValue = self.masterData.swapEcho(*iter1[1])
-            elif iter1[0] == 'wholeEcho':
-                returnValue = self.masterData.wholeEcho(*iter1[1])
-            elif iter1[0] == 'shift':
-                returnValue = self.masterData.shiftData(*iter1[1])
-            elif iter1[0] == 'LPSVD':
-                returnValue = self.masterData.setLPSVD(*iter1[1])
-            elif iter1[0] == 'states':
-                returnValue = self.masterData.states(*iter1[1])
-            elif iter1[0] == 'statesTPPI':
-                returnValue = self.masterData.statesTPPI(*iter1[1])
-            elif iter1[0] == 'echoAntiEcho':
-                returnValue = self.masterData.echoAntiEcho(*iter1[1])
-            elif iter1[0] == 'baselineCorrection':
-                returnValue = self.masterData.baselineCorrection(*iter1[1])
-            elif iter1[0] == 'integrate':
-                returnValue = self.masterData.integrate(*iter1[1])
-            elif iter1[0] == 'sum':
-                returnValue = self.masterData.sum(*iter1[1])
-            elif iter1[0] == 'max':
-                returnValue = self.masterData.max(*iter1[1])
-            elif iter1[0] == 'min':
-                returnValue = self.masterData.min(*iter1[1])
-            elif iter1[0] == 'argmax':
-                returnValue = self.masterData.argmax(*iter1[1])
-            elif iter1[0] == 'argmin':
-                returnValue = self.masterData.argmin(*iter1[1])
-            elif iter1[0] == 'average':
-                returnValue = self.masterData.average(*iter1[1])
-            elif iter1[0] == 'regrid':
-                returnValue = self.masterData.regrid(*iter1[1])
-            elif iter1[0] == 'fliplr':
-                returnValue = self.masterData.flipLR(*iter1[1])
-            elif iter1[0] == 'concatenate':
-                returnValue = self.masterData.concatenate(*iter1[1])
-            elif iter1[0] == 'split':
-                returnValue = self.masterData.split(*iter1[1])
-            elif iter1[0] == 'insert':
-                returnValue = self.masterData.insert(*iter1[1])
-            elif iter1[0] == 'delete':
-                returnValue = self.masterData.remove(*iter1[1])
-            elif iter1[0] == 'add':
-                returnValue = self.masterData.add(*iter1[1])
-            elif iter1[0] == 'subtract':
-                returnValue = self.masterData.subtract(*iter1[1])
-            elif iter1[0] == 'multiply':
-                returnValue = self.masterData.multiply(*iter1[1])
-            elif iter1[0] == 'divide':
-                returnValue = self.masterData.divide(*iter1[1])
-            elif iter1[0] == 'normalize':
-                returnValue = self.masterData.normalize(*iter1[1])
-            elif iter1[0] == 'subtractAvg':
-                returnValue = self.masterData.subtractAvg(*iter1[1])
-            elif iter1[0] == 'fiddle':
-                returnValue = self.masterData.fiddle(*iter1[1])
-            elif iter1[0] == 'reorder':
-                returnValue = self.masterData.reorder(*iter1[1])
-            elif iter1[0] == 'ffm':
-                returnValue = self.masterData.ffm(*iter1[1])
-            elif iter1[0] == 'clean':
-                returnValue = self.masterData.clean(*iter1[1])
-            elif iter1[0] == 'ist':
-                returnValue = self.masterData.ist(*iter1[1])
-            elif iter1[0] == 'shear':
-                returnValue = self.masterData.shear(*iter1[1])
-            elif iter1[0] == 'extract':
-                returnValue = self.masterData.getRegion(*iter1[1])
-            elif iter1[0] == 'setxax':
-                returnValue = self.masterData.setXax(*iter1[1])
-            elif iter1[0] == 'hilbert':
-                returnValue = self.masterData.hilbert(*iter1[1])
+                self.masterData.restoreData(loadData, None)
             else:
-                self.father.dispMsg('unknown macro command: ' + iter1[0])
-                returnValue = None
+                try:
+                    getattr(self.masterData, iter1[0])(*iter1[1])
+                except AttributeError:
+                    self.father.dispMsg('unknown macro command: ' + iter1[0])
         if display:
             self.current.upd()  # get the first slice of data
             self.current.showFid()  # plot the data
@@ -3040,7 +2938,7 @@ class BottomFrame(QtWidgets.QWidget):
         self.father.menuCheck()
 
     def changeSpec(self):
-        self.father.current.changeSpec(self.specGroup.checkedId())
+        self.father.current.setSpec(self.specGroup.checkedId())
         self.upd()
         self.father.menuCheck()
 
@@ -3814,7 +3712,7 @@ class SizeWindow(wc.ToolWindows):
             self.father.father.dispMsg('Sizing: \'Offset\' input is not valid')
             return False
         self.posEntry.setText(str(self.posVal))
-        self.father.current.setSizePreview(self.sizeVal, self.posVal)
+        self.father.current.resizePreview(self.sizeVal, self.posVal)
 
     def applyFunc(self):
         inp = safeEval(self.sizeEntry.text())
@@ -3829,7 +3727,7 @@ class SizeWindow(wc.ToolWindows):
         if self.posVal < 1 or inp is None:
             self.father.father.dispMsg('Sizing: \'Offset\' input is not valid')
             return False
-        self.father.current.applySize(self.sizeVal, self.posVal)
+        self.father.current.resize(self.sizeVal, self.posVal)
         self.father.sideframe.upd()
 
     def picked(self, pos):
@@ -3876,7 +3774,7 @@ class SwapEchoWindow(wc.ToolWindows):
             return False
         self.posEntry.setText(str(self.posVal))
         if self.posVal > 0 and self.posVal < (self.father.current.len()):
-            self.father.current.applySwapEcho(self.posVal)
+            self.father.current.swapEcho(self.posVal)
             self.father.bottomframe.upd()
         else:
             self.father.father.dispMsg("Swap echo: not a valid index")
@@ -3895,9 +3793,7 @@ class LPSVDWindow(wc.ToolWindows):
 
     def __init__(self, parent):
         super(LPSVDWindow, self).__init__(parent)
-        # self.grid.addWidget(wc.QLabel("# points for analysis:"), 2, 0)
         self.specGroup = QtWidgets.QButtonGroup(self)
-        # self.specGroup.buttonClicked.connect(self.changeSpec)
         backwardButton = QtWidgets.QRadioButton('Backward', parent=self)
         self.specGroup.addButton(backwardButton, 1)
         forwardButton = QtWidgets.QRadioButton('Forward', parent=self)
@@ -3937,7 +3833,7 @@ class LPSVDWindow(wc.ToolWindows):
         if self.analPoints <= self.numberFreq * 4:
             self.father.father.dispMsg('LPSVD: number of points for analysis must be more than 4 times the number of frequencies')
             return False
-        self.father.current.applyLPSVD(analPoints, numberFreq, predictPoints, self.specGroup.checkedId())
+        self.father.current.lpsvd(analPoints, numberFreq, predictPoints, self.specGroup.checkedId())
         self.father.sideframe.upd()
 
 ###########################################################################
@@ -4006,7 +3902,7 @@ class ShiftDataWindow(wc.ToolWindows):
             self.father.father.dispMsg("Shift data: shift value not valid")
             return
         self.shiftEntry.setText(str(self.shiftVal))
-        self.father.current.setShiftPreview(self.shiftVal)
+        self.father.current.shiftPreview(self.shiftVal)
 
     def applyFunc(self):
         inp = safeEval(self.shiftEntry.text())
@@ -4014,7 +3910,7 @@ class ShiftDataWindow(wc.ToolWindows):
             self.father.father.dispMsg("Shift data: shift value not valid")
             return False
         shift = int(round(inp))
-        self.father.current.applyShift(shift, (self.singleSlice.isChecked()))
+        self.father.current.shift(shift, (self.singleSlice.isChecked()))
 
 #############################################################
 
@@ -4164,7 +4060,7 @@ class BaselineWindow(wc.ToolWindows):
     def preview(self, *args):
         inp = self.degreeEntry.value()
         self.father.current.previewRemoveList(self.removeList, invert=self.invertButton.isChecked())
-        check = self.father.current.previewBaseline(inp, self.removeList, invert=self.invertButton.isChecked())
+        check = self.father.current.previewBaselineCorrection(inp, self.removeList, invert=self.invertButton.isChecked())
         if not check:
             self.father.father.dispMsg("Baseline correct: error in polynomial fit", 'red')
         self.father.current.peakPickFunc = lambda pos, self=self: self.picked(pos)
@@ -4183,9 +4079,9 @@ class BaselineWindow(wc.ToolWindows):
     def applyFunc(self):
         inp = self.degreeEntry.value()
         if self.allFitButton.isChecked():
-            returnValue = self.father.current.applyBaselineAll(inp, self.removeList, self.singleSlice.isChecked(), invert=self.invertButton.isChecked())
+            returnValue = self.father.current.baselineCorrectionAll(inp, self.removeList, self.singleSlice.isChecked(), invert=self.invertButton.isChecked())
         else:
-            returnValue = self.father.current.applyBaseline(inp, self.removeList, self.singleSlice.isChecked(), invert=self.invertButton.isChecked())
+            returnValue = self.father.current.baselineCorrection(inp, self.removeList, self.singleSlice.isChecked(), invert=self.invertButton.isChecked())
         if returnValue is False:
             self.father.father.dispMsg("Baseline correct: error in polynomial fit", 'red')
             return False
@@ -4587,10 +4483,10 @@ class extractRegionWindow(regionWindow2):
 
     def apply(self, maximum, minimum, newSpec):
         if newSpec:
-            if self.father.father.newWorkspace(self.father.current.getRegion(minimum, maximum, newSpec)) is None:
+            if self.father.father.newWorkspace(self.father.current.extract(minimum, maximum, newSpec)) is None:
                 return None
         else:
-            self.father.current.getRegion(minimum, maximum, newSpec)
+            self.father.current.extract(minimum, maximum, newSpec)
             self.father.updAllFrames()
         return 1
 

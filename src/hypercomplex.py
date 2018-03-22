@@ -413,7 +413,7 @@ class HComplexData(object):
         tmpData = np.apply_along_axis(lambda data, newX, oldX: intp.interp1d(oldX, data, fill_value=0, bounds_error=False)(newX), axis, self.data, newX, oldX)
         return HComplexData(tmpData, np.copy(self.hyper))
 
-    def setSize(self, size, pos, axis):
+    def resize(self, size, pos, axis):
         if axis >= 0:
             axis += 1
         oldSize = self.data.shape[axis]
