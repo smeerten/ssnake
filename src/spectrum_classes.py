@@ -403,12 +403,12 @@ class Spectrum(object):
         if not self.noUndo:
             self.undoList.append(lambda self: self.restoreData(copyData, lambda self: self.abs(axes)))
     
-    def conj(self):
-        self.data = self.data.conj()
-        self.addHistory("Complex conjugate")
+    def conj(self, axis=-1):
+        self.data = self.data.conj(axis)
+        self.addHistory("Complex conjugate along" + str(axis+1))
         self.redoList = []
         if not self.noUndo:
-            self.undoList.append(lambda self: self.conj())
+            self.undoList.append(lambda self: self.conj(axis))
 
     def states(self, axes):
         axes = self.checkAxes(axes)
@@ -1515,8 +1515,8 @@ class Current1D(Plot1DFrame):
         self.showFid()
 
     def conj(self, *args):
-        self.root.addMacro(['conj'])
-        self.data.conj()
+        self.root.addMacro(['conj', (self.axes - self.data.ndim(), )])
+        self.data.conj(self.axes)
         self.upd()
         self.showFid()
     

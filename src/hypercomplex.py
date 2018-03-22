@@ -128,8 +128,19 @@ class HComplexData(object):
 
     def __rmul__(self, other):
         return self.__mul__(other)
-    
-    def conj(self):
+
+    def conj(self, axis):
+        if axis < 0:
+            axis = self.ndim() + axis
+        if axis == (self.ndim()-1):
+            return HComplexData(np.conj(self.data), np.copy(self.hyper))
+        else:
+            tmpData = np.copy(self.data)
+            imagBool = np.array(self.hyper & (2**axis), dtype=bool)
+            tmpData[imagBool] = -tmpData[imagBool]
+            return HComplexData(tmpData, np.copy(self.hyper))
+
+    def conjAll(self):
         tmpData = np.conj(self.data)
         tmpData[1:] = -tmpData[1:]
         return HComplexData(tmpData, np.copy(self.hyper))
@@ -164,7 +175,7 @@ class HComplexData(object):
                 tmpSelf = HComplexData(np.copy(self.data), np.copy(self.hyper))
                 while not tmpOther.isAllReal():
                     tmpObj = HComplexData(np.copy(tmpOther.data), np.copy(tmpOther.hyper))
-                    tmpObj.iconj()
+                    tmpObj = tmpObj.conjAll()
                     tmpOther *= tmpObj
                     tmpSelf *= tmpObj
                 tmpSelf.data /= tmpOther.data[0]
