@@ -303,8 +303,7 @@ class Spectrum(object):
             select = safeEval(select)
         axes = self.checkAxes(axes)
         try:
-            for index in range(len(self.data)):
-                self.data[select] = np.apply_along_axis(np.multiply, axes, self.data, mult * scale)[select]
+            self.data *= mult * scale 
         except ValueError as error:
             self.dispMsg('Normalize: ' + str(error))
             return None
