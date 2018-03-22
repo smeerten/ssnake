@@ -238,23 +238,23 @@ def loadPipe(filePath, name=''):
     if quadFlag[3] == 0: #If complex along last dim
         useSlice = eS * (NDIM - 1)
         data[0] = data[0][useSlice + (slice(None,SIZE[3],None),)] + 1j * data[0][useSlice + (slice(SIZE[3],None,None),)]
-    hyper = []
+    hyper = np.array([0])
     if NDIM > 1: #Reorder data, if hypercomplex along an axis
         for dim in range(NDIM - 1):
             newdata = []
             if quadFlag[4 - NDIM + dim] == 0:
-                useSlice1 = eS * dim +(slice(None,None,2),) + eS * (NDIM - dim - 1)
-                useSlice2 = eS * dim +(slice(1,None,2),) + eS * (NDIM - dim - 1)
+                useSlice1 = eS * dim + (slice(None,None,2),) + eS * (NDIM - dim - 1)
+                useSlice2 = eS * dim + (slice(1,None,2),) + eS * (NDIM - dim - 1)
                 for dat in data:
                     newdata.append(dat[useSlice1])
                     newdata.append(dat[useSlice2])
                 data = newdata
-                hyper.append(dim)
+                hyper = np.append(hyper, hyper + 2**dim)
     for k in range(len(data)): #Flip LR if spectrum axis
         for i in range(NDIM):
             if spec[-1 - i] == 1: 
                 data[k] = np.flip(data[k], NDIM -1 - i)
-    masterData = sc.Spectrum(name, data, (8, filePath), freq[4 - NDIM:4], sw[4 - NDIM:4], spec[4 - NDIM:4], ref=ref[4 - NDIM:4], hyper = hyper)
+    masterData = sc.Spectrum(name, hc.HComplexData(data, hyper), (8, filePath), freq[4 - NDIM:4], sw[4 - NDIM:4], spec[4 - NDIM:4], ref=ref[4 - NDIM:4])
     masterData.addHistory("NMRpipe data loaded from " + filePath)
     return masterData
 
@@ -290,7 +290,7 @@ def loadJEOLDelta(filePath, name=''):
     with open(filePath, "rb") as f:
         f.seek(readStart) #Set read start to position of data
         data = np.fromfile(f, endian, loadSize)
-    hyper = [] 
+    hyper = np.array([0])
     if NDIM == 1 and dataType[0] == 1: #Real 1D
         data = [data]
     elif NDIM == 1 and dataType[0] == 3: #Complex 1D
@@ -302,7 +302,7 @@ def loadJEOLDelta(filePath, name=''):
         data = np.reshape(data, [int(NP[1] / Step), int(NP[0] / Step), Step, Step])
         data = [np.concatenate(np.concatenate(data, 1), 1)]
     elif NDIM == 2 and dataType[0] == 3: #2D Complex-Complex (Hypercomplex) 
-        hyper = [0]
+        hyper = np.array([0, 1])
         Step = 32  # Step size of block
         tmp = np.split(data,4)
         data = [tmp[0] - 1j * tmp[1], tmp[2] - 1j * tmp[3]]
@@ -343,25 +343,42 @@ def loadJEOLDelta(filePath, name=''):
         for i in range(NDIM):
             if spec[-1 - i] == 1: 
                 data[k] = np.flip(data[k], NDIM -1 - i)
-    masterData = sc.Spectrum(name, data, (9, filePath), freq, sw, spec, ref=ref, hyper = hyper)
+    masterData = sc.Spectrum(name, hc.HComplexData(np.array(data), hyper), (9, filePath), freq, sw, spec, ref=ref)
     masterData.addHistory("JEOL Delta data loaded from " + filePath)
     return masterData
+
+def saveJSONFile(filePath, spectrum):
+    import json
+    struct = {}
+    item = spectrum.data
+    struct['dataReal'] = np.real(item.data).tolist()
+    struct['dataImag'] = np.imag(item.data).tolist()
+    struct['hyper'] = item.hyper.tolist()
+    struct['freq'] = spectrum.freq.tolist()
+    struct['sw'] = list(spectrum.sw)
+    struct['spec'] = list(1.0 * np.array(spectrum.spec))
+    struct['wholeEcho'] = list(1.0 * np.array(spectrum.wholeEcho))
+    struct['ref'] = np.array(spectrum.ref, dtype=np.float).tolist()
+    struct['history'] = spectrum.history
+    tmpXax = []
+    for i in spectrum.xaxArray:
+        tmpXax.append(i.tolist())
+    struct['xaxArray'] = tmpXax
+    with open(filePath, 'w') as outfile:
+        json.dump(struct, outfile)
 
 def loadJSONFile(filePath, name=''):
     import json
     with open(filePath, 'r') as inputfile:
         struct = json.load(inputfile)
-    hyper = None
-    try: #Try to get the hyper list (if works: new data definition)
+    if 'hyper' in struct.keys():
         hyper = list(struct['hyper'])
-        data = []
         tmpReal = struct['dataReal']
         tmpImag = struct['dataImag']
-        for index in range(len(tmpReal)):
-             data.append(np.array(tmpReal[index])+ 1j * np.array(tmpImag[index]))
-    except:
-        hyper = None
-        data = [np.array(struct['dataReal']) + 1j * np.array(struct['dataImag'])]
+        data = np.array(tmpReal) + 1j * np.array(tmpImag)
+    else:
+        hyper = [0]
+        data = np.array([np.array(struct['dataReal']) + 1j * np.array(struct['dataImag'])])
     ref = np.where(np.isnan(struct['ref']), None, struct['ref'])
     if 'history' in struct.keys():
         history = struct['history']
@@ -371,18 +388,33 @@ def loadJSONFile(filePath, name=''):
     for i in struct['xaxArray']:
         xaxA.append(np.array(i))
     masterData = sc.Spectrum(name,
-                             data,
+                             hc.HComplexData(data, hyper),
                              (5, filePath),
                              list(struct['freq']),
                              list(struct['sw']),
                              list(struct['spec']),
                              list(np.array(struct['wholeEcho'], dtype=bool)),
-                             hyper,
                              list(ref),
                              xaxA,
                              history=history)
     masterData.addHistory("JSON data loaded from " + filePath)
     return masterData
+
+def saveMatlabFile(filePath, spectrum, name='spectrum'):
+    import scipy.io
+    struct = {}
+    struct['dim'] = spectrum.ndim()
+    struct['data'] = spectrum.data.data
+    struct['hyper'] = spectrum.data.hyper
+    struct['freq'] = spectrum.freq
+    struct['sw'] = spectrum.sw
+    struct['spec'] = spectrum.spec
+    struct['wholeEcho'] = spectrum.wholeEcho
+    struct['ref'] = np.array(spectrum.ref, dtype=np.float)
+    struct['history'] = spectrum.history
+    struct['xaxArray'] = spectrum.xaxArray
+    matlabStruct = {name: struct}
+    scipy.io.savemat(filePath, matlabStruct)
 
 def loadMatlabFile(filePath, name=''):
     import scipy.io
@@ -393,24 +425,25 @@ def loadMatlabFile(filePath, name=''):
         matlabStruct = scipy.io.loadmat(filePath)
         var = [k for k in matlabStruct.keys() if not k.startswith('__')][0]
         mat = matlabStruct[var]
-        try:
-            hyper = list(mat['hyper'][0,0])
-            if len(hyper) > 0:
-                hyper = list(hyper[0])
-        except:
+        if 'hyper' in mat.dtype.names:
+            if len(mat['hyper'][0,0]) == 0:
+                hyper = None
+            else:
+                hyper = mat['hyper'][0,0][0]
+        else:
             hyper = None
         data = []
         if mat['dim'] == 1:
             if hyper is None:
-                data = [np.array(mat['data'][0][0][0])]
+                data = np.array(mat['data'][0][0][0])
             else:
-                data = list(np.array(mat['data'][0][0]))
+                data = np.array(mat['data'][0][0])
             xaxA = [k[0] for k in (mat['xaxArray'][0])]
         else:
             if hyper is None: #If old format
-                data = [np.array(mat['data'][0, 0])]
+                data = np.array(mat['data'][0, 0])
             else: #If new format
-                data = list(np.array(mat['data'][0][0]))
+                data = np.array(mat['data'][0][0])
             if all(x == data[0].shape[0] for x in data[0].shape):
                 xaxA = [k for k in (mat['xaxArray'][0, 0])]
             else:
@@ -423,13 +456,12 @@ def loadMatlabFile(filePath, name=''):
         else:
             history = None
         masterData = sc.Spectrum(name,
-                                 data,
+                                 hc.HComplexData(data, hyper),
                                  (6, filePath),
                                  list(mat['freq'][0, 0][0]),
                                  list(mat['sw'][0, 0][0]),
                                  list(mat['spec'][0, 0][0]),
                                  list(np.array(mat['wholeEcho'][0, 0][0]) > 0),
-                                 hyper,
                                  list(ref),
                                  xaxA,
                                  history=history)
@@ -444,13 +476,9 @@ def loadMatlabFile(filePath, name=''):
                 Groups.append(name)
         DataGroup = Groups[0]  # get the group name
         mat = f[DataGroup]
-        try:
-            hyper = list(np.array(mat['hyper']))
-            if hyper == [0,0]:
-                hyper = []
-            else:
-                hyper = list(hyper[0])
-        except:
+        if 'hyper' in mat.dtype.names:
+            hyper = np.array(mat['hyper'])
+        else:
             hyper = None
         if np.array(mat['dim'])[0][0] == 1:
             xaxA = list([np.array(mat['xaxArray'])[:, 0]])
@@ -482,13 +510,12 @@ def loadMatlabFile(filePath, name=''):
         else:
             history = None
         masterData = sc.Spectrum(name,
-                                 data,
+                                 hc.HComplexData(data, hyper),
                                  (6, filePath),
                                  list(np.array(mat['freq'])[:, 0]),
                                  list(np.array(mat['sw'])[:, 0]),
                                  list(np.array(mat['spec'])[:, 0]),
                                  list(np.array(mat['wholeEcho'])[:, 0] > 0),
-                                 hyper,
                                  list(ref),
                                  xaxA,
                                  history=history)
@@ -566,34 +593,34 @@ def loadBrukerSpectrum(filePath, name=''):
     DATA = []
     files = [['1r','1i'],['2rr','2ir','2ri','2ii'],['3rrr','3irr','3rir','3iir','3rri','3iri','3rii','3iii']]
     counter = 0
-    for file in files[dim - 1]: #For all the files
+    for file in files[dim - 1]: # For all the files
         if os.path.exists(Dir + os.path.sep + file): 
             with open(Dir + os.path.sep + file, "rb") as f:
                 raw = np.fromfile(f, np.int32, totsize)
-                raw = raw.newbyteorder(ByteOrder) #Set right byteorder
-                if counter % 2 == 0: #If even, data is real part
+                raw = raw.newbyteorder(ByteOrder) # Set right byteorder
+                if counter % 2 == 0: # If even, data is real part
                     DATA.append(np.flipud(raw))
-                else: #If odd, data is imag, and needs to be add to the previous
+                else: # If odd, data is imag, and needs to be add to the previous
                     DATA[-1] = DATA[-1] - 1j * np.flipud(raw)
-                counter += 1 #only advance counter when file is found
+                counter += 1 # only advance counter when file is found
     del raw
-    hyper = None
-    if dim == 2: #If 2D data has more than 1 part: hypercomplex along the first axis
+    hyper = np.array([0])
+    if dim == 2: # If 2D data has more than 1 part: hypercomplex along the first axis
         if len(DATA) != 1:
-            hyper = [0]
+            hyper = np.array([0, 1])
     if len(SIZE) == 2:
-        for index in range(len(DATA)): #For each data set
-            #Reshape DATA to 4D data using the block information
-            #Twice concat along axis 1 constructs the regular x-y data
+        for index in range(len(DATA)): # For each data set
+            # Reshape DATA to 4D data using the block information
+            # Twice concat along axis 1 constructs the regular x-y data
             DATA[index] = np.reshape(DATA[index],[int(SIZE[1]/XDIM[1]),int(SIZE[0]/XDIM[0]),XDIM[1],XDIM[0]])
             DATA[index] = np.concatenate(np.concatenate(DATA[index],1),1)
     elif len(SIZE) == 3:
         for index in range(len(DATA)):
-            #The same as 2D, but now split to 6D data, and concat along 2
+            # The same as 2D, but now split to 6D data, and concat along 2
             DATA[index] = np.reshape(DATA[index],[int(SIZE[2]/XDIM[2]),int(SIZE[1]/XDIM[1]),int(SIZE[0]/XDIM[0]),XDIM[2],XDIM[1],XDIM[0]])
             DATA[index] = np.concatenate(np.concatenate(np.concatenate(DATA[index],2),2),2)
     spec = [True]
-    masterData = sc.Spectrum(name, DATA, (7, filePath), FREQ[-1::-1], SW[-1::-1], spec * dim, ref=REF[-1::-1],hyper = hyper)
+    masterData = sc.Spectrum(name, hc.HComplexData(DATA, hyper), (7, filePath), FREQ[-1::-1], SW[-1::-1], spec * dim, ref=REF[-1::-1])
     masterData.addHistory("Bruker spectrum data loaded from " + filePath)
     return masterData
 
@@ -698,6 +725,33 @@ def loadMagritek(filePath, name='', realPath=''):
     masterData.addHistory("Magritek data loaded from " + rememberPath)
     return masterData
 
+def saveSimpsonFile(filePath, spectrum):
+    data = spectrum.getHyperData(0) # SIMPSON does not support hypercomplex
+    with open(filePath, 'w') as f:
+        f.write('SIMP\n')
+        if data.ndim == 2:
+            f.write('NP=' + str(data.shape[1]) + '\n')
+            f.write('NI=' + str(data.shape[0]) + '\n')
+            f.write('SW=' + str(spectrum.sw[1]) + '\n')
+            f.write('SW1=' + str(spectrum.sw[0]) + '\n')
+        else:
+            f.write('NP=' + str(data.shape[0]) + '\n')
+            f.write('SW=' + str(spectrum.sw[0]) + '\n')
+        if spectrum.spec[0]:
+            f.write('TYPE=SPE' + '\n')
+        else:
+            f.write('TYPE=FID' + '\n')
+        f.write('DATA' + '\n')
+        if data.ndim == 1:
+            for line in data:
+                f.write(str(line.real) + ' ' + str(line.imag) + '\n')
+        if data.ndim == 2:
+            points = data.shape
+            for i in range(0, points[0]):
+                for j in range(0, points[1]):
+                    f.write(str(data[i][j].real) + ' ' + str(data[i][j].imag) + '\n')
+        f.write('END')
+
 def loadSimpsonFile(filePath, name=''):
     with open(filePath, 'r') as f:
         Lines = f.read().split('\n')
@@ -762,9 +816,9 @@ def loadSimpsonFile(filePath, name=''):
     elif 'SPE' in TYPE:
         spec = [True]
     if NI is 1:
-        masterData = sc.Spectrum(name, [data], (4, filePath), [0], [SW], spec)
+        masterData = sc.Spectrum(name, data, (4, filePath), [0], [SW], spec)
     else:
-        masterData = sc.Spectrum(name, [data], (4, filePath), [0, 0], [SW1, SW], spec * 2)
+        masterData = sc.Spectrum(name, data, (4, filePath), [0, 0], [SW1, SW], spec * 2)
     masterData.addHistory("SIMPSON data loaded from " + filePath)
     return masterData
 
@@ -923,6 +977,20 @@ def loadJCAMP(filePath, name):
             sw = sw + sw / NPoints
         masterData = sc.Spectrum(name, spectDat, (10, filePath), [freq], [sw], [True], ref=[None])
     return masterData
+
+def saveASCIIFile(filePath, spectrum, axMult=1):
+    axis = np.array([spectrum.xaxArray[-1] * axMult]).transpose()
+    tmpData = spectrum.data.getHyperData(0)
+    if tmpData.ndim == 1:  # create nx1 matrix if it is a 1d data set
+        data = np.array([tmpData]).transpose()
+    else:
+        data = tmpData.transpose()
+    splitdata = np.zeros([data.shape[0], data.shape[1] * 2])
+    for line in np.arange(data.shape[1]):
+        splitdata[:, line * 2] = np.real(data[:, line])
+        splitdata[:, line * 2 + 1] = np.imag(data[:, line])
+    data = np.concatenate((axis, splitdata), axis=1)
+    np.savetxt(filePath, data, delimiter='\t')
 
 def loadAscii(filePath, name, dataDimension, dataSpec, dataOrder, delimitor, swInp=0.0):
     freq = 0.0

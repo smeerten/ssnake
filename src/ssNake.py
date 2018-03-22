@@ -88,7 +88,7 @@ from plotWindow import MainPlotWindow
 splashStep = splashProgressStep(splashStep)
 import functions as func
 splashStep = splashProgressStep(splashStep)
-import loadFiles as LF
+import loadFiles as lf
 splashStep = splashProgressStep(splashStep)
 
 matplotlib.rc('font', family='DejaVu Sans')
@@ -1089,6 +1089,7 @@ class MainProgram(QtWidgets.QMainWindow):
         self.macros[givenName] = []
         for line in stringList:
             splitLine = line.split("(", 1)
+            splitLine = splitLine.replace(' ', '')
             splitLine[1] = safeEval("(" + splitLine[1])
             self.macros[givenName].append(splitLine)
         IconDirectory = os.path.dirname(os.path.realpath(__file__)) + os.path.sep + 'Icons' + os.path.sep
@@ -1377,7 +1378,7 @@ class MainProgram(QtWidgets.QMainWindow):
         return fileName
 
     def autoLoad(self, filePath, realpath=False):
-        val = LF.fileTypeCheck(filePath)
+        val = lf.fileTypeCheck(filePath)
         if val[0] is not None:
             self.loading(val[0], val[1], realpath=realpath)
         return val[2]
@@ -1392,12 +1393,12 @@ class MainProgram(QtWidgets.QMainWindow):
             try:
                 temp_dir = tempfile.mkdtemp()
                 zipfile.ZipFile(filePath).extractall(temp_dir)
-                val = LF.fileTypeCheck(os.path.join(temp_dir, os.listdir(temp_dir)[0]))
+                val = lf.fileTypeCheck(os.path.join(temp_dir, os.listdir(temp_dir)[0]))
                 combineMasterData = self.loading(val[0], val[1], returnBool=True, realpath=filePath)
             finally:
                 shutil.rmtree(temp_dir)
         else:
-            val = LF.fileTypeCheck(filePath)
+            val = lf.fileTypeCheck(filePath)
             combineMasterData = self.loading(val[0], val[1], returnBool=True)
         if combineMasterData is None:
             self.dispMsg("Data could not be loaded")
@@ -1413,12 +1414,12 @@ class MainProgram(QtWidgets.QMainWindow):
                 try:
                     temp_dir = tempfile.mkdtemp()
                     zipfile.ZipFile(filePath).extractall(temp_dir)
-                    val = LF.fileTypeCheck(os.path.join(temp_dir, os.listdir(temp_dir)[0]))
+                    val = lf.fileTypeCheck(os.path.join(temp_dir, os.listdir(temp_dir)[0]))
                     addData = self.loading(val[0], val[1], returnBool=True, realpath=filePath)
                 finally:
                     shutil.rmtree(temp_dir)
             else:
-                val = LF.fileTypeCheck(filePath)
+                val = lf.fileTypeCheck(filePath)
                 addData = self.loading(val[0], val[1], returnBool=True)
             if addData.shape() != shapeRequired:
                 self.dispMsg("Not all the data has the required shape")
@@ -1482,7 +1483,7 @@ class MainProgram(QtWidgets.QMainWindow):
             if dialog.exec_():
                 if dialog.closed:
                     return
-        masterData = LF.loading(num, filePath, name, realpath, dialog=dialog)
+        masterData = lf.loading(num, filePath, name, realpath, dialog=dialog)
         if masterData is None:
             self.dispMsg("Error on loading " + errorNames[num] + " data", 'red')
             return None
@@ -1718,7 +1719,6 @@ class Main1DWindow(QtWidgets.QWidget):
             self.redoMacro = []
 
     def saveJSONFile(self):
-        import json
         WorkspaceName = self.father.workspaceNames[self.father.workspaceNum]  # Set name of file to be saved to workspace name to start
         name = QtWidgets.QFileDialog.getSaveFileName(self, 'Save File', self.father.LastLocation + os.path.sep + WorkspaceName + '.json', 'JSON (*.json)')
         if isinstance(name, tuple):
@@ -1726,29 +1726,9 @@ class Main1DWindow(QtWidgets.QWidget):
         if not name:
             return
         self.father.LastLocation = os.path.dirname(name)  # Save used path
-        struct = {}
-        realData = []
-        imagData = []
-        for item in self.masterData.data:
-            realData.append(np.real(item).tolist())
-            imagData.append(np.imag(item).tolist())
-        struct['dataReal'] = realData
-        struct['dataImag'] = imagData
-        struct['freq'] = self.masterData.freq.tolist()
-        struct['sw'] = list(self.masterData.sw)
-        struct['spec'] = list(1.0 * np.array(self.masterData.spec))
-        struct['wholeEcho'] = list(1.0 * np.array(self.masterData.wholeEcho))
-        struct['ref'] = np.array(self.masterData.ref, dtype=np.float).tolist()
-        struct['history'] = self.masterData.history
-        tmpXax = []
-        for i in self.masterData.xaxArray:
-            tmpXax.append(i.tolist())
-        struct['xaxArray'] = tmpXax
-        with open(name, 'w') as outfile:
-            json.dump(struct, outfile)
+        lf.saveJSONfile(name, self.masterData)
 
     def saveMatlabFile(self):
-        import scipy.io
         WorkspaceName = self.father.workspaceNames[self.father.workspaceNum]  # Set name of file to be saved to workspace name to start
         name = QtWidgets.QFileDialog.getSaveFileName(self, 'Save File', self.father.LastLocation + os.path.sep + WorkspaceName + '.mat', 'MATLAB file (*.mat)')
         if isinstance(name, tuple):
@@ -1756,25 +1736,11 @@ class Main1DWindow(QtWidgets.QWidget):
         if not name:
             return
         self.father.LastLocation = os.path.dirname(name)  # Save used path
-        struct = {}
-        struct['dim'] = self.masterData.ndim()
-        struct['data'] = self.masterData.data
-        struct['freq'] = self.masterData.freq
-        struct['sw'] = self.masterData.sw
-        struct['spec'] = self.masterData.spec
-        struct['wholeEcho'] = self.masterData.wholeEcho
-        struct['ref'] = np.array(self.masterData.ref, dtype=np.float)
-        struct['history'] = self.masterData.history
-        struct['xaxArray'] = self.masterData.xaxArray
-        matlabStruct = {self.father.workspaceNames[self.father.workspaceNum]: struct}
-        scipy.io.savemat(name, matlabStruct)
+        lf.saveMatlabFile(name, self.masterData, self.father.workspaceNames[self.father.workspaceNum])
 
     def SaveSimpsonFile(self):
         if self.masterData.ndim() > 2:
             self.father.dispMsg('Saving to Simpson format only allowed for 1D and 2D data!')
-            return
-        if len(self.masterData.data) > 1:
-            self.father.dispMsg('Saving to Simpson format not allowed for hypercomplex data!')
             return
         WorkspaceName = self.father.workspaceNames[self.father.workspaceNum]  # Set name of file to be saved to workspace name to start
         if sum(self.masterData.spec) / len(self.masterData.spec) == 1:
@@ -1793,37 +1759,11 @@ class Main1DWindow(QtWidgets.QWidget):
             self.father.dispMsg('Saving to Simpson format not allowed for mixed time/frequency domain data!')
             return
         self.father.LastLocation = os.path.dirname(name)  # Save used path
-        with open(name, 'w') as f:
-            f.write('SIMP\n')
-            if self.masterData.ndim() is 2:
-                f.write('NP=' + str(self.masterData.shape()[1]) + '\n')
-                f.write('NI=' + str(self.masterData.shape()[0]) + '\n')
-                f.write('SW=' + str(self.masterData.sw[1]) + '\n')
-                f.write('SW1=' + str(self.masterData.sw[0]) + '\n')
-            else:
-                f.write('NP=' + str(self.masterData.shape()[0]) + '\n')
-                f.write('SW=' + str(self.masterData.sw[0]) + '\n')
-            if self.masterData.spec[0]:
-                f.write('TYPE=SPE' + '\n')
-            else:
-                f.write('TYPE=FID' + '\n')
-            f.write('DATA' + '\n')
-            if self.masterData.ndim() is 1:
-                for Line in self.masterData.data[0]:
-                    f.write(str(Line.real) + ' ' + str(Line.imag) + '\n')
-            if self.masterData.ndim() is 2:
-                Points = self.masterData.shape()
-                for iii in range(0, Points[0]):
-                    for jjj in range(0, Points[1]):
-                        f.write(str(self.masterData.data[0][iii][jjj].real) + ' ' + str(self.masterData.data[0][iii][jjj].imag) + '\n')
-            f.write('END')
+        lf.saveSimpsonFile(name, self.masterData)
 
     def saveASCIIFile(self):
         if self.masterData.ndim() > 2:
             self.father.dispMsg('Saving to ASCII format only allowed for 1D and 2D data!')
-            return
-        if len(self.masterData.data) > 1:
-            self.father.dispMsg('Saving to ASCII format not allowed for hypercomplex data!')
             return
         WorkspaceName = self.father.workspaceNames[self.father.workspaceNum]  # Set name of file to be saved to workspace name to start
         name = QtWidgets.QFileDialog.getSaveFileName(self, 'Save File', self.father.LastLocation + os.path.sep + WorkspaceName + '.txt', 'ASCII file (*.txt)')
@@ -1832,29 +1772,8 @@ class Main1DWindow(QtWidgets.QWidget):
         if not name:
             return
         self.father.LastLocation = os.path.dirname(name)  # Save used path
-        #axis = np.array([self.masterData.xaxArray[-1]]).transpose()
-        axType = self.current.viewSettings["axType"]
-        if self.masterData.spec[-1] == 1:
-            if self.current.viewSettings["ppm"]:
-                if self.current.ref() is not None:
-                    axMult = 1e6 / self.masterData.ref[-1]
-                else:
-                    axMult = 1e6 / self.masterData.freq[-1]
-            else:
-                axMult = 1.0 / (1000.0**axType)
-        elif self.masterData.spec[-1] == 0:
-            axMult = 1000.0**axType
-        axis = np.array([self.masterData.xaxArray[-1] * axMult]).transpose()
-        if self.masterData.ndim() == 1:  # create nx1 matrix if it is a 1d data set
-            data = np.array([self.masterData.data[0]]).transpose()
-        else:
-            data = self.masterData.data[0].transpose()
-        splitdata = np.zeros([data.shape[0], data.shape[1] * 2])
-        for line in np.arange(data.shape[1]):
-            splitdata[:, line * 2] = np.real(data[:, line])
-            splitdata[:, line * 2 + 1] = np.imag(data[:, line])
-        data = np.concatenate((axis, splitdata), axis=1)
-        np.savetxt(name, data, delimiter='\t')
+        axMult = self.current.getCurrentAxMult()
+        lf.saveASCIIFile(name, self.masterData, axMult)
 
     def reloadLast(self):
         path = self.masterData.filePath[1]

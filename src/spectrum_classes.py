@@ -92,7 +92,7 @@ class Spectrum(object):
 
     def isComplex(self, *args):
         return self.data.isComplex(*args)
-    
+
     def dispMsg(self, msg):
         if self.msgHandler is None:
             print(msg)
@@ -1425,6 +1425,9 @@ class Current1D(Plot1DFrame):
     def wholeEcho(self, dim=-1):
         return self.data1D.wholeEcho[dim]
 
+    def getCurrentAxMult(self, axis=-1):
+        return self.getAxMult(self.spec(axis), self.viewSettings["axType"], self.viewSettings["ppm"], self.freq(axis), self.ref(axis))
+    
     def getDataType(self, data):
         typeList = [np.real, np.imag, np.array, np.abs]
         return typeList[self.viewSettings["plotType"]](data)
