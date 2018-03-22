@@ -828,7 +828,7 @@ class MainProgram(QtWidgets.QMainWindow):
             for act in self.editActList + self.toolsActList + self.matrixActList + self.fftActList + self.fittingActList + self.plotActList + self.historyActList + self.combineActList:
                 act.setEnabled(True)
             if type(self.mainWindow) is Main1DWindow:
-                self.menuEnable()
+                self.menuEnable(True)
                 for act in self.specOnlyList:
                     act.setEnabled(self.mainWindow.current.spec() == 1)  # Only on for spec
                 for act in self.fidOnlyList:
@@ -871,7 +871,7 @@ class MainProgram(QtWidgets.QMainWindow):
                 self.exportmenu.menuAction().setEnabled(True)
                 self.workspacemenu.menuAction().setEnabled(True)
             elif type(self.mainWindow) is MainPlotWindow:
-                self.menuDisable(True)
+                self.menuEnable(False, True)
                 self.savemenu.menuAction().setEnabled(True)
                 self.exportmenu.menuAction().setEnabled(True)
                 for act in self.saveActList + self.exportActList + self.workspaceActList:
@@ -880,7 +880,7 @@ class MainProgram(QtWidgets.QMainWindow):
                 self.workspacemenu.menuAction().setEnabled(True)
                 self.macrolistmenu.menuAction().setEnabled(False)
             else:
-                self.menuDisable(True)
+                self.menuEnable(False, True)
                 self.savemenu.menuAction().setEnabled(True)
                 self.exportmenu.menuAction().setEnabled(True)
                 self.savefigAct.setEnabled(True)
@@ -889,50 +889,28 @@ class MainProgram(QtWidgets.QMainWindow):
                 for act in self.saveActList + self.exportActList + self.workspaceActList:
                     act.setEnabled(True)
 
-    def menuEnable(self, internalWindow=False):
-        self.macrolistmenu.menuAction().setEnabled(True)
-        self.editmenu.menuAction().setEnabled(True)
-        self.toolMenu.menuAction().setEnabled(True)
-        self.matrixMenu.menuAction().setEnabled(True)
-        self.fftMenu.menuAction().setEnabled(True)
-        self.fittingMenu.menuAction().setEnabled(True)
-        self.combineMenu.menuAction().setEnabled(True)
-        self.referencerunmenu.menuAction().setEnabled(True)
+    def menuEnable(self, enable=True, internalWindow=False):
+        self.macrolistmenu.menuAction().setEnabled(enable)
+        self.editmenu.menuAction().setEnabled(enable)
+        self.toolMenu.menuAction().setEnabled(enable)
+        self.matrixMenu.menuAction().setEnabled(enable)
+        self.fftMenu.menuAction().setEnabled(enable)
+        self.fittingMenu.menuAction().setEnabled(enable)
+        self.combineMenu.menuAction().setEnabled(enable)
+        self.referencerunmenu.menuAction().setEnabled(enable)
         # Actions:
         for act in self.macroActList + self.editActList + self.toolsActList + self.matrixActList + self.fftActList + self.fittingActList + self.plotActList + self.combineActList + self.historyActList:
-            act.setEnabled(True)
+            act.setEnabled(enable)
         if not internalWindow:
-            self.filemenu.menuAction().setEnabled(True)
-            self.workspacemenu.menuAction().setEnabled(True)
+            self.filemenu.menuAction().setEnabled(enable)
+            self.workspacemenu.menuAction().setEnabled(enable)
             for act in self.fileActList + self.workspaceActList:
-                act.setEnabled(True)
+                act.setEnabled(enable)
             for i in range(self.tabs.count()):
-                self.tabs.setTabEnabled(i, True)
-        self.undoAction.setEnabled(True)
-        self.redoAction.setEnabled(True)
-
-    def menuDisable(self, internalWindow=False):
-        self.macrolistmenu.menuAction().setEnabled(True)
-        self.editmenu.menuAction().setEnabled(False)
-        self.toolMenu.menuAction().setEnabled(False)
-        self.matrixMenu.menuAction().setEnabled(False)
-        self.fftMenu.menuAction().setEnabled(False)
-        self.fittingMenu.menuAction().setEnabled(False)
-        self.combineMenu.menuAction().setEnabled(False)
-        self.referencerunmenu.menuAction().setEnabled(False)
-        # Actions:
-        for act in self.macroActList + self.editActList + self.toolsActList + self.matrixActList + self.fftActList + self.fittingActList + self.plotActList + self.combineActList + self.historyActList:
-            act.setEnabled(False)
-        if not internalWindow:
-            self.filemenu.menuAction().setEnabled(False)
-            self.workspacemenu.menuAction().setEnabled(False)
-            for act in self.fileActList + self.workspaceActList:
-                act.setEnabled(False)
-            for i in range(self.tabs.count()):
-                if i != self.workspaceNum:
-                    self.tabs.setTabEnabled(i, False)
-        self.undoAction.setEnabled(False)
-        self.redoAction.setEnabled(False)
+                if not enable and i != self.workspaceNum:
+                    self.tabs.setTabEnabled(i, enable)
+        self.undoAction.setEnabled(enable)
+        self.redoAction.setEnabled(enable)
 
     def askName(self, filePath=None, name=None):
         if filePath is None:
@@ -1516,7 +1494,7 @@ class MainProgram(QtWidgets.QMainWindow):
         if self.mainWindow is None:
             return
         self.allowChange = False
-        self.menuDisable(True)
+        self.menuEnable(False, True)
         num = self.workspaces.index(self.mainWindow)
         self.mainWindow = MainPlotWindow(self, self.mainWindow)
         self.tabs.removeTab(num)
@@ -1534,7 +1512,7 @@ class MainProgram(QtWidgets.QMainWindow):
         self.workspaces[num] = self.mainWindow
         self.tabs.insertTab(num, self.mainWindow, self.workspaceNames[num])
         self.tabs.setCurrentIndex(num)
-        self.menuEnable(True)
+        self.menuEnable(True, True)
         self.tabs.setCurrentIndex(num)
         self.menuCheck()
         self.allowChange = True
@@ -1543,7 +1521,7 @@ class MainProgram(QtWidgets.QMainWindow):
         if self.mainWindow is None:
             return
         self.allowChange = False
-        self.menuDisable(True)
+        self.menuEnable(False, True)
         num = self.workspaces.index(self.mainWindow)
         self.tabs.removeTab(num)
         self.mainWindow = fitWindow
@@ -1561,7 +1539,7 @@ class MainProgram(QtWidgets.QMainWindow):
         self.mainWindow = mainWindow
         self.workspaces[num] = self.mainWindow
         self.tabs.insertTab(num, self.mainWindow, self.workspaceNames[num])
-        self.menuEnable(True)
+        self.menuEnable(True, True)
         self.tabs.setCurrentIndex(num)
         self.menuCheck()
         self.allowChange = True
@@ -1680,18 +1658,13 @@ class Main1DWindow(QtWidgets.QWidget):
         self.current.kill()
         self.current = sc.Current1D(self, self.current.fig, self.current.canvas, self.masterData)
 
-    def menuEnable(self):
-        self.father.menuEnable()
-        self.sideframe.frameEnable()
-        self.bottomframe.frameEnable()
-        self.textframe.frameEnable()
-        self.menuCheck()
-
-    def menuDisable(self):
-        self.father.menuDisable()
-        self.sideframe.frameDisable()
-        self.bottomframe.frameDisable()
-        self.textframe.frameDisable()
+    def menuEnable(self, enable=True):
+        self.father.menuEnable(enable)
+        self.sideframe.frameEnable(enable)
+        self.bottomframe.frameEnable(enable)
+        self.textframe.frameEnable(enable)
+        if enable:
+            self.menuCheck()
 
     def menuCheck(self):
         self.father.menuCheck()
@@ -2101,11 +2074,8 @@ class SideFrame(QtWidgets.QScrollArea):
             self.grid.itemAt(i).widget().deleteLater()
         self.grid.deleteLater()
 
-    def frameEnable(self):
-        self.setEnabled(True)
-
-    def frameDisable(self):
-        self.setEnabled(False)
+    def frameEnable(self, enable=True):
+        self.setEnabled(enable)
 
     def upd(self):
         current = self.father.current
@@ -2790,11 +2760,8 @@ class BottomFrame(QtWidgets.QWidget):
             self.grid.itemAt(i).widget().deleteLater()
         self.grid.deleteLater()
 
-    def frameEnable(self):
-        self.setEnabled(True)
-
-    def frameDisable(self):
-        self.setEnabled(False)
+    def frameEnable(self, enable=True):
+        self.setEnabled(enable)
 
     def upd(self):
         self.freqEntry.setText('%.6f' % (self.father.current.freq() / 1000000.0))
@@ -2968,13 +2935,9 @@ class TextFrame(QtWidgets.QScrollArea):
             self.grid.itemAt(i).widget().deleteLater()
         self.grid.deleteLater()
 
-    def frameEnable(self):
+    def frameEnable(self, enable=True):
         for child in self.children():
-            child.setEnabled(True)
-
-    def frameDisable(self):
-        for child in self.children():
-            child.setEnabled(False)
+            child.setEnabled(enable)
 
     def setLabels(self, position):
         if len(position) > 3:
@@ -3979,9 +3942,7 @@ class BaselineWindow(wc.ToolWindows):
     def preview(self, *args):
         inp = self.degreeEntry.value()
         self.father.current.previewRemoveList(self.removeList, invert=self.invertButton.isChecked())
-        check = self.father.current.previewBaselineCorrection(inp, self.removeList, invert=self.invertButton.isChecked())
-        if not check:
-            self.father.father.dispMsg("Baseline correct: error in polynomial fit", 'red')
+        self.father.current.previewBaselineCorrection(inp, self.removeList, invert=self.invertButton.isChecked())
         self.father.current.peakPickFunc = lambda pos, self=self: self.picked(pos)
         self.father.current.peakPick = True
 
@@ -3998,12 +3959,9 @@ class BaselineWindow(wc.ToolWindows):
     def applyFunc(self):
         inp = self.degreeEntry.value()
         if self.allFitButton.isChecked():
-            returnValue = self.father.current.baselineCorrectionAll(inp, self.removeList, self.singleSlice.isChecked(), invert=self.invertButton.isChecked())
+            self.father.current.baselineCorrectionAll(inp, self.removeList, self.singleSlice.isChecked(), invert=self.invertButton.isChecked())
         else:
-            returnValue = self.father.current.baselineCorrection(inp, self.removeList, self.singleSlice.isChecked(), invert=self.invertButton.isChecked())
-        if returnValue is False:
-            self.father.father.dispMsg("Baseline correct: error in polynomial fit", 'red')
-            return False
+            self.father.current.baselineCorrection(inp, self.removeList, self.singleSlice.isChecked(), invert=self.invertButton.isChecked())
         self.father.current.peakPickReset()
         self.father.current.resetPreviewRemoveList()
 
@@ -5916,7 +5874,7 @@ class CombineWorkspaceWindow(wc.ToolWindows):
 
     def closeEvent(self, *args):
         if self.MENUDISABLE:
-            self.father.menuEnable()
+            self.father.menuEnable(True)
         self.deleteLater()
 
 ##########################################################################################
@@ -6018,7 +5976,7 @@ class MonitorWindow(QtWidgets.QWidget):
         layout.setColumnStretch(4, 1)
         self.show()
         self.setFixedSize(self.size())
-        self.father.menuDisable()
+        self.father.menuEnable(False)
         self.setGeometry(self.frameSize().width() - self.geometry().width(), self.frameSize().height() - self.geometry().height(), 0, 0)
 
     def applyAndClose(self, *args):
@@ -6035,7 +5993,7 @@ class MonitorWindow(QtWidgets.QWidget):
         self.closeEvent()
 
     def closeEvent(self, *args):
-        self.father.menuEnable()
+        self.father.menuEnable(True)
         self.deleteLater()
 
 ##############################################################################

@@ -23,6 +23,30 @@ import os
 import spectrum_classes as sc
 import hypercomplex as hc
 
+def autoLoad(fileName):
+    if filePath.endswith('.zip'):
+        import tempfile
+        import shutil
+        import zipfile
+        try:
+            temp_dir = tempfile.mkdtemp()
+            zipfile.ZipFile(filePath).extractall(temp_dir)
+            for i in os.listdir(temp_dir):
+                tmpSpec = loadFile(os.path.join(temp_dir, i), realpath=filePath)
+                if tmpSpec:
+                    break
+        finally:
+            shutil.rmtree(temp_dir)
+    else:
+        tmpSpec = loadFile(filePath)
+    return tmpSpec
+
+def loadFile(filePath, realpath=False):
+    val = fileTypeCheck(filePath)
+    if val[0] is None:
+        return None # Data might be ASCII
+    return loading(val[0], val[1], realpath=realpath)
+
 def loading(num, filePath, name=None, realpath=False, dialog=None):
     if num == 0:
         masterData = loadVarianFile(filePath, name)

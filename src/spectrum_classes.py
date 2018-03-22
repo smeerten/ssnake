@@ -1865,18 +1865,13 @@ class Current1D(Plot1DFrame):
             bArray = np.logical_and(bArray, np.logical_or((tmpAx < minVal), (tmpAx > maxVal)))
         if invert:
             bArray = np.logical_not(bArray)
-        check = True
         y = self.baselinePolyFit(self.xax(), tmpData, bArray, degree)
         y = np.real(self.getDataType(y))
-        self.data1D.baselineCorrection(y, -1)
         self.resetPreviewRemoveList()
-        if check:
-            if self.ndim() > 1:
-                self.showFid(extraX=[self.xax()], extraY=[y]*self.len(-2), extraColor='g')
-            else:
-                self.showFid(extraX=[self.xax()], extraY=[y], extraColor='g')
+        if self.ndim() > 1:
+            self.showFid(extraX=[self.xax()], extraY=[y]*self.len(-2), extraColor='g')
         else:
-            self.showFid()
+            self.showFid(extraX=[self.xax()], extraY=[y], extraColor='g')
         self.previewRemoveList(removeList, invert)
         self.upd()
 

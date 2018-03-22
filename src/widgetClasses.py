@@ -96,7 +96,7 @@ class ToolWindows(QtWidgets.QWidget):
         if not self.RESIZABLE:
             self.setFixedSize(self.size())
         if self.MENUDISABLE:
-            self.father.menuDisable()
+            self.father.menuEnable(False)
         self.setGeometry(self.frameSize().width() - self.geometry().width(), self.frameSize().height(), 0, 0)
 
     def browse(self):
@@ -114,7 +114,7 @@ class ToolWindows(QtWidgets.QWidget):
         self.father.current.upd()
         self.father.current.showFid()
         if self.MENUDISABLE:
-            self.father.menuEnable()
+            self.father.menuEnable(True)
         self.father.updAllFrames()
         self.deleteLater()
 
