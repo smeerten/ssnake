@@ -23,28 +23,6 @@ from scipy.special import wofz
 import scipy.constants as SC
 
 
-def voigtLine(x, pos, lor, gau, integral, Type=0):
-    lor = np.abs(lor)
-    gau = np.abs(gau)
-    axis = x - pos
-    if Type == 0:  # Exact: Freq domain simulation via Faddeeva function
-        if gau == 0.0:  # If no gauss, just take lorentz
-            lor = 1.0 / (np.pi * 0.5 * lor * (1 + (axis / (0.5 * lor))**2))
-            return integral * lor
-        else:
-            sigma = gau / (2 * np.sqrt(2 * np.log(2)))
-            z = (axis + 1j * lor / 2) / (sigma * np.sqrt(2))
-            return integral * wofz(z).real / (sigma * np.sqrt(2 * np.pi))
-    elif Type == 1:  # Approximation: THOMPSON et al (doi: 10.1107/S0021889887087090 )
-        sigma = gau / (2 * np.sqrt(2 * np.log(2)))
-        lb = lor / 2
-        f = (sigma**5 + 2.69269 * sigma**4 * lb + 2.42843 * sigma**3 * lb**2 + 4.47163 * sigma**2 * lb**3 + 0.07842 * sigma * lb**4 + lb**5) ** 0.2
-        eta = 1.36603 * (lb / f) - 0.47719 * (lb / f)**2 + 0.11116 * (lb / f)**3
-        lor = f / (np.pi * (axis**2 + f**2))
-        gauss = np.exp(-axis**2 / (2 * f**2)) / (f * np.sqrt(2 * np.pi))
-        return integral * (eta * lor + (1 - eta) * gauss)
-
-
 def apodize(t, shift, sw, axLen, lor, gauss, cos2, hamming, wholeEcho=False):
     t2 = t - shift
     x = np.ones(axLen)
@@ -62,31 +40,6 @@ def apodize(t, shift, sw, axLen, lor, gauss, cos2, hamming, wholeEcho=False):
     return x
 
 
-def fib(n):
-    start = np.array([[1, 1], [1, 0]], dtype='int64')
-    temp = start[:]
-    for i in range(n):
-        temp = np.dot(start, temp)
-    return temp[0, 0], temp[0, 1], temp[1, 1]
-
-
-def zcw_angles(m, symm=0):
-    samples, fib_1, fib_2 = fib(m)
-    js = np.arange(samples, dtype='Float64') / samples
-    if symm == 0:
-        # full
-        c = (1., 2., 1.)
-    elif symm == 1:
-        # hemi
-        c = (-1., 1., 1.)
-    elif symm == 2:
-        # oct
-        c = (-1., 1., 4.)
-    j_samples = fib_2 * js
-    phi = 2 * np.pi / c[2] * np.mod(j_samples, 1.0)
-    theta = np.arccos(c[0] * (c[1] * np.mod(js, 1.0) - 1))
-    weight = np.ones(samples) / samples
-    return phi, theta, weight
 
 
 def euro(val, num):

@@ -35,6 +35,7 @@ COLORMAPLIST = ['seismic', 'BrBG', 'bwr', 'coolwarm', 'PiYG', 'PRGn', 'PuOr',
                 'RdBu', 'RdGy', 'RdYlBu', 'RdYlGn', 'Spectral', 'rainbow', 'jet']
 COLORCYCLE = list(matplotlib.rcParams['axes.prop_cycle'])
 COLORCONVERTER = matplotlib.colors.ColorConverter()
+AUTOPHASETOL = 0.0002 #is ~0.01 degrees
 
 
 #########################################################################
@@ -726,11 +727,11 @@ class Spectrum(object):
         x = np.fft.fftshift(np.fft.fftfreq(len(tmp), 1.0 / self.sw[axes])) / self.sw[axes]
         # only optimize on the hyper real data
         if phaseNum == 0:
-            phases = scipy.optimize.minimize(self.ACMEentropy, [0], (tmp, x, False), method='Powell')
+            phases = scipy.optimize.minimize(self.ACMEentropy, [0], (tmp, x, False), method='Powell',options = {'xtol': AUTOPHASETOL})
             phase0 = phases['x']
             phase1 = 0.0
         elif phaseNum == 1:
-            phases = scipy.optimize.minimize(self.ACMEentropy, [0, 0], (tmp, x), method='Powell')
+            phases = scipy.optimize.minimize(self.ACMEentropy, [0, 0], (tmp, x), method='Powell', options = {'xtol': AUTOPHASETOL})
             phase0 = phases['x'][0]
             phase1 = phases['x'][1]
         if self.ref[axes] is None:

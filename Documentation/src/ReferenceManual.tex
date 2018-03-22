@@ -607,7 +607,7 @@ phase correction.
 
 In the spectral domain, a \textit{first} order phase correction is also defined. This leads to a phase
 correction that linearly depends on the frequency offset with respect to a set central frequency (i.e.
-reference). This gives:
+pivot point). This gives:
 \begin{equation}
   f_\text{new} = f_\text{old}\cdot\text{e}^{i\pi\cdot(\theta + x\cdot \phi)/180} 
 \end{equation}
@@ -616,7 +616,7 @@ with $\phi$ the first order phasing, and $x$ the $x$-value of $f$.
 
 \subsubsection*{ssNake implementation}
 Selecting phasing in the tools menu opens the phasing window. In this windows, the zero and first order
-phasing can be set, as well as the reference frequency (centre point) for the first order phasing. The values
+phasing can be set, as well as the pivot point (centre point) for the first order phasing. The values
 can be either filled in the boxes,  changed by pushing the left and right buttons (click for $\pm1$,
 ctrl+click for $\pm10$, and shift+click for $\pm100$) , or set by dragging the
 slider to the left or the right. For zero order phase correction, the limits are -180 and 180 degrees. For
@@ -632,7 +632,7 @@ the box `Single slice' can be ticked. Note that you still have to push `Ok' to a
 
 Apart from manual phasing, ssNake also supports two types of autophasing: zero order only, and zero and first
 order. When pushing these buttons, ssNake will search for the best phasing in the \textit{current} trace, with
-only first order phasing correction, or with both zero and first order. Do note that the setting that ssNake
+only zero order phasing correction, or with both zero and first order. Do note that the setting that ssNake
 finds might not be the best: phasing an NMR spectrum is tricky and has no unique mathematical solution.
 However, for a fast analysis it can be useful.
 
@@ -643,10 +643,12 @@ correction, and transforms back. As Fourier transforms are quite fast, this prov
 the effect of the phase correction.
 
 \subsection{Autophase 0}
-Perform a 0th order autophase on the current spectrum (and applies it on all traces). This is identical to doing this via the Phasing window, but requires less effort for the user.
+Perform a 0th order autophase on the current spectrum (and applies it on all traces). This is
+identical to doing this via the Phasing window, but requires less effort for the user.
 
 \subsection{Autophase 0+1}
-Perform a 1th order autophase on the current spectrum (and applies it on all traces). This is identical to doing this via the Phasing window, but requires less effort for the user.
+Perform a 1th order autophase on the current spectrum (and applies it on all traces). This is
+identical to doing this via the Phasing window, but requires less effort for the user.
 
 
 \subsection{Swap echo}

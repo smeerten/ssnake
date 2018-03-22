@@ -3121,7 +3121,7 @@ class PhaseWindow(wc.ToolWindows):
         super(PhaseWindow, self).__init__(parent)
         self.zeroVal = 0.0
         self.firstVal = 0.0
-        self.refVal = 0.0
+        self.pivotVal = 0.0
         self.available = True
         # Zero order
         self.zeroOrderGroup = QtWidgets.QGroupBox('Zero order:')
@@ -3166,11 +3166,11 @@ class PhaseWindow(wc.ToolWindows):
         self.firstScale.valueChanged.connect(self.setFirstOrder)
         self.firstOrderFrame.addWidget(self.firstScale, 7, 0, 1, 3)
         if self.father.current.spec() > 0:
-            self.firstOrderFrame.addWidget(wc.QLabel("Reference:"), 8, 0, 1, 3)
-            pickRef = QtWidgets.QPushButton("Pick reference")
+            self.firstOrderFrame.addWidget(wc.QLabel("Pivot point:"), 8, 0, 1, 3)
+            pickRef = QtWidgets.QPushButton("Pick pivot")
             pickRef.clicked.connect(self.pickRef)
             self.firstOrderFrame.addWidget(pickRef, 9, 1)
-            self.refEntry = wc.QLineEdit(('%.3f' % self.refVal), self.inputRef)
+            self.refEntry = wc.QLineEdit(('%.3f' % self.pivotVal), self.inputRef)
             self.firstOrderFrame.addWidget(self.refEntry, 10, 1)
         self.firstOrderGroup.setLayout(self.firstOrderFrame)
         self.grid.addWidget(self.firstOrderGroup, 1, 0, 1, 3)
@@ -3197,7 +3197,7 @@ class PhaseWindow(wc.ToolWindows):
     def setFirstOrder(self, value, *args):
         if self.available:
             value = float(value) / self.RESOLUTION * self.P1LIMIT
-            newZero = (self.zeroVal - (value - self.firstVal) * self.refVal / self.father.current.sw())
+            newZero = (self.zeroVal - (value - self.firstVal) * self.pivotVal / self.father.current.sw())
             self.zeroVal = np.mod(newZero + 180, 360) - 180
             self.zeroEntry.setText('%.3f' % self.zeroVal)
             self.firstVal = value
@@ -3212,7 +3212,7 @@ class PhaseWindow(wc.ToolWindows):
         if value is None:
             self.father.father.dispMsg('Phasing: first order value input is not valid!')
             return None
-        newZero = (self.zeroVal - (value - self.firstVal) * self.refVal / self.father.current.sw())
+        newZero = (self.zeroVal - (value - self.firstVal) * self.pivotVal / self.father.current.sw())
         self.zeroVal = np.mod(newZero + 180, 360) - 180
         self.zeroEntry.setText('%.3f' % self.zeroVal)
         self.firstVal = value
@@ -3263,7 +3263,7 @@ class PhaseWindow(wc.ToolWindows):
             if refCheck is None:
                 return
         value += phase1 * self.PHASE1STEP
-        newZero = (self.zeroVal - (value - self.firstVal) * self.refVal / self.father.current.sw())
+        newZero = (self.zeroVal - (value - self.firstVal) * self.pivotVal / self.father.current.sw())
         self.zeroVal = np.mod(newZero + 180, 360) - 180
         self.zeroEntry.setText('%.3f' % self.zeroVal)
         self.firstVal = value
@@ -3279,13 +3279,13 @@ class PhaseWindow(wc.ToolWindows):
         if Val is None:
             self.father.father.dispMsg('Phasing: reference input is not valid!')
             return None
-        self.refVal = Val
-        self.refEntry.setText('%.3f' % self.refVal)
+        self.pivotVal = Val
+        self.refEntry.setText('%.3f' % self.pivotVal)
         return 1
 
     def setRef(self, value, *args):
-        self.refVal = float(value)
-        self.refEntry.setText('%.3f' % self.refVal)
+        self.pivotVal = float(value)
+        self.refEntry.setText('%.3f' % self.pivotVal)
 
     def pickRef(self, *args):
         self.father.current.peakPickFunc = lambda pos, self=self: self.setRef(self.father.current.xax()[pos[0]])
