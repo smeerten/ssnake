@@ -3680,7 +3680,7 @@ class SwapEchoWindow(wc.ToolWindows):
             return False
         self.posEntry.setText(str(self.posVal))
         if self.posVal > 0 and self.posVal < self.father.current.len():
-            self.father.current.setSwapEchoPreview(self.posVal)
+            self.father.current.swapEchoPreview(self.posVal)
             self.father.current.peakPick = False
 
     def applyFunc(self):
@@ -3699,7 +3699,7 @@ class SwapEchoWindow(wc.ToolWindows):
             self.father.father.dispMsg("Swap echo: not a valid index")
 
     def picked(self, pos):
-        self.father.current.setSwapEchoPreview(pos[0])
+        self.father.current.swapEchoPreview(pos[0])
         self.posEntry.setText(str(pos[0]))
         self.father.current.peakPick = False
 
