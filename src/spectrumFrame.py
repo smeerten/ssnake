@@ -24,8 +24,6 @@ try:
     from PyQt4 import QtGui as QtWidgets
 except ImportError:
     from PyQt5 import QtGui, QtCore, QtWidgets
-import spectrum_classes
-import warnings
 
 TIMELABELLIST = [u'Time [s]', u'Time [ms]', u'Time [\u03BCs]']
 FREQLABELLIST = [u'Frequency [Hz]', u'Frequency [kHz]', u'Frequency [MHz]']
@@ -34,8 +32,13 @@ FREQLABELLIST = [u'Frequency [Hz]', u'Frequency [kHz]', u'Frequency [MHz]']
 # the class from which the 1d data is displayed, the operations which only edit the content of this class are for previewing
 
 
-class Plot1DFrame(object):
+class PlotFrame(object):
 
+    INVERT_X = True # Invert the x-axis when spectrum
+    INVERT_Y = False # Invert the y-axis when spectrum
+    GRID_PLOT = False # Grid plot for contour
+    ZERO_SCROLL_ALLOWED = True # Scroll with respect to 0 on the y-axis
+    
     def __init__(self, root, fig, canvas):
         self.root = root
         self.fig = fig
@@ -47,7 +50,7 @@ class Plot1DFrame(object):
         self.ymaxlim = 1
         self.logx = False
         self.logy = False
-        if isinstance(self, spectrum_classes.CurrentContour):
+        if self.GRID_PLOT:
             self.gs = gridspec.GridSpec(2, 2, width_ratios=[self.root.father.defaultWidthRatio, 1], height_ratios=[1, self.root.father.defaultHeightRatio])
             self.ax = self.fig.add_subplot(self.gs[2])
             self.x_ax = self.fig.add_subplot(self.gs[0], sharex=self.ax, facecolor='none', frameon=False)
@@ -76,7 +79,7 @@ class Plot1DFrame(object):
     def kill(self):
         pass
 
-    def plotReset(self):  # this function needs to be overriden by the classes who inherit from Plot1DFrame
+    def plotReset(self):  # this function needs to be overriden by the classes who inherit from PlotFrame
         pass
 
     ################
@@ -124,15 +127,12 @@ class Plot1DFrame(object):
                 else:
                     self.xmaxlim = middle + width / 2.0
                     self.xminlim = middle - width / 2.0
-                if self.spec() > 0 and not isinstance(self, spectrum_classes.CurrentArrayed):
+                if self.spec() > 0 and self.INVERT_X:
                     self.ax.set_xlim(self.xmaxlim, self.xminlim)
                 else:
                     self.ax.set_xlim(self.xminlim, self.xmaxlim)
             else:
-                if getattr(self, '__module__', None) == spectrum_classes.__name__:
-                    noZeroScroll = isinstance(self, (spectrum_classes.CurrentContour, spectrum_classes.CurrentStacked)) or not self.root.father.defaultZeroScroll
-                else:
-                    noZeroScroll = not self.rootwindow.mainProgram.defaultZeroScroll
+                noZeroScroll = not self.ZERO_SCROLL_ALLOWED or not self.root.mainProgram.defaultZeroScroll
                 if noZeroScroll:
                     if self.logy:
                         middle = (np.log(self.ymaxlim) + np.log(self.yminlim)) / 2.0
@@ -157,10 +157,10 @@ class Plot1DFrame(object):
                     else:
                         self.ymaxlim *= 0.9**event.step
                         self.yminlim *= 0.9**event.step
-                if self.spec() > 0 and isinstance(self, spectrum_classes.CurrentContour):
-                    self.ax.set_ylim(self.ymaxlim, self.yminlim)
-                else:
-                    self.ax.set_ylim(self.yminlim, self.ymaxlim)
+                self.ax.set_ylim(self.yminlim, self.ymaxlim)
+                if self.INVERT_Y:
+                    if self.spec(-2) > 0 :
+                        self.ax.set_ylim(self.ymaxlim, self.yminlim)
             self.canvas.update()
             self.canvas.draw_idle()
 
@@ -223,17 +223,14 @@ class Plot1DFrame(object):
                     self.xmaxlim = max([self.zoomX1, self.zoomX2])
                     self.yminlim = min([self.zoomY1, self.zoomY2])
                     self.ymaxlim = max([self.zoomY1, self.zoomY2])
-                    if self.spec() > 0 and not isinstance(self, spectrum_classes.CurrentArrayed):
+                    if self.spec() > 0 and self.INVERT_X:
                         self.ax.set_xlim(self.xmaxlim, self.xminlim)
                     else:
                         self.ax.set_xlim(self.xminlim, self.xmaxlim)
-                    if self.ndim() > 1:
-                        if self.spec(-2) > 0 and isinstance(self, spectrum_classes.CurrentContour):
+                    self.ax.set_ylim(self.yminlim, self.ymaxlim)
+                    if self.INVERT_Y:
+                        if self.spec(-2) > 0:
                             self.ax.set_ylim(self.ymaxlim, self.yminlim)
-                        else:
-                            self.ax.set_ylim(self.yminlim, self.ymaxlim)
-                    else:
-                        self.ax.set_ylim(self.yminlim, self.ymaxlim)
                 self.zoomX1 = None
                 self.zoomX2 = None
                 self.zoomY1 = None
@@ -245,21 +242,6 @@ class Plot1DFrame(object):
     def pan(self, event):
         modifiers = QtWidgets.QApplication.keyboardModifiers()
         if self.rightMouse and self.panX is not None and self.panY is not None:
-            # inv = self.ax.transData.inverted()
-            # point = inv.transform((event.x, event.y))
-            # diffx = point[0] - self.panX
-            # diffy = point[1] - self.panY
-            # if modifiers == QtCore.Qt.ControlModifier:
-            #     self.xmaxlim = self.xmaxlim - diffx
-            #     self.xminlim = self.xminlim - diffx
-            # elif modifiers == QtCore.Qt.ShiftModifier:
-            #     self.ymaxlim = self.ymaxlim - diffy
-            #     self.yminlim = self.yminlim - diffy
-            # else:
-            #     self.xmaxlim = self.xmaxlim - diffx
-            #     self.xminlim = self.xminlim - diffx
-            #     self.ymaxlim = self.ymaxlim - diffy
-            #     self.yminlim = self.yminlim - diffy
             if self.logx or self.logy:
                 x = event.xdata
                 y = event.ydata
@@ -286,12 +268,12 @@ class Plot1DFrame(object):
                 diffy = y - self.panY
                 self.ymaxlim = self.ymaxlim - diffy
                 self.yminlim = self.yminlim - diffy
-            if self.spec() > 0 and not isinstance(self, spectrum_classes.CurrentArrayed):
+            if self.spec() > 0 and self.INVERT_X:
                 self.ax.set_xlim(self.xmaxlim, self.xminlim)
             else:
                 self.ax.set_xlim(self.xminlim, self.xmaxlim)
             self.ax.set_ylim(self.yminlim, self.ymaxlim)
-            if isinstance(self, spectrum_classes.CurrentContour):
+            if self.INVERT_Y:
                 if self.spec(-2) > 0:
                     self.ax.set_ylim(self.ymaxlim, self.yminlim)
             self.canvas.draw_idle()

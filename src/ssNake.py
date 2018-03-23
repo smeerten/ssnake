@@ -45,7 +45,7 @@ if __name__ == '__main__':
     splash.show()
 
 
-splashSteps = 15.0 / 100
+splashSteps = 16.0 / 100
 splashStep = 0.0
 
 
@@ -74,7 +74,7 @@ import re
 splashStep = splashProgressStep(splashStep)
 import copy
 splashStep = splashProgressStep(splashStep)
-import spectrum_classes as sc
+import spectrum as sc
 splashStep = splashProgressStep(splashStep)
 import fitting as fit
 splashStep = splashProgressStep(splashStep)
@@ -84,11 +84,13 @@ import widgetClasses as wc
 splashStep = splashProgressStep(splashStep)
 from updateWindow import UpdateWindow
 splashStep = splashProgressStep(splashStep)
-from plotWindow import MainPlotWindow
+from saveFigure import SaveFigureWindow
 splashStep = splashProgressStep(splashStep)
 import functions as func
 splashStep = splashProgressStep(splashStep)
 import specIO as io
+splashStep = splashProgressStep(splashStep)
+import views 
 splashStep = splashProgressStep(splashStep)
 
 matplotlib.rc('font', family='DejaVu Sans')
@@ -243,7 +245,7 @@ class MainProgram(QtWidgets.QMainWindow):
         self.defaultContourConst = settings.value("contour/constantcolours", self.defaultContourConst, bool)
         self.defaultPosColor = settings.value("contour/poscolour", self.defaultPosColor, str)
         self.defaultNegColor = settings.value("contour/negcolour", self.defaultNegColor, str)
-        if not str(self.defaultColorMap) in sc.COLORMAPLIST:
+        if not str(self.defaultColorMap) in views.COLORMAPLIST:
             self.dispMsg("Incorrect colourmap in config file")
         self.defaultDiagonalBool = settings.value("contour/diagonalbool", self.defaultDiagonalBool, bool)
         try:
@@ -835,7 +837,7 @@ class MainProgram(QtWidgets.QMainWindow):
                 for act in self.fidOnlyList:
                     act.setEnabled(self.mainWindow.current.spec() == 0)  # Only on for FID
                   #Limit functions based on plot type
-                if type(self.mainWindow.current) is sc.CurrentMulti or type(self.mainWindow.current) is sc.CurrentStacked:
+                if type(self.mainWindow.current) is views.CurrentMulti or type(self.mainWindow.current) is views.CurrentStacked:
                     for act in self.Only1DPlot:
                         act.setEnabled(False)
                 if self.mainWindow.masterData.noUndo:  # Set menu check to the same value as in the data
@@ -871,7 +873,7 @@ class MainProgram(QtWidgets.QMainWindow):
                 self.savemenu.menuAction().setEnabled(True)
                 self.exportmenu.menuAction().setEnabled(True)
                 self.workspacemenu.menuAction().setEnabled(True)
-            elif type(self.mainWindow) is MainPlotWindow:
+            elif type(self.mainWindow) is SaveFigureWindow:
                 self.menuEnable(False, True)
                 self.savemenu.menuAction().setEnabled(True)
                 self.exportmenu.menuAction().setEnabled(True)
@@ -1198,7 +1200,7 @@ class MainProgram(QtWidgets.QMainWindow):
         self.updWorkspaceMenu(var)
         self.menuCheck()
         try:
-            if type(self.mainWindow.current) is sc.CurrentMulti:
+            if type(self.mainWindow.current) is views.CurrentMulti:
                 self.mainWindow.sideframe.checkChanged()
         except Exception:
             pass
@@ -1221,7 +1223,7 @@ class MainProgram(QtWidgets.QMainWindow):
             self.tabs.setCurrentIndex(self.workspaceNum)
             self.updWorkspaceMenu(self.workspaceNames[self.workspaceNum])
             self.menuCheck()
-            if type(self.mainWindow.current) is sc.CurrentMulti:
+            if type(self.mainWindow.current) is views.CurrentMulti:
                 self.mainWindow.sideframe.checkChanged()
 
     def duplicateWorkspace(self, *args):
@@ -1424,7 +1426,7 @@ class MainProgram(QtWidgets.QMainWindow):
         self.allowChange = False
         self.menuEnable(False, True)
         num = self.workspaces.index(self.mainWindow)
-        self.mainWindow = MainPlotWindow(self, self.mainWindow)
+        self.mainWindow = SaveFigureWindow(self, self.mainWindow)
         self.tabs.removeTab(num)
         self.tabs.insertTab(num, self.mainWindow, self.workspaceNames[num])
         self.workspaces[num] = self.mainWindow
@@ -1523,7 +1525,7 @@ class Main1DWindow(QtWidgets.QWidget):
         if duplicateCurrent is not None:
             self.current = duplicateCurrent.copyCurrent(self, self.fig, self.canvas, masterData)
         else:
-            self.current = sc.Current1D(self, self.fig, self.canvas, masterData)
+            self.current = views.Current1D(self, self.fig, self.canvas, masterData)
         self.menubar = self.father.menubar
         self.sideframe = SideFrame(self)
         grid.addWidget(self.sideframe, 0, 1)
@@ -1584,7 +1586,7 @@ class Main1DWindow(QtWidgets.QWidget):
 
     def rescue(self):
         self.current.kill()
-        self.current = sc.Current1D(self, self.current.fig, self.current.canvas, self.masterData)
+        self.current = views.Current1D(self, self.current.fig, self.current.canvas, self.masterData)
 
     def menuEnable(self, enable=True):
         self.father.menuEnable(enable)
@@ -1866,7 +1868,7 @@ class Main1DWindow(QtWidgets.QWidget):
         self.father.createFitWindow(fit.FunctionFitWindow(self.father, self.father.mainWindow))
 
     def plot1D(self):
-        tmpcurrent = sc.Current1D(self, self.fig, self.canvas, self.masterData, self.current)
+        tmpcurrent = views.Current1D(self, self.fig, self.canvas, self.masterData, self.current)
         self.current.kill()
         del self.current
         self.current = tmpcurrent
@@ -1874,7 +1876,7 @@ class Main1DWindow(QtWidgets.QWidget):
         self.menuCheck()
 
     def plotScatter(self):
-        tmpcurrent = sc.CurrentScatter(self, self.fig, self.canvas, self.masterData, self.current)
+        tmpcurrent = views.CurrentScatter(self, self.fig, self.canvas, self.masterData, self.current)
         self.current.kill()
         del self.current
         self.current = tmpcurrent
@@ -1883,7 +1885,7 @@ class Main1DWindow(QtWidgets.QWidget):
 
     def plotStack(self):
         if len(self.masterData.shape()) > 1:
-            tmpcurrent = sc.CurrentStacked(self, self.fig, self.canvas, self.masterData, self.current)
+            tmpcurrent = views.CurrentStacked(self, self.fig, self.canvas, self.masterData, self.current)
             self.current.kill()
             del self.current
             self.current = tmpcurrent
@@ -1894,7 +1896,7 @@ class Main1DWindow(QtWidgets.QWidget):
 
     def plotArray(self):
         if len(self.masterData.shape()) > 1:
-            tmpcurrent = sc.CurrentArrayed(self, self.fig, self.canvas, self.masterData, self.current)
+            tmpcurrent = views.CurrentArrayed(self, self.fig, self.canvas, self.masterData, self.current)
             self.current.kill()
             del self.current
             self.current = tmpcurrent
@@ -1905,7 +1907,7 @@ class Main1DWindow(QtWidgets.QWidget):
 
     def plotContour(self):
         if len(self.masterData.shape()) > 1:
-            tmpcurrent = sc.CurrentContour(self, self.fig, self.canvas, self.masterData, self.current)
+            tmpcurrent = views.CurrentContour(self, self.fig, self.canvas, self.masterData, self.current)
             self.current.kill()
             del self.current
             self.current = tmpcurrent
@@ -1915,7 +1917,7 @@ class Main1DWindow(QtWidgets.QWidget):
         self.menuCheck()
 
     def plotMulti(self):
-        tmpcurrent = sc.CurrentMulti(self, self.fig, self.canvas, self.masterData, self.current)
+        tmpcurrent = views.CurrentMulti(self, self.fig, self.canvas, self.masterData, self.current)
         self.current.kill()
         del self.current
         self.current = tmpcurrent
@@ -2000,7 +2002,7 @@ class SideFrame(QtWidgets.QScrollArea):
             self.frame2.removeWidget(item)
             item.deleteLater()
         offset = 0
-        self.plotIs2D = isinstance(current, sc.CurrentStacked)
+        self.plotIs2D = isinstance(current, views.CurrentStacked)
         if self.plotIs2D:
             offset = 1
         self.entries = []
@@ -2043,7 +2045,7 @@ class SideFrame(QtWidgets.QScrollArea):
                     else:
                         self.entries[num].setValue(current.locList[num - 1])
                 self.entries[num].valueChanged.connect(lambda event=None, num=num: self.getSlice(event, num))
-            if type(current) is sc.CurrentStacked or type(current) is sc.CurrentArrayed:
+            if type(current) is views.CurrentStacked or type(current) is views.CurrentArrayed:
                 if current.viewSettings["stackBegin"] is not None:
                     from2D = current.viewSettings["stackBegin"]
                 else:
@@ -2071,13 +2073,13 @@ class SideFrame(QtWidgets.QScrollArea):
                 self.frame2.addWidget(self.stepSpin, 6, 0)
                 self.stepSpin.setValue(step2D)
                 self.stepSpin.valueChanged.connect(self.setToFrom)
-                if type(current) is sc.CurrentStacked or type(current) is sc.CurrentArrayed:
+                if type(current) is views.CurrentStacked or type(current) is views.CurrentArrayed:
                     self.frame2.addWidget(wc.QLabel("Spacing", self), 7, 0)
                     self.spacingEntry = QtWidgets.QLineEdit(self)
                     self.spacingEntry.setText('%#.3g' % current.viewSettings["spacing"])
                     self.spacingEntry.returnPressed.connect(self.setSpacing)
                     self.frame2.addWidget(self.spacingEntry, 8, 0)
-            if isinstance(current, (sc.CurrentContour)):
+            if isinstance(current, (views.CurrentContour)):
                 self.contourTypeGroup = QtWidgets.QGroupBox('Contour type:')
                 self.contourTypeFrame = QtWidgets.QGridLayout()
                 self.contourNumberLabel = wc.QLeftLabel("Number:", self)
@@ -2247,7 +2249,7 @@ class SideFrame(QtWidgets.QScrollArea):
             self.buttons1Group.button(current.axes).toggle()
             if self.plotIs2D:
                 self.buttons2Group.button(current.axes2).toggle()
-        if isinstance(current, (sc.CurrentMulti)):
+        if isinstance(current, (views.CurrentMulti)):
             self.extraEntries = []
             self.extraButtons1 = []
             self.extraButtons1Group = []
@@ -2334,7 +2336,7 @@ class SideFrame(QtWidgets.QScrollArea):
 
     def setToFrom(self, *args):
         current = self.father.current
-        if not (type(current) is sc.CurrentStacked or type(current) is sc.CurrentArrayed):
+        if not (type(current) is views.CurrentStacked or type(current) is views.CurrentArrayed):
             return
         fromVar = self.fromSpin.value()
         toVar = self.toSpin.value()
@@ -2455,7 +2457,7 @@ class SideFrame(QtWidgets.QScrollArea):
                     axes2 = self.father.current.axes
                 else:
                     axes = self.father.current.axes2
-                if isinstance(self.father.current, (sc.CurrentContour)):  # If contour
+                if isinstance(self.father.current, (views.CurrentContour)):  # If contour
                     # Correct proj values and maxima
                     newRanges = [self.projRightRangeMax.value(), self.projRightRangeMin.value(), self.projTopRangeMax.value(), self.projTopRangeMin.value()]
                     self.father.current.setProjLimits(self.rangeCheckbox.isChecked(), newRanges)
@@ -2696,7 +2698,7 @@ class BottomFrame(QtWidgets.QWidget):
                 self.axisDropFreq.setCurrentIndex(3)
             else:
                 self.axisDropFreq.setCurrentIndex(self.father.current.viewSettings["axType"])
-        if isinstance(self.father.current, sc.CurrentContour):
+        if isinstance(self.father.current, views.CurrentContour):
             self.ax2Label.show()
             self.axisDropFreq2.model().item(3).setEnabled(True)
             if self.father.current.spec(-2) == 0:
@@ -2710,7 +2712,7 @@ class BottomFrame(QtWidgets.QWidget):
                     self.axisDropFreq2.setCurrentIndex(3)
                 else:
                     self.axisDropFreq2.setCurrentIndex(self.father.current.viewSettings["axType2"])
-        if type(self.father.current) is sc.CurrentArrayed:
+        if type(self.father.current) is views.CurrentArrayed:
             self.ax2Label.show()
             self.axisDropFreq2.model().item(3).setEnabled(True)
             if self.father.current.spec(-2) == 0:
@@ -2825,7 +2827,7 @@ class TextFrame(QtWidgets.QScrollArea):
         self.upd()
 
     def upd(self):
-        if isinstance(self.father.current, sc.CurrentContour):
+        if isinstance(self.father.current, views.CurrentContour):
             self.ypos.show()
             self.yposlabel.show()
             self.ypoint.show()
@@ -2865,7 +2867,7 @@ class TextFrame(QtWidgets.QScrollArea):
 
     def getPosition(self, *args):
         self.father.current.peakPickFunc = lambda pos, self=self: self.setLabels(pos)
-        if isinstance(self.father.current, sc.CurrentContour):
+        if isinstance(self.father.current, views.CurrentContour):
             self.father.current.peakPick = 2
         else:
             self.father.current.peakPick = True
@@ -5948,8 +5950,8 @@ class PlotSettingsWindow(wc.ToolWindows):
         self.ygridCheck.stateChanged.connect(self.preview)
         grid2.addWidget(QtWidgets.QLabel("Colourmap:"), 0, 0)
         self.cmEntry = QtWidgets.QComboBox(self)
-        self.cmEntry.addItems(sc.COLORMAPLIST)
-        self.cmEntry.setCurrentIndex(sc.COLORMAPLIST.index(self.father.current.viewSettings["colorMap"]))
+        self.cmEntry.addItems(views.COLORMAPLIST)
+        self.cmEntry.setCurrentIndex(views.COLORMAPLIST.index(self.father.current.viewSettings["colorMap"]))
         self.cmEntry.currentIndexChanged.connect(self.preview)
         grid2.addWidget(self.cmEntry, 0, 1)
         self.constColorCheck = QtWidgets.QCheckBox("Constant colours")
@@ -6150,8 +6152,8 @@ class PreferenceWindow(QtWidgets.QWidget):
         # grid3 definitions
         grid3.addWidget(QtWidgets.QLabel("Colourmap:"), 0, 0)
         self.cmEntry = QtWidgets.QComboBox(self)
-        self.cmEntry.addItems(sc.COLORMAPLIST)
-        self.cmEntry.setCurrentIndex(sc.COLORMAPLIST.index(self.father.defaultColorMap))
+        self.cmEntry.addItems(views.COLORMAPLIST)
+        self.cmEntry.setCurrentIndex(views.COLORMAPLIST.index(self.father.defaultColorMap))
         grid3.addWidget(self.cmEntry, 0, 1)
         self.constColorCheck = QtWidgets.QCheckBox("Constant colours")
         self.constColorCheck.setChecked(self.father.defaultContourConst)

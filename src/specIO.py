@@ -20,7 +20,7 @@
 import numpy as np
 import re
 import os
-import spectrum_classes as sc
+import spectrum as sc
 import hypercomplex as hc
 
 def autoLoad(filePathList, asciiInfoList=None):

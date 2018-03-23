@@ -37,10 +37,10 @@ import copy
 #####################################################################################
 
 
-class MainPlotWindow(QtWidgets.QWidget):
+class SaveFigureWindow(QtWidgets.QWidget):
 
     def __init__(self, father, oldMainWindow):
-        super(MainPlotWindow, self).__init__(father)
+        super(SaveFigureWindow, self).__init__(father)
         self.father = father
         self.oldMainWindow = oldMainWindow
         self.fig = oldMainWindow.current.fig

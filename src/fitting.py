@@ -35,11 +35,8 @@ import tempfile
 import os
 import subprocess
 import shutil
-import spectrum_classes
 from safeEval import safeEval
-from spectrumFrame import Plot1DFrame
-from spectrum_classes import Current1D
-from widgetClasses import QLabel
+from views import Current1D
 import widgetClasses as wc
 import functions as func
 import simFunctions as simFunc
@@ -1010,16 +1007,16 @@ class PrefWindow(QtWidgets.QWidget):
         layout = QtWidgets.QGridLayout(self)
         grid = QtWidgets.QGridLayout()
         layout.addLayout(grid, 0, 0, 1, 2)
-        grid.addWidget(QLabel("Min. method:"), 0, 0)
+        grid.addWidget(wc.QLabel("Min. method:"), 0, 0)
         self.minmethodBox = QtWidgets.QComboBox(self)
         self.minmethodBox.addItems(self.METHODLIST)
         self.minmethodBox.setCurrentIndex(self.METHODLIST.index(self.father.MINMETHOD))
         grid.addWidget(self.minmethodBox, 0, 1)
-        grid.addWidget(QLabel("Significant digits:"), 1, 0)
+        grid.addWidget(wc.QLabel("Significant digits:"), 1, 0)
         self.precisBox = QtWidgets.QSpinBox(self)
         self.precisBox.setValue(self.father.PRECIS)
         grid.addWidget(self.precisBox, 1, 1)
-        grid.addWidget(QLabel("# evaluations:"), 2, 0)
+        grid.addWidget(wc.QLabel("# evaluations:"), 2, 0)
         self.numFevalBox = QtWidgets.QSpinBox(self)
         self.numFevalBox.setMaximum(100000)
         self.numFevalBox.setMinimum(1)
@@ -1078,12 +1075,12 @@ class RelaxParamFrame(AbstractParamFrame):
         locList = tuple(self.parent.locList)
         self.ticks = {'amp': [], 'const': [], 'coeff': [], 't': []}
         self.entries = {'amp': [], 'const': [], 'coeff': [], 't': []}
-        self.frame2.addWidget(QLabel("Amplitude:"), 0, 0, 1, 2)
+        self.frame2.addWidget(wc.QLabel("Amplitude:"), 0, 0, 1, 2)
         self.ticks['amp'].append(QtWidgets.QCheckBox(''))
         self.frame2.addWidget(self.ticks['amp'][-1], 1, 0)
         self.entries['amp'].append(wc.FitQLineEdit(self, 'amp', ('%#.' + str(self.rootwindow.tabWindow.PRECIS) + 'g') % self.fitParamList[locList]['amp'][0]))
         self.frame2.addWidget(self.entries['amp'][-1], 1, 1)
-        self.frame2.addWidget(QLabel("Constant:"), 2, 0, 1, 2)
+        self.frame2.addWidget(wc.QLabel("Constant:"), 2, 0, 1, 2)
         self.ticks['const'].append(QtWidgets.QCheckBox(''))
         self.frame2.addWidget(self.ticks['const'][-1], 3, 0)
         self.entries['const'].append(wc.FitQLineEdit(self, 'const', ('%#.' + str(self.rootwindow.tabWindow.PRECIS) + 'g') % self.fitParamList[locList]['const'][0]))
@@ -1094,8 +1091,8 @@ class RelaxParamFrame(AbstractParamFrame):
         self.numExp.addItems(['1', '2', '3', '4'])
         self.numExp.currentIndexChanged.connect(self.changeNum)
         self.frame3.addWidget(self.numExp, 0, 0, 1, 2)
-        self.frame3.addWidget(QLabel("Coefficient:"), 1, 0, 1, 2)
-        self.frame3.addWidget(QLabel("T [s]:"), 1, 2, 1, 2)
+        self.frame3.addWidget(wc.QLabel("Coefficient:"), 1, 0, 1, 2)
+        self.frame3.addWidget(wc.QLabel("T [s]:"), 1, 2, 1, 2)
         self.frame3.setColumnStretch(10, 1)
         self.frame3.setAlignment(QtCore.Qt.AlignTop)
         self.xlog = QtWidgets.QCheckBox('x-log')
@@ -1251,23 +1248,23 @@ class DiffusionParamFrame(AbstractParamFrame):
         locList = tuple(self.parent.locList)
         self.ticks = {'amp': [], 'const': [], 'coeff': [], 'd': []}
         self.entries = {'amp': [], 'const': [], 'coeff': [], 'd': []}
-        self.frame2.addWidget(QLabel(u"\u03b3 [MHz/T]:"), 0, 0)
+        self.frame2.addWidget(wc.QLabel(u"\u03b3 [MHz/T]:"), 0, 0)
         self.gammaEntry = wc.QLineEdit("42.576")
         self.frame2.addWidget(self.gammaEntry, 1, 0)
-        self.frame2.addWidget(QLabel(u"\u03b4 [s]:"), 2, 0)
+        self.frame2.addWidget(wc.QLabel(u"\u03b4 [s]:"), 2, 0)
         self.deltaEntry = wc.QLineEdit("1.0")
         self.frame2.addWidget(self.deltaEntry, 3, 0)
-        self.frame2.addWidget(QLabel(u"\u0394 [s]:"), 4, 0)
+        self.frame2.addWidget(wc.QLabel(u"\u0394 [s]:"), 4, 0)
         self.triangleEntry = wc.QLineEdit("1.0")
         self.frame2.addWidget(self.triangleEntry, 5, 0)
         self.frame2.setColumnStretch(10, 1)
         self.frame2.setAlignment(QtCore.Qt.AlignTop)
-        self.frame3.addWidget(QLabel("Amplitude:"), 0, 0, 1, 2)
+        self.frame3.addWidget(wc.QLabel("Amplitude:"), 0, 0, 1, 2)
         self.ticks['amp'].append(QtWidgets.QCheckBox(''))
         self.frame3.addWidget(self.ticks['amp'][-1], 1, 0)
         self.entries['amp'].append(wc.FitQLineEdit(self, 'amp', ('%#.' + str(self.rootwindow.tabWindow.PRECIS) + 'g') % np.max(self.parent.getData1D())))
         self.frame3.addWidget(self.entries['amp'][-1], 1, 1)
-        self.frame3.addWidget(QLabel("Constant:"), 2, 0, 1, 2)
+        self.frame3.addWidget(wc.QLabel("Constant:"), 2, 0, 1, 2)
         self.ticks['const'].append(QtWidgets.QCheckBox(''))
         self.ticks['const'][-1].setChecked(True)
         self.frame3.addWidget(self.ticks['const'][-1], 3, 0)
@@ -1279,8 +1276,8 @@ class DiffusionParamFrame(AbstractParamFrame):
         self.numExp.addItems(['1', '2', '3', '4'])
         self.numExp.currentIndexChanged.connect(self.changeNum)
         self.frame4.addWidget(self.numExp, 0, 0, 1, 2)
-        self.frame4.addWidget(QLabel("Coefficient:"), 1, 0, 1, 2)
-        self.frame4.addWidget(QLabel("D [m^2/s]:"), 1, 2, 1, 2)
+        self.frame4.addWidget(wc.QLabel("Coefficient:"), 1, 0, 1, 2)
+        self.frame4.addWidget(wc.QLabel("D [m^2/s]:"), 1, 2, 1, 2)
         self.frame4.setColumnStretch(20, 1)
         self.frame4.setAlignment(QtCore.Qt.AlignTop)
         self.xlog = QtWidgets.QCheckBox('x-log')
@@ -1499,17 +1496,17 @@ class PeakDeconvParamFrame(AbstractParamFrame):
         self.frame1.addWidget(self.pickTick, 2, 1)
         self.ticks = {'bgrnd': [], 'slope': [], 'pos': [], 'amp': [], 'lor': [], 'gauss': []}
         self.entries = {'bgrnd': [], 'slope': [], 'pos': [], 'amp': [], 'lor': [], 'gauss': [], 'method': []}
-        self.frame2.addWidget(QLabel("Bgrnd:"), 0, 0, 1, 2)
+        self.frame2.addWidget(wc.QLabel("Bgrnd:"), 0, 0, 1, 2)
         self.ticks['bgrnd'].append(QtWidgets.QCheckBox(''))
         self.frame2.addWidget(self.ticks['bgrnd'][0], 1, 0)
         self.entries['bgrnd'].append(wc.FitQLineEdit(self, 'bgrnd', "0.0"))
         self.frame2.addWidget(self.entries['bgrnd'][0], 1, 1)
-        self.frame2.addWidget(QLabel("Slope:"), 2, 0, 1, 2)
+        self.frame2.addWidget(wc.QLabel("Slope:"), 2, 0, 1, 2)
         self.ticks['slope'].append(QtWidgets.QCheckBox(''))
         self.frame2.addWidget(self.ticks['slope'][0], 3, 0)
         self.entries['slope'].append(wc.FitQLineEdit(self, 'slope', "0.0"))
         self.frame2.addWidget(self.entries['slope'][0], 3, 1)
-        self.frame2.addWidget(QLabel("Method:"), 4, 0, 1, 2)
+        self.frame2.addWidget(wc.QLabel("Method:"), 4, 0, 1, 2)
         self.entries['method'].append(QtWidgets.QComboBox())
         self.entries['method'][0].addItems(['Exact', 'Approx'])
         self.frame2.addWidget(self.entries['method'][0], 5, 1)
@@ -1519,10 +1516,10 @@ class PeakDeconvParamFrame(AbstractParamFrame):
         self.numExp.addItems([str(x + 1) for x in range(self.FITNUM)])
         self.numExp.currentIndexChanged.connect(self.changeNum)
         self.frame3.addWidget(self.numExp, 0, 0, 1, 2)
-        self.frame3.addWidget(QLabel("Position [" + self.axUnit + "]:"), 1, 0, 1, 2)
-        self.frame3.addWidget(QLabel("Integral:"), 1, 2, 1, 2)
-        self.frame3.addWidget(QLabel("Lorentz [Hz]:"), 1, 4, 1, 2)
-        self.frame3.addWidget(QLabel("Gauss [Hz]:"), 1, 6, 1, 2)
+        self.frame3.addWidget(wc.QLabel("Position [" + self.axUnit + "]:"), 1, 0, 1, 2)
+        self.frame3.addWidget(wc.QLabel("Integral:"), 1, 2, 1, 2)
+        self.frame3.addWidget(wc.QLabel("Lorentz [Hz]:"), 1, 4, 1, 2)
+        self.frame3.addWidget(wc.QLabel("Gauss [Hz]:"), 1, 6, 1, 2)
         self.frame3.setColumnStretch(20, 1)
         self.frame3.setAlignment(QtCore.Qt.AlignTop)
         for i in range(self.FITNUM):
@@ -1736,7 +1733,7 @@ class TensorDeconvParamFrame(AbstractParamFrame):
         self.ticks = {'bgrnd': [], 'slope': [], 'spinspeed': [], 't11': [], 't22': [], 't33': [], 'amp': [], 'lor': [], 'gauss': []}
         self.entries = {'bgrnd': [], 'slope': [], 'spinspeed': [], 't11': [], 't22': [], 't33': [], 'amp': [], 'lor': [], 'gauss': [], 'shiftdef': [], 'cheng': [], 'mas': [], 'numssb': []}
 
-        self.optframe.addWidget(QLabel("Cheng:"), 0, 0)
+        self.optframe.addWidget(wc.QLabel("Cheng:"), 0, 0)
         self.entries['cheng'].append(QtWidgets.QSpinBox())
         self.entries['cheng'][-1].setAlignment(QtCore.Qt.AlignHCenter)
         self.entries['cheng'][-1].setValue(self.cheng)
@@ -1744,7 +1741,7 @@ class TensorDeconvParamFrame(AbstractParamFrame):
         self.entries['mas'].append(QtWidgets.QCheckBox('Spinning'))
         self.entries['mas'][-1].stateChanged.connect(self.MASChange)
         self.optframe.addWidget(self.entries['mas'][-1], 2, 0)
-        self.sidebandLabel = QLabel("# sidebands:")
+        self.sidebandLabel = wc.QLabel("# sidebands:")
         self.optframe.addWidget(self.sidebandLabel, 3, 0)
         self.sidebandLabel.setEnabled(False)
         self.entries['numssb'].append(QtWidgets.QSpinBox())
@@ -1754,7 +1751,7 @@ class TensorDeconvParamFrame(AbstractParamFrame):
         self.entries['numssb'][-1].setEnabled(False)
         self.optframe.addWidget(self.entries['numssb'][-1], 4, 0)
         self.shiftDefType = 0  # variable to remember the selected tensor type
-        self.optframe.addWidget(QLabel("Definition:"), 5, 0)
+        self.optframe.addWidget(wc.QLabel("Definition:"), 5, 0)
         self.entries['shiftdef'].append(QtWidgets.QComboBox())
         self.entries['shiftdef'][-1].addItems([u'\u03b411 - \u03b422 - \u03b433',
                                                u'\u03b4xx - \u03b4yy - \u03b4zz',
@@ -1764,7 +1761,7 @@ class TensorDeconvParamFrame(AbstractParamFrame):
         self.optframe.addWidget(self.entries['shiftdef'][-1], 6, 0)
         self.optframe.setColumnStretch(10, 1)
         self.optframe.setAlignment(QtCore.Qt.AlignTop)
-        self.spinLabel = QLabel("Spin. speed [kHz]:")
+        self.spinLabel = wc.QLabel("Spin. speed [kHz]:")
         self.spinLabel.setEnabled(False)
         self.frame2.addWidget(self.spinLabel, 0, 0, 1, 2)
         self.ticks['spinspeed'].append(QtWidgets.QCheckBox(''))
@@ -1773,12 +1770,12 @@ class TensorDeconvParamFrame(AbstractParamFrame):
         self.entries['spinspeed'].append(wc.FitQLineEdit(self, 'spinspeed', "10.0"))
         self.frame2.addWidget(self.entries['spinspeed'][-1], 1, 1)
         self.entries['spinspeed'][-1].setEnabled(False)
-        self.frame2.addWidget(QLabel("Bgrnd:"), 2, 0, 1, 2)
+        self.frame2.addWidget(wc.QLabel("Bgrnd:"), 2, 0, 1, 2)
         self.ticks['bgrnd'].append(QtWidgets.QCheckBox(''))
         self.frame2.addWidget(self.ticks['bgrnd'][-1], 3, 0)
         self.entries['bgrnd'].append(wc.FitQLineEdit(self, 'bgrnd', "0.0"))
         self.frame2.addWidget(self.entries['bgrnd'][-1], 3, 1)
-        self.frame2.addWidget(QLabel("Slope:"), 4, 0, 1, 2)
+        self.frame2.addWidget(wc.QLabel("Slope:"), 4, 0, 1, 2)
         self.ticks['slope'].append(QtWidgets.QCheckBox(''))
         self.frame2.addWidget(self.ticks['slope'][-1], 5, 0)
         self.entries['slope'].append(wc.FitQLineEdit(self, "slope", "0.0"))
@@ -1794,42 +1791,42 @@ class TensorDeconvParamFrame(AbstractParamFrame):
         else:
             axUnit = ['Hz', 'kHz', 'MHz'][self.parent.viewSettings["axType"]]
         # Labels
-        self.label11 = QLabel(u'\u03b4' + '<sub>11</sub> [' + axUnit + '] :')
-        self.label22 = QLabel(u'\u03b4' + '<sub>22</sub> [' + axUnit + '] :')
-        self.label33 = QLabel(u'\u03b4' + '<sub>33</sub> [' + axUnit + '] :')
+        self.label11 = wc.QLabel(u'\u03b4' + '<sub>11</sub> [' + axUnit + '] :')
+        self.label22 = wc.QLabel(u'\u03b4' + '<sub>22</sub> [' + axUnit + '] :')
+        self.label33 = wc.QLabel(u'\u03b4' + '<sub>33</sub> [' + axUnit + '] :')
         self.frame3.addWidget(self.label11, 1, 0, 1, 2)
         self.frame3.addWidget(self.label22, 1, 2, 1, 2)
         self.frame3.addWidget(self.label33, 1, 4, 1, 2)
-        self.labelxx = QLabel(u'\u03b4' + '<sub>xx</sub> [' + axUnit + '] :')
-        self.labelyy = QLabel(u'\u03b4' + '<sub>yy</sub> [' + axUnit + '] :')
-        self.labelzz = QLabel(u'\u03b4' + '<sub>zz</sub> [' + axUnit + '] :')
+        self.labelxx = wc.QLabel(u'\u03b4' + '<sub>xx</sub> [' + axUnit + '] :')
+        self.labelyy = wc.QLabel(u'\u03b4' + '<sub>yy</sub> [' + axUnit + '] :')
+        self.labelzz = wc.QLabel(u'\u03b4' + '<sub>zz</sub> [' + axUnit + '] :')
         self.labelxx.hide()
         self.labelyy.hide()
         self.labelzz.hide()
         self.frame3.addWidget(self.labelxx, 1, 0, 1, 2)
         self.frame3.addWidget(self.labelyy, 1, 2, 1, 2)
         self.frame3.addWidget(self.labelzz, 1, 4, 1, 2)
-        self.labeliso = QLabel(u'\u03b4' + '<sub>iso</sub> [' + axUnit + '] :')
-        self.labelaniso = QLabel(u'\u03b4' + '<sub>aniso</sub> [' + axUnit + '] :')
-        self.labeleta = QLabel(u'\u03b7:')
+        self.labeliso = wc.QLabel(u'\u03b4' + '<sub>iso</sub> [' + axUnit + '] :')
+        self.labelaniso = wc.QLabel(u'\u03b4' + '<sub>aniso</sub> [' + axUnit + '] :')
+        self.labeleta = wc.QLabel(u'\u03b7:')
         self.labeliso.hide()
         self.labelaniso.hide()
         self.labeleta.hide()
         self.frame3.addWidget(self.labeliso, 1, 0, 1, 2)
         self.frame3.addWidget(self.labelaniso, 1, 2, 1, 2)
         self.frame3.addWidget(self.labeleta, 1, 4, 1, 2)
-        self.labeliso2 = QLabel(u'\u03b4' + '<sub>iso</sub> [' + axUnit + '] :')
-        self.labelspan = QLabel(u'\u03a9 [' + axUnit + '] :')
-        self.labelskew = QLabel(u'\u03ba:')
+        self.labeliso2 = wc.QLabel(u'\u03b4' + '<sub>iso</sub> [' + axUnit + '] :')
+        self.labelspan = wc.QLabel(u'\u03a9 [' + axUnit + '] :')
+        self.labelskew = wc.QLabel(u'\u03ba:')
         self.labeliso2.hide()
         self.labelspan.hide()
         self.labelskew.hide()
         self.frame3.addWidget(self.labeliso2, 1, 0, 1, 2)
         self.frame3.addWidget(self.labelspan, 1, 2, 1, 2)
         self.frame3.addWidget(self.labelskew, 1, 4, 1, 2)
-        self.frame3.addWidget(QLabel("Integral:"), 1, 6, 1, 2)
-        self.frame3.addWidget(QLabel("Lorentz [Hz]:"), 1, 8, 1, 2)
-        self.frame3.addWidget(QLabel("Gauss [Hz]:"), 1, 10, 1, 2)
+        self.frame3.addWidget(wc.QLabel("Integral:"), 1, 6, 1, 2)
+        self.frame3.addWidget(wc.QLabel("Lorentz [Hz]:"), 1, 8, 1, 2)
+        self.frame3.addWidget(wc.QLabel("Gauss [Hz]:"), 1, 10, 1, 2)
         self.frame3.setColumnStretch(20, 1)
         self.frame3.setAlignment(QtCore.Qt.AlignTop)
         for i in range(self.FITNUM):
@@ -2132,12 +2129,12 @@ class Quad1DeconvParamFrame(AbstractParamFrame):
         super(Quad1DeconvParamFrame, self).__init__(parent, rootwindow, isMain)
         self.ticks = {'bgrnd': [], 'slope': [], 'spinspeed': [], 'pos': [], 'cq': [], 'eta': [], 'amp': [], 'lor': [], 'gauss': []}
         self.entries = {'bgrnd': [], 'slope': [], 'spinspeed': [], 'pos': [], 'cq': [], 'eta': [], 'amp': [], 'lor': [], 'gauss': [], 'shiftdef': [], 'cheng': [], 'I': [], 'mas': [], 'numssb': []}
-        self.optframe.addWidget(QLabel("Cheng:"), 0, 0)
+        self.optframe.addWidget(wc.QLabel("Cheng:"), 0, 0)
         self.entries['cheng'].append(QtWidgets.QSpinBox())
         self.entries['cheng'][-1].setAlignment(QtCore.Qt.AlignHCenter)
         self.entries['cheng'][-1].setValue(self.cheng)
         self.optframe.addWidget(self.entries['cheng'][-1], 1, 0)
-        self.optframe.addWidget(QLabel("I:"), 2, 0)
+        self.optframe.addWidget(wc.QLabel("I:"), 2, 0)
         self.entries['I'].append(QtWidgets.QComboBox())
         self.entries['I'][-1].addItems(self.Ioptions)
         self.entries['I'][-1].setCurrentIndex(1)
@@ -2145,7 +2142,7 @@ class Quad1DeconvParamFrame(AbstractParamFrame):
         self.entries['mas'].append(QtWidgets.QCheckBox('Spinning'))
         self.entries['mas'][-1].stateChanged.connect(self.MASChange)
         self.optframe.addWidget(self.entries['mas'][-1], 4, 0)
-        self.sidebandLabel = QLabel("# sidebands:")
+        self.sidebandLabel = wc.QLabel("# sidebands:")
         self.sidebandLabel.setEnabled(False)
         self.optframe.addWidget(self.sidebandLabel, 5, 0)
         self.entries['numssb'].append(QtWidgets.QSpinBox())
@@ -2156,7 +2153,7 @@ class Quad1DeconvParamFrame(AbstractParamFrame):
         self.optframe.addWidget(self.entries['numssb'][-1], 6, 0)
         self.optframe.setColumnStretch(10, 1)
         self.optframe.setAlignment(QtCore.Qt.AlignTop)
-        self.spinLabel = QLabel("Spin. speed [kHz]:")
+        self.spinLabel = wc.QLabel("Spin. speed [kHz]:")
         self.frame2.addWidget(self.spinLabel, 0, 0, 1, 2)
         self.spinLabel.setEnabled(False)
         self.ticks['spinspeed'].append(QtWidgets.QCheckBox(''))
@@ -2165,12 +2162,12 @@ class Quad1DeconvParamFrame(AbstractParamFrame):
         self.entries['spinspeed'].append(wc.QLineEdit("10.0"))
         self.frame2.addWidget(self.entries['spinspeed'][-1], 1, 1)
         self.entries['spinspeed'][-1].setEnabled(False)
-        self.frame2.addWidget(QLabel("Bgrnd:"), 2, 0, 1, 2)
+        self.frame2.addWidget(wc.QLabel("Bgrnd:"), 2, 0, 1, 2)
         self.ticks['bgrnd'].append(QtWidgets.QCheckBox(''))
         self.frame2.addWidget(self.ticks['bgrnd'][-1], 3, 0)
         self.entries['bgrnd'].append(wc.QLineEdit("0.0"))
         self.frame2.addWidget(self.entries['bgrnd'][-1], 3, 1)
-        self.frame2.addWidget(QLabel("Slope:"), 4, 0, 1, 2)
+        self.frame2.addWidget(wc.QLabel("Slope:"), 4, 0, 1, 2)
         self.ticks['slope'].append(QtWidgets.QCheckBox(''))
         self.frame2.addWidget(self.ticks['slope'][-1], 5, 0)
         self.entries['slope'].append(wc.QLineEdit("0.0"))
@@ -2186,15 +2183,15 @@ class Quad1DeconvParamFrame(AbstractParamFrame):
         else:
             axUnit = ['Hz', 'kHz', 'MHz'][self.parent.viewSettings["axType"]]
         # Labels
-        self.labelpos = QLabel(u'Position [' + axUnit + ']:')
-        self.labelcq = QLabel(u'C<sub>Q</sub> [MHz]:')
-        self.labeleta = QLabel(u'\u03B7:')
+        self.labelpos = wc.QLabel(u'Position [' + axUnit + ']:')
+        self.labelcq = wc.QLabel(u'C<sub>Q</sub> [MHz]:')
+        self.labeleta = wc.QLabel(u'\u03B7:')
         self.frame3.addWidget(self.labelpos, 1, 0, 1, 2)
         self.frame3.addWidget(self.labelcq, 1, 2, 1, 2)
         self.frame3.addWidget(self.labeleta, 1, 4, 1, 2)
-        self.frame3.addWidget(QLabel("Integral:"), 1, 6, 1, 2)
-        self.frame3.addWidget(QLabel("Lorentz [Hz]:"), 1, 8, 1, 2)
-        self.frame3.addWidget(QLabel("Gauss [Hz]:"), 1, 10, 1, 2)
+        self.frame3.addWidget(wc.QLabel("Integral:"), 1, 6, 1, 2)
+        self.frame3.addWidget(wc.QLabel("Lorentz [Hz]:"), 1, 8, 1, 2)
+        self.frame3.addWidget(wc.QLabel("Gauss [Hz]:"), 1, 10, 1, 2)
         self.frame3.setColumnStretch(20, 1)
         self.frame3.setAlignment(QtCore.Qt.AlignTop)
         for i in range(self.FITNUM):
@@ -2437,21 +2434,21 @@ class CzjzekPrefWindow(QtWidgets.QWidget):
         layout = QtWidgets.QGridLayout(self)
         grid = QtWidgets.QGridLayout()
         layout.addLayout(grid, 0, 0, 1, 2)
-        grid.addWidget(QLabel(u"\u03c9<sub>Q</sub> grid size:"), 0, 0)
+        grid.addWidget(wc.QLabel(u"\u03c9<sub>Q</sub> grid size:"), 0, 0)
         self.wqsteps = QtWidgets.QSpinBox()
         self.wqsteps.setMinimum(2)
         self.wqsteps.setMaximum(1000)
         self.wqsteps.setAlignment(QtCore.Qt.AlignHCenter) 
         self.wqsteps.setValue(self.father.wqsteps)
         grid.addWidget(self.wqsteps, 1, 0)
-        grid.addWidget(QLabel(u"\u03b7 grid size:"), 2, 0)
+        grid.addWidget(wc.QLabel(u"\u03b7 grid size:"), 2, 0)
         self.etasteps = QtWidgets.QSpinBox()
         self.etasteps.setMinimum(2)
         self.etasteps.setMaximum(1000)
         self.etasteps.setAlignment(QtCore.Qt.AlignHCenter) 
         self.etasteps.setValue(self.father.etasteps)
         grid.addWidget(self.etasteps, 3, 0)
-        grid.addWidget(QLabel(u"\u03c9<sub>Q</sub><sup>max</sup>/\u03c3:"), 4, 0)
+        grid.addWidget(wc.QLabel(u"\u03c9<sub>Q</sub><sup>max</sup>/\u03c3:"), 4, 0)
         self.wqmax = wc.QLineEdit(str(self.father.wqmax), self.checkWqmax)
         grid.addWidget(self.wqmax, 5, 0)
 
@@ -2524,12 +2521,12 @@ class Quad2CzjzekParamFrame(AbstractParamFrame):
         czjzekPrefButton.clicked.connect(self.createCzjzekPrefWindow)
         self.frame1.addWidget(czjzekPrefButton, 1, 1)
 
-        self.optframe.addWidget(QLabel("Cheng:"), 0, 0)
+        self.optframe.addWidget(wc.QLabel("Cheng:"), 0, 0)
         self.entries['cheng'].append(QtWidgets.QSpinBox())
         self.entries['cheng'][-1].setAlignment(QtCore.Qt.AlignHCenter)
         self.entries['cheng'][-1].setValue(self.cheng)
         self.optframe.addWidget(self.entries['cheng'][-1], 1, 0)
-        self.optframe.addWidget(QLabel("I:"), 2, 0)
+        self.optframe.addWidget(wc.QLabel("I:"), 2, 0)
         self.entries['I'].append(QtWidgets.QComboBox())
         self.entries['I'][-1].addItems(self.Ioptions)
         self.entries['I'][-1].setCurrentIndex(0)
@@ -2544,13 +2541,13 @@ class Quad2CzjzekParamFrame(AbstractParamFrame):
         self.optframe.addWidget(self.extLibCheck, 12, 0)
         self.optframe.setColumnStretch(21, 1)
         self.optframe.setAlignment(QtCore.Qt.AlignTop)
-        self.frame2.addWidget(QLabel("Bgrnd:"), 0, 0, 1, 2)
+        self.frame2.addWidget(wc.QLabel("Bgrnd:"), 0, 0, 1, 2)
         self.ticks['bgrnd'].append(QtWidgets.QCheckBox(''))
         self.ticks['bgrnd'][-1].setChecked(True)
         self.frame2.addWidget(self.ticks['bgrnd'][-1], 1, 0)
         self.entries['bgrnd'].append(wc.FitQLineEdit(self, 'bgrnd', "0.0"))
         self.frame2.addWidget(self.entries['bgrnd'][-1], 1, 1)
-        self.frame2.addWidget(QLabel("Slope:"), 2, 0, 1, 2)
+        self.frame2.addWidget(wc.QLabel("Slope:"), 2, 0, 1, 2)
         self.ticks['slope'].append(QtWidgets.QCheckBox(''))
         self.ticks['slope'][-1].setChecked(True)
         self.frame2.addWidget(self.ticks['slope'][-1], 3, 0)
@@ -2562,16 +2559,16 @@ class Quad2CzjzekParamFrame(AbstractParamFrame):
         self.numExp.addItems([str(x + 1) for x in range(self.FITNUM)])
         self.numExp.currentIndexChanged.connect(self.changeNum)
         self.frame3.addWidget(self.numExp, 0, 0, 1, 2)
-        self.frame3.addWidget(QLabel("d:"), 1, 0, 1, 2)
+        self.frame3.addWidget(wc.QLabel("d:"), 1, 0, 1, 2)
         if self.parent.viewSettings["ppm"]:
             axUnit = 'ppm'
         else:
             axUnit = ['Hz', 'kHz', 'MHz'][self.parent.viewSettings["axType"]]
-        self.frame3.addWidget(QLabel("Pos [" + axUnit + "]:"), 1, 2, 1, 2)
-        self.frame3.addWidget(QLabel(u"\u03c3 [MHz]:"), 1, 4, 1, 2)
-        self.frame3.addWidget(QLabel("Integral:"), 1, 6, 1, 2)
-        self.frame3.addWidget(QLabel("Lorentz [Hz]:"), 1, 8, 1, 2)
-        self.frame3.addWidget(QLabel("Gauss [Hz]:"), 1, 10, 1, 2)
+        self.frame3.addWidget(wc.QLabel("Pos [" + axUnit + "]:"), 1, 2, 1, 2)
+        self.frame3.addWidget(wc.QLabel(u"\u03c3 [MHz]:"), 1, 4, 1, 2)
+        self.frame3.addWidget(wc.QLabel("Integral:"), 1, 6, 1, 2)
+        self.frame3.addWidget(wc.QLabel("Lorentz [Hz]:"), 1, 8, 1, 2)
+        self.frame3.addWidget(wc.QLabel("Gauss [Hz]:"), 1, 10, 1, 2)
         self.frame3.setColumnStretch(20, 1)
         self.frame3.setAlignment(QtCore.Qt.AlignTop)
         for i in range(self.FITNUM):
@@ -2637,9 +2634,7 @@ class Quad2CzjzekParamFrame(AbstractParamFrame):
                 eta.append(float(matchName.group(1)))
                 cq.append(float(matchName.group(2)))
                 fullName = os.path.join(dirName, name)
-                val = io.fileTypeCheck(fullName)
-                if val[0] is not None:
-                    libData = io.loading(val[0], val[1])
+                libData = io.autoLoad(fullName)
                 if libData.ndim() is not 1:
                     self.rootwindow.mainProgram.dispMsg("A spectrum in the library is not a 1D spectrum.")
                     continue
@@ -2885,7 +2880,7 @@ class SIMPSONDeconvParamFrame(AbstractParamFrame):
         for i in range(len(self.MULTINAMES)):
             name = self.MULTINAMES[i]
             self.PARAMTEXT[name] = name
-            self.labels[name] = [QLabel(name)]
+            self.labels[name] = [wc.QLabel(name)]
             self.frame3.addWidget(self.labels[name][0], 1, 2*i, 1, 2)
             self.ticks[name] = []
             self.entries[name] = []
@@ -3012,12 +3007,7 @@ def SIMPSONRunScript(command, script, parameters, xax, output=None, spec=True):
         shutil.rmtree(directory_name, ignore_errors=True)
         return None
     outputFileName = fileList[0]
-    val = io.fileTypeCheck(os.path.join(directory_name, outputFileName))
-    if val[0] is not None:
-        masterData = io.loading(val[0], val[1])
-    else:
-        shutil.rmtree(directory_name, ignore_errors=True)
-        return None
+    masterData = io.autoLoad(outputFileName)
     masterData.noUndo = True
     masterData.apodize(parameters["lor"], parameters["gauss"], 0, 0, 0, 0, 0, 0)
     if masterData.spec[0] != spec:
@@ -3130,7 +3120,7 @@ class FunctionFitParamFrame(AbstractParamFrame):
         for i in range(len(self.MULTINAMES)):
             name = self.MULTINAMES[i]
             self.PARAMTEXT[name] = name
-            self.labels[name] = [QLabel(name)]
+            self.labels[name] = [wc.QLabel(name)]
             self.frame3.addWidget(self.labels[name][0], 1, 2*i, 1, 2)
             self.ticks[name] = []
             self.entries[name] = []
