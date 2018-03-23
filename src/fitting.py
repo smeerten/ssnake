@@ -1980,9 +1980,9 @@ class TensorDeconvParamFrame(AbstractParamFrame):
             out['numssb'] = [self.entries['numssb'][0].value()]
             return (out, [out['mas'][-1], out['cheng'][-1], out['shiftdef'][-1], out['numssb'][-1]])
         else:
-            phi, theta, weight = simFunc.zcw_angles(cheng, symm=2)
+            weight, angleStuff = simFunc.csaAngleStuff(cheng)
             out['weight'] = [weight]
-            out['multt'] = [[np.sin(theta)**2 * np.cos(phi)**2, np.sin(theta)**2 * np.sin(phi)**2, np.cos(theta)**2]]
+            out['multt'] =  angleStuff
             return (out, [out['mas'][-1], out['multt'][-1], out['weight'][-1], out['shiftdef'][-1]])
 
     def disp(self, params, num):

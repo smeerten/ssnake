@@ -69,6 +69,13 @@ def voigtLine(x, pos, lor, gau, integral, Type=0):
         return integral * (eta * lor + (1 - eta) * gauss)
 
 
+def csaAngleStuff(cheng):
+    phi, theta, weight = zcw_angles(cheng, symm=2)
+    sinT2 = np.sin(theta)**2
+    return weight, [[sinT2 * np.cos(phi)**2, sinT2 * np.sin(phi)**2, np.cos(theta)**2]]
+
+
+
 def tensorDeconvtensorFunc(x, t11, t22, t33, lor, gauss, multt, sw, weight, axAdd, convention=0, axMult=1):
     if convention == 0 or convention == 1:
         Tensors = func.shiftConversion([t11 / axMult, t22 / axMult, t33 / axMult], convention)
@@ -237,17 +244,23 @@ def quad1MASFunc(x, pos, cq, eta, lor, gauss, sw, axAdd, axMult, spinspeed, chen
 
 def quad2StaticsetAngleStuff(cheng):
     phi, theta, weight = zcw_angles(cheng, symm=2)
-    angleStuff = [-27 / 8.0 * np.cos(theta)**4 + 15 / 4.0 * np.cos(theta)**2 - 3 / 8.0,
-                  (-9 / 4.0 * np.cos(theta)**4 + 2 * np.cos(theta)**2 + 1 / 4.0) * np.cos(2 * phi),
-                  -1 / 2.0 * np.cos(theta)**2 + 1 / 3.0 + (-3 / 8.0 * np.cos(theta)**4 + 3 / 4.0 * np.cos(theta)**2 - 3 / 8.0) * np.cos(2 * phi)**2]
+    cosT2 = np.cos(theta)**2
+    cosT4 = cosT2**2
+    cos2P = np.cos(2 * phi)
+    angleStuff = [-27 / 8.0 * cosT4 + 15 / 4.0 * cosT2 - 3 / 8.0,
+                  (-9 / 4.0 * cosT4 + 2 * cosT2 + 1 / 4.0) * cos2P,
+                  -1 / 2.0 * cosT2 + 1 / 3.0 + (-3 / 8.0 * cosT4 + 3 / 4.0 * cosT2 - 3 / 8.0) * cos2P**2]
     return weight, angleStuff
 
 
 def quad2MASsetAngleStuff(cheng):
     phi, theta, weight = zcw_angles(cheng, symm=2)
-    angleStuff = [21 / 16.0 * np.cos(theta)**4 - 9 / 8.0 * np.cos(theta)**2 + 5 / 16.0,
-                  (-7 / 8.0 * np.cos(theta)**4 + np.cos(theta)**2 - 1 / 8.0) * np.cos(2 * phi),
-                  1 / 12.0 * np.cos(theta)**2 + (+7 / 48.0 * np.cos(theta)**4 - 7 / 24.0 * np.cos(theta)**2 + 7 / 48.0) * np.cos(2 * phi)**2]
+    cosT2 = np.cos(theta)**2
+    cosT4 = cosT2**2
+    cos2P = np.cos(2 * phi)
+    angleStuff = [21 / 16.0 * cosT4 - 9 / 8.0 * cosT2 + 5 / 16.0,
+                  (-7 / 8.0 * cosT4 + cosT2 - 1 / 8.0) * cos2P,
+                  1 / 12.0 * cosT2 + (+7 / 48.0 * cosT4 - 7 / 24.0 * cosT2 + 7 / 48.0) * cos2P**2]
     return weight, angleStuff
 
 
