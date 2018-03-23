@@ -1067,7 +1067,7 @@ class MainProgram(QtWidgets.QMainWindow):
         self.macros[givenName] = []
         for line in stringList:
             splitLine = line.split("(", 1)
-            splitLine = splitLine.replace(' ', '')
+            splitLine[0] = splitLine[0].replace(' ', '')
             splitLine[1] = safeEval("(" + splitLine[1])
             self.macros[givenName].append(splitLine)
         IconDirectory = os.path.dirname(os.path.realpath(__file__)) + os.path.sep + 'Icons' + os.path.sep
