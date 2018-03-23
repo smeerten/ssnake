@@ -197,17 +197,21 @@ class MainPlotWindow(QtWidgets.QWidget):
         self.fontFrame.addWidget(self.ytickFontSizeEntry, 6, 1)
 
         self.legend = self.ax.legend()
-        self.legendFontSizeBackup = self.ax.get_legend().get_texts()[0].get_fontsize()
-        self.legendFontLabel = wc.QLeftLabel("Legend:")
-        self.legendFontLabel.hide()
-        self.fontFrame.addWidget(self.legendFontLabel, 7, 0)
-        self.legendFontSizeEntry = QtWidgets.QDoubleSpinBox()
-        self.legendFontSizeEntry.setSingleStep(0.1)
-        self.legendFontSizeEntry.setMinimum(0)
-        self.legendFontSizeEntry.setValue(self.legendFontSizeBackup)
-        self.legendFontSizeEntry.valueChanged.connect(self.updatePlot)
-        self.legendFontSizeEntry.hide()
-        self.fontFrame.addWidget(self.legendFontSizeEntry, 7, 1)
+        if len(self.legend.get_texts()) == 0:
+            self.legend.set_visible(False)
+            self.legend = None
+        else:
+            self.legendFontSizeBackup = self.legend.get_texts()[0].get_fontsize()
+            self.legendFontLabel = wc.QLeftLabel("Legend:")
+            self.legendFontLabel.hide()
+            self.fontFrame.addWidget(self.legendFontLabel, 7, 0)
+            self.legendFontSizeEntry = QtWidgets.QDoubleSpinBox()
+            self.legendFontSizeEntry.setSingleStep(0.1)
+            self.legendFontSizeEntry.setMinimum(0)
+            self.legendFontSizeEntry.setValue(self.legendFontSizeBackup)
+            self.legendFontSizeEntry.valueChanged.connect(self.updatePlot)
+            self.legendFontSizeEntry.hide()
+            self.fontFrame.addWidget(self.legendFontSizeEntry, 7, 1)
         self.fontGroup.setLayout(self.fontFrame)
         self.optionFrame.addWidget(self.fontGroup, 3, 0)
         # Legend
@@ -277,8 +281,9 @@ class MainPlotWindow(QtWidgets.QWidget):
             self.xtickFontSizeEntry.show()
             self.ytickFontLabel.show()
             self.ytickFontSizeEntry.show()
-            self.legendFontLabel.show()
-            self.legendFontSizeEntry.show()
+            if self.legend is not None:
+                self.legendFontLabel.show()
+                self.legendFontSizeEntry.show()
         else:
             self.mainFontLabel.setEnabled(True)
             self.mainFontSizeEntry.setEnabled(True)
@@ -292,11 +297,14 @@ class MainPlotWindow(QtWidgets.QWidget):
             self.xtickFontSizeEntry.hide()
             self.ytickFontLabel.hide()
             self.ytickFontSizeEntry.hide()
-            self.legendFontLabel.hide()
-            self.legendFontSizeEntry.hide()
+            if self.legend is not None:
+                self.legendFontLabel.hide()
+                self.legendFontSizeEntry.hide()
         self.updatePlot()
 
     def updateLegend(self, *args):
+        if self.legend is None:
+            return
         if self.legendGroup.isChecked():
             orderedLines = [self.ax.lines[x] for x in self.legendOrder]
             orderedLegendText = [self.legendTextList[x] for x in self.legendOrder]
@@ -304,12 +312,10 @@ class MainPlotWindow(QtWidgets.QWidget):
                 size = self.legendFontSizeEntry.value()
             else:
                 size = self.mainFontSizeEntry.value()
-            self.legend = self.ax.legend(orderedLines, orderedLegendText,framealpha = 1.0, loc=self.legendPos, prop =
-                    {'size': size })
+            self.legend = self.ax.legend(orderedLines, orderedLegendText, framealpha = 1.0, loc=self.legendPos, prop={'size': size })
             self.legend.draggable(True)
         else:
-            if self.legend is not None:
-                self.legend.set_visible(False)
+            self.legend.set_visible(False)
 
     def updatePlot(self, *args):
         if self.fontDetailsCheck.checkState():  # If details checked
@@ -332,7 +338,8 @@ class MainPlotWindow(QtWidgets.QWidget):
             self.ax.xaxis.get_offset_text().set_fontsize(self.mainFontSizeEntry.value())
             self.ax.tick_params(axis='y', labelsize=self.mainFontSizeEntry.value())
             self.ax.yaxis.get_offset_text().set_fontsize(self.mainFontSizeEntry.value())
-            self.legend.prop = {'size': self.mainFontSizeEntry.value()}
+            if self.legend is not None:
+                self.legend.prop = {'size': self.mainFontSizeEntry.value()}
         self.updateLegend()
         self.fig.set_size_inches(self.widthEntry.value() / 2.54, self.heightEntry.value() / 2.54)
         self.canvas.draw()

@@ -30,6 +30,7 @@ import matplotlib
 import reimplement as reim
 import functions as func
 import hypercomplex as hc
+import specIO as io
 
 COLORMAPLIST = ['seismic', 'BrBG', 'bwr', 'coolwarm', 'PiYG', 'PRGn', 'PuOr',
                 'RdBu', 'RdGy', 'RdYlBu', 'RdYlGn', 'Spectral', 'rainbow', 'jet']
@@ -44,7 +45,7 @@ AUTOPHASETOL = 0.0002 #is ~0.01 degrees
 
 class Spectrum(object):
 
-    def __init__(self, name, data, filePath, freq, sw, spec=None, wholeEcho=None, ref=None, xaxArray=None, history=None, msgHandler=None):
+    def __init__(self, data, filePath, freq, sw, spec=None, wholeEcho=None, ref=None, xaxArray=None, history=None, msgHandler=None, name=''):
         self.name = name
         if isinstance(data, hc.HComplexData):
             self.data = data
@@ -150,6 +151,10 @@ class Spectrum(object):
         self.undoList = []
         self.redoList = []
 
+    def reload(self):
+        loadData = io.autoLoad(*self.filePath)
+        self.restoreData(loadData, None)
+        
     def checkAxes(self, axes):
         if axes < 0:
             axes = axes + self.ndim()
@@ -1230,8 +1235,7 @@ class Spectrum(object):
         axes = self.checkAxes(axes)
         sliceData = self.data[tuple(locList[:axes]) + (slice(None), ) + tuple(locList[axes:])]
         sliceData = sliceData.complexReorder(axes)
-        sliceSpec = copy.deepcopy(Spectrum(self.name,
-                                           hc.HComplexData(sliceData.getHyperData(0)),
+        sliceSpec = copy.deepcopy(Spectrum(hc.HComplexData(sliceData.getHyperData(0)),
                                            self.filePath,
                                            [self.freq[axes]],
                                            [self.sw[axes]],
@@ -1240,7 +1244,8 @@ class Spectrum(object):
                                            [self.ref[axes]],
                                            [self.xaxArray[axes]],
                                            self.history,
-                                           self.msgHandler))
+                                           self.msgHandler,
+                                           name=self.name))
         sliceSpec.noUndo = True
         return sliceSpec
 
@@ -1259,8 +1264,7 @@ class Spectrum(object):
             sliceData = self.data[tuple(locList[:axes2]) + (stackSlice, ) + tuple(locList[axes2:axes - 1]) + (slice(None), ) + tuple(locList[axes - 1:])]
             sliceData = sliceData.complexReorder(axes)
             newData = hc.HComplexData(sliceData.getHyperData(0))            
-        sliceSpec = copy.deepcopy(Spectrum(self.name,
-                                           newData,
+        sliceSpec = copy.deepcopy(Spectrum(newData,
                                            self.filePath,
                                            [self.freq[axes2], self.freq[axes]],
                                            [self.sw[axes2], self.sw[axes]],
@@ -1269,7 +1273,8 @@ class Spectrum(object):
                                            [self.ref[axes2], self.ref[axes]],
                                            [self.xaxArray[axes2][stackSlice], self.xaxArray[axes]],
                                            self.history,
-                                           self.msgHandler))
+                                           self.msgHandler,
+                                           name=self.name))
         sliceSpec.noUndo = True
         return sliceSpec
     
@@ -1492,6 +1497,13 @@ class Current1D(Plot1DFrame):
             self.viewSettings["diagonalMult"] = diagonalMult
         self.showFid()
 
+    def reload(self, *args):
+        self.data.reload()
+        self.upd()
+        self.showFid()
+        self.plotReset()
+        self.root.addMacro(['reload'])
+        
     def isComplex(self, *args):
         return self.data.isComplex(*args)
 

@@ -43,7 +43,7 @@ from widgetClasses import QLabel
 import widgetClasses as wc
 import functions as func
 import simFunctions as simFunc
-import loadFiles as LF
+import specIO as io
 
 pi = np.pi
 stopDict = {}  # Global dictionary with stopping commands for fits
@@ -2637,9 +2637,9 @@ class Quad2CzjzekParamFrame(AbstractParamFrame):
                 eta.append(float(matchName.group(1)))
                 cq.append(float(matchName.group(2)))
                 fullName = os.path.join(dirName, name)
-                val = LF.fileTypeCheck(fullName)
+                val = io.fileTypeCheck(fullName)
                 if val[0] is not None:
-                    libData = LF.loading(val[0], val[1])
+                    libData = io.loading(val[0], val[1])
                 if libData.ndim() is not 1:
                     self.rootwindow.mainProgram.dispMsg("A spectrum in the library is not a 1D spectrum.")
                     continue
@@ -3012,9 +3012,9 @@ def SIMPSONRunScript(command, script, parameters, xax, output=None, spec=True):
         shutil.rmtree(directory_name, ignore_errors=True)
         return None
     outputFileName = fileList[0]
-    val = LF.fileTypeCheck(os.path.join(directory_name, outputFileName))
+    val = io.fileTypeCheck(os.path.join(directory_name, outputFileName))
     if val[0] is not None:
-        masterData = LF.loading(val[0], val[1])
+        masterData = io.loading(val[0], val[1])
     else:
         shutil.rmtree(directory_name, ignore_errors=True)
         return None

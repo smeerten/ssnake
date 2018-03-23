@@ -64,8 +64,8 @@ class HComplexData(object):
         return self.__class__.__name__ + '(' + repr(self.data) + ', ' + repr(self.hyper) + ')'
     
     def __len__(self):
-        if self.data:
-            return self.data[0]
+        if len(self.data) > 0:
+            return len(self.data[0])
 
     def __eq__(self, other):
         if isinstance(other, self.__class__):
@@ -304,13 +304,13 @@ class HComplexData(object):
         tmpData = []
         for i, idim in enumerate(tmpHyper):
             if idim in self.hyper and idim in other.hyper:
-                tmpData.append(np.insert(self.data[idim==self.hyper][0], pos, other.data[idim==other.hyper][0], axis=axis))
+                tmpData.append(np.insert(self.data[idim==self.hyper][0], [pos], other.data[idim==other.hyper][0], axis=axis))
             elif idim in self.hyper:
-                tmpData.append(np.insert(self.data[idim==self.hyper][0], pos, np.zeros_like(other.data[0]), axis=axis))
+                tmpData.append(np.insert(self.data[idim==self.hyper][0], [pos], np.zeros_like(other.data[0]), axis=axis))
             elif idim in other.hyper:
-                tmpData.append(np.insert(np.zeros_like(self.data[0]), pos, other.data[idim==other.hyper][0], axis=axis))
+                tmpData.append(np.insert(np.zeros_like(self.data[0]), [pos], other.data[idim==other.hyper][0], axis=axis))
             else:
-                tmpData.append(np.insert(np.zeros_like(self.data[0]), pos, np.zeros_like(other.data[0]), axis=axis))
+                tmpData.append(np.insert(np.zeros_like(self.data[0]), [pos], np.zeros_like(other.data[0]), axis=axis))
         return HComplexData(np.array(tmpData), tmpHyper)
 
     def delete(self, pos, axis):

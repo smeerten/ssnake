@@ -88,7 +88,7 @@ from plotWindow import MainPlotWindow
 splashStep = splashProgressStep(splashStep)
 import functions as func
 splashStep = splashProgressStep(splashStep)
-import loadFiles as lf
+import specIO as io
 splashStep = splashProgressStep(splashStep)
 
 matplotlib.rc('font', family='DejaVu Sans')
@@ -783,24 +783,25 @@ class MainProgram(QtWidgets.QMainWindow):
             event.ignore()
 
     def dropEvent(self, event):
-        for url in event.mimeData().urls():
-            path = url.toLocalFile()
-            if path.endswith('.zip'):
-                import tempfile
-                import shutil
-                import zipfile
-                try:
-                    temp_dir = tempfile.mkdtemp()
-                    zipfile.ZipFile(path).extractall(temp_dir)
-                    for i in os.listdir(temp_dir):  # Send the original path too,  for the workspace name
-                        if self.autoLoad(os.path.join(temp_dir, i), realpath=path):
-                            break
-                finally:
-                    shutil.rmtree(temp_dir)
-            else:
-                self.autoLoad(path)
-            if path != '':  # if not cancelled
-                self.LastLocation = os.path.dirname(path)  # Save used path
+        fileList = [url.toLocalFile() for url in event.mimeData().urls()]
+        self.loadData(fileList)
+            # path = url.toLocalFile()
+            # if path.endswith('.zip'):
+            #     import tempfile
+            #     import shutil
+            #     import zipfile
+            #     try:
+            #         temp_dir = tempfile.mkdtemp()
+            #         zipfile.ZipFile(path).extractall(temp_dir)
+            #         for i in os.listdir(temp_dir):  # Send the original path too,  for the workspace name
+            #             if self.autoLoad(os.path.join(temp_dir, i), realpath=path):
+            #                 break
+            #     finally:
+            #         shutil.rmtree(temp_dir)
+            # else:
+            #     self.autoLoad(path)
+            # if path != '':  # if not cancelled
+            #     self.LastLocation = os.path.dirname(path)  # Save used path
 
     def menuCheck(self):
         if self.mainWindow is None:
@@ -1325,25 +1326,40 @@ class MainProgram(QtWidgets.QMainWindow):
         fileList = QtWidgets.QFileDialog.getOpenFileNames(self, 'Open File', self.LastLocation)
         if isinstance(fileList, tuple):
             fileList = fileList[0]
+        self.loadData(fileList)
+
+    def loadData(self, fileList):
         for filePath in fileList:
             if filePath:  # if not cancelled
                 self.LastLocation = os.path.dirname(filePath)  # Save used path
             if len(filePath) == 0:
                 return
-            if filePath.endswith('.zip'):
-                import tempfile
-                import shutil
-                import zipfile
-                try:
-                    temp_dir = tempfile.mkdtemp()
-                    zipfile.ZipFile(filePath).extractall(temp_dir)
-                    for i in os.listdir(temp_dir):
-                        if self.autoLoad(os.path.join(temp_dir, i), realpath=filePath):
-                            break
-                finally:
-                    shutil.rmtree(temp_dir)
+            masterData = io.autoLoad(filePath)
+            if masterData is None:
+                return
+            elif masterData == -1:
+                dialog = AsciiLoadWindow(self, filePath)
+                if dialog.exec_():
+                    if dialog.closed:
+                        return
+                asciiInfo = (dialog.dataDimension, dialog.dataOrder, dialog.dataSpec, dialog.delim, dialog.sw)
+                masterData = io.autoLoad(filePath, asciiInfo)
+            if self.defaultAskName:
+                name = self.askName(filePath, masterData.name)
+                if name is None:
+                    return
             else:
-                self.autoLoad(filePath)
+                count = 0
+                while name in self.workspaceNames:
+                    name = 'spectrum' + str(count)
+                    count += 1
+            masterData.rename(name)
+            masterData.msgHandler = lambda msg: self.dispMsg(msg)
+            if masterData is not None:
+                self.workspaces.append(Main1DWindow(self, masterData))
+                self.tabs.addTab(self.workspaces[-1], name)
+                self.workspaceNames.append(name)
+                self.changeMainWindow(name)
 
     def loadFitLibDir(self):
         fileName = QtWidgets.QFileDialog.getExistingDirectory(self, 'Open Library Directory', self.LastLocation)
@@ -1355,59 +1371,14 @@ class MainProgram(QtWidgets.QMainWindow):
             fileName = fileName[0]
         return fileName
 
-    def autoLoad(self, filePath, realpath=False):
-        val = lf.fileTypeCheck(filePath)
-        if val[0] is not None:
-            self.loading(val[0], val[1], realpath=realpath)
-        return val[2]
-
     def loadAndCombine(self, filePathList):
-        filePath = filePathList.pop(0)
-        combineMasterData = None
-        if filePath.endswith('.zip'):
-            import tempfile
-            import shutil
-            import zipfile
-            try:
-                temp_dir = tempfile.mkdtemp()
-                zipfile.ZipFile(filePath).extractall(temp_dir)
-                val = lf.fileTypeCheck(os.path.join(temp_dir, os.listdir(temp_dir)[0]))
-                combineMasterData = self.loading(val[0], val[1], returnBool=True, realpath=filePath)
-            finally:
-                shutil.rmtree(temp_dir)
-        else:
-            val = lf.fileTypeCheck(filePath)
-            combineMasterData = self.loading(val[0], val[1], returnBool=True)
-        if combineMasterData is None:
-            self.dispMsg("Data could not be loaded")
-            return False
-        shapeRequired = combineMasterData.shape()
-        hyperShape = len(combineMasterData.data)
-        combineMasterData.split(1, -1)
-        for filePath in filePathList:
-            if filePath.endswith('.zip'):
-                import tempfile
-                import shutil
-                import zipfile
-                try:
-                    temp_dir = tempfile.mkdtemp()
-                    zipfile.ZipFile(filePath).extractall(temp_dir)
-                    val = lf.fileTypeCheck(os.path.join(temp_dir, os.listdir(temp_dir)[0]))
-                    addData = self.loading(val[0], val[1], returnBool=True, realpath=filePath)
-                finally:
-                    shutil.rmtree(temp_dir)
-            else:
-                val = lf.fileTypeCheck(filePath)
-                addData = self.loading(val[0], val[1], returnBool=True)
-            if addData.shape() != shapeRequired:
-                self.dispMsg("Not all the data has the required shape")
-                return False
-            if len(addData.data) != hyperShape:
-                self.dispMsg("Not all the data has the required shape")
-                return False
-            combineMasterData.insert(addData.data, combineMasterData.shape()[0], 0)
+        masterData = io.autoLoad(filePathList)
         wsname = self.askName()
-        self.workspaces.append(Main1DWindow(self, combineMasterData))
+        if wsname is None:
+            return
+        masterData.rename(wsname)
+        masterData.msgHandler = lambda msg: self.dispMsg(msg)
+        self.workspaces.append(Main1DWindow(self, masterData))
         self.workspaces[-1].rename(wsname)
         self.tabs.addTab(self.workspaces[-1], wsname)
         self.workspaceNames.append(wsname)
@@ -1417,8 +1388,7 @@ class MainProgram(QtWidgets.QMainWindow):
         name = self.askName()
         if name is None:
             return
-        masterData = sc.Spectrum(name,
-                                 data,
+        masterData = sc.Spectrum(data,
                                  filePath,
                                  freq,
                                  sw,
@@ -1427,56 +1397,13 @@ class MainProgram(QtWidgets.QMainWindow):
                                  ref,
                                  xaxArray,
                                  msgHandler=lambda msg: self.dispMsg(msg),
-                                 history=['Data obtained from fit'])
+                                 history=['Data obtained from fit'],
+                                 name=name)
         masterData.resetXax(axes)
         self.workspaces.append(Main1DWindow(self, masterData))
         self.tabs.addTab(self.workspaces[-1], name)
         self.workspaceNames.append(name)
         self.changeMainWindow(name)
-
-    def loading(self, num, filePath, returnBool=False, realpath=False):
-        errorNames = ["Varian", "Bruker", "Chemagnetic", "Magritek", "SIMPSON", "JSON", "Matlab", "Bruker Spectrum", "NMRpipe", "JEOL", "JCAMP", "ASCII", "Minispec", "Bruker EPR"]
-        if returnBool:
-            name = None
-        else:
-            if realpath:  # If there is a temp file, use the real path for name
-                name = os.path.splitext(os.path.basename(realpath))[0]
-            else:
-                name = os.path.splitext(os.path.basename(filePath))[0]
-            if self.defaultAskName:
-                if realpath:  # If there is a temperary directory
-                    name = self.askName(realpath, name)
-                else:
-                    name = self.askName(filePath, name)
-                if name is None:
-                    return
-            else:
-                count = 0
-                while name in self.workspaceNames:
-                    name = 'spectrum' + str(count)
-                    count += 1
-        dialog = None
-        if num == 11:  # ASCII data requires a dialog
-            dialog = AsciiLoadWindow(self, filePath)
-            if dialog.exec_():
-                if dialog.closed:
-                    return
-        masterData = lf.loading(num, filePath, name, realpath, dialog=dialog)
-        if masterData is None:
-            self.dispMsg("Error on loading " + errorNames[num] + " data", 'red')
-            return None
-        elif masterData is 'ND error':
-            self.dispMsg("Error: JEOL Delta data of this type is not supported", 'red')
-            return None
-        masterData.msgHandler = lambda msg: self.dispMsg(msg)
-        if returnBool:
-            return masterData
-        else:
-            if masterData is not None:
-                self.workspaces.append(Main1DWindow(self, masterData))
-                self.tabs.addTab(self.workspaces[-1], name)
-                self.workspaceNames.append(name)
-                self.changeMainWindow(name)
 
     def saveSimpsonFile(self):
         self.mainWindow.get_mainWindow().SaveSimpsonFile()
@@ -1671,14 +1598,10 @@ class Main1DWindow(QtWidgets.QWidget):
 
     def runMacro(self, macro, display=True):
         for iter1 in macro:
-            if iter1[0] == 'reload':
-                loadData = self.father.loading(self.masterData.filePath[0], self.masterData.filePath[1], True)
-                self.masterData.restoreData(loadData, None)
-            else:
-                try:
-                    getattr(self.masterData, iter1[0])(*iter1[1])
-                except AttributeError:
-                    self.father.dispMsg('unknown macro command: ' + iter1[0])
+            try:
+                getattr(self.masterData, iter1[0])(*iter1[1])
+            except AttributeError:
+                self.father.dispMsg('unknown macro command: ' + iter1[0])
         if display:
             self.current.upd()  # get the first slice of data
             self.current.showFid()  # plot the data
@@ -1699,7 +1622,7 @@ class Main1DWindow(QtWidgets.QWidget):
         if not name:
             return
         self.father.LastLocation = os.path.dirname(name)  # Save used path
-        lf.saveJSONfile(name, self.masterData)
+        io.saveJSONfile(name, self.masterData)
 
     def saveMatlabFile(self):
         WorkspaceName = self.father.workspaceNames[self.father.workspaceNum]  # Set name of file to be saved to workspace name to start
@@ -1709,7 +1632,7 @@ class Main1DWindow(QtWidgets.QWidget):
         if not name:
             return
         self.father.LastLocation = os.path.dirname(name)  # Save used path
-        lf.saveMatlabFile(name, self.masterData, self.father.workspaceNames[self.father.workspaceNum])
+        io.saveMatlabFile(name, self.masterData, self.father.workspaceNames[self.father.workspaceNum])
 
     def SaveSimpsonFile(self):
         if self.masterData.ndim() > 2:
@@ -1732,7 +1655,7 @@ class Main1DWindow(QtWidgets.QWidget):
             self.father.dispMsg('Saving to Simpson format not allowed for mixed time/frequency domain data!')
             return
         self.father.LastLocation = os.path.dirname(name)  # Save used path
-        lf.saveSimpsonFile(name, self.masterData)
+        io.saveSimpsonFile(name, self.masterData)
 
     def saveASCIIFile(self):
         if self.masterData.ndim() > 2:
@@ -1746,25 +1669,11 @@ class Main1DWindow(QtWidgets.QWidget):
             return
         self.father.LastLocation = os.path.dirname(name)  # Save used path
         axMult = self.current.getCurrentAxMult()
-        lf.saveASCIIFile(name, self.masterData, axMult)
+        io.saveASCIIFile(name, self.masterData, axMult)
 
     def reloadLast(self):
-        path = self.masterData.filePath[1]
-        if path.endswith('.zip'):
-            import tempfile
-            import shutil
-            import zipfile
-            temp_dir = tempfile.mkdtemp()
-            zipfile.ZipFile(path).extractall(temp_dir)
-            loadData = self.father.loading(self.masterData.filePath[0], temp_dir, True, realpath=path)
-        else:
-            loadData = self.father.loading(self.masterData.filePath[0], self.masterData.filePath[1], True)
-        self.masterData.restoreData(loadData, None)
-        self.current.upd()
-        self.current.showFid()
-        self.current.plotReset()
+        self.current.reload()
         self.updAllFrames()
-        self.addMacro(['reload'])
         self.menuCheck()
 
     def monitorLoad(self, filePath, delay=0.5):
@@ -1772,7 +1681,7 @@ class Main1DWindow(QtWidgets.QWidget):
         if not os.path.exists(filePath):
             self.stopMonitor()
             return
-        loadData = self.father.loading(self.masterData.filePath[0], self.masterData.filePath[1], True)
+        loadData = io.autoLoad(*self.masterData.filePath)
         self.masterData.restoreData(loadData, None)
         for name in self.monitorMacros:
             self.runMacro(self.father.macros[name], display=False)
@@ -1788,14 +1697,14 @@ class Main1DWindow(QtWidgets.QWidget):
 
     def startMonitor(self, macroNames, delay=0.5):
         self.monitorMacros = macroNames
-        self.monitor = QtCore.QFileSystemWatcher([self.masterData.filePath[1]], self)
+        self.monitor = QtCore.QFileSystemWatcher([self.masterData.filePath[0]], self)
         self.monitor.fileChanged.connect(lambda a: self.monitorLoad(a, delay))
         self.monitor.directoryChanged.connect(lambda a: self.monitorLoad(a, delay))
 
     def stopMonitor(self):
         self.monitorMacros = []
         if self.monitor is not None:
-            self.monitor.removePath(self.masterData.filePath[1])
+            self.monitor.removePath(self.masterData.filePath[0])
         self.monitor = None
 
     def real(self):
@@ -1880,10 +1789,10 @@ class Main1DWindow(QtWidgets.QWidget):
         self.menuCheck()
 
     def BrukerDigital(self):
-        Dir = self.masterData.filePath[1]
+        Dir = self.masterData.filePath[0]
         if Dir is '':
             return
-        FilePath = self.masterData.filePath[1] + os.path.sep + 'acqus'
+        FilePath = self.masterData.filePath[0] + os.path.sep + 'acqus'
         if not os.path.exists(FilePath):
             self.father.dispMsg("Bruker correct: acqus file does not exist, specify load path")
             FilePath = QtWidgets.QFileDialog.getOpenFileName(self, 'Open File', self.father.LastLocation)
@@ -3030,6 +2939,8 @@ class AsciiLoadWindow(QtWidgets.QDialog):
             self.swEntry.hide()
 
     def checkType(self, file):
+        if file.endswith('.zip'):
+            return # cannot read zipped files from here
         try:
             with open(file, 'r') as f:
                 line = f.readline()
@@ -3044,8 +2955,6 @@ class AsciiLoadWindow(QtWidgets.QDialog):
             data = np.fromstring(line, sep=sepList[self.delimiters.index(sep)])
             if len(data) > 3:
                 self.numDims.setValue(2)
-#            if len(data) % 2 == 0: #if odd size
-#                self.datOrderBox.setCurrentIndex(1)
         except Exception:
             return
 
@@ -5940,11 +5849,11 @@ class MonitorWindow(QtWidgets.QWidget):
         self.setWindowTitle("Monitor")
         layout = QtWidgets.QGridLayout(self)
         grid = QtWidgets.QGridLayout()
-        fileName = self.father.masterData.filePath[1]
+        fileName = self.father.masterData.filePath[0]
         if len(fileName) > 58:
             fileName = fileName[:55] + '...'
         fileLabel = wc.QLabel("File: " + fileName)
-        fileLabel.setToolTip(self.father.masterData.filePath[1])
+        fileLabel.setToolTip(self.father.masterData.filePath[0])
         layout.addWidget(fileLabel, 0, 0, 1, 3)
         layout.addLayout(grid, 1, 0, 1, 3)
         grid.addWidget(wc.QLabel("Macros:"), 0, 0)
