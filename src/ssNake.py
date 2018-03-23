@@ -1349,6 +1349,7 @@ class MainProgram(QtWidgets.QMainWindow):
                 if name is None:
                     return
             else:
+                name = masterData.name
                 count = 0
                 while name in self.workspaceNames:
                     name = 'spectrum' + str(count)

@@ -53,8 +53,12 @@ def voigtLine(x, pos, lor, gau, integral, Type=0):
     axis = x - pos
     if Type == 0:  # Exact: Freq domain simulation via Faddeeva function
         if gau == 0.0:  # If no gauss, just take lorentz
-            lor = 1.0 / (np.pi * 0.5 * lor * (1 + (axis / (0.5 * lor))**2))
-            return integral * lor
+            f = 1.0 / (np.pi * 0.5 * lor * (1 + (axis / (0.5 * lor))**2))
+            return integral * f
+        elif lor == 0.0: # If no lorentz, just take gauss
+            sigma = gau / (2 * np.sqrt(2 * np.log(2)))
+            f = np.exp(-axis**2/(2 * sigma**2)) / np.sqrt(2 * np.pi * sigma**2)
+            return integral * f 
         else:
             sigma = gau / (2 * np.sqrt(2 * np.log(2)))
             z = (axis + 1j * lor / 2) / (sigma * np.sqrt(2))
