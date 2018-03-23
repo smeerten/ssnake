@@ -907,7 +907,7 @@ class MainProgram(QtWidgets.QMainWindow):
             for act in self.fileActList + self.workspaceActList:
                 act.setEnabled(enable)
             for i in range(self.tabs.count()):
-                if not enable and i != self.workspaceNum:
+                if i != self.workspaceNum:
                     self.tabs.setTabEnabled(i, enable)
         self.undoAction.setEnabled(enable)
         self.redoAction.setEnabled(enable)
