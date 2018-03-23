@@ -59,6 +59,9 @@ class HComplexData(object):
 
     def getHyperData(self, hyperVal):
         return self.data[hyperVal == self.hyper][0]
+
+    def __repr__(self, *args):
+        return self.__class__.__name__ + '(' + repr(self.data) + ', ' + repr(self.hyper) + ')'
     
     def __len__(self):
         if self.data:

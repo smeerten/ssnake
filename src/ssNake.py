@@ -1027,7 +1027,7 @@ class MainProgram(QtWidgets.QMainWindow):
         with open(fileName, 'w') as f:
             for line in outputMacro:
                 f.write(line[0])
-                f.write(repr(line[1]).replace('\n', ''))
+                f.write(repr(line[1]).replace('\n', '').replace(' ', ''))
                 f.write('\n')
 
     def deleteMacro(self, name):

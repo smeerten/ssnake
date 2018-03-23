@@ -19,10 +19,11 @@
 
 import numpy as np
 import re
-
+import hypercomplex as hc
 
 def safeEval(inp, length=None, keywords=[], type='All', x=None):
     env = vars(np).copy()
+    env.update(vars(hc).copy())
     env["locals"] = None
     env["globals"] = None
     env["__name__"] = None
