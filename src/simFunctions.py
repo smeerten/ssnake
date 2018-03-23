@@ -215,18 +215,8 @@ def quad1MASFunc(x, pos, cq, eta, lor, gauss, sw, axAdd, axMult, spinspeed, chen
         else:  # If zero: add all the intensity to the centreband
             sidebands[0] += eff[transition]
     posList = np.array(np.fft.fftfreq(int(numssb), 1.0 / numssb)) * spinspeed * 1e3 + pos
-    length = len(x)
-    t = np.arange(length) / sw
-    mult = posList / sw * length
-    x1 = np.array(np.round(mult) + np.floor(length / 2), dtype=int)
-    weights = sidebands[np.logical_and(x1 >= 0, x1 < length)]
-    x1 = x1[np.logical_and(x1 >= 0, x1 < length)]
-    final = np.bincount(x1, weights, length)
-    apod = np.exp(-np.pi * np.abs(lor) * t) * np.exp(-((np.pi * np.abs(gauss) * t)**2) / (4 * np.log(2)))
-    apod[-1:-(int(len(apod) / 2) + 1):-1] = apod[:int(len(apod) / 2)]
-    inten = np.real(np.fft.fft(np.fft.ifft(final) * apod))
-    inten = inten / sw * len(inten)
-    return inten
+    return makeSpectrum(x, sw, posList, gauss, lor, sidebands)
+
 
 def quad2StaticsetAngleStuff(cheng):
     phi, theta, weight = zcw_angles(cheng, symm=2)
@@ -250,24 +240,11 @@ def quad2MASsetAngleStuff(cheng):
     return weight, angleStuff
 
 
-def quad2tensorFunc(x, I, pos, cq, eta, width, gauss, angleStuff, freq, sw, weight, axAdd, axMult=1):
+def quad2tensorFunc(x, I, pos, cq, eta, lor, gauss, angleStuff, freq, sw, weight, axAdd, axMult=1):
     pos = (pos / axMult) - axAdd
     cq *= 1e6
     v = -1 / (6 * freq) * (3 * cq / (2 * I * (2 * I - 1)))**2 * (I * (I + 1) - 3.0 / 4) * (angleStuff[0] + angleStuff[1] * eta + angleStuff[2] * eta**2) + pos
-    length = len(x)
-    t = np.arange(length) / sw
-    final = np.zeros(length)
-    mult = v / sw * length
-    x1 = np.array(np.round(mult) + np.floor(length / 2), dtype=int)
-    weights = weight[np.logical_and(x1 >= 0, x1 < length)]
-    x1 = x1[np.logical_and(x1 >= 0, x1 < length)]
-    final = np.bincount(x1, weights, length)
-    apod = np.exp(-np.pi * np.abs(width) * t) * np.exp(-((np.pi * np.abs(gauss) * t)**2) / (4 * np.log(2)))
-    apod[-1:-(int(len(apod) / 2) + 1):-1] = apod[:int(len(apod) / 2)]
-    inten = np.real(np.fft.fft(np.fft.ifft(final) * apod))
-    inten = inten / sw * len(inten)
-    return inten
-
+    return makeSpectrum(x, sw, v, gauss, lor, weight)
 
 def czjzekIntensities(sigma, d, wq, eta):
     #Calculates an intensity distribution for a Czjzek library
