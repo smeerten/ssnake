@@ -73,12 +73,28 @@ def voigtLine(x, pos, lor, gau, integral, Type=0):
         return integral * (eta * lor + (1 - eta) * gauss)
 
 
+def makeSpectrum(x, sw, v, gauss, lor, weight):
+    #Takes axis, frequencies and intensities and makes a spectrum with lorentz and gaussian broadening
+    length = len(x)
+    t = np.arange(length) / sw
+    final = np.zeros(length)
+    mult = v / sw * length
+    x1 = np.array(np.round(mult) + np.floor(length / 2), dtype=int)
+    weight = weight[np.logical_and(x1 >= 0, x1 < length)]
+    x1 = x1[np.logical_and(x1 >= 0, x1 < length)]
+    final = np.bincount(x1, weight, length)
+    apod = np.exp(-np.pi * np.abs(lor) * t) * np.exp(-((np.pi * np.abs(gauss) * t)**2) / (4 * np.log(2)))
+    apod[-1:-int(len(apod) / 2 + 1):-1] = apod[:int(len(apod) / 2)]
+    inten = np.real(np.fft.fft(np.fft.ifft(final) * apod))
+    inten = inten / sw * len(inten) 
+    return inten
+
+
+
 def csaAngleStuff(cheng):
     phi, theta, weight = zcw_angles(cheng, symm=2)
     sinT2 = np.sin(theta)**2
     return weight, [[sinT2 * np.cos(phi)**2, sinT2 * np.sin(phi)**2, np.cos(theta)**2]]
-
-
 
 def tensorDeconvtensorFunc(x, t11, t22, t33, lor, gauss, multt, sw, weight, axAdd, convention=0, axMult=1):
     if convention == 0 or convention == 1:
@@ -89,19 +105,7 @@ def tensorDeconvtensorFunc(x, t11, t22, t33, lor, gauss, multt, sw, weight, axAd
     t22 = Tensors[0][1] * multt[1]
     t33 = Tensors[0][2] * multt[2]
     v = t11 + t22 + t33 - axAdd
-    length = len(x)
-    t = np.arange(length) / sw
-    final = np.zeros(length)
-    mult = v / sw * length
-    x1 = np.array(np.round(mult) + np.floor(length / 2.0), dtype=int)
-    weight = weight[np.logical_and(x1 >= 0, x1 < length)]
-    x1 = x1[np.logical_and(x1 >= 0, x1 < length)]
-    final = np.bincount(x1, weight, length)
-    apod = np.exp(-np.pi * np.abs(lor) * t) * np.exp(-((np.pi * np.abs(gauss) * t)**2) / (4 * np.log(2)))
-    apod[-1:int(-(len(apod) / 2 + 1)):-1] = apod[:int(len(apod) / 2)]
-    I = np.real(np.fft.fft(np.fft.ifft(final) * apod))
-    I = I / sw * len(I)
-    return I
+    return makeSpectrum(x, sw, v, gauss, lor, weight)
 
 
 def tensorMASDeconvtensorFunc(x, t11, t22, t33, lor, gauss, sw, axAdd, axMult, spinspeed, cheng, convention, numssb):
@@ -142,20 +146,9 @@ def tensorMASDeconvtensorFunc(x, t11, t22, t33, lor, gauss, sw, axAdd, axMult, s
     # calculate the sideband intensities by doing an FT and pick the ones that are needed further
     inten = np.real(np.fft.fft(favrs))
     posList = np.array(np.fft.fftfreq(numssb, 1.0 / numssb)) * spinspeed * 1e3 + pos
-    length = len(x)
-    t = np.arange(length) / sw
-    mult = posList / sw * length
-    x1 = np.array(np.round(mult) + np.floor(length / 2), dtype=int)
-    weights = inten[np.logical_and(x1 >= 0, x1 < length)]
-    x1 = x1[np.logical_and(x1 >= 0, x1 < length)]
-    final = np.bincount(x1, weights, length)
-    apod = np.exp(-np.pi * np.abs(lor) * t) * np.exp(-((np.pi * np.abs(gauss) * t)**2) / (4 * np.log(2)))
-    apod[-1:-(int(len(apod) / 2) + 1):-1] = apod[:int(len(apod) / 2)]
-    inten = np.real(np.fft.fft(np.fft.ifft(final) * apod))
-    inten = inten / sw * len(inten)
-    return inten
-
-def quad1DeconvtensorFunc(x, I, pos, cq, eta, width, gauss, angleStuff, freq, sw, weight, axAdd, axMult=1):
+    return makeSpectrum(x, sw, posList, gauss, lor, inten)
+   
+def quad1DeconvtensorFunc(x, I, pos, cq, eta, lor, gauss, angleStuff, freq, sw, weight, axAdd, axMult=1):
     m = np.arange(-I, I)
     v = []
     cq *= 1e6
@@ -165,19 +158,8 @@ def quad1DeconvtensorFunc(x, I, pos, cq, eta, width, gauss, angleStuff, freq, sw
         tmp = (cq / (4 * I * (2 * I - 1)) * (I * (I + 1) - 3 * (i + 1)**2)) - (cq / (4 * I * (2 * I - 1)) * (I * (I + 1) - 3 * (i)**2))
         v = np.append(v, tmp * (angleStuff[0] - eta * angleStuff[1]) + pos)
         weights = np.append(weights, weight)
-    length = len(x)
-    t = np.arange(length) / sw
-    final = np.zeros(length)
-    mult = v / sw * length
-    x1 = np.array(np.round(mult) + np.floor(length / 2), dtype=int)
-    weights = weights[np.logical_and(x1 >= 0, x1 < length)]
-    x1 = x1[np.logical_and(x1 >= 0, x1 < length)]
-    final = np.bincount(x1, weights, length)
-    apod = np.exp(-np.pi * np.abs(width) * t) * np.exp(-((np.pi * np.abs(gauss) * t)**2) / (4 * np.log(2)))
-    apod[-1:-int(len(apod) / 2 + 1):-1] = apod[:int(len(apod) / 2)]
-    inten = np.real(np.fft.fft(np.fft.ifft(final) * apod))
-    inten = inten / sw * len(inten) / (2 * I)
-    return inten
+    return makeSpectrum(x, sw, v, gauss, lor, weights) / (2 * I)
+
 
 def quad1DeconvsetAngleStuff(cheng):
     phi, theta, weight = zcw_angles(cheng, symm=2)
