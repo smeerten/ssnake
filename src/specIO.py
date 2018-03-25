@@ -22,10 +22,15 @@ import re
 import os
 import spectrum as sc
 import hypercomplex as hc
+import sys
 
 def autoLoad(filePathList, asciiInfoList=None):
-    if isinstance(filePathList, basestring):
-        filePathList = [filePathList]
+    if sys.version_info[0] == 3:
+        if isinstance(filePathList, str):
+            filePathList = [filePathList]
+    else:
+        if isinstance(filePathList, basestring):
+            filePathList = [filePathList]
     if asciiInfoList is None:
         asciiInfoList = [None] * len(filePathList)
     masterData = autoLoadSingle(filePathList[0], asciiInfoList[0])

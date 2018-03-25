@@ -1345,7 +1345,7 @@ class MainProgram(QtWidgets.QMainWindow):
                     if dialog.closed:
                         return
                 asciiInfo = (dialog.dataDimension, dialog.dataOrder, dialog.dataSpec, dialog.delim, dialog.sw)
-                masterData = io.autoLoad(filePath, asciiInfo)
+                masterData = io.autoLoad(filePath, [asciiInfo])
             if self.defaultAskName:
                 name = self.askName(filePath, masterData.name)
                 if name is None:
