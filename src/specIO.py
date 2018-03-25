@@ -1130,6 +1130,6 @@ def loadBrukerEPR(filePath):
             leftX = float(row[1])
     with open(filePath + '.spc', mode='rb') as f:
         data = np.fromfile(f, np.float32, numOfPoints)
-    masterData = sc.Spectrum(name, data, (filePath, None), [(sweepWidth + 2 * leftX) / 2], [sweepWidth], [True], ref=[0])
+    masterData = sc.Spectrum(data, (filePath, None), [(sweepWidth + 2 * leftX) / 2], [sweepWidth], [True], ref=[0])
     masterData.addHistory("Bruker EPR data loaded from " + filePath)
     return masterData
