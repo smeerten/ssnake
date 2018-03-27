@@ -51,7 +51,7 @@ class Current1D(PlotFrame):
         self.data = data  # the actual spectrum instance
         self.data1D = None  # the data1D
         if duplicateCurrent is None:
-            self.axes = np.array([len(self.data.shape()) - 1])
+            self.axes = np.array([len(self.data.shape()) - 1], dtype=int)
             self.resetLocList()
             self.viewSettings = {"plotType": 0,
                                  "axType": np.array([self.root.father.defaultUnits] * self.NDIM_PLOT, dtype=int),
@@ -96,17 +96,11 @@ class Current1D(PlotFrame):
         else:
             self.axes = duplicateCurrent.axes
             self.locList = duplicateCurrent.locList
-            if isinstance(self, (CurrentStacked, CurrentArrayed, CurrentContour)):
-                if len(self.axes) < 2:
-                    self.axes = np.append(self.data.ndim()-1, self.axes)
-                if self.axes[-1] == self.axes[-2]: #If axes are equal, change axes2 to one value below/above
-                    if self.axes[-2] > 0:
-                        self.axes[-2] += -1
-                    else:
-                        self.axes[-2] += 1
-            else:
-                if len(self.axes) != 1:
-                    self.axes = self.axes[-1:]
+            if len(self.axes) != self.NDIM_PLOT:
+                fullAxes = np.arange(self.data.ndim())
+                fullAxes = np.delete(fullAxes, self.axes)
+                diff = self.NDIM_PLOT - len(self.axes)
+                self.axes = np.append(fullAxes[-diff:], self.axes[-self.NDIM_PLOT:])
             self.viewSettings = duplicateCurrent.viewSettings
             self.viewSettings.update({"extraData": [],
                                       "extraLoc": [],
@@ -304,11 +298,8 @@ class Current1D(PlotFrame):
         self.showFid()
 
     def apodPreview(self, lor=None, gauss=None, cos2=None, hamming=None, shift=0.0, shifting=0.0, shiftingAxes=None):  # display the 1D data including the apodization function
-        if not type(self) is CurrentContour:
-            y = copy.deepcopy(self.data1D.data)
-            preview = True
-        else:
-            preview = False
+        y = self.data1D.data.copy()
+        preview = True
         if shiftingAxes is None:
             curve = self.data1D.apodize(lor, gauss, cos2, hamming, shift, shifting, None, -1, preview=preview)
         else:
@@ -320,15 +311,12 @@ class Current1D(PlotFrame):
                     return
                 shift += shifting * self.locList[shiftingAxes] / self.data.sw[shiftingAxes]
                 curve = self.data1D.apodize(lor, gauss, cos2, hamming, shift, 0.0, None, -1, preview=preview)
-        if not type(self) is CurrentContour:
-            if self.spec() == 0:
-                tmp = self.getDataType(y.getHyperData(0))
-                scale = np.max([np.real(tmp), np.imag(tmp)])
-                self.showFid(y, curve[0], scale*np.array(curve[1]), 'g')
-            else:
-                self.showFid(y)
+        if self.spec() == 0 and not isinstance(self, CurrentContour):
+            tmp = self.getDataType(y.getHyperData(0))
+            scale = np.max([np.real(tmp), np.imag(tmp)])
+            self.showFid(y, curve[0], scale*np.array(curve[1]), extraColor='g')
         else:
-            self.showFid()
+            self.showFid(y)
         self.upd()
     
     def applyApod(self, lor=None, gauss=None, cos2=None, hamming=None, shift=0.0, shifting=0.0, shiftingAxes=0, select=False):  # apply the apodization to the actual data
@@ -603,8 +591,11 @@ class Current1D(PlotFrame):
         y = self.baselinePolyFit(self.xax(), tmpData, bArray, degree)
         y = np.real(self.getDataType(y))
         self.resetPreviewRemoveList()
-        if self.ndim() > 1:
-            self.showFid(extraX=[self.xax()], extraY=[y]*self.len(-2), extraColor='g')
+        if self.NDIM_PLOT > 1:
+            if isinstance(self, CurrentContour):
+                self.showFid()
+            else:
+                self.showFid(extraX=[self.xax()], extraY=[y]*self.len(-2), extraColor='g')
         else:
             self.showFid(extraX=[self.xax()], extraY=[y], extraColor='g')
         self.previewRemoveList(removeList, invert)
@@ -931,7 +922,7 @@ class Current1D(PlotFrame):
             self.line_xdata_extra.append(self.xax() * axMult)
             self.line_ydata_extra.append(tmp)
             self.ax.plot(self.line_xdata_extra[-1], self.line_ydata_extra[-1], marker=marker, linestyle=linestyle, c='k', alpha=0.2, linewidth=self.viewSettings["linewidth"], label=self.data.name + '_old', picker=True)
-        if (extraX is not None):
+        if extraX is not None:
             for num in range(len(extraX)):
                 self.line_xdata_extra.append(extraX[num] * axMult)
                 self.line_ydata_extra.append(extraY[num])
@@ -1432,7 +1423,8 @@ class CurrentContour(CurrentStacked):
         self.viewSettings["minLevels"] = minLevels
         self.root.sideframe.minLEntry.setText(format(self.viewSettings["minLevels"] * 100, '.7g'))
         self.root.sideframe.maxLEntry.setText(str(self.viewSettings["maxLevels"] * 100))
-        self.plotContour(updateOnly=True)
+        self.showFid()
+        #self.plotContour(updateOnly=True)
 
     def copyCurrent(self, root, fig, canvas, data):
         return CurrentContour(root, fig, canvas, data, self)
@@ -1494,29 +1486,45 @@ class CurrentContour(CurrentStacked):
             self.line_xdata = [item*scale for item in self.line_xdata]
         self.canvas.draw()
 
-    def showFid(self, oldData=None, extraX=None, extraY=None, extraColor=None, makeContours=True, clearCntr=True):
+    def showFid(self, oldData=None, extraX=None, extraY=None, extraColor=None):
         # The oldData and extra plots are not displayed in the contourplot for now
         self.line_xdata_extra = []
         self.line_ydata_extra = []
+        self.line_zdata_extra = []
         self.differ = None
         self.peakPickReset()
-        tmpdata = self.data1D.getHyperData(0)
-        if clearCntr:
-            self.ax.cla()
+        tmpdata = np.real(self.getDataType(self.data1D.getHyperData(0)))
+        if self.viewSettings["limitType"] == 0:
+            self.differ = np.max(np.abs(tmpdata))
+        else:
+            self.differ = np.max(np.abs(np.ravel(self.data.getHyperData)))
+        self.ax.cla()
         self.x_ax.cla()
         self.y_ax.cla()
+        axMult = self.getAxMult(self.spec(), self.getAxType(), self.getppm(), self.freq(), self.ref())
+        axMult2 = self.getAxMult(self.spec(-2), self.getAxType(-2), self.getppm(-2), self.freq(-2), self.ref(-2))
         if self.viewSettings["diagonalBool"]:
             add_diagonal(self.ax, self.viewSettings["diagonalMult"], c='k', ls='--')
-        self.line_xdata = [self.xax() * self.getAxMult(self.spec(), self.getAxType(), self.getppm(), self.freq(), self.ref())]
-        self.line_ydata = [self.xax(-2) * self.getAxMult(self.spec(-2), self.getAxType(-2), self.getppm(-2), self.freq(-2), self.ref(-2))]
-        tmpdata = np.real(self.getDataType(tmpdata))
+        if oldData is not None:
+            tmp = np.real(self.getDataType(oldData.getHyperData(0)))
+            self.line_xdata_extra.append(self.xax() * axMult)
+            self.line_ydata_extra.append(self.xax(-2) * axMult2)
+            self.line_zdata_extra.append(tmp)
+            self.plotContour(self.line_xdata_extra[-1], self.line_ydata_extra[-1], self.line_zdata_extra[-1], color=['k','k'], alpha=0.2)
+        if extraX is not None:
+            for num in range(len(extraX)):
+                self.line_xdata_extra.append(extraX[num] * axMult)
+                self.line_ydata_extra.append(extraY[num] * axMult2)
+                self.line_zdata_extra.append(extraZ[num])
+                self.plotContour(self.line_xdata_extra[-1], self.line_ydata_extra[-1], self.line_zdata_extra[-1], color=[extraColor[num], extraColor[num]])
+        self.line_xdata = [self.xax() * axMult]
+        self.line_ydata = [self.xax(-2) * axMult2]
         self.line_zdata = [tmpdata]
         if self.viewSettings["limitType"] == 0:
             self.differ = np.max(np.abs(tmpdata))
         else:
             self.differ = np.max(np.abs(np.ravel(self.data.getHyperData)))
-        if makeContours:
-            self.plotContour()
+        self.plotContour(self.line_xdata[-1], self.line_ydata[-1], self.line_zdata[-1])
         self.showProj()
         self.ax.set_xlabel(self.getLabel(self.spec(), self.getAxType(), self.getppm()))
         self.ax.set_ylabel(self.getLabel(self.spec(-2), self.getAxType(-2), self.getppm(-2)))
@@ -1537,8 +1545,10 @@ class CurrentContour(CurrentStacked):
         self.setTicks()
         self.canvas.draw()
 
-    def plotContour(self, updateOnly=False):  # Plots the contour plot
-        X, Y = np.meshgrid(self.line_xdata[-1], self.line_ydata[-1])
+    def plotContour(self, line_xdata, line_ydata, line_zdata, color=None, alpha=1, updateOnly=False):  # Plots the contour plot
+        if color is None and self.viewSettings["contourConst"]:
+            color = self.viewSettings["contourColors"]
+        X, Y = np.meshgrid(line_xdata, line_ydata)
         if updateOnly:  # Set some extra stuff if only the contour plot needs updating
             del self.ax.collections[:]  # Clear all plot collections
         if self.viewSettings["contourType"] == 0:  # if linear
@@ -1551,41 +1561,41 @@ class CurrentContour(CurrentStacked):
         # Trim matrix of unused rows/columns for more efficient contour plotting
         PlotPositive = False
         if self.viewSettings["contourSign"] == 0 or self.viewSettings["contourSign"] == 1:
-            if self.line_zdata[-1].shape[0] > 2:  # if size 2 or lower, convolve fails, just take whole data then
-                YposMax = np.where(np.convolve(np.max(self.line_zdata[-1], 1) > contourLevels[0], [True, True, True], 'same'))[0]
+            if line_zdata.shape[0] > 2:  # if size 2 or lower, convolve fails, just take whole data then
+                YposMax = np.where(np.convolve(np.max(line_zdata, 1) > contourLevels[0], [True, True, True], 'same'))[0]
             else:
-                YposMax = np.arange(self.line_zdata[-1].shape[0])
+                YposMax = np.arange(line_zdata.shape[0])
             if YposMax.size > 0:  # if number of positive contours is non-zero
-                if self.line_zdata[-1].shape[1] > 2:
-                    XposMax = np.where(np.convolve(np.max(self.line_zdata[-1], 0) > contourLevels[0], [True, True, True], 'same'))[0]
+                if line_zdata.shape[1] > 2:
+                    XposMax = np.where(np.convolve(np.max(line_zdata, 0) > contourLevels[0], [True, True, True], 'same'))[0]
                 else:
-                    XposMax = np.arange(self.line_zdata[-1].shape[1])
+                    XposMax = np.arange(line_zdata.shape[1])
                 PlotPositive = True
         PlotNegative = False
         if self.viewSettings["contourSign"] == 0 or self.viewSettings["contourSign"] == 2:
             if not self.viewSettings["plotType"] == 3:  # for Absolute plot no negative
-                if self.line_zdata[-1].shape[0] > 2:
-                    YposMin = np.where(np.convolve(np.min(self.line_zdata[-1], 1) < -contourLevels[0], [True, True, True], 'same'))[0]
+                if line_zdata.shape[0] > 2:
+                    YposMin = np.where(np.convolve(np.min(line_zdata, 1) < -contourLevels[0], [True, True, True], 'same'))[0]
                 else:
-                    YposMin = np.arange(self.line_zdata[-1].shape[0])
+                    YposMin = np.arange(line_zdata.shape[0])
                 if YposMin.size > 0:  # if number of negative contours is non-zero
-                    if self.line_zdata[-1].shape[1] > 2:
-                        XposMin = np.where(np.convolve(np.min(self.line_zdata[-1], 0) < -contourLevels[0], [True, True, True], 'same'))[0]
+                    if line_zdata.shape[1] > 2:
+                        XposMin = np.where(np.convolve(np.min(line_zdata, 0) < -contourLevels[0], [True, True, True], 'same'))[0]
                     else:
-                        XposMin = np.arange(self.line_zdata[-1].shape[1])
+                        XposMin = np.arange(line_zdata.shape[1])
                     PlotNegative = True
         vmax = max(np.abs(self.viewSettings["minLevels"] * self.differ), np.abs(self.viewSettings["maxLevels"] * self.differ))
         vmin = -vmax
-        if self.viewSettings["contourConst"]:
+        if color is not None:
             if PlotPositive:
-                self.ax.contour(X[YposMax[:,None],XposMax],Y[YposMax[:,None],XposMax],self.line_zdata[-1][YposMax[:,None],XposMax], colors=self.viewSettings["contourColors"][0], levels=contourLevels, vmax=vmax, vmin=vmin, linewidths=self.viewSettings["linewidth"], label=self.data.name, linestyles='solid')
+                self.ax.contour(X[YposMax[:,None],XposMax],Y[YposMax[:,None],XposMax],line_zdata[YposMax[:,None],XposMax], colors=color[0], alpha=alpha, levels=contourLevels, vmax=vmax, vmin=vmin, linewidths=self.viewSettings["linewidth"], linestyles='solid')
             if PlotNegative:
-                self.ax.contour(X[YposMin[:,None],XposMin],Y[YposMin[:,None],XposMin],self.line_zdata[-1][YposMin[:,None],XposMin], colors=self.viewSettings["contourColors"][1], levels=-contourLevels[::-1], vmax=vmax, vmin=vmin, linewidths=self.viewSettings["linewidth"], linestyles='solid')
+                self.ax.contour(X[YposMin[:,None],XposMin],Y[YposMin[:,None],XposMin],line_zdata[YposMin[:,None],XposMin], colors=color[1], alpha=alpha, levels=-contourLevels[::-1], vmax=vmax, vmin=vmin, linewidths=self.viewSettings["linewidth"], linestyles='solid')
         else:
             if PlotPositive:
-                self.ax.contour(X[YposMax[:,None],XposMax],Y[YposMax[:,None],XposMax],self.line_zdata[-1][YposMax[:,None],XposMax], cmap=get_cmap(self.viewSettings["colorMap"]), levels=contourLevels, vmax=vmax, vmin=vmin, linewidths=self.viewSettings["linewidth"], label=self.data.name, linestyles='solid')
+                self.ax.contour(X[YposMax[:,None],XposMax],Y[YposMax[:,None],XposMax],line_zdata[YposMax[:,None],XposMax], cmap=get_cmap(self.viewSettings["colorMap"]), levels=contourLevels, vmax=vmax, vmin=vmin, linewidths=self.viewSettings["linewidth"], linestyles='solid')
             if PlotNegative:    
-                self.ax.contour(X[YposMin[:,None],XposMin],Y[YposMin[:,None],XposMin],self.line_zdata[-1][YposMin[:,None],XposMin], cmap=get_cmap(self.viewSettings["colorMap"]), levels=-contourLevels[::-1], vmax=vmax, vmin=vmin, linewidths=self.viewSettings["linewidth"], linestyles='solid')
+                self.ax.contour(X[YposMin[:,None],XposMin],Y[YposMin[:,None],XposMin],line_zdata[YposMin[:,None],XposMin], cmap=get_cmap(self.viewSettings["colorMap"]), levels=-contourLevels[::-1], vmax=vmax, vmin=vmin, linewidths=self.viewSettings["linewidth"], linestyles='solid')
         self.setTicks()
         if updateOnly:
             self.canvas.draw()

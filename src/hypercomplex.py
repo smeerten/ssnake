@@ -511,3 +511,5 @@ class HComplexData(object):
             axis += 1
         return HComplexData(np.fft.ifftshift(self.data, axes=axis), np.copy(self.hyper))
 
+    def copy(self):
+        return HComplexData(np.copy(self.data), np.copy(self.hyper))

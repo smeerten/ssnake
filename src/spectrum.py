@@ -696,16 +696,18 @@ class Spectrum(object):
 
     def autoPhase(self, phaseNum, axes, locList, returnPhases=False):
         axes = self.checkAxes(axes)
-        if len(locList) != self.ndim()-1:
+        if len(locList) != self.ndim():
             self.dispMsg("Data does not have the correct number of dimensions")
             return
-        if np.any(locList >= np.delete(self.shape(), axes)) or np.any(np.array(locList) < 0):
+        if np.any(locList >= np.array(self.shape())) or np.any(np.array(locList) < 0):
             self.dispMsg("The location array contains invalid indices")
             return
+        locList = np.array(locList, dtype=object)
+        locList[axes] = slice(None)
         self.data = self.data.complexReorder(axes)
         if self.spec[axes] == 0:
             self.fourier(axes, tmp=True)
-        tmp = self.data[tuple(locList[:axes]) + (slice(None), ) + tuple(locList[axes:])]
+        tmp = self.data[locList]
         tmp = tmp.getHyperData(0)
         x = np.fft.fftshift(np.fft.fftfreq(len(tmp), 1.0 / self.sw[axes])) / self.sw[axes]
         # only optimize on the hyper real data
