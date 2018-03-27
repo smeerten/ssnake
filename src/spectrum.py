@@ -814,7 +814,7 @@ class Spectrum(object):
         else:
             x = func.apodize(t, shift, self.sw[axes], axLen, lor, gauss, cos2, hamming, self.wholeEcho[axes])
             if preview:
-                previewData = [x] * (np.prod(self.data.shape()) / self.data.shape()[axes])
+                previewData = [x] * int(np.prod(self.data.shape()) / self.data.shape()[axes])
             if self.spec[axes] > 0:
                 self.fourier(axes, tmp=True)
             self.data[select] *= x.reshape(x.shape + (1, )*(self.ndim()-axes-1))
