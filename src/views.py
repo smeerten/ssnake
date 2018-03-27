@@ -21,6 +21,7 @@ import numpy as np
 import copy
 from matplotlib.pyplot import get_cmap
 import matplotlib
+import matplotlib.ticker as ticker
 from spectrumFrame import PlotFrame
 import reimplement as reim
 
@@ -28,6 +29,9 @@ COLORMAPLIST = ['seismic', 'BrBG', 'bwr', 'coolwarm', 'PiYG', 'PRGn', 'PuOr',
                 'RdBu', 'RdGy', 'RdYlBu', 'RdYlGn', 'Spectral', 'rainbow', 'jet']
 COLORCYCLE = list(matplotlib.rcParams['axes.prop_cycle'])
 COLORCONVERTER = matplotlib.colors.ColorConverter()
+
+MINXNUMTICKS = 12
+MINYNUMTICKS = 8
 
 
 ##################################################################################################
@@ -949,7 +953,16 @@ class Current1D(PlotFrame):
         else:
             self.ax.set_xlim(self.xminlim, self.xmaxlim)
         self.ax.set_ylim(self.yminlim, self.ymaxlim)
+        self.setTicks()
         self.canvas.draw()
+
+    def setTicks(self,Xset = True,Yset = True):
+        if Xset:
+            self.ax.xaxis.set_minor_locator(ticker.AutoMinorLocator())
+            self.ax.xaxis.set_major_locator(ticker.MaxNLocator(nbins='auto',steps = [1,2,2.5,5,10],min_n_ticks = MINXNUMTICKS))
+        if Yset:
+            self.ax.yaxis.set_minor_locator(ticker.AutoMinorLocator())
+            self.ax.yaxis.set_major_locator(ticker.MaxNLocator(nbins='auto',steps = [1,2,2.5,5,10],min_n_ticks = MINYNUMTICKS))
 
     def plotReset(self, xReset=True, yReset=True):  # set the plot limits to min and max values
         showDat = self.data1D.data[0]
@@ -1140,6 +1153,7 @@ class CurrentMulti(Current1D):
         self.ax.get_yaxis().get_major_formatter().set_powerlimits((-4, 4))
         self.ax.xaxis.grid(self.viewSettings["grids"][0])
         self.ax.yaxis.grid(self.viewSettings["grids"][1])
+        self.setTicks()
         if self.spec() > 0:
             self.ax.set_xlim(self.xmaxlim, self.xminlim)
         else:
@@ -1279,6 +1293,7 @@ class CurrentStacked(Current1D):
         self.ax.set_ylim(self.yminlim, self.ymaxlim)
         self.ax.get_xaxis().get_major_formatter().set_powerlimits((-4, 4))
         self.ax.get_yaxis().get_major_formatter().set_powerlimits((-4, 4))
+        self.setTicks()
         self.ax.xaxis.grid(self.viewSettings["grids"][0])
         self.ax.yaxis.grid(self.viewSettings["grids"][1])
         self.canvas.draw()
@@ -1384,6 +1399,7 @@ class CurrentArrayed(CurrentStacked):
         self.ax.set_xlim(self.xminlim, self.xmaxlim)
         self.ax.set_ylim(self.yminlim, self.ymaxlim)
         self.ax.get_yaxis().get_major_formatter().set_powerlimits((-4, 4))
+        self.setTicks(Xset = False)
         self.ax.xaxis.grid(self.viewSettings["grids"][0])
         self.ax.yaxis.grid(self.viewSettings["grids"][1])
         self.canvas.draw()
@@ -1562,6 +1578,7 @@ class CurrentContour(CurrentStacked):
         self.y_ax.get_xaxis().get_major_formatter().set_powerlimits((-2, 2))
         self.ax.xaxis.grid(self.viewSettings["grids"][0])
         self.ax.yaxis.grid(self.viewSettings["grids"][1])
+        self.setTicks()
         self.canvas.draw()
 
     def plotContour(self, updateOnly=False):  # Plots the contour plot
@@ -1613,6 +1630,7 @@ class CurrentContour(CurrentStacked):
                 self.ax.contour(X[YposMax[:,None],XposMax],Y[YposMax[:,None],XposMax],self.line_zdata[-1][YposMax[:,None],XposMax], cmap=get_cmap(self.viewSettings["colorMap"]), levels=contourLevels, vmax=vmax, vmin=vmin, linewidths=self.viewSettings["linewidth"], label=self.data.name, linestyles='solid')
             if PlotNegative:    
                 self.ax.contour(X[YposMin[:,None],XposMin],Y[YposMin[:,None],XposMin],self.line_zdata[-1][YposMin[:,None],XposMin], cmap=get_cmap(self.viewSettings["colorMap"]), levels=-contourLevels[::-1], vmax=vmax, vmin=vmin, linewidths=self.viewSettings["linewidth"], linestyles='solid')
+        self.setTicks()
         if updateOnly:
             self.canvas.draw()
 
@@ -1674,6 +1692,7 @@ class CurrentContour(CurrentStacked):
             ymin, ymax = np.min(yprojdata), np.max(yprojdata)
             self.y_ax.set_xlim([ymin - 0.15 * (ymax - ymin), ymax + 0.05 * (ymax - ymin)])  # Set projection limits, and force 15% whitespace below plot
             self.y_ax.set_ylim(yLimOld)
+        self.setTicks()
         self.canvas.draw()
 
     # The peakpicking function needs to be changed for contour plots
