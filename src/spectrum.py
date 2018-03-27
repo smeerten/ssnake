@@ -1213,6 +1213,8 @@ class Spectrum(object):
         locList[axes] = stack
         sliceData = self.data[locList]
         sliceData = sliceData.complexReorder(axes[-1])
+        orderInd = np.argsort(axes)
+        sliceData = sliceData.moveaxis(np.arange(sliceData.ndim()), orderInd)
         sliceSpec = copy.deepcopy(Spectrum(hc.HComplexData(sliceData.getHyperData(0)),
                                            self.filePath,
                                            [self.freq[axis] for axis in axes],

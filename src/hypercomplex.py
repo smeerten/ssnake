@@ -293,7 +293,19 @@ class HComplexData(object):
         tmpData[np.logical_not(tmpBArray)] = np.real(self.data[np.logical_not(bArray)]) + 1j*np.real(self.data[bArray])
         tmpData[tmpBArray] = np.imag(self.data[np.logical_not(bArray)]) + 1j*np.imag(self.data[bArray])
         return HComplexData(tmpData, tmpHyper)
-        
+
+    def moveaxis(self, axis1, axis2):
+        if isinstance(axis1, (int, float)):
+            axis1 = [axis1]
+        if isinstance(axis2, (int, float)):
+            axis2 = [axis2]
+        axis1 = np.array(axis1)
+        axis2 = np.array(axis2)
+        axis1[axis1 >= 0] += 1
+        axis2[axis2 >= 0] += 1
+        tmpData = np.moveaxis(self.data, axis1, axis2)
+        return HComplexData(tmpData, np.copy(self.hyper))
+    
     def insert(self, pos, other, axis=-1):
         if axis < 0:
             axis = self.ndim() - axis
