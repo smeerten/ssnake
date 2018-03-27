@@ -2491,12 +2491,12 @@ class SideFrame(QtWidgets.QScrollArea):
                 dimNum = self.father.current.axes[-1]
         else:
             dimNum = self.father.current.axes[-1]
-        locList = np.array(self.father.current.locList)
+        locList = np.array(self.father.current.locList, dtype=int)
         for num in range(self.length):
             locList[num] = self.entries[num].value()
         self.buttons1Group.button(dimNum).toggle()
         if self.plotIs2D:
-            self.father.current.setBlock(dimNum, self.buttons2Group.checkedId(), locList)
+            self.father.current.setSlice(np.array([self.buttons2Group.checkedId(), dimNum], dtype=int), locList)
         else:
             self.father.current.setSlice(np.array([dimNum]), locList)
         self.father.bottomframe.upd()
@@ -2657,7 +2657,7 @@ class BottomFrame(QtWidgets.QWidget):
             self.axisDropFreq.hide()
             self.axisDropTime.show()
             self.ax2Label.hide()
-            self.axisDropTime.setCurrentIndex(self.father.current.viewSettings["axType"])
+            self.axisDropTime.setCurrentIndex(self.father.current.getAxType())
         elif self.father.current.spec() == 1:
             self.specGroup.button(1).toggle()
             self.axisDropTime.hide()
@@ -2665,38 +2665,38 @@ class BottomFrame(QtWidgets.QWidget):
             if self.father.current.freq() == 0.0:
                 self.axisDropFreq.model().item(3).setEnabled(False)
             self.ax2Label.hide()
-            if self.father.current.viewSettings["ppm"] and self.father.current.freq() != 0.0:
+            if self.father.current.getppm() and self.father.current.freq() != 0.0:
                 self.axisDropFreq.setCurrentIndex(3)
             else:
-                self.axisDropFreq.setCurrentIndex(self.father.current.viewSettings["axType"])
+                self.axisDropFreq.setCurrentIndex(self.father.current.getAxType())
         if isinstance(self.father.current, views.CurrentContour):
             self.ax2Label.show()
             self.axisDropFreq2.model().item(3).setEnabled(True)
             if self.father.current.spec(-2) == 0:
                 self.axisDropTime2.show()
-                self.axisDropTime2.setCurrentIndex(self.father.current.viewSettings["axType2"])
+                self.axisDropTime2.setCurrentIndex(self.father.current.getAxType(-2))
             elif self.father.current.spec(-2) == 1:
                 self.axisDropFreq2.show()
                 if self.father.current.freq(-2) == 0.0:
                     self.axisDropFreq2.model().item(3).setEnabled(False)
-                if self.father.current.viewSettings["ppm2"] and self.father.current.freq(-2) != 0.0:
+                if self.father.current.getppm(-2) and self.father.current.freq(-2) != 0.0:
                     self.axisDropFreq2.setCurrentIndex(3)
                 else:
-                    self.axisDropFreq2.setCurrentIndex(self.father.current.viewSettings["axType2"])
+                    self.axisDropFreq2.setCurrentIndex(self.father.current.getAxType(-2))
         if type(self.father.current) is views.CurrentArrayed:
             self.ax2Label.show()
             self.axisDropFreq2.model().item(3).setEnabled(True)
             if self.father.current.spec(-2) == 0:
                 self.axisDropTime2.show()
-                self.axisDropTime2.setCurrentIndex(self.father.current.viewSettings["axType2"])
+                self.axisDropTime2.setCurrentIndex(self.father.current.getAxType(-2))
             elif self.father.current.spec(-2) == 1:
                 self.axisDropFreq2.show()
                 if self.father.current.freq(-2) == 0.0:
                     self.axisDropFreq2.model().item(3).setEnabled(False)
-                if self.father.current.viewSettings["ppm2"] and self.father.current.freq(-2) != 0.0:
+                if self.father.current.getppm(-2) and self.father.current.freq(-2) != 0.0:
                     self.axisDropFreq2.setCurrentIndex(3)
                 else:
-                    self.axisDropFreq2.setCurrentIndex(self.father.current.viewSettings["axType2"])
+                    self.axisDropFreq2.setCurrentIndex(self.father.current.getAxType(-2))
         if self.father.current.wholeEcho():
             self.wholeEcho.setCheckState(QtCore.Qt.Checked)
         else:
@@ -2732,11 +2732,11 @@ class BottomFrame(QtWidgets.QWidget):
         self.father.current.viewSettings["plotType"] = pType
         self.father.current.showFid()
 
-    def changeAxis(self, pType, update = True):
+    def changeAxis(self, pType, update=True):
         self.father.current.setAxType(pType, update)
 
-    def changeAxis2(self, pType, update = True):
-        self.father.current.setAxType2(pType, update)
+    def changeAxis2(self, pType, update=True):
+        self.father.current.setAxType(pType, update, -2)
 
 ##################################################################
 
@@ -4680,10 +4680,10 @@ class FWHMWindow(wc.ToolWindows):
         self.maxEntry = wc.QLineEdit(parent.current.len(), self.checkValues)
         self.grid.addWidget(self.maxEntry, 3, 0)
         self.grid.addWidget(wc.QLabel("Units:"), 4, 0)
-        unitSelect = self.father.current.viewSettings["axType"]
+        unitSelect = self.father.current.getAxType()
         if self.father.current.spec() == 1:
             unitList = ['Hz', 'kHz', 'MHz', 'ppm']
-            if self.father.current.viewSettings["ppm"]:
+            if self.father.current.getppm():
                 unitSelect = 3
         else:
             unitList = ['s', 'ms', u'\u03BCs']
@@ -4774,10 +4774,10 @@ class COMWindow(wc.ToolWindows):  # Centre of Mass Window
         self.maxEntry = wc.QLineEdit(parent.current.len(), self.checkValues)
         self.grid.addWidget(self.maxEntry, 3, 0)
         self.grid.addWidget(wc.QLabel("Units:"), 4, 0)
-        unitSelect = self.father.current.viewSettings["axType"]
+        unitSelect = self.father.current.getAxType()
         if self.father.current.spec() == 1:
             unitList = ['Hz', 'kHz', 'MHz', 'ppm']
-            if self.father.current.viewSettings["ppm"]:
+            if self.father.current.getppm():
                 unitSelect = 3
         else:
             unitList = ['s', 'ms', u'\u03BCs']
@@ -5016,16 +5016,17 @@ class RegridWindow(wc.ToolWindows):
             if self.father.masterData.shape()[self.father.current.axes[-1]] == 1:
                 self.father.father.dispMsg("Regrid: Regrid not possible with size 1")
                 self.closeEvent()
-            if self.father.current.viewSettings["ppm"]:
+            if self.father.current.getppm():
                 self.unit = 'ppm'
             else:
-                if self.father.current.viewSettings["axType"] == 0:
+                axType = self.father.current.getAxType()
+                if axType == 0:
                     self.unit = 'Hz'
-                elif self.father.current.viewSettings["axType"] == 1:
+                elif axType == 1:
                     self.unit = 'kHz'
-                elif self.father.current.viewSettings["axType"] == 2:
+                elif axType == 2:
                     self.unit = 'MHz'
-                elif self.father.current.viewSettings["axType"] == 3:
+                elif axType == 3:
                     self.unit = 'ppm'
             maxVal = self.father.current.xax()
             minVal = self.father.current.xax(-2)

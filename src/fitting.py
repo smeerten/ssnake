@@ -562,8 +562,8 @@ class AbstractParamFrame(QtWidgets.QWidget):
         grid = QtWidgets.QGridLayout(self)
         self.setLayout(grid)
         self.axMult = self.parent.getAxMult(self.parent.spec(),
-                                            self.parent.viewSettings["axType"],
-                                            self.parent.viewSettings["ppm"],
+                                            self.parent.getAxType(),
+                                            self.parent.getppm(),
                                             self.parent.freq(),
                                             self.parent.ref())
         if self.parent.spec() == 1:
@@ -572,10 +572,10 @@ class AbstractParamFrame(QtWidgets.QWidget):
                 self.axUnit = 'ppm'
             else:
                 axUnits = ['Hz', 'kHz', 'MHz']
-                self.axUnit = axUnits[self.parent.viewSettings["axType"]]
+                self.axUnit = axUnits[self.parent.getAxType()]
         elif self.parent.spec() == 0:
             axUnits = ['s', 'ms', u"\u03bcs"]
-            self.axUnit = axUnits[self.parent.viewSettings["axType"]]
+            self.axUnit = axUnits[self.parent.getAxType()]
             self.axAdd = 0
         self.frame1 = QtWidgets.QGridLayout()
         self.optframe = QtWidgets.QGridLayout()
@@ -1467,8 +1467,8 @@ class PeakDeconvFrame(FitPlotFrame):
         locList = self.getRedLocList()
         pickNum = self.fitPickNumList[locList]
         if self.pickWidth:
-            axMult = self.getAxMult(self.spec(), self.viewSettings["axType"], self.viewSettings["ppm"], self.freq(), self.ref())
-            width = (2 * abs(float(self.rootwindow.paramframe.entries['pos'][pickNum].text()) - pos[1])) / self.getAxMult(self.spec(), self.viewSettings["axType"], self.viewSettings["ppm"], self.freq(), self.ref())
+            axMult = self.getAxMult(self.spec(), self.getAxType(), self.getppm(), self.freq(), self.ref())
+            width = (2 * abs(float(self.rootwindow.paramframe.entries['pos'][pickNum].text()) - pos[1])) / self.getAxMult(self.spec(), self.getAxType(), self.getppm(), self.freq(), self.ref())
             self.rootwindow.paramframe.entries['amp'][pickNum].setText(('%#.' + str(self.rootwindow.tabWindow.PRECIS) + 'g') % (float(self.rootwindow.paramframe.entries['amp'][pickNum].text()) * width))
             self.rootwindow.paramframe.entries['lor'][pickNum].setText(('%#.' + str(self.rootwindow.tabWindow.PRECIS) + 'g') % abs(width))
             self.fitPickNumList[locList] += 1
@@ -1707,7 +1707,7 @@ class TensorDeconvFrame(FitPlotFrame):
 
     def pickDeconv(self, pos):
         printStr = "%#." + str(self.rootwindow.tabWindow.PRECIS) + "g"
-        axMult = self.getAxMult(self.spec(), self.viewSettings["axType"], self.viewSettings["ppm"], self.freq(), self.ref())
+        axMult = self.getAxMult(self.spec(), self.getAxType(), self.getppm(), self.freq(), self.ref())
         if self.pickNum2 == 0:
             if self.pickNum < self.FITNUM:
                 self.rootwindow.paramframe.numExp.setCurrentIndex(self.pickNum)
@@ -1806,7 +1806,7 @@ class TensorDeconvParamFrame(AbstractParamFrame):
         if self.parent.viewSettings["ppm"]:
             axUnit = 'ppm'
         else:
-            axUnit = ['Hz', 'kHz', 'MHz'][self.parent.viewSettings["axType"]]
+            axUnit = ['Hz', 'kHz', 'MHz'][self.parent.getAxType()]
         # Labels
         self.label11 = wc.QLabel(u'\u03b4' + '<sub>11</sub> [' + axUnit + '] :')
         self.label22 = wc.QLabel(u'\u03b4' + '<sub>22</sub> [' + axUnit + '] :')
@@ -2199,7 +2199,7 @@ class Quad1DeconvParamFrame(AbstractParamFrame):
         if self.parent.viewSettings["ppm"]:
             axUnit = 'ppm'
         else:
-            axUnit = ['Hz', 'kHz', 'MHz'][self.parent.viewSettings["axType"]]
+            axUnit = ['Hz', 'kHz', 'MHz'][self.parent.getAxType()]
         # Labels
         self.labelpos = wc.QLabel(u'Position [' + axUnit + ']:')
         self.labelcq = wc.QLabel(u'C<sub>Q</sub> [MHz]:')
@@ -2582,7 +2582,7 @@ class Quad2CzjzekParamFrame(AbstractParamFrame):
         if self.parent.viewSettings["ppm"]:
             axUnit = 'ppm'
         else:
-            axUnit = ['Hz', 'kHz', 'MHz'][self.parent.viewSettings["axType"]]
+            axUnit = ['Hz', 'kHz', 'MHz'][self.parent.getAxType()]
         self.frame3.addWidget(wc.QLabel("Pos [" + axUnit + "]:"), 1, 2, 1, 2)
         self.frame3.addWidget(wc.QLabel(u"\u03c3 [MHz]:"), 1, 4, 1, 2)
         self.frame3.addWidget(wc.QLabel("Integral:"), 1, 6, 1, 2)
