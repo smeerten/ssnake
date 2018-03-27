@@ -132,43 +132,6 @@ class HComplexData(object):
     def __rmul__(self, other):
         return self.__mul__(other)
 
-    def conj(self, axis):
-        if axis < 0:
-            axis = self.ndim() + axis
-        if axis == (self.ndim()-1):
-            return HComplexData(np.conj(self.data), np.copy(self.hyper))
-        else:
-            tmpData = np.copy(self.data)
-            imagBool = np.array(self.hyper & (2**axis), dtype=bool)
-            tmpData[imagBool] = -tmpData[imagBool]
-            return HComplexData(tmpData, np.copy(self.hyper))
-
-    def conjAll(self):
-        tmpData = np.conj(self.data)
-        tmpData[1:] = -tmpData[1:]
-        return HComplexData(tmpData, np.copy(self.hyper))
-
-    def isAllReal(self):
-        tmp = 0
-        if len(self.hyper) > 1:
-            tmp = np.count_nonzero(self.data[1:])
-        tmp += np.count_nonzero(tmp.imag)
-        return not bool(tmp)
-
-    def insertDim(self, axis):
-        watershedBits = 2**axis - 1
-        lowBits = self.hyper & watershedBits
-        self.hyper = (self.hyper - lowBits) * 2 + lowBits
-    
-    def removeDim(self, axis):
-        if axis < 1:
-            raise RuntimeError("Cannot remove axis below 1 from hyper dimensions")
-        if self.isComplex(axis):
-            self.data = self.real(axis)
-        watershedBits = 2**axis - 1
-        lowBits = self.hyper & watershedBits
-        self.hyper = (self.hyper - lowBits) / 2 + lowBits
-    
     def __div__(self, other):
         if isinstance(other, HComplexData):
             if len(other.hyper) > 1:
@@ -230,7 +193,44 @@ class HComplexData(object):
         else:
             self.data[(slice(0,1), ) + key] = value
             self.data[(slice(1,None), ) + key] = 0
+
+    def conj(self, axis):
+        if axis < 0:
+            axis = self.ndim() + axis
+        if axis == (self.ndim()-1):
+            return HComplexData(np.conj(self.data), np.copy(self.hyper))
+        else:
+            tmpData = np.copy(self.data)
+            imagBool = np.array(self.hyper & (2**axis), dtype=bool)
+            tmpData[imagBool] = -tmpData[imagBool]
+            return HComplexData(tmpData, np.copy(self.hyper))
+
+    def conjAll(self):
+        tmpData = np.conj(self.data)
+        tmpData[1:] = -tmpData[1:]
+        return HComplexData(tmpData, np.copy(self.hyper))
+
+    def isAllReal(self):
+        tmp = 0
+        if len(self.hyper) > 1:
+            tmp = np.count_nonzero(self.data[1:])
+        tmp += np.count_nonzero(tmp.imag)
+        return not bool(tmp)
+
+    def insertDim(self, axis):
+        watershedBits = 2**axis - 1
+        lowBits = self.hyper & watershedBits
+        self.hyper = (self.hyper - lowBits) * 2 + lowBits
     
+    def removeDim(self, axis):
+        if axis < 1:
+            raise RuntimeError("Cannot remove axis below 1 from hyper dimensions")
+        if self.isComplex(axis):
+            self.data = self.real(axis)
+        watershedBits = 2**axis - 1
+        lowBits = self.hyper & watershedBits
+        self.hyper = (self.hyper - lowBits) / 2 + lowBits
+            
     def isComplex(self, axis):
         # Axis ndim-1 are the regular complex numbers, which are always complex
         if axis == (self.ndim()-1):

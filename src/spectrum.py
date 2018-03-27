@@ -1204,53 +1204,29 @@ class Spectrum(object):
         if not self.noUndo:
             self.undoList.append(lambda self: self.restoreData(copyData, None))
 
-    def getSlice(self, axes, locList):
-        axes = self.checkAxes(axes)
-        sliceData = self.data[tuple(locList[:axes]) + (slice(None), ) + tuple(locList[axes:])]
-        sliceData = sliceData.complexReorder(axes)
+    def getSlice(self, axes, locList, stack=None):
+        locList = np.array(locList, dtype=object)
+        if stack is None:
+            stack = [slice(None)]*len(axes)
+        for i, axis in enumerate(axes):
+            axes[i] = self.checkAxes(axis)
+        locList[axes] = stack
+        sliceData = self.data[locList]
+        sliceData = sliceData.complexReorder(axes[-1])
         sliceSpec = copy.deepcopy(Spectrum(hc.HComplexData(sliceData.getHyperData(0)),
                                            self.filePath,
-                                           [self.freq[axes]],
-                                           [self.sw[axes]],
-                                           [self.spec[axes]],
-                                           [self.wholeEcho[axes]],
-                                           [self.ref[axes]],
-                                           [self.xaxArray[axes]],
+                                           [self.freq[axis] for axis in axes],
+                                           [self.sw[axis] for axis in axes],
+                                           [self.spec[axis] for axis in axes],
+                                           [self.wholeEcho[axis] for axis in axes],
+                                           [self.ref[axis] for axis in axes],
+                                           [self.xaxArray[axis] for axis in axes],
                                            self.history,
                                            self.msgHandler,
                                            name=self.name))
         sliceSpec.noUndo = True
         return sliceSpec
-
-    def getBlock(self, axes, axes2, locList, stackBegin=None, stackEnd=None, stackStep=None):
-        axes = self.checkAxes(axes)
-        axes2 = self.checkAxes(axes2)
-        stackSlice = reim.floatSlice(stackBegin, stackEnd, stackStep)
-        if axes == axes2:
-            self.dispMsg("First and second axes are the same")
-            return None
-        elif axes < axes2:
-            sliceData = self.data[tuple(locList[:axes]) + (slice(None), ) + tuple(locList[axes:axes2 - 1]) + (stackSlice, ) + tuple(locList[axes2 - 1:])]
-            sliceData = sliceData.complexReorder(axes)
-            newData = hc.HComplexData(np.transpose(sliceData.getHyperData(0)))
-        elif axes > axes2:
-            sliceData = self.data[tuple(locList[:axes2]) + (stackSlice, ) + tuple(locList[axes2:axes - 1]) + (slice(None), ) + tuple(locList[axes - 1:])]
-            sliceData = sliceData.complexReorder(axes)
-            newData = hc.HComplexData(sliceData.getHyperData(0))            
-        sliceSpec = copy.deepcopy(Spectrum(newData,
-                                           self.filePath,
-                                           [self.freq[axes2], self.freq[axes]],
-                                           [self.sw[axes2], self.sw[axes]],
-                                           [self.spec[axes2], self.spec[axes]],
-                                           [self.wholeEcho[axes2], self.wholeEcho[axes]],
-                                           [self.ref[axes2], self.ref[axes]],
-                                           [self.xaxArray[axes2][stackSlice], self.xaxArray[axes]],
-                                           self.history,
-                                           self.msgHandler,
-                                           name=self.name))
-        sliceSpec.noUndo = True
-        return sliceSpec
-    
+                
     def restoreData(self, copyData, returnValue):  # restore data from an old copy for undo purposes
         if (not self.noUndo) and returnValue is None:
             copyData2 = copy.deepcopy(self)

@@ -307,9 +307,11 @@ class FittingWindow(QtWidgets.QWidget):
         
     def fit(self):
         self.tabWindow.fit()
+        self.paramframe.togglePick()
 
     def sim(self, *args, **kwargs):
         self.tabWindow.disp(**kwargs)
+        self.paramframe.togglePick()
 
     def getCurrentTabName(self, *args, **kwargs):
         return self.tabWindow.getCurrentTabName(*args, **kwargs)
@@ -474,13 +476,9 @@ class FittingSideFrame(QtWidgets.QScrollArea):
                 self.frame1.addWidget(wc.QLabel("D" + str(num + 1), self), num * 2, 0)
                 self.entries.append(wc.SliceSpinBox(self, 0, self.shape[num] - 1))
                 self.frame1.addWidget(self.entries[num], num * 2 + 1, 0)
-                if num < current.axes:
-                    self.entries[num].setValue(current.locList[num])
-                elif num == current.axes:
-                    self.entries[num].setValue(0)
+                self.entries[num].setValue(current.locList[num])
+                if num == current.axes[-1]:
                     self.entries[num].setDisabled(True)
-                else:
-                    self.entries[num].setValue(current.locList[num - 1])
                 self.entries[num].valueChanged.connect(lambda event=None, num=num: self.getSlice(event, num))
         QtCore.QTimer.singleShot(100, self.resizeAll)
 
@@ -492,13 +490,10 @@ class FittingSideFrame(QtWidgets.QScrollArea):
             return
         else:
             dimNum = self.father.current.axes
-        locList = []
+        locList = np.array(self.father.current.locList)
         for num in range(self.length):
             inp = self.entries[num].value()
-            if num == dimNum:
-                pass
-            else:
-                locList.append(inp)
+            locList[num] = inp
         self.father.current.setSlice(dimNum, locList)
 
 #################################################################################
@@ -512,18 +507,23 @@ class FitPlotFrame(Current1D):
 
     def __init__(self, rootwindow, fig, canvas, current):
         tmp = list(current.data.shape())
-        tmp.pop(current.axes)
+        tmp.pop(current.axes[-1])
         self.fitDataList = np.full(tmp, None, dtype=object)
         self.fitPickNumList = np.zeros(tmp, dtype=int)
         self.rootwindow = rootwindow
         super(FitPlotFrame, self).__init__(rootwindow, fig, canvas, current.data, current)
 
+    def getRedLocList(self):
+        axis = self.axes[-1]
+        return tuple(self.locList[:axis]) + tuple(self.locList[axis+1:])
+        
     def setSlice(self, axes, locList):
         self.rootwindow.paramframe.checkInputs()
         self.pickWidth = False
         super(FitPlotFrame, self).setSlice(axes, locList)
-        self.rootwindow.paramframe.checkFitParamList(tuple(self.locList))
+        self.rootwindow.paramframe.checkFitParamList(np.append(self.locList[:axes[-1]], self.locList[axes[-1]+1:]))
         self.rootwindow.paramframe.dispParams()
+        self.rootwindow.paramframe.togglePick()
 
     def getData1D(self):
         return np.real(self.getDataType(self.data1D.getHyperData(0)))
@@ -531,8 +531,10 @@ class FitPlotFrame(Current1D):
     def showFid(self):
         extraX = []
         extraY = []
-        if self.fitDataList[tuple(self.locList)] is not None:
-            tmp = self.fitDataList[tuple(self.locList)]
+        axis = self.axes[-1]
+        self.locList = np.array(self.locList, dtype=int)
+        if self.fitDataList[np.append(self.locList[:axis], self.locList[axis+1:])][0] is not None:
+            tmp = self.fitDataList[np.append(self.locList[:axis], self.locList[axis+1:])][0]
             extraX.append(tmp[0])
             extraY.append(tmp[1])
             for i in range(len(tmp[2])):
@@ -554,7 +556,7 @@ class AbstractParamFrame(QtWidgets.QWidget):
         self.rootwindow = rootwindow
         self.isMain = isMain # display fitting buttons
         tmp = list(self.parent.data.shape())
-        tmp.pop(self.parent.axes)
+        tmp.pop(self.parent.axes[-1])
         self.fitParamList = np.zeros(tmp, dtype=object)
         self.fitNumList = np.zeros(tmp, dtype=int)
         grid = QtWidgets.QGridLayout(self)
@@ -632,9 +634,17 @@ class AbstractParamFrame(QtWidgets.QWidget):
         self.frame1.addWidget(cancelButton, 7, 0)
         self.frame1.setColumnStretch(10, 1)
         self.frame1.setAlignment(QtCore.Qt.AlignTop)
-        self.checkFitParamList(tuple(self.parent.locList))
+        self.checkFitParamList(self.getRedLocList())
 
+    def getRedLocList(self):
+        return self.parent.getRedLocList()
+
+    def togglePick(self):
+        # Dummy function for fitting routines which require peak picking
+        pass
+    
     def checkFitParamList(self, locList):
+        locList = tuple(locList)
         if not self.fitParamList[locList]:
             self.fitParamList[locList] = self.defaultValues(0)
 
@@ -644,7 +654,7 @@ class AbstractParamFrame(QtWidgets.QWidget):
 
     def copyParams(self):
         self.checkInputs()
-        locList = tuple(self.parent.locList)
+        locList = self.getRedLocList()
         self.checkFitParamList(locList)
         for elem in np.nditer(self.fitParamList, flags=["refs_ok"], op_flags=['readwrite']):
             elem[...] = copy.deepcopy(self.fitParamList[locList])
@@ -652,7 +662,7 @@ class AbstractParamFrame(QtWidgets.QWidget):
             elem[...] = self.fitNumList[locList]
 
     def dispParams(self):
-        locList = tuple(self.parent.locList)
+        locList = self.getRedLocList()
         val = self.fitNumList[locList] + 1
         for name in self.SINGLENAMES:
             if isinstance(self.fitParamList[locList][name][0], (float, int)):
@@ -676,12 +686,13 @@ class AbstractParamFrame(QtWidgets.QWidget):
                     self.entries[name][i].hide()
 
     def setNumExp(self):
-        locList = tuple(self.parent.locList)
+        locList = self.getRedLocList()
         self.numExp.setCurrentIndex(self.fitNumList[locList])
 
     def changeNum(self, *args):
         val = self.numExp.currentIndex() + 1
-        self.fitNumList[tuple(self.parent.locList)] = self.numExp.currentIndex()
+        locList = self.getRedLocList()
+        self.fitNumList[locList] = self.numExp.currentIndex()
         for i in range(self.FITNUM):
             for name in self.MULTINAMES:
                 if i < val:
@@ -694,7 +705,7 @@ class AbstractParamFrame(QtWidgets.QWidget):
                     self.entries[name][i].hide()
 
     def checkInputs(self):
-        locList = tuple(self.parent.locList)
+        locList = self.getRedLocList()
         numExp = self.getNumExp()
         for name in self.SINGLENAMES:
             if self.TICKS:
@@ -737,6 +748,7 @@ class AbstractParamFrame(QtWidgets.QWidget):
         guess = []
         argu = []
         numExp = self.getNumExp()
+        locList = self.getRedLocList()
         out = {}
         for name in self.SINGLENAMES:
             out[name] = [0.0]
@@ -744,7 +756,7 @@ class AbstractParamFrame(QtWidgets.QWidget):
             out[name] = np.zeros(numExp)
         for name in self.SINGLENAMES:
             if isfloat(self.entries[name][0].text()):
-                if not self.fitParamList[tuple(self.parent.locList)][name][1]:
+                if not self.fitParamList[locList][name][1]:
                     guess.append(float(self.entries[name][0].text()))
                     struc[name].append((1, len(guess) - 1))
                 else:
@@ -756,7 +768,7 @@ class AbstractParamFrame(QtWidgets.QWidget):
         for i in range(numExp):
             for name in self.MULTINAMES:
                 if isfloat(self.entries[name][i].text()):
-                    if not self.fitParamList[tuple(self.parent.locList)][name][i][1]:
+                    if not self.fitParamList[locList][name][i][1]:
                         guess.append(float(self.entries[name][i].text()))
                         struc[name].append((1, len(guess) - 1))
                     else:
@@ -791,7 +803,7 @@ class AbstractParamFrame(QtWidgets.QWidget):
         return fitVal
 
     def setResults(self, fitVal, args, out):
-        locList = tuple(self.parent.locList)
+        locList = self.getRedLocList()
         numExp = args[0][0]
         struc = args[1][0]
         for name in self.SINGLENAMES:
@@ -824,7 +836,7 @@ class AbstractParamFrame(QtWidgets.QWidget):
         self.runningAll = True
         self.stopAllButton.show()
         tmp = list(self.parent.data.shape())
-        tmp.pop(self.parent.axes)
+        tmp.pop(self.parent.axes[-1])
         tmp2 = ()
         for i in tmp:
             tmp2 += (np.arange(i),)
@@ -871,7 +883,7 @@ class AbstractParamFrame(QtWidgets.QWidget):
             self.rootwindow.mainProgram.dispMsg("Fitting: One of the inputs is not valid")
             return
         paramNameList = np.array(self.SINGLENAMES + self.MULTINAMES, dtype=object)
-        locList = tuple(self.parent.locList)
+        locList = self.getRedLocList()
         if not np.any(settings):
             return
         names = paramNameList[settings]
@@ -880,7 +892,7 @@ class AbstractParamFrame(QtWidgets.QWidget):
             num = self.rootwindow.getNum(self)
             maxNum = np.max(self.fitNumList)+1
             tmp = list(self.parent.data.shape())
-            tmp.pop(self.parent.axes)
+            tmp.pop(self.parent.axes[-1])
             data = np.zeros((sum(settings), maxNum) + tuple(tmp))
             tmp2 = ()
             for i in tmp:
@@ -909,7 +921,7 @@ class AbstractParamFrame(QtWidgets.QWidget):
                                 else:
                                     inp = inp[2] * params[inp[4]][inp[0]][inp[1]] + inp[3]
                             data[(j,) + (slice(None),) + tuple(i)][n] = inp
-            self.rootwindow.createNewData(data, self.parent.axes, True, True)
+            self.rootwindow.createNewData(data, self.parent.axes[-1], True, True)
         else:
             data = np.zeros((sum(settings), self.fitNumList[locList] + 1))
             for i in range(len(names)):
@@ -927,7 +939,7 @@ class AbstractParamFrame(QtWidgets.QWidget):
                             inp = checkLinkTuple(inp)
                             inp = inp[2] * params[inp[4]][inp[0]][inp[1]] + inp[3]
                         data[i][j] = inp
-            self.rootwindow.createNewData(data, self.parent.axes, True)
+            self.rootwindow.createNewData(data, self.parent.axes[-1], True)
 
     def resultToWorkspaceWindow(self):
         if self.parent.data.ndim() == 1:
@@ -951,23 +963,24 @@ class AbstractParamFrame(QtWidgets.QWidget):
                 extraLength += 1
             data = np.zeros((extraLength,) + self.parent.data.shape())
             tmp = list(self.parent.data.shape())
-            tmp.pop(self.parent.axes)
+            tmp.pop(self.parent.axes[-1])
             tmp2 = ()
             for i in tmp:
                 tmp2 += (np.arange(i),)
             grid = np.array([i.flatten() for i in np.meshgrid(*tmp2)]).T
             for i in grid:
                 self.parent.setSlice(self.parent.axes, i)
-                data[(slice(None),) + tuple(i[:self.parent.axes]) + (slice(None),) + tuple(i[self.parent.axes:])] = self.prepareResultToWorkspace(settings, maxNum)
+                data[(slice(None),) + tuple(i[:self.parent.axes[-1]]) + (slice(None),) + tuple(i[self.parent.axes[-1]:])] = self.prepareResultToWorkspace(settings, maxNum)
             self.parent.setSlice(self.parent.axes, oldLocList)
-            self.rootwindow.createNewData(data, self.parent.axes, False, True)
+            self.rootwindow.createNewData(data, self.parent.axes[-1], False, True)
         else:
             data = self.prepareResultToWorkspace(settings)
-            self.rootwindow.createNewData(data, self.parent.axes, False)
+            self.rootwindow.createNewData(data, self.parent.axes[-1], False)
 
     def prepareResultToWorkspace(self, settings, minLength=1):
         self.calculateResultsToWorkspace(True)
-        fitData = self.parent.fitDataList[tuple(self.parent.locList)]
+        locList = self.getRedLocList()
+        fitData = self.parent.fitDataList[locList]
         if fitData is None:
             fitData = [np.zeros(len(self.parent.getData1D())), np.zeros(len(self.parent.getData1D())), np.zeros(len(self.parent.getData1D())), np.array([np.zeros(len(self.parent.getData1D()))] * minLength)]
         outCurvePart = []
@@ -1072,7 +1085,7 @@ class RelaxParamFrame(AbstractParamFrame):
         self.PARAMTEXT = {'amp': 'Amplitude', 'const': 'Constant', 'coeff': 'Coefficient', 't': 'Relaxation time'}
         self.FITFUNC = relaxationmpFit
         super(RelaxParamFrame, self).__init__(parent, rootwindow, isMain)
-        locList = tuple(self.parent.locList)
+        locList = self.getRedLocList()
         self.ticks = {'amp': [], 'const': [], 'coeff': [], 't': []}
         self.entries = {'amp': [], 'const': [], 'coeff': [], 't': []}
         self.frame2.addWidget(wc.QLabel("Amplitude:"), 0, 0, 1, 2)
@@ -1157,7 +1170,8 @@ class RelaxParamFrame(AbstractParamFrame):
                 x = np.linspace(min(tmpx), max(tmpx), numCurve)
         for i in range(len(out['coeff'])):
             outCurve += out['coeff'][i] * np.exp(-x / out['t'][i])
-        self.parent.fitDataList[tuple(self.parent.locList)] = [x, out['amp'][0] * outCurve, [], []]
+        locList = self.getRedLocList()
+        self.parent.fitDataList[locList] = [x, out['amp'][0] * outCurve, [], []]
         if display:
             self.parent.showFid()
 
@@ -1245,7 +1259,7 @@ class DiffusionParamFrame(AbstractParamFrame):
         self.PARAMTEXT = {'amp': 'Amplitude', 'const': 'Constant', 'coeff': 'Coefficient', 'd': 'Diffusion constant'}
         self.FITFUNC = diffusionmpFit
         super(DiffusionParamFrame, self).__init__(parent, rootwindow, isMain)
-        locList = tuple(self.parent.locList)
+        locList = self.getRedLocList()
         self.ticks = {'amp': [], 'const': [], 'coeff': [], 'd': []}
         self.entries = {'amp': [], 'const': [], 'coeff': [], 'd': []}
         self.frame2.addWidget(wc.QLabel(u"\u03b3 [MHz/T]:"), 0, 0)
@@ -1352,7 +1366,8 @@ class DiffusionParamFrame(AbstractParamFrame):
                 x = np.linspace(min(tmpx), max(tmpx), numCurve)
         for i in range(len(out['coeff'])):
             outCurve += out['coeff'][i] * np.exp(-(out['gamma'][0] * out['delta'][0] * x)**2 * out['d'][i] * (out['triangle'][0] - out['delta'][0] / 3.0))
-        self.parent.fitDataList[tuple(self.parent.locList)] = [x, out['amp'][0] * outCurve, [], []]
+        locList = self.getRedLocList()
+        self.parent.fitDataList[locList] = [x, out['amp'][0] * outCurve, [], []]
         if display:
             self.parent.showFid()
 
@@ -1441,7 +1456,7 @@ class PeakDeconvFrame(FitPlotFrame):
 
     def togglePick(self, var):
         self.peakPickReset()
-        if var == 1:
+        if var == 1 and self.fitPickNumList[self.getRedLocList()] < self.FITNUM:
             self.peakPickFunc = lambda pos, self=self: self.pickDeconv(pos)
             self.peakPick = True
         else:
@@ -1449,13 +1464,14 @@ class PeakDeconvFrame(FitPlotFrame):
             self.peakPick = False
 
     def pickDeconv(self, pos):
-        pickNum = self.fitPickNumList[tuple(self.locList)]
+        locList = self.getRedLocList()
+        pickNum = self.fitPickNumList[locList]
         if self.pickWidth:
             axMult = self.getAxMult(self.spec(), self.viewSettings["axType"], self.viewSettings["ppm"], self.freq(), self.ref())
             width = (2 * abs(float(self.rootwindow.paramframe.entries['pos'][pickNum].text()) - pos[1])) / self.getAxMult(self.spec(), self.viewSettings["axType"], self.viewSettings["ppm"], self.freq(), self.ref())
             self.rootwindow.paramframe.entries['amp'][pickNum].setText(('%#.' + str(self.rootwindow.tabWindow.PRECIS) + 'g') % (float(self.rootwindow.paramframe.entries['amp'][pickNum].text()) * width))
             self.rootwindow.paramframe.entries['lor'][pickNum].setText(('%#.' + str(self.rootwindow.tabWindow.PRECIS) + 'g') % abs(width))
-            self.fitPickNumList[tuple(self.locList)] += 1
+            self.fitPickNumList[locList] += 1
             self.pickWidth = False
             self.rootwindow.sim()
         else:
@@ -1542,7 +1558,7 @@ class PeakDeconvParamFrame(AbstractParamFrame):
             return inp
 
     def reset(self):
-        locList = tuple(self.parent.locList)
+        locList = self.getRedLocList()
         self.fitNumList[locList] = 0
         for name in ['bgrnd', 'slope']:
             self.fitParamList[locList][name] = [0.0, True]
@@ -1591,7 +1607,8 @@ class PeakDeconvParamFrame(AbstractParamFrame):
             y = simFunc.voigtLine(tmpx, pos, out['lor'][i], out['gauss'][i], out['amp'][i], out['method'][0])
             outCurvePart.append(outCurveBase + y)
             outCurve += y
-        self.parent.fitDataList[tuple(self.parent.locList)] = [tmpx, outCurve, x, outCurvePart]
+        locList = self.getRedLocList()
+        self.parent.fitDataList[locList] = [tmpx, outCurve, x, outCurvePart]
         self.parent.showFid()
 
 ##############################################################################
@@ -1866,7 +1883,7 @@ class TensorDeconvParamFrame(AbstractParamFrame):
             return inp
 
     def reset(self):
-        locList = tuple(self.parent.locList)
+        locList = self.getRedLocList()
         self.parent.pickNum = 0
         self.parent.pickNum2 = 0
         self.cheng = 15
@@ -2012,7 +2029,8 @@ class TensorDeconvParamFrame(AbstractParamFrame):
                 y = out['amp'][i] * simFunc.tensorDeconvtensorFunc(tmpx, out['t11'][i], out['t22'][i], out['t33'][i], out['lor'][i], out['gauss'][i], out['multt'][0], self.parent.sw(), out['weight'][0], self.axAdd, out['shiftdef'][-1], self.axMult)
             outCurvePart.append(outCurveBase + y)
             outCurve += y
-        self.parent.fitDataList[tuple(self.parent.locList)] = [tmpx, outCurve, x, outCurvePart]
+        locList = self.getRedLocList()
+        self.parent.fitDataList[locList] = [tmpx, outCurve, x, outCurvePart]
         self.parent.showFid()
         self.changeShiftDef()  # Reformat output to correct display
 
@@ -2294,7 +2312,8 @@ class Quad1DeconvParamFrame(AbstractParamFrame):
                 y = out['amp'][i] * self.tensorFunc(tmpx, out['I'][0], out['pos'][i], out['cq'][i], out['eta'][i], out['lor'][i], out['gauss'][i], out['anglestuff'][0], self.parent.freq(), self.parent.sw(), out['weight'][0], self.axAdd, self.axMult)
             outCurvePart.append(outCurveBase + y)
             outCurve += y
-        self.parent.fitDataList[tuple(self.parent.locList)] = [tmpx, outCurve, x, outCurvePart]
+        locList = self.getRedLocList()
+        self.parent.fitDataList[locList] = [tmpx, outCurve, x, outCurvePart]
         self.parent.showFid()
         self.checkParam()
 
@@ -2716,7 +2735,8 @@ class Quad2CzjzekParamFrame(AbstractParamFrame):
             y = out['amp'][i] * simFunc.quad2CzjzektensorFunc(out['sigma'][i], out['d'][i], out['pos'][i], out['lor'][i], out['gauss'][i], out['wq'][0], out['eta'][0], out['lib'][0], self.parent.freq(), self.parent.sw(), self.axAdd, self.axMult)
             outCurvePart.append(outCurveBase + y)
             outCurve += y
-        self.parent.fitDataList[tuple(self.parent.locList)] = [tmpx, outCurve, x, outCurvePart]
+        locList = self.getRedLocList()
+        self.parent.fitDataList[locList] = [tmpx, outCurve, x, outCurvePart]
         self.parent.showFid()
 
 #################################################################################
@@ -2855,7 +2875,7 @@ class SIMPSONDeconvParamFrame(AbstractParamFrame):
             return inp
 
     def reset(self):
-        locList = tuple(self.parent.locList)
+        locList = self.getRedLocList()
         self.fitParamList[locList] = self.defaultValues(0)
         self.dispParams()
 
@@ -2928,7 +2948,9 @@ class SIMPSONDeconvParamFrame(AbstractParamFrame):
                     return
                 outCurvePart.append(outCurveBase + y)
                 outCurve += y
-            self.parent.fitDataList[tuple(self.parent.locList)] = [tmpx, outCurve, x, outCurvePart]
+            locList = self.getRedLocList()
+
+            self.parent.fitDataList[locList] = [tmpx, outCurve, x, outCurvePart]
             self.parent.showFid()
 
 ##############################################################################
@@ -3098,7 +3120,7 @@ class FunctionFitParamFrame(AbstractParamFrame):
             return inp
 
     def reset(self):
-        locList = tuple(self.parent.locList)
+        locList = self.getRedLocList()
         self.fitParamList[locList] = self.defaultValues(0)
         self.dispParams()
 
@@ -3165,7 +3187,8 @@ class FunctionFitParamFrame(AbstractParamFrame):
                     return
                 outCurvePart.append(outCurveBase + y)
                 outCurve += y
-            self.parent.fitDataList[tuple(self.parent.locList)] = [tmpx, outCurve, x, outCurvePart]
+            locList = self.getRedLocList()
+            self.parent.fitDataList[locList] = [tmpx, outCurve, x, outCurvePart]
             self.parent.showFid()
 
 ##############################################################################

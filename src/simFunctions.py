@@ -74,22 +74,34 @@ def voigtLine(x, pos, lor, gau, integral, Type=0):
 
 
 def makeSpectrum(x, sw, v, gauss, lor, weight):
-    #Takes axis, frequencies and intensities and makes a spectrum with lorentz and gaussian broadening
+    # Takes axis, frequencies and intensities and makes a spectrum with lorentz and gaussian broadening
     length = len(x)
     t = np.arange(length) / sw
-    final = np.zeros(length)
-    mult = v / sw * length
-    x1 = np.array(np.round(mult) + np.floor(length / 2), dtype=int)
-    weight = weight[np.logical_and(x1 >= 0, x1 < length)]
-    x1 = x1[np.logical_and(x1 >= 0, x1 < length)]
-    final = np.bincount(x1, weight, length)
+    diff = (x[1]-x[0])*0.5
+    final, junk = np.histogram(v, length, range=[x[0]-diff, x[-1]+diff], weights=weight)
     apod = np.exp(-np.pi * np.abs(lor) * t) * np.exp(-((np.pi * np.abs(gauss) * t)**2) / (4 * np.log(2)))
     apod[-1:-int(len(apod) / 2 + 1):-1] = apod[:int(len(apod) / 2)]
     inten = np.real(np.fft.fft(np.fft.ifft(final) * apod))
     inten = inten / sw * len(inten) 
     return inten
 
-
+def makeSpectrum2d(x, sw, v, gauss, lor, weight):
+    # Takes axis, frequencies and intensities and makes a spectrum with lorentz and gaussian broadening in 2 dimensions
+    length1 = len(x[0])
+    t1 = np.arange(length) / sw[0]
+    diff1 = (x[0][1]-x[0][0])*0.5
+    length2 = len(x[1])
+    t2 = np.arange(length) / sw[1]
+    diff2 = (x[1][1]-x[1][0])*0.5
+    final, junk, junk = np.histogram2d(v[0], v[1], length, range=[[x[0][0]-diff, x[0][-1]+diff],[x[1][0]-diff, x[1][-1]+diff]], weights=weight)
+    apod1 = np.exp(-np.pi * np.abs(lor[0]) * t) * np.exp(-((np.pi * np.abs(gauss[0]) * t)**2) / (4 * np.log(2)))
+    apod1[-1:-int(len(apod1) / 2 + 1):-1] = apod[:int(len(apod1) / 2)]
+    apod1 = apod1[:, np.newaxis]
+    apod2 = np.exp(-np.pi * np.abs(lor[1]) * t) * np.exp(-((np.pi * np.abs(gauss[1]) * t)**2) / (4 * np.log(2)))
+    apod2[-1:-int(len(apod2) / 2 + 1):-1] = apod[:int(len(apod2) / 2)]
+    inten = np.real(np.fft.fft2(np.fft.ifft2(final) * apod1 * apod2))
+    #inten = inten / sw * len(inten) 
+    return inten
 
 def csaAngleStuff(cheng):
     phi, theta, weight = zcw_angles(cheng, symm=2)
@@ -274,4 +286,26 @@ def quad2CzjzektensorFunc(sigma, d, pos, width, gauss, wq, eta, lib, freq, sw, a
     spectrum = spectrum / sw * len(spectrum)
     return spectrum
 
+
+def mqmasAngleStuff(cheng):
+    phi, theta, weight = zcw_angles(cheng, symm=2)
+    sinT2 = np.sin(theta)**2
+    sinT4 = sinT2**2
+    cos2P = np.cos(2 * phi)
+    return [9 * (35 * sinT4 - 40 * sinT2 + 8),
+            30 * cos2P * (6 * sinT2 - 7 * sinT4),
+            35 * cos2P**2 * sinT4 -20 * sinT2 + 4]
+
+def mqmasFreq(p, I, vCS, Cq, eta, angleStuff, freq):
+    Cp0 = p * (I*(I+1) - 3/4.0 * p**2)
+    Cp4 = p * (18*I*(I+1) - 17/2.0 * p**2 - 5)
+    v0Q = - Cq**2 / (10.0 * freq) / (2*I*(I-1))**2 * (eta**2 + 3)
+    v4Q = Cq**2 / (1120.0 * freq) * 7 / (18.0 * (2*I*(I-1))**2) * (angleStuff[0] + angleStuff[1]*eta + angleStuff[2]*eta**2)
+
+def mqmasFunc(x, I, p, pos, cq, eta, lor, gauss, angleStuff, freq, sw, weight, axAdd, axMult=1):
+    pos = (pos / axMult) - axAdd
+    cq *= 1e6
+    v2 = mqmasFreq(1, 5/2.0, pos, cq, eta, angleStuff, freq)
+    v1 = mqmasFreq(3, 5/2.0, pos, cq, eta, angleStuff, freq)
+    return makeSpectrum2d(x, sw, [v1, v2], gauss, lor, weight)
 

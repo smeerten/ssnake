@@ -20,17 +20,13 @@
 import numpy as np
 import re
 import os
+from six import string_types
 import spectrum as sc
 import hypercomplex as hc
-import sys
 
 def autoLoad(filePathList, asciiInfoList=None):
-    if sys.version_info[0] == 3:
-        if isinstance(filePathList, str):
-            filePathList = [filePathList]
-    else:
-        if isinstance(filePathList, basestring):
-            filePathList = [filePathList]
+    if isinstance(filePathList, string_types):
+        filePathList = [filePathList]
     if asciiInfoList is None:
         asciiInfoList = [None] * len(filePathList)
     masterData = autoLoadSingle(filePathList[0], asciiInfoList[0])

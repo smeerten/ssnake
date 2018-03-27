@@ -22,6 +22,7 @@ import copy
 from matplotlib.pyplot import get_cmap
 import matplotlib
 from spectrumFrame import PlotFrame
+import reimplement as reim
 
 COLORMAPLIST = ['seismic', 'BrBG', 'bwr', 'coolwarm', 'PiYG', 'PRGn', 'PuOr',
                 'RdBu', 'RdGy', 'RdYlBu', 'RdYlGn', 'Spectral', 'rainbow', 'jet']
@@ -46,8 +47,7 @@ class Current1D(PlotFrame):
         self.data = data  # the actual spectrum instance
         self.data1D = None  # the data1D
         if duplicateCurrent is None:
-            self.axes = len(self.data.shape()) - 1
-            self.axes2 = 0
+            self.axes = np.array([len(self.data.shape()) - 1])
             self.resetLocList()
             self.viewSettings = {"plotType": 0,
                                  "axType": self.root.father.defaultUnits,
@@ -93,28 +93,18 @@ class Current1D(PlotFrame):
             self.startUp()
         else:
             self.axes = duplicateCurrent.axes
-            self.axes2 = duplicateCurrent.axes2
+            self.locList = duplicateCurrent.locList
             if isinstance(self, (CurrentStacked, CurrentArrayed, CurrentContour)):
-                if self.axes == self.axes2: #If axes are equal, change axes2 to one value below/above
-                    if self.axes2 > 0:
-                        self.axes2 += -1
+                if len(self.axes) < 2:
+                    self.axes = np.append(self.data.ndim()-1, self.axes)
+                if self.axes[-1] == self.axes[-2]: #If axes are equal, change axes2 to one value below/above
+                    if self.axes[-2] > 0:
+                        self.axes[-2] += -1
                     else:
-                        self.axes2 += 1
-                if (len(duplicateCurrent.locList) == self.data.ndim() - 2):
-                    self.locList = duplicateCurrent.locList
-                else:
-                    if self.axes < self.axes2:
-                        self.locList = np.delete(duplicateCurrent.locList, self.axes2 - 1)
-                    else:
-                        self.locList = np.delete(duplicateCurrent.locList, self.axes2)
+                        self.axes[-2] += 1
             else:
-                if (len(duplicateCurrent.locList) == self.data.ndim() - 1):
-                    self.locList = duplicateCurrent.locList
-                else:
-                    if self.axes < duplicateCurrent.axes2:
-                        self.locList = np.insert(duplicateCurrent.locList, duplicateCurrent.axes2 - 1, 0)
-                    else:
-                        self.locList = np.insert(duplicateCurrent.locList, duplicateCurrent.axes2, 0)
+                if len(self.axes) != 1:
+                    self.axes = self.axes[-1:]
             self.viewSettings = duplicateCurrent.viewSettings
             self.viewSettings.update({"extraData": [],
                                       "extraLoc": [],
@@ -182,9 +172,9 @@ class Current1D(PlotFrame):
         return Current1D(root, fig, canvas, data, self)
 
     def upd(self):  # get new data from the data instance
-        if self.data.ndim() <= self.axes:
-            self.axes = len(self.data.shape()) - 1
-        if (len(self.locList) + 1) != self.data.ndim():
+        if self.data.ndim() <= self.axes[-1]:
+            self.axes = np.array([len(self.data.shape()) - 1])
+        if len(self.locList) != self.data.ndim():
             self.resetLocList()
         try:
             self.data1D = self.data.getSlice(self.axes, self.locList)
@@ -207,17 +197,11 @@ class Current1D(PlotFrame):
             self.plotReset()
 
     def resetLocList(self):
-        self.locList = [0] * (len(self.data.shape()) - 1)
+        self.locList = [0] * self.data.ndim()
 
     def getSelect(self):
-        tmp = list(self.locList)
-        if self.ndim() > 1:
-            minVal = min(self.axes, self.axes2)
-            maxVal = max(self.axes, self.axes2)
-            tmp.insert(minVal, slice(None))
-            tmp.insert(maxVal, slice(None))
-        else:
-            tmp.insert(self.axes, slice(None))
+        tmp = np.array(self.locList, dtype=object)
+        tmp[self.axes] = slice(None)
         return tmp
 
     def setGrids(self, grids):
@@ -241,26 +225,26 @@ class Current1D(PlotFrame):
         return self.data.isComplex(*args)
 
     def real(self, *args):
-        self.root.addMacro(['real', (self.axes - self.data.ndim(), )])
-        self.data.real(self.axes)
+        self.root.addMacro(['real', (self.axes[-1] - self.data.ndim(), )])
+        self.data.real(self.axes[-1])
         self.upd()
         self.showFid()
     
     def imag(self, *args):
-        self.root.addMacro(['imag', (self.axes - self.data.ndim(), )])
-        self.data.imag(self.axes)
+        self.root.addMacro(['imag', (self.axes[-1] - self.data.ndim(), )])
+        self.data.imag(self.axes[-1])
         self.upd()
         self.showFid()
     
     def abs(self, *args):
-        self.root.addMacro(['abs', (self.axes - self.data.ndim(), )])
-        self.data.abs(self.axes)
+        self.root.addMacro(['abs', (self.axes[-1] - self.data.ndim(), )])
+        self.data.abs(self.axes[-1])
         self.upd()
         self.showFid()
 
     def conj(self, *args):
-        self.root.addMacro(['conj', (self.axes - self.data.ndim(), )])
-        self.data.conj(self.axes)
+        self.root.addMacro(['conj', (self.axes[-1] - self.data.ndim(), )])
+        self.data.conj(self.axes[-1])
         self.upd()
         self.showFid()
     
@@ -278,14 +262,14 @@ class Current1D(PlotFrame):
             selectSlice = self.getSelect()
         else:
             selectSlice = slice(None)
-        self.root.addMacro(['phase', (phase0, phase1, self.axes - self.data.ndim(), selectSlice)])
-        self.data.phase(phase0, phase1, self.axes, selectSlice)
+        self.root.addMacro(['phase', (phase0, phase1, self.axes[-1] - self.data.ndim(), selectSlice)])
+        self.data.phase(phase0, phase1, self.axes[-1], selectSlice)
         self.upd()
         self.showFid()
 
     def fourier(self):  # fourier the actual data and replot
-        self.root.addMacro(['fourier', (self.axes - self.data.ndim(), )])
-        self.data.fourier(self.axes)
+        self.root.addMacro(['fourier', (self.axes[-1] - self.data.ndim(), )])
+        self.data.fourier(self.axes[-1])
         self.upd()
         if isinstance(self, (CurrentStacked, CurrentArrayed)):
             self.resetSpacing()
@@ -293,8 +277,8 @@ class Current1D(PlotFrame):
         self.plotReset()
 
     def realFourier(self):  # fourier the real data and replot
-        self.root.addMacro(['realFourier', (self.axes - self.data.ndim(), )])
-        self.data.realFourier(self.axes)
+        self.root.addMacro(['realFourier', (self.axes[-1] - self.data.ndim(), )])
+        self.data.realFourier(self.axes[-1])
         self.upd()
         if isinstance(self, (CurrentStacked, CurrentArrayed)):
             self.resetSpacing()
@@ -302,8 +286,8 @@ class Current1D(PlotFrame):
         self.plotReset()
 
     def fftshift(self, inv=False):  # fftshift the actual data and replot
-        self.root.addMacro(['fftshift', (self.axes - self.data.ndim(), inv)])
-        self.data.fftshift(self.axes, inv)
+        self.root.addMacro(['fftshift', (self.axes[-1] - self.data.ndim(), inv)])
+        self.data.fftshift(self.axes[-1], inv)
         self.upd()
         self.showFid()
 
@@ -316,16 +300,13 @@ class Current1D(PlotFrame):
         if shiftingAxes is None:
             curve = self.data1D.apodize(lor, gauss, cos2, hamming, shift, shifting, None, -1, preview=preview)
         else:
-            if (self.ndim() > 1) and (shiftingAxes == self.axes2):
+            if (self.ndim() > 1) and (shiftingAxes == self.axes[-2]):
                 curve = self.data1D.apodize(lor, gauss, cos2, hamming, shift, shifting, shiftingAxes, -1, preview=preview)
             else:
-                if shiftingAxes == self.axes:
+                if shiftingAxes == self.axes[-1]:
                     self.dispMsg('shiftingAxes cannot be equal to axes')
                     return
-                elif shiftingAxes < self.axes:
-                    shift += shifting * self.locList[shiftingAxes] / self.data.sw[shiftingAxes]
-                else:
-                    shift += shifting * self.locList[shiftingAxes - 1] / self.data.sw[shiftingAxes]
+                shift += shifting * self.locList[shiftingAxes] / self.data.sw[shiftingAxes]
                 curve = self.data1D.apodize(lor, gauss, cos2, hamming, shift, 0.0, None, -1, preview=preview)
         if not type(self) is CurrentContour:
             if self.spec() == 0:
@@ -343,21 +324,21 @@ class Current1D(PlotFrame):
             selectSlice = self.getSelect()
         else:
             selectSlice = slice(None)
-        self.root.addMacro(['apodize', (lor, gauss, cos2, hamming, shift, shifting, shiftingAxes, self.axes - self.data.ndim(), selectSlice)])
-        self.data.apodize(lor, gauss, cos2, hamming, shift, shifting, shiftingAxes, self.axes, selectSlice)
+        self.root.addMacro(['apodize', (lor, gauss, cos2, hamming, shift, shifting, shiftingAxes, self.axes[-1] - self.data.ndim(), selectSlice)])
+        self.data.apodize(lor, gauss, cos2, hamming, shift, shifting, shiftingAxes, self.axes[-1], selectSlice)
         self.upd()
         self.showFid()
 
     def setFreq(self, freq, sw):  # set the frequency of the actual data
-        self.root.addMacro(['setFreq', (freq, sw, self.axes - self.data.ndim())])
-        self.data.setFreq(freq, sw, self.axes)
+        self.root.addMacro(['setFreq', (freq, sw, self.axes[-1] - self.data.ndim())])
+        self.data.setFreq(freq, sw, self.axes[-1])
         self.upd()
         self.showFid()
 
     def setRef(self, ref):  # set the frequency of the actual data
         oldref = self.ref()
-        self.root.addMacro(['setRef', (ref, self.axes - self.data.ndim())])
-        self.data.setRef(ref, self.axes)
+        self.root.addMacro(['setRef', (ref, self.axes[-1] - self.data.ndim())])
+        self.data.setRef(ref, self.axes[-1])
         if ref is None:
             ref = self.freq()
         val = self.viewSettings["axType"]
@@ -372,8 +353,8 @@ class Current1D(PlotFrame):
         self.showFid()
 
     def regrid(self, limits, numPoints):
-        self.root.addMacro(['regrid', (limits, numPoints, self.axes - self.data.ndim())])
-        self.data.regrid(limits, numPoints, self.axes)
+        self.root.addMacro(['regrid', (limits, numPoints, self.axes[-1] - self.data.ndim())])
+        self.data.regrid(limits, numPoints, self.axes[-1])
         self.upd()
         self.showFid()
         self.plotReset()
@@ -489,25 +470,22 @@ class Current1D(PlotFrame):
         self.upd()
 
     def resize(self, size, pos):  # set size to the actual data
-        self.root.addMacro(['resize', (size, pos, self.axes - self.data.ndim())])
-        if self.data.noUndo:
-            self.data.resize(size, pos, self.axes)
-        else:
-            self.data.resize(size, pos, self.axes)
+        self.root.addMacro(['resize', (size, pos, self.axes[-1] - self.data.ndim())])
+        self.data.resize(size, pos, self.axes[-1])
         self.upd()
         self.showFid()
         if not self.spec():
             self.plotReset(True, False)
 
     def lpsvd(self, nAnalyse, nFreq, nPredict, Direction):
-        self.root.addMacro(['lpsvd', (nAnalyse, nFreq, nPredict, Direction, self.axes - self.data.ndim())])
-        self.data.lpsvd(nAnalyse, nFreq, nPredict, Direction, self.axes)
+        self.root.addMacro(['lpsvd', (nAnalyse, nFreq, nPredict, Direction, self.axes[-1] - self.data.ndim())])
+        self.data.lpsvd(nAnalyse, nFreq, nPredict, Direction, self.axes[-1])
         self.upd()
         self.showFid()
 
     def setSpec(self, val):  # change from time to freq domain of the actual data
-        self.root.addMacro(['setSpec', (val, self.axes - self.data.ndim())])
-        self.data.setSpec(val, self.axes)
+        self.root.addMacro(['setSpec', (val, self.axes[-1] - self.data.ndim())])
+        self.data.setSpec(val, self.axes[-1])
         self.upd()
         if isinstance(self, CurrentArrayed):
             self.resetSpacing()
@@ -515,8 +493,8 @@ class Current1D(PlotFrame):
         self.plotReset()
 
     def swapEcho(self, idx):
-        self.root.addMacro(['swapEcho', (idx, self.axes - self.data.ndim())])
-        self.data.swapEcho(idx, self.axes)
+        self.root.addMacro(['swapEcho', (idx, self.axes[-1] - self.data.ndim())])
+        self.data.swapEcho(idx, self.axes[-1])
         self.upd()
         self.showFid()
 
@@ -527,17 +505,17 @@ class Current1D(PlotFrame):
 
     def setWholeEcho(self, value):
         valBool = value != 0
-        self.root.addMacro(['setWholeEcho', (valBool, self.axes - self.data.ndim())])
-        self.data.setWholeEcho(valBool, self.axes)
-        self.data1D.setWholeEcho(valBool, self.axes)
+        self.root.addMacro(['setWholeEcho', (valBool, self.axes[-1] - self.data.ndim())])
+        self.data.setWholeEcho(valBool, self.axes[-1])
+        self.data1D.setWholeEcho(valBool, self.axes[-1])
 
     def shift(self, shift, select=False):
         if select:
             selectSlice = self.getSelect()
         else:
             selectSlice = slice(None)
-        self.root.addMacro(['shift', (shift, self.axes - self.data.ndim(), selectSlice)])
-        self.data.shift(shift, self.axes, selectSlice)
+        self.root.addMacro(['shift', (shift, self.axes[-1] - self.data.ndim(), selectSlice)])
+        self.data.shift(shift, self.axes[-1], selectSlice)
         self.upd()
         self.showFid()
 
@@ -574,7 +552,7 @@ class Current1D(PlotFrame):
             bArray = np.logical_and(bArray, np.logical_or((tmpAx < minVal), (tmpAx > maxVal)))
         if invert:
             bArray = np.logical_not(bArray)
-        y = np.apply_along_axis(lambda data: self.baselinePolyFit(self.xax(), data, bArray, degree), self.axes, self.data.getHyperData(0))
+        y = np.apply_along_axis(lambda data: self.baselinePolyFit(self.xax(), data, bArray, degree), self.axes[-1], self.data.getHyperData(0))
         y = np.real(self.getDataType(y))
         self.root.addMacro(['subtract', ([y])])
         self.data.subtract([y])
@@ -596,8 +574,8 @@ class Current1D(PlotFrame):
             bArray = np.logical_not(bArray)
         y = self.baselinePolyFit(self.xax(), tmpData, bArray, degree)
         y = np.real(self.getDataType(y))
-        self.root.addMacro(['baselineCorrection', (y, self.axes - self.data.ndim(), selectSlice)])
-        self.data.baselineCorrection(y, self.axes, select=selectSlice)
+        self.root.addMacro(['baselineCorrection', (y, self.axes[-1] - self.data.ndim(), selectSlice)])
+        self.data.baselineCorrection(y, self.axes[-1], select=selectSlice)
 
     def previewBaselineCorrection(self, degree, removeList, invert=False):
         tmpData = self.data1D.getHyperData(0)
@@ -640,31 +618,31 @@ class Current1D(PlotFrame):
         self.removeListLines = []
 
     def states(self):
-        self.root.addMacro(['states', (self.axes - self.data.ndim(), )])
-        self.data.states(self.axes)
+        self.root.addMacro(['states', (self.axes[-1] - self.data.ndim(), )])
+        self.data.states(self.axes[-1])
         self.upd()
         self.showFid()
 
     def statesTPPI(self):
-        self.root.addMacro(['statesTPPI', (self.axes - self.data.ndim(), )])
-        self.data.statesTPPI(self.axes)
+        self.root.addMacro(['statesTPPI', (self.axes[-1] - self.data.ndim(), )])
+        self.data.statesTPPI(self.axes[-1])
         self.upd()
         self.showFid()
 
     def echoAntiEcho(self):
-        self.root.addMacro(['echoAntiEcho', (self.axes - self.data.ndim(), )])
-        self.data.echoAntiEcho(self.axes)
+        self.root.addMacro(['echoAntiEcho', (self.axes[-1] - self.data.ndim(), )])
+        self.data.echoAntiEcho(self.axes[-1])
         self.upd()
         self.showFid()
 
     def matrixFuncs(self, func, name, pos1, pos2, newSpec=False):
         if newSpec:
             tmpData = copy.deepcopy(self.data)
-            func(tmpData, pos1, pos2, self.axes)
+            func(tmpData, pos1, pos2, self.axes[-1])
             return tmpData
         else:
-            self.root.addMacro([name, (pos1, pos2, self.axes - self.data.ndim(), )])
-            func(self.data, pos1, pos2, self.axes)
+            self.root.addMacro([name, (pos1, pos2, self.axes[-1] - self.data.ndim(), )])
+            func(self.data, pos1, pos2, self.axes[-1])
             if self.upd():
                 self.showFid()
                 self.plotReset()
@@ -691,10 +669,10 @@ class Current1D(PlotFrame):
         self.matrixFuncs(lambda obj, *args: obj.average(*args), 'average', pos1, pos2, newSpec)
 
     def flipLR(self):
-        self.data.flipLR(self.axes)
+        self.data.flipLR(self.axes[-1])
         self.upd()
         self.showFid()
-        self.root.addMacro(['flipLR', (self.axes - self.data.ndim(), )])
+        self.root.addMacro(['flipLR', (self.axes[-1] - self.data.ndim(), )])
 
     def concatenate(self, axes):
         self.data.concatenate(axes)
@@ -704,36 +682,36 @@ class Current1D(PlotFrame):
         self.root.addMacro(['concatenate', (axes - self.data.ndim() - 1, )])
 
     def split(self, sections):
-        self.data.split(sections, self.axes)
+        self.data.split(sections, self.axes[-1])
         self.upd()
         self.showFid()
         self.plotReset()
-        self.root.addMacro(['split', (sections, self.axes - self.data.ndim() + 1)])
+        self.root.addMacro(['split', (sections, self.axes[-1] - self.data.ndim() + 1)])
 
     def diff(self):
-        self.data.diff(self.axes)
+        self.data.diff(self.axes[-1])
         self.upd()
         self.showFid()
-        self.root.addMacro(['diff', (self.axes - self.data.ndim(), )])
+        self.root.addMacro(['diff', (self.axes[-1] - self.data.ndim(), )])
 
     def cumsum(self):
-        self.data.cumsum(self.axes)
+        self.data.cumsum(self.axes[-1])
         self.upd()
         self.showFid()
-        self.root.addMacro(['cumsum', (self.axes - self.data.ndim(), )])
+        self.root.addMacro(['cumsum', (self.axes[-1] - self.data.ndim(), )])
 
     def insert(self, data, pos):
-        self.root.addMacro(['insert', (data, pos, self.axes - self.data.ndim())])
-        self.data.insert(data, pos, self.axes)
+        self.root.addMacro(['insert', (data, pos, self.axes[-1] - self.data.ndim())])
+        self.data.insert(data, pos, self.axes[-1])
         self.upd()
         self.showFid()
         self.plotReset()
 
     def delete(self, pos):
-        self.data.delete(pos, self.axes)
+        self.data.delete(pos, self.axes[-1])
         self.upd()
         self.showFid()
-        self.root.addMacro(['delete', (pos, self.axes - self.data.ndim())])
+        self.root.addMacro(['delete', (pos, self.axes[-1] - self.data.ndim())])
 
     def deletePreview(self, pos):
         self.data1D.delete(pos, -1)
@@ -745,8 +723,8 @@ class Current1D(PlotFrame):
             selectSlice = self.getSelect()
         else:
             selectSlice = slice(None)
-        self.root.addMacro(['add', (data, self.axes - self.data.ndim(), selectSlice)])
-        self.data.add(data, self.axes, select=selectSlice)
+        self.root.addMacro(['add', (data, self.axes[-1] - self.data.ndim(), selectSlice)])
+        self.data.add(data, self.axes[-1], select=selectSlice)
         self.upd()
         self.showFid()
 
@@ -755,8 +733,8 @@ class Current1D(PlotFrame):
             selectSlice = self.getSelect()
         else:
             selectSlice = slice(None)
-        self.root.addMacro(['subtract', (data, self.axes - self.data.ndim(), selectSlice)])
-        self.data.subtract(data, self.axes, select=selectSlice)
+        self.root.addMacro(['subtract', (data, self.axes[-1] - self.data.ndim(), selectSlice)])
+        self.data.subtract(data, self.axes[-1], select=selectSlice)
         self.upd()
         self.showFid()
 
@@ -765,8 +743,8 @@ class Current1D(PlotFrame):
             selectSlice = self.getSelect()
         else:
             selectSlice = slice(None)
-        self.root.addMacro(['multiply', (data, self.axes - self.data.ndim(), selectSlice)])
-        self.data.multiply(data, self.axes, select=selectSlice)
+        self.root.addMacro(['multiply', (data, self.axes[-1] - self.data.ndim(), selectSlice)])
+        self.data.multiply(data, self.axes[-1], select=selectSlice)
         self.upd()
         self.showFid()
 
@@ -780,14 +758,14 @@ class Current1D(PlotFrame):
             selectSlice = self.getSelect()
         else:
             selectSlice = slice(None)
-        self.root.addMacro(['normalize', (value, scale, type, self.axes - self.data.ndim(), selectSlice)])
-        self.data.normalize(value, scale, type, self.axes, select=selectSlice)
+        self.root.addMacro(['normalize', (value, scale, type, self.axes[-1] - self.data.ndim(), selectSlice)])
+        self.data.normalize(value, scale, type, self.axes[-1], select=selectSlice)
         self.upd()
         self.showFid()
     
     def subtractAvg(self, pos1, pos2):
-        self.root.addMacro(['subtractAvg', (pos1, pos2, self.axes - self.data.ndim())])
-        self.data.subtractAvg(pos1, pos2, self.axes)
+        self.root.addMacro(['subtractAvg', (pos1, pos2, self.axes[-1] - self.data.ndim())])
+        self.data.subtractAvg(pos1, pos2, self.axes[-1])
         self.upd()
         self.showFid()
 
@@ -799,11 +777,11 @@ class Current1D(PlotFrame):
     def extract(self, pos1, pos2, newSpec=False):
         if newSpec:
             tmpData = copy.deepcopy(self.data)
-            tmpData.extract(pos1, pos2, self.axes)
+            tmpData.extract(pos1, pos2, self.axes[-1])
             return tmpData
         else:
-            self.root.addMacro(['extract', (pos1, pos2, self.axes - self.data.ndim())])
-            self.data.extract(pos1, pos2, self.axes)
+            self.root.addMacro(['extract', (pos1, pos2, self.axes[-1] - self.data.ndim())])
+            self.data.extract(pos1, pos2, self.axes[-1])
             self.upd()
             self.showFid()
             self.plotReset()
@@ -815,8 +793,8 @@ class Current1D(PlotFrame):
         tmpData = tmpData[(0,)*(self.ndim()-1) + (slice(None), )]
         refSpec = np.zeros(self.len())
         refSpec[minPos:maxPos] = np.real(tmpData[minPos:maxPos])
-        self.root.addMacro(['fiddle', (refSpec.tolist(), lb, self.axes - self.data.ndim())])
-        self.data.fiddle(refSpec, lb, self.axes)
+        self.root.addMacro(['fiddle', (refSpec.tolist(), lb, self.axes[-1] - self.data.ndim())])
+        self.data.fiddle(refSpec, lb, self.axes[-1])
         self.upd()
         self.showFid()
 
@@ -827,26 +805,26 @@ class Current1D(PlotFrame):
         self.showFid()
 
     def reorder(self, pos, newLength):
-        self.root.addMacro(['reorder', (pos, newLength, self.axes - self.data.ndim())])
-        self.data.reorder(pos, newLength, self.axes)
+        self.root.addMacro(['reorder', (pos, newLength, self.axes[-1] - self.data.ndim())])
+        self.data.reorder(pos, newLength, self.axes[-1])
         self.upd()
         self.showFid()
 
     def ffm(self, posList, typeVal):
-        self.root.addMacro(['ffm', (posList, typeVal, self.axes - self.data.ndim())])
-        self.data.ffm(posList, typeVal, self.axes)
+        self.root.addMacro(['ffm', (posList, typeVal, self.axes[-1] - self.data.ndim())])
+        self.data.ffm(posList, typeVal, self.axes[-1])
         self.upd()
         self.showFid()
 
     def clean(self, posList, typeVal, gamma, threshold, maxIter):
-        self.root.addMacro(['clean', (posList, typeVal, self.axes - self.data.ndim(), gamma, threshold, maxIter)])
-        self.data.clean(posList, typeVal, self.axes, gamma, threshold, maxIter)
+        self.root.addMacro(['clean', (posList, typeVal, self.axes[-1] - self.data.ndim(), gamma, threshold, maxIter)])
+        self.data.clean(posList, typeVal, self.axes[-1], gamma, threshold, maxIter)
         self.upd()
         self.showFid()
 
     def ist(self, posList, typeVal, threshold, maxIter, tracelimit):
-        self.root.addMacro(['ist', (posList, typeVal, self.axes - self.data.ndim(), threshold, maxIter, tracelimit)])
-        self.data.ist(posList, typeVal, self.axes, threshold, maxIter, tracelimit)
+        self.root.addMacro(['ist', (posList, typeVal, self.axes[-1] - self.data.ndim(), threshold, maxIter, tracelimit)])
+        self.data.ist(posList, typeVal, self.axes[-1], threshold, maxIter, tracelimit)
         self.upd()
         self.showFid()
 
@@ -856,18 +834,11 @@ class Current1D(PlotFrame):
         return phases
 
     def directAutoPhase(self, phaseNum):
-        tmpLocList = self.locList
+        tmpLocList = copy.copy(self.locList)
         if self.ndim() > 1:
-            if hasattr(self, 'stackBegin'):
-                val = self.viewSettings["stackBegin"]
-            else:
-                val = 0
-            if self.axes > self.axes2:
-                tmpLocList = np.insert(tmpLocList, self.axes2, val)
-            else:
-                tmpLocList = np.insert(tmpLocList, self.axes2 - 1, val)
-        self.root.addMacro(['autoPhase', (phaseNum, self.axes - self.data.ndim(), tmpLocList)])
-        self.data.autoPhase(phaseNum, self.axes, tmpLocList)
+            tmpLocList[self.axes[:-1]] = self.viewSettings["stackBegin"]
+        self.root.addMacro(['autoPhase', (phaseNum, self.axes[-1] - self.data.ndim(), tmpLocList)])
+        self.data.autoPhase(phaseNum, self.axes[-1], tmpLocList)
         self.upd()
         self.showFid()
 
@@ -878,8 +849,8 @@ class Current1D(PlotFrame):
         self.upd()
 
     def setXax(self, xax):
-        self.root.addMacro(['setXax', (xax, self.axes - self.data.ndim())])
-        self.data.setXax(xax, self.axes)
+        self.root.addMacro(['setXax', (xax, self.axes[-1] - self.data.ndim())])
+        self.data.setXax(xax, self.axes[-1])
         self.upd()
         self.showFid()
         self.plotReset()
@@ -898,8 +869,8 @@ class Current1D(PlotFrame):
             self.showFid()
 
     def hilbert(self):
-        self.root.addMacro(['hilbert', (self.axes - self.data.ndim(), )])
-        self.data.hilbert(self.axes)
+        self.root.addMacro(['hilbert', (self.axes[-1] - self.data.ndim(), )])
+        self.data.hilbert(self.axes[-1])
         self.upd()
         self.showFid()
 
@@ -1050,9 +1021,9 @@ class CurrentMulti(Current1D):
     def addExtraData(self, data, name):
         self.viewSettings["extraName"].append(name)
         self.viewSettings["extraData"].append(data)
-        self.viewSettings["extraLoc"].append([0] * (len(self.viewSettings["extraData"][-1].shape()) - 1))
+        self.viewSettings["extraLoc"].append([0] * (len(self.viewSettings["extraData"][-1].shape()) ))
         self.viewSettings["extraColor"].append(COLORCONVERTER.to_rgb(COLORCYCLE[np.mod(len(self.viewSettings["extraData"]), len(COLORCYCLE))]['color']))  # find a good color system
-        self.viewSettings["extraAxes"].append(len(data.shape()) - 1)
+        self.viewSettings["extraAxes"].append([len(data.shape()) - 1])
         self.viewSettings["extraScale"].append(1.0)
         self.viewSettings["extraOffset"].append(0.0)
         self.viewSettings["extraShift"].append(0.0)
@@ -1095,9 +1066,9 @@ class CurrentMulti(Current1D):
     def resetExtraLocList(self, num=None):
         if num is None:
             for i in range(len(self.viewSettings["extraLoc"])):
-                self.viewSettings["extraLoc"][i] = [0] * (len(self.viewSettings["extraData"][i].shape()) - 1)
+                self.viewSettings["extraLoc"][i] = [0] * (len(self.viewSettings["extraData"][i].shape()))
         else:
-            self.viewSettings["extraLoc"][num] = [0] * (len(self.viewSettings["extraData"][num].shape()) - 1)
+            self.viewSettings["extraLoc"][num] = [0] * (len(self.viewSettings["extraData"][num].shape()))
 
     def showFid(self, oldData=None, extraX=None, extraY=None, extraColor=None):  # display the 1D data
         self.peakPickReset()
@@ -1110,8 +1081,8 @@ class CurrentMulti(Current1D):
         for i in range(len(self.viewSettings["extraData"])):
             data = self.viewSettings["extraData"][i]
             try:
-                if self.viewSettings["extraData"][i].ndim() <= self.viewSettings["extraAxes"][i]:
-                    self.viewSettings["extraAxes"][i] = len(self.viewSettings["extraData"][i].shape()) - 1
+                if self.viewSettings["extraData"][i].ndim() <= self.viewSettings["extraAxes"][i][-1]:
+                    self.viewSettings["extraAxes"][i][-1] = len(self.viewSettings["extraData"][i].shape()) - 1
                     self.resetExtraLocList(i)
                 extraData1D = data.getSlice(self.viewSettings["extraAxes"][i], self.viewSettings["extraLoc"][i])
             except Exception:
@@ -1198,39 +1169,36 @@ class CurrentStacked(Current1D):
         if self.data.ndim() < 2:
             self.root.rescue()
             return False
-        if (len(self.locList) + 2) != self.data.ndim():
+        if len(self.locList) != self.data.ndim():
             self.resetLocList()
+        stack = [reim.floatSlice(self.viewSettings["stackBegin"], self.viewSettings["stackEnd"], self.viewSettings["stackStep"]), slice(None)]
         try:
-            self.data1D = self.data.getBlock(self.axes, self.axes2, self.locList, self.viewSettings["stackBegin"], self.viewSettings["stackEnd"], self.viewSettings["stackStep"])
+            self.data1D = self.data.getSlice(self.axes, self.locList, stack)
             if updateVar is None:
                 self.root.rescue()
                 return False
         except Exception:
             self.resetLocList()
-            self.data1D = self.data.getBlock(self.axes, self.axes2, self.locList, self.viewSettings["stackBegin"], self.viewSettings["stackEnd"], self.viewSettings["stackStep"])
+            self.data1D = self.data.getSlice(self.axes, self.locList, stack)
         return True
 
-    def setBlock(self, axes, axes2, locList, stackBegin=None, stackEnd=None, stackStep=None):  # change the slice
+    def setBlock(self, axes, locList, stackBegin=None, stackEnd=None, stackStep=None):  # change the slice
         axesSame = True
-        if (self.axes != axes) or (self.axes2 != axes2):
+        if axes != self.axes:
             axesSame = False
         self.axes = axes
-        self.axes2 = axes2
         self.viewSettings["stackBegin"] = stackBegin
         self.viewSettings["stackEnd"] = stackEnd
         self.viewSettings["stackStep"] = stackStep
         if stackStep is None:
-            if self.data.shape()[self.axes2] > 100:
-                self.viewSettings["stackStep"] = 1 + int(self.data.shape()[self.axes2]) / 100
+            if self.data.shape()[self.axes[-2]] > 100:
+                self.viewSettings["stackStep"] = 1 + int(self.data.shape()[self.axes[-2]]) / 100
         self.locList = locList
         self.upd()
         self.showFid()
         if not axesSame:
             self.resetSpacing()
             self.plotReset()
-
-    def resetLocList(self):
-        self.locList = [0] * (self.data.ndim() - 2)
 
     def stackSelect(self, stackBegin, stackEnd, stackStep):
         self.viewSettings["stackBegin"] = stackBegin
@@ -1475,10 +1443,9 @@ class CurrentContour(CurrentStacked):
 
     def setBlock(self, axes, axes2, locList):  # change the slice
         axesSame = True
-        if (self.axes != axes) or (self.axes2 != axes2):
+        if self.axes != axes:
             axesSame = False
         self.axes = axes
-        self.axes2 = axes2
         self.locList = locList
         self.upd()
         self.showFid()
@@ -1680,8 +1647,8 @@ class CurrentContour(CurrentStacked):
         elif self.viewSettings["projTop"] == 2:
             xprojdata = np.min(tmpdata[topSlice], axis=0)
         elif self.viewSettings["projTop"] == 4:
-            if self.viewSettings["projPos"][0] >= self.data.shape()[self.axes2]:
-                self.viewSettings["projPos"][0] = self.data.shape()[self.axes2] - 1
+            if self.viewSettings["projPos"][0] >= self.data.shape()[self.axes[-2]]:
+                self.viewSettings["projPos"][0] = self.data.shape()[self.axes[-2]] - 1
             elif self.viewSettings["projPos"][0] < 0:
                 self.viewSettings["projPos"][0] = 0
             xprojdata = tmpdata[self.viewSettings["projPos"][0]]
@@ -1697,8 +1664,8 @@ class CurrentContour(CurrentStacked):
         elif self.viewSettings["projRight"] == 2:
             yprojdata = np.min(tmpdata[rightSlice], axis=1)
         elif self.viewSettings["projRight"] == 4:
-            if self.viewSettings["projPos"][1] >= self.data.shape()[self.axes]:
-                self.viewSettings["projPos"][1] = self.data.shape()[self.axes] - 1
+            if self.viewSettings["projPos"][1] >= self.data.shape()[self.axes[-1]]:
+                self.viewSettings["projPos"][1] = self.data.shape()[self.axes[-1]] - 1
             elif self.viewSettings["projPos"][1] < 0:
                 self.viewSettings["projPos"][1] = 0
             yprojdata = tmpdata[:, self.viewSettings["projPos"][1]]

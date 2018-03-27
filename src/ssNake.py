@@ -2029,21 +2029,9 @@ class SideFrame(QtWidgets.QScrollArea):
                 self.entries.append(wc.SliceSpinBox(self, 0, self.shape[num] - 1))
                 self.frame1.addWidget(self.entries[num], num * 2 + 1, 1 + offset)
                 if not self.plotIs2D:
-                    if num < current.axes:
-                        self.entries[num].setValue(current.locList[num])
-                    elif num == current.axes:
-                        self.entries[num].setValue(0)
-                    else:
-                        self.entries[num].setValue(current.locList[num - 1])
+                    self.entries[num].setValue(current.locList[num])
                 else:
-                    if (num < current.axes) and (num < current.axes2):
-                        self.entries[num].setValue(current.locList[num])
-                    elif (num == current.axes) or (num == current.axes2):
-                        self.entries[num].setValue(0)
-                    elif (num > current.axes) and (num > current.axes2):
-                        self.entries[num].setValue(current.locList[num - 2])
-                    else:
-                        self.entries[num].setValue(current.locList[num - 1])
+                    self.entries[num].setValue(current.locList[num])
                 self.entries[num].valueChanged.connect(lambda event=None, num=num: self.getSlice(event, num))
             if type(current) is views.CurrentStacked or type(current) is views.CurrentArrayed:
                 if current.viewSettings["stackBegin"] is not None:
@@ -2053,7 +2041,7 @@ class SideFrame(QtWidgets.QScrollArea):
                 if current.viewSettings["stackEnd"] is not None:
                     to2D = current.viewSettings["stackEnd"]
                 else:
-                    to2D = self.shape[current.axes2]
+                    to2D = self.shape[current.axes[-2]]
                 if current.viewSettings["stackStep"] is not None:
                     step2D = current.viewSettings["stackStep"]
                 else:
@@ -2064,12 +2052,12 @@ class SideFrame(QtWidgets.QScrollArea):
                 self.fromSpin.setValue(from2D)
                 self.fromSpin.valueChanged.connect(self.setToFrom)
                 self.frame2.addWidget(wc.QLabel("To", self), 3, 0)
-                self.toSpin = wc.SliceSpinBox(self, from2D + 1, self.shape[current.axes2])
+                self.toSpin = wc.SliceSpinBox(self, from2D + 1, self.shape[current.axes[-2]])
                 self.frame2.addWidget(self.toSpin, 4, 0)
                 self.toSpin.setValue(to2D)
                 self.toSpin.valueChanged.connect(self.setToFrom)
                 self.frame2.addWidget(wc.QLabel("Step", self), 5, 0)
-                self.stepSpin = wc.SliceSpinBox(self, 1, self.shape[current.axes2])
+                self.stepSpin = wc.SliceSpinBox(self, 1, self.shape[current.axes[-2]])
                 self.frame2.addWidget(self.stepSpin, 6, 0)
                 self.stepSpin.setValue(step2D)
                 self.stepSpin.valueChanged.connect(self.setToFrom)
@@ -2146,7 +2134,7 @@ class SideFrame(QtWidgets.QScrollArea):
                 self.projDropTop.activated.connect(lambda val, self=self: self.changeProj(val, 1))
                 self.contourProjFrame.addWidget(self.projDropTop, 0, 1)
                 self.projTraceTop = QtWidgets.QSpinBox()
-                self.projTraceTop.setMaximum(self.shape[current.axes2] - 1)
+                self.projTraceTop.setMaximum(self.shape[current.axes[-2]] - 1)
                 self.projTraceTop.setMinimum(0)
                 self.projTraceTop.setValue(current.viewSettings["projPos"][0])
                 self.projTraceTop.valueChanged.connect(lambda val, self=self: self.changeTrace(val, 0))
@@ -2161,7 +2149,7 @@ class SideFrame(QtWidgets.QScrollArea):
                 self.projDropRight.activated.connect(lambda val, self=self: self.changeProj(val, 2))
                 self.contourProjFrame.addWidget(self.projDropRight, 2, 1)
                 self.projTraceRight = QtWidgets.QSpinBox()
-                self.projTraceRight.setMaximum(self.shape[current.axes] - 1)
+                self.projTraceRight.setMaximum(self.shape[current.axes[-1]] - 1)
                 self.projTraceRight.setMinimum(0)
                 self.projTraceRight.setValue(current.viewSettings["projPos"][1])
                 self.projTraceRight.valueChanged.connect(lambda val, self=self: self.changeTrace(val, 1))
@@ -2182,10 +2170,10 @@ class SideFrame(QtWidgets.QScrollArea):
                 self.projTopRangeMaxLabel.hide()
                 self.contourProjFrame.addWidget(self.projTopRangeMaxLabel, 6, 0)
                 self.projTopRangeMax = QtWidgets.QSpinBox()
-                self.projTopRangeMax.setMaximum(self.shape[current.axes2] - 1)
+                self.projTopRangeMax.setMaximum(self.shape[current.axes[-2]] - 1)
                 self.projTopRangeMax.setMinimum(0)
                 if current.viewSettings["projLimits"][0] is None:
-                    self.projTopRangeMax.setValue(self.shape[current.axes2] - 1)
+                    self.projTopRangeMax.setValue(self.shape[current.axes[-2]] - 1)
                 else:
                     self.projTopRangeMax.setValue(current.viewSettings["projLimits"][0])
                 self.projTopRangeMax.valueChanged.connect(self.changeRanges)
@@ -2195,7 +2183,7 @@ class SideFrame(QtWidgets.QScrollArea):
                 self.projTopRangeMinLabel.hide()
                 self.contourProjFrame.addWidget(self.projTopRangeMinLabel, 7, 0)
                 self.projTopRangeMin = QtWidgets.QSpinBox()
-                self.projTopRangeMin.setMaximum(self.shape[current.axes2] - 1)
+                self.projTopRangeMin.setMaximum(self.shape[current.axes[-2]] - 1)
                 self.projTopRangeMin.setMinimum(0)
                 if current.viewSettings["projLimits"][1] is None:
                     self.projTopRangeMin.setValue(0)
@@ -2208,10 +2196,10 @@ class SideFrame(QtWidgets.QScrollArea):
                 self.projRightRangeMaxLabel.hide()
                 self.contourProjFrame.addWidget(self.projRightRangeMaxLabel, 8, 0)
                 self.projRightRangeMax = QtWidgets.QSpinBox()
-                self.projRightRangeMax.setMaximum(self.shape[current.axes] - 1)
+                self.projRightRangeMax.setMaximum(self.shape[current.axes[-1]] - 1)
                 self.projRightRangeMax.setMinimum(0)
                 if current.viewSettings["projLimits"][2] is None:
-                    self.projRightRangeMax.setValue(self.shape[current.axes] - 1)
+                    self.projRightRangeMax.setValue(self.shape[current.axes[-1]] - 1)
                 else:
                     self.projRightRangeMax.setValue(current.viewSettings["projLimits"][2])
                 self.projRightRangeMax.valueChanged.connect(self.changeRanges)
@@ -2221,7 +2209,7 @@ class SideFrame(QtWidgets.QScrollArea):
                 self.contourProjFrame.addWidget(self.projRightRangeMinLabel, 9, 0)
                 self.projRightRangeMinLabel.hide()
                 self.projRightRangeMin = QtWidgets.QSpinBox()
-                self.projRightRangeMin.setMaximum(self.shape[current.axes] - 1)
+                self.projRightRangeMin.setMaximum(self.shape[current.axes[-1]] - 1)
                 self.projRightRangeMin.setMinimum(0)
                 if current.viewSettings["projLimits"][3] is None:
                     self.projRightRangeMin.setValue(0)
@@ -2246,9 +2234,9 @@ class SideFrame(QtWidgets.QScrollArea):
                 self.diagonalFrame.addWidget(self.diagonalEntry, 0, 1)
                 self.diagonalGroup.setLayout(self.diagonalFrame)
                 self.frame2.addWidget(self.diagonalGroup, 10, 0, 1, 3)
-            self.buttons1Group.button(current.axes).toggle()
+            self.buttons1Group.button(current.axes[-1]).toggle()
             if self.plotIs2D:
-                self.buttons2Group.button(current.axes2).toggle()
+                self.buttons2Group.button(current.axes[-2]).toggle()
         if isinstance(current, (views.CurrentMulti)):
             self.extraEntries = []
             self.extraButtons1 = []
@@ -2317,14 +2305,9 @@ class SideFrame(QtWidgets.QScrollArea):
                         frame.addWidget(wc.QLabel("D" + str(num + 1), self), num * 3 + 5, 1)
                         entries.append(wc.SliceSpinBox(self, 0, current.viewSettings["extraData"][i].shape()[num] - 1))
                         frame.addWidget(entries[num], num * 3 + 6, 1)
-                        if num < current.viewSettings["extraAxes"][i]:
-                            entries[num].setValue(current.viewSettings["extraLoc"][i][num])
-                        elif num == current.viewSettings["extraAxes"][i]:
-                            entries[num].setValue(0)
-                        else:
-                            entries[num].setValue(current.viewSettings["extraLoc"][i][num - 1])
+                        entries[num].setValue(current.viewSettings["extraLoc"][i][num])
                         entries[num].valueChanged.connect(lambda event=None, num=num, i=i: self.getExtraSlice(event, num, i))
-                    self.extraButtons1Group[i].button(current.viewSettings["extraAxes"][i]).toggle()
+                    self.extraButtons1Group[i].button(current.viewSettings["extraAxes"][i][-1]).toggle()
                 iter1 += 1
             addButton = QtWidgets.QPushButton("Add spectrum", self)
             addButton.clicked.connect(self.addMultiSpec)
@@ -2454,9 +2437,9 @@ class SideFrame(QtWidgets.QScrollArea):
             axes2 = self.buttons2Group.checkedId()
             if axes == axes2:
                 if first:
-                    axes2 = self.father.current.axes
+                    axes2 = self.father.current.axes[-1]
                 else:
-                    axes = self.father.current.axes2
+                    axes = self.father.current.axes[-2]
                 if isinstance(self.father.current, (views.CurrentContour)):  # If contour
                     # Correct proj values and maxima
                     newRanges = [self.projRightRangeMax.value(), self.projRightRangeMin.value(), self.projTopRangeMax.value(), self.projTopRangeMin.value()]
@@ -2497,7 +2480,7 @@ class SideFrame(QtWidgets.QScrollArea):
             dimNum = entryNum
             axisChange = True
         elif not self.plotIs2D:
-            if entryNum == self.father.current.axes:
+            if entryNum == self.father.current.axes[-1]:
                 if entryNum == self.length - 1:
                     dimNum = self.length - 2
                     axisChange = True
@@ -2505,25 +2488,17 @@ class SideFrame(QtWidgets.QScrollArea):
                     dimNum = self.length - 1
                     axisChange = True
             else:
-                dimNum = self.father.current.axes
+                dimNum = self.father.current.axes[-1]
         else:
-            dimNum = self.father.current.axes
-        locList = []
+            dimNum = self.father.current.axes[-1]
+        locList = np.array(self.father.current.locList)
         for num in range(self.length):
-            appendLoc = True
-            if self.plotIs2D and (num == self.buttons2Group.checkedId()):
-                appendLoc = False
-            inp = self.entries[num].value()
-            if num == dimNum:
-                pass
-            else:
-                if appendLoc:
-                    locList.append(inp)
+            locList[num] = self.entries[num].value()
         self.buttons1Group.button(dimNum).toggle()
         if self.plotIs2D:
             self.father.current.setBlock(dimNum, self.buttons2Group.checkedId(), locList)
         else:
-            self.father.current.setSlice(dimNum, locList)
+            self.father.current.setSlice(np.array([dimNum]), locList)
         self.father.bottomframe.upd()
         if axisChange:
             self.father.menuCheck()
@@ -2540,22 +2515,18 @@ class SideFrame(QtWidgets.QScrollArea):
         if button:
             dimNum = entryNum
         else:
-            if entryNum == self.father.current.viewSettings["extraAxes"][entryi]:
+            if entryNum == self.father.current.viewSettings["extraAxes"][entryi][-1]:
                 if entryNum == length - 1:
                     dimNum = length - 2
                 else:
                     dimNum = length - 1
             else:
-                dimNum = self.father.current.viewSettings["extraAxes"][entryi]
-        locList = []
+                dimNum = self.father.current.viewSettings["extraAxes"][entryi][-1]
+        locList = np.array(self.father.current.viewSettings["extraLoc"][entryi])
         for num in range(length):
-            inp = self.extraEntries[entryi][num].value()
-            if num == dimNum:
-                pass
-            else:
-                locList.append(inp)
+            locList[num] = self.extraEntries[entryi][num].value()
         self.extraButtons1Group[entryi].button(dimNum).toggle()
-        self.father.current.setExtraSlice(entryi, dimNum, locList)
+        self.father.current.setExtraSlice(entryi, [dimNum], locList)
         if not button:
             self.father.current.showFid()
         # self.upd()
@@ -3273,7 +3244,7 @@ class ApodWindow(wc.ToolWindows):
             self.shiftingEntry = wc.QLineEdit("0.00", self.apodPreview)
             self.grid.addWidget(self.shiftingEntry, 14, 1)
             self.shiftingAxes = QtWidgets.QComboBox()
-            self.shiftingValues = list(map(str, np.delete(range(1, self.father.current.data.ndim() + 1), self.father.current.axes)))
+            self.shiftingValues = list(map(str, np.delete(range(1, self.father.current.data.ndim() + 1), self.father.current.axes[-1])))
             self.shiftingAxes.addItems(self.shiftingValues)
             self.shiftingAxes.currentIndexChanged.connect(self.apodPreview)
             self.grid.addWidget(self.shiftingAxes, 15, 1)
@@ -5042,7 +5013,7 @@ class RegridWindow(wc.ToolWindows):
         self.grid.addWidget(self.typeDrop, 0, 0, 1, 2)
         # Get unit
         if self.father.current.spec() == 1:
-            if self.father.masterData.shape()[self.father.current.axes] == 1:
+            if self.father.masterData.shape()[self.father.current.axes[-1]] == 1:
                 self.father.father.dispMsg("Regrid: Regrid not possible with size 1")
                 self.closeEvent()
             if self.father.current.viewSettings["ppm"]:
@@ -5065,14 +5036,14 @@ class RegridWindow(wc.ToolWindows):
                 maxVal /= 1e6
                 minVal /= 1e6
             elif self.unit == 'ppm':
-                maxVal /= self.father.masterData.ref[self.father.current.axes] / 1e6
-                minVal /= self.father.masterData.ref[self.father.current.axes] / 1e6
+                maxVal /= self.father.masterData.ref[self.father.current.axes[-1]] / 1e6
+                minVal /= self.father.masterData.ref[self.father.current.axes[-1]] / 1e6
             self.maxValue = wc.QLineEdit(maxVal)
             self.maxValue.setMinimumWidth(150)
             self.maxLabel = wc.QLeftLabel('Max [' + self.unit + ']:')
             self.minValue = wc.QLineEdit(minVal)
             self.minLabel = wc.QLeftLabel('Min [' + self.unit + ']:')
-            self.points = wc.QLineEdit(self.father.masterData.shape()[self.father.current.axes])
+            self.points = wc.QLineEdit(self.father.masterData.shape()[self.father.current.axes[-1]])
             self.pointsLabel = wc.QLeftLabel('# of points:')
             self.grid.addWidget(self.minValue, 1, 1)
             self.grid.addWidget(self.minLabel, 1, 0)
@@ -5105,8 +5076,8 @@ class RegridWindow(wc.ToolWindows):
             maxVal *= 1e6
             minVal *= 1e6
         elif self.unit == 'ppm':
-            maxVal *= self.father.masterData.ref[self.father.current.axes] / 1e6
-            minVal *= self.father.masterData.ref[self.father.current.axes] / 1e6
+            maxVal *= self.father.masterData.ref[self.father.current.axes[-1]] / 1e6
+            minVal *= self.father.masterData.ref[self.father.current.axes[-1]] / 1e6
         self.father.current.regrid([minVal, maxVal], numPoints)
 
 ##########################################################################################
