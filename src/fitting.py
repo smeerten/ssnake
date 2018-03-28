@@ -2016,10 +2016,17 @@ class TensorDeconvParamFrame(AbstractParamFrame):
         x = []
         for i in range(len(out['amp'])):
             x.append(tmpx)
-            if out['mas'][0]:
-                y = out['amp'][i] * simFunc.tensorMASDeconvtensorFunc(tmpx, out['t11'][i], out['t22'][i], out['t33'][i], out['lor'][i], out['gauss'][i], self.parent.sw(), self.axMult, out['spinspeed'][0], out['cheng'][0], out['shiftdef'][-1], out['numssb'][-1])
+            t11 = out['t11'][i] / self.axMult
+            t22 = out['t22'][i] / self.axMult
+            if out['shiftdef'][-1] in [0, 1]:
+                t33 = out['t33'][i] / self.axMult
             else:
-                y = out['amp'][i] * simFunc.tensorDeconvtensorFunc(tmpx, out['t11'][i], out['t22'][i], out['t33'][i], out['lor'][i], out['gauss'][i], out['multt'][0], self.parent.sw(), out['weight'][0], out['shiftdef'][-1], self.axMult)
+                t33 = out['t33'][i]
+            tensor = func.shiftConversion([t11, t22, t33], out['shiftdef'][-1])
+            if out['mas'][0]:
+                y = out['amp'][i] * simFunc.tensorMASDeconvtensorFunc(tmpx, tensor[2][0], tensor[2][1], tensor[2][2], out['lor'][i], out['gauss'][i], self.parent.sw(), out['spinspeed'][0], out['cheng'][0], out['numssb'][-1])
+            else:
+                y = out['amp'][i] * simFunc.tensorDeconvtensorFunc(tmpx, tensor[0][0], tensor[0][1], tensor[0][2], out['lor'][i], out['gauss'][i], out['multt'][0], self.parent.sw(), out['weight'][0])
             outCurvePart.append(outCurveBase + y)
             outCurve += y
         locList = self.getRedLocList()
@@ -2091,10 +2098,17 @@ def tensorDeconvfitFunc(params, allX, args):
                         parameters[name] = altStruc[2] * allParam[altStruc[4]][strucTarget[altStruc[0]][altStruc[1]][1]] + altStruc[3]
                     elif strucTarget[altStruc[0]][altStruc[1]][0] == 0:
                         parameters[name] = altStruc[2] * allArgu[altStruc[4]][strucTarget[altStruc[0]][altStruc[1]][1]] + altStruc[3]
-            if mas:
-                testFunc += parameters['amp'] * simFunc.tensorMASDeconvtensorFunc(x, parameters['t11'], parameters['t22'], parameters['t33'], parameters['lor'], parameters['gauss'], sw, axMult, parameters['spinspeed'], parameters['cheng'], parameters['shiftdef'], parameters['numssb'])
+            t11 = parameters['t11'] / axMult
+            t22 = parameters['t22'] / axMult
+            if parameters['shiftdef'] in [0, 1]:
+                t33 = parameters['t33'] / axMult
             else:
-                testFunc += parameters['amp'] * simFunc.tensorDeconvtensorFunc(x, parameters['t11'], parameters['t22'], parameters['t33'], parameters['lor'], parameters['gauss'], parameters['multt'], sw, parameters['weight'], parameters['shiftdef'], axMult)
+                t33 = parameters['t33']
+            tensor = func.shiftConversion([t11, t22, t33], parameters['shiftdef'])
+            if mas:
+                testFunc += parameters['amp'] * simFunc.tensorMASDeconvtensorFunc(x, tensor[2][0], tensor[2][1], tensor[2][2], parameters['lor'], parameters['gauss'], sw, parameters['spinspeed'], parameters['cheng'], parameters['numssb'])
+            else:
+                testFunc += parameters['amp'] * simFunc.tensorDeconvtensorFunc(x, tensor[0][0], tensor[0][1], tensor[0][2], parameters['lor'], parameters['gauss'], parameters['multt'], sw, parameters['weight'])
         testFunc += parameters['bgrnd'] + parameters['slope'] * x
         fullTestFunc = np.append(fullTestFunc, testFunc)
     return fullTestFunc
@@ -2299,9 +2313,9 @@ class Quad1DeconvParamFrame(AbstractParamFrame):
         for i in range(len(out['amp'])):
             x.append(tmpx)
             if out['mas'][0]:
-                y = out['amp'][i] * simFunc.quad1MASFunc(tmpx, out['pos'][i], out['cq'][i], out['eta'][i], out['lor'][i], out['gauss'][i], self.parent.sw(), self.axMult, out['spinspeed'][0], out['cheng'][0], out['I'][0], out['numssb'][0])
+                y = out['amp'][i] * simFunc.quad1MASFunc(tmpx, out['pos'][i]/self.axMult, out['cq'][i], out['eta'][i], out['lor'][i], out['gauss'][i], self.parent.sw(), out['spinspeed'][0], out['cheng'][0], out['I'][0], out['numssb'][0])
             else:
-                y = out['amp'][i] * self.tensorFunc(tmpx, out['I'][0], out['pos'][i], out['cq'][i], out['eta'][i], out['lor'][i], out['gauss'][i], out['anglestuff'][0], self.parent.freq(), self.parent.sw(), out['weight'][0], self.axMult)
+                y = out['amp'][i] * self.tensorFunc(tmpx, out['I'][0], out['pos'][i]/self.axMult, out['cq'][i], out['eta'][i], out['lor'][i], out['gauss'][i], out['anglestuff'][0], self.parent.freq(), self.parent.sw(), out['weight'][0])
             outCurvePart.append(outCurveBase + y)
             outCurve += y
         locList = self.getRedLocList()
@@ -2376,9 +2390,9 @@ def quad1fitFunc(params, allX, args):
                     elif strucTarget[altStruc[0]][altStruc[1]][0] == 0:
                         parameters[name] = altStruc[2] * allArgu[altStruc[4]][strucTarget[altStruc[0]][altStruc[1]][1]] + altStruc[3]
             if mas:
-                testFunc += parameters['amp'] * simFunc.quad1MASFunc(x, parameters['pos'], parameters['cq'], parameters['eta'], parameters['lor'], parameters['gauss'], sw, axMult, parameters['spinspeed'], parameters['cheng'], parameters['I'], parameters['numssb'])
+                testFunc += parameters['amp'] * simFunc.quad1MASFunc(x, parameters['pos']/axMult, parameters['cq'], parameters['eta'], parameters['lor'], parameters['gauss'], sw, parameters['spinspeed'], parameters['cheng'], parameters['I'], parameters['numssb'])
             else:
-                testFunc += parameters['amp'] * parameters['tensorfunc'](x, parameters['I'], parameters['pos'], parameters['cq'], parameters['eta'], parameters['lor'], parameters['gauss'], parameters['anglestuff'], parameters['freq'], sw, parameters['weight'], axMult)
+                testFunc += parameters['amp'] * parameters['tensorfunc'](x, parameters['I'], parameters['pos']/axMult, parameters['cq'], parameters['eta'], parameters['lor'], parameters['gauss'], parameters['anglestuff'], parameters['freq'], sw, parameters['weight'])
             testFunc += parameters['bgrnd'] + parameters['slope'] * x
         fullTestFunc = np.append(fullTestFunc, testFunc)
     return fullTestFunc
@@ -2722,7 +2736,7 @@ class Quad2CzjzekParamFrame(AbstractParamFrame):
         x = []
         for i in range(len(out['pos'])):
             x.append(tmpx)
-            y = out['amp'][i] * simFunc.quad2CzjzektensorFunc(tmpx, out['sigma'][i], out['d'][i], out['pos'][i], out['lor'][i], out['gauss'][i], out['wq'][0], out['eta'][0], out['lib'][0], self.parent.freq(), self.parent.sw(), self.axMult)
+            y = out['amp'][i] * simFunc.quad2CzjzektensorFunc(tmpx, out['sigma'][i], out['d'][i], out['pos'][i]/axMult, out['lor'][i], out['gauss'][i], out['wq'][0], out['eta'][0], out['lib'][0], self.parent.freq(), self.parent.sw())
             outCurvePart.append(outCurveBase + y)
             outCurve += y
         locList = self.getRedLocList()
@@ -2789,7 +2803,7 @@ def quad2CzjzekfitFunc(params, allX, args):
                         parameters[name] = altStruc[2] * allParam[altStruc[4]][strucTarget[altStruc[0]][altStruc[1]][1]] + altStruc[3]
                     elif strucTarget[altStruc[0]][altStruc[1]][0] == 0:
                         parameters[name] = altStruc[2] * allArgu[altStruc[4]][strucTarget[altStruc[0]][altStruc[1]][1]] + altStruc[3]
-            testFunc += parameters['amp'] * simFunc.quad2CzjzektensorFunc(x, parameters['sigma'], parameters['d'], parameters['pos'], parameters['lor'], parameters['gauss'], parameters['wq'], parameters['eta'], parameters['lib'], parameters['freq'], sw, axMult)
+            testFunc += parameters['amp'] * simFunc.quad2CzjzektensorFunc(x, parameters['sigma'], parameters['d'], parameters['pos']/axMult, parameters['lor'], parameters['gauss'], parameters['wq'], parameters['eta'], parameters['lib'], parameters['freq'], sw)
         testFunc += parameters['bgrnd'] + parameters['slope'] * x
         fullTestFunc = np.append(fullTestFunc, testFunc)
     return fullTestFunc
@@ -3452,7 +3466,7 @@ class MqmasDeconvParamFrame(AbstractParamFrame):
         x = []
         for i in range(len(out['amp'])):
             x.append(tmpx)
-            y = out['amp'][i] * self.tensorFunc(tmpx, out['I'][0], out['pos'][i], out['cq'][i], out['eta'][i], out['lor'][i], out['gauss'][i], out['anglestuff'][0], [self.parent.freq(), self.parent.freq()], [self.parent.sw(-2), self.parent.sw()], out['weight'][0], self.axMult)
+            y = out['amp'][i] * self.tensorFunc(tmpx, out['I'][0], out['pos'][i]/self.axMult, out['cq'][i], out['eta'][i], out['lor'][i], out['gauss'][i], out['anglestuff'][0], [self.parent.freq(), self.parent.freq()], [self.parent.sw(-2), self.parent.sw()], out['weight'][0])
             outCurvePart.append(outCurveBase + y)
             outCurve += y
         locList = self.getRedLocList()
@@ -3520,7 +3534,7 @@ def mqmasfitFunc(params, allX, args):
                         parameters[name] = altStruc[2] * allParam[altStruc[4]][strucTarget[altStruc[0]][altStruc[1]][1]] + altStruc[3]
                     elif strucTarget[altStruc[0]][altStruc[1]][0] == 0:
                         parameters[name] = altStruc[2] * allArgu[altStruc[4]][strucTarget[altStruc[0]][altStruc[1]][1]] + altStruc[3]
-            testFunc += parameters['amp'] * parameters['tensorfunc'](x, parameters['I'], parameters['pos'], parameters['cq'], parameters['eta'], parameters['lor'], parameters['gauss'], parameters['anglestuff'], parameters['freq'], sw, parameters['weight'], axMult)
+            testFunc += parameters['amp'] * parameters['tensorfunc'](x, parameters['I'], parameters['pos']/axMult, parameters['cq'], parameters['eta'], parameters['lor'], parameters['gauss'], parameters['anglestuff'], parameters['freq'], sw, parameters['weight'])
             testFunc += parameters['bgrnd']
         fullTestFunc = np.append(fullTestFunc, testFunc)
     return fullTestFunc
