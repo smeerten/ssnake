@@ -79,7 +79,7 @@ def makeSpectrum(x, sw, v, gauss, lor, weight):
     t = np.arange(length) / sw
     diff = (x[1]-x[0])*0.5
     final, junk = np.histogram(v, length, range=[x[0]-diff, x[-1]+diff], weights=weight)
-    apod = np.exp(-np.pi * np.abs(lor) * t) * np.exp(-((np.pi * np.abs(gauss) * t)**2) / (4 * np.log(2)))
+    apod = np.exp(-np.pi * np.abs(lor) * t -((np.pi * np.abs(gauss) * t)**2) / (4 * np.log(2)))
     apod[-1:-int(len(apod) / 2 + 1):-1] = apod[:int(len(apod) / 2)]
     inten = np.real(np.fft.fft(np.fft.ifft(final) * apod))
     inten = inten / sw * len(inten) 
@@ -94,13 +94,13 @@ def makeSpectrum2d(x, sw, v, gauss, lor, weight):
     t2 = np.arange(length) / sw[1]
     diff2 = (x[1][1]-x[1][0])*0.5
     final, junk, junk = np.histogram2d(v[0], v[1], length, range=[[x[0][0]-diff, x[0][-1]+diff],[x[1][0]-diff, x[1][-1]+diff]], weights=weight)
-    apod1 = np.exp(-np.pi * np.abs(lor[0]) * t) * np.exp(-((np.pi * np.abs(gauss[0]) * t)**2) / (4 * np.log(2)))
+    apod1 = np.exp(-np.pi * np.abs(lor[0]) * t -((np.pi * np.abs(gauss[0]) * t)**2) / (4 * np.log(2)))
     apod1[-1:-int(len(apod1) / 2 + 1):-1] = apod[:int(len(apod1) / 2)]
     apod1 = apod1[:, np.newaxis]
-    apod2 = np.exp(-np.pi * np.abs(lor[1]) * t) * np.exp(-((np.pi * np.abs(gauss[1]) * t)**2) / (4 * np.log(2)))
+    apod2 = np.exp(-np.pi * np.abs(lor[1]) * t-((np.pi * np.abs(gauss[1]) * t)**2) / (4 * np.log(2)))
     apod2[-1:-int(len(apod2) / 2 + 1):-1] = apod[:int(len(apod2) / 2)]
     inten = np.real(np.fft.fft2(np.fft.ifft2(final) * apod1 * apod2))
-    #inten = inten / sw * len(inten) 
+    inten = inten / sw[0] * inten.shape[0] / sw[1] * inten.shape[1]
     return inten
 
 def csaAngleStuff(cheng):
@@ -108,7 +108,7 @@ def csaAngleStuff(cheng):
     sinT2 = np.sin(theta)**2
     return weight, [[sinT2 * np.cos(phi)**2, sinT2 * np.sin(phi)**2, np.cos(theta)**2]]
 
-def tensorDeconvtensorFunc(x, t11, t22, t33, lor, gauss, multt, sw, weight, axAdd, convention=0, axMult=1):
+def tensorDeconvtensorFunc(x, t11, t22, t33, lor, gauss, multt, sw, weight, convention=0, axMult=1):
     if convention == 0 or convention == 1:
         Tensors = func.shiftConversion([t11 / axMult, t22 / axMult, t33 / axMult], convention)
     else:
@@ -116,16 +116,16 @@ def tensorDeconvtensorFunc(x, t11, t22, t33, lor, gauss, multt, sw, weight, axAd
     t11 = Tensors[0][0] * multt[0]
     t22 = Tensors[0][1] * multt[1]
     t33 = Tensors[0][2] * multt[2]
-    v = t11 + t22 + t33 - axAdd
+    v = t11 + t22 + t33 
     return makeSpectrum(x, sw, v, gauss, lor, weight)
 
 
-def tensorMASDeconvtensorFunc(x, t11, t22, t33, lor, gauss, sw, axAdd, axMult, spinspeed, cheng, convention, numssb):
+def tensorMASDeconvtensorFunc(x, t11, t22, t33, lor, gauss, sw, axMult, spinspeed, cheng, convention, numssb):
     if convention == 0 or convention == 1:
         Tensors = func.shiftConversion([t11 / axMult, t22 / axMult, t33 / axMult], convention)
     else:
         Tensors = func.shiftConversion([t11 / axMult, t22 / axMult, t33], convention)
-    pos = Tensors[2][0] - axAdd
+    pos = Tensors[2][0] 
     delta = Tensors[2][1]
     eta = Tensors[2][2]
     numssb = float(numssb)
@@ -160,12 +160,12 @@ def tensorMASDeconvtensorFunc(x, t11, t22, t33, lor, gauss, sw, axAdd, axMult, s
     posList = np.array(np.fft.fftfreq(numssb, 1.0 / numssb)) * spinspeed * 1e3 + pos
     return makeSpectrum(x, sw, posList, gauss, lor, inten)
    
-def quad1DeconvtensorFunc(x, I, pos, cq, eta, lor, gauss, angleStuff, freq, sw, weight, axAdd, axMult=1):
+def quad1DeconvtensorFunc(x, I, pos, cq, eta, lor, gauss, angleStuff, freq, sw, weight, axMult=1):
     m = np.arange(-I, I)
     v = []
     cq *= 1e6
     weights = []
-    pos = (pos / axMult) - axAdd
+    pos = (pos / axMult)
     for i in m:
         tmp = (cq / (4 * I * (2 * I - 1)) * (I * (I + 1) - 3 * (i + 1)**2)) - (cq / (4 * I * (2 * I - 1)) * (I * (I + 1) - 3 * (i)**2))
         v = np.append(v, tmp * (angleStuff[0] - eta * angleStuff[1]) + pos)
@@ -179,7 +179,7 @@ def quad1DeconvsetAngleStuff(cheng):
     return weight, angleStuff
 
 
-def quad1MASFunc(x, pos, cq, eta, lor, gauss, sw, axAdd, axMult, spinspeed, cheng, I, numssb):
+def quad1MASFunc(x, pos, cq, eta, lor, gauss, sw, axMult, spinspeed, cheng, I, numssb):
     numssb = float(numssb)
     omegar = 2 * np.pi * 1e3 * spinspeed
     phi, theta, weight = zcw_angles(cheng, symm=2)
@@ -197,7 +197,7 @@ def quad1MASFunc(x, pos, cq, eta, lor, gauss, sw, axAdd, axMult, spinspeed, chen
                   np.array([1.0 / 3 / 2 * (1 + cosPhi**2) * cos2Theta]).transpose() * cos2OmegarT,
                   np.array([np.sqrt(2) / 3 * sinPhi * sin2Theta]).transpose() * np.sin(omegar * t),
                   np.array([cosPhi * sin2Theta / 3]).transpose() * np.sin(2 * omegar * t)]
-    pos = (pos / axMult) - axAdd
+    pos = (pos / axMult)
     m = np.arange(-I, 0)  # Only half the transitions have to be calculated, as the others are mirror images (sidebands inverted)
     eff = I**2 + I - m * (m + 1)  # The detection efficiencies of the top half transitions
     #Scale the intensities to sum to 1
@@ -206,7 +206,6 @@ def quad1MASFunc(x, pos, cq, eta, lor, gauss, sw, axAdd, axMult, spinspeed, chen
     else:
         scale = np.sum(eff) * 2
     eff = eff / scale
-
     splitting = np.arange(I - 0.5, -0.1, -1)  # The quadrupolar couplings of the top half transitions
     sidebands = np.zeros(int(numssb))
     for transition in range(len(eff)):  # For all transitions
@@ -252,16 +251,16 @@ def quad2MASsetAngleStuff(cheng):
     return weight, angleStuff
 
 
-def quad2tensorFunc(x, I, pos, cq, eta, lor, gauss, angleStuff, freq, sw, weight, axAdd, axMult=1):
-    pos = (pos / axMult) - axAdd
+def quad2tensorFunc(x, I, pos, cq, eta, lor, gauss, angleStuff, freq, sw, weight, axMult=1):
+    pos = pos / axMult
     cq *= 1e6
     v = -1 / (6 * freq) * (3 * cq / (2 * I * (2 * I - 1)))**2 * (I * (I + 1) - 3.0 / 4) * (angleStuff[0] + angleStuff[1] * eta + angleStuff[2] * eta**2) + pos
     return makeSpectrum(x, sw, v, gauss, lor, weight)
 
 def czjzekIntensities(sigma, d, wq, eta):
     #Calculates an intensity distribution for a Czjzek library
-    #wq: omega_q grid (2D)
-    #eta: eta grid (2D)
+    #wq: omega_q grid (2D flattened)
+    #eta: eta grid (2D flattened)
     if sigma == 0.0:  # protect against divide by zero
         czjzek = np.zeros_like(wq)
         czjzek[:, 0] = 1
@@ -273,16 +272,18 @@ def czjzekIntensities(sigma, d, wq, eta):
         czjzek = czjzek / np.sum(czjzek)
     return czjzek
 
-def quad2CzjzektensorFunc(sigma, d, pos, width, gauss, wq, eta, lib, freq, sw, axAdd, axMult=1):
+def quad2CzjzektensorFunc(x, sigma, d, pos, width, gauss, wq, eta, lib, freq, sw, axMult=1):
     sigma = sigma * 1e6
-    pos = (pos / axMult) - axAdd
+    pos = pos / axMult 
     czjzek = czjzekIntensities(sigma,d, wq, eta)
-    fid = np.sum(lib * czjzek[..., None], axis=(0, 1))
+    fid = np.dot(czjzek, lib)
     t = np.arange(len(fid)) / sw
-    apod = np.exp(-np.pi * np.abs(width) * t) * np.exp(-((np.pi * np.abs(gauss) * t)**2) / (4 * np.log(2)))
+    apod = np.exp(-np.pi * np.abs(width) * t -((np.pi * np.abs(gauss) * t)**2) / (4 * np.log(2)))
     apod[-1:int(-(len(apod) / 2 + 1)):-1] = apod[:int(len(apod) / 2)]
     apod[0] *= 0.5
-    spectrum = scipy.ndimage.interpolation.shift(np.real(np.fft.fft(fid * apod)), len(fid) * pos / sw)
+    pos -= x[int(len(x)/2)]
+    spectrum = np.real(np.fft.fft(fid * apod))
+    spectrum = scipy.ndimage.interpolation.shift(spectrum, len(fid) * pos / sw)
     spectrum = spectrum / sw * len(spectrum)
     return spectrum
 
@@ -302,10 +303,10 @@ def mqmasFreq(p, I, vCS, Cq, eta, angleStuff, freq):
     v0Q = - Cq**2 / (10.0 * freq) / (2*I*(I-1))**2 * (eta**2 + 3)
     v4Q = Cq**2 / (1120.0 * freq) * 7 / (18.0 * (2*I*(I-1))**2) * (angleStuff[0] + angleStuff[1]*eta + angleStuff[2]*eta**2)
 
-def mqmasFunc(x, I, p, pos, cq, eta, lor, gauss, angleStuff, freq, sw, weight, axAdd, axMult=1):
-    pos = (pos / axMult) - axAdd
+def mqmasFunc(x, I, p, pos, cq, eta, lor, gauss, angleStuff, freq, sw, weight, axMult=1):
+    pos = pos / axMult
     cq *= 1e6
-    v2 = mqmasFreq(1, 5/2.0, pos, cq, eta, angleStuff, freq)
-    v1 = mqmasFreq(3, 5/2.0, pos, cq, eta, angleStuff, freq)
+    v2 = mqmasFreq(1, 5/2.0, pos, cq, eta, angleStuff, freq[1])
+    v1 = mqmasFreq(3, 5/2.0, pos, cq, eta, angleStuff, freq[0])
     return makeSpectrum2d(x, sw, [v1, v2], gauss, lor, weight)
 
