@@ -832,7 +832,7 @@ class Current1D(PlotFrame):
         self.showFid()
 
     def autoPhase(self, phaseNum):
-        phases = self.data1D.autoPhase(phaseNum, -1, [0]*(self.ndim()-1), returnPhases=True)
+        phases = self.data1D.autoPhase(phaseNum, -1, [0]*self.ndim(), returnPhases=True)
         self.upd()
         return phases
 
