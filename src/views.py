@@ -958,11 +958,9 @@ class Current1D(PlotFrame):
 
     def setTicks(self,Xset = True,Yset = True):
         if Xset:
-            self.ax.xaxis.set_minor_locator(ticker.AutoMinorLocator())
-            self.ax.xaxis.set_major_locator(ticker.MaxNLocator(nbins='auto',steps = [1,2,2.5,5,10],min_n_ticks = MINXNUMTICKS))
+            self.ax.xaxis.set_major_locator(ticker.MaxNLocator(nbins='auto', steps=[1,2,2.5,5,10], min_n_ticks=MINXNUMTICKS))
         if Yset:
-            self.ax.yaxis.set_minor_locator(ticker.AutoMinorLocator())
-            self.ax.yaxis.set_major_locator(ticker.MaxNLocator(nbins='auto',steps = [1,2,2.5,5,10],min_n_ticks = MINYNUMTICKS))
+            self.ax.yaxis.set_major_locator(ticker.MaxNLocator(nbins='auto', steps=[1,2,2.5,5,10], min_n_ticks=MINYNUMTICKS))
 
     def plotReset(self, xReset=True, yReset=True):  # set the plot limits to min and max values
         showDat = self.data1D.data[0]
@@ -1159,7 +1157,7 @@ class CurrentMulti(Current1D):
             self.ax.set_xlim(self.xminlim, self.xmaxlim)
         self.ax.set_ylim(self.yminlim, self.ymaxlim)
         self.canvas.draw()
-
+        
 #########################################################################################################
 # the class from which the stacked data is displayed, the operations which only edit the content of this class are for previewing
 
