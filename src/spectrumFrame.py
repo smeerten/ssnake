@@ -25,8 +25,8 @@ try:
 except ImportError:
     from PyQt5 import QtGui, QtCore, QtWidgets
 
-TIMELABELLIST = [u'Time [s]', u'Time [ms]', u'Time [\u03BCs]']
-FREQLABELLIST = [u'Frequency [Hz]', u'Frequency [kHz]', u'Frequency [MHz]']
+TIMELABELLIST = [u'[s]', u'[ms]', u'[\u03BCs]']
+FREQLABELLIST = [u'[Hz]', u'[kHz]', u'[MHz]']
 
 #########################################################################################################
 # the class from which the 1d data is displayed, the operations which only edit the content of this class are for previewing
@@ -338,16 +338,18 @@ class PlotFrame(object):
             axMult = 1000.0**axType
         return axMult
 
-    def getLabel(self, spec, axType, ppm):
+    def getLabel(self, spec, axis, axType, ppm):
         if not axType in range(3):
-            return 'User defined'
+            return 'User defined D' + str(axis+1)
         if spec:
+            tmpString = "Frequency D" + str(axis+1) + ' '
             if ppm:
-                return 'Frequency [ppm]'
+                return tmpString + '[ppm]'
             else:
-                return FREQLABELLIST[axType]
+                return tmpString + FREQLABELLIST[axType]
         else:
-            return TIMELABELLIST[axType]
+            
+            return "Time D" + str(axis+1) + ' ' + TIMELABELLIST[axType]
 
     def setLog(self, logx, logy):
         self.logx = logx

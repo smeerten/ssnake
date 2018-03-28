@@ -935,7 +935,7 @@ class Current1D(PlotFrame):
         else:
             self.line_ydata = [np.real(tmpdata)]
         self.ax.plot(self.line_xdata[-1], self.line_ydata[-1], marker=marker, linestyle=linestyle, c=self.viewSettings["color"], linewidth=self.viewSettings["linewidth"], label=self.data.name, picker=True)
-        self.ax.set_xlabel(self.getLabel(self.spec(), self.getAxType(), self.getppm()))
+        self.ax.set_xlabel(self.getLabel(self.spec(), self.axes[-1], self.getAxType(), self.getppm()))
         if self.logx:
             self.ax.set_xscale('log')
         else:
@@ -1145,7 +1145,7 @@ class CurrentMulti(Current1D):
         else:
             self.line_ydata = [np.real(tmpdata)]
         self.ax.plot(self.line_xdata[-1], self.line_ydata[-1], marker=marker, linestyle=linestyle, c=self.viewSettings["color"], linewidth=self.viewSettings["linewidth"], label=self.data.name, picker=True)
-        self.ax.set_xlabel(self.getLabel(self.spec(), self.getAxType(), self.getppm()))
+        self.ax.set_xlabel(self.getLabel(self.spec(), self.axes[-1], self.getAxType(), self.getppm()))
         self.ax.get_xaxis().get_major_formatter().set_powerlimits((-4, 4))
         self.ax.get_yaxis().get_major_formatter().set_powerlimits((-4, 4))
         self.ax.xaxis.grid(self.viewSettings["grids"][0])
@@ -1265,7 +1265,7 @@ class CurrentStacked(Current1D):
             self.line_xdata.append(tmp_line_xdata)
             self.line_ydata.append(num * self.viewSettings["spacing"] + np.real(tmpdata[num]))
             self.ax.plot(self.line_xdata[-1], self.line_ydata[-1], marker=marker, linestyle=linestyle, c=self.viewSettings["color"], linewidth=self.viewSettings["linewidth"], label=self.data.name, picker=True)
-        self.ax.set_xlabel(self.getLabel(self.spec(), self.getAxType(), self.getppm()))
+        self.ax.set_xlabel(self.getLabel(self.spec(), self.axes[-1], self.getAxType(), self.getppm()))
         if self.spec() > 0:
             self.ax.set_xlim(self.xmaxlim, self.xminlim)
         else:
@@ -1471,8 +1471,8 @@ class CurrentContour(CurrentStacked):
             line = self.x_ax.lines
             line[0].set_xdata(line[0].get_xdata() * scale)
         # Set the labels
-        self.ax.set_xlabel(self.getLabel(self.spec(), self.getAxType(), self.getppm()))
-        self.ax.set_ylabel(self.getLabel(self.spec(-2), self.getAxType(-2), self.getppm(-2)))
+        self.ax.set_xlabel(self.getLabel(self.spec(), self.axes[-1], self.getAxType(), self.getppm()))
+        self.ax.set_ylabel(self.getLabel(self.spec(-2), self.axes[-2], self.getAxType(-2), self.getppm(-2)))
         # Set the zoom
         if axis == 1:
             ylim = self.ax.get_ylim()
@@ -1524,8 +1524,8 @@ class CurrentContour(CurrentStacked):
             self.differ = np.max(np.abs(np.ravel(self.data.getHyperData)))
         self.plotContour(self.line_xdata[-1], self.line_ydata[-1], self.line_zdata[-1])
         self.showProj()
-        self.ax.set_xlabel(self.getLabel(self.spec(), self.getAxType(), self.getppm()))
-        self.ax.set_ylabel(self.getLabel(self.spec(-2), self.getAxType(-2), self.getppm(-2)))
+        self.ax.set_xlabel(self.getLabel(self.spec(), self.axes[-1], self.getAxType(), self.getppm()))
+        self.ax.set_ylabel(self.getLabel(self.spec(-2), self.axes[-2], self.getAxType(-2), self.getppm(-2)))
         if self.spec():
             self.ax.set_xlim(self.xmaxlim, self.xminlim)
         else:
