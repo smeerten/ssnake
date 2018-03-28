@@ -1484,7 +1484,7 @@ class CurrentContour(CurrentStacked):
             self.line_xdata = [item*scale for item in self.line_xdata]
         self.canvas.draw()
 
-    def showFid(self, oldData=None, extraX=None, extraY=None, extraColor=None):
+    def showFid(self, oldData=None, extraX=None, extraY=None, extraZ=None, extraColor=None):
         # The oldData and extra plots are not displayed in the contourplot for now
         self.line_xdata_extra = []
         self.line_ydata_extra = []

@@ -70,14 +70,14 @@ class TabFittingWindow(QtWidgets.QWidget):
     MINMETHOD = 'Powell'
     NUMFEVAL = 150
 
-    def __init__(self, mainProgram, oldMainWindow):
-        super(TabFittingWindow, self).__init__(mainProgram)
-        self.mainProgram = mainProgram
+    def __init__(self, father, oldMainWindow):
+        super(TabFittingWindow, self).__init__(father)
+        self.father = father
         self.oldMainWindow = oldMainWindow
         self.subFitWindows = []
         self.tabs = QtWidgets.QTabWidget(self)
         self.tabs.setTabPosition(2)
-        self.mainFitWindow = FittingWindow(mainProgram, oldMainWindow, self)
+        self.mainFitWindow = FittingWindow(father, oldMainWindow, self)
         self.current = self.mainFitWindow.current
         self.tabs.setTabsClosable(True)
         self.tabs.tabCloseRequested.connect(self.closeTab)
@@ -94,9 +94,9 @@ class TabFittingWindow(QtWidgets.QWidget):
         return self.tabs.tabText(self.tabs.currentIndex())
 
     def addSpectrum(self):
-        text = QtWidgets.QInputDialog.getItem(self, "Select spectrum to add", "Spectrum name:", self.mainProgram.workspaceNames, 0, False)
+        text = QtWidgets.QInputDialog.getItem(self, "Select spectrum to add", "Spectrum name:", self.father.workspaceNames, 0, False)
         if text[1]:
-            self.subFitWindows.append(FittingWindow(self.mainProgram, self.mainProgram.workspaces[self.mainProgram.workspaceNames.index(text[0])], self, False))
+            self.subFitWindows.append(FittingWindow(self.father, self.father.workspaces[self.father.workspaceNames.index(text[0])], self, False))
             self.tabs.addTab(self.subFitWindows[-1], str(text[0]))
             self.tabs.setCurrentIndex(len(self.subFitWindows))
 
@@ -279,10 +279,10 @@ class ParamCopySettingsWindow(QtWidgets.QWidget):
 class FittingWindow(QtWidgets.QWidget):
     # Inherited by the fitting windows
 
-    def __init__(self, mainProgram, oldMainWindow, tabWindow, isMain=True):
-        super(FittingWindow, self).__init__(mainProgram)
+    def __init__(self, father, oldMainWindow, tabWindow, isMain=True):
+        super(FittingWindow, self).__init__(father)
         self.isMain = isMain
-        self.mainProgram = mainProgram
+        self.father = father
         self.oldMainWindow = oldMainWindow
         self.tabWindow = tabWindow
         self.fig = Figure()
@@ -335,7 +335,7 @@ class FittingWindow(QtWidgets.QWidget):
         masterData = self.get_masterData()
         if fitAll:
             if params:
-                self.mainProgram.dataFromFit(data,
+                self.father.dataFromFit(data,
                                              masterData.filePath,
                                              np.append([masterData.freq[axes], masterData.freq[axes]], np.delete(masterData.freq, axes)),
                                              np.append([masterData.sw[axes], masterData.sw[axes]], np.delete(masterData.sw, axes)),
@@ -345,7 +345,7 @@ class FittingWindow(QtWidgets.QWidget):
                                              None,
                                              axes + 1)
             else:
-                self.mainProgram.dataFromFit(data,
+                self.father.dataFromFit(data,
                                              masterData.filePath,
                                              np.append(masterData.freq[axes], masterData.freq),
                                              np.append(masterData.sw[axes], masterData.sw),
@@ -356,7 +356,7 @@ class FittingWindow(QtWidgets.QWidget):
                                              axes + 1)
         else:
             if params:
-                self.mainProgram.dataFromFit(data,
+                self.father.dataFromFit(data,
                                              masterData.filePath,
                                              [masterData.freq[axes], masterData.freq[axes]],
                                              [masterData.sw[axes], masterData.sw[axes]],
@@ -366,7 +366,7 @@ class FittingWindow(QtWidgets.QWidget):
                                              [np.arange(data.shape[0]), np.arange(data.shape[1])],
                                              0)
             else:
-                self.mainProgram.dataFromFit(data,
+                self.father.dataFromFit(data,
                                              masterData.filePath,
                                              [masterData.freq[axes], masterData.freq[axes]],
                                              [masterData.sw[axes], masterData.sw[axes]],
@@ -421,7 +421,7 @@ class FittingWindow(QtWidgets.QWidget):
         del self.paramframe
         del self.canvas
         del self.fig
-        self.mainProgram.closeFitWindow(self.oldMainWindow)
+        self.father.closeFitWindow(self.oldMainWindow)
         self.deleteLater()
 
 ##############################################################################
@@ -553,8 +553,8 @@ class AbstractParamFrame(QtWidgets.QWidget):
         self.FITNUM = self.parent.FITNUM
         self.rootwindow = rootwindow
         self.isMain = isMain # display fitting buttons
-        tmp = list(self.parent.data.shape())
-        tmp.pop(self.parent.axes[-1])
+        tmp = np.array(self.parent.data.shape(), dtype=int)
+        tmp = np.delete(tmp, self.parent.axes)
         self.fitParamList = np.zeros(tmp, dtype=object)
         self.fitNumList = np.zeros(tmp, dtype=int)
         grid = QtWidgets.QGridLayout(self)
@@ -565,7 +565,7 @@ class AbstractParamFrame(QtWidgets.QWidget):
                                             self.parent.freq(),
                                             self.parent.ref())
         if self.parent.spec() == 1:
-            if self.parent.viewSettings["ppm"]:
+            if self.parent.viewSettings["ppm"][-1]:
                 self.axUnit = 'ppm'
             else:
                 axUnits = ['Hz', 'kHz', 'MHz']
@@ -736,7 +736,7 @@ class AbstractParamFrame(QtWidgets.QWidget):
 
     def getFitParams(self):
         if not self.checkInputs():
-            self.rootwindow.mainProgram.dispMsg("Fitting: One of the inputs is not valid")
+            self.rootwindow.father.dispMsg("Fitting: One of the inputs is not valid")
             return
         struc = {}
         for name in (self.SINGLENAMES + self.MULTINAMES):
@@ -794,7 +794,7 @@ class AbstractParamFrame(QtWidgets.QWidget):
         fitVal = self.queue.get(timeout=2)
         self.stopMP()
         if fitVal is None:
-            self.rootwindow.mainProgram.dispMsg('Optimal parameters not found')
+            self.rootwindow.father.dispMsg('Optimal parameters not found')
             return
         return fitVal
 
@@ -848,7 +848,7 @@ class AbstractParamFrame(QtWidgets.QWidget):
 
     def getSimParams(self):
         if not self.checkInputs():
-            self.rootwindow.mainProgram.dispMsg("Fitting: One of the inputs is not valid")
+            self.rootwindow.father.dispMsg("Fitting: One of the inputs is not valid")
             return
         numExp = self.getNumExp()
         out = {}
@@ -876,7 +876,7 @@ class AbstractParamFrame(QtWidgets.QWidget):
 
     def paramToWorkspace(self, allTraces, settings):
         if not self.checkInputs():
-            self.rootwindow.mainProgram.dispMsg("Fitting: One of the inputs is not valid")
+            self.rootwindow.father.dispMsg("Fitting: One of the inputs is not valid")
             return
         paramNameList = np.array(self.SINGLENAMES + self.MULTINAMES, dtype=object)
         locList = self.getRedLocList()
@@ -1056,10 +1056,10 @@ class PrefWindow(QtWidgets.QWidget):
 
 class RelaxWindow(TabFittingWindow):
 
-    def __init__(self, mainProgram, oldMainWindow):
+    def __init__(self, father, oldMainWindow):
         self.CURRENTWINDOW = RelaxFrame
         self.PARAMFRAME = RelaxParamFrame
-        super(RelaxWindow, self).__init__(mainProgram, oldMainWindow)
+        super(RelaxWindow, self).__init__(father, oldMainWindow)
 
 #################################################################################
 
@@ -1151,7 +1151,7 @@ class RelaxParamFrame(AbstractParamFrame):
                     inp = checkLinkTuple(inp)
                     out[name][i] = inp[2] * params[inp[4]][inp[0]][inp[1]] + inp[3]
                 if not np.isfinite(out[name][i]):
-                    self.rootwindow.mainProgram.dispMsg("Fitting: One of the inputs is not valid")
+                    self.rootwindow.father.dispMsg("Fitting: One of the inputs is not valid")
                     return
         tmpx = self.parent.xax()
         if prepExport:
@@ -1204,7 +1204,7 @@ def relaxationfitFunc(params, allX, args):
         argu = args[4][n]
         sw = args[5][n]
         axMult = args[6][n]
-        parameters = {'amp': 0.0, 'const': 0.0, 'coeff': 0.0, 't': 0.0}
+        parameters = {}
         for name in ['amp', 'const']:
             if struc[name][0][0] == 1:
                 parameters[name] = param[struc[name][0][1]]
@@ -1238,10 +1238,10 @@ def relaxationfitFunc(params, allX, args):
 
 class DiffusionWindow(TabFittingWindow):
 
-    def __init__(self, mainProgram, oldMainWindow):
+    def __init__(self, father, oldMainWindow):
         self.CURRENTWINDOW = RelaxFrame
         self.PARAMFRAME = DiffusionParamFrame
-        super(DiffusionWindow, self).__init__(mainProgram, oldMainWindow)
+        super(DiffusionWindow, self).__init__(father, oldMainWindow)
 
 #################################################################################
 
@@ -1346,7 +1346,7 @@ class DiffusionParamFrame(AbstractParamFrame):
                     inp = checkLinkTuple(inp)
                     out[name][i] = inp[2] * params[inp[4]][inp[0]][inp[1]] + inp[3]
                 if not np.isfinite(out[name][i]):
-                    self.rootwindow.mainProgram.dispMsg("Fitting: One of the inputs is not valid")
+                    self.rootwindow.father.dispMsg("Fitting: One of the inputs is not valid")
                     return
         tmpx = self.parent.xax()
         if prepExport:
@@ -1399,7 +1399,7 @@ def diffusionfitFunc(params, allX, args):
         argu = args[4][n]
         sw = args[5][n]
         axMult = args[6][n]
-        parameters = {'amp': 0.0, 'const': 0.0, 'coeff': 0.0, 'd': 0.0}
+        parameters = {}
         parameters['gamma'] = argu[-1][0]
         parameters['delta'] = argu[-1][1]
         parameters['triangle'] = argu[-1][2]
@@ -1436,10 +1436,10 @@ def diffusionfitFunc(params, allX, args):
 
 class PeakDeconvWindow(TabFittingWindow):
     
-    def __init__(self, mainProgram, oldMainWindow):
+    def __init__(self, father, oldMainWindow):
         self.CURRENTWINDOW = PeakDeconvFrame
         self.PARAMFRAME = PeakDeconvParamFrame
-        super(PeakDeconvWindow, self).__init__(mainProgram, oldMainWindow)
+        super(PeakDeconvWindow, self).__init__(father, oldMainWindow)
 
 #################################################################################
 
@@ -1588,7 +1588,7 @@ class PeakDeconvParamFrame(AbstractParamFrame):
                     inp = checkLinkTuple(inp)
                     out[name][i] = inp[2] * params[inp[4]][inp[0]][inp[1]] + inp[3]
                 if not np.isfinite(out[name][i]):
-                    self.rootwindow.mainProgram.dispMsg("Fitting: One of the inputs is not valid")
+                    self.rootwindow.father.dispMsg("Fitting: One of the inputs is not valid")
                     return
         tmpx = self.parent.xax()
         outCurveBase = out['bgrnd'][0] + tmpx * out['slope'][0]
@@ -1635,7 +1635,7 @@ def peakDeconvfitFunc(params, allX, args):
         argu = args[4][n]
         sw = args[5][n]
         axMult = args[6][n]
-        parameters = {'bgrnd': 0.0, 'slope': 0.0, 'pos': 0.0, 'amp': 0.0, 'lor': 0.0, 'gauss': 0.0}
+        parameters = {}
         parameters['method'] = argu[-1][0]
         for name in ['bgrnd', 'slope']:
             if struc[name][0][0] == 1:
@@ -1672,10 +1672,10 @@ def peakDeconvfitFunc(params, allX, args):
 
 class TensorDeconvWindow(TabFittingWindow):
 
-    def __init__(self, mainProgram, oldMainWindow):
+    def __init__(self, father, oldMainWindow):
         self.CURRENTWINDOW = TensorDeconvFrame
         self.PARAMFRAME = TensorDeconvParamFrame
-        super(TensorDeconvWindow, self).__init__(mainProgram, oldMainWindow)
+        super(TensorDeconvWindow, self).__init__(father, oldMainWindow)
 
 #####################################################################################
 
@@ -1963,7 +1963,7 @@ class TensorDeconvParamFrame(AbstractParamFrame):
                 startTensor = [T11, T22, T33]
                 if None in startTensor:
                     self.entries['shiftdef'][-1].setCurrentIndex(OldType)  # error, reset to old view
-                    self.rootwindow.mainProgram.dispMsg("Fitting: One of the inputs is not valid")
+                    self.rootwindow.father.dispMsg("Fitting: One of the inputs is not valid")
                     return
                 Tensors = func.shiftConversion(startTensor, OldType)
                 for element in range(3):  # Check for `ND' s
@@ -2007,7 +2007,7 @@ class TensorDeconvParamFrame(AbstractParamFrame):
                     inp = checkLinkTuple(inp)
                     out[name][i] = inp[2] * params[inp[4]][inp[0]][inp[1]] + inp[3]
                 if not np.isfinite(out[name][i]):
-                    self.rootwindow.mainProgram.dispMsg("Fitting: One of the inputs is not valid")
+                    self.rootwindow.father.dispMsg("Fitting: One of the inputs is not valid")
                     return
         tmpx = self.parent.xax()
         outCurveBase = out['bgrnd'][0] + tmpx * out['slope'][0]
@@ -2064,7 +2064,7 @@ def tensorDeconvfitFunc(params, allX, args):
         argu = args[4][n]
         sw = args[5][n]
         axMult = args[6][n]
-        parameters = {'bgrnd': 0.0, 'slope': 0.0, 't11': 0.0, 't22': 0.0, 't33': 0.0, 'amp': 0.0, 'lor': 0.0, 'gauss': 0.0}
+        parameters = {}
         mas = argu[-1][0]
         if mas:
             parameters['cheng'] = argu[-1][1]
@@ -2120,10 +2120,10 @@ def tensorDeconvfitFunc(params, allX, args):
 
 class Quad1DeconvWindow(TabFittingWindow):
 
-    def __init__(self, mainProgram, oldMainWindow):
+    def __init__(self, father, oldMainWindow):
         self.CURRENTWINDOW = Quad1DeconvFrame
         self.PARAMFRAME = Quad1DeconvParamFrame
-        super(Quad1DeconvWindow, self).__init__(mainProgram, oldMainWindow)
+        super(Quad1DeconvWindow, self).__init__(father, oldMainWindow)
 
 #################################################################################
 
@@ -2303,7 +2303,7 @@ class Quad1DeconvParamFrame(AbstractParamFrame):
                     inp = checkLinkTuple(inp)
                     out[name][i] = inp[2] * params[inp[4]][inp[0]][inp[1]] + inp[3]
                 if not np.isfinite(out[name][i]):
-                    self.rootwindow.mainProgram.dispMsg("Fitting: One of the inputs is not valid")
+                    self.rootwindow.father.dispMsg("Fitting: One of the inputs is not valid")
                     return
         tmpx = self.parent.xax()
         outCurveBase = out['bgrnd'][0] + tmpx * out['slope'][0]
@@ -2354,7 +2354,7 @@ def quad1fitFunc(params, allX, args):
         argu = args[4][n]
         sw = args[5][n]
         axMult = args[6][n]
-        parameters = {'spinspeed': 0.0, 'bgrnd': 0.0, 'slope': 0.0, 'pos': 0.0, 'cq': 0.0, 'eta': 0.0, 'amp': 0.0, 'lor': 0.0, 'gauss': 0.0}
+        parameters = {}
         mas = argu[-1][0]
         parameters['I'] = argu[-1][1]
         if mas:
@@ -2403,10 +2403,10 @@ def quad1fitFunc(params, allX, args):
 
 class Quad2DeconvWindow(TabFittingWindow):
 
-    def __init__(self, mainProgram, oldMainWindow):
+    def __init__(self, father, oldMainWindow):
         self.CURRENTWINDOW = Quad1DeconvFrame
         self.PARAMFRAME = Quad2DeconvParamFrame
-        super(Quad2DeconvWindow, self).__init__(mainProgram, oldMainWindow)
+        super(Quad2DeconvWindow, self).__init__(father, oldMainWindow)
 
 #################################################################################
 
@@ -2502,7 +2502,7 @@ class CzjzekPrefWindow(QtWidgets.QWidget):
         self.father.etasteps = self.etasteps.value()
         inp = safeEval(self.wqmax.text(),type='FI')
         if inp is None:
-            self.father.rootwindow.mainProgram.dispMsg(u"\u03c9_Q_max value not valid.")
+            self.father.rootwindow.father.dispMsg(u"\u03c9_Q_max value not valid.")
             return
         self.father.wqmax = safeEval(self.wqmax.text())
         self.closeEvent()
@@ -2511,10 +2511,10 @@ class CzjzekPrefWindow(QtWidgets.QWidget):
 
 class Quad2CzjzekWindow(TabFittingWindow):
 
-    def __init__(self, mainProgram, oldMainWindow):
+    def __init__(self, father, oldMainWindow):
         self.CURRENTWINDOW = Quad1DeconvFrame
         self.PARAMFRAME = Quad2CzjzekParamFrame
-        super(Quad2CzjzekWindow, self).__init__(mainProgram, oldMainWindow)
+        super(Quad2CzjzekWindow, self).__init__(father, oldMainWindow)
 
 #################################################################################
 
@@ -2646,7 +2646,7 @@ class Quad2CzjzekParamFrame(AbstractParamFrame):
         return lib, wq_return, eta_return
 
     def loadLib(self):
-        dirName = self.rootwindow.mainProgram.loadFitLibDir()
+        dirName = self.rootwindow.father.loadFitLibDir()
         nameList = os.listdir(dirName)
         cq = []
         eta = []
@@ -2659,7 +2659,7 @@ class Quad2CzjzekParamFrame(AbstractParamFrame):
                 fullName = os.path.join(dirName, name)
                 libData = io.autoLoad(fullName)
                 if libData.ndim() is not 1:
-                    self.rootwindow.mainProgram.dispMsg("A spectrum in the library is not a 1D spectrum.")
+                    self.rootwindow.father.dispMsg("A spectrum in the library is not a 1D spectrum.")
                     continue
                 if not libData.spec[0]:
                     libData.fourier(0)
@@ -2673,7 +2673,7 @@ class Quad2CzjzekParamFrame(AbstractParamFrame):
         numWq = len(np.unique(cq))
         numEta = len(np.unique(eta))
         if len(cq) != numWq * numEta:
-            self.rootwindow.mainProgram.dispMsg("Library to be loaded is not of a rectangular grid in Cq and eta.")
+            self.rootwindow.father.dispMsg("Library to be loaded is not of a rectangular grid in Cq and eta.")
             return
         sortIndex = np.lexsort((cq, eta))
         self.cqLib = cq[sortIndex]#.reshape((numEta, numWq))
@@ -2727,7 +2727,7 @@ class Quad2CzjzekParamFrame(AbstractParamFrame):
                     inp = checkLinkTuple(inp)
                     out[name][i] = inp[2] * params[inp[4]][inp[0]][inp[1]] + inp[3]
                 if not np.isfinite(out[name][i]):
-                    self.rootwindow.mainProgram.dispMsg("Fitting: One of the inputs is not valid")
+                    self.rootwindow.father.dispMsg("Fitting: One of the inputs is not valid")
                     return
         tmpx = self.parent.xax()
         outCurveBase = out['bgrnd'][0] + tmpx * out['slope'][0]
@@ -2773,7 +2773,7 @@ def quad2CzjzekfitFunc(params, allX, args):
         argu = args[4][n]
         sw = args[5][n]
         axMult = args[6][n]
-        parameters = {'bgrnd': 0.0, 'slope': 0.0, 'pos': 0.0, 'd': 0.0, 'sigma': 0.0, 'amp': 0.0, 'lor': 0.0, 'gauss': 0.0}
+        parameters = {}
         parameters['I'] = argu[-1][0]
         parameters['lib'] = argu[-1][1]
         parameters['wq'] = argu[-1][2]#.flatten()
@@ -2812,10 +2812,10 @@ def quad2CzjzekfitFunc(params, allX, args):
 
 class SIMPSONDeconvWindow(TabFittingWindow):
 
-    def __init__(self, mainProgram, oldMainWindow):
+    def __init__(self, father, oldMainWindow):
         self.CURRENTWINDOW = SIMPSONDeconvFrame
         self.PARAMFRAME = SIMPSONDeconvParamFrame
-        super(SIMPSONDeconvWindow, self).__init__(mainProgram, oldMainWindow)
+        super(SIMPSONDeconvWindow, self).__init__(father, oldMainWindow)
 
 #################################################################################
 
@@ -2883,7 +2883,7 @@ class SIMPSONDeconvParamFrame(AbstractParamFrame):
         self.dispParams()
 
     def loadScript(self):
-        fileName = self.rootwindow.mainProgram.loadSIMPSONScript()
+        fileName = self.rootwindow.father.loadSIMPSONScript()
         with open(fileName, "r") as myfile:
             inFile = myfile.read()
         matches = np.unique(re.findall("(@\w+)", inFile))
@@ -2933,7 +2933,7 @@ class SIMPSONDeconvParamFrame(AbstractParamFrame):
                         inp = checkLinkTuple(inp)
                         out[name][i] = inp[2] * params[inp[4]][inp[0]][inp[1]] + inp[3]
                     if not np.isfinite(out[name][i]):
-                        self.rootwindow.mainProgram.dispMsg("Fitting: One of the inputs is not valid")
+                        self.rootwindow.father.dispMsg("Fitting: One of the inputs is not valid")
                         return
             tmpx = self.parent.xax()
             outCurveBase = np.zeros(len(tmpx))
@@ -2947,7 +2947,7 @@ class SIMPSONDeconvParamFrame(AbstractParamFrame):
                     inputPar[name] = out[name][i]
                 y = SIMPSONRunScript(out["command"][0], out["script"][0], inputPar, tmpx, out["txtOutput"][0], out["spec"][0])
                 if y is None:
-                    self.rootwindow.mainProgram.dispMsg("Fitting: The script didn't output anything", 'red')
+                    self.rootwindow.father.dispMsg("Fitting: The script didn't output anything", 'red')
                     return
                 outCurvePart.append(outCurveBase + y)
                 outCurve += y
@@ -3070,10 +3070,10 @@ class TxtOutputWindow(wc.ToolWindows):
 
 class FunctionFitWindow(TabFittingWindow):
 
-    def __init__(self, mainProgram, oldMainWindow):
+    def __init__(self, father, oldMainWindow):
         self.CURRENTWINDOW = FunctionFitFrame
         self.PARAMFRAME = FunctionFitParamFrame
-        super(FunctionFitWindow, self).__init__(mainProgram, oldMainWindow)
+        super(FunctionFitWindow, self).__init__(father, oldMainWindow)
 
 #################################################################################
 
@@ -3171,7 +3171,7 @@ class FunctionFitParamFrame(AbstractParamFrame):
                         inp = checkLinkTuple(inp)
                         out[name][i] = inp[2] * params[inp[4]][inp[0]][inp[1]] + inp[3]
                     if not np.isfinite(out[name][i]):
-                        self.rootwindow.mainProgram.dispMsg("Fitting: One of the inputs is not valid")
+                        self.rootwindow.father.dispMsg("Fitting: One of the inputs is not valid")
                         return
             tmpx = self.parent.xax()
             outCurveBase = np.zeros(len(tmpx))
@@ -3185,7 +3185,7 @@ class FunctionFitParamFrame(AbstractParamFrame):
                     inputPar[name] = out[name][i]
                 y = functionRun(out["function"][0], inputPar, tmpx)
                 if y is None:
-                    self.rootwindow.mainProgram.dispMsg("Fitting: The script didn't output anything", 'red')
+                    self.rootwindow.father.dispMsg("Fitting: The script didn't output anything", 'red')
                     return
                 outCurvePart.append(outCurveBase + y)
                 outCurve += y
@@ -3306,15 +3306,18 @@ class FitContourFrame(CurrentContour):
     def showFid(self):
         extraX = []
         extraY = []
+        extraZ = []
         self.locList = np.array(self.locList, dtype=int)
         if self.fitDataList[self.getRedLocList()] is not None:
             tmp = self.fitDataList[self.getRedLocList()]
-            extraX.append(tmp[0])
-            extraY.append(tmp[1])
+            extraX.append(tmp[0][0])
+            extraY.append(tmp[0][1])
+            extraZ.append(tmp[1])
             for i in range(len(tmp[2])):
-                extraX.append(tmp[2][i])
-                extraY.append(tmp[3][i])
-        super(FitContourFrame, self).showFid(extraX=extraX, extraY=extraY)
+                extraX.append(tmp[2][i][0])
+                extraY.append(tmp[2][i][1])
+                extraZ.append(tmp[3][i])
+        super(FitContourFrame, self).showFid(extraX=extraX, extraY=extraY, extraZ=extraZ, extraColor=['g']*len(extraX))
 
         
 ##############################################################################
@@ -3322,10 +3325,10 @@ class FitContourFrame(CurrentContour):
 
 class MqmasDeconvWindow(TabFittingWindow):
 
-    def __init__(self, mainProgram, oldMainWindow):
+    def __init__(self, father, oldMainWindow):
         self.CURRENTWINDOW = MqmasDeconvFrame
         self.PARAMFRAME = MqmasDeconvParamFrame
-        super(MqmasDeconvWindow, self).__init__(mainProgram, oldMainWindow)
+        super(MqmasDeconvWindow, self).__init__(father, oldMainWindow)
 
 #################################################################################
 
@@ -3339,22 +3342,22 @@ class MqmasDeconvFrame(FitContourFrame):
 
 class MqmasDeconvParamFrame(AbstractParamFrame):
 
-    Ioptions = ['1', '3/2', '2', '5/2', '3', '7/2', '4', '9/2']
-    Ivalues = [1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 4.0, 4.5]
+    Ioptions = ['3/2', '5/2', '7/2', '9/2']
+    Ivalues = [1.5, 2.5, 3.5, 4.5]
 
     def __init__(self, parent, rootwindow, isMain=True):
         self.SINGLENAMES = ['bgrnd']
-        self.MULTINAMES = ['pos', 'cq', 'eta', 'amp', 'lor', 'gauss']
-        self.PARAMTEXT = {'bgrnd': 'Background', 'pos': 'Position', 'cq': 'Cq', 'eta': 'eta', 'amp': 'Integral', 'lor': 'Lorentz', 'gauss': 'Gauss'}
+        self.MULTINAMES = ['pos', 'cq', 'eta', 'amp', 'lor2', 'gauss2', 'lor1', 'gauss1']
+        self.PARAMTEXT = {'bgrnd': 'Background', 'pos': 'Position', 'cq': 'Cq', 'eta': 'eta', 'amp': 'Integral', 'lor2': 'Lorentz 2', 'gauss2': 'Gauss 2', 'lor1': 'Lorentz 1', 'gauss1': 'Gauss 1'}
         self.FITFUNC = mqmasmpFit
         self.setAngleStuff = simFunc.mqmasAngleStuff
         self.tensorFunc = simFunc.mqmasFunc
         self.cheng = 15
         # Get full integral
         self.fullInt = np.sum(parent.getData1D()) * parent.sw() / float(parent.getData1D().shape[-1]) * parent.sw(-2) / float(parent.getData1D().shape[-2])
-        super(mqmasDeconvParamFrame, self).__init__(parent, rootwindow, isMain)
-        self.ticks = {'bgrnd': [], 'pos': [], 'cq': [], 'eta': [], 'amp': [], 'lor': [], 'gauss': []}
-        self.entries = {'bgrnd': [], 'pos': [], 'cq': [], 'eta': [], 'amp': [], 'lor': [], 'gauss': [], 'shiftdef': [], 'cheng': [], 'I': []}
+        super(MqmasDeconvParamFrame, self).__init__(parent, rootwindow, isMain)
+        self.ticks = {'bgrnd': [], 'pos': [], 'cq': [], 'eta': [], 'amp': [], 'lor2': [], 'gauss2': [], 'lor1': [], 'gauss1': []}
+        self.entries = {'bgrnd': [], 'pos': [], 'cq': [], 'eta': [], 'amp': [], 'lor2': [], 'gauss2': [], 'lor1': [], 'gauss1': [], 'shiftdef': [], 'cheng': [], 'I': []}
         self.optframe.addWidget(wc.QLabel("Cheng:"), 0, 0)
         self.entries['cheng'].append(QtWidgets.QSpinBox())
         self.entries['cheng'][-1].setAlignment(QtCore.Qt.AlignHCenter)
@@ -3378,7 +3381,7 @@ class MqmasDeconvParamFrame(AbstractParamFrame):
         self.numExp.addItems([str(x + 1) for x in range(self.FITNUM)])
         self.numExp.currentIndexChanged.connect(self.changeNum)
         self.frame3.addWidget(self.numExp, 0, 0, 1, 2)
-        if self.parent.viewSettings["ppm"]:
+        if self.parent.viewSettings["ppm"][-1]:
             axUnit = 'ppm'
         else:
             axUnit = ['Hz', 'kHz', 'MHz'][self.parent.getAxType()]
@@ -3390,8 +3393,10 @@ class MqmasDeconvParamFrame(AbstractParamFrame):
         self.frame3.addWidget(self.labelcq, 1, 2, 1, 2)
         self.frame3.addWidget(self.labeleta, 1, 4, 1, 2)
         self.frame3.addWidget(wc.QLabel("Integral:"), 1, 6, 1, 2)
-        self.frame3.addWidget(wc.QLabel("Lorentz [Hz]:"), 1, 8, 1, 2)
-        self.frame3.addWidget(wc.QLabel("Gauss [Hz]:"), 1, 10, 1, 2)
+        self.frame3.addWidget(wc.QLabel("Lorentz 2 [Hz]:"), 1, 8, 1, 2)
+        self.frame3.addWidget(wc.QLabel("Gauss 2 [Hz]:"), 1, 10, 1, 2)
+        self.frame3.addWidget(wc.QLabel("Lorentz 1 [Hz]:"), 1, 12, 1, 2)
+        self.frame3.addWidget(wc.QLabel("Gauss 1 [Hz]:"), 1, 14, 1, 2)
         self.frame3.setColumnStretch(20, 1)
         self.frame3.setAlignment(QtCore.Qt.AlignTop)
         for i in range(self.FITNUM):
@@ -3409,8 +3414,10 @@ class MqmasDeconvParamFrame(AbstractParamFrame):
                     'cq': np.repeat([np.array([1.0, False], dtype=object)], self.FITNUM, axis=0),
                     'eta': np.repeat([np.array([0.0, False], dtype=object)], self.FITNUM, axis=0),
                     'amp': np.repeat([np.array([self.fullInt, False], dtype=object)], self.FITNUM, axis=0),
-                    'lor': np.repeat([np.array([1.0, False], dtype=object)], self.FITNUM, axis=0),
-                    'gauss': np.repeat([np.array([0.0, True], dtype=object)], self.FITNUM, axis=0)}
+                    'lor2': np.repeat([np.array([1.0, False], dtype=object)], self.FITNUM, axis=0),
+                    'gauss2': np.repeat([np.array([0.0, True], dtype=object)], self.FITNUM, axis=0),
+                    'lor1': np.repeat([np.array([1.0, False], dtype=object)], self.FITNUM, axis=0),
+                    'gauss1': np.repeat([np.array([0.0, True], dtype=object)], self.FITNUM, axis=0)}
         else:
             return inp
 
@@ -3457,16 +3464,16 @@ class MqmasDeconvParamFrame(AbstractParamFrame):
                     inp = checkLinkTuple(inp)
                     out[name][i] = inp[2] * params[inp[4]][inp[0]][inp[1]] + inp[3]
                 if not np.isfinite(out[name][i]):
-                    self.rootwindow.mainProgram.dispMsg("Fitting: One of the inputs is not valid")
+                    self.rootwindow.father.dispMsg("Fitting: One of the inputs is not valid")
                     return
         tmpx = [self.parent.xax(-2), self.parent.xax()]
         outCurveBase = out['bgrnd'][0]
-        outCurve = outCurveBase.copy()
+        outCurve = outCurveBase#.copy()
         outCurvePart = []
         x = []
         for i in range(len(out['amp'])):
             x.append(tmpx)
-            y = out['amp'][i] * self.tensorFunc(tmpx, out['I'][0], out['pos'][i]/self.axMult, out['cq'][i], out['eta'][i], out['lor'][i], out['gauss'][i], out['anglestuff'][0], [self.parent.freq(), self.parent.freq()], [self.parent.sw(-2), self.parent.sw()], out['weight'][0])
+            y = out['amp'][i] * self.tensorFunc(tmpx, out['I'][0], 3, out['pos'][i]/self.axMult, out['cq'][i], out['eta'][i], [out['lor1'][i], out['lor2'][i]], [out['gauss1'][i], out['gauss2'][i]], out['anglestuff'][0], [self.parent.freq(), self.parent.freq()], [self.parent.sw(-2), self.parent.sw()], out['weight'][0])
             outCurvePart.append(outCurveBase + y)
             outCurve += y
         locList = self.getRedLocList()
@@ -3504,7 +3511,7 @@ def mqmasfitFunc(params, allX, args):
         argu = args[4][n]
         sw = args[5][n]
         axMult = args[6][n]
-        parameters = {'bgrnd': 0.0, 'pos': 0.0, 'cq': 0.0, 'eta': 0.0, 'amp': 0.0, 'lor': 0.0, 'gauss': 0.0}
+        parameters = {}
         parameters['I'] = argu[-1][0]
         parameters['weight'] = argu[-1][2]
         parameters['anglestuff'] = argu[-1][3]
@@ -3522,7 +3529,7 @@ def mqmasfitFunc(params, allX, args):
                 elif struc[altStruc[0]][altStruc[1]][0] == 0:
                     parameters[name] = altStruc[2] * allArgu[altStruc[4]][struc[altStruc[0]][altStruc[1]][1]] + altStruc[3]
         for i in range(numExp):
-            for name in ['pos', 'cq', 'eta', 'amp', 'lor', 'gauss']:
+            for name in ['pos', 'cq', 'eta', 'amp', 'lor2', 'gauss2', 'lor1', 'gauss1']:
                 if struc[name][i][0] == 1:
                     parameters[name] = param[struc[name][i][1]]
                 elif struc[name][i][0] == 0:
@@ -3534,7 +3541,7 @@ def mqmasfitFunc(params, allX, args):
                         parameters[name] = altStruc[2] * allParam[altStruc[4]][strucTarget[altStruc[0]][altStruc[1]][1]] + altStruc[3]
                     elif strucTarget[altStruc[0]][altStruc[1]][0] == 0:
                         parameters[name] = altStruc[2] * allArgu[altStruc[4]][strucTarget[altStruc[0]][altStruc[1]][1]] + altStruc[3]
-            testFunc += parameters['amp'] * parameters['tensorfunc'](x, parameters['I'], parameters['pos']/axMult, parameters['cq'], parameters['eta'], parameters['lor'], parameters['gauss'], parameters['anglestuff'], parameters['freq'], sw, parameters['weight'])
+            testFunc += parameters['amp'] * parameters['tensorfunc'](x, parameters['I'], 3, parameters['pos']/axMult, parameters['cq'], parameters['eta'], [parameters['lor1'], parameters['lor2']], [parameters['gauss1'], parameters['gauss2']], parameters['anglestuff'], parameters['freq'], sw, parameters['weight'])
             testFunc += parameters['bgrnd']
         fullTestFunc = np.append(fullTestFunc, testFunc)
     return fullTestFunc

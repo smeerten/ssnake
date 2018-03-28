@@ -104,7 +104,7 @@ class PlotFrame(object):
         self.peakPickFunc = None
 
     def scroll(self, event):
-        zoomStep = self.root.mainProgram.defaultZoomStep
+        zoomStep = self.root.father.defaultZoomStep
         event.step = event.step * zoomStep #Apply zoom sensitivity
         modifiers = QtWidgets.QApplication.keyboardModifiers()
         if modifiers == QtCore.Qt.ShiftModifier:
@@ -132,7 +132,7 @@ class PlotFrame(object):
                 else:
                     self.ax.set_xlim(self.xminlim, self.xmaxlim)
             else:
-                noZeroScroll = not self.ZERO_SCROLL_ALLOWED or not self.root.mainProgram.defaultZeroScroll
+                noZeroScroll = not self.ZERO_SCROLL_ALLOWED or not self.root.father.defaultZeroScroll
                 if noZeroScroll:
                     if self.logy:
                         middle = (np.log(self.ymaxlim) + np.log(self.yminlim)) / 2.0

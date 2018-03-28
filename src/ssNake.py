@@ -391,9 +391,10 @@ class MainProgram(QtWidgets.QMainWindow):
                                    ['Fitting --> Diffusion Curve', self.diffusionAct],
                                    ['Fitting --> Lorentzian/Gaussian', self.lorentzfitAct],
                                    ['Fitting --> CSA', self.csastaticAct],
-                                   ['Fitting --> First Order Quadrupole', self.firstquadstatAct],
-                                   ['Fitting --> Second Order Quadrupole', self.secondquadstatAct],
-                                   ['Fitting --> Czjzek', self.czjzekstatAct],
+                                   ['Fitting --> First Order Quadrupole', self.firstquadAct],
+                                   ['Fitting --> Second Order Quadrupole', self.secondquadAct],
+                                   ['Fitting --> Czjzek', self.czjzekAct],
+                                   # ['Fitting --> MQMAS', self.mqmasAct],
                                    ['Fitting --> SIMPSON', self.simpsonAct],
                                    ['Fitting --> Function', self.functionFitAct],
                                    ['Combine --> Combine Workspaces', self.combineWorkspaceAct],
@@ -663,20 +664,22 @@ class MainProgram(QtWidgets.QMainWindow):
         self.lorentzfitAct.setToolTip('Fit Lorentzian/Gaussian')
         self.csastaticAct = self.fittingMenu.addAction(QtGui.QIcon(IconDirectory + 'csastatic.png'), "&CSA", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.createTensorDeconvWindow()))
         self.csastaticAct.setToolTip('Fit CSA')
-        self.firstquadstatAct = self.fittingMenu.addAction(QtGui.QIcon(IconDirectory + 'firstquadstatic.png'), "First Order &Quadrupole", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.createQuad1DeconvWindow()))
-        self.firstquadstatAct.setToolTip('Fit First Order Quadrupole')
-        self.secondquadstatAct = self.fittingMenu.addAction(QtGui.QIcon(IconDirectory + 'secondquadstatic.png'), "S&econd Order Quadrupole", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.createQuad2DeconvWindow()))
-        self.secondquadstatAct.setToolTip('Fit Second Order Quadrupole')
-        self.czjzekstatAct = self.fittingMenu.addAction(QtGui.QIcon(IconDirectory + 'czjzekstatic.png'), "C&zjzek", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.createQuad2CzjzekWindow()))
-        self.czjzekstatAct.setToolTip('Fit Czjzek Pattern')
+        self.firstquadAct = self.fittingMenu.addAction(QtGui.QIcon(IconDirectory + 'firstquadstatic.png'), "First Order &Quadrupole", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.createQuad1DeconvWindow()))
+        self.firstquadAct.setToolTip('Fit First Order Quadrupole')
+        self.secondquadAct = self.fittingMenu.addAction(QtGui.QIcon(IconDirectory + 'secondquadstatic.png'), "S&econd Order Quadrupole", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.createQuad2DeconvWindow()))
+        self.secondquadAct.setToolTip('Fit Second Order Quadrupole')
+        self.czjzekAct = self.fittingMenu.addAction(QtGui.QIcon(IconDirectory + 'czjzekstatic.png'), "C&zjzek", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.createQuad2CzjzekWindow()))
+        self.czjzekAct.setToolTip('Fit Czjzek Pattern')
+        # self.mqmasAct = self.fittingMenu.addAction("&MQMAS", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.createMQMASWindow()))
+        # self.mqmasAct.setToolTip('Fit MQMAS')
         self.simpsonAct = self.fittingMenu.addAction(QtGui.QIcon(IconDirectory + 'simpson.png'),"&SIMPSON", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.createSIMPSONWindow()))
         self.simpsonAct.setToolTip('Fit SIMPSON Script')
         self.functionFitAct = self.fittingMenu.addAction(QtGui.QIcon(IconDirectory + 'function.png'),"F&unction fit", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.createFunctionFitWindow()))
         self.functionFitAct.setToolTip('Fit Function')
         self.fittingActList = [self.snrAct, self.fwhmAct, self.massAct,
                                self.intfitAct, self.relaxAct, self.diffusionAct,
-                               self.lorentzfitAct, self.csastaticAct, self.firstquadstatAct,
-                               self.secondquadstatAct, self.czjzekstatAct, self.simpsonAct,
+                               self.lorentzfitAct, self.csastaticAct, self.firstquadAct,
+                               self.secondquadAct, self.czjzekAct, self.simpsonAct,
                                self.functionFitAct]
         # the combine drop down menu
         self.combineMenu = QtWidgets.QMenu("Com&bine", self)
@@ -766,8 +769,8 @@ class MainProgram(QtWidgets.QMainWindow):
         self.helpActList = [self.updateAct, self.shiftconvAct, self.quadconvAct,
                             self.nmrtableAct, self.aboutAct]
         # Extra event lists:
-        self.specOnlyList = [self.regridAct, self.csastaticAct, self.firstquadstatAct,
-                             self.secondquadstatAct, self.czjzekstatAct]
+        self.specOnlyList = [self.regridAct, self.csastaticAct, self.firstquadAct,
+                             self.secondquadAct, self.czjzekAct]
         self.fidOnlyList = [self.relaxAct, self.diffusionAct]
         self.Only1DPlot = [self.snrAct, self.fwhmAct, self.massAct,  self.intfitAct]
 
@@ -787,23 +790,6 @@ class MainProgram(QtWidgets.QMainWindow):
     def dropEvent(self, event):
         fileList = [url.toLocalFile() for url in event.mimeData().urls()]
         self.loadData(fileList)
-            # path = url.toLocalFile()
-            # if path.endswith('.zip'):
-            #     import tempfile
-            #     import shutil
-            #     import zipfile
-            #     try:
-            #         temp_dir = tempfile.mkdtemp()
-            #         zipfile.ZipFile(path).extractall(temp_dir)
-            #         for i in os.listdir(temp_dir):  # Send the original path too,  for the workspace name
-            #             if self.autoLoad(os.path.join(temp_dir, i), realpath=path):
-            #                 break
-            #     finally:
-            #         shutil.rmtree(temp_dir)
-            # else:
-            #     self.autoLoad(path)
-            # if path != '':  # if not cancelled
-            #     self.LastLocation = os.path.dirname(path)  # Save used path
 
     def menuCheck(self):
         if self.mainWindow is None:
@@ -1520,7 +1506,6 @@ class Main1DWindow(QtWidgets.QWidget):
         self.monitor = None  # Monitor of files
         self.monitorMacros = []
         self.father = father
-        self.mainProgram = self.father  # remove all references to mainprogram to father
         self.masterData = masterData
         if duplicateCurrent is not None:
             self.current = duplicateCurrent.copyCurrent(self, self.fig, self.canvas, masterData)
@@ -1860,6 +1845,15 @@ class Main1DWindow(QtWidgets.QWidget):
             self.father.dispMsg("Please set the spectrometer frequency first!")
             return
         self.father.createFitWindow(fit.Quad2CzjzekWindow(self.father, self.father.mainWindow))
+
+    def createMQMASWindow(self):
+        if self.masterData.ndim() < 2:
+            self.father.dispMsg("Data has not enough dimensions for MQMAS fitting")
+            return
+        if self.current.freq() == 0.0:
+            self.father.dispMsg("Please set the spectrometer frequency first!")
+            return
+        self.father.createFitWindow(fit.MqmasDeconvWindow(self.father, self.father.mainWindow))
 
     def createSIMPSONWindow(self):
         self.father.createFitWindow(fit.SIMPSONDeconvWindow(self.father, self.father.mainWindow))
@@ -5659,7 +5653,7 @@ class RefWindow(wc.ToolWindows):
                 self.father.father.dispMsg("Reference name '" + givenname + "' already exists")
                 nameOK = False
             else:
-                self.father.mainProgram.referenceAdd(reffreq, givenname)
+                self.father.father.referenceAdd(reffreq, givenname)
         if nameOK:
             self.father.current.setRef(reffreq)
             self.closeEvent()
