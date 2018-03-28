@@ -506,8 +506,9 @@ class FitPlotFrame(Current1D):
     FITNUM = 10  # Standard number of fits
 
     def __init__(self, rootwindow, fig, canvas, current):
+        self.data = current.data
         tmp = np.array(current.data.shape(), dtype=int)
-        tmp = np.delete(tmp, current.axes)
+        tmp = np.delete(tmp, self.fixAxes(current.axes))
         self.fitDataList = np.full(tmp, None, dtype=object)
         self.fitPickNumList = np.zeros(tmp, dtype=int)
         self.rootwindow = rootwindow
@@ -3282,8 +3283,9 @@ class FitContourFrame(CurrentContour):
     FITNUM = 10  # Standard number of fits
 
     def __init__(self, rootwindow, fig, canvas, current):
+        self.data = current.data
         tmp = np.array(current.data.shape(), dtype=int)
-        tmp = np.delete(tmp, current.axes)
+        tmp = np.delete(tmp, self.fixAxes(current.axes))
         self.fitDataList = np.full(tmp, None, dtype=object)
         self.fitPickNumList = np.zeros(tmp, dtype=int)
         self.rootwindow = rootwindow
@@ -3310,12 +3312,12 @@ class FitContourFrame(CurrentContour):
         self.locList = np.array(self.locList, dtype=int)
         if self.fitDataList[self.getRedLocList()] is not None:
             tmp = self.fitDataList[self.getRedLocList()]
-            extraX.append(tmp[0][0])
-            extraY.append(tmp[0][1])
+            extraX.append(tmp[0][1])
+            extraY.append(tmp[0][0])
             extraZ.append(tmp[1])
             for i in range(len(tmp[2])):
-                extraX.append(tmp[2][i][0])
-                extraY.append(tmp[2][i][1])
+                extraX.append(tmp[2][i][1])
+                extraY.append(tmp[2][i][0])
                 extraZ.append(tmp[3][i])
         super(FitContourFrame, self).showFid(extraX=extraX, extraY=extraY, extraZ=extraZ, extraColor=['g']*len(extraX))
 

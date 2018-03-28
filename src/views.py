@@ -94,13 +94,8 @@ class Current1D(PlotFrame):
             self.upd()  # get the first slice of data
             self.startUp()
         else:
-            self.axes = duplicateCurrent.axes
+            self.axes = self.fixAxes(duplicateCurrent.axes)
             self.locList = duplicateCurrent.locList
-            if len(self.axes) != self.NDIM_PLOT:
-                fullAxes = np.arange(self.data.ndim())
-                fullAxes = np.delete(fullAxes, self.axes)
-                diff = self.NDIM_PLOT - len(self.axes)
-                self.axes = np.append(fullAxes[-diff:], self.axes[-self.NDIM_PLOT:])
             self.viewSettings = duplicateCurrent.viewSettings
             self.viewSettings.update({"extraData": [],
                                       "extraLoc": [],
@@ -152,7 +147,7 @@ class Current1D(PlotFrame):
 
     def wholeEcho(self, dim=-1):
         return self.data1D.wholeEcho[dim]
-
+    
     def getCurrentAxMult(self, axis=-1):
         return self.getAxMult(self.spec(axis), self.getAxType(), self.getppm(), self.freq(axis), self.ref(axis))
 
@@ -170,6 +165,15 @@ class Current1D(PlotFrame):
         self.showFid()  # plot the data
         self.plotReset(xReset, yReset)  # reset the axes limits
 
+    def fixAxes(self, axes):
+        if len(axes) != self.NDIM_PLOT:
+            fullAxes = np.arange(self.data.ndim())
+            fullAxes = np.delete(fullAxes, axes)
+            diff = self.NDIM_PLOT - len(axes)
+            return np.append(fullAxes[-diff:], axes[-self.NDIM_PLOT:])
+        else:
+            return axes
+        
     def rename(self, name):
         self.data.rename(name)
         self.canvas.draw()
@@ -972,7 +976,7 @@ class Current1D(PlotFrame):
         if miny == maxy: # Prevents setting the limits equal
             miny -= 0.01
             maxy += 0.01
-        if type(self) is CurrentContour:
+        if isinstance(self, CurrentContour):
             differ = 0
         else:
             differ = 0.05 * (maxy - miny)  # amount to add to show all datapoints (10%)
@@ -997,7 +1001,7 @@ class Current1D(PlotFrame):
         else:
             self.ax.set_xlim(self.xminlim, self.xmaxlim)
         self.ax.set_ylim(self.yminlim, self.ymaxlim)
-        if type(self) is CurrentContour: #If contour: reverse y-axis
+        if isinstance(self, CurrentContour): #If contour: reverse y-axis
             if  self.spec(-2) > 0:
                 self.ax.set_ylim(self.ymaxlim, self.yminlim)
         self.canvas.draw()
