@@ -113,7 +113,7 @@ class Current1D(PlotFrame):
             if len(self.viewSettings['axType']) != self.NDIM_PLOT:
                 diff = self.NDIM_PLOT - len(self.viewSettings['axType'])
                 self.viewSettings['axType'] = np.append(np.array([self.root.father.defaultUnits] * diff, dtype=int), self.viewSettings['axType'][-self.NDIM_PLOT:])
-                self.viewSettings['ppm']= np.append(np.array([self.root.father.defaultPPM] * diff, dtype=bool), self.viewSettings['ppm'][-self.NDIM_PLOT:])
+                self.viewSettings['ppm'] = np.append(np.array([self.root.father.defaultPPM] * diff, dtype=bool), self.viewSettings['ppm'][-self.NDIM_PLOT:])
             self.xminlim = duplicateCurrent.xminlim
             self.xmaxlim = duplicateCurrent.xmaxlim
             self.yminlim = duplicateCurrent.yminlim
@@ -980,7 +980,7 @@ class Current1D(PlotFrame):
             self.yminlim = miny - differ
             self.ymaxlim = maxy + differ
         if self.ref() == 0.0:
-            self.viewSettings["ppm"] = False
+            self.viewSettings["ppm"][-1] = False
         minx = np.min(self.line_xdata)
         maxx = np.max(self.line_xdata)
         for line in self.line_xdata_extra:
