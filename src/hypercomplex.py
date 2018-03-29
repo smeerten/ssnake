@@ -105,7 +105,9 @@ class HComplexData(object):
         return self.__add__(other)
 
     def __sub__(self, other):
-        return self.__add__(-np.asarray(other))
+        if isinstance(other, list):
+            other = np.asarray(other)
+        return self.__add__(-other)
     
     def __rsub__(self, other):
         return (-self).__add__(other)

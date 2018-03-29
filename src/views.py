@@ -1501,8 +1501,7 @@ class CurrentContour(CurrentStacked):
         else:
             self.differ = np.max(np.abs(np.ravel(self.data.getHyperData)))
         self.ax.cla()
-        self.x_ax.cla()
-        self.y_ax.cla()
+        self.clearProj()
         axMult = self.getAxMult(self.spec(), self.getAxType(), self.getppm(), self.freq(), self.ref())
         axMult2 = self.getAxMult(self.spec(-2), self.getAxType(-2), self.getppm(-2), self.freq(-2), self.ref(-2))
         if self.viewSettings["diagonalBool"]:
@@ -1513,12 +1512,14 @@ class CurrentContour(CurrentStacked):
             self.line_ydata_extra.append(self.xax(-2) * axMult2)
             self.line_zdata_extra.append(tmp)
             self.plotContour(self.line_xdata_extra[-1], self.line_ydata_extra[-1], self.line_zdata_extra[-1], color=['k','k'], alpha=0.2)
+            self.showProj(self.line_xdata_extra[-1], self.line_ydata_extra[-1], self.line_zdata_extra[-1], 'k')
         if extraX is not None:
             for num in range(len(extraX)):
                 self.line_xdata_extra.append(extraX[num] * axMult)
                 self.line_ydata_extra.append(extraY[num] * axMult2)
                 self.line_zdata_extra.append(extraZ[num])
                 self.plotContour(self.line_xdata_extra[-1], self.line_ydata_extra[-1], self.line_zdata_extra[-1], color=[extraColor[num], extraColor[num]])
+                self.showProj(self.line_xdata_extra[-1], self.line_ydata_extra[-1], self.line_zdata_extra[-1], extraColor[num])
         self.line_xdata = [self.xax() * axMult]
         self.line_ydata = [self.xax(-2) * axMult2]
         self.line_zdata = [tmpdata]
@@ -1527,7 +1528,7 @@ class CurrentContour(CurrentStacked):
         else:
             self.differ = np.max(np.abs(np.ravel(self.data.getHyperData)))
         self.plotContour(self.line_xdata[-1], self.line_ydata[-1], self.line_zdata[-1])
-        self.showProj()
+        self.showProj(self.line_xdata[-1], self.line_ydata[-1], self.line_zdata[-1])
         self.ax.set_xlabel(self.getLabel(self.spec(), self.axes[-1], self.getAxType(), self.getppm()))
         self.ax.set_ylabel(self.getLabel(self.spec(-2), self.axes[-2], self.getAxType(-2), self.getppm(-2)))
         if self.spec():
@@ -1602,14 +1603,23 @@ class CurrentContour(CurrentStacked):
         if updateOnly:
             self.canvas.draw()
 
-    def showProj(self):
-        xLimOld = self.x_ax.get_xlim()
-        x = self.line_xdata[-1]  # Get plot data from plot
-        yLimOld = self.y_ax.get_ylim()
-        y = self.line_ydata[-1]  # Get plot data from plot
+    def clearProj(self):
         self.x_ax.cla()
         self.y_ax.cla()
-        tmpdata = np.real(self.getDataType(self.data1D.getHyperData(0)))
+
+    def showProj(self, line_xdata=None, line_ydata=None, line_zdata=None, color=None):
+        xLimOld = self.x_ax.get_xlim()
+        if line_xdata is None:
+            x = self.line_xdata[-1]
+            y = self.line_ydata[-1]
+            tmpdata = np.real(self.getDataType(self.data1D.getHyperData(0)))
+        else:
+            x = line_xdata
+            y = line_ydata
+            tmpdata = line_zdata
+        yLimOld = self.y_ax.get_ylim()
+        if color is None:
+            color = self.viewSettings["color"]
         Limits = self.viewSettings["projLimits"]
         topSlice = (slice(None), slice(None))
         rightSlice = (slice(None), slice(None))
@@ -1639,7 +1649,7 @@ class CurrentContour(CurrentStacked):
                 self.viewSettings["projPos"][0] = 0
             xprojdata = tmpdata[self.viewSettings["projPos"][0]]
         if self.viewSettings["projTop"] != 3:
-            self.x_ax.plot(x, xprojdata, color=self.viewSettings["color"], linewidth=self.viewSettings["linewidth"], picker=True)            
+            self.x_ax.plot(x, xprojdata, color=color, linewidth=self.viewSettings["linewidth"], picker=True)            
             xmin, xmax = np.min(xprojdata), np.max(xprojdata)
             self.x_ax.set_ylim([xmin - 0.15 * (xmax - xmin), xmax + 0.05 * (xmax - xmin)])  # Set projection limits, and force 15% whitespace below plot
             self.x_ax.set_xlim(xLimOld)
@@ -1656,7 +1666,7 @@ class CurrentContour(CurrentStacked):
                 self.viewSettings["projPos"][1] = 0
             yprojdata = tmpdata[:, self.viewSettings["projPos"][1]]
         if self.viewSettings["projRight"] != 3:
-            self.y_ax.plot(yprojdata, y, color=self.viewSettings["color"], linewidth=self.viewSettings["linewidth"], picker=True)
+            self.y_ax.plot(yprojdata, y, color=color, linewidth=self.viewSettings["linewidth"], picker=True)
             ymin, ymax = np.min(yprojdata), np.max(yprojdata)
             self.y_ax.set_xlim([ymin - 0.15 * (ymax - ymin), ymax + 0.05 * (ymax - ymin)])  # Set projection limits, and force 15% whitespace below plot
             self.y_ax.set_ylim(yLimOld)

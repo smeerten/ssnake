@@ -2383,10 +2383,12 @@ class SideFrame(QtWidgets.QScrollArea):
             self.selectTraceButton.show()
         else:
             self.selectTraceButton.hide()
+        self.father.current.clearProj()
         self.father.current.showProj()
 
     def changeTrace(self, num, direc):
         self.father.current.setProjTraces(num, direc)
+        self.father.current.clearProj()
         self.father.current.showProj()
 
     def selectTraces(self, *args):
@@ -2402,6 +2404,7 @@ class SideFrame(QtWidgets.QScrollArea):
         check = self.rangeCheckbox.isChecked()
         ranges = [self.projTopRangeMax.value(), self.projTopRangeMin.value(), self.projRightRangeMax.value(), self.projRightRangeMin.value()]
         self.father.current.setProjLimits(check, ranges)
+        self.father.current.clearProj()
         self.father.current.showProj()
 
     def activateRanges(self, state):
