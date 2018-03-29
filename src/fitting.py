@@ -3032,15 +3032,14 @@ def SIMPSONRunScript(command, script, parameters, xax, output=None, spec=True):
         shutil.rmtree(directory_name, ignore_errors=True)
         return None
     outputFileName = fileList[0]
-    masterData = io.autoLoad(outputFileName)
+    masterData = io.autoLoad(os.path.join(directory_name, outputFileName))
     masterData.noUndo = True
     masterData.apodize(parameters["lor"], parameters["gauss"], 0, 0, 0, 0, 0, 0)
     if masterData.spec[0] != spec:
         masterData.fourier(0)
     masterData.regrid([xax[0], xax[-1]], len(xax), 0)
     shutil.rmtree(directory_name, ignore_errors=True)
-    return parameters["amp"] * np.real(masterData.data[0])
-
+    return parameters["amp"] * np.real(masterData.getHyperData(0))
 
 class TxtOutputWindow(wc.ToolWindows):
 
