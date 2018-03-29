@@ -275,16 +275,21 @@ def mqmasAngleStuff(cheng):
                   35 * cos2P**2 * sinT4 -20 * sinT2 + 4]
     return weight, angleStuff
 
-def mqmasFreq(p, I, vCS, Cq, eta, angleStuff, freq):
-    Cp0 = p * (I*(I+1) - 3/4.0 * p**2)
-    Cp4 = p * (18*I*(I+1) - 17/2.0 * p**2 - 5)
-    v0Q = - Cq**2 / (10.0 * freq) / (2*I*(2*I-1))**2 * (eta**2 + 3)
-    v4Q = Cq**2 / (1120.0 * freq) * 7 / (18.0 * (2*I*(2*I-1))**2) * (angleStuff[0] + angleStuff[1]*eta + angleStuff[2]*eta**2)
-    return -p*vCS + Cp0*v0Q + Cp4*v4Q
+def mqmasFreq(I, Cq, eta, angleStuff):
+    v0Q = - Cq**2 * (3 + eta**2) / (40 * (I*(2*I-1))**2)
+    v4Q = Cq**2 / (1120.0 * (2*I*(2*I-1))**2) * (angleStuff[0] + angleStuff[1]*eta + angleStuff[2]*eta**2)
+    return v0Q, v4Q
 
-def mqmasFunc(x, I, p, pos, cq, eta, lor, gauss, angleStuff, freq, sw, weight):
+def mqmasFunc(x, I, p, shear, scale, pos, cq, eta, lor, gauss, angleStuff, freq, sw, weight):
     cq *= 1e6
-    v2 = mqmasFreq(1, I, pos, cq, eta, angleStuff, freq[1])
-    v1 = mqmasFreq(p, I, pos, cq, eta, angleStuff, freq[0])
+    v0Q, v4Q = mqmasFreq(I, cq, eta, angleStuff)
+    C10 = I*(I+1) - 3/4.0
+    C14 = -7/18.0 * (18*I*(I+1) - 17/2.0 - 5)
+    v2 = pos + (C10 * v0Q + C14 * v4Q)/freq[-1]
+    Cp0 = p * (I*(I+1) - 3/4.0 * p**2)
+    Cp4 = -7/18.0 * p * (18*I*(I+1) - 17/2.0 * p**2 - 5)
+    v1 = p * pos + (Cp0 * v0Q + Cp4 * v4Q)/freq[-2]
+    v1 -= shear*v2
+    v1 *= scale
     return makeSpectrum2d(x, sw, [v1, v2], gauss, lor, weight)
 

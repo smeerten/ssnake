@@ -394,7 +394,7 @@ class MainProgram(QtWidgets.QMainWindow):
                                    ['Fitting --> First Order Quadrupole', self.firstquadAct],
                                    ['Fitting --> Second Order Quadrupole', self.secondquadAct],
                                    ['Fitting --> Czjzek', self.czjzekAct],
-                                   # ['Fitting --> MQMAS', self.mqmasAct],
+                                   ['Fitting --> MQMAS', self.mqmasAct],
                                    ['Fitting --> SIMPSON', self.simpsonAct],
                                    ['Fitting --> Function', self.functionFitAct],
                                    ['Combine --> Combine Workspaces', self.combineWorkspaceAct],
@@ -670,8 +670,8 @@ class MainProgram(QtWidgets.QMainWindow):
         self.secondquadAct.setToolTip('Fit Second Order Quadrupole')
         self.czjzekAct = self.fittingMenu.addAction(QtGui.QIcon(IconDirectory + 'czjzekstatic.png'), "C&zjzek", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.createQuad2CzjzekWindow()))
         self.czjzekAct.setToolTip('Fit Czjzek Pattern')
-        # self.mqmasAct = self.fittingMenu.addAction("&MQMAS", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.createMQMASWindow()))
-        # self.mqmasAct.setToolTip('Fit MQMAS')
+        self.mqmasAct = self.fittingMenu.addAction("&MQMAS", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.createMQMASWindow()))
+        self.mqmasAct.setToolTip('Fit MQMAS')
         self.simpsonAct = self.fittingMenu.addAction(QtGui.QIcon(IconDirectory + 'simpson.png'),"&SIMPSON", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.createSIMPSONWindow()))
         self.simpsonAct.setToolTip('Fit SIMPSON Script')
         self.functionFitAct = self.fittingMenu.addAction(QtGui.QIcon(IconDirectory + 'function.png'),"F&unction fit", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.createFunctionFitWindow()))

@@ -3318,7 +3318,7 @@ class FitContourFrame(CurrentContour):
                 extraX.append(tmp[2][i][1])
                 extraY.append(tmp[2][i][0])
                 extraZ.append(tmp[3][i])
-        super(FitContourFrame, self).showFid(extraX=extraX, extraY=extraY, extraZ=extraZ, extraColor=['g']*len(extraX))
+        super(FitContourFrame, self).showFid(extraX=extraX, extraY=extraY, extraZ=extraZ, extraColor=['C'+str(x%10) for x in range(len(extraX))])
 
         
 ##############################################################################
@@ -3345,6 +3345,7 @@ class MqmasDeconvParamFrame(AbstractParamFrame):
 
     Ioptions = ['3/2', '5/2', '7/2', '9/2']
     Ivalues = [1.5, 2.5, 3.5, 4.5]
+    MQvalues = [3, 5, 7, 9]
 
     def __init__(self, parent, rootwindow, isMain=True):
         self.SINGLENAMES = ['bgrnd']
@@ -3358,7 +3359,7 @@ class MqmasDeconvParamFrame(AbstractParamFrame):
         self.fullInt = np.sum(parent.getData1D()) * parent.sw() / float(parent.getData1D().shape[-1]) * parent.sw(-2) / float(parent.getData1D().shape[-2])
         super(MqmasDeconvParamFrame, self).__init__(parent, rootwindow, isMain)
         self.ticks = {'bgrnd': [], 'pos': [], 'cq': [], 'eta': [], 'amp': [], 'lor2': [], 'gauss2': [], 'lor1': [], 'gauss1': []}
-        self.entries = {'bgrnd': [], 'pos': [], 'cq': [], 'eta': [], 'amp': [], 'lor2': [], 'gauss2': [], 'lor1': [], 'gauss1': [], 'shiftdef': [], 'cheng': [], 'I': []}
+        self.entries = {'bgrnd': [], 'pos': [], 'cq': [], 'eta': [], 'amp': [], 'lor2': [], 'gauss2': [], 'lor1': [], 'gauss1': [], 'cheng': [], 'I': [], 'MQ': [], 'shear': [], 'scale': []}
         self.optframe.addWidget(wc.QLabel("Cheng:"), 0, 0)
         self.entries['cheng'].append(QtWidgets.QSpinBox())
         self.entries['cheng'][-1].setAlignment(QtCore.Qt.AlignHCenter)
@@ -3369,6 +3370,20 @@ class MqmasDeconvParamFrame(AbstractParamFrame):
         self.entries['I'][-1].addItems(self.Ioptions)
         self.entries['I'][-1].setCurrentIndex(1)
         self.optframe.addWidget(self.entries['I'][-1], 3, 0)
+        self.optframe.addWidget(wc.QLabel("MQ:"), 4, 0)
+        self.entries['MQ'].append(QtWidgets.QComboBox())
+        self.entries['MQ'][-1].addItems([str(i) for i in self.MQvalues])
+        self.entries['MQ'][-1].setCurrentIndex(0)
+        self.optframe.addWidget(self.entries['MQ'][-1], 5, 0)
+
+        self.optframe.addWidget(wc.QLabel("Shear:"), 6, 0)
+        self.entries['shear'].append(wc.QLineEdit("0.0"))
+        self.optframe.addWidget(self.entries['shear'][-1], 7, 0)
+
+        self.optframe.addWidget(wc.QLabel("Scale sw:"), 8, 0)
+        self.entries['scale'].append(wc.QLineEdit("1.0"))
+        self.optframe.addWidget(self.entries['scale'][-1], 9, 0)
+        
         self.optframe.setColumnStretch(10, 1)
         self.optframe.setAlignment(QtCore.Qt.AlignTop)
         self.frame2.addWidget(wc.QLabel("Bgrnd:"), 2, 0, 1, 2)
@@ -3423,10 +3438,15 @@ class MqmasDeconvParamFrame(AbstractParamFrame):
             return inp
 
     def checkI(self, I):
-        return I * 0.5 + 1
+        return I + 3/2.0
 
     def getExtraParams(self, out):
-        out['I'] = [self.checkI(self.entries['I'][-1].currentIndex())]
+        if self.entries['MQ'][-1].currentIndex() > self.checkI(self.entries['I'][-1].currentIndex()):
+            raise RuntimeError("MQ cannot be larger than I")
+        out['I'] = [self.Ivalues[self.entries['I'][-1].currentIndex()]]
+        out['MQ'] = [self.MQvalues[self.entries['MQ'][-1].currentIndex()]]
+        out['shear'] = [safeEval(self.entries['shear'][-1].text())]
+        out['scale'] = [safeEval(self.entries['scale'][-1].text())]
         cheng = safeEval(self.entries['cheng'][-1].text())
         out['cheng'] = [cheng]
         weight, angleStuff = self.setAngleStuff(cheng)
@@ -3434,7 +3454,7 @@ class MqmasDeconvParamFrame(AbstractParamFrame):
         out['anglestuff'] = [angleStuff]
         out['tensorfunc'] = [self.tensorFunc]
         out['freq'] = [[self.parent.freq(-2), self.parent.freq()]]
-        return (out, [out['I'][-1], out['weight'][-1], out['anglestuff'][-1], out['tensorfunc'][-1], out['freq'][-1]])
+        return (out, [out['I'][-1], out['MQ'][-1], out['shear'][-1], out['scale'][-1], out['weight'][-1], out['anglestuff'][-1], out['tensorfunc'][-1], out['freq'][-1]])
 
     def checkParam(self):
          val = self.numExp.currentIndex() + 1
@@ -3469,12 +3489,12 @@ class MqmasDeconvParamFrame(AbstractParamFrame):
                     return
         tmpx = [self.parent.xax(-2), self.parent.xax()]
         outCurveBase = out['bgrnd'][0]
-        outCurve = outCurveBase#.copy()
+        outCurve = outCurveBase
         outCurvePart = []
         x = []
         for i in range(len(out['amp'])):
             x.append(tmpx)
-            y = out['amp'][i] * self.tensorFunc(tmpx, out['I'][0], 3, out['pos'][i]/self.axMult, out['cq'][i], out['eta'][i], [out['lor1'][i], out['lor2'][i]], [out['gauss1'][i], out['gauss2'][i]], out['anglestuff'][0], [self.parent.freq(), self.parent.freq()], [self.parent.sw(-2), self.parent.sw()], out['weight'][0])
+            y = out['amp'][i] * self.tensorFunc(tmpx, out['I'][0], out['MQ'][0], out['shear'][0], out['scale'][0], out['pos'][i]/self.axMult, out['cq'][i], out['eta'][i], [out['lor1'][i], out['lor2'][i]], [out['gauss1'][i], out['gauss2'][i]], out['anglestuff'][0], [self.parent.freq(), self.parent.freq()], [self.parent.sw(-2), self.parent.sw()], out['weight'][0])
             outCurvePart.append(outCurveBase + y)
             outCurve += y
         locList = self.getRedLocList()
@@ -3514,10 +3534,13 @@ def mqmasfitFunc(params, allX, args):
         axMult = args[6][n]
         parameters = {}
         parameters['I'] = argu[-1][0]
-        parameters['weight'] = argu[-1][2]
-        parameters['anglestuff'] = argu[-1][3]
-        parameters['tensorfunc'] = argu[-1][4]
-        parameters['freq'] = argu[-1][5]
+        parameters['MQ'] = argu[-1][1]
+        parameters['shear'] = argu[-1][2]
+        parameters['scale'] = argu[-1][3]
+        parameters['weight'] = argu[-1][4]
+        parameters['anglestuff'] = argu[-1][5]
+        parameters['tensorfunc'] = argu[-1][6]
+        parameters['freq'] = argu[-1][7]
         for name in ['bgrnd']:
             if struc[name][0][0] == 1:
                 parameters[name] = param[struc[name][0][1]]
@@ -3542,7 +3565,7 @@ def mqmasfitFunc(params, allX, args):
                         parameters[name] = altStruc[2] * allParam[altStruc[4]][strucTarget[altStruc[0]][altStruc[1]][1]] + altStruc[3]
                     elif strucTarget[altStruc[0]][altStruc[1]][0] == 0:
                         parameters[name] = altStruc[2] * allArgu[altStruc[4]][strucTarget[altStruc[0]][altStruc[1]][1]] + altStruc[3]
-            testFunc += parameters['amp'] * parameters['tensorfunc'](x, parameters['I'], 3, parameters['pos']/axMult, parameters['cq'], parameters['eta'], [parameters['lor1'], parameters['lor2']], [parameters['gauss1'], parameters['gauss2']], parameters['anglestuff'], parameters['freq'], sw, parameters['weight'])
+            testFunc += parameters['amp'] * parameters['tensorfunc'](x, parameters['I'], parameters['MQ'], parameters['shear'], parameters['scale'], parameters['pos']/axMult, parameters['cq'], parameters['eta'], [parameters['lor1'], parameters['lor2']], [parameters['gauss1'], parameters['gauss2']], parameters['anglestuff'], parameters['freq'], sw, parameters['weight'])
             testFunc += parameters['bgrnd']
         fullTestFunc = np.append(fullTestFunc, testFunc)
     return fullTestFunc
