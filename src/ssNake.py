@@ -1952,6 +1952,8 @@ class Main1DWindow(QtWidgets.QWidget):
 
 class SideFrame(QtWidgets.QScrollArea):
 
+    FITTING = False
+    
     def __init__(self, parent):
         super(SideFrame, self).__init__(parent)
         self.father = parent
@@ -1989,10 +1991,14 @@ class SideFrame(QtWidgets.QScrollArea):
         self.length = len(self.shape)
         for i in reversed(range(self.frame1.count())):
             item = self.frame1.itemAt(i).widget()
+            if self.FITTING:
+                item.hide()
             self.frame1.removeWidget(item)
             item.deleteLater()
         for i in reversed(range(self.frame2.count())):
             item = self.frame2.itemAt(i).widget()
+            if self.FITTING:
+                item.hide()
             self.frame2.removeWidget(item)
             item.deleteLater()
         offset = 0
@@ -2008,13 +2014,14 @@ class SideFrame(QtWidgets.QScrollArea):
         self.buttons2Group.buttonClicked.connect(lambda: self.setAxes(False))
         if self.length > 1:
             for num in range(self.length):
-                self.buttons1.append(QtWidgets.QRadioButton(''))
-                self.buttons1Group.addButton(self.buttons1[num], num)
-                self.frame1.addWidget(self.buttons1[num], num * 2 + 1, 0)
-                if self.plotIs2D:
-                    self.buttons2.append(QtWidgets.QRadioButton(''))
-                    self.buttons2Group.addButton(self.buttons2[num], num)
-                    self.frame1.addWidget(self.buttons2[num], num * 2 + 1, 1)
+                if not self.FITTING:
+                    self.buttons1.append(QtWidgets.QRadioButton(''))
+                    self.buttons1Group.addButton(self.buttons1[num], num)
+                    self.frame1.addWidget(self.buttons1[num], num * 2 + 1, 0)
+                    if self.plotIs2D:
+                        self.buttons2.append(QtWidgets.QRadioButton(''))
+                        self.buttons2Group.addButton(self.buttons2[num], num)
+                        self.frame1.addWidget(self.buttons2[num], num * 2 + 1, 1)
                 if current.isComplex(num):
                     tmpLabel = "*D"
                 else:
@@ -2026,6 +2033,8 @@ class SideFrame(QtWidgets.QScrollArea):
                     self.entries[num].setValue(current.locList[num])
                 else:
                     self.entries[num].setValue(current.locList[num])
+                if self.FITTING and num in current.axes:
+                    self.entries[num].setDisabled(True)
                 self.entries[num].valueChanged.connect(lambda event=None, num=num: self.getSlice(event, num))
             if type(current) is views.CurrentStacked or type(current) is views.CurrentArrayed:
                 if current.viewSettings["stackBegin"] is not None:
@@ -2228,9 +2237,10 @@ class SideFrame(QtWidgets.QScrollArea):
                 self.diagonalFrame.addWidget(self.diagonalEntry, 0, 1)
                 self.diagonalGroup.setLayout(self.diagonalFrame)
                 self.frame2.addWidget(self.diagonalGroup, 10, 0, 1, 3)
-            self.buttons1Group.button(current.axes[-1]).toggle()
-            if self.plotIs2D:
-                self.buttons2Group.button(current.axes[-2]).toggle()
+            if not self.FITTING:
+                self.buttons1Group.button(current.axes[-1]).toggle()
+                if self.plotIs2D:
+                    self.buttons2Group.button(current.axes[-2]).toggle()
         if isinstance(current, (views.CurrentMulti)):
             self.extraEntries = []
             self.extraButtons1 = []
@@ -2383,13 +2393,19 @@ class SideFrame(QtWidgets.QScrollArea):
             self.selectTraceButton.show()
         else:
             self.selectTraceButton.hide()
-        self.father.current.clearProj()
-        self.father.current.showProj()
+        if not self.FITTING:
+            self.father.current.clearProj()
+            self.father.current.showProj()
+        else:
+            self.father.current.showFid()
 
     def changeTrace(self, num, direc):
         self.father.current.setProjTraces(num, direc)
-        self.father.current.clearProj()
-        self.father.current.showProj()
+        if not self.FITTING:
+            self.father.current.clearProj()
+            self.father.current.showProj()
+        else:
+            self.father.current.showFid()
 
     def selectTraces(self, *args):
         self.father.current.peakPickFunc = lambda pos, self=self: self.pickedTraces(pos)
@@ -2404,8 +2420,11 @@ class SideFrame(QtWidgets.QScrollArea):
         check = self.rangeCheckbox.isChecked()
         ranges = [self.projTopRangeMax.value(), self.projTopRangeMin.value(), self.projRightRangeMax.value(), self.projRightRangeMin.value()]
         self.father.current.setProjLimits(check, ranges)
-        self.father.current.clearProj()
-        self.father.current.showProj()
+        if not self.FITTING:
+            self.father.current.clearProj()
+            self.father.current.showProj()
+        else:
+            self.father.current.showFid()
 
     def activateRanges(self, state):
         if state:
@@ -2491,15 +2510,17 @@ class SideFrame(QtWidgets.QScrollArea):
         locList = np.array(self.father.current.locList, dtype=int)
         for num in range(self.length):
             locList[num] = self.entries[num].value()
-        self.buttons1Group.button(dimNum).toggle()
+        if not self.FITTING:
+            self.buttons1Group.button(dimNum).toggle()
         if self.plotIs2D:
             self.father.current.setSlice(np.array([self.buttons2Group.checkedId(), dimNum], dtype=int), locList)
         else:
             self.father.current.setSlice(np.array([dimNum]), locList)
-        self.father.bottomframe.upd()
-        if axisChange:
-            self.father.menuCheck()
-            self.upd()
+        if not self.FITTING:
+            self.father.bottomframe.upd()
+            if axisChange:
+                self.father.menuCheck()
+                self.upd()
 
     def setExtraAxes(self, first=True):
         for i in range(len(self.extraButtons1Group)):

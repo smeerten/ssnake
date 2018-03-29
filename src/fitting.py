@@ -41,6 +41,7 @@ import widgetClasses as wc
 import functions as func
 import simFunctions as simFunc
 import specIO as io
+from ssNake import SideFrame
 
 pi = np.pi
 stopDict = {}  # Global dictionary with stopping commands for fits
@@ -291,7 +292,7 @@ class FittingWindow(QtWidgets.QWidget):
         grid.addWidget(self.canvas, 0, 0)
         self.current = self.tabWindow.CURRENTWINDOW(self, self.fig, self.canvas, self.oldMainWindow.get_current())
         self.paramframe = self.tabWindow.PARAMFRAME(self.current, self, isMain=self.isMain)
-        grid.addWidget(self.paramframe, 1, 0)
+        grid.addWidget(self.paramframe, 1, 0, 1, 2)
         grid.setColumnStretch(0, 1)
         grid.setRowStretch(0, 1)
         self.grid = grid
@@ -427,74 +428,10 @@ class FittingWindow(QtWidgets.QWidget):
 ##############################################################################
 
 
-class FittingSideFrame(QtWidgets.QScrollArea):
+class FittingSideFrame(SideFrame):
 
-    def __init__(self, parent):
-        super(FittingSideFrame, self).__init__(parent)
-        self.father = parent
-        self.entries = []
-        content = QtWidgets.QWidget()
-        grid = QtWidgets.QGridLayout(content)
-        grid.setSizeConstraint(QtWidgets.QLayout.SetFixedSize)
-        frame1Widget = QtWidgets.QWidget()
-        frame2Widget = QtWidgets.QWidget()
-        grid.addWidget(frame1Widget, 0, 0)
-        grid.addWidget(frame2Widget, 1, 0)
-        self.frame1 = QtWidgets.QGridLayout()
-        self.frame2 = QtWidgets.QGridLayout()
-        frame1Widget.setLayout(self.frame1)
-        frame2Widget.setLayout(self.frame2)
-        self.frame1.setAlignment(QtCore.Qt.AlignTop)
-        self.frame2.setAlignment(QtCore.Qt.AlignTop)
-        self.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
-        self.grid = grid
-        self.setWidget(content)
-        self.upd()
+    FITTING = True
 
-    def kill(self):
-        for i in reversed(range(self.grid.count())):
-            self.grid.itemAt(i).widget().deleteLater()
-        self.grid.deleteLater()
-
-    def upd(self):
-        current = self.father.current
-        self.shape = current.data.shape()
-        self.length = len(self.shape)
-        for i in reversed(range(self.frame1.count())):
-            item = self.frame1.itemAt(i).widget()
-            item.hide()
-            self.frame1.removeWidget(item)
-            item.deleteLater()
-        for i in reversed(range(self.frame2.count())):
-            item = self.frame2.itemAt(i).widget()
-            item.hide()
-            self.frame2.removeWidget(item)
-            item.deleteLater()
-        self.entries = []
-        if self.length > 1:
-            for num in range(self.length):
-                self.frame1.addWidget(wc.QLabel("D" + str(num + 1), self), num * 2, 0)
-                self.entries.append(wc.SliceSpinBox(self, 0, self.shape[num] - 1))
-                self.frame1.addWidget(self.entries[num], num * 2 + 1, 0)
-                self.entries[num].setValue(current.locList[num])
-                if num == current.axes[-1]:
-                    self.entries[num].setDisabled(True)
-                self.entries[num].valueChanged.connect(lambda event=None, num=num: self.getSlice(event, num))
-        QtCore.QTimer.singleShot(100, self.resizeAll)
-
-    def resizeAll(self):
-        self.setMinimumWidth(self.grid.sizeHint().width() + self.verticalScrollBar().sizeHint().width())
-
-    def getSlice(self, event, entryNum):
-        if entryNum == self.father.current.axes:
-            return
-        else:
-            dimNum = self.father.current.axes
-        locList = np.array(self.father.current.locList)
-        for num in range(self.length):
-            inp = self.entries[num].value()
-            locList[num] = inp
-        self.father.current.setSlice(dimNum, locList)
 
 #################################################################################
 
