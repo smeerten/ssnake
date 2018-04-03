@@ -353,6 +353,7 @@ class MainProgram(QtWidgets.QMainWindow):
                                    ['Tools --> Hypercomplex --> States', self.statesAct],
                                    ['Tools --> Hypercomplex --> TPPI', self.statesTPPIAct],
                                    ['Tools --> Hypercomplex --> Echo-antiecho', self.echoantiAct],
+                                   ['Tools --> Scale SW', self.scaleSWAct],
                                    ['Tools --> LPSVD', self.lpsvdAct],
                                    ['Matrix --> Sizing', self.sizingAct],
                                    ['Matrix --> Shift Data', self.shiftAct],
@@ -551,6 +552,8 @@ class MainProgram(QtWidgets.QMainWindow):
         self.brukDigitalAct.setToolTip("Correct Bruker Digital Filter")
         self.lpsvdAct = self.toolMenu.addAction(QtGui.QIcon(IconDirectory + 'LPSVD.png'), "&LPSVD", lambda: self.mainWindowCheck(lambda mainWindow: LPSVDWindow(mainWindow)))
         self.lpsvdAct.setToolTip('LPSVD linear prediction')
+        self.scaleSWAct =  self.toolMenu.addAction(QtGui.QIcon(IconDirectory + 'ScaleSW.png'),"Scale SW", lambda: self.mainWindowCheck(lambda mainWindow: ScaleSWWindow(mainWindow)))
+        self.scaleSWAct.setToolTip('Scale the Current Spectral Width')
         self.hypercomplexMenu = QtWidgets.QMenu("Hypercomplex", self)
         self.toolMenu.addMenu(self.hypercomplexMenu)
         self.statesAct = self.hypercomplexMenu.addAction(QtGui.QIcon(IconDirectory + 'States.png'), "&States", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.states()))
@@ -564,7 +567,7 @@ class MainProgram(QtWidgets.QMainWindow):
                              self.autoPhaseAct1, self.swapEchoAct, self.corOffsetAct,
                              self.baselineAct, self.subAvgAct, self.refDeconvAct,
                              self.statesAct, self.statesTPPIAct, self.echoantiAct,
-                             self.brukDigitalAct, self.lpsvdAct]
+                             self.brukDigitalAct, self.scaleSWAct, self.lpsvdAct]
         # the matrix drop down menu
         self.matrixMenu = QtWidgets.QMenu("M&atrix", self)
         self.menubar.addMenu(self.matrixMenu)
@@ -3621,6 +3624,39 @@ class LPSVDWindow(wc.ToolWindows):
 
 ###########################################################################
 
+class ScaleSWWindow(wc.ToolWindows):
+
+    NAME = "Scale SW"
+
+    def __init__(self, parent):
+        super(ScaleSWWindow, self).__init__(parent)
+        options = list(map(str, range(1, self.father.masterData.ndim() + 1)))
+        self.grid.addWidget(wc.QLabel("Scale Factor:"), 0, 0)
+        self.scaleDropdown = QtWidgets.QComboBox()
+        self.scaleDropdown.addItems(['User Defined', 'Spin 3/2, -3Q (9/34)', 'Spin 5/2, 3Q (-12/17)', 'Spin 5/2, -5Q (12/85)', 'Spin 7/2, 3Q (-45/34)',
+                                     'Spin 7/2, 5Q (-9/34)', 'Spin 7/2, -7Q (45/476)', 'Spin 9/2, 3Q (-36/17)', 'Spin 9/2, 5Q (-36/85)', 'Spin 9/2, 7Q (-18/117)', 'Spin 9/2, -9Q (6/85)'])
+        self.scaleDropdown.activated.connect(self.dropdownChanged)
+        self.scaleList = [0, 9.0/34.0, -12.0/17.0, 12.0/85.0, -45.0/34.0, -9/34.0, 45.0/476.0, -36.0/17.0, -36.0/85.0, -18.0/117.0, 6.0/85.0]
+        self.grid.addWidget(self.scaleDropdown, 1, 0)
+        self.scaleEntry = wc.QLineEdit("0.0")
+        self.grid.addWidget(self.scaleEntry, 3, 0)
+
+    def dropdownChanged(self):
+        index = self.scaleDropdown.currentIndex()
+        self.scaleEntry.setText("%.9f" % self.scaleList[index])
+
+    def applyFunc(self):
+        scale = safeEval(self.scaleEntry.text(),type = 'FI')
+        if scale is None:
+            self.father.father.dispMsg("Scale SW: Factor not a valid value")
+            return False
+        axis = self.father.current.axes[-1]
+        freq = self.father.current.freq()
+        sw = self.father.current.sw()
+        self.father.current.setFreq(freq, sw * scale)
+
+
+###########################################################################
 
 class ShiftDataWindow(wc.ToolWindows):
 
