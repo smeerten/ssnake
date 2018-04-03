@@ -337,45 +337,45 @@ class FittingWindow(QtWidgets.QWidget):
         if fitAll:
             if params:
                 self.father.dataFromFit(data,
-                                             masterData.filePath,
-                                             np.append([masterData.freq[axes], masterData.freq[axes]], np.delete(masterData.freq, axes)),
-                                             np.append([masterData.sw[axes], masterData.sw[axes]], np.delete(masterData.sw, axes)),
-                                             np.append([False, False], np.delete(masterData.spec, axes)),
-                                             np.append([False, False], np.delete(masterData.wholeEcho, axes)),
-                                             np.append([None, None], np.delete(masterData.ref, axes)),
-                                             None,
-                                             axes + 1)
+                                        masterData.filePath,
+                                        np.append([masterData.freq[axes], masterData.freq[axes]], np.delete(masterData.freq, axes)),
+                                        np.append([masterData.sw[axes], masterData.sw[axes]], np.delete(masterData.sw, axes)),
+                                        np.append([False, False], np.delete(masterData.spec, axes)),
+                                        np.append([False, False], np.delete(masterData.wholeEcho, axes)),
+                                        np.append([None, None], np.delete(masterData.ref, axes)),
+                                        None,
+                                        None)
             else:
                 self.father.dataFromFit(data,
-                                             masterData.filePath,
-                                             np.append(masterData.freq[axes], masterData.freq),
-                                             np.append(masterData.sw[axes], masterData.sw),
-                                             np.append(False, masterData.spec),
-                                             np.append(False, masterData.wholeEcho),
-                                             np.append(None, masterData.ref),
-                                             None,
-                                             axes + 1)
+                                        masterData.filePath,
+                                        np.append(masterData.freq[axes], masterData.freq),
+                                        np.append(masterData.sw[axes], masterData.sw),
+                                        np.append(False, masterData.spec),
+                                        np.append(False, masterData.wholeEcho),
+                                        np.append(None, masterData.ref),
+                                        None,
+                                        None)
         else:
             if params:
                 self.father.dataFromFit(data,
-                                             masterData.filePath,
-                                             [masterData.freq[axes], masterData.freq[axes]],
-                                             [masterData.sw[axes], masterData.sw[axes]],
-                                             [False, False],
-                                             [False, False],
-                                             [None, None],
-                                             [np.arange(data.shape[0]), np.arange(data.shape[1])],
-                                             0)
+                                        masterData.filePath,
+                                        [masterData.freq[axes], masterData.freq[axes]],
+                                        [masterData.sw[axes], masterData.sw[axes]],
+                                        [False, False],
+                                        [False, False],
+                                        [None, None],
+                                        [np.arange(data.shape[0]), np.arange(data.shape[1])],
+                                        0)
             else:
                 self.father.dataFromFit(data,
-                                             masterData.filePath,
-                                             [masterData.freq[axes], masterData.freq[axes]],
-                                             [masterData.sw[axes], masterData.sw[axes]],
-                                             [False, masterData.spec[axes]],
-                                             [False, masterData.wholeEcho[axes]],
-                                             [None, masterData.ref[axes]],
-                                             [np.arange(len(data)), masterData.xaxArray[axes]],
-                                             axes)
+                                        masterData.filePath,
+                                        np.append(masterData.freq[axes], self.current.data1D.freq),
+                                        np.append(masterData.sw[axes], self.current.data1D.sw),
+                                        np.append(False, self.current.data1D.spec),
+                                        np.append(False, self.current.data1D.wholeEcho),
+                                        np.append(None, self.current.data1D.ref),
+                                        [np.arange(len(data))] + self.current.data1D.xaxArray,
+                                        0)
 
     def rename(self, name):
         self.canvas.draw()
@@ -713,8 +713,8 @@ class AbstractParamFrame(QtWidgets.QWidget):
                     struc[name].append((2, checkLinkTuple(safeEval(self.entries[name][i].text()))))
         out, extraArgu = self.getExtraParams(out)
         argu.append(extraArgu)
-        args = ([numExp], [struc], [argu], [self.parent.sw()], [self.axMult])
-        return (self.parent.xax(), self.parent.getData1D(), guess, args, out)
+        args = ([numExp], [struc], [argu], [self.parent.data1D.sw], [self.axMult])
+        return (self.parent.data1D.xaxArray, self.parent.getData1D(), guess, args, out)
 
     def fit(self, xax, data1D, guess, args):
         self.queue = multiprocessing.Queue()
@@ -769,8 +769,8 @@ class AbstractParamFrame(QtWidgets.QWidget):
     def fitAll(self, *args):
         self.runningAll = True
         self.stopAllButton.show()
-        tmp = list(self.parent.data.shape())
-        tmp.pop(self.parent.axes[-1])
+        tmp = np.array(self.parent.data.shape())
+        tmp[self.parent.axes] = 1
         tmp2 = ()
         for i in tmp:
             tmp2 += (np.arange(i),)
@@ -825,8 +825,8 @@ class AbstractParamFrame(QtWidgets.QWidget):
         if allTraces:
             num = self.rootwindow.getNum(self)
             maxNum = np.max(self.fitNumList)+1
-            tmp = list(self.parent.data.shape())
-            tmp.pop(self.parent.axes[-1])
+            tmp = np.array(self.parent.data.shape(), dtype=int)
+            tmp = np.delete(tmp, self.parent.axes)
             data = np.zeros((sum(settings), maxNum) + tuple(tmp))
             tmp2 = ()
             for i in tmp:
@@ -896,15 +896,16 @@ class AbstractParamFrame(QtWidgets.QWidget):
             if settings[3]:
                 extraLength += 1
             data = np.zeros((extraLength,) + self.parent.data.shape())
-            tmp = list(self.parent.data.shape())
-            tmp.pop(self.parent.axes[-1])
+            tmp = np.array(self.parent.data.shape(), dtype=int)
+            tmp[self.parent.axes] = 1
             tmp2 = ()
             for i in tmp:
                 tmp2 += (np.arange(i),)
             grid = np.array([i.flatten() for i in np.meshgrid(*tmp2)]).T
             for i in grid:
                 self.parent.setSlice(self.parent.axes, i)
-                data[(slice(None),) + tuple(i[:self.parent.axes[-1]]) + (slice(None),) + tuple(i[self.parent.axes[-1]:])] = self.prepareResultToWorkspace(settings, maxNum)
+                j = np.delete(i, self.parent.axes)
+                data[(slice(None),) + tuple(j[:self.parent.axes[-1]]) + (slice(None),) + tuple(j[self.parent.axes[-1]:])] = self.prepareResultToWorkspace(settings, maxNum)
             self.parent.setSlice(self.parent.axes, oldLocList)
             self.rootwindow.createNewData(data, self.parent.axes[-1], False, True)
         else:
@@ -1134,13 +1135,13 @@ def relaxationfitFunc(params, allX, args):
     allArgu = args[4]
     fullTestFunc = []
     for n in range(len(allX)):
-        x = allX[n]
+        x = allX[n][-1]
         testFunc = np.zeros(len(x))
         param = allParam[n]
         numExp = args[2][n]
         struc = args[3][n]
         argu = args[4][n]
-        sw = args[5][n]
+        sw = args[5][n][-1]
         axMult = args[6][n]
         parameters = {}
         for name in ['amp', 'const']:
@@ -1329,13 +1330,13 @@ def diffusionfitFunc(params, allX, args):
     allArgu = args[4]
     fullTestFunc = []
     for n in range(len(allX)):
-        x = allX[n]
+        x = allX[n][-1]
         testFunc = np.zeros(len(x))
         param = allParam[n]
         numExp = args[2][n]
         struc = args[3][n]
         argu = args[4][n]
-        sw = args[5][n]
+        sw = args[5][n][-1]
         axMult = args[6][n]
         parameters = {}
         parameters['gamma'] = argu[-1][0]
@@ -1429,9 +1430,9 @@ class PeakDeconvFrame(FitPlotFrame):
 class PeakDeconvParamFrame(AbstractParamFrame):
 
     def __init__(self, parent, rootwindow, isMain=True):
-        self.SINGLENAMES = ['bgrnd', 'slope']
+        self.SINGLENAMES = ['bgrnd']
         self.MULTINAMES = ['pos', 'amp', 'lor', 'gauss']
-        self.PARAMTEXT = {'bgrnd': 'Background', 'slope': 'Slope', 'pos': 'Position', 'amp': 'Integral', 'lor': 'Lorentz', 'gauss': 'Gauss'}
+        self.PARAMTEXT = {'bgrnd': 'Background', 'pos': 'Position', 'amp': 'Integral', 'lor': 'Lorentz', 'gauss': 'Gauss'}
         self.FITFUNC = peakDeconvmpFit
         # Get full integral
         self.fullInt = np.sum(parent.getData1D()) * parent.sw() / float(len(parent.getData1D()))
@@ -1442,18 +1443,13 @@ class PeakDeconvParamFrame(AbstractParamFrame):
         self.pickTick = QtWidgets.QCheckBox("Pick")
         self.pickTick.stateChanged.connect(self.togglePick)
         self.frame1.addWidget(self.pickTick, 2, 1)
-        self.ticks = {'bgrnd': [], 'slope': [], 'pos': [], 'amp': [], 'lor': [], 'gauss': []}
-        self.entries = {'bgrnd': [], 'slope': [], 'pos': [], 'amp': [], 'lor': [], 'gauss': [], 'method': []}
+        self.ticks = {'bgrnd': [], 'pos': [], 'amp': [], 'lor': [], 'gauss': []}
+        self.entries = {'bgrnd': [], 'pos': [], 'amp': [], 'lor': [], 'gauss': [], 'method': []}
         self.frame2.addWidget(wc.QLabel("Bgrnd:"), 0, 0, 1, 2)
         self.ticks['bgrnd'].append(QtWidgets.QCheckBox(''))
         self.frame2.addWidget(self.ticks['bgrnd'][0], 1, 0)
         self.entries['bgrnd'].append(wc.FitQLineEdit(self, 'bgrnd', "0.0"))
         self.frame2.addWidget(self.entries['bgrnd'][0], 1, 1)
-        self.frame2.addWidget(wc.QLabel("Slope:"), 2, 0, 1, 2)
-        self.ticks['slope'].append(QtWidgets.QCheckBox(''))
-        self.frame2.addWidget(self.ticks['slope'][0], 3, 0)
-        self.entries['slope'].append(wc.FitQLineEdit(self, 'slope', "0.0"))
-        self.frame2.addWidget(self.entries['slope'][0], 3, 1)
         self.frame2.addWidget(wc.QLabel("Method:"), 4, 0, 1, 2)
         self.entries['method'].append(QtWidgets.QComboBox())
         self.entries['method'][0].addItems(['Exact', 'Approx'])
@@ -1481,7 +1477,6 @@ class PeakDeconvParamFrame(AbstractParamFrame):
     def defaultValues(self, inp):
         if not inp:
             return {'bgrnd': [0.0, True],
-                    'slope': [0.0, True],
                     'pos': np.repeat([np.array([0.0, False], dtype=object)], self.FITNUM, axis=0),
                     'amp': np.repeat([np.array([self.fullInt, False], dtype=object)], self.FITNUM, axis=0),
                     'lor': np.repeat([np.array([1.0, False], dtype=object)], self.FITNUM, axis=0),
@@ -1492,7 +1487,7 @@ class PeakDeconvParamFrame(AbstractParamFrame):
     def reset(self):
         locList = self.getRedLocList()
         self.fitNumList[locList] = 0
-        for name in ['bgrnd', 'slope']:
+        for name in ['bgrnd']:
             self.fitParamList[locList][name] = [0.0, True]
         self.pickTick.setChecked(True)
         defaults = {'pos': [0.0, False], 'amp': [self.fullInt, False], 'lor': [1.0, False], 'gauss': [0.0, True]}
@@ -1529,15 +1524,15 @@ class PeakDeconvParamFrame(AbstractParamFrame):
                     self.rootwindow.father.dispMsg("Fitting: One of the inputs is not valid")
                     return
         tmpx = self.parent.xax()
-        outCurveBase = out['bgrnd'][0] + tmpx * out['slope'][0]
-        outCurve = outCurveBase.copy()
+        bgrnd = out['bgrnd'][0]
+        outCurve = bgrnd * np.ones(len(tmpx))
         outCurvePart = []
         x = []
         for i in range(len(out['amp'])):
             x.append(tmpx)
             pos = out['pos'][i] / self.axMult
             y = simFunc.voigtLine(tmpx, pos, out['lor'][i], out['gauss'][i], out['amp'][i], out['method'][0])
-            outCurvePart.append(outCurveBase + y)
+            outCurvePart.append(bgrnd + y)
             outCurve += y
         locList = self.getRedLocList()
         self.parent.fitDataList[locList] = [tmpx, outCurve, x, outCurvePart]
@@ -1565,17 +1560,17 @@ def peakDeconvfitFunc(params, allX, args):
     allArgu = args[4]
     fullTestFunc = []
     for n in range(len(allX)):
-        x = allX[n]
+        x = allX[n][-1]
         testFunc = np.zeros(len(x))
         param = allParam[n]
         numExp = args[2][n]
         struc = args[3][n]
         argu = args[4][n]
-        sw = args[5][n]
+        sw = args[5][n][-1]
         axMult = args[6][n]
         parameters = {}
         parameters['method'] = argu[-1][0]
-        for name in ['bgrnd', 'slope']:
+        for name in ['bgrnd']:
             if struc[name][0][0] == 1:
                 parameters[name] = param[struc[name][0][1]]
             elif struc[name][0][0] == 0:
@@ -1601,7 +1596,7 @@ def peakDeconvfitFunc(params, allX, args):
                         parameters[name] = altStruc[2] * allArgu[altStruc[4]][strucTarget[altStruc[0]][altStruc[1]][1]] + altStruc[3]
             pos = parameters['pos'] / axMult
             testFunc += simFunc.voigtLine(x, pos, parameters['lor'], parameters['gauss'], parameters['amp'], parameters['method'])
-        testFunc += parameters['bgrnd'] + parameters['slope'] * x
+        testFunc += parameters['bgrnd']
         fullTestFunc = np.append(fullTestFunc, testFunc)
     return fullTestFunc
 
@@ -1662,9 +1657,9 @@ class TensorDeconvFrame(FitPlotFrame):
 class TensorDeconvParamFrame(AbstractParamFrame):
 
     def __init__(self, parent, rootwindow, isMain=True):
-        self.SINGLENAMES = ['bgrnd', 'slope', 'spinspeed']
+        self.SINGLENAMES = ['bgrnd', 'spinspeed']
         self.MULTINAMES = ['t11', 't22', 't33', 'amp', 'lor', 'gauss']
-        self.PARAMTEXT = {'bgrnd': 'Background', 'slope': 'Slope', 'spinspeed': 'Spinning Speed', 't11': 'T11', 't22': 'T22', 't33': 'T33', 'amp': 'Integral', 'lor': 'Lorentz', 'gauss': 'Gauss'}
+        self.PARAMTEXT = {'bgrnd': 'Background', 'spinspeed': 'Spinning Speed', 't11': 'T11', 't22': 'T22', 't33': 'T33', 'amp': 'Integral', 'lor': 'Lorentz', 'gauss': 'Gauss'}
         self.FITFUNC = tensorDeconvmpFit
 
         # Get full integral
@@ -1678,8 +1673,8 @@ class TensorDeconvParamFrame(AbstractParamFrame):
         self.pickTick = QtWidgets.QCheckBox("Pick")
         self.pickTick.stateChanged.connect(self.togglePick)
         self.frame1.addWidget(self.pickTick, 2, 1)
-        self.ticks = {'bgrnd': [], 'slope': [], 'spinspeed': [], 't11': [], 't22': [], 't33': [], 'amp': [], 'lor': [], 'gauss': []}
-        self.entries = {'bgrnd': [], 'slope': [], 'spinspeed': [], 't11': [], 't22': [], 't33': [], 'amp': [], 'lor': [], 'gauss': [], 'shiftdef': [], 'cheng': [], 'mas': [], 'numssb': []}
+        self.ticks = {'bgrnd': [], 'spinspeed': [], 't11': [], 't22': [], 't33': [], 'amp': [], 'lor': [], 'gauss': []}
+        self.entries = {'bgrnd': [], 'spinspeed': [], 't11': [], 't22': [], 't33': [], 'amp': [], 'lor': [], 'gauss': [], 'shiftdef': [], 'cheng': [], 'mas': [], 'numssb': []}
 
         self.optframe.addWidget(wc.QLabel("Cheng:"), 0, 0)
         self.entries['cheng'].append(QtWidgets.QSpinBox())
@@ -1723,11 +1718,6 @@ class TensorDeconvParamFrame(AbstractParamFrame):
         self.frame2.addWidget(self.ticks['bgrnd'][-1], 3, 0)
         self.entries['bgrnd'].append(wc.FitQLineEdit(self, 'bgrnd', "0.0"))
         self.frame2.addWidget(self.entries['bgrnd'][-1], 3, 1)
-        self.frame2.addWidget(wc.QLabel("Slope:"), 4, 0, 1, 2)
-        self.ticks['slope'].append(QtWidgets.QCheckBox(''))
-        self.frame2.addWidget(self.ticks['slope'][-1], 5, 0)
-        self.entries['slope'].append(wc.FitQLineEdit(self, "slope", "0.0"))
-        self.frame2.addWidget(self.entries['slope'][-1], 5, 1)
         self.frame2.setColumnStretch(10, 1)
         self.frame2.setAlignment(QtCore.Qt.AlignTop)
         self.numExp = QtWidgets.QComboBox()
@@ -1802,7 +1792,6 @@ class TensorDeconvParamFrame(AbstractParamFrame):
     def defaultValues(self, inp):
         if not inp:
             return {'bgrnd': [0.0, True],
-                    'slope': [0.0, True],
                     'spinspeed': [10.0, True],
                     't11': np.repeat([np.array([0.0, False], dtype=object)], self.FITNUM, axis=0),
                     't22': np.repeat([np.array([0.0, False], dtype=object)], self.FITNUM, axis=0),
@@ -1948,8 +1937,8 @@ class TensorDeconvParamFrame(AbstractParamFrame):
                     self.rootwindow.father.dispMsg("Fitting: One of the inputs is not valid")
                     return
         tmpx = self.parent.xax()
-        outCurveBase = out['bgrnd'][0] + tmpx * out['slope'][0]
-        outCurve = outCurveBase.copy()
+        bgrnd = out['bgrnd'][0]
+        outCurve = bgrnd * np.ones(len(tmpx))
         outCurvePart = []
         x = []
         for i in range(len(out['amp'])):
@@ -1965,7 +1954,7 @@ class TensorDeconvParamFrame(AbstractParamFrame):
                 y = out['amp'][i] * simFunc.tensorMASDeconvtensorFunc(tmpx, tensor[2][0], tensor[2][1], tensor[2][2], out['lor'][i], out['gauss'][i], self.parent.sw(), out['spinspeed'][0], out['cheng'][0], out['numssb'][-1])
             else:
                 y = out['amp'][i] * simFunc.tensorDeconvtensorFunc(tmpx, tensor[0][0], tensor[0][1], tensor[0][2], out['lor'][i], out['gauss'][i], out['multt'][0], self.parent.sw(), out['weight'][0])
-            outCurvePart.append(outCurveBase + y)
+            outCurvePart.append(bgrnd + y)
             outCurve += y
         locList = self.getRedLocList()
         self.parent.fitDataList[locList] = [tmpx, outCurve, x, outCurvePart]
@@ -1994,13 +1983,13 @@ def tensorDeconvfitFunc(params, allX, args):
     allArgu = args[4]
     fullTestFunc = []
     for n in range(len(allX)):
-        x = allX[n]
+        x = allX[n][-1]
         testFunc = np.zeros(len(x))
         param = allParam[n]
         numExp = args[2][n]
         struc = args[3][n]
         argu = args[4][n]
-        sw = args[5][n]
+        sw = args[5][n][-1]
         axMult = args[6][n]
         parameters = {}
         mas = argu[-1][0]
@@ -2012,7 +2001,7 @@ def tensorDeconvfitFunc(params, allX, args):
             parameters['multt'] = argu[-1][1]
             parameters['weight'] = argu[-1][2]
             parameters['shiftdef'] = argu[-1][3]
-        for name in ['spinspeed', 'bgrnd', 'slope']:
+        for name in ['spinspeed', 'bgrnd']:
             if struc[name][0][0] == 1:
                 parameters[name] = param[struc[name][0][1]]
             elif struc[name][0][0] == 0:
@@ -2047,7 +2036,7 @@ def tensorDeconvfitFunc(params, allX, args):
                 testFunc += parameters['amp'] * simFunc.tensorMASDeconvtensorFunc(x, tensor[2][0], tensor[2][1], tensor[2][2], parameters['lor'], parameters['gauss'], sw, parameters['spinspeed'], parameters['cheng'], parameters['numssb'])
             else:
                 testFunc += parameters['amp'] * simFunc.tensorDeconvtensorFunc(x, tensor[0][0], tensor[0][1], tensor[0][2], parameters['lor'], parameters['gauss'], parameters['multt'], sw, parameters['weight'])
-        testFunc += parameters['bgrnd'] + parameters['slope'] * x
+        testFunc += parameters['bgrnd']
         fullTestFunc = np.append(fullTestFunc, testFunc)
     return fullTestFunc
 
@@ -2079,9 +2068,9 @@ class Quad1DeconvParamFrame(AbstractParamFrame):
     Ivalues = [1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 4.0, 4.5]
 
     def __init__(self, parent, rootwindow, isMain=True):
-        self.SINGLENAMES = ['bgrnd', 'slope', 'spinspeed']
+        self.SINGLENAMES = ['bgrnd', 'spinspeed']
         self.MULTINAMES = ['pos', 'cq', 'eta', 'amp', 'lor', 'gauss']
-        self.PARAMTEXT = {'bgrnd': 'Background', 'slope': 'Slope', 'spinspeed': 'Spinning Speed', 'pos': 'Position', 'cq': 'Cq', 'eta': 'eta', 'amp': 'Integral', 'lor': 'Lorentz', 'gauss': 'Gauss'}
+        self.PARAMTEXT = {'bgrnd': 'Background', 'spinspeed': 'Spinning Speed', 'pos': 'Position', 'cq': 'Cq', 'eta': 'eta', 'amp': 'Integral', 'lor': 'Lorentz', 'gauss': 'Gauss'}
         self.FITFUNC = quad1mpFit
         self.setAngleStuff = simFunc.quad1DeconvsetAngleStuff
         self.tensorFunc = simFunc.quad1DeconvtensorFunc
@@ -2089,8 +2078,8 @@ class Quad1DeconvParamFrame(AbstractParamFrame):
         # Get full integral
         self.fullInt = np.sum(parent.getData1D()) * parent.sw() / float(len(parent.getData1D()))
         super(Quad1DeconvParamFrame, self).__init__(parent, rootwindow, isMain)
-        self.ticks = {'bgrnd': [], 'slope': [], 'spinspeed': [], 'pos': [], 'cq': [], 'eta': [], 'amp': [], 'lor': [], 'gauss': []}
-        self.entries = {'bgrnd': [], 'slope': [], 'spinspeed': [], 'pos': [], 'cq': [], 'eta': [], 'amp': [], 'lor': [], 'gauss': [], 'shiftdef': [], 'cheng': [], 'I': [], 'mas': [], 'numssb': []}
+        self.ticks = {'bgrnd': [], 'spinspeed': [], 'pos': [], 'cq': [], 'eta': [], 'amp': [], 'lor': [], 'gauss': []}
+        self.entries = {'bgrnd': [], 'spinspeed': [], 'pos': [], 'cq': [], 'eta': [], 'amp': [], 'lor': [], 'gauss': [], 'shiftdef': [], 'cheng': [], 'I': [], 'mas': [], 'numssb': []}
         self.optframe.addWidget(wc.QLabel("Cheng:"), 0, 0)
         self.entries['cheng'].append(QtWidgets.QSpinBox())
         self.entries['cheng'][-1].setAlignment(QtCore.Qt.AlignHCenter)
@@ -2129,11 +2118,6 @@ class Quad1DeconvParamFrame(AbstractParamFrame):
         self.frame2.addWidget(self.ticks['bgrnd'][-1], 3, 0)
         self.entries['bgrnd'].append(wc.QLineEdit("0.0"))
         self.frame2.addWidget(self.entries['bgrnd'][-1], 3, 1)
-        self.frame2.addWidget(wc.QLabel("Slope:"), 4, 0, 1, 2)
-        self.ticks['slope'].append(QtWidgets.QCheckBox(''))
-        self.frame2.addWidget(self.ticks['slope'][-1], 5, 0)
-        self.entries['slope'].append(wc.QLineEdit("0.0"))
-        self.frame2.addWidget(self.entries['slope'][-1], 5, 1)
         self.frame2.setColumnStretch(10, 1)
         self.frame2.setAlignment(QtCore.Qt.AlignTop)
         self.numExp = QtWidgets.QComboBox()
@@ -2181,7 +2165,6 @@ class Quad1DeconvParamFrame(AbstractParamFrame):
     def defaultValues(self, inp):
         if not inp:
             return {'bgrnd': [0.0, True],
-                    'slope': [0.0, True],
                     'spinspeed': [10.0, True],
                     'pos': np.repeat([np.array([0.0, False], dtype=object)], self.FITNUM, axis=0),
                     'cq': np.repeat([np.array([1.0, False], dtype=object)], self.FITNUM, axis=0),
@@ -2244,8 +2227,8 @@ class Quad1DeconvParamFrame(AbstractParamFrame):
                     self.rootwindow.father.dispMsg("Fitting: One of the inputs is not valid")
                     return
         tmpx = self.parent.xax()
-        outCurveBase = out['bgrnd'][0] + tmpx * out['slope'][0]
-        outCurve = outCurveBase.copy()
+        bgrnd = out['bgrnd'][0]
+        outCurve = bgrnd * np.ones(len(tmpx))
         outCurvePart = []
         x = []
         for i in range(len(out['amp'])):
@@ -2254,7 +2237,7 @@ class Quad1DeconvParamFrame(AbstractParamFrame):
                 y = out['amp'][i] * simFunc.quad1MASFunc(tmpx, out['pos'][i]/self.axMult, out['cq'][i], out['eta'][i], out['lor'][i], out['gauss'][i], self.parent.sw(), out['spinspeed'][0], out['cheng'][0], out['I'][0], out['numssb'][0])
             else:
                 y = out['amp'][i] * self.tensorFunc(tmpx, out['I'][0], out['pos'][i]/self.axMult, out['cq'][i], out['eta'][i], out['lor'][i], out['gauss'][i], out['anglestuff'][0], self.parent.freq(), self.parent.sw(), out['weight'][0])
-            outCurvePart.append(outCurveBase + y)
+            outCurvePart.append(bgrnd + y)
             outCurve += y
         locList = self.getRedLocList()
         self.parent.fitDataList[locList] = [tmpx, outCurve, x, outCurvePart]
@@ -2284,13 +2267,13 @@ def quad1fitFunc(params, allX, args):
     allArgu = args[4]
     fullTestFunc = []
     for n in range(len(allX)):
-        x = allX[n]
+        x = allX[n][-1]
         testFunc = np.zeros(len(x))
         param = allParam[n]
         numExp = args[2][n]
         struc = args[3][n]
         argu = args[4][n]
-        sw = args[5][n]
+        sw = args[5][n][-1]
         axMult = args[6][n]
         parameters = {}
         mas = argu[-1][0]
@@ -2303,7 +2286,7 @@ def quad1fitFunc(params, allX, args):
             parameters['anglestuff'] = argu[-1][3]
             parameters['tensorfunc'] = argu[-1][4]
             parameters['freq'] = argu[-1][5]
-        for name in ['spinspeed', 'bgrnd', 'slope']:
+        for name in ['spinspeed', 'bgrnd']:
             if struc[name][0][0] == 1:
                 parameters[name] = param[struc[name][0][1]]
             elif struc[name][0][0] == 0:
@@ -2331,7 +2314,7 @@ def quad1fitFunc(params, allX, args):
                 testFunc += parameters['amp'] * simFunc.quad1MASFunc(x, parameters['pos']/axMult, parameters['cq'], parameters['eta'], parameters['lor'], parameters['gauss'], sw, parameters['spinspeed'], parameters['cheng'], parameters['I'], parameters['numssb'])
             else:
                 testFunc += parameters['amp'] * parameters['tensorfunc'](x, parameters['I'], parameters['pos']/axMult, parameters['cq'], parameters['eta'], parameters['lor'], parameters['gauss'], parameters['anglestuff'], parameters['freq'], sw, parameters['weight'])
-            testFunc += parameters['bgrnd'] + parameters['slope'] * x
+            testFunc += parameters['bgrnd']
         fullTestFunc = np.append(fullTestFunc, testFunc)
     return fullTestFunc
 
@@ -2462,9 +2445,9 @@ class Quad2CzjzekParamFrame(AbstractParamFrame):
     Ioptions = ['3/2', '5/2', '7/2', '9/2']
 
     def __init__(self, parent, rootwindow, isMain=True):
-        self.SINGLENAMES = ['bgrnd', 'slope']
+        self.SINGLENAMES = ['bgrnd']
         self.MULTINAMES = ['d', 'pos', 'sigma', 'amp', 'lor', 'gauss']
-        self.PARAMTEXT = {'bgrnd': 'Background', 'slope': 'Slope', 'd': 'd parameter', 'pos': 'Position', 'sigma': 'Sigma', 'amp': 'Integral', 'lor': 'Lorentz', 'gauss': 'Gauss'}
+        self.PARAMTEXT = {'bgrnd': 'Background', 'd': 'd parameter', 'pos': 'Position', 'sigma': 'Sigma', 'amp': 'Integral', 'lor': 'Lorentz', 'gauss': 'Gauss'}
         self.FITFUNC = quad2CzjzekmpFit
         self.wqsteps = 50
         self.etasteps = 10
@@ -2473,8 +2456,8 @@ class Quad2CzjzekParamFrame(AbstractParamFrame):
         self.fullInt = np.sum(parent.getData1D()) * parent.sw() / float(len(parent.getData1D()))
         super(Quad2CzjzekParamFrame, self).__init__(parent, rootwindow, isMain)
         self.cheng = 15
-        self.ticks = {'bgrnd': [], 'slope': [], 'pos': [], 'd': [], 'sigma': [], 'amp': [], 'lor': [], 'gauss': []}
-        self.entries = {'bgrnd': [], 'slope': [], 'pos': [], 'd': [], 'sigma': [], 'amp': [], 'lor': [], 'gauss': [], 'method': [], 'cheng': [], 'I': [], 'wqgrid': [], 'etagrid': [], 'wqmax': [], 'mas': []}
+        self.ticks = {'bgrnd': [], 'pos': [], 'd': [], 'sigma': [], 'amp': [], 'lor': [], 'gauss': []}
+        self.entries = {'bgrnd': [], 'pos': [], 'd': [], 'sigma': [], 'amp': [], 'lor': [], 'gauss': [], 'method': [], 'cheng': [], 'I': [], 'wqgrid': [], 'etagrid': [], 'wqmax': [], 'mas': []}
         czjzekPrefButton = QtWidgets.QPushButton("Grid Settings")
         czjzekPrefButton.clicked.connect(self.createCzjzekPrefWindow)
         self.frame1.addWidget(czjzekPrefButton, 1, 1)
@@ -2505,12 +2488,6 @@ class Quad2CzjzekParamFrame(AbstractParamFrame):
         self.frame2.addWidget(self.ticks['bgrnd'][-1], 1, 0)
         self.entries['bgrnd'].append(wc.FitQLineEdit(self, 'bgrnd', "0.0"))
         self.frame2.addWidget(self.entries['bgrnd'][-1], 1, 1)
-        self.frame2.addWidget(wc.QLabel("Slope:"), 2, 0, 1, 2)
-        self.ticks['slope'].append(QtWidgets.QCheckBox(''))
-        self.ticks['slope'][-1].setChecked(True)
-        self.frame2.addWidget(self.ticks['slope'][-1], 3, 0)
-        self.entries['slope'].append(wc.FitQLineEdit(self, 'slope', "0.0"))
-        self.frame2.addWidget(self.entries['slope'][-1], 3, 1)
         self.frame2.setColumnStretch(10, 1)
         self.frame2.setAlignment(QtCore.Qt.AlignTop)
         self.numExp = QtWidgets.QComboBox()
@@ -2543,7 +2520,6 @@ class Quad2CzjzekParamFrame(AbstractParamFrame):
     def defaultValues(self, inp):
         if not inp:
             return {'bgrnd': [0.0, True],
-                    'slope': [0.0, True],
                     'pos': np.repeat([np.array([0.0, False], dtype=object)], self.FITNUM, axis=0),
                     'd': np.repeat([np.array([5.0, True], dtype=object)], self.FITNUM, axis=0),
                     'sigma': np.repeat([np.array([1.0, False], dtype=object)], self.FITNUM, axis=0),
@@ -2668,14 +2644,14 @@ class Quad2CzjzekParamFrame(AbstractParamFrame):
                     self.rootwindow.father.dispMsg("Fitting: One of the inputs is not valid")
                     return
         tmpx = self.parent.xax()
-        outCurveBase = out['bgrnd'][0] + tmpx * out['slope'][0]
-        outCurve = outCurveBase.copy()
+        bgrnd = out['bgrnd'][0]
+        outCurve = bgrnd * np.ones(len(tmpx))
         outCurvePart = []
         x = []
         for i in range(len(out['pos'])):
             x.append(tmpx)
             y = out['amp'][i] * simFunc.quad2CzjzektensorFunc(tmpx, out['sigma'][i], out['d'][i], out['pos'][i]/axMult, out['lor'][i], out['gauss'][i], out['wq'][0], out['eta'][0], out['lib'][0], self.parent.freq(), self.parent.sw())
-            outCurvePart.append(outCurveBase + y)
+            outCurvePart.append(bgrnd + y)
             outCurve += y
         locList = self.getRedLocList()
         self.parent.fitDataList[locList] = [tmpx, outCurve, x, outCurvePart]
@@ -2703,13 +2679,13 @@ def quad2CzjzekfitFunc(params, allX, args):
     allArgu = args[4]
     fullTestFunc = []
     for n in range(len(allX)):
-        x = allX[n]
+        x = allX[n][-1]
         testFunc = np.zeros(len(x))
         param = allParam[n]
         numExp = args[2][n]
         struc = args[3][n]
         argu = args[4][n]
-        sw = args[5][n]
+        sw = args[5][n][-1]
         axMult = args[6][n]
         parameters = {}
         parameters['I'] = argu[-1][0]
@@ -2717,7 +2693,7 @@ def quad2CzjzekfitFunc(params, allX, args):
         parameters['wq'] = argu[-1][2]#.flatten()
         parameters['eta'] = argu[-1][3]#.flatten()
         parameters['freq'] = argu[-1][4]
-        for name in ['bgrnd', 'slope']:
+        for name in ['bgrnd']:
             if struc[name][0][0] == 1:
                 parameters[name] = param[struc[name][0][1]]
             elif struc[name][0][0] == 0:
@@ -2742,7 +2718,7 @@ def quad2CzjzekfitFunc(params, allX, args):
                     elif strucTarget[altStruc[0]][altStruc[1]][0] == 0:
                         parameters[name] = altStruc[2] * allArgu[altStruc[4]][strucTarget[altStruc[0]][altStruc[1]][1]] + altStruc[3]
             testFunc += parameters['amp'] * simFunc.quad2CzjzektensorFunc(x, parameters['sigma'], parameters['d'], parameters['pos']/axMult, parameters['lor'], parameters['gauss'], parameters['wq'], parameters['eta'], parameters['lib'], parameters['freq'], sw)
-        testFunc += parameters['bgrnd'] + parameters['slope'] * x
+        testFunc += parameters['bgrnd']
         fullTestFunc = np.append(fullTestFunc, testFunc)
     return fullTestFunc
 
@@ -2874,8 +2850,8 @@ class SIMPSONDeconvParamFrame(AbstractParamFrame):
                         self.rootwindow.father.dispMsg("Fitting: One of the inputs is not valid")
                         return
             tmpx = self.parent.xax()
-            outCurveBase = np.zeros(len(tmpx))
-            outCurve = outCurveBase.copy()
+            bgrnd = np.zeros(len(tmpx))
+            outCurve = bgrnd
             outCurvePart = []
             x = []
             for i in range(numExp):
@@ -2887,7 +2863,7 @@ class SIMPSONDeconvParamFrame(AbstractParamFrame):
                 if y is None:
                     self.rootwindow.father.dispMsg("Fitting: The script didn't output anything", 'red')
                     return
-                outCurvePart.append(outCurveBase + y)
+                outCurvePart.append(bgrnd + y)
                 outCurve += y
             locList = self.getRedLocList()
 
@@ -2916,13 +2892,13 @@ def SIMPSONDeconvfitFunc(params, allX, args):
     allArgu = args[4]
     fullTestFunc = []
     for n in range(len(allX)):
-        x = allX[n]
+        x = allX[n][-1]
         testFunc = np.zeros(len(x))
         param = allParam[n]
         numExp = args[2][n]
         struc = args[3][n]
         argu = args[4][n]
-        sw = args[5][n]
+        sw = args[5][n][-1]
         axMult = args[6][n]
         nameList = argu[-1][0]
         command = argu[-1][1]
@@ -3111,8 +3087,8 @@ class FunctionFitParamFrame(AbstractParamFrame):
                         self.rootwindow.father.dispMsg("Fitting: One of the inputs is not valid")
                         return
             tmpx = self.parent.xax()
-            outCurveBase = np.zeros(len(tmpx))
-            outCurve = outCurveBase.copy()
+            bgrnd = np.zeros(len(tmpx))
+            outCurve = bgrnd
             outCurvePart = []
             x = []
             for i in range(numExp):
@@ -3124,7 +3100,7 @@ class FunctionFitParamFrame(AbstractParamFrame):
                 if y is None:
                     self.rootwindow.father.dispMsg("Fitting: The script didn't output anything", 'red')
                     return
-                outCurvePart.append(outCurveBase + y)
+                outCurvePart.append(bgrnd + y)
                 outCurve += y
             locList = self.getRedLocList()
             self.parent.fitDataList[locList] = [tmpx, outCurve, x, outCurvePart]
@@ -3152,13 +3128,13 @@ def functionfitFunc(params, allX, args):
     allArgu = args[4]
     fullTestFunc = []
     for n in range(len(allX)):
-        x = allX[n]
+        x = allX[n][-1]
         testFunc = np.zeros(len(x))
         param = allParam[n]
         numExp = args[2][n]
         struc = args[3][n]
         argu = args[4][n]
-        sw = args[5][n]
+        sw = args[5][n][-1]
         axMult = args[6][n]
         nameList = argu[-1][0]
         function = argu[-1][1]
@@ -3425,14 +3401,14 @@ class MqmasDeconvParamFrame(AbstractParamFrame):
                     self.rootwindow.father.dispMsg("Fitting: One of the inputs is not valid")
                     return
         tmpx = [self.parent.xax(-2), self.parent.xax()]
-        outCurveBase = out['bgrnd'][0]
-        outCurve = outCurveBase
+        bgrnd = out['bgrnd'][0]
+        outCurve = bgrnd
         outCurvePart = []
         x = []
         for i in range(len(out['amp'])):
             x.append(tmpx)
-            y = out['amp'][i] * self.tensorFunc(tmpx, out['I'][0], out['MQ'][0], out['shear'][0], out['scale'][0], out['pos'][i]/self.axMult, out['cq'][i], out['eta'][i], [out['lor1'][i], out['lor2'][i]], [out['gauss1'][i], out['gauss2'][i]], out['anglestuff'][0], [self.parent.freq(), self.parent.freq()], [self.parent.sw(-2), self.parent.sw()], out['weight'][0])
-            outCurvePart.append(outCurveBase + y)
+            y = out['amp'][i] * self.tensorFunc(tmpx, out['I'][0], out['MQ'][0], out['shear'][0], out['scale'][0], out['pos'][i]/self.axMult, out['cq'][i], out['eta'][i], [out['lor1'][i], out['lor2'][i]], [out['gauss1'][i], out['gauss2'][i]], out['anglestuff'][0], [self.parent.freq(-2), self.parent.freq()], [self.parent.sw(-2), self.parent.sw()], out['weight'][0])
+            outCurvePart.append(bgrnd + y)
             outCurve += y
         locList = self.getRedLocList()
         self.parent.fitDataList[locList] = [tmpx, outCurve, x, outCurvePart]
@@ -3462,7 +3438,7 @@ def mqmasfitFunc(params, allX, args):
     fullTestFunc = []
     for n in range(len(allX)):
         x = allX[n]
-        testFunc = np.zeros(len(x))
+        testFunc = np.zeros([len(i) for i in x])
         param = allParam[n]
         numExp = args[2][n]
         struc = args[3][n]
@@ -3504,5 +3480,5 @@ def mqmasfitFunc(params, allX, args):
                         parameters[name] = altStruc[2] * allArgu[altStruc[4]][strucTarget[altStruc[0]][altStruc[1]][1]] + altStruc[3]
             testFunc += parameters['amp'] * parameters['tensorfunc'](x, parameters['I'], parameters['MQ'], parameters['shear'], parameters['scale'], parameters['pos']/axMult, parameters['cq'], parameters['eta'], [parameters['lor1'], parameters['lor2']], [parameters['gauss1'], parameters['gauss2']], parameters['anglestuff'], parameters['freq'], sw, parameters['weight'])
             testFunc += parameters['bgrnd']
-        fullTestFunc = np.append(fullTestFunc, testFunc)
-    return fullTestFunc
+        fullTestFunc.append(testFunc)
+    return np.array(fullTestFunc)

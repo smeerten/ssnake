@@ -226,7 +226,7 @@ class HComplexData(object):
     
     def removeDim(self, axis):
         if axis < 1:
-            raise RuntimeError("Cannot remove axis below 1 from hyper dimensions")
+            axis = self.data.ndim - axis
         if self.isComplex(axis):
             self.data = self.real(axis)
         watershedBits = 2**axis - 1
