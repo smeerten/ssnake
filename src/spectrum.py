@@ -580,6 +580,8 @@ class Spectrum(object):
 
     def sum(self, pos1, pos2, axes):
         axes = self.checkAxes(axes)
+        if not self.noUndo:
+            copyData = copy.deepcopy(self)
         self.matrixManip(pos1, pos2, axes, which=5)
         self.redoList = []
         if not self.noUndo:
