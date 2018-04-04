@@ -796,25 +796,27 @@ class Spectrum(object):
         axLen = self.shape()[axes]
         t = np.arange(0, axLen) / self.sw[axes]
         if shifting != 0.0:
-            previewData = []
-            for j in range(self.shape()[shiftingAxes]):
-                if self.spec[shiftingAxes]:
-                    shift1 = shift + shifting * j / self.sw[shiftingAxes]
-                else:
-                    shift1 = shift + shifting * self.xaxArray[shiftingAxes][j]
-                x = func.apodize(t, shift1, self.sw[axes], axLen, lor, gauss, cos2, hamming, self.wholeEcho[axes])
-                if preview:
-                    previewData.append(x)
-                if self.spec[axes] > 0:
-                    self.fourier(axes, tmp=True)
-                for i in range(self.shape()[axes]):
-                    if axes < shiftingAxes:
-                        slicing = (slice(None), ) * axes + (i, )
-                    else:
-                        slicing = (slice(None), ) * shiftingAxes + (j, )
-                    self.data[slicing] *= x[i]
-                if self.spec[axes] > 0:
-                    self.fourier(axes, tmp=True, inv=True)
+            if self.spec[shiftingAxes]:
+                shift1 = shift + shifting * np.arange(self.shape()[shiftingAxes]) / self.sw[shiftingAxes]
+            else:
+                shift1 = shift + shifting * self.xaxArray[shiftingAxes]
+            previewData = np.array([func.apodize(t, s, self.sw[axes], axLen, lor, gauss, cos2, hamming, self.wholeEcho[axes]) for s in shift1])
+            if axes < shiftingAxes:
+                previewData = np.swapaxis(previewData, 0, 1)
+            multShape = np.ones(len(self.shape()), dtype=int)
+            multShape[axes] = self.shape()[axes]
+            multShape[shiftingAxes] = self.shape()[shiftingAxes]
+            previewData = previewData.reshape(multShape)
+            if self.spec[axes] > 0:
+                self.fourier(axes, tmp=True)
+            if not isinstance(select, slice):
+                previewSelect = np.full(len(previewData.shape), slice(None))
+                previewSelect[shiftingAxes] = select[shiftingAxes]
+                previewData = previewData[tuple(previewSelect)]
+                select = tuple(select)
+            self.data[select] *= previewData
+            if self.spec[axes] > 0:
+                self.fourier(axes, tmp=True, inv=True)
         else:
             x = func.apodize(t, shift, self.sw[axes], axLen, lor, gauss, cos2, hamming, self.wholeEcho[axes])
             if preview:
@@ -843,7 +845,7 @@ class Spectrum(object):
         if lor is None and gauss is None and cos2 is None and hamming is None:  # If all none, make special message with `zero apodization'
             Message = Message + "zero apodization"
         Message = Message + " for dimension " + str(axes + 1)
-        if select != slice(None, None, None):
+        if isinstance(select, slice):
             Message = Message + " of data[" + str(select) + "]"
         self.addHistory(Message)
         if preview:
