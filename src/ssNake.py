@@ -757,6 +757,8 @@ class MainProgram(QtWidgets.QMainWindow):
         self.shiftconvAct.setToolTip('Chemical Shift Conversion Tool')
         self.quadconvAct = self.utilitiesMenu.addAction(QtGui.QIcon(IconDirectory + 'quadconversion.png'), "&Quadrupole Coupling Conversion Tool", self.createQuadConversionWindow)
         self.quadconvAct.setToolTip('Quadrupole Coupling Conversion Tool')
+        self.mqmasconvAct = self.utilitiesMenu.addAction("MQMAS Parameter Extraction Tool", self.createMqmasExtractWindow)
+        self.quadconvAct.setToolTip('MQMAS Parameter Extraction Tool')
         self.nmrtableAct = self.utilitiesMenu.addAction(QtGui.QIcon(IconDirectory + 'table.png'), "&NMR Table", self.nmrTable)
         self.nmrtableAct.setToolTip('NMR Periodic Table')
         self.gameAct = self.utilitiesMenu.addAction(QtGui.QIcon(IconDirectory + 'ssnake.png'), "&Snake Game", self.snakeGame)
@@ -1471,6 +1473,9 @@ class MainProgram(QtWidgets.QMainWindow):
 
     def createQuadConversionWindow(self):
         quadConversionWindow(self)
+
+    def createMqmasExtractWindow(self):
+        mqmasExtractWindow(self)
 
     def nmrTable(self):
         import subprocess
@@ -6690,6 +6695,123 @@ class quadConversionWindow(wc.ToolWindows):
         self.Vxx.setText('ND')
         self.Vyy.setText('ND')
         self.Vzz.setText('ND')
+
+    def closeEvent(self):
+        self.deleteLater()
+
+##############################################################################
+
+
+class mqmasExtractWindow(wc.ToolWindows):
+
+    Ioptions = ['3/2','5/2', '7/2', '9/2']
+    Ivalues = [1.5, 2.5, 3.5, 4.5]
+    z = [680.0/27.0,8500.0/81.0,6664.0/27.0,1360.0/3.0]
+    BdevA = [1.0/68.0,3.0/850.0,5.0/3332.0,1.0/1224.0]
+    NAME = "MQMAS"
+    RESIZABLE = True
+    MENUDISABLE = False
+
+    def __init__(self, parent):
+        super(mqmasExtractWindow, self).__init__(parent)
+        self.comGroup = QtWidgets.QGroupBox("Common Parameters:")
+        self.comFrame = QtWidgets.QGridLayout()
+        self.grid.addWidget(wc.QLabel("I:"), 0, 0)
+        self.IEntry = QtWidgets.QComboBox()
+        self.IEntry.addItems(self.Ioptions)
+        self.IEntry.setCurrentIndex(0)
+        self.grid.addWidget(self.IEntry, 0, 1)
+        self.grid.addWidget(wc.QLabel(u'\u03BD' + '<sub>0</sub> [MHz]'), 1, 0)
+        self.grid.addWidget(wc.QLabel(u'\u03b4' + '<sub>1</sub> [ppm]'), 2, 0)
+        self.grid.addWidget(wc.QLabel(u'\u03b4' + '<sub>2</sub> [ppm]'), 3, 0)
+
+        self.nu0 = wc.QLineEdit("0.0")
+        self.grid.addWidget(self.nu0, 1, 1)
+        self.delta1 = wc.QLineEdit("0.0")
+        self.grid.addWidget(self.delta1, 2, 1)
+        self.delta2 = wc.QLineEdit("0.0")
+        self.grid.addWidget(self.delta2, 3, 1)
+        self.delta1.setMinimumWidth(200)
+        self.grid.addWidget(wc.QLabel(u'\u03b4' + '<sub>iso</sub> [ppm]'), 4, 0)
+        self.deltaIso = wc.QLineEdit("0.0")
+        self.grid.addWidget(self.deltaIso, 4, 1)
+        self.grid.addWidget(wc.QLabel('P<sub>Q</sub> [MHz]'), 5, 0)
+        self.pq = wc.QLineEdit("0.0")
+        self.grid.addWidget(self.pq, 5, 1)
+
+        self.calcIsoPqButton = QtWidgets.QPushButton("Calc Iso/PQ", self)
+        self.calcIsoPqButton.clicked.connect(self.calcIsoPq)
+        self.grid.addWidget(self.calcIsoPqButton, 6, 0)
+        self.calc12Button = QtWidgets.QPushButton("Calc 1/2", self)
+        self.calc12Button.clicked.connect(self.calc12)
+        self.grid.addWidget(self.calc12Button, 6, 1)
+
+        self.cancelButton.setText("Reset")
+        self.cancelButton.clicked.disconnect()
+        self.cancelButton.clicked.connect(self.valueReset)
+        self.okButton.setText("Close")
+        self.okButton.clicked.disconnect()
+        self.okButton.clicked.connect(self.closeEvent)
+
+    def calcIsoPq(self):
+        nu0 = safeEval(self.nu0.text(),type='FI')
+        wrong = False
+        if nu0 is None:
+            self.father.dispMsg("MQMAS Extract: Invalid input in V0")
+            wrong = True
+        delta1 = safeEval(self.delta1.text(),type='FI')
+        if delta1 is None and wrong is False:
+            self.father.dispMsg("MQMAS Extract: Invalid input in Delta1")
+            wrong = True
+        delta2 = safeEval(self.delta2.text(),type='FI')
+        if delta2 is None and wrong is False:
+            self.father.dispMsg("MQMAS Extract: Invalid input in Delta2")
+            wrong = True
+        zval = self.z[self.IEntry.currentIndex()]
+        if wrong is False and delta1 is not None and delta2 is not None:
+            if delta1 - delta2 < 0.0:
+                self.father.dispMsg("MQMAS Extract: Delta1 should be larger than Delta2!")
+                wrong = True
+        if wrong:
+            self.deltaIso.setText('-')
+            self.pq.setText('-')
+            return
+        iso = (17.0 * delta1 + 10.0 * delta2) / 27
+        self.deltaIso.setText(str(iso))
+        pq = np.sqrt(zval * 1e-6 * (nu0 * 1e6)**2 * (delta1 - delta2)) / 1e6
+        self.pq.setText(str(pq))
+
+    def calc12(self):
+        nu0 = safeEval(self.nu0.text(),type='FI')
+        wrong = False
+        if nu0 is None or nu0 == 0.0:
+            self.father.dispMsg("MQMAS Extract: Invalid input in V0")
+            wrong = True
+        iso = safeEval(self.deltaIso.text(),type='FI')
+        if iso is None and wrong is False:
+            self.father.dispMsg("MQMAS Extract: Invalid input in DeltaIso")
+            wrong = True
+        pq = safeEval(self.pq.text(),type='FI')
+        if pq is None and wrong is False:
+            self.father.dispMsg("MQMAS Extract: Invalid input in PQ")
+            wrong = True
+        if wrong:
+            self.delta1.setText('-')
+            self.delta2.setText('-')
+            return
+        BdevA = self.BdevA[self.IEntry.currentIndex()]
+        delta1 = iso + BdevA * pq**2/nu0**2 * 1e6
+        self.delta1.setText(str(delta1))
+        delta2 = (27 * iso -  17 * delta1) / 10 
+        self.delta2.setText(str(delta2))
+
+    def valueReset(self):  # Resets all the boxes to 0
+        self.nu0.setText('0')
+        self.delta1.setText('0')
+        self.delta2.setText('0')
+        self.deltaIso.setText('0')
+        self.pq.setText('0')
+        self.IEntry.setCurrentIndex(0)
 
     def closeEvent(self):
         self.deleteLater()
