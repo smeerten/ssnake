@@ -87,11 +87,11 @@ def makeSpectrum2d(x, sw, v, gauss, lor, weight):
     # Takes axis, frequencies and intensities and makes a spectrum with lorentz and gaussian broadening in 2 dimensions
     length1 = len(x[0])
     t1 = np.abs(np.fft.fftfreq(length1, sw[0]/float(length1)))
-    diff1 = (x[0][1]-x[0][0])*0.5
+    diff1 = (x[0][1] - x[0][0])*0.5
     length2 = len(x[1])
     t2 = np.abs(np.fft.fftfreq(length2, sw[1]/float(length2)))
-    diff2 = (x[1][1]-x[1][0])*0.5
-    final, junk, junk = np.histogram2d(v[0], v[1], [length1,length2], range=[[x[0][0]-diff1, x[0][-1]+diff1],[x[1][0]-diff2, x[1][-1]+diff2]], weights=weight)
+    diff2 = (x[1][1] - x[1][0])*0.5
+    final, junk, junk = np.histogram2d(v[0], v[1], [length1, length2], range=[[x[0][0]-diff1, x[0][-1]+diff1],[x[1][0]-diff2, x[1][-1]+diff2]], weights=weight)
     apod1 = np.exp(-np.pi * np.abs(lor[0]) * t1 -((np.pi * np.abs(gauss[0]) * t1)**2) / (4 * np.log(2)))
     apod1 = apod1[:, np.newaxis]
     apod2 = np.exp(-np.pi * np.abs(lor[1]) * t2-((np.pi * np.abs(gauss[1]) * t2)**2) / (4 * np.log(2)))

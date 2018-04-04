@@ -2520,8 +2520,11 @@ class SideFrame(QtWidgets.QScrollArea):
             locList[num] = self.entries[num].value()
         if not self.FITTING:
             self.buttons1Group.button(dimNum).toggle()
+            axes = np.array([self.buttons2Group.checkedId(), dimNum], dtype=int)
+        else:
+            axes = self.father.current.axes
         if self.plotIs2D:
-            self.father.current.setSlice(np.array([self.buttons2Group.checkedId(), dimNum], dtype=int), locList)
+            self.father.current.setSlice(axes, locList)
         else:
             self.father.current.setSlice(np.array([dimNum]), locList)
         if not self.FITTING:

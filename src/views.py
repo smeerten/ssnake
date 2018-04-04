@@ -1190,9 +1190,8 @@ class CurrentStacked(Current1D):
         stack = [reim.floatSlice(self.viewSettings["stackBegin"], self.viewSettings["stackEnd"], self.viewSettings["stackStep"]), slice(None)]
         try:
             self.data1D = self.data.getSlice(self.axes, self.locList, stack)
-            if updateVar is None:
+            if self.data1D is None:
                 self.root.rescue()
-                return False
         except Exception:
             self.resetLocList()
             self.data1D = self.data.getSlice(self.axes, self.locList, stack)
