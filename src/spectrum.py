@@ -1228,7 +1228,7 @@ class Spectrum(object):
                                            [self.spec[axis] for axis in axes],
                                            [self.wholeEcho[axis] for axis in axes],
                                            [self.ref[axis] for axis in axes],
-                                           [self.xaxArray[axis] for axis in axes],
+                                           [self.xaxArray[axis][stack[i]] for i, axis in enumerate(axes)],
                                            self.history,
                                            self.msgHandler,
                                            name=self.name))

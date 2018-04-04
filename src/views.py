@@ -109,6 +109,8 @@ class Current1D(PlotFrame):
                 diff = self.NDIM_PLOT - len(self.viewSettings['axType'])
                 self.viewSettings['axType'] = np.append(np.array([self.root.father.defaultUnits] * diff, dtype=int), self.viewSettings['axType'][-self.NDIM_PLOT:])
                 self.viewSettings['ppm'] = np.append(np.array([self.root.father.defaultPPM] * diff, dtype=bool), self.viewSettings['ppm'][-self.NDIM_PLOT:])
+            if type(self) not in (CurrentStacked, CurrentArrayed) or type(self) not in (CurrentStacked, CurrentArrayed):
+                self.viewSettings.update({"stackBegin": None, "stackEnd": None, "stackStep": None})
             self.xminlim = duplicateCurrent.xminlim
             self.xmaxlim = duplicateCurrent.xmaxlim
             self.yminlim = duplicateCurrent.yminlim
