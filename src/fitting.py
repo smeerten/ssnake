@@ -2238,7 +2238,7 @@ class Quad1DeconvParamFrame(AbstractParamFrame):
                 y = out['amp'][i] * simFunc.quad1MASFunc(tmpx, out['pos'][i]/self.axMult, out['cq'][i], out['eta'][i], out['lor'][i], out['gauss'][i], self.parent.sw(), out['spinspeed'][0], out['cheng'][0], out['I'][0], out['numssb'][0])
             else:
                 y = out['amp'][i] * self.tensorFunc(tmpx, out['I'][0], out['pos'][i]/self.axMult, out['cq'][i], out['eta'][i], out['lor'][i], out['gauss'][i], out['anglestuff'][0], self.parent.freq(), self.parent.sw(), out['weight'][0])
-            np.real(np.fft.fftn(y))
+            y = np.real(np.fft.fftn(y))
             outCurvePart.append(bgrnd + y)
             outCurve += y
         locList = self.getRedLocList()
@@ -2653,7 +2653,7 @@ class Quad2CzjzekParamFrame(AbstractParamFrame):
         x = []
         for i in range(len(out['pos'])):
             x.append(tmpx)
-            y = out['amp'][i] * simFunc.quad2CzjzektensorFunc(tmpx, out['sigma'][i], out['d'][i], out['pos'][i]/axMult, out['lor'][i], out['gauss'][i], out['wq'][0], out['eta'][0], out['lib'][0], self.parent.freq(), self.parent.sw())
+            y = out['amp'][i] * simFunc.quad2CzjzektensorFunc(tmpx, out['sigma'][i], out['d'][i], out['pos'][i]/self.axMult, out['lor'][i], out['gauss'][i], out['wq'][0], out['eta'][0], out['lib'][0], self.parent.freq(), self.parent.sw())
             outCurvePart.append(bgrnd + y)
             outCurve += y
         locList = self.getRedLocList()

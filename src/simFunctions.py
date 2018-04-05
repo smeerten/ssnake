@@ -256,16 +256,13 @@ def quad2CzjzektensorFunc(x, sigma, d, pos, width, gauss, wq, eta, lib, freq, sw
     sigma = sigma * 1e6
     czjzek = czjzekIntensities(sigma, d, wq, eta)
     fid = np.dot(czjzek, lib)
-    t = np.arange(len(fid)) / sw
-    apod = np.exp(-np.pi * np.abs(width) * t -((np.pi * np.abs(gauss) * t)**2) / (4 * np.log(2)))
-    apod[-1:int(-(len(apod) / 2 + 1)):-1] = apod[:int(len(apod) / 2)]
-    apod[0] *= 0.5
+    length = len(x)
+    t = np.fft.fftfreq(length, sw/float(length))
     pos -= x[int(len(x)/2)]
+    apod = np.exp(2j*np.pi*pos*t-np.pi * np.abs(width) * np.abs(t) -((np.pi * np.abs(gauss) * t)**2) / (4 * np.log(2)))
     spectrum = np.real(np.fft.fft(fid * apod))
-    spectrum = scipy.ndimage.interpolation.shift(spectrum, len(fid) * pos / sw)
     spectrum = spectrum / sw * len(spectrum)
     return spectrum
-
 
 def mqmasAngleStuff(cheng):
     phi, theta, weight = zcw_angles(cheng, symm=2)
