@@ -79,25 +79,27 @@ def makeSpectrum(x, sw, v, gauss, lor, weight):
     diff = (x[1]-x[0])*0.5
     final, junk = np.histogram(v, length, range=[x[0]-diff, x[-1]+diff], weights=weight)
     apod = np.exp(-np.pi * np.abs(lor) * t -((np.pi * np.abs(gauss) * t)**2) / (4 * np.log(2)))
-    inten = np.real(np.fft.fft(np.fft.ifft(final) * apod))
+    inten = np.fft.ifft(final) * apod
     inten = inten / sw * len(inten) 
     return inten
 
-def makeSpectrum2d(x, sw, v, gauss, lor, weight):
-    # Takes axis, frequencies and intensities and makes a spectrum with lorentz and gaussian broadening in 2 dimensions
+def makeMQMASSpectrum(x, sw, v, gauss, lor, weight, offset, shear):
     length1 = len(x[0])
-    t1 = np.abs(np.fft.fftfreq(length1, sw[0]/float(length1)))
+    t1 = np.fft.fftfreq(length1, sw[0]/float(length1))
     diff1 = (x[0][1] - x[0][0])*0.5
     length2 = len(x[1])
-    t2 = np.abs(np.fft.fftfreq(length2, sw[1]/float(length2)))
+    t2 = np.fft.fftfreq(length2, sw[1]/float(length2))
     diff2 = (x[1][1] - x[1][0])*0.5
-    final, junk, junk = np.histogram2d(v[0], v[1], [length1, length2], range=[[x[0][0]-diff1, x[0][-1]+diff1],[x[1][0]-diff2, x[1][-1]+diff2]], weights=weight)
-    apod1 = np.exp(-np.pi * np.abs(lor[0]) * t1 -((np.pi * np.abs(gauss[0]) * t1)**2) / (4 * np.log(2)))
-    apod1 = apod1[:, np.newaxis]
-    apod2 = np.exp(-np.pi * np.abs(lor[1]) * t2-((np.pi * np.abs(gauss[1]) * t2)**2) / (4 * np.log(2)))
-    inten = np.real(np.fft.fft2(np.fft.ifft2(final) * apod1 * apod2))
-    inten = inten / sw[0] * inten.shape[0] / sw[1] * inten.shape[1]
-    return inten
+    t1 = t1[:, np.newaxis]
+    final, junk = np.histogram(v, length2, range=[x[1][0]-diff2, x[1][-1]+diff2], weights=weight)
+    apod2 = np.exp(-np.pi * np.abs(lor[1] * t2)-((np.pi * np.abs(gauss[1]) * t2)**2) / (4 * np.log(2)))
+    final = np.fft.fft(np.fft.ifft(final) * apod2) /sw[0] * length2/sw[1]
+    if np.abs(shear) > 1e-7:
+        offset += shear*x[1]
+    apod1 = np.exp(2j * np.pi * offset * t1)
+    apod1 *= np.exp(- np.pi * np.abs(lor[0] * t1) -((np.pi * np.abs(gauss[0]) * t1)**2) / (4 * np.log(2)))
+    inten = final * apod1
+    return inten # time domain in dim 0 and freq domain in dim 1
 
 def csaAngleStuff(cheng):
     phi, theta, weight = zcw_angles(cheng, symm=2)
@@ -252,7 +254,7 @@ def czjzekIntensities(sigma, d, wq, eta):
 
 def quad2CzjzektensorFunc(x, sigma, d, pos, width, gauss, wq, eta, lib, freq, sw):
     sigma = sigma * 1e6
-    czjzek = czjzekIntensities(sigma,d, wq, eta)
+    czjzek = czjzekIntensities(sigma, d, wq, eta)
     fid = np.dot(czjzek, lib)
     t = np.arange(len(fid)) / sw
     apod = np.exp(-np.pi * np.abs(width) * t -((np.pi * np.abs(gauss) * t)**2) / (4 * np.log(2)))
@@ -285,11 +287,11 @@ def mqmasFunc(x, I, p, shear, scale, pos, cq, eta, lor, gauss, angleStuff, freq,
     v0Q, v4Q = mqmasFreq(I, cq, eta, angleStuff)
     C10 = I*(I+1) - 3/4.0
     C14 = -7/18.0 * (18*I*(I+1) - 17/2.0 - 5)
-    v2 = pos + (C10 * v0Q + C14 * v4Q)/freq[-1]
+    v2 = pos + (C10 * v0Q + C14 * v4Q) / freq[-1]
     Cp0 = p * (I*(I+1) - 3/4.0 * p**2)
     Cp4 = -7/18.0 * p * (18*I*(I+1) - 17/2.0 * p**2 - 5)
-    v1 = p * pos + (Cp0 * v0Q + Cp4 * v4Q)/freq[-2]
-    v1 -= shear*v2
-    v1 *= scale
-    return makeSpectrum2d(x, sw, [v1, v2], gauss, lor, weight)
-
+    #v1 = p * pos + (Cp0 * v0Q + Cp4 * v4Q) / freq[-2]
+    shearFactor = Cp4 / C14 * freq[-1] / freq[-2]
+    offset = p * pos + Cp0 * v0Q / freq[-2] - shearFactor * (pos + C10 * v0Q / freq[-1])
+    offset *= scale
+    return makeMQMASSpectrum(x, sw, v2, gauss, lor, weight, offset, (shearFactor-shear))

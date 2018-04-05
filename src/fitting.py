@@ -1954,6 +1954,7 @@ class TensorDeconvParamFrame(AbstractParamFrame):
                 y = out['amp'][i] * simFunc.tensorMASDeconvtensorFunc(tmpx, tensor[2][0], tensor[2][1], tensor[2][2], out['lor'][i], out['gauss'][i], self.parent.sw(), out['spinspeed'][0], out['cheng'][0], out['numssb'][-1])
             else:
                 y = out['amp'][i] * simFunc.tensorDeconvtensorFunc(tmpx, tensor[0][0], tensor[0][1], tensor[0][2], out['lor'][i], out['gauss'][i], out['multt'][0], self.parent.sw(), out['weight'][0])
+            y = np.real(np.fft.fftn(y))
             outCurvePart.append(bgrnd + y)
             outCurve += y
         locList = self.getRedLocList()
@@ -2036,10 +2037,10 @@ def tensorDeconvfitFunc(params, allX, args):
                 testFunc += parameters['amp'] * simFunc.tensorMASDeconvtensorFunc(x, tensor[2][0], tensor[2][1], tensor[2][2], parameters['lor'], parameters['gauss'], sw, parameters['spinspeed'], parameters['cheng'], parameters['numssb'])
             else:
                 testFunc += parameters['amp'] * simFunc.tensorDeconvtensorFunc(x, tensor[0][0], tensor[0][1], tensor[0][2], parameters['lor'], parameters['gauss'], parameters['multt'], sw, parameters['weight'])
+        testFunc = np.real(np.fft.fftn(testFunc))
         testFunc += parameters['bgrnd']
         fullTestFunc = np.append(fullTestFunc, testFunc)
     return fullTestFunc
-
 
 
 ##############################################################################
@@ -2237,6 +2238,7 @@ class Quad1DeconvParamFrame(AbstractParamFrame):
                 y = out['amp'][i] * simFunc.quad1MASFunc(tmpx, out['pos'][i]/self.axMult, out['cq'][i], out['eta'][i], out['lor'][i], out['gauss'][i], self.parent.sw(), out['spinspeed'][0], out['cheng'][0], out['I'][0], out['numssb'][0])
             else:
                 y = out['amp'][i] * self.tensorFunc(tmpx, out['I'][0], out['pos'][i]/self.axMult, out['cq'][i], out['eta'][i], out['lor'][i], out['gauss'][i], out['anglestuff'][0], self.parent.freq(), self.parent.sw(), out['weight'][0])
+            np.real(np.fft.fftn(y))
             outCurvePart.append(bgrnd + y)
             outCurve += y
         locList = self.getRedLocList()
@@ -2314,6 +2316,7 @@ def quad1fitFunc(params, allX, args):
                 testFunc += parameters['amp'] * simFunc.quad1MASFunc(x, parameters['pos']/axMult, parameters['cq'], parameters['eta'], parameters['lor'], parameters['gauss'], sw, parameters['spinspeed'], parameters['cheng'], parameters['I'], parameters['numssb'])
             else:
                 testFunc += parameters['amp'] * parameters['tensorfunc'](x, parameters['I'], parameters['pos']/axMult, parameters['cq'], parameters['eta'], parameters['lor'], parameters['gauss'], parameters['anglestuff'], parameters['freq'], sw, parameters['weight'])
+            testFunc = np.real(np.fft.fftn(testFunc))
             testFunc += parameters['bgrnd']
         fullTestFunc = np.append(fullTestFunc, testFunc)
     return fullTestFunc
@@ -3408,6 +3411,7 @@ class MqmasDeconvParamFrame(AbstractParamFrame):
         for i in range(len(out['amp'])):
             x.append(tmpx)
             y = out['amp'][i] * self.tensorFunc(tmpx, out['I'][0], out['MQ'][0], out['shear'][0], out['scale'][0], out['pos'][i]/self.axMult, out['cq'][i], out['eta'][i], [out['lor1'][i], out['lor2'][i]], [out['gauss1'][i], out['gauss2'][i]], out['anglestuff'][0], [self.parent.freq(-2), self.parent.freq()], [self.parent.sw(-2), self.parent.sw()], out['weight'][0])
+            y = np.real(np.fft.fftshift(np.fft.fft(y, axis=0), axes=0))
             outCurvePart.append(bgrnd + y)
             outCurve += y
         locList = self.getRedLocList()
@@ -3438,7 +3442,7 @@ def mqmasfitFunc(params, allX, args):
     fullTestFunc = []
     for n in range(len(allX)):
         x = allX[n]
-        testFunc = np.zeros([len(i) for i in x])
+        testFunc = np.zeros([len(i) for i in x], dtype=complex)
         param = allParam[n]
         numExp = args[2][n]
         struc = args[3][n]
@@ -3479,6 +3483,7 @@ def mqmasfitFunc(params, allX, args):
                     elif strucTarget[altStruc[0]][altStruc[1]][0] == 0:
                         parameters[name] = altStruc[2] * allArgu[altStruc[4]][strucTarget[altStruc[0]][altStruc[1]][1]] + altStruc[3]
             testFunc += parameters['amp'] * parameters['tensorfunc'](x, parameters['I'], parameters['MQ'], parameters['shear'], parameters['scale'], parameters['pos']/axMult, parameters['cq'], parameters['eta'], [parameters['lor1'], parameters['lor2']], [parameters['gauss1'], parameters['gauss2']], parameters['anglestuff'], parameters['freq'], sw, parameters['weight'])
-            testFunc += parameters['bgrnd']
+        testFunc = np.real(np.fft.fftshift(np.fft.fft(testFunc, axis=0), axes=0))
+        testFunc += parameters['bgrnd']
         fullTestFunc.append(testFunc)
     return np.array(fullTestFunc)
