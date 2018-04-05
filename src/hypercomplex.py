@@ -199,7 +199,7 @@ class HComplexData(object):
     def conj(self, axis):
         if axis < 0:
             axis = self.ndim() + axis
-        if axis == (self.ndim()-1):
+        if not self.isHyperComplex(axis) or axis == (self.ndim()-1):
             return HComplexData(np.conj(self.data), np.copy(self.hyper))
         else:
             tmpData = np.copy(self.data)
