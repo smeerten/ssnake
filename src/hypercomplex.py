@@ -231,7 +231,7 @@ class HComplexData(object):
             self.data = self.real(axis)
         watershedBits = 2**axis - 1
         lowBits = self.hyper & watershedBits
-        self.hyper = (self.hyper - lowBits) / 2 + lowBits
+        self.hyper = (self.hyper - lowBits) // 2 + lowBits
             
     def isComplex(self, axis):
         # Axis ndim-1 are the regular complex numbers, which are always complex
