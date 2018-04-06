@@ -5090,8 +5090,8 @@ class RegridWindow(wc.ToolWindows):
                     self.unit = 'MHz'
                 elif axType == 3:
                     self.unit = 'ppm'
-            maxVal = self.father.current.xax()
-            minVal = self.father.current.xax(-2)
+            maxVal = self.father.current.xax()[-1]
+            minVal = self.father.current.xax()[0]
             if self.unit == 'kHz':
                 maxVal /= 1e3
                 minVal /= 1e3
