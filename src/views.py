@@ -560,8 +560,8 @@ class Current1D(PlotFrame):
             bArray = np.logical_not(bArray)
         y = np.apply_along_axis(lambda data: self.baselinePolyFit(self.xax(), data, bArray, degree), self.axes[-1], self.data.getHyperData(0))
         y = np.real(self.getDataType(y))
-        self.root.addMacro(['subtract', ([y])])
-        self.data.subtract([y])
+        self.root.addMacro(['subtract', (y)])
+        self.data.subtract(y)
 
     def baselineCorrection(self, degree, removeList, select=False, invert=False):
         if select:
