@@ -30,6 +30,10 @@ def parity(x):
         x = x & (x - 1)
     return int(parity)
 
+
+class HComplexException(Exception):
+    pass
+
 #########################################################################
 # the hyper complex data class
 
@@ -47,7 +51,7 @@ class HComplexData(object):
                 self.hyper = np.array([0])
             else:
                 if len(hyper) != len(data):
-                    raise RuntimeError('Length of hyper and data mismatch')
+                    raise HComplexException('Length of hyper and data mismatch')
                 self.data = np.array(data, dtype=complex)
                 self.hyper = np.array(hyper)
 
@@ -159,16 +163,16 @@ class HComplexData(object):
     def __pow__(self, other):
         if isinstance(other, HComplexData):
             if len(self.hyper) > 1 or len(other.hyper) > 1:
-                raise RuntimeError('Division of data with more than one complex axis is not permitted')
+                raise HComplexException('Division of data with more than one complex axis is not permitted')
             return HComplexData(self.data**other.data, np.copy(self.hyper))
         else:
             if len(self.hyper) > 1:
-                raise RuntimeError('Power with more than one complex axis is not permitted')
+                raise HComplexException('Power with more than one complex axis is not permitted')
             return HComplexData(self.data**other, np.copy(self.hyper))
 
     def __rpow__(self, other):
         if len(self.hyper) > 1:
-            raise RuntimeError('Power with more than one complex axis is not permitted')
+            raise HComplexException('Power with more than one complex axis is not permitted')
         return HComplexData(other**self.data, np.copy(self.hyper))
 
     def __getitem__(self, key):
@@ -345,8 +349,12 @@ class HComplexData(object):
         return HComplexData(np.swapaxes(np.split(self.data, sections, axis), 0, 1), np.copy(self.hyper))
 
     def states(self, axis, TPPI=False):
+        if axis < 0:
+            axis = self.ndim() + axis
+        if self.isComplex(axis):
+            raise HComplexException("Data is already complex in dimension " + str(axis+1))
         if self.shape()[axis] % 2 != 0:
-            raise RuntimeError("For conversion the data has to have even datapoints in dimension axis")
+            raise HComplexException("For conversion the data has to have even datapoints in dimension " + str(axis+1))
         slicing1 = (slice(None), ) * (axis+1) + (slice(None, None, 2), ) + (slice(None), ) * (self.ndim() - 1 - axis)
         slicing2 = (slice(None), ) * (axis+1) + (slice(1, None, 2), ) + (slice(None), ) * (self.ndim() - 1 - axis)
         addHyper = self.hyper + 2**axis
@@ -360,8 +368,12 @@ class HComplexData(object):
         self.hyper = np.insert(self.hyper, insertOrder, addHyper)
 
     def echoAntiEcho(self, axis):
+        if axis < 0:
+            axis = self.ndim() + axis
+        if self.isComplex(axis):
+            raise HComplexException("Data is already complex in dimension " + str(axis+1))
         if self.shape()[axis] % 2 != 0:
-            raise RuntimeError("For conversion the data has to have even datapoints in dimension axis")
+            raise HComplexException("For conversion the data has to have even datapoints in dimension " + str(axis+1))
         slicing1 = (slice(None), ) * (axis+1) + (slice(None, None, 2), ) + (slice(None), ) * (self.ndim() - 1 - axis)
         slicing2 = (slice(None), ) * (axis+1) + (slice(1, None, 2), ) + (slice(None), ) * (self.ndim() - 1 - axis)
         addHyper = self.hyper + 2**axis
@@ -473,7 +485,7 @@ class HComplexData(object):
         if newLength is None:
             newLength = max(pos) + 1
         if (max(pos) >= newLength) or (min(pos) < 0):
-            raise RuntimeError("Positions out of bounds in reorder")
+            raise HComplexException("Positions out of bounds in reorder")
         newShape = np.array(self.data.shape)
         newShape[axis] = newLength
         tmpData = np.zeros(newShape, dtype=complex)

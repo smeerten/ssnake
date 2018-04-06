@@ -397,10 +397,11 @@ class Spectrum(object):
         axes = self.checkAxes(axes)
         if not self.noUndo:
             copyData = copy.deepcopy(self)
-        if self.shape()[axes] % 2 != 0:
-            self.dispMsg("States: data has to be even")
+        try:
+            self.data.states(axes)
+        except hc.HComplexException as e:
+            self.dispMsg(str(e))
             return
-        self.data.states(axes)
         self.resetXax(axes)
         self.addHistory("States conversion on dimension " + str(axes + 1))
         self.redoList = []
@@ -411,10 +412,11 @@ class Spectrum(object):
         axes = self.checkAxes(axes)
         if not self.noUndo:
             copyData = copy.deepcopy(self)
-        if self.shape()[axes] % 2 != 0:
-            self.dispMsg("States-TPPI: data has to be even")
+        try:
+            self.data.states(axes, TPPI=True)
+        except hc.HComplexException as e:
+            self.dispMsg(str(e))
             return
-        self.data.states(axes, TPPI=True)
         self.resetXax(axes)
         self.addHistory("States-TPPI conversion on dimension " + str(axes + 1))
         self.redoList = []
@@ -425,10 +427,11 @@ class Spectrum(object):
         axes = self.checkAxes(axes)
         if not self.noUndo:
             copyData = copy.deepcopy(self)
-        if self.shape()[axes] % 2 != 0:
-            self.dispMsg("Echo-antiecho: data has to be even")
-            return None
-        self.data.echoAntiEcho(axes)
+        try:
+            self.data.echoAntiEcho(axes)
+        except hc.HComplexException as e:
+            self.dispMsg(str(e))
+            return
         self.resetXax(axes)
         self.addHistory("Echo-antiecho conversion on dimension " + str(axes + 1))
         self.redoList = []
