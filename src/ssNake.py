@@ -1785,10 +1785,10 @@ class Main1DWindow(QtWidgets.QWidget):
         self.menuCheck()
 
     def BrukerDigital(self):
-        Dir = self.masterData.filePath[0]
+        Dir = self.masterData.filePath[0][0]
         if Dir is '':
             return
-        FilePath = self.masterData.filePath[0] + os.path.sep + 'acqus'
+        FilePath = Dir + os.path.sep + 'acqus'
         if not os.path.exists(FilePath):
             self.father.dispMsg("Bruker correct: acqus file does not exist, specify load path")
             FilePath = QtWidgets.QFileDialog.getOpenFileName(self, 'Open File', self.father.LastLocation)
