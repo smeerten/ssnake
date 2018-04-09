@@ -761,6 +761,16 @@ class Current1D(PlotFrame):
         self.data1D.multiply(data, -1)
         self.showFid()
         self.upd()
+        
+    def divide(self, data, select=False):
+        if select:
+            selectSlice = self.getSelect()
+        else:
+            selectSlice = slice(None)
+        self.root.addMacro(['divide', (data, self.axes[-1] - self.data.ndim(), selectSlice)])
+        self.data.divide(data, self.axes[-1], select=selectSlice)
+        self.upd()
+        self.showFid()
 
     def normalize(self, value, scale, type, select=False):
         if select:

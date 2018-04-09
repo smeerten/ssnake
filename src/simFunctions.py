@@ -98,8 +98,7 @@ def makeMQMASSpectrum(x, sw, v, gauss, lor, weight, offset, shear):
         offset += shear*x[1]
     apod1 = np.exp(2j * np.pi * offset * t1)
     apod1 *= np.exp(- np.pi * np.abs(lor[0] * t1) -((np.pi * np.abs(gauss[0]) * t1)**2) / (4 * np.log(2)))
-    inten = final * apod1
-    return inten # time domain in dim 0 and freq domain in dim 1
+    return final * apod1 # time domain in dim 0 and freq domain in dim 1
 
 def csaAngleStuff(cheng):
     phi, theta, weight = zcw_angles(cheng, symm=2)

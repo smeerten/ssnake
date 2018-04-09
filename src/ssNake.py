@@ -4587,9 +4587,9 @@ class CombineWindow(wc.ToolWindows):
         elif self.combType is 1:
             returnValue = self.father.current.subtract(self.father.father.workspaces[ws].masterData.getData(), self.singleSlice.isChecked())
         elif self.combType is 2:
-            returnValue = self.father.current.multiplySpec(self.father.father.workspaces[ws].masterData.getData(), self.singleSlice.isChecked())
+            returnValue = self.father.current.multiply(self.father.father.workspaces[ws].masterData.getData(), self.singleSlice.isChecked())
         elif self.combType is 3:
-            returnValue = self.father.current.divideSpec(self.father.father.workspaces[ws].masterData.getData(), self.singleSlice.isChecked())
+            returnValue = self.father.current.divide(self.father.father.workspaces[ws].masterData.getData(), self.singleSlice.isChecked())
 
 ##############################################################
 
