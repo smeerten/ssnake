@@ -21,6 +21,7 @@ import numpy as np
 from scipy.special import wofz
 import scipy.ndimage
 import functions as func
+import extendedCzjzek as eCzjz
 
 def fib(n):
     start = np.array([[1, 1], [1, 0]], dtype='int64')
@@ -236,7 +237,7 @@ def quad2tensorFunc(x, I, pos, cq, eta, lor, gauss, angleStuff, freq, sw, weight
     v = -1 / (6 * freq) * (3 * cq / (2 * I * (2 * I - 1)))**2 * (I * (I + 1) - 3.0 / 4) * (angleStuff[0] + angleStuff[1] * eta + angleStuff[2] * eta**2) + pos
     return makeSpectrum(x, sw, v, gauss, lor, weight)
 
-def czjzekIntensities(sigma, d, wq, eta):
+def czjzekIntensities(sigma, d, wq, eta, wq0 = 0, eta0 = 0):
     #Calculates an intensity distribution for a Czjzek library
     #wq: omega_q grid (2D flattened)
     #eta: eta grid (2D flattened)
@@ -251,9 +252,12 @@ def czjzekIntensities(sigma, d, wq, eta):
         czjzek = czjzek / np.sum(czjzek)
     return czjzek
 
-def quad2CzjzektensorFunc(x, sigma, d, pos, width, gauss, wq, eta, lib, freq, sw):
+def quad2CzjzektensorFunc(x, sigma, d, pos, width, gauss, wq, eta, lib, freq, sw, wq0 = 0, eta0 = 0):
     sigma = sigma * 1e6
-    czjzek = czjzekIntensities(sigma, d, wq, eta)
+    if wq0 == 0 and eta0 == 0: #If normal Czjzek
+        czjzek = czjzekIntensities(sigma, d, wq, eta, wq0, eta0)
+    else:
+        czjzek = eCzjz.getInts(sigma, d, eta0, wq0, wq, eta)
     fid = np.dot(czjzek, lib)
     length = len(x)
     t = np.fft.fftfreq(length, sw/float(length))

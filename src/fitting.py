@@ -2457,6 +2457,7 @@ class CzjzekPrefWindow(QtWidgets.QWidget):
         if inp is None:
             self.father.rootwindow.father.dispMsg(u"\u03c9_Q_max value not valid.")
             return
+        self.father.wqmax = abs(safeEval(self.wqmax.text()))
         inp = abs(safeEval(self.wqmin.text(),type='FI'))
         if inp is None:
             self.father.rootwindow.father.dispMsg(u"\u03c9_Q_min value not valid.")
@@ -2499,8 +2500,8 @@ class Quad2CzjzekParamFrame(AbstractParamFrame):
 
     def __init__(self, parent, rootwindow, isMain=True):
         self.SINGLENAMES = ['bgrnd']
-        self.MULTINAMES = ['d', 'pos', 'sigma', 'amp', 'lor', 'gauss']
-        self.PARAMTEXT = {'bgrnd': 'Background', 'd': 'd parameter', 'pos': 'Position', 'sigma': 'Sigma', 'amp': 'Integral', 'lor': 'Lorentz', 'gauss': 'Gauss'}
+        self.MULTINAMES = ['d', 'pos', 'sigma','wq0', 'eta0', 'amp', 'lor', 'gauss']
+        self.PARAMTEXT = {'bgrnd': 'Background', 'd': 'd parameter', 'pos': 'Position', 'sigma': 'Sigma', 'wq0': 'Wq0', 'eta0': 'Eta0', 'amp': 'Integral', 'lor': 'Lorentz', 'gauss': 'Gauss'}
         self.FITFUNC = quad2CzjzekmpFit
         self.wqsteps = 50
         self.etasteps = 10
@@ -2512,8 +2513,8 @@ class Quad2CzjzekParamFrame(AbstractParamFrame):
         self.fullInt = np.sum(parent.getData1D()) * parent.sw() / float(len(parent.getData1D()))
         super(Quad2CzjzekParamFrame, self).__init__(parent, rootwindow, isMain)
         self.cheng = 15
-        self.ticks = {'bgrnd': [], 'pos': [], 'd': [], 'sigma': [], 'amp': [], 'lor': [], 'gauss': []}
-        self.entries = {'bgrnd': [], 'pos': [], 'd': [], 'sigma': [], 'amp': [], 'lor': [], 'gauss': [], 'method': [], 'cheng': [], 'I': [], 'wqgrid': [], 'etagrid': [], 'wqmax': [], 'mas': []}
+        self.ticks = {'bgrnd': [], 'pos': [], 'd': [], 'sigma': [], 'wq0': [], 'eta0': [], 'amp': [], 'lor': [], 'gauss': []}
+        self.entries = {'bgrnd': [],'method': [], 'pos': [], 'd': [], 'sigma': [], 'wq0': [], 'eta0': [],'amp': [], 'lor': [], 'gauss': [], 'method': [], 'cheng': [], 'I': [], 'wqgrid': [], 'etagrid': [], 'wqmax': [], 'mas': []}
         czjzekPrefButton = QtWidgets.QPushButton("Grid Settings")
         czjzekPrefButton.clicked.connect(self.createCzjzekPrefWindow)
         self.frame1.addWidget(czjzekPrefButton, 1, 1)
@@ -2543,6 +2544,11 @@ class Quad2CzjzekParamFrame(AbstractParamFrame):
         self.ticks['bgrnd'][-1].setChecked(True)
         self.frame2.addWidget(self.ticks['bgrnd'][-1], 1, 0)
         self.entries['bgrnd'].append(wc.FitQLineEdit(self, 'bgrnd', "0.0"))
+        self.entries['method'].append(QtWidgets.QComboBox())
+        self.frame2.addWidget(wc.QLabel("Type:"), 4, 1)
+        self.entries['method'][0].addItems(['Normal', 'Extended'])
+        self.entries['method'][0].currentIndexChanged.connect(self.changeType)
+        self.frame2.addWidget(self.entries['method'][0], 5, 1)
         self.frame2.addWidget(self.entries['bgrnd'][-1], 1, 1)
         self.frame2.setColumnStretch(10, 1)
         self.frame2.setAlignment(QtCore.Qt.AlignTop)
@@ -2557,9 +2563,11 @@ class Quad2CzjzekParamFrame(AbstractParamFrame):
             axUnit = ['Hz', 'kHz', 'MHz'][self.parent.getAxType()]
         self.frame3.addWidget(wc.QLabel("Pos [" + axUnit + "]:"), 1, 2, 1, 2)
         self.frame3.addWidget(wc.QLabel(u"\u03c3 [MHz]:"), 1, 4, 1, 2)
-        self.frame3.addWidget(wc.QLabel("Integral:"), 1, 6, 1, 2)
-        self.frame3.addWidget(wc.QLabel("Lorentz [Hz]:"), 1, 8, 1, 2)
-        self.frame3.addWidget(wc.QLabel("Gauss [Hz]:"), 1, 10, 1, 2)
+        self.frame3.addWidget(wc.QLabel(u"\u03c90 [MHz]:"), 1, 6, 1, 2)
+        self.frame3.addWidget(wc.QLabel(u"\u03B70:"), 1, 8, 1, 2)
+        self.frame3.addWidget(wc.QLabel("Integral:"), 1, 10, 1, 2)
+        self.frame3.addWidget(wc.QLabel("Lorentz [Hz]:"), 1, 12, 1, 2)
+        self.frame3.addWidget(wc.QLabel("Gauss [Hz]:"), 1, 14, 1, 2)
         self.frame3.setColumnStretch(20, 1)
         self.frame3.setAlignment(QtCore.Qt.AlignTop)
         for i in range(self.FITNUM):
@@ -2568,7 +2576,22 @@ class Quad2CzjzekParamFrame(AbstractParamFrame):
                 self.frame3.addWidget(self.ticks[self.MULTINAMES[j]][i], i + 2, 2 * j)
                 self.entries[self.MULTINAMES[j]].append(wc.FitQLineEdit(self, self.MULTINAMES[j]))
                 self.frame3.addWidget(self.entries[self.MULTINAMES[j]][i], i + 2, 2 * j + 1)
+        self.changeType(0)
         self.dispParams()
+
+    def changeType(self,index):
+        if index == 0:
+            for i in range(self.FITNUM): 
+                self.entries[self.MULTINAMES[3]][i].setEnabled(False)
+                self.entries[self.MULTINAMES[4]][i].setEnabled(False)
+                self.ticks[self.MULTINAMES[3]][i].setEnabled(False)
+                self.ticks[self.MULTINAMES[4]][i].setEnabled(False)
+        elif index == 1:
+            for i in range(self.FITNUM): 
+                self.entries[self.MULTINAMES[3]][i].setEnabled(True)
+                self.entries[self.MULTINAMES[4]][i].setEnabled(True)
+                self.ticks[self.MULTINAMES[3]][i].setEnabled(True)
+                self.ticks[self.MULTINAMES[4]][i].setEnabled(True)
 
     def createCzjzekPrefWindow(self, *args):
         CzjzekPrefWindow(self)
@@ -2579,6 +2602,8 @@ class Quad2CzjzekParamFrame(AbstractParamFrame):
                     'pos': np.repeat([np.array([0.0, False], dtype=object)], self.FITNUM, axis=0),
                     'd': np.repeat([np.array([5.0, True], dtype=object)], self.FITNUM, axis=0),
                     'sigma': np.repeat([np.array([1.0, False], dtype=object)], self.FITNUM, axis=0),
+                    'wq0': np.repeat([np.array([0.0, False], dtype=object)], self.FITNUM, axis=0),
+                    'eta0': np.repeat([np.array([0.0, False], dtype=object)], self.FITNUM, axis=0),
                     'amp': np.repeat([np.array([self.fullInt, False], dtype=object)], self.FITNUM, axis=0),
                     'lor': np.repeat([np.array([10.0, False], dtype=object)], self.FITNUM, axis=0),
                     'gauss': np.repeat([np.array([0.0, True], dtype=object)], self.FITNUM, axis=0)}
@@ -2676,6 +2701,7 @@ class Quad2CzjzekParamFrame(AbstractParamFrame):
         out['wq'] = [wq]
         out['eta'] = [eta]
         out['freq'] = [self.parent.freq()]
+        out['method'] = [self.entries['method'][0].currentIndex()]
         return (out, [I, lib, wq, eta, self.parent.freq()])
 
     def disp(self, params, num):
@@ -2697,12 +2723,16 @@ class Quad2CzjzekParamFrame(AbstractParamFrame):
                     return
         tmpx = self.parent.xax()
         bgrnd = out['bgrnd'][0]
+        method = out['method'][0]
         outCurve = bgrnd * np.ones(len(tmpx))
         outCurvePart = []
         x = []
         for i in range(len(out['pos'])):
             x.append(tmpx)
-            y = out['amp'][i] * simFunc.quad2CzjzektensorFunc(tmpx, out['sigma'][i], out['d'][i], out['pos'][i]/self.axMult, out['lor'][i], out['gauss'][i], out['wq'][0], out['eta'][0], out['lib'][0], self.parent.freq(), self.parent.sw())
+            if method == 0:
+                y = out['amp'][i] * simFunc.quad2CzjzektensorFunc(tmpx, out['sigma'][i], out['d'][i], out['pos'][i]/self.axMult, out['lor'][i], out['gauss'][i], out['wq'][0], out['eta'][0], out['lib'][0], self.parent.freq(), self.parent.sw())
+            if method == 1:
+                y = out['amp'][i] * simFunc.quad2CzjzektensorFunc(tmpx, out['sigma'][i], out['d'][i], out['pos'][i]/self.axMult, out['lor'][i], out['gauss'][i], out['wq'][0], out['eta'][0], out['lib'][0], self.parent.freq(), self.parent.sw(), out['wq0'][i] * 1e6, out['eta0'][i])
             outCurvePart.append(bgrnd + y)
             outCurve += y
         locList = self.getRedLocList()
