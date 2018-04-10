@@ -2396,9 +2396,19 @@ class CzjzekPrefWindow(QtWidgets.QWidget):
         self.etasteps.setAlignment(QtCore.Qt.AlignHCenter) 
         self.etasteps.setValue(self.father.etasteps)
         grid.addWidget(self.etasteps, 3, 0)
-        grid.addWidget(wc.QLabel(u"\u03c9<sub>Q</sub><sup>max</sup>/\u03c3:"), 4, 0)
-        self.wqmax = wc.QLineEdit(str(self.father.wqmax), self.checkWqmax)
-        grid.addWidget(self.wqmax, 5, 0)
+        grid.addWidget(wc.QLabel(u"\u03c9<sub>Q</sub><sup>min</sup> [MHz]:"), 4, 0)
+        self.wqmin = wc.QLineEdit(str(self.father.wqmin), self.checkWq)
+        grid.addWidget(self.wqmin, 5, 0)
+        grid.addWidget(wc.QLabel(u"\u03c9<sub>Q</sub><sup>max</sup> [MHz]:"), 6, 0)
+        self.wqmax = wc.QLineEdit(str(self.father.wqmax), self.checkWq)
+        grid.addWidget(self.wqmax, 7, 0)
+        grid.addWidget(wc.QLabel(u"\u03B7<sup>min</sup>:"), 8, 0)
+        self.etamin = wc.QLineEdit(str(self.father.etamin), self.checkEta)
+        grid.addWidget(self.etamin, 9, 0)
+        grid.addWidget(wc.QLabel(u"\u03B7<sup>max</sup>:"), 10, 0)
+        self.etamax = wc.QLineEdit(str(self.father.etamax), self.checkEta)
+        grid.addWidget(self.etamax, 11, 0)
+   
 
         cancelButton = QtWidgets.QPushButton("&Cancel")
         cancelButton.clicked.connect(self.closeEvent)
@@ -2411,12 +2421,31 @@ class CzjzekPrefWindow(QtWidgets.QWidget):
         self.show()
         self.setGeometry(self.frameSize().width() - self.geometry().width(), self.frameSize().height() - self.geometry().height(), 0, 0)
 
-    def checkWqmax(self):
+    def checkWq(self):
         inp = safeEval(self.wqmax.text(),type='FI')
         if inp is None:
             return False
         self.wqmax.setText(str(float(inp)))
+        inp = safeEval(self.wqmin.text(),type='FI')
+        if inp is None:
+            return False
+        self.wqmin.setText(str(float(inp)))
         return True
+
+    def checkEta(self):
+        inp = safeEval(self.etamax.text(),type='FI')
+        if inp is None:
+            return False
+        if inp < 0.0 or inp > 1.0:
+            return False
+        self.etamax.setText(str(abs(float(inp))))
+        inp = safeEval(self.etamin.text(),type='FI')
+        if inp is None:
+            return False
+        if inp < 0.0 or inp > 1.0:
+            return False
+        self.etamin.setText(str(abs(float(inp))))
+
 
     def closeEvent(self, *args):
         self.deleteLater()
@@ -2428,7 +2457,28 @@ class CzjzekPrefWindow(QtWidgets.QWidget):
         if inp is None:
             self.father.rootwindow.father.dispMsg(u"\u03c9_Q_max value not valid.")
             return
-        self.father.wqmax = safeEval(self.wqmax.text())
+        inp = abs(safeEval(self.wqmin.text(),type='FI'))
+        if inp is None:
+            self.father.rootwindow.father.dispMsg(u"\u03c9_Q_min value not valid.")
+            return
+        self.father.wqmin = abs(safeEval(self.wqmin.text()))
+        #eta
+        inp = safeEval(self.etamax.text(),type='FI')
+        if inp is None:
+            self.father.rootwindow.father.dispMsg(u"\u03B7_max value not valid.")
+            return
+        if inp < 0.0 or inp > 1.0:
+            self.father.rootwindow.father.dispMsg(u"\u03B7_max value not valid.")
+            return 
+        self.father.etamax = abs(float(inp))
+        inp = safeEval(self.etamin.text(),type='FI')
+        if inp is None:
+            self.father.rootwindow.father.dispMsg(u"\u03B7_min value not valid.")
+            return
+        if inp < 0.0 or inp > 1.0:
+            self.father.rootwindow.father.dispMsg(u"\u03B7_min value not valid.")
+            return
+        self.father.etamin = abs(float(inp))
         self.closeEvent()
 
 ##############################################################################
@@ -2455,6 +2505,9 @@ class Quad2CzjzekParamFrame(AbstractParamFrame):
         self.wqsteps = 50
         self.etasteps = 10
         self.wqmax = 4
+        self.wqmin = 0
+        self.etamax = 1
+        self.etamin = 0
         # Get full integral
         self.fullInt = np.sum(parent.getData1D()) * parent.sw() / float(len(parent.getData1D()))
         super(Quad2CzjzekParamFrame, self).__init__(parent, rootwindow, isMain)
@@ -2546,11 +2599,11 @@ class Quad2CzjzekParamFrame(AbstractParamFrame):
         weights = weight[np.logical_and(x1 >= 0, x1 < length)]
         x1 = x1[np.logical_and(x1 >= 0, x1 < length)]
         fid = np.fft.ifft(np.bincount(x1, weights, length))
-        fid[0] *= 2
+        #fid[0] *= 1
         return fid
 
-    def genLib(self, length, I, maxWq, numWq, numEta, angleStuff, freq, sw, weight):
-        wq_return, eta_return = np.meshgrid(np.linspace(0, maxWq, numWq), np.linspace(0, 1, numEta))
+    def genLib(self, length, I, minWq, maxWq,minEta,maxEta, numWq, numEta, angleStuff, freq, sw, weight):
+        wq_return, eta_return = np.meshgrid(np.linspace(minWq, maxWq, numWq), np.linspace(minEta, maxEta, numEta))
         wq = wq_return[..., None]
         eta = eta_return[..., None]
         v = -1 / (6.0 * freq) * wq**2 * (I * (I + 1) - 3.0 / 4) * (angleStuff[0] + angleStuff[1] * eta + angleStuff[2] * eta**2)
@@ -2602,6 +2655,9 @@ class Quad2CzjzekParamFrame(AbstractParamFrame):
     def getExtraParams(self, out):
         mas = self.entries['mas'][-1].isChecked()
         wqMax = self.wqmax
+        wqMin = self.wqmin
+        etaMax = self.etamax
+        etaMin = self.etamin
         I = self.checkI(self.entries['I'][-1].currentIndex())
         numWq = self.wqsteps
         numEta = self.etasteps
@@ -2609,19 +2665,12 @@ class Quad2CzjzekParamFrame(AbstractParamFrame):
             weight, angleStuff = simFunc.quad2MASsetAngleStuff(self.entries['cheng'][-1].value())
         else:
             weight, angleStuff = simFunc.quad2StaticsetAngleStuff(self.entries['cheng'][-1].value())
-        maxSigma = 0.0
-        for i in range(self.numExp.currentIndex()+1):
-            val = self.entries['sigma'][i]
-            try:
-                maxSigma = max(maxSigma, np.abs(float(val.text())))
-            except ValueError:
-                continue
         if self.extLibCheck.isChecked():
             lib = self.lib
             wq = self.cqLib
             eta = self.etaLib
         else:
-            lib, wq, eta = self.genLib(len(self.parent.xax()), I, maxSigma * wqMax * 1e6, numWq, numEta, angleStuff, self.parent.freq(), self.parent.sw(), weight)
+            lib, wq, eta = self.genLib(len(self.parent.xax()), I, wqMin * 1e6, wqMax * 1e6, etaMin, etaMax, numWq, numEta, angleStuff, self.parent.freq(), self.parent.sw(), weight)
         out['I'] = [I]
         out['lib'] = [lib]
         out['wq'] = [wq]
