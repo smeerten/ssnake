@@ -27,7 +27,7 @@ def alphaFunc(alpha, preCalc,preVal,a11,a15pre,a55pre,a51prepre1,a51prepre2):
     a55part = sin2A * a55pre
     a51pre = a51prepre1 + a51prepre2 * cos2A
     
-    Amp = SI.quad(gammaFunc,0, np.pi,args = (a11pa15,a51pre,a55part,preVal),epsrel=5,epsabs=5)
+    Amp = SI.quad(gammaFunc,0, np.pi,args = (a11pa15,a51pre,a55part,preVal),epsrel=0.1,epsabs=0)
     return Amp[0]
 
 def betaFunc(beta, eta, eta0, preCalc):
@@ -42,7 +42,7 @@ def betaFunc(beta, eta, eta0, preCalc):
     a51prepre1 = preCalc[1] / 2 * sinBS * eta * preCalc[2]
     a51prepre2 = 0.5 * (1 + cosBS) * preCalc[4] * preCalc[2]
 
-    Amp = SI.quad(alphaFunc,0, np.pi/2,args = (preCalc,preVal,a11,a15pre,a55pre,a51prepre1,a51prepre2),epsrel=5,epsabs=5)
+    Amp = SI.quad(alphaFunc,0, np.pi/2,args = (preCalc,preVal,a11,a15pre,a55pre,a51prepre1,a51prepre2),epsrel=0.1,epsabs=0)
     return Amp[0]
 
 
@@ -53,7 +53,7 @@ def extendedCzjzek(inp):
     preCalc =[N1,np.sqrt(3),  2.0/np.sqrt(3) * wq * wq0 * afterfact, (wq0**2 * (1 + eta0**2 / 3) + wq**2 * (1 + eta**2/3)) * afterfact]
     eta0deveta = eta0/preCalc[1]*eta #eta0 divided by sqrt3 multiply by eta
     preCalc.append(eta0deveta)
-    Amp = SI.quad(betaFunc,0, np.pi,args = (eta,eta0,preCalc),epsrel=1.8,epsabs=3)
+    Amp = SI.quad(betaFunc,0, np.pi,args = (eta,eta0,preCalc),epsrel=0.1,epsabs=0)
     return Amp[0]
 
 @jit
