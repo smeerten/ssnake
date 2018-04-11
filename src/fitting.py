@@ -42,7 +42,7 @@ import functions as func
 import simFunctions as simFunc
 import specIO as io
 from ssNake import SideFrame
-import extendedCzjzek as eCzjz
+import Czjzek as Czjzek
 
 pi = np.pi
 stopDict = {}  # Global dictionary with stopping commands for fits
@@ -2455,10 +2455,10 @@ class CzjzekPrefWindow(QtWidgets.QWidget):
         sigma = safeEval(self.father.entries[self.father.MULTINAMES[2]][site].text(),type='FI')
         wq0 = safeEval(self.father.entries[self.father.MULTINAMES[3]][site].text(),type='FI')
         eta0 = safeEval(self.father.entries[self.father.MULTINAMES[4]][site].text(),type='FI')
-        if method == 0 or (eta0 == 0.0 and wq0 == 0.0):
-            czjzek = simFunc.czjzekIntensities(sigma, d, wq.flatten(), eta.flatten(), wq0, eta0)
-        elif method == 1:
-            czjzek = eCzjz.getInts(sigma, d, eta0, wq0, wq.flatten(), eta.flatten())
+        if method == 0:
+            czjzek = Czjzek.czjzekIntensities(sigma, d, wq.flatten(), eta.flatten())
+        else:
+            czjzek = Czjzek.czjzekIntensities(sigma, d, wq.flatten(), eta.flatten(), wq0, eta0)
         czjzek = czjzek.reshape(etasteps,wqsteps)
 
         self.ax.contour(wq.transpose(),eta.transpose(),czjzek.transpose(),10)
@@ -2792,10 +2792,10 @@ class Quad2CzjzekParamFrame(AbstractParamFrame):
 
 
 def quad2CzjzekmpFit(xax, data1D, guess, args, queue, minmethod, numfeval):
-    #try:
-    fitVal = scipy.optimize.minimize(lambda *param: np.sum((data1D - quad2CzjzekfitFunc(param, xax, args))**2), guess, method=minmethod, options = {'maxfev': numfeval})
-    #except Exception:
-    #    fitVal = None
+    try:
+        fitVal = scipy.optimize.minimize(lambda *param: np.sum((data1D - quad2CzjzekfitFunc(param, xax, args))**2), guess, method=minmethod, options = {'maxfev': numfeval})
+    except Exception:
+        fitVal = None
     queue.put(fitVal)
 
 

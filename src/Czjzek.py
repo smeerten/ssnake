@@ -46,7 +46,7 @@ def betaFunc(beta, eta, eta0, preCalc):
     return Amp[0]
 
 
-def Czjzek(inp):
+def extendedCzjzek(inp):
     wq, eta, wq0, eta0, sigma, d = inp
     N1 = wq ** (d - 1) / (sigma ** d) * eta * (1 - eta**2 / 9)
     afterfact = -1.0 / (2 * sigma ** 2)
@@ -64,7 +64,7 @@ def tFunc(t,pre,pre2, fact, eta):
     return pre * expo * bessel
     
 
-def CzjzekNoEta0(inp):
+def extendedCzjzekNoEta0(inp):
     wq, eta, wq0, sigma, d = inp
     pre = wq**(d-1)/sigma**d * eta * (1-eta**2/9.0) 
     pre2 = -(wq0**2 + wq**2 * (1+eta**2/3.0))/(2 * sigma**2)
@@ -72,17 +72,33 @@ def CzjzekNoEta0(inp):
     Amp = SI.quad(tFunc,0, 1,args = (pre,pre2,fact,eta))[0]
     return Amp
 
-def getInts(sigma, d, eta0, wq0, wq, eta):
-    pool = multiprocessing.Pool(multiprocessing.cpu_count())
-    if eta0 != 0.0: #If eta not 0, use hard routine
-        fit = pool.map_async(Czjzek, [(wq[i],eta[i],wq0,eta0,sigma,d) for i in range(len(wq))])
+def normalCzjzekFunc(wq,eta,sigma,d):
+    return wq**(d - 1) * eta / (np.sqrt(2 * np.pi) * sigma**d) * (1 - eta**2 / 9.0) * np.exp(-wq**2 / (2.0 * sigma**2) * (1 + eta**2 / 3.0))
+
+
+def czjzekIntensities(sigma, d, wq, eta, wq0 = 0, eta0 = 0):
+    #Calculates an intensity distribution for a Czjzek library
+    #Depending on et0 and wq0, either a regular Czjzek, or an extended Czjzek is used
+    #wq: omega_q grid (2D flattened)
+    #eta: eta grid (2D flattened)
+    if wq0 == 0.0 and eta0 == 0.0:
+        if sigma == 0.0:  # protect against divide by zero
+            czjzek = np.zeros_like(wq)
+            czjzek[:, 0] = 1
+        else:
+            czjzek = normalCzjzekFunc(wq,eta,sigma,d)
     else:
-        fit = pool.map_async(CzjzekNoEta0, [(wq[i],eta[i],wq0,sigma,d) for i in range(len(wq))])
-    pool.close()
-    pool.join()
-    Amp = np.array(fit.get())
-    if np.sum(Amp) == 0.0: #Protect against divide by zero
-        Amp = 0 * Amp
+        pool = multiprocessing.Pool(multiprocessing.cpu_count())
+        if eta0 != 0.0:
+            fit = pool.map_async(extendedCzjzek, [(wq[i],eta[i],wq0,eta0,sigma,d) for i in range(len(wq))])
+        else:
+            fit = pool.map_async(extendedCzjzekNoEta0, [(wq[i],eta[i],wq0,sigma,d) for i in range(len(wq))])
+        pool.close()
+        pool.join()
+        czjzek = np.array(fit.get())
+
+    if np.sum(czjzek) == 0.0: #Protect against divide by zero
+        czjzek = 0 * czjzek
     else:
-        Amp = Amp / np.sum(Amp)
-    return Amp
+        czjzek = czjzek / np.sum(czjzek)
+    return czjzek
