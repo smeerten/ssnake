@@ -1,5 +1,6 @@
 import numpy as np
 import scipy.integrate as SI
+import scipy.special as SP
 import math
 import multiprocessing
 try: #If numba exists, use jit, otherwise make a mock decorator
@@ -55,9 +56,28 @@ def Czjzek(inp):
     Amp = SI.quad(betaFunc,0, np.pi,args = (eta,eta0,preCalc),epsrel=1.8,epsabs=3)
     return Amp[0]
 
+@jit
+def tFunc(t,pre,pre2, fact, eta):
+    expo = math.exp(fact * (3*t**2-1) + pre2)
+    z = eta * abs(fact) * (1-t**2)
+    bessel = SP.iv(0,z)
+    return pre * expo * bessel
+    
+
+def CzjzekNoEta0(inp):
+    wq, eta, wq0, sigma, d = inp
+    pre = wq**(d-1)/sigma**d * eta * (1-eta**2/9.0) 
+    pre2 = -(wq0**2 + wq**2 * (1+eta**2/3.0))/(2 * sigma**2)
+    fact = wq*wq0/(2*sigma**2)
+    Amp = SI.quad(tFunc,0, 1,args = (pre,pre2,fact,eta))[0]
+    return Amp
+
 def getInts(sigma, d, eta0, wq0, wq, eta):
     pool = multiprocessing.Pool(multiprocessing.cpu_count())
-    fit = pool.map_async(Czjzek, [(wq[i],eta[i],wq0,eta0,sigma,d) for i in range(len(wq))])
+    if eta0 != 0.0: #If eta not 0, use hard routine
+        fit = pool.map_async(Czjzek, [(wq[i],eta[i],wq0,eta0,sigma,d) for i in range(len(wq))])
+    else:
+        fit = pool.map_async(CzjzekNoEta0, [(wq[i],eta[i],wq0,sigma,d) for i in range(len(wq))])
     pool.close()
     pool.join()
     Amp = np.array(fit.get())

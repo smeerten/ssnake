@@ -42,6 +42,7 @@ import functions as func
 import simFunctions as simFunc
 import specIO as io
 from ssNake import SideFrame
+import extendedCzjzek as eCzjz
 
 pi = np.pi
 stopDict = {}  # Global dictionary with stopping commands for fits
@@ -2396,10 +2397,10 @@ class CzjzekPrefWindow(QtWidgets.QWidget):
         self.etasteps.setAlignment(QtCore.Qt.AlignHCenter) 
         self.etasteps.setValue(self.father.etasteps)
         grid.addWidget(self.etasteps, 3, 0)
-        grid.addWidget(wc.QLabel(u"\u03c9<sub>Q</sub><sup>min</sup> [MHz]:"), 4, 0)
+        grid.addWidget(wc.QLabel(u"\u03BD<sub>Q</sub><sup>min</sup> [MHz]:"), 4, 0)
         self.wqmin = wc.QLineEdit(str(self.father.wqmin), self.checkWq)
         grid.addWidget(self.wqmin, 5, 0)
-        grid.addWidget(wc.QLabel(u"\u03c9<sub>Q</sub><sup>max</sup> [MHz]:"), 6, 0)
+        grid.addWidget(wc.QLabel(u"\u03BD<sub>Q</sub><sup>max</sup> [MHz]:"), 6, 0)
         self.wqmax = wc.QLineEdit(str(self.father.wqmax), self.checkWq)
         grid.addWidget(self.wqmax, 7, 0)
         grid.addWidget(wc.QLabel(u"\u03B7<sup>min</sup>:"), 8, 0)
@@ -2408,7 +2409,22 @@ class CzjzekPrefWindow(QtWidgets.QWidget):
         grid.addWidget(wc.QLabel(u"\u03B7<sup>max</sup>:"), 10, 0)
         self.etamax = wc.QLineEdit(str(self.father.etamax), self.checkEta)
         grid.addWidget(self.etamax, 11, 0)
+        self.fig = Figure()
+        self.canvas = FigureCanvas(self.fig)
+        grid.addWidget(self.canvas, 0, 1, 13,4)
+        self.ax = self.fig.add_subplot(111)
    
+        self.simButton = QtWidgets.QPushButton("Sim", parent=self)
+        self.simButton.clicked.connect(self.plotDist)
+        grid.addWidget(self.simButton, 13, 3)
+
+
+        grid.addWidget(wc.QLabel("Site:"), 13, 1)
+        self.site = QtWidgets.QSpinBox()
+        self.site.setMinimum(1)
+        self.site.setMaximum(self.father.numExp.currentIndex() + 1)
+        self.site.setAlignment(QtCore.Qt.AlignHCenter) 
+        grid.addWidget(self.site, 13, 2)
 
         cancelButton = QtWidgets.QPushButton("&Cancel")
         cancelButton.clicked.connect(self.closeEvent)
@@ -2417,9 +2433,40 @@ class CzjzekPrefWindow(QtWidgets.QWidget):
         okButton.clicked.connect(self.applyAndClose)
         okButton.setFocus()
         layout.addWidget(okButton, 4, 1)
-        grid.setRowStretch(100, 1)
+        grid.setRowStretch(12, 1)
+        grid.setColumnStretch(4, 1)
+        #self.plotDist()
         self.show()
-        self.setGeometry(self.frameSize().width() - self.geometry().width(), self.frameSize().height() - self.geometry().height(), 0, 0)
+        self.resize(800, 600)
+
+    def plotDist(self):
+        self.ax.cla()
+        wqsteps = self.wqsteps.value()
+        etasteps = self.etasteps.value()
+        wqmax = safeEval(self.wqmax.text(),type='FI')
+        wqmin = safeEval(self.wqmin.text(),type='FI')
+        etamax = safeEval(self.etamax.text(),type='FI')
+        etamin = safeEval(self.etamin.text(),type='FI')
+        wq, eta = np.meshgrid(np.linspace(wqmin, wqmax, wqsteps), np.linspace(etamin, etamax, etasteps))
+        #self.MULTINAMES = ['d', 'pos', 'sigma','wq0', 'eta0', 'amp', 'lor', 'gauss']
+        method = self.father.entries['method'][0].currentIndex()
+        site = self.site.value() - 1
+        d = safeEval(self.father.entries[self.father.MULTINAMES[0]][site].text(),type='FI')
+        sigma = safeEval(self.father.entries[self.father.MULTINAMES[2]][site].text(),type='FI')
+        wq0 = safeEval(self.father.entries[self.father.MULTINAMES[3]][site].text(),type='FI')
+        eta0 = safeEval(self.father.entries[self.father.MULTINAMES[4]][site].text(),type='FI')
+        if method == 0 or (eta0 == 0.0 and wq0 == 0.0):
+            czjzek = simFunc.czjzekIntensities(sigma, d, wq.flatten(), eta.flatten(), wq0, eta0)
+        elif method == 1:
+            czjzek = eCzjz.getInts(sigma, d, eta0, wq0, wq.flatten(), eta.flatten())
+        czjzek = czjzek.reshape(etasteps,wqsteps)
+
+        self.ax.contour(wq.transpose(),eta.transpose(),czjzek.transpose(),10)
+        self.ax.set_xlabel(u"\u03BD$_Q$ [MHz]")
+        self.ax.set_ylabel(u"\u03B7")
+        self.canvas.draw()
+
+
 
     def checkWq(self):
         inp = safeEval(self.wqmax.text(),type='FI')
@@ -2455,12 +2502,12 @@ class CzjzekPrefWindow(QtWidgets.QWidget):
         self.father.etasteps = self.etasteps.value()
         inp = safeEval(self.wqmax.text(),type='FI')
         if inp is None:
-            self.father.rootwindow.father.dispMsg(u"\u03c9_Q_max value not valid.")
+            self.father.rootwindow.father.dispMsg(u"\u03BD_Q_max value not valid.")
             return
         self.father.wqmax = abs(safeEval(self.wqmax.text()))
         inp = abs(safeEval(self.wqmin.text(),type='FI'))
         if inp is None:
-            self.father.rootwindow.father.dispMsg(u"\u03c9_Q_min value not valid.")
+            self.father.rootwindow.father.dispMsg(u"\03BD_Q_min value not valid.")
             return
         self.father.wqmin = abs(safeEval(self.wqmin.text()))
         #eta
@@ -2563,7 +2610,7 @@ class Quad2CzjzekParamFrame(AbstractParamFrame):
             axUnit = ['Hz', 'kHz', 'MHz'][self.parent.getAxType()]
         self.frame3.addWidget(wc.QLabel("Pos [" + axUnit + "]:"), 1, 2, 1, 2)
         self.frame3.addWidget(wc.QLabel(u"\u03c3 [MHz]:"), 1, 4, 1, 2)
-        self.frame3.addWidget(wc.QLabel(u"\u03c90 [MHz]:"), 1, 6, 1, 2)
+        self.frame3.addWidget(wc.QLabel(u"\u03BD<sub>Q</sub>0 [MHz]:"), 1, 6, 1, 2)
         self.frame3.addWidget(wc.QLabel(u"\u03B70:"), 1, 8, 1, 2)
         self.frame3.addWidget(wc.QLabel("Integral:"), 1, 10, 1, 2)
         self.frame3.addWidget(wc.QLabel("Lorentz [Hz]:"), 1, 12, 1, 2)
@@ -2584,6 +2631,8 @@ class Quad2CzjzekParamFrame(AbstractParamFrame):
             for i in range(self.FITNUM): 
                 self.entries[self.MULTINAMES[3]][i].setEnabled(False)
                 self.entries[self.MULTINAMES[4]][i].setEnabled(False)
+                self.ticks[self.MULTINAMES[3]][i].setChecked(True)
+                self.ticks[self.MULTINAMES[4]][i].setChecked(True)
                 self.ticks[self.MULTINAMES[3]][i].setEnabled(False)
                 self.ticks[self.MULTINAMES[4]][i].setEnabled(False)
         elif index == 1:
@@ -2602,8 +2651,8 @@ class Quad2CzjzekParamFrame(AbstractParamFrame):
                     'pos': np.repeat([np.array([0.0, False], dtype=object)], self.FITNUM, axis=0),
                     'd': np.repeat([np.array([5.0, True], dtype=object)], self.FITNUM, axis=0),
                     'sigma': np.repeat([np.array([1.0, False], dtype=object)], self.FITNUM, axis=0),
-                    'wq0': np.repeat([np.array([0.0, False], dtype=object)], self.FITNUM, axis=0),
-                    'eta0': np.repeat([np.array([0.0, False], dtype=object)], self.FITNUM, axis=0),
+                    'wq0': np.repeat([np.array([0.0, True], dtype=object)], self.FITNUM, axis=0),
+                    'eta0': np.repeat([np.array([0.0, True], dtype=object)], self.FITNUM, axis=0),
                     'amp': np.repeat([np.array([self.fullInt, False], dtype=object)], self.FITNUM, axis=0),
                     'lor': np.repeat([np.array([10.0, False], dtype=object)], self.FITNUM, axis=0),
                     'gauss': np.repeat([np.array([0.0, True], dtype=object)], self.FITNUM, axis=0)}
@@ -2702,7 +2751,7 @@ class Quad2CzjzekParamFrame(AbstractParamFrame):
         out['eta'] = [eta]
         out['freq'] = [self.parent.freq()]
         out['method'] = [self.entries['method'][0].currentIndex()]
-        return (out, [I, lib, wq, eta, self.parent.freq()])
+        return (out, [I, lib, wq, eta, self.parent.freq(),self.entries['method'][0].currentIndex()])
 
     def disp(self, params, num):
         out = params[num]
@@ -2743,10 +2792,10 @@ class Quad2CzjzekParamFrame(AbstractParamFrame):
 
 
 def quad2CzjzekmpFit(xax, data1D, guess, args, queue, minmethod, numfeval):
-    try:
-        fitVal = scipy.optimize.minimize(lambda *param: np.sum((data1D - quad2CzjzekfitFunc(param, xax, args))**2), guess, method=minmethod, options = {'maxfev': numfeval})
-    except Exception:
-        fitVal = None
+    #try:
+    fitVal = scipy.optimize.minimize(lambda *param: np.sum((data1D - quad2CzjzekfitFunc(param, xax, args))**2), guess, method=minmethod, options = {'maxfev': numfeval})
+    #except Exception:
+    #    fitVal = None
     queue.put(fitVal)
 
 
@@ -2775,6 +2824,7 @@ def quad2CzjzekfitFunc(params, allX, args):
         parameters['wq'] = argu[-1][2]#.flatten()
         parameters['eta'] = argu[-1][3]#.flatten()
         parameters['freq'] = argu[-1][4]
+        parameters['method'] = argu[-1][5]
         for name in ['bgrnd']:
             if struc[name][0][0] == 1:
                 parameters[name] = param[struc[name][0][1]]
@@ -2787,7 +2837,7 @@ def quad2CzjzekfitFunc(params, allX, args):
                 elif struc[altStruc[0]][altStruc[1]][0] == 0:
                     parameters[name] = altStruc[2] * allArgu[altStruc[4]][struc[altStruc[0]][altStruc[1]][1]] + altStruc[3]
         for i in range(numExp):
-            for name in ['d', 'pos', 'sigma', 'amp', 'lor', 'gauss']:
+            for name in ['d', 'pos', 'sigma', 'amp', 'lor', 'gauss', 'wq0', 'eta0']:
                 if struc[name][i][0] == 1:
                     parameters[name] = param[struc[name][i][1]]
                 elif struc[name][i][0] == 0:
@@ -2799,7 +2849,10 @@ def quad2CzjzekfitFunc(params, allX, args):
                         parameters[name] = altStruc[2] * allParam[altStruc[4]][strucTarget[altStruc[0]][altStruc[1]][1]] + altStruc[3]
                     elif strucTarget[altStruc[0]][altStruc[1]][0] == 0:
                         parameters[name] = altStruc[2] * allArgu[altStruc[4]][strucTarget[altStruc[0]][altStruc[1]][1]] + altStruc[3]
-            testFunc += parameters['amp'] * simFunc.quad2CzjzektensorFunc(x, parameters['sigma'], parameters['d'], parameters['pos']/axMult, parameters['lor'], parameters['gauss'], parameters['wq'], parameters['eta'], parameters['lib'], parameters['freq'], sw)
+            if parameters['method'] == 0:
+                testFunc += parameters['amp'] * simFunc.quad2CzjzektensorFunc(x, parameters['sigma'], parameters['d'], parameters['pos']/axMult, parameters['lor'], parameters['gauss'], parameters['wq'], parameters['eta'], parameters['lib'], parameters['freq'], sw)
+            elif parameters['method'] == 1:
+                testFunc += parameters['amp'] * simFunc.quad2CzjzektensorFunc(x, parameters['sigma'], parameters['d'], parameters['pos']/axMult, parameters['lor'], parameters['gauss'], parameters['wq'], parameters['eta'], parameters['lib'], parameters['freq'], sw, parameters['wq0'] * 1e6, parameters['eta0'])
         testFunc += parameters['bgrnd']
         fullTestFunc = np.append(fullTestFunc, testFunc)
     return fullTestFunc
