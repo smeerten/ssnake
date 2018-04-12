@@ -23,6 +23,7 @@ import sys
 import os
 import traceback as tb
 import datetime
+import webbrowser
 sip.setapi('QString', 2)
 try:
     from PyQt4 import QtGui, QtCore
@@ -421,6 +422,8 @@ class MainProgram(QtWidgets.QMainWindow):
                                    ['Utilities --> Quadrupole Coupling Conversion Tool', self.quadconvAct],
                                    ['Utilities --> NMR Table', self.nmrtableAct],
                                    ['Help --> Update', self.updateAct],
+                                   ['Help --> GitHub Page', self.githubAct],
+                                   ['Help --> ssNake Tutorials', self.tutorialAct],
                                    ['Help --> About', self.aboutAct]]
             for element in self.defaultToolbarActionList:
                 if element == 'Seperator':
@@ -769,10 +772,14 @@ class MainProgram(QtWidgets.QMainWindow):
         self.menubar.addMenu(self.helpMenu)
         self.updateAct = self.helpMenu.addAction(QtGui.QIcon(IconDirectory + 'update.png'), "&Update", self.updateMenu)
         self.updateAct.setToolTip('Update ssNake')
+        self.githubAct = self.helpMenu.addAction("GitHub Page", lambda: webbrowser.open('https://github.com/smeerten/ssnake/'))
+        self.githubAct.setToolTip('ssNake GitHub Page')
+        self.tutorialAct = self.helpMenu.addAction("ssNake Tutorials", lambda: webbrowser.open('https://github.com/smeerten/ssnake_tutorials/'))
+        self.tutorialAct.setToolTip('ssNake Processing Tutorials')
         self.aboutAct = self.helpMenu.addAction(QtGui.QIcon(IconDirectory + 'about.png'), "&About", lambda: aboutWindow(self))
         self.aboutAct.setToolTip('About Menu')
         self.helpActList = [self.updateAct, self.shiftconvAct, self.quadconvAct,
-                            self.nmrtableAct, self.aboutAct]
+                            self.nmrtableAct,self.githubAct,self.tutorialAct, self.aboutAct]
         # Extra event lists:
         self.specOnlyList = [self.regridAct, self.csastaticAct, self.firstquadAct,
                              self.secondquadAct, self.czjzekAct]
