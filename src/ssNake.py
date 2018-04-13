@@ -397,6 +397,7 @@ class MainProgram(QtWidgets.QMainWindow):
                                    ['Fitting --> Second Order Quadrupole', self.secondquadAct],
                                    ['Fitting --> Czjzek', self.czjzekAct],
                                    ['Fitting --> MQMAS', self.mqmasAct],
+                                   ['Fitting --> Czjzek MQMAS', self.mqmasCzjzekAct],
                                    ['Fitting --> SIMPSON', self.simpsonAct],
                                    ['Fitting --> Function', self.functionFitAct],
                                    ['Combine --> Combine Workspaces', self.combineWorkspaceAct],
@@ -678,6 +679,8 @@ class MainProgram(QtWidgets.QMainWindow):
         self.czjzekAct.setToolTip('Fit Czjzek Pattern')
         self.mqmasAct = self.fittingMenu.addAction("&MQMAS", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.createMQMASWindow()))
         self.mqmasAct.setToolTip('Fit MQMAS')
+        self.mqmasCzjzekAct = self.fittingMenu.addAction("C&zjzek MQMAS", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.createMQMASCzjzekWindow()))
+        self.mqmasCzjzekAct.setToolTip('Fit Czjzek MQMAS')
         self.simpsonAct = self.fittingMenu.addAction(QtGui.QIcon(IconDirectory + 'simpson.png'),"&SIMPSON", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.createSIMPSONWindow()))
         self.simpsonAct.setToolTip('Fit SIMPSON Script')
         self.functionFitAct = self.fittingMenu.addAction(QtGui.QIcon(IconDirectory + 'function.png'),"F&unction fit", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.createFunctionFitWindow()))
@@ -1869,6 +1872,15 @@ class Main1DWindow(QtWidgets.QWidget):
             self.father.dispMsg("Please set the spectrometer frequency first!")
             return
         self.father.createFitWindow(fit.MqmasDeconvWindow(self.father, self.father.mainWindow))
+
+    def createMQMASCzjzekWindow(self):
+        if self.masterData.ndim() < 2:
+            self.father.dispMsg("Data has not enough dimensions for MQMAS fitting")
+            return
+        if self.current.freq() == 0.0:
+            self.father.dispMsg("Please set the spectrometer frequency first!")
+            return
+        self.father.createFitWindow(fit.MqmasCzjzekWindow(self.father, self.father.mainWindow))
 
     def createSIMPSONWindow(self):
         self.father.createFitWindow(fit.SIMPSONDeconvWindow(self.father, self.father.mainWindow))

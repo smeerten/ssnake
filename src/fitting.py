@@ -2626,21 +2626,21 @@ class Quad2CzjzekParamFrame(AbstractParamFrame):
         self.changeType(0)
         self.dispParams()
 
-    def changeType(self,index):
+    def changeType(self, index):
         if index == 0:
             for i in range(self.FITNUM): 
-                self.entries[self.MULTINAMES[3]][i].setEnabled(False)
-                self.entries[self.MULTINAMES[4]][i].setEnabled(False)
-                self.ticks[self.MULTINAMES[3]][i].setChecked(True)
-                self.ticks[self.MULTINAMES[4]][i].setChecked(True)
-                self.ticks[self.MULTINAMES[3]][i].setEnabled(False)
-                self.ticks[self.MULTINAMES[4]][i].setEnabled(False)
+                self.entries['wq0'][i].setEnabled(False)
+                self.entries['eta0'][i].setEnabled(False)
+                self.ticks['wq0'][i].setChecked(True)
+                self.ticks['eta0'][i].setChecked(True)
+                self.ticks['wq0'][i].setEnabled(False)
+                self.ticks['eta0'][i].setEnabled(False)
         elif index == 1:
             for i in range(self.FITNUM): 
-                self.entries[self.MULTINAMES[3]][i].setEnabled(True)
-                self.entries[self.MULTINAMES[4]][i].setEnabled(True)
-                self.ticks[self.MULTINAMES[3]][i].setEnabled(True)
-                self.ticks[self.MULTINAMES[4]][i].setEnabled(True)
+                self.entries['wq0'][i].setEnabled(True)
+                self.entries['eta0'][i].setEnabled(True)
+                self.ticks['wq0'][i].setEnabled(True)
+                self.ticks['eta0'][i].setEnabled(True)
 
     def createCzjzekPrefWindow(self, *args):
         CzjzekPrefWindow(self)
@@ -3478,15 +3478,15 @@ class MqmasDeconvParamFrame(AbstractParamFrame):
                     'cq': np.repeat([np.array([1.0, False], dtype=object)], self.FITNUM, axis=0),
                     'eta': np.repeat([np.array([0.0, False], dtype=object)], self.FITNUM, axis=0),
                     'amp': np.repeat([np.array([self.fullInt, False], dtype=object)], self.FITNUM, axis=0),
-                    'lor2': np.repeat([np.array([1.0, False], dtype=object)], self.FITNUM, axis=0),
+                    'lor2': np.repeat([np.array([10.0, False], dtype=object)], self.FITNUM, axis=0),
                     'gauss2': np.repeat([np.array([0.0, True], dtype=object)], self.FITNUM, axis=0),
-                    'lor1': np.repeat([np.array([1.0, False], dtype=object)], self.FITNUM, axis=0),
+                    'lor1': np.repeat([np.array([10.0, False], dtype=object)], self.FITNUM, axis=0),
                     'gauss1': np.repeat([np.array([0.0, True], dtype=object)], self.FITNUM, axis=0)}
         else:
             return inp
 
     def checkI(self, I):
-        return I + 3/2.0
+        return I + 1.5
 
     def getExtraParams(self, out):
         if self.entries['MQ'][-1].currentIndex() > self.checkI(self.entries['I'][-1].currentIndex()):
@@ -3619,3 +3619,362 @@ def mqmasfitFunc(params, allX, args):
         testFunc += parameters['bgrnd']
         fullTestFunc.append(testFunc)
     return np.array(fullTestFunc)
+
+
+##############################################################################
+
+class MqmasCzjzekWindow(TabFittingWindow):
+
+    def __init__(self, father, oldMainWindow):
+        self.CURRENTWINDOW = MqmasDeconvFrame
+        self.PARAMFRAME = MqmasCzjzekParamFrame
+        super(MqmasCzjzekWindow, self).__init__(father, oldMainWindow)
+
+#################################################################################
+
+
+class MqmasCzjzekParamFrame(AbstractParamFrame):
+
+    Ioptions = ['3/2', '5/2', '7/2', '9/2']
+    Ivalues = [1.5, 2.5, 3.5, 4.5]
+    MQvalues = [3, 5, 7, 9]
+
+    def __init__(self, parent, rootwindow, isMain=True):
+        self.SINGLENAMES = ['bgrnd']
+        self.MULTINAMES = ['d', 'pos', 'sigma', 'sigmaCS', 'wq0', 'eta0', 'amp', 'lor2', 'gauss2', 'lor1', 'gauss1']
+        self.PARAMTEXT = {'bgrnd': 'Background', 'd': 'd parameter', 'pos': 'Position', 'sigma': 'Sigma', 'sigmaCS': 'Sigma CS', 'wq0': 'Wq0', 'eta0': 'Eta0', 'amp': 'Integral', 'lor': 'Lorentz', 'gauss': 'Gauss'}
+        self.FITFUNC = mqmasCzjzekmpFit
+        self.wqsteps = 50
+        self.etasteps = 10
+        self.wqmax = 4
+        self.wqmin = 0
+        self.etamax = 1
+        self.etamin = 0
+        # Get full integral
+        self.fullInt = np.sum(parent.getData1D()) * parent.sw() / float(parent.getData1D().shape[-1]) * parent.sw(-2) / float(parent.getData1D().shape[-2])
+        super(MqmasCzjzekParamFrame, self).__init__(parent, rootwindow, isMain)
+        self.cheng = 15
+        self.ticks = {'bgrnd': [], 'pos': [], 'd': [], 'sigma': [], 'sigmaCS': [], 'wq0': [], 'eta0': [], 'amp': [], 'lor2': [], 'gauss2': [], 'lor1': [], 'gauss1': []}
+        self.entries = {'bgrnd': [],'method': [], 'pos': [], 'd': [], 'sigma': [], 'sigmaCS': [], 'wq0': [], 'eta0': [],'amp': [], 'lor2': [], 'gauss2': [], 'lor1': [], 'gauss1': [], 'method': [], 'cheng': [], 'I': [], 'MQ': [], 'shear': [], 'scale': [], 'wqgrid': [], 'etagrid': [], 'wqmax': []}
+        czjzekPrefButton = QtWidgets.QPushButton("Grid Settings")
+        czjzekPrefButton.clicked.connect(self.createCzjzekPrefWindow)
+        self.frame1.addWidget(czjzekPrefButton, 1, 1)
+        self.optframe.addWidget(wc.QLabel("Cheng:"), 0, 0)
+        self.entries['cheng'].append(QtWidgets.QSpinBox())
+        self.entries['cheng'][-1].setAlignment(QtCore.Qt.AlignHCenter)
+        self.entries['cheng'][-1].setValue(self.cheng)
+        self.optframe.addWidget(self.entries['cheng'][-1], 1, 0)
+        self.optframe.addWidget(wc.QLabel("I:"), 2, 0)
+        self.entries['I'].append(QtWidgets.QComboBox())
+        self.entries['I'][-1].addItems(self.Ioptions)
+        self.entries['I'][-1].setCurrentIndex(1)
+        self.optframe.addWidget(self.entries['I'][-1], 3, 0)
+        self.optframe.addWidget(wc.QLabel("MQ:"), 4, 0)
+        self.entries['MQ'].append(QtWidgets.QComboBox())
+        self.entries['MQ'][-1].addItems([str(i) for i in self.MQvalues])
+        self.entries['MQ'][-1].setCurrentIndex(0)
+        self.optframe.addWidget(self.entries['MQ'][-1], 5, 0)
+
+        self.optframe.addWidget(wc.QLabel("Shear:"), 6, 0)
+        self.entries['shear'].append(wc.QLineEdit("0.0"))
+        self.optframe.addWidget(self.entries['shear'][-1], 7, 0)
+
+        self.optframe.addWidget(wc.QLabel("Scale sw:"), 8, 0)
+        self.entries['scale'].append(wc.QLineEdit("1.0"))
+        self.optframe.addWidget(self.entries['scale'][-1], 9, 0)
+
+        loadLibButton = QtWidgets.QPushButton("Load Library")
+        loadLibButton.clicked.connect(self.loadLib)
+        self.optframe.addWidget(loadLibButton, 11, 0)
+        self.extLibCheck = QtWidgets.QCheckBox("Ext. Library")
+        self.extLibCheck.setEnabled(False)
+        self.optframe.addWidget(self.extLibCheck, 12, 0)
+        self.optframe.setColumnStretch(21, 1)
+        self.optframe.setAlignment(QtCore.Qt.AlignTop)
+        self.frame2.addWidget(wc.QLabel("Bgrnd:"), 0, 0, 1, 2)
+        self.ticks['bgrnd'].append(QtWidgets.QCheckBox(''))
+        self.ticks['bgrnd'][-1].setChecked(True)
+        self.frame2.addWidget(self.ticks['bgrnd'][-1], 1, 0)
+        self.entries['bgrnd'].append(wc.FitQLineEdit(self, 'bgrnd', "0.0"))
+        self.entries['method'].append(QtWidgets.QComboBox())
+        self.frame2.addWidget(wc.QLabel("Type:"), 4, 1)
+        self.entries['method'][0].addItems(['Normal', 'Extended'])
+        self.entries['method'][0].currentIndexChanged.connect(self.changeType)
+        self.frame2.addWidget(self.entries['method'][0], 5, 1)
+        self.frame2.addWidget(self.entries['bgrnd'][-1], 1, 1)
+        self.frame2.setColumnStretch(10, 1)
+        self.frame2.setAlignment(QtCore.Qt.AlignTop)
+        self.numExp = QtWidgets.QComboBox()
+        self.numExp.addItems([str(x + 1) for x in range(self.FITNUM)])
+        self.numExp.currentIndexChanged.connect(self.changeNum)
+        self.frame3.addWidget(self.numExp, 0, 0, 1, 2)
+        self.frame3.addWidget(wc.QLabel("d:"), 1, 0, 1, 2)
+        if self.parent.viewSettings["ppm"][-1]:
+            axUnit = 'ppm'
+        else:
+            axUnit = ['Hz', 'kHz', 'MHz'][self.parent.getAxType()]
+        self.frame3.addWidget(wc.QLabel("Pos [" + axUnit + "]:"), 1, 2, 1, 2)
+        self.frame3.addWidget(wc.QLabel(u"\u03c3 [MHz]:"), 1, 4, 1, 2)
+        self.frame3.addWidget(wc.QLabel(u"\u03c3CS [Hz]:"), 1, 6, 1, 2)
+        self.frame3.addWidget(wc.QLabel(u"\u03BD<sub>Q</sub>0 [MHz]:"), 1, 8, 1, 2)
+        self.frame3.addWidget(wc.QLabel(u"\u03B70:"), 1, 10, 1, 2)
+        self.frame3.addWidget(wc.QLabel("Integral:"), 1, 12, 1, 2)
+        self.frame3.addWidget(wc.QLabel("Lorentz 2 [Hz]:"), 1, 14, 1, 2)
+        self.frame3.addWidget(wc.QLabel("Gauss 2 [Hz]:"), 1, 16, 1, 2)
+        self.frame3.addWidget(wc.QLabel("Lorentz 1 [Hz]:"), 1, 18, 1, 2)
+        self.frame3.addWidget(wc.QLabel("Gauss 1 [Hz]:"), 1, 20, 1, 2)
+        self.frame3.setColumnStretch(30, 1)
+        self.frame3.setAlignment(QtCore.Qt.AlignTop)
+        for i in range(self.FITNUM):
+            for j in range(len(self.MULTINAMES)):
+                self.ticks[self.MULTINAMES[j]].append(QtWidgets.QCheckBox(''))
+                self.frame3.addWidget(self.ticks[self.MULTINAMES[j]][i], i + 2, 2 * j)
+                self.entries[self.MULTINAMES[j]].append(wc.FitQLineEdit(self, self.MULTINAMES[j]))
+                self.frame3.addWidget(self.entries[self.MULTINAMES[j]][i], i + 2, 2 * j + 1)
+        self.changeType(0)
+        self.dispParams()
+
+    def changeType(self, index):
+        if index == 0:
+            for i in range(self.FITNUM): 
+                self.entries['wq0'][i].setEnabled(False)
+                self.entries['eta0'][i].setEnabled(False)
+                self.ticks['wq0'][i].setChecked(True)
+                self.ticks['eta0'][i].setChecked(True)
+                self.ticks['wq0'][i].setEnabled(False)
+                self.ticks['eta0'][i].setEnabled(False)
+        elif index == 1:
+            for i in range(self.FITNUM): 
+                self.entries['wq0'][i].setEnabled(True)
+                self.entries['eta0'][i].setEnabled(True)
+                self.ticks['wq0'][i].setEnabled(True)
+                self.ticks['eta0'][i].setEnabled(True)
+
+    def createCzjzekPrefWindow(self, *args):
+        CzjzekPrefWindow(self)
+
+    def defaultValues(self, inp):
+        if not inp:
+            return {'bgrnd': [0.0, True],
+                    'pos': np.repeat([np.array([0.0, False], dtype=object)], self.FITNUM, axis=0),
+                    'd': np.repeat([np.array([5.0, True], dtype=object)], self.FITNUM, axis=0),
+                    'sigma': np.repeat([np.array([1.0, False], dtype=object)], self.FITNUM, axis=0),
+                    'sigmaCS': np.repeat([np.array([10.0, False], dtype=object)], self.FITNUM, axis=0),
+                    'wq0': np.repeat([np.array([0.0, True], dtype=object)], self.FITNUM, axis=0),
+                    'eta0': np.repeat([np.array([0.0, True], dtype=object)], self.FITNUM, axis=0),
+                    'amp': np.repeat([np.array([self.fullInt, False], dtype=object)], self.FITNUM, axis=0),
+                    'lor2': np.repeat([np.array([10.0, False], dtype=object)], self.FITNUM, axis=0),
+                    'gauss2': np.repeat([np.array([0.0, True], dtype=object)], self.FITNUM, axis=0),
+                    'lor1': np.repeat([np.array([10.0, False], dtype=object)], self.FITNUM, axis=0),
+                    'gauss1': np.repeat([np.array([0.0, True], dtype=object)], self.FITNUM, axis=0)}
+        else:
+            return inp
+
+    def checkI(self, I):
+        return I + 1.5
+
+    def setGrid(self, *args):
+        inp = safeEval(self.entries['wqmax'][-1].text())
+        if inp is None:
+            return False
+        self.entries['wqmax'][-1].setText(str(float(inp)))
+        return True
+
+    def genLib(self, length, I, minWq, maxWq, minEta, maxEta, numWq, numEta, angleStuff, freq, sw, weight):
+        wq_return, eta_return = np.meshgrid(np.linspace(minWq, maxWq, numWq), np.linspace(minEta, maxEta, numEta))
+        wq = wq_return[..., np.newaxis]
+        eta = eta_return[..., np.newaxis]
+        cq = wq*2*I*(2*I-1)/(2*np.pi)
+        v0Q, v4Q = simFunc.mqmasFreq(I, cq, eta, angleStuff)
+        C10 = I*(I+1) - 3/4.0
+        C14 = -7/18.0 * (18*I*(I+1) - 17/2.0 - 5)
+        v = (C10 * v0Q + C14 * v4Q) / freq
+        #v = -1 / (6.0 * freq) * wq**2 * (I * (I + 1) - 3.0 / 4) * (angleStuff[0] + angleStuff[1] * eta + angleStuff[2] * eta**2)
+        #v *= length / sw
+        x = np.fft.fftshift(np.fft.fftfreq(length, 1/float(sw)))
+        diff = (x[0] - x[1]) / 2.0
+        lib = np.apply_along_axis(lambda *args: np.histogram(*args)[0], 2, v, length, [x[0]-diff, x[-1]+diff], False, weight)
+        lib = lib.reshape((np.prod(lib.shape[:-1]), lib.shape[-1]))
+        wq_return = wq_return.flatten()
+        eta_return = eta_return.flatten()        
+        return np.fft.ifft(lib, axis=-1), wq_return, eta_return
+
+    def loadLib(self):
+        dirName = self.rootwindow.father.loadFitLibDir()
+        nameList = os.listdir(dirName)
+        cq = []
+        eta = []
+        data = []
+        for name in nameList:
+            matchName = re.search("-(\d+\.\d+)-(\d+\.\d+)\.(fid|spe)$", name)
+            if matchName:
+                eta.append(float(matchName.group(1)))
+                cq.append(float(matchName.group(2)))
+                fullName = os.path.join(dirName, name)
+                libData = io.autoLoad(fullName)
+                if libData.ndim() is not 1:
+                    self.rootwindow.father.dispMsg("A spectrum in the library is not a 1D spectrum.")
+                    continue
+                if not libData.spec[0]:
+                    libData.fourier(0)
+                libData.regrid([self.parent.xax()[0], self.parent.xax()[-1]], len(self.parent.xax()), 0)
+                libData.fftshift(0)
+                libData.fourier(0)
+                data.append(np.real(libData.data[0]))
+        cq = np.array(cq) * 1e6
+        eta = np.array(eta)
+        data = np.array(data)
+        numWq = len(np.unique(cq))
+        numEta = len(np.unique(eta))
+        if len(cq) != numWq * numEta:
+            self.rootwindow.father.dispMsg("Library to be loaded is not of a rectangular grid in Cq and eta.")
+            return
+        sortIndex = np.lexsort((cq, eta))
+        self.cqLib = cq[sortIndex]#.reshape((numEta, numWq))
+        self.etaLib = eta[sortIndex]#.reshape((numEta, numWq))
+        self.lib = data[sortIndex]#.reshape((numEta, numWq, len(data[0])))
+        self.extLibCheck.setEnabled(True)
+        self.extLibCheck.setChecked(True)
+
+    def getExtraParams(self, out):
+        if self.entries['MQ'][-1].currentIndex() > self.checkI(self.entries['I'][-1].currentIndex()):
+            raise RuntimeError("MQ cannot be larger than I")
+        wqMax = self.wqmax
+        wqMin = self.wqmin
+        etaMax = self.etamax
+        etaMin = self.etamin
+        I = self.Ivalues[self.entries['I'][-1].currentIndex()]
+        MQ = self.MQvalues[self.entries['MQ'][-1].currentIndex()]
+        shear = safeEval(self.entries['shear'][-1].text())
+        scale = safeEval(self.entries['scale'][-1].text())
+        numWq = self.wqsteps
+        numEta = self.etasteps
+        if self.extLibCheck.isChecked():
+            lib = self.lib
+            wq = self.cqLib
+            eta = self.etaLib
+        else:
+            weight, angleStuff = simFunc.mqmasAngleStuff(self.entries['cheng'][-1].value())
+            lib, wq, eta = self.genLib(len(self.parent.xax()), I, wqMin * 1e6, wqMax * 1e6, etaMin, etaMax, numWq, numEta, angleStuff, self.parent.freq(), self.parent.sw(), weight)
+        out['I'] = [I]
+        out['MQ'] = [MQ]
+        out['shear'] = [shear]
+        out['scale'] = [scale]
+        out['lib'] = [lib]
+        out['wq'] = [wq]
+        out['eta'] = [eta]
+        out['freq'] = [[self.parent.freq(-2), self.parent.freq()]]
+        out['method'] = [self.entries['method'][0].currentIndex()]
+        return (out, [I, MQ, shear, scale, lib, wq, eta, out['freq'][-1], self.entries['method'][0].currentIndex()])
+
+    def disp(self, params, num):
+        out = params[num]
+        for name in self.SINGLENAMES:
+            inp = out[name][0]
+            if isinstance(inp, tuple):
+                inp = checkLinkTuple(inp)
+                out[name][0] = inp[2] * params[inp[4]][inp[0]][inp[1]] + inp[3]
+        numExp = len(out[self.MULTINAMES[0]])
+        for i in range(numExp):
+            for name in self.MULTINAMES:
+                inp = out[name][i]
+                if isinstance(inp, tuple):
+                    inp = checkLinkTuple(inp)
+                    out[name][i] = inp[2] * params[inp[4]][inp[0]][inp[1]] + inp[3]
+                if not np.isfinite(out[name][i]):
+                    self.rootwindow.father.dispMsg("Fitting: One of the inputs is not valid")
+                    return
+        tmpx = [self.parent.xax(-2), self.parent.xax()]
+        bgrnd = out['bgrnd'][0]
+        method = out['method'][0]
+        outCurve = bgrnd
+        outCurvePart = []
+        x = []
+        for i in range(len(out['pos'])):
+            x.append(tmpx)
+            if method == 0:
+                wq0 = 0
+                eta0 = 0
+            elif method == 1:
+                wq0 = out['wq0'][i] * 1e6
+                eta0 = out['eta0'][i]
+            y = out['amp'][i] * simFunc.mqmasCzjzekFunc(tmpx, out['I'][0], out['MQ'][0], out['shear'][0], out['scale'][0], out['sigma'][i], out['sigmaCS'][i], out['d'][i], out['pos'][i]/self.axMult, [out['lor1'][i], out['lor2'][i]], [out['gauss1'][i], out['gauss2'][i]], out['wq'][0], out['eta'][0], out['lib'][0], [self.parent.freq(-2), self.parent.freq()], [self.parent.sw(-2), self.parent.sw()], wq0, eta0)
+            y = np.real(np.fft.fft(y, axis=0))
+            outCurvePart.append(bgrnd + y)
+            outCurve += y
+        locList = self.getRedLocList()
+        self.parent.fitDataList[locList] = [tmpx, outCurve, x, outCurvePart]
+        self.parent.showFid()
+
+#################################################################################
+
+
+def mqmasCzjzekmpFit(xax, data1D, guess, args, queue, minmethod, numfeval):
+    try:
+        fitVal = scipy.optimize.minimize(lambda *param: np.sum((data1D - mqmasCzjzekfitFunc(param, xax, args))**2), guess, method=minmethod, options = {'maxfev': numfeval})
+    except Exception:
+        fitVal = None
+    queue.put(fitVal)
+
+
+def mqmasCzjzekfitFunc(params, allX, args):
+    params = params[0]
+    specName = args[0]
+    specSlices = args[1]
+    allParam = []
+    for length in specSlices:
+        allParam.append(params[length])
+    allStruc = args[3]
+    allArgu = args[4]
+    fullTestFunc = []
+    for n in range(len(allX)):
+        x = allX[n][-1]
+        testFunc = np.zeros(len(x))
+        param = allParam[n]
+        numExp = args[2][n]
+        struc = args[3][n]
+        argu = args[4][n]
+        sw = args[5][n][-1]
+        axMult = args[6][n]
+        parameters = {}
+        parameters['I'] = argu[-1][0]
+        parameters['MQ'] = argu[-1][1]
+        parameters['shear'] = argu[-1][2]
+        parameters['scale'] = argu[-1][3]
+        parameters['lib'] = argu[-1][4]
+        parameters['wq'] = argu[-1][5]#.flatten()
+        parameters['eta'] = argu[-1][6]#.flatten()
+        parameters['freq'] = argu[-1][7]
+        parameters['method'] = argu[-1][8]
+        for name in ['bgrnd']:
+            if struc[name][0][0] == 1:
+                parameters[name] = param[struc[name][0][1]]
+            elif struc[name][0][0] == 0:
+                parameters[name] = argu[struc[name][0][1]]
+            else:
+                altStruc = struc[name][0][1]
+                if struc[altStruc[0]][altStruc[1]][0] == 1:
+                    parameters[name] = altStruc[2] * allParam[altStruc[4]][struc[altStruc[0]][altStruc[1]][1]] + altStruc[3]
+                elif struc[altStruc[0]][altStruc[1]][0] == 0:
+                    parameters[name] = altStruc[2] * allArgu[altStruc[4]][struc[altStruc[0]][altStruc[1]][1]] + altStruc[3]
+        for i in range(numExp):
+            for name in ['d', 'pos', 'sigma', 'sigmaCS', 'amp', 'lor2', 'gauss2', 'lor1', 'gauss1', 'wq0', 'eta0']:
+                if struc[name][i][0] == 1:
+                    parameters[name] = param[struc[name][i][1]]
+                elif struc[name][i][0] == 0:
+                    parameters[name] = argu[struc[name][i][1]]
+                else:
+                    altStruc = struc[name][i][1]
+                    strucTarget = allStruc[altStruc[4]]
+                    if strucTarget[altStruc[0]][altStruc[1]][0] == 1:
+                        parameters[name] = altStruc[2] * allParam[altStruc[4]][strucTarget[altStruc[0]][altStruc[1]][1]] + altStruc[3]
+                    elif strucTarget[altStruc[0]][altStruc[1]][0] == 0:
+                        parameters[name] = altStruc[2] * allArgu[altStruc[4]][strucTarget[altStruc[0]][altStruc[1]][1]] + altStruc[3]
+            if parameters['method'] == 0:
+                parameters['wq0'] = 0
+                parameters['eta'] = 0
+            testFunc += parameters['amp'] * simFunc.mqmasCzjzekFunc(x, parameters['I'], parameters['MQ'], parameters['shear'], parameters['scale'], parameters['sigma'], parameters['sigmaCS'], parameters['d'], parameters['pos']/axMult, [parameters['lor1'], parameters['lor2']], [parameters['gauss1'], parameters['gauss2']], parameters['wq'], parameters['eta'], parameters['lib'], parameters['freq'], sw, parameters['wq0'] * 1e6, parameters['eta0'])
+        testFunc = np.real(np.fft.fft(testFunc, axis=0))
+        testFunc += parameters['bgrnd']
+        fullTestFunc = np.append(fullTestFunc, testFunc)
+    return fullTestFunc

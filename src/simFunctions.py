@@ -279,3 +279,39 @@ def mqmasFunc(x, I, p, shear, scale, pos, cq, eta, lor, gauss, angleStuff, freq,
     offset = p * pos + Cp0 * v0Q / freq[-2] - shearFactor * (pos + C10 * v0Q / freq[-1])
     offset *= scale
     return makeMQMASSpectrum(x, sw, v2, gauss, lor, weight, offset, (shearFactor-shear))
+
+def mqmasCzjzekFunc(x, I, p, shear, scale, sigma, sigmaCS, d, pos, lor, gauss, wq, eta, lib, freq, sw, wq0, eta0):
+    sigma = sigma * 1e6
+    czjzek = Czjzek.czjzekIntensities(sigma, d, wq, eta, wq0, eta0)
+    length2 = len(x[1])
+    czjzek *= length2 / sw[-1] / sw[-2]
+    newLib = czjzek[...,np.newaxis]*lib
+    length1 = len(x[0])
+    t1 = np.fft.fftfreq(length1, sw[0]/float(length1))
+    t1 = t1[:, np.newaxis]
+    diff1 = (x[0][1] - x[0][0])*0.5
+    t2 = np.fft.fftfreq(length2, sw[1]/float(length2))
+    diff2 = (x[1][1] - x[1][0])*0.5
+    apod2 = np.exp(-np.pi * np.abs(lor[1] * t2) -((np.pi * np.abs(gauss[1]) * t2)**2) / (4 * np.log(2)))
+    apod1 = np.exp(-np.pi * np.abs(lor[0] * t1) -((np.pi * np.abs(gauss[0]) * t1)**2) / (4 * np.log(2)))
+    cq = wq*2*I*(2*I-1)/(2*np.pi)
+    v0Q = - cq**2 * (3 + eta**2) / (40 * (I*(2*I-1))**2)
+    C10 = I*(I+1) - 3/4.0
+    C14 = -7/18.0 * (18*I*(I+1) - 17/2.0 - 5)
+    Cp0 = p * (I*(I+1) - 3/4.0 * p**2)
+    Cp4 = -7/18.0 * p * (18*I*(I+1) - 17/2.0 * p**2 - 5)
+    shearFactor = Cp4 / C14 * freq[-1] / freq[-2]
+    offset = Cp0 * v0Q / freq[-2] - shearFactor * (C10 * v0Q / freq[-1])
+    offset *= scale
+    ind = np.digitize(offset, x[0]-(x[0][1]-x[0][0])/2.0)
+    fid = np.zeros((length1, length2), dtype=complex)
+    for i in range(len(ind)):
+        fid[ind[i]-1] += newLib[i]
+    fid = np.fft.ifft(fid, axis=0)
+    posIndirect = pos * (p - shearFactor) * scale
+    offsetMat = np.exp(2j*np.pi*((posIndirect - x[0][length1//2])*t1 + (pos - x[1][length2//2]) *t2))
+    shiftGauss = np.exp(-((np.pi * np.abs(sigmaCS) * (t2 + t1*(p-shearFactor)*scale))**2) / (4 * np.log(2)))
+    fid *= offsetMat * apod1 * apod2 * shiftGauss
+    shearMat = np.exp((shearFactor-shear) * 2j * np.pi * t1 * x[1])
+    fid = np.fft.fft(fid, axis=1)*shearMat
+    return fid
