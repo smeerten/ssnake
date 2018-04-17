@@ -1917,7 +1917,7 @@ class TensorDeconvParamFrame(AbstractParamFrame):
         else:
             weight, angleStuff = simFunc.csaAngleStuff(cheng)
             out['weight'] = [weight]
-            out['multt'] =  angleStuff
+            out['multt'] =  [angleStuff]
             return (out, [out['mas'][-1], out['multt'][-1], out['weight'][-1], out['shiftdef'][-1]])
 
     def disp(self, params, num):
@@ -1952,9 +1952,9 @@ class TensorDeconvParamFrame(AbstractParamFrame):
                 t33 = out['t33'][i]
             tensor = func.shiftConversion([t11, t22, t33], out['shiftdef'][-1])
             if out['mas'][0]:
-                y = out['amp'][i] * simFunc.tensorMASDeconvtensorFunc(tmpx, tensor[2][0], tensor[2][1], tensor[2][2], out['lor'][i], out['gauss'][i], self.parent.sw(), out['spinspeed'][0], out['cheng'][0], out['numssb'][-1])
+                y = out['amp'][i] * simFunc.csaMASDeconvtensorFunc(tmpx, tensor[1][0], tensor[1][1], tensor[1][2], out['lor'][i], out['gauss'][i], self.parent.sw(), out['spinspeed'][0], out['cheng'][0], out['numssb'][-1])
             else:
-                y = out['amp'][i] * simFunc.tensorDeconvtensorFunc(tmpx, tensor[0][0], tensor[0][1], tensor[0][2], out['lor'][i], out['gauss'][i], out['multt'][0], self.parent.sw(), out['weight'][0])
+                y = out['amp'][i] * simFunc.csaDeconvtensorFunc(tmpx, tensor[1][0], tensor[1][1], tensor[1][2], out['lor'][i], out['gauss'][i], out['multt'][0], self.parent.sw(), out['weight'][0])
             y = np.real(np.fft.fftn(y))
             outCurvePart.append(bgrnd + y)
             outCurve += y
@@ -1986,7 +1986,7 @@ def tensorDeconvfitFunc(params, allX, args):
     fullTestFunc = []
     for n in range(len(allX)):
         x = allX[n][-1]
-        testFunc = np.zeros(len(x))
+        testFunc = np.zeros(len(x),dtype=np.complex128)
         param = allParam[n]
         numExp = args[2][n]
         struc = args[3][n]
@@ -2035,9 +2035,9 @@ def tensorDeconvfitFunc(params, allX, args):
                 t33 = parameters['t33']
             tensor = func.shiftConversion([t11, t22, t33], parameters['shiftdef'])
             if mas:
-                testFunc += parameters['amp'] * simFunc.tensorMASDeconvtensorFunc(x, tensor[2][0], tensor[2][1], tensor[2][2], parameters['lor'], parameters['gauss'], sw, parameters['spinspeed'], parameters['cheng'], parameters['numssb'])
+                testFunc += parameters['amp'] * simFunc.csaMASDeconvtensorFunc(x, tensor[1][0], tensor[1][1], tensor[1][2], parameters['lor'], parameters['gauss'], sw, parameters['spinspeed'], parameters['cheng'], parameters['numssb'])
             else:
-                testFunc += parameters['amp'] * simFunc.tensorDeconvtensorFunc(x, tensor[0][0], tensor[0][1], tensor[0][2], parameters['lor'], parameters['gauss'], parameters['multt'], sw, parameters['weight'])
+                testFunc += parameters['amp'] * simFunc.csaDeconvtensorFunc(x, tensor[1][0], tensor[1][1], tensor[1][2], parameters['lor'], parameters['gauss'], parameters['multt'], sw, parameters['weight'])
         testFunc = np.real(np.fft.fftn(testFunc))
         testFunc += parameters['bgrnd']
         fullTestFunc = np.append(fullTestFunc, testFunc)

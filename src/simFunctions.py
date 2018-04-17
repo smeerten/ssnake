@@ -48,6 +48,82 @@ def zcw_angles(m, symm=0):
     weight = np.ones(samples) / samples
     return phi, theta, weight
 
+def d2tens(b):
+    cosb = np.cos(b)
+    sinb = np.sin(b)
+    sin2b = 2*sinb*cosb
+    tens = np.zeros((len(b),5,5))
+    tens[:,0,0] = 0.25 * (1 + cosb)**2
+    tens[:,1,0] = 0.5  *sinb * (1 +cosb)
+    tens[:,2,0] = np.sqrt(3.0/8) * sinb**2
+    tens[:,3,0] = 0.5 * sinb * (1 - cosb)
+    tens[:,4,0] = 0.25 * (1-cosb)**2
+    tens[:,0,1] = -tens[:,1,0]
+    tens[:,1,1] = 0.5 * (2 * cosb**2 + cosb - 1)
+    tens[:,2,1] = np.sqrt(3.0/8) * sin2b
+    tens[:,3,1] = -0.5 * (2 * cosb**2 - cosb - 1)
+    tens[:,4,1] = tens[:,3,0]
+    tens[:,0,2] = tens[:,2,0]
+    tens[:,1,2] = -tens[:,2,1]
+    tens[:,2,2] = 0.5 * (3 * cosb**2 - 1)
+    tens[:,3,2] = tens[:,2,1]
+    tens[:,4,2] = tens[:,0,2]
+    tens[:,0,3] = -tens[:,4,1]
+    tens[:,1,3] = -tens[:,3,1]
+    tens[:,2,3] = -tens[:,2,1]
+    tens[:,3,3] = tens[:,1,1]
+    tens[:,4,3] = -tens[:,0,1]
+    tens[:,0,4] =  tens[:,4,0]
+    tens[:,1,4] = -tens[:,3,0]
+    tens[:,2,4] = tens[:,2,0]
+    tens[:,3,4] = -tens[:,1,0]
+    tens[:,4,4] = tens[:,0,0]
+    return tens
+
+def D2tens(a,b,g):
+    d = d2tens(b)
+    tens = np.zeros((len(a),5,5),dtype=np.complex128)
+    part = [2,1,0,-1,-2]
+    for i, elem in enumerate(part):
+        for k, elem2 in enumerate(part):
+            tens[:,i,k] = np.exp(-1j * (a * elem2 + g *elem))
+    tens *= d 
+    return np.transpose(tens,(0,2,1)) 
+
+def D2tensFinal(a,b, use = np.array([0,1,2,3,4]), type = 'Complex', d = None):
+    part = np.array([2,1,0,-1,-2])[use]
+    if type == 'Complex':
+        arot = np.zeros((len(a),len(part)),dtype=np.complex128)
+        for i, elem in enumerate(part):
+            arot[:,i] = np.exp(-1j * a * elem)
+    elif type == 'Real':
+        arot = np.zeros((len(a),len(part)))
+        for i, elem in enumerate(part):
+            if elem == 0:
+                arot[:,i] = 1
+            else:
+                arot[:,i] = np.cos(a * elem)
+    if d is None:
+        d = d2tensFinal(b, use)
+    return arot * d
+
+def d2tensFinal(b, use = np.array([0,1,2,3,4])):
+    tens = np.zeros((len(b),len(use)))
+    if np.any(np.in1d(use,[0,2,4])): #If needed
+        cos2b = np.cos(2 * b)
+    if np.any(np.in1d(use,[1,3])): #If needed
+        sin2b = np.sin(2 * b)
+    for i, val in enumerate(use):
+        if val == 0 or val == 4:
+            tens[:,i] = np.sqrt(3.0/8)/2 * (1 - cos2b)
+        elif val == 1:
+            tens[:,i] = np.sqrt(3.0/8) * sin2b
+        elif val ==2:
+            tens[:,i] = 0.25 + 0.75 * cos2b
+        elif val==3:
+            tens[:,i] = -np.sqrt(3.0/8) * sin2b
+    return tens
+
 def voigtLine(x, pos, lor, gau, integral, Type=0):
     lor = np.abs(lor)
     gau = np.abs(gau)
@@ -101,48 +177,69 @@ def makeMQMASSpectrum(x, sw, v, gauss, lor, weight, offset, shear):
     apod1 *= np.exp(- np.pi * np.abs(lor[0] * t1) -((np.pi * np.abs(gauss[0]) * t1)**2) / (4 * np.log(2)))
     return final * apod1 # time domain in dim 0 and freq domain in dim 1
 
+def csaSpace(delta): #CSA spherical tensor cartesian space functions
+    #delta in Hz
+    v00 = - np.sqrt(1.0/3.0) * (delta[0] + delta[1] + delta[2])
+    v20 =   np.sqrt(1.0/6.0) * (2*delta[2] - delta[0] - delta[1])
+    v2pm2 = 0.5 * (delta[0] - delta[1])
+    return v00, v20, v2pm2
+
+def csaSpin(): #CSA spherical tensor spin space functions
+    T00 = -np.sqrt(1.0/3)  #times Iz and B0, but is 1
+    T20 = np.sqrt(1.0/6.0) * 2  #times Iz and B0, but is 1
+    return T00, T20
+
 def csaAngleStuff(cheng):
-    phi, theta, weight = zcw_angles(cheng, symm=2)
-    sinT2 = np.sin(theta)**2
-    return weight, [[sinT2 * np.cos(phi)**2, sinT2 * np.sin(phi)**2, np.cos(theta)**2]]
+    alpha, beta, weight = zcw_angles(cheng, symm=2)
+    D = D2tensFinal(alpha,beta, use = [0,2], type = 'Real')
+    return weight, D
 
-def tensorDeconvtensorFunc(x, t11, t22, t33, lor, gauss, multt, sw, weight):
-    v = np.dot([t11, t22, t33], multt)
-    return makeSpectrum(x, sw, v, gauss, lor, weight)
+def csaDeconvtensorFunc(x, t11, t22, t33, lor, gauss, D, sw, weight):
+    v00, v20, v2pm2 = csaSpace([t11,t22,t33])
+    T00, T20 = csaSpin()
+    vecttmp = np.array([2 * v2pm2,v20]) * T20 #already multiply with T20, before the data gets larger
+    vect = np.tile(vecttmp,(len(weight),1))
+    v = np.sum(D * vect,1) + v00 * T00
+    bla =  makeSpectrum(x, sw, v, gauss, lor, weight)
+    return bla
 
-def tensorMASDeconvtensorFunc(x, pos, delta, eta, lor, gauss, sw, spinspeed, cheng, numssb):
-    numssb = float(numssb)
-    omegar = 2 * np.pi * 1e3 * spinspeed
-    phi, theta, weight = zcw_angles(cheng, symm=2)
-    sinPhi = np.sin(phi)
-    cosPhi = np.cos(phi)
-    sin2Theta = np.sin(2 * theta)
-    cos2Theta = np.cos(2 * theta)
-    tresolution = 2 * np.pi / omegar / numssb
-    t = np.linspace(0, tresolution * (numssb - 1), numssb)
-    cosOmegarT = np.cos(omegar * t)
-    cos2OmegarT = np.cos(2 * omegar * t)
-    angleStuff = [np.array([np.sqrt(2) / 3 * sinPhi * cosPhi * 3]).transpose() * cosOmegarT,
-                  np.array([-1.0 / 3 * 3 / 2 * sinPhi**2]).transpose() * cos2OmegarT,
-                  np.transpose([cos2Theta / 3.0]) * (np.array([np.sqrt(2) / 3 * sinPhi * cosPhi * 3]).transpose() * cosOmegarT),
-                  np.array([1.0 / 3 / 2 * (1 + cosPhi**2) * cos2Theta]).transpose() * cos2OmegarT,
-                  np.array([np.sqrt(2) / 3 * sinPhi * sin2Theta]).transpose() * np.sin(omegar * t),
-                  np.array([cosPhi * sin2Theta / 3]).transpose() * np.sin(2 * omegar * t)]
-    omegars = 2 * np.pi * delta * (angleStuff[0] + angleStuff[1] + eta * (angleStuff[2] + angleStuff[3] + angleStuff[4] + angleStuff[5]))
-    numssb = angleStuff[0].shape[1]
-    QTrs = np.concatenate([np.ones([angleStuff[0].shape[0], 1]), np.exp(-1j * np.cumsum(omegars, axis=1) * tresolution)[:, :-1]], 1)
-    for j in range(1, numssb):
-        QTrs[:, j] = np.exp(-1j * np.sum(omegars[:, 0:j] * tresolution, 1))
-    rhoT0sr = np.conj(QTrs)
-    # calculate the gamma-averaged FID over 1 rotor period for all crystallites
-    favrs = np.zeros(numssb, dtype=complex)
-    for j in range(numssb):
-        favrs[j] += np.sum(weight * np.sum(rhoT0sr * np.roll(QTrs, -j, axis=1), 1) / numssb**2)
-    # calculate the sideband intensities by doing an FT and pick the ones that are needed further
-    inten = np.real(np.fft.fft(favrs))
-    posList = np.array(np.fft.fftfreq(numssb, 1.0 / numssb)) * spinspeed * 1e3 + pos
-    return makeSpectrum(x, sw, posList, gauss, lor, inten)
-   
+
+def csaMASDeconvtensorFunc(x, t11, t22, t33, lor, gauss, sw, spinspeed, cheng, numssb):
+    spinspeed *= 1000
+    alpha, beta, weight = zcw_angles(cheng, symm=2)
+    D = D2tens(alpha,beta,np.zeros(len(alpha))) #The wigner rotation
+    gammastep = 2 * np.pi / numssb
+    gval = np.arange(numssb) * gammastep
+    dt = 1.0/spinspeed/numssb
+    v00, v20, v2pm2 = csaSpace([t11,t22,t33])
+    T00, T20 = csaSpin()
+
+    vecttmp = np.array([v2pm2,0,v20,0,v2pm2]) * T20
+    vect = np.tile(vecttmp,(len(alpha),1,1))
+    vect = np.matmul(vect, D)[:,0,:] #Rotate powder
+    #Get the frequency for each gamma angle (for all crystallites)
+    v = np.zeros((len(alpha),numssb))
+    d = d2tensFinal(np.ones(1)* np.arctan(np.sqrt(2)))[0,:] # get the magic angle rotation
+    for i in range(numssb):
+        rot = np.exp(1j* np.array([2,1,0,-1,-2]) * gval[i]) * d #total rotation
+        v[:,i] = np.real(np.sum(vect * rot,1))
+    v = np.exp(1j * v * dt * 2 *np.pi) #get phase evolution for each gamma point
+
+    prod = np.cumprod(v,1) #cumulative phase rotation
+    tot = np.array(prod) #for the first gamma angle (0) no rotation, make copy of prod
+    ph = np.zeros((len(alpha),1),dtype=np.complex128)
+    for i in range(numssb - 1): #efficient cumprod(roll(v,i))
+        ph[:,0] = v[:,-(i+1)]
+        prod[:,1:] = ph * prod[:,:-1]
+        prod[:,0] = ph[:,0]
+        tot += prod
+    weight = np.array([weight]).transpose() / numssb **2
+    tot = np.sum(weight * tot,0)
+    tot = np.roll(tot,1) #Roll to make last point first (is t=0 or 2pi)
+    tot = np.real(np.fft.fft(tot))
+    posList = np.array(np.fft.fftfreq(numssb, 1.0 / numssb)) * spinspeed + v00 * T00
+    return makeSpectrum(x, sw, posList, gauss, lor, tot)
+
 def quad1DeconvtensorFunc(x, I, pos, cq, eta, lor, gauss, angleStuff, freq, sw, weight):
     m = np.arange(-I, I)
     v = []
