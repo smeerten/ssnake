@@ -657,25 +657,25 @@ class Current1D(PlotFrame):
                 self.plotReset()
         
     def integrate(self, pos1, pos2, newSpec=False):
-        self.matrixFuncs(lambda obj, *args: obj.integrate(*args), 'integrate', pos1, pos2, newSpec)
+        return self.matrixFuncs(lambda obj, *args: obj.integrate(*args), 'integrate', pos1, pos2, newSpec)
 
     def sum(self, pos1, pos2, newSpec=False):
-        self.matrixFuncs(lambda obj, *args: obj.sum(*args), 'sum', pos1, pos2, newSpec)
+        return self.matrixFuncs(lambda obj, *args: obj.sum(*args), 'sum', pos1, pos2, newSpec)
         
     def max(self, pos1, pos2, newSpec=False):
-        self.matrixFuncs(lambda obj, *args: obj.max(*args), 'max', pos1, pos2, newSpec)
+        return self.matrixFuncs(lambda obj, *args: obj.max(*args), 'max', pos1, pos2, newSpec)
 
     def min(self, pos1, pos2, newSpec=False):
-        self.matrixFuncs(lambda obj, *args: obj.min(*args), 'min', pos1, pos2, newSpec)
+        return self.matrixFuncs(lambda obj, *args: obj.min(*args), 'min', pos1, pos2, newSpec)
 
     def argmax(self, pos1, pos2, newSpec=False):
-        self.matrixFuncs(lambda obj, *args: obj.argmax(*args), 'argmax', pos1, pos2, newSpec)
+        return self.matrixFuncs(lambda obj, *args: obj.argmax(*args), 'argmax', pos1, pos2, newSpec)
 
     def argmin(self, pos1, pos2, newSpec=False):
-        self.matrixFuncs(lambda obj, *args: obj.argmin(*args), 'argmin', pos1, pos2, newSpec)
+        return self.matrixFuncs(lambda obj, *args: obj.argmin(*args), 'argmin', pos1, pos2, newSpec)
 
     def average(self, pos1, pos2, newSpec=False):
-        self.matrixFuncs(lambda obj, *args: obj.average(*args), 'average', pos1, pos2, newSpec)
+        return self.matrixFuncs(lambda obj, *args: obj.average(*args), 'average', pos1, pos2, newSpec)
 
     def flipLR(self):
         self.data.flipLR(self.axes[-1])
