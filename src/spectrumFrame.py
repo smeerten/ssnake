@@ -18,6 +18,7 @@
 # along with ssNake. If not, see <http://www.gnu.org/licenses/>.
 
 import numpy as np
+import matplotlib as plt
 import matplotlib.gridspec as gridspec
 try:
     from PyQt4 import QtGui, QtCore
@@ -53,8 +54,12 @@ class PlotFrame(object):
         if self.GRID_PLOT:
             self.gs = gridspec.GridSpec(2, 2, width_ratios=[self.root.father.defaultWidthRatio, 1], height_ratios=[1, self.root.father.defaultHeightRatio])
             self.ax = self.fig.add_subplot(self.gs[2])
-            self.x_ax = self.fig.add_subplot(self.gs[0], sharex=self.ax, facecolor='none', frameon=False)
-            self.y_ax = self.fig.add_subplot(self.gs[3], sharey=self.ax, facecolor='none', frameon=False)
+            if plt.__version__[0] == '2':
+                self.x_ax = self.fig.add_subplot(self.gs[0], sharex=self.ax, facecolor='none', frameon=False)
+                self.y_ax = self.fig.add_subplot(self.gs[3], sharey=self.ax, facecolor='none', frameon=False)
+            else:
+                self.x_ax = self.fig.add_subplot(gs[0], sharex=self.ax,axisbg='none',frameon=False)
+                self.y_ax = self.fig.add_subplot(gs[3], sharey=self.ax,axisbg='none',frameon=False)
             self.fig.subplots_adjust(hspace=0)
             self.fig.subplots_adjust(wspace=0)
             self.x_ax.axes.get_xaxis().set_visible(False)

@@ -973,10 +973,11 @@ class Current1D(PlotFrame):
         self.canvas.draw()
 
     def setTicks(self,Xset = True,Yset = True):
-        if Xset:
-            self.ax.xaxis.set_major_locator(ticker.MaxNLocator(nbins='auto', steps=[1,2,2.5,5,10], min_n_ticks=MINXNUMTICKS))
-        if Yset:
-            self.ax.yaxis.set_major_locator(ticker.MaxNLocator(nbins='auto', steps=[1,2,2.5,5,10], min_n_ticks=MINYNUMTICKS))
+        if  matplotlib.__version__[0] == '2':
+            if Xset:
+                self.ax.xaxis.set_major_locator(ticker.MaxNLocator(nbins='auto', steps=[1,2,2.5,5,10], min_n_ticks=MINXNUMTICKS))
+            if Yset:
+                self.ax.yaxis.set_major_locator(ticker.MaxNLocator(nbins='auto', steps=[1,2,2.5,5,10], min_n_ticks=MINYNUMTICKS))
 
     def plotReset(self, xReset=True, yReset=True):  # set the plot limits to min and max values
         showDat = self.data1D.data[0]
