@@ -54,6 +54,7 @@ class Current1D(PlotFrame):
             self.axes = np.array([len(self.data.shape()) - 1], dtype=int)
             self.resetLocList()
             self.viewSettings = {"plotType": 0,
+                                 "showTitle": self.root.father.defaultShowTitle,
                                  "axType": np.array([self.root.father.defaultUnits] * self.NDIM_PLOT, dtype=int),
                                  "ppm": np.array([self.root.father.defaultPPM] * self.NDIM_PLOT, dtype=bool),   # display frequency as ppm
                                  "color": self.root.father.defaultColor,
@@ -92,6 +93,10 @@ class Current1D(PlotFrame):
                                  "spacing": 0,
             }
             self.upd()  # get the first slice of data
+            if self.viewSettings['showTitle']:
+                self.fig.suptitle(self.data.name)
+            else:
+                self.fig.suptitle('')
             self.startUp()
         else:
             self.axes = self.fixAxes(duplicateCurrent.axes)
@@ -118,6 +123,10 @@ class Current1D(PlotFrame):
             xReset = self.X_RESIZE or duplicateCurrent.X_RESIZE
             yReset = self.Y_RESIZE or duplicateCurrent.Y_RESIZE
             self.upd()  # get the first slice of data
+            if self.viewSettings['showTitle']:
+                self.fig.suptitle(self.data.name)
+            else:
+                self.fig.suptitle('')
             self.startUp(xReset, yReset)
 
     def shape(self):
@@ -178,6 +187,10 @@ class Current1D(PlotFrame):
         
     def rename(self, name):
         self.data.rename(name)
+        if self.viewSettings['showTitle']:
+            self.fig.suptitle(self.data.name)
+        else:
+            self.fig.suptitle('')
         self.canvas.draw()
 
     def copyCurrent(self, root, fig, canvas, data):

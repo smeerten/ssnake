@@ -168,6 +168,7 @@ class MainProgram(QtWidgets.QMainWindow):
 
     def resetDefaults(self):
         self.defaultUnits = 1
+        self.defaultShowTitle = True
         self.defaultPPM = False
         self.defaultWidth = 1
         self.defaultHeight = 1
@@ -234,6 +235,7 @@ class MainProgram(QtWidgets.QMainWindow):
             self.dispMsg("Incorrect value in the config file for the units")
         self.defaultPPM = settings.value("plot/ppm", self.defaultPPM, bool)
         self.defaultToolbarActionList = settings.value("toolbarList", self.defaultToolbarActionList, str)
+        self.defaultShowTitle = settings.value("plot/showTitle", self.defaultColor, bool)
         self.defaultColor = settings.value("plot/colour", self.defaultColor, str)
         try:
             self.defaultLinewidth = settings.value("plot/linewidth", self.defaultLinewidth, float)
@@ -278,6 +280,7 @@ class MainProgram(QtWidgets.QMainWindow):
         QtCore.QCoreApplication.setOrganizationName("ssNake")
         QtCore.QCoreApplication.setApplicationName("ssNake")
         settings = QtCore.QSettings()
+        settings.setValue("plot/showTitle", self.defaultShowTitle)
         settings.setValue("plot/units", self.defaultUnits)
         settings.setValue("plot/ppm", self.defaultPPM)
         settings.setValue('toolbarList', self.defaultToolbarActionList)
@@ -6202,6 +6205,10 @@ class PreferenceWindow(QtWidgets.QWidget):
         self.ZoomStepSpinBox.setSingleStep(0.1)
         self.ZoomStepSpinBox.setValue(self.father.defaultZoomStep)
         grid2.addWidget(self.ZoomStepSpinBox, 10, 1)
+
+        self.showTitleCheck = QtWidgets.QCheckBox("Show title in plot")
+        self.showTitleCheck.setChecked(self.father.defaultShowTitle)
+        grid2.addWidget(self.showTitleCheck, 11, 0, 1, 2)
         # grid3 definitions
         grid3.addWidget(QtWidgets.QLabel("Colourmap:"), 0, 0)
         self.cmEntry = QtWidgets.QComboBox(self)
@@ -6272,6 +6279,7 @@ class PreferenceWindow(QtWidgets.QWidget):
         self.father.defaultGrids[0] = self.xgridCheck.isChecked()
         self.father.defaultGrids[1] = self.ygridCheck.isChecked()
         self.father.defaultZeroScroll = self.zeroScrollCheck.isChecked()
+        self.father.defaultShowTitle = self.showTitleCheck.isChecked()
         self.father.defaultZoomStep = self.ZoomStepSpinBox.value()
         self.father.defaultColorMap = self.cmEntry.currentText()
         self.father.defaultContourConst = self.constColorCheck.isChecked()
