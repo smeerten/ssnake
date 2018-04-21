@@ -778,6 +778,8 @@ class MainProgram(QtWidgets.QMainWindow):
         self.menubar.addMenu(self.helpMenu)
         self.updateAct = self.helpMenu.addAction(QtGui.QIcon(IconDirectory + 'update.png'), "&Update", self.updateMenu)
         self.updateAct.setToolTip('Update ssNake')
+        self.refmanAct = self.helpMenu.addAction("Reference Manual", lambda: self.openRefMan())
+        self.refmanAct.setToolTip('Open the Reference Manual')
         self.githubAct = self.helpMenu.addAction(QtGui.QIcon(IconDirectory + 'GitHub.png'),"GitHub Page", lambda: webbrowser.open('https://github.com/smeerten/ssnake/'))
         self.githubAct.setToolTip('ssNake GitHub Page')
         self.tutorialAct = self.helpMenu.addAction(QtGui.QIcon(IconDirectory + 'Tutorial.png'),"ssNake Tutorials", lambda: webbrowser.open('https://github.com/smeerten/ssnake_tutorials/'))
@@ -791,6 +793,15 @@ class MainProgram(QtWidgets.QMainWindow):
                              self.secondquadAct, self.czjzekAct]
         self.fidOnlyList = [self.relaxAct, self.diffusionAct]
         self.Only1DPlot = [self.snrAct, self.fwhmAct, self.massAct,  self.intfitAct]
+
+    def openRefMan(self):
+        file = os.path.dirname(os.path.realpath(__file__))  + os.path.sep + '..' + os.path.sep + 'Documentation' + os.path.sep + 'ReferenceManual.pdf'
+        if sys.platform.startswith( 'linux' ):
+            os.system("xdg-open " + file)
+        elif sys.platform.startswith( 'darwin' ):
+            os.system("open " + file)
+        elif sys.platform.startswith( 'win' ):
+            os.system("start " + file)
 
     def mainWindowCheck(self, transfer):
         # checks if mainWindow exist to execute the function
