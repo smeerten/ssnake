@@ -496,8 +496,11 @@ class Spectrum(object):
         if len(pos1) != len(pos2):
             raise SpectrumException("Length of the two arrays is not equal")
         if len(pos1) == 1:
-            keepdims = False
-        else:
+            if self.ndim() == 1:
+                keepdims = True
+            else:
+                keepdims = False
+         else:
             keepdims = True
         tmpdata = ()
         for i in range(len(pos1)):
