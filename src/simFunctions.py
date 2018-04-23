@@ -336,7 +336,7 @@ def quad2tensorFunc(x, I, pos, cq, eta, lor, gauss, angleStuff, freq, sw, weight
 
 
 
-def quad2CzjzektensorFunc(x, sigma, d, pos, width, gauss, wq, eta, lib, freq, sw, wq0 = 0, eta0 = 0):
+def quad2CzjzektensorFunc(x, sigma, d, pos, width, gauss, wq, eta, lib, freq, sw, wq0=0, eta0=0):
     sigma = sigma * 1e6
     czjzek = Czjzek.czjzekIntensities(sigma, d, wq, eta, wq0, eta0)
     fid = np.dot(czjzek, lib)
