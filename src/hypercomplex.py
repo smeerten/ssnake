@@ -91,7 +91,13 @@ class HComplexData(object):
         return HComplexData(np.abs(self.data), np.copy(self.hyper))
 
     def __add__(self, other):
-        tmpData = np.copy(self.data)
+        tmpData = self.copy()
+        return tmpData.__iadd__(other)
+
+    def __radd__(self, other):
+        return self.__add__(other)
+
+    def __iadd__(self, other):
         if isinstance(other, HComplexData):
             tmpHyper = np.unique(np.concatenate((self.hyper, other.hyper)))
             tmpHyper.sort()
@@ -100,13 +106,11 @@ class HComplexData(object):
                 tmpData[i==tmpHyper] = self.data[i==self.hyper]
             for i in other.hyper:
                 tmpData[i==tmpHyper] += other.data[i==other.hyper]
-            return HComplexData(tmpData, tmpHyper)
+            self.data = tmpData
+            self.hyper = tmpHyper
         else:
-            tmpData[0] += other # Real values should only be added to the real data
-            return HComplexData(tmpData, self.hyper)
-
-    def __radd__(self, other):
-        return self.__add__(other)
+            self.data[0] += other # Real values should only be added to the real data
+        return self
 
     def __sub__(self, other):
         if isinstance(other, list):
@@ -116,7 +120,19 @@ class HComplexData(object):
     def __rsub__(self, other):
         return (-self).__add__(other)
 
+    def __isub__(self, other):
+        if isinstance(other, list):
+            other = np.asarray(other)
+        return self.__iadd__(-other)
+    
     def __mul__(self, other):
+        tmpData = self.copy()
+        return tmpData.__imul__(other)
+
+    def __rmul__(self, other):
+        return self.__mul__(other)
+
+    def __imul__(self, other):
         if isinstance(other, HComplexData):
             tmpHyper = np.concatenate((self.hyper, other.hyper))
             for i in other.hyper:
@@ -131,49 +147,58 @@ class HComplexData(object):
                         tmpData[(idim^jdim) == tmpHyper] -= self.data[i] * other.data[j]
                     else:
                         tmpData[(idim^jdim) == tmpHyper] += self.data[i] * other.data[j]
-            return HComplexData(tmpData, tmpHyper)
+            self.data = tmpData
+            self.hyper = tmpHyper
         else:
-            return HComplexData(self.data*other, np.copy(self.hyper))
-
-    def __rmul__(self, other):
-        return self.__mul__(other)
+            self.data *= other
+        return self
 
     def __div__(self, other):
+        tmpData = self.copy()
+        return tmpData.__idiv__(other)
+    
+    # TODO: implement inverse division
+
+    def __idiv__(self, other):
         if isinstance(other, HComplexData):
             if len(other.hyper) > 1:
                 # Recursive calculation of the multicomplex division
                 warnings.warn("Calculation of multicomplex data may not result in the correct value")
                 tmpOther = HComplexData(np.copy(other.data), np.copy(other.hyper))
-                tmpSelf = HComplexData(np.copy(self.data), np.copy(self.hyper))
                 while not tmpOther.isAllReal():
                     tmpObj = HComplexData(np.copy(tmpOther.data), np.copy(tmpOther.hyper))
                     tmpObj = tmpObj.conjAll()
                     tmpOther *= tmpObj
-                    tmpSelf *= tmpObj
-                tmpSelf.data /= tmpOther.data[0]
+                    self *= tmpObj
+                self.data /= tmpOther.data[0]
                 # Zero divisors might introduce incorrect division by zero errors
-                return tmpSelf
-            return HComplexData(self.data/other.data, np.copy(self.hyper))
+            else:
+                self.data /= other.data
         else:
-            return HComplexData(self.data/other, np.copy(self.hyper))
+            self.data /= other
+        return self
 
     def __truediv__(self, other):
         return self.__div__(other)
 
     def __pow__(self, other):
-        if isinstance(other, HComplexData):
-            if len(self.hyper) > 1 or len(other.hyper) > 1:
-                raise HComplexException('Division of data with more than one complex axis is not permitted')
-            return HComplexData(self.data**other.data, np.copy(self.hyper))
-        else:
-            if len(self.hyper) > 1:
-                raise HComplexException('Power with more than one complex axis is not permitted')
-            return HComplexData(self.data**other, np.copy(self.hyper))
-
+        tmpData = self.copy()
+        return tmpData.__ipow__(other)
+    
     def __rpow__(self, other):
         if len(self.hyper) > 1:
             raise HComplexException('Power with more than one complex axis is not permitted')
         return HComplexData(other**self.data, np.copy(self.hyper))
+
+    def __ipow__(self, other):
+        if isinstance(other, HComplexData):
+            if len(self.hyper) > 1 or len(other.hyper) > 1:
+                raise HComplexException('Division of data with more than one complex axis is not permitted')
+            self.data **= other.data
+        else:
+            if len(self.hyper) > 1:
+                raise HComplexException('Power with more than one complex axis is not permitted')
+            self.data **= other
 
     def __getitem__(self, key):
         if not isinstance(key, tuple):
@@ -286,9 +311,13 @@ class HComplexData(object):
         return HComplexData(tmpData, tmpHyper)
 
     def complexReorder(self, axis=0):
+        tmpData = self.copy()
+        return tmpData.icomplexReorder(axis)
+    
+    def icomplexReorder(self, axis=0):
         if not self.isHyperComplex(axis):
             # If the data is not complex along that axis return the data unchanged
-            return HComplexData(np.copy(self.data), np.copy(self.hyper))
+            return self
         bit = 2**axis
         bArray = np.array(self.hyper & bit, dtype=bool)
         tmpHyper = np.concatenate((self.hyper, self.hyper[bArray] - bit, self.hyper[np.logical_not(bArray)] + bit))
@@ -298,7 +327,9 @@ class HComplexData(object):
         tmpBArray = np.array(self.hyper & bit, dtype=bool)
         tmpData[np.logical_not(tmpBArray)] = np.real(self.data[np.logical_not(bArray)]) + 1j*np.real(self.data[bArray])
         tmpData[tmpBArray] = np.imag(self.data[np.logical_not(bArray)]) + 1j*np.imag(self.data[bArray])
-        return HComplexData(tmpData, tmpHyper)
+        self.data = tmpData
+        self.hyper = tmpHyper
+        return self
 
     def moveaxis(self, axis1, axis2):
         if isinstance(axis1, (int, float)):

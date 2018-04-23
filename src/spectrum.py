@@ -208,7 +208,21 @@ class Spectrum(object):
         if not self.noUndo:
             self.undoList.append(lambda self: self.restoreData(copyData, lambda self: self.delete(pos, axes)))
 
+    def __add__(self, other):
+        tmpData = copy.deepcopy(self)
+        tmpData.add(other)
+        return tmpData
+
+    def __radd__(self, other):
+        return self.__add__(other)
+
+    def __iadd__(self, other):
+        self.add(other)
+        return self
+            
     def add(self, data, axis=None, select=slice(None)):
+        if isinstance(data, Spectrum):
+            data = data.data
         if isinstance(data, np.ndarray) and axis is not None:
             data = data.reshape(data.shape + (1,)*(self.ndim() - axis - 1))
         if not self.noUndo:
@@ -225,7 +239,21 @@ class Spectrum(object):
         if not self.noUndo:
             self.undoList.append(returnValue)
 
+    def __sub__(self, other):
+        tmpData = copy.deepcopy(self)
+        tmpData.subtract(other)
+        return tmpData
+
+    def __rsub__(self, other):
+        return self.__sub__(other)
+
+    def __isub__(self, other):
+        self.subtract(other)
+        return self
+            
     def subtract(self, data, axis=None, select=slice(None)):
+        if isinstance(data, Spectrum):
+            data = data.data
         if isinstance(data, np.ndarray) and axis is not None:
             data = data.reshape(data.shape + (1,)*(self.ndim() - axis - 1))
         if not self.noUndo:
@@ -242,7 +270,21 @@ class Spectrum(object):
         if not self.noUndo:
             self.undoList.append(returnValue)
 
+    def __mul__(self, other):
+        tmpData = copy.deepcopy(self)
+        tmpData.multiply(other)
+        return tmpData
+
+    def __rmul__(self, other):
+        return self.__mul__(other)
+
+    def __imul__(self, other):
+        self.multiply(other)
+        return self
+    
     def multiply(self, data, axis=None, select=slice(None)):
+        if isinstance(data, Spectrum):
+            data = data.data
         if isinstance(data, np.ndarray) and axis is not None:
             data = data.reshape(data.shape + (1,)*(self.ndim() - axis - 1))
         if not self.noUndo:
@@ -259,7 +301,20 @@ class Spectrum(object):
         if not self.noUndo:
             self.undoList.append(returnValue)
 
+    def __div__(self, other):
+        tmpData = copy.deepcopy(self)
+        tmpData.divide(other)
+        return tmpData
+
+    # TODO: implement inverse division
+
+    def __idiv__(self, other):
+        self.divide(self, other)
+        return self
+    
     def divide(self, data, axis=None, select=slice(None)):
+        if isinstance(data, Spectrum):
+            data = data.data
         if isinstance(data, np.ndarray) and axis is not None:
             data = data.reshape(data.shape + (1,)*(self.ndim() - axis - 1))
         if not self.noUndo:
@@ -660,9 +715,9 @@ class Spectrum(object):
         axes = self.checkAxes(axes)
         if not self.noUndo:
             copyData = copy.deepcopy(self)
-        self.data = self.data.complexReorder(axes)
+        self.data.icomplexReorder(axes)
         self.data = self.data.hilbert(axis=axes)
-        self.data = self.data.complexReorder(axes)
+        self.data.icomplexReorder(axes)
         self.addHistory("Hilbert transform on dimension " + str(axes + 1))
         self.redoList = []
         if not self.noUndo:
@@ -676,7 +731,7 @@ class Spectrum(object):
             raise SpectrumException("The location array contains invalid indices")
         locList = np.array(locList, dtype=object)
         locList[axes] = slice(None)
-        self.data = self.data.complexReorder(axes)
+        self.data.icomplexReorder(axes)
         if self.spec[axes] == 0:
             self.fourier(axes, tmp=True)
         tmp = self.data[locList]
@@ -700,7 +755,7 @@ class Spectrum(object):
         self.data *= np.exp(phase0 * 1j) * vector
         if self.spec[axes] == 0:
             self.fourier(axes, tmp=True, inv=True)
-        self.data = self.data.complexReorder(axes)
+        self.data.icomplexReorder(axes)
         Message = "Autophase: phase0 = " + str(phase0 * 180 / np.pi) + " and phase1 = " + str(phase1 * 180 / np.pi) + " for dimension " + str(axes + 1)
         self.addHistory(Message)
         if returnPhases:
@@ -743,9 +798,9 @@ class Spectrum(object):
         if self.spec[axes] == 0:
             self.fourier(axes, tmp=True)
         vector = vector.reshape(vector.shape + (1, )*(self.ndim()-axes-1))
-        self.data = self.data.complexReorder(axes)
+        self.data.icomplexReorder(axes)
         self.data[select] *= np.exp(phase0 * 1j) * vector
-        self.data = self.data.complexReorder(axes)
+        self.data.icomplexReorder(axes)
         if self.spec[axes] == 0:
             self.fourier(axes, tmp=True, inv=True)
         Message = "Phasing: phase0 = " + str(phase0 * 180 / np.pi) + " and phase1 = " + str(phase1 * 180 / np.pi) + " for dimension " + str(axes + 1)
@@ -999,7 +1054,7 @@ class Spectrum(object):
     def fourier(self, axes, tmp=False, inv=False, reorder=[True,True]):
         axes = self.checkAxes(axes)
         if reorder[0]:
-            self.data = self.data.complexReorder(axes)
+            self.data.icomplexReorder(axes)
         if np.logical_xor(self.spec[axes], inv) == 0:
             if not self.wholeEcho[axes] and not tmp:
                 slicing = (slice(None), ) * axes + (0, )
@@ -1017,7 +1072,7 @@ class Spectrum(object):
                 self.spec[axes] = 0
                 self.addHistory("Inverse Fourier transform dimension " + str(axes + 1))
         if reorder[1]:
-            self.data = self.data.complexReorder(axes)
+            self.data.icomplexReorder(axes)
         self.resetXax(axes)
         self.redoList = []
         if not self.noUndo:
@@ -1063,12 +1118,12 @@ class Spectrum(object):
         if self.spec[axes] > 0: #rorder and fft for spec
             self.fourier(axes, tmp=True, reorder = [True,False])
         else: #Reorder if FID
-            self.data = self.data.complexReorder(axes)
+            self.data.icomplexReorder(axes)
         self.data *= shearMatrix.reshape(shape)
         if self.spec[axes] > 0:
             self.fourier(axes, tmp=True, inv=True, reorder=[False,True])
         else:
-            self.data = self.data.complexReorder(axes)
+            self.data.icomplexReorder(axes)
         self.addHistory("Shearing transform with shearing value " + str(shear) + " over dimensions " + str(axes + 1) + " and " + str(axes2 + 1))
         self.redoList = []
         if not self.noUndo:
@@ -1096,7 +1151,7 @@ class Spectrum(object):
         if typeVal == 2:  # type is TPPI, for now handle the same as Complex
             pass
         posList = np.unique(posList)
-        self.data = self.complexReorder(axes)
+        self.data.icomplexReorder(axes)
         tmpData = self.data.getHyperData(0)
         tmpData = np.rollaxis(tmpData, axes, tmpData.ndim)
         tmpShape = tmpData.shape
@@ -1125,7 +1180,7 @@ class Spectrum(object):
         if typeVal == 2:  # type is TPPI, for now handle the same as Complex
             pass
         posList = np.unique(posList)
-        self.data = self.data.complexReorder(axes)
+        self.data.icomplexReorder(axes)
         tmpData = self.data.getHyperData(0)
         tmpData = np.rollaxis(np.fft.fft(tmpData, axis=axes), axes, tmpData.ndim)
         tmpShape = tmpData.shape
@@ -1153,7 +1208,7 @@ class Spectrum(object):
         if not self.noUndo:
             copyData = copy.deepcopy(self)
         # pos contains the values of fixed points which not to be translated to missing points
-        self.data = self.data.complexReorder(axes)
+        self.data.icomplexReorder(axes)
         tmpData = self.data.getHyperData(0)
         posList = np.delete(range(tmpData.shape[axes]), pos)
         if typeVal == 1:  # type is States or States-TPPI, the positions need to be divided by 2
@@ -1185,8 +1240,8 @@ class Spectrum(object):
         for i, axis in enumerate(axes):
             axes[i] = self.checkAxes(axis)
         locList[axes] = stack
-        sliceData = self.data[locList]
-        sliceData = sliceData.complexReorder(axes[-1])
+        sliceData = self.data[locList].copy()
+        sliceData.icomplexReorder(axes[-1])
         orderInd = np.argsort(axes)
         sliceData = sliceData.moveaxis(np.arange(sliceData.ndim()), orderInd)
         sliceSpec = copy.deepcopy(Spectrum(hc.HComplexData(sliceData.getHyperData(0)),
