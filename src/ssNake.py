@@ -46,7 +46,7 @@ if __name__ == '__main__':
     splash.show()
 
 
-splashSteps = 16.0 / 100
+splashSteps = 17.0 / 100
 splashStep = 0.0
 
 
@@ -76,6 +76,8 @@ splashStep = splashProgressStep(splashStep)
 import copy
 splashStep = splashProgressStep(splashStep)
 import spectrum as sc
+splashStep = splashProgressStep(splashStep)
+import hypercomplex as hc
 splashStep = splashProgressStep(splashStep)
 import fitting as fit
 splashStep = splashProgressStep(splashStep)
@@ -1371,7 +1373,6 @@ class MainProgram(QtWidgets.QMainWindow):
                     name = 'spectrum' + str(count)
                     count += 1
             masterData.rename(name)
-            masterData.msgHandler = lambda msg: self.dispMsg(msg)
             if masterData is not None:
                 self.workspaces.append(Main1DWindow(self, masterData))
                 self.tabs.addTab(self.workspaces[-1], name)
@@ -1394,7 +1395,6 @@ class MainProgram(QtWidgets.QMainWindow):
         if wsname is None:
             return
         masterData.rename(wsname)
-        masterData.msgHandler = lambda msg: self.dispMsg(msg)
         self.workspaces.append(Main1DWindow(self, masterData))
         self.workspaces[-1].rename(wsname)
         self.tabs.addTab(self.workspaces[-1], wsname)
@@ -1413,7 +1413,6 @@ class MainProgram(QtWidgets.QMainWindow):
                                  wholeEcho,
                                  ref,
                                  xaxArray,
-                                 msgHandler=lambda msg: self.dispMsg(msg),
                                  history=['Data obtained from fit'],
                                  name=name)
         masterData.resetXax(axes)
@@ -1964,24 +1963,24 @@ class Main1DWindow(QtWidgets.QWidget):
         self.textframe.upd()
 
     def undo(self, *args):
-        if self.masterData.undo():
-            self.current.upd()
-            self.current.showFid()
-            self.current.plotReset()
-            self.updAllFrames()
-            if self.currentMacro is not None:
-                self.redoMacro.append(self.father.macros[self.currentMacro].pop())
-            self.menuCheck()
+        self.father.dispMsg(self.masterData.undo())
+        self.current.upd()
+        self.current.showFid()
+        self.current.plotReset()
+        self.updAllFrames()
+        if self.currentMacro is not None:
+            self.redoMacro.append(self.father.macros[self.currentMacro].pop())
+        self.menuCheck()
 
     def redo(self, *args):
-        if self.masterData.redo():
-            self.current.upd()
-            self.current.showFid()
-            self.current.plotReset()
-            self.updAllFrames()
-            if self.currentMacro is not None:
-                self.father.macroAdd(self.currentMacro, self.redoMacro.pop())
-            self.menuCheck()
+        self.masterData.redo()
+        self.current.upd()
+        self.current.showFid()
+        self.current.plotReset()
+        self.updAllFrames()
+        if self.currentMacro is not None:
+            self.father.macroAdd(self.currentMacro, self.redoMacro.pop())
+        self.menuCheck()
 
     def clearUndo(self):
         self.masterData.clearUndo()
@@ -6868,6 +6867,9 @@ if __name__ == '__main__':
     def exception_hook(exctype, value, traceback):
         if not isinstance(value, Exception): # Do not catch keyboard interrupts
             sys._excepthook(exctype, value, traceback)
-        mainProgram.dispError([exctype, value, traceback])
+        elif isinstance(value, (sc.SpectrumException, hc.HComplexException)):
+            mainProgram.dispMsg(str(value))            
+        else:
+            mainProgram.dispError([exctype, value, traceback])
     sys.excepthook = exception_hook
     sys.exit(root.exec_())

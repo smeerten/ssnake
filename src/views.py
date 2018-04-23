@@ -22,6 +22,7 @@ import copy
 from matplotlib.pyplot import get_cmap
 import matplotlib
 import matplotlib.ticker as ticker
+import spectrum as sc
 from spectrumFrame import PlotFrame
 import reimplement as reim
 
@@ -326,8 +327,7 @@ class Current1D(PlotFrame):
                 curve = self.data1D.apodize(lor, gauss, cos2, hamming, shift, shifting, shiftingAxes, -1, preview=preview)
             else:
                 if shiftingAxes == self.axes[-1]:
-                    self.dispMsg('shiftingAxes cannot be equal to axes')
-                    return
+                    raise sc.SpectrumException('shiftingAxes cannot be equal to axes')
                 shift += shifting * self.locList[shiftingAxes] / self.data.sw[shiftingAxes]
                 curve = self.data1D.apodize(lor, gauss, cos2, hamming, shift, 0.0, None, -1, preview=preview)
         if self.spec() == 0 and not isinstance(self, CurrentContour):

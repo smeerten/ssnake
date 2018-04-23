@@ -30,13 +30,17 @@ import specIO as io
 AUTOPHASETOL = 0.0002 #is ~0.01 degrees
 
 
+class SpectrumException(Exception):
+    pass
+
+
 #########################################################################
 # the generic spectrum class
 
 
 class Spectrum(object):
 
-    def __init__(self, data, filePath, freq, sw, spec=None, wholeEcho=None, ref=None, xaxArray=None, history=None, msgHandler=None, name=''):
+    def __init__(self, data, filePath, freq, sw, spec=None, wholeEcho=None, ref=None, xaxArray=None, history=None, name=''):
         self.name = name
         if isinstance(data, hc.HComplexData):
             self.data = data
@@ -69,7 +73,6 @@ class Spectrum(object):
             self.history = []  # list of strings describing all performed operations
         else:
             self.history = history
-        self.msgHandler = msgHandler
 
     def ndim(self):
         return self.data.ndim()
@@ -85,12 +88,6 @@ class Spectrum(object):
 
     def isComplex(self, *args):
         return self.data.isComplex(*args)
-
-    def dispMsg(self, msg):
-        if self.msgHandler is None:
-            print(msg)
-        else:
-            self.msgHandler(msg)
 
     def rename(self, name):
         self.name = name
@@ -118,25 +115,20 @@ class Spectrum(object):
         while undoFunc is None and self.undoList:
             undoFunc = self.undoList.pop()
         if undoFunc is None:
-            self.dispMsg("no undo information")
-            return False
+            raise SpectrumException("No undo information")
         tmpRedo = self.redoList # Protect the redo list
         undoFunc(self)
         self.redoList = tmpRedo
         self.redoList.append(self.undoList.pop())
         message = self.removeFromHistory(2)
-        self.dispMsg("Undo: " + message)
-        return True
+        return "Undo: " + message
 
     def redo(self):
-        if self.redoList:
-            tmpRedo = self.redoList # Protect the redo list
-            tmpRedo.pop()(self)
-            self.redoList = tmpRedo # Restore the redo list
-            return True
-        else:
-            self.dispMsg("no redo information")
-            return False
+        if not self.redoList:
+            raise SpectrumException("No redo information")
+        tmpRedo = self.redoList # Protect the redo list
+        tmpRedo.pop()(self)
+        self.redoList = tmpRedo # Restore the redo list
 
     def clearUndo(self):
         self.undoList = []
@@ -170,8 +162,7 @@ class Spectrum(object):
     def setXax(self, xax, axes):
         axes = self.checkAxes(axes)
         if len(xax) != self.shape()[axes]:
-            self.dispMsg("Length of new x-axis does not match length of the data")
-            return
+            raise SpectrumException("Length of new x-axis does not match length of the data")
         oldXax = self.xaxArray[axes]
         self.xaxArray[axes] = xax
         self.addHistory("X-axes of dimension " + str(axes + 1) + " was set to " + str(xax).replace('\n', ''))
@@ -205,8 +196,7 @@ class Spectrum(object):
             copyData = copy.deepcopy(self)
         tmpData = self.data.delete(pos, axes)
         if 0 in tmpData.shape():
-            self.dispMsg('Cannot delete all data')
-            return
+            raise SpectrumException('Cannot delete all data')
         self.data = tmpData
         self.xaxArray[axes] = np.delete(self.xaxArray[axes], pos)
         if isinstance(pos, (int, float)):
@@ -291,8 +281,7 @@ class Spectrum(object):
         try:
             self.data *= mult * scale 
         except ValueError as error:
-            self.dispMsg('Normalize: ' + str(error))
-            return None
+            raise SpectrumException('Normalize: ' + str(error))
         if type == 0:
             self.addHistory("Normalized integral of dimension " + str(axes + 1) + " of data[" + str(select) + "] to " + str(scale))
         elif type == 1:
@@ -397,11 +386,7 @@ class Spectrum(object):
         axes = self.checkAxes(axes)
         if not self.noUndo:
             copyData = copy.deepcopy(self)
-        try:
-            self.data.states(axes)
-        except hc.HComplexException as e:
-            self.dispMsg(str(e))
-            return
+        self.data.states(axes)
         self.resetXax(axes)
         self.addHistory("States conversion on dimension " + str(axes + 1))
         self.redoList = []
@@ -412,11 +397,7 @@ class Spectrum(object):
         axes = self.checkAxes(axes)
         if not self.noUndo:
             copyData = copy.deepcopy(self)
-        try:
-            self.data.states(axes, TPPI=True)
-        except hc.HComplexException as e:
-            self.dispMsg(str(e))
-            return
+        self.data.states(axes, TPPI=True)
         self.resetXax(axes)
         self.addHistory("States-TPPI conversion on dimension " + str(axes + 1))
         self.redoList = []
@@ -427,11 +408,7 @@ class Spectrum(object):
         axes = self.checkAxes(axes)
         if not self.noUndo:
             copyData = copy.deepcopy(self)
-        try:
-            self.data.echoAntiEcho(axes)
-        except hc.HComplexException as e:
-            self.dispMsg(str(e))
-            return
+        self.data.echoAntiEcho(axes)
         self.resetXax(axes)
         self.addHistory("Echo-antiecho conversion on dimension " + str(axes + 1))
         self.redoList = []
@@ -441,14 +418,11 @@ class Spectrum(object):
     def subtractAvg(self, pos1, pos2, axes):
         axes = self.checkAxes(axes)
         if not (0 <= pos1 <= self.shape()[axes]):
-            self.dispMsg("Indices not within range")
-            return
+            raise SpectrumException("Indices not within range")
         if not (0 <= pos2 <= self.shape()[axes]):
-            self.dispMsg("Indices not within range")
-            return
+            raise SpectrumException("Indices not within range")
         if pos1 == pos2:
-            self.dispMsg("Indices cannot be equal")
-            return
+            raise SpectrumException("Indices cannot be equal")
         minPos = min(pos1, pos2)
         maxPos = max(pos1, pos2)
         slicing = (slice(None), ) * axes + (slice(minPos, maxPos), )
@@ -465,8 +439,7 @@ class Spectrum(object):
             pos1 = np.array([pos1])
             pos2 = np.array([pos2])
         if len(pos1) != len(pos2):
-            self.dispMsg("Length of the two arrays is not equal")
-            return
+            raise SpectrumException("Length of the two arrays is not equal")
         if len(pos1) == 1:
             keepdims = False
         else:
@@ -474,14 +447,11 @@ class Spectrum(object):
         tmpdata = ()
         for i in range(len(pos1)):
             if not (0 <= pos1[i] <= self.shape()[axes]):
-                self.dispMsg("Indices not within range")
-                return
+                raise SpectrumException("Indices not within range")
             if not (0 <= pos2[i] <= self.shape()[axes]):
-                self.dispMsg("Indices not within range")
-                return
+                raise SpectrumException("Indices not within range")
             if pos1[i] == pos2[i]:
-                self.dispMsg("Indices cannot be equal")
-                return
+                raise SpectrumException("Indices cannot be equal")
             minPos = min(pos1[i], pos2[i])
             maxPos = max(pos1[i], pos2[i])
             slicing = (slice(None), ) * axes + (slice(minPos, maxPos), )
@@ -627,8 +597,7 @@ class Spectrum(object):
         axes = self.checkAxes(axes)
         axLen = self.shape()[axes]
         if len(refSpec) != axLen:
-            self.dispMsg("Reference FID does not have the correct length")
-            return
+            raise SpectrumException("Reference FID does not have the correct length")
         if not self.noUndo:
             copyData = copy.deepcopy(self)
         tmpSpec = np.fft.ifftshift(np.real(refSpec))
@@ -702,11 +671,9 @@ class Spectrum(object):
     def autoPhase(self, phaseNum, axes, locList, returnPhases=False):
         axes = self.checkAxes(axes)
         if len(locList) != self.ndim():
-            self.dispMsg("Data does not have the correct number of dimensions")
-            return
+            raise SpectrumException("Data does not have the correct number of dimensions")
         if np.any(locList >= np.array(self.shape())) or np.any(np.array(locList) < 0):
-            self.dispMsg("The location array contains invalid indices")
-            return
+            raise SpectrumException("The location array contains invalid indices")
         locList = np.array(locList, dtype=object)
         locList[axes] = slice(None)
         self.data = self.data.complexReorder(axes)
@@ -1080,11 +1047,9 @@ class Spectrum(object):
         axes = self.checkAxes(axes)
         axes2 = self.checkAxes(axes2)
         if axes == axes2:
-            self.dispMsg('Both shearing axes cannot be equal')
-            return
+            raise SpectrumException('Both shearing axes cannot be equal')
         if self.ndim() < 2:
-            self.dispMsg("The data does not have enough dimensions for a shearing transformation")
-            return
+            raise SpectrumException("The data does not have enough dimensions for a shearing transformation")
         shape = self.shape()
         vec1 = np.linspace(0, shear * 2 * np.pi * shape[axes] / self.sw[axes], shape[axes] + 1)[:-1]
         vec2 = np.fft.fftshift(np.fft.fftfreq(shape[axes2], 1 / self.sw[axes2]))
@@ -1233,7 +1198,6 @@ class Spectrum(object):
                                            [self.ref[axis] for axis in axes],
                                            [self.xaxArray[axis][stack[i]] for i, axis in enumerate(axes)],
                                            self.history,
-                                           self.msgHandler,
                                            name=self.name))
         sliceSpec.noUndo = True
         return sliceSpec
