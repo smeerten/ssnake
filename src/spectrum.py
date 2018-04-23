@@ -500,7 +500,7 @@ class Spectrum(object):
                 keepdims = True
             else:
                 keepdims = False
-         else:
+        else:
             keepdims = True
         tmpdata = ()
         for i in range(len(pos1)):
