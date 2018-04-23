@@ -153,6 +153,7 @@ class MainProgram(QtWidgets.QMainWindow):
         QtWidgets.QShortcut(QtGui.QKeySequence.Copy, self).activated.connect(self.handleCopy)
 
     def dispError(self, error):
+        self.dispMsg("Python Error", color="red")
         CurTime = datetime.datetime.now()
         TimeStr = '{0:02d}'.format(CurTime.hour) + ':' + '{0:02d}'.format(CurTime.minute) + ':' + '{0:02d}'.format(CurTime.second)
         self.errors.append([TimeStr, error])
@@ -304,13 +305,11 @@ class MainProgram(QtWidgets.QMainWindow):
         settings.setValue("contour/diagonalbool", self.defaultDiagonalBool)
         settings.setValue("contour/diagonalmult", self.defaultDiagonalMult)
 
-    def dispMsg(self, msg, color='black', error=True):
+    def dispMsg(self, msg, color='black'):
         if color == 'red':
             self.statusBar.setStyleSheet("QStatusBar{padding-left:8px;color:red;}")
         else:
             self.statusBar.setStyleSheet("QStatusBar{padding-left:8px;color:black;}")
-        if error:
-            self.dispError([msg])
         self.statusBar.showMessage(msg, 10000)
 
     def initToolbar(self):
@@ -3016,6 +3015,7 @@ class AsciiLoadWindow(QtWidgets.QDialog):
         self.deleteLater()
 
 #################################################################################
+
 class PhaseWindow(wc.ToolWindows):
 
     NAME = "Phasing"
@@ -6866,7 +6866,8 @@ if __name__ == '__main__':
     sys._excepthook = sys.excepthook
 
     def exception_hook(exctype, value, traceback):
-        sys._excepthook(exctype, value, traceback)
+        if not isinstance(value, Exception): # Do not catch keyboard interrupts
+            sys._excepthook(exctype, value, traceback)
         mainProgram.dispError([exctype, value, traceback])
     sys.excepthook = exception_hook
     sys.exit(root.exec_())
