@@ -679,8 +679,7 @@ class AbstractParamFrame(QtWidgets.QWidget):
 
     def getFitParams(self):
         if not self.checkInputs():
-            self.rootwindow.father.dispMsg("Fitting: One of the inputs is not valid")
-            return
+            raise FittingException("Fitting: One of the inputs is not valid")
         struc = {}
         for name in (self.SINGLENAMES + self.MULTINAMES):
             struc[name] = []
@@ -737,8 +736,7 @@ class AbstractParamFrame(QtWidgets.QWidget):
         fitVal = self.queue.get(timeout=2)
         self.stopMP()
         if fitVal is None:
-            self.rootwindow.father.dispMsg('Optimal parameters not found')
-            return
+            raise FittingException('Optimal parameters not found')
         return fitVal
 
     def setResults(self, fitVal, args, out):
@@ -791,8 +789,7 @@ class AbstractParamFrame(QtWidgets.QWidget):
 
     def getSimParams(self):
         if not self.checkInputs():
-            self.rootwindow.father.dispMsg("Fitting: One of the inputs is not valid")
-            return
+            raise FittingException("Fitting: One of the inputs is not valid")
         numExp = self.getNumExp()
         out = {}
         for name in self.SINGLENAMES:
@@ -819,8 +816,7 @@ class AbstractParamFrame(QtWidgets.QWidget):
 
     def paramToWorkspace(self, allTraces, settings):
         if not self.checkInputs():
-            self.rootwindow.father.dispMsg("Fitting: One of the inputs is not valid")
-            return
+            raise FittingException("Fitting: One of the inputs is not valid")
         paramNameList = np.array(self.SINGLENAMES + self.MULTINAMES, dtype=object)
         locList = self.getRedLocList()
         if not np.any(settings):
@@ -1095,8 +1091,7 @@ class RelaxParamFrame(AbstractParamFrame):
                     inp = checkLinkTuple(inp)
                     out[name][i] = inp[2] * params[inp[4]][inp[0]][inp[1]] + inp[3]
                 if not np.isfinite(out[name][i]):
-                    self.rootwindow.father.dispMsg("Fitting: One of the inputs is not valid")
-                    return
+                    raise FittingException("Fitting: One of the inputs is not valid")
         tmpx = self.parent.xax()
         if prepExport:
             x = tmpx
@@ -1290,8 +1285,7 @@ class DiffusionParamFrame(AbstractParamFrame):
                     inp = checkLinkTuple(inp)
                     out[name][i] = inp[2] * params[inp[4]][inp[0]][inp[1]] + inp[3]
                 if not np.isfinite(out[name][i]):
-                    self.rootwindow.father.dispMsg("Fitting: One of the inputs is not valid")
-                    return
+                    raise FittingException("Fitting: One of the inputs is not valid")
         tmpx = self.parent.xax()
         if prepExport:
             x = tmpx
@@ -1526,8 +1520,7 @@ class PeakDeconvParamFrame(AbstractParamFrame):
                     inp = checkLinkTuple(inp)
                     out[name][i] = inp[2] * params[inp[4]][inp[0]][inp[1]] + inp[3]
                 if not np.isfinite(out[name][i]):
-                    self.rootwindow.father.dispMsg("Fitting: One of the inputs is not valid")
-                    return
+                    raise FittingException("Fitting: One of the inputs is not valid")
         tmpx = self.parent.xax()
         bgrnd = out['bgrnd'][0]
         outCurve = bgrnd * np.ones(len(tmpx))
@@ -1895,8 +1888,7 @@ class TensorDeconvParamFrame(AbstractParamFrame):
                 startTensor = [T11, T22, T33]
                 if None in startTensor:
                     self.entries['shiftdef'][-1].setCurrentIndex(OldType)  # error, reset to old view
-                    self.rootwindow.father.dispMsg("Fitting: One of the inputs is not valid")
-                    return
+                    raise FittingException("Fitting: One of the inputs is not valid")
                 Tensors = func.shiftConversion(startTensor, OldType)
                 for element in range(3):  # Check for `ND' s
                     if isinstance(Tensors[NewType][element], str):
@@ -1939,8 +1931,7 @@ class TensorDeconvParamFrame(AbstractParamFrame):
                     inp = checkLinkTuple(inp)
                     out[name][i] = inp[2] * params[inp[4]][inp[0]][inp[1]] + inp[3]
                 if not np.isfinite(out[name][i]):
-                    self.rootwindow.father.dispMsg("Fitting: One of the inputs is not valid")
-                    return
+                    raise FittingException("Fitting: One of the inputs is not valid")
         tmpx = self.parent.xax()
         bgrnd = out['bgrnd'][0]
         outCurve = bgrnd * np.ones(len(tmpx))
@@ -2230,8 +2221,7 @@ class Quad1DeconvParamFrame(AbstractParamFrame):
                     inp = checkLinkTuple(inp)
                     out[name][i] = inp[2] * params[inp[4]][inp[0]][inp[1]] + inp[3]
                 if not np.isfinite(out[name][i]):
-                    self.rootwindow.father.dispMsg("Fitting: One of the inputs is not valid")
-                    return
+                    raise FittingException("Fitting: One of the inputs is not valid")
         tmpx = self.parent.xax()
         bgrnd = out['bgrnd'][0]
         outCurve = bgrnd * np.ones(len(tmpx))
@@ -2399,9 +2389,12 @@ class CzjzekPrefWindow(QtWidgets.QWidget):
         self.chengEntry.setAlignment(QtCore.Qt.AlignHCenter)
         self.chengEntry.setValue(self.father.cheng)
         grid.addWidget(self.chengEntry, 3, 0, 1, 2)
-        self.masEntry = QtWidgets.QCheckBox('Spinning')
-        self.masEntry.setChecked(self.father.mas)
-        grid.addWidget(self.masEntry, 4, 0, 1, 2)
+        if self.father.mas is None:
+            self.masEntry = None
+        else:
+            self.masEntry = QtWidgets.QCheckBox('Spinning')
+            self.masEntry.setChecked(self.father.mas)
+            grid.addWidget(self.masEntry, 4, 0, 1, 2)
         grid.addWidget(wc.QLabel(u"\u03c9<sub>Q</sub> grid size:"), 5, 0, 1, 2)
         self.wqsteps = QtWidgets.QSpinBox()
         self.wqsteps.setMinimum(2)
@@ -2510,7 +2503,8 @@ class CzjzekPrefWindow(QtWidgets.QWidget):
         self.father.etasteps = self.etasteps.value()
         self.father.cheng = self.chengEntry.value()
         self.father.I = self.Ientry.currentIndex() + 3 / 2.0
-        self.father.mas = self.masEntry.isChecked()
+        if self.masEntry is not None:
+            self.father.mas = self.masEntry.isChecked()
         inp = safeEval(self.wqmax.text(), type='FI')
         if inp is None:
             raise FittingException(u"\u03BD_Q_max value not valid.")
@@ -2668,13 +2662,6 @@ class Quad2CzjzekParamFrame(AbstractParamFrame):
         else:
             return inp
 
-    def setGrid(self, *args):
-        inp = safeEval(self.entries['wqmax'][-1].text())
-        if inp is None:
-            return False
-        self.entries['wqmax'][-1].setText(str(float(inp)))
-        return True
-
     def bincounting(self, x1, weight, length):
         weights = weight[np.logical_and(x1 >= 0, x1 < length)]
         x1 = x1[np.logical_and(x1 >= 0, x1 < length)]
@@ -2763,8 +2750,7 @@ class Quad2CzjzekParamFrame(AbstractParamFrame):
                     inp = checkLinkTuple(inp)
                     out[name][i] = inp[2] * params[inp[4]][inp[0]][inp[1]] + inp[3]
                 if not np.isfinite(out[name][i]):
-                    self.rootwindow.father.dispMsg("Fitting: One of the inputs is not valid")
-                    return
+                    raise FittingException("Fitting: One of the inputs is not valid")
         tmpx = self.parent.xax()
         bgrnd = out['bgrnd'][0]
         method = out['method'][0]
@@ -2976,8 +2962,7 @@ class SIMPSONDeconvParamFrame(AbstractParamFrame):
                         inp = checkLinkTuple(inp)
                         out[name][i] = inp[2] * params[inp[4]][inp[0]][inp[1]] + inp[3]
                     if not np.isfinite(out[name][i]):
-                        self.rootwindow.father.dispMsg("Fitting: One of the inputs is not valid")
-                        return
+                        raise FittingException("Fitting: One of the inputs is not valid")
             tmpx = self.parent.xax()
             bgrnd = np.zeros(len(tmpx))
             outCurve = bgrnd
@@ -2990,8 +2975,7 @@ class SIMPSONDeconvParamFrame(AbstractParamFrame):
                     inputPar[name] = out[name][i]
                 y = SIMPSONRunScript(out["command"][0], out["script"][0], inputPar, tmpx, out["txtOutput"][0], out["spec"][0])
                 if y is None:
-                    self.rootwindow.father.dispMsg("Fitting: The script didn't output anything", 'red')
-                    return
+                    raise FittingException("Fitting: The script didn't output anything")
                 outCurvePart.append(bgrnd + y)
                 outCurve += y
             locList = self.getRedLocList()
@@ -3213,8 +3197,7 @@ class FunctionFitParamFrame(AbstractParamFrame):
                         inp = checkLinkTuple(inp)
                         out[name][i] = inp[2] * params[inp[4]][inp[0]][inp[1]] + inp[3]
                     if not np.isfinite(out[name][i]):
-                        self.rootwindow.father.dispMsg("Fitting: One of the inputs is not valid")
-                        return
+                        raise FittingException("Fitting: One of the inputs is not valid")
             tmpx = self.parent.xax()
             bgrnd = np.zeros(len(tmpx))
             outCurve = bgrnd
@@ -3227,8 +3210,7 @@ class FunctionFitParamFrame(AbstractParamFrame):
                     inputPar[name] = out[name][i]
                 y = functionRun(out["function"][0], inputPar, tmpx)
                 if y is None:
-                    self.rootwindow.father.dispMsg("Fitting: The script didn't output anything", 'red')
-                    return
+                    raise FittingException("Fitting: The script didn't output anything")
                 outCurvePart.append(bgrnd + y)
                 outCurve += y
             locList = self.getRedLocList()
@@ -3417,15 +3399,12 @@ class MqmasDeconvParamFrame(AbstractParamFrame):
         self.entries['MQ'][-1].addItems([str(i) for i in self.MQvalues])
         self.entries['MQ'][-1].setCurrentIndex(0)
         self.optframe.addWidget(self.entries['MQ'][-1], 5, 0)
-
         self.optframe.addWidget(wc.QLabel("Shear:"), 6, 0)
         self.entries['shear'].append(wc.QLineEdit("0.0"))
         self.optframe.addWidget(self.entries['shear'][-1], 7, 0)
-
         self.optframe.addWidget(wc.QLabel("Scale sw:"), 8, 0)
         self.entries['scale'].append(wc.QLineEdit("1.0"))
         self.optframe.addWidget(self.entries['scale'][-1], 9, 0)
-        
         self.optframe.setColumnStretch(10, 1)
         self.optframe.setAlignment(QtCore.Qt.AlignTop)
         self.frame2.addWidget(wc.QLabel("Bgrnd:"), 2, 0, 1, 2)
@@ -3527,8 +3506,7 @@ class MqmasDeconvParamFrame(AbstractParamFrame):
                     inp = checkLinkTuple(inp)
                     out[name][i] = inp[2] * params[inp[4]][inp[0]][inp[1]] + inp[3]
                 if not np.isfinite(out[name][i]):
-                    self.rootwindow.father.dispMsg("Fitting: One of the inputs is not valid")
-                    return
+                    raise FittingException("Fitting: One of the inputs is not valid")
         tmpx = [self.parent.xax(-2), self.parent.xax()]
         bgrnd = out['bgrnd'][0]
         outCurve = bgrnd
@@ -3644,25 +3622,30 @@ class MqmasCzjzekParamFrame(AbstractParamFrame):
         self.wqmin = 0
         self.etamax = 1
         self.etamin = 0
+        self.lib = None
+        self.cqLib = None
+        self.etaLib = None
+        self.I = 3 / 2.0
+        self.cheng = 15
+        self.mas = None # MQMAS simulation without mas not possible
         # Get full integral
         self.fullInt = np.sum(parent.getData1D()) * parent.sw() / float(parent.getData1D().shape[-1]) * parent.sw(-2) / float(parent.getData1D().shape[-2])
         super(MqmasCzjzekParamFrame, self).__init__(parent, rootwindow, isMain)
-        self.cheng = 15
         self.ticks = {'bgrnd': [], 'pos': [], 'd': [], 'sigma': [], 'sigmaCS': [], 'wq0': [], 'eta0': [], 'amp': [], 'lor2': [], 'gauss2': [], 'lor1': [], 'gauss1': []}
-        self.entries = {'bgrnd': [],'method': [], 'pos': [], 'd': [], 'sigma': [], 'sigmaCS': [], 'wq0': [], 'eta0': [],'amp': [], 'lor2': [], 'gauss2': [], 'lor1': [], 'gauss1': [], 'method': [], 'cheng': [], 'I': [], 'MQ': [], 'shear': [], 'scale': [], 'wqgrid': [], 'etagrid': [], 'wqmax': []}
-        czjzekPrefButton = QtWidgets.QPushButton("Grid Settings")
+        self.entries = {'bgrnd': [],'method': [], 'pos': [], 'd': [], 'sigma': [], 'sigmaCS': [], 'wq0': [], 'eta0': [],'amp': [], 'lor2': [], 'gauss2': [], 'lor1': [], 'gauss1': [], 'method': [], 'MQ': [], 'shear': [], 'scale': []}
+        czjzekPrefButton = QtWidgets.QPushButton("Generate Lib.")
         czjzekPrefButton.clicked.connect(self.createCzjzekPrefWindow)
         self.frame1.addWidget(czjzekPrefButton, 1, 1)
-        self.optframe.addWidget(wc.QLabel("Cheng:"), 0, 0)
-        self.entries['cheng'].append(QtWidgets.QSpinBox())
-        self.entries['cheng'][-1].setAlignment(QtCore.Qt.AlignHCenter)
-        self.entries['cheng'][-1].setValue(self.cheng)
-        self.optframe.addWidget(self.entries['cheng'][-1], 1, 0)
-        self.optframe.addWidget(wc.QLabel("I:"), 2, 0)
-        self.entries['I'].append(QtWidgets.QComboBox())
-        self.entries['I'][-1].addItems(self.Ioptions)
-        self.entries['I'][-1].setCurrentIndex(1)
-        self.optframe.addWidget(self.entries['I'][-1], 3, 0)
+        # self.optframe.addWidget(wc.QLabel("Cheng:"), 0, 0)
+        # self.entries['cheng'].append(QtWidgets.QSpinBox())
+        # self.entries['cheng'][-1].setAlignment(QtCore.Qt.AlignHCenter)
+        # self.entries['cheng'][-1].setValue(self.cheng)
+        # self.optframe.addWidget(self.entries['cheng'][-1], 1, 0)
+        # self.optframe.addWidget(wc.QLabel("I:"), 2, 0)
+        # self.entries['I'].append(QtWidgets.QComboBox())
+        # self.entries['I'][-1].addItems(self.Ioptions)
+        # self.entries['I'][-1].setCurrentIndex(1)
+        # self.optframe.addWidget(self.entries['I'][-1], 3, 0)
         self.optframe.addWidget(wc.QLabel("MQ:"), 4, 0)
         self.entries['MQ'].append(QtWidgets.QComboBox())
         self.entries['MQ'][-1].addItems([str(i) for i in self.MQvalues])
@@ -3680,9 +3663,9 @@ class MqmasCzjzekParamFrame(AbstractParamFrame):
         loadLibButton = QtWidgets.QPushButton("Load Library")
         loadLibButton.clicked.connect(self.loadLib)
         self.optframe.addWidget(loadLibButton, 11, 0)
-        self.extLibCheck = QtWidgets.QCheckBox("Ext. Library")
-        self.extLibCheck.setEnabled(False)
-        self.optframe.addWidget(self.extLibCheck, 12, 0)
+        # self.extLibCheck = QtWidgets.QCheckBox("Ext. Library")
+        # self.extLibCheck.setEnabled(False)
+        # self.optframe.addWidget(self.extLibCheck, 12, 0)
         self.optframe.setColumnStretch(21, 1)
         self.optframe.setAlignment(QtCore.Qt.AlignTop)
         self.frame2.addWidget(wc.QLabel("Bgrnd:"), 0, 0, 1, 2)
@@ -3764,16 +3747,6 @@ class MqmasCzjzekParamFrame(AbstractParamFrame):
         else:
             return inp
 
-    def checkI(self, I):
-        return I + 1.5
-
-    def setGrid(self, *args):
-        inp = safeEval(self.entries['wqmax'][-1].text())
-        if inp is None:
-            return False
-        self.entries['wqmax'][-1].setText(str(float(inp)))
-        return True
-
     def genLib(self, length, I, minWq, maxWq, minEta, maxEta, numWq, numEta, angleStuff, freq, sw, weight):
         wq_return, eta_return = np.meshgrid(np.linspace(minWq, maxWq, numWq), np.linspace(minEta, maxEta, numEta))
         wq = wq_return[..., np.newaxis]
@@ -3793,6 +3766,10 @@ class MqmasCzjzekParamFrame(AbstractParamFrame):
         eta_return = eta_return.flatten()        
         return np.fft.ifft(lib, axis=-1), wq_return, eta_return
 
+    def simLib(self):
+        weight, angleStuff = simFunc.mqmasAngleStuff(self.cheng)
+        self.lib, self.cqLib, self.etaLib = self.genLib(len(self.parent.xax()), self.I, self.wqmin*1e6, self.wqmax*1e6, self.etamin, self.etamax, self.wqsteps, self.etasteps, angleStuff, self.parent.freq(), self.parent.sw(), weight)
+    
     def loadLib(self):
         dirName = self.rootwindow.father.loadFitLibDir()
         nameList = os.listdir(dirName)
@@ -3821,45 +3798,32 @@ class MqmasCzjzekParamFrame(AbstractParamFrame):
         numWq = len(np.unique(cq))
         numEta = len(np.unique(eta))
         if len(cq) != numWq * numEta:
-            self.rootwindow.father.dispMsg("Library to be loaded is not of a rectangular grid in Cq and eta.")
-            return
+            raise FittingException("Library to be loaded is not of a rectangular grid in Cq and eta.")
         sortIndex = np.lexsort((cq, eta))
         self.cqLib = cq[sortIndex]#.reshape((numEta, numWq))
         self.etaLib = eta[sortIndex]#.reshape((numEta, numWq))
         self.lib = data[sortIndex]#.reshape((numEta, numWq, len(data[0])))
-        self.extLibCheck.setEnabled(True)
-        self.extLibCheck.setChecked(True)
+        #self.extLibCheck.setEnabled(True)
+        #self.extLibCheck.setChecked(True)
 
     def getExtraParams(self, out):
-        if self.entries['MQ'][-1].currentIndex() > self.checkI(self.entries['I'][-1].currentIndex()):
-            raise RuntimeError("MQ cannot be larger than I")
-        wqMax = self.wqmax
-        wqMin = self.wqmin
-        etaMax = self.etamax
-        etaMin = self.etamin
-        I = self.Ivalues[self.entries['I'][-1].currentIndex()]
+        if self.lib is None:
+            raise FittingException("No library available")
+        if self.entries['MQ'][-1].currentIndex() > (self.I*2):
+            raise FittingException("MQ cannot be larger than I")
         MQ = self.MQvalues[self.entries['MQ'][-1].currentIndex()]
         shear = safeEval(self.entries['shear'][-1].text())
         scale = safeEval(self.entries['scale'][-1].text())
-        numWq = self.wqsteps
-        numEta = self.etasteps
-        if self.extLibCheck.isChecked():
-            lib = self.lib
-            wq = self.cqLib
-            eta = self.etaLib
-        else:
-            weight, angleStuff = simFunc.mqmasAngleStuff(self.entries['cheng'][-1].value())
-            lib, wq, eta = self.genLib(len(self.parent.xax()), I, wqMin * 1e6, wqMax * 1e6, etaMin, etaMax, numWq, numEta, angleStuff, self.parent.freq(), self.parent.sw(), weight)
-        out['I'] = [I]
+        out['I'] = [self.I]
         out['MQ'] = [MQ]
         out['shear'] = [shear]
         out['scale'] = [scale]
-        out['lib'] = [lib]
-        out['wq'] = [wq]
-        out['eta'] = [eta]
+        out['lib'] = [self.lib]
+        out['wq'] = [self.cqLib]
+        out['eta'] = [self.etaLib]
         out['freq'] = [[self.parent.freq(-2), self.parent.freq()]]
         out['method'] = [self.entries['method'][0].currentIndex()]
-        return (out, [I, MQ, shear, scale, lib, wq, eta, out['freq'][-1], self.entries['method'][0].currentIndex()])
+        return (out, [self.I, MQ, shear, scale, self.lib, self.cqLib, self.etaLib, out['freq'][-1], out['method']])
 
     def disp(self, params, num):
         out = params[num]
@@ -3876,8 +3840,7 @@ class MqmasCzjzekParamFrame(AbstractParamFrame):
                     inp = checkLinkTuple(inp)
                     out[name][i] = inp[2] * params[inp[4]][inp[0]][inp[1]] + inp[3]
                 if not np.isfinite(out[name][i]):
-                    self.rootwindow.father.dispMsg("Fitting: One of the inputs is not valid")
-                    return
+                    raise FittingException("Fitting: One of the inputs is not valid")
         tmpx = [self.parent.xax(-2), self.parent.xax()]
         bgrnd = out['bgrnd'][0]
         method = out['method'][0]
