@@ -61,6 +61,7 @@ class ToolWindows(QtWidgets.QWidget):
     BROWSE = False
     RESIZABLE = False
     MENUDISABLE = True
+    APPLYANDCLOSE = True
     CANCELNAME = "&Cancel"
     OKNAME = "&Ok"
 
@@ -106,8 +107,8 @@ class ToolWindows(QtWidgets.QWidget):
         pass
 
     def applyAndClose(self):
-        check = self.applyFunc()
-        if check is None:
+        self.applyFunc()
+        if self.APPLYANDCLOSE:
             self.closeEvent()
 
     def closeEvent(self, *args):

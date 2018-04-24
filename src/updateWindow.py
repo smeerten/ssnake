@@ -32,7 +32,7 @@ if sys.version_info >= (3, 0):
     from urllib.request import urlopen, urlretrieve
 else:
     from urllib import urlopen, urlretrieve
-
+import ssNake as sc
 
 class UpdateWindow(QtWidgets.QWidget):
 
@@ -53,8 +53,7 @@ class UpdateWindow(QtWidgets.QWidget):
                 self.nameList.append(info[i]['name'])
                 self.urlList.append(info[i]['zipball_url'])
         except Exception:
-            self.father.dispMsg("Could not connect to the server")
-            return
+            raise sc.SsnakeException("Could not connect to the server")
         self.setWindowTitle("Update ssNake")
         layout = QtWidgets.QGridLayout(self)
         grid = QtWidgets.QGridLayout()

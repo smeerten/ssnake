@@ -28,7 +28,6 @@ import matplotlib
 matplotlib.rc('svg', fonttype='none')
 from matplotlib.colors import colorConverter
 import widgetClasses as wc
-
 from safeEval import safeEval
 import numpy as np
 import os
