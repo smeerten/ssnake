@@ -317,7 +317,6 @@ def quad2StaticsetAngleStuff(cheng):
                   -1 / 2.0 * cosT2 + 1 / 3.0 + (-3 / 8.0 * cosT4 + 3 / 4.0 * cosT2 - 3 / 8.0) * cos2P**2]
     return weight, angleStuff
 
-
 def quad2MASsetAngleStuff(cheng):
     phi, theta, weight = zcw_angles(cheng, symm=2)
     cosT2 = np.cos(theta)**2
@@ -328,13 +327,10 @@ def quad2MASsetAngleStuff(cheng):
                   1 / 12.0 * cosT2 + (+7 / 48.0 * cosT4 - 7 / 24.0 * cosT2 + 7 / 48.0) * cos2P**2]
     return weight, angleStuff
 
-
 def quad2tensorFunc(x, I, pos, cq, eta, lor, gauss, angleStuff, freq, sw, weight):
     cq *= 1e6
     v = -1 / (6 * freq) * (3 * cq / (2 * I * (2 * I - 1)))**2 * (I * (I + 1) - 3.0 / 4) * (angleStuff[0] + angleStuff[1] * eta + angleStuff[2] * eta**2) + pos
     return makeSpectrum(x, sw, v, gauss, lor, weight)
-
-
 
 def quad2CzjzektensorFunc(x, sigma, d, pos, width, gauss, wq, eta, lib, freq, sw, wq0=0, eta0=0):
     sigma = sigma * 1e6

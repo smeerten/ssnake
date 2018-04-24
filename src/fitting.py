@@ -2172,12 +2172,10 @@ class Quad1DeconvParamFrame(AbstractParamFrame):
         else:
             return inp
 
-    def checkI(self, I):
-        return I * 0.5 + 1
-
     def getExtraParams(self, out):
+        I = self.entries['I'][-1].currentIndex() * 0.5 + 1
         out['mas'] = [self.entries['mas'][-1].isChecked()]
-        out['I'] = [self.checkI(self.entries['I'][-1].currentIndex())]
+        out['I'] = [I]
         cheng = safeEval(self.entries['cheng'][-1].text())
         out['cheng'] = [cheng]
         if out['mas'][0]:
@@ -2190,7 +2188,6 @@ class Quad1DeconvParamFrame(AbstractParamFrame):
             out['tensorfunc'] = [self.tensorFunc]
             out['freq'] = [self.parent.freq()]
             return (out, [out['mas'][-1], out['I'][-1], out['weight'][-1], out['anglestuff'][-1], out['tensorfunc'][-1], out['freq'][-1]])
-
 
     def checkParam(self):
          val = self.numExp.currentIndex() + 1
@@ -2347,11 +2344,12 @@ class Quad2DeconvParamFrame(Quad1DeconvParamFrame):
 
     def getExtraParams(self, out):
         out['mas'] = [0]  # Second order quadrupole MAS is calculated as if it is static
+        I = self.entries['I'][-1].currentIndex() + 3 / 2.0
         if self.entries['mas'][-1].isChecked():
             self.setAngleStuff = simFunc.quad2MASsetAngleStuff
         else:
             self.setAngleStuff = simFunc.quad2StaticsetAngleStuff
-        out['I'] = [self.checkI(self.entries['I'][-1].currentIndex())]
+        out['I'] = [I]
         cheng = safeEval(self.entries['cheng'][-1].text())
         out['cheng'] = [cheng]
         weight, angleStuff = self.setAngleStuff(cheng)
@@ -2360,9 +2358,6 @@ class Quad2DeconvParamFrame(Quad1DeconvParamFrame):
         out['tensorfunc'] = [self.tensorFunc]
         out['freq'] = [self.parent.freq()]
         return (out, [out['mas'][-1], out['I'][-1], out['weight'][-1], out['anglestuff'][-1], out['tensorfunc'][-1], out['freq'][-1]])
-
-    def checkI(self, I):
-        return I * 1.0 + 1.5
 
 ##############################################################################
 
@@ -2375,75 +2370,88 @@ class CzjzekPrefWindow(QtWidgets.QWidget):
         super(CzjzekPrefWindow, self).__init__(parent)
         self.setWindowFlags(QtCore.Qt.Window | QtCore.Qt.Tool)
         self.father = parent
-        self.setWindowTitle("Generate Lib.")
+        self.setWindowTitle("Library")
         layout = QtWidgets.QGridLayout(self)
         grid = QtWidgets.QGridLayout()
-        layout.addLayout(grid, 0, 0, 1, 2)
-        grid.addWidget(wc.QLabel("I:"), 0, 0, 1, 2)
+        layout.addLayout(grid, 0, 0, 1, 4)
+        grid.addWidget(wc.QLabel("I:"), 0, 0)
         self.Ientry = QtWidgets.QComboBox()
         self.Ientry.addItems(self.Ioptions)
-        self.Ientry.setCurrentIndex(int(self.father.I-3/2.0))
-        grid.addWidget(self.Ientry, 1, 0, 1, 2)
-        grid.addWidget(wc.QLabel("Cheng:"), 2, 0, 1, 2)
+        grid.addWidget(self.Ientry, 1, 0)
+        grid.addWidget(wc.QLabel("Cheng:"), 0, 1)
         self.chengEntry = QtWidgets.QSpinBox()
         self.chengEntry.setAlignment(QtCore.Qt.AlignHCenter)
         self.chengEntry.setValue(self.father.cheng)
-        grid.addWidget(self.chengEntry, 3, 0, 1, 2)
-        if self.father.mas is None:
-            self.masEntry = None
-        else:
-            self.masEntry = QtWidgets.QCheckBox('Spinning')
-            self.masEntry.setChecked(self.father.mas)
-            grid.addWidget(self.masEntry, 4, 0, 1, 2)
-        grid.addWidget(wc.QLabel(u"\u03c9<sub>Q</sub> grid size:"), 5, 0, 1, 2)
+        grid.addWidget(self.chengEntry, 1, 1)
+        grid.addWidget(wc.QLabel(u"\u03c9<sub>Q</sub> grid size:"), 2, 0)
         self.wqsteps = QtWidgets.QSpinBox()
         self.wqsteps.setMinimum(2)
         self.wqsteps.setMaximum(1000)
         self.wqsteps.setAlignment(QtCore.Qt.AlignHCenter) 
-        self.wqsteps.setValue(self.father.wqsteps)
-        grid.addWidget(self.wqsteps, 6, 0, 1, 2)
-        grid.addWidget(wc.QLabel(u"\u03b7 grid size:"), 7, 0, 1, 2)
+        grid.addWidget(self.wqsteps, 3, 0)
+        grid.addWidget(wc.QLabel(u"\u03b7 grid size:"), 2, 1)
         self.etasteps = QtWidgets.QSpinBox()
         self.etasteps.setMinimum(2)
         self.etasteps.setMaximum(1000)
         self.etasteps.setAlignment(QtCore.Qt.AlignHCenter) 
-        self.etasteps.setValue(self.father.etasteps)
-        grid.addWidget(self.etasteps, 8, 0, 1, 2)
-        grid.addWidget(wc.QLabel(u"\u03BD<sub>Q</sub> limits [MHz]:"), 9, 0, 1, 2)
+        grid.addWidget(self.etasteps, 3, 1)
+        grid.addWidget(wc.QLabel(u"\u03BD<sub>Q</sub> limits [MHz]:"), 4, 0, 1, 2)
         self.wqmin = wc.QLineEdit(str(self.father.wqmin), self.checkWq)
-        grid.addWidget(self.wqmin, 10, 0)
+        grid.addWidget(self.wqmin, 5, 0)
         self.wqmax = wc.QLineEdit(str(self.father.wqmax), self.checkWq)
-        grid.addWidget(self.wqmax, 10, 1)
-        grid.addWidget(wc.QLabel(u"\u03B7 limits:"), 11, 0, 1, 2)
+        grid.addWidget(self.wqmax, 5, 1)
+        grid.addWidget(wc.QLabel(u"\u03B7 limits:"), 6, 0, 1, 2)
         self.etamin = wc.QLineEdit(str(self.father.etamin), self.checkEta)
-        grid.addWidget(self.etamin, 12, 0)
+        grid.addWidget(self.etamin, 7, 0)
         self.etamax = wc.QLineEdit(str(self.father.etamax), self.checkEta)
-        grid.addWidget(self.etamax, 12, 1)
+        grid.addWidget(self.etamax, 7, 1)
+        if self.father.mas is None:
+            self.masEntry = None
+        else:
+            self.masEntry = QtWidgets.QCheckBox('Spinning')
+            grid.addWidget(self.masEntry, 8, 0, 1, 2)
         self.fig = Figure()
         self.canvas = FigureCanvas(self.fig)
-        grid.addWidget(self.canvas, 0, 2, 13, 4)
+        grid.addWidget(self.canvas, 0, 2, 14, 4)
         self.ax = self.fig.add_subplot(111)
         self.simButton = QtWidgets.QPushButton("Show", parent=self)
         self.simButton.clicked.connect(self.plotDist)
-        grid.addWidget(self.simButton, 13, 4)
-        grid.addWidget(wc.QLabel("Site:"), 13, 2)
+        grid.addWidget(self.simButton, 14, 4)
+        grid.addWidget(wc.QLabel("Site:"), 14, 2)
         self.site = QtWidgets.QSpinBox()
         self.site.setMinimum(1)
         self.site.setMaximum(self.father.numExp.currentIndex() + 1)
         self.site.setAlignment(QtCore.Qt.AlignHCenter) 
-        grid.addWidget(self.site, 13, 3)
-        cancelButton = QtWidgets.QPushButton("&Cancel")
+        grid.addWidget(self.site, 14, 3)
+        cancelButton = QtWidgets.QPushButton("&Close")
         cancelButton.clicked.connect(self.closeEvent)
         layout.addWidget(cancelButton, 4, 0)
-        okButton = QtWidgets.QPushButton("&Generate", self)
-        okButton.clicked.connect(self.applyAndClose)
-        okButton.setFocus()
-        layout.addWidget(okButton, 4, 1)
-        grid.setRowStretch(12, 1)
+        genButton = QtWidgets.QPushButton("&Generate", self)
+        genButton.clicked.connect(self.generate)
+        genButton.setFocus()
+        layout.addWidget(genButton, 4, 1)
+        loadButton = QtWidgets.QPushButton("&Load", self)
+        loadButton.clicked.connect(self.loadLib)
+        layout.addWidget(loadButton, 4, 2)
+        grid.setRowStretch(13, 1)
         grid.setColumnStretch(5, 1)
+        layout.setColumnStretch(3, 1)
+        self.upd()
         #self.plotDist()
         self.show()
         self.resize(800, 600)
+
+    def upd(self):
+        self.Ientry.setCurrentIndex(int(self.father.I-3/2.0))
+        self.chengEntry.setValue(self.father.cheng)
+        if self.father.mas is not None:
+            self.masEntry.setChecked(self.father.mas)
+        self.wqsteps.setValue(self.father.wqsteps)
+        self.etasteps.setValue(self.father.etasteps)
+        self.wqmin.setText(str(self.father.wqmin))
+        self.wqmax.setText(str(self.father.wqmax))
+        self.etamin.setText(str(self.father.etamin))
+        self.etamax.setText(str(self.father.etamax))
 
     def plotDist(self):
         self.ax.cla()
@@ -2498,7 +2506,7 @@ class CzjzekPrefWindow(QtWidgets.QWidget):
     def closeEvent(self, *args):
         self.deleteLater()
 
-    def applyAndClose(self, *args):
+    def generate(self, *args):
         self.father.wqsteps = self.wqsteps.value()
         self.father.etasteps = self.etasteps.value()
         self.father.cheng = self.chengEntry.value()
@@ -2527,7 +2535,46 @@ class CzjzekPrefWindow(QtWidgets.QWidget):
             raise FittingException(u"\u03B7_min value not valid.")
         self.father.etamin = abs(float(inp))
         self.father.simLib()
-        self.closeEvent()
+
+    def loadLib(self, *args):
+        dirName = self.father.rootwindow.father.loadFitLibDir()
+        nameList = os.listdir(dirName)
+        cq = []
+        eta = []
+        data = []
+        for name in nameList:
+            matchName = re.search("-(\d+\.\d+)-(\d+\.\d+)\.(fid|spe)$", name)
+            if matchName:
+                eta.append(float(matchName.group(1)))
+                cq.append(float(matchName.group(2)))
+                fullName = os.path.join(dirName, name)
+                libData = io.autoLoad(fullName)
+                if libData.ndim() != 1:
+                    raise FittingException("A spectrum in the library is not a 1D spectrum.")
+                if not libData.spec[0]:
+                    libData.fourier(0)
+                libData.regrid([self.father.parent.xax()[0], self.father.parent.xax()[-1]], len(self.father.parent.xax()), 0)
+                libData.fftshift(0)
+                libData.fourier(0)
+                data.append(np.real(libData.data[0]))
+        cq = np.array(cq) * 1e6
+        eta = np.array(eta)
+        data = np.array(data)
+        numWq = len(np.unique(cq))
+        numEta = len(np.unique(eta))
+        if len(cq) != numWq * numEta:
+            raise FittingException("Library to be loaded is not of a rectangular grid in Cq and eta.")
+        sortIndex = np.lexsort((cq, eta))
+        self.father.cqLib = cq[sortIndex]
+        self.father.etaLib = eta[sortIndex]
+        self.father.lib = data[sortIndex]
+        self.father.wqsteps = numWq
+        self.father.etasteps = numEta
+        self.father.wqmax = np.max(cq) * 1e-6
+        self.father.wqmin = np.min(cq) * 1e-6
+        self.father.etamax = np.max(eta)
+        self.father.etamin = np.min(eta)
+        self.upd()
 
 ##############################################################################
 
@@ -2565,28 +2612,9 @@ class Quad2CzjzekParamFrame(AbstractParamFrame):
         super(Quad2CzjzekParamFrame, self).__init__(parent, rootwindow, isMain)
         self.ticks = {'bgrnd': [], 'pos': [], 'd': [], 'sigma': [], 'wq0': [], 'eta0': [], 'amp': [], 'lor': [], 'gauss': []}
         self.entries = {'bgrnd': [],'method': [], 'pos': [], 'd': [], 'sigma': [], 'wq0': [], 'eta0': [], 'amp': [], 'lor': [], 'gauss': [], 'method': []}
-        czjzekPrefButton = QtWidgets.QPushButton("Generate Lib.")
+        czjzekPrefButton = QtWidgets.QPushButton("Library")
         czjzekPrefButton.clicked.connect(self.createCzjzekPrefWindow)
         self.frame1.addWidget(czjzekPrefButton, 1, 1)
-
-        #self.optframe.addWidget(wc.QLabel("Cheng:"), 0, 0)
-        #self.entries['cheng'].append(QtWidgets.QSpinBox())
-        #self.entries['cheng'][-1].setAlignment(QtCore.Qt.AlignHCenter)
-        #self.entries['cheng'][-1].setValue(self.cheng)
-        #self.optframe.addWidget(self.entries['cheng'][-1], 1, 0)
-        #self.optframe.addWidget(wc.QLabel("I:"), 2, 0)
-        #self.entries['I'].append(QtWidgets.QComboBox())
-        #self.entries['I'][-1].addItems(self.Ioptions)
-        #self.entries['I'][-1].setCurrentIndex(0)
-        #self.optframe.addWidget(self.entries['I'][-1], 3, 0)
-        #self.entries['mas'].append(QtWidgets.QCheckBox('Spinning'))
-        #self.optframe.addWidget(self.entries['mas'][-1], 4, 0)
-        loadLibButton = QtWidgets.QPushButton("Load Library")
-        loadLibButton.clicked.connect(self.loadLib)
-        self.optframe.addWidget(loadLibButton, 11, 0)
-        #self.extLibCheck = QtWidgets.QCheckBox("Ext. Library")
-        #self.extLibCheck.setEnabled(False)
-        #self.optframe.addWidget(self.extLibCheck, 12, 0)
         self.optframe.setColumnStretch(21, 1)
         self.optframe.setAlignment(QtCore.Qt.AlignTop)
         self.frame2.addWidget(wc.QLabel("Bgrnd:"), 0, 0, 1, 2)
@@ -2682,42 +2710,6 @@ class Quad2CzjzekParamFrame(AbstractParamFrame):
         eta_return = eta_return.flatten()        
         return lib, wq_return, eta_return
 
-    def loadLib(self):
-        dirName = self.rootwindow.father.loadFitLibDir()
-        nameList = os.listdir(dirName)
-        cq = []
-        eta = []
-        data = []
-        for name in nameList:
-            matchName = re.search("-(\d+\.\d+)-(\d+\.\d+)\.(fid|spe)$", name)
-            if matchName:
-                eta.append(float(matchName.group(1)))
-                cq.append(float(matchName.group(2)))
-                fullName = os.path.join(dirName, name)
-                libData = io.autoLoad(fullName)
-                if libData.ndim() is not 1:
-                    self.rootwindow.father.dispMsg("A spectrum in the library is not a 1D spectrum.")
-                    continue
-                if not libData.spec[0]:
-                    libData.fourier(0)
-                libData.regrid([self.parent.xax()[0], self.parent.xax()[-1]], len(self.parent.xax()), 0)
-                libData.fftshift(0)
-                libData.fourier(0)
-                data.append(np.real(libData.data[0]))
-        cq = np.array(cq) * 1e6
-        eta = np.array(eta)
-        data = np.array(data)
-        numWq = len(np.unique(cq))
-        numEta = len(np.unique(eta))
-        if len(cq) != numWq * numEta:
-            raise FittingException("Library to be loaded is not of a rectangular grid in Cq and eta.")
-        sortIndex = np.lexsort((cq, eta))
-        self.cqLib = cq[sortIndex]#.reshape((numEta, numWq))
-        self.etaLib = eta[sortIndex]#.reshape((numEta, numWq))
-        self.lib = data[sortIndex]#.reshape((numEta, numWq, len(data[0])))
-        #self.extLibCheck.setEnabled(True)
-        #self.extLibCheck.setChecked(True)
-
     def simLib(self):
         if self.mas:
             weight, angleStuff = simFunc.quad2MASsetAngleStuff(self.cheng)
@@ -2759,10 +2751,13 @@ class Quad2CzjzekParamFrame(AbstractParamFrame):
         x = []
         for i in range(len(out['pos'])):
             x.append(tmpx)
-            if method == 0:
-                y = out['amp'][i] * simFunc.quad2CzjzektensorFunc(tmpx, out['sigma'][i], out['d'][i], out['pos'][i]/self.axMult, out['lor'][i], out['gauss'][i], out['wq'][0], out['eta'][0], out['lib'][0], self.parent.freq(), self.parent.sw(), False)
             if method == 1:
-                y = out['amp'][i] * simFunc.quad2CzjzektensorFunc(tmpx, out['sigma'][i], out['d'][i], out['pos'][i]/self.axMult, out['lor'][i], out['gauss'][i], out['wq'][0], out['eta'][0], out['lib'][0], self.parent.freq(), self.parent.sw(), False, out['wq0'][i] * 1e6, out['eta0'][i])
+                wq0 = out['wq0'][i] * 1e6
+                eta0 = out['eta0'][i]
+            else:
+                wq0 = 0
+                eta0 = 0
+            y = out['amp'][i] * simFunc.quad2CzjzektensorFunc(tmpx, out['sigma'][i], out['d'][i], out['pos'][i]/self.axMult, out['lor'][i], out['gauss'][i], out['wq'][0], out['eta'][0], out['lib'][0], self.parent.freq(), self.parent.sw(), wq0, eta0)
             outCurvePart.append(bgrnd + y)
             outCurve += y
         locList = self.getRedLocList()
@@ -2829,10 +2824,13 @@ def quad2CzjzekfitFunc(params, allX, args):
                         parameters[name] = altStruc[2] * allParam[altStruc[4]][strucTarget[altStruc[0]][altStruc[1]][1]] + altStruc[3]
                     elif strucTarget[altStruc[0]][altStruc[1]][0] == 0:
                         parameters[name] = altStruc[2] * allArgu[altStruc[4]][strucTarget[altStruc[0]][altStruc[1]][1]] + altStruc[3]
-            if parameters['method'] == 0:
-                testFunc += parameters['amp'] * simFunc.quad2CzjzektensorFunc(x, parameters['sigma'], parameters['d'], parameters['pos']/axMult, parameters['lor'], parameters['gauss'], parameters['wq'], parameters['eta'], parameters['lib'], parameters['freq'], sw, False)
-            elif parameters['method'] == 1:
-                testFunc += parameters['amp'] * simFunc.quad2CzjzektensorFunc(x, parameters['sigma'], parameters['d'], parameters['pos']/axMult, parameters['lor'], parameters['gauss'], parameters['wq'], parameters['eta'], parameters['lib'], parameters['freq'], sw, False, parameters['wq0'] * 1e6, parameters['eta0'])
+            if parameters['method'] == 1:
+                wq0 = parameters['wq0'] * 1e6
+                eta0 = parameters['eta0']
+            else:
+                wq0 = 0
+                eta0 = 0
+            testFunc += parameters['amp'] * simFunc.quad2CzjzektensorFunc(x, parameters['sigma'], parameters['d'], parameters['pos']/axMult, parameters['lor'], parameters['gauss'], parameters['wq'], parameters['eta'], parameters['lib'], parameters['freq'], sw, wq0, eta0)
         testFunc += parameters['bgrnd']
         fullTestFunc = np.append(fullTestFunc, testFunc)
     return fullTestFunc
@@ -3458,13 +3456,11 @@ class MqmasDeconvParamFrame(AbstractParamFrame):
         else:
             return inp
 
-    def checkI(self, I):
-        return I + 1.5
-
     def getExtraParams(self, out):
-        if self.entries['MQ'][-1].currentIndex() > self.checkI(self.entries['I'][-1].currentIndex()):
+        I = self.entries['I'][-1].currentIndex() + 3/2.0
+        if self.entries['MQ'][-1].currentIndex() > (I*2):
             raise RuntimeError("MQ cannot be larger than I")
-        out['I'] = [self.Ivalues[self.entries['I'][-1].currentIndex()]]
+        out['I'] = [I]
         out['MQ'] = [self.MQvalues[self.entries['MQ'][-1].currentIndex()]]
         out['shear'] = [safeEval(self.entries['shear'][-1].text())]
         out['scale'] = [safeEval(self.entries['scale'][-1].text())]
@@ -3633,39 +3629,20 @@ class MqmasCzjzekParamFrame(AbstractParamFrame):
         super(MqmasCzjzekParamFrame, self).__init__(parent, rootwindow, isMain)
         self.ticks = {'bgrnd': [], 'pos': [], 'd': [], 'sigma': [], 'sigmaCS': [], 'wq0': [], 'eta0': [], 'amp': [], 'lor2': [], 'gauss2': [], 'lor1': [], 'gauss1': []}
         self.entries = {'bgrnd': [],'method': [], 'pos': [], 'd': [], 'sigma': [], 'sigmaCS': [], 'wq0': [], 'eta0': [],'amp': [], 'lor2': [], 'gauss2': [], 'lor1': [], 'gauss1': [], 'method': [], 'MQ': [], 'shear': [], 'scale': []}
-        czjzekPrefButton = QtWidgets.QPushButton("Generate Lib.")
+        czjzekPrefButton = QtWidgets.QPushButton("Library")
         czjzekPrefButton.clicked.connect(self.createCzjzekPrefWindow)
         self.frame1.addWidget(czjzekPrefButton, 1, 1)
-        # self.optframe.addWidget(wc.QLabel("Cheng:"), 0, 0)
-        # self.entries['cheng'].append(QtWidgets.QSpinBox())
-        # self.entries['cheng'][-1].setAlignment(QtCore.Qt.AlignHCenter)
-        # self.entries['cheng'][-1].setValue(self.cheng)
-        # self.optframe.addWidget(self.entries['cheng'][-1], 1, 0)
-        # self.optframe.addWidget(wc.QLabel("I:"), 2, 0)
-        # self.entries['I'].append(QtWidgets.QComboBox())
-        # self.entries['I'][-1].addItems(self.Ioptions)
-        # self.entries['I'][-1].setCurrentIndex(1)
-        # self.optframe.addWidget(self.entries['I'][-1], 3, 0)
         self.optframe.addWidget(wc.QLabel("MQ:"), 4, 0)
         self.entries['MQ'].append(QtWidgets.QComboBox())
         self.entries['MQ'][-1].addItems([str(i) for i in self.MQvalues])
         self.entries['MQ'][-1].setCurrentIndex(0)
         self.optframe.addWidget(self.entries['MQ'][-1], 5, 0)
-
         self.optframe.addWidget(wc.QLabel("Shear:"), 6, 0)
         self.entries['shear'].append(wc.QLineEdit("0.0"))
         self.optframe.addWidget(self.entries['shear'][-1], 7, 0)
-
         self.optframe.addWidget(wc.QLabel("Scale sw:"), 8, 0)
         self.entries['scale'].append(wc.QLineEdit("1.0"))
         self.optframe.addWidget(self.entries['scale'][-1], 9, 0)
-
-        loadLibButton = QtWidgets.QPushButton("Load Library")
-        loadLibButton.clicked.connect(self.loadLib)
-        self.optframe.addWidget(loadLibButton, 11, 0)
-        # self.extLibCheck = QtWidgets.QCheckBox("Ext. Library")
-        # self.extLibCheck.setEnabled(False)
-        # self.optframe.addWidget(self.extLibCheck, 12, 0)
         self.optframe.setColumnStretch(21, 1)
         self.optframe.setAlignment(QtCore.Qt.AlignTop)
         self.frame2.addWidget(wc.QLabel("Bgrnd:"), 0, 0, 1, 2)
@@ -3769,42 +3746,6 @@ class MqmasCzjzekParamFrame(AbstractParamFrame):
     def simLib(self):
         weight, angleStuff = simFunc.mqmasAngleStuff(self.cheng)
         self.lib, self.cqLib, self.etaLib = self.genLib(len(self.parent.xax()), self.I, self.wqmin*1e6, self.wqmax*1e6, self.etamin, self.etamax, self.wqsteps, self.etasteps, angleStuff, self.parent.freq(), self.parent.sw(), weight)
-    
-    def loadLib(self):
-        dirName = self.rootwindow.father.loadFitLibDir()
-        nameList = os.listdir(dirName)
-        cq = []
-        eta = []
-        data = []
-        for name in nameList:
-            matchName = re.search("-(\d+\.\d+)-(\d+\.\d+)\.(fid|spe)$", name)
-            if matchName:
-                eta.append(float(matchName.group(1)))
-                cq.append(float(matchName.group(2)))
-                fullName = os.path.join(dirName, name)
-                libData = io.autoLoad(fullName)
-                if libData.ndim() is not 1:
-                    self.rootwindow.father.dispMsg("A spectrum in the library is not a 1D spectrum.")
-                    continue
-                if not libData.spec[0]:
-                    libData.fourier(0)
-                libData.regrid([self.parent.xax()[0], self.parent.xax()[-1]], len(self.parent.xax()), 0)
-                libData.fftshift(0)
-                libData.fourier(0)
-                data.append(np.real(libData.data[0]))
-        cq = np.array(cq) * 1e6
-        eta = np.array(eta)
-        data = np.array(data)
-        numWq = len(np.unique(cq))
-        numEta = len(np.unique(eta))
-        if len(cq) != numWq * numEta:
-            raise FittingException("Library to be loaded is not of a rectangular grid in Cq and eta.")
-        sortIndex = np.lexsort((cq, eta))
-        self.cqLib = cq[sortIndex]#.reshape((numEta, numWq))
-        self.etaLib = eta[sortIndex]#.reshape((numEta, numWq))
-        self.lib = data[sortIndex]#.reshape((numEta, numWq, len(data[0])))
-        #self.extLibCheck.setEnabled(True)
-        #self.extLibCheck.setChecked(True)
 
     def getExtraParams(self, out):
         if self.lib is None:
@@ -3849,12 +3790,12 @@ class MqmasCzjzekParamFrame(AbstractParamFrame):
         x = []
         for i in range(len(out['pos'])):
             x.append(tmpx)
-            if method == 0:
-                wq0 = 0
-                eta0 = 0
-            elif method == 1:
+            if method == 1:
                 wq0 = out['wq0'][i] * 1e6
                 eta0 = out['eta0'][i]
+            else:
+                wq0 = 0
+                eta0 = 0
             y = out['amp'][i] * simFunc.mqmasCzjzekFunc(tmpx, out['I'][0], out['MQ'][0], out['shear'][0], out['scale'][0], out['sigma'][i], out['sigmaCS'][i], out['d'][i], out['pos'][i]/self.axMult, [out['lor1'][i], out['lor2'][i]], [out['gauss1'][i], out['gauss2'][i]], out['wq'][0], out['eta'][0], out['lib'][0], [self.parent.freq(-2), self.parent.freq()], [self.parent.sw(-2), self.parent.sw()], wq0, eta0)
             y = np.real(np.fft.fft(y, axis=0))
             outCurvePart.append(bgrnd + y)
