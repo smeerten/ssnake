@@ -6375,7 +6375,7 @@ class aboutWindow(wc.ToolWindows):
             from PyQt5.QtCore import QT_VERSION_STR
         from scipy import __version__ as scipyVersion
         self.text.setText('<p><b>ssNake ' + VERSION + '</b></p>' +
-                          '<p>Copyright (&copy;) 2016&ndash;2017 Bas van Meerten & Wouter Franssen<\p>' + '<p>Email: <a href="mailto:ssnake@science.ru.nl" >ssnake@science.ru.nl</a></p>' +
+                          '<p>Copyright (&copy;) 2016&ndash;2018 Bas van Meerten & Wouter Franssen<\p>' + '<p>Email: <a href="mailto:ssnake@science.ru.nl" >ssnake@science.ru.nl</a></p>' +
                           '<b>Library versions</b>:<br>Python ' + pythonVersion + '<br>numpy ' + np.__version__ +
                           '<br>SciPy ' + scipyVersion +
                           '<br>matplotlib ' + matplotlib.__version__ +
