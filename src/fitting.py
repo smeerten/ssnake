@@ -2262,7 +2262,7 @@ def quad1fitFunc(params, allX, args):
     fullTestFunc = []
     for n in range(len(allX)):
         x = allX[n][-1]
-        testFunc = np.zeros(len(x))
+        testFunc = np.zeros(len(x),np.complex128)
         param = allParam[n]
         numExp = args[2][n]
         struc = args[3][n]
