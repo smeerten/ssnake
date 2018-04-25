@@ -783,7 +783,7 @@ class MainProgram(QtWidgets.QMainWindow):
         self.menubar.addMenu(self.helpMenu)
         self.updateAct = self.helpMenu.addAction(QtGui.QIcon(IconDirectory + 'update.png'), "&Update", self.updateMenu)
         self.updateAct.setToolTip('Update ssNake')
-        self.refmanAct = self.helpMenu.addAction("Reference Manual", lambda: self.openRefMan())
+        self.refmanAct = self.helpMenu.addAction(QtGui.QIcon(IconDirectory + 'manual.png'),"Reference Manual", lambda: self.openRefMan())
         self.refmanAct.setToolTip('Open the Reference Manual')
         self.githubAct = self.helpMenu.addAction(QtGui.QIcon(IconDirectory + 'GitHub.png'),"GitHub Page", lambda: webbrowser.open('https://github.com/smeerten/ssnake/'))
         self.githubAct.setToolTip('ssNake GitHub Page')

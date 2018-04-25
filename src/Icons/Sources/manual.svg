@@ -1,0 +1,108 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Created with matplotlib (http://matplotlib.org/) -->
+
+<svg
+   xmlns:dc="http://purl.org/dc/elements/1.1/"
+   xmlns:cc="http://creativecommons.org/ns#"
+   xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+   xmlns:svg="http://www.w3.org/2000/svg"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   height="10mm"
+   version="1.1"
+   viewBox="0 0 28.346458 28.346457"
+   width="10mm"
+   id="svg2"
+   inkscape:version="0.92.2 (5c3e80d, 2017-08-06)"
+   sodipodi:docname="manual.svg"
+   inkscape:export-filename="/home/wfranssen/Documents/ssNake/ssnake/src/Icons/manual.png"
+   inkscape:export-xdpi="162"
+   inkscape:export-ydpi="162">
+  <metadata
+     id="metadata272">
+    <rdf:RDF>
+      <cc:Work
+         rdf:about="">
+        <dc:format>image/svg+xml</dc:format>
+        <dc:type
+           rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
+        <dc:title />
+      </cc:Work>
+    </rdf:RDF>
+  </metadata>
+  <sodipodi:namedview
+     pagecolor="#ffffff"
+     bordercolor="#666666"
+     borderopacity="1"
+     objecttolerance="10"
+     gridtolerance="10"
+     guidetolerance="10"
+     inkscape:pageopacity="0"
+     inkscape:pageshadow="2"
+     inkscape:window-width="1920"
+     inkscape:window-height="1149"
+     id="namedview270"
+     showgrid="false"
+     inkscape:zoom="14.833529"
+     inkscape:cx="27.129145"
+     inkscape:cy="28.389052"
+     inkscape:window-x="0"
+     inkscape:window-y="0"
+     inkscape:window-maximized="1"
+     inkscape:current-layer="svg2"
+     units="mm" />
+  <defs
+     id="defs4"
+     style="stroke-linecap:butt;stroke-linejoin:round">
+    <style
+       type="text/css"
+       id="style6">
+*{stroke-linecap:butt;stroke-linejoin:round;}
+  </style>
+  </defs>
+  <rect
+     style="opacity:1;fill:#ffffff;fill-opacity:1;fill-rule:nonzero;stroke:none;stroke-width:1;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+     id="rect4245"
+     width="28.34646"
+     height="28.346457"
+     x="-4.7308239e-07"
+     y="8.2601716e-08" />
+  <defs
+     id="defs265">
+    <clipPath
+       id="p40b8626951"
+       style="stroke-linecap:butt;stroke-linejoin:round">
+      <rect
+         height="223.2"
+         width="334.79999"
+         x="54"
+         y="28.799999"
+         id="rect268"
+         style="stroke-linecap:butt;stroke-linejoin:round" />
+    </clipPath>
+  </defs>
+  <path
+     style="opacity:1;fill:#ffffff;fill-opacity:1;stroke:#170c00;stroke-width:1.95149994;stroke-linecap:round;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1;paint-order:fill markers stroke"
+     d="m 8.6355474,1.9060058 c -1.5686085,0 -2.8315425,1.2629345 -2.8315425,2.831543 V 23.608908 c 0,1.568608 1.262934,2.831543 2.8315425,2.831543 H 22.542452 V 1.9060058 Z"
+     id="rect821"
+     inkscape:connector-curvature="0"
+     sodipodi:nodetypes="ssssccs" />
+  <path
+     sodipodi:nodetypes="ccsccc"
+     inkscape:connector-curvature="0"
+     id="path930"
+     d="m 8.6355474,20.7571 c -1.9888316,0 -2.7916064,1.507587 -2.8315425,2.851803 0,1.568608 1.262934,2.831543 2.8315425,2.831543 H 22.542452 v -5.683351 z"
+     style="opacity:1;fill:#ffffff;fill-opacity:1;stroke:#170c00;stroke-width:1.95149994;stroke-linecap:round;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1;paint-order:fill markers stroke" />
+  <text
+     xml:space="preserve"
+     style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:19.73047447px;line-height:150%;font-family:'Bitstream Vera Sans';-inkscape-font-specification:'Bitstream Vera Sans';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-feature-settings:normal;text-align:justify;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.75px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+     x="9.5168362"
+     y="18.199396"
+     id="text934"><tspan
+       sodipodi:role="line"
+       id="tspan932"
+       style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-family:'Bitstream Charter';-inkscape-font-specification:'Bitstream Charter';stroke-width:0.75px;stroke-linecap:butt;stroke-linejoin:round"
+       x="9.5168362"
+       y="18.199396">?</tspan></text>
+</svg>
