@@ -104,7 +104,7 @@ class Spectrum(object):
                 val = self.history.pop()
         return val
 
-    def setNoUndo(val):
+    def setNoUndo(self,val):
         self.noUndo = bool(val)
         if self.noUndo:
             self.undoList = []
