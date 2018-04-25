@@ -677,7 +677,7 @@ class MainProgram(QtWidgets.QMainWindow):
         self.diffusionAct.setToolTip('Fit Diffusion Curve')
         self.lorentzfitAct = self.fittingMenu.addAction(QtGui.QIcon(IconDirectory + 'lorentz.png'), "&Lorentzian/Gaussian", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.createPeakDeconvWindow()))
         self.lorentzfitAct.setToolTip('Fit Lorentzian/Gaussian')
-        self.csastaticAct = self.fittingMenu.addAction(QtGui.QIcon(IconDirectory + 'csastatic.png'), "&CSA", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.createTensorDeconvWindow()))
+        self.csastaticAct = self.fittingMenu.addAction(QtGui.QIcon(IconDirectory + 'csastatic.png'), "&CSA", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.createCsaDeconvWindow()))
         self.csastaticAct.setToolTip('Fit CSA')
         self.firstquadAct = self.fittingMenu.addAction(QtGui.QIcon(IconDirectory + 'firstquadstatic.png'), "First Order &Quadrupole", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.createQuad1DeconvWindow()))
         self.firstquadAct.setToolTip('Fit First Order Quadrupole')
@@ -1853,8 +1853,8 @@ class Main1DWindow(QtWidgets.QWidget):
     def createPeakDeconvWindow(self):
         self.father.createFitWindow(fit.PeakDeconvWindow(self.father, self.father.mainWindow))
 
-    def createTensorDeconvWindow(self):
-        self.father.createFitWindow(fit.TensorDeconvWindow(self.father, self.father.mainWindow))
+    def createCsaDeconvWindow(self):
+        self.father.createFitWindow(fit.CsaDeconvWindow(self.father, self.father.mainWindow))
 
     def createQuad1DeconvWindow(self):
         self.father.createFitWindow(fit.Quad1DeconvWindow(self.father, self.father.mainWindow))

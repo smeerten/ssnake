@@ -1601,24 +1601,24 @@ def peakDeconvfitFunc(params, allX, args):
 ##############################################################################
 
 
-class TensorDeconvWindow(TabFittingWindow):
+class CsaDeconvWindow(TabFittingWindow):
 
     def __init__(self, father, oldMainWindow):
-        self.CURRENTWINDOW = TensorDeconvFrame
-        self.PARAMFRAME = TensorDeconvParamFrame
-        super(TensorDeconvWindow, self).__init__(father, oldMainWindow)
+        self.CURRENTWINDOW = CsaDeconvFrame
+        self.PARAMFRAME = CsaDeconvParamFrame
+        super(CsaDeconvWindow, self).__init__(father, oldMainWindow)
 
 #####################################################################################
 
 
-class TensorDeconvFrame(FitPlotFrame):
+class CsaDeconvFrame(FitPlotFrame):
 
     FITNUM = 10  # Maximum number of fits
     
     def __init__(self, rootwindow, fig, canvas, current):
         self.pickNum = 0
         self.pickNum2 = 0
-        super(TensorDeconvFrame, self).__init__(rootwindow, fig, canvas, current)
+        super(CsaDeconvFrame, self).__init__(rootwindow, fig, canvas, current)
 
     def togglePick(self, var):
         self.peakPickReset()
@@ -1652,19 +1652,19 @@ class TensorDeconvFrame(FitPlotFrame):
 #################################################################################
 
 
-class TensorDeconvParamFrame(AbstractParamFrame):
+class CsaDeconvParamFrame(AbstractParamFrame):
 
     def __init__(self, parent, rootwindow, isMain=True):
         self.SINGLENAMES = ['bgrnd', 'spinspeed']
         self.MULTINAMES = ['t11', 't22', 't33', 'amp', 'lor', 'gauss']
         self.PARAMTEXT = {'bgrnd': 'Background', 'spinspeed': 'Spinning Speed', 't11': 'T11', 't22': 'T22', 't33': 'T33', 'amp': 'Integral', 'lor': 'Lorentz', 'gauss': 'Gauss'}
-        self.FITFUNC = tensorDeconvmpFit
+        self.FITFUNC = csaDeconvmpFit
 
         # Get full integral
         self.fullInt = np.sum(parent.getData1D()) * parent.sw() / float(len(parent.getData1D()))
 
         self.cheng = 15
-        super(TensorDeconvParamFrame, self).__init__(parent, rootwindow, isMain)
+        super(CsaDeconvParamFrame, self).__init__(parent, rootwindow, isMain)
         resetButton = QtWidgets.QPushButton("Reset")
         resetButton.clicked.connect(self.reset)
         self.frame1.addWidget(resetButton, 1, 1)
@@ -1961,15 +1961,15 @@ class TensorDeconvParamFrame(AbstractParamFrame):
 ##############################################################################
 
 
-def tensorDeconvmpFit(xax, data1D, guess, args, queue, minmethod, numfeval):
+def csaDeconvmpFit(xax, data1D, guess, args, queue, minmethod, numfeval):
     try:
-        fitVal = scipy.optimize.minimize(lambda *param: np.sum((data1D - tensorDeconvfitFunc(param, xax, args))**2), guess, method=minmethod, options = {'maxfev': numfeval})
+        fitVal = scipy.optimize.minimize(lambda *param: np.sum((data1D - csaDeconvfitFunc(param, xax, args))**2), guess, method=minmethod, options = {'maxfev': numfeval})
     except Exception:
         fitVal = None
     queue.put(fitVal)
 
 
-def tensorDeconvfitFunc(params, allX, args):
+def csaDeconvfitFunc(params, allX, args):
     params = params[0]
     specName = args[0]
     specSlices = args[1]
