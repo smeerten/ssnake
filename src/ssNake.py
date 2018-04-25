@@ -3638,10 +3638,7 @@ class ScaleSWWindow(wc.ToolWindows):
         scale = safeEval(self.scaleEntry.text(),type = 'FI')
         if scale is None:
             raise SsnakeException("Scale SW: Factor not a valid value")
-        axis = self.father.current.axes[-1]
-        freq = self.father.current.freq()
-        sw = self.father.current.sw()
-        self.father.current.setFreq(freq, sw * scale)
+        self.father.current.scaleSw(scale)
 
 
 ###########################################################################

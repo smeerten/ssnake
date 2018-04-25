@@ -354,6 +354,12 @@ class Current1D(PlotFrame):
         self.upd()
         self.showFid()
 
+    def scaleSw(self,scale):
+        self.root.addMacro(['scaleSw', (scale, self.axes[-1] - self.data.ndim())])
+        self.data.scaleSw(scale, self.axes[-1])
+        self.upd()
+        self.showFid()
+
     def setRef(self, ref):  # set the frequency of the actual data
         oldref = self.ref()
         self.root.addMacro(['setRef', (ref, self.axes[-1] - self.data.ndim())])

@@ -898,6 +898,17 @@ class Spectrum(object):
         if not self.noUndo:
             self.undoList.append(lambda self: self.setFreq(oldFreq, oldSw, axes))
 
+    def scaleSw(self,scale,axes):
+        axes = self.checkAxes(axes)
+        oldSw = self.sw[axes]
+        self.sw[axes] = float(scale) * oldSw
+        self.resetXax(axes)
+        self.addHistory("Sw scaled by factor " + str(scale) +  " for dimension " + str(axes + 1))
+        self.redoList = []
+        if not self.noUndo:
+            self.undoList.append(lambda self: self.scaleSw(1.0 / scale, axes))
+
+
     def setRef(self, ref, axes):
         axes = self.checkAxes(axes)
         oldRef = self.ref[axes]
