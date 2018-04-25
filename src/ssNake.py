@@ -4678,8 +4678,44 @@ class FWHMWindow(wc.ToolWindows):
         self.grid.addWidget(wc.QLabel(u"FWHM:"), 6, 0)
         self.fwhmEntry = wc.QLineEdit("0.0")
         self.grid.addWidget(self.fwhmEntry, 7, 0)
+        self.grid.addWidget(wc.QLabel(u"0.55%:"), 8, 0)
+        self.zffEntry = wc.QLineEdit("0.0")
+        self.grid.addWidget(self.zffEntry, 9, 0)
         self.father.current.peakPickFunc = lambda pos, self=self: self.picked(pos)
         self.father.current.peakPick = True
+
+    def picked(self, pos, num=0):
+        if num == 0:
+            self.minEntry.setText(str(pos[0]))
+            self.father.current.peakPickFunc = lambda pos, self=self: self.picked(pos, 1)
+            self.father.current.peakPick = True
+        elif num == 1:
+            self.maxEntry.setText(str(pos[0]))
+            self.father.current.peakPickFunc = lambda pos, self=self: self.picked(pos, 0)
+            self.father.current.peakPick = True
+            self.applyFunc()
+
+    def checkValues(self, *args):
+        dataLength = self.father.current.len()
+        inp = safeEval(self.minEntry.text())
+        if inp is None:
+            return
+        minimum = int(round(inp))
+        if minimum < 0:
+            minimum = 0
+        elif minimum > dataLength:
+            minimum = dataLength
+        self.minEntry.setText(str(minimum))
+        inp = safeEval(self.maxEntry.text())
+        if inp is None:
+            return
+        maximum = int(round(inp))
+        if maximum < 0:
+            maximum = 0
+        elif maximum > dataLength:
+            maximum = dataLength
+        self.maxEntry.setText(str(maximum))
+        self.applyFunc()
 
     def picked(self, pos, num=0):
         if num == 0:
@@ -4734,7 +4770,8 @@ class FWHMWindow(wc.ToolWindows):
         elif maximum > dataLength:
             maximum = dataLength
         self.maxEntry.setText(str(maximum))
-        self.fwhmEntry.setText(str(self.father.current.fwhm(minimum, maximum, self.unitDrop.currentIndex())))
+        self.fwhmEntry.setText(str(self.father.current.fwhm(minimum, maximum, 0.5, self.unitDrop.currentIndex())))
+        self.zffEntry.setText(str(self.father.current.fwhm(minimum, maximum, 0.0055, self.unitDrop.currentIndex())))
 
 ##############################################################
 

@@ -574,7 +574,7 @@ def loadBrukerTopspin(filePath):
         Dir = filePath
     f,fM, i = lambda x: float(x), lambda x: float(x) * 1e6, lambda x: int(x) #Conversion functions
     Elem = [['TD', i, []],['SFO1', fM ,[]],['SW_h', f, []],['O1',f, []], ['BYTORDA',i,[]]] #The elements to be found [Name, conversion, list with hits]
-    for File in ['acqu','acqu2','acqu3']:
+    for File in ['acqus','acqus2','acqus3']:
         if os.path.exists(Dir + os.path.sep + File):
             with open(Dir + os.path.sep + File, 'r') as f:
                 data = f.read().split('\n')

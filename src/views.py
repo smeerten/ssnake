@@ -394,7 +394,7 @@ class Current1D(PlotFrame):
         tmpData = np.real(self.getDataType(tmpData))
         return (np.max(tmpData[minP:maxP]) / (np.std(tmpData[minN:maxN])))
 
-    def fwhm(self, minPeak, maxPeak, unitType=None):
+    def fwhm(self, minPeak, maxPeak, level, unitType=None):
         from scipy.interpolate import UnivariateSpline
         if unitType is None:
             axType = self.getAxType()
@@ -413,7 +413,7 @@ class Current1D(PlotFrame):
         maxPos = np.argmax(tmpData[minP:maxP])
         x = self.xax() * self.getAxMult(self.spec(), axType, ppm, self.freq(), self.ref())
         maxX = x[minP:maxP][maxPos]
-        spline = UnivariateSpline(x, tmpData - tmpData[minP:maxP][maxPos] / 2.0, s=0)
+        spline = UnivariateSpline(x, tmpData - level * tmpData[minP:maxP][maxPos], s=0)
         zeroPos = spline.roots()
         left = zeroPos[zeroPos > maxX]
         right = zeroPos[zeroPos < maxX]
