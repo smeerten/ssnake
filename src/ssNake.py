@@ -3144,9 +3144,7 @@ class PhaseWindow(wc.ToolWindows):
             raise SsnakeException('Phasing: first order value input is not valid!')
         value += phase1 * self.PHASE1STEP
         if self.father.current.spec() > 0:
-            refCheck = self.inputRef()
-            if refCheck is None:
-                return
+            self.inputRef()
         value += phase1 * self.PHASE1STEP
         newZero = (self.zeroVal - (value - self.firstVal) * self.pivotVal / self.father.current.sw())
         self.zeroVal = np.mod(newZero + 180, 360) - 180
@@ -3175,9 +3173,8 @@ class PhaseWindow(wc.ToolWindows):
         self.father.current.peakPick = True
 
     def applyFunc(self):
-        refCheck = 1
         if self.father.current.spec() > 0:
-            refCheck = self.inputRef()
+            self.inputRef()
         self.inputZeroOrder()
         self.inputFirstOrder()
         self.father.current.applyPhase(np.pi * self.zeroVal / 180.0, np.pi * self.firstVal / 180.0, (self.singleSlice.isChecked() == 1))
