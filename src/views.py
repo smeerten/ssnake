@@ -423,26 +423,42 @@ class Current1D(PlotFrame):
             return 0.0
 
     def COM(self, minPeak, maxPeak, unitType=None):  # Centre of Mass
+        dim = len(minPeak)
+        ppm = []
+        axType = []
         if unitType is None:
-            axType = self.getAxType()
-            ppm = self.getppm()
+            for i in range(dim):
+                axType.append(self.getAxType(-(i + 1)))
+                ppm.append(self.getppm(-(i+1)))
         else:
             axType = unitType
-            if unitType == 3:  # ppm
-                ppm = 1
-            else:
-                ppm = 0
-        minP = min(minPeak, maxPeak)
-        maxP = max(minPeak, maxPeak)
+            for i in range(dim):
+                if unitType[i] == 3:
+                    ppm.append(1)
+                else:
+                    ppm.append(0)
+        for i in range(dim):
+            if minPeak[i] > maxPeak[i]:
+                minPeak[i], maxPeak[i] = maxPeak[i], minPeak[i]
         tmpData = self.data1D.getHyperData(0)
-        tmpData = tmpData[(0,)*(self.ndim()-1) + (slice(None), )]
-        tmpAxis = self.xax()
         tmpData = np.real(self.getDataType(tmpData))
-        tmpAxis = tmpAxis[minP:maxP] * self.getAxMult(self.spec(), axType, ppm, self.freq(), self.ref())
-        tmpData = tmpData[minP:maxP]
-        # COM = 1/M *sum(m_i * r_i)
-        CentreOM = 1.0 / np.sum(tmpData) * np.sum(tmpData * tmpAxis)
-        return CentreOM
+        #Slice data
+        slc = ()
+        for i in range(dim):
+            slc = slc + (slice(minPeak[-(i+1)],maxPeak[-(i+1)],None),)
+        tmpData = tmpData[slc]
+
+        COM = []
+        axes = list(range(dim))
+        for i in range(dim):
+            sumAxes = list(axes)
+            del sumAxes[-(i+1)]
+            tmpAxis = self.xax(-(i+1))
+            tmpAxis = tmpAxis[minPeak[i]:maxPeak[i]] * self.getAxMult(self.spec(-(i+1)), axType[i], ppm[i], self.freq(-(i+1)), self.ref(-(i+1)))
+            tmpDataNew = np.sum(tmpData,tuple(sumAxes))
+            # COM = 1/M *sum(m_i * r_i)
+            COM.append(1.0 / np.sum(tmpDataNew) * np.sum(tmpDataNew * tmpAxis))
+        return COM
 
     def Integrals(self, minPeak, maxPeak):
         minP = min(minPeak, maxPeak)
@@ -1321,6 +1337,7 @@ class CurrentArrayed(CurrentStacked):
     X_RESIZE = True
     Y_RESIZE = False
     INVERT_X = False
+    ZERO_SCROLL_ALLOWED = True
 
     def __init__(self, root, fig, canvas, data, duplicateCurrent=None):
         if duplicateCurrent is not None:
@@ -1487,6 +1504,8 @@ class CurrentContour(CurrentStacked):
 
     def setProjTraces(self, val, direc):
         self.viewSettings["projPos"][direc] = val
+
+   
 
     def updateAxes(self,oldAx, newAx, axis):
         scale = newAx / oldAx

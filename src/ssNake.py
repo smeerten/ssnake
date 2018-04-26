@@ -857,7 +857,7 @@ class MainProgram(QtWidgets.QMainWindow):
                 for act in self.fidOnlyList:
                     act.setEnabled(self.mainWindow.current.spec() == 0)  # Only on for FID
                   #Limit functions based on plot type
-                if type(self.mainWindow.current) is views.CurrentMulti or type(self.mainWindow.current) is views.CurrentStacked:
+                if type(self.mainWindow.current) == views.CurrentMulti or type(self.mainWindow.current) == views.CurrentStacked or type(self.mainWindow.current) == views.CurrentArrayed:
                     for act in self.Only1DPlot:
                         act.setEnabled(False)
                 if self.mainWindow.masterData.noUndo:  # Set menu check to the same value as in the data
@@ -4781,50 +4781,87 @@ class COMWindow(wc.ToolWindows):  # Centre of Mass Window
     NAME = "Centre of Mass"
     CANCELNAME = "&Close"
     OKNAME = "C&alc"
+    APPLYANDCLOSE = False
 
     def __init__(self, parent):
         super(COMWindow, self).__init__(parent)
-        self.grid.addWidget(wc.QLabel("Start point:"), 0, 0)
-        self.minEntry = wc.QLineEdit("0", self.checkValues)
-        self.grid.addWidget(self.minEntry, 1, 0)
-        self.grid.addWidget(wc.QLabel("End point:"), 2, 0)
-        self.maxEntry = wc.QLineEdit(parent.current.len(), self.checkValues)
-        self.grid.addWidget(self.maxEntry, 3, 0)
-        self.grid.addWidget(wc.QLabel("Units:"), 4, 0)
-        unitSelect = self.father.current.getAxType()
+        self.pickDim = 1 
+        if isinstance(self.father.current, views.CurrentContour):
+            self.pickDim = 2 
+     
+        self.grid.addWidget(wc.QLabel("X axis:"), 0, 0,1,2)
+        self.grid.addWidget(wc.QLabel("Start:"), 1, 0)
+        self.grid.addWidget(wc.QLabel("End:"), 2, 0)
+        if self.pickDim == 2:
+            unitSelectY = self.father.current.getAxType(-2)
+            if self.father.current.spec(-2) == 1:
+                unitListY = ['Hz', 'kHz', 'MHz', 'ppm']
+                if self.father.current.getppm(-2):
+                    unitSelectY = 3
+            else:
+                unitListY = ['s', 'ms', u'\u03BCs']
+            self.grid.addWidget(wc.QLabel("Y axis:"), 3, 0,1,2)
+            self.grid.addWidget(wc.QLabel("Start:"), 4, 0)
+            self.grid.addWidget(wc.QLabel("End:"), 5, 0)
+            self.minEntryY = wc.QLineEdit("0",lambda: self.applyFunc(False))
+            self.grid.addWidget(self.minEntryY, 4, 1)
+            self.maxEntryY = wc.QLineEdit(parent.current.len(-2),lambda: self.applyFunc(False))
+            self.grid.addWidget(self.maxEntryY, 5, 1)
+            self.grid.addWidget(wc.QLabel("Y Unit:"), 11, 0)
+            self.unitDropY = QtWidgets.QComboBox()
+            self.unitDropY.addItems(unitListY)
+            self.unitDropY.setCurrentIndex(unitSelectY)
+            self.unitDropY.currentIndexChanged.connect(lambda: self.applyFunc(True))
+            self.grid.addWidget(self.unitDropY, 11, 1)
+            self.comEntryY = wc.QLineEdit("0.0")
+            self.grid.addWidget(wc.QLabel(u"Y COM:"), 12, 0)
+            self.grid.addWidget(self.comEntryY, 12, 1)
+
         if self.father.current.spec() == 1:
             unitList = ['Hz', 'kHz', 'MHz', 'ppm']
             if self.father.current.getppm():
                 unitSelect = 3
         else:
             unitList = ['s', 'ms', u'\u03BCs']
-        self.grid.addWidget(wc.QLabel(u"Centre of Mass:"), 6, 0)
+
+        self.minEntry = wc.QLineEdit("0",lambda: self.applyFunc(False))
+        self.grid.addWidget(self.minEntry, 1, 1)
+        self.maxEntry = wc.QLineEdit(parent.current.len(),lambda: self.applyFunc(False))
+        self.grid.addWidget(self.maxEntry, 2, 1)
+        unitSelect = self.father.current.getAxType()
+        self.grid.addWidget(wc.QLabel(u"Centre of Mass:"), 8, 0,1,2)
+        self.grid.addWidget(wc.QLabel("X Unit:"), 9, 0)
         self.unitDrop = QtWidgets.QComboBox()
         self.unitDrop.addItems(unitList)
         self.unitDrop.setCurrentIndex(unitSelect)
-        self.unitDrop.currentIndexChanged.connect(self.checkValues)
-        self.grid.addWidget(self.unitDrop, 5, 0)
+        self.unitDrop.currentIndexChanged.connect(lambda: self.applyFunc(True))
+        self.grid.addWidget(self.unitDrop, 9, 1)
         self.comEntry = wc.QLineEdit("0.0")
-        self.grid.addWidget(self.comEntry, 7, 0)
+        self.grid.addWidget(wc.QLabel(u"X COM:"), 10, 0)
+        self.grid.addWidget(self.comEntry, 10, 1)
         self.father.current.peakPickFunc = lambda pos, self=self: self.picked(pos)
-        self.father.current.peakPick = True
+        self.father.current.peakPick = self.pickDim
 
     def picked(self, pos, num=0):
         if num == 0:
             self.minEntry.setText(str(pos[0]))
+            if self.pickDim == 2:
+                self.minEntryY.setText(str(pos[3]))
             self.father.current.peakPickFunc = lambda pos, self=self: self.picked(pos, 1)
-            self.father.current.peakPick = True
+            self.father.current.peakPick = self.pickDim
         elif num == 1:
             self.maxEntry.setText(str(pos[0]))
+            if self.pickDim == 2:
+                self.maxEntryY.setText(str(pos[3]))
             self.father.current.peakPickFunc = lambda pos, self=self: self.picked(pos, 0)
-            self.father.current.peakPick = True
+            self.father.current.peakPick = self.pickDim
             self.applyFunc()
 
-    def checkValues(self, *args):
+    def applyFunc(self,calc=True):
         dataLength = self.father.current.len()
         inp = safeEval(self.minEntry.text())
         if inp is None:
-            return
+            raise SsnakeException("Centre of Mass: invalid range")
         minimum = int(round(inp))
         if minimum < 0:
             minimum = 0
@@ -4833,36 +4870,44 @@ class COMWindow(wc.ToolWindows):  # Centre of Mass Window
         self.minEntry.setText(str(minimum))
         inp = safeEval(self.maxEntry.text())
         if inp is None:
-            return
+            raise SsnakeException("Centre of Mass: invalid range")
         maximum = int(round(inp))
         if maximum < 0:
             maximum = 0
         elif maximum > dataLength:
             maximum = dataLength
         self.maxEntry.setText(str(maximum))
-        self.applyFunc()
+        #For contour
+        if self.pickDim == 2:
+            dataLengthY = self.father.current.len(-2)
+            inp = safeEval(self.minEntryY.text())
+            if inp is None:
+                raise SsnakeException("Centre of Mass: invalid range")
+            minimumY = int(round(inp))
+            if minimumY < 0:
+                minimumY = 0
+            elif minimumY > dataLengthY:
+                minimumY = dataLengthY
+            self.minEntryY.setText(str(minimumY))
+            inp = safeEval(self.maxEntryY.text())
+            if inp is None:
+                raise SsnakeException("Centre of Mass: invalid range")
+            maximumY = int(round(inp))
+            if maximumY < 0:
+                maximumY = 0
+            elif maximumY > dataLengthY:
+                maximumY = dataLengthY
+            self.maxEntryY.setText(str(maximumY))
 
-    def applyFunc(self):
-        dataLength = self.father.current.len()
-        inp = safeEval(self.minEntry.text())
-        if inp is None:
-            raise SsnakeException("Centre of Mass: invalid range")
-        minimum = int(round(inp))
-        if minimum < 0:
-            minimum = 0
-        elif minimum > dataLength:
-            minimum = dataLength
-        self.minEntry.setText(str(minimum))
-        inp = safeEval(self.maxEntry.text())
-        if inp is None:
-            raise SsnakeException("Centre of Mass: invalid range")
-        maximum = int(round(inp))
-        if maximum < 0:
-            maximum = 0
-        elif maximum > dataLength:
-            maximum = dataLength
-        self.maxEntry.setText(str(maximum))
-        self.comEntry.setText(str(self.father.current.COM(minimum, maximum,self.unitDrop.currentIndex())))
+        if calc:
+            if self.pickDim == 1:
+                self.comEntry.setText(str(self.father.current.COM([minimum], [maximum],[self.unitDrop.currentIndex()])[0]))
+            elif self.pickDim == 2:
+                com = self.father.current.COM([minimum, minimumY], [maximum,maximumY],[self.unitDrop.currentIndex(),self.unitDropY.currentIndex()])
+                self.comEntry.setText(str(com[0]))
+                self.comEntryY.setText(str(com[1]))
+
+
 
 ##########################################################################################
 
