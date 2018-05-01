@@ -131,6 +131,9 @@ class MainProgram(QtWidgets.QMainWindow):
         self.initMenu()
         self.menuCheck()
         self.main_widget = QtWidgets.QSplitter(self) 
+        self.main_widget.setHandleWidth(10)
+
+
         self.gridWidget = QtWidgets.QWidget(self)
         self.mainFrame = QtWidgets.QGridLayout(self.gridWidget)
 
@@ -160,6 +163,11 @@ class MainProgram(QtWidgets.QMainWindow):
         self.loadDefaults()
         self.initToolbar()
         self.main_widget.setStretchFactor(1, 10)
+
+        #Set double click filter for splitter
+        self.splitterEventFilter = wc.SplitterEventFilter(self.main_widget)
+        self.main_widget.handle(1).installEventFilter(self.splitterEventFilter)
+
         self.resize(self.defaultWidth, self.defaultHeight)
         if self.defaultMaximized:
             self.showMaximized()

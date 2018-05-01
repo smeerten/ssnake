@@ -92,6 +92,25 @@ class SsnakeTreeWidget(QtWidgets.QTreeView):
     def loadAct(self,path):
         self.father.loadData(path)
 
+
+class SplitterEventFilter(QtCore.QObject):
+
+    def __init__(self, root, *args):
+        super(SplitterEventFilter, self).__init__(*args)
+        self.root = root
+        self.sizeBak = 0
+
+    def eventFilter(self, receiver, event):
+        if event.type() == QtCore.QEvent.MouseButtonDblClick:
+            sizes = self.root.sizes()
+            if sizes[0] == 0:
+                self.root.setSizes([self.sizeBak, 1])
+            else:
+                self.sizeBak = sizes[0]
+                self.root.setSizes([0, 1])
+            return True
+        return False
+
 class MyEventFilter(QtCore.QObject):
 
     def __init__(self, root, *args):
