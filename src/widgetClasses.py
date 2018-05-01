@@ -23,6 +23,7 @@ try:
 except ImportError:
     from PyQt5 import QtGui, QtCore, QtWidgets
 from safeEval import safeEval
+import os
 
 
 class SsnakeTabs(QtWidgets.QTabWidget):
@@ -34,6 +35,57 @@ class SsnakeTabs(QtWidgets.QTabWidget):
             if index >= 0:
                 self.tabCloseRequested.emit(index)
 
+class SsnakeTreeWidget(QtWidgets.QTreeView):
+    def __init__(self,parent):
+        super(SsnakeTreeWidget, self).__init__(parent)
+        homePath = os.path.expanduser('~')
+        self.father = parent
+
+        self.dirmodel = QtWidgets.QFileSystemModel()
+        self.dirmodel.setRootPath('')
+        # Don't show files, just folders
+        self.dirmodel.setFilter(QtCore.QDir.NoDotAndDotDot | QtCore.QDir.AllDirs| QtCore.QDir.Files| QtCore.QDir.Drives)
+        self.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
+        self.customContextMenuRequested.connect(self.openMenu)
+        self.setModel(self.dirmodel)
+        self.setRootIndex(self.dirmodel.index(''))
+        self.header().setResizeMode(0, QtGui.QHeaderView.ResizeToContents)
+        self.header().setStretchLastSection(False)
+        self.setSelectionMode(QtGui.QAbstractItemView.ExtendedSelection)
+        #self.setToolTip(index.model()->data(index,Qt:isplayRole).toString());
+        # Don't show columns for size, file type, and last modified
+        self.setHeaderHidden(True)
+        self.hideColumn(1)
+        self.hideColumn(2)
+        self.hideColumn(3)
+        self.expand_all(self.dirmodel.index(homePath))
+
+    def expand_all(self, index):
+        path = self.dirmodel.filePath(index) 
+        run = True
+        pathOld = '-1'
+        while pathOld != path:
+            self.setExpanded(self.dirmodel.index(path), True)
+            pathOld = path
+            path = os.path.dirname(path)
+
+    def openMenu(self, position):
+   
+        index = self.selectedIndexes()
+        path = [self.dirmodel.filePath(x) for x in index]
+
+        menu = QtWidgets.QMenu()
+        if len(path) == 1:
+            if self.dirmodel.isDir(index[0]):
+                menu.addAction("Load Directory", lambda: self.loadAct(path))
+            else:
+                menu.addAction("Load File", lambda: self.loadAct(path))
+        else:
+            menu.addAction("Load Selection", lambda: self.loadAct(path))
+        menu.exec_(self.viewport().mapToGlobal(position))
+
+    def loadAct(self,path):
+        self.father.loadData(path)
 
 class MyEventFilter(QtCore.QObject):
 

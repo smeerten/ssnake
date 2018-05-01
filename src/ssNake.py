@@ -130,11 +130,18 @@ class MainProgram(QtWidgets.QMainWindow):
         self.LastLocation = ''
         self.initMenu()
         self.menuCheck()
-        self.main_widget = QtWidgets.QWidget(self)
-        self.mainFrame = QtWidgets.QGridLayout(self.main_widget)
+        self.main_widget = QtWidgets.QSplitter(self) 
+        self.gridWidget = QtWidgets.QWidget(self)
+        self.mainFrame = QtWidgets.QGridLayout(self.gridWidget)
+
+        self.tree = wc.SsnakeTreeWidget(self)
+        self.main_widget.addWidget(self.tree)
+
+
+        self.main_widget.addWidget(self.gridWidget)
         self.logo = QtWidgets.QLabel(self)
         self.logo.setPixmap(QtGui.QPixmap(os.path.dirname(os.path.realpath(__file__)) + "/logo.gif"))
-        self.mainFrame.addWidget(self.logo, 0, 0, QtCore.Qt.AlignCenter)
+        self.mainFrame.addWidget(self.logo,0,0, QtCore.Qt.AlignCenter)
         self.tabs = wc.SsnakeTabs(self)
         self.tabs.setMovable(True)
         self.tabs.tabBar().tabMoved.connect(self.moveWorkspace)
@@ -142,7 +149,7 @@ class MainProgram(QtWidgets.QMainWindow):
         self.tabs.setTabsClosable(True)
         self.tabs.currentChanged.connect(self.changeMainWindow)
         self.tabs.tabCloseRequested.connect(self.destroyWorkspace)
-        self.mainFrame.addWidget(self.tabs, 0, 0)
+        self.mainFrame.addWidget(self.tabs,0,0)
         self.statusBar = QtWidgets.QStatusBar(self)
         self.setStatusBar(self.statusBar)
         self.tabs.hide()
@@ -152,6 +159,7 @@ class MainProgram(QtWidgets.QMainWindow):
         self.root.installEventFilter(self.eventFilter)
         self.loadDefaults()
         self.initToolbar()
+        self.main_widget.setStretchFactor(1, 10)
         self.resize(self.defaultWidth, self.defaultHeight)
         if self.defaultMaximized:
             self.showMaximized()
@@ -2890,7 +2898,6 @@ class TextFrame(QtWidgets.QScrollArea):
             self.father.current.peakPick = True
 
 #################################################################################
-
 
 class AsciiLoadWindow(QtWidgets.QDialog):
 
