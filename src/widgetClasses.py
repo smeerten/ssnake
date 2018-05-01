@@ -20,7 +20,9 @@
 try:
     from PyQt4 import QtGui, QtCore
     from PyQt4 import QtGui as QtWidgets
+    QT = 4
 except ImportError:
+    QT = 5
     from PyQt5 import QtGui, QtCore, QtWidgets
 from safeEval import safeEval
 import os
@@ -49,9 +51,12 @@ class SsnakeTreeWidget(QtWidgets.QTreeView):
         self.customContextMenuRequested.connect(self.openMenu)
         self.setModel(self.dirmodel)
         self.setRootIndex(self.dirmodel.index(''))
-        self.header().setResizeMode(0, QtGui.QHeaderView.ResizeToContents)
+        if QT == 4:
+            self.header().setResizeMode(0, QtGui.QHeaderView.ResizeToContents)
+        elif QT == 5:
+            self.header().setSectionResizeMode(0, QtWidgets.QHeaderView.ResizeToContents)
         self.header().setStretchLastSection(False)
-        self.setSelectionMode(QtGui.QAbstractItemView.ExtendedSelection)
+        self.setSelectionMode(QtWidgets.QAbstractItemView.ExtendedSelection)
         #self.setToolTip(index.model()->data(index,Qt:isplayRole).toString());
         # Don't show columns for size, file type, and last modified
         self.setHeaderHidden(True)
