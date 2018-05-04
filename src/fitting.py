@@ -593,6 +593,22 @@ class AbstractParamFrame(QtWidgets.QWidget):
         if not self.fitParamList[locList]:
             self.fitParamList[locList] = self.defaultValues(0)
 
+    def defaultValues(self, inp):
+        if inp:
+            return inp
+        tmpVal = {key: None for key in (self.SINGLENAMES + self.MULTINAMES)}
+        for name in self.SINGLENAMES:
+            if name in self.DEFAULTS.keys():
+                tmpVal[name] = self.DEFAULTS[name]
+            else:
+                tmpVal[name] = [0.0, False]
+        for name in self.MULTINAMES:
+            if name in self.DEFAULTS.keys():
+                tmpVal[name] = np.repeat([np.array(self.DEFAULTS[name], dtype=object)], self.FITNUM, axis=0)
+            else:
+                tmpVal[name] = np.repeat([np.array([0.0, False], dtype=object)], self.FITNUM, axis=0)
+        return tmpVal
+
     def closeWindow(self, *args):
         self.stopMP()
         self.rootwindow.cancel()
@@ -1142,6 +1158,8 @@ class RelaxParamFrame(AbstractParamFrame):
     
     def __init__(self, parent, rootwindow, isMain=True):
         self.FITFUNC = simFunc.relaxationFunc
+        self.fullInt = np.max(self.parent.getData1D())
+        self.DEFAULTS = {'amp': [self.fullInt, False], 'const': [1.0, False], 'coeff': [-1.0, False], 't': [1.0, False]}
         super(RelaxParamFrame, self).__init__(parent, rootwindow, isMain)
         locList = self.getRedLocList()
         self.frame2.addWidget(wc.QLabel("Amplitude:"), 0, 0, 1, 2)
@@ -1182,15 +1200,6 @@ class RelaxParamFrame(AbstractParamFrame):
                 if i > 0:
                     self.ticks[self.MULTINAMES[j]][i].hide()
                     self.entries[self.MULTINAMES[j]][i].hide()
-
-    def defaultValues(self, inp):
-        if not inp:
-            return {'amp': [np.max(self.parent.getData1D()), False],
-                    'const': [1.0, False],
-                    'coeff': np.repeat([np.array([-1.0, False], dtype=object)], self.FITNUM, axis=0),
-                    't': np.repeat([np.array([1.0, False], dtype=object)], self.FITNUM, axis=0)}
-        else:
-            return inp
 
     def setLog(self, *args):
         self.parent.setLog(self.xlog.isChecked(), self.ylog.isChecked())
@@ -1235,6 +1244,8 @@ class DiffusionParamFrame(AbstractParamFrame):
     
     def __init__(self, parent, rootwindow, isMain=True):
         self.FITFUNC = simFunc.diffusionFunc
+        self.fullInt = np.max(self.parent.getData1D())
+        self.DEFAULTS = {'amp': [self.fullInt, False], 'const': [0.0, False], 'coeff': [1.0, False], 'd': [1.0e-9, False]}
         super(DiffusionParamFrame, self).__init__(parent, rootwindow, isMain)
         locList = self.getRedLocList()
         self.frame2.addWidget(wc.QLabel(u"\u03b3 [MHz/T]:"), 0, 0)
@@ -1287,15 +1298,6 @@ class DiffusionParamFrame(AbstractParamFrame):
                 if i > 0:
                     self.ticks[self.MULTINAMES[j]][i].hide()
                     self.entries[self.MULTINAMES[j]][i].hide()
-
-    def defaultValues(self, inp):
-        if not inp:
-            return {'amp': [np.max(self.parent.getData1D()), False],
-                    'const': [0.0, False],
-                    'coeff': np.repeat([np.array([1.0, False], dtype=object)], self.FITNUM, axis=0),
-                    'd': np.repeat([np.array([1.0e-9, False], dtype=object)], self.FITNUM, axis=0)}
-        else:
-            return inp
 
     def setLog(self, *args):
         self.parent.setLog(self.xlog.isChecked(), self.ylog.isChecked())
@@ -1516,13 +1518,14 @@ class CsaDeconvParamFrame(AbstractParamFrame):
     FFT_AXES = (0,)
     SINGLENAMES = ['bgrnd', 'spinspeed']
     MULTINAMES = ['t11', 't22', 't33', 'amp', 'lor', 'gauss']
-    EXTRANAMES = ['shiftdef', 'cheng', 'mas', 'numssb']
+    EXTRANAMES = ['spinType', 'satBool', 'angle', 'shiftdef', 'cheng', 'numssb']
     PARAMTEXT = {'bgrnd': 'Background', 'spinspeed': 'Spinning Speed', 't11': 'T11', 't22': 'T22', 't33': 'T33', 'amp': 'Integral', 'lor': 'Lorentz', 'gauss': 'Gauss'}
 
     def __init__(self, parent, rootwindow, isMain=True):
         self.FITFUNC = simFunc.csaFunc
         self.fullInt = np.sum(parent.getData1D()) * parent.sw() / float(len(parent.getData1D()))
         self.cheng = 15
+        self.DEFAULTS = {'bgrnd': [0.0, True], 'spinspeed': [10.0, True], 't11': [0.0, False], 't22': [0.0, False], 't33': [0.0, False], 'amp': [self.fullInt, False], 'lor': [1.0, False], 'gauss': [0.0, True]}
         super(CsaDeconvParamFrame, self).__init__(parent, rootwindow, isMain)
         resetButton = QtWidgets.QPushButton("Reset")
         resetButton.clicked.connect(self.reset)
@@ -1530,32 +1533,41 @@ class CsaDeconvParamFrame(AbstractParamFrame):
         self.pickTick = QtWidgets.QCheckBox("Pick")
         self.pickTick.stateChanged.connect(self.togglePick)
         self.frame1.addWidget(self.pickTick, 2, 1)
-        self.optframe.addWidget(wc.QLabel("Cheng:"), 0, 0)
-        self.entries['cheng'].append(QtWidgets.QSpinBox())
-        self.entries['cheng'][-1].setAlignment(QtCore.Qt.AlignHCenter)
-        self.entries['cheng'][-1].setValue(self.cheng)
-        self.optframe.addWidget(self.entries['cheng'][-1], 1, 0)
-        self.entries['mas'].append(QtWidgets.QCheckBox('Spinning'))
-        self.entries['mas'][-1].stateChanged.connect(self.MASChange)
-        self.optframe.addWidget(self.entries['mas'][-1], 2, 0)
+        self.optframe.addWidget(wc.QLabel("Exp. Type:"), 0, 0)
+        self.entries['spinType'].append(QtWidgets.QComboBox(self))
+        self.entries['spinType'][-1].addItems(["Static", "Finite MAS", "Infinite MAS"])
+        self.entries['spinType'][-1].currentIndexChanged.connect(self.MASChange)
+        self.optframe.addWidget(self.entries['spinType'][-1], 1, 0)
+        self.angleLabel = wc.QLabel("Magic Angle:")
+        self.angleLabel.setEnabled(False)
+        self.optframe.addWidget(self.angleLabel, 2, 0)
+        self.entries['angle'].append(wc.QLineEdit("arctan(sqrt(2))"))
+        self.entries['angle'][-1].setEnabled(False)
+        self.optframe.addWidget(self.entries['angle'][-1], 3, 0)
         self.sidebandLabel = wc.QLabel("# sidebands:")
-        self.optframe.addWidget(self.sidebandLabel, 3, 0)
         self.sidebandLabel.setEnabled(False)
+        self.optframe.addWidget(self.sidebandLabel, 4, 0)
         self.entries['numssb'].append(QtWidgets.QSpinBox())
         self.entries['numssb'][-1].setAlignment(QtCore.Qt.AlignHCenter)
         self.entries['numssb'][-1].setValue(32)
         self.entries['numssb'][-1].setMaximum(100000)
+        self.entries['numssb'][-1].setMinimum(2)
         self.entries['numssb'][-1].setEnabled(False)
-        self.optframe.addWidget(self.entries['numssb'][-1], 4, 0)
+        self.optframe.addWidget(self.entries['numssb'][-1], 5, 0)
+        self.optframe.addWidget(wc.QLabel("Cheng:"), 0, 1)
+        self.entries['cheng'].append(QtWidgets.QSpinBox())
+        self.entries['cheng'][-1].setAlignment(QtCore.Qt.AlignHCenter)
+        self.entries['cheng'][-1].setValue(self.cheng)
+        self.optframe.addWidget(self.entries['cheng'][-1], 1, 1)
         self.shiftDefType = 0  # variable to remember the selected tensor type
-        self.optframe.addWidget(wc.QLabel("Definition:"), 5, 0)
+        self.optframe.addWidget(wc.QLabel("Definition:"), 2, 1)
         self.entries['shiftdef'].append(QtWidgets.QComboBox())
         self.entries['shiftdef'][-1].addItems([u'\u03b411 - \u03b422 - \u03b433',
                                                u'\u03b4xx - \u03b4yy - \u03b4zz',
                                                u'\u03b4iso - \u03b4aniso - \u03b7',
                                                u'\u03b4iso - \u03a9 - \u03b7'])
         self.entries['shiftdef'][-1].currentIndexChanged.connect(self.changeShiftDef)
-        self.optframe.addWidget(self.entries['shiftdef'][-1], 6, 0)
+        self.optframe.addWidget(self.entries['shiftdef'][-1], 3, 1)
         self.optframe.setColumnStretch(10, 1)
         self.optframe.setAlignment(QtCore.Qt.AlignTop)
         self.spinLabel = wc.QLabel("Spin. speed [kHz]:")
@@ -1629,8 +1641,14 @@ class CsaDeconvParamFrame(AbstractParamFrame):
                 self.frame3.addWidget(self.entries[self.MULTINAMES[j]][i], i + 2, 2 * j + 1)
         self.reset()
 
-    def MASChange(self, state):
-        if state:  # When turned on
+    def MASChange(self, MAStype):
+        if MAStype > 0:
+            self.angleLabel.setEnabled(True)
+            self.entries['angle'][-1].setEnabled(True)
+        else:
+            self.angleLabel.setEnabled(False)
+            self.entries['angle'][-1].setEnabled(False)
+        if MAStype == 1:  # Finite MAS
             self.entries['spinspeed'][-1].setEnabled(True)
             self.ticks['spinspeed'][-1].setEnabled(True)
             self.spinLabel.setEnabled(True)
@@ -1642,19 +1660,6 @@ class CsaDeconvParamFrame(AbstractParamFrame):
             self.spinLabel.setEnabled(False)
             self.entries['numssb'][-1].setEnabled(False)
             self.sidebandLabel.setEnabled(False)
-
-    def defaultValues(self, inp):
-        if not inp:
-            return {'bgrnd': [0.0, True],
-                    'spinspeed': [10.0, True],
-                    't11': np.repeat([np.array([0.0, False], dtype=object)], self.FITNUM, axis=0),
-                    't22': np.repeat([np.array([0.0, False], dtype=object)], self.FITNUM, axis=0),
-                    't33': np.repeat([np.array([0.0, False], dtype=object)], self.FITNUM, axis=0),
-                    'amp': np.repeat([np.array([self.fullInt, False], dtype=object)], self.FITNUM, axis=0),
-                    'lor': np.repeat([np.array([1.0, False], dtype=object)], self.FITNUM, axis=0),
-                    'gauss': np.repeat([np.array([0.0, True], dtype=object)], self.FITNUM, axis=0)}
-        else:
-            return inp
 
     def reset(self):
         locList = self.getRedLocList()
@@ -1759,65 +1764,71 @@ class CsaDeconvParamFrame(AbstractParamFrame):
         self.shiftDefType = NewType
 
     def getExtraParams(self, out):
-        mas = self.entries['mas'][-1].isChecked()
-        cheng = self.entries['cheng'][-1].value()
         shiftdef = self.entries['shiftdef'][0].currentIndex()
-        if mas:
-            numssb = self.entries['numssb'][0].value()
-            out['extra'] = [mas, shiftdef, cheng, numssb]
-        else:
-            weight, angleStuff = simFunc.csaAngleStuff(cheng)
-            out['extra'] = [mas, shiftdef, weight, angleStuff]
+        angle = safeEval(self.entries['angle'][-1].text())
+        if angle is None:
+            raise FittingException("Fitting: Magic Angle is not valid")
+        cheng = safeEval(self.entries['cheng'][-1].text())
+        alpha, beta, weight = simFunc.zcw_angles(cheng, 2)
+        D2 = simFunc.D2tens(alpha, beta, np.zeros_like(alpha))
+        numssb = self.entries['numssb'][0].value()
+        MAStype = self.entries['spinType'][-1].currentIndex()
+        if MAStype == 0:
+            out['spinspeed'] = [0.0]
+        elif MAStype == 2:
+            out['spinspeed'] = [np.inf]
+        out['extra'] = [shiftdef, numssb, angle, D2, weight]
         return (out, out['extra'])
 
 ##############################################################################
 
 
-class Quad1DeconvWindow(TabFittingWindow):
+class QuadDeconvWindow(TabFittingWindow):
 
     def __init__(self, father, oldMainWindow):
-        self.CURRENTWINDOW = Quad1DeconvFrame
-        self.PARAMFRAME = Quad1DeconvParamFrame
-        super(Quad1DeconvWindow, self).__init__(father, oldMainWindow)
+        self.CURRENTWINDOW = QuadDeconvFrame
+        self.PARAMFRAME = QuadDeconvParamFrame
+        super(QuadDeconvWindow, self).__init__(father, oldMainWindow)
 
 #################################################################################
 
 
-class Quad1DeconvFrame(FitPlotFrame):
+class QuadDeconvFrame(FitPlotFrame):
 
     FITNUM = 10  # Maximum number of fits
 
 #################################################################################
 
 
-class Quad1DeconvParamFrame(AbstractParamFrame):
+class QuadDeconvParamFrame(AbstractParamFrame):
 
     FFT_AXES = (0,)    
     Ioptions = ['1', '3/2', '2', '5/2', '3', '7/2', '4', '9/2']
     Ivalues = [1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 4.0, 4.5]
     SINGLENAMES = ['bgrnd', 'spinspeed']
     MULTINAMES = ['pos', 'cq', 'eta', 'amp', 'lor', 'gauss']
-    EXTRANAMES = ['shiftdef', 'cheng', 'I', 'mas', 'numssb']
+    EXTRANAMES = ['spinType', 'satBool', 'angle', 'cheng', 'I', 'numssb']
     PARAMTEXT = {'bgrnd': 'Background', 'spinspeed': 'Spinning Speed', 'pos': 'Position', 'cq': 'Cq', 'eta': 'eta', 'amp': 'Integral', 'lor': 'Lorentz', 'gauss': 'Gauss'}
 
     def __init__(self, parent, rootwindow, isMain=True):
-        self.FITFUNC = simFunc.quad1Func
+        self.FITFUNC = simFunc.quadFunc
         self.cheng = 15
         self.fullInt = np.sum(parent.getData1D()) * parent.sw() / float(len(parent.getData1D()))
-        super(Quad1DeconvParamFrame, self).__init__(parent, rootwindow, isMain)
-        self.optframe.addWidget(wc.QLabel("Cheng:"), 0, 0)
-        self.entries['cheng'].append(QtWidgets.QSpinBox())
-        self.entries['cheng'][-1].setAlignment(QtCore.Qt.AlignHCenter)
-        self.entries['cheng'][-1].setValue(self.cheng)
-        self.optframe.addWidget(self.entries['cheng'][-1], 1, 0)
-        self.optframe.addWidget(wc.QLabel("I:"), 2, 0)
-        self.entries['I'].append(QtWidgets.QComboBox())
-        self.entries['I'][-1].addItems(self.Ioptions)
-        self.entries['I'][-1].setCurrentIndex(1)
-        self.optframe.addWidget(self.entries['I'][-1], 3, 0)
-        self.entries['mas'].append(QtWidgets.QCheckBox('Spinning'))
-        self.entries['mas'][-1].stateChanged.connect(self.MASChange)
-        self.optframe.addWidget(self.entries['mas'][-1], 4, 0)
+        self.DEFAULTS = {'bgrnd': [0.0, True], 'spinspeed': [10.0, True], 'pos': [0.0, False], 'cq': [1.0, False], 'eta': [0.0, False], 'amp': [self.fullInt, False], 'lor': [1.0, False], 'gauss': [0.0, True]}
+        super(QuadDeconvParamFrame, self).__init__(parent, rootwindow, isMain)
+        self.optframe.addWidget(wc.QLabel("Exp. Type:"), 0, 0)
+        self.entries['spinType'].append(QtWidgets.QComboBox(self))
+        self.entries['spinType'][-1].addItems(["Static", "Finite MAS", "Infinite MAS"])
+        self.entries['spinType'][-1].currentIndexChanged.connect(self.MASChange)
+        self.optframe.addWidget(self.entries['spinType'][-1], 1, 0)
+        self.entries['satBool'].append(QtWidgets.QCheckBox("Satellites"))
+        self.optframe.addWidget(self.entries['satBool'][-1], 2, 0)
+        self.angleLabel = wc.QLabel("Magic Angle:")
+        self.angleLabel.setEnabled(False)
+        self.optframe.addWidget(self.angleLabel, 3, 0)
+        self.entries['angle'].append(wc.QLineEdit("arctan(sqrt(2))"))
+        self.entries['angle'][-1].setEnabled(False)
+        self.optframe.addWidget(self.entries['angle'][-1], 4, 0)
         self.sidebandLabel = wc.QLabel("# sidebands:")
         self.sidebandLabel.setEnabled(False)
         self.optframe.addWidget(self.sidebandLabel, 5, 0)
@@ -1825,8 +1836,19 @@ class Quad1DeconvParamFrame(AbstractParamFrame):
         self.entries['numssb'][-1].setAlignment(QtCore.Qt.AlignHCenter)
         self.entries['numssb'][-1].setValue(32)
         self.entries['numssb'][-1].setMaximum(100000)
+        self.entries['numssb'][-1].setMinimum(2)
         self.entries['numssb'][-1].setEnabled(False)
         self.optframe.addWidget(self.entries['numssb'][-1], 6, 0)
+        self.optframe.addWidget(wc.QLabel("Cheng:"), 0, 1)
+        self.entries['cheng'].append(QtWidgets.QSpinBox())
+        self.entries['cheng'][-1].setAlignment(QtCore.Qt.AlignHCenter)
+        self.entries['cheng'][-1].setValue(self.cheng)
+        self.optframe.addWidget(self.entries['cheng'][-1], 1, 1)
+        self.optframe.addWidget(wc.QLabel("I:"), 2, 1)
+        self.entries['I'].append(QtWidgets.QComboBox())
+        self.entries['I'][-1].addItems(self.Ioptions)
+        self.entries['I'][-1].setCurrentIndex(1)
+        self.optframe.addWidget(self.entries['I'][-1], 3, 1)
         self.optframe.setColumnStretch(10, 1)
         self.optframe.setAlignment(QtCore.Qt.AlignTop)
         self.spinLabel = wc.QLabel("Spin. speed [kHz]:")
@@ -1834,7 +1856,6 @@ class Quad1DeconvParamFrame(AbstractParamFrame):
         self.spinLabel.setEnabled(False)
         self.ticks['spinspeed'].append(QtWidgets.QCheckBox(''))
         self.frame2.addWidget(self.ticks['spinspeed'][-1], 1, 0)
-        self.ticks['spinspeed'][-1].setEnabled(False)
         self.entries['spinspeed'].append(wc.QLineEdit("10.0"))
         self.frame2.addWidget(self.entries['spinspeed'][-1], 1, 1)
         self.entries['spinspeed'][-1].setEnabled(False)
@@ -1873,8 +1894,14 @@ class Quad1DeconvParamFrame(AbstractParamFrame):
                 self.frame3.addWidget(self.entries[self.MULTINAMES[j]][i], i + 2, 2 * j + 1)
         self.dispParams()
 
-    def MASChange(self, state):
-        if state:  # When turned on
+    def MASChange(self, MAStype):
+        if MAStype > 0:
+            self.angleLabel.setEnabled(True)
+            self.entries['angle'][-1].setEnabled(True)
+        else:
+            self.angleLabel.setEnabled(False)
+            self.entries['angle'][-1].setEnabled(False)
+        if MAStype == 1:  # Finite MAS
             self.entries['spinspeed'][-1].setEnabled(True)
             self.ticks['spinspeed'][-1].setEnabled(True)
             self.spinLabel.setEnabled(True)
@@ -1887,80 +1914,23 @@ class Quad1DeconvParamFrame(AbstractParamFrame):
             self.entries['numssb'][-1].setEnabled(False)
             self.sidebandLabel.setEnabled(False)
 
-    def defaultValues(self, inp):
-        if not inp:
-            return {'bgrnd': [0.0, True],
-                    'spinspeed': [10.0, True],
-                    'pos': np.repeat([np.array([0.0, False], dtype=object)], self.FITNUM, axis=0),
-                    'cq': np.repeat([np.array([1.0, False], dtype=object)], self.FITNUM, axis=0),
-                    'eta': np.repeat([np.array([0.0, False], dtype=object)], self.FITNUM, axis=0),
-                    'amp': np.repeat([np.array([self.fullInt, False], dtype=object)], self.FITNUM, axis=0),
-                    'lor': np.repeat([np.array([1.0, False], dtype=object)], self.FITNUM, axis=0),
-                    'gauss': np.repeat([np.array([0.0, True], dtype=object)], self.FITNUM, axis=0)}
-        else:
-            return inp
-
     def getExtraParams(self, out):
+        satBool = self.entries['satBool'][-1].isChecked()
+        angle = safeEval(self.entries['angle'][-1].text())
+        if angle is None:
+            raise FittingException("Fitting: Magic Angle is not valid")
         I = self.entries['I'][-1].currentIndex() * 0.5 + 1
-        mas = self.entries['mas'][-1].isChecked()
         cheng = safeEval(self.entries['cheng'][-1].text())
-        if mas:
-            numssb = self.entries['numssb'][0].value()
-            out['extra'] = [mas, I, cheng, numssb]
-        else:
-            weight, angleStuff = simFunc.quad1StaticsetAngleStuff(cheng)
-            out['extra'] = [mas, I, weight, angleStuff]
-        return (out, out['extra'])
-
-    def checkParam(self):
-         val = self.numExp.currentIndex() + 1
-         printStr = '%#.' + str(self.rootwindow.tabWindow.PRECIS) + 'g'
-         for i in range(10):  # Print output if not stopped before
-            if i < val:
-                try:
-                    cq = float(safeEval(self.entries['cq'][i].text()))
-                    eta = float(safeEval(self.entries['eta'][i].text()))
-                    Res = func.quadConversion([cq,eta], 1, 0)[0]
-                    self.entries['cq'][i].setText(printStr % Res[0])
-                    self.entries['eta'][i].setText(printStr % Res[1])
-                except Exception:
-                    return
-
-##############################################################################
-
-
-class Quad2DeconvWindow(TabFittingWindow):
-
-    def __init__(self, father, oldMainWindow):
-        self.CURRENTWINDOW = Quad1DeconvFrame
-        self.PARAMFRAME = Quad2DeconvParamFrame
-        super(Quad2DeconvWindow, self).__init__(father, oldMainWindow)
-
-#################################################################################
-
-
-class Quad2DeconvParamFrame(Quad1DeconvParamFrame):
-
-    Ioptions = ['3/2', '5/2', '7/2', '9/2']
-
-    def __init__(self, parent, rootwindow, isMain=True):
-        super(Quad2DeconvParamFrame, self).__init__(parent, rootwindow, isMain)
-        self.FITFUNC = simFunc.quad2Func
-        self.entries['I'][-1].setCurrentIndex(0)
-        self.spinLabel.hide()
-        self.ticks['spinspeed'][-1].hide()
-        self.entries['spinspeed'][-1].hide()
-        self.sidebandLabel.hide()
-        self.entries['numssb'][-1].hide()
-
-    def getExtraParams(self, out):
-        I = self.entries['I'][-1].currentIndex() + 3 / 2.0
-        cheng = safeEval(self.entries['cheng'][-1].text())
-        if self.entries['mas'][-1].isChecked():
-            weight, angleStuff = simFunc.quad2MASsetAngleStuff(cheng)
-        else:
-            weight, angleStuff = simFunc.quad2StaticsetAngleStuff(cheng)
-        out['extra'] = [I, weight, angleStuff]
+        alpha, beta, weight = simFunc.zcw_angles(cheng, 2)
+        D2 = simFunc.D2tens(alpha, beta, np.zeros_like(alpha))
+        D4 = simFunc.D4tens(alpha, beta, np.zeros_like(alpha))
+        numssb = self.entries['numssb'][-1].value()
+        MAStype = self.entries['spinType'][-1].currentIndex()
+        if MAStype == 0:
+            out['spinspeed'] = [0.0]
+        elif MAStype == 2:
+            out['spinspeed'] = [np.inf]
+        out['extra'] = [satBool, I, numssb, angle, D2, D4, weight]
         return (out, out['extra'])
 
 ##############################################################################
@@ -1968,7 +1938,7 @@ class Quad2DeconvParamFrame(Quad1DeconvParamFrame):
 
 class CzjzekPrefWindow(QtWidgets.QWidget):
 
-    Ioptions = ['3/2', '5/2', '7/2', '9/2']
+    Ioptions = ['1', '3/2', '2', '5/2', '3', '7/2', '4', '9/2']
     
     def __init__(self, parent):
         super(CzjzekPrefWindow, self).__init__(parent)
@@ -2009,11 +1979,34 @@ class CzjzekPrefWindow(QtWidgets.QWidget):
         grid.addWidget(self.etamin, 7, 0)
         self.etamax = wc.QLineEdit(str(self.father.etamax), self.checkEta)
         grid.addWidget(self.etamax, 7, 1)
-        if self.father.mas is None:
-            self.masEntry = None
-        else:
-            self.masEntry = QtWidgets.QCheckBox('Spinning')
-            grid.addWidget(self.masEntry, 8, 0, 1, 2)
+        grid.addWidget(wc.QLabel("Exp. Type:"), 8, 0)
+        self.masEntry = QtWidgets.QComboBox(self)
+        self.masEntry.addItems(["Static", "Finite MAS", "Infinite MAS"])
+        self.masEntry.currentIndexChanged.connect(self.MASChange)
+        grid.addWidget(self.masEntry, 9, 0)
+        self.angleLabel = wc.QLabel("Magic Angle:")
+        self.angleLabel.setEnabled(False)
+        grid.addWidget(self.angleLabel, 8, 1)
+        self.angleEntry = wc.QLineEdit(self.father.angle)
+        self.angleEntry.setEnabled(False)
+        grid.addWidget(self.angleEntry, 9, 1)
+        self.spinLabel = wc.QLabel("Spin. speed [kHz]:")
+        self.spinLabel.setEnabled(False)
+        grid.addWidget(self.spinLabel, 10, 0)
+        self.spinEntry = wc.QLineEdit(str(self.father.spinspeed))
+        self.spinEntry.setEnabled(False)
+        grid.addWidget(self.spinEntry, 11, 0)
+        self.sidebandLabel = wc.QLabel("# sidebands:")
+        self.sidebandLabel.setEnabled(False)
+        grid.addWidget(self.sidebandLabel, 10, 1)
+        self.numssbEntry = QtWidgets.QSpinBox()
+        self.numssbEntry.setAlignment(QtCore.Qt.AlignHCenter)
+        self.numssbEntry.setMaximum(100000)
+        self.numssbEntry.setMinimum(2)
+        self.numssbEntry.setEnabled(False)
+        grid.addWidget(self.numssbEntry, 11, 1)
+        self.satBoolEntry = QtWidgets.QCheckBox("Satellites")
+        grid.addWidget(self.satBoolEntry, 12, 0)
         self.fig = Figure()
         self.canvas = FigureCanvas(self.fig)
         grid.addWidget(self.canvas, 0, 2, 14, 4)
@@ -2045,11 +2038,32 @@ class CzjzekPrefWindow(QtWidgets.QWidget):
         self.show()
         self.resize(800, 600)
 
+    def MASChange(self, MAStype):
+        if MAStype > 0:
+            self.angleLabel.setEnabled(True)
+            self.angleEntry.setEnabled(True)
+        else:
+            self.angleLabel.setEnabled(False)
+            self.angleEntry.setEnabled(False)
+        if MAStype == 1:  # Finite MAS
+            self.spinEntry.setEnabled(True)
+            self.spinLabel.setEnabled(True)
+            self.numssbEntry.setEnabled(True)
+            self.sidebandLabel.setEnabled(True)
+        else:
+            self.spinEntry.setEnabled(False)
+            self.spinLabel.setEnabled(False)
+            self.numssbEntry.setEnabled(False)
+            self.sidebandLabel.setEnabled(False)
+        
     def upd(self):
-        self.Ientry.setCurrentIndex(int(self.father.I-3/2.0))
+        self.Ientry.setCurrentIndex(int(self.father.I*2.0-2.0))
         self.chengEntry.setValue(self.father.cheng)
-        if self.father.mas is not None:
-            self.masEntry.setChecked(self.father.mas)
+        self.masEntry.setCurrentIndex(self.father.mas)
+        self.numssbEntry.setValue(self.father.numssb)
+        self.angleEntry.setText(self.father.angle)
+        self.spinEntry.setText(str(self.father.spinspeed))
+        self.satBoolEntry.setChecked(self.father.satBool)
         self.wqsteps.setValue(self.father.wqsteps)
         self.etasteps.setValue(self.father.etasteps)
         self.wqmin.setText(str(self.father.wqmin))
@@ -2114,9 +2128,15 @@ class CzjzekPrefWindow(QtWidgets.QWidget):
         self.father.wqsteps = self.wqsteps.value()
         self.father.etasteps = self.etasteps.value()
         self.father.cheng = self.chengEntry.value()
-        self.father.I = self.Ientry.currentIndex() + 3 / 2.0
-        if self.masEntry is not None:
-            self.father.mas = self.masEntry.isChecked()
+        self.father.I = self.Ientry.currentIndex() * 0.5 + 1.0
+        self.father.mas = self.masEntry.currentIndex()
+        inp = safeEval(self.spinEntry.text(), type='FI')
+        if inp is None:
+            raise FittingException("Spin speed value not valid.")
+        self.father.spinspeed = inp
+        self.father.angle = self.angleEntry.text()
+        self.father.numssb = self.numssbEntry.value()
+        self.father.satBool = self.satBoolEntry.isChecked()
         inp = safeEval(self.wqmax.text(), type='FI')
         if inp is None:
             raise FittingException(u"\u03BD_Q_max value not valid.")
@@ -2182,17 +2202,17 @@ class CzjzekPrefWindow(QtWidgets.QWidget):
 
 ##############################################################################
 
-class Quad2CzjzekWindow(TabFittingWindow):
+class QuadCzjzekWindow(TabFittingWindow):
 
     def __init__(self, father, oldMainWindow):
-        self.CURRENTWINDOW = Quad1DeconvFrame
-        self.PARAMFRAME = Quad2CzjzekParamFrame
-        super(Quad2CzjzekWindow, self).__init__(father, oldMainWindow)
+        self.CURRENTWINDOW = QuadDeconvFrame
+        self.PARAMFRAME = QuadCzjzekParamFrame
+        super(QuadCzjzekWindow, self).__init__(father, oldMainWindow)
 
 #################################################################################
 
 
-class Quad2CzjzekParamFrame(AbstractParamFrame):
+class QuadCzjzekParamFrame(AbstractParamFrame):
 
     FFT_AXES = (0,)
     SINGLENAMES = ['bgrnd']
@@ -2201,7 +2221,7 @@ class Quad2CzjzekParamFrame(AbstractParamFrame):
     PARAMTEXT = {'bgrnd': 'Background', 'd': 'd parameter', 'pos': 'Position', 'sigma': 'Sigma', 'wq0': 'Wq0', 'eta0': 'Eta0', 'amp': 'Integral', 'lor': 'Lorentz', 'gauss': 'Gauss'}
 
     def __init__(self, parent, rootwindow, isMain=True):
-        self.FITFUNC = simFunc.quad2CzjzekFunc
+        self.FITFUNC = simFunc.quadCzjzekFunc
         self.wqsteps = 50
         self.etasteps = 10
         self.wqmax = 4
@@ -2213,9 +2233,14 @@ class Quad2CzjzekParamFrame(AbstractParamFrame):
         self.etaLib = None
         self.I = 3 / 2.0
         self.cheng = 15
-        self.mas = False
+        self.mas = 2
+        self.spinspeed = 10.0
+        self.angle = "arctan(sqrt(2))"
+        self.numssb = 32
+        self.satBool = False
         self.fullInt = np.sum(parent.getData1D()) * parent.sw() / float(len(parent.getData1D()))
-        super(Quad2CzjzekParamFrame, self).__init__(parent, rootwindow, isMain)
+        self.DEFAULTS = {'bgrnd': [0.0, True], 'pos': [0.0, False], 'd': [5.0, True], 'sigma': [1.0, False], 'wq0': [0.0, True], 'eta0': [0.0, True], 'amp': [self.fullInt, False], 'lor': [10.0, False], 'gauss': [0.0, True]}
+        super(QuadCzjzekParamFrame, self).__init__(parent, rootwindow, isMain)
         czjzekPrefButton = QtWidgets.QPushButton("Library")
         czjzekPrefButton.clicked.connect(self.createCzjzekPrefWindow)
         self.frame1.addWidget(czjzekPrefButton, 1, 1)
@@ -2280,46 +2305,19 @@ class Quad2CzjzekParamFrame(AbstractParamFrame):
     def createCzjzekPrefWindow(self, *args):
         CzjzekPrefWindow(self)
 
-    def defaultValues(self, inp):
-        if not inp:
-            return {'bgrnd': [0.0, True],
-                    'pos': np.repeat([np.array([0.0, False], dtype=object)], self.FITNUM, axis=0),
-                    'd': np.repeat([np.array([5.0, True], dtype=object)], self.FITNUM, axis=0),
-                    'sigma': np.repeat([np.array([1.0, False], dtype=object)], self.FITNUM, axis=0),
-                    'wq0': np.repeat([np.array([0.0, True], dtype=object)], self.FITNUM, axis=0),
-                    'eta0': np.repeat([np.array([0.0, True], dtype=object)], self.FITNUM, axis=0),
-                    'amp': np.repeat([np.array([self.fullInt, False], dtype=object)], self.FITNUM, axis=0),
-                    'lor': np.repeat([np.array([10.0, False], dtype=object)], self.FITNUM, axis=0),
-                    'gauss': np.repeat([np.array([0.0, True], dtype=object)], self.FITNUM, axis=0)}
-        else:
-            return inp
-
-    def bincounting(self, x1, weight, length):
-        weights = weight[np.logical_and(x1 >= 0, x1 < length)]
-        x1 = x1[np.logical_and(x1 >= 0, x1 < length)]
-        fid = np.fft.ifft(np.bincount(x1, weights, length))
-        #fid[0] *= 1
-        return fid
-
-    def genLib(self, length, I, minWq, maxWq, minEta, maxEta, numWq, numEta, angleStuff, freq, sw, weight):
-        wq_return, eta_return = np.meshgrid(np.linspace(minWq, maxWq, numWq), np.linspace(minEta, maxEta, numEta))
-        wq = wq_return[..., None]
-        eta = eta_return[..., None]
-        v = -1 / (6.0 * freq) * wq**2 * (I * (I + 1) - 3.0 / 4) * (angleStuff[0] + angleStuff[1] * eta + angleStuff[2] * eta**2)
-        mult = v / sw * length
-        x1 = np.array(np.round(mult) + np.floor(length / 2), dtype=int)
-        lib = np.apply_along_axis(self.bincounting, 2, x1, weight, length)
-        lib = lib.reshape((np.prod(lib.shape[:-1]), lib.shape[-1]))
-        wq_return = wq_return.flatten()
-        eta_return = eta_return.flatten()        
-        return lib, wq_return, eta_return
-
     def simLib(self):
-        if self.mas:
-            weight, angleStuff = simFunc.quad2MASsetAngleStuff(self.cheng)
+        angle = safeEval(self.angle, type='FI')
+        if self.mas == 0:
+            spinspeed = 0
+        elif self.mas == 2:
+            spinspeed = np.inf
         else:
-            weight, angleStuff = simFunc.quad2StaticsetAngleStuff(self.cheng)
-        self.lib, self.cqLib, self.etaLib = self.genLib(len(self.parent.xax()), self.I, self.wqmin*1e6, self.wqmax*1e6, self.etamin, self.etamax, self.wqsteps, self.etasteps, angleStuff, self.parent.freq(), self.parent.sw(), weight)
+            spinspeed = self.spinspeed
+        alpha, beta, weight = simFunc.zcw_angles(self.cheng, 2)
+        D2 = simFunc.D2tens(alpha, beta, np.zeros_like(alpha))
+        D4 = simFunc.D4tens(alpha, beta, np.zeros_like(alpha))
+        extra = [self.satBool, self.I, self.numssb, angle, D2, D4, weight]
+        self.lib, self.cqLib, self.etaLib = simFunc.genLib(len(self.parent.xax()), self.wqmin, self.wqmax, self.etamin, self.etamax, self.wqsteps, self.etasteps, extra, self.parent.freq(), self.parent.sw(), spinspeed)
         
     def getExtraParams(self, out):
         if self.lib is None:
@@ -2356,6 +2354,7 @@ class SIMPSONDeconvParamFrame(AbstractParamFrame):
     
     def __init__(self, parent, rootwindow, isMain=True):
         self.FITFUNC = simFunc.SIMPSONRunScript
+        self.DEFAULTS = {'bgrnd': [0.0, True], 'amp': [1.0, False]}
         super(SIMPSONDeconvParamFrame, self).__init__(parent, rootwindow, isMain)
         self.numExp = QtWidgets.QComboBox()
         self.script = None
@@ -2384,19 +2383,6 @@ class SIMPSONDeconvParamFrame(AbstractParamFrame):
 
     def txtOutputWindow(self):
         TxtOutputWindow(self.rootwindow, self.txtOutput[0], self.txtOutput[1])
-
-    def defaultValues(self, inp):
-        if not inp:
-            val = {'bgrnd': [0.0, True]}
-            for name in self.MULTINAMES:
-                if name is "amp":
-                    num = 1.0
-                else:
-                    num = 0.0
-                val[name] = np.repeat([np.array([num, False], dtype=object)], self.FITNUM, axis=0)
-            return val
-        else:
-            return inp
 
     def reset(self):
         locList = self.getRedLocList()
@@ -2500,6 +2486,7 @@ class FunctionFitParamFrame(AbstractParamFrame):
         self.FITFUNC = simFunc.functionRun
         self.numExp = QtWidgets.QComboBox()
         self.function = ""
+        self.DEFAULTS = {}
         super(FunctionFitParamFrame, self).__init__(parent, rootwindow, isMain)
         resetButton = QtWidgets.QPushButton("Reset")
         resetButton.clicked.connect(self.reset)
@@ -2515,15 +2502,6 @@ class FunctionFitParamFrame(AbstractParamFrame):
         self.frame3.setColumnStretch(20, 1)
         self.frame3.setAlignment(QtCore.Qt.AlignTop)
         self.reset()
-
-    def defaultValues(self, inp):
-        if not inp:
-            val = {}
-            for name in self.MULTINAMES:
-                val[name] = np.repeat([np.array([0.0, False], dtype=object)], self.FITNUM, axis=0)
-            return val
-        else:
-            return inp
 
     def reset(self):
         locList = self.getRedLocList()
@@ -2661,45 +2639,76 @@ class MqmasDeconvFrame(FitContourFrame):
 
 class MqmasDeconvParamFrame(AbstractParamFrame):
 
-    FFT_AXES = (0,) # Which axes should be transformed after simulation
-    FFTSHIFT_AXES = (0,) # Which axes should be transformed after simulation
+    FFT_AXES = (0,1) # Which axes should be transformed after simulation
+    #FFTSHIFT_AXES = (0,) # Which axes should be transformed after simulation
     DIM = 2
     Ioptions = ['3/2', '5/2', '7/2', '9/2']
     Ivalues = [1.5, 2.5, 3.5, 4.5]
     MQvalues = [3, 5, 7, 9]
-    SINGLENAMES = ['bgrnd']
+    SINGLENAMES = ['bgrnd', 'spinspeed']
     MULTINAMES = ['pos', 'cq', 'eta', 'amp', 'lor2', 'gauss2', 'lor1', 'gauss1']
-    EXTRANAMES = ['cheng', 'I', 'MQ', 'shear', 'scale']
+    EXTRANAMES = ['spinType', 'angle', 'numssb','cheng', 'I', 'MQ', 'shear', 'scale']
     PARAMTEXT = {'bgrnd': 'Background', 'pos': 'Position', 'cq': 'Cq', 'eta': 'eta', 'amp': 'Integral', 'lor2': 'Lorentz 2', 'gauss2': 'Gauss 2', 'lor1': 'Lorentz 1', 'gauss1': 'Gauss 1'}
 
     def __init__(self, parent, rootwindow, isMain=True):
         self.FITFUNC = simFunc.mqmasFunc
         self.cheng = 15
         self.fullInt = np.sum(parent.getData1D()) * parent.sw() / float(parent.getData1D().shape[-1]) * parent.sw(-2) / float(parent.getData1D().shape[-2])
+        self.DEFAULTS = {'bgrnd': [0.0, True], 'spinspeed': [10.0, True], 'pos': [0.0, False], 'cq': [1.0, False], 'eta': [0.0, False], 'amp': [self.fullInt, False], 'lor2': [10.0, False], 'gauss2': [0.0, True], 'lor1': [10.0, False], 'gauss1': [0.0, True]}
         super(MqmasDeconvParamFrame, self).__init__(parent, rootwindow, isMain)
-        self.optframe.addWidget(wc.QLabel("Cheng:"), 0, 0)
+        self.optframe.addWidget(wc.QLabel("Exp. Type:"), 0, 0)
+        self.entries['spinType'].append(QtWidgets.QComboBox(self))
+        self.entries['spinType'][-1].addItems(["Static", "Finite MAS", "Infinite MAS"])
+        self.entries['spinType'][-1].setCurrentIndex(2)
+        self.entries['spinType'][-1].currentIndexChanged.connect(self.MASChange)
+        self.optframe.addWidget(self.entries['spinType'][-1], 1, 0)
+        self.angleLabel = wc.QLabel("Magic Angle:")
+        self.angleLabel.setEnabled(False)
+        self.optframe.addWidget(self.angleLabel, 2, 0)
+        self.entries['angle'].append(wc.QLineEdit("arctan(sqrt(2))"))
+        self.entries['angle'][-1].setEnabled(False)
+        self.optframe.addWidget(self.entries['angle'][-1], 3, 0)
+        self.sidebandLabel = wc.QLabel("# sidebands:")
+        self.sidebandLabel.setEnabled(False)
+        self.optframe.addWidget(self.sidebandLabel, 4, 0)
+        self.entries['numssb'].append(QtWidgets.QSpinBox())
+        self.entries['numssb'][-1].setAlignment(QtCore.Qt.AlignHCenter)
+        self.entries['numssb'][-1].setValue(32)
+        self.entries['numssb'][-1].setMaximum(100000)
+        self.entries['numssb'][-1].setMinimum(2)
+        self.entries['numssb'][-1].setEnabled(False)
+        self.optframe.addWidget(self.entries['numssb'][-1], 5, 0)
+        self.optframe.addWidget(wc.QLabel("Cheng:"), 0, 1)
         self.entries['cheng'].append(QtWidgets.QSpinBox())
         self.entries['cheng'][-1].setAlignment(QtCore.Qt.AlignHCenter)
         self.entries['cheng'][-1].setValue(self.cheng)
-        self.optframe.addWidget(self.entries['cheng'][-1], 1, 0)
-        self.optframe.addWidget(wc.QLabel("I:"), 2, 0)
+        self.optframe.addWidget(self.entries['cheng'][-1], 1, 1)
+        self.optframe.addWidget(wc.QLabel("I:"), 2, 1)
         self.entries['I'].append(QtWidgets.QComboBox())
         self.entries['I'][-1].addItems(self.Ioptions)
         self.entries['I'][-1].setCurrentIndex(1)
-        self.optframe.addWidget(self.entries['I'][-1], 3, 0)
-        self.optframe.addWidget(wc.QLabel("MQ:"), 4, 0)
+        self.optframe.addWidget(self.entries['I'][-1], 3, 1)
+        self.optframe.addWidget(wc.QLabel("MQ:"), 4, 1)
         self.entries['MQ'].append(QtWidgets.QComboBox())
         self.entries['MQ'][-1].addItems([str(i) for i in self.MQvalues])
         self.entries['MQ'][-1].setCurrentIndex(0)
-        self.optframe.addWidget(self.entries['MQ'][-1], 5, 0)
-        self.optframe.addWidget(wc.QLabel("Shear:"), 6, 0)
+        self.optframe.addWidget(self.entries['MQ'][-1], 5, 1)
+        self.optframe.addWidget(wc.QLabel("Shear:"), 6, 1)
         self.entries['shear'].append(wc.QLineEdit("0.0"))
-        self.optframe.addWidget(self.entries['shear'][-1], 7, 0)
-        self.optframe.addWidget(wc.QLabel("Scale sw:"), 8, 0)
+        self.optframe.addWidget(self.entries['shear'][-1], 7, 1)
+        self.optframe.addWidget(wc.QLabel("Scale sw:"), 8, 1)
         self.entries['scale'].append(wc.QLineEdit("1.0"))
-        self.optframe.addWidget(self.entries['scale'][-1], 9, 0)
+        self.optframe.addWidget(self.entries['scale'][-1], 9, 1)
         self.optframe.setColumnStretch(10, 1)
         self.optframe.setAlignment(QtCore.Qt.AlignTop)
+        self.spinLabel = wc.QLabel("Spin. speed [kHz]:")
+        self.frame2.addWidget(self.spinLabel, 0, 0, 1, 2)
+        self.spinLabel.setEnabled(False)
+        self.ticks['spinspeed'].append(QtWidgets.QCheckBox(''))
+        self.frame2.addWidget(self.ticks['spinspeed'][-1], 1, 0)
+        self.entries['spinspeed'].append(wc.QLineEdit("10.0"))
+        self.frame2.addWidget(self.entries['spinspeed'][-1], 1, 1)
+        self.entries['spinspeed'][-1].setEnabled(False)
         self.frame2.addWidget(wc.QLabel("Bgrnd:"), 2, 0, 1, 2)
         self.ticks['bgrnd'].append(QtWidgets.QCheckBox(''))
         self.frame2.addWidget(self.ticks['bgrnd'][-1], 3, 0)
@@ -2737,45 +2746,48 @@ class MqmasDeconvParamFrame(AbstractParamFrame):
                 self.frame3.addWidget(self.entries[self.MULTINAMES[j]][i], i + 2, 2 * j + 1)
         self.dispParams()
 
-    def defaultValues(self, inp):
-        if not inp:
-            return {'bgrnd': [0.0, True],
-                    'pos': np.repeat([np.array([0.0, False], dtype=object)], self.FITNUM, axis=0),
-                    'cq': np.repeat([np.array([1.0, False], dtype=object)], self.FITNUM, axis=0),
-                    'eta': np.repeat([np.array([0.0, False], dtype=object)], self.FITNUM, axis=0),
-                    'amp': np.repeat([np.array([self.fullInt, False], dtype=object)], self.FITNUM, axis=0),
-                    'lor2': np.repeat([np.array([10.0, False], dtype=object)], self.FITNUM, axis=0),
-                    'gauss2': np.repeat([np.array([0.0, True], dtype=object)], self.FITNUM, axis=0),
-                    'lor1': np.repeat([np.array([10.0, False], dtype=object)], self.FITNUM, axis=0),
-                    'gauss1': np.repeat([np.array([0.0, True], dtype=object)], self.FITNUM, axis=0)}
+    def MASChange(self, MAStype):
+        if MAStype > 0:
+            self.angleLabel.setEnabled(True)
+            self.entries['angle'][-1].setEnabled(True)
         else:
-            return inp
-
+            self.angleLabel.setEnabled(False)
+            self.entries['angle'][-1].setEnabled(False)
+        if MAStype == 1:  # Finite MAS
+            self.entries['spinspeed'][-1].setEnabled(True)
+            self.ticks['spinspeed'][-1].setEnabled(True)
+            self.spinLabel.setEnabled(True)
+            self.entries['numssb'][-1].setEnabled(True)
+            self.sidebandLabel.setEnabled(True)
+        else:
+            self.entries['spinspeed'][-1].setEnabled(False)
+            self.ticks['spinspeed'][-1].setEnabled(False)
+            self.spinLabel.setEnabled(False)
+            self.entries['numssb'][-1].setEnabled(False)
+            self.sidebandLabel.setEnabled(False)
+        
     def getExtraParams(self, out):
+        angle = safeEval(self.entries['angle'][-1].text())
+        if angle is None:
+            raise FittingException("Fitting: Magic Angle is not valid")
         I = self.entries['I'][-1].currentIndex() + 3/2.0
         MQ = self.MQvalues[self.entries['MQ'][-1].currentIndex()]
         if MQ > (I*2):
             raise RuntimeError("MQ cannot be larger than I")
+        cheng = safeEval(self.entries['cheng'][-1].text())
+        alpha, beta, weight = simFunc.zcw_angles(cheng, 2)
+        D2 = simFunc.D2tens(alpha, beta, np.zeros_like(alpha))
+        D4 = simFunc.D4tens(alpha, beta, np.zeros_like(alpha))
+        numssb = self.entries['numssb'][-1].value()
+        MAStype = self.entries['spinType'][-1].currentIndex()
+        if MAStype == 0:
+            out['spinspeed'] = [0.0]
+        elif MAStype == 2:
+            out['spinspeed'] = [np.inf]
         shear = safeEval(self.entries['shear'][-1].text())
         scale = safeEval(self.entries['scale'][-1].text())
-        cheng = safeEval(self.entries['cheng'][-1].text())
-        weight, angleStuff = simFunc.mqmasAngleStuff(cheng)
-        out['extra'] = [I, MQ, weight, angleStuff, shear, scale]
+        out['extra'] = [I, MQ, numssb, angle, D2, D4, weight, shear, scale]
         return (out, out['extra'])
-
-    def checkParam(self):
-         val = self.numExp.currentIndex() + 1
-         printStr = '%#.' + str(self.rootwindow.tabWindow.PRECIS) + 'g'
-         for i in range(10):  # Print output if not stopped before
-            if i < val:
-                try:
-                    cq = float(safeEval(self.entries['cq'][i].text()))
-                    eta = float(safeEval(self.entries['eta'][i].text()))
-                    Res = func.quadConversion([cq,eta], 1, 0)[0]
-                    self.entries['cq'][i].setText(printStr % Res[0])
-                    self.entries['eta'][i].setText(printStr % Res[1])
-                except Exception:
-                    return
 
 ##############################################################################
 
@@ -2816,6 +2828,7 @@ class MqmasCzjzekParamFrame(AbstractParamFrame):
         self.cheng = 15
         self.mas = None # MQMAS simulation without mas not possible
         self.fullInt = np.sum(parent.getData1D()) * parent.sw() / float(parent.getData1D().shape[-1]) * parent.sw(-2) / float(parent.getData1D().shape[-2])
+        self.DEFAULTS = {'bgrnd': [0.0, True], 'pos': [0.0, False], 'd': [5.0, True], 'sigma': [1.0, False], 'sigmaCS': [10.0, False], 'wq0': [0.0, True], 'eta0': [0.0, True], 'amp': [self.fullInt, False], 'lor2': [10.0, False], 'gauss2': [0.0, True], 'lor1': [10.0, False], 'gauss1': [0.0, True]}
         super(MqmasCzjzekParamFrame, self).__init__(parent, rootwindow, isMain)
         czjzekPrefButton = QtWidgets.QPushButton("Library")
         czjzekPrefButton.clicked.connect(self.createCzjzekPrefWindow)
@@ -2895,45 +2908,9 @@ class MqmasCzjzekParamFrame(AbstractParamFrame):
     def createCzjzekPrefWindow(self, *args):
         CzjzekPrefWindow(self)
 
-    def defaultValues(self, inp):
-        if not inp:
-            return {'bgrnd': [0.0, True],
-                    'pos': np.repeat([np.array([0.0, False], dtype=object)], self.FITNUM, axis=0),
-                    'd': np.repeat([np.array([5.0, True], dtype=object)], self.FITNUM, axis=0),
-                    'sigma': np.repeat([np.array([1.0, False], dtype=object)], self.FITNUM, axis=0),
-                    'sigmaCS': np.repeat([np.array([10.0, False], dtype=object)], self.FITNUM, axis=0),
-                    'wq0': np.repeat([np.array([0.0, True], dtype=object)], self.FITNUM, axis=0),
-                    'eta0': np.repeat([np.array([0.0, True], dtype=object)], self.FITNUM, axis=0),
-                    'amp': np.repeat([np.array([self.fullInt, False], dtype=object)], self.FITNUM, axis=0),
-                    'lor2': np.repeat([np.array([10.0, False], dtype=object)], self.FITNUM, axis=0),
-                    'gauss2': np.repeat([np.array([0.0, True], dtype=object)], self.FITNUM, axis=0),
-                    'lor1': np.repeat([np.array([10.0, False], dtype=object)], self.FITNUM, axis=0),
-                    'gauss1': np.repeat([np.array([0.0, True], dtype=object)], self.FITNUM, axis=0)}
-        else:
-            return inp
-
-    def genLib(self, length, I, minWq, maxWq, minEta, maxEta, numWq, numEta, angleStuff, freq, sw, weight):
-        wq_return, eta_return = np.meshgrid(np.linspace(minWq, maxWq, numWq), np.linspace(minEta, maxEta, numEta))
-        wq = wq_return[..., np.newaxis]
-        eta = eta_return[..., np.newaxis]
-        cq = wq*2*I*(2*I-1)/(2*np.pi)
-        v0Q, v4Q = simFunc.mqmasFreq(I, cq, eta, angleStuff)
-        C10 = I*(I+1) - 3/4.0
-        C14 = -7/18.0 * (18*I*(I+1) - 17/2.0 - 5)
-        v = (C10 * v0Q + C14 * v4Q) / freq
-        #v = -1 / (6.0 * freq) * wq**2 * (I * (I + 1) - 3.0 / 4) * (angleStuff[0] + angleStuff[1] * eta + angleStuff[2] * eta**2)
-        #v *= length / sw
-        x = np.fft.fftshift(np.fft.fftfreq(length, 1/float(sw)))
-        diff = (x[0] - x[1]) / 2.0
-        lib = np.apply_along_axis(lambda *args: np.histogram(*args)[0], 2, v, length, [x[0]-diff, x[-1]+diff], False, weight)
-        lib = lib.reshape((np.prod(lib.shape[:-1]), lib.shape[-1]))
-        wq_return = wq_return.flatten()
-        eta_return = eta_return.flatten()        
-        return np.fft.ifft(lib, axis=-1), wq_return, eta_return
-
     def simLib(self):
         weight, angleStuff = simFunc.mqmasAngleStuff(self.cheng)
-        self.lib, self.cqLib, self.etaLib = self.genLib(len(self.parent.xax()), self.I, self.wqmin*1e6, self.wqmax*1e6, self.etamin, self.etamax, self.wqsteps, self.etasteps, angleStuff, self.parent.freq(), self.parent.sw(), weight)
+        self.lib, self.cqLib, self.etaLib = simFunc.genLib(len(self.parent.xax()), self.I, self.wqmin*1e6, self.wqmax*1e6, self.etamin, self.etamax, self.wqsteps, self.etasteps, angleStuff, self.parent.freq(), self.parent.sw(), weight)
 
     def getExtraParams(self, out):
         if self.lib is None:

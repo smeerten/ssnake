@@ -417,8 +417,7 @@ class MainProgram(QtWidgets.QMainWindow):
                                    ['Fitting --> Diffusion Curve', self.diffusionAct],
                                    ['Fitting --> Lorentzian/Gaussian', self.lorentzfitAct],
                                    ['Fitting --> CSA', self.csastaticAct],
-                                   ['Fitting --> First Order Quadrupole', self.firstquadAct],
-                                   ['Fitting --> Second Order Quadrupole', self.secondquadAct],
+                                   ['Fitting --> Quadrupole', self.quadAct],
                                    ['Fitting --> Czjzek', self.czjzekAct],
                                    ['Fitting --> MQMAS', self.mqmasAct],
                                    ['Fitting --> Czjzek MQMAS', self.mqmasCzjzekAct],
@@ -695,11 +694,9 @@ class MainProgram(QtWidgets.QMainWindow):
         self.lorentzfitAct.setToolTip('Fit Lorentzian/Gaussian')
         self.csastaticAct = self.fittingMenu.addAction(QtGui.QIcon(IconDirectory + 'csastatic.png'), "&CSA", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.createCsaDeconvWindow()))
         self.csastaticAct.setToolTip('Fit CSA')
-        self.firstquadAct = self.fittingMenu.addAction(QtGui.QIcon(IconDirectory + 'firstquadstatic.png'), "First Order &Quadrupole", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.createQuad1DeconvWindow()))
-        self.firstquadAct.setToolTip('Fit First Order Quadrupole')
-        self.secondquadAct = self.fittingMenu.addAction(QtGui.QIcon(IconDirectory + 'secondquadstatic.png'), "S&econd Order Quadrupole", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.createQuad2DeconvWindow()))
-        self.secondquadAct.setToolTip('Fit Second Order Quadrupole')
-        self.czjzekAct = self.fittingMenu.addAction(QtGui.QIcon(IconDirectory + 'czjzekstatic.png'), "C&zjzek", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.createQuad2CzjzekWindow()))
+        self.quadAct = self.fittingMenu.addAction(QtGui.QIcon(IconDirectory + 'firstquadstatic.png'), "&Quadrupole", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.createQuadDeconvWindow()))
+        self.quadAct.setToolTip('Fit Quadrupole')
+        self.czjzekAct = self.fittingMenu.addAction(QtGui.QIcon(IconDirectory + 'czjzekstatic.png'), "C&zjzek", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.createQuadCzjzekWindow()))
         self.czjzekAct.setToolTip('Fit Czjzek Pattern')
         self.mqmasAct = self.fittingMenu.addAction(QtGui.QIcon(IconDirectory + 'mqmas.png'),"&MQMAS", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.createMQMASWindow()))
         self.mqmasAct.setToolTip('Fit MQMAS')
@@ -711,9 +708,8 @@ class MainProgram(QtWidgets.QMainWindow):
         self.functionFitAct.setToolTip('Fit Function')
         self.fittingActList = [self.snrAct, self.fwhmAct, self.massAct,
                                self.intfitAct, self.relaxAct, self.diffusionAct,
-                               self.lorentzfitAct, self.csastaticAct, self.firstquadAct,
-                               self.secondquadAct, self.czjzekAct, self.simpsonAct,
-                               self.functionFitAct]
+                               self.lorentzfitAct, self.csastaticAct, self.quadAct,
+                               self.czjzekAct, self.simpsonAct, self.functionFitAct]
         # the combine drop down menu
         self.combineMenu = QtWidgets.QMenu("Com&bine", self)
         self.menubar.addMenu(self.combineMenu)
@@ -810,8 +806,7 @@ class MainProgram(QtWidgets.QMainWindow):
         self.helpActList = [self.updateAct, self.shiftconvAct, self.quadconvAct,
                             self.nmrtableAct,self.githubAct,self.tutorialAct, self.aboutAct]
         # Extra event lists:
-        self.specOnlyList = [self.regridAct, self.csastaticAct, self.firstquadAct,
-                             self.secondquadAct, self.czjzekAct]
+        self.specOnlyList = [self.regridAct, self.csastaticAct, self.quadAct, self.czjzekAct]
         self.fidOnlyList = [self.relaxAct, self.diffusionAct]
         self.Only1DPlot = [self.snrAct, self.fwhmAct, self.massAct,  self.intfitAct]
 
@@ -1872,18 +1867,15 @@ class Main1DWindow(QtWidgets.QWidget):
     def createCsaDeconvWindow(self):
         self.father.createFitWindow(fit.CsaDeconvWindow(self.father, self.father.mainWindow))
 
-    def createQuad1DeconvWindow(self):
-        self.father.createFitWindow(fit.Quad1DeconvWindow(self.father, self.father.mainWindow))
-
-    def createQuad2DeconvWindow(self):
+    def createQuadDeconvWindow(self):
         if self.current.freq() == 0.0:
             raise SsnakeException("Please set the spectrometer frequency first!")
-        self.father.createFitWindow(fit.Quad2DeconvWindow(self.father, self.father.mainWindow))
+        self.father.createFitWindow(fit.QuadDeconvWindow(self.father, self.father.mainWindow))
 
-    def createQuad2CzjzekWindow(self):
+    def createQuadCzjzekWindow(self):
         if self.current.freq() == 0.0:
             raise SsnakeException("Please set the spectrometer frequency first!")
-        self.father.createFitWindow(fit.Quad2CzjzekWindow(self.father, self.father.mainWindow))
+        self.father.createFitWindow(fit.QuadCzjzekWindow(self.father, self.father.mainWindow))
 
     def createMQMASWindow(self):
         if self.masterData.ndim() < 2:
