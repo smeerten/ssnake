@@ -133,7 +133,7 @@ def csaSpin(): # CSA spherical tensor spin space functions
 
 def firstQuadSpace(eta):
     V20 = 1.0 
-    V2pm2 = np.sqrt(1/6.0) * eta
+    V2pm2 = np.sqrt(1 / 6.0) * eta
     return np.array([V2pm2, 0, V20, 0, V2pm2])
 
 def firstQuadSpin(I, m1, m2): #T values
@@ -151,12 +151,12 @@ def secQuadSpace(eta):
     return V00, np.array([V2pm2, 0, V20, 0, V2pm2]), np.array([V4pm4, 0, V4pm2, 0, V40, 0, V4pm2, 0, V4pm4])
 
 def secQuadSpin(I, m1, m2): #T values
-    spin00_1 = m1 * (I * (I+1) - 3 * m1**2)
-    spin20_1 = m1 * (8 * I * (I+1) - 12 * m1**2 - 3)
-    spin40_1 = m1 * (18 * I * (I+1) - 34 * m1**2 - 5)
-    spin00_2 = m2 * (I * (I+1) - 3 * m2**2)
-    spin20_2 = m2 * (8 * I * (I+1) - 12 * m2**2 - 3)
-    spin40_2 = m2 * (18 * I * (I+1) - 34 * m2**2 - 5)
+    spin00_1 = m1 * (I * (I + 1) - 3 * m1**2)
+    spin20_1 = m1 * (8 * I * (I + 1) - 12 * m1**2 - 3)
+    spin40_1 = m1 * (18 * I * (I + 1) - 34 * m1**2 - 5)
+    spin00_2 = m2 * (I * (I + 1) - 3 * m2**2)
+    spin20_2 = m2 * (8 * I * (I + 1) - 12 * m2**2 - 3)
+    spin40_2 = m2 * (18 * I * (I + 1) - 34 * m2**2 - 5)
     return spin00_1 - spin00_2, spin20_1 - spin20_2, spin40_1 - spin40_2
 
 def relaxationFunc(x, freq, sw, axMult, extra, amp, const, coeff, T):
@@ -233,32 +233,14 @@ def zcw_angles(m, symm=0):
     weight = np.ones(samples) / samples
     return phi, theta, weight
     
-def voigtLine(x, freq, sw, axMult, extra, bgrnd, pos, amp, lor, gauss):
+def peakSim(x, freq, sw, axMult, extra, bgrnd, pos, amp, lor, gauss):
     x = x[-1]
     pos /= axMult
     lor = np.abs(lor)
     gauss = np.abs(gauss)
-    axis = x - pos
-    if extra[0] == 0:  # Exact: Freq domain simulation via Faddeeva function
-        if gauss == 0.0:  # If no gauss, just take lorentz
-            f = 1.0 / (np.pi * 0.5 * lor * (1 + (axis / (0.5 * lor))**2))
-            return amp * f
-        elif lor == 0.0: # If no lorentz, just take gauss
-            sigma = gauss / (2 * np.sqrt(2 * np.log(2)))
-            f = np.exp(-axis**2/(2 * sigma**2)) / np.sqrt(2 * np.pi * sigma**2)
-            return amp * f 
-        else:
-            sigma = gauss / (2 * np.sqrt(2 * np.log(2)))
-            z = (axis + 1j * lor / 2) / (sigma * np.sqrt(2))
-            return amp * wofz(z).real / (sigma * np.sqrt(2 * np.pi))
-    else:  # Approximation: THOMPSON et al (doi: 10.1107/S0021889887087090 )
-        sigma = gauss / (2 * np.sqrt(2 * np.log(2)))
-        lb = lor / 2
-        f = (sigma**5 + 2.69269 * sigma**4 * lb + 2.42843 * sigma**3 * lb**2 + 4.47163 * sigma**2 * lb**3 + 0.07842 * sigma * lb**4 + lb**5) ** 0.2
-        eta = 1.36603 * (lb / f) - 0.47719 * (lb / f)**2 + 0.11116 * (lb / f)**3
-        lor = f / (np.pi * (axis**2 + f**2))
-        gauss = np.exp(-axis**2 / (2 * f**2)) / (f * np.sqrt(2 * np.pi))
-        return amp * (eta * lor + (1 - eta) * gauss)
+    length = len(x)
+    t = np.fft.fftfreq(length, sw[-1]/float(length))
+    return float(amp) / sw[-1] * np.exp(2j * np.pi * (pos - x[length//2]) * t - np.pi * np.abs(lor * t) - ((np.pi * np.abs(gauss) * t)**2) / (4 * np.log(2)))
 
 def makeSpectrum(x, sw, v, gauss, lor, weight):
     # Takes axis, frequencies and intensities and makes a spectrum with lorentz and gaussian broadening
@@ -464,13 +446,14 @@ def mqmasCzjzekFunc(x, freq, sw, axMult, extra, bgrnd, d, pos, sigma, sigmaCS, w
     apod2 = np.exp(-np.pi * np.abs(lor2 * t2) - ((np.pi * np.abs(gauss2) * t2)**2) / (4 * np.log(2)))
     apod1 = np.exp(-np.pi * np.abs(lor1 * t1) - ((np.pi * np.abs(gauss1) * t1)**2) / (4 * np.log(2)))
     cq = wq*2*I*(2*I-1)/(2*np.pi)
-    v0Q = - cq**2 * (3 + eta**2) / (40 * (I*(2*I-1))**2)
-    C10 = I*(I+1) - 3/4.0
-    C14 = -7/18.0 * (18*I*(I+1) - 17/2.0 - 5)
-    Cp0 = mq * (I*(I+1) - 3/4.0 * mq**2)
-    Cp4 = -7/18.0 * mq * (18*I*(I+1) - 17/2.0 * mq**2 - 5)
-    shearFactor = Cp4 / C14 * freq[-1] / freq[-2]
-    offset = Cp0 * v0Q / freq[-2] - shearFactor * (C10 * v0Q / freq[-1])
+    V40 = 1.0 / 140 * (18  + eta**2)
+    T40_m = mq * (18 * I * (I + 1) - 34 * (mq/2.0)**2 - 5)
+    T40_1 = (18 * I * (I + 1) - 34 * (0.5)**2 - 5)
+    pre = -cq**2 / (4 * I *(2 * I - 1))**2 * 2 / freq[-2]
+    cosb = np.cos(np.arctan(np.sqrt(2)))
+    factor = 1.0/8 * (35 * cosb**4 - 30 * cosb**2 + 3)
+    offset = pre * V40 * T40_m * factor
+    shearFactor = T40_m * freq[-1] / (T40_1 * freq[-2])
     offset *= scale
     ind = np.digitize(offset, x[-2]-(x[-2][1]-x[-2][0])/2.0)
     fid = np.zeros((length1, length2), dtype=complex)
@@ -478,7 +461,7 @@ def mqmasCzjzekFunc(x, freq, sw, axMult, extra, bgrnd, d, pos, sigma, sigmaCS, w
         fid[ind[i]-1] += newLib[i]
     fid = np.fft.ifft(fid, axis=0)
     posIndirect = pos * (mq - shearFactor) * scale
-    offsetMat = np.exp(2j*np.pi*((posIndirect - x[-2][length1//2])*t1 + (pos - x[-1][length2//2])*t2))
+    offsetMat = np.exp(2j * np.pi * ((posIndirect - x[-2][length1//2])*t1 + (pos - x[-1][length2//2])*t2))
     shiftGauss = np.exp(-((np.pi * np.abs(sigmaCS) * (t2 + t1*(mq-shearFactor)*scale))**2) / (4 * np.log(2)))
     fid *= offsetMat * apod1 * apod2 * shiftGauss
     shearMat = np.exp((shearFactor-shear) * 2j * np.pi * t1 * x[-1])

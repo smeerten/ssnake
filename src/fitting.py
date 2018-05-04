@@ -813,7 +813,7 @@ class AbstractParamFrame(QtWidgets.QWidget):
         if not self.checkInputs():
             raise FittingException("Fitting: One of the inputs is not valid")
         numExp = self.getNumExp()
-        out = {}
+        out = {'extra' : []}
         for name in self.SINGLENAMES:
             out[name] = [0.0]
         for name in self.MULTINAMES:
@@ -1383,14 +1383,16 @@ class PeakDeconvFrame(FitPlotFrame):
 
 class PeakDeconvParamFrame(AbstractParamFrame):
 
+    FFT_AXES = (0,) # Which axes should be transformed after simulation
+    FFTSHIFT_AXES = (0,) # Which axes should be transformed after simulation
     SINGLENAMES = ['bgrnd']
     MULTINAMES = ['pos', 'amp', 'lor', 'gauss']
-    EXTRANAMES = ['method']
     PARAMTEXT = {'bgrnd': 'Background', 'pos': 'Position', 'amp': 'Integral', 'lor': 'Lorentz', 'gauss': 'Gauss'}
     
     def __init__(self, parent, rootwindow, isMain=True):
         self.fullInt = np.sum(parent.getData1D()) * parent.sw() / float(len(parent.getData1D()))
-        self.FITFUNC = simFunc.voigtLine
+        self.FITFUNC = simFunc.peakSim
+        self.DEFAULTS = {'bgrnd': [0.0, True], 'pos': [0.0, False], 'amp': [self.fullInt, False], 'lor': [1.0, False], 'gauss': [0.0, True]}
         super(PeakDeconvParamFrame, self).__init__(parent, rootwindow, isMain)
         resetButton = QtWidgets.QPushButton("Reset")
         resetButton.clicked.connect(self.reset)
@@ -1403,10 +1405,6 @@ class PeakDeconvParamFrame(AbstractParamFrame):
         self.frame2.addWidget(self.ticks['bgrnd'][0], 1, 0)
         self.entries['bgrnd'].append(wc.FitQLineEdit(self, 'bgrnd', "0.0"))
         self.frame2.addWidget(self.entries['bgrnd'][0], 1, 1)
-        self.frame2.addWidget(wc.QLabel("Method:"), 4, 0, 1, 2)
-        self.entries['method'].append(QtWidgets.QComboBox())
-        self.entries['method'][0].addItems(['Exact', 'Approx'])
-        self.frame2.addWidget(self.entries['method'][0], 5, 1)
         self.frame2.setColumnStretch(self.FITNUM, 1)
         self.frame2.setAlignment(QtCore.Qt.AlignTop)
         self.numExp = QtWidgets.QComboBox()
@@ -1426,17 +1424,7 @@ class PeakDeconvParamFrame(AbstractParamFrame):
                 self.entries[self.MULTINAMES[j]].append(wc.FitQLineEdit(self, self.MULTINAMES[j]))
                 self.frame3.addWidget(self.entries[self.MULTINAMES[j]][i], i + 2, 2 * j + 1)
         self.reset()
-
-    def defaultValues(self, inp):
-        if not inp:
-            return {'bgrnd': [0.0, True],
-                    'pos': np.repeat([np.array([0.0, False], dtype=object)], self.FITNUM, axis=0),
-                    'amp': np.repeat([np.array([self.fullInt, False], dtype=object)], self.FITNUM, axis=0),
-                    'lor': np.repeat([np.array([1.0, False], dtype=object)], self.FITNUM, axis=0),
-                    'gauss': np.repeat([np.array([0.0, True], dtype=object)], self.FITNUM, axis=0)}
-        else:
-            return inp
-
+        
     def reset(self):
         locList = self.getRedLocList()
         self.fitNumList[locList] = 0
@@ -1454,10 +1442,6 @@ class PeakDeconvParamFrame(AbstractParamFrame):
 
     def togglePick(self):
         self.parent.togglePick(self.pickTick.isChecked())
-
-    def getExtraParams(self, out):
-        out['extra'] = [self.entries['method'][0].currentIndex()]
-        return (out, out['extra'])
 
 ##############################################################################
 
@@ -1940,10 +1924,13 @@ class CzjzekPrefWindow(QtWidgets.QWidget):
 
     Ioptions = ['1', '3/2', '2', '5/2', '3', '7/2', '4', '9/2']
     
-    def __init__(self, parent):
+    def __init__(self, parent, mqmas=False):
         super(CzjzekPrefWindow, self).__init__(parent)
         self.setWindowFlags(QtCore.Qt.Window | QtCore.Qt.Tool)
         self.father = parent
+        self.mqmas = mqmas
+        if mqmas:
+            self.Ioptions = self.Ioptions[1::2]
         self.setWindowTitle("Library")
         layout = QtWidgets.QGridLayout(self)
         grid = QtWidgets.QGridLayout()
@@ -1979,34 +1966,35 @@ class CzjzekPrefWindow(QtWidgets.QWidget):
         grid.addWidget(self.etamin, 7, 0)
         self.etamax = wc.QLineEdit(str(self.father.etamax), self.checkEta)
         grid.addWidget(self.etamax, 7, 1)
-        grid.addWidget(wc.QLabel("Exp. Type:"), 8, 0)
-        self.masEntry = QtWidgets.QComboBox(self)
-        self.masEntry.addItems(["Static", "Finite MAS", "Infinite MAS"])
-        self.masEntry.currentIndexChanged.connect(self.MASChange)
-        grid.addWidget(self.masEntry, 9, 0)
-        self.angleLabel = wc.QLabel("Magic Angle:")
-        self.angleLabel.setEnabled(False)
-        grid.addWidget(self.angleLabel, 8, 1)
-        self.angleEntry = wc.QLineEdit(self.father.angle)
-        self.angleEntry.setEnabled(False)
-        grid.addWidget(self.angleEntry, 9, 1)
-        self.spinLabel = wc.QLabel("Spin. speed [kHz]:")
-        self.spinLabel.setEnabled(False)
-        grid.addWidget(self.spinLabel, 10, 0)
-        self.spinEntry = wc.QLineEdit(str(self.father.spinspeed))
-        self.spinEntry.setEnabled(False)
-        grid.addWidget(self.spinEntry, 11, 0)
-        self.sidebandLabel = wc.QLabel("# sidebands:")
-        self.sidebandLabel.setEnabled(False)
-        grid.addWidget(self.sidebandLabel, 10, 1)
-        self.numssbEntry = QtWidgets.QSpinBox()
-        self.numssbEntry.setAlignment(QtCore.Qt.AlignHCenter)
-        self.numssbEntry.setMaximum(100000)
-        self.numssbEntry.setMinimum(2)
-        self.numssbEntry.setEnabled(False)
-        grid.addWidget(self.numssbEntry, 11, 1)
-        self.satBoolEntry = QtWidgets.QCheckBox("Satellites")
-        grid.addWidget(self.satBoolEntry, 12, 0)
+        if not mqmas:
+            grid.addWidget(wc.QLabel("Exp. Type:"), 8, 0)
+            self.masEntry = QtWidgets.QComboBox(self)
+            self.masEntry.addItems(["Static", "Finite MAS", "Infinite MAS"])
+            self.masEntry.currentIndexChanged.connect(self.MASChange)
+            grid.addWidget(self.masEntry, 9, 0)
+            self.angleLabel = wc.QLabel("Magic Angle:")
+            self.angleLabel.setEnabled(False)
+            grid.addWidget(self.angleLabel, 8, 1)
+            self.angleEntry = wc.QLineEdit(self.father.angle)
+            self.angleEntry.setEnabled(False)
+            grid.addWidget(self.angleEntry, 9, 1)
+            self.spinLabel = wc.QLabel("Spin. speed [kHz]:")
+            self.spinLabel.setEnabled(False)
+            grid.addWidget(self.spinLabel, 10, 0)
+            self.spinEntry = wc.QLineEdit(str(self.father.spinspeed))
+            self.spinEntry.setEnabled(False)
+            grid.addWidget(self.spinEntry, 11, 0)
+            self.sidebandLabel = wc.QLabel("# sidebands:")
+            self.sidebandLabel.setEnabled(False)
+            grid.addWidget(self.sidebandLabel, 10, 1)
+            self.numssbEntry = QtWidgets.QSpinBox()
+            self.numssbEntry.setAlignment(QtCore.Qt.AlignHCenter)
+            self.numssbEntry.setMaximum(100000)
+            self.numssbEntry.setMinimum(2)
+            self.numssbEntry.setEnabled(False)
+            grid.addWidget(self.numssbEntry, 11, 1)
+            self.satBoolEntry = QtWidgets.QCheckBox("Satellites")
+            grid.addWidget(self.satBoolEntry, 12, 0)
         self.fig = Figure()
         self.canvas = FigureCanvas(self.fig)
         grid.addWidget(self.canvas, 0, 2, 14, 4)
@@ -2039,6 +2027,8 @@ class CzjzekPrefWindow(QtWidgets.QWidget):
         self.resize(800, 600)
 
     def MASChange(self, MAStype):
+        if self.mqmas:
+            return
         if MAStype > 0:
             self.angleLabel.setEnabled(True)
             self.angleEntry.setEnabled(True)
@@ -2057,13 +2047,17 @@ class CzjzekPrefWindow(QtWidgets.QWidget):
             self.sidebandLabel.setEnabled(False)
         
     def upd(self):
-        self.Ientry.setCurrentIndex(int(self.father.I*2.0-2.0))
+        if self.mqmas:
+            self.Ientry.setCurrentIndex(int(self.father.I-1.5))
+        else:
+            self.Ientry.setCurrentIndex(int(self.father.I*2.0-2.0))            
         self.chengEntry.setValue(self.father.cheng)
-        self.masEntry.setCurrentIndex(self.father.mas)
-        self.numssbEntry.setValue(self.father.numssb)
-        self.angleEntry.setText(self.father.angle)
-        self.spinEntry.setText(str(self.father.spinspeed))
-        self.satBoolEntry.setChecked(self.father.satBool)
+        if not self.mqmas:
+            self.masEntry.setCurrentIndex(self.father.mas)
+            self.numssbEntry.setValue(self.father.numssb)
+            self.angleEntry.setText(self.father.angle)
+            self.spinEntry.setText(str(self.father.spinspeed))
+            self.satBoolEntry.setChecked(self.father.satBool)
         self.wqsteps.setValue(self.father.wqsteps)
         self.etasteps.setValue(self.father.etasteps)
         self.wqmin.setText(str(self.father.wqmin))
@@ -2128,15 +2122,18 @@ class CzjzekPrefWindow(QtWidgets.QWidget):
         self.father.wqsteps = self.wqsteps.value()
         self.father.etasteps = self.etasteps.value()
         self.father.cheng = self.chengEntry.value()
-        self.father.I = self.Ientry.currentIndex() * 0.5 + 1.0
-        self.father.mas = self.masEntry.currentIndex()
-        inp = safeEval(self.spinEntry.text(), type='FI')
-        if inp is None:
-            raise FittingException("Spin speed value not valid.")
-        self.father.spinspeed = inp
-        self.father.angle = self.angleEntry.text()
-        self.father.numssb = self.numssbEntry.value()
-        self.father.satBool = self.satBoolEntry.isChecked()
+        if not self.mqmas:
+            self.father.I = self.Ientry.currentIndex() * 0.5 + 1.0
+            self.father.mas = self.masEntry.currentIndex()
+            inp = safeEval(self.spinEntry.text(), type='FI')
+            if inp is None:
+                raise FittingException("Spin speed value not valid.")
+            self.father.spinspeed = inp
+            self.father.angle = self.angleEntry.text()
+            self.father.numssb = self.numssbEntry.value()
+            self.father.satBool = self.satBoolEntry.isChecked()
+        else:
+            self.father.I = self.Ientry.currentIndex() + 1.5
         inp = safeEval(self.wqmax.text(), type='FI')
         if inp is None:
             raise FittingException(u"\u03BD_Q_max value not valid.")
@@ -2663,10 +2660,8 @@ class MqmasDeconvParamFrame(AbstractParamFrame):
         self.entries['spinType'][-1].currentIndexChanged.connect(self.MASChange)
         self.optframe.addWidget(self.entries['spinType'][-1], 1, 0)
         self.angleLabel = wc.QLabel("Magic Angle:")
-        self.angleLabel.setEnabled(False)
         self.optframe.addWidget(self.angleLabel, 2, 0)
         self.entries['angle'].append(wc.QLineEdit("arctan(sqrt(2))"))
-        self.entries['angle'][-1].setEnabled(False)
         self.optframe.addWidget(self.entries['angle'][-1], 3, 0)
         self.sidebandLabel = wc.QLabel("# sidebands:")
         self.sidebandLabel.setEnabled(False)
@@ -2686,7 +2681,7 @@ class MqmasDeconvParamFrame(AbstractParamFrame):
         self.optframe.addWidget(wc.QLabel("I:"), 2, 1)
         self.entries['I'].append(QtWidgets.QComboBox())
         self.entries['I'][-1].addItems(self.Ioptions)
-        self.entries['I'][-1].setCurrentIndex(1)
+        self.entries['I'][-1].setCurrentIndex(0)
         self.optframe.addWidget(self.entries['I'][-1], 3, 1)
         self.optframe.addWidget(wc.QLabel("MQ:"), 4, 1)
         self.entries['MQ'].append(QtWidgets.QComboBox())
@@ -2826,7 +2821,7 @@ class MqmasCzjzekParamFrame(AbstractParamFrame):
         self.etaLib = None
         self.I = 3 / 2.0
         self.cheng = 15
-        self.mas = None # MQMAS simulation without mas not possible
+        self.mas = 2 # MQMAS simulation without MAS not possible
         self.fullInt = np.sum(parent.getData1D()) * parent.sw() / float(parent.getData1D().shape[-1]) * parent.sw(-2) / float(parent.getData1D().shape[-2])
         self.DEFAULTS = {'bgrnd': [0.0, True], 'pos': [0.0, False], 'd': [5.0, True], 'sigma': [1.0, False], 'sigmaCS': [10.0, False], 'wq0': [0.0, True], 'eta0': [0.0, True], 'amp': [self.fullInt, False], 'lor2': [10.0, False], 'gauss2': [0.0, True], 'lor1': [10.0, False], 'gauss1': [0.0, True]}
         super(MqmasCzjzekParamFrame, self).__init__(parent, rootwindow, isMain)
@@ -2906,11 +2901,15 @@ class MqmasCzjzekParamFrame(AbstractParamFrame):
                 self.ticks['eta0'][i].setEnabled(True)
 
     def createCzjzekPrefWindow(self, *args):
-        CzjzekPrefWindow(self)
+        CzjzekPrefWindow(self, mqmas=True)
 
     def simLib(self):
-        weight, angleStuff = simFunc.mqmasAngleStuff(self.cheng)
-        self.lib, self.cqLib, self.etaLib = simFunc.genLib(len(self.parent.xax()), self.I, self.wqmin*1e6, self.wqmax*1e6, self.etamin, self.etamax, self.wqsteps, self.etasteps, angleStuff, self.parent.freq(), self.parent.sw(), weight)
+        angle = np.arctan(np.sqrt(2))
+        alpha, beta, weight = simFunc.zcw_angles(self.cheng, 2)
+        D2 = simFunc.D2tens(alpha, beta, np.zeros_like(alpha))
+        D4 = simFunc.D4tens(alpha, beta, np.zeros_like(alpha))
+        extra = [False, self.I, 2, angle, D2, D4, weight]
+        self.lib, self.cqLib, self.etaLib = simFunc.genLib(len(self.parent.xax()), self.wqmin, self.wqmax, self.etamin, self.etamax, self.wqsteps, self.etasteps, extra, self.parent.freq(), self.parent.sw(), np.inf)
 
     def getExtraParams(self, out):
         if self.lib is None:
