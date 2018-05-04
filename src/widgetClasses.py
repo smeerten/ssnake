@@ -65,6 +65,23 @@ class SsnakeTreeWidget(QtWidgets.QTreeView):
         self.hideColumn(3)
         self.expand_all(self.dirmodel.index(homePath))
 
+    def mouseDoubleClickEvent(self,event):
+        index = self.indexAt(event.pos())
+        path = self.dirmodel.filePath(index) 
+        if event.button() == QtCore.Qt.MidButton:
+            self.loadAct([path])
+        elif event.button() == QtCore.Qt.LeftButton and not self.dirmodel.isDir(index):
+            self.loadAct([path])
+        QtWidgets.QTreeView.mouseDoubleClickEvent(self,event)
+
+    def mousePressEvent(self,event):
+        if event.button() == QtCore.Qt.MidButton:
+            index = self.indexAt(event.pos())
+            path = self.dirmodel.filePath(index) 
+            self.loadAct([path])
+        else: #If not, let the QTreeView handle the event
+            QtWidgets.QTreeView.mousePressEvent(self,event)
+
     def expand_all(self, index):
         path = self.dirmodel.filePath(index) 
         run = True
