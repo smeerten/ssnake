@@ -118,7 +118,16 @@ class SplitterEventFilter(QtCore.QObject):
         self.sizeBak = 0
 
     def eventFilter(self, receiver, event):
+        Select = False
         if event.type() == QtCore.QEvent.MouseButtonDblClick:
+            Select = True
+
+        #If single click with middle mouse button
+        if event.type() == QtCore.QEvent.MouseButtonPress:
+            if event.button() == QtCore.Qt.MidButton:
+                Select = True
+
+        if Select:
             sizes = self.root.sizes()
             if sizes[0] == 0:
                 self.root.setSizes([self.sizeBak, 1])
