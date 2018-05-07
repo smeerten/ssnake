@@ -196,21 +196,22 @@ class SaveFigureWindow(QtWidgets.QWidget):
         self.fontFrame.addWidget(self.ytickFontSizeEntry, 6, 1)
 
         self.legend = self.ax.legend()
-        if len(self.legend.get_texts()) == 0:
-            self.legend.set_visible(False)
-            self.legend = None
-        else:
-            self.legendFontSizeBackup = self.legend.get_texts()[0].get_fontsize()
-            self.legendFontLabel = wc.QLeftLabel("Legend:")
-            self.legendFontLabel.hide()
-            self.fontFrame.addWidget(self.legendFontLabel, 7, 0)
-            self.legendFontSizeEntry = QtWidgets.QDoubleSpinBox()
-            self.legendFontSizeEntry.setSingleStep(0.1)
-            self.legendFontSizeEntry.setMinimum(0)
-            self.legendFontSizeEntry.setValue(self.legendFontSizeBackup)
-            self.legendFontSizeEntry.valueChanged.connect(self.updatePlot)
-            self.legendFontSizeEntry.hide()
-            self.fontFrame.addWidget(self.legendFontSizeEntry, 7, 1)
+        if self.legend is not None: #Fix for matplotlid 2.0, were for contour self.legend becomes None
+            if len(self.legend.get_texts()) == 0:
+                self.legend.set_visible(False)
+                self.legend = None
+            else:
+                self.legendFontSizeBackup = self.legend.get_texts()[0].get_fontsize()
+                self.legendFontLabel = wc.QLeftLabel("Legend:")
+                self.legendFontLabel.hide()
+                self.fontFrame.addWidget(self.legendFontLabel, 7, 0)
+                self.legendFontSizeEntry = QtWidgets.QDoubleSpinBox()
+                self.legendFontSizeEntry.setSingleStep(0.1)
+                self.legendFontSizeEntry.setMinimum(0)
+                self.legendFontSizeEntry.setValue(self.legendFontSizeBackup)
+                self.legendFontSizeEntry.valueChanged.connect(self.updatePlot)
+                self.legendFontSizeEntry.hide()
+                self.fontFrame.addWidget(self.legendFontSizeEntry, 7, 1)
         self.fontGroup.setLayout(self.fontFrame)
         self.optionFrame.addWidget(self.fontGroup, 3, 0)
         # Legend
