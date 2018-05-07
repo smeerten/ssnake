@@ -2221,8 +2221,8 @@ class QuadCzjzekParamFrame(AbstractParamFrame):
         self.FITFUNC = simFunc.quadCzjzekFunc
         self.wqsteps = 50
         self.etasteps = 10
-        self.wqmax = 4
-        self.wqmin = 0
+        self.wqmax = 4.0
+        self.wqmin = 0.0
         self.etamax = 1
         self.etamin = 0
         self.lib = None

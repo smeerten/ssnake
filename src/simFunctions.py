@@ -388,7 +388,8 @@ def quadCzjzekFunc(x, freq, sw, axMult, extra, bgrnd, d, pos, sigma, wq0, eta0, 
         wq0 = 0
         eta0 = 0
     pos /= axMult
-    sigma = sigma * 1e6
+    sigma *= 1e6
+    wq0 *= 1e6
     czjzek = Czjzek.czjzekIntensities(sigma, d, wq, eta, wq0, eta0)
     fid = np.dot(czjzek, lib)
     length = len(x)
@@ -432,7 +433,8 @@ def mqmasCzjzekFunc(x, freq, sw, axMult, extra, bgrnd, d, pos, sigma, sigmaCS, w
         wq0 = 0
         eta0 = 0
     pos /= axMult
-    sigma = sigma * 1e6
+    sigma *= 1e6
+    wq0 *= 1e6
     czjzek = Czjzek.czjzekIntensities(sigma, d, wq, eta, wq0, eta0)
     length2 = len(x[-1])
     czjzek *= length2 / sw[-1] / sw[-2]

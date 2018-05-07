@@ -96,7 +96,6 @@ def czjzekIntensities(sigma, d, wq, eta, wq0 = 0, eta0 = 0):
         pool.close()
         pool.join()
         czjzek = np.array(fit.get())
-
     if np.sum(czjzek) == 0.0: #Protect against divide by zero
         czjzek = 0 * czjzek
     else:
