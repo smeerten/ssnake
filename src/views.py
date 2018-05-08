@@ -548,7 +548,7 @@ class Current1D(PlotFrame):
         valBool = value != 0
         self.root.addMacro(['setWholeEcho', (valBool, self.axes[-1] - self.data.ndim())])
         self.data.setWholeEcho(valBool, self.axes[-1])
-        self.data1D.setWholeEcho(valBool, self.axes[-1])
+        self.upd()
 
     def shift(self, shift, select=False):
         if select:
