@@ -58,8 +58,8 @@ class PlotFrame(object):
                 self.x_ax = self.fig.add_subplot(self.gs[0], sharex=self.ax, facecolor='none', frameon=False)
                 self.y_ax = self.fig.add_subplot(self.gs[3], sharey=self.ax, facecolor='none', frameon=False)
             else:
-                self.x_ax = self.fig.add_subplot(gs[0], sharex=self.ax,axisbg='none',frameon=False)
-                self.y_ax = self.fig.add_subplot(gs[3], sharey=self.ax,axisbg='none',frameon=False)
+                self.x_ax = self.fig.add_subplot(self.gs[0], sharex=self.ax,axisbg='none',frameon=False)
+                self.y_ax = self.fig.add_subplot(self.gs[3], sharey=self.ax,axisbg='none',frameon=False)
             self.fig.subplots_adjust(hspace=0)
             self.fig.subplots_adjust(wspace=0)
             self.x_ax.axes.get_xaxis().set_visible(False)
