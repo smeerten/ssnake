@@ -5720,21 +5720,32 @@ class HistoryWindow(wc.ToolWindows):
 
 class OrigListWidget(QtWidgets.QListWidget):
 
-    def __init__(self, type, parent=None):
+    def __init__(self, parent=None,dest=None):
         super(OrigListWidget, self).__init__(parent)
         self.setDragDropMode(QtWidgets.QAbstractItemView.DragDrop)
         self.setSelectionMode(QtWidgets.QAbstractItemView.ExtendedSelection)
         self.setAcceptDrops(True)
+        self.dest = dest
 
     def dropEvent(self, event):
-        pass
+        if event.source() == self:
+            pass
+        else:
+            if self.dest is not None:
+                for item in self.dest.selectedItems():
+                    self.dest.takeItem(self.dest.row(item))
+
+    def mouseDoubleClickEvent(self,event):
+        for item in self.selectedItems():
+            QtWidgets.QListWidgetItem(item.text(), self.dest)
+
 
 #########################################################################################
 
 
 class DestListWidget(QtWidgets.QListWidget):
 
-    def __init__(self, type, parent=None):
+    def __init__(self, parent=None):
         super(DestListWidget, self).__init__(parent)
         self.setDragDropMode(QtWidgets.QAbstractItemView.DragDrop)
         self.setSelectionMode(QtWidgets.QAbstractItemView.ExtendedSelection)
@@ -5750,8 +5761,14 @@ class DestListWidget(QtWidgets.QListWidget):
 
     def keyPressEvent(self, event):
         if event.key() == QtCore.Qt.Key_Delete:
-            for item in self.selectedItems():
-                self.takeItem(self.row(item))
+            self.deleteSelected()
+
+    def deleteSelected(self):
+        for item in self.selectedItems():
+            self.takeItem(self.row(item))
+
+    def mouseDoubleClickEvent(self,event):
+        self.deleteSelected()
 
 ##########################################################################################
 
@@ -5765,10 +5782,10 @@ class CombineWorkspaceWindow(wc.ToolWindows):
         super(CombineWorkspaceWindow, self).__init__(parent)
         self.grid.addWidget(wc.QLabel("Workspaces:"), 0, 0)
         self.grid.addWidget(wc.QLabel("Combined spectrum:"), 0, 1)
-        self.listA = OrigListWidget(self)
+        self.listB = DestListWidget(self)
+        self.listA = OrigListWidget(self,self.listB)
         for i in self.father.workspaceNames:
             QtWidgets.QListWidgetItem(i, self.listA).setToolTip(i)
-        self.listB = DestListWidget(self)
         self.grid.addWidget(self.listA, 1, 0)
         self.grid.addWidget(self.listB, 1, 1)
         self.layout.setColumnStretch(2, 1)
@@ -5849,21 +5866,21 @@ class MonitorWindow(QtWidgets.QWidget):
         self.setWindowTitle("Monitor")
         layout = QtWidgets.QGridLayout(self)
         grid = QtWidgets.QGridLayout()
-        fileName = self.father.masterData.filePath[0]
+        fileName = self.father.masterData.filePath[0][0]
         if len(fileName) > 58:
             fileName = fileName[:55] + '...'
         fileLabel = wc.QLabel("File: " + fileName)
-        fileLabel.setToolTip(self.father.masterData.filePath[0])
+        fileLabel.setToolTip(self.father.masterData.filePath[0][0])
         layout.addWidget(fileLabel, 0, 0, 1, 3)
         layout.addLayout(grid, 1, 0, 1, 3)
         grid.addWidget(wc.QLabel("Macros:"), 0, 0)
         grid.addWidget(wc.QLabel("Apply after loading:"), 0, 1)
-        self.listA = OrigListWidget(self)
-        for i in self.father.father.macros.keys():
-            QtWidgets.QListWidgetItem(i, self.listA).setToolTip(i)
         self.listB = DestListWidget(self)
         for i in self.father.monitorMacros:
             QtWidgets.QListWidgetItem(i, self.listB).setToolTip(i)
+        self.listA = OrigListWidget(self,self.listB)
+        for i in self.father.father.macros.keys():
+            QtWidgets.QListWidgetItem(i, self.listA).setToolTip(i)
         grid.addWidget(self.listA, 1, 0)
         grid.addWidget(self.listB, 1, 1)
         grid.addWidget(wc.QLabel("Delay [s]:"), 2, 0)
@@ -6252,12 +6269,12 @@ class ToolbarWindow(wc.ToolWindows):
         super(ToolbarWindow, self).__init__(parent)
         self.grid.addWidget(wc.QLabel("Actions:"), 0, 0)
         self.grid.addWidget(wc.QLabel("Toolbar Actions:"), 0, 1)
-        self.listA = OrigListWidget(self)
-        for i in self.father.father.allActionsList:
-            QtWidgets.QListWidgetItem(i[0], self.listA).setToolTip(i[0])
         self.listB = DestListWidget(self)
         for i in self.father.father.defaultToolbarActionList:
             QtWidgets.QListWidgetItem(i, self.listB).setToolTip(i)
+        self.listA = OrigListWidget(self,self.listB)
+        for i in self.father.father.allActionsList:
+            QtWidgets.QListWidgetItem(i[0], self.listA).setToolTip(i[0])
         self.grid.addWidget(self.listA, 1, 0)
         self.grid.addWidget(self.listB, 1, 1)
         self.resize(650, 500)
