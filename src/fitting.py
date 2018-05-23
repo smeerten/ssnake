@@ -25,6 +25,7 @@ try:
 except ImportError:
     from PyQt5 import QtGui, QtCore, QtWidgets
     from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
+import matplotlib as mpl
 from matplotlib.figure import Figure
 import scipy.optimize
 import multiprocessing
@@ -2611,9 +2612,11 @@ class FitContourFrame(CurrentContour):
                 extraX.append(tmp[2][i][1])
                 extraY.append(tmp[2][i][0])
                 extraZ.append(tmp[3][i])
-        super(FitContourFrame, self).showFid(extraX=extraX, extraY=extraY, extraZ=extraZ, extraColor=['C'+str(x%10) for x in range(len(extraX))])
+        if mpl.__version__[0] > '1':
+            super(FitContourFrame, self).showFid(extraX=extraX, extraY=extraY, extraZ=extraZ, extraColor=['C'+str(x%10) for x in range(len(extraX))])
+        else:
+            super(FitContourFrame, self).showFid(extraX=extraX, extraY=extraY, extraZ=extraZ, extraColor=['g']*len(extraX))
 
-        
 ##############################################################################
 
 

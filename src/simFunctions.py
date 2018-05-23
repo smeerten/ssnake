@@ -463,7 +463,7 @@ def mqmasCzjzekFunc(x, freq, sw, axMult, extra, bgrnd, d, pos, sigma, sigmaCS, w
         fid[ind[i]-1] += newLib[i]
     fid = np.fft.ifft(fid, axis=0)
     posIndirect = pos * (mq - shearFactor) * scale
-    offsetMat = np.exp(2j * np.pi * ((posIndirect - x[-2][length1//2])*t1 + (pos - x[-1][length2//2])*t2))
+    offsetMat = np.exp(2j * np.pi * ((posIndirect )*t1 + (pos - x[-1][length2//2])*t2))
     shiftGauss = np.exp(-((np.pi * np.abs(sigmaCS) * (t2 + t1*(mq-shearFactor)*scale))**2) / (4 * np.log(2)))
     fid *= offsetMat * apod1 * apod2 * shiftGauss
     shearMat = np.exp((shearFactor-shear) * 2j * np.pi * t1 * x[-1])

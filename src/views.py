@@ -100,9 +100,9 @@ class Current1D(PlotFrame):
                 self.fig.suptitle('')
             self.startUp()
         else:
-            self.axes = self.fixAxes(duplicateCurrent.axes)
-            self.locList = duplicateCurrent.locList
-            self.viewSettings = duplicateCurrent.viewSettings
+            self.axes = self.fixAxes(copy.deepcopy(duplicateCurrent.axes))
+            self.locList = copy.deepcopy(duplicateCurrent.locList)
+            self.viewSettings = copy.deepcopy(duplicateCurrent.viewSettings)
             self.viewSettings.update({"extraData": [],
                                       "extraLoc": [],
                                       "extraColor": [],
