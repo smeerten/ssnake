@@ -104,6 +104,8 @@ def loadFile(filePath, realpath=False, asciiInfo=None):
         masterData = loadMinispec(filePath)
     elif num == 13:
         masterData = loadBrukerEPR(filePath)
+    elif num == 14:
+        masterData = loadSiemensIMA(filePath)
     masterData.rename(name)
     return masterData
 
@@ -137,6 +139,8 @@ def fileTypeCheck(filePath):
             return (10, filePath, returnVal)
         elif filename.endswith('.sig'):  # Bruker minispec
             return (12, filePath, returnVal)
+        elif filename.endswith('.ima') or filename.endswith('.IMA'):  # Siemens ima format
+            return (14, filePath, returnVal)        
         returnVal = 1
         direc = os.path.dirname(filePath)
     if os.path.exists(direc + os.path.sep + 'procpar') and os.path.exists(direc + os.path.sep + 'fid'):
@@ -174,7 +178,7 @@ def loadVarianFile(filePath):
         file = Dir + os.path.sep + '..' + os.path.sep + 'procpar'
     else:
         file = None
-    Out = [0,1,1,0,0,0,0,0] 
+    Out = [0,1,1,0,0,0,0,0]
     indirectRef = 'dfrq'
     if file is not None:
         with open(file, 'r') as f:
@@ -188,7 +192,7 @@ def loadVarianFile(filePath):
             for index in range(len(Elem)):
                 if data[s].startswith(Elem[index][0] + ' '):
                    Out[index] = Elem[index][1]((data[s + 1].split()[1]))
-    freq, sw, sw1, reffreq, reffreq1, rp, phfid, freq1 = Out 
+    freq, sw, sw1, reffreq, reffreq1, rp, phfid, freq1 = Out
     if os.path.exists(Dir + os.path.sep + 'fid'):
         filePath = Dir + os.path.sep + 'fid'
     elif os.path.exists(Dir + os.path.sep + 'data'):
@@ -236,7 +240,7 @@ def loadPipe(filePath):
         header = np.fromfile(f, np.float32, 512)
     NDIM = int(header[9])
     SIZE = [int(header[32]),int(header[15]),int(header[219]),int(header[99])]
-    quadFlag = [int(header[54]),int(header[51]),int(header[55]),int(header[56])] #0 complex, 1 real        
+    quadFlag = [int(header[54]),int(header[51]),int(header[55]),int(header[56])] #0 complex, 1 real
     spec = [int(header[31]),int(header[13]),int(header[222]),int(header[220])]  # 1 if ft, 0 if time
     freq = np.array([header[28],header[10],header[218],header[119]]) * 1e6
     sw = [header[29],header[11],header[229],header[100]]
@@ -300,7 +304,7 @@ def loadPipe(filePath):
                 hyper = np.append(hyper, hyper + 2**dim)
     for k in range(len(data)): #Flip LR if spectrum axis
         for i in range(NDIM):
-            if spec[-1 - i] == 1: 
+            if spec[-1 - i] == 1:
                 data[k] = np.flip(data[k], NDIM -1 - i)
     masterData = sc.Spectrum(hc.HComplexData(data, hyper), (filePath, None), freq[4 - NDIM:4], sw[4 - NDIM:4], spec[4 - NDIM:4], ref=ref[4 - NDIM:4])
     masterData.addHistory("NMRpipe data loaded from " + filePath)
@@ -331,9 +335,9 @@ def loadJEOLDelta(filePath):
     loadSize = np.cumprod(NP[:NDIM])[-1]
     if NDIM == 1 and dataType[0] == 3: #Complex 1D
         loadSize *= 2
-    elif NDIM == 2 and dataType[0] == 4: #2D Real-Complex (non-Hypercomplex) 
+    elif NDIM == 2 and dataType[0] == 4: #2D Real-Complex (non-Hypercomplex)
         loadSize *= 2
-    elif NDIM == 2 and dataType[0] == 3: #2D Complex-Complex (Hypercomplex) 
+    elif NDIM == 2 and dataType[0] == 3: #2D Complex-Complex (Hypercomplex)
         loadSize *= 4
     with open(filePath, "rb") as f:
         f.seek(readStart) #Set read start to position of data
@@ -344,12 +348,12 @@ def loadJEOLDelta(filePath):
     elif NDIM == 1 and dataType[0] == 3: #Complex 1D
         data = data[:NP[0]] - 1j * data[NP[0]:]
         data = [data[0:data_offset_stop[0] + 1]]
-    elif NDIM == 2 and dataType[0] == 4: #2D Real-Complex (non-Hypercomplex) 
+    elif NDIM == 2 and dataType[0] == 4: #2D Real-Complex (non-Hypercomplex)
         Step = 4
         data = data[:int(loadSize/2)] - 1j * data[int(loadSize/2):]
         data = np.reshape(data, [int(NP[1] / Step), int(NP[0] / Step), Step, Step])
         data = [np.concatenate(np.concatenate(data, 1), 1)]
-    elif NDIM == 2 and dataType[0] == 3: #2D Complex-Complex (Hypercomplex) 
+    elif NDIM == 2 and dataType[0] == 3: #2D Complex-Complex (Hypercomplex)
         hyper = np.array([0, 1])
         Step = 32  # Step size of block
         tmp = np.split(data,4)
@@ -360,7 +364,7 @@ def loadJEOLDelta(filePath):
             data[i] = np.concatenate(np.concatenate(data[i], 1), 1)
     eS = (slice(None),) #empty slice
     for dim in range(NDIM): #Cut data for every dim
-        useSlice = eS * (NDIM - dim - 1) +(slice(0,dataStop[dim],None),) + eS * dim 
+        useSlice = eS * (NDIM - dim - 1) +(slice(0,dataStop[dim],None),) + eS * dim
         for i in range(len(data)):
             data[i] = data[i][useSlice]
     freq = baseFreq[0:NDIM][::-1] * 1e6
@@ -389,7 +393,7 @@ def loadJEOLDelta(filePath):
             ref.append(sidefreq + baseFreq[axisNum] * 1e6 - axisStop[axisNum] * baseFreq[axisNum])
     for k in range(len(data)): #Flip LR if spectrum axis
         for i in range(NDIM):
-            if spec[-1 - i] == 1: 
+            if spec[-1 - i] == 1:
                 data[k] = np.flip(data[k], NDIM -1 - i)
     masterData = sc.Spectrum(hc.HComplexData(np.array(data), hyper), (filePath, None), freq, sw, spec, ref=ref)
     masterData.addHistory("JEOL Delta data loaded from " + filePath)
@@ -583,7 +587,7 @@ def loadBrukerTopspin(filePath):
                     if data[s].startswith('##$' + var[0] + '='):
                         var[2].append( var[1](re.sub('##\$' + var[0] + '=', '', data[s])))
     SIZE, FREQ, SW, REF, BYTE = [x[2] for x in Elem] #Unpack results
-    ByteOrder = ['l','b'][BYTE[0]] #The byte orders that is used 
+    ByteOrder = ['l','b'][BYTE[0]] #The byte orders that is used
     REF = list(- np.array(REF) + np.array(FREQ))
     totsize = np.cumprod(SIZE)[-1]
     dim = len(SIZE)
@@ -627,19 +631,19 @@ def loadBrukerSpectrum(filePath):
                     if data[s].startswith('##$' + var[0] + '='):
                         var[2].append( var[1](re.sub('##\$' + var[0] + '=', '', data[s])))
     SIZE, XDIM, SW, FREQ, OFFSET, BYTE = [x[2] for x in Elem] #Unpack results
-    ByteOrder = ['l','b'][BYTE[0]] #The byte orders that is used 
+    ByteOrder = ['l','b'][BYTE[0]] #The byte orders that is used
     REF = []
     for index in range(len(SIZE)): #For each axis
         pos = np.fft.fftshift(np.fft.fftfreq(SIZE[index], 1.0 / SW[index]))[-1] #Get last point of axis
         pos2 = OFFSET[index] * 1e-6 * FREQ[index] #offset in Hz
         REF.append(FREQ[index] + pos - pos2)
-    totsize =  np.cumprod(SIZE)[-1] 
+    totsize =  np.cumprod(SIZE)[-1]
     dim = len(SIZE)
     DATA = []
     files = [['1r','1i'],['2rr','2ir','2ri','2ii'],['3rrr','3irr','3rir','3iir','3rri','3iri','3rii','3iii']]
     counter = 0
     for file in files[dim - 1]: # For all the files
-        if os.path.exists(Dir + os.path.sep + file): 
+        if os.path.exists(Dir + os.path.sep + file):
             with open(Dir + os.path.sep + file, "rb") as f:
                 raw = np.fromfile(f, np.int32, totsize)
                 raw = raw.newbyteorder(ByteOrder) # Set right byteorder
@@ -1129,3 +1133,124 @@ def loadBrukerEPR(filePath):
     masterData = sc.Spectrum(data, (filePath, None), [(sweepWidth + 2 * leftX) / 2], [sweepWidth], [True], ref=[0])
     masterData.addHistory("Bruker EPR data loaded from " + filePath)
     return masterData
+
+def loadSiemensIMA(filePath):
+    """Load Siemens IMA file
+
+        The Siemens IMA file is a type of dicom file with additional
+        Siemens specific fields. It's not a nice format to work with.
+        It is a combination of binary and text data. I, Vincent Breukels,
+        have little understanding in the file format. Rather it is a
+        rewrite of the the following source: VeSPA, versatile simulation
+        pulses and analysis for magnetic resonance spectroscopy.
+    """
+    import struct
+    try:
+        import pydicom as pd
+    except ImportError:
+        raise ImportError("Loading Siemens IMA files requires pydicom")
+
+    ds = pd.dcmread(filePath) #a pydicom structure
+
+    #we're going to look for the following relevant parameters in the csa header
+    relevantParameterInts = ('DataPointColumns',
+                             'Rows',
+                             'Columns',
+                             'NumberOfFrames')
+
+
+    relevantParameterFloats = ('RealDwellTime',
+                               'ImagingFrequency')
+
+
+
+    csaHeader = ds['0029','1110'].value
+    #I assume all relevant header information I need is here. I have not yet
+    #encountered a file in which the relevant info. was in '0029','1120'[VB]
+
+    if struct.unpack_from('4s',csaHeader,0)[0].decode()!='SV10':
+        raise ValueError("IMA file not as expected: first 4 bytes != SV10")
+    if struct.unpack_from('4s',csaHeader,4)[0].decode()!='\4\3\2\1':
+        raise ValueError("IMA file not as expected: second 4 bytes != \4\3\2\1")
+
+    n_elems = struct.unpack_from('I',csaHeader,8)[0]
+    if struct.unpack_from('I',csaHeader,12)[0]!=77:
+        raise ValueError("IMA file not as expected: fourth 4 bytes !=77")
+
+    currentIdx = 16
+    relevantParDict = {}
+    tagNames = []
+    for i in range(n_elems):
+        tagName = scrubber(struct.unpack_from('64s',csaHeader,currentIdx)[0].decode('utf-8','ignore'))
+        tagNames.append(tagName)
+        currentIdx += 64
+
+        vm = struct.unpack_from('I',csaHeader,currentIdx)[0]
+        currentIdx += 4
+
+        vr = scrubber(struct.unpack_from('4s',csaHeader,currentIdx)[0].decode('utf-8','ignore'))
+        currentIdx += 4
+
+        syngodt = struct.unpack_from('I',csaHeader,currentIdx)[0]
+        currentIdx += 4
+
+        n_items = struct.unpack_from('I',csaHeader,currentIdx)[0]
+        currentIdx += 4
+
+        checkBit = struct.unpack_from('I',csaHeader,currentIdx)[0]
+        currentIdx += 4
+
+        if (checkBit != 77 and checkBit != 205):
+            raise ValueError("IMA file not as expected: missing checkBit")
+
+        data = ['']*n_items
+        for idx in range(n_items):
+            header = struct.unpack_from('IIII',csaHeader,currentIdx)
+            currentIdx += 16
+
+            if header[0]!=header[1]!=header[3]:
+                raise ValueError("IMA file does not seem to be correct")
+            if (header[2]!=77 and header[2]!=205):
+                raise ValueError("IMA file does not seem to be correct")
+            length = header[0]
+
+            data[idx] = struct.unpack_from('{0:d}s'.format(length),csaHeader,currentIdx)[0]
+            currentIdx += length
+            currentIdx += ((4 - length ) % 4) % 4
+
+        #Let's see if we got anything I want to keep:
+        # In that particular case I also know that the relevant data is at possition 0
+        if tagName in relevantParameterFloats:
+            relevantParDict[tagName] = float(scrubber(data[0].decode('utf-8','ignore')))
+        elif tagName in relevantParameterInts:
+            relevantParDict[tagName] = int(scrubber(data[0].decode('utf-8','ignore')))
+
+    #Statement below does not work in python 2.7, as struct_iter does not exist
+    #data = np.array([item[0]-1j*item[1] for item in struct.iter_unpack('2f',ds['7fe1','1010'].value)])
+
+    fmtString = str(relevantParDict['DataPointColumns'] * 2) + 'f'
+    dataTuple = struct.unpack(fmtString,ds['7fe1','1010'].value)
+    data = np.array(dataTuple[::2]) - 1j * np.array( dataTuple[1::2])
+
+    #First, I alway assume the data is in the tag 7fe1,1010. I haven't seen anything else
+    #Second, I don't understand the logic, but complex conjugate seems to be the correct ones
+
+    #I found this reshape shown below, possibly for 2d or 3d mrsi data, but i dont have an example data to test
+    #data.reshape((relevantParDict['DataPointColumns'],relevantParDict['Columns'],relevantParDict['Rows'],relevantParDict['NumberOfFrames']))
+
+    sw   = 1.0 / (relevantParDict['RealDwellTime'] * 1e-9)
+    freq = relevantParDict['ImagingFrequency'] * 1e6
+    masterData = sc.Spectrum(data, filePath, [freq], [sw])
+    masterData.addHistory("Siemens IMA data loaded from " + filePath)
+    return masterData
+
+def scrubber(item):
+    """Item is a string, scrubber returns the string up to the first \0 with
+    leading/trailing whitespaces removed"""
+
+    i = item.find(chr(0))
+    if i != -1:
+        item = item[:i]
+
+    item.strip()
+    return item
