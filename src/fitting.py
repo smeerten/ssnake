@@ -1159,7 +1159,7 @@ class RelaxParamFrame(AbstractParamFrame):
     
     def __init__(self, parent, rootwindow, isMain=True):
         self.FITFUNC = simFunc.relaxationFunc
-        self.fullInt = np.max(self.parent.getData1D())
+        self.fullInt = np.max(parent.getData1D())
         self.DEFAULTS = {'amp': [self.fullInt, False], 'const': [1.0, False], 'coeff': [-1.0, False], 't': [1.0, False]}
         super(RelaxParamFrame, self).__init__(parent, rootwindow, isMain)
         locList = self.getRedLocList()
@@ -1245,7 +1245,7 @@ class DiffusionParamFrame(AbstractParamFrame):
     
     def __init__(self, parent, rootwindow, isMain=True):
         self.FITFUNC = simFunc.diffusionFunc
-        self.fullInt = np.max(self.parent.getData1D())
+        self.fullInt = np.max(parent.getData1D())
         self.DEFAULTS = {'amp': [self.fullInt, False], 'const': [0.0, False], 'coeff': [1.0, False], 'd': [1.0e-9, False]}
         super(DiffusionParamFrame, self).__init__(parent, rootwindow, isMain)
         locList = self.getRedLocList()
