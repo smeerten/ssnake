@@ -1153,82 +1153,53 @@ def loadSiemensIMA(filePath):
     ds = pd.dcmread(filePath) #a pydicom structure
 
     #we're going to look for the following relevant parameters in the csa header
-    relevantParameterInts = ('DataPointColumns',
-                             'Rows',
-                             'Columns',
-                             'NumberOfFrames')
-
-
+    relevantParameterInts = ('DataPointColumns',)
+#                             'Rows',
+#                             'Columns',
+#                             'NumberOfFrames',)
     relevantParameterFloats = ('RealDwellTime',
                                'ImagingFrequency')
-
-
 
     csaHeader = ds['0029','1110'].value
     #I assume all relevant header information I need is here. I have not yet
     #encountered a file in which the relevant info. was in '0029','1120'[VB]
 
-    if struct.unpack_from('4s',csaHeader,0)[0].decode()!='SV10':
-        raise ValueError("IMA file not as expected: first 4 bytes != SV10")
-    if struct.unpack_from('4s',csaHeader,4)[0].decode()!='\4\3\2\1':
-        raise ValueError("IMA file not as expected: second 4 bytes != \4\3\2\1")
+    if struct.unpack_from('8s',csaHeader,0)[0].decode() !='SV10\4\3\2\1' or struct.unpack_from('I',csaHeader,12)[0]!=77:
+        raise ValueError("IMA file not as expected: wrong first bytes")
 
     n_elems = struct.unpack_from('I',csaHeader,8)[0]
-    if struct.unpack_from('I',csaHeader,12)[0]!=77:
-        raise ValueError("IMA file not as expected: fourth 4 bytes !=77")
 
     currentIdx = 16
-    relevantParDict = {}
-    tagNames = []
+    ParDict = {}
     for i in range(n_elems):
         tagName = scrubber(struct.unpack_from('64s',csaHeader,currentIdx)[0].decode('utf-8','ignore'))
-        tagNames.append(tagName)
-        currentIdx += 64
+        n_items = struct.unpack_from('I',csaHeader,currentIdx + 76)[0]
+        checkBit = struct.unpack_from('I',csaHeader,currentIdx + 80)[0]
+        currentIdx += 84
 
-        vm = struct.unpack_from('I',csaHeader,currentIdx)[0]
-        currentIdx += 4
-
-        vr = scrubber(struct.unpack_from('4s',csaHeader,currentIdx)[0].decode('utf-8','ignore'))
-        currentIdx += 4
-
-        syngodt = struct.unpack_from('I',csaHeader,currentIdx)[0]
-        currentIdx += 4
-
-        n_items = struct.unpack_from('I',csaHeader,currentIdx)[0]
-        currentIdx += 4
-
-        checkBit = struct.unpack_from('I',csaHeader,currentIdx)[0]
-        currentIdx += 4
-
-        if (checkBit != 77 and checkBit != 205):
+        if checkBit not in [77,205]:
             raise ValueError("IMA file not as expected: missing checkBit")
 
-        data = ['']*n_items
         for idx in range(n_items):
-            header = struct.unpack_from('IIII',csaHeader,currentIdx)
-            currentIdx += 16
-
-            if header[0]!=header[1]!=header[3]:
-                raise ValueError("IMA file does not seem to be correct")
-            if (header[2]!=77 and header[2]!=205):
+            header = struct.unpack_from('4I',csaHeader,currentIdx)
+            if (header[0]!=header[1]!=header[3]) or header[2] not in [77,205]:
                 raise ValueError("IMA file does not seem to be correct")
             length = header[0]
-
-            data[idx] = struct.unpack_from('{0:d}s'.format(length),csaHeader,currentIdx)[0]
-            currentIdx += length
-            currentIdx += ((4 - length ) % 4) % 4
+    
+            if idx == 0:
+                data = struct.unpack_from('{0:d}s'.format(length),csaHeader,currentIdx + 16)[0]
+            currentIdx += int(np.ceil(length/4.) * 4) + 16
 
         #Let's see if we got anything I want to keep:
-        # In that particular case I also know that the relevant data is at possition 0
         if tagName in relevantParameterFloats:
-            relevantParDict[tagName] = float(scrubber(data[0].decode('utf-8','ignore')))
+            ParDict[tagName] = float(scrubber(data.decode('utf-8','ignore')))
         elif tagName in relevantParameterInts:
-            relevantParDict[tagName] = int(scrubber(data[0].decode('utf-8','ignore')))
+            ParDict[tagName] = int(scrubber(data.decode('utf-8','ignore')))
 
     #Statement below does not work in python 2.7, as struct_iter does not exist
     #data = np.array([item[0]-1j*item[1] for item in struct.iter_unpack('2f',ds['7fe1','1010'].value)])
 
-    fmtString = str(relevantParDict['DataPointColumns'] * 2) + 'f'
+    fmtString = str(ParDict['DataPointColumns'] * 2) + 'f'
     dataTuple = struct.unpack(fmtString,ds['7fe1','1010'].value)
     data = np.array(dataTuple[::2]) - 1j * np.array( dataTuple[1::2])
 
@@ -1236,10 +1207,10 @@ def loadSiemensIMA(filePath):
     #Second, I don't understand the logic, but complex conjugate seems to be the correct ones
 
     #I found this reshape shown below, possibly for 2d or 3d mrsi data, but i dont have an example data to test
-    #data.reshape((relevantParDict['DataPointColumns'],relevantParDict['Columns'],relevantParDict['Rows'],relevantParDict['NumberOfFrames']))
+    #data.reshape((ParDict['DataPointColumns'],ParDict['Columns'],ParDict['Rows'],ParDict['NumberOfFrames']))
 
-    sw   = 1.0 / (relevantParDict['RealDwellTime'] * 1e-9)
-    freq = relevantParDict['ImagingFrequency'] * 1e6
+    sw   = 1.0 / (ParDict['RealDwellTime'] * 1e-9)
+    freq = ParDict['ImagingFrequency'] * 1e6
     masterData = sc.Spectrum(data, filePath, [freq], [sw])
     masterData.addHistory("Siemens IMA data loaded from " + filePath)
     return masterData
@@ -1248,9 +1219,5 @@ def scrubber(item):
     """Item is a string, scrubber returns the string up to the first \0 with
     leading/trailing whitespaces removed"""
 
-    i = item.find(chr(0))
-    if i != -1:
-        item = item[:i]
-
-    item.strip()
-    return item
+    item = item.split(chr(0))[0]
+    return item.strip()
