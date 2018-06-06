@@ -1016,10 +1016,11 @@ class AbstractParamFrame(QtWidgets.QWidget):
 ##############################################################################
 
 def mpFit(xax, data1D, guess, args, queue, func, singleNames, multiNames, minmethod, numfeval):
+    data1D = np.concatenate(data1D)
     try:
-        fitVal = scipy.optimize.minimize(lambda *param: np.sum((data1D - fitFunc(func, singleNames, multiNames, param, xax, args))**2), guess, method=minmethod, options = {'maxfev': numfeval})
+        fitVal = scipy.optimize.minimize(lambda *param: np.sum((data1D - np.concatenate(fitFunc(func, singleNames, multiNames, param, xax, args)))**2), guess, method=minmethod, options = {'maxfev': numfeval})
     except Exception:
-        raise FittingException("Fitting: Fit did not return a result")
+         raise FittingException("Fitting: Fit did not return a result")
     queue.put(fitVal)
 
 def fitFunc(func, singleNames, multiNames, params, allX, args):
