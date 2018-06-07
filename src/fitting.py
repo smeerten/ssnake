@@ -32,6 +32,7 @@ import multiprocessing
 import re
 import time
 import os
+import copy
 from safeEval import safeEval
 from views import Current1D, CurrentContour
 import widgetClasses as wc
