@@ -43,7 +43,6 @@ import spectrum as sc
 from ssNake import SideFrame
 import Czjzek as Czjzek
 
-pi = np.pi
 stopDict = {}  # Global dictionary with stopping commands for fits
 
 
