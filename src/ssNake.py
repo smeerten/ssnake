@@ -913,14 +913,16 @@ class MainProgram(QtWidgets.QMainWindow):
                 self.savefigAct.setEnabled(False)
                 self.workspacemenu.menuAction().setEnabled(True)
                 self.macrolistmenu.menuAction().setEnabled(False)
-            else:
+            else: #Fitting menu
                 self.menuEnable(False, True)
-                self.savemenu.menuAction().setEnabled(True)
-                self.exportmenu.menuAction().setEnabled(True)
-                self.savefigAct.setEnabled(True)
+                self.savemenu.menuAction().setEnabled(False)
+                self.exportmenu.menuAction().setEnabled(False)
+                self.savefigAct.setEnabled(False)
                 self.workspacemenu.menuAction().setEnabled(True)
                 self.macrolistmenu.menuAction().setEnabled(False)
                 for act in self.saveActList + self.exportActList + self.workspaceActList:
+                    act.setEnabled(False)
+                for act in self.workspaceActList:
                     act.setEnabled(True)
 
     def menuEnable(self, enable=True, internalWindow=False):
