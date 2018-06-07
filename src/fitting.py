@@ -2328,33 +2328,33 @@ class QuadCzjzekParamFrame(AbstractParamFrame):
 #################################################################################
 
 
-class SIMPSONDeconvWindow(TabFittingWindow):
+class ExternalFitDeconvWindow(TabFittingWindow):
 
     def __init__(self, father, oldMainWindow):
-        self.CURRENTWINDOW = SIMPSONDeconvFrame
-        self.PARAMFRAME = SIMPSONDeconvParamFrame
-        super(SIMPSONDeconvWindow, self).__init__(father, oldMainWindow)
+        self.CURRENTWINDOW = ExternalFitDeconvFrame
+        self.PARAMFRAME = ExternalFitDeconvParamFrame
+        super(ExternalFitDeconvWindow, self).__init__(father, oldMainWindow)
 
 #################################################################################
 
 
-class SIMPSONDeconvFrame(FitPlotFrame):
+class ExternalFitDeconvFrame(FitPlotFrame):
 
     FITNUM = 10  # Maximum number of fits
 
 #################################################################################
 
 
-class SIMPSONDeconvParamFrame(AbstractParamFrame):
+class ExternalFitDeconvParamFrame(AbstractParamFrame):
 
     SINGLENAMES = []
     MULTINAMES = []
     PARAMTEXT = {}
     
     def __init__(self, parent, rootwindow, isMain=True):
-        self.FITFUNC = simFunc.SIMPSONRunScript
+        self.FITFUNC = simFunc.externalFitRunScript
         self.DEFAULTS = {'bgrnd': [0.0, True], 'amp': [1.0, False]}
-        super(SIMPSONDeconvParamFrame, self).__init__(parent, rootwindow, isMain)
+        super(ExternalFitDeconvParamFrame, self).__init__(parent, rootwindow, isMain)
         self.numExp = QtWidgets.QComboBox()
         self.script = None
         self.txtOutput = ["", ""]

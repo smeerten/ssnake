@@ -421,7 +421,7 @@ class MainProgram(QtWidgets.QMainWindow):
                                    ['Fitting --> Czjzek', self.czjzekAct],
                                    ['Fitting --> MQMAS', self.mqmasAct],
                                    ['Fitting --> Czjzek MQMAS', self.mqmasCzjzekAct],
-                                   ['Fitting --> SIMPSON', self.simpsonAct],
+                                   ['Fitting --> External', self.externalFitAct],
                                    ['Fitting --> Function', self.functionFitAct],
                                    ['Combine --> Combine Workspaces', self.combineWorkspaceAct],
                                    ['Combine --> Insert From Workspace', self.insertdatAct],
@@ -700,16 +700,16 @@ class MainProgram(QtWidgets.QMainWindow):
         self.czjzekAct.setToolTip('Fit Czjzek Pattern')
         self.mqmasAct = self.fittingMenu.addAction(QtGui.QIcon(IconDirectory + 'mqmas.png'),"&MQMAS", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.createMQMASWindow()))
         self.mqmasAct.setToolTip('Fit MQMAS')
-        self.mqmasCzjzekAct = self.fittingMenu.addAction(QtGui.QIcon(IconDirectory + 'mqmas.png'),"C&zjzek MQMAS", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.createMQMASCzjzekWindow()))
+        self.mqmasCzjzekAct = self.fittingMenu.addAction(QtGui.QIcon(IconDirectory + 'mqmas.png'),"Cz&jzek MQMAS", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.createMQMASCzjzekWindow()))
         self.mqmasCzjzekAct.setToolTip('Fit Czjzek MQMAS')
-        self.simpsonAct = self.fittingMenu.addAction(QtGui.QIcon(IconDirectory + 'simpson.png'),"&SIMPSON", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.createSIMPSONWindow()))
-        self.simpsonAct.setToolTip('Fit SIMPSON Script')
+        self.externalFitAct = self.fittingMenu.addAction(QtGui.QIcon(IconDirectory + 'simpson.png'),"&External", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.createExternalFitWindow()))
+        self.externalFitAct.setToolTip('Fit External')
         self.functionFitAct = self.fittingMenu.addAction(QtGui.QIcon(IconDirectory + 'function.png'),"F&unction fit", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.createFunctionFitWindow()))
         self.functionFitAct.setToolTip('Fit Function')
         self.fittingActList = [self.snrAct, self.fwhmAct, self.massAct,
                                self.intfitAct, self.relaxAct, self.diffusionAct,
                                self.lorentzfitAct, self.csastaticAct, self.quadAct,
-                               self.czjzekAct, self.simpsonAct, self.functionFitAct]
+                               self.czjzekAct, self.externalFitAct, self.functionFitAct]
         # the combine drop down menu
         self.combineMenu = QtWidgets.QMenu("Com&bine", self)
         self.menubar.addMenu(self.combineMenu)
@@ -1893,8 +1893,8 @@ class Main1DWindow(QtWidgets.QWidget):
             raise SsnakeException("Please set the spectrometer frequency first!")
         self.father.createFitWindow(fit.MqmasCzjzekWindow(self.father, self.father.mainWindow))
 
-    def createSIMPSONWindow(self):
-        self.father.createFitWindow(fit.SIMPSONDeconvWindow(self.father, self.father.mainWindow))
+    def createExternalFitWindow(self):
+        self.father.createFitWindow(fit.ExternalFitDeconvWindow(self.father, self.father.mainWindow))
 
     def createFunctionFitWindow(self):
         self.father.createFitWindow(fit.FunctionFitWindow(self.father, self.father.mainWindow))

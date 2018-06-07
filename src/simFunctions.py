@@ -175,7 +175,7 @@ def functionRun(x, freq, sw, axMult, extra, *parameters):
         function = function.replace('@' + elem, str(parameters[i]))
     return safeEval(function, length=len(x), x=x)
 
-def SIMPSONRunScript(x, freq, sw, axMult, extra, bgrnd, *parameters):
+def externalFitRunScript(x, freq, sw, axMult, extra, bgrnd, *parameters):
     names, command, script, output, spec = extra
     amp, lor, gauss = parameters[-3:]
     x = x[-1]
