@@ -101,6 +101,12 @@ np.set_printoptions(threshold=np.nan)
 QtCore.QLocale.setDefault(QtCore.QLocale('en_US'))
 
 VERSION = 'v0.7b'
+#Required library version
+NPVERSION = '1.8.2'
+MPLVERSION = '1.4.2'
+SPVERSION = '0.14.1'
+PY2VERSION = '2.7'
+PY3VERSION = '3.4'
 
 
 class SsnakeException(sc.SpectrumException):
@@ -6799,19 +6805,91 @@ class mqmasExtractWindow(wc.ToolWindows):
         self.deleteLater()
 
 
-if __name__ == '__main__':
-    mainProgram = MainProgram(root)
-    mainProgram.setWindowTitle("ssNake - " + VERSION)
-    mainProgram.show()
-    splash.finish(mainProgram)
-    sys._excepthook = sys.excepthook
 
-    def exception_hook(exctype, value, traceback):
-        if not isinstance(value, Exception): # Do not catch keyboard interrupts
-            sys._excepthook(exctype, value, traceback)
-        elif isinstance(value, (sc.SpectrumException, hc.HComplexException)):
-            mainProgram.dispMsg(str(value))            
-        else:
-            mainProgram.dispError([exctype, value, traceback])
-    sys.excepthook = exception_hook
-    sys.exit(root.exec_())
+
+def libVersionChecker(version,needed):
+    """Compares a two library version strings ('1.2.3' format)
+
+        First compares major, then minor, etc.
+        If version is lower than needed, False is returned
+
+    """
+    current = [int(x) for x in version.split('.')]
+    required = [int(x) for x in needed.split('.')]
+    check = True
+    if current[0] < required[0]:
+        check = False
+    elif  current[0] == required[0]:
+        if current[1] < required[1]:
+            check = False
+        elif  current[1] == required[1]:
+            if current[2] == required[2]:
+                check = False
+
+    return check
+
+
+def checkVersions():
+    """Checks versions of relevant python libraries
+
+        Compares specified versions of libraries against the loaded version.
+        If the values are to low, an error message is returned.
+    """
+    from scipy import __version__ as scipyVersion #Scipy is not fully imported, so only load version
+
+    libs = [['numpy',np.__version__,NPVERSION],
+            ['matplotlib',matplotlib.__version__,MPLVERSION],
+            ['scipy',scipyVersion,SPVERSION]]
+
+    if sys.version_info.major == 3:
+        libs.append(['python',str(sys.version_info.major) + '.' + str(sys.version_info.minor),PY3VERSION])
+    elif sys.version_info.major == 2:
+        libs.append(['python',str(sys.version_info.major) + '.' + str(sys.version_info.minor),PY2VERSION])
+
+    messages = []
+    error = False
+    for elem in libs:
+        check = libVersionChecker(elem[1],elem[2])
+        if not check:
+            error = True
+            messages.append('"' + elem[0] + '" version is too low (need "' + elem[2] + '" have "' + elem[1] +'")')
+    return error, messages
+
+def popupVersionError(messages):
+    """Gives a message window displaying version issues
+
+        Input is a list of strings
+    """
+
+    msg = ""
+    for elem in messages:
+        msg = msg + elem + '\n'
+    reply = QtWidgets.QMessageBox.warning(QtWidgets.QWidget(),'Invalid software version', msg, QtWidgets.QMessageBox.Ignore, QtWidgets.QMessageBox.Abort)
+    quit = False
+    if reply == QtWidgets.QMessageBox.Abort:
+        quit = True
+    return quit
+
+if __name__ == '__main__':
+    error, messages = checkVersions()
+    quit = False
+    if error:
+        quit = popupVersionError(messages)
+    if not quit:
+        mainProgram = MainProgram(root)
+        mainProgram.setWindowTitle("ssNake - " + VERSION)
+        mainProgram.show()
+        splash.finish(mainProgram)
+        sys._excepthook = sys.excepthook
+
+        def exception_hook(exctype, value, traceback):
+            if not isinstance(value, Exception): # Do not catch keyboard interrupts
+                sys._excepthook(exctype, value, traceback)
+            elif isinstance(value, (sc.SpectrumException, hc.HComplexException)):
+                mainProgram.dispMsg(str(value))            
+            else:
+                mainProgram.dispError([exctype, value, traceback])
+        sys.excepthook = exception_hook
+        sys.exit(root.exec_())
+
+
