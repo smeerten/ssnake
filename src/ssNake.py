@@ -6822,7 +6822,7 @@ def libVersionChecker(version,needed):
         if current[1] < required[1]:
             check = False
         elif  current[1] == required[1]:
-            if len(curren) >2:
+            if len(current) > 2 and len(required) > 2:
                 if current[2] == required[2]:
                     check = False
 
