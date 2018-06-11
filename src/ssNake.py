@@ -21,9 +21,7 @@
 import sip
 import sys
 import os
-import traceback as tb
-import datetime
-import webbrowser
+import importlib
 sip.setapi('QString', 2)
 try:
     from PyQt4 import QtGui, QtCore
@@ -32,7 +30,6 @@ try:
 except ImportError:
     from PyQt5 import QtGui, QtCore, QtWidgets
     QT = 5
-
 
 # Create splash window
 if __name__ == '__main__':
@@ -45,11 +42,6 @@ if __name__ == '__main__':
     progressBar.setGeometry(2.5 * splash.width() / 10, 0.89 * splash.height(), 5 * splash.width() / 10, splash.height() / 20)
     splash.show()
 
-
-splashSteps = 17.0 / 100
-splashStep = 0.0
-
-
 def splashProgressStep(splashStep):  # A function to easily increase the progressbar value
     if __name__ == '__main__':
         splashStep = splashStep + 1
@@ -57,9 +49,39 @@ def splashProgressStep(splashStep):  # A function to easily increase the progres
         root.processEvents()
     return splashStep
 
+def import_lib(name,nameAs,className,splashStep):
+    #Function to load a library from string names
+    if className is None:
+        globals()[nameAs] = importlib.import_module(name)
+    else:
+        mod = importlib.import_module(name)
+        globals()[nameAs] = getattr(mod, className)
 
-import matplotlib
-splashStep = splashProgressStep(splashStep)
+    return splashProgressStep(splashStep)
+
+#List of all libs to be imported:
+#[name,name to be saved as,import specific class]
+importList = [['matplotlib.figure','Figure','Figure'],
+              ['traceback','tb',None],
+              ['numpy','np',None],
+              ['copy','copy',None],
+              ['datetime','datetime',None],
+              ['webbrowser','webbrowser',None],
+              ['spectrum','sc',None],
+              ['hypercomplex','hc',None],
+              ['fitting','fit',None],
+              ['safeEval','safeEval','safeEval'],
+              ['widgetClasses','wc',None],
+              ['updateWindow','UpdateWindow','UpdateWindow'],
+              ['saveFigure','SaveFigureWindow','SaveFigureWindow'],
+              ['functions','func',None],
+              ['specIO','io',None],
+              ['views','views',None]]
+
+splashSteps = (len(importList) + 2.0) / 100
+
+#First import matplotlib and Qt
+splashStep = import_lib('matplotlib','matplotlib',None,0.0)
 if QT == 4:
     matplotlib.use('Qt4Agg')
     from matplotlib.backends.backend_qt4agg import FigureCanvasQTAgg as FigureCanvas
@@ -67,34 +89,11 @@ else:
     matplotlib.use('Qt5Agg')
     from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 splashStep = splashProgressStep(splashStep)
-from matplotlib.figure import Figure
-splashStep = splashProgressStep(splashStep)
-import numpy as np
-splashStep = splashProgressStep(splashStep)
-import re
-splashStep = splashProgressStep(splashStep)
-import copy
-splashStep = splashProgressStep(splashStep)
-import spectrum as sc
-splashStep = splashProgressStep(splashStep)
-import hypercomplex as hc
-splashStep = splashProgressStep(splashStep)
-import fitting as fit
-splashStep = splashProgressStep(splashStep)
-from safeEval import safeEval
-splashStep = splashProgressStep(splashStep)
-import widgetClasses as wc
-splashStep = splashProgressStep(splashStep)
-from updateWindow import UpdateWindow
-splashStep = splashProgressStep(splashStep)
-from saveFigure import SaveFigureWindow
-splashStep = splashProgressStep(splashStep)
-import functions as func
-splashStep = splashProgressStep(splashStep)
-import specIO as io
-splashStep = splashProgressStep(splashStep)
-import views 
-splashStep = splashProgressStep(splashStep)
+
+#Import everything else
+for elem in importList:
+    splashStep = import_lib(elem[0],elem[1],elem[2],splashStep)
+
 
 matplotlib.rc('font', family='DejaVu Sans')
 np.set_printoptions(threshold=np.nan)
@@ -6823,8 +6822,9 @@ def libVersionChecker(version,needed):
         if current[1] < required[1]:
             check = False
         elif  current[1] == required[1]:
-            if current[2] == required[2]:
-                check = False
+            if len(curren) >2:
+                if current[2] == required[2]:
+                    check = False
 
     return check
 
