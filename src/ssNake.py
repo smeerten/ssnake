@@ -382,7 +382,7 @@ class MainProgram(QtWidgets.QMainWindow):
                                    ['Tools --> Hypercomplex --> TPPI', self.statesTPPIAct],
                                    ['Tools --> Hypercomplex --> Echo-antiecho', self.echoantiAct],
                                    ['Tools --> Scale SW', self.scaleSWAct],
-                                   ['Tools --> LPSVD', self.lpsvdAct],
+                                   #['Tools --> LPSVD', self.lpsvdAct],
                                    ['Matrix --> Sizing', self.sizingAct],
                                    ['Matrix --> Shift Data', self.shiftAct],
                                    ['Matrix --> Multiply', self.multiplyAct],
@@ -580,8 +580,8 @@ class MainProgram(QtWidgets.QMainWindow):
         self.refDeconvAct.setToolTip('Reference Deconvolution')
         self.brukDigitalAct = self.toolMenu.addAction(QtGui.QIcon(IconDirectory + 'bruker.png'), "&Correct Bruker Digital Filter", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.BrukerDigital()))
         self.brukDigitalAct.setToolTip("Correct Bruker Digital Filter")
-        self.lpsvdAct = self.toolMenu.addAction(QtGui.QIcon(IconDirectory + 'LPSVD.png'), "&LPSVD", lambda: self.mainWindowCheck(lambda mainWindow: LPSVDWindow(mainWindow)))
-        self.lpsvdAct.setToolTip('LPSVD linear prediction')
+        #self.lpsvdAct = self.toolMenu.addAction(QtGui.QIcon(IconDirectory + 'LPSVD.png'), "&LPSVD", lambda: self.mainWindowCheck(lambda mainWindow: LPSVDWindow(mainWindow)))
+        #self.lpsvdAct.setToolTip('LPSVD linear prediction')
         self.scaleSWAct =  self.toolMenu.addAction(QtGui.QIcon(IconDirectory + 'ScaleSW.png'),"Scale SW", lambda: self.mainWindowCheck(lambda mainWindow: ScaleSWWindow(mainWindow)))
         self.scaleSWAct.setToolTip('Scale the Current Spectral Width')
         self.hypercomplexMenu = QtWidgets.QMenu("Hypercomplex", self)
@@ -597,7 +597,7 @@ class MainProgram(QtWidgets.QMainWindow):
                              self.autoPhaseAct1, self.swapEchoAct, self.corOffsetAct,
                              self.baselineAct, self.subAvgAct, self.refDeconvAct,
                              self.statesAct, self.statesTPPIAct, self.echoantiAct,
-                             self.brukDigitalAct, self.scaleSWAct, self.lpsvdAct]
+                             self.brukDigitalAct, self.scaleSWAct]
         # the matrix drop down menu
         self.matrixMenu = QtWidgets.QMenu("M&atrix", self)
         self.menubar.addMenu(self.matrixMenu)
