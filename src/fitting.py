@@ -1003,9 +1003,9 @@ class AbstractParamFrame(QtWidgets.QWidget):
             inputVars = [out[name][0] for name in self.SINGLENAMES]
             inputVars += [out[name][i] for name in self.MULTINAMES]
             y = self.FITFUNC(tmpx, self.parent.data.freq, self.parent.data.sw, self.axMult, out['extra'], *inputVars)
-            y = np.real(np.fft.fftshift(np.fft.fftn(y, axes=self.FFT_AXES), axes=self.FFTSHIFT_AXES))
             if y is None:
                 raise FittingException("Fitting: The fitting function didn't output anything")
+            y = np.real(np.fft.fftshift(np.fft.fftn(y, axes=self.FFT_AXES), axes=self.FFTSHIFT_AXES))
             outCurvePart.append(bgrnd + y)
             outCurve += y
         locList = self.getRedLocList()
@@ -2390,8 +2390,13 @@ class ExternalFitDeconvParamFrame(AbstractParamFrame):
 
     def loadScript(self):
         fileName = self.rootwindow.father.loadSIMPSONScript()
-        with open(fileName, "r") as myfile:
-            inFile = myfile.read()
+        if len(fileName) == 0:
+            return
+        try:
+            with open(fileName, "r") as myfile:
+                inFile = myfile.read()
+        except Exception:
+            raise FittingException("Fitting: No valid script found")
         matches = np.unique(re.findall("(@\w+)", inFile))
         self.script = inFile
         self.SINGLENAMES = ["bgrnd"]
