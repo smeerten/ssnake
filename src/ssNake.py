@@ -50,7 +50,7 @@ def splashProgressStep(splashStep):  # A function to easily increase the progres
     return splashStep
 
 def import_lib(name,nameAs,className,splashStep):
-    #Function to load a library from string names
+    # Function to load a library from string names
     if className is None:
         globals()[nameAs] = importlib.import_module(name)
     else:
@@ -59,28 +59,28 @@ def import_lib(name,nameAs,className,splashStep):
 
     return splashProgressStep(splashStep)
 
-#List of all libs to be imported:
-#[name,name to be saved as,import specific class]
-importList = [['matplotlib.figure','Figure','Figure'],
-              ['traceback','tb',None],
-              ['numpy','np',None],
-              ['copy','copy',None],
-              ['datetime','datetime',None],
-              ['webbrowser','webbrowser',None],
-              ['spectrum','sc',None],
-              ['hypercomplex','hc',None],
-              ['fitting','fit',None],
-              ['safeEval','safeEval','safeEval'],
-              ['widgetClasses','wc',None],
-              ['updateWindow','UpdateWindow','UpdateWindow'],
-              ['saveFigure','SaveFigureWindow','SaveFigureWindow'],
-              ['functions','func',None],
-              ['specIO','io',None],
-              ['views','views',None]]
+# List of all libs to be imported:
+# [name, name to be saved as, import specific class]
+importList = [['matplotlib.figure', 'Figure', 'Figure'],
+              ['traceback', 'tb', None],
+              ['numpy', 'np', None],
+              ['copy', 'copy', None],
+              ['datetime', 'datetime', None],
+              ['webbrowser', 'webbrowser', None],
+              ['spectrum', 'sc', None],
+              ['hypercomplex', 'hc', None],
+              ['fitting', 'fit', None],
+              ['safeEval', 'safeEval', 'safeEval'],
+              ['widgetClasses', 'wc', None],
+              ['updateWindow', 'UpdateWindow', 'UpdateWindow'],
+              ['saveFigure', 'SaveFigureWindow', 'SaveFigureWindow'],
+              ['functions', 'func', None],
+              ['specIO', 'io', None],
+              ['views', 'views', None]]
 
 splashSteps = (len(importList) + 2.0) / 100
 
-#First import matplotlib and Qt
+# First import matplotlib and Qt
 splashStep = import_lib('matplotlib','matplotlib',None,0.0)
 if QT == 4:
     matplotlib.use('Qt4Agg')
@@ -90,7 +90,7 @@ else:
     from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 splashStep = splashProgressStep(splashStep)
 
-#Import everything else
+# Import everything else
 for elem in importList:
     splashStep = import_lib(elem[0],elem[1],elem[2],splashStep)
 
@@ -100,7 +100,7 @@ np.set_printoptions(threshold=np.nan)
 QtCore.QLocale.setDefault(QtCore.QLocale('en_US'))
 
 VERSION = 'v0.7b'
-#Required library version
+# Required library version
 NPVERSION = '1.11.0'
 MPLVERSION = '1.4.2'
 SPVERSION = '0.14.1'
@@ -135,15 +135,10 @@ class MainProgram(QtWidgets.QMainWindow):
         self.menuCheck()
         self.main_widget = QtWidgets.QSplitter(self) 
         self.main_widget.setHandleWidth(10)
-
-
         self.gridWidget = QtWidgets.QWidget(self)
         self.mainFrame = QtWidgets.QGridLayout(self.gridWidget)
-
         self.tree = wc.SsnakeTreeWidget(self)
         self.main_widget.addWidget(self.tree)
-
-
         self.main_widget.addWidget(self.gridWidget)
         self.logo = QtWidgets.QLabel(self)
         self.logo.setPixmap(QtGui.QPixmap(os.path.dirname(os.path.realpath(__file__)) + "/logo.gif"))
@@ -6804,14 +6799,11 @@ class mqmasExtractWindow(wc.ToolWindows):
         self.deleteLater()
 
 
-
-
 def libVersionChecker(version,needed):
     """Compares a two library version strings ('1.2.3' format)
 
         First compares major, then minor, etc.
         If version is lower than needed, False is returned
-
     """
     current = [int(x) for x in version.split('.')]
     required = [int(x) for x in needed.split('.')]
@@ -6823,9 +6815,8 @@ def libVersionChecker(version,needed):
             check = False
         elif  current[1] == required[1]:
             if len(current) > 2 and len(required) > 2:
-                if current[2] == required[2]:
+                if current[2] < required[2]:
                     check = False
-
     return check
 
 
@@ -6835,21 +6826,18 @@ def checkVersions():
         Compares specified versions of libraries against the loaded version.
         If the values are to low, an error message is returned.
     """
-    from scipy import __version__ as scipyVersion #Scipy is not fully imported, so only load version
-
+    from scipy import __version__ as scipyVersion # Scipy is not fully imported, so only load version
     libs = [['numpy',np.__version__,NPVERSION],
             ['matplotlib',matplotlib.__version__,MPLVERSION],
             ['scipy',scipyVersion,SPVERSION]]
-
     if sys.version_info.major == 3:
-        libs.append(['python',str(sys.version_info.major) + '.' + str(sys.version_info.minor),PY3VERSION])
+        libs.append(['python', str(sys.version_info.major) + '.' + str(sys.version_info.minor), PY3VERSION])
     elif sys.version_info.major == 2:
-        libs.append(['python',str(sys.version_info.major) + '.' + str(sys.version_info.minor),PY2VERSION])
-
+        libs.append(['python', str(sys.version_info.major) + '.' + str(sys.version_info.minor), PY2VERSION])
     messages = []
     error = False
     for elem in libs:
-        check = libVersionChecker(elem[1],elem[2])
+        check = libVersionChecker(elem[1], elem[2])
         if not check:
             error = True
             messages.append('"' + elem[0] + '" version is too low (need "' + elem[2] + '" have "' + elem[1] +'")')
@@ -6860,7 +6848,6 @@ def popupVersionError(messages):
 
         Input is a list of strings
     """
-
     msg = ""
     for elem in messages:
         msg = msg + elem + '\n'
