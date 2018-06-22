@@ -136,7 +136,7 @@ def firstQuadSpace(eta):
     V2pm2 = np.sqrt(1 / 6.0) * eta
     return np.array([V2pm2, 0, V20, 0, V2pm2])
 
-def firstQuadSpin(I, m1, m2): #T values
+def firstQuadSpin(I, m1, m2): # T values
     spin20_1 = 3 * m1**2 - I * (I + 1)
     spin20_2 = 3 * m2**2 - I * (I + 1)
     return spin20_1 - spin20_2
@@ -150,7 +150,7 @@ def secQuadSpace(eta):
     V4pm4 = 1 / (4 * np.sqrt(70)) * eta**2
     return V00, np.array([V2pm2, 0, V20, 0, V2pm2]), np.array([V4pm4, 0, V4pm2, 0, V40, 0, V4pm2, 0, V4pm4])
 
-def secQuadSpin(I, m1, m2): #T values
+def secQuadSpin(I, m1, m2): # T values
     spin00_1 = m1 * (I * (I + 1) - 3 * m1**2)
     spin20_1 = m1 * (8 * I * (I + 1) - 12 * m1**2 - 3)
     spin40_1 = m1 * (18 * I * (I + 1) - 34 * m1**2 - 5)

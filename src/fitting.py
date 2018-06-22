@@ -2848,6 +2848,9 @@ class MqmasCzjzekParamFrame(AbstractParamFrame):
         self.optframe.addWidget(wc.QLabel("Scale sw:"), 8, 0)
         self.entries['scale'].append(wc.QLineEdit("1.0"))
         self.optframe.addWidget(self.entries['scale'][-1], 9, 0)
+        autoButton = QtWidgets.QPushButton("&Auto")
+        autoButton.clicked.connect(self.autoShearScale)
+        self.optframe.addWidget(autoButton, 10, 0)
         self.optframe.setColumnStretch(21, 1)
         self.optframe.setAlignment(QtCore.Qt.AlignTop)
         self.frame2.addWidget(wc.QLabel("Bgrnd:"), 0, 0, 1, 2)
@@ -2893,6 +2896,18 @@ class MqmasCzjzekParamFrame(AbstractParamFrame):
         self.changeType(0)
         self.dispParams()
 
+    def autoShearScale(self, *args):
+        from fractions import gcd
+        mq = self.MQvalues[self.entries['MQ'][-1].currentIndex()]
+        m = 0.5 * mq
+        numerator = m * (18 * self.I * (self.I + 1) - 34 * m**2 - 5)
+        denomenator = 0.5 * (18 * self.I * (self.I + 1) - 34 * 0.5**2 - 5)
+        divis = gcd(numerator, denomenator)
+        numerator /= divis
+        denomenator /= divis
+        self.entries['shear'][-1].setText(str(numerator) + '/' + str(denomenator))
+        self.entries['scale'][-1].setText(str(denomenator) + '/' + str(mq * denomenator - numerator))
+        
     def changeType(self, index):
         if index == 0:
             for i in range(self.FITNUM): 

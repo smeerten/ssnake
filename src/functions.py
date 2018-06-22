@@ -39,9 +39,6 @@ def apodize(t, shift, sw, axLen, lor, gauss, cos2, hamming, wholeEcho=False):
         x[-1:-(int(len(x) / 2) + 1):-1] = x[:int(len(x) / 2)]
     return x
 
-
-
-
 def euro(val, num):
     firstDigit = '%.0e' % val
     firstDigit = int(firstDigit[0])
@@ -61,7 +58,6 @@ def euro(val, num):
     orderArray = np.repeat(range(numStep), 3) + order
     returnVal = returnVal * 10.0**orderArray
     return returnVal[:num]
-
 
 def shiftConversion(Values, Type):
     # Calculates the chemical shift tensor based on:
@@ -118,7 +114,6 @@ def shiftConversion(Values, Type):
     Results.append([iso, span, skew])
     return Results
 
-
 def quadConversion(Values,I, Type, Q = None):
     # Calculates the chemical shift tensor based on:
     # Values: a list with two or three numbers (Cq/Wq and Eta, Or Vxx Vyy Vzz)
@@ -158,7 +153,6 @@ def quadConversion(Values,I, Type, Q = None):
             Cxx = Vxx * Scaling / 1e6
             Cyy = Vyy * Scaling / 1e6
             Values = [ Cxx, Cyy, Czz]
-
         #Conversion
         CArray = np.array(Values)
         Cindex = np.argsort(np.abs(CArray))
@@ -180,6 +174,5 @@ def quadConversion(Values,I, Type, Q = None):
             Vxx = None
             Vyy = None
             Vzz = None
-
         return [[CqNew, EtaNew], [WqNew, EtaNew], [Vxx, Vyy, Vzz]]
 
