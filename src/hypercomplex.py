@@ -463,12 +463,12 @@ class HComplexData(object):
     def diff(self, axis=-1):
         if axis >= 0:
             axis += 1
-        return HComplexData(np.diff(self.data, axis), np.copy(self.hyper))
+        return HComplexData(np.diff(self.data, axis=axis), np.copy(self.hyper))
 
     def cumsum(self, axis=-1):
         if axis >= 0:
             axis += 1
-        return HComplexData(np.cumsum(self.data, axis), np.copy(self.hyper))
+        return HComplexData(np.cumsum(self.data, axis=axis), np.copy(self.hyper))
 
     def hilbert(self, axis=-1):
         import scipy.signal
