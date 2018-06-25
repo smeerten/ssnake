@@ -206,9 +206,9 @@ class FitCopySettingsWindow(QtWidgets.QWidget):
         layout = QtWidgets.QGridLayout(self)
         grid = QtWidgets.QGridLayout()
         layout.addLayout(grid, 0, 0, 1, 2)
-        self.allTraces = QtWidgets.QCheckBox("Export all traces")
+        self.allSlices = QtWidgets.QCheckBox("Export all slices")
         if not single:
-            grid.addWidget(self.allTraces, 0, 0)
+            grid.addWidget(self.allSlices, 0, 0)
         self.original = QtWidgets.QCheckBox("Include original")
         self.original.setChecked(True)
         grid.addWidget(self.original, 1, 0)
@@ -233,7 +233,7 @@ class FitCopySettingsWindow(QtWidgets.QWidget):
 
     def applyAndClose(self, *args):
         self.deleteLater()
-        self.returnFunction([self.allTraces.isChecked(), self.original.isChecked(), self.subFits.isChecked(), self.difference.isChecked()])
+        self.returnFunction([self.allSlices.isChecked(), self.original.isChecked(), self.subFits.isChecked(), self.difference.isChecked()])
 
 ##################################################################################################
 
@@ -249,9 +249,9 @@ class ParamCopySettingsWindow(QtWidgets.QWidget):
         layout = QtWidgets.QGridLayout(self)
         grid = QtWidgets.QGridLayout()
         layout.addLayout(grid, 0, 0, 1, 2)
-        self.allTraces = QtWidgets.QCheckBox("Export all traces")
+        self.allSlices = QtWidgets.QCheckBox("Export all slices")
         if not single:
-            grid.addWidget(self.allTraces, 0, 0)
+            grid.addWidget(self.allSlices, 0, 0)
         self.exportList = []
         for i in range(len(paramNames)):
             self.exportList.append(QtWidgets.QCheckBox(paramNames[i]))
@@ -275,7 +275,7 @@ class ParamCopySettingsWindow(QtWidgets.QWidget):
         answers = []
         for checkbox in self.exportList:
             answers.append(checkbox.isChecked())
-        self.returnFunction(self.allTraces.isChecked(), answers)
+        self.returnFunction(self.allSlices.isChecked(), answers)
 
 ################################################################################
 
@@ -835,9 +835,9 @@ class AbstractParamFrame(QtWidgets.QWidget):
             single = True
         else:
             single = False
-        ParamCopySettingsWindow(self, paramNameList, lambda allTraces, settings, self=self: self.paramToWorkspace(allTraces, settings), single)
+        ParamCopySettingsWindow(self, paramNameList, lambda allSlices, settings, self=self: self.paramToWorkspace(allSlices, settings), single)
 
-    def paramToWorkspace(self, allTraces, settings):
+    def paramToWorkspace(self, allSlices, settings):
         if not self.checkInputs():
             raise FittingException("Fitting: One of the inputs is not valid")
         paramNameList = np.array(self.SINGLENAMES + self.MULTINAMES, dtype=object)
@@ -846,7 +846,7 @@ class AbstractParamFrame(QtWidgets.QWidget):
             return
         names = paramNameList[settings]
         params = self.rootwindow.getParams()
-        if allTraces:
+        if allSlices:
             num = self.rootwindow.getNum(self)
             maxNum = np.max(self.fitNumList)+1
             tmp = np.array(self.parent.data.shape(), dtype=int)
