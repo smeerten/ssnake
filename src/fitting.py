@@ -773,8 +773,13 @@ class AbstractParamFrame(QtWidgets.QWidget):
             for name in self.MULTINAMES:
                 if struc[name][i][0] == 1:
                     self.fitParamList[locList][name][i][0] = fitVal[struc[name][i][1]]
+        self.checkResults(numExp,struc)
         self.dispParams()
         self.rootwindow.sim()
+
+    def checkResults(self,struc,numExp):
+        #A placeholder for a function that checks the fit results (e.g. makes values absolute, etc)
+        pass
 
     def stopMP(self, *args):
         if self.queue is not None:
@@ -1445,6 +1450,17 @@ class PeakDeconvParamFrame(AbstractParamFrame):
     def togglePick(self):
         self.parent.togglePick(self.pickTick.isChecked())
 
+    def checkResults(self,numExp,struc):
+        #After fit, set lor and gauss absolute
+        locList = self.getRedLocList()
+        for i in range(numExp):
+           if struc['lor'][i][0] == 1:
+                self.fitParamList[locList]['lor'][i][0] = abs(self.fitParamList[locList]['lor'][i][0])
+           if struc['gauss'][i][0] == 1:
+                self.fitParamList[locList]['gauss'][i][0] = abs(self.fitParamList[locList]['gauss'][i][0])
+
+
+
 ##############################################################################
 
 
@@ -1766,6 +1782,15 @@ class CsaDeconvParamFrame(AbstractParamFrame):
         out['extra'] = [shiftdef, numssb, angle, D2, weight]
         return (out, out['extra'])
 
+    def checkResults(self,numExp,struc):
+        #After fit, set lor and gauss absolute
+        locList = self.getRedLocList()
+        for i in range(numExp):
+           if struc['lor'][i][0] == 1:
+                self.fitParamList[locList]['lor'][i][0] = abs(self.fitParamList[locList]['lor'][i][0])
+           if struc['gauss'][i][0] == 1:
+                self.fitParamList[locList]['gauss'][i][0] = abs(self.fitParamList[locList]['gauss'][i][0])
+
 ##############################################################################
 
 
@@ -1918,6 +1943,15 @@ class QuadDeconvParamFrame(AbstractParamFrame):
             out['spinspeed'] = [np.inf]
         out['extra'] = [satBool, I, numssb, angle, D2, D4, weight]
         return (out, out['extra'])
+
+    def checkResults(self,numExp,struc):
+        #After fit, set lor and gauss absolute
+        locList = self.getRedLocList()
+        for i in range(numExp):
+           if struc['lor'][i][0] == 1:
+                self.fitParamList[locList]['lor'][i][0] = abs(self.fitParamList[locList]['lor'][i][0])
+           if struc['gauss'][i][0] == 1:
+                self.fitParamList[locList]['gauss'][i][0] = abs(self.fitParamList[locList]['gauss'][i][0])
 
 ##############################################################################
 
@@ -2325,6 +2359,15 @@ class QuadCzjzekParamFrame(AbstractParamFrame):
         out['extra'] = [method, self.lib, self.cqLib, self.etaLib]
         return (out, out['extra'])
 
+    def checkResults(self,numExp,struc):
+        #After fit, set lor and gauss absolute
+        locList = self.getRedLocList()
+        for i in range(numExp):
+           if struc['lor'][i][0] == 1:
+                self.fitParamList[locList]['lor'][i][0] = abs(self.fitParamList[locList]['lor'][i][0])
+           if struc['gauss'][i][0] == 1:
+                self.fitParamList[locList]['gauss'][i][0] = abs(self.fitParamList[locList]['gauss'][i][0])
+
 #################################################################################
 
 
@@ -2433,6 +2476,15 @@ class ExternalFitDeconvParamFrame(AbstractParamFrame):
     def getExtraParams(self, out):
         out['extra'] = [self.MULTINAMES, self.commandLine.text(), self.script, self.txtOutput, self.parent.spec()]
         return (out, out['extra'])
+
+    def checkResults(self,numExp,struc):
+        #After fit, set lor and gauss absolute
+        locList = self.getRedLocList()
+        for i in range(numExp):
+           if struc['lor'][i][0] == 1:
+                self.fitParamList[locList]['lor'][i][0] = abs(self.fitParamList[locList]['lor'][i][0])
+           if struc['gauss'][i][0] == 1:
+                self.fitParamList[locList]['gauss'][i][0] = abs(self.fitParamList[locList]['gauss'][i][0])
 
 ##############################################################################
 
@@ -2793,6 +2845,19 @@ class MqmasDeconvParamFrame(AbstractParamFrame):
         out['extra'] = [I, MQ, numssb, angle, D2, D4, weight, shear, scale]
         return (out, out['extra'])
 
+    def checkResults(self,numExp,struc):
+        #After fit, set lor and gauss absolute
+        locList = self.getRedLocList()
+        for i in range(numExp):
+           if struc['lor1'][i][0] == 1:
+                self.fitParamList[locList]['lor1'][i][0] = abs(self.fitParamList[locList]['lor1'][i][0])
+           if struc['gauss1'][i][0] == 1:
+                self.fitParamList[locList]['gauss1'][i][0] = abs(self.fitParamList[locList]['gauss1'][i][0])
+           if struc['lor2'][i][0] == 1:
+                self.fitParamList[locList]['lor2'][i][0] = abs(self.fitParamList[locList]['lor2'][i][0])
+           if struc['gauss2'][i][0] == 1:
+                self.fitParamList[locList]['gauss2'][i][0] = abs(self.fitParamList[locList]['gauss2'][i][0])
+
 ##############################################################################
 
 class MqmasCzjzekWindow(TabFittingWindow):
@@ -2947,3 +3012,17 @@ class MqmasCzjzekParamFrame(AbstractParamFrame):
         method = self.entries['method'][0].currentIndex()
         out['extra'] = [I, MQ, self.cqLib, self.etaLib, self.lib, shear, scale, method]
         return (out, out['extra'])
+
+    def checkResults(self,numExp,struc):
+        #After fit, set lor and gauss absolute
+        locList = self.getRedLocList()
+        for i in range(numExp):
+           if struc['lor1'][i][0] == 1:
+                self.fitParamList[locList]['lor1'][i][0] = abs(self.fitParamList[locList]['lor1'][i][0])
+           if struc['gauss1'][i][0] == 1:
+                self.fitParamList[locList]['gauss1'][i][0] = abs(self.fitParamList[locList]['gauss1'][i][0])
+           if struc['lor2'][i][0] == 1:
+                self.fitParamList[locList]['lor2'][i][0] = abs(self.fitParamList[locList]['lor2'][i][0])
+           if struc['gauss2'][i][0] == 1:
+                self.fitParamList[locList]['gauss2'][i][0] = abs(self.fitParamList[locList]['gauss2'][i][0])
+

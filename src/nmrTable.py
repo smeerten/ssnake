@@ -232,13 +232,16 @@ class PeriodicTable(QtWidgets.QWidget):
                     color = QtGui.QColor(SPINCOLORS[int(2 * MASTERISOTOPELIST[i]['spin'][int(self.isoSelect[i])])])
                     colorA = QtGui.QColor()
                     colorA.setHsl(color.hslHue(), color.hslSaturation(), 245)
-                    self.freqEditList[i].setStyleSheet('border-style: solid; border-width: 2px; border-color: rgb' + repr(color.getRgb()) + '; background-color: rgb' + repr(colorA.getRgb()) + ';')
+                    self.freqEditList[i].setStyleSheet('border-style: solid;color: rgb(0, 0, 0); border-width: 2px; border-color: rgb' + repr(color.getRgb()) + '; background-color: rgb' + repr(colorA.getRgb()) + ';')
                     self.spinSet.add(MASTERISOTOPELIST[i]['spin'][int(self.isoSelect[i])])
                 else:
                     self.labelList[i].setText(str(i + 1) + ': ' + MASTERISOTOPELIST[i]['name'][int(self.isoSelect[i])])
+                    self.freqEditList[i].setStyleSheet('border-style: solid;color: rgb(0, 0, 0); border-width: 2px;' )
             else:
                 self.labelList[i].setText(str(i + 1) + ': ')
                 self.freqEditList[i].setText('')
+                self.freqEditList[i].setStyleSheet('border-style: solid;color: rgb(0, 0, 0); border-width: 2px;' )
+            self.labelList[i].setStyleSheet('color: rgb(0, 0, 0);')
         self.updLegend()
 
     def updLegend(self):
@@ -250,7 +253,7 @@ class PeriodicTable(QtWidgets.QWidget):
             color = QtGui.QColor(SPINCOLORS[index])
             colorA = QtGui.QColor()
             colorA.setHsl(color.hslHue(), color.hslSaturation(), 245)
-            self.legendEntries[i].setStyleSheet('border-style: solid; border-width: 2px; border-color: rgb' + repr(color.getRgb()) + '; background-color: rgb' + repr(colorA.getRgb()) + ';')
+            self.legendEntries[i].setStyleSheet('color: rgb(0, 0, 0);border-style: solid; border-width: 2px; border-color: rgb' + repr(color.getRgb()) + '; background-color: rgb' + repr(colorA.getRgb()) + ';')
             self.legendEntries[i].setText(SPINNAMES[index])
             self.legendEntries[i].show()
 
