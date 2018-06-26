@@ -329,7 +329,7 @@ class MainProgram(QtWidgets.QMainWindow):
         if color == 'red':
             self.statusBar.setStyleSheet("QStatusBar{padding-left:8px;color:red;}")
         else:
-            self.statusBar.setStyleSheet("QStatusBar{padding-left:8px;color:black;}")
+            self.statusBar.setStyleSheet("QStatusBar{padding-left:8px;}")
         self.statusBar.showMessage(msg, 10000)
 
     def initToolbar(self):
