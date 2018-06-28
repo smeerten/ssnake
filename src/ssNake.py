@@ -182,13 +182,19 @@ class MainProgram(QtWidgets.QMainWindow):
         self.dropEvent(QtWidgets.QApplication.instance().clipboard())
 
     def handleCopy(self):
+        """ Makes a pixelwise copy of the currently viewed canvas """
         if self.mainWindow is None:
             return
+        if issubclass(type(self.mainWindow),fit.TabFittingWindow): #If fitting, take canvas from current tab
+            canvas = self.mainWindow.tabs.currentWidget().canvas
+        else:
+            canvas = self.mainWindow.canvas
+
         if QT == 5:
             screen = self.root.primaryScreen()
-            pixmap = screen.grabWindow(self.mainWindow.canvas.winId())
+            pixmap = screen.grabWindow(canvas.winId())
         else:
-            pixmap = QtGui.QPixmap.grabWidget(self.mainWindow.canvas)
+            pixmap = QtGui.QPixmap.grabWidget(canvas)
         QtWidgets.QApplication.clipboard().setPixmap(pixmap)
 
     def resetDefaults(self):
