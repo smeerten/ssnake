@@ -3276,7 +3276,7 @@ class ApodWindow(wc.ToolWindows):
         cos2DegEntry.setEnabled(False)
         self.grid.addWidget(cos2DegEntry, 8, 1)
         self.entries['cos2'].append(cos2DegEntry)
-        cos2PhLabel = wc.QLeftLabel("Phase:")
+        cos2PhLabel = wc.QLeftLabel("Phase [deg]:")
         cos2PhLabel.setEnabled(False)
         self.entries['cos2'].append(cos2PhLabel)
         self.grid.addWidget(cos2PhLabel, 8, 0)
