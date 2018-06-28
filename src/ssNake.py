@@ -1253,8 +1253,9 @@ class MainProgram(QtWidgets.QMainWindow):
             self.tabs.setCurrentIndex(self.workspaceNum)
             self.updWorkspaceMenu(self.workspaceNames[self.workspaceNum])
             self.menuCheck()
-            if type(self.mainWindow.current) is views.CurrentMulti:
-                self.mainWindow.sideframe.checkChanged()
+            if type(self.mainWindow) is not SaveFigureWindow:
+                if type(self.mainWindow.current) is views.CurrentMulti:
+                    self.mainWindow.sideframe.checkChanged()
 
     def duplicateWorkspace(self, *args):
         name = self.askName()
