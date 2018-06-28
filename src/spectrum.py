@@ -860,8 +860,10 @@ class Spectrum(object):
             Message = Message + "Lorentzian = " + str(lor) + ", "
         if gauss is not None:
             Message = Message + "Gaussian = " + str(gauss) + ", "
-        if cos2 is not None:
-            Message = Message + "Cos2 = " + str(cos2) + ", "
+        if cos2[0] is not None:
+            Message = Message + "Cos2 frequency = " + str(cos2[0]) + ", "
+        if cos2[1] is not None:
+            Message = Message + "Cos2 phase = " + str(cos2[1]) + ", "
         if hamming is not None:
             Message = Message + "Hamming = " + str(hamming) + ", "
         if shift != 0.0:

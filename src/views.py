@@ -317,7 +317,7 @@ class Current1D(PlotFrame):
         self.upd()
         self.showFid()
 
-    def apodPreview(self, lor=None, gauss=None, cos2=None, hamming=None, shift=0.0, shifting=0.0, shiftingAxes=None):  # display the 1D data including the apodization function
+    def apodPreview(self, lor=None, gauss=None, cos2= [None, None], hamming=None, shift=0.0, shifting=0.0, shiftingAxes=None):  # display the 1D data including the apodization function
         y = self.data1D.data.copy()
         preview = True
         if shiftingAxes is None:
@@ -338,7 +338,7 @@ class Current1D(PlotFrame):
             self.showFid(y)
         self.upd()
     
-    def applyApod(self, lor=None, gauss=None, cos2=None, hamming=None, shift=0.0, shifting=0.0, shiftingAxes=0, select=False):  # apply the apodization to the actual data
+    def applyApod(self, lor=None, gauss=None, cos2= [None,None], hamming=None, shift=0.0, shifting=0.0, shiftingAxes=0, select=False):  # apply the apodization to the actual data
         if select:
             selectSlice = self.getSelect()
         else:

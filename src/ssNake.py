@@ -3210,21 +3210,21 @@ class ApodWindow(wc.ToolWindows):
 
     def __init__(self, parent):
         super(ApodWindow, self).__init__(parent)
-        self.entries = []
-        self.ticks = []
+        self.entries = {}
+        self.ticks = {}
         self.maximum = 100.0 * self.father.current.sw() / (self.father.current.len())
         self.lorstep = 1.0
         self.gaussstep = 1.0
         self.available = True
         lorTick = QtWidgets.QCheckBox("Lorentzian:")
-        lorTick.toggled.connect(lambda: self.checkEval(0))
+        lorTick.toggled.connect(lambda: self.checkEval('lor'))
         self.grid.addWidget(lorTick, 0, 0, 1, 3)
-        self.ticks.append(lorTick)
+        self.ticks['lor'] = lorTick
         lorEntry = wc.QLineEdit("0.00", self.apodPreview)
         lorEntry.setMinimumWidth(150)
         lorEntry.setEnabled(False)
         self.grid.addWidget(lorEntry, 1, 1)
-        self.entries.append(lorEntry)
+        self.entries['lor'] = [lorEntry]
         leftLor = QtWidgets.QPushButton("<")
         leftLor.clicked.connect(lambda: self.stepLB(-0.5 * self.father.current.sw() / (self.father.current.len()), 0))
         leftLor.setAutoRepeat(True)
@@ -3239,14 +3239,14 @@ class ApodWindow(wc.ToolWindows):
         self.grid.addWidget(self.lorScale, 2, 0, 1, 3)
         self.lorMax = 100.0 * self.father.current.sw() / (self.father.current.len())
         gaussTick = QtWidgets.QCheckBox("Gaussian:")
-        gaussTick.toggled.connect(lambda: self.checkEval(1))
+        gaussTick.toggled.connect(lambda: self.checkEval('gauss'))
         self.grid.addWidget(gaussTick, 3, 0, 1, 3)
-        self.ticks.append(gaussTick)
+        self.ticks['gauss'] = gaussTick
         gaussEntry = wc.QLineEdit("0.00", self.apodPreview)
         gaussEntry.setEnabled(False)
         gaussEntry.setMinimumWidth(150)
         self.grid.addWidget(gaussEntry, 4, 1)
-        self.entries.append(gaussEntry)
+        self.entries['gauss'] = [gaussEntry]
         leftGauss = QtWidgets.QPushButton("<")
         leftGauss.clicked.connect(lambda: self.stepLB(0, -0.5 * self.father.current.sw() / (self.father.current.len())))
         leftGauss.setAutoRepeat(True)
@@ -3261,26 +3261,39 @@ class ApodWindow(wc.ToolWindows):
         self.grid.addWidget(self.gaussScale, 5, 0, 1, 3)
         self.gaussMax = 100.0 * self.father.current.sw() / (self.father.current.len())
         cos2Tick = QtWidgets.QCheckBox("Cos^2:")
-        cos2Tick.clicked.connect(lambda: self.checkEval(2))
+        cos2Tick.clicked.connect(lambda: self.checkEval('cos2'))
         self.grid.addWidget(cos2Tick, 6, 0, 1, 3)
-        self.ticks.append(cos2Tick)
+        self.ticks['cos2'] = cos2Tick
         cos2Entry = wc.QLineEdit("1.00", self.apodPreview)
         cos2Entry.setEnabled(False)
         self.grid.addWidget(cos2Entry, 7, 1)
-        self.entries.append(cos2Entry)
+        self.entries['cos2'] = [cos2Entry]
+        cos2Label = wc.QLeftLabel("Frequency:")
+        cos2Label.setEnabled(False)
+        self.entries['cos2'].append(cos2Label)
+        self.grid.addWidget(cos2Label, 7, 0)
+        cos2DegEntry = wc.QLineEdit("0", self.apodPreview)
+        cos2DegEntry.setEnabled(False)
+        self.grid.addWidget(cos2DegEntry, 8, 1)
+        self.entries['cos2'].append(cos2DegEntry)
+        cos2PhLabel = wc.QLeftLabel("Phase:")
+        cos2PhLabel.setEnabled(False)
+        self.entries['cos2'].append(cos2PhLabel)
+        self.grid.addWidget(cos2PhLabel, 8, 0)
+
         hammingTick = QtWidgets.QCheckBox("Hamming:")
-        hammingTick.clicked.connect(lambda: self.checkEval(3))
-        self.grid.addWidget(hammingTick, 8, 0, 1, 3)
-        self.ticks.append(hammingTick)
+        hammingTick.clicked.connect(lambda: self.checkEval('hamming'))
+        self.grid.addWidget(hammingTick, 9, 0, 1, 3)
+        self.ticks['hamming'] = hammingTick
         hammingEntry = wc.QLineEdit("1.00", self.apodPreview)
         hammingEntry.setEnabled(False)
-        self.grid.addWidget(hammingEntry, 9, 1)
-        self.entries.append(hammingEntry)
-        self.grid.addWidget(wc.QLabel("Shift:"), 10, 0, 1, 3)
+        self.grid.addWidget(hammingEntry, 10, 1)
+        self.entries['hamming'] = [hammingEntry]
+        self.grid.addWidget(wc.QLabel("Shift:"), 11, 0, 1, 3)
         self.shiftEntry = wc.QLineEdit("0.00", self.apodPreview)
-        self.grid.addWidget(self.shiftEntry, 11, 1)
+        self.grid.addWidget(self.shiftEntry, 12, 1)
         if self.father.current.data.ndim() > 1:
-            self.grid.addWidget(wc.QLabel("Shifting:"), 12, 0, 1, 3)
+            self.grid.addWidget(wc.QLabel("Shifting:"), 13, 0, 1, 3)
             self.shiftingDropdown = QtWidgets.QComboBox()
             self.shiftingDropdown.addItems(['User Defined', 'Spin 3/2, -3Q (7/9)', 'Spin 5/2, 3Q (19/12)',
                                             'Spin 5/2, -5Q (25/12)', 'Spin 7/2, 3Q (101/45)', 'Spin 7/2, 5Q (11/9)',
@@ -3291,43 +3304,45 @@ class ApodWindow(wc.ToolWindows):
                                  25.0 / 12.0, 101.0 / 45.0, 11.0 / 9.0,
                                  161.0 / 45.0, 91.0 / 36.0, 95.0 / 36.0,
                                  7.0 / 18.0, 31.0 / 6.0]
-            self.grid.addWidget(self.shiftingDropdown, 13, 1)
+            self.grid.addWidget(self.shiftingDropdown, 14, 1)
             self.shiftingEntry = wc.QLineEdit("0.00", self.apodPreview)
-            self.grid.addWidget(self.shiftingEntry, 14, 1)
+            self.grid.addWidget(self.shiftingEntry, 15, 1)
             self.shiftingAxes = QtWidgets.QComboBox()
             self.shiftingValues = list(map(str, np.delete(range(1, self.father.current.data.ndim() + 1), self.father.current.axes[-1])))
             self.shiftingAxes.addItems(self.shiftingValues)
             self.shiftingAxes.currentIndexChanged.connect(self.apodPreview)
-            self.grid.addWidget(self.shiftingAxes, 15, 1)
+            self.grid.addWidget(self.shiftingAxes, 16, 1)
 
     def dropdownChanged(self):
         index = self.shiftingDropdown.currentIndex()
         self.shiftingEntry.setText("%.9f" % self.shiftingList[index])
         self.apodPreview()
 
-    def checkEval(self, num):
-        if self.ticks[num].isChecked():
-            self.entries[num].setEnabled(True)
+    def checkEval(self, key):
+        if self.ticks[key].isChecked():
+            for elem in self.entries[key]:
+                elem.setEnabled(True)
         else:
-            self.entries[num].setEnabled(False)
-        if num == 0 or num == 1:  # for lorentzian and gaussian
-            if safeEval(self.entries[num].text()) != 0.0:  # only update if value was not zero
+            for elem in self.entries[key]:
+                elem.setEnabled(False)
+        if key == 'lor' or key == 'gauss':  # for lorentzian and gaussian
+            if safeEval(self.entries[key][0].text()) != 0.0:  # only update if value was not zero
                 self.apodPreview()
         else:
             self.apodPreview()
 
     def setLor(self, value, *args):
         if self.available:
-            self.entries[0].setText('%.4g' % (float(value) * self.maximum / self.RESOLUTION))
-            if not self.ticks[0].isChecked():
-                self.ticks[0].setChecked(1)
+            self.entries['lor'][0].setText('%.4g' % (float(value) * self.maximum / self.RESOLUTION))
+            if not self.ticks['lor'].isChecked():
+                self.ticks['lor'].setChecked(1)
             self.apodPreview()
 
     def setGauss(self, value, *args):
         if self.available:
-            self.entries[1].setText('%.4g' % (float(value) * self.maximum / self.RESOLUTION))
-            if not self.ticks[1].isChecked():
-                self.ticks[1].setChecked(1)
+            self.entries['gauss'][0].setText('%.4g' % (float(value) * self.maximum / self.RESOLUTION))
+            if not self.ticks['gauss'].isChecked():
+                self.ticks['gauss'].setChecked(1)
             self.apodPreview()
 
     def apodPreview(self, *args):
@@ -3335,35 +3350,42 @@ class ApodWindow(wc.ToolWindows):
         lor = None
         gauss = None
         cos2 = None
+        cos2Ph = None
         hamming = None
         shifting = None
         shiftingAxes = 0
-        if self.ticks[0].isChecked():
-            lor = safeEval(self.entries[0].text())
+        if self.ticks['lor'].isChecked():
+            lor = safeEval(self.entries['lor'][0].text())
             if lor is None:
                 self.father.current.showFid()
                 raise SsnakeException('Apodize: Lorentzian value is not valid!')
-            self.entries[0].setText('%.4g' % lor)
+            self.entries['lor'][0].setText('%.4g' % lor)
             self.lorScale.setValue(round(lor * self.RESOLUTION / self.maximum))
-        if self.ticks[1].isChecked():
-            gauss = safeEval(self.entries[1].text())
+        if self.ticks['gauss'].isChecked():
+            gauss = safeEval(self.entries['gauss'][0].text())
             if gauss is None:
                 self.father.current.showFid()
                 raise SsnakeException('Apodize: Gaussian value is not valid!')
-            self.entries[1].setText('%.4g' % gauss)
+            self.entries['gauss'][0].setText('%.4g' % gauss)
             self.gaussScale.setValue(round(gauss * self.RESOLUTION / self.maximum))
-        if self.ticks[2].isChecked():
-            cos2 = safeEval(self.entries[2].text())
+        if self.ticks['cos2'].isChecked():
+            cos2 = safeEval(self.entries['cos2'][0].text())
             if cos2 is None:
                 self.father.current.showFid()
-                raise SsnakeException('Apodize: cos^2 value is not valid!')
-            self.entries[2].setText('%.4g' % cos2)
-        if self.ticks[3].isChecked():
-            hamming = safeEval(self.entries[3].text())
+                raise SsnakeException('Apodize: cos^2 frequency value is not valid!')
+            self.entries['cos2'][0].setText('%.4g' % cos2)
+        if self.ticks['cos2'].isChecked():
+            cos2Ph = safeEval(self.entries['cos2'][2].text())
+            if cos2Ph is None:
+                self.father.current.showFid()
+                raise SsnakeException('Apodize: cos^2 phase value is not valid!')
+            self.entries['cos2'][2].setText('%.4g' % cos2Ph)
+        if self.ticks['hamming'].isChecked():
+            hamming = safeEval(self.entries['hamming'][0].text())
             if hamming is None:
                 self.father.current.showFid()
                 raise SsnakeException('Apodize: Hamming value is not valid!')
-            self.entries[3].setText('%.4g' % hamming)
+            self.entries['hamming'][0].setText('%.4g' % hamming)
         shift = safeEval(self.shiftEntry.text())
         if shift is None:
             self.father.current.showFid()
@@ -3379,7 +3401,7 @@ class ApodWindow(wc.ToolWindows):
         else:
             shiftingAxes = None
         self.available = True
-        self.father.current.apodPreview(lor, gauss, cos2, hamming, shift, shifting, shiftingAxes)
+        self.father.current.apodPreview(lor, gauss, [cos2, cos2Ph], hamming, shift, shifting, shiftingAxes)
 
     def stepLB(self, lorincr, gaussincr):
         if QtWidgets.qApp.keyboardModifiers() & QtCore.Qt.ControlModifier:
@@ -3388,46 +3410,52 @@ class ApodWindow(wc.ToolWindows):
             multiplier = 100
         else:
             multiplier = 1
-        lor = safeEval(self.entries[0].text())
+        lor = safeEval(self.entries['lor'][0].text())
         if lor is None:
             self.father.current.showFid()
             raise SsnakeException('Apodize: Lorentzian value is not valid!')
-        self.entries[0].setText('%.4g' % (lor + multiplier * lorincr * self.lorstep))
-        gauss = safeEval(self.entries[1].text())
+        self.entries['lor'][0].setText('%.4g' % (lor + multiplier * lorincr * self.lorstep))
+        gauss = safeEval(self.entries['gauss'][0].text())
         if gauss is None:
             self.father.current.showFid()
             raise SsnakeException('Apodize: Gaussian value is not valid!')
-        self.entries[1].setText('%.4g' % (gauss + multiplier * gaussincr * self.gaussstep))
-        if (lorincr != 0) and (not self.ticks[0].isChecked()):
-            self.ticks[0].setChecked(1)
-        if (gaussincr != 0) and (not self.ticks[1].isChecked()):
-            self.ticks[1].setChecked(1)
+        self.entries['gauss'][0].setText('%.4g' % (gauss + multiplier * gaussincr * self.gaussstep))
+        if (lorincr != 0) and (not self.ticks['lor'].isChecked()):
+            self.ticks['lor'].setChecked(1)
+        if (gaussincr != 0) and (not self.ticks['gauss'].isChecked()):
+            self.ticks['gauss'].setChecked(1)
         self.apodPreview()
 
     def applyFunc(self):
         lor = None
         gauss = None
         cos2 = None
+        cos2Ph = None
         hamming = None
         shifting = None
         shiftingAxes = 0
-        if self.ticks[0].isChecked():
-            lor = safeEval(self.entries[0].text())
+        if self.ticks['lor'].isChecked():
+            lor = safeEval(self.entries['lor'][0].text())
             if lor is None:
                 self.father.current.showFid()
                 raise SsnakeException('Apodize: Lorentzian value is not valid!')
-        if self.ticks[1].isChecked():
-            gauss = safeEval(self.entries[1].text())
+        if self.ticks['gauss'].isChecked():
+            gauss = safeEval(self.entries['gauss'][0].text())
             if gauss is None:
                 self.father.current.showFid()
                 raise SsnakeException('Apodize: Gaussian value is not valid!')
-        if self.ticks[2].isChecked():
-            cos2 = safeEval(self.entries[2].text())
+        if self.ticks['cos2'].isChecked():
+            cos2 = safeEval(self.entries['cos2'][0].text())
             if cos2 is None:
                 self.father.current.showFid()
-                raise SsnakeException('Apodize: cos^2 value is not valid!')
-        if self.ticks[3].isChecked():
-            hamming = safeEval(self.entries[3].text())
+                raise SsnakeException('Apodize: cos^2 frequency value is not valid!')
+        if self.ticks['cos2'].isChecked():
+            cos2Ph = safeEval(self.entries['cos2'][2].text())
+            if cos2Ph is None:
+                self.father.current.showFid()
+                raise SsnakeException('Apodize: cos^2 phase value is not valid!')
+        if self.ticks['hamming'].isChecked():
+            hamming = safeEval(self.entries['hamming'][0].text())
             if hamming is None:
                 self.father.current.showFid()
                 raise SsnakeException('Apodize: Hamming value is not valid!')
@@ -3443,7 +3471,7 @@ class ApodWindow(wc.ToolWindows):
             shiftingAxes = int(self.shiftingValues[self.shiftingAxes.currentIndex()]) - 1
         else:
             shiftingAxes = None
-        self.father.current.applyApod(lor, gauss, cos2, hamming, shift, shifting, shiftingAxes, (self.singleSlice.isChecked()))
+        self.father.current.applyApod(lor, gauss, [cos2, cos2Ph], hamming, shift, shifting, shiftingAxes, (self.singleSlice.isChecked()))
 
 #######################################################################################
 
