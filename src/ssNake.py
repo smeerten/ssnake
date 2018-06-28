@@ -184,7 +184,11 @@ class MainProgram(QtWidgets.QMainWindow):
     def handleCopy(self):
         if self.mainWindow is None:
             return
-        pixmap = QtGui.QPixmap.grabWidget(self.mainWindow.canvas)
+        if QT == 5:
+            screen = self.root.primaryScreen()
+            pixmap = screen.grabWindow(self.mainWindow.canvas.winId())
+        else:
+            pixmap = QtGui.QPixmap.grabWidget(self.mainWindow.canvas)
         QtWidgets.QApplication.clipboard().setPixmap(pixmap)
 
     def resetDefaults(self):
