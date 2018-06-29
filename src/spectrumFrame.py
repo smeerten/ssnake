@@ -297,9 +297,19 @@ class PlotFrame(object):
                 self.rect[1] = None
             if event.xdata is not None:
                 self.rect[0] = self.ax.axvline(event.xdata, c='k', linestyle='--')
-            if self.peakPick == 2:
+            if self.peakPick in [2, 3]:
                 if event.ydata is not None:
                     self.rect[1] = self.ax.axhline(event.ydata, c='k', linestyle='--')
+                if self.peakPick == 3:
+                    xdata = self.xax() * self.getAxMult(self.spec(), self.getAxType(), self.getppm(), self.freq(), self.ref())
+                    ydata = self.xax(-2) * self.getAxMult(self.spec(-2), self.getAxType(-2), self.getppm(-2), self.freq(-2), self.ref(-2))
+                    if event.xdata is None or event.ydata is None:
+                        return
+                    idx = np.argmin(np.abs(xdata - event.xdata))
+                    idy = np.argmin(np.abs(ydata - event.ydata))
+                    if self.peakPickFunc is not None:
+                        tmpdata = np.real(self.getDataType(self.data1D.getHyperData(0)[idy, idx]))
+                        self.peakPickFunc((idx, xdata[idx], tmpdata, idy, ydata[idy]))
             self.canvas.draw_idle()
         elif self.leftMouse and (self.zoomX1 is not None) and (self.zoomY1 is not None):
             if self.logx or self.logy:

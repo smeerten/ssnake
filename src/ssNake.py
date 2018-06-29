@@ -2205,7 +2205,7 @@ class SideFrame(QtWidgets.QScrollArea):
                 self.contourProjFrame.addWidget(self.projTraceRight, 3, 1)
                 if current.viewSettings["projRight"] is not 4:
                     self.projTraceRight.hide()
-                self.selectTraceButton = QtWidgets.QPushButton("Select traces", self)
+                self.selectTraceButton = QtWidgets.QPushButton("Select slices", self)
                 self.selectTraceButton.clicked.connect(self.selectTraces)
                 self.contourProjFrame.addWidget(self.selectTraceButton, 4, 1)
                 if (current.viewSettings["projTop"] is not 4) and (current.viewSettings["projRight"] is not 4):
@@ -2455,7 +2455,7 @@ class SideFrame(QtWidgets.QScrollArea):
 
     def selectTraces(self, *args):
         self.father.current.peakPickFunc = lambda pos, self=self: self.pickedTraces(pos)
-        self.father.current.peakPick = 2
+        self.father.current.peakPick = 3
 
     def pickedTraces(self, pos):
         self.father.current.setProjTraces(pos[0], 1)
