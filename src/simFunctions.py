@@ -379,18 +379,18 @@ def quadFreq(I, m1, m2, spinspeed, numssb, angle, D2, D4, weight, freq, pos, cq,
         v = v + vConstant[:,np.newaxis]
     return v, tot
 
-def quadCzjzekFunc(x, freq, sw, axMult, extra, bgrnd, d, pos, sigma, wq0, eta0, amp, lor, gauss):
+def quadCzjzekFunc(x, freq, sw, axMult, extra, bgrnd, d, pos, sigma, cq0, eta0, amp, lor, gauss):
     x = x[-1]
     freq = freq[-1]
     sw = sw[-1]
-    method, lib, wq, eta = extra
+    method, lib, cq, eta = extra
     if method == 0:
-        wq0 = 0
+        cq0 = 0
         eta0 = 0
     pos /= axMult
     sigma *= 1e6
-    wq0 *= 1e6
-    czjzek = Czjzek.czjzekIntensities(sigma, d, wq, eta, wq0, eta0)
+    cq0 *= 1e6
+    czjzek = Czjzek.czjzekIntensities(sigma, d, cq, eta, cq0, eta0)
     fid = np.dot(czjzek, lib)
     length = len(x)
     t = np.fft.fftfreq(length, sw/float(length))
@@ -413,28 +413,26 @@ def mqmasFunc(x, freq, sw, axMult, extra, bgrnd, spinspeed, pos, cq, eta, amp, l
     v1 *= scale
     return amp * makeMQMASSpectrum(x, sw, [np.real(v1.flatten()), np.real(v2.flatten())], [gauss1, gauss2], [lor1, lor2], np.real(tot1*tot2).flatten())
 
-def genLib(length, minWq, maxWq, minEta, maxEta, numWq, numEta, extra, freq, sw, spinspeed):
-    I = extra[1]
-    wq, eta = np.meshgrid(np.linspace(minWq, maxWq, numWq), np.linspace(minEta, maxEta, numEta))
-    wq = wq.flatten()
+def genLib(length, minCq, maxCq, minEta, maxEta, numCq, numEta, extra, freq, sw, spinspeed):
+    cq, eta = np.meshgrid(np.linspace(minCq, maxCq, numCq), np.linspace(minEta, maxEta, numEta))
+    cq = cq.flatten()
     eta = eta.flatten()
-    cq = wq * (4 * I * (2 * I - 1) / (2 * np.pi))
     x = np.fft.fftshift(np.fft.fftfreq(length, 1/float(sw)))
-    lib = np.zeros((len(wq), length), dtype=complex)
+    lib = np.zeros((len(cq), length), dtype=complex)
     for i, (cqi, etai) in enumerate(zip(cq, eta)):
         lib[i] = quadFunc([x], [freq], [sw], 1.0, extra, 0.0, spinspeed, 0.0, cqi, etai, 1.0, 0.0, 0.0)
-    return lib, wq*1e6, eta
+    return lib, cq*1e6, eta
 
-def mqmasCzjzekFunc(x, freq, sw, axMult, extra, bgrnd, d, pos, sigma, sigmaCS, wq0, eta0, amp, lor2, gauss2, lor1, gauss1):
-    I, mq, wq, eta, lib, shear, scale, method = extra
+def mqmasCzjzekFunc(x, freq, sw, axMult, extra, bgrnd, d, pos, sigma, sigmaCS, cq0, eta0, amp, lor2, gauss2, lor1, gauss1):
+    I, mq, cq, eta, lib, shear, scale, method = extra
     if method == 1:
-        wq0 *= 1e6
+        cq0 *= 1e6
     else:
-        wq0 = 0
+        cq0 = 0
         eta0 = 0
     pos /= axMult
     sigma *= 1e6
-    czjzek = Czjzek.czjzekIntensities(sigma, d, wq, eta, wq0, eta0)
+    czjzek = Czjzek.czjzekIntensities(sigma, d, cq, eta, cq0, eta0)
     length2 = len(x[-1])
     czjzek *= length2 / sw[-1] / sw[-2]
     newLib = czjzek[...,np.newaxis]*lib
@@ -446,7 +444,6 @@ def mqmasCzjzekFunc(x, freq, sw, axMult, extra, bgrnd, d, pos, sigma, sigmaCS, w
     diff2 = (x[-1][1] - x[-1][0])*0.5
     apod2 = np.exp(-np.pi * np.abs(lor2 * t2) - ((np.pi * np.abs(gauss2) * t2)**2) / (4 * np.log(2)))
     apod1 = np.exp(-np.pi * np.abs(lor1 * t1) - ((np.pi * np.abs(gauss1) * t1)**2) / (4 * np.log(2)))
-    cq = wq*2*I*(2*I-1)/(2*np.pi)
     V40 = 1.0 / 140 * (18  + eta**2)
     T40_m = mq * (18 * I * (I + 1) - 34 * (mq/2.0)**2 - 5)
     T40_1 = (18 * I * (I + 1) - 34 * (0.5)**2 - 5)

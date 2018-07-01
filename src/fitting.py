@@ -1980,23 +1980,23 @@ class CzjzekPrefWindow(QtWidgets.QWidget):
         self.chengEntry.setAlignment(QtCore.Qt.AlignHCenter)
         self.chengEntry.setValue(self.father.cheng)
         grid.addWidget(self.chengEntry, 1, 1)
-        grid.addWidget(wc.QLabel(u"\u03c9<sub>Q</sub> grid size:"), 2, 0)
-        self.wqsteps = QtWidgets.QSpinBox()
-        self.wqsteps.setMinimum(2)
-        self.wqsteps.setMaximum(1000)
-        self.wqsteps.setAlignment(QtCore.Qt.AlignHCenter) 
-        grid.addWidget(self.wqsteps, 3, 0)
+        grid.addWidget(wc.QLabel(u"C<sub>Q</sub> grid size:"), 2, 0)
+        self.cqsteps = QtWidgets.QSpinBox()
+        self.cqsteps.setMinimum(2)
+        self.cqsteps.setMaximum(1000)
+        self.cqsteps.setAlignment(QtCore.Qt.AlignHCenter) 
+        grid.addWidget(self.cqsteps, 3, 0)
         grid.addWidget(wc.QLabel(u"\u03b7 grid size:"), 2, 1)
         self.etasteps = QtWidgets.QSpinBox()
         self.etasteps.setMinimum(2)
         self.etasteps.setMaximum(1000)
         self.etasteps.setAlignment(QtCore.Qt.AlignHCenter) 
         grid.addWidget(self.etasteps, 3, 1)
-        grid.addWidget(wc.QLabel(u"\u03BD<sub>Q</sub> limits [MHz]:"), 4, 0, 1, 2)
-        self.wqmin = wc.QLineEdit(str(self.father.wqmin), self.checkWq)
-        grid.addWidget(self.wqmin, 5, 0)
-        self.wqmax = wc.QLineEdit(str(self.father.wqmax), self.checkWq)
-        grid.addWidget(self.wqmax, 5, 1)
+        grid.addWidget(wc.QLabel(u"C<sub>Q</sub> limits [MHz]:"), 4, 0, 1, 2)
+        self.cqmin = wc.QLineEdit(str(self.father.cqmin), self.checkCq)
+        grid.addWidget(self.cqmin, 5, 0)
+        self.cqmax = wc.QLineEdit(str(self.father.cqmax), self.checkCq)
+        grid.addWidget(self.cqmax, 5, 1)
         grid.addWidget(wc.QLabel(u"\u03B7 limits:"), 6, 0, 1, 2)
         self.etamin = wc.QLineEdit(str(self.father.etamin), self.checkEta)
         grid.addWidget(self.etamin, 7, 0)
@@ -2094,47 +2094,47 @@ class CzjzekPrefWindow(QtWidgets.QWidget):
             self.angleEntry.setText(self.father.angle)
             self.spinEntry.setText(str(self.father.spinspeed))
             self.satBoolEntry.setChecked(self.father.satBool)
-        self.wqsteps.setValue(self.father.wqsteps)
+        self.cqsteps.setValue(self.father.cqsteps)
         self.etasteps.setValue(self.father.etasteps)
-        self.wqmin.setText(str(self.father.wqmin))
-        self.wqmax.setText(str(self.father.wqmax))
+        self.cqmin.setText(str(self.father.cqmin))
+        self.cqmax.setText(str(self.father.cqmax))
         self.etamin.setText(str(self.father.etamin))
         self.etamax.setText(str(self.father.etamax))
 
     def plotDist(self):
         self.ax.cla()
-        wqsteps = self.wqsteps.value()
+        cqsteps = self.cqsteps.value()
         etasteps = self.etasteps.value()
-        wqmax = safeEval(self.wqmax.text(), type='FI')
-        wqmin = safeEval(self.wqmin.text(), type='FI')
+        cqmax = safeEval(self.cqmax.text(), type='FI')
+        cqmin = safeEval(self.cqmin.text(), type='FI')
         etamax = safeEval(self.etamax.text(), type='FI')
         etamin = safeEval(self.etamin.text(), type='FI')
-        wq, eta = np.meshgrid(np.linspace(wqmin, wqmax, wqsteps), np.linspace(etamin, etamax, etasteps))
+        cq, eta = np.meshgrid(np.linspace(cqmin, cqmax, cqsteps), np.linspace(etamin, etamax, etasteps))
         method = self.father.entries['method'][0].currentIndex()
         site = self.site.value() - 1
         d = safeEval(self.father.entries['d'][site].text(), type='FI')
         sigma = safeEval(self.father.entries['sigma'][site].text(), type='FI')
-        wq0 = safeEval(self.father.entries['wq0'][site].text(), type='FI')
+        cq0 = safeEval(self.father.entries['cq0'][site].text(), type='FI')
         eta0 = safeEval(self.father.entries['eta0'][site].text(), type='FI')
         if method == 0:
-            czjzek = Czjzek.czjzekIntensities(sigma, d, wq.flatten(), eta.flatten())
+            czjzek = Czjzek.czjzekIntensities(sigma, d, cq.flatten(), eta.flatten())
         else:
-            czjzek = Czjzek.czjzekIntensities(sigma, d, wq.flatten(), eta.flatten(), wq0, eta0)
-        czjzek = czjzek.reshape(etasteps, wqsteps)
-        self.ax.contour(wq.transpose(), eta.transpose(), czjzek.transpose(), 10)
-        self.ax.set_xlabel(u"\u03BD$_Q$ [MHz]")
+            czjzek = Czjzek.czjzekIntensities(sigma, d, cq.flatten(), eta.flatten(), cq0, eta0)
+        czjzek = czjzek.reshape(etasteps, cqsteps)
+        self.ax.contour(cq.transpose(), eta.transpose(), czjzek.transpose(), 10)
+        self.ax.set_xlabel(u"C$_Q$ [MHz]")
         self.ax.set_ylabel(u"\u03B7")
         self.canvas.draw()
 
-    def checkWq(self):
-        inp = safeEval(self.wqmax.text(), type='FI')
+    def checkCq(self):
+        inp = safeEval(self.cqmax.text(), type='FI')
         if inp is None:
             return False
-        self.wqmax.setText(str(float(inp)))
-        inp = safeEval(self.wqmin.text(), type='FI')
+        self.cqmax.setText(str(float(inp)))
+        inp = safeEval(self.cqmin.text(), type='FI')
         if inp is None:
             return False
-        self.wqmin.setText(str(float(inp)))
+        self.cqmin.setText(str(float(inp)))
         return True
 
     def checkEta(self):
@@ -2155,7 +2155,7 @@ class CzjzekPrefWindow(QtWidgets.QWidget):
         self.deleteLater()
 
     def generate(self, *args):
-        self.father.wqsteps = self.wqsteps.value()
+        self.father.cqsteps = self.cqsteps.value()
         self.father.etasteps = self.etasteps.value()
         self.father.cheng = self.chengEntry.value()
         if not self.mqmas:
@@ -2170,14 +2170,14 @@ class CzjzekPrefWindow(QtWidgets.QWidget):
             self.father.satBool = self.satBoolEntry.isChecked()
         else:
             self.father.I = self.Ientry.currentIndex() + 1.5
-        inp = safeEval(self.wqmax.text(), type='FI')
+        inp = safeEval(self.cqmax.text(), type='FI')
         if inp is None:
-            raise FittingException(u"\u03BD_Q_max value not valid.")
-        self.father.wqmax = abs(safeEval(self.wqmax.text()))
-        inp = abs(safeEval(self.wqmin.text(), type='FI'))
+            raise FittingException(u"C_Q_max value not valid.")
+        self.father.cqmax = abs(safeEval(self.cqmax.text()))
+        inp = abs(safeEval(self.cqmin.text(), type='FI'))
         if inp is None:
-            raise FittingException(u"\03BD_Q_min value not valid.")
-        self.father.wqmin = abs(safeEval(self.wqmin.text()))
+            raise FittingException(u"C_Q_min value not valid.")
+        self.father.cqmin = abs(safeEval(self.cqmin.text()))
         #eta
         inp = safeEval(self.etamax.text(), type='FI')
         if inp is None:
@@ -2217,18 +2217,18 @@ class CzjzekPrefWindow(QtWidgets.QWidget):
         cq = np.array(cq) * 1e6
         eta = np.array(eta)
         data = np.array(data)
-        numWq = len(np.unique(cq))
+        numCq = len(np.unique(cq))
         numEta = len(np.unique(eta))
-        if len(cq) != numWq * numEta:
+        if len(cq) != numCq * numEta:
             raise FittingException("Library to be loaded is not of a rectangular grid in Cq and eta.")
         sortIndex = np.lexsort((cq, eta))
         self.father.cqLib = cq[sortIndex]
         self.father.etaLib = eta[sortIndex]
         self.father.lib = data[sortIndex]
-        self.father.wqsteps = numWq
+        self.father.cqsteps = numCq
         self.father.etasteps = numEta
-        self.father.wqmax = np.max(cq) * 1e-6
-        self.father.wqmin = np.min(cq) * 1e-6
+        self.father.cqmax = np.max(cq) * 1e-6
+        self.father.cqmin = np.min(cq) * 1e-6
         self.father.etamax = np.max(eta)
         self.father.etamin = np.min(eta)
         self.upd()
@@ -2249,16 +2249,16 @@ class QuadCzjzekParamFrame(AbstractParamFrame):
 
     FFT_AXES = (0,)
     SINGLENAMES = ['bgrnd']
-    MULTINAMES = ['d', 'pos', 'sigma', 'wq0', 'eta0', 'amp', 'lor', 'gauss']
+    MULTINAMES = ['d', 'pos', 'sigma', 'cq0', 'eta0', 'amp', 'lor', 'gauss']
     EXTRANAMES = ['method']
-    PARAMTEXT = {'bgrnd': 'Background', 'd': 'd parameter', 'pos': 'Position', 'sigma': 'Sigma', 'wq0': 'Wq0', 'eta0': 'Eta0', 'amp': 'Integral', 'lor': 'Lorentz', 'gauss': 'Gauss'}
+    PARAMTEXT = {'bgrnd': 'Background', 'd': 'd parameter', 'pos': 'Position', 'sigma': 'Sigma', 'cq0': 'Cq0', 'eta0': 'Eta0', 'amp': 'Integral', 'lor': 'Lorentz', 'gauss': 'Gauss'}
 
     def __init__(self, parent, rootwindow, isMain=True):
         self.FITFUNC = simFunc.quadCzjzekFunc
-        self.wqsteps = 50
+        self.cqsteps = 50
         self.etasteps = 10
-        self.wqmax = 4.0
-        self.wqmin = 0.0
+        self.cqmax = 4.0
+        self.cqmin = 0.0
         self.etamax = 1
         self.etamin = 0
         self.lib = None
@@ -2272,7 +2272,7 @@ class QuadCzjzekParamFrame(AbstractParamFrame):
         self.numssb = 32
         self.satBool = False
         self.fullInt = np.sum(parent.getData1D()) * parent.sw() / float(len(parent.getData1D()))
-        self.DEFAULTS = {'bgrnd': [0.0, True], 'pos': [0.0, False], 'd': [5.0, True], 'sigma': [1.0, False], 'wq0': [0.0, True], 'eta0': [0.0, True], 'amp': [self.fullInt, False], 'lor': [10.0, False], 'gauss': [0.0, True]}
+        self.DEFAULTS = {'bgrnd': [0.0, True], 'pos': [0.0, False], 'd': [5.0, True], 'sigma': [1.0, False], 'cq0': [0.0, True], 'eta0': [0.0, True], 'amp': [self.fullInt, False], 'lor': [10.0, False], 'gauss': [0.0, True]}
         super(QuadCzjzekParamFrame, self).__init__(parent, rootwindow, isMain)
         czjzekPrefButton = QtWidgets.QPushButton("Library")
         czjzekPrefButton.clicked.connect(self.createCzjzekPrefWindow)
@@ -2303,7 +2303,7 @@ class QuadCzjzekParamFrame(AbstractParamFrame):
             axUnit = ['Hz', 'kHz', 'MHz'][self.parent.getAxType()]
         self.frame3.addWidget(wc.QLabel("Pos [" + axUnit + "]:"), 1, 2, 1, 2)
         self.frame3.addWidget(wc.QLabel(u"\u03c3 [MHz]:"), 1, 4, 1, 2)
-        self.frame3.addWidget(wc.QLabel(u"\u03BD<sub>Q</sub>0 [MHz]:"), 1, 6, 1, 2)
+        self.frame3.addWidget(wc.QLabel(u"C<sub>Q</sub>0 [MHz]:"), 1, 6, 1, 2)
         self.frame3.addWidget(wc.QLabel(u"\u03B70:"), 1, 8, 1, 2)
         self.frame3.addWidget(wc.QLabel("Integral:"), 1, 10, 1, 2)
         self.frame3.addWidget(wc.QLabel("Lorentz [Hz]:"), 1, 12, 1, 2)
@@ -2322,17 +2322,17 @@ class QuadCzjzekParamFrame(AbstractParamFrame):
     def changeType(self, index):
         if index == 0:
             for i in range(self.FITNUM): 
-                self.entries['wq0'][i].setEnabled(False)
+                self.entries['cq0'][i].setEnabled(False)
                 self.entries['eta0'][i].setEnabled(False)
-                self.ticks['wq0'][i].setChecked(True)
+                self.ticks['cq0'][i].setChecked(True)
                 self.ticks['eta0'][i].setChecked(True)
-                self.ticks['wq0'][i].setEnabled(False)
+                self.ticks['cq0'][i].setEnabled(False)
                 self.ticks['eta0'][i].setEnabled(False)
         elif index == 1:
             for i in range(self.FITNUM): 
-                self.entries['wq0'][i].setEnabled(True)
+                self.entries['cq0'][i].setEnabled(True)
                 self.entries['eta0'][i].setEnabled(True)
-                self.ticks['wq0'][i].setEnabled(True)
+                self.ticks['cq0'][i].setEnabled(True)
                 self.ticks['eta0'][i].setEnabled(True)
 
     def createCzjzekPrefWindow(self, *args):
@@ -2350,7 +2350,7 @@ class QuadCzjzekParamFrame(AbstractParamFrame):
         D2 = simFunc.D2tens(alpha, beta, np.zeros_like(alpha))
         D4 = simFunc.D4tens(alpha, beta, np.zeros_like(alpha))
         extra = [self.satBool, self.I, self.numssb, angle, D2, D4, weight]
-        self.lib, self.cqLib, self.etaLib = simFunc.genLib(len(self.parent.xax()), self.wqmin, self.wqmax, self.etamin, self.etamax, self.wqsteps, self.etasteps, extra, self.parent.freq(), self.parent.sw(), spinspeed)
+        self.lib, self.cqLib, self.etaLib = simFunc.genLib(len(self.parent.xax()), self.cqmin, self.cqmax, self.etamin, self.etamax, self.cqsteps, self.etasteps, extra, self.parent.freq(), self.parent.sw(), spinspeed)
         
     def getExtraParams(self, out):
         if self.lib is None:
@@ -2878,16 +2878,16 @@ class MqmasCzjzekParamFrame(AbstractParamFrame):
     Ivalues = [1.5, 2.5, 3.5, 4.5]
     MQvalues = [3, 5, 7, 9]
     SINGLENAMES = ['bgrnd']
-    MULTINAMES = ['d', 'pos', 'sigma', 'sigmaCS', 'wq0', 'eta0', 'amp', 'lor2', 'gauss2', 'lor1', 'gauss1']
+    MULTINAMES = ['d', 'pos', 'sigma', 'sigmaCS', 'cq0', 'eta0', 'amp', 'lor2', 'gauss2', 'lor1', 'gauss1']
     EXTRANAMES = ['method', 'MQ', 'shear', 'scale']
-    PARAMTEXT = {'bgrnd': 'Background', 'd': 'd parameter', 'pos': 'Position', 'sigma': 'Sigma', 'sigmaCS': 'Sigma CS', 'wq0': 'Wq0', 'eta0': 'Eta0', 'amp': 'Integral', 'lor': 'Lorentz', 'gauss': 'Gauss'}
+    PARAMTEXT = {'bgrnd': 'Background', 'd': 'd parameter', 'pos': 'Position', 'sigma': 'Sigma', 'sigmaCS': 'Sigma CS', 'cq0': 'Cq0', 'eta0': 'Eta0', 'amp': 'Integral', 'lor': 'Lorentz', 'gauss': 'Gauss'}
 
     def __init__(self, parent, rootwindow, isMain=True):
         self.FITFUNC = simFunc.mqmasCzjzekFunc
-        self.wqsteps = 50
+        self.cqsteps = 50
         self.etasteps = 10
-        self.wqmax = 4
-        self.wqmin = 0
+        self.cqmax = 4
+        self.cqmin = 0
         self.etamax = 1
         self.etamin = 0
         self.lib = None
@@ -2897,7 +2897,7 @@ class MqmasCzjzekParamFrame(AbstractParamFrame):
         self.cheng = 15
         self.mas = 2 # MQMAS simulation without MAS not possible
         self.fullInt = np.sum(parent.getData1D()) * parent.sw() / float(parent.getData1D().shape[-1]) * parent.sw(-2) / float(parent.getData1D().shape[-2])
-        self.DEFAULTS = {'bgrnd': [0.0, True], 'pos': [0.0, False], 'd': [5.0, True], 'sigma': [1.0, False], 'sigmaCS': [10.0, False], 'wq0': [0.0, True], 'eta0': [0.0, True], 'amp': [self.fullInt, False], 'lor2': [10.0, False], 'gauss2': [0.0, True], 'lor1': [10.0, False], 'gauss1': [0.0, True]}
+        self.DEFAULTS = {'bgrnd': [0.0, True], 'pos': [0.0, False], 'd': [5.0, True], 'sigma': [1.0, False], 'sigmaCS': [10.0, False], 'cq0': [0.0, True], 'eta0': [0.0, True], 'amp': [self.fullInt, False], 'lor2': [10.0, False], 'gauss2': [0.0, True], 'lor1': [10.0, False], 'gauss1': [0.0, True]}
         super(MqmasCzjzekParamFrame, self).__init__(parent, rootwindow, isMain)
         czjzekPrefButton = QtWidgets.QPushButton("Library")
         czjzekPrefButton.clicked.connect(self.createCzjzekPrefWindow)
@@ -2943,7 +2943,7 @@ class MqmasCzjzekParamFrame(AbstractParamFrame):
         self.frame3.addWidget(wc.QLabel("Pos [" + axUnit + "]:"), 1, 2, 1, 2)
         self.frame3.addWidget(wc.QLabel(u"\u03c3 [MHz]:"), 1, 4, 1, 2)
         self.frame3.addWidget(wc.QLabel(u"\u03c3CS [Hz]:"), 1, 6, 1, 2)
-        self.frame3.addWidget(wc.QLabel(u"\u03BD<sub>Q</sub>0 [MHz]:"), 1, 8, 1, 2)
+        self.frame3.addWidget(wc.QLabel(u"C<sub>Q</sub>0 [MHz]:"), 1, 8, 1, 2)
         self.frame3.addWidget(wc.QLabel(u"\u03B70:"), 1, 10, 1, 2)
         self.frame3.addWidget(wc.QLabel("Integral:"), 1, 12, 1, 2)
         self.frame3.addWidget(wc.QLabel("Lorentz 2 [Hz]:"), 1, 14, 1, 2)
@@ -2976,17 +2976,17 @@ class MqmasCzjzekParamFrame(AbstractParamFrame):
     def changeType(self, index):
         if index == 0:
             for i in range(self.FITNUM): 
-                self.entries['wq0'][i].setEnabled(False)
+                self.entries['cq0'][i].setEnabled(False)
                 self.entries['eta0'][i].setEnabled(False)
-                self.ticks['wq0'][i].setChecked(True)
+                self.ticks['cq0'][i].setChecked(True)
                 self.ticks['eta0'][i].setChecked(True)
-                self.ticks['wq0'][i].setEnabled(False)
+                self.ticks['cq0'][i].setEnabled(False)
                 self.ticks['eta0'][i].setEnabled(False)
         elif index == 1:
             for i in range(self.FITNUM): 
-                self.entries['wq0'][i].setEnabled(True)
+                self.entries['cq0'][i].setEnabled(True)
                 self.entries['eta0'][i].setEnabled(True)
-                self.ticks['wq0'][i].setEnabled(True)
+                self.ticks['cq0'][i].setEnabled(True)
                 self.ticks['eta0'][i].setEnabled(True)
 
     def createCzjzekPrefWindow(self, *args):
@@ -2998,7 +2998,7 @@ class MqmasCzjzekParamFrame(AbstractParamFrame):
         D2 = simFunc.D2tens(alpha, beta, np.zeros_like(alpha))
         D4 = simFunc.D4tens(alpha, beta, np.zeros_like(alpha))
         extra = [False, self.I, 2, angle, D2, D4, weight]
-        self.lib, self.cqLib, self.etaLib = simFunc.genLib(len(self.parent.xax()), self.wqmin, self.wqmax, self.etamin, self.etamax, self.wqsteps, self.etasteps, extra, self.parent.freq(), self.parent.sw(), np.inf)
+        self.lib, self.cqLib, self.etaLib = simFunc.genLib(len(self.parent.xax()), self.cqmin, self.cqmax, self.etamin, self.etamax, self.cqsteps, self.etasteps, extra, self.parent.freq(), self.parent.sw(), np.inf)
 
     def getExtraParams(self, out):
         if self.lib is None:
