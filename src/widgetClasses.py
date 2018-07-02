@@ -40,9 +40,7 @@ class SsnakeTabs(QtWidgets.QTabWidget):
 class SsnakeTreeWidget(QtWidgets.QTreeView):
     def __init__(self,parent):
         super(SsnakeTreeWidget, self).__init__(parent)
-        homePath = os.path.expanduser('~')
         self.father = parent
-
         self.dirmodel = QtWidgets.QFileSystemModel()
         self.dirmodel.setRootPath('')
         # Don't show files, just folders
@@ -63,7 +61,7 @@ class SsnakeTreeWidget(QtWidgets.QTreeView):
         self.hideColumn(1)
         self.hideColumn(2)
         self.hideColumn(3)
-        self.expand_all(self.dirmodel.index(homePath))
+        self.expand_all(self.dirmodel.index(self.father.lastLocation))
 
     def mouseDoubleClickEvent(self,event):
         index = self.indexAt(event.pos())
@@ -72,7 +70,7 @@ class SsnakeTreeWidget(QtWidgets.QTreeView):
             self.loadAct([path])
         elif event.button() == QtCore.Qt.LeftButton and not self.dirmodel.isDir(index):
             self.loadAct([path])
-        QtWidgets.QTreeView.mouseDoubleClickEvent(self,event)
+        super(SsnakeTreeWidget, self).mouseDoubleClickEvent(event)
 
     def mousePressEvent(self,event):
         if event.button() == QtCore.Qt.MidButton:
@@ -80,7 +78,7 @@ class SsnakeTreeWidget(QtWidgets.QTreeView):
             path = self.dirmodel.filePath(index) 
             self.loadAct([path])
         else: #If not, let the QTreeView handle the event
-            QtWidgets.QTreeView.mousePressEvent(self,event)
+            super(SsnakeTreeWidget, self).mousePressEvent(event)
 
     def expand_all(self, index):
         path = self.dirmodel.filePath(index) 
@@ -92,10 +90,8 @@ class SsnakeTreeWidget(QtWidgets.QTreeView):
             path = os.path.dirname(path)
 
     def openMenu(self, position):
-   
         index = self.selectedIndexes()
         path = [self.dirmodel.filePath(x) for x in index]
-
         menu = QtWidgets.QMenu()
         if len(path) == 1:
             if self.dirmodel.isDir(index[0]):
@@ -121,12 +117,10 @@ class SplitterEventFilter(QtCore.QObject):
         Select = False
         if event.type() == QtCore.QEvent.MouseButtonDblClick:
             Select = True
-
         #If single click with middle mouse button
         if event.type() == QtCore.QEvent.MouseButtonPress:
             if event.button() == QtCore.Qt.MidButton:
                 Select = True
-
         if Select:
             sizes = self.root.sizes()
             if sizes[0] == 0:

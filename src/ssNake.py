@@ -130,7 +130,7 @@ class MainProgram(QtWidgets.QMainWindow):
         self.referenceName = []  # List with saved reference names
         self.referenceValue = []  # List with saved reference values
         self.referenceActions = {}
-        self.LastLocation = ''
+        self.lastLocation = os.getcwd()
         self.initMenu()
         self.menuCheck()
         self.main_widget = QtWidgets.QSplitter(self) 
@@ -161,11 +161,9 @@ class MainProgram(QtWidgets.QMainWindow):
         self.loadDefaults()
         self.initToolbar()
         self.main_widget.setStretchFactor(1, 10)
-
         #Set double click filter for splitter
         self.splitterEventFilter = wc.SplitterEventFilter(self.main_widget)
         self.main_widget.handle(1).installEventFilter(self.splitterEventFilter)
-
         self.resize(self.defaultWidth, self.defaultHeight)
         if self.defaultMaximized:
             self.showMaximized()
@@ -1061,12 +1059,12 @@ class MainProgram(QtWidgets.QMainWindow):
             self.mainWindow.runMacro(self.macros[name])
 
     def saveMacro(self, name):
-        fileName = QtWidgets.QFileDialog.getSaveFileName(self, 'Save File', self.LastLocation + os.path.sep + name + '.macro', 'MACRO (*.macro)')
+        fileName = QtWidgets.QFileDialog.getSaveFileName(self, 'Save File', self.lastLocation + os.path.sep + name + '.macro', 'MACRO (*.macro)')
         if isinstance(fileName, tuple):
             fileName = fileName[0]
         if not fileName:
             return
-        self.LastLocation = os.path.dirname(fileName)
+        self.lastLocation = os.path.dirname(fileName)
         outputMacro = self.macros[name]
         with open(fileName, 'w') as f:
             for line in outputMacro:
@@ -1087,11 +1085,11 @@ class MainProgram(QtWidgets.QMainWindow):
         self.menuCheck()
 
     def loadMacro(self):
-        filename = QtWidgets.QFileDialog.getOpenFileName(self, 'Open File', self.LastLocation)
+        filename = QtWidgets.QFileDialog.getOpenFileName(self, 'Open File', self.lastLocation)
         if isinstance(filename, tuple):
             filename = filename[0]
         if filename:  # if not cancelled
-            self.LastLocation = os.path.dirname(filename)  # Save used path
+            self.lastLocation = os.path.dirname(filename)  # Save used path
         if len(filename) == 0:
             return
         self.stopMacro()
@@ -1176,23 +1174,23 @@ class MainProgram(QtWidgets.QMainWindow):
         self.menuCheck()
 
     def referenceSave(self, name):
-        fileName = QtWidgets.QFileDialog.getSaveFileName(self, 'Save reference', self.LastLocation + os.path.sep + name + '.txt', 'txt (*.json)')
+        fileName = QtWidgets.QFileDialog.getSaveFileName(self, 'Save reference', self.lastLocation + os.path.sep + name + '.txt', 'txt (*.json)')
         if isinstance(fileName, tuple):
             fileName = fileName[0]
         if not fileName:
             return
         else:
-            self.LastLocation = os.path.dirname(fileName)
+            self.lastLocation = os.path.dirname(fileName)
         reffreq = self.referenceValue[self.referenceName.index(name)]
         with open(fileName, 'w') as f:
             f.write(str(reffreq))
 
     def referenceLoad(self):
-        filename = QtWidgets.QFileDialog.getOpenFileName(self, 'Open File', self.LastLocation)
+        filename = QtWidgets.QFileDialog.getOpenFileName(self, 'Open File', self.lastLocation)
         if isinstance(filename, tuple):
             filename = filename[0]
         if filename:  # if not cancelled
-            self.LastLocation = os.path.dirname(filename)  # Save used path
+            self.lastLocation = os.path.dirname(filename)  # Save used path
         if len(filename) == 0:
             return
         count = 0
@@ -1362,7 +1360,7 @@ class MainProgram(QtWidgets.QMainWindow):
         self.changeMainWindow(wsname)
 
     def loadFromMenu(self):
-        fileList = QtWidgets.QFileDialog.getOpenFileNames(self, 'Open File', self.LastLocation)
+        fileList = QtWidgets.QFileDialog.getOpenFileNames(self, 'Open File', self.lastLocation)
         if isinstance(fileList, tuple):
             fileList = fileList[0]
         self.loadData(fileList)
@@ -1370,7 +1368,7 @@ class MainProgram(QtWidgets.QMainWindow):
     def loadData(self, fileList):
         for filePath in fileList:
             if filePath:  # if not cancelled
-                self.LastLocation = os.path.dirname(filePath)  # Save used path
+                self.lastLocation = os.path.dirname(filePath)  # Save used path
             if len(filePath) == 0:
                 return
             masterData = io.autoLoad(filePath)
@@ -1401,11 +1399,11 @@ class MainProgram(QtWidgets.QMainWindow):
                 self.changeMainWindow(name)
 
     def loadFitLibDir(self):
-        fileName = QtWidgets.QFileDialog.getExistingDirectory(self, 'Open Library Directory', self.LastLocation)
+        fileName = QtWidgets.QFileDialog.getExistingDirectory(self, 'Open Library Directory', self.lastLocation)
         return fileName
 
     def loadSIMPSONScript(self):
-        fileName = QtWidgets.QFileDialog.getOpenFileName(self, 'Open SIMPSON Script', self.LastLocation)
+        fileName = QtWidgets.QFileDialog.getOpenFileName(self, 'Open SIMPSON Script', self.lastLocation)
         if isinstance(fileName, tuple):
             fileName = fileName[0]
         return fileName
@@ -1655,22 +1653,22 @@ class Main1DWindow(QtWidgets.QWidget):
 
     def saveJSONFile(self):
         WorkspaceName = self.father.workspaceNames[self.father.workspaceNum]  # Set name of file to be saved to workspace name to start
-        name = QtWidgets.QFileDialog.getSaveFileName(self, 'Save File', self.father.LastLocation + os.path.sep + WorkspaceName + '.json', 'JSON (*.json)')
+        name = QtWidgets.QFileDialog.getSaveFileName(self, 'Save File', self.father.lastLocation + os.path.sep + WorkspaceName + '.json', 'JSON (*.json)')
         if isinstance(name, tuple):
             name = name[0]
         if not name:
             return
-        self.father.LastLocation = os.path.dirname(name)  # Save used path
+        self.father.lastLocation = os.path.dirname(name)  # Save used path
         io.saveJSONfile(name, self.masterData)
 
     def saveMatlabFile(self):
         WorkspaceName = self.father.workspaceNames[self.father.workspaceNum]  # Set name of file to be saved to workspace name to start
-        name = QtWidgets.QFileDialog.getSaveFileName(self, 'Save File', self.father.LastLocation + os.path.sep + WorkspaceName + '.mat', 'MATLAB file (*.mat)')
+        name = QtWidgets.QFileDialog.getSaveFileName(self, 'Save File', self.father.lastLocation + os.path.sep + WorkspaceName + '.mat', 'MATLAB file (*.mat)')
         if isinstance(name, tuple):
             name = name[0]
         if not name:
             return
-        self.father.LastLocation = os.path.dirname(name)  # Save used path
+        self.father.lastLocation = os.path.dirname(name)  # Save used path
         io.saveMatlabFile(name, self.masterData, self.father.workspaceNames[self.father.workspaceNum])
 
     def SaveSimpsonFile(self):
@@ -1678,32 +1676,32 @@ class Main1DWindow(QtWidgets.QWidget):
             raise SsnakeException('Saving to Simpson format only allowed for 1D and 2D data!')
         WorkspaceName = self.father.workspaceNames[self.father.workspaceNum]  # Set name of file to be saved to workspace name to start
         if sum(self.masterData.spec) / len(self.masterData.spec) == 1:
-            name = QtWidgets.QFileDialog.getSaveFileName(self, 'Save File', self.father.LastLocation + os.path.sep + WorkspaceName + '.spe', 'SIMPSON file (*.spe)')
+            name = QtWidgets.QFileDialog.getSaveFileName(self, 'Save File', self.father.lastLocation + os.path.sep + WorkspaceName + '.spe', 'SIMPSON file (*.spe)')
             if isinstance(name, tuple):
                 name = name[0]
             if not name:
                 return
         elif sum(self.masterData.spec) == 0:
-            name = QtWidgets.QFileDialog.getSaveFileName(self, 'Save File', self.father.LastLocation + os.path.sep + WorkspaceName + '.fid', 'SIMPSON file (*.fid)')
+            name = QtWidgets.QFileDialog.getSaveFileName(self, 'Save File', self.father.lastLocation + os.path.sep + WorkspaceName + '.fid', 'SIMPSON file (*.fid)')
             if isinstance(name, tuple):
                 name = name[0]
             if not name:
                 return
         else:
             raise SsnakeException('Saving to Simpson format not allowed for mixed time/frequency domain data!')
-        self.father.LastLocation = os.path.dirname(name)  # Save used path
+        self.father.lastLocation = os.path.dirname(name)  # Save used path
         io.saveSimpsonFile(name, self.masterData)
 
     def saveASCIIFile(self):
         if self.masterData.ndim() > 2:
             raise SsnakeException('Saving to ASCII format only allowed for 1D and 2D data!')
         WorkspaceName = self.father.workspaceNames[self.father.workspaceNum]  # Set name of file to be saved to workspace name to start
-        name = QtWidgets.QFileDialog.getSaveFileName(self, 'Save File', self.father.LastLocation + os.path.sep + WorkspaceName + '.txt', 'ASCII file (*.txt)')
+        name = QtWidgets.QFileDialog.getSaveFileName(self, 'Save File', self.father.lastLocation + os.path.sep + WorkspaceName + '.txt', 'ASCII file (*.txt)')
         if isinstance(name, tuple):
             name = name[0]
         if not name:
             return
-        self.father.LastLocation = os.path.dirname(name)  # Save used path
+        self.father.lastLocation = os.path.dirname(name)  # Save used path
         axMult = self.current.getCurrentAxMult()
         io.saveASCIIFile(name, self.masterData, axMult)
 
@@ -1833,11 +1831,11 @@ class Main1DWindow(QtWidgets.QWidget):
         FilePath = Dir + os.path.sep + 'acqus'
         if not os.path.exists(FilePath):
             self.father.dispMsg("Bruker correct: acqus file does not exist, specify load path")
-            FilePath = QtWidgets.QFileDialog.getOpenFileName(self, 'Open File', self.father.LastLocation)[0]
+            FilePath = QtWidgets.QFileDialog.getOpenFileName(self, 'Open File', self.father.lastLocation)[0]
             if FilePath == '':
                 return
             FilePath = FilePath
-            self.father.LastLocation = os.path.dirname(FilePath)  # Save used path
+            self.father.lastLocation = os.path.dirname(FilePath)  # Save used path
         with open(FilePath) as f:
             data = f.read().split('\n')
         FilterCorrection = -1.0
@@ -5073,11 +5071,11 @@ class ReorderWindow(wc.ToolWindows):
         pass
 
     def getPosFromFile(self):
-        filename = QtWidgets.QFileDialog.getOpenFileName(self, 'Open File', self.father.father.LastLocation)
+        filename = QtWidgets.QFileDialog.getOpenFileName(self, 'Open File', self.father.father.lastLocation)
         if isinstance(filename, tuple):
             filename = filename[0]
         if filename:  # if not cancelled
-            self.father.father.LastLocation = os.path.dirname(filename)  # Save used path
+            self.father.father.lastLocation = os.path.dirname(filename)  # Save used path
         if len(filename) == 0:
             return
         self.valEntry.setText(repr(np.loadtxt(filename, dtype=int)))
@@ -5204,11 +5202,11 @@ class FFMWindow(wc.ToolWindows):
         pass
 
     def getPosFromFile(self):
-        filename = QtWidgets.QFileDialog.getOpenFileName(self, 'Open File', self.father.father.LastLocation)
+        filename = QtWidgets.QFileDialog.getOpenFileName(self, 'Open File', self.father.father.lastLocation)
         if isinstance(filename, tuple):
             filename = filename[0]
         if filename:  # if not cancelled
-            self.father.father.LastLocation = os.path.dirname(filename)  # Save used path
+            self.father.father.lastLocation = os.path.dirname(filename)  # Save used path
         if len(filename) == 0:
             return
         self.valEntry.setText(repr(np.loadtxt(filename, dtype=int)))
@@ -5255,11 +5253,11 @@ class CLEANWindow(wc.ToolWindows):
         pass
 
     def getPosFromFile(self):
-        filename = QtWidgets.QFileDialog.getOpenFileName(self, 'Open File', self.father.father.LastLocation)
+        filename = QtWidgets.QFileDialog.getOpenFileName(self, 'Open File', self.father.father.lastLocation)
         if isinstance(filename, tuple):
             filename = filename[0]
         if filename:  # if not cancelled
-            self.father.father.LastLocation = os.path.dirname(filename)  # Save used path
+            self.father.father.lastLocation = os.path.dirname(filename)  # Save used path
         if len(filename) == 0:
             return
         self.valEntry.setText(repr(np.loadtxt(filename, dtype=int)))
@@ -5317,11 +5315,11 @@ class ISTWindow(wc.ToolWindows):
         pass
 
     def getPosFromFile(self):
-        filename = QtWidgets.QFileDialog.getOpenFileName(self, 'Open File', self.father.father.LastLocation)
+        filename = QtWidgets.QFileDialog.getOpenFileName(self, 'Open File', self.father.father.lastLocation)
         if isinstance(filename, tuple):
             filename = filename[0]
         if filename:  # if not cancelled
-            self.father.father.LastLocation = os.path.dirname(filename)  # Save used path
+            self.father.father.lastLocation = os.path.dirname(filename)  # Save used path
         if len(filename) == 0:
             return
         self.valEntry.setText(repr(np.loadtxt(filename, dtype=int)))
@@ -5875,12 +5873,12 @@ class CombineLoadWindow(wc.ToolWindows):
             self.specList.addItem(name)
 
     def browse(self):
-        fileList = QtWidgets.QFileDialog.getOpenFileNames(self, 'Open File', self.father.LastLocation)
+        fileList = QtWidgets.QFileDialog.getOpenFileNames(self, 'Open File', self.father.lastLocation)
         if isinstance(fileList, tuple):
             fileList = fileList[0]
         for filePath in fileList:
             if filePath:  # if not cancelled
-                self.father.LastLocation = os.path.dirname(filePath)  # Save used path
+                self.father.lastLocation = os.path.dirname(filePath)  # Save used path
             if len(filePath) == 0:
                 return
             self.specList.addItem(filePath)

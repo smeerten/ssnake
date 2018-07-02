@@ -354,7 +354,7 @@ class SaveFigureWindow(QtWidgets.QWidget):
         warning_msg = "This is an advanced feature. Do not execute files you haven't inspected yourself. Are you sure you want to continue?"
         reply = QtWidgets.QMessageBox.question(self, 'Warning', warning_msg, QtWidgets.QMessageBox.Yes, QtWidgets.QMessageBox.No)
         if reply == QtWidgets.QMessageBox.Yes:
-            filename = QtWidgets.QFileDialog.getOpenFileName(self, 'Execute File', self.father.LastLocation)
+            filename = QtWidgets.QFileDialog.getOpenFileName(self, 'Execute File', self.father.lastLocation)
             if isinstance(filename, tuple):
                 filename = filename[0]
             fig = self.fig
@@ -390,11 +390,11 @@ class SaveFigureWindow(QtWidgets.QWidget):
         self.updatePlot()
         self.fig.set_size_inches(self.widthEntry.value() / 2.54, self.heightEntry.value() / 2.54)
         WorkspaceName = self.father.workspaceNames[self.father.workspaceNum]  # Set name of file to be saved to workspace name to start
-        f = QtWidgets.QFileDialog.getSaveFileName(self, 'Save File', self.father.LastLocation + os.path.sep + WorkspaceName + '.' + self.fileOptions[self.filetypeEntry.currentIndex()], filter='(*.' + self.fileOptions[self.filetypeEntry.currentIndex()] + ')')
+        f = QtWidgets.QFileDialog.getSaveFileName(self, 'Save File', self.father.lastLocation + os.path.sep + WorkspaceName + '.' + self.fileOptions[self.filetypeEntry.currentIndex()], filter='(*.' + self.fileOptions[self.filetypeEntry.currentIndex()] + ')')
         if isinstance(f, tuple):
             f = f[0]
         if f:
-            self.father.LastLocation = os.path.dirname(f)
+            self.father.lastLocation = os.path.dirname(f)
             dpi = self.dpiEntry.value()
             if dpi is None:
                 dpi = self.fig.dpi
