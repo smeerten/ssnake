@@ -1634,7 +1634,9 @@ class Main1DWindow(QtWidgets.QWidget):
         self.father.menuCheck()
 
     def runMacro(self, macro, display=True):
-        for iter1 in macro:
+        for i in range(len(macro)):
+            iter1 = macro[i] # Do not loop over the macro list itself to prevent recursion if the running macro is also the one being recorded
+            self.addMacro(iter1)
             try:
                 getattr(self.masterData, iter1[0])(*iter1[1])
             except AttributeError:
