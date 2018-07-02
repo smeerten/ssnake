@@ -1505,8 +1505,6 @@ class CurrentContour(CurrentStacked):
     def setProjTraces(self, val, direc):
         self.viewSettings["projPos"][direc] = val
 
-   
-
     def updateAxes(self,oldAx, newAx, axis):
         scale = newAx / oldAx
         # Scale the path vertices, so no new contours need to be calculated

@@ -2188,7 +2188,7 @@ class SideFrame(QtWidgets.QScrollArea):
                 self.projTraceTop.setValue(current.viewSettings["projPos"][0])
                 self.projTraceTop.valueChanged.connect(lambda val, self=self: self.changeTrace(val, 0))
                 self.contourProjFrame.addWidget(self.projTraceTop, 1, 1)
-                if current.viewSettings["projTop"] is not 4:
+                if current.viewSettings["projTop"] != 4:
                     self.projTraceTop.hide()
                 self.projRightLabel = wc.QLeftLabel("Right:", self)
                 self.contourProjFrame.addWidget(self.projRightLabel, 2, 0)
@@ -2203,12 +2203,12 @@ class SideFrame(QtWidgets.QScrollArea):
                 self.projTraceRight.setValue(current.viewSettings["projPos"][1])
                 self.projTraceRight.valueChanged.connect(lambda val, self=self: self.changeTrace(val, 1))
                 self.contourProjFrame.addWidget(self.projTraceRight, 3, 1)
-                if current.viewSettings["projRight"] is not 4:
+                if current.viewSettings["projRight"] != 4:
                     self.projTraceRight.hide()
                 self.selectTraceButton = QtWidgets.QPushButton("Select slices", self)
                 self.selectTraceButton.clicked.connect(self.selectTraces)
                 self.contourProjFrame.addWidget(self.selectTraceButton, 4, 1)
-                if (current.viewSettings["projTop"] is not 4) and (current.viewSettings["projRight"] is not 4):
+                if (current.viewSettings["projTop"] != 4) and (current.viewSettings["projRight"] != 4):
                     self.selectTraceButton.hide()
                 # Ranges
                 self.rangeCheckbox = QtWidgets.QCheckBox('Projection ranges', self)
@@ -2458,9 +2458,10 @@ class SideFrame(QtWidgets.QScrollArea):
         self.father.current.peakPick = 3
 
     def pickedTraces(self, pos):
-        self.father.current.setProjTraces(pos[0], 1)
-        self.father.current.setProjTraces(pos[3], 0)
-        self.upd()
+        if self.father.current.viewSettings["projTop"] == 4 and pos[3] != self.projTraceTop.value():
+            self.projTraceTop.setValue(pos[3])
+        if self.father.current.viewSettings["projRight"] == 4 and pos[3] != self.projTraceRight.value():
+            self.projTraceRight.setValue(pos[0])
         
     def changeRanges(self):
         check = self.rangeCheckbox.isChecked()
