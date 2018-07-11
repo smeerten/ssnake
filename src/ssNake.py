@@ -1220,7 +1220,7 @@ class MainProgram(QtWidgets.QMainWindow):
         self.menuCheck()
 
     def noUndoMode(self, val):
-        self.mainWindow.masterData.setNoUndo(val)
+        self.mainWindow.current.setNoUndo(val)
         self.menuCheck()
 
     def changeMainWindow(self, var):

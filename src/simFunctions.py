@@ -201,7 +201,7 @@ def externalFitRunScript(x, freq, sw, axMult, extra, bgrnd, *parameters):
     outputFileName = fileList[0]
     masterData = io.autoLoad(os.path.join(directory_name, outputFileName))
     masterData.noUndo = True
-    masterData.apodize(lor, gauss, 0, 0, 0, 0, 0, 0)
+    masterData.apodize(lor, gauss, [None,None], 0, 0, 0, 0, 0)
     if masterData.spec[0] != spec:
         masterData.fourier(0)
     masterData.regrid([x[0], x[-1]], len(x), 0)

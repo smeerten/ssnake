@@ -250,6 +250,10 @@ class Current1D(PlotFrame):
     def isComplex(self, *args):
         return self.data.isComplex(*args)
 
+    def setNoUndo(self,val):
+        self.root.addMacro(['setNoUndo', (val,)])
+        self.data.setNoUndo(val)
+
     def real(self, *args):
         self.root.addMacro(['real', (self.axes[-1] - self.data.ndim(), )])
         self.data.real(self.axes[-1])
