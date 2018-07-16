@@ -1733,7 +1733,7 @@ class Main1DWindow(QtWidgets.QWidget):
 
     def startMonitor(self, macroNames, delay=0.5):
         self.monitorMacros = macroNames
-        self.monitor = QtCore.QFileSystemWatcher([self.masterData.filePath[0]], self)
+        self.monitor = QtCore.QFileSystemWatcher(self.masterData.filePath[0], self)
         self.monitor.fileChanged.connect(lambda a: self.monitorLoad(a, delay))
         self.monitor.directoryChanged.connect(lambda a: self.monitorLoad(a, delay))
 
