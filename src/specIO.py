@@ -478,7 +478,7 @@ def loadMatlabFile(filePath):
         mat = matlabStruct[var]
         if 'hyper' in mat.dtype.names:
             if len(mat['hyper'][0,0]) == 0:
-                hyper = None
+                hyper = [0]
             else:
                 hyper = mat['hyper'][0,0][0]
         else:
