@@ -979,6 +979,8 @@ class AbstractParamFrame(QtWidgets.QWidget):
             if isinstance(inp, tuple):
                 inp = checkLinkTuple(inp)
                 out[name][0] = inp[2] * params[inp[4]][inp[0]][inp[1]] + inp[3]
+        if len(self.MULTINAMES) == 0: #Abort if no names
+            return
         numExp = len(out[self.MULTINAMES[0]])
         for i in range(numExp):
             for name in self.MULTINAMES:
