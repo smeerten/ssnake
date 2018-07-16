@@ -2734,28 +2734,31 @@ class MqmasDeconvParamFrame(AbstractParamFrame):
         self.entries['numssb'][-1].setMinimum(2)
         self.entries['numssb'][-1].setEnabled(False)
         self.optframe.addWidget(self.entries['numssb'][-1], 5, 0)
-        self.optframe.addWidget(wc.QLabel("Cheng:"), 0, 1)
+        self.optframe.addWidget(wc.QLabel("Cheng:"), 6, 0)
         self.entries['cheng'].append(QtWidgets.QSpinBox())
         self.entries['cheng'][-1].setAlignment(QtCore.Qt.AlignHCenter)
         self.entries['cheng'][-1].setValue(self.cheng)
-        self.optframe.addWidget(self.entries['cheng'][-1], 1, 1)
-        self.optframe.addWidget(wc.QLabel("I:"), 2, 1)
+        self.optframe.addWidget(self.entries['cheng'][-1], 7, 0)
+        self.optframe.addWidget(wc.QLabel("I:"), 0, 1)
         self.entries['I'].append(QtWidgets.QComboBox())
         self.entries['I'][-1].addItems(self.Ioptions)
         self.entries['I'][-1].setCurrentIndex(0)
-        self.optframe.addWidget(self.entries['I'][-1], 3, 1)
-        self.optframe.addWidget(wc.QLabel("MQ:"), 4, 1)
+        self.optframe.addWidget(self.entries['I'][-1], 1, 1)
+        self.optframe.addWidget(wc.QLabel("MQ:"), 2, 1)
         self.entries['MQ'].append(QtWidgets.QComboBox())
         self.entries['MQ'][-1].addItems([str(i) for i in self.MQvalues])
         self.entries['MQ'][-1].setCurrentIndex(0)
-        self.optframe.addWidget(self.entries['MQ'][-1], 5, 1)
-        self.optframe.addWidget(wc.QLabel("Shear:"), 6, 1)
+        self.optframe.addWidget(self.entries['MQ'][-1], 3, 1)
+        self.optframe.addWidget(wc.QLabel("Shear:"), 4, 1)
         self.entries['shear'].append(wc.QLineEdit("0.0"))
-        self.optframe.addWidget(self.entries['shear'][-1], 7, 1)
-        self.optframe.addWidget(wc.QLabel("Scale sw:"), 8, 1)
+        self.optframe.addWidget(self.entries['shear'][-1], 5, 1)
+        self.optframe.addWidget(wc.QLabel("Scale sw:"), 6, 1)
         self.entries['scale'].append(wc.QLineEdit("1.0"))
-        self.optframe.addWidget(self.entries['scale'][-1], 9, 1)
-        self.optframe.setColumnStretch(10, 1)
+        self.optframe.addWidget(self.entries['scale'][-1], 7, 1)
+        autoButton = QtWidgets.QPushButton("&Auto")
+        autoButton.clicked.connect(self.autoShearScale)
+        self.optframe.addWidget(autoButton, 8, 1)
+        self.optframe.setColumnStretch(15, 1)
         self.optframe.setAlignment(QtCore.Qt.AlignTop)
         self.spinLabel = wc.QLabel("Spin. speed [kHz]:")
         self.frame2.addWidget(self.spinLabel, 0, 0, 1, 2)
@@ -2802,6 +2805,19 @@ class MqmasDeconvParamFrame(AbstractParamFrame):
                 self.frame3.addWidget(self.entries[self.MULTINAMES[j]][i], i + 2, 2 * j + 1)
         self.dispParams()
 
+    def autoShearScale(self, *args):
+        from fractions import gcd
+        I = self.entries['I'][-1].currentIndex() + 3/2.0
+        mq = self.MQvalues[self.entries['MQ'][-1].currentIndex()]
+        m = 0.5 * mq
+        numerator = m * (18 * I * (I + 1) - 34 * m**2 - 5)
+        denomenator = 0.5 * (18 * I * (I + 1) - 34 * 0.5**2 - 5)
+        divis = gcd(numerator, denomenator)
+        numerator /= divis
+        denomenator /= divis
+        self.entries['shear'][-1].setText(str(numerator) + '/' + str(denomenator))
+        self.entries['scale'][-1].setText(str(denomenator) + '/' + str(mq * denomenator - numerator))
+        
     def MASChange(self, MAStype):
         if MAStype > 0:
             self.angleLabel.setEnabled(True)
