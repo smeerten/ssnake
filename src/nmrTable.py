@@ -210,7 +210,8 @@ class PeriodicTable(QtWidgets.QWidget):
             grid2.setSpacing(0)
             grid2.setContentsMargins(0, 0, 0, 0)
             groupList[i].setLayout(grid2)
-            groupList[i].setStyleSheet('background-color: white;')
+            cl = self.palette().color(QtGui.QPalette.Base)
+            groupList[i].setStyleSheet('background-color: rgb(' + str(cl.red()) +',' + str(cl.green()) + ',' + str(cl.blue()) + ');')
             self.labelList.append(PtQLabel())
             grid2.addWidget(self.labelList[-1], 0, 0)
             self.freqEditList.append(PtQLineEdit())
@@ -241,7 +242,6 @@ class PeriodicTable(QtWidgets.QWidget):
                 self.labelList[i].setText(str(i + 1) + ': ')
                 self.freqEditList[i].setText('')
                 self.freqEditList[i].setStyleSheet('border-style: solid;color: rgb(0, 0, 0); border-width: 2px;' )
-            self.labelList[i].setStyleSheet('color: rgb(0, 0, 0);')
         self.updLegend()
 
     def updLegend(self):
