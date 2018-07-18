@@ -1764,7 +1764,7 @@ class Main1DWindow(QtWidgets.QWidget):
         self.menuCheck()
 
     def fourier(self):
-        self.current.fourier()
+        self.current.complexFourier()
         self.bottomframe.upd()
         self.menuCheck()
 

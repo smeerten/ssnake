@@ -662,7 +662,7 @@ class Spectrum(object):
         pos = np.argmax(tmpSpec)
         refFid = np.fft.ifft(tmpSpec)
         if self.spec[axes] > 0:
-            self.fourier(axes, tmp=True)
+            self.__invFourier(axes, tmp=True)
         t = np.arange(axLen) / self.sw[axes]
         idealFid = np.exp(2j * pos * np.pi * np.linspace(0, 1, axLen + 1)[:-1]) * np.exp(-np.pi * lb * t)
         # Make Hilbert transform filter
@@ -678,7 +678,7 @@ class Spectrum(object):
         idealFid /= np.abs(idealFid[0]) * 2
         self.data *= idealFid
         if self.spec[axes] > 0:
-            self.fourier(axes, tmp=True, inv=True)
+            self.__fourier(axes, tmp=True)
         self.addHistory("FIDDLE over dimension " + str(axes + 1))
         self.redoList = []
         if not self.noUndo:
@@ -736,7 +736,7 @@ class Spectrum(object):
         locList[axes] = slice(None)
         self.data.icomplexReorder(axes)
         if self.spec[axes] == 0:
-            self.fourier(axes, tmp=True)
+            self.__fourier(axes, tmp=True)
         tmp = self.data[locList]
         tmp = tmp.getHyperData(0)
         x = np.fft.fftshift(np.fft.fftfreq(len(tmp), 1.0 / self.sw[axes])) / self.sw[axes]
@@ -757,7 +757,7 @@ class Spectrum(object):
         vector = vector.reshape(vector.shape + (1, )*(self.ndim()-axes-1))
         self.data *= np.exp(phase0 * 1j) * vector
         if self.spec[axes] == 0:
-            self.fourier(axes, tmp=True, inv=True)
+            self.__invFourier(axes, tmp=True)
         self.data.icomplexReorder(axes)
         Message = "Autophase: phase0 = " + str(phase0 * 180 / np.pi) + " and phase1 = " + str(phase1 * 180 / np.pi) + " for dimension " + str(axes + 1)
         self.addHistory(Message)
@@ -799,13 +799,13 @@ class Spectrum(object):
             offset = self.freq[axes] - self.ref[axes]
         vector = np.exp(np.fft.fftshift(np.fft.fftfreq(self.shape()[axes], 1.0 / self.sw[axes]) + offset) / self.sw[axes] * phase1 * 1j)
         if self.spec[axes] == 0:
-            self.fourier(axes, tmp=True)
+            self.__fourier(axes, tmp=True)
         vector = vector.reshape(vector.shape + (1, )*(self.ndim()-axes-1))
         self.data.icomplexReorder(axes)
         self.data[select] *= np.exp(phase0 * 1j) * vector
         self.data.icomplexReorder(axes)
         if self.spec[axes] == 0:
-            self.fourier(axes, tmp=True, inv=True)
+            self.__invFourier(axes, tmp=True)
         Message = "Phasing: phase0 = " + str(phase0 * 180 / np.pi) + " and phase1 = " + str(phase1 * 180 / np.pi) + " for dimension " + str(axes + 1)
         if select != slice(None, None, None):
             Message = Message + " of data[" + str(select) + "]"
@@ -836,7 +836,7 @@ class Spectrum(object):
             multShape[shiftingAxes] = self.shape()[shiftingAxes]
             previewData = previewData.reshape(multShape)
             if self.spec[axes] > 0:
-                self.fourier(axes, tmp=True)
+                self.__invFourier(axes, tmp=True)
             if not isinstance(select, slice):
                 previewSelect = np.full(len(previewData.shape), slice(None))
                 previewSelect[shiftingAxes] = select[shiftingAxes]
@@ -844,16 +844,16 @@ class Spectrum(object):
                 select = tuple(select)
             self.data[select] *= previewData
             if self.spec[axes] > 0:
-                self.fourier(axes, tmp=True, inv=True)
+                self.__fourier(axes, tmp=True)
         else:
             x = func.apodize(t, shift, self.sw[axes], axLen, lor, gauss, cos2, hamming, self.wholeEcho[axes])
             if preview:
                 previewData = [x] * int(np.prod(self.data.shape()) / self.data.shape()[axes])
             if self.spec[axes] > 0:
-                self.fourier(axes, tmp=True)
+                self.__invFourier(axes, tmp=True)
             self.data[select] *= x.reshape(x.shape + (1, )*(self.ndim()-axes-1))
             if self.spec[axes] > 0:
-                self.fourier(axes, tmp=True, inv=True)
+                self.__fourier(axes, tmp=True)
         # Create the history message based on the input values.
         Message = "Apodization: "
         if lor is not None:
@@ -961,10 +961,10 @@ class Spectrum(object):
         if not self.noUndo:
             copyData = copy.deepcopy(self)
         if self.spec[axes] > 0:
-            self.fourier(axes, tmp=True)
+            self.__invFourier(axes, tmp=True)
         self.data = self.data.resize(size, pos, axis=axes)
         if self.spec[axes] > 0:
-            self.fourier(axes, tmp=True, inv=True)
+            self.__fourier(axes, tmp=True)
         self.resetXax(axes)
         self.addHistory("Resized dimension " + str(axes + 1) + " to " + str(size) + " points at position " + str(pos))
         self.redoList = []
@@ -1048,7 +1048,7 @@ class Spectrum(object):
         if not self.noUndo:
             copyData = copy.deepcopy(self)
         if self.spec[axes] > 0:
-            self.fourier(axes, tmp=True)
+            self.__invFourier(axes, tmp=True)
         mask = np.ones(self.shape()[axes])
         if shift < 0:
             mask[slice(shift, None)] = 0
@@ -1058,7 +1058,7 @@ class Spectrum(object):
         if zeros:
             self.data[select] *= mask.reshape(mask.shape + (1,)*(self.ndim()-axes-1)) 
         if self.spec[axes] > 0:
-            self.fourier(axes, tmp=True, inv=True)
+            self.__fourier(axes, tmp=True)
         Message = "Shifted " + str(shift) + " points in dimension " + str(axes + 1)
         if select != slice(None, None, None):
             Message = Message + " of data[" + str(select) + "]"
@@ -1067,37 +1067,57 @@ class Spectrum(object):
         if not self.noUndo:
             self.undoList.append(lambda self: self.restoreData(copyData, lambda self: self.shift(shift, axes, select=select, zeros=zeros)))
         
-    def fourier(self, axes, tmp=False, inv=False, reorder=[True,True]):
+    def __fourier(self, axes, tmp=False, reorder=[True,True]):
         axes = self.checkAxes(axes)
         if reorder[0]:
             self.data.icomplexReorder(axes)
-        if np.logical_xor(self.spec[axes], inv) == 0:
-            if not self.wholeEcho[axes] and not tmp:
-                slicing = (slice(None), ) * axes + (0, )
-                self.data[slicing] = self.data[slicing] * 0.5
-            self.data = self.data.fft(axes).fftshift(axes)
-            if not tmp:
-                self.spec[axes] = 1
-                self.addHistory("Fourier transform dimension " + str(axes + 1))
-        else:
-            self.data = self.data.ifftshift(axes).ifft(axes)
-            if not self.wholeEcho[axes] and not tmp:
-                slicing = (slice(None), ) * axes + (0, )
-                self.data[slicing] *= 2.0
-            if not tmp:
-                self.spec[axes] = 0
-                self.addHistory("Inverse Fourier transform dimension " + str(axes + 1))
+        if not self.wholeEcho[axes] and not tmp:
+            slicing = (slice(None), ) * axes + (0, )
+            self.data[slicing] = self.data[slicing] * 0.5
+        self.data = self.data.fft(axes).fftshift(axes)
+        if not tmp:
+            self.spec[axes] = 1
         if reorder[1]:
             self.data.icomplexReorder(axes)
         self.resetXax(axes)
+
+    def __invFourier(self, axes, tmp=False, reorder=[True,True]):
+        axes = self.checkAxes(axes)
+        if reorder[0]:
+            self.data.icomplexReorder(axes)
+        if not self.wholeEcho[axes] and not tmp:
+            slicing = (slice(None), ) * axes + (0, )
+            self.data[slicing] = self.data[slicing] * 0.5
+        self.data = self.data.ifftshift(axes).ifft(axes)
+        if not self.wholeEcho[axes] and not tmp:
+            slicing = (slice(None), ) * axes + (0, )
+            self.data[slicing] *= 2.0
+        if not tmp:
+            self.spec[axes] = 0
+        self.resetXax(axes)
+
+    def complexFourier(self, axes):
+        if self.spec[axes] == 0:
+            self.__fourier(axes)
+            self.addHistory("Fourier transform dimension " + str(axes + 1))
+        else:
+            self.__invFourier(axes)
+            self.addHistory("Inverse fourier transform dimension " + str(axes + 1))
         self.redoList = []
         if not self.noUndo:
-            self.undoList.append(lambda self: self.fourier(axes, tmp=False, inv=False, reorder=[True,True]))
+            self.undoList.append(lambda self: self.complexFourier(axes))
 
     def realFourier(self, axes):
+        if not self.noUndo:
+            copyData = copy.deepcopy(self)
         axes = self.checkAxes(axes)
         self.data = self.data.real(axes)
-        self.fourier(axes)
+        if self.spec[axes] == 0:
+            self.__fourier(axes)
+            self.addHistory("Real fourier transform dimension " + str(axes + 1))
+        else:
+            self.__invFourier(axes)
+            self.addHistory("Inverse real fourier transform dimension " + str(axes + 1))
         self.redoList = []
         if not self.noUndo:
             self.undoList.append(lambda self: self.restoreData(copyData, lambda self: self.realFourier(axes)))
@@ -1132,12 +1152,12 @@ class Spectrum(object):
         elif axes < axes2:
             shearMatrix = np.exp(1j * np.outer(vec1, vec2))
         if self.spec[axes] > 0: #rorder and fft for spec
-            self.fourier(axes, tmp=True, reorder = [True,False])
+            self.__invFourier(axes, tmp=True, reorder = [True,False])
         else: #Reorder if FID
             self.data.icomplexReorder(axes)
         self.data *= shearMatrix.reshape(shape)
         if self.spec[axes] > 0:
-            self.fourier(axes, tmp=True, inv=True, reorder=[False,True])
+            self.__fourier(axes, tmp=True, reorder=[False,True])
         else:
             self.data.icomplexReorder(axes)
         self.addHistory("Shearing transform with shearing value " + str(shear) + " over dimensions " + str(axes + 1) + " and " + str(axes2 + 1))
@@ -1179,7 +1199,7 @@ class Spectrum(object):
         tmpData = np.rollaxis(np.array(fit.get()).reshape(tmpShape), -1, axes)
         self.data = hc.HComplexData(tmpData)
         #Transform back to FID
-        self.fourier(axes, tmp=True, inv=True)
+        self.__invFourier(axes, tmp=True)
         self.addHistory("Fast Forward Maximum Entropy reconstruction of dimension " + str(axes + 1) + " at positions " + str(pos))
         self.redoList = []
         if not self.noUndo:
@@ -1211,7 +1231,7 @@ class Spectrum(object):
         tmpData = np.rollaxis(np.array(fit.get()).reshape(tmpShape), -1, axes)
         self.data = hc.HComplexData(tmpData)
         #Transform back to FID
-        self.fourier(axes, tmp=True, inv=True)
+        self.__invFourier(axes, tmp=True)
         self.addHistory("CLEAN reconstruction (gamma = " + str(gamma) + " , threshold = " + str(threshold) + " , maxIter = " + str(maxIter) + ") " + 
         "of dimension " + str(axes + 1) + " at positions " + str(pos))
         self.redoList = []
@@ -1242,7 +1262,7 @@ class Spectrum(object):
         tmpData = np.rollaxis(np.array(fit.get()).reshape(tmpShape), -1, axes)
         self.data = hc.HComplexData(tmpData)
         #Transform back to FID
-        self.fourier(axes, tmp=True, inv=True)
+        self.__invFourier(axes, tmp=True)
         self.addHistory("IST reconstruction (threshold = " + str(threshold) + " , maxIter = " + str(maxIter) + " , tracelimit = " + str(tracelimit*100) + ") " + 
         "of dimension " + str(axes + 1) + " at positions " + str(pos))
         self.redoList = []

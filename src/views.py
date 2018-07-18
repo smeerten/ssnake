@@ -297,9 +297,9 @@ class Current1D(PlotFrame):
         self.upd()
         self.showFid()
 
-    def fourier(self):  # fourier the actual data and replot
-        self.root.addMacro(['fourier', (self.axes[-1] - self.data.ndim(), )])
-        self.data.fourier(self.axes[-1])
+    def complexFourier(self):  # fourier the actual data and replot
+        self.root.addMacro(['complexFourier', (self.axes[-1] - self.data.ndim(), )])
+        self.data.complexFourier(self.axes[-1])
         self.upd()
         if isinstance(self, (CurrentStacked, CurrentArrayed)):
             self.resetSpacing()
