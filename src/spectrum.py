@@ -1085,15 +1085,14 @@ class Spectrum(object):
         axes = self.checkAxes(axes)
         if reorder[0]:
             self.data.icomplexReorder(axes)
-        if not self.wholeEcho[axes] and not tmp:
-            slicing = (slice(None), ) * axes + (0, )
-            self.data[slicing] = self.data[slicing] * 0.5
         self.data = self.data.ifftshift(axes).ifft(axes)
         if not self.wholeEcho[axes] and not tmp:
             slicing = (slice(None), ) * axes + (0, )
             self.data[slicing] *= 2.0
         if not tmp:
             self.spec[axes] = 0
+        if reorder[1]:
+            self.data.icomplexReorder(axes)
         self.resetXax(axes)
 
     def complexFourier(self, axes):
