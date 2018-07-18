@@ -360,6 +360,7 @@ class MainProgram(QtWidgets.QMainWindow):
                                    ['Workspaces --> Rename', self.renameWorkspaceAct],
                                    ['Workspaces --> Next', self.forwardAct],
                                    ['Workspaces --> Previous', self.backAct],
+                                   ['Workspaces --> Info', self.workInfoAct],
                                    ['Macro --> Start Recording', self.macrostartAct],
                                    ['Macro --> Stop Recording', self.macrostopAct],
                                    ['Macro --> Load', self.macroLoadAct],
@@ -512,8 +513,10 @@ class MainProgram(QtWidgets.QMainWindow):
         self.forwardAct.setToolTip('Next Workspace')
         self.backAct = self.workspacemenu.addAction(QtGui.QIcon(IconDirectory + 'previous.png'), '&Previous', lambda: self.stepWorkspace(-1), QtGui.QKeySequence.Back)
         self.backAct.setToolTip('Previous Workspace')
+        self.workInfoAct = self.workspacemenu.addAction(QtGui.QIcon(IconDirectory + 'about.png'), '&Info', lambda: self.mainWindowCheck(lambda mainWindow: WorkInfoWindow(mainWindow)))
+        self.workInfoAct.setToolTip('Workspace Information')
         self.workspaceActList = [self.newAct, self.closeAct, self.renameWorkspaceAct,
-                                 self.forwardAct, self.backAct]
+                                 self.forwardAct, self.backAct,self.workInfoAct]
         # Macro menu
         self.macromenu = QtWidgets.QMenu('&Macros', self)
         self.menubar.addMenu(self.macromenu)
@@ -3020,6 +3023,53 @@ class AsciiLoadWindow(QtWidgets.QDialog):
 
 #################################################################################
 
+
+class WorkInfoWindow(QtWidgets.QDialog):
+    #A window to view info of the workspace (size etc)
+    def __init__(self, parent):
+        super(WorkInfoWindow, self).__init__(parent)
+        self.father = parent
+        self.setWindowFlags(QtCore.Qt.Window | QtCore.Qt.Tool | QtCore.Qt.WindowContextHelpButtonHint)
+        self.setWindowTitle("Workspace Info")
+        grid = QtWidgets.QGridLayout(self)
+        grid.addWidget(QtWidgets.QLabel("Name:"), 0, 0)
+        grid.addWidget(QtWidgets.QLabel(self.father.masterData.name), 0, 1)
+        grid.addWidget(QtWidgets.QLabel("# Dimensions:"), 1, 0)
+        grid.addWidget(QtWidgets.QLabel(str(self.father.masterData.ndim())), 1, 1)
+        sw = self.father.masterData.sw
+        np = self.father.masterData.shape()
+        freq = self.father.masterData.freq
+        ref = [x/1e6 if x is not None else x for x in self.father.masterData.ref]
+        whole = self.father.masterData.wholeEcho
+        spec = ['Time' if x == 0 else 'Frequency' for x in self.father.masterData.spec]
+        for x in range(self.father.masterData.ndim()):
+            grid.addWidget(QtWidgets.QLabel('D' + str(x+1)), 2, x+1)
+            grid.addWidget(QtWidgets.QLabel(str(sw[x]/1000)), 3, x+1)
+            grid.addWidget(QtWidgets.QLabel(str(freq[x]/1e6)), 4, x+1)
+            grid.addWidget(QtWidgets.QLabel(str(ref[x])), 5, x+1)
+            grid.addWidget(QtWidgets.QLabel(str(np[x])), 6, x+1)
+            grid.addWidget(QtWidgets.QLabel(spec[x]), 7, x+1)
+            grid.addWidget(QtWidgets.QLabel(str(self.father.masterData.isComplex(x))), 8, x+1)
+            grid.addWidget(QtWidgets.QLabel(str(whole[x])), 9, x+1)
+        grid.addWidget(QtWidgets.QLabel('Spectral Width [kHz]:'), 3, 0)
+        grid.addWidget(QtWidgets.QLabel('Frequency [MHz]:'), 4, 0)
+        grid.addWidget(QtWidgets.QLabel('Reference [MHz]:'), 5, 0)
+        grid.addWidget(QtWidgets.QLabel('Number of Points:'), 6, 0)
+        grid.addWidget(QtWidgets.QLabel('Type:'), 7, 0)
+        grid.addWidget(QtWidgets.QLabel('Complex:'), 8, 0)
+        grid.addWidget(QtWidgets.QLabel('Whole Echo:'), 9, 0)
+        okButton = QtWidgets.QPushButton("&Close")
+        okButton.clicked.connect(self.closeEvent)
+        grid.addWidget(okButton, 13, int((self.father.masterData.ndim()+1.0)/2))
+        self.show()
+        self.setFixedSize(self.size())
+
+    def closeEvent(self, *args):
+        self.closed = True
+        self.accept()
+        self.deleteLater()
+
+#################################################################################
 class PhaseWindow(wc.ToolWindows):
 
     NAME = "Phasing"
