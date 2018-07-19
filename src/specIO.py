@@ -789,8 +789,10 @@ def loadMagritek(filePath):
         masterData = sc.Spectrum(ComplexData, (filePath, None), [freq], [sw], [False], ref=[ref])
     masterData.addHistory("Magritek data loaded from " + filePath)
     masterData.metaData['# Scans'] = H['nrScans']
-    masterData.metaData['AcqTime [s]'] = str(int(H['nrPnts']) * float(H['dwellTime']) * 1e-6)
-    masterData.metaData['ExpName'] = H['expName'].strip('"')
+    masterData.metaData['Acquisition Time [s]'] = str(int(H['nrPnts']) * float(H['dwellTime']) * 1e-6)
+    masterData.metaData['Experiment Name'] = H['expName'].strip('"')
+    masterData.metaData['Receiver Gain'] = H['rxGain']
+    masterData.metaData['Recycle Delay [s]'] = str(float(H['repTime'])/1e3)
     return masterData
 
 def saveSimpsonFile(filePath, spectrum):
