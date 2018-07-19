@@ -1664,7 +1664,7 @@ class Main1DWindow(QtWidgets.QWidget):
         if not name:
             return
         self.father.lastLocation = os.path.dirname(name)  # Save used path
-        io.saveJSONfile(name, self.masterData)
+        io.saveJSONFile(name, self.masterData)
 
     def saveMatlabFile(self):
         WorkspaceName = self.father.workspaceNames[self.father.workspaceNum]  # Set name of file to be saved to workspace name to start
@@ -3058,9 +3058,14 @@ class WorkInfoWindow(QtWidgets.QDialog):
         grid.addWidget(QtWidgets.QLabel('Type:'), 7, 0)
         grid.addWidget(QtWidgets.QLabel('Complex:'), 8, 0)
         grid.addWidget(QtWidgets.QLabel('Whole Echo:'), 9, 0)
+        grid.addWidget(QtWidgets.QLabel('Experimental metadata=========:'), 10, 0)
+        for pos, key in enumerate(self.father.masterData.metaData):
+            grid.addWidget(QtWidgets.QLabel(key), 11 + pos, 0)
+            grid.addWidget(QtWidgets.QLabel(self.father.masterData.metaData[key]), 11 + pos, 1)
+
         okButton = QtWidgets.QPushButton("&Close")
         okButton.clicked.connect(self.closeEvent)
-        grid.addWidget(okButton, 13, int((self.father.masterData.ndim()+1.0)/2))
+        grid.addWidget(okButton, 300, int((self.father.masterData.ndim()+1.0)/2))
         self.show()
         self.setFixedSize(self.size())
 

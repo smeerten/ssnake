@@ -40,7 +40,7 @@ class SpectrumException(Exception):
 
 class Spectrum(object):
 
-    def __init__(self, data, filePath, freq, sw, spec=None, wholeEcho=None, ref=None, xaxArray=None, history=None, name=''):
+    def __init__(self, data, filePath, freq, sw, spec=None, wholeEcho=None, ref=None, xaxArray=None, history=None, metaData = None, name=''):
         self.name = name
         if isinstance(data, hc.HComplexData):
             self.data = data
@@ -73,6 +73,10 @@ class Spectrum(object):
             self.history = []  # list of strings describing all performed operations
         else:
             self.history = history
+        if metaData is None:
+            self.metaData = {'# Scans': None, 'AcqTime [s]': None, 'ExpName': None}
+        else:
+            self.metaData = metaData
 
     def ndim(self):
         return self.data.ndim()

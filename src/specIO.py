@@ -412,6 +412,7 @@ def saveJSONFile(filePath, spectrum):
     struct['wholeEcho'] = list(1.0 * np.array(spectrum.wholeEcho))
     struct['ref'] = np.array(spectrum.ref, dtype=np.float).tolist()
     struct['history'] = spectrum.history
+    struct['metaData'] = spectrum.metaData
     tmpXax = []
     for i in spectrum.xaxArray:
         tmpXax.append(i.tolist())
@@ -439,6 +440,11 @@ def loadJSONFile(filePath):
     xaxA = []
     for i in struct['xaxArray']:
         xaxA.append(np.array(i))
+    metaData = dict()
+    if 'metaData' in struct:
+        tmp = struct['metaData']
+        for elem in tmp.keys():#Convert possible unicode to normal string
+            metaData[str(elem)] = str(tmp[elem])
     masterData = sc.Spectrum(hc.HComplexData(data, hyper),
                              (filePath, None),
                              list(struct['freq']),
@@ -447,7 +453,8 @@ def loadJSONFile(filePath):
                              list(np.array(struct['wholeEcho'], dtype=bool)),
                              list(ref),
                              xaxA,
-                             history=history)
+                             history=history,
+                             metaData=metaData)
     masterData.addHistory("JSON data loaded from " + filePath)
     return masterData
 
@@ -464,6 +471,7 @@ def saveMatlabFile(filePath, spectrum, name='spectrum'):
     struct['ref'] = np.array(spectrum.ref, dtype=np.float)
     struct['history'] = spectrum.history
     struct['xaxArray'] = spectrum.xaxArray
+    struct['metaData'] = spectrum.metaData
     matlabStruct = {name: struct}
     scipy.io.savemat(filePath, matlabStruct)
 
@@ -506,6 +514,13 @@ def loadMatlabFile(filePath):
             history = list(np.array(mat['history'][0, 0], dtype=str))
         else:
             history = None
+        metaData = dict()
+        if 'metaData' in mat.dtype.names:
+            val = mat['metaData'][0][0][0][0]
+            val = [x[0] for x in val]
+            names = mat['metaData'][0][0].dtype.names
+            for x, elem in enumerate(names):
+                metaData[elem] = val[x]
         masterData = sc.Spectrum(hc.HComplexData(data, hyper),
                                  (filePath, None),
                                  list(mat['freq'][0, 0][0]),
@@ -514,7 +529,8 @@ def loadMatlabFile(filePath):
                                  list(np.array(mat['wholeEcho'][0, 0][0]) > 0),
                                  list(ref),
                                  xaxA,
-                                 history=history)
+                                 history=history,
+                                 metaData = metaData)
         masterData.addHistory("Matlab data loaded from " + filePath)
         return masterData
     else:  # If the version is 7.3, use HDF5 type loading
@@ -526,8 +542,8 @@ def loadMatlabFile(filePath):
                 Groups.append(name)
         DataGroup = Groups[0]  # get the group name
         mat = f[DataGroup]
-        if 'hyper' in mat.dtype.names:
-            hyper = np.array(mat['hyper'])
+        if 'hyper' in mat:
+            hyper = np.array(mat['hyper'])[0]
         else:
             hyper = None
         if np.array(mat['dim'])[0][0] == 1:
@@ -553,12 +569,19 @@ def loadMatlabFile(filePath):
                 xaxA = [np.array(mat[k[0]]) for k in (mat['xaxArray'])]
         ref = np.array(mat['ref'])[:, 0]
         ref = np.where(np.isnan(ref), None, ref)
-        if 'history' in mat.keys():
+        if 'history' in mat:
             history = list()
             history.append([item.astype(np.int8).tostring().decode("ascii") for item in np.array(mat['history']).transpose()])
             history = history[0]
         else:
             history = None
+        metaData = dict()
+        if 'metaData' in mat:
+            names = [x for x in mat['metaData']]
+            for val in names:
+                tmp = ''.join([chr(x) for x in mat['metaData'][val].value.flatten()])
+                metaData[val] = tmp
+
         masterData = sc.Spectrum(hc.HComplexData(data, hyper),
                                  (filePath, None),
                                  list(np.array(mat['freq'])[:, 0]),
@@ -567,7 +590,8 @@ def loadMatlabFile(filePath):
                                  list(np.array(mat['wholeEcho'])[:, 0] > 0),
                                  list(ref),
                                  xaxA,
-                                 history=history)
+                                 history=history,
+                                 metaData=metaData)
         masterData.addHistory("Matlab data loaded from " + filePath)
         return masterData
 
@@ -726,27 +750,23 @@ def loadMagritek(filePath):
     Files2D = [x for x in DirFiles if '.2d' in x]
     Files1D = [x for x in DirFiles if '.1d' in x]
     # initialize 2D values to some dummy value
-    sizeTD1 = 0
     sw1 = 50e3
     lastfreq1 = None
     ref1 = None
     # Start pars extraction
-    H = dict(line.strip().split('=') for line in open(Dir + os.path.sep + 'acqu.par', 'r'))
-    for key in H.keys():
-        if key.startswith("bandwidth "):
-            sw = float(H[key]) * 1000
-        elif key.startswith("nrPnts "):
-            sizeTD2 = int(H[key])
-        elif key.startswith("b1Freq "):
-            freq = float(H[key]) * 1e6
-        elif key.startswith("lowestFrequency "):
-            lastfreq = float(H[key])
-        elif key.startswith("nrSteps "):
-            sizeTD1 = int(H[key])
-        elif key.startswith("bandwidth2 "):
-            sw1 = float(H[key]) * 1000
-        elif key.startswith("lowestFrequency2 "):
-            lastfreq1 = float(H[key])
+    H = [line.strip().split('=') for line in open(Dir + os.path.sep + 'acqu.par', 'r')]
+    H = [[x[0].strip(),x[1].strip()] for x in H]
+    H = dict(H)
+    sw = float(H['bandwidth']) * 1000
+    sizeTD2 = int(H['nrPnts'])
+    freq = float(H['b1Freq']) * 1e6
+    lastfreq = float(H['lowestFrequency'])
+    if len(Files2D) == 1:
+        sizeTD1 = int(H['nrSteps'])
+        if 'bandwidth2' in H.keys():
+            sw1 = float(H['bandwidth2']) * 1000
+            lastfreq1 = float(H['lowestFrequency2'])
+
     sidefreq = -np.floor(sizeTD2 / 2) / sizeTD2 * sw  # freqeuency of last point on axis
     ref = sidefreq + freq - lastfreq
     if len(Files2D) == 1:
@@ -768,6 +788,9 @@ def loadMagritek(filePath):
         ComplexData = Data[0:Data.shape[0]:2] - 1j * Data[1:Data.shape[0]:2]
         masterData = sc.Spectrum(ComplexData, (filePath, None), [freq], [sw], [False], ref=[ref])
     masterData.addHistory("Magritek data loaded from " + filePath)
+    masterData.metaData['# Scans'] = H['nrScans']
+    masterData.metaData['AcqTime [s]'] = str(int(H['nrPnts']) * float(H['dwellTime']) * 1e-6)
+    masterData.metaData['ExpName'] = H['expName'].strip('"')
     return masterData
 
 def saveSimpsonFile(filePath, spectrum):
