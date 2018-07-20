@@ -1022,10 +1022,16 @@ class AbstractParamFrame(QtWidgets.QWidget):
 
 ##############################################################################
 
+def lstSqrs(dataList, *args):
+    simData = fitFunc(*args)
+    costValue = 0
+    for i in range(len(dataList)):
+        costValue += np.sum((dataList[i] - simData[i])**2)
+    return costValue
+
 def mpFit(xax, data1D, guess, args, queue, func, singleNames, multiNames, minmethod, numfeval):
-    data1D = np.concatenate(data1D)
     try:
-        fitVal = scipy.optimize.minimize(lambda *param: np.sum((data1D - np.concatenate(fitFunc(func, singleNames, multiNames, param, xax, args)))**2), guess, method=minmethod, options = {'maxfev': numfeval})
+        fitVal = scipy.optimize.minimize(lambda *param: lstSqrs(data1D, func, singleNames, multiNames, param, xax, args), guess, method=minmethod, options = {'maxfev': numfeval})
     except Exception:
         fitVal = None
     queue.put(fitVal)
