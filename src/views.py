@@ -924,6 +924,9 @@ class Current1D(PlotFrame):
         if num == -1 or num == (self.ndim()-1):
             self.xminlim = self.xminlim * newAxMult / oldAxMult
             self.xmaxlim = self.xmaxlim * newAxMult / oldAxMult
+        elif num == -2 or num == (self.ndim()-2):
+            self.yminlim = self.yminlim * newAxMult / oldAxMult
+            self.ymaxlim = self.ymaxlim * newAxMult / oldAxMult
         if update:
             self.showFid()
 
