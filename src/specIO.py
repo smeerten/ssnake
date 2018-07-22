@@ -166,6 +166,42 @@ def fileTypeCheck(filePath):
         return (11, filePath, returnVal)
     return (None, filePath, 2)
 
+def varianGetPars(procpar):
+    with open(procpar, 'r') as f:
+        data = f.read().split('\n')
+    pos = 0
+    pars = dict()
+    while pos < len(data) - 1:
+        first = data[pos].split()
+        name = first[0]
+        subtype = first[1]
+        basictype = first[2]
+
+        second = data[pos + 1].split()
+        if basictype == '1': #If 'real'
+            if subtype == '7': #if integer
+                try: #Try int conversion (sometime floats are saved in an int variable...)
+                    val = [int(x) for x in second[1::]]
+                except:
+                    val = [float(x) for x in second[1::]]
+            else:
+                val = [float(x) for x in second[1::]]
+        elif basictype == '2': #if 'str'
+            val = []
+            txt = ''.join(second[1::]) #Reconnect split parts
+            if txt[-1] != '"': #check for weird case were the final '"' of the string is on the next line
+                pos += 1
+            val.append(txt.strip('"'))
+            for step in range(int(second[0]) - 1):
+                second = data[pos + 1 + step + 1].strip('"')
+                val.append(second)
+                pos += 1
+        if len(val) == 1:
+            val = val[0] #undo list
+        pos += 3 #Step 3: alway 2 lines, plus enum line (usually only a single '0')
+        pars[name] = val
+    return pars
+
 def loadVarianFile(filePath):
     from struct import unpack
     if os.path.isfile(filePath):
@@ -178,21 +214,19 @@ def loadVarianFile(filePath):
         file = Dir + os.path.sep + '..' + os.path.sep + 'procpar'
     else:
         file = None
-    Out = [0,1,1,0,0,0,0,0]
-    indirectRef = 'dfrq'
+    sw1, reffreq1, freq1 = (1,0,0) #pre initialize
     if file is not None:
-        with open(file, 'r') as f:
-            data = f.read().split('\n')
-        for s in range(0, len(data)): #First check indirect ref name
-            if data[s].startswith('refsource1' + " "):
-                indirectRef = data[s + 1].split()[1][1:-1]
-        f, fM, S = lambda x: float(x), lambda x: float(x) * 1e6, lambda x: x
-        Elem = [['sfrq', fM],['sw', f],['sw1', f],['reffrq',fM],['reffrq1',fM],['rp',f],['phfid',f],[indirectRef,fM]]
-        for s in range(0, len(data)):
-            for index in range(len(Elem)):
-                if data[s].startswith(Elem[index][0] + ' '):
-                   Out[index] = Elem[index][1]((data[s + 1].split()[1]))
-    freq, sw, sw1, reffreq, reffreq1, rp, phfid, freq1 = Out
+        pars = varianGetPars(file)
+        freq = pars['sfrq'] * 1e6
+        sw = pars['sw']
+        reffreq = pars['reffrq'] * 1e6
+        rp = pars['rp']
+        phfid = pars['phfid']
+        if 'sw1' in pars:
+            indirectRef = pars['refsource1']
+            reffrq1 = pars['reffrq1'] * 1e6
+            sw1 = pars['sw1']
+            freq1 = pars[indirectRef] * 1e6
     if os.path.exists(Dir + os.path.sep + 'fid'):
         filePath = Dir + os.path.sep + 'fid'
     elif os.path.exists(Dir + os.path.sep + 'data'):
@@ -233,6 +267,15 @@ def loadVarianFile(filePath):
     else:
         masterData = sc.Spectrum(fid, (filePath, None), [freq1, freq], [sw1, sw], [bool(int(spec))] * 2, ref=[reffreq1, reffreq])
     masterData.addHistory("Varian data loaded from " + filePath)
+
+    masterData.metaData['# Scans'] = str(pars['nt'])
+    masterData.metaData['Acquisition Time [s]'] = str(pars['at'])
+    masterData.metaData['Experiment Name'] = pars['seqfil']
+    masterData.metaData['Receiver Gain'] = str(pars['gain'])
+    masterData.metaData['Recycle Delay [s]'] = str(pars['d1'])
+    masterData.metaData['Time Completed'] = pars['time_complete']
+    masterData.metaData['Offset (Hz)'] = str(pars['tof'])
+    masterData.metaData['Sample'] = pars['samplename']
     return masterData
 
 def loadPipe(filePath):

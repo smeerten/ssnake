@@ -74,7 +74,8 @@ class Spectrum(object):
         else:
             self.history = history
         if metaData is None:
-            self.metaData = {'# Scans': 'None', 'Acquisition Time [s]': 'None', 'Experiment Name': 'None','Receiver Gain': 'None', 'Recycle Delay [s]': 'None'}
+            self.metaData = {'# Scans': '-', 'Acquisition Time [s]': '-', 'Experiment Name': '-','Receiver Gain': '-', 'Recycle Delay [s]': '-',
+                    'Sample': '-', 'Offset (Hz)': '-', 'Time Completed': '-'}
         else:
             self.metaData = metaData
 
