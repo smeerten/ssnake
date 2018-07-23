@@ -376,7 +376,7 @@ def loadJEOLDelta(filePath):
     reverse = multiUP('>B', 1, 8, 1192)
     readStart = multiUP('>I', 4, 1, 1284)[0]
     #data_length = multiUP('>Q', 8, 1, 1288)[0]
-    loadSize = np.cumprod(NP[:NDIM])[-1]
+    loadSize = np.prod(NP[:NDIM])
     if NDIM == 1 and dataType[0] == 3: #Complex 1D
         loadSize *= 2
     elif NDIM == 2 and dataType[0] == 4: #2D Real-Complex (non-Hypercomplex)
@@ -741,7 +741,7 @@ def loadBrukerSpectrum(filePath):
         pos = np.fft.fftshift(np.fft.fftfreq(SIZE[index], 1.0 / SW[index]))[-1] #Get last point of axis
         pos2 = OFFSET[index] * 1e-6 * FREQ[index] #offset in Hz
         REF.append(FREQ[index] + pos - pos2)
-    totsize =  np.cumprod(SIZE)[-1]
+    totsize =  np.prod(SIZE)
     dim = len(SIZE)
     DATA = []
     files = [['1r','1i'],['2rr','2ir','2ri','2ii'],['3rrr','3irr','3rir','3iir','3rri','3iri','3rii','3iii']]
