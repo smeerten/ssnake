@@ -3363,11 +3363,11 @@ class ApodWindow(wc.ToolWindows):
             self.grid.addWidget(self.shiftingDropdown, 14, 1)
             self.shiftingEntry = wc.QLineEdit("0.00", self.apodPreview)
             self.grid.addWidget(self.shiftingEntry, 15, 1)
-            self.shiftingAxes = QtWidgets.QComboBox()
-            self.shiftingValues = list(map(str, np.delete(range(1, self.father.current.data.ndim() + 1), self.father.current.axes[-1])))
-            self.shiftingAxes.addItems(self.shiftingValues)
-            self.shiftingAxes.currentIndexChanged.connect(self.apodPreview)
-            self.grid.addWidget(self.shiftingAxes, 16, 1)
+            self.shiftingAxis = QtWidgets.QComboBox()
+            self.shiftingValues = list(map(str, np.delete(range(1, self.father.current.data.ndim() + 1), self.father.current.axis[-1])))
+            self.shiftingAxis.addItems(self.shiftingValues)
+            self.shiftingAxis.currentIndexChanged.connect(self.apodPreview)
+            self.grid.addWidget(self.shiftingAxis, 16, 1)
 
     def dropdownChanged(self):
         index = self.shiftingDropdown.currentIndex()
@@ -3409,7 +3409,7 @@ class ApodWindow(wc.ToolWindows):
         cos2Ph = None
         hamming = None
         shifting = None
-        shiftingAxes = 0
+        shiftingAxis = 0
         if self.ticks['lor'].isChecked():
             lor = safeEval(self.entries['lor'][0].text())
             if lor is None:
@@ -3453,11 +3453,11 @@ class ApodWindow(wc.ToolWindows):
                 self.father.current.showFid()
                 raise SsnakeException('Apodize: Shifting value is not valid!')
             self.shiftingEntry.setText('%.4g' % shifting)
-            shiftingAxes = int(self.shiftingValues[self.shiftingAxes.currentIndex()]) - 1
+            shiftingAxis = int(self.shiftingValues[self.shiftingAxis.currentIndex()]) - 1
         else:
-            shiftingAxes = None
+            shiftingAxis = None
         self.available = True
-        self.father.current.apodPreview(lor, gauss, [cos2, cos2Ph], hamming, shift, shifting, shiftingAxes)
+        self.father.current.apodPreview(lor, gauss, [cos2, cos2Ph], hamming, shift, shifting, shiftingAxis)
 
     def stepLB(self, lorincr, gaussincr):
         if QtWidgets.qApp.keyboardModifiers() & QtCore.Qt.ControlModifier:
@@ -3489,7 +3489,7 @@ class ApodWindow(wc.ToolWindows):
         cos2Ph = None
         hamming = None
         shifting = None
-        shiftingAxes = 0
+        shiftingAxis = 0
         if self.ticks['lor'].isChecked():
             lor = safeEval(self.entries['lor'][0].text())
             if lor is None:
@@ -3524,10 +3524,10 @@ class ApodWindow(wc.ToolWindows):
             if shifting is None:
                 self.father.current.showFid()
                 raise SsnakeException('Apodize: Shifting value is not valid!')
-            shiftingAxes = int(self.shiftingValues[self.shiftingAxes.currentIndex()]) - 1
+            shiftingAxis = int(self.shiftingValues[self.shiftingAxis.currentIndex()]) - 1
         else:
-            shiftingAxes = None
-        self.father.current.applyApod(lor, gauss, [cos2, cos2Ph], hamming, shift, shifting, shiftingAxes, (self.singleSlice.isChecked()))
+            shiftingAxis = None
+        self.father.current.applyApod(lor, gauss, [cos2, cos2Ph], hamming, shift, shifting, shiftingAxis, (self.singleSlice.isChecked()))
 
 #######################################################################################
 
@@ -5444,11 +5444,11 @@ class ShearingWindow(wc.ToolWindows):
         shear = safeEval(self.shearEntry.text())
         if shear is None:
             raise SsnakeException("Shearing: 'constant' not a valid value")
-        axes = self.dirEntry.currentIndex()
-        axes2 = self.axEntry.currentIndex()
-        if axes == axes2:
+        axis = self.dirEntry.currentIndex()
+        axis2 = self.axEntry.currentIndex()
+        if axis == axis2:
             raise SsnakeException("Shearing: axes cannot be the same for shearing")
-        self.father.current.shearing(float(shear), axes, axes2)
+        self.father.current.shearing(float(shear), axis, axis2)
 
 ##########################################################################################
 

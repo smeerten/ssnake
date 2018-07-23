@@ -335,24 +335,24 @@ class FittingWindow(QtWidgets.QWidget):
     def removeSpectrum(self):
         self.tabWindow.removeSpectrum(self)
 
-    def createNewData(self, data, axes, params=False, fitAll=False):
+    def createNewData(self, data, axis, params=False, fitAll=False):
         masterData = self.get_masterData()
         if fitAll:
             if params:
                 self.father.dataFromFit(data,
                                         masterData.filePath,
-                                        np.append([masterData.freq[axes], masterData.freq[axes]], np.delete(masterData.freq, axes)),
-                                        np.append([masterData.sw[axes], masterData.sw[axes]], np.delete(masterData.sw, axes)),
-                                        np.append([False, False], np.delete(masterData.spec, axes)),
-                                        np.append([False, False], np.delete(masterData.wholeEcho, axes)),
-                                        np.append([None, None], np.delete(masterData.ref, axes)),
+                                        np.append([masterData.freq[axis], masterData.freq[axis]], np.delete(masterData.freq, axis)),
+                                        np.append([masterData.sw[axis], masterData.sw[axis]], np.delete(masterData.sw, axis)),
+                                        np.append([False, False], np.delete(masterData.spec, axis)),
+                                        np.append([False, False], np.delete(masterData.wholeEcho, axis)),
+                                        np.append([None, None], np.delete(masterData.ref, axis)),
                                         None,
                                         None)
             else:
                 self.father.dataFromFit(data,
                                         masterData.filePath,
-                                        np.append(masterData.freq[axes], masterData.freq),
-                                        np.append(masterData.sw[axes], masterData.sw),
+                                        np.append(masterData.freq[axis], masterData.freq),
+                                        np.append(masterData.sw[axis], masterData.sw),
                                         np.append(False, masterData.spec),
                                         np.append(False, masterData.wholeEcho),
                                         np.append(None, masterData.ref),
@@ -362,8 +362,8 @@ class FittingWindow(QtWidgets.QWidget):
             if params:
                 self.father.dataFromFit(data,
                                         masterData.filePath,
-                                        [masterData.freq[axes], masterData.freq[axes]],
-                                        [masterData.sw[axes], masterData.sw[axes]],
+                                        [masterData.freq[axis], masterData.freq[axis]],
+                                        [masterData.sw[axis], masterData.sw[axis]],
                                         [False, False],
                                         [False, False],
                                         [None, None],
@@ -372,8 +372,8 @@ class FittingWindow(QtWidgets.QWidget):
             else:
                 self.father.dataFromFit(data,
                                         masterData.filePath,
-                                        np.append(masterData.freq[axes], self.current.data1D.freq),
-                                        np.append(masterData.sw[axes], self.current.data1D.sw),
+                                        np.append(masterData.freq[axis], self.current.data1D.freq),
+                                        np.append(masterData.sw[axis], self.current.data1D.sw),
                                         np.append(False, self.current.data1D.spec),
                                         np.append(False, self.current.data1D.wholeEcho),
                                         np.append(None, self.current.data1D.ref),

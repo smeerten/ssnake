@@ -321,18 +321,18 @@ class Current1D(PlotFrame):
         self.upd()
         self.showFid()
 
-    def apodPreview(self, lor=None, gauss=None, cos2= [None, None], hamming=None, shift=0.0, shifting=0.0, shiftingAxes=None):  # display the 1D data including the apodization function
+    def apodPreview(self, lor=None, gauss=None, cos2= [None, None], hamming=None, shift=0.0, shifting=0.0, shiftingAxis=None):  # display the 1D data including the apodization function
         y = self.data1D.data.copy()
         preview = True
-        if shiftingAxes is None:
+        if shiftingAxis is None:
             curve = self.data1D.apodize(lor, gauss, cos2, hamming, shift, shifting, None, -1, preview=preview)
         else:
-            if (self.ndim() > 1) and (shiftingAxes == self.axes[-2]):
-                curve = self.data1D.apodize(lor, gauss, cos2, hamming, shift, shifting, shiftingAxes, -1, preview=preview)
+            if (self.ndim() > 1) and (shiftingAxis == self.axes[-2]):
+                curve = self.data1D.apodize(lor, gauss, cos2, hamming, shift, shifting, shiftingAxis, -1, preview=preview)
             else:
-                if shiftingAxes == self.axes[-1]:
-                    raise sc.SpectrumException('shiftingAxes cannot be equal to axes')
-                shift += shifting * self.locList[shiftingAxes] / self.data.sw[shiftingAxes]
+                if shiftingAxis == self.axes[-1]:
+                    raise sc.SpectrumException('shiftingAxis cannot be equal to axis')
+                shift += shifting * self.locList[shiftingAxis] / self.data.sw[shiftingAxis]
                 curve = self.data1D.apodize(lor, gauss, cos2, hamming, shift, 0.0, None, -1, preview=preview)
         if self.spec() == 0 and not isinstance(self, CurrentContour):
             tmp = self.getDataType(y.getHyperData(0))
@@ -342,13 +342,13 @@ class Current1D(PlotFrame):
             self.showFid(y)
         self.upd()
     
-    def applyApod(self, lor=None, gauss=None, cos2= [None,None], hamming=None, shift=0.0, shifting=0.0, shiftingAxes=0, select=False):  # apply the apodization to the actual data
+    def applyApod(self, lor=None, gauss=None, cos2= [None,None], hamming=None, shift=0.0, shifting=0.0, shiftingAxis=0, select=False):  # apply the apodization to the actual data
         if select:
             selectSlice = self.getSelect()
         else:
             selectSlice = slice(None)
-        self.root.addMacro(['apodize', (lor, gauss, cos2, hamming, shift, shifting, shiftingAxes, self.axes[-1] - self.data.ndim(), selectSlice)])
-        self.data.apodize(lor, gauss, cos2, hamming, shift, shifting, shiftingAxes, self.axes[-1], selectSlice)
+        self.root.addMacro(['apodize', (lor, gauss, cos2, hamming, shift, shifting, shiftingAxis, self.axes[-1] - self.data.ndim(), selectSlice)])
+        self.data.apodize(lor, gauss, cos2, hamming, shift, shifting, shiftingAxis, self.axes[-1], selectSlice)
         self.upd()
         self.showFid()
 
