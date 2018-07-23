@@ -722,20 +722,17 @@ def loadBrukerSpectrum(filePath):
         Dir = os.path.dirname(filePath)
     else:
         Dir = filePath
-    f,fM, i = lambda x: float(x), lambda x: float(x) * 1e6, lambda x: int(x) #Conversion functions
-    Elem = [['SI', i, []],['XDIM', i ,[]],['SW_p', f, []],['SF',fM, []],['OFFSET', f, []], ['BYTORDP',i,[]]] #The elements to be found [Name, conversion, list with hits]
-    #OFFSET: The highest ppm values of the axis
-    #XDIM: The blocking size along an axis
+    pars = []
     for File in ['procs','proc2s','proc3s']:
-         if os.path.exists(Dir + os.path.sep + File):
-            with open(Dir + os.path.sep + File, 'r') as f:
-                data = f.read().split('\n')
-            for s in range(0, len(data)):
-                for var in Elem:
-                    if data[s].startswith('##$' + var[0] + '='):
-                        var[2].append( var[1](re.sub('##\$' + var[0] + '=', '', data[s])))
-    SIZE, XDIM, SW, FREQ, OFFSET, BYTE = [x[2] for x in Elem] #Unpack results
-    ByteOrder = ['l','b'][BYTE[0]] #The byte orders that is used
+        if os.path.exists(Dir + os.path.sep + File):
+            pars.append(brukerTopspinGetPars(Dir + os.path.sep + File))
+    SIZE = [x['SI'] for x in pars]
+    XDIM = [x['XDIM'] for x in pars]
+    SW = [x['SW_p'] for x in pars]
+    FREQ = [x['SF'] * 1e6 for x in pars]
+    OFFSET = [x['OFFSET'] for x in pars]
+    ByteOrder = ['l','b'][pars[0]['BYTORDP']] #The byte orders that is used
+
     REF = []
     for index in range(len(SIZE)): #For each axis
         pos = np.fft.fftshift(np.fft.fftfreq(SIZE[index], 1.0 / SW[index]))[-1] #Get last point of axis
@@ -775,6 +772,17 @@ def loadBrukerSpectrum(filePath):
     spec = [True]
     masterData = sc.Spectrum(hc.HComplexData(DATA, hyper), (filePath, None), FREQ[-1::-1], SW[-1::-1], spec * dim, ref=REF[-1::-1])
     masterData.addHistory("Bruker spectrum data loaded from " + filePath)
+    #Try to load main acqus and get some additional pars
+    try:
+        parsExtra = brukerTopspinGetPars(Dir + os.path.sep  + '..' + os.path.sep + '..'+ os.path.sep + 'acqus')
+        masterData.metaData['# Scans'] = str(parsExtra['NS'])
+        masterData.metaData['Receiver Gain'] = str(parsExtra['RG'])
+        masterData.metaData['Experiment Name'] = parsExtra['PULPROG']
+        masterData.metaData['Offset [Hz]'] = str(parsExtra['O1'])
+        masterData.metaData['Recycle Delay [s]'] = str(parsExtra['D'][1])
+    except:
+        pass #Do nothing on error
+
     return masterData
 
 def loadChemFile(filePath):
