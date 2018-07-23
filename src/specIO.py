@@ -167,6 +167,7 @@ def fileTypeCheck(filePath):
     return (None, filePath, 2)
 
 def varianGetPars(procpar):
+    """ A routine to load all pars to a dictionary for Varian procpar data """
     with open(procpar, 'r') as f:
         data = f.read().split('\n')
     pos = 0
@@ -274,7 +275,7 @@ def loadVarianFile(filePath):
     masterData.metaData['Receiver Gain'] = str(pars['gain'])
     masterData.metaData['Recycle Delay [s]'] = str(pars['d1'])
     masterData.metaData['Time Completed'] = pars['time_complete']
-    masterData.metaData['Offset (Hz)'] = str(pars['tof'])
+    masterData.metaData['Offset [Hz]'] = str(pars['tof'])
     masterData.metaData['Sample'] = pars['samplename']
     return masterData
 
@@ -638,25 +639,56 @@ def loadMatlabFile(filePath):
         masterData.addHistory("Matlab data loaded from " + filePath)
         return masterData
 
+
+def brukerTopspinGetPars(file):
+    """ A routine to load all pars to a dictionary for Bruker Topsin acqus type
+        file """
+    with open(file, 'r') as f:
+        data = f.read().split('\n')
+    pos = 0
+    pars = dict()
+    while pos < len(data):
+        if data[pos].startswith('##$'):
+            line = data[pos].split()
+            name = line[0].strip('##$=')
+            val = line[1]
+            if val[0] == '<':
+                val = val.strip('<>')
+            elif val[0] == '(': #If list of values (always int/floats)
+                pos +=1
+                val = []
+                while not data[pos].startswith('##$'):
+                    val = val + [float(x) for x in data[pos].split()]
+                    pos += 1
+                pos += -1
+            else:
+                try: #Both int, float and string can be in...
+                    val = int(val)
+                except ValueError:
+                    try:
+                        val = float(val)
+                    except ValueError:
+                        pass
+            pars[name] = val
+        pos += 1
+    return pars
+
 def loadBrukerTopspin(filePath):
     if os.path.isfile(filePath):
         Dir = os.path.dirname(filePath)
     else:
         Dir = filePath
-    f,fM, i = lambda x: float(x), lambda x: float(x) * 1e6, lambda x: int(x) #Conversion functions
-    Elem = [['TD', i, []],['SFO1', fM ,[]],['SW_h', f, []],['O1',f, []], ['BYTORDA',i,[]]] #The elements to be found [Name, conversion, list with hits]
+    pars = []
     for File in ['acqus','acqu2s','acqu3s']:
         if os.path.exists(Dir + os.path.sep + File):
-            with open(Dir + os.path.sep + File, 'r') as f:
-                data = f.read().split('\n')
-            for s in range(0, len(data)):
-                for var in Elem:
-                    if data[s].startswith('##$' + var[0] + '='):
-                        var[2].append( var[1](re.sub('##\$' + var[0] + '=', '', data[s])))
-    SIZE, FREQ, SW, REF, BYTE = [x[2] for x in Elem] #Unpack results
-    ByteOrder = ['l','b'][BYTE[0]] #The byte orders that is used
+            pars.append(brukerTopspinGetPars(Dir + os.path.sep + File))
+    SIZE = [x['TD'] for x in pars]
+    FREQ = [x['SFO1'] * 1e6 for x in pars]
+    SW = [x['SW_h'] for x in pars]
+    REF = [x['O1'] for x in pars]
+    ByteOrder = ['l','b'][pars[0]['BYTORDA']] #The byte orders that is used
     REF = list(- np.array(REF) + np.array(FREQ))
-    totsize = np.cumprod(SIZE)[-1]
+    totsize = np.prod(SIZE)
     dim = len(SIZE)
     directSize = int(np.ceil(float(SIZE[0]) / 256)) * 256 #Size of direct dimension including
     #blocking size of 256 data points
@@ -677,7 +709,12 @@ def loadBrukerTopspin(filePath):
     elif dim == 3:
         ComplexData = ComplexData[:,:,0:int(SIZE[0]/2)] #Cut off placeholder data
     masterData = sc.Spectrum(ComplexData, (filePath, None), FREQ[-1::-1], SW[-1::-1], [False] * dim, ref = REF[-1::-1])
-    masterData.addHistory("Bruker data loaded from " + filePath)
+    masterData.metaData['# Scans'] = str(pars[0]['NS'])
+    masterData.metaData['Receiver Gain'] = str(pars[0]['RG'])
+    masterData.metaData['Experiment Name'] = pars[0]['PULPROG']
+    masterData.metaData['Offset [Hz]'] = str(pars[0]['O1'])
+    masterData.metaData['Recycle Delay [s]'] = str(pars[0]['D'][1])
+
     return masterData
 
 def loadBrukerSpectrum(filePath):

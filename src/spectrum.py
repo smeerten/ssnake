@@ -48,7 +48,7 @@ class Spectrum(object):
             self.data = hc.HComplexData(data)
         self.filePath = filePath
         self.freq = np.array(freq)  # array of center frequency (length is dim, MHz)
-        self.sw = sw  # array of sweepwidths
+        self.sw = np.array(sw,dtype=float)  # array of sweepwidths
         self.undoList = []
         self.redoList = []
         self.noUndo = False
@@ -75,7 +75,7 @@ class Spectrum(object):
             self.history = history
         if metaData is None:
             self.metaData = {'# Scans': '-', 'Acquisition Time [s]': '-', 'Experiment Name': '-','Receiver Gain': '-', 'Recycle Delay [s]': '-',
-                    'Sample': '-', 'Offset (Hz)': '-', 'Time Completed': '-'}
+                    'Sample': '-', 'Offset [Hz]': '-', 'Time Completed': '-'}
         else:
             self.metaData = metaData
 
