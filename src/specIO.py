@@ -561,10 +561,13 @@ def loadMatlabFile(filePath):
         metaData = dict()
         if 'metaData' in mat.dtype.names:
             val = mat['metaData'][0][0][0][0]
+            
             val = [x[0] for x in val]
             names = mat['metaData'][0][0].dtype.names
             for x, elem in enumerate(names):
                 metaData[elem] = val[x]
+        if not metaData:
+            metaData = None
         masterData = sc.Spectrum(hc.HComplexData(data, hyper),
                                  (filePath, None),
                                  list(mat['freq'][0, 0][0]),
