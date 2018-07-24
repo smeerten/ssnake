@@ -859,7 +859,7 @@ def loadChemFile(filePath):
         if 'al2' in pars:
             sizeTD1 = int(pars['al2'])
             if 'dw2' in pars:
-                sw1 = 1 / float(pars['dw2'][:-1])
+                sw1 = 1 /  convertChemVal(pars['dw2'])
     with open(Dir + os.path.sep + 'data', 'rb') as f:
         raw = np.fromfile(f, np.int32)
         b = np.complex128(raw.byteswap())
@@ -876,10 +876,6 @@ def loadChemFile(filePath):
         masterData = sc.Spectrum(data, (filePath, None), [freq * 1e6] * 2, [sw1, sw], spec * 2)
     masterData.addHistory("Chemagnetics data loaded from " + filePath)
 
-
-
-            #self.metaData = {'# Scans': '-', 'Acquisition Time [s]': '-', 'Experiment Name': '-','Receiver Gain': '-', 'Recycle Delay [s]': '-',
-            #        'Sample': '-', 'Offset [Hz]': '-', 'Time Completed': '-'}
     try:
         if isinstance(pars['na'],list):
             masterData.metaData['# Scans'] = pars['na'][0]
