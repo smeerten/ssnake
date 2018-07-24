@@ -788,6 +788,52 @@ def loadBrukerSpectrum(filePath):
 
     return masterData
 
+
+
+def chemGetPars(folder):
+    import collections
+
+
+    with open(folder + os.path.sep + 'acq', 'r') as f:
+        data = f.read().split('\n')
+    with open(folder + os.path.sep + 'acq_2', 'r') as f:
+        data = data + f.read().split('\n')
+    pars = collections.OrderedDict() #Ordered dict to keep arrayed elements in order
+    for line in data:
+        if '=' in line:
+            tmp = line.strip().split('=')
+            pars[tmp[0]] = tmp[1]
+
+    newPars = dict()
+    for key in pars:
+        if '[' in key:
+            newKey = key[:key.index('[')]
+            if newKey in newPars:
+                newPars[newKey].append(pars[key])
+            else:
+                newPars[newKey] = [pars[key]]
+        else:
+            newPars[key] = pars[key]
+
+    #Note that newPars elements are retained as strings.
+    return newPars
+
+def convertChemVal(val):
+    """ Converts a string value from a Chemagnetics file to a
+        value in seconds. This is only for numbers that end with 's', 'ms' or 'us'
+    """
+    if val.endswith('ms'):
+        num = float(val[:-2]) * 1e-3
+    elif val.endswith('us'):
+        num = float(val[:-2]) * 1e-6
+    elif val.endswith('s'):
+        num = float(val[:-1]) 
+    else:
+        num = float(val)
+    return num
+
+
+
 def loadChemFile(filePath):
     if os.path.isfile(filePath):
         Dir = os.path.dirname(filePath)
@@ -795,25 +841,25 @@ def loadChemFile(filePath):
         Dir = filePath
     sizeTD1 = 1
     sw1 = 1
-    H = dict(line.strip().split('=') for line in open(Dir + os.path.sep + 'acq', 'r'))
-    sizeTD2 = int(float(H['al']))
-    freq = float(H['sf' + str(int(float(H['ch1'])))])
-    sw = 1 / float(H['dw'][:-1])
-    if any('array_num_values_' in s for s in H.keys()):
-        if 'use_array=1' in open(Dir + '/acq_2').read():
-            for s in H.keys():
-                if ('array_num_values_' in s):
-                    sizeTD1 = sizeTD1 * int(H[s])
+    pars = chemGetPars(Dir)
+    sizeTD2 = int(pars['al'])
+    freq = float(pars['sf' + pars['ch1']])
+    sw = 1 / convertChemVal(pars['dw']) 
+    if any('array_num_values_' in s for s in pars):
+        if int(pars['use_array']) == 1:
+            for s in pars:
+                if s.startswith('array_num_values_'):
+                    sizeTD1 = sizeTD1 * int(pars[s])
         else:
-            if 'al2' in H:
-                sizeTD1 = int(float(H['al2']))
-                if 'dw2' in H:
-                    sw1 = 1 / float(H['dw2'][:-1])
+            if 'al2' in pars:
+                sizeTD1 = int(pars['al2'])
+                if 'dw2' in pars:
+                    sw1 = 1 / convertChemVal(pars['dw2'])
     else:
-        if 'al2' in H:
-            sizeTD1 = int(float(H['al2']))
-            if 'dw2' in H:
-                sw1 = 1 / float(H['dw2'][:-1])
+        if 'al2' in pars:
+            sizeTD1 = int(pars['al2'])
+            if 'dw2' in pars:
+                sw1 = 1 / float(pars['dw2'][:-1])
     with open(Dir + os.path.sep + 'data', 'rb') as f:
         raw = np.fromfile(f, np.int32)
         b = np.complex128(raw.byteswap())
@@ -829,6 +875,25 @@ def loadChemFile(filePath):
         data = data.reshape((sizeTD1, sizeTD2))
         masterData = sc.Spectrum(data, (filePath, None), [freq * 1e6] * 2, [sw1, sw], spec * 2)
     masterData.addHistory("Chemagnetics data loaded from " + filePath)
+
+
+
+            #self.metaData = {'# Scans': '-', 'Acquisition Time [s]': '-', 'Experiment Name': '-','Receiver Gain': '-', 'Recycle Delay [s]': '-',
+            #        'Sample': '-', 'Offset [Hz]': '-', 'Time Completed': '-'}
+    try:
+        if isinstance(pars['na'],list):
+            masterData.metaData['# Scans'] = pars['na'][0]
+        else:
+            masterData.metaData['# Scans'] = pars['na']
+        masterData.metaData['Acquisition Time [s]'] = str(convertChemVal(pars['aqtm']))
+        masterData.metaData['Receiver Gain'] = str(float(pars['rg']))
+        masterData.metaData['Recycle Delay [s]'] = str(convertChemVal(pars['pd']))
+        masterData.metaData['Time Completed'] = pars['end_date'] + ' ' + pars['end_time']
+        masterData.metaData['Experiment Name'] = pars['ppfn']
+
+    except:
+        pass
+
     return masterData
 
 def loadMagritek(filePath):
