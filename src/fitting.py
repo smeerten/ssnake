@@ -2408,7 +2408,7 @@ class ExternalFitDeconvParamFrame(AbstractParamFrame):
         super(ExternalFitDeconvParamFrame, self).__init__(parent, rootwindow, isMain)
         self.numExp = QtWidgets.QComboBox()
         self.script = None
-        self.txtOutput = ["", ""]
+        self.txtOutput = [b"", b""]
         resetButton = QtWidgets.QPushButton("Reset")
         resetButton.clicked.connect(self.reset)
         self.frame1.addWidget(resetButton, 1, 1)
