@@ -183,7 +183,7 @@ def varianGetPars(procpar):
             if subtype == '7': #if integer
                 try: #Try int conversion (sometime floats are saved in an int variable...)
                     val = [int(x) for x in second[1::]]
-                except:
+                except Exception:
                     val = [float(x) for x in second[1::]]
             else:
                 val = [float(x) for x in second[1::]]
@@ -783,17 +783,12 @@ def loadBrukerSpectrum(filePath):
         masterData.metaData['Experiment Name'] = parsExtra['PULPROG']
         masterData.metaData['Offset [Hz]'] = str(parsExtra['O1'])
         masterData.metaData['Recycle Delay [s]'] = str(parsExtra['D'][1])
-    except:
+    except Exception:
         pass #Do nothing on error
-
     return masterData
-
-
 
 def chemGetPars(folder):
     import collections
-
-
     with open(folder + os.path.sep + 'acq', 'r') as f:
         data = f.read().split('\n')
     with open(folder + os.path.sep + 'acq_2', 'r') as f:
@@ -803,7 +798,6 @@ def chemGetPars(folder):
         if '=' in line:
             tmp = line.strip().split('=')
             pars[tmp[0]] = tmp[1]
-
     newPars = dict()
     for key in pars:
         if '[' in key:
@@ -814,7 +808,6 @@ def chemGetPars(folder):
                 newPars[newKey] = [pars[key]]
         else:
             newPars[key] = pars[key]
-
     #Note that newPars elements are retained as strings.
     return newPars
 
@@ -832,8 +825,6 @@ def convertChemVal(val):
         num = float(val)
     return num
 
-
-
 def loadChemFile(filePath):
     if os.path.isfile(filePath):
         Dir = os.path.dirname(filePath)
@@ -842,22 +833,22 @@ def loadChemFile(filePath):
     sizeTD1 = 1
     sw1 = 1
     pars = chemGetPars(Dir)
-    sizeTD2 = int(pars['al'])
-    freq = float(pars['sf' + pars['ch1']])
+    sizeTD2 = int(float(pars['al']))
+    freq = float(pars['sf' + str(int(float(pars['ch1'])))])
     sw = 1 / convertChemVal(pars['dw']) 
     if any('array_num_values_' in s for s in pars):
-        if int(pars['use_array']) == 1:
+        if int(float(pars['use_array'])) == 1:
             for s in pars:
                 if s.startswith('array_num_values_'):
-                    sizeTD1 = sizeTD1 * int(pars[s])
+                    sizeTD1 = sizeTD1 * int(float(pars[s]))
         else:
             if 'al2' in pars:
-                sizeTD1 = int(pars['al2'])
+                sizeTD1 = int(float(pars['al2']))
                 if 'dw2' in pars:
                     sw1 = 1 / convertChemVal(pars['dw2'])
     else:
         if 'al2' in pars:
-            sizeTD1 = int(pars['al2'])
+            sizeTD1 = int(float(pars['al2']))
             if 'dw2' in pars:
                 sw1 = 1 /  convertChemVal(pars['dw2'])
     with open(Dir + os.path.sep + 'data', 'rb') as f:
@@ -875,7 +866,6 @@ def loadChemFile(filePath):
         data = data.reshape((sizeTD1, sizeTD2))
         masterData = sc.Spectrum(data, (filePath, None), [freq * 1e6] * 2, [sw1, sw], spec * 2)
     masterData.addHistory("Chemagnetics data loaded from " + filePath)
-
     try:
         if isinstance(pars['na'],list):
             masterData.metaData['# Scans'] = pars['na'][0]
@@ -886,10 +876,8 @@ def loadChemFile(filePath):
         masterData.metaData['Recycle Delay [s]'] = str(convertChemVal(pars['pd']))
         masterData.metaData['Time Completed'] = pars['end_date'] + ' ' + pars['end_time']
         masterData.metaData['Experiment Name'] = pars['ppfn']
-
-    except:
+    except Exception:
         pass
-
     return masterData
 
 def loadMagritek(filePath):
@@ -918,7 +906,6 @@ def loadMagritek(filePath):
         if 'bandwidth2' in H.keys():
             sw1 = float(H['bandwidth2']) * 1000
             lastfreq1 = float(H['lowestFrequency2'])
-
     sidefreq = -np.floor(sizeTD2 / 2) / sizeTD2 * sw  # freqeuency of last point on axis
     ref = sidefreq + freq - lastfreq
     if len(Files2D) == 1:
@@ -1328,24 +1315,19 @@ def loadSiemensIMA(filePath):
         raise ImportError("Loading Siemens IMA files requires pydicom")
 
     ds = pd.dcmread(filePath) #a pydicom structure
-
-    #we're going to look for the following relevant parameters in the csa header
+    # we're going to look for the following relevant parameters in the csa header
     relevantParameterInts = ('DataPointColumns',)
 #                             'Rows',
 #                             'Columns',
 #                             'NumberOfFrames',)
     relevantParameterFloats = ('RealDwellTime',
                                'ImagingFrequency')
-
     csaHeader = ds['0029','1110'].value
-    #I assume all relevant header information I need is here. I have not yet
-    #encountered a file in which the relevant info. was in '0029','1120'[VB]
-
+    # I assume all relevant header information I need is here. I have not yet
+    # encountered a file in which the relevant info. was in '0029','1120'[VB]
     if struct.unpack_from('8s',csaHeader,0)[0].decode() !='SV10\4\3\2\1' or struct.unpack_from('I',csaHeader,12)[0]!=77:
         raise ValueError("IMA file not as expected: wrong first bytes")
-
     n_elems = struct.unpack_from('I',csaHeader,8)[0]
-
     currentIdx = 16
     ParDict = {}
     for i in range(n_elems):
@@ -1353,39 +1335,30 @@ def loadSiemensIMA(filePath):
         n_items = struct.unpack_from('I',csaHeader,currentIdx + 76)[0]
         checkBit = struct.unpack_from('I',csaHeader,currentIdx + 80)[0]
         currentIdx += 84
-
         if checkBit not in [77,205]:
             raise ValueError("IMA file not as expected: missing checkBit")
-
         for idx in range(n_items):
             header = struct.unpack_from('4I',csaHeader,currentIdx)
             if (header[0]!=header[1]!=header[3]) or header[2] not in [77,205]:
                 raise ValueError("IMA file does not seem to be correct")
             length = header[0]
-    
             if idx == 0:
                 data = struct.unpack_from('{0:d}s'.format(length),csaHeader,currentIdx + 16)[0]
             currentIdx += int(np.ceil(length/4.) * 4) + 16
-
-        #Let's see if we got anything I want to keep:
+        # Let's see if we got anything I want to keep:
         if tagName in relevantParameterFloats:
             ParDict[tagName] = float(scrubber(data.decode('utf-8','ignore')))
         elif tagName in relevantParameterInts:
             ParDict[tagName] = int(scrubber(data.decode('utf-8','ignore')))
-
-    #Statement below does not work in python 2.7, as struct_iter does not exist
+    # Statement below does not work in python 2.7, as struct_iter does not exist
     #data = np.array([item[0]-1j*item[1] for item in struct.iter_unpack('2f',ds['7fe1','1010'].value)])
-
     fmtString = str(ParDict['DataPointColumns'] * 2) + 'f'
     dataTuple = struct.unpack(fmtString,ds['7fe1','1010'].value)
     data = np.array(dataTuple[::2]) - 1j * np.array( dataTuple[1::2])
-
-    #First, I alway assume the data is in the tag 7fe1,1010. I haven't seen anything else
-    #Second, I don't understand the logic, but complex conjugate seems to be the correct ones
-
-    #I found this reshape shown below, possibly for 2d or 3d mrsi data, but i dont have an example data to test
-    #data.reshape((ParDict['DataPointColumns'],ParDict['Columns'],ParDict['Rows'],ParDict['NumberOfFrames']))
-
+    # First, I alway assume the data is in the tag 7fe1,1010. I haven't seen anything else
+    # Second, I don't understand the logic, but complex conjugate seems to be the correct ones
+    # I found this reshape shown below, possibly for 2d or 3d mrsi data, but i dont have an example data to test
+    # data.reshape((ParDict['DataPointColumns'],ParDict['Columns'],ParDict['Rows'],ParDict['NumberOfFrames']))
     sw   = 1.0 / (ParDict['RealDwellTime'] * 1e-9)
     freq = ParDict['ImagingFrequency'] * 1e6
     masterData = sc.Spectrum(data, filePath, [freq], [sw])
@@ -1395,6 +1368,5 @@ def loadSiemensIMA(filePath):
 def scrubber(item):
     """Item is a string, scrubber returns the string up to the first \0 with
     leading/trailing whitespaces removed"""
-
     item = item.split(chr(0))[0]
     return item.strip()
