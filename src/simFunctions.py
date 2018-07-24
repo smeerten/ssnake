@@ -434,7 +434,7 @@ def mqmasCzjzekFunc(x, freq, sw, axMult, extra, bgrnd, d, pos, sigma, sigmaCS, c
     sigma *= 1e6
     czjzek = Czjzek.czjzekIntensities(sigma, d, cq, eta, cq0, eta0)
     length2 = len(x[-1])
-    czjzek *= length2 / sw[-1] / sw[-2]
+    czjzek *= length2 / sw[-2] 
     newLib = czjzek[...,np.newaxis]*lib
     length1 = len(x[-2])
     t1 = np.fft.fftfreq(length1, sw[-2]/float(length1))
@@ -464,4 +464,4 @@ def mqmasCzjzekFunc(x, freq, sw, axMult, extra, bgrnd, d, pos, sigma, sigmaCS, c
     fid *= offsetMat * apod1 * apod2 * shiftGauss
     shearMat = np.exp((shearFactor-shear) * 2j * np.pi * t1 * x[-1])
     fid = np.fft.fft(fid, axis=1) * shearMat
-    return amp * fid
+    return amp * fid * length1 / length2
