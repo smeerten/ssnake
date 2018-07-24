@@ -97,7 +97,7 @@ class TabFittingWindow(QtWidgets.QWidget):
         return self.tabs.tabText(self.tabs.currentIndex())
 
     def addSpectrum(self):
-        text = QtWidgets.QInputDialog.getItem(self, "Select spectrum to add", "Spectrum name:", self.father.workspaceNames, 0, False)
+        text = QtWidgets.QInputDialog.getItem(self, "Select data to add", "Workspace name:", self.father.workspaceNames, 0, False)
         if text[1]:
             self.subFitWindows.append(FittingWindow(self.father, self.father.workspaces[self.father.workspaceNames.index(text[0])], self, False))
             self.tabs.addTab(self.subFitWindows[-1], str(text[0]))
@@ -194,6 +194,42 @@ class TabFittingWindow(QtWidgets.QWidget):
 
 ##############################################################################
 
+
+class ResultsExportWindow(QtWidgets.QWidget):
+
+    def __init__(self, parent):
+        super(ResultsExportWindow, self).__init__(parent)
+        self.setWindowFlags(QtCore.Qt.Window | QtCore.Qt.Tool)
+        self.father = parent
+        self.setWindowTitle("Export results")
+        grid = QtWidgets.QGridLayout(self)
+
+        self.parToWorkButton = QtWidgets.QPushButton("Parameters to Workspace")
+        self.parToWorkButton.clicked.connect(self.parToWork)
+        grid.addWidget(self.parToWorkButton, 0, 0)
+        self.curvesToWorkButton = QtWidgets.QPushButton("Curves to Workspace")
+        self.curvesToWorkButton.clicked.connect(self.curvesToWork)
+        grid.addWidget(self.curvesToWorkButton, 1, 0)
+
+        cancelButton = QtWidgets.QPushButton("&Cancel")
+        cancelButton.clicked.connect(self.closeEvent)
+        grid.addWidget(cancelButton, 2, 0)
+        grid.setRowStretch(100, 1)
+        self.show()
+        self.setGeometry(self.frameSize().width() - self.geometry().width(), self.frameSize().height() - self.geometry().height(), 0, 0)
+
+    def closeEvent(self, *args):
+        self.deleteLater()
+
+    def parToWork(self, *args):
+        self.deleteLater()
+        self.father.paramToWorkspaceWindow()
+
+    def curvesToWork(self, *args):
+        self.deleteLater()
+        self.father.resultToWorkspaceWindow()
+
+##################################################################################################
 
 class FitCopySettingsWindow(QtWidgets.QWidget):
 
@@ -537,7 +573,7 @@ class AbstractParamFrame(QtWidgets.QWidget):
         grid.setAlignment(QtCore.Qt.AlignLeft)
         simButton = QtWidgets.QPushButton("Sim")
         simButton.clicked.connect(self.rootwindow.sim)
-        self.frame1.addWidget(simButton, 0, 0)
+        self.frame1.addWidget(simButton, 0, 0,1,2)
         fitButton = QtWidgets.QPushButton("Fit")
         fitButton.clicked.connect(self.rootwindow.fit)
         self.frame1.addWidget(fitButton, 1, 0)
@@ -550,24 +586,27 @@ class AbstractParamFrame(QtWidgets.QWidget):
         self.queue = None
         fitAllButton = QtWidgets.QPushButton("Fit all")
         fitAllButton.clicked.connect(self.fitAll)
-        self.frame1.addWidget(fitAllButton, 2, 0)
+        self.frame1.addWidget(fitAllButton, 1, 1)
         self.stopAllButton = QtWidgets.QPushButton("Stop all")
         self.stopAllButton.clicked.connect(self.stopAll)
         self.stopAllButton.setStyleSheet('background-color: green') 
-        self.frame1.addWidget(self.stopAllButton, 2, 0)
+        self.frame1.addWidget(self.stopAllButton, 1, 1)
         self.stopAllButton.hide()
         copyParamsButton = QtWidgets.QPushButton("Copy parameters")
         copyParamsButton.clicked.connect(self.copyParams)
-        self.frame1.addWidget(copyParamsButton, 3, 0)
-        copyResultButton = QtWidgets.QPushButton("Result to workspace")
-        copyResultButton.clicked.connect(self.resultToWorkspaceWindow)
-        self.frame1.addWidget(copyResultButton, 4, 0)
-        copyParamButton = QtWidgets.QPushButton("Param. to workspace")
-        copyParamButton.clicked.connect(self.paramToWorkspaceWindow)
-        self.frame1.addWidget(copyParamButton, 5, 0)
-        addSpecButton = QtWidgets.QPushButton("Add spectrum")
+        self.frame1.addWidget(copyParamsButton, 2, 0,1,2)
+        exportResultButton = QtWidgets.QPushButton("Export results")
+        exportResultButton.clicked.connect(self.exportResultWindow)
+        self.frame1.addWidget(exportResultButton, 3, 0, 1, 2)
+        #copyResultButton = QtWidgets.QPushButton("Result to workspace")
+        #copyResultButton.clicked.connect(self.resultToWorkspaceWindow)
+        #self.frame1.addWidget(copyResultButton, 3, 0, 1, 2)
+        #copyParamButton = QtWidgets.QPushButton("Param. to workspace")
+        #copyParamButton.clicked.connect(self.paramToWorkspaceWindow)
+        #self.frame1.addWidget(copyParamButton, 4, 0, 1, 2)
+        addSpecButton = QtWidgets.QPushButton("Add data")
         addSpecButton.clicked.connect(self.rootwindow.addSpectrum)
-        self.frame1.addWidget(addSpecButton, 6, 0)
+        self.frame1.addWidget(addSpecButton, 5, 0, 1, 2)
         if self.isMain:
             cancelButton = QtWidgets.QPushButton("&Cancel")
             cancelButton.clicked.connect(self.closeWindow)
@@ -576,8 +615,8 @@ class AbstractParamFrame(QtWidgets.QWidget):
             cancelButton.clicked.connect(self.rootwindow.removeSpectrum)
         prefButton = QtWidgets.QPushButton("Preferences")
         prefButton.clicked.connect(self.createPrefWindow)
-        self.frame1.addWidget(prefButton, 0, 1)
-        self.frame1.addWidget(cancelButton, 7, 0)
+        self.frame1.addWidget(prefButton, 0, 2)
+        self.frame1.addWidget(cancelButton, 6, 0, 1, 2)
         self.frame1.setColumnStretch(10, 1)
         self.frame1.setAlignment(QtCore.Qt.AlignTop)
         self.checkFitParamList(self.getRedLocList())
@@ -903,6 +942,9 @@ class AbstractParamFrame(QtWidgets.QWidget):
                             inp = inp[2] * params[inp[4]][inp[0]][inp[1]] + inp[3]
                         data[i][j] = inp
             self.rootwindow.createNewData(data, self.parent.axes[-1], True)
+
+    def exportResultWindow(self):
+        ResultsExportWindow(self)
 
     def resultToWorkspaceWindow(self):
         if self.parent.data.ndim() == 1:
@@ -1411,10 +1453,10 @@ class PeakDeconvParamFrame(AbstractParamFrame):
         super(PeakDeconvParamFrame, self).__init__(parent, rootwindow, isMain)
         resetButton = QtWidgets.QPushButton("Reset")
         resetButton.clicked.connect(self.reset)
-        self.frame1.addWidget(resetButton, 1, 1)
+        self.frame1.addWidget(resetButton, 1, 2)
         self.pickTick = QtWidgets.QCheckBox("Pick")
         self.pickTick.stateChanged.connect(self.togglePick)
-        self.frame1.addWidget(self.pickTick, 2, 1)
+        self.frame1.addWidget(self.pickTick, 2, 2)
         self.frame2.addWidget(wc.QLabel("Bgrnd:"), 0, 0, 1, 2)
         self.ticks['bgrnd'].append(QtWidgets.QCheckBox(''))
         self.frame2.addWidget(self.ticks['bgrnd'][0], 1, 0)
@@ -1539,10 +1581,10 @@ class CsaDeconvParamFrame(AbstractParamFrame):
         super(CsaDeconvParamFrame, self).__init__(parent, rootwindow, isMain)
         resetButton = QtWidgets.QPushButton("Reset")
         resetButton.clicked.connect(self.reset)
-        self.frame1.addWidget(resetButton, 1, 1)
+        self.frame1.addWidget(resetButton, 1, 2)
         self.pickTick = QtWidgets.QCheckBox("Pick")
         self.pickTick.stateChanged.connect(self.togglePick)
-        self.frame1.addWidget(self.pickTick, 2, 1)
+        self.frame1.addWidget(self.pickTick, 2, 2)
         self.optframe.addWidget(wc.QLabel("Exp. Type:"), 0, 0)
         self.entries['spinType'].append(QtWidgets.QComboBox(self))
         self.entries['spinType'][-1].addItems(["Static", "Finite MAS", "Infinite MAS"])
@@ -2411,15 +2453,15 @@ class ExternalFitDeconvParamFrame(AbstractParamFrame):
         self.txtOutput = [b"", b""]
         resetButton = QtWidgets.QPushButton("Reset")
         resetButton.clicked.connect(self.reset)
-        self.frame1.addWidget(resetButton, 1, 1)
+        self.frame1.addWidget(resetButton, 1, 2)
         loadButton = QtWidgets.QPushButton("Load Script")
         loadButton.clicked.connect(self.loadScript)
-        self.frame1.addWidget(loadButton, 2, 1)
+        self.frame1.addWidget(loadButton, 2, 2)
         outputButton = QtWidgets.QPushButton("Output")
         outputButton.clicked.connect(self.txtOutputWindow)
-        self.frame1.addWidget(outputButton, 3, 1)
+        self.frame1.addWidget(outputButton, 3, 2)
         self.commandLine = wc.QLineEdit("simpson")
-        self.frame1.addWidget(self.commandLine, 4, 1)
+        self.frame1.addWidget(self.commandLine, 4, 2)
         self.numExp = QtWidgets.QComboBox()
         self.numExp.addItems([str(x + 1) for x in range(self.FITNUM)])
         self.numExp.currentIndexChanged.connect(self.changeNum)
@@ -2554,10 +2596,10 @@ class FunctionFitParamFrame(AbstractParamFrame):
         super(FunctionFitParamFrame, self).__init__(parent, rootwindow, isMain)
         resetButton = QtWidgets.QPushButton("Reset")
         resetButton.clicked.connect(self.reset)
-        self.frame1.addWidget(resetButton, 1, 1)
+        self.frame1.addWidget(resetButton, 1, 2)
         functionButton = QtWidgets.QPushButton("Input Function")
         functionButton.clicked.connect(self.functionInput)
-        self.frame1.addWidget(functionButton, 2, 1)
+        self.frame1.addWidget(functionButton, 2, 2)
         self.numExp = QtWidgets.QComboBox()
         self.numExp.addItems([str(x + 1) for x in range(self.FITNUM)])
         self.numExp.currentIndexChanged.connect(self.changeNum)
@@ -2925,7 +2967,7 @@ class MqmasCzjzekParamFrame(AbstractParamFrame):
         super(MqmasCzjzekParamFrame, self).__init__(parent, rootwindow, isMain)
         czjzekPrefButton = QtWidgets.QPushButton("Library")
         czjzekPrefButton.clicked.connect(self.createCzjzekPrefWindow)
-        self.frame1.addWidget(czjzekPrefButton, 1, 1)
+        self.frame1.addWidget(czjzekPrefButton, 1, 2)
         self.optframe.addWidget(wc.QLabel("MQ:"), 4, 0)
         self.entries['MQ'].append(QtWidgets.QComboBox())
         self.entries['MQ'][-1].addItems([str(i) for i in self.MQvalues])
