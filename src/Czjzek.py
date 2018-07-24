@@ -5,7 +5,7 @@ import math
 import multiprocessing
 try: #If numba exists, use jit, otherwise make a mock decorator
     from numba import jit
-except:
+except Exception:
     def jit(func):
         return func
 
