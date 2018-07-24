@@ -3336,7 +3336,6 @@ class ApodWindow(wc.ToolWindows):
         cos2PhLabel.setEnabled(False)
         self.entries['cos2'].append(cos2PhLabel)
         self.grid.addWidget(cos2PhLabel, 8, 0)
-
         hammingTick = QtWidgets.QCheckBox("Hamming:")
         hammingTick.clicked.connect(lambda: self.checkEval('hamming'))
         self.grid.addWidget(hammingTick, 9, 0, 1, 3)
@@ -3364,7 +3363,7 @@ class ApodWindow(wc.ToolWindows):
             self.shiftingEntry = wc.QLineEdit("0.00", self.apodPreview)
             self.grid.addWidget(self.shiftingEntry, 15, 1)
             self.shiftingAxis = QtWidgets.QComboBox()
-            self.shiftingValues = list(map(str, np.delete(range(1, self.father.current.data.ndim() + 1), self.father.current.axis[-1])))
+            self.shiftingValues = list(map(str, np.delete(range(1, self.father.current.data.ndim() + 1), self.father.current.axes[-1])))
             self.shiftingAxis.addItems(self.shiftingValues)
             self.shiftingAxis.currentIndexChanged.connect(self.apodPreview)
             self.grid.addWidget(self.shiftingAxis, 16, 1)
