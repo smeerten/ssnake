@@ -85,6 +85,11 @@ class TabFittingWindow(QtWidgets.QWidget):
         self.tabs.setTabsClosable(True)
         self.tabs.tabCloseRequested.connect(self.closeTab)
         self.tabs.addTab(self.mainFitWindow, 'Spectrum')
+        self.tabs.addTab(QtWidgets.QWidget(), '+Add data+')
+        self.tabs.tabBar().setTabButton(0, QtWidgets.QTabBar.RightSide, QtWidgets.QLabel(''));
+        self.tabs.tabBar().setTabButton(1, QtWidgets.QTabBar.RightSide, QtWidgets.QLabel(''));
+        self.tabs.currentChanged.connect(self.changeTab)
+
         grid3 = QtWidgets.QGridLayout(self)
         grid3.addWidget(self.tabs, 0, 0)
         grid3.setColumnStretch(0, 1)
@@ -100,7 +105,7 @@ class TabFittingWindow(QtWidgets.QWidget):
         text = QtWidgets.QInputDialog.getItem(self, "Select data to add", "Workspace name:", self.father.workspaceNames, 0, False)
         if text[1]:
             self.subFitWindows.append(FittingWindow(self.father, self.father.workspaces[self.father.workspaceNames.index(text[0])], self, False))
-            self.tabs.addTab(self.subFitWindows[-1], str(text[0]))
+            self.tabs.insertTab(self.tabs.count() - 1, self.subFitWindows[-1], str(text[0]))
             self.tabs.setCurrentIndex(len(self.subFitWindows))
 
     def removeSpectrum(self, spec):
@@ -108,12 +113,17 @@ class TabFittingWindow(QtWidgets.QWidget):
         self.tabs.removeTab(num + 1)
         del self.subFitWindows[num]
 
+    def changeTab(self, index):
+        if index == self.tabs.count() - 1:
+            self.addSpectrum()
+
     def closeTab(self, num):
+        count = self.tabs.count()
         if num > 0:
-            self.tabs.removeTab(num)
-            del self.subFitWindows[num - 1]
-        else:
-            self.mainFitWindow.paramframe.closeWindow()
+            if num != count - 1:
+                self.tabs.setCurrentIndex(num - 1) #Set one step lower to avoid 'addSpectrum' to be run
+                self.tabs.removeTab(num)
+                del self.subFitWindows[num - 1]
 
     def fit(self):
         value = self.mainFitWindow.paramframe.getFitParams()
@@ -454,6 +464,7 @@ class FittingWindow(QtWidgets.QWidget):
         self.deleteLater()
 
     def cancel(self):
+        self.tabWindow.tabs.disconnect() #Disconnect tabs before closing, to avoid change index signal
         for i in reversed(range(self.grid.count())):
             self.grid.itemAt(i).widget().deleteLater()
         self.grid.deleteLater()
@@ -604,9 +615,6 @@ class AbstractParamFrame(QtWidgets.QWidget):
         #copyParamButton = QtWidgets.QPushButton("Param. to workspace")
         #copyParamButton.clicked.connect(self.paramToWorkspaceWindow)
         #self.frame1.addWidget(copyParamButton, 4, 0, 1, 2)
-        addSpecButton = QtWidgets.QPushButton("Add data")
-        addSpecButton.clicked.connect(self.rootwindow.addSpectrum)
-        self.frame1.addWidget(addSpecButton, 5, 0, 1, 2)
         if self.isMain:
             cancelButton = QtWidgets.QPushButton("&Cancel")
             cancelButton.clicked.connect(self.closeWindow)
@@ -616,7 +624,7 @@ class AbstractParamFrame(QtWidgets.QWidget):
         prefButton = QtWidgets.QPushButton("Preferences")
         prefButton.clicked.connect(self.createPrefWindow)
         self.frame1.addWidget(prefButton, 0, 2)
-        self.frame1.addWidget(cancelButton, 6, 0, 1, 2)
+        self.frame1.addWidget(cancelButton, 5, 0, 1, 2)
         self.frame1.setColumnStretch(10, 1)
         self.frame1.setAlignment(QtCore.Qt.AlignTop)
         self.checkFitParamList(self.getRedLocList())
