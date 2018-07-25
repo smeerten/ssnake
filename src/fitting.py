@@ -89,7 +89,6 @@ class TabFittingWindow(QtWidgets.QWidget):
         self.tabs.tabBar().setTabButton(0, QtWidgets.QTabBar.RightSide, QtWidgets.QLabel(''));
         self.tabs.tabBar().setTabButton(1, QtWidgets.QTabBar.RightSide, QtWidgets.QLabel(''));
         self.tabs.currentChanged.connect(self.changeTab)
-
         grid3 = QtWidgets.QGridLayout(self)
         grid3.addWidget(self.tabs, 0, 0)
         grid3.setColumnStretch(0, 1)
@@ -243,11 +242,10 @@ class ResultsExportWindow(QtWidgets.QWidget):
 
 class FitCopySettingsWindow(QtWidgets.QWidget):
 
-    def __init__(self, parent, returnFunction, single=False):
+    def __init__(self, parent, single=False):
         super(FitCopySettingsWindow, self).__init__(parent)
         self.setWindowFlags(QtCore.Qt.Window | QtCore.Qt.Tool)
         self.father = parent
-        self.returnFunction = returnFunction
         self.setWindowTitle("Settings")
         layout = QtWidgets.QGridLayout(self)
         grid = QtWidgets.QGridLayout()
@@ -279,18 +277,17 @@ class FitCopySettingsWindow(QtWidgets.QWidget):
 
     def applyAndClose(self, *args):
         self.deleteLater()
-        self.returnFunction([self.allSlices.isChecked(), self.original.isChecked(), self.subFits.isChecked(), self.difference.isChecked()])
+        self.father.resultToWorkspace([self.allSlices.isChecked(), self.original.isChecked(), self.subFits.isChecked(), self.difference.isChecked()])
 
 ##################################################################################################
 
 
 class ParamCopySettingsWindow(QtWidgets.QWidget):
 
-    def __init__(self, parent, paramNames, returnFunction, single=False):
+    def __init__(self, parent, paramNames, single=False):
         super(ParamCopySettingsWindow, self).__init__(parent)
         self.setWindowFlags(QtCore.Qt.Window | QtCore.Qt.Tool)
         self.father = parent
-        self.returnFunction = returnFunction
         self.setWindowTitle("Parameters to export")
         layout = QtWidgets.QGridLayout(self)
         grid = QtWidgets.QGridLayout()
@@ -321,7 +318,7 @@ class ParamCopySettingsWindow(QtWidgets.QWidget):
         answers = []
         for checkbox in self.exportList:
             answers.append(checkbox.isChecked())
-        self.returnFunction(self.allSlices.isChecked(), answers)
+        self.father.paramToWorkspace(self.allSlices.isChecked(), answers)
 
 ################################################################################
 
@@ -464,7 +461,7 @@ class FittingWindow(QtWidgets.QWidget):
         self.deleteLater()
 
     def cancel(self):
-        self.tabWindow.tabs.disconnect() #Disconnect tabs before closing, to avoid change index signal
+        self.tabWindow.tabs.currentChanged.disconnect() #Disconnect tabs before closing, to avoid change index signal
         for i in reversed(range(self.grid.count())):
             self.grid.itemAt(i).widget().deleteLater()
         self.grid.deleteLater()
@@ -887,7 +884,7 @@ class AbstractParamFrame(QtWidgets.QWidget):
             single = True
         else:
             single = False
-        ParamCopySettingsWindow(self, paramNameList, lambda allSlices, settings, self=self: self.paramToWorkspace(allSlices, settings), single)
+        ParamCopySettingsWindow(self, paramNameList, single)
 
     def paramToWorkspace(self, allSlices, settings):
         if not self.checkInputs():
@@ -959,7 +956,7 @@ class AbstractParamFrame(QtWidgets.QWidget):
             single = True
         else:
             single = False
-        FitCopySettingsWindow(self, lambda settings, self=self: self.resultToWorkspace(settings), single)
+        FitCopySettingsWindow(self, single)
 
     def resultToWorkspace(self, settings):
         if settings is None:
@@ -1009,7 +1006,6 @@ class AbstractParamFrame(QtWidgets.QWidget):
         if settings[3]:
             outCurvePart.append(self.parent.getData1D() - fitData[1])
         outCurvePart.append(fitData[1])
-        self.rootwindow.sim()
         return np.array(outCurvePart)
 
     def calculateResultsToWorkspace(self, *args):
