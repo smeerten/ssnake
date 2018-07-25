@@ -31,9 +31,6 @@ COLORMAPLIST = ['seismic', 'BrBG', 'bwr', 'coolwarm', 'PiYG', 'PRGn', 'PuOr',
 COLORCYCLE = list(matplotlib.rcParams['axes.prop_cycle'])
 COLORCONVERTER = matplotlib.colors.ColorConverter()
 
-MINXNUMTICKS = 12
-MINYNUMTICKS = 8
-
 
 ##################################################################################################
 # the class from which the 1d data is displayed, the operations which only edit the content of this class are for previewing
@@ -60,6 +57,8 @@ class Current1D(PlotFrame):
                                  "ppm": np.array([self.root.father.defaultPPM] * self.NDIM_PLOT, dtype=bool),   # display frequency as ppm
                                  "color": self.root.father.defaultColor,
                                  "linewidth": self.root.father.defaultLinewidth,
+                                 "minXTicks": self.root.father.defaultMinXTicks, 
+                                 "minYTicks": self.root.father.defaultMinYTicks, 
                                  "grids": self.root.father.defaultGrids,
                                  "colorMap": self.root.father.defaultColorMap,
                                  "contourConst": self.root.father.defaultContourConst,
@@ -948,6 +947,11 @@ class Current1D(PlotFrame):
     def setLw(self, lw):
         self.viewSettings["linewidth"] = lw
 
+
+    def setTickNum(self, x, y):
+        self.viewSettings["minXTicks"] = x
+        self.viewSettings["minYTicks"] = y
+
     def setContourColors(self, colors):
         self.viewSettings["contourColors"] = colors
 
@@ -1017,9 +1021,9 @@ class Current1D(PlotFrame):
     def setTicks(self,Xset = True,Yset = True):
         if  matplotlib.__version__[0] == '2':
             if Xset:
-                self.ax.xaxis.set_major_locator(ticker.MaxNLocator(nbins='auto', steps=[1,2,2.5,5,10], min_n_ticks=MINXNUMTICKS))
+                self.ax.xaxis.set_major_locator(ticker.MaxNLocator(nbins='auto', steps=[1,2,2.5,5,10], min_n_ticks=self.viewSettings["minXTicks"]))
             if Yset:
-                self.ax.yaxis.set_major_locator(ticker.MaxNLocator(nbins='auto', steps=[1,2,2.5,5,10], min_n_ticks=MINYNUMTICKS))
+                self.ax.yaxis.set_major_locator(ticker.MaxNLocator(nbins='auto', steps=[1,2,2.5,5,10], min_n_ticks=self.viewSettings["minYTicks"]))
 
     def plotReset(self, xReset=True, yReset=True):  # set the plot limits to min and max values
         showDat = self.data1D.data[0]

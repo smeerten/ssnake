@@ -205,6 +205,8 @@ class MainProgram(QtWidgets.QMainWindow):
         self.defaultAskName = True
         self.defaultToolBar = True
         self.defaultLinewidth = 1.0
+        self.defaultMinXTicks = 12
+        self.defaultMinYTicks = 8
         self.defaultColor = '#0000FF'
         self.defaultGrids = [False, False]
         self.defaultDiagonalBool = False
@@ -270,6 +272,8 @@ class MainProgram(QtWidgets.QMainWindow):
             self.defaultLinewidth = settings.value("plot/linewidth", self.defaultLinewidth, float)
         except TypeError:
             self.dispMsg("Incorrect value in the config file for the plot/linewidth")
+        self.defaultMinXTicks = settings.value("plot/minXTicks", self.defaultMinXTicks, int)
+        self.defaultMinYTicks = settings.value("plot/minYTicks", self.defaultMinYTicks, int)
         self.defaultGrids = [settings.value("plot/xgrid", self.defaultGrids[0], bool), settings.value("plot/ygrid", self.defaultGrids[1], bool)]
         self.defaultZeroScroll = settings.value("plot/zeroscroll", self.defaultZeroScroll, bool)
         self.defaultZoomStep = settings.value("plot/zoomstep", self.defaultZoomStep, float)
@@ -315,6 +319,8 @@ class MainProgram(QtWidgets.QMainWindow):
         settings.setValue('toolbarList', self.defaultToolbarActionList)
         settings.setValue("plot/colour", self.defaultColor)
         settings.setValue("plot/linewidth", self.defaultLinewidth)
+        settings.setValue("plot/minXTicks", self.defaultMinXTicks)
+        settings.setValue("plot/minYTicks", self.defaultMinYTicks)
         settings.setValue("plot/xgrid", self.defaultGrids[0])
         settings.setValue("plot/ygrid", self.defaultGrids[1])
         settings.setValue("plot/zeroscroll", self.defaultZeroScroll)
@@ -6058,6 +6064,17 @@ class PlotSettingsWindow(wc.ToolWindows):
         self.ygridCheck.setChecked(self.father.current.viewSettings["grids"][1])
         grid1.addWidget(self.ygridCheck, 4, 0, 1, 2)
         self.ygridCheck.stateChanged.connect(self.preview)
+        grid1.addWidget(QtWidgets.QLabel("Min X Ticks:"), 5, 0)
+        self.xTicksSpinBox = QtWidgets.QSpinBox()
+        self.xTicksSpinBox.setValue(self.father.current.viewSettings["minXTicks"])
+        self.xTicksSpinBox.valueChanged.connect(self.preview)
+        grid1.addWidget(self.xTicksSpinBox, 5, 1)
+        grid1.addWidget(QtWidgets.QLabel("Min Y Ticks:"), 6, 0)
+        self.yTicksSpinBox = QtWidgets.QSpinBox()
+        self.yTicksSpinBox.setValue(self.father.current.viewSettings["minYTicks"])
+        self.yTicksSpinBox.valueChanged.connect(self.preview)
+        grid1.addWidget(self.yTicksSpinBox, 6, 1)
+
         grid2.addWidget(QtWidgets.QLabel("Colourmap:"), 0, 0)
         self.cmEntry = QtWidgets.QComboBox(self)
         self.cmEntry.addItems(views.COLORMAPLIST)
@@ -6081,6 +6098,9 @@ class PlotSettingsWindow(wc.ToolWindows):
     def preview(self, *args):
         tmpLw = self.father.current.viewSettings["linewidth"]
         self.father.current.setLw(self.lwSpinBox.value())
+        tmpXTicks = self.father.current.viewSettings["minXTicks"]
+        tmpYTicks = self.father.current.viewSettings["minYTicks"]
+        self.father.current.setTickNum(self.xTicksSpinBox.value(),self.yTicksSpinBox.value())
         tmpColor = self.father.current.viewSettings["color"]
         self.father.current.setColor(self.color)
         tmpColorMap = self.father.current.getColorMap()
@@ -6093,6 +6113,7 @@ class PlotSettingsWindow(wc.ToolWindows):
         self.father.current.setContourColors([self.posColor, self.negColor])
         self.father.current.showFid()
         self.father.current.setLw(tmpLw)
+        self.father.current.setTickNum(tmpXTicks,tmpYTicks)
         self.father.current.setColor(tmpColor)
         self.father.current.setColorMap(tmpColorMap)
         self.father.current.setGrids(tmpGrids)
@@ -6120,6 +6141,8 @@ class PlotSettingsWindow(wc.ToolWindows):
     def applyFunc(self, *args):
         self.father.current.setColor(self.color)
         self.father.current.setLw(self.lwSpinBox.value())
+        self.father.current.setTickNum(self.xTicksSpinBox.value(),self.yTicksSpinBox.value())
+
         self.father.current.setGrids([self.xgridCheck.isChecked(), self.ygridCheck.isChecked()])
         self.father.current.setColorMap(self.cmEntry.currentIndex())
         self.father.current.setContourConst(self.constColorCheck.isChecked())
@@ -6236,33 +6259,41 @@ class PreferenceWindow(QtWidgets.QWidget):
         self.ygridCheck = QtWidgets.QCheckBox("y-grid")
         self.ygridCheck.setChecked(self.father.defaultGrids[1])
         grid2.addWidget(self.ygridCheck, 4, 0, 1, 2)
-        grid2.addWidget(QtWidgets.QLabel("Units:"), 5, 0)
+        grid2.addWidget(QtWidgets.QLabel("Min X Ticks:"), 5, 0)
+        self.xTicksSpinBox = QtWidgets.QSpinBox()
+        self.xTicksSpinBox.setValue(self.father.defaultMinXTicks)
+        grid2.addWidget(self.xTicksSpinBox, 5, 1)
+        grid2.addWidget(QtWidgets.QLabel("Min Y Ticks:"), 6, 0)
+        self.yTicksSpinBox = QtWidgets.QSpinBox()
+        self.yTicksSpinBox.setValue(self.father.defaultMinYTicks)
+        grid2.addWidget(self.yTicksSpinBox, 6, 1)
+        grid2.addWidget(QtWidgets.QLabel("Units:"), 7, 0)
         self.unitGroup = QtWidgets.QButtonGroup()
         button = QtWidgets.QRadioButton("s/Hz")
         self.unitGroup.addButton(button, 0)
-        grid2.addWidget(button, 5, 1)
+        grid2.addWidget(button, 8, 1)
         button = QtWidgets.QRadioButton("ms/kHz")
         self.unitGroup.addButton(button, 1)
-        grid2.addWidget(button, 6, 1)
+        grid2.addWidget(button, 9, 1)
         button = QtWidgets.QRadioButton(u"\u03bcs/MHz")
         self.unitGroup.addButton(button, 2)
-        grid2.addWidget(button, 7, 1)
+        grid2.addWidget(button, 10, 1)
         self.unitGroup.button(self.father.defaultUnits).setChecked(True)
         self.ppmCheck = QtWidgets.QCheckBox("ppm")
         self.ppmCheck.setChecked(self.father.defaultPPM)
-        grid2.addWidget(self.ppmCheck, 8, 1)
+        grid2.addWidget(self.ppmCheck, 11, 1)
         self.zeroScrollCheck = QtWidgets.QCheckBox("Scroll y-axis from zero")
         self.zeroScrollCheck.setChecked(self.father.defaultZeroScroll)
-        grid2.addWidget(self.zeroScrollCheck, 9, 0, 1, 2)
+        grid2.addWidget(self.zeroScrollCheck, 12, 0, 1, 2)
         grid2.addWidget(QtWidgets.QLabel("Zoom step:"), 10, 0)
         self.ZoomStepSpinBox = QtWidgets.QDoubleSpinBox()
         self.ZoomStepSpinBox.setSingleStep(0.1)
         self.ZoomStepSpinBox.setValue(self.father.defaultZoomStep)
-        grid2.addWidget(self.ZoomStepSpinBox, 10, 1)
+        grid2.addWidget(self.ZoomStepSpinBox, 13, 1)
 
         self.showTitleCheck = QtWidgets.QCheckBox("Show title in plot")
         self.showTitleCheck.setChecked(self.father.defaultShowTitle)
-        grid2.addWidget(self.showTitleCheck, 11, 0, 1, 2)
+        grid2.addWidget(self.showTitleCheck, 14, 0, 1, 2)
         # grid3 definitions
         grid3.addWidget(QtWidgets.QLabel("Colourmap:"), 0, 0)
         self.cmEntry = QtWidgets.QComboBox(self)
@@ -6329,6 +6360,8 @@ class PreferenceWindow(QtWidgets.QWidget):
         self.father.defaultToolBar = self.toolbarCheck.isChecked()
         self.father.defaultToolbarActionList = self.currentToolbar
         self.father.defaultLinewidth = self.lwSpinBox.value()
+        self.father.defaultMinXTicks = self.xTicksSpinBox.value()
+        self.father.defaultMinYTicks = self.yTicksSpinBox.value()
         self.father.defaultColor = self.color
         self.father.defaultGrids[0] = self.xgridCheck.isChecked()
         self.father.defaultGrids[1] = self.ygridCheck.isChecked()
