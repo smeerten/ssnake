@@ -6285,15 +6285,15 @@ class PreferenceWindow(QtWidgets.QWidget):
         self.zeroScrollCheck = QtWidgets.QCheckBox("Scroll y-axis from zero")
         self.zeroScrollCheck.setChecked(self.father.defaultZeroScroll)
         grid2.addWidget(self.zeroScrollCheck, 12, 0, 1, 2)
-        grid2.addWidget(QtWidgets.QLabel("Zoom step:"), 10, 0)
+        grid2.addWidget(QtWidgets.QLabel("Zoom step:"), 13, 0)
         self.ZoomStepSpinBox = QtWidgets.QDoubleSpinBox()
         self.ZoomStepSpinBox.setSingleStep(0.1)
         self.ZoomStepSpinBox.setValue(self.father.defaultZoomStep)
-        grid2.addWidget(self.ZoomStepSpinBox, 13, 1)
+        grid2.addWidget(self.ZoomStepSpinBox, 14, 1)
 
         self.showTitleCheck = QtWidgets.QCheckBox("Show title in plot")
         self.showTitleCheck.setChecked(self.father.defaultShowTitle)
-        grid2.addWidget(self.showTitleCheck, 14, 0, 1, 2)
+        grid2.addWidget(self.showTitleCheck, 15, 0, 1, 2)
         # grid3 definitions
         grid3.addWidget(QtWidgets.QLabel("Colourmap:"), 0, 0)
         self.cmEntry = QtWidgets.QComboBox(self)
