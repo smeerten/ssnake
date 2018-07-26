@@ -114,7 +114,7 @@ class Current1D(PlotFrame):
                 diff = self.NDIM_PLOT - len(self.viewSettings['axType'])
                 self.viewSettings['axType'] = np.append(np.array([self.root.father.defaultUnits] * diff, dtype=int), self.viewSettings['axType'][-self.NDIM_PLOT:])
                 self.viewSettings['ppm'] = np.append(np.array([self.root.father.defaultPPM] * diff, dtype=bool), self.viewSettings['ppm'][-self.NDIM_PLOT:])
-            if type(self) not in (CurrentStacked, CurrentArrayed) or type(self) not in (CurrentStacked, CurrentArrayed):
+            if type(self) not in (CurrentStacked, CurrentArrayed):
                 self.viewSettings.update({"stackBegin": None, "stackEnd": None, "stackStep": None})
             self.xminlim = duplicateCurrent.xminlim
             self.xmaxlim = duplicateCurrent.xmaxlim
@@ -123,6 +123,10 @@ class Current1D(PlotFrame):
             xReset = self.X_RESIZE or duplicateCurrent.X_RESIZE
             yReset = self.Y_RESIZE or duplicateCurrent.Y_RESIZE
             self.upd()  # get the first slice of data
+            if self.viewSettings["stackStep"] is None:
+                if self.data1D.ndim() > 1 and self.data1D.shape()[0] > 100:
+                    self.viewSettings["stackStep"] = self.data1D.shape()[0] // 100 + 1
+                    self.upd()
             if self.viewSettings['showTitle']:
                 self.fig.suptitle(self.data.name)
             else:
@@ -184,7 +188,7 @@ class Current1D(PlotFrame):
             return np.append(fullAxes[-diff:], axes[-self.NDIM_PLOT:])
         else:
             return axes
-        
+
     def rename(self, name):
         self.data.rename(name)
         if self.viewSettings['showTitle']:
