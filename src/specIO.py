@@ -268,7 +268,6 @@ def loadVarianFile(filePath):
     else:
         masterData = sc.Spectrum(fid, (filePath, None), [freq1, freq], [sw1, sw], [bool(int(spec))] * 2, ref=[reffreq1, reffreq])
     masterData.addHistory("Varian data loaded from " + filePath)
-
     masterData.metaData['# Scans'] = str(pars['nt'])
     masterData.metaData['Acquisition Time [s]'] = str(pars['at'])
     masterData.metaData['Experiment Name'] = pars['seqfil']
@@ -561,11 +560,12 @@ def loadMatlabFile(filePath):
         metaData = dict()
         if 'metaData' in mat.dtype.names:
             val = mat['metaData'][0][0][0][0]
-            
-            val = [x[0] for x in val]
             names = mat['metaData'][0][0].dtype.names
-            for x, elem in enumerate(names):
-                metaData[elem] = val[x]
+            for elem, x in zip(names, val):
+                if len(x) == 0:
+                    metaData[elem] = '-'
+                else:
+                    metaData[elem] = x[0]
         if not metaData:
             metaData = None
         masterData = sc.Spectrum(hc.HComplexData(data, hyper),
