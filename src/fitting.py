@@ -632,6 +632,12 @@ class AbstractParamFrame(QtWidgets.QWidget):
     def togglePick(self):
         # Dummy function for fitting routines which require peak picking
         pass
+
+    def reset(self):
+        locList = self.getRedLocList()
+        self.fitNumList[locList] = 0
+        self.fitParamList[locList] = self.defaultValues(0)
+        self.dispParams()
     
     def checkFitParamList(self, locList):
         locList = tuple(locList)
@@ -1221,8 +1227,12 @@ class RelaxParamFrame(AbstractParamFrame):
         self.FITFUNC = simFunc.relaxationFunc
         self.fullInt = np.max(parent.getData1D())
         self.DEFAULTS = {'amp': [self.fullInt, False], 'const': [1.0, False], 'coeff': [-1.0, False], 't': [1.0, False]}
+        self.extraDefaults = {'xlog': False, 'ylog': False}
         super(RelaxParamFrame, self).__init__(parent, rootwindow, isMain)
         locList = self.getRedLocList()
+        resetButton = QtWidgets.QPushButton("Reset")
+        resetButton.clicked.connect(self.reset)
+        self.frame1.addWidget(resetButton, 1, 1)
         self.frame2.addWidget(wc.QLabel("Amplitude:"), 0, 0, 1, 2)
         self.ticks['amp'].append(QtWidgets.QCheckBox(''))
         self.frame2.addWidget(self.ticks['amp'][-1], 1, 0)
@@ -1254,13 +1264,17 @@ class RelaxParamFrame(AbstractParamFrame):
         for i in range(self.FITNUM):
             for j in range(len(self.MULTINAMES)):
                 self.ticks[self.MULTINAMES[j]].append(QtWidgets.QCheckBox(''))
-                self.ticks[self.MULTINAMES[j]][i].setChecked(self.fitParamList[locList][self.MULTINAMES[j]][i][1])
                 self.frame3.addWidget(self.ticks[self.MULTINAMES[j]][i], i + 2, 2 * j)
                 self.entries[self.MULTINAMES[j]].append(wc.FitQLineEdit(self, self.MULTINAMES[j], ('%#.' + str(self.rootwindow.tabWindow.PRECIS) + 'g') % self.fitParamList[locList][self.MULTINAMES[j]][i][0]))
                 self.frame3.addWidget(self.entries[self.MULTINAMES[j]][i], i + 2, 2 * j + 1)
-                if i > 0:
-                    self.ticks[self.MULTINAMES[j]][i].hide()
-                    self.entries[self.MULTINAMES[j]][i].hide()
+        self.reset()
+
+    def reset(self):
+        self.xlog.setChecked(self.extraDefaults['xlog'])
+        self.ylog.setChecked(self.extraDefaults['ylog'])
+        super(RelaxParamFrame, self).reset()
+
+
 
     def setLog(self, *args):
         self.parent.setLog(self.xlog.isChecked(), self.ylog.isChecked())
@@ -1306,17 +1320,21 @@ class DiffusionParamFrame(AbstractParamFrame):
     def __init__(self, parent, rootwindow, isMain=True):
         self.FITFUNC = simFunc.diffusionFunc
         self.fullInt = np.max(parent.getData1D())
-        self.DEFAULTS = {'amp': [self.fullInt, False], 'const': [0.0, False], 'coeff': [1.0, False], 'd': [1.0e-9, False]}
+        self.DEFAULTS = {'amp': [self.fullInt, False], 'const': [0.0, True], 'coeff': [1.0, False], 'd': [1.0e-9, False]}
+        self.extraDefaults = {'xlog': False, 'ylog': False, 'gamma': "42.576", 'delta': '1.0', 'triangle': '1.0'}
         super(DiffusionParamFrame, self).__init__(parent, rootwindow, isMain)
         locList = self.getRedLocList()
+        resetButton = QtWidgets.QPushButton("Reset")
+        resetButton.clicked.connect(self.reset)
+        self.frame1.addWidget(resetButton, 1, 1)
         self.frame2.addWidget(wc.QLabel(u"\u03b3 [MHz/T]:"), 0, 0)
-        self.gammaEntry = wc.QLineEdit("42.576")
+        self.gammaEntry = wc.QLineEdit()
         self.frame2.addWidget(self.gammaEntry, 1, 0)
         self.frame2.addWidget(wc.QLabel(u"\u03b4 [s]:"), 2, 0)
-        self.deltaEntry = wc.QLineEdit("1.0")
+        self.deltaEntry = wc.QLineEdit()
         self.frame2.addWidget(self.deltaEntry, 3, 0)
         self.frame2.addWidget(wc.QLabel(u"\u0394 [s]:"), 4, 0)
-        self.triangleEntry = wc.QLineEdit("1.0")
+        self.triangleEntry = wc.QLineEdit()
         self.frame2.addWidget(self.triangleEntry, 5, 0)
         self.frame2.setColumnStretch(10, 1)
         self.frame2.setAlignment(QtCore.Qt.AlignTop)
@@ -1327,7 +1345,6 @@ class DiffusionParamFrame(AbstractParamFrame):
         self.frame3.addWidget(self.entries['amp'][-1], 1, 1)
         self.frame3.addWidget(wc.QLabel("Constant:"), 2, 0, 1, 2)
         self.ticks['const'].append(QtWidgets.QCheckBox(''))
-        self.ticks['const'][-1].setChecked(True)
         self.frame3.addWidget(self.ticks['const'][-1], 3, 0)
         self.entries['const'].append(wc.FitQLineEdit(self, 'const', "0.0"))
         self.frame3.addWidget(self.entries['const'][-1], 3, 1)
@@ -1352,13 +1369,21 @@ class DiffusionParamFrame(AbstractParamFrame):
         for i in range(self.FITNUM):
             for j in range(len(self.MULTINAMES)):
                 self.ticks[self.MULTINAMES[j]].append(QtWidgets.QCheckBox(''))
-                self.ticks[self.MULTINAMES[j]][i].setChecked(self.fitParamList[locList][self.MULTINAMES[j]][i][1])
                 self.frame4.addWidget(self.ticks[self.MULTINAMES[j]][i], i + 2, 2 * j)
-                self.entries[self.MULTINAMES[j]].append(wc.FitQLineEdit(self, self.MULTINAMES[j], ('%#.' + str(self.rootwindow.tabWindow.PRECIS) + 'g') % self.fitParamList[locList][self.MULTINAMES[j]][i][0]))
+                self.entries[self.MULTINAMES[j]].append(wc.FitQLineEdit(self, self.MULTINAMES[j], ''))
                 self.frame4.addWidget(self.entries[self.MULTINAMES[j]][i], i + 2, 2 * j + 1)
                 if i > 0:
                     self.ticks[self.MULTINAMES[j]][i].hide()
                     self.entries[self.MULTINAMES[j]][i].hide()
+        self.reset()
+
+    def reset(self):
+        self.xlog.setChecked(self.extraDefaults['xlog'])
+        self.ylog.setChecked(self.extraDefaults['ylog'])
+        self.gammaEntry.setText(self.extraDefaults['gamma'])
+        self.deltaEntry.setText(self.extraDefaults['delta'])
+        self.triangleEntry.setText(self.extraDefaults['triangle'])
+        super(DiffusionParamFrame, self).reset()
 
     def setLog(self, *args):
         self.parent.setLog(self.xlog.isChecked(), self.ylog.isChecked())
@@ -1489,17 +1514,11 @@ class PeakDeconvParamFrame(AbstractParamFrame):
     def reset(self):
         locList = self.getRedLocList()
         self.fitNumList[locList] = 0
-        for name in ['bgrnd']:
-            self.fitParamList[locList][name] = [0.0, True]
         self.pickTick.setChecked(True)
-        defaults = {'pos': [0.0, False], 'amp': [self.fullInt, False], 'lor': [1.0, False], 'gauss': [0.0, True]}
-        for i in range(self.FITNUM):
-            for name in defaults.keys():
-                self.fitParamList[locList][name][i] = defaults[name]
         self.togglePick()
         self.parent.pickWidth = False
         self.parent.fitPickNumList[locList] = 0
-        self.dispParams()
+        super(PeakDeconvParamFrame, self).reset()
 
     def togglePick(self):
         self.parent.togglePick(self.pickTick.isChecked())
@@ -1580,8 +1599,8 @@ class CsaDeconvParamFrame(AbstractParamFrame):
     def __init__(self, parent, rootwindow, isMain=True):
         self.FITFUNC = simFunc.csaFunc
         self.fullInt = np.sum(parent.getData1D()) * parent.sw() / float(len(parent.getData1D()))
-        self.cheng = 15
         self.DEFAULTS = {'bgrnd': [0.0, True], 'spinspeed': [10.0, True], 't11': [0.0, False], 't22': [0.0, False], 't33': [0.0, False], 'amp': [self.fullInt, False], 'lor': [1.0, False], 'gauss': [0.0, True]}
+        self.extraDefaults = {'cheng': 15, 'shiftdef': 0, 'spinType': 0, 'rotorAngle': "arctan(sqrt(2))", 'numssb': 32, 'spinspeed': '10.0'}
         super(CsaDeconvParamFrame, self).__init__(parent, rootwindow, isMain)
         resetButton = QtWidgets.QPushButton("Reset")
         resetButton.clicked.connect(self.reset)
@@ -1595,25 +1614,20 @@ class CsaDeconvParamFrame(AbstractParamFrame):
         self.entries['spinType'][-1].currentIndexChanged.connect(self.MASChange)
         self.optframe.addWidget(self.entries['spinType'][-1], 1, 0)
         self.angleLabel = wc.QLabel("Rotor Angle:")
-        self.angleLabel.setEnabled(False)
         self.optframe.addWidget(self.angleLabel, 2, 1)
-        self.entries['angle'].append(wc.QLineEdit("arctan(sqrt(2))"))
+        self.entries['angle'].append(wc.QLineEdit())
         self.entries['angle'][-1].setEnabled(False)
         self.optframe.addWidget(self.entries['angle'][-1], 3, 1)
         self.sidebandLabel = wc.QLabel("# sidebands:")
-        self.sidebandLabel.setEnabled(False)
         self.optframe.addWidget(self.sidebandLabel, 4, 1)
         self.entries['numssb'].append(QtWidgets.QSpinBox())
         self.entries['numssb'][-1].setAlignment(QtCore.Qt.AlignHCenter)
-        self.entries['numssb'][-1].setValue(32)
         self.entries['numssb'][-1].setMaximum(100000)
         self.entries['numssb'][-1].setMinimum(2)
-        self.entries['numssb'][-1].setEnabled(False)
         self.optframe.addWidget(self.entries['numssb'][-1], 5, 1)
         self.optframe.addWidget(wc.QLabel("Cheng:"), 0, 1)
         self.entries['cheng'].append(QtWidgets.QSpinBox())
         self.entries['cheng'][-1].setAlignment(QtCore.Qt.AlignHCenter)
-        self.entries['cheng'][-1].setValue(self.cheng)
         self.optframe.addWidget(self.entries['cheng'][-1], 1, 1)
         self.shiftDefType = 0  # variable to remember the selected tensor type
         self.optframe.addWidget(wc.QLabel("Definition:"), 2, 0)
@@ -1627,18 +1641,15 @@ class CsaDeconvParamFrame(AbstractParamFrame):
         self.optframe.setColumnStretch(10, 1)
         self.optframe.setAlignment(QtCore.Qt.AlignTop)
         self.spinLabel = wc.QLabel("Spin. speed [kHz]:")
-        self.spinLabel.setEnabled(False)
         self.frame2.addWidget(self.spinLabel, 0, 0, 1, 2)
         self.ticks['spinspeed'].append(QtWidgets.QCheckBox(''))
-        self.ticks['spinspeed'][-1].setEnabled(False)
         self.frame2.addWidget(self.ticks['spinspeed'][-1], 1, 0)
-        self.entries['spinspeed'].append(wc.FitQLineEdit(self, 'spinspeed', "10.0"))
+        self.entries['spinspeed'].append(wc.FitQLineEdit(self, 'spinspeed', ""))
         self.frame2.addWidget(self.entries['spinspeed'][-1], 1, 1)
-        self.entries['spinspeed'][-1].setEnabled(False)
         self.frame2.addWidget(wc.QLabel("Bgrnd:"), 2, 0, 1, 2)
         self.ticks['bgrnd'].append(QtWidgets.QCheckBox(''))
         self.frame2.addWidget(self.ticks['bgrnd'][-1], 3, 0)
-        self.entries['bgrnd'].append(wc.FitQLineEdit(self, 'bgrnd', "0.0"))
+        self.entries['bgrnd'].append(wc.FitQLineEdit(self, 'bgrnd', ""))
         self.frame2.addWidget(self.entries['bgrnd'][-1], 3, 1)
         self.frame2.setColumnStretch(10, 1)
         self.frame2.setAlignment(QtCore.Qt.AlignTop)
@@ -1719,15 +1730,19 @@ class CsaDeconvParamFrame(AbstractParamFrame):
 
     def reset(self):
         locList = self.getRedLocList()
+        self.entries['cheng'][-1].setValue(self.extraDefaults['cheng'])
+        self.entries['shiftdef'][-1].setCurrentIndex(self.extraDefaults['shiftdef'])
+        self.shiftDefType = self.extraDefaults['shiftdef']
+        self.entries['spinType'][-1].setCurrentIndex(self.extraDefaults['spinType'])
+        self.MASChange(self.extraDefaults['spinType'])
+        self.entries['numssb'][-1].setValue(self.extraDefaults['numssb'])
+        self.entries['angle'][-1].setText(self.extraDefaults['rotorAngle'])
+        self.entries['spinspeed'][-1].setText(self.extraDefaults['spinspeed'])
         self.parent.pickNum = 0
         self.parent.pickNum2 = 0
-        self.cheng = 15
-        self.entries['cheng'][-1].setValue(self.cheng)
-        self.fitNumList[locList] = 0
-        self.fitParamList[locList] = self.defaultValues(0)
         self.pickTick.setChecked(True)
         self.togglePick()
-        self.dispParams()
+        super(CsaDeconvParamFrame, self).reset()
 
     def togglePick(self):
         self.parent.togglePick(self.pickTick.isChecked())
@@ -1877,12 +1892,13 @@ class QuadDeconvParamFrame(AbstractParamFrame):
 
     def __init__(self, parent, rootwindow, isMain=True):
         self.FITFUNC = simFunc.quadFunc
-        self.cheng = 15
         self.fullInt = np.sum(parent.getData1D()) * parent.sw() / float(len(parent.getData1D()))
         self.DEFAULTS = {'bgrnd': [0.0, True], 'spinspeed': [10.0, True], 'pos': [0.0, False], 'cq': [1.0, False], 'eta': [0.0, False], 'amp': [self.fullInt, False], 'lor': [1.0, False], 'gauss': [0.0, True]}
+        self.extraDefaults = {'I': 1, 'Satellites': False, 'cheng': 15, 'spinType': 0, 'rotorAngle': "arctan(sqrt(2))", 'numssb': 32, 'spinspeed': '10.0'}
         super(QuadDeconvParamFrame, self).__init__(parent, rootwindow, isMain)
-
-        #self.frame1.addWidget(prefButton, 0, 2)
+        resetButton = QtWidgets.QPushButton("Reset")
+        resetButton.clicked.connect(self.reset)
+        self.frame1.addWidget(resetButton, 1, 1)
         self.optframe.addWidget(wc.QLabel("MAS:"), 2, 0)
         self.entries['spinType'].append(QtWidgets.QComboBox(self))
         self.entries['spinType'][-1].addItems(["Static", "Finite", "Infinite"])
@@ -1891,45 +1907,37 @@ class QuadDeconvParamFrame(AbstractParamFrame):
         self.entries['satBool'].append(QtWidgets.QCheckBox("Satellites"))
         self.optframe.addWidget(self.entries['satBool'][-1], 4, 0)
         self.angleLabel = wc.QLabel("Rotor Angle:")
-        self.angleLabel.setEnabled(False)
         self.optframe.addWidget(self.angleLabel, 2, 1)
-        self.entries['angle'].append(wc.QLineEdit("arctan(sqrt(2))"))
-        self.entries['angle'][-1].setEnabled(False)
+        self.entries['angle'].append(wc.QLineEdit())
         self.optframe.addWidget(self.entries['angle'][-1], 3, 1)
         self.sidebandLabel = wc.QLabel("# sidebands:")
-        self.sidebandLabel.setEnabled(False)
         self.optframe.addWidget(self.sidebandLabel, 4, 1)
         self.entries['numssb'].append(QtWidgets.QSpinBox())
         self.entries['numssb'][-1].setAlignment(QtCore.Qt.AlignHCenter)
-        self.entries['numssb'][-1].setValue(32)
         self.entries['numssb'][-1].setMaximum(100000)
         self.entries['numssb'][-1].setMinimum(2)
-        self.entries['numssb'][-1].setEnabled(False)
         self.optframe.addWidget(self.entries['numssb'][-1], 5, 1)
         self.optframe.addWidget(wc.QLabel("Cheng:"), 0, 1)
         self.entries['cheng'].append(QtWidgets.QSpinBox())
         self.entries['cheng'][-1].setAlignment(QtCore.Qt.AlignHCenter)
-        self.entries['cheng'][-1].setValue(self.cheng)
         self.optframe.addWidget(self.entries['cheng'][-1], 1, 1)
         self.optframe.addWidget(wc.QLabel("I:"), 0, 0)
         self.entries['I'].append(QtWidgets.QComboBox())
         self.entries['I'][-1].addItems(self.Ioptions)
-        self.entries['I'][-1].setCurrentIndex(1)
         self.optframe.addWidget(self.entries['I'][-1], 1, 0)
         self.optframe.setColumnStretch(10, 1)
         self.optframe.setAlignment(QtCore.Qt.AlignTop)
         self.spinLabel = wc.QLabel("Spin. speed [kHz]:")
         self.frame2.addWidget(self.spinLabel, 0, 0, 1, 2)
-        self.spinLabel.setEnabled(False)
         self.ticks['spinspeed'].append(QtWidgets.QCheckBox(''))
         self.frame2.addWidget(self.ticks['spinspeed'][-1], 1, 0)
-        self.entries['spinspeed'].append(wc.QLineEdit("10.0"))
+        self.entries['spinspeed'].append(wc.QLineEdit())
         self.frame2.addWidget(self.entries['spinspeed'][-1], 1, 1)
         self.entries['spinspeed'][-1].setEnabled(False)
         self.frame2.addWidget(wc.QLabel("Bgrnd:"), 2, 0, 1, 2)
         self.ticks['bgrnd'].append(QtWidgets.QCheckBox(''))
         self.frame2.addWidget(self.ticks['bgrnd'][-1], 3, 0)
-        self.entries['bgrnd'].append(wc.QLineEdit("0.0"))
+        self.entries['bgrnd'].append(wc.QLineEdit())
         self.frame2.addWidget(self.entries['bgrnd'][-1], 3, 1)
         self.frame2.setColumnStretch(10, 1)
         self.frame2.setAlignment(QtCore.Qt.AlignTop)
@@ -1959,7 +1967,7 @@ class QuadDeconvParamFrame(AbstractParamFrame):
                 self.frame3.addWidget(self.ticks[self.MULTINAMES[j]][i], i + 2, 2 * j)
                 self.entries[self.MULTINAMES[j]].append(wc.FitQLineEdit(self, self.MULTINAMES[j]))
                 self.frame3.addWidget(self.entries[self.MULTINAMES[j]][i], i + 2, 2 * j + 1)
-        self.dispParams()
+        self.reset()
 
     def MASChange(self, MAStype):
         if MAStype > 0:
@@ -1980,6 +1988,18 @@ class QuadDeconvParamFrame(AbstractParamFrame):
             self.spinLabel.setEnabled(False)
             self.entries['numssb'][-1].setEnabled(False)
             self.sidebandLabel.setEnabled(False)
+
+    def reset(self):
+        locList = self.getRedLocList()
+        self.entries['cheng'][-1].setValue(self.extraDefaults['cheng'])
+        self.entries['spinType'][-1].setCurrentIndex(self.extraDefaults['spinType'])
+        self.MASChange(self.extraDefaults['spinType'])
+        self.entries['numssb'][-1].setValue(self.extraDefaults['numssb'])
+        self.entries['angle'][-1].setText(self.extraDefaults['rotorAngle'])
+        self.entries['spinspeed'][-1].setText(self.extraDefaults['spinspeed'])
+        self.entries['I'][-1].setCurrentIndex(self.extraDefaults['I'])
+        self.entries['satBool'][-1].setChecked(self.extraDefaults["Satellites"])
+        super(QuadDeconvParamFrame, self).reset()
 
     def getExtraParams(self, out):
         satBool = self.entries['satBool'][-1].isChecked()
