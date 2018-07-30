@@ -123,7 +123,7 @@ class Current1D(PlotFrame):
             xReset = self.X_RESIZE or duplicateCurrent.X_RESIZE
             yReset = self.Y_RESIZE or duplicateCurrent.Y_RESIZE
             self.upd()  # get the first slice of data
-            if self.viewSettings["stackStep"] is None:
+            if (self.viewSettings["stackStep"] is None) and (type(self) in (CurrentStacked, CurrentArrayed)):
                 if self.data1D.ndim() > 1 and self.data1D.shape()[0] > 100:
                     self.viewSettings["stackStep"] = self.data1D.shape()[0] // 100 + 1
                     self.upd()
