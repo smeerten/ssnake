@@ -2331,25 +2331,32 @@ class QuadCzjzekParamFrame(AbstractParamFrame):
 
     def __init__(self, parent, rootwindow, isMain=True):
         self.FITFUNC = simFunc.quadCzjzekFunc
-        self.cqsteps = 50
-        self.etasteps = 10
-        self.cqmax = 4.0
-        self.cqmin = 0.0
-        self.etamax = 1
-        self.etamin = 0
-        self.lib = None
-        self.cqLib = None
-        self.etaLib = None
-        self.I = 3 / 2.0
-        self.cheng = 15
-        self.mas = 2
-        self.spinspeed = 10.0
-        self.angle = "arctan(sqrt(2))"
-        self.numssb = 32
-        self.satBool = False
+#        self.cqsteps = 50
+#        self.etasteps = 10
+#        self.cqmax = 4.0
+#        self.cqmin = 0.0
+#        self.etamax = 1
+#        self.etamin = 0
+#        self.lib = None
+#        self.cqLib = None
+#        self.etaLib = None
+#        self.I = 3 / 2.0
+#        self.cheng = 15
+#        self.mas = 2
+#        self.spinspeed = 10.0
+#        self.angle = "arctan(sqrt(2))"
+#        self.numssb = 32
+#        self.satBool = False
         self.fullInt = np.sum(parent.getData1D()) * parent.sw() / float(len(parent.getData1D()))
         self.DEFAULTS = {'bgrnd': [0.0, True], 'pos': [0.0, False], 'd': [5.0, True], 'sigma': [1.0, False], 'cq0': [0.0, True], 'eta0': [0.0, True], 'amp': [self.fullInt, False], 'lor': [10.0, False], 'gauss': [0.0, True]}
+        self.extraDefaults = {'method': 0, 'cqsteps': 50, 'etasteps': 10, 'cqmax': 4.0, 'cqmin': 0.0, 'etamin': 0, 'etamax': 1,
+                'lib': None, 'cqLib': None, 'etaLib': None, 'I': 3 / 2.0, 'cheng': 15, 'mas': 2, 'spinspeed': 10.0,
+                'angle': "arctan(sqrt(2))", 'numssb': 32, 'satBool': False}
         super(QuadCzjzekParamFrame, self).__init__(parent, rootwindow, isMain)
+
+        resetButton = QtWidgets.QPushButton("Reset")
+        resetButton.clicked.connect(self.reset)
+        self.frame1.addWidget(resetButton, 1, 1)
         czjzekPrefButton = QtWidgets.QPushButton("Library")
         czjzekPrefButton.clicked.connect(self.createCzjzekPrefWindow)
         self.optframe.addWidget(czjzekPrefButton, 0, 0)
@@ -2392,8 +2399,29 @@ class QuadCzjzekParamFrame(AbstractParamFrame):
                 self.frame3.addWidget(self.ticks[self.MULTINAMES[j]][i], i + 2, 2 * j)
                 self.entries[self.MULTINAMES[j]].append(wc.FitQLineEdit(self, self.MULTINAMES[j]))
                 self.frame3.addWidget(self.entries[self.MULTINAMES[j]][i], i + 2, 2 * j + 1)
-        self.changeType(0)
-        self.dispParams()
+        self.reset()
+
+
+    def reset(self):
+        self.cqsteps = self.extraDefaults['cqsteps']
+        self.etasteps = self.extraDefaults['etasteps']
+        self.cqmax = self.extraDefaults['cqmax']
+        self.cqmin = self.extraDefaults['cqmin']
+        self.etamax = self.extraDefaults['etamax']
+        self.etamin = self.extraDefaults['etamin']
+        self.lib = self.extraDefaults['lib']
+        self.cqLib = self.extraDefaults['cqLib']
+        self.etaLib = self.extraDefaults['etaLib']
+        self.I = self.extraDefaults['I']
+        self.cheng = self.extraDefaults['cheng']
+        self.mas = self.extraDefaults['mas']
+        self.spinspeed = self.extraDefaults['spinspeed']
+        self.angle = self.extraDefaults['angle']
+        self.numssb = self.extraDefaults['numssb']
+        self.satBool = self.extraDefaults['satBool']
+        self.entries['method'][0].setCurrentIndex(self.extraDefaults['method'])
+        self.changeType(self.extraDefaults['method'])
+        super(QuadCzjzekParamFrame, self).reset()
 
     def changeType(self, index):
         if index == 0:
