@@ -224,7 +224,7 @@ def loadVarianFile(filePath):
         reffreq = pars['reffrq'] * 1e6
         rp = pars['rp']
         phfid = pars['phfid']
-        if 'sw1' in pars and :
+        if 'sw1' in pars:
             if 'refsource1' in pars:
                 indirectRef = pars['refsource1']
             reffreq1 = pars['reffrq1'] * 1e6
