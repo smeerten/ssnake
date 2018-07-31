@@ -215,7 +215,7 @@ def loadVarianFile(filePath):
         file = Dir + os.path.sep + '..' + os.path.sep + 'procpar'
     else:
         file = None
-    sw1, reffreq1, freq1 = (1,0,0) #pre initialize
+    sw1, reffreq1, freq1 = (1,None,0) #pre initialize
     indirectRef = 'dfrq'
     if file is not None:
         pars = varianGetPars(file)
