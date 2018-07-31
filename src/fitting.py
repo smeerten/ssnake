@@ -601,6 +601,9 @@ class AbstractParamFrame(QtWidgets.QWidget):
         self.stopAllButton.setStyleSheet('background-color: green') 
         self.frame1.addWidget(self.stopAllButton, 1, 0)
         self.stopAllButton.hide()
+        self.resetButton = QtWidgets.QPushButton("Reset")
+        self.resetButton.clicked.connect(self.reset)
+        self.frame1.addWidget(self.resetButton, 1, 1)
         copyParamsButton = QtWidgets.QPushButton("Copy parameters")
         copyParamsButton.clicked.connect(self.copyParams)
         self.frame1.addWidget(copyParamsButton, 2, 0,1,2)
@@ -1231,9 +1234,6 @@ class RelaxParamFrame(AbstractParamFrame):
         self.extraDefaults = {'xlog': False, 'ylog': False}
         super(RelaxParamFrame, self).__init__(parent, rootwindow, isMain)
         locList = self.getRedLocList()
-        resetButton = QtWidgets.QPushButton("Reset")
-        resetButton.clicked.connect(self.reset)
-        self.frame1.addWidget(resetButton, 1, 1)
         self.frame2.addWidget(wc.QLabel("Amplitude:"), 0, 0, 1, 2)
         self.ticks['amp'].append(QtWidgets.QCheckBox(''))
         self.frame2.addWidget(self.ticks['amp'][-1], 1, 0)
@@ -1274,8 +1274,6 @@ class RelaxParamFrame(AbstractParamFrame):
         self.xlog.setChecked(self.extraDefaults['xlog'])
         self.ylog.setChecked(self.extraDefaults['ylog'])
         super(RelaxParamFrame, self).reset()
-
-
 
     def setLog(self, *args):
         self.parent.setLog(self.xlog.isChecked(), self.ylog.isChecked())
@@ -1325,9 +1323,6 @@ class DiffusionParamFrame(AbstractParamFrame):
         self.extraDefaults = {'xlog': False, 'ylog': False, 'gamma': "42.576", 'delta': '1.0', 'triangle': '1.0'}
         super(DiffusionParamFrame, self).__init__(parent, rootwindow, isMain)
         locList = self.getRedLocList()
-        resetButton = QtWidgets.QPushButton("Reset")
-        resetButton.clicked.connect(self.reset)
-        self.frame1.addWidget(resetButton, 1, 1)
         self.frame2.addWidget(wc.QLabel(u"\u03b3 [MHz/T]:"), 0, 0)
         self.gammaEntry = wc.QLineEdit()
         self.frame2.addWidget(self.gammaEntry, 1, 0)
@@ -1481,9 +1476,6 @@ class PeakDeconvParamFrame(AbstractParamFrame):
         self.FITFUNC = simFunc.peakSim
         self.DEFAULTS = {'bgrnd': [0.0, True], 'pos': [0.0, False], 'amp': [self.fullInt, False], 'lor': [1.0, False], 'gauss': [0.0, True]}
         super(PeakDeconvParamFrame, self).__init__(parent, rootwindow, isMain)
-        resetButton = QtWidgets.QPushButton("Reset")
-        resetButton.clicked.connect(self.reset)
-        self.frame1.addWidget(resetButton, 1, 1)
         self.pickTick = QtWidgets.QCheckBox("Pick")
         self.pickTick.stateChanged.connect(self.togglePick)
         self.frame1.addWidget(self.pickTick, 0, 2)
@@ -1514,7 +1506,6 @@ class PeakDeconvParamFrame(AbstractParamFrame):
         
     def reset(self):
         locList = self.getRedLocList()
-        self.fitNumList[locList] = 0
         self.pickTick.setChecked(True)
         self.togglePick()
         self.parent.pickWidth = False
@@ -1603,9 +1594,6 @@ class CsaDeconvParamFrame(AbstractParamFrame):
         self.DEFAULTS = {'bgrnd': [0.0, True], 'spinspeed': [10.0, True], 't11': [0.0, False], 't22': [0.0, False], 't33': [0.0, False], 'amp': [self.fullInt, False], 'lor': [1.0, False], 'gauss': [0.0, True]}
         self.extraDefaults = {'cheng': 15, 'shiftdef': 0, 'spinType': 0, 'rotorAngle': "arctan(sqrt(2))", 'numssb': 32, 'spinspeed': '10.0'}
         super(CsaDeconvParamFrame, self).__init__(parent, rootwindow, isMain)
-        resetButton = QtWidgets.QPushButton("Reset")
-        resetButton.clicked.connect(self.reset)
-        self.frame1.addWidget(resetButton, 1, 1)
         self.pickTick = QtWidgets.QCheckBox("Pick")
         self.pickTick.stateChanged.connect(self.togglePick)
         self.optframe.addWidget(self.pickTick, 4, 0)
@@ -1730,7 +1718,6 @@ class CsaDeconvParamFrame(AbstractParamFrame):
             self.sidebandLabel.setEnabled(False)
 
     def reset(self):
-        locList = self.getRedLocList()
         self.entries['cheng'][-1].setValue(self.extraDefaults['cheng'])
         self.entries['shiftdef'][-1].setCurrentIndex(self.extraDefaults['shiftdef'])
         self.shiftDefType = self.extraDefaults['shiftdef']
@@ -1897,9 +1884,6 @@ class QuadDeconvParamFrame(AbstractParamFrame):
         self.DEFAULTS = {'bgrnd': [0.0, True], 'spinspeed': [10.0, True], 'pos': [0.0, False], 'cq': [1.0, False], 'eta': [0.0, False], 'amp': [self.fullInt, False], 'lor': [1.0, False], 'gauss': [0.0, True]}
         self.extraDefaults = {'I': 1, 'Satellites': False, 'cheng': 15, 'spinType': 0, 'rotorAngle': "arctan(sqrt(2))", 'numssb': 32, 'spinspeed': '10.0'}
         super(QuadDeconvParamFrame, self).__init__(parent, rootwindow, isMain)
-        resetButton = QtWidgets.QPushButton("Reset")
-        resetButton.clicked.connect(self.reset)
-        self.frame1.addWidget(resetButton, 1, 1)
         self.optframe.addWidget(wc.QLabel("MAS:"), 2, 0)
         self.entries['spinType'].append(QtWidgets.QComboBox(self))
         self.entries['spinType'][-1].addItems(["Static", "Finite", "Infinite"])
@@ -1991,7 +1975,6 @@ class QuadDeconvParamFrame(AbstractParamFrame):
             self.sidebandLabel.setEnabled(False)
 
     def reset(self):
-        locList = self.getRedLocList()
         self.entries['cheng'][-1].setValue(self.extraDefaults['cheng'])
         self.entries['spinType'][-1].setCurrentIndex(self.extraDefaults['spinType'])
         self.MASChange(self.extraDefaults['spinType'])
@@ -2332,22 +2315,6 @@ class QuadCzjzekParamFrame(AbstractParamFrame):
 
     def __init__(self, parent, rootwindow, isMain=True):
         self.FITFUNC = simFunc.quadCzjzekFunc
-#        self.cqsteps = 50
-#        self.etasteps = 10
-#        self.cqmax = 4.0
-#        self.cqmin = 0.0
-#        self.etamax = 1
-#        self.etamin = 0
-#        self.lib = None
-#        self.cqLib = None
-#        self.etaLib = None
-#        self.I = 3 / 2.0
-#        self.cheng = 15
-#        self.mas = 2
-#        self.spinspeed = 10.0
-#        self.angle = "arctan(sqrt(2))"
-#        self.numssb = 32
-#        self.satBool = False
         self.fullInt = np.sum(parent.getData1D()) * parent.sw() / float(len(parent.getData1D()))
         self.DEFAULTS = {'bgrnd': [0.0, True], 'pos': [0.0, False], 'd': [5.0, True], 'sigma': [1.0, False], 'cq0': [0.0, True], 'eta0': [0.0, True], 'amp': [self.fullInt, False], 'lor': [10.0, False], 'gauss': [0.0, True]}
         self.extraDefaults = {'method': 0, 'cqsteps': 50, 'etasteps': 10, 'cqmax': 4.0, 'cqmin': 0.0, 'etamin': 0, 'etamax': 1,
@@ -2355,9 +2322,6 @@ class QuadCzjzekParamFrame(AbstractParamFrame):
                 'angle': "arctan(sqrt(2))", 'numssb': 32, 'satBool': False}
         super(QuadCzjzekParamFrame, self).__init__(parent, rootwindow, isMain)
 
-        resetButton = QtWidgets.QPushButton("Reset")
-        resetButton.clicked.connect(self.reset)
-        self.frame1.addWidget(resetButton, 1, 1)
         czjzekPrefButton = QtWidgets.QPushButton("Library")
         czjzekPrefButton.clicked.connect(self.createCzjzekPrefWindow)
         self.optframe.addWidget(czjzekPrefButton, 0, 0)
@@ -2506,9 +2470,6 @@ class ExternalFitDeconvParamFrame(AbstractParamFrame):
         self.numExp = QtWidgets.QComboBox()
         self.script = None
         self.txtOutput = [b"", b""]
-        resetButton = QtWidgets.QPushButton("Reset")
-        resetButton.clicked.connect(self.reset)
-        self.frame1.addWidget(resetButton, 1, 1)
         loadButton = QtWidgets.QPushButton("Load Script")
         loadButton.clicked.connect(self.loadScript)
         self.optframe.addWidget(loadButton, 0, 0)
@@ -2532,11 +2493,6 @@ class ExternalFitDeconvParamFrame(AbstractParamFrame):
 
     def txtOutputWindow(self):
         TxtOutputWindow(self.rootwindow, self.txtOutput[0], self.txtOutput[1])
-
-    def reset(self):
-        locList = self.getRedLocList()
-        self.fitParamList[locList] = self.defaultValues(0)
-        self.dispParams()
 
     def loadScript(self):
         fileName = self.rootwindow.father.loadSIMPSONScript()
@@ -2651,9 +2607,6 @@ class FunctionFitParamFrame(AbstractParamFrame):
         self.function = ""
         self.DEFAULTS = {}
         super(FunctionFitParamFrame, self).__init__(parent, rootwindow, isMain)
-        resetButton = QtWidgets.QPushButton("Reset")
-        resetButton.clicked.connect(self.reset)
-        self.frame1.addWidget(resetButton, 1, 1)
         functionButton = QtWidgets.QPushButton("Input Function")
         functionButton.clicked.connect(self.functionInput)
         self.frame1.addWidget(functionButton, 0, 2)
@@ -2665,11 +2618,6 @@ class FunctionFitParamFrame(AbstractParamFrame):
         self.frame3.setColumnStretch(20, 1)
         self.frame3.setAlignment(QtCore.Qt.AlignTop)
         self.reset()
-
-    def reset(self):
-        locList = self.getRedLocList()
-        self.fitParamList[locList] = self.defaultValues(0)
-        self.dispParams()
 
     def functionInput(self):
         FunctionInputWindow(self, self.function)
@@ -2821,9 +2769,6 @@ class MqmasDeconvParamFrame(AbstractParamFrame):
         self.DEFAULTS = {'bgrnd': [0.0, True], 'spinspeed': [10.0, True], 'pos': [0.0, False], 'cq': [1.0, False], 'eta': [0.0, False], 'amp': [self.fullInt, False], 'lor2': [10.0, False], 'gauss2': [0.0, True], 'lor1': [10.0, False], 'gauss1': [0.0, True]}
         self.extraDefaults = {'spinType': 2, 'angle': "arctan(sqrt(2))", 'numssb': 32, 'cheng': 15, 'I': 0, 'MQ': 0, 'shear': '0.0', 'scale': '1.0'}
         super(MqmasDeconvParamFrame, self).__init__(parent, rootwindow, isMain)
-        resetButton = QtWidgets.QPushButton("Reset")
-        resetButton.clicked.connect(self.reset)
-        self.frame1.addWidget(resetButton, 1, 1)
         self.optframe.addWidget(wc.QLabel("MAS:"), 2, 0)
         self.entries['spinType'].append(QtWidgets.QComboBox(self))
         self.entries['spinType'][-1].addItems(["Static", "Finite MAS", "Infinite MAS"])
@@ -3014,20 +2959,11 @@ class MqmasCzjzekParamFrame(AbstractParamFrame):
 
     def __init__(self, parent, rootwindow, isMain=True):
         self.FITFUNC = simFunc.mqmasCzjzekFunc
-        self.cqsteps = 50
-        self.etasteps = 10
-        self.cqmax = 4
-        self.cqmin = 0
-        self.etamax = 1
-        self.etamin = 0
-        self.lib = None
-        self.cqLib = None
-        self.etaLib = None
-        self.I = 3 / 2.0
-        self.cheng = 15
-        self.mas = 2 # MQMAS simulation without MAS not possible
+
         self.fullInt = np.sum(parent.getData1D()) * parent.sw() / float(parent.getData1D().shape[-1]) * parent.sw(-2) / float(parent.getData1D().shape[-2])
         self.DEFAULTS = {'bgrnd': [0.0, True], 'pos': [0.0, False], 'd': [5.0, True], 'sigma': [1.0, False], 'sigmaCS': [10.0, False], 'cq0': [0.0, True], 'eta0': [0.0, True], 'amp': [self.fullInt, False], 'lor2': [10.0, False], 'gauss2': [0.0, True], 'lor1': [10.0, False], 'gauss1': [0.0, True]}
+        self.extraDefaults = {'mas': 2, 'method': 0, 'cheng': 15, 'I': 3/2.0, 'MQ': 0, 'shear': '0.0', 'scale': '1.0',
+                'cqsteps': 50, 'etasteps': 10, 'cqmax': 4, 'cqmin': 0, 'etamax': 1, 'etamin': 0, 'lib': None, 'cqLib': None, 'etaLib': None}
         super(MqmasCzjzekParamFrame, self).__init__(parent, rootwindow, isMain)
         czjzekPrefButton = QtWidgets.QPushButton("Library")
         czjzekPrefButton.clicked.connect(self.createCzjzekPrefWindow)
@@ -3035,13 +2971,12 @@ class MqmasCzjzekParamFrame(AbstractParamFrame):
         self.optframe.addWidget(wc.QLabel("MQ:"), 0, 1)
         self.entries['MQ'].append(QtWidgets.QComboBox())
         self.entries['MQ'][-1].addItems([str(i) for i in self.MQvalues])
-        self.entries['MQ'][-1].setCurrentIndex(0)
         self.optframe.addWidget(self.entries['MQ'][-1], 1, 1)
         self.optframe.addWidget(wc.QLabel("Shear:"), 2, 1)
-        self.entries['shear'].append(wc.QLineEdit("0.0"))
+        self.entries['shear'].append(wc.QLineEdit())
         self.optframe.addWidget(self.entries['shear'][-1], 3, 1)
         self.optframe.addWidget(wc.QLabel("Scale sw:"), 4, 1)
-        self.entries['scale'].append(wc.QLineEdit("1.0"))
+        self.entries['scale'].append(wc.QLineEdit())
         self.optframe.addWidget(self.entries['scale'][-1], 5, 1)
         autoButton = QtWidgets.QPushButton("&Auto")
         autoButton.clicked.connect(self.autoShearScale)
@@ -3052,7 +2987,7 @@ class MqmasCzjzekParamFrame(AbstractParamFrame):
         self.ticks['bgrnd'].append(QtWidgets.QCheckBox(''))
         self.ticks['bgrnd'][-1].setChecked(True)
         self.frame2.addWidget(self.ticks['bgrnd'][-1], 1, 0)
-        self.entries['bgrnd'].append(wc.FitQLineEdit(self, 'bgrnd', "0.0"))
+        self.entries['bgrnd'].append(wc.FitQLineEdit(self, 'bgrnd', ""))
         self.entries['method'].append(QtWidgets.QComboBox())
         self.optframe.addWidget(wc.QLabel("Type:"), 0, 0)
         self.entries['method'][0].addItems(['Normal', 'Extended'])
@@ -3088,8 +3023,27 @@ class MqmasCzjzekParamFrame(AbstractParamFrame):
                 self.frame3.addWidget(self.ticks[self.MULTINAMES[j]][i], i + 2, 2 * j)
                 self.entries[self.MULTINAMES[j]].append(wc.FitQLineEdit(self, self.MULTINAMES[j]))
                 self.frame3.addWidget(self.entries[self.MULTINAMES[j]][i], i + 2, 2 * j + 1)
-        self.changeType(0)
-        self.dispParams()
+        self.reset()
+
+    def reset(self):
+        self.cqsteps = self.extraDefaults['cqsteps']
+        self.etasteps = self.extraDefaults['etasteps']
+        self.cqmax = self.extraDefaults['cqmax']
+        self.cqmin = self.extraDefaults['cqmin']
+        self.etamax = self.extraDefaults['etamax']
+        self.etamin = self.extraDefaults['etamin']
+        self.lib = self.extraDefaults['lib']
+        self.cqLib = self.extraDefaults['cqLib']
+        self.etaLib = self.extraDefaults['etaLib']
+        self.I = self.extraDefaults['I']
+        self.cheng = self.extraDefaults['cheng']
+        self.mas = self.extraDefaults['mas']
+        self.entries['MQ'][-1].setCurrentIndex(self.extraDefaults['MQ'])
+        self.entries['shear'][-1].setText(self.extraDefaults['shear'])
+        self.entries['scale'][-1].setText(self.extraDefaults['scale'])
+        self.entries['method'][-1].setCurrentIndex(self.extraDefaults['method'])
+        self.changeType(self.extraDefaults['method'])
+        super(MqmasCzjzekParamFrame, self).reset()
 
     def autoShearScale(self, *args):
         from fractions import gcd
