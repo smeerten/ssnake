@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# -*- coding: utf8 -*-
 
 # Copyright 2016 - 2018 Bas van Meerten and Wouter Franssen
 
@@ -1323,13 +1324,13 @@ class DiffusionParamFrame(AbstractParamFrame):
         self.extraDefaults = {'xlog': False, 'ylog': False, 'gamma': "42.576", 'delta': '1.0', 'triangle': '1.0'}
         super(DiffusionParamFrame, self).__init__(parent, rootwindow, isMain)
         locList = self.getRedLocList()
-        self.frame2.addWidget(wc.QLabel(u"\u03b3 [MHz/T]:"), 0, 0)
+        self.frame2.addWidget(wc.QLabel(u"γ [MHz/T]:"), 0, 0)
         self.gammaEntry = wc.QLineEdit()
         self.frame2.addWidget(self.gammaEntry, 1, 0)
-        self.frame2.addWidget(wc.QLabel(u"\u03b4 [s]:"), 2, 0)
+        self.frame2.addWidget(wc.QLabel(u"δ [s]:"), 2, 0)
         self.deltaEntry = wc.QLineEdit()
         self.frame2.addWidget(self.deltaEntry, 3, 0)
-        self.frame2.addWidget(wc.QLabel(u"\u0394 [s]:"), 4, 0)
+        self.frame2.addWidget(wc.QLabel(u"Δ [s]:"), 4, 0)
         self.triangleEntry = wc.QLineEdit()
         self.frame2.addWidget(self.triangleEntry, 5, 0)
         self.frame2.setColumnStretch(10, 1)
@@ -1368,9 +1369,6 @@ class DiffusionParamFrame(AbstractParamFrame):
                 self.frame4.addWidget(self.ticks[self.MULTINAMES[j]][i], i + 2, 2 * j)
                 self.entries[self.MULTINAMES[j]].append(wc.FitQLineEdit(self, self.MULTINAMES[j], ''))
                 self.frame4.addWidget(self.entries[self.MULTINAMES[j]][i], i + 2, 2 * j + 1)
-                if i > 0:
-                    self.ticks[self.MULTINAMES[j]][i].hide()
-                    self.entries[self.MULTINAMES[j]][i].hide()
         self.reset()
 
     def reset(self):
@@ -1621,10 +1619,10 @@ class CsaDeconvParamFrame(AbstractParamFrame):
         self.shiftDefType = 0  # variable to remember the selected tensor type
         self.optframe.addWidget(wc.QLabel("Definition:"), 2, 0)
         self.entries['shiftdef'].append(QtWidgets.QComboBox())
-        self.entries['shiftdef'][-1].addItems([u'\u03b411 - \u03b422 - \u03b433',
-                                               u'\u03b4xx - \u03b4yy - \u03b4zz',
-                                               u'\u03b4iso - \u03b4aniso - \u03b7',
-                                               u'\u03b4iso - \u03a9 - \u03b7'])
+        self.entries['shiftdef'][-1].addItems([u'δ11 - δ22 - δ33',
+                                               u'δxx - δyy - δzz',
+                                               u'δiso - δaniso - η',
+                                               u'δiso - Ω - κ'])
         self.entries['shiftdef'][-1].currentIndexChanged.connect(self.changeShiftDef)
         self.optframe.addWidget(self.entries['shiftdef'][-1], 3, 0)
         self.optframe.setColumnStretch(10, 1)
@@ -1651,33 +1649,33 @@ class CsaDeconvParamFrame(AbstractParamFrame):
         else:
             axUnit = ['Hz', 'kHz', 'MHz'][self.parent.getAxType()]
         # Labels
-        self.label11 = wc.QLabel(u'\u03b4' + '<sub>11</sub> [' + axUnit + '] :')
-        self.label22 = wc.QLabel(u'\u03b4' + '<sub>22</sub> [' + axUnit + '] :')
-        self.label33 = wc.QLabel(u'\u03b4' + '<sub>33</sub> [' + axUnit + '] :')
+        self.label11 = wc.QLabel(u'δ' + '<sub>11</sub> [' + axUnit + '] :')
+        self.label22 = wc.QLabel(u'δ' + '<sub>22</sub> [' + axUnit + '] :')
+        self.label33 = wc.QLabel(u'δ' + '<sub>33</sub> [' + axUnit + '] :')
         self.frame3.addWidget(self.label11, 1, 0, 1, 2)
         self.frame3.addWidget(self.label22, 1, 2, 1, 2)
         self.frame3.addWidget(self.label33, 1, 4, 1, 2)
-        self.labelxx = wc.QLabel(u'\u03b4' + '<sub>xx</sub> [' + axUnit + '] :')
-        self.labelyy = wc.QLabel(u'\u03b4' + '<sub>yy</sub> [' + axUnit + '] :')
-        self.labelzz = wc.QLabel(u'\u03b4' + '<sub>zz</sub> [' + axUnit + '] :')
+        self.labelxx = wc.QLabel(u'δ' + '<sub>xx</sub> [' + axUnit + '] :')
+        self.labelyy = wc.QLabel(u'δ' + '<sub>yy</sub> [' + axUnit + '] :')
+        self.labelzz = wc.QLabel(u'δ' + '<sub>zz</sub> [' + axUnit + '] :')
         self.labelxx.hide()
         self.labelyy.hide()
         self.labelzz.hide()
         self.frame3.addWidget(self.labelxx, 1, 0, 1, 2)
         self.frame3.addWidget(self.labelyy, 1, 2, 1, 2)
         self.frame3.addWidget(self.labelzz, 1, 4, 1, 2)
-        self.labeliso = wc.QLabel(u'\u03b4' + '<sub>iso</sub> [' + axUnit + '] :')
-        self.labelaniso = wc.QLabel(u'\u03b4' + '<sub>aniso</sub> [' + axUnit + '] :')
-        self.labeleta = wc.QLabel(u'\u03b7:')
+        self.labeliso = wc.QLabel(u'δ' + '<sub>iso</sub> [' + axUnit + '] :')
+        self.labelaniso = wc.QLabel(u'δ' + '<sub>aniso</sub> [' + axUnit + '] :')
+        self.labeleta = wc.QLabel(u'η:')
         self.labeliso.hide()
         self.labelaniso.hide()
         self.labeleta.hide()
         self.frame3.addWidget(self.labeliso, 1, 0, 1, 2)
         self.frame3.addWidget(self.labelaniso, 1, 2, 1, 2)
         self.frame3.addWidget(self.labeleta, 1, 4, 1, 2)
-        self.labeliso2 = wc.QLabel(u'\u03b4' + '<sub>iso</sub> [' + axUnit + '] :')
-        self.labelspan = wc.QLabel(u'\u03a9 [' + axUnit + '] :')
-        self.labelskew = wc.QLabel(u'\u03ba:')
+        self.labeliso2 = wc.QLabel(u'δ' + '<sub>iso</sub> [' + axUnit + '] :')
+        self.labelspan = wc.QLabel(u'Ω [' + axUnit + '] :')
+        self.labelskew = wc.QLabel(u'κ:')
         self.labeliso2.hide()
         self.labelspan.hide()
         self.labelskew.hide()
@@ -1937,7 +1935,7 @@ class QuadDeconvParamFrame(AbstractParamFrame):
         # Labels
         self.labelpos = wc.QLabel(u'Position [' + axUnit + ']:')
         self.labelcq = wc.QLabel(u'C<sub>Q</sub> [MHz]:')
-        self.labeleta = wc.QLabel(u'\u03B7:')
+        self.labeleta = wc.QLabel(u'η:')
         self.frame3.addWidget(self.labelpos, 1, 0, 1, 2)
         self.frame3.addWidget(self.labelcq, 1, 2, 1, 2)
         self.frame3.addWidget(self.labeleta, 1, 4, 1, 2)
@@ -2046,7 +2044,7 @@ class CzjzekPrefWindow(QtWidgets.QWidget):
         self.cqsteps.setMaximum(1000)
         self.cqsteps.setAlignment(QtCore.Qt.AlignHCenter) 
         grid.addWidget(self.cqsteps, 3, 0)
-        grid.addWidget(wc.QLabel(u"\u03b7 grid size:"), 2, 1)
+        grid.addWidget(wc.QLabel(u"η grid size:"), 2, 1)
         self.etasteps = QtWidgets.QSpinBox()
         self.etasteps.setMinimum(2)
         self.etasteps.setMaximum(1000)
@@ -2057,7 +2055,7 @@ class CzjzekPrefWindow(QtWidgets.QWidget):
         grid.addWidget(self.cqmin, 5, 0)
         self.cqmax = wc.QLineEdit(str(self.father.cqmax), self.checkCq)
         grid.addWidget(self.cqmax, 5, 1)
-        grid.addWidget(wc.QLabel(u"\u03B7 limits:"), 6, 0, 1, 2)
+        grid.addWidget(wc.QLabel(u"η limits:"), 6, 0, 1, 2)
         self.etamin = wc.QLineEdit(str(self.father.etamin), self.checkEta)
         grid.addWidget(self.etamin, 7, 0)
         self.etamax = wc.QLineEdit(str(self.father.etamax), self.checkEta)
@@ -2183,7 +2181,7 @@ class CzjzekPrefWindow(QtWidgets.QWidget):
         czjzek = czjzek.reshape(etasteps, cqsteps)
         self.ax.contour(cq.transpose(), eta.transpose(), czjzek.transpose(), 10)
         self.ax.set_xlabel(u"C$_Q$ [MHz]")
-        self.ax.set_ylabel(u"\u03B7")
+        self.ax.set_ylabel(u"η")
         self.canvas.draw()
 
     def checkCq(self):
@@ -2241,15 +2239,15 @@ class CzjzekPrefWindow(QtWidgets.QWidget):
         #eta
         inp = safeEval(self.etamax.text(), type='FI')
         if inp is None:
-            raise FittingException(u"\u03B7_max value not valid.")
+            raise FittingException(u"η_max value not valid.")
         if inp < 0.0 or inp > 1.0:
-            raise FittingException(u"\u03B7_max value not valid.")
+            raise FittingException(u"η_max value not valid.")
         self.father.etamax = abs(float(inp))
         inp = safeEval(self.etamin.text(), type='FI')
         if inp is None:
-            raise FittingException(u"\u03B7_min value not valid.")
+            raise FittingException(u"η_min value not valid.")
         if inp < 0.0 or inp > 1.0:
-            raise FittingException(u"\u03B7_min value not valid.")
+            raise FittingException(u"η_min value not valid.")
         self.father.etamin = abs(float(inp))
         self.father.simLib()
 
@@ -2350,9 +2348,9 @@ class QuadCzjzekParamFrame(AbstractParamFrame):
         else:
             axUnit = ['Hz', 'kHz', 'MHz'][self.parent.getAxType()]
         self.frame3.addWidget(wc.QLabel("Pos [" + axUnit + "]:"), 1, 2, 1, 2)
-        self.frame3.addWidget(wc.QLabel(u"\u03c3 [MHz]:"), 1, 4, 1, 2)
+        self.frame3.addWidget(wc.QLabel(u"σ [MHz]:"), 1, 4, 1, 2)
         self.frame3.addWidget(wc.QLabel(u"C<sub>Q</sub>0 [MHz]:"), 1, 6, 1, 2)
-        self.frame3.addWidget(wc.QLabel(u"\u03B70:"), 1, 8, 1, 2)
+        self.frame3.addWidget(wc.QLabel(u"η0:"), 1, 8, 1, 2)
         self.frame3.addWidget(wc.QLabel("Integral:"), 1, 10, 1, 2)
         self.frame3.addWidget(wc.QLabel("Lorentz [Hz]:"), 1, 12, 1, 2)
         self.frame3.addWidget(wc.QLabel("Gauss [Hz]:"), 1, 14, 1, 2)
@@ -2833,7 +2831,7 @@ class MqmasDeconvParamFrame(AbstractParamFrame):
         # Labels
         self.labelpos = wc.QLabel(u'Position [' + axUnit + ']:')
         self.labelcq = wc.QLabel(u'C<sub>Q</sub> [MHz]:')
-        self.labeleta = wc.QLabel(u'\u03B7:')
+        self.labeleta = wc.QLabel(u'η:')
         self.frame3.addWidget(self.labelpos, 1, 0, 1, 2)
         self.frame3.addWidget(self.labelcq, 1, 2, 1, 2)
         self.frame3.addWidget(self.labeleta, 1, 4, 1, 2)
@@ -3006,10 +3004,10 @@ class MqmasCzjzekParamFrame(AbstractParamFrame):
         else:
             axUnit = ['Hz', 'kHz', 'MHz'][self.parent.getAxType()]
         self.frame3.addWidget(wc.QLabel("Pos [" + axUnit + "]:"), 1, 2, 1, 2)
-        self.frame3.addWidget(wc.QLabel(u"\u03c3 [MHz]:"), 1, 4, 1, 2)
-        self.frame3.addWidget(wc.QLabel(u"\u03c3CS [Hz]:"), 1, 6, 1, 2)
+        self.frame3.addWidget(wc.QLabel(u"σ [MHz]:"), 1, 4, 1, 2)
+        self.frame3.addWidget(wc.QLabel(u"σCS [Hz]:"), 1, 6, 1, 2)
         self.frame3.addWidget(wc.QLabel(u"C<sub>Q</sub>0 [MHz]:"), 1, 8, 1, 2)
-        self.frame3.addWidget(wc.QLabel(u"\u03B70:"), 1, 10, 1, 2)
+        self.frame3.addWidget(wc.QLabel(u"η0:"), 1, 10, 1, 2)
         self.frame3.addWidget(wc.QLabel("Integral:"), 1, 12, 1, 2)
         self.frame3.addWidget(wc.QLabel("Lorentz 2 [Hz]:"), 1, 14, 1, 2)
         self.frame3.addWidget(wc.QLabel("Gauss 2 [Hz]:"), 1, 16, 1, 2)
