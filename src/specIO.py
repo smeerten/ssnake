@@ -216,6 +216,7 @@ def loadVarianFile(filePath):
     else:
         file = None
     sw1, reffreq1, freq1 = (1,0,0) #pre initialize
+    indirectRef = 'dfrq'
     if file is not None:
         pars = varianGetPars(file)
         freq = pars['sfrq'] * 1e6
@@ -223,8 +224,9 @@ def loadVarianFile(filePath):
         reffreq = pars['reffrq'] * 1e6
         rp = pars['rp']
         phfid = pars['phfid']
-        if 'sw1' in pars:
-            indirectRef = pars['refsource1']
+        if 'sw1' in pars and :
+            if 'refsource1' in pars:
+                indirectRef = pars['refsource1']
             reffreq1 = pars['reffrq1'] * 1e6
             sw1 = pars['sw1']
             freq1 = pars[indirectRef] * 1e6
