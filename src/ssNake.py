@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# -*- coding: utf8 -*-
 
 # Copyright 2016 - 2018 Bas van Meerten and Wouter Franssen
 
@@ -2322,7 +2323,7 @@ class SideFrame(QtWidgets.QScrollArea):
                 self.OOM = self.father.current.getOOM()  # Order of Magnitude
                 self.scaleLabel = wc.QLeftLabel("Scale:", self)
                 frame.addWidget(self.scaleLabel, 2, 0)
-                self.offsetLabel = wc.QLeftLabel(u"Offset (\u00D71e" + str(self.OOM) + "):", self)
+                self.offsetLabel = wc.QLeftLabel(u"Offset (×1e" + str(self.OOM) + "):", self)
                 frame.addWidget(self.offsetLabel, 3, 0)
                 self.shiftLabel = wc.QLeftLabel("Shift:", self)
                 frame.addWidget(self.shiftLabel, 4, 0)
@@ -2693,7 +2694,7 @@ class BottomFrame(QtWidgets.QWidget):
         grid.addWidget(self.plotDrop, 1, 5)
         grid.addWidget(wc.QLabel("Axis:", self), 0, 6)
         self.axisDropTime = QtWidgets.QComboBox(parent=self)
-        self.axisDropTime.addItems(["s", "ms", u"\u03bcs"])
+        self.axisDropTime.addItems(["s", "ms", u"μs"])
         self.axisDropTime.activated.connect(self.changeAxis)
         grid.addWidget(self.axisDropTime, 1, 6)
         self.axisDropFreq = QtWidgets.QComboBox(parent=self)
@@ -2703,7 +2704,7 @@ class BottomFrame(QtWidgets.QWidget):
         self.ax2Label = wc.QLabel("Axis2:", self)
         grid.addWidget(self.ax2Label, 0, 7)
         self.axisDropTime2 = QtWidgets.QComboBox(parent=self)
-        self.axisDropTime2.addItems(["s", "ms", u"\u03bcs"])
+        self.axisDropTime2.addItems(["s", "ms", u"μs"])
         self.axisDropTime2.activated.connect(self.changeAxis2)
         grid.addWidget(self.axisDropTime2, 1, 7)
         self.axisDropFreq2 = QtWidgets.QComboBox(parent=self)
@@ -2854,16 +2855,16 @@ class TextFrame(QtWidgets.QScrollArea):
         self.amppoint = wc.QLineEdit("0.0")
         self.amppoint.setFixedWidth(self.amppoint.sizeHint().width() * widthScale)
         grid.addWidget(self.amppoint, 0, 11)
-        grid.addWidget(wc.QLabel(u"\u0394x:"), 0, 12)
+        grid.addWidget(wc.QLabel(u"Δx:"), 0, 12)
         self.deltaxpoint = wc.QLineEdit("0.0")
         self.deltaxpoint.setFixedWidth(self.deltaxpoint.sizeHint().width() * widthScale)
         grid.addWidget(self.deltaxpoint, 0, 13)
-        self.deltaylabel = wc.QLabel(u"\u0394y:")
+        self.deltaylabel = wc.QLabel(u"Δy:")
         grid.addWidget(self.deltaylabel, 0, 14)
         self.deltaypoint = wc.QLineEdit("0.0")
         self.deltaypoint.setFixedWidth(self.deltaypoint.sizeHint().width() * widthScale)
         grid.addWidget(self.deltaypoint, 0, 15)
-        grid.addWidget(wc.QLabel(u"\u0394amp:"), 0, 16)
+        grid.addWidget(wc.QLabel(u"Δamp:"), 0, 16)
         self.deltaamppoint = wc.QLineEdit("0.0")
         self.deltaamppoint.setFixedWidth(self.deltaamppoint.sizeHint().width() * widthScale)
         grid.addWidget(self.deltaamppoint, 0, 17)
@@ -4775,7 +4776,7 @@ class FWHMWindow(wc.ToolWindows):
             if self.father.current.getppm():
                 unitSelect = 3
         else:
-            unitList = ['s', 'ms', u'\u03BCs']
+            unitList = ['s', 'ms', u'μs']
         self.unitDrop = QtWidgets.QComboBox()
         self.unitDrop.addItems(unitList)
         self.unitDrop.setCurrentIndex(unitSelect)
@@ -4905,7 +4906,7 @@ class COMWindow(wc.ToolWindows):  # Centre of Mass Window
                 if self.father.current.getppm(-2):
                     unitSelectY = 3
             else:
-                unitListY = ['s', 'ms', u'\u03BCs']
+                unitListY = ['s', 'ms', u'μs']
             self.grid.addWidget(wc.QLabel("Y axis:"), 3, 0,1,2)
             self.grid.addWidget(wc.QLabel("Start:"), 4, 0)
             self.grid.addWidget(wc.QLabel("End:"), 5, 0)
@@ -4928,7 +4929,7 @@ class COMWindow(wc.ToolWindows):  # Centre of Mass Window
             if self.father.current.getppm():
                 unitSelect = 3
         else:
-            unitList = ['s', 'ms', u'\u03BCs']
+            unitList = ['s', 'ms', u'μs']
 
         self.minEntry = wc.QLineEdit("0",lambda: self.applyFunc(False))
         self.grid.addWidget(self.minEntry, 1, 1)
@@ -6275,7 +6276,7 @@ class PreferenceWindow(QtWidgets.QWidget):
         button = QtWidgets.QRadioButton("ms/kHz")
         self.unitGroup.addButton(button, 1)
         grid2.addWidget(button, 9, 1)
-        button = QtWidgets.QRadioButton(u"\u03bcs/MHz")
+        button = QtWidgets.QRadioButton(u"μs/MHz")
         self.unitGroup.addButton(button, 2)
         grid2.addWidget(button, 10, 1)
         self.unitGroup.button(self.father.defaultUnits).setChecked(True)
@@ -6484,11 +6485,11 @@ class shiftConversionWindow(wc.ToolWindows):
         super(shiftConversionWindow, self).__init__(parent)
         self.standardGroup = QtWidgets.QGroupBox('Standard Convention:')
         self.standardFrame = QtWidgets.QGridLayout()
-        D11label = wc.QLabel(u'\u03b4' + '<sub>11</sub> [ppm]')
+        D11label = wc.QLabel(u'δ' + '<sub>11</sub> [ppm]')
         self.standardFrame.addWidget(D11label, 0, 1)
-        D22label = wc.QLabel(u'\u03b4' + '<sub>22</sub> [ppm]')
+        D22label = wc.QLabel(u'δ' + '<sub>22</sub> [ppm]')
         self.standardFrame.addWidget(D22label, 0, 2)
-        D33label = wc.QLabel(u'\u03b4' + '<sub>33</sub> [ppm]')
+        D33label = wc.QLabel(u'δ' + '<sub>33</sub> [ppm]')
         self.standardFrame.addWidget(D33label, 0, 3)
         standardGO = QtWidgets.QPushButton("Go")
         standardGO.setMinimumWidth(100)
@@ -6508,11 +6509,11 @@ class shiftConversionWindow(wc.ToolWindows):
         # xyz Convention
         self.xyzGroup = QtWidgets.QGroupBox('xyz Convention:')
         self.xyzFrame = QtWidgets.QGridLayout()
-        dxxlabel = wc.QLabel(u'\u03b4' + '<sub>xx</sub> [ppm]')
+        dxxlabel = wc.QLabel(u'δ' + '<sub>xx</sub> [ppm]')
         self.xyzFrame.addWidget(dxxlabel, 3, 1)
-        dyylabel = wc.QLabel(u'\u03b4' + '<sub>yy</sub> [ppm]')
+        dyylabel = wc.QLabel(u'δ' + '<sub>yy</sub> [ppm]')
         self.xyzFrame.addWidget(dyylabel, 3, 2)
-        dzzlabel = wc.QLabel(u'\u03b4' + '<sub>zz</sub> [ppm]')
+        dzzlabel = wc.QLabel(u'δ' + '<sub>zz</sub> [ppm]')
         self.xyzFrame.addWidget(dzzlabel, 3, 3)
         xyzGO = QtWidgets.QPushButton("Go")
         xyzGO.setMinimumWidth(100)
@@ -6532,11 +6533,11 @@ class shiftConversionWindow(wc.ToolWindows):
         # Haeberlen Convention
         self.haebGroup = QtWidgets.QGroupBox('Haeberlen Convention')
         self.haebFrame = QtWidgets.QGridLayout()
-        disolabel = wc.QLabel(u'\u03b4' + '<sub>iso</sub> [ppm]')
+        disolabel = wc.QLabel(u'δ' + '<sub>iso</sub> [ppm]')
         self.haebFrame.addWidget(disolabel, 6, 1)
-        danisolabel = wc.QLabel(u'\u03b4' + '<sub>aniso</sub> [ppm]')
+        danisolabel = wc.QLabel(u'δ' + '<sub>aniso</sub> [ppm]')
         self.haebFrame.addWidget(danisolabel, 6, 2)
-        etalabel = wc.QLabel(u'\u03b7')
+        etalabel = wc.QLabel(u'η')
         self.haebFrame.addWidget(etalabel, 6, 3)
         haeberGO = QtWidgets.QPushButton("Go")
         haeberGO.setMinimumWidth(100)
@@ -6556,11 +6557,11 @@ class shiftConversionWindow(wc.ToolWindows):
         # Hertzfeld berger
         self.hbGroup = QtWidgets.QGroupBox('Hertzfeld-Berger Convention')
         self.hbFrame = QtWidgets.QGridLayout()
-        hbdisolabel = wc.QLabel(u'\u03b4' + '<sub>iso</sub> [ppm]')
+        hbdisolabel = wc.QLabel(u'δ' + '<sub>iso</sub> [ppm]')
         self.hbFrame.addWidget(hbdisolabel, 9, 1)
-        omegalabel = wc.QLabel(u'\u03a9 [ppm]')
+        omegalabel = wc.QLabel(u'Ω [ppm]')
         self.hbFrame.addWidget(omegalabel, 9, 2)
-        skewlabel = wc.QLabel(u'\u03ba')
+        skewlabel = wc.QLabel(u'κ')
         self.hbFrame.addWidget(skewlabel, 9, 3)
         hbGO = QtWidgets.QPushButton("Go")
         hbGO.setMinimumWidth(100)
@@ -6680,7 +6681,7 @@ class quadConversionWindow(wc.ToolWindows):
         self.IEntry.addItems(self.Ioptions)
         self.IEntry.setCurrentIndex(0)
         self.comFrame.addWidget(self.IEntry, 1, 0)
-        etalabel = wc.QLabel(u'\u03b7:')
+        etalabel = wc.QLabel(u'η:')
         self.comFrame.addWidget(etalabel, 0, 1)
         self.Eta = wc.QLineEdit("0")
         self.Eta.setMinimumWidth(100)
@@ -6694,7 +6695,7 @@ class quadConversionWindow(wc.ToolWindows):
         self.grid.addWidget(self.comGroup, 1, 0, 1, 3)
         self.CqGroup = QtWidgets.QGroupBox("C_Q Convention:")
         self.CqFrame = QtWidgets.QGridLayout()
-        Cqlabel = wc.QLabel(u'C' + u'<sub>Q</sub>/2\u03c0 [MHz:]')
+        Cqlabel = wc.QLabel(u'C' + u'<sub>Q</sub>/2π [MHz:]')
         self.CqFrame.addWidget(Cqlabel, 3, 1)
         CqGO = QtWidgets.QPushButton("Go")
         self.CqFrame.addWidget(CqGO, 4, 0)
@@ -6704,9 +6705,9 @@ class quadConversionWindow(wc.ToolWindows):
         self.CqFrame.addWidget(self.Cq, 4, 1)
         self.CqGroup.setLayout(self.CqFrame)
         self.grid.addWidget(self.CqGroup, 3, 0, 1, 2)
-        self.WqGroup = QtWidgets.QGroupBox(u"\u03c9_Q Convention:")
+        self.WqGroup = QtWidgets.QGroupBox(u"ω_Q Convention:")
         self.WqFrame = QtWidgets.QGridLayout()
-        Wqlabel = wc.QLabel(u'\u03c9' + u'<sub>Q</sub>/2\u03c0 [MHz]:')
+        Wqlabel = wc.QLabel(u'ω' + u'<sub>Q</sub>/2π [MHz]:')
         self.WqFrame.addWidget(Wqlabel, 6, 1)
         WqGO = QtWidgets.QPushButton("Go")
         self.WqFrame.addWidget(WqGO, 7, 0)
@@ -6830,9 +6831,9 @@ class mqmasExtractWindow(wc.ToolWindows):
         self.IEntry.addItems(self.Ioptions)
         self.IEntry.setCurrentIndex(0)
         self.grid.addWidget(self.IEntry, 0, 1)
-        self.grid.addWidget(wc.QLabel(u'\u03BD' + '<sub>0</sub> [MHz]'), 1, 0)
-        self.grid.addWidget(wc.QLabel(u'\u03b4' + '<sub>1</sub> [ppm]'), 2, 0)
-        self.grid.addWidget(wc.QLabel(u'\u03b4' + '<sub>2</sub> [ppm]'), 3, 0)
+        self.grid.addWidget(wc.QLabel(u'ν' + '<sub>0</sub> [MHz]'), 1, 0)
+        self.grid.addWidget(wc.QLabel(u'δ' + '<sub>1</sub> [ppm]'), 2, 0)
+        self.grid.addWidget(wc.QLabel(u'δ' + '<sub>2</sub> [ppm]'), 3, 0)
 
         self.nu0 = wc.QLineEdit("0.0")
         self.grid.addWidget(self.nu0, 1, 1)
@@ -6841,7 +6842,7 @@ class mqmasExtractWindow(wc.ToolWindows):
         self.delta2 = wc.QLineEdit("0.0")
         self.grid.addWidget(self.delta2, 3, 1)
         self.delta1.setMinimumWidth(200)
-        self.grid.addWidget(wc.QLabel(u'\u03b4' + '<sub>iso</sub> [ppm]'), 4, 0)
+        self.grid.addWidget(wc.QLabel(u'δ' + '<sub>iso</sub> [ppm]'), 4, 0)
         self.deltaIso = wc.QLineEdit("0.0")
         self.grid.addWidget(self.deltaIso, 4, 1)
         self.grid.addWidget(wc.QLabel('P<sub>Q</sub> [MHz]'), 5, 0)
