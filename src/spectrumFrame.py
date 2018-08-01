@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# -*- coding: utf8 -*-
 
 # Copyright 2016 - 2018 Bas van Meerten and Wouter Franssen
 
@@ -26,7 +27,7 @@ try:
 except ImportError:
     from PyQt5 import QtGui, QtCore, QtWidgets
 
-TIMELABELLIST = [u'[s]', u'[ms]', u'[\u03BCs]']
+TIMELABELLIST = [u'[s]', u'[ms]', u'[μs]']
 FREQLABELLIST = [u'[Hz]', u'[kHz]', u'[MHz]']
 
 #########################################################################################################
