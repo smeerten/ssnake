@@ -47,7 +47,7 @@ def safeEval(inp, length=None, keywords=[], type='All', x=None):
         if type == 'All':
             return val
         elif type == 'FI':  # Float/int type
-            if isinstance(val, (float, int)) and not np.isnan(val):
+            if isinstance(val, (float, int)) and not np.isnan(val) and not np.isinf(val):
                 return val
             return None
     except Exception:
