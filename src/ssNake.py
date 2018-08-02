@@ -3156,7 +3156,7 @@ class PhaseWindow(wc.ToolWindows):
             self.father.current.setPhaseInter(np.pi * self.zeroVal / 180.0, np.pi * self.firstVal / 180.0)
 
     def inputZeroOrder(self, *args):
-        inp = safeEval(self.zeroEntry.text())
+        inp = safeEval(self.zeroEntry.text(),type = 'FI')
         if inp is None:
             raise SsnakeException('Phasing: zero order value input is not valid!')
         self.zeroVal = np.mod(inp + 180, 360) - 180
@@ -3180,7 +3180,7 @@ class PhaseWindow(wc.ToolWindows):
             self.father.current.setPhaseInter(np.pi * self.zeroVal / 180.0, np.pi * self.firstVal / 180.0)
 
     def inputFirstOrder(self, *args):
-        value = safeEval(self.firstEntry.text())
+        value = safeEval(self.firstEntry.text(),type = 'FI')
         if value is None:
             raise SsnakeException('Phasing: first order value input is not valid!')
         newZero = (self.zeroVal - (value - self.firstVal) * self.pivotVal / self.father.current.sw())
@@ -3217,12 +3217,12 @@ class PhaseWindow(wc.ToolWindows):
             multiplier = 1
         phase0 = multiplier * phase0
         phase1 = multiplier * phase1
-        inp = safeEval(self.zeroEntry.text())
+        inp = safeEval(self.zeroEntry.text(),type = 'FI')
         if inp is None:
             raise SsnakeException('Phasing: zero order value input is not valid!')
         inp += phase0 * self.PHASE0STEP
         self.zeroVal = np.mod(inp + 180, 360) - 180
-        value = safeEval(self.firstEntry.text())
+        value = safeEval(self.firstEntry.text(),type = 'FI')
         if value is None:
             raise SsnakeException('Phasing: first order value input is not valid!')
         value += phase1 * self.PHASE1STEP
@@ -3241,9 +3241,9 @@ class PhaseWindow(wc.ToolWindows):
         self.father.current.setPhaseInter(np.pi * self.zeroVal / 180.0, np.pi * self.firstVal / 180.0)
 
     def inputRef(self, *args):
-        Val = safeEval(self.refEntry.text())
+        Val = safeEval(self.refEntry.text(),type = 'FI')
         if Val is None:
-            raise SsnakeException('Phasing: reference input is not valid!')
+            raise SsnakeException('Phasing: pivot input is not valid!')
         self.pivotVal = Val
         self.refEntry.setText('%.3f' % self.pivotVal)
 
@@ -3574,7 +3574,7 @@ class SizeWindow(wc.ToolWindows):
             self.father.current.peakPick = True
 
     def stepSize(self, forward):
-        inp = safeEval(self.sizeEntry.text())
+        inp = safeEval(self.sizeEntry.text(),type = 'FI')
         if inp is None:
             raise SsnakeException('Sizing: \'Size\' input is not valid')
         inp = int(round(inp))
@@ -3590,14 +3590,14 @@ class SizeWindow(wc.ToolWindows):
         self.sizePreview()
 
     def sizePreview(self, *args):
-        inp = safeEval(self.sizeEntry.text())
+        inp = safeEval(self.sizeEntry.text(),type = 'FI')
         if inp is None:
             raise SsnakeException('Sizing: \'Size\' input is not valid')
         self.sizeVal = int(round(inp))
         if self.sizeVal < 1:
             raise SsnakeException('Sizing: \'Size\' cannot be below 1')
         self.sizeEntry.setText(str(self.sizeVal))
-        inp = safeEval(self.posEntry.text())
+        inp = safeEval(self.posEntry.text(),type = 'FI')
         if inp is None:
             raise SsnakeException('Sizing: \'Offset\' input is not valid')
         self.posVal = int(round(inp))
@@ -3607,13 +3607,13 @@ class SizeWindow(wc.ToolWindows):
         self.father.current.resizePreview(self.sizeVal, self.posVal)
 
     def applyFunc(self):
-        inp = safeEval(self.sizeEntry.text())
+        inp = safeEval(self.sizeEntry.text(),type = 'FI')
         if inp is None:
             raise SsnakeException('Sizing: \'Size\' input is not valid')
         self.sizeVal = int(round(inp))
         if self.sizeVal < 1:
             raise SsnakeException('Sizing: \'Size\' cannot be below 1')
-        inp = safeEval(self.posEntry.text())
+        inp = safeEval(self.posEntry.text(),type = 'FI')
         if inp is None:
             raise SsnakeException('Sizing: \'Offset\' input is not valid')
         self.posVal = int(round(inp))
@@ -3645,7 +3645,7 @@ class SwapEchoWindow(wc.ToolWindows):
         self.father.current.peakPick = True
 
     def swapEchoPreview(self, *args):
-        inp = safeEval(self.posEntry.text())
+        inp = safeEval(self.posEntry.text(),type = 'FI')
         if inp is None:
             raise SsnakeException("Swap echo: not a valid index")
         self.posVal = int(round(inp))
@@ -3656,7 +3656,7 @@ class SwapEchoWindow(wc.ToolWindows):
 
     def applyFunc(self):
         self.father.current.peakPickReset()
-        inp = safeEval(self.posEntry.text())
+        inp = safeEval(self.posEntry.text(),type = 'FI')
         if inp is None:
             raise SsnakeException("Swap echo: not a valid index")
         self.posVal = int(round(inp))
@@ -3772,7 +3772,7 @@ class ShiftDataWindow(wc.ToolWindows):
         self.grid.addWidget(rightShift, 1, 2)
 
     def stepUpShift(self, *args):
-        inp = safeEval(self.shiftEntry.text())
+        inp = safeEval(self.shiftEntry.text(),type = 'FI')
         if inp is None:
             raise SsnakeException("Shift data: shift value not valid")
         self.shiftVal = int(round(inp))
@@ -3787,7 +3787,7 @@ class ShiftDataWindow(wc.ToolWindows):
         self.shiftPreview()
 
     def stepDownShift(self, *args):
-        inp = safeEval(self.shiftEntry.text())
+        inp = safeEval(self.shiftEntry.text(),type = 'FI')
         if inp is None:
             raise SsnakeException("Shift data: shift value not valid")
         self.shiftVal = int(round(inp))
@@ -3802,7 +3802,7 @@ class ShiftDataWindow(wc.ToolWindows):
         self.shiftPreview()
 
     def shiftPreview(self, *args):
-        inp = safeEval(self.shiftEntry.text())
+        inp = safeEval(self.shiftEntry.text(),type = 'FI')
         if inp is None:
             raise SsnakeException("Shift data: shift value not valid")
         self.shiftVal = int(round(inp))
@@ -3810,7 +3810,7 @@ class ShiftDataWindow(wc.ToolWindows):
         self.father.current.shiftPreview(self.shiftVal)
 
     def applyFunc(self):
-        inp = safeEval(self.shiftEntry.text())
+        inp = safeEval(self.shiftEntry.text(),type = 'FI')
         if inp is None:
             raise SsnakeException("Shift data: shift value not valid")
         shift = int(round(inp))
@@ -3844,7 +3844,7 @@ class DCWindow(wc.ToolWindows):
     def picked(self, pos, second=False):
         dataLength = self.father.current.len()
         if second:
-            inp = safeEval(self.startEntry.text())
+            inp = safeEval(self.startEntry.text(),type = 'FI')
             if inp is not None:
                 self.startVal = int(round(inp))
             if self.startVal < 0:
@@ -3864,7 +3864,7 @@ class DCWindow(wc.ToolWindows):
             self.father.current.peakPick = True
         else:
             self.startEntry.setText(str(pos[0]))
-            inp = safeEval(self.endEntry.text())
+            inp = safeEval(self.endEntry.text(),type = 'FI')
             if inp is not None:
                 self.endVal = int(round(inp))
             if self.endVal < 0:
@@ -3882,13 +3882,13 @@ class DCWindow(wc.ToolWindows):
 
     def offsetPreview(self, inserted=False):
         if inserted:
-            dcVal = safeEval(self.offsetEntry.text())
+            dcVal = safeEval(self.offsetEntry.text(), type = 'C')
             if dcVal is None:
                 raise SsnakeException("Offset correction: offset value not valid")
             self.father.current.dcOffset(dcVal)
         else:
             dataLength = self.father.current.len()
-            inp = safeEval(self.startEntry.text())
+            inp = safeEval(self.startEntry.text(),type = 'FI')
             if inp is None:
                 raise SsnakeException("Offset correction: start value not valid")
             self.startVal = int(round(inp))
@@ -3897,7 +3897,7 @@ class DCWindow(wc.ToolWindows):
             elif self.startVal > dataLength:
                 self.startVal = dataLength
             self.startEntry.setText(str(self.startVal))
-            inp = safeEval(self.endEntry.text())
+            inp = safeEval(self.endEntry.text(),type = 'FI')
             if inp is None:
                 raise SsnakeException("Offset correction: end value not valid")
             self.endVal = int(round(inp))
@@ -3911,7 +3911,7 @@ class DCWindow(wc.ToolWindows):
             self.father.current.dcOffset(val)
 
     def applyFunc(self):
-        inp = safeEval(self.offsetEntry.text())
+        inp = safeEval(self.offsetEntry.text(), type = 'C')
         if inp is None:
             raise SsnakeException("Offset correction: offset value not valid")
         self.father.current.peakPickReset()
@@ -4069,7 +4069,7 @@ class regionWindow(wc.ToolWindows):
         self.father.current.peakPick = True
 
     def setVal(self, entry, isMin=False):
-        inp = safeEval(entry.text())
+        inp = safeEval(entry.text(),type = 'FI')
         error = False
         if inp is not None:
             inp = int(inp)
@@ -4278,7 +4278,7 @@ class regionWindow2(wc.ToolWindows):
     def picked(self, pos, second=False):
         if second:
             dataLength = self.father.current.len()
-            inp = safeEval(self.startEntry.text())
+            inp = safeEval(self.startEntry.text(),type = 'FI')
             if inp is not None:
                 self.startVal = int(round(inp))
             if self.startVal < 0:
@@ -4298,7 +4298,7 @@ class regionWindow2(wc.ToolWindows):
 
     def checkValues(self, *args):
         dataLength = self.father.current.len()
-        inp = safeEval(self.startEntry.text())
+        inp = safeEval(self.startEntry.text(),type = 'FI')
         if inp is not None:
             self.startVal = int(round(inp))
         if self.startVal < 0:
@@ -4306,7 +4306,7 @@ class regionWindow2(wc.ToolWindows):
         elif self.startVal > dataLength:
             self.startVal = dataLength
         self.startEntry.setText(str(self.startVal))
-        inp = safeEval(self.endEntry.text())
+        inp = safeEval(self.endEntry.text(),type = 'FI')
         if inp is not None:
             self.endVal = int(round(inp))
         if self.endVal < 0:
@@ -4318,7 +4318,7 @@ class regionWindow2(wc.ToolWindows):
 
     def applyFunc(self):
         dataLength = self.father.current.len()
-        inp = safeEval(self.startEntry.text())
+        inp = safeEval(self.startEntry.text(),type = 'FI')
         if inp is None:
             raise SsnakeException(self.NAME + ": value not valid")
         self.startVal = int(round(inp))
@@ -4326,7 +4326,7 @@ class regionWindow2(wc.ToolWindows):
             self.startVal = 0
         elif self.startVal > dataLength:
             self.startVal = dataLength
-        inp = safeEval(self.endEntry.text())
+        inp = safeEval(self.endEntry.text(),type = 'FI')
         if inp is None:
             raise SsnakeException(self.NAME + ": value not valid")
         self.endVal = int(round(inp))
@@ -4398,7 +4398,7 @@ class FiddleWindow(wc.ToolWindows):
     def picked(self, pos, second=False):
         if second:
             dataLength = self.father.current.len()
-            inp = safeEval(self.startEntry.text())
+            inp = safeEval(self.startEntry.text(),type = 'FI')
             if inp is not None:
                 self.startVal = int(round(inp))
             if self.startVal < 0:
@@ -4417,7 +4417,7 @@ class FiddleWindow(wc.ToolWindows):
 
     def checkValues(self, *args):
         dataLength = self.father.current.len()
-        inp = safeEval(self.startEntry.text())
+        inp = safeEval(self.startEntry.text(),type = 'FI')
         if inp is not None:
             self.startVal = int(round(inp))
         if self.startVal < 0:
@@ -4425,7 +4425,7 @@ class FiddleWindow(wc.ToolWindows):
         elif self.startVal > dataLength:
             self.startVal = dataLength
         self.startEntry.setText(str(self.startVal))
-        inp = safeEval(self.endEntry.text())
+        inp = safeEval(self.endEntry.text(),type = 'FI')
         if inp is not None:
             self.endVal = int(round(inp))
         if self.endVal < 0:
@@ -4433,13 +4433,13 @@ class FiddleWindow(wc.ToolWindows):
         elif self.endVal > dataLength:
             self.endVal = dataLength
         self.endEntry.setText(str(self.endVal))
-        inp = safeEval(self.lbEntry.text())
+        inp = safeEval(self.lbEntry.text(),type = 'FI')
         if inp is not None:
             self.lbEntry.setText(str(inp))
 
     def applyFunc(self):
         dataLength = self.father.current.len()
-        inp = safeEval(self.startEntry.text())
+        inp = safeEval(self.startEntry.text(),type = 'FI')
         if inp is None:
             raise SsnakeException("Reference deconv: start entry not valid")
         self.startVal = int(round(inp))
@@ -4447,7 +4447,7 @@ class FiddleWindow(wc.ToolWindows):
             self.startVal = 0
         elif self.startVal > dataLength:
             self.startVal = dataLength
-        inp = safeEval(self.endEntry.text())
+        inp = safeEval(self.endEntry.text(),type = 'FI')
         if inp is None:
             raise SsnakeException("Reference deconv: end entry not valid")
         self.endVal = int(round(inp))
@@ -4455,7 +4455,7 @@ class FiddleWindow(wc.ToolWindows):
             self.endVal = 0
         elif self.endVal > dataLength:
             self.endVal = dataLength
-        lb = safeEval(self.lbEntry.text())
+        lb = safeEval(self.lbEntry.text(),type = 'FI')
         if lb is None:
             raise SsnakeException("Reference deconv: Linebroadening entry not valid")
         self.father.current.fiddle(self.startVal, self.endVal, lb)
@@ -4512,13 +4512,13 @@ class SplitWindow(wc.ToolWindows):
         self.grid.addWidget(self.splitEntry, 1, 0)
 
     def preview(self, *args):
-        val = safeEval(self.splitEntry.text(), self.father.current.len())
+        val = safeEval(self.splitEntry.text(), self.father.current.len(),type = 'FI')
         if val is None:
             raise SsnakeException("Split: input not valid")
         self.splitEntry.setText(str(int(round(val))))
 
     def applyFunc(self):
-        val = safeEval(self.splitEntry.text(), self.father.current.len())
+        val = safeEval(self.splitEntry.text(), self.father.current.len(),type = 'FI')
         if val is None:
             raise SsnakeException("Split: input not valid")
         val = int(val)
@@ -4673,7 +4673,7 @@ class SNWindow(wc.ToolWindows):
 
     def checkValues(self, *args):
         dataLength = self.father.current.len()
-        inp = safeEval(self.minNoiseEntry.text())
+        inp = safeEval(self.minNoiseEntry.text(),type = 'FI')
         if inp is None:
             return
         minimum = int(round(inp))
@@ -4682,7 +4682,7 @@ class SNWindow(wc.ToolWindows):
         elif minimum > dataLength:
             minimum = dataLength
         self.minNoiseEntry.setText(str(minimum))
-        inp = safeEval(self.maxNoiseEntry.text())
+        inp = safeEval(self.maxNoiseEntry.text(),type = 'FI')
         if inp is None:
             return
         maximum = int(round(inp))
@@ -4691,7 +4691,7 @@ class SNWindow(wc.ToolWindows):
         elif maximum > dataLength:
             maximum = dataLength
         self.maxNoiseEntry.setText(str(maximum))
-        inp = safeEval(self.minEntry.text())
+        inp = safeEval(self.minEntry.text(),type = 'FI')
         if inp is None:
             return
         minimum = int(round(inp))
@@ -4700,7 +4700,7 @@ class SNWindow(wc.ToolWindows):
         elif minimum > dataLength:
             minimum = dataLength
         self.minEntry.setText(str(minimum))
-        inp = safeEval(self.maxEntry.text())
+        inp = safeEval(self.maxEntry.text(),type = 'FI')
         if inp is None:
             return
         maximum = int(round(inp))
@@ -4713,7 +4713,7 @@ class SNWindow(wc.ToolWindows):
 
     def applyFunc(self):
         dataLength = self.father.current.len()
-        inp = safeEval(self.minNoiseEntry.text())
+        inp = safeEval(self.minNoiseEntry.text(),type = 'FI')
         if inp is None:
             raise SsnakeException("S/N: invalid range")
         minimumNoise = int(round(inp))
@@ -4722,7 +4722,7 @@ class SNWindow(wc.ToolWindows):
         elif minimumNoise > dataLength:
             minimumNoise = dataLength
         self.minNoiseEntry.setText(str(minimumNoise))
-        inp = safeEval(self.maxNoiseEntry.text())
+        inp = safeEval(self.maxNoiseEntry.text(),type = 'FI')
         if inp is None:
             raise SsnakeException("S/N: invalid range")
         maximumNoise = int(round(inp))
@@ -4731,7 +4731,7 @@ class SNWindow(wc.ToolWindows):
         elif maximumNoise > dataLength:
             maximumNoise = dataLength
         self.maxNoiseEntry.setText(str(maximumNoise))
-        inp = safeEval(self.minEntry.text())
+        inp = safeEval(self.minEntry.text(),type = 'FI')
         if inp is None:
             raise SsnakeException("S/N: invalid range")
         minimum = int(round(inp))
@@ -4740,7 +4740,7 @@ class SNWindow(wc.ToolWindows):
         elif minimum > dataLength:
             minimum = dataLength
         self.minEntry.setText(str(minimum))
-        inp = safeEval(self.maxEntry.text())
+        inp = safeEval(self.maxEntry.text(),type = 'FI')
         if inp is None:
             raise SsnakeException("S/N: invalid range")
         maximum = int(round(inp))
@@ -4804,7 +4804,7 @@ class FWHMWindow(wc.ToolWindows):
 
     def checkValues(self, *args):
         dataLength = self.father.current.len()
-        inp = safeEval(self.minEntry.text())
+        inp = safeEval(self.minEntry.text(),type = 'FI')
         if inp is None:
             return
         minimum = int(round(inp))
@@ -4813,7 +4813,7 @@ class FWHMWindow(wc.ToolWindows):
         elif minimum > dataLength:
             minimum = dataLength
         self.minEntry.setText(str(minimum))
-        inp = safeEval(self.maxEntry.text())
+        inp = safeEval(self.maxEntry.text(),type = 'FI')
         if inp is None:
             return
         maximum = int(round(inp))
@@ -4837,7 +4837,7 @@ class FWHMWindow(wc.ToolWindows):
 
     def checkValues(self, *args):
         dataLength = self.father.current.len()
-        inp = safeEval(self.minEntry.text())
+        inp = safeEval(self.minEntry.text(),type = 'FI')
         if inp is None:
             return
         minimum = int(round(inp))
@@ -4846,7 +4846,7 @@ class FWHMWindow(wc.ToolWindows):
         elif minimum > dataLength:
             minimum = dataLength
         self.minEntry.setText(str(minimum))
-        inp = safeEval(self.maxEntry.text())
+        inp = safeEval(self.maxEntry.text(),type = 'FI')
         if inp is None:
             return
         maximum = int(round(inp))
@@ -4859,7 +4859,7 @@ class FWHMWindow(wc.ToolWindows):
 
     def applyFunc(self):
         dataLength = self.father.current.len()
-        inp = safeEval(self.minEntry.text())
+        inp = safeEval(self.minEntry.text(),type = 'FI')
         if inp is None:
             raise SsnakeException("FWHM: invalid range")
         minimum = int(round(inp))
@@ -4868,7 +4868,7 @@ class FWHMWindow(wc.ToolWindows):
         elif minimum > dataLength:
             minimum = dataLength
         self.minEntry.setText(str(minimum))
-        inp = safeEval(self.maxEntry.text())
+        inp = safeEval(self.maxEntry.text(),type = 'FI')
         if inp is None:
             raise SsnakeException("FWHM: invalid range")
         maximum = int(round(inp))
@@ -4966,7 +4966,7 @@ class COMWindow(wc.ToolWindows):  # Centre of Mass Window
 
     def applyFunc(self,calc=True):
         dataLength = self.father.current.len()
-        inp = safeEval(self.minEntry.text())
+        inp = safeEval(self.minEntry.text(),type = 'FI')
         if inp is None:
             raise SsnakeException("Centre of Mass: invalid range")
         minimum = int(round(inp))
@@ -4975,7 +4975,7 @@ class COMWindow(wc.ToolWindows):  # Centre of Mass Window
         elif minimum > dataLength:
             minimum = dataLength
         self.minEntry.setText(str(minimum))
-        inp = safeEval(self.maxEntry.text())
+        inp = safeEval(self.maxEntry.text(),type = 'FI')
         if inp is None:
             raise SsnakeException("Centre of Mass: invalid range")
         maximum = int(round(inp))
@@ -4987,7 +4987,7 @@ class COMWindow(wc.ToolWindows):  # Centre of Mass Window
         #For contour
         if self.pickDim == 2:
             dataLengthY = self.father.current.len(-2)
-            inp = safeEval(self.minEntryY.text())
+            inp = safeEval(self.minEntryY.text(),type = 'FI')
             if inp is None:
                 raise SsnakeException("Centre of Mass: invalid range")
             minimumY = int(round(inp))
@@ -4996,7 +4996,7 @@ class COMWindow(wc.ToolWindows):  # Centre of Mass Window
             elif minimumY > dataLengthY:
                 minimumY = dataLengthY
             self.minEntryY.setText(str(minimumY))
-            inp = safeEval(self.maxEntryY.text())
+            inp = safeEval(self.maxEntryY.text(),type = 'FI')
             if inp is None:
                 raise SsnakeException("Centre of Mass: invalid range")
             maximumY = int(round(inp))
@@ -5022,6 +5022,7 @@ class IntegralsWindow(wc.ToolWindows):
     NAME = "Integrals"
     CANCELNAME = "&Close"
     OKNAME = "C&alc"
+    APPLYANDCLOSE = False
 
     def __init__(self, parent):
         super(IntegralsWindow, self).__init__(parent)
@@ -5069,7 +5070,7 @@ class IntegralsWindow(wc.ToolWindows):
         self.father.current.peakPickFunc = lambda pos, self=self: self.picked(pos)
 
     def setScaling(self,num):
-        inp = safeEval(self.intEntries[num].text())
+        inp = safeEval(self.intEntries[num].text(),type = 'FI')
         int = self.intValues[num]
         if inp is None:
             return
@@ -5081,7 +5082,7 @@ class IntegralsWindow(wc.ToolWindows):
         dataLength = self.father.current.len()
         for num in range(len(self.minEntries)):
             ok = True
-            inp = safeEval(self.minEntries[num].text())
+            inp = safeEval(self.minEntries[num].text(),type = 'FI')
             if inp is None:
                 self.minEntries[num].setText('')
                 ok = False
@@ -5092,7 +5093,7 @@ class IntegralsWindow(wc.ToolWindows):
                 elif minimum > dataLength:
                     minimum = dataLength
                 self.minEntries[num].setText(str(minimum))
-            inp = safeEval(self.maxEntries[num].text())
+            inp = safeEval(self.maxEntries[num].text(),type = 'FI')
             if inp is None:
                 self.maxEntries[num].setText('')
                 ok = False
@@ -5110,7 +5111,6 @@ class IntegralsWindow(wc.ToolWindows):
                 self.intEntries[num].setText('')
                 self.intValues[num] = None
         self.preview()
-        return False  # Return to keep window
 
 ##########################################################################################
 
@@ -5148,7 +5148,7 @@ class ReorderWindow(wc.ToolWindows):
         if newLength == '':
             newLength = None
         else:
-            newLength = safeEval(self.lengthEntry.text())
+            newLength = safeEval(self.lengthEntry.text(),type = 'FI')
             if newLength is None:
                 raise SsnakeException("Reorder: `Length' input is not valid")
         val = safeEval(self.valEntry.text(), int(self.father.current.len()))
@@ -5442,12 +5442,12 @@ class ShearingWindow(wc.ToolWindows):
         self.shearEntry.setText("%.9f" % self.shearList[index])
 
     def shearPreview(self, *args):
-        shear = safeEval(self.shearEntry.text())
+        shear = safeEval(self.shearEntry.text(),type = 'FI')
         if shear is not None:
             self.shearEntry.setText(str(float(shear)))
 
     def applyFunc(self):
-        shear = safeEval(self.shearEntry.text())
+        shear = safeEval(self.shearEntry.text(),type = 'FI')
         if shear is None:
             raise SsnakeException("Shearing: 'constant' not a valid value")
         axis = self.dirEntry.currentIndex()

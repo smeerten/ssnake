@@ -46,8 +46,12 @@ def safeEval(inp, length=None, keywords=[], type='All', x=None):
             return None
         if type == 'All':
             return val
-        elif type == 'FI':  # Float/int type
+        elif type == 'FI':  #single float/int type
             if isinstance(val, (float, int)) and not np.isnan(val) and not np.isinf(val):
+                return val
+            return None
+        elif type == 'C': #single complex number
+            if isinstance(val, (float, int, complex)) and not np.isnan(val) and not np.isinf(val):
                 return val
             return None
     except Exception:
