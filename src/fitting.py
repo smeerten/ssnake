@@ -90,6 +90,7 @@ class TabFittingWindow(QtWidgets.QWidget):
         self.tabs.tabBar().setTabButton(0, QtWidgets.QTabBar.RightSide, QtWidgets.QLabel(''));
         self.tabs.tabBar().setTabButton(1, QtWidgets.QTabBar.RightSide, QtWidgets.QLabel(''));
         self.tabs.currentChanged.connect(self.changeTab)
+        self.oldTabIndex = 0
         grid3 = QtWidgets.QGridLayout(self)
         grid3.addWidget(self.tabs, 0, 0)
         grid3.setColumnStretch(0, 1)
@@ -107,6 +108,7 @@ class TabFittingWindow(QtWidgets.QWidget):
             self.subFitWindows.append(FittingWindow(self.father, self.father.workspaces[self.father.workspaceNames.index(text[0])], self, False))
             self.tabs.insertTab(self.tabs.count() - 1, self.subFitWindows[-1], str(text[0]))
             self.tabs.setCurrentIndex(len(self.subFitWindows))
+            self.oldTabIndex = len(self.subFitWindows)
 
     def removeSpectrum(self, spec):
         num = self.subFitWindows.index(spec)
@@ -115,7 +117,10 @@ class TabFittingWindow(QtWidgets.QWidget):
 
     def changeTab(self, index):
         if index == self.tabs.count() - 1:
+            self.tabs.setCurrentIndex(self.oldTabIndex) #Quickly set to old tab, to avoid showing the `add data' tab
             self.addSpectrum()
+        else:
+            self.oldTabIndex = index
 
     def closeTab(self, num):
         count = self.tabs.count()
