@@ -3388,7 +3388,7 @@ class ApodWindow(wc.ToolWindows):
             for elem in self.entries[key]:
                 elem.setEnabled(False)
         if key == 'lor' or key == 'gauss':  # for lorentzian and gaussian
-            if safeEval(self.entries[key][0].text()) != 0.0:  # only update if value was not zero
+            if safeEval(self.entries[key][0].text(),type = 'FI') != 0.0:  # only update if value was not zero
                 self.apodPreview()
         else:
             self.apodPreview()
@@ -3417,44 +3417,44 @@ class ApodWindow(wc.ToolWindows):
         shifting = None
         shiftingAxis = 0
         if self.ticks['lor'].isChecked():
-            lor = safeEval(self.entries['lor'][0].text())
+            lor = safeEval(self.entries['lor'][0].text(),type = 'FI')
             if lor is None:
                 self.father.current.showFid()
                 raise SsnakeException('Apodize: Lorentzian value is not valid!')
             self.entries['lor'][0].setText('%.4g' % lor)
             self.lorScale.setValue(round(lor * self.RESOLUTION / self.maximum))
         if self.ticks['gauss'].isChecked():
-            gauss = safeEval(self.entries['gauss'][0].text())
+            gauss = safeEval(self.entries['gauss'][0].text(),type = 'FI')
             if gauss is None:
                 self.father.current.showFid()
                 raise SsnakeException('Apodize: Gaussian value is not valid!')
             self.entries['gauss'][0].setText('%.4g' % gauss)
             self.gaussScale.setValue(round(gauss * self.RESOLUTION / self.maximum))
         if self.ticks['cos2'].isChecked():
-            cos2 = safeEval(self.entries['cos2'][0].text())
+            cos2 = safeEval(self.entries['cos2'][0].text(),type = 'FI')
             if cos2 is None:
                 self.father.current.showFid()
                 raise SsnakeException('Apodize: cos^2 frequency value is not valid!')
             self.entries['cos2'][0].setText('%.4g' % cos2)
         if self.ticks['cos2'].isChecked():
-            cos2Ph = safeEval(self.entries['cos2'][2].text())
+            cos2Ph = safeEval(self.entries['cos2'][2].text(),type = 'FI')
             if cos2Ph is None:
                 self.father.current.showFid()
                 raise SsnakeException('Apodize: cos^2 phase value is not valid!')
             self.entries['cos2'][2].setText('%.4g' % cos2Ph)
         if self.ticks['hamming'].isChecked():
-            hamming = safeEval(self.entries['hamming'][0].text())
+            hamming = safeEval(self.entries['hamming'][0].text(),type = 'FI')
             if hamming is None:
                 self.father.current.showFid()
                 raise SsnakeException('Apodize: Hamming value is not valid!')
             self.entries['hamming'][0].setText('%.4g' % hamming)
-        shift = safeEval(self.shiftEntry.text())
+        shift = safeEval(self.shiftEntry.text(),type = 'FI')
         if shift is None:
             self.father.current.showFid()
             raise SsnakeException('Apodize: Shift value is not valid!')
         self.shiftEntry.setText('%.4g' % shift)
         if self.father.current.data.ndim() > 1:
-            shifting = safeEval(self.shiftingEntry.text())
+            shifting = safeEval(self.shiftingEntry.text(),type = 'FI')
             if shifting is None:
                 self.father.current.showFid()
                 raise SsnakeException('Apodize: Shifting value is not valid!')
@@ -3472,12 +3472,12 @@ class ApodWindow(wc.ToolWindows):
             multiplier = 100
         else:
             multiplier = 1
-        lor = safeEval(self.entries['lor'][0].text())
+        lor = safeEval(self.entries['lor'][0].text(),type = 'FI')
         if lor is None:
             self.father.current.showFid()
             raise SsnakeException('Apodize: Lorentzian value is not valid!')
         self.entries['lor'][0].setText('%.4g' % (lor + multiplier * lorincr * self.lorstep))
-        gauss = safeEval(self.entries['gauss'][0].text())
+        gauss = safeEval(self.entries['gauss'][0].text(),type = 'FI')
         if gauss is None:
             self.father.current.showFid()
             raise SsnakeException('Apodize: Gaussian value is not valid!')
@@ -3497,36 +3497,36 @@ class ApodWindow(wc.ToolWindows):
         shifting = None
         shiftingAxis = 0
         if self.ticks['lor'].isChecked():
-            lor = safeEval(self.entries['lor'][0].text())
+            lor = safeEval(self.entries['lor'][0].text(),type = 'FI')
             if lor is None:
                 self.father.current.showFid()
                 raise SsnakeException('Apodize: Lorentzian value is not valid!')
         if self.ticks['gauss'].isChecked():
-            gauss = safeEval(self.entries['gauss'][0].text())
+            gauss = safeEval(self.entries['gauss'][0].text(),type = 'FI')
             if gauss is None:
                 self.father.current.showFid()
                 raise SsnakeException('Apodize: Gaussian value is not valid!')
         if self.ticks['cos2'].isChecked():
-            cos2 = safeEval(self.entries['cos2'][0].text())
+            cos2 = safeEval(self.entries['cos2'][0].text(),type = 'FI')
             if cos2 is None:
                 self.father.current.showFid()
                 raise SsnakeException('Apodize: cos^2 frequency value is not valid!')
         if self.ticks['cos2'].isChecked():
-            cos2Ph = safeEval(self.entries['cos2'][2].text())
+            cos2Ph = safeEval(self.entries['cos2'][2].text(),type = 'FI')
             if cos2Ph is None:
                 self.father.current.showFid()
                 raise SsnakeException('Apodize: cos^2 phase value is not valid!')
         if self.ticks['hamming'].isChecked():
-            hamming = safeEval(self.entries['hamming'][0].text())
+            hamming = safeEval(self.entries['hamming'][0].text(),type = 'FI')
             if hamming is None:
                 self.father.current.showFid()
                 raise SsnakeException('Apodize: Hamming value is not valid!')
-        shift = safeEval(self.shiftEntry.text())
+        shift = safeEval(self.shiftEntry.text(),type = 'FI')
         if shift is None:
             self.father.current.showFid()
             raise SsnakeException('Apodize: Shift value is not valid!')
         if self.father.current.data.ndim() > 1:
-            shifting = safeEval(self.shiftingEntry.text())
+            shifting = safeEval(self.shiftingEntry.text(),type = 'FI')
             if shifting is None:
                 self.father.current.showFid()
                 raise SsnakeException('Apodize: Shifting value is not valid!')
