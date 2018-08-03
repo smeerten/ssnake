@@ -112,6 +112,8 @@ class TabFittingWindow(QtWidgets.QWidget):
 
     def removeSpectrum(self, spec):
         num = self.subFitWindows.index(spec)
+        self.tabs.setCurrentIndex(num) 
+        self.oldTabIndex = num
         self.tabs.removeTab(num + 1)
         del self.subFitWindows[num]
 
