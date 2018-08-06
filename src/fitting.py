@@ -351,8 +351,8 @@ class FittingWindow(QtWidgets.QWidget):
         grid.setColumnStretch(0, 1)
         grid.setRowStretch(0, 1)
         self.grid = grid
-        self.fittingSideFrame = FittingSideFrame(self)
-        self.grid.addWidget(self.fittingSideFrame, 0, 1)
+        self.sideframe = FittingSideFrame(self)
+        self.grid.addWidget(self.sideframe, 0, 1)
         self.canvas.mpl_connect('button_press_event', self.buttonPress)
         self.canvas.mpl_connect('button_release_event', self.buttonRelease)
         self.canvas.mpl_connect('motion_notify_event', self.pan)
@@ -580,14 +580,21 @@ class AbstractParamFrame(QtWidgets.QWidget):
         self.optframe = QtWidgets.QGridLayout()
         self.frame2 = QtWidgets.QGridLayout()
         self.frame3 = QtWidgets.QGridLayout()
-        self.frame4 = QtWidgets.QGridLayout()
         grid.addLayout(self.frame1, 0, 0)
         grid.addLayout(self.optframe, 0, 1)
         grid.addLayout(self.frame2, 0, 2)
         grid.addLayout(self.frame3, 0, 3)
-        grid.addLayout(self.frame4, 0, 4)
         grid.setColumnStretch(10, 1)
         grid.setAlignment(QtCore.Qt.AlignLeft)
+        self.frame1.setColumnStretch(10, 1)
+        self.frame1.setAlignment(QtCore.Qt.AlignTop)
+        self.optframe.setColumnStretch(21, 1)
+        self.optframe.setRowStretch(21, 1)
+        self.optframe.setAlignment(QtCore.Qt.AlignTop)
+        self.frame2.setColumnStretch(self.FITNUM, 1)
+        self.frame2.setAlignment(QtCore.Qt.AlignTop)
+        self.frame3.setColumnStretch(20, 1)
+        self.frame3.setAlignment(QtCore.Qt.AlignTop)
         simButton = QtWidgets.QPushButton("Sim")
         simButton.clicked.connect(self.rootwindow.sim)
         self.frame1.addWidget(simButton, 0, 0,1,1)
@@ -618,12 +625,6 @@ class AbstractParamFrame(QtWidgets.QWidget):
         exportResultButton = QtWidgets.QPushButton("Export")
         exportResultButton.clicked.connect(self.exportResultWindow)
         self.frame1.addWidget(exportResultButton, 3, 0)
-        #copyResultButton = QtWidgets.QPushButton("Result to workspace")
-        #copyResultButton.clicked.connect(self.resultToWorkspaceWindow)
-        #self.frame1.addWidget(copyResultButton, 3, 0, 1, 2)
-        #copyParamButton = QtWidgets.QPushButton("Param. to workspace")
-        #copyParamButton.clicked.connect(self.paramToWorkspaceWindow)
-        #self.frame1.addWidget(copyParamButton, 4, 0, 1, 2)
         if self.isMain:
             cancelButton = QtWidgets.QPushButton("&Cancel")
             cancelButton.clicked.connect(self.closeWindow)
@@ -634,8 +635,6 @@ class AbstractParamFrame(QtWidgets.QWidget):
         prefButton.clicked.connect(self.createPrefWindow)
         self.frame1.addWidget(prefButton, 3, 1)
         self.frame1.addWidget(cancelButton, 4, 0, 1, 2)
-        self.frame1.setColumnStretch(10, 1)
-        self.frame1.setAlignment(QtCore.Qt.AlignTop)
         self.checkFitParamList(self.getRedLocList())
 
     def getRedLocList(self):
@@ -874,7 +873,7 @@ class AbstractParamFrame(QtWidgets.QWidget):
                 break
             self.parent.setSlice(self.parent.axes, i)
             self.rootwindow.fit()
-            self.rootwindow.fittingSideFrame.upd()
+            self.rootwindow.sideframe.upd()
         self.stopAllButton.hide()
 
     def getSimParams(self):
@@ -1252,24 +1251,18 @@ class RelaxParamFrame(AbstractParamFrame):
         self.frame2.addWidget(self.ticks['const'][-1], 3, 0)
         self.entries['const'].append(wc.FitQLineEdit(self, 'const', ('%#.' + str(self.rootwindow.tabWindow.PRECIS) + 'g') % self.fitParamList[locList]['const'][0]))
         self.frame2.addWidget(self.entries['const'][-1], 3, 1)
-        self.frame2.setColumnStretch(10, 1)
-        self.frame2.setAlignment(QtCore.Qt.AlignTop)
         self.numExp = QtWidgets.QComboBox()
         self.numExp.addItems(['1', '2', '3', '4'])
         self.numExp.currentIndexChanged.connect(self.changeNum)
         self.frame3.addWidget(self.numExp, 0, 0, 1, 2)
         self.frame3.addWidget(wc.QLabel("Coefficient:"), 1, 0, 1, 2)
         self.frame3.addWidget(wc.QLabel("T [s]:"), 1, 2, 1, 2)
-        self.frame3.setColumnStretch(10, 1)
-        self.frame3.setAlignment(QtCore.Qt.AlignTop)
         self.xlog = QtWidgets.QCheckBox('x-log')
         self.xlog.stateChanged.connect(self.setLog)
         self.optframe.addWidget(self.xlog, 0, 0, QtCore.Qt.AlignTop)
         self.ylog = QtWidgets.QCheckBox('y-log')
         self.ylog.stateChanged.connect(self.setLog)
         self.optframe.addWidget(self.ylog, 1, 0, QtCore.Qt.AlignTop)
-        self.optframe.setColumnStretch(10, 1)
-        self.optframe.setAlignment(QtCore.Qt.AlignTop)
         for i in range(self.FITNUM):
             for j in range(len(self.MULTINAMES)):
                 self.ticks[self.MULTINAMES[j]].append(QtWidgets.QCheckBox(''))
@@ -1331,51 +1324,45 @@ class DiffusionParamFrame(AbstractParamFrame):
         self.extraDefaults = {'xlog': False, 'ylog': False, 'gamma': "42.576", 'delta': '1.0', 'triangle': '1.0'}
         super(DiffusionParamFrame, self).__init__(parent, rootwindow, isMain)
         locList = self.getRedLocList()
-        self.frame2.addWidget(wc.QLabel(u"γ [MHz/T]:"), 0, 0)
+        self.optframe.addWidget(wc.QLabel(u"γ [MHz/T]:"), 0, 1)
         self.gammaEntry = wc.QLineEdit()
-        self.frame2.addWidget(self.gammaEntry, 1, 0)
-        self.frame2.addWidget(wc.QLabel(u"δ [s]:"), 2, 0)
+        self.optframe.addWidget(self.gammaEntry, 1, 1)
+        self.optframe.addWidget(wc.QLabel(u"δ [s]:"), 2, 1)
         self.deltaEntry = wc.QLineEdit()
-        self.frame2.addWidget(self.deltaEntry, 3, 0)
-        self.frame2.addWidget(wc.QLabel(u"Δ [s]:"), 4, 0)
+        self.optframe.addWidget(self.deltaEntry, 3, 1)
+        self.optframe.addWidget(wc.QLabel(u"Δ [s]:"), 4, 1)
         self.triangleEntry = wc.QLineEdit()
-        self.frame2.addWidget(self.triangleEntry, 5, 0)
-        self.frame2.setColumnStretch(10, 1)
-        self.frame2.setAlignment(QtCore.Qt.AlignTop)
-        self.frame3.addWidget(wc.QLabel("Amplitude:"), 0, 0, 1, 2)
+        self.optframe.addWidget(self.triangleEntry, 5, 1)
+        self.frame2.addWidget(wc.QLabel("Amplitude:"), 0, 0, 1, 2)
         self.ticks['amp'].append(QtWidgets.QCheckBox(''))
-        self.frame3.addWidget(self.ticks['amp'][-1], 1, 0)
+        self.frame2.addWidget(self.ticks['amp'][-1], 1, 0)
         self.entries['amp'].append(wc.FitQLineEdit(self, 'amp', ('%#.' + str(self.rootwindow.tabWindow.PRECIS) + 'g') % np.max(self.parent.getData1D())))
-        self.frame3.addWidget(self.entries['amp'][-1], 1, 1)
-        self.frame3.addWidget(wc.QLabel("Constant:"), 2, 0, 1, 2)
+        self.frame2.addWidget(self.entries['amp'][-1], 1, 1)
+        self.frame2.addWidget(wc.QLabel("Constant:"), 2, 0, 1, 2)
         self.ticks['const'].append(QtWidgets.QCheckBox(''))
-        self.frame3.addWidget(self.ticks['const'][-1], 3, 0)
+        self.frame2.addWidget(self.ticks['const'][-1], 3, 0)
         self.entries['const'].append(wc.FitQLineEdit(self, 'const', "0.0"))
-        self.frame3.addWidget(self.entries['const'][-1], 3, 1)
-        self.frame3.setColumnStretch(10, 1)
-        self.frame3.setAlignment(QtCore.Qt.AlignTop)
+        self.frame2.addWidget(self.entries['const'][-1], 3, 1)
         self.numExp = QtWidgets.QComboBox()
         self.numExp.addItems(['1', '2', '3', '4'])
         self.numExp.currentIndexChanged.connect(self.changeNum)
-        self.frame4.addWidget(self.numExp, 0, 0, 1, 2)
-        self.frame4.addWidget(wc.QLabel("Coefficient:"), 1, 0, 1, 2)
-        self.frame4.addWidget(wc.QLabel("D [m^2/s]:"), 1, 2, 1, 2)
-        self.frame4.setColumnStretch(20, 1)
-        self.frame4.setAlignment(QtCore.Qt.AlignTop)
+        self.frame3.addWidget(self.numExp, 0, 0, 1, 2)
+        self.frame3.addWidget(wc.QLabel("Coefficient:"), 1, 0, 1, 2)
+        self.frame3.addWidget(wc.QLabel("D [m^2/s]:"), 1, 2, 1, 2)
+        self.frame3.setColumnStretch(20, 1)
+        self.frame3.setAlignment(QtCore.Qt.AlignTop)
         self.xlog = QtWidgets.QCheckBox('x-log')
         self.xlog.stateChanged.connect(self.setLog)
         self.optframe.addWidget(self.xlog, 0, 0)
         self.ylog = QtWidgets.QCheckBox('y-log')
         self.ylog.stateChanged.connect(self.setLog)
         self.optframe.addWidget(self.ylog, 1, 0)
-        self.optframe.setColumnStretch(10, 1)
-        self.optframe.setAlignment(QtCore.Qt.AlignTop)
         for i in range(self.FITNUM):
             for j in range(len(self.MULTINAMES)):
                 self.ticks[self.MULTINAMES[j]].append(QtWidgets.QCheckBox(''))
-                self.frame4.addWidget(self.ticks[self.MULTINAMES[j]][i], i + 2, 2 * j)
+                self.frame3.addWidget(self.ticks[self.MULTINAMES[j]][i], i + 2, 2 * j)
                 self.entries[self.MULTINAMES[j]].append(wc.FitQLineEdit(self, self.MULTINAMES[j], ''))
-                self.frame4.addWidget(self.entries[self.MULTINAMES[j]][i], i + 2, 2 * j + 1)
+                self.frame3.addWidget(self.entries[self.MULTINAMES[j]][i], i + 2, 2 * j + 1)
         self.reset()
 
     def reset(self):
@@ -1489,8 +1476,6 @@ class PeakDeconvParamFrame(AbstractParamFrame):
         self.frame2.addWidget(self.ticks['bgrnd'][0], 1, 0)
         self.entries['bgrnd'].append(wc.FitQLineEdit(self, 'bgrnd', "0.0"))
         self.frame2.addWidget(self.entries['bgrnd'][0], 1, 1)
-        self.frame2.setColumnStretch(self.FITNUM, 1)
-        self.frame2.setAlignment(QtCore.Qt.AlignTop)
         self.numExp = QtWidgets.QComboBox()
         self.numExp.addItems([str(x + 1) for x in range(self.FITNUM)])
         self.numExp.currentIndexChanged.connect(self.changeNum)
@@ -1499,8 +1484,6 @@ class PeakDeconvParamFrame(AbstractParamFrame):
         self.frame3.addWidget(wc.QLabel("Integral:"), 1, 2, 1, 2)
         self.frame3.addWidget(wc.QLabel("Lorentz [Hz]:"), 1, 4, 1, 2)
         self.frame3.addWidget(wc.QLabel("Gauss [Hz]:"), 1, 6, 1, 2)
-        self.frame3.setColumnStretch(20, 1)
-        self.frame3.setAlignment(QtCore.Qt.AlignTop)
         for i in range(self.FITNUM):
             for j in range(len(self.MULTINAMES)):
                 self.ticks[self.MULTINAMES[j]].append(QtWidgets.QCheckBox(''))
@@ -1632,8 +1615,6 @@ class CsaDeconvParamFrame(AbstractParamFrame):
                                                u'δiso - Ω - κ'])
         self.entries['shiftdef'][-1].currentIndexChanged.connect(self.changeShiftDef)
         self.optframe.addWidget(self.entries['shiftdef'][-1], 3, 0)
-        self.optframe.setColumnStretch(10, 1)
-        self.optframe.setAlignment(QtCore.Qt.AlignTop)
         self.spinLabel = wc.QLabel("Spin. speed [kHz]:")
         self.frame2.addWidget(self.spinLabel, 0, 0, 1, 2)
         self.ticks['spinspeed'].append(QtWidgets.QCheckBox(''))
@@ -1645,8 +1626,6 @@ class CsaDeconvParamFrame(AbstractParamFrame):
         self.frame2.addWidget(self.ticks['bgrnd'][-1], 3, 0)
         self.entries['bgrnd'].append(wc.FitQLineEdit(self, 'bgrnd', ""))
         self.frame2.addWidget(self.entries['bgrnd'][-1], 3, 1)
-        self.frame2.setColumnStretch(10, 1)
-        self.frame2.setAlignment(QtCore.Qt.AlignTop)
         self.numExp = QtWidgets.QComboBox()
         self.numExp.addItems([str(x + 1) for x in range(self.FITNUM)])
         self.numExp.currentIndexChanged.connect(self.changeNum)
@@ -1692,8 +1671,6 @@ class CsaDeconvParamFrame(AbstractParamFrame):
         self.frame3.addWidget(wc.QLabel("Integral:"), 1, 6, 1, 2)
         self.frame3.addWidget(wc.QLabel("Lorentz [Hz]:"), 1, 8, 1, 2)
         self.frame3.addWidget(wc.QLabel("Gauss [Hz]:"), 1, 10, 1, 2)
-        self.frame3.setColumnStretch(20, 1)
-        self.frame3.setAlignment(QtCore.Qt.AlignTop)
         for i in range(self.FITNUM):
             for j in range(len(self.MULTINAMES)):
                 self.ticks[self.MULTINAMES[j]].append(QtWidgets.QCheckBox(''))
@@ -1915,8 +1892,6 @@ class QuadDeconvParamFrame(AbstractParamFrame):
         self.entries['I'].append(QtWidgets.QComboBox())
         self.entries['I'][-1].addItems(self.Ioptions)
         self.optframe.addWidget(self.entries['I'][-1], 1, 0)
-        self.optframe.setColumnStretch(10, 1)
-        self.optframe.setAlignment(QtCore.Qt.AlignTop)
         self.spinLabel = wc.QLabel("Spin. speed [kHz]:")
         self.frame2.addWidget(self.spinLabel, 0, 0, 1, 2)
         self.ticks['spinspeed'].append(QtWidgets.QCheckBox(''))
@@ -1929,8 +1904,6 @@ class QuadDeconvParamFrame(AbstractParamFrame):
         self.frame2.addWidget(self.ticks['bgrnd'][-1], 3, 0)
         self.entries['bgrnd'].append(wc.QLineEdit())
         self.frame2.addWidget(self.entries['bgrnd'][-1], 3, 1)
-        self.frame2.setColumnStretch(10, 1)
-        self.frame2.setAlignment(QtCore.Qt.AlignTop)
         self.numExp = QtWidgets.QComboBox()
         self.numExp.addItems([str(x + 1) for x in range(self.FITNUM)])
         self.numExp.currentIndexChanged.connect(self.changeNum)
@@ -1949,8 +1922,6 @@ class QuadDeconvParamFrame(AbstractParamFrame):
         self.frame3.addWidget(wc.QLabel("Integral:"), 1, 6, 1, 2)
         self.frame3.addWidget(wc.QLabel("Lorentz [Hz]:"), 1, 8, 1, 2)
         self.frame3.addWidget(wc.QLabel("Gauss [Hz]:"), 1, 10, 1, 2)
-        self.frame3.setColumnStretch(20, 1)
-        self.frame3.setAlignment(QtCore.Qt.AlignTop)
         for i in range(self.FITNUM):
             for j in range(len(self.MULTINAMES)):
                 self.ticks[self.MULTINAMES[j]].append(QtWidgets.QCheckBox(''))
@@ -2330,8 +2301,6 @@ class QuadCzjzekParamFrame(AbstractParamFrame):
         czjzekPrefButton = QtWidgets.QPushButton("Library")
         czjzekPrefButton.clicked.connect(self.createCzjzekPrefWindow)
         self.optframe.addWidget(czjzekPrefButton, 0, 0)
-        self.optframe.setColumnStretch(21, 1)
-        self.optframe.setAlignment(QtCore.Qt.AlignTop)
         self.frame2.addWidget(wc.QLabel("Bgrnd:"), 0, 0, 1, 2)
         self.ticks['bgrnd'].append(QtWidgets.QCheckBox(''))
         self.ticks['bgrnd'][-1].setChecked(True)
@@ -2343,8 +2312,6 @@ class QuadCzjzekParamFrame(AbstractParamFrame):
         self.entries['method'][0].currentIndexChanged.connect(self.changeType)
         self.optframe.addWidget(self.entries['method'][0], 2, 0)
         self.frame2.addWidget(self.entries['bgrnd'][-1], 1, 1)
-        self.frame2.setColumnStretch(10, 1)
-        self.frame2.setAlignment(QtCore.Qt.AlignTop)
         self.numExp = QtWidgets.QComboBox()
         self.numExp.addItems([str(x + 1) for x in range(self.FITNUM)])
         self.numExp.currentIndexChanged.connect(self.changeNum)
@@ -2361,8 +2328,6 @@ class QuadCzjzekParamFrame(AbstractParamFrame):
         self.frame3.addWidget(wc.QLabel("Integral:"), 1, 10, 1, 2)
         self.frame3.addWidget(wc.QLabel("Lorentz [Hz]:"), 1, 12, 1, 2)
         self.frame3.addWidget(wc.QLabel("Gauss [Hz]:"), 1, 14, 1, 2)
-        self.frame3.setColumnStretch(20, 1)
-        self.frame3.setAlignment(QtCore.Qt.AlignTop)
         for i in range(self.FITNUM):
             for j in range(len(self.MULTINAMES)):
                 self.ticks[self.MULTINAMES[j]].append(QtWidgets.QCheckBox(''))
@@ -2482,18 +2447,13 @@ class ExternalFitDeconvParamFrame(AbstractParamFrame):
         outputButton.clicked.connect(self.txtOutputWindow)
         self.optframe.addWidget(outputButton, 1, 0)
         self.optframe.addWidget(wc.QLabel("Command:"), 2, 0)
-        self.optframe.setRowStretch(21, 1)
         self.commandLine = wc.QLineEdit("simpson")
         self.optframe.addWidget(self.commandLine, 3, 0)
         self.numExp = QtWidgets.QComboBox()
         self.numExp.addItems([str(x + 1) for x in range(self.FITNUM)])
         self.numExp.currentIndexChanged.connect(self.changeNum)
-        self.frame2.setColumnStretch(10, 1)
-        self.frame2.setAlignment(QtCore.Qt.AlignTop)
         self.frame3.addWidget(self.numExp, 0, 2, 1, 2)
         self.labels = {}
-        self.frame3.setColumnStretch(20, 1)
-        self.frame3.setAlignment(QtCore.Qt.AlignTop)
         self.reset()
 
     def txtOutputWindow(self):
@@ -2620,8 +2580,6 @@ class FunctionFitParamFrame(AbstractParamFrame):
         self.numExp.currentIndexChanged.connect(self.changeNum)
         self.frame3.addWidget(self.numExp, 0, 0, 1, 2)
         self.labels = {}
-        self.frame3.setColumnStretch(20, 1)
-        self.frame3.setAlignment(QtCore.Qt.AlignTop)
         self.reset()
 
     def functionInput(self):
@@ -2687,11 +2645,7 @@ class FunctionInputWindow(wc.ToolWindows):
 #################################################################################
 
 
-class FitContourFrame(CurrentContour):
-
-    MARKER = ''
-    LINESTYLE = '-'
-    FITNUM = 10  # Standard number of fits
+class FitContourFrame(CurrentContour, FitPlotFrame):
 
     def __init__(self, rootwindow, fig, canvas, current):
         self.data = current.data
@@ -2700,21 +2654,7 @@ class FitContourFrame(CurrentContour):
         self.fitDataList = np.full(tmp, None, dtype=object)
         self.fitPickNumList = np.zeros(tmp, dtype=int)
         self.rootwindow = rootwindow
-        super(FitContourFrame, self).__init__(rootwindow, fig, canvas, current.data, current)
-
-    def getRedLocList(self):
-        return tuple(np.delete(self.locList, self.axes))
-        
-    def setSlice(self, axes, locList):
-        self.rootwindow.paramframe.checkInputs()
-        self.pickWidth = False
-        super(FitContourFrame, self).setSlice(axes, locList)
-        self.rootwindow.paramframe.checkFitParamList(self.getRedLocList())
-        self.rootwindow.paramframe.dispParams()
-        self.rootwindow.paramframe.togglePick()
-
-    def getData1D(self):
-        return np.real(self.getDataType(self.data1D.getHyperData(0)))
+        CurrentContour.__init__(self, rootwindow, fig, canvas, current.data, current)
 
     def showFid(self):
         extraX = []
@@ -2758,7 +2698,6 @@ class MqmasDeconvFrame(FitContourFrame):
 class MqmasDeconvParamFrame(AbstractParamFrame):
 
     FFT_AXES = (0,1) # Which axes should be transformed after simulation
-    #FFTSHIFT_AXES = (0,) # Which axes should be transformed after simulation
     DIM = 2
     Ioptions = ['3/2', '5/2', '7/2', '9/2']
     Ivalues = [1.5, 2.5, 3.5, 4.5]
@@ -2812,8 +2751,6 @@ class MqmasDeconvParamFrame(AbstractParamFrame):
         autoButton = QtWidgets.QPushButton("&Auto")
         autoButton.clicked.connect(self.autoShearScale)
         self.optframe.addWidget(autoButton, 8, 1)
-        self.optframe.setColumnStretch(15, 1)
-        self.optframe.setAlignment(QtCore.Qt.AlignTop)
         self.spinLabel = wc.QLabel("Spin. speed [kHz]:")
         self.frame2.addWidget(self.spinLabel, 0, 0, 1, 2)
         self.ticks['spinspeed'].append(QtWidgets.QCheckBox(''))
@@ -2825,8 +2762,6 @@ class MqmasDeconvParamFrame(AbstractParamFrame):
         self.frame2.addWidget(self.ticks['bgrnd'][-1], 3, 0)
         self.entries['bgrnd'].append(wc.QLineEdit())
         self.frame2.addWidget(self.entries['bgrnd'][-1], 3, 1)
-        self.frame2.setColumnStretch(10, 1)
-        self.frame2.setAlignment(QtCore.Qt.AlignTop)
         self.numExp = QtWidgets.QComboBox()
         self.numExp.addItems([str(x + 1) for x in range(self.FITNUM)])
         self.numExp.currentIndexChanged.connect(self.changeNum)
@@ -2847,8 +2782,6 @@ class MqmasDeconvParamFrame(AbstractParamFrame):
         self.frame3.addWidget(wc.QLabel("Gauss 2 [Hz]:"), 1, 10, 1, 2)
         self.frame3.addWidget(wc.QLabel("Lorentz 1 [Hz]:"), 1, 12, 1, 2)
         self.frame3.addWidget(wc.QLabel("Gauss 1 [Hz]:"), 1, 14, 1, 2)
-        self.frame3.setColumnStretch(20, 1)
-        self.frame3.setAlignment(QtCore.Qt.AlignTop)
         for i in range(self.FITNUM):
             for j in range(len(self.MULTINAMES)):
                 self.ticks[self.MULTINAMES[j]].append(QtWidgets.QCheckBox(''))
@@ -2986,8 +2919,6 @@ class MqmasCzjzekParamFrame(AbstractParamFrame):
         autoButton = QtWidgets.QPushButton("&Auto")
         autoButton.clicked.connect(self.autoShearScale)
         self.optframe.addWidget(autoButton, 6, 1)
-        self.optframe.setColumnStretch(21, 1)
-        self.optframe.setAlignment(QtCore.Qt.AlignTop)
         self.frame2.addWidget(wc.QLabel("Bgrnd:"), 0, 0, 1, 2)
         self.ticks['bgrnd'].append(QtWidgets.QCheckBox(''))
         self.ticks['bgrnd'][-1].setChecked(True)
@@ -2999,8 +2930,6 @@ class MqmasCzjzekParamFrame(AbstractParamFrame):
         self.entries['method'][0].currentIndexChanged.connect(self.changeType)
         self.optframe.addWidget(self.entries['method'][0], 1, 0)
         self.frame2.addWidget(self.entries['bgrnd'][-1], 1, 1)
-        self.frame2.setColumnStretch(10, 1)
-        self.frame2.setAlignment(QtCore.Qt.AlignTop)
         self.numExp = QtWidgets.QComboBox()
         self.numExp.addItems([str(x + 1) for x in range(self.FITNUM)])
         self.numExp.currentIndexChanged.connect(self.changeNum)
@@ -3020,8 +2949,6 @@ class MqmasCzjzekParamFrame(AbstractParamFrame):
         self.frame3.addWidget(wc.QLabel("Gauss 2 [Hz]:"), 1, 16, 1, 2)
         self.frame3.addWidget(wc.QLabel("Lorentz 1 [Hz]:"), 1, 18, 1, 2)
         self.frame3.addWidget(wc.QLabel("Gauss 1 [Hz]:"), 1, 20, 1, 2)
-        self.frame3.setColumnStretch(30, 1)
-        self.frame3.setAlignment(QtCore.Qt.AlignTop)
         for i in range(self.FITNUM):
             for j in range(len(self.MULTINAMES)):
                 self.ticks[self.MULTINAMES[j]].append(QtWidgets.QCheckBox(''))

@@ -1474,7 +1474,7 @@ class CurrentContour(CurrentStacked):
     GRID_PLOT = True
     INVERT_Y = True
     ZERO_SCROLL_ALLOWED = False
-
+    
     def startUp(self, xReset=True, yReset=True):
         self.showFid()
         self.plotReset(xReset, yReset)
@@ -1489,7 +1489,6 @@ class CurrentContour(CurrentStacked):
         self.root.sideframe.minLEntry.setText(format(self.viewSettings["minLevels"] * 100, '.7g'))
         self.root.sideframe.maxLEntry.setText(str(self.viewSettings["maxLevels"] * 100))
         self.showFid()
-        #self.plotContour(updateOnly=True)
 
     def copyCurrent(self, root, fig, canvas, data):
         return CurrentContour(root, fig, canvas, data, self)
