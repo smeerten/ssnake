@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# -*- coding: utf8 -*-
+# -*- coding: utf-8 -*-
 
 # Copyright 2016 - 2018 Bas van Meerten and Wouter Franssen
 
@@ -442,9 +442,9 @@ class DetailWindow(QtWidgets.QWidget):
                 str(self.father.freqConst * atomProp['freqRatio'][i]))
             if sys.version_info < (3,):  # check version for possible unicode tricks
                 self.sampleLabels[i].setText(
-                    atomProp['refSample'][i].decode('utf8'))
+                    atomProp['refSample'][i].decode('utf-8'))
                 self.conditionLabels[i].setText(
-                    atomProp['sampleCondition'][i].decode('utf8'))
+                    atomProp['sampleCondition'][i].decode('utf-8'))
             else:
                 self.sampleLabels[i].setText(atomProp['refSample'][i])
                 self.conditionLabels[i].setText(atomProp['sampleCondition'][i])
