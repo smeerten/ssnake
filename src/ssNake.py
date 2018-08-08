@@ -694,7 +694,7 @@ class MainProgram(QtWidgets.QMainWindow):
         self.statesTPPIAct.setToolTip('States-TPPI Hypercomplex Data Processing')
         self.echoantiAct = self.hypercomplexMenu.addAction(QtGui.QIcon(IconDirectory + 'echoantiecho.png'), "Ec&ho-antiecho", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.echoAntiEcho()))
         self.echoantiAct.setToolTip('Ec&ho-antiecho Hypercomplex Data Processing')
-        self.fftActList = [self.fourierAct, self.realFourierAct, self.fftshiftAct,
+        self.transformActList = [self.fourierAct, self.realFourierAct, self.fftshiftAct,
                            self.invfftshiftAct, self.hilbertAct, self.ffmAct,
                            self.cleanAct, self.istAct,self.statesAct,self.statesTPPIAct,self.echoantiAct]
         # the fitting drop down menu
@@ -871,7 +871,7 @@ class MainProgram(QtWidgets.QMainWindow):
             self.fittingMenu.menuAction().setEnabled(False)
             self.combineMenu.menuAction().setEnabled(False)
             self.referencerunmenu.menuAction().setEnabled(False)
-            for act in self.saveActList + self.exportActList + self.workspaceActList + self.macroActList + self.editActList + self.toolsActList + self.matrixActList + self.fftActList + self.fittingActList + self.plotActList + self.combineActList + self.historyActList:
+            for act in self.saveActList + self.exportActList + self.workspaceActList + self.macroActList + self.editActList + self.toolsActList + self.matrixActList + self.transformActList + self.fittingActList + self.plotActList + self.combineActList + self.historyActList:
                 act.setEnabled(False)
         else:
             self.editmenu.menuAction().setEnabled(True)
@@ -881,7 +881,7 @@ class MainProgram(QtWidgets.QMainWindow):
             self.fittingMenu.menuAction().setEnabled(True)
             self.combineMenu.menuAction().setEnabled(True)
             self.referencerunmenu.menuAction().setEnabled(True)
-            for act in self.editActList + self.toolsActList + self.matrixActList + self.fftActList + self.fittingActList + self.plotActList + self.historyActList + self.combineActList:
+            for act in self.editActList + self.toolsActList + self.matrixActList + self.transformActList + self.fittingActList + self.plotActList + self.historyActList + self.combineActList:
                 act.setEnabled(True)
             if type(self.mainWindow) is Main1DWindow:
                 self.menuEnable(True)
@@ -957,7 +957,7 @@ class MainProgram(QtWidgets.QMainWindow):
         self.combineMenu.menuAction().setEnabled(enable)
         self.referencerunmenu.menuAction().setEnabled(enable)
         # Actions:
-        for act in self.macroActList + self.editActList + self.toolsActList + self.matrixActList + self.fftActList + self.fittingActList + self.plotActList + self.combineActList + self.historyActList:
+        for act in self.macroActList + self.editActList + self.toolsActList + self.matrixActList + self.transformActList + self.fittingActList + self.plotActList + self.combineActList + self.historyActList:
             act.setEnabled(enable)
         if not internalWindow:
             self.filemenu.menuAction().setEnabled(enable)
