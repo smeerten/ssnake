@@ -389,9 +389,6 @@ class MainProgram(QtWidgets.QMainWindow):
                                    ['Tools --> Subtract Averages', self.subAvgAct],
                                    ['Tools --> Reference Deconvolution', self.refDeconvAct],
                                    ['Tools --> Correct Bruker Digital Filter', self.brukDigitalAct],
-                                   ['Tools --> Hypercomplex --> States', self.statesAct],
-                                   ['Tools --> Hypercomplex --> TPPI', self.statesTPPIAct],
-                                   ['Tools --> Hypercomplex --> Echo-antiecho', self.echoantiAct],
                                    ['Tools --> Scale SW', self.scaleSWAct],
                                    #['Tools --> LPSVD', self.lpsvdAct],
                                    ['Matrix --> Sizing', self.sizingAct],
@@ -423,6 +420,9 @@ class MainProgram(QtWidgets.QMainWindow):
                                    ['Transforms --> NUS --> FFM', self.ffmAct],
                                    ['Transforms --> NUS --> CLEAN', self.cleanAct],
                                    ['Transforms --> NUS --> IST', self.istAct],
+                                   ['Transforms --> Hypercomplex --> States', self.statesAct],
+                                   ['Transforms --> Hypercomplex --> TPPI', self.statesTPPIAct],
+                                   ['Transforms --> Hypercomplex --> Echo-antiecho', self.echoantiAct],
                                    ['Fitting --> S/N', self.snrAct],
                                    ['Fitting --> FWHM', self.fwhmAct],
                                    ['Fitting --> Centre of Mass', self.massAct],
@@ -597,19 +597,17 @@ class MainProgram(QtWidgets.QMainWindow):
         #self.lpsvdAct.setToolTip('LPSVD linear prediction')
         self.scaleSWAct =  self.toolMenu.addAction(QtGui.QIcon(IconDirectory + 'ScaleSW.png'),"Scale SW", lambda: self.mainWindowCheck(lambda mainWindow: ScaleSWWindow(mainWindow)))
         self.scaleSWAct.setToolTip('Scale the Current Spectral Width')
-        self.hypercomplexMenu = QtWidgets.QMenu("Hypercomplex", self)
-        self.toolMenu.addMenu(self.hypercomplexMenu)
-        self.statesAct = self.hypercomplexMenu.addAction(QtGui.QIcon(IconDirectory + 'States.png'), "&States", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.states()))
-        self.statesAct.setToolTip('States Hypercomplex Data Processing')
-        self.statesTPPIAct = self.hypercomplexMenu.addAction(QtGui.QIcon(IconDirectory + 'statestppi.png'), "States-&TPPI", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.statesTPPI()))
-        self.statesTPPIAct.setToolTip('States-TPPI Hypercomplex Data Processing')
-        self.echoantiAct = self.hypercomplexMenu.addAction(QtGui.QIcon(IconDirectory + 'echoantiecho.png'), "Ec&ho-antiecho", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.echoAntiEcho()))
-        self.echoantiAct.setToolTip('Ec&ho-antiecho Hypercomplex Data Processing')
+        #==== tmp add as function has been moved. WF 08-08-2018
+        self.TMPhypercomplexMenu = QtWidgets.QMenu("Hypercomplex", self)
+        self.toolMenu.addMenu(self.TMPhypercomplexMenu)
+        self.TMPACT = self.TMPhypercomplexMenu.addAction("Moved to 'Transforms'", lambda x: max(x))
+        self.TMPACT.setEnabled(False)
+        #==========
+
         self.toolsActList = [self.realAct, self.imagAct, self.absAct,
                              self.apodizeAct, self.phaseAct, self.autoPhaseAct0,
                              self.autoPhaseAct1, self.swapEchoAct, self.corOffsetAct,
                              self.baselineAct, self.subAvgAct, self.refDeconvAct,
-                             self.statesAct, self.statesTPPIAct, self.echoantiAct,
                              self.brukDigitalAct, self.scaleSWAct]
         # the matrix drop down menu
         self.matrixMenu = QtWidgets.QMenu("M&atrix", self)
@@ -667,30 +665,38 @@ class MainProgram(QtWidgets.QMainWindow):
                               self.fliplrAct, self.matrixdelAct, self.splitAct,
                               self.multiplyAct, self.normalizeAct, self.reorderAct, self.regridAct,
                               self.concatAct, self.shearAct]
-        # the fft drop down menu
-        self.fftMenu = QtWidgets.QMenu("T&ransforms", self)
-        self.menubar.addMenu(self.fftMenu)
-        self.fourierAct = self.fftMenu.addAction(QtGui.QIcon(IconDirectory + 'fourier.png'), "&Fourier Transform", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.fourier()), QtCore.Qt.CTRL + QtCore.Qt.Key_F)
+        # the Transforms drop down menu
+        self.transformsMenu = QtWidgets.QMenu("T&ransforms", self)
+        self.menubar.addMenu(self.transformsMenu)
+        self.fourierAct = self.transformsMenu.addAction(QtGui.QIcon(IconDirectory + 'fourier.png'), "&Fourier Transform", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.fourier()), QtCore.Qt.CTRL + QtCore.Qt.Key_F)
         self.fourierAct.setToolTip('Fourier Transform')
-        self.realFourierAct = self.fftMenu.addAction(QtGui.QIcon(IconDirectory + 'realfourier.png'), "&Real Fourier Transform", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.realFourier()))
+        self.realFourierAct = self.transformsMenu.addAction(QtGui.QIcon(IconDirectory + 'realfourier.png'), "&Real Fourier Transform", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.realFourier()))
         self.realFourierAct.setToolTip('Real Fourier Transform')
-        self.fftshiftAct = self.fftMenu.addAction(QtGui.QIcon(IconDirectory + 'fftshift.png'), "Fft&shift", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.fftshift()))
+        self.fftshiftAct = self.transformsMenu.addAction(QtGui.QIcon(IconDirectory + 'fftshift.png'), "Fft&shift", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.fftshift()))
         self.fftshiftAct.setToolTip('Fftshift')
-        self.invfftshiftAct = self.fftMenu.addAction(QtGui.QIcon(IconDirectory + 'ifftshift.png'), "&Inv fftshift", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.invFftshift()))
+        self.invfftshiftAct = self.transformsMenu.addAction(QtGui.QIcon(IconDirectory + 'ifftshift.png'), "&Inv fftshift", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.invFftshift()))
         self.invfftshiftAct.setToolTip('Inverse fftshift')
-        self.hilbertAct = self.fftMenu.addAction(QtGui.QIcon(IconDirectory + 'hilbert.png'), "&Hilbert Transform", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.hilbert()))
+        self.hilbertAct = self.transformsMenu.addAction(QtGui.QIcon(IconDirectory + 'hilbert.png'), "&Hilbert Transform", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.hilbert()))
         self.hilbertAct.setToolTip('Hilbert Transform')
         self.nusMenu = QtWidgets.QMenu("&NUS", self)
-        self.fftMenu.addMenu(self.nusMenu)
+        self.transformsMenu.addMenu(self.nusMenu)
         self.ffmAct = self.nusMenu.addAction(QtGui.QIcon(IconDirectory + 'ffm.png'), "&FFM", lambda: self.mainWindowCheck(lambda mainWindow: FFMWindow(mainWindow)))
         self.ffmAct.setToolTip('FFM')
         self.cleanAct = self.nusMenu.addAction(QtGui.QIcon(IconDirectory + 'clean.png'), "&CLEAN", lambda: self.mainWindowCheck(lambda mainWindow: CLEANWindow(mainWindow)))
         self.cleanAct.setToolTip('CLEAN')
         self.istAct = self.nusMenu.addAction(QtGui.QIcon(IconDirectory + 'ist.png'), "&IST", lambda: self.mainWindowCheck(lambda mainWindow: ISTWindow(mainWindow)))
         self.istAct.setToolTip('IST')
+        self.hypercomplexMenu = QtWidgets.QMenu("Hypercomplex", self)
+        self.transformsMenu.addMenu(self.hypercomplexMenu)
+        self.statesAct = self.hypercomplexMenu.addAction(QtGui.QIcon(IconDirectory + 'States.png'), "&States", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.states()))
+        self.statesAct.setToolTip('States Hypercomplex Data Processing')
+        self.statesTPPIAct = self.hypercomplexMenu.addAction(QtGui.QIcon(IconDirectory + 'statestppi.png'), "States-&TPPI", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.statesTPPI()))
+        self.statesTPPIAct.setToolTip('States-TPPI Hypercomplex Data Processing')
+        self.echoantiAct = self.hypercomplexMenu.addAction(QtGui.QIcon(IconDirectory + 'echoantiecho.png'), "Ec&ho-antiecho", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.echoAntiEcho()))
+        self.echoantiAct.setToolTip('Ec&ho-antiecho Hypercomplex Data Processing')
         self.fftActList = [self.fourierAct, self.realFourierAct, self.fftshiftAct,
                            self.invfftshiftAct, self.hilbertAct, self.ffmAct,
-                           self.cleanAct, self.istAct]
+                           self.cleanAct, self.istAct,self.statesAct,self.statesTPPIAct,self.echoantiAct]
         # the fitting drop down menu
         self.fittingMenu = QtWidgets.QMenu("F&itting", self)
         self.menubar.addMenu(self.fittingMenu)
@@ -861,7 +867,7 @@ class MainProgram(QtWidgets.QMainWindow):
             self.editmenu.menuAction().setEnabled(False)
             self.toolMenu.menuAction().setEnabled(False)
             self.matrixMenu.menuAction().setEnabled(False)
-            self.fftMenu.menuAction().setEnabled(False)
+            self.transformsMenu.menuAction().setEnabled(False)
             self.fittingMenu.menuAction().setEnabled(False)
             self.combineMenu.menuAction().setEnabled(False)
             self.referencerunmenu.menuAction().setEnabled(False)
@@ -871,7 +877,7 @@ class MainProgram(QtWidgets.QMainWindow):
             self.editmenu.menuAction().setEnabled(True)
             self.toolMenu.menuAction().setEnabled(True)
             self.matrixMenu.menuAction().setEnabled(True)
-            self.fftMenu.menuAction().setEnabled(True)
+            self.transformsMenu.menuAction().setEnabled(True)
             self.fittingMenu.menuAction().setEnabled(True)
             self.combineMenu.menuAction().setEnabled(True)
             self.referencerunmenu.menuAction().setEnabled(True)
@@ -946,7 +952,7 @@ class MainProgram(QtWidgets.QMainWindow):
         self.editmenu.menuAction().setEnabled(enable)
         self.toolMenu.menuAction().setEnabled(enable)
         self.matrixMenu.menuAction().setEnabled(enable)
-        self.fftMenu.menuAction().setEnabled(enable)
+        self.transformsMenu.menuAction().setEnabled(enable)
         self.fittingMenu.menuAction().setEnabled(enable)
         self.combineMenu.menuAction().setEnabled(enable)
         self.referencerunmenu.menuAction().setEnabled(enable)
