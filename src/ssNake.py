@@ -5569,7 +5569,7 @@ class NormalizeWindow(wc.ToolWindows):
             maximum = dataLength
         self.maxEntry.setText(str(maximum))
         try:
-            scale = float(safeEval(self.valEntry.text()), type = 'FI')
+            scale = safeEval(self.valEntry.text(), type = 'FI')
         except Exception:
             raise SsnakeException("Normalize: invalid multiplier")
         type = self.typeDrop.currentIndex()
