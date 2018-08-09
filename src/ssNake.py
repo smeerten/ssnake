@@ -2398,7 +2398,7 @@ class SideFrame(QtWidgets.QScrollArea):
         self.spacingEntry.setText('%#.3g' % var)
 
     def setSpacing(self, *args):
-        var = float(safeEval(self.spacingEntry.text()), type = 'FI')
+        var = safeEval(self.spacingEntry.text(), type = 'FI')
         self.spacingEntry.setText('%#.3g' % var)
         self.father.current.setSpacing(var)
 
