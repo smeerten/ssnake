@@ -85,7 +85,7 @@ class TabFittingWindow(QtWidgets.QWidget):
         self.current = self.mainFitWindow.current
         self.tabs.setTabsClosable(True)
         self.tabs.tabCloseRequested.connect(self.closeTab)
-        self.tabs.addTab(self.mainFitWindow, 'Spectrum')
+        self.tabs.addTab(self.mainFitWindow, self.current.data.name)
         self.tabs.addTab(QtWidgets.QWidget(), '+Add data+')
         self.tabs.tabBar().setTabButton(0, QtWidgets.QTabBar.RightSide, QtWidgets.QLabel(''));
         self.tabs.tabBar().setTabButton(1, QtWidgets.QTabBar.RightSide, QtWidgets.QLabel(''));

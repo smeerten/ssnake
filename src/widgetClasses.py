@@ -320,7 +320,7 @@ class ConnectParamsWindow(QtWidgets.QWidget):
         self.paramNameEntry.addItems(self.paramTextList)
         self.paramNameEntry.setCurrentIndex(self.paramTextList.index(self.paramText))
         self.grid.addWidget(self.paramNameEntry, 0, 1)
-        self.grid.addWidget(QtWidgets.QLabel("Spectrum:"), 1, 0)
+        self.grid.addWidget(QtWidgets.QLabel("Data:"), 1, 0)
         self.spectrumNameEntry = QtWidgets.QComboBox()
         self.spectrumNameEntry.addItems(self.spectrumNames)
         self.spectrumNameEntry.setCurrentIndex(self.currentSpectrum)
