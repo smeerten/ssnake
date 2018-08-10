@@ -6995,12 +6995,14 @@ if __name__ == '__main__':
     error, messages = checkVersions()
     quit = False
     if error:
+        splash.close()
         quit = popupVersionError(messages)
     if not quit:
         mainProgram = MainProgram(root)
         mainProgram.setWindowTitle("ssNake - " + VERSION)
         mainProgram.show()
-        splash.finish(mainProgram)
+        if not error:
+            splash.finish(mainProgram)
         sys._excepthook = sys.excepthook
 
         def exception_hook(exctype, value, traceback):
