@@ -172,7 +172,7 @@ def functionRun(x, freq, sw, axMult, extra, *parameters):
     names, function = extra
     x = x[-1]
     for i, elem in enumerate(names):
-        function = function.replace('@' + elem, str(parameters[i]))
+        function = function.replace('@' + elem + '@', str(parameters[i]))
     return safeEval(function, length=len(x), x=x)
 
 def externalFitRunScript(x, freq, sw, axMult, extra, bgrnd, *parameters):
@@ -182,9 +182,9 @@ def externalFitRunScript(x, freq, sw, axMult, extra, bgrnd, *parameters):
     if script is None:
         return None
     for i, elem in enumerate(names):
-        script = script.replace('@' + elem, str(parameters[i]))
+        script = script.replace('@' + elem + '@', str(parameters[i]))
     directory_name = tempfile.mkdtemp()
-    inputFileName = "simpsonScript.in"
+    inputFileName = "script.in"
     fullPath = os.path.join(directory_name, inputFileName)
     with open(fullPath, "w") as text_file:
         text_file.write(script)

@@ -2468,10 +2468,10 @@ class ExternalFitDeconvParamFrame(AbstractParamFrame):
                 inFile = myfile.read()
         except Exception:
             raise FittingException("Fitting: No valid script found")
-        matches = np.unique(re.findall("(@\w+)", inFile))
+        matches = np.unique(re.findall("(@\w+@)", inFile))
         self.script = inFile
         self.SINGLENAMES = ["bgrnd"]
-        self.MULTINAMES = [e[1:] for e in matches]
+        self.MULTINAMES = [e[1:-1] for e in matches]
         self.MULTINAMES.extend(["amp", "lor", "gauss"])
         for n in self.PARAMTEXT.keys():
             self.labels[n][0].deleteLater()
@@ -2586,8 +2586,8 @@ class FunctionFitParamFrame(AbstractParamFrame):
         FunctionInputWindow(self, self.function)
 
     def functionInputSetup(self):
-        matches = np.unique(re.findall("(@\w+)", self.function))
-        self.MULTINAMES = [e[1:] for e in matches]
+        matches = np.unique(re.findall("(@\w+@)", self.function))
+        self.MULTINAMES = [e[1:-1] for e in matches]
         for n in self.PARAMTEXT.keys():
             self.labels[n][0].deleteLater()
             for i in range(self.FITNUM):
