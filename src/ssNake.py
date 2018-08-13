@@ -66,6 +66,7 @@ importList = [['matplotlib.figure', 'Figure', 'Figure'],
               ['traceback', 'tb', None],
               ['numpy', 'np', None],
               ['copy', 'copy', None],
+              ['multiprocessing','multiprocessing',None],
               ['datetime', 'datetime', None],
               ['webbrowser', 'webbrowser', None],
               ['spectrum', 'sc', None],
@@ -6992,6 +6993,7 @@ def popupVersionError(messages):
     return quit
 
 if __name__ == '__main__':
+    multiprocessing.freeze_support() #Fix multiprocessing for pyinstaller on windows (line does nothing otherwise)
     error, messages = checkVersions()
     quit = False
     if error:
