@@ -2147,8 +2147,8 @@ class CzjzekPrefWindow(QtWidgets.QWidget):
         etamin = safeEval(self.etamin.text(), type='FI')
         cq, eta = np.meshgrid(np.linspace(cqmin, cqmax, cqsteps), np.linspace(etamin, etamax, etasteps))
         method = self.father.entries['method'][0].currentIndex()
+        d = self.father.entries['d'][0].currentIndex() + 1
         site = self.site.value() - 1
-        d = safeEval(self.father.entries['d'][site].text(), type='FI')
         sigma = safeEval(self.father.entries['sigma'][site].text(), type='FI')
         cq0 = safeEval(self.father.entries['cq0'][site].text(), type='FI')
         eta0 = safeEval(self.father.entries['eta0'][site].text(), type='FI')
@@ -2285,49 +2285,51 @@ class QuadCzjzekParamFrame(AbstractParamFrame):
 
     FFT_AXES = (0,)
     SINGLENAMES = ['bgrnd']
-    MULTINAMES = ['d', 'pos', 'sigma', 'cq0', 'eta0', 'amp', 'lor', 'gauss']
-    EXTRANAMES = ['method']
-    PARAMTEXT = {'bgrnd': 'Background', 'd': 'd parameter', 'pos': 'Position', 'sigma': 'Sigma', 'cq0': 'Cq0', 'eta0': 'Eta0', 'amp': 'Integral', 'lor': 'Lorentz', 'gauss': 'Gauss'}
+    MULTINAMES = ['pos', 'sigma', 'cq0', 'eta0', 'amp', 'lor', 'gauss']
+    EXTRANAMES = ['method', 'd']
+    PARAMTEXT = {'bgrnd': 'Background', 'pos': 'Position', 'sigma': 'Sigma', 'cq0': 'Cq0', 'eta0': 'Eta0', 'amp': 'Integral', 'lor': 'Lorentz', 'gauss': 'Gauss'}
 
     def __init__(self, parent, rootwindow, isMain=True):
         self.FITFUNC = simFunc.quadCzjzekFunc
         self.fullInt = np.sum(parent.getData1D()) * parent.sw() / float(len(parent.getData1D()))
-        self.DEFAULTS = {'bgrnd': [0.0, True], 'pos': [0.0, False], 'd': [5.0, True], 'sigma': [1.0, False], 'cq0': [0.0, True], 'eta0': [0.0, True], 'amp': [self.fullInt, False], 'lor': [10.0, False], 'gauss': [0.0, True]}
-        self.extraDefaults = {'method': 0, 'cqsteps': 50, 'etasteps': 10, 'cqmax': 4.0, 'cqmin': 0.0, 'etamin': 0, 'etamax': 1,
+        self.DEFAULTS = {'bgrnd': [0.0, True], 'pos': [0.0, False], 'sigma': [1.0, False], 'cq0': [0.0, True], 'eta0': [0.0, True], 'amp': [self.fullInt, False], 'lor': [10.0, False], 'gauss': [0.0, True]}
+        self.extraDefaults = {'method': 0, 'd': 5, 'cqsteps': 50, 'etasteps': 10, 'cqmax': 4.0, 'cqmin': 0.0, 'etamin': 0, 'etamax': 1,
                 'lib': None, 'cqLib': None, 'etaLib': None, 'I': 3 / 2.0, 'cheng': 15, 'mas': 2, 'spinspeed': 10.0,
                 'angle': "arctan(sqrt(2))", 'numssb': 32, 'satBool': False}
         super(QuadCzjzekParamFrame, self).__init__(parent, rootwindow, isMain)
-
         czjzekPrefButton = QtWidgets.QPushButton("Library")
         czjzekPrefButton.clicked.connect(self.createCzjzekPrefWindow)
-        self.optframe.addWidget(czjzekPrefButton, 0, 0)
+        self.optframe.addWidget(czjzekPrefButton, 4, 0)
         self.frame2.addWidget(wc.QLabel("Bgrnd:"), 0, 0, 1, 2)
         self.ticks['bgrnd'].append(QtWidgets.QCheckBox(''))
         self.ticks['bgrnd'][-1].setChecked(True)
         self.frame2.addWidget(self.ticks['bgrnd'][-1], 1, 0)
         self.entries['bgrnd'].append(wc.FitQLineEdit(self, 'bgrnd', "0.0"))
+        self.optframe.addWidget(wc.QLabel("Type:"), 0, 0)
         self.entries['method'].append(QtWidgets.QComboBox())
-        self.optframe.addWidget(wc.QLabel("Type:"), 1, 0)
         self.entries['method'][0].addItems(['Normal', 'Extended'])
         self.entries['method'][0].currentIndexChanged.connect(self.changeType)
-        self.optframe.addWidget(self.entries['method'][0], 2, 0)
+        self.optframe.addWidget(self.entries['method'][0], 1, 0)
+        self.optframe.addWidget(wc.QLabel("d:"), 2, 0)
+        self.entries['d'].append(QtWidgets.QComboBox())
+        self.entries['d'][0].addItems(['1', '2','3','4','5'])
+        self.optframe.addWidget(self.entries['d'][0], 3, 0)
         self.frame2.addWidget(self.entries['bgrnd'][-1], 1, 1)
         self.numExp = QtWidgets.QComboBox()
         self.numExp.addItems([str(x + 1) for x in range(self.FITNUM)])
         self.numExp.currentIndexChanged.connect(self.changeNum)
         self.frame3.addWidget(self.numExp, 0, 0, 1, 2)
-        self.frame3.addWidget(wc.QLabel("d:"), 1, 0, 1, 2)
         if self.parent.viewSettings["ppm"]:
             axUnit = 'ppm'
         else:
             axUnit = ['Hz', 'kHz', 'MHz'][self.parent.getAxType()]
-        self.frame3.addWidget(wc.QLabel("Pos [" + axUnit + "]:"), 1, 2, 1, 2)
-        self.frame3.addWidget(wc.QLabel(u"σ [MHz]:"), 1, 4, 1, 2)
-        self.frame3.addWidget(wc.QLabel(u"C<sub>Q</sub>0 [MHz]:"), 1, 6, 1, 2)
-        self.frame3.addWidget(wc.QLabel(u"η0:"), 1, 8, 1, 2)
-        self.frame3.addWidget(wc.QLabel("Integral:"), 1, 10, 1, 2)
-        self.frame3.addWidget(wc.QLabel("Lorentz [Hz]:"), 1, 12, 1, 2)
-        self.frame3.addWidget(wc.QLabel("Gauss [Hz]:"), 1, 14, 1, 2)
+        self.frame3.addWidget(wc.QLabel("Pos [" + axUnit + "]:"), 1, 0, 1, 2)
+        self.frame3.addWidget(wc.QLabel(u"σ [MHz]:"), 1, 2, 1, 2)
+        self.frame3.addWidget(wc.QLabel(u"C<sub>Q</sub>0 [MHz]:"), 1, 4, 1, 2)
+        self.frame3.addWidget(wc.QLabel(u"η0:"), 1, 6, 1, 2)
+        self.frame3.addWidget(wc.QLabel("Integral:"), 1, 8, 1, 2)
+        self.frame3.addWidget(wc.QLabel("Lorentz [Hz]:"), 1, 10, 1, 2)
+        self.frame3.addWidget(wc.QLabel("Gauss [Hz]:"), 1, 12, 1, 2)
         for i in range(self.FITNUM):
             for j in range(len(self.MULTINAMES)):
                 self.ticks[self.MULTINAMES[j]].append(QtWidgets.QCheckBox(''))
@@ -2335,7 +2337,6 @@ class QuadCzjzekParamFrame(AbstractParamFrame):
                 self.entries[self.MULTINAMES[j]].append(wc.FitQLineEdit(self, self.MULTINAMES[j]))
                 self.frame3.addWidget(self.entries[self.MULTINAMES[j]][i], i + 2, 2 * j + 1)
         self.reset()
-
 
     def reset(self):
         self.cqsteps = self.extraDefaults['cqsteps']
@@ -2354,6 +2355,7 @@ class QuadCzjzekParamFrame(AbstractParamFrame):
         self.angle = self.extraDefaults['angle']
         self.numssb = self.extraDefaults['numssb']
         self.satBool = self.extraDefaults['satBool']
+        self.entries['d'][0].setCurrentIndex(self.extraDefaults['d'] - 1)
         self.entries['method'][0].setCurrentIndex(self.extraDefaults['method'])
         self.changeType(self.extraDefaults['method'])
         super(QuadCzjzekParamFrame, self).reset()
@@ -2394,8 +2396,9 @@ class QuadCzjzekParamFrame(AbstractParamFrame):
     def getExtraParams(self, out):
         if self.lib is None:
             raise FittingException("No library available")
-        method = [self.entries['method'][0].currentIndex()]
-        out['extra'] = [method, self.lib, self.cqLib, self.etaLib]
+        method = self.entries['method'][0].currentIndex()
+        d = self.entries['d'][0].currentIndex() + 1
+        out['extra'] = [method, d, self.lib, self.cqLib, self.etaLib]
         return (out, out['extra'])
 
     def checkResults(self,numExp,struc):
@@ -2891,21 +2894,20 @@ class MqmasCzjzekParamFrame(AbstractParamFrame):
     Ivalues = [1.5, 2.5, 3.5, 4.5]
     MQvalues = [3, 5, 7, 9]
     SINGLENAMES = ['bgrnd']
-    MULTINAMES = ['d', 'pos', 'sigma', 'sigmaCS', 'cq0', 'eta0', 'amp', 'lor2', 'gauss2', 'lor1', 'gauss1']
-    EXTRANAMES = ['method', 'MQ', 'shear', 'scale']
-    PARAMTEXT = {'bgrnd': 'Background', 'd': 'd parameter', 'pos': 'Position', 'sigma': 'Sigma', 'sigmaCS': 'Sigma CS', 'cq0': 'Cq0', 'eta0': 'Eta0', 'amp': 'Integral', 'lor': 'Lorentz', 'gauss': 'Gauss'}
+    MULTINAMES = ['pos', 'sigma', 'sigmaCS', 'cq0', 'eta0', 'amp', 'lor2', 'gauss2', 'lor1', 'gauss1']
+    EXTRANAMES = ['method', 'd', 'MQ', 'shear', 'scale']
+    PARAMTEXT = {'bgrnd': 'Background', 'pos': 'Position', 'sigma': 'Sigma', 'sigmaCS': 'Sigma CS', 'cq0': 'Cq0', 'eta0': 'Eta0', 'amp': 'Integral', 'lor': 'Lorentz', 'gauss': 'Gauss'}
 
     def __init__(self, parent, rootwindow, isMain=True):
         self.FITFUNC = simFunc.mqmasCzjzekFunc
-
         self.fullInt = np.sum(parent.getData1D()) * parent.sw() / float(parent.getData1D().shape[-1]) * parent.sw(-2) / float(parent.getData1D().shape[-2])
-        self.DEFAULTS = {'bgrnd': [0.0, True], 'pos': [0.0, False], 'd': [5.0, True], 'sigma': [1.0, False], 'sigmaCS': [10.0, False], 'cq0': [0.0, True], 'eta0': [0.0, True], 'amp': [self.fullInt, False], 'lor2': [10.0, False], 'gauss2': [0.0, True], 'lor1': [10.0, False], 'gauss1': [0.0, True]}
-        self.extraDefaults = {'mas': 2, 'method': 0, 'cheng': 15, 'I': 3/2.0, 'MQ': 0, 'shear': '0.0', 'scale': '1.0',
+        self.DEFAULTS = {'bgrnd': [0.0, True], 'pos': [0.0, False], 'sigma': [1.0, False], 'sigmaCS': [10.0, False], 'cq0': [0.0, True], 'eta0': [0.0, True], 'amp': [self.fullInt, False], 'lor2': [10.0, False], 'gauss2': [0.0, True], 'lor1': [10.0, False], 'gauss1': [0.0, True]}
+        self.extraDefaults = {'mas': 2, 'method': 0, 'd': 5, 'cheng': 15, 'I': 3/2.0, 'MQ': 0, 'shear': '0.0', 'scale': '1.0',
                 'cqsteps': 50, 'etasteps': 10, 'cqmax': 4, 'cqmin': 0, 'etamax': 1, 'etamin': 0, 'lib': None, 'cqLib': None, 'etaLib': None}
         super(MqmasCzjzekParamFrame, self).__init__(parent, rootwindow, isMain)
         czjzekPrefButton = QtWidgets.QPushButton("Library")
         czjzekPrefButton.clicked.connect(self.createCzjzekPrefWindow)
-        self.optframe.addWidget(czjzekPrefButton, 3, 0)
+        self.optframe.addWidget(czjzekPrefButton, 4, 0)
         self.optframe.addWidget(wc.QLabel("MQ:"), 0, 1)
         self.entries['MQ'].append(QtWidgets.QComboBox())
         self.entries['MQ'][-1].addItems([str(i) for i in self.MQvalues])
@@ -2924,31 +2926,34 @@ class MqmasCzjzekParamFrame(AbstractParamFrame):
         self.ticks['bgrnd'][-1].setChecked(True)
         self.frame2.addWidget(self.ticks['bgrnd'][-1], 1, 0)
         self.entries['bgrnd'].append(wc.FitQLineEdit(self, 'bgrnd', ""))
-        self.entries['method'].append(QtWidgets.QComboBox())
         self.optframe.addWidget(wc.QLabel("Type:"), 0, 0)
+        self.entries['method'].append(QtWidgets.QComboBox())
         self.entries['method'][0].addItems(['Normal', 'Extended'])
         self.entries['method'][0].currentIndexChanged.connect(self.changeType)
         self.optframe.addWidget(self.entries['method'][0], 1, 0)
+        self.optframe.addWidget(wc.QLabel("d:"), 2, 0)
+        self.entries['d'].append(QtWidgets.QComboBox())
+        self.entries['d'][0].addItems(['1', '2', '3', '4', '5'])
+        self.optframe.addWidget(self.entries['d'][0], 3, 0)
         self.frame2.addWidget(self.entries['bgrnd'][-1], 1, 1)
         self.numExp = QtWidgets.QComboBox()
         self.numExp.addItems([str(x + 1) for x in range(self.FITNUM)])
         self.numExp.currentIndexChanged.connect(self.changeNum)
         self.frame3.addWidget(self.numExp, 0, 0, 1, 2)
-        self.frame3.addWidget(wc.QLabel("d:"), 1, 0, 1, 2)
         if self.parent.viewSettings["ppm"][-1]:
             axUnit = 'ppm'
         else:
             axUnit = ['Hz', 'kHz', 'MHz'][self.parent.getAxType()]
-        self.frame3.addWidget(wc.QLabel("Pos [" + axUnit + "]:"), 1, 2, 1, 2)
-        self.frame3.addWidget(wc.QLabel(u"σ [MHz]:"), 1, 4, 1, 2)
-        self.frame3.addWidget(wc.QLabel(u"σCS [Hz]:"), 1, 6, 1, 2)
-        self.frame3.addWidget(wc.QLabel(u"C<sub>Q</sub>0 [MHz]:"), 1, 8, 1, 2)
-        self.frame3.addWidget(wc.QLabel(u"η0:"), 1, 10, 1, 2)
-        self.frame3.addWidget(wc.QLabel("Integral:"), 1, 12, 1, 2)
-        self.frame3.addWidget(wc.QLabel("Lorentz 2 [Hz]:"), 1, 14, 1, 2)
-        self.frame3.addWidget(wc.QLabel("Gauss 2 [Hz]:"), 1, 16, 1, 2)
-        self.frame3.addWidget(wc.QLabel("Lorentz 1 [Hz]:"), 1, 18, 1, 2)
-        self.frame3.addWidget(wc.QLabel("Gauss 1 [Hz]:"), 1, 20, 1, 2)
+        self.frame3.addWidget(wc.QLabel("Pos [" + axUnit + "]:"), 1, 0, 1, 2)
+        self.frame3.addWidget(wc.QLabel(u"σ [MHz]:"), 1, 2, 1, 2)
+        self.frame3.addWidget(wc.QLabel(u"σCS [Hz]:"), 1, 4, 1, 2)
+        self.frame3.addWidget(wc.QLabel(u"C<sub>Q</sub>0 [MHz]:"), 1, 6, 1, 2)
+        self.frame3.addWidget(wc.QLabel(u"η0:"), 1, 8, 1, 2)
+        self.frame3.addWidget(wc.QLabel("Integral:"), 1, 10, 1, 2)
+        self.frame3.addWidget(wc.QLabel("Lorentz 2 [Hz]:"), 1, 12, 1, 2)
+        self.frame3.addWidget(wc.QLabel("Gauss 2 [Hz]:"), 1, 14, 1, 2)
+        self.frame3.addWidget(wc.QLabel("Lorentz 1 [Hz]:"), 1, 16, 1, 2)
+        self.frame3.addWidget(wc.QLabel("Gauss 1 [Hz]:"), 1, 18, 1, 2)
         for i in range(self.FITNUM):
             for j in range(len(self.MULTINAMES)):
                 self.ticks[self.MULTINAMES[j]].append(QtWidgets.QCheckBox(''))
@@ -2974,6 +2979,7 @@ class MqmasCzjzekParamFrame(AbstractParamFrame):
         self.entries['shear'][-1].setText(self.extraDefaults['shear'])
         self.entries['scale'][-1].setText(self.extraDefaults['scale'])
         self.entries['method'][-1].setCurrentIndex(self.extraDefaults['method'])
+        self.entries['d'][-1].setCurrentIndex(self.extraDefaults['d'] - 1)
         self.changeType(self.extraDefaults['method'])
         super(MqmasCzjzekParamFrame, self).reset()
 
@@ -3026,7 +3032,8 @@ class MqmasCzjzekParamFrame(AbstractParamFrame):
         scale = safeEval(self.entries['scale'][-1].text())
         I = self.I
         method = self.entries['method'][0].currentIndex()
-        out['extra'] = [I, MQ, self.cqLib, self.etaLib, self.lib, shear, scale, method]
+        d = self.entries['d'][0].currentIndex() + 1
+        out['extra'] = [I, MQ, self.cqLib, self.etaLib, self.lib, shear, scale, method, d]
         return (out, out['extra'])
 
     def checkResults(self,numExp,struc):

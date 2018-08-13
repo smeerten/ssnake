@@ -379,11 +379,11 @@ def quadFreq(I, m1, m2, spinspeed, numssb, angle, D2, D4, weight, freq, pos, cq,
         v = v + vConstant[:,np.newaxis]
     return v, tot
 
-def quadCzjzekFunc(x, freq, sw, axMult, extra, bgrnd, d, pos, sigma, cq0, eta0, amp, lor, gauss):
+def quadCzjzekFunc(x, freq, sw, axMult, extra, bgrnd, pos, sigma, cq0, eta0, amp, lor, gauss):
     x = x[-1]
     freq = freq[-1]
     sw = sw[-1]
-    method, lib, cq, eta = extra
+    method, d, lib, cq, eta = extra
     if method == 0:
         cq0 = 0
         eta0 = 0
@@ -423,8 +423,8 @@ def genLib(length, minCq, maxCq, minEta, maxEta, numCq, numEta, extra, freq, sw,
         lib[i] = quadFunc([x], [freq], [sw], 1.0, extra, 0.0, spinspeed, 0.0, cqi, etai, 1.0, 0.0, 0.0)
     return lib, cq*1e6, eta
 
-def mqmasCzjzekFunc(x, freq, sw, axMult, extra, bgrnd, d, pos, sigma, sigmaCS, cq0, eta0, amp, lor2, gauss2, lor1, gauss1):
-    I, mq, cq, eta, lib, shear, scale, method = extra
+def mqmasCzjzekFunc(x, freq, sw, axMult, extra, bgrnd, pos, sigma, sigmaCS, cq0, eta0, amp, lor2, gauss2, lor1, gauss1):
+    I, mq, cq, eta, lib, shear, scale, method, d = extra
     if method == 1:
         cq0 *= 1e6
     else:
