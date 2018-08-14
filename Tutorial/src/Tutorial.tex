@@ -104,7 +104,9 @@ ssNake (pronounce `snake') is a versatile tool for processing and analysing NMR 
 
 \section{Installing ssNake}
 
-The ssNake program consists of a number of python scripts. To be able to run the program you must first install python, and some extra modules for python (mainly Numpy, Scipy and Matplotlib). A short description on how to do this can be found below for several different operating systems.
+The ssNake program consists of a number of python scripts. To be able to run the program you must
+first install python, and some extra modules for python (mainly Numpy, Scipy and Matplotlib). A
+short description on how to do this can be found below for several different operating systems.
 
 \subsection{Installing on Windows}
 For Windows there are several python distributions around, some of these have all the necessary stuff to run ssNake. Of these, we recommend Anaconda. You can install it in the following way:
@@ -114,10 +116,12 @@ For Windows there are several python distributions around, some of these have al
 \item Install Anaconda. During the install, tick the box which says `add Anaconda to PATH'
 \item Reboot your pc or logout/login.
 \end{itemize}
-Now you have python installed. To install ssNake, copy the ssNake directory to your favourite location (C:\textbackslash{}Program Files\textbackslash{}, for example). 
-ssNake can then be started by double clicking on the `WindowsRun.bat' file. Alternatively, you can idouble click the `WindowsInstall.vbs' file from within the ssNake
-directory. This .vbs script creates shortcuts on your desktop and in the startmenu, which you can use to run ssNake. Note that when running
-ssNake for the first time it might take some time to start (some files need to be compiled).
+Now you have python installed. To install ssNake, copy the ssNake directory to your favourite
+location (C:\textbackslash{}Program Files\textbackslash{}, for example).  ssNake can then be started
+by double clicking on the `WindowsRun.bat' file. Alternatively, you can idouble click the
+`WindowsInstall.vbs' file from within the ssNake directory. This .vbs script creates shortcuts on
+your desktop and in the startmenu, which you can use to run ssNake. Note that when running ssNake
+for the first time it might take some time to start (some files need to be compiled).
 
 \subsection{Installing on Linux}
 Installing ssNake on Linux requires installing the required packages. How to do this depends on the Linux distribution you are using. On Ubuntu, you should do the following:
@@ -126,7 +130,8 @@ Installing ssNake on Linux requires installing the required packages. How to do 
 \item Copy the following command : `sudo apt-get install python python-numpy python-matplotlib python-scipy python-qt4 python-h5py'
 \item Follow the instructions
 \end{itemize}
-This should install the packages. ssNake can then be run by navigating to the ssNake directory in a terminal and running `python ssNake.py' from there.
+This should install the packages. ssNake can then be run by navigating to the ssNake src directory in a
+terminal and running `python ssNake.py' from there.
 
 
 \section{Loading and processing a 1D spectrum}
@@ -141,7 +146,7 @@ Now that the data is loaded, we can start processing. As a start, push the `Four
 \begin{tcolorbox}[breakable,colback=green!5,colframe=MyBlueD,title=\large Mouse button controls,boxrule=2mm,colback=MyBlueD!30!white]
 ssNake provides the user with a nice set of mouse controls to change the view of the graph when the mouse is within the graph area:
 \begin{itemize}
-\item Clicking and holding the left mouse button, and dragging it creates a zoombox
+\item Clicking and holding the left mouse button, and dragging creates a zoombox
 \item Scrolling with the scroll wheel zooms the y-axis
 \item Scrolling with the scroll wheel while holding the right mouse button zooms the x-axis
 \item Double clicking the right mouse button resets the view to the full plot limits.
@@ -173,13 +178,31 @@ Note that the workspaces are regarded to form a circle, so pushing alt-rightarro
 \end{tcolorbox}
 
 \subsection{Chemical shift referencing}
-Until now, we have only viewed the spectrum in it's default settings. For ssNake, this in kHz. However, a commonly used scale in NMR is the parts-per-million scale (ppm). This scale divides the spectrum frequencies by the frequency of the spectrometer, and multiplies by a million. The current noisy spectrum has been measured at a 600 MHz spectrometer. This means that 1 ppm equals 600 Hz (just divide out the million!). To go to a ppm view, ssNake just does this division. Do it by using the dropdown menu under `Axis'.
+Until now, we have only viewed the spectrum in it's default settings. For ssNake, this in kHz.
+However, a commonly used scale in NMR is the parts-per-million scale (ppm). This scale divides the
+spectrum frequencies by the frequency of the spectrometer, and multiplies by a million. The current
+noisy spectrum has been measured at a 600 MHz spectrometer. This means that 1 ppm equals 600 Hz
+(just divide out the million!). To go to a ppm view, ssNake just does this division. Do it by using
+the dropdown menu under `Axis'.
 
-Now we are in ppm, but the ppm scale is always defined as `x ppm relative to signal y'. The current reference is just the centre of the spectrum (which is now zero), but this is often not correct. Let's just state that the signal we see (which is now at roughly 6.0 ppm) is the true zero point. We must then shift the axis to have `0' at this point. Do it via Plot $\rightarrow$ Reference $\rightarrow$ Set reference. This opens a menu were you can click on the peak in the spectrum (remember to zoom, to be extra accurate). Clicking here sets the frequency (something close to 600 MHz). Leave the zero at `ppm' and the other boxes empty, and push apply. Presto! Now the signal is defined as zero ppm.
+Now we are in ppm, but the ppm scale is always defined as `x ppm relative to signal y'. The current
+reference is just the centre of the spectrum (which is now zero), but this is often not correct.
+Let's just state that the signal we see (which is now at roughly 6.0 ppm) is the true zero point. We
+must then shift the axis to have `0' at this point. Do it via Plot $\rightarrow$ Reference
+$\rightarrow$ Set reference. This opens a menu were you can click on the peak in the spectrum
+(remember to zoom, to be extra accurate). Clicking here sets the frequency (something close to 600
+MHz). Leave the zero at `ppm' and the other boxes empty, and push apply. Presto! Now the signal is
+defined as zero ppm. Often, a reference is defined on a signal of one workspace, and needs to be
+applied on another (i.e. external referencing). When setting a reference, a Name can also be given,
+which allows the user to apply this reference to any other workspace.
 
-Now that we have analysed this data you can close this workspace by going to Workspaces $\rightarrow$ Delete, by typing ctrl-w, or by clicking on the cross button on the tab. Use this to clean up and close all the workspaces. You can view the current workspaces via Workspaces $\rightarrow$ Active. You can click on a non-active workspace to go there, or use alt-rightarrow and alt-leftarrow to cycle through the list.
+Now that we have analysed this data you can close this workspace by going to Workspaces
+$\rightarrow$ Delete, by typing ctrl-w, or by clicking on the cross button on the tab. Use this to
+clean up and close all the workspaces. You can view the current workspaces via Workspaces
+$\rightarrow$ Active. You can click on a non-active workspace to go there, or use alt-rightarrow and
+alt-leftarrow to cycle through the list.
 
-\section{Fitting a T$_1$ relaxation curve}
+\section{Fitting a T$_{\textbf{1}}$ relaxation curve}
 ssNake can also be used for fitting exponential decays such as T$_1$ and T$_2$.
 For this we are going to open a true experimental spectrum measured on one of
 our Varian spectrometers. Go to Load and navigate to the folder `satrec2D.fid'
