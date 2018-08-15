@@ -101,25 +101,25 @@
 
 \section{Running ssNake}
 \subsection{Python versions}
-ssNake has been programmed to run on both the python 2.x and 3.x branch. We developed ssNake using python 2.7.9 and 3.4.3, but somewhat older version might also be sufficient.
+ssNake has been programmed to run on both the python 2.x and 3.x. We tested ssNake on python 2.7.9 and 3.4.3, but somewhat older versions might also be sufficient.
 
 \subsection{Numpy versions}
-We have run into issue while using older versions of numpy. It seems that version 1.7.0 is the oldest that we support (some new commands have been introduced in this version, that ssNake makes use of). Development took place on version 1.8.2.
+We have run into issues when using older versions of numpy. It seems that version 1.7.0 is the oldest that we support (some new commands have been introduced in this version, that ssNake makes use of). Development took place on version 1.8.2.
 
 
 \section{Main window}
-\subsection{Zoom and pan controls}
-There are several ways to control the display of the current spectrum or FID in the main window. Below, a list of these is given:
+\subsection{Mouse controls}
+There are several ways to control the display of the current spectrum or FID in the main window using the mouse. Below, a list of these is given:
 
 \begin{itemize}
-\item Dragging a box while holding the left mouse button creates a zoombox, and will zoom to that region
+\item Dragging a box while holding the left mouse button creates a zoombox, and will zoom to that region.
 \item Dragging while holding the right mouse button drags (i.e.\ pans) the spectrum. Doing this while holding the Control button pans only the x-axis, holding Shift pans only the y-axis.
-\item Double clicking with the right mouse button resets the view to fit the whole plot (both x and y)
-\item Scrolling with the mouse wheel zooms the y-axis. Doing this while also holding the right mouse button zooms the x-axis. The standard setting is `fine'. You can zoom with more coarse steps by holding Control.
-\item \textit{Special}: Scrolling while holding shift changes the spacing between the different plots in the Array, Stack or Skew plot. In the Contour plot, the contour levels are zoomed.
+\item Double clicking with the right mouse button resets the view to fit the whole plot (both x and y).
+\item Scrolling with the mouse wheel zooms the y-axis. Doing this while also holding the right mouse button zooms the x-axis. By holding Control the zooming will use a larger step size.
+\item \textit{Special}: Scrolling while holding shift changes the spacing between the different plots in the Array or Stack plot. In the Contour plot, the contour levels are zoomed.
 \end{itemize}
 
-Having an input window open (e.g. the phasing window, see below) does not prevent the use of these zoom controls. However, some tools require left clicking in the spectrum to select a data point. In these cases, the zoom-box (dragging while holding the left mouse button) is disabled.
+Having an input window open (e.g. the phasing window, see below) does not prevent the use of these zoom controls. However, some tools require left clicking in the spectrum to select data points. In these cases, the zoom-box (dragging while holding the left mouse button) is disabled.
 
 \subsection{Bottom Frame}
 The bottom frame is the frame below the current data display. It consist of two parts: one with data parameters (and started by the `Fourier' button), and the `Get Position' frame. The features of these frames are explained below.
@@ -127,13 +127,13 @@ The bottom frame is the frame below the current data display. It consist of two 
 \subsubsection*{Data parameters}
 The data parameter frame features the following elements:
 \begin{itemize}
-\item The Fourier button: performs a forward or inverse fft depending on Time/Frequency toggle. If the current setting is Time, it does a forward transform (with the relevant fft shift), if it is Frequency it does an inverse transform.
-\item Time/Frequency toggle: displays whether the current data is an FID (Time) or Spectrum (Frequency). It is usually not necessary to manually change this, as this is done automatically. However, you can trick ssNake by making it think the current data is of the other type. This will give unpredicted results, and is not advised (do at your peril).
+\item The Fourier button: performs a forward or inverse fft depending on Time/Frequency toggle. If the current setting is Time, it does a forward transform (and fft shift), if it is Frequency it does an inverse transform.
+\item Time/Frequency toggle: displays whether the current data is an FID (Time) or Spectrum (Frequency). It is usually not necessary to manually change this, as this is done automatically.
 \item Whole echo: specifies if a whole echo transform should be done. This is set by using the swap echo tool from the Tools menu (see below). When enabled, several tools respond differently (e.g. Apodizing and Set Size).
-\item Freq [MHz]: The centre frequency of the current spectrum dimension in MHz. Note that this value can be different from the Refrence frequency, which specifies the zero frequency of the spectrum.
+\item Freq [MHz]: The centre frequency of the current spectrum dimension in MHz. Note that this value can be different from the Reference frequency, which specifies the zero frequency of the spectrum.
 \item Sweepwidth [kHz]: The spectral width of the current spectrum dimension in kHz.
 \item Plot: A dropdown menu specifying how the data should be plot. It has four options: Real, Imag, Both and Abs. Real: plots only the real part of the complex data. Imag: plots only the imaginary part. Both: plots both the real and imaginary part of the data in different colours. Abs: plots the absolute value of the data. Note that this only toggles the \textit{view} of the current data. Changing the data itself can be done via the Tools menu.
-\item Axis: Dropdown menu the change the unit of the current x-axis. For a time axis, s, ms and $\muup$ are supported. For the frequency axis: Hz, kHz, MHz and ppm.
+\item Axis: Dropdown menu to change the units of the current x-axis. For a time axis, s, ms and $\muup$ are supported. For the frequency axis: Hz, kHz, MHz and ppm.
 \item \textit{Special}: Axis2: changes the unit of the y-axis in a 2D contour plot.
 \end{itemize}
 
@@ -144,9 +144,9 @@ The Get Position frame is the frame in which the properties of a specific data p
 On the right side of the spectrum, there is an additional frame in some cases called the Side Frame. In this, special settings for the current plot type can be set, as well as the dimension along which the data should be plot. For a regular 1D spectrum of 1D data there are no additional options, and the Side Frame is not shown. The description of the elements that are shown in the Side Frame are explained in the section on the different plot types. However, the common feature for multidimensional data (i.e. the dimension selector) shall be explained here.
 
 \subsubsection*{The dimension selector}
-For data that has more than 1 dimension, a dimension selector is shown in the Side Frame. For each dimension (labelled D1 to D$n$, with $n$ the number of dimensions) there is a radio button and an input box. The radio button indicates which dimension is plot in the main window. For 2D plots or arrayed plots, both the direct and the indirect dimension have to be selected. For all the dimensions of which the radio button is not selected, the input box becomes relevant to define which trace should be plot. Take for example a series of ten 1D spectra with 1024 points per spectrum. The total data size is now 10x1024 (D1xD2). Note that the direct spectral dimension is always the last dimension. In a regular view of the first spectrum of this series, the radio button below D2 should be selected (as is the default setting). The number in the box next to D1 then determines the spectrum to be plot. If this value is 0, the first spectrum is plot (note that ssNake uses the Python rules for array indexing, and that 0 is the first point). As we have ten spectra, 9 is the last. Using the up and down buttons next to the input box below D1, the spectra can be cycled. Also, scrolling with the scroll wheel when the mouse is on top of the box can be used.
+For data that has more than 1 dimension, a dimension selector is shown in the Side Frame. For each dimension (labelled D1 to D$n$, with $n$ the number of dimensions) there is a radio button and an input box. The radio button indicates which dimension is plot in the main window. For 2D plots or arrayed plots, both the direct and the indirect dimension have to be selected. For all the dimensions of which the radio button is not selected, the input box is used to define which trace is plot. Take for example a series of ten 1D spectra with 1024 points per spectrum. The total data size is now 10x1024 (D1xD2). Note that the direct spectral dimension is always the last dimension. In a regular view of the first spectrum of this series, the radio button below D2 should be selected (as is the default setting). The number in the box next to D1 then determines which of the 10 spectra to plot. If this value is 0, the first spectrum is plot (note that ssNake uses the Python rules for array indexing, and that 0 is the first index). As we have ten spectra, 9 is the last. Similar to Python indexing, negative values can be used for reverse indexing (-1 is the last, -2 is the second to last, etc.). Using the up and down buttons next to the input box below D1, the spectra can be cycled. Also, scrolling with the scroll wheel when the mouse is on top of the box can be used.
 
-For data with more dimensions, the idea is essentially the same. Note that ssNake always applies processing commands on the current view (the selected dimension). If two dimensions need to be selected (as in an array or contour plot), the leftmost radio button is the selected dimension for operations.
+For data with more dimensions, the idea is essentially the same. Note that ssNake always applies processing commands on the active (selected) dimension. If two dimensions need to be selected (as in an array or contour plot), the leftmost radio button is the selected dimension for operations.
 
 \subsection{Message bar}
 The bottommost part of the ssNake window is the message bar. Any error messages will be printed here in red. Warnings about wrong inputs will be displayed in black. For both type of messages the same applies: they are shown for several seconds, and then disappear. If some tool is not responding, it is therefore wise to check the message bar for messages.
@@ -154,7 +154,7 @@ The bottommost part of the ssNake window is the message bar. Any error messages 
 \section{File}
 Using the ssNake load tools is quite easy. Go to File $\rightarrow$ Open. Navigating and double clicking on the desired file then loads the data. Many formats supported by ssNake (like Bruker and Varian) have their data in a folder, in which several files with a fixed name are present. For these formats, loading any of the files in this directory is accepted (ssNake searches for the expected files in the selected directory). Loading large data files might take some time, depending on your computer hardware.
 
-When loading the data, the user is prompted to give in a name for the data by which it is identified in the workspace selector (see the Worspaces section for more on this). The default name is the name of the file (or folder for data in which the file name is fixed). If the name already exists as a workspace, the name spectrum\textit{n} is used (with \textit{n} the lowest integer that is not in use).
+When loading the data, the user is prompted to give in a name by which the workspace is identified (see the Workspaces section for more on this). The default name is the name of the file (or folder for data in which the filename is fixed). If the name already exists as a workspace, the name spectrum\textit{n} is used (with \textit{n} the lowest integer that is not in use).
 
 
 \subsection{Formats}
@@ -175,7 +175,7 @@ JEOL Delta & 1D only at the moment \\
 Chemagnetics & ??? \\
 Magritek & Both 1D and 2D data \\
 \rowcolor{gray!30!white}
-Simpson & 1D and 2D, -ascii and -binary \\
+SIMPSON & 1D and 2D, -ascii and -binary \\
 JCAMP & 1D JCAMP-DX file\\
 \rowcolor{gray!30!white}
 Siemens ima & single voxel only\\
@@ -186,7 +186,7 @@ Matlab & ssNake \texttt{.mat} file (binary)\\
 \end{tabular}
 \end{center}
 
-Generally, ssNake loads the data raw data and searches for some variables (e.g. spectral width and spectrometer frequency). The above data formats do not support data with more then two dimensions in a nice way. Getting the higher dimensions is therefore not straightforward. ssNake treats this data as 2D, after which you can split the data yourselves using Matrix $\rightarrow$ Split.
+Generally, ssNake loads the raw data and searches for some variables (e.g. spectral width and spectrometer frequency). The above data formats do not support data with more then two dimensions in a nice way. Getting the higher dimensions is therefore not straightforward. ssNake treats this data as 2D, after which you can split the data yourselves using Matrix $\rightarrow$ Split.
 
 \subsubsection*{Varian/Agilent}
 Loading a Varian/Agilent fid file requires a \textit{procpar} file and a \textit{fid} file. From the \textit{procpar}, the spectral frequency and the spectral width in one or two dimensions is extracted. The \textit{fid} file is then checked for the version (VnmrJ 2 or 3) and the data is extracted from this file.
@@ -199,31 +199,31 @@ The Bruker load first checks for the \textit{acqus} and \textit{acqu2s} files an
 Bruker processed spectra can be loaded from \textit{1r} and \textit{1i} files for 1D data, \textit{2rr} and \textit{2ii} for 2D data, and \textit{2rr} and \textit{2ir} for hypercomplex data. It additionally takes parameters from \textit{procs} or \textit{proc2s} files in that directory. Moreover, the spectral frequency is extracted from the \textit{acqus} and/or \textit{acqu2s} files located \textit{two directories up}.
 
 \subsubsection*{Bruker minispec}
-In some cases, the Bruker minispec also outputs a \texttt{.sig} data file. These can be loaded in ssNake, although it is experimental at the moment.
+In some cases, the Bruker minispec also outputs a \texttt{.sig} data file. These can be loaded in ssNake, although this is experimental at the moment.
 
 \subsubsection*{JEOL Delta}
-JEOL Delta data is contained in a single \texttt{.jdf} file. Currently only 1D data is (experimentally) supported. This is simply because we have no access to a JEOL spectrometer for testing purposes. Please send us test files is you have any.
+JEOL Delta data is contained in a single \texttt{.jdf} file. Currently only 1D data is (experimentally) supported. This is because we have no access to a JEOL spectrometer for testing purposes. Please send us test files is you have any.
 
 \subsubsection*{Chemagnetics}
 Loading Chemagnetics data requires a \textit{acq} (and \textit{acq\_2} for 2D) and \textit{data} file. From the former, the number of points in both dimensions is extracted, the spectral widths and the spectral frequency. All the data points are then extracted form the \textit{data} file, and reshaped to a 2D array when necessary.
 
 \subsubsection*{Magritek}
-Magritek requires two or three files: \textit{acqu.par} for the spactral variables, and a file that ends with \textit{.1d}. For 2D data, a file that ends with \textit{.2d} is also needed. As with the other formats, the number of data points in the two dimensions is extracted from the parameter file (along with the spectral data) and the binary data in the \textit{.1d} or \textit{.2d} is unpacked.
+Magritek requires either two or three files: \textit{acqu.par} for the spectral variables, and a file that ends with \textit{.1d}. For 2D data, a file that ends in \textit{.2d} is also needed. As with the other formats, the number of data points in the two dimensions is extracted from the parameter file (along with the spectral data) and the binary data in the \textit{.1d} or \textit{.2d} is unpacked.
 
-\subsubsection*{Simpson}
-Simpson data files are plain text files, \textit{.fid} or \textit{.spe} as file extension. From the file, the number of points in both dimensions is extracted, and the spectral widths. The spectral frequency is \textit{not} included in the Simpson format, and is put at 0. Simpson files cannot contain a mixture of time and frequency data (both dimensions must be the same type). Simpson binary data is also supported, but not raw binary.
+\subsubsection*{SIMPSON}
+SIMPSON data files are plain text files, \textit{.fid} or \textit{.spe} as file extension. From the file, the number of points in both dimensions is extracted, and the spectral widths. The spectral frequency is \textit{not} included in the SIMPSON format, and is put at 0. SIMPSON files cannot contain a mixture of time and frequency data (both dimensions must be the same type). SIMPSON binary data is also supported, but not raw binary.
 
 \subsubsection*{JCAMP}
-JCAMP (or JCAMP-DX) is a general format for storing spectroscopic data. Although it can be applied to NMR data, it is not convenient, especially for 2D data. ssNake therefore only supports 1D fid and spectrum data at the moment. As the JCAMP format support a wide variety of data formats, it depends on the specific file if it loads in ssNake without errors. When encountering errors, do not hesitate to contact us.
+JCAMP (or JCAMP-DX) is a general format for storing spectroscopic data. Although it can be applied to NMR data, it is inconvenient, especially for 2D data. ssNake therefore only supports 1D fid and spectrum data at the moment. As the JCAMP format support a wide variety of data formats, it depends on the specific file if it can be loaded into ssNake without errors. When encountering errors, do not hesitate to contact us.
 
 \subsubsection*{JSON}
-Loads a JSON file that is saved with ssNake. File must have the \textit{.json} or \textit{.JSON} extension.
+Loads a JSON file that is saved from ssNake. The file must have the \textit{.json} or \textit{.JSON} extension.
 
 \subsubsection*{Siemens ima}
 IMA files are dicom formatted files with additional entries from Siemens. Important: it requires pydicom > 1.0 python module to be installed. The problem in reading Siemens ima files is that there is limited documentation available on the relevant Siemens parts. In the current implementation it is assumed that all relevant spectral information is stored in the CSA Siemens header with dicom tag: '0029','1110' and that the binary signal data is stored in '7fe1','1010'. This might be different for other Siemens spectrometers currently tested. Furthermore, it is assumed that the data is in complex conjugate form; real minus imaginary. Acknowledgment is in place, this is a rewrite of the relevant part of the following source: VeSPA, versatile simulation pulses and analysis for magnetic resonance spectroscopy.
 
 \subsubsection*{Matlab}
-Loads a Matlab file that is saved with ssNake. File must have the \textit{.mat} or \textit{.MAT} extension. Also supports .mat files that have been resaved to matlab v7.3 format.
+Loads a Matlab file that is saved from ssNake. The file must have the \textit{.mat} or \textit{.MAT} extension. Also supports .mat files that have been resaved to matlab v7.3 format.
 
 \subsubsection*{Unsupported file formats}
 Currently, we support all the data formats that we have access to. If you want your favourite data format to be support by ssNake, please send us a request along with some sample data (1D and 2D).
@@ -254,7 +254,7 @@ Magritek &  \texttt{acqu.par} and \texttt{*.1d} or \texttt{*.2d}&\\
 JEOL Delta & & \texttt{.jdf}\\
 \rowcolor{gray!30!white}
 NMRpipe & & \texttt{.fid} and first byte is 0\\
-Simpson &  & \texttt{.fid} or \texttt{.spe} \\
+SIMPSON &  & \texttt{.fid} or \texttt{.spe} \\
 \rowcolor{gray!30!white}
 JCAMP & & \texttt{.jcamp} or \texttt{.dx} or \texttt{.jdx}\\
 JSON & & \texttt{.json} or \texttt{.JSON}\\
@@ -266,11 +266,11 @@ Matlab & & \texttt{.mat} or \texttt{.MAT}\\
 
 
 \subsection{Open \& Combine}
-In case you want to load multiple data and combine them into an $n$D array, \texttt{Open~\&~Combine} can be used. It opens a window where, via either navigating using the Browse button, or via drag-and-drop, a list of desired data can be made. Pressing OK loads and combines these data files, in a similar way as \texttt{Workspaces~$\rightarrow$~Combine} does. In essence, \texttt{Open~\&~Combine} does the same thing as loading all the data into separate workspaces, and then combining them. However, \texttt{Open~\&~Combine} is more convenient, as it does not open separate workspaces for all the individual data files. Do note that only data files with the same shape can be combined (\textit{i.e.} with the same number of data points). Also note that ssNake considers a 1D data file with $n$ points to be different than a 2D data file with only one trace ($n\times1$ data points).
+In case you want to load multiple data files and combine them into an $n$D array, \texttt{Open~\&~Combine} can be used. It opens a window where a list of desired data can be made. This can be done by either navigating using the Browse button, or via drag-and-drop. Pressing OK loads and combines these data files, in a similar way as \texttt{Workspaces~$\rightarrow$~Combine} does. In essence, \texttt{Open~\&~Combine} does the same thing as loading all the data into separate workspaces, and then combining them. However, \texttt{Open~\&~Combine} is more convenient, as it does not open separate workspaces for all the individual data files. Do note that only data files with the same shape can be combined (\textit{i.e.} with the same number of data points). Also note that ssNake considers a 1D data file with $n$ points to be different than a 2D data file with only one trace ($n\times1$ data points).
 
 
 \subsection{Save data}
-Naturally, ssNake can also be used to save data. When saving data, the current ND data is saved, along with the spectral widths, frequencies and if the axis is in time or frequency units. Also, ppm references are saved, along with the processing history. Undo information is \textit{not} saved.
+Naturally, ssNake can also be used to save data. When saving data, the current data is saved, along with the spectral widths, frequencies and if the axis is in time or frequency units. Also, ppm references are saved, along with the processing history. Undo information is \textit{not} saved.
 
 \subsubsection*{JSON}
 JSON (JavaScript Object Notation) is an ascii format (i.e. regular text) used to save data structures. Within ssNake this can be used to save the current data in a clear, human readable format. As JSON data is in ascii, it is not efficient in file size and in speed. If these are necessary then consider saving the data as a matlab binary.
@@ -280,14 +280,14 @@ The MATLAB binary format is a open source format in which many different types o
 
 
 \subsection{Export data}
-Using ssNake you can also export your data. Exporting never saves all the info our own formats do, so there will be loss of information. It is suggested you only use these formats for exchanging data to another program, but not for archiving.
+Using ssNake you can also export your data. Exporting does not save all information, so there will be loss of information when exporting and reloading the data. It is suggested you only use these formats for exchanging data to another program, but not for archiving.
 
 
-\subsubsection*{Simpson}
-Simpson is a general NMR simulation program with its own data format. The format only supports 1D and 2D data, and only if the data in both dimensions is of the same type (i.e. both spectrum, or both time). Apart from that, Simpson is an ascii format, and therefore has the same speed restrictions as the JSON format. The parameters that are saved within the Simpson data are restricted (no offset frequency), so when loading it back into ssNake some information is lost. We therefore advise to use the Simpson format only for transferring data to another program.
+\subsubsection*{SIMPSON}
+SIMPSON is a general NMR simulation program with its own data format. The format only supports 1D and 2D data, and only if the data in both dimensions is of the same type (i.e. both spectrum, or both time). Apart from that, SIMPSON is an ascii format, and therefore has the same speed restrictions as the JSON format. The parameters that are saved within the SIMPSON data are restricted (no offset frequency), so when loading it back into ssNake some information is lost. We therefore advise to use the SIMPSON format only for transferring data to another program.
 
 \subsubsection*{ASCII (1D/2D)}
-This option saves the current data to a bare ascii format (text file). The first column is the axis in units of Hz or seconds. The next columns are alternating real and imaginary for all traces in the 2D data. For 1D data, only a single set of real and imaginary data is printed. The axis of dimension 1 of the 2D data is not saved.
+This option saves the current data in a simple ascii format (text file). The first column is the axis in units of Hz or seconds. The next columns are alternating real and imaginary for all traces in the 2D data. For 1D data, only a single set of real and imaginary data is printed. The axis of dimension 1 of the 2D data is not saved.
 
 \subsubsection*{Figure}
 The Figure option can be used to export any Figure plot within ssNake. The title, axis labels and size of the
@@ -301,14 +301,9 @@ The following settings can be changed:
   \item Title, $x$ and $y$-axis labels
   \item Limits: the limits along the $x$ and $y$-axis
   \item Dimensions: the size of the Figure in cm. Also the resolution (dots per inch, dpi) can be set.
-  \item Font sizes: sizes of all the font (Main) or per item, when `Details' is checked. This then allows the
-	 fonts sizes for the tile, $x$ and $y$-labels, and $x$ and $y$-ticks to be set individually.
+  \item Font sizes: sizes of all the font (Main) or per item, when `Details' is checked. This then allows the fonts sizes for the tile, $x$ and $y$-labels, and $x$ and $y$-ticks to be set individually.
   \item Legend: when ticked, shows the legend.
-  \item Legend settings: allows the position of the legend to be set (allowed options: best, left, right, upper/lower
-	 left/right/center) as well as the order in the case of
-	 multiple spectra (multi plot). The order should be filled in as a list, with the first element being the
-	 topmost entry in the legend (an input of [1,0] will show element 1 on the top). Also the name can be set.
-	 The number input allows to switch between the different entries.
+  \item Legend settings: allows the position of the legend to be set (allowed options: best, left, right, upper/lower left/right/center) as well as the order in the case of multiple spectra (multi plot). The order should be filled in as a list, with the first element being the topmost entry in the legend (an input of [1,0] will show element 1 on the top). Also the name can be set. The number input allows to switch between the different entries.
 \end{itemize}
 
 The legend can also be dragged around in the Figure to position it. Note that double-clicking on a plot
@@ -325,50 +320,44 @@ and `Contour' settings can also be changed for a specific workspace via the `Plo
   \item Default width and height of the ssNake window (in pixels). The window is never smaller than the ssNake
 	 logo shown on boot.
   \item Open maximized: make ssNake open with a maximized window
-  \item Ask workspace name when loading: Whenever ssNake loads a file, it asks for a name (default is the file
-	 name, or spectrum0 etc.). When this box is unticked, files are loaded without asking for a name, but using
-	 the default name. Very useful when loading large sets of data.
+  \item Ask workspace name when loading: Whenever ssNake loads a file, it asks for a name (default is the file name, or spectrum0 etc.). When this box is unticked, files are loaded without asking for a name, but using the default name. Very useful when loading large sets of data.
   \item Show Shortcut Toolbar: Shows the toolbar below the menu.
   \item Edit Toolbar: Opens a window were, via drag-and-drop, items can be added or removed from the toolbar.
-	 Drag an item from left to right to add to the toolbar, and use the `delete' button to remove items from
-	 the toolbar.
+	 Drag an item from left to right to add to the toolbar, and use the `delete' button to remove items from the toolbar.
 \end{itemize}
 
 \subsubsection{Plot}
-Can be used to set the linewidth (in pixels) and line colour. Also, x and y grids can be turned on. The
-default units can be set, and whether the spectrum should be in ppm by default. `Scroll axis from zero' makes
-sure the $y=0$ position stays at the same spot on the screen when zooming $y$ (default behaviour for most NMR
-software).
+Can be used to set the linewidth (in pixels) and line colour. Also, x and y grids can be turned on.
+The default units can be set, and whether the spectrum should be in ppm by default. `Scroll axis from zero' makes sure the $y=0$ position stays at the same spot on the screen when zooming $y$ (default behaviour for most NMR software).
 
 \subsubsection{Contour}
 Change the default settings of a contour plot.
 
 \begin{itemize}
   \item Colourmap: defines the colourmap of the contours
-  \item Constant Colours: makes all contour lines with the same sign the same colour (Colourmap is now
-	 ignored). Colours can be set with `Positive colour' and `Negative colour'.
+  \item Constant Colours: makes all contour lines with the same sign the same colour (Colourmap is now ignored). Colours can be set with `Positive colour' and `Negative colour'.
   \item Ratio: sets the default ratio of the contour plot.
 \end{itemize}
 
 \subsection{Quit}
-Closes the ssNake application. Quiting ssNake always asks for conformation, to prevent data loss.
+Closes the ssNake application. Quiting ssNake always asks for confirmation, to prevent data loss.
 
 \section{Workspaces}
-Within ssNake you can have multiple data files opened. Each loaded file gets its own environment in which you can process the data. These are called workspaces. All ssNake workspaces are independent, meaning that the data from workspace 1 cannot be changed while viewing any other workspace. Going back to a workspace from another goes back to the same view as before:  nothing is discarded when switching between workspaces. Also: every workspace has its own undo/redo information. Some tools can transfer data from other workspaces to the current workspace. You can find more about these tools later on, in their respective sections.
+Within ssNake you can have multiple data files opened. Each loaded file gets its own environment in which you can process the data. These are called workspaces. All ssNake workspaces are independent, meaning that the data from workspace 1 cannot be changed while viewing another workspace. Going back to a workspace from another goes back to the same view as before:  nothing is discarded when switching between workspaces. Also: every workspace has its own undo/redo information. Some tools can transfer data from other workspaces to the active workspace. You can find more about these tools later on, in their respective sections.
 
 When loading data, ssNake prompts for a name. This will become the name of the workspace in which the data is loaded. The title of the graph will be set to this name, and the name will be set in the list of opened workspaces in Workspaces $\rightarrow$ Active. You can also switch workspace using the tabs that are created for every workspace. Note that you cannot have multiple workspaces with the same name.
 
 \subsection{Duplicate}
-Makes a copy of the current workspace to a new workspace, of which the name is asked. All the data and the current view is copied to this new workspace. No undo and redo data is transferred. Also, the current workspace is now the new, duplicated one.
+Makes a copy of the active workspace to a new workspace, of which the name is asked. All the data and the active view is copied to this new workspace. No undo and redo data is transferred. Also, the duplicated workspace will be active.
 
 \subsection{Delete}
-Deletes the current workspace and all references to it. The view is changed to the next workspace in the list. Be aware that there is no way to undo this!
+Deletes the active workspace and all references to it. The view is changed to the next workspace in the list. Be aware that there is no way to undo this!
 
 \subsection{Rename}
-Renames the current workspace. Note that two workspaces cannot have the same name.
+Renames the active workspace. Note that two workspaces cannot have the same name.
 
 \subsection{Active}
-Shows a list of all workspaces. The current workspaces can be changed by clicking on another workspace name.
+Shows a list of all workspaces. The active workspaces can be changed by clicking on another workspace name.
 
 \subsection{Next}
 Makes the next workspace the active workspace.
@@ -385,20 +374,20 @@ ssNake features several keyboard shortcuts to work with the workspaces. Below is
 Combination & Effect \\
 \midrule
 \rowcolor{gray!30!white}
-Ctrl + w & Close current workspace\\
-Ctrl + n & Duplicate current workspace\\
+Ctrl + w & Close active workspace\\
+Ctrl + n & Duplicate active workspace\\
 \rowcolor{gray!30!white}
-F2 & Rename  current workspace\\
-Ctrl + Page Up & Change current workspace to the one above in the list\\
+F2 & Rename active workspace\\
+Ctrl + Page Up & Change active workspace to the one above in the list\\
 \rowcolor{gray!30!white}
-Ctrl + Page Down & Change current workspace to the one below in the list\\
+Ctrl + Page Down & Change active workspace to the one below in the list\\
 \bottomrule
 \end{tabular}
 \end{center}
-When the current workspace is the last in the list, and Ctrl + Page Down is pressed, the current workspace is set to the first in the list.
+When the active workspace is the last in the list, and Ctrl + Page Down is pressed, the active workspace is set to the first in the list.
 
 \section{Macros}
-Macros can be used to save a particular series of action performed on the data, for later fast reuse. Say that you want to load several data files, and want to set the size of them to 4096 points and perform a Fourier transform. Doing this many times can be annoying. When you create a macro to do this, you only need to execute the macro for every data file. Thus saving time and making sure all are processed in an identical way. Also, macros are shared between workspaces: there is only one pool of macros. How to use macros is explained below.
+Macros can be used to save a particular series of action performed on the data, for later reuse. Say that you want to load several data files, and want to set the size of them to 4096 points and perform a Fourier transform. Doing this many times can be cumbersome. When you create a macro to do this, you only need to execute the macro for every data file. Thus saving time and making sure all are processed in an identical way. Also, macros are shared between workspaces: there is only one pool of macros. How to use macros is explained below.
 
 \subsection{Start recording}
 To create a macros, you must tell ssNake that you want to record a series of action, to be saved in the macro. Executing Macros $\rightarrow$ Start Recording prompts for a name of the future macro, and enables the recording. From now on, all the actions you perform on the data are recorded and saved in this macro.
@@ -413,80 +402,62 @@ Can be used to run the selected macro on the current data.
 Delete a macro.
 
 \subsection{Save}
-Can be used to save a macro to the disk as a .json file. This is a plain text file, in which you can see all the steps that are executed when running this macro.
+Can be used to save a macro to the disk. This is a plain text file, in which you can see all the steps that are executed when running this macro.
 
 \subsection{Load}
 Loads a saved macro in ssNake. Execution of the macro can then be performed using Macros $\rightarrow$ Run.
 
-\subsection{Notes on usage of macros}
-Note that ssNake only records the actions that are not undone. If you perform an action when recording is on,
-and you undo it while recording, the macro has no entries. However, performing two actions that cancel each other
-\textit{are} recorded. For example, issuing Fourier twice has no net effect, but a macro of this includes both commands.
+\subsection{Notes on the usage of macros}
+Note that ssNake only records the actions that are not undone. If you perform an action when recording is on, and you undo it while recording, the macro has no entries. However, performing two actions that cancel each other \textit{are} recorded. For example, issuing Fourier twice has no net effect, but a macro of this includes both commands.
 
-Note that it is possible to run a macro which has been recorded on a data set to
-be used on a data set with a different number of dimensions.
-For this, it is important to note that ssNake counts backwards to remember the dimension in which an action is performed. When there are 3 dimensions,
-ssNake classifies them as the second to last, first to last and last. A recorded macro can therefore be run at data that has all the dimensions in which some actions was performed,
-counting from the end. Only doing a Fourier transform in the last dimension is therefore possible on every data set, regardless of the fact that it might be D5 in some set,
-and D1 in another.
-
+Note that it is possible to run a macro which has been recorded on a data set to be used on a data set with a different number of dimensions.
+For this, it is important to note that ssNake counts backwards to remember the dimension in which an action is performed. When there are 3 dimensions, ssNake classifies them as the second to last, first to last and last. A recorded macro can therefore be run at data that has all the dimensions in which some actions was performed, counting from the end. Only doing a Fourier transform in the last dimension is therefore possible on every data set, regardless of the fact that it might be D5 in some set, and D1 in another.
 
 
 \section{Edit}
 \subsection{Undo}
-In ssNake, every action that causes a change in the data can be undone. When such an action is performed, the undo list is increased with one entry
-, in which the information is stored as how to undo the performed action. Sometimes this involves the inverse operation (e.g. for fft/inverse fft)
-, but for some actions the old data must be preserved and put back when an undo is requested. Duplicating data to another workspace does not copy
-the undo list. The undo/redo data can be cleared using Clear Undo/Redo List (see below).
+In ssNake, every action that causes a change to the data can be undone. When an action is performed, the undo list is increased with one entry, in which the information is stored as how to undo the performed action. Sometimes this involves the inverse operation (e.g. for fft/inverse fft), but for some actions the old data must be preserved and put back when an undo is requested. Duplicating data to another workspace does not copy the undo list. The undo/redo data can be cleared using Clear Undo/Redo List (see below).
 
-Undo cannot be used the undo the current view to the previous view as this is not an operation that changes the data.
+Only changes to the data are recorded in the undo information.
+Changes to the view are not recorded and the undo can thus not be used to restore to a previous view of the data.
 
 \subsection{Redo}
 When Undo is used, the action that is undone is put in the redo list. Using Undo and then Redo therefore performs no net action.
 Every time a new action (i.e. something other then redo) is performed the redo list is cleared.
 
 \subsection{No Undo Mode}
-Activating this checkbox starts the No Undo Mode. This clears the current undo and redo list, and prevents any further actions from adding to the undo list. This way, no undo is possible
-for any further actions. Normally, this is undesirable, however, in some cases the undo information takes a lot of computer memory, especially for large data sets.
-Having No Undo Mode activated makes it more convenient to processes this data. Also note that No Undo Mode also applies for any run macro's.
+Activating this checkbox starts the No Undo Mode. This clears the current undo and redo list, and prevents any further actions from adding to the undo list. This way, no undo is possible for any further actions. Normally, this is undesirable, however, in some cases the undo information requires a large amount of computer memory, especially when processing large data sets.
+Having No Undo Mode activated makes it more convenient to processes this data.
 
 \subsection{Clear Undo/Redo List}
-Clears the undo and redo lists of the current data. This clears any memory allocated to these list, which can be a burden when processing large data sets.
-Naturally, any mistakes made during processing can not be corrected after this. Use with care.
-
-
-
-
+Clears the undo and redo lists of the current data. This clears the memory allocated to these lists, which might be used to reduce memory load when processing large data sets.
+Any operations performed after clearing the undo/redo lists will still be recorded.
 
 \subsection{Reload}
-This action reloads the data from the original source. All undo and redo information is retained, so you can undo back to before you
-reloaded the data. Note that the undo information can take quite some memory on your computer, especially for bigger data sets. In case
-this gives problems: the undo/redo data can be cleared using Clear Undo/Redo List (see above).
+This action reloads the data from the original source. All undo and redo information is retained, so you can undo back to before you reloaded the data. 
 
 \subsection{Monitor}
 The monitor function can be used to automatically reload the data when the source file is changed (for example when measuring on the spectrometer). One or more macro's can be selected to be applied every time the data is reloaded. The Monitor action opens a window, in which the macro's can be selected (via dragging and dropping). Pushing `Watch' then starts the monitoring, which can be stopped by returning to this window and pushing `Unwatch'. Note that ssNake takes a cool-down period of half a second after the macro's have been executed, to avoid a lock-up of the program in the case of heavy macro's and fast changing data.
 
 
 \section{Tools}
-This section explains all the options included in the Tools menu.
+This section explains all the options located in the Tools menu.
 
 \subsection{Real}
-Real puts the imaginary values of all data points at zero.
+Real puts the imaginary values of all data points at zero. If the active dimension is hypercomplex the imaginary information corresponding to that dimension is removed. Any (hyper)complex data along other dimensions is kept.
 
 \subsubsection*{Background}
 In some NMR experiments, only the real value of the magnetization during a specific period is measured. In this case it is convenient to zero the imaginary part to force further processing to ignore this data.
 
-
 \subsection{Imag}
-Imag puts the real values of all data points at zero.
+Imag puts the real values of all data points at zero. If the active dimension is hypercomplex the real information corresponding to that dimension is removed. Any (hyper)complex data along other dimensions is kept.
 
 \subsection{Abs}
 Abs replaces all complex datapoints by the length of the vector they span in the 2D complex plane. That is:
 \begin{equation*}
 F_\text{new} = \sqrt{\text{real}(F_\text{old})^2 + \text{imag}(F_\text{old})^2}
 \end{equation*}
-for all points in the complex data. These values are put as the real part. The imaginary part is zeroed.
-
+for all points in the complex data. These values are put as the real part. The imaginary part is zeroed. If the active dimension is hypercomplex the absolute values along that dimension are calculated. Any (hyper)complex data along other dimensions is kept.
 
 
 \subsection{Complex Conjugate}
@@ -496,19 +467,17 @@ Multiplies the imaginary part of the data with $-1$. Performing this in the FID 
 
 
 \subsection{Apodize}
-Opens a tool that can be used to apply apodization (i.e. line broadening) to the current spectrum or FID. It
-supports Lorentzian, Gaussian, cos$^2$ and Hamming windows, with an optional shift or shifting (trace
-dependent shift).
+Opens a tool that can be used to apply apodization (i.e. line broadening) to the current spectrum or FID. It supports Lorentzian, Gaussian, cos$^2$ and Hamming windows, with an optional shift or shifting (trace dependent shift).
 
-\subsubsection{Background}
-Apodization (also known as line broadeing, or windowing) is a technique to farce a faster decay of the
-recorded NMR time signal. This leads to broader lines, but, in some cases, better signal-to-noise. Using line
-broadening can make broader (i.e. faster decaying) signals more prominent. Also, when a to long acquisition
-time has been chosen, apodization can decrease the noise level while hardly effecting the signals.
+% \subsubsection{Background}
+% Apodization (also known as line broadeing, or windowing) is a technique to farce a faster decay of the
+% recorded NMR time signal. This leads to broader lines, but, in some cases, better signal-to-noise. Using line
+% broadening can make broader (i.e. faster decaying) signals more prominent. Also, when a to long acquisition
+% time has been chosen, apodization can decrease the noise level while hardly effecting the signals.
 
-Every windowing function has its own merits, and features. Lorentzian (i.e. exponential) decay is the most
-common decay that is already on a measured NMR signal. Adding more of this then seems the most natural choice.
-The same goes for Gaussian, which is often naturally encountered in solid state spectra.
+% Every windowing function has its own merits, and features. Lorentzian (i.e. exponential) decay is the most
+% common decay that is already on a measured NMR signal. Adding more of this then seems the most natural choice.
+% The same goes for Gaussian, which is often naturally encountered in solid state spectra.
 
 \subsubsection{Lorentzian}
 Lorentzian (i.e. exponential) apodization has the form:
@@ -520,26 +489,19 @@ spectrum is convoluted with the Fourier transform of this function:
 \begin{equation}
   F(\nu) = \frac{1}{\pi \cdot \gamma \cdot \left[ 1 + \frac{\nu}{\gamma}^2 \right]}
 \end{equation}
-with $\gamma = 2 \cdot lor$ and $\nu$ the frequency position. Lorentzian line shapes a characterized by a
-relative sharp peak, but with a far reaching tail.
+with $\gamma = 2 \cdot lor$ and $\nu$ the frequency position. Lorentzian line shapes a characterized by a relative sharp peak, but with wide base.
 
 \subsubsection{Gaussian}
 Gaussian apodization has the form:
 \begin{equation}
   f(t) = e^{\frac{(-\pi \cdot g \cdot |t|)^2}{4 \log(2)} }
 \end{equation}
-with $g$ the Gaussian broadening in Hz. The Fourier transform of this is again a Gaussian function. Gaussian
-line shapes are broader (smoother) on the top when compared to Lorentzian shapes, but have more confined
-tails.
+with $g$ the Gaussian broadening in Hz. The Fourier transform of this is again a Gaussian function. Gaussian line shapes are broader (smoother) at the top when compared to Lorentzian shapes, but have more narrow base.
 
 \subsubsection{cos square}
-The $\cos^2$ distribution is as a says: a squared cosine. The special feature of this distribution is that it
-involves no aditional settings. It is a general $\cos^2$ function. It is applied in such a way it goes
-smoothly to 0 at the end of the time signal. Therefore $f(t) = \cos^2(\pi t/2t_\text{max})$ and the
-last point has a phase of 90$^\circ$ (or $\pi/2$).
+The $\cos^2$ distribution is a squared cosine. The special feature of this distribution is that it involves no aditional settings. It is a general $\cos^2$ function. It is applied in such a way it goes smoothly to 0 at the end of the time signal. Therefore $f(t) = \cos^2(\pi t/2t_\text{max})$ and the last point has a phase of 90$^\circ$ (or $\pi/2$).
 
-In ssNake, the number of periods (or half periods) of the $\cos^2$ can be set (as the only input), with this
-value $n$, the equation becomes:
+In ssNake, the number of periods (or half periods) of the $\cos^2$ can be set (as the only input), with this value $n$, the equation becomes:
 \begin{equation}
   f(t) = \cos^2(n\pi  t/2t_\text{max}) \quad .
 \end{equation}
@@ -551,182 +513,176 @@ The Hamming window is defined as:
 \begin{equation}
   f(t) = \alpha + (1 - \alpha)\cos(n\pi t/t_\text{max})
 \end{equation}
-with $\alpha = 0.53836$, and $n$ defined as with the $\cos^2$ distribution (see above). It has a similar use
-as the $\cos^2$, but its Fourier transform has less intense ripples.
+with $\alpha = 0.53836$, and $n$ defined as with the $\cos^2$ distribution (see above). It has a similar use as the $\cos^2$, but its Fourier transform has less intense ripples.
 
 \subsubsection{Shift}
-In some cases, the centre of the window function needs to be shifted from $t = 0$ (in case of an echo for
-example). This can be done using the
-Shift option (input in seconds). Note that all the window functions are symmetric around its centre.
+In some cases, the centre of the window function needs to be shifted from $t = 0$ (in case of an echo experiment for example). This can be done using the Shift option (input in seconds). Note that all the window functions are symmetric around its centre.
 
 \subsubsection{Shifting}
-In some cases (i.e MQMAS experiments) the window function needs a trace-dependent shift. This usually means
-that, for 2D data, the $t$-shift of the window function along D2 depends on the position of that trace along
-D1. A `Shifting' value of $n$, means that the shift for a trace is equal to $n \cdot t_1$, with $t_1$ the time
-position of the specific trace along D1.
-
-For data with more then 2 dimensions, the shifting axis needs to bu supplied.
-
+In some cases (i.e MQMAS experiments) the window function needs a trace-dependent shift. This usually means that, for 2D data, the $t$-shift of the window function along D2 depends on the position of that trace along D1. A `Shifting' value of $n$, means that the shift for a trace is equal to $n \cdot t_1$, with $t_1$ the time position of the specific trace along D1.
+For data with more then 2 dimensions, the shifting axis needs to be supplied.
 Shifting apodization can be best viewed from a Stack Plot view.
 
 \subsubsection{Whole echo}
-When the Whole Echo property is activated (see the section on the Bottom Frame), all the apodization windows
-are changed in such a way that they are symmetric around $t = t_\text{max}/2$. This means that the window is
-only calculated for $t=0$ to $t= t_\text{max}/2$.
+When the Whole Echo property is activated (see the section on the Bottom Frame), all the apodization windows are changed in such a way that they are symmetric around $t = t_\text{max}/2$. This means that the window from $t=t_\text{max}/2$ to $t=t_\text{max}$ is equal to the time reverse of the window from $t=0$ to $t=t_\text{max}/2$.
 
 \subsubsection{ssNake implementation}
-While using the tool, the effect can be previewed on the current plot. When used in the time
-domain, the windowing function is plot in green and the original data is shown in grey. When used from the
-frequency domain, it actually transforms back to the time domain, applies the window, and transforms back to
-the frequency domain. Usually, this is fast and can be viewed live. However, especially for contour plots, the
-redrawing of the contour lines takes a long time. It is therefore advised to use this function from a 1D view
-(if previewing is needed).
+While using the Apodization tool, the effect can be previewed on the current plot. When used in the time domain, the windowing function is plot in green and the original data is shown in grey. When used from the frequency domain, it actually transforms the data to the time domain, applies the window, and transforms back to the frequency domain. Usually, this is fast and can be viewed live. However, especially for contour plots, the redrawing of the contour lines could take a long time. It is therefore advised to use this function from a 1D view (if previewing is needed).
 
-The Lorentzian and Gaussian apodization have sliders and arrows. The step sizes of both are determined by the
-spectral width and number of points. Note that the coarseness of the steps when pushing on the arrow buttons
-can be altered by holding ctrl (x10) or shift (x100).
+The Lorentzian and Gaussian apodization have sliders and arrows. The step sizes of both are determined by the spectral width and number of points. Note that the coarseness of the steps when pushing on the arrow buttons can be altered by holding ctrl (x10) or shift (x100).
 
-For most types, negative line broadening parameters are allowed, but quickly lead to massive distortions.
+For most apodization types, negative line broadening parameters are allowed, but quickly lead to massive distortions.
 
 
 \subsection{Phasing}
-Opens a tool that can be use to change the phasing in the current spectrum or fid. Supports zero order, first
-order and autophasing.
+Opens a tool that can be use to change the phasing in the current spectrum or fid. Supports zero order and first order phasing. It also provides buttons for autophasing.
 
-\subsubsection*{Background}
-NMR data is usually recorded as complex data. Here the real part can be said to be the x-magnetization, and
-the imaginary part the y-magnetization. This gives the NMR signal as a complex vector, that is rotating in the
-complex plane during the signal acquisition. An ideal NMR signal consists of a cosine in the real part, and a
-sine in the imaginary part. This gives, after Fourier transform, a spectrum were a pure absorption lineshape
-(i.e. a peak) is seen. Depending on the way the time signal is recorded, there can be a distortion to this
-line, as a constant phase is added to both the sinusoids. With zero order phase correction, an additional
-phase is added to both the complex and the real part, to adjust for this effect. When expressed in complex
-exponentials, the following holds:
-\begin{equation}
-f_\text{new} = f_\text{old}\cdot\text{e}^{i\pi\cdot\theta/180}
-\end{equation}
-were $f$ is a complex value in the time or frequency domain and $\theta$ the desired phase correction in
-degrees. When using this zero order phase correction, all points in the time or frequency domain get the same
-phase correction.
+Selecting phasing in the tools menu opens the phasing window. In this windows, the zero and first order phasing can be set, as well as the pivot point (centre point) for the first order phasing. The values can be either filled in the boxes,  changed by pushing the left and right buttons (click for $\pm1$, ctrl+click for $\pm10$, and shift+click for $\pm100$) , or set by dragging the
+slider to the left or the right. For zero order phase correction, the limits are -180 and 180 degrees. For first order correction, these are -540 and 540 degrees. Higher values for the first order correction sometimes make sense, and can be filled in the box directly, or via clicking on the arrows. Note that the values for the zero order correction are circular, so that -180 and 180 degrees lead to the same effect.
 
-In the spectral domain, a \textit{first} order phase correction is also defined. This leads to a phase
-correction that linearly depends on the frequency offset with respect to a set central frequency (i.e.
-pivot point). This gives:
-\begin{equation}
-  f_\text{new} = f_\text{old}\cdot\text{e}^{i\pi\cdot(\theta + x\cdot \phi)/180}
-\end{equation}
-with $\phi$ the first order phasing, and $x$ the $x$-value of $f$.
+While in this menu, the effect of a certain phasing can be immediately viewed in the ssNake window. When a good setting is reached, `Ok' can be pushed to apply the phasing. Note that for multidimensional data, the preview only shows the current trace. Pushing `Ok' the applies the same phasing correction on all the traces (might take some time for large data). If the phasing should only be applied on the current spectrum or fid, the box `Single slice' can be ticked. Note that you still have to push `Ok' to apply the phasing.
 
-
-\subsubsection*{ssNake implementation}
-Selecting phasing in the tools menu opens the phasing window. In this windows, the zero and first order
-phasing can be set, as well as the pivot point (centre point) for the first order phasing. The values
-can be either filled in the boxes,  changed by pushing the left and right buttons (click for $\pm1$,
-ctrl+click for $\pm10$, and shift+click for $\pm100$) , or set by dragging the
-slider to the left or the right. For zero order phase correction, the limits are -180 and 180 degrees. For
-first order correction, these are -540 and 540 degrees. Higher values for the first order correction sometimes
-make sense, and can be filled in the box directly, or via clicking on the arrows. Note that the values for the
-zero order correction are circular, so that -180 and 180 degrees lead to the same effect.
-
-While in this menu, the effect of a certain phasing can be immediately viewed in the ssNake window. When a
-good setting is reach, `Ok' can be pushed to apply the phasing. Note that for multidimensional data, the
-preview only shows the current trace. Pushing `Ok' the applies the same phasing correction on all the traces
-(might take some time for large data). If the phasing should only be applied on the current spectrum or fid,
-the box `Single slice' can be ticked. Note that you still have to push `Ok' to apply the phasing.
-
-Apart from manual phasing, ssNake also supports two types of autophasing: zero order only, and zero and first
-order. When pushing these buttons, ssNake will search for the best phasing in the \textit{current} trace, with
-only zero order phasing correction, or with both zero and first order. Do note that the setting that ssNake
-finds might not be the best: phasing an NMR spectrum is tricky and has no unique mathematical solution.
+Apart from manual phasing, ssNake also supports two types of autophasing: zero order only, and zero and first order. When pushing these buttons, ssNake will search for the best phasing in the \textit{current} trace, with only zero order phasing correction, or with both zero and first order. Do note that the setting that ssNake finds might not be the best: phasing an NMR spectrum is tricky and has no unique mathematical solution.
 However, for a fast analysis it can be useful.
 
-Also, note that first order phase correction has no meaning in NMR when applied to the time domain. ssNake
-therefore always applies first order phasing in the \textit{frequency} domain. When first order phasing is
-applied when viewing the time domain signal, ssNake transforms to the spectral domain, does the phase
-correction, and transforms back. As Fourier transforms are quite fast, this provides no issues when viewing
-the effect of the phase correction.
+Also, note that first order phase correction is always applied in the \textit{frequency} domain. When first order phasing is applied when viewing the time domain signal, ssNake transforms to the spectral domain, does the phase correction, and transforms back. As Fourier transforms are quite fast, this provides no issues when viewing the effect of the phase correction.
+
+% \subsubsection*{Background}
+% NMR data is usually recorded as complex data. Here the real part can be said to be the x-magnetization, and
+% the imaginary part the y-magnetization. This gives the NMR signal as a complex vector, that is rotating in the
+% complex plane during the signal acquisition. An ideal NMR signal consists of a cosine in the real part, and a
+% sine in the imaginary part. This gives, after Fourier transform, a spectrum were a pure absorption lineshape
+% (i.e. a peak) is seen. Depending on the way the time signal is recorded, there can be a distortion to this
+% line, as a constant phase is added to both the sinusoids. With zero order phase correction, an additional
+% phase is added to both the complex and the real part, to adjust for this effect. When expressed in complex
+% exponentials, the following holds:
+% \begin{equation}
+% f_\text{new} = f_\text{old}\cdot\text{e}^{i\pi\cdot\theta/180}
+% \end{equation}
+% were $f$ is a complex value in the time or frequency domain and $\theta$ the desired phase correction in
+% degrees. When using this zero order phase correction, all points in the time or frequency domain get the same
+% phase correction.
+
+% In the spectral domain, a \textit{first} order phase correction is also defined. This leads to a phase
+% correction that linearly depends on the frequency offset with respect to a set central frequency (i.e.
+% pivot point). This gives:
+% \begin{equation}
+%   f_\text{new} = f_\text{old}\cdot\text{e}^{i\pi\cdot(\theta + x\cdot \phi)/180}
+% \end{equation}
+% with $\phi$ the first order phasing, and $x$ the $x$-value of $f$.
+
+
+% \subsubsection*{ssNake implementation}
+% Selecting phasing in the tools menu opens the phasing window. In this windows, the zero and first order phasing can be set, as well as the pivot point (centre point) for the first order phasing. The values can be either filled in the boxes,  changed by pushing the left and right buttons (click for $\pm1$, ctrl+click for $\pm10$, and shift+click for $\pm100$) , or set by dragging the
+% slider to the left or the right. For zero order phase correction, the limits are -180 and 180 degrees. For first order correction, these are -540 and 540 degrees. Higher values for the first order correction sometimes make sense, and can be filled in the box directly, or via clicking on the arrows. Note that the values for the zero order correction are circular, so that -180 and 180 degrees lead to the same effect.
+
+% While in this menu, the effect of a certain phasing can be immediately viewed in the ssNake window. When a good setting is reached, `Ok' can be pushed to apply the phasing. Note that for multidimensional data, the preview only shows the current trace. Pushing `Ok' the applies the same phasing correction on all the traces (might take some time for large data). If the phasing should only be applied on the current spectrum or fid, the box `Single slice' can be ticked. Note that you still have to push `Ok' to apply the phasing.
+
+% Apart from manual phasing, ssNake also supports two types of autophasing: zero order only, and zero and first order. When pushing these buttons, ssNake will search for the best phasing in the \textit{current} trace, with only zero order phasing correction, or with both zero and first order. Do note that the setting that ssNake finds might not be the best: phasing an NMR spectrum is tricky and has no unique mathematical solution.
+% However, for a fast analysis it can be useful.
+
+% Also, note that first order phase correction is always applied in the \textit{frequency} domain. When first order phasing is applied when viewing the time domain signal, ssNake transforms to the spectral domain, does the phase correction, and transforms back. As Fourier transforms are quite fast, this provides no issues when viewing the effect of the phase correction.
 
 \subsection{Autophase 0}
-Perform a 0th order autophase on the current spectrum (and applies it on all traces). This is
-identical to doing this via the Phasing window, but requires less effort for the user.
+Performs a 0th order autophase on the active spectrum (and applies it to all traces). The only difference with the Autophase from the Phasing window is in the way macros handle the autophasing. 
+The autophasing in the Phase windows is used to determine the phase which needs to be applied to obtain an in-phase spectrum. When a macro is being recorded it will only store the final phase values.
+This is unlike when the Autophase button is used from the Tools menu, which will store the autophasing operation to the macro.
+So when the macro is applied to another spectrum it will perform the autophasing again.
 
 \subsection{Autophase 0+1}
-Perform a 1th order autophase on the current spectrum (and applies it on all traces). This is
-identical to doing this via the Phasing window, but requires less effort for the user.
-
+Similar to Autophase 0, but this will also optimize the 1st order phase.
 
 \subsection{Swap echo}
 A tool to swap the time domain data symmetrically around a selected point.
+Echo swapping is done by left clicking on the echo maximum of the time signal.
+By default, the swapping is set at the centre of the time signal.
+After left clicking, a preview is shown.
+Pushing `Apply' applies the transformation to all traces of this dimension.
+Also, the `Whole echo' flag is set in the Bottom Frame.
+When this is on, Fourier transforming does not multiply the first point by 0.5 (as is needed for data that decays to zero), and line broadening is applied symmetrically.
 
-\subsubsection*{Background}
-In some NMR experiments, the rise and fall of a spin echo is recorded. One way of processing this data is to remove all the data points before the echo maximum, and subsequently treat the data as a regular FID. In some cases it is more useful to use the full data, rise and fall, of the echo signal. Directly Fourier transforming such data leads to massive first order phase distortion. This can be circumvented by swapping the echo around the centre. In this case, the data is split in two parts: the data from the start of the measurement until the top of the echo, and the data from the top of the echo until the last point. The latter data is put leftmost, the former right. The new signal then starts with a decay and rises again at the end. Due to the symmetry of the echo, the Fourier transform of this signal will have zero imaginary signal, while the real signal is still the same as if a regular FID is transformed. This means that phasing such a line can be easily done.
 
-\subsubsection*{ssNake implementation}
-Echo swapping is done by left clicking on the echo maximum of the time signal. By default, the swapping is set at the centre of the time signal. After left clicking, a preview is shown. Pushing `Apply' applies the transformation to all traces of this dimension. Also, the tag `Whole echo' is set in the footer. When this is on, Fourier transforming does not multiply the first point by 0.5 (as is needed for data that decays to zero), and line broadening is applied symmetrically around zero.
+% \subsubsection*{Background}
+% In some NMR experiments, the rise and fall of a spin echo is recorded. One way of processing this data is to remove all the data points before the echo maximum, and subsequently treat the data as a regular FID. In some cases it is more useful to use the full data, rise and fall, of the echo signal. Directly Fourier transforming such data leads to massive first order phase distortion. This can be circumvented by swapping the echo around the centre. In this case, the data is split in two parts: the data from the start of the measurement until the top of the echo, and the data from the top of the echo until the last point. The latter data is put leftmost, the former right. The new signal then starts with a decay and rises again at the end. Due to the symmetry of the echo, the Fourier transform of this signal will have zero imaginary signal, while the real signal is still the same as if a regular FID is transformed. This means that phasing such a line can be easily done.
+
+% \subsubsection*{ssNake implementation}
+% Echo swapping is done by left clicking on the echo maximum of the time signal. By default, the swapping is set at the centre of the time signal. After left clicking, a preview is shown. Pushing `Apply' applies the transformation to all traces of this dimension. Also, the tag `Whole echo' is set in the footer. When this is on, Fourier transforming does not multiply the first point by 0.5 (as is needed for data that decays to zero), and line broadening is applied symmetrically around zero.
 
 
 \subsection{Offset correction}
 Subtracts the average value of the selected data points from all data points.
+The Offset correction tool opens a new window.
+By default, the last 20\% of the time data is selected as containing only noise (of which the average is the offset which should be subtracted).
+Left clicking two times in the graph sets the limits between which the average value is calculated.
+Pushing apply subtracts this value from all time data points.
+If the data has more dimensions then 1, the average value is subtracted from all data points.
+Take note that the average is only calculated for the current graph.
+To apply the offset correction only to the displayed data/traces you can use the `Single slice' button.
 
-\subsubsection*{Background}
-It can sometimes happen that NMR data does not decay to zero, but to another value. In this case, a time signal with zero frequency and no decay can be thought to have been added to the NMR signal. Usually, this is due to issues with the electronics, and does not imply a NMR signal with these properties. For proper analysis of the signal, this offset should be removed, as it leads to a signal at 0 Hz, which can interfere with the spectrum. This can be solved by subtracting the average value of the last points of the time domain data from all the data points.
+% \subsubsection*{Background}
+% It can sometimes happen that NMR data does not decay to zero, but to another value. In this case, a time signal with zero frequency and no decay can be thought to have been added to the NMR signal. Usually, this is due to issues with the electronics, and does not imply a NMR signal with these properties. For proper analysis of the signal, this offset should be removed, as it leads to a signal at 0 Hz, which can interfere with the spectrum. This can be solved by subtracting the average value of the last points of the time domain data from all the data points.
 
-\subsubsection*{ssNake implementation}
-Using the Offset correction tool opens a new window. By default, the last 20\% of the time data is selected as containing only noise (of which the average is the offset which should be subtracted). Left clicking two times in the graph sets the limits between which the average value is calculated. Pushing apply subtracts this value from all time data points. If the data has more dimensions then 1, the average value is subtracted from all data points. Take note that the average is only calculated for the current graph. If you want to correct the offset for each graph you can select the `Single slice' option, and do the correction separately in each desired trace.
+% \subsubsection*{ssNake implementation}
+% Using the Offset correction tool opens a new window. By default, the last 20\% of the time data is selected as containing only noise (of which the average is the offset which should be subtracted). Left clicking two times in the graph sets the limits between which the average value is calculated. Pushing apply subtracts this value from all time data points. If the data has more dimensions then 1, the average value is subtracted from all data points. Take note that the average is only calculated for the current graph. If you want to correct the offset for each graph you can select the `Single slice' option, and do the correction separately in each desired trace.
 
 \subsection{Baseline correction}
 Fits a polynomial line of a given order through the current spectrum while ignoring the selected parts. This line is then subtracted from the spectrum.
-
-\subsubsection*{Background}
-In some NMR spectra, experimental conditions were such that a non-informative baseline is present in the spectrum. This can be due to electronic reasons (e.g. pulse ringing) or due to background signals. This usually means that the first points in the time signal are corrupted. In some cases, removing the first data points is the best option, but this leads to signal loss and a large first order phasing error. In these cases, it can be more convenient to try to subtract the errors in the frequency domain. This is done by fitting a $n$th degree polynomial through  the spectrum, and subtract this line from the spectrum. For this, it is essential that the regions of spectral information (i.e. the NMR peaks) are not included in the fit. Failing to do this will cause the baseline correction to attempt to remove the peaks.
-
-Baseline correction is mostly a visual thing. In the case of ssNake, the degree of the polynomial to be subtracted has to be put in. Usually, putting a very high value leads to strange results. This, however, depends on the spectrum to be corrected.
-
-\subsubsection*{ssNake implementation}
 In ssNake, baseline correction is performed by fitting a $n$th degree polynomial through the spectrum, i.e.:
 \begin{equation*}
 S_\text{corr} = \sum_{i=0}^n a_i x^i ,
 \end{equation*}
-with $a_i$ the amplitude of the $i$th degree polynomial. Fitting this to the spectrum is a mathematical operation with a single unique solution. Prior to doing this, specific parts of the spectrum can be selectively ignored in the fitting procedure. This can be done by left clicking in the spectrum at the two limits of the area that is to be ignored. The area is then marked with a red background. This way, multiple areas can be selected. Pressing  `Fit' then performs and shows the fit. Apply subtracts the line from the spectrum. Note that by default this single fit is subtracted from \textit{all} the traces. This is useful if the background is identical in all of them. Alternatively, the box `Single slice' can be ticked to only apply the correction on the current spectrum.
+with $a_i$ the amplitude of the $i$th degree polynomial. Fitting this to the spectrum is a mathematical operation with a single unique solution. Prior to doing this, specific parts of the spectrum can be selectively ignored in the fitting procedure. This can be done by left clicking in the spectrum at the two limits of the area that is to be ignored. The area is then marked with a red background. This way, multiple areas can be selected. Pressing  `Fit' then performs and shows the fit. Apply subtracts the line from the spectrum. Note that by default this single fit is subtracted from \textit{all} the traces. This is useful if the background is identical in all of them. Alternatively, the box `Single slice' can be ticked to only apply the correction on the displayed spectrum.
+
+
+% \subsubsection*{Background}
+% In some NMR spectra, experimental conditions were such that a non-informative baseline is present in the spectrum. This can be due to electronic reasons (e.g. pulse ringing) or due to background signals. This usually means that the first points in the time signal are corrupted. In some cases, removing the first data points is the best option, but this leads to signal loss and a large first order phasing error. In these cases, it can be more convenient to try to subtract the errors in the frequency domain. This is done by fitting a $n$th degree polynomial through  the spectrum, and subtract this line from the spectrum. For this, it is essential that the regions of spectral information (i.e. the NMR peaks) are not included in the fit. Failing to do this will cause the baseline correction to attempt to remove the peaks.
+
+% Baseline correction is mostly a visual thing. In the case of ssNake, the degree of the polynomial to be subtracted has to be put in. Usually, putting a very high value leads to strange results. This, however, depends on the spectrum to be corrected.
+
+% \subsubsection*{ssNake implementation}
+% In ssNake, baseline correction is performed by fitting a $n$th degree polynomial through the spectrum, i.e.:
+% \begin{equation*}
+% S_\text{corr} = \sum_{i=0}^n a_i x^i ,
+% \end{equation*}
+% with $a_i$ the amplitude of the $i$th degree polynomial. Fitting this to the spectrum is a mathematical operation with a single unique solution. Prior to doing this, specific parts of the spectrum can be selectively ignored in the fitting procedure. This can be done by left clicking in the spectrum at the two limits of the area that is to be ignored. The area is then marked with a red background. This way, multiple areas can be selected. Pressing  `Fit' then performs and shows the fit. Apply subtracts the line from the spectrum. Note that by default this single fit is subtracted from \textit{all} the traces. This is useful if the background is identical in all of them. Alternatively, the box `Single slice' can be ticked to only apply the correction on the current spectrum.
 
 \subsection{Subtract averages}
-Subtracts the average of a region from the respective data. The analysis is performed independently for every slices in the $n$D data. This effectively does the same as Offset Correction, but then for each trace independently.
-
-\subsubsection*{ssNake implementation}
+Subtracts the average of a region from the respective data. The analysis is performed on every slices in the $n$D data. This effectively does the same as Offset Correction, but then for each trace independently.
 Opening this tool gives a window were the left and right limit of the selected data can be set. Alternatively, left clicking on the plot sets the start limit on the first click, and the end limit on the second click. Pushing apply performs the subtraction.
 
 \subsection{Reference deconvolution}
 Uses the FIDDLE algorithm to deconvolute a peak shape in the spectrum.
+% Reference
 
-\subsubsection*{Background}
-Due to issues with magnetic field inhomogeneity (i.e. shimming), peaks in an NMR spectrum can have a weird shape with extra ridges and small peaks on the side. In some cases it is known from prior knowledge that the visible peak should be a single Lorentzian line. If so, the line can be deconvoluted to give this Lorentzian line. Naturally, all other lines in the spectrum should have the same distortions. Using the known shape of the easy Lorentzian reference, all other lines can also have their shape corrected.
+% \subsubsection*{Background}
+% Due to issues with magnetic field inhomogeneity (i.e. shimming), peaks in an NMR spectrum can have a weird shape with extra ridges and small peaks on the side. In some cases it is known from prior knowledge that the visible peak should be a single Lorentzian line. If so, the line can be deconvoluted to give this Lorentzian line. Naturally, all other lines in the spectrum should have the same distortions. Using the known shape of the easy Lorentzian reference, all other lines can also have their shape corrected.
 
-\subsubsection*{ssNake implementation}
-Using the `Reference deconvolution' opens a window, in which the region of the reference signal has to be set (by left clicking, or by filling in the values). Additionally, the new linewidth of the peak has to be specified. Note that the algorithm cannot increase resolution, only make better lineshapes. Filling in a too small linewidth will result in a heavily distorted spectrum. Pushing apply performs the analysis for all traces.
+% \subsubsection*{ssNake implementation}
+Using the `Reference deconvolution' opens a window, in which the region of the reference signal has to be set (by left clicking, or by filling in the values). Additionally, the new linewidth of the peak has to be specified. Note that the algorithm cannot increase resolution, only improve the lineshape. Using a linewidth that is too small will result in a distorted spectrum. Pushing apply performs the algorithm to all traces.
 
 \subsection{Correct Bruker digital filter}
 Corrects a Bruker fid to start at $t=0$.
 
-\subsubsection*{Background}
-In theory, the recording of an NMR signal starts directly after the excitation point. The signal can then be easily described by a decaying exponential (or another function) and the Fourier transform does not show surprises. NMR data measured on a Bruker device, however, has the peculiar attribute that it starts \textit{before} the physical start of the signal. The origin of this lies in the way Bruker spectrometers use their digital filter, of which the details will not be described here. Direct Fourier transformation of this signal will lead to massive oscillations in the baseline of the resulting spectrum.
+% \subsubsection*{Background}
+% In theory, the recording of an NMR signal starts directly after the excitation point. The signal can then be easily described by a decaying exponential (or another function) and the Fourier transform does not show surprises. NMR data measured on a Bruker device, however, has the peculiar attribute that it starts \textit{before} the physical start of the signal. The origin of this lies in the way Bruker spectrometers use their digital filter, of which the details will not be described here. Direct Fourier transformation of this signal will lead to massive oscillations in the baseline of the resulting spectrum.
 
-To be able to handle Bruker NMR data, this detection error has to be corrected. The preferred way for this seems to apply a strong first order phase correction in the spectrum that (due to Fourier principles) rolls the time domain data in such a way that the first point is now the start of the real signal. Due to this procedure, the points that were at the front of the time signal are now at the end. Apparently this leads to better results than just removing this data.
+% To be able to handle Bruker NMR data, this detection error has to be corrected. The preferred way for this seems to apply a strong first order phase correction in the spectrum that (due to Fourier principles) rolls the time domain data in such a way that the first point is now the start of the real signal. Due to this procedure, the points that were at the front of the time signal are now at the end. Apparently this leads to better results than just removing this data.
 
-\subsubsection*{ssNake implementation}
-To automate this process, ssNake uses information from a handy text by W.\ M.\ Westler and F.\ Abildgaard. Every Bruker NMR spectrometer has its own characteristics, and therefore needs a different amount of first order phase correction. For older Bruker hardware, the amount of correction is found by extracting two parameters from the Bruker acqus file, and to use a lookup table supplied by Westler \& Abildgaard. For newer hardware, this value can be read directly from the acqus file.
+% \subsubsection*{ssNake implementation}
+To automate this process, ssNake uses information from a text by W.\ M.\ Westler and F.\ Abildgaard. Every Bruker NMR spectrometer has its own characteristics, and therefore needs a different amount of first order phase correction. For older Bruker hardware, the amount of correction is found by extracting two parameters from the Bruker acqus file, and to use a lookup table supplied by Westler \& Abildgaard. For newer hardware, this value can be read directly from the acqus file.
 
 Using this tool opens a windows, in which you have to open (again) the current Bruker file. ssNake then finds the desired phase correction and applies it to all traces.
 
 \subsection{LPSVD}
 Uses Linear Prediction (LP) via Single Value Decomposition (SVD) to back or forward predict a time signal.
 
-\subsubsection*{Background}
-Measuring an NMR signal right after a pulse is not possible, due to the ring-down time of the pulse, which would interfere with the measurement. Nearly all NMR experiments therefore have a short delay before data acquisition is started. However, in this time the magnetization already starts precessing, causing an offset dependent phase distortion in the spectrum. This can be corrected with a 1st order phase correction, but this can lead to a baseline distortion. An alternative way to compensate the problem of delayed acquisition is by using linear prediction. In this case, the missing data points are reconstructed from the ones that are measured. If done perfectly, the  signal is now perfectly phased, as if no delay was used. Via the same method, acquisition that is stopped before the data has died out can be lengthened by forward predicting based on the measured signal.
+% \subsubsection*{Background}
+% Measuring an NMR signal right after a pulse is not possible, due to the ring-down time of the pulse, which would interfere with the measurement. Nearly all NMR experiments therefore have a short delay before data acquisition is started. However, in this time the magnetization already starts precessing, causing an offset dependent phase distortion in the spectrum. This can be corrected with a 1st order phase correction, but this can lead to a baseline distortion. An alternative way to compensate the problem of delayed acquisition is by using linear prediction. In this case, the missing data points are reconstructed from the ones that are measured. If done perfectly, the  signal is now perfectly phased, as if no delay was used. Via the same method, acquisition that is stopped before the data has died out can be lengthened by forward predicting based on the measured signal.
 
-Most LP methods require the user to supply the number of frequencies that are in the time signal, as this is difficult (impossible?) for the program to recognise.
+% Most LP methods require the user to supply the number of frequencies that are in the time signal, as this is difficult (impossible?) for the program to recognise.
 
-\subsubsection*{ssNake implementation}
-Currently, ssNake supports only LPSVD as a linear prediction algorithm. Using the tool pops up a windows were several things need to be set:
+% \subsubsection*{ssNake implementation}
+currently, ssNake supports only LPSVD as a linear prediction algorithm. Using the tool pops up a windows were several things need to be set:
 \begin{itemize}
 \item Whether a forward or backward linear prediction needs to be performed. \footnote{Note that ssNake always calculates the LP coefficients via a forward LPSVD. This setting is therefore only for setting the direction in which data points need to be added.}
 \item The number of points used for the analysis of the LP. These are taken from the front (backwards prediction) or from the end (forward).
@@ -735,218 +691,188 @@ Currently, ssNake supports only LPSVD as a linear prediction algorithm. Using th
 \end{itemize}
 Pushing OK starts the analysis. The linear prediction is performed independently for every trace. The time it takes can therefore be quite long. Note that increasing the number of points used for the analysis above 200 usually has only a negative effect on the calculation time.
 
-
-\subsection{Hypercomplex}
-Hypercomplex data is data that has a real and imaginary part along more than 1 dimension. For a 2D
-data set that is hypercomplex, four 2D data sets are necessary to describe the data: RR, RI, IR, and
-II (with R = Real, and I = Imag).  Generally in NMR, the 2D data is recorded with alternating phase,
-in such a way that groups of 2 data points in the indirect dimension must be combined to recover the
-four hypercomplex values. Depending on the way the data is recorded, a different procedure is
-necessary to construct the hypercomplex data. All of these methods start with a alternating data set consisting
-of [R1, I1, R2, I2], were R1 stands for the first recorded complex point with time 1, I1 for the second
-recorded complex point with time 1. After the conversion to hypercomplex data (along a specific
-dimension), ssNake then does hypercomplex processing along that dimension. Phasing along a hyper
-complex axis, for example, performs a different phasing than phasing over a non-hypercomplex axis.
-Let's say we have a 2D data set with hypercomplex information along D1. Phasing along D2, we will
-issue a regular phasing. In the notation used above (RR, IR, RI, II), this means that we will phase
-between RR$\leftrightarrow$RI and IR$\leftrightarrow$II. If we phase along D1, we must phase in the
-opposite way: RR$\leftrightarrow$IR and RI$\leftrightarrow$II. Also, a Fourier transform along D1
-must take RR + $i\cdot$IR as its real and imaginary part (and separately transform RI + $i\cdot$II).
-
-In principle, there can be hypercomplex data along every dimension except one. Normally in NMR, the
-direct dimension (last dimension) cannot be hyper complex. This is because it does not make sense,
-as the direct real data already has its imaginary counterpart: the direct imaginary data. Hypercomplex
-data can be seen as adding the imaginary part to also the indirect dimensions, to allow phasing
-along this dimension.
-
-
-\subsubsection{States}
-States conversion takes the alternating data set and makes new hypercomplex values. For 2D
-data this means that when preforming states along D1, the two complex numbers are converted as:
-\begin{equation*}
-  \text{RR} + i \cdot \text{RI} = \text{R}_{1} + i \cdot \text{I}_{1} \quad .
-\end{equation*}
-\begin{equation*}
-  \text{IR} + i \cdot \text{II} = \text{R}_{2} + i \cdot \text{I}_{2} \quad .
-\end{equation*}
-Making two new complex numbers from the old ones. In this case R$_1$ is the real value of the first
-point of the set of two, and R$_2$ the second real point (and the same for the imaginary, I).
-
-
-\subsubsection{States--TPPI}
-
-States--TPPI conversion takes the alternating data set and makes new complex values following the
-same procedure as States. After the procedure, the values as odd positions are multiplied with $-1$
-(and the even positions are retained).
-
-
-
-\subsubsection{Echo--antiecho}
-Echo--antiecho conversion takes the alternating data set and makes new complex values following:
-\begin{equation*}
-  \text{RR} + i \cdot \text{RI} = (\text{R}_{1} +\text{R}_{2})  + i \cdot (\text{I}_{1} +
-  \text{I}_2)
-\end{equation*}
-\begin{equation*}
-  \text{IR} + i \cdot \text{II} = (\text{I}_{2} - \text{I}_1) + i \cdot (\text{R}_{1} - \text{R}_2  ) \quad .
-\end{equation*}
-
-
-
-
-
-
 \section{Matrix}
-This section describes the ssNake matrix manipulation tools. NMR data is nothing more then a data matrix of a specific dimension. Using the matrix tools, you can change the size of a dimension, split the data into more dimension, integrate, multiply, mirror etc. In the following, the different supported matrix manipulations will be introduced.
-
+This section describes the ssNake matrix manipulation tools.
+NMR data is nothing more then a data matrix with $N$ dimensions.
+Using the matrix tools, you can change the size of a dimension, split the data into more dimension, integrate, multiply, mirror etc.
+In the following section, the different supported matrix manipulations are introduced.
 
 \subsection{Sizing}
-The sizing tool can be used to edit the number of points in the current dimension.
+The sizing tool can be used to edit the number of points in the active dimension.
 
-\subsubsection*{Background}
-The number of point taken in an NMR time signal is usually restricted, as increasing the acquisition time leads to more noise (if the signal has decayed) or adds too much strain on the device (if decoupling is used). As the number of points in the spectrum is equal to the number of points in the time signal, this limits the \textit{digital} resolution of the spectrum, making it less easy to extract the desired data. However, if the signal has decayed at the end, the digital resolution in the spectrum can be enhanced by adding zeroes at the end, without effecting the spectrum in terms of signal-to-noise and appearance. This is termed `zero filling' and is often used in NMR.
+% \subsubsection*{Background}
+% The number of point taken in an NMR time signal is usually restricted, as increasing the acquisition time leads to more noise (if the signal has decayed) or adds too much strain on the device (if decoupling is used). As the number of points in the spectrum is equal to the number of points in the time signal, this limits the \textit{digital} resolution of the spectrum, making it less easy to extract the desired data. However, if the signal has decayed at the end, the digital resolution in the spectrum can be enhanced by adding zeroes at the end, without effecting the spectrum in terms of signal-to-noise and appearance. This is termed `zero filling' and is often used in NMR.
 
-If the time signal has not fully decayed, the signal abruptly changes to zero when zero-filling is applied. This leads to distortions in the spectrum (i.e. sinc wiggles) as the time signal is effectively multiplied with a block function. General Fourier theory then states that the spectrum must then be convoluted with the Fourier transform of the block function, which is $\sin(x)/x$, i.e. sinc.
+% If the time signal has not fully decayed, the signal abruptly changes to zero when zero-filling is applied. This leads to distortions in the spectrum (i.e. sinc wiggles) as the time signal is effectively multiplied with a block function. General Fourier theory then states that the spectrum must then be convoluted with the Fourier transform of the block function, which is $\sin(x)/x$, i.e. sinc.
 
-\subsubsection*{ssNake implementation}
-Selecting `Matrix $\rightarrow$ Sizing' creates a sizing window. In here a
-single number has to be filled in the box titled `Size'. Decimal values will be
-rounded to the nearest integer. Apart from numbers, the command `k' (or `K') is
-also supported, which stands for `1024'. When using this definition there has
-to be a number before the `k'. A valid input would therefore be: `2k'. Which
-sets the number of points to $2 \cdot 1024=2048$. Pressing `Apply' executes the
-sizing command on all traces in all dimensions. Also, the $\pm 2\text{\textasciicircum}n$ buttons can be used
-to go to the nearest power of 2 (which makes subsequent Fourier transforms much faster).
+% \subsubsection*{ssNake implementation}
+Selecting `Matrix $\rightarrow$ Sizing' creates a sizing window.
+In here a single number has to be filled in the box titled `Size'.
+Decimal values will be rounded to the nearest integer.
+Apart from numbers, the command `k' (or `K') is also supported, which stands for `1024'. When using this definition there has to be a number before the `k'.
+A valid input would therefore be: `2k'.
+Which sets the number of points to $2 \cdot 1024=2048$.
+Pressing `Apply' executes the sizing command on all traces in all dimensions.
+Also, the $\pm 2\text{\textasciicircum}n$ buttons can be used to go to the nearest power of 2 (which makes subsequent Fourier transforms much faster).
 
-If the supplied number is larger than the current size, zeroes are added at the
-right-hand side of the time signal. If the value is lower, points are removed
-from the right-hand side of the time signal. If the whole echo type is on, the
-zeroes are added in the centre of the time signal, or points are taken
-symmetrically from the centre, if the size is reduced. Alternatively, the
-position of the zero filling can be specified by left-clicking in the spectrum,
-or by manually filling in the desired offset value in the box `Offset'.
+If the supplied number is larger than the current size, zeroes are added at the right-hand side of the time signal.
+If the value is lower, points are removed from the right-hand side of the time signal.
+If the whole echo type is on, the zeroes are added in the centre of the time signal, or points are taken symmetrically from the centre, if the size is reduced.
+Alternatively, the position of the zero filling can be specified by left-clicking in the spectrum, or by manually filling in the desired offset value in the box `Offset'.
 
-When applied to the frequency domain, zero filling makes no real sense.
-Therefore, ssNake always applies it in the time domain. So when the size is
-changed within a spectrum, it is transformed back to the time domain, the size
-is changed, and a forward Fourier transform gets the data back to the frequency
-domain.
+ssNake always applies the sizing in the time domain.
+So when the size is changed within a spectrum, it is transformed to the time domain, the size is changed, and a forward Fourier transform gets the data back to the frequency domain.
 
 \subsection{Shift data}
-Shifts the data to the left or to the right, by removing data points on the left or on the right, and filling with zeroes on the other side. Negative shifts are left shifts, positive right shifts.
+Shifts the data to the left or to the right, by removing data points on the left or on the right, and filling with zeroes on the opposite side.
+Negative values are shift left, positive values shift right.
 
-\subsubsection*{Background}
-Data shifting can be used if some data points on the left or right of the time signal are unnecessary or unwanted. When measuring a spin echo, for example, it is not uncommon to start recording the signal some microseconds before the expected echo top, to make sure the full signal is measured. The data can then be left shifted to remove the data points before the echo maximum, and yield a regular spectrum.
+% \subsubsection*{Background}
+% Data shifting can be used if some data points on the left or right of the time signal are unnecessary or unwanted. When measuring a spin echo, for example, it is not uncommon to start recording the signal some microseconds before the expected echo top, to make sure the full signal is measured. The data can then be left shifted to remove the data points before the echo maximum, and yield a regular spectrum.
 
-\subsubsection*{ssNake implementation}
-Starting the shift data tool creates an input window. Within this window, a integer number must be filled in that equals the number of data points of the  desired \textit{right} shift. Left shifts can be made by using negative values. Alternatively, the arrows on the right and left side of the input box can be used to shift the data in the direction of the arrow. The effect of the operation on the current 1D can be seen in the main window. When pushing `Apply' the shift is performed on all traces of the nD data.
+% \subsubsection*{ssNake implementation}
+Starting the shift data tool creates an input window.
+In this window, a integer number must be filled in that equals the number of data points of the desired \textit{right} shift.
+Left shifts can be made by using negative values.
+Alternatively, the arrows on the right and left side of the input box can be used to shift the data in the direction of the arrow.
+The effect of the operation on the current 1D can be seen in the main window.
+When pushing `Apply' the shift is performed on all traces of the nD data.
 
-ssNake can also perform the time domain shift from within the frequency domain. When in a spectrum, an inverse Fourier transform is used to go back to the time domain. The data is then shifted with the desired measure, and a forward Fourier transform gives the spectrum of the shifted time signal. The effect of the sift on the current 1D can be seen in the main window. As this calculation is a bit more involved, it can take some time if the data set is large.
-
+The shifting is always applied in the time domain.
+In the frequency domain Fourier transforms are used to transform to and from the time domain to apply the shifting.
 
 \subsection{Integrate}
-Integrates a specific part of the current dimension on all traces.
+Integrates a specific part of the active dimension on all traces.
 
-\subsubsection*{Background}
-As NMR is a quantitative technique (when applied correctly), the area under the different peaks in a spectrum is a representative for the relative number of nuclei that resonant at this frequency. Calculating the integral of these peaks can therefore supply the user with an indication on the composition of the material that is analysed. Integration in ssNake using the matrix tool integrates across (specific parts) of the current dimension. Therfore, the resulting data will have one dimension fewer than before. Say, for example, you have a set of 2D data, of which every trace has the same signal, but a different intensity of this signal. When in the second dimension (in which the peak is shown) the peak can be integrated by supplying the left and right limit of the peak. This will result in 1D data, of which every point represents the integral of the selected area of one of the spectra.
+% \subsubsection*{Background}
+% As NMR is a quantitative technique (when applied correctly), the area under the different peaks in a spectrum is a representative for the relative number of nuclei that resonant at this frequency. Calculating the integral of these peaks can therefore supply the user with an indication on the composition of the material that is analysed. Integration in ssNake using the matrix tool integrates across (specific parts) of the current dimension. Therfore, the resulting data will have one dimension fewer than before. Say, for example, you have a set of 2D data, of which every trace has the same signal, but a different intensity of this signal. When in the second dimension (in which the peak is shown) the peak can be integrated by supplying the left and right limit of the peak. This will result in 1D data, of which every point represents the integral of the selected area of one of the spectra.
 
-\subsubsection*{ssNake implementation}
-When using the integration matrix tool, a window pops up, were you have to select the limits of the area you want to integrate in the current dimension. This can be done by typing in the numbers of the data points, or more conveniently by left clicking in the spectrum. The first click sets the first limit, the second click the second limit. Pushing apply then performs the integration. Be aware that integration values can depend on, amongst others, the amount of zerofilling that is used.
+% \subsubsection*{ssNake implementation}
+When using the integration matrix tool, a window pops up, were you have to select the limits of the area you want to integrate in the active dimension.
+This can be done by typing in the numbers of the data points, or  by left clicking in the spectrum.
+The first click sets the first limit, the second click the second limit.
+Clicking Apply performs the integration.
+If the input boxes are left empty the entire length is integrated.
+If only a single set of limits is supplied the resulting data will have one less dimension than the original.
+
 
 \subsection{Sum}
-Sums a specific part of the current dimension on all traces. Is implemented in the same way as integrating, only no scaling with the step sizes is performed.
+Sums a specific part of the active dimension on all traces.
+This method is implemented in a way similar to integrating.
 
 \subsection{Max}
-Takes the maximum value of the selected part in the current dimension on all traces. Implementation is the same as with integration.
+Takes the maximum value of the selected part in the active dimension on all traces.
+Implementation is similar to integration.
 
 \subsection{Min}
-Takes the minimum value of the selected part in the current dimension on all traces. Implementation is the same as with integration.
+Takes the minimum value of the selected part in the active dimension on all traces.
+Implementation is similar to integration.
 
 \subsection{Max position}
 Returns the x value of the maximum position (i.e. top of a peak) within the selected area for all traces.
 
-\subsubsection*{Background}
-When analysing some experiments, it is useful to make a plot of the position of a peak versus some changing variable (e.g. time, temperature). This features allows the user to extract such data. It finds the maximum value within the selected region, and extracts the corresponding x-value. It does this for all traces, and therefore reduces the number of dimensions by 1. For example, if one has 2D data, of which the most intense peak in D2 shifts linearly in D1, this tool tool can be used to generate 1D data that shows this linear relation.
+% \subsubsection*{Background}
+% When analysing some experiments, it is useful to make a plot of the position of a peak versus some changing variable (e.g. time, temperature). This features allows the user to extract such data. It finds the maximum value within the selected region, and extracts the corresponding x-value. It does this for all traces, and therefore reduces the number of dimensions by 1. For example, if one has 2D data, of which the most intense peak in D2 shifts linearly in D1, this tool tool can be used to generate 1D data that shows this linear relation.
 
 \subsection{Min position}
-Returns the x value of the minimum position within the selected area for all traces. Works the same as Max position.
+Returns the x value of the minimum position within the selected area for all traces.
+Works similar to Max position.
 
 \subsection{Average}
-Returns the average of the selected region. Implementation is the same as with integration.
+Returns the average of the selected region. Implementation is similar to integration.
 
 \subsection{Diff}
-Differentiates the data in the current dimension (i.e. returns the difference between each data point and the next data point). This is equal to the slope between the points. Remember that NMR data is the frequency domain is always depicted from right to left, so the direction of differentiating is different in the time domain than in the frequency domain (or, in fact, it is the same but $looks$ different).
+Differentiates the data in the active dimension (i.e. returns the difference between each data point and the next data point).
+This is equal to the slope between the points.
+Remember that NMR data is the frequency domain is always depicted from right to left, so the direction of differentiating is displayed `in reverse'.
+The size of the data along that dimension will be reduced by one.
 
 \subsection{Cumsum}
-Performs a cumulative sum on the data in the current dimension. This means that each point is now equal to its old value, and those of all the previous points added. Remember (as with Diff) that the frequency domain is mirrored, and the direction of Cumsum is also different.
+Performs a cumulative sum on the data in the active dimension.
+This means that each point is now equal to its old value, and those of all the previous points added.
+Remember (as with Diff) that the frequency domain is displayed in reverse.
 
 
 \subsection{Extract part}
-Deletes all parts of the current dimension that are outside the selected region.
+Deletes all parts of the active dimension that are outside the selected region.
 
-
-\subsubsection*{ssNake implementation}
-This function can be used to delete parts from the current spectrum or fid. Left clicking on a prt sets the first limit on the first click, and the second limit on the second click. Apply deletes all parts outside this region on all traces. When doing this in the spectrum, the spectral width and zero point (reference frequency) are also changed to keep all peaks at the same frequency.
+This function can be used to delete parts from the active spectrum or fid.
+Left clicking on a prt sets the first limit on the first click, and the second limit on the second click.
+Apply deletes all parts outside this region on all traces.
+When doing this in the spectrum, the spectral width and zero point (reference frequency) are also changed to keep all peaks at the same frequency.
 
 \subsection{Flip L/R}
-Flips (i.e. mirrors) the left and right side of the current dimension. The axis is not flipped.
+Flips (i.e. mirrors) the left and right side of the active dimension.
+The axis is not flipped.
 
 \subsection{Delete}
-Deletes specific data points from the current dimension. Should be entered in array from. For example: [1,2,40] deletes data points 1, 2 and 40. Remember that ssNake uses the python way of array indexing: 0 is the first point. The above code therefore deletes the second, third and forty--first data point. Do remember that the indexing goes from right to left in the case the current dimension is a spectrum (the frequency axis is flipped).
+Deletes specific data points from the active dimension.
+The points can be given in array form.
+For example: [1,2,40] deletes data points 1, 2 and 40.
+Remember that ssNake uses the python way of array indexing: 0 is the first point.
+The above code therefore deletes the second, third and forty--first data point.
+Also note that the indexing goes from right to left in the frequency domain.
+Numpy commands can also be used to remove datapoints.
+For example, \textit{arange(0,5000,2)} will remove every other datapoint for the first 5000 datapoints.
 
 \subsection{Split}
-Splits the current dimension in $n$ parts with an equal number of data points. The newly created dimension is named D1, and all the other dimension numbers are increased by one (shifted one lower). This tool can only spilt the data in parts of equal size. It is therefore necessary to make sure that the size of the data in the current dimension is divisible by $n$, or in math.
+Splits the active dimension in $n$ parts with an equal number of data points.
+The newly created dimension is named D1, and all the other dimension numbers are increased by one (shifted one lower).
+This tool can only split the data in parts of equal size.
+It is therefore necessary to make sure that the size of the data in the active dimension is divisible by $n$.
 
 \subsection{Multiply}
-Multiplies the y-values of the data in the current dimension by a given number. If a single number is supplied, all the points are multiplied by this number. Alternatively, an array with the same length as the data can be given to specify a position dependent multiplication. For example, for a dimension with 3 data points: [1,3.34,2]. This multiplies the first data point by 1, second by 3.34, etc. Do not forget the about the mirroring in the spectral domain (see Diff)!
+Multiplies the y-values of the data in the active dimension by a given number.
+If a single number is supplied, all the points are multiplied by this number.
+Alternatively, an array with the same length as the data can be given to specify a position dependent multiplication.
+For example, for a dimension with 3 data points: [1,3.34,2].
+This multiplies the first data point by 1, second by 3.34, etc.
+Do not forget the about the mirroring in the frequency domain (see Diff)!
 
 \subsection{Normalize}
-A tool to scale a selected region to a particular maximum, minimum, or integral. This is
-essentially the same as the `Multiply' tool, only ssNake calculates the relevant multiplication
-factor for you.
+A tool to scale a selected region to a particular maximum, minimum, or integral.
+This is essentially the same as the `Multiply' tool, only ssNake calculates the multiplication factor for you.
 
 \subsection{Reorder}
-Reorders the data in the current dimension. Input is an array with the new,
-desired positions. For example, [0,2,1] keeps the position of the first element
-(`0'), but interchanges the second and the third. It is also possible to supply
-the input array by loading a filer (as is used in Non-Uniform Sampling). If the
-new data length is longer than the old, the missing points are filled with
-zeros. Also, the length of the desired new dimension can be given. If the
-length of the final data is shorter than this value, some zeros are appended.
+Reorders the data in the active dimension.
+Input is an array with the new, desired positions.
+For example, [0,2,1] keeps the position of the first element (`0'), but interchanges the second and the third.
+It is also possible to supply the input array by loading a file (as is used in Non-Uniform Sampling).
+If the new data length is longer than the old, the missing points are filled with zeros.
+Also, the length of the desired new dimension can be given.
+If the length of the final data is shorter than this value, some zeros are appended.
 
 \subsection{Regrid}
-Opens a window that can be used to regrid the spectrum. This involves linear interpolation if the new
-$x$-values fall between data points.
+Opens a window that can be used to regrid the spectrum.
+This involves linear interpolation if the new $x$-values fall between data points.
 
-\subsubsection*{Background}
-When recording two sets of data, adding them is only possible if no frequency shift has occurred in between
-(i.e. if the $x$-axis is identical for both spectra). When this is not the case, the axis of one of the
-spectra most be regrid to comply to the other. This involves constructions $y$-values at new $x$-positions, and
-therefore needs some interpolation, which is done linearly in our case. When new $x$-values fall outside the
-range of the initial data, the new $y$-value is set to zero (no \textit{extrapolation} is done).
+% \subsubsection*{Background}
+% When recording two sets of data, adding them is only possible if no frequency shift has occurred in between (i.e. if the $x$-axis is identical for both spectra).
+% When this is not the case, the axis of one of the spectra most be regrid to comply to the other. This involves constructions $y$-values at new $x$-positions, and therefore needs some interpolation, which is done linearly in our case. When new $x$-values fall outside the range of the initial data, the new $y$-value is set to zero (no \textit{extrapolation} is done).
 
-Another good example for this function is the analysis of Variable Offset Cumulative Spectra (i.e. VOCS), in
-which multiple spectra with different offsets are recorded. Adding them then requires the same $x$-axis for
-all of them.
+% Another good example for this function is the analysis of Variable Offset Cumulative Spectra (i.e. VOCS), in which multiple spectra with different offsets are recorded. Adding them then requires the same $x$-axis for all of them.
 
-\subsubsection*{ssNake implementation}
-Using this tool opens a window in which the type of interpolation can be set (now only min/max). The min/max
-input then requires a new minimum and maximum to be set, and the number of points. Note that a power of 2 is
-advised if Fourier transforms are necessary on the data. The spectral width and centre frequency are adjusted
-to comply to the new axis (and the reference, when defined, stays the same).
+% \subsubsection*{ssNake implementation}
+Using this tool opens a window in which the type of interpolation can be set (now only min/max).
+The min/max input then requires a new minimum and maximum to be set, and the number of points.
+Note that a power of 2 is advised for efficient Fourier transforms.
+The spectral width and centre frequency are adjusted to comply with the new axis (and the reference, when defined, stays the same).
 
 \subsection{Concatenate}
-Concatenates (i.e. sticks) that data of dimension $n$ after dimension $n+1$. So if the original data is 10x5x3, and dimension 2 is selected,
-it becomes 10x15. This can be seen as the opposite of the `Split' function. Note that after applying this function the numbers of the dimensions in the ssNake window changes accordingly.
+Concatenates that data of dimension $n$ after dimension $n+1$.
+So if the original data is 10x5x3, and dimension 2 is selected, it becomes 10x15.
+This can be seen as the opposite of the `Split' function.
+Note that after applying this function the numbers of the dimensions in the ssNake window changes accordingly.
 
 \subsection{Shearing}
-Shearing data is a function most commonly used for MQMAS data (in solid state NMR, that is). It is used to correct a frequency slope along a specific dimension.
+Shearing data is a function most commonly used for MQMAS data (in solid state NMR, that is).
+It is used to correct a frequency slope along a specific dimension.
 The amount of shearing necessary is defined by a shearing constant, which needs to be supplied by the user.
-For every trace in the current spectrum, the data is shifted (left or right, depending on the sign of the shearing constant) a specific amount. Any data point that goes outside
-the range of the data rolls to the other side (aliasing). The size of the shift is directly related to the x-value of that specific trace in the shearing direction.
+For every trace in the current spectrum, the data is shifted (left or right, depending on the sign of the shearing constant) a specific amount.
+Any data point that goes outside the range of the data rolls to the other side (aliasing).
+The size of the shift is directly related to the x-value of that specific trace in the shearing direction.
 
-
-\subsubsection*{ssNake implementation}
+% \subsubsection*{ssNake implementation}
 Activating Shearing opens a menu, in which the shearing constant, direction and axis must be set.
 
 \begin{itemize}
@@ -956,68 +882,67 @@ Activating Shearing opens a menu, in which the shearing constant, direction and 
   \item \textit{Axis}: The axis over which the data must be rolled. In a 2D case, this is D2.
 \end{itemize}
 
-The actual shearing can be done in two ways: in the time, or in the frequency domain. Shearing in the frequency domain is intuitive: it just rolls the spectrum to the left or right.
-However, if the shift is not an integer number of data points, some interpolation is required. We therefore opted to apply the shearing in the time domain. This involves an inverse Fourier transform
-, after which each trace gets a time dependent phasing (1st order phasing in the time domain). A regular Fourier transform gives back the sheared spectrum.
-In this way, no interpolation is necessary.
-
+In ssNake the shearing is implemented in the time domain for the \textit{Axis} dimension.
+For each trace in dimension \textit{Direction} the time domain data is multiplied with a phase linear in \textit{Axis}.
+This means that data can be sheared with non-integer values as well.
+If the \textit{Axis} dimension is not in the time domain, and inverse and a forward Fourier transform is used.
 
 \section{Transforms}
 \subsection{Fourier Transform}
-Performs a Fourier Transform (equal to the `Fourier' button in the bottom frame). When the current data is in time units,
-it performs a regular Fourier transform, when in spectrum mode, it performs an inverse Fourier transform.
+Performs a Fourier Transform (equal to the `Fourier' button in the bottom frame).
+When the current data is in time units, it performs a regular Fourier transform, when in spectrum mode, it performs an inverse Fourier transform.
 The type (i.e. time or spectrum) of the data is modified accordingly.
 
-For the Fourier transform, ssNake uses the Fast Fourier Transform (FFT) form the numpy library. It also executes the
-corresponding fftshift after the transformation. Note that FFT is the most efficient when the data size is a power of 2.
-It is always wise to keep NMR data in this shape (by setting the size to a number of `k' as explained at Matrix $\rightarrow$ Sizing).
-
+For the Fourier transform, ssNake uses the Fast Fourier Transform (FFT) from the numpy library.
+It also executes the corresponding fftshift after the transformation.
+Note that FFT is the most efficient when the data size is a power of 2.
 
 
 \subsection{Real Fourier Transform}
-Performs a real Fourier transform. This is the same as performing a Fourier transform with only the real part of the data, as can be
-done by using Tools $\rightarrow$ Real. In this case, signals with a lower frequency than the offset cannot be distinguished
-from signals with a higher frequency. This makes the spectrum symmetric around the centre. In some Figures in the literature, only
-the positive frequencies are showed for this reason. We have opted to keep the negative frequency part.
-
-
+Performs a real Fourier transform.
+This is equivalent to first applying Tools $\rightarrow$ Real and then a complex Fourier transform.
+This makes the spectrum symmetric around the centre.
+In some Figures in literature, only the positive frequencies are shown for this reason.
+In ssNake the entire spectrum is kept.
 
 \subsection{Fftshift}
-Performs an fftshift. This interchanges the left and right part of the data. Normally, this function is not needed, as ssNake keeps
-track of the shifting when performing a Fourier transform.
-
+Performs an fftshift. This interchanges the left and right part of the data.
+Normally, this function is not needed, as ssNake performs an fftshift after a Fourier transform.
 
 \subsection{Inv fftshift}
 Performs an inverse fftshift.
 
 
 \subsection{Hilbert Transform}
-Performs a Hilbert Transform on the current data. This removes the imaginary data, and creates new imaginary data from the real data
-via the Kramers--Kronig relations. The sign of the imaginary data is lost in this way. Most commonly, a Hilbert transform is
-used in algorithms that take some part of the real data, and the imaginary part needs to be reconstructed.
+Performs a Hilbert Transform along the active dimension.
+This removes the imaginary data, and creates new imaginary data from the real data via the Kramers--Kronig relations.
+The sign of the imaginary data is lost in this way.
+Most commonly, a Hilbert transform is used in algorithms that take some part of the real data, and the imaginary part needs to be reconstructed.
 
 
 \subsection{NUS}
-Non-uniform sampling (NUS) is a way to reduce measurement time of a 2D (or higher) experiment. It involves measuring only selected t$_1$ delays, and using
-an algorithm to reconstruct the data. Reconstruction is necessary, as a regular Fourier transform can only deal with linearly sampled data.
+Non-uniform sampling (NUS) is a way to reduce measurement time of a 2D (or higher) experiment.
+It involves measuring only selected t$_1$ delays, and using an algorithm to reconstruct the data.
+Reconstruction is necessary, as a regular Fourier transform can only deal with linearly sampled data.
 Most commonly, NUS is performed by choosing a regular delay time and number of points (i.e. a linear grid), and deleting selected values from this list.
 Processing NUS data is more involved then regularly measured data: the reconstruction process is not unique, and requires optimization.
 
-Processing NUS data in ssNake requires the data to be reordered (using Matrix $\rightarrow$ Reorder, and selecting the NUS list), in this way
-points that are not measured are taken as a 0. Now, phasing should be performed. The easiest way to do this is to do a regular Fourier transform. This will lead to ugly data, but
-is sufficient to perform some 0th order phasing. Do another Fourier transform to get back to the time domain data. After this, NUS processing using the following methods is possible.
+Processing NUS data in ssNake requires the data to be reordered (using Matrix $\rightarrow$ Reorder, and selecting the NUS list), in this way points that are not measured are taken as a 0.
+Now, phasing should be performed.
+The easiest way to do this is to do a regular Fourier transform.
+This will lead to ugly data, but is sufficient to perform some 0th order phasing.
+Do another Fourier transform to get back to the time domain data.
+After this, NUS processing can be performed using one of the following methods.
 
 \subsubsection{FFM}
-Fast Forward Maximum entropy (FFM, \cite{balsgart2012fast}) is a method to reconstruct the missing point is the FID by searching for the highest entropy. In our case, the entropy of the spectrum is defined
-as the sum of the absolute values of the complex data. FFM changes the values of the missing points in search for the highest entropy. This means that FFM reduces
-the noise in the spectrum (but adds uncertainty to the peak shapes and amplitudes) and favours narrow lines. Naturally, the points that \textit{are} measured force the FFM analysis to
-create a spectrum that resembles the actual data.
+Fast Forward Maximum entropy (FFM, \cite{balsgart2012fast}) is a method to reconstruct the missing point is the FID by searching for the highest entropy.
+In our case, the entropy of the spectrum is defined as the sum of the absolute values of the complex data.
+FFM changes the values of the missing points in search for the highest entropy.
+This means that FFM reduces the noise in the spectrum (but adds uncertainty to the peak shapes and amplitudes) and favours narrow lines.
+Naturally, the points that \textit{are} measured force the FFM analysis to create a spectrum that resembles the actual data.
 
-For FFM, no additional parameters are needed, except for the NUS sampling scheme. Note that although the noise seems to be reduced by FFM, it is now equally contained
-in the peak shapes and amplitudes.
-
-
-
+For FFM, no additional parameters are needed, except for the NUS sampling scheme.
+Note that although the noise seems to be reduced by FFM, it is now equally contained in the peak shapes and amplitudes.
 
 \subsubsection{CLEAN}
 The CLEAN algorithm attempts to take single point in the spectrum, transfer part of it to a separate reconstructed spectrum, and subtract it from the main spectrum.
@@ -1035,8 +960,6 @@ In short:
 Steps 2--4 are repeated. Finally, the remained of the spectrum is added to the reconstruction.
 
 The user needs to supply the sampling scheme, the gamma value (lower is better, but slower) and the threshold (stopping criterion in \%, should be equal to the noise band for best results).
-
-
 
 
 
@@ -1070,53 +993,94 @@ The settings that need to be supplied by the user are:
 Reconstruction is done separately for every trace in the $n$D data. This also goes for the settings: the residual is compared to the first spectrum of \textit{that} trace.
 
 
+\subsection{Hypercomplex}
+Hypercomplex data has a real and imaginary components along more than 1 dimension.
+For example, each datapoint from a 2D hypercomplex data set has four components: RR, RI, IR and II (R = Real and I = Imaginary).
+In NMR there are a number of ways to obtain the full hypercomplex data.
+This generally involves aternating the phase of some RF pulses.
+Depending on the way the data is recorded, a different procedure is required to construct the hypercomplex data.
+These procedures are supplied in the Hypercomplex menu.
+
+When a specific dimension is hypercomplex, some methods will alter their behavior.
+For example, phasing along a hypercomplex dimension will rotate the real/imaginary values corresponding to that dimension.
+Also a Fourier transform will use the real/imaginary pairs of the dimension to be transformed (if available).
+The Side Frame shows whether a dimension is (hyper)complex by an asterix next to the dimension number.
+Using the Real, Imag or Abs routines will remove hypercomplex pairs from the active dimension.
+The last dimension is always complex and will not be removed, but instead the imaginary values will all be 0.
+In the case that the active dimension is not hypercomplex the complex pair of the last dimension is used for phasing, Fourier transforms, etc. 
+
+\subsubsection{States}
+States conversion takes the alternating data set and makes new hypercomplex values.
+For 2D data this means that when preforming states along D1, the two complex numbers are converted to a real part along that dimension:
+\begin{equation*}
+  \text{RR}_n + i \cdot \text{RI}_n = \text{R}_{2n} + i \cdot \text{I}_{2n} \quad .
+\end{equation*}
+The 
+\begin{equation*}
+  \text{IR}_n + i \cdot \text{II}_n = \text{R}_{2n+1} + i \cdot \text{I}_{2n+1} \quad .
+\end{equation*}
+A new hypercomplex datapoint with index $n$ is created from the two complex datapoints with indices $2n$ and $2n+1$.
+$R$ is the real part and $I$ the imaginary part.
+
+\subsubsection{States--TPPI}
+
+States--TPPI conversion takes the alternating data set and makes new complex values following the
+same procedure as States. After the procedure, the values as odd positions are multiplied with $-1$
+(and the even positions are retained).
+
+\subsubsection{Echo--antiecho}
+Echo--antiecho conversion takes the alternating data set and makes new complex values following:
+\begin{equation*}
+  \text{RR}_n + i \cdot \text{RI}_n = (\text{R}_{2n} +\text{R}_{2n+1})  + i \cdot (\text{I}_{2n} +
+  \text{I}_{2n+1})
+\end{equation*}
+\begin{equation*}
+  \text{IR}_n + i \cdot \text{II}_n = (\text{I}_{2n+1} - \text{I}_{2n}) + i \cdot (\text{R}_{2n} - \text{R}_{2n+1}  ) \quad .
+\end{equation*}
 
 \section{Fitting}
-In NMR spectroscopy, the shape of the resonance lines can provide information on the strength of
-interactions that the nucleus experiences. ssNake can, as many other programs, fit some idealized
-lineshapes with are often encountered in real life spectra. Fitting in ssNake ranges from trivial
-`full width at half maximum' (FWHM) fitting, to the complex quadrupolar Czjzek distribution. The
-following section will explain the way ssNake handles the different types of spectra it can fit, and
-which equations are used to simulate the different spectra.
+In NMR spectroscopy, the shape of the resonance lines can provide information on the strength of interactions that the nucleus experiences.
+ssNake can, as many other programs, fit some idealized lineshapes with are often encountered in real life spectra.
+Fitting in ssNake ranges from trivial `full width at half maximum' (FWHM) fitting, to the complex quadrupolar Czjzek distribution.
+The following section will explain the way ssNake handles the different types of spectra it can fit, and which equations are used to simulate the different spectra.
 
 \subsection{Fitting basics}
-Roughly speaking, ssNake uses two types of fitting procedures: those with a mathematical solution,
-and those who have to be approximated iteratively. An example of the former type is the fitting of
-the width of a peak at halve height (FWHM). This involves nothing more than finding the left and
-right side of the peak (at halve height) and to calculate the width of this interval. This can be
-done in one easy mathematical procedure, and involves no iterative loop. The second type of fitting
-procedure is used for the powder lineshapes (e.g. quadrupolar and chemical shift lineshapes). With
-these problems, there is no direct mathematical solution. We are searching a parameter space for the
-solution that best fits the experimental spectrum. This is done by trying different settings, and
-qualifying how well these fit. Based on these attempts, a new setting is tested. This is continued
-until an optimum has been found. There are several ways to do such an iterative fitting: ssNake uses
-the Nelder-Mead algorithm \cite{nelder1965simplex} (also known as ``Simplex'').
+Roughly speaking, ssNake uses two types of fitting procedures: those with a mathematical solution, and those who have to be approximated iteratively.
+An example of the former type is the fitting of the width of a peak at halve height (FWHM).
+This involves nothing more than finding the left and right side of the peak (at halve height) and to calculate the width of this interval.
+This can be done in one easy mathematical procedure, and involves no iterative loop.
+The second type of fitting procedure is used for the powder lineshapes (e.g. quadrupolar and chemical shift lineshapes).
+With these problems, there is no direct mathematical solution.
+We are searching a parameter space for the solution that best fits the experimental spectrum.
+This is done by trying different settings, and qualifying how well these fit.
+Based on these attempts, a new setting is tested. This is continued until an optimum has been found.
+There are several ways to do such an iterative fitting: ssNake uses the Nelder-Mead algorithm \cite{nelder1965simplex} (also known as ``Simplex'').
 
 \subsubsection*{Powder distributions and line shape fitting}
 ssNake supports fitting procedures for several idealized lineshapes commonly encountered in solid
-state NMR. In the following sections, the equations for these shapes fill be given. In all cases,
+state NMR. In the following sections, the equations for these shapes will be given. In all cases,
 the fitted shape represents an ideal version assuming perfect excitation, and no mixed lineshape
 effects (e.g. quadrupolar and CSA at the same time). Note that the quality of the fit is determined
 by the digital resolution, which is the same as in the spectrum that is fitted. In many cases,
 convergence towards to optimum solution is difficult, as our fitting procedure is sensitive for
 local optima. It is therefore good practice to have a good initial guess. Use the `Sim' button to
-show the current guess, and put all variables to reasonable values.
+simulate the lineshape, and set all variables to reasonable values.
 
-Simulation of powder spectra is done by getting intensities and frequencies of all the crystallite
-angles contained in a crystal file. These crystal files (which are not files in our case, but merely
-matrices) are made on the fly by ssNake depending on the `Cheng' number supplied by the user from
-the fitting window. Higher values of this number lead to more powder orientations and more accurate
-results. Note that the number of angles increases exponentially with the Cheng number, which can
-lead to very slow fits. The resulting frequency/intensity pairs will be add to a vector of the
-current intensities. Nearly always, the found frequency is not a value of the x-axis, in which case
-it is shifted to the nearest point that is. This introduces a small error in the simulation, but if
-the digital resolution is good enough to show the pattern nicely, this error will be very small.
-Also note that values that are not within the limits of the x-axis are discarded, no aliasing is
-performed.
+% Simulation of powder spectra is done by getting intensities and frequencies of all the crystallite
+% angles contained in a crystal file. These crystal files (which are not files in our case, but merely
+% matrices) are made on the fly by ssNake depending on the `Cheng' number supplied by the user from
+% the fitting window. Higher values of this number lead to more powder orientations and more accurate
+% results. Note that the number of angles increases exponentially with the Cheng number, which can
+% lead to very slow fits. The resulting frequency/intensity pairs will be add to a vector of the
+% current intensities. Nearly always, the found frequency is not a value of the x-axis, in which case
+% it is shifted to the nearest point that is. This introduces a small error in the simulation, but if
+% the digital resolution is good enough to show the pattern nicely, this error will be very small.
+% Also note that values that are not within the limits of the x-axis are discarded, no aliasing is
+% performed.
 
 \subsection*{ZCW crystal files}
-As explained in the previous section, simulation of powder patterns requires averaging over a
-sphere. In practice, only a finite amount of angles (the polar angles $\theta$ and $\phi$) is
+Simulation of powder patterns requires averaging over the crystal angles.
+In practice, only a finite amount of angles (the polar angles $\theta$ and $\phi$) is
 selected and saved in the crystal file. There is no perfect way to do this, and therefore there
 exist multiple methods to do this. We use the ZCW method (named after Zaremba, Conroy, and Wolfsberg
 \cite{zaremba1966good,conroy1967molecular,cheng1973investigations}), being both fast and accurate.
@@ -1308,34 +1272,36 @@ better tweaked library for this specific value of $\sigma$.
 %czjzek = wq**(d - 1) * eta / (np.sqrt(2 * np.pi) * sigma**d) * (1 - eta**2 / 9.0) * np.exp(-wq**2 / (2.0 * sigma**2) * (1 + eta**2 / 3.0))
 
 
-\subsection{Simpson}
+\subsection{External}
 Simulating NMR data for fitting can be straightforward, if idealized line shapes are requires. These
 type of calculation are programmed into ssNake, and can be run using the different tools described
 above. However, if actual pulse sequences need to be calculated, the simulations become involved
 quite quickly. In order ot be able to fit spectra wich require a more involved calculation, the
-`Simpson' tool can be used to fit spectra via the Simpson package
-\cite{Bak2000SIMPSON,Tosner2014Computer,Tosner2009Optimal}. For this, a Simpson input script is
+`External' tool can be used to fit spectra using external programs.
+
+
+Here we provide an example on how to use this tool together with the SIMPSON package\cite{Bak2000SIMPSON,Tosner2014Computer,Tosner2009Optimal}.
+For this, a SIMPSON input script is
 required which gives a single spectrum/FID as output. ssNake then loads this data, applies a Fourier
 transfrom (if necessary) and regrids the data to have the same $x$-axis as the experimental data.
 
 As with the `Function Fit' described below, the variables that we want to fit (or change) in the
-ssNake fit window must be defined as `@a' in the Simpson input file (were $a$ can be any name). ssNake
-then recognizes the differnt varibales defined in this way. When a simulation is run, ssNake
-replaces these variable names by the relevant number and performs a Simpson simulation using this
+ssNake fit window must be defined as `@a@' in the SIMPSON input file (were $a$ can be any name). ssNake
+then recognizes the different variables defined in this way. When a simulation is run, ssNake
+replaces these variable names by the relevant number and performs a SIMPSON simulation using this
 input script. By default, ssNake also adds a scale factor, and Lorentzian and Gaussian apodization
 input boxes.
 
 The window also features a dropdown box for the number of sites. When increasing this, new input
-boxes for all the relevant primate's appear. Note that ssNake is now running Simpson multiple times
-for each simulation: once for each site. Note that it is also possible to make Simpson run
+boxes for all the relevant primate's appear. Note that ssNake is now running SIMPSON multiple times
+for each simulation: once for each site. Note that it is also possible to make SIMPSON run
 simulations with multiple sites in one go, but that this is really inefficient. Naturally, when
 spin-spin interactions are present (dipolar, J) the relevant spins \textit{should} be included in a single
-Simpson file.
+SIMPSON file.
 
 
-If, for
-example, we want to fit a spectrum were we want to change the chemical shift anisotropy
-($\delta_\text{aniso}$) and asymmetry ($\eta$), we could use the following Simpson spinsys:
+If, for example, we want to fit a spectrum were we want to change the chemical shift anisotropy
+($\delta_\text{aniso}$) and asymmetry ($\eta$), we could use the following SIMPSON spinsys:
 
 \lstset{language=tcl}          % Set your language (you can change the language for each code-block optionally)
 
@@ -1344,11 +1310,11 @@ example, we want to fit a spectrum were we want to change the chemical shift ani
 spinsys {
     channels	1H
     nuclei	1H
-    shift	1 100 @aniso @eta 0 0 0
+    shift	1 100 @aniso@ @eta@ 0 0 0
 }
 \end{lstlisting}
 Here, the isotropic shift ($\delta_\text{iso}$) has been fixed at 100 Hz, while the anisotropy and
-eta can be changed from within ssNake. Note that the @$a$ variables can be used anywhere in the
+eta can be changed from within ssNake. Note that the @$a$@ variables can be used anywhere in the
 input file. Also, the used names can be anything (but be careful with special characters), but names
 like `a' or `agdv' might be difficult to recognise for the user in the ssNake window.
 A full input file could look like:
@@ -1358,7 +1324,7 @@ A full input file could look like:
 spinsys {
     channels	1H
     nuclei	1H
-    shift	1 100 @aniso @eta 0 0 0
+    shift	1 100 @aniso@ @eta@ 0 0 0
 }
 
 par {
@@ -1394,7 +1360,7 @@ Note that, when external files like user crystal files are used, the full path t
 included in the input file (ssNake copies the input file to a random directory, without any
 required files).
 
-Simpson calulations can take a very long time. We therefore suggest to always optimze the input file
+SIMPSON calulations can take a very long time. We therefore suggest to always optimze the input file
 as much as possible (minimum number of points and crystal orientations).
 
 
@@ -1405,14 +1371,14 @@ While we try and include as  many relevant fit function as possible, we cannot i
 ssNake. In cases were the supplied functions are not useful, `Function fit' can be used. Using this
 window, a function input by the user can be supplied. Pushing the `Input Function' button opens a
 window were the required function can be supplied. The $x$-variable is the $x$-axis, and other
-variable can be supplied by the @$a$ notation (with $a$ any variable name you like, with no special
+variable can be supplied by the @$a$@ notation (with $a$ any variable name you like, with no special
 characters in the name). For example, let us say we want to fit a parabola with an offset. This would look like:
 \begin{equation}
-  x ** 2 * @a + @b
+  x ** 2 * @a@ + @b@
 \end{equation}
 with $a$ and $b$ the variable to be fit. Note the Python way of writing the square of $x$ is $x **
 2$. Pushing Ok will load the function, and display $a$ and $b$ for the user to input (or fit). Note
-that the `@' sign is only used by ssNake to recognise which are variable in the equation.
+that the `@' signs are only used by ssNake to recognise which are variable in the equation.
 
 \section{Plot}
 The plot menu allows the user the change the view and nature of the current data. Several types, for both 1D and 2D views are supported. Apart from the view, the current x-axis can be changed, and a
@@ -1510,7 +1476,7 @@ Alternatively, there is a box called `Multiplier', in which a value can be put t
 
 
 \subsection{Multi plot}
-A multi plot is on overlay of multiple workspaces. It shows the 1D Plot of the current workspace, and a button
+A multi plot is on overlay of multiple workspaces. It shows the 1D Plot of the active workspace, and a button
 to add additional data (from other, or the same workspace). Things that can be changed are:
 \begin{itemize}
   \item Scale: linear multiplier of the signal ($y$ value)
@@ -1584,7 +1550,7 @@ A logarithmic spacing. The start and end value need to be supplied (and ssNake c
 that negative values are not allowed.
 
 \subsection{Plot Settings}
-This open a window were the plot settings of the current workspace can be changed. The input value are explained
+This open a window were the plot settings of the active workspace can be changed. The input value are explained
 at File $\rightarrow$ Preferences.
 
 
@@ -1607,13 +1573,13 @@ lead to a combined data set of 2x1024 points (D1xD2). Combining two sets of 10x5
 
 \subsection{Insert From Workspace}
 Insert From Workspace can be used to append data from another workspace to the current. For this, it is \textit{not} necessary to have two Workspaces of exactly the same size.
-However, appending must be possible in some way. The way the data is appended depends on the current dimension. For example: the current data has size 2x1000 and D2 is viewed.
+However, appending must be possible in some way. The way the data is appended depends on the active dimension. For example: the current data has size 2x1000 and D2 is viewed.
 Inserting a 1D data set of 500 points leads to a 2x1500 data set. Doing the same when viewing the D1 dimension gives an error. It would be possible to append a 1D set of 1000
 points to this data from D1. This gives back a 3x1000 data set.
 
 
 \subsection{Add}
-Add the data of the selected workspace to the current workspace. The active dimension is not considered. Data of both workspaces must be the same size, or must be able to be broadcasted (see above).
+Add the data of the selected workspace to the active workspace. The active dimension is not considered. Data of both workspaces must be the same size, or must be able to be broadcasted (see above).
 
 
 \subsection{Subtract}
@@ -1722,7 +1688,7 @@ after using the Update tool, you can download it from the github page:
 \url{https://github.com/smeerten/ssnake/}.
 
 \subsection{About}
-Opens the About box with information on the version, acknowledgements and license (GPL 3).
+Opens the About box with information on the version, acknowledgements and license (GPL v3.0).
 
 \section{Contact}
 To contact the \texttt{ssNake} team write to \texttt{ssnake@science.ru.nl}.
