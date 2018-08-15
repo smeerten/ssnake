@@ -45,6 +45,12 @@ def betaFunc(beta, eta, eta0, preCalc):
 
 def extendedCzjzek(inp):
     cq, eta, cq0, eta0, sigma, d = inp
+    #Prevent overflow error (if this condition is true, the point is far outside the distribution, and is 0 anyway)
+    if abs(cq**2*(1+eta**2/3) - cq0**2)/(2 * sigma**2) > 1000:
+        return 0.0
+    #Prevent overflow error on eta range
+    if cq0 / sigma * abs(eta0 - eta) > 10:
+        return 0.0
     N1 = cq ** (d - 1) / (sigma ** d) * eta * (1 - eta**2 / 9)
     afterfact = -1.0 / (2 * sigma ** 2)
     preCalc =[N1,np.sqrt(3),  2.0/np.sqrt(3) * cq * cq0 * afterfact, (cq0**2 * (1 + eta0**2 / 3) + cq**2 * (1 + eta**2/3)) * afterfact]
@@ -58,15 +64,21 @@ def tFunc(t, pre, pre2, fact, eta):
     expo = math.exp(fact * (3*t**2-1) + pre2)
     z = eta * abs(fact) * (1-t**2)
     bessel = SP.iv(0,z)
-    return pre * expo * bessel
+    return expo * bessel
 
 def extendedCzjzekNoEta0(inp):
     cq, eta, cq0, sigma, d = inp
+    #Prevent overflow error (if this condition is true, the point is far outside the distribution, and is 0 anyway)
+    if abs(cq**2*(1+eta**2/3) - cq0**2)/(2 * sigma**2) > 1000: 
+        return 0.0
+    #Prevent overflow error on eta range
+    if cq0 / sigma * eta > 10:
+        return 0.0
     pre = cq**(d-1) / sigma**d * eta * (1 - eta**2 / 9.0) 
     pre2 = -(cq0**2 + cq**2 * (1 + eta**2 / 3.0)) / (2 * sigma**2)
     fact = cq * cq0 / (2*sigma**2)
     Amp = SI.quad(tFunc,0, 1, args=(pre,pre2,fact,eta))[0]
-    return Amp
+    return Amp * pre
 
 def normalCzjzekFunc(cq, eta, sigma, d):
     return cq**(d - 1) * eta / (np.sqrt(2 * np.pi) * sigma**d) * (1 - eta**2 / 9.0) * np.exp(-cq**2 / (2.0 * sigma**2) * (1 + eta**2 / 3.0))
