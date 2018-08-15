@@ -103,6 +103,8 @@ def czjzekIntensities(sigma, d, cq, eta, cq0=0, eta0=0):
         pool.close()
         pool.join()
         czjzek = np.array(fit.get())
+    pos = np.isnan(czjzek)
+    czjzek[pos] = 0.0 #Convert any issues to 0
     if np.sum(czjzek) == 0.0: #Protect against divide by zero
         czjzek = 0 * czjzek
     else:
