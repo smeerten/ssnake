@@ -356,7 +356,12 @@ class Spectrum(object):
         axis = self.checkAxis(axis)
         baselinetmp = baseline.reshape((self.shape()[axis], ) + (1, ) * (self.ndim() - axis - 1))
         self.data[select] -= baselinetmp
-        self.addHistory("Baseline corrected dimension " + str(axis + 1) + " of data[" + str(select) + "]")
+        Message = "Baseline corrected dimension " + str(axis + 1)
+        if type(select) is not slice:
+            Message = Message + " with slice " + str(select)
+        elif select != slice(None, None, None):
+            Message = Message + " with slice " + str(select)
+        self.addHistory(Message)
         self.redoList = []
         if not self.noUndo:
             self.undoList.append(lambda self: self.baselineCorrection(-baseline, axis, select=select))
@@ -812,8 +817,11 @@ class Spectrum(object):
         if self.spec[axis] == 0:
             self.__invFourier(axis, tmp=True)
         Message = "Phasing: phase0 = " + str(phase0 * 180 / np.pi) + " and phase1 = " + str(phase1 * 180 / np.pi) + " for dimension " + str(axis + 1)
-        if select != slice(None, None, None):
-            Message = Message + " of data[" + str(select) + "]"
+        if type(select) is not slice:
+            Message = Message + " with slice " + str(select)
+        elif select != slice(None, None, None):
+            Message = Message + " with slice " + str(select)
+
         self.addHistory(Message)
         self.redoList = []
         if not self.noUndo:
@@ -880,8 +888,10 @@ class Spectrum(object):
         if lor is None and gauss is None and cos2 is None and hamming is None:  # If all none, make special message with `zero apodization'
             Message = Message + "zero apodization"
         Message = Message + " for dimension " + str(axis + 1)
-        if isinstance(select, slice):
-            Message = Message + " of data[" + str(select) + "]"
+        if type(select) is not slice:
+            Message = Message + " with slice " + str(select)
+        elif select != slice(None, None, None):
+            Message = Message + " with slice " + str(select)
         self.addHistory(Message)
         if preview:
             return ([t]*len(previewData), previewData)
@@ -1064,8 +1074,11 @@ class Spectrum(object):
         if self.spec[axis] > 0:
             self.__fourier(axis, tmp=True)
         Message = "Shifted " + str(shift) + " points in dimension " + str(axis + 1)
-        if select != slice(None, None, None):
-            Message = Message + " of data[" + str(select) + "]"
+
+        if type(select) is not slice:
+            Message = Message + " with slice " + str(select)
+        elif select != slice(None, None, None):
+            Message = Message + " with slice " + str(select)
         self.addHistory(Message)
         self.redoList = []
         if not self.noUndo:
