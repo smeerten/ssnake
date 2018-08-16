@@ -11,23 +11,22 @@ except Exception:
 
 
 @jit
-def gammaFunc(gamma, a11pa15, a51pre, a55part, preVal):
-    cos2G = math.cos(2 * gamma)
-    sin2G = math.sin(2 * gamma)
+def gammaFunc(gamma, a11pa15, a51pre, a55part):
+    cos2G = math.cos(gamma)
+    sin2G = math.sin(gamma)
     a51 = a51pre * cos2G
     a55 = a55part * sin2G
-    integral = math.exp(a11pa15 + a51 + a55)
-    amp = preVal * integral
-    return amp
+    return math.exp(a11pa15 + a51 + a55)
 
-def alphaFunc(alpha, preCalc, preVal, a11, a15pre, a55pre, a51prepre1, a51prepre2):
-    cos2A = math.cos(2 * alpha)
-    sin2A = math.sin(2 * alpha)
+def alphaFunc(alpha, preCalc, a11, a15pre, a55pre, a51prepre1, a51prepre2):
+    cos2A = math.cos(alpha)
+    sin2A = math.sin(alpha)
     a11pa15 = a11 - a15pre * cos2A
     a55part = sin2A * a55pre
     a51pre = a51prepre1 + a51prepre2 * cos2A
-    Amp = SI.quad(gammaFunc, 0, np.pi, args=(a11pa15, a51pre, a55part, preVal), epsrel=0.1, epsabs=0)
-    return Amp[0]
+    Amp = SI.quad(gammaFunc, 0, 2 * np.pi, args=(a11pa15, a51pre, a55part), epsrel=0.1, epsabs=0)
+    #Scale with 0.5, as integral is done to 2pi instead of pi (and sin(gamma) is used not sin(2 * gamma)
+    return Amp[0] * 0.5 
 
 def betaFunc(beta, eta, eta0, preCalc):
     cosB = math.cos(beta)
@@ -40,8 +39,9 @@ def betaFunc(beta, eta, eta0, preCalc):
     a55pre = -cosB * preCalc[4] * preCalc[2]
     a51prepre1 = preCalc[1] / 2 * sinBS * eta * preCalc[2]
     a51prepre2 = 0.5 * (1 + cosBS) * preCalc[4] * preCalc[2]
-    Amp = SI.quad(alphaFunc, 0, np.pi/2, args=(preCalc,preVal,a11,a15pre,a55pre,a51prepre1,a51prepre2), epsrel=0.1, epsabs=0)
-    return Amp[0]
+    Amp = SI.quad(alphaFunc, 0, np.pi, args=(preCalc,a11,a15pre,a55pre,a51prepre1,a51prepre2), epsrel=0.1, epsabs=0)
+    #Scale with 0.5, as integral is done to pi instead of pi/2 (and sin(alpha) is used not sin(2 * alpha)
+    return Amp[0] * preVal * 0.5
 
 def extendedCzjzek(inp):
     cq, eta, cq0, eta0, sigma, d = inp
@@ -77,7 +77,7 @@ def extendedCzjzekNoEta0(inp):
     pre = cq**(d-1) / sigma**d * eta * (1 - eta**2 / 9.0) 
     pre2 = -(cq0**2 + cq**2 * (1 + eta**2 / 3.0)) / (2 * sigma**2)
     fact = cq * cq0 / (2*sigma**2)
-    Amp = SI.quad(tFunc,0, 1, args=(pre,pre2,fact,eta))[0]
+    Amp = SI.quad(tFunc,0, 1, args=(pre,pre2,fact,eta), epsrel=0.0001, epsabs=0)[0]
     return Amp * pre
 
 def normalCzjzekFunc(cq, eta, sigma, d):
