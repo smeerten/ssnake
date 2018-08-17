@@ -175,7 +175,7 @@ def functionRun(x, freq, sw, axMult, extra, *parameters):
         function = function.replace('@' + elem + '@', str(parameters[i]))
     return safeEval(function, length=len(x), x=x)
 
-def externalFitRunScript(x, freq, sw, axMult, extra, bgrnd, *parameters):
+def externalFitRunScript(x, freq, sw, axMult, extra, bgrnd, mult, *parameters):
     names, command, script, output, spec = extra
     amp, lor, gauss = parameters[-3:]
     x = x[-1]
@@ -206,7 +206,7 @@ def externalFitRunScript(x, freq, sw, axMult, extra, bgrnd, *parameters):
         masterData.fourier(0)
     masterData.regrid([x[0], x[-1]], len(x), 0)
     shutil.rmtree(directory_name, ignore_errors=True)
-    return amp * np.real(masterData.getHyperData(0))
+    return mult * amp * np.real(masterData.getHyperData(0))
 
 def fib(n):
     start = np.array([[1, 1], [1, 0]], dtype='int64')
@@ -233,14 +233,14 @@ def zcw_angles(m, symm=0):
     weight = np.ones(samples) / samples
     return phi, theta, weight
     
-def peakSim(x, freq, sw, axMult, extra, bgrnd, pos, amp, lor, gauss):
+def peakSim(x, freq, sw, axMult, extra, bgrnd, mult, pos, amp, lor, gauss):
     x = x[-1]
     pos /= axMult
     lor = np.abs(lor)
     gauss = np.abs(gauss)
     length = len(x)
     t = np.fft.fftfreq(length, sw[-1]/float(length))
-    return float(amp) / sw[-1] * np.exp(2j * np.pi * (pos - x[length//2]) * t - np.pi * np.abs(lor * t) - ((np.pi * np.abs(gauss) * t)**2) / (4 * np.log(2)))
+    return float(mult) * float(amp) / sw[-1] * np.exp(2j * np.pi * (pos - x[length//2]) * t - np.pi * np.abs(lor * t) - ((np.pi * np.abs(gauss) * t)**2) / (4 * np.log(2)))
 
 def makeSpectrum(x, sw, v, gauss, lor, weight):
     # Takes axis, frequencies and intensities and makes a spectrum with lorentz and gaussian broadening
@@ -268,7 +268,7 @@ def makeMQMASSpectrum(x, sw, v, gauss, lor, weight):
     final *= apod1 * apod2 * length1 / sw[-2] * length2 / sw[-1]
     return final
 
-def csaFunc(x, freq, sw, axMult, extra, bgrnd, spinspeed, t11, t22, t33, amp, lor, gauss):
+def csaFunc(x, freq, sw, axMult, extra, bgrnd, mult, spinspeed, t11, t22, t33, amp, lor, gauss):
     x = x[-1]
     shiftdef, numssb, angle, D2, weight = extra
     freq = freq[-1]
@@ -305,9 +305,9 @@ def csaFunc(x, freq, sw, axMult, extra, bgrnd, spinspeed, t11, t22, t33, amp, lo
         tot *= weight2
         v = np.fft.fftfreq(numssb, 1.0 / numssb) * spinspeed
         v = v + vConstant[:,np.newaxis]
-    return amp * makeSpectrum(x, sw, v, lor, gauss, tot)
+    return mult * amp * makeSpectrum(x, sw, v, lor, gauss, tot)
     
-def quadFunc(x, freq, sw, axMult, extra, bgrnd, spinspeed, pos, cq, eta, amp, lor, gauss):
+def quadFunc(x, freq, sw, axMult, extra, bgrnd, mult, spinspeed, pos, cq, eta, amp, lor, gauss):
     x = x[-1]
     satBool, I, numssb, angle, D2, D4, weight = extra
     if not satBool and (I % 1) == 0.0:
@@ -332,7 +332,7 @@ def quadFunc(x, freq, sw, axMult, extra, bgrnd, spinspeed, pos, cq, eta, amp, lo
         eff /= totalEff
         v, tot = quadFreq(I, m, m+1, spinspeed, numssb, angle, D2, D4, weight, freq, pos, cq, eta)
         spectrum += eff * makeSpectrum(x, sw, v, lor, gauss, tot)
-    return amp * spectrum
+    return mult * amp * spectrum
 
 def quadFreq(I, m1, m2, spinspeed, numssb, angle, D2, D4, weight, freq, pos, cq, eta):
     pre2 = -cq**2 / (4 * I *(2 * I - 1))**2 * 2 / freq
@@ -379,7 +379,7 @@ def quadFreq(I, m1, m2, spinspeed, numssb, angle, D2, D4, weight, freq, pos, cq,
         v = v + vConstant[:,np.newaxis]
     return v, tot
 
-def quadCzjzekFunc(x, freq, sw, axMult, extra, bgrnd, pos, sigma, cq0, eta0, amp, lor, gauss):
+def quadCzjzekFunc(x, freq, sw, axMult, extra, bgrnd, mult, pos, sigma, cq0, eta0, amp, lor, gauss):
     x = x[-1]
     freq = freq[-1]
     sw = sw[-1]
@@ -396,9 +396,9 @@ def quadCzjzekFunc(x, freq, sw, axMult, extra, bgrnd, pos, sigma, cq0, eta0, amp
     t = np.fft.fftfreq(length, sw/float(length))
     pos -= x[len(x)//2]
     apod = np.exp(2j * np.pi * pos * t - np.pi * np.abs(lor) * np.abs(t) - ((np.pi * np.abs(gauss) * t)**2) / (4 * np.log(2)))
-    return fid * apod * amp
+    return mult * amp * fid * apod
 
-def mqmasFunc(x, freq, sw, axMult, extra, bgrnd, spinspeed, pos, cq, eta, amp, lor2, gauss2, lor1, gauss1):
+def mqmasFunc(x, freq, sw, axMult, extra, bgrnd, mult, spinspeed, pos, cq, eta, amp, lor2, gauss2, lor1, gauss1):
     x1 = x[-2]
     x2 = x[-1]
     freq1 = freq[-2]
@@ -411,7 +411,7 @@ def mqmasFunc(x, freq, sw, axMult, extra, bgrnd, spinspeed, pos, cq, eta, amp, l
     v1, tot1 = quadFreq(I, -mq/2.0, mq/2.0, spinspeed, numssb, angle, D2, D4, np.ones_like(weight), freq1, mq*pos, cq, eta)
     v1 -= v2 * shear
     v1 *= scale
-    return amp * makeMQMASSpectrum(x, sw, [np.real(v1.flatten()), np.real(v2.flatten())], [gauss1, gauss2], [lor1, lor2], np.real(tot1*tot2).flatten())
+    return mult * amp * makeMQMASSpectrum(x, sw, [np.real(v1.flatten()), np.real(v2.flatten())], [gauss1, gauss2], [lor1, lor2], np.real(tot1*tot2).flatten())
 
 def genLib(length, minCq, maxCq, minEta, maxEta, numCq, numEta, extra, freq, sw, spinspeed):
     cq, eta = np.meshgrid(np.linspace(minCq, maxCq, numCq), np.linspace(minEta, maxEta, numEta))
@@ -420,10 +420,10 @@ def genLib(length, minCq, maxCq, minEta, maxEta, numCq, numEta, extra, freq, sw,
     x = np.fft.fftshift(np.fft.fftfreq(length, 1/float(sw)))
     lib = np.zeros((len(cq), length), dtype=complex)
     for i, (cqi, etai) in enumerate(zip(cq, eta)):
-        lib[i] = quadFunc([x], [freq], [sw], 1.0, extra, 0.0, spinspeed, 0.0, cqi, etai, 1.0, 0.0, 0.0)
+        lib[i] = quadFunc([x], [freq], [sw], 1.0, extra, 0.0, 1.0, spinspeed, 0.0, cqi, etai, 1.0, 0.0, 0.0)
     return lib, cq*1e6, eta
 
-def mqmasCzjzekFunc(x, freq, sw, axMult, extra, bgrnd, pos, sigma, sigmaCS, cq0, eta0, amp, lor2, gauss2, lor1, gauss1):
+def mqmasCzjzekFunc(x, freq, sw, axMult, extra, bgrnd, mult, pos, sigma, sigmaCS, cq0, eta0, amp, lor2, gauss2, lor1, gauss1):
     I, mq, cq, eta, lib, shear, scale, method, d = extra
     if method == 1:
         cq0 *= 1e6
@@ -464,4 +464,4 @@ def mqmasCzjzekFunc(x, freq, sw, axMult, extra, bgrnd, pos, sigma, sigmaCS, cq0,
     fid *= offsetMat * apod1 * apod2 * shiftGauss
     shearMat = np.exp((shearFactor-shear) * 2j * np.pi * t1 * x[-1])
     fid = np.fft.fft(fid, axis=1) * shearMat
-    return amp * fid * length1 / length2
+    return mult * amp * fid * length1 / length2

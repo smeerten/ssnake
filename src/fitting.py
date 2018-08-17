@@ -1058,11 +1058,11 @@ class AbstractParamFrame(QtWidgets.QWidget):
             tmpx = self.getDispX()
         else:
             tmpx = self.parent.data.xaxArray[-self.DIM:]
-        if "bgrnd" in out.keys():
-            bgrnd = out['bgrnd'][0]
+        if "offset" in out.keys():
+            offset = out['offset'][0]
         else:
-            bgrnd = 0.0
-        outCurve = bgrnd * np.ones([len(item) for item in tmpx])
+            offset = 0.0
+        outCurve = offset * np.ones([len(item) for item in tmpx])
         if self.DIM == 1:
             plotx = tmpx[-1]
         else:
@@ -1077,7 +1077,7 @@ class AbstractParamFrame(QtWidgets.QWidget):
             if y is None:
                 raise FittingException("Fitting: The fitting function didn't output anything")
             y = np.real(np.fft.fftshift(np.fft.fftn(y, axes=self.FFT_AXES), axes=self.FFTSHIFT_AXES))
-            outCurvePart.append(bgrnd + y)
+            outCurvePart.append(offset + y)
             outCurve += y
         locList = self.getRedLocList()
         self.parent.fitDataList[locList] = [plotx, outCurve, x, outCurvePart]
@@ -1152,8 +1152,8 @@ def fitFunc(func, singleNames, multiNames, params, allX, args):
             inputVars += [parameters[name] for name in multiNames]
             testFunc += func(x, freq, sw, axMult, extra, *inputVars)
         testFunc = np.real(np.fft.fftshift(np.fft.fftn(testFunc, axes=fft_axes), axes=fftshift_axes))
-        if "bgrnd" in parameters.keys():
-            testFunc += parameters['bgrnd']
+        if "offset" in parameters.keys():
+            testFunc += parameters['offset']
         fullTestFunc.append(testFunc)
     return fullTestFunc
 
@@ -1460,23 +1460,28 @@ class PeakDeconvParamFrame(AbstractParamFrame):
 
     FFT_AXES = (0,) # Which axes should be transformed after simulation
     FFTSHIFT_AXES = (0,) # Which axes should be transformed after simulation
-    SINGLENAMES = ['bgrnd']
+    SINGLENAMES = ['offset', 'mult']
     MULTINAMES = ['pos', 'amp', 'lor', 'gauss']
-    PARAMTEXT = {'bgrnd': 'Background', 'pos': 'Position', 'amp': 'Integral', 'lor': 'Lorentz', 'gauss': 'Gauss'}
+    PARAMTEXT = {'offset': 'Offset', 'mult': 'Multiplier', 'pos': 'Position', 'amp': 'Integral', 'lor': 'Lorentz', 'gauss': 'Gauss'}
     
     def __init__(self, parent, rootwindow, isMain=True):
         self.fullInt = np.sum(parent.getData1D()) * parent.sw() / float(len(parent.getData1D()))
         self.FITFUNC = simFunc.peakSim
-        self.DEFAULTS = {'bgrnd': [0.0, True], 'pos': [0.0, False], 'amp': [self.fullInt, False], 'lor': [1.0, False], 'gauss': [0.0, True]}
+        self.DEFAULTS = {'offset': [0.0, True], 'mult': [1.0, True], 'pos': [0.0, False], 'amp': [self.fullInt, False], 'lor': [1.0, False], 'gauss': [0.0, True]}
         super(PeakDeconvParamFrame, self).__init__(parent, rootwindow, isMain)
         self.pickTick = QtWidgets.QCheckBox("Pick")
         self.pickTick.stateChanged.connect(self.togglePick)
         self.frame1.addWidget(self.pickTick, 0, 2)
-        self.frame2.addWidget(wc.QLabel("Bgrnd:"), 0, 0, 1, 2)
-        self.ticks['bgrnd'].append(QtWidgets.QCheckBox(''))
-        self.frame2.addWidget(self.ticks['bgrnd'][0], 1, 0)
-        self.entries['bgrnd'].append(wc.FitQLineEdit(self, 'bgrnd', "0.0"))
-        self.frame2.addWidget(self.entries['bgrnd'][0], 1, 1)
+        self.frame2.addWidget(wc.QLabel("Offset:"), 0, 0, 1, 2)
+        self.ticks['offset'].append(QtWidgets.QCheckBox(''))
+        self.frame2.addWidget(self.ticks['offset'][0], 1, 0)
+        self.entries['offset'].append(wc.FitQLineEdit(self, 'offset', "0.0"))
+        self.frame2.addWidget(self.entries['offset'][0], 1, 1)
+        self.frame2.addWidget(wc.QLabel("Multiplier:"), 2, 0, 1, 2)
+        self.ticks['mult'].append(QtWidgets.QCheckBox(''))
+        self.frame2.addWidget(self.ticks['mult'][0], 3, 0)
+        self.entries['mult'].append(wc.FitQLineEdit(self, 'mult', "1.0"))
+        self.frame2.addWidget(self.entries['mult'][0], 3, 1)
         self.numExp = QtWidgets.QComboBox()
         self.numExp.addItems([str(x + 1) for x in range(self.FITNUM)])
         self.numExp.currentIndexChanged.connect(self.changeNum)
@@ -1572,15 +1577,15 @@ class CsaDeconvFrame(FitPlotFrame):
 class CsaDeconvParamFrame(AbstractParamFrame):
 
     FFT_AXES = (0,)
-    SINGLENAMES = ['bgrnd', 'spinspeed']
+    SINGLENAMES = ['offset', 'mult', 'spinspeed']
     MULTINAMES = ['t11', 't22', 't33', 'amp', 'lor', 'gauss']
     EXTRANAMES = ['spinType', 'satBool', 'angle', 'shiftdef', 'cheng', 'numssb']
-    PARAMTEXT = {'bgrnd': 'Background', 'spinspeed': 'Spinning Speed', 't11': 'T11', 't22': 'T22', 't33': 'T33', 'amp': 'Integral', 'lor': 'Lorentz', 'gauss': 'Gauss'}
+    PARAMTEXT = {'offset': 'Offset', 'mult':'Multiplier', 'spinspeed': 'Spinning Speed', 't11': 'T11', 't22': 'T22', 't33': 'T33', 'amp': 'Integral', 'lor': 'Lorentz', 'gauss': 'Gauss'}
 
     def __init__(self, parent, rootwindow, isMain=True):
         self.FITFUNC = simFunc.csaFunc
         self.fullInt = np.sum(parent.getData1D()) * parent.sw() / float(len(parent.getData1D()))
-        self.DEFAULTS = {'bgrnd': [0.0, True], 'spinspeed': [10.0, True], 't11': [0.0, False], 't22': [0.0, False], 't33': [0.0, False], 'amp': [self.fullInt, False], 'lor': [1.0, False], 'gauss': [0.0, True]}
+        self.DEFAULTS = {'offset': [0.0, True], 'mult': [1.0, True], 'spinspeed': [10.0, True], 't11': [0.0, False], 't22': [0.0, False], 't33': [0.0, False], 'amp': [self.fullInt, False], 'lor': [1.0, False], 'gauss': [0.0, True]}
         self.extraDefaults = {'cheng': 15, 'shiftdef': 0, 'spinType': 0, 'rotorAngle': "arctan(sqrt(2))", 'numssb': 32, 'spinspeed': '10.0'}
         super(CsaDeconvParamFrame, self).__init__(parent, rootwindow, isMain)
         self.pickTick = QtWidgets.QCheckBox("Pick")
@@ -1622,11 +1627,16 @@ class CsaDeconvParamFrame(AbstractParamFrame):
         self.frame2.addWidget(self.ticks['spinspeed'][-1], 1, 0)
         self.entries['spinspeed'].append(wc.FitQLineEdit(self, 'spinspeed', ""))
         self.frame2.addWidget(self.entries['spinspeed'][-1], 1, 1)
-        self.frame2.addWidget(wc.QLabel("Bgrnd:"), 2, 0, 1, 2)
-        self.ticks['bgrnd'].append(QtWidgets.QCheckBox(''))
-        self.frame2.addWidget(self.ticks['bgrnd'][-1], 3, 0)
-        self.entries['bgrnd'].append(wc.FitQLineEdit(self, 'bgrnd', ""))
-        self.frame2.addWidget(self.entries['bgrnd'][-1], 3, 1)
+        self.frame2.addWidget(wc.QLabel("Offset:"), 2, 0, 1, 2)
+        self.ticks['offset'].append(QtWidgets.QCheckBox(''))
+        self.frame2.addWidget(self.ticks['offset'][-1], 3, 0)
+        self.entries['offset'].append(wc.FitQLineEdit(self, 'offset', ""))
+        self.frame2.addWidget(self.entries['offset'][-1], 3, 1)
+        self.frame2.addWidget(wc.QLabel("Multiplier:"), 4, 0, 1, 2)
+        self.ticks['mult'].append(QtWidgets.QCheckBox(''))
+        self.frame2.addWidget(self.ticks['mult'][-1], 5, 0)
+        self.entries['mult'].append(wc.FitQLineEdit(self, 'mult', ""))
+        self.frame2.addWidget(self.entries['mult'][-1], 5, 1)
         self.numExp = QtWidgets.QComboBox()
         self.numExp.addItems([str(x + 1) for x in range(self.FITNUM)])
         self.numExp.currentIndexChanged.connect(self.changeNum)
@@ -1856,15 +1866,15 @@ class QuadDeconvParamFrame(AbstractParamFrame):
     FFT_AXES = (0,)    
     Ioptions = ['1', '3/2', '2', '5/2', '3', '7/2', '4', '9/2']
     Ivalues = [1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 4.0, 4.5]
-    SINGLENAMES = ['bgrnd', 'spinspeed']
+    SINGLENAMES = ['offset', 'mult', 'spinspeed']
     MULTINAMES = ['pos', 'cq', 'eta', 'amp', 'lor', 'gauss']
     EXTRANAMES = ['spinType', 'satBool', 'angle', 'cheng', 'I', 'numssb']
-    PARAMTEXT = {'bgrnd': 'Background', 'spinspeed': 'Spinning Speed', 'pos': 'Position', 'cq': 'Cq', 'eta': 'eta', 'amp': 'Integral', 'lor': 'Lorentz', 'gauss': 'Gauss'}
+    PARAMTEXT = {'offset': 'Offset', 'mult':'Multiplier', 'spinspeed': 'Spinning Speed', 'pos': 'Position', 'cq': 'Cq', 'eta': 'eta', 'amp': 'Integral', 'lor': 'Lorentz', 'gauss': 'Gauss'}
 
     def __init__(self, parent, rootwindow, isMain=True):
         self.FITFUNC = simFunc.quadFunc
         self.fullInt = np.sum(parent.getData1D()) * parent.sw() / float(len(parent.getData1D()))
-        self.DEFAULTS = {'bgrnd': [0.0, True], 'spinspeed': [10.0, True], 'pos': [0.0, False], 'cq': [1.0, False], 'eta': [0.0, False], 'amp': [self.fullInt, False], 'lor': [1.0, False], 'gauss': [0.0, True]}
+        self.DEFAULTS = {'offset': [0.0, True], 'mult': [1.0, True], 'spinspeed': [10.0, True], 'pos': [0.0, False], 'cq': [1.0, False], 'eta': [0.0, False], 'amp': [self.fullInt, False], 'lor': [1.0, False], 'gauss': [0.0, True]}
         self.extraDefaults = {'I': 1, 'Satellites': False, 'cheng': 15, 'spinType': 0, 'rotorAngle': "arctan(sqrt(2))", 'numssb': 32, 'spinspeed': '10.0'}
         super(QuadDeconvParamFrame, self).__init__(parent, rootwindow, isMain)
         self.optframe.addWidget(wc.QLabel("MAS:"), 2, 0)
@@ -1900,11 +1910,16 @@ class QuadDeconvParamFrame(AbstractParamFrame):
         self.entries['spinspeed'].append(wc.QLineEdit())
         self.frame2.addWidget(self.entries['spinspeed'][-1], 1, 1)
         self.entries['spinspeed'][-1].setEnabled(False)
-        self.frame2.addWidget(wc.QLabel("Bgrnd:"), 2, 0, 1, 2)
-        self.ticks['bgrnd'].append(QtWidgets.QCheckBox(''))
-        self.frame2.addWidget(self.ticks['bgrnd'][-1], 3, 0)
-        self.entries['bgrnd'].append(wc.QLineEdit())
-        self.frame2.addWidget(self.entries['bgrnd'][-1], 3, 1)
+        self.frame2.addWidget(wc.QLabel("Offset:"), 2, 0, 1, 2)
+        self.ticks['offset'].append(QtWidgets.QCheckBox(''))
+        self.frame2.addWidget(self.ticks['offset'][-1], 3, 0)
+        self.entries['offset'].append(wc.QLineEdit())
+        self.frame2.addWidget(self.entries['offset'][-1], 3, 1)
+        self.frame2.addWidget(wc.QLabel("Multiplier:"), 4, 0, 1, 2)
+        self.ticks['mult'].append(QtWidgets.QCheckBox(''))
+        self.frame2.addWidget(self.ticks['mult'][-1], 5, 0)
+        self.entries['mult'].append(wc.QLineEdit())
+        self.frame2.addWidget(self.entries['mult'][-1], 5, 1)
         self.numExp = QtWidgets.QComboBox()
         self.numExp.addItems([str(x + 1) for x in range(self.FITNUM)])
         self.numExp.currentIndexChanged.connect(self.changeNum)
@@ -2285,15 +2300,15 @@ class QuadCzjzekWindow(TabFittingWindow):
 class QuadCzjzekParamFrame(AbstractParamFrame):
 
     FFT_AXES = (0,)
-    SINGLENAMES = ['bgrnd']
+    SINGLENAMES = ['offset', 'mult']
     MULTINAMES = ['pos', 'sigma', 'cq0', 'eta0', 'amp', 'lor', 'gauss']
     EXTRANAMES = ['method', 'd']
-    PARAMTEXT = {'bgrnd': 'Background', 'pos': 'Position', 'sigma': 'Sigma', 'cq0': 'Cq0', 'eta0': 'Eta0', 'amp': 'Integral', 'lor': 'Lorentz', 'gauss': 'Gauss'}
+    PARAMTEXT = {'offset': 'Offset', 'mult':'Multiplier', 'pos': 'Position', 'sigma': 'Sigma', 'cq0': 'Cq0', 'eta0': 'Eta0', 'amp': 'Integral', 'lor': 'Lorentz', 'gauss': 'Gauss'}
 
     def __init__(self, parent, rootwindow, isMain=True):
         self.FITFUNC = simFunc.quadCzjzekFunc
         self.fullInt = np.sum(parent.getData1D()) * parent.sw() / float(len(parent.getData1D()))
-        self.DEFAULTS = {'bgrnd': [0.0, True], 'pos': [0.0, False], 'sigma': [1.0, False], 'cq0': [0.0, True], 'eta0': [0.0, True], 'amp': [self.fullInt, False], 'lor': [10.0, False], 'gauss': [0.0, True]}
+        self.DEFAULTS = {'offset': [0.0, True], 'mult': [1.0, True], 'pos': [0.0, False], 'sigma': [1.0, False], 'cq0': [0.0, True], 'eta0': [0.0, True], 'amp': [self.fullInt, False], 'lor': [10.0, False], 'gauss': [0.0, True]}
         self.extraDefaults = {'method': 0, 'd': 5, 'cqsteps': 50, 'etasteps': 10, 'cqmax': 4.0, 'cqmin': 0.0, 'etamin': 0, 'etamax': 1,
                 'lib': None, 'cqLib': None, 'etaLib': None, 'I': 3 / 2.0, 'cheng': 15, 'mas': 2, 'spinspeed': 10.0,
                 'angle': "arctan(sqrt(2))", 'numssb': 32, 'satBool': False}
@@ -2301,11 +2316,18 @@ class QuadCzjzekParamFrame(AbstractParamFrame):
         czjzekPrefButton = QtWidgets.QPushButton("Library")
         czjzekPrefButton.clicked.connect(self.createCzjzekPrefWindow)
         self.optframe.addWidget(czjzekPrefButton, 4, 0)
-        self.frame2.addWidget(wc.QLabel("Bgrnd:"), 0, 0, 1, 2)
-        self.ticks['bgrnd'].append(QtWidgets.QCheckBox(''))
-        self.ticks['bgrnd'][-1].setChecked(True)
-        self.frame2.addWidget(self.ticks['bgrnd'][-1], 1, 0)
-        self.entries['bgrnd'].append(wc.FitQLineEdit(self, 'bgrnd', "0.0"))
+        self.frame2.addWidget(wc.QLabel("Offset:"), 0, 0, 1, 2)
+        self.ticks['offset'].append(QtWidgets.QCheckBox(''))
+        self.ticks['offset'][-1].setChecked(True)
+        self.frame2.addWidget(self.ticks['offset'][-1], 1, 0)
+        self.entries['offset'].append(wc.FitQLineEdit(self, 'offset', "0.0"))
+        self.frame2.addWidget(self.entries['offset'][-1], 1, 1)
+        self.frame2.addWidget(wc.QLabel("Multiplier:"), 2, 0, 1, 2)
+        self.ticks['mult'].append(QtWidgets.QCheckBox(''))
+        self.ticks['mult'][-1].setChecked(True)
+        self.frame2.addWidget(self.ticks['mult'][-1], 3, 0)
+        self.entries['mult'].append(wc.FitQLineEdit(self, 'mult', "1.0"))
+        self.frame2.addWidget(self.entries['mult'][-1], 3, 1)
         self.optframe.addWidget(wc.QLabel("Type:"), 0, 0)
         self.entries['method'].append(QtWidgets.QComboBox())
         self.entries['method'][0].addItems(['Normal', 'Extended'])
@@ -2315,7 +2337,6 @@ class QuadCzjzekParamFrame(AbstractParamFrame):
         self.entries['d'].append(QtWidgets.QComboBox())
         self.entries['d'][0].addItems(['1', '2','3','4','5'])
         self.optframe.addWidget(self.entries['d'][0], 3, 0)
-        self.frame2.addWidget(self.entries['bgrnd'][-1], 1, 1)
         self.numExp = QtWidgets.QComboBox()
         self.numExp.addItems([str(x + 1) for x in range(self.FITNUM)])
         self.numExp.currentIndexChanged.connect(self.changeNum)
@@ -2439,7 +2460,7 @@ class ExternalFitDeconvParamFrame(AbstractParamFrame):
     
     def __init__(self, parent, rootwindow, isMain=True):
         self.FITFUNC = simFunc.externalFitRunScript
-        self.DEFAULTS = {'bgrnd': [0.0, True], 'amp': [1.0, False]}
+        self.DEFAULTS = {'offset': [0.0, True], 'mult': [1.0, True], 'amp': [1.0, False]}
         super(ExternalFitDeconvParamFrame, self).__init__(parent, rootwindow, isMain)
         self.numExp = QtWidgets.QComboBox()
         self.script = None
@@ -2474,7 +2495,7 @@ class ExternalFitDeconvParamFrame(AbstractParamFrame):
             raise FittingException("Fitting: No valid script found")
         matches = np.unique(re.findall("(@\w+@)", inFile))
         self.script = inFile
-        self.SINGLENAMES = ["bgrnd"]
+        self.SINGLENAMES = ["offset", "mult"]
         self.MULTINAMES = [e[1:-1] for e in matches]
         self.MULTINAMES.extend(["amp", "lor", "gauss"])
         for n in self.PARAMTEXT.keys():
@@ -2484,13 +2505,18 @@ class ExternalFitDeconvParamFrame(AbstractParamFrame):
                 self.entries[n][i].deleteLater()
         self.PARAMTEXT = {}
         self.labels = {}
-        self.ticks = {'bgrnd': []}
-        self.entries = {'bgrnd': []}
-        self.frame2.addWidget(wc.QLabel("Bgrnd:"), 1, 0, 1, 2)
-        self.ticks['bgrnd'].append(QtWidgets.QCheckBox(''))
-        self.frame2.addWidget(self.ticks['bgrnd'][-1], 2, 0)
-        self.entries['bgrnd'].append(wc.QLineEdit("0.0"))
-        self.frame2.addWidget(self.entries['bgrnd'][-1], 2, 1)
+        self.ticks = {'offset': [], 'mult': []}
+        self.entries = {'offset': [], 'mult': []}
+        self.frame2.addWidget(wc.QLabel("Offset:"), 1, 0, 1, 2)
+        self.ticks['offset'].append(QtWidgets.QCheckBox(''))
+        self.frame2.addWidget(self.ticks['offset'][-1], 2, 0)
+        self.entries['offset'].append(wc.QLineEdit("0.0"))
+        self.frame2.addWidget(self.entries['offset'][-1], 2, 1)
+        self.frame2.addWidget(wc.QLabel("Multiplier:"), 3, 0, 1, 2)
+        self.ticks['mult'].append(QtWidgets.QCheckBox(''))
+        self.frame2.addWidget(self.ticks['mult'][-1], 4, 0)
+        self.entries['mult'].append(wc.QLineEdit("1.0"))
+        self.frame2.addWidget(self.entries['mult'][-1], 4, 1)
         for i in range(len(self.MULTINAMES)):
             name = self.MULTINAMES[i]
             self.PARAMTEXT[name] = name
@@ -2706,15 +2732,15 @@ class MqmasDeconvParamFrame(AbstractParamFrame):
     Ioptions = ['3/2', '5/2', '7/2', '9/2']
     Ivalues = [1.5, 2.5, 3.5, 4.5]
     MQvalues = [3, 5, 7, 9]
-    SINGLENAMES = ['bgrnd', 'spinspeed']
+    SINGLENAMES = ['offset', 'mult', 'spinspeed']
     MULTINAMES = ['pos', 'cq', 'eta', 'amp', 'lor2', 'gauss2', 'lor1', 'gauss1']
     EXTRANAMES = ['spinType', 'angle', 'numssb','cheng', 'I', 'MQ', 'shear', 'scale']
-    PARAMTEXT = {'bgrnd': 'Background', 'pos': 'Position', 'cq': 'Cq', 'eta': 'eta', 'amp': 'Integral', 'lor2': 'Lorentz 2', 'gauss2': 'Gauss 2', 'lor1': 'Lorentz 1', 'gauss1': 'Gauss 1'}
+    PARAMTEXT = {'offset': 'Offset', 'mult':'Multiplier', 'pos': 'Position', 'cq': 'Cq', 'eta': 'eta', 'amp': 'Integral', 'lor2': 'Lorentz 2', 'gauss2': 'Gauss 2', 'lor1': 'Lorentz 1', 'gauss1': 'Gauss 1'}
 
     def __init__(self, parent, rootwindow, isMain=True):
         self.FITFUNC = simFunc.mqmasFunc
         self.fullInt = np.sum(parent.getData1D()) * parent.sw() / float(parent.getData1D().shape[-1]) * parent.sw(-2) / float(parent.getData1D().shape[-2])
-        self.DEFAULTS = {'bgrnd': [0.0, True], 'spinspeed': [10.0, True], 'pos': [0.0, False], 'cq': [1.0, False], 'eta': [0.0, False], 'amp': [self.fullInt, False], 'lor2': [10.0, False], 'gauss2': [0.0, True], 'lor1': [10.0, False], 'gauss1': [0.0, True]}
+        self.DEFAULTS = {'offset': [0.0, True], 'mult': [1.0, True], 'spinspeed': [10.0, True], 'pos': [0.0, False], 'cq': [1.0, False], 'eta': [0.0, False], 'amp': [self.fullInt, False], 'lor2': [10.0, False], 'gauss2': [0.0, True], 'lor1': [10.0, False], 'gauss1': [0.0, True]}
         self.extraDefaults = {'spinType': 2, 'angle': "arctan(sqrt(2))", 'numssb': 32, 'cheng': 15, 'I': 0, 'MQ': 0, 'shear': '0.0', 'scale': '1.0'}
         super(MqmasDeconvParamFrame, self).__init__(parent, rootwindow, isMain)
         self.optframe.addWidget(wc.QLabel("MAS:"), 2, 0)
@@ -2761,11 +2787,16 @@ class MqmasDeconvParamFrame(AbstractParamFrame):
         self.frame2.addWidget(self.ticks['spinspeed'][-1], 1, 0)
         self.entries['spinspeed'].append(wc.QLineEdit())
         self.frame2.addWidget(self.entries['spinspeed'][-1], 1, 1)
-        self.frame2.addWidget(wc.QLabel("Bgrnd:"), 2, 0, 1, 2)
-        self.ticks['bgrnd'].append(QtWidgets.QCheckBox(''))
-        self.frame2.addWidget(self.ticks['bgrnd'][-1], 3, 0)
-        self.entries['bgrnd'].append(wc.QLineEdit())
-        self.frame2.addWidget(self.entries['bgrnd'][-1], 3, 1)
+        self.frame2.addWidget(wc.QLabel("Offset:"), 2, 0, 1, 2)
+        self.ticks['offset'].append(QtWidgets.QCheckBox(''))
+        self.frame2.addWidget(self.ticks['offset'][-1], 3, 0)
+        self.entries['offset'].append(wc.QLineEdit())
+        self.frame2.addWidget(self.entries['offset'][-1], 3, 1)
+        self.frame2.addWidget(wc.QLabel("Multiplier:"), 4, 0, 1, 2)
+        self.ticks['mult'].append(QtWidgets.QCheckBox(''))
+        self.frame2.addWidget(self.ticks['mult'][-1], 5, 0)
+        self.entries['mult'].append(wc.QLineEdit())
+        self.frame2.addWidget(self.entries['mult'][-1], 5, 1)
         self.numExp = QtWidgets.QComboBox()
         self.numExp.addItems([str(x + 1) for x in range(self.FITNUM)])
         self.numExp.currentIndexChanged.connect(self.changeNum)
@@ -2894,15 +2925,15 @@ class MqmasCzjzekParamFrame(AbstractParamFrame):
     Ioptions = ['3/2', '5/2', '7/2', '9/2']
     Ivalues = [1.5, 2.5, 3.5, 4.5]
     MQvalues = [3, 5, 7, 9]
-    SINGLENAMES = ['bgrnd']
+    SINGLENAMES = ['offset', 'mult']
     MULTINAMES = ['pos', 'sigma', 'sigmaCS', 'cq0', 'eta0', 'amp', 'lor2', 'gauss2', 'lor1', 'gauss1']
     EXTRANAMES = ['method', 'd', 'MQ', 'shear', 'scale']
-    PARAMTEXT = {'bgrnd': 'Background', 'pos': 'Position', 'sigma': 'Sigma', 'sigmaCS': 'Sigma CS', 'cq0': 'Cq0', 'eta0': 'Eta0', 'amp': 'Integral', 'lor': 'Lorentz', 'gauss': 'Gauss'}
+    PARAMTEXT = {'offset': 'Offset', 'mult': 'Multiplier', 'pos': 'Position', 'sigma': 'Sigma', 'sigmaCS': 'Sigma CS', 'cq0': 'Cq0', 'eta0': 'Eta0', 'amp': 'Integral', 'lor': 'Lorentz', 'gauss': 'Gauss'}
 
     def __init__(self, parent, rootwindow, isMain=True):
         self.FITFUNC = simFunc.mqmasCzjzekFunc
         self.fullInt = np.sum(parent.getData1D()) * parent.sw() / float(parent.getData1D().shape[-1]) * parent.sw(-2) / float(parent.getData1D().shape[-2])
-        self.DEFAULTS = {'bgrnd': [0.0, True], 'pos': [0.0, False], 'sigma': [1.0, False], 'sigmaCS': [10.0, False], 'cq0': [0.0, True], 'eta0': [0.0, True], 'amp': [self.fullInt, False], 'lor2': [10.0, False], 'gauss2': [0.0, True], 'lor1': [10.0, False], 'gauss1': [0.0, True]}
+        self.DEFAULTS = {'offset': [0.0, True], 'mult': [1.0, True], 'pos': [0.0, False], 'sigma': [1.0, False], 'sigmaCS': [10.0, False], 'cq0': [0.0, True], 'eta0': [0.0, True], 'amp': [self.fullInt, False], 'lor2': [10.0, False], 'gauss2': [0.0, True], 'lor1': [10.0, False], 'gauss1': [0.0, True]}
         self.extraDefaults = {'mas': 2, 'method': 0, 'd': 5, 'cheng': 15, 'I': 3/2.0, 'MQ': 0, 'shear': '0.0', 'scale': '1.0',
                 'cqsteps': 50, 'etasteps': 10, 'cqmax': 4, 'cqmin': 0, 'etamax': 1, 'etamin': 0, 'lib': None, 'cqLib': None, 'etaLib': None}
         super(MqmasCzjzekParamFrame, self).__init__(parent, rootwindow, isMain)
@@ -2922,11 +2953,18 @@ class MqmasCzjzekParamFrame(AbstractParamFrame):
         autoButton = QtWidgets.QPushButton("&Auto")
         autoButton.clicked.connect(self.autoShearScale)
         self.optframe.addWidget(autoButton, 6, 1)
-        self.frame2.addWidget(wc.QLabel("Bgrnd:"), 0, 0, 1, 2)
-        self.ticks['bgrnd'].append(QtWidgets.QCheckBox(''))
-        self.ticks['bgrnd'][-1].setChecked(True)
-        self.frame2.addWidget(self.ticks['bgrnd'][-1], 1, 0)
-        self.entries['bgrnd'].append(wc.FitQLineEdit(self, 'bgrnd', ""))
+        self.frame2.addWidget(wc.QLabel("Offset:"), 0, 0, 1, 2)
+        self.ticks['offset'].append(QtWidgets.QCheckBox(''))
+        self.ticks['offset'][-1].setChecked(True)
+        self.frame2.addWidget(self.ticks['offset'][-1], 1, 0)
+        self.entries['offset'].append(wc.FitQLineEdit(self, 'offset', ""))
+        self.frame2.addWidget(self.entries['offset'][-1], 1, 1)
+        self.frame2.addWidget(wc.QLabel("Multiplier:"), 2, 0, 1, 2)
+        self.ticks['mult'].append(QtWidgets.QCheckBox(''))
+        self.ticks['mult'][-1].setChecked(True)
+        self.frame2.addWidget(self.ticks['mult'][-1], 3, 0)
+        self.entries['mult'].append(wc.FitQLineEdit(self, 'mult', ""))
+        self.frame2.addWidget(self.entries['mult'][-1], 3, 1)
         self.optframe.addWidget(wc.QLabel("Type:"), 0, 0)
         self.entries['method'].append(QtWidgets.QComboBox())
         self.entries['method'][0].addItems(['Normal', 'Extended'])
@@ -2936,7 +2974,6 @@ class MqmasCzjzekParamFrame(AbstractParamFrame):
         self.entries['d'].append(QtWidgets.QComboBox())
         self.entries['d'][0].addItems(['1', '2', '3', '4', '5'])
         self.optframe.addWidget(self.entries['d'][0], 3, 0)
-        self.frame2.addWidget(self.entries['bgrnd'][-1], 1, 1)
         self.numExp = QtWidgets.QComboBox()
         self.numExp.addItems([str(x + 1) for x in range(self.FITNUM)])
         self.numExp.currentIndexChanged.connect(self.changeNum)
