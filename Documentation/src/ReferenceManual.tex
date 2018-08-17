@@ -1039,10 +1039,12 @@ Echo--antiecho conversion takes the alternating data set and makes new complex v
 \end{equation*}
 
 \section{Fitting}
-In NMR spectroscopy, the shape of the resonance lines can provide information on the strength of interactions that the nucleus experiences.
-ssNake can, as many other programs, fit some idealized lineshapes with are often encountered in real life spectra.
-Fitting in ssNake ranges from trivial `full width at half maximum' (FWHM) fitting, to the complex quadrupolar Czjzek distribution.
-The following section will explain the way ssNake handles the different types of spectra it can fit, and which equations are used to simulate the different spectra.
+In NMR spectroscopy, the shape of the resonance lines can provide information on the strength of
+interactions that the nucleus experiences.  ssNake can, as many other programs, fit some idealized
+lineshapes with are often encountered in real life spectra.  Fitting in ssNake ranges from trivial
+`full width at half maximum' (FWHM) fitting, to the complex quadrupolar Czjzek distribution.  The
+following section will explain the way ssNake handles the different types of spectra it can fit, and
+which equations are used to simulate the different spectra.
 
 \subsection{Fitting basics}
 Roughly speaking, ssNake uses two types of fitting procedures: those with a mathematical solution, and those who have to be approximated iteratively.
@@ -1105,6 +1107,48 @@ The source code of this can be found in \texttt{zcw.py}. For more information on
 see the paper by Mattias Ed\'{e}n \cite{eden2003computer}.
 
 
+\subsection*{Spherical tensors}
+The chemical shift anisotropy (CSA) and quadupole simulation routines in ssNake make use of the
+spherical tensor description of these systems. Spherical tensors are a method of writing angular
+dependencies of spin interaction in such a fashion that rotations can be easily described. Rotations
+are necessary for simulations of powder patterns, were each possible orientation of the crystallites
+needs to be sampled (see the part on the ZCW scheme). This requires the NMR interaction equation to
+be rotated to the orientation of the specific crystallite. 
+
+If only this `crystal orientation' rotation is considered, equations for CSA and the quadrupole
+interaction can be written down in a regular fashion (with sin and cosine terms), and are usually
+not too complicated. However, in cases were magic angle spinning is used, an extra rotation is
+required to account for the angle of the rotor, and the rotation of the rotor itself. The equations
+needed for this become complicated very quickly, and a rather inconvenient to handle.
+
+For this purpose, it is more straightforward to work in the spherical tensor basis: a basis where
+rotations are easily defined. Writing a spin interaction (e.g. CSA) as a spherical tensor means we
+are decomposing the interaction into parts with different behaviour under rotation. For the chemical
+shift, this leads to a part that is constant under rotations (i.e. the isotropic part) with tensor
+rank 0, and a part that is a rank 2 tensor (which is influenced by rotations). Each of these parts
+has a spin term and a space term. Rotating the interaction rotates the space term of each rank.
+
+In this way, every Hamiltonian can be described as a sum of inner products:
+\begin{equation}
+  H = \sum_{n}  T_n \bullet  \Lambda_n
+  \label{eq:HamSphere}
+\end{equation}
+with $T_n$ the spin part of rank $n$, and $\Lambda_n$ the space part. For NMR interactions only
+ranks 0, 2 and 4 are relevant. Rotations are then easily described as a matrix multiplication:
+\begin{equation}
+\Lambda^\prime_n = \Lambda_n \cdot D^n(\alpha,\beta,\gamma)
+\end{equation}
+with $D^n$ a Wigner rotation matrix, of which the elements are:
+\begin{equation}
+  D^n_{m^\prime,m} = e^{-i\alpha m^\prime}e^{-i \gamma m} d^n_{m^\prime,m}(\beta)
+\end{equation}
+with $d^n$ a Wigner small d-matrix. These terms can be found online. Note that rank 0 terms are not
+affected by rotations: they are scalars.
+
+The Hamiltonian of a rotated interaction is therefore just calculated using the rotated spin part
+$\Lambda^\prime_n$ for each rank $n$, following \autoref{eq:HamSphere}.
+
+
 
 \subsection{S/N}
 S/N (or SNR) calculates the signal-to-noise ratio between a defined section of noise, and a peak. SNR is a useful way to describe the quality of a spectrum, with too low values being a sign for inaccurate data. In ssNake, opening the S/N tool creates a window, in which the limits of the section of noise has to be set, as well as the region with the peak of interest. Left clicking in the plot can set these values (noise limits first, then signal limits). Note that it is essential that the region that is specified as `noise' really is noise. Any remaining signal will disrupt the SNR calculation. When the limits are set, ssNake directly calculates the SNR, using:
@@ -1128,17 +1172,20 @@ with $M = \sum y_i$ and $y_i$ the y-value corresponding to x-value $x_i$.
 
 
 \subsection{CSA}
-This fitting routine can be used to simulate lineshapes influence by chemical shift anisotropy (CSA), in both
-the static case, and under MAS. An iterative fitting procedure is used for the fitting, so the initial guess
-should be somewhat close to the optimal solution. General values that need to be set are:
+This fitting routine can be used to simulate lineshapes influence by chemical shift anisotropy
+(CSA), in both the static case, and under both infinite and finite MAS. An iterative fitting
+procedure is used for the fitting, so the initial guess should be somewhat close to the optimal
+solution. General values that need to be set are:
 \begin{itemize}
 \item The Cheng number (number of powder averages)
 \item The definition: the used chemical shift definition (see the part on on the CSA Utility for more information)
 \item The background (constant value added to all data points)
-\item The slope (linear factor added to all data points, is zero at $x=0$ and uses the $x$-values in Hz).
-\item \textit{The spinning speed in kHz (when Spinning is on).}
-\item \textit{The number of sidebands (when spinning is on). This value must always be larger then the
-  expected number of spinning sidebands. Higher values take more time to simulate.}
+\item The MAS method: static, finite or infinite
+\item The spinning speed in kHz (when MAS is on `finite').
+\item The number of sidebands (when MAS is on `finite'). This value must always be larger then the
+  expected number of spinning sidebands. Higher values take more time to simulate.
+\item The rotor angle in radian (when MAS is not static). Default is the magic angle:
+	 $\text{arctan}(\sqrt{2})$
 \end{itemize}
 And for each site:
 \begin{itemize}
@@ -1155,33 +1202,58 @@ xx-yy-zz definition.
 
 
 \subsubsection*{Equations}
-In the static case, the frequency of a crystallite is defined by:
+The chemical shift interaction is described using the spherical tensor definitions discussed
+above. The equations are simplified by assuming that the magnetic field is along $z$, and by
+truncating the Hamiltonian to only parts that commute with the Zeeman interaction (i.e. commute
+with $I_z$). (These are the regular approximations used in NMR)
+
+The chemical shift has only a rank 0 and rank 2 tensor part. The terms are:
+
 \begin{equation}
-  \nu = A \cdot \delta_{11} + B \cdot \delta_{22} + C \cdot \delta_{33}
+  T_{0} = \left( - \sqrt{\frac{1}{3}} I_z B_0 \right)
+  \quad\quad\quad
+\Lambda_0 = \left( - \gamma \sqrt{\frac{1}{3}} (\sigma_{zz} + \sigma_{xx} + \sigma_{yy}) \right)
 \end{equation}
-with the angular factors:
-\begin{align}
-  A &= \sin(\theta)^2 \cos(\phi)^2 \\
-  B &= \sin(\theta)^2 \sin(\phi)^2 \\
-  C &= \cos(\theta)^2
-\end{align}
-Note that the $\delta$ factors are expressed in Hz in this case.
+\begin{equation}
+  T_{2} = \left( \begin{array}{c}
+0 \\
+0 \\
+\sqrt{\dfrac{1}{6}} 2I_z B_0 \\
+0 \\
+0\\
+  \end{array} \right)
+  \quad\quad\quad
+\Lambda_2 = \left( \begin{array}{c}
+  \dfrac{1}{2} \gamma (\sigma_{xx} - \sigma_{yy})\\
+  0\\
+  \gamma \sqrt{\dfrac{1}{6}} (2\sigma_{zz} - \sigma_{xx} - \sigma_{yy})\\
+  0\\
+  \dfrac{1}{2} \gamma (\sigma_{xx} - \sigma_{yy})\\
+  \end{array} \right)
+\end{equation}
 
-The spinning case is somewhat more difficult. Essentially, the FID of one rotor period is simulated using $n$
-steps, with $n$ the desired number of sidebands. This FID is then Fourier transformed, giving the intensities
-of the sidebands. Of these, a spectrum is made, adding a shift and line broadening. The is done for all the
-crystallites, using $n$ gamma angles.
+Here, it is clear that the rank 0 term accounts for the isotropic chemical shift, while the rank 2
+terms hold the anisotropic information. To calculate the actually NMR frequencies, the difference
+between the $I_z$ value of two energy levels should be used. This is usually 1, as only single
+quantum transitions are observed.
 
-\subsection{Second order quadrupole}
-This fitting routine can be used to fit a static powder lineshape that is caused by the second order
-quadrupolar effect. Only the central transition is considered. A simplex method is used to find the (local)
-optimal solution. It is therefore necessary to make sure the initial parameters are somewhat close to the
-final fit, especially for fits with multiple sites. General values that need to be set are:
+
+
+\subsection{Quadrupole}
+This fitting routine can be used to fit powder lineshapes of quadrupoles of any spin quantum number,
+either static, or under spinning (with finite or infinite spinning speed). Satellite transitions can
+be turned on or of. General values that need to be set are:
 \begin{itemize}
+\item The spin quantum number $I$ 
+\item The MAS type: static, finite MAS or infinite MAS
+\item The satellites (on or off, not that for integer $I$ values, the must be on)
 \item The Cheng number (number of powder averages)
-\item The spin quantum number $I$ (only half-integer > 1/2)
+\item The rotor angle in radian (when MAS is not `static'). Default is the magic angle:
+	 $\text{arctan}(\sqrt{2})$
+\item The number of sidebands (when MAS is on `finite'). This value must always be larger then the
+  expected number of spinning sidebands. Higher values take more time to simulate.
+\item The spinning speed in kHz (when MAS is on `finite').
 \item The background (constant value added to all data points)
-\item The slope (linear factor added to all data points, is zero at $x=0$ and uses the $x$-values in Hz).
 \end{itemize}
 And for each site:
 \begin{itemize}
@@ -1194,46 +1266,90 @@ And for each site:
 \end{itemize}
 A maximum of 10 sites can be fitted simultaneously.
 
-In the case `Spinning' is checked, a spectrum with `infinite' MAS is simulated.
-
-
-
-
+When simulating an infinite MAS spectrum, a more efficient routine can be used that for finite MAS.
+If spinning sidebands are not important in the calculation, it might be useful to switch to
+`infinite' for speed considerations.
 
 \subsubsection*{Equations}
-The second order quadrupole static relies on some relatively standard formulae: those of the second order
-quadrupolar coupling. This equation can be split up in two parts: an angle independent factor, and the angular
-factors. This latter part is then split in three parts depending on the influence of the asymmetry parameter
-$\eta$. In short:
+Quadrupole systems are influenced by both the first and second order quadrupolar coupling. The first
+order quadrupolar coupling has only rank 2 terms, while the second order has rank 0, 2 and 4
+terms.
+
+\textit{First order:}
+\begin{equation}
+  T_{2} = \left( \begin{array}{c}
+0 \\
+0 \\
+3 I_z^2 - I (I+1) \\
+0 \\
+0\\
+  \end{array} \right)
+  \quad\quad\quad
+  \Lambda_2 = \dfrac{C_\text{Q}}{4  I (2 I - 1)} \left( \begin{array}{c}
+  \sqrt{\dfrac{1}{6}} \eta\\
+  0\\
+  1\\
+  0\\
+  \sqrt{\dfrac{1}{6}} \eta\\
+  \end{array} \right)
+\end{equation}
+
+
+\textit{Second order:}
+\begin{equation}
+  T_{0} = \left( I_z (I(I+1)-3 I_z^2) \right)
+  \quad\quad\quad
+  \Lambda_{0} = B \left( -\dfrac{1}{5} (3 + \eta^2) \right)
+\end{equation}
 
 \begin{equation}
-\nu = -\dfrac{3{(C_\text{Q}/2\pi)}^2}{6\nu_0(2I(2I-1))^2}(I(I+1)-3/4)(A+B\cdot\eta+C\cdot\eta^2)
+  T_{2} = \left( \begin{array}{c}
+0 \\
+0 \\
+I_z (8 I (I + 1) -12 I_z^2 - 3) \\
+0 \\
+0\\
+  \end{array} \right)
+  \quad\quad\quad
+  \Lambda_{2} = B \left( \begin{array}{c}
+\dfrac{1}{7} \sqrt{\dfrac{3}{2}} \eta \\
+0 \\
+\dfrac{1}{14} (\eta^2 - 3) \\
+0 \\
+\dfrac{1}{7} \sqrt{\dfrac{3}{2}} \eta\\
+  \end{array} \right)
 \end{equation}
-With the angular factors:
-\begin{align}
-A &= -\dfrac{27}{8}\cos(\theta)^4+\dfrac{15}{4}\cos(\theta)^2-\dfrac{3}{8} \\
-B &= \left(-\dfrac{9}{4}\cos(\theta)^4+2\cos(\theta)^2+\dfrac{1}{4}\right)\cos(2\phi) \\
-C &=-\dfrac{1}{2}\cos(\theta)^2+\dfrac{1}{3}+\left(-\dfrac{3}{8}\cos(\theta)^4+\dfrac{3}{4}\cos(\theta)^2-\dfrac{3}{8}\right)\cos(2\phi)^2
-\end{align}
-and the regular definitions for the quadrupolar coupling constant $C_\text{Q}$ (in Hz) and asymmetry parameter
-$\eta$. For a given cheng number (i.e. number of powder orientations), the $A$, $B$ and $C$ parameters are
-constant, and only have to be calculated once for the fitting procedure.
 
-In the spinning case, the angular factor change to:
-\begin{align}
-A &=  \dfrac{21}{16} \cos(\theta)^4 - \dfrac{9}{8} \cos(\theta)^2 + \dfrac{5}{16}\\
-B &=  \left(-\dfrac{7}{8} \cos(\theta)^4 + \cos(\theta)^2 - \dfrac{1}{8}\right) \cos(2 \phi)\\
-C &=  \dfrac{1}{12} \cos(\theta)^2 + \left( \dfrac{7}{48} \cos(\theta)^4 - \dfrac{7}{24} \cos(\theta)^2 + \dfrac{7}{48} \right) \cos(2 \phi)^2
-\end{align}
+\begin{equation}
+  T_{4} = \left( \begin{array}{c}
+0 \\
+0 \\
+0 \\
+0 \\
+I_z (18 I (I + 1) -34 I_z^2 -5) \\
+0 \\
+0\\
+0 \\
+0 \\
+  \end{array} \right)
+  \quad\quad\quad
+  \Lambda_{4} = B
+  \left( \begin{array}{c}
+\dfrac{1}{4 \sqrt{70}} \eta^2 \\
+0 \\
+\dfrac{3}{70}  \sqrt{\dfrac{5}{2}} \eta\\
+0 \\
+ \dfrac{1}{140} (18  + \eta^2) \\
+0 \\
+\dfrac{3}{70}  \sqrt{\dfrac{5}{2}} \eta\\
+0 \\
+\dfrac{1}{4 \sqrt{70}} \eta^2 \\
+  \end{array} \right)
+\end{equation}
 
 
-
-%A = -27/8.0*np.cos(theta)**4+15/4.0*np.cos(theta)**2-3/8.0
-%B = (-9/4.0*np.cos(theta)**4+2*np.cos(theta)**2+1/4.0)*np.cos(2*phi)
-%C = -1/2.0*np.cos(theta)**2+1/3.0+(-3/8.0*np.cos(theta)**4+3/4.0*np.cos(theta)**2-3/8.0)*np.cos(2*phi)**2
-
-
-
+With $B = \left( \dfrac{C_\text{Q}}{4 I (2 I - 1)} \right) ^ 2  \dfrac{2}{\nu_0}$, where $\nu_0$ is
+the Larmor frequency of the nucleus.
 
 \subsection{Czjzek}
 This simulates a static or `infinite' MAS spectrum of a Czjzek distribution (half-integer spins $> 1/2$
@@ -1242,34 +1358,63 @@ distorted in a specific way.
 
 The distribution is defined as:
 \begin{equation}
-  A(\omega_\text{Q},\eta) = \frac{\omega_\text{Q}{}^{d - 1} \cdot \eta}{\sqrt{2\pi} \cdot \sigma^d} (1 - \eta^2 / 9) \cdot
-  \exp\left[\frac{-\omega_\text{Q}^2 (1 + \eta^2/3)} {2\sigma^2}   \right]
+  A(C_\text{Q},\eta) = \frac{C_\text{Q}{}^{d - 1} \cdot \eta}{\sqrt{2\pi} \cdot \sigma^d} (1 - \eta^2 / 9) \cdot
+  \exp\left[\frac{-C_\text{Q}^2 (1 + \eta^2/3)} {2\sigma^2}   \right]
 \end{equation}
-This equation gives the amplitude $A$ for a specific $\omega_\text{Q}$, $\eta$, $\sigma$ and $d$. $d$ is the order
+This equation gives the amplitude $A$ for a specific $C_\text{Q}$, $\eta$, $\sigma$ and $d$. $d$ is the order
 parameter (equal to 5 in the initially proposed model by Czjzek and co-workers) and $\sigma$ the strength of
 the quadrupolar interaction (in MHz). The other parameter are the
 regular quadrupolar parameters. To simulate a Czjzek spectrum, one must simulate regular 2nd order quadrupolar
-spectra for quadrupolars values $0\rightarrow 1$ for $\eta$, and $0\rightarrow \infty$ for $\omega_\text{Q}$.
-However, as $a$ becomes very small and essentially all values beyond $\omega_\text{Q} > 8\cdot \sigma$ can be
-ignored. The maximum of $A$ is at $\omega_\text{Q} = 2\sigma$ and $\eta = 0.68$. Within ssNake, the value
-$\omega_\text{Q}{}^\text{max}$ is therefore given in units of $\sigma$, and has a default value of 4.
+spectra for quadrupolars values $0\rightarrow 1$ for $\eta$, and $0\rightarrow \infty$ for $C_\text{Q}$.
+However, as $A$ becomes very small and essentially all values beyond $C_\text{Q} > 8\cdot \sigma$ can be
+ignored. The maximum of $A$ is at $C_\text{Q} = 2\sigma$ and $\eta = 0.68$. Within ssNake, the value
+$C_\text{Q}{}^\text{max}$ is therefore given in units of $\sigma$, and has a default value of 4.
 
-To simulate this, ssNake creates a linear grid on the 2D surface of $\eta$ and $\omega_\text{Q}$ using a
-specified number of steps along both dimensions, and a maximum value along the $\omega_\text{Q}$ axis. For all
+To simulate this, ssNake creates a linear grid on the 2D surface of $\eta$ and $C_\text{Q}$ using a
+specified number of steps along both dimensions, and a maximum value along the $C_\text{Q}$ axis. For all
 of these values, a 2nd order quadrupolar spectrum is calculated (static or spinning). This creates a library
-of spectra for each $\eta$ and $\omega_\text{Q}$ value. When fitting, ssNake only calculates this library
+of spectra for each $\eta$ and $C_\text{Q}$ value. When fitting, ssNake only calculates this library
 once.
 
 To calculate a Czjzek spectrum, a value for $d$ and $\sigma$ need to be given. For this, the $A$ coefficients
 can be calculated. Now, all the spectra in the library can be multiplied by their $A$-value, and added to give
 the final spectrum.
 
-As the library is only calculated once, the $\omega_\text{Q}{}^\text{max}$ must be appropriately set. When
+As the library is only calculated once, the $C_\text{Q}{}^\text{max}$ must be appropriately set. When
 $\sigma$ has changed a lot during the fit, it is wise to rerun the fit. This second fit then runs with a
 better tweaked library for this specific value of $\sigma$.
 
 
-%czjzek = wq**(d - 1) * eta / (np.sqrt(2 * np.pi) * sigma**d) * (1 - eta**2 / 9.0) * np.exp(-wq**2 / (2.0 * sigma**2) * (1 + eta**2 / 3.0))
+Extended Czjzek
+\begin{align}
+  A(C_\text{Q},\eta) = & \frac{C_\text{Q}{}^{d-1}}{\sigma^d} \eta \left(1 - \frac{\eta^2}{9} \right)
+  \int \int \int \sin(\beta) \text{d}\alpha \text{d}\beta \text{d}\gamma \nonumber \\
+  & \exp \left\{ -\frac{1}{2\sigma^2} \left[ C_\text{Q,0}^2 \left(1 + \frac{\eta_0^2}{3}\right) +
+  C_\text{Q}^2 \left(1+ \frac{\eta^2}{3}\right) \right.\right. \\
+  & \left.\vphantom{\frac{a^1}{1}} \left.\vphantom{\frac{a^1}{1}} - \frac{2}{\sqrt{3}} C_\text{Q} C_\text{Q,0} \left( \sqrt{3} a_{11} + \eta_0 a_{15} + \eta \left(
+ a_{51} + \frac{\eta_0 a_{55}}{\sqrt{3}} \right) \right) \right] \right\} \nonumber
+\end{align}
+with
+\begin{align}
+  a_{11} = & \frac{1}{2} (3\cos^2\beta - 1)\\
+  a_{15} = & \frac{\sqrt{3}}{2} \sin^2\beta \cos 2\alpha \\
+  a_{51} = & \frac{\sqrt{3}}{2} \sin^2\beta \cos 2\gamma \\
+  a_{55} = & \frac{1}{2} \cos 2\alpha (1 + \cos^2\beta) \cos2\gamma - \sin 2 \alpha \cos \beta \sin
+  2 \gamma.
+\end{align}
+
+special case $\eta_0=0$:
+
+\begin{align}
+  A(C_\text{Q},\eta) = & \frac{C_\text{Q}{}^{d-1}}{\sigma^d} \eta \left(1 - \frac{\eta^2}{9} \right)
+  \exp \left\{ - \frac{C_\text{Q,0}^2 + C_\text{Q}^2 (1 + \frac{\eta^2}{3})}{2\sigma^2} \right\}\\
+  & \cdot \int_0^1 I_0(z) \exp \left\{ \frac{C_\text{Q}C_\text{Q,0}}{2\sigma^2} (3t^2 - 1)   \right\} \text{d}t
+\end{align}
+with $I_0(z)$ a modified Bessel function, and
+\begin{equation}
+  z = \eta \left| \frac{C_\text{Q}C_\text{Q,0}}{2\sigma^2}\right| (1 - t^2)
+  \label{<++>}
+\end{equation}<++>
 
 
 \subsection{External}
