@@ -31,9 +31,19 @@ try:
 except ImportError:
     from PyQt5 import QtGui, QtCore, QtWidgets
     QT = 5
+import matplotlib
+# First import matplotlib and Qt
+if QT == 4:
+    matplotlib.use('Qt4Agg')
+    from matplotlib.backends.backend_qt4agg import FigureCanvasQTAgg as FigureCanvas
+else:
+    matplotlib.use('Qt5Agg')
+    from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
+import multiprocessing
 
 # Create splash window
 if __name__ == '__main__':
+    multiprocessing.freeze_support() #Fix multiprocessing for pyinstaller on windows (line does nothing otherwise)
     root = QtWidgets.QApplication(sys.argv)
     root.setWindowIcon(QtGui.QIcon(os.path.dirname(os.path.realpath(__file__)) + '/logo.gif'))
     splash_pix = QtGui.QPixmap(os.path.dirname(os.path.realpath(__file__)) + '/logo.gif')
@@ -80,22 +90,11 @@ importList = [['matplotlib.figure', 'Figure', 'Figure'],
               ['specIO', 'io', None],
               ['views', 'views', None]]
 
-splashSteps = (len(importList) + 2.0) / 100
-
-# First import matplotlib and Qt
-splashStep = import_lib('matplotlib','matplotlib',None,0.0)
-if QT == 4:
-    matplotlib.use('Qt4Agg')
-    from matplotlib.backends.backend_qt4agg import FigureCanvasQTAgg as FigureCanvas
-else:
-    matplotlib.use('Qt5Agg')
-    from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
-splashStep = splashProgressStep(splashStep)
-
+splashSteps = (len(importList)) / 100
+splashStep = 0
 # Import everything else
 for elem in importList:
     splashStep = import_lib(elem[0],elem[1],elem[2],splashStep)
-
 
 matplotlib.rc('font', family='DejaVu Sans')
 np.set_printoptions(threshold=np.nan)
@@ -6987,7 +6986,6 @@ def popupVersionError(messages):
     return quit
 
 if __name__ == '__main__':
-    multiprocessing.freeze_support() #Fix multiprocessing for pyinstaller on windows (line does nothing otherwise)
     error, messages = checkVersions()
     quit = False
     if error:
