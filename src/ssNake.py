@@ -18,6 +18,7 @@
 # You should have received a copy of the GNU General Public License
 # along with ssNake. If not, see <http://www.gnu.org/licenses/>.
 
+EXE = False
 
 import sip
 import sys
@@ -1534,7 +1535,10 @@ class MainProgram(QtWidgets.QMainWindow):
 
     def nmrTable(self):
         import subprocess
-        subprocess.Popen([sys.executable, os.path.dirname(os.path.realpath(__file__)) + '/nmrTable.py'])
+        if EXE: #If compiling to exe
+            subprocess.Popen(os.path.dirname(os.path.realpath(__file__)) + '/nmrTable.exe')
+        else:
+            subprocess.Popen([sys.executable, os.path.dirname(os.path.realpath(__file__)) + '/nmrTable.py'])
 
     def fileQuit(self):
         self.close()
