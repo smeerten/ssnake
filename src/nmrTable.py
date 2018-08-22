@@ -3,7 +3,7 @@
 
 # Copyright 2016 - 2018 Bas van Meerten and Wouter Franssen
 
-# This file is part of ssNaker.
+# This file is part of ssNake.
 #
 # ssNake is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -17,6 +17,7 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with ssNake. If not, see <http://www.gnu.org/licenses/>.
+#!/usr/bin/env python
 
 import sys
 try:
@@ -26,7 +27,6 @@ try:
 except ImportError:
     from PyQt5 import QtGui, QtCore, QtWidgets
     QT = 5
-from safeEval import safeEval
 import os
 import math
 
@@ -36,6 +36,12 @@ def fOrNone(inp):
         return None
     else:
         return float(inp)
+
+def safeEval(inp, length=None):
+    try:
+        return eval(inp)
+    except Exception:
+        return None
 
 SPINNAMES = ['0', '1/2', '1', '3/2', '2',
              '5/2', '3', '7/2', '4', '9/2',
