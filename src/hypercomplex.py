@@ -257,7 +257,7 @@ class HComplexData(object):
         if axis < 1:
             axis = self.data.ndim - axis
         if self.isComplex(axis):
-            self.data = self.real(axis)
+            self.data = self.real(axis).data
         watershedBits = 2**axis - 1
         lowBits = self.hyper & watershedBits
         self.hyper = (self.hyper - lowBits) // 2 + lowBits
