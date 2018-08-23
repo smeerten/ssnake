@@ -460,7 +460,6 @@ class MainProgram(QtWidgets.QMainWindow):
                                    ['Utilities --> Chemical Shift Conversion Tool', self.shiftconvAct],
                                    ['Utilities --> Quadrupole Coupling Conversion Tool', self.quadconvAct],
                                    ['Utilities --> NMR Table', self.nmrtableAct],
-                                   ['Help --> Update', self.updateAct],
                                    ['Help --> GitHub Page', self.githubAct],
                                    ['Help --> ssNake Tutorials', self.tutorialAct],
                                    ['Help --> About', self.aboutAct]]
@@ -814,8 +813,12 @@ class MainProgram(QtWidgets.QMainWindow):
         # the help drop down menu
         self.helpMenu = QtWidgets.QMenu("&Help", self)
         self.menubar.addMenu(self.helpMenu)
-        self.updateAct = self.helpMenu.addAction(QtGui.QIcon(IconDirectory + 'update.png'), "&Update", self.updateMenu)
-        self.updateAct.setToolTip('Update ssNake')
+        if not EXE:
+            self.updateAct = self.helpMenu.addAction(QtGui.QIcon(IconDirectory + 'update.png'), "&Update", self.updateMenu)
+            self.updateAct.setToolTip('Update ssNake')
+            self.helpActList = [self.updateAct] 
+        else:
+            self.helpActList = [] 
         self.refmanAct = self.helpMenu.addAction(QtGui.QIcon(IconDirectory + 'manual.png'),"Reference Manual", lambda: self.openRefMan())
         self.refmanAct.setToolTip('Open the Reference Manual')
         self.githubAct = self.helpMenu.addAction(QtGui.QIcon(IconDirectory + 'GitHub.png'),"GitHub Page", lambda: webbrowser.open('https://github.com/smeerten/ssnake/'))
@@ -824,7 +827,7 @@ class MainProgram(QtWidgets.QMainWindow):
         self.tutorialAct.setToolTip('ssNake Processing Tutorials')
         self.aboutAct = self.helpMenu.addAction(QtGui.QIcon(IconDirectory + 'about.png'), "&About", lambda: aboutWindow(self))
         self.aboutAct.setToolTip('About Menu')
-        self.helpActList = [self.updateAct, self.shiftconvAct, self.quadconvAct,
+        self.helpActList = self.helpActList +  [self.shiftconvAct, self.quadconvAct,
                             self.nmrtableAct,self.githubAct,self.tutorialAct, self.aboutAct]
         # Extra event lists:
         self.specOnlyList = [self.regridAct, self.csastaticAct, self.quadAct, self.czjzekAct]

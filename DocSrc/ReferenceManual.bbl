@@ -1,0 +1,58 @@
+\begin{thebibliography}{1}
+\providecommand{\bibAnnoteFile}[1]{%
+  \IfFileExists{#1}{\begin{quotation}\noindent\textsc{Key:} #1\\
+  \textsc{Annotation:}\ \input{#1}\end{quotation}}{}}
+\providecommand{\bibAnnote}[2]{%
+  \begin{quotation}\noindent\textsc{Key:} #1\\
+  \textsc{Annotation:}\ #2\end{quotation}}
+
+\bibitem{balsgart2012fast}
+N.~M. Balsgart and T.~Vosegaard.
+\newblock \textit{Journal of Magnetic Resonance}, \textbf{223}, 164  (2012).
+\bibAnnoteFile{balsgart2012fast}
+
+\bibitem{nelder1965simplex}
+J.~A. Nelder and R.~Mead.
+\newblock \textit{The computer journal}, \textbf{7}, 308 (1965).
+\bibAnnoteFile{nelder1965simplex}
+
+\bibitem{zaremba1966good}
+S.~Zaremba.
+\newblock \textit{Annali di matematica pura ed applicata}, \textbf{73}, 293
+  (1966).
+\bibAnnoteFile{zaremba1966good}
+
+\bibitem{conroy1967molecular}
+H.~Conroy.
+\newblock \textit{The Journal of Chemical Physics}, \textbf{47}, 5307 (1967).
+\bibAnnoteFile{conroy1967molecular}
+
+\bibitem{cheng1973investigations}
+V.~B. Cheng, H.~H. Suzukawa~Jr and M.~Wolfsberg.
+\newblock \textit{The Journal of Chemical Physics}, \textbf{59}, 3992 (1973).
+\bibAnnoteFile{cheng1973investigations}
+
+\bibitem{eden2003computer}
+M.~Ed{\'e}n.
+\newblock \textit{Concepts in Magnetic Resonance Part A}, \textbf{18}, 24
+  (2003).
+\bibAnnoteFile{eden2003computer}
+
+\bibitem{Bak2000SIMPSON}
+M.~Bak, J.~T. Rasmussen and N.~C. Nielsen.
+\newblock \textit{J. Magn. Reson.}, \textbf{147}, 296 (2000).
+\bibAnnoteFile{Bak2000SIMPSON}
+
+\bibitem{Tosner2014Computer}
+Z.~To{\v{s}}ner, R.~Andersen, B.~Stevensson, M.~Ed{\'{e}}n, N.~C. Nielsen and
+  T.~Vosegaard.
+\newblock \textit{J. Magn. Reson.}, \textbf{246}, 79 (2014).
+\bibAnnoteFile{Tosner2014Computer}
+
+\bibitem{Tosner2009Optimal}
+Z.~To{\v{s}}ner, T.~Vosegaard, C.~Kehlet, N.~Khaneja, S.~J. Glaser and N.~C.
+  Nielsen.
+\newblock \textit{J. Magn. Reson.}, \textbf{197}, 120 (2009).
+\bibAnnoteFile{Tosner2009Optimal}
+
+\end{thebibliography}
