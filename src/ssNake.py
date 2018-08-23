@@ -46,8 +46,8 @@ import multiprocessing
 if __name__ == '__main__':
     multiprocessing.freeze_support() #Fix multiprocessing for pyinstaller on windows (line does nothing otherwise)
     root = QtWidgets.QApplication(sys.argv)
-    root.setWindowIcon(QtGui.QIcon(os.path.dirname(os.path.realpath(__file__)) + '/logo.gif'))
-    splash_pix = QtGui.QPixmap(os.path.dirname(os.path.realpath(__file__)) + '/logo.gif')
+    root.setWindowIcon(QtGui.QIcon(os.path.dirname(os.path.realpath(__file__)) + '/Icons/logo.gif'))
+    splash_pix = QtGui.QPixmap(os.path.dirname(os.path.realpath(__file__)) + '/Icons/logo.gif')
     splash = QtWidgets.QSplashScreen(splash_pix, QtCore.Qt.WindowStaysOnTopHint)
     splash.setMask(splash_pix.mask())
     progressBar = QtWidgets.QProgressBar(splash)
@@ -143,7 +143,7 @@ class MainProgram(QtWidgets.QMainWindow):
         self.main_widget.addWidget(self.tree)
         self.main_widget.addWidget(self.gridWidget)
         self.logo = QtWidgets.QLabel(self)
-        self.logo.setPixmap(QtGui.QPixmap(os.path.dirname(os.path.realpath(__file__)) + "/logo.gif"))
+        self.logo.setPixmap(QtGui.QPixmap(os.path.dirname(os.path.realpath(__file__)) + "/Icons/logo.gif"))
         self.mainFrame.addWidget(self.logo,0,0, QtCore.Qt.AlignCenter)
         self.tabs = wc.SsnakeTabs(self)
         self.tabs.setMovable(True)
@@ -821,27 +821,39 @@ class MainProgram(QtWidgets.QMainWindow):
             self.helpActList = [] 
         self.refmanAct = self.helpMenu.addAction(QtGui.QIcon(IconDirectory + 'manual.png'),"Reference Manual", lambda: self.openRefMan())
         self.refmanAct.setToolTip('Open the Reference Manual')
+        self.basTutorialAct = self.helpMenu.addAction(QtGui.QIcon(IconDirectory + 'Tutorial.png'),"Basic Tutorial", lambda: self.openTutorial())
+        self.basTutorialAct.setToolTip('Open the Tutorial Folder')
+        self.tutorialAct = self.helpMenu.addAction(QtGui.QIcon(IconDirectory + 'Tutorial.png'),"Advanced Tutorials", lambda: webbrowser.open('https://github.com/smeerten/ssnake_tutorials/'))
+        self.tutorialAct.setToolTip('Link to ssNake Advanced Processing Tutorials')
         self.githubAct = self.helpMenu.addAction(QtGui.QIcon(IconDirectory + 'GitHub.png'),"GitHub Page", lambda: webbrowser.open('https://github.com/smeerten/ssnake/'))
         self.githubAct.setToolTip('ssNake GitHub Page')
-        self.tutorialAct = self.helpMenu.addAction(QtGui.QIcon(IconDirectory + 'Tutorial.png'),"ssNake Tutorials", lambda: webbrowser.open('https://github.com/smeerten/ssnake_tutorials/'))
-        self.tutorialAct.setToolTip('ssNake Processing Tutorials')
         self.aboutAct = self.helpMenu.addAction(QtGui.QIcon(IconDirectory + 'about.png'), "&About", lambda: aboutWindow(self))
         self.aboutAct.setToolTip('About Menu')
         self.helpActList = self.helpActList +  [self.shiftconvAct, self.quadconvAct,
-                            self.nmrtableAct,self.githubAct,self.tutorialAct, self.aboutAct]
+                            self.nmrtableAct,self.githubAct,self.tutorialAct, self.aboutAct,self.basTutorialAct ]
         # Extra event lists:
         self.specOnlyList = [self.regridAct, self.csastaticAct, self.quadAct, self.czjzekAct]
         self.fidOnlyList = [self.relaxAct, self.diffusionAct]
         self.Only1DPlot = [self.snrAct, self.fwhmAct, self.massAct,  self.intfitAct]
 
     def openRefMan(self):
-        file = os.path.dirname(os.path.realpath(__file__))  + os.path.sep + '..' + os.path.sep + 'Documentation' + os.path.sep + 'ReferenceManual.pdf'
+        file = os.path.dirname(os.path.realpath(__file__))  + os.path.sep + '..' + os.path.sep + 'ReferenceManual.pdf'
         if sys.platform.startswith( 'linux' ):
             os.system("xdg-open " + file)
         elif sys.platform.startswith( 'darwin' ):
             os.system("open " + file)
         elif sys.platform.startswith( 'win' ):
             os.system("start " + file)
+
+    def openTutorial(self):
+        path = os.path.dirname(os.path.realpath(__file__))  + os.path.sep + '..' + os.path.sep + '/Tutorial'
+        if sys.platform.startswith( 'linux' ):
+            os.system("xdg-open " + path)
+        elif sys.platform.startswith( 'darwin' ):
+            os.system("open " + path)
+        elif sys.platform.startswith( 'win' ):
+            os.startfile(path)
+
 
     def mainWindowCheck(self, transfer):
         # checks if mainWindow exist to execute the function
@@ -6439,7 +6451,7 @@ class aboutWindow(wc.ToolWindows):
         super(aboutWindow, self).__init__(parent)
         self.cancelButton.hide()
         self.logo = QtWidgets.QLabel(self)
-        self.logo.setPixmap(QtGui.QPixmap(os.path.dirname(os.path.realpath(__file__)) + "/logo.gif"))
+        self.logo.setPixmap(QtGui.QPixmap(os.path.dirname(os.path.realpath(__file__)) + "/Icons/logo.gif"))
         self.tabs = QtWidgets.QTabWidget(self)
         self.text = QtWidgets.QTextEdit(self)
         self.text.setReadOnly(True)

@@ -6,7 +6,7 @@ sLinkFile = strDesktop + "\ssNake.lnk"
 Set oLink = oWS.CreateShortcut(sLinkFile) 
 Target = ssNakeDir + "\WindowsRun.bat"
 oLink.TargetPath = """"& Target &"""" 
-oLink.IconLocation = ssNakeDir + "\logo.ico"
+oLink.IconLocation = ssNakeDir + "\Icons\logo.ico"
 oLink.WorkingDirectory = ssNakeDir
 oLink.Save 
 
@@ -16,6 +16,6 @@ StartLocation = strStartMenu+"\ssNake.lnk"
  
 Set oLink = oWS.CreateShortcut(StartLocation) 
 oLink.TargetPath = """"& Target &"""" 
-oLink.IconLocation = ssNakeDir + "\logo.ico"
+oLink.IconLocation = ssNakeDir + "\Icons\logo.ico"
 oLink.WorkingDirectory = ssNakeDir
 oLink.Save 
