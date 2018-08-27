@@ -22,10 +22,10 @@ import numpy as np
 import matplotlib as mpl
 import matplotlib.gridspec as gridspec
 try:
+    from PyQt5 import QtGui, QtCore, QtWidgets
+except ImportError:
     from PyQt4 import QtGui, QtCore
     from PyQt4 import QtGui as QtWidgets
-except ImportError:
-    from PyQt5 import QtGui, QtCore, QtWidgets
 
 TIMELABELLIST = [u'[s]', u'[ms]', u'[μs]']
 FREQLABELLIST = [u'[Hz]', u'[kHz]', u'[MHz]']

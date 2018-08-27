@@ -26,12 +26,12 @@ import os
 import importlib
 sip.setapi('QString', 2)
 try:
+    from PyQt5 import QtGui, QtCore, QtWidgets
+    QT = 5
+except ImportError:
     from PyQt4 import QtGui, QtCore
     from PyQt4 import QtGui as QtWidgets
     QT = 4
-except ImportError:
-    from PyQt5 import QtGui, QtCore, QtWidgets
-    QT = 5
 import matplotlib
 # First import matplotlib and Qt
 if QT == 4:

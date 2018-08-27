@@ -18,12 +18,12 @@
 # along with ssNake. If not, see <http://www.gnu.org/licenses/>.
 
 try:
+    QT = 5
+    from PyQt5 import QtGui, QtCore, QtWidgets
+except ImportError:
     from PyQt4 import QtGui, QtCore
     from PyQt4 import QtGui as QtWidgets
     QT = 4
-except ImportError:
-    QT = 5
-    from PyQt5 import QtGui, QtCore, QtWidgets
 from safeEval import safeEval
 import os
 

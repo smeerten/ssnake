@@ -18,10 +18,10 @@
 # along with ssNake. If not, see <http://www.gnu.org/licenses/>.
 
 try:
+    from PyQt5 import QtGui, QtCore, QtWidgets
+except ImportError:
     from PyQt4 import QtGui, QtCore
     from PyQt4 import QtGui as QtWidgets
-except ImportError:
-    from PyQt5 import QtGui, QtCore, QtWidgets
 import os
 import sys
 import json
