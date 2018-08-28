@@ -1,4 +1,4 @@
-\begin{thebibliography}{1}
+\begin{thebibliography}{10}
 \providecommand{\bibAnnoteFile}[1]{%
   \IfFileExists{#1}{\begin{quotation}\noindent\textsc{Key:} #1\\
   \textsc{Annotation:}\ \input{#1}\end{quotation}}{}}
@@ -8,7 +8,7 @@
 
 \bibitem{balsgart2012fast}
 N.~M. Balsgart and T.~Vosegaard.
-\newblock \textit{Journal of Magnetic Resonance}, \textbf{223}, 164  (2012).
+\newblock \textit{J. Magn. Reson.}, \textbf{223}, 164  (2012).
 \bibAnnoteFile{balsgart2012fast}
 
 \bibitem{nelder1965simplex}
@@ -37,6 +37,11 @@ M.~Ed{\'e}n.
 \newblock \textit{Concepts in Magnetic Resonance Part A}, \textbf{18}, 24
   (2003).
 \bibAnnoteFile{eden2003computer}
+
+\bibitem{Grimminck2011Easy}
+D.~L. A.~G. Grimminck, B.~J.~W. Polman, A.~P.~M. Kentgens and W.~L. Meerts.
+\newblock \textit{J. Magn. Reson.}, \textbf{211}, 114 (2011).
+\bibAnnoteFile{Grimminck2011Easy}
 
 \bibitem{Bak2000SIMPSON}
 M.~Bak, J.~T. Rasmussen and N.~C. Nielsen.

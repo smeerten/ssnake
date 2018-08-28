@@ -1352,40 +1352,59 @@ With $B = \left( \dfrac{C_\text{Q}}{4 I (2 I - 1)} \right) ^ 2  \dfrac{2}{\nu_0}
 the Larmor frequency of the nucleus.
 
 \subsection{Czjzek}
-This simulates a static or `infinite' MAS spectrum of a Czjzek distribution (half-integer spins $> 1/2$
-only). A Czjzek distribution exist in materials were the local environment of a quadrupole nucleus is
-distorted in a specific way.
+This fitting routine can be used to simulate the 1D spectrum of a quadrupolar nucleus that
+experiences a Czjzek distribution (normal or extended Czjzek). This fitting routine behaves
+differently than the ones described above, as it uses a library for simulating the spectra. Czjzek
+distributions are the sum of multiple quadrupolar spectra, with a different $C_\text{Q}$ and $\eta$
+values, and scaled with the intensify that comes out of the distribution. To be able to simulate
+this in a reasonable time, it is convenient to precalculate all the individual spectra (for each
+$C_\text{Q}$ and $\eta$ pair). Fitting the spectrum leads to a new intensity distribution for each
+iteration, which, using the spectrum library, can easily be used to construct the Czjzek spectrum.
 
-The distribution is defined as:
+Using this fitting routine, first requires the generation of a library. Using the `Library'
+button, a window is opened, in which some general quadrupolar settings have to be set (see the part
+about regular quadrupolar fitting). Apart from that, the $C_\text{Q}$ and $\eta$ grid have to be
+set: number of steps and minimum/maximum for each parameter. Note that the values of these parameters
+depend on the Czjzek distribution that is to be calculated (i.e. the $\sigma$ value). When a
+distribution with a higher $\sigma$ value is used, the largest $C_\text{Q}$ value of the distribution
+should be higher, the properly sample the whole intensity distribution. To aid with this, the
+current distribution of each site can be viewed in this window (press `Show' on the righthand side
+of the window to draw the contour plot). Press `Generate' to generate the library, and then close
+the window.
+
+The created library can now be used to simulate Czjzek spectra. For this, the following values need
+to be set:
+
+\begin{itemize}
+\item d: the order parameter (integer from 1 to 5)
+\item $\sigma$: the width of the distribution in MHz
+\end{itemize}
+In case of an extended Czjzek (i.e. a distribution on top of a non-zero $C_\text{Q}$ and $\eta$
+value):
+\begin{itemize}
+  \item $C_\text{Q}0$: the undistorted $C_\text{Q}$-value
+  \item $\eta0$: the undistorted $\eta$-value
+\end{itemize}
+Note that the extended Czjzek values will be activated when the `Type' dropdown menu is changed to
+`Extended'. Extended Czjzek distributions take a long time to simulate. 
+
+Note that, if the parameters change much during a fit, the $C_\text{Q}$ and $\eta$ range of the
+Library might not be appropriate anymore. If this is the case, we advice to generate a new library
+with better settings, and then rerun the fit, to get the final convergence.
+
+
+\subsubsection*{Equations}
+
+The normal Czjzek distribution is defined as \cite{Grimminck2011Easy}:
 \begin{equation}
   A(C_\text{Q},\eta) = \frac{C_\text{Q}{}^{d - 1} \cdot \eta}{\sqrt{2\pi} \cdot \sigma^d} (1 - \eta^2 / 9) \cdot
   \exp\left[\frac{-C_\text{Q}^2 (1 + \eta^2/3)} {2\sigma^2}   \right]
 \end{equation}
-This equation gives the amplitude $A$ for a specific $C_\text{Q}$, $\eta$, $\sigma$ and $d$. $d$ is the order
-parameter (equal to 5 in the initially proposed model by Czjzek and co-workers) and $\sigma$ the strength of
-the quadrupolar interaction (in MHz). The other parameter are the
-regular quadrupolar parameters. To simulate a Czjzek spectrum, one must simulate regular 2nd order quadrupolar
-spectra for quadrupolars values $0\rightarrow 1$ for $\eta$, and $0\rightarrow \infty$ for $C_\text{Q}$.
-However, as $A$ becomes very small and essentially all values beyond $C_\text{Q} > 8\cdot \sigma$ can be
-ignored. The maximum of $A$ is at $C_\text{Q} = 2\sigma$ and $\eta = 0.68$. Within ssNake, the value
-$C_\text{Q}{}^\text{max}$ is therefore given in units of $\sigma$, and has a default value of 4.
-
-To simulate this, ssNake creates a linear grid on the 2D surface of $\eta$ and $C_\text{Q}$ using a
-specified number of steps along both dimensions, and a maximum value along the $C_\text{Q}$ axis. For all
-of these values, a 2nd order quadrupolar spectrum is calculated (static or spinning). This creates a library
-of spectra for each $\eta$ and $C_\text{Q}$ value. When fitting, ssNake only calculates this library
-once.
-
-To calculate a Czjzek spectrum, a value for $d$ and $\sigma$ need to be given. For this, the $A$ coefficients
-can be calculated. Now, all the spectra in the library can be multiplied by their $A$-value, and added to give
-the final spectrum.
-
-As the library is only calculated once, the $C_\text{Q}{}^\text{max}$ must be appropriately set. When
-$\sigma$ has changed a lot during the fit, it is wise to rerun the fit. This second fit then runs with a
-better tweaked library for this specific value of $\sigma$.
+This equation gives the amplitude $A$ for a specific $C_\text{Q}$, $\eta$, $\sigma$ and $d$. ssNake
+scales the amplitude distribution to make the sum equal to 1.
 
 
-Extended Czjzek
+For the extended Czjzek:
 \begin{align}
   A(C_\text{Q},\eta) = & \frac{C_\text{Q}{}^{d-1}}{\sigma^d} \eta \left(1 - \frac{\eta^2}{9} \right)
   \int \int \int \sin(\beta) \text{d}\alpha \text{d}\beta \text{d}\gamma \nonumber \\
@@ -1402,8 +1421,8 @@ with
   a_{55} = & \frac{1}{2} \cos 2\alpha (1 + \cos^2\beta) \cos2\gamma - \sin 2 \alpha \cos \beta \sin
   2 \gamma.
 \end{align}
-
-For the special case $\eta_0=0$:
+In this case, integration over three angles is required, which makes the calculation quite involved
+(and therefor slow). For the special case $\eta_0=0$, a faster equation can be used:
 
 \begin{align}
   A(C_\text{Q},\eta) = & \frac{C_\text{Q}{}^{d-1}}{\sigma^d} \eta \left(1 - \frac{\eta^2}{9} \right)
@@ -1414,6 +1433,10 @@ with $I_0(z)$ a modified Bessel function, and
 \begin{equation}
   z = \eta \left| \frac{C_\text{Q}C_\text{Q,0}}{2\sigma^2}\right| (1 - t^2)
 \end{equation}
+
+To speed-up the calculations of these distributions, ssNake can use the \texttt{numba} python library. With
+the extended Czjzek distribution, around a twofold speed increase can be gained in this way. ssNake
+tests for the \texttt{numba} package itself, so regular installation of this package should be sufficient.
 
 
 \subsection{External}
