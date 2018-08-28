@@ -132,7 +132,10 @@ class MainProgram(QtWidgets.QMainWindow):
         self.referenceName = []  # List with saved reference names
         self.referenceValue = []  # List with saved reference values
         self.referenceActions = {}
-        self.lastLocation = os.path.expanduser('~')
+        if EXE:
+            os.path.expanduser('~')
+        else:
+            self.lastLocation = os.getcwd()
         self.initMenu()
         self.menuCheck()
         self.main_widget = QtWidgets.QSplitter(self) 
