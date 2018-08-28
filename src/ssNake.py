@@ -51,7 +51,7 @@ if __name__ == '__main__':
     splash = QtWidgets.QSplashScreen(splash_pix, QtCore.Qt.WindowStaysOnTopHint)
     splash.setMask(splash_pix.mask())
     progressBar = QtWidgets.QProgressBar(splash)
-    progressBar.setGeometry(2.5 * splash.width() / 10, 0.89 * splash.height(), 5 * splash.width() / 10, splash.height() / 20)
+    progressBar.setGeometry(2.5 * splash.width() / 10.0, 0.89 * splash.height(), 5 * splash.width() / 10.0, splash.height() / 20.0)
     splash.show()
 
 def splashProgressStep(splashStep):  # A function to easily increase the progressbar value
@@ -68,7 +68,6 @@ def import_lib(name,nameAs,className,splashStep):
     else:
         mod = importlib.import_module(name)
         globals()[nameAs] = getattr(mod, className)
-
     return splashProgressStep(splashStep)
 
 # List of all libs to be imported:
@@ -91,7 +90,7 @@ importList = [['matplotlib.figure', 'Figure', 'Figure'],
               ['specIO', 'io', None],
               ['views', 'views', None]]
 
-splashSteps = (len(importList)) / 100
+splashSteps = len(importList) / 100.0
 splashStep = 0
 # Import everything else
 for elem in importList:
@@ -133,7 +132,7 @@ class MainProgram(QtWidgets.QMainWindow):
         self.referenceValue = []  # List with saved reference values
         self.referenceActions = {}
         if EXE:
-            os.path.expanduser('~')
+            self.lastLocation = os.path.expanduser('~')
         else:
             self.lastLocation = os.getcwd()
         self.initMenu()
