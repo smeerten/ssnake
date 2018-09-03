@@ -659,7 +659,7 @@ class Spectrum(object):
         self.addHistory("Extracted part between " + str(minPos) + " and " + str(maxPos) + " of dimension " + str(axis + 1))
         self.redoList = []
         if not self.noUndo:
-            self.undoList.append(lambda self: self.restoreData(copyData, lambda self: self.extract(axis, pos1, pos2)))
+            self.undoList.append(lambda self: self.restoreData(copyData, lambda self: self.extract(pos1, pos2, axis)))
 
     def fiddle(self, refSpec, lb, axis):
         axis = self.checkAxis(axis)
