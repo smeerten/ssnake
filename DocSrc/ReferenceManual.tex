@@ -1823,22 +1823,37 @@ Using the quadrupole conversion tool is quite easy. You can fill in all the nece
 
 
 \subsection{NMR table}
-This tool provides an interactive way to find and calculate NMR frequencies and other characteristic values. The main view is the periodic table, showing the NMR frequency in MHz at a specific magnetic field for the most common isotope of each element. Changing one of the values (and pressing enter) updates all other values. Most commonly, either the B$_0$ field (in the top left corner) or the $^1$H frequency is supplied by the user. Each element also has a coloured box representing the spin quantum number (of the most common isotope). Apart from the B$_0$ field, the top left corner also shows the electron frequency in GHz.
+This tool provides an interactive way to find and calculate NMR frequencies and other characteristic
+values. The main view is the periodic table, showing the NMR frequency in MHz at a specific magnetic
+field for the most common isotope of each element. Changing one of the values (and pressing enter)
+updates all other values. Most commonly, either the B$_0$ field (in the top left corner) or the
+$^1$H frequency is supplied by the user. Each element also has a coloured box representing the spin
+quantum number (of the most common isotope). Apart from the B$_0$ field, the top left corner also
+shows the electron frequency in GHz.
 
-Additional details on specific element can be obtained by double clicking on the element title. This creates a pop-up box showing these details. Navigating between the elements can be done from this box via the element number or abbreviation. Show values are:
-\begin{itemize}
+Additional details on specific element can be obtained by double clicking on the element title, or
+by clicking the `Details' button. This
+creates a pop-up box showing these details. Navigating between the elements can be done from this
+box via the element number or abbreviation. Show values are: \begin{itemize}
 \item Mass
 \item Spin quantum number (I)
 \item Natural abundance and radio-active life-time (when applicable)
 \item Gyromagnetic ratio ($\gamma$) in 10$^7$ rad~s$^{-1}$~T$^{-1}$
 \item Quadrupole moment (Q) in fm$^2$ (when applicable)
-\item NMR frequency at the given magnetic field in MHz
+\item NMR frequency at the given magnetic field in MHz (based on the frequency ratio $\Xi$ with
+  respect to $^1$H)
 \item Sensitivity relative to a specific nucleus. The sensitivity is taken to be proportional to $\gamma^3 I (I+1)$, scaled with the natural abundance.
 \item Reference sample for ppm scale
 \item Reference sample condition
 \item Line-width factor for quadrupole nuclei ($I > 1/2$). It is defined as $\dfrac{Q^2(2I+3)}{I^2(2I-1)}$
 \end{itemize}
-The leftmost entry of the details window is a bullet, which can be used to set the preferred isotope of this element in the periodic table view.
+The leftmost entry of the details window is a bullet, which can be used to set the preferred isotope
+of this element in the periodic table view.
+
+The shown frequencies are those of 0 ppm for that nucleus, at the specified magnetic field. If an
+experimental frequency of TMS $^1$H is filled in the details box of $^1$H, the frequency of 0 ppm for all
+other nuclei can be read from their respective boxes (in the details, where enough digits are
+displayed). 
 
 
 
