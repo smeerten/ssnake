@@ -366,6 +366,7 @@ class MainProgram(QtWidgets.QMainWindow):
                                    ['File --> Preferences', self.preferencesAct],
                                    ['File --> Quit', self.quitAct],
                                    ['Workspaces --> Duplicate', self.newAct],
+                                   ['Workspaces --> Slice to Workspace',self.newSlice],
                                    ['Workspaces --> Delete', self.closeAct],
                                    ['Workspaces --> Rename', self.renameWorkspaceAct],
                                    ['Workspaces --> Next', self.forwardAct],
@@ -512,6 +513,8 @@ class MainProgram(QtWidgets.QMainWindow):
         self.menubar.addMenu(self.workspacemenu)
         self.newAct = self.workspacemenu.addAction(QtGui.QIcon(IconDirectory + 'duplicate.png'), 'D&uplicate', self.duplicateWorkspace, QtGui.QKeySequence.New)
         self.newAct.setToolTip('Duplicate Workspace')
+        self.newSlice = self.workspacemenu.addAction(QtGui.QIcon(IconDirectory + 'duplicate.png'), 'Slice to Workspace', lambda: self.duplicateWorkspace(sliceOnly = True))
+        self.newSlice.setToolTip('Copy Current Slice to New Workspace')
         self.closeAct = self.workspacemenu.addAction(QtGui.QIcon(IconDirectory + 'delete.png'), '&Delete', self.destroyWorkspace, QtGui.QKeySequence.Close)
         self.closeAct.setToolTip('Delete Workspace')
         self.renameWorkspaceAct = self.workspacemenu.addAction(QtGui.QIcon(IconDirectory + 'rename.png'), '&Rename', self.renameWorkspace, QtCore.Qt.Key_F2)
@@ -524,7 +527,7 @@ class MainProgram(QtWidgets.QMainWindow):
         self.backAct.setToolTip('Previous Workspace')
         self.workInfoAct = self.workspacemenu.addAction(QtGui.QIcon(IconDirectory + 'about.png'), '&Info', lambda: self.mainWindowCheck(lambda mainWindow: WorkInfoWindow(mainWindow)))
         self.workInfoAct.setToolTip('Workspace Information')
-        self.workspaceActList = [self.newAct, self.closeAct, self.renameWorkspaceAct,
+        self.workspaceActList = [self.newAct, self.newSlice, self.closeAct, self.renameWorkspaceAct,
                                  self.forwardAct, self.backAct,self.workInfoAct]
         # Macro menu
         self.macromenu = QtWidgets.QMenu('&Macros', self)
@@ -1297,11 +1300,15 @@ class MainProgram(QtWidgets.QMainWindow):
                 if type(self.mainWindow.current) is views.CurrentMulti:
                     self.mainWindow.sideframe.checkChanged()
 
-    def duplicateWorkspace(self, *args):
+    def duplicateWorkspace(self, *args, sliceOnly = False):
         name = self.askName()
+        if sliceOnly:
+            data = copy.deepcopy(self.mainWindow.get_current().data1D)
+        else:
+            data = copy.deepcopy(self.mainWindow.get_masterData())
         if name is None:
             return
-        self.workspaces.append(Main1DWindow(self, copy.deepcopy(self.mainWindow.get_masterData()), self.mainWindow.get_current()))
+        self.workspaces.append(Main1DWindow(self, data , self.mainWindow.get_current()))
         self.workspaces[-1].rename(name)
         self.tabs.addTab(self.workspaces[-1], name)
         self.workspaceNames.append(name)
