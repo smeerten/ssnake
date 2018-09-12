@@ -1167,7 +1167,32 @@ R = \frac{1}{M} \sum_i y_i \cdot x_i  \quad,
 \end{equation}
 with $M = \sum y_i$ and $y_i$ the y-value corresponding to x-value $x_i$.
 
+\subsection{Integrals}
+Using this tool, integral values of selected regions of the spectrum can be obtained. Click on the
+left and right side of a peak integrates this region, and displays the integral in the window, as
+well as drawing a curve in the plot. By overwriting one of the obtained integral values, all the
+results can be scaled: setting the first integral to 1 shows all the integrals relative to the first
+integral.
 
+\subsection{Relaxation Curve}
+This routine can be used to fit relaxation curves of time-domain data (T$_1$,T$_2$). The equation
+used for this is:
+\begin{equation}
+  y = \text{amp} \cdot (\text{const} + \text{coeff} \cdot \exp(-x/\text{T}))
+\end{equation}
+The standard values in ssNake are $\text{const} = 1$ and $\text{coeff} = -1$, which are generally
+used in case of a saturation recovery T$_1$ measurement. For inversion recovery,  $\text{const} = 1$
+and $\text{coeff} = -2$. In case of a T$_2$ experiment:  $\text{const} = 0$
+and $\text{coeff} = 1$.
+
+The axes of the plot can be set to a logarithmic scale. Negative number will not be shown in this
+view. When switching to the log axis, sometimes a recalculation of the curve is necessary to get a
+nice plot.
+
+\subsection{Diffusion Curve}
+\begin{equation}
+   y = \text{amp} \cdot (\text{const} + \text{coeff} \cdot \exp(-(\gamma  \delta  x)^2  D  (\Delta -\delta / 3.0)))
+\end{equation}
 
 
 
@@ -1422,7 +1447,7 @@ with
   2 \gamma.
 \end{align}
 In this case, integration over three angles is required, which makes the calculation quite involved
-(and therefor slow). For the special case $\eta_0=0$, a faster equation can be used:
+(and therefore slow). For the special case $\eta_0=0$, a faster equation can be used:
 
 \begin{align}
   A(C_\text{Q},\eta) = & \frac{C_\text{Q}{}^{d-1}}{\sigma^d} \eta \left(1 - \frac{\eta^2}{9} \right)
