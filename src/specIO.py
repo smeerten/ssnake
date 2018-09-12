@@ -563,11 +563,14 @@ def loadMatlabFile(filePath):
         if 'metaData' in mat.dtype.names:
             val = mat['metaData'][0][0][0][0]
             names = mat['metaData'][0][0].dtype.names
-            for elem, x in zip(names, val):
-                if len(x) == 0:
-                    metaData[elem] = '-'
-                else:
-                    metaData[elem] = x[0]
+            if names is None:
+                metaData = None
+            else:
+                for elem, x in zip(names, val):
+                    if len(x) == 0:
+                        metaData[elem] = '-'
+                    else:
+                        metaData[elem] = x[0]
         if not metaData:
             metaData = None
         masterData = sc.Spectrum(hc.HComplexData(data, hyper),
