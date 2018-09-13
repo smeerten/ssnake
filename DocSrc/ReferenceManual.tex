@@ -269,7 +269,7 @@ Matlab & & \texttt{.mat} or \texttt{.MAT}\\
 In case you want to load multiple data files and combine them into an $n$D array, \texttt{Open~\&~Combine} can be used. It opens a window where a list of desired data can be made. This can be done by either navigating using the Browse button, or via drag-and-drop. Pressing OK loads and combines these data files, in a similar way as \texttt{Workspaces~$\rightarrow$~Combine} does. In essence, \texttt{Open~\&~Combine} does the same thing as loading all the data into separate workspaces, and then combining them. However, \texttt{Open~\&~Combine} is more convenient, as it does not open separate workspaces for all the individual data files. Do note that only data files with the same shape can be combined (\textit{i.e.} with the same number of data points). Also note that ssNake considers a 1D data file with $n$ points to be different than a 2D data file with only one trace ($n\times1$ data points).
 
 
-\subsection{Save data}
+\subsection{Save}
 Naturally, ssNake can also be used to save data. When saving data, the current data is saved, along with the spectral widths, frequencies and if the axis is in time or frequency units. Also, ppm references are saved, along with the processing history. Undo information is \textit{not} saved.
 
 \subsubsection*{JSON}
@@ -279,7 +279,7 @@ JSON (JavaScript Object Notation) is an ascii format (i.e. regular text) used to
 The MATLAB binary format is a open source format in which many different types of data can be saved. Also, it is the native format of MATLAB, which can be used for more special data manipulation, if necessary. As the format is binary, it is efficient in both speed and file size. The content of the file is the same as the JSON file.
 
 
-\subsection{Export data}
+\subsection{Export}
 Using ssNake you can also export your data. Exporting does not save all information, so there will be loss of information when exporting and reloading the data. It is suggested you only use these formats for exchanging data to another program, but not for archiving.
 
 
@@ -350,6 +350,17 @@ When loading data, ssNake prompts for a name. This will become the name of the w
 \subsection{Duplicate}
 Makes a copy of the active workspace to a new workspace, of which the name is asked. All the data and the active view is copied to this new workspace. No undo and redo data is transferred. Also, the duplicated workspace will be active.
 
+
+\subsection{Slice to Workspace}
+Copy the current slice to a new workspace. The current slice is nothing more that the data that is
+currently shown on the screen. When viewing 2D data as a 1D plot, this is tool copies only the shown
+1D trace to a new workspace. This can be useful, for example, with T1 data, were you want the last
+spectrum as a separate workspace dataset (as it essentially is a good, quantitative spectrum). When
+viewing the data as a 2D plot (contour, array, etc), the new workspace is also 2D data. Note that
+when using it on a array plot with `step = 2', half of the data is not copied to the new workspace.
+Only the data that is currently plot is copied.
+
+
 \subsection{Delete}
 Deletes the active workspace and all references to it. The view is changed to the next workspace in the list. Be aware that there is no way to undo this!
 
@@ -364,6 +375,12 @@ Makes the next workspace the active workspace.
 
 \subsection{Previous}
 Makes the previous workspace the active workspace.
+
+\subsection{Info}
+Shows information on the current workspace. This includes the number of dimension, sweepwidths,
+frequencies etc. When loading data, ssNake also saves some metadata in its data structure (number of
+scans, etc.).
+This can also be viewed in this window.
 
 
 \subsection{Keyboard shortcuts}
@@ -661,7 +678,17 @@ Uses the FIDDLE algorithm to deconvolute a peak shape in the spectrum.
 Using the `Reference deconvolution' opens a window, in which the region of the reference signal has to be set (by left clicking, or by filling in the values). Additionally, the new linewidth of the peak has to be specified. Note that the algorithm cannot increase resolution, only improve the lineshape. Using a linewidth that is too small will result in a distorted spectrum. Pushing apply performs the algorithm to all traces.
 
 \subsection{Correct Bruker digital filter}
-Corrects a Bruker fid to start at $t=0$.
+Corrects a Bruker fid to start at $t=0$. This is essentially the same as using a first order phase
+correction with the correct phase (i.e. number of points). With modern Bruker data, this value can
+be found in the parameter files of the data, in the form of the group delay variable.
+
+\subsection{Scale SW}
+A function to scale the spectra width (i.e. the sweepwidth) of the current dimension. Essentially,
+this can also be done in the main windows, by filling in $a * b$, with $a$ the current SW and $b$
+the multiplication factor. This tool is included for MQMAS data processing, were a scaling of SW of the
+indirect dimension can be used to get a true isotropic dimension (i.e. 1 ppm chemical shift
+corresponds to a 1 ppm peak shift). This scaling factor for this is $Q$ and $I$ dependent, and can be selected in
+this tool via an easy dropdown menu.
 
 % \subsubsection*{Background}
 % In theory, the recording of an NMR signal starts directly after the excitation point. The signal can then be easily described by a decaying exponential (or another function) and the Fourier transform does not show surprises. NMR data measured on a Bruker device, however, has the peculiar attribute that it starts \textit{before} the physical start of the signal. The origin of this lies in the way Bruker spectrometers use their digital filter, of which the details will not be described here. Direct Fourier transformation of this signal will lead to massive oscillations in the baseline of the resulting spectrum.
@@ -673,23 +700,23 @@ To automate this process, ssNake uses information from a text by W.\ M.\ Westler
 
 Using this tool opens a windows, in which you have to open (again) the current Bruker file. ssNake then finds the desired phase correction and applies it to all traces.
 
-\subsection{LPSVD}
-Uses Linear Prediction (LP) via Single Value Decomposition (SVD) to back or forward predict a time signal.
-
-% \subsubsection*{Background}
-% Measuring an NMR signal right after a pulse is not possible, due to the ring-down time of the pulse, which would interfere with the measurement. Nearly all NMR experiments therefore have a short delay before data acquisition is started. However, in this time the magnetization already starts precessing, causing an offset dependent phase distortion in the spectrum. This can be corrected with a 1st order phase correction, but this can lead to a baseline distortion. An alternative way to compensate the problem of delayed acquisition is by using linear prediction. In this case, the missing data points are reconstructed from the ones that are measured. If done perfectly, the  signal is now perfectly phased, as if no delay was used. Via the same method, acquisition that is stopped before the data has died out can be lengthened by forward predicting based on the measured signal.
-
-% Most LP methods require the user to supply the number of frequencies that are in the time signal, as this is difficult (impossible?) for the program to recognise.
-
-% \subsubsection*{ssNake implementation}
-currently, ssNake supports only LPSVD as a linear prediction algorithm. Using the tool pops up a windows were several things need to be set:
-\begin{itemize}
-\item Whether a forward or backward linear prediction needs to be performed. \footnote{Note that ssNake always calculates the LP coefficients via a forward LPSVD. This setting is therefore only for setting the direction in which data points need to be added.}
-\item The number of points used for the analysis of the LP. These are taken from the front (backwards prediction) or from the end (forward).
-\item The number of frequencies in the signal. Putting this too low leads to weird effects. Putting it too high will slow down the process.
-\item The number of points that need to be predicted.
-\end{itemize}
-Pushing OK starts the analysis. The linear prediction is performed independently for every trace. The time it takes can therefore be quite long. Note that increasing the number of points used for the analysis above 200 usually has only a negative effect on the calculation time.
+%\subsection{LPSVD}
+%Uses Linear Prediction (LP) via Single Value Decomposition (SVD) to back or forward predict a time signal.
+%
+%% \subsubsection*{Background}
+%% Measuring an NMR signal right after a pulse is not possible, due to the ring-down time of the pulse, which would interfere with the measurement. Nearly all NMR experiments therefore have a short delay before data acquisition is started. However, in this time the magnetization already starts precessing, causing an offset dependent phase distortion in the spectrum. This can be corrected with a 1st order phase correction, but this can lead to a baseline distortion. An alternative way to compensate the problem of delayed acquisition is by using linear prediction. In this case, the missing data points are reconstructed from the ones that are measured. If done perfectly, the  signal is now perfectly phased, as if no delay was used. Via the same method, acquisition that is stopped before the data has died out can be lengthened by forward predicting based on the measured signal.
+%
+%% Most LP methods require the user to supply the number of frequencies that are in the time signal, as this is difficult (impossible?) for the program to recognise.
+%
+%% \subsubsection*{ssNake implementation}
+%currently, ssNake supports only LPSVD as a linear prediction algorithm. Using the tool pops up a windows were several things need to be set:
+%\begin{itemize}
+%\item Whether a forward or backward linear prediction needs to be performed. \footnote{Note that ssNake always calculates the LP coefficients via a forward LPSVD. This setting is therefore only for setting the direction in which data points need to be added.}
+%\item The number of points used for the analysis of the LP. These are taken from the front (backwards prediction) or from the end (forward).
+%\item The number of frequencies in the signal. Putting this too low leads to weird effects. Putting it too high will slow down the process.
+%\item The number of points that need to be predicted.
+%\end{itemize}
+%Pushing OK starts the analysis. The linear prediction is performed independently for every trace. The time it takes can therefore be quite long. Note that increasing the number of points used for the analysis above 200 usually has only a negative effect on the calculation time.
 
 \section{Matrix}
 This section describes the ssNake matrix manipulation tools.
@@ -1015,7 +1042,6 @@ For 2D data this means that when preforming states along D1, the two complex num
 \begin{equation*}
   \text{RR}_n + i \cdot \text{RI}_n = \text{R}_{2n} + i \cdot \text{I}_{2n} \quad .
 \end{equation*}
-The 
 \begin{equation*}
   \text{IR}_n + i \cdot \text{II}_n = \text{R}_{2n+1} + i \cdot \text{I}_{2n+1} \quad .
 \end{equation*}
@@ -1025,7 +1051,7 @@ $R$ is the real part and $I$ the imaginary part.
 \subsubsection{States--TPPI}
 
 States--TPPI conversion takes the alternating data set and makes new complex values following the
-same procedure as States. After the procedure, the values as odd positions are multiplied with $-1$
+same procedure as States. After the procedure, the values at odd positions are multiplied with $-1$
 (and the even positions are retained).
 
 \subsubsection{Echo--antiecho}
@@ -1572,6 +1598,48 @@ with $a$ and $b$ the variable to be fit. Note the Python way of writing the squa
 2$. Pushing Ok will load the function, and display $a$ and $b$ for the user to input (or fit). Note
 that the `@' signs are only used by ssNake to recognise which are variable in the equation.
 
+
+\section{Combine}
+The combine menu options allow the interaction between different workspaces like multiplication and addition. For some of these tools it is essential that the workspaces
+are the same size, or can be broadcasted. Broadcasting is described below.
+
+\subsection{Broadcasting}
+ssNake makes use of the general broadcasting rules of the numpy python package. Generally, data that has less dimensions than the target can be added (multiplied, etc)
+if the last dimensions agree on size. For example, 3x1024 can be added to 2x3x1024 (the data is just stretched along a new third dimension). Alternatively, data that has a size 1
+along a specific dimension can also be added: 2x1x1024 added to 2x10x1024 (again, the data is copied in the second dimension to reach length 10).
+Note that always the last dimensions are checked, so adding 1024x3 to 1024x3x10 is not possible: checking is done from the right.
+
+\subsection{Combine Workspaces}
+Using Combine Workspaces opens a window that allows for the selection of multiple workspaces via dragging and dropping in the right-hand list.
+Only workspaces with the same size can be combined (and error will be given otherwise). The selected workspaces will be combined and copied to a new workspaces, of which the name will be asked.
+Combining multiple sets of data this way requires the creation of a new dimension, which is always the new dimension D1. For example, combining two 1D data sets with 1024 points will
+lead to a combined data set of 2x1024 points (D1xD2). Combining two sets of 10x512 data points leads to a 3D set of 2x10x512.
+
+
+\subsection{Insert From Workspace}
+Insert From Workspace can be used to append data from another workspace to the current. For this, it is \textit{not} necessary to have two Workspaces of exactly the same size.
+However, appending must be possible in some way. The way the data is appended depends on the active dimension. For example: the current data has size 2x1000 and D2 is viewed.
+Inserting a 1D data set of 500 points leads to a 2x1500 data set. Doing the same when viewing the D1 dimension gives an error. It would be possible to append a 1D set of 1000
+points to this data from D1. This gives back a 3x1000 data set.
+
+
+\subsection{Add}
+Add the data of the selected workspace to the active workspace. The active dimension is not considered. Data of both workspaces must be the same size, or must be able to be broadcasted (see above).
+
+
+\subsection{Subtract}
+Same as add, but now subtracting.
+
+\subsection{Multiply}
+Same as add, but now multiplying the data sets. Note that ssNake by default has complex data. Using Multiply therefore does a complex multiplication.
+If this is not desirable, first use Tools $\rightarrow$ Real to get rid of the imaginary part of the data.
+
+\subsection{Divide}
+Same as add, but now dividing. Note that the data is complex, as described for Multiply.
+
+
+
+
 \section{Plot}
 The plot menu allows the user the change the view and nature of the current data. Several types, for both 1D and 2D views are supported. Apart from the view, the current x-axis can be changed, and a
 frequency reference can be set and saved.
@@ -1744,46 +1812,6 @@ that negative values are not allowed.
 \subsection{Plot Settings}
 This open a window were the plot settings of the active workspace can be changed. The input value are explained
 at File $\rightarrow$ Preferences.
-
-
-\section{Combine}
-The combine menu options allow the interaction between different workspaces like multiplication and addition. For some of these tools it is essential that the workspaces
-are the same size, or can be broadcasted. Broadcasting is described below.
-
-\subsection{Broadcasting}
-ssNake makes use of the general broadcasting rules of the numpy python package. Generally, data that has less dimensions than the target can be added (multiplied, etc)
-if the last dimensions agree on size. For example, 3x1024 can be added to 2x3x1024 (the data is just stretched along a new third dimension). Alternatively, data that has a size 1
-along a specific dimension can also be added: 2x1x1024 added to 2x10x1024 (again, the data is copied in the second dimension to reach length 10).
-Note that always the last dimensions are checked, so adding 1024x3 to 1024x3x10 is not possible: checking is done from the right.
-
-\subsection{Combine Workspaces}
-Using Combine Workspaces opens a window that allows for the selection of multiple workspaces via dragging and dropping in the right-hand list.
-Only workspaces with the same size can be combined (and error will be given otherwise). The selected workspaces will be combined and copied to a new workspaces, of which the name will be asked.
-Combining multiple sets of data this way requires the creation of a new dimension, which is always the new dimension D1. For example, combining two 1D data sets with 1024 points will
-lead to a combined data set of 2x1024 points (D1xD2). Combining two sets of 10x512 data points leads to a 3D set of 2x10x512.
-
-
-\subsection{Insert From Workspace}
-Insert From Workspace can be used to append data from another workspace to the current. For this, it is \textit{not} necessary to have two Workspaces of exactly the same size.
-However, appending must be possible in some way. The way the data is appended depends on the active dimension. For example: the current data has size 2x1000 and D2 is viewed.
-Inserting a 1D data set of 500 points leads to a 2x1500 data set. Doing the same when viewing the D1 dimension gives an error. It would be possible to append a 1D set of 1000
-points to this data from D1. This gives back a 3x1000 data set.
-
-
-\subsection{Add}
-Add the data of the selected workspace to the active workspace. The active dimension is not considered. Data of both workspaces must be the same size, or must be able to be broadcasted (see above).
-
-
-\subsection{Subtract}
-Same as add, but now subtracting.
-
-\subsection{Multiply}
-Same as add, but now multiplying the data sets. Note that ssNake by default has complex data. Using Multiply therefore does a complex multiplication.
-If this is not desirable, first use Tools $\rightarrow$ Real to get rid of the imaginary part of the data.
-
-\subsection{Divide}
-Same as add, but now dividing. Note that the data is complex, as described for Multiply.
-
 
 
 \section{History}

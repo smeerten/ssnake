@@ -1,4 +1,4 @@
-![Alt text](src/logo.gif?raw=true)
+![Alt text](src/Icons/logo.gif?raw=true)
 
 ssNake
 ======
