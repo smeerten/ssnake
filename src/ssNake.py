@@ -1300,7 +1300,7 @@ class MainProgram(QtWidgets.QMainWindow):
                 if type(self.mainWindow.current) is views.CurrentMulti:
                     self.mainWindow.sideframe.checkChanged()
 
-    def duplicateWorkspace(self, *args, sliceOnly = False):
+    def duplicateWorkspace(self, sliceOnly = False, *args):
         name = self.askName()
         if sliceOnly:
             data = copy.deepcopy(self.mainWindow.get_current().data1D)

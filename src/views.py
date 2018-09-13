@@ -1378,6 +1378,18 @@ class CurrentArrayed(CurrentStacked):
     def copyCurrent(self, root, fig, canvas, data):
         return CurrentArrayed(root, fig, canvas, data, self)
 
+
+    def setAxType(self, val, update=True, num=-1):
+        #Reimplement of base function. Prevent change of yaxis limits
+        yminlimBack = self.yminlim 
+        ymaxlimBack = self.ymaxlim 
+        super(CurrentArrayed, self).setAxType(val, False, num)
+        self.yminlim  = yminlimBack
+        self.ymaxlim  = ymaxlimBack
+        if update:
+            self.showFid()
+
+
     def resetSpacing(self, zlims=True):
         if zlims:
             self.zminlim = min(self.xax())
