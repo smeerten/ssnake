@@ -6869,7 +6869,7 @@ class mqmasExtractWindow(wc.ToolWindows):
 
 
 
-        self.onetwoGroup = QtWidgets.QGroupBox("1/2:")
+        self.onetwoGroup = QtWidgets.QGroupBox("δ1/δ2:")
         self.onetwoFrame = QtWidgets.QGridLayout()
 
         self.onetwoFrame.addWidget(wc.QLabel(u'δ' + '<sub>1</sub> [ppm]'), 2, 0)
@@ -6879,14 +6879,14 @@ class mqmasExtractWindow(wc.ToolWindows):
         self.delta2 = wc.QLineEdit("0.0")
         self.onetwoFrame.addWidget(self.delta2, 3, 1)
         self.delta1.setMinimumWidth(200)
-        self.calcIsoPqButton = QtWidgets.QPushButton("Calc Iso/PQ", self)
+        self.calcIsoPqButton = QtWidgets.QPushButton("Calc δiso/PQ", self)
         self.calcIsoPqButton.clicked.connect(self.calcIsoPq)
         self.onetwoFrame.addWidget(self.calcIsoPqButton, 4, 0,1,2)
         self.onetwoGroup.setLayout(self.onetwoFrame)
         self.grid.addWidget(self.onetwoGroup, 2, 0, 4, 2)
 
 
-        self.isopqGroup = QtWidgets.QGroupBox("Iso/PQ:")
+        self.isopqGroup = QtWidgets.QGroupBox("δiso/PQ:")
         self.isopqFrame = QtWidgets.QGridLayout()
         self.isopqFrame.addWidget(wc.QLabel(u'δ' + '<sub>iso</sub> [ppm]'), 6, 0)
         self.deltaIso = wc.QLineEdit("0.0")
@@ -6895,7 +6895,7 @@ class mqmasExtractWindow(wc.ToolWindows):
         self.pq = wc.QLineEdit("0.0")
         self.isopqFrame.addWidget(self.pq, 7, 1)
 
-        self.calc12Button = QtWidgets.QPushButton("Calc 1/2", self)
+        self.calc12Button = QtWidgets.QPushButton("Calc δ1/δ2", self)
         self.calc12Button.clicked.connect(self.calc12)
         self.isopqFrame.addWidget(self.calc12Button, 8, 0,1,2)
         self.isopqGroup.setLayout(self.isopqFrame)
