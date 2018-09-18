@@ -1011,7 +1011,7 @@ class MainProgram(QtWidgets.QMainWindow):
         return givenName
 
     def undo(self, *args):
-        if self.mainWindow is not None:
+        if isinstance(self.mainWindow, Main1DWindow):
             self.mainWindow.undo()
 
     def redo(self, *args):
