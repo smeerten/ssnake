@@ -98,18 +98,98 @@
 
 
 \pagenumbering{arabic}
+\section{Introduction}
+ssNake (solid state NMR analysation and knowledge engine) is a versatile program for the processing
+and analysis of NMR data. It is aimed at solid state NMR. ssNake is written in the Python programming
+language, and is cross-platform and open-source (GPL3 licence). ssNake focusses at manual interactive
+processing of data (compared to other software which tries to automate as much as possible).
+
+\subsection{Documentation structure}
+Most of this documentation discusses the menu items as can be found in ssNake. Sometimes, extra
+Sections are inserted to explain underlying mechanisms of ssNake. For a general impression on how to
+work with ssNake, the tutorial that is bundled with ssNake is a better place to start. Detailed
+explanation of all the options can then be found in this Reference Manual. More advanced tutorials
+can be found online, on the dedicated github page:
+\url{https://github.com/smeerten/ssnake_tutorials}.
+
 
 \section{Running ssNake}
-\subsection{Python versions}
-ssNake has been programmed to run on both the python 2.x and 3.x. We tested ssNake on python 2.7.9 and 3.4.3, but somewhat older versions might also be sufficient.
+\subsection{Python and library versions}
+ssNake has been programmed to run on both the python 2.x and 3.x. ssNake should run on python
+versions starting from 2.7 and 3.4.
+For the library version, the following are needed:
+\begin{itemize}
+  \item  \texttt{numpy} $>=$ 1.11.0
+  \item  \texttt{matplotlib} $>=$ 1.4.2
+  \item  \texttt{scipy} $>=$ 0.14.1
+\end{itemize}
+ssNake also needs the \texttt{PyQt} (version 4 or 5) and \texttt{h5py} libraries.
 
-\subsection{Numpy versions}
-We have run into issues when using older versions of numpy. It seems that version 1.7.0 is the oldest that we support (some new commands have been introduced in this version, that ssNake makes use of). Development took place on version 1.8.2.
+\subsection{Installing}
+\subsubsection{Linux}
+On Linux, ssNake can be most efficiently run using the python libraries that are in the
+repositories. For Ubuntu, these can be installed by running:
+\begin{verbatim}
+sudo apt install python python-numpy python-matplotlib python-scipy
+python-pyqt5 python-h5py
+\end{verbatim}
+Navigating to the \texttt{ssNake/src} directory in a terminal, ssNake can then be run
+by executing \texttt{python ssNake.py}.
+
+\subsubsection{Windows}
+On OS X, the relevant python libraries can be installed by installing \texttt{anaconda}:
+\url{https://www.anaconda.com/download/}. If you do not have another python version installed
+already, make sure to add anaconda to the \texttt{path} during the install. In this case, ssNake can
+be run by executing the \texttt{WindowsRun.bat} file in the \texttt{ssNake/src} directory. Destktop
+and start menu shortcuts to this file can be created by executing the \texttt{WindowsInstall.vbs}
+file.
+
+If you already have other version of python installed, adding anaconda to the \texttt{path} might
+create issues. Do not do this in this case. When not added to the path, the \texttt{WindowsRun.bat}
+should be edited in such a way that \texttt{pythonw} is replaced with the path to your
+\texttt{pythonw.exe} executable in the anaconda install directory. Note that, when updating ssNake,
+this file will be replaced.
+
+\subsubsection{OS X}
+On OS X, the relevant python libraries can be installed by installing \texttt{anaconda}:
+\url{https://www.anaconda.com/download/}. Navigating to the \texttt{ssNake/src} directory in a terminal, ssNake can then be run
+by \texttt{anacondapython ssNake.py}, with \texttt{anacondapython} replaced by the path to your
+anaconda python executable.
+
 
 
 \section{Main window}
-\subsection{Mouse controls}
-There are several ways to control the display of the current spectrum or FID in the main window using the mouse. Below, a list of these is given:
+\autoref{fig:interface} shows the main interface of ssNake. Below, each element will be described.
+
+\begin{figure}[t]
+  \centering
+  \includegraphics[width=\linewidth]{Images/Interface.pdf}
+  \caption{Main interface of ssNake.}
+  \label{fig:interface}
+\end{figure}
+
+\subsection{Menu \& Toolbar}
+This area show  the menu and the toolbar. The toolbar holds a number of the actions that can be
+found in the Menu. The actions in the toolbar can be changed via the \texttt{Preferences}.
+
+
+
+
+\subsection{Tab Bar}
+Each data set that is opened in ssNake opens in its own tab (i.e. Workspace). Switching the active
+workspace can be done by clicking on the relevant tab, or by using keyboard shortcuts (found in the
+Workspaces menu). Closing workspaces can be done by clicking on the cross of the tab, or by clicking
+the middle mouse button when the mouse pointer is hovering over the tab name.
+
+\subsection{Main Plot}
+In the centre of the interface is the Main Plot. This shows the spectrum or FID of the current
+workspace (i.e. tab). The view of this plot can be changed by using the mouse controls described
+below. Some of the processing tools described later on rely on user input given by clicking in the
+Main Plot (i.e. selecting a region).
+
+\subsubsection{Mouse controls}
+There are several ways to control the display of the current spectrum or FID in the main window
+using the mouse. Below, a list of these is given:
 
 \begin{itemize}
 \item Dragging a box while holding the left mouse button creates a zoombox, and will zoom to that region.
@@ -137,8 +217,16 @@ The data parameter frame features the following elements:
 \item \textit{Special}: Axis2: changes the unit of the y-axis in a 2D contour plot.
 \end{itemize}
 
-\subsubsection*{Get Position Frame}
-The Get Position frame is the frame in which the properties of a specific data point can be viewed. Pushing the `Get Position'  button and then left clicking on a specific point in the spectrum or FID prints this data. The `Get Position frame' then displays the number of the data point you clicked on (note that in a spectrum the data goes from right to left!), the x and amplitude (y) value of this data point and the difference with your last pick. In a Contour plot, the amplitude actually codes for the z value, and there now is a separate y value box (and corresponding y difference) as well as the index of the point along the y dimension. In most plot types, a dashed vertical line is shown at the position of the cursor to aid in the selection of a point. In the Contour plot, a horizontal line is also shown.
+\subsubsection*{Position Frame}
+The Position frame is the frame in which the properties of a specific data point can be viewed.
+Pushing the `Get Position'  button and then left clicking on a specific point in the spectrum or FID
+prints this data. The `Get Position frame' then displays the number of the data point you clicked on
+(note that in a spectrum the data goes from right to left!), the x and amplitude (y) value of this
+data point and the difference with your last pick. In a Contour plot, the amplitude actually codes
+for the z value, and there now is a separate y value box (and corresponding y difference) as well as
+the index of the point along the y dimension. In most plot types, a dashed vertical line is shown at
+the position of the cursor to aid in the selection of a point. In the Contour plot, a horizontal
+line is also shown.
 
 \subsection{Side Frame}
 On the right side of the spectrum, there is an additional frame in some cases called the Side Frame. In this, special settings for the current plot type can be set, as well as the dimension along which the data should be plot. For a regular 1D spectrum of 1D data there are no additional options, and the Side Frame is not shown. The description of the elements that are shown in the Side Frame are explained in the section on the different plot types. However, the common feature for multidimensional data (i.e. the dimension selector) shall be explained here.
@@ -149,7 +237,24 @@ For data that has more than 1 dimension, a dimension selector is shown in the Si
 For data with more dimensions, the idea is essentially the same. Note that ssNake always applies processing commands on the active (selected) dimension. If two dimensions need to be selected (as in an array or contour plot), the leftmost radio button is the selected dimension for operations.
 
 \subsection{Message bar}
-The bottommost part of the ssNake window is the message bar. Any error messages will be printed here in red. Warnings about wrong inputs will be displayed in black. For both type of messages the same applies: they are shown for several seconds, and then disappear. If some tool is not responding, it is therefore wise to check the message bar for messages.
+The bottommost part of the ssNake window is the message bar. Any error messages will be printed here
+in red. Warnings about wrong inputs will be displayed in black. For both type of messages the same
+applies: they are shown for several seconds, and then disappear. If some tool is not responding, it
+is therefore wise to check the message bar for messages.
+
+
+\subsection{File Tree}
+On the left side of the Main Window, there is a file tree, which can be used to browse the computer,
+and open data. Data can be loaded by right clicking on a file or folder, and selecting `Load
+Directory' or `Load File'. Alternatively, clicking on the folder or file name using the middle mouse
+button opens it direly.
+
+The File Tree can be closed bu double clicking on the separator between the Tree and the Main Plot,
+or by clicking with the middle mouse button.
+
+
+
+
 
 \section{File}
 Using the ssNake load tools is quite easy. Go to File $\rightarrow$ Open. Navigating and double clicking on the desired file then loads the data. Many formats supported by ssNake (like Bruker and Varian) have their data in a folder, in which several files with a fixed name are present. For these formats, loading any of the files in this directory is accepted (ssNake searches for the expected files in the selected directory). Loading large data files might take some time, depending on your computer hardware.
