@@ -1704,6 +1704,7 @@ class CsaDeconvParamFrame(AbstractParamFrame):
             self.entries['numssb'][-1].setEnabled(True)
             self.sidebandLabel.setEnabled(True)
         else:
+            self.ticks['spinspeed'][-1].setChecked(True)
             self.entries['spinspeed'][-1].setEnabled(False)
             self.ticks['spinspeed'][-1].setEnabled(False)
             self.spinLabel.setEnabled(False)
@@ -1825,11 +1826,7 @@ class CsaDeconvParamFrame(AbstractParamFrame):
         D2 = simFunc.D2tens(alpha, beta, np.zeros_like(alpha))
         numssb = self.entries['numssb'][0].value()
         MAStype = self.entries['spinType'][-1].currentIndex()
-        if MAStype == 0:
-            out['spinspeed'] = [0.0]
-        elif MAStype == 2:
-            out['spinspeed'] = [np.inf]
-        out['extra'] = [shiftdef, numssb, angle, D2, weight]
+        out['extra'] = [shiftdef, numssb, angle, D2, weight, MAStype]
         return (out, out['extra'])
 
     def checkResults(self,numExp,struc):
@@ -1960,6 +1957,7 @@ class QuadDeconvParamFrame(AbstractParamFrame):
             self.entries['numssb'][-1].setEnabled(True)
             self.sidebandLabel.setEnabled(True)
         else:
+            self.ticks['spinspeed'][-1].setChecked(True)
             self.entries['spinspeed'][-1].setEnabled(False)
             self.ticks['spinspeed'][-1].setEnabled(False)
             self.spinLabel.setEnabled(False)
@@ -1989,11 +1987,7 @@ class QuadDeconvParamFrame(AbstractParamFrame):
         D4 = simFunc.D4tens(alpha, beta, np.zeros_like(alpha))
         numssb = self.entries['numssb'][-1].value()
         MAStype = self.entries['spinType'][-1].currentIndex()
-        if MAStype == 0:
-            out['spinspeed'] = [0.0]
-        elif MAStype == 2:
-            out['spinspeed'] = [np.inf]
-        out['extra'] = [satBool, I, numssb, angle, D2, D4, weight]
+        out['extra'] = [satBool, I, numssb, angle, D2, D4, weight, MAStype]
         return (out, out['extra'])
 
     def checkResults(self,numExp,struc):
@@ -2864,6 +2858,7 @@ class MqmasDeconvParamFrame(AbstractParamFrame):
             self.entries['numssb'][-1].setEnabled(True)
             self.sidebandLabel.setEnabled(True)
         else:
+            self.ticks['spinspeed'][-1].setChecked(True)
             self.entries['spinspeed'][-1].setEnabled(False)
             self.ticks['spinspeed'][-1].setEnabled(False)
             self.spinLabel.setEnabled(False)
@@ -2884,13 +2879,9 @@ class MqmasDeconvParamFrame(AbstractParamFrame):
         D4 = simFunc.D4tens(alpha, beta, np.zeros_like(alpha))
         numssb = self.entries['numssb'][-1].value()
         MAStype = self.entries['spinType'][-1].currentIndex()
-        if MAStype == 0:
-            out['spinspeed'] = [0.0]
-        elif MAStype == 2:
-            out['spinspeed'] = [np.inf]
         shear = safeEval(self.entries['shear'][-1].text())
         scale = safeEval(self.entries['scale'][-1].text())
-        out['extra'] = [I, MQ, numssb, angle, D2, D4, weight, shear, scale]
+        out['extra'] = [I, MQ, numssb, angle, D2, D4, weight, shear, scale, MAStype]
         return (out, out['extra'])
 
     def checkResults(self,numExp,struc):

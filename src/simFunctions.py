@@ -270,7 +270,11 @@ def makeMQMASSpectrum(x, sw, v, gauss, lor, weight):
 
 def csaFunc(x, freq, sw, axMult, extra, bgrnd, mult, spinspeed, t11, t22, t33, amp, lor, gauss):
     x = x[-1]
-    shiftdef, numssb, angle, D2, weight = extra
+    shiftdef, numssb, angle, D2, weight, MAStype = extra
+    if MAStype == 0:
+        spinspeed = 0.0
+    elif MAStype == 2:
+        spinspeed = np.inf
     freq = freq[-1]
     sw = sw[-1]
     spinspeed *= 1e3
@@ -309,7 +313,11 @@ def csaFunc(x, freq, sw, axMult, extra, bgrnd, mult, spinspeed, t11, t22, t33, a
     
 def quadFunc(x, freq, sw, axMult, extra, bgrnd, mult, spinspeed, pos, cq, eta, amp, lor, gauss):
     x = x[-1]
-    satBool, I, numssb, angle, D2, D4, weight = extra
+    satBool, I, numssb, angle, D2, D4, weight, MAStype = extra
+    if MAStype == 0:
+        spinspeed = 0.0
+    elif MAStype == 2:
+        spinspeed = np.inf
     if not satBool and (I % 1) == 0.0:
         # Integer spins have no central transition
         return np.zeros_like(x)
@@ -403,7 +411,11 @@ def mqmasFunc(x, freq, sw, axMult, extra, bgrnd, mult, spinspeed, pos, cq, eta, 
     x2 = x[-1]
     freq1 = freq[-2]
     freq2 = freq[-1]
-    I, mq, numssb, angle, D2, D4, weight, shear, scale = extra
+    I, mq, numssb, angle, D2, D4, weight, shear, scale, MAStype = extra
+    if MAStype == 0:
+        spinspeed = 0.0
+    elif MAStype == 2:
+        spinspeed = np.inf
     pos /= axMult
     spinspeed *= 1e3
     cq *= 1e6
