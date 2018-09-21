@@ -254,10 +254,16 @@ class HComplexData(object):
         self.hyper = (self.hyper - lowBits) * 2 + lowBits
     
     def removeDim(self, axis):
-        if axis < 1:
+        if axis < 0:
             axis = self.data.ndim - axis
-        if self.isComplex(axis):
-            self.data = self.real(axis).data
+        if self.isHyperComplex(axis):
+            tmpdata = self.real(axis)
+            self.data = tmpdata.data
+            self.hyper = tmpdata.hyper
+        if axis == self.ndim():
+            tmpdata = self.real(axis-1)
+            self.data = tmpdata.data
+            self.hyper = tmpdata.hyper
         watershedBits = 2**axis - 1
         lowBits = self.hyper & watershedBits
         self.hyper = (self.hyper - lowBits) // 2 + lowBits

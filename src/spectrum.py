@@ -394,9 +394,8 @@ class Spectrum(object):
 
     def split(self, sections, axis):
         axis = self.checkAxis(axis)
-        invAxis = self.ndim() - axis
         self.data = self.data.split(sections, axis)
-        self.data.insertDim(invAxis)
+        self.data.insertDim(0)
         self.freq = np.insert(self.freq, 0, self.freq[axis])
         self.sw = np.insert(self.sw, 0, self.sw[axis])
         self.spec = np.insert(self.spec, 0, self.spec[axis])
