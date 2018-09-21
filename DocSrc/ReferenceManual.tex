@@ -247,7 +247,7 @@ is therefore wise to check the message bar for messages.
 On the left side of the Main Window, there is a file tree, which can be used to browse the computer,
 and open data. Data can be loaded by right clicking on a file or folder, and selecting `Load
 Directory' or `Load File'. Alternatively, clicking on the folder or file name using the middle mouse
-button opens it direly.
+button opens it directly.
 
 The File Tree can be closed bu double clicking on the separator between the Tree and the Main Plot,
 or by clicking with the middle mouse button.
@@ -342,20 +342,20 @@ When using ssNake's load function, ssNake analyses the selected file name and th
 Name & Folder contains files & File extension\\
 \midrule
 \rowcolor{gray!30!white}
-Varian/Agilent fid &  \texttt{procpar} and \texttt{fid} & \\
-Varian/Agilent spectrum&  \texttt{data} and \texttt{procpar} or \texttt{../procpar} & \\
+Varian/Agilent fid &  \texttt{procpar}, \texttt{fid} & \\
+Varian/Agilent spectrum&  \texttt{data}, \texttt{procpar} or \texttt{../procpar} & \\
 \rowcolor{gray!30!white}
-Bruker fid &  \texttt{acqus} (and \texttt{acqu2s} for 2D)  &\\
+Bruker fid &  \texttt{acqus} (and \texttt{acqu2s} for 2D),  &\\
 \rowcolor{gray!30!white}
-&and \texttt{fid} or \texttt{ser}&\\
+&\texttt{fid} or \texttt{ser}&\\
 Bruker spectrum & (\texttt{1r}/\texttt{1i}) or (\texttt{2rr} and \texttt{2ii}/\texttt{2ir}) &\\
-  & with \texttt{procs}/\texttt{proc2s}  &\\
- &and \texttt{../../acqus} and \texttt{../../acqu2s} & \\
+  & with \texttt{procs}/\texttt{proc2s},&\\
+ &\texttt{../../acqus}, \texttt{../../acqu2s} & \\
 \rowcolor{gray!30!white}
-Bruker minispec &  & \texttt{*.sig} \\
-Chemagnetics &  \texttt{acq} (and \texttt{acq\_2} for 2D) and \texttt{data} &\\
+Bruker minispec &  & \texttt{.sig} \\
+Chemagnetics &  \texttt{acq} (and \texttt{acq\_2} for 2D) + \texttt{data} &\\
 \rowcolor{gray!30!white}
-Magritek &  \texttt{acqu.par} and \texttt{*.1d} or \texttt{*.2d}&\\
+Magritek &  \texttt{acqu.par}, \texttt{*.1d} or \texttt{*.2d}&\\
 JEOL Delta & & \texttt{.jdf}\\
 \rowcolor{gray!30!white}
 NMRpipe & & \texttt{.fid} and first byte is 0\\
