@@ -399,7 +399,7 @@ def quadCzjzekFunc(x, freq, sw, axMult, extra, bgrnd, mult, pos, sigma, cq0, eta
         cq0 = 0
         eta0 = 0
     pos /= axMult
-    sigma *= 1e6
+    sigma = abs(sigma) * 1e6
     cq0 *= 1e6
     czjzek = Czjzek.czjzekIntensities(sigma, d, cq, eta, cq0, eta0)
     fid = np.dot(czjzek, lib)
