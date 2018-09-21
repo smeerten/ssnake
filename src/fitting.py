@@ -1833,10 +1833,16 @@ class CsaDeconvParamFrame(AbstractParamFrame):
         #After fit, set lor and gauss absolute
         locList = self.getRedLocList()
         for i in range(numExp):
-           if struc['lor'][i][0] == 1:
+            if struc['lor'][i][0] == 1:
                 self.fitParamList[locList]['lor'][i][0] = abs(self.fitParamList[locList]['lor'][i][0])
-           if struc['gauss'][i][0] == 1:
+            if struc['gauss'][i][0] == 1:
                 self.fitParamList[locList]['gauss'][i][0] = abs(self.fitParamList[locList]['gauss'][i][0])
+            if struc['t33'][i][0] == 1:
+                if self.shiftDefType == 2:
+                    self.fitParamList[locList]['t33'][i][0] = 1 - abs(abs(self.fitParamList[locList]['t33'][i][0])%2 - 1)
+                if self.shiftDefType == 3:
+                    self.fitParamList[locList]['t33'][i][0] = 1 - abs(abs(self.fitParamList[locList]['t33'][i][0] + 1)%4 - 2)
+
 
 ##############################################################################
 

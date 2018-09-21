@@ -278,6 +278,11 @@ def csaFunc(x, freq, sw, axMult, extra, bgrnd, mult, spinspeed, t11, t22, t33, a
     freq = freq[-1]
     sw = sw[-1]
     spinspeed *= 1e3
+    if shiftdef == 2: #if heaberlen, make eta continuous, and between 0--1
+        t33 = 1 - abs(abs(t33) % 2 - 1)
+    elif shiftdef == 3: #For Hertzfeld-Berger
+        t33 = 1 - abs(abs(t33 + 1)%4 - 2)
+
     tensor = np.array(func.shiftConversion([t11, t22, t33], shiftdef)[1])
     tensor /= axMult
     A0, A2 = csaSpace(tensor)
