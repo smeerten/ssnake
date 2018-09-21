@@ -2410,17 +2410,11 @@ class QuadCzjzekParamFrame(AbstractParamFrame):
 
     def simLib(self):
         angle = safeEval(self.angle, type='FI')
-        if self.mas == 0:
-            spinspeed = 0
-        elif self.mas == 2:
-            spinspeed = np.inf
-        else:
-            spinspeed = self.spinspeed
         alpha, beta, weight = simFunc.zcw_angles(self.cheng, 2)
         D2 = simFunc.D2tens(alpha, beta, np.zeros_like(alpha))
         D4 = simFunc.D4tens(alpha, beta, np.zeros_like(alpha))
-        extra = [self.satBool, self.I, self.numssb, angle, D2, D4, weight]
-        self.lib, self.cqLib, self.etaLib = simFunc.genLib(len(self.parent.xax()), self.cqmin, self.cqmax, self.etamin, self.etamax, self.cqsteps, self.etasteps, extra, self.parent.freq(), self.parent.sw(), spinspeed)
+        extra = [self.satBool, self.I, self.numssb, angle, D2, D4, weight, self.mas]
+        self.lib, self.cqLib, self.etaLib = simFunc.genLib(len(self.parent.xax()), self.cqmin, self.cqmax, self.etamin, self.etamax, self.cqsteps, self.etasteps, extra, self.parent.freq(), self.parent.sw(), self.spinspeed)
         
     def getExtraParams(self, out):
         if self.lib is None:
@@ -3067,7 +3061,7 @@ class MqmasCzjzekParamFrame(AbstractParamFrame):
         alpha, beta, weight = simFunc.zcw_angles(self.cheng, 2)
         D2 = simFunc.D2tens(alpha, beta, np.zeros_like(alpha))
         D4 = simFunc.D4tens(alpha, beta, np.zeros_like(alpha))
-        extra = [False, self.I, 2, angle, D2, D4, weight]
+        extra = [False, self.I, 2, angle, D2, D4, weight, 2]
         self.lib, self.cqLib, self.etaLib = simFunc.genLib(len(self.parent.xax()), self.cqmin, self.cqmax, self.etamin, self.etamax, self.cqsteps, self.etasteps, extra, self.parent.freq(), self.parent.sw(), np.inf)
 
     def getExtraParams(self, out):
