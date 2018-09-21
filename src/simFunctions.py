@@ -322,10 +322,8 @@ def quadFunc(x, freq, sw, axMult, extra, bgrnd, mult, spinspeed, pos, cq, eta, a
         # Integer spins have no central transition
         return np.zeros_like(x)
     cq *= 1e6
-    if eta < 0.0:
-        eta = 0.0
-    elif eta > 1.0:
-        eta = 1.0
+    #Force eta to 0--1 in a continuous way: 0.9 == 1.1, 0 == 2
+    eta = 1 - abs(abs(eta) % 2 - 1)
     spinspeed *= 1e3
     freq = freq[-1]
     sw = sw[-1]

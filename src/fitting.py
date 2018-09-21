@@ -1998,6 +1998,14 @@ class QuadDeconvParamFrame(AbstractParamFrame):
                 self.fitParamList[locList]['lor'][i][0] = abs(self.fitParamList[locList]['lor'][i][0])
            if struc['gauss'][i][0] == 1:
                 self.fitParamList[locList]['gauss'][i][0] = abs(self.fitParamList[locList]['gauss'][i][0])
+           if struc['eta'][i][0] == 1:
+                #eta is between 0--1 in a continuous way.
+                self.fitParamList[locList]['eta'][i][0] = 1 - abs(abs(self.fitParamList[locList]['eta'][i][0]) % 2 - 1)
+           if struc['cq'][i][0] == 1:
+                #eta is between 0--1 in a continuous way.
+                self.fitParamList[locList]['cq'][i][0] = abs(self.fitParamList[locList]['cq'][i][0])
+
+
 
 ##############################################################################
 
