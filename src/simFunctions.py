@@ -29,6 +29,9 @@ import functions as func
 import specIO as io
 import Czjzek as Czjzek
 
+class SimException(Exception):
+    pass
+
 def d2tens(b):
     cosb = np.cos(b)
     sinb = np.sin(b)

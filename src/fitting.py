@@ -102,6 +102,12 @@ class TabFittingWindow(QtWidgets.QWidget):
     def getCurrentTabName(self):
         return self.tabs.tabText(self.tabs.currentIndex())
 
+    def getParamTextList(self):
+        parametertxtlist = self.mainFitWindow.paramframe.PARAMTEXT.copy()
+        for subfit in self.subFitWindows:
+            parametertxtlist.update(subfit.paramframe.PARAMTEXT)
+        return parametertxtlist
+
     def addSpectrum(self):
         text = QtWidgets.QInputDialog.getItem(self, "Select data to add", "Workspace name:", self.father.workspaceNames, 0, False)
         if text[1]:
@@ -141,13 +147,11 @@ class TabFittingWindow(QtWidgets.QWidget):
         xax = [xax]
         data1D = [data1D]
         out = [out]
-        nameList = ['Spectrum']
         selectList = [slice(0, len(guess))]
         for i in range(len(self.subFitWindows)):
             xax_tmp, data1D_tmp, guess_tmp, args_tmp, out_tmp = self.subFitWindows[i].paramframe.getFitParams()
             out.append(out_tmp)
             xax.append(xax_tmp)
-            nameList.append('bla')
             selectList.append(slice(len(guess), len(guess) + len(guess_tmp)))
             data1D.append(data1D_tmp)
             guess += guess_tmp
@@ -155,7 +159,7 @@ class TabFittingWindow(QtWidgets.QWidget):
             for n in range(len(args)):
                 new_args += (args[n] + args_tmp[n],)
             args = new_args  # tuples are immutable
-        new_args = (nameList, selectList) + args
+        new_args = (selectList,) + args
         allFitVal = self.mainFitWindow.paramframe.fit(xax, np.array(data1D), guess, new_args)
         if allFitVal is None:
             return
@@ -380,6 +384,9 @@ class FittingWindow(QtWidgets.QWidget):
 
     def getNum(self, *args, **kwargs):
         return self.tabWindow.getNum(*args, **kwargs)
+
+    def getParamTextList(self, *args, **kwargs):
+        return self.tabWindow.getParamTextList(*args, **kwargs)
 
     def addSpectrum(self):
         self.tabWindow.addSpectrum()
@@ -802,12 +809,12 @@ class AbstractParamFrame(QtWidgets.QWidget):
                     struc[name].append((2, checkLinkTuple(safeEval(self.entries[name][i].text()))))
         out, extraArgu = self.getExtraParams(out)
         argu.append(extraArgu)
-        args = ([numExp], [struc], [argu], [self.parent.data1D.freq], [self.parent.data1D.sw], [self.axMult], [self.FFT_AXES], [self.FFTSHIFT_AXES])
+        args = ([numExp], [struc], [argu], [self.parent.data1D.freq], [self.parent.data1D.sw], [self.axMult], [self.FFT_AXES], [self.FFTSHIFT_AXES], [self.SINGLENAMES], [self.MULTINAMES])
         return (self.parent.data1D.xaxArray[-self.DIM:], self.parent.getData1D(), guess, args, out)
 
     def fit(self, xax, data1D, guess, args):
         self.queue = multiprocessing.Queue()
-        self.process1 = multiprocessing.Process(target=mpFit, args=(xax, data1D, guess, args, self.queue, self.FITFUNC, self.SINGLENAMES, self.MULTINAMES, self.rootwindow.tabWindow.MINMETHOD, self.rootwindow.tabWindow.NUMFEVAL))
+        self.process1 = multiprocessing.Process(target=mpFit, args=(xax, data1D, guess, args, self.queue, self.FITFUNC, self.rootwindow.tabWindow.MINMETHOD, self.rootwindow.tabWindow.NUMFEVAL))
         self.process1.start()
         self.running = True
         self.stopButton.show()
@@ -822,6 +829,8 @@ class AbstractParamFrame(QtWidgets.QWidget):
         self.stopMP()
         if fitVal is None:
             raise FittingException('Optimal parameters not found')
+        elif isinstance(fitVal, str):
+            raise FittingException(fitVal)
         return fitVal
 
     def setResults(self, fitVal, args, out):
@@ -1038,22 +1047,25 @@ class AbstractParamFrame(QtWidgets.QWidget):
         
     def disp(self, params, num, display=True):
         out = params[num]
-        for name in self.SINGLENAMES:
-            inp = out[name][0]
-            if isinstance(inp, tuple):
-                inp = checkLinkTuple(inp)
-                out[name][0] = inp[2] * params[inp[4]][inp[0]][inp[1]] + inp[3]
-        if len(self.MULTINAMES) == 0: #Abort if no names
-            return
-        numExp = len(out[self.MULTINAMES[0]])
-        for i in range(numExp):
-            for name in self.MULTINAMES:
-                inp = out[name][i]
+        try:
+            for name in self.SINGLENAMES:
+                inp = out[name][0]
                 if isinstance(inp, tuple):
                     inp = checkLinkTuple(inp)
-                    out[name][i] = inp[2] * params[inp[4]][inp[0]][inp[1]] + inp[3]
-                if not np.isfinite(out[name][i]):
-                    raise FittingException("Fitting: One of the inputs is not valid")
+                    out[name][0] = inp[2] * params[inp[4]][inp[0]][inp[1]] + inp[3]
+            if len(self.MULTINAMES) == 0: #Abort if no names
+                return
+            numExp = len(out[self.MULTINAMES[0]])
+            for i in range(numExp):
+                for name in self.MULTINAMES:
+                    inp = out[name][i]
+                    if isinstance(inp, tuple):
+                        inp = checkLinkTuple(inp)
+                        out[name][i] = inp[2] * params[inp[4]][inp[0]][inp[1]] + inp[3]
+                    if not np.isfinite(out[name][i]):
+                        raise FittingException("Fitting: One of the inputs is not valid")
+        except KeyError:
+            raise FittingException("Fitting: One of the keywords is not correct")
         if display:
             tmpx = self.getDispX()
         else:
@@ -1093,65 +1105,71 @@ def lstSqrs(dataList, *args):
         costValue += np.sum((dataList[i] - simData[i])**2)
     return costValue
 
-def mpFit(xax, data1D, guess, args, queue, func, singleNames, multiNames, minmethod, numfeval):
+def mpFit(xax, data1D, guess, args, queue, func, minmethod, numfeval):
     try:
-        fitVal = scipy.optimize.minimize(lambda *param: lstSqrs(data1D, func, singleNames, multiNames, param, xax, args), guess, method=minmethod, options = {'maxfev': numfeval})
+        fitVal = scipy.optimize.minimize(lambda *param: lstSqrs(data1D, func, param, xax, args), guess, method=minmethod, options = {'maxfev': numfeval})
+    except simFunc.SimException as e:
+        fitVal = str(e)
     except Exception:
         fitVal = None
     queue.put(fitVal)
 
-def fitFunc(func, singleNames, multiNames, params, allX, args):
+def fitFunc(func, params, allX, args):
     params = params[0]
-    specName = args[0]
-    specSlices = args[1]
+    specSlices = args[0]
     allParam = []
     for length in specSlices:
         allParam.append(params[length])
-    allStruc = args[3]
-    allArgu = args[4]
+    allStruc = args[2]
+    allArgu = args[3]
     fullTestFunc = []
     for n in range(len(allX)):
         x = allX[n]
         testFunc = np.zeros([len(item) for item in x], dtype=complex)
         param = allParam[n]
-        numExp = args[2][n]
-        struc = args[3][n]
-        argu = args[4][n]
+        numExp = args[1][n]
+        struc = allStruc[n]
+        argu = allArgu[n]
         extra = argu[-1]
-        freq = args[5][n]
-        sw = args[6][n]
-        axMult = args[7][n]
-        fft_axes = args[8][n]
-        fftshift_axes = args[9][n]
+        freq = args[4][n]
+        sw = args[5][n]
+        axMult = args[6][n]
+        fft_axes = args[7][n]
+        fftshift_axes = args[8][n]
+        singleNames = args[9][n]
+        multiNames = args[10][n]
         parameters = {}
-        for name in singleNames:
-            if struc[name][0][0] == 1:
-                parameters[name] = param[struc[name][0][1]]
-            elif struc[name][0][0] == 0:
-                parameters[name] = argu[struc[name][0][1]]
-            else:
-                altStruc = struc[name][0][1]
-                if struc[altStruc[0]][altStruc[1]][0] == 1:
-                    parameters[name] = altStruc[2] * allParam[altStruc[4]][struc[altStruc[0]][altStruc[1]][1]] + altStruc[3]
-                elif struc[altStruc[0]][altStruc[1]][0] == 0:
-                    parameters[name] = altStruc[2] * allArgu[altStruc[4]][struc[altStruc[0]][altStruc[1]][1]] + altStruc[3]
-        for i in range(numExp):
-            for name in multiNames:
-                if struc[name][i][0] == 1:
-                    parameters[name] = param[struc[name][i][1]]
-                elif struc[name][i][0] == 0:
-                    parameters[name] = argu[struc[name][i][1]]
+        try:
+            for name in singleNames:
+                if struc[name][0][0] == 1:
+                    parameters[name] = param[struc[name][0][1]]
+                elif struc[name][0][0] == 0:
+                    parameters[name] = argu[struc[name][0][1]]
                 else:
-                    altStruc = struc[name][i][1]
-                    strucTarget = allStruc[altStruc[4]]
-                    if strucTarget[altStruc[0]][altStruc[1]][0] == 1:
-                        parameters[name] = altStruc[2] * allParam[altStruc[4]][strucTarget[altStruc[0]][altStruc[1]][1]] + altStruc[3]
-                    elif strucTarget[altStruc[0]][altStruc[1]][0] == 0:
-                        parameters[name] = altStruc[2] * allArgu[altStruc[4]][strucTarget[altStruc[0]][altStruc[1]][1]] + altStruc[3]
-            inputVars = [parameters[name] for name in singleNames]
-            inputVars += [parameters[name] for name in multiNames]
-            testFunc += func(x, freq, sw, axMult, extra, *inputVars)
-        testFunc = np.real(np.fft.fftshift(np.fft.fftn(testFunc, axes=fft_axes), axes=fftshift_axes))
+                    altStruc = struc[name][0][1]
+                    if struc[altStruc[0]][altStruc[1]][0] == 1:
+                        parameters[name] = altStruc[2] * allParam[altStruc[4]][struc[altStruc[0]][altStruc[1]][1]] + altStruc[3]
+                    elif struc[altStruc[0]][altStruc[1]][0] == 0:
+                        parameters[name] = altStruc[2] * allArgu[altStruc[4]][struc[altStruc[0]][altStruc[1]][1]] + altStruc[3]
+            for i in range(numExp):
+                for name in multiNames:
+                    if struc[name][i][0] == 1:
+                        parameters[name] = param[struc[name][i][1]]
+                    elif struc[name][i][0] == 0:
+                        parameters[name] = argu[struc[name][i][1]]
+                    else:
+                        altStruc = struc[name][i][1]
+                        strucTarget = allStruc[altStruc[4]]
+                        if strucTarget[altStruc[0]][altStruc[1]][0] == 1:
+                            parameters[name] = altStruc[2] * allParam[altStruc[4]][strucTarget[altStruc[0]][altStruc[1]][1]] + altStruc[3]
+                        elif strucTarget[altStruc[0]][altStruc[1]][0] == 0:
+                            parameters[name] = altStruc[2] * allArgu[altStruc[4]][strucTarget[altStruc[0]][altStruc[1]][1]] + altStruc[3]
+                inputVars = [parameters[name] for name in singleNames]
+                inputVars += [parameters[name] for name in multiNames]
+                testFunc += func(x, freq, sw, axMult, extra, *inputVars)
+            testFunc = np.real(np.fft.fftshift(np.fft.fftn(testFunc, axes=fft_axes), axes=fftshift_axes))
+        except KeyError:
+            raise(simFunc.SimException("Fitting: One of the keywords is not correct"))
         if "offset" in parameters.keys():
             testFunc += parameters['offset']
         fullTestFunc.append(testFunc)

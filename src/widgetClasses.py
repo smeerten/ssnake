@@ -293,7 +293,8 @@ class FitQLineEdit(QLineEdit):
         menu.exec_(event.globalPos())
 
     def connectParams(self, *args):
-        ConnectParamsWindow(self, self.fitParent.PARAMTEXT, self.paramName, self.fitParent.rootwindow.getTabNames(), self.fitParent.rootwindow.getCurrentTabName(), self.setConnect)
+        parametertxtlist = self.fitParent.rootwindow.getParamTextList()
+        ConnectParamsWindow(self, parametertxtlist, self.paramName, self.fitParent.rootwindow.getTabNames(), self.fitParent.rootwindow.getCurrentTabName(), self.setConnect)
 
     def setConnect(self, inpTuple):
         self.setText(str(inpTuple))
