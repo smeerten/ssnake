@@ -584,6 +584,8 @@ class EditLineWindow(QtWidgets.QWidget):
         self.backupLineStyle = self.line.get_linestyle()
         self.lineDrop.setCurrentIndex(self.LINESTYLES.index(self.backupLineStyle))
         self.backupMarker = self.line.get_marker()
+        if self.backupMarker == '':
+            self.backupMarker = 'None'
         self.markerDrop.setCurrentIndex(self.MARKERSTYLES.index(self.backupMarker))
         self.backupFaceColor = colorConverter.to_rgba(self.line.get_markerfacecolor())
         self.backupEdgeColor = colorConverter.to_rgba(self.line.get_markeredgecolor())
