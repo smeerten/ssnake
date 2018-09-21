@@ -1910,46 +1910,46 @@ class Main1DWindow(QtWidgets.QWidget):
             self.menuCheck()
 
     def createRelaxWindow(self):
-        self.father.createFitWindow(fit.RelaxWindow(self.father, self.father.mainWindow))
+        self.father.createFitWindow(fit.TabFittingWindow(self.father, self.father.mainWindow, 'relax'))
 
     def createDiffusionWindow(self):
-        self.father.createFitWindow(fit.DiffusionWindow(self.father, self.father.mainWindow))
+        self.father.createFitWindow(fit.TabFittingWindow(self.father, self.father.mainWindow, 'diffusion'))
 
     def createPeakDeconvWindow(self):
-        self.father.createFitWindow(fit.PeakDeconvWindow(self.father, self.father.mainWindow))
+        self.father.createFitWindow(fit.TabFittingWindow(self.father, self.father.mainWindow, 'peakdeconv'))
 
     def createCsaDeconvWindow(self):
-        self.father.createFitWindow(fit.CsaDeconvWindow(self.father, self.father.mainWindow))
+        self.father.createFitWindow(fit.TabFittingWindow(self.father, self.father.mainWindow, 'csadeconv'))
 
     def createQuadDeconvWindow(self):
         if self.current.freq() == 0.0:
             raise SsnakeException("Please set the spectrometer frequency first!")
-        self.father.createFitWindow(fit.QuadDeconvWindow(self.father, self.father.mainWindow))
+        self.father.createFitWindow(fit.TabFittingWindow(self.father, self.father.mainWindow, 'quaddeconv'))
 
     def createQuadCzjzekWindow(self):
         if self.current.freq() == 0.0:
             raise SsnakeException("Please set the spectrometer frequency first!")
-        self.father.createFitWindow(fit.QuadCzjzekWindow(self.father, self.father.mainWindow))
+        self.father.createFitWindow(fit.TabFittingWindow(self.father, self.father.mainWindow, 'quadczjzek'))
 
     def createMQMASWindow(self):
         if self.masterData.ndim() < 2:
             raise SsnakeException("Data has not enough dimensions for MQMAS fitting")
         if self.current.freq() == 0.0:
             raise SsnakeException("Please set the spectrometer frequency first!")
-        self.father.createFitWindow(fit.MqmasDeconvWindow(self.father, self.father.mainWindow))
+        self.father.createFitWindow(fit.TabFittingWindow(self.father, self.father.mainWindow, 'mqmas'))
 
     def createMQMASCzjzekWindow(self):
         if self.masterData.ndim() < 2:
             raise SsnakeException("Data has not enough dimensions for MQMAS fitting")
         if self.current.freq() == 0.0:
             raise SsnakeException("Please set the spectrometer frequency first!")
-        self.father.createFitWindow(fit.MqmasCzjzekWindow(self.father, self.father.mainWindow))
+        self.father.createFitWindow(fit.TabFittingWindow(self.father, self.father.mainWindow, 'mqmasczjek'))
 
     def createExternalFitWindow(self):
-        self.father.createFitWindow(fit.ExternalFitDeconvWindow(self.father, self.father.mainWindow))
+        self.father.createFitWindow(fit.TabFittingWindow(self.father, self.father.mainWindow, 'external'))
 
     def createFunctionFitWindow(self):
-        self.father.createFitWindow(fit.FunctionFitWindow(self.father, self.father.mainWindow))
+        self.father.createFitWindow(fit.TabFittingWindow(self.father, self.father.mainWindow, 'function'))
 
     def plot1D(self):
         tmpcurrent = views.Current1D(self, self.fig, self.canvas, self.masterData, self.current)

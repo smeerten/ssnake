@@ -65,6 +65,7 @@ def checkLinkTuple(inp):
 class FittingException(sc.SpectrumException):
     pass
 
+
 #############################################################################################
 
 
@@ -74,14 +75,17 @@ class TabFittingWindow(QtWidgets.QWidget):
     MINMETHOD = 'Powell'
     NUMFEVAL = 150
 
-    def __init__(self, father, oldMainWindow):
+    def __init__(self, father, oldMainWindow, mainFitType):
         super(TabFittingWindow, self).__init__(father)
         self.father = father
         self.oldMainWindow = oldMainWindow
+        self.mainFitType = mainFitType
         self.subFitWindows = []
+        self.process1 = None
+        self.queue = None
         self.tabs = QtWidgets.QTabWidget(self)
         self.tabs.setTabPosition(2)
-        self.mainFitWindow = FittingWindow(father, oldMainWindow, self)
+        self.mainFitWindow = FittingWindow(father, oldMainWindow, self, self.mainFitType)
         self.current = self.mainFitWindow.current
         self.tabs.setTabsClosable(True)
         self.tabs.tabCloseRequested.connect(self.closeTab)
@@ -111,7 +115,7 @@ class TabFittingWindow(QtWidgets.QWidget):
     def addSpectrum(self):
         text = QtWidgets.QInputDialog.getItem(self, "Select data to add", "Workspace name:", self.father.workspaceNames, 0, False)
         if text[1]:
-            self.subFitWindows.append(FittingWindow(self.father, self.father.workspaces[self.father.workspaceNames.index(text[0])], self, False))
+            self.subFitWindows.append(FittingWindow(self.father, self.father.workspaces[self.father.workspaceNames.index(text[0])], self, self.mainFitType, False))
             self.tabs.insertTab(self.tabs.count() - 1, self.subFitWindows[-1], str(text[0]))
             self.tabs.setCurrentIndex(len(self.subFitWindows))
             self.oldTabIndex = len(self.subFitWindows)
@@ -138,6 +142,61 @@ class TabFittingWindow(QtWidgets.QWidget):
                 self.tabs.removeTab(num)
                 del self.subFitWindows[num - 1]
 
+    def fitProcess(self, xax, data1D, guess, args, funcs):
+        self.queue = multiprocessing.Queue()
+        self.process1 = multiprocessing.Process(target=mpFit, args=(xax, data1D, guess, args, self.queue, funcs, self.MINMETHOD, self.NUMFEVAL))
+        self.process1.start()
+        self.running = True
+        self.mainFitWindow.paramframe.stopButton.show()
+        while self.running:
+            if not self.queue.empty():
+                self.running = False
+            QtWidgets.qApp.processEvents()
+            time.sleep(0.1)
+        if self.queue is None:
+            return
+        fitVal = self.queue.get(timeout=2)
+        self.stopMP()
+        if fitVal is None:
+            raise FittingException('Optimal parameters not found')
+        elif isinstance(fitVal, str):
+            raise FittingException(fitVal)
+        return fitVal
+
+    def stopMP(self, *args):
+        if self.queue is not None:
+            self.process1.terminate()
+            self.queue.close()
+            self.queue.join_thread()
+            self.process1.join()
+        self.queue = None
+        self.process1 = None
+        self.running = False
+        self.mainFitWindow.paramframe.stopButton.hide()
+
+    def stopAll(self, *args):
+        self.runningAll = False
+        self.stopMP()
+        self.mainFitWindow.paramframe.stopAllButton.hide()
+
+    def fitAll(self, *args):
+        self.runningAll = True
+        self.mainFitWindow.paramframe.stopAllButton.show()
+        tmp = np.array(self.mainFitWindow.current.data.shape())
+        tmp[self.mainFitWindow.current.axes] = 1
+        tmp2 = ()
+        for i in tmp:
+            tmp2 += (np.arange(i),)
+        grid = np.array([i.flatten() for i in np.meshgrid(*tmp2)]).T
+        for i in grid:
+            QtWidgets.qApp.processEvents()
+            if self.runningAll is False:
+                break
+            self.mainFitWindow.current.setSlice(self.parent.axes, i)
+            self.fit()
+            self.mainFitWindow.sideframe.upd()
+        self.mainFitWindow.paramframe.stopAllButton.hide()
+        
     def fit(self):
         value = self.mainFitWindow.paramframe.getFitParams()
         if value is None:
@@ -148,19 +207,21 @@ class TabFittingWindow(QtWidgets.QWidget):
         data1D = [data1D]
         out = [out]
         selectList = [slice(0, len(guess))]
+        funcs = [self.mainFitWindow.paramframe.FITFUNC]
         for i in range(len(self.subFitWindows)):
             xax_tmp, data1D_tmp, guess_tmp, args_tmp, out_tmp = self.subFitWindows[i].paramframe.getFitParams()
             out.append(out_tmp)
             xax.append(xax_tmp)
             selectList.append(slice(len(guess), len(guess) + len(guess_tmp)))
             data1D.append(data1D_tmp)
+            funcs.append(self.subFitWindows[i].paramframe.FITFUNC)
             guess += guess_tmp
             new_args = ()
             for n in range(len(args)):
                 new_args += (args[n] + args_tmp[n],)
             args = new_args  # tuples are immutable
         new_args = (selectList,) + args
-        allFitVal = self.mainFitWindow.paramframe.fit(xax, np.array(data1D), guess, new_args)
+        allFitVal = self.fitProcess(xax, np.array(data1D), guess, new_args, funcs)
         if allFitVal is None:
             return
         allFitVal = allFitVal['x']
@@ -339,18 +400,19 @@ class ParamCopySettingsWindow(QtWidgets.QWidget):
 class FittingWindow(QtWidgets.QWidget):
     # Inherited by the fitting windows
 
-    def __init__(self, father, oldMainWindow, tabWindow, isMain=True):
+    def __init__(self, father, oldMainWindow, tabWindow, fitType, isMain=True):
         super(FittingWindow, self).__init__(father)
         self.isMain = isMain
         self.father = father
         self.oldMainWindow = oldMainWindow
         self.tabWindow = tabWindow
+        self.fitType = fitType
         self.fig = Figure()
         self.canvas = FigureCanvas(self.fig)
         grid = QtWidgets.QGridLayout(self)
         grid.addWidget(self.canvas, 0, 0)
-        self.current = self.tabWindow.CURRENTWINDOW(self, self.fig, self.canvas, self.oldMainWindow.get_current())
-        self.paramframe = self.tabWindow.PARAMFRAME(self.current, self, isMain=self.isMain)
+        self.current = FITTYPEDICT[self.fitType][0](self, self.fig, self.canvas, self.oldMainWindow.get_current())
+        self.paramframe = FITTYPEDICT[self.fitType][1](self.current, self, isMain=self.isMain)
         grid.addWidget(self.paramframe, 1, 0, 1, 2)
         grid.setColumnStretch(0, 1)
         grid.setRowStretch(0, 1)
@@ -610,23 +672,21 @@ class AbstractParamFrame(QtWidgets.QWidget):
             fitButton.clicked.connect(self.rootwindow.fit)
             self.frame1.addWidget(fitButton, 0, 1)
             self.stopButton = QtWidgets.QPushButton("Stop")
-            self.stopButton.clicked.connect(self.stopMP)
+            self.stopButton.clicked.connect(self.rootwindow.tabWindow.stopMP)
             self.stopButton.setStyleSheet('background-color: green') 
             self.frame1.addWidget(self.stopButton, 0, 1)
             self.stopButton.hide()
             fitAllButton = QtWidgets.QPushButton("Fit all")
-            fitAllButton.clicked.connect(self.fitAll)
+            fitAllButton.clicked.connect(self.rootwindow.tabWindow.fitAll)
             self.frame1.addWidget(fitAllButton, 1, 0)
             self.stopAllButton = QtWidgets.QPushButton("Stop all")
-            self.stopAllButton.clicked.connect(self.stopAll)
+            self.stopAllButton.clicked.connect(self.rootwindow.tabWindow.stopAll)
             self.stopAllButton.setStyleSheet('background-color: green') 
             self.frame1.addWidget(self.stopAllButton, 1, 0)
             self.stopAllButton.hide()
             prefButton = QtWidgets.QPushButton("Preferences")
             prefButton.clicked.connect(self.createPrefWindow)
             self.frame1.addWidget(prefButton, 3, 1)
-        self.process1 = None
-        self.queue = None
         self.resetButton = QtWidgets.QPushButton("Reset")
         self.resetButton.clicked.connect(self.reset)
         self.frame1.addWidget(self.resetButton, 1, 1)
@@ -680,7 +740,7 @@ class AbstractParamFrame(QtWidgets.QWidget):
         return tmpVal
 
     def closeWindow(self, *args):
-        self.stopMP()
+        self.rootwindow.stopMP()
         self.rootwindow.cancel()
 
     def copyParams(self):
@@ -812,27 +872,6 @@ class AbstractParamFrame(QtWidgets.QWidget):
         args = ([numExp], [struc], [argu], [self.parent.data1D.freq], [self.parent.data1D.sw], [self.axMult], [self.FFT_AXES], [self.FFTSHIFT_AXES], [self.SINGLENAMES], [self.MULTINAMES])
         return (self.parent.data1D.xaxArray[-self.DIM:], self.parent.getData1D(), guess, args, out)
 
-    def fit(self, xax, data1D, guess, args):
-        self.queue = multiprocessing.Queue()
-        self.process1 = multiprocessing.Process(target=mpFit, args=(xax, data1D, guess, args, self.queue, self.FITFUNC, self.rootwindow.tabWindow.MINMETHOD, self.rootwindow.tabWindow.NUMFEVAL))
-        self.process1.start()
-        self.running = True
-        self.stopButton.show()
-        while self.running:
-            if not self.queue.empty():
-                self.running = False
-            QtWidgets.qApp.processEvents()
-            time.sleep(0.1)
-        if self.queue is None:
-            return
-        fitVal = self.queue.get(timeout=2)
-        self.stopMP()
-        if fitVal is None:
-            raise FittingException('Optimal parameters not found')
-        elif isinstance(fitVal, str):
-            raise FittingException(fitVal)
-        return fitVal
-
     def setResults(self, fitVal, args, out):
         locList = self.getRedLocList()
         numExp = args[0][0]
@@ -848,43 +887,9 @@ class AbstractParamFrame(QtWidgets.QWidget):
         self.dispParams()
         self.rootwindow.sim()
 
-    def checkResults(self,struc,numExp):
+    def checkResults(self, struc, numExp):
         #A placeholder for a function that checks the fit results (e.g. makes values absolute, etc)
         pass
-
-    def stopMP(self, *args):
-        if self.queue is not None:
-            self.process1.terminate()
-            self.queue.close()
-            self.queue.join_thread()
-            self.process1.join()
-        self.queue = None
-        self.process1 = None
-        self.running = False
-        self.stopButton.hide()
-
-    def stopAll(self, *args):
-        self.runningAll = False
-        self.stopMP()
-        self.stopAllButton.hide()
-
-    def fitAll(self, *args):
-        self.runningAll = True
-        self.stopAllButton.show()
-        tmp = np.array(self.parent.data.shape())
-        tmp[self.parent.axes] = 1
-        tmp2 = ()
-        for i in tmp:
-            tmp2 += (np.arange(i),)
-        grid = np.array([i.flatten() for i in np.meshgrid(*tmp2)]).T
-        for i in grid:
-            QtWidgets.qApp.processEvents()
-            if self.runningAll is False:
-                break
-            self.parent.setSlice(self.parent.axes, i)
-            self.rootwindow.fit()
-            self.rootwindow.sideframe.upd()
-        self.stopAllButton.hide()
 
     def getSimParams(self):
         if not self.checkInputs():
@@ -1105,16 +1110,16 @@ def lstSqrs(dataList, *args):
         costValue += np.sum((dataList[i] - simData[i])**2)
     return costValue
 
-def mpFit(xax, data1D, guess, args, queue, func, minmethod, numfeval):
+def mpFit(xax, data1D, guess, args, queue, funcs, minmethod, numfeval):
     try:
-        fitVal = scipy.optimize.minimize(lambda *param: lstSqrs(data1D, func, param, xax, args), guess, method=minmethod, options = {'maxfev': numfeval})
+        fitVal = scipy.optimize.minimize(lambda *param: lstSqrs(data1D, funcs, param, xax, args), guess, method=minmethod, options = {'maxfev': numfeval})
     except simFunc.SimException as e:
         fitVal = str(e)
     except Exception:
         fitVal = None
     queue.put(fitVal)
 
-def fitFunc(func, params, allX, args):
+def fitFunc(funcs, params, allX, args):
     params = params[0]
     specSlices = args[0]
     allParam = []
@@ -1166,7 +1171,7 @@ def fitFunc(func, params, allX, args):
                             parameters[name] = altStruc[2] * allArgu[altStruc[4]][strucTarget[altStruc[0]][altStruc[1]][1]] + altStruc[3]
                 inputVars = [parameters[name] for name in singleNames]
                 inputVars += [parameters[name] for name in multiNames]
-                testFunc += func(x, freq, sw, axMult, extra, *inputVars)
+                testFunc += funcs[n](x, freq, sw, axMult, extra, *inputVars)
             testFunc = np.real(np.fft.fftshift(np.fft.fftn(testFunc, axes=fft_axes), axes=fftshift_axes))
         except KeyError:
             raise(simFunc.SimException("Fitting: One of the keywords is not correct"))
@@ -1226,16 +1231,6 @@ class PrefWindow(QtWidgets.QWidget):
         self.closeEvent()
 
 ##############################################################################
-
-
-class RelaxWindow(TabFittingWindow):
-
-    def __init__(self, father, oldMainWindow):
-        self.CURRENTWINDOW = RelaxFrame
-        self.PARAMFRAME = RelaxParamFrame
-        super(RelaxWindow, self).__init__(father, oldMainWindow)
-
-#################################################################################
 
 
 class RelaxFrame(FitPlotFrame):
@@ -1326,16 +1321,6 @@ class RelaxParamFrame(AbstractParamFrame):
 
 
 ##############################################################################
-
-
-class DiffusionWindow(TabFittingWindow):
-
-    def __init__(self, father, oldMainWindow):
-        self.CURRENTWINDOW = RelaxFrame
-        self.PARAMFRAME = DiffusionParamFrame
-        super(DiffusionWindow, self).__init__(father, oldMainWindow)
-
-#################################################################################
 
 
 class DiffusionParamFrame(AbstractParamFrame):
@@ -1432,16 +1417,6 @@ class DiffusionParamFrame(AbstractParamFrame):
                 self.fitParamList[locList]['d'][i][0] = abs(self.fitParamList[locList]['d'][i][0])
 
 ##############################################################################
-
-
-class PeakDeconvWindow(TabFittingWindow):
-    
-    def __init__(self, father, oldMainWindow):
-        self.CURRENTWINDOW = PeakDeconvFrame
-        self.PARAMFRAME = PeakDeconvParamFrame
-        super(PeakDeconvWindow, self).__init__(father, oldMainWindow)
-
-#################################################################################
 
 
 class PeakDeconvFrame(FitPlotFrame):
@@ -1553,16 +1528,6 @@ class PeakDeconvParamFrame(AbstractParamFrame):
 
 
 ##############################################################################
-
-
-class CsaDeconvWindow(TabFittingWindow):
-
-    def __init__(self, father, oldMainWindow):
-        self.CURRENTWINDOW = CsaDeconvFrame
-        self.PARAMFRAME = CsaDeconvParamFrame
-        super(CsaDeconvWindow, self).__init__(father, oldMainWindow)
-
-#####################################################################################
 
 
 class CsaDeconvFrame(FitPlotFrame):
@@ -1877,16 +1842,6 @@ class CsaDeconvParamFrame(AbstractParamFrame):
 
 
 ##############################################################################
-
-
-class QuadDeconvWindow(TabFittingWindow):
-
-    def __init__(self, father, oldMainWindow):
-        self.CURRENTWINDOW = QuadDeconvFrame
-        self.PARAMFRAME = QuadDeconvParamFrame
-        super(QuadDeconvWindow, self).__init__(father, oldMainWindow)
-
-#################################################################################
 
 
 class QuadDeconvFrame(FitPlotFrame):
@@ -2326,15 +2281,6 @@ class CzjzekPrefWindow(QtWidgets.QWidget):
 
 ##############################################################################
 
-class QuadCzjzekWindow(TabFittingWindow):
-
-    def __init__(self, father, oldMainWindow):
-        self.CURRENTWINDOW = QuadDeconvFrame
-        self.PARAMFRAME = QuadCzjzekParamFrame
-        super(QuadCzjzekWindow, self).__init__(father, oldMainWindow)
-
-#################################################################################
-
 
 class QuadCzjzekParamFrame(AbstractParamFrame):
 
@@ -2474,16 +2420,6 @@ class QuadCzjzekParamFrame(AbstractParamFrame):
 #################################################################################
 
 
-class ExternalFitDeconvWindow(TabFittingWindow):
-
-    def __init__(self, father, oldMainWindow):
-        self.CURRENTWINDOW = ExternalFitDeconvFrame
-        self.PARAMFRAME = ExternalFitDeconvParamFrame
-        super(ExternalFitDeconvWindow, self).__init__(father, oldMainWindow)
-
-#################################################################################
-
-
 class ExternalFitDeconvFrame(FitPlotFrame):
 
     FITNUM = 10  # Maximum number of fits
@@ -2612,16 +2548,6 @@ class TxtOutputWindow(wc.ToolWindows):
 #################################################################################
 
 
-class FunctionFitWindow(TabFittingWindow):
-
-    def __init__(self, father, oldMainWindow):
-        self.CURRENTWINDOW = FunctionFitFrame
-        self.PARAMFRAME = FunctionFitParamFrame
-        super(FunctionFitWindow, self).__init__(father, oldMainWindow)
-
-#################################################################################
-
-
 class FunctionFitFrame(FitPlotFrame):
 
     FITNUM = 10  # Maximum number of fits
@@ -2745,16 +2671,6 @@ class FitContourFrame(CurrentContour, FitPlotFrame):
             super(FitContourFrame, self).showFid(extraX=extraX, extraY=extraY, extraZ=extraZ, extraColor=['g']*len(extraX))
 
 ##############################################################################
-
-
-class MqmasDeconvWindow(TabFittingWindow):
-
-    def __init__(self, father, oldMainWindow):
-        self.CURRENTWINDOW = MqmasDeconvFrame
-        self.PARAMFRAME = MqmasDeconvParamFrame
-        super(MqmasDeconvWindow, self).__init__(father, oldMainWindow)
-
-#################################################################################
 
 
 class MqmasDeconvFrame(FitContourFrame):
@@ -2949,16 +2865,6 @@ class MqmasDeconvParamFrame(AbstractParamFrame):
 
 ##############################################################################
 
-class MqmasCzjzekWindow(TabFittingWindow):
-
-    def __init__(self, father, oldMainWindow):
-        self.CURRENTWINDOW = MqmasDeconvFrame
-        self.PARAMFRAME = MqmasCzjzekParamFrame
-        super(MqmasCzjzekWindow, self).__init__(father, oldMainWindow)
-
-#################################################################################
-
-
 class MqmasCzjzekParamFrame(AbstractParamFrame):
 
     FFT_AXES = (0,) # Which axes should be transformed after simulation
@@ -3133,3 +3039,46 @@ class MqmasCzjzekParamFrame(AbstractParamFrame):
            if struc['cq0'][i][0] == 1:
                 self.fitParamList[locList]['cq0'][i][0] = abs(self.fitParamList[locList]['cq0'][i][0])
 
+FITTYPEDICT = {'relax': (RelaxFrame, RelaxParamFrame),
+               'diffusion': (RelaxFrame, DiffusionParamFrame),
+               'peakdeconv': (PeakDeconvFrame, PeakDeconvParamFrame),
+               'csadeconv': (CsaDeconvFrame, CsaDeconvParamFrame),
+               'quaddeconv': (QuadDeconvFrame, QuadDeconvParamFrame),
+               'quadczjzek': (QuadDeconvFrame, QuadCzjzekParamFrame),
+               'external': (ExternalFitDeconvFrame, ExternalFitDeconvParamFrame),
+               'function': (FunctionFitFrame, FunctionFitParamFrame),
+               'mqmas': (MqmasDeconvFrame, MqmasDeconvParamFrame),
+               'mqmasczjzek': (MqmasDeconvFrame, MqmasCzjzekParamFrame)}
+
+
+
+# class NewTabWindow(QtWidgets.QWidget):
+
+#     def __init__(self, parent, nameList):
+#         super(PrefWindow, self).__init__(parent)
+#         self.setWindowFlags(QtCore.Qt.Window | QtCore.Qt.Tool)
+#         self.father = parent
+#         self.setWindowTitle("Select data to add")
+#         layout = QtWidgets.QGridLayout(self)
+#         grid = QtWidgets.QGridLayout()
+#         layout.addLayout(grid, 0, 0, 1, 2)
+#         grid.addWidget(wc.QLabel("Workspace name:"), 0, 0)
+#         self.nameDrop = QtWidgets.QComboBox(self)
+#         self.minmethodBox.addItems(nameList)
+#         grid.addWidget(self.minmethodBox, 0, 1)
+#         cancelButton = QtWidgets.QPushButton("&Cancel")
+#         cancelButton.clicked.connect(self.closeEvent)
+#         layout.addWidget(cancelButton, 4, 0)
+#         okButton = QtWidgets.QPushButton("&Ok", self)
+#         okButton.clicked.connect(self.applyAndClose)
+#         okButton.setFocus()
+#         layout.addWidget(okButton, 4, 1)
+#         grid.setRowStretch(100, 1)
+#         self.show()
+#         self.setGeometry(self.frameSize().width() - self.geometry().width(), self.frameSize().height() - self.geometry().height(), 0, 0)
+
+#     def closeEvent(self, *args):
+#         self.deleteLater()
+
+#     def applyAndClose(self, *args):
+#         self.closeEvent()
