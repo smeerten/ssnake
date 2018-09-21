@@ -161,12 +161,12 @@ def secQuadSpin(I, m1, m2): # T values
 
 def relaxationFunc(x, freq, sw, axMult, extra, amp, const, coeff, T):
     x = x[-1]
-    return amp * (const + coeff * np.exp(-x / T))
+    return amp * (const + coeff * np.exp(-x / abs(T)))
 
 def diffusionFunc(x, freq, sw, axMult, extra, amp, const, coeff, D):
     x = x[-1]
     gamma, delta, triangle = extra
-    return amp * (const + coeff * np.exp(-(gamma * delta * x)**2 * D * (triangle - delta / 3.0)))
+    return amp * (const + coeff * np.exp(-(abs(gamma) * abs(delta) * x)**2 * abs(D) * (abs(triangle) - abs(delta) / 3.0)))
 
 def functionRun(x, freq, sw, axMult, extra, *parameters):
     names, function = extra
@@ -422,6 +422,7 @@ def mqmasFunc(x, freq, sw, axMult, extra, bgrnd, mult, spinspeed, pos, cq, eta, 
     pos /= axMult
     spinspeed *= 1e3
     cq *= 1e6
+    eta = 1 - abs(abs(eta)%2 - 1)
     v2, tot2 = quadFreq(I, -0.5, 0.5, spinspeed, numssb, angle, D2, D4, weight, freq2, pos, cq, eta)
     v1, tot1 = quadFreq(I, -mq/2.0, mq/2.0, spinspeed, numssb, angle, D2, D4, np.ones_like(weight), freq1, mq*pos, cq, eta)
     v1 -= v2 * shear

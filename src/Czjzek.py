@@ -97,6 +97,7 @@ def czjzekIntensities(sigma, d, cq, eta, cq0=0, eta0=0):
     else:
         pool = multiprocessing.Pool(multiprocessing.cpu_count())
         if eta0 != 0.0:
+            eta0 = 1 - abs(abs(eta0)%2 - 1) #scale continuously between 0--1
             fit = pool.map_async(extendedCzjzek, [(cq[i],eta[i],cq0,eta0,sigma,d) for i in range(len(cq))])
         else:
             fit = pool.map_async(extendedCzjzekNoEta0, [(cq[i],eta[i],cq0,sigma,d) for i in range(len(cq))])

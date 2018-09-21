@@ -1299,6 +1299,14 @@ class RelaxParamFrame(AbstractParamFrame):
             x = np.linspace(minx, maxx, numCurve)
         return [x]
 
+
+    def checkResults(self,numExp,struc):
+        locList = self.getRedLocList()
+        for i in range(numExp):
+           if struc['t'][i][0] == 1:
+                self.fitParamList[locList]['t'][i][0] = abs(self.fitParamList[locList]['t'][i][0])
+
+
 ##############################################################################
 
 
@@ -1398,6 +1406,12 @@ class DiffusionParamFrame(AbstractParamFrame):
         else:
             x = np.linspace(minx, maxx, numCurve)
         return [x]
+
+    def checkResults(self,numExp,struc):
+        locList = self.getRedLocList()
+        for i in range(numExp):
+           if struc['d'][i][0] == 1:
+                self.fitParamList[locList]['d'][i][0] = abs(self.fitParamList[locList]['d'][i][0])
 
 ##############################################################################
 
@@ -2909,6 +2923,11 @@ class MqmasDeconvParamFrame(AbstractParamFrame):
                 self.fitParamList[locList]['lor2'][i][0] = abs(self.fitParamList[locList]['lor2'][i][0])
            if struc['gauss2'][i][0] == 1:
                 self.fitParamList[locList]['gauss2'][i][0] = abs(self.fitParamList[locList]['gauss2'][i][0])
+           if struc['eta'][i][0] == 1:
+                #eta is between 0--1 in a continuous way.
+                self.fitParamList[locList]['eta'][i][0] = 1 - abs(abs(self.fitParamList[locList]['eta'][i][0]) % 2 - 1)
+           if struc['cq'][i][0] == 1:
+                self.fitParamList[locList]['cq'][i][0] = abs(self.fitParamList[locList]['cq'][i][0])
 
 ##############################################################################
 
@@ -3090,4 +3109,9 @@ class MqmasCzjzekParamFrame(AbstractParamFrame):
                 self.fitParamList[locList]['lor2'][i][0] = abs(self.fitParamList[locList]['lor2'][i][0])
            if struc['gauss2'][i][0] == 1:
                 self.fitParamList[locList]['gauss2'][i][0] = abs(self.fitParamList[locList]['gauss2'][i][0])
+           if struc['eta0'][i][0] == 1:
+                #eta is between 0--1 in a continuous way.
+                self.fitParamList[locList]['eta0'][i][0] = 1 - abs(abs(self.fitParamList[locList]['eta0'][i][0]) % 2 - 1)
+           if struc['cq0'][i][0] == 1:
+                self.fitParamList[locList]['cq0'][i][0] = abs(self.fitParamList[locList]['cq0'][i][0])
 
