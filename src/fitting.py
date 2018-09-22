@@ -113,12 +113,13 @@ class TabFittingWindow(QtWidgets.QWidget):
         return parametertxtlist
 
     def addSpectrum(self):
-        text = QtWidgets.QInputDialog.getItem(self, "Select data to add", "Workspace name:", self.father.workspaceNames, 0, False)
-        if text[1]:
-            self.subFitWindows.append(FittingWindow(self.father, self.father.workspaces[self.father.workspaceNames.index(text[0])], self, self.mainFitType, False))
-            self.tabs.insertTab(self.tabs.count() - 1, self.subFitWindows[-1], str(text[0]))
-            self.tabs.setCurrentIndex(len(self.subFitWindows))
-            self.oldTabIndex = len(self.subFitWindows)
+        wsIndex, fitName, accept = NewTabDialog.getFitInput(self, self.father.workspaceNames, FITTYPEDICT.keys(), self.mainFitType)
+        if not accept:
+            return
+        self.subFitWindows.append(FittingWindow(self.father, self.father.workspaces[wsIndex], self, fitName, False))
+        self.tabs.insertTab(self.tabs.count() - 1, self.subFitWindows[-1], self.father.workspaceNames[wsIndex])
+        self.tabs.setCurrentIndex(len(self.subFitWindows))
+        self.oldTabIndex = len(self.subFitWindows)
 
     def removeSpectrum(self, spec):
         num = self.subFitWindows.index(spec)
@@ -286,14 +287,12 @@ class ResultsExportWindow(QtWidgets.QWidget):
         self.father = parent
         self.setWindowTitle("Export results")
         grid = QtWidgets.QGridLayout(self)
-
         self.parToWorkButton = QtWidgets.QPushButton("Parameters to Workspace")
         self.parToWorkButton.clicked.connect(self.parToWork)
         grid.addWidget(self.parToWorkButton, 0, 0)
         self.curvesToWorkButton = QtWidgets.QPushButton("Curves to Workspace")
         self.curvesToWorkButton.clicked.connect(self.curvesToWork)
         grid.addWidget(self.curvesToWorkButton, 1, 0)
-
         cancelButton = QtWidgets.QPushButton("&Cancel")
         cancelButton.clicked.connect(self.closeEvent)
         grid.addWidget(cancelButton, 2, 0)
@@ -411,8 +410,8 @@ class FittingWindow(QtWidgets.QWidget):
         self.canvas = FigureCanvas(self.fig)
         grid = QtWidgets.QGridLayout(self)
         grid.addWidget(self.canvas, 0, 0)
-        self.current = FITTYPEDICT[self.fitType][0](self, self.fig, self.canvas, self.oldMainWindow.get_current())
-        self.paramframe = FITTYPEDICT[self.fitType][1](self.current, self, isMain=self.isMain)
+        self.current = FITTYPEDICT[self.fitType][1](self, self.fig, self.canvas, self.oldMainWindow.get_current())
+        self.paramframe = FITTYPEDICT[self.fitType][2](self.current, self, isMain=self.isMain)
         grid.addWidget(self.paramframe, 1, 0, 1, 2)
         grid.setColumnStretch(0, 1)
         grid.setRowStretch(0, 1)
@@ -424,6 +423,10 @@ class FittingWindow(QtWidgets.QWidget):
         self.canvas.mpl_connect('motion_notify_event', self.pan)
         self.canvas.mpl_connect('scroll_event', self.scroll)
 
+    def rescue(self, *args):
+        # This data has too little dimensions for the fitAll
+        raise FittingException("This data has too little dimensions for this type of fit")
+        
     def updAllFrames(self, *args):
         pass
         
@@ -740,7 +743,7 @@ class AbstractParamFrame(QtWidgets.QWidget):
         return tmpVal
 
     def closeWindow(self, *args):
-        self.rootwindow.stopMP()
+        self.rootwindow.tabWindow.stopMP()
         self.rootwindow.cancel()
 
     def copyParams(self):
@@ -3039,46 +3042,48 @@ class MqmasCzjzekParamFrame(AbstractParamFrame):
            if struc['cq0'][i][0] == 1:
                 self.fitParamList[locList]['cq0'][i][0] = abs(self.fitParamList[locList]['cq0'][i][0])
 
-FITTYPEDICT = {'relax': (RelaxFrame, RelaxParamFrame),
-               'diffusion': (RelaxFrame, DiffusionParamFrame),
-               'peakdeconv': (PeakDeconvFrame, PeakDeconvParamFrame),
-               'csadeconv': (CsaDeconvFrame, CsaDeconvParamFrame),
-               'quaddeconv': (QuadDeconvFrame, QuadDeconvParamFrame),
-               'quadczjzek': (QuadDeconvFrame, QuadCzjzekParamFrame),
-               'external': (ExternalFitDeconvFrame, ExternalFitDeconvParamFrame),
-               'function': (FunctionFitFrame, FunctionFitParamFrame),
-               'mqmas': (MqmasDeconvFrame, MqmasDeconvParamFrame),
-               'mqmasczjzek': (MqmasDeconvFrame, MqmasCzjzekParamFrame)}
+
+class NewTabDialog(QtWidgets.QDialog):
+
+    def __init__(self, parent, nameList, fitList, fitDefault):
+        super(NewTabDialog, self).__init__(parent)
+        self.fitList = fitList
+        self.setWindowTitle("Select data to add")
+        layout = QtWidgets.QVBoxLayout(self)
+        layout.addWidget(wc.QLabel("Workspace name:"))
+        self.dataEntry = QtWidgets.QComboBox(self)
+        self.dataEntry.addItems(nameList)
+        layout.addWidget(self.dataEntry)
+        layout.addWidget(wc.QLabel("Fitting routine:"))
+        self.fitEntry = QtWidgets.QComboBox(self)
+        self.fitEntry.addItems([FITTYPEDICT[i][0] for i in fitList])
+        self.fitEntry.setCurrentIndex(fitList.index(fitDefault))
+        layout.addWidget(self.fitEntry)
+        buttons = QtWidgets.QDialogButtonBox(QtWidgets.QDialogButtonBox.Ok | QtWidgets.QDialogButtonBox.Cancel, QtCore.Qt.Horizontal, self)
+        buttons.accepted.connect(self.accept)
+        buttons.rejected.connect(self.reject)
+        layout.addWidget(buttons)
+
+    def getInputs(self):
+        return (self.dataEntry.currentIndex(), self.fitList[self.fitEntry.currentIndex()])
+        
+    @staticmethod
+    def getFitInput(*args):
+        dialog = NewTabDialog(*args)
+        result = dialog.exec_()
+        data, fitName = dialog.getInputs()
+        return (data, fitName, result == QtWidgets.QDialog.Accepted)        
 
 
+# full_name, plot_frame, parameter_frame
+FITTYPEDICT = {'relax': ("Relaxation Curve", RelaxFrame, RelaxParamFrame),
+               'diffusion': ("Diffusion Curve", RelaxFrame, DiffusionParamFrame),
+               'peakdeconv': ("Lorentzian/Gaussian", PeakDeconvFrame, PeakDeconvParamFrame),
+               'csadeconv': ("CSA", CsaDeconvFrame, CsaDeconvParamFrame),
+               'quaddeconv': ("Quadrupole", QuadDeconvFrame, QuadDeconvParamFrame),
+               'quadczjzek': ("Czjzek", QuadDeconvFrame, QuadCzjzekParamFrame),
+               'external': ("External", ExternalFitDeconvFrame, ExternalFitDeconvParamFrame),
+               'function': ("Function", FunctionFitFrame, FunctionFitParamFrame),
+               'mqmas': ("MQMAS", MqmasDeconvFrame, MqmasDeconvParamFrame),
+               'mqmasczjzek': ("Czjzek MQMAS", MqmasDeconvFrame, MqmasCzjzekParamFrame)}
 
-# class NewTabWindow(QtWidgets.QWidget):
-
-#     def __init__(self, parent, nameList):
-#         super(PrefWindow, self).__init__(parent)
-#         self.setWindowFlags(QtCore.Qt.Window | QtCore.Qt.Tool)
-#         self.father = parent
-#         self.setWindowTitle("Select data to add")
-#         layout = QtWidgets.QGridLayout(self)
-#         grid = QtWidgets.QGridLayout()
-#         layout.addLayout(grid, 0, 0, 1, 2)
-#         grid.addWidget(wc.QLabel("Workspace name:"), 0, 0)
-#         self.nameDrop = QtWidgets.QComboBox(self)
-#         self.minmethodBox.addItems(nameList)
-#         grid.addWidget(self.minmethodBox, 0, 1)
-#         cancelButton = QtWidgets.QPushButton("&Cancel")
-#         cancelButton.clicked.connect(self.closeEvent)
-#         layout.addWidget(cancelButton, 4, 0)
-#         okButton = QtWidgets.QPushButton("&Ok", self)
-#         okButton.clicked.connect(self.applyAndClose)
-#         okButton.setFocus()
-#         layout.addWidget(okButton, 4, 1)
-#         grid.setRowStretch(100, 1)
-#         self.show()
-#         self.setGeometry(self.frameSize().width() - self.geometry().width(), self.frameSize().height() - self.geometry().height(), 0, 0)
-
-#     def closeEvent(self, *args):
-#         self.deleteLater()
-
-#     def applyAndClose(self, *args):
-#         self.closeEvent()
