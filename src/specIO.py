@@ -1230,8 +1230,10 @@ def loadAscii(filePath, asciiInfo=None):
             sw = 1.0 / (matrix[1, 0] - matrix[0, 0])
         else:
             sw = abs(matrix[0, 0] - matrix[-1, 0]) / (matrix.shape[0] - 1) * matrix.shape[0]
+        xaxis = matrix[:, 0]
     else:
         sw = swInp * 1000
+        xaxis = None
     if dataDimension == 1:
         if dataOrder == 'XRI':
             data = matrix[:, 1] + 1j * matrix[:, 2]
@@ -1243,7 +1245,9 @@ def loadAscii(filePath, asciiInfo=None):
             data = matrix[:, 0] + 1j * matrix[:, 1]
         elif dataOrder == 'R':
             data = matrix
-        masterData = sc.Spectrum(data, (filePath, asciiInfo), [freq], [sw], [dataSpec], ref=[None])
+        if xaxis is not None:
+            xaxis = [xaxis]
+        masterData = sc.Spectrum(data, (filePath, asciiInfo), [freq], [sw], [dataSpec], ref=[None], xaxArray=xaxis)
     elif dataDimension == 2:
         if dataOrder == 'XRI':
             data = np.transpose(matrix[:, 1::2] + 1j * matrix[:, 2::2])
@@ -1255,7 +1259,9 @@ def loadAscii(filePath, asciiInfo=None):
             data = np.transpose(matrix[:, 0::2] + 1j * matrix[:, 1::2])
         elif dataOrder == 'RI':
             data = np.transpose(matrix)
-        masterData = sc.Spectrum(data, (filePath, asciiInfo), [freq, freq], [1, sw], [False, dataSpec], ref=[None, None])
+        if xaxis is not None:
+            xaxis = [None, xaxis]
+        masterData = sc.Spectrum(data, (filePath, asciiInfo), [freq, freq], [1, sw], [False, dataSpec], ref=[None, None], xaxArray=xaxis)
     else:
         return
     masterData.addHistory("ASCII data loaded from " + filePath)
