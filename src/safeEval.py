@@ -26,6 +26,7 @@ def safeEval(inp, length=None, keywords=[], type='All', x=None):
     env = vars(np).copy()
     env.update(vars(hc).copy())
     env.update(vars(scipy.special).copy())
+    env.update(vars(scipy.integrate).copy())
     env["locals"] = None
     env["globals"] = None
     env["__name__"] = None

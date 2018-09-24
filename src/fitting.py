@@ -101,7 +101,7 @@ class TabFittingWindow(QtWidgets.QWidget):
         grid3.setRowStretch(0, 1)
 
     def getTabNames(self):
-        return [self.tabs.tabText(i) for i in range(self.tabs.count())]
+        return [self.tabs.tabText(i) for i in range(self.tabs.count()-1)]
 
     def getCurrentTabName(self):
         return self.tabs.tabText(self.tabs.currentIndex())
@@ -1108,6 +1108,8 @@ class AbstractParamFrame(QtWidgets.QWidget):
 
 def lstSqrs(dataList, *args):
     simData = fitFunc(*args)
+    if simData is None:
+        return np.inf
     costValue = 0
     for i in range(len(dataList)):
         costValue += np.sum((dataList[i] - simData[i])**2)
@@ -1174,7 +1176,11 @@ def fitFunc(funcs, params, allX, args):
                             parameters[name] = altStruc[2] * allArgu[altStruc[4]][strucTarget[altStruc[0]][altStruc[1]][1]] + altStruc[3]
                 inputVars = [parameters[name] for name in singleNames]
                 inputVars += [parameters[name] for name in multiNames]
-                testFunc += funcs[n](x, freq, sw, axMult, extra, *inputVars)
+                output = funcs[n](x, freq, sw, axMult, extra, *inputVars)
+                if output is None:
+                    return None
+                #output[np.isnan(output)] = 0
+                testFunc += output
             testFunc = np.real(np.fft.fftshift(np.fft.fftn(testFunc, axes=fft_axes), axes=fftshift_axes))
         except KeyError:
             raise(simFunc.SimException("Fitting: One of the keywords is not correct"))
