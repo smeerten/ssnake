@@ -73,6 +73,10 @@ def shiftConversion(Values, Type):
         iso = Values[0]
         delta = Values[1]
         eta = Values[2]
+        if eta < 0.0:
+            eta = 0.0
+        elif eta > 1.0:
+            eta = 1.0
         delta11 = delta + iso  # Treat xyz as 123, as it reorders them anyway
         delta22 = (eta * delta + iso * 3 - delta11) / 2.0
         delta33 = iso * 3 - delta11 - delta22
@@ -81,6 +85,10 @@ def shiftConversion(Values, Type):
         iso = Values[0]
         span = Values[1]
         skew = Values[2]
+        if skew < -1.0:
+            skew = -1.0
+        elif skew > 1.0:
+            skew = 1.0
         delta22 = iso + skew * span / 3.0
         delta33 = (3 * iso - delta22 - span) / 2.0
         delta11 = 3 * iso - delta22 - delta33
@@ -126,6 +134,10 @@ def quadConversion(Values,I, Type, Q = None):
             # Czz is equal to Cq, via same definition (scale) Cxx and Cyy can be found
             Czz = Values[0]
             Eta = Values[1]
+            if Eta > 1.0:
+                Eta = 1.0
+            elif Eta < 0.0:
+                Eta = 0.0
             Cxx = Czz * (Eta - 1) / 2
             Cyy = -Cxx - Czz
             Values = [ Cxx, Cyy, Czz]
@@ -133,6 +145,10 @@ def quadConversion(Values,I, Type, Q = None):
             #Wq, eta
             Vmax = Values[0]
             Eta = Values[1]
+            if Eta > 1.0:
+                Eta = 1.0
+            elif Eta < 0.0:
+                Eta = 0.0
             Czz = Vmax * (2.0 * I * (2 * I - 1)) / 3.0
             Cxx = Czz * (Eta - 1) / 2
             Cyy = -Cxx - Czz
