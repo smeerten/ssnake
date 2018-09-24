@@ -113,7 +113,7 @@ class TabFittingWindow(QtWidgets.QWidget):
         return parametertxtlist
 
     def addSpectrum(self):
-        wsIndex, fitName, accept = NewTabDialog.getFitInput(self, self.father.workspaceNames, FITTYPEDICT.keys(), self.mainFitType)
+        wsIndex, fitName, accept = NewTabDialog.getFitInput(self, self.father.workspaceNames, list(FITTYPEDICT.keys()), self.mainFitType)
         if not accept:
             return
         self.subFitWindows.append(FittingWindow(self.father, self.father.workspaces[wsIndex], self, fitName, False))
