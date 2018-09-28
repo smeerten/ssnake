@@ -193,7 +193,7 @@ class TabFittingWindow(QtWidgets.QWidget):
             QtWidgets.qApp.processEvents()
             if self.runningAll is False:
                 break
-            self.mainFitWindow.current.setSlice(self.parent.axes, i)
+            self.mainFitWindow.current.setSlice(self.mainFitWindow.current.axes, i)
             self.fit()
             self.mainFitWindow.sideframe.upd()
         self.mainFitWindow.paramframe.stopAllButton.hide()
