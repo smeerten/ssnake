@@ -844,18 +844,18 @@ class MainProgram(QtWidgets.QMainWindow):
     def openRefMan(self):
         file = os.path.dirname(os.path.realpath(__file__))  + os.path.sep + '..' + os.path.sep + 'ReferenceManual.pdf'
         if sys.platform.startswith( 'linux' ):
-            os.system("xdg-open " + file)
+            os.system("xdg-open " + '"' + file + '"')
         elif sys.platform.startswith( 'darwin' ):
-            os.system("open " + file)
+            os.system("open " + '"' + file + '"')
         elif sys.platform.startswith( 'win' ):
             os.startfile(file)
 
     def openTutorial(self):
         path = os.path.dirname(os.path.realpath(__file__))  + os.path.sep + '..' + os.path.sep + '/Tutorial'
         if sys.platform.startswith( 'linux' ):
-            os.system("xdg-open " + path)
+            os.system("xdg-open " + '"' + path + '"')
         elif sys.platform.startswith( 'darwin' ):
-            os.system("open " + path)
+            os.system("open " + '"' + path + '"')
         elif sys.platform.startswith( 'win' ):
             os.startfile(path)
 
