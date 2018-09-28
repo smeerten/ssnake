@@ -848,7 +848,7 @@ class MainProgram(QtWidgets.QMainWindow):
         elif sys.platform.startswith( 'darwin' ):
             os.system("open " + file)
         elif sys.platform.startswith( 'win' ):
-            os.system("start " + file)
+            os.startfile(file)
 
     def openTutorial(self):
         path = os.path.dirname(os.path.realpath(__file__))  + os.path.sep + '..' + os.path.sep + '/Tutorial'
@@ -5705,7 +5705,7 @@ class XaxWindow(wc.ToolWindows):
             env['length'] = self.father.current.len()  # so length can be used to in equations
             env['euro'] = lambda fVal, num=self.axisSize: func.euro(fVal, num)
             try:
-                val = np.array(eval(self.exprEntry.text(), env))                # find a better solution, also add catch for exceptions
+                val = np.array(eval(self.exprEntry.text(), env),dtype=float)                # find a better solution, also add catch for exceptions
             except Exception:
                 try:
                     val = np.fromstring(self.exprEntry.text(), sep=' ')
