@@ -169,7 +169,6 @@ class ToolWindows(QtWidgets.QWidget):
         self.layout = QtWidgets.QGridLayout(self)
         self.grid = QtWidgets.QGridLayout()
         self.box = QtWidgets.QDialogButtonBox()
-        self.box.setOrientation(QtCore.Qt.Horizontal)
         if self.BROWSE:
             self.layout.addLayout(self.grid, 0, 0, 1, 3)
         else:
