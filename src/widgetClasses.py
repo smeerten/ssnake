@@ -168,6 +168,8 @@ class ToolWindows(QtWidgets.QWidget):
         self.setWindowTitle(self.NAME)
         self.layout = QtWidgets.QGridLayout(self)
         self.grid = QtWidgets.QGridLayout()
+        self.box = QtWidgets.QDialogButtonBox()
+        self.box.setOrientation(QtCore.Qt.Horizontal)
         if self.BROWSE:
             self.layout.addLayout(self.grid, 0, 0, 1, 3)
         else:
@@ -178,18 +180,16 @@ class ToolWindows(QtWidgets.QWidget):
         if self.BROWSE:
             self.browseButton = QtWidgets.QPushButton("&Browse")
             self.browseButton.clicked.connect(self.browse)
-            self.layout.addWidget(self.browseButton, 2, 0)
-            offset = 1
-        else:
-            offset = 0
+            self.box.addButton(self.browseButton, QtWidgets.QDialogButtonBox.ActionRole)
         self.cancelButton = QtWidgets.QPushButton(self.CANCELNAME)
         self.cancelButton.clicked.connect(self.closeEvent)
-        self.layout.addWidget(self.cancelButton, 2, offset)
         self.okButton = QtWidgets.QPushButton(self.OKNAME)
         self.okButton.clicked.connect(self.applyAndClose)
         self.okButton.setFocus()
-        self.layout.addWidget(self.okButton, 2, offset + 1)
+        self.box.addButton(self.cancelButton,QtWidgets.QDialogButtonBox.RejectRole)
+        self.box.addButton(self.okButton,QtWidgets.QDialogButtonBox.AcceptRole)
         self.show()
+        self.layout.addWidget(self.box,3,0)
         if not self.RESIZABLE:
             self.setFixedSize(self.size())
         if self.MENUDISABLE:
