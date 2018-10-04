@@ -6372,13 +6372,15 @@ class PreferenceWindow(QtWidgets.QWidget):
         layout.addWidget(tabWidget, 0, 0, 1, 4)
         cancelButton = QtWidgets.QPushButton("&Cancel")
         cancelButton.clicked.connect(self.closeEvent)
-        layout.addWidget(cancelButton, 1, 0)
         okButton = QtWidgets.QPushButton("&Store")
         okButton.clicked.connect(self.applyAndClose)
-        layout.addWidget(okButton, 1, 1)
         resetButton = QtWidgets.QPushButton("&Reset")
         resetButton.clicked.connect(self.reset)
-        layout.addWidget(resetButton, 1, 2)
+        box = QtWidgets.QDialogButtonBox()
+        box.addButton(cancelButton,QtWidgets.QDialogButtonBox.RejectRole)
+        box.addButton(okButton,QtWidgets.QDialogButtonBox.ActionRole)
+        box.addButton(resetButton,QtWidgets.QDialogButtonBox.ActionRole)
+        layout.addWidget(box, 1,0)
         layout.setColumnStretch(3, 1)
         self.show()
 
@@ -6625,12 +6627,12 @@ class shiftConversionWindow(wc.ToolWindows):
         self.hbGroup.setLayout(self.hbFrame)
         self.grid.addWidget(self.hbGroup, 3, 0, 1, 3)
         # Reset
-        self.cancelButton.setText("Reset")
+        self.cancelButton.setText("Close")
         self.cancelButton.clicked.disconnect()
-        self.cancelButton.clicked.connect(self.valueReset)
-        self.okButton.setText("Close")
+        self.cancelButton.clicked.connect(self.closeEvent)
+        self.okButton.setText("Reset")
         self.okButton.clicked.disconnect()
-        self.okButton.clicked.connect(self.closeEvent)
+        self.okButton.clicked.connect(self.valueReset)
 
     def shiftCalc(self, Type):
         if Type == 0:  # If from standard
@@ -6786,12 +6788,12 @@ class quadConversionWindow(wc.ToolWindows):
         self.fieldGroup.setLayout(self.fieldFrame)
         self.grid.addWidget(self.fieldGroup, 8, 0, 1, 4)
         # Reset
-        self.cancelButton.setText("Reset")
+        self.cancelButton.setText("Close")
         self.cancelButton.clicked.disconnect()
-        self.cancelButton.clicked.connect(self.valueReset)
-        self.okButton.setText("Close")
+        self.cancelButton.clicked.connect(self.closeEvent)
+        self.okButton.setText("Reset")
         self.okButton.clicked.disconnect()
-        self.okButton.clicked.connect(self.closeEvent)
+        self.okButton.clicked.connect(self.valueReset)
 
     def quadCalc(self, Type):
         I = self.Ivalues[self.IEntry.currentIndex()]
@@ -6919,12 +6921,12 @@ class mqmasExtractWindow(wc.ToolWindows):
         self.isopqGroup.setLayout(self.isopqFrame)
         self.grid.addWidget(self.isopqGroup, 6, 0, 4, 2)
 
-        self.cancelButton.setText("Reset")
+        self.cancelButton.setText("Close")
         self.cancelButton.clicked.disconnect()
-        self.cancelButton.clicked.connect(self.valueReset)
-        self.okButton.setText("Close")
+        self.cancelButton.clicked.connect(self.closeEvent)
+        self.okButton.setText("Reset")
         self.okButton.clicked.disconnect()
-        self.okButton.clicked.connect(self.closeEvent)
+        self.okButton.clicked.connect(self.valueReset)
 
     def calcIsoPq(self):
         nu0 = safeEval(self.nu0.text(),type='FI')

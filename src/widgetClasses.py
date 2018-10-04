@@ -341,11 +341,13 @@ class ConnectParamsWindow(QtWidgets.QWidget):
         self.grid.addWidget(self.addEntry, 4, 1)
         self.cancelButton = QtWidgets.QPushButton("&Cancel")
         self.cancelButton.clicked.connect(self.closeEvent)
-        self.layout.addWidget(self.cancelButton, 2, 0)
         self.okButton = QtWidgets.QPushButton("&Ok")
         self.okButton.clicked.connect(self.applyAndClose)
         self.okButton.setFocus()
-        self.layout.addWidget(self.okButton, 2, 1)
+        self.box = QtWidgets.QDialogButtonBox()
+        self.box.addButton(self.cancelButton,QtWidgets.QDialogButtonBox.RejectRole)
+        self.box.addButton(self.okButton,QtWidgets.QDialogButtonBox.AcceptRole)
+        self.layout.addWidget(self.box, 2, 0)
         self.show()
 
     def applyAndClose(self):
