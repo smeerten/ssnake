@@ -261,6 +261,11 @@ class QLabel(QtWidgets.QLabel):
         super(QLabel, self).__init__(parent, *args, **kwargs)
         self.setAlignment(QtCore.Qt.AlignCenter)
 
+class QSelectLabel(QtWidgets.QLabel):
+
+    def __init__(self, parent, *args, **kwargs):
+        super(QSelectLabel, self).__init__(parent, *args, **kwargs)
+        self.setTextInteractionFlags(QtCore.Qt.TextSelectableByMouse)
 
 class QLeftLabel(QtWidgets.QLabel):
 
