@@ -80,6 +80,12 @@ class UpdateWindow(QtWidgets.QWidget):
 
     def applyAndClose(self, *args):
         ssnake_location = os.path.dirname(os.path.dirname(__file__))
+        try:
+            os.mkdir(ssnake_location + os.path.sep + 'test')
+            os.rmdir(ssnake_location + os.path.sep + 'test')
+        except Exception:
+            QtWidgets.QMessageBox.critical(QtWidgets.QWidget(), 'Update failed', 'You do not have write permission in the ssNake directory.', QtWidgets.QMessageBox.Ok)
+            return
         message = "Update is going to replace all files in " + str(ssnake_location) + "\n ssNake needs to be restarted for the changes to take effect.\n Are you sure?"
         reply = QtWidgets.QMessageBox.question(self, 'Update', message, QtWidgets.QMessageBox.Yes, QtWidgets.QMessageBox.No)
         if reply == QtWidgets.QMessageBox.Yes:
