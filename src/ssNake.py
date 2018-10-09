@@ -840,6 +840,10 @@ class MainProgram(QtWidgets.QMainWindow):
         self.specOnlyList = [self.regridAct, self.csastaticAct, self.quadAct, self.czjzekAct]
         self.fidOnlyList = [self.relaxAct, self.diffusionAct]
         self.Only1DPlot = [self.snrAct, self.fwhmAct, self.massAct,  self.intfitAct]
+        self.notInArrayPlot = [self.userxAct,self.setrefAct,self.swapEchoAct,self.corOffsetAct,self.baselineAct,self.subAvgAct,
+                               self.refDeconvAct,self.intRegionAct,self.sumRegionAct,self.maxRegionAct,self.maxRegionAct,
+                               self.minRegionAct, self.maxposRegionAct,self.minposRegionAct,self.averageRegionAct,
+                               self.extractpartAct,self.matrixdelAct,self.normalizeAct,self.regridAct]
 
     def openRefMan(self):
         file = os.path.dirname(os.path.realpath(__file__))  + os.path.sep + '..' + os.path.sep + 'ReferenceManual.pdf'
@@ -913,7 +917,8 @@ class MainProgram(QtWidgets.QMainWindow):
                     for act in self.Only1DPlot:
                         act.setEnabled(False)
                 if type(self.mainWindow.current) == views.CurrentArrayed:
-                    self.userxAct.setEnabled(False)
+                    for act in self.notInArrayPlot:
+                        act.setEnabled(False)
                 if self.mainWindow.masterData.noUndo:  # Set menu check to the same value as in the data
                     self.noUndoAct.setChecked(True)
                 else:
