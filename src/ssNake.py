@@ -912,6 +912,8 @@ class MainProgram(QtWidgets.QMainWindow):
                 if type(self.mainWindow.current) == views.CurrentMulti or type(self.mainWindow.current) == views.CurrentStacked or type(self.mainWindow.current) == views.CurrentArrayed:
                     for act in self.Only1DPlot:
                         act.setEnabled(False)
+                if type(self.mainWindow.current) == views.CurrentArrayed:
+                    self.userxAct.setEnabled(False)
                 if self.mainWindow.masterData.noUndo:  # Set menu check to the same value as in the data
                     self.noUndoAct.setChecked(True)
                 else:
