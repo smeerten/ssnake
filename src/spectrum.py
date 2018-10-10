@@ -226,6 +226,8 @@ class Spectrum(object):
         return self
             
     def add(self, data, axis=None, select=slice(None)):
+        if axis is not None:
+            axis = self.checkAxis(axis)
         if isinstance(data, Spectrum):
             data = data.data
         if isinstance(data, np.ndarray) and axis is not None:
@@ -257,6 +259,8 @@ class Spectrum(object):
         return self
             
     def subtract(self, data, axis=None, select=slice(None)):
+        if axis is not None:
+            axis = self.checkAxis(axis)
         if isinstance(data, Spectrum):
             data = data.data
         if isinstance(data, np.ndarray) and axis is not None:
@@ -288,6 +292,8 @@ class Spectrum(object):
         return self
     
     def multiply(self, data, axis=None, select=slice(None)):
+        if axis is not None:
+            axis = self.checkAxis(axis)
         if isinstance(data, Spectrum):
             data = data.data
         if isinstance(data, np.ndarray) and axis is not None:
@@ -318,6 +324,8 @@ class Spectrum(object):
         return self
     
     def divide(self, data, axis=None, select=slice(None)):
+        if axis is not None:
+            axis = self.checkAxis(axis)
         if isinstance(data, Spectrum):
             data = data.data
         if isinstance(data, np.ndarray) and axis is not None:
