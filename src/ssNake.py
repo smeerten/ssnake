@@ -618,14 +618,6 @@ class MainProgram(QtWidgets.QMainWindow):
         self.referencelistmenu.addMenu(self.referencesavemenu)
         self.loadrefAct = self.referencelistmenu.addAction(QtGui.QIcon(IconDirectory + 'open.png'), "&Load", self.referenceLoad)
         self.loadrefAct.setToolTip('Load Reference')
-
-        #==== tmp add as function has been moved. WF 08-08-2018
-        self.TMPhypercomplexMenu = QtWidgets.QMenu("Hypercomplex", self)
-        self.toolMenu.addMenu(self.TMPhypercomplexMenu)
-        self.TMPACT = self.TMPhypercomplexMenu.addAction("Moved to 'Transforms'", lambda x: max(x))
-        self.TMPACT.setEnabled(False)
-        #==========
-
         self.toolsActList = [self.realAct, self.imagAct, self.absAct,
                              self.apodizeAct, self.phaseAct, self.autoPhaseAct0,
                              self.autoPhaseAct1, self.swapEchoAct, self.corOffsetAct,
