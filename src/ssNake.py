@@ -355,6 +355,7 @@ class MainProgram(QtWidgets.QMainWindow):
             self.toolbar = self.addToolBar('Toolbar')
             self.toolbar.setMovable(False)
             self.toolbar.setIconSize(QtCore.QSize(22, 22))
+            self.toolbar.toggleViewAction().setEnabled(False)
             self.seperatorAction = []
             self.allActionsList = [['Seperator', None],
                                    ['File --> Open', self.openAct],
