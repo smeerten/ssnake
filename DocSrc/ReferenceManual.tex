@@ -805,6 +805,40 @@ To automate this process, ssNake uses information from a text by W.\ M.\ Westler
 
 Using this tool opens a windows, in which you have to open (again) the current Bruker file. ssNake then finds the desired phase correction and applies it to all traces.
 
+\subsection{Reference}
+This is a collection of tools to set the current reference (0 frequency) of the current spectrum.
+
+\subsubsection{Set reference}
+Opens a tool were the reference frequency can be set. It is easiest to click on the position in the spectrum
+which should be referenced, which fills in the frequency. In the lowest box (`Reference [ppm]') the desired
+ppm value of the clicked position can be filled in. Alternatively, a series of common solid state references
+are available via the drop-down menu called `Secondary Reference'.
+
+A name can be given to the reference if reuse is desired. The references saved this way are
+accessible via Tools
+$\rightarrow$ Reference $\rightarrow$ Apply.
+
+
+\subsubsection{Clear current reference}
+Removes the reference of the current spectrum. This means that 0 Hz (or ppm) is now at the centre of the
+spectrum.
+
+\subsubsection{Apply}
+Apply the selected saved reference.
+
+\subsubsection{Delete}
+Delete a saved reference.
+
+\subsubsection{Rename}
+Rename a saved reference.
+
+\subsubsection{Save}
+Save a saved reference to disk. The create file contains a single number: the zero frequency of the reference.
+
+\subsubsection{Load}
+Loads a reference from disk.
+
+
 %\subsection{LPSVD}
 %Uses Linear Prediction (LP) via Single Value Decomposition (SVD) to back or forward predict a time signal.
 %
@@ -1852,38 +1886,6 @@ to add additional data (from other, or the same workspace). Things that can be c
 \end{itemize}
 The added data can be removed by pushing the `x' button.
 
-
-\subsection{Reference}
-This is a collection of tools to set the current reference (0 frequency) of the current spectrum.
-
-\subsubsection{Set reference}
-Opens a tool were the reference frequency can be set. It is easiest to click on the position in the spectrum
-which should be referenced, which fills in the frequency. In the lowest box (`Reference [ppm]') the desired
-ppm value of the clicked position can be filled in. Alternatively, a series of common solid state references
-are available via the drop-down menu called `Secondary Reference'.
-
-A name can be given to the reference if reuse is desired. The references saved this way are accessible via Plot
-$\rightarrow$ Reference $\rightarrow$ Apply.
-
-
-\subsubsection{Clear current reference}
-Removes the reference of the current spectrum. This means that 0 Hz (or ppm) is now at the centre of the
-spectrum.
-
-\subsubsection{Apply}
-Apply the selected saved reference.
-
-\subsubsection{Delete}
-Delete a saved reference.
-
-\subsubsection{Rename}
-Rename a saved reference.
-
-\subsubsection{Save}
-Save a saved reference to disk. The create file contains a single number: the zero frequency of the reference.
-
-\subsubsection{Load}
-Loads a reference from disk.
 
 \subsection{User X-axis}
 This function opens a window were the current axis can be changed. This is commonly done in the time domain
