@@ -1573,7 +1573,7 @@ class CurrentContour(CurrentStacked):
         if self.viewSettings["limitType"] == 0:
             self.differ = np.max(np.abs(tmpdata))
         else:
-            self.differ = np.max(np.abs(np.ravel(self.data.getHyperData)))
+            self.differ = np.max(np.abs(np.ravel(self.data.getHyperData(0))))
         self.ax.cla()
         self.clearProj()
         axMult = self.getAxMult(self.spec(), self.getAxType(), self.getppm(), self.freq(), self.ref())
@@ -1597,10 +1597,6 @@ class CurrentContour(CurrentStacked):
         self.line_xdata = [self.xax() * axMult]
         self.line_ydata = [self.xax(-2) * axMult2]
         self.line_zdata = [tmpdata]
-        if self.viewSettings["limitType"] == 0:
-            self.differ = np.max(np.abs(tmpdata))
-        else:
-            self.differ = np.max(np.abs(np.ravel(self.data.getHyperData)))
         self.plotContour(self.line_xdata[-1], self.line_ydata[-1], self.line_zdata[-1])
         self.showProj(self.line_xdata[-1], self.line_ydata[-1], self.line_zdata[-1])
         self.ax.set_xlabel(self.getLabel(self.spec(), self.axes[-1], self.getAxType(), self.getppm()))
