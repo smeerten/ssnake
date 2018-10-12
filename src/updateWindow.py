@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-# Copyright 2016 - 2017 Bas van Meerten and Wouter Franssen
+# Copyright 2016 - 2018 Bas van Meerten and Wouter Franssen
 
 # This file is part of ssNake.
 #
@@ -18,10 +18,10 @@
 # along with ssNake. If not, see <http://www.gnu.org/licenses/>.
 
 try:
+    from PyQt5 import QtGui, QtCore, QtWidgets
+except ImportError:
     from PyQt4 import QtGui, QtCore
     from PyQt4 import QtGui as QtWidgets
-except ImportError:
-    from PyQt5 import QtGui, QtCore, QtWidgets
 import os
 import sys
 import json
@@ -32,12 +32,12 @@ if sys.version_info >= (3, 0):
     from urllib.request import urlopen, urlretrieve
 else:
     from urllib import urlopen, urlretrieve
-
+import ssNake as sc
 
 class UpdateWindow(QtWidgets.QWidget):
 
     def __init__(self, parent):
-        QtWidgets.QWidget.__init__(self, parent)
+        super(UpdateWindow, self).__init__(parent)
         self.setWindowFlags(QtCore.Qt.Window | QtCore.Qt.Tool)
         self.father = parent
         try:
@@ -52,9 +52,8 @@ class UpdateWindow(QtWidgets.QWidget):
             for i in range(len(info)):
                 self.nameList.append(info[i]['name'])
                 self.urlList.append(info[i]['zipball_url'])
-        except:
-            self.father.dispMsg("Could not connect to the server")
-            return
+        except Exception:
+            raise sc.SsnakeException("Could not connect to the server")
         self.setWindowTitle("Update ssNake")
         layout = QtWidgets.QGridLayout(self)
         grid = QtWidgets.QGridLayout()
@@ -67,10 +66,12 @@ class UpdateWindow(QtWidgets.QWidget):
         grid.addWidget(QtWidgets.QLabel("Current version: " + self.father.VERSION), 2, 0)
         cancelButton = QtWidgets.QPushButton("&Cancel")
         cancelButton.clicked.connect(self.closeEvent)
-        layout.addWidget(cancelButton, 2, 0)
         okButton = QtWidgets.QPushButton("&Ok")
         okButton.clicked.connect(self.applyAndClose)
-        layout.addWidget(okButton, 2, 1)
+        box = QtWidgets.QDialogButtonBox()
+        box.addButton(cancelButton,QtWidgets.QDialogButtonBox.RejectRole)
+        box.addButton(okButton,QtWidgets.QDialogButtonBox.AcceptRole)
+        layout.addWidget(box, 2, 0)
         layout.setColumnStretch(1, 1)
         self.show()
 
@@ -79,6 +80,12 @@ class UpdateWindow(QtWidgets.QWidget):
 
     def applyAndClose(self, *args):
         ssnake_location = os.path.dirname(os.path.dirname(__file__))
+        try:
+            os.mkdir(ssnake_location + os.path.sep + 'test')
+            os.rmdir(ssnake_location + os.path.sep + 'test')
+        except Exception:
+            QtWidgets.QMessageBox.critical(QtWidgets.QWidget(), 'Update failed', 'You do not have write permission in the ssNake directory.', QtWidgets.QMessageBox.Ok)
+            return
         message = "Update is going to replace all files in " + str(ssnake_location) + "\n ssNake needs to be restarted for the changes to take effect.\n Are you sure?"
         reply = QtWidgets.QMessageBox.question(self, 'Update', message, QtWidgets.QMessageBox.Yes, QtWidgets.QMessageBox.No)
         if reply == QtWidgets.QMessageBox.Yes:

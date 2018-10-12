@@ -1,0 +1,99 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Created with matplotlib (http://matplotlib.org/) -->
+
+<svg
+   xmlns:dc="http://purl.org/dc/elements/1.1/"
+   xmlns:cc="http://creativecommons.org/ns#"
+   xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+   xmlns:svg="http://www.w3.org/2000/svg"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   height="10mm"
+   version="1.1"
+   viewBox="0 0 28.346458 28.346457"
+   width="10mm"
+   id="svg2"
+   inkscape:version="0.92.2 (5c3e80d, 2017-08-06)"
+   sodipodi:docname="mqmas.svg"
+   inkscape:export-filename="/home/wfranssen/Documents/ssNake/ssnake/src/Icons/mqmas.png"
+   inkscape:export-xdpi="162"
+   inkscape:export-ydpi="162">
+  <metadata
+     id="metadata272">
+    <rdf:RDF>
+      <cc:Work
+         rdf:about="">
+        <dc:format>image/svg+xml</dc:format>
+        <dc:type
+           rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
+        <dc:title />
+      </cc:Work>
+    </rdf:RDF>
+  </metadata>
+  <sodipodi:namedview
+     pagecolor="#ffffff"
+     bordercolor="#666666"
+     borderopacity="1"
+     objecttolerance="10"
+     gridtolerance="10"
+     guidetolerance="10"
+     inkscape:pageopacity="0"
+     inkscape:pageshadow="2"
+     inkscape:window-width="1920"
+     inkscape:window-height="1149"
+     id="namedview270"
+     showgrid="false"
+     inkscape:zoom="10.488889"
+     inkscape:cx="21.589356"
+     inkscape:cy="26.563457"
+     inkscape:window-x="0"
+     inkscape:window-y="0"
+     inkscape:window-maximized="1"
+     inkscape:current-layer="svg2"
+     units="mm" />
+  <defs
+     id="defs4"
+     style="stroke-linecap:butt;stroke-linejoin:round">
+    <style
+       type="text/css"
+       id="style6">
+*{stroke-linecap:butt;stroke-linejoin:round;}
+  </style>
+  </defs>
+  <rect
+     style="opacity:1;fill:#ffffff;fill-opacity:1;fill-rule:nonzero;stroke:none;stroke-width:1;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+     id="rect4245"
+     width="28.34646"
+     height="28.346457"
+     x="-4.7308239e-07"
+     y="8.2601716e-08" />
+  <defs
+     id="defs265">
+    <clipPath
+       id="p40b8626951"
+       style="stroke-linecap:butt;stroke-linejoin:round">
+      <rect
+         height="223.2"
+         width="334.79999"
+         x="54"
+         y="28.799999"
+         id="rect268"
+         style="stroke-linecap:butt;stroke-linejoin:round" />
+    </clipPath>
+  </defs>
+  <ellipse
+     style="opacity:1;fill:#ffffff;fill-opacity:1;stroke:#e97b00;stroke-width:2.85150003;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1;paint-order:markers fill stroke"
+     id="path821"
+     cx="16.56819"
+     cy="21.608507"
+     rx="10.466155"
+     ry="2.9964275" />
+  <ellipse
+     style="opacity:1;fill:#ffffff;fill-opacity:1;stroke:#1f1fff;stroke-width:3.37649989;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1;paint-order:markers fill stroke"
+     id="path821-7"
+     cx="12.963382"
+     cy="8.2736883"
+     rx="11.275132"
+     ry="3.1853514" />
+</svg>

@@ -5,6 +5,7 @@ Atom	Nucleus	Name	Mass	Spin	Abundance(%)	Gamma	Q(fm^2)	FreqRatio	Refsample	Sampl
 2	He	Helium	3	0.5	1.37e-4	-20.3801587	0	76.179437	He	gas	-
 3	Li	Lithium	6	1	7.59	3.9371709	-0.0808	14.716086	LiCl	D<sub>2</sub>O, 9.7 m 	-
 3	Li	Lithium	7	1.5	92.41	10.3977013	-4.01	38.863797	LiCl	D<sub>2</sub>O, 9.7 m 	-
+3	Li	Lithium	8	2	-	3.9593	3.14	14.763	-	-	848 ms
 4	Be	Berrylium	9	1.5	100	-3.759666	5.288	14.051813	BeSO<sub>4</sub>	D<sub>2</sub>O, 0.43 m	-
 5	B	Boron	10	3	19.9	2.8746786	8.459	10.743658	BF<sub>3</sub>·Et<sub>2</sub>O	CDCl<sub>3</sub>	-
 5	B	Boron	11	1.5	80.1	8.5847044	4.059	32.083974	BF<sub>3</sub>·Et<sub>2</sub>O	CDCl<sub>3</sub>	-

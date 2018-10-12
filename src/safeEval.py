@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-# Copyright 2016 - 2017 Bas van Meerten and Wouter Franssen
+# Copyright 2016 - 2018 Bas van Meerten and Wouter Franssen
 
 # This file is part of ssNake.
 #
@@ -19,23 +19,41 @@
 
 import numpy as np
 import re
+import hypercomplex as hc
+import scipy.special
 
-
-def safeEval(inp, length=None, keywords=[]):
+def safeEval(inp, length=None, keywords=[], type='All', x=None):
     env = vars(np).copy()
+    env.update(vars(hc).copy())
+    env.update(vars(scipy.special).copy())
+    env.update(vars(scipy.integrate).copy())
     env["locals"] = None
     env["globals"] = None
     env["__name__"] = None
     env["__file__"] = None
-    env["__builtins__"] = None
+    env["__builtins__"] = {'None': None, 'False': False, 'True':True} # None
     env["slice"] = slice
     if length is not None:
         env["length"] = length
+    if x is not None:
+        env["x"] = x
     inp = re.sub('([0-9]+)[kK]', '\g<1>*1024', str(inp))
     for i in keywords:
         if i in inp:
             return inp
     try:
-        return eval(inp, env)
-    except:
+        val = eval(inp, env)
+        if isinstance(val, str):
+            return None
+        if type == 'All':
+            return val
+        elif type == 'FI':  #single float/int type
+            if isinstance(val, (float, int)) and not np.isnan(val) and not np.isinf(val):
+                return val
+            return None
+        elif type == 'C': #single complex number
+            if isinstance(val, (float, int, complex)) and not np.isnan(val) and not np.isinf(val):
+                return val
+            return None
+    except Exception:
         return None
