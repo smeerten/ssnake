@@ -286,8 +286,8 @@ def csaFunc(x, freq, sw, axMult, extra, bgrnd, mult, spinspeed, t11, t22, t33, a
     elif shiftdef == 3: #For Hertzfeld-Berger
         t33 = 1 - abs(abs(t33 + 1)%4 - 2)
 
-    tensor = np.array(func.shiftConversion([t11, t22, t33], shiftdef)[1])
-    tensor /= axMult
+    tensor = np.array(func.shiftConversion([t11, t22, t33], shiftdef)[1], dtype=float)
+    tensor /= float(axMult)
     A0, A2 = csaSpace(tensor)
     T0, T2 = csaSpin()
     d2 = d2tens(np.array([angle]))[0,:,2]
