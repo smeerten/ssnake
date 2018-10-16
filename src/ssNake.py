@@ -88,13 +88,17 @@ importList = [['matplotlib.figure', 'Figure', 'Figure'],
               ['saveFigure', 'SaveFigureWindow', 'SaveFigureWindow'],
               ['functions', 'func', None],
               ['specIO', 'io', None],
-              ['views', 'views', None]]
+              ['views', 'views', None],
+              ['loadIsotopes','loadIsotopes',None]]
 
 splashSteps = len(importList) / 100.0
 splashStep = 0
 # Import everything else
 for elem in importList:
     splashStep = import_lib(elem[0],elem[1],elem[2],splashStep)
+
+isoPath = os.path.dirname(os.path.realpath(__file__)) + os.path.sep + "IsotopeProperties"
+ISOTOPES = loadIsotopes.getIsotopeInfo(isoPath)
 
 matplotlib.rc('font', family='DejaVu Sans')
 np.set_printoptions(threshold=np.nan)
@@ -462,6 +466,7 @@ class MainProgram(QtWidgets.QMainWindow):
                                    ['History --> History', self.historyAct],
                                    ['History --> Clear Undo/Redo List', self.clearundoAct],
                                    ['Utilities --> Chemical Shift Conversion Tool', self.shiftconvAct],
+                                   ['Utilities --> Dipolar Distance Tool', self.dipolarconvAct],
                                    ['Utilities --> Quadrupole Coupling Conversion Tool', self.quadconvAct],
                                    ['Utilities --> NMR Table', self.nmrtableAct],
                                    ['Help --> GitHub Page', self.githubAct],
@@ -808,6 +813,8 @@ class MainProgram(QtWidgets.QMainWindow):
         self.menubar.addMenu(self.utilitiesMenu)
         self.shiftconvAct = self.utilitiesMenu.addAction(QtGui.QIcon(IconDirectory + 'shifttool.png'), "&Chemical Shift Conversion Tool", self.createShiftConversionWindow)
         self.shiftconvAct.setToolTip('Chemical Shift Conversion Tool')
+        self.dipolarconvAct = self.utilitiesMenu.addAction(QtGui.QIcon(IconDirectory + 'dipolar.png'),"Dipolar Distance Tool", self.createDipolarDistanceWindow)
+        self.dipolarconvAct.setToolTip('Dipolar Distance Tool')
         self.quadconvAct = self.utilitiesMenu.addAction(QtGui.QIcon(IconDirectory + 'quadconversion.png'), "&Quadrupole Coupling Conversion Tool", self.createQuadConversionWindow)
         self.quadconvAct.setToolTip('Quadrupole Coupling Conversion Tool')
         self.mqmasconvAct = self.utilitiesMenu.addAction(QtGui.QIcon(IconDirectory + 'mqmas.png'),"MQMAS Parameter Extraction Tool", self.createMqmasExtractWindow)
@@ -1560,6 +1567,9 @@ class MainProgram(QtWidgets.QMainWindow):
 
     def createShiftConversionWindow(self):
         shiftConversionWindow(self)
+
+    def createDipolarDistanceWindow(self):
+        dipolarDistanceWindow(self)
 
     def createQuadConversionWindow(self):
         quadConversionWindow(self)
@@ -6866,6 +6876,140 @@ class quadConversionWindow(wc.ToolWindows):
 
 ##############################################################################
 
+class dipolarDistanceWindow(wc.ToolWindows):
+
+    NAME = "Dipolar Distance Calculation"
+    RESIZABLE = True
+    MENUDISABLE = False
+
+    def __init__(self, parent):
+        super(dipolarDistanceWindow, self).__init__(parent)
+        self.comGroup = QtWidgets.QGroupBox("Gyromagnetic Ratios:")
+        self.comFrame = QtWidgets.QGridLayout()
+        gamma1label = wc.QLabel(u'γ<sub>1</sub> [10<sup>7</sup> rad/s/T]:')
+        self.comFrame.addWidget(gamma1label, 0, 0)
+
+        gammaindex = [x for (x,val) in enumerate(ISOTOPES['gamma']) if val is not None]
+        self.gammaValues = [0.0] + [val for (x,val) in enumerate(ISOTOPES['gamma']) if x in gammaindex]        
+        self.names = ['User'] +  [val for (x,val) in enumerate(ISOTOPES['formatName']) if x in gammaindex]
+
+        self.gamma1Drop = QtWidgets.QComboBox()
+        self.gamma1Drop.addItems(self.names)
+        self.gamma1Drop.currentIndexChanged.connect(self.setGamma1)
+        self.comFrame.addWidget(self.gamma1Drop, 1, 0)
+        self.gamma2Drop = QtWidgets.QComboBox()
+        self.gamma2Drop.addItems(self.names)
+        self.gamma2Drop.currentIndexChanged.connect(self.setGamma2)
+        self.comFrame.addWidget(self.gamma2Drop, 1, 1)
+
+        self.gamma1 = wc.QLineEdit("0.0")
+        self.gamma1.setMinimumWidth(100)
+        self.gamma1.textEdited.connect(self.gamma1Changed)
+        self.comFrame.addWidget(self.gamma1, 2, 0)
+        gamma2label = wc.QLabel(u'γ<sub>2</sub> [10<sup>7</sup> rad/s/T]:')
+        self.comFrame.addWidget(gamma2label, 0, 1)
+        self.gamma2 = wc.QLineEdit("0.0")
+        self.gamma2.setMinimumWidth(100)
+        self.gamma2.textEdited.connect(self.gamma2Changed)
+        self.comFrame.addWidget(self.gamma2, 2, 1)
+        self.comGroup.setLayout(self.comFrame)
+        self.grid.addWidget(self.comGroup, 1, 0, 1, 3)
+
+        self.distanceGroup = QtWidgets.QGroupBox("Distance:")
+        self.distanceFrame = QtWidgets.QGridLayout()
+        distancelabel = wc.QLabel(u'r [Å]')
+        self.distanceFrame.addWidget(distancelabel, 3, 1)
+        distanceGO = QtWidgets.QPushButton("Go")
+        self.distanceFrame.addWidget(distanceGO, 4, 0)
+        distanceGO.clicked.connect(lambda: self.Calc(0))
+        self.distance = wc.QLineEdit("0")
+        self.distance.setMinimumWidth(100)
+        self.distanceFrame.addWidget(self.distance, 4, 1)
+        self.distanceGroup.setLayout(self.distanceFrame)
+        self.grid.addWidget(self.distanceGroup, 3, 0, 1, 2)
+
+        self.dipolarGroup = QtWidgets.QGroupBox("Dipolar Coupling:")
+        self.dipolarFrame = QtWidgets.QGridLayout()
+        dipolarlabel = wc.QLabel(u'D [kHz]')
+        self.dipolarFrame.addWidget(dipolarlabel, 3, 1)
+        dipolarGO = QtWidgets.QPushButton("Go")
+        self.dipolarFrame.addWidget(dipolarGO, 4, 0)
+        dipolarGO.clicked.connect(lambda: self.Calc(1))
+        self.dipolar = wc.QLineEdit("0")
+        self.dipolar.setMinimumWidth(100)
+        self.dipolarFrame.addWidget(self.dipolar, 4, 1)
+        self.dipolarGroup.setLayout(self.dipolarFrame)
+        self.grid.addWidget(self.dipolarGroup, 4, 0, 1, 2)
+
+        # Reset
+        self.cancelButton.setText("Close")
+        self.cancelButton.clicked.disconnect()
+        self.cancelButton.clicked.connect(self.closeEvent)
+        self.okButton.setText("Reset")
+        self.okButton.clicked.disconnect()
+        self.okButton.clicked.connect(self.valueReset)
+
+    def gamma1Changed(self):
+        self.gamma1Drop.setCurrentIndex(0)
+
+    def gamma2Changed(self):
+        self.gamma2Drop.setCurrentIndex(0)
+
+    def setGamma1(self,index):
+        if index !=0:
+            self.gamma1.setText(str(self.gammaValues[index]))
+
+    def setGamma2(self,index):
+        if index !=0:
+            self.gamma2.setText(str(self.gammaValues[index]))
+
+    def Calc(self, Type):
+        try:
+            gamma1 = float(safeEval(self.gamma1.text(), type='FI')) * 1e7
+            gamma2 = float(safeEval(self.gamma2.text(), type='FI')) * 1e7
+        except Exception:
+            raise SsnakeException("Dipolar Distance: Invalid input in gamma values")
+
+        if Type == 0:  # Distance as input
+            try:
+                r = abs(float(safeEval(self.distance.text(), type='FI')))
+            except Exception:
+                raise SsnakeException("Dipolar Distance: Invalid input in r")
+        if Type == 1:
+            try:
+                D = abs(float(safeEval(self.dipolar.text(), type='FI')))
+            except Exception:
+                raise SsnakeException("Dipolar Distance: Invalid input in D")
+
+        hbar = 1.054573e-34
+        if Type == 0:
+            if r == 0.0:
+                D = np.inf
+            else:
+                D = abs(- 1e-7 * gamma1 * gamma2 * hbar / (r * 10**-10) **3 / (2 * np.pi))
+                D /= 1000
+        if Type == 1:
+            if D == 0.0:
+                r = np.inf
+            else:
+                r = 1 / abs(D * 1000 /gamma1 / gamma2 / hbar / 1e-7 * (2 * np.pi))**(1.0/3)
+                r *= 1e10
+
+        self.dipolar.setText('%#.5g' % D)
+        self.distance.setText('%#.5g' % r)
+
+    def valueReset(self):  # Resets all the boxes to 0
+        self.dipolar.setText('0.0')
+        self.distance.setText('0.0')
+        self.gamma1.setText('0.0')
+        self.gamma2.setText('0.0')
+        self.gamma1Drop.setCurrentIndex(0)
+        self.gamma2Drop.setCurrentIndex(0)
+
+    def closeEvent(self):
+        self.deleteLater()
+
+##############################################################################
 
 class mqmasExtractWindow(wc.ToolWindows):
 
