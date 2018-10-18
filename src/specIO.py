@@ -736,11 +736,13 @@ def loadBrukerTopspin(filePath):
 def loadBrukerWinNMR(filePath):
     base = filePath[:-3]
     base, extension = os.path.splitext(filePath)
-    if extension.lower() == '.1r' or extension.lower() == '.1i': #If spec loaded
-        if os.path.exists(base + '.FQS'):
-            pars = brukerTopspinGetPars(base + '.FQS')
-        else:
-            pars = brukerTopspinGetPars(base + '.FQS')
+    #Check if upper or lower case
+    names = ['.fqs','.aqs','.fid','.1r','.1i']
+    if extension == extension.upper(): #If uppercase
+        names = [x.upper() for x in names]
+    present = [os.path.exists(base + x) for x in names]
+    if extension == names[3] or extension == names[4]: #If spec loaded
+        pars = brukerTopspinGetPars(base + names[0])
         SIZE = pars['XDIM']
         FREQ = pars['SF'] * 1e6 
         SW = pars['SW_p']
@@ -749,30 +751,22 @@ def loadBrukerWinNMR(filePath):
         pos = np.fft.fftshift(np.fft.fftfreq(SIZE, 1.0 / SW))[-1] #Get last point of axis
         pos2 = OFFSET * 1e-6 * FREQ #offset in Hz
         REF = FREQ + pos - pos2
+        spec = True
     else:
-        if os.path.exists(base + '.AQS'):
-            pars = brukerTopspinGetPars(base + '.AQS')
-        else:
-            pars = brukerTopspinGetPars(base + '.aqs')
+        pars = brukerTopspinGetPars(base + names[1])
         SIZE = pars['TD']
         FREQ = pars['SFO1'] * 1e6 
         SW = pars['SW_h']
         REF = pars['O1'] 
         REF = - REF+ FREQ
         ByteOrder = ['l','b'][pars['BYTORDA']] #The byte orders that is used
-    if extension.lower() == '.1r' or extension.lower() == '.1i': #If spec loaded
-        spec = True 
-        if os.path.exists(base + '.1R'):
-            datPathR = base + '.1R'
-            datPathI = base + '.1I'
-        else:
-            datPathR = base + '.1r'
-            datPathI = base + '.1i'
-        with open(datPathR, "rb") as f:
+        spec = False
+    if spec: #If spec loaded
+        with open(base + names[3], "rb") as f:
             rawR = np.fromfile(f, np.float32, SIZE)
         rawR = rawR.newbyteorder(ByteOrder) #Load with right byte order
-        if os.path.exists(datPathI):
-            with open(datPathI, "rb") as f:
+        if present[4]:
+            with open(base + names[4], "rb") as f:
                 rawI = np.fromfile(f, np.float32, SIZE)
             rawI = rawI.newbyteorder(ByteOrder) #Load with right byte order
             ComplexData = rawR - 1j* rawI
@@ -780,24 +774,20 @@ def loadBrukerWinNMR(filePath):
             ComplexData = rawR
         ComplexData = np.flipud(ComplexData)
     else: #Load fid
-        spec = False
-        if os.path.exists(base + '.FID'):
-            datPath = base + '.FID'
-        else:
-            datPath = base + '.fid'
-        with open(datPath, "rb") as f:
+        with open(base + names[2], "rb") as f:
             raw = np.fromfile(f, np.float32, SIZE)
         raw = raw.newbyteorder(ByteOrder) #Load with right byte order
         ComplexData = np.array(raw[0:len(raw):2]) + 1j * np.array(raw[1:len(raw):2])
     masterData = sc.Spectrum(ComplexData, (filePath, None), [FREQ], [SW], [spec], ref = [REF])
-    try:
-        masterData.metaData['# Scans'] = str(pars['NS'])
-        masterData.metaData['Receiver Gain'] = str(pars['RG'])
-        masterData.metaData['Experiment Name'] = pars['PULPROG']
-        masterData.metaData['Offset [Hz]'] = str(pars['O1'])
-        masterData.metaData['Recycle Delay [s]'] = str(pars['D'][1])
-    except Exception:
-        pass
+    if not spec:
+        try:
+            masterData.metaData['# Scans'] = str(pars['NS'])
+            masterData.metaData['Receiver Gain'] = str(pars['RG'])
+            masterData.metaData['Experiment Name'] = pars['PULPROG']
+            masterData.metaData['Offset [Hz]'] = str(pars['O1'])
+            masterData.metaData['Recycle Delay [s]'] = str(pars['D'][1])
+        except Exception:
+            pass
     masterData.addHistory("Bruker WinNMR data loaded from " + filePath)
 
     return masterData
