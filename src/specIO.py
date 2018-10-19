@@ -276,14 +276,17 @@ def loadVarianFile(filePath):
     else:
         masterData = sc.Spectrum(fid, (filePath, None), [freq1, freq], [sw1, sw], [bool(int(spec))] * 2, ref=[reffreq1, reffreq])
     masterData.addHistory("Varian data loaded from " + filePath)
-    masterData.metaData['# Scans'] = str(pars['nt'])
-    masterData.metaData['Acquisition Time [s]'] = str(pars['at'])
-    masterData.metaData['Experiment Name'] = pars['seqfil']
-    masterData.metaData['Receiver Gain'] = str(pars['gain'])
-    masterData.metaData['Recycle Delay [s]'] = str(pars['d1'])
-    masterData.metaData['Time Completed'] = pars['time_complete']
-    masterData.metaData['Offset [Hz]'] = str(pars['tof'])
-    masterData.metaData['Sample'] = pars['samplename']
+    try:
+        masterData.metaData['# Scans'] = str(pars['nt'])
+        masterData.metaData['Acquisition Time [s]'] = str(pars['at'])
+        masterData.metaData['Experiment Name'] = pars['seqfil']
+        masterData.metaData['Receiver Gain'] = str(pars['gain'])
+        masterData.metaData['Recycle Delay [s]'] = str(pars['d1'])
+        masterData.metaData['Time Completed'] = pars['time_complete']
+        masterData.metaData['Offset [Hz]'] = str(pars['tof'])
+        masterData.metaData['Sample'] = pars['samplename']
+    except Exception:
+        pass
     return masterData
 
 def loadPipe(filePath):
@@ -723,11 +726,14 @@ def loadBrukerTopspin(filePath):
     elif dim == 3:
         ComplexData = ComplexData[:,:,0:int(SIZE[0]/2)] #Cut off placeholder data
     masterData = sc.Spectrum(ComplexData, (filePath, None), FREQ[-1::-1], SW[-1::-1], [False] * dim, ref = REF[-1::-1])
-    masterData.metaData['# Scans'] = str(pars[0]['NS'])
-    masterData.metaData['Receiver Gain'] = str(pars[0]['RG'])
-    masterData.metaData['Experiment Name'] = pars[0]['PULPROG']
-    masterData.metaData['Offset [Hz]'] = str(pars[0]['O1'])
-    masterData.metaData['Recycle Delay [s]'] = str(pars[0]['D'][1])
+    try:
+        masterData.metaData['# Scans'] = str(pars[0]['NS'])
+        masterData.metaData['Receiver Gain'] = str(pars[0]['RG'])
+        masterData.metaData['Experiment Name'] = pars[0]['PULPROG']
+        masterData.metaData['Offset [Hz]'] = str(pars[0]['O1'])
+        masterData.metaData['Recycle Delay [s]'] = str(pars[0]['D'][1])
+    except Exception:
+        pass
     masterData.addHistory("Bruker TopSpin data loaded from " + filePath)
 
     return masterData
@@ -996,12 +1002,15 @@ def loadMagritek(filePath):
         Data = raw[-2 * sizeTD2::]
         ComplexData = Data[0:Data.shape[0]:2] - 1j * Data[1:Data.shape[0]:2]
         masterData = sc.Spectrum(ComplexData, (filePath, None), [freq], [sw], [False], ref=[ref])
+    try:
+        masterData.metaData['# Scans'] = H['nrScans']
+        masterData.metaData['Acquisition Time [s]'] = str(int(H['nrPnts']) * float(H['dwellTime']) * 1e-6)
+        masterData.metaData['Experiment Name'] = H['expName'].strip('"')
+        masterData.metaData['Receiver Gain'] = H['rxGain']
+        masterData.metaData['Recycle Delay [s]'] = str(float(H['repTime'])/1e3)
+    except Exception:
+        pass
     masterData.addHistory("Magritek data loaded from " + filePath)
-    masterData.metaData['# Scans'] = H['nrScans']
-    masterData.metaData['Acquisition Time [s]'] = str(int(H['nrPnts']) * float(H['dwellTime']) * 1e-6)
-    masterData.metaData['Experiment Name'] = H['expName'].strip('"')
-    masterData.metaData['Receiver Gain'] = H['rxGain']
-    masterData.metaData['Recycle Delay [s]'] = str(float(H['repTime'])/1e3)
     return masterData
 
 def saveSimpsonFile(filePath, spectrum):
