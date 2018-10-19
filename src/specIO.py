@@ -119,7 +119,7 @@ def fileTypeCheck(filePath):
         filename = os.path.basename(filePath)
         fileBase = os.path.splitext(filename)[0]
         direc = os.path.dirname(filePath)
-        if filename.endswith('.fid') or filename.endswith('.spe') or filename.endswith('.FID') or filename.endswith('.SPE') :
+        if filename.lower().endswith('.fid') or filename.lower().endswith('.spe'):
             if os.path.exists(filePath[:-3] + 'AQS') or os.path.exists(filePath[:-3] + 'aqs'):
                 return (15, filePath, returnVal) #Bruker WinNMR suspected
             with open(filePath, 'r') as f:
@@ -133,9 +133,9 @@ def fileTypeCheck(filePath):
                 check = int(np.fromfile(f, np.float32, 1))
             if check == 0:
                 return (8, filePath, returnVal)  # Suspected NMRpipe format
-        elif filename.endswith('.json') or filename.endswith('.JSON'):
+        elif filename.lower().endswith('.json'):
             return (5, filePath, returnVal)
-        elif filename.endswith('.mat') or filename.endswith('.MAT'):
+        elif filename.lower().endswith('.mat'):
             return (6, filePath, returnVal)
         elif filename.endswith('.jdf'):  # JEOL delta format
             return (9, filePath, returnVal)
@@ -143,10 +143,9 @@ def fileTypeCheck(filePath):
             return (10, filePath, returnVal)
         elif filename.endswith('.sig'):  # Bruker minispec
             return (12, filePath, returnVal)
-        elif filename.endswith('.ima') or filename.endswith('.IMA'):  # Siemens ima format
+        elif filename.lower().endswith('.ima'):  # Siemens ima format
             return (14, filePath, returnVal)        
-        elif filename.endswith('.aqs') or filename.endswith('.AQS') or filename.endswith('.1R') or filename.endswith('.1r') \
-            or filename.endswith('.1I') or filename.endswith('.1i') :  # Bruker WinNMR format
+        elif filename.lower().endswith('.aqs') or filename.lower().endswith('.1r') or filename.lower().endswith('.1i') :  # Bruker WinNMR format
             return (15, filePath, returnVal)        
         returnVal = 1
         direc = os.path.dirname(filePath)
@@ -734,7 +733,6 @@ def loadBrukerTopspin(filePath):
     return masterData
 
 def loadBrukerWinNMR(filePath):
-    base = filePath[:-3]
     base, extension = os.path.splitext(filePath)
     #Check if upper or lower case
     names = ['.fqs','.aqs','.fid','.1r','.1i']
