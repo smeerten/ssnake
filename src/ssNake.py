@@ -624,7 +624,7 @@ class MainProgram(QtWidgets.QMainWindow):
         self.referencelistmenu.addMenu(self.referencesavemenu)
         self.loadrefAct = self.referencelistmenu.addAction(QtGui.QIcon(IconDirectory + 'open.png'), "&Load", self.referenceLoad)
         self.loadrefAct.setToolTip('Load Reference')
-        self.toolsActList = [self.realAct, self.imagAct, self.absAct,
+        self.toolsActList = [self.realAct, self.imagAct, self.absAct,self.conjAct,
                              self.apodizeAct, self.phaseAct, self.autoPhaseAct0,
                              self.autoPhaseAct1, self.swapEchoAct, self.corOffsetAct,
                              self.baselineAct, self.subAvgAct, self.refDeconvAct,
@@ -895,7 +895,7 @@ class MainProgram(QtWidgets.QMainWindow):
             self.workspacemenu.menuAction().setEnabled(False)
             self.macrolistmenu.menuAction().setEnabled(False)
             self.editmenu.menuAction().setEnabled(False)
-            self.toolMenu.menuAction().setEnabled(False)
+            self.toolMenu.menuAction().setEnabled(True)
             self.matrixMenu.menuAction().setEnabled(False)
             self.transformsMenu.menuAction().setEnabled(False)
             self.fittingMenu.menuAction().setEnabled(False)
@@ -986,7 +986,6 @@ class MainProgram(QtWidgets.QMainWindow):
     def menuEnable(self, enable=True, internalWindow=False):
         self.macrolistmenu.menuAction().setEnabled(enable)
         self.editmenu.menuAction().setEnabled(enable)
-        self.toolMenu.menuAction().setEnabled(enable)
         self.matrixMenu.menuAction().setEnabled(enable)
         self.transformsMenu.menuAction().setEnabled(enable)
         self.fittingMenu.menuAction().setEnabled(enable)
@@ -998,6 +997,7 @@ class MainProgram(QtWidgets.QMainWindow):
         if not internalWindow:
             self.filemenu.menuAction().setEnabled(enable)
             self.workspacemenu.menuAction().setEnabled(enable)
+            self.toolMenu.menuAction().setEnabled(enable)
             for act in self.fileActList + self.workspaceActList:
                 act.setEnabled(enable)
             for i in range(self.tabs.count()):
