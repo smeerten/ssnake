@@ -675,7 +675,11 @@ def brukerTopspinGetPars(file):
                 pos +=1
                 val = []
                 while not data[pos].startswith('##$'):
-                    val = val + [float(x) for x in data[pos].split()]
+                    try:
+                        val = val + [float(x) for x in data[pos].strip('<>').split()]
+                    except Exception:
+                        val = val + data[pos].strip('<>').split()
+
                     pos += 1
                 pos += -1
             else:
