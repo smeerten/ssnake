@@ -1960,7 +1960,7 @@ class Main1DWindow(QtWidgets.QWidget):
             raise SsnakeException("Data has not enough dimensions for MQMAS fitting")
         if self.current.freq() == 0.0:
             raise SsnakeException("Please set the spectrometer frequency first!")
-        self.father.createFitWindow(fit.TabFittingWindow(self.father, self.father.mainWindow, 'mqmasczjek'))
+        self.father.createFitWindow(fit.TabFittingWindow(self.father, self.father.mainWindow, 'mqmasczjzek'))
 
     def createExternalFitWindow(self):
         self.father.createFitWindow(fit.TabFittingWindow(self.father, self.father.mainWindow, 'external'))
