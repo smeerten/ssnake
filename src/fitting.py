@@ -259,12 +259,17 @@ class TabFittingWindow(QtWidgets.QWidget):
         return params
             
     def disp(self, *args, **kwargs):
+        #self.mainFitWindow.paramframe.simButton.hide()
+        self.mainFitWindow.paramframe.simBusyButton.show()
+        QtWidgets.qApp.processEvents()
         params = self.getParams()
         if params is None:
             return
         self.mainFitWindow.paramframe.disp(params, 0, *args, **kwargs)
         for i in range(len(self.subFitWindows)):
             self.subFitWindows[i].paramframe.disp(params, i + 1, *args, **kwargs)
+        self.mainFitWindow.paramframe.simBusyButton.hide()
+        #self.mainFitWindow.paramframe.simButton.show()
 
     def get_masterData(self):
         return self.oldMainWindow.get_masterData()
@@ -680,9 +685,13 @@ class AbstractParamFrame(QtWidgets.QWidget):
         self.optframe.setAlignment(QtCore.Qt.AlignTop)
         self.frame2.setAlignment(QtCore.Qt.AlignTop)
         self.frame3.setAlignment(QtCore.Qt.AlignTop)
-        simButton = QtWidgets.QPushButton("Sim")
-        simButton.clicked.connect(self.rootwindow.sim)
-        self.frame1.addWidget(simButton, 0, 0,1,1)
+        self.simButton = QtWidgets.QPushButton("Sim")
+        self.simButton.clicked.connect(self.rootwindow.sim)
+        self.frame1.addWidget(self.simButton, 0, 0,1,1)
+        self.simBusyButton = QtWidgets.QPushButton("Busy")
+        self.simBusyButton.setEnabled(False) 
+        self.frame1.addWidget(self.simBusyButton, 0, 0,1,1)
+        self.simBusyButton.hide()
         if self.isMain:
             fitButton = QtWidgets.QPushButton("Fit")
             fitButton.clicked.connect(self.rootwindow.fit)
