@@ -573,7 +573,7 @@ class FitPlotFrame(Current1D):
 
     MARKER = ''
     LINESTYLE = '-'
-    FITNUM = 10  # Standard number of fits
+    FITNUM = 20  # Standard number of fits
 
     def __init__(self, rootwindow, fig, canvas, current):
         self.data = current.data
@@ -658,19 +658,27 @@ class AbstractParamFrame(QtWidgets.QWidget):
         self.frame2 = QtWidgets.QGridLayout()
         self.frame3 = QtWidgets.QGridLayout()
         grid.addLayout(self.frame1, 0, 0)
-        grid.addLayout(self.optframe, 0, 1)
-        grid.addLayout(self.frame2, 0, 2)
-        grid.addLayout(self.frame3, 0, 3)
-        grid.setColumnStretch(10, 1)
+
+
+        paramgrid = QtWidgets.QGridLayout()
+        paramgrid.addLayout(self.optframe, 0, 0)
+        paramgrid.addLayout(self.frame2, 0, 1)
+        paramgrid.addLayout(self.frame3, 0, 2)
+        paramgrid.setColumnStretch(3, 1)
+        self.gridLayoutWidget = QtWidgets.QWidget()
+        self.gridLayoutWidget.setLayout(paramgrid)
+        self.scrollArea = QtWidgets.QScrollArea()
+        self.scrollArea.setWidgetResizable(True)
+        self.scrollArea.setWidget(self.gridLayoutWidget)
+
+
+        grid.addWidget(self.scrollArea, 0, 1)
+        grid.setColumnStretch(1, 1)
         grid.setAlignment(QtCore.Qt.AlignLeft)
-        self.frame1.setColumnStretch(10, 1)
         self.frame1.setAlignment(QtCore.Qt.AlignTop)
-        self.optframe.setColumnStretch(21, 1)
         self.optframe.setRowStretch(21, 1)
         self.optframe.setAlignment(QtCore.Qt.AlignTop)
-        self.frame2.setColumnStretch(self.FITNUM, 1)
         self.frame2.setAlignment(QtCore.Qt.AlignTop)
-        self.frame3.setColumnStretch(20, 1)
         self.frame3.setAlignment(QtCore.Qt.AlignTop)
         simButton = QtWidgets.QPushButton("Sim")
         simButton.clicked.connect(self.rootwindow.sim)
@@ -1251,7 +1259,6 @@ class RelaxFrame(FitPlotFrame):
 
     MARKER = 'o'
     LINESTYLE = 'none'
-    FITNUM = 4  # Maximum number of fits
 
 #################################################################################
 
@@ -1280,8 +1287,9 @@ class RelaxParamFrame(AbstractParamFrame):
         self.entries['const'].append(wc.FitQLineEdit(self, 'const', ('%#.' + str(self.rootwindow.tabWindow.PRECIS) + 'g') % self.fitParamList[locList]['const'][0]))
         self.frame2.addWidget(self.entries['const'][-1], 3, 1)
         self.numExp = QtWidgets.QComboBox()
-        self.numExp.addItems(['1', '2', '3', '4'])
+        self.numExp.addItems([str(x + 1) for x in range(self.FITNUM)])
         self.numExp.currentIndexChanged.connect(self.changeNum)
+
         self.frame3.addWidget(self.numExp, 0, 0, 1, 2)
         self.frame3.addWidget(wc.QLabel("Coefficient:"), 1, 0, 1, 2)
         self.frame3.addWidget(wc.QLabel("T [s]:"), 1, 2, 1, 2)
@@ -1370,7 +1378,7 @@ class DiffusionParamFrame(AbstractParamFrame):
         self.entries['const'].append(wc.FitQLineEdit(self, 'const', "0.0"))
         self.frame2.addWidget(self.entries['const'][-1], 3, 1)
         self.numExp = QtWidgets.QComboBox()
-        self.numExp.addItems(['1', '2', '3', '4'])
+        self.numExp.addItems([str(x + 1) for x in range(self.FITNUM)])
         self.numExp.currentIndexChanged.connect(self.changeNum)
         self.frame3.addWidget(self.numExp, 0, 0, 1, 2)
         self.frame3.addWidget(wc.QLabel("Coefficient:"), 1, 0, 1, 2)
@@ -1435,8 +1443,6 @@ class DiffusionParamFrame(AbstractParamFrame):
 
 class PeakDeconvFrame(FitPlotFrame):
     
-    FITNUM = 10
-
     def togglePick(self, var):
         self.peakPickReset()
         if var == 1 and self.fitPickNumList[self.getRedLocList()] < self.FITNUM:
@@ -1545,8 +1551,6 @@ class PeakDeconvParamFrame(AbstractParamFrame):
 
 
 class CsaDeconvFrame(FitPlotFrame):
-
-    FITNUM = 10  # Maximum number of fits
 
     def __init__(self, rootwindow, fig, canvas, current):
         self.pickNum = 0
@@ -1859,8 +1863,8 @@ class CsaDeconvParamFrame(AbstractParamFrame):
 
 
 class QuadDeconvFrame(FitPlotFrame):
+    pass
 
-    FITNUM = 10  # Maximum number of fits
 
 #################################################################################
 
@@ -2435,8 +2439,8 @@ class QuadCzjzekParamFrame(AbstractParamFrame):
 
 
 class ExternalFitDeconvFrame(FitPlotFrame):
+    pass
 
-    FITNUM = 10  # Maximum number of fits
 
 #################################################################################
 
@@ -2563,8 +2567,8 @@ class TxtOutputWindow(wc.ToolWindows):
 
 
 class FunctionFitFrame(FitPlotFrame):
+    pass
 
-    FITNUM = 10  # Maximum number of fits
 
 #################################################################################
 
@@ -2688,8 +2692,8 @@ class FitContourFrame(CurrentContour, FitPlotFrame):
 
 
 class MqmasDeconvFrame(FitContourFrame):
+    pass
 
-    FITNUM = 10  # Maximum number of fits
 
 #################################################################################
 
