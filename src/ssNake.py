@@ -6740,21 +6740,35 @@ class quadConversionWindow(wc.ToolWindows):
         super(quadConversionWindow, self).__init__(parent)
         self.comGroup = QtWidgets.QGroupBox("Common Parameters:")
         self.comFrame = QtWidgets.QGridLayout()
+        nucLabel = wc.QLabel("Nucleus:")
+        self.comFrame.addWidget(nucLabel, 0, 0)
+
+        qindex = [x for (x,val) in enumerate(ISOTOPES['q']) if val is not None and ISOTOPES['spin'][x] != 0.5]
+        self.names = ['User'] +  [val for (x,val) in enumerate(ISOTOPES['formatName']) if x in qindex]
+        self.I = [0.0] + [val for (x,val) in enumerate(ISOTOPES['spin']) if x in qindex] 
+        self.Qvalues = [0.0] + [val for (x,val) in enumerate(ISOTOPES['q']) if x in qindex] 
+        self.nucDrop = QtWidgets.QComboBox()
+        self.nucDrop.addItems(self.names)
+        self.nucDrop.currentIndexChanged.connect(self.setNuc)
+        self.comFrame.addWidget(self.nucDrop, 1, 0)
+
         Itext = wc.QLabel("I:")
-        self.comFrame.addWidget(Itext, 0, 0)
+        self.comFrame.addWidget(Itext, 0, 1)
         self.IEntry = QtWidgets.QComboBox()
         self.IEntry.addItems(self.Ioptions)
         self.IEntry.setCurrentIndex(0)
-        self.comFrame.addWidget(self.IEntry, 1, 0)
+        self.IEntry.activated.connect(self.userChange)
+        self.comFrame.addWidget(self.IEntry, 1, 1)
         etalabel = wc.QLabel(u'η:')
-        self.comFrame.addWidget(etalabel, 0, 1)
+        self.comFrame.addWidget(etalabel, 0, 3)
         self.Eta = wc.QLineEdit("0")
         self.Eta.setMinimumWidth(100)
-        self.comFrame.addWidget(self.Eta, 1, 1)
+        self.comFrame.addWidget(self.Eta, 1, 3)
         momentlabel = wc.QLabel('Q [fm<sup>2</sup>]:')
         self.comFrame.addWidget(momentlabel, 0, 2)
         self.Moment = wc.QLineEdit("ND")
         self.Moment.setMinimumWidth(100)
+        self.Moment.textEdited.connect(self.userChange)
         self.comFrame.addWidget(self.Moment, 1, 2)
         self.comGroup.setLayout(self.comFrame)
         self.grid.addWidget(self.comGroup, 1, 0, 1, 3)
@@ -6811,6 +6825,15 @@ class quadConversionWindow(wc.ToolWindows):
         self.okButton.setText("Reset")
         self.okButton.clicked.disconnect()
         self.okButton.clicked.connect(self.valueReset)
+
+    def setNuc(self,index):
+        I = self.I[index]
+        if int(I * 2) > 0:
+            self.IEntry.setCurrentIndex(int(I * 2 - 2))
+            self.Moment.setText(str(self.Qvalues[index]))
+
+    def userChange(self,index = None):
+        self.nucDrop.setCurrentIndex(0)
 
     def quadCalc(self, Type):
         I = self.Ivalues[self.IEntry.currentIndex()]
