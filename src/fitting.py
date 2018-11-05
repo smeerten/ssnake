@@ -262,14 +262,18 @@ class TabFittingWindow(QtWidgets.QWidget):
         #self.mainFitWindow.paramframe.simButton.hide()
         self.mainFitWindow.paramframe.simBusyButton.show()
         QtWidgets.qApp.processEvents()
-        params = self.getParams()
-        if params is None:
-            return
-        self.mainFitWindow.paramframe.disp(params, 0, *args, **kwargs)
-        for i in range(len(self.subFitWindows)):
-            self.subFitWindows[i].paramframe.disp(params, i + 1, *args, **kwargs)
-        self.mainFitWindow.paramframe.simBusyButton.hide()
-        #self.mainFitWindow.paramframe.simButton.show()
+        try:
+            params = self.getParams()
+            if params is None:
+                return
+            self.mainFitWindow.paramframe.disp(params, 0, *args, **kwargs)
+            for i in range(len(self.subFitWindows)):
+                self.subFitWindows[i].paramframe.disp(params, i + 1, *args, **kwargs)
+        except:
+            raise
+        finally:
+            self.mainFitWindow.paramframe.simBusyButton.hide()
+            #self.mainFitWindow.paramframe.simButton.show()
 
     def get_masterData(self):
         return self.oldMainWindow.get_masterData()
@@ -2236,46 +2240,50 @@ class CzjzekPrefWindow(QtWidgets.QWidget):
         self.loadButton.setEnabled(False)
         self.cancelButton.setEnabled(False)
         QtWidgets.qApp.processEvents()
-        self.father.cqsteps = self.cqsteps.value()
-        self.father.etasteps = self.etasteps.value()
-        self.father.cheng = self.chengEntry.value()
-        if not self.mqmas:
-            self.father.I = self.Ientry.currentIndex() * 0.5 + 1.0
-            self.father.mas = self.masEntry.currentIndex()
-            inp = safeEval(self.spinEntry.text(), type='FI')
+        try:
+            self.father.cqsteps = self.cqsteps.value()
+            self.father.etasteps = self.etasteps.value()
+            self.father.cheng = self.chengEntry.value()
+            if not self.mqmas:
+                self.father.I = self.Ientry.currentIndex() * 0.5 + 1.0
+                self.father.mas = self.masEntry.currentIndex()
+                inp = safeEval(self.spinEntry.text(), type='FI')
+                if inp is None:
+                    raise FittingException("Spin speed value not valid.")
+                self.father.spinspeed = inp
+                self.father.angle = self.angleEntry.text()
+                self.father.numssb = self.numssbEntry.value()
+                self.father.satBool = self.satBoolEntry.isChecked()
+            else:
+                self.father.I = self.Ientry.currentIndex() + 1.5
+            inp = safeEval(self.cqmax.text(), type='FI')
             if inp is None:
-                raise FittingException("Spin speed value not valid.")
-            self.father.spinspeed = inp
-            self.father.angle = self.angleEntry.text()
-            self.father.numssb = self.numssbEntry.value()
-            self.father.satBool = self.satBoolEntry.isChecked()
-        else:
-            self.father.I = self.Ientry.currentIndex() + 1.5
-        inp = safeEval(self.cqmax.text(), type='FI')
-        if inp is None:
-            raise FittingException(u"C_Q_max value not valid.")
-        self.father.cqmax = abs(safeEval(self.cqmax.text()))
-        inp = abs(safeEval(self.cqmin.text(), type='FI'))
-        if inp is None:
-            raise FittingException(u"C_Q_min value not valid.")
-        self.father.cqmin = abs(safeEval(self.cqmin.text()))
-        #eta
-        inp = safeEval(self.etamax.text(), type='FI')
-        if inp is None:
-            raise FittingException(u"η_max value not valid.")
-        if inp < 0.0 or inp > 1.0:
-            raise FittingException(u"η_max value not valid.")
-        self.father.etamax = abs(float(inp))
-        inp = safeEval(self.etamin.text(), type='FI')
-        if inp is None:
-            raise FittingException(u"η_min value not valid.")
-        if inp < 0.0 or inp > 1.0:
-            raise FittingException(u"η_min value not valid.")
-        self.father.etamin = abs(float(inp))
-        self.father.simLib()
-        self.busyButton.hide()
-        self.loadButton.setEnabled(True)
-        self.cancelButton.setEnabled(True)
+                raise FittingException(u"C_Q_max value not valid.")
+            self.father.cqmax = abs(safeEval(self.cqmax.text()))
+            inp = abs(safeEval(self.cqmin.text(), type='FI'))
+            if inp is None:
+                raise FittingException(u"C_Q_min value not valid.")
+            self.father.cqmin = abs(safeEval(self.cqmin.text()))
+            #eta
+            inp = safeEval(self.etamax.text(), type='FI')
+            if inp is None:
+                raise FittingException(u"η_max value not valid.")
+            if inp < 0.0 or inp > 1.0:
+                raise FittingException(u"η_max value not valid.")
+            self.father.etamax = abs(float(inp))
+            inp = safeEval(self.etamin.text(), type='FI')
+            if inp is None:
+                raise FittingException(u"η_min value not valid.")
+            if inp < 0.0 or inp > 1.0:
+                raise FittingException(u"η_min value not valid.")
+            self.father.etamin = abs(float(inp))
+            self.father.simLib()
+        except:
+            raise
+        finally:
+            self.busyButton.hide()
+            self.loadButton.setEnabled(True)
+            self.cancelButton.setEnabled(True)
 
     def loadLib(self, *args):
         dirName = self.father.rootwindow.father.loadFitLibDir()

@@ -89,6 +89,7 @@ importList = [['matplotlib.figure', 'Figure', 'Figure'],
               ['functions', 'func', None],
               ['specIO', 'io', None],
               ['views', 'views', None],
+              ['simFunctions', 'sim', None],
               ['loadIsotopes','loadIsotopes',None]]
 
 splashSteps = len(importList) / 100.0
@@ -7231,7 +7232,7 @@ if __name__ == '__main__':
         def exception_hook(exctype, value, traceback):
             if not isinstance(value, Exception): # Do not catch keyboard interrupts
                 sys._excepthook(exctype, value, traceback)
-            elif isinstance(value, (sc.SpectrumException, hc.HComplexException)):
+            elif isinstance(value, (sc.SpectrumException, hc.HComplexException, sim.SimException)):
                 mainProgram.dispMsg(str(value))            
             else:
                 mainProgram.dispError([exctype, value, traceback])

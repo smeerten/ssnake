@@ -349,6 +349,8 @@ def quadFunc(x, freq, sw, axMult, extra, bgrnd, mult, spinspeed, pos, cq, eta, a
     return mult * amp * spectrum
 
 def quadFreq(I, m1, m2, spinspeed, numssb, angle, D2, D4, weight, freq, pos, cq, eta):
+    if freq == 0.0:
+        raise SimException("Sim: Frequency cannot be zero")
     pre2 = -cq**2 / (4 * I *(2 * I - 1))**2 * 2 / freq
     pre1 = cq / (4 * I *(2 * I - 1))
     firstA2 = pre1 * firstQuadSpace(eta)
@@ -443,6 +445,8 @@ def genLib(length, minCq, maxCq, minEta, maxEta, numCq, numEta, extra, freq, sw,
     return lib, cq*1e6, eta
 
 def mqmasCzjzekFunc(x, freq, sw, axMult, extra, bgrnd, mult, pos, sigma, sigmaCS, cq0, eta0, amp, lor2, gauss2, lor1, gauss1):
+    if freq[-1] == 0.0 or freq[-2] == 0.0:
+        raise SimException("Sim: Frequency cannot be zero")
     I, mq, cq, eta, lib, shear, scale, method, d = extra
     if method == 1:
         cq0 *= 1e6
