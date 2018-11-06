@@ -7046,50 +7046,67 @@ class tempCalWindow(QtWidgets.QWidget):
     #[minTemp, maxTemp, shiftToTemp, tempToShift]
     METHANOL = [178,330,
                 lambda Delta: 409.0 - 36.54 * Delta - 21.85 * Delta**2,
-                lambda Temp: (36.54 - np.sqrt(36.54**2 - 4 * -21.85 * (409.0 - Temp))) / (2 * -21.85)]
-    DEFINITIONS = {'Methanol':METHANOL}
+                lambda Temp: (36.54 - np.sqrt(36.54**2 - 4 * -21.85 * (409.0 - Temp))) / (2 * -21.85),
+                0]
+    ETH_GLYCOL = [273,416,
+                  lambda Delta: 466.5 - 102.00 * Delta,
+                  lambda Temp: (Temp - 466.5) / -102.0,
+                  0]
+
+   # Temperature Dependence of207Pb MAS Spectra of Solid Lead Nitrate. An Accurate, Sensitive Thermometer for Variable-Temperature MAS
+   # ANTHONY BIELECKI, DOUGLAS P.BURUM
+    PBNO3 = [143, 423,
+             lambda Delta: (Delta + 3510) / 0.753 + 273.15,
+             lambda Temp: (Temp - 273.15) * 0.753 - 3510,
+             1]
+    DEFINITIONS = [METHANOL, ETH_GLYCOL, PBNO3]
+    TEXTLIST = ['Methanol (178 K < T < 330 K)', 'Ethylene Glycol (273 K < T < 416 K)',
+                'Lead Nitrate (143 K < T < 423 K)']
 
 
     def __init__(self, parent):
         super(tempCalWindow, self).__init__(parent)
         self.setWindowFlags(QtCore.Qt.Window | QtCore.Qt.Tool)
         self.father = parent
-        self.setWindowTitle("Temperature calibration")
+        self.setWindowTitle("Temperature Calibration")
         tabWidget = QtWidgets.QTabWidget()
         tab1 = QtWidgets.QWidget()
-        tab2 = QtWidgets.QWidget()
-        tab3 = QtWidgets.QWidget()
-        tabWidget.addTab(tab1, "Methanol (178 K < Temp < 330 K)")
+        tabWidget.addTab(tab1, "Chemical Shift Based")
         grid1 = QtWidgets.QGridLayout()
         tab1.setLayout(grid1)
         grid1.setColumnStretch(10, 1)
         grid1.setRowStretch(10, 1)
+
+        self.typeDrop = QtWidgets.QComboBox()
+        self.typeDrop.addItems(self.TEXTLIST)
+        grid1.addWidget(self.typeDrop, 0, 0)
+        self.typeDrop.currentIndexChanged.connect(self.changeType)
+
         self.DeltaGroup = QtWidgets.QGroupBox("Shift to Temperature:")
         self.DeltaFrame = QtWidgets.QGridLayout()
-        DeltaLabel = wc.QLabel(u'Δδ [ppm]')
-        self.DeltaFrame.addWidget(DeltaLabel, 0, 1)
+        self.DeltaLabel = wc.QLabel(u'Δδ [ppm]')
+        self.DeltaFrame.addWidget(self.DeltaLabel, 0, 1)
         DeltaGO = QtWidgets.QPushButton("Go")
         self.DeltaFrame.addWidget(DeltaGO, 1, 0)
-        DeltaGO.clicked.connect(lambda: self.shiftToTemp('Methanol'))
-        self.Delta = wc.QLineEdit("0")
+        DeltaGO.clicked.connect(self.shiftToTemp)
+        self.Delta = wc.QLineEdit("")
         self.Delta.setMinimumWidth(100)
         self.DeltaFrame.addWidget(self.Delta, 1, 1)
         self.DeltaGroup.setLayout(self.DeltaFrame)
-        grid1.addWidget(self.DeltaGroup, 0, 0)
+        grid1.addWidget(self.DeltaGroup, 1, 0)
 
         self.TempGroup = QtWidgets.QGroupBox("Temperature to Shift:")
         self.TempFrame = QtWidgets.QGridLayout()
         TempLabel = wc.QLabel(u'Temperature [K]')
         self.TempFrame.addWidget(TempLabel, 0, 1)
         TempGO = QtWidgets.QPushButton("Go")
-        TempGO.clicked.connect(lambda: self.tempToShift('Methanol'))
+        TempGO.clicked.connect(self.tempToShift)
         self.TempFrame.addWidget(TempGO, 1, 0)
-        self.Temp = wc.QLineEdit("0")
+        self.Temp = wc.QLineEdit("")
         self.Temp.setMinimumWidth(100)
         self.TempFrame.addWidget(self.Temp, 1, 1)
         self.TempGroup.setLayout(self.TempFrame)
-        grid1.addWidget(self.TempGroup, 1, 0)
-
+        grid1.addWidget(self.TempGroup, 2, 0)
 
         layout = QtWidgets.QGridLayout(self)
         layout.addWidget(tabWidget, 0, 0, 1, 4)
@@ -7101,8 +7118,18 @@ class tempCalWindow(QtWidgets.QWidget):
         layout.setColumnStretch(3, 1)
         self.show()
 
-    def shiftToTemp(self,name):
-        Data = self.DEFINITIONS[name]
+    def changeType(self,index):
+        self.Temp.setText('')
+        self.Delta.setText('')
+        if self.DEFINITIONS[self.typeDrop.currentIndex()][4] == 0:
+            self.DeltaLabel.setText(u'Δδ [ppm]')
+        elif self.DEFINITIONS[self.typeDrop.currentIndex()][4] == 1:
+            self.DeltaLabel.setText(u'δ [ppm]')
+
+
+
+    def shiftToTemp(self):
+        Data = self.DEFINITIONS[self.typeDrop.currentIndex()]
         try:
             Delta = float(safeEval(self.Delta.text(), type='FI')) 
         except Exception:
@@ -7114,8 +7141,8 @@ class tempCalWindow(QtWidgets.QWidget):
         else:
             self.Temp.setText('%#.6g' % Temp)
 
-    def tempToShift(self,name):
-        Data = self.DEFINITIONS[name]
+    def tempToShift(self):
+        Data = self.DEFINITIONS[self.typeDrop.currentIndex()]
         try:
             Temp = float(safeEval(self.Temp.text(), type='FI')) 
         except Exception:
