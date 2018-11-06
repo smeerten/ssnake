@@ -819,10 +819,12 @@ class MainProgram(QtWidgets.QMainWindow):
         self.quadconvAct = self.utilitiesMenu.addAction(QtGui.QIcon(IconDirectory + 'quadconversion.png'), "&Quadrupole Coupling Conversion Tool", self.createQuadConversionWindow)
         self.quadconvAct.setToolTip('Quadrupole Coupling Conversion Tool')
         self.mqmasconvAct = self.utilitiesMenu.addAction(QtGui.QIcon(IconDirectory + 'mqmas.png'),"MQMAS Parameter Extraction Tool", self.createMqmasExtractWindow)
-        self.quadconvAct.setToolTip('MQMAS Parameter Extraction Tool')
+        self.mqmasconvAct.setToolTip('MQMAS Parameter Extraction Tool')
+        self.tempcalAct = self.utilitiesMenu.addAction(QtGui.QIcon(IconDirectory + 'dipolar.png'),"Temperature Calibration Tool", self.createTempcalWindow)
+        self.tempcalAct.setToolTip('Dipolar Distance Tool')
         self.nmrtableAct = self.utilitiesMenu.addAction(QtGui.QIcon(IconDirectory + 'table.png'), "&NMR Table", self.nmrTable)
         self.nmrtableAct.setToolTip('NMR Periodic Table')
-        self.utilitiesActList = [self.shiftconvAct, self.quadconvAct, self.nmrtableAct]
+        self.utilitiesActList = [self.shiftconvAct, self.quadconvAct, self.nmrtableAct, self.dipolarconvAct,self.mqmasconvAct,self.tempcalAct  ]
         # the help drop down menu
         self.helpMenu = QtWidgets.QMenu("&Help", self)
         self.menubar.addMenu(self.helpMenu)
@@ -1577,6 +1579,9 @@ class MainProgram(QtWidgets.QMainWindow):
 
     def createMqmasExtractWindow(self):
         mqmasExtractWindow(self)
+
+    def createTempcalWindow(self):
+        tempCalWindow(self)
 
     def nmrTable(self):
         import subprocess
@@ -7035,6 +7040,99 @@ class dipolarDistanceWindow(wc.ToolWindows):
 
 ##############################################################################
 
+
+
+class tempCalWindow(QtWidgets.QWidget):
+    #[minTemp, maxTemp, shiftToTemp, tempToShift]
+    METHANOL = [178,330,
+                lambda Delta: 409.0 - 36.54 * Delta - 21.85 * Delta**2,
+                lambda Temp: (36.54 - np.sqrt(36.54**2 - 4 * -21.85 * (409.0 - Temp))) / (2 * -21.85)]
+    DEFINITIONS = {'Methanol':METHANOL}
+
+
+    def __init__(self, parent):
+        super(tempCalWindow, self).__init__(parent)
+        self.setWindowFlags(QtCore.Qt.Window | QtCore.Qt.Tool)
+        self.father = parent
+        self.setWindowTitle("Temperature calibration")
+        tabWidget = QtWidgets.QTabWidget()
+        tab1 = QtWidgets.QWidget()
+        tab2 = QtWidgets.QWidget()
+        tab3 = QtWidgets.QWidget()
+        tabWidget.addTab(tab1, "Methanol (178 K < Temp < 330 K)")
+        grid1 = QtWidgets.QGridLayout()
+        tab1.setLayout(grid1)
+        grid1.setColumnStretch(10, 1)
+        grid1.setRowStretch(10, 1)
+        self.DeltaGroup = QtWidgets.QGroupBox("Shift to Temperature:")
+        self.DeltaFrame = QtWidgets.QGridLayout()
+        DeltaLabel = wc.QLabel(u'Δδ [ppm]')
+        self.DeltaFrame.addWidget(DeltaLabel, 0, 1)
+        DeltaGO = QtWidgets.QPushButton("Go")
+        self.DeltaFrame.addWidget(DeltaGO, 1, 0)
+        DeltaGO.clicked.connect(lambda: self.shiftToTemp('Methanol'))
+        self.Delta = wc.QLineEdit("0")
+        self.Delta.setMinimumWidth(100)
+        self.DeltaFrame.addWidget(self.Delta, 1, 1)
+        self.DeltaGroup.setLayout(self.DeltaFrame)
+        grid1.addWidget(self.DeltaGroup, 0, 0)
+
+        self.TempGroup = QtWidgets.QGroupBox("Temperature to Shift:")
+        self.TempFrame = QtWidgets.QGridLayout()
+        TempLabel = wc.QLabel(u'Temperature [K]')
+        self.TempFrame.addWidget(TempLabel, 0, 1)
+        TempGO = QtWidgets.QPushButton("Go")
+        TempGO.clicked.connect(lambda: self.tempToShift('Methanol'))
+        self.TempFrame.addWidget(TempGO, 1, 0)
+        self.Temp = wc.QLineEdit("0")
+        self.Temp.setMinimumWidth(100)
+        self.TempFrame.addWidget(self.Temp, 1, 1)
+        self.TempGroup.setLayout(self.TempFrame)
+        grid1.addWidget(self.TempGroup, 1, 0)
+
+
+        layout = QtWidgets.QGridLayout(self)
+        layout.addWidget(tabWidget, 0, 0, 1, 4)
+        cancelButton = QtWidgets.QPushButton("&Close")
+        cancelButton.clicked.connect(self.closeEvent)
+        box = QtWidgets.QDialogButtonBox()
+        box.addButton(cancelButton,QtWidgets.QDialogButtonBox.RejectRole)
+        layout.addWidget(box, 1,0,1,4)
+        layout.setColumnStretch(3, 1)
+        self.show()
+
+    def shiftToTemp(self,name):
+        Data = self.DEFINITIONS[name]
+        try:
+            Delta = float(safeEval(self.Delta.text(), type='FI')) 
+        except Exception:
+            raise SsnakeException("Temperature Calibration: Invalid input in Delta value")
+        Temp = Data[2](Delta)
+        if Temp < Data[0] or Temp > Data[1]:
+            self.Temp.setText('?')
+            raise SsnakeException("Temperature Calibration: Temperature outside calibration range")
+        else:
+            self.Temp.setText('%#.6g' % Temp)
+
+    def tempToShift(self,name):
+        Data = self.DEFINITIONS[name]
+        try:
+            Temp = float(safeEval(self.Temp.text(), type='FI')) 
+        except Exception:
+            raise SsnakeException("Temperature Calibration: Invalid input in Temp value")
+        if Temp < Data[0] or Temp > Data[1]:
+            self.Delta.setText('?')
+            raise SsnakeException("Temperature Calibration: Temperature outside calibration range")
+        else:
+            Delta = Data[3](Temp)
+            self.Delta.setText('%#.6g' % Delta)
+
+
+
+    def closeEvent(self, *args):
+        self.deleteLater()
+
+##############################################################################
 class mqmasExtractWindow(wc.ToolWindows):
 
     Ioptions = ['3/2','5/2', '7/2', '9/2']
