@@ -7057,14 +7057,20 @@ class tempCalWindow(QtWidgets.QWidget):
    # ANTHONY BIELECKI, DOUGLAS P.BURUM
     PBNO3 = [143, 423,
              lambda Delta, Delta0, T0: (Delta0 - Delta) / 0.753 + T0 , 
-             lambda T, Delta0, T0: (T0 - T) / 0.753 + Delta0 ,
+             lambda T, Delta0, T0: (T0 - T) * 0.753 + Delta0 ,
              'relShift','-3473','293']
-    DEFINITIONS = [METHANOL, ETH_GLYCOL, PBNO3]
+    KBR = [170, 320,
+             lambda Delta, Delta0, T0: (Delta0 - Delta) / 0.0250 + T0 , 
+             lambda T, Delta0, T0: (T0 - T) * 0.0250 + Delta0 ,
+             'relShift','0','293']
+
+
+    DEFINITIONS = [METHANOL, ETH_GLYCOL, PBNO3 ,KBR]
     TEXTLIST = ['Methanol (178 K < T < 330 K)', 'Ethylene Glycol (273 K < T < 416 K)',
-                'Lead Nitrate (143 K < T < 423 K)']
+                'Lead Nitrate (143 K < T < 423 K)','KBr (170 K < T < 320 K)']
 
     T1_KBr = [20,296,
-             lambda Relax, T: 0.0145 + 5330/T**2 + 1.42e7/T**4 + 2.48e9/T**6 - Relax,
+             lambda T,Relax: 0.0145 + 5330/T**2 + 1.42e7/T**4 + 2.48e9/T**6 - Relax,
              lambda T: 0.0145 + 5330/T**2 + 1.42e7/T**4 + 2.48e9/T**6]
     T1_DEFINITIONS = [T1_KBr]
     T1_TEXTLIST = ['KBr (20 K < T < 296 K, 9.4 T)']
@@ -7215,11 +7221,10 @@ class tempCalWindow(QtWidgets.QWidget):
         except Exception:
             self.TempT1.setText('?')
             raise SsnakeException("Temperature Calibration: Invalid input in Temp value")
-        f =  lambda T: Data[2](T1,T)
 
         from scipy import optimize
         try:
-            Temp = optimize.brentq(f, Data[0], Data[1])
+            Temp = optimize.brentq(Data[2], Data[0], Data[1] ,args=(T1,))
         except Exception:
             self.TempT1.setText('?')
             raise SsnakeException("Temperature Calibration: Temperature outside calibration range")
