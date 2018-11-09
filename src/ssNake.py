@@ -7063,6 +7063,12 @@ class tempCalWindow(QtWidgets.QWidget):
     TEXTLIST = ['Methanol (178 K < T < 330 K)', 'Ethylene Glycol (273 K < T < 416 K)',
                 'Lead Nitrate (143 K < T < 423 K)']
 
+    T1_KBr = [20,296,
+             lambda Relax, T: 0.0145 + 5330/T**2 + 1.42e7/T**4 + 2.48e9/T**6 - Relax,
+             lambda T: 0.0145 + 5330/T**2 + 1.42e7/T**4 + 2.48e9/T**6]
+    T1_DEFINITIONS = [T1_KBr]
+    T1_TEXTLIST = ['KBr (20 K < T < 296 K, 9.4 T)']
+
 
     def __init__(self, parent):
         super(tempCalWindow, self).__init__(parent)
@@ -7076,7 +7082,8 @@ class tempCalWindow(QtWidgets.QWidget):
         tab1.setLayout(grid1)
         grid1.setColumnStretch(10, 1)
         grid1.setRowStretch(10, 1)
-
+        
+        #Shift based
         self.typeDrop = QtWidgets.QComboBox()
         self.typeDrop.addItems(self.TEXTLIST)
         grid1.addWidget(self.typeDrop, 0, 0)
@@ -7124,6 +7131,45 @@ class tempCalWindow(QtWidgets.QWidget):
         self.TempGroup.setLayout(self.TempFrame)
         grid1.addWidget(self.TempGroup, 3, 0)
 
+        #T1 based
+        tab2 = QtWidgets.QWidget()
+        tabWidget.addTab(tab2, "T1 Based")
+        grid2 = QtWidgets.QGridLayout()
+        tab2.setLayout(grid2)
+        grid2.setColumnStretch(10, 1)
+        grid2.setRowStretch(10, 1)
+
+        self.T1typeDrop = QtWidgets.QComboBox()
+        self.T1typeDrop.addItems(self.T1_TEXTLIST)
+        grid2.addWidget(self.T1typeDrop, 0, 0)
+        #self.T1typeDrop.currentIndexChanged.connect(self.changeType)
+
+        self.T1Group = QtWidgets.QGroupBox("T1 to Temperature:")
+        self.T1Frame = QtWidgets.QGridLayout()
+        self.T1Label = wc.QLabel(u'T1 [s]')
+        self.T1Frame.addWidget(self.T1Label, 0, 1)
+        T1GO = QtWidgets.QPushButton("Go")
+        self.T1Frame.addWidget(T1GO, 1, 0)
+        T1GO.clicked.connect(self.t1ToTemp)
+        self.T1 = wc.QLineEdit("")
+        self.T1.setMinimumWidth(100)
+        self.T1Frame.addWidget(self.T1, 1, 1)
+        self.T1Group.setLayout(self.T1Frame)
+        grid2.addWidget(self.T1Group, 2, 0)
+
+        self.TempT1Group = QtWidgets.QGroupBox("Temperature to T1:")
+        self.TempT1Frame = QtWidgets.QGridLayout()
+        TempT1Label = wc.QLabel(u'Temperature [K]')
+        self.TempT1Frame.addWidget(TempT1Label, 0, 1)
+        TempT1GO = QtWidgets.QPushButton("Go")
+        TempT1GO.clicked.connect(self.tempToT1)
+        self.TempT1Frame.addWidget(TempT1GO, 1, 0)
+        self.TempT1 = wc.QLineEdit("")
+        self.TempT1.setMinimumWidth(100)
+        self.TempT1Frame.addWidget(self.TempT1, 1, 1)
+        self.TempT1Group.setLayout(self.TempT1Frame)
+        grid2.addWidget(self.TempT1Group, 3, 0)
+
         layout = QtWidgets.QGridLayout(self)
         layout.addWidget(tabWidget, 0, 0, 1, 4)
         cancelButton = QtWidgets.QPushButton("&Close")
@@ -7148,6 +7194,36 @@ class tempCalWindow(QtWidgets.QWidget):
             self.Delta0.setText(self.DEFINITIONS[self.typeDrop.currentIndex()][5])
             self.T0.setText(self.DEFINITIONS[self.typeDrop.currentIndex()][6])
 
+    def tempToT1(self):
+        Data = self.T1_DEFINITIONS[self.typeDrop.currentIndex()]
+        try:
+            Temp = float(safeEval(self.TempT1.text(), type='FI')) 
+        except Exception:
+            self.T1.setText('?')
+            raise SsnakeException("Temperature Calibration: Invalid input in Temp value")
+        T1 = Data[3](Temp)
+        if Temp < Data[0] or Temp > Data[1]:
+            self.T1.setText('?')
+            raise SsnakeException("Temperature Calibration: Temperature outside calibration range")
+        else:
+            self.T1.setText('%#.6g' % T1)
+
+    def t1ToTemp(self):
+        Data = self.T1_DEFINITIONS[self.typeDrop.currentIndex()]
+        try:
+            T1 = float(safeEval(self.T1.text(), type='FI')) 
+        except Exception:
+            self.TempT1.setText('?')
+            raise SsnakeException("Temperature Calibration: Invalid input in Temp value")
+        f =  lambda T: Data[2](T1,T)
+
+        from scipy import optimize
+        try:
+            Temp = optimize.brentq(f, Data[0], Data[1])
+        except Exception:
+            self.TempT1.setText('?')
+            raise SsnakeException("Temperature Calibration: Temperature outside calibration range")
+        self.TempT1.setText('%#.6g' % Temp)
 
     def shiftToTemp(self):
         Data = self.DEFINITIONS[self.typeDrop.currentIndex()]
