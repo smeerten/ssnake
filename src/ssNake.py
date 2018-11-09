@@ -92,6 +92,7 @@ importList = [['matplotlib.figure', 'Figure', 'Figure'],
               ['simFunctions', 'sim', None],
               ['loadIsotopes','loadIsotopes',None]]
 
+from scipy import optimize
 splashSteps = len(importList) / 100.0
 splashStep = 0
 # Import everything else
@@ -7066,14 +7067,18 @@ class tempCalWindow(QtWidgets.QWidget):
 
 
     DEFINITIONS = [METHANOL, ETH_GLYCOL, PBNO3 ,KBR]
-    TEXTLIST = ['Methanol (178 K < T < 330 K)', 'Ethylene Glycol (273 K < T < 416 K)',
-                'Lead Nitrate (143 K < T < 423 K)','KBr (170 K < T < 320 K)']
+    TEXTLIST = ['1H: Methanol (178 K < T < 330 K)', '1H: Ethylene Glycol (273 K < T < 416 K)',
+            '207Pb: Lead Nitrate (143 K < T < 423 K)','79Br: KBr (170 K < T < 320 K)']
 
     T1_KBr = [20,296,
-             lambda T,Relax: 0.0145 + 5330/T**2 + 1.42e7/T**4 + 2.48e9/T**6 - Relax,
+             lambda Relax: optimize.brentq(lambda T,T1: 0.0145 + 5330/T**2 + 1.42e7/T**4 + 2.48e9/T**6 - T1, 20, 296 ,args=(Relax,)),
              lambda T: 0.0145 + 5330/T**2 + 1.42e7/T**4 + 2.48e9/T**6]
-    T1_DEFINITIONS = [T1_KBr]
-    T1_TEXTLIST = ['KBr (20 K < T < 296 K, 9.4 T)']
+    T1_CsI = [8,104,
+              lambda Relax: optimize.brentq(lambda T,T1: -1.6e-3 + 1.52e3/T**2 + 0.387e6/T**4 + 0.121e9/T**6 - T1, 8, 104 ,args=(Relax,)),
+              lambda T: -1.6e-3 + 1.52e3/T**2 + 0.387e6/T**4 + 0.121e9/T**6]
+
+    T1_DEFINITIONS = [T1_KBr, T1_CsI]
+    T1_TEXTLIST = ['79Br: KBr (20 K < T < 296 K, 9.4 T)','127I: CsI (10 K < T < 110 K)']
 
 
     def __init__(self, parent):
@@ -7201,7 +7206,7 @@ class tempCalWindow(QtWidgets.QWidget):
             self.T0.setText(self.DEFINITIONS[self.typeDrop.currentIndex()][6])
 
     def tempToT1(self):
-        Data = self.T1_DEFINITIONS[self.typeDrop.currentIndex()]
+        Data = self.T1_DEFINITIONS[self.T1typeDrop.currentIndex()]
         try:
             Temp = float(safeEval(self.TempT1.text(), type='FI')) 
         except Exception:
@@ -7215,16 +7220,15 @@ class tempCalWindow(QtWidgets.QWidget):
             self.T1.setText('%#.6g' % T1)
 
     def t1ToTemp(self):
-        Data = self.T1_DEFINITIONS[self.typeDrop.currentIndex()]
+        Data = self.T1_DEFINITIONS[self.T1typeDrop.currentIndex()]
         try:
             T1 = float(safeEval(self.T1.text(), type='FI')) 
         except Exception:
             self.TempT1.setText('?')
             raise SsnakeException("Temperature Calibration: Invalid input in Temp value")
 
-        from scipy import optimize
         try:
-            Temp = optimize.brentq(Data[2], Data[0], Data[1] ,args=(T1,))
+            Temp = Data[2](T1)
         except Exception:
             self.TempT1.setText('?')
             raise SsnakeException("Temperature Calibration: Temperature outside calibration range")
