@@ -7043,22 +7043,22 @@ class dipolarDistanceWindow(wc.ToolWindows):
 
 
 class tempCalWindow(QtWidgets.QWidget):
-    #[minTemp, maxTemp, shiftToTemp, tempToShift]
+    #[minTemp, maxTemp, shiftToTemp, tempToShift, [Delta0], [T0]]
     METHANOL = [178,330,
                 lambda Delta: 409.0 - 36.54 * Delta - 21.85 * Delta**2,
                 lambda Temp: (36.54 - np.sqrt(36.54**2 - 4 * -21.85 * (409.0 - Temp))) / (2 * -21.85),
-                0]
+                'absShift']
     ETH_GLYCOL = [273,416,
                   lambda Delta: 466.5 - 102.00 * Delta,
                   lambda Temp: (Temp - 466.5) / -102.0,
-                  0]
+                  'absShift']
 
    # Temperature Dependence of207Pb MAS Spectra of Solid Lead Nitrate. An Accurate, Sensitive Thermometer for Variable-Temperature MAS
    # ANTHONY BIELECKI, DOUGLAS P.BURUM
     PBNO3 = [143, 423,
-             lambda Delta: (Delta + 3510) / 0.753 + 273.15,
-             lambda Temp: (Temp - 273.15) * 0.753 - 3510,
-             1]
+             lambda Delta, Delta0, T0: (Delta0 - Delta) / 0.753 + T0 , 
+             lambda T, Delta0, T0: (T0 - T) / 0.753 + Delta0 ,
+             'relShift','-3473','293']
     DEFINITIONS = [METHANOL, ETH_GLYCOL, PBNO3]
     TEXTLIST = ['Methanol (178 K < T < 330 K)', 'Ethylene Glycol (273 K < T < 416 K)',
                 'Lead Nitrate (143 K < T < 423 K)']
@@ -7082,6 +7082,22 @@ class tempCalWindow(QtWidgets.QWidget):
         grid1.addWidget(self.typeDrop, 0, 0)
         self.typeDrop.currentIndexChanged.connect(self.changeType)
 
+        self.RefGroup = QtWidgets.QGroupBox("Relative to:")
+        self.RefFrame = QtWidgets.QGridLayout()
+        self.Delta0Label = wc.QLabel(u'δ [ppm]')
+        self.RefFrame.addWidget(self.Delta0Label, 0, 0)
+        self.Delta0 = wc.QLineEdit("")
+        self.Delta0.setMinimumWidth(100)
+        self.RefFrame.addWidget(self.Delta0, 1, 0)
+        self.T0Label = wc.QLabel(u'T [K]')
+        self.RefFrame.addWidget(self.T0Label, 0, 1)
+        self.T0 = wc.QLineEdit("")
+        self.T0.setMinimumWidth(100)
+        self.RefFrame.addWidget(self.T0, 1, 1)
+        self.RefGroup.setLayout(self.RefFrame)
+        grid1.addWidget(self.RefGroup, 1, 0)
+        self.RefGroup.hide()
+
         self.DeltaGroup = QtWidgets.QGroupBox("Shift to Temperature:")
         self.DeltaFrame = QtWidgets.QGridLayout()
         self.DeltaLabel = wc.QLabel(u'Δδ [ppm]')
@@ -7093,7 +7109,7 @@ class tempCalWindow(QtWidgets.QWidget):
         self.Delta.setMinimumWidth(100)
         self.DeltaFrame.addWidget(self.Delta, 1, 1)
         self.DeltaGroup.setLayout(self.DeltaFrame)
-        grid1.addWidget(self.DeltaGroup, 1, 0)
+        grid1.addWidget(self.DeltaGroup, 2, 0)
 
         self.TempGroup = QtWidgets.QGroupBox("Temperature to Shift:")
         self.TempFrame = QtWidgets.QGridLayout()
@@ -7106,7 +7122,7 @@ class tempCalWindow(QtWidgets.QWidget):
         self.Temp.setMinimumWidth(100)
         self.TempFrame.addWidget(self.Temp, 1, 1)
         self.TempGroup.setLayout(self.TempFrame)
-        grid1.addWidget(self.TempGroup, 2, 0)
+        grid1.addWidget(self.TempGroup, 3, 0)
 
         layout = QtWidgets.QGridLayout(self)
         layout.addWidget(tabWidget, 0, 0, 1, 4)
@@ -7121,11 +7137,16 @@ class tempCalWindow(QtWidgets.QWidget):
     def changeType(self,index):
         self.Temp.setText('')
         self.Delta.setText('')
-        if self.DEFINITIONS[self.typeDrop.currentIndex()][4] == 0:
+        if self.DEFINITIONS[self.typeDrop.currentIndex()][4] == 'absShift':
             self.DeltaLabel.setText(u'Δδ [ppm]')
-        elif self.DEFINITIONS[self.typeDrop.currentIndex()][4] == 1:
+            self.RefGroup.hide()
+            self.Delta0.setText('')
+            self.T0.setText('')
+        elif self.DEFINITIONS[self.typeDrop.currentIndex()][4] == 'relShift':
             self.DeltaLabel.setText(u'δ [ppm]')
-
+            self.RefGroup.show()
+            self.Delta0.setText(self.DEFINITIONS[self.typeDrop.currentIndex()][5])
+            self.T0.setText(self.DEFINITIONS[self.typeDrop.currentIndex()][6])
 
 
     def shiftToTemp(self):
@@ -7133,8 +7154,19 @@ class tempCalWindow(QtWidgets.QWidget):
         try:
             Delta = float(safeEval(self.Delta.text(), type='FI')) 
         except Exception:
+            self.Temp.setText('?')
             raise SsnakeException("Temperature Calibration: Invalid input in Delta value")
-        Temp = Data[2](Delta)
+        if Data[4] == 'relShift':
+            try:
+                Delta0 = float(safeEval(self.Delta0.text(), type='FI')) 
+                T0 = float(safeEval(self.T0.text(), type='FI')) 
+            except Exception:
+                self.Temp.setText('?')
+                raise SsnakeException("Temperature Calibration: Invalid input in References values")
+            Temp = Data[2](Delta,Delta0,T0)
+        else:
+            Temp = Data[2](Delta)
+
         if Temp < Data[0] or Temp > Data[1]:
             self.Temp.setText('?')
             raise SsnakeException("Temperature Calibration: Temperature outside calibration range")
@@ -7146,12 +7178,22 @@ class tempCalWindow(QtWidgets.QWidget):
         try:
             Temp = float(safeEval(self.Temp.text(), type='FI')) 
         except Exception:
+            self.Delta.setText('?')
             raise SsnakeException("Temperature Calibration: Invalid input in Temp value")
+        if Data[4] == 'relShift':
+            try:
+                Delta0 = float(safeEval(self.Delta0.text(), type='FI')) 
+                T0 = float(safeEval(self.T0.text(), type='FI')) 
+            except Exception:
+                self.Delta.setText('?')
+                raise SsnakeException("Temperature Calibration: Invalid input in References values")
+            Delta = Data[3](Temp,Delta0,T0)
+        else:
+            Delta = Data[3](Temp)
         if Temp < Data[0] or Temp > Data[1]:
             self.Delta.setText('?')
             raise SsnakeException("Temperature Calibration: Temperature outside calibration range")
         else:
-            Delta = Data[3](Temp)
             self.Delta.setText('%#.6g' % Delta)
 
 
