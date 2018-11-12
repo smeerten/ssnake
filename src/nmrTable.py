@@ -32,7 +32,7 @@ import loadIsotopes
 
 def safeEval(inp, length=None):
     try:
-        return eval(inp)
+        return eval(str(inp))
     except Exception:
         return None
 
