@@ -1077,7 +1077,7 @@ class AbstractParamFrame(QtWidgets.QWidget):
         PrefWindow(self.rootwindow.tabWindow)
 
     def getDispX(self, *args):
-        return self.parent.data.xaxArray[-self.DIM:]
+        return self.parent.data1D.xaxArray[-self.DIM:]
         
     def disp(self, params, num, display=True):
         out = params[num]
@@ -1103,7 +1103,7 @@ class AbstractParamFrame(QtWidgets.QWidget):
         if display:
             tmpx = self.getDispX()
         else:
-            tmpx = self.parent.data.xaxArray[-self.DIM:]
+            tmpx = self.parent.data1D.xaxArray[-self.DIM:]
         if "offset" in out.keys():
             offset = out['offset'][0]
         else:
@@ -1119,7 +1119,7 @@ class AbstractParamFrame(QtWidgets.QWidget):
             x.append(plotx)
             inputVars = [out[name][0] for name in self.SINGLENAMES]
             inputVars += [out[name][i] for name in self.MULTINAMES]
-            y = self.FITFUNC(tmpx, self.parent.data.freq, self.parent.data.sw, self.axMult, out['extra'], *inputVars)
+            y = self.FITFUNC(tmpx, self.parent.data1D.freq, self.parent.data1D.sw, self.axMult, out['extra'], *inputVars)
             if y is None:
                 raise FittingException("Fitting: The fitting function didn't output anything")
             y = np.real(np.fft.fftshift(np.fft.fftn(y, axes=self.FFT_AXES), axes=self.FFTSHIFT_AXES))
