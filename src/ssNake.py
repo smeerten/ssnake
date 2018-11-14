@@ -1230,7 +1230,7 @@ class MainProgram(QtWidgets.QMainWindow):
         self.menuCheck()
 
     def referenceSave(self, name):
-        fileName = QtWidgets.QFileDialog.getSaveFileName(self, 'Save reference', self.lastLocation + os.path.sep + name + '.txt', 'txt (*.json)')
+        fileName = QtWidgets.QFileDialog.getSaveFileName(self, 'Save reference', self.lastLocation + os.path.sep + name + '.txt', 'txt (*.txt)')
         if isinstance(fileName, tuple):
             fileName = fileName[0]
         if not fileName:
