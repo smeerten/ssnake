@@ -988,6 +988,7 @@ class MainProgram(QtWidgets.QMainWindow):
                 self.workInfoAct.setEnabled(False)
 
     def menuEnable(self, enable=True, internalWindow=False):
+        self.menuActive = enable or internalWindow
         self.macrolistmenu.menuAction().setEnabled(enable)
         self.editmenu.menuAction().setEnabled(enable)
         self.matrixMenu.menuAction().setEnabled(enable)
@@ -1348,7 +1349,7 @@ class MainProgram(QtWidgets.QMainWindow):
         self.workspaces[self.workspaceNum].rename(name)
 
     def destroyWorkspace(self, num=None):
-        if self.mainWindow is None:
+        if self.mainWindow is None or self.menuActive is False:
             return
         if num is None:
             num = self.workspaceNum
@@ -5873,7 +5874,7 @@ class HistoryWindow(wc.ToolWindows):
 
     NAME = "Processing history"
     RESIZABLE = True
-    MENUDISABLE = False
+    MENUDISABLE = True
 
     def __init__(self, parent):
         super(HistoryWindow, self).__init__(parent)
