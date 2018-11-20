@@ -90,9 +90,9 @@ importList = [['matplotlib.figure', 'Figure', 'Figure'],
               ['specIO', 'io', None],
               ['views', 'views', None],
               ['simFunctions', 'sim', None],
-              ['loadIsotopes','loadIsotopes',None]]
+              ['loadIsotopes','loadIsotopes',None],
+              ['scipy','optimize','optimize']]
 
-from scipy import optimize
 splashSteps = len(importList) / 100.0
 splashStep = 0
 # Import everything else
@@ -821,7 +821,7 @@ class MainProgram(QtWidgets.QMainWindow):
         self.quadconvAct.setToolTip('Quadrupole Coupling Conversion Tool')
         self.mqmasconvAct = self.utilitiesMenu.addAction(QtGui.QIcon(IconDirectory + 'mqmas.png'),"MQMAS Parameter Extraction Tool", self.createMqmasExtractWindow)
         self.mqmasconvAct.setToolTip('MQMAS Parameter Extraction Tool')
-        self.tempcalAct = self.utilitiesMenu.addAction(QtGui.QIcon(IconDirectory + 'dipolar.png'),"Temperature Calibration Tool", self.createTempcalWindow)
+        self.tempcalAct = self.utilitiesMenu.addAction(QtGui.QIcon(IconDirectory + 'temperature.png'),"Temperature Calibration Tool", self.createTempcalWindow)
         self.tempcalAct.setToolTip('Dipolar Distance Tool')
         self.nmrtableAct = self.utilitiesMenu.addAction(QtGui.QIcon(IconDirectory + 'table.png'), "&NMR Table", self.nmrTable)
         self.nmrtableAct.setToolTip('NMR Periodic Table')
