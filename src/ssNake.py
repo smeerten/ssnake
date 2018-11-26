@@ -5503,7 +5503,9 @@ class ShearingWindow(wc.ToolWindows):
         self.axEntry = QtWidgets.QComboBox()
         self.axEntry.addItems(options)
         self.axEntry.setCurrentIndex(self.father.masterData.ndim() - 1)
-        self.grid.addWidget(self.axEntry,7, 0)
+        self.grid.addWidget(self.axEntry, 7, 0)
+        self.toRefCheck = QtWidgets.QCheckBox("Relative to Reference")
+        self.grid.addWidget(self.toRefCheck, 8, 0)
 
     def dropdownChanged(self):
         index = self.shearDropdown.currentIndex()
@@ -5522,7 +5524,7 @@ class ShearingWindow(wc.ToolWindows):
         axis2 = self.axEntry.currentIndex()
         if axis == axis2:
             raise SsnakeException("Shearing: axes cannot be the same for shearing")
-        self.father.current.shearing(float(shear), axis, axis2)
+        self.father.current.shearing(float(shear), axis, axis2, self.toRefCheck.isChecked())
 
 ##########################################################################################
 
