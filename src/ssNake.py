@@ -7079,7 +7079,7 @@ class tempCalWindow(QtWidgets.QWidget):
               lambda T: -1.6e-3 + 1.52e3/T**2 + 0.387e6/T**4 + 0.121e9/T**6]
 
     T1_DEFINITIONS = [T1_KBr, T1_CsI]
-    T1_TEXTLIST = ['79Br: KBr (20 K < T < 296 K, 9.4 T)','127I: CsI (10 K < T < 110 K)']
+    T1_TEXTLIST = ['79Br: KBr (20 K < T < 296 K, 9.4 T)','127I: CsI (8 K < T < 104 K, 9.4 T)']
 
 
     def __init__(self, parent):
