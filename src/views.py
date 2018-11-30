@@ -859,9 +859,9 @@ class Current1D(PlotFrame):
         self.upd()
         self.showFid()
 
-    def shearing(self, shear, axes, axes2):
-        self.root.addMacro(['shear', (shear, axes - self.data.ndim(), axes2 - self.data.ndim())])
-        self.data.shear(shear, axes, axes2)
+    def shearing(self, shear, axes, axes2, toRef=False):
+        self.root.addMacro(['shear', (shear, axes - self.data.ndim(), axes2 - self.data.ndim()), toRef])
+        self.data.shear(shear, axes, axes2, toRef)
         self.upd()
         self.showFid()
 

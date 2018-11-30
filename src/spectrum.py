@@ -1157,16 +1157,23 @@ class Spectrum(object):
         if not self.noUndo:
             self.undoList.append(lambda self: self.fftshift(axis, not(inv)))
 
-    def shear(self, shear, axis, axis2):
+    def shear(self, shear, axis, axis2, toRef=False):
         axis = self.checkAxis(axis)
         axis2 = self.checkAxis(axis2)
         if axis == axis2:
             raise SpectrumException('Both shearing axes cannot be equal')
         if self.ndim() < 2:
             raise SpectrumException("The data does not have enough dimensions for a shearing transformation")
+        if self.spec[axis] > 0: #rorder and fft for spec
+            self.__invFourier(axis, tmp=True, reorder=[True,False])
+        else: #Reorder if FID
+            self.data.icomplexReorder(axis)
         shape = self.shape()
+        if toRef:
+            vec2 = self.xaxArray[axis2]
+        else:
+            vec2 = np.fft.fftshift(np.fft.fftfreq(shape[axis2], 1 / self.sw[axis2]))
         vec1 = np.linspace(0, shear * 2 * np.pi * shape[axis] / self.sw[axis], shape[axis] + 1)[:-1]
-        vec2 = np.fft.fftshift(np.fft.fftfreq(shape[axis2], 1 / self.sw[axis2]))
         newShape = [1, ] * self.ndim()
         newShape[axis] = shape[axis]
         newShape[axis2] = shape[axis2]
@@ -1174,10 +1181,6 @@ class Spectrum(object):
             shearMatrix = np.exp(1j * np.outer(vec2, vec1))
         elif axis < axis2:
             shearMatrix = np.exp(1j * np.outer(vec1, vec2))
-        if self.spec[axis] > 0: #rorder and fft for spec
-            self.__invFourier(axis, tmp=True, reorder = [True,False])
-        else: #Reorder if FID
-            self.data.icomplexReorder(axis)
         self.data *= shearMatrix.reshape(shape)
         if self.spec[axis] > 0:
             self.__fourier(axis, tmp=True, reorder=[False,True])
@@ -1186,7 +1189,7 @@ class Spectrum(object):
         self.addHistory("Shearing transform with shearing value " + str(shear) + " over dimensions " + str(axis + 1) + " and " + str(axis2 + 1))
         self.redoList = []
         if not self.noUndo:
-            self.undoList.append(lambda self: self.shear(-shear, axis, axis2))
+            self.undoList.append(lambda self: self.shear(-shear, axis, axis2, toRef))
 
     def reorder(self, pos, newLength, axis):
         axis = self.checkAxis(axis)
