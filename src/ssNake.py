@@ -7047,26 +7047,24 @@ class dipolarDistanceWindow(wc.ToolWindows):
 
 
 class tempCalWindow(QtWidgets.QWidget):
-    #[minTemp, maxTemp, shiftToTemp, tempToShift, [Delta0], [T0]]
+    #[minTemp, maxTemp, shiftToTemp, tempToShift, Delta0, T0, RefName]
     METHANOL = [178,330,
                 lambda Delta: 409.0 - 36.54 * Delta - 21.85 * Delta**2,
                 lambda Temp: (36.54 - np.sqrt(36.54**2 - 4 * -21.85 * (409.0 - Temp))) / (2 * -21.85),
-                'absShift']
+                'absShift',None,None,'Ammann et al., JMR, 46, 319 (1982)']
     ETH_GLYCOL = [273,416,
                   lambda Delta: 466.5 - 102.00 * Delta,
                   lambda Temp: (Temp - 466.5) / -102.0,
-                  'absShift']
+                  'absShift',None,None,'Ammann et al., JMR, 46, 319 (1982)']
 
-   # Temperature Dependence of207Pb MAS Spectra of Solid Lead Nitrate. An Accurate, Sensitive Thermometer for Variable-Temperature MAS
-   # ANTHONY BIELECKI, DOUGLAS P.BURUM
     PBNO3 = [143, 423,
              lambda Delta, Delta0, T0: (Delta0 - Delta) / 0.753 + T0 , 
              lambda T, Delta0, T0: (T0 - T) * 0.753 + Delta0 ,
-             'relShift','-3473','293']
+             'relShift','-3473','293','Bielecki et al., JMR, 116, 215 (1995)']
     KBR = [170, 320,
              lambda Delta, Delta0, T0: (Delta0 - Delta) / 0.0250 + T0 , 
              lambda T, Delta0, T0: (T0 - T) * 0.0250 + Delta0 ,
-             'relShift','0','293']
+             'relShift','0','293','Thurber et al., JMR, 196, 84 (2009)']
 
 
     DEFINITIONS = [METHANOL, ETH_GLYCOL, PBNO3 ,KBR]
@@ -7075,10 +7073,12 @@ class tempCalWindow(QtWidgets.QWidget):
 
     T1_KBr = [20,296,
              lambda Relax: optimize.brentq(lambda T,T1: 0.0145 + 5330/T**2 + 1.42e7/T**4 + 2.48e9/T**6 - T1, 20, 296 ,args=(Relax,)),
-             lambda T: 0.0145 + 5330/T**2 + 1.42e7/T**4 + 2.48e9/T**6]
+             lambda T: 0.0145 + 5330/T**2 + 1.42e7/T**4 + 2.48e9/T**6,
+             'Thurber et al., JMR, 196, 84 (2009)']
     T1_CsI = [8,104,
               lambda Relax: optimize.brentq(lambda T,T1: -1.6e-3 + 1.52e3/T**2 + 0.387e6/T**4 + 0.121e9/T**6 - T1, 8, 104 ,args=(Relax,)),
-              lambda T: -1.6e-3 + 1.52e3/T**2 + 0.387e6/T**4 + 0.121e9/T**6]
+              lambda T: -1.6e-3 + 1.52e3/T**2 + 0.387e6/T**4 + 0.121e9/T**6,
+              'Sarkar et al., JMR, 212, 460 (2011)']
 
     T1_DEFINITIONS = [T1_KBr, T1_CsI]
     T1_TEXTLIST = ['79Br: KBr (20 K < T < 296 K, 9.4 T)','127I: CsI (8 K < T < 104 K, 9.4 T)']
@@ -7094,8 +7094,6 @@ class tempCalWindow(QtWidgets.QWidget):
         tabWidget.addTab(tab1, "Chemical Shift Based")
         grid1 = QtWidgets.QGridLayout()
         tab1.setLayout(grid1)
-        grid1.setColumnStretch(10, 1)
-        grid1.setRowStretch(10, 1)
         
         #Shift based
         self.typeDrop = QtWidgets.QComboBox()
@@ -7144,19 +7142,19 @@ class tempCalWindow(QtWidgets.QWidget):
         self.TempFrame.addWidget(self.Temp, 1, 1)
         self.TempGroup.setLayout(self.TempFrame)
         grid1.addWidget(self.TempGroup, 3, 0)
+        self.refname = wc.QLabel(self.DEFINITIONS[0][7])
+        grid1.addWidget(self.refname,4,0)
 
         #T1 based
         tab2 = QtWidgets.QWidget()
         tabWidget.addTab(tab2, "T1 Based")
         grid2 = QtWidgets.QGridLayout()
         tab2.setLayout(grid2)
-        grid2.setColumnStretch(10, 1)
-        grid2.setRowStretch(10, 1)
 
         self.T1typeDrop = QtWidgets.QComboBox()
         self.T1typeDrop.addItems(self.T1_TEXTLIST)
         grid2.addWidget(self.T1typeDrop, 0, 0)
-        #self.T1typeDrop.currentIndexChanged.connect(self.changeType)
+        self.T1typeDrop.currentIndexChanged.connect(self.changeTypeT1)
 
         self.T1Group = QtWidgets.QGroupBox("T1 to Temperature:")
         self.T1Frame = QtWidgets.QGridLayout()
@@ -7183,6 +7181,8 @@ class tempCalWindow(QtWidgets.QWidget):
         self.TempT1Frame.addWidget(self.TempT1, 1, 1)
         self.TempT1Group.setLayout(self.TempT1Frame)
         grid2.addWidget(self.TempT1Group, 3, 0)
+        self.refnameT1 = wc.QLabel(self.T1_DEFINITIONS[0][4])
+        grid2.addWidget(self.refnameT1,4,0)
 
         layout = QtWidgets.QGridLayout(self)
         layout.addWidget(tabWidget, 0, 0, 1, 4)
@@ -7193,10 +7193,13 @@ class tempCalWindow(QtWidgets.QWidget):
         layout.addWidget(box, 1,0,1,4)
         layout.setColumnStretch(3, 1)
         self.show()
+        self.setFixedSize(self.size())
 
     def changeType(self,index):
         self.Temp.setText('')
         self.Delta.setText('')
+
+        self.refname.setText(self.DEFINITIONS[index][7])
         if self.DEFINITIONS[self.typeDrop.currentIndex()][4] == 'absShift':
             self.DeltaLabel.setText(u'Δδ [ppm]')
             self.RefGroup.hide()
@@ -7207,6 +7210,10 @@ class tempCalWindow(QtWidgets.QWidget):
             self.RefGroup.show()
             self.Delta0.setText(self.DEFINITIONS[self.typeDrop.currentIndex()][5])
             self.T0.setText(self.DEFINITIONS[self.typeDrop.currentIndex()][6])
+
+    def changeTypeT1(self,index):
+        self.refnameT1.setText(self.T1_DEFINITIONS[index][4])
+
 
     def tempToT1(self):
         Data = self.T1_DEFINITIONS[self.T1typeDrop.currentIndex()]
