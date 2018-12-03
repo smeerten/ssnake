@@ -397,7 +397,6 @@ def loadJEOLDelta(filePath):
         f.seek(readStart) #Set read start to position of data
         data = np.fromfile(f, endian, loadSize)
     hyper = np.array([0])
-    print('NDIM',NDIM,dataType)
     if NDIM == 1 and dataType[0] == 1: #Real 1D
         data = [data]
     elif NDIM == 1 and (dataType[0] == 3 or dataType[0] == 4): #Complex 1D
