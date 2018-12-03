@@ -377,7 +377,7 @@ def loadJEOLDelta(filePath):
     dataType = multiUP('>B', 1, 8, 24)
     dataUnits = multiUP('>B', 1, 16, 32).reshape(8, 2)
     NP = multiUP('>I', 4, 8, 176)
-    #dataStart = multiUP('>I', 4, 8, 208)
+    dataStart = multiUP('>I', 4, 8, 208)
     dataStop = multiUP('>I', 4, 8, 240)
     axisStart = multiUP('>d', 8, 8, 272)
     axisStop = multiUP('>d', 8, 8, 336)
@@ -387,27 +387,28 @@ def loadJEOLDelta(filePath):
     readStart = multiUP('>I', 4, 1, 1284)[0]
     #data_length = multiUP('>Q', 8, 1, 1288)[0]
     loadSize = np.prod(NP[:NDIM])
-    if NDIM == 1 and dataType[0] == 3: #Complex 1D
+    if NDIM == 1 and (dataType[0] == 3 or dataType[0] == 4): #Complex 1D
         loadSize *= 2
-    elif NDIM == 2 and dataType[0] == 4: #2D Real-Complex (non-Hypercomplex)
+    elif NDIM == 2 and (dataType[0] == 4 or (dataType[0] == 3  and dataType[1] == 1)): #2D Real-Complex (non-Hypercomplex)
         loadSize *= 2
-    elif NDIM == 2 and dataType[0] == 3: #2D Complex-Complex (Hypercomplex)
+    elif NDIM == 2 and dataType[0] == 3 and dataType[1] == 3: #2D Complex-Complex (Hypercomplex)
         loadSize *= 4
     with open(filePath, "rb") as f:
         f.seek(readStart) #Set read start to position of data
         data = np.fromfile(f, endian, loadSize)
     hyper = np.array([0])
+    print('NDIM',NDIM,dataType)
     if NDIM == 1 and dataType[0] == 1: #Real 1D
         data = [data]
-    elif NDIM == 1 and dataType[0] == 3: #Complex 1D
+    elif NDIM == 1 and (dataType[0] == 3 or dataType[0] == 4): #Complex 1D
         data = data[:NP[0]] - 1j * data[NP[0]:]
-        data = [data[0:data_offset_stop[0] + 1]]
-    elif NDIM == 2 and dataType[0] == 4: #2D Real-Complex (non-Hypercomplex)
+        data = [data[0:dataStop[0] + 1]]
+    elif NDIM == 2 and (dataType[0] == 4 or (dataType[0] == 3  and dataType[1] == 1)): #2D Real-Complex (non-Hypercomplex)
         Step = 4
         data = data[:int(loadSize/2)] - 1j * data[int(loadSize/2):]
         data = np.reshape(data, [int(NP[1] / Step), int(NP[0] / Step), Step, Step])
         data = [np.concatenate(np.concatenate(data, 1), 1)]
-    elif NDIM == 2 and dataType[0] == 3: #2D Complex-Complex (Hypercomplex)
+    elif NDIM == 2 and dataType[0] == 3  and dataType[1] == 3 : #2D Complex-Complex (Hypercomplex)
         hyper = np.array([0, 1])
         Step = 32  # Step size of block
         tmp = np.split(data,4)
@@ -416,9 +417,10 @@ def loadJEOLDelta(filePath):
         for i in range(len(data)):
             data[i] = np.reshape(data[i], [int(NP[1] / Step), int(NP[0] / Step), Step, Step])
             data[i] = np.concatenate(np.concatenate(data[i], 1), 1)
+
     eS = (slice(None),) #empty slice
     for dim in range(NDIM): #Cut data for every dim
-        useSlice = eS * (NDIM - dim - 1) +(slice(0,dataStop[dim],None),) + eS * dim
+        useSlice = eS * (NDIM - dim - 1) +(slice(0,dataStop[dim] + 1,None),) + eS * dim
         for i in range(len(data)):
             data[i] = data[i][useSlice]
     freq = baseFreq[0:NDIM][::-1] * 1e6
