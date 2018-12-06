@@ -513,7 +513,8 @@ def saveJSONFile(filePath, spectrum):
     struct['ref'] = np.array(spectrum.ref, dtype=np.float).tolist()
     struct['history'] = spectrum.history
     struct['metaData'] = spectrum.metaData
-    struct['dFilter'] = spectrum.dFilter
+    if spectrum.dFilter is not None:
+        struct['dFilter'] = spectrum.dFilter
     tmpXax = []
     for i in spectrum.xaxArray:
         tmpXax.append(i.tolist())
@@ -578,7 +579,8 @@ def saveMatlabFile(filePath, spectrum, name='spectrum'):
     struct['history'] = spectrum.history
     struct['xaxArray'] = spectrum.xaxArray
     struct['metaData'] = spectrum.metaData
-    struct['dFilter'] = spectrum.dFilter
+    if spectrum.dFilter is not None:
+        struct['dFilter'] = spectrum.dFilter
     matlabStruct = {name: struct}
     scipy.io.savemat(filePath, matlabStruct)
 
