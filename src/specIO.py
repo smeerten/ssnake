@@ -364,28 +364,68 @@ def loadPipe(filePath):
     masterData.addHistory("NMRpipe data loaded from " + filePath)
     return masterData
 
-def loadJEOLDelta(filePath):
+def getJEOLpars(filePath,endian,start,length):
     from struct import unpack
-    multiUP = lambda typ, bit, num, start: np.array([unpack(typ,header[start + x:start + bit + x])[0] for x in range(0,num * bit,bit)])
+    with open(filePath, "rb") as f:
+        _ = f.read(start + 16)
+        pars = f.read(length)
+    numpars = int(length/64)
+    parsOut = {}
+    for i in range(numpars):
+        valueType = multiUP(pars,'<I', 4, 1, 32 + i * 64)[0] 
+        unit = multiUP(pars,'<B', 1, 10, 6 + i * 64)
+        scale = convJEOLunit(unit[0])
+        value = pars[16 + i * 64:32 + i * 64]
+        if valueType == 0:
+            value = value.decode()
+        elif valueType == 1:
+            value = int(unpack('<i',value[0:4])[0]) * scale
+        elif valueType == 2:
+            value = float(unpack('<d',value[0:8])[0]) * scale
+        name = pars[36 + i * 64:64 + i * 64].decode().strip()
+        parsOut[name] = [value,unit]
+    #Valuetypes:
+    # 0: str
+    # 1: <l/i
+    # 2: <d
+    # 3: Z
+    # 4: inf
+    return parsOut
+
+def convJEOLunit(val): #get scaling factor
+    scale = (val >> 4) & 15
+    if scale > 7:
+        scale = scale - 16
+    return 10.0**(-scale * 3)
+
+
+def multiUP(header,typ, bit, num, start):
+    from struct import unpack
+    return np.array([unpack(typ,header[start + x:start + bit + x])[0] for x in range(0,num * bit,bit)])
+
+def loadJEOLDelta(filePath):
     with open(filePath, "rb") as f:
         header = f.read(1296)
-    endian =['>d','<d'][multiUP('>B', 1, 1, 8)[0]]
-    NDIM =  multiUP('>B', 1, 1, 12)[0]
-    #data_dimension_exist = multiUP('>B', 1, 1, 13)[0]
-    #data_type = multiUP('>B', 1, 1, 14)[0]
-    #translate = multiUP('>B', 1, 8, 16)
-    dataType = multiUP('>B', 1, 8, 24)
-    dataUnits = multiUP('>B', 1, 16, 32).reshape(8, 2)
-    NP = multiUP('>I', 4, 8, 176)
-    dataStart = multiUP('>I', 4, 8, 208)
-    dataStop = multiUP('>I', 4, 8, 240)
-    axisStart = multiUP('>d', 8, 8, 272)
-    axisStop = multiUP('>d', 8, 8, 336)
-    baseFreq = multiUP('>d', 8, 8, 1064)
-    #zero_point = multiUP('>d', 8, 8, 1128)
-    reverse = multiUP('>B', 1, 8, 1192)
-    readStart = multiUP('>I', 4, 1, 1284)[0]
-    #data_length = multiUP('>Q', 8, 1, 1288)[0]
+    endian =['>d','<d'][multiUP(header,'>B', 1, 1, 8)[0]]
+    NDIM =  multiUP(header,'>B', 1, 1, 12)[0]
+    #data_dimension_exist = multiUP(header,'>B', 1, 1, 13)[0]
+    #data_type = multiUP(header,'>B', 1, 1, 14)[0]
+    #translate = multiUP(header,'>B', 1, 8, 16)
+    dataType = multiUP(header,'>B', 1, 8, 24)
+    dataUnits = multiUP(header,'>B', 1, 16, 32).reshape(8, 2)
+    NP = multiUP(header,'>I', 4, 8, 176)
+    dataStart = multiUP(header,'>I', 4, 8, 208)
+    dataStop = multiUP(header,'>I', 4, 8, 240)
+    axisStart = multiUP(header,'>d', 8, 8, 272)
+    axisStop = multiUP(header,'>d', 8, 8, 336)
+    baseFreq = multiUP(header,'>d', 8, 8, 1064)
+    #zero_point = multiUP(header,'>d', 8, 8, 1128)
+    reverse = multiUP(header,'>B', 1, 8, 1192)
+    paramStart = multiUP(header,'>I', 4, 1, 1212)[0]
+    paramLength = multiUP(header,'>I', 4, 1, 1216)[0]
+    readStart = multiUP(header,'>I', 4, 1, 1284)[0]
+    #data_length = multiUP(header,'>Q', 8, 1, 1288)[0]
+    getJEOLpars(filePath,endian,paramStart,paramLength)
     loadSize = np.prod(NP[:NDIM])
     if NDIM == 1 and (dataType[0] == 3 or dataType[0] == 4): #Complex 1D
         loadSize *= 2
@@ -430,11 +470,8 @@ def loadJEOLDelta(filePath):
         axisType = dataUnits[axisNum][1]  # Sec = 28, Hz = 13, PPM = 26
         axisScale = dataUnits[axisNum][0]
         if axisType == 28:  # Sec
-            scale = (axisScale >> 4) & 15
-            if scale > 7:
-                scale = scale - 16
-            dw = (axisStop[axisNum] - axisStart[axisNum]) / (dataStop[axisNum] + 1 - 1) * 10.0**(-scale * 3)  # minus one to give same axis as spectrum???
-            # scale for SI prefix
+            scale = convJEOLunit(axisScale)
+            dw = (axisStop[axisNum] - axisStart[axisNum]) / (dataStop[axisNum] + 1 - 1) * scale  
             sw.append(1.0 / dw)
             sidefreq = -np.floor((dataStop[axisNum] + 1) / 2) / dataStop[axisNum] + 1 * sw[-1]  # frequency of last point on axis
             ref.append(baseFreq[axisNum] * 1e6)
