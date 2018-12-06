@@ -383,7 +383,7 @@ def getJEOLpars(filePath,endian,start,length):
         elif valueType == 2:
             value = float(unpack('<d',value[0:8])[0]) * scale
         name = pars[36 + i * 64:64 + i * 64].decode().strip()
-        parsOut[name] = [value,unit]
+        parsOut[name.lower()] = value
     #Valuetypes:
     # 0: str
     # 1: <l/i
@@ -398,6 +398,12 @@ def convJEOLunit(val): #get scaling factor
         scale = scale - 16
     return 10.0**(-scale * 3)
 
+def getJEOLdFilter(pars):
+    orders = np.array([int(x) for x in pars['orders'].split()])
+    factors = np.array([int(x) for x in pars['factors'].split()])
+    prodFact  = np.cumprod(factors[::-1])[::-1] #Inverse cumprod of factors
+    filterDelay = np.sum((np.array(orders[1:]) - 1) / prodFact ) / 2
+    return filterDelay * 2 * np.pi
 
 def multiUP(header,typ, bit, num, start):
     from struct import unpack
@@ -425,7 +431,9 @@ def loadJEOLDelta(filePath):
     paramLength = multiUP(header,'>I', 4, 1, 1216)[0]
     readStart = multiUP(header,'>I', 4, 1, 1284)[0]
     #data_length = multiUP(header,'>Q', 8, 1, 1288)[0]
-    getJEOLpars(filePath,endian,paramStart,paramLength)
+    hdrPars = getJEOLpars(filePath,endian,paramStart,paramLength)
+    dFilter = getJEOLdFilter(hdrPars)
+
     loadSize = np.prod(NP[:NDIM])
     if NDIM == 1 and (dataType[0] == 3 or dataType[0] == 4): #Complex 1D
         loadSize *= 2
@@ -487,7 +495,7 @@ def loadJEOLDelta(filePath):
         for i in range(NDIM):
             if spec[-1 - i] == 1:
                 data[k] = np.flip(data[k], NDIM -1 - i)
-    masterData = sc.Spectrum(hc.HComplexData(np.array(data), hyper), (filePath, None), freq, sw, spec, ref=ref)
+    masterData = sc.Spectrum(hc.HComplexData(np.array(data), hyper), (filePath, None), freq, sw, spec, ref=ref, dFilter = dFilter)
     masterData.addHistory("JEOL Delta data loaded from " + filePath)
     return masterData
 
@@ -505,6 +513,7 @@ def saveJSONFile(filePath, spectrum):
     struct['ref'] = np.array(spectrum.ref, dtype=np.float).tolist()
     struct['history'] = spectrum.history
     struct['metaData'] = spectrum.metaData
+    struct['dFilter'] = spectrum.dFilter
     tmpXax = []
     for i in spectrum.xaxArray:
         tmpXax.append(i.tolist())
@@ -525,6 +534,10 @@ def loadJSONFile(filePath):
         hyper = [0]
         data = np.array([np.array(struct['dataReal']) + 1j * np.array(struct['dataImag'])])
     ref = np.where(np.isnan(struct['ref']), None, struct['ref'])
+    if 'dFilter' in struct.keys():
+        dFilter = struct['dFilter']
+    else:
+        dFilter = None
     if 'history' in struct.keys():
         history = struct['history']
     else:
@@ -546,7 +559,8 @@ def loadJSONFile(filePath):
                              list(ref),
                              xaxA,
                              history=history,
-                             metaData=metaData)
+                             metaData=metaData,
+                             dFilter = dFilter)
     masterData.addHistory("JSON data loaded from " + filePath)
     return masterData
 
@@ -564,6 +578,7 @@ def saveMatlabFile(filePath, spectrum, name='spectrum'):
     struct['history'] = spectrum.history
     struct['xaxArray'] = spectrum.xaxArray
     struct['metaData'] = spectrum.metaData
+    struct['dFilter'] = spectrum.dFilter
     matlabStruct = {name: struct}
     scipy.io.savemat(filePath, matlabStruct)
 
@@ -583,6 +598,10 @@ def loadMatlabFile(filePath):
                 hyper = mat['hyper'][0,0][0]
         else:
             hyper = None
+        if 'dFilter' in mat.dtype.names:
+            dFilter = mat['dFilter']
+        else:
+            dFilter = None
         data = []
         if mat['dim'] == 1:
             if hyper is None:
@@ -629,7 +648,8 @@ def loadMatlabFile(filePath):
                                  list(ref),
                                  xaxA,
                                  history=history,
-                                 metaData = metaData)
+                                 metaData = metaData,
+                                 dFilter = dFilter)
         masterData.addHistory("Matlab data loaded from " + filePath)
         return masterData
     else:  # If the version is 7.3, use HDF5 type loading
@@ -645,6 +665,10 @@ def loadMatlabFile(filePath):
             hyper = np.array(mat['hyper'])[0]
         else:
             hyper = None
+        if 'dFilter' in mat:
+            dFilter = np.array(mat['dFilter'])[0][0]
+        else:
+            dFilter = None
         if np.array(mat['dim'])[0][0] == 1:
             xaxA = list([np.array(mat['xaxArray'])[:, 0]])
             if hyper is None: #Old data format
@@ -690,7 +714,8 @@ def loadMatlabFile(filePath):
                                  list(ref),
                                  xaxA,
                                  history=history,
-                                 metaData=metaData)
+                                 metaData=metaData,
+                                 dFilter = dFilter)
         masterData.addHistory("Matlab data loaded from " + filePath)
         return masterData
 
@@ -732,6 +757,25 @@ def brukerTopspinGetPars(file):
         pos += 1
     return pars
 
+def getBrukerFilter(pars):
+    if 'GRPDLY' in pars.keys():
+        return pars['GRPDLY'] * 2 * np.pi
+    elif pars['DSPFVS'] == 10 or pars['DSPFVS'] == 11 or pars['DSPFVS'] == 12:  # get from table
+        CorrectionList = [{'2': 44.7500, '3': 33.5000, '4': 66.6250, '6': 59.0833, '8': 68.5625, '12': 60.3750,
+                           '16': 69.5313, '24': 61.0208, '32': 70.0156, '48': 61.3438, '64': 70.2578, '96': 61.5052,
+                           '128': 70.3789, '192': 61.5859, '256': 70.4395, '384': 61.6263, '512': 70.4697, '768': 61.6465,
+                           '1024': 70.4849, '1536': 61.6566, '2048': 70.4924},
+                          {'2': 46.0000, '3': 36.5000, '4': 48.0000, '6': 50.1667, '8': 53.2500, '12': 69.5000,
+                           '16': 72.2500, '24': 70.1667, '32': 72.7500, '48': 70.5000, '64': 73.0000, '96': 70.6667,
+                           '128': 72.5000, '192': 71.3333, '256': 72.2500, '384': 71.6667, '512': 72.1250, '768': 71.8333,
+                           '1024': 72.0625, '1536': 71.9167, '2048': 72.0313},
+                          {'2': 46.311, '3': 36.530, '4': 47.870, '6': 50.229, '8': 53.289, '12': 69.551, '16': 71.600,
+                           '24': 70.184, '32': 72.138, '48': 70.528, '64': 72.348, '96': 70.700, '128': 72.524}]
+#            # Take correction from database. Based on matNMR routine (Jacco van Beek), which is itself based
+#            # on a text by W. M. Westler and F. Abildgaard.
+        return CorrectionList[10 - pars['DSPFVS']][str(pars['DECIM'])] * 2 * np.pi
+
+
 def loadBrukerTopspin(filePath):
     if os.path.isfile(filePath):
         Dir = os.path.dirname(filePath)
@@ -747,6 +791,7 @@ def loadBrukerTopspin(filePath):
     REF = [x['O1'] for x in pars]
     ByteOrder = ['l','b'][pars[0]['BYTORDA']] #The byte orders that is used
     REF = list(- np.array(REF) + np.array(FREQ))
+    dFilter = getBrukerFilter(pars[0])
     totsize = np.prod(SIZE)
     dim = len(SIZE)
     directSize = int(np.ceil(float(SIZE[0]) / 256)) * 256 #Size of direct dimension including
@@ -767,7 +812,7 @@ def loadBrukerTopspin(filePath):
         ComplexData = ComplexData[:,0:int(SIZE[0]/2)] #Cut off placeholder data
     elif dim == 3:
         ComplexData = ComplexData[:,:,0:int(SIZE[0]/2)] #Cut off placeholder data
-    masterData = sc.Spectrum(ComplexData, (filePath, None), FREQ[-1::-1], SW[-1::-1], [False] * dim, ref = REF[-1::-1])
+    masterData = sc.Spectrum(ComplexData, (filePath, None), FREQ[-1::-1], SW[-1::-1], [False] * dim, ref = REF[-1::-1], dFilter = dFilter)
     try:
         masterData.metaData['# Scans'] = str(pars[0]['NS'])
         masterData.metaData['Receiver Gain'] = str(pars[0]['RG'])

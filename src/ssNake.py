@@ -399,7 +399,7 @@ class MainProgram(QtWidgets.QMainWindow):
                                    ['Tools --> Baseline Correction', self.baselineAct],
                                    ['Tools --> Subtract Averages', self.subAvgAct],
                                    ['Tools --> Reference Deconvolution', self.refDeconvAct],
-                                   ['Tools --> Correct Bruker Digital Filter', self.brukDigitalAct],
+                                   ['Tools --> Correct Digital Filter', self.digitalFilterAct],
                                    ['Tools --> Scale SW', self.scaleSWAct],
                                    #['Tools --> LPSVD', self.lpsvdAct],
                                    ['Matrix --> Sizing', self.sizingAct],
@@ -604,8 +604,8 @@ class MainProgram(QtWidgets.QMainWindow):
         self.subAvgAct.setToolTip('Subtract Averages')
         self.refDeconvAct = self.toolMenu.addAction(QtGui.QIcon(IconDirectory + 'deconvolute.png'), "Re&ference Deconvolution", lambda: self.mainWindowCheck(lambda mainWindow: FiddleWindow(mainWindow)))
         self.refDeconvAct.setToolTip('Reference Deconvolution')
-        self.brukDigitalAct = self.toolMenu.addAction(QtGui.QIcon(IconDirectory + 'bruker.png'), "&Correct Bruker Digital Filter", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.BrukerDigital()))
-        self.brukDigitalAct.setToolTip("Correct Bruker Digital Filter")
+        self.digitalFilterAct = self.toolMenu.addAction(QtGui.QIcon(IconDirectory + 'bruker.png'), "&Correct Digital Filter", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.CorrectDigitalFilter()))
+        self.digitalFilterAct.setToolTip("Correct Digital Filter")
         #self.lpsvdAct = self.toolMenu.addAction(QtGui.QIcon(IconDirectory + 'LPSVD.png'), "&LPSVD", lambda: self.mainWindowCheck(lambda mainWindow: LPSVDWindow(mainWindow)))
         #self.lpsvdAct.setToolTip('LPSVD linear prediction')
         self.scaleSWAct =  self.toolMenu.addAction(QtGui.QIcon(IconDirectory + 'ScaleSW.png'),"Scale SW", lambda: self.mainWindowCheck(lambda mainWindow: ScaleSWWindow(mainWindow)))
@@ -630,7 +630,7 @@ class MainProgram(QtWidgets.QMainWindow):
                              self.apodizeAct, self.phaseAct, self.autoPhaseAct0,
                              self.autoPhaseAct1, self.swapEchoAct, self.corOffsetAct,
                              self.baselineAct, self.subAvgAct, self.refDeconvAct,
-                             self.brukDigitalAct, self.scaleSWAct]
+                             self.digitalFilterAct, self.scaleSWAct]
         # the matrix drop down menu
         self.matrixMenu = QtWidgets.QMenu("M&atrix", self)
         self.menubar.addMenu(self.matrixMenu)
@@ -1890,48 +1890,11 @@ class Main1DWindow(QtWidgets.QWidget):
         self.current.directAutoPhase(phaseNum)
         self.menuCheck()
 
-    def BrukerDigital(self):
-        Dir = self.masterData.filePath[0][0]
-        if not os.path.isdir(Dir):
-            Dir = os.path.dirname(Dir)
-        if Dir is '':
-            return
-        FilePath = Dir + os.path.sep + 'acqus'
-        if not os.path.exists(FilePath):
-            self.father.dispMsg("Bruker correct: acqus file does not exist, specify load path")
-            FilePath = QtWidgets.QFileDialog.getOpenFileName(self, 'Open File', self.father.lastLocation)[0]
-            if FilePath == '':
-                return
-            FilePath = FilePath
-            self.father.lastLocation = os.path.dirname(FilePath)  # Save used path
-        with open(FilePath) as f:
-            data = f.read().split('\n')
-        FilterCorrection = -1.0
-        for s in range(0, len(data)):
-            if data[s].startswith('##$GRPDLY='):
-                FilterCorrection = float(data[s][10:])
-            if data[s].startswith('##$DECIM='):
-                DECIM = int(float(data[s][9:]))
-            if data[s].startswith('##$DSPFVS='):
-                DSPFVS = int(float(data[s][10:]))
-        if DSPFVS == 10 or DSPFVS == 11 or DSPFVS == 12:  # get from table
-            CorrectionList = [{'2': 44.7500, '3': 33.5000, '4': 66.6250, '6': 59.0833, '8': 68.5625, '12': 60.3750,
-                               '16': 69.5313, '24': 61.0208, '32': 70.0156, '48': 61.3438, '64': 70.2578, '96': 61.5052,
-                               '128': 70.3789, '192': 61.5859, '256': 70.4395, '384': 61.6263, '512': 70.4697, '768': 61.6465,
-                               '1024': 70.4849, '1536': 61.6566, '2048': 70.4924},
-                              {'2': 46.0000, '3': 36.5000, '4': 48.0000, '6': 50.1667, '8': 53.2500, '12': 69.5000,
-                               '16': 72.2500, '24': 70.1667, '32': 72.7500, '48': 70.5000, '64': 73.0000, '96': 70.6667,
-                               '128': 72.5000, '192': 71.3333, '256': 72.2500, '384': 71.6667, '512': 72.1250, '768': 71.8333,
-                               '1024': 72.0625, '1536': 71.9167, '2048': 72.0313},
-                              {'2': 46.311, '3': 36.530, '4': 47.870, '6': 50.229, '8': 53.289, '12': 69.551, '16': 71.600,
-                               '24': 70.184, '32': 72.138, '48': 70.528, '64': 72.348, '96': 70.700, '128': 72.524}]
-            # Take correction from database. Based on matNMR routine (Jacco van Beek), which is itself based
-            # on a text by W. M. Westler and F. Abildgaard.
-            FilterCorrection = CorrectionList[10 - DSPFVS][str(DECIM)]
-        if FilterCorrection == -1.0:
-            raise SsnakeException('DSPFVS value not recognized (Bruker hardware version not known)')
-        if FilterCorrection != -1.0:  # If changed
-            self.current.applyPhase(0, FilterCorrection * 2 * np.pi)
+    def CorrectDigitalFilter(self):
+        if self.current.data.dFilter is None:
+            raise SsnakeException('Digital filter: no value defined')
+        else:
+            self.current.applyPhase(0, self.current.data.dFilter)
             self.menuCheck()
 
     def createRelaxWindow(self):

@@ -40,7 +40,7 @@ class SpectrumException(Exception):
 
 class Spectrum(object):
 
-    def __init__(self, data, filePath, freq, sw, spec=None, wholeEcho=None, ref=None, xaxArray=None, history=None, metaData = None, name=''):
+    def __init__(self, data, filePath, freq, sw, spec=None, wholeEcho=None, ref=None, xaxArray=None, history=None, metaData = None, name='', dFilter = None):
         self.name = name
         if isinstance(data, hc.HComplexData):
             self.data = data
@@ -49,6 +49,7 @@ class Spectrum(object):
         self.filePath = filePath
         self.freq = np.array(freq)  # array of center frequency (length is dim, MHz)
         self.sw = np.array(sw,dtype=float)  # array of sweepwidths
+        self.dFilter = dFilter #Digital filter first order phase in radian
         self.undoList = []
         self.redoList = []
         self.noUndo = False
