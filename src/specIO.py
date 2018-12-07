@@ -399,11 +399,14 @@ def convJEOLunit(val): #get scaling factor
     return 10.0**(-scale * 3)
 
 def getJEOLdFilter(pars):
-    orders = np.array([int(x) for x in pars['orders'].split()])
-    factors = np.array([int(x) for x in pars['factors'].split()])
-    prodFact  = np.cumprod(factors[::-1])[::-1] #Inverse cumprod of factors
-    filterDelay = np.sum((np.array(orders[1:]) - 1) / prodFact ) / 2
-    return filterDelay * 2 * np.pi
+    try:
+        orders = np.array([int(x) for x in pars['orders'].split()])
+        factors = np.array([int(x) for x in pars['factors'].split()])
+        prodFact  = np.cumprod(factors[::-1])[::-1] #Inverse cumprod of factors
+        filterDelay = np.sum((np.array(orders[1:]) - 1) / prodFact ) / 2
+        return filterDelay * 2 * np.pi
+    except Exception:
+        return None
 
 def multiUP(header,typ, bit, num, start):
     from struct import unpack
@@ -471,7 +474,7 @@ def loadJEOLDelta(filePath):
         for i in range(len(data)):
             data[i] = data[i][useSlice]
     freq = baseFreq[0:NDIM][::-1] * 1e6
-    spec = dataUnits[0:NDIM,1][::-1] != 28 #If not 28 (Hz), then spec = true
+    spec = dataUnits[0:NDIM,1][::-1] != 28 #If not 28 (sec), then spec = true
     sw = []
     ref = []
     for axisNum in reversed(range(NDIM)):
@@ -481,7 +484,6 @@ def loadJEOLDelta(filePath):
             scale = convJEOLunit(axisScale)
             dw = (axisStop[axisNum] - axisStart[axisNum]) / (dataStop[axisNum] + 1 - 1) * scale  
             sw.append(1.0 / dw)
-            sidefreq = -np.floor((dataStop[axisNum] + 1) / 2) / dataStop[axisNum] + 1 * sw[-1]  # frequency of last point on axis
             ref.append(baseFreq[axisNum] * 1e6)
         if axisType == 13:  # Hz
             sw.append(np.abs(axisStart[axisNum] - axisStop[axisNum]))
