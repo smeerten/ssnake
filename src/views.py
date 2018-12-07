@@ -300,6 +300,13 @@ class Current1D(PlotFrame):
         self.upd()
         self.showFid()
 
+    def correctDFilter(self):
+        #Corrects the digital filter via first order phasing
+        self.root.addMacro(['correctDFilter', (self.axes[-1] - self.data.ndim(),)])
+        self.data.correctDFilter(self.axes[-1])
+        self.upd()
+        self.showFid()
+
     def complexFourier(self):  # fourier the actual data and replot
         self.root.addMacro(['complexFourier', (self.axes[-1] - self.data.ndim(), )])
         self.data.complexFourier(self.axes[-1])

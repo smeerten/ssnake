@@ -809,7 +809,7 @@ class Spectrum(object):
             Pfun = Pfun + sum(as1**2) / 4 / L**2
         return H1 + 1000 * Pfun
 
-    def phase(self, phase0, phase1, axis, select=slice(None)):
+    def phase(self, phase0, phase1, axis, select=slice(None), internal = False):
         axis = self.checkAxis(axis)
         if self.ref[axis] is None:
             offset = 0
@@ -824,16 +824,27 @@ class Spectrum(object):
         self.data.icomplexReorder(axis)
         if self.spec[axis] == 0:
             self.__invFourier(axis, tmp=True)
-        Message = "Phasing: phase0 = " + str(phase0 * 180 / np.pi) + " and phase1 = " + str(phase1 * 180 / np.pi) + " for dimension " + str(axis + 1)
-        if type(select) is not slice:
-            Message = Message + " with slice " + str(select)
-        elif select != slice(None, None, None):
-            Message = Message + " with slice " + str(select)
 
+        if not internal:
+            Message = "Phasing: phase0 = " + str(phase0 * 180 / np.pi) + " and phase1 = " + str(phase1 * 180 / np.pi) + " for dimension " + str(axis + 1)
+            if type(select) is not slice:
+                Message = Message + " with slice " + str(select)
+            elif select != slice(None, None, None):
+                Message = Message + " with slice " + str(select)
+
+            self.addHistory(Message)
+            self.redoList = []
+            if not self.noUndo:
+                self.undoList.append(lambda self: self.phase(-phase0, -phase1, axis, select=select))
+
+    def correctDFilter(self,axis, undo = False):
+        #Corrects the digital filter via first order phasing
+        self.phase(0,self.dFilter,axis,internal = True)
+        Message = "Corrected digital filter"
         self.addHistory(Message)
         self.redoList = []
         if not self.noUndo:
-            self.undoList.append(lambda self: self.phase(-phase0, -phase1, axis, select=select))
+            self.undoList.append(lambda self: self.phase(0,-self.dFilter,axis,internal = False,))
 
     def apodize(self, lor=None, gauss=None, cos2=[None, None], hamming=None, shift=0.0, shifting=0.0, shiftingAxis=None, axis=-1, select=slice(None), preview=False):
         axis = self.checkAxis(axis)

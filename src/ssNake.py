@@ -604,7 +604,7 @@ class MainProgram(QtWidgets.QMainWindow):
         self.subAvgAct.setToolTip('Subtract Averages')
         self.refDeconvAct = self.toolMenu.addAction(QtGui.QIcon(IconDirectory + 'deconvolute.png'), "Re&ference Deconvolution", lambda: self.mainWindowCheck(lambda mainWindow: FiddleWindow(mainWindow)))
         self.refDeconvAct.setToolTip('Reference Deconvolution')
-        self.digitalFilterAct = self.toolMenu.addAction(QtGui.QIcon(IconDirectory + 'bruker.png'), "&Correct Digital Filter", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.CorrectDigitalFilter()))
+        self.digitalFilterAct = self.toolMenu.addAction(QtGui.QIcon(IconDirectory + 'dFilter.png'), "&Correct Digital Filter", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.CorrectDigitalFilter()))
         self.digitalFilterAct.setToolTip("Correct Digital Filter")
         #self.lpsvdAct = self.toolMenu.addAction(QtGui.QIcon(IconDirectory + 'LPSVD.png'), "&LPSVD", lambda: self.mainWindowCheck(lambda mainWindow: LPSVDWindow(mainWindow)))
         #self.lpsvdAct.setToolTip('LPSVD linear prediction')
@@ -1894,7 +1894,7 @@ class Main1DWindow(QtWidgets.QWidget):
         if self.current.data.dFilter is None:
             raise SsnakeException('Digital filter: no value defined')
         else:
-            self.current.applyPhase(0, self.current.data.dFilter)
+            self.current.correctDFilter()
             self.menuCheck()
 
     def createRelaxWindow(self):
