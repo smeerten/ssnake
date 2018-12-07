@@ -275,9 +275,9 @@ Varian/Agilent & VnmrJ 2 and newer. \texttt{fid} and \texttt{data} (spectrum)\\
 Bruker & Topspin and XWinNMR (\texttt{fid} \& \texttt{ser},\texttt{1r/i} \& \texttt{2rr/ii}) \\
 \rowcolor{gray!30!white}
 Bruker minispec  & \texttt{.sig} file\\
-JEOL Delta & 1D only at the moment \\
+JEOL Delta & 1D and 2D only at the moment \\
 \rowcolor{gray!30!white}
-Chemagnetics & ??? \\
+Chemagnetics & -- \\
 Magritek & Both 1D and 2D data \\
 \rowcolor{gray!30!white}
 SIMPSON & 1D and 2D, -ascii and -binary \\
@@ -307,7 +307,9 @@ Bruker processed spectra can be loaded from \textit{1r} and \textit{1i} files fo
 In some cases, the Bruker minispec also outputs a \texttt{.sig} data file. These can be loaded in ssNake, although this is experimental at the moment.
 
 \subsubsection*{JEOL Delta}
-JEOL Delta data is contained in a single \texttt{.jdf} file. Currently only 1D data is (experimentally) supported. This is because we have no access to a JEOL spectrometer for testing purposes. Please send us test files is you have any.
+JEOL Delta data is contained in a single \texttt{.jdf} file. Currently only 1D and 2D data is
+ supported. This is because we have no access to a JEOL spectrometer for testing
+purposes. Please send us test files is you have any.
 
 \subsubsection*{Chemagnetics}
 Loading Chemagnetics data requires a \textit{acq} (and \textit{acq\_2} for 2D) and \textit{data} file. From the former, the number of points in both dimensions is extracted, the spectral widths and the spectral frequency. All the data points are then extracted form the \textit{data} file, and reshaped to a 2D array when necessary.
@@ -782,10 +784,12 @@ Uses the FIDDLE algorithm to deconvolute a peak shape in the spectrum.
 % \subsubsection*{ssNake implementation}
 Using the `Reference deconvolution' opens a window, in which the region of the reference signal has to be set (by left clicking, or by filling in the values). Additionally, the new linewidth of the peak has to be specified. Note that the algorithm cannot increase resolution, only improve the lineshape. Using a linewidth that is too small will result in a distorted spectrum. Pushing apply performs the algorithm to all traces.
 
-\subsection{Correct Bruker digital filter}
-Corrects a Bruker fid to start at $t=0$. This is essentially the same as using a first order phase
-correction with the correct phase (i.e. number of points). With modern Bruker data, this value can
-be found in the parameter files of the data, in the form of the group delay variable.
+\subsection{Correct digital filter}
+Corrects a fid to start at $t=0$ for data that has a digital filter delay. This is essentially the
+same as using a first order phase correction with the correct phase (i.e. number of points). For
+Bruker and JEOL data, the required phase shift is extracted from the parameters files. Failing to
+use this function for these data leads to a spectrum with a strong first order phasing error.
+
 
 \subsection{Scale SW}
 A function to scale the spectra width (i.e. the sweepwidth) of the current dimension. Essentially,
