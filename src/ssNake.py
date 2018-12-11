@@ -217,7 +217,7 @@ class MainProgram(QtWidgets.QMainWindow):
         self.defaultLinewidth = 1.0
         self.defaultMinXTicks = 12
         self.defaultMinYTicks = 8
-        self.defaultColor = '#0000FF'
+        self.defaultColor = '#1F77B4'
         self.defaultGrids = [False, False]
         self.defaultDiagonalBool = False
         self.defaultDiagonalMult = 1
@@ -227,8 +227,8 @@ class MainProgram(QtWidgets.QMainWindow):
         self.defaultWidthRatio = 3.0
         self.defaultHeightRatio = 3.0
         self.defaultContourConst = True
-        self.defaultPosColor = '#FF0000'
-        self.defaultNegColor = '#0000FF'
+        self.defaultPosColor = '#1F77B4'
+        self.defaultNegColor = '#FF7F0E'
         self.defaultToolbarActionList = ['File --> Open',
                                          'File -- > Save --> Matlab',
                                          'File --> Export --> Figure',
