@@ -762,8 +762,11 @@ def brukerTopspinGetPars(file):
     return pars
 
 def getBrukerFilter(pars):
+    delay = -1
     if 'GRPDLY' in pars.keys():
-        return pars['GRPDLY'] * 2 * np.pi
+        delay = pars['GRPDLY'] * 2 * np.pi
+    if delay >= 0.0:
+        return delay
     elif pars['DSPFVS'] == 10 or pars['DSPFVS'] == 11 or pars['DSPFVS'] == 12:  # get from table
         CorrectionList = [{'2': 44.7500, '3': 33.5000, '4': 66.6250, '6': 59.0833, '8': 68.5625, '12': 60.3750,
                            '16': 69.5313, '24': 61.0208, '32': 70.0156, '48': 61.3438, '64': 70.2578, '96': 61.5052,
@@ -778,6 +781,8 @@ def getBrukerFilter(pars):
 #            # Take correction from database. Based on matNMR routine (Jacco van Beek), which is itself based
 #            # on a text by W. M. Westler and F. Abildgaard.
         return CorrectionList[10 - pars['DSPFVS']][str(pars['DECIM'])] * 2 * np.pi
+    else:
+        return None
 
 
 def loadBrukerTopspin(filePath):
