@@ -733,7 +733,8 @@ def brukerTopspinGetPars(file):
     pars = dict()
     while pos < len(data):
         if data[pos].startswith('##$'):
-            line = data[pos].split()
+            line = data[pos].split('=')
+            line[1] = re.sub('^ ', '', line[1])
             name = line[0].strip('##$=')
             val = line[1]
             if val[0] == '<':
@@ -822,16 +823,28 @@ def loadBrukerTopspin(filePath):
     elif dim == 3:
         ComplexData = ComplexData[:,:,0:int(SIZE[0]/2)] #Cut off placeholder data
     masterData = sc.Spectrum(ComplexData, (filePath, None), FREQ[-1::-1], SW[-1::-1], [False] * dim, ref = REF[-1::-1], dFilter = dFilter)
+    # TODO: Inserting metadata should be made more generic
     try:
         masterData.metaData['# Scans'] = str(pars[0]['NS'])
+    except Exception:
+        pass
+    try:
         masterData.metaData['Receiver Gain'] = str(pars[0]['RG'])
+    except Exception:
+        pass
+    try:
         masterData.metaData['Experiment Name'] = pars[0]['PULPROG']
+    except Exception:
+        pass
+    try:        
         masterData.metaData['Offset [Hz]'] = str(pars[0]['O1'])
+    except Exception:
+        pass
+    try:
         masterData.metaData['Recycle Delay [s]'] = str(pars[0]['D'][1])
     except Exception:
         pass
     masterData.addHistory("Bruker TopSpin data loaded from " + filePath)
-
     return masterData
 
 def loadBrukerWinNMR(filePath):
