@@ -1019,7 +1019,11 @@ def loadChemFile(filePath):
     sw1 = 1
     pars = chemGetPars(Dir)
     sizeTD2 = int(float(pars['al']))
-    freq = float(pars['sf' + str(int(float(pars['ch1'])))])
+    freq = pars['sf' + str(int(float(pars['ch1'])))]
+    if type(freq) is list: #load only first value when list
+        freq = float(freq[0])
+    else:
+        freq = float(freq)
     sw = 1 / convertChemVal(pars['dw']) 
     if any('array_num_values_' in s for s in pars):
         if int(float(pars['use_array'])) == 1:
