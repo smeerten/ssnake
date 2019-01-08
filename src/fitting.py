@@ -765,6 +765,20 @@ class AbstractParamFrame(QtWidgets.QWidget):
                 tmpVal[name] = np.repeat([np.array([0.0, False], dtype=object)], self.FITNUM, axis=0)
         return tmpVal
 
+    def addMultiLabel(self, name, text, num):
+        tick = QtWidgets.QCheckBox('')
+        tick.setChecked(self.DEFAULTS[name][1])
+        tick.stateChanged.connect(lambda state, self=self: self.changeAllTicks(state, name))
+        self.frame3.addWidget(tick, 1, num)
+        label = wc.QLabel(text)
+        self.frame3.addWidget(label, 1, num+1)
+        return (tick, label)
+    
+    def changeAllTicks(self, state, name):
+        self.DEFAULTS[name][1] = state
+        for tick in self.ticks[name]:
+            tick.setChecked(state)
+    
     def closeWindow(self, *args):
         self.rootwindow.tabWindow.stopMP()
         self.rootwindow.cancel()
@@ -1299,10 +1313,9 @@ class RelaxParamFrame(AbstractParamFrame):
         self.numExp = QtWidgets.QComboBox()
         self.numExp.addItems([str(x + 1) for x in range(self.FITNUM)])
         self.numExp.currentIndexChanged.connect(self.changeNum)
-
         self.frame3.addWidget(self.numExp, 0, 0, 1, 2)
-        self.frame3.addWidget(wc.QLabel("Coefficient:"), 1, 0, 1, 2)
-        self.frame3.addWidget(wc.QLabel("T [s]:"), 1, 2, 1, 2)
+        self.addMultiLabel("coeff", "Coefficient:", 0)
+        self.addMultiLabel("t", "T [s]:", 2)
         self.xlog = QtWidgets.QCheckBox('x-log')
         self.xlog.stateChanged.connect(self.setLog)
         self.optframe.addWidget(self.xlog, 0, 0, QtCore.Qt.AlignTop)
@@ -1391,8 +1404,8 @@ class DiffusionParamFrame(AbstractParamFrame):
         self.numExp.addItems([str(x + 1) for x in range(self.FITNUM)])
         self.numExp.currentIndexChanged.connect(self.changeNum)
         self.frame3.addWidget(self.numExp, 0, 0, 1, 2)
-        self.frame3.addWidget(wc.QLabel("Coefficient:"), 1, 0, 1, 2)
-        self.frame3.addWidget(wc.QLabel("D [m^2/s]:"), 1, 2, 1, 2)
+        self.addMultiLabel("coeff", "Coefficient:", 0)
+        self.addMultiLabel("d", "D [m^2/s]:", 2)
         self.frame3.setColumnStretch(20, 1)
         self.frame3.setAlignment(QtCore.Qt.AlignTop)
         self.xlog = QtWidgets.QCheckBox('x-log')
@@ -1523,10 +1536,10 @@ class PeakDeconvParamFrame(AbstractParamFrame):
         self.numExp.addItems([str(x + 1) for x in range(self.FITNUM)])
         self.numExp.currentIndexChanged.connect(self.changeNum)
         self.frame3.addWidget(self.numExp, 0, 0, 1, 2)
-        self.frame3.addWidget(wc.QLabel("Position [" + self.axUnit + "]:"), 1, 0, 1, 2)
-        self.frame3.addWidget(wc.QLabel("Integral:"), 1, 2, 1, 2)
-        self.frame3.addWidget(wc.QLabel("Lorentz [Hz]:"), 1, 4, 1, 2)
-        self.frame3.addWidget(wc.QLabel("Gauss [Hz]:"), 1, 6, 1, 2)
+        self.addMultiLabel("pos", "Position [" + self.axUnit + "]:", 0)
+        self.addMultiLabel("amp", "Integral:", 2)
+        self.addMultiLabel("lor", "Lorentz [Hz]:", 4)
+        self.addMultiLabel("gauss", "Gauss [Hz]:", 6)
         for i in range(self.FITNUM):
             for j in range(len(self.MULTINAMES)):
                 self.ticks[self.MULTINAMES[j]].append(QtWidgets.QCheckBox(''))
@@ -1671,42 +1684,45 @@ class CsaDeconvParamFrame(AbstractParamFrame):
         else:
             axUnit = ['Hz', 'kHz', 'MHz'][self.parent.getAxType()]
         # Labels
+        self.addMultiLabel("t11", "", 0)
+        self.addMultiLabel("t22", "", 2)
+        self.addMultiLabel("t33", "", 4)
         self.label11 = wc.QLabel(u'δ' + '<sub>11</sub> [' + axUnit + '] :')
         self.label22 = wc.QLabel(u'δ' + '<sub>22</sub> [' + axUnit + '] :')
         self.label33 = wc.QLabel(u'δ' + '<sub>33</sub> [' + axUnit + '] :')
-        self.frame3.addWidget(self.label11, 1, 0, 1, 2)
-        self.frame3.addWidget(self.label22, 1, 2, 1, 2)
-        self.frame3.addWidget(self.label33, 1, 4, 1, 2)
+        self.frame3.addWidget(self.label11, 1, 1)
+        self.frame3.addWidget(self.label22, 1, 3)
+        self.frame3.addWidget(self.label33, 1, 5)
         self.labelxx = wc.QLabel(u'δ' + '<sub>xx</sub> [' + axUnit + '] :')
         self.labelyy = wc.QLabel(u'δ' + '<sub>yy</sub> [' + axUnit + '] :')
         self.labelzz = wc.QLabel(u'δ' + '<sub>zz</sub> [' + axUnit + '] :')
         self.labelxx.hide()
         self.labelyy.hide()
         self.labelzz.hide()
-        self.frame3.addWidget(self.labelxx, 1, 0, 1, 2)
-        self.frame3.addWidget(self.labelyy, 1, 2, 1, 2)
-        self.frame3.addWidget(self.labelzz, 1, 4, 1, 2)
+        self.frame3.addWidget(self.labelxx, 1, 1)
+        self.frame3.addWidget(self.labelyy, 1, 3)
+        self.frame3.addWidget(self.labelzz, 1, 5)
         self.labeliso = wc.QLabel(u'δ' + '<sub>iso</sub> [' + axUnit + '] :')
         self.labelaniso = wc.QLabel(u'δ' + '<sub>aniso</sub> [' + axUnit + '] :')
         self.labeleta = wc.QLabel(u'η:')
         self.labeliso.hide()
         self.labelaniso.hide()
         self.labeleta.hide()
-        self.frame3.addWidget(self.labeliso, 1, 0, 1, 2)
-        self.frame3.addWidget(self.labelaniso, 1, 2, 1, 2)
-        self.frame3.addWidget(self.labeleta, 1, 4, 1, 2)
+        self.frame3.addWidget(self.labeliso, 1, 1)
+        self.frame3.addWidget(self.labelaniso, 1, 3)
+        self.frame3.addWidget(self.labeleta, 1, 5)
         self.labeliso2 = wc.QLabel(u'δ' + '<sub>iso</sub> [' + axUnit + '] :')
         self.labelspan = wc.QLabel(u'Ω [' + axUnit + '] :')
         self.labelskew = wc.QLabel(u'κ:')
         self.labeliso2.hide()
         self.labelspan.hide()
         self.labelskew.hide()
-        self.frame3.addWidget(self.labeliso2, 1, 0, 1, 2)
-        self.frame3.addWidget(self.labelspan, 1, 2, 1, 2)
-        self.frame3.addWidget(self.labelskew, 1, 4, 1, 2)
-        self.frame3.addWidget(wc.QLabel("Integral:"), 1, 6, 1, 2)
-        self.frame3.addWidget(wc.QLabel("Lorentz [Hz]:"), 1, 8, 1, 2)
-        self.frame3.addWidget(wc.QLabel("Gauss [Hz]:"), 1, 10, 1, 2)
+        self.frame3.addWidget(self.labeliso2, 1, 1)
+        self.frame3.addWidget(self.labelspan, 1, 3)
+        self.frame3.addWidget(self.labelskew, 1, 5)
+        self.addMultiLabel("amp", "Integral:", 6)
+        self.addMultiLabel("lor", "Lorentz [Hz]:", 8)
+        self.addMultiLabel("gauss", "Gauss [Hz]:", 10)
         for i in range(self.FITNUM):
             for j in range(len(self.MULTINAMES)):
                 self.ticks[self.MULTINAMES[j]].append(QtWidgets.QCheckBox(''))
@@ -1947,15 +1963,12 @@ class QuadDeconvParamFrame(AbstractParamFrame):
         else:
             axUnit = ['Hz', 'kHz', 'MHz'][self.parent.getAxType()]
         # Labels
-        self.labelpos = wc.QLabel(u'Position [' + axUnit + ']:')
-        self.labelcq = wc.QLabel(u'C<sub>Q</sub> [MHz]:')
-        self.labeleta = wc.QLabel(u'η:')
-        self.frame3.addWidget(self.labelpos, 1, 0, 1, 2)
-        self.frame3.addWidget(self.labelcq, 1, 2, 1, 2)
-        self.frame3.addWidget(self.labeleta, 1, 4, 1, 2)
-        self.frame3.addWidget(wc.QLabel("Integral:"), 1, 6, 1, 2)
-        self.frame3.addWidget(wc.QLabel("Lorentz [Hz]:"), 1, 8, 1, 2)
-        self.frame3.addWidget(wc.QLabel("Gauss [Hz]:"), 1, 10, 1, 2)
+        self.addMultiLabel("pos", u"Position [" + axUnit + "]:", 0)
+        self.addMultiLabel("cq", u"C<sub>Q</sub> [MHz]:", 2)
+        self.addMultiLabel("eta", u"η:", 4)
+        self.addMultiLabel("amp", "Integral:", 6)
+        self.addMultiLabel("lor", "Lorentz [Hz]:", 8)
+        self.addMultiLabel("gauss", "Gauss [Hz]:", 10)
         for i in range(self.FITNUM):
             for j in range(len(self.MULTINAMES)):
                 self.ticks[self.MULTINAMES[j]].append(QtWidgets.QCheckBox(''))
@@ -2373,13 +2386,13 @@ class QuadCzjzekParamFrame(AbstractParamFrame):
             axUnit = 'ppm'
         else:
             axUnit = ['Hz', 'kHz', 'MHz'][self.parent.getAxType()]
-        self.frame3.addWidget(wc.QLabel("Pos [" + axUnit + "]:"), 1, 0, 1, 2)
-        self.frame3.addWidget(wc.QLabel(u"σ [MHz]:"), 1, 2, 1, 2)
-        self.frame3.addWidget(wc.QLabel(u"C<sub>Q</sub>0 [MHz]:"), 1, 4, 1, 2)
-        self.frame3.addWidget(wc.QLabel(u"η0:"), 1, 6, 1, 2)
-        self.frame3.addWidget(wc.QLabel("Integral:"), 1, 8, 1, 2)
-        self.frame3.addWidget(wc.QLabel("Lorentz [Hz]:"), 1, 10, 1, 2)
-        self.frame3.addWidget(wc.QLabel("Gauss [Hz]:"), 1, 12, 1, 2)
+        self.addMultiLabel("pos", "Pos [" + axUnit + "]:", 0)
+        self.addMultiLabel("sigma", u"σ [MHz]:", 2)
+        self.addMultiLabel("cq0", u"C<sub>Q</sub>0 [MHz]:", 4)
+        self.addMultiLabel("eta0", u"η0:", 6)
+        self.addMultiLabel("amp", "Integral:", 8)
+        self.addMultiLabel("lor", "Lorentz [Hz]:", 10)
+        self.addMultiLabel("gauss", "Gauss [Hz]:", 12)
         for i in range(self.FITNUM):
             for j in range(len(self.MULTINAMES)):
                 self.ticks[self.MULTINAMES[j]].append(QtWidgets.QCheckBox(''))
@@ -2478,7 +2491,7 @@ class ExternalFitDeconvParamFrame(AbstractParamFrame):
     
     def __init__(self, parent, rootwindow, isMain=True):
         self.FITFUNC = simFunc.externalFitRunScript
-        self.DEFAULTS = {'offset': [0.0, True], 'mult': [1.0, True], 'amp': [1.0, False]}
+        self.resetDefaults()
         super(ExternalFitDeconvParamFrame, self).__init__(parent, rootwindow, isMain)
         self.numExp = QtWidgets.QComboBox()
         self.script = None
@@ -2499,10 +2512,14 @@ class ExternalFitDeconvParamFrame(AbstractParamFrame):
         self.labels = {}
         self.reset()
 
+    def resetDefaults(self):
+        self.DEFAULTS = {'offset': [0.0, True], 'mult': [1.0, True], 'amp': [1.0, False], 'lor': [10.0, False], 'gauss': [0.0, True]}
+        
     def txtOutputWindow(self):
         TxtOutputWindow(self.rootwindow, self.txtOutput[0], self.txtOutput[1])
 
     def loadScript(self):
+        self.resetDefaults()
         fileName = self.rootwindow.father.loadSIMPSONScript()
         if len(fileName) == 0:
             return
@@ -2515,9 +2532,12 @@ class ExternalFitDeconvParamFrame(AbstractParamFrame):
         self.script = inFile
         self.SINGLENAMES = ["offset", "mult"]
         self.MULTINAMES = [e[1:-1] for e in matches]
+        for name in self.MULTINAMES:
+            self.DEFAULTS[name] = [0.0, False]
         self.MULTINAMES.extend(["amp", "lor", "gauss"])
         for n in self.PARAMTEXT.keys():
             self.labels[n][0].deleteLater()
+            self.labels[n][1].deleteLater()
             for i in range(self.FITNUM):
                 self.ticks[n][i].deleteLater()
                 self.entries[n][i].deleteLater()
@@ -2538,8 +2558,7 @@ class ExternalFitDeconvParamFrame(AbstractParamFrame):
         for i in range(len(self.MULTINAMES)):
             name = self.MULTINAMES[i]
             self.PARAMTEXT[name] = name
-            self.labels[name] = [wc.QLabel(name)]
-            self.frame3.addWidget(self.labels[name][0], 1, 2*i+2, 1, 2)
+            self.labels[name] = self.addMultiLabel(name, name, 2*i+2)
             self.ticks[name] = []
             self.entries[name] = []
             for j in range(self.FITNUM):
@@ -2608,7 +2627,7 @@ class FunctionFitParamFrame(AbstractParamFrame):
         self.FITFUNC = simFunc.functionRun
         self.numExp = QtWidgets.QComboBox()
         self.function = ""
-        self.DEFAULTS = {}
+        self.resetDefaults()
         super(FunctionFitParamFrame, self).__init__(parent, rootwindow, isMain)
         functionButton = QtWidgets.QPushButton("Input Function")
         functionButton.clicked.connect(self.functionInput)
@@ -2620,14 +2639,21 @@ class FunctionFitParamFrame(AbstractParamFrame):
         self.labels = {}
         self.reset()
 
+    def resetDefaults(self):
+        self.DEFAULTS = {}
+        
     def functionInput(self):
         FunctionInputWindow(self, self.function)
 
     def functionInputSetup(self):
+        self.resetDefaults()
         matches = np.unique(re.findall("(@\w+@)", self.function))
         self.MULTINAMES = [e[1:-1] for e in matches]
+        for name in self.MULTINAMES:
+            self.DEFAULTS[name] = [0.0, False]
         for n in self.PARAMTEXT.keys():
             self.labels[n][0].deleteLater()
+            self.labels[n][1].deleteLater()
             for i in range(self.FITNUM):
                 self.ticks[n][i].deleteLater()
                 self.entries[n][i].deleteLater()
@@ -2638,8 +2664,7 @@ class FunctionFitParamFrame(AbstractParamFrame):
         for i in range(len(self.MULTINAMES)):
             name = self.MULTINAMES[i]
             self.PARAMTEXT[name] = name
-            self.labels[name] = [wc.QLabel(name)]
-            self.frame3.addWidget(self.labels[name][0], 1, 2*i, 1, 2)
+            self.labels[name] = self.addMultiLabel(name, name, 2*i)
             self.ticks[name] = []
             self.entries[name] = []
             for j in range(self.FITNUM):
@@ -2804,17 +2829,14 @@ class MqmasDeconvParamFrame(AbstractParamFrame):
         else:
             axUnit = ['Hz', 'kHz', 'MHz'][self.parent.getAxType()]
         # Labels
-        self.labelpos = wc.QLabel(u'Position [' + axUnit + ']:')
-        self.labelcq = wc.QLabel(u'C<sub>Q</sub> [MHz]:')
-        self.labeleta = wc.QLabel(u'η:')
-        self.frame3.addWidget(self.labelpos, 1, 0, 1, 2)
-        self.frame3.addWidget(self.labelcq, 1, 2, 1, 2)
-        self.frame3.addWidget(self.labeleta, 1, 4, 1, 2)
-        self.frame3.addWidget(wc.QLabel("Integral:"), 1, 6, 1, 2)
-        self.frame3.addWidget(wc.QLabel("Lorentz 2 [Hz]:"), 1, 8, 1, 2)
-        self.frame3.addWidget(wc.QLabel("Gauss 2 [Hz]:"), 1, 10, 1, 2)
-        self.frame3.addWidget(wc.QLabel("Lorentz 1 [Hz]:"), 1, 12, 1, 2)
-        self.frame3.addWidget(wc.QLabel("Gauss 1 [Hz]:"), 1, 14, 1, 2)
+        self.addMultiLabel("pos", u"Position [" + axUnit + "]:", 0)
+        self.addMultiLabel("cq", u"C<sub>Q</sub> [MHz]:", 2)
+        self.addMultiLabel("eta", u"η:", 4)
+        self.addMultiLabel("amp", "Integral:", 6)
+        self.addMultiLabel("lor2", "Lorentz 2 [Hz]:", 8)
+        self.addMultiLabel("gauss2", "Gauss 2 [Hz]:", 10)
+        self.addMultiLabel("lor1", "Lorentz 1 [Hz]:", 12)
+        self.addMultiLabel("gauss1", "Gauss 1 [Hz]:", 14)
         for i in range(self.FITNUM):
             for j in range(len(self.MULTINAMES)):
                 self.ticks[self.MULTINAMES[j]].append(QtWidgets.QCheckBox(''))
@@ -2972,16 +2994,16 @@ class MqmasCzjzekParamFrame(AbstractParamFrame):
             axUnit = 'ppm'
         else:
             axUnit = ['Hz', 'kHz', 'MHz'][self.parent.getAxType()]
-        self.frame3.addWidget(wc.QLabel("Pos [" + axUnit + "]:"), 1, 0, 1, 2)
-        self.frame3.addWidget(wc.QLabel(u"σ [MHz]:"), 1, 2, 1, 2)
-        self.frame3.addWidget(wc.QLabel(u"σCS [Hz]:"), 1, 4, 1, 2)
-        self.frame3.addWidget(wc.QLabel(u"C<sub>Q</sub>0 [MHz]:"), 1, 6, 1, 2)
-        self.frame3.addWidget(wc.QLabel(u"η0:"), 1, 8, 1, 2)
-        self.frame3.addWidget(wc.QLabel("Integral:"), 1, 10, 1, 2)
-        self.frame3.addWidget(wc.QLabel("Lorentz 2 [Hz]:"), 1, 12, 1, 2)
-        self.frame3.addWidget(wc.QLabel("Gauss 2 [Hz]:"), 1, 14, 1, 2)
-        self.frame3.addWidget(wc.QLabel("Lorentz 1 [Hz]:"), 1, 16, 1, 2)
-        self.frame3.addWidget(wc.QLabel("Gauss 1 [Hz]:"), 1, 18, 1, 2)
+        self.addMultiLabel("pos", "Pos [" + axUnit + "]:", 0)
+        self.addMultiLabel("sigma", u"σ [MHz]:", 2)
+        self.addMultiLabel("sigmaCS", u"σCS [Hz]:", 4)
+        self.addMultiLabel("cq0", u"C<sub>Q</sub>0 [MHz]:", 6)
+        self.addMultiLabel("eta0", u"η0:", 8)
+        self.addMultiLabel("amp", "Integral:", 10)
+        self.addMultiLabel("lor2", "Lorentz 2 [Hz]:", 12)
+        self.addMultiLabel("gauss2", "Gauss 2 [Hz]:", 14)
+        self.addMultiLabel("lor1", "Lorentz 1 [Hz]:", 16)
+        self.addMultiLabel("gauss1", "Gauss 1 [Hz]:", 18)
         for i in range(self.FITNUM):
             for j in range(len(self.MULTINAMES)):
                 self.ticks[self.MULTINAMES[j]].append(QtWidgets.QCheckBox(''))
