@@ -629,6 +629,7 @@ class AbstractParamFrame(QtWidgets.QWidget):
     SINGLENAMES = []
     MULTINAMES = []
     EXTRANAMES = []
+    PARAMTEXT = {}
     TICKS = True  # Fitting parameters can be fixed by checkboxes
     FFT_AXES = () # Which axes should be transformed after simulation
     FFTSHIFT_AXES = () # Which axes should be transformed after simulation
@@ -667,8 +668,6 @@ class AbstractParamFrame(QtWidgets.QWidget):
         self.frame2 = QtWidgets.QGridLayout()
         self.frame3 = QtWidgets.QGridLayout()
         grid.addLayout(self.frame1, 0, 0)
-
-
         paramgrid = QtWidgets.QGridLayout()
         paramgrid.addLayout(self.optframe, 0, 0)
         paramgrid.addLayout(self.frame2, 0, 1)
@@ -679,8 +678,6 @@ class AbstractParamFrame(QtWidgets.QWidget):
         self.scrollArea = QtWidgets.QScrollArea()
         self.scrollArea.setWidgetResizable(True)
         self.scrollArea.setWidget(self.gridLayoutWidget)
-
-
         grid.addWidget(self.scrollArea, 0, 1)
         grid.setColumnStretch(1, 1)
         grid.setAlignment(QtCore.Qt.AlignLeft)
@@ -945,7 +942,7 @@ class AbstractParamFrame(QtWidgets.QWidget):
             single = True
         else:
             single = False
-        ParamCopySettingsWindow(self, paramNameList, single)
+        ParamCopySettingsWindow(self, [self.PARAMTEXT[i] for i in paramNameList], single)
 
     def paramToWorkspace(self, allSlices, settings):
         if not self.checkInputs():
