@@ -527,7 +527,7 @@ class MainProgram(QtWidgets.QMainWindow):
         self.closeAct.setToolTip('Delete Workspace')
         self.renameWorkspaceAct = self.workspacemenu.addAction(QtGui.QIcon(IconDirectory + 'rename.png'), '&Rename', self.renameWorkspace, QtCore.Qt.Key_F2)
         self.renameWorkspaceAct.setToolTip('Rename Workspace')
-        self.activemenu = QtWidgets.QMenu('&Active', self)
+        self.activemenu = QtWidgets.QMenu('&Go to', self)
         self.workspacemenu.addMenu(self.activemenu)
         self.forwardAct = self.workspacemenu.addAction(QtGui.QIcon(IconDirectory + 'next.png'), '&Next', lambda: self.stepWorkspace(1), QtGui.QKeySequence.Forward)
         self.forwardAct.setToolTip('Next Workspace')
