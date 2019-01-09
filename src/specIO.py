@@ -145,7 +145,7 @@ def fileTypeCheck(filePath):
             return (12, filePath, returnVal)
         elif filename.lower().endswith('.ima'):  # Siemens ima format
             return (14, filePath, returnVal)        
-        elif filename.lower().endswith('.aqs') or filename.lower().endswith('.1r') or filename.lower().endswith('.1i') :  # Bruker WinNMR format
+        elif filename.lower().endswith('.1r') or filename.lower().endswith('.1i') :  # Bruker WinNMR format
             return (15, filePath, returnVal)        
         returnVal = 1
         direc = os.path.dirname(filePath)
