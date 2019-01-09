@@ -25,7 +25,6 @@ import multiprocessing
 import reimplement as reim
 import functions as func
 import hypercomplex as hc
-import specIO as io
 
 AUTOPHASETOL = 0.0002 #is ~0.01 degrees
 
@@ -141,6 +140,7 @@ class Spectrum(object):
         self.redoList = []
 
     def reload(self):
+        import specIO as io
         loadData = io.autoLoad(*self.filePath)
         self.restoreData(loadData, None)
         

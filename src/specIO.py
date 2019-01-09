@@ -24,12 +24,17 @@ from six import string_types
 import spectrum as sc
 import hypercomplex as hc
 
+class LoadException(sc.SpectrumException):
+    pass
+
 def autoLoad(filePathList, asciiInfoList=None):
     if isinstance(filePathList, string_types):
         filePathList = [filePathList]
     if asciiInfoList is None:
         asciiInfoList = [None] * len(filePathList)
     masterData = autoLoadSingle(filePathList[0], asciiInfoList[0])
+    if isinstance(masterData, int):
+        raise LoadException("ASCII data cannot be autoloaded")
     if len(filePathList) == 1:
         return masterData
     shapeRequired = masterData.shape()
@@ -39,7 +44,7 @@ def autoLoad(filePathList, asciiInfoList=None):
         if addData is None:
             continue
         if addData.shape() != shapeRequired:
-            raise ValueError("Not all the data has the required shape")
+            raise LoadException("Not all the data has the required shape")
         masterData.insert(addData.data, masterData.shape()[0], 0)
     masterData.filePath = (filePathList, asciiInfoList)
     return masterData
