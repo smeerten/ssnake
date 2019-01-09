@@ -33,8 +33,8 @@ def autoLoad(filePathList, asciiInfoList=None):
     if asciiInfoList is None:
         asciiInfoList = [None] * len(filePathList)
     masterData = autoLoadSingle(filePathList[0], asciiInfoList[0])
-    if isinstance(masterData, int):
-        raise LoadException("ASCII data cannot be autoloaded")
+    if isinstance(masterData, int) and len(filePathList) > 1:
+        raise LoadException("ASCII data cannot be combined")
     if len(filePathList) == 1:
         return masterData
     shapeRequired = masterData.shape()
