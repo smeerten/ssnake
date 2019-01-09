@@ -3033,7 +3033,7 @@ class AsciiLoadWindow(QtWidgets.QDialog):
         self.dataOrder = self.dataOrders[self.datOrderBox.currentIndex()]
         self.delim = self.delimiters[self.datDelimBox.currentIndex()]
         if self.dataOrder == 'RI' or self.dataOrder == 'R':
-            self.sw = safeEval(self.swEntry.text(), length=self.father.current.len(), type='FI')
+            self.sw = safeEval(self.swEntry.text(), type='FI')
             if self.sw == 0 or self.sw is None:
                 raise SsnakeException('Spectral Width input is not valid')
         self.dataDimension = self.numDims.value()
