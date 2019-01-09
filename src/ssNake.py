@@ -789,11 +789,6 @@ class MainProgram(QtWidgets.QMainWindow):
         self.multiDActions.append(self.contourplotAct)
         self.multiplotAct = self.plotMenu.addAction(QtGui.QIcon(IconDirectory + 'multi.png'), "&Multi Plot", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.plotMulti()))
         self.multiplotAct.setToolTip('Multi Plot')
-        #==== tmp add as function has been moved. WF 08-08-2018
-        self.TMPrefMenu = QtWidgets.QMenu("Reference", self)
-        self.plotMenu.addMenu(self.TMPrefMenu)
-        self.TMPACT2 = self.TMPrefMenu.addAction("Moved to 'Tools'", lambda x: max(x))
-        self.TMPACT2.setEnabled(False)
         #==========
         self.userxAct = self.plotMenu.addAction(QtGui.QIcon(IconDirectory + 'xaxis.png'), "&User X-axis", lambda: self.mainWindowCheck(lambda mainWindow: XaxWindow(mainWindow)))
         self.userxAct.setToolTip('User X-axis')
