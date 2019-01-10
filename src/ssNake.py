@@ -3508,8 +3508,9 @@ class ApodWindow(wc.ToolWindows):
         else:
             for elem in self.entries[key]:
                 elem.setEnabled(False)
-        if self.ticks['shifting'].isChecked():
-            self.dropdownChanged(update = False) #Check dropdown state
+        if self.father.current.data.ndim() > 1:
+            if self.ticks['shifting'].isChecked():
+                self.dropdownChanged(update = False) #Check dropdown state
         if key == 'lor' or key == 'gauss':  # for lorentzian and gaussian
             if safeEval(self.entries[key][0].text(), length=self.father.current.len(), type='FI') != 0.0:  # only update if value was not zero
                 self.apodPreview()
@@ -3555,7 +3556,7 @@ class ApodWindow(wc.ToolWindows):
         hamming = None
         shift = 0.0
         shifting = 0.0
-        shiftingAxis = 0
+        shiftingAxis = None
         if self.ticks['lor'].isChecked():
             lor = safeEval(self.entries['lor'][0].text(), length=self.father.current.len(), type='FI')
             if lor is None:
@@ -3586,15 +3587,16 @@ class ApodWindow(wc.ToolWindows):
             if shift is None:
                 self.father.current.showFid()
                 raise SsnakeException('Apodize: Shift value is not valid!')
-        if self.ticks['shifting'].isChecked():
-            if self.father.current.data.ndim() > 1:
-                shifting = safeEval(self.shiftingEntry.text(), length=self.father.current.len(), type='FI')
-                if shifting is None:
-                    self.father.current.showFid()
-                    raise SsnakeException('Apodize: Shifting value is not valid!')
-                shiftingAxis = int(self.shiftingValues[self.shiftingAxis.currentIndex()]) - 1
-            else:
-                shiftingAxis = None
+        if self.father.current.data.ndim() > 1:
+            if self.ticks['shifting'].isChecked():
+                if self.father.current.data.ndim() > 1:
+                    shifting = safeEval(self.shiftingEntry.text(), length=self.father.current.len(), type='FI')
+                    if shifting is None:
+                        self.father.current.showFid()
+                        raise SsnakeException('Apodize: Shifting value is not valid!')
+                    shiftingAxis = int(self.shiftingValues[self.shiftingAxis.currentIndex()]) - 1
+                else:
+                    shiftingAxis = None
 
         return lor, gauss, cos2, cos2Ph, hamming, shift, shifting, shiftingAxis
 
