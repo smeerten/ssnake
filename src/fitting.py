@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 
 # Copyright 2016 - 2019 Bas van Meerten and Wouter Franssen
 
@@ -296,15 +295,29 @@ class ResultsExportWindow(QtWidgets.QWidget):
         self.father = parent
         self.setWindowTitle("Export results")
         grid = QtWidgets.QGridLayout(self)
+        exportGroup = QtWidgets.QGroupBox('Export:')
+        exportGrid = QtWidgets.QGridLayout()
         self.parToWorkButton = QtWidgets.QPushButton("Parameters to Workspace")
         self.parToWorkButton.clicked.connect(self.parToWork)
-        grid.addWidget(self.parToWorkButton, 0, 0)
+        exportGrid.addWidget(self.parToWorkButton, 0, 0)
+        self.parToFileButton = QtWidgets.QPushButton("Parameters to file")
+        self.parToFileButton.clicked.connect(self.parToFile)
+        exportGrid.addWidget(self.parToFileButton, 1, 0)
         self.curvesToWorkButton = QtWidgets.QPushButton("Curves to Workspace")
         self.curvesToWorkButton.clicked.connect(self.curvesToWork)
-        grid.addWidget(self.curvesToWorkButton, 1, 0)
+        exportGrid.addWidget(self.curvesToWorkButton, 2, 0)
+        exportGroup.setLayout(exportGrid)
+        grid.addWidget(exportGroup, 0, 0)
+        importGroup = QtWidgets.QGroupBox('Import:')
+        importGrid = QtWidgets.QGridLayout()
+        self.fileToParButton = QtWidgets.QPushButton("File to parameters")
+        self.fileToParButton.clicked.connect(self.fileToPar)
+        importGrid.addWidget(self.fileToParButton, 3, 0)        
+        importGroup.setLayout(importGrid)
+        grid.addWidget(importGroup, 1, 0)
         cancelButton = QtWidgets.QPushButton("&Cancel")
         cancelButton.clicked.connect(self.closeEvent)
-        grid.addWidget(cancelButton, 2, 0)
+        grid.addWidget(cancelButton,4, 0)
         grid.setRowStretch(100, 1)
         self.show()
         self.setGeometry(self.frameSize().width() - self.geometry().width(), self.frameSize().height() - self.geometry().height(), 0, 0)
@@ -315,6 +328,14 @@ class ResultsExportWindow(QtWidgets.QWidget):
     def parToWork(self, *args):
         self.deleteLater()
         self.father.paramToWorkspaceWindow()
+
+    def parToFile(self, *args):
+        if self.father.paramToFile():
+            self.deleteLater()
+
+    def fileToPar(self, *args):
+        if self.father.fileToParam():
+            self.deleteLater()
 
     def curvesToWork(self, *args):
         self.deleteLater()
@@ -712,16 +733,16 @@ class AbstractParamFrame(QtWidgets.QWidget):
             self.stopAllButton.hide()
             prefButton = QtWidgets.QPushButton("Preferences")
             prefButton.clicked.connect(self.createPrefWindow)
-            self.frame1.addWidget(prefButton, 3, 1)
+            self.frame1.addWidget(prefButton, 2, 1)
         self.resetButton = QtWidgets.QPushButton("Reset")
         self.resetButton.clicked.connect(self.reset)
         self.frame1.addWidget(self.resetButton, 1, 1)
-        copyParamsButton = QtWidgets.QPushButton("Copy parameters")
+        copyParamsButton = QtWidgets.QPushButton("Copy par.")
         copyParamsButton.clicked.connect(self.copyParams)
-        self.frame1.addWidget(copyParamsButton, 2, 0,1,2)
-        exportResultButton = QtWidgets.QPushButton("Export")
+        self.frame1.addWidget(copyParamsButton, 2, 0,)
+        exportResultButton = QtWidgets.QPushButton("Export/Import")
         exportResultButton.clicked.connect(self.exportResultWindow)
-        self.frame1.addWidget(exportResultButton, 3, 0)
+        self.frame1.addWidget(exportResultButton, 3, 0, 1, 2)
         if self.isMain:
             cancelButton = QtWidgets.QPushButton("&Cancel")
             cancelButton.clicked.connect(self.closeWindow)
@@ -798,6 +819,8 @@ class AbstractParamFrame(QtWidgets.QWidget):
         for name in self.SINGLENAMES:
             if isinstance(self.fitParamList[locList][name][0], (float, int)):
                 self.entries[name][0].setText(('%#.' + str(self.rootwindow.tabWindow.PRECIS) + 'g') % self.fitParamList[locList][name][0])
+            else:
+                self.entries[name][0].setText(str(self.fitParamList[locList][name][0]))
             if self.TICKS:
                 self.ticks[name][0].setChecked(self.fitParamList[locList][name][1])
         self.setNumExp()
@@ -805,6 +828,8 @@ class AbstractParamFrame(QtWidgets.QWidget):
             for name in self.MULTINAMES:
                 if isinstance(self.fitParamList[locList][name][i][0], (float, int)):
                     self.entries[name][i].setText(('%#.' + str(self.rootwindow.tabWindow.PRECIS) + 'g') % self.fitParamList[locList][name][i][0])
+                else:
+                    self.entries[name][i].setText(str(self.fitParamList[locList][name][i][0]))
                 if self.TICKS:
                     self.ticks[name][i].setChecked(self.fitParamList[locList][name][i][1])
                 if i < val:
@@ -949,6 +974,160 @@ class AbstractParamFrame(QtWidgets.QWidget):
                 out[name][i] = inp
         out, tmp = self.getExtraParams(out)
         return out
+
+    def extraParamToFile(self):
+        return ({}, {})
+
+    def extraFileToParam(self, preParams, postParams):
+        pass
+
+    def paramToFile(self):
+        fileName = QtWidgets.QFileDialog.getSaveFileName(self, 'Save parameters', self.rootwindow.father.lastLocation + os.path.sep + self.parent.data.name + '_fit.txt', 'txt (*.txt)')
+        if isinstance(fileName, tuple):
+            fileName = fileName[0]
+        if not fileName:
+            return False
+        printLocList = list(self.parent.locList)
+        for i in range(len(printLocList)):
+            if i in self.parent.axes:
+                printLocList[i] = '*'                
+            else:
+                printLocList[i] = str(printLocList[i])
+        printLocList = "(" + ", ".join(printLocList) + ")"
+        report = "# " + FITTYPEDICT[self.rootwindow.fitType][0] + " Fit\n# " + self.parent.data.name + " " + printLocList + "\n"
+        report += "# D" + str(self.parent.axes[-1]+1) + "\n#\n"
+        extraParam, postParam = self.extraParamToFile()
+        # TODO: order of extra params
+        for key in extraParam:
+            report += "#! " + key + '=' + str(extraParam[key]) + "\n"
+        report += "#\n#? "
+        nspace = 20
+        locList = self.getRedLocList()
+        for name in self.SINGLENAMES:
+            report += name.ljust(nspace) + " "
+        report += "\n#  "
+        for name in self.SINGLENAMES:
+            report += self.PARAMTEXT[name].ljust(nspace) + " "
+        report += "\n  "
+        for name in self.SINGLENAMES:
+            if self.fitParamList[locList][name][1]:
+                subString = '*'
+            else:
+                subString = ' '
+            if isinstance(self.fitParamList[locList][name][0], (int, float)):
+                subString += ('%#.' + str(self.rootwindow.tabWindow.PRECIS) + 'g') % self.fitParamList[locList][name][0]
+            else:
+                subString += str(self.fitParamList[locList][name][0]).replace(' ', '')
+            report += subString.ljust(nspace) + " "
+        report += "\n\n#? "
+        for name in self.MULTINAMES:
+            report += name.ljust(nspace) + " "
+        report += "\n#  "
+        for name in self.MULTINAMES:
+            report += self.PARAMTEXT[name].ljust(nspace) + " "
+        report += "\n  "
+        for i in range(self.fitNumList[locList] + 1):
+            for name in self.MULTINAMES:
+                if self.fitParamList[locList][name][i][1]:
+                    subString = '*'
+                else:
+                    subString = ' '
+                if isinstance(self.fitParamList[locList][name][i][0], (int, float)):
+                    subString += ('%#.' + str(self.rootwindow.tabWindow.PRECIS) + 'g') % self.fitParamList[locList][name][i][0]
+                else:
+                    subString += str(self.fitParamList[locList][name][i][0]).replace(' ', '')
+                report += subString.ljust(nspace) + " "
+            report += "\n  "
+        report += "\n"
+        report += "#"*100 + "\n"
+        for key in postParam:
+            report += "#! " + key + "\n"
+            report += str(postParam[key]) + "\n"
+        with open(fileName, "w") as fp:
+            fp.write(report)
+        return True
+
+    def fileToParam(self):
+        fileName = QtWidgets.QFileDialog.getOpenFileName(self, 'Load parameters', self.rootwindow.father.lastLocation)
+        if isinstance(fileName, tuple):
+            fileName = fileName[0]
+        if len(fileName) == 0:
+            return
+        with open(fileName, "r") as fp:
+            report = fp.read()
+        splitReport = re.split("#{5,}\n", report)
+        postReport = splitReport[1]
+        postReport = re.split("#!", postReport)
+        if len(postReport)==1:
+            postReport = []
+        else:
+            postReport = postReport[1:]
+        postParams = {}
+        for i in range(len(postReport)):
+            tmp = postReport[i].split('\n', 1)
+            postParams[tmp[0].strip()] = tmp[1].strip()
+        splitReport = re.split("#\?", splitReport[0])
+        preReport = splitReport[0].split('\n')
+        preParams = {}
+        for line in preReport:
+            tmp = line.strip()
+            if re.match("#!", tmp):
+                tmp = tmp[2:].strip().split('=')
+                preParams[tmp[0].strip()] = tmp[1].strip()
+        singleReport = splitReport[1].split('\n')
+        multiReport = splitReport[2].split('\n')
+        singleNames = singleReport[0].split()
+        singleVals = []
+        for line in singleReport[1:]:
+            tmp = line.strip()
+            if tmp and tmp[0]!='#':
+                singleVals.append(tmp.split())
+        if len(singleVals) > 1:
+            raise FittingException("Incorrect number of parameters in file")
+        singleVals = self.__interpretParam(singleVals)
+        multiNames = multiReport[0].split()
+        multiVals = []
+        for line in multiReport[1:]:
+            tmp = line.strip()
+            if tmp and tmp[0]!='#':
+                multiVals.append(tmp.split())
+        multiVals = self.__interpretParam(multiVals)
+        self.extraFileToParam(preParams, postParams)
+        self.setParamFromList(singleNames, singleVals, multiNames, multiVals)
+        self.dispParams()
+        return True
+
+    def __interpretParam(self, strList):
+        data = []
+        for i in range(len(strList)):
+            tmp = []
+            for j in range(len(strList[i])):
+                if strList[i][j][0] == '*':
+                    tmp.append([safeEval(strList[i][j][1:]), True])
+                else:
+                    tmp.append([safeEval(strList[i][j]), False])
+                if isinstance(tmp[-1][0], tuple):
+                    tmp[-1][0] = checkLinkTuple(tmp[-1][0])
+            data.append(tmp)
+        return data
+        
+    def setParamFromList(self, singleNames, singleVals, multiNames, multiVals):
+        locList = self.getRedLocList()
+        keys = self.fitParamList[locList].keys()
+        if singleVals:
+            singleVals = singleVals[0]
+            if len(singleNames) != len(singleVals):
+                raise FittingException("The number of parameters does not match the parameter names")
+            for i in range(len(singleNames)):
+                if singleNames[i] in keys:
+                    self.fitParamList[locList][singleNames[i]] = singleVals[i]
+        for j in range(len(multiVals)):
+            if len(multiNames) != len(multiVals[j]):
+                raise FittingException("The number of parameters does not match the parameter names")
+            for i in range(len(multiNames)):
+                if multiNames[i] in keys:
+                    self.fitParamList[locList][multiNames[i]][j] = multiVals[j][i]
+        self.fitNumList[locList] = len(multiVals) - 1
 
     def paramToWorkspaceWindow(self):
         paramNameList = self.SINGLENAMES + self.MULTINAMES
@@ -1596,13 +1775,13 @@ class CsaDeconvFrame(FitPlotFrame):
             if self.pickNum < self.FITNUM:
                 self.rootwindow.paramframe.numExp.setCurrentIndex(self.pickNum)
                 self.rootwindow.paramframe.changeNum()
-            self.rootwindow.paramframe.entries['t11'][self.pickNum].setText(printStr % (self.xax()[pos[0]] * axMult))
+            self.rootwindow.paramframe.entries['def1'][self.pickNum].setText(printStr % (self.xax()[pos[0]] * axMult))
             self.pickNum2 = 1
         elif self.pickNum2 == 1:
-            self.rootwindow.paramframe.entries['t22'][self.pickNum].setText(printStr % (self.xax()[pos[0]] * axMult))
+            self.rootwindow.paramframe.entries['def2'][self.pickNum].setText(printStr % (self.xax()[pos[0]] * axMult))
             self.pickNum2 = 2
         elif self.pickNum2 == 2:
-            self.rootwindow.paramframe.entries['t33'][self.pickNum].setText(printStr % (self.xax()[pos[0]] * axMult))
+            self.rootwindow.paramframe.entries['def3'][self.pickNum].setText(printStr % (self.xax()[pos[0]] * axMult))
             self.pickNum2 = 0
             self.pickNum += 1
         if self.pickNum < self.FITNUM:
@@ -1616,14 +1795,20 @@ class CsaDeconvParamFrame(AbstractParamFrame):
 
     FFT_AXES = (0,)
     SINGLENAMES = ['offset', 'mult', 'spinspeed']
-    MULTINAMES = ['t11', 't22', 't33', 'amp', 'lor', 'gauss']
+    MULTINAMES = ['def1', 'def2', 'def3', 'amp', 'lor', 'gauss']
     EXTRANAMES = ['spinType', 'satBool', 'angle', 'shiftdef', 'cheng', 'numssb']
-    PARAMTEXT = {'offset': 'Offset', 'mult':'Multiplier', 'spinspeed': 'Spinning Speed', 't11': 'T11', 't22': 'T22', 't33': 'T33', 'amp': 'Integral', 'lor': 'Lorentz', 'gauss': 'Gauss'}
+    PARAMTEXT = {'offset': 'Offset', 'mult':'Multiplier', 'spinspeed': 'Spinning Speed', 'def1': 'Definition 1', 'def2': 'Definition 2', 'def3': 'Definition 3', 'amp': 'Integral', 'lor': 'Lorentz', 'gauss': 'Gauss'}
+
+    MASTYPES = ["Static", "Finite MAS", "Infinite MAS"]
+    DEFTYPES = [u'δ11 - δ22 - δ33',
+                u'δxx - δyy - δzz',
+                u'δiso - δaniso - η',
+                u'δiso - Ω - κ']
 
     def __init__(self, parent, rootwindow, isMain=True):
         self.FITFUNC = simFunc.csaFunc
         self.fullInt = np.sum(parent.getData1D()) * parent.sw() / float(len(parent.getData1D()))
-        self.DEFAULTS = {'offset': [0.0, True], 'mult': [1.0, True], 'spinspeed': [10.0, True], 't11': [0.0, False], 't22': [0.0, False], 't33': [0.0, False], 'amp': [self.fullInt, False], 'lor': [1.0, False], 'gauss': [0.0, True]}
+        self.DEFAULTS = {'offset': [0.0, True], 'mult': [1.0, True], 'spinspeed': [10.0, True], 'def1': [0.0, False], 'def2': [0.0, False], 'def3': [0.0, False], 'amp': [self.fullInt, False], 'lor': [1.0, False], 'gauss': [0.0, True]}
         self.extraDefaults = {'cheng': 15, 'shiftdef': 0, 'spinType': 0, 'rotorAngle': "arctan(sqrt(2))", 'numssb': 32, 'spinspeed': '10.0'}
         super(CsaDeconvParamFrame, self).__init__(parent, rootwindow, isMain)
         self.pickTick = QtWidgets.QCheckBox("Pick")
@@ -1631,7 +1816,7 @@ class CsaDeconvParamFrame(AbstractParamFrame):
         self.optframe.addWidget(self.pickTick, 4, 0)
         self.optframe.addWidget(wc.QLabel("MAS:"), 0, 0)
         self.entries['spinType'].append(QtWidgets.QComboBox(self))
-        self.entries['spinType'][-1].addItems(["Static", "Finite MAS", "Infinite MAS"])
+        self.entries['spinType'][-1].addItems(self.MASTYPES)
         self.entries['spinType'][-1].currentIndexChanged.connect(self.MASChange)
         self.optframe.addWidget(self.entries['spinType'][-1], 1, 0)
         self.angleLabel = wc.QLabel("Rotor Angle:")
@@ -1653,10 +1838,7 @@ class CsaDeconvParamFrame(AbstractParamFrame):
         self.shiftDefType = 0  # variable to remember the selected tensor type
         self.optframe.addWidget(wc.QLabel("Definition:"), 2, 0)
         self.entries['shiftdef'].append(QtWidgets.QComboBox())
-        self.entries['shiftdef'][-1].addItems([u'δ11 - δ22 - δ33',
-                                               u'δxx - δyy - δzz',
-                                               u'δiso - δaniso - η',
-                                               u'δiso - Ω - κ'])
+        self.entries['shiftdef'][-1].addItems(self.DEFTYPES)
         self.entries['shiftdef'][-1].currentIndexChanged.connect(self.changeShiftDef)
         self.optframe.addWidget(self.entries['shiftdef'][-1], 3, 0)
         self.spinLabel = wc.QLabel("Spin. speed [kHz]:")
@@ -1684,9 +1866,9 @@ class CsaDeconvParamFrame(AbstractParamFrame):
         else:
             axUnit = ['Hz', 'kHz', 'MHz'][self.parent.getAxType()]
         # Labels
-        self.addMultiLabel("t11", "", 0)
-        self.addMultiLabel("t22", "", 2)
-        self.addMultiLabel("t33", "", 4)
+        self.addMultiLabel("def1", "", 0)
+        self.addMultiLabel("def2", "", 2)
+        self.addMultiLabel("def3", "", 4)
         self.label11 = wc.QLabel(u'δ' + '<sub>11</sub> [' + axUnit + '] :')
         self.label22 = wc.QLabel(u'δ' + '<sub>22</sub> [' + axUnit + '] :')
         self.label33 = wc.QLabel(u'δ' + '<sub>33</sub> [' + axUnit + '] :')
@@ -1837,10 +2019,10 @@ class CsaDeconvParamFrame(AbstractParamFrame):
         tensorList = []
         for i in range(10):  # Convert input
             if i < val:
-                T11 = safeEval(self.entries['t11'][i].text())
-                T22 = safeEval(self.entries['t22'][i].text())
-                T33 = safeEval(self.entries['t33'][i].text())
-                startTensor = [T11, T22, T33]
+                def1 = safeEval(self.entries['def1'][i].text())
+                def2 = safeEval(self.entries['def2'][i].text())
+                def3 = safeEval(self.entries['def3'][i].text())
+                startTensor = [def1, def2, def3]
                 if None in startTensor:
                     self.entries['shiftdef'][-1].setCurrentIndex(OldType)  # error, reset to old view
                     raise FittingException("Fitting: One of the inputs is not valid")
@@ -1852,10 +2034,31 @@ class CsaDeconvParamFrame(AbstractParamFrame):
         printStr = '%#.' + str(self.rootwindow.tabWindow.PRECIS) + 'g'
         for i in range(10):  # Print output if not stopped before
             if i < val:
-                self.entries['t11'][i].setText(printStr % tensorList[i][NewType][0])
-                self.entries['t22'][i].setText(printStr % tensorList[i][NewType][1])
-                self.entries['t33'][i].setText(printStr % tensorList[i][NewType][2])
+                self.entries['def1'][i].setText(printStr % tensorList[i][NewType][0])
+                self.entries['def2'][i].setText(printStr % tensorList[i][NewType][1])
+                self.entries['def3'][i].setText(printStr % tensorList[i][NewType][2])
         self.shiftDefType = NewType
+
+    def extraParamToFile(self):
+        extraDict = {"MAS": self.MASTYPES[self.entries['spinType'][0].currentIndex()],
+                     "Definition": self.DEFTYPES[self.entries['shiftdef'][0].currentIndex()],
+                     "Cheng": self.entries['cheng'][0].text(),
+                     "Angle": self.entries['angle'][0].text(),
+                     "Sidebands": self.entries['numssb'][0].text()}
+        return (extraDict, {})
+
+    def extraFileToParam(self, preParams, postParams):
+        keys = preParams.keys()
+        if "MAS" in keys:
+            self.entries['spinType'][0].setCurrentIndex(self.MASTYPES.index(preParams["MAS"]))
+        if "Definition" in keys:
+            self.entries['shiftdef'][0].setCurrentIndex(self.DEFTYPES.index(preParams["Definition"]))
+        if "Cheng" in keys:
+            self.entries['cheng'][0].setValue(int(preParams["Cheng"]))
+        if "Angle" in keys:
+            self.entries['angle'][0].setText(preParams["Angle"])
+        if "Sidebands" in keys:
+            self.entries['numssb'][0].setValue(int(preParams["Sidebands"]))
 
     def getExtraParams(self, out):
         shiftdef = self.entries['shiftdef'][0].currentIndex()
@@ -1905,6 +2108,8 @@ class QuadDeconvParamFrame(AbstractParamFrame):
     EXTRANAMES = ['spinType', 'satBool', 'angle', 'cheng', 'I', 'numssb']
     PARAMTEXT = {'offset': 'Offset', 'mult':'Multiplier', 'spinspeed': 'Spinning Speed', 'pos': 'Position', 'cq': 'Cq', 'eta': 'eta', 'amp': 'Integral', 'lor': 'Lorentz', 'gauss': 'Gauss'}
 
+    MASTYPES = ["Static", "Finite MAS", "Infinite MAS"]
+
     def __init__(self, parent, rootwindow, isMain=True):
         self.FITFUNC = simFunc.quadFunc
         self.fullInt = np.sum(parent.getData1D()) * parent.sw() / float(len(parent.getData1D()))
@@ -1913,7 +2118,7 @@ class QuadDeconvParamFrame(AbstractParamFrame):
         super(QuadDeconvParamFrame, self).__init__(parent, rootwindow, isMain)
         self.optframe.addWidget(wc.QLabel("MAS:"), 2, 0)
         self.entries['spinType'].append(QtWidgets.QComboBox(self))
-        self.entries['spinType'][-1].addItems(["Static", "Finite", "Infinite"])
+        self.entries['spinType'][-1].addItems(self.MASTYPES)
         self.entries['spinType'][-1].currentIndexChanged.connect(self.MASChange)
         self.optframe.addWidget(self.entries['spinType'][-1], 3, 0)
         self.entries['satBool'].append(QtWidgets.QCheckBox("Satellites"))
@@ -2009,6 +2214,30 @@ class QuadDeconvParamFrame(AbstractParamFrame):
         self.entries['satBool'][-1].setChecked(self.extraDefaults["Satellites"])
         super(QuadDeconvParamFrame, self).reset()
 
+    def extraParamToFile(self):
+        extraDict = {"I": self.Ioptions[self.entries['I'][-1].currentIndex()],
+                     "MAS": self.MASTYPES[self.entries['spinType'][-1].currentIndex()],
+                     "Satellites": str(self.entries['satBool'][-1].isChecked()),
+                     "Cheng": self.entries['cheng'][-1].text(),
+                     "Angle": self.entries['angle'][-1].text(),
+                     "Sidebands": self.entries['numssb'][0].text()}
+        return (extraDict, {})
+
+    def extraFileToParam(self, preParams, postParams):
+        keys = preParams.keys()
+        if "I" in keys:
+            self.entries['I'][0].setCurrentIndex(self.Ioptions.index(preParams["I"]))
+        if "MAS" in keys:
+            self.entries['spinType'][0].setCurrentIndex(self.MASTYPES.index(preParams["MAS"]))
+        if "Satellites" in keys:
+            self.entries['satBool'][0].setChecked(preParams["Satellites"] == "True")
+        if "Cheng" in keys:
+            self.entries['cheng'][0].setValue(int(preParams["Cheng"]))
+        if "Angle" in keys:
+            self.entries['angle'][0].setText(preParams["Angle"])
+        if "Sidebands" in keys:
+            self.entries['numssb'][0].setValue(int(preParams["Sidebands"]))
+
     def getExtraParams(self, out):
         satBool = self.entries['satBool'][-1].isChecked()
         angle = safeEval(self.entries['angle'][-1].text())
@@ -2046,7 +2275,8 @@ class QuadDeconvParamFrame(AbstractParamFrame):
 class CzjzekPrefWindow(QtWidgets.QWidget):
 
     Ioptions = ['1', '3/2', '2', '5/2', '3', '7/2', '4', '9/2']
-    
+    MASTYPES = ["Static", "Finite MAS", "Infinite MAS"]
+
     def __init__(self, parent, mqmas=False):
         super(CzjzekPrefWindow, self).__init__(parent)
         self.setWindowFlags(QtCore.Qt.Window | QtCore.Qt.Tool)
@@ -2092,7 +2322,7 @@ class CzjzekPrefWindow(QtWidgets.QWidget):
         if not mqmas:
             grid.addWidget(wc.QLabel("MAS:"), 8, 0)
             self.masEntry = QtWidgets.QComboBox(self)
-            self.masEntry.addItems(["Static", "Finite MAS", "Infinite MAS"])
+            self.masEntry.addItems(self.MASTYPES)
             self.masEntry.currentIndexChanged.connect(self.MASChange)
             grid.addWidget(self.masEntry, 9, 0)
             self.angleLabel = wc.QLabel("Rotor Angle:")
@@ -2346,13 +2576,15 @@ class QuadCzjzekParamFrame(AbstractParamFrame):
     EXTRANAMES = ['method', 'd']
     PARAMTEXT = {'offset': 'Offset', 'mult':'Multiplier', 'pos': 'Position', 'sigma': 'Sigma', 'cq0': 'Cq0', 'eta0': 'Eta0', 'amp': 'Integral', 'lor': 'Lorentz', 'gauss': 'Gauss'}
 
+    TYPES = ['Normal', 'Extended']
+    
     def __init__(self, parent, rootwindow, isMain=True):
         self.FITFUNC = simFunc.quadCzjzekFunc
         self.fullInt = np.sum(parent.getData1D()) * parent.sw() / float(len(parent.getData1D()))
         self.DEFAULTS = {'offset': [0.0, True], 'mult': [1.0, True], 'pos': [0.0, False], 'sigma': [1.0, False], 'cq0': [0.0, True], 'eta0': [0.0, True], 'amp': [self.fullInt, False], 'lor': [10.0, False], 'gauss': [0.0, True]}
         self.extraDefaults = {'method': 0, 'd': 5, 'cqsteps': 50, 'etasteps': 10, 'cqmax': 4.0, 'cqmin': 0.0, 'etamin': 0, 'etamax': 1,
-                'lib': None, 'cqLib': None, 'etaLib': None, 'I': 3 / 2.0, 'cheng': 15, 'mas': 2, 'spinspeed': 10.0,
-                'angle': "arctan(sqrt(2))", 'numssb': 32, 'satBool': False}
+                              'lib': None, 'cqLib': None, 'etaLib': None, 'I': 3 / 2.0, 'cheng': 15, 'mas': 2, 'spinspeed': 10.0,
+                              'angle': "arctan(sqrt(2))", 'numssb': 32, 'satBool': False}
         super(QuadCzjzekParamFrame, self).__init__(parent, rootwindow, isMain)
         czjzekPrefButton = QtWidgets.QPushButton("Library")
         czjzekPrefButton.clicked.connect(self.createCzjzekPrefWindow)
@@ -2371,7 +2603,7 @@ class QuadCzjzekParamFrame(AbstractParamFrame):
         self.frame2.addWidget(self.entries['mult'][-1], 3, 1)
         self.optframe.addWidget(wc.QLabel("Type:"), 0, 0)
         self.entries['method'].append(QtWidgets.QComboBox())
-        self.entries['method'][0].addItems(['Normal', 'Extended'])
+        self.entries['method'][0].addItems(self.TYPES)
         self.entries['method'][0].currentIndexChanged.connect(self.changeType)
         self.optframe.addWidget(self.entries['method'][0], 1, 0)
         self.optframe.addWidget(wc.QLabel("d:"), 2, 0)
@@ -2449,7 +2681,58 @@ class QuadCzjzekParamFrame(AbstractParamFrame):
         D4 = simFunc.D4tens(alpha, beta, np.zeros_like(alpha))
         extra = [self.satBool, self.I, self.numssb, angle, D2, D4, weight, self.mas]
         self.lib, self.cqLib, self.etaLib = simFunc.genLib(len(self.parent.xax()), self.cqmin, self.cqmax, self.etamin, self.etamax, self.cqsteps, self.etasteps, extra, self.parent.freq(), self.parent.sw(), self.spinspeed)
-        
+
+    def extraParamToFile(self):
+        extraDict = {"Method": self.TYPES[self.entries['method'][-1].currentIndex()],
+                     "d": str(self.entries['d'][0].currentIndex() + 1),
+                     "I": CzjzekPrefWindow.Ioptions[int(self.I*2.0-2.0)],
+                     "Cheng": str(self.cheng),
+                     "CQgrid": str(self.cqsteps),
+                     "Etagrid": str(self.etasteps),
+                     "CQmin": str(self.cqmin),
+                     "CQmax": str(self.cqmax),
+                     "Etamin": str(self.etamin),
+                     "Etamax": str(self.etamax),
+                     "MAS": CzjzekPrefWindow.MASTYPES[self.mas],
+                     "Angle": self.angle,
+                     "Spinspeed": str(self.spinspeed),
+                     "Sidebands": str(self.numssb),
+                     "Satellites": str(self.satBool)}
+        return (extraDict, {})
+
+    def extraFileToParam(self, preParams, postParams):
+        keys = preParams.keys()
+        if "Method" in keys:
+            self.entries['method'][0].setCurrentIndex(self.TYPES.index(preParams["Method"]))
+        if "d" in keys:
+            self.entries['d'][0].setCurrentIndex(int(preParams["d"])-1)
+        if "I" in keys:
+            self.I = CzjzekPrefWindow.Ioptions.index(preParams["I"]) * 0.5 + 1
+        if "CQgrid" in keys:
+            self.cqsteps = int(preParams["CQgrid"])
+        if "Etagrid" in keys:
+            self.etasteps = int(preParams["Etagrid"])
+        if "CQmax" in keys:
+            self.cqmax = float(preParams["CQmax"])
+        if "CQmin" in keys:
+            self.cqmin = float(preParams["CQmin"])
+        if "Etamax" in keys:
+            self.etamax = float(preParams["Etamax"])
+        if "Etamin" in keys:
+            self.etamin = float(preParams["Etamin"])
+        if "MAS" in keys:
+            self.mas = CzjzekPrefWindow.MASTYPES.index(preParams["MAS"])
+        if "Spinspeed" in keys:
+            self.spinspeed = float(preParams["Spinspeed"])
+        if "Satellites" in keys:
+            self.satBool = (preParams["Satellites"] == "True")
+        if "Cheng" in keys:
+            self.cheng = int(preParams["Cheng"])
+        if "Angle" in keys:
+            self.angle = preParams["Angle"]
+        if "Sidebands" in keys:
+            self.numssb = int(preParams["Sidebands"])
+
     def getExtraParams(self, out):
         if self.lib is None:
             raise FittingException("No library available")
@@ -2528,6 +2811,9 @@ class ExternalFitDeconvParamFrame(AbstractParamFrame):
                 inFile = myfile.read()
         except Exception:
             raise FittingException("Fitting: No valid script found")
+        self.analyseScript(inFile)
+
+    def analyseScript(self, inFile):
         matches = np.unique(re.findall("(@\w+@)", inFile))
         self.script = inFile
         self.SINGLENAMES = ["offset", "mult"]
@@ -2555,6 +2841,8 @@ class ExternalFitDeconvParamFrame(AbstractParamFrame):
         self.frame2.addWidget(self.ticks['mult'][-1], 4, 0)
         self.entries['mult'].append(wc.QLineEdit("1.0"))
         self.frame2.addWidget(self.entries['mult'][-1], 4, 1)
+        for name in self.SINGLENAMES:
+            self.PARAMTEXT[name] = name
         for i in range(len(self.MULTINAMES)):
             name = self.MULTINAMES[i]
             self.PARAMTEXT[name] = name
@@ -2567,6 +2855,16 @@ class ExternalFitDeconvParamFrame(AbstractParamFrame):
                 self.entries[name].append(wc.FitQLineEdit(self, name))
                 self.frame3.addWidget(self.entries[name][j], 2+j, 2*i+3)
         self.reset()
+
+    def extraParamToFile(self):
+        extraDict = {"Command": self.commandLine.text()}
+        return (extraDict, {"Script": self.script})
+
+    def extraFileToParam(self, preParams, postParams):
+        if "Script" in postParams.keys():
+            self.analyseScript(postParams["Script"])
+        if "Command" in preParams.keys():
+            self.commandLine.setText(preParams["Command"])
 
     def getExtraParams(self, out):
         out['extra'] = [self.MULTINAMES, self.commandLine.text(), self.script, self.txtOutput, self.parent.spec()]
@@ -2674,6 +2972,15 @@ class FunctionFitParamFrame(AbstractParamFrame):
                 self.frame3.addWidget(self.entries[name][j], 2+j, 2*i+1)
         self.reset()
 
+    def extraParamToFile(self):
+        extraDict = {"Function": self.function}
+        return (extraDict, {})
+
+    def extraFileToParam(self, preParams, postParams):
+        if "Function" in preParams.keys():
+            self.function = preParams["Function"]
+            self.functionInputSetup()
+
     def getExtraParams(self, out):
         if self.function == "":
             raise FittingException("Fitting: No function defined")
@@ -2758,8 +3065,10 @@ class MqmasDeconvParamFrame(AbstractParamFrame):
     SINGLENAMES = ['offset', 'mult', 'spinspeed']
     MULTINAMES = ['pos', 'cq', 'eta', 'amp', 'lor2', 'gauss2', 'lor1', 'gauss1']
     EXTRANAMES = ['spinType', 'angle', 'numssb','cheng', 'I', 'MQ', 'shear', 'scale']
-    PARAMTEXT = {'offset': 'Offset', 'mult':'Multiplier', 'pos': 'Position', 'cq': 'Cq', 'eta': 'eta', 'amp': 'Integral', 'lor2': 'Lorentz 2', 'gauss2': 'Gauss 2', 'lor1': 'Lorentz 1', 'gauss1': 'Gauss 1'}
+    PARAMTEXT = {'offset': 'Offset', 'mult':'Multiplier', 'spinspeed':'Spinspeed', 'pos': 'Position', 'cq': 'Cq', 'eta': 'eta', 'amp': 'Integral', 'lor2': 'Lorentz 2', 'gauss2': 'Gauss 2', 'lor1': 'Lorentz 1', 'gauss1': 'Gauss 1'}
 
+    MASTYPES = ["Static", "Finite MAS", "Infinite MAS"]
+    
     def __init__(self, parent, rootwindow, isMain=True):
         self.FITFUNC = simFunc.mqmasFunc
         self.fullInt = np.sum(parent.getData1D()) * parent.sw() / float(parent.getData1D().shape[-1]) * parent.sw(-2) / float(parent.getData1D().shape[-2])
@@ -2768,7 +3077,7 @@ class MqmasDeconvParamFrame(AbstractParamFrame):
         super(MqmasDeconvParamFrame, self).__init__(parent, rootwindow, isMain)
         self.optframe.addWidget(wc.QLabel("MAS:"), 2, 0)
         self.entries['spinType'].append(QtWidgets.QComboBox(self))
-        self.entries['spinType'][-1].addItems(["Static", "Finite MAS", "Infinite MAS"])
+        self.entries['spinType'][-1].addItems(self.MASTYPES)
         self.entries['spinType'][-1].currentIndexChanged.connect(self.MASChange)
         self.optframe.addWidget(self.entries['spinType'][-1], 3, 0)
         self.angleLabel = wc.QLabel("Rotor Angle:")
@@ -2891,6 +3200,36 @@ class MqmasDeconvParamFrame(AbstractParamFrame):
             self.entries['numssb'][-1].setEnabled(False)
             self.sidebandLabel.setEnabled(False)
         
+    def extraParamToFile(self):
+        extraDict = {"I": self.Ioptions[self.entries['I'][-1].currentIndex()],
+                     "MQ": str(self.MQvalues[self.entries['MQ'][-1].currentIndex()]),
+                     "Shear": self.entries['shear'][-1].text(),
+                     "ScaleSW": self.entries['scale'][-1].text(),
+                     "Cheng": self.entries['cheng'][-1].text(),
+                     "MAS": self.MASTYPES[self.entries['spinType'][-1].currentIndex()],
+                     "Angle": self.entries['angle'][-1].text(),
+                     "Sidebands": self.entries['numssb'][-1].text()}
+        return (extraDict, {})
+
+    def extraFileToParam(self, preParams, postParams):
+        keys = preParams.keys()
+        if "I" in keys:
+            self.entries['I'][0].setCurrentIndex(self.Ioptions.index(preParams["I"]))
+        if "MQ" in keys:
+            self.entries['MQ'][0].setCurrentIndex(self.MQvalues.index(int(preParams["MQ"])))
+        if "MAS" in keys:
+            self.entries['spinType'][0].setCurrentIndex(self.MASTYPES.index(preParams["MAS"]))
+        if "Shear" in keys:
+            self.entries['shear'][0].setText(preParams["Shear"])
+        if "Scale" in keys:
+            self.entries['scale'][0].setText(preParams["ScaleSW"])
+        if "Cheng" in keys:
+            self.entries['cheng'][0].setValue(int(preParams["Cheng"]))
+        if "Angle" in keys:
+            self.entries['angle'][0].setText(preParams["Angle"])
+        if "Sidebands" in keys:
+            self.entries['numssb'][0].setValue(int(preParams["Sidebands"]))
+
     def getExtraParams(self, out):
         angle = safeEval(self.entries['angle'][-1].text())
         if angle is None:
@@ -2940,7 +3279,9 @@ class MqmasCzjzekParamFrame(AbstractParamFrame):
     SINGLENAMES = ['offset', 'mult']
     MULTINAMES = ['pos', 'sigma', 'sigmaCS', 'cq0', 'eta0', 'amp', 'lor2', 'gauss2', 'lor1', 'gauss1']
     EXTRANAMES = ['method', 'd', 'MQ', 'shear', 'scale']
-    PARAMTEXT = {'offset': 'Offset', 'mult': 'Multiplier', 'pos': 'Position', 'sigma': 'Sigma', 'sigmaCS': 'Sigma CS', 'cq0': 'Cq0', 'eta0': 'Eta0', 'amp': 'Integral', 'lor': 'Lorentz', 'gauss': 'Gauss'}
+    PARAMTEXT = {'offset': 'Offset', 'mult': 'Multiplier', 'pos': 'Position', 'sigma': 'Sigma', 'sigmaCS': 'Sigma CS', 'cq0': 'Cq0', 'eta0': 'Eta0', 'amp': 'Integral', 'lor2': 'Lorentz 2', 'gauss2': 'Gauss 2', 'lor1': 'Lorentz 1', 'gauss1': 'Gauss 1'}
+
+    TYPES = ['Normal', 'Extended']
 
     def __init__(self, parent, rootwindow, isMain=True):
         self.FITFUNC = simFunc.mqmasCzjzekFunc
@@ -2979,7 +3320,7 @@ class MqmasCzjzekParamFrame(AbstractParamFrame):
         self.frame2.addWidget(self.entries['mult'][-1], 3, 1)
         self.optframe.addWidget(wc.QLabel("Type:"), 0, 0)
         self.entries['method'].append(QtWidgets.QComboBox())
-        self.entries['method'][0].addItems(['Normal', 'Extended'])
+        self.entries['method'][0].addItems(self.TYPES)
         self.entries['method'][0].currentIndexChanged.connect(self.changeType)
         self.optframe.addWidget(self.entries['method'][0], 1, 0)
         self.optframe.addWidget(wc.QLabel("d:"), 2, 0)
@@ -3071,6 +3412,48 @@ class MqmasCzjzekParamFrame(AbstractParamFrame):
         D4 = simFunc.D4tens(alpha, beta, np.zeros_like(alpha))
         extra = [False, self.I, 2, angle, D2, D4, weight, 2]
         self.lib, self.cqLib, self.etaLib = simFunc.genLib(len(self.parent.xax()), self.cqmin, self.cqmax, self.etamin, self.etamax, self.cqsteps, self.etasteps, extra, self.parent.freq(), self.parent.sw(), np.inf)
+
+    def extraParamToFile(self):
+        extraDict = {"Method": self.TYPES[self.entries['method'][-1].currentIndex()],
+                     "d": str(self.entries['d'][0].currentIndex() + 1),
+                     "I": CzjzekPrefWindow.Ioptions[int(self.I*2.0-2.0)],
+                     "Shear": self.entries['shear'][-1].text(),
+                     "ScaleSW": self.entries['scale'][-1].text(),
+                     "Cheng": str(self.cheng),
+                     "CQgrid": str(self.cqsteps),
+                     "Etagrid": str(self.etasteps),
+                     "CQmin": str(self.cqmin),
+                     "CQmax": str(self.cqmax),
+                     "Etamin": str(self.etamin),
+                     "Etamax": str(self.etamax)}
+        return (extraDict, {})
+
+    def extraFileToParam(self, preParams, postParams):
+        keys = preParams.keys()
+        if "Method" in keys:
+            self.entries['method'][0].setCurrentIndex(self.TYPES.index(preParams["Method"]))
+        if "d" in keys:
+            self.entries['d'][0].setCurrentIndex(int(preParams["d"]))
+        if "I" in keys:
+            self.I = CzjzekPrefWindow.Ioptions.index(preParams["I"]) * 0.5 + 1
+        if "Shear" in keys:
+            self.entries['shear'][0].setText(preParams["Shear"])
+        if "Scale" in keys:
+            self.entries['scale'][0].setText(preParams["ScaleSW"])
+        if "CQgrid" in keys:
+            self.cqsteps = int(preParams["CQgrid"])
+        if "Etagrid" in keys:
+            self.etasteps = int(preParams["Etagrid"])
+        if "CQmax" in keys:
+            self.cqmax = float(preParams["CQmax"])
+        if "CQmin" in keys:
+            self.cqmin = float(preParams["CQmin"])
+        if "Etamax" in keys:
+            self.etamax = float(preParams["Etamax"])
+        if "Etamin" in keys:
+            self.etamin = float(preParams["Etamin"])
+        if "Cheng" in keys:
+            self.cheng = int(preParams["Cheng"])
 
     def getExtraParams(self, out):
         if self.lib is None:

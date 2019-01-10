@@ -1111,7 +1111,7 @@ class MainProgram(QtWidgets.QMainWindow):
             self.mainWindow.runMacro(self.macros[name])
 
     def saveMacro(self, name):
-        fileName = QtWidgets.QFileDialog.getSaveFileName(self, 'Save File', self.lastLocation + os.path.sep + name + '.macro', 'MACRO (*.macro)')
+        fileName = QtWidgets.QFileDialog.getSaveFileName(self, 'Save file', self.lastLocation + os.path.sep + name + '.macro', 'MACRO (*.macro)')
         if isinstance(fileName, tuple):
             fileName = fileName[0]
         if not fileName:
