@@ -1245,11 +1245,13 @@ class MainProgram(QtWidgets.QMainWindow):
             self.lastLocation = os.path.dirname(filename)  # Save used path
         if len(filename) == 0:
             return
+        name = os.path.basename(filename)
+        if name.endswith('.txt'): #If regular extension, name becomes filename - extension
+            name = name[:-4]
         count = 0
-        name = 'ref' + str(count)
-        while name in self.referenceName:
-            count += 1
+        while name in self.referenceName: #If name known, cycle trough defaults
             name = 'ref' + str(count)
+            count += 1
         givenName, ok = QtWidgets.QInputDialog.getText(self, 'Reference name', 'Name:', text=name)
         while (givenName in self.macros.keys()) or givenName is '':
             if not ok:
