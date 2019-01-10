@@ -256,6 +256,38 @@ or by clicking with the middle mouse button.
 
 
 
+
+
+\section{Pop-up windows}
+Many of the operations that can be performed in ssNake give a pop-up window in which the user can
+supply additional information. An example of this is the phasing window, in which the user can
+supply values for the first and second order phasing that should be applied to the NMR data. When
+such a pop-up window is active most of the Main Window is locked. When closing the pop-up window,
+the interface is enabled again. This makes sure that there is no interference between the different
+actions.
+
+Most pop-up windows have an `Ok' and a `Cancel' button. Pushing `Ok' applies the operation to the
+data set. Pushing `Cancel' returns to the Main Window without any alteration of the data. Is some
+cases, the effect of the current operation can be previewed in the plot. This allows the user to
+judge whether the operation (e.g. an amount of phasing) leads to the desired result. Choosing
+`Cancel' returns to the original data. During the previewing, the mouse button zoom controls can
+still be used. However, in cases where the left mouse button is used to select a position in the
+plot, the `zoom box' option is not available during the preview. Previewing is usually quite fast,
+as only the currently viewed part of the data is temporarily changed. On pushing `Ok' the operation
+is applied to the full data set (if required).
+
+\subsection{Single slice}
+Some of the pop-up windows have a tickbox at the bottom that states `Single slice'. When this is
+activated, the current operation only gets performed on the part of the data that is currently
+viewed. Phasing a single spectrum in a 2D data set can for example be performed in this way.
+
+\subsection{Keyboard modifiers}
+Some of the pop-up windows have left `<' and right `>' arrow buttons. These can be used to lower or
+raise the current value in an easy way. The step size of the buttons can be changed by holding
+specific keys when left clicking on the button: `ctrl' gives x10 stepsize, `shift' gives x100, and
+`ctrl + shift' gives x1000.
+
+
 \section{File}
 Using the ssNake load tools is quite easy. Go to File $\rightarrow$ Open. Navigating and double clicking on the desired file then loads the data. Many formats supported by ssNake (like Bruker and Varian) have their data in a folder, in which several files with a fixed name are present. For these formats, loading any of the files in this directory is accepted (ssNake searches for the expected files in the selected directory). Loading large data files might take some time, depending on your computer hardware.
 
@@ -651,9 +683,17 @@ Shifting apodization can be best viewed from a Stack Plot view.
 When the Whole Echo property is activated (see the section on the Bottom Frame), all the apodization windows are changed in such a way that they are symmetric around $t = t_\text{max}/2$. This means that the window from $t=t_\text{max}/2$ to $t=t_\text{max}$ is equal to the time reverse of the window from $t=0$ to $t=t_\text{max}/2$.
 
 \subsubsection{ssNake implementation}
-While using the Apodization tool, the effect can be previewed on the current plot. When used in the time domain, the windowing function is plot in green and the original data is shown in grey. When used from the frequency domain, it actually transforms the data to the time domain, applies the window, and transforms back to the frequency domain. Usually, this is fast and can be viewed live. However, especially for contour plots, the redrawing of the contour lines could take a long time. It is therefore advised to use this function from a 1D view (if previewing is needed).
+While using the Apodization tool, the effect can be previewed on the current plot. When used in the
+time domain, the windowing function is plot in green and the original data is shown in grey. When
+used from the frequency domain, it actually transforms the data to the time domain, applies the
+window, and transforms back to the frequency domain. Usually, this is fast and can be viewed live.
+However, especially for contour plots, the redrawing of the contour lines could take a long time. It
+is therefore advised to use this function from a 1D view (if previewing is needed).
 
-The Lorentzian and Gaussian apodization have sliders and arrows. The step sizes of both are determined by the spectral width and number of points. Note that the coarseness of the steps when pushing on the arrow buttons can be altered by holding ctrl (x10) or shift (x100).
+The Lorentzian and Gaussian apodization have sliders and arrows. The step sizes of both are
+determined by the spectral width and number of points. Note that the coarseness of the steps when
+pushing on the arrow buttons can be altered by holding ctrl (x10), shift (x100), or ctrl + shift
+(x1000).
 
 For most apodization types, negative line broadening parameters are allowed, but quickly lead to massive distortions.
 
@@ -661,10 +701,22 @@ For most apodization types, negative line broadening parameters are allowed, but
 \subsection{Phasing}
 Opens a tool that can be use to change the phasing in the current spectrum or fid. Supports zero order and first order phasing. It also provides buttons for autophasing.
 
-Selecting phasing in the tools menu opens the phasing window. In this windows, the zero and first order phasing can be set, as well as the pivot point (centre point) for the first order phasing. The values can be either filled in the boxes,  changed by pushing the left and right buttons (click for $\pm1$, ctrl+click for $\pm10$, and shift+click for $\pm100$) , or set by dragging the
-slider to the left or the right. For zero order phase correction, the limits are -180 and 180 degrees. For first order correction, these are -540 and 540 degrees. Higher values for the first order correction sometimes make sense, and can be filled in the box directly, or via clicking on the arrows. Note that the values for the zero order correction are circular, so that -180 and 180 degrees lead to the same effect.
+Selecting phasing in the tools menu opens the phasing window. In this windows, the zero and first
+order phasing can be set, as well as the pivot point (centre point) for the first order phasing. The
+values can be either filled in the boxes,  changed by pushing the left and right buttons (click for
+$\pm1$, ctrl+click for $\pm10$, shift+click for $\pm100$, and shift+ctrl+click for $\pm1000$) , or set by dragging the slider to the
+left or the right. For zero order phase correction, the limits are -180 and 180 degrees. For first
+order correction, these are -540 and 540 degrees. Higher values for the first order correction
+sometimes make sense, and can be filled in the box directly, or via clicking on the arrows. Note
+that the values for the zero order correction are circular, so that -180 and 180 degrees lead to the
+same effect.
 
-While in this menu, the effect of a certain phasing can be immediately viewed in the ssNake window. When a good setting is reached, `Ok' can be pushed to apply the phasing. Note that for multidimensional data, the preview only shows the current trace. Pushing `Ok' the applies the same phasing correction on all the traces (might take some time for large data). If the phasing should only be applied on the current spectrum or fid, the box `Single slice' can be ticked. Note that you still have to push `Ok' to apply the phasing.
+While in this menu, the effect of a certain phasing can be immediately viewed in the ssNake window.
+When a good setting is reached, `Ok' can be pushed to apply the phasing. Note that for
+multidimensional data, the preview only shows the current trace. Pushing `Ok' the applies the same
+phasing correction on all the traces (might take some time for large data). If the phasing should
+only be applied on the current spectrum or fid, the box `Single slice' can be ticked. Note that you
+still have to push `Ok' to apply the phasing.
 
 Apart from manual phasing, ssNake also supports two types of autophasing: zero order only, and zero and first order. When pushing these buttons, ssNake will search for the best phasing in the \textit{current} trace, with only zero order phasing correction, or with both zero and first order. Do note that the setting that ssNake finds might not be the best: phasing an NMR spectrum is tricky and has no unique mathematical solution.
 However, for a fast analysis it can be useful.
