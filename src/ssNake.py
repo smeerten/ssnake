@@ -844,7 +844,7 @@ class MainProgram(QtWidgets.QMainWindow):
                             self.nmrtableAct,self.githubAct,self.tutorialAct, self.aboutAct,self.basTutorialAct ]
         # Extra event lists:
         self.specOnlyList = [self.regridAct, self.csastaticAct, self.quadAct, self.czjzekAct]
-        self.fidOnlyList = [self.relaxAct, self.diffusionAct]
+        self.fidOnlyList = [self.relaxAct, self.diffusionAct,self.swapEchoAct]
         self.Only1DPlot = [self.snrAct, self.fwhmAct, self.massAct,  self.intfitAct]
         self.notInArrayPlot = [self.userxAct,self.setrefAct,self.swapEchoAct,self.corOffsetAct,self.baselineAct,self.subAvgAct,
                                self.refDeconvAct,self.intRegionAct,self.sumRegionAct,self.maxRegionAct,self.maxRegionAct,
