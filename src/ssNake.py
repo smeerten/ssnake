@@ -3235,12 +3235,13 @@ class PhaseWindow(wc.ToolWindows):
         self.inputFirstOrder()
 
     def stepPhase(self, phase0, phase1):
-        if QtWidgets.qApp.keyboardModifiers() & QtCore.Qt.ControlModifier:
-            multiplier = 10
+        multiplier = 1
+        if QtWidgets.qApp.keyboardModifiers() & QtCore.Qt.ControlModifier and QtWidgets.qApp.keyboardModifiers() & QtCore.Qt.ShiftModifier:
+            multiplier *= 1000
+        elif QtWidgets.qApp.keyboardModifiers() & QtCore.Qt.ControlModifier:
+            multiplier *= 10
         elif QtWidgets.qApp.keyboardModifiers() & QtCore.Qt.ShiftModifier:
-            multiplier = 100
-        else:
-            multiplier = 1
+            multiplier *= 100
         phase0 = multiplier * phase0
         phase1 = multiplier * phase1
         inp = safeEval(self.zeroEntry.text(), length=self.father.current.len(), type='FI')
@@ -3531,7 +3532,9 @@ class ApodWindow(wc.ToolWindows):
 
     def stepLB(self, incr, type):
         step = incr * self.lbstep
-        if QtWidgets.qApp.keyboardModifiers() & QtCore.Qt.ControlModifier:
+        if QtWidgets.qApp.keyboardModifiers() & QtCore.Qt.ControlModifier and QtWidgets.qApp.keyboardModifiers() & QtCore.Qt.ShiftModifier:
+            step *= 1000
+        elif QtWidgets.qApp.keyboardModifiers() & QtCore.Qt.ControlModifier:
             step *= 10
         elif QtWidgets.qApp.keyboardModifiers() & QtCore.Qt.ShiftModifier:
             step *= 100
@@ -3842,12 +3845,13 @@ class ShiftDataWindow(wc.ToolWindows):
         if inp is None:
             raise SsnakeException("Shift data: shift value not valid")
         self.shiftVal = int(round(inp))
-        if QtWidgets.qApp.keyboardModifiers() & QtCore.Qt.ControlModifier:
-            shift = +10
+        shift = +1 
+        if QtWidgets.qApp.keyboardModifiers() & QtCore.Qt.ControlModifier and QtWidgets.qApp.keyboardModifiers() & QtCore.Qt.ShiftModifier:
+            shift *= +1000
+        elif QtWidgets.qApp.keyboardModifiers() & QtCore.Qt.ControlModifier:
+            shift *= +10
         elif QtWidgets.qApp.keyboardModifiers() & QtCore.Qt.ShiftModifier:
-            shift = +100
-        else:
-            shift = +1
+            shift *= +100
         self.shiftVal = self.shiftVal + shift
         self.shiftEntry.setText(str(self.shiftVal))
         self.shiftPreview()
@@ -3857,12 +3861,14 @@ class ShiftDataWindow(wc.ToolWindows):
         if inp is None:
             raise SsnakeException("Shift data: shift value not valid")
         self.shiftVal = int(round(inp))
-        if QtWidgets.qApp.keyboardModifiers() & QtCore.Qt.ControlModifier:
-            shift = -10
+        shift = -1 
+        if QtWidgets.qApp.keyboardModifiers() & QtCore.Qt.ControlModifier and QtWidgets.qApp.keyboardModifiers() & QtCore.Qt.ShiftModifier:
+            shift *= +1000
+        elif QtWidgets.qApp.keyboardModifiers() & QtCore.Qt.ControlModifier:
+            shift *= +10
         elif QtWidgets.qApp.keyboardModifiers() & QtCore.Qt.ShiftModifier:
-            shift = -100
-        else:
-            shift = -1
+            shift *= +100
+
         self.shiftVal = self.shiftVal + shift
         self.shiftEntry.setText(str(self.shiftVal))
         self.shiftPreview()
