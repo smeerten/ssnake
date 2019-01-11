@@ -984,6 +984,7 @@ class MainProgram(QtWidgets.QMainWindow):
 
     def menuEnable(self, enable=True, internalWindow=False):
         self.menuActive = enable or internalWindow
+
         self.macrolistmenu.menuAction().setEnabled(enable)
         self.editmenu.menuAction().setEnabled(enable)
         self.matrixMenu.menuAction().setEnabled(enable)
@@ -995,6 +996,7 @@ class MainProgram(QtWidgets.QMainWindow):
         for act in self.macroActList + self.editActList + self.toolsActList + self.matrixActList + self.transformActList + self.fittingActList + self.plotActList + self.combineActList + self.historyActList:
             act.setEnabled(enable)
         if not internalWindow:
+            self.tree.setEnabled(enable)
             self.filemenu.menuAction().setEnabled(enable)
             self.workspacemenu.menuAction().setEnabled(enable)
             self.toolMenu.menuAction().setEnabled(enable)
