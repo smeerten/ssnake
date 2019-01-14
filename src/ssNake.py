@@ -1459,7 +1459,10 @@ class MainProgram(QtWidgets.QMainWindow):
                 self.changeMainWindow(name)
 
     def loadFitLibDir(self):
-        fileName = QtWidgets.QFileDialog.getExistingDirectory(self, 'Open Library Directory', self.lastLocation)
+        #fileName = QtWidgets.QFileDialog.getExistingDirectory(self, 'Open Library Directory', self.lastLocation)
+        fileName = QtWidgets.QFileDialog.getOpenFileName(self, 'Open Library File', self.lastLocation)
+        if isinstance(fileName, tuple):
+            fileName = fileName[0]
         return fileName
 
     def loadSIMPSONScript(self):

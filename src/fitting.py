@@ -2366,6 +2366,8 @@ class CzjzekPrefWindow(QtWidgets.QWidget):
         self.site.setMaximum(self.father.numExp.currentIndex() + 1)
         self.site.setAlignment(QtCore.Qt.AlignHCenter) 
         grid.addWidget(self.site, 14, 3)
+        self.libLabel = wc.QLabel("")
+        layout.addWidget(self.libLabel, 4, 3)
         self.cancelButton = QtWidgets.QPushButton("&Close")
         self.cancelButton.clicked.connect(self.closeEvent)
         layout.addWidget(self.cancelButton, 4, 0)
@@ -2426,6 +2428,7 @@ class CzjzekPrefWindow(QtWidgets.QWidget):
         self.cqmax.setText(str(self.father.cqmax))
         self.etamin.setText(str(self.father.etamin))
         self.etamax.setText(str(self.father.etamax))
+        self.libLabel.setText("Library: " + self.father.libName)
 
     def plotDist(self):
         self.ax.cla()
@@ -2439,8 +2442,8 @@ class CzjzekPrefWindow(QtWidgets.QWidget):
         method = self.father.entries['method'][0].currentIndex()
         d = self.father.entries['d'][0].currentIndex() + 1
         site = self.site.value() - 1
-        sigma = safeEval(self.father.entries['sigma'][site].text(), type='FI')
-        cq0 = safeEval(self.father.entries['cq0'][site].text(), type='FI')
+        sigma = safeEval(self.father.entries['Sigma'][site].text(), type='FI')
+        cq0 = safeEval(self.father.entries['Cq0'][site].text(), type='FI')
         eta0 = safeEval(self.father.entries['eta0'][site].text(), type='FI')
         if method == 0:
             czjzek = Czjzek.czjzekIntensities(sigma, d, cq.flatten(), eta.flatten())
@@ -2522,6 +2525,7 @@ class CzjzekPrefWindow(QtWidgets.QWidget):
             if inp < 0.0 or inp > 1.0:
                 raise FittingException(u"η_min value not valid.")
             self.father.etamin = abs(float(inp))
+            self.father.libName = "Generated"
             self.father.simLib()
         except:
             raise
@@ -2529,15 +2533,23 @@ class CzjzekPrefWindow(QtWidgets.QWidget):
             self.busyButton.hide()
             self.loadButton.setEnabled(True)
             self.cancelButton.setEnabled(True)
+            self.upd()
 
     def loadLib(self, *args):
-        dirName = self.father.rootwindow.father.loadFitLibDir()
+        fileName = self.father.rootwindow.father.loadFitLibDir()
+        if not fileName:
+            return
+        dirName, shortName = os.path.split(fileName)
+        nameSearch = re.search("(.*)-\d+\.\d+-\d+\.\d+\.\w*$", shortName)
+        if not nameSearch:
+            raise FittingException("Not a valid library file name")
+        libName = nameSearch.group(1)
         nameList = os.listdir(dirName)
         cq = []
         eta = []
         data = []
         for name in nameList:
-            matchName = re.search("-(\d+\.\d+)-(\d+\.\d+)\.(fid|spe)$", name)
+            matchName = re.search(libName + "-(\d+\.\d+)-(\d+\.\d+)\.\w*$", name)
             if matchName:
                 eta.append(float(matchName.group(1)))
                 cq.append(float(matchName.group(2)))
@@ -2546,11 +2558,12 @@ class CzjzekPrefWindow(QtWidgets.QWidget):
                 if libData.ndim() != 1:
                     raise FittingException("A spectrum in the library is not a 1D spectrum.")
                 if not libData.spec[0]:
-                    libData.fourier(0)
+                    libData.complexFourier(0)
                 libData.regrid([self.father.parent.xax()[0], self.father.parent.xax()[-1]], len(self.father.parent.xax()), 0)
                 libData.fftshift(0)
-                libData.fourier(0)
-                data.append(np.real(libData.data[0]))
+                libData.complexFourier(0)
+                data.append(libData.getHyperData(0))
+                data[-1][0] *= 0.5
         cq = np.array(cq) * 1e6
         eta = np.array(eta)
         data = np.array(data)
@@ -2562,6 +2575,7 @@ class CzjzekPrefWindow(QtWidgets.QWidget):
         self.father.cqLib = cq[sortIndex]
         self.father.etaLib = eta[sortIndex]
         self.father.lib = data[sortIndex]
+        self.father.libName = os.path.join(dirName, libName)
         self.father.cqsteps = numCq
         self.father.etasteps = numEta
         self.father.cqmax = np.max(cq) * 1e-6
@@ -2587,7 +2601,7 @@ class QuadCzjzekParamFrame(AbstractParamFrame):
         self.fullInt = np.sum(parent.getData1D()) * parent.sw() / float(len(parent.getData1D()))
         self.DEFAULTS = {"Offset": [0.0, True], "Multiplier": [1.0, True], "Position": [0.0, False], "Sigma": [1.0, False], "Cq0": [0.0, True], 'eta0': [0.0, True], "Integral": [self.fullInt, False], "Lorentz": [10.0, False], "Gauss": [0.0, True]}
         self.extraDefaults = {'method': 0, 'd': 5, 'cqsteps': 50, 'etasteps': 10, 'cqmax': 4.0, 'cqmin': 0.0, 'etamin': 0, 'etamax': 1,
-                              'lib': None, 'cqLib': None, 'etaLib': None, 'I': 3 / 2.0, 'cheng': 15, 'mas': 2, "Spinspeed": 10.0,
+                              'libName': "Not available", 'lib': None, 'cqLib': None, 'etaLib': None, 'I': 3 / 2.0, 'cheng': 15, 'mas': 2, "Spinspeed": 10.0,
                               'angle': "arctan(sqrt(2))", 'numssb': 32, 'satBool': False}
         super(QuadCzjzekParamFrame, self).__init__(parent, rootwindow, isMain)
         czjzekPrefButton = QtWidgets.QPushButton("Library")
@@ -2645,6 +2659,7 @@ class QuadCzjzekParamFrame(AbstractParamFrame):
         self.etamax = self.extraDefaults['etamax']
         self.etamin = self.extraDefaults['etamin']
         self.lib = self.extraDefaults['lib']
+        self.libName = self.extraDefaults['libName']
         self.cqLib = self.extraDefaults['cqLib']
         self.etaLib = self.extraDefaults['etaLib']
         self.I = self.extraDefaults['I']
@@ -2690,6 +2705,7 @@ class QuadCzjzekParamFrame(AbstractParamFrame):
         extraDict = {"Method": self.TYPES[self.entries['method'][-1].currentIndex()],
                      "d": str(self.entries['d'][0].currentIndex() + 1),
                      "I": CzjzekPrefWindow.Ioptions[int(self.I*2.0-2.0)],
+                     "Library": self.libName,
                      "Cheng": str(self.cheng),
                      "CQgrid": str(self.cqsteps),
                      "Etagrid": str(self.etasteps),
@@ -3282,7 +3298,7 @@ class MqmasCzjzekParamFrame(AbstractParamFrame):
         self.fullInt = np.sum(parent.getData1D()) * parent.sw() / float(parent.getData1D().shape[-1]) * parent.sw(-2) / float(parent.getData1D().shape[-2])
         self.DEFAULTS = {"Offset": [0.0, True], "Multiplier": [1.0, True], "Position": [0.0, False], "Sigma": [1.0, False], 'sigmaCS': [10.0, False], "Cq0": [0.0, True], 'eta0': [0.0, True], "Integral": [self.fullInt, False], "Lorentz2": [10.0, False], "Gauss2": [0.0, True], "Lorentz1": [10.0, False], "Gauss1": [0.0, True]}
         self.extraDefaults = {'mas': 2, 'method': 0, 'd': 5, 'cheng': 15, 'I': 3/2.0, 'MQ': 0, 'shear': '0.0', 'scale': '1.0',
-                'cqsteps': 50, 'etasteps': 10, 'cqmax': 4, 'cqmin': 0, 'etamax': 1, 'etamin': 0, 'lib': None, 'cqLib': None, 'etaLib': None}
+                              'cqsteps': 50, 'etasteps': 10, 'cqmax': 4, 'cqmin': 0, 'etamax': 1, 'etamin': 0, 'libName': "Not available", 'lib': None, 'cqLib': None, 'etaLib': None}
         super(MqmasCzjzekParamFrame, self).__init__(parent, rootwindow, isMain)
         czjzekPrefButton = QtWidgets.QPushButton("Library")
         czjzekPrefButton.clicked.connect(self.createCzjzekPrefWindow)
@@ -3355,6 +3371,7 @@ class MqmasCzjzekParamFrame(AbstractParamFrame):
         self.etamax = self.extraDefaults['etamax']
         self.etamin = self.extraDefaults['etamin']
         self.lib = self.extraDefaults['lib']
+        self.libName = self.extraDefaults['libName']
         self.cqLib = self.extraDefaults['cqLib']
         self.etaLib = self.extraDefaults['etaLib']
         self.I = self.extraDefaults['I']
@@ -3413,6 +3430,7 @@ class MqmasCzjzekParamFrame(AbstractParamFrame):
                      "I": CzjzekPrefWindow.Ioptions[int(self.I*2.0-2.0)],
                      "Shear": self.entries['shear'][-1].text(),
                      "ScaleSW": self.entries['scale'][-1].text(),
+                     "Library": self.libName,
                      "Cheng": str(self.cheng),
                      "CQgrid": str(self.cqsteps),
                      "Etagrid": str(self.etasteps),
