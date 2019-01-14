@@ -982,6 +982,8 @@ class AbstractParamFrame(QtWidgets.QWidget):
         pass
 
     def paramToFile(self):
+        if not self.checkInputs():
+            raise FittingException("Fitting: One of the inputs is not valid")
         fileName = QtWidgets.QFileDialog.getSaveFileName(self, 'Save parameters', self.rootwindow.father.lastLocation + os.path.sep + self.parent.data.name + '_fit.txt', 'txt (*.txt)')
         if isinstance(fileName, tuple):
             fileName = fileName[0]
@@ -1007,9 +1009,6 @@ class AbstractParamFrame(QtWidgets.QWidget):
         locList = self.getRedLocList()
         for name in self.SINGLENAMES:
             report += name.ljust(nspace) + " "
-        # report += "\n#  "
-        # for name in self.SINGLENAMES:
-        #     report += self.PARAMTEXT[name].ljust(nspace) + " "
         report += "\n  "
         for name in self.SINGLENAMES:
             if self.fitParamList[locList][name][1]:
@@ -1024,9 +1023,6 @@ class AbstractParamFrame(QtWidgets.QWidget):
         report += "\n\n#? "
         for name in self.MULTINAMES:
             report += name.ljust(nspace) + " "
-        # report += "\n#  "
-        # for name in self.MULTINAMES:
-        #     report += self.PARAMTEXT[name].ljust(nspace) + " "
         report += "\n  "
         for i in range(self.fitNumList[locList] + 1):
             for name in self.MULTINAMES:
