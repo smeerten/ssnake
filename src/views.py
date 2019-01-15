@@ -999,7 +999,7 @@ class Current1D(PlotFrame):
             for num in range(len(extraX)):
                 self.line_xdata_extra.append(extraX[num] * axMult)
                 self.line_ydata_extra.append(extraY[num])
-                self.ax.plot(self.line_xdata_extra[-1], self.line_ydata_extra[-1], marker='', linestyle='-', c=extraColor, linewidth=self.viewSettings["linewidth"], picker=True)
+                self.ax.plot(self.line_xdata_extra[-1], self.line_ydata_extra[-1], marker='', linestyle='-', c=extraColor[num], linewidth=self.viewSettings["linewidth"], picker=True)
         tmpdata = self.getDataType(tmpdata)
         if(self.viewSettings["plotType"] == 2):
             self.line_xdata.append(self.line_xdata[-1])

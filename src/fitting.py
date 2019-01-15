@@ -641,7 +641,13 @@ class FitPlotFrame(Current1D):
             for i in range(len(tmp[2])):
                 extraX.append(tmp[2][i])
                 extraY.append(tmp[3][i])
-        super(FitPlotFrame, self).showFid(extraX=extraX, extraY=extraY)
+        if mpl.__version__[0] > '1':
+            colorList = ['C'+str((x+1)%10) for x in range(len(extraX))]
+            if colorList:
+                colorList[0] = 'k'
+            super(FitPlotFrame, self).showFid(extraX=extraX, extraY=extraY, extraColor=colorList)
+        else:
+            super(FitPlotFrame, self).showFid(extraX=extraX, extraY=extraY)
 
 #################################################################################
 
