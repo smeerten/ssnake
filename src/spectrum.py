@@ -39,7 +39,7 @@ class SpectrumException(Exception):
 
 class Spectrum(object):
 
-    def __init__(self, data, filePath, freq, sw, spec=None, wholeEcho=None, ref=None, xaxArray=None, history=None, metaData = None, name='', dFilter = None):
+    def __init__(self, data, filePath, freq, sw, spec=None, wholeEcho=None, ref=None, xaxArray=None, history=None, metaData=None, name='', dFilter=None):
         self.name = name
         if isinstance(data, hc.HComplexData):
             self.data = data
@@ -47,7 +47,7 @@ class Spectrum(object):
             self.data = hc.HComplexData(data)
         self.filePath = filePath
         self.freq = np.array(freq)  # array of center frequency (length is dim, MHz)
-        self.sw = np.array(sw,dtype=float)  # array of sweepwidths
+        self.sw = np.array(sw, dtype=float)  # array of sweepwidths
         self.dFilter = dFilter #Digital filter first order phase in radian
         self.undoList = []
         self.redoList = []
@@ -109,7 +109,7 @@ class Spectrum(object):
                 val = self.history.pop()
         return val
 
-    def setNoUndo(self,val):
+    def setNoUndo(self, val):
         self.noUndo = bool(val)
         if self.noUndo:
             self.undoList = []

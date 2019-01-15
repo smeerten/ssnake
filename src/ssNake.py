@@ -373,7 +373,7 @@ class MainProgram(QtWidgets.QMainWindow):
                                    ['File --> Preferences', self.preferencesAct],
                                    ['File --> Quit', self.quitAct],
                                    ['Workspaces --> Duplicate', self.newAct],
-                                   ['Workspaces --> Slice to Workspace',self.newSlice],
+                                   ['Workspaces --> Slice to Workspace', self.newSlice],
                                    ['Workspaces --> Delete', self.closeAct],
                                    ['Workspaces --> Rename', self.renameWorkspaceAct],
                                    ['Workspaces --> Next', self.forwardAct],
@@ -1321,10 +1321,11 @@ class MainProgram(QtWidgets.QMainWindow):
                 if type(self.mainWindow.current) is views.CurrentMulti:
                     self.mainWindow.sideframe.checkChanged()
 
-    def duplicateWorkspace(self, sliceOnly = False, *args):
+    def duplicateWorkspace(self, sliceOnly=False, *args):
         name = self.askName()
         if sliceOnly:
             data = copy.deepcopy(self.mainWindow.get_current().data1D)
+            data.setNoUndo(self.mainWindow.get_masterData().noUndo)
         else:
             data = copy.deepcopy(self.mainWindow.get_masterData())
         if name is None:
