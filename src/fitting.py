@@ -1812,6 +1812,10 @@ class CsaDeconvParamFrame(AbstractParamFrame):
                 u'δxx - δyy - δzz',
                 u'δiso - δaniso - η',
                 u'δiso - Ω - κ']
+    DEFNAMES = ["delta_11 - delta_22 - delta_33",
+                "delta_xx - delta_yy - delta_zz",
+                "delta_iso - delta_aniso - eta",
+                "delta_iso - omega - kappa"]
 
     def __init__(self, parent, rootwindow, isMain=True):
         self.FITFUNC = simFunc.csaFunc
@@ -2049,7 +2053,7 @@ class CsaDeconvParamFrame(AbstractParamFrame):
 
     def extraParamToFile(self):
         extraDict = {"MAS": self.MASTYPES[self.entries['spinType'][0].currentIndex()],
-                     "Definition": self.DEFTYPES[self.entries['shiftdef'][0].currentIndex()],
+                     "Definition": self.DEFNAMES[self.entries['shiftdef'][0].currentIndex()],
                      "Cheng": self.entries['cheng'][0].text(),
                      "Angle": self.entries['angle'][0].text(),
                      "Sidebands": self.entries['numssb'][0].text()}
@@ -2060,7 +2064,7 @@ class CsaDeconvParamFrame(AbstractParamFrame):
         if "MAS" in keys:
             self.entries['spinType'][0].setCurrentIndex(self.MASTYPES.index(preParams["MAS"]))
         if "Definition" in keys:
-            self.entries['shiftdef'][0].setCurrentIndex(self.DEFTYPES.index(preParams["Definition"]))
+            self.entries['shiftdef'][0].setCurrentIndex(self.DEFNAMES.index(preParams["Definition"]))
         if "Cheng" in keys:
             self.entries['cheng'][0].setValue(int(preParams["Cheng"]))
         if "Angle" in keys:
@@ -3288,7 +3292,7 @@ class MqmasCzjzekParamFrame(AbstractParamFrame):
     Ivalues = [1.5, 2.5, 3.5, 4.5]
     MQvalues = [3, 5, 7, 9]
     SINGLENAMES = ["Offset", "Multiplier"]
-    MULTINAMES = ["Position", "Sigma", 'sigmaCS', "Cq0", 'eta0', "Integral", "Lorentz2", "Gauss2", "Lorentz1", "Gauss1"]
+    MULTINAMES = ["Position", "Sigma", 'SigmaCS', "Cq0", 'eta0', "Integral", "Lorentz2", "Gauss2", "Lorentz1", "Gauss1"]
     EXTRANAMES = ['method', 'd', 'MQ', 'shear', 'scale']
 
     TYPES = ['Normal', 'Extended']
@@ -3296,7 +3300,7 @@ class MqmasCzjzekParamFrame(AbstractParamFrame):
     def __init__(self, parent, rootwindow, isMain=True):
         self.FITFUNC = simFunc.mqmasCzjzekFunc
         self.fullInt = np.sum(parent.getData1D()) * parent.sw() / float(parent.getData1D().shape[-1]) * parent.sw(-2) / float(parent.getData1D().shape[-2])
-        self.DEFAULTS = {"Offset": [0.0, True], "Multiplier": [1.0, True], "Position": [0.0, False], "Sigma": [1.0, False], 'sigmaCS': [10.0, False], "Cq0": [0.0, True], 'eta0': [0.0, True], "Integral": [self.fullInt, False], "Lorentz2": [10.0, False], "Gauss2": [0.0, True], "Lorentz1": [10.0, False], "Gauss1": [0.0, True]}
+        self.DEFAULTS = {"Offset": [0.0, True], "Multiplier": [1.0, True], "Position": [0.0, False], "Sigma": [1.0, False], 'SigmaCS': [10.0, False], "Cq0": [0.0, True], 'eta0': [0.0, True], "Integral": [self.fullInt, False], "Lorentz2": [10.0, False], "Gauss2": [0.0, True], "Lorentz1": [10.0, False], "Gauss1": [0.0, True]}
         self.extraDefaults = {'mas': 2, 'method': 0, 'd': 5, 'cheng': 15, 'I': 3/2.0, 'MQ': 0, 'shear': '0.0', 'scale': '1.0',
                               'cqsteps': 50, 'etasteps': 10, 'cqmax': 4, 'cqmin': 0, 'etamax': 1, 'etamin': 0, 'libName': "Not available", 'lib': None, 'cqLib': None, 'etaLib': None}
         super(MqmasCzjzekParamFrame, self).__init__(parent, rootwindow, isMain)
@@ -3445,12 +3449,12 @@ class MqmasCzjzekParamFrame(AbstractParamFrame):
         if "Method" in keys:
             self.entries['method'][0].setCurrentIndex(self.TYPES.index(preParams["Method"]))
         if "d" in keys:
-            self.entries['d'][0].setCurrentIndex(int(preParams["d"]))
+            self.entries['d'][0].setCurrentIndex(int(preParams["d"]) - 1)
         if "I" in keys:
             self.I = CzjzekPrefWindow.Ioptions.index(preParams["I"]) * 0.5 + 1
         if "Shear" in keys:
             self.entries['shear'][0].setText(preParams["Shear"])
-        if "Scale" in keys:
+        if "ScaleSW" in keys:
             self.entries['scale'][0].setText(preParams["ScaleSW"])
         if "CQgrid" in keys:
             self.cqsteps = int(preParams["CQgrid"])
