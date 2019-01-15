@@ -41,7 +41,7 @@ import functions as func
 import simFunctions as simFunc
 import specIO as io
 import spectrum as sc
-from ssNake import SideFrame
+from ssNake import SideFrame, VERSION
 import Czjzek as Czjzek
 
 stopDict = {}  # Global dictionary with stopping commands for fits
@@ -996,9 +996,14 @@ class AbstractParamFrame(QtWidgets.QWidget):
             else:
                 printLocList[i] = str(printLocList[i])
         printLocList = "(" + ", ".join(printLocList) + ")"
-        report = "# Fit: " + FITTYPEDICT[self.rootwindow.fitType][0] + "\n"
+        report  = "#########" + '#'*len(VERSION) + "##\n"
+        report += "# ssNake " + VERSION + " #\n"
+        report += "#########" + '#'*len(VERSION) + "##\n"
+        report += "#\n"
+        report += "# Fit: " + FITTYPEDICT[self.rootwindow.fitType][0] + "\n"
         report += "# Saved: " + datetime.datetime.now().strftime("%y-%m-%d %H:%M:%S") + "\n"
-        report += "# Data: " + self.parent.data.name + " " + printLocList + "\n"
+        report += "# Data: " + self.parent.data.name + "\n"
+        report += "# Trace: " + printLocList + "\n"
         report += "# Dimension: D" + str(self.parent.axes[-1]+1) + "\n#\n"
         extraParam, postParam = self.extraParamToFile()
         # TODO: order of extra params
@@ -1053,7 +1058,7 @@ class AbstractParamFrame(QtWidgets.QWidget):
             return
         with open(fileName, "r") as fp:
             report = fp.read()
-        splitReport = re.split("#{5,}\n", report)
+        splitReport = re.split("#{20,}\n", report)
         postReport = splitReport[1]
         postReport = re.split("#!", postReport)
         if len(postReport)==1:
