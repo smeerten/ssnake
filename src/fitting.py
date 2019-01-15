@@ -3062,7 +3062,7 @@ class FitContourFrame(CurrentContour, FitPlotFrame):
                 extraY.append(tmp[2][i][0])
                 extraZ.append(tmp[3][i])
         if mpl.__version__[0] > '1':
-            super(FitContourFrame, self).showFid(extraX=extraX, extraY=extraY, extraZ=extraZ, extraColor=['C'+str(x%10) for x in range(len(extraX))])
+            super(FitContourFrame, self).showFid(extraX=extraX, extraY=extraY, extraZ=extraZ, extraColor=['C'+str((x+1)%10) for x in range(len(extraX))])
         else:
             super(FitContourFrame, self).showFid(extraX=extraX, extraY=extraY, extraZ=extraZ, extraColor=['g']*len(extraX))
 
