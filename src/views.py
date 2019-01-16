@@ -170,7 +170,10 @@ class Current1D(PlotFrame):
         return self.viewSettings["axType"][num]
 
     def getppm(self, num=-1):
-        return self.viewSettings["ppm"][num]
+        if self.data1D.ref[num] == 0.0 or self.data1D.freq[num] == 0.0:
+            return False
+        else:
+            return self.viewSettings["ppm"][num]
 
     def getDataType(self, data):
         typeList = [np.real, np.imag, np.array, np.abs]
@@ -382,6 +385,7 @@ class Current1D(PlotFrame):
         self.data.setRef(ref, self.axes[-1])
         if ref is None:
             ref = self.freq()
+        self.upd()
         val = self.getAxType()
         if self.spec() == 1:
             if self.getppm():
@@ -390,7 +394,6 @@ class Current1D(PlotFrame):
             else:
                 self.xminlim = self.xminlim + (oldref - ref) / 10**(val * 3)  # set new limits, and scale for axis type
                 self.xmaxlim = self.xmaxlim + (oldref - ref) / 10**(val * 3)
-        self.upd()
         self.showFid()
 
     def regrid(self, limits, numPoints):

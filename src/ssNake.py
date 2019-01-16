@@ -5877,6 +5877,7 @@ class RefWindow(wc.ToolWindows):
                 self.father.father.referenceAdd(reffreq, givenname)
         if nameOK:
             self.father.current.setRef(reffreq)
+            self.father.bottomframe.upd()
             self.closeEvent()
 
     def picked(self, pos):
