@@ -317,7 +317,7 @@ def csaFunc(x, freq, sw, axMult, extra, bgrnd, mult, spinspeed, t11, t22, t33, a
         tot *= weight2
         v = np.fft.fftfreq(numssb, 1.0 / numssb) * spinspeed
         v = v + vConstant[:,np.newaxis]
-    return mult * amp * makeSpectrum(x, sw, v, lor, gauss, tot)
+    return mult * amp * makeSpectrum(x, sw, v, gauss, lor, tot)
     
 def quadFunc(x, freq, sw, axMult, extra, bgrnd, mult, spinspeed, pos, cq, eta, amp, lor, gauss):
     x = x[-1]
@@ -345,7 +345,7 @@ def quadFunc(x, freq, sw, axMult, extra, bgrnd, mult, spinspeed, pos, cq, eta, a
         eff = I**2 + I - m * (m + 1)
         eff /= totalEff
         v, tot = quadFreq(I, m, m+1, spinspeed, numssb, angle, D2, D4, weight, freq, pos, cq, eta)
-        spectrum += eff * makeSpectrum(x, sw, v, lor, gauss, tot)
+        spectrum += eff * makeSpectrum(x, sw, v, gauss, lor, tot)
     return mult * amp * spectrum
 
 def quadFreq(I, m1, m2, spinspeed, numssb, angle, D2, D4, weight, freq, pos, cq, eta):
