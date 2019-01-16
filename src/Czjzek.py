@@ -111,7 +111,6 @@ def czjzekIntensities(sigma, d, cq, eta, cq0=0, eta0=0):
     if cq0 == 0.0 and eta0 == 0.0:
         if sigma == 0.0:  # protect against divide by zero
             czjzek = np.zeros_like(cq)
-            czjzek[:, 0] = 1
         else:
             czjzek = normalCzjzekFunc(cq, eta, sigma, d)
     else:
