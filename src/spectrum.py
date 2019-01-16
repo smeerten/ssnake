@@ -231,6 +231,9 @@ class Spectrum(object):
             axis = self.checkAxis(axis)
         if isinstance(data, Spectrum):
             data = data.data
+        if isinstance(data, np.ndarray):
+            if np.prod(data.shape) == 1:
+                data = float(data)
         if isinstance(data, np.ndarray) and axis is not None:
             data = data.reshape(data.shape + (1,)*(self.ndim() - axis - 1))
         if not self.noUndo:
@@ -242,7 +245,10 @@ class Spectrum(object):
                 copyData = copy.deepcopy(self)
                 returnValue = lambda self: self.restoreData(copyData, lambda self: self.add(data, axis, select))
         self.data[select] += data
-        self.addHistory("Added to data[" + str(select) + "]")
+        if isinstance(data, (float,int)):
+            self.addHistory("Added " + str(data) + " to data[" + str(select) + "]")
+        else:
+            self.addHistory("Added to data[" + str(select) + "]")
         self.redoList = []
         if not self.noUndo:
             self.undoList.append(returnValue)
@@ -264,6 +270,9 @@ class Spectrum(object):
             axis = self.checkAxis(axis)
         if isinstance(data, Spectrum):
             data = data.data
+        if isinstance(data, np.ndarray):
+            if np.prod(data.shape) == 1:
+                data = float(data)
         if isinstance(data, np.ndarray) and axis is not None:
             data = data.reshape(data.shape + (1,)*(self.ndim() - axis - 1))
         if not self.noUndo:
@@ -275,7 +284,10 @@ class Spectrum(object):
                 copyData = copy.deepcopy(self)
                 returnValue = lambda self: self.restoreData(copyData, lambda self: self.subtract(data, axis, select))
         self.data[select] -= data
-        self.addHistory("Subtracted from data[" + str(select) + "]")
+        if isinstance(data, (float,int)):
+            self.addHistory("Subtracted " + str(data) + " from data[" + str(select) + "]")
+        else:
+            self.addHistory("Subtracted from data[" + str(select) + "]")
         self.redoList = []
         if not self.noUndo:
             self.undoList.append(returnValue)
@@ -297,6 +309,9 @@ class Spectrum(object):
             axis = self.checkAxis(axis)
         if isinstance(data, Spectrum):
             data = data.data
+        if isinstance(data, np.ndarray):
+            if np.prod(data.shape) == 1:
+                data = float(data)
         if isinstance(data, np.ndarray) and axis is not None:
             data = data.reshape(data.shape + (1,)*(self.ndim() - axis - 1))
         if not self.noUndo:
@@ -308,7 +323,10 @@ class Spectrum(object):
                 copyData = copy.deepcopy(self)
                 returnValue = lambda self: self.restoreData(copyData, lambda self: self.multiply(data, axis, select))
         self.data[select] *= data
-        self.addHistory("Multiplied data[" + str(select) + "]")
+        if isinstance(data, (float,int)):
+            self.addHistory("Multiplied data[" + str(select) + "] with " + str(data))
+        else:
+            self.addHistory("Multiplied data[" + str(select) + "]")
         self.redoList = []
         if not self.noUndo:
             self.undoList.append(returnValue)
@@ -329,6 +347,9 @@ class Spectrum(object):
             axis = self.checkAxis(axis)
         if isinstance(data, Spectrum):
             data = data.data
+        if isinstance(data, np.ndarray):
+            if np.prod(data.shape) == 1:
+                data = float(data)
         if isinstance(data, np.ndarray) and axis is not None:
             data = data.reshape(data.shape + (1,)*(self.ndim() - axis - 1))
         if not self.noUndo:
@@ -340,7 +361,10 @@ class Spectrum(object):
                 copyData = copy.deepcopy(self)
                 returnValue = lambda self: self.restoreData(copyData, lambda self: self.divide(data, axis, select))
         self.data[select] /= data
-        self.addHistory("Divided by data[" + str(select) + "]")
+        if isinstance(data, (float,int)):
+            self.addHistory("Divided data[" + str(select) + "] with " + str(data))
+        else:
+            self.addHistory("Divided data[" + str(select) + "]")
         self.redoList = []
         if not self.noUndo:
             self.undoList.append(returnValue)
