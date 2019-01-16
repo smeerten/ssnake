@@ -212,6 +212,8 @@ class Current1D(PlotFrame):
         except Exception:
             self.resetLocList()
             self.data1D = self.data.getSlice(self.axes, self.locList)
+        if self.ref() == 0.0 or self.freq() == 0.0: #Check if ppm is allowed
+            self.viewSettings["ppm"][-1] = False
         return True
 
     def setSlice(self, axes, locList):  # change the slice
@@ -1265,6 +1267,10 @@ class CurrentStacked(Current1D):
         except Exception:
             self.resetLocList()
             self.data1D = self.data.getSlice(self.axes, self.locList, stack)
+        if self.ref(-1) == 0.0 or self.freq(-1) == 0.0: #Check if ppm is allowed
+            self.viewSettings["ppm"][-1] = False
+        if self.ref(-2) == 0.0 or self.freq(-2) == 0.0: #Check if ppm is allowed
+            self.viewSettings["ppm"][-2] = False
         return True
 
     def stackSelect(self, stackBegin, stackEnd, stackStep):

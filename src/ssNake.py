@@ -2763,10 +2763,10 @@ class BottomFrame(QtWidgets.QWidget):
             self.specGroup.button(1).toggle()
             self.axisDropTime.hide()
             self.axisDropFreq.show()
-            if self.father.current.freq() == 0.0:
+            if self.father.current.freq() == 0.0 or self.father.current.ref() == 0.0:
                 self.axisDropFreq.model().item(3).setEnabled(False)
             self.ax2Label.hide()
-            if self.father.current.getppm() and self.father.current.freq() != 0.0:
+            if self.father.current.getppm() and self.father.current.freq() != 0.0 and self.father.current.ref() != 0.0:
                 self.axisDropFreq.setCurrentIndex(3)
             else:
                 self.axisDropFreq.setCurrentIndex(self.father.current.getAxType())
@@ -2778,9 +2778,9 @@ class BottomFrame(QtWidgets.QWidget):
                 self.axisDropTime2.setCurrentIndex(self.father.current.getAxType(-2))
             elif self.father.current.spec(-2) == 1:
                 self.axisDropFreq2.show()
-                if self.father.current.freq(-2) == 0.0:
+                if self.father.current.freq(-2) == 0.0 or self.father.current.ref(-2) == 0.0:
                     self.axisDropFreq2.model().item(3).setEnabled(False)
-                if self.father.current.getppm(-2) and self.father.current.freq(-2) != 0.0:
+                if self.father.current.getppm(-2) and self.father.current.freq(-2) != 0.0 and self.father.current.ref(-2) != 0.0:
                     self.axisDropFreq2.setCurrentIndex(3)
                 else:
                     self.axisDropFreq2.setCurrentIndex(self.father.current.getAxType(-2))
@@ -2794,7 +2794,7 @@ class BottomFrame(QtWidgets.QWidget):
                 self.axisDropFreq2.show()
                 if self.father.current.freq(-2) == 0.0:
                     self.axisDropFreq2.model().item(3).setEnabled(False)
-                if self.father.current.getppm(-2) and self.father.current.freq(-2) != 0.0:
+                if self.father.current.getppm(-2) and self.father.current.freq(-2) != 0.0 and self.father.current.ref(-2) != 0.0:
                     self.axisDropFreq2.setCurrentIndex(3)
                 else:
                     self.axisDropFreq2.setCurrentIndex(self.father.current.getAxType(-2))
