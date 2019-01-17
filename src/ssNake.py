@@ -106,7 +106,7 @@ matplotlib.rc('font', family='DejaVu Sans')
 np.set_printoptions(threshold=np.nan)
 QtCore.QLocale.setDefault(QtCore.QLocale('en_US'))
 
-VERSION = 'v1.0b'
+VERSION = 'v1.0'
 # Required library version
 NPVERSION = '1.11.0'
 MPLVERSION = '1.4.2'
