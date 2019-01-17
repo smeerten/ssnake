@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-# Copyright 2016 - 2018 Bas van Meerten and Wouter Franssen
+# Copyright 2016 - 2019 Bas van Meerten and Wouter Franssen
 
 # This file is part of ssNake.
 #
@@ -24,12 +24,17 @@ from six import string_types
 import spectrum as sc
 import hypercomplex as hc
 
+class LoadException(sc.SpectrumException):
+    pass
+
 def autoLoad(filePathList, asciiInfoList=None):
     if isinstance(filePathList, string_types):
         filePathList = [filePathList]
     if asciiInfoList is None:
         asciiInfoList = [None] * len(filePathList)
     masterData = autoLoadSingle(filePathList[0], asciiInfoList[0])
+    if isinstance(masterData, int) and len(filePathList) > 1:
+        raise LoadException("ASCII data cannot be combined")
     if len(filePathList) == 1:
         return masterData
     shapeRequired = masterData.shape()
@@ -39,7 +44,7 @@ def autoLoad(filePathList, asciiInfoList=None):
         if addData is None:
             continue
         if addData.shape() != shapeRequired:
-            raise ValueError("Not all the data has the required shape")
+            raise LoadException("Not all the data has the required shape")
         masterData.insert(addData.data, masterData.shape()[0], 0)
     masterData.filePath = (filePathList, asciiInfoList)
     return masterData
@@ -106,6 +111,8 @@ def loadFile(filePath, realpath=False, asciiInfo=None):
         masterData = loadBrukerEPR(filePath)
     elif num == 14:
         masterData = loadSiemensIMA(filePath)
+    elif num == 15:
+        masterData = loadBrukerWinNMR(filePath)
     masterData.rename(name)
     return masterData
 
@@ -117,7 +124,9 @@ def fileTypeCheck(filePath):
         filename = os.path.basename(filePath)
         fileBase = os.path.splitext(filename)[0]
         direc = os.path.dirname(filePath)
-        if filename.endswith('.fid') or filename.endswith('.spe'):
+        if filename.lower().endswith('.fid') or filename.lower().endswith('.spe'):
+            if os.path.exists(filePath[:-3] + 'AQS') or os.path.exists(filePath[:-3] + 'aqs'):
+                return (15, filePath, returnVal) #Bruker WinNMR suspected
             with open(filePath, 'r') as f:
                 check = int(np.fromfile(f, np.float32, 1))
             if check == 0:
@@ -129,9 +138,9 @@ def fileTypeCheck(filePath):
                 check = int(np.fromfile(f, np.float32, 1))
             if check == 0:
                 return (8, filePath, returnVal)  # Suspected NMRpipe format
-        elif filename.endswith('.json') or filename.endswith('.JSON'):
+        elif filename.lower().endswith('.json'):
             return (5, filePath, returnVal)
-        elif filename.endswith('.mat') or filename.endswith('.MAT'):
+        elif filename.lower().endswith('.mat'):
             return (6, filePath, returnVal)
         elif filename.endswith('.jdf'):  # JEOL delta format
             return (9, filePath, returnVal)
@@ -139,8 +148,10 @@ def fileTypeCheck(filePath):
             return (10, filePath, returnVal)
         elif filename.endswith('.sig'):  # Bruker minispec
             return (12, filePath, returnVal)
-        elif filename.endswith('.ima') or filename.endswith('.IMA'):  # Siemens ima format
+        elif filename.lower().endswith('.ima'):  # Siemens ima format
             return (14, filePath, returnVal)        
+        elif filename.lower().endswith('.1r') or filename.lower().endswith('.1i') :  # Bruker WinNMR format
+            return (15, filePath, returnVal)        
         returnVal = 1
         direc = os.path.dirname(filePath)
     if os.path.exists(direc + os.path.sep + 'procpar') and os.path.exists(direc + os.path.sep + 'fid'):
@@ -270,14 +281,17 @@ def loadVarianFile(filePath):
     else:
         masterData = sc.Spectrum(fid, (filePath, None), [freq1, freq], [sw1, sw], [bool(int(spec))] * 2, ref=[reffreq1, reffreq])
     masterData.addHistory("Varian data loaded from " + filePath)
-    masterData.metaData['# Scans'] = str(pars['nt'])
-    masterData.metaData['Acquisition Time [s]'] = str(pars['at'])
-    masterData.metaData['Experiment Name'] = pars['seqfil']
-    masterData.metaData['Receiver Gain'] = str(pars['gain'])
-    masterData.metaData['Recycle Delay [s]'] = str(pars['d1'])
-    masterData.metaData['Time Completed'] = pars['time_complete']
-    masterData.metaData['Offset [Hz]'] = str(pars['tof'])
-    masterData.metaData['Sample'] = pars['samplename']
+    try:
+        masterData.metaData['# Scans'] = str(pars['nt'])
+        masterData.metaData['Acquisition Time [s]'] = str(pars['at'])
+        masterData.metaData['Experiment Name'] = pars['seqfil']
+        masterData.metaData['Receiver Gain'] = str(pars['gain'])
+        masterData.metaData['Recycle Delay [s]'] = str(pars['d1'])
+        masterData.metaData['Time Completed'] = pars['time_complete']
+        masterData.metaData['Offset [Hz]'] = str(pars['tof'])
+        masterData.metaData['Sample'] = pars['samplename']
+    except Exception:
+        pass
     return masterData
 
 def loadPipe(filePath):
@@ -355,34 +369,85 @@ def loadPipe(filePath):
     masterData.addHistory("NMRpipe data loaded from " + filePath)
     return masterData
 
-def loadJEOLDelta(filePath):
+def getJEOLpars(filePath,endian,start,length):
     from struct import unpack
-    multiUP = lambda typ, bit, num, start: np.array([unpack(typ,header[start + x:start + bit + x])[0] for x in range(0,num * bit,bit)])
+    with open(filePath, "rb") as f:
+        _ = f.read(start + 16)
+        pars = f.read(length)
+    numpars = int(length/64)
+    parsOut = {}
+    for i in range(numpars):
+        valueType = multiUP(pars,'<I', 4, 1, 32 + i * 64)[0] 
+        unit = multiUP(pars,'<B', 1, 10, 6 + i * 64)
+        scale = convJEOLunit(unit[0])
+        value = pars[16 + i * 64:32 + i * 64]
+        if valueType == 0:
+            value = value.decode()
+        elif valueType == 1:
+            value = int(unpack('<i',value[0:4])[0]) * scale
+        elif valueType == 2:
+            value = float(unpack('<d',value[0:8])[0]) * scale
+        name = pars[36 + i * 64:64 + i * 64].decode().strip()
+        parsOut[name.lower()] = value
+    #Valuetypes:
+    # 0: str
+    # 1: <l/i
+    # 2: <d
+    # 3: Z
+    # 4: inf
+    return parsOut
+
+def convJEOLunit(val): #get scaling factor
+    scale = (val >> 4) & 15
+    if scale > 7:
+        scale = scale - 16
+    return 10.0**(-scale * 3)
+
+def getJEOLdFilter(pars):
+    try:
+        orders = np.array([int(x) for x in pars['orders'].split()])
+        factors = np.array([int(x) for x in pars['factors'].split()])
+        prodFact  = np.cumprod(factors[::-1])[::-1] #Inverse cumprod of factors
+        filterDelay = np.sum((np.array(orders[1:]) - 1) / prodFact ) / 2
+        return filterDelay * 2 * np.pi
+    except Exception:
+        return None
+
+def multiUP(header,typ, bit, num, start):
+    from struct import unpack
+    return np.array([unpack(typ,header[start + x:start + bit + x])[0] for x in range(0,num * bit,bit)])
+
+def loadJEOLDelta(filePath):
     with open(filePath, "rb") as f:
         header = f.read(1296)
-    endian =['>d','<d'][multiUP('>B', 1, 1, 8)[0]]
-    NDIM =  multiUP('>B', 1, 1, 12)[0]
-    #data_dimension_exist = multiUP('>B', 1, 1, 13)[0]
-    #data_type = multiUP('>B', 1, 1, 14)[0]
-    #translate = multiUP('>B', 1, 8, 16)
-    dataType = multiUP('>B', 1, 8, 24)
-    dataUnits = multiUP('>B', 1, 16, 32).reshape(8, 2)
-    NP = multiUP('>I', 4, 8, 176)
-    #dataStart = multiUP('>I', 4, 8, 208)
-    dataStop = multiUP('>I', 4, 8, 240)
-    axisStart = multiUP('>d', 8, 8, 272)
-    axisStop = multiUP('>d', 8, 8, 336)
-    baseFreq = multiUP('>d', 8, 8, 1064)
-    #zero_point = multiUP('>d', 8, 8, 1128)
-    reverse = multiUP('>B', 1, 8, 1192)
-    readStart = multiUP('>I', 4, 1, 1284)[0]
-    #data_length = multiUP('>Q', 8, 1, 1288)[0]
+    endian =['>d','<d'][multiUP(header,'>B', 1, 1, 8)[0]]
+    NDIM =  multiUP(header,'>B', 1, 1, 12)[0]
+    #data_dimension_exist = multiUP(header,'>B', 1, 1, 13)[0]
+    #data_type = multiUP(header,'>B', 1, 1, 14)[0]
+    #translate = multiUP(header,'>B', 1, 8, 16)
+    dataType = multiUP(header,'>B', 1, 8, 24)
+    dataUnits = multiUP(header,'>B', 1, 16, 32).reshape(8, 2)
+    NP = multiUP(header,'>I', 4, 8, 176)
+    dataStart = multiUP(header,'>I', 4, 8, 208)
+    dataStop = multiUP(header,'>I', 4, 8, 240)
+    axisStart = multiUP(header,'>d', 8, 8, 272)
+    axisStop = multiUP(header,'>d', 8, 8, 336)
+    baseFreq = multiUP(header,'>d', 8, 8, 1064)
+    #zero_point = multiUP(header,'>d', 8, 8, 1128)
+    reverse = multiUP(header,'>B', 1, 8, 1192)
+    paramStart = multiUP(header,'>I', 4, 1, 1212)[0]
+    paramLength = multiUP(header,'>I', 4, 1, 1216)[0]
+    readStart = multiUP(header,'>I', 4, 1, 1284)[0]
+    #data_length = multiUP(header,'>Q', 8, 1, 1288)[0]
+    hdrPars = getJEOLpars(filePath,endian,paramStart,paramLength)
+    dFilter = getJEOLdFilter(hdrPars)
+
     loadSize = np.prod(NP[:NDIM])
-    if NDIM == 1 and dataType[0] == 3: #Complex 1D
+    if NDIM == 1 and (dataType[0] == 3 or dataType[0] == 4): #Complex 1D
         loadSize *= 2
-    elif NDIM == 2 and dataType[0] == 4: #2D Real-Complex (non-Hypercomplex)
+    elif NDIM == 2 and (dataType[0] == 4 or (dataType[0] == 3  and dataType[1] == 1)): #2D Real-Complex (non-Hypercomplex)
         loadSize *= 2
-    elif NDIM == 2 and dataType[0] == 3: #2D Complex-Complex (Hypercomplex)
+    elif NDIM == 2 and dataType[0] == 3 and dataType[1] == 3: #2D Complex-Complex (Hypercomplex)
         loadSize *= 4
     with open(filePath, "rb") as f:
         f.seek(readStart) #Set read start to position of data
@@ -390,15 +455,15 @@ def loadJEOLDelta(filePath):
     hyper = np.array([0])
     if NDIM == 1 and dataType[0] == 1: #Real 1D
         data = [data]
-    elif NDIM == 1 and dataType[0] == 3: #Complex 1D
+    elif NDIM == 1 and (dataType[0] == 3 or dataType[0] == 4): #Complex 1D
         data = data[:NP[0]] - 1j * data[NP[0]:]
-        data = [data[0:data_offset_stop[0] + 1]]
-    elif NDIM == 2 and dataType[0] == 4: #2D Real-Complex (non-Hypercomplex)
+        data = [data[0:dataStop[0] + 1]]
+    elif NDIM == 2 and (dataType[0] == 4 or (dataType[0] == 3  and dataType[1] == 1)): #2D Real-Complex (non-Hypercomplex)
         Step = 4
         data = data[:int(loadSize/2)] - 1j * data[int(loadSize/2):]
         data = np.reshape(data, [int(NP[1] / Step), int(NP[0] / Step), Step, Step])
         data = [np.concatenate(np.concatenate(data, 1), 1)]
-    elif NDIM == 2 and dataType[0] == 3: #2D Complex-Complex (Hypercomplex)
+    elif NDIM == 2 and dataType[0] == 3  and dataType[1] == 3 : #2D Complex-Complex (Hypercomplex)
         hyper = np.array([0, 1])
         Step = 32  # Step size of block
         tmp = np.split(data,4)
@@ -407,26 +472,23 @@ def loadJEOLDelta(filePath):
         for i in range(len(data)):
             data[i] = np.reshape(data[i], [int(NP[1] / Step), int(NP[0] / Step), Step, Step])
             data[i] = np.concatenate(np.concatenate(data[i], 1), 1)
+
     eS = (slice(None),) #empty slice
     for dim in range(NDIM): #Cut data for every dim
-        useSlice = eS * (NDIM - dim - 1) +(slice(0,dataStop[dim],None),) + eS * dim
+        useSlice = eS * (NDIM - dim - 1) +(slice(0,dataStop[dim] + 1,None),) + eS * dim
         for i in range(len(data)):
             data[i] = data[i][useSlice]
     freq = baseFreq[0:NDIM][::-1] * 1e6
-    spec = dataUnits[0:NDIM,1][::-1] != 28 #If not 28 (Hz), then spec = true
+    spec = dataUnits[0:NDIM,1][::-1] != 28 #If not 28 (sec), then spec = true
     sw = []
     ref = []
     for axisNum in reversed(range(NDIM)):
         axisType = dataUnits[axisNum][1]  # Sec = 28, Hz = 13, PPM = 26
         axisScale = dataUnits[axisNum][0]
         if axisType == 28:  # Sec
-            scale = (axisScale >> 4) & 15
-            if scale > 7:
-                scale = scale - 16
-            dw = (axisStop[axisNum] - axisStart[axisNum]) / (dataStop[axisNum] + 1 - 1) * 10.0**(-scale * 3)  # minus one to give same axis as spectrum???
-            # scale for SI prefix
+            scale = convJEOLunit(axisScale)
+            dw = (axisStop[axisNum] - axisStart[axisNum]) / (dataStop[axisNum] + 1 - 1) * scale  
             sw.append(1.0 / dw)
-            sidefreq = -np.floor((dataStop[axisNum] + 1) / 2) / dataStop[axisNum] + 1 * sw[-1]  # frequency of last point on axis
             ref.append(baseFreq[axisNum] * 1e6)
         if axisType == 13:  # Hz
             sw.append(np.abs(axisStart[axisNum] - axisStop[axisNum]))
@@ -440,7 +502,7 @@ def loadJEOLDelta(filePath):
         for i in range(NDIM):
             if spec[-1 - i] == 1:
                 data[k] = np.flip(data[k], NDIM -1 - i)
-    masterData = sc.Spectrum(hc.HComplexData(np.array(data), hyper), (filePath, None), freq, sw, spec, ref=ref)
+    masterData = sc.Spectrum(hc.HComplexData(np.array(data), hyper), (filePath, None), freq, sw, spec, ref=ref, dFilter = dFilter)
     masterData.addHistory("JEOL Delta data loaded from " + filePath)
     return masterData
 
@@ -458,6 +520,8 @@ def saveJSONFile(filePath, spectrum):
     struct['ref'] = np.array(spectrum.ref, dtype=np.float).tolist()
     struct['history'] = spectrum.history
     struct['metaData'] = spectrum.metaData
+    if spectrum.dFilter is not None:
+        struct['dFilter'] = spectrum.dFilter
     tmpXax = []
     for i in spectrum.xaxArray:
         tmpXax.append(i.tolist())
@@ -478,6 +542,10 @@ def loadJSONFile(filePath):
         hyper = [0]
         data = np.array([np.array(struct['dataReal']) + 1j * np.array(struct['dataImag'])])
     ref = np.where(np.isnan(struct['ref']), None, struct['ref'])
+    if 'dFilter' in struct.keys():
+        dFilter = struct['dFilter']
+    else:
+        dFilter = None
     if 'history' in struct.keys():
         history = struct['history']
     else:
@@ -499,7 +567,8 @@ def loadJSONFile(filePath):
                              list(ref),
                              xaxA,
                              history=history,
-                             metaData=metaData)
+                             metaData=metaData,
+                             dFilter = dFilter)
     masterData.addHistory("JSON data loaded from " + filePath)
     return masterData
 
@@ -517,6 +586,8 @@ def saveMatlabFile(filePath, spectrum, name='spectrum'):
     struct['history'] = spectrum.history
     struct['xaxArray'] = spectrum.xaxArray
     struct['metaData'] = spectrum.metaData
+    if spectrum.dFilter is not None:
+        struct['dFilter'] = spectrum.dFilter
     matlabStruct = {name: struct}
     scipy.io.savemat(filePath, matlabStruct)
 
@@ -536,6 +607,10 @@ def loadMatlabFile(filePath):
                 hyper = mat['hyper'][0,0][0]
         else:
             hyper = None
+        if 'dFilter' in mat.dtype.names:
+            dFilter = mat['dFilter']
+        else:
+            dFilter = None
         data = []
         if mat['dim'] == 1:
             if hyper is None:
@@ -582,7 +657,8 @@ def loadMatlabFile(filePath):
                                  list(ref),
                                  xaxA,
                                  history=history,
-                                 metaData = metaData)
+                                 metaData = metaData,
+                                 dFilter = dFilter)
         masterData.addHistory("Matlab data loaded from " + filePath)
         return masterData
     else:  # If the version is 7.3, use HDF5 type loading
@@ -598,6 +674,10 @@ def loadMatlabFile(filePath):
             hyper = np.array(mat['hyper'])[0]
         else:
             hyper = None
+        if 'dFilter' in mat:
+            dFilter = np.array(mat['dFilter'])[0][0]
+        else:
+            dFilter = None
         if np.array(mat['dim'])[0][0] == 1:
             xaxA = list([np.array(mat['xaxArray'])[:, 0]])
             if hyper is None: #Old data format
@@ -643,7 +723,8 @@ def loadMatlabFile(filePath):
                                  list(ref),
                                  xaxA,
                                  history=history,
-                                 metaData=metaData)
+                                 metaData=metaData,
+                                 dFilter = dFilter)
         masterData.addHistory("Matlab data loaded from " + filePath)
         return masterData
 
@@ -657,7 +738,8 @@ def brukerTopspinGetPars(file):
     pars = dict()
     while pos < len(data):
         if data[pos].startswith('##$'):
-            line = data[pos].split()
+            line = data[pos].split('=')
+            line[1] = re.sub('^ ', '', line[1])
             name = line[0].strip('##$=')
             val = line[1]
             if val[0] == '<':
@@ -666,7 +748,11 @@ def brukerTopspinGetPars(file):
                 pos +=1
                 val = []
                 while not data[pos].startswith('##$'):
-                    val = val + [float(x) for x in data[pos].split()]
+                    try:
+                        val = val + [float(x) for x in data[pos].strip('<>').split()]
+                    except Exception:
+                        val = val + data[pos].strip('<>').split()
+
                     pos += 1
                 pos += -1
             else:
@@ -680,6 +766,30 @@ def brukerTopspinGetPars(file):
             pars[name] = val
         pos += 1
     return pars
+
+def getBrukerFilter(pars):
+    delay = -1
+    if 'GRPDLY' in pars.keys():
+        delay = pars['GRPDLY'] * 2 * np.pi
+    if delay >= 0.0:
+        return delay
+    elif pars['DSPFVS'] == 10 or pars['DSPFVS'] == 11 or pars['DSPFVS'] == 12:  # get from table
+        CorrectionList = [{'2': 44.7500, '3': 33.5000, '4': 66.6250, '6': 59.0833, '8': 68.5625, '12': 60.3750,
+                           '16': 69.5313, '24': 61.0208, '32': 70.0156, '48': 61.3438, '64': 70.2578, '96': 61.5052,
+                           '128': 70.3789, '192': 61.5859, '256': 70.4395, '384': 61.6263, '512': 70.4697, '768': 61.6465,
+                           '1024': 70.4849, '1536': 61.6566, '2048': 70.4924},
+                          {'2': 46.0000, '3': 36.5000, '4': 48.0000, '6': 50.1667, '8': 53.2500, '12': 69.5000,
+                           '16': 72.2500, '24': 70.1667, '32': 72.7500, '48': 70.5000, '64': 73.0000, '96': 70.6667,
+                           '128': 72.5000, '192': 71.3333, '256': 72.2500, '384': 71.6667, '512': 72.1250, '768': 71.8333,
+                           '1024': 72.0625, '1536': 71.9167, '2048': 72.0313},
+                          {'2': 46.311, '3': 36.530, '4': 47.870, '6': 50.229, '8': 53.289, '12': 69.551, '16': 71.600,
+                           '24': 70.184, '32': 72.138, '48': 70.528, '64': 72.348, '96': 70.700, '128': 72.524}]
+#            # Take correction from database. Based on matNMR routine (Jacco van Beek), which is itself based
+#            # on a text by W. M. Westler and F. Abildgaard.
+        return CorrectionList[10 - pars['DSPFVS']][str(pars['DECIM'])] * 2 * np.pi
+    else:
+        return None
+
 
 def loadBrukerTopspin(filePath):
     if os.path.isfile(filePath):
@@ -696,6 +806,7 @@ def loadBrukerTopspin(filePath):
     REF = [x['O1'] for x in pars]
     ByteOrder = ['l','b'][pars[0]['BYTORDA']] #The byte orders that is used
     REF = list(- np.array(REF) + np.array(FREQ))
+    dFilter = getBrukerFilter(pars[0])
     totsize = np.prod(SIZE)
     dim = len(SIZE)
     directSize = int(np.ceil(float(SIZE[0]) / 256)) * 256 #Size of direct dimension including
@@ -716,12 +827,86 @@ def loadBrukerTopspin(filePath):
         ComplexData = ComplexData[:,0:int(SIZE[0]/2)] #Cut off placeholder data
     elif dim == 3:
         ComplexData = ComplexData[:,:,0:int(SIZE[0]/2)] #Cut off placeholder data
-    masterData = sc.Spectrum(ComplexData, (filePath, None), FREQ[-1::-1], SW[-1::-1], [False] * dim, ref = REF[-1::-1])
-    masterData.metaData['# Scans'] = str(pars[0]['NS'])
-    masterData.metaData['Receiver Gain'] = str(pars[0]['RG'])
-    masterData.metaData['Experiment Name'] = pars[0]['PULPROG']
-    masterData.metaData['Offset [Hz]'] = str(pars[0]['O1'])
-    masterData.metaData['Recycle Delay [s]'] = str(pars[0]['D'][1])
+    masterData = sc.Spectrum(ComplexData, (filePath, None), FREQ[-1::-1], SW[-1::-1], [False] * dim, ref = REF[-1::-1], dFilter = dFilter)
+    # TODO: Inserting metadata should be made more generic
+    try:
+        masterData.metaData['# Scans'] = str(pars[0]['NS'])
+    except Exception:
+        pass
+    try:
+        masterData.metaData['Receiver Gain'] = str(pars[0]['RG'])
+    except Exception:
+        pass
+    try:
+        masterData.metaData['Experiment Name'] = pars[0]['PULPROG']
+    except Exception:
+        pass
+    try:        
+        masterData.metaData['Offset [Hz]'] = str(pars[0]['O1'])
+    except Exception:
+        pass
+    try:
+        masterData.metaData['Recycle Delay [s]'] = str(pars[0]['D'][1])
+    except Exception:
+        pass
+    masterData.addHistory("Bruker TopSpin data loaded from " + filePath)
+    return masterData
+
+def loadBrukerWinNMR(filePath):
+    base, extension = os.path.splitext(filePath)
+    #Check if upper or lower case
+    names = ['.fqs','.aqs','.fid','.1r','.1i']
+    if extension == extension.upper(): #If uppercase
+        names = [x.upper() for x in names]
+    present = [os.path.exists(base + x) for x in names]
+    if extension == names[3] or extension == names[4]: #If spec loaded
+        pars = brukerTopspinGetPars(base + names[0])
+        SIZE = pars['XDIM']
+        FREQ = pars['SF'] * 1e6 
+        SW = pars['SW_p']
+        ByteOrder = ['l','b'][pars['BYTORDP']] #The byte orders that is used
+        OFFSET = pars['OFFSET']
+        pos = np.fft.fftshift(np.fft.fftfreq(SIZE, 1.0 / SW))[-1] #Get last point of axis
+        pos2 = OFFSET * 1e-6 * FREQ #offset in Hz
+        REF = FREQ + pos - pos2
+        spec = True
+    else:
+        pars = brukerTopspinGetPars(base + names[1])
+        SIZE = pars['TD']
+        FREQ = pars['SFO1'] * 1e6 
+        SW = pars['SW_h']
+        REF = pars['O1'] 
+        REF = - REF+ FREQ
+        ByteOrder = ['l','b'][pars['BYTORDA']] #The byte orders that is used
+        spec = False
+    if spec: #If spec loaded
+        with open(base + names[3], "rb") as f:
+            rawR = np.fromfile(f, np.float32, SIZE)
+        rawR = rawR.newbyteorder(ByteOrder) #Load with right byte order
+        if present[4]:
+            with open(base + names[4], "rb") as f:
+                rawI = np.fromfile(f, np.float32, SIZE)
+            rawI = rawI.newbyteorder(ByteOrder) #Load with right byte order
+            ComplexData = rawR - 1j* rawI
+        else:
+            ComplexData = rawR
+        ComplexData = np.flipud(ComplexData)
+    else: #Load fid
+        with open(base + names[2], "rb") as f:
+            raw = np.fromfile(f, np.float32, SIZE)
+        raw = raw.newbyteorder(ByteOrder) #Load with right byte order
+        ComplexData = np.array(raw[0:len(raw):2]) + 1j * np.array(raw[1:len(raw):2])
+    masterData = sc.Spectrum(ComplexData, (filePath, None), [FREQ], [SW], [spec], ref = [REF])
+    if not spec:
+        try:
+            masterData.metaData['# Scans'] = str(pars['NS'])
+            masterData.metaData['Receiver Gain'] = str(pars['RG'])
+            masterData.metaData['Experiment Name'] = pars['PULPROG']
+            masterData.metaData['Offset [Hz]'] = str(pars['O1'])
+            masterData.metaData['Recycle Delay [s]'] = str(pars['D'][1])
+        except Exception:
+            pass
+    masterData.addHistory("Bruker WinNMR data loaded from " + filePath)
 
     return masterData
 
@@ -839,7 +1024,11 @@ def loadChemFile(filePath):
     sw1 = 1
     pars = chemGetPars(Dir)
     sizeTD2 = int(float(pars['al']))
-    freq = float(pars['sf' + str(int(float(pars['ch1'])))])
+    freq = pars['sf' + str(int(float(pars['ch1'])))]
+    if type(freq) is list: #load only first value when list
+        freq = float(freq[0])
+    else:
+        freq = float(freq)
     sw = 1 / convertChemVal(pars['dw']) 
     if any('array_num_values_' in s for s in pars):
         if int(float(pars['use_array'])) == 1:
@@ -931,12 +1120,15 @@ def loadMagritek(filePath):
         Data = raw[-2 * sizeTD2::]
         ComplexData = Data[0:Data.shape[0]:2] - 1j * Data[1:Data.shape[0]:2]
         masterData = sc.Spectrum(ComplexData, (filePath, None), [freq], [sw], [False], ref=[ref])
+    try:
+        masterData.metaData['# Scans'] = H['nrScans']
+        masterData.metaData['Acquisition Time [s]'] = str(int(H['nrPnts']) * float(H['dwellTime']) * 1e-6)
+        masterData.metaData['Experiment Name'] = H['expName'].strip('"')
+        masterData.metaData['Receiver Gain'] = H['rxGain']
+        masterData.metaData['Recycle Delay [s]'] = str(float(H['repTime'])/1e3)
+    except Exception:
+        pass
     masterData.addHistory("Magritek data loaded from " + filePath)
-    masterData.metaData['# Scans'] = H['nrScans']
-    masterData.metaData['Acquisition Time [s]'] = str(int(H['nrPnts']) * float(H['dwellTime']) * 1e-6)
-    masterData.metaData['Experiment Name'] = H['expName'].strip('"')
-    masterData.metaData['Receiver Gain'] = H['rxGain']
-    masterData.metaData['Recycle Delay [s]'] = str(float(H['repTime'])/1e3)
     return masterData
 
 def saveSimpsonFile(filePath, spectrum):

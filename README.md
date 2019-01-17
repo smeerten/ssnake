@@ -40,6 +40,11 @@ Aliases or symlinks can be used to create a shortcut to start the program.
 
 ###Windows###
 
+On Windows systems, ssNake can be installed using the 'Windows installer' that we supply. This holds
+a compiled version of both ssNake, and the relevant python libraries, and can be run without any
+other requirements. For the installer, please visit our [website](https://www.ru.nl/science/solidstatenmr/software/ssnake/).
+
+Users that have installed python via the Anaconda progrom descibed above can do the following:
 To install ssNake, copy the ssNake directory to your favourite location (C:\Program Files\, for example).
 ssNake can then be run by double clicking on the 'WindowsRun.bat' file.
 Alternatively, you can execute the 'WindowsInstall.vbs' file from within the ssNake directory.

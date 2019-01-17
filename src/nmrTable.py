@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-# Copyright 2016 - 2018 Bas van Meerten and Wouter Franssen
+# Copyright 2016 - 2019 Bas van Meerten and Wouter Franssen
 
 # This file is part of ssNake.
 #
@@ -17,7 +17,6 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with ssNake. If not, see <http://www.gnu.org/licenses/>.
-#!/usr/bin/env python
 
 import sys
 try:
@@ -29,17 +28,11 @@ except ImportError:
     QT = 4
 import os
 import math
-
-def fOrNone(inp):
-    #Convert to float is possible, otherwise None
-    if inp == '-':
-        return None
-    else:
-        return float(inp)
+import loadIsotopes
 
 def safeEval(inp, length=None):
     try:
-        return eval(inp)
+        return eval(str(inp))
     except Exception:
         return None
 
@@ -54,64 +47,12 @@ SPINCOLORS = ['white', 'blue', 'orange', 'green', 'yellow',
 GAMMASCALE = 100 / 42.576
 ELECTRONSCALE = GAMMASCALE * 28.02495266
 
+
 isoPath = os.path.dirname(os.path.realpath(__file__)) + os.path.sep + "IsotopeProperties"
-if sys.version_info < (3,):  
-    with open(isoPath) as isoFile:
-        isoList = [line.strip().split('\t') for line in isoFile]
-else:
-    with open(isoPath, encoding = 'UTF-8') as isoFile:
-        isoList = [line.strip().split('\t') for line in isoFile]
-
-isoList = isoList[1:] #Cut off header
-nameList = []
-fullNameList = []
-formatNameList = []
-atomNumList = []
-atomMassList = []
-spinList = []
-abundanceList = [] 
-gammaList = [] 
-qList = []
-freqRatioList = []
-refSampleList = []
-sampleConditionList = []
-linewidthFactorList = [] 
-lifetimeList = []
-sensList = []
-
-
-
-for i in range(len(isoList)):
-    isoN = isoList[i]
-    atomNumList.append(int(isoN[0]))
-    nameList.append(isoN[1])
-    fullNameList.append(isoN[2])
-    atomMassList.append(fOrNone(isoN[3]))
-    formatNameList.append(nameList[-1])
-    if atomMassList[-1] is not None:
-        formatNameList[-1] = '%d' % (atomMassList[i]) + formatNameList[-1]
-    spinList.append(fOrNone(isoN[4]))
-    abundanceList.append(fOrNone(isoN[5]))
-    gammaList.append(fOrNone(isoN[6]))
-    qList.append(fOrNone(isoN[7]))
-    freqRatioList.append(fOrNone(isoN[8]))
-    refSampleList.append(isoN[9])
-    sampleConditionList.append(isoN[10])
-    if isoN[4] == '0.5' or spinList[i] is None or qList[i] is None:
-        linewidthFactorList.append(None)
-    else:
-        #Linewidth due to quadrupolar broadening: (2I + 3) * Q /(I^2 * (2I - 1))
-        linewidthFactorList.append((2 * spinList[i] + 3) * qList[i]**2 / (spinList[i]**2 * (2 * spinList[i] - 1)))
-        
-    if gammaList[-1] is not None and abundanceList[-1] is not None and spinList[-1] is not None:
-        #Sensitivity: chi * gamma**3 * I * (I + 1)
-        sensList.append(abundanceList[-1] * abs(gammaList[-1])**3 * spinList[-1] * (spinList[-1] + 1))
-    else:
-        sensList.append(None)
-    lifetimeList.append(isoN[11])
+isotopes = loadIsotopes.getIsotopeInfo(isoPath)
 
 # Create a list of structures containing the isotope information
-ATOMNUM = max(atomNumList)
+ATOMNUM = max(isotopes['atomNum'])
 MASTERISOTOPELIST = []
 LONGEST = 0
 for i in range(ATOMNUM):
@@ -128,21 +69,21 @@ for i in range(ATOMNUM):
                       'linewidthFactor': [],
                       'lifetime': [],
                       'sensitivity': []}
-    Vals = [j for j,val in enumerate(atomNumList) if val==i+1] #Position of all elements with val == i+1
+    Vals = [j for j,val in enumerate(isotopes['atomNum']) if val==i+1] #Position of all elements with val == i+1
     for elem in Vals:
-        isotopeEntry['name'].append(nameList[elem])
-        isotopeEntry['fullName'].append(fullNameList[elem])
-        isotopeEntry['mass'].append(atomMassList[elem])
-        isotopeEntry['spin'].append(spinList[elem])
-        isotopeEntry['abundance'].append(abundanceList[elem])
-        isotopeEntry['gamma'].append(gammaList[elem])
-        isotopeEntry['q'].append(qList[elem])
-        isotopeEntry['freqRatio'].append(freqRatioList[elem])
-        isotopeEntry['refSample'].append(refSampleList[elem])
-        isotopeEntry['sampleCondition'].append(sampleConditionList[elem])
-        isotopeEntry['linewidthFactor'].append(linewidthFactorList[elem])
-        isotopeEntry['lifetime'].append(lifetimeList[elem])
-        isotopeEntry['sensitivity'].append(sensList[elem])
+        isotopeEntry['name'].append(isotopes['name'][elem])
+        isotopeEntry['fullName'].append(isotopes['fullName'][elem])
+        isotopeEntry['mass'].append(isotopes['atomMass'][elem])
+        isotopeEntry['spin'].append(isotopes['spin'][elem])
+        isotopeEntry['abundance'].append(isotopes['abundance'][elem])
+        isotopeEntry['gamma'].append(isotopes['gamma'][elem])
+        isotopeEntry['q'].append(isotopes['q'][elem])
+        isotopeEntry['freqRatio'].append(isotopes['freqRatio'][elem])
+        isotopeEntry['refSample'].append(isotopes['refSample'][elem])
+        isotopeEntry['sampleCondition'].append(isotopes['sampleCondition'][elem])
+        isotopeEntry['linewidthFactor'].append(isotopes['linewidthFactor'][elem])
+        isotopeEntry['lifetime'].append(isotopes['lifetime'][elem])
+        isotopeEntry['sensitivity'].append(isotopes['sensitivity'][elem])
 
     LONGEST = max(LONGEST, len(Vals))
     if len(Vals) > 0:
@@ -151,7 +92,7 @@ for i in range(ATOMNUM):
         MASTERISOTOPELIST.append(isotopeEntry)
     else:
         MASTERISOTOPELIST.append(None)
-nameList = sorted(set(nameList))
+nameList = sorted(set(isotopes['name']))
 
 class PeriodicTable(QtWidgets.QWidget):
 
@@ -202,17 +143,11 @@ class PeriodicTable(QtWidgets.QWidget):
         self.listPush.pressed.connect(lambda : self.openList())
         grid.addWidget(self.listPush, 1, 6,1,2)
         grid.addWidget(PtQLabel('Spin:'), 0, 4)
-        splitVal = int(math.ceil(len(SPINNAMES) / 2.0))
-        for i in range(1, splitVal):
+        for i in range(len(SPINNAMES)):
             tmpWidget = QtWidgets.QWidget()
             self.legendEntries.append(PtQLineEdit(SPINNAMES[i]))
             self.legendEntries[-1].setReadOnly(True)
-            grid.addWidget(self.legendEntries[-1], 0, i + 4)
-            self.legendEntries[-1].hide()
-        for i in range(splitVal, len(SPINNAMES)):
-            self.legendEntries.append(PtQLineEdit(SPINNAMES[i]))
-            self.legendEntries[-1].setReadOnly(True)
-            grid.addWidget(self.legendEntries[-1], 1, i - splitVal + 5)
+            grid.addWidget(self.legendEntries[-1], 0, i + 5)
             self.legendEntries[-1].hide()
         for i in range(ATOMNUM):
             groupList.append(QtWidgets.QWidget())
@@ -355,7 +290,7 @@ class DetailWindow(QtWidgets.QWidget):
         grid2.addWidget(self.fullNameLabel, 0, 5)
         grid2.setColumnStretch(6, 1)
         self.refLabel = QtWidgets.QComboBox()
-        self.refLabel.addItems(list(formatNameList))
+        self.refLabel.addItems(list(isotopes['formatName']))
         self.refLabel.currentIndexChanged[str].connect(self.refSelect)
         self.grid.addWidget(self.refLabel, 0, 7)
         self.grid.addWidget(PtQLabel('Mass:'), 1, 1)
@@ -483,10 +418,10 @@ class DetailWindow(QtWidgets.QWidget):
         self.display(num)
 
     def refSelect(self, name):
-        n = formatNameList.index(name)
-        self.refAtom = int(atomNumList[n] - 1)
+        n = isotopes['formatName'].index(name)
+        self.refAtom = int(isotopes['atomNum'][n] - 1)
         if MASTERISOTOPELIST[self.refAtom]['mass'] is not None:
-            self.refIso = MASTERISOTOPELIST[self.refAtom]['mass'].index(atomMassList[n])
+            self.refIso = MASTERISOTOPELIST[self.refAtom]['mass'].index(isotopes['atomMass'][n])
         self.upd()
 
     def changeSelect(self, n):

@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-# Copyright 2016 - 2018 Bas van Meerten and Wouter Franssen
+# Copyright 2016 - 2019 Bas van Meerten and Wouter Franssen
 
 # This file is part of ssNake.
 #
@@ -170,7 +170,10 @@ class Current1D(PlotFrame):
         return self.viewSettings["axType"][num]
 
     def getppm(self, num=-1):
-        return self.viewSettings["ppm"][num]
+        if self.data1D.ref[num] == 0.0 or self.data1D.freq[num] == 0.0:
+            return False
+        else:
+            return self.viewSettings["ppm"][num]
 
     def getDataType(self, data):
         typeList = [np.real, np.imag, np.array, np.abs]
@@ -212,6 +215,8 @@ class Current1D(PlotFrame):
         except Exception:
             self.resetLocList()
             self.data1D = self.data.getSlice(self.axes, self.locList)
+        if self.ref() == 0.0 or self.freq() == 0.0: #Check if ppm is allowed
+            self.viewSettings["ppm"][-1] = False
         return True
 
     def setSlice(self, axes, locList):  # change the slice
@@ -300,6 +305,13 @@ class Current1D(PlotFrame):
         self.upd()
         self.showFid()
 
+    def correctDFilter(self):
+        #Corrects the digital filter via first order phasing
+        self.root.addMacro(['correctDFilter', (self.axes[-1] - self.data.ndim(),)])
+        self.data.correctDFilter(self.axes[-1])
+        self.upd()
+        self.showFid()
+
     def complexFourier(self):  # fourier the actual data and replot
         self.root.addMacro(['complexFourier', (self.axes[-1] - self.data.ndim(), )])
         self.data.complexFourier(self.axes[-1])
@@ -373,6 +385,7 @@ class Current1D(PlotFrame):
         self.data.setRef(ref, self.axes[-1])
         if ref is None:
             ref = self.freq()
+        self.upd()
         val = self.getAxType()
         if self.spec() == 1:
             if self.getppm():
@@ -381,7 +394,6 @@ class Current1D(PlotFrame):
             else:
                 self.xminlim = self.xminlim + (oldref - ref) / 10**(val * 3)  # set new limits, and scale for axis type
                 self.xmaxlim = self.xmaxlim + (oldref - ref) / 10**(val * 3)
-        self.upd()
         self.showFid()
 
     def regrid(self, limits, numPoints):
@@ -859,9 +871,9 @@ class Current1D(PlotFrame):
         self.upd()
         self.showFid()
 
-    def shearing(self, shear, axes, axes2):
-        self.root.addMacro(['shear', (shear, axes - self.data.ndim(), axes2 - self.data.ndim())])
-        self.data.shear(shear, axes, axes2)
+    def shearing(self, shear, axes, axes2, toRef=False):
+        self.root.addMacro(['shear', (shear, axes - self.data.ndim(), axes2 - self.data.ndim()), toRef])
+        self.data.shear(shear, axes, axes2, toRef)
         self.upd()
         self.showFid()
 
@@ -992,12 +1004,12 @@ class Current1D(PlotFrame):
             for num in range(len(extraX)):
                 self.line_xdata_extra.append(extraX[num] * axMult)
                 self.line_ydata_extra.append(extraY[num])
-                self.ax.plot(self.line_xdata_extra[-1], self.line_ydata_extra[-1], marker='', linestyle='-', c=extraColor, linewidth=self.viewSettings["linewidth"], picker=True)
+                self.ax.plot(self.line_xdata_extra[-1], self.line_ydata_extra[-1], marker='', linestyle='-', c=extraColor[num], linewidth=self.viewSettings["linewidth"], picker=True)
         tmpdata = self.getDataType(tmpdata)
         if(self.viewSettings["plotType"] == 2):
             self.line_xdata.append(self.line_xdata[-1])
             self.line_ydata = [np.imag(tmpdata), np.real(tmpdata)]
-            self.ax.plot(self.line_xdata[-2], self.line_ydata[-2], marker=marker, linestyle=linestyle, c='r', linewidth=self.viewSettings["linewidth"], label=self.data.name + '_imag', picker=True)
+            self.ax.plot(self.line_xdata[-2], self.line_ydata[-2], marker=marker, linestyle=linestyle, c='#FF7F0E', linewidth=self.viewSettings["linewidth"], label=self.data.name + '_imag', picker=True)
         else:
             self.line_ydata = [np.real(tmpdata)]
         self.ax.plot(self.line_xdata[-1], self.line_ydata[-1], marker=marker, linestyle=linestyle, c=self.viewSettings["color"], linewidth=self.viewSettings["linewidth"], label=self.data.name, picker=True)
@@ -1258,6 +1270,10 @@ class CurrentStacked(Current1D):
         except Exception:
             self.resetLocList()
             self.data1D = self.data.getSlice(self.axes, self.locList, stack)
+        if self.ref(-1) == 0.0 or self.freq(-1) == 0.0: #Check if ppm is allowed
+            self.viewSettings["ppm"][-1] = False
+        if self.ref(-2) == 0.0 or self.freq(-2) == 0.0: #Check if ppm is allowed
+            self.viewSettings["ppm"][-2] = False
         return True
 
     def stackSelect(self, stackBegin, stackEnd, stackStep):

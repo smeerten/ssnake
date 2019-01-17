@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-# Copyright 2016 - 2018 Bas van Meerten and Wouter Franssen
+# Copyright 2016 - 2019 Bas van Meerten and Wouter Franssen
 
 # This file is part of ssNake.
 #
@@ -25,7 +25,6 @@ import multiprocessing
 import reimplement as reim
 import functions as func
 import hypercomplex as hc
-import specIO as io
 
 AUTOPHASETOL = 0.0002 #is ~0.01 degrees
 
@@ -40,7 +39,7 @@ class SpectrumException(Exception):
 
 class Spectrum(object):
 
-    def __init__(self, data, filePath, freq, sw, spec=None, wholeEcho=None, ref=None, xaxArray=None, history=None, metaData = None, name=''):
+    def __init__(self, data, filePath, freq, sw, spec=None, wholeEcho=None, ref=None, xaxArray=None, history=None, metaData=None, name='', dFilter=None):
         self.name = name
         if isinstance(data, hc.HComplexData):
             self.data = data
@@ -48,7 +47,8 @@ class Spectrum(object):
             self.data = hc.HComplexData(data)
         self.filePath = filePath
         self.freq = np.array(freq)  # array of center frequency (length is dim, MHz)
-        self.sw = np.array(sw,dtype=float)  # array of sweepwidths
+        self.sw = np.array(sw, dtype=float)  # array of sweepwidths
+        self.dFilter = dFilter #Digital filter first order phase in radian
         self.undoList = []
         self.redoList = []
         self.noUndo = False
@@ -109,7 +109,7 @@ class Spectrum(object):
                 val = self.history.pop()
         return val
 
-    def setNoUndo(self,val):
+    def setNoUndo(self, val):
         self.noUndo = bool(val)
         if self.noUndo:
             self.undoList = []
@@ -140,6 +140,7 @@ class Spectrum(object):
         self.redoList = []
 
     def reload(self):
+        import specIO as io
         loadData = io.autoLoad(*self.filePath)
         self.restoreData(loadData, None)
         
@@ -230,6 +231,9 @@ class Spectrum(object):
             axis = self.checkAxis(axis)
         if isinstance(data, Spectrum):
             data = data.data
+        if isinstance(data, np.ndarray):
+            if np.prod(data.shape) == 1:
+                data = float(data)
         if isinstance(data, np.ndarray) and axis is not None:
             data = data.reshape(data.shape + (1,)*(self.ndim() - axis - 1))
         if not self.noUndo:
@@ -241,7 +245,10 @@ class Spectrum(object):
                 copyData = copy.deepcopy(self)
                 returnValue = lambda self: self.restoreData(copyData, lambda self: self.add(data, axis, select))
         self.data[select] += data
-        self.addHistory("Added to data[" + str(select) + "]")
+        if isinstance(data, (float,int)):
+            self.addHistory("Added " + str(data) + " to data[" + str(select) + "]")
+        else:
+            self.addHistory("Added to data[" + str(select) + "]")
         self.redoList = []
         if not self.noUndo:
             self.undoList.append(returnValue)
@@ -263,6 +270,9 @@ class Spectrum(object):
             axis = self.checkAxis(axis)
         if isinstance(data, Spectrum):
             data = data.data
+        if isinstance(data, np.ndarray):
+            if np.prod(data.shape) == 1:
+                data = float(data)
         if isinstance(data, np.ndarray) and axis is not None:
             data = data.reshape(data.shape + (1,)*(self.ndim() - axis - 1))
         if not self.noUndo:
@@ -274,7 +284,10 @@ class Spectrum(object):
                 copyData = copy.deepcopy(self)
                 returnValue = lambda self: self.restoreData(copyData, lambda self: self.subtract(data, axis, select))
         self.data[select] -= data
-        self.addHistory("Subtracted from data[" + str(select) + "]")
+        if isinstance(data, (float,int)):
+            self.addHistory("Subtracted " + str(data) + " from data[" + str(select) + "]")
+        else:
+            self.addHistory("Subtracted from data[" + str(select) + "]")
         self.redoList = []
         if not self.noUndo:
             self.undoList.append(returnValue)
@@ -296,6 +309,9 @@ class Spectrum(object):
             axis = self.checkAxis(axis)
         if isinstance(data, Spectrum):
             data = data.data
+        if isinstance(data, np.ndarray):
+            if np.prod(data.shape) == 1:
+                data = float(data)
         if isinstance(data, np.ndarray) and axis is not None:
             data = data.reshape(data.shape + (1,)*(self.ndim() - axis - 1))
         if not self.noUndo:
@@ -307,7 +323,10 @@ class Spectrum(object):
                 copyData = copy.deepcopy(self)
                 returnValue = lambda self: self.restoreData(copyData, lambda self: self.multiply(data, axis, select))
         self.data[select] *= data
-        self.addHistory("Multiplied data[" + str(select) + "]")
+        if isinstance(data, (float,int)):
+            self.addHistory("Multiplied data[" + str(select) + "] with " + str(data))
+        else:
+            self.addHistory("Multiplied data[" + str(select) + "]")
         self.redoList = []
         if not self.noUndo:
             self.undoList.append(returnValue)
@@ -328,6 +347,9 @@ class Spectrum(object):
             axis = self.checkAxis(axis)
         if isinstance(data, Spectrum):
             data = data.data
+        if isinstance(data, np.ndarray):
+            if np.prod(data.shape) == 1:
+                data = float(data)
         if isinstance(data, np.ndarray) and axis is not None:
             data = data.reshape(data.shape + (1,)*(self.ndim() - axis - 1))
         if not self.noUndo:
@@ -339,7 +361,10 @@ class Spectrum(object):
                 copyData = copy.deepcopy(self)
                 returnValue = lambda self: self.restoreData(copyData, lambda self: self.divide(data, axis, select))
         self.data[select] /= data
-        self.addHistory("Divided by data[" + str(select) + "]")
+        if isinstance(data, (float,int)):
+            self.addHistory("Divided data[" + str(select) + "] with " + str(data))
+        else:
+            self.addHistory("Divided data[" + str(select) + "]")
         self.redoList = []
         if not self.noUndo:
             self.undoList.append(returnValue)
@@ -808,7 +833,7 @@ class Spectrum(object):
             Pfun = Pfun + sum(as1**2) / 4 / L**2
         return H1 + 1000 * Pfun
 
-    def phase(self, phase0, phase1, axis, select=slice(None)):
+    def phase(self, phase0, phase1, axis, select=slice(None), internal = False):
         axis = self.checkAxis(axis)
         if self.ref[axis] is None:
             offset = 0
@@ -823,16 +848,27 @@ class Spectrum(object):
         self.data.icomplexReorder(axis)
         if self.spec[axis] == 0:
             self.__invFourier(axis, tmp=True)
-        Message = "Phasing: phase0 = " + str(phase0 * 180 / np.pi) + " and phase1 = " + str(phase1 * 180 / np.pi) + " for dimension " + str(axis + 1)
-        if type(select) is not slice:
-            Message = Message + " with slice " + str(select)
-        elif select != slice(None, None, None):
-            Message = Message + " with slice " + str(select)
 
+        if not internal:
+            Message = "Phasing: phase0 = " + str(phase0 * 180 / np.pi) + " and phase1 = " + str(phase1 * 180 / np.pi) + " for dimension " + str(axis + 1)
+            if type(select) is not slice:
+                Message = Message + " with slice " + str(select)
+            elif select != slice(None, None, None):
+                Message = Message + " with slice " + str(select)
+
+            self.addHistory(Message)
+            self.redoList = []
+            if not self.noUndo:
+                self.undoList.append(lambda self: self.phase(-phase0, -phase1, axis, select=select))
+
+    def correctDFilter(self,axis, undo = False):
+        #Corrects the digital filter via first order phasing
+        self.phase(0,self.dFilter,axis,internal = True)
+        Message = "Corrected digital filter"
         self.addHistory(Message)
         self.redoList = []
         if not self.noUndo:
-            self.undoList.append(lambda self: self.phase(-phase0, -phase1, axis, select=select))
+            self.undoList.append(lambda self: self.phase(0,-self.dFilter,axis,internal = False,))
 
     def apodize(self, lor=None, gauss=None, cos2=[None, None], hamming=None, shift=0.0, shifting=0.0, shiftingAxis=None, axis=-1, select=slice(None), preview=False):
         axis = self.checkAxis(axis)
@@ -1157,16 +1193,23 @@ class Spectrum(object):
         if not self.noUndo:
             self.undoList.append(lambda self: self.fftshift(axis, not(inv)))
 
-    def shear(self, shear, axis, axis2):
+    def shear(self, shear, axis, axis2, toRef=False):
         axis = self.checkAxis(axis)
         axis2 = self.checkAxis(axis2)
         if axis == axis2:
             raise SpectrumException('Both shearing axes cannot be equal')
         if self.ndim() < 2:
             raise SpectrumException("The data does not have enough dimensions for a shearing transformation")
+        if self.spec[axis] > 0: #rorder and fft for spec
+            self.__invFourier(axis, tmp=True, reorder=[True,False])
+        else: #Reorder if FID
+            self.data.icomplexReorder(axis)
         shape = self.shape()
+        if toRef:
+            vec2 = self.xaxArray[axis2]
+        else:
+            vec2 = np.fft.fftshift(np.fft.fftfreq(shape[axis2], 1 / self.sw[axis2]))
         vec1 = np.linspace(0, shear * 2 * np.pi * shape[axis] / self.sw[axis], shape[axis] + 1)[:-1]
-        vec2 = np.fft.fftshift(np.fft.fftfreq(shape[axis2], 1 / self.sw[axis2]))
         newShape = [1, ] * self.ndim()
         newShape[axis] = shape[axis]
         newShape[axis2] = shape[axis2]
@@ -1174,10 +1217,6 @@ class Spectrum(object):
             shearMatrix = np.exp(1j * np.outer(vec2, vec1))
         elif axis < axis2:
             shearMatrix = np.exp(1j * np.outer(vec1, vec2))
-        if self.spec[axis] > 0: #rorder and fft for spec
-            self.__invFourier(axis, tmp=True, reorder = [True,False])
-        else: #Reorder if FID
-            self.data.icomplexReorder(axis)
         self.data *= shearMatrix.reshape(shape)
         if self.spec[axis] > 0:
             self.__fourier(axis, tmp=True, reorder=[False,True])
@@ -1186,7 +1225,7 @@ class Spectrum(object):
         self.addHistory("Shearing transform with shearing value " + str(shear) + " over dimensions " + str(axis + 1) + " and " + str(axis2 + 1))
         self.redoList = []
         if not self.noUndo:
-            self.undoList.append(lambda self: self.shear(-shear, axis, axis2))
+            self.undoList.append(lambda self: self.shear(-shear, axis, axis2, toRef))
 
     def reorder(self, pos, newLength, axis):
         axis = self.checkAxis(axis)

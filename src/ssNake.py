@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-# Copyright 2016 - 2018 Bas van Meerten and Wouter Franssen
+# Copyright 2016 - 2019 Bas van Meerten and Wouter Franssen
 
 # This file is part of ssNake.
 #
@@ -88,7 +88,10 @@ importList = [['matplotlib.figure', 'Figure', 'Figure'],
               ['saveFigure', 'SaveFigureWindow', 'SaveFigureWindow'],
               ['functions', 'func', None],
               ['specIO', 'io', None],
-              ['views', 'views', None]]
+              ['views', 'views', None],
+              ['simFunctions', 'sim', None],
+              ['loadIsotopes','loadIsotopes',None],
+              ['scipy','optimize','optimize']]
 
 splashSteps = len(importList) / 100.0
 splashStep = 0
@@ -96,11 +99,14 @@ splashStep = 0
 for elem in importList:
     splashStep = import_lib(elem[0],elem[1],elem[2],splashStep)
 
+isoPath = os.path.dirname(os.path.realpath(__file__)) + os.path.sep + "IsotopeProperties"
+ISOTOPES = loadIsotopes.getIsotopeInfo(isoPath)
+
 matplotlib.rc('font', family='DejaVu Sans')
 np.set_printoptions(threshold=np.nan)
 QtCore.QLocale.setDefault(QtCore.QLocale('en_US'))
 
-VERSION = 'v0.7'
+VERSION = 'v1.0'
 # Required library version
 NPVERSION = '1.11.0'
 MPLVERSION = '1.4.2'
@@ -211,7 +217,7 @@ class MainProgram(QtWidgets.QMainWindow):
         self.defaultLinewidth = 1.0
         self.defaultMinXTicks = 12
         self.defaultMinYTicks = 8
-        self.defaultColor = '#0000FF'
+        self.defaultColor = '#1F77B4'
         self.defaultGrids = [False, False]
         self.defaultDiagonalBool = False
         self.defaultDiagonalMult = 1
@@ -221,8 +227,8 @@ class MainProgram(QtWidgets.QMainWindow):
         self.defaultWidthRatio = 3.0
         self.defaultHeightRatio = 3.0
         self.defaultContourConst = True
-        self.defaultPosColor = '#FF0000'
-        self.defaultNegColor = '#0000FF'
+        self.defaultPosColor = '#1F77B4'
+        self.defaultNegColor = '#FF7F0E'
         self.defaultToolbarActionList = ['File --> Open',
                                          'File -- > Save --> Matlab',
                                          'File --> Export --> Figure',
@@ -367,7 +373,7 @@ class MainProgram(QtWidgets.QMainWindow):
                                    ['File --> Preferences', self.preferencesAct],
                                    ['File --> Quit', self.quitAct],
                                    ['Workspaces --> Duplicate', self.newAct],
-                                   ['Workspaces --> Slice to Workspace',self.newSlice],
+                                   ['Workspaces --> Slice to Workspace', self.newSlice],
                                    ['Workspaces --> Delete', self.closeAct],
                                    ['Workspaces --> Rename', self.renameWorkspaceAct],
                                    ['Workspaces --> Next', self.forwardAct],
@@ -393,7 +399,7 @@ class MainProgram(QtWidgets.QMainWindow):
                                    ['Tools --> Baseline Correction', self.baselineAct],
                                    ['Tools --> Subtract Averages', self.subAvgAct],
                                    ['Tools --> Reference Deconvolution', self.refDeconvAct],
-                                   ['Tools --> Correct Bruker Digital Filter', self.brukDigitalAct],
+                                   ['Tools --> Correct Digital Filter', self.digitalFilterAct],
                                    ['Tools --> Scale SW', self.scaleSWAct],
                                    #['Tools --> LPSVD', self.lpsvdAct],
                                    ['Matrix --> Sizing', self.sizingAct],
@@ -462,6 +468,7 @@ class MainProgram(QtWidgets.QMainWindow):
                                    ['History --> History', self.historyAct],
                                    ['History --> Clear Undo/Redo List', self.clearundoAct],
                                    ['Utilities --> Chemical Shift Conversion Tool', self.shiftconvAct],
+                                   ['Utilities --> Dipolar Distance Tool', self.dipolarconvAct],
                                    ['Utilities --> Quadrupole Coupling Conversion Tool', self.quadconvAct],
                                    ['Utilities --> NMR Table', self.nmrtableAct],
                                    ['Help --> GitHub Page', self.githubAct],
@@ -520,7 +527,7 @@ class MainProgram(QtWidgets.QMainWindow):
         self.closeAct.setToolTip('Delete Workspace')
         self.renameWorkspaceAct = self.workspacemenu.addAction(QtGui.QIcon(IconDirectory + 'rename.png'), '&Rename', self.renameWorkspace, QtCore.Qt.Key_F2)
         self.renameWorkspaceAct.setToolTip('Rename Workspace')
-        self.activemenu = QtWidgets.QMenu('&Active', self)
+        self.activemenu = QtWidgets.QMenu('&Go to', self)
         self.workspacemenu.addMenu(self.activemenu)
         self.forwardAct = self.workspacemenu.addAction(QtGui.QIcon(IconDirectory + 'next.png'), '&Next', lambda: self.stepWorkspace(1), QtGui.QKeySequence.Forward)
         self.forwardAct.setToolTip('Next Workspace')
@@ -597,8 +604,8 @@ class MainProgram(QtWidgets.QMainWindow):
         self.subAvgAct.setToolTip('Subtract Averages')
         self.refDeconvAct = self.toolMenu.addAction(QtGui.QIcon(IconDirectory + 'deconvolute.png'), "Re&ference Deconvolution", lambda: self.mainWindowCheck(lambda mainWindow: FiddleWindow(mainWindow)))
         self.refDeconvAct.setToolTip('Reference Deconvolution')
-        self.brukDigitalAct = self.toolMenu.addAction(QtGui.QIcon(IconDirectory + 'bruker.png'), "&Correct Bruker Digital Filter", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.BrukerDigital()))
-        self.brukDigitalAct.setToolTip("Correct Bruker Digital Filter")
+        self.digitalFilterAct = self.toolMenu.addAction(QtGui.QIcon(IconDirectory + 'dFilter.png'), "&Correct Digital Filter", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.CorrectDigitalFilter()))
+        self.digitalFilterAct.setToolTip("Correct Digital Filter")
         #self.lpsvdAct = self.toolMenu.addAction(QtGui.QIcon(IconDirectory + 'LPSVD.png'), "&LPSVD", lambda: self.mainWindowCheck(lambda mainWindow: LPSVDWindow(mainWindow)))
         #self.lpsvdAct.setToolTip('LPSVD linear prediction')
         self.scaleSWAct =  self.toolMenu.addAction(QtGui.QIcon(IconDirectory + 'ScaleSW.png'),"Scale SW", lambda: self.mainWindowCheck(lambda mainWindow: ScaleSWWindow(mainWindow)))
@@ -619,11 +626,11 @@ class MainProgram(QtWidgets.QMainWindow):
         self.referencelistmenu.addMenu(self.referencesavemenu)
         self.loadrefAct = self.referencelistmenu.addAction(QtGui.QIcon(IconDirectory + 'open.png'), "&Load", self.referenceLoad)
         self.loadrefAct.setToolTip('Load Reference')
-        self.toolsActList = [self.realAct, self.imagAct, self.absAct,
+        self.toolsActList = [self.realAct, self.imagAct, self.absAct,self.conjAct,
                              self.apodizeAct, self.phaseAct, self.autoPhaseAct0,
                              self.autoPhaseAct1, self.swapEchoAct, self.corOffsetAct,
                              self.baselineAct, self.subAvgAct, self.refDeconvAct,
-                             self.brukDigitalAct, self.scaleSWAct]
+                             self.digitalFilterAct, self.scaleSWAct]
         # the matrix drop down menu
         self.matrixMenu = QtWidgets.QMenu("M&atrix", self)
         self.menubar.addMenu(self.matrixMenu)
@@ -782,11 +789,6 @@ class MainProgram(QtWidgets.QMainWindow):
         self.multiDActions.append(self.contourplotAct)
         self.multiplotAct = self.plotMenu.addAction(QtGui.QIcon(IconDirectory + 'multi.png'), "&Multi Plot", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.plotMulti()))
         self.multiplotAct.setToolTip('Multi Plot')
-        #==== tmp add as function has been moved. WF 08-08-2018
-        self.TMPrefMenu = QtWidgets.QMenu("Reference", self)
-        self.plotMenu.addMenu(self.TMPrefMenu)
-        self.TMPACT2 = self.TMPrefMenu.addAction("Moved to 'Tools'", lambda x: max(x))
-        self.TMPACT2.setEnabled(False)
         #==========
         self.userxAct = self.plotMenu.addAction(QtGui.QIcon(IconDirectory + 'xaxis.png'), "&User X-axis", lambda: self.mainWindowCheck(lambda mainWindow: XaxWindow(mainWindow)))
         self.userxAct.setToolTip('User X-axis')
@@ -808,13 +810,17 @@ class MainProgram(QtWidgets.QMainWindow):
         self.menubar.addMenu(self.utilitiesMenu)
         self.shiftconvAct = self.utilitiesMenu.addAction(QtGui.QIcon(IconDirectory + 'shifttool.png'), "&Chemical Shift Conversion Tool", self.createShiftConversionWindow)
         self.shiftconvAct.setToolTip('Chemical Shift Conversion Tool')
+        self.dipolarconvAct = self.utilitiesMenu.addAction(QtGui.QIcon(IconDirectory + 'dipolar.png'),"Dipolar Distance Tool", self.createDipolarDistanceWindow)
+        self.dipolarconvAct.setToolTip('Dipolar Distance Tool')
         self.quadconvAct = self.utilitiesMenu.addAction(QtGui.QIcon(IconDirectory + 'quadconversion.png'), "&Quadrupole Coupling Conversion Tool", self.createQuadConversionWindow)
         self.quadconvAct.setToolTip('Quadrupole Coupling Conversion Tool')
         self.mqmasconvAct = self.utilitiesMenu.addAction(QtGui.QIcon(IconDirectory + 'mqmas.png'),"MQMAS Parameter Extraction Tool", self.createMqmasExtractWindow)
-        self.quadconvAct.setToolTip('MQMAS Parameter Extraction Tool')
+        self.mqmasconvAct.setToolTip('MQMAS Parameter Extraction Tool')
+        self.tempcalAct = self.utilitiesMenu.addAction(QtGui.QIcon(IconDirectory + 'temperature.png'),"Temperature Calibration Tool", self.createTempcalWindow)
+        self.tempcalAct.setToolTip('Dipolar Distance Tool')
         self.nmrtableAct = self.utilitiesMenu.addAction(QtGui.QIcon(IconDirectory + 'table.png'), "&NMR Table", self.nmrTable)
         self.nmrtableAct.setToolTip('NMR Periodic Table')
-        self.utilitiesActList = [self.shiftconvAct, self.quadconvAct, self.nmrtableAct]
+        self.utilitiesActList = [self.shiftconvAct, self.quadconvAct, self.nmrtableAct, self.dipolarconvAct,self.mqmasconvAct,self.tempcalAct  ]
         # the help drop down menu
         self.helpMenu = QtWidgets.QMenu("&Help", self)
         self.menubar.addMenu(self.helpMenu)
@@ -838,7 +844,7 @@ class MainProgram(QtWidgets.QMainWindow):
                             self.nmrtableAct,self.githubAct,self.tutorialAct, self.aboutAct,self.basTutorialAct ]
         # Extra event lists:
         self.specOnlyList = [self.regridAct, self.csastaticAct, self.quadAct, self.czjzekAct]
-        self.fidOnlyList = [self.relaxAct, self.diffusionAct]
+        self.fidOnlyList = [self.relaxAct, self.diffusionAct,self.swapEchoAct]
         self.Only1DPlot = [self.snrAct, self.fwhmAct, self.massAct,  self.intfitAct]
         self.notInArrayPlot = [self.userxAct,self.setrefAct,self.swapEchoAct,self.corOffsetAct,self.baselineAct,self.subAvgAct,
                                self.refDeconvAct,self.intRegionAct,self.sumRegionAct,self.maxRegionAct,self.maxRegionAct,
@@ -888,7 +894,7 @@ class MainProgram(QtWidgets.QMainWindow):
             self.workspacemenu.menuAction().setEnabled(False)
             self.macrolistmenu.menuAction().setEnabled(False)
             self.editmenu.menuAction().setEnabled(False)
-            self.toolMenu.menuAction().setEnabled(False)
+            self.toolMenu.menuAction().setEnabled(True)
             self.matrixMenu.menuAction().setEnabled(False)
             self.transformsMenu.menuAction().setEnabled(False)
             self.fittingMenu.menuAction().setEnabled(False)
@@ -977,9 +983,10 @@ class MainProgram(QtWidgets.QMainWindow):
                 self.workInfoAct.setEnabled(False)
 
     def menuEnable(self, enable=True, internalWindow=False):
+        self.menuActive = enable or internalWindow
+
         self.macrolistmenu.menuAction().setEnabled(enable)
         self.editmenu.menuAction().setEnabled(enable)
-        self.toolMenu.menuAction().setEnabled(enable)
         self.matrixMenu.menuAction().setEnabled(enable)
         self.transformsMenu.menuAction().setEnabled(enable)
         self.fittingMenu.menuAction().setEnabled(enable)
@@ -989,8 +996,10 @@ class MainProgram(QtWidgets.QMainWindow):
         for act in self.macroActList + self.editActList + self.toolsActList + self.matrixActList + self.transformActList + self.fittingActList + self.plotActList + self.combineActList + self.historyActList:
             act.setEnabled(enable)
         if not internalWindow:
+            self.tree.setEnabled(enable)
             self.filemenu.menuAction().setEnabled(enable)
             self.workspacemenu.menuAction().setEnabled(enable)
+            self.toolMenu.menuAction().setEnabled(enable)
             for act in self.fileActList + self.workspaceActList:
                 act.setEnabled(enable)
             for i in range(self.tabs.count()):
@@ -1104,7 +1113,7 @@ class MainProgram(QtWidgets.QMainWindow):
             self.mainWindow.runMacro(self.macros[name])
 
     def saveMacro(self, name):
-        fileName = QtWidgets.QFileDialog.getSaveFileName(self, 'Save File', self.lastLocation + os.path.sep + name + '.macro', 'MACRO (*.macro)')
+        fileName = QtWidgets.QFileDialog.getSaveFileName(self, 'Save file', self.lastLocation + os.path.sep + name + '.macro', 'MACRO (*.macro)')
         if isinstance(fileName, tuple):
             fileName = fileName[0]
         if not fileName:
@@ -1219,7 +1228,7 @@ class MainProgram(QtWidgets.QMainWindow):
         self.menuCheck()
 
     def referenceSave(self, name):
-        fileName = QtWidgets.QFileDialog.getSaveFileName(self, 'Save reference', self.lastLocation + os.path.sep + name + '.txt', 'txt (*.json)')
+        fileName = QtWidgets.QFileDialog.getSaveFileName(self, 'Save reference', self.lastLocation + os.path.sep + name + '.txt', 'txt (*.txt)')
         if isinstance(fileName, tuple):
             fileName = fileName[0]
         if not fileName:
@@ -1238,11 +1247,13 @@ class MainProgram(QtWidgets.QMainWindow):
             self.lastLocation = os.path.dirname(filename)  # Save used path
         if len(filename) == 0:
             return
+        name = os.path.basename(filename)
+        if name.endswith('.txt'): #If regular extension, name becomes filename - extension
+            name = name[:-4]
         count = 0
-        name = 'ref' + str(count)
-        while name in self.referenceName:
-            count += 1
+        while name in self.referenceName: #If name known, cycle trough defaults
             name = 'ref' + str(count)
+            count += 1
         givenName, ok = QtWidgets.QInputDialog.getText(self, 'Reference name', 'Name:', text=name)
         while (givenName in self.macros.keys()) or givenName is '':
             if not ok:
@@ -1310,10 +1321,11 @@ class MainProgram(QtWidgets.QMainWindow):
                 if type(self.mainWindow.current) is views.CurrentMulti:
                     self.mainWindow.sideframe.checkChanged()
 
-    def duplicateWorkspace(self, sliceOnly = False, *args):
+    def duplicateWorkspace(self, sliceOnly=False, *args):
         name = self.askName()
         if sliceOnly:
             data = copy.deepcopy(self.mainWindow.get_current().data1D)
+            data.setNoUndo(self.mainWindow.get_masterData().noUndo)
         else:
             data = copy.deepcopy(self.mainWindow.get_masterData())
         if name is None:
@@ -1337,7 +1349,7 @@ class MainProgram(QtWidgets.QMainWindow):
         self.workspaces[self.workspaceNum].rename(name)
 
     def destroyWorkspace(self, num=None):
-        if self.mainWindow is None:
+        if self.mainWindow is None or self.menuActive is False:
             return
         if num is None:
             num = self.workspaceNum
@@ -1448,7 +1460,10 @@ class MainProgram(QtWidgets.QMainWindow):
                 self.changeMainWindow(name)
 
     def loadFitLibDir(self):
-        fileName = QtWidgets.QFileDialog.getExistingDirectory(self, 'Open Library Directory', self.lastLocation)
+        #fileName = QtWidgets.QFileDialog.getExistingDirectory(self, 'Open Library Directory', self.lastLocation)
+        fileName = QtWidgets.QFileDialog.getOpenFileName(self, 'Open Library File', self.lastLocation)
+        if isinstance(fileName, tuple):
+            fileName = fileName[0]
         return fileName
 
     def loadSIMPSONScript(self):
@@ -1527,6 +1542,7 @@ class MainProgram(QtWidgets.QMainWindow):
         self.tabs.setCurrentIndex(num)
         self.menuCheck()
         self.allowChange = True
+        self.mainWindow.canvas.draw()
 
     def createFitWindow(self, fitWindow):
         if self.mainWindow is None:
@@ -1561,11 +1577,17 @@ class MainProgram(QtWidgets.QMainWindow):
     def createShiftConversionWindow(self):
         shiftConversionWindow(self)
 
+    def createDipolarDistanceWindow(self):
+        dipolarDistanceWindow(self)
+
     def createQuadConversionWindow(self):
         quadConversionWindow(self)
 
     def createMqmasExtractWindow(self):
         mqmasExtractWindow(self)
+
+    def createTempcalWindow(self):
+        tempCalWindow(self)
 
     def nmrTable(self):
         import subprocess
@@ -1781,14 +1803,15 @@ class Main1DWindow(QtWidgets.QWidget):
 
     def startMonitor(self, macroNames, delay=0.5):
         self.monitorMacros = macroNames
-        self.monitor = QtCore.QFileSystemWatcher(self.masterData.filePath[0][0], self)
+        self.monitor = QtCore.QFileSystemWatcher(self.masterData.filePath[0], self)
         self.monitor.fileChanged.connect(lambda a: self.monitorLoad(a, delay))
         self.monitor.directoryChanged.connect(lambda a: self.monitorLoad(a, delay))
 
     def stopMonitor(self):
         self.monitorMacros = []
         if self.monitor is not None:
-            self.monitor.removePath(self.masterData.filePath[0][0])
+            for name in self.masterData.filePath[0]:
+                self.monitor.removePath(name)
         self.monitor = None
 
     def real(self):
@@ -1872,48 +1895,11 @@ class Main1DWindow(QtWidgets.QWidget):
         self.current.directAutoPhase(phaseNum)
         self.menuCheck()
 
-    def BrukerDigital(self):
-        Dir = self.masterData.filePath[0][0]
-        if not os.path.isdir(Dir):
-            Dir = os.path.dirname(Dir)
-        if Dir is '':
-            return
-        FilePath = Dir + os.path.sep + 'acqus'
-        if not os.path.exists(FilePath):
-            self.father.dispMsg("Bruker correct: acqus file does not exist, specify load path")
-            FilePath = QtWidgets.QFileDialog.getOpenFileName(self, 'Open File', self.father.lastLocation)[0]
-            if FilePath == '':
-                return
-            FilePath = FilePath
-            self.father.lastLocation = os.path.dirname(FilePath)  # Save used path
-        with open(FilePath) as f:
-            data = f.read().split('\n')
-        FilterCorrection = -1.0
-        for s in range(0, len(data)):
-            if data[s].startswith('##$GRPDLY='):
-                FilterCorrection = float(data[s][10:])
-            if data[s].startswith('##$DECIM='):
-                DECIM = int(float(data[s][9:]))
-            if data[s].startswith('##$DSPFVS='):
-                DSPFVS = int(float(data[s][10:]))
-        if DSPFVS == 10 or DSPFVS == 11 or DSPFVS == 12:  # get from table
-            CorrectionList = [{'2': 44.7500, '3': 33.5000, '4': 66.6250, '6': 59.0833, '8': 68.5625, '12': 60.3750,
-                               '16': 69.5313, '24': 61.0208, '32': 70.0156, '48': 61.3438, '64': 70.2578, '96': 61.5052,
-                               '128': 70.3789, '192': 61.5859, '256': 70.4395, '384': 61.6263, '512': 70.4697, '768': 61.6465,
-                               '1024': 70.4849, '1536': 61.6566, '2048': 70.4924},
-                              {'2': 46.0000, '3': 36.5000, '4': 48.0000, '6': 50.1667, '8': 53.2500, '12': 69.5000,
-                               '16': 72.2500, '24': 70.1667, '32': 72.7500, '48': 70.5000, '64': 73.0000, '96': 70.6667,
-                               '128': 72.5000, '192': 71.3333, '256': 72.2500, '384': 71.6667, '512': 72.1250, '768': 71.8333,
-                               '1024': 72.0625, '1536': 71.9167, '2048': 72.0313},
-                              {'2': 46.311, '3': 36.530, '4': 47.870, '6': 50.229, '8': 53.289, '12': 69.551, '16': 71.600,
-                               '24': 70.184, '32': 72.138, '48': 70.528, '64': 72.348, '96': 70.700, '128': 72.524}]
-            # Take correction from database. Based on matNMR routine (Jacco van Beek), which is itself based
-            # on a text by W. M. Westler and F. Abildgaard.
-            FilterCorrection = CorrectionList[10 - DSPFVS][str(DECIM)]
-        if FilterCorrection == -1.0:
-            raise SsnakeException('DSPFVS value not recognized (Bruker hardware version not known)')
-        if FilterCorrection != -1.0:  # If changed
-            self.current.applyPhase(0, FilterCorrection * 2 * np.pi)
+    def CorrectDigitalFilter(self):
+        if self.current.data.dFilter is None:
+            raise SsnakeException('Digital filter: no value defined')
+        else:
+            self.current.correctDFilter()
             self.menuCheck()
 
     def createRelaxWindow(self):
@@ -1950,7 +1936,7 @@ class Main1DWindow(QtWidgets.QWidget):
             raise SsnakeException("Data has not enough dimensions for MQMAS fitting")
         if self.current.freq() == 0.0:
             raise SsnakeException("Please set the spectrometer frequency first!")
-        self.father.createFitWindow(fit.TabFittingWindow(self.father, self.father.mainWindow, 'mqmasczjek'))
+        self.father.createFitWindow(fit.TabFittingWindow(self.father, self.father.mainWindow, 'mqmasczjzek'))
 
     def createExternalFitWindow(self):
         self.father.createFitWindow(fit.TabFittingWindow(self.father, self.father.mainWindow, 'external'))
@@ -2778,10 +2764,10 @@ class BottomFrame(QtWidgets.QWidget):
             self.specGroup.button(1).toggle()
             self.axisDropTime.hide()
             self.axisDropFreq.show()
-            if self.father.current.freq() == 0.0:
+            if self.father.current.freq() == 0.0 or self.father.current.ref() == 0.0:
                 self.axisDropFreq.model().item(3).setEnabled(False)
             self.ax2Label.hide()
-            if self.father.current.getppm() and self.father.current.freq() != 0.0:
+            if self.father.current.getppm() and self.father.current.freq() != 0.0 and self.father.current.ref() != 0.0:
                 self.axisDropFreq.setCurrentIndex(3)
             else:
                 self.axisDropFreq.setCurrentIndex(self.father.current.getAxType())
@@ -2793,9 +2779,9 @@ class BottomFrame(QtWidgets.QWidget):
                 self.axisDropTime2.setCurrentIndex(self.father.current.getAxType(-2))
             elif self.father.current.spec(-2) == 1:
                 self.axisDropFreq2.show()
-                if self.father.current.freq(-2) == 0.0:
+                if self.father.current.freq(-2) == 0.0 or self.father.current.ref(-2) == 0.0:
                     self.axisDropFreq2.model().item(3).setEnabled(False)
-                if self.father.current.getppm(-2) and self.father.current.freq(-2) != 0.0:
+                if self.father.current.getppm(-2) and self.father.current.freq(-2) != 0.0 and self.father.current.ref(-2) != 0.0:
                     self.axisDropFreq2.setCurrentIndex(3)
                 else:
                     self.axisDropFreq2.setCurrentIndex(self.father.current.getAxType(-2))
@@ -2809,7 +2795,7 @@ class BottomFrame(QtWidgets.QWidget):
                 self.axisDropFreq2.show()
                 if self.father.current.freq(-2) == 0.0:
                     self.axisDropFreq2.model().item(3).setEnabled(False)
-                if self.father.current.getppm(-2) and self.father.current.freq(-2) != 0.0:
+                if self.father.current.getppm(-2) and self.father.current.freq(-2) != 0.0 and self.father.current.ref(-2) != 0.0:
                     self.axisDropFreq2.setCurrentIndex(3)
                 else:
                     self.axisDropFreq2.setCurrentIndex(self.father.current.getAxType(-2))
@@ -3057,7 +3043,7 @@ class AsciiLoadWindow(QtWidgets.QDialog):
         self.dataOrder = self.dataOrders[self.datOrderBox.currentIndex()]
         self.delim = self.delimiters[self.datDelimBox.currentIndex()]
         if self.dataOrder == 'RI' or self.dataOrder == 'R':
-            self.sw = safeEval(self.swEntry.text(), length=self.father.current.len(), type='FI')
+            self.sw = safeEval(self.swEntry.text(), type='FI')
             if self.sw == 0 or self.sw is None:
                 raise SsnakeException('Spectral Width input is not valid')
         self.dataDimension = self.numDims.value()
@@ -3259,12 +3245,13 @@ class PhaseWindow(wc.ToolWindows):
         self.inputFirstOrder()
 
     def stepPhase(self, phase0, phase1):
-        if QtWidgets.qApp.keyboardModifiers() & QtCore.Qt.ControlModifier:
-            multiplier = 10
+        multiplier = 1
+        if QtWidgets.qApp.keyboardModifiers() & QtCore.Qt.ControlModifier and QtWidgets.qApp.keyboardModifiers() & QtCore.Qt.ShiftModifier:
+            multiplier *= 1000
+        elif QtWidgets.qApp.keyboardModifiers() & QtCore.Qt.ControlModifier:
+            multiplier *= 10
         elif QtWidgets.qApp.keyboardModifiers() & QtCore.Qt.ShiftModifier:
-            multiplier = 100
-        else:
-            multiplier = 1
+            multiplier *= 100
         phase0 = multiplier * phase0
         phase1 = multiplier * phase1
         inp = safeEval(self.zeroEntry.text(), length=self.father.current.len(), type='FI')
@@ -3325,87 +3312,155 @@ class ApodWindow(wc.ToolWindows):
         super(ApodWindow, self).__init__(parent)
         self.entries = {}
         self.ticks = {}
+
+        boldFont=QtGui.QFont()
+        boldFont.setBold(True)
         self.maximum = 100.0 * self.father.current.sw() / (self.father.current.len())
-        self.lorstep = 1.0
-        self.gaussstep = 1.0
+        self.lbstep = 1.0
         self.available = True
+
+        self.lorGroup = QtWidgets.QGroupBox()
+        self.lorFrame = QtWidgets.QGridLayout()
         lorTick = QtWidgets.QCheckBox("Lorentzian:")
-        lorTick.toggled.connect(lambda: self.checkEval('lor'))
-        self.grid.addWidget(lorTick, 0, 0, 1, 3)
+        lorTick.setFont(boldFont)
+        lorTick.toggled.connect(lambda x: self.checkEval('lor'))
+        self.lorFrame.addWidget(lorTick, 0, 0, 1, 3)
         self.ticks['lor'] = lorTick
         lorEntry = wc.QLineEdit("0.00", self.apodPreview)
         lorEntry.setMinimumWidth(150)
         lorEntry.setEnabled(False)
-        self.grid.addWidget(lorEntry, 1, 1)
+        self.lorFrame.addWidget(lorEntry, 1, 1)
         self.entries['lor'] = [lorEntry]
         leftLor = QtWidgets.QPushButton("<")
-        leftLor.clicked.connect(lambda: self.stepLB(-0.5 * self.father.current.sw() / (self.father.current.len()), 0))
+        leftLor.clicked.connect(lambda: self.stepLB(-0.5 * self.father.current.sw() / (self.father.current.len()), 'lor'))
         leftLor.setAutoRepeat(True)
-        self.grid.addWidget(leftLor, 1, 0)
+        self.lorFrame.addWidget(leftLor, 1, 0)
         rightLor = QtWidgets.QPushButton(">")
-        rightLor.clicked.connect(lambda: self.stepLB(0.5 * self.father.current.sw() / (self.father.current.len()), 0))
+        rightLor.clicked.connect(lambda: self.stepLB(0.5 * self.father.current.sw() / (self.father.current.len()), 'lor'))
         rightLor.setAutoRepeat(True)
-        self.grid.addWidget(rightLor, 1, 2)
+        self.lorFrame.addWidget(rightLor, 1, 2)
         self.lorScale = QtWidgets.QSlider(QtCore.Qt.Horizontal)
         self.lorScale.setRange(0, self.RESOLUTION)
-        self.lorScale.valueChanged.connect(self.setLor)
-        self.grid.addWidget(self.lorScale, 2, 0, 1, 3)
+        self.lorScale.valueChanged.connect(lambda x: self.setLorGauss(x,'lor'))
+        self.lorFrame.addWidget(self.lorScale, 2, 0, 1, 3)
         self.lorMax = 100.0 * self.father.current.sw() / (self.father.current.len())
+        self.lorGroup.setLayout(self.lorFrame)
+        self.grid.addWidget(self.lorGroup, 0, 0, 1, 3)
+
+        self.gaussGroup = QtWidgets.QGroupBox()
+        self.gaussFrame = QtWidgets.QGridLayout()
         gaussTick = QtWidgets.QCheckBox("Gaussian:")
+        gaussTick.setFont(boldFont)
         gaussTick.toggled.connect(lambda: self.checkEval('gauss'))
-        self.grid.addWidget(gaussTick, 3, 0, 1, 3)
+        self.gaussFrame.addWidget(gaussTick, 3, 0, 1, 3)
         self.ticks['gauss'] = gaussTick
         gaussEntry = wc.QLineEdit("0.00", self.apodPreview)
         gaussEntry.setEnabled(False)
         gaussEntry.setMinimumWidth(150)
-        self.grid.addWidget(gaussEntry, 4, 1)
+        self.gaussFrame.addWidget(gaussEntry, 4, 1)
         self.entries['gauss'] = [gaussEntry]
         leftGauss = QtWidgets.QPushButton("<")
-        leftGauss.clicked.connect(lambda: self.stepLB(0, -0.5 * self.father.current.sw() / (self.father.current.len())))
+        leftGauss.clicked.connect(lambda: self.stepLB(-0.5 * self.father.current.sw() / (self.father.current.len()), 'gauss'))
         leftGauss.setAutoRepeat(True)
-        self.grid.addWidget(leftGauss, 4, 0)
+        self.gaussFrame.addWidget(leftGauss, 4, 0)
         rightGauss = QtWidgets.QPushButton(">")
-        rightGauss.clicked.connect(lambda: self.stepLB(0, 0.5 * self.father.current.sw() / (self.father.current.len())))
+        rightGauss.clicked.connect(lambda: self.stepLB(0.5 * self.father.current.sw() / (self.father.current.len()), 'gauss'))
         rightGauss.setAutoRepeat(True)
-        self.grid.addWidget(rightGauss, 4, 2)
+        self.gaussFrame.addWidget(rightGauss, 4, 2)
         self.gaussScale = QtWidgets.QSlider(QtCore.Qt.Horizontal)
         self.gaussScale.setRange(0, self.RESOLUTION)
-        self.gaussScale.valueChanged.connect(self.setGauss)
-        self.grid.addWidget(self.gaussScale, 5, 0, 1, 3)
+        self.gaussScale.valueChanged.connect(lambda x: self.setLorGauss(x,'gauss'))
+        self.gaussFrame.addWidget(self.gaussScale, 5, 0, 1, 3)
         self.gaussMax = 100.0 * self.father.current.sw() / (self.father.current.len())
+        self.gaussGroup.setLayout(self.gaussFrame)
+        self.grid.addWidget(self.gaussGroup, 1, 0, 1, 3)
+
+        self.cos2Group = QtWidgets.QGroupBox()
+        self.cos2Frame = QtWidgets.QGridLayout()
         cos2Tick = QtWidgets.QCheckBox("Cos^2:")
+        cos2Tick.setFont(boldFont)
         cos2Tick.clicked.connect(lambda: self.checkEval('cos2'))
-        self.grid.addWidget(cos2Tick, 6, 0, 1, 3)
+        self.cos2Frame.addWidget(cos2Tick, 0, 0, 1, 2)
         self.ticks['cos2'] = cos2Tick
-        cos2Entry = wc.QLineEdit("1.00", self.apodPreview)
+        cos2Entry = wc.QLineEdit("1", self.apodPreview)
         cos2Entry.setEnabled(False)
-        self.grid.addWidget(cos2Entry, 7, 1)
+
+        widthHint = cos2Entry.minimumSizeHint()
+        widthHint.setWidth(widthHint.width() *4)
+        cos2Entry.setMinimumSize(widthHint)
+        self.cos2Frame.addWidget(cos2Entry, 1, 2)
         self.entries['cos2'] = [cos2Entry]
         cos2Label = wc.QLeftLabel("Frequency:")
         cos2Label.setEnabled(False)
         self.entries['cos2'].append(cos2Label)
-        self.grid.addWidget(cos2Label, 7, 0)
+        self.cos2Frame.addWidget(cos2Label, 1, 0)
         cos2DegEntry = wc.QLineEdit("0", self.apodPreview)
         cos2DegEntry.setEnabled(False)
-        self.grid.addWidget(cos2DegEntry, 8, 1)
+        cos2DegEntry.setMinimumSize(widthHint)
+        self.cos2Frame.addWidget(cos2DegEntry, 2, 2)
         self.entries['cos2'].append(cos2DegEntry)
         cos2PhLabel = wc.QLeftLabel("Phase [deg]:")
         cos2PhLabel.setEnabled(False)
         self.entries['cos2'].append(cos2PhLabel)
-        self.grid.addWidget(cos2PhLabel, 8, 0)
+        self.cos2Frame.addWidget(QtWidgets.QWidget(), 1, 1)
+        self.cos2Frame.setColumnStretch(1, 1)
+        self.cos2Frame.addWidget(cos2PhLabel, 2, 0)
+        self.cos2Group.setLayout(self.cos2Frame)
+        self.grid.addWidget(self.cos2Group, 2, 0, 1, 3)
+
+
+        self.hammingGroup = QtWidgets.QGroupBox()
+        self.hammingFrame = QtWidgets.QGridLayout()
         hammingTick = QtWidgets.QCheckBox("Hamming:")
+        hammingTick.setFont(boldFont)
         hammingTick.clicked.connect(lambda: self.checkEval('hamming'))
-        self.grid.addWidget(hammingTick, 9, 0, 1, 3)
+        self.hammingFrame.addWidget(hammingTick, 0, 0, 1, 2)
         self.ticks['hamming'] = hammingTick
-        hammingEntry = wc.QLineEdit("1.00", self.apodPreview)
+        hammingLabel = wc.QLeftLabel("Frequency:\t")
+        hammingLabel.setEnabled(False)
+        self.entries['hamming'] = [hammingLabel]
+        self.hammingFrame.addWidget(hammingLabel, 1, 0)
+        hammingEntry = wc.QLineEdit("1", self.apodPreview)
         hammingEntry.setEnabled(False)
-        self.grid.addWidget(hammingEntry, 10, 1)
-        self.entries['hamming'] = [hammingEntry]
-        self.grid.addWidget(wc.QLabel("Shift:"), 11, 0, 1, 3)
-        self.shiftEntry = wc.QLineEdit("0.00", self.apodPreview)
-        self.grid.addWidget(self.shiftEntry, 12, 1)
+        hammingEntry.setMinimumSize(widthHint)
+        self.hammingFrame.addWidget(hammingEntry, 1, 2)
+        self.entries['hamming'].append(hammingEntry)
+
+        self.hammingFrame.addWidget(QtWidgets.QWidget(), 1, 1)
+        self.hammingFrame.setColumnStretch(1, 1)
+        self.hammingGroup.setLayout(self.hammingFrame)
+        self.grid.addWidget(self.hammingGroup, 3, 0, 1, 3)
+
+
+        self.shiftGroup = QtWidgets.QGroupBox()
+        self.shiftFrame = QtWidgets.QGridLayout()
+        shiftTick = QtWidgets.QCheckBox("Shift:")
+        shiftTick.setFont(boldFont)
+        shiftTick.clicked.connect(lambda: self.checkEval('shift'))
+        self.ticks['shift'] = shiftTick
+        self.shiftFrame.addWidget(shiftTick, 0, 0)
+        shiftLabel = wc.QLeftLabel("Value [s]:")
+        shiftLabel.setEnabled(False)
+        self.shiftFrame.addWidget(shiftLabel, 1, 0)
+        shiftEntry = wc.QLineEdit("0", self.apodPreview)
+        self.shiftFrame.addWidget(QtWidgets.QWidget(), 1, 1)
+        shiftEntry.setMinimumSize(widthHint)
+        shiftEntry.setEnabled(False)
+        self.entries['shift'] = [shiftEntry,shiftLabel]
+        self.shiftFrame.addWidget(shiftEntry, 1, 2)
+        self.shiftGroup.setLayout(self.shiftFrame)
+        self.shiftFrame.setColumnStretch(1, 1)
+        self.grid.addWidget(self.shiftGroup, 4, 0, 1, 3)
+
+
         if self.father.current.data.ndim() > 1:
-            self.grid.addWidget(wc.QLabel("Shifting:"), 13, 0, 1, 3)
+            self.shiftingGroup = QtWidgets.QGroupBox()
+            self.shiftingFrame = QtWidgets.QGridLayout()
+            shiftingTick = QtWidgets.QCheckBox("Shifting:")
+            shiftingTick.clicked.connect(lambda: self.checkEval('shifting'))
+            shiftingTick.setFont(boldFont)
+            self.ticks['shifting'] = shiftingTick
+            self.shiftingFrame.addWidget(shiftingTick, 0, 0)
             self.shiftingDropdown = QtWidgets.QComboBox()
             self.shiftingDropdown.addItems(['User Defined', 'Spin 3/2, -3Q (7/9)', 'Spin 5/2, 3Q (19/12)',
                                             'Spin 5/2, -5Q (25/12)', 'Spin 7/2, 3Q (101/45)', 'Spin 7/2, 5Q (11/9)',
@@ -3416,19 +3471,45 @@ class ApodWindow(wc.ToolWindows):
                                  25.0 / 12.0, 101.0 / 45.0, 11.0 / 9.0,
                                  161.0 / 45.0, 91.0 / 36.0, 95.0 / 36.0,
                                  7.0 / 18.0, 31.0 / 6.0]
-            self.grid.addWidget(self.shiftingDropdown, 14, 1)
+
+            self.shiftingDropdown.setMinimumSize(widthHint)
+            self.shiftingDropdown.setEnabled(False)
+            self.shiftingFrame.addWidget(self.shiftingDropdown, 1, 2)
+            shiftingTypeLabel = wc.QLeftLabel("Type:")
+            shiftingTypeLabel.setEnabled(False)
+            self.shiftingFrame.addWidget(shiftingTypeLabel, 1, 0)
             self.shiftingEntry = wc.QLineEdit("0.00", self.apodPreview)
-            self.grid.addWidget(self.shiftingEntry, 15, 1)
+            self.shiftingEntry.setEnabled(False)
+            self.shiftingEntry.setMinimumSize(widthHint)
+            self.shiftingFrame.addWidget(self.shiftingEntry, 2, 2)
+            shiftingValueLabel = wc.QLeftLabel("Value:")
+            shiftingValueLabel.setEnabled(False)
+            self.shiftingFrame.addWidget(shiftingValueLabel, 2, 0)
             self.shiftingAxis = QtWidgets.QComboBox()
             self.shiftingValues = list(map(str, np.delete(range(1, self.father.current.data.ndim() + 1), self.father.current.axes[-1])))
             self.shiftingAxis.addItems(self.shiftingValues)
             self.shiftingAxis.currentIndexChanged.connect(self.apodPreview)
-            self.grid.addWidget(self.shiftingAxis, 16, 1)
+            self.shiftingAxis.setMinimumSize(widthHint)
+            self.shiftingAxis.setEnabled(False)
+            self.shiftingFrame.addWidget(self.shiftingAxis, 3, 2)
+            shiftingAxisLabel = wc.QLeftLabel("Axis:")
+            shiftingAxisLabel.setEnabled(False)
+            self.shiftingFrame.addWidget(shiftingAxisLabel, 3, 0)
+            self.shiftingFrame.addWidget(QtWidgets.QWidget(), 1, 1)
+            self.shiftingFrame.setColumnStretch(1, 1)
+            self.entries['shifting'] = [self.shiftingDropdown,shiftingTypeLabel,self.shiftingEntry,shiftingValueLabel,self.shiftingAxis,shiftingAxisLabel]
+            self.shiftingGroup.setLayout(self.shiftingFrame)
+            self.grid.addWidget(self.shiftingGroup, 5, 0, 1, 3)
 
-    def dropdownChanged(self):
+    def dropdownChanged(self,update = True):
         index = self.shiftingDropdown.currentIndex()
-        self.shiftingEntry.setText("%.9f" % self.shiftingList[index])
-        self.apodPreview()
+        if index == 0:
+            self.shiftingEntry.setEnabled(True)
+        else:
+            self.shiftingEntry.setEnabled(False)
+        if update:
+            self.shiftingEntry.setText("%.9f" % self.shiftingList[index])
+            self.apodPreview()
 
     def checkEval(self, key):
         if self.ticks[key].isChecked():
@@ -3437,115 +3518,55 @@ class ApodWindow(wc.ToolWindows):
         else:
             for elem in self.entries[key]:
                 elem.setEnabled(False)
+        if self.father.current.data.ndim() > 1:
+            if self.ticks['shifting'].isChecked():
+                self.dropdownChanged(update = False) #Check dropdown state
         if key == 'lor' or key == 'gauss':  # for lorentzian and gaussian
             if safeEval(self.entries[key][0].text(), length=self.father.current.len(), type='FI') != 0.0:  # only update if value was not zero
                 self.apodPreview()
         else:
             self.apodPreview()
 
-    def setLor(self, value, *args):
+    def setLorGauss(self,value, type, *args):
+        #type: 'lor' or 'gauss'
         if self.available:
-            self.entries['lor'][0].setText('%.4g' % (float(value) * self.maximum / self.RESOLUTION))
-            if not self.ticks['lor'].isChecked():
-                self.ticks['lor'].setChecked(1)
-            self.apodPreview()
-
-    def setGauss(self, value, *args):
-        if self.available:
-            self.entries['gauss'][0].setText('%.4g' % (float(value) * self.maximum / self.RESOLUTION))
-            if not self.ticks['gauss'].isChecked():
-                self.ticks['gauss'].setChecked(1)
+            self.entries[type][0].setText('%.4g' % (float(value) * self.maximum / self.RESOLUTION))
+            if not self.ticks[type].isChecked():
+                self.ticks[type].setChecked(1)
             self.apodPreview()
 
     def apodPreview(self, *args):
-        self.available = False
-        lor = None
-        gauss = None
-        cos2 = None
-        cos2Ph = None
-        hamming = None
-        shifting = None
-        shiftingAxis = 0
-        if self.ticks['lor'].isChecked():
-            lor = safeEval(self.entries['lor'][0].text(), length=self.father.current.len(), type='FI')
-            if lor is None:
-                self.father.current.showFid()
-                raise SsnakeException('Apodize: Lorentzian value is not valid!')
-            self.entries['lor'][0].setText('%.4g' % lor)
-            self.lorScale.setValue(round(lor * self.RESOLUTION / self.maximum))
-        if self.ticks['gauss'].isChecked():
-            gauss = safeEval(self.entries['gauss'][0].text(), length=self.father.current.len(), type='FI')
-            if gauss is None:
-                self.father.current.showFid()
-                raise SsnakeException('Apodize: Gaussian value is not valid!')
-            self.entries['gauss'][0].setText('%.4g' % gauss)
-            self.gaussScale.setValue(round(gauss * self.RESOLUTION / self.maximum))
-        if self.ticks['cos2'].isChecked():
-            cos2 = safeEval(self.entries['cos2'][0].text(), length=self.father.current.len(), type='FI')
-            if cos2 is None:
-                self.father.current.showFid()
-                raise SsnakeException('Apodize: cos^2 frequency value is not valid!')
-            self.entries['cos2'][0].setText('%.4g' % cos2)
-        if self.ticks['cos2'].isChecked():
-            cos2Ph = safeEval(self.entries['cos2'][2].text(), length=self.father.current.len(), type='FI')
-            if cos2Ph is None:
-                self.father.current.showFid()
-                raise SsnakeException('Apodize: cos^2 phase value is not valid!')
-            self.entries['cos2'][2].setText('%.4g' % cos2Ph)
-        if self.ticks['hamming'].isChecked():
-            hamming = safeEval(self.entries['hamming'][0].text(), length=self.father.current.len(), type='FI')
-            if hamming is None:
-                self.father.current.showFid()
-                raise SsnakeException('Apodize: Hamming value is not valid!')
-            self.entries['hamming'][0].setText('%.4g' % hamming)
-        shift = safeEval(self.shiftEntry.text(), length=self.father.current.len(), type='FI')
-        if shift is None:
-            self.father.current.showFid()
-            raise SsnakeException('Apodize: Shift value is not valid!')
-        self.shiftEntry.setText('%.4g' % shift)
-        if self.father.current.data.ndim() > 1:
-            shifting = safeEval(self.shiftingEntry.text(), length=self.father.current.len(), type='FI')
-            if shifting is None:
-                self.father.current.showFid()
-                raise SsnakeException('Apodize: Shifting value is not valid!')
-            self.shiftingEntry.setText('%.4g' % shifting)
-            shiftingAxis = int(self.shiftingValues[self.shiftingAxis.currentIndex()]) - 1
-        else:
-            shiftingAxis = None
+        self.available = False #turn off gauss/lorentz callbacks
+        lor, gauss, cos2, cos2Ph, hamming, shift, shifting, shiftingAxis = self.checkInput()
         self.available = True
         self.father.current.apodPreview(lor, gauss, [cos2, cos2Ph], hamming, shift, shifting, shiftingAxis)
 
-    def stepLB(self, lorincr, gaussincr):
-        if QtWidgets.qApp.keyboardModifiers() & QtCore.Qt.ControlModifier:
-            multiplier = 10
+    def stepLB(self, incr, type):
+        step = incr * self.lbstep
+        if QtWidgets.qApp.keyboardModifiers() & QtCore.Qt.ControlModifier and QtWidgets.qApp.keyboardModifiers() & QtCore.Qt.ShiftModifier:
+            step *= 1000
+        elif QtWidgets.qApp.keyboardModifiers() & QtCore.Qt.ControlModifier:
+            step *= 10
         elif QtWidgets.qApp.keyboardModifiers() & QtCore.Qt.ShiftModifier:
-            multiplier = 100
-        else:
-            multiplier = 1
-        lor = safeEval(self.entries['lor'][0].text(), length=self.father.current.len(), type='FI')
-        if lor is None:
-            self.father.current.showFid()
-            raise SsnakeException('Apodize: Lorentzian value is not valid!')
-        self.entries['lor'][0].setText('%.4g' % (lor + multiplier * lorincr * self.lorstep))
-        gauss = safeEval(self.entries['gauss'][0].text(), length=self.father.current.len(), type='FI')
-        if gauss is None:
-            self.father.current.showFid()
-            raise SsnakeException('Apodize: Gaussian value is not valid!')
-        self.entries['gauss'][0].setText('%.4g' % (gauss + multiplier * gaussincr * self.gaussstep))
-        if (lorincr != 0) and (not self.ticks['lor'].isChecked()):
-            self.ticks['lor'].setChecked(1)
-        if (gaussincr != 0) and (not self.ticks['gauss'].isChecked()):
-            self.ticks['gauss'].setChecked(1)
+            step *= 100
+        if not self.ticks[type].isChecked():
+            self.ticks[type].setChecked(1)
+        lor, gauss, cos2, cos2Ph, hamming, shift, shifting, shiftingAxis = self.checkInput()
+        if type == 'lor':
+            self.entries[type][0].setText('%.4g' % (lor + step))
+        elif type == 'gauss':
+            self.entries[type][0].setText('%.4g' % (gauss + step))
         self.apodPreview()
 
-    def applyFunc(self):
+    def checkInput(self):
         lor = None
         gauss = None
         cos2 = None
         cos2Ph = None
         hamming = None
-        shifting = None
-        shiftingAxis = 0
+        shift = 0.0
+        shifting = 0.0
+        shiftingAxis = None
         if self.ticks['lor'].isChecked():
             lor = safeEval(self.entries['lor'][0].text(), length=self.father.current.len(), type='FI')
             if lor is None:
@@ -3567,22 +3588,32 @@ class ApodWindow(wc.ToolWindows):
                 self.father.current.showFid()
                 raise SsnakeException('Apodize: cos^2 phase value is not valid!')
         if self.ticks['hamming'].isChecked():
-            hamming = safeEval(self.entries['hamming'][0].text(), length=self.father.current.len(), type='FI')
+            hamming = safeEval(self.entries['hamming'][1].text(), length=self.father.current.len(), type='FI')
             if hamming is None:
                 self.father.current.showFid()
                 raise SsnakeException('Apodize: Hamming value is not valid!')
-        shift = safeEval(self.shiftEntry.text(), length=self.father.current.len(), type='FI')
-        if shift is None:
-            self.father.current.showFid()
-            raise SsnakeException('Apodize: Shift value is not valid!')
-        if self.father.current.data.ndim() > 1:
-            shifting = safeEval(self.shiftingEntry.text(), length=self.father.current.len(), type='FI')
-            if shifting is None:
+        if self.ticks['shift'].isChecked():
+            shift = safeEval(self.entries['shift'][0].text(), length=self.father.current.len(), type='FI')
+            if shift is None:
                 self.father.current.showFid()
-                raise SsnakeException('Apodize: Shifting value is not valid!')
-            shiftingAxis = int(self.shiftingValues[self.shiftingAxis.currentIndex()]) - 1
-        else:
-            shiftingAxis = None
+                raise SsnakeException('Apodize: Shift value is not valid!')
+        if self.father.current.data.ndim() > 1:
+            if self.ticks['shifting'].isChecked():
+                if self.father.current.data.ndim() > 1:
+                    shifting = safeEval(self.shiftingEntry.text(), length=self.father.current.len(), type='FI')
+                    if shifting is None:
+                        self.father.current.showFid()
+                        raise SsnakeException('Apodize: Shifting value is not valid!')
+                    shiftingAxis = int(self.shiftingValues[self.shiftingAxis.currentIndex()]) - 1
+                else:
+                    shiftingAxis = None
+
+        return lor, gauss, cos2, cos2Ph, hamming, shift, shifting, shiftingAxis
+
+
+
+    def applyFunc(self):
+        lor, gauss, cos2, cos2Ph, hamming, shift, shifting, shiftingAxis = self.checkInput()
         self.father.current.applyApod(lor, gauss, [cos2, cos2Ph], hamming, shift, shifting, shiftingAxis, (self.singleSlice.isChecked()))
 
 #######################################################################################
@@ -3826,12 +3857,13 @@ class ShiftDataWindow(wc.ToolWindows):
         if inp is None:
             raise SsnakeException("Shift data: shift value not valid")
         self.shiftVal = int(round(inp))
-        if QtWidgets.qApp.keyboardModifiers() & QtCore.Qt.ControlModifier:
-            shift = +10
+        shift = +1 
+        if QtWidgets.qApp.keyboardModifiers() & QtCore.Qt.ControlModifier and QtWidgets.qApp.keyboardModifiers() & QtCore.Qt.ShiftModifier:
+            shift *= +1000
+        elif QtWidgets.qApp.keyboardModifiers() & QtCore.Qt.ControlModifier:
+            shift *= +10
         elif QtWidgets.qApp.keyboardModifiers() & QtCore.Qt.ShiftModifier:
-            shift = +100
-        else:
-            shift = +1
+            shift *= +100
         self.shiftVal = self.shiftVal + shift
         self.shiftEntry.setText(str(self.shiftVal))
         self.shiftPreview()
@@ -3841,12 +3873,14 @@ class ShiftDataWindow(wc.ToolWindows):
         if inp is None:
             raise SsnakeException("Shift data: shift value not valid")
         self.shiftVal = int(round(inp))
-        if QtWidgets.qApp.keyboardModifiers() & QtCore.Qt.ControlModifier:
-            shift = -10
+        shift = -1 
+        if QtWidgets.qApp.keyboardModifiers() & QtCore.Qt.ControlModifier and QtWidgets.qApp.keyboardModifiers() & QtCore.Qt.ShiftModifier:
+            shift *= +1000
+        elif QtWidgets.qApp.keyboardModifiers() & QtCore.Qt.ControlModifier:
+            shift *= +10
         elif QtWidgets.qApp.keyboardModifiers() & QtCore.Qt.ShiftModifier:
-            shift = -100
-        else:
-            shift = -1
+            shift *= +100
+
         self.shiftVal = self.shiftVal + shift
         self.shiftEntry.setText(str(self.shiftVal))
         self.shiftPreview()
@@ -5485,7 +5519,9 @@ class ShearingWindow(wc.ToolWindows):
         self.axEntry = QtWidgets.QComboBox()
         self.axEntry.addItems(options)
         self.axEntry.setCurrentIndex(self.father.masterData.ndim() - 1)
-        self.grid.addWidget(self.axEntry,7, 0)
+        self.grid.addWidget(self.axEntry, 7, 0)
+        self.toRefCheck = QtWidgets.QCheckBox("Relative to Reference")
+        self.grid.addWidget(self.toRefCheck, 8, 0)
 
     def dropdownChanged(self):
         index = self.shearDropdown.currentIndex()
@@ -5504,7 +5540,7 @@ class ShearingWindow(wc.ToolWindows):
         axis2 = self.axEntry.currentIndex()
         if axis == axis2:
             raise SsnakeException("Shearing: axes cannot be the same for shearing")
-        self.father.current.shearing(float(shear), axis, axis2)
+        self.father.current.shearing(float(shear), axis, axis2, self.toRefCheck.isChecked())
 
 ##########################################################################################
 
@@ -5842,6 +5878,7 @@ class RefWindow(wc.ToolWindows):
                 self.father.father.referenceAdd(reffreq, givenname)
         if nameOK:
             self.father.current.setRef(reffreq)
+            self.father.bottomframe.upd()
             self.closeEvent()
 
     def picked(self, pos):
@@ -5856,7 +5893,7 @@ class HistoryWindow(wc.ToolWindows):
 
     NAME = "Processing history"
     RESIZABLE = True
-    MENUDISABLE = False
+    MENUDISABLE = True
 
     def __init__(self, parent):
         super(HistoryWindow, self).__init__(parent)
@@ -6508,7 +6545,7 @@ class aboutWindow(wc.ToolWindows):
             from PyQt5.QtCore import QT_VERSION_STR
         from scipy import __version__ as scipyVersion
         self.text.setText('<p><b>ssNake ' + VERSION + '</b></p>' +
-                          '<p>Copyright (&copy;) 2016&ndash;2018 Bas van Meerten & Wouter Franssen<\p>' + '<p>Email: <a href="mailto:ssnake@science.ru.nl" >ssnake@science.ru.nl</a></p>' +
+                          '<p>Copyright (&copy;) 2016&ndash;2019 Bas van Meerten & Wouter Franssen<\p>' + '<p>Email: <a href="mailto:ssnake@science.ru.nl" >ssnake@science.ru.nl</a></p>' +
                           '<b>Library versions</b>:<br>Python ' + pythonVersion + '<br>numpy ' + np.__version__ +
                           '<br>SciPy ' + scipyVersion +
                           '<br>matplotlib ' + matplotlib.__version__ +
@@ -6516,7 +6553,7 @@ class aboutWindow(wc.ToolWindows):
                           '<br>Qt ' + QT_VERSION_STR)
         self.thanks = QtWidgets.QTextEdit(self)
         self.thanks.setReadOnly(True)
-        self.thanks.setHtml('<p><b>The ssNake team wishes to thank:</b></p>Koen Tijssen<br>Ole Brauckmann<br>Merijn Blaakmeer<br>Vincent Breukels')
+        self.thanks.setHtml('<p><b>The ssNake team wishes to thank:</b></p>prof. Arno Kentgens<br>Koen Tijssen<br>Ole Brauckmann<br>Merijn Blaakmeer<br>Vincent Breukels<br>Ernst van Eck<br>Fleur van Zelst')
         self.tabs.addTab(self.text, 'Version')
         self.tabs.addTab(self.thanks, 'Thanks')
         self.tabs.addTab(self.license, 'License')
@@ -6730,21 +6767,35 @@ class quadConversionWindow(wc.ToolWindows):
         super(quadConversionWindow, self).__init__(parent)
         self.comGroup = QtWidgets.QGroupBox("Common Parameters:")
         self.comFrame = QtWidgets.QGridLayout()
+        nucLabel = wc.QLabel("Nucleus:")
+        self.comFrame.addWidget(nucLabel, 0, 0)
+
+        qindex = [x for (x,val) in enumerate(ISOTOPES['q']) if val is not None and ISOTOPES['spin'][x] != 0.5]
+        self.names = ['User'] +  [val for (x,val) in enumerate(ISOTOPES['formatName']) if x in qindex]
+        self.I = [0.0] + [val for (x,val) in enumerate(ISOTOPES['spin']) if x in qindex] 
+        self.Qvalues = [0.0] + [val for (x,val) in enumerate(ISOTOPES['q']) if x in qindex] 
+        self.nucDrop = QtWidgets.QComboBox()
+        self.nucDrop.addItems(self.names)
+        self.nucDrop.currentIndexChanged.connect(self.setNuc)
+        self.comFrame.addWidget(self.nucDrop, 1, 0)
+
         Itext = wc.QLabel("I:")
-        self.comFrame.addWidget(Itext, 0, 0)
+        self.comFrame.addWidget(Itext, 0, 1)
         self.IEntry = QtWidgets.QComboBox()
         self.IEntry.addItems(self.Ioptions)
         self.IEntry.setCurrentIndex(0)
-        self.comFrame.addWidget(self.IEntry, 1, 0)
+        self.IEntry.activated.connect(self.userChange)
+        self.comFrame.addWidget(self.IEntry, 1, 1)
         etalabel = wc.QLabel(u'η:')
-        self.comFrame.addWidget(etalabel, 0, 1)
+        self.comFrame.addWidget(etalabel, 0, 3)
         self.Eta = wc.QLineEdit("0")
         self.Eta.setMinimumWidth(100)
-        self.comFrame.addWidget(self.Eta, 1, 1)
+        self.comFrame.addWidget(self.Eta, 1, 3)
         momentlabel = wc.QLabel('Q [fm<sup>2</sup>]:')
         self.comFrame.addWidget(momentlabel, 0, 2)
         self.Moment = wc.QLineEdit("ND")
         self.Moment.setMinimumWidth(100)
+        self.Moment.textEdited.connect(self.userChange)
         self.comFrame.addWidget(self.Moment, 1, 2)
         self.comGroup.setLayout(self.comFrame)
         self.grid.addWidget(self.comGroup, 1, 0, 1, 3)
@@ -6801,6 +6852,15 @@ class quadConversionWindow(wc.ToolWindows):
         self.okButton.setText("Reset")
         self.okButton.clicked.disconnect()
         self.okButton.clicked.connect(self.valueReset)
+
+    def setNuc(self,index):
+        I = self.I[index]
+        if int(I * 2) > 0:
+            self.IEntry.setCurrentIndex(int(I * 2 - 2))
+            self.Moment.setText(str(self.Qvalues[index]))
+
+    def userChange(self,index = None):
+        self.nucDrop.setCurrentIndex(0)
 
     def quadCalc(self, Type):
         I = self.Ivalues[self.IEntry.currentIndex()]
@@ -6866,7 +6926,394 @@ class quadConversionWindow(wc.ToolWindows):
 
 ##############################################################################
 
+class dipolarDistanceWindow(wc.ToolWindows):
 
+    NAME = "Dipolar Distance Calculation"
+    RESIZABLE = True
+    MENUDISABLE = False
+
+    def __init__(self, parent):
+        super(dipolarDistanceWindow, self).__init__(parent)
+        self.comGroup = QtWidgets.QGroupBox("Gyromagnetic Ratios:")
+        self.comFrame = QtWidgets.QGridLayout()
+        gamma1label = wc.QLabel(u'γ<sub>1</sub> [10<sup>7</sup> rad/s/T]:')
+        self.comFrame.addWidget(gamma1label, 0, 0)
+
+        gammaindex = [x for (x,val) in enumerate(ISOTOPES['gamma']) if val is not None]
+        self.gammaValues = [0.0] + [val for (x,val) in enumerate(ISOTOPES['gamma']) if x in gammaindex]        
+        self.names = ['User'] +  [val for (x,val) in enumerate(ISOTOPES['formatName']) if x in gammaindex]
+
+        self.gamma1Drop = QtWidgets.QComboBox()
+        self.gamma1Drop.addItems(self.names)
+        self.gamma1Drop.currentIndexChanged.connect(self.setGamma1)
+        self.comFrame.addWidget(self.gamma1Drop, 1, 0)
+        self.gamma2Drop = QtWidgets.QComboBox()
+        self.gamma2Drop.addItems(self.names)
+        self.gamma2Drop.currentIndexChanged.connect(self.setGamma2)
+        self.comFrame.addWidget(self.gamma2Drop, 1, 1)
+
+        self.gamma1 = wc.QLineEdit("0.0")
+        self.gamma1.setMinimumWidth(100)
+        self.gamma1.textEdited.connect(self.gamma1Changed)
+        self.comFrame.addWidget(self.gamma1, 2, 0)
+        gamma2label = wc.QLabel(u'γ<sub>2</sub> [10<sup>7</sup> rad/s/T]:')
+        self.comFrame.addWidget(gamma2label, 0, 1)
+        self.gamma2 = wc.QLineEdit("0.0")
+        self.gamma2.setMinimumWidth(100)
+        self.gamma2.textEdited.connect(self.gamma2Changed)
+        self.comFrame.addWidget(self.gamma2, 2, 1)
+        self.comGroup.setLayout(self.comFrame)
+        self.grid.addWidget(self.comGroup, 1, 0, 1, 3)
+
+        self.distanceGroup = QtWidgets.QGroupBox("Distance:")
+        self.distanceFrame = QtWidgets.QGridLayout()
+        distancelabel = wc.QLabel(u'r [Å]')
+        self.distanceFrame.addWidget(distancelabel, 3, 1)
+        distanceGO = QtWidgets.QPushButton("Go")
+        self.distanceFrame.addWidget(distanceGO, 4, 0)
+        distanceGO.clicked.connect(lambda: self.Calc(0))
+        self.distance = wc.QLineEdit("0")
+        self.distance.setMinimumWidth(100)
+        self.distanceFrame.addWidget(self.distance, 4, 1)
+        self.distanceGroup.setLayout(self.distanceFrame)
+        self.grid.addWidget(self.distanceGroup, 3, 0, 1, 2)
+
+        self.dipolarGroup = QtWidgets.QGroupBox("Dipolar Coupling:")
+        self.dipolarFrame = QtWidgets.QGridLayout()
+        dipolarlabel = wc.QLabel(u'D [kHz]')
+        self.dipolarFrame.addWidget(dipolarlabel, 3, 1)
+        dipolarGO = QtWidgets.QPushButton("Go")
+        self.dipolarFrame.addWidget(dipolarGO, 4, 0)
+        dipolarGO.clicked.connect(lambda: self.Calc(1))
+        self.dipolar = wc.QLineEdit("0")
+        self.dipolar.setMinimumWidth(100)
+        self.dipolarFrame.addWidget(self.dipolar, 4, 1)
+        self.dipolarGroup.setLayout(self.dipolarFrame)
+        self.grid.addWidget(self.dipolarGroup, 4, 0, 1, 2)
+
+        # Reset
+        self.cancelButton.setText("Close")
+        self.cancelButton.clicked.disconnect()
+        self.cancelButton.clicked.connect(self.closeEvent)
+        self.okButton.setText("Reset")
+        self.okButton.clicked.disconnect()
+        self.okButton.clicked.connect(self.valueReset)
+
+    def gamma1Changed(self):
+        self.gamma1Drop.setCurrentIndex(0)
+
+    def gamma2Changed(self):
+        self.gamma2Drop.setCurrentIndex(0)
+
+    def setGamma1(self,index):
+        if index !=0:
+            self.gamma1.setText(str(self.gammaValues[index]))
+
+    def setGamma2(self,index):
+        if index !=0:
+            self.gamma2.setText(str(self.gammaValues[index]))
+
+    def Calc(self, Type):
+        try:
+            gamma1 = float(safeEval(self.gamma1.text(), type='FI')) * 1e7
+            gamma2 = float(safeEval(self.gamma2.text(), type='FI')) * 1e7
+        except Exception:
+            raise SsnakeException("Dipolar Distance: Invalid input in gamma values")
+
+        if Type == 0:  # Distance as input
+            try:
+                r = abs(float(safeEval(self.distance.text(), type='FI')))
+            except Exception:
+                raise SsnakeException("Dipolar Distance: Invalid input in r")
+        if Type == 1:
+            try:
+                D = abs(float(safeEval(self.dipolar.text(), type='FI')))
+            except Exception:
+                raise SsnakeException("Dipolar Distance: Invalid input in D")
+
+        hbar = 1.054573e-34
+        if Type == 0:
+            if r == 0.0:
+                D = np.inf
+            else:
+                D = abs(- 1e-7 * gamma1 * gamma2 * hbar / (r * 10**-10) **3 / (2 * np.pi))
+                D /= 1000
+        if Type == 1:
+            if D == 0.0:
+                r = np.inf
+            else:
+                r = 1 / abs(D * 1000 /gamma1 / gamma2 / hbar / 1e-7 * (2 * np.pi))**(1.0/3)
+                r *= 1e10
+
+        self.dipolar.setText('%#.5g' % D)
+        self.distance.setText('%#.5g' % r)
+
+    def valueReset(self):  # Resets all the boxes to 0
+        self.dipolar.setText('0.0')
+        self.distance.setText('0.0')
+        self.gamma1.setText('0.0')
+        self.gamma2.setText('0.0')
+        self.gamma1Drop.setCurrentIndex(0)
+        self.gamma2Drop.setCurrentIndex(0)
+
+    def closeEvent(self):
+        self.deleteLater()
+
+##############################################################################
+
+
+
+class tempCalWindow(QtWidgets.QWidget):
+    #[minTemp, maxTemp, shiftToTemp, tempToShift, Delta0, T0, RefName]
+    METHANOL = [178,330,
+                lambda Delta: 409.0 - 36.54 * Delta - 21.85 * Delta**2,
+                lambda Temp: (36.54 - np.sqrt(36.54**2 - 4 * -21.85 * (409.0 - Temp))) / (2 * -21.85),
+                'absShift',None,None,'Ammann et al., JMR, 46, 319 (1982)']
+    ETH_GLYCOL = [273,416,
+                  lambda Delta: 466.5 - 102.00 * Delta,
+                  lambda Temp: (Temp - 466.5) / -102.0,
+                  'absShift',None,None,'Ammann et al., JMR, 46, 319 (1982)']
+
+    PBNO3 = [143, 423,
+             lambda Delta, Delta0, T0: (Delta0 - Delta) / 0.753 + T0 , 
+             lambda T, Delta0, T0: (T0 - T) * 0.753 + Delta0 ,
+             'relShift','-3473','293','Bielecki et al., JMR, 116, 215 (1995)']
+    KBR = [170, 320,
+             lambda Delta, Delta0, T0: (Delta0 - Delta) / 0.0250 + T0 , 
+             lambda T, Delta0, T0: (T0 - T) * 0.0250 + Delta0 ,
+             'relShift','0','293','Thurber et al., JMR, 196, 84 (2009)']
+
+
+    DEFINITIONS = [METHANOL, ETH_GLYCOL, PBNO3 ,KBR]
+    TEXTLIST = ['1H: Methanol (178 K < T < 330 K)', '1H: Ethylene Glycol (273 K < T < 416 K)',
+            '207Pb: Lead Nitrate (143 K < T < 423 K)','79Br: KBr (170 K < T < 320 K)']
+
+    T1_KBr = [20,296,
+             lambda Relax: optimize.brentq(lambda T,T1: 0.0145 + 5330/T**2 + 1.42e7/T**4 + 2.48e9/T**6 - T1, 20, 296 ,args=(Relax,)),
+             lambda T: 0.0145 + 5330/T**2 + 1.42e7/T**4 + 2.48e9/T**6,
+             'Thurber et al., JMR, 196, 84 (2009)']
+    T1_CsI = [8,104,
+              lambda Relax: optimize.brentq(lambda T,T1: -1.6e-3 + 1.52e3/T**2 + 0.387e6/T**4 + 0.121e9/T**6 - T1, 8, 104 ,args=(Relax,)),
+              lambda T: -1.6e-3 + 1.52e3/T**2 + 0.387e6/T**4 + 0.121e9/T**6,
+              'Sarkar et al., JMR, 212, 460 (2011)']
+
+    T1_DEFINITIONS = [T1_KBr, T1_CsI]
+    T1_TEXTLIST = ['79Br: KBr (20 K < T < 296 K, 9.4 T)','127I: CsI (8 K < T < 104 K, 9.4 T)']
+
+
+    def __init__(self, parent):
+        super(tempCalWindow, self).__init__(parent)
+        self.setWindowFlags(QtCore.Qt.Window | QtCore.Qt.Tool)
+        self.father = parent
+        self.setWindowTitle("Temperature Calibration")
+        tabWidget = QtWidgets.QTabWidget()
+        tab1 = QtWidgets.QWidget()
+        tabWidget.addTab(tab1, "Chemical Shift Based")
+        grid1 = QtWidgets.QGridLayout()
+        tab1.setLayout(grid1)
+        
+        #Shift based
+        self.typeDrop = QtWidgets.QComboBox()
+        self.typeDrop.addItems(self.TEXTLIST)
+        grid1.addWidget(self.typeDrop, 0, 0)
+        self.typeDrop.currentIndexChanged.connect(self.changeType)
+
+        self.RefGroup = QtWidgets.QGroupBox("Relative to:")
+        self.RefFrame = QtWidgets.QGridLayout()
+        self.Delta0Label = wc.QLabel(u'δ [ppm]')
+        self.RefFrame.addWidget(self.Delta0Label, 0, 0)
+        self.Delta0 = wc.QLineEdit("")
+        self.Delta0.setMinimumWidth(100)
+        self.RefFrame.addWidget(self.Delta0, 1, 0)
+        self.T0Label = wc.QLabel(u'T [K]')
+        self.RefFrame.addWidget(self.T0Label, 0, 1)
+        self.T0 = wc.QLineEdit("")
+        self.T0.setMinimumWidth(100)
+        self.RefFrame.addWidget(self.T0, 1, 1)
+        self.RefGroup.setLayout(self.RefFrame)
+        grid1.addWidget(self.RefGroup, 1, 0)
+        self.RefGroup.hide()
+
+        self.DeltaGroup = QtWidgets.QGroupBox("Shift to Temperature:")
+        self.DeltaFrame = QtWidgets.QGridLayout()
+        self.DeltaLabel = wc.QLabel(u'Δδ [ppm]')
+        self.DeltaFrame.addWidget(self.DeltaLabel, 0, 1)
+        DeltaGO = QtWidgets.QPushButton("Go")
+        self.DeltaFrame.addWidget(DeltaGO, 1, 0)
+        DeltaGO.clicked.connect(self.shiftToTemp)
+        self.Delta = wc.QLineEdit("")
+        self.Delta.setMinimumWidth(100)
+        self.DeltaFrame.addWidget(self.Delta, 1, 1)
+        self.DeltaGroup.setLayout(self.DeltaFrame)
+        grid1.addWidget(self.DeltaGroup, 2, 0)
+
+        self.TempGroup = QtWidgets.QGroupBox("Temperature to Shift:")
+        self.TempFrame = QtWidgets.QGridLayout()
+        TempLabel = wc.QLabel(u'Temperature [K]')
+        self.TempFrame.addWidget(TempLabel, 0, 1)
+        TempGO = QtWidgets.QPushButton("Go")
+        TempGO.clicked.connect(self.tempToShift)
+        self.TempFrame.addWidget(TempGO, 1, 0)
+        self.Temp = wc.QLineEdit("")
+        self.Temp.setMinimumWidth(100)
+        self.TempFrame.addWidget(self.Temp, 1, 1)
+        self.TempGroup.setLayout(self.TempFrame)
+        grid1.addWidget(self.TempGroup, 3, 0)
+        self.refname = wc.QLabel(self.DEFINITIONS[0][7])
+        grid1.addWidget(self.refname,4,0)
+
+        #T1 based
+        tab2 = QtWidgets.QWidget()
+        tabWidget.addTab(tab2, "T1 Based")
+        grid2 = QtWidgets.QGridLayout()
+        tab2.setLayout(grid2)
+
+        self.T1typeDrop = QtWidgets.QComboBox()
+        self.T1typeDrop.addItems(self.T1_TEXTLIST)
+        grid2.addWidget(self.T1typeDrop, 0, 0)
+        self.T1typeDrop.currentIndexChanged.connect(self.changeTypeT1)
+
+        self.T1Group = QtWidgets.QGroupBox("T1 to Temperature:")
+        self.T1Frame = QtWidgets.QGridLayout()
+        self.T1Label = wc.QLabel(u'T1 [s]')
+        self.T1Frame.addWidget(self.T1Label, 0, 1)
+        T1GO = QtWidgets.QPushButton("Go")
+        self.T1Frame.addWidget(T1GO, 1, 0)
+        T1GO.clicked.connect(self.t1ToTemp)
+        self.T1 = wc.QLineEdit("")
+        self.T1.setMinimumWidth(100)
+        self.T1Frame.addWidget(self.T1, 1, 1)
+        self.T1Group.setLayout(self.T1Frame)
+        grid2.addWidget(self.T1Group, 2, 0)
+
+        self.TempT1Group = QtWidgets.QGroupBox("Temperature to T1:")
+        self.TempT1Frame = QtWidgets.QGridLayout()
+        TempT1Label = wc.QLabel(u'Temperature [K]')
+        self.TempT1Frame.addWidget(TempT1Label, 0, 1)
+        TempT1GO = QtWidgets.QPushButton("Go")
+        TempT1GO.clicked.connect(self.tempToT1)
+        self.TempT1Frame.addWidget(TempT1GO, 1, 0)
+        self.TempT1 = wc.QLineEdit("")
+        self.TempT1.setMinimumWidth(100)
+        self.TempT1Frame.addWidget(self.TempT1, 1, 1)
+        self.TempT1Group.setLayout(self.TempT1Frame)
+        grid2.addWidget(self.TempT1Group, 3, 0)
+        self.refnameT1 = wc.QLabel(self.T1_DEFINITIONS[0][4])
+        grid2.addWidget(self.refnameT1,4,0)
+
+        layout = QtWidgets.QGridLayout(self)
+        layout.addWidget(tabWidget, 0, 0, 1, 4)
+        cancelButton = QtWidgets.QPushButton("&Close")
+        cancelButton.clicked.connect(self.closeEvent)
+        box = QtWidgets.QDialogButtonBox()
+        box.addButton(cancelButton,QtWidgets.QDialogButtonBox.RejectRole)
+        layout.addWidget(box, 1,0,1,4)
+        layout.setColumnStretch(3, 1)
+        self.show()
+        self.setFixedSize(self.size())
+
+    def changeType(self,index):
+        self.Temp.setText('')
+        self.Delta.setText('')
+
+        self.refname.setText(self.DEFINITIONS[index][7])
+        if self.DEFINITIONS[self.typeDrop.currentIndex()][4] == 'absShift':
+            self.DeltaLabel.setText(u'Δδ [ppm]')
+            self.RefGroup.hide()
+            self.Delta0.setText('')
+            self.T0.setText('')
+        elif self.DEFINITIONS[self.typeDrop.currentIndex()][4] == 'relShift':
+            self.DeltaLabel.setText(u'δ [ppm]')
+            self.RefGroup.show()
+            self.Delta0.setText(self.DEFINITIONS[self.typeDrop.currentIndex()][5])
+            self.T0.setText(self.DEFINITIONS[self.typeDrop.currentIndex()][6])
+
+    def changeTypeT1(self,index):
+        self.refnameT1.setText(self.T1_DEFINITIONS[index][4])
+
+
+    def tempToT1(self):
+        Data = self.T1_DEFINITIONS[self.T1typeDrop.currentIndex()]
+        try:
+            Temp = float(safeEval(self.TempT1.text(), type='FI')) 
+        except Exception:
+            self.T1.setText('?')
+            raise SsnakeException("Temperature Calibration: Invalid input in Temp value")
+        T1 = Data[3](Temp)
+        if Temp < Data[0] or Temp > Data[1]:
+            self.T1.setText('?')
+            raise SsnakeException("Temperature Calibration: Temperature outside calibration range")
+        else:
+            self.T1.setText('%#.6g' % T1)
+
+    def t1ToTemp(self):
+        Data = self.T1_DEFINITIONS[self.T1typeDrop.currentIndex()]
+        try:
+            T1 = float(safeEval(self.T1.text(), type='FI')) 
+        except Exception:
+            self.TempT1.setText('?')
+            raise SsnakeException("Temperature Calibration: Invalid input in Temp value")
+
+        try:
+            Temp = Data[2](T1)
+        except Exception:
+            self.TempT1.setText('?')
+            raise SsnakeException("Temperature Calibration: Temperature outside calibration range")
+        self.TempT1.setText('%#.6g' % Temp)
+
+    def shiftToTemp(self):
+        Data = self.DEFINITIONS[self.typeDrop.currentIndex()]
+        try:
+            Delta = float(safeEval(self.Delta.text(), type='FI')) 
+        except Exception:
+            self.Temp.setText('?')
+            raise SsnakeException("Temperature Calibration: Invalid input in Delta value")
+        if Data[4] == 'relShift':
+            try:
+                Delta0 = float(safeEval(self.Delta0.text(), type='FI')) 
+                T0 = float(safeEval(self.T0.text(), type='FI')) 
+            except Exception:
+                self.Temp.setText('?')
+                raise SsnakeException("Temperature Calibration: Invalid input in References values")
+            Temp = Data[2](Delta,Delta0,T0)
+        else:
+            Temp = Data[2](Delta)
+
+        if Temp < Data[0] or Temp > Data[1]:
+            self.Temp.setText('?')
+            raise SsnakeException("Temperature Calibration: Temperature outside calibration range")
+        else:
+            self.Temp.setText('%#.6g' % Temp)
+
+    def tempToShift(self):
+        Data = self.DEFINITIONS[self.typeDrop.currentIndex()]
+        try:
+            Temp = float(safeEval(self.Temp.text(), type='FI')) 
+        except Exception:
+            self.Delta.setText('?')
+            raise SsnakeException("Temperature Calibration: Invalid input in Temp value")
+        if Data[4] == 'relShift':
+            try:
+                Delta0 = float(safeEval(self.Delta0.text(), type='FI')) 
+                T0 = float(safeEval(self.T0.text(), type='FI')) 
+            except Exception:
+                self.Delta.setText('?')
+                raise SsnakeException("Temperature Calibration: Invalid input in References values")
+            Delta = Data[3](Temp,Delta0,T0)
+        else:
+            Delta = Data[3](Temp)
+        if Temp < Data[0] or Temp > Data[1]:
+            self.Delta.setText('?')
+            raise SsnakeException("Temperature Calibration: Temperature outside calibration range")
+        else:
+            self.Delta.setText('%#.6g' % Delta)
+
+
+
+    def closeEvent(self, *args):
+        self.deleteLater()
+
+##############################################################################
 class mqmasExtractWindow(wc.ToolWindows):
 
     Ioptions = ['3/2','5/2', '7/2', '9/2']
@@ -7064,7 +7511,7 @@ if __name__ == '__main__':
         def exception_hook(exctype, value, traceback):
             if not isinstance(value, Exception): # Do not catch keyboard interrupts
                 sys._excepthook(exctype, value, traceback)
-            elif isinstance(value, (sc.SpectrumException, hc.HComplexException)):
+            elif isinstance(value, (sc.SpectrumException, hc.HComplexException, sim.SimException)):
                 mainProgram.dispMsg(str(value))            
             else:
                 mainProgram.dispError([exctype, value, traceback])
