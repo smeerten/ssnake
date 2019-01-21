@@ -1590,11 +1590,8 @@ class MainProgram(QtWidgets.QMainWindow):
         tempCalWindow(self)
 
     def nmrTable(self):
-        import subprocess
-        if EXE: #If compiling to exe
-            subprocess.Popen(os.path.dirname(os.path.realpath(__file__)) + '/nmrTable.exe')
-        else:
-            subprocess.Popen([sys.executable, os.path.dirname(os.path.realpath(__file__)) + '/nmrTable.py'])
+        import nmrTable
+        nmrTable.PeriodicTable() 
 
     def fileQuit(self):
         self.close()
