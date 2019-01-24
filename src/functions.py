@@ -21,7 +21,7 @@
 import numpy as np
 from scipy.special import wofz
 import scipy.constants as SC
-
+import scipy.linalg
 
 def apodize(t, shift, sw, axLen, lor, gauss, cos2, hamming, wholeEcho=False):
     t2 = t - shift
@@ -38,6 +38,46 @@ def apodize(t, shift, sw, axLen, lor, gauss, cos2, hamming, wholeEcho=False):
     if wholeEcho:
         x[-1:-(int(len(x) / 2) + 1):-1] = x[:int(len(x) / 2)]
     return x
+
+def lpsvd(fullFid, nPredict, maxFreq, forward=False, L=None):
+    fid = fullFid[:L]
+    N = len(fid)
+    M = int(np.floor(N * 3 / 4.0))
+    H = scipy.linalg.hankel(fid[1:N-M+1], fid[N-M:])
+    U, S, Vh = np.linalg.svd(H, full_matrices=1)
+    sigVal = len(S[S>(S[0]*1e-6)]) # Number of significant singular values
+    if sigVal > maxFreq:
+        sigVal = maxFreq
+    bias = np.mean(S[sigVal:])
+    S = S[:sigVal] - bias
+    U = U[:,:sigVal]
+    Sinv = np.diag(1.0/S)
+    Vh = Vh[:sigVal]
+    q = np.dot(np.dot(np.conj(Vh.T), np.dot(Sinv, np.conj(U.T))), fid[:(N-M)])
+    s = np.roots(np.append(-q[::-1], 1)) # Find the roots of the polynomial
+    s = s[np.abs(s)<1.0] # Accept only values within the unit circle
+    sLog = np.log(s)
+    freq = np.imag(sLog)
+    lb = np.real(sLog)
+    Nfull = len(fullFid)
+    Z = s**np.arange(Nfull)[:,np.newaxis]
+    a = np.linalg.lstsq(Z, fullFid)[0]
+    amp = np.abs(a)
+    phase = np.angle(a)
+    if forward:
+        xpredict = np.arange(Nfull, Nfull + nPredict)
+    else:
+        xpredict = np.arange(-nPredict, 0)
+    if len(amp) > 0:
+        reconstructed = amp * np.exp(xpredict[:,np.newaxis] * (1j * freq + lb) + 1j * phase)
+        reconstructed = np.sum(reconstructed, axis=1)
+    else:
+        reconstructed = np.zeros_like(xpredict)
+    if forward:
+        data = np.concatenate((fullFid, reconstructed))
+    else:
+        data = np.concatenate((reconstructed, fullFid))
+    return data
 
 def euro(val, num):
     firstDigit = '%.0e' % val

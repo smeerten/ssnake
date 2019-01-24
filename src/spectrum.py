@@ -1017,10 +1017,10 @@ class Spectrum(object):
         axis = self.checkAxis(axis)
         if not self.noUndo:
             copyData = copy.deepcopy(self)
-        if self.spec[axis] > 0:
+        if self.spec[axis]:
             self.__invFourier(axis, tmp=True)
         self.data = self.data.resize(size, pos, axis=axis)
-        if self.spec[axis] > 0:
+        if self.spec[axis]:
             self.__fourier(axis, tmp=True)
         self.resetXax(axis)
         self.addHistory("Resized dimension " + str(axis + 1) + " to " + str(size) + " points at position " + str(pos))
@@ -1028,53 +1028,31 @@ class Spectrum(object):
         if not self.noUndo:
             self.undoList.append(lambda self: self.restoreData(copyData, lambda self: self.resize(size, pos, axis)))
 
-    def lpsvd(self, nAnalyse, nFreq, nPredict, Direction, axis):
+    def lpsvd(self, nPredict, maxFreq, forward=False, numPoints=None, axis=-1):
+        failed = False
         axis = self.checkAxis(axis)
         if not self.noUndo:
             copyData = copy.deepcopy(self)
-        self.data.apply_along_axis(self.lpsvdfunction, axis, nAnalyse, nFreq, nPredict, Direction)
+        self.data.icomplexReorder(axis)
+        if self.spec[axis]:
+            self.__invFourier(axis, tmp=True)
+        try:
+            self.data = self.data.apply_along_axis(func.lpsvd, axis, nPredict, maxFreq, forward, numPoints)
+        except Exception:
+            failed = True
+        if self.spec[axis]:
+            self.__fourier(axis, tmp=True)
+        self.data.icomplexReorder(axis)
+        if failed:
+            raise SpectrumException('LPSVD: Could not determine any acceptable values')
         self.resetXax(axis)
-        self.addHistory("LPSVD ")
+        if forward:
+            self.addHistory("Forward LPSVD along axis "+ str(axis) + " with " + str(nPredict) + " points")
+        else:
+            self.addHistory("Backward LPSVD along axis "+ str(axis) + " with " + str(nPredict) + " points")
         self.redoList = []
         if not self.noUndo:
-            self.undoList.append(lambda self: self.restoreData(copyData, lambda self: self.lpsvd(nAnalyse, nFreq, nPredict, Direction, axis)))
-
-    def lpsvdfunction(self, data, nAnalyse, nFreq, nPredict, Direction):
-        # LPSVD algorithm
-        if Direction == 1:  # If backward
-            Y = data[0:nAnalyse]
-        else:
-            Y = data[-nAnalyse:]
-        N = len(Y)						# # of complex data points in FID
-        L = int(np.floor(N * 3 / 4))						# linear prediction order L = 3/4*N
-        A = scipy.linalg.hankel(np.conj(Y[1:N - L + 1]), np.conj(Y[N - L:N]))  # backward prediction data matrix
-        h = np.conj(Y[0:N - L])					# backward prediction data vector
-        U, S, Vh = np.linalg.svd(A, full_matrices=1)                       # singular value decomposition
-        V = np.conj(np.transpose(Vh))
-        bias = np.mean(S[nFreq:np.min([N - L - 1, L]) + 1])  # bias compensation
-        PolyCoef = np.dot(-V[:, 0:nFreq], np.dot(np.diag(1 / (S[0:nFreq] - bias)), np.dot(np.conj(np.transpose(U[:, 0:nFreq])), h)))  # prediction polynomial coefficients
-        s = np.conj(np.log(np.roots(np.append(PolyCoef[::-1], 1))))		# polynomial rooting
-        s = s[np.where(s < 0)[0]]
-        reconstructed = np.zeros(nPredict, dtype=np.complex128)
-        if len(s):  # If there are found frequencies
-            Z = np.zeros([N, len(s)], dtype=np.complex)
-            for k in range(0, len(s)):
-                Z[:, k] = np.exp(s[k])**np.arange(0, N)
-            a = np.linalg.lstsq(Z, Y)[0]
-            para = np.array([-np.real(s), np.imag(s) / 2 / np.pi, np.abs(a), np.imag(np.log(a / np.abs(a)))])  # WF: reintroduce the scaling factor
-            if Direction == 1:  # If backward
-                xpredict = np.arange(-nPredict, 0)
-                for signal in range(para.shape[1]):
-                    reconstructed += para[2, signal] * np.exp(1j * (xpredict * para[1, signal] * 2 * np.pi + para[3, signal])) * np.exp(-xpredict * para[0, signal])
-                data = np.concatenate((reconstructed, data))
-            else:
-                xpredict = np.arange(N, N + nPredict)
-                for signal in range(para.shape[1]):
-                    reconstructed += para[2, signal] * np.exp(1j * (xpredict * para[1, signal] * 2 * np.pi + para[3, signal])) * np.exp(-xpredict * para[0, signal])
-                data = np.concatenate((data, reconstructed))
-        else:
-            data = np.concatenate((reconstructed, data))
-        return data
+            self.undoList.append(lambda self: self.restoreData(copyData, lambda self: self.lpsvd(nPredict, maxFreq, forward, numPoints, axis)))
 
     def setSpec(self, val, axis):
         axis = self.checkAxis(axis)
@@ -1117,7 +1095,6 @@ class Spectrum(object):
         if self.spec[axis] > 0:
             self.__fourier(axis, tmp=True)
         Message = "Shifted " + str(shift) + " points in dimension " + str(axis + 1)
-
         if type(select) is not slice:
             Message = Message + " with slice " + str(select)
         elif select != slice(None, None, None):

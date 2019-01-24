@@ -401,7 +401,7 @@ class MainProgram(QtWidgets.QMainWindow):
                                    ['Tools --> Reference Deconvolution', self.refDeconvAct],
                                    ['Tools --> Correct Digital Filter', self.digitalFilterAct],
                                    ['Tools --> Scale SW', self.scaleSWAct],
-                                   #['Tools --> LPSVD', self.lpsvdAct],
+                                   ['Tools --> LPSVD', self.lpsvdAct],
                                    ['Matrix --> Sizing', self.sizingAct],
                                    ['Matrix --> Shift Data', self.shiftAct],
                                    ['Matrix --> Multiply', self.multiplyAct],
@@ -606,8 +606,8 @@ class MainProgram(QtWidgets.QMainWindow):
         self.refDeconvAct.setToolTip('Reference Deconvolution')
         self.digitalFilterAct = self.toolMenu.addAction(QtGui.QIcon(IconDirectory + 'dFilter.png'), "&Correct Digital Filter", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.CorrectDigitalFilter()))
         self.digitalFilterAct.setToolTip("Correct Digital Filter")
-        #self.lpsvdAct = self.toolMenu.addAction(QtGui.QIcon(IconDirectory + 'LPSVD.png'), "&LPSVD", lambda: self.mainWindowCheck(lambda mainWindow: LPSVDWindow(mainWindow)))
-        #self.lpsvdAct.setToolTip('LPSVD linear prediction')
+        self.lpsvdAct = self.toolMenu.addAction(QtGui.QIcon(IconDirectory + 'LPSVD.png'), "&LPSVD", lambda: self.mainWindowCheck(lambda mainWindow: LPSVDWindow(mainWindow)))
+        self.lpsvdAct.setToolTip('LPSVD linear prediction')
         self.scaleSWAct =  self.toolMenu.addAction(QtGui.QIcon(IconDirectory + 'ScaleSW.png'),"Scale SW", lambda: self.mainWindowCheck(lambda mainWindow: ScaleSWWindow(mainWindow)))
         self.scaleSWAct.setToolTip('Scale the Current Spectral Width')
         self.referencelistmenu = QtWidgets.QMenu('&Reference', self)
@@ -3309,13 +3309,11 @@ class ApodWindow(wc.ToolWindows):
         super(ApodWindow, self).__init__(parent)
         self.entries = {}
         self.ticks = {}
-
         boldFont=QtGui.QFont()
         boldFont.setBold(True)
         self.maximum = 100.0 * self.father.current.sw() / (self.father.current.len())
         self.lbstep = 1.0
         self.available = True
-
         self.lorGroup = QtWidgets.QGroupBox()
         self.lorFrame = QtWidgets.QGridLayout()
         lorTick = QtWidgets.QCheckBox("Lorentzian:")
@@ -3343,7 +3341,6 @@ class ApodWindow(wc.ToolWindows):
         self.lorMax = 100.0 * self.father.current.sw() / (self.father.current.len())
         self.lorGroup.setLayout(self.lorFrame)
         self.grid.addWidget(self.lorGroup, 0, 0, 1, 3)
-
         self.gaussGroup = QtWidgets.QGroupBox()
         self.gaussFrame = QtWidgets.QGridLayout()
         gaussTick = QtWidgets.QCheckBox("Gaussian:")
@@ -3371,7 +3368,6 @@ class ApodWindow(wc.ToolWindows):
         self.gaussMax = 100.0 * self.father.current.sw() / (self.father.current.len())
         self.gaussGroup.setLayout(self.gaussFrame)
         self.grid.addWidget(self.gaussGroup, 1, 0, 1, 3)
-
         self.cos2Group = QtWidgets.QGroupBox()
         self.cos2Frame = QtWidgets.QGridLayout()
         cos2Tick = QtWidgets.QCheckBox("Cos^2:")
@@ -3381,7 +3377,6 @@ class ApodWindow(wc.ToolWindows):
         self.ticks['cos2'] = cos2Tick
         cos2Entry = wc.QLineEdit("1", self.apodPreview)
         cos2Entry.setEnabled(False)
-
         widthHint = cos2Entry.minimumSizeHint()
         widthHint.setWidth(widthHint.width() *4)
         cos2Entry.setMinimumSize(widthHint)
@@ -3404,8 +3399,6 @@ class ApodWindow(wc.ToolWindows):
         self.cos2Frame.addWidget(cos2PhLabel, 2, 0)
         self.cos2Group.setLayout(self.cos2Frame)
         self.grid.addWidget(self.cos2Group, 2, 0, 1, 3)
-
-
         self.hammingGroup = QtWidgets.QGroupBox()
         self.hammingFrame = QtWidgets.QGridLayout()
         hammingTick = QtWidgets.QCheckBox("Hamming:")
@@ -3422,13 +3415,10 @@ class ApodWindow(wc.ToolWindows):
         hammingEntry.setMinimumSize(widthHint)
         self.hammingFrame.addWidget(hammingEntry, 1, 2)
         self.entries['hamming'].append(hammingEntry)
-
         self.hammingFrame.addWidget(QtWidgets.QWidget(), 1, 1)
         self.hammingFrame.setColumnStretch(1, 1)
         self.hammingGroup.setLayout(self.hammingFrame)
         self.grid.addWidget(self.hammingGroup, 3, 0, 1, 3)
-
-
         self.shiftGroup = QtWidgets.QGroupBox()
         self.shiftFrame = QtWidgets.QGridLayout()
         shiftTick = QtWidgets.QCheckBox("Shift:")
@@ -3448,8 +3438,6 @@ class ApodWindow(wc.ToolWindows):
         self.shiftGroup.setLayout(self.shiftFrame)
         self.shiftFrame.setColumnStretch(1, 1)
         self.grid.addWidget(self.shiftGroup, 4, 0, 1, 3)
-
-
         if self.father.current.data.ndim() > 1:
             self.shiftingGroup = QtWidgets.QGroupBox()
             self.shiftingFrame = QtWidgets.QGridLayout()
@@ -3468,7 +3456,6 @@ class ApodWindow(wc.ToolWindows):
                                  25.0 / 12.0, 101.0 / 45.0, 11.0 / 9.0,
                                  161.0 / 45.0, 91.0 / 36.0, 95.0 / 36.0,
                                  7.0 / 18.0, 31.0 / 6.0]
-
             self.shiftingDropdown.setMinimumSize(widthHint)
             self.shiftingDropdown.setEnabled(False)
             self.shiftingFrame.addWidget(self.shiftingDropdown, 1, 2)
@@ -3604,10 +3591,7 @@ class ApodWindow(wc.ToolWindows):
                     shiftingAxis = int(self.shiftingValues[self.shiftingAxis.currentIndex()]) - 1
                 else:
                     shiftingAxis = None
-
         return lor, gauss, cos2, cos2Ph, hamming, shift, shifting, shiftingAxis
-
-
 
     def applyFunc(self):
         lor, gauss, cos2, cos2Ph, hamming, shift, shifting, shiftingAxis = self.checkInput()
@@ -3766,17 +3750,17 @@ class LPSVDWindow(wc.ToolWindows):
         self.grid.addWidget(backwardButton, 1, 0)
         self.grid.addWidget(forwardButton, 2, 0)
         backwardButton.setChecked(True)
-        self.grid.addWidget(wc.QLabel("# points for analysis:"), 3, 0)
-        self.analPoints = 200
-        self.aPointsEntry = wc.QLineEdit(self.analPoints)
+        self.grid.addWidget(wc.QLabel("Number of points for analysis:"), 3, 0)
+        analPoints = int(np.floor(self.father.current.len() * 3 / 4.0))
+        self.aPointsEntry = wc.QLineEdit(analPoints)
         self.grid.addWidget(self.aPointsEntry, 4, 0)
-        self.grid.addWidget(wc.QLabel("Number of frequencies:"), 5, 0)
-        self.numberFreq = 1
-        self.nFreqEntry = wc.QLineEdit(self.numberFreq)
+        self.grid.addWidget(wc.QLabel("Max number of frequencies:"), 5, 0)
+        numberFreq = 20
+        self.nFreqEntry = wc.QLineEdit(numberFreq)
         self.grid.addWidget(self.nFreqEntry, 6, 0)
-        self.grid.addWidget(wc.QLabel("Number prediction points:"), 7, 0)
-        self.predictPoints = 10
-        self.nPredictEntry = wc.QLineEdit(self.predictPoints)
+        self.grid.addWidget(wc.QLabel("Number of points to predict:"), 7, 0)
+        predictPoints = 10
+        self.nPredictEntry = wc.QLineEdit(predictPoints)
         self.grid.addWidget(self.nPredictEntry, 8, 0)
 
     def applyFunc(self):
@@ -3788,12 +3772,16 @@ class LPSVDWindow(wc.ToolWindows):
             raise SsnakeException('LPSVD: Number of frequencies is not valid')
         predictPoints = safeEval(self.nPredictEntry.text(), length=self.father.current.len(), type='FI')
         if predictPoints is None:
-            raise SsnakeException('LPSVD: Number of predication points is not valid')
-        if self.analPoints > len(self.father.current.data1D.data[0]):
-            raise SsnakeException('LPSVD: number of points for analysis cannot be more than data size')
-        if self.analPoints <= self.numberFreq * 4:
-            raise SsnakeException('LPSVD: number of points for analysis must be more than 4 times the number of frequencies')
-        self.father.current.lpsvd(analPoints, numberFreq, predictPoints, self.specGroup.checkedId())
+            raise SsnakeException('LPSVD: Number of points to predict is not valid')
+        if analPoints > self.father.current.len():
+            raise SsnakeException('LPSVD: Number of points for analysis cannot be larger than data size')
+        if analPoints < 2:
+            raise SsnakeException('LPSVD: Number of points for analysis should be at least 2')
+        if self.specGroup.checkedId() == 0:
+            forward = True
+        else:
+            forward = False
+        self.father.current.lpsvd(predictPoints, numberFreq, forward, analPoints)
         self.father.sideframe.upd()
 
 ###########################################################################

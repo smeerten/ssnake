@@ -537,11 +537,13 @@ class Current1D(PlotFrame):
         if not self.spec():
             self.plotReset(True, False)
 
-    def lpsvd(self, nAnalyse, nFreq, nPredict, Direction):
-        self.root.addMacro(['lpsvd', (nAnalyse, nFreq, nPredict, Direction, self.axes[-1] - self.data.ndim())])
-        self.data.lpsvd(nAnalyse, nFreq, nPredict, Direction, self.axes[-1])
+    def lpsvd(self, nPredict, maxFreq, forward, numPoints):
+        self.root.addMacro(['lpsvd', (nPredict, maxFreq, forward, numPoints, self.axes[-1] - self.data.ndim())])
+        self.data.lpsvd(nPredict, maxFreq, forward, numPoints, self.axes[-1])
         self.upd()
         self.showFid()
+        if not self.spec():
+            self.plotReset(True, False)
 
     def setSpec(self, val):  # change from time to freq domain of the actual data
         self.root.addMacro(['setSpec', (val, self.axes[-1] - self.data.ndim())])
