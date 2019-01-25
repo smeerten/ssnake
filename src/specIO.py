@@ -1596,19 +1596,29 @@ def loadMestreC(filePath):
         line, count = invalid_xml.subn('', line)
         parser.feed(line)
     main = parser.close().find('Spectrum').find('Main')
+    dim = int(main.find('Dimensions').text)
 
     Points = main.find('Values').find('Points').text
     data = base64.b64decode(Points)
     data = np.fromstring(data, dtype='<f')
     data = data[::2] + 1j * data[1::2]
     phaseable = main.find('Phaseable').text 
+    hyper = np.array([0])
     if phaseable is None: #If phase defined spectrum, else fid
         spec = False
-    else:
+        data=[data]
+    elif phaseable == 'f1 ':
         spec = True
         data = np.flipud(data)
+        data=[data]
+    elif phaseable == 'f1 f2 ':
+        spec = True
+        data = np.flipud(data)
+        hyper = np.array([0, 1])
+        data1 = data[:int(len(data)/2)]
+        data2 = data[int(len(data)/2):]
+        data = [np.real(data2) + 1j*np.real(data1),np.imag(data2) + 1j*np.imag(data1)]
 
-    dim = int(main.find('Dimensions').text)
     freq = []
     ref = []
     sw = []
@@ -1622,7 +1632,10 @@ def loadMestreC(filePath):
         sw.append( (axisMax - axisMin) * freq[-1] *1e-6 )
         ref.append( freq[-1] * (1 - 1e-6*(axisMax + axisMin)/2))
         dFilter.append( float(window.find('TimeOrigin').text) * 2 * np.pi)
-    data = data.reshape(*points[-1::-1])
 
-    masterData = sc.Spectrum(data, (filePath, None), freq, sw, [spec] * dim, ref = ref, dFilter = dFilter[0])
+    if dim == 2:
+        for i in range(len(data)):
+            data[i] = data[i].reshape(*points[-1::-1])
+    masterData = sc.Spectrum(hc.HComplexData(np.array(data), hyper), (filePath, None), freq, sw, [spec] * dim, ref = ref, dFilter = dFilter[0])
+    #masterData = sc.Spectrum(hc.HComplexData(np.array(data), hyper), (filePath, None), freq, sw, spec, ref=ref, dFilter = dFilter)
     return masterData
