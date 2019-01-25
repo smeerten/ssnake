@@ -113,6 +113,8 @@ def loadFile(filePath, realpath=False, asciiInfo=None):
         masterData = loadSiemensIMA(filePath)
     elif num == 15:
         masterData = loadBrukerWinNMR(filePath)
+    elif num == 16:
+        masterData = loadMestreC(filePath)
     masterData.rename(name)
     return masterData
 
@@ -152,6 +154,8 @@ def fileTypeCheck(filePath):
             return (14, filePath, returnVal)        
         elif filename.lower().endswith('.1r') or filename.lower().endswith('.1i') :  # Bruker WinNMR format
             return (15, filePath, returnVal)        
+        elif filename.lower().endswith('.mrc') :  # MestreC
+            return (16, filePath, returnVal)        
         returnVal = 1
         direc = os.path.dirname(filePath)
     if os.path.exists(direc + os.path.sep + 'procpar') and os.path.exists(direc + os.path.sep + 'fid'):
@@ -1573,3 +1577,52 @@ def scrubber(item):
     leading/trailing whitespaces removed"""
     item = item.split(chr(0))[0]
     return item.strip()
+
+
+
+
+def loadMestreC(filePath):
+    import base64
+    import xml.etree.ElementTree 
+    import re
+
+
+    invalid_xml = re.compile(u'[\x00-\x08\x0B-\x0C\x0E-\x1F\x7F]')
+
+    with open(filePath,'r') as f:
+        lines = f.read().split('\n')
+    parser = xml.etree.ElementTree.XMLParser()
+    for line in lines:
+        line, count = invalid_xml.subn('', line)
+        parser.feed(line)
+    main = parser.close().find('Spectrum').find('Main')
+
+    Points = main.find('Values').find('Points').text
+    data = base64.b64decode(Points)
+    data = np.fromstring(data, dtype='<f')
+    data = data[::2] + 1j * data[1::2]
+    phaseable = main.find('Phaseable').text 
+    if phaseable is None: #If phase defined spectrum, else fid
+        spec = False
+    else:
+        spec = True
+        data = np.flipud(data)
+
+    dim = int(main.find('Dimensions').text)
+    freq = []
+    ref = []
+    sw = []
+    dFilter = []
+    points = []
+    for window in main.findall('Window')[:dim]:
+        points.append(int(window.find('Points').text))
+        freq.append(float(window.find('MHz').text)*1e6)
+        axisMax = float(window.find('To').text)
+        axisMin = float(window.find('From').text)
+        sw.append( (axisMax - axisMin) * freq[-1] *1e-6 )
+        ref.append( freq[-1] * (1 - 1e-6*(axisMax + axisMin)/2))
+        dFilter.append( float(window.find('TimeOrigin').text) * 2 * np.pi)
+    data = data.reshape(*points[-1::-1])
+
+    masterData = sc.Spectrum(data, (filePath, None), freq, sw, [spec] * dim, ref = ref, dFilter = dFilter[0])
+    return masterData
