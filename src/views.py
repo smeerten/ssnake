@@ -352,7 +352,7 @@ class Current1D(PlotFrame):
         if self.spec() == 0 and not isinstance(self, CurrentContour):
             tmp = self.getDataType(y.getHyperData(0))
             scale = np.max([np.real(tmp), np.imag(tmp)])
-            self.showFid(y, curve[0], scale*np.array(curve[1]), extraColor='g')
+            self.showFid(y, curve[0], scale*np.array(curve[1]), extraColor=['g'])
         else:
             self.showFid(y)
         self.upd()
@@ -520,7 +520,7 @@ class Current1D(PlotFrame):
                 scale = np.max([scale,abs(yNew[-1][0]),abs(yNew[-1][-1])])
         for num in range(len(yNew)):
             yNew[num] = yNew[num] / scale * maxim
-        self.showFid(extraX=xNew, extraY=yNew, extraColor='g')
+        self.showFid(extraX=xNew, extraY=yNew, extraColor=['g'])
 
     def resizePreview(self, size, pos):  # set size only on local data
         self.data1D.resize(size, pos, -1)
@@ -657,9 +657,9 @@ class Current1D(PlotFrame):
             if isinstance(self, CurrentContour):
                 self.showFid()
             else:
-                self.showFid(extraX=[self.xax()], extraY=[y]*self.len(-2), extraColor='g')
+                self.showFid(extraX=[self.xax()], extraY=[y]*self.len(-2), extraColor=['g'])
         else:
-            self.showFid(extraX=[self.xax()], extraY=[y], extraColor='g')
+            self.showFid(extraX=[self.xax()], extraY=[y], extraColor=['g'])
         self.previewRemoveList(removeList, invert)
         self.upd()
 
@@ -1006,7 +1006,14 @@ class Current1D(PlotFrame):
             for num in range(len(extraX)):
                 self.line_xdata_extra.append(extraX[num] * axMult)
                 self.line_ydata_extra.append(extraY[num])
-                self.ax.plot(self.line_xdata_extra[-1], self.line_ydata_extra[-1], marker='', linestyle='-', c=extraColor[num], linewidth=self.viewSettings["linewidth"], picker=True)
+                if extraColor is None:
+                    self.ax.plot(self.line_xdata_extra[-1], self.line_ydata_extra[-1], marker='', linestyle='-', linewidth=self.viewSettings["linewidth"], picker=True)
+                else:
+                    if len(extraColor) < len(extraY):
+                        color = extraColor[0]
+                    else:
+                        color = extraColor[num]
+                    self.ax.plot(self.line_xdata_extra[-1], self.line_ydata_extra[-1], marker='', linestyle='-', c=color, linewidth=self.viewSettings["linewidth"], picker=True)
         tmpdata = self.getDataType(tmpdata)
         if(self.viewSettings["plotType"] == 2):
             self.line_xdata.append(self.line_xdata[-1])
@@ -1217,7 +1224,14 @@ class CurrentMulti(Current1D):
             for num in range(len(extraX)):
                 self.line_xdata_extra.append(extraX[num] * axMult)
                 self.line_ydata_extra.append(extraY[num])
-                self.ax.plot(self.line_xdata_extra[-1], self.line_ydata_extra[-1], marker=marker, linestyle=linestyle, linewidth=self.viewSettings["linewidth"], c=extraColor[num], picker=True)
+                if extraColor is None:
+                    self.ax.plot(self.line_xdata_extra[-1], self.line_ydata_extra[-1], marker=marker, linestyle=linestyle, linewidth=self.viewSettings["linewidth"], picker=True)
+                else:
+                    if len(extraColor) < len(extraY):
+                        color = extraColor[0]
+                    else:
+                        color = extraColor[num]
+                    self.ax.plot(self.line_xdata_extra[-1], self.line_ydata_extra[-1], marker=marker, linestyle=linestyle, linewidth=self.viewSettings["linewidth"], c=color, picker=True)
         tmpdata = self.getDataType(tmpdata)
         if(self.viewSettings["plotType"] == 2):
             self.line_xdata.append(self.line_xdata[-1])
@@ -1339,7 +1353,14 @@ class CurrentStacked(Current1D):
             for num in range(len(extraY)):
                 self.line_xdata_extra.append(tmpx)
                 self.line_ydata_extra.append(num * self.viewSettings["spacing"] + extraY[num])
-                self.ax.plot(self.line_xdata_extra[-1], self.line_ydata_extra[-1], marker=marker, linestyle=linestyle, linewidth=self.viewSettings["linewidth"], c=extraColor[0], picker=True)
+                if extraColor is None:
+                    self.ax.plot(self.line_xdata_extra[-1], self.line_ydata_extra[-1], marker=marker, linestyle=linestyle, linewidth=self.viewSettings["linewidth"], picker=True)
+                else:
+                    if len(extraColor) < len(extraY):
+                        color = extraColor[0]
+                    else:
+                        color = extraColor[num]
+                    self.ax.plot(self.line_xdata_extra[-1], self.line_ydata_extra[-1], marker=marker, linestyle=linestyle, linewidth=self.viewSettings["linewidth"], c=color, picker=True)
         tmpdata = self.getDataType(tmpdata)
         for num in range(len(tmpdata)):
             if (self.viewSettings["plotType"] == 2):
@@ -1447,7 +1468,14 @@ class CurrentArrayed(CurrentStacked):
             for num in range(len(extraY)):
                 self.line_xdata_extra.append((num * self.viewSettings["spacing"] + extraX[0][extraZlims]) * axMult)
                 self.line_ydata_extra.append(extraY[num][extraZlims][direc])
-                self.ax.plot(self.line_xdata_extra[-1], self.line_ydata_extra[-1], marker=marker, linestyle=linestyle, linewidth=self.viewSettings["linewidth"], c=extraColor[0], picker=True)
+                if extraColor is None:
+                    self.ax.plot(self.line_xdata_extra[-1], self.line_ydata_extra[-1], marker=marker, linestyle=linestyle, linewidth=self.viewSettings["linewidth"], picker=True)
+                else:
+                    if len(extraColor) < len(extraY):
+                        color = extraColor[0]
+                    else:
+                        color = extraColor[num]
+                    self.ax.plot(self.line_xdata_extra[-1], self.line_ydata_extra[-1], marker=marker, linestyle=linestyle, linewidth=self.viewSettings["linewidth"], c=color, picker=True)
         tmpdata = self.getDataType(tmpdata)
         ticksPos = []
         for num in range(len(tmpdata)):
@@ -1610,8 +1638,16 @@ class CurrentContour(CurrentStacked):
                 self.line_xdata_extra.append(extraX[num] * axMult)
                 self.line_ydata_extra.append(extraY[num] * axMult2)
                 self.line_zdata_extra.append(extraZ[num])
-                self.plotContour(self.line_xdata_extra[-1], self.line_ydata_extra[-1], self.line_zdata_extra[-1], color=[extraColor[num], extraColor[num]])
-                self.showProj(self.line_xdata_extra[-1], self.line_ydata_extra[-1], self.line_zdata_extra[-1], extraColor[num])
+                if extraColor is None:
+                    self.plotContour(self.line_xdata_extra[-1], self.line_ydata_extra[-1], self.line_zdata_extra[-1])
+                    self.showProj(self.line_xdata_extra[-1], self.line_ydata_extra[-1], self.line_zdata_extra[-1])
+                else:
+                    if len(extraColor) < len(extraY):
+                        color = extraColor[0]
+                    else:
+                        color = extraColor[num]
+                    self.plotContour(self.line_xdata_extra[-1], self.line_ydata_extra[-1], self.line_zdata_extra[-1], color=[color, color])
+                    self.showProj(self.line_xdata_extra[-1], self.line_ydata_extra[-1], self.line_zdata_extra[-1], color)
         self.line_xdata = [self.xax() * axMult]
         self.line_ydata = [self.xax(-2) * axMult2]
         self.line_zdata = [tmpdata]
