@@ -14,7 +14,10 @@
    version="1.2"
    id="svg34"
    sodipodi:docname="LPSVD.svg"
-   inkscape:version="0.92.1 r15371">
+   inkscape:version="0.92.3 (2405546, 2018-03-11)"
+   inkscape:export-filename="/home/wouter/Documents/ssNake/ssnake/src/Icons/LPSVD.png"
+   inkscape:export-xdpi="162.56"
+   inkscape:export-ydpi="162.56">
   <metadata
      id="metadata38">
     <rdf:RDF>
@@ -23,7 +26,7 @@
         <dc:format>image/svg+xml</dc:format>
         <dc:type
            rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
-        <dc:title></dc:title>
+        <dc:title />
       </cc:Work>
     </rdf:RDF>
   </metadata>
@@ -37,12 +40,12 @@
      inkscape:pageopacity="0"
      inkscape:pageshadow="2"
      inkscape:window-width="1920"
-     inkscape:window-height="1149"
+     inkscape:window-height="1135"
      id="namedview36"
      showgrid="false"
      units="mm"
      inkscape:zoom="9.5144324"
-     inkscape:cx="42.31064"
+     inkscape:cx="20.764426"
      inkscape:cy="29.018268"
      inkscape:window-x="0"
      inkscape:window-y="0"
@@ -104,6 +107,13 @@
       </symbol>
     </g>
   </defs>
+  <rect
+     style="opacity:1;fill:#ffffff;fill-opacity:1;fill-rule:nonzero;stroke:none;stroke-width:1;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+     id="rect4245"
+     width="28.34646"
+     height="28.34646"
+     x="-2.065439e-06"
+     y="-2.065439e-06" />
   <g
      id="g4524"
      transform="matrix(2.5103806,0,0,2.5103806,-338.30882,1719.4878)"
