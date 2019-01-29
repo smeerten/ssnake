@@ -17,13 +17,6 @@
 # You should have received a copy of the GNU General Public License
 # along with ssNake. If not, see <http://www.gnu.org/licenses/>.
 
-try:
-    from PyQt5 import QtGui, QtCore, QtWidgets
-    from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
-except ImportError:
-    from PyQt4 import QtGui, QtCore
-    from PyQt4 import QtGui as QtWidgets
-    from matplotlib.backends.backend_qt4agg import FigureCanvasQTAgg as FigureCanvas
 import matplotlib
 matplotlib.rc('svg', fonttype='none')
 from matplotlib.colors import colorConverter
@@ -32,6 +25,7 @@ from safeEval import safeEval
 import numpy as np
 import os
 import copy
+from ssNake import QtGui, QtCore, QtWidgets, FigureCanvas
 
 #####################################################################################
 

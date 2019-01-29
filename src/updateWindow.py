@@ -17,11 +17,6 @@
 # You should have received a copy of the GNU General Public License
 # along with ssNake. If not, see <http://www.gnu.org/licenses/>.
 
-try:
-    from PyQt5 import QtGui, QtCore, QtWidgets
-except ImportError:
-    from PyQt4 import QtGui, QtCore
-    from PyQt4 import QtGui as QtWidgets
 import os
 import sys
 import json
@@ -33,6 +28,7 @@ if sys.version_info >= (3, 0):
 else:
     from urllib import urlopen, urlretrieve
 import ssNake as sc
+from ssNake import QtGui, QtCore, QtWidgets
 
 class UpdateWindow(QtWidgets.QWidget):
 

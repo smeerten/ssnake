@@ -3145,7 +3145,7 @@ class PhaseWindow(wc.ToolWindows):
         rightZero.clicked.connect(lambda: self.stepPhase(1, 0))
         rightZero.setAutoRepeat(True)
         self.zeroOrderFrame.addWidget(rightZero, 2, 2)
-        self.zeroScale = QtWidgets.QSlider(QtCore.Qt.Horizontal)
+        self.zeroScale = wc.SsnakeSlider(QtCore.Qt.Horizontal)
         self.zeroScale.setRange(-self.RESOLUTION, self.RESOLUTION)
         self.zeroScale.valueChanged.connect(self.setZeroOrder)
         self.zeroOrderFrame.addWidget(self.zeroScale, 3, 0, 1, 3)
@@ -3167,7 +3167,7 @@ class PhaseWindow(wc.ToolWindows):
         rightFirst.clicked.connect(lambda: self.stepPhase(0, 1))
         rightFirst.setAutoRepeat(True)
         self.firstOrderFrame.addWidget(rightFirst, 6, 2)
-        self.firstScale = QtWidgets.QSlider(QtCore.Qt.Horizontal)
+        self.firstScale = wc.SsnakeSlider(QtCore.Qt.Horizontal)
         self.firstScale.setRange(-self.RESOLUTION, self.RESOLUTION)
         self.firstScale.valueChanged.connect(self.setFirstOrder)
         self.firstOrderFrame.addWidget(self.firstScale, 7, 0, 1, 3)
@@ -3333,7 +3333,7 @@ class ApodWindow(wc.ToolWindows):
         rightLor.clicked.connect(lambda: self.stepLB(0.5 * self.father.current.sw() / (self.father.current.len()), 'lor'))
         rightLor.setAutoRepeat(True)
         self.lorFrame.addWidget(rightLor, 1, 2)
-        self.lorScale = QtWidgets.QSlider(QtCore.Qt.Horizontal)
+        self.lorScale = wc.SsnakeSlider(QtCore.Qt.Horizontal)
         self.lorScale.setRange(0, self.RESOLUTION)
         self.lorScale.valueChanged.connect(lambda x: self.setLorGauss(x,'lor'))
         self.lorFrame.addWidget(self.lorScale, 2, 0, 1, 3)
@@ -3360,7 +3360,7 @@ class ApodWindow(wc.ToolWindows):
         rightGauss.clicked.connect(lambda: self.stepLB(0.5 * self.father.current.sw() / (self.father.current.len()), 'gauss'))
         rightGauss.setAutoRepeat(True)
         self.gaussFrame.addWidget(rightGauss, 4, 2)
-        self.gaussScale = QtWidgets.QSlider(QtCore.Qt.Horizontal)
+        self.gaussScale = wc.SsnakeSlider(QtCore.Qt.Horizontal)
         self.gaussScale.setRange(0, self.RESOLUTION)
         self.gaussScale.valueChanged.connect(lambda x: self.setLorGauss(x,'gauss'))
         self.gaussFrame.addWidget(self.gaussScale, 5, 0, 1, 3)
@@ -6521,20 +6521,14 @@ class aboutWindow(wc.ToolWindows):
         self.license.setHtml(licenseText)
         pythonVersion = sys.version
         pythonVersion = pythonVersion[:pythonVersion.index(' ')]
-        try:
-            from PyQt4.Qt import PYQT_VERSION_STR
-            from PyQt4.QtCore import QT_VERSION_STR
-        except Exception:
-            from PyQt5.Qt import PYQT_VERSION_STR
-            from PyQt5.QtCore import QT_VERSION_STR
         from scipy import __version__ as scipyVersion
         self.text.setText('<p><b>ssNake ' + VERSION + '</b></p>' +
                           '<p>Copyright (&copy;) 2016&ndash;2019 Bas van Meerten & Wouter Franssen<\p>' + '<p>Email: <a href="mailto:ssnake@science.ru.nl" >ssnake@science.ru.nl</a></p>' +
                           '<b>Library versions</b>:<br>Python ' + pythonVersion + '<br>numpy ' + np.__version__ +
                           '<br>SciPy ' + scipyVersion +
                           '<br>matplotlib ' + matplotlib.__version__ +
-                          '<br>PyQt ' + PYQT_VERSION_STR +
-                          '<br>Qt ' + QT_VERSION_STR)
+                          '<br>PyQt ' + QtCore.PYQT_VERSION_STR +
+                          '<br>Qt ' + QtCore.QT_VERSION_STR)
         self.thanks = QtWidgets.QTextEdit(self)
         self.thanks.setReadOnly(True)
         self.thanks.setHtml('<p><b>The ssNake team wishes to thank:</b></p>prof. Arno Kentgens<br>Koen Tijssen<br>Ole Brauckmann<br>Merijn Blaakmeer<br>Vincent Breukels<br>Ernst van Eck<br>Fleur van Zelst')

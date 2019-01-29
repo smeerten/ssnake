@@ -19,13 +19,6 @@
 # along with ssNake. If not, see <http://www.gnu.org/licenses/>.
 
 import numpy as np
-try:
-    from PyQt5 import QtGui, QtCore, QtWidgets
-    from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
-except ImportError:
-    from PyQt4 import QtGui, QtCore
-    from PyQt4 import QtGui as QtWidgets
-    from matplotlib.backends.backend_qt4agg import FigureCanvasQTAgg as FigureCanvas
 import matplotlib as mpl
 from matplotlib.figure import Figure
 import scipy.optimize
@@ -42,7 +35,7 @@ import functions as func
 import simFunctions as simFunc
 import specIO as io
 import spectrum as sc
-from ssNake import SideFrame, VERSION
+from ssNake import SideFrame, VERSION, QtGui, QtCore, QtWidgets, FigureCanvas
 import Czjzek as Czjzek
 
 stopDict = {}  # Global dictionary with stopping commands for fits
