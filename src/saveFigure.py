@@ -425,6 +425,7 @@ class SaveFigureWindow(QtWidgets.QWidget):
             self.legend.set_visible(False)
         self.fig.set_size_inches((self.widthBackup / 2.54, self.heightBackup / 2.54))
         self.grid.deleteLater()
+        self.canvas.draw()
         del self.canvas
         del self.fig
         self.father.closeSaveFigure(self.oldMainWindow)
