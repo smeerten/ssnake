@@ -264,18 +264,21 @@ class SliceSpinBox(QtWidgets.QSpinBox):
             inp = inp + self.maximum() + 1
         return str(inp)
 
+    def stepBy(self,steps):
+        if QtWidgets.qApp.keyboardModifiers() & QtCore.Qt.ControlModifier and QtWidgets.qApp.keyboardModifiers() & QtCore.Qt.ShiftModifier:
+            steps *= 1000
+        elif QtWidgets.qApp.keyboardModifiers() & QtCore.Qt.ControlModifier:
+            steps *= 10
+        elif QtWidgets.qApp.keyboardModifiers() & QtCore.Qt.ShiftModifier:
+            steps *= 100
+        self.setValue(self.value() + steps)
+
     def wheelEvent(self, event):
         if QT == 4:
             delta = event.delta()
         else:
             delta = event.angleDelta().y()
         step = 1
-        if QtWidgets.qApp.keyboardModifiers() & QtCore.Qt.ControlModifier and QtWidgets.qApp.keyboardModifiers() & QtCore.Qt.ShiftModifier:
-            step *= 1000
-        elif QtWidgets.qApp.keyboardModifiers() & QtCore.Qt.ControlModifier:
-            step *= 10
-        elif QtWidgets.qApp.keyboardModifiers() & QtCore.Qt.ShiftModifier:
-            step *= 100
         if delta > 0:
             self.stepBy(step)
         else:
