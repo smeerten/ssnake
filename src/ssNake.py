@@ -3241,6 +3241,7 @@ class PhaseWindow(wc.ToolWindows):
         self.inputFirstOrder()
 
     def stepPhase(self, phase0, phase1):
+        step = 1
         multiplier = 1
         if QtWidgets.qApp.keyboardModifiers() & QtCore.Qt.ControlModifier and QtWidgets.qApp.keyboardModifiers() & QtCore.Qt.ShiftModifier:
             multiplier *= 1000
@@ -3248,8 +3249,13 @@ class PhaseWindow(wc.ToolWindows):
             multiplier *= 10
         elif QtWidgets.qApp.keyboardModifiers() & QtCore.Qt.ShiftModifier:
             multiplier *= 100
-        phase0 = multiplier * phase0
-        phase1 = multiplier * phase1
+        if QtWidgets.qApp.keyboardModifiers() & QtCore.Qt.AltModifier:
+            step = step / multiplier
+        else:
+            step = step * multiplier
+
+        phase0 = step * phase0
+        phase1 = step * phase1
         inp = safeEval(self.zeroEntry.text(), length=self.father.current.len(), type='FI')
         if inp is None:
             raise SsnakeException('Phasing: zero order value input is not valid!')
