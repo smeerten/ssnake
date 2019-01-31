@@ -277,13 +277,60 @@ class SliceSpinBox(QtWidgets.QSpinBox):
         if QT == 4:
             delta = event.delta()
         else:
-            delta = event.angleDelta().y()
+            delta = event.angleDelta().y() + event.angleDelta().x()
         step = 1
         if delta > 0:
             self.stepBy(step)
         else:
-            self.setValue(-step)
+            self.stepBy(-step)
+        event.accept()
 
+class SsnakeDoubleSpinBox(QtWidgets.QDoubleSpinBox):
+    def stepBy(self,steps):
+        if QtWidgets.qApp.keyboardModifiers() & QtCore.Qt.ControlModifier and QtWidgets.qApp.keyboardModifiers() & QtCore.Qt.ShiftModifier:
+            steps *= 1000
+        elif QtWidgets.qApp.keyboardModifiers() & QtCore.Qt.ControlModifier:
+            steps *= 10
+        elif QtWidgets.qApp.keyboardModifiers() & QtCore.Qt.ShiftModifier:
+            steps *= 100
+        if QtWidgets.qApp.keyboardModifiers() & QtCore.Qt.AltModifier:
+            self.setValue(self.value() + self.singleStep() / steps)
+        else:
+            self.setValue(self.value() + self.singleStep() * steps)
+
+    def wheelEvent(self, event):
+        if QT == 4:
+            delta = event.delta()
+        else:
+            delta = event.angleDelta().y() + event.angleDelta().x()
+        step = 1
+        if delta > 0:
+            self.stepBy(step)
+        else:
+            self.stepBy(-step)
+        event.accept()
+
+class SsnakeSpinBox(QtWidgets.QSpinBox):
+    def stepBy(self,steps):
+        if QtWidgets.qApp.keyboardModifiers() & QtCore.Qt.ControlModifier and QtWidgets.qApp.keyboardModifiers() & QtCore.Qt.ShiftModifier:
+            steps *= 1000
+        elif QtWidgets.qApp.keyboardModifiers() & QtCore.Qt.ControlModifier:
+            steps *= 10
+        elif QtWidgets.qApp.keyboardModifiers() & QtCore.Qt.ShiftModifier:
+            steps *= 100
+        self.setValue(self.value() + self.singleStep() * steps)
+
+    def wheelEvent(self, event):
+        if QT == 4:
+            delta = event.delta()
+        else:
+            delta = event.angleDelta().y() + event.angleDelta().x()
+        step = 1
+        if delta > 0:
+            self.stepBy(step)
+        else:
+            self.stepBy(-step)
+        event.accept()
 
 class QLabel(QtWidgets.QLabel):
 

@@ -2151,7 +2151,7 @@ class SideFrame(QtWidgets.QScrollArea):
                 self.contourTypeFrame = QtWidgets.QGridLayout()
                 self.contourNumberLabel = wc.QLeftLabel("Number:", self)
                 self.contourTypeFrame.addWidget(self.contourNumberLabel, 0, 0)
-                self.numLEntry = QtWidgets.QSpinBox()
+                self.numLEntry = wc.SsnakeSpinBox()
                 self.numLEntry.setMaximum(100000)
                 self.numLEntry.setMinimum(1)
                 self.numLEntry.setValue(current.viewSettings["numLevels"])
@@ -2212,7 +2212,7 @@ class SideFrame(QtWidgets.QScrollArea):
                 self.projDropTop.setCurrentIndex(current.viewSettings["projTop"])
                 self.projDropTop.activated.connect(lambda val, self=self: self.changeProj(val, 1))
                 self.contourProjFrame.addWidget(self.projDropTop, 0, 1)
-                self.projTraceTop = QtWidgets.QSpinBox()
+                self.projTraceTop = wc.SsnakeSpinBox()
                 self.projTraceTop.setMaximum(self.shape[current.axes[-2]] - 1)
                 self.projTraceTop.setMinimum(0)
                 self.projTraceTop.setValue(current.viewSettings["projPos"][0])
@@ -2227,7 +2227,7 @@ class SideFrame(QtWidgets.QScrollArea):
                 self.projDropRight.setCurrentIndex(current.viewSettings["projRight"])
                 self.projDropRight.activated.connect(lambda val, self=self: self.changeProj(val, 2))
                 self.contourProjFrame.addWidget(self.projDropRight, 2, 1)
-                self.projTraceRight = QtWidgets.QSpinBox()
+                self.projTraceRight = wc.SsnakeSpinBox()
                 self.projTraceRight.setMaximum(self.shape[current.axes[-1]] - 1)
                 self.projTraceRight.setMinimum(0)
                 self.projTraceRight.setValue(current.viewSettings["projPos"][1])
@@ -2248,7 +2248,7 @@ class SideFrame(QtWidgets.QScrollArea):
                 self.projTopRangeMaxLabel = wc.QLeftLabel("Top max:", self)
                 self.projTopRangeMaxLabel.hide()
                 self.contourProjFrame.addWidget(self.projTopRangeMaxLabel, 6, 0)
-                self.projTopRangeMax = QtWidgets.QSpinBox()
+                self.projTopRangeMax = wc.SsnakeSpinBox()
                 self.projTopRangeMax.setMaximum(self.shape[current.axes[-2]] - 1)
                 self.projTopRangeMax.setMinimum(0)
                 if current.viewSettings["projLimits"][0] is None:
@@ -2261,7 +2261,7 @@ class SideFrame(QtWidgets.QScrollArea):
                 self.projTopRangeMinLabel = wc.QLeftLabel("Top min:", self)
                 self.projTopRangeMinLabel.hide()
                 self.contourProjFrame.addWidget(self.projTopRangeMinLabel, 7, 0)
-                self.projTopRangeMin = QtWidgets.QSpinBox()
+                self.projTopRangeMin = wc.SsnakeSpinBox()
                 self.projTopRangeMin.setMaximum(self.shape[current.axes[-2]] - 1)
                 self.projTopRangeMin.setMinimum(0)
                 if current.viewSettings["projLimits"][1] is None:
@@ -2274,7 +2274,7 @@ class SideFrame(QtWidgets.QScrollArea):
                 self.projRightRangeMaxLabel = wc.QLeftLabel("Right max:", self)
                 self.projRightRangeMaxLabel.hide()
                 self.contourProjFrame.addWidget(self.projRightRangeMaxLabel, 8, 0)
-                self.projRightRangeMax = QtWidgets.QSpinBox()
+                self.projRightRangeMax = wc.SsnakeSpinBox()
                 self.projRightRangeMax.setMaximum(self.shape[current.axes[-1]] - 1)
                 self.projRightRangeMax.setMinimum(0)
                 if current.viewSettings["projLimits"][2] is None:
@@ -2287,7 +2287,7 @@ class SideFrame(QtWidgets.QScrollArea):
                 self.projRightRangeMinLabel = wc.QLeftLabel("Right min:", self)
                 self.contourProjFrame.addWidget(self.projRightRangeMinLabel, 9, 0)
                 self.projRightRangeMinLabel.hide()
-                self.projRightRangeMin = QtWidgets.QSpinBox()
+                self.projRightRangeMin = wc.SsnakeSpinBox()
                 self.projRightRangeMin.setMaximum(self.shape[current.axes[-1]] - 1)
                 self.projRightRangeMin.setMinimum(0)
                 if current.viewSettings["projLimits"][3] is None:
@@ -2347,7 +2347,7 @@ class SideFrame(QtWidgets.QScrollArea):
                 frame.addWidget(self.offsetLabel, 3, 0)
                 self.shiftLabel = wc.QLeftLabel("Shift:", self)
                 frame.addWidget(self.shiftLabel, 4, 0)
-                scaleEntry = QtWidgets.QDoubleSpinBox()
+                scaleEntry = wc.SsnakeDoubleSpinBox()
                 scaleEntry.setDecimals(4)
                 scaleEntry.setMaximum(1e3)
                 scaleEntry.setMinimum(-1e3)
@@ -2355,7 +2355,7 @@ class SideFrame(QtWidgets.QScrollArea):
                 scaleEntry.setValue(self.father.current.viewSettings["extraScale"][i])
                 scaleEntry.valueChanged.connect(lambda arg, num=i: self.setScale(arg, num))
                 frame.addWidget(scaleEntry, 2, 1)
-                offsetEntry = QtWidgets.QDoubleSpinBox()
+                offsetEntry = wc.SsnakeDoubleSpinBox()
                 offsetEntry.setDecimals(4)
                 offsetEntry.setMaximum(1e3)
                 offsetEntry.setMinimum(-1e3)
@@ -2363,7 +2363,7 @@ class SideFrame(QtWidgets.QScrollArea):
                 offsetEntry.setValue(self.father.current.viewSettings["extraOffset"][i] / (10**self.OOM))
                 offsetEntry.valueChanged.connect(lambda arg, num=i: self.setOffset(arg, num))
                 frame.addWidget(offsetEntry, 3, 1)
-                shiftEntry = QtWidgets.QDoubleSpinBox()
+                shiftEntry = wc.SsnakeDoubleSpinBox()
                 shiftEntry.setDecimals(4)
                 shiftEntry.setMaximum(1e3)
                 shiftEntry.setMinimum(-1e3)
@@ -2960,7 +2960,7 @@ class AsciiLoadWindow(QtWidgets.QDialog):
         self.setWindowTitle("Load ASCII")
         grid = QtWidgets.QGridLayout(self)
         grid.addWidget(QtWidgets.QLabel("# Dimensions:"), 1, 0)
-        self.numDims = QtWidgets.QSpinBox()
+        self.numDims = wc.SsnakeSpinBox()
         self.numDims.setMinimum(1)
         self.numDims.setValue(1)
         self.numDims.setMaximum(2)
@@ -3532,12 +3532,17 @@ class ApodWindow(wc.ToolWindows):
 
     def stepLB(self, incr, type):
         step = incr * self.lbstep
+        multiplier = 1
         if QtWidgets.qApp.keyboardModifiers() & QtCore.Qt.ControlModifier and QtWidgets.qApp.keyboardModifiers() & QtCore.Qt.ShiftModifier:
-            step *= 1000
+            multiplier = 1000
         elif QtWidgets.qApp.keyboardModifiers() & QtCore.Qt.ControlModifier:
-            step *= 10
+            multiplier = 10
         elif QtWidgets.qApp.keyboardModifiers() & QtCore.Qt.ShiftModifier:
-            step *= 100
+            multiplier = 100
+        if QtWidgets.qApp.keyboardModifiers() & QtCore.Qt.AltModifier:
+            step = step / multiplier
+        else:
+            step = step * multiplier
         if not self.ticks[type].isChecked():
             self.ticks[type].setChecked(1)
         lor, gauss, cos2, cos2Ph, hamming, shift, shifting, shiftingAxis = self.checkInput()
@@ -4003,7 +4008,7 @@ class BaselineWindow(wc.ToolWindows):
         super(BaselineWindow, self).__init__(parent)
         self.grid.addWidget(wc.QLabel("Polynomial Degree:"), 0, 0, 1, 2)
         self.removeList = []
-        self.degreeEntry = QtWidgets.QSpinBox()
+        self.degreeEntry = wc.SsnakeSpinBox()
         self.degreeEntry.setMaximum(100)
         self.degreeEntry.setMinimum(1)
         self.degreeEntry.setValue(3)
@@ -6064,7 +6069,7 @@ class MonitorWindow(QtWidgets.QWidget):
         grid.addWidget(self.listA, 1, 0)
         grid.addWidget(self.listB, 1, 1)
         grid.addWidget(wc.QLabel("Delay [s]:"), 2, 0)
-        self.delTime = QtWidgets.QDoubleSpinBox()
+        self.delTime = wc.SsnakeDoubleSpinBox()
         self.delTime.setMaximum(10000)
         self.delTime.setMinimum(0)
         self.delTime.setSingleStep(0.1)
@@ -6128,7 +6133,7 @@ class PlotSettingsWindow(wc.ToolWindows):
         grid2.setColumnStretch(10, 1)
         grid2.setRowStretch(10, 1)
         grid1.addWidget(QtWidgets.QLabel("Linewidth:"), 1, 0)
-        self.lwSpinBox = QtWidgets.QDoubleSpinBox()
+        self.lwSpinBox = wc.SsnakeDoubleSpinBox()
         self.lwSpinBox.setSingleStep(0.1)
         self.lwSpinBox.setValue(self.father.current.viewSettings["linewidth"])
         self.lwSpinBox.valueChanged.connect(self.preview)
@@ -6146,12 +6151,12 @@ class PlotSettingsWindow(wc.ToolWindows):
         grid1.addWidget(self.ygridCheck, 4, 0, 1, 2)
         self.ygridCheck.stateChanged.connect(self.preview)
         grid1.addWidget(QtWidgets.QLabel("Min X Ticks:"), 5, 0)
-        self.xTicksSpinBox = QtWidgets.QSpinBox()
+        self.xTicksSpinBox = wc.SsnakeSpinBox()
         self.xTicksSpinBox.setValue(self.father.current.viewSettings["minXTicks"])
         self.xTicksSpinBox.valueChanged.connect(self.preview)
         grid1.addWidget(self.xTicksSpinBox, 5, 1)
         grid1.addWidget(QtWidgets.QLabel("Min Y Ticks:"), 6, 0)
-        self.yTicksSpinBox = QtWidgets.QSpinBox()
+        self.yTicksSpinBox = wc.SsnakeSpinBox()
         self.yTicksSpinBox.setValue(self.father.current.viewSettings["minYTicks"])
         self.yTicksSpinBox.valueChanged.connect(self.preview)
         grid1.addWidget(self.yTicksSpinBox, 6, 1)
@@ -6300,13 +6305,13 @@ class PreferenceWindow(QtWidgets.QWidget):
         grid3.setRowStretch(10, 1)
         # grid1.addWidget(wc.QLabel("Window size:"), 0, 0, 1, 2)
         grid1.addWidget(wc.QLabel("Width:"), 1, 0)
-        self.widthSpinBox = QtWidgets.QSpinBox()
+        self.widthSpinBox = wc.SsnakeSpinBox()
         self.widthSpinBox.setMaximum(100000)
         self.widthSpinBox.setMinimum(1)
         self.widthSpinBox.setValue(self.father.defaultWidth)
         grid1.addWidget(self.widthSpinBox, 1, 1)
         grid1.addWidget(wc.QLabel("Height:"), 2, 0)
-        self.heightSpinBox = QtWidgets.QSpinBox()
+        self.heightSpinBox = wc.SsnakeSpinBox()
         self.heightSpinBox.setMaximum(100000)
         self.heightSpinBox.setMinimum(1)
         self.heightSpinBox.setValue(self.father.defaultHeight)
@@ -6326,7 +6331,7 @@ class PreferenceWindow(QtWidgets.QWidget):
         self.currentToolbar = self.father.defaultToolbarActionList
         # grid2 definitions
         grid2.addWidget(QtWidgets.QLabel("Linewidth:"), 1, 0)
-        self.lwSpinBox = QtWidgets.QDoubleSpinBox()
+        self.lwSpinBox = wc.SsnakeDoubleSpinBox()
         self.lwSpinBox.setSingleStep(0.1)
         self.lwSpinBox.setValue(self.father.defaultLinewidth)
         grid2.addWidget(self.lwSpinBox, 1, 1)
@@ -6341,11 +6346,11 @@ class PreferenceWindow(QtWidgets.QWidget):
         self.ygridCheck.setChecked(self.father.defaultGrids[1])
         grid2.addWidget(self.ygridCheck, 4, 0, 1, 2)
         grid2.addWidget(QtWidgets.QLabel("Min X Ticks:"), 5, 0)
-        self.xTicksSpinBox = QtWidgets.QSpinBox()
+        self.xTicksSpinBox = wc.SsnakeSpinBox()
         self.xTicksSpinBox.setValue(self.father.defaultMinXTicks)
         grid2.addWidget(self.xTicksSpinBox, 5, 1)
         grid2.addWidget(QtWidgets.QLabel("Min Y Ticks:"), 6, 0)
-        self.yTicksSpinBox = QtWidgets.QSpinBox()
+        self.yTicksSpinBox = wc.SsnakeSpinBox()
         self.yTicksSpinBox.setValue(self.father.defaultMinYTicks)
         grid2.addWidget(self.yTicksSpinBox, 6, 1)
         grid2.addWidget(QtWidgets.QLabel("Units:"), 7, 0)
@@ -6367,7 +6372,7 @@ class PreferenceWindow(QtWidgets.QWidget):
         self.zeroScrollCheck.setChecked(self.father.defaultZeroScroll)
         grid2.addWidget(self.zeroScrollCheck, 12, 0, 1, 2)
         grid2.addWidget(QtWidgets.QLabel("Zoom step:"), 13, 0)
-        self.ZoomStepSpinBox = QtWidgets.QDoubleSpinBox()
+        self.ZoomStepSpinBox = wc.SsnakeDoubleSpinBox()
         self.ZoomStepSpinBox.setSingleStep(0.1)
         self.ZoomStepSpinBox.setValue(self.father.defaultZoomStep)
         grid2.addWidget(self.ZoomStepSpinBox, 14, 1)
@@ -6393,12 +6398,12 @@ class PreferenceWindow(QtWidgets.QWidget):
         negColorButton.clicked.connect(self.setNegColor)
         grid3.addWidget(negColorButton, 3, 0)
         grid3.addWidget(QtWidgets.QLabel("Width ratio:"), 4, 0)
-        self.WRSpinBox = QtWidgets.QDoubleSpinBox()
+        self.WRSpinBox = wc.SsnakeDoubleSpinBox()
         self.WRSpinBox.setSingleStep(0.1)
         self.WRSpinBox.setValue(self.father.defaultWidthRatio)
         grid3.addWidget(self.WRSpinBox, 4, 1)
         grid3.addWidget(QtWidgets.QLabel("Height ratio:"), 5, 0)
-        self.HRSpinBox = QtWidgets.QDoubleSpinBox()
+        self.HRSpinBox = wc.SsnakeDoubleSpinBox()
         self.HRSpinBox.setSingleStep(0.1)
         self.HRSpinBox.setValue(self.father.defaultHeightRatio)
         grid3.addWidget(self.HRSpinBox, 5, 1)
