@@ -166,7 +166,7 @@ class MainProgram(QtWidgets.QMainWindow):
         self.tabs.hide()
         self.main_widget.setFocus()
         self.setCentralWidget(self.main_widget)
-        self.eventFilter = wc.MyEventFilter(self)
+        self.eventFilter = wc.SsnakeEventFilter(self)
         self.root.installEventFilter(self.eventFilter)
         self.loadDefaults()
         self.initToolbar()

@@ -142,10 +142,10 @@ class SplitterEventFilter(QtCore.QObject):
             return True
         return False
 
-class MyEventFilter(QtCore.QObject):
+class SsnakeEventFilter(QtCore.QObject):
 
     def __init__(self, root, *args):
-        super(MyEventFilter, self).__init__(*args)
+        super(SsnakeEventFilter, self).__init__(*args)
         self.root = root
 
     def eventFilter(self, receiver, event):
