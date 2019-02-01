@@ -3137,14 +3137,14 @@ class PhaseWindow(wc.ToolWindows):
         self.zeroOrderFrame.addWidget(autoZero, 0, 1)
         self.zeroEntry = wc.QLineEdit("0.000", self.inputZeroOrder)
         self.zeroOrderFrame.addWidget(self.zeroEntry, 2, 1)
-        leftZero = QtWidgets.QPushButton("<")
-        leftZero.clicked.connect(lambda: self.stepPhase(-1, 0))
-        leftZero.setAutoRepeat(True)
-        self.zeroOrderFrame.addWidget(leftZero, 2, 0)
-        rightZero = QtWidgets.QPushButton(">")
-        rightZero.clicked.connect(lambda: self.stepPhase(1, 0))
-        rightZero.setAutoRepeat(True)
-        self.zeroOrderFrame.addWidget(rightZero, 2, 2)
+        self.leftZero = QtWidgets.QPushButton("<")
+        self.leftZero.clicked.connect(lambda: self.stepPhase(-1, 0))
+        self.leftZero.setAutoRepeat(True)
+        self.zeroOrderFrame.addWidget(self.leftZero, 2, 0)
+        self.rightZero = QtWidgets.QPushButton(">")
+        self.rightZero.clicked.connect(lambda: self.stepPhase(1, 0))
+        self.rightZero.setAutoRepeat(True)
+        self.zeroOrderFrame.addWidget(self.rightZero, 2, 2)
         self.zeroScale = wc.SsnakeSlider(QtCore.Qt.Horizontal)
         self.zeroScale.setRange(-self.RESOLUTION, self.RESOLUTION)
         self.zeroScale.valueChanged.connect(self.setZeroOrder)
@@ -3159,14 +3159,14 @@ class PhaseWindow(wc.ToolWindows):
         self.firstOrderFrame.addWidget(autoFirst, 5, 1)
         self.firstEntry = wc.QLineEdit("0.000", self.inputFirstOrder)
         self.firstOrderFrame.addWidget(self.firstEntry, 6, 1)
-        leftFirst = QtWidgets.QPushButton("<")
-        leftFirst.clicked.connect(lambda: self.stepPhase(0, -1))
-        leftFirst.setAutoRepeat(True)
-        self.firstOrderFrame.addWidget(leftFirst, 6, 0)
-        rightFirst = QtWidgets.QPushButton(">")
-        rightFirst.clicked.connect(lambda: self.stepPhase(0, 1))
-        rightFirst.setAutoRepeat(True)
-        self.firstOrderFrame.addWidget(rightFirst, 6, 2)
+        self.leftFirst = QtWidgets.QPushButton("<")
+        self.leftFirst.clicked.connect(lambda: self.stepPhase(0, -1))
+        self.leftFirst.setAutoRepeat(True)
+        self.firstOrderFrame.addWidget(self.leftFirst, 6, 0)
+        self.rightFirst = QtWidgets.QPushButton(">")
+        self.rightFirst.clicked.connect(lambda: self.stepPhase(0, 1))
+        self.rightFirst.setAutoRepeat(True)
+        self.firstOrderFrame.addWidget(self.rightFirst, 6, 2)
         self.firstScale = wc.SsnakeSlider(QtCore.Qt.Horizontal)
         self.firstScale.setRange(-self.RESOLUTION, self.RESOLUTION)
         self.firstScale.valueChanged.connect(self.setFirstOrder)
@@ -3180,6 +3180,32 @@ class PhaseWindow(wc.ToolWindows):
             self.firstOrderFrame.addWidget(self.refEntry, 10, 1)
         self.firstOrderGroup.setLayout(self.firstOrderFrame)
         self.grid.addWidget(self.firstOrderGroup, 1, 0, 1, 3)
+
+    def setModifierTexts(self,event):
+
+        sign = u"\u00D7"
+        if event.modifiers() & QtCore.Qt.AltModifier:
+            sign = '/'
+        left = [self.leftZero, self.leftFirst]
+        right = [self.rightZero, self.rightFirst]
+        if event.modifiers() & QtCore.Qt.ControlModifier and event.modifiers() & QtCore.Qt.ShiftModifier:
+            text = ' ' + sign + '1000'
+        elif event.modifiers() & QtCore.Qt.ControlModifier:
+            text = ' ' + sign + '10'
+        elif event.modifiers() & QtCore.Qt.ShiftModifier:
+            text = ' ' + sign + '100'
+        else:
+            text = ''
+        for widget in left:
+            widget.setText('<' + text)
+        for widget in right:
+            widget.setText('>' + text)
+
+    def keyPressEvent(self, event):
+        self.setModifierTexts(event)
+
+    def keyReleaseEvent(self, event):
+        self.setModifierTexts(event)
 
     def setZeroOrder(self, value, *args):
         if self.available:
