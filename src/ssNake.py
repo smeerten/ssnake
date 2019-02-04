@@ -3182,7 +3182,6 @@ class PhaseWindow(wc.ToolWindows):
         self.grid.addWidget(self.firstOrderGroup, 1, 0, 1, 3)
 
     def setModifierTexts(self,event):
-
         sign = u"\u00D7"
         if event.modifiers() & QtCore.Qt.AltModifier:
             sign = '/'
@@ -3357,14 +3356,14 @@ class ApodWindow(wc.ToolWindows):
         lorEntry.setEnabled(False)
         self.lorFrame.addWidget(lorEntry, 1, 1)
         self.entries['lor'] = [lorEntry]
-        leftLor = QtWidgets.QPushButton("<")
-        leftLor.clicked.connect(lambda: self.stepLB(-0.5 * self.father.current.sw() / (self.father.current.len()), 'lor'))
-        leftLor.setAutoRepeat(True)
-        self.lorFrame.addWidget(leftLor, 1, 0)
-        rightLor = QtWidgets.QPushButton(">")
-        rightLor.clicked.connect(lambda: self.stepLB(0.5 * self.father.current.sw() / (self.father.current.len()), 'lor'))
-        rightLor.setAutoRepeat(True)
-        self.lorFrame.addWidget(rightLor, 1, 2)
+        self.leftLor = QtWidgets.QPushButton("<")
+        self.leftLor.clicked.connect(lambda: self.stepLB(-0.5 * self.father.current.sw() / (self.father.current.len()), 'lor'))
+        self.leftLor.setAutoRepeat(True)
+        self.lorFrame.addWidget(self.leftLor, 1, 0)
+        self.rightLor = QtWidgets.QPushButton(">")
+        self.rightLor.clicked.connect(lambda: self.stepLB(0.5 * self.father.current.sw() / (self.father.current.len()), 'lor'))
+        self.rightLor.setAutoRepeat(True)
+        self.lorFrame.addWidget(self.rightLor, 1, 2)
         self.lorScale = wc.SsnakeSlider(QtCore.Qt.Horizontal)
         self.lorScale.setRange(0, self.RESOLUTION)
         self.lorScale.valueChanged.connect(lambda x: self.setLorGauss(x,'lor'))
@@ -3384,14 +3383,14 @@ class ApodWindow(wc.ToolWindows):
         gaussEntry.setMinimumWidth(150)
         self.gaussFrame.addWidget(gaussEntry, 4, 1)
         self.entries['gauss'] = [gaussEntry]
-        leftGauss = QtWidgets.QPushButton("<")
-        leftGauss.clicked.connect(lambda: self.stepLB(-0.5 * self.father.current.sw() / (self.father.current.len()), 'gauss'))
-        leftGauss.setAutoRepeat(True)
-        self.gaussFrame.addWidget(leftGauss, 4, 0)
-        rightGauss = QtWidgets.QPushButton(">")
-        rightGauss.clicked.connect(lambda: self.stepLB(0.5 * self.father.current.sw() / (self.father.current.len()), 'gauss'))
-        rightGauss.setAutoRepeat(True)
-        self.gaussFrame.addWidget(rightGauss, 4, 2)
+        self.leftGauss = QtWidgets.QPushButton("<")
+        self.leftGauss.clicked.connect(lambda: self.stepLB(-0.5 * self.father.current.sw() / (self.father.current.len()), 'gauss'))
+        self.leftGauss.setAutoRepeat(True)
+        self.gaussFrame.addWidget(self.leftGauss, 4, 0)
+        self.rightGauss = QtWidgets.QPushButton(">")
+        self.rightGauss.clicked.connect(lambda: self.stepLB(0.5 * self.father.current.sw() / (self.father.current.len()), 'gauss'))
+        self.rightGauss.setAutoRepeat(True)
+        self.gaussFrame.addWidget(self.rightGauss, 4, 2)
         self.gaussScale = wc.SsnakeSlider(QtCore.Qt.Horizontal)
         self.gaussScale.setRange(0, self.RESOLUTION)
         self.gaussScale.valueChanged.connect(lambda x: self.setLorGauss(x,'gauss'))
@@ -3515,6 +3514,31 @@ class ApodWindow(wc.ToolWindows):
             self.entries['shifting'] = [self.shiftingDropdown,shiftingTypeLabel,self.shiftingEntry,shiftingValueLabel,self.shiftingAxis,shiftingAxisLabel]
             self.shiftingGroup.setLayout(self.shiftingFrame)
             self.grid.addWidget(self.shiftingGroup, 5, 0, 1, 3)
+
+    def setModifierTexts(self,event):
+        sign = u"\u00D7"
+        if event.modifiers() & QtCore.Qt.AltModifier:
+            sign = '/'
+        left = [self.leftLor, self.leftGauss]
+        right = [self.rightLor, self.rightGauss]
+        if event.modifiers() & QtCore.Qt.ControlModifier and event.modifiers() & QtCore.Qt.ShiftModifier:
+            text = ' ' + sign + '1000'
+        elif event.modifiers() & QtCore.Qt.ControlModifier:
+            text = ' ' + sign + '10'
+        elif event.modifiers() & QtCore.Qt.ShiftModifier:
+            text = ' ' + sign + '100'
+        else:
+            text = ''
+        for widget in left:
+            widget.setText('<' + text)
+        for widget in right:
+            widget.setText('>' + text)
+
+    def keyPressEvent(self, event):
+        self.setModifierTexts(event)
+
+    def keyReleaseEvent(self, event):
+        self.setModifierTexts(event)
 
     def dropdownChanged(self,update = True):
         index = self.shiftingDropdown.currentIndex()
