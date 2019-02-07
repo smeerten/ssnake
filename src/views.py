@@ -1276,6 +1276,8 @@ class CurrentStacked(Current1D):
         if self.data.ndim() < 2:
             self.root.rescue()
             return False
+        if self.data.ndim() <= self.axes[-1] or self.data.ndim() <= self.axes[-2] or self.axes[-1]==self.axes[-2]:
+            self.axes = np.array([len(self.data.shape()) - 2, len(self.data.shape()) - 1])
         if len(self.locList) != self.data.ndim():
             self.resetLocList()
         stack = [reim.floatSlice(self.viewSettings["stackBegin"], self.viewSettings["stackEnd"], self.viewSettings["stackStep"]), slice(None)]
