@@ -3616,11 +3616,13 @@ class ApodWindow(wc.ToolWindows):
             if lor is None:
                 self.father.current.showFid()
                 raise SsnakeException('Apodize: Lorentzian value is not valid!')
+            self.lorScale.setValue(round(lor * self.RESOLUTION / self.maximum))
         if self.ticks['gauss'].isChecked():
             gauss = safeEval(self.entries['gauss'][0].text(), length=self.father.current.len(), type='FI')
             if gauss is None:
                 self.father.current.showFid()
                 raise SsnakeException('Apodize: Gaussian value is not valid!')
+            self.gaussScale.setValue(round(gauss * self.RESOLUTION / self.maximum))
         if self.ticks['cos2'].isChecked():
             cos2 = safeEval(self.entries['cos2'][0].text(), length=self.father.current.len(), type='FI')
             if cos2 is None:
