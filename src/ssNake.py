@@ -5157,23 +5157,33 @@ class IntegralsWindow(wc.ToolWindows):
 
     def __init__(self, parent):
         super(IntegralsWindow, self).__init__(parent)
-        self.grid.addWidget(wc.QLabel("Start point:"), 0, 0)
-        self.grid.addWidget(wc.QLabel("End point:"), 0, 1)
-        self.grid.addWidget(wc.QLabel("Integral:"), 0, 2)
+        self.pickDim = 1 
+        if isinstance(self.father.current, views.CurrentContour):
+            self.pickDim = 2 
+        self.grid.addWidget(wc.QLabel("Start point X:"), 0, 0)
+        self.grid.addWidget(wc.QLabel("End point X:"), 0, 1)
+        if self.pickDim == 2:
+            self.grid.addWidget(wc.QLabel("Start point Y:"), 0, 2)
+            self.grid.addWidget(wc.QLabel("End point Y:"), 0, 3)
+        self.grid.addWidget(wc.QLabel("Integral:"), 0, 4)
         self.scaling = 1 
         self.num = 0
         self.pickType = 0
         self.minEntries = []
         self.maxEntries = []
+        self.minEntriesY = []
+        self.maxEntriesY = []
         self.intEntries = []
         self.intValues = []
         self.xValues = []
         self.yValues = []
         self.datMax = 0
         self.father.current.peakPickFunc = lambda pos, self=self: self.picked(pos)
-        self.father.current.peakPick = True
+        self.father.current.peakPick = self.pickDim
 
     def picked(self, pos):
+        if self.pickDim == 2:
+            posY = str(pos[3])
         pos = str(pos[0])
         if self.pickType == 0:
             self.minEntries.append(wc.QLineEdit(pos, self.applyFunc))
@@ -5185,20 +5195,28 @@ class IntegralsWindow(wc.ToolWindows):
             self.intEntries[-1].setMinimumWidth(120)
             self.grid.addWidget(self.minEntries[-1],self.num + 1, 0)
             self.grid.addWidget(self.maxEntries[-1],self.num + 1, 1)
-            self.grid.addWidget(self.intEntries[-1],self.num + 1, 2)
+            self.grid.addWidget(self.intEntries[-1],self.num + 1, 4)
+            if self.pickDim == 2:
+                self.minEntriesY.append(wc.QLineEdit(posY, self.applyFunc))
+                self.maxEntriesY.append(wc.QLineEdit('', self.applyFunc))
+                self.grid.addWidget(self.minEntriesY[-1],self.num + 1, 2)
+                self.grid.addWidget(self.maxEntriesY[-1],self.num + 1, 3)
             self.pickType = 1
         elif self.pickType == 1:
             self.maxEntries[-1].setText(pos)
+            if self.pickDim == 2:
+                self.maxEntriesY[-1].setText(posY)
             self.num += 1
             self.applyFunc()
             self.pickType = 0
         self.father.current.peakPickFunc = lambda pos, self=self: self.picked(pos)
-        self.father.current.peakPick = True
+        self.father.current.peakPick = self.pickDim
 
     def preview(self):
-        self.father.current.integralsPreview(self.xValues, self.yValues, self.datMax)
-        self.father.current.peakPick = True
-        self.father.current.peakPickFunc = lambda pos, self=self: self.picked(pos)
+        if self.pickDim == 1:
+            self.father.current.integralsPreview(self.xValues, self.yValues, self.datMax)
+            self.father.current.peakPick = True
+            self.father.current.peakPickFunc = lambda pos, self=self: self.picked(pos)
 
     def setScaling(self,num):
         inp = safeEval(self.intEntries[num].text(), length=self.father.current.len(), type='FI')
@@ -5210,33 +5228,30 @@ class IntegralsWindow(wc.ToolWindows):
         self.applyFunc()
 
     def applyFunc(self):
-        dataLength = self.father.current.len()
+        dataLength = [self.father.current.shape()[-1] - 1]
+        Parts = [[self.minEntries],[self.maxEntries]]
+        if self.pickDim == 2:
+            dataLength.append(self.father.current.shape()[-2] - 1)
+            Parts[0].append(self.minEntriesY)
+            Parts[1].append(self.maxEntriesY)
+
         for num in range(len(self.minEntries)):
-            ok = True
-            inp = safeEval(self.minEntries[num].text(), length=self.father.current.len(), type='FI')
-            if inp is None:
-                self.minEntries[num].setText('')
-                ok = False
-            else:
-                minimum = int(round(inp))
-                if minimum < 0:
-                    minimum = 0
-                elif minimum > dataLength:
-                    minimum = dataLength
-                self.minEntries[num].setText(str(minimum))
-            inp = safeEval(self.maxEntries[num].text(), length=self.father.current.len(), type='FI')
-            if inp is None:
-                self.maxEntries[num].setText('')
-                ok = False
-            else:
-                maximum = int(round(inp))
-                if maximum < 0:
-                    maximum = 0
-                elif maximum > dataLength:
-                    maximum = dataLength
-                self.maxEntries[num].setText(str(maximum))
-            if ok:
-                self.intValues[num], self.xValues[num], self.yValues[num], self.datMax = self.father.current.Integrals(minimum,maximum)
+            results = [[],[]] #The min/max results
+            ok = []
+            for place in range(len(Parts)):
+                for i, part in enumerate(Parts[place]):
+                    inp = safeEval(part[num].text(), length=dataLength, type='FI')
+                    if inp is None:
+                        part[num].setText('')
+                        ok.append(False)
+                    else:
+                        ok.append(True)
+                        tmp = int(round(inp))
+                        tmp = min(max(tmp,0),dataLength[i]) #makes sure that 0 < value < Length
+                        results[place].append(tmp)
+                        part[num].setText(str(tmp))
+            if all(ok):
+                self.intValues[num], self.xValues[num], self.yValues[num], self.datMax = self.father.current.Integrals(*results)
                 self.intEntries[num].setText('%#.7g' % (self.intValues[num] / self.scaling))
             else:
                 self.intEntries[num].setText('')

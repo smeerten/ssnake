@@ -480,22 +480,34 @@ class Current1D(PlotFrame):
         return COM
 
     def Integrals(self, minPeak, maxPeak):
-        minP = min(minPeak, maxPeak)
-        maxP = max(minPeak, maxPeak)
+        dim = len(minPeak)
+        for i in range(dim): #Check max > min
+            if minPeak[i] > maxPeak[i]:
+                minPeak[i], maxPeak[i] = maxPeak[i], minPeak[i]
         tmpData = self.data1D.getHyperData(0)
-        tmpData = tmpData[(0,)*(self.ndim()-1) + (slice(None), )]
+        tmpData = tmpData[(0,)*(self.ndim()-dim) + (slice(None), ) * dim]
         tmpAxis = self.xax()
-        totLen = len(tmpData)
+        totShape = tmpData.shape
         tmpData = np.real(self.getDataType(tmpData))
         maxim = np.max(np.abs(tmpData))
-        tmpAxis = tmpAxis[minP:maxP] 
-        tmpData = tmpData[minP:maxP]
-        if self.spec() == 0:
+        tmpAxis = tmpAxis[minPeak[0]:maxPeak[0]+1] 
+        slc = tuple()
+        for i in reversed(range(dim)): #Make slice operator along all dimensions
+            slc  = slc + (slice(minPeak[i],maxPeak[i] + 1), )
+        tmpData = tmpData[slc] #slice data
+
+        if self.spec() == 0 and dim ==1:
             intSum = np.cumsum(tmpData)
-            inte = np.sum(tmpData) / self.sw()
-        else:
+        elif self.spec() == 1 and dim ==1:
             intSum = np.cumsum(tmpData[-1::-1])[-1::-1]
-            inte = np.sum(tmpData) * self.sw() / (1.0 * totLen)
+        else:
+            intSum = None
+        inte = np.sum(tmpData)
+        for i in range(dim): #Scale sum for each integrated dimension
+            if self.spec(-i - 1) == 0:
+                inte /= self.sw(-i - 1)
+            else:
+                inte *= self.sw(-i - 1) / (1.0 * totShape[-i - 1])
         return inte, tmpAxis, intSum, maxim
 
     def MaxMin(self, minPeak, maxPeak, type='max'):
