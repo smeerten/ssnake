@@ -5217,6 +5217,12 @@ class IntegralsWindow(wc.ToolWindows):
             self.father.current.integralsPreview(self.xValues, self.yValues, self.datMax)
             self.father.current.peakPick = True
             self.father.current.peakPickFunc = lambda pos, self=self: self.picked(pos)
+        if self.pickDim == 2:
+            xMin = [int(x.text()) for x in self.minEntries]
+            xMax = [int(x.text()) for x in self.maxEntries]
+            yMin = [int(x.text()) for x in self.minEntriesY]
+            yMax = [int(x.text()) for x in self.maxEntriesY]
+            self.father.current.integralsPreview(xMin,xMax,yMin,yMax)
 
     def setScaling(self,num):
         inp = safeEval(self.intEntries[num].text(), length=self.father.current.len(), type='FI')

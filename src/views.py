@@ -1591,6 +1591,24 @@ class CurrentContour(CurrentStacked):
     def setProjTraces(self, val, direc):
         self.viewSettings["projPos"][direc] = val
 
+
+    def integralsPreview(self, xMin, xMax, yMin, yMax):
+        nPatches = min(len(xMin),len(xMax),len(yMin),len(yMax))
+        self.resetPreviewRemoveList()
+        xax = self.xax()
+        yax = self.xax(-2)
+        xaxMult = self.getAxMult(self.spec(), self.getAxType(), self.getppm(), self.freq(), self.ref())
+        yaxMult = self.getAxMult(self.spec(-2), self.getAxType(-2), self.getppm(-2), self.freq(-2), self.ref(-2))
+        for i in range(nPatches):
+            color = 'C'+str((i+2)%10)
+            xminTmp = xax[xMin[i]] * xaxMult
+            xmaxTmp = xax[xMax[i]] * xaxMult
+            yminTmp = yax[yMin[i]] * yaxMult
+            ymaxTmp = yax[yMax[i]] * yaxMult
+            self.removeListLines.append(self.ax.fill([xminTmp,xminTmp,xmaxTmp,xmaxTmp],[yminTmp,ymaxTmp,ymaxTmp,yminTmp],color=color,fill = False, linestyle='--')[0])
+        self.canvas.draw()
+
+
     def updateAxes(self,oldAx, newAx, axis):
         scale = newAx / oldAx
         # Scale the path vertices, so no new contours need to be calculated
