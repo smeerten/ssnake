@@ -404,6 +404,7 @@ class MainProgram(QtWidgets.QMainWindow):
                                    ['Tools --> LPSVD', self.lpsvdAct],
                                    ['Matrix --> Sizing', self.sizingAct],
                                    ['Matrix --> Shift Data', self.shiftAct],
+                                   ['Matrix --> Roll Data', self.rollAct],
                                    ['Matrix --> Multiply', self.multiplyAct],
                                    ['Matrix --> Normalize', self.normalizeAct],
                                    ['Matrix --> Region --> Integrate', self.intRegionAct],
@@ -638,6 +639,8 @@ class MainProgram(QtWidgets.QMainWindow):
         self.sizingAct.setToolTip('Set Size')
         self.shiftAct = self.matrixMenu.addAction(QtGui.QIcon(IconDirectory + 'shift.png'), "S&hift Data", lambda: self.mainWindowCheck(lambda mainWindow: ShiftDataWindow(mainWindow)))
         self.shiftAct.setToolTip('Shift Data')
+        self.rollAct = self.matrixMenu.addAction("Roll Data", lambda: self.mainWindowCheck(lambda mainWindow: RollDataWindow(mainWindow)))
+        self.rollAct.setToolTip('Roll Data')
         self.regionMenu = QtWidgets.QMenu("Region", self)
         self.matrixMenu.addMenu(self.regionMenu)
         self.intRegionAct = self.regionMenu.addAction(QtGui.QIcon(IconDirectory + 'int.png'), "&Integrate", lambda: self.mainWindowCheck(lambda mainWindow: integrateWindow(mainWindow)))
@@ -680,7 +683,7 @@ class MainProgram(QtWidgets.QMainWindow):
         self.shearAct = self.matrixMenu.addAction(QtGui.QIcon(IconDirectory + 'shear.png'), "Shearin&g", lambda: self.mainWindowCheck(lambda mainWindow: ShearingWindow(mainWindow)))
         self.shearAct.setToolTip('Shearing')
         self.multiDActions.append(self.shearAct)
-        self.matrixActList = [self.sizingAct, self.shiftAct, self.intRegionAct,
+        self.matrixActList = [self.sizingAct, self.shiftAct, self.rollAct, self.intRegionAct,
                               self.sumRegionAct, self.maxRegionAct, self.minRegionAct,
                               self.maxposRegionAct, self.minposRegionAct, self.averageRegionAct,
                               self.diffAct, self.cumsumAct, self.extractpartAct,
@@ -3946,6 +3949,77 @@ class ShiftDataWindow(wc.ToolWindows):
             raise SsnakeException("Shift data: shift value not valid")
         shift = int(round(inp))
         self.father.current.shift(shift, (self.singleSlice.isChecked()))
+
+###########################################################################
+
+class RollDataWindow(wc.ToolWindows):
+
+    NAME = "Roll data"
+    SINGLESLICE = True
+
+    def __init__(self, parent):
+        super(RollDataWindow, self).__init__(parent)
+        self.grid.addWidget(wc.QLabel("Data points to roll:"), 0, 0, 1, 3)
+        self.shiftVal = 0
+        self.shiftEntry = wc.QLineEdit(self.shiftVal, self.rollPreview)
+        self.shiftEntry.setMinimumWidth(100)
+        self.grid.addWidget(self.shiftEntry, 1, 1)
+        leftShift = QtWidgets.QPushButton("<")
+        leftShift.clicked.connect(self.stepDownShift)
+        leftShift.setAutoRepeat(True)
+        self.grid.addWidget(leftShift, 1, 0)
+        rightShift = QtWidgets.QPushButton(">")
+        rightShift.clicked.connect(self.stepUpShift)
+        rightShift.setAutoRepeat(True)
+        self.grid.addWidget(rightShift, 1, 2)
+
+    def stepUpShift(self, *args):
+        inp = safeEval(self.shiftEntry.text(), length=self.father.current.len(), type='FI')
+        if inp is None:
+            raise SsnakeException("Roll data: roll value not valid")
+        self.shiftVal = inp
+        shift = +1 
+        if QtWidgets.qApp.keyboardModifiers() & QtCore.Qt.ControlModifier and QtWidgets.qApp.keyboardModifiers() & QtCore.Qt.ShiftModifier:
+            shift *= +1000
+        elif QtWidgets.qApp.keyboardModifiers() & QtCore.Qt.ControlModifier:
+            shift *= +10
+        elif QtWidgets.qApp.keyboardModifiers() & QtCore.Qt.ShiftModifier:
+            shift *= +100
+        self.shiftVal = self.shiftVal + shift
+        self.shiftEntry.setText(str(self.shiftVal))
+        self.rollPreview()
+
+    def stepDownShift(self, *args):
+        inp = safeEval(self.shiftEntry.text(), length=self.father.current.len(), type='FI')
+        if inp is None:
+            raise SsnakeException("Roll data: roll value not valid")
+        self.shiftVal = inp
+        shift = -1 
+        if QtWidgets.qApp.keyboardModifiers() & QtCore.Qt.ControlModifier and QtWidgets.qApp.keyboardModifiers() & QtCore.Qt.ShiftModifier:
+            shift *= +1000
+        elif QtWidgets.qApp.keyboardModifiers() & QtCore.Qt.ControlModifier:
+            shift *= +10
+        elif QtWidgets.qApp.keyboardModifiers() & QtCore.Qt.ShiftModifier:
+            shift *= +100
+
+        self.shiftVal = self.shiftVal + shift
+        self.shiftEntry.setText(str(self.shiftVal))
+        self.rollPreview()
+
+    def rollPreview(self, *args):
+        inp = safeEval(self.shiftEntry.text(), length=self.father.current.len(), type='FI')
+        if inp is None:
+            raise SsnakeException("Roll data: roll value not valid")
+        self.shiftVal = inp
+        self.shiftEntry.setText(str(self.shiftVal))
+        self.father.current.rollPreview(self.shiftVal)
+
+    def applyFunc(self):
+        inp = safeEval(self.shiftEntry.text(), length=self.father.current.len(), type='FI')
+        if inp is None:
+            raise SsnakeException("Roll data: roll value not valid")
+        shift = inp
+        self.father.current.roll(shift, (self.singleSlice.isChecked()))
 
 #############################################################
 

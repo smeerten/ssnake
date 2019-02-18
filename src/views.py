@@ -598,6 +598,21 @@ class Current1D(PlotFrame):
         self.showFid()
         self.upd()
 
+    def roll(self, shift, select=False):
+        if select:
+            selectSlice = self.getSelect()
+        else:
+            selectSlice = slice(None)
+        self.root.addMacro(['roll', (shift, self.axes[-1] - self.data.ndim(), selectSlice)])
+        self.data.roll(shift, self.axes[-1], selectSlice)
+        self.upd()
+        self.showFid()
+
+    def rollPreview(self, shift):
+        self.data1D.roll(shift, -1)
+        self.showFid()
+        self.upd()
+
     def getdcOffset(self, pos1, pos2):
         minPos = int(min(pos1, pos2))
         maxPos = int(max(pos1, pos2))

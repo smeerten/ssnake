@@ -833,12 +833,7 @@ class Spectrum(object):
             Pfun = Pfun + sum(as1**2) / 4 / L**2
         return H1 + 1000 * Pfun
 
-    def phase(self, phase0, phase1, axis, select=slice(None), internal = False):
-        axis = self.checkAxis(axis)
-        if self.ref[axis] is None:
-            offset = 0
-        else:
-            offset = self.freq[axis] - self.ref[axis]
+    def __phase(self, phase0, phase1, offset, axis, select=slice(None)):
         vector = np.exp(np.fft.fftshift(np.fft.fftfreq(self.shape()[axis], 1.0 / self.sw[axis]) + offset) / self.sw[axis] * phase1 * 1j)
         if self.spec[axis] == 0:
             self.__fourier(axis, tmp=True)
@@ -848,6 +843,14 @@ class Spectrum(object):
         self.data.icomplexReorder(axis)
         if self.spec[axis] == 0:
             self.__invFourier(axis, tmp=True)
+
+    def phase(self, phase0, phase1, axis, select=slice(None), internal = False):
+        axis = self.checkAxis(axis)
+        if self.ref[axis] is None:
+            offset = 0
+        else:
+            offset = self.freq[axis] - self.ref[axis]
+        self.__phase(phase0, phase1, offset, axis, select=slice(None))
 
         if not internal:
             Message = "Phasing: phase0 = " + str(phase0 * 180 / np.pi) + " and phase1 = " + str(phase1 * 180 / np.pi) + " for dimension " + str(axis + 1)
@@ -1103,6 +1106,31 @@ class Spectrum(object):
         self.redoList = []
         if not self.noUndo:
             self.undoList.append(lambda self: self.restoreData(copyData, lambda self: self.shift(shift, axis, select=select, zeros=zeros)))
+
+    def roll(self, shift, axis, select=slice(None)):
+        axis = self.checkAxis(axis)
+        if self.spec[axis] == 0:
+            self.__phase(0, -2 * np.pi * shift, 0, axis, select=select)
+        else:
+            t = np.arange(self.shape()[axis]) / (self.sw[axis])
+            freq = self.sw[axis] / self.shape()[axis]
+            self.__invFourier(axis, tmp=True)
+            t = t.reshape(t.shape + (1, )*(self.ndim()-axis-1))
+            self.data.icomplexReorder(axis)
+            self.data[select] *= np.exp( - 1j * t * freq * shift * 2 * np.pi)
+            self.data.icomplexReorder(axis)
+            self.__fourier(axis, tmp=True)
+
+        Message = "Rolled " + str(shift) + " points in dimension " + str(axis + 1)
+        if type(select) is not slice:
+            Message = Message + " with slice " + str(select)
+        elif select != slice(None, None, None):
+            Message = Message + " with slice " + str(select)
+        self.addHistory(Message)
+        self.redoList = []
+        if not self.noUndo:
+            self.undoList.append(lambda self: self.roll(-shift,axis))
+
         
     def __fourier(self, axis, tmp=False, reorder=[True,True]):
         axis = self.checkAxis(axis)
