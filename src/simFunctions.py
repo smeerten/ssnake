@@ -271,6 +271,40 @@ def makeMQMASSpectrum(x, sw, v, gauss, lor, weight):
     final *= apod1 * apod2 * length1 / sw[-2] * length2 / sw[-1]
     return final
 
+def carouselAveraging(spinspeed,numssb,v,weight,vConstant):
+    #Perform carousel averaging for finite MAS powder patterns
+    dt = 1.0 / spinspeed / numssb
+    prod = np.exp(1j * np.cumsum(v * dt * 2 * np.pi, axis=1))
+    tot = np.fft.fft(prod, axis=1)
+    tot *= np.conj(tot)
+    weight2 = weight[:,np.newaxis] / numssb**2
+    tot *= weight2
+    v = np.fft.fftfreq(numssb, 1.0 / numssb) * spinspeed
+    v = v + vConstant[:,np.newaxis]
+    return v, tot
+
+def csaFreq(angle,tensor,D2,spinspeed,numssb):
+    d2 = d2tens(np.array([angle]))[0,:,2]
+    A0, A2 = csaSpace(tensor)
+    T0, T2 = csaSpin()
+    dat0 = A0 * T0
+    dat2 = A2 * T2
+    dat2 = np.matmul(dat2, D2)
+    factor2 = d2[2]
+    vConstant = 0
+    if spinspeed == np.inf:
+        v = np.real(dat2[:,2] * factor2 + dat0)
+    elif spinspeed == 0.0:
+        v = np.real(dat2[:,2] + dat0)
+    else:
+        gammastep = 2 * np.pi / numssb
+        gval = np.arange(numssb) * gammastep
+        spinD2 = np.exp(1j * np.arange(-2, 3)[:,np.newaxis] * gval) * d2[:,np.newaxis]
+        vConstant = np.real(dat0 + dat2[:,2] * factor2) 
+        dat2[:,2] = 0
+        v = np.matmul(dat2, spinD2)
+    return v, vConstant
+
 def csaFunc(x, freq, sw, axMult, extra, bgrnd, mult, spinspeed, t11, t22, t33, amp, lor, gauss):
     x = x[-1]
     shiftdef, numssb, angle, D2, weight, MAStype = extra
@@ -288,35 +322,11 @@ def csaFunc(x, freq, sw, axMult, extra, bgrnd, mult, spinspeed, t11, t22, t33, a
 
     tensor = np.array(func.shiftConversion([t11, t22, t33], shiftdef)[1], dtype=float)
     tensor /= float(axMult)
-    A0, A2 = csaSpace(tensor)
-    T0, T2 = csaSpin()
-    d2 = d2tens(np.array([angle]))[0,:,2]
+    tot = weight
+    v, vConstant = csaFreq(angle,tensor,D2,spinspeed,numssb)
+
     if spinspeed != np.inf and spinspeed != 0.0:
-        gammastep = 2 * np.pi / numssb
-        gval = np.arange(numssb) * gammastep
-        dt = 1.0 / spinspeed / numssb
-        spinD2 = np.exp(1j * np.arange(-2, 3)[:,np.newaxis] * gval) * d2[:,np.newaxis]
-    factor2 = d2[2]
-    dat0 = A0 * T0
-    dat2 = A2 * T2
-    dat2 = np.matmul(dat2, D2)
-    if spinspeed == np.inf:
-        v = np.real(dat2[:,2] * factor2 + dat0)
-        tot = weight
-    elif spinspeed == 0.0:
-        v = np.real(dat2[:,2] + dat0)
-        tot = weight
-    else:
-        vConstant = np.real(dat0 + dat2[:,2] * factor2) 
-        dat2[:,2] = 0
-        v = np.matmul(dat2, spinD2)
-        prod = np.exp(1j * np.cumsum(v * dt * 2 * np.pi, axis=1))
-        tot = np.fft.fft(prod, axis=1)
-        tot *= np.conj(tot)
-        weight2 = weight[:,np.newaxis] / numssb**2
-        tot *= weight2
-        v = np.fft.fftfreq(numssb, 1.0 / numssb) * spinspeed
-        v = v + vConstant[:,np.newaxis]
+        v, tot = carouselAveraging(spinspeed,numssb,v,weight,vConstant)
     return mult * amp * makeSpectrum(x, sw, v, gauss, lor, tot)
     
 def quadFunc(x, freq, sw, axMult, extra, bgrnd, mult, spinspeed, pos, cq, eta, amp, lor, gauss):
@@ -351,6 +361,15 @@ def quadFunc(x, freq, sw, axMult, extra, bgrnd, mult, spinspeed, pos, cq, eta, a
 def quadFreq(I, m1, m2, spinspeed, numssb, angle, D2, D4, weight, freq, pos, cq, eta):
     if freq == 0.0:
         raise SimException("Sim: Frequency cannot be zero")
+    tot = weight
+    v, vConstant = quadFreqBase(I,m1,m2,cq,eta,pos,freq,angle,D2,D4,numssb,spinspeed)
+    if spinspeed != np.inf and spinspeed != 0.0:
+        v, tot = carouselAveraging(spinspeed,numssb,v,weight,vConstant)
+    return v, tot
+
+def quadFreqBase(I,m1,m2,cq,eta,pos,freq,angle,D2,D4,numssb,spinspeed):
+    #Establish the frequencies for all powder orientations.
+    #Prepare for carousel averaging, but do not perform yet (return gamma angle depend acne)
     pre2 = -cq**2 / (4 * I *(2 * I - 1))**2 * 2 / freq
     pre1 = cq / (4 * I *(2 * I - 1))
     firstA2 = pre1 * firstQuadSpace(eta)
@@ -360,12 +379,6 @@ def quadFreq(I, m1, m2, spinspeed, numssb, angle, D2, D4, weight, freq, pos, cq,
     secA4 *= pre2
     d2 = d2tens(np.array([angle]))[0,:,2]
     d4 = d4tens(np.array([angle]))[0,:,4]
-    if spinspeed != np.inf and spinspeed != 0.0:
-        gammastep = 2 * np.pi / numssb
-        gval = np.arange(numssb) * gammastep
-        dt = 1.0 / spinspeed / numssb
-        spinD2 = np.exp(1j * np.arange(-2, 3)[:,np.newaxis] * gval) * d2[:,np.newaxis]
-        spinD4 = np.exp(1j * np.arange(-4, 5)[:,np.newaxis] * gval) * d4[:,np.newaxis]
     factor2 = d2[2]
     factor4 = d4[4]
     firstspin2 = firstQuadSpin(I, m1, m2)
@@ -375,25 +388,22 @@ def quadFreq(I, m1, m2, spinspeed, numssb, angle, D2, D4, weight, freq, pos, cq,
     dat4 = secA4 * secspin4
     dat2 = np.matmul(dat2, D2)
     dat4 = np.matmul(dat4, D4)
+    vConstant = 0
     if spinspeed == np.inf:
         v = np.real(dat4[:,4] * factor4  + dat2[:,2] * factor2 + dat0)
-        tot = weight
     elif spinspeed == 0.0:
         v = np.real(dat4[:,4]  + dat2[:,2] + dat0)
-        tot = weight
     else:
+        gammastep = 2 * np.pi / numssb
+        gval = np.arange(numssb) * gammastep
+        spinD2 = np.exp(1j * np.arange(-2, 3)[:,np.newaxis] * gval) * d2[:,np.newaxis]
+        spinD4 = np.exp(1j * np.arange(-4, 5)[:,np.newaxis] * gval) * d4[:,np.newaxis]
         vConstant = np.real(dat0 + dat2[:,2] * factor2 + dat4[:,4] * factor4) 
         dat4[:,4] = 0
         dat2[:,2] = 0
         v = np.matmul(dat2, spinD2) + np.matmul(dat4, spinD4)
-        prod = np.exp(1j * np.cumsum(v * dt * 2 * np.pi, axis=1))
-        tot = np.fft.fft(prod, axis=1)
-        tot *= np.conj(tot)
-        weight2 = weight[:,np.newaxis] / numssb**2
-        tot *= weight2
-        v = np.fft.fftfreq(numssb, 1.0 / numssb) * spinspeed
-        v = v + vConstant[:,np.newaxis]
-    return v, tot
+    return v, vConstant
+
 
 def quadCzjzekFunc(x, freq, sw, axMult, extra, bgrnd, mult, pos, sigma, cq0, eta0, amp, lor, gauss):
     x = x[-1]
