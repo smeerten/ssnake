@@ -639,7 +639,7 @@ class MainProgram(QtWidgets.QMainWindow):
         self.sizingAct.setToolTip('Set Size')
         self.shiftAct = self.matrixMenu.addAction(QtGui.QIcon(IconDirectory + 'shift.png'), "S&hift Data", lambda: self.mainWindowCheck(lambda mainWindow: ShiftDataWindow(mainWindow)))
         self.shiftAct.setToolTip('Shift Data')
-        self.rollAct = self.matrixMenu.addAction("Roll Data", lambda: self.mainWindowCheck(lambda mainWindow: RollDataWindow(mainWindow)))
+        self.rollAct = self.matrixMenu.addAction(QtGui.QIcon(IconDirectory + 'roll.png'),"Roll Data", lambda: self.mainWindowCheck(lambda mainWindow: RollDataWindow(mainWindow)))
         self.rollAct.setToolTip('Roll Data')
         self.regionMenu = QtWidgets.QMenu("Region", self)
         self.matrixMenu.addMenu(self.regionMenu)
