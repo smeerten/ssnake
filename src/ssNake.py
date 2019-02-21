@@ -444,6 +444,7 @@ class MainProgram(QtWidgets.QMainWindow):
                                    ['Fitting --> Lorentzian/Gaussian', self.lorentzfitAct],
                                    ['Fitting --> CSA', self.csastaticAct],
                                    ['Fitting --> Quadrupole', self.quadAct],
+                                   ['Fitting --> Quadrupole+CSA', self.quadCSAAct],
                                    ['Fitting --> Czjzek', self.czjzekAct],
                                    ['Fitting --> MQMAS', self.mqmasAct],
                                    ['Fitting --> Czjzek MQMAS', self.mqmasCzjzekAct],
@@ -743,6 +744,8 @@ class MainProgram(QtWidgets.QMainWindow):
         self.csastaticAct.setToolTip('Fit CSA')
         self.quadAct = self.fittingMenu.addAction(QtGui.QIcon(IconDirectory + 'quadconversion.png'), "&Quadrupole", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.createQuadDeconvWindow()))
         self.quadAct.setToolTip('Fit Quadrupole')
+        self.quadCSAAct = self.fittingMenu.addAction("Q&uadrupole+CSA", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.createQuadCSADeconvWindow()))
+        self.quadCSAAct.setToolTip('Fit Quadrupole+CSA')
         self.czjzekAct = self.fittingMenu.addAction(QtGui.QIcon(IconDirectory + 'czjzekstatic.png'), "C&zjzek", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.createQuadCzjzekWindow()))
         self.czjzekAct.setToolTip('Fit Czjzek Pattern')
         self.mqmasAct = self.fittingMenu.addAction(QtGui.QIcon(IconDirectory + 'mqmas.png'),"&MQMAS", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.createMQMASWindow()))
@@ -755,7 +758,7 @@ class MainProgram(QtWidgets.QMainWindow):
         self.functionFitAct.setToolTip('Fit Function')
         self.fittingActList = [self.snrAct, self.fwhmAct, self.massAct,
                                self.intfitAct, self.relaxAct, self.diffusionAct,
-                               self.lorentzfitAct, self.csastaticAct, self.quadAct,
+                               self.lorentzfitAct, self.csastaticAct, self.quadAct, self.quadCSAAct,
                                self.czjzekAct, self.externalFitAct, self.functionFitAct]
         # the combine drop down menu
         self.combineMenu = QtWidgets.QMenu("Com&bine", self)
@@ -846,7 +849,7 @@ class MainProgram(QtWidgets.QMainWindow):
         self.helpActList = self.helpActList +  [self.shiftconvAct, self.quadconvAct,
                             self.nmrtableAct,self.githubAct,self.tutorialAct, self.aboutAct,self.basTutorialAct ]
         # Extra event lists:
-        self.specOnlyList = [self.regridAct, self.csastaticAct, self.quadAct, self.czjzekAct]
+        self.specOnlyList = [self.regridAct, self.csastaticAct, self.quadAct, self.quadCSAAct, self.czjzekAct]
         self.fidOnlyList = [self.relaxAct, self.diffusionAct,self.swapEchoAct]
         self.Only1DPlot = [self.snrAct, self.fwhmAct, self.massAct,  self.intfitAct]
         self.notInArrayPlot = [self.userxAct,self.setrefAct,self.swapEchoAct,self.corOffsetAct,self.baselineAct,self.subAvgAct,
@@ -1917,6 +1920,11 @@ class Main1DWindow(QtWidgets.QWidget):
         if self.current.freq() == 0.0:
             raise SsnakeException("Please set the spectrometer frequency first!")
         self.father.createFitWindow(fit.TabFittingWindow(self.father, self.father.mainWindow, 'quaddeconv'))
+
+    def createQuadCSADeconvWindow(self):
+        if self.current.freq() == 0.0:
+            raise SsnakeException("Please set the spectrometer frequency first!")
+        self.father.createFitWindow(fit.TabFittingWindow(self.father, self.father.mainWindow, 'quadcsadeconv'))
 
     def createQuadCzjzekWindow(self):
         if self.current.freq() == 0.0:
