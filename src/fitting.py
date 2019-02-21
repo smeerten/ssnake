@@ -2617,6 +2617,7 @@ class CzjzekPrefWindow(QtWidgets.QWidget):
         self.setWindowFlags(QtCore.Qt.Window | QtCore.Qt.Tool)
         self.father = parent
         self.mqmas = mqmas
+        self.czjzek = None
         if mqmas:
             self.Ioptions = self.Ioptions[1::2]
         self.setWindowTitle("Library")
@@ -2685,11 +2686,14 @@ class CzjzekPrefWindow(QtWidgets.QWidget):
             grid.addWidget(self.satBoolEntry, 12, 0)
         self.fig = Figure()
         self.canvas = FigureCanvas(self.fig)
-        grid.addWidget(self.canvas, 0, 2, 14, 4)
+        grid.addWidget(self.canvas, 0, 2, 14, 5)
         self.ax = self.fig.add_subplot(111)
         self.simButton = QtWidgets.QPushButton("Show", parent=self)
         self.simButton.clicked.connect(self.plotDist)
         grid.addWidget(self.simButton, 14, 4)
+        self.saveButton = QtWidgets.QPushButton("Save", parent=self)
+        self.saveButton.clicked.connect(self.saveDist)
+        grid.addWidget(self.saveButton, 14, 5)
         grid.addWidget(wc.QLabel("Site:"), 14, 2)
         self.site = QtWidgets.QSpinBox()
         self.site.setMinimum(1)
@@ -2713,10 +2717,9 @@ class CzjzekPrefWindow(QtWidgets.QWidget):
         self.loadButton.clicked.connect(self.loadLib)
         layout.addWidget(self.loadButton, 4, 2)
         grid.setRowStretch(13, 1)
-        grid.setColumnStretch(5, 1)
+        grid.setColumnStretch(6, 1)
         layout.setColumnStretch(3, 1)
         self.upd()
-        #self.plotDist()
         self.show()
         self.resize(800, 600)
 
@@ -2768,7 +2771,9 @@ class CzjzekPrefWindow(QtWidgets.QWidget):
         cqmin = safeEval(self.cqmin.text(), type='FI')
         etamax = safeEval(self.etamax.text(), type='FI')
         etamin = safeEval(self.etamin.text(), type='FI')
-        cq, eta = np.meshgrid(np.linspace(cqmin, cqmax, cqsteps), np.linspace(etamin, etamax, etasteps))
+        cqArray = np.linspace(cqmin, cqmax, cqsteps)
+        etaArray = np.linspace(etamin, etamax, etasteps)
+        cq, eta = np.meshgrid(cqArray, etaArray)
         method = self.father.entries['method'][0].currentIndex()
         d = self.father.entries['d'][0].currentIndex() + 1
         site = self.site.value() - 1
@@ -2776,14 +2781,30 @@ class CzjzekPrefWindow(QtWidgets.QWidget):
         cq0 = safeEval(self.father.entries['Cq0'][site].text(), type='FI')
         eta0 = safeEval(self.father.entries['eta0'][site].text(), type='FI')
         if method == 0:
-            czjzek = Czjzek.czjzekIntensities(sigma, d, cq.flatten(), eta.flatten())
+            self.czjzek = Czjzek.czjzekIntensities(sigma, d, cq.flatten(), eta.flatten())
         else:
-            czjzek = Czjzek.czjzekIntensities(sigma, d, cq.flatten(), eta.flatten(), cq0, eta0)
-        czjzek = czjzek.reshape(etasteps, cqsteps)
-        self.ax.contour(cq.transpose(), eta.transpose(), czjzek.transpose(), 10)
+            self.czjzek = Czjzek.czjzekIntensities(sigma, d, cq.flatten(), eta.flatten(), cq0, eta0)
+        self.czjzek = self.czjzek.reshape(etasteps, cqsteps)
+        self.ax.contour(cq.transpose(), eta.transpose(), self.czjzek.transpose(), 10)
         self.ax.set_xlabel(u"C$_Q$ [MHz]")
         self.ax.set_ylabel(u"η")
         self.canvas.draw()
+
+    def saveDist(self):
+        name = QtWidgets.QFileDialog.getSaveFileName(self, 'Save Distribution', self.father.rootwindow.father.lastLocation + os.path.sep + 'czjzek.txt', 'ASCII file (*.txt)')
+        if isinstance(name, tuple):
+            name = name[0]
+        if not name:
+            return
+        self.plotDist()
+        cqsteps = self.cqsteps.value()
+        etasteps = self.etasteps.value()
+        cqmax = safeEval(self.cqmax.text(), type='FI')
+        cqmin = safeEval(self.cqmin.text(), type='FI')
+        etamax = safeEval(self.etamax.text(), type='FI')
+        etamin = safeEval(self.etamin.text(), type='FI')        
+        header = "Cq_min=" + str(cqmin) + "\nCq_max=" + str(cqmax) + "\nCq_steps=" + str(cqsteps) + "eta_min=" + str(etamin) + "\neta_max=" + str(etamax) + "\neta_steps=" + str(etasteps)
+        np.savetxt(name, self.czjzek, header=header)
 
     def checkCq(self):
         inp = safeEval(self.cqmax.text(), type='FI')
