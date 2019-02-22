@@ -18,8 +18,6 @@
 # along with ssNake. If not, see <http://www.gnu.org/licenses/>.
 
 import numpy as np
-from scipy.special import wofz
-import scipy.ndimage
 import tempfile
 import os
 import shutil
