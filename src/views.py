@@ -19,7 +19,7 @@
 
 import numpy as np
 import copy
-from matplotlib.pyplot import get_cmap
+from matplotlib.pyplot import get_cmap, colormaps
 import matplotlib
 import matplotlib.ticker as ticker
 import spectrum as sc
@@ -28,6 +28,11 @@ import reimplement as reim
 
 COLORMAPLIST = ['seismic', 'BrBG', 'bwr', 'coolwarm', 'PiYG', 'PRGn', 'PuOr',
                 'RdBu', 'RdGy', 'RdYlBu', 'RdYlGn', 'Spectral', 'rainbow', 'jet']
+COLORMAPLIST = [i for i in COLORMAPLIST if i in colormaps()]
+COLORRANGELIST = ['viridis', 'plasma', 'inferno', 'magma', 'cividis', 'coolwarm', 'Spectral', 'rainbow', 'jet']
+COLORRANGELIST = [i for i in COLORRANGELIST if i in colormaps()]
+COLORRANGELIST = ['none'] + COLORRANGELIST
+
 COLORCYCLE = list(matplotlib.rcParams['axes.prop_cycle'])
 COLORCONVERTER = matplotlib.colors.ColorConverter()
 
@@ -60,6 +65,7 @@ class Current1D(PlotFrame):
                                  "minXTicks": self.root.father.defaultMinXTicks, 
                                  "minYTicks": self.root.father.defaultMinYTicks, 
                                  "grids": self.root.father.defaultGrids,
+                                 "colorRange": self.root.father.defaultColorRange,
                                  "colorMap": self.root.father.defaultColorMap,
                                  "contourConst": self.root.father.defaultContourConst,
                                  "contourColors": [self.root.father.defaultPosColor, self.root.father.defaultNegColor],
@@ -986,12 +992,17 @@ class Current1D(PlotFrame):
     def setColorMap(self, num):
         self.viewSettings["colorMap"] = COLORMAPLIST[num]
 
+    def getColorRange(self):
+        return COLORRANGELIST.index(self.viewSettings["colorRange"])
+
+    def setColorRange(self, num):
+        self.viewSettings["colorRange"] = COLORRANGELIST[num]
+
     def setColor(self, color):
         self.viewSettings["color"] = color
 
     def setLw(self, lw):
         self.viewSettings["linewidth"] = lw
-
 
     def setTickNum(self, x, y):
         self.viewSettings["minXTicks"] = x
@@ -1071,7 +1082,7 @@ class Current1D(PlotFrame):
         self.canvas.draw()
 
     def setTicks(self,Xset = True,Yset = True):
-        if  matplotlib.__version__[0] == '2':
+        if  matplotlib.__version__[0] > '1':
             if Xset:
                 self.ax.xaxis.set_major_locator(ticker.MaxNLocator(nbins='auto', steps=[1,2,2.5,5,10], min_n_ticks=self.viewSettings["minXTicks"]))
             if Yset:
@@ -1263,7 +1274,7 @@ class CurrentMulti(Current1D):
         if(self.viewSettings["plotType"] == 2):
             self.line_xdata.append(self.line_xdata[-1])
             self.line_ydata = [np.imag(tmpdata), np.real(tmpdata)]
-            self.ax.plot(self.line_xdata[-2], self.line_ydata[-2], marker=marker, linestyle=linestyle, c='r', linewidth=self.viewSettings["linewidth"], label=self.data.name + '_imag', picker=True)
+            self.ax.plot(self.line_xdata[-2], self.line_ydata[-2], marker=marker, linestyle=linestyle, c='#FF7F0E', linewidth=self.viewSettings["linewidth"], label=self.data.name + '_imag', picker=True)
         else:
             self.line_ydata = [np.real(tmpdata)]
         self.ax.plot(self.line_xdata[-1], self.line_ydata[-1], marker=marker, linestyle=linestyle, c=self.viewSettings["color"], linewidth=self.viewSettings["linewidth"], label=self.data.name, picker=True)
@@ -1391,14 +1402,22 @@ class CurrentStacked(Current1D):
                         color = extraColor[num]
                     self.ax.plot(self.line_xdata_extra[-1], self.line_ydata_extra[-1], marker=marker, linestyle=linestyle, linewidth=self.viewSettings["linewidth"], c=color, picker=True)
         tmpdata = self.getDataType(tmpdata)
+        if self.viewSettings["colorRange"] == 'none':
+            colorRange = None
+        else:
+            colorRange = get_cmap(self.viewSettings["colorRange"])
         for num in range(len(tmpdata)):
             if (self.viewSettings["plotType"] == 2):
                 self.line_xdata.append(tmp_line_xdata)
                 self.line_ydata.append(num * self.viewSettings["spacing"] + np.imag(tmpdata[num]))
-                self.ax.plot(self.line_xdata[-1], self.line_ydata[-1], marker=marker, linestyle=linestyle, c='r', linewidth=self.viewSettings["linewidth"], label=self.data.name + '_imag', picker=True)
+                self.ax.plot(self.line_xdata[-1], self.line_ydata[-1], marker=marker, linestyle=linestyle, c='#FF7F0E', linewidth=self.viewSettings["linewidth"], label=self.data.name + '_imag', picker=True)
             self.line_xdata.append(tmp_line_xdata)
             self.line_ydata.append(num * self.viewSettings["spacing"] + np.real(tmpdata[num]))
-            self.ax.plot(self.line_xdata[-1], self.line_ydata[-1], marker=marker, linestyle=linestyle, c=self.viewSettings["color"], linewidth=self.viewSettings["linewidth"], label=self.data.name, picker=True)
+            if colorRange is None:
+                color = self.viewSettings["color"]
+            else:
+                color = colorRange(num/float(len(tmpdata)))
+            self.ax.plot(self.line_xdata[-1], self.line_ydata[-1], marker=marker, linestyle=linestyle, c=color, linewidth=self.viewSettings["linewidth"], label=self.data.name, picker=True)
         self.ax.set_xlabel(self.getLabel(self.spec(), self.axes[-1], self.getAxType(), self.getppm()))
         if self.spec() > 0:
             self.ax.set_xlim(self.xmaxlim, self.xminlim)
@@ -1446,7 +1465,6 @@ class CurrentArrayed(CurrentStacked):
     def copyCurrent(self, root, fig, canvas, data):
         return CurrentArrayed(root, fig, canvas, data, self)
 
-
     def setAxType(self, val, update=True, num=-1):
         #Reimplement of base function. Prevent change of yaxis limits
         yminlimBack = self.yminlim 
@@ -1456,7 +1474,6 @@ class CurrentArrayed(CurrentStacked):
         self.ymaxlim  = ymaxlimBack
         if update:
             self.showFid()
-
 
     def resetSpacing(self, zlims=True):
         if zlims:
@@ -1507,14 +1524,22 @@ class CurrentArrayed(CurrentStacked):
                     self.ax.plot(self.line_xdata_extra[-1], self.line_ydata_extra[-1], marker=marker, linestyle=linestyle, linewidth=self.viewSettings["linewidth"], c=color, picker=True)
         tmpdata = self.getDataType(tmpdata)
         ticksPos = []
+        if self.viewSettings["colorRange"] == 'none':
+            colorRange = None
+        else:
+            colorRange = get_cmap(self.viewSettings["colorRange"])
         for num in range(len(tmpdata)):
             if (self.viewSettings["plotType"] == 2):
                 self.line_xdata.append((num * self.viewSettings["spacing"] + self.xax()[xaxZlims]) * axMult)
                 self.line_ydata.append(np.imag(tmpdata[num][xaxZlims])[direc])
-                self.ax.plot(self.line_xdata[-1], self.line_ydata[-1], marker=marker, linestyle=linestyle, c='r', linewidth=self.viewSettings["linewidth"], label=self.data.name + '_imag', picker=True)
+                self.ax.plot(self.line_xdata[-1], self.line_ydata[-1], marker=marker, linestyle=linestyle, c='#FF7F0E', linewidth=self.viewSettings["linewidth"], label=self.data.name + '_imag', picker=True)
             self.line_xdata.append((num * self.viewSettings["spacing"] + self.xax()[xaxZlims]) * axMult)
             self.line_ydata.append(np.real(tmpdata[num][xaxZlims])[direc])
-            self.ax.plot(self.line_xdata[-1], self.line_ydata[-1], marker=marker, linestyle=linestyle, c=self.viewSettings["color"], linewidth=self.viewSettings["linewidth"], label=self.data.name, picker=True)
+            if colorRange is None:
+                color = self.viewSettings["color"]
+            else:
+                color = colorRange(num/float(len(tmpdata)))
+            self.ax.plot(self.line_xdata[-1], self.line_ydata[-1], marker=marker, linestyle=linestyle, c=color, linewidth=self.viewSettings["linewidth"], label=self.data.name, picker=True)
             pos = (num * self.viewSettings["spacing"] + 0.5 * (self.xax()[xaxZlims][-1] + self.xax()[xaxZlims][0])) * axMult
             ticksPos.append(pos)
         self.ax.set_xticks(ticksPos)
