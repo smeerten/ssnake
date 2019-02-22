@@ -1761,8 +1761,6 @@ class PeakDeconvParamFrame(AbstractParamFrame):
            if struc["Gauss"][i][0] == 1:
                 self.fitParamList[locList]["Gauss"][i][0] = abs(self.fitParamList[locList]["Gauss"][i][0])
 
-
-
 ##############################################################################
 
 

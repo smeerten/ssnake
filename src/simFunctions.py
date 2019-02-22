@@ -237,6 +237,8 @@ def zcw_angles(m, symm=0):
 def peakSim(x, freq, sw, axMult, extra, bgrnd, mult, pos, amp, lor, gauss):
     x = x[-1]
     pos /= axMult
+    if pos < np.min(x) or pos > np.max(x):
+        return np.zeros_like(x)
     lor = np.abs(lor)
     gauss = np.abs(gauss)
     length = len(x)
