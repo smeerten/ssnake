@@ -166,7 +166,7 @@ def quadConversion(Values,I, Type, Q = None):
     # Calculates the chemical shift tensor based on:
     # Values: a list with two or three numbers (Cq/Wq and Eta, Or Vxx Vyy Vzz)
     # Type: an integer defining the input shift convention
-    # I: spin quntum number
+    # I: spin quantum number
     # Q: Quad moment in fm^2
     # Returns a list of list with all calculated values
         if Type == 0:  # Cq as input
