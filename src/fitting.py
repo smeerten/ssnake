@@ -2405,9 +2405,9 @@ class QuadCSADeconvParamFrame(AbstractParamFrame):
         self.frame3.addWidget(self.labelskew, 1, 5)
         self.addMultiLabel("Cq", u"C<sub>Q</sub> [MHz]:", 6)
         self.addMultiLabel("eta", u"η:", 8)
-        self.addMultiLabel("Alpha", u"α:", 10)
-        self.addMultiLabel("Beta", u"β:", 12)
-        self.addMultiLabel("Gamma", u"γ:", 14)
+        self.addMultiLabel("Alpha", u"α [deg]:", 10)
+        self.addMultiLabel("Beta", u"β [deg]:", 12)
+        self.addMultiLabel("Gamma", u"γ [deg]:", 14)
         self.addMultiLabel("Integral", "Integral:", 16)
         self.addMultiLabel("Lorentz", "Lorentz [Hz]:", 18)
         self.addMultiLabel("Gauss", "Gauss [Hz]:", 20)
@@ -2593,6 +2593,18 @@ class QuadCSADeconvParamFrame(AbstractParamFrame):
                     self.fitParamList[locList]['Definition3'][i][0] = 1 - abs(abs(self.fitParamList[locList]['Definition3'][i][0])%2 - 1)
                 if self.shiftDefType == 3:
                     self.fitParamList[locList]['Definition3'][i][0] = 1 - abs(abs(self.fitParamList[locList]['Definition3'][i][0] + 1)%4 - 2)
+            if struc["Alpha"][i][0] == 1:
+                self.fitParamList[locList]["Alpha"][i][0] = self.fitParamList[locList]["Alpha"][i][0] % 180.0
+                if self.fitParamList[locList]["Alpha"][i][0] > 90:
+                    self.fitParamList[locList]["Alpha"][i][0] = 180 - self.fitParamList[locList]["Alpha"][i][0]
+            if struc["Beta"][i][0] == 1:
+                self.fitParamList[locList]["Beta"][i][0] = self.fitParamList[locList]["Beta"][i][0] % 180.0
+                if self.fitParamList[locList]["Beta"][i][0] > 90:
+                    self.fitParamList[locList]["Beta"][i][0] = 180 - self.fitParamList[locList]["Beta"][i][0]
+            if struc["Gamma"][i][0] == 1:
+                self.fitParamList[locList]["Gamma"][i][0] = self.fitParamList[locList]["Gamma"][i][0] % 180.0
+                if self.fitParamList[locList]["Gamma"][i][0] > 90:
+                    self.fitParamList[locList]["Gamma"][i][0] = 180 - self.fitParamList[locList]["Gamma"][i][0]
 
 ##############################################################################
 

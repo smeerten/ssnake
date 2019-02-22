@@ -369,6 +369,10 @@ def quadFreqBase(I, m1, m2, cq, eta, freq, angle, D2, D4, numssb, spinspeed):
     return v, vConstant
 
 def quadCSAFunc(x, freq, sw, axMult, extra, bgrnd, mult, spinspeed, t11, t22, t33, cq, eta, alphaCSA, betaCSA, gammaCSA, amp, lor, gauss):
+    # Degrees to radians
+    alphaCSA *= np.pi/180.0
+    betaCSA *= np.pi/180.0
+    gammaCSA *= np.pi/180.0
     x = x[-1]
     satBool, I, numssb, angle, D2, D4, weight, MAStype, shiftdef = extra
     if MAStype == 0:
