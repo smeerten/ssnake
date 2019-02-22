@@ -1631,7 +1631,6 @@ class CurrentContour(CurrentStacked):
     def setProjTraces(self, val, direc):
         self.viewSettings["projPos"][direc] = val
 
-
     def integralsPreview(self, xMin, xMax, yMin, yMax):
         nPatches = min(len(xMin),len(xMax),len(yMin),len(yMax))
         self.resetPreviewRemoveList()
@@ -1648,8 +1647,7 @@ class CurrentContour(CurrentStacked):
             self.removeListLines.append(self.ax.fill([xminTmp,xminTmp,xmaxTmp,xmaxTmp],[yminTmp,ymaxTmp,ymaxTmp,yminTmp],color=color,fill = False, linestyle='--')[0])
         self.canvas.draw()
 
-
-    def updateAxes(self,oldAx, newAx, axis):
+    def updateAxes(self, oldAx, newAx, axis):
         scale = newAx / oldAx
         # Scale the path vertices, so no new contours need to be calculated
         cols = self.ax.collections
@@ -1844,9 +1842,21 @@ class CurrentContour(CurrentStacked):
             elif self.viewSettings["projPos"][0] < 0:
                 self.viewSettings["projPos"][0] = 0
             xprojdata = tmpdata[self.viewSettings["projPos"][0]]
+        elif self.viewSettings["projTop"] == 5:
+            indices2 = np.searchsorted(y, x)
+            indices1 = indices2 -1
+            indices2[indices2 >= len(y)] = len(y)-1
+            indices1[indices1 < 0] = 0
+            dist1 = x - y[indices1]
+            dist2 = y[indices2] - x
+            distSum = (dist1 + dist2)
+            xprojdata = dist2 * tmpdata[indices1, np.arange(len(x))] + dist1 * tmpdata[indices2, np.arange(len(x))]
+            xprojdata[distSum!=0.0] /= distSum[distSum!=0.0]
+            xprojdata[x > np.max(y)] = np.nan
+            xprojdata[x < np.min(y)] = np.nan
         if self.viewSettings["projTop"] != 3:
             self.x_ax.plot(x, xprojdata, color=color, linewidth=self.viewSettings["linewidth"], picker=True)            
-            xmin, xmax = np.min(xprojdata), np.max(xprojdata)
+            xmin, xmax = np.nanmin(xprojdata), np.nanmax(xprojdata)
             self.x_ax.set_ylim([xmin - 0.15 * (xmax - xmin), xmax + 0.05 * (xmax - xmin)])  # Set projection limits, and force 15% whitespace below plot
             self.x_ax.set_xlim(xLimOld)
         if self.viewSettings["projRight"] == 0:
@@ -1861,9 +1871,21 @@ class CurrentContour(CurrentStacked):
             elif self.viewSettings["projPos"][1] < 0:
                 self.viewSettings["projPos"][1] = 0
             yprojdata = tmpdata[:, self.viewSettings["projPos"][1]]
+        elif self.viewSettings["projTop"] == 5:
+            indices2 = np.searchsorted(x, y)
+            indices1 = indices2 -1
+            indices2[indices2 >= len(x)] = len(x)-1
+            indices1[indices1 < 0] = 0
+            dist1 = y - x[indices1]
+            dist2 = x[indices2] - y
+            distSum = (dist1 + dist2)
+            yprojdata = dist2 * tmpdata[np.arange(len(y)), indices1] + dist1 * tmpdata[np.arange(len(y)), indices2]
+            yprojdata[distSum!=0.0] /= distSum[distSum!=0.0]
+            yprojdata[y > np.max(x)] = np.nan
+            yprojdata[y < np.min(x)] = np.nan
         if self.viewSettings["projRight"] != 3:
             self.y_ax.plot(yprojdata, y, color=color, linewidth=self.viewSettings["linewidth"], picker=True)
-            ymin, ymax = np.min(yprojdata), np.max(yprojdata)
+            ymin, ymax = np.nanmin(yprojdata), np.nanmax(yprojdata)
             self.y_ax.set_xlim([ymin - 0.15 * (ymax - ymin), ymax + 0.05 * (ymax - ymin)])  # Set projection limits, and force 15% whitespace below plot
             self.y_ax.set_ylim(yLimOld)
         self.setTicks()
