@@ -751,7 +751,7 @@ class MainProgram(QtWidgets.QMainWindow):
         self.csastaticAct.setToolTip('Fit CSA')
         self.quadAct = self.fittingMenu.addAction(QtGui.QIcon(IconDirectory + 'quadconversion.png'), "&Quadrupole", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.createQuadDeconvWindow()))
         self.quadAct.setToolTip('Fit Quadrupole')
-        self.quadCSAAct = self.fittingMenu.addAction("Q&uadrupole+CSA", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.createQuadCSADeconvWindow()))
+        self.quadCSAAct = self.fittingMenu.addAction(QtGui.QIcon(IconDirectory + 'quadcsa.png'),"Q&uadrupole+CSA", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.createQuadCSADeconvWindow()))
         self.quadCSAAct.setToolTip('Fit Quadrupole+CSA')
         self.czjzekAct = self.fittingMenu.addAction(QtGui.QIcon(IconDirectory + 'czjzekstatic.png'), "C&zjzek", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.createQuadCzjzekWindow()))
         self.czjzekAct.setToolTip('Fit Czjzek Pattern')
