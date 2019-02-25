@@ -850,7 +850,7 @@ class Spectrum(object):
             offset = 0
         else:
             offset = self.freq[axis] - self.ref[axis]
-        self.__phase(phase0, phase1, offset, axis, select=slice(None))
+        self.__phase(phase0, phase1, offset, axis, select=select)
 
         if not internal:
             Message = "Phasing: phase0 = " + str(phase0 * 180 / np.pi) + " and phase1 = " + str(phase1 * 180 / np.pi) + " for dimension " + str(axis + 1)
