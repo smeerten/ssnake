@@ -6356,7 +6356,7 @@ class PlotSettingsWindow(wc.ToolWindows):
         self.father.current.setTickNum(self.xTicksSpinBox.value(),self.yTicksSpinBox.value())
         tmpColor = self.father.current.viewSettings["color"]
         self.father.current.setColor(self.color)
-        tmpColorRange = self.father.current.viewSettings["colorRange"]
+        tmpColorRange = self.father.current.getColorRange()
         self.father.current.setColorRange(self.crEntry.currentIndex())
         tmpColorMap = self.father.current.getColorMap()
         self.father.current.setColorMap(self.cmEntry.currentIndex())
