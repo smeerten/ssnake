@@ -2941,14 +2941,14 @@ class TextFrame(QtWidgets.QScrollArea):
     def setLabels(self, position):
         if len(position) > 3:
             self.ypos.setText(str(position[3]))
-            self.deltaypoint.setText('%#.3g' % np.abs(self.oldy - position[4]))
-            self.ypoint.setText('%#.3g' % position[4])
+            self.deltaypoint.setText('%#.4g' % np.abs(self.oldy - position[4]))
+            self.ypoint.setText('%#.4g' % position[4])
             self.oldy = position[4]
-        self.deltaxpoint.setText('%#.3g' % np.abs(self.oldx - position[1]))
-        self.deltaamppoint.setText('%#.3g' % np.abs(self.oldamp - position[2]))
+        self.deltaxpoint.setText('%#.4g' % np.abs(self.oldx - position[1]))
+        self.deltaamppoint.setText('%#.4g' % np.abs(self.oldamp - position[2]))
         self.xpos.setText(str(position[0]))
-        self.xpoint.setText('%#.3g' % position[1])
-        self.amppoint.setText('%#.3g' % position[2])
+        self.xpoint.setText('%#.4g' % position[1])
+        self.amppoint.setText('%#.4g' % position[2])
         self.oldx = position[1]
         self.oldamp = position[2]
 
