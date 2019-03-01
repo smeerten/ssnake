@@ -1054,14 +1054,13 @@ def loadChemFile(filePath):
         b = np.complex128(raw.byteswap())
     filePath = Dir + os.path.sep + 'data'
     fid = b[:int(len(b) / 2)] + 1j * b[int(len(b) / 2):]
-    fid = np.reshape(fid, (sizeTD1, sizeTD2))
+    fid = np.reshape(fid, (len(fid)//sizeTD2, sizeTD2))
     data = np.array(fid)
     spec = [False]
     if sizeTD1 is 1:
         data = data[0][:]
         masterData = sc.Spectrum(data, (filePath, None), [freq * 1e6], [sw], spec)
     else:
-        data = data.reshape((sizeTD1, sizeTD2))
         masterData = sc.Spectrum(data, (filePath, None), [freq * 1e6] * 2, [sw1, sw], spec * 2)
     masterData.addHistory("Chemagnetics data loaded from " + filePath)
     try:
