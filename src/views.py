@@ -501,7 +501,6 @@ class Current1D(PlotFrame):
         for i in reversed(range(dim)): #Make slice operator along all dimensions
             slc  = slc + (slice(minPeak[i],maxPeak[i] + 1), )
         tmpData = tmpData[slc] #slice data
-
         if self.spec() == 0 and dim ==1:
             intSum = np.cumsum(tmpData)
         elif self.spec() == 1 and dim ==1:
