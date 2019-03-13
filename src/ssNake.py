@@ -103,7 +103,7 @@ isoPath = os.path.dirname(os.path.realpath(__file__)) + os.path.sep + "IsotopePr
 ISOTOPES = loadIsotopes.getIsotopeInfo(isoPath)
 
 matplotlib.rc('font', family='DejaVu Sans')
-np.set_printoptions(threshold=np.nan)
+np.set_printoptions(threshold=sys.maxsize)
 QtCore.QLocale.setDefault(QtCore.QLocale('en_US'))
 
 VERSION = 'v1.1b'
