@@ -23,7 +23,7 @@ On Ubuntu and Debian these packages can be installed using the package manager:
 sudo apt-get install python python-numpy python-matplotlib python-scipy python-qt4 python-h5py
 ```
 
-On Windows these packages can easily be installed by downloading [Anaconda](http://continuum.io/downloads).
+On Windows (and macOS) these packages can easily be installed by downloading [Anaconda](https://www.anaconda.com/distribution/).
 During installation, you should enable the 'Add Anaconda to the system PATH environment variable' box.
 This makes sure ssNake can find the python executable installed by Anaconda.
 
@@ -32,11 +32,13 @@ This makes sure ssNake can find the python executable installed by Anaconda.
 Installation
 ------------
 
-###Linux###
+###Linux and macOS###
 
 To install ssNake, copy the ssNake directory to your favourite location (/usr/local/, for example).
 ssNake can then be run by executing 'python /InstallPath/src/ssNake.py'.
 Aliases or symlinks can be used to create a shortcut to start the program.
+When multiple versions of Python are installed make sure that the correct one is used to start ssNake.
+This can be done either by modifying the PATH environment variable or by starting ssNake with the full path to the Python binary, for example by using '/anaconda3/bin/python /InstallPath/src/ssNake.py'
 
 ###Windows###
 
