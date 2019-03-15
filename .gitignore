@@ -1,3 +1,4 @@
+env/
 *.pyc
 *.aux
 *.auxlock
