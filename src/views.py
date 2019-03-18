@@ -472,7 +472,6 @@ class Current1D(PlotFrame):
         for i in range(dim):
             slc = slc + (slice(minPeak[-(i+1)],maxPeak[-(i+1)],None),)
         tmpData = tmpData[slc]
-
         COM = []
         axes = list(range(dim))
         for i in range(dim):

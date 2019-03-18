@@ -5811,7 +5811,7 @@ class NormalizeWindow(wc.ToolWindows):
             raise SsnakeException("Normalize: invalid multiplier")
         type = self.typeDrop.currentIndex()
         if type == 0:
-            val, xValues, yValues, datMax = self.father.current.Integrals(minimum, maximum)
+            val, xValues, yValues, datMax = self.father.current.Integrals([minimum], [maximum])
         elif type == 1:
             val = self.father.current.MaxMin(minimum, maximum, type='max')
         elif type == 2:
