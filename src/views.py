@@ -617,6 +617,12 @@ class Current1D(PlotFrame):
         self.showFid()
         self.upd()
 
+    def align(self, pos1, pos2):
+        self.root.addMacro(['align', (pos1, pos2, self.axes[-1] - self.data.ndim())])
+        self.data.align(pos1, pos2, self.axes[-1])
+        self.upd()
+        self.showFid()
+
     def getdcOffset(self, pos1, pos2):
         minPos = int(min(pos1, pos2))
         maxPos = int(max(pos1, pos2))

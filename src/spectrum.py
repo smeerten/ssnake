@@ -1162,6 +1162,37 @@ class Spectrum(object):
         if not self.noUndo:
             self.undoList.append(lambda self: self.roll(-shift,axis))
 
+    def align(self, pos1=None, pos2=None, axis=-1):
+        axis = self.checkAxis(axis)
+        if not self.noUndo:
+            copyData = copy.deepcopy(self)
+        if pos1 is None:
+            pos1 = 0
+        if pos2 is None:
+            pos2 = self.shape()[axis]
+        if not (0 <= pos1 <= self.shape()[axis]):
+            raise SpectrumException("Indices not within range")
+        if not (0 <= pos2 <= self.shape()[axis]):
+            raise SpectrumException("Indices not within range")
+        if pos1 == pos2:
+            raise SpectrumException("Indices cannot be equal")
+        minPos = min(pos1, pos2)
+        maxPos = max(pos1, pos2)
+        slicing = (slice(None), ) * axis + (slice(minPos, maxPos), )
+        tmp = self.data[slicing].argmax(axis=axis)
+        maxArgPos = -np.array(tmp.data, dtype=int)
+        maxArgPos -= maxArgPos.flatten()[0]
+        shape = self.data.shape()
+        shape = np.delete(shape, axis)
+        rangeList = [range(i) for i in shape]
+        for i in itertools.product(*rangeList):
+            selectList = np.insert(np.array(i,dtype=object), axis, slice(None))
+            self.data[selectList] = self.data[selectList].roll(maxArgPos[0][tuple(i)], 0)
+        self.addHistory("Maxima aligned between " + str(minPos) + " and " + str(maxPos) + " along axis " + str(axis))
+        self.redoList = []
+        if not self.noUndo:
+            self.undoList.append(lambda self: self.restoreData(copyData, lambda self: self.align(pos1, pos2, axis)))
+            
     def __fourier(self, axis, tmp=False, reorder=[True,True]):
         axis = self.checkAxis(axis)
         if reorder[0]:

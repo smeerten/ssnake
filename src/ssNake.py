@@ -401,6 +401,8 @@ class MainProgram(QtWidgets.QMainWindow):
                                    ['Tools --> Phase', self.phaseAct],
                                    ['Tools --> Autophase 0', self.autoPhaseAct0],
                                    ['Tools --> Autophase 0+1', self.autoPhaseAct1],
+                                   ['Tools --> Autophase per trace 0', self.autoPhaseAllAct0],
+                                   ['Tools --> Autophase per trace 0+1', self.autoPhaseAllAct1],
                                    ['Tools --> Swap Echo', self.swapEchoAct],
                                    ['Tools --> Offset Correction', self.corOffsetAct],
                                    ['Tools --> Baseline Correction', self.baselineAct],
@@ -412,6 +414,7 @@ class MainProgram(QtWidgets.QMainWindow):
                                    ['Matrix --> Sizing', self.sizingAct],
                                    ['Matrix --> Shift Data', self.shiftAct],
                                    ['Matrix --> Roll Data', self.rollAct],
+                                   ['Matrix --> Align Maxima', self.alignAct],
                                    ['Matrix --> Multiply', self.multiplyAct],
                                    ['Matrix --> Normalize', self.normalizeAct],
                                    ['Matrix --> Region --> Integrate', self.intRegionAct],
@@ -654,6 +657,8 @@ class MainProgram(QtWidgets.QMainWindow):
         self.shiftAct.setToolTip('Shift Data')
         self.rollAct = self.matrixMenu.addAction(QtGui.QIcon(IconDirectory + 'roll.png'),"Roll Data", lambda: self.mainWindowCheck(lambda mainWindow: RollDataWindow(mainWindow)))
         self.rollAct.setToolTip('Roll Data')
+        self.alignAct = self.matrixMenu.addAction("Align Maxima", lambda: self.mainWindowCheck(lambda mainWindow: AlignDataWindow(mainWindow)))
+        self.alignAct.setToolTip('Align Maxima')
         self.regionMenu = QtWidgets.QMenu("Region", self)
         self.matrixMenu.addMenu(self.regionMenu)
         self.intRegionAct = self.regionMenu.addAction(QtGui.QIcon(IconDirectory + 'int.png'), "&Integrate", lambda: self.mainWindowCheck(lambda mainWindow: integrateWindow(mainWindow)))
@@ -696,7 +701,7 @@ class MainProgram(QtWidgets.QMainWindow):
         self.shearAct = self.matrixMenu.addAction(QtGui.QIcon(IconDirectory + 'shear.png'), "Shearin&g", lambda: self.mainWindowCheck(lambda mainWindow: ShearingWindow(mainWindow)))
         self.shearAct.setToolTip('Shearing')
         self.multiDActions.append(self.shearAct)
-        self.matrixActList = [self.sizingAct, self.shiftAct, self.rollAct, self.intRegionAct,
+        self.matrixActList = [self.sizingAct, self.shiftAct, self.rollAct, self.alignAct, self.intRegionAct,
                               self.sumRegionAct, self.maxRegionAct, self.minRegionAct,
                               self.maxposRegionAct, self.minposRegionAct, self.averageRegionAct,
                               self.diffAct, self.cumsumAct, self.extractpartAct,
@@ -4025,7 +4030,6 @@ class RollDataWindow(wc.ToolWindows):
             shift *= +10
         elif QtWidgets.qApp.keyboardModifiers() & QtCore.Qt.ShiftModifier:
             shift *= +100
-
         self.shiftVal = self.shiftVal + shift
         self.shiftEntry.setText(str(self.shiftVal))
         self.rollPreview()
@@ -4600,6 +4604,22 @@ class SubtractAvgWindow(regionWindow2):
 
     def preview(self, maximum, minimum):
         self.father.current.subtractAvgPreview(maximum, minimum)
+
+############################################################
+
+
+class AlignDataWindow(regionWindow2):
+
+    def __init__(self, parent):
+        super(AlignDataWindow, self).__init__(parent, 'Align Maxima', False)
+
+    def apply(self, maximum, minimum, newSpec):
+        self.father.current.align(maximum, minimum)
+        self.father.updAllFrames()
+        return 1
+
+    # def preview(self, maximum, minimum):
+    #     self.father.current.subtractAvgPreview(maximum, minimum)
 
 #############################################################
 
