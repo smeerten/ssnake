@@ -948,6 +948,12 @@ class Current1D(PlotFrame):
         self.upd()
         self.showFid()
 
+    def autoPhaseAll(self, phaseNum):
+        self.root.addMacro(['autoPhaseAll', (phaseNum, self.axes[-1] - self.data.ndim())])
+        self.data.autoPhaseAll(phaseNum, self.axes[-1])
+        self.upd()
+        self.showFid()
+
     def setXaxPreview(self, xax):
         self.data1D.setXax(xax, -1)
         self.showFid()

@@ -22,6 +22,7 @@ import scipy.optimize
 import copy
 from nus import ffm, clean, ist
 import multiprocessing
+import itertools
 import reimplement as reim
 import functions as func
 import hypercomplex as hc
@@ -780,7 +781,26 @@ class Spectrum(object):
         if not self.noUndo:
             self.undoList.append(lambda self: self.restoreData(copyData, lambda self: self.hilbert(axis)))
 
-    def autoPhase(self, phaseNum=0, axis=-1, locList=None, returnPhases=False):
+    def autoPhaseAll(self, phaseNum=0, axis=-1):
+        axis = self.checkAxis(axis)
+        if not self.noUndo:
+            copyData = copy.deepcopy(self)
+        shape = self.data.shape()
+        shape = np.delete(shape, axis)
+        rangeList = [range(i) for i in shape]
+        for i in itertools.product(*rangeList):
+            locList = np.insert(i, axis, 0)
+            selectList = np.insert(np.array(i,dtype=object), axis, slice(None))
+            self.autoPhase(phaseNum, axis, locList, False, selectList)
+        if phaseNum == 1:
+            self.addHistory("Autophased per trace for 0 + 1 order along axis " + str(axis + 1))
+        else:
+            self.addHistory("Autophased per trace for 0 order along axis " + str(axis + 1))
+        self.redoList = []
+        if not self.noUndo:
+            self.undoList.append(lambda self: self.restoreData(copyData, lambda self: self.autoPhaseAll(phaseNum, axis)))
+
+    def autoPhase(self, phaseNum=0, axis=-1, locList=None, returnPhases=False, select=slice(None)):
         axis = self.checkAxis(axis)
         if locList is None:
             locList = [0]*self.ndim()
@@ -811,7 +831,7 @@ class Spectrum(object):
             offset = self.freq[axis] - self.ref[axis]
         vector = np.exp(np.fft.fftshift(np.fft.fftfreq(self.shape()[axis], 1.0 / self.sw[axis]) + offset) / self.sw[axis] * phase1 * 1j)
         vector = vector.reshape(vector.shape + (1, )*(self.ndim()-axis-1))
-        self.data *= np.exp(phase0 * 1j) * vector
+        self.data[select] *= np.exp(phase0 * 1j) * vector
         if self.spec[axis] == 0:
             self.__invFourier(axis, tmp=True)
         self.data.icomplexReorder(axis)

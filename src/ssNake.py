@@ -603,6 +603,10 @@ class MainProgram(QtWidgets.QMainWindow):
         self.autoPhaseAct0.setToolTip('Autophase 0 order')
         self.autoPhaseAct1 = self.toolMenu.addAction(QtGui.QIcon(IconDirectory + 'autophase1.png'), "Autophase 0+1", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.directAutoPhase(1)))
         self.autoPhaseAct1.setToolTip('Autophase 0 and 1 order')
+        self.autoPhaseAllAct0 = self.toolMenu.addAction(QtGui.QIcon(IconDirectory + 'autophase0.png'), "Autophase per trace 0", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.autoPhaseAll(0)))
+        self.autoPhaseAllAct0.setToolTip('Autophase per trace 0 order')
+        self.autoPhaseAllAct1 = self.toolMenu.addAction(QtGui.QIcon(IconDirectory + 'autophase1.png'), "Autophase per trace 0+1", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.autoPhaseAll(1)))
+        self.autoPhaseAllAct1.setToolTip('Autophase per trace 0 and 1 order')
         self.swapEchoAct = self.toolMenu.addAction(QtGui.QIcon(IconDirectory + 'swapecho.png'), "Swap &Echo", lambda: self.mainWindowCheck(lambda mainWindow: SwapEchoWindow(mainWindow)))
         self.swapEchoAct.setToolTip('Swap Echo')
         self.corOffsetAct = self.toolMenu.addAction(QtGui.QIcon(IconDirectory + 'offset.png'), "&Offset Correction", lambda: self.mainWindowCheck(lambda mainWindow: DCWindow(mainWindow)))
@@ -637,7 +641,8 @@ class MainProgram(QtWidgets.QMainWindow):
         self.loadrefAct.setToolTip('Load Reference')
         self.toolsActList = [self.realAct, self.imagAct, self.absAct,self.conjAct,
                              self.apodizeAct, self.phaseAct, self.autoPhaseAct0,
-                             self.autoPhaseAct1, self.swapEchoAct, self.corOffsetAct,
+                             self.autoPhaseAct1,  self.autoPhaseAllAct0,
+                             self.autoPhaseAllAct1,self.swapEchoAct, self.corOffsetAct,
                              self.baselineAct, self.subAvgAct, self.refDeconvAct,
                              self.digitalFilterAct, self.scaleSWAct]
         # the matrix drop down menu
@@ -1902,6 +1907,10 @@ class Main1DWindow(QtWidgets.QWidget):
 
     def directAutoPhase(self, phaseNum):
         self.current.directAutoPhase(phaseNum)
+        self.menuCheck()
+
+    def autoPhaseAll(self, phaseNum):
+        self.current.autoPhaseAll(phaseNum)
         self.menuCheck()
 
     def CorrectDigitalFilter(self):
