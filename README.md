@@ -61,6 +61,16 @@ Contributing
 4. Push to the branch
 5. Submit a pull request
 
+Citations
+---------
+
+If you use the ssNake software please cite:
+
+**ssNake: A cross-platform open-source NMR data processing and fitting application**  
+S.G.J.van Meerten, W.M.J.Franssen, A.P.M.Kentgens  
+Journal of Magnetic Resonance, Volume 301, 56-66 (2019)  
+https://doi.org/10.1016/j.jmr.2019.02.006  
+
 Creators
 --------
 
@@ -70,6 +80,7 @@ Creators
 
 Contact
 -------
+
 For question and suggestions mail to: ssnake@science.ru.nl
 
 License
