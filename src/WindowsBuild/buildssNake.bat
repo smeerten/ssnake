@@ -1,0 +1,1 @@
+C:\Users\Emulator\AppData\Local\Programs\Python\Python36\Scripts\pyinstaller.exe -y ssNake.spec
