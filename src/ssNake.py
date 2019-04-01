@@ -137,10 +137,14 @@ class MainProgram(QtWidgets.QMainWindow):
         self.referenceName = []  # List with saved reference names
         self.referenceValue = []  # List with saved reference values
         self.referenceActions = {}
-        if EXE:
-            self.lastLocation = os.path.expanduser('~')
+        self.loadDefaults()
+        if self.defaultStartupBool:
+            self.lastLocation = os.path.expanduser(self.defaultStartupDir)
         else:
-            self.lastLocation = os.getcwd()
+            if EXE:
+                self.lastLocation = os.path.expanduser('~')
+            else:
+                self.lastLocation = os.getcwd()
         self.initMenu()
         self.menuCheck()
         self.main_widget = QtWidgets.QSplitter(self) 
@@ -152,7 +156,7 @@ class MainProgram(QtWidgets.QMainWindow):
         self.main_widget.addWidget(self.gridWidget)
         self.logo = QtWidgets.QLabel(self)
         self.logo.setPixmap(QtGui.QPixmap(os.path.dirname(os.path.realpath(__file__)) + "/Icons/logo.gif"))
-        self.mainFrame.addWidget(self.logo,0,0, QtCore.Qt.AlignCenter)
+        self.mainFrame.addWidget(self.logo, 0, 0, QtCore.Qt.AlignCenter)
         self.tabs = wc.SsnakeTabs(self)
         self.tabs.setMovable(True)
         self.tabs.tabBar().tabMoved.connect(self.moveWorkspace)
@@ -160,7 +164,7 @@ class MainProgram(QtWidgets.QMainWindow):
         self.tabs.setTabsClosable(True)
         self.tabs.currentChanged.connect(self.changeMainWindow)
         self.tabs.tabCloseRequested.connect(self.destroyWorkspace)
-        self.mainFrame.addWidget(self.tabs,0,0)
+        self.mainFrame.addWidget(self.tabs, 0, 0)
         self.statusBar = QtWidgets.QStatusBar(self)
         self.setStatusBar(self.statusBar)
         self.tabs.hide()
@@ -168,7 +172,6 @@ class MainProgram(QtWidgets.QMainWindow):
         self.setCentralWidget(self.main_widget)
         self.eventFilter = wc.SsnakeEventFilter(self)
         self.root.installEventFilter(self.eventFilter)
-        self.loadDefaults()
         self.initToolbar()
         self.main_widget.setStretchFactor(1, 10)
         #Set double click filter for splitter
@@ -197,7 +200,6 @@ class MainProgram(QtWidgets.QMainWindow):
             canvas = self.mainWindow.tabs.currentWidget().canvas
         else:
             canvas = self.mainWindow.canvas
-
         if QT == 5:
             screen = self.root.primaryScreen()
             pixmap = screen.grabWindow(canvas.winId())
@@ -230,6 +232,8 @@ class MainProgram(QtWidgets.QMainWindow):
         self.defaultContourConst = True
         self.defaultPosColor = '#1F77B4'
         self.defaultNegColor = '#FF7F0E'
+        self.defaultStartupBool = False
+        self.defaultStartupDir = '~'
         self.defaultToolbarActionList = ['File --> Open',
                                          'File -- > Save --> Matlab',
                                          'File --> Export --> Figure',
@@ -315,6 +319,8 @@ class MainProgram(QtWidgets.QMainWindow):
             self.dispMsg("Incorrect value in the config file for the height")
         self.defaultAskName = settings.value("ask_name", self.defaultAskName, bool)
         self.defaultToolBar = settings.value("toolbar", self.defaultToolBar, bool)
+        self.defaultStartupBool = settings.value("startupdiron", self.defaultStartupBool, bool)
+        self.defaultStartupDir = settings.value("startupdir", self.defaultStartupDir, str)
         try:
             self.defaultWidthRatio = settings.value("contour/width_ratio", self.defaultWidthRatio, float)
         except TypeError:
@@ -347,6 +353,8 @@ class MainProgram(QtWidgets.QMainWindow):
         settings.setValue("height", self.defaultHeight)
         settings.setValue("ask_name", self.defaultAskName)
         settings.setValue("toolbar", self.defaultToolBar)
+        settings.setValue("startupdiron", self.defaultStartupBool)
+        settings.setValue("startupdir", self.defaultStartupDir)
         settings.setValue("contour/colourmap", self.defaultColorMap)
         settings.setValue("contour/constantcolours", self.defaultContourConst)
         settings.setValue("contour/poscolour", self.defaultPosColor)
@@ -891,7 +899,6 @@ class MainProgram(QtWidgets.QMainWindow):
             os.system("open " + '"' + path + '"')
         elif sys.platform.startswith( 'win' ):
             os.startfile(path)
-
 
     def mainWindowCheck(self, transfer):
         # checks if mainWindow exist to execute the function
@@ -6528,6 +6535,18 @@ class PreferenceWindow(QtWidgets.QWidget):
         editToolbarButton.clicked.connect(lambda: ToolbarWindow(self))
         grid1.addWidget(editToolbarButton, 6, 0, 1, 2)
         self.currentToolbar = self.father.defaultToolbarActionList
+        self.startupgroupbox = QtWidgets.QGroupBox("Startup Directory")
+        self.startupgroupbox.setCheckable(True)
+        self.startupgroupbox.setChecked(self.father.defaultStartupBool)
+        grid1.addWidget(self.startupgroupbox, 7, 0, 1, 2)
+        startupgrid = QtWidgets.QGridLayout()
+        self.startupgroupbox.setLayout(startupgrid)
+        self.startupDirEntry = QtWidgets.QLineEdit(self)
+        self.startupDirEntry.setText(self.father.defaultStartupDir)
+        startupgrid.addWidget(self.startupDirEntry, 0, 0)
+        self.startupDirButton = QtWidgets.QPushButton("Browse", self)
+        self.startupDirButton.clicked.connect(self.browseStartup)
+        startupgrid.addWidget(self.startupDirButton, 0, 1)
         # grid2 definitions
         grid2.addWidget(QtWidgets.QLabel("Linewidth:"), 1, 0)
         self.lwSpinBox = wc.SsnakeDoubleSpinBox()
@@ -6580,7 +6599,6 @@ class PreferenceWindow(QtWidgets.QWidget):
         self.ZoomStepSpinBox.setSingleStep(0.1)
         self.ZoomStepSpinBox.setValue(self.father.defaultZoomStep)
         grid2.addWidget(self.ZoomStepSpinBox, 14, 1)
-
         self.showTitleCheck = QtWidgets.QCheckBox("Show title in plot")
         self.showTitleCheck.setChecked(self.father.defaultShowTitle)
         grid2.addWidget(self.showTitleCheck, 15, 0, 1, 2)
@@ -6627,6 +6645,11 @@ class PreferenceWindow(QtWidgets.QWidget):
         layout.setColumnStretch(3, 1)
         self.show()
 
+    def browseStartup(self, *args):
+        newDir = QtWidgets.QFileDialog.getExistingDirectory(self, 'Select Directory', self.father.lastLocation, QtWidgets.QFileDialog.ShowDirsOnly)
+        if newDir:
+            self.startupDirEntry.setText(newDir)
+        
     def setColor(self, *args):
         tmp = QtWidgets.QColorDialog.getColor(QtGui.QColor(self.color))
         if tmp.isValid():
@@ -6651,6 +6674,8 @@ class PreferenceWindow(QtWidgets.QWidget):
         self.father.defaultAskName = self.askNameCheck.isChecked()
         self.father.defaultToolBar = self.toolbarCheck.isChecked()
         self.father.defaultToolbarActionList = self.currentToolbar
+        self.father.defaultStartupBool = self.startupgroupbox.isChecked()
+        self.father.defaultStartupDir = self.startupDirEntry.text()
         self.father.defaultLinewidth = self.lwSpinBox.value()
         self.father.defaultMinXTicks = self.xTicksSpinBox.value()
         self.father.defaultMinYTicks = self.yTicksSpinBox.value()
@@ -7400,7 +7425,7 @@ class tempCalWindow(QtWidgets.QWidget):
         cancelButton = QtWidgets.QPushButton("&Close")
         cancelButton.clicked.connect(self.closeEvent)
         box = QtWidgets.QDialogButtonBox()
-        box.addButton(cancelButton,QtWidgets.QDialogButtonBox.RejectRole)
+        box.addButton(cancelButton,QtWidgetsQ.DialogButtonBox.RejectRole)
         layout.addWidget(box, 1,0,1,4)
         layout.setColumnStretch(3, 1)
         self.show()

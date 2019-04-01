@@ -31,7 +31,7 @@ class SsnakeTabs(QtWidgets.QTabWidget):
                 self.tabCloseRequested.emit(index)
 
 class SsnakeTreeWidget(QtWidgets.QTreeView):
-    def __init__(self,parent):
+    def __init__(self, parent, startDir=None):
         super(SsnakeTreeWidget, self).__init__(parent)
         self.father = parent
         self.dirmodel = QtWidgets.QFileSystemModel()
