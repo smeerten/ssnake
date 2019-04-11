@@ -32,6 +32,7 @@ except ImportError:
     from PyQt4 import QtGui, QtCore
     from PyQt4 import QtGui as QtWidgets
     QT = 4
+QtCore.pyqtRemoveInputHook()
 import matplotlib
 # First import matplotlib and Qt
 if QT == 4:
@@ -3385,7 +3386,7 @@ class ApodWindow(wc.ToolWindows):
         self.available = True
         self.lorGroup = QtWidgets.QGroupBox()
         self.lorFrame = QtWidgets.QGridLayout()
-        lorTick = QtWidgets.QCheckBox("Lorentzian:")
+        lorTick = QtWidgets.QCheckBox("Lorentzian [Hz]:")
         lorTick.setFont(boldFont)
         lorTick.toggled.connect(lambda x: self.checkEval('lor'))
         self.lorFrame.addWidget(lorTick, 0, 0, 1, 3)
@@ -3412,7 +3413,7 @@ class ApodWindow(wc.ToolWindows):
         self.grid.addWidget(self.lorGroup, 0, 0, 1, 3)
         self.gaussGroup = QtWidgets.QGroupBox()
         self.gaussFrame = QtWidgets.QGridLayout()
-        gaussTick = QtWidgets.QCheckBox("Gaussian:")
+        gaussTick = QtWidgets.QCheckBox("Gaussian [Hz]:")
         gaussTick.setFont(boldFont)
         gaussTick.toggled.connect(lambda: self.checkEval('gauss'))
         self.gaussFrame.addWidget(gaussTick, 3, 0, 1, 3)
