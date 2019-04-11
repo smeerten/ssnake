@@ -11,6 +11,7 @@ NSIS installer maker (https://nsis.sourceforge.io/)
       Steps
 ==================
 - Copy the files in this directory to the same level as the ssnake folder
+- In ssNake.py, change the line 'EXE = False' to 'EXE = True'
 - In buildssNake.bat: change the path of the pyinstaller.exe to the path on your machine
 - In ssNake.spec: change the basePath to point to the ssNake src directory
 - In ssNake.spec: change the entry in 'pathex' to the scipy extra dll's
