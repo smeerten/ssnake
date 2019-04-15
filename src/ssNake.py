@@ -115,14 +115,26 @@ SPVERSION = '0.14.1'
 PY2VERSION = '2.7'
 PY3VERSION = '3.4'
 
+def splitString(val,size):
+    #Split a string at spaces, with maxsize 'size'
+    total = ''
+    while len(val) > size:
+        tmp = val[0:size]
+        space = tmp.rfind(' ')
+        total = total + val[0:space] + '\n'
+        val = val[space + 1::] #increment string. +1 to cut off the space
+    total = total + val
+    return total
 
+
+#Prepare TOOLTIPS dictionary
 TOOLTIPS = dict()
 with open('Tooltips','r') as f:
     data = f.read().split('\n')
 for line in data:
     if len(line) > 0:
         tmp = line.split('\t')
-        text =  tmp[1] + '<p>' + tmp[2] + '</p>' #Use HTML, this enables word break when printing the tooltip
+        text =  tmp[1] + '\n\n' + splitString(tmp[2],80) #Header plus split main text
         TOOLTIPS[tmp[0]] = text
 
 
