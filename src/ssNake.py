@@ -116,6 +116,16 @@ PY2VERSION = '2.7'
 PY3VERSION = '3.4'
 
 
+TOOLTIPS = dict()
+with open('Tooltips','r') as f:
+    data = f.read().split('\n')
+for line in data:
+    if len(line) > 0:
+        tmp = line.split('\t')
+        text =  tmp[1] + '<p>' + tmp[2] + '</p>' #Use HTML, this enables word break when printing the tooltip
+        TOOLTIPS[tmp[0]] = text
+
+
 class SsnakeException(sc.SpectrumException):
     pass
 
@@ -2891,7 +2901,7 @@ class TextFrame(QtWidgets.QScrollArea):
         content = QtWidgets.QWidget()
         grid = QtWidgets.QGridLayout(content)
         getButton = QtWidgets.QPushButton("&Get Position")
-        getButton.setToolTip('Get the position\n\nGet the x and y positions for a position selected in the main\nplot. The result is printed to the right of this button, in both\naxis units and the number of the data point. Also shown is\nthe difference with respect to the previous pick.')
+        getButton.setToolTip(TOOLTIPS['GetPos'])
         getButton.clicked.connect(self.getPosition)
         grid.addWidget(getButton, 0, 1)
         grid.addWidget(wc.QLabel("x-Position:"), 0, 2)
