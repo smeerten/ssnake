@@ -2750,6 +2750,7 @@ class BottomFrame(QtWidgets.QWidget):
         grid = QtWidgets.QGridLayout(self)
         self.setLayout(grid)
         fourierButton = QtWidgets.QPushButton("Fourier", parent=self)
+        fourierButton.setToolTip(TOOLTIPS['Fourier'])
         fourierButton.clicked.connect(self.father.fourier)
         grid.addWidget(fourierButton, 0, 0, 2, 1)
         self.specGroup = QtWidgets.QButtonGroup(self)
