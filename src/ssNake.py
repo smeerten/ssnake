@@ -129,7 +129,7 @@ def splitString(val,size):
 
 #Prepare TOOLTIPS dictionary
 TOOLTIPS = dict()
-with open('Tooltips','r') as f:
+with open(os.path.dirname(os.path.realpath(__file__)) + os.path.sep + 'Tooltips','r') as f:
     data = f.read().split('\n')
 for line in data:
     if len(line) > 0:
