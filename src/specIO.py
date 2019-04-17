@@ -1115,6 +1115,7 @@ def loadMagritek(filePath):
         Data = raw[-2 * sizeTD2 * sizeTD1::]
         ComplexData = Data[0:Data.shape[0]:2] - 1j * Data[1:Data.shape[0]:2]
         ComplexData = ComplexData.reshape((sizeTD1, sizeTD2))
+        ComplexData[:,0] *= 2
         masterData = sc.Spectrum(ComplexData, (filePath, None), [freq] * 2, [sw1, sw], [False] * 2, ref=[ref1, ref])
     elif len(Files1D) != 0:
         File = 'data.1d'
@@ -1122,6 +1123,7 @@ def loadMagritek(filePath):
             raw = np.fromfile(f, np.float32)
         Data = raw[-2 * sizeTD2::]
         ComplexData = Data[0:Data.shape[0]:2] - 1j * Data[1:Data.shape[0]:2]
+        ComplexData[0] *= 2
         masterData = sc.Spectrum(ComplexData, (filePath, None), [freq], [sw], [False], ref=[ref])
     try:
         masterData.metaData['# Scans'] = H['nrScans']
