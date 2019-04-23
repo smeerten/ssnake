@@ -3277,7 +3277,7 @@ class PhaseWindow(wc.ToolWindows):
         self.firstScale.valueChanged.connect(self.setFirstOrder)
         self.firstOrderFrame.addWidget(self.firstScale, 7, 0, 1, 3)
         if self.father.current.spec() > 0:
-            self.firstOrderFrame.addWidget(wc.QLabel("Pivot point:"), 8, 0, 1, 3)
+            self.firstOrderFrame.addWidget(wc.QLabel("Pivot point [Hz]:"), 8, 0, 1, 3)
             pickRef = QtWidgets.QPushButton("Pick pivot")
             pickRef.clicked.connect(self.pickRef)
             self.firstOrderFrame.addWidget(pickRef, 9, 1)
