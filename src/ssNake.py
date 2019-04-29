@@ -6831,6 +6831,7 @@ class aboutWindow(wc.ToolWindows):
         from scipy import __version__ as scipyVersion
         self.text.setText('<p><b>ssNake ' + VERSION + '</b></p>' +
                           '<p>Copyright (&copy;) 2016&ndash;2019 Bas van Meerten & Wouter Franssen<\p>' + '<p>Email: <a href="mailto:ssnake@science.ru.nl" >ssnake@science.ru.nl</a></p>' +
+                          '<p>Publication: <a href="https://doi.org/10.1016/j.jmr.2019.02.006" >https://doi.org/10.1016/j.jmr.2019.02.006</a></p>' +
                           '<b>Library versions</b>:<br>Python ' + pythonVersion + '<br>numpy ' + np.__version__ +
                           '<br>SciPy ' + scipyVersion +
                           '<br>matplotlib ' + matplotlib.__version__ +
