@@ -691,7 +691,7 @@ class MainProgram(QtWidgets.QMainWindow):
         self.shiftAct.setToolTip('Shift Data')
         self.rollAct = self.matrixMenu.addAction(QtGui.QIcon(IconDirectory + 'roll.png'),"Roll Data", lambda: self.mainWindowCheck(lambda mainWindow: RollDataWindow(mainWindow)))
         self.rollAct.setToolTip('Roll Data')
-        self.alignAct = self.matrixMenu.addAction("Align Maxima", lambda: self.mainWindowCheck(lambda mainWindow: AlignDataWindow(mainWindow)))
+        self.alignAct = self.matrixMenu.addAction(QtGui.QIcon(IconDirectory + 'alignMax.png'),"Align Maxima", lambda: self.mainWindowCheck(lambda mainWindow: AlignDataWindow(mainWindow)))
         self.alignAct.setToolTip('Align Maxima')
         self.regionMenu = QtWidgets.QMenu("Region", self)
         self.matrixMenu.addMenu(self.regionMenu)
