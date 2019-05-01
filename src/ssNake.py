@@ -2158,10 +2158,12 @@ class SideFrame(QtWidgets.QScrollArea):
                 if not self.FITTING:
                     self.buttons1.append(QtWidgets.QRadioButton(''))
                     self.buttons1Group.addButton(self.buttons1[num], num)
+                    self.buttons1[num].setToolTip(TOOLTIPS['sideframeDimension1'])
                     self.frame1.addWidget(self.buttons1[num], num * 2 + 1, 0)
                     if self.plotIs2D:
                         self.buttons2.append(QtWidgets.QRadioButton(''))
                         self.buttons2Group.addButton(self.buttons2[num], num)
+                        self.buttons2[num].setToolTip(TOOLTIPS['sideframeDimension2'])
                         self.frame1.addWidget(self.buttons2[num], num * 2 + 1, 1)
                 if current.isComplex(num):
                     tmpLabel = "*D"
@@ -2169,6 +2171,7 @@ class SideFrame(QtWidgets.QScrollArea):
                     tmpLabel = "D"
                 self.frame1.addWidget(wc.QLabel(tmpLabel + str(num + 1), self), num * 2, 1 + offset)
                 self.entries.append(wc.SliceSpinBox(self, 0, self.shape[num] - 1))
+                self.entries[-1].setToolTip(TOOLTIPS['sideFrameDimensionSlice'])
                 self.frame1.addWidget(self.entries[num], num * 2 + 1, 1 + offset)
                 if not self.plotIs2D:
                     self.entries[num].setValue(current.locList[num])
@@ -2471,10 +2474,12 @@ class SideFrame(QtWidgets.QScrollArea):
                 if current.viewSettings["extraData"][i].ndim() > 1:
                     for num in range(current.viewSettings["extraData"][i].ndim()):
                         buttons1.append(QtWidgets.QRadioButton(''))
+                        buttons1[-1].setToolTip(TOOLTIPS['multiplotDim'])
                         self.extraButtons1Group[i].addButton(buttons1[num], num)
                         frame.addWidget(buttons1[num], num * 3 + 6, 0)
                         frame.addWidget(wc.QLabel("D" + str(num + 1), self), num * 3 + 5, 1)
                         entries.append(wc.SliceSpinBox(self, 0, current.viewSettings["extraData"][i].shape()[num] - 1))
+                        entries[-1].setToolTip(TOOLTIPS['sideFrameDimensionSlice'])
                         frame.addWidget(entries[num], num * 3 + 6, 1)
                         entries[num].setValue(current.viewSettings["extraLoc"][i][num])
                         entries[num].valueChanged.connect(lambda event=None, num=num, i=i: self.getExtraSlice(event, num, i))
