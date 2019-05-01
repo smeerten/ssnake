@@ -2293,6 +2293,7 @@ class SideFrame(QtWidgets.QScrollArea):
                 self.projTraceTop.setMinimum(0)
                 self.projTraceTop.setValue(current.viewSettings["projPos"][0])
                 self.projTraceTop.valueChanged.connect(lambda val, self=self: self.changeTrace(val, 0))
+                self.projTraceTop.setToolTip(TOOLTIPS['contourProjTopTrac'])
                 self.contourProjFrame.addWidget(self.projTraceTop, 1, 1)
                 if current.viewSettings["projTop"] != 4:
                     self.projTraceTop.hide()
@@ -2309,6 +2310,7 @@ class SideFrame(QtWidgets.QScrollArea):
                 self.projTraceRight.setMinimum(0)
                 self.projTraceRight.setValue(current.viewSettings["projPos"][1])
                 self.projTraceRight.valueChanged.connect(lambda val, self=self: self.changeTrace(val, 1))
+                self.projTraceRight.setToolTip(TOOLTIPS['contourProjRightTrac'])
                 self.contourProjFrame.addWidget(self.projTraceRight, 3, 1)
                 if current.viewSettings["projRight"] != 4:
                     self.projTraceRight.hide()
@@ -2321,6 +2323,7 @@ class SideFrame(QtWidgets.QScrollArea):
                 self.rangeCheckbox = QtWidgets.QCheckBox('Projection ranges', self)
                 self.rangeCheckbox.setChecked(current.viewSettings["projLimitsBool"])
                 self.rangeCheckbox.stateChanged.connect(self.activateRanges)
+                self.rangeCheckbox.setToolTip(TOOLTIPS['contourProjRanges'])
                 self.contourProjFrame.addWidget(self.rangeCheckbox, 5, 0, 1, 2)
                 self.projTopRangeMaxLabel = wc.QLeftLabel("Top max:", self)
                 self.projTopRangeMaxLabel.hide()
@@ -2328,6 +2331,7 @@ class SideFrame(QtWidgets.QScrollArea):
                 self.projTopRangeMax = wc.SsnakeSpinBox()
                 self.projTopRangeMax.setMaximum(self.shape[current.axes[-2]] - 1)
                 self.projTopRangeMax.setMinimum(0)
+                self.projTopRangeMax.setToolTip(TOOLTIPS['contourTopRangeMax'])
                 if current.viewSettings["projLimits"][0] is None:
                     self.projTopRangeMax.setValue(self.shape[current.axes[-2]] - 1)
                 else:
@@ -2341,6 +2345,7 @@ class SideFrame(QtWidgets.QScrollArea):
                 self.projTopRangeMin = wc.SsnakeSpinBox()
                 self.projTopRangeMin.setMaximum(self.shape[current.axes[-2]] - 1)
                 self.projTopRangeMin.setMinimum(0)
+                self.projTopRangeMin.setToolTip(TOOLTIPS['contourTopRangeMin'])
                 if current.viewSettings["projLimits"][1] is None:
                     self.projTopRangeMin.setValue(0)
                 else:
@@ -2354,6 +2359,7 @@ class SideFrame(QtWidgets.QScrollArea):
                 self.projRightRangeMax = wc.SsnakeSpinBox()
                 self.projRightRangeMax.setMaximum(self.shape[current.axes[-1]] - 1)
                 self.projRightRangeMax.setMinimum(0)
+                self.projRightRangeMax.setToolTip(TOOLTIPS['contourRightRangeMax'])
                 if current.viewSettings["projLimits"][2] is None:
                     self.projRightRangeMax.setValue(self.shape[current.axes[-1]] - 1)
                 else:
@@ -2367,6 +2373,7 @@ class SideFrame(QtWidgets.QScrollArea):
                 self.projRightRangeMin = wc.SsnakeSpinBox()
                 self.projRightRangeMin.setMaximum(self.shape[current.axes[-1]] - 1)
                 self.projRightRangeMin.setMinimum(0)
+                self.projRightRangeMin.setToolTip(TOOLTIPS['contourRightRangeMin'])
                 if current.viewSettings["projLimits"][3] is None:
                     self.projRightRangeMin.setValue(0)
                 else:
@@ -2382,11 +2389,13 @@ class SideFrame(QtWidgets.QScrollArea):
                 self.diagonalGroup.setCheckable(True)
                 self.diagonalGroup.setChecked(current.viewSettings["diagonalBool"])
                 self.diagonalGroup.toggled.connect(self.switchDiagonal)
+                self.diagonalGroup.setToolTip(TOOLTIPS['contourDiagonal'])
                 self.diagonalFrame = QtWidgets.QGridLayout()
                 self.diagMultiLabel = wc.QLeftLabel("Multiplier:", self)
                 self.diagonalFrame.addWidget(self.diagMultiLabel, 0, 0)
                 self.diagonalEntry = wc.QLineEdit(current.viewSettings["diagonalMult"], self.setDiagonal)
                 self.diagonalEntry.setMaximumWidth(120)
+                self.diagonalEntry.setToolTip(TOOLTIPS['contourDiagonalMulti'])
                 self.diagonalFrame.addWidget(self.diagonalEntry, 0, 1)
                 self.diagonalGroup.setLayout(self.diagonalFrame)
                 self.frame2.addWidget(self.diagonalGroup, 10, 0, 1, 3)

@@ -5,7 +5,6 @@ xValue	Displays the x-value of the last pick.	The displayed number is the axis v
 ampValue	Displays the amplitude value of the last pick.	The displayed number is the amplitude that belongs to the selected data point. Note that the amplitude of a data point is not always equal to the y-value in the plot. For example, in a contour plot it stands for the z-value of the data point. 
 deltaxvalue	Displays the difference in x-value between the last two picks.	The difference is between the axis values (i.e. in Hz, s, ppm, etc.), and is given in the unit of the x-axis.
 deltaamplitude	Displays the difference in amplitude between the last two picks.
-
 yPosition	Displays the y-position of the last pick.	The displayed number is the position of the data point along the y-axis. Note that, in ssNake, position '0' always refers to the first data point. Also note that, in a spectrum, the data indices go from the top to the bottom, making point '0' the uppermost data point.
 yValue	Displays the y-value of the last pick.	The displayed number is the axis value of the selected data point along the y-axis in the unit of the y-axis. 
 deltayvalue	Displays the difference in y-value between the last two picks.	The difference is between the axis values (i.e. in Hz, s, ppm, etc.), and is given in the unit of the y-axis.
@@ -30,3 +29,12 @@ contourMin	Minimum contour level in %.	Can also be changed by using 'shift + scr
 contourLimType	Defines what is taken as 100% for the contour levels.	There are two options. 'Current 2D' makes sure that 100% is defined as the maximum of the absolute value of the currently viewed 2D data. 'Full data' takes the maximum of all slices. This option is useful if you want to compare different 2D slices, and are searching for the regions with a certain amount of signal intensity (e.g. going through different 2D slices of 3D data).
 contourTopProjection	Defines the type of projection that is used for the top data.	There are several options. 'Sum' takes the sum of all horizontal traces. 'Max' takes the maximum. 'Min' takes the minimum, and 'off' turn the projection off. The 'Slice' option can be used to make the projection equal to a certain horizontal slice, which can be defined by the user. The 'Diagonal' option sets the projection equal to the diagonal, using linear interpolation if necessary.
 contourRightProjection	Defines the type of projection that is used for the right data.	There are several options. 'Sum' takes the sum of all vertical traces. 'Max' takes the maximum. 'Min' takes the minimum, and 'off' turn the projection off. The 'Slice' option can be used to make the projection equal to a certain vertical slice, which can be defined by the user. The 'Diagonal' option sets the projection equal to the diagonal, using linear interpolation if necessary.
+contourProjTopTrac	The horizontal slice that is to be used for the top projection.
+contourProjRightTrac	The vertical slice that is to be used for the right projection.
+contourProjRanges	Use a range of the data for the projection.	This enables several input boxes to define the ranges of the data that should be used for the top and right projection. Only available for the 'Sum', 'Max' and 'Min' options.
+contourTopRangeMax	Maximum of the traces that is to be used for the top projection.
+contourTopRangeMin	Minimum of the traces that is to be used for the top projection.
+contourRightRangeMax	Maximum of the traces that is to be used for the right projection.
+contourRightRangeMin	Minimum of the traces that is to be used for the right projection.
+contourDiagonal	Plot a line along the diagonal in the contour plot.	The slope of the line depends on the x and y axes, and its units.
+contourDiagonalMulti	Multiplier for the diagonal line.	This can be used, for example, to draw a diagonal for a single-quantum-double-quantum correlation plot (multiplier = 2).
