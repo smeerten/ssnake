@@ -271,8 +271,8 @@ class MainProgram(QtWidgets.QMainWindow):
                                          'Edit --> Redo',
                                          'Edit --> Reload',
                                          'Seperator', 'Tools --> Apodize',
-                                         'Tools --> Phase',
-                                         'Tools --> Autophase 0',
+                                         'Tools --> Phasing --> Phase',
+                                         'Tools --> Phasing --> Autophase 0',
                                          'Seperator',
                                          'Matrix --> Sizing',
                                          'Matrix --> Shift Data',
@@ -432,11 +432,11 @@ class MainProgram(QtWidgets.QMainWindow):
                                    ['Tools --> Abs', self.absAct],
                                    ['Tools --> Complex Conjugate', self.conjAct],
                                    ['Tools --> Apodize', self.apodizeAct],
-                                   ['Tools --> Phase', self.phaseAct],
-                                   ['Tools --> Autophase 0', self.autoPhaseAct0],
-                                   ['Tools --> Autophase 0+1', self.autoPhaseAct1],
-                                   ['Tools --> Autophase per trace 0', self.autoPhaseAllAct0],
-                                   ['Tools --> Autophase per trace 0+1', self.autoPhaseAllAct1],
+                                   ['Tools --> Phasing --> Phase', self.phaseAct],
+                                   ['Tools --> Phasing --> Autophase 0', self.autoPhaseAct0],
+                                   ['Tools --> Phasing --> Autophase 0+1', self.autoPhaseAct1],
+                                   ['Tools --> Phasing --> Autophase per trace 0', self.autoPhaseAllAct0],
+                                   ['Tools --> Phasing --> Autophase per trace 0+1', self.autoPhaseAllAct1],
                                    ['Tools --> Swap Echo', self.swapEchoAct],
                                    ['Tools --> Offset Correction', self.corOffsetAct],
                                    ['Tools --> Baseline Correction', self.baselineAct],
@@ -634,15 +634,17 @@ class MainProgram(QtWidgets.QMainWindow):
         self.conjAct.setToolTip('Take Complex Conjugate of Data')
         self.apodizeAct = self.toolMenu.addAction(QtGui.QIcon(IconDirectory + 'apodize.png'), "Apo&dize", lambda: self.mainWindowCheck(lambda mainWindow: ApodWindow(mainWindow)))
         self.apodizeAct.setToolTip('Open Apodize Window')
-        self.phaseAct = self.toolMenu.addAction(QtGui.QIcon(IconDirectory + 'phase.png'), "&Phasing", lambda: self.mainWindowCheck(lambda mainWindow: PhaseWindow(mainWindow)))
+        self.phasingmenu = QtWidgets.QMenu('&Phasing', self)
+        self.toolMenu.addMenu(self.phasingmenu)
+        self.phaseAct = self.phasingmenu.addAction(QtGui.QIcon(IconDirectory + 'phase.png'), "&Phase", lambda: self.mainWindowCheck(lambda mainWindow: PhaseWindow(mainWindow)))
         self.phaseAct.setToolTip('Open Phasing Window')
-        self.autoPhaseAct0 = self.toolMenu.addAction(QtGui.QIcon(IconDirectory + 'autophase0.png'), "Autophase 0", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.directAutoPhase(0)))
+        self.autoPhaseAct0 = self.phasingmenu.addAction(QtGui.QIcon(IconDirectory + 'autophase0.png'), "Autophase 0", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.directAutoPhase(0)))
         self.autoPhaseAct0.setToolTip('Autophase 0 order')
-        self.autoPhaseAct1 = self.toolMenu.addAction(QtGui.QIcon(IconDirectory + 'autophase1.png'), "Autophase 0+1", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.directAutoPhase(1)))
+        self.autoPhaseAct1 = self.phasingmenu.addAction(QtGui.QIcon(IconDirectory + 'autophase1.png'), "Autophase 0+1", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.directAutoPhase(1)))
         self.autoPhaseAct1.setToolTip('Autophase 0 and 1 order')
-        self.autoPhaseAllAct0 = self.toolMenu.addAction(QtGui.QIcon(IconDirectory + 'autophase0.png'), "Autophase per trace 0", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.autoPhaseAll(0)))
+        self.autoPhaseAllAct0 = self.phasingmenu.addAction(QtGui.QIcon(IconDirectory + 'autophase0.png'), "Autophase per trace 0", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.autoPhaseAll(0)))
         self.autoPhaseAllAct0.setToolTip('Autophase per trace 0 order')
-        self.autoPhaseAllAct1 = self.toolMenu.addAction(QtGui.QIcon(IconDirectory + 'autophase1.png'), "Autophase per trace 0+1", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.autoPhaseAll(1)))
+        self.autoPhaseAllAct1 = self.phasingmenu.addAction(QtGui.QIcon(IconDirectory + 'autophase1.png'), "Autophase per trace 0+1", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.autoPhaseAll(1)))
         self.autoPhaseAllAct1.setToolTip('Autophase per trace 0 and 1 order')
         self.swapEchoAct = self.toolMenu.addAction(QtGui.QIcon(IconDirectory + 'swapecho.png'), "Swap &Echo", lambda: self.mainWindowCheck(lambda mainWindow: SwapEchoWindow(mainWindow)))
         self.swapEchoAct.setToolTip('Swap Echo')
