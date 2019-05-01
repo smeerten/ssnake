@@ -38,3 +38,9 @@ contourRightRangeMax	Maximum of the traces that is to be used for the right proj
 contourRightRangeMin	Minimum of the traces that is to be used for the right projection.
 contourDiagonal	Plot a line along the diagonal in the contour plot.	The slope of the line depends on the x and y axes, and its units.
 contourDiagonalMulti	Multiplier for the diagonal line.	This can be used, for example, to draw a diagonal for a single-quantum-double-quantum correlation plot (multiplier = 2).
+multiplotAddPlot	Add a plot with data from another workspace. 
+multiplotColour	Change the colour for this plot
+multiplotX	Remove this plot.
+multiplotScale	Y-value multiplier of this plot.
+multiplotOffset	Adds a constant value (i.e. offset) to this plot.
+multiplotShift	Adds a horizontal shift to this plot.
