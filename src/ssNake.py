@@ -680,9 +680,9 @@ class MainProgram(QtWidgets.QMainWindow):
         self.loadrefAct.setToolTip('Load Reference')
         self.toolsActList = [self.realAct, self.imagAct, self.absAct,self.conjAct,
                              self.apodizeAct, self.phaseAct, self.autoPhaseAct0,
-                             self.autoPhaseAct1,  self.autoPhaseAllAct0,
+                             self.autoPhaseAct1,  self.autoPhaseAllAct0, self.phasingmenu,
                              self.autoPhaseAllAct1,self.swapEchoAct, self.corOffsetAct,
-                             self.baselineAct, self.subAvgAct, self.refDeconvAct,
+                             self.baselineAct, self.subAvgAct, self.refDeconvAct, self.lpsvdAct,
                              self.digitalFilterAct, self.scaleSWAct]
         # the matrix drop down menu
         self.matrixMenu = QtWidgets.QMenu("M&atrix", self)
