@@ -22,6 +22,7 @@ import scipy.optimize
 import copy
 from nus import ffm, clean, ist
 import multiprocessing
+import itertools
 import reimplement as reim
 import functions as func
 import hypercomplex as hc
@@ -103,7 +104,7 @@ class Spectrum(object):
     def addHistory(self, msg):
         self.history.append(msg)
 
-    def removeFromHistory(self, num):
+    def removeFromHistory(self, num=1):
         for i in range(num):
             if len(self.history) > 0:
                 val = self.history.pop()
@@ -165,7 +166,7 @@ class Spectrum(object):
                 if self.ref[i] is not None:
                     self.xaxArray[i] += self.freq[i] - self.ref[i]
 
-    def setXax(self, xax, axis):
+    def setXax(self, xax, axis=-1):
         axis = self.checkAxis(axis)
         if len(xax) != self.shape()[axis]:
             raise SpectrumException("Length of new x-axis does not match length of the data")
@@ -176,7 +177,7 @@ class Spectrum(object):
         if not self.noUndo:
             self.undoList.append(lambda self: self.setXax(oldXax, axis))
 
-    def insert(self, data, pos, axis):
+    def insert(self, data, pos, axis=-1):
         if not isinstance(data, hc.HComplexData):
             data = hc.HComplexData(data)
         if self.noUndo:
@@ -196,7 +197,7 @@ class Spectrum(object):
         if not self.noUndo:
             self.undoList.append(returnValue)
 
-    def delete(self, pos, axis):
+    def delete(self, pos, axis=-1):
         axis = self.checkAxis(axis)
         if not self.noUndo:
             copyData = copy.deepcopy(self)
@@ -369,7 +370,7 @@ class Spectrum(object):
         if not self.noUndo:
             self.undoList.append(returnValue)
 
-    def normalize(self, mult, scale, type, axis, select=slice(None)):
+    def normalize(self, mult, scale=1.0, type=0, axis=-1, select=slice(None)):
         axis = self.checkAxis(axis)
         try:
             self.data *= mult * scale 
@@ -385,7 +386,7 @@ class Spectrum(object):
         if not self.noUndo:
             self.undoList.append(lambda self: self.normalize(1.0 / mult, scale, type, axis, select=select))
 
-    def baselineCorrection(self, baseline, axis, select=slice(None)):
+    def baselineCorrection(self, baseline, axis=-1, select=slice(None)):
         axis = self.checkAxis(axis)
         baselinetmp = baseline.reshape((self.shape()[axis], ) + (1, ) * (self.ndim() - axis - 1))
         self.data[select] -= baselinetmp
@@ -399,7 +400,7 @@ class Spectrum(object):
         if not self.noUndo:
             self.undoList.append(lambda self: self.baselineCorrection(-baseline, axis, select=select))
 
-    def concatenate(self, axis):
+    def concatenate(self, axis=-1):
         axis = self.checkAxis(axis)
         splitVal = self.shape()[axis]
         copyData = None
@@ -425,7 +426,7 @@ class Spectrum(object):
             else:
                 self.undoList.append(lambda self: self.split(splitVal, axis))
 
-    def split(self, sections, axis):
+    def split(self, sections, axis=-1):
         axis = self.checkAxis(axis)
         self.data = self.data.split(sections, axis)
         self.data.insertDim(0)
@@ -479,7 +480,7 @@ class Spectrum(object):
         if not self.noUndo:
             self.undoList.append(lambda self: self.conj(axis))
 
-    def states(self, axis):
+    def states(self, axis=-1):
         axis = self.checkAxis(axis)
         if not self.noUndo:
             copyData = copy.deepcopy(self)
@@ -490,7 +491,7 @@ class Spectrum(object):
         if not self.noUndo:
             self.undoList.append(lambda self: self.restoreData(copyData, lambda self: self.states(axis)))
 
-    def statesTPPI(self, axis):
+    def statesTPPI(self, axis=-1):
         axis = self.checkAxis(axis)
         if not self.noUndo:
             copyData = copy.deepcopy(self)
@@ -501,7 +502,7 @@ class Spectrum(object):
         if not self.noUndo:
             self.undoList.append(lambda self: self.restoreData(copyData, lambda self: self.statesTPPI(axis)))
 
-    def echoAntiEcho(self, axis):
+    def echoAntiEcho(self, axis=-1):
         axis = self.checkAxis(axis)
         if not self.noUndo:
             copyData = copy.deepcopy(self)
@@ -512,8 +513,12 @@ class Spectrum(object):
         if not self.noUndo:
             self.undoList.append(lambda self: self.restoreData(copyData, lambda self: self.echoAntiEcho(axis)))
 
-    def subtractAvg(self, pos1, pos2, axis):
+    def subtractAvg(self, pos1=None, pos2=None, axis=-1):
         axis = self.checkAxis(axis)
+        if pos1 is None:
+            pos1 = 0
+        if pos2 is None:
+            pos2 = self.shape()[axis]
         if not (0 <= pos1 <= self.shape()[axis]):
             raise SpectrumException("Indices not within range")
         if not (0 <= pos2 <= self.shape()[axis]):
@@ -530,8 +535,12 @@ class Spectrum(object):
         if not self.noUndo:
             self.undoList.append(lambda self: self.add(averages))
 
-    def matrixManip(self, pos1, pos2, axis, which):
+    def matrixManip(self, pos1=None, pos2=None, axis=-1, which=0):
         axis = self.checkAxis(axis)
+        if pos1 is None:
+            pos1 = 0
+        if pos2 is None:
+            pos2 = self.shape()[axis]
         if isinstance(pos1, int):
             pos1 = np.array([pos1])
             pos2 = np.array([pos2])
@@ -601,7 +610,7 @@ class Spectrum(object):
                 self.data = self.data.append(extra, axis=axis)
             self.resetXax(axis)
 
-    def integrate(self, pos1, pos2, axis):
+    def integrate(self, pos1=None, pos2=None, axis=-1):
         axis = self.checkAxis(axis)
         if not self.noUndo:
             copyData = copy.deepcopy(self)
@@ -611,7 +620,7 @@ class Spectrum(object):
             self.undoList.append(lambda self: self.restoreData(copyData, lambda self: self.integrate(pos1, pos2, axis)))
         self.addHistory("Integrate between " + str(pos1) + " and " + str(pos2) + " of dimension " + str(axis + 1))
 
-    def max(self, pos1, pos2, axis):
+    def max(self, pos1=None, pos2=None, axis=-1):
         axis = self.checkAxis(axis)
         if not self.noUndo:
             copyData = copy.deepcopy(self)
@@ -621,7 +630,7 @@ class Spectrum(object):
             self.undoList.append(lambda self: self.restoreData(copyData, lambda self: self.max(pos1, pos2, axis)))
         self.addHistory("Maximum between " + str(pos1) + " and " + str(pos2) + " of dimension " + str(axis + 1))
 
-    def min(self, pos1, pos2, axis):
+    def min(self, pos1=None, pos2=None, axis=-1):
         axis = self.checkAxis(axis)
         if not self.noUndo:
             copyData = copy.deepcopy(self)
@@ -631,7 +640,7 @@ class Spectrum(object):
             self.undoList.append(lambda self: self.restoreData(copyData, lambda self: self.min(pos1, pos2, axis)))
         self.addHistory("Minimum between " + str(pos1) + " and " + str(pos2) + " of dimension " + str(axis + 1))
 
-    def argmax(self, pos1, pos2, axis):
+    def argmax(self, pos1=None, pos2=None, axis=-1):
         axis = self.checkAxis(axis)
         if not self.noUndo:
             copyData = copy.deepcopy(self)
@@ -641,7 +650,7 @@ class Spectrum(object):
             self.undoList.append(lambda self: self.restoreData(copyData, lambda self: self.argmax(pos1, pos2, axis)))
         self.addHistory("Maximum position between " + str(pos1) + " and " + str(pos2) + " of dimension " + str(axis + 1))
 
-    def argmin(self, pos1, pos2, axis):
+    def argmin(self, pos1=None, pos2=None, axis=-1):
         axis = self.checkAxis(axis)
         if not self.noUndo:
             copyData = copy.deepcopy(self)
@@ -651,7 +660,7 @@ class Spectrum(object):
             self.undoList.append(lambda self: self.restoreData(copyData, lambda self: self.argmin(pos1, pos2, axis)))
         self.addHistory("Minimum position between " + str(pos1) + " and " + str(pos2) + " of dimension " + str(axis + 1))
 
-    def sum(self, pos1, pos2, axis):
+    def sum(self, pos1=None, pos2=None, axis=-1):
         axis = self.checkAxis(axis)
         if not self.noUndo:
             copyData = copy.deepcopy(self)
@@ -661,7 +670,7 @@ class Spectrum(object):
             self.undoList.append(lambda self: self.restoreData(copyData, lambda self: self.sum(pos1, pos2, axis)))
         self.addHistory("Sum between " + str(pos1) + " and " + str(pos2) + " of dimension " + str(axis + 1))
 
-    def average(self, pos1, pos2, axis):
+    def average(self, pos1=None, pos2=None, axis=-1):
         axis = self.checkAxis(axis)
         if not self.noUndo:
             copyData = copy.deepcopy(self)
@@ -671,8 +680,12 @@ class Spectrum(object):
             self.undoList.append(lambda self: self.restoreData(copyData, lambda self: self.average(pos1, pos2, axis)))
         self.addHistory("Average between " + str(pos1) + " and " + str(pos2) + " of dimension " + str(axis + 1))
 
-    def extract(self, pos1, pos2, axis):
+    def extract(self, pos1=None, pos2=None, axis=-1):
         axis = self.checkAxis(axis)
+        if pos1 is None:
+            pos1 = 0
+        if pos2 is None:
+            pos2 = self.shape()[axis]
         if not self.noUndo:
             copyData = copy.deepcopy(self)
         minPos = min(pos1, pos2)
@@ -693,7 +706,7 @@ class Spectrum(object):
         if not self.noUndo:
             self.undoList.append(lambda self: self.restoreData(copyData, lambda self: self.extract(pos1, pos2, axis)))
 
-    def fiddle(self, refSpec, lb, axis):
+    def fiddle(self, refSpec, lb, axis=-1):
         axis = self.checkAxis(axis)
         axLen = self.shape()[axis]
         if len(refSpec) != axLen:
@@ -726,7 +739,7 @@ class Spectrum(object):
         if not self.noUndo:
             self.undoList.append(lambda self: self.restoreData(copyData, lambda self: self.fiddle(refSpec, lb, axis)))
 
-    def diff(self, axis):
+    def diff(self, axis=-1):
         axis = self.checkAxis(axis)
         if not self.noUndo:
             copyData = copy.deepcopy(self)
@@ -737,7 +750,7 @@ class Spectrum(object):
         if not self.noUndo:
             self.undoList.append(lambda self: self.restoreData(copyData, lambda self: self.diff(axis)))
 
-    def cumsum(self, axis):
+    def cumsum(self, axis=-1):
         axis = self.checkAxis(axis)
         if not self.noUndo:
             copyData = copy.deepcopy(self)
@@ -747,7 +760,7 @@ class Spectrum(object):
         if not self.noUndo:
             self.undoList.append(lambda self: self.restoreData(copyData, lambda self: self.cumsum(axis)))
 
-    def flipLR(self, axis):
+    def flipLR(self, axis=-1):
         axis = self.checkAxis(axis)
         slicing = (slice(None), ) * axis + (slice(None, None, -1), )
         self.data = self.data[slicing]
@@ -756,7 +769,7 @@ class Spectrum(object):
         if not self.noUndo:
             self.undoList.append(lambda self: self.flipLR(axis))
 
-    def hilbert(self, axis):
+    def hilbert(self, axis=-1):
         axis = self.checkAxis(axis)
         if not self.noUndo:
             copyData = copy.deepcopy(self)
@@ -768,8 +781,29 @@ class Spectrum(object):
         if not self.noUndo:
             self.undoList.append(lambda self: self.restoreData(copyData, lambda self: self.hilbert(axis)))
 
-    def autoPhase(self, phaseNum, axis, locList, returnPhases=False):
+    def autoPhaseAll(self, phaseNum=0, axis=-1):
         axis = self.checkAxis(axis)
+        if not self.noUndo:
+            copyData = copy.deepcopy(self)
+        shape = self.data.shape()
+        shape = np.delete(shape, axis)
+        rangeList = [range(i) for i in shape]
+        for i in itertools.product(*rangeList):
+            locList = np.insert(i, axis, 0)
+            selectList = np.insert(np.array(i,dtype=object), axis, slice(None))
+            self.autoPhase(phaseNum, axis, locList, False, selectList)
+        if phaseNum == 1:
+            self.addHistory("Autophased per trace for 0 + 1 order along axis " + str(axis + 1))
+        else:
+            self.addHistory("Autophased per trace for 0 order along axis " + str(axis + 1))
+        self.redoList = []
+        if not self.noUndo:
+            self.undoList.append(lambda self: self.restoreData(copyData, lambda self: self.autoPhaseAll(phaseNum, axis)))
+
+    def autoPhase(self, phaseNum=0, axis=-1, locList=None, returnPhases=False, select=slice(None)):
+        axis = self.checkAxis(axis)
+        if locList is None:
+            locList = [0]*self.ndim()
         if len(locList) != self.ndim():
             raise SpectrumException("Data does not have the correct number of dimensions")
         if np.any(locList >= np.array(self.shape())) or np.any(np.array(locList) < 0):
@@ -797,7 +831,7 @@ class Spectrum(object):
             offset = self.freq[axis] - self.ref[axis]
         vector = np.exp(np.fft.fftshift(np.fft.fftfreq(self.shape()[axis], 1.0 / self.sw[axis]) + offset) / self.sw[axis] * phase1 * 1j)
         vector = vector.reshape(vector.shape + (1, )*(self.ndim()-axis-1))
-        self.data *= np.exp(phase0 * 1j) * vector
+        self.data[select] *= np.exp(phase0 * 1j) * vector
         if self.spec[axis] == 0:
             self.__invFourier(axis, tmp=True)
         self.data.icomplexReorder(axis)
@@ -833,12 +867,7 @@ class Spectrum(object):
             Pfun = Pfun + sum(as1**2) / 4 / L**2
         return H1 + 1000 * Pfun
 
-    def phase(self, phase0, phase1, axis, select=slice(None), internal = False):
-        axis = self.checkAxis(axis)
-        if self.ref[axis] is None:
-            offset = 0
-        else:
-            offset = self.freq[axis] - self.ref[axis]
+    def __phase(self, phase0, phase1, offset, axis, select=slice(None)):
         vector = np.exp(np.fft.fftshift(np.fft.fftfreq(self.shape()[axis], 1.0 / self.sw[axis]) + offset) / self.sw[axis] * phase1 * 1j)
         if self.spec[axis] == 0:
             self.__fourier(axis, tmp=True)
@@ -849,19 +878,25 @@ class Spectrum(object):
         if self.spec[axis] == 0:
             self.__invFourier(axis, tmp=True)
 
+    def phase(self, phase0=0.0, phase1=0.0, axis=-1, select=slice(None), internal = False):
+        axis = self.checkAxis(axis)
+        if self.ref[axis] is None:
+            offset = 0
+        else:
+            offset = self.freq[axis] - self.ref[axis]
+        self.__phase(phase0, phase1, offset, axis, select=select)
         if not internal:
             Message = "Phasing: phase0 = " + str(phase0 * 180 / np.pi) + " and phase1 = " + str(phase1 * 180 / np.pi) + " for dimension " + str(axis + 1)
             if type(select) is not slice:
                 Message = Message + " with slice " + str(select)
             elif select != slice(None, None, None):
                 Message = Message + " with slice " + str(select)
-
             self.addHistory(Message)
             self.redoList = []
             if not self.noUndo:
                 self.undoList.append(lambda self: self.phase(-phase0, -phase1, axis, select=select))
 
-    def correctDFilter(self,axis, undo = False):
+    def correctDFilter(self, axis=-1, undo = False):
         #Corrects the digital filter via first order phasing
         self.phase(0,self.dFilter,axis,internal = True)
         Message = "Corrected digital filter"
@@ -942,7 +977,7 @@ class Spectrum(object):
         if not self.noUndo:
             self.undoList.append(lambda self: self.restoreData(copyData, lambda self: self.apodize(lor, gauss, cos2, hamming, shift, shifting, shiftingAxis, axis, select=select)))
 
-    def setFreq(self, freq, sw, axis):
+    def setFreq(self, freq=None, sw=None, axis=-1):
         axis = self.checkAxis(axis)
         oldFreq = self.freq[axis]
         oldSw = self.sw[axis]
@@ -958,7 +993,7 @@ class Spectrum(object):
         if not self.noUndo:
             self.undoList.append(lambda self: self.setFreq(oldFreq, oldSw, axis))
 
-    def scaleSw(self, scale, axis):
+    def scaleSw(self, scale, axis=-1):
         axis = self.checkAxis(axis)
         oldSw = self.sw[axis]
         self.sw[axis] = float(scale) * oldSw
@@ -968,7 +1003,7 @@ class Spectrum(object):
         if not self.noUndo:
             self.undoList.append(lambda self: self.scaleSw(1.0 / scale, axis))
 
-    def setRef(self, ref, axis):
+    def setRef(self, ref=None, axis=-1):
         axis = self.checkAxis(axis)
         oldRef = self.ref[axis]
         if ref is None:
@@ -982,7 +1017,7 @@ class Spectrum(object):
         if not self.noUndo:
             self.undoList.append(lambda self: self.setRef(oldRef, axis))
 
-    def regrid(self, limits, numPoints, axis):
+    def regrid(self, limits, numPoints, axis=-1):
         oldLimits = [self.xaxArray[axis][0], self.xaxArray[axis][-1]]
         if not self.noUndo:
             copyData = copy.deepcopy(self)
@@ -1005,7 +1040,7 @@ class Spectrum(object):
         if not self.noUndo:
             self.undoList.append(lambda self: self.restoreData(copyData, lambda self: self.regrid(limits, numPoints, axis)))
 
-    def setWholeEcho(self, val, axis):
+    def setWholeEcho(self, val, axis=-1):
         axis = self.checkAxis(axis)
         self.wholeEcho[axis] = val
         self.addHistory("Whole echo set to " + str(val) + " for dimension " + str(axis + 1))
@@ -1013,14 +1048,14 @@ class Spectrum(object):
         if not self.noUndo:
             self.undoList.append(lambda self: self.setWholeEcho(not val, axis))
 
-    def resize(self, size, pos, axis):
+    def resize(self, size, pos, axis=-1):
         axis = self.checkAxis(axis)
         if not self.noUndo:
             copyData = copy.deepcopy(self)
-        if self.spec[axis] > 0:
+        if self.spec[axis]:
             self.__invFourier(axis, tmp=True)
         self.data = self.data.resize(size, pos, axis=axis)
-        if self.spec[axis] > 0:
+        if self.spec[axis]:
             self.__fourier(axis, tmp=True)
         self.resetXax(axis)
         self.addHistory("Resized dimension " + str(axis + 1) + " to " + str(size) + " points at position " + str(pos))
@@ -1028,55 +1063,33 @@ class Spectrum(object):
         if not self.noUndo:
             self.undoList.append(lambda self: self.restoreData(copyData, lambda self: self.resize(size, pos, axis)))
 
-    def lpsvd(self, nAnalyse, nFreq, nPredict, Direction, axis):
+    def lpsvd(self, nPredict, maxFreq, forward=False, numPoints=None, axis=-1):
+        failed = False
         axis = self.checkAxis(axis)
         if not self.noUndo:
             copyData = copy.deepcopy(self)
-        self.data.apply_along_axis(self.lpsvdfunction, axis, nAnalyse, nFreq, nPredict, Direction)
+        self.data.icomplexReorder(axis)
+        if self.spec[axis]:
+            self.__invFourier(axis, tmp=True)
+        try:
+            self.data = self.data.apply_along_axis(func.lpsvd, axis, nPredict, maxFreq, forward, numPoints)
+        except Exception:
+            failed = True
+        if self.spec[axis]:
+            self.__fourier(axis, tmp=True)
+        self.data.icomplexReorder(axis)
+        if failed:
+            raise SpectrumException('LPSVD: Could not determine any acceptable values')
         self.resetXax(axis)
-        self.addHistory("LPSVD ")
+        if forward:
+            self.addHistory("Forward LPSVD along axis "+ str(axis) + " with " + str(nPredict) + " points")
+        else:
+            self.addHistory("Backward LPSVD along axis "+ str(axis) + " with " + str(nPredict) + " points")
         self.redoList = []
         if not self.noUndo:
-            self.undoList.append(lambda self: self.restoreData(copyData, lambda self: self.lpsvd(nAnalyse, nFreq, nPredict, Direction, axis)))
+            self.undoList.append(lambda self: self.restoreData(copyData, lambda self: self.lpsvd(nPredict, maxFreq, forward, numPoints, axis)))
 
-    def lpsvdfunction(self, data, nAnalyse, nFreq, nPredict, Direction):
-        # LPSVD algorithm
-        if Direction == 1:  # If backward
-            Y = data[0:nAnalyse]
-        else:
-            Y = data[-nAnalyse:]
-        N = len(Y)						# # of complex data points in FID
-        L = int(np.floor(N * 3 / 4))						# linear prediction order L = 3/4*N
-        A = scipy.linalg.hankel(np.conj(Y[1:N - L + 1]), np.conj(Y[N - L:N]))  # backward prediction data matrix
-        h = np.conj(Y[0:N - L])					# backward prediction data vector
-        U, S, Vh = np.linalg.svd(A, full_matrices=1)                       # singular value decomposition
-        V = np.conj(np.transpose(Vh))
-        bias = np.mean(S[nFreq:np.min([N - L - 1, L]) + 1])  # bias compensation
-        PolyCoef = np.dot(-V[:, 0:nFreq], np.dot(np.diag(1 / (S[0:nFreq] - bias)), np.dot(np.conj(np.transpose(U[:, 0:nFreq])), h)))  # prediction polynomial coefficients
-        s = np.conj(np.log(np.roots(np.append(PolyCoef[::-1], 1))))		# polynomial rooting
-        s = s[np.where(s < 0)[0]]
-        reconstructed = np.zeros(nPredict, dtype=np.complex128)
-        if len(s):  # If there are found frequencies
-            Z = np.zeros([N, len(s)], dtype=np.complex)
-            for k in range(0, len(s)):
-                Z[:, k] = np.exp(s[k])**np.arange(0, N)
-            a = np.linalg.lstsq(Z, Y)[0]
-            para = np.array([-np.real(s), np.imag(s) / 2 / np.pi, np.abs(a), np.imag(np.log(a / np.abs(a)))])  # WF: reintroduce the scaling factor
-            if Direction == 1:  # If backward
-                xpredict = np.arange(-nPredict, 0)
-                for signal in range(para.shape[1]):
-                    reconstructed += para[2, signal] * np.exp(1j * (xpredict * para[1, signal] * 2 * np.pi + para[3, signal])) * np.exp(-xpredict * para[0, signal])
-                data = np.concatenate((reconstructed, data))
-            else:
-                xpredict = np.arange(N, N + nPredict)
-                for signal in range(para.shape[1]):
-                    reconstructed += para[2, signal] * np.exp(1j * (xpredict * para[1, signal] * 2 * np.pi + para[3, signal])) * np.exp(-xpredict * para[0, signal])
-                data = np.concatenate((data, reconstructed))
-        else:
-            data = np.concatenate((reconstructed, data))
-        return data
-
-    def setSpec(self, val, axis):
+    def setSpec(self, val, axis=-1):
         axis = self.checkAxis(axis)
         oldVal = self.spec[axis]
         self.spec[axis] = val
@@ -1089,7 +1102,7 @@ class Spectrum(object):
         if not self.noUndo:
             self.undoList.append(lambda self: self.setSpec(oldVal, axis))
 
-    def swapEcho(self, idx, axis):
+    def swapEcho(self, idx, axis=-1):
         axis = self.checkAxis(axis)
         slicing1 = (slice(None), ) * axis + (slice(None, idx), )
         slicing2 = (slice(None), ) * axis + (slice(idx, None), )
@@ -1100,7 +1113,7 @@ class Spectrum(object):
         if not self.noUndo:
             self.undoList.append(lambda self: self.swapEcho(-idx, axis))
 
-    def shift(self, shift, axis, select=slice(None), zeros=True):
+    def shift(self, shift, axis=-1, select=slice(None), zeros=True):
         axis = self.checkAxis(axis)
         if not self.noUndo:
             copyData = copy.deepcopy(self)
@@ -1117,7 +1130,6 @@ class Spectrum(object):
         if self.spec[axis] > 0:
             self.__fourier(axis, tmp=True)
         Message = "Shifted " + str(shift) + " points in dimension " + str(axis + 1)
-
         if type(select) is not slice:
             Message = Message + " with slice " + str(select)
         elif select != slice(None, None, None):
@@ -1126,7 +1138,61 @@ class Spectrum(object):
         self.redoList = []
         if not self.noUndo:
             self.undoList.append(lambda self: self.restoreData(copyData, lambda self: self.shift(shift, axis, select=select, zeros=zeros)))
-        
+
+    def roll(self, shift, axis=-1, select=slice(None)):
+        axis = self.checkAxis(axis)
+        if self.spec[axis] == 0:
+            self.__phase(0, -2 * np.pi * shift, 0, axis, select=select)
+        else:
+            t = np.arange(self.shape()[axis]) / (self.sw[axis])
+            freq = self.sw[axis] / self.shape()[axis]
+            self.__invFourier(axis, tmp=True)
+            t = t.reshape(t.shape + (1, )*(self.ndim()-axis-1))
+            self.data.icomplexReorder(axis)
+            self.data[select] *= np.exp( - 1j * t * freq * shift * 2 * np.pi)
+            self.data.icomplexReorder(axis)
+            self.__fourier(axis, tmp=True)
+        Message = "Rolled " + str(shift) + " points in dimension " + str(axis + 1)
+        if type(select) is not slice:
+            Message = Message + " with slice " + str(select)
+        elif select != slice(None, None, None):
+            Message = Message + " with slice " + str(select)
+        self.addHistory(Message)
+        self.redoList = []
+        if not self.noUndo:
+            self.undoList.append(lambda self: self.roll(-shift,axis))
+
+    def align(self, pos1=None, pos2=None, axis=-1):
+        axis = self.checkAxis(axis)
+        if not self.noUndo:
+            copyData = copy.deepcopy(self)
+        if pos1 is None:
+            pos1 = 0
+        if pos2 is None:
+            pos2 = self.shape()[axis]
+        if not (0 <= pos1 <= self.shape()[axis]):
+            raise SpectrumException("Indices not within range")
+        if not (0 <= pos2 <= self.shape()[axis]):
+            raise SpectrumException("Indices not within range")
+        if pos1 == pos2:
+            raise SpectrumException("Indices cannot be equal")
+        minPos = min(pos1, pos2)
+        maxPos = max(pos1, pos2)
+        slicing = (slice(None), ) * axis + (slice(minPos, maxPos), )
+        tmp = self.data[slicing].argmax(axis=axis)
+        maxArgPos = -np.array(tmp.data, dtype=int)
+        maxArgPos -= maxArgPos.flatten()[0]
+        shape = self.data.shape()
+        shape = np.delete(shape, axis)
+        rangeList = [range(i) for i in shape]
+        for i in itertools.product(*rangeList):
+            selectList = np.insert(np.array(i,dtype=object), axis, slice(None))
+            self.data[selectList] = self.data[selectList].roll(maxArgPos[0][tuple(i)], 0)
+        self.addHistory("Maxima aligned between " + str(minPos) + " and " + str(maxPos) + " along axis " + str(axis))
+        self.redoList = []
+        if not self.noUndo:
+            self.undoList.append(lambda self: self.restoreData(copyData, lambda self: self.align(pos1, pos2, axis)))
+            
     def __fourier(self, axis, tmp=False, reorder=[True,True]):
         axis = self.checkAxis(axis)
         if reorder[0]:
@@ -1155,7 +1221,7 @@ class Spectrum(object):
             self.data.icomplexReorder(axis)
         self.resetXax(axis)
 
-    def complexFourier(self, axis):
+    def complexFourier(self, axis=-1):
         if self.spec[axis] == 0:
             self.__fourier(axis)
             self.addHistory("Fourier transform dimension " + str(axis + 1))
@@ -1166,7 +1232,7 @@ class Spectrum(object):
         if not self.noUndo:
             self.undoList.append(lambda self: self.complexFourier(axis))
 
-    def realFourier(self, axis):
+    def realFourier(self, axis=-1):
         if not self.noUndo:
             copyData = copy.deepcopy(self)
         axis = self.checkAxis(axis)
@@ -1181,7 +1247,7 @@ class Spectrum(object):
         if not self.noUndo:
             self.undoList.append(lambda self: self.restoreData(copyData, lambda self: self.realFourier(axis)))
 
-    def fftshift(self, axis, inv=False):
+    def fftshift(self, axis=-1, inv=False):
         axis = self.checkAxis(axis)
         if inv:
             self.data = self.data.ifftshift(axis=axis)
@@ -1193,7 +1259,7 @@ class Spectrum(object):
         if not self.noUndo:
             self.undoList.append(lambda self: self.fftshift(axis, not(inv)))
 
-    def shear(self, shear, axis, axis2, toRef=False):
+    def shear(self, shear, axis=-1, axis2=-2, toRef=False):
         axis = self.checkAxis(axis)
         axis2 = self.checkAxis(axis2)
         if axis == axis2:
@@ -1227,7 +1293,7 @@ class Spectrum(object):
         if not self.noUndo:
             self.undoList.append(lambda self: self.shear(-shear, axis, axis2, toRef))
 
-    def reorder(self, pos, newLength, axis):
+    def reorder(self, pos, newLength, axis=-1):
         axis = self.checkAxis(axis)
         if not self.noUndo:
             copyData = copy.deepcopy(self)
@@ -1238,7 +1304,7 @@ class Spectrum(object):
         if not self.noUndo:
             self.undoList.append(lambda self: self.restoreData(copyData, lambda self: self.reorder(pos, newLength, axis)))
 
-    def ffm(self, pos, typeVal, axis):
+    def ffm(self, pos, typeVal, axis=-1):
         axis = self.checkAxis(axis)
         if not self.noUndo:
             copyData = copy.deepcopy(self)
@@ -1300,7 +1366,7 @@ class Spectrum(object):
         if not self.noUndo:
             self.undoList.append(lambda self: self.restoreData(copyData, None))
         
-    def ist(self,pos, typeVal, axis, threshold, maxIter,tracelimit):
+    def ist(self,pos, typeVal, axis, threshold, maxIter, tracelimit):
         import scipy.signal
         axis = self.checkAxis(axis)
         if not self.noUndo:

@@ -17,16 +17,9 @@
 # You should have received a copy of the GNU General Public License
 # along with ssNake. If not, see <http://www.gnu.org/licenses/>.
 
-try:
-    QT = 5
-    from PyQt5 import QtGui, QtCore, QtWidgets
-except ImportError:
-    from PyQt4 import QtGui, QtCore
-    from PyQt4 import QtGui as QtWidgets
-    QT = 4
 from safeEval import safeEval
 import os
-
+from ssNake import QtGui, QtCore, QtWidgets, QT
 
 class SsnakeTabs(QtWidgets.QTabWidget):
     # A tab widget were tabs can be closed with the middle mouse button
@@ -38,7 +31,7 @@ class SsnakeTabs(QtWidgets.QTabWidget):
                 self.tabCloseRequested.emit(index)
 
 class SsnakeTreeWidget(QtWidgets.QTreeView):
-    def __init__(self,parent):
+    def __init__(self, parent, startDir=None):
         super(SsnakeTreeWidget, self).__init__(parent)
         self.father = parent
         self.dirmodel = QtWidgets.QFileSystemModel()
@@ -104,7 +97,25 @@ class SsnakeTreeWidget(QtWidgets.QTreeView):
 
     def loadAct(self,path):
         self.father.loadData(path)
-
+        
+class SsnakeSlider(QtWidgets.QSlider):
+    def wheelEvent(self, event):
+        if QT == 4:
+            delta = event.delta()
+        else:
+            delta = event.angleDelta().y()
+        step = self.singleStep() * 3
+        if QtWidgets.qApp.keyboardModifiers() & QtCore.Qt.ControlModifier and QtWidgets.qApp.keyboardModifiers() & QtCore.Qt.ShiftModifier:
+            step *= 1000
+        elif QtWidgets.qApp.keyboardModifiers() & QtCore.Qt.ControlModifier:
+            step *= 10
+        elif QtWidgets.qApp.keyboardModifiers() & QtCore.Qt.ShiftModifier:
+            step *= 100
+        if delta > 0:
+            self.setValue(self.value() + step)
+        else:
+            self.setValue(self.value() - step)
+        
 
 class SplitterEventFilter(QtCore.QObject):
 
@@ -131,10 +142,10 @@ class SplitterEventFilter(QtCore.QObject):
             return True
         return False
 
-class MyEventFilter(QtCore.QObject):
+class SsnakeEventFilter(QtCore.QObject):
 
     def __init__(self, root, *args):
-        super(MyEventFilter, self).__init__(*args)
+        super(SsnakeEventFilter, self).__init__(*args)
         self.root = root
 
     def eventFilter(self, receiver, event):
@@ -253,6 +264,73 @@ class SliceSpinBox(QtWidgets.QSpinBox):
             inp = inp + self.maximum() + 1
         return str(inp)
 
+    def stepBy(self,steps):
+        if QtWidgets.qApp.keyboardModifiers() & QtCore.Qt.ControlModifier and QtWidgets.qApp.keyboardModifiers() & QtCore.Qt.ShiftModifier:
+            steps *= 1000
+        elif QtWidgets.qApp.keyboardModifiers() & QtCore.Qt.ControlModifier:
+            steps *= 10
+        elif QtWidgets.qApp.keyboardModifiers() & QtCore.Qt.ShiftModifier:
+            steps *= 100
+        self.setValue(self.value() + steps)
+
+    def wheelEvent(self, event):
+        if QT == 4:
+            delta = event.delta()
+        else:
+            delta = event.angleDelta().y() + event.angleDelta().x()
+        step = 1
+        if delta > 0:
+            self.stepBy(step)
+        else:
+            self.stepBy(-step)
+        event.accept()
+
+class SsnakeDoubleSpinBox(QtWidgets.QDoubleSpinBox):
+    def stepBy(self,steps):
+        if QtWidgets.qApp.keyboardModifiers() & QtCore.Qt.ControlModifier and QtWidgets.qApp.keyboardModifiers() & QtCore.Qt.ShiftModifier:
+            steps *= 1000
+        elif QtWidgets.qApp.keyboardModifiers() & QtCore.Qt.ControlModifier:
+            steps *= 10
+        elif QtWidgets.qApp.keyboardModifiers() & QtCore.Qt.ShiftModifier:
+            steps *= 100
+        if QtWidgets.qApp.keyboardModifiers() & QtCore.Qt.AltModifier:
+            self.setValue(self.value() + self.singleStep() / steps)
+        else:
+            self.setValue(self.value() + self.singleStep() * steps)
+
+    def wheelEvent(self, event):
+        if QT == 4:
+            delta = event.delta()
+        else:
+            delta = event.angleDelta().y() + event.angleDelta().x()
+        step = 1
+        if delta > 0:
+            self.stepBy(step)
+        else:
+            self.stepBy(-step)
+        event.accept()
+
+class SsnakeSpinBox(QtWidgets.QSpinBox):
+    def stepBy(self,steps):
+        if QtWidgets.qApp.keyboardModifiers() & QtCore.Qt.ControlModifier and QtWidgets.qApp.keyboardModifiers() & QtCore.Qt.ShiftModifier:
+            steps *= 1000
+        elif QtWidgets.qApp.keyboardModifiers() & QtCore.Qt.ControlModifier:
+            steps *= 10
+        elif QtWidgets.qApp.keyboardModifiers() & QtCore.Qt.ShiftModifier:
+            steps *= 100
+        self.setValue(self.value() + self.singleStep() * steps)
+
+    def wheelEvent(self, event):
+        if QT == 4:
+            delta = event.delta()
+        else:
+            delta = event.angleDelta().y() + event.angleDelta().x()
+        step = 1
+        if delta > 0:
+            self.stepBy(step)
+        else:
+            self.stepBy(-step)
+        event.accept()
 
 class QLabel(QtWidgets.QLabel):
 

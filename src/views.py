@@ -19,7 +19,7 @@
 
 import numpy as np
 import copy
-from matplotlib.pyplot import get_cmap
+from matplotlib.pyplot import get_cmap, colormaps
 import matplotlib
 import matplotlib.ticker as ticker
 import spectrum as sc
@@ -28,6 +28,11 @@ import reimplement as reim
 
 COLORMAPLIST = ['seismic', 'BrBG', 'bwr', 'coolwarm', 'PiYG', 'PRGn', 'PuOr',
                 'RdBu', 'RdGy', 'RdYlBu', 'RdYlGn', 'Spectral', 'rainbow', 'jet']
+COLORMAPLIST = [i for i in COLORMAPLIST if i in colormaps()]
+COLORRANGELIST = ['viridis', 'plasma', 'inferno', 'magma', 'cividis', 'coolwarm', 'Spectral', 'rainbow', 'jet']
+COLORRANGELIST = [i for i in COLORRANGELIST if i in colormaps()]
+COLORRANGELIST = ['none'] + COLORRANGELIST
+
 COLORCYCLE = list(matplotlib.rcParams['axes.prop_cycle'])
 COLORCONVERTER = matplotlib.colors.ColorConverter()
 
@@ -60,6 +65,7 @@ class Current1D(PlotFrame):
                                  "minXTicks": self.root.father.defaultMinXTicks, 
                                  "minYTicks": self.root.father.defaultMinYTicks, 
                                  "grids": self.root.father.defaultGrids,
+                                 "colorRange": self.root.father.defaultColorRange,
                                  "colorMap": self.root.father.defaultColorMap,
                                  "contourConst": self.root.father.defaultContourConst,
                                  "contourColors": [self.root.father.defaultPosColor, self.root.father.defaultNegColor],
@@ -352,7 +358,7 @@ class Current1D(PlotFrame):
         if self.spec() == 0 and not isinstance(self, CurrentContour):
             tmp = self.getDataType(y.getHyperData(0))
             scale = np.max([np.real(tmp), np.imag(tmp)])
-            self.showFid(y, curve[0], scale*np.array(curve[1]), extraColor='g')
+            self.showFid(y, curve[0], scale*np.array(curve[1]), extraColor=['g'])
         else:
             self.showFid(y)
         self.upd()
@@ -466,7 +472,6 @@ class Current1D(PlotFrame):
         for i in range(dim):
             slc = slc + (slice(minPeak[-(i+1)],maxPeak[-(i+1)],None),)
         tmpData = tmpData[slc]
-
         COM = []
         axes = list(range(dim))
         for i in range(dim):
@@ -480,22 +485,33 @@ class Current1D(PlotFrame):
         return COM
 
     def Integrals(self, minPeak, maxPeak):
-        minP = min(minPeak, maxPeak)
-        maxP = max(minPeak, maxPeak)
+        dim = len(minPeak)
+        for i in range(dim): #Check max > min
+            if minPeak[i] > maxPeak[i]:
+                minPeak[i], maxPeak[i] = maxPeak[i], minPeak[i]
         tmpData = self.data1D.getHyperData(0)
-        tmpData = tmpData[(0,)*(self.ndim()-1) + (slice(None), )]
+        tmpData = tmpData[(0,)*(self.ndim()-dim) + (slice(None), ) * dim]
         tmpAxis = self.xax()
-        totLen = len(tmpData)
+        totShape = tmpData.shape
         tmpData = np.real(self.getDataType(tmpData))
         maxim = np.max(np.abs(tmpData))
-        tmpAxis = tmpAxis[minP:maxP] 
-        tmpData = tmpData[minP:maxP]
-        if self.spec() == 0:
+        tmpAxis = tmpAxis[minPeak[0]:maxPeak[0]+1] 
+        slc = tuple()
+        for i in reversed(range(dim)): #Make slice operator along all dimensions
+            slc  = slc + (slice(minPeak[i],maxPeak[i] + 1), )
+        tmpData = tmpData[slc] #slice data
+        if self.spec() == 0 and dim ==1:
             intSum = np.cumsum(tmpData)
-            inte = np.sum(tmpData) / self.sw()
-        else:
+        elif self.spec() == 1 and dim ==1:
             intSum = np.cumsum(tmpData[-1::-1])[-1::-1]
-            inte = np.sum(tmpData) * self.sw() / (1.0 * totLen)
+        else:
+            intSum = None
+        inte = np.sum(tmpData)
+        for i in range(dim): #Scale sum for each integrated dimension
+            if self.spec(-i - 1) == 0:
+                inte /= self.sw(-i - 1)
+            else:
+                inte *= self.sw(-i - 1) / (1.0 * totShape[-i - 1])
         return inte, tmpAxis, intSum, maxim
 
     def MaxMin(self, minPeak, maxPeak, type='max'):
@@ -520,7 +536,7 @@ class Current1D(PlotFrame):
                 scale = np.max([scale,abs(yNew[-1][0]),abs(yNew[-1][-1])])
         for num in range(len(yNew)):
             yNew[num] = yNew[num] / scale * maxim
-        self.showFid(extraX=xNew, extraY=yNew, extraColor='g')
+        self.showFid(extraX=xNew, extraY=yNew, extraColor=['g'])
 
     def resizePreview(self, size, pos):  # set size only on local data
         self.data1D.resize(size, pos, -1)
@@ -537,11 +553,13 @@ class Current1D(PlotFrame):
         if not self.spec():
             self.plotReset(True, False)
 
-    def lpsvd(self, nAnalyse, nFreq, nPredict, Direction):
-        self.root.addMacro(['lpsvd', (nAnalyse, nFreq, nPredict, Direction, self.axes[-1] - self.data.ndim())])
-        self.data.lpsvd(nAnalyse, nFreq, nPredict, Direction, self.axes[-1])
+    def lpsvd(self, nPredict, maxFreq, forward, numPoints):
+        self.root.addMacro(['lpsvd', (nPredict, maxFreq, forward, numPoints, self.axes[-1] - self.data.ndim())])
+        self.data.lpsvd(nPredict, maxFreq, forward, numPoints, self.axes[-1])
         self.upd()
         self.showFid()
+        if not self.spec():
+            self.plotReset(True, False)
 
     def setSpec(self, val):  # change from time to freq domain of the actual data
         self.root.addMacro(['setSpec', (val, self.axes[-1] - self.data.ndim())])
@@ -583,6 +601,27 @@ class Current1D(PlotFrame):
         self.data1D.shift(shift, -1)
         self.showFid()
         self.upd()
+
+    def roll(self, shift, select=False):
+        if select:
+            selectSlice = self.getSelect()
+        else:
+            selectSlice = slice(None)
+        self.root.addMacro(['roll', (shift, self.axes[-1] - self.data.ndim(), selectSlice)])
+        self.data.roll(shift, self.axes[-1], selectSlice)
+        self.upd()
+        self.showFid()
+
+    def rollPreview(self, shift):
+        self.data1D.roll(shift, -1)
+        self.showFid()
+        self.upd()
+
+    def align(self, pos1, pos2):
+        self.root.addMacro(['align', (pos1, pos2, self.axes[-1] - self.data.ndim())])
+        self.data.align(pos1, pos2, self.axes[-1])
+        self.upd()
+        self.showFid()
 
     def getdcOffset(self, pos1, pos2):
         minPos = int(min(pos1, pos2))
@@ -655,9 +694,9 @@ class Current1D(PlotFrame):
             if isinstance(self, CurrentContour):
                 self.showFid()
             else:
-                self.showFid(extraX=[self.xax()], extraY=[y]*self.len(-2), extraColor='g')
+                self.showFid(extraX=[self.xax()], extraY=[y]*self.len(-2), extraColor=['g'])
         else:
-            self.showFid(extraX=[self.xax()], extraY=[y], extraColor='g')
+            self.showFid(extraX=[self.xax()], extraY=[y], extraColor=['g'])
         self.previewRemoveList(removeList, invert)
         self.upd()
 
@@ -915,6 +954,12 @@ class Current1D(PlotFrame):
         self.upd()
         self.showFid()
 
+    def autoPhaseAll(self, phaseNum):
+        self.root.addMacro(['autoPhaseAll', (phaseNum, self.axes[-1] - self.data.ndim())])
+        self.data.autoPhaseAll(phaseNum, self.axes[-1])
+        self.upd()
+        self.showFid()
+
     def setXaxPreview(self, xax):
         self.data1D.setXax(xax, -1)
         self.showFid()
@@ -957,12 +1002,17 @@ class Current1D(PlotFrame):
     def setColorMap(self, num):
         self.viewSettings["colorMap"] = COLORMAPLIST[num]
 
+    def getColorRange(self):
+        return COLORRANGELIST.index(self.viewSettings["colorRange"])
+
+    def setColorRange(self, num):
+        self.viewSettings["colorRange"] = COLORRANGELIST[num]
+
     def setColor(self, color):
         self.viewSettings["color"] = color
 
     def setLw(self, lw):
         self.viewSettings["linewidth"] = lw
-
 
     def setTickNum(self, x, y):
         self.viewSettings["minXTicks"] = x
@@ -1004,7 +1054,14 @@ class Current1D(PlotFrame):
             for num in range(len(extraX)):
                 self.line_xdata_extra.append(extraX[num] * axMult)
                 self.line_ydata_extra.append(extraY[num])
-                self.ax.plot(self.line_xdata_extra[-1], self.line_ydata_extra[-1], marker='', linestyle='-', c=extraColor[num], linewidth=self.viewSettings["linewidth"], picker=True)
+                if extraColor is None:
+                    self.ax.plot(self.line_xdata_extra[-1], self.line_ydata_extra[-1], marker='', linestyle='-', linewidth=self.viewSettings["linewidth"], picker=True)
+                else:
+                    if len(extraColor) < len(extraY):
+                        color = extraColor[0]
+                    else:
+                        color = extraColor[num]
+                    self.ax.plot(self.line_xdata_extra[-1], self.line_ydata_extra[-1], marker='', linestyle='-', c=color, linewidth=self.viewSettings["linewidth"], picker=True)
         tmpdata = self.getDataType(tmpdata)
         if(self.viewSettings["plotType"] == 2):
             self.line_xdata.append(self.line_xdata[-1])
@@ -1035,7 +1092,7 @@ class Current1D(PlotFrame):
         self.canvas.draw()
 
     def setTicks(self,Xset = True,Yset = True):
-        if  matplotlib.__version__[0] == '2':
+        if  matplotlib.__version__[0] > '1':
             if Xset:
                 self.ax.xaxis.set_major_locator(ticker.MaxNLocator(nbins='auto', steps=[1,2,2.5,5,10], min_n_ticks=self.viewSettings["minXTicks"]))
             if Yset:
@@ -1215,12 +1272,19 @@ class CurrentMulti(Current1D):
             for num in range(len(extraX)):
                 self.line_xdata_extra.append(extraX[num] * axMult)
                 self.line_ydata_extra.append(extraY[num])
-                self.ax.plot(self.line_xdata_extra[-1], self.line_ydata_extra[-1], marker=marker, linestyle=linestyle, linewidth=self.viewSettings["linewidth"], c=extraColor[num], picker=True)
+                if extraColor is None:
+                    self.ax.plot(self.line_xdata_extra[-1], self.line_ydata_extra[-1], marker=marker, linestyle=linestyle, linewidth=self.viewSettings["linewidth"], picker=True)
+                else:
+                    if len(extraColor) < len(extraY):
+                        color = extraColor[0]
+                    else:
+                        color = extraColor[num]
+                    self.ax.plot(self.line_xdata_extra[-1], self.line_ydata_extra[-1], marker=marker, linestyle=linestyle, linewidth=self.viewSettings["linewidth"], c=color, picker=True)
         tmpdata = self.getDataType(tmpdata)
         if(self.viewSettings["plotType"] == 2):
             self.line_xdata.append(self.line_xdata[-1])
             self.line_ydata = [np.imag(tmpdata), np.real(tmpdata)]
-            self.ax.plot(self.line_xdata[-2], self.line_ydata[-2], marker=marker, linestyle=linestyle, c='r', linewidth=self.viewSettings["linewidth"], label=self.data.name + '_imag', picker=True)
+            self.ax.plot(self.line_xdata[-2], self.line_ydata[-2], marker=marker, linestyle=linestyle, c='#FF7F0E', linewidth=self.viewSettings["linewidth"], label=self.data.name + '_imag', picker=True)
         else:
             self.line_ydata = [np.real(tmpdata)]
         self.ax.plot(self.line_xdata[-1], self.line_ydata[-1], marker=marker, linestyle=linestyle, c=self.viewSettings["color"], linewidth=self.viewSettings["linewidth"], label=self.data.name, picker=True)
@@ -1260,6 +1324,8 @@ class CurrentStacked(Current1D):
         if self.data.ndim() < 2:
             self.root.rescue()
             return False
+        if self.data.ndim() <= self.axes[-1] or self.data.ndim() <= self.axes[-2] or self.axes[-1]==self.axes[-2]:
+            self.axes = np.array([len(self.data.shape()) - 2, len(self.data.shape()) - 1])
         if len(self.locList) != self.data.ndim():
             self.resetLocList()
         stack = [reim.floatSlice(self.viewSettings["stackBegin"], self.viewSettings["stackEnd"], self.viewSettings["stackStep"]), slice(None)]
@@ -1337,16 +1403,31 @@ class CurrentStacked(Current1D):
             for num in range(len(extraY)):
                 self.line_xdata_extra.append(tmpx)
                 self.line_ydata_extra.append(num * self.viewSettings["spacing"] + extraY[num])
-                self.ax.plot(self.line_xdata_extra[-1], self.line_ydata_extra[-1], marker=marker, linestyle=linestyle, linewidth=self.viewSettings["linewidth"], c=extraColor[0], picker=True)
+                if extraColor is None:
+                    self.ax.plot(self.line_xdata_extra[-1], self.line_ydata_extra[-1], marker=marker, linestyle=linestyle, linewidth=self.viewSettings["linewidth"], picker=True)
+                else:
+                    if len(extraColor) < len(extraY):
+                        color = extraColor[0]
+                    else:
+                        color = extraColor[num]
+                    self.ax.plot(self.line_xdata_extra[-1], self.line_ydata_extra[-1], marker=marker, linestyle=linestyle, linewidth=self.viewSettings["linewidth"], c=color, picker=True)
         tmpdata = self.getDataType(tmpdata)
+        if self.viewSettings["colorRange"] == 'none':
+            colorRange = None
+        else:
+            colorRange = get_cmap(self.viewSettings["colorRange"])
         for num in range(len(tmpdata)):
             if (self.viewSettings["plotType"] == 2):
                 self.line_xdata.append(tmp_line_xdata)
                 self.line_ydata.append(num * self.viewSettings["spacing"] + np.imag(tmpdata[num]))
-                self.ax.plot(self.line_xdata[-1], self.line_ydata[-1], marker=marker, linestyle=linestyle, c='r', linewidth=self.viewSettings["linewidth"], label=self.data.name + '_imag', picker=True)
+                self.ax.plot(self.line_xdata[-1], self.line_ydata[-1], marker=marker, linestyle=linestyle, c='#FF7F0E', linewidth=self.viewSettings["linewidth"], label=self.data.name + '_imag', picker=True)
             self.line_xdata.append(tmp_line_xdata)
             self.line_ydata.append(num * self.viewSettings["spacing"] + np.real(tmpdata[num]))
-            self.ax.plot(self.line_xdata[-1], self.line_ydata[-1], marker=marker, linestyle=linestyle, c=self.viewSettings["color"], linewidth=self.viewSettings["linewidth"], label=self.data.name, picker=True)
+            if colorRange is None:
+                color = self.viewSettings["color"]
+            else:
+                color = colorRange(num/float(len(tmpdata)))
+            self.ax.plot(self.line_xdata[-1], self.line_ydata[-1], marker=marker, linestyle=linestyle, c=color, linewidth=self.viewSettings["linewidth"], label=self.data.name, picker=True)
         self.ax.set_xlabel(self.getLabel(self.spec(), self.axes[-1], self.getAxType(), self.getppm()))
         if self.spec() > 0:
             self.ax.set_xlim(self.xmaxlim, self.xminlim)
@@ -1394,7 +1475,6 @@ class CurrentArrayed(CurrentStacked):
     def copyCurrent(self, root, fig, canvas, data):
         return CurrentArrayed(root, fig, canvas, data, self)
 
-
     def setAxType(self, val, update=True, num=-1):
         #Reimplement of base function. Prevent change of yaxis limits
         yminlimBack = self.yminlim 
@@ -1404,7 +1484,6 @@ class CurrentArrayed(CurrentStacked):
         self.ymaxlim  = ymaxlimBack
         if update:
             self.showFid()
-
 
     def resetSpacing(self, zlims=True):
         if zlims:
@@ -1445,17 +1524,32 @@ class CurrentArrayed(CurrentStacked):
             for num in range(len(extraY)):
                 self.line_xdata_extra.append((num * self.viewSettings["spacing"] + extraX[0][extraZlims]) * axMult)
                 self.line_ydata_extra.append(extraY[num][extraZlims][direc])
-                self.ax.plot(self.line_xdata_extra[-1], self.line_ydata_extra[-1], marker=marker, linestyle=linestyle, linewidth=self.viewSettings["linewidth"], c=extraColor[0], picker=True)
+                if extraColor is None:
+                    self.ax.plot(self.line_xdata_extra[-1], self.line_ydata_extra[-1], marker=marker, linestyle=linestyle, linewidth=self.viewSettings["linewidth"], picker=True)
+                else:
+                    if len(extraColor) < len(extraY):
+                        color = extraColor[0]
+                    else:
+                        color = extraColor[num]
+                    self.ax.plot(self.line_xdata_extra[-1], self.line_ydata_extra[-1], marker=marker, linestyle=linestyle, linewidth=self.viewSettings["linewidth"], c=color, picker=True)
         tmpdata = self.getDataType(tmpdata)
         ticksPos = []
+        if self.viewSettings["colorRange"] == 'none':
+            colorRange = None
+        else:
+            colorRange = get_cmap(self.viewSettings["colorRange"])
         for num in range(len(tmpdata)):
             if (self.viewSettings["plotType"] == 2):
                 self.line_xdata.append((num * self.viewSettings["spacing"] + self.xax()[xaxZlims]) * axMult)
                 self.line_ydata.append(np.imag(tmpdata[num][xaxZlims])[direc])
-                self.ax.plot(self.line_xdata[-1], self.line_ydata[-1], marker=marker, linestyle=linestyle, c='r', linewidth=self.viewSettings["linewidth"], label=self.data.name + '_imag', picker=True)
+                self.ax.plot(self.line_xdata[-1], self.line_ydata[-1], marker=marker, linestyle=linestyle, c='#FF7F0E', linewidth=self.viewSettings["linewidth"], label=self.data.name + '_imag', picker=True)
             self.line_xdata.append((num * self.viewSettings["spacing"] + self.xax()[xaxZlims]) * axMult)
             self.line_ydata.append(np.real(tmpdata[num][xaxZlims])[direc])
-            self.ax.plot(self.line_xdata[-1], self.line_ydata[-1], marker=marker, linestyle=linestyle, c=self.viewSettings["color"], linewidth=self.viewSettings["linewidth"], label=self.data.name, picker=True)
+            if colorRange is None:
+                color = self.viewSettings["color"]
+            else:
+                color = colorRange(num/float(len(tmpdata)))
+            self.ax.plot(self.line_xdata[-1], self.line_ydata[-1], marker=marker, linestyle=linestyle, c=color, linewidth=self.viewSettings["linewidth"], label=self.data.name, picker=True)
             pos = (num * self.viewSettings["spacing"] + 0.5 * (self.xax()[xaxZlims][-1] + self.xax()[xaxZlims][0])) * axMult
             ticksPos.append(pos)
         self.ax.set_xticks(ticksPos)
@@ -1547,7 +1641,23 @@ class CurrentContour(CurrentStacked):
     def setProjTraces(self, val, direc):
         self.viewSettings["projPos"][direc] = val
 
-    def updateAxes(self,oldAx, newAx, axis):
+    def integralsPreview(self, xMin, xMax, yMin, yMax):
+        nPatches = min(len(xMin),len(xMax),len(yMin),len(yMax))
+        self.resetPreviewRemoveList()
+        xax = self.xax()
+        yax = self.xax(-2)
+        xaxMult = self.getAxMult(self.spec(), self.getAxType(), self.getppm(), self.freq(), self.ref())
+        yaxMult = self.getAxMult(self.spec(-2), self.getAxType(-2), self.getppm(-2), self.freq(-2), self.ref(-2))
+        for i in range(nPatches):
+            color = 'C'+str((i+2)%10)
+            xminTmp = xax[xMin[i]] * xaxMult
+            xmaxTmp = xax[xMax[i]] * xaxMult
+            yminTmp = yax[yMin[i]] * yaxMult
+            ymaxTmp = yax[yMax[i]] * yaxMult
+            self.removeListLines.append(self.ax.fill([xminTmp,xminTmp,xmaxTmp,xmaxTmp],[yminTmp,ymaxTmp,ymaxTmp,yminTmp],color=color,fill = False, linestyle='--')[0])
+        self.canvas.draw()
+
+    def updateAxes(self, oldAx, newAx, axis):
         scale = newAx / oldAx
         # Scale the path vertices, so no new contours need to be calculated
         cols = self.ax.collections
@@ -1608,8 +1718,16 @@ class CurrentContour(CurrentStacked):
                 self.line_xdata_extra.append(extraX[num] * axMult)
                 self.line_ydata_extra.append(extraY[num] * axMult2)
                 self.line_zdata_extra.append(extraZ[num])
-                self.plotContour(self.line_xdata_extra[-1], self.line_ydata_extra[-1], self.line_zdata_extra[-1], color=[extraColor[num], extraColor[num]])
-                self.showProj(self.line_xdata_extra[-1], self.line_ydata_extra[-1], self.line_zdata_extra[-1], extraColor[num])
+                if extraColor is None:
+                    self.plotContour(self.line_xdata_extra[-1], self.line_ydata_extra[-1], self.line_zdata_extra[-1])
+                    self.showProj(self.line_xdata_extra[-1], self.line_ydata_extra[-1], self.line_zdata_extra[-1])
+                else:
+                    if len(extraColor) < len(extraY):
+                        color = extraColor[0]
+                    else:
+                        color = extraColor[num]
+                    self.plotContour(self.line_xdata_extra[-1], self.line_ydata_extra[-1], self.line_zdata_extra[-1], color=[color, color])
+                    self.showProj(self.line_xdata_extra[-1], self.line_ydata_extra[-1], self.line_zdata_extra[-1], color)
         self.line_xdata = [self.xax() * axMult]
         self.line_ydata = [self.xax(-2) * axMult2]
         self.line_zdata = [tmpdata]
@@ -1734,9 +1852,21 @@ class CurrentContour(CurrentStacked):
             elif self.viewSettings["projPos"][0] < 0:
                 self.viewSettings["projPos"][0] = 0
             xprojdata = tmpdata[self.viewSettings["projPos"][0]]
+        elif self.viewSettings["projTop"] == 5:
+            indices2 = np.searchsorted(y, x)
+            indices1 = indices2 -1
+            indices2[indices2 >= len(y)] = len(y)-1
+            indices1[indices1 < 0] = 0
+            dist1 = x - y[indices1]
+            dist2 = y[indices2] - x
+            distSum = (dist1 + dist2)
+            xprojdata = dist2 * tmpdata[indices1, np.arange(len(x))] + dist1 * tmpdata[indices2, np.arange(len(x))]
+            xprojdata[distSum!=0.0] /= distSum[distSum!=0.0]
+            xprojdata[x > np.max(y)] = np.nan
+            xprojdata[x < np.min(y)] = np.nan
         if self.viewSettings["projTop"] != 3:
             self.x_ax.plot(x, xprojdata, color=color, linewidth=self.viewSettings["linewidth"], picker=True)            
-            xmin, xmax = np.min(xprojdata), np.max(xprojdata)
+            xmin, xmax = np.nanmin(xprojdata), np.nanmax(xprojdata)
             self.x_ax.set_ylim([xmin - 0.15 * (xmax - xmin), xmax + 0.05 * (xmax - xmin)])  # Set projection limits, and force 15% whitespace below plot
             self.x_ax.set_xlim(xLimOld)
         if self.viewSettings["projRight"] == 0:
@@ -1751,9 +1881,21 @@ class CurrentContour(CurrentStacked):
             elif self.viewSettings["projPos"][1] < 0:
                 self.viewSettings["projPos"][1] = 0
             yprojdata = tmpdata[:, self.viewSettings["projPos"][1]]
+        elif self.viewSettings["projTop"] == 5:
+            indices2 = np.searchsorted(x, y)
+            indices1 = indices2 -1
+            indices2[indices2 >= len(x)] = len(x)-1
+            indices1[indices1 < 0] = 0
+            dist1 = y - x[indices1]
+            dist2 = x[indices2] - y
+            distSum = (dist1 + dist2)
+            yprojdata = dist2 * tmpdata[np.arange(len(y)), indices1] + dist1 * tmpdata[np.arange(len(y)), indices2]
+            yprojdata[distSum!=0.0] /= distSum[distSum!=0.0]
+            yprojdata[y > np.max(x)] = np.nan
+            yprojdata[y < np.min(x)] = np.nan
         if self.viewSettings["projRight"] != 3:
             self.y_ax.plot(yprojdata, y, color=color, linewidth=self.viewSettings["linewidth"], picker=True)
-            ymin, ymax = np.min(yprojdata), np.max(yprojdata)
+            ymin, ymax = np.nanmin(yprojdata), np.nanmax(yprojdata)
             self.y_ax.set_xlim([ymin - 0.15 * (ymax - ymin), ymax + 0.05 * (ymax - ymin)])  # Set projection limits, and force 15% whitespace below plot
             self.y_ax.set_ylim(yLimOld)
         self.setTicks()

@@ -1,0 +1,50 @@
+GetPos	Get the position of a data point.	Get the x, y, and amplitude values for a position selected in the main plot. The result is printed to the right of this button, in both axis units and the number of the data point. Also shown is the difference with respect to the previous pick. Note that 'amp' is the intensity of the selected point. The 'y' value only appears for plot in which 3D data is plot (i.e. a contour plot).
+Fourier	Perform a Fourier transformation of the current dimension.	ssNake uses the time/freq toggle to figure out whether to do a normal or an inverse transform. After the transform, the applicable FFT shift is also applied.
+xPosition	Displays the x-position of the last pick.	The displayed number is the position of the data point along the x-axis. Note that, in ssNake, position '0' always refers to the first data point. Also note that, in a spectrum, the data indices go from the right to the left, making point '0' the rightmost data point.
+xValue	Displays the x-value of the last pick.	The displayed number is the axis value of the selected data point along the x-axis in the unit of the x-axis. 
+ampValue	Displays the amplitude value of the last pick.	The displayed number is the amplitude that belongs to the selected data point. Note that the amplitude of a data point is not always equal to the y-value in the plot. For example, in a contour plot it stands for the z-value of the data point. 
+deltaxvalue	Displays the difference in x-value between the last two picks.	The difference is between the axis values (i.e. in Hz, s, ppm, etc.), and is given in the unit of the x-axis.
+deltaamplitude	Displays the difference in amplitude between the last two picks.
+yPosition	Displays the y-position of the last pick.	The displayed number is the position of the data point along the y-axis. Note that, in ssNake, position '0' always refers to the first data point. Also note that, in a spectrum, the data indices go from the top to the bottom, making point '0' the uppermost data point.
+yValue	Displays the y-value of the last pick.	The displayed number is the axis value of the selected data point along the y-axis in the unit of the y-axis. 
+deltayvalue	Displays the difference in y-value between the last two picks.	The difference is between the axis values (i.e. in Hz, s, ppm, etc.), and is given in the unit of the y-axis.
+timeButton	Shows whether the current x-axis is in time units.	This toggle indicates if the current dimension is an FID or a spectrum (time or frequency). Normally, this toggle does not need to be changed, as ssNake does this bookkeeping itself.
+freqButton	Shows whether the current x-axis is in frequency units.	This toggle indicates if the current dimension is an FID or a spectrum (time or frequency). Normally, this toggle does not need to be changed, as ssNake does this bookkeeping itself.
+wholeEcho	Indicates if the current dimension should be whole echo processed.	When this is activated, the time-domain data is considered to be symmetric, with the middle of the time signal zero. This can be created by using the 'swap echo' function, and is often used for data in which the whole echo, rising and falling, has been recorded. This toggle is managed by ssNake and usually does not require user input. When activated, zerofilling is performed in the centre of the time signal, and apodization functions behave differently. Moreover, the first data point is not multiplied by 0.5 before a Fourier transformation.
+freqEntry	The spectrometer frequency of the current dimension in MHz.	This value is used to generate the ppm axis. Moreover, in some simulations this value needs to be set as it effects the calculated spectrum (e.g. second order quadrupolar effects). In the direct dimension, this value is usually correct when loading data. For the indirect dimension, ssNake sometimes cannot find it, and it should be supplied by the user.
+swEntry	The spectral width (sweepwidth) of the current dimension in kHz.
+plotDrop	Determines which part of the data should be plot.	Shows either the real, imaginary or both data sets in the main plot. When on 'Abs' it shows the absolute value of the complex number (i.e. the length of the vector in the complex plane). In case of hypercomplex data, imaginary always refers to the imaginary part along the currently viewed dimension.
+axisDrop	Sets the unit of the current x-axis.	Which units are available depends on the type of the data (time or frequency domain). The 'ppm' option is only available if the spectrometer frequency is set.
+axis2Drop	Sets the unit of the current indirect dimension.	Which units are available depends on the type of the data (time or frequency domain). The 'ppm' option is only available if the spectrometer frequency is set.
+stackSpacing	The distance between the different lines.	Provides the amount of offset that is applied between each individual trace in the plot. This value can also be changed by using 'shift + scroll wheel' in the plot.
+stackStep	Determines the increment of the index used to plot the traces.	A value of 1 plots all the trace going from 'From' to 'To'. A value of 2 only plots each alternating trace, etc. 
+sideFrom	Start number of the slices that should be plot.	Note that ssNake uses the python definitions for this, i.e. 0 is the first trace.
+sideTo	End number of the slices that should be plot.	Note that ssNake uses the python definitions for this, i.e. the number is until (not including). Having 'From = 0' end 'To = 3' therefore plots slice 0, 1 and 2.
+contourNumber	Maximum number of contour lines that is plot.	When using the multiplier setting, this number might not be reached.
+contourSign	Determines which part of the data is plot.	The options are to plot only the positive contours, only the negative, or to plot both both. 
+contourType	Determines in which increment the contours are plot.	There are two options: 'linear' or 'multiplier'. 'Linear' makes sure that there are 'Number' of contour lines between the minimum and the maximum value. 'Multiplier' draws a contour at the minimum, and progressively multiplies this number with the multiplier value and draws a contour level, until either 100% or the maximum number of contours is reached.
+contourMultiplier	Defines the multiplier value.
+contourMax	Maximum contour level in %.
+contourMin	Minimum contour level in %.	Can also be changed by using 'shift + scroll wheel' when hovering over the plot.
+contourLimType	Defines what is taken as 100% for the contour levels.	There are two options. 'Current 2D' makes sure that 100% is defined as the maximum of the absolute value of the currently viewed 2D data. 'Full data' takes the maximum of all slices. This option is useful if you want to compare different 2D slices, and are searching for the regions with a certain amount of signal intensity (e.g. going through different 2D slices of 3D data).
+contourTopProjection	Defines the type of projection that is used for the top data.	There are several options. 'Sum' takes the sum of all horizontal traces. 'Max' takes the maximum. 'Min' takes the minimum, and 'off' turn the projection off. The 'Slice' option can be used to make the projection equal to a certain horizontal slice, which can be defined by the user. The 'Diagonal' option sets the projection equal to the diagonal, using linear interpolation if necessary.
+contourRightProjection	Defines the type of projection that is used for the right data.	There are several options. 'Sum' takes the sum of all vertical traces. 'Max' takes the maximum. 'Min' takes the minimum, and 'off' turn the projection off. The 'Slice' option can be used to make the projection equal to a certain vertical slice, which can be defined by the user. The 'Diagonal' option sets the projection equal to the diagonal, using linear interpolation if necessary.
+contourProjTopTrac	The horizontal slice that is to be used for the top projection.
+contourProjRightTrac	The vertical slice that is to be used for the right projection.
+contourProjRanges	Use a range of the data for the projection.	This enables several input boxes to define the ranges of the data that should be used for the top and right projection. Only available for the 'Sum', 'Max' and 'Min' options.
+contourTopRangeMax	Maximum of the traces that is to be used for the top projection.
+contourTopRangeMin	Minimum of the traces that is to be used for the top projection.
+contourRightRangeMax	Maximum of the traces that is to be used for the right projection.
+contourRightRangeMin	Minimum of the traces that is to be used for the right projection.
+contourDiagonal	Plot a line along the diagonal in the contour plot.	The slope of the line depends on the x and y axes, and its units.
+contourDiagonalMulti	Multiplier for the diagonal line.	This can be used, for example, to draw a diagonal for a single-quantum-double-quantum correlation plot (multiplier = 2).
+multiplotAddPlot	Add a plot with data from another workspace. 
+multiplotColour	Change the colour for this plot
+multiplotX	Remove this plot.
+multiplotScale	Y-value multiplier of this plot.
+multiplotOffset	Adds a constant value (i.e. offset) to this plot.
+multiplotShift	Adds a horizontal shift to this plot.
+multiplotDim	Sets the active x dimension of this plot.
+sideframeDimension1	Sets the active x dimension.
+sideframeDimension2	Sets the active y dimension.
+sideFrameDimensionSlice	The active slice of this dimension.

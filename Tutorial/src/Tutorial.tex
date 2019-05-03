@@ -168,7 +168,7 @@ Play around with these, so you get familiar with them. Some ssNake tools require
 \end{tcolorbox}
 
 The spectrum looks nice, but it is not phased properly. To solve this, go to Tools $\rightarrow$
-Phasing. This opens the phasing window. You can now drag the first bar (the `zeroth' order phasing)
+Phasing $\rightarrow$ Phase. This opens the phasing window. You can now drag the first bar (the `zeroth' order phasing)
 to the left and right to phase the spectrum. If you are satisfied, push 'apply' to apply the
 phasing. Remember to click double right to reset the view (all zoom controls can be used during the
 phasing, except for the zoombox). Most tools in ssNake work in this way: you can view the effects of
@@ -176,7 +176,7 @@ the tool on the current spectrum or FID, and after you push apply it does the sa
 every trace in the $n$D data. In this case we have 1D data, so `apply' does nothing we haven't
 already seen on the screen. \\ \includegraphics[width=\linewidth]{Images/1DspecPhased.png}
 
-Now that we have processed our first spectrum, it is time to undo it all! ssNake provides an undo and redo button that can undo or redo every action that has been performed on the data. Go to Edit $\rightarrow$ Undo to undo the phasing that we have just applied. Now push ctrl-z to undo the Fourier transform. Equivalently, we can redo this by going to Edit $\rightarrow$ Redo (or by pushing ctrl-shift-z). This shows the unphased spectrum again. To phase it, go to Tools $\rightarrow$ Phasing, but now push `Autophase 0th order' and apply. This asks ssNake to perform the zeroth order phasing himself. Easy, but not always the path to the best phased spectrum! 
+Now that we have processed our first spectrum, it is time to undo it all! ssNake provides an undo and redo button that can undo or redo every action that has been performed on the data. Go to Edit $\rightarrow$ Undo to undo the phasing that we have just applied. Now push ctrl-z to undo the Fourier transform. Equivalently, we can redo this by going to Edit $\rightarrow$ Redo (or by pushing ctrl-shift-z). This shows the unphased spectrum again. To phase it, go to Tools $\rightarrow$ Phasing $\rightarrow$ Phase, but now push `Autophase 0th order' and apply. This asks ssNake to perform the zeroth order phasing himself. Easy, but not always the path to the best phased spectrum! 
 
 \subsection{Noisy data}
 Now load another datafile named '1DNoisy.json'. This is the same data as in the previous section,

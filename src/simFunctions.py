@@ -18,8 +18,6 @@
 # along with ssNake. If not, see <http://www.gnu.org/licenses/>.
 
 import numpy as np
-from scipy.special import wofz
-import scipy.ndimage
 import tempfile
 import os
 import shutil
@@ -126,7 +124,7 @@ def csaSpace(delta): # CSA spherical tensor cartesian space functions
     # delta in Hz
     V00 = - np.sqrt(1.0/3.0) * (delta[0] + delta[1] + delta[2])
     V20 =   np.sqrt(1.0/6.0) * (2*delta[2] - delta[0] - delta[1])
-    V2pm2 = 0.5 * (delta[0] - delta[1])
+    V2pm2 = 0.5 * (delta[1] - delta[0])
     return V00, np.array([V2pm2, 0, V20, 0, V2pm2])
 
 def csaSpin(): # CSA spherical tensor spin space functions
@@ -239,6 +237,8 @@ def zcw_angles(m, symm=0):
 def peakSim(x, freq, sw, axMult, extra, bgrnd, mult, pos, amp, lor, gauss):
     x = x[-1]
     pos /= axMult
+    if pos < np.min(x) or pos > np.max(x):
+        return np.zeros_like(x)
     lor = np.abs(lor)
     gauss = np.abs(gauss)
     length = len(x)
@@ -271,86 +271,69 @@ def makeMQMASSpectrum(x, sw, v, gauss, lor, weight):
     final *= apod1 * apod2 * length1 / sw[-2] * length2 / sw[-1]
     return final
 
-def csaFunc(x, freq, sw, axMult, extra, bgrnd, mult, spinspeed, t11, t22, t33, amp, lor, gauss):
-    x = x[-1]
-    shiftdef, numssb, angle, D2, weight, MAStype = extra
-    if MAStype == 0:
-        spinspeed = 0.0
-    elif MAStype == 2:
-        spinspeed = np.inf
-    freq = freq[-1]
-    sw = sw[-1]
-    spinspeed *= 1e3
-    if shiftdef == 2: #if heaberlen, make eta continuous, and between 0--1
-        t33 = 1 - abs(abs(t33) % 2 - 1)
-    elif shiftdef == 3: #For Hertzfeld-Berger
-        t33 = 1 - abs(abs(t33 + 1)%4 - 2)
+def carouselAveraging(spinspeed, numssb, v, weight, vConstant):
+    # Perform carousel averaging for finite MAS powder patterns
+    dt = 1.0 / spinspeed / numssb
+    prod = np.exp(1j * np.cumsum(v * dt * 2 * np.pi, axis=1))
+    tot = np.fft.fft(prod, axis=1)
+    tot *= np.conj(tot)
+    weight2 = weight[:,np.newaxis] / numssb**2
+    tot *= weight2
+    v = np.fft.fftfreq(numssb, 1.0 / numssb) * spinspeed
+    v = v + vConstant[:,np.newaxis]
+    return v, tot
 
-    tensor = np.array(func.shiftConversion([t11, t22, t33], shiftdef)[1], dtype=float)
-    tensor /= float(axMult)
+def csaFreqBase(angle, tensor, D2, spinspeed, numssb):
+    d2 = d2tens(np.array([angle]))[0,:,2]
     A0, A2 = csaSpace(tensor)
     T0, T2 = csaSpin()
-    d2 = d2tens(np.array([angle]))[0,:,2]
-    if spinspeed != np.inf and spinspeed != 0.0:
-        gammastep = 2 * np.pi / numssb
-        gval = np.arange(numssb) * gammastep
-        dt = 1.0 / spinspeed / numssb
-        spinD2 = np.exp(1j * np.arange(-2, 3)[:,np.newaxis] * gval) * d2[:,np.newaxis]
-    factor2 = d2[2]
     dat0 = A0 * T0
     dat2 = A2 * T2
     dat2 = np.matmul(dat2, D2)
+    factor2 = d2[2]
+    vConstant = 0
     if spinspeed == np.inf:
         v = np.real(dat2[:,2] * factor2 + dat0)
-        tot = weight
     elif spinspeed == 0.0:
         v = np.real(dat2[:,2] + dat0)
-        tot = weight
     else:
+        gammastep = 2 * np.pi / numssb
+        gval = np.arange(numssb) * gammastep
+        spinD2 = np.exp(1j * np.arange(-2, 3)[:,np.newaxis] * gval) * d2[:,np.newaxis]
         vConstant = np.real(dat0 + dat2[:,2] * factor2) 
         dat2[:,2] = 0
         v = np.matmul(dat2, spinD2)
-        prod = np.exp(1j * np.cumsum(v * dt * 2 * np.pi, axis=1))
-        tot = np.fft.fft(prod, axis=1)
-        tot *= np.conj(tot)
-        weight2 = weight[:,np.newaxis] / numssb**2
-        tot *= weight2
-        v = np.fft.fftfreq(numssb, 1.0 / numssb) * spinspeed
-        v = v + vConstant[:,np.newaxis]
-    return mult * amp * makeSpectrum(x, sw, v, gauss, lor, tot)
+    return v, vConstant
+
+def csaFreq(angle, tensor, D2, spinspeed, numssb, weight):
+    tot = weight
+    v, vConstant = csaFreqBase(angle, tensor, D2, spinspeed, numssb)
+    if spinspeed != np.inf and spinspeed != 0.0:
+        v, tot = carouselAveraging(spinspeed, numssb, v, weight, vConstant)
+    return v, tot
+
+def csaFunc(x, freq, sw, axMult, extra, bgrnd, mult, spinspeed, t11, t22, t33, amp, lor, gauss):
+    shiftdef, numssb, angle, D2, weight, MAStype = extra
+    extra = [False, 0.5, numssb, angle, D2, None, weight, MAStype, shiftdef]
+    return quadCSAFunc(x, freq, sw, axMult, extra, bgrnd, mult, spinspeed, t11, t22, t33, 0.0, 0.0, 0.0, 0.0, 0.0, amp, lor, gauss)
     
 def quadFunc(x, freq, sw, axMult, extra, bgrnd, mult, spinspeed, pos, cq, eta, amp, lor, gauss):
-    x = x[-1]
     satBool, I, numssb, angle, D2, D4, weight, MAStype = extra
-    if MAStype == 0:
-        spinspeed = 0.0
-    elif MAStype == 2:
-        spinspeed = np.inf
-    if not satBool and (I % 1) == 0.0:
-        # Integer spins have no central transition
-        return np.zeros_like(x)
-    cq *= 1e6
-    #Force eta to 0--1 in a continuous way: 0.9 == 1.1, 0 == 2
-    eta = 1 - abs(abs(eta) % 2 - 1)
-    spinspeed *= 1e3
-    freq = freq[-1]
-    sw = sw[-1]
-    pos /= axMult
-    mList = np.arange(-I, I)
-    totalEff = len(mList) * (I**2 + I) - np.sum(mList * (mList + 1))
-    if not satBool:
-        mList = [-0.5]
-    spectrum = np.zeros(len(x), dtype=complex)
-    for m in mList:
-        eff = I**2 + I - m * (m + 1)
-        eff /= totalEff
-        v, tot = quadFreq(I, m, m+1, spinspeed, numssb, angle, D2, D4, weight, freq, pos, cq, eta)
-        spectrum += eff * makeSpectrum(x, sw, v, gauss, lor, tot)
-    return mult * amp * spectrum
+    extra = [satBool, I, numssb, angle, D2, D4, weight, MAStype, 0]
+    return quadCSAFunc(x, freq, sw, axMult, extra, bgrnd, mult, spinspeed, pos, pos, pos, cq, eta, 0.0, 0.0, 0.0, amp, lor, gauss)
 
-def quadFreq(I, m1, m2, spinspeed, numssb, angle, D2, D4, weight, freq, pos, cq, eta):
+def quadFreq(I, m1, m2, spinspeed, numssb, angle, D2, D4, weight, freq, cq, eta):
     if freq == 0.0:
         raise SimException("Sim: Frequency cannot be zero")
+    tot = weight
+    v, vConstant = quadFreqBase(I, m1, m2, cq, eta, freq, angle, D2, D4, numssb, spinspeed)
+    if spinspeed != np.inf and spinspeed != 0.0:
+        v, tot = carouselAveraging(spinspeed, numssb, v, weight, vConstant)
+    return v, tot
+
+def quadFreqBase(I, m1, m2, cq, eta, freq, angle, D2, D4, numssb, spinspeed):
+    #Establish the frequencies for all powder orientations.
+    #Prepare for carousel averaging, but do not perform yet (return gamma angle depend acne)
     pre2 = -cq**2 / (4 * I *(2 * I - 1))**2 * 2 / freq
     pre1 = cq / (4 * I *(2 * I - 1))
     firstA2 = pre1 * firstQuadSpace(eta)
@@ -360,40 +343,79 @@ def quadFreq(I, m1, m2, spinspeed, numssb, angle, D2, D4, weight, freq, pos, cq,
     secA4 *= pre2
     d2 = d2tens(np.array([angle]))[0,:,2]
     d4 = d4tens(np.array([angle]))[0,:,4]
-    if spinspeed != np.inf and spinspeed != 0.0:
-        gammastep = 2 * np.pi / numssb
-        gval = np.arange(numssb) * gammastep
-        dt = 1.0 / spinspeed / numssb
-        spinD2 = np.exp(1j * np.arange(-2, 3)[:,np.newaxis] * gval) * d2[:,np.newaxis]
-        spinD4 = np.exp(1j * np.arange(-4, 5)[:,np.newaxis] * gval) * d4[:,np.newaxis]
     factor2 = d2[2]
     factor4 = d4[4]
     firstspin2 = firstQuadSpin(I, m1, m2)
     secspin0, secspin2, secspin4 = secQuadSpin(I, m1, m2)
-    dat0 = secA0 * secspin0 + pos
+    dat0 = secA0 * secspin0
     dat2 = secA2 * secspin2 + firstA2 * firstspin2
     dat4 = secA4 * secspin4
     dat2 = np.matmul(dat2, D2)
     dat4 = np.matmul(dat4, D4)
+    vConstant = 0
     if spinspeed == np.inf:
         v = np.real(dat4[:,4] * factor4  + dat2[:,2] * factor2 + dat0)
-        tot = weight
     elif spinspeed == 0.0:
         v = np.real(dat4[:,4]  + dat2[:,2] + dat0)
-        tot = weight
     else:
+        gammastep = 2 * np.pi / numssb
+        gval = np.arange(numssb) * gammastep
+        spinD2 = np.exp(1j * np.arange(-2, 3)[:,np.newaxis] * gval) * d2[:,np.newaxis]
+        spinD4 = np.exp(1j * np.arange(-4, 5)[:,np.newaxis] * gval) * d4[:,np.newaxis]
         vConstant = np.real(dat0 + dat2[:,2] * factor2 + dat4[:,4] * factor4) 
         dat4[:,4] = 0
         dat2[:,2] = 0
         v = np.matmul(dat2, spinD2) + np.matmul(dat4, spinD4)
-        prod = np.exp(1j * np.cumsum(v * dt * 2 * np.pi, axis=1))
-        tot = np.fft.fft(prod, axis=1)
-        tot *= np.conj(tot)
-        weight2 = weight[:,np.newaxis] / numssb**2
-        tot *= weight2
-        v = np.fft.fftfreq(numssb, 1.0 / numssb) * spinspeed
-        v = v + vConstant[:,np.newaxis]
-    return v, tot
+    return v, vConstant
+
+def quadCSAFunc(x, freq, sw, axMult, extra, bgrnd, mult, spinspeed, t11, t22, t33, cq, eta, alphaCSA, betaCSA, gammaCSA, amp, lor, gauss):
+    # Degrees to radians
+    alphaCSA *= np.pi/180.0
+    betaCSA *= np.pi/180.0
+    gammaCSA *= np.pi/180.0
+    x = x[-1]
+    satBool, I, numssb, angle, D2, D4, weight, MAStype, shiftdef = extra
+    if MAStype == 0:
+        spinspeed = 0.0
+    elif MAStype == 2:
+        spinspeed = np.inf
+    if not satBool and (I % 1) == 0.0:
+        # Integer spins have no central transition
+        return np.zeros_like(x)
+    if shiftdef == 2: #if heaberlen, make eta continuous, and between 0--1
+        t33 = 1 - abs(abs(t33) % 2 - 1)
+    elif shiftdef == 3: #For Hertzfeld-Berger
+        t33 = 1 - abs(abs(t33 + 1)%4 - 2)
+    tensor = np.array(func.shiftConversion([t11, t22, t33], shiftdef)[1], dtype=float)
+    tensor /= float(axMult)
+    cq *= 1e6
+    #Force eta to 0--1 in a continuous way: 0.9 == 1.1, 0 == 2
+    eta = 1 - abs(abs(eta) % 2 - 1)
+    spinspeed *= 1e3
+    freq = freq[-1]
+    sw = sw[-1]
+    mList = np.arange(-I, I)
+    totalEff = len(mList) * (I**2 + I) - np.sum(mList * (mList + 1))
+    if not satBool:
+        mList = [-0.5]
+    spectrum = np.zeros(len(x), dtype=complex)
+    relativeD2 = D2tens(np.array([alphaCSA]), np.array([betaCSA]), np.array([gammaCSA]))
+    vCSA, vConstantCSA = csaFreqBase(angle, tensor, np.matmul(relativeD2, D2), spinspeed, numssb)
+    for m in mList:
+        eff = I**2 + I - m * (m + 1)
+        eff /= totalEff
+        if I == 0.5:
+            v = vCSA
+            vConstant = vConstantCSA
+        else:
+            v, vConstant = quadFreqBase(I, m, m+1, cq, eta, freq, angle, D2, D4, numssb, spinspeed)
+            v += vCSA
+            vConstant += vConstantCSA
+        tot = weight
+        if spinspeed != np.inf and spinspeed != 0.0:
+            v, tot = carouselAveraging(spinspeed, numssb, v, weight, vConstant)
+        spectrum += eff * makeSpectrum(x, sw, v, gauss, lor, tot)
+    return mult * amp * spectrum
 
 def quadCzjzekFunc(x, freq, sw, axMult, extra, bgrnd, mult, pos, sigma, cq0, eta0, amp, lor, gauss):
     x = x[-1]
@@ -428,8 +450,10 @@ def mqmasFunc(x, freq, sw, axMult, extra, bgrnd, mult, spinspeed, pos, cq, eta, 
     spinspeed *= 1e3
     cq *= 1e6
     eta = 1 - abs(abs(eta)%2 - 1)
-    v2, tot2 = quadFreq(I, -0.5, 0.5, spinspeed, numssb, angle, D2, D4, weight, freq2, pos, cq, eta)
-    v1, tot1 = quadFreq(I, -mq/2.0, mq/2.0, spinspeed, numssb, angle, D2, D4, np.ones_like(weight), freq1, mq*pos, cq, eta)
+    v2, tot2 = quadFreq(I, -0.5, 0.5, spinspeed, numssb, angle, D2, D4, weight, freq2, cq, eta)
+    v1, tot1 = quadFreq(I, -mq/2.0, mq/2.0, spinspeed, numssb, angle, D2, D4, np.ones_like(weight), freq1, cq, eta)
+    v2 += pos
+    v1 += mq*pos
     v1 -= v2 * shear
     v1 *= scale
     return mult * amp * makeMQMASSpectrum(x, sw, [np.real(v1.flatten()), np.real(v2.flatten())], [gauss1, gauss2], [lor1, lor2], np.real(tot1*tot2).flatten())

@@ -19,13 +19,6 @@
 # along with ssNake. If not, see <http://www.gnu.org/licenses/>.
 
 import numpy as np
-try:
-    from PyQt5 import QtGui, QtCore, QtWidgets
-    from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
-except ImportError:
-    from PyQt4 import QtGui, QtCore
-    from PyQt4 import QtGui as QtWidgets
-    from matplotlib.backends.backend_qt4agg import FigureCanvasQTAgg as FigureCanvas
 import matplotlib as mpl
 from matplotlib.figure import Figure
 import scipy.optimize
@@ -42,7 +35,7 @@ import functions as func
 import simFunctions as simFunc
 import specIO as io
 import spectrum as sc
-from ssNake import SideFrame, VERSION
+from ssNake import SideFrame, VERSION, QtGui, QtCore, QtWidgets, FigureCanvas
 import Czjzek as Czjzek
 
 stopDict = {}  # Global dictionary with stopping commands for fits
@@ -358,14 +351,17 @@ class FitCopySettingsWindow(QtWidgets.QWidget):
         self.allSlices = QtWidgets.QCheckBox("Export all slices")
         if not single:
             grid.addWidget(self.allSlices, 0, 0)
+            line = QtWidgets.QFrame()
+            line.setFrameShape(QtWidgets.QFrame.HLine)
+            grid.addWidget(line, 1, 0, 1, 2)
         self.original = QtWidgets.QCheckBox("Include original")
         self.original.setChecked(True)
-        grid.addWidget(self.original, 1, 0)
+        grid.addWidget(self.original, 2, 0)
         self.subFits = QtWidgets.QCheckBox("Include subfits")
         self.subFits.setChecked(True)
-        grid.addWidget(self.subFits, 2, 0)
+        grid.addWidget(self.subFits, 3, 0)
         self.difference = QtWidgets.QCheckBox("Include difference")
-        grid.addWidget(self.difference, 3, 0)
+        grid.addWidget(self.difference, 4, 0)
         cancelButton = QtWidgets.QPushButton("&Cancel")
         cancelButton.clicked.connect(self.closeEvent)
         okButton = QtWidgets.QPushButton("&Ok", self)
@@ -403,10 +399,13 @@ class ParamCopySettingsWindow(QtWidgets.QWidget):
         self.allSlices = QtWidgets.QCheckBox("Export all slices")
         if not single:
             grid.addWidget(self.allSlices, 0, 0)
+            line = QtWidgets.QFrame()
+            line.setFrameShape(QtWidgets.QFrame.HLine)
+            grid.addWidget(line, 1, 0, 1, 2)
         self.exportList = []
         for i in range(len(paramNames)):
             self.exportList.append(QtWidgets.QCheckBox(paramNames[i]))
-            grid.addWidget(self.exportList[-1], i + 1, 0)
+            grid.addWidget(self.exportList[-1], i + 2, 0)
         cancelButton = QtWidgets.QPushButton("&Cancel")
         cancelButton.clicked.connect(self.closeEvent)
         okButton = QtWidgets.QPushButton("&Ok", self)
@@ -1768,8 +1767,6 @@ class PeakDeconvParamFrame(AbstractParamFrame):
            if struc["Gauss"][i][0] == 1:
                 self.fitParamList[locList]["Gauss"][i][0] = abs(self.fitParamList[locList]["Gauss"][i][0])
 
-
-
 ##############################################################################
 
 
@@ -1817,7 +1814,7 @@ class CsaDeconvParamFrame(AbstractParamFrame):
     FFT_AXES = (0,)
     SINGLENAMES = ["Offset", "Multiplier", "Spinspeed"]
     MULTINAMES = ["Definition1", "Definition2", "Definition3", "Integral", "Lorentz", "Gauss"]
-    EXTRANAMES = ['spinType', 'satBool', 'angle', 'shiftdef', 'cheng', 'numssb']
+    EXTRANAMES = ['spinType', 'angle', 'shiftdef', 'cheng', 'numssb']
 
     MASTYPES = ["Static", "Finite MAS", "Infinite MAS"]
     DEFTYPES = [u'δ11 - δ22 - δ33',
@@ -2290,6 +2287,331 @@ class QuadDeconvParamFrame(AbstractParamFrame):
            if struc["Cq"][i][0] == 1:
                 self.fitParamList[locList]["Cq"][i][0] = abs(self.fitParamList[locList]["Cq"][i][0])
 
+#################################################################################
+
+
+class QuadCSADeconvParamFrame(AbstractParamFrame):
+
+    FFT_AXES = (0,)    
+    Ioptions = ['1/2', '1', '3/2', '2', '5/2', '3', '7/2', '4', '9/2']
+    Ivalues = [0.5, 1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 4.0, 4.5]
+    SINGLENAMES = ["Offset", "Multiplier", "Spinspeed"]
+    MULTINAMES = ["Definition1", "Definition2", "Definition3", "Cq", 'eta', "Alpha", "Beta", "Gamma", "Integral", "Lorentz", "Gauss"]
+    EXTRANAMES = ['spinType', 'satBool', 'angle', 'shiftdef', 'cheng', 'I', 'numssb']
+
+    MASTYPES = ["Static", "Finite MAS", "Infinite MAS"]
+    DEFTYPES = [u'δ11 - δ22 - δ33',
+                u'δxx - δyy - δzz',
+                u'δiso - δaniso - η',
+                u'δiso - Ω - κ']
+    DEFNAMES = ["delta_11 - delta_22 - delta_33",
+                "delta_xx - delta_yy - delta_zz",
+                "delta_iso - delta_aniso - eta",
+                "delta_iso - omega - kappa"]
+
+    def __init__(self, parent, rootwindow, isMain=True):
+        self.FITFUNC = simFunc.quadCSAFunc
+        self.fullInt = np.sum(parent.getData1D()) * parent.sw() / float(len(parent.getData1D()))
+        self.DEFAULTS = {"Offset": [0.0, True], "Multiplier": [1.0, True], "Spinspeed": [10.0, True], "Definition1": [0.0, False], "Definition2": [0.0, False], "Definition3": [0.0, False], "Cq": [1.0, False], 'eta': [0.0, False], "Integral": [self.fullInt, False], "Lorentz": [1.0, False], "Gauss": [0.0, True], "Alpha": [0.0, True], "Beta": [0.0, True], "Gamma": [0.0, True]}
+        self.extraDefaults = {'I': 2, 'Satellites': False, 'cheng': 15, 'spinType': 0, 'shiftdef': 0, 'rotorAngle': "arctan(sqrt(2))", 'numssb': 32, "Spinspeed": '10.0'}
+        super(QuadCSADeconvParamFrame, self).__init__(parent, rootwindow, isMain)
+        self.optframe.addWidget(wc.QLabel("MAS:"), 2, 0)
+        self.entries['spinType'].append(QtWidgets.QComboBox(self))
+        self.entries['spinType'][-1].addItems(self.MASTYPES)
+        self.entries['spinType'][-1].currentIndexChanged.connect(self.MASChange)
+        self.optframe.addWidget(self.entries['spinType'][-1], 3, 0)
+        self.entries['satBool'].append(QtWidgets.QCheckBox("Satellites"))
+        self.optframe.addWidget(self.entries['satBool'][-1], 6, 0)
+        self.angleLabel = wc.QLabel("Rotor Angle:")
+        self.optframe.addWidget(self.angleLabel, 2, 1)
+        self.entries['angle'].append(wc.QLineEdit())
+        self.optframe.addWidget(self.entries['angle'][-1], 3, 1)
+        self.sidebandLabel = wc.QLabel("# sidebands:")
+        self.optframe.addWidget(self.sidebandLabel, 4, 1)
+        self.entries['numssb'].append(QtWidgets.QSpinBox())
+        self.entries['numssb'][-1].setAlignment(QtCore.Qt.AlignHCenter)
+        self.entries['numssb'][-1].setMaximum(100000)
+        self.entries['numssb'][-1].setMinimum(2)
+        self.optframe.addWidget(self.entries['numssb'][-1], 5, 1)
+        self.optframe.addWidget(wc.QLabel("Cheng:"), 0, 1)
+        self.entries['cheng'].append(QtWidgets.QSpinBox())
+        self.entries['cheng'][-1].setAlignment(QtCore.Qt.AlignHCenter)
+        self.optframe.addWidget(self.entries['cheng'][-1], 1, 1)
+        self.optframe.addWidget(wc.QLabel("I:"), 0, 0)
+        self.entries['I'].append(QtWidgets.QComboBox())
+        self.entries['I'][-1].addItems(self.Ioptions)
+        self.optframe.addWidget(self.entries['I'][-1], 1, 0)
+        self.shiftDefType = 0  # variable to remember the selected tensor type
+        self.optframe.addWidget(wc.QLabel("Definition:"), 4, 0)
+        self.entries['shiftdef'].append(QtWidgets.QComboBox())
+        self.entries['shiftdef'][-1].addItems(self.DEFTYPES)
+        self.entries['shiftdef'][-1].currentIndexChanged.connect(self.changeShiftDef)
+        self.optframe.addWidget(self.entries['shiftdef'][-1], 5, 0)
+        self.spinLabel = wc.QLabel("Spin. speed [kHz]:")
+        self.frame2.addWidget(self.spinLabel, 0, 0, 1, 2)
+        self.ticks["Spinspeed"].append(QtWidgets.QCheckBox(''))
+        self.frame2.addWidget(self.ticks["Spinspeed"][-1], 1, 0)
+        self.entries["Spinspeed"].append(wc.QLineEdit())
+        self.frame2.addWidget(self.entries["Spinspeed"][-1], 1, 1)
+        self.entries["Spinspeed"][-1].setEnabled(False)
+        self.frame2.addWidget(wc.QLabel("Offset:"), 2, 0, 1, 2)
+        self.ticks["Offset"].append(QtWidgets.QCheckBox(''))
+        self.frame2.addWidget(self.ticks["Offset"][-1], 3, 0)
+        self.entries["Offset"].append(wc.QLineEdit())
+        self.frame2.addWidget(self.entries["Offset"][-1], 3, 1)
+        self.frame2.addWidget(wc.QLabel("Multiplier:"), 4, 0, 1, 2)
+        self.ticks["Multiplier"].append(QtWidgets.QCheckBox(''))
+        self.frame2.addWidget(self.ticks["Multiplier"][-1], 5, 0)
+        self.entries["Multiplier"].append(wc.QLineEdit())
+        self.frame2.addWidget(self.entries["Multiplier"][-1], 5, 1)
+        self.numExp = QtWidgets.QComboBox()
+        self.numExp.addItems([str(x + 1) for x in range(self.FITNUM)])
+        self.numExp.currentIndexChanged.connect(self.changeNum)
+        self.frame3.addWidget(self.numExp, 0, 0, 1, 2)
+        if self.parent.viewSettings["ppm"]:
+            axUnit = 'ppm'
+        else:
+            axUnit = ['Hz', 'kHz', 'MHz'][self.parent.getAxType()]
+        # Labels
+        self.addMultiLabel("Definition1", "", 0)
+        self.addMultiLabel("Definition2", "", 2)
+        self.addMultiLabel("Definition3", "", 4)
+        self.label11 = wc.QLabel(u'δ' + '<sub>11</sub> [' + axUnit + '] :')
+        self.label22 = wc.QLabel(u'δ' + '<sub>22</sub> [' + axUnit + '] :')
+        self.label33 = wc.QLabel(u'δ' + '<sub>33</sub> [' + axUnit + '] :')
+        self.frame3.addWidget(self.label11, 1, 1)
+        self.frame3.addWidget(self.label22, 1, 3)
+        self.frame3.addWidget(self.label33, 1, 5)
+        self.labelxx = wc.QLabel(u'δ' + '<sub>xx</sub> [' + axUnit + '] :')
+        self.labelyy = wc.QLabel(u'δ' + '<sub>yy</sub> [' + axUnit + '] :')
+        self.labelzz = wc.QLabel(u'δ' + '<sub>zz</sub> [' + axUnit + '] :')
+        self.labelxx.hide()
+        self.labelyy.hide()
+        self.labelzz.hide()
+        self.frame3.addWidget(self.labelxx, 1, 1)
+        self.frame3.addWidget(self.labelyy, 1, 3)
+        self.frame3.addWidget(self.labelzz, 1, 5)
+        self.labeliso = wc.QLabel(u'δ' + '<sub>iso</sub> [' + axUnit + '] :')
+        self.labelaniso = wc.QLabel(u'δ' + '<sub>aniso</sub> [' + axUnit + '] :')
+        self.labeleta = wc.QLabel(u'η:')
+        self.labeliso.hide()
+        self.labelaniso.hide()
+        self.labeleta.hide()
+        self.frame3.addWidget(self.labeliso, 1, 1)
+        self.frame3.addWidget(self.labelaniso, 1, 3)
+        self.frame3.addWidget(self.labeleta, 1, 5)
+        self.labeliso2 = wc.QLabel(u'δ' + '<sub>iso</sub> [' + axUnit + '] :')
+        self.labelspan = wc.QLabel(u'Ω [' + axUnit + '] :')
+        self.labelskew = wc.QLabel(u'κ:')
+        self.labeliso2.hide()
+        self.labelspan.hide()
+        self.labelskew.hide()
+        self.frame3.addWidget(self.labeliso2, 1, 1)
+        self.frame3.addWidget(self.labelspan, 1, 3)
+        self.frame3.addWidget(self.labelskew, 1, 5)
+        self.addMultiLabel("Cq", u"C<sub>Q</sub> [MHz]:", 6)
+        self.addMultiLabel("eta", u"η:", 8)
+        self.addMultiLabel("Alpha", u"α [deg]:", 10)
+        self.addMultiLabel("Beta", u"β [deg]:", 12)
+        self.addMultiLabel("Gamma", u"γ [deg]:", 14)
+        self.addMultiLabel("Integral", "Integral:", 16)
+        self.addMultiLabel("Lorentz", "Lorentz [Hz]:", 18)
+        self.addMultiLabel("Gauss", "Gauss [Hz]:", 20)
+        for i in range(self.FITNUM):
+            for j in range(len(self.MULTINAMES)):
+                self.ticks[self.MULTINAMES[j]].append(QtWidgets.QCheckBox(''))
+                self.frame3.addWidget(self.ticks[self.MULTINAMES[j]][i], i + 2, 2 * j)
+                self.entries[self.MULTINAMES[j]].append(wc.FitQLineEdit(self, self.MULTINAMES[j]))
+                self.frame3.addWidget(self.entries[self.MULTINAMES[j]][i], i + 2, 2 * j + 1)
+        self.reset()
+
+    def MASChange(self, MAStype):
+        if MAStype > 0:
+            self.angleLabel.setEnabled(True)
+            self.entries['angle'][-1].setEnabled(True)
+        else:
+            self.angleLabel.setEnabled(False)
+            self.entries['angle'][-1].setEnabled(False)
+        if MAStype == 1:  # Finite MAS
+            self.entries["Spinspeed"][-1].setEnabled(True)
+            self.ticks["Spinspeed"][-1].setEnabled(True)
+            self.spinLabel.setEnabled(True)
+            self.entries['numssb'][-1].setEnabled(True)
+            self.sidebandLabel.setEnabled(True)
+        else:
+            self.ticks["Spinspeed"][-1].setChecked(True)
+            self.entries["Spinspeed"][-1].setEnabled(False)
+            self.ticks["Spinspeed"][-1].setEnabled(False)
+            self.spinLabel.setEnabled(False)
+            self.entries['numssb'][-1].setEnabled(False)
+            self.sidebandLabel.setEnabled(False)
+
+    def reset(self):
+        self.entries['cheng'][-1].setValue(self.extraDefaults['cheng'])
+        self.entries['shiftdef'][-1].setCurrentIndex(self.extraDefaults['shiftdef'])
+        self.shiftDefType = self.extraDefaults['shiftdef']
+        self.entries['spinType'][-1].setCurrentIndex(self.extraDefaults['spinType'])
+        self.MASChange(self.extraDefaults['spinType'])
+        self.entries['numssb'][-1].setValue(self.extraDefaults['numssb'])
+        self.entries['angle'][-1].setText(self.extraDefaults['rotorAngle'])
+        self.entries["Spinspeed"][-1].setText(self.extraDefaults["Spinspeed"])
+        self.entries['I'][-1].setCurrentIndex(self.extraDefaults['I'])
+        self.entries['satBool'][-1].setChecked(self.extraDefaults["Satellites"])
+        super(QuadCSADeconvParamFrame, self).reset()
+
+    def changeShiftDef(self):
+        NewType = self.entries['shiftdef'][-1].currentIndex()
+        OldType = self.shiftDefType
+        if NewType == 0:
+            self.label11.show()
+            self.label22.show()
+            self.label33.show()
+            self.labelxx.hide()
+            self.labelyy.hide()
+            self.labelzz.hide()
+            self.labeliso.hide()
+            self.labelaniso.hide()
+            self.labeleta.hide()
+            self.labeliso2.hide()
+            self.labelspan.hide()
+            self.labelskew.hide()
+        elif NewType == 1:
+            self.label11.hide()
+            self.label22.hide()
+            self.label33.hide()
+            self.labelxx.show()
+            self.labelyy.show()
+            self.labelzz.show()
+            self.labeliso.hide()
+            self.labelaniso.hide()
+            self.labeleta.hide()
+            self.labeliso2.hide()
+            self.labelspan.hide()
+            self.labelskew.hide()
+        elif NewType == 2:
+            self.label11.hide()
+            self.label22.hide()
+            self.label33.hide()
+            self.labelxx.hide()
+            self.labelyy.hide()
+            self.labelzz.hide()
+            self.labeliso.show()
+            self.labelaniso.show()
+            self.labeleta.show()
+            self.labeliso2.hide()
+            self.labelspan.hide()
+            self.labelskew.hide()
+        elif NewType == 3:
+            self.label11.hide()
+            self.label22.hide()
+            self.label33.hide()
+            self.labelxx.hide()
+            self.labelyy.hide()
+            self.labelzz.hide()
+            self.labeliso.hide()
+            self.labelaniso.hide()
+            self.labeleta.hide()
+            self.labeliso2.show()
+            self.labelspan.show()
+            self.labelskew.show()
+        val = self.numExp.currentIndex() + 1
+        tensorList = []
+        for i in range(10):  # Convert input
+            if i < val:
+                def1 = safeEval(self.entries["Definition1"][i].text())
+                def2 = safeEval(self.entries["Definition2"][i].text())
+                def3 = safeEval(self.entries["Definition3"][i].text())
+                startTensor = [def1, def2, def3]
+                if None in startTensor:
+                    self.entries['shiftdef'][-1].setCurrentIndex(OldType)  # error, reset to old view
+                    raise FittingException("Fitting: One of the inputs is not valid")
+                Tensors = func.shiftConversion(startTensor, OldType)
+                for element in range(3):  # Check for `ND' s
+                    if isinstance(Tensors[NewType][element], str):
+                        Tensors[NewType][element] = 0
+                tensorList.append(Tensors)
+        printStr = '%#.' + str(self.rootwindow.tabWindow.PRECIS) + 'g'
+        for i in range(10):  # Print output if not stopped before
+            if i < val:
+                self.entries["Definition1"][i].setText(printStr % tensorList[i][NewType][0])
+                self.entries["Definition2"][i].setText(printStr % tensorList[i][NewType][1])
+                self.entries["Definition3"][i].setText(printStr % tensorList[i][NewType][2])
+        self.shiftDefType = NewType
+
+    def extraParamToFile(self):
+        extraDict = {"I": self.Ioptions[self.entries['I'][-1].currentIndex()],
+                     "Definition": self.DEFNAMES[self.entries['shiftdef'][0].currentIndex()],
+                     "MAS": self.MASTYPES[self.entries['spinType'][-1].currentIndex()],
+                     "Satellites": str(self.entries['satBool'][-1].isChecked()),
+                     "Cheng": self.entries['cheng'][-1].text(),
+                     "Angle": self.entries['angle'][-1].text(),
+                     "Sidebands": self.entries['numssb'][0].text()}
+        return (extraDict, {})
+
+    def extraFileToParam(self, preParams, postParams):
+        keys = preParams.keys()
+        if "I" in keys:
+            self.entries['I'][0].setCurrentIndex(self.Ioptions.index(preParams["I"]))
+        if "Definition" in keys:
+            self.entries['shiftdef'][0].setCurrentIndex(self.DEFNAMES.index(preParams["Definition"]))
+        if "MAS" in keys:
+            self.entries['spinType'][0].setCurrentIndex(self.MASTYPES.index(preParams["MAS"]))
+        if "Satellites" in keys:
+            self.entries['satBool'][0].setChecked(preParams["Satellites"] == "True")
+        if "Cheng" in keys:
+            self.entries['cheng'][0].setValue(int(preParams["Cheng"]))
+        if "Angle" in keys:
+            self.entries['angle'][0].setText(preParams["Angle"])
+        if "Sidebands" in keys:
+            self.entries['numssb'][0].setValue(int(preParams["Sidebands"]))
+
+    def getExtraParams(self, out):
+        shiftdef = self.entries['shiftdef'][0].currentIndex()
+        satBool = self.entries['satBool'][-1].isChecked()
+        angle = safeEval(self.entries['angle'][-1].text())
+        if angle is None:
+            raise FittingException("Fitting: Rotor Angle is not valid")
+        I = self.entries['I'][-1].currentIndex() * 0.5 + 0.5
+        cheng = safeEval(self.entries['cheng'][-1].text())
+        alpha, beta, weight = simFunc.zcw_angles(cheng, 1)
+        D2 = simFunc.D2tens(alpha, beta, np.zeros_like(alpha))
+        D4 = simFunc.D4tens(alpha, beta, np.zeros_like(alpha))
+        numssb = self.entries['numssb'][-1].value()
+        MAStype = self.entries['spinType'][-1].currentIndex()
+        out['extra'] = [satBool, I, numssb, angle, D2, D4, weight, MAStype, shiftdef]
+        return (out, out['extra'])
+
+    def checkResults(self,numExp,struc):
+        #After fit, set lor and gauss absolute
+        locList = self.getRedLocList()
+        for i in range(numExp):
+            if struc["Lorentz"][i][0] == 1:
+                self.fitParamList[locList]["Lorentz"][i][0] = abs(self.fitParamList[locList]["Lorentz"][i][0])
+            if struc["Gauss"][i][0] == 1:
+                self.fitParamList[locList]["Gauss"][i][0] = abs(self.fitParamList[locList]["Gauss"][i][0])
+            if struc['eta'][i][0] == 1:
+                #eta is between 0--1 in a continuous way.
+                self.fitParamList[locList]['eta'][i][0] = 1 - abs(abs(self.fitParamList[locList]['eta'][i][0]) % 2 - 1)
+            if struc["Cq"][i][0] == 1:
+                self.fitParamList[locList]["Cq"][i][0] = abs(self.fitParamList[locList]["Cq"][i][0])
+            if struc['Definition3'][i][0] == 1:
+                if self.shiftDefType == 2:
+                    self.fitParamList[locList]['Definition3'][i][0] = 1 - abs(abs(self.fitParamList[locList]['Definition3'][i][0])%2 - 1)
+                if self.shiftDefType == 3:
+                    self.fitParamList[locList]['Definition3'][i][0] = 1 - abs(abs(self.fitParamList[locList]['Definition3'][i][0] + 1)%4 - 2)
+            if struc["Alpha"][i][0] == 1:
+                self.fitParamList[locList]["Alpha"][i][0] = self.fitParamList[locList]["Alpha"][i][0] % 180.0
+                if self.fitParamList[locList]["Alpha"][i][0] > 90:
+                    self.fitParamList[locList]["Alpha"][i][0] = 180 - self.fitParamList[locList]["Alpha"][i][0]
+            if struc["Beta"][i][0] == 1:
+                self.fitParamList[locList]["Beta"][i][0] = self.fitParamList[locList]["Beta"][i][0] % 180.0
+                if self.fitParamList[locList]["Beta"][i][0] > 90:
+                    self.fitParamList[locList]["Beta"][i][0] = 180 - self.fitParamList[locList]["Beta"][i][0]
+            if struc["Gamma"][i][0] == 1:
+                self.fitParamList[locList]["Gamma"][i][0] = self.fitParamList[locList]["Gamma"][i][0] % 180.0
+                if self.fitParamList[locList]["Gamma"][i][0] > 90:
+                    self.fitParamList[locList]["Gamma"][i][0] = 180 - self.fitParamList[locList]["Gamma"][i][0]
+
 ##############################################################################
 
 
@@ -2303,6 +2625,7 @@ class CzjzekPrefWindow(QtWidgets.QWidget):
         self.setWindowFlags(QtCore.Qt.Window | QtCore.Qt.Tool)
         self.father = parent
         self.mqmas = mqmas
+        self.czjzek = None
         if mqmas:
             self.Ioptions = self.Ioptions[1::2]
         self.setWindowTitle("Library")
@@ -2371,11 +2694,14 @@ class CzjzekPrefWindow(QtWidgets.QWidget):
             grid.addWidget(self.satBoolEntry, 12, 0)
         self.fig = Figure()
         self.canvas = FigureCanvas(self.fig)
-        grid.addWidget(self.canvas, 0, 2, 14, 4)
+        grid.addWidget(self.canvas, 0, 2, 14, 5)
         self.ax = self.fig.add_subplot(111)
         self.simButton = QtWidgets.QPushButton("Show", parent=self)
         self.simButton.clicked.connect(self.plotDist)
         grid.addWidget(self.simButton, 14, 4)
+        self.saveButton = QtWidgets.QPushButton("Save", parent=self)
+        self.saveButton.clicked.connect(self.saveDist)
+        grid.addWidget(self.saveButton, 14, 5)
         grid.addWidget(wc.QLabel("Site:"), 14, 2)
         self.site = QtWidgets.QSpinBox()
         self.site.setMinimum(1)
@@ -2399,10 +2725,9 @@ class CzjzekPrefWindow(QtWidgets.QWidget):
         self.loadButton.clicked.connect(self.loadLib)
         layout.addWidget(self.loadButton, 4, 2)
         grid.setRowStretch(13, 1)
-        grid.setColumnStretch(5, 1)
+        grid.setColumnStretch(6, 1)
         layout.setColumnStretch(3, 1)
         self.upd()
-        #self.plotDist()
         self.show()
         self.resize(800, 600)
 
@@ -2454,7 +2779,9 @@ class CzjzekPrefWindow(QtWidgets.QWidget):
         cqmin = safeEval(self.cqmin.text(), type='FI')
         etamax = safeEval(self.etamax.text(), type='FI')
         etamin = safeEval(self.etamin.text(), type='FI')
-        cq, eta = np.meshgrid(np.linspace(cqmin, cqmax, cqsteps), np.linspace(etamin, etamax, etasteps))
+        cqArray = np.linspace(cqmin, cqmax, cqsteps)
+        etaArray = np.linspace(etamin, etamax, etasteps)
+        cq, eta = np.meshgrid(cqArray, etaArray)
         method = self.father.entries['method'][0].currentIndex()
         d = self.father.entries['d'][0].currentIndex() + 1
         site = self.site.value() - 1
@@ -2462,14 +2789,30 @@ class CzjzekPrefWindow(QtWidgets.QWidget):
         cq0 = safeEval(self.father.entries['Cq0'][site].text(), type='FI')
         eta0 = safeEval(self.father.entries['eta0'][site].text(), type='FI')
         if method == 0:
-            czjzek = Czjzek.czjzekIntensities(sigma, d, cq.flatten(), eta.flatten())
+            self.czjzek = Czjzek.czjzekIntensities(sigma, d, cq.flatten(), eta.flatten())
         else:
-            czjzek = Czjzek.czjzekIntensities(sigma, d, cq.flatten(), eta.flatten(), cq0, eta0)
-        czjzek = czjzek.reshape(etasteps, cqsteps)
-        self.ax.contour(cq.transpose(), eta.transpose(), czjzek.transpose(), 10)
+            self.czjzek = Czjzek.czjzekIntensities(sigma, d, cq.flatten(), eta.flatten(), cq0, eta0)
+        self.czjzek = self.czjzek.reshape(etasteps, cqsteps)
+        self.ax.contour(cq.transpose(), eta.transpose(), self.czjzek.transpose(), 10)
         self.ax.set_xlabel(u"C$_Q$ [MHz]")
         self.ax.set_ylabel(u"η")
         self.canvas.draw()
+
+    def saveDist(self):
+        name = QtWidgets.QFileDialog.getSaveFileName(self, 'Save Distribution', self.father.rootwindow.father.lastLocation + os.path.sep + 'czjzek.txt', 'ASCII file (*.txt)')
+        if isinstance(name, tuple):
+            name = name[0]
+        if not name:
+            return
+        self.plotDist()
+        cqsteps = self.cqsteps.value()
+        etasteps = self.etasteps.value()
+        cqmax = safeEval(self.cqmax.text(), type='FI')
+        cqmin = safeEval(self.cqmin.text(), type='FI')
+        etamax = safeEval(self.etamax.text(), type='FI')
+        etamin = safeEval(self.etamin.text(), type='FI')        
+        header = "Cq_min=" + str(cqmin) + "\nCq_max=" + str(cqmax) + "\nCq_steps=" + str(cqsteps) + "eta_min=" + str(etamin) + "\neta_max=" + str(etamax) + "\neta_steps=" + str(etasteps)
+        np.savetxt(name, self.czjzek, header=header)
 
     def checkCq(self):
         inp = safeEval(self.cqmax.text(), type='FI')
@@ -3071,7 +3414,7 @@ class FitContourFrame(CurrentContour, FitPlotFrame):
         if mpl.__version__[0] > '1':
             super(FitContourFrame, self).showFid(extraX=extraX, extraY=extraY, extraZ=extraZ, extraColor=['C'+str((x+1)%10) for x in range(len(extraX))])
         else:
-            super(FitContourFrame, self).showFid(extraX=extraX, extraY=extraY, extraZ=extraZ, extraColor=['g']*len(extraX))
+            super(FitContourFrame, self).showFid(extraX=extraX, extraY=extraY, extraZ=extraZ, extraColor=['g'])
 
 ##############################################################################
 
@@ -3554,6 +3897,7 @@ FITTYPEDICT = {'relax': ("Relaxation Curve", RelaxFrame, RelaxParamFrame),
                'peakdeconv': ("Lorentzian/Gaussian", PeakDeconvFrame, PeakDeconvParamFrame),
                'csadeconv': ("CSA", CsaDeconvFrame, CsaDeconvParamFrame),
                'quaddeconv': ("Quadrupole", QuadDeconvFrame, QuadDeconvParamFrame),
+               'quadcsadeconv': ("Quadrupole+CSA", QuadDeconvFrame, QuadCSADeconvParamFrame),
                'quadczjzek': ("Czjzek", QuadDeconvFrame, QuadCzjzekParamFrame),
                'external': ("External", ExternalFitDeconvFrame, ExternalFitDeconvParamFrame),
                'function': ("Function", FunctionFitFrame, FunctionFitParamFrame),

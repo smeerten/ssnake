@@ -1,0 +1,24 @@
+This describes how to compile ssNake on windows 7, and make an installer.
+
+==================
+   Requirements
+==================
+Python with all relevant libraries
+pyinstaller (can be get via pip)
+NSIS installer maker (https://nsis.sourceforge.io/)
+
+==================
+      Steps
+==================
+- Copy the files in this directory to the same level as the ssnake folder
+- In ssNake.py, change the line 'EXE = False' to 'EXE = True'
+- In buildssNake.bat: change the path of the pyinstaller.exe to the path on your machine
+- In ssNake.spec: change the basePath to point to the ssNake src directory
+- In ssNake.spec: change the entry in 'pathex' to the scipy extra dll's
+- Run 'buildssNake.bat' and check if this works (takes some time)
+- If ssNake is build successfully, the dist directory contains the compiled version. Test
+  'ssNake.exe' to see if the compilation went correctly.
+- Run 'makeInstaller.bat' to bundle the ssNake files to an installer
+- If these steps work correctly, the 'builAll.bat' script can be used in the future, to compile
+  ssNake, make the installer, and remove the compiled files.
+
