@@ -13,7 +13,7 @@ ssNake requires:
 
 And the following python packages are required[1]:
 - [numpy](http://sourceforge.net/projects/numpy/files/NumPy/) >= 1.11.0
-- [matplotlib](http://matplotlib.org/) >= 1.4.2
+- [matplotlib](http://matplotlib.org/) >= 1.5.0
 - [scipy](http://sourceforge.net/projects/scipy/files/scipy/) >= 0.14.1
 - [PyQt4](http://www.riverbankcomputing.com/software/pyqt/download) >= 4.11.4
 - [h5py](http://www.h5py.org/) >= 2.5.0 (for loading Matlab data)

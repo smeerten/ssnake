@@ -110,7 +110,7 @@ QtCore.QLocale.setDefault(QtCore.QLocale('en_US'))
 VERSION = 'v1.2b'
 # Required library version
 NPVERSION = '1.11.0'
-MPLVERSION = '1.4.2'
+MPLVERSION = '1.5.0'
 SPVERSION = '0.14.1'
 PY2VERSION = '2.7'
 PY3VERSION = '3.4'

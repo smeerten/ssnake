@@ -4,6 +4,8 @@ Changelog
 All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
+
+## [1.1] - 2019-05-03
 ### Added
 - Tooltips have been added
 - A fixed startup directory for ssNake can be set from preferences
