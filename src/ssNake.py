@@ -171,6 +171,10 @@ class MainProgram(QtWidgets.QMainWindow):
                 self.lastLocation = os.path.expanduser('~')
             else:
                 self.lastLocation = os.getcwd()
+
+        if not self.defaultTooltips: #Disable tooltips by setting them to empty strings
+            for elem in TOOLTIPS.keys():
+                TOOLTIPS[elem] = ''
         self.initMenu()
         self.menuCheck()
         self.main_widget = QtWidgets.QSplitter(self) 
@@ -260,6 +264,7 @@ class MainProgram(QtWidgets.QMainWindow):
         self.defaultNegColor = '#FF7F0E'
         self.defaultStartupBool = False
         self.defaultStartupDir = '~'
+        self.defaultTooltips = True
         self.defaultToolbarActionList = ['File --> Open',
                                          'File -- > Save --> Matlab',
                                          'File --> Export --> Figure',
@@ -347,6 +352,7 @@ class MainProgram(QtWidgets.QMainWindow):
         self.defaultToolBar = settings.value("toolbar", self.defaultToolBar, bool)
         self.defaultStartupBool = settings.value("startupdiron", self.defaultStartupBool, bool)
         self.defaultStartupDir = settings.value("startupdir", self.defaultStartupDir, str)
+        self.defaultTooltips = settings.value("tooltips", self.defaultTooltips, bool)
         try:
             self.defaultWidthRatio = settings.value("contour/width_ratio", self.defaultWidthRatio, float)
         except TypeError:
@@ -381,6 +387,7 @@ class MainProgram(QtWidgets.QMainWindow):
         settings.setValue("toolbar", self.defaultToolBar)
         settings.setValue("startupdiron", self.defaultStartupBool)
         settings.setValue("startupdir", self.defaultStartupDir)
+        settings.setValue("tooltips", self.defaultTooltips)
         settings.setValue("contour/colourmap", self.defaultColorMap)
         settings.setValue("contour/constantcolours", self.defaultContourConst)
         settings.setValue("contour/poscolour", self.defaultPosColor)
@@ -6619,6 +6626,9 @@ class PreferenceWindow(QtWidgets.QWidget):
         self.toolbarCheck = QtWidgets.QCheckBox("Show Shortcut Toolbar")
         self.toolbarCheck.setChecked(self.father.defaultToolBar)
         grid1.addWidget(self.toolbarCheck, 5, 0, 1, 2)
+        self.tooltipCheck = QtWidgets.QCheckBox("Show Tooltips")
+        self.tooltipCheck.setChecked(self.father.defaultTooltips)
+        grid1.addWidget(self.tooltipCheck, 7, 0, 1, 2)
         editToolbarButton = QtWidgets.QPushButton("Edit Toolbar")
         editToolbarButton.clicked.connect(lambda: ToolbarWindow(self))
         grid1.addWidget(editToolbarButton, 6, 0, 1, 2)
@@ -6626,7 +6636,7 @@ class PreferenceWindow(QtWidgets.QWidget):
         self.startupgroupbox = QtWidgets.QGroupBox("Startup Directory")
         self.startupgroupbox.setCheckable(True)
         self.startupgroupbox.setChecked(self.father.defaultStartupBool)
-        grid1.addWidget(self.startupgroupbox, 7, 0, 1, 2)
+        grid1.addWidget(self.startupgroupbox, 8, 0, 1, 2)
         startupgrid = QtWidgets.QGridLayout()
         self.startupgroupbox.setLayout(startupgrid)
         self.startupDirEntry = QtWidgets.QLineEdit(self)
@@ -6761,6 +6771,7 @@ class PreferenceWindow(QtWidgets.QWidget):
         self.father.defaultMaximized = self.maximizedCheck.isChecked()
         self.father.defaultAskName = self.askNameCheck.isChecked()
         self.father.defaultToolBar = self.toolbarCheck.isChecked()
+        self.father.defaultTooltips = self.tooltipCheck.isChecked()
         self.father.defaultToolbarActionList = self.currentToolbar
         self.father.defaultStartupBool = self.startupgroupbox.isChecked()
         self.father.defaultStartupDir = self.startupDirEntry.text()
