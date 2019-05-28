@@ -19,6 +19,7 @@
 
 from safeEval import safeEval
 import os
+import sys
 from ssNake import QtGui, QtCore, QtWidgets, QT
 
 class SsnakeTabs(QtWidgets.QTabWidget):
@@ -91,12 +92,35 @@ class SsnakeTreeWidget(QtWidgets.QTreeView):
                 menu.addAction("Load Directory", lambda: self.loadAct(path))
             else:
                 menu.addAction("Load File", lambda: self.loadAct(path))
+                menu.addAction("Open File Externally", lambda: self.openExtAct(path))
+            menu.addAction("Open in File Browser", lambda: self.openBrowser(path))
+
         else:
             menu.addAction("Load Selection", lambda: self.loadAct(path))
         menu.exec_(self.viewport().mapToGlobal(position))
 
     def loadAct(self,path):
         self.father.loadData(path)
+
+    def openExtAct(self,file):
+        file = file[0]
+        if sys.platform.startswith( 'linux' ):
+            os.system("xdg-open " + '"' + file + '"')
+        elif sys.platform.startswith( 'darwin' ):
+            os.system("open " + '"' + file + '"')
+        elif sys.platform.startswith( 'win' ):
+            os.startfile(file)
+
+    def openBrowser(self,path):
+        path = os.path.dirname(path[0])
+        if sys.platform.startswith( 'linux' ):
+            os.system("xdg-open " + '"' + path + '"')
+        elif sys.platform.startswith( 'darwin' ):
+            os.system("open " + '"' + path + '"')
+        elif sys.platform.startswith( 'win' ):
+            os.startfile(path)
+
+
         
 class SsnakeSlider(QtWidgets.QSlider):
     def wheelEvent(self, event):
