@@ -963,6 +963,20 @@ When pushing `Apply' the shift is performed on all traces of the nD data.
 The shifting is always applied in the time domain.
 In the frequency domain Fourier transforms are used to transform to and from the time domain to apply the shifting.
 
+
+\subsection{Roll data}
+Rolls the data to the left or to the right, by removing data points from one side, and inserting
+them on the other side of the data.  Negative values roll to the left, positive values to the
+right. Non-integer values can also be used. In this case, Fourier-based tricks are used to accomplish
+this.
+
+Starting the roll data tool creates an input window. In this window, a number must be
+filled in that equals the number of data points of the desired \textit{right} roll. Left rolls
+can be made by using negative values.  Alternatively, the arrows on the right and left side of the
+input box can be used to roll the data in the direction of the arrow.  The effect of the operation
+on the current 1D can be seen in the main window.  When pushing `Apply' the roll is performed on
+all traces of the nD data.
+
 \subsection{Integrate}
 Integrates a specific part of the active dimension on all traces.
 
@@ -1370,6 +1384,68 @@ The Hamiltonian of a rotated interaction is therefore just calculated using the 
 $\Lambda^\prime_n$ for each rank $n$, following \autoref{eq:HamSphere}.
 
 
+
+
+\subsection{Connecting parameters}
+In all iterative fitting routines supported by ssNake, it is possible to connect parameters, thereby using
+extra information that the user has about the system, and reducing the number of free parameters in
+the fit. This can for example be used to link integral values, which should be the same for multiple
+sites (i.e. in a solid material with a 1:1 ratio between different sites).
+
+Linking parameters can be done by right-clicking on an input box in an iterative fitting
+routine, and selecting the option `Connect Parameter'. This gives the following pop-up window:
+\begin{center}
+\includegraphics[width=0.3\linewidth]{Images/ConnectPars.png}
+\end{center}
+
+Here several values need to put in:
+\begin{itemize}
+  \item Parameter: the name of the parameter that should be linked to
+  \item Data: the name of the fitting data tab that should be linked to
+  \item Line: the number of the row that should be linked to (first row is `0')
+  \item Multiplier: multiply the linked value by this number
+  \item Offset: offset the linked value by this number
+\end{itemize}
+When doing this, the original parameter is replaced with the number `$\text{Multiplier} \cdot x +
+\text{Offset}$' during the fit (with $x$ the value of the parameter that is linked to).
+
+When pushing `Ok' in the pop-up window, the original value in the input box is replaced by a value
+like `('Integral', 0, 1.0, 0.0, 0)'. The input represents: ('Par name', Line, Multiplier, Offset,
+Data index) The pop-up menu is essentially an easy tool to create this input.
+
+Note that chain-linking parameters will lead to errors. That is, do not link \texttt{par2} to
+\texttt{par1}, and \texttt{par3}
+to \texttt{par2}. Always refer to the original parameter (link \texttt{par2} to \texttt{par1}, and
+\texttt{par3} to \texttt{par1}).
+
+A tutorial on fitting using connected parameters can be found in the `MultiFitQuadrupole' advanced
+tutorial. 
+
+
+\subsection{Simultaneous fitting of multiple data sources}
+Apart from connecting parameters during a fit, as described in the previous section, ssNake also
+allows for the simultaneous fit of multiple data sources (i.e. spectra or time series). When fitting
+in such a case, ssNake tries to minimize the difference between all the experimental and simulated
+data. Fitting multiple data simultaneously only makes sense if there are connected parameters between
+the fitting parameters of the different data sets (otherwise the results are identical to the case
+where each data set is fit individually).
+
+When in a fitting window, extra data can be added using the `+Add data+' tab that can be found in
+the vertical tabs on the left hand side of the window. Clicking this prompts a pop-up window, where
+the workspace name and the desired fitting routine can must be supplied. The new data tab will be
+added to the vertical tab bar.
+
+The new data will have its own parameters. Note that in the `extra' fitting tabs, several buttons are
+missing. These are universal buttons, which are only displayed in the first (i.e. master) fitting
+tab. Pushing `Fit' fits all the data sets simultaneously.
+
+Be very careful with the vertical scaling of the spectra. If spectrum1 has 10000x more intensity
+than spectrum2, spectrum2 will be almost ignored during the fit. To avoid this, scale the spectra to
+have the same integral (scaling can be done via Matrix $\longrightarrow$ Normalize), or to have the
+same noise intensity. Tread carefully\ldots
+
+A tutorial on simultaneous fitting of multiple data sets can be found in the `MultiFitQuadrupole' advanced
+tutorial. 
 
 \subsection{S/N}
 S/N (or SNR) calculates the signal-to-noise ratio between a defined section of noise, and a peak. SNR is a useful way to describe the quality of a spectrum, with too low values being a sign for inaccurate data. In ssNake, opening the S/N tool creates a window, in which the limits of the section of noise has to be set, as well as the region with the peak of interest. Left clicking in the plot can set these values (noise limits first, then signal limits). Note that it is essential that the region that is specified as `noise' really is noise. Any remaining signal will disrupt the SNR calculation. When the limits are set, ssNake directly calculates the SNR, using:
