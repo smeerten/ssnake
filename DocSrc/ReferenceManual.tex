@@ -1486,10 +1486,20 @@ The axes of the plot can be set to a logarithmic scale. Negative number will not
 view. When switching to the log axis, sometimes a recalculation of the curve is necessary to get a
 nice plot.
 
+
 \subsection{Diffusion Curve}
+This routine can be used to fit diffusion curves. The equation
+used for this is:
 \begin{equation}
    y = \text{amp} \cdot (\text{const} + \text{coeff} \cdot \exp(-(\gamma  \delta  x)^2  D  (\Delta -\delta / 3.0)))
 \end{equation}
+Here, $\gamma$ represent the $\gamma$-value of the isotope that is measured, $\delta$ is the length
+of the gradient pulse, $\Delta$ is the time between the gradient pulses (i.e. the time from the
+start of gradient pulse 1, to the start of gradient pulse 2). $D$ is the diffusion constant, which
+is what we will fit. The `const' and `coeff' parameters have the same meaning as in the relaxation
+curve fit. Note that the $x$-axis should be in terms of the gradient strength (in Tesla). ssNake
+will still show `seconds' as a unit though (1 s = 1 T).
+
 
 
 
