@@ -167,7 +167,7 @@ def relaxationFunc(x, freq, sw, axMult, extra, amp, const, coeff, T):
 def diffusionFunc(x, freq, sw, axMult, extra, amp, const, coeff, D):
     x = x[-1]
     gamma, delta, triangle = extra
-    return amp * (const + coeff * np.exp(-(abs(gamma) * abs(delta) * x)**2 * abs(D) * (abs(triangle) - abs(delta) / 3.0)))
+    return amp * (const + coeff * np.exp(-(abs(gamma) *1e6 * abs(delta) * x)**2 * abs(D) * (abs(triangle) - abs(delta) / 3.0)))
 
 def functionRun(x, freq, sw, axMult, extra, *parameters):
     names, function = extra
