@@ -137,10 +137,10 @@ class PeriodicTable(QtWidgets.QWidget):
         self.electronEntry.returnPressed.connect(self.setElectron)
         grid.addWidget(self.electronEntry, 1, 3)
         self.detailsPush = QtWidgets.QPushButton('Details')
-        self.detailsPush.pressed.connect(lambda : self.openWindow(None, 0))
+        self.detailsPush.clicked.connect(lambda : self.openWindow(None, 0))
         grid.addWidget(self.detailsPush, 1, 4,1,2)
         self.listPush = QtWidgets.QPushButton('List')
-        self.listPush.pressed.connect(lambda : self.openList())
+        self.listPush.clicked.connect(lambda : self.openList())
         grid.addWidget(self.listPush, 1, 6,1,2)
         grid.addWidget(PtQLabel('Spin:'), 0, 4)
         for i in range(len(SPINNAMES)):
