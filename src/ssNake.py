@@ -6049,14 +6049,16 @@ class XaxWindow(wc.ToolWindows):
             env['euro'] = lambda fVal, num=self.axisSize: func.euro(fVal, num)
             try:
                 val = np.array(eval(self.exprEntry.text(), env),dtype=float)                # find a better solution, also add catch for exceptions
-            except Exception:
+            except SyntaxError:
                 try:
                     val = np.fromstring(self.exprEntry.text(), sep=' ')
                     val2 = np.fromstring(self.exprEntry.text(), sep=',')
                     if len(val2) > len(val):
                         val = val2
-                except Exception:
-                    val = None
+                except Exception as e:
+                    raise SsnakeException(str(e))
+            except Exception as e:
+                raise SsnakeException(str(e))
             if not isinstance(val, (list, np.ndarray)):
                 raise SsnakeException("X-axis: Input is not a list or array")
             if len(val) != self.father.current.len():

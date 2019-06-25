@@ -919,7 +919,7 @@ class Spectrum(object):
                 shift1 = shift + shifting * np.arange(self.shape()[shiftingAxis]) / self.sw[shiftingAxis]
             else:
                 shift1 = shift + shifting * self.xaxArray[shiftingAxis]
-            previewData = np.array([func.apodize(t, s, self.sw[axis], axLen, lor, gauss, cos2, hamming, self.wholeEcho[axis]) for s in shift1])
+            previewData = np.array([func.apodize(t, s, lor, gauss, cos2, hamming, self.wholeEcho[axis]) for s in shift1])
             if axis < shiftingAxis:
                 previewData = np.swapaxis(previewData, 0, 1)
             multShape = np.ones(len(self.shape()), dtype=int)
@@ -937,7 +937,7 @@ class Spectrum(object):
             if self.spec[axis] > 0:
                 self.__fourier(axis, tmp=True)
         else:
-            x = func.apodize(t, shift, self.sw[axis], axLen, lor, gauss, cos2, hamming, self.wholeEcho[axis])
+            x = func.apodize(t, shift, lor, gauss, cos2, hamming, self.wholeEcho[axis])
             if preview:
                 previewData = [x] * int(np.prod(self.data.shape()) / self.data.shape()[axis])
             if self.spec[axis] > 0:
