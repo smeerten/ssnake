@@ -27,7 +27,7 @@ def safeEval(inp, length=None, Type='All', x=None):
     Creates a more restricted eval environment.
     Note that this method is still not acceptable to process strings from untrusted sources.
 
-    Parameters:
+    Parameters
     ----------
     inp : str
         String to evaluate.

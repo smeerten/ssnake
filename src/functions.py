@@ -27,7 +27,7 @@ def apodize(t, shift=0.0, lor=None, gauss=None, cos2=[None,None], hamming=None, 
     """
     Calculates the window function for apodization.
 
-    Parameters:
+    Parameters
     ----------
     t : array_like
         The time values at which to calculate the apodization function.
@@ -80,7 +80,7 @@ def lpsvd(fullFid, nPredict, maxFreq, forward=False, L=None):
     Performs a LPSVD (Linear Predictive Singular Value Decomposition) on a given FID.
     Both forward and backward prediction are available.
 
-    Parameters:
+    Parameters
     ----------
     fullFid : array_like
         The FID to use for linear prediction.
@@ -145,7 +145,7 @@ def euro(val, num):
     """
     Generates a given number of elements from the Euro series (e.g., 0.1, 0.2, 0.5, 1.0, 2.0, ...) starting at a given value.
 
-    Parameters:
+    Parameters
     ----------
     val : float
         The value at which to start the Euro series.
@@ -186,7 +186,7 @@ def shiftConversion(Values, Type):
     """
     Generates a list of lists of the various chemical shift tensor definitions in solid-state NMR from a specific set of tensor values.
 
-    Parameters:
+    Parameters
     ----------
     Values : array_like
         The chemical shift values defined in a specific definition.
@@ -261,7 +261,7 @@ def quadConversion(Values, I, Type, Q=None):
     """
     Generates a list of lists of the various quadrupole tensor definitions in solid-state NMR from a specific set of tensor values.
 
-    Parameters:
+    Parameters
     ----------
     Values : array_like
         The chemical shift values defined in a specific definition.

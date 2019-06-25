@@ -22,7 +22,7 @@ def floatSlice(*args):
     """
     Function to create Slice objects with float input values.
 
-    Parameters:
+    Parameters
     ----------
     *args
         All arguments that aren't None are converted to int.

@@ -2775,19 +2775,19 @@ class CzjzekPrefWindow(QtWidgets.QWidget):
         self.ax.cla()
         cqsteps = self.cqsteps.value()
         etasteps = self.etasteps.value()
-        cqmax = safeEval(self.cqmax.text(), type='FI')
-        cqmin = safeEval(self.cqmin.text(), type='FI')
-        etamax = safeEval(self.etamax.text(), type='FI')
-        etamin = safeEval(self.etamin.text(), type='FI')
+        cqmax = safeEval(self.cqmax.text(), Type='FI')
+        cqmin = safeEval(self.cqmin.text(), Type='FI')
+        etamax = safeEval(self.etamax.text(), Type='FI')
+        etamin = safeEval(self.etamin.text(), Type='FI')
         cqArray = np.linspace(cqmin, cqmax, cqsteps)
         etaArray = np.linspace(etamin, etamax, etasteps)
         cq, eta = np.meshgrid(cqArray, etaArray)
         method = self.father.entries['method'][0].currentIndex()
         d = self.father.entries['d'][0].currentIndex() + 1
         site = self.site.value() - 1
-        sigma = safeEval(self.father.entries['Sigma'][site].text(), type='FI')
-        cq0 = safeEval(self.father.entries['Cq0'][site].text(), type='FI')
-        eta0 = safeEval(self.father.entries['eta0'][site].text(), type='FI')
+        sigma = safeEval(self.father.entries['Sigma'][site].text(), Type='FI')
+        cq0 = safeEval(self.father.entries['Cq0'][site].text(), Type='FI')
+        eta0 = safeEval(self.father.entries['eta0'][site].text(), Type='FI')
         if method == 0:
             self.czjzek = Czjzek.czjzekIntensities(sigma, d, cq.flatten(), eta.flatten())
         else:
@@ -2807,32 +2807,32 @@ class CzjzekPrefWindow(QtWidgets.QWidget):
         self.plotDist()
         cqsteps = self.cqsteps.value()
         etasteps = self.etasteps.value()
-        cqmax = safeEval(self.cqmax.text(), type='FI')
-        cqmin = safeEval(self.cqmin.text(), type='FI')
-        etamax = safeEval(self.etamax.text(), type='FI')
-        etamin = safeEval(self.etamin.text(), type='FI')        
+        cqmax = safeEval(self.cqmax.text(), Type='FI')
+        cqmin = safeEval(self.cqmin.text(), Type='FI')
+        etamax = safeEval(self.etamax.text(), Type='FI')
+        etamin = safeEval(self.etamin.text(), Type='FI')        
         header = "Cq_min=" + str(cqmin) + "\nCq_max=" + str(cqmax) + "\nCq_steps=" + str(cqsteps) + "eta_min=" + str(etamin) + "\neta_max=" + str(etamax) + "\neta_steps=" + str(etasteps)
         np.savetxt(name, self.czjzek, header=header)
 
     def checkCq(self):
-        inp = safeEval(self.cqmax.text(), type='FI')
+        inp = safeEval(self.cqmax.text(), Type='FI')
         if inp is None:
             return False
         self.cqmax.setText(str(float(inp)))
-        inp = safeEval(self.cqmin.text(), type='FI')
+        inp = safeEval(self.cqmin.text(), Type='FI')
         if inp is None:
             return False
         self.cqmin.setText(str(float(inp)))
         return True
 
     def checkEta(self):
-        inp = safeEval(self.etamax.text(), type='FI')
+        inp = safeEval(self.etamax.text(), Type='FI')
         if inp is None:
             return False
         if inp < 0.0 or inp > 1.0:
             return False
         self.etamax.setText(str(abs(float(inp))))
-        inp = safeEval(self.etamin.text(), type='FI')
+        inp = safeEval(self.etamin.text(), Type='FI')
         if inp is None:
             return False
         if inp < 0.0 or inp > 1.0:
@@ -2854,7 +2854,7 @@ class CzjzekPrefWindow(QtWidgets.QWidget):
             if not self.mqmas:
                 self.father.I = self.Ientry.currentIndex() * 0.5 + 1.0
                 self.father.mas = self.masEntry.currentIndex()
-                inp = safeEval(self.spinEntry.text(), type='FI')
+                inp = safeEval(self.spinEntry.text(), Type='FI')
                 if inp is None:
                     raise FittingException("Spin speed value not valid.")
                 self.father.spinspeed = inp
@@ -2863,22 +2863,22 @@ class CzjzekPrefWindow(QtWidgets.QWidget):
                 self.father.satBool = self.satBoolEntry.isChecked()
             else:
                 self.father.I = self.Ientry.currentIndex() + 1.5
-            inp = safeEval(self.cqmax.text(), type='FI')
+            inp = safeEval(self.cqmax.text(), Type='FI')
             if inp is None:
                 raise FittingException(u"C_Q_max value not valid.")
             self.father.cqmax = abs(safeEval(self.cqmax.text()))
-            inp = abs(safeEval(self.cqmin.text(), type='FI'))
+            inp = abs(safeEval(self.cqmin.text(), Type='FI'))
             if inp is None:
                 raise FittingException(u"C_Q_min value not valid.")
             self.father.cqmin = abs(safeEval(self.cqmin.text()))
             #eta
-            inp = safeEval(self.etamax.text(), type='FI')
+            inp = safeEval(self.etamax.text(), Type='FI')
             if inp is None:
                 raise FittingException(u"η_max value not valid.")
             if inp < 0.0 or inp > 1.0:
                 raise FittingException(u"η_max value not valid.")
             self.father.etamax = abs(float(inp))
-            inp = safeEval(self.etamin.text(), type='FI')
+            inp = safeEval(self.etamin.text(), Type='FI')
             if inp is None:
                 raise FittingException(u"η_min value not valid.")
             if inp < 0.0 or inp > 1.0:
@@ -3053,7 +3053,7 @@ class QuadCzjzekParamFrame(AbstractParamFrame):
         CzjzekPrefWindow(self)
 
     def simLib(self):
-        angle = safeEval(self.angle, type='FI')
+        angle = safeEval(self.angle, Type='FI')
         alpha, beta, weight = simFunc.zcw_angles(self.cheng, 2)
         D2 = simFunc.D2tens(alpha, beta, np.zeros_like(alpha))
         D4 = simFunc.D4tens(alpha, beta, np.zeros_like(alpha))
@@ -3256,7 +3256,7 @@ class ExternalFitDeconvParamFrame(AbstractParamFrame):
 ##############################################################################
 
 
-class TxtOutputWindow(wc.ToolWindows):
+class TxtOutputWindow(wc.ToolWindow):
 
     NAME = "Script Output"
     RESIZABLE = True
@@ -3361,7 +3361,7 @@ class FunctionFitParamFrame(AbstractParamFrame):
 ##############################################################################
 
 
-class FunctionInputWindow(wc.ToolWindows):
+class FunctionInputWindow(wc.ToolWindow):
 
     NAME = "Fitting Function"
     RESIZABLE = True

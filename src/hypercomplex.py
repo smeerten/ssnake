@@ -57,7 +57,7 @@ class HComplexData(object):
         """
         Initializes the HComplexData
 
-        Parameters:
+        Parameters
         ----------
         data : array_like, optional
             Data to be used as hypercomplex data.
@@ -108,7 +108,7 @@ class HComplexData(object):
         """
         Returns the complex data corresponding to a specific hyper value.
 
-        Parameters:
+        Parameters
         ----------
         hyperVal : int
             The value of hyper for which the complex data should be returned.
@@ -285,7 +285,7 @@ class HComplexData(object):
         """
         Compute the complex conjugate along a specific axis.
 
-        Parameters:
+        Parameters
         ----------
         axis : int
             The axis along which to calculate the complex conjugate.
@@ -342,7 +342,7 @@ class HComplexData(object):
         Add a dimension in self.hyper.
         This should always be accompanied with a modification of self.data.
         
-        Parameters:
+        Parameters
         ----------
         axis : int
             The axis along which a dimension was added.
@@ -356,7 +356,7 @@ class HComplexData(object):
         Remove a dimension from self.hyper.
         This should always be accompanied with a modification of self.data.
         
-        Parameters:
+        Parameters
         ----------
         axis : int
             The axis along which a dimension was removed.
@@ -381,7 +381,7 @@ class HComplexData(object):
         """
         Test whether an axis is complex.
         
-        Parameters:
+        Parameters
         ----------
         axis : int
             The axis to test.
@@ -400,7 +400,7 @@ class HComplexData(object):
         """
         Test whether an axis is hypercomplex.
         
-        Parameters:
+        Parameters
         ----------
         axis : int
             The axis to test.
@@ -417,7 +417,7 @@ class HComplexData(object):
         """
         Return the real part along axis.
         
-        Parameters:
+        Parameters
         ----------
         axis : int, optional
             The axis along which to get the real data.
@@ -442,7 +442,7 @@ class HComplexData(object):
         """
         Return the imaginary part along axis.
         
-        Parameters:
+        Parameters
         ----------
         axis : int, optional
             The axis along which to get the imaginary data.
@@ -467,7 +467,7 @@ class HComplexData(object):
         """
         Return the absolute data along axis.
         
-        Parameters:
+        Parameters
         ----------
         axis : int, optional
             The axis along which to get the absolute data.
@@ -504,7 +504,7 @@ class HComplexData(object):
         """
         Return data where the regular imaginary values are exchanged with those of axis.
         
-        Parameters:
+        Parameters
         ----------
         axis : int, optional
             The axis along which to exchange with the regular imaginary values.
@@ -524,7 +524,7 @@ class HComplexData(object):
         Reorders data so that the regular imaginary values are exchanged with those of axis.
         The operation is applied in place for efficiency.
         
-        Parameters:
+        Parameters
         ----------
         axis : int, optional
             The axis along which to exchange with the regular imaginary values.
@@ -557,7 +557,7 @@ class HComplexData(object):
         Move axes of an array to new positions.
         Other axes remain in their original order.
 
-        Parameters:
+        Parameters
         ----------
         axis1 : int or sequence of int
             Original positions of the axes to move. These must be unique.
@@ -586,7 +586,7 @@ class HComplexData(object):
 
         The resulting data will have hypercomplex dimensions of both input matrices.
 
-        Parameters:
+        Parameters
         ----------
         pos : int
             Position where to insert the data.
@@ -624,7 +624,7 @@ class HComplexData(object):
         """
         Return data with sub-arrays deleted along axis.
 
-        Parameters:
+        Parameters
         ----------
         pos : int or array of int
             Positions to delete.
@@ -644,7 +644,7 @@ class HComplexData(object):
         """
         Return data with the data concatenated along axis.
 
-        Parameters:
+        Parameters
         ----------
         axis : int
             The axis along which to concatenate.
@@ -664,7 +664,7 @@ class HComplexData(object):
         """
         Return data which is split into multiple sections.
 
-        Parameters:
+        Parameters
         ----------
         sections : int
             The number of sections into which the data should be split.
@@ -688,7 +688,7 @@ class HComplexData(object):
         After the operation this axis will be hypercomplex.
         This operation is performed in place.
 
-        Parameters:
+        Parameters
         ----------
         axis : int
             The axis along which to perform the States transform.
@@ -721,7 +721,7 @@ class HComplexData(object):
         After the operation this axis will be hypercomplex.
         This operation is performed in place.
 
-        Parameters:
+        Parameters
         ----------
         axis : int
             The axis along which to perform the echo-antiecho transform.
@@ -745,7 +745,7 @@ class HComplexData(object):
         """
         Compute the arithmetic mean along the specified axis.
 
-        Parameters:
+        Parameters
         ----------
         axis : int, optional
             The axis along which to calcule the mean values.
@@ -766,7 +766,7 @@ class HComplexData(object):
         """
         Compute the sum along the specified axis.
 
-        Parameters:
+        Parameters
         ----------
         axis : int, optional
             The axis along which to calcule the sum.
@@ -789,7 +789,7 @@ class HComplexData(object):
         The maxima are defined with respect to the real data.
         The hypercomplex imaginary data is ignored in determining the maxima.
 
-        Parameters:
+        Parameters
         ----------
         axis : int, optional
             The axis along which to calcule the maximum.
@@ -811,7 +811,7 @@ class HComplexData(object):
         The minima are defined with respect to the real data.
         The hypercomplex imaginary data is ignored in determining the minima.
 
-        Parameters:
+        Parameters
         ----------
         axis : int, optional
             The axis along which to calcule the minimum.
@@ -833,7 +833,7 @@ class HComplexData(object):
         The maxima are defined with respect to the real data.
         The hypercomplex imaginary data is ignored in determining the positions of the maxima.
 
-        Parameters:
+        Parameters
         ----------
         axis : int, optional
             The axis along which to calcule the postions of the maxima.
@@ -852,7 +852,7 @@ class HComplexData(object):
         The minima are defined with respect to the real data.
         The hypercomplex imaginary data is ignored in determining the positions of the minima.
 
-        Parameters:
+        Parameters
         ----------
         axis : int, optional
             The axis along which to calcule the postions of the minima.
@@ -869,7 +869,7 @@ class HComplexData(object):
         """
         Expand the shape of the hypercomplex data.
 
-        Parameters:
+        Parameters
         ----------
         axis : int, optional
             Position in the expanded axes where the new axis is placed.
@@ -888,7 +888,7 @@ class HComplexData(object):
         """
         Returns a copy of the hypercomplex data with data added along a specified axis.
 
-        Parameters:
+        Parameters
         ----------
         values : HComplexData or array_like
             Data to be appended. It should have the correct shape (the same shape as self.data, excluding axis).
@@ -913,7 +913,7 @@ class HComplexData(object):
         """
         Returns a reshaped version of the hypercomplex data.
 
-        Parameters:
+        Parameters
         ----------
         shape : tuple of ints
             New shape of the data. Should be compatible with the old shape.
@@ -930,7 +930,7 @@ class HComplexData(object):
         """
         Calculate the discrete difference along the given axis.
 
-        Parameters:
+        Parameters
         ----------
         axis : int, optional
             The axis along which to calcule the difference.
@@ -949,7 +949,7 @@ class HComplexData(object):
         """
         Calculate the cumulative sum along the given axis.
 
-        Parameters:
+        Parameters
         ----------
         axis : int, optional
             The axis along which to calcule the cumulative sum.
@@ -968,7 +968,7 @@ class HComplexData(object):
         """
         Performs a Hilbert transform on the data.
 
-        Parameters:
+        Parameters
         ----------
         axis : int, optional
             The axis over which the Hilbert transform is performed.
@@ -990,7 +990,7 @@ class HComplexData(object):
         Regrid the data from specified x-values to new x-values.
         The interpolation is done using the interp1d function from scipy.interpolate.
 
-        Parameters:
+        Parameters
         ----------
         newX : array_like
             A 1-D array with the new x-values.
@@ -1017,7 +1017,7 @@ class HComplexData(object):
         When the new size is larger than the old size, zeros are added at a specified position.
         When the new size is smaller, datapoints are removed symmetric around the specified position.
 
-        Parameters:
+        Parameters
         ----------
         size : int
             The new size of the data along axis.
@@ -1062,7 +1062,7 @@ class HComplexData(object):
         Reorders the data along a specified axis.
         The rest of the data is filled with zeros.
 
-        Parameters:
+        Parameters
         ----------
         pos : array_like
             The positions of the subarrays in the new data.
@@ -1097,7 +1097,7 @@ class HComplexData(object):
         Applies a function to 1-D slices of the data.
         Behaves similar to the Numpy apply_along_axis function.
 
-        Parameters:
+        Parameters
         ----------
         func : function
             This function should accept 1-D arrays. It is applied to 1-D slices of arr along the specified axis.
@@ -1118,7 +1118,7 @@ class HComplexData(object):
         """
         Rolls the data along a given axis.
 
-        Parameters:
+        Parameters
         ----------
         shift : int
             Number of places to roll the data.
@@ -1139,7 +1139,7 @@ class HComplexData(object):
         """
         Performs a Fast Fourier Transform on the data along a given axis.
 
-        Parameters:
+        Parameters
         ----------
         axis : int, optional
             The axis over which the Fourier transform is performed.
@@ -1158,7 +1158,7 @@ class HComplexData(object):
         """
         Performs a inverse Fast Fourier Transform on the data along a given axis.
 
-        Parameters:
+        Parameters
         ----------
         axis : int, optional
             The axis over which the inverse Fourier transform is performed.
@@ -1177,7 +1177,7 @@ class HComplexData(object):
         """
         Shift the zero-frequency component to the center of the spectrum.
 
-        Parameters:
+        Parameters
         ----------
         axis : int, optional
             The axis over which to shift the data.
@@ -1196,7 +1196,7 @@ class HComplexData(object):
         """
         Inverse of fftshift.
 
-        Parameters:
+        Parameters
         ----------
         axis : int, optional
             The axis over which to shift the data.
