@@ -23,9 +23,21 @@ import sys
 from ssNake import QtGui, QtCore, QtWidgets, QT
 
 class SsnakeTabs(QtWidgets.QTabWidget):
-    # A tab widget were tabs can be closed with the middle mouse button
-
+    """
+    A reimplementation of the PyQt QTabWidget.
+    A tab widget were tabs can be closed with the middle mouse button.
+    """
+    
     def mousePressEvent(self, event):
+        """
+        Reimplementation from QTabWidget.
+        Middle mousebutton closes the tab.
+        
+        Parameters
+        ----------
+        event : QMouseEvent
+            The mouse event.
+        """
         if event.button() == QtCore.Qt.MidButton:
             index = self.tabBar().tabAt(event.pos())
             if index >= 0:

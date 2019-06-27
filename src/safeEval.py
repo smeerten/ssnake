@@ -34,7 +34,7 @@ def safeEval(inp, length=None, Type='All', x=None):
     length : int or float, optional
         The variable length will be set to this value.
         By default the variable length is not set.
-    Type : str, optional
+    Type : {'All', 'FI', 'C'}, optional
         Type of expected output. 'All' will return all types, 'FI' will return a float or int, and 'C' will return a complex number.
         By default Type is set to 'All'
     x : array_like, optional
