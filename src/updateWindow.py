@@ -30,9 +30,21 @@ else:
 import ssNake as sc
 from ssNake import QtGui, QtCore, QtWidgets
 
+
 class UpdateWindow(QtWidgets.QWidget):
+    """
+    The window for updating ssNake.
+    """
 
     def __init__(self, parent):
+        """
+        Initializes the update window.
+        
+        Parameters
+        ----------
+        parent : MainProgram
+            The mainprogram object of ssNake.
+        """
         super(UpdateWindow, self).__init__(parent)
         self.setWindowFlags(QtCore.Qt.Window | QtCore.Qt.Tool)
         self.father = parent
@@ -72,9 +84,15 @@ class UpdateWindow(QtWidgets.QWidget):
         self.show()
 
     def closeEvent(self, *args):
+        """
+        Closes the update window.
+        """
         self.deleteLater()
 
     def applyAndClose(self, *args):
+        """
+        Asks the user to update and closes the window.
+        """
         ssnake_location = os.path.dirname(os.path.dirname(__file__))
         try:
             os.mkdir(ssnake_location + os.path.sep + 'test')
