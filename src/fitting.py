@@ -64,15 +64,34 @@ class FittingException(sc.SpectrumException):
 
 
 class TabFittingWindow(QtWidgets.QWidget):
+    """
+    The base widget of the fitting window.
+    This handles the different tabs for multifitting.
+    """
 
     PRECIS = 4
     MINMETHOD = 'Powell'
     NUMFEVAL = 150
 
     def __init__(self, father, oldMainWindow, mainFitType):
+        """
+        Initializes the tab fitting window.
+
+        Parameters
+        ----------
+        father : MainProgram
+            The main program of ssnake.
+        oldMainWindow : Main1DWindow
+            The window that this fitting window replaces.
+        mainFitType : str
+            The name of the base fit type to be performed.
+            Should be a key in FITTYPEDICT.
+        """
         super(TabFittingWindow, self).__init__(father)
         self.father = father
         self.oldMainWindow = oldMainWindow
+        self.get_masterData = oldMainWindow.get_masterData  # Connect function
+        self.get_current = oldMainWindow.get_current        # Connect function
         self.mainFitType = mainFitType
         self.subFitWindows = []
         self.process1 = None
@@ -95,18 +114,30 @@ class TabFittingWindow(QtWidgets.QWidget):
         grid3.setRowStretch(0, 1)
 
     def getTabNames(self):
+        """
+        Returns a list of the tab names.
+        """
         return [self.tabs.tabText(i) for i in range(self.tabs.count()-1)]
 
     def getCurrentTabName(self):
+        """
+        Returns the name of the tab currently open.
+        """
         return self.tabs.tabText(self.tabs.currentIndex())
 
     def getParamTextList(self):
+        """
+        Returns a list of all unique parameter names of all tabs.
+        """
         parametertxtlist = self.mainFitWindow.paramframe.SINGLENAMES + self.mainFitWindow.paramframe.MULTINAMES
         for subfit in self.subFitWindows:
             parametertxtlist += subfit.paramframe.SINGLENAMES+subfit.paramframe.MULTINAMES
         return list(set(parametertxtlist))
 
     def addSpectrum(self):
+        """
+        Asks the user for a workspace name and a fitting type and adds this as a new tab.
+        """
         wsIndex, fitName, accept = NewTabDialog.getFitInput(self, self.father.workspaceNames, list(FITTYPEDICT.keys()), self.mainFitType)
         if not accept:
             return
@@ -116,6 +147,14 @@ class TabFittingWindow(QtWidgets.QWidget):
         self.oldTabIndex = len(self.subFitWindows)
 
     def removeSpectrum(self, spec):
+        """
+        Removes a spectrum from the tabs.
+
+        Parameters
+        ----------
+        spec : str
+            The name of the spectrum to remove.
+        """
         num = self.subFitWindows.index(spec)
         self.tabs.setCurrentIndex(num) 
         self.oldTabIndex = num
@@ -123,21 +162,57 @@ class TabFittingWindow(QtWidgets.QWidget):
         del self.subFitWindows[num]
 
     def changeTab(self, index):
+        """
+        Changes the active fitting tab.
+
+        Parameters
+        ----------
+        index : int
+            The index of the tab to open.
+        """
         if index == self.tabs.count() - 1:
-            self.tabs.setCurrentIndex(self.oldTabIndex) #Quickly set to old tab, to avoid showing the `add data' tab
+            self.tabs.setCurrentIndex(self.oldTabIndex)     # Quickly set to old tab, to avoid showing the `add data' tab
             self.addSpectrum()
         else:
             self.oldTabIndex = index
 
     def closeTab(self, num):
+        """
+        Closes a tab.
+
+        Parameters
+        ----------
+        num : int
+            The index of the tab to close.
+        """
         count = self.tabs.count()
         if num > 0:
             if num != count - 1:
-                self.tabs.setCurrentIndex(num - 1) #Set one step lower to avoid 'addSpectrum' to be run
+                self.tabs.setCurrentIndex(num - 1)          # Set one step lower to avoid 'addSpectrum' to be run
                 self.tabs.removeTab(num)
                 del self.subFitWindows[num - 1]
 
     def fitProcess(self, xax, data1D, guess, args, funcs):
+        """
+        Creates a new process to fit the spectra.
+        
+        Parameters
+        ----------
+        xax : list
+            The list with xaxArrays from the various spectra.
+        data1D : ndarray
+            The concatenated data from the various spectra.
+        guess : list
+            The initial guesses of the fit parameters.
+        args : tuple
+            The additional parameters of the fit.
+        funcs : list of functions
+            The fit function for each of the spectra.
+        Returns
+        -------
+        OptimizeResult
+            The results of the fit. 
+        """
         self.queue = multiprocessing.Queue()
         self.process1 = multiprocessing.Process(target=mpFit, args=(xax, data1D, guess, args, self.queue, funcs, self.MINMETHOD, self.NUMFEVAL))
         self.process1.start()
@@ -159,6 +234,9 @@ class TabFittingWindow(QtWidgets.QWidget):
         return fitVal
 
     def stopMP(self, *args):
+        """
+        Stops the running fitting process.
+        """
         if self.queue is not None:
             self.process1.terminate()
             self.queue.close()
@@ -170,11 +248,17 @@ class TabFittingWindow(QtWidgets.QWidget):
         self.mainFitWindow.paramframe.stopButton.hide()
 
     def stopAll(self, *args):
+        """
+        Stops all the fitting processes started by fitAll.
+        """
         self.runningAll = False
         self.stopMP()
         self.mainFitWindow.paramframe.stopAllButton.hide()
 
     def fitAll(self, *args):
+        """
+        sequentially opens slices from an ND spectrum and runs a fit.
+        """
         self.runningAll = True
         self.mainFitWindow.paramframe.stopAllButton.show()
         tmp = np.array(self.mainFitWindow.current.data.shape())
@@ -193,6 +277,9 @@ class TabFittingWindow(QtWidgets.QWidget):
         self.mainFitWindow.paramframe.stopAllButton.hide()
         
     def fit(self):
+        """
+        Fits a spectrum on the current slice.
+        """
         value = self.mainFitWindow.paramframe.getFitParams()
         if value is None:
             return
@@ -237,6 +324,19 @@ class TabFittingWindow(QtWidgets.QWidget):
             self.subFitWindows[i].paramframe.setResults(fitVal[i + 1], args_out, out[i + 1])
 
     def getNum(self, paramfitwindow):
+        """
+        Returns the index of a parameter fit window.
+        
+        Parameters
+        ----------
+        paramfitwindow : AbstractParamFrame
+            The parameter frame of which to determine the index.
+
+        Returns
+        -------
+        int
+            The index.
+        """
         fitwindow = paramfitwindow.rootwindow
         if fitwindow is self.mainFitWindow:
             return 0
@@ -244,6 +344,14 @@ class TabFittingWindow(QtWidgets.QWidget):
             return self.subFitWindows.index(fitwindow) + 1
 
     def getParams(self):
+        """
+        Collect the fitting parameters from all tabs.
+        
+        Returns
+        -------
+        ndarray
+            The fitting parameters.
+        """
         params = [self.mainFitWindow.paramframe.getSimParams()]
         for window in self.subFitWindows:
             tmp_params = window.paramframe.getSimParams()
@@ -253,7 +361,16 @@ class TabFittingWindow(QtWidgets.QWidget):
         return params
             
     def disp(self, *args, **kwargs):
-        #self.mainFitWindow.paramframe.simButton.hide()
+        """
+        Simulate all spectra and display them.
+        
+        Parameters
+        ----------
+        *args
+            All arguments are passed to the disp functions of the parameter frames.
+        **kwargs
+            All keyword arguments are passed to the disp functions of the parameter frames.
+        """
         self.mainFitWindow.paramframe.simBusyButton.show()
         QtWidgets.qApp.processEvents()
         try:
@@ -267,30 +384,37 @@ class TabFittingWindow(QtWidgets.QWidget):
             raise
         finally:
             self.mainFitWindow.paramframe.simBusyButton.hide()
-            #self.mainFitWindow.paramframe.simButton.show()
-
-    def get_masterData(self):
-        return self.oldMainWindow.get_masterData()
-
-    def get_current(self):
-        return self.oldMainWindow.get_current()
 
     def kill(self):
-        self.tabs.currentChanged.disconnect() #Prevent call for data on close
+        """
+        Closes the fitting window.
+        """
+        self.tabs.currentChanged.disconnect() # Prevent call for data on close
         self.mainFitWindow.kill()
 
 ##############################################################################
 
 
 class ResultsExportWindow(QtWidgets.QWidget):
+    """
+    The window for exporting or importing parameters.
+    """
 
     def __init__(self, parent):
+        """
+        Initializes the import export window.
+
+        Parameters
+        ----------
+        parent : AbstractParamFrame
+            The parameter frame from which this window was called.
+        """
         super(ResultsExportWindow, self).__init__(parent)
         self.setWindowFlags(QtCore.Qt.Window | QtCore.Qt.Tool)
         self.father = parent
         self.setWindowTitle("Export results")
         grid = QtWidgets.QGridLayout(self)
-        exportGroup = QtWidgets.QGroupBox('Export:')
+        exportGroup = QtWidgets.QGroupBox("Export:")
         exportGrid = QtWidgets.QGridLayout()
         self.parToWorkButton = QtWidgets.QPushButton("Parameters to Workspace")
         self.parToWorkButton.clicked.connect(self.parToWork)
@@ -303,7 +427,7 @@ class ResultsExportWindow(QtWidgets.QWidget):
         exportGrid.addWidget(self.curvesToWorkButton, 2, 0)
         exportGroup.setLayout(exportGrid)
         grid.addWidget(exportGroup, 0, 0)
-        importGroup = QtWidgets.QGroupBox('Import:')
+        importGroup = QtWidgets.QGroupBox("Import:")
         importGrid = QtWidgets.QGridLayout()
         self.fileToParButton = QtWidgets.QPushButton("File to parameters")
         self.fileToParButton.clicked.connect(self.fileToPar)
@@ -318,29 +442,57 @@ class ResultsExportWindow(QtWidgets.QWidget):
         self.setGeometry(self.frameSize().width() - self.geometry().width(), self.frameSize().height() - self.geometry().height(), 0, 0)
 
     def closeEvent(self, *args):
+        """
+        Closes the import export window.
+        """
         self.deleteLater()
 
     def parToWork(self, *args):
+        """
+        Exports parameters to a workspace.
+        """
         self.deleteLater()
         self.father.paramToWorkspaceWindow()
 
     def parToFile(self, *args):
+        """
+        Exports parameters to a file.
+        """
         if self.father.paramToFile():
             self.deleteLater()
 
     def fileToPar(self, *args):
+        """
+        Imports parameters from a file.
+        """
         if self.father.fileToParam():
             self.deleteLater()
 
     def curvesToWork(self, *args):
+        """
+        Exports curves to a workspace.
+        """
         self.deleteLater()
         self.father.resultToWorkspaceWindow()
 
 ##################################################################################################
 
 class FitCopySettingsWindow(QtWidgets.QWidget):
+    """
+    The window for exporting curves to a workspace.
+    """
 
     def __init__(self, parent, single=False):
+        """
+        Initializes the curve export window.
+
+        Parameters
+        ----------
+        parent : AbstractParamFrame
+            The parameter frame from where the export window was opened.
+        single : bool, optional
+            True when the data has more than one dimension.
+        """
         super(FitCopySettingsWindow, self).__init__(parent)
         self.setWindowFlags(QtCore.Qt.Window | QtCore.Qt.Tool)
         self.father = parent
@@ -377,9 +529,15 @@ class FitCopySettingsWindow(QtWidgets.QWidget):
         self.setGeometry(self.frameSize().width() - self.geometry().width(), self.frameSize().height() - self.geometry().height(), 0, 0)
 
     def closeEvent(self, *args):
+        """
+        Closes the curve export window.
+        """
         self.deleteLater()
 
     def applyAndClose(self, *args):
+        """
+        Exports the curves and closes the window.
+        """
         self.deleteLater()
         self.father.resultToWorkspace([self.allSlices.isChecked(), self.original.isChecked(), self.subFits.isChecked(), self.difference.isChecked()])
 
@@ -387,8 +545,23 @@ class FitCopySettingsWindow(QtWidgets.QWidget):
 
 
 class ParamCopySettingsWindow(QtWidgets.QWidget):
+    """
+    The window for exporting parameters to a workspace.
+    """
 
     def __init__(self, parent, paramNames, single=False):
+        """
+        Initializes the export parameters window.
+
+        Parameters
+        ----------
+        parent : AbstractParamFrame
+            The parameter frame from where the export window was opened.
+        paramNames : list of str
+            A list of unique parameter names of all tabs.
+        single : bool, optional
+            True when the data has more than one dimension.
+        """
         super(ParamCopySettingsWindow, self).__init__(parent)
         self.setWindowFlags(QtCore.Qt.Window | QtCore.Qt.Tool)
         self.father = parent
@@ -420,9 +593,15 @@ class ParamCopySettingsWindow(QtWidgets.QWidget):
         self.setGeometry(self.frameSize().width() - self.geometry().width(), self.frameSize().height() - self.geometry().height(), 0, 0)
 
     def closeEvent(self, *args):
+        """
+        Closes the parameter export window.
+        """
         self.deleteLater()
 
     def applyAndClose(self, *args):
+        """
+        Exports the parameters and closes the window.
+        """
         self.deleteLater()
         answers = []
         for checkbox in self.exportList:
@@ -433,14 +612,42 @@ class ParamCopySettingsWindow(QtWidgets.QWidget):
 
 
 class FittingWindow(QtWidgets.QWidget):
-    # Inherited by the fitting windows
+    """
+    A fitting tab window.
+    """
 
     def __init__(self, father, oldMainWindow, tabWindow, fitType, isMain=True):
+        """
+        Initializes the fitting tab window.
+
+        Parameters
+        ----------
+        father : MainProgram
+            The main program of ssnake.
+        oldMainWindow : Main1DWindow
+            The window that this fitting window replaces.
+        tabWindow : TabFittingWindow
+            The fitting window that holds this tab.
+        fitType : str
+            The name of the fit type of this frame.
+            Should be a key in FITTYPEDICT.
+        isMain : bool, optional
+            True if this frame is the main tab of tabWindow.
+            By default True.
+        """
         super(FittingWindow, self).__init__(father)
         self.isMain = isMain
         self.father = father
         self.oldMainWindow = oldMainWindow
+        self.get_masterData = self.oldMainWindow.get_masterData    # Connect functions
+        self.get_current = self.oldMainWindow.get_current          # Connect functions
         self.tabWindow = tabWindow
+        self.getCurrentTabName = self.tabWindow.getCurrentTabName  # Connect functions
+        self.getTabNames = self.tabWindow.getTabNames              # Connect functions
+        self.getParams = self.tabWindow.getParams                  # Connect functions
+        self.getNum = self.tabWindow.getNum                        # Connect functions
+        self.getParamTextList = self.tabWindow.getParamTextList    # Connect functions
+        self.addSpectrum = self.tabWindow.addSpectrum              # Connect functions
         self.fitType = fitType
         self.fig = Figure()
         self.canvas = FigureCanvas(self.fig)
@@ -448,6 +655,10 @@ class FittingWindow(QtWidgets.QWidget):
         grid.addWidget(self.canvas, 0, 0)
         self.current = FITTYPEDICT[self.fitType][1](self, self.fig, self.canvas, self.oldMainWindow.get_current())
         self.paramframe = FITTYPEDICT[self.fitType][2](self.current, self, isMain=self.isMain)
+        self.buttonPress = self.current.buttonPress                # Connect functions
+        self.buttonRelease = self.current.buttonRelease            # Connect functions
+        self.pan = self.current.pan                                # Connect functions
+        self.scroll = self.current.scroll                          # Connect functions
         grid.addWidget(self.paramframe, 1, 0, 1, 2)
         grid.setColumnStretch(0, 1)
         grid.setRowStretch(0, 1)
@@ -460,42 +671,56 @@ class FittingWindow(QtWidgets.QWidget):
         self.canvas.mpl_connect('scroll_event', self.scroll)
 
     def rescue(self, *args):
-        # This data has too little dimensions for the fitAll
+        """
+        If rescue is called, the window does not have enough dimensions.
+        """
         raise FittingException("This data has too little dimensions for this type of fit")
         
     def updAllFrames(self, *args):
         pass
         
     def fit(self):
+        """
+        Perform a fit.
+        """
         self.tabWindow.fit()
         self.paramframe.togglePick()
 
     def sim(self, *args, **kwargs):
+        """
+        Perform a simulation.
+
+        Parameters
+        ----------
+        **kwargs
+            Keyword arguments are passed to disp of the TabFittingWindow.
+        """
         self.tabWindow.disp(**kwargs)
         self.paramframe.togglePick()
 
-    def getCurrentTabName(self, *args, **kwargs):
-        return self.tabWindow.getCurrentTabName(*args, **kwargs)
-
-    def getTabNames(self, *args, **kwargs):
-        return self.tabWindow.getTabNames(*args, **kwargs)
-
-    def getParams(self, *args, **kwargs):
-        return self.tabWindow.getParams(*args, **kwargs)
-
-    def getNum(self, *args, **kwargs):
-        return self.tabWindow.getNum(*args, **kwargs)
-
-    def getParamTextList(self, *args, **kwargs):
-        return self.tabWindow.getParamTextList(*args, **kwargs)
-
-    def addSpectrum(self):
-        self.tabWindow.addSpectrum()
-
     def removeSpectrum(self):
+        """
+        Removes itself from the tabs.
+        """
         self.tabWindow.removeSpectrum(self)
 
     def createNewData(self, data, axis, params=False, fitAll=False):
+        """
+        Creates the data for a new workspace.
+
+        Parameters
+        ----------
+        data : ndarray
+            The data to be used in the new workspace.
+        axis : int
+            The axis from which the data should be taken from the masterData.
+        params : bool, optional
+            Whether the data was created from parameters.
+            False by default.
+        fitAll : bool, optional
+            Whether the data was created from all slices of the data.
+            False by default.
+        """
         masterData = self.get_masterData()
         if fitAll:
             if params:
@@ -541,31 +766,27 @@ class FittingWindow(QtWidgets.QWidget):
                                         0)
 
     def rename(self, name):
+        """
+        Renames the workspace.
+
+        Parameters
+        ----------
+        name : str
+            The new name of the workspace.
+        """
         self.canvas.draw()
         self.oldMainWindow.rename(name)
 
-    def buttonPress(self, event):
-        self.current.buttonPress(event)
-
-    def buttonRelease(self, event):
-        self.current.buttonRelease(event)
-
-    def pan(self, event):
-        self.current.pan(event)
-
-    def scroll(self, event):
-        self.current.scroll(event)
-
     def get_mainWindow(self):
+        """
+        Returns the original workspace window.
+        """
         return self.oldMainWindow
 
-    def get_masterData(self):
-        return self.oldMainWindow.get_masterData()
-
-    def get_current(self):
-        return self.oldMainWindow.get_current()
-
     def kill(self):
+        """
+        Completely closes the workspace.
+        """
         for i in reversed(range(self.grid.count())):
             self.grid.itemAt(i).widget().deleteLater()
         self.grid.deleteLater()
@@ -578,7 +799,10 @@ class FittingWindow(QtWidgets.QWidget):
         self.deleteLater()
 
     def cancel(self):
-        self.tabWindow.tabs.currentChanged.disconnect() #Disconnect tabs before closing, to avoid change index signal
+        """
+        Closes the fitting window and restores the original workspace window.
+        """
+        self.tabWindow.tabs.currentChanged.disconnect() # Disconnect tabs before closing, to avoid change index signal
         for i in reversed(range(self.grid.count())):
             self.grid.itemAt(i).widget().deleteLater()
         self.grid.deleteLater()
@@ -601,12 +825,29 @@ class FittingSideFrame(SideFrame):
 
 
 class FitPlotFrame(Current1D):
+    """
+    The frame to plot the spectra during fitting.
+    """
 
     MARKER = ''
     LINESTYLE = '-'
-    FITNUM = 20  # Standard number of fits
+    FITNUM = 20      # Standard number of fits
 
     def __init__(self, rootwindow, fig, canvas, current):
+        """
+        Initializes the fitting plot window.
+
+        Parameters
+        ----------
+        rootwindow : FittingWindow
+            The window that contains the figure.
+        fig : Figure
+            The figure used in this frame.
+        canvas : FigureCanvas
+            The canvas of fig.
+        current : PlotFrame
+            The view of the original workspace.
+        """
         self.data = current.data
         tmp = np.array(current.data.shape(), dtype=int)
         tmp = np.delete(tmp, self.fixAxes(current.axes))
@@ -616,9 +857,22 @@ class FitPlotFrame(Current1D):
         super(FitPlotFrame, self).__init__(rootwindow, fig, canvas, current.data, current)
 
     def getRedLocList(self):
+        """
+        Returns the reduced location list with the displayed axis removed.
+        """
         return tuple(np.delete(self.locList, self.axes))
         
     def setSlice(self, axes, locList):
+        """
+        Changes the displayed slice.
+        
+        Parameters
+        ----------
+        axes : array_like of int
+            The list of axes of the slice to be displayed.
+        locList : array_like of int
+            The location of the slice to be displayed.
+        """
         self.rootwindow.paramframe.checkInputs()
         self.pickWidth = False
         super(FitPlotFrame, self).setSlice(axes, locList)
@@ -627,9 +881,15 @@ class FitPlotFrame(Current1D):
         self.rootwindow.paramframe.togglePick()
 
     def getData1D(self):
+        """
+        Returns the raw data.
+        """
         return np.real(self.getDataType(self.data1D.getHyperData(0)))
 
     def showFid(self):
+        """
+        Displays the plot and fit curves.
+        """
         extraX = []
         extraY = []
         self.locList = np.array(self.locList, dtype=int)
@@ -1534,7 +1794,7 @@ class RelaxParamFrame(AbstractParamFrame):
         self.rootwindow.sim(display=False)
 
     def getDispX(self, *args):
-        numCurve = 256  # number of points in output curve
+        numCurve = 256               # number of points in output curve
         realx = self.parent.xax()
         minx = min(realx)
         maxx = max(realx)
@@ -1708,7 +1968,7 @@ class PeakDeconvFrame(FitPlotFrame):
 
 class PeakDeconvParamFrame(AbstractParamFrame):
 
-    FFT_AXES = (0,) # Which axes should be transformed after simulation
+    FFT_AXES = (0,)      # Which axes should be transformed after simulation
     FFTSHIFT_AXES = (0,) # Which axes should be transformed after simulation
     SINGLENAMES = ["Offset", "Multiplier"]
     MULTINAMES = ["Position", "Integral", "Lorentz", "Gauss"]
