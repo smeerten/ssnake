@@ -422,6 +422,19 @@ def multiUP(header,typ, bit, num, start):
     return np.array([unpack(typ,header[start + x:start + bit + x])[0] for x in range(0,num * bit,bit)])
 
 def loadJEOLDelta(filePath):
+    """
+    Loads a JEOL delta file.
+
+    Parameters
+    ----------
+    filePath: string
+        Path to the file that should be loaded
+
+    Returns
+    -------
+    SpectrumClass
+        SpectrumClass object of the loaded data
+    """
     with open(filePath, "rb") as f:
         header = f.read(1296)
     endian =['>d','<d'][multiUP(header,'>B', 1, 1, 8)[0]]
@@ -511,6 +524,16 @@ def loadJEOLDelta(filePath):
     return masterData
 
 def saveJSONFile(filePath, spectrum):
+    """
+    Saves a spectrumclass object to a .json file.
+
+    Parameters
+    ----------
+    filePath: string
+        Path to the file that should be created
+    spectrum: SpectrumClass
+        The spectrum class object
+    """
     import json
     struct = {}
     item = spectrum.data
@@ -534,6 +557,19 @@ def saveJSONFile(filePath, spectrum):
         json.dump(struct, outfile)
 
 def loadJSONFile(filePath):
+    """
+    Loads a ssNake .json file.
+
+    Parameters
+    ----------
+    filePath: string
+        Path to the file that should be loaded
+
+    Returns
+    -------
+    SpectrumClass
+        SpectrumClass object of the loaded data
+    """
     import json
     with open(filePath, 'r') as inputfile:
         struct = json.load(inputfile)
@@ -577,6 +613,19 @@ def loadJSONFile(filePath):
     return masterData
 
 def saveMatlabFile(filePath, spectrum, name='spectrum'):
+    """
+    Saves a spectrumclass object to a .mat file.
+
+    Parameters
+    ----------
+    filePath: string
+        Path to the file that should be created
+    spectrum: SpectrumClass
+        The spectrum class object
+    name: string (optional)
+        Name of the data set within the .mat file
+
+    """
     import scipy.io
     struct = {}
     struct['dim'] = spectrum.ndim()
@@ -596,6 +645,19 @@ def saveMatlabFile(filePath, spectrum, name='spectrum'):
     scipy.io.savemat(filePath, matlabStruct)
 
 def loadMatlabFile(filePath):
+    """
+    Loads a ssNake .mat file.
+
+    Parameters
+    ----------
+    filePath: string
+        Path to the file that should be loaded
+
+    Returns
+    -------
+    SpectrumClass
+        SpectrumClass object of the loaded data
+    """
     import scipy.io
     with open(filePath, 'rb') as inputfile:  # read first several bytes the check .mat version
         teststring = inputfile.read(13)
@@ -734,8 +796,19 @@ def loadMatlabFile(filePath):
 
 
 def brukerTopspinGetPars(file):
-    """ A routine to load all pars to a dictionary for Bruker Topsin acqus type
-        file """
+    """
+    Loads Bruker Topspin parameter file. 
+
+    Parameters
+    ----------
+    file: string
+        Path to the parameter file.
+
+    Returns
+    -------
+    dict:
+        Dictionary with all parameters
+    """
     with open(file, 'r') as f:
         data = f.read().split('\n')
     pos = 0
@@ -772,6 +845,19 @@ def brukerTopspinGetPars(file):
     return pars
 
 def getBrukerFilter(pars):
+    """
+    Get phase delay of a Bruker topspin data set.
+
+    Parameters
+    ----------
+    pars: dict
+        Dictionary holding the parameters
+
+    Returns
+    -------
+    float:
+        Phase delay (first order phasing correction) of the data
+    """
     delay = -1
     if 'GRPDLY' in pars.keys():
         delay = pars['GRPDLY'] * 2 * np.pi
@@ -796,6 +882,19 @@ def getBrukerFilter(pars):
 
 
 def loadBrukerTopspin(filePath):
+    """
+    Loads Bruker Topspin/Xwinnmr data (i.e. time-domain data).
+
+    Parameters
+    ----------
+    filePath: string
+        Path to the file that should be loaded
+
+    Returns
+    -------
+    SpectrumClass
+        SpectrumClass object of the loaded data
+    """
     if os.path.isfile(filePath):
         Dir = os.path.dirname(filePath)
     else:
@@ -857,6 +956,19 @@ def loadBrukerTopspin(filePath):
     return masterData
 
 def loadBrukerWinNMR(filePath):
+    """
+    Loads Bruker WinNMR data.
+
+    Parameters
+    ----------
+    filePath: string
+        Path to the file that should be loaded
+
+    Returns
+    -------
+    SpectrumClass
+        SpectrumClass object of the loaded data
+    """
     base, extension = os.path.splitext(filePath)
     #Check if upper or lower case
     names = ['.fqs','.aqs','.fid','.1r','.1i']
@@ -915,6 +1027,19 @@ def loadBrukerWinNMR(filePath):
     return masterData
 
 def loadBrukerSpectrum(filePath):
+    """
+    Loads Bruker spectrum data (processed data). Supports 1-3D.
+
+    Parameters
+    ----------
+    filePath: string
+        Path to the file that should be loaded
+
+    Returns
+    -------
+    SpectrumClass
+        SpectrumClass object of the loaded data
+    """
     if os.path.isfile(filePath):
         Dir = os.path.dirname(filePath)
     else:
@@ -982,6 +1107,19 @@ def loadBrukerSpectrum(filePath):
     return masterData
 
 def chemGetPars(folder):
+    """
+    Loads Chemagentic parameter file. 
+
+    Parameters
+    ----------
+    folder: string
+        Path to the folder that holds the files.
+
+    Returns
+    -------
+    dict:
+        Dictionary with all parameters
+    """
     import collections
     with open(folder + os.path.sep + 'acq', 'r') as f:
         data = f.read().split('\n')
@@ -1020,6 +1158,19 @@ def convertChemVal(val):
     return num
 
 def loadChemFile(filePath):
+    """
+    Loads Chemagentic data. 
+
+    Parameters
+    ----------
+    filePath: string
+        Path to the file that should be loaded
+
+    Returns
+    -------
+    SpectrumClass
+        SpectrumClass object of the loaded data
+    """
     if os.path.isfile(filePath):
         Dir = os.path.dirname(filePath)
     else:
@@ -1078,6 +1229,19 @@ def loadChemFile(filePath):
     return masterData
 
 def loadMagritek(filePath):
+    """
+    Loads Magritek data. 
+
+    Parameters
+    ----------
+    filePath: string
+        Path to the file that should be loaded
+
+    Returns
+    -------
+    SpectrumClass
+        SpectrumClass object of the loaded data
+    """
     # Magritek load script based on some Matlab files by Ole Brauckman
     if os.path.isfile(filePath):
         Dir = os.path.dirname(filePath)
@@ -1137,6 +1301,17 @@ def loadMagritek(filePath):
     return masterData
 
 def saveSimpsonFile(filePath, spectrum):
+    """
+    Save to simpson format data. Only for 1D or 2D data. 2D data can be 
+    either Spec-Spec, or FID-FID.
+
+    Parameters
+    ----------
+    filePath: string
+        Path of the file that should be saved
+    spectrum: SpectrumClass
+        The spectrum object to be saved
+    """
     data = spectrum.getHyperData(0) # SIMPSON does not support hypercomplex
     with open(filePath, 'w') as f:
         f.write('SIMP\n')
@@ -1164,6 +1339,20 @@ def saveSimpsonFile(filePath, spectrum):
         f.write('END')
 
 def loadSimpsonFile(filePath):
+    """
+    Loads SIMPSON file. Both ASCII and binary data are supported. As well
+    as 1D and 2D data.
+
+    Parameters
+    ----------
+    filePath: string
+        Path to the file that should be loaded
+
+    Returns
+    -------
+    SpectrumClass
+        SpectrumClass object of the loaded data
+    """
     with open(filePath, 'r') as f:
         Lines = f.read().split('\n')
     NP, NI, SW, SW1, TYPE, FORMAT = 0, 1, 0, 0, '', 'Normal'
@@ -1234,6 +1423,19 @@ def loadSimpsonFile(filePath):
     return masterData
 
 def convertDIFDUB(dat):
+    """
+    Converts string of DIFDUB character encode to a array of floats
+
+    Parameters
+    ----------
+    dat: string
+        String with all the DIFDUB characters
+
+    Returns
+    -------
+    ndarray
+        1-D array with the extracted numbers
+    """
     def checkWrite(dup, currentNum, step, numberList):
         if dup != '':
             for dupli in range(int(dup)):
@@ -1285,6 +1487,19 @@ def convertDIFDUB(dat):
         return np.array(numberList)[:-1]
 
 def loadJCAMP(filePath):
+    """
+    Loads JCAMP-DX file.
+
+    Parameters
+    ----------
+    filePath: string
+        Path to the file that should be loaded
+
+    Returns
+    -------
+    SpectrumClass
+        SpectrumClass object of the loaded data
+    """
     with open(filePath, 'r') as f:
         data = f.read().split('\n')
     realDataPos = []
@@ -1390,6 +1605,18 @@ def loadJCAMP(filePath):
     return masterData
 
 def saveASCIIFile(filePath, spectrum, axMult=1):
+    """
+    Save to ASCII format data.
+
+    Parameters
+    ----------
+    filePath: string
+        Path of the file that should be saved
+    spectrum: SpectrumClass
+        The spectrum object to be saved
+    axMult: float (optional)
+        Axis multiplier, needed to save in other unit than s or Hz
+    """
     axis = np.array([spectrum.xaxArray[-1] * axMult]).transpose()
     tmpData = spectrum.data.getHyperData(0)
     if tmpData.ndim == 1:  # create nx1 matrix if it is a 1d data set
@@ -1404,6 +1631,31 @@ def saveASCIIFile(filePath, spectrum, axMult=1):
     np.savetxt(filePath, data, delimiter='\t')
 
 def loadAscii(filePath, asciiInfo=None):
+    """
+    Loads general ASCII format data.
+
+    Parameters
+    ----------
+    filePath: string
+        Path to the file that should be loaded
+    asciiInfo: list
+        [dim, order, spec, delim, sw]
+        dim: int
+            Number of dimensions (1 or 2)
+        order: string
+            Data column description ('XRI','XR','XI','RI','R')
+        spec: bool
+            If True spectrum, otherwise FID
+        delim: string
+            Delimiter ('Tab','Space','Comma')
+        sw: float
+            Spectral width in kHz
+
+    Returns
+    -------
+    SpectrumClass
+        SpectrumClass object of the loaded data
+    """
     if asciiInfo is None:
         return
     dataDimension = asciiInfo[0]
@@ -1465,6 +1717,19 @@ def loadAscii(filePath, asciiInfo=None):
     return masterData
 
 def loadMinispec(filePath):
+    """
+    Loads Bruker minispec data. The format is recognized by its .sig file.
+
+    Parameters
+    ----------
+    filePath: string
+        Path to the file that should be loaded
+
+    Returns
+    -------
+    SpectrumClass
+        SpectrumClass object of the loaded data
+    """
     with open(filePath, 'r') as f:
         data = f.read().split('\n')
     dataType = int(data[1][data[1].index('=') + 1:])
@@ -1489,6 +1754,22 @@ def loadMinispec(filePath):
     return masterData
 
 def loadBrukerEPR(filePath):
+    """
+    Loads Bruker EPR data. The format has both a .par and .spc file.
+    Note that ssNake at the moment only has s/Hz axes. In this case,
+    1 Hz is the same as 1 Gauss.
+
+
+    Parameters
+    ----------
+    filePath: string
+        Path to the file that should be loaded
+
+    Returns
+    -------
+    SpectrumClass
+        SpectrumClass object of the loaded data
+    """
     with open(filePath + '.par', mode='r') as f:
         textdata = [row.split() for row in f.read().replace('\r', '\n').split('\n')]
     for row in textdata:
@@ -1513,8 +1794,18 @@ def loadSiemensIMA(filePath):
         Siemens specific fields. It's not a nice format to work with.
         It is a combination of binary and text data. I, Vincent Breukels,
         have little understanding in the file format. Rather it is a
-        rewrite of the the following source: VeSPA, versatile simulation
+        rewrite of the following source: VeSPA, versatile simulation
         pulses and analysis for magnetic resonance spectroscopy.
+
+    Parameters
+    ----------
+    filePath: string
+        Path to the file that should be loaded
+
+    Returns
+    -------
+    SpectrumClass
+        SpectrumClass object of the loaded data
     """
     import struct
     try:
@@ -1574,8 +1865,20 @@ def loadSiemensIMA(filePath):
     return masterData
 
 def scrubber(item):
-    """Item is a string, scrubber returns the string up to the first \0 with
-    leading/trailing whitespaces removed"""
+    """
+    Cleans the input string, returns the string up to the first \0 with
+    leading/trailing whitespaces removed
+    
+    Parameters
+    ----------
+    item: string
+        The string that is to be cleaned
+
+    Returns
+    -------
+    string
+        Cleaned string
+    """
     item = item.split(chr(0))[0]
     return item.strip()
 
@@ -1583,6 +1886,19 @@ def scrubber(item):
 
 
 def loadMestreC(filePath):
+    """
+    Loads MestreC type data. MestreC data ends on .mrc, and is essentially XML data.
+        
+    Parameters
+    ----------
+    filePath: string
+        Path to the file that should be loaded
+
+    Returns
+    -------
+    SpectrumClass
+        SpectrumClass object of the loaded data
+    """
     import base64
     import xml.etree.ElementTree 
     import re
