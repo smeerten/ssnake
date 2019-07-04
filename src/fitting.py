@@ -287,12 +287,10 @@ class TabFittingWindow(QtWidgets.QWidget):
             xax, data1D, guess, args, out = value
         xax = [xax]
         data1D = [data1D]
-        out = [out]
         selectList = [slice(0, len(guess))]
         funcs = [self.mainFitWindow.paramframe.FITFUNC]
         for i in range(len(self.subFitWindows)):
             xax_tmp, data1D_tmp, guess_tmp, args_tmp, out_tmp = self.subFitWindows[i].paramframe.getFitParams()
-            out.append(out_tmp)
             xax.append(xax_tmp)
             selectList.append(slice(len(guess), len(guess) + len(guess_tmp)))
             data1D.append(data1D_tmp)
@@ -316,12 +314,12 @@ class TabFittingWindow(QtWidgets.QWidget):
         args_out = []
         for n in range(len(args)):
             args_out.append([args[n][0]])
-        self.mainFitWindow.paramframe.setResults(fitVal[0], args_out, out[0])
+        self.mainFitWindow.paramframe.setResults(fitVal[0], args_out)
         for i in (range(len(self.subFitWindows))):
             args_out = []
             for n in range(len(args)):
                 args_out.append([args[n][i + 1]])
-            self.subFitWindows[i].paramframe.setResults(fitVal[i + 1], args_out, out[i + 1])
+            self.subFitWindows[i].paramframe.setResults(fitVal[i + 1], args_out)
 
     def getNum(self, paramfitwindow):
         """
@@ -912,22 +910,38 @@ class FitPlotFrame(Current1D):
 
 
 class AbstractParamFrame(QtWidgets.QWidget):
+    """
+    The base class of all parameter frames.
+    """
 
-    FITFUNC = None # Function used for fitting and simulation
-    SINGLENAMES = []
-    MULTINAMES = []
-    EXTRANAMES = []
-    TICKS = True  # Fitting parameters can be fixed by checkboxes
-    FFT_AXES = () # Which axes should be transformed after simulation
-    FFTSHIFT_AXES = () # Which axes should be transformed after simulation
-    DIM = 1 # Number of dimensions of the fit
+    FITFUNC = None      # Function used for fitting and simulation
+    SINGLENAMES = []    # The names of the parameters which are common for all sites
+    MULTINAMES = []     # The names of the parameters which increase with the number of sites
+    EXTRANAMES = []     # The names of additional parameters
+    TICKS = True        # Fitting parameters can be fixed by checkboxes
+    FFT_AXES = ()       # Which axes should be transformed after simulation
+    FFTSHIFT_AXES = ()  # Which axes should be transformed after simulation
+    DIM = 1             # Number of dimensions of the fit
 
     def __init__(self, parent, rootwindow, isMain=True):
+        """
+        Initializes the parameter frame.
+        
+        Parameters
+        ----------
+        parent : FitPlotFrame
+            The plot frame connected to this parameter frame.
+        rootwindow : FittingWindow
+            The fitting tab that holds this parameter frame.
+        isMain : bool, optional
+            True if this frame is part of the main tab.
+        """
         super(AbstractParamFrame, self).__init__(rootwindow)
         self.parent = parent
+        self.getRedLocList = self.parent.getRedLocList  # Connect function
         self.FITNUM = self.parent.FITNUM
         self.rootwindow = rootwindow
-        self.isMain = isMain # display fitting buttons
+        self.isMain = isMain              # display fitting buttons
         self.ticks = {key: [] for key in (self.SINGLENAMES + self.MULTINAMES)}
         self.entries = {key: [] for key in (self.SINGLENAMES + self.MULTINAMES + self.EXTRANAMES)}
         tmp = np.array(self.parent.data.shape(), dtype=int)
@@ -1018,27 +1032,43 @@ class AbstractParamFrame(QtWidgets.QWidget):
         self.frame1.addWidget(cancelButton, 4, 0, 1, 2)
         self.checkFitParamList(self.getRedLocList())
 
-    def getRedLocList(self):
-        return self.parent.getRedLocList()
-
     def togglePick(self):
         # Dummy function for fitting routines which require peak picking
         pass
 
     def reset(self):
+        """
+        Resets all fit parameters to their default values.
+        """
         locList = self.getRedLocList()
         self.fitNumList[locList] = 0
-        self.fitParamList[locList] = self.defaultValues(0)
+        self.fitParamList[locList] = self.defaultValues()
         self.dispParams()
     
     def checkFitParamList(self, locList):
+        """
+        Checks whether the fit parameters exist for a given slice of the data.
+        When the fit parameters are not available they will be set to the default values.
+
+        Parameters
+        ----------
+        locList : array_like of int
+            The location (indices) for which to check the fit parameters.
+        """
         locList = tuple(locList)
         if not self.fitParamList[locList]:
-            self.fitParamList[locList] = self.defaultValues(0)
+            self.fitParamList[locList] = self.defaultValues()
 
-    def defaultValues(self, inp):
-        if inp:
-            return inp
+    def defaultValues(self):
+        """
+        Creates a dictionary with default values based on self.DEFAULTS.
+        When no default is available for a parameter it is set to [0.0, False]
+
+        Returns
+        -------
+        dict
+            The dictionary with defaults for all parameters.
+        """
         tmpVal = {key: None for key in (self.SINGLENAMES + self.MULTINAMES)}
         for name in self.SINGLENAMES:
             if name in self.DEFAULTS.keys():
@@ -1053,24 +1083,59 @@ class AbstractParamFrame(QtWidgets.QWidget):
         return tmpVal
 
     def addMultiLabel(self, name, text, num):
+        """
+        Creates a label for a parameter with multiple sites and adds it to frame3.
+
+        Parameters
+        ----------
+        name : str
+            Name of the parameter.
+        text : str
+            The text on the label.
+        num : int
+            The column to place the label widget.
+        
+        Returns
+        -------
+        QCheckBox
+            The checkbox next to the label.
+        QLabel
+            The label.
+        """
         tick = QtWidgets.QCheckBox('')
         tick.setChecked(self.DEFAULTS[name][1])
         tick.stateChanged.connect(lambda state, self=self: self.changeAllTicks(state, name))
         self.frame3.addWidget(tick, 1, num)
         label = wc.QLabel(text)
         self.frame3.addWidget(label, 1, num+1)
-        return (tick, label)
+        return tick, label
     
     def changeAllTicks(self, state, name):
+        """
+        Sets or unsets all checkboxes of a given parameter.
+
+        Parameters
+        ----------
+        state : bool
+            The checkboxes will be set to this state.
+        name : str
+            The name of the parameter.
+        """
         self.DEFAULTS[name][1] = state
         for tick in self.ticks[name]:
             tick.setChecked(state)
     
     def closeWindow(self, *args):
+        """
+        Closes the fitting window.
+        """
         self.rootwindow.tabWindow.stopMP()
         self.rootwindow.cancel()
 
     def copyParams(self):
+        """
+        Copies the parameters of the current slice to all other slices of the data.
+        """
         self.checkInputs()
         locList = self.getRedLocList()
         self.checkFitParamList(locList)
@@ -1080,6 +1145,9 @@ class AbstractParamFrame(QtWidgets.QWidget):
             elem[...] = self.fitNumList[locList]
 
     def dispParams(self):
+        """
+        Displays the values from the fit parameter list in the window.
+        """
         locList = self.getRedLocList()
         val = self.fitNumList[locList] + 1
         for name in self.SINGLENAMES:
@@ -1089,7 +1157,7 @@ class AbstractParamFrame(QtWidgets.QWidget):
                 self.entries[name][0].setText(str(self.fitParamList[locList][name][0]))
             if self.TICKS:
                 self.ticks[name][0].setChecked(self.fitParamList[locList][name][1])
-        self.setNumExp()
+        self.numExp.setCurrentIndex(self.fitNumList[locList])
         for i in range(self.FITNUM):
             for name in self.MULTINAMES:
                 if isinstance(self.fitParamList[locList][name][i][0], (float, int)):
@@ -1107,11 +1175,10 @@ class AbstractParamFrame(QtWidgets.QWidget):
                         self.ticks[name][i].hide()
                     self.entries[name][i].hide()
 
-    def setNumExp(self):
-        locList = self.getRedLocList()
-        self.numExp.setCurrentIndex(self.fitNumList[locList])
-
     def changeNum(self, *args):
+        """
+        Set the number of sites to the value shown in the box.
+        """
         val = self.numExp.currentIndex() + 1
         locList = self.getRedLocList()
         self.fitNumList[locList] = self.numExp.currentIndex()
@@ -1127,6 +1194,14 @@ class AbstractParamFrame(QtWidgets.QWidget):
                     self.entries[name][i].hide()
 
     def checkInputs(self):
+        """
+        Checks the values set in the parameter boxes for validity.
+
+        Returns
+        -------
+        bool
+            True if all inputs are valid.
+        """
         locList = self.getRedLocList()
         numExp = self.getNumExp()
         for name in self.SINGLENAMES:
@@ -1155,12 +1230,26 @@ class AbstractParamFrame(QtWidgets.QWidget):
         return True
 
     def getNumExp(self):
+        """
+        Returns the number of sites as set in the box.
+        """
         return self.numExp.currentIndex() + 1
 
     def getExtraParams(self, out):
+        """
+        Returns the extra parameters of the fit.
+        """
         return (out, [])
 
     def getFitParams(self):
+        """
+        Creates the parameters and data required for the fit.
+        
+        Returns
+        -------
+        tuple
+            The tuple with required fitting information.
+        """
         if not self.checkInputs():
             raise FittingException("Fitting: One of the inputs is not valid")
         struc = {}
@@ -1203,7 +1292,17 @@ class AbstractParamFrame(QtWidgets.QWidget):
         args = ([numExp], [struc], [argu], [self.parent.data1D.freq], [self.parent.data1D.sw], [self.axMult], [self.FFT_AXES], [self.FFTSHIFT_AXES], [self.SINGLENAMES], [self.MULTINAMES])
         return (self.parent.data1D.xaxArray[-self.DIM:], self.parent.getData1D(), guess, args, out)
 
-    def setResults(self, fitVal, args, out):
+    def setResults(self, fitVal, args):
+        """
+        Set the results in the fit parameter list based on the given fit results.
+        
+        Parameters
+        ----------
+        fitVal : array_like
+            The results of the fit.
+        args : list
+            The arguments to the fit.
+        """
         locList = self.getRedLocList()
         numExp = args[0][0]
         struc = args[1][0]
@@ -1219,10 +1318,13 @@ class AbstractParamFrame(QtWidgets.QWidget):
         self.rootwindow.sim()
 
     def checkResults(self, struc, numExp):
-        #A placeholder for a function that checks the fit results (e.g. makes values absolute, etc)
+        # A dummy function that is replaced by a function that checks the fit results (e.g., makes values absolute, etc)
         pass
 
     def getSimParams(self):
+        """
+        Returns the dictionary with simulation parameters.
+        """
         if not self.checkInputs():
             raise FittingException("Fitting: One of the inputs is not valid")
         numExp = self.getNumExp()
@@ -1242,12 +1344,22 @@ class AbstractParamFrame(QtWidgets.QWidget):
         return out
 
     def extraParamToFile(self):
+        # Dummy function
         return ({}, {})
 
     def extraFileToParam(self, preParams, postParams):
+        # Dummy function
         pass
 
     def paramToFile(self):
+        """
+        Writes the fit parameters to a file.
+
+        Returns
+        -------
+        bool
+            True if an output file was written.
+        """
         if not self.checkInputs():
             raise FittingException("Fitting: One of the inputs is not valid")
         fileName = QtWidgets.QFileDialog.getSaveFileName(self, 'Save parameters', self.rootwindow.father.lastLocation + os.path.sep + self.parent.data.name + '_fit.txt', 'txt (*.txt)')
@@ -1317,11 +1429,19 @@ class AbstractParamFrame(QtWidgets.QWidget):
         return True
 
     def fileToParam(self):
+        """
+        Reads the fit parameters from a file as generated by paramToFile.
+        
+        Returns
+        -------
+        bool
+            True if the file was read successfully.
+        """
         fileName = QtWidgets.QFileDialog.getOpenFileName(self, 'Load parameters', self.rootwindow.father.lastLocation)
         if isinstance(fileName, tuple):
             fileName = fileName[0]
         if len(fileName) == 0:
-            return
+            return False
         with open(fileName, "r") as fp:
             report = fp.read()
         splitReport = re.split("#{20,}\n", report)
@@ -1367,6 +1487,18 @@ class AbstractParamFrame(QtWidgets.QWidget):
         return True
 
     def __interpretParam(self, strList):
+        """
+        Checks a given list of strings to interpret them as fit parameters.
+        
+        Parameters
+        ----------
+        strList : list of lists of str
+
+        Returns
+        -------
+        list
+            List of values or tuples (as long as they match a link tuple).
+        """
         data = []
         for i in range(len(strList)):
             tmp = []
@@ -1381,6 +1513,20 @@ class AbstractParamFrame(QtWidgets.QWidget):
         return data
         
     def setParamFromList(self, singleNames, singleVals, multiNames, multiVals):
+        """
+        Set the values in the fit parameter list to the given values.
+        
+        Parameters
+        ----------
+        singleNames : list of str
+            The names of the parameters shared by all sites.
+        singleVals : list
+            The fit values corresponding to singleNames.
+        multiNames : list of str
+            The names of the parameters for individual sites.
+        multiVals : list
+            The fit values corresponding to multiNames.
+        """
         locList = self.getRedLocList()
         keys = self.fitParamList[locList].keys()
         if singleVals:
@@ -1399,6 +1545,9 @@ class AbstractParamFrame(QtWidgets.QWidget):
         self.fitNumList[locList] = len(multiVals) - 1
 
     def paramToWorkspaceWindow(self):
+        """
+        Opens the window for exporting parameters to a workspace.
+        """
         paramNameList = self.SINGLENAMES + self.MULTINAMES
         if self.parent.data.ndim() == 1:
             single = True
@@ -1407,6 +1556,16 @@ class AbstractParamFrame(QtWidgets.QWidget):
         ParamCopySettingsWindow(self, paramNameList, single)
 
     def paramToWorkspace(self, allSlices, settings):
+        """
+        Exports parameters to a new workspace.
+
+        Parameters
+        ----------
+        allSlices : bool
+            True to export the parameters from all data slices.
+        settings : list of bool
+            A list of booleans in the order of SINGLENAMES+MULTINAMES whether to export a certain parameter type.
+        """
         if not self.checkInputs():
             raise FittingException("Fitting: One of the inputs is not valid")
         paramNameList = np.array(self.SINGLENAMES + self.MULTINAMES, dtype=object)
@@ -1472,6 +1631,9 @@ class AbstractParamFrame(QtWidgets.QWidget):
         ResultsExportWindow(self)
 
     def resultToWorkspaceWindow(self):
+        """
+        Opens the window for exporting curves to a workspace.
+        """
         if self.parent.data.ndim() == 1:
             single = True
         else:
@@ -1479,6 +1641,14 @@ class AbstractParamFrame(QtWidgets.QWidget):
         FitCopySettingsWindow(self, single)
 
     def resultToWorkspace(self, settings):
+        """
+        Exports curves to a new workspace.
+
+        Parameters
+        ----------
+        settings : list of bool
+            A list of booleans whether to include [all slices, the original, the subfits, the difference].
+        """
         if settings is None:
             return
         if settings[0]:
@@ -1509,6 +1679,21 @@ class AbstractParamFrame(QtWidgets.QWidget):
             self.rootwindow.createNewData(data, self.parent.axes[-1], False)
 
     def prepareResultToWorkspace(self, settings, minLength=1):
+        """
+        Generates the data required to export curves to a workspace.
+
+        Parameters
+        ----------
+        settings : list of bool
+            A list of booleans whether to include [all slices, the original, the subfits, the difference].
+        minLength : int
+            The minimum length of the data to export.
+
+        Returns
+        -------
+        ndarray
+            The curves to export.
+        """
         self.calculateResultsToWorkspace()
         locList = self.getRedLocList()
         fitData = self.parent.fitDataList[locList]
@@ -1539,6 +1724,20 @@ class AbstractParamFrame(QtWidgets.QWidget):
         return self.parent.data1D.xaxArray[-self.DIM:]
         
     def disp(self, params, num, display=True):
+        """
+        Simulate the spectrum and displays it.
+        
+        Parameters
+        ----------
+        params : list
+            The list of parameters of all tabs.
+        num : int
+            The tab number.
+            The parameters at position num in params belong to this tab.
+        display : bool, optional
+            When True the simulated data will also be displayed.
+            True by default.
+        """
         out = params[num]
         try:
             for name in self.SINGLENAMES:
