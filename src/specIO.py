@@ -28,6 +28,33 @@ class LoadException(sc.SpectrumException):
     pass
 
 def autoLoad(filePathList, asciiInfoList=None):
+    """
+    Loads and combines a list of files using the automatic routine.
+    All data file should have the same shape in order for merging to work.
+
+    Parameters
+    ----------
+    filePathList: list of strings
+        Paths to the files that should be loaded
+    asciiInfoList: list of lists (optional)
+        Extra info needed for loading ASCII data. Each entry consist of:
+        [dim, order, spec, delim, sw]
+        dim: int
+            Number of dimensions (1 or 2)
+        order: string
+            Data column description ('XRI','XR','XI','RI','R')
+        spec: bool
+            If True spectrum, otherwise FID
+        delim: string
+            Delimiter ('Tab','Space','Comma')
+        sw: float
+            Spectral width in kHz
+        If no info needs to be given 'None' should be passed
+    Returns
+    -------
+    SpectrumClass:
+        SpectrumClass object of the merged data
+    """
     if isinstance(filePathList, string_types):
         filePathList = [filePathList]
     if asciiInfoList is None:
@@ -50,6 +77,31 @@ def autoLoad(filePathList, asciiInfoList=None):
     return masterData
 
 def autoLoadSingle(filePath, asciiInfo=None):
+    """
+    Loads a single file using the automatic routine.
+
+    Parameters
+    ----------
+    filePath: string
+        Path to the file that should be loaded
+    asciiInfo: list (optional)
+        Extra info needed for loading ASCII data
+        [dim, order, spec, delim, sw]
+        dim: int
+            Number of dimensions (1 or 2)
+        order: string
+            Data column description ('XRI','XR','XI','RI','R')
+        spec: bool
+            If True spectrum, otherwise FID
+        delim: string
+            Delimiter ('Tab','Space','Comma')
+        sw: float
+            Spectral width in kHz
+    Returns
+    -------
+    SpectrumClass:
+        SpectrumClass object of the loaded data
+    """
     if filePath.endswith('.zip'):
         import tempfile
         import shutil
@@ -70,14 +122,39 @@ def autoLoadSingle(filePath, asciiInfo=None):
     return tmpSpec
 
 def loadFile(filePath, realpath=False, asciiInfo=None):
-    val = fileTypeCheck(filePath)
-    num =val[0]
-    filePath = val[1]
+    """
+    Loads file from filePath using the correct routine.
+
+    Parameters
+    ----------
+    filePath: string
+        Path to the file that should be loaded
+    realpath: string (optional)
+        The path to the real data (used for temporary unpacks of .zip files)
+    asciiInfo: list (optional)
+        Extra info needed for loading ASCII data
+        [dim, order, spec, delim, sw]
+        dim: int
+            Number of dimensions (1 or 2)
+        order: string
+            Data column description ('XRI','XR','XI','RI','R')
+        spec: bool
+            If True spectrum, otherwise FID
+        delim: string
+            Delimiter ('Tab','Space','Comma')
+        sw: float
+            Spectral width in kHz
+    Returns
+    -------
+    SpectrumClass:
+        SpectrumClass object of the loaded data
+    """
+    num, filePath = fileTypeCheck(filePath)
     if realpath:  # If there is a temp file, use the real path for name
         name = os.path.splitext(os.path.basename(realpath))[0]
     else:
         name = os.path.splitext(os.path.basename(filePath))[0]
-    if val[0] is None:
+    if num is None:
         return
     if num == 0:
         masterData = loadVarianFile(filePath)
@@ -119,7 +196,21 @@ def loadFile(filePath, realpath=False, asciiInfo=None):
     return masterData
 
 def fileTypeCheck(filePath):
-    returnVal = 0
+    """
+    Detects which file file type in contained in the filepath.
+
+    Parameters
+    ----------
+    filePath: string
+        Path to the file that should be loaded
+
+    Returns
+    -------
+    int:
+        The number used in ssNake for each different file format
+    string:
+        Path to the file
+    """
     fileBase = ''
     direc = filePath
     if os.path.isfile(filePath):
@@ -128,61 +219,72 @@ def fileTypeCheck(filePath):
         direc = os.path.dirname(filePath)
         if filename.lower().endswith('.fid') or filename.lower().endswith('.spe'):
             if os.path.exists(filePath[:-3] + 'AQS') or os.path.exists(filePath[:-3] + 'aqs'):
-                return (15, filePath, returnVal) #Bruker WinNMR suspected
+                return 15, filePath     #Bruker WinNMR suspected
             with open(filePath, 'r') as f:
                 check = int(np.fromfile(f, np.float32, 1))
             if check == 0:
-                return (8, filePath, returnVal)  # Suspected NMRpipe format
+                return 8, filePath  # Suspected NMRpipe format
             else:  # SIMPSON
-                return (4, filePath, returnVal)
+                return 4, filePath
         if filename.endswith('.ft') or filename.endswith('.ft1') or filename.endswith('.ft2') or filename.endswith('.ft3') or filename.endswith('.ft4'):
             with open(filePath, 'r') as f:
                 check = int(np.fromfile(f, np.float32, 1))
             if check == 0:
-                return (8, filePath, returnVal)  # Suspected NMRpipe format
+                return 8, filePath  # Suspected NMRpipe format
         elif filename.lower().endswith('.json'):
-            return (5, filePath, returnVal)
+            return 5, filePath
         elif filename.lower().endswith('.mat'):
-            return (6, filePath, returnVal)
+            return 6, filePath
         elif filename.endswith('.jdf'):  # JEOL delta format
-            return (9, filePath, returnVal)
+            return 9, filePath
         elif filename.endswith('.dx') or filename.endswith('.jdx') or filename.endswith('.jcamp'):  # JCAMP format
-            return (10, filePath, returnVal)
+            return 10, filePath
         elif filename.endswith('.sig'):  # Bruker minispec
-            return (12, filePath, returnVal)
+            return 12, filePath
         elif filename.lower().endswith('.ima'):  # Siemens ima format
-            return (14, filePath, returnVal)        
+            return 14, filePath        
         elif filename.lower().endswith('.1r') or filename.lower().endswith('.1i') :  # Bruker WinNMR format
-            return (15, filePath, returnVal)        
+            return 15, filePath        
         elif filename.lower().endswith('.mrc') :  # MestreC
-            return (16, filePath, returnVal)        
-        returnVal = 1
+            return 16, filePath     
         direc = os.path.dirname(filePath)
     if os.path.exists(direc + os.path.sep + 'procpar') and os.path.exists(direc + os.path.sep + 'fid'):
-        return (0, direc, returnVal)
+        return 0, direc
         # And for varian processed data
     if (os.path.exists(direc + os.path.sep + '..' + os.path.sep + 'procpar') or os.path.exists(direc + os.path.sep + 'procpar')) and os.path.exists(direc + os.path.sep + 'data'):
-        return (0, direc, returnVal)
+        return 0, direc
     elif os.path.exists(direc + os.path.sep + 'acqus') and (os.path.exists(direc + os.path.sep + 'fid') or os.path.exists(direc + os.path.sep + 'ser')):
-        return (1, direc, returnVal)
+        return 1, direc
     elif os.path.exists(direc + os.path.sep + 'procs') and (os.path.exists(direc + os.path.sep + '1r') or os.path.exists(direc + os.path.sep + '2rr') or os.path.exists(direc + os.path.sep + '3rrr')):
-        return (7, direc, returnVal)
+        return 7, direc
     elif os.path.exists(direc + os.path.sep + 'acq') and os.path.exists(direc + os.path.sep + 'data'):
-        return (2, direc, returnVal)
+        return 2, direc
     elif os.path.exists(direc + os.path.sep + 'acqu.par'):
         dirFiles = os.listdir(direc)
         files2D = [x for x in dirFiles if '.2d' in x]
         files1D = [x for x in dirFiles if '.1d' in x]
         if len(files2D) != 0 or len(files1D) != 0:
-            return (3, direc, returnVal)
+            return 3, direc
     elif os.path.exists(direc + os.path.sep + fileBase + '.spc') and os.path.exists(direc + os.path.sep + fileBase + '.par'):
-        return (13, direc + os.path.sep + fileBase, returnVal)
+        return 13, direc + os.path.sep + fileBase
     elif os.path.isfile(filePath):  # If not recognised, load as ascii
-        return (11, filePath, returnVal)
-    return (None, filePath, 2)
+        return 11, filePath
+    return None, filePath
 
 def varianGetPars(procpar):
-    """ A routine to load all pars to a dictionary for Varian procpar data """
+    """
+    Loads all parameters from Varian procpar file.
+
+    Parameters
+    ----------
+    procpar: string
+        Path to the procpar file that should be loaded
+
+    Returns
+    -------
+    Dictionary:
+        Dict with all the parameters
+    """
     with open(procpar, 'r') as f:
         data = f.read().split('\n')
     pos = 0
@@ -219,6 +321,19 @@ def varianGetPars(procpar):
     return pars
 
 def loadVarianFile(filePath):
+    """
+    Loads a Varian/Agilent file.
+
+    Parameters
+    ----------
+    filePath: string
+        Path to the file that should be loaded
+
+    Returns
+    -------
+    SpectrumClass
+        SpectrumClass object of the loaded data
+    """
     from struct import unpack
     if os.path.isfile(filePath):
         Dir = os.path.dirname(filePath)
@@ -299,6 +414,19 @@ def loadVarianFile(filePath):
     return masterData
 
 def loadPipe(filePath):
+    """
+    Loads a NMRpipe file.
+
+    Parameters
+    ----------
+    filePath: string
+        Path to the file that should be loaded
+
+    Returns
+    -------
+    SpectrumClass
+        SpectrumClass object of the loaded data
+    """
     with open(filePath, 'r') as f:
         header = np.fromfile(f, np.float32, 512)
     NDIM = int(header[9])
@@ -373,7 +501,24 @@ def loadPipe(filePath):
     masterData.addHistory("NMRpipe data loaded from " + filePath)
     return masterData
 
-def getJEOLpars(filePath,endian,start,length):
+def getJEOLpars(filePath,start,length):
+    """
+    Get the parameters from JEOL delta file header
+
+    Parameters
+    ----------
+    filePath: string
+        Location of the file
+    start: int
+        Byte wise start of the header
+    length: int
+        Number of bytes in the header
+
+    Returns
+    -------
+    Dictionary:
+        Dictionary with the converted header parameters
+    """
     from struct import unpack
     with open(filePath, "rb") as f:
         _ = f.read(start + 16)
@@ -402,12 +547,38 @@ def getJEOLpars(filePath,endian,start,length):
     return parsOut
 
 def convJEOLunit(val): #get scaling factor
+    """
+    Get the digital filter delay from a JEOL header
+
+    Parameters
+    ----------
+    pars: dict
+        Dictionary of the parameters
+
+    Returns
+    -------
+    float:
+        Digital filter in radian units (first order phasing correction)
+    """
     scale = (val >> 4) & 15
     if scale > 7:
         scale = scale - 16
     return 10.0**(-scale * 3)
 
 def getJEOLdFilter(pars):
+    """
+    Get the digital filter delay from a JEOL header
+
+    Parameters
+    ----------
+    pars: dict
+        Dictionary of the parameters
+
+    Returns
+    -------
+    float:
+        Digital filter in radian units (first order phasing correction)
+    """
     try:
         orders = np.array([int(x) for x in pars['orders'].split()])
         factors = np.array([int(x) for x in pars['factors'].split()])
@@ -418,6 +589,27 @@ def getJEOLdFilter(pars):
         return None
 
 def multiUP(header,typ, bit, num, start):
+    """
+    Unpacks an array of numbers from a JEOL header
+
+    Parameters
+    ----------
+    header: bytes
+        Bytes header of the file
+    type: string
+        Type of the encode (e.g. '>I' '<B', etc)
+    bit: int
+        Bytes per number
+    num: int
+        Number of numbers
+    start: int
+        Start position of the numbers
+
+    Returns
+    -------
+    ndarray:
+        1-D array with the series of numbers
+    """
     from struct import unpack
     return np.array([unpack(typ,header[start + x:start + bit + x])[0] for x in range(0,num * bit,bit)])
 
@@ -456,7 +648,7 @@ def loadJEOLDelta(filePath):
     paramLength = multiUP(header,'>I', 4, 1, 1216)[0]
     readStart = multiUP(header,'>I', 4, 1, 1284)[0]
     #data_length = multiUP(header,'>Q', 8, 1, 1288)[0]
-    hdrPars = getJEOLpars(filePath,endian,paramStart,paramLength)
+    hdrPars = getJEOLpars(filePath,paramStart,paramLength)
     dFilter = getJEOLdFilter(hdrPars)
 
     loadSize = np.prod(NP[:NDIM])
