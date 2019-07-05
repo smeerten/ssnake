@@ -4163,10 +4163,10 @@ class DCWindow(wc.ToolWindow):
         super(DCWindow, self).__init__(parent)
         self.startVal = int(round(0.8 * parent.current.len()))
         self.endVal = parent.current.len()
-        self.grid.addWidget(wc.QLabel("Start point:"), 0, 0)
+        self.grid.addWidget(wc.QLabel("Start index:"), 0, 0)
         self.startEntry = wc.QLineEdit(self.startVal, self.offsetPreview)
         self.grid.addWidget(self.startEntry, 1, 0)
-        self.grid.addWidget(wc.QLabel("End point:"), 2, 0)
+        self.grid.addWidget(wc.QLabel("End index:"), 2, 0)
         self.endEntry = wc.QLineEdit(self.endVal, self.offsetPreview)
         self.grid.addWidget(self.endEntry, 3, 0)
         self.grid.addWidget(wc.QLabel("Offset:"), 4, 0)
@@ -4326,8 +4326,8 @@ class regionWindow(wc.ToolWindow):
         super(regionWindow, self).__init__(parent)
         self.startVal = [0]  # dummy variables
         self.endVal = [parent.current.len()]  # dummy variables
-        self.grid.addWidget(wc.QLabel("Start point:"), 0, 0)
-        self.grid.addWidget(wc.QLabel("End point:"), 0, 1)
+        self.grid.addWidget(wc.QLabel("Start index:"), 0, 0)
+        self.grid.addWidget(wc.QLabel("End index:"), 0, 1)
         self.startEntry = []
         self.endEntry = []
         self.deleteButton = []
@@ -4594,10 +4594,10 @@ class regionWindow2(wc.ToolWindow):
         super(regionWindow2, self).__init__(parent)
         self.startVal = 0
         self.endVal = parent.current.len()
-        self.grid.addWidget(wc.QLabel("Start point:"), 0, 0)
+        self.grid.addWidget(wc.QLabel("Start index:"), 0, 0)
         self.startEntry = wc.QLineEdit(self.startVal, self.checkValues)
         self.grid.addWidget(self.startEntry, 1, 0)
-        self.grid.addWidget(wc.QLabel("End point:"), 2, 0)
+        self.grid.addWidget(wc.QLabel("End index:"), 2, 0)
         self.endEntry = wc.QLineEdit(self.endVal, self.checkValues)
         self.grid.addWidget(self.endEntry, 3, 0)
         self.newSpec = QtWidgets.QCheckBox("Result in new workspace")
@@ -4734,10 +4734,10 @@ class FiddleWindow(wc.ToolWindow):
         super(FiddleWindow, self).__init__(parent)
         self.startVal = 0
         self.endVal = parent.current.len()
-        self.grid.addWidget(wc.QLabel("Start point:"), 0, 0)
+        self.grid.addWidget(wc.QLabel("Start index:"), 0, 0)
         self.startEntry = wc.QLineEdit(self.startVal, self.checkValues)
         self.grid.addWidget(self.startEntry, 1, 0)
-        self.grid.addWidget(wc.QLabel("End point:"), 2, 0)
+        self.grid.addWidget(wc.QLabel("End index:"), 2, 0)
         self.endEntry = wc.QLineEdit(self.endVal, self.checkValues)
         self.grid.addWidget(self.endEntry, 3, 0)
         self.grid.addWidget(wc.QLabel("Linebroadening [Hz]:"), 4, 0)
@@ -4985,16 +4985,16 @@ class SNWindow(wc.ToolWindow):
 
     def __init__(self, parent):
         super(SNWindow, self).__init__(parent)
-        self.grid.addWidget(wc.QLabel("Start point noise:"), 0, 0)
+        self.grid.addWidget(wc.QLabel("Start index noise:"), 0, 0)
         self.minNoiseEntry = wc.QLineEdit('0', self.checkValues)
         self.grid.addWidget(self.minNoiseEntry, 1, 0)
-        self.grid.addWidget(wc.QLabel("End point noise:"), 2, 0)
+        self.grid.addWidget(wc.QLabel("End index noise:"), 2, 0)
         self.maxNoiseEntry = wc.QLineEdit(parent.current.len(), self.checkValues)
         self.grid.addWidget(self.maxNoiseEntry, 3, 0)
-        self.grid.addWidget(wc.QLabel("Start point signal:"), 4, 0)
+        self.grid.addWidget(wc.QLabel("Start index signal:"), 4, 0)
         self.minEntry = wc.QLineEdit('0', self.checkValues)
         self.grid.addWidget(self.minEntry, 5, 0)
-        self.grid.addWidget(wc.QLabel("End point signal:"), 6, 0)
+        self.grid.addWidget(wc.QLabel("End index signal:"), 6, 0)
         self.maxEntry = wc.QLineEdit(parent.current.len(), self.checkValues)
         self.grid.addWidget(self.maxEntry, 7, 0)
         self.grid.addWidget(wc.QLabel("S/N:"), 8, 0)
@@ -5114,10 +5114,10 @@ class FWHMWindow(wc.ToolWindow):
 
     def __init__(self, parent):
         super(FWHMWindow, self).__init__(parent)
-        self.grid.addWidget(wc.QLabel("Start point:"), 0, 0)
+        self.grid.addWidget(wc.QLabel("Start index:"), 0, 0)
         self.minEntry = wc.QLineEdit('0', self.checkValues)
         self.grid.addWidget(self.minEntry, 1, 0)
-        self.grid.addWidget(wc.QLabel("End point:"), 2, 0)
+        self.grid.addWidget(wc.QLabel("End index:"), 2, 0)
         self.maxEntry = wc.QLineEdit(parent.current.len(), self.checkValues)
         self.grid.addWidget(self.maxEntry, 3, 0)
         self.grid.addWidget(wc.QLabel("Units:"), 4, 0)
@@ -5380,11 +5380,11 @@ class IntegralsWindow(wc.ToolWindow):
         self.pickDim = 1 
         if isinstance(self.father.current, views.CurrentContour):
             self.pickDim = 2 
-        self.grid.addWidget(wc.QLabel("Start point X:"), 0, 0)
-        self.grid.addWidget(wc.QLabel("End point X:"), 0, 1)
+        self.grid.addWidget(wc.QLabel("Start index X:"), 0, 0)
+        self.grid.addWidget(wc.QLabel("End index X:"), 0, 1)
         if self.pickDim == 2:
-            self.grid.addWidget(wc.QLabel("Start point Y:"), 0, 2)
-            self.grid.addWidget(wc.QLabel("End point Y:"), 0, 3)
+            self.grid.addWidget(wc.QLabel("Start index Y:"), 0, 2)
+            self.grid.addWidget(wc.QLabel("End index Y:"), 0, 3)
         self.grid.addWidget(wc.QLabel("Integral:"), 0, 4)
         self.scaling = 1 
         self.num = 0
@@ -5865,10 +5865,10 @@ class NormalizeWindow(wc.ToolWindow):
 
     def __init__(self, parent):
         super(NormalizeWindow, self).__init__(parent)
-        self.grid.addWidget(wc.QLabel("Start point:"), 0, 0)
+        self.grid.addWidget(wc.QLabel("Start index:"), 0, 0)
         self.minEntry = wc.QLineEdit("0", self.checkValues)
         self.grid.addWidget(self.minEntry, 1, 0)
-        self.grid.addWidget(wc.QLabel("End point:"), 2, 0)
+        self.grid.addWidget(wc.QLabel("End index:"), 2, 0)
         self.maxEntry = wc.QLineEdit(parent.current.len(), self.checkValues)
         self.grid.addWidget(self.maxEntry, 3, 0)
         self.grid.addWidget(wc.QLabel("Type:"), 4, 0)
