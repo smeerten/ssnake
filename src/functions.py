@@ -32,7 +32,8 @@ def apodize(t, shift=0.0, lor=None, gauss=None, cos2=[None,None], hamming=None, 
     t : array_like
         The time values at which to calculate the apodization function.
     shift : float, optional
-        A shift in time of the function. A positive value shift the curve to later times.
+        A shift in time of the function. 
+        A positive value shift the curve to later times.
         By default a shift of 0.0 is used.
     lor : float, optional
         The Lorentzian component of the apodization window.
@@ -67,7 +68,7 @@ def apodize(t, shift=0.0, lor=None, gauss=None, cos2=[None,None], hamming=None, 
     if gauss is not None:
         x *= np.exp(-((np.pi * gauss * t2)**2) / (4 * np.log(2)))
     if cos2[0] is not None and cos2[1] is not None :
-        x *= (np.cos(np.radians(cos2[1]) + cos2[0] * (-0.5 * shift * np.pi * sw / axLen + np.linspace(0, 0.5 * np.pi, axLen)))**2)
+        x *= (np.cos(np.radians(cos2[1]) + cos2[0] * (-0.5 * shift * np.pi * sw / axLen + np.linspace(0, 0.5 * np.pi, axLen))))
     if hamming is not None:
         alpha = 0.53836  # constant for hamming window
         x *= (alpha + (1 - alpha) * np.cos(hamming * (-0.5 * shift * np.pi * sw / axLen + np.linspace(0, np.pi, axLen))))
@@ -300,7 +301,7 @@ def quadConversion(Values, I, Type, Q=None):
         Cyy = -Cxx - Czz
         Values = [ Cxx, Cyy, Czz]
     if Type == 1:
-        #Wq, eta
+        # Wq, eta
         Vmax = Values[0]
         Eta = Values[1]
         if Eta > 1.0:
@@ -352,3 +353,42 @@ def quadConversion(Values, I, Type, Q=None):
         Vzz = None
     return [[CqNew, EtaNew], [WqNew, EtaNew], [Vxx, Vyy, Vzz]]
 
+def ACMEentropy(phaseIn, data, x, firstOrder=True):
+    """
+    Calculates the cost value for autophasing.
+
+    Parameters
+    ----------
+    phaseIn : list of float
+        Should contain two values, the first one is the zero order phase, and the second one the first order phase.
+    data : ndarray
+        The data to be phased.
+    x : ndarray
+        The x-axis corresponding to the first order phasing.
+    firstOrder : bool, optional
+        If True, the first order phasing is included.
+        True by default.
+
+    Returns
+    -------
+        The cost value.
+    """
+    phase0 = phaseIn[0]
+    if firstOrder:
+        phase1 = phaseIn[1]
+    else:
+        phase1 = 0.0
+    L = len(data)
+    s0 = data * np.exp(1j * (phase0 + phase1 * x))
+    s2 = np.real(s0)
+    ds1 = np.abs((s2[3:L] - s2[1:L - 2]) / 2.0)
+    p1 = ds1 / sum(ds1)
+    p1[np.where(p1 == 0)] = 1
+    h1 = -p1 * np.log(p1)
+    H1 = sum(h1)
+    Pfun = 0.0
+    as1 = s2 - np.abs(s2)
+    sumas = sum(as1)
+    if (np.real(sumas) < 0):
+        Pfun = Pfun + sum(as1**2) / 4 / L**2
+    return H1 + 1000 * Pfun

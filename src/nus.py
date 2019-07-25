@@ -80,7 +80,7 @@ def clean(inp):
         0: 1D ndarray with the 'bad' spectrum
         1: 1D array of the fft of the mask
         2: float, gamma value of the CLEAN calculation
-        3: float, stopping limit (0 < x < 1) (stop if residual intesity below this point)
+        3: float, stopping limit (0 < x < 1) (stop if residual intensity below this point)
         4: int, maximum number of iterations
 
     Returns
@@ -118,7 +118,7 @@ def ist(inp):  # Iterative soft thresholding
         1: 1D array with the 'zero' positions
         2: float, threshold. The level (0 < x < 1) at which the data is cut every iteration
         3: int, maximum number of iterations
-        4: float, stopping limit (0 < x < 1) (stop if residual intesity below this point)
+        4: float, stopping limit (0 < x < 1) (stop if residual intensity below this point)
         5: float, maxmimum of the ND data, needed for the stopping limit
 
     Returns
